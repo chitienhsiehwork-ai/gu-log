@@ -1,0 +1,89 @@
+---
+/**
+ * Toggle Component - Collapsible content like Notion/Obsidian
+ * 
+ * Usage in .astro files:
+ *   <Toggle title="Click to expand">
+ *     Content goes here
+ *   </Toggle>
+ * 
+ * Props:
+ *   - title: The visible header text
+ *   - open: Whether to start expanded (default: false)
+ */
+
+interface Props {
+  title: string;
+  open?: boolean;
+}
+
+const { title, open = false } = Astro.props;
+---
+
+<details class="toggle" open={open}>
+  <summary class="toggle-header">
+    <span class="toggle-icon"></span>
+    <span class="toggle-title">{title}</span>
+  </summary>
+  <div class="toggle-content">
+    <slot />
+  </div>
+</details>
+
+<style>
+  .toggle {
+    margin: 0.75rem 0;
+    border-radius: 8px;
+    background: var(--color-surface);
+    overflow: hidden;
+  }
+
+  .toggle-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    user-select: none;
+    font-weight: 500;
+    list-style: none;
+  }
+
+  .toggle-header::-webkit-details-marker {
+    display: none;
+  }
+
+  .toggle-icon {
+    width: 0;
+    height: 0;
+    border-left: 6px solid var(--color-text);
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    transition: transform 0.2s ease;
+  }
+
+  details[open] .toggle-icon {
+    transform: rotate(90deg);
+  }
+
+  .toggle-title {
+    flex: 1;
+  }
+
+  .toggle-content {
+    padding: 0 1rem 1rem 1.75rem;
+    color: var(--color-text-muted);
+  }
+
+  .toggle-content :global(p:last-child) {
+    margin-bottom: 0;
+  }
+
+  /* Touch-friendly sizing */
+  @media (pointer: coarse) {
+    .toggle-header {
+      padding: 1rem;
+      min-height: 48px;
+    }
+  }
+</style>

@@ -1,0 +1,90 @@
+---
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description = "Sprin's translated readings" } = Astro.props;
+---
+
+<!doctype html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet" />
+    <title>{title}</title>
+  </head>
+  <body>
+    <div class="container">
+      <header class="site-header">
+        <a href="/" class="site-title">📚 Reading Log</a>
+        <nav class="site-nav">
+          <a href="/">首頁</a>
+          <a href="/about">關於</a>
+        </nav>
+      </header>
+      
+      <main>
+        <slot />
+      </main>
+      
+      <footer class="site-footer">
+        <p>翻譯由 Claude 協助，經人工校對</p>
+      </footer>
+    </div>
+  </body>
+</html>
+
+<style is:global>
+  @import '../styles/global.css';
+</style>
+
+<style>
+  .site-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .site-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--color-text);
+    text-decoration: none;
+  }
+
+  .site-nav {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .site-nav a {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+  }
+
+  .site-nav a:hover {
+    color: var(--color-accent);
+  }
+
+  .site-footer {
+    margin-top: 3rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+    text-align: center;
+  }
+
+  main {
+    min-height: 60vh;
+  }
+</style>

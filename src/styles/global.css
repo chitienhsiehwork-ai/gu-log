@@ -1,0 +1,140 @@
+/* Global Styles - Mobile First */
+
+:root {
+  --color-bg: #0f0f0f;
+  --color-surface: #1a1a1a;
+  --color-text: #e5e5e5;
+  --color-text-muted: #888;
+  --color-accent: #7c9bff;
+  --color-border: #333;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --max-width: 680px;
+  --spacing-xs: 0.5rem;
+  --spacing-sm: 1rem;
+  --spacing-md: 1.5rem;
+  --spacing-lg: 2rem;
+  --spacing-xl: 3rem;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.7;
+  padding: var(--spacing-sm);
+  min-height: 100vh;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  line-height: 1.3;
+  margin-bottom: var(--spacing-sm);
+  color: var(--color-text);
+}
+
+h1 { font-size: 1.75rem; }
+h2 { font-size: 1.4rem; margin-top: var(--spacing-lg); }
+h3 { font-size: 1.2rem; margin-top: var(--spacing-md); }
+
+p {
+  margin-bottom: var(--spacing-sm);
+}
+
+a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Container */
+.container {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: var(--spacing-sm);
+}
+
+/* Code */
+code {
+  font-family: var(--font-mono);
+  background: var(--color-surface);
+  padding: 0.2em 0.4em;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+pre {
+  background: var(--color-surface);
+  padding: var(--spacing-sm);
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: var(--spacing-sm) 0;
+}
+
+pre code {
+  background: none;
+  padding: 0;
+}
+
+/* Lists */
+ul, ol {
+  margin-left: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
+}
+
+li {
+  margin-bottom: var(--spacing-xs);
+}
+
+/* Blockquote */
+blockquote {
+  border-left: 3px solid var(--color-accent);
+  padding-left: var(--spacing-sm);
+  color: var(--color-text-muted);
+  margin: var(--spacing-sm) 0;
+  font-style: italic;
+}
+
+/* Citation / Source */
+.source-citation {
+  background: var(--color-surface);
+  border-radius: 8px;
+  padding: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+  border-left: 3px solid var(--color-accent);
+}
+
+.source-citation a {
+  word-break: break-all;
+}
+
+/* Article meta */
+.post-meta {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  margin-bottom: var(--spacing-md);
+}
+
+/* Responsive */
+@media (min-width: 640px) {
+  body {
+    padding: var(--spacing-md);
+  }
+  
+  h1 { font-size: 2rem; }
+  h2 { font-size: 1.5rem; }
+}
