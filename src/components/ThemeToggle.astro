@@ -1,0 +1,70 @@
+---
+/**
+ * Theme Toggle - Switch between dark and solarized light
+ */
+---
+
+<button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
+  <span class="theme-icon">🌙</span>
+</button>
+
+<script>
+  const toggle = document.getElementById('theme-toggle');
+  const icon = toggle?.querySelector('.theme-icon');
+  
+  // Check saved preference or system preference
+  function getPreferredTheme(): 'dark' | 'light' {
+    const saved = localStorage.getItem('theme');
+    if (saved === 'light' || saved === 'dark') return saved;
+    return 'dark'; // default to dark
+  }
+
+  function setTheme(theme: 'dark' | 'light') {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+    if (icon) {
+      icon.textContent = theme === 'dark' ? '🌙' : '☀️';
+    }
+  }
+
+  // Initialize
+  setTheme(getPreferredTheme());
+
+  // Toggle on click
+  toggle?.addEventListener('click', () => {
+    const current = document.documentElement.getAttribute('data-theme');
+    setTheme(current === 'dark' ? 'light' : 'dark');
+  });
+</script>
+
+<style>
+  .theme-toggle {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+    font-size: 1.1rem;
+    line-height: 1;
+    transition: background 0.2s ease, border-color 0.2s ease;
+  }
+
+  .theme-toggle:hover {
+    background: var(--color-border);
+  }
+
+  .theme-toggle:active {
+    transform: scale(0.95);
+  }
+
+  /* Touch-friendly */
+  @media (pointer: coarse) {
+    .theme-toggle {
+      min-width: 44px;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  }
+</style>

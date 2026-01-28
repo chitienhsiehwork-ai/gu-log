@@ -3,10 +3,13 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import Toggle from '../components/Toggle.astro';
 ---
 
-<BaseLayout title="Reading Log - 首頁">
-  <h1>📚 Reading Log</h1>
+<BaseLayout title="香菇大狗狗 - Reading Log">
+  <h1>🍄 香菇大狗狗</h1>
   <p class="intro">
     精選外文好文，翻譯成繁體中文。每篇都附原文連結。
+  </p>
+  <p class="author-note">
+    by ShroomDog and Clawd
   </p>
 
   <section class="posts-section">
@@ -43,16 +46,28 @@ import Toggle from '../components/Toggle.astro';
       </ul>
     </Toggle>
   </section>
+
+  <section class="theme-demo">
+    <h2>主題切換</h2>
+    <p>點右上角的 🌙 / ☀️ 按鈕切換深色/淺色（Solarized Light）模式</p>
+  </section>
 </BaseLayout>
 
 <style>
   .intro {
     color: var(--color-text-muted);
     font-size: 1.1rem;
-    margin-bottom: 2rem;
+    margin-bottom: 0.5rem;
   }
 
-  .posts-section, .demo-section {
+  .author-note {
+    color: var(--color-accent);
+    font-size: 0.9rem;
+    margin-bottom: 2rem;
+    font-style: italic;
+  }
+
+  .posts-section, .demo-section, .theme-demo {
     margin-bottom: 2rem;
   }
 

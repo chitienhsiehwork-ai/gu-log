@@ -1,10 +1,12 @@
 ---
+import ThemeToggle from '../components/ThemeToggle.astro';
+
 interface Props {
   title: string;
   description?: string;
 }
 
-const { title, description = "Sprin's translated readings" } = Astro.props;
+const { title, description = "香菇大狗狗的翻譯閱讀筆記 - ShroomDog and Clawd" } = Astro.props;
 ---
 
 <!doctype html>
@@ -18,14 +20,20 @@ const { title, description = "Sprin's translated readings" } = Astro.props;
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet" />
     <title>{title}</title>
+    <!-- Prevent flash of wrong theme -->
+    <script is:inline>
+      const theme = localStorage.getItem('theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', theme);
+    </script>
   </head>
   <body>
     <div class="container">
       <header class="site-header">
-        <a href="/" class="site-title">📚 Reading Log</a>
+        <a href="/" class="site-title">🍄 香菇大狗狗</a>
         <nav class="site-nav">
           <a href="/">首頁</a>
           <a href="/about">關於</a>
+          <ThemeToggle />
         </nav>
       </header>
       
@@ -34,7 +42,8 @@ const { title, description = "Sprin's translated readings" } = Astro.props;
       </main>
       
       <footer class="site-footer">
-        <p>翻譯由 Claude 協助，經人工校對</p>
+        <p>by <strong>香菇大狗狗</strong> / ShroomDog and Clawd</p>
+        <p class="footer-sub">翻譯由 Claude 協助，經人工校對</p>
       </footer>
     </div>
   </body>
@@ -52,6 +61,8 @@ const { title, description = "Sprin's translated readings" } = Astro.props;
     padding: 1rem 0;
     margin-bottom: 2rem;
     border-bottom: 1px solid var(--color-border);
+    flex-wrap: wrap;
+    gap: 0.5rem;
   }
 
   .site-title {
@@ -63,6 +74,7 @@ const { title, description = "Sprin's translated readings" } = Astro.props;
 
   .site-nav {
     display: flex;
+    align-items: center;
     gap: 1rem;
   }
 
@@ -82,6 +94,11 @@ const { title, description = "Sprin's translated readings" } = Astro.props;
     color: var(--color-text-muted);
     font-size: 0.85rem;
     text-align: center;
+  }
+
+  .footer-sub {
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
   }
 
   main {
