@@ -239,14 +239,14 @@ import Toggle from '../../components/Toggle.astro';
       <Toggle title="三層定位系統">
         <p><strong>1. 資料夾結構</strong></p>
         <p>一個 hook 在 session 開始時自動顯示有哪些資料夾和檔案：</p>
-        <pre><code>"hooks": {
+        <pre><code>{`"hooks": {
   "SessionStart": [{
     "hooks": [{
       "type": "command",
       "command": "tree -L 3 -a -I '.git|.obsidian' --noreport"
     }]
   }]
-}</code></pre>
+}`}</code></pre>
 
         <p><strong>2. Index 檔案</strong></p>
         <p>列出每則筆記加一句描述。Claude 可以在幾秒內掃描 50 則筆記而不用打開它們。</p>
