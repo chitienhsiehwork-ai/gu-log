@@ -41,6 +41,8 @@
   toggle?.addEventListener('click', () => {
     const current = document.documentElement.getAttribute('data-theme');
     setTheme(current === 'dark' ? 'light' : 'dark');
+    // Remove focus to prevent stuck state
+    (toggle as HTMLButtonElement).blur();
   });
 </script>
 
