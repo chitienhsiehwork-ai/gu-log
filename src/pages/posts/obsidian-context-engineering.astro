@@ -41,14 +41,14 @@ import Toggle from '../../components/Toggle.astro';
         在 session 開始時，透過 hook 自動注入完整的檔案樹，這時候 Claude 還沒碰任何東西。
       </p>
 
-      <pre><code>"hooks": {
+      <pre><code>{`"hooks": {
     "SessionStart": [{
         "hooks": [{
             "type": "command",
             "command": "tree -L 3 -a -I '.git|.obsidian' --noreport"
         }]
     }]
-}</code></pre>
+}`}</code></pre>
 
       <p>
         這給了 Claude 一張地圖。
