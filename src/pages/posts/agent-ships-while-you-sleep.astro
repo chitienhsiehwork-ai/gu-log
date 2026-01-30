@@ -1,0 +1,210 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Toggle from '../../components/Toggle.astro';
+---
+
+<BaseLayout title="如何讓你的 Agent 在你睡覺時學習並發布代碼 - gu-log">
+  <article class="post">
+    <header class="post-header">
+      <h1>如何讓你的 Agent 在你睡覺時學習並發布代碼</h1>
+      <p class="post-meta">2026-01-30 · 完整翻譯</p>
+    </header>
+
+    <div class="source-citation">
+      <strong>原文出處：</strong>
+      <a href="https://x.com/ryancarson/status/2016520542723924279" target="_blank" rel="noopener">
+        @ryancarson on X
+      </a>
+    </div>
+
+    <div class="post-content">
+
+      <p>
+        大部分開發者都是「反應式」地使用 AI Agent——你給指令，它回應，然後結束。
+      </p>
+
+      <p>
+        <strong>但如果你的 Agent 在你蓋上筆電後繼續工作呢？</strong>
+      </p>
+
+      <p>
+        如果它能回顧一天的工作、提取教訓、更新自己的指令，然後從 backlog 挑選下一個功能來做呢？
+      </p>
+
+      <p>
+        這就是我打造的系統：一個每晚執行的循環。Agent 從每個 thread 學習，將知識複利累積進持久記憶，然後發布下一個優先項目——全部都在我睡覺時完成。
+      </p>
+
+      <blockquote class="claude-note">
+        <strong>Claude：</strong>這就是所謂的 "Nightly Build" 的究極進化版。不只是 compile code，而是 compile <strong>知識</strong> 和 <strong>新功能</strong>。
+      </blockquote>
+
+      <h2>設定方式</h2>
+
+      <p>這個設置建立在三個開源專案之上：</p>
+
+      <ol>
+        <li><a href="https://github.com/EveryInc/compound-engineering-plugin">Compound Engineering Plugin</a>：讓 Agent 有能力提取並持久化學習經驗。</li>
+        <li><a href="https://github.com/snarktank/compound-product">Compound Product</a>：自動化層，把優先報告轉成已發布的 PR。</li>
+        <li><a href="https://github.com/snarktank/ralph">Ralph</a>：一個自主 Agent 循環，能持續執行任務直到完成。</li>
+      </ol>
+
+      <p>
+        （如果你用 Claude Code，邏輯是一樣的。把腳本裡的 <code>amp execute</code> 換成 <code>claude -p "..."</code> 即可。）
+      </p>
+
+      <h2>兩階段循環 (The Two-Part Loop)</h2>
+
+      <p>系統每晚依序執行兩個工作：</p>
+
+      <h3>10:30 PM - Compound Review (複利回顧)</h3>
+      <p>回顧過去 24 小時的所有 threads，提取教訓，更新 <code>AGENTS.md</code> 檔案。</p>
+
+      <h3>11:00 PM - Auto-Compound (自動實作)</h3>
+      <p>拉取最新代碼（包含剛學到的新知識），從報告中挑選 #1 優先事項，實作它，並建立 PR。</p>
+
+      <p>
+        <strong>順序很重要。</strong> 回顧工作會把白天發現的 pattern 和坑更新到 <code>AGENTS.md</code>。實作工作在挑選新任務時就能受益於這些知識。
+      </p>
+
+      <h2>第一步：Compound Review Script</h2>
+
+      <p>這個腳本叫 Agent 去看過去 24 小時的 threads，如果之前沒做過總結，現在補做。</p>
+
+      <pre><code>#!/bin/bash
+# scripts/daily-compound-review.sh
+
+cd ~/projects/your-project
+git checkout main
+git pull origin main
+
+amp execute "Load the compound-engineering skill. Look through and read each Amp thread from the last 24 hours. For any thread where we did NOT use the Compound Engineering skill to compound our learnings at the end, do so now - extract the key learnings from that thread and update the relevant AGENTS.md files so we can learn from our work and mistakes. Commit your changes and push to main."</code></pre>
+
+      <p>你的 <code>AGENTS.md</code> 變成了一個活的知識庫，每晚都會成長。</p>
+
+      <h2>第二步：Auto-Compound Script</h2>
+
+      <p>這是實作引擎。讀取報告 → 挑選置頂項目 → 建立 PRD → 拆解任務 → 執行。</p>
+
+      <pre><code>#!/bin/bash
+# scripts/compound/auto-compound.sh
+
+# ... (省略部分 setup) ...
+
+# Find latest report & Analyze priority
+LATEST_REPORT=$(ls -t reports/*.md | head -1)
+ANALYSIS=$(./scripts/compound/analyze-report.sh "$LATEST_REPORT")
+PRIORITY_ITEM=$(echo "$ANALYSIS" | jq -r '.priority_item')
+
+# Create PRD & Tasks
+amp execute "Load the prd skill. Create a PRD for: $PRIORITY_ITEM..."
+amp execute "Load the tasks skill. Convert the PRD to scripts/compound/prd.json"
+
+# Run execution loop
+./scripts/compound/loop.sh 25
+
+# Create PR
+gh pr create --draft --title "Compound: $PRIORITY_ITEM" --base main</code></pre>
+
+      <h2>第三步：設定 launchd (macOS)</h2>
+
+      <p>雖然可以用 Cron，但在 macOS 上 <code>launchd</code> 處理 edge cases 更好。</p>
+
+      <Toggle title="查看 launchd plist 範例">
+        <p>建立 <code>~/Library/LaunchAgents/com.yourproject.daily-compound-review.plist</code>：</p>
+        <pre><code>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"&gt;
+&lt;plist version="1.0"&gt;
+&lt;dict&gt;
+  &lt;key&gt;Label&lt;/key&gt;
+  &lt;string&gt;com.yourproject.daily-compound-review&lt;/string&gt;
+  &lt;key&gt;StartCalendarInterval&lt;/key&gt;
+  &lt;dict&gt;
+    &lt;key&gt;Hour&lt;/key&gt;
+    &lt;integer&gt;22&lt;/integer&gt;
+    &lt;key&gt;Minute&lt;/key&gt;
+    &lt;integer&gt;30&lt;/integer&gt;
+  &lt;/dict&gt;
+  &lt;!-- ... 其他設定 ... --&gt;
+&lt;/dict&gt;
+&lt;/plist&gt;</code></pre>
+      </Toggle>
+
+      <h2>第四步：別讓電腦睡著</h2>
+
+      <p>
+        launchd 不會喚醒睡眠中的 Mac。使用 <code>caffeinate</code> 指令讓它在自動化窗口期間保持喚醒。
+      </p>
+
+      <pre><code>/usr/bin/caffeinate -i -t 32400</code></pre>
+      <p>（這會讓 Mac 保持喚醒 9 小時，從下午 5 點到凌晨 2 點，足夠跑完所有工作。）</p>
+
+      <h2>複利效應 (The Compound Effect)</h2>
+
+      <p>當你早上醒來時，你有：</p>
+      <ul>
+        <li>更新過的 <code>AGENTS.md</code>，包含 Agent 學到的新 patterns。</li>
+        <li>一個實作了下一個優先項目的 Draft PR。</li>
+        <li>完整的 Log 顯示發生了什麼事。</li>
+      </ul>
+
+      <p>
+        Agent 每天都會變聰明，因為它在每次實作前都會讀自己更新過的指令。週一發現的 pattern 會指導週二的工作。週三踩到的坑，週四就會避開。
+      </p>
+
+      <blockquote class="claude-note">
+        <strong>Claude：</strong>這才是真正的「睡後收入」（誤）。是睡後產出。重點不在於自動寫 code，而在於自動「學習」並把學習結果變成「系統設定」。
+      </blockquote>
+
+      <p>
+        <strong>Stop prompting. Start compounding.</strong>
+      </p>
+
+    </div>
+
+    <footer class="post-footer">
+      <a href="/">← 返回首頁</a>
+    </footer>
+  </article>
+</BaseLayout>
+
+<style>
+  .post-header {
+    margin-bottom: 1.5rem;
+  }
+
+  .post-header h1 {
+    margin-bottom: 0.5rem;
+  }
+
+  .post-content {
+    margin: 1.5rem 0;
+  }
+
+  .post-content blockquote {
+    font-style: normal;
+  }
+
+  .post-content blockquote.claude-note {
+    background: var(--color-surface);
+    border-left-color: var(--color-accent);
+    padding: 0.75rem 1rem;
+    border-radius: 0 8px 8px 0;
+  }
+
+  .post-content pre {
+    overflow-x: auto;
+  }
+
+  .post-content hr {
+    margin: 2rem 0;
+    border: none;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .post-footer {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--color-border);
+  }
+</style>
