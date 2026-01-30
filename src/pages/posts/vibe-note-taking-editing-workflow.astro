@@ -1,0 +1,190 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Toggle from '../../components/Toggle.astro';
+---
+
+<BaseLayout title="Vibe Note-Taking 101: Spatial Editing - gu-log">
+  <article class="post">
+    <header class="post-header">
+      <h1>Vibe Note-Taking 101: Spatial Editing</h1>
+      <p class="post-meta">2026-01-30 · 完整翻譯</p>
+    </header>
+
+    <div class="source-citation">
+      <strong>原文出處：</strong>
+      <a href="https://x.com/arscontexta/status/2015909609999941965" target="_blank" rel="noopener">
+        @arscontexta (Heinrich) on X
+      </a>
+    </div>
+
+    <div class="post-content">
+
+      <p>
+        用 Claude Code 編輯長文通常很痛苦。
+      </p>
+
+      <p>一般做法是這樣：</p>
+      <ul>
+        <li>讀過草稿</li>
+        <li>發現第 3 段要改</li>
+        <li>複製那一段</li>
+        <li>貼給 Claude 並加上你的評論</li>
+        <li>滑到第 7 段</li>
+        <li>再複製</li>
+        <li>再貼上...</li>
+      </ul>
+
+      <p>編輯本身沒問題，但這來來回回的過程很煩。</p>
+
+      <p>
+        當你有跨多個檔案的修改需要保持一致時，問題更嚴重。
+      </p>
+
+      <blockquote class="claude-note">
+        <strong>Claude：</strong>「嘿 Claude，在這檔案我要你改這邊，然後那邊也要改，還有第三個檔案...」這種指令通常講到一半 AI 就暈了，你自己也暈了。
+      </blockquote>
+
+      <h2>Spatial Editing (空間編輯)</h2>
+
+      <p>
+        不要把文字<strong>帶去</strong>給 Claude，而是把指令<strong>留</strong>在它們該在的地方。
+      </p>
+
+      <p>
+        用花括號標記你的 <code>{想法和編輯指令}</code>。
+      </p>
+
+      <p>
+        每個註解都適用於它周圍的文字。
+      </p>
+
+      <p><strong>範例：</strong></p>
+
+      <pre><code># why vaults matter
+
+vaults give claude memory
+{feels abstract}
+
+without persistent storage claude forgets everything between sessions
+{this is the key point, make it hit harder}
+
+the solution is simple
+{dont say simple, show}</code></pre>
+
+      <p><strong>輸出結果：</strong></p>
+
+      <pre><code># why vaults matter
+
+vaults give claude persistent memory across sessions by storing context in files it can read and write
+
+without persistent storage claude starts fresh every conversation, you re-explain the same context, rebuild the same understanding, lose the compound effect of accumulated knowledge
+
+the solution: store everything in markdown files that claude can traverse</code></pre>
+
+      <p>
+        指令執行完還會給你 summary：
+      </p>
+
+      <pre><code>processed 3 edits in why-vaults-matter.md:
+1. "feels abstract" → added concrete mechanism
+2. "make it hit harder" → expanded with specific pain points
+3. "dont say simple" → replaced with direct statement</code></pre>
+
+      <blockquote class="claude-note">
+        <strong>Claude：</strong>這招真的聰明。在文字旁邊寫指令（In-place instructions），這就是最自然的 context。程式碼裡的 TODO 註解也是同樣的道理。
+      </blockquote>
+
+      <h2>指令設計</h2>
+
+      <pre><code>/edit
+# 編輯當前開啟的檔案
+
+/edit draft.md
+# 編輯特定檔案
+
+/edit draft.md notes.md
+# 編輯多個檔案</code></pre>
+
+      <p>
+        如果你跑 <code>/edit</code> 沒指定檔案，它會搜尋整個 vault 找 <code>{thoughts}</code>：
+      </p>
+
+      <pre><code>rg "\{[^}]+\}" --type md -l</code></pre>
+
+      <p>然後讓你選要編輯哪些檔案。</p>
+
+      <h2>工作流</h2>
+
+      <ol>
+        <li><strong>一直寫</strong>：不要停下來，先把草稿寫完。</li>
+        <li><strong>快速讀</strong>：覺得哪裡怪怪的，就直接丟個 <code>{想法}</code> 在那邊。</li>
+        <li><strong>跑 /edit</strong>：讓 Claude 處理雜事。</li>
+        <li><strong>審閱</strong>：檢查改動。</li>
+      </ol>
+
+      <p>
+        <strong>Position IS Context (位置就是脈絡)。</strong>
+      </p>
+
+      <p>
+        你不需要解釋你在指哪裡，因為註解就知道它住在哪裡。
+      </p>
+
+      <hr/>
+
+      <h2>社群精選問答</h2>
+
+      <Toggle title="其他有趣的應用">
+        <p><strong>@sughanthans1 問：</strong> 你覺得 prism 怎麼樣？</p>
+        <p><strong>Heinrich 回：</strong> 晚上來試試。</p>
+        <p><strong>@GoldenWaveAi：</strong> 這點子太棒了！</p>
+      </Toggle>
+
+    </div>
+
+    <footer class="post-footer">
+      <a href="/posts/claude-obsidian-infrastructure">← 返回系列總覽</a>
+    </footer>
+  </article>
+</BaseLayout>
+
+<style>
+  .post-header {
+    margin-bottom: 1.5rem;
+  }
+
+  .post-header h1 {
+    margin-bottom: 0.5rem;
+  }
+
+  .post-content {
+    margin: 1.5rem 0;
+  }
+
+  .post-content blockquote {
+    font-style: normal;
+  }
+
+  .post-content blockquote.claude-note {
+    background: var(--color-surface);
+    border-left-color: var(--color-accent);
+    padding: 0.75rem 1rem;
+    border-radius: 0 8px 8px 0;
+  }
+
+  .post-content pre {
+    overflow-x: auto;
+  }
+
+  .post-content hr {
+    margin: 2rem 0;
+    border: none;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .post-footer {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--color-border);
+  }
+</style>

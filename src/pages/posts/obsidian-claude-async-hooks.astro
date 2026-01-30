@@ -1,0 +1,224 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Toggle from '../../components/Toggle.astro';
+---
+
+<BaseLayout title="Obsidian & Claude Code: Async Hooks for Note History - gu-log">
+  <article class="post">
+    <header class="post-header">
+      <h1>Obsidian & Claude Code: Async Hooks for Note History</h1>
+      <p class="post-meta">2026-01-30 · 完整翻譯</p>
+    </header>
+
+    <div class="source-citation">
+      <strong>原文出處：</strong>
+      <a href="https://x.com/arscontexta/status/2016587691505164749" target="_blank" rel="noopener">
+        @arscontexta (Heinrich) on X
+      </a>
+    </div>
+
+    <div class="post-content">
+
+      <p>
+        想像一下能在你的筆記中進行<strong>時間旅行</strong>。
+      </p>
+
+      <p>
+        你三週前寫了某個東西，從那之後你改了它一打次。在 Obsidian 裡，你只看得到當前版本。
+      </p>
+
+      <p>
+        如果你能回到過去，看到你的思考究竟是如何演進的呢？
+      </p>
+
+      <p>
+        Git 可以追蹤這一切，但<strong>誰會真的在每次小修改後都 commit？</strong>
+      </p>
+
+      <p>
+        Claude Code 剛發布了 <strong>Async Hooks (非同步掛鉤)</strong>。
+      </p>
+
+      <p>
+        現在你可以在每次編輯後自動 commit，完全不會拖慢速度，然後以真正有用的方式讀取那些歷史。
+      </p>
+
+      <blockquote class="claude-note">
+        <strong>Claude：</strong>這就像是你的筆記本有無限的「復原」按鈕，而且還有一個 AI 幫你紀錄每次改了什麼、為什麼改。Async 是關鍵，不然每次存檔都要等 git commit 會慢到讓你崩潰。
+      </p>
+
+      <h2>範例：Note History Skill</h2>
+
+      <p>這是跑起來的樣子：</p>
+
+      <pre><code>/note-history @small-world-topology.md</code></pre>
+
+      <p><strong>輸出結果：</strong></p>
+
+      <pre><code>## small-world topology requires hubs and dense local links
+
+created: jan 20
+last edit: jan 28
+versions: 6
+
+### timeline
+
+jan 28 | +12 -3  | added uncertainty section, acknowledged that benchmarks
+are extrapolations from network science, not validated at
+vault scale yet
+
+jan 26 | +18 -8  | connected to spreading activation and checkpoint notes,
+the topology argument now links to WHY it matters for
+agent traversal
+
+jan 24 | +25 -0  | added architectural implications, quality gates for when
+notes have too many or too few links
+
+...
+
+### evolution pattern
+
+started as research extraction, developed practical implications,
+connected to related concepts, added epistemic humility about uncertainty
+the note matured from "heres what network science says" to "heres how
+we apply it and heres what we dont know yet"</code></pre>
+
+      <p>
+        這個 skill 不只是列出 commits。
+      </p>
+
+      <p>
+        它<strong>詮釋 (Interprets)</strong> 改變了什麼，並識別思考如何發展的模式。
+      </p>
+
+      <h2>運作原理</h2>
+
+      <p>你需要在 vault 裡設定好 git（GitHub, GitLab 或只是 local 都行）。</p>
+
+      <p>
+        一旦設好，剩下的就是全自動。一個 hook 在每次編輯後默默執行，在背景 commit 改變，同時 Claude 繼續工作。
+      </p>
+
+      <p>Hook script (<code>.claude/hooks/auto-commit.sh</code>)：</p>
+
+      <pre><code>#!/bin/bash
+cd "${CLAUDE_PROJECT_DIR:-$(dirname "$0")/../..}"
+
+git add -A 2>/dev/null || exit 0
+
+if git diff --cached --quiet 2>/dev/null; then
+    exit 0
+fi
+
+CHANGED_FILES=$(git diff --cached --name-only 2>/dev/null | head -5)
+# ... (產生 commit message) ...
+
+git commit -m "$MSG" --no-verify 2>/dev/null || true</code></pre>
+
+      <p>
+        <code>async: true</code> 是讓它能運作的關鍵。沒有它，Claude 會等待每個 commit 完成（那會很煩）。
+      </p>
+
+      <h2>為什麼這很重要？</h2>
+
+      <p>
+        <strong>筆記是活的文件，不是完成的製品。</strong>
+      </p>
+
+      <p>
+        你三週前相信的事現在可能是錯的。有時候了解「為什麼你改變心意」跟「你最後決定什麼」一樣有價值。
+      </p>
+
+      <p>
+        歷史是你思考過程的日誌，有了 auto-commits，它被自動捕捉。
+      </p>
+
+      <p>
+        但原始的 git history 很難讀。<strong>詮釋層 (Interpretation Layer)</strong> 才是讓它有用的關鍵。這就是 <code>/note-history</code> skill 在做的事。
+      </p>
+
+      <h2>打造你自己的</h2>
+
+      <p>建立 <code>.claude/skills/note-history/SKILL.md</code>：</p>
+
+      <ol>
+        <li>從參數找到筆記檔案</li>
+        <li>獲取 git log</li>
+        <li>對每個重要的 commit，讀取 diff</li>
+        <li><strong>詮釋改變了什麼</strong>（不只是增減行數，而是意義）</li>
+        <li>識別思考演進的模式</li>
+        <li>總結演進弧線</li>
+      </ol>
+
+      <blockquote class="claude-note">
+        <strong>Claude：</strong>這裡最強的是第 4 點。叫 AI 去看 diff 然後告訴你「這裡你把語氣變軟了」或「這裡你修正了一個邏輯漏洞」，而不是「第 5 行加了個逗號」。這才是我們要的 version control。
+      </blockquote>
+
+      <h2>大局觀 (The Bigger Picture)</h2>
+
+      <p>
+        現在你 Vault 裡的每則筆記都有完整的歷史。
+      </p>
+
+      <p>
+        當你回顧六個月前的筆記，你不只看到它現在說什麼。你會看到它是怎麼變成這樣的。
+      </p>
+
+      <p>
+        你的 Vault 變成了你思考演進的時間軸，你可以重建該時間軸上的任何一點。
+      </p>
+
+      <p>
+        <strong>那是一本會自己寫的思考日記。</strong>
+      </p>
+
+      <p>是不是很美？</p>
+
+    </div>
+
+    <footer class="post-footer">
+      <a href="/posts/claude-obsidian-infrastructure">← 返回系列總覽</a>
+    </footer>
+  </article>
+</BaseLayout>
+
+<style>
+  .post-header {
+    margin-bottom: 1.5rem;
+  }
+
+  .post-header h1 {
+    margin-bottom: 0.5rem;
+  }
+
+  .post-content {
+    margin: 1.5rem 0;
+  }
+
+  .post-content blockquote {
+    font-style: normal;
+  }
+
+  .post-content blockquote.claude-note {
+    background: var(--color-surface);
+    border-left-color: var(--color-accent);
+    padding: 0.75rem 1rem;
+    border-radius: 0 8px 8px 0;
+  }
+
+  .post-content pre {
+    overflow-x: auto;
+  }
+
+  .post-content hr {
+    margin: 2rem 0;
+    border: none;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .post-footer {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--color-border);
+  }
+</style>
