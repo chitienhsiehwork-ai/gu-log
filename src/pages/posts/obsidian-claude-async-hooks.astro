@@ -101,8 +101,8 @@ we apply it and heres what we dont know yet"</code></pre>
 
       <p>Hook script (<code>.claude/hooks/auto-commit.sh</code>)：</p>
 
-      <pre><code>#!/bin/bash
-cd "${CLAUDE_PROJECT_DIR:-$(dirname "$0")/../..}"
+      <pre><code>{`#!/bin/bash
+cd "\${CLAUDE_PROJECT_DIR:-\$(dirname "\$0")/../..}"
 
 git add -A 2>/dev/null || exit 0
 
@@ -110,10 +110,10 @@ if git diff --cached --quiet 2>/dev/null; then
     exit 0
 fi
 
-CHANGED_FILES=$(git diff --cached --name-only 2>/dev/null | head -5)
+CHANGED_FILES=\$(git diff --cached --name-only 2>/dev/null | head -5)
 # ... (產生 commit message) ...
 
-git commit -m "$MSG" --no-verify 2>/dev/null || true</code></pre>
+git commit -m "\$MSG" --no-verify 2>/dev/null || true`}</code></pre>
 
       <p>
         <code>async: true</code> 是讓它能運作的關鍵。沒有它，Claude 會等待每個 commit 完成（那會很煩）。
