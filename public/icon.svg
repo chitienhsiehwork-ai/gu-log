@@ -1,0 +1,40 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background: Solarized Light Base -->
+  <rect width="512" height="512" fill="#fdf6e3"/>
+  
+  <!-- Mushroom Stem -->
+  <path d="M256 420c-50 0-80-20-80-100h160c0 80-30 100-80 100z" fill="#eee8d5"/>
+  
+  <!-- Mushroom Cap (Solarized Orange) -->
+  <defs>
+    <linearGradient id="capGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ff8f5e"/> <!-- Lighter Orange highlight -->
+      <stop offset="100%" stop-color="#cb4b16"/> <!-- Solarized Orange -->
+    </linearGradient>
+    
+    <!-- Glass Shine Effect -->
+    <linearGradient id="glassShine" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="white" stop-opacity="0.6"/>
+      <stop offset="40%" stop-color="white" stop-opacity="0.1"/>
+      <stop offset="100%" stop-color="white" stop-opacity="0"/>
+    </linearGradient>
+    
+    <filter id="softShadow">
+      <feDropShadow dx="0" dy="10" stdDeviation="15" flood-color="#b58900" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  
+  <!-- Cap Shape with Shadow -->
+  <path d="M106 280c0-130 67-200 150-200s150 70 150 200H106z" fill="url(#capGradient)" filter="url(#softShadow)"/>
+  
+  <!-- Glass Shine Overlay -->
+  <path d="M136 260c10-100 60-160 120-160s110 60 120 160H136z" fill="url(#glassShine)"/>
+  
+  <!-- Reflection Dot -->
+  <ellipse cx="180" cy="160" rx="20" ry="12" fill="white" opacity="0.7" transform="rotate(-30 180 160)"/>
+
+  <!-- CLI Face: >_ -->
+  <text x="50%" y="360" font-family="monospace" font-weight="bold" font-size="80" fill="#002b36" text-anchor="middle" letter-spacing="-5">
+    &gt;_
+  </text>
+</svg>
