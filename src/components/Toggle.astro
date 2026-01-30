@@ -1,15 +1,11 @@
 ---
 /**
- * Toggle Component - Collapsible content like Notion/Obsidian
+ * Toggle Component - Collapsible content with smooth animation
  * 
  * Usage in .astro files:
  *   <Toggle title="Click to expand">
  *     Content goes here
  *   </Toggle>
- * 
- * Props:
- *   - title: The visible header text
- *   - open: Whether to start expanded (default: false)
  */
 
 interface Props {
@@ -20,18 +16,36 @@ interface Props {
 const { title, open = false } = Astro.props;
 ---
 
-<details class="toggle" open={open}>
-  <summary class="toggle-header">
+<div class="toggle-container" data-open={open}>
+  <button class="toggle-header" aria-expanded={open}>
     <span class="toggle-icon"></span>
     <span class="toggle-title">{title}</span>
-  </summary>
-  <div class="toggle-content">
-    <slot />
+  </button>
+  <div class="toggle-wrapper">
+    <div class="toggle-inner">
+      <div class="toggle-content">
+        <slot />
+      </div>
+    </div>
   </div>
-</details>
+</div>
+
+<script>
+  // Handle toggle logic
+  document.querySelectorAll('.toggle-header').forEach(button => {
+    button.addEventListener('click', () => {
+      const container = button.closest('.toggle-container');
+      const isOpen = container?.getAttribute('data-open') === 'true';
+      
+      // Toggle state
+      container?.setAttribute('data-open', (!isOpen).toString());
+      button.setAttribute('aria-expanded', (!isOpen).toString());
+    });
+  });
+</script>
 
 <style>
-  .toggle {
+  .toggle-container {
     margin: 0.75rem 0;
     border-radius: 8px;
     background: var(--color-surface);
@@ -43,14 +57,16 @@ const { title, open = false } = Astro.props;
     align-items: center;
     gap: 0.5rem;
     padding: 0.75rem 1rem;
+    width: 100%;
+    background: none;
+    border: none;
+    color: inherit;
+    font-family: inherit;
+    font-size: inherit;
     cursor: pointer;
-    user-select: none;
-    font-weight: 500;
-    list-style: none;
-  }
-
-  .toggle-header::-webkit-details-marker {
-    display: none;
+    text-align: left;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
   }
 
   .toggle-icon {
@@ -59,20 +75,40 @@ const { title, open = false } = Astro.props;
     border-left: 6px solid var(--color-text);
     border-top: 5px solid transparent;
     border-bottom: 5px solid transparent;
-    transition: transform 0.2s ease;
+    transition: transform 0.3s ease;
+    flex-shrink: 0;
   }
 
-  details[open] .toggle-icon {
+  /* Rotate icon when open */
+  .toggle-container[data-open="true"] .toggle-icon {
     transform: rotate(90deg);
   }
 
   .toggle-title {
     flex: 1;
+    font-weight: 500;
+  }
+
+  /* The Animation Magic: Grid Template Rows */
+  .toggle-wrapper {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .toggle-container[data-open="true"] .toggle-wrapper {
+    grid-template-rows: 1fr;
+  }
+
+  .toggle-inner {
+    overflow: hidden;
   }
 
   .toggle-content {
     padding: 0 1rem 1rem 1.75rem;
     color: var(--color-text-muted);
+    /* Prevent content from jumping during animation */
+    min-height: 0; 
   }
 
   .toggle-content :global(p:last-child) {
