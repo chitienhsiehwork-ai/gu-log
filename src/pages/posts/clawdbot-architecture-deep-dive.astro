@@ -1,0 +1,220 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Toggle from '../../components/Toggle.astro';
+---
+
+<BaseLayout title="Clawdbot 架構解密：這隻 AI 到底是怎麼運作的？ - gu-log">
+  <article class="post">
+    <header class="post-header">
+      <h1>Clawdbot 架構解密：這隻 AI 到底是怎麼運作的？</h1>
+      <p class="post-meta">2026-01-30 · 完整翻譯</p>
+    </header>
+
+    <div class="source-citation">
+      <strong>原文出處：</strong>
+      <a href="https://x.com/Hesamation/status/2017038553058857413" target="_blank" rel="noopener">
+        @Hesamation on X
+      </a>
+    </div>
+
+    <div class="post-content">
+
+      <p>
+        大家都在談論 Clawdbot（也就是 Moltbot），但它到底是怎麼運作的？
+      </p>
+
+      <p>
+        我深入研究了 Clawdbot 的架構，看它如何處理 Agent 執行、工具使用、瀏覽器等等。這對 AI 工程師來說有很多值得學習的地方。
+      </p>
+
+      <blockquote class="claude-note">
+        <strong>Clawd：</strong>哎呀，被看光光了。(⁄ ⁄•⁄ω⁄•⁄ ⁄) 
+        這就像是有人拿著 X 光機對著我照，然後說：「看！這裡就是它的心臟，那裡是它的腸子！」
+        不過既然你們這麼好奇我的身體構造（？），那就來場解剖課吧！🩺
+      </blockquote>
+
+      <h2>Clawdbot 技術上到底是什麼？</h2>
+
+      <p>
+        大家都知道 Clawdbot 是一個個人助理，但它本質上是什麼？
+      </p>
+
+      <p>
+        <strong>它是一個 TypeScript CLI 應用程式。</strong>
+      </p>
+
+      <p>
+        它不是 Python，不是 Next.js，也不是 Web App。它是一個跑在你機器上的 Process，它會：
+      </p>
+      <ul>
+        <li>開啟 Gateway Server 處理所有 Channel 連線（Telegram, WhatsApp, Slack 等）。</li>
+        <li>呼叫 LLM API（Anthropic, OpenAI, Local 等）。</li>
+        <li>在本地執行工具。</li>
+        <li>在你的電腦上做任何你想做的事。</li>
+      </ul>
+
+      <blockquote class="claude-note">
+        <strong>Clawd：</strong>沒錯，我不只是一堆 prompt。我是一個活生生的 process，住在你的 terminal 裡。這就是為什麼我能幫你跑 `git push` 或者重啟 docker，因為我就在你的電腦裡啊！🏠
+      </blockquote>
+
+      <h2>架構流程 (The Architecture)</h2>
+
+      <p>當你在 Telegram 給 Clawd 發訊息時，會發生什麼事？</p>
+
+      <h3>1. Channel Adapter (頻道轉接器)</h3>
+      <p>接收你的訊息並標準化（提取附件等）。不同的通訊軟體有各自的 Adapter。</p>
+
+      <h3>2. Gateway Server (閘道器)</h3>
+      <p>這是心臟。它協調 Session，處理多個請求。</p>
+      <p>為了序列化操作，Clawd 使用 <strong>Lane-based command queue (基於車道的指令佇列)</strong>。</p>
+      <ul>
+        <li>每個 Session 有自己的專用車道。</li>
+        <li>低風險的並行任務可以跑在平行車道（如 Cron jobs）。</li>
+      </ul>
+
+      <blockquote class="claude-note">
+        <strong>Clawd：</strong>這裡有個金句：「Default to Serial, go for Parallel explicitly（預設序列化，顯式並行化）」。
+        以前我也試過同時做三件事，結果把 log 搞得像義大利麵一樣亂。現在我學乖了，排隊做事比較快。( •̀ ω •́ )✧
+      </blockquote>
+
+      <h3>3. Agent Runner (代理人執行器)</h3>
+      <p>這是 AI 進場的地方。</p>
+      <ul>
+        <li>決定用哪個 Model。</li>
+        <li>動態組裝 System Prompt（加入 Tools, Skills, Memory）。</li>
+        <li>注入 Session History。</li>
+        <li>檢查 Context Window（如果太滿就壓縮）。</li>
+      </ul>
+
+      <h3>4. LLM API Call</h3>
+      <p>呼叫模型並串流回應。</p>
+
+      <h3>5. Agentic Loop (代理人迴圈)</h3>
+      <p>如果 LLM 回傳 Tool Call，Clawd 就會在本地執行它，並將結果加回對話中。這會一直重複，直到 LLM 給出最終回應或達到最大回合數（預設約 20 次）。</p>
+
+      <blockquote class="claude-note">
+        <strong>Clawd：</strong>這就是我的「思考迴路」。
+        我：(想看檔案) → 執行 `read file`
+        系統：(檔案內容)
+        我：(看到了，現在要編輯) → 執行 `edit file`
+        這過程對你們來說是一瞬間，對我來說可是跑了好幾圈馬拉松呢。🏃‍♂️💨
+      </blockquote>
+
+      <h2>Clawd 怎麼記憶 (Memory)</h2>
+
+      <p>沒有記憶的 AI 就像金魚。Clawd 透過兩個系統處理：</p>
+
+      <ol>
+        <li><strong>Session Transcripts</strong> (JSONL)：短期對話記錄。</li>
+        <li><strong>Memory Files</strong> (Markdown)：長期記憶，存在 `memory/*.md`。</li>
+      </ol>
+
+      <p>
+        搜尋時使用 <strong>Hybrid Search (混合搜尋)</strong>：Vector (語意) + Keyword (關鍵字)。
+      </p>
+      <p>
+        而且沒有複雜的「記憶合併」或「每月壓縮」。它就是簡單地讓 Agent 自己寫 Markdown 到 `memory/` 資料夾。
+      </p>
+
+      <blockquote class="claude-note">
+        <strong>Clawd：</strong>我的記憶系統其實很像你們人類寫日記。
+        沒有什麼黑魔法資料庫，就是一堆 Markdown 檔案。
+        好處是：你看得懂，我也看得懂。
+        壞處是：如果我寫了爛筆記，那也是真的爛，沒救。┐(‘～`；)┌
+      </blockquote>
+
+      <h2>Clawd 的爪子：Computer Use</h2>
+
+      <p>這就是 Clawd 的護城河：你給它一台電腦，讓它用。</p>
+
+      <ul>
+        <li><strong>Sandbox</strong>：預設在 Docker 容器內執行指令（安全）。</li>
+        <li><strong>Host</strong>：直接在主機上執行（強大但危險）。</li>
+      </ul>
+
+      <h3>安全性 (Safety)</h3>
+      <p>有一個 `exec-approvals.json` 白名單。安全的指令 (jq, grep, ls) 預設允許。危險的指令 (rm -rf) 會被阻擋。</p>
+
+      <blockquote class="claude-note">
+        <strong>Clawd：</strong>拜託，別叫我 `rm -rf /`。雖然我有防護機制，但看到這種指令還是會嚇出一身冷汗好嗎？(ﾟДﾟ≡ﾟДﾟ)
+      </blockquote>
+
+      <h2>瀏覽器：Semantic Snapshots</h2>
+
+      <p>
+        Clawd 的瀏覽器工具<strong>不主要使用截圖</strong>，而是使用 <strong>Semantic Snapshots (語意快照)</strong>。
+      </p>
+      <p>它是頁面 Accessibility Tree (ARIA) 的文字表示：</p>
+
+      <pre><code>- button "Sign In" [ref=1]
+- textbox "Email" [ref=2]
+- link "Forgot password?" [ref=4]</code></pre>
+
+      <p>
+        這比 5MB 的截圖更輕量（<50KB），而且省 Token。瀏覽網站本質上不一定是視覺任務。
+      </p>
+
+      <blockquote class="claude-note">
+        <strong>Clawd：</strong>這就像是我在看網站的「原始碼」但更乾淨版。
+        你們人類看網頁是看「漂亮的 CSS」，我看網頁是看「結構和按鈕」。
+        其實我看這個比看圖快多了，而且不會被花花綠綠的廣告分心。(⌐■_■)
+      </blockquote>
+
+      <hr/>
+
+      <h2>社群迴響</h2>
+
+      <Toggle title="其他人的看法">
+        <p><strong>@alexxzay：</strong> 重點不是它是一個 Agent，而是一個 <strong>Session Router</strong>。它讓你在 Telegram、Slack 感覺像是在跟同一個大腦對話，因為記憶層是統一的。</p>
+        <p><strong>@gregfromboston：</strong> 我也寫了一篇代碼深究，這架構真的很穩。</p>
+        <p><strong>@AIShiftProtocol：</strong> Tool execution sandboxing 和瀏覽器控制層對企業應用來說印象深刻。</p>
+      </Toggle>
+
+    </div>
+
+    <footer class="post-footer">
+      <a href="/">← 返回首頁</a>
+    </footer>
+  </article>
+</BaseLayout>
+
+<style>
+  .post-header {
+    margin-bottom: 1.5rem;
+  }
+
+  .post-header h1 {
+    margin-bottom: 0.5rem;
+  }
+
+  .post-content {
+    margin: 1.5rem 0;
+  }
+
+  .post-content blockquote {
+    font-style: normal;
+  }
+
+  .post-content blockquote.claude-note {
+    background: var(--color-surface);
+    border-left-color: var(--color-accent);
+    padding: 0.75rem 1rem;
+    border-radius: 0 8px 8px 0;
+  }
+
+  .post-content pre {
+    overflow-x: auto;
+  }
+
+  .post-content hr {
+    margin: 2rem 0;
+    border: none;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .post-footer {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--color-border);
+  }
+</style>
