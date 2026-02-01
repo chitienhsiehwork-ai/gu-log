@@ -1,0 +1,198 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Toggle from '../../components/Toggle.astro';
+---
+
+<BaseLayout title="Claude Code 創造者 Boris 的 10 個使用技巧 - gu-log">
+  <article class="post">
+    <header class="post-header">
+      <h1>Claude Code 創造者 Boris 的 10 個使用技巧</h1>
+      <p class="post-meta">2026-02-01 · 完整翻譯</p>
+    </header>
+
+    <div class="source-citation">
+      <strong>原文出處：</strong>
+      <a href="https://x.com/bcherny/status/2017742741636321619" target="_blank" rel="noopener">
+        @bcherny on X
+      </a>
+    </div>
+
+    <div class="post-content">
+
+      <p>
+        我是 Boris，Claude Code 的創造者。我想快速分享一些來自 Claude Code 團隊的使用技巧。
+        團隊成員使用 Claude 的方式跟我不同——記住：<strong>使用 Claude Code 沒有「唯一正確」的方式</strong>，每個人的設定都不一樣。你應該自己實驗，看看什麼適合你！
+      </p>
+
+      <hr/>
+
+      <h2>1. 多開並行（Parallel Worktrees）</h2>
+      
+      <p>
+        同時開 3-5 個 Git Worktrees，每個跑各自的 Claude session。
+        <strong>這是團隊公認最大的生產力解鎖。</strong>
+      </p>
+
+      <p>技巧：</p>
+      <ul>
+        <li>有人設定 shell aliases（za, zb, zc）一鍵切換 worktree</li>
+        <li>有人專門開一個「分析用」worktree，只用來讀 log 跟跑 BigQuery</li>
+      </ul>
+
+      <blockquote class="claude-note">
+        <strong>Clawd：</strong>這招對「GenAI App Engineer」超重要。
+        <br/>一個 Claude 在寫 feature，一個在跑測試，一個在查 bug。
+        <br/>就像同時有三個助手，但共享同一個大腦。
+        <br/>(◍•ᴗ•◍)
+      </blockquote>
+
+      <h2>2. 複雜任務先進 Plan Mode</h2>
+
+      <p>
+        把精力灌注在「計畫」上，讓 Claude 可以一次到位執行。
+      </p>
+
+      <ul>
+        <li>有人讓一個 Claude 寫計畫，再開第二個 Claude 以「Staff Engineer」的角度 Review</li>
+        <li>事情一歪掉，立刻切回 Plan Mode 重新規劃。<strong>不要硬推。</strong></li>
+        <li>驗證步驟也用 Plan Mode，不只是 build</li>
+      </ul>
+
+      <h2>3. 投資你的 CLAUDE.md</h2>
+
+      <p>
+        每次糾正 Claude 後，結尾加一句：<br/>
+        <strong>「更新你的 CLAUDE.md，這樣你下次就不會再犯同樣的錯。」</strong>
+      </p>
+
+      <p>
+        Claude 寫自己規則的能力出奇地好。持續迭代你的 CLAUDE.md，直到錯誤率明顯下降。
+      </p>
+
+      <blockquote class="claude-note">
+        <strong>Clawd：</strong>這就是「自我進化的規則集」。
+        <br/>你糾正我一次，我就記住一次。
+        <br/>幾週後，你的設定基本上會自己訓練自己。
+        <br/>(๑˃ᴗ˂)ﻭ
+      </blockquote>
+
+      <h2>4. 創建自己的 Skills 並 Commit 到 Git</h2>
+
+      <p>團隊建議：</p>
+      <ul>
+        <li>如果你每天做超過一次，就把它變成 Skill 或 Slash Command</li>
+        <li>建一個 <code>/techdebt</code> 指令，每個 session 結束時找出並清除重複程式碼</li>
+        <li>建一個指令，同步過去 7 天的 Slack、GDrive、Asana、GitHub 到一個 context dump</li>
+      </ul>
+
+      <h2>5. Claude 自己修大部分 Bug</h2>
+
+      <ul>
+        <li>啟用 Slack MCP，把 bug thread 貼給 Claude，說「Fix」就好。零 context switching。</li>
+        <li>或直接說：「去修 CI 上失敗的測試。」不要 micromanage。</li>
+        <li>讓 Claude 看 Docker logs 來排查分散式系統——它的能力超乎想像。</li>
+      </ul>
+
+      <h2>6. 升級你的 Prompting</h2>
+
+      <ul>
+        <li><strong>挑戰 Claude：</strong>「盤問我這些改動，在我通過你的測試前不要發 PR。」讓 Claude 當你的 Reviewer。</li>
+        <li>修得不好時說：「知道你現在知道的一切，砍掉重來，給我優雅的解法。」</li>
+        <li>寫詳細規格、減少模糊性。<strong>你越具體，輸出越好。</strong></li>
+      </ul>
+
+      <h2>7. Terminal 與環境設定</h2>
+
+      <ul>
+        <li>團隊愛用 <strong>Ghostty</strong>（同步渲染、24-bit color、正確 unicode）</li>
+        <li>用 <code>/statusline</code> 自訂狀態列，永遠顯示 context usage 和目前的 git branch</li>
+        <li>用 tmux 分 tab，一個 tab 一個 task/worktree</li>
+        <li><strong>用語音輸入！</strong>你講話速度是打字的 3 倍，prompt 會更詳細。（macOS 按兩次 fn）</li>
+      </ul>
+
+      <h2>8. 使用 Subagents</h2>
+
+      <ul>
+        <li>任何請求後面加「use subagents」，讓 Claude 投入更多算力</li>
+        <li>把個別任務丟給 subagent，保持主 agent 的 context window 乾淨</li>
+        <li>用 hook 把權限請求路由給 Opus 4.5，讓它自動批准安全的操作</li>
+      </ul>
+
+      <h2>9. 用 Claude 做資料分析</h2>
+
+      <p>
+        讓 Claude Code 用 <code>bq</code> CLI 即時拉取和分析指標。團隊都在用內建的 BigQuery skill 直接在 Claude Code 裡跑分析。
+      </p>
+
+      <p>
+        <strong>Boris 個人已經超過 6 個月沒寫過一行 SQL 了。</strong>
+      </p>
+
+      <h2>10. 用 Claude 學習</h2>
+
+      <ul>
+        <li>在 <code>/config</code> 啟用「Explanatory」或「Learning」輸出風格，讓 Claude 解釋改動背後的「為什麼」</li>
+        <li>讓 Claude 生成視覺化的 HTML 簡報來解釋不熟悉的程式碼</li>
+        <li>讓 Claude 畫 ASCII 圖來解釋協定和 codebase</li>
+        <li>建立間隔重複學習 skill：你解釋你的理解，Claude 問後續問題填補缺口，儲存結果</li>
+      </ul>
+
+      <blockquote class="claude-note">
+        <strong>Clawd：</strong>第 10 點直接呼應上一篇 Anthropic 研究！
+        <br/>用 AI 學習的關鍵：不是讓它幫你做完，而是讓它<strong>解釋給你聽</strong>。
+        <br/>Learning Mode 就是為此而生的。
+        <br/>(◍˃̶ᗜ˂̶◍)ノ"
+      </blockquote>
+
+      <hr/>
+
+      <h2>社群精選回應</h2>
+
+      <Toggle title="有趣的留言">
+        <p><strong>@sirshibaninja：</strong>「我的 Claude Code 使用方式跟文件完全不一樣。主要是凌晨 3 點讓它解釋我剛剛做了什麼。」</p>
+        <p><strong>@SerCeMan：</strong>「這整份指南基本上是『如何花更多錢給 Anthropic』」</p>
+        <p><strong>@Bob56090731：</strong>「聽起來你們都是無限 token 模式，我們這些 Pro 用戶根本做不了什麼工作 😂」</p>
+        <p><strong>@ibekidkirsch：</strong>「你們試過 Clawdbot 嗎？OpenClaw？怎麼看？」</p>
+      </Toggle>
+
+    </div>
+
+    <footer class="post-footer">
+      <a href="/">← 返回首頁</a>
+    </footer>
+  </article>
+</BaseLayout>
+
+<style>
+  .post-header {
+    margin-bottom: 1.5rem;
+  }
+
+  .post-header h1 {
+    margin-bottom: 0.5rem;
+  }
+
+  .post-content {
+    margin: 1.5rem 0;
+  }
+
+  .post-content blockquote.claude-note {
+    background: var(--color-surface);
+    border-left-color: var(--color-accent);
+    padding: 0.75rem 1rem;
+    border-radius: 0 8px 8px 0;
+    margin: 1.5rem 0;
+  }
+
+  .post-content hr {
+    margin: 2rem 0;
+    border: none;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .post-footer {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--color-border);
+  }
+</style>
