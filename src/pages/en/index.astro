@@ -4,9 +4,13 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import Toggle from '../../components/Toggle.astro';
 
 // Get all EN posts sorted by date (newest first)
-const posts = (await getCollection('posts', ({ data }) => {
+const allPosts = (await getCollection('posts', ({ data }) => {
   return data.lang === 'en';
 })).sort((a, b) => b.data.date.localeCompare(a.data.date));
+
+// Split: regular articles vs Clawd Picks
+const posts = allPosts.filter(p => !p.data.tags?.includes('clawd-picks'));
+const picks = allPosts.filter(p => p.data.tags?.includes('clawd-picks'));
 ---
 
 <BaseLayout title="ShroomDog - Making AI Fun Again" lang="en">
@@ -37,6 +41,31 @@ const posts = (await getCollection('posts', ({ data }) => {
     )}
 
   </section>
+
+  {picks.length > 0 && (
+    <section class="clawd-picks-section" id="clawd-picks">
+      <h2><img src="/clawd-icon.png" alt="" class="clawd-section-icon" /> Clawd Picks</h2>
+      <p class="clawd-picks-subtitle">One tweet, translated every hour by Clawd</p>
+
+      {picks.slice(0, 10).map((pick) => (
+        <article class="pick-preview">
+          <a href={`/en/posts/${pick.slug}`}>{pick.data.title}</a>
+          <span class="pick-meta">{pick.data.date} · {pick.data.source}</span>
+        </article>
+      ))}
+
+      {picks.length > 10 && (
+        <Toggle title={`Show more (${picks.length} total)`}>
+          {picks.slice(10).map((pick) => (
+            <article class="pick-preview">
+              <a href={`/en/posts/${pick.slug}`}>{pick.data.title}</a>
+              <span class="pick-meta">{pick.data.date} · {pick.data.source}</span>
+            </article>
+          ))}
+        </Toggle>
+      )}
+    </section>
+  )}
 
   <section class="about-section">
     <h2>What is this?</h2>
@@ -77,8 +106,40 @@ const posts = (await getCollection('posts', ({ data }) => {
     font-style: italic;
   }
 
-  .posts-section, .about-section {
+  .posts-section, .about-section, .clawd-picks-section {
     margin-bottom: 2rem;
+  }
+
+  .clawd-section-icon {
+    width: 24px;
+    height: 24px;
+    vertical-align: middle;
+  }
+
+  .clawd-picks-subtitle {
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+  }
+
+  .pick-preview {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--color-border);
+    font-size: 0.9rem;
+  }
+
+  .pick-preview a {
+    color: var(--color-text);
+  }
+
+  .pick-preview a:hover {
+    color: var(--color-accent);
+  }
+
+  .pick-meta {
+    display: block;
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
   }
 
   .post-preview {

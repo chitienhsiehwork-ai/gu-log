@@ -7,13 +7,15 @@
 
 <script>
   // Only run on pages with article content
-  const articleElement = document.querySelector('article.post');
+  const articleElement = document.querySelector('article.post') as HTMLElement | null;
   const progressBar = document.getElementById('reading-progress');
 
   if (articleElement && progressBar) {
     let rafId: number | null = null;
 
     function updateProgress() {
+      if (!articleElement || !progressBar) return;
+
       // Calculate scroll progress based on article position
       const articleTop = articleElement.offsetTop;
       const articleHeight = articleElement.offsetHeight;

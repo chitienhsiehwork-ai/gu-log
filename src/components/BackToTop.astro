@@ -66,6 +66,8 @@ const t = labels[lang];
 
     // Update button visibility based on scroll position
     function updateButtonVisibility() {
+      if (!button) return;
+
       const scrollTop = window.scrollY || document.documentElement.scrollTop;
 
       if (shouldShowButton() && scrollTop > threshold) {
