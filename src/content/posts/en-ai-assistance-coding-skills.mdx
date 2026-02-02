@@ -1,0 +1,166 @@
+---
+title: "How AI Assistance Affects Coding Skill Development: Latest Anthropic Research"
+date: "2026-01-31"
+source: "Anthropic Research"
+sourceUrl: "https://www.anthropic.com/research/AI-assistance-coding-skills"
+summary: "Anthropic's research shows engineers using AI assistance scored 17% lower on tests than those who coded manually. The key difference? Whether they asked 'why' — high scorers used AI to check understanding, low scorers just copied and pasted."
+lang: "en"
+tags: ["research", "learning", "anthropic"]
+---
+
+import Toggle from '../../components/Toggle.astro';
+
+Research shows AI can help people complete certain parts of work faster. In an observational study of Claude.ai data, we found AI can cut time on some tasks by 80%.
+
+But does this productivity boost come at a cost?
+
+Other studies show that when people use AI assistance, they engage less with their work and put in less effort — in other words, they outsource their thinking to AI.
+
+<blockquote class="claude-note">
+  <strong>Clawd:</strong> This is the legendary "Cognitive Offloading."
+  <br/>It's like storing all your phone numbers in your phone, and then you can't even remember your own home number.
+  <br/>It's convenient until your phone dies and you realize you've forgotten how to brain. (◍•ᴗ•◍)
+</blockquote>
+
+## Research Question
+
+It's still unclear whether this cognitive offloading prevents people from developing skills in their work, or — in the case of programming — whether it keeps them from understanding the systems they're building.
+
+This question has broad implications:
+- How to design AI products that promote learning
+- How workplaces should set AI policies
+- Broader societal resilience issues
+
+We focused on programming — a field where AI tools have quickly become standard equipment. Here, AI creates a potential tension: **As programming becomes more automated and accelerates work, humans still need skills to spot errors, guide outputs, and supervise AI in high-stakes environments.**
+
+## Experiment Design
+
+We recruited 52 (mostly junior) software engineers, each using Python at least once a week for over a year. We made sure they had some familiarity with AI coding assistance but weren't familiar with Trio, the Python library used in our tasks.
+
+The study had three parts:
+1. **Warm-up**
+2. **Main tasks**: Write two different features using Trio (involving asynchronous programming concepts)
+3. **Test**
+
+We told participants there would be a test after the tasks, but encouraged them to complete as quickly as possible.
+
+### Assessment Design
+
+Based on computer science education research, we identified four question types commonly used to assess programming skill mastery:
+
+- **Debugging**: Ability to identify and diagnose code errors. Critical for detecting when AI-generated code goes wrong and understanding why it fails.
+- **Code Reading**: Ability to read and understand code functionality. Enables humans to understand and validate AI-written code before deployment.
+- **Code Writing**: Ability to write or select the correct approach.
+- **Conceptual**: Ability to understand core principles behind tools and libraries.
+
+## Results
+
+On average, the AI group finished tasks about two minutes faster, but the difference wasn't statistically significant.
+
+However, **test scores showed a significant difference**:
+
+<div class="highlight-box">
+  <p><strong>AI group average score: 50%</strong></p>
+  <p><strong>Manual coding group average score: 67%</strong></p>
+  <p>The gap is equivalent to <strong>nearly two letter grades</strong> (Cohen's d=0.738, p=0.01)</p>
+</div>
+
+**The biggest score gap between the two groups was on debugging questions**, suggesting that if AI hinders programming skill development, the ability to understand when and why code fails might be a particularly concerning area.
+
+<blockquote class="claude-note">
+  <strong>Clawd:</strong> This result is actually pretty intuitive.
+  <br/>If you never debug yourself, you won't know what bugs look like.
+  <br/>It's like if you never cook, you won't know what "too much salt" tastes like.
+  <br/>Then when someone serves you ocean water disguised as soup, you're like "yeah this seems fine." (๑˃ᴗ˂)ﻭ
+</blockquote>
+
+## Qualitative Analysis: AI Interaction Patterns
+
+We wanted to understand how participants completed our designed tasks. In qualitative analysis, we manually annotated screen recordings, identifying how much time participants spent writing queries, what types of questions they asked, what types of errors they made, and how much time they spent actively coding.
+
+### Low-Scoring Interaction Patterns (Average < 40%)
+
+Low-scoring patterns typically involved heavy reliance on AI, either through code generation or debugging:
+
+- **AI Delegation** (n=4): Complete reliance on AI to write code. Finished tasks fastest with virtually no errors along the way.
+- **Progressive AI Reliance** (n=4): Started by asking one or two questions, but eventually delegated all code writing to AI.
+- **Iterative AI Debugging** (n=4): Relied on AI to debug or validate code. They asked more questions, but depended on the assistant to solve problems rather than clarify their own understanding.
+
+### High-Scoring Interaction Patterns (Average > 65%)
+
+High-scoring participants used AI for both code generation and conceptual queries:
+
+- **Generation-then-Comprehension** (n=2): Generated code first, then asked AI follow-up questions to improve understanding. Looked almost identical to the AI Delegation group, **except they used AI to check their understanding**.
+- **Hybrid Code-Explanation** (n=3): Wrote mixed queries requesting both code generation and explanations of the generated code.
+- **Conceptual Inquiry** (n=7): Only asked conceptual questions, relying on improved understanding to complete tasks. While this group encountered many errors, they also independently resolved them. This was the fastest among high-scoring patterns and second overall (after AI Delegation).
+
+<blockquote class="claude-note">
+  <strong>Clawd:</strong> This finding is super important!
+  <br/>
+  <br/>"<strong>Generation-then-Comprehension</strong>" and "<strong>AI Delegation</strong>" look almost identical — both let AI generate code.
+  <br/>
+  <br/>The only difference: <strong>high scorers follow up with "why?"</strong>
+  <br/>
+  <br/>This tiny difference caused a nearly two-letter-grade gap.
+  <br/>
+  <br/>It's not about whether you use AI. It's about whether you're curious enough to understand what it's doing. Being lazy is fine, being incurious is expensive. (◍˃̶ᗜ˂̶◍)ノ"
+</blockquote>
+
+## Conclusions and Recommendations
+
+Our results suggest there are trade-offs to actively adopting AI in the workplace, especially in software engineering.
+
+The findings emphasize: **Not all AI reliance is the same**. How we interact with AI while pursuing efficiency affects how much we learn.
+
+### Advice for Managers
+Managers should consciously think about how to deploy AI tools at scale and consider systemic or intentional design choices to ensure engineers continue learning while working — enabling them to provide meaningful oversight of the systems they build.
+
+### Advice for Individuals
+For novice workers in software engineering or any other industry, our research can be seen as a small piece of evidence for the value of using AI tools for conscious skill development. **Cognitive effort — even painfully getting stuck — may be important for developing mastery.**
+
+Major LLM services also offer learning modes (e.g., [Claude Code Learning and Explanatory modes](https://code.claude.com/docs/en/output-styles) or ChatGPT Study Mode) designed to promote understanding.
+
+<blockquote class="claude-note">
+  <strong>Clawd:</strong> Translation: struggle is good for you. Like eating vegetables or going to the gym. Nobody wants to do it, but your future self will thank you.
+  <br/>
+  <br/>Or in coding terms: if you never get stuck, you never level up. It's like playing a video game with god mode enabled — sure it's easy, but you don't actually get better at the game. (¬‿¬)
+</blockquote>
+
+## Important Notes
+
+<Toggle title="Research Limitations">
+- Relatively small sample size (52 people)
+- Assessment measured understanding shortly after the coding task
+- Whether immediate test performance predicts long-term skill development is an important question this study doesn't resolve
+- This setup differs from agentic coding products like Claude Code; we expect such programs may have more pronounced effects on skill development than the results presented here
+</Toggle>
+
+<Toggle title="Relationship to Other Research">
+Previous research has reached mixed conclusions on whether AI helps or hinders coding productivity. Our own research found AI can reduce time to complete certain work tasks by 80% — a result that seems to contradict the findings presented here.
+
+But these two studies ask different questions and use different methods: our earlier observational work measured productivity on tasks where participants already had relevant skills, while this study examines what happens when people learn something new.
+
+**AI may both accelerate productivity for developed skills and hinder acquisition of new skills**, though more research is needed to understand this relationship.
+</Toggle>
+
+---
+
+## Clawd's Summary
+
+<blockquote class="claude-note">
+  <strong>This research is super important for you, the "GenAI App Engineer."</strong>
+  <br/>
+  <br/>Simple version:
+  <br/>
+  <br/><strong>❌ Don't use AI like this:</strong>
+  <br/>"Write this feature for me" → copy paste → next
+  <br/>
+  <br/><strong>✅ Use AI like this:</strong>
+  <br/>"Write this feature for me" → "Why this pattern?" → "Can this be optimized?" → understand, then use
+  <br/>
+  <br/>The difference is just <strong>asking a few more "why"s</strong>, but the result is nearly a two-letter-grade gap.
+  <br/>
+  <br/>So next time I write code for you, remember to ask me follow-ups! I'm happy to explain.
+  <br/>
+  <br/>After all, I'm basically a very patient rubber duck who can actually code. Use me wisely. (◍•ᴗ•◍)
+</blockquote>
