@@ -1,0 +1,150 @@
+---
+title: "如何讓你的 Agent 在你睡覺時學習並發布代碼"
+date: "2026-01-30"
+source: "@ryancarson on X"
+sourceUrl: "https://x.com/ryancarson/status/2016520542723924279"
+summary: "透過 Compound Review 和 Auto-Compound 兩階段循環，讓 AI Agent 在你睡覺時自動學習經驗、更新知識庫，並實作下一個優先項目。"
+lang: "zh-tw"
+tags: ["agent", "automation", "compound-engineering"]
+---
+
+import Toggle from '../../components/Toggle.astro';
+
+大部分開發者都是「反應式」地使用 AI Agent——你給指令，它回應，然後結束。
+
+**但如果你的 Agent 在你蓋上筆電後繼續工作呢？**
+
+如果它能回顧一天的工作、提取教訓、更新自己的指令，然後從 backlog 挑選下一個功能來做呢？
+
+這就是我打造的系統：一個每晚執行的循環。Agent 從每個 thread 學習，將知識複利累積進持久記憶，然後發布下一個優先項目——全部都在我睡覺時完成。
+
+<blockquote class="claude-note">
+  <strong>Clawd：</strong>這就是所謂的 "Nightly Build" 的究極進化版。不只是 compile code，而是 compile <strong>知識</strong> 和 <strong>新功能</strong>。
+</blockquote>
+
+## 設定方式
+
+這個設置建立在三個開源專案之上：
+
+1. [Compound Engineering Plugin](https://github.com/EveryInc/compound-engineering-plugin)：讓 Agent 有能力提取並持久化學習經驗。
+2. [Compound Product](https://github.com/snarktank/compound-product)：自動化層，把優先報告轉成已發布的 PR。
+3. [Ralph](https://github.com/snarktank/ralph)：一個自主 Agent 循環，能持續執行任務直到完成。
+
+（如果你用 Claude Code，邏輯是一樣的。把腳本裡的 `amp execute` 換成 `claude -p "..."` 即可。）
+
+## 兩階段循環 (The Two-Part Loop)
+
+系統每晚依序執行兩個工作：
+
+### 10:30 PM - Compound Review (複利回顧)
+回顧過去 24 小時的所有 threads，提取教訓，更新 `AGENTS.md` 檔案。
+
+### 11:00 PM - Auto-Compound (自動實作)
+拉取最新代碼（包含剛學到的新知識），從報告中挑選 #1 優先事項，實作它，並建立 PR。
+
+**順序很重要。** 回顧工作會把白天發現的 pattern 和坑更新到 `AGENTS.md`。實作工作在挑選新任務時就能受益於這些知識。
+
+<blockquote class="claude-note">
+  <strong>Clawd：</strong>這就像人類睡前會反省今天的一天（Compound Review），然後第二天起床帶著新的智慧去工作（Auto-Compound）。只是 AI 不用睡覺，所以它可以趁你在睡覺的時候做這些事。<br/>ᕙ(⇀‸倣)ᕗ
+</blockquote>
+
+## 第一步：Compound Review Script
+
+這個腳本叫 Agent 去看過去 24 小時的 threads，如果之前沒做過總結，現在補做。
+
+```bash
+#!/bin/bash
+# scripts/daily-compound-review.sh
+
+cd ~/projects/your-project
+git checkout main
+git pull origin main
+
+amp execute "Load the compound-engineering skill. Look through and read each Amp thread from the last 24 hours. For any thread where we did NOT use the Compound Engineering skill to compound our learnings at the end, do so now - extract the key learnings from that thread and update the relevant AGENTS.md files so we can learn from our work and mistakes. Commit your changes and push to main."
+```
+
+你的 `AGENTS.md` 變成了一個活的知識庫，每晚都會成長。
+
+<blockquote class="claude-note">
+  <strong>Clawd：</strong>AGENTS.md 就是 Agent 的「大腦皮質」。如果不更新它，Agent 永遠只有「短期記憶」（Session context）。更新它，Agent 就有了「長期記憶」和「經驗累積」。<br/>(｡•̀ᴗ-)✧
+</blockquote>
+
+## 第二步：Auto-Compound Script
+
+這是實作引擎。讀取報告 → 挑選置頂項目 → 建立 PRD → 拆解任務 → 執行。
+
+```bash
+#!/bin/bash
+# scripts/compound/auto-compound.sh
+
+# ... (省略部分 setup) ...
+
+# Find latest report & Analyze priority
+LATEST_REPORT=$(ls -t reports/*.md | head -1)
+ANALYSIS=$(./scripts/compound/analyze-report.sh "$LATEST_REPORT")
+PRIORITY_ITEM=$(echo "$ANALYSIS" | jq -r '.priority_item')
+
+# Create PRD & Tasks
+amp execute "Load the prd skill. Create a PRD for: $PRIORITY_ITEM..."
+amp execute "Load the tasks skill. Convert the PRD to scripts/compound/prd.json"
+
+# Run execution loop
+./scripts/compound/loop.sh 25
+
+# Create PR
+gh pr create --draft --title "Compound: $PRIORITY_ITEM" --base main
+```
+
+## 第三步：設定 launchd (macOS)
+
+雖然可以用 Cron，但在 macOS 上 `launchd` 處理 edge cases 更好。
+
+<Toggle title="查看 launchd plist 範例">
+建立 `~/Library/LaunchAgents/com.yourproject.daily-compound-review.plist`：
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.yourproject.daily-compound-review</string>
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>22</integer>
+    <key>Minute</key>
+    <integer>30</integer>
+  </dict>
+  <!-- ... 其他設定 ... -->
+</dict>
+</plist>
+```
+</Toggle>
+
+## 第四步：別讓電腦睡著
+
+launchd 不會喚醒睡眠中的 Mac。使用 `caffeinate` 指令讓它在自動化窗口期間保持喚醒。
+
+```bash
+/usr/bin/caffeinate -i -t 32400
+```
+（這會讓 Mac 保持喚醒 9 小時，從下午 5 點到凌晨 2 點，足夠跑完所有工作。）
+
+## 複利效應 (The Compound Effect)
+
+當你早上醒來時，你有：
+- 更新過的 `AGENTS.md`，包含 Agent 學到的新 patterns。
+- 一個實作了下一個優先項目的 Draft PR。
+- 完整的 Log 顯示發生了什麼事。
+
+Agent 每天都會變聰明，因為它在每次實作前都會讀自己更新過的指令。週一發現的 pattern 會指導週二的工作。週三踩到的坑，週四就會避開。
+
+<blockquote class="claude-note">
+  <strong>Clawd：</strong>這才是真正的「睡後收入」（誤）。是睡後產出。重點不在於自動寫 code，而在於自動「學習」並把學習結果變成「系統設定」。
+</blockquote>
+
+**Stop prompting. Start compounding.**
+
+<blockquote class="claude-note">
+  <strong>Clawd：</strong>"Compound interest is the eighth wonder of the world." —— 愛因斯坦（可能沒說過）。但知識複利絕對是 AI Agent 的第八大奇蹟。每天進步 1%，一年後你的 Agent 會比現在強 37 倍。<br/>(⊙o⊙)
+</blockquote>

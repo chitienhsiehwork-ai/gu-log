@@ -1,6 +1,12 @@
 ---
+import { getCollection } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Toggle from '../../components/Toggle.astro';
+
+// Get all EN posts sorted by date (newest first)
+const posts = (await getCollection('posts', ({ data }) => {
+  return data.lang === 'en';
+})).sort((a, b) => b.data.date.localeCompare(a.data.date));
 ---
 
 <BaseLayout title="ShroomDog - Making AI Fun Again" lang="en">
@@ -15,16 +21,20 @@ import Toggle from '../../components/Toggle.astro';
   <section class="posts-section">
     <h2>Latest Posts</h2>
 
-    <article class="post-preview">
-      <h3><a href="/en/posts/openclaw-talk-deep-dive">Using AI to Manage AI: Building a Telegram Agent with OpenClaw</a></h3>
-      <p class="post-meta">2026-02-01 · ShroomDog Tech Talk</p>
-      
-      <Toggle title="Preview">
-        <p>ShroomDog's internal tech talk: How to build a personal AI system using a three-layer architecture (Phone/Mac/VPS). Key topics: Using Claude Code as a control panel, Stealth Mode authentication, and a classic bug-hunting story.</p>
-      </Toggle>
-    </article>
+    {posts.map((post) => (
+      <article class="post-preview">
+        <h3><a href={`/en/posts/${post.slug}`}>{post.data.title}</a></h3>
+        <p class="post-meta">{post.data.date} · From {post.data.source}</p>
 
-    <p class="more-coming">More posts coming soon! Check out the <a href="/">Chinese version</a> for the full archive.</p>
+        <Toggle title="Preview">
+          <p>{post.data.summary}</p>
+        </Toggle>
+      </article>
+    ))}
+
+    {posts.length === 0 && (
+      <p class="more-coming">More posts coming soon! Check out the <a href="/">Chinese version</a> for the full archive.</p>
+    )}
 
   </section>
 

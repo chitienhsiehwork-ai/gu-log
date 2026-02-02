@@ -1,0 +1,67 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('posts', ({ data }) => {
+    return data.lang === 'zh-tw';
+  });
+
+  return posts.map((post) => ({
+    params: { slug: post.slug },
+    props: { post },
+  }));
+}
+
+const { post } = Astro.props;
+const { Content } = await post.render();
+---
+
+<BaseLayout title={`${post.data.title} - gu-log`}>
+  <article class="post">
+    <header class="post-header">
+      <h1>{post.data.title}</h1>
+      <p class="post-meta">{post.data.date}</p>
+    </header>
+
+    <div class="source-citation">
+      <strong>原文出處：</strong>
+      <a href={post.data.sourceUrl} target="_blank" rel="noopener">
+        {post.data.source}
+      </a>
+    </div>
+
+    <div class="post-content">
+      <Content />
+    </div>
+
+    <footer class="post-footer">
+      <a href="/">← 返回首頁</a>
+    </footer>
+  </article>
+</BaseLayout>
+
+<style>
+  .post-header {
+    margin-bottom: 1.5rem;
+  }
+
+  .post-header h1 {
+    margin-bottom: 0.5rem;
+  }
+
+  .post-content {
+    margin: 1.5rem 0;
+  }
+
+  .post-content blockquote {
+    font-style: normal;
+    font-size: 1.1rem;
+  }
+
+  .post-footer {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--color-border);
+  }
+</style>

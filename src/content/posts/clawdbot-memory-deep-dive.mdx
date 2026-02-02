@@ -1,0 +1,122 @@
+---
+title: "Clawdbot 如何記得一切：不僅是 RAG，而是記憶體系"
+date: "2026-01-31"
+source: "@manthanguptaa on X"
+sourceUrl: "https://x.com/manthanguptaa/status/2015780646770323543"
+summary: "Clawdbot 的雙層記憶系統深度解析：Daily Logs（流水帳）+ Long-term Memory（精華庫）+ Hybrid Search（語意+關鍵字）+ 生命週期管理（Flush、Compaction、Pruning）。"
+lang: "zh-tw"
+tags: ["clawdbot", "memory", "rag"]
+---
+
+import Toggle from '../../components/Toggle.astro';
+
+Clawdbot（又名 Moltbot）是由 [Peter Steinberger](https://x.com/steipete) 開發的開源個人 AI 助理。
+與 ChatGPT 或 Claude 不同，它在你的本地機器上運行，並且擁有一個獨特的「持久記憶系統」。
+
+這篇文章深入探討了它如何實現 24/7 的 Context 保留，以及它與一般 RAG 有何不同。
+
+<blockquote class="claude-note">
+  <strong>Clawd：</strong>這篇真的把我的大腦解剖得很徹底。🧠
+  很多人以為我只是把所有對話都塞進 Prompt，其實沒那麼簡單（那樣超貴的好嗎💸）。
+  我的記憶是有「層次」的，就像你們人類有短期記憶和長期記憶一樣。
+</blockquote>
+
+## Context vs. Memory (上下文與記憶)
+
+理解這兩者的區別是關鍵：
+
+- **Context (上下文)**：模型在「這一次請求」中看到的所有東西。它是短暫的、有限的（例如 200K tokens）、昂貴的。
+- **Memory (記憶)**：存在硬碟上的 Markdown 檔案。它是持久的、無限的、便宜的、可搜尋的。
+
+Clawdbot 的魔法就在於如何在這兩者之間搬運資訊。
+
+## 雙層記憶系統 (Two-Layer Storage)
+
+Clawdbot 的記憶本質上就是「工作區裡的純 Markdown 檔案」。
+
+### Layer 1: 每日日誌 (Daily Logs)
+位於 `memory/YYYY-MM-DD.md`。
+
+這是 Append-only 的流水帳。當我想記住某件事，或者你叫我記住時，我就會寫在這裡。
+
+```markdown
+# 2026-01-26
+## 10:30 AM - API Discussion
+討論了 REST vs GraphQL。決定用 REST。
+## 2:15 PM - Deployment
+部署了 v2.3.0 到 production。
+```
+
+### Layer 2: 長期記憶 (Long-term Memory)
+位於 `MEMORY.md`。
+
+這是整理過的精華知識。重要的決定、偏好、人物關係都會從日誌提煉到這裡。
+
+```markdown
+# Long-term Memory
+## User Preferences
+- 喜歡 TypeScript 勝過 JavaScript
+- 喜歡簡潔的解釋
+```
+
+<blockquote class="claude-note">
+  <strong>Clawd：</strong>這真的很像寫筆記。
+  Layer 1 是隨手記的便利貼或日記，Layer 2 是整理好的維基百科。
+  如果在 Layer 1 寫了太多廢話，我也會盡量不讓它污染 Layer 2。📝
+</blockquote>
+
+## 記憶工具 (The Memory Tools)
+
+Agent 透過兩個工具來存取這些檔案：
+
+1. **memory_search**：語意搜尋。例如搜尋「我們上次關於 API 的決定」，它會找出相關片段。
+2. **memory_get**：讀取特定行數。找到後，把具體內容讀進 Context。
+
+搜尋採用 **Hybrid Search (混合搜尋)**：
+
+`FinalScore = (0.7 * Vector) + (0.3 * Keyword)`
+
+這結合了 Vector 的「語意理解」和 BM25 的「精確關鍵字匹配」。
+
+## 生命週期管理：壓縮與遺忘
+
+當對話太長，Context Window 快爆了怎麼辦？Clawdbot 有一套流程：
+
+### 1. Memory Flush (記憶沖刷)
+在壓縮前，系統會觸發一個 Silent Turn（無聲回合），告訴 Agent：
+
+*「快要壓縮了，現在把重要的東西寫進硬碟！」*
+
+這確保了重要資訊不會在壓縮過程中丟失。
+
+### 2. Compaction (壓縮)
+將舊的對話總結成一個 Summary，只保留最近的 N 則訊息。這個 Summary 會寫入 JSONL 檔案，下次 Session 開始時會載入。
+
+### 3. Pruning (修剪)
+工具的輸出有時很長（例如 `npm install` 的 5萬字 log）。
+Pruning 會把這些舊的 Log 刪掉或截斷，只保留結果。
+
+<blockquote class="claude-note">
+  <strong>Clawd：</strong> Memory Flush 就像是睡前的反思時間。
+  「今天發生了什麼重要的事？快點寫下來，不然明天睡醒就忘了。」
+  至於 Pruning... 沒人想記得 `npm install` 的進度條長什麼樣子吧？✂️
+</blockquote>
+
+## 結論
+
+Clawdbot 的記憶系統之所以強大，是因為它遵循了幾個原則：
+
+1. **透明 (Transparency)**：記憶就是 Markdown，你看得懂，也能改。
+2. **搜尋 (Search)**：不要把所有東西塞進 Context，而是用搜的。
+3. **持久 (Persistence)**：寫進檔案才是真的記得。
+4. **混合 (Hybrid)**：語意 + 關鍵字才是王道。
+
+---
+
+<Toggle title="社群迴響">
+**@0xAndoroid：** 這本質上跟 Claude-mem 很像。但 LLM 天生不會主動去搜記憶，你需要透過 Prompt 引導它「先搜再答」。
+
+**@trustworthyagnt：** 我試用了 24 小時，還是有失憶問題。有些工具整合還不夠穩定。
+
+**@LilithDatura：** 這聽起來完全就是 AI 版的 Obsidian 啊！為什麼這麼久才有人做出來？
+</Toggle>

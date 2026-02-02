@@ -1,6 +1,12 @@
 ---
+import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Toggle from '../components/Toggle.astro';
+
+// Get all zh-tw posts sorted by date (newest first)
+const posts = (await getCollection('posts', ({ data }) => {
+  return data.lang === 'zh-tw';
+})).sort((a, b) => b.data.date.localeCompare(a.data.date));
 ---
 
 <BaseLayout title="ShroomDog">
@@ -15,118 +21,21 @@ import Toggle from '../components/Toggle.astro';
   <section class="posts-section">
     <h2>最新文章</h2>
 
-    <article class="post-preview">
-      <h3><a href="/posts/openclaw-executive-assistant-prompt">偷走我的 OpenClaw System Prompt：把它變成真正有用的助理</a></h3>
-      <p class="post-meta">2026-02-02 · 翻譯自 @alex_prompter on X</p>
-      
-      <Toggle title="摘要預覽">
-        <p>每個人都在裸裝 OpenClaw，然後納悶為什麼整理 Downloads 就燒 $200。這個 prompt 加入護欄、成本意識、安全邊界。核心哲學：你不是聊天機器人，你是基礎設施。</p>
-      </Toggle>
-    </article>
+    {posts.map((post) => (
+      <article class="post-preview">
+        <h3><a href={`/posts/${post.slug}`}>{post.data.title}</a></h3>
+        <p class="post-meta">{post.data.date} · 翻譯自 {post.data.source}</p>
 
-    <article class="post-preview">
-      <h3><a href="/posts/ralph-loops-build-while-you-sleep">讓你的 AI 在你睡覺時幫你寫 Code — Ralph Loops 升級指南</a></h3>
-      <p class="post-meta">2026-02-02 · 翻譯自 @spacepixel on X</p>
-      
-      <Toggle title="摘要預覽">
-        <p>把 Clawdbot 變成全自動建築工：Ralph Loops 技術讓 AI 不再靠 Context Window 記憶，而是把狀態存在檔案裡。73 個 iterations、6 小時、人類只花 5 分鐘——起床就收割 Working Code。</p>
-      </Toggle>
-    </article>
-
-    <article class="post-preview">
-      <h3><a href="/posts/openclaw-talk-deep-dive">用 AI 管 AI：自架 Telegram AI Agent 完整工作流 (OpenClaw)</a></h3>
-      <p class="post-meta">2026-02-01 · ShroomDog 技術分享</p>
-      
-      <Toggle title="摘要預覽">
-        <p>ShroomDog 的內部技術分享：如何透過三層架構 (手機/Mac/VPS) 打造個人 AI 系統。重點解析：用 Claude Code 當作控制面板 (Control Plane)、Stealth Mode 認證機制、以及經典的 Bug 追蹤故事。</p>
-      </Toggle>
-    </article>
-
-    <article class="post-preview">
-      <h3><a href="/posts/boris-claude-code-tips">Claude Code 創造者 Boris 的 10 個使用技巧</a></h3>
-      <p class="post-meta">2026-02-01 · 翻譯自 @bcherny on X</p>
-      
-      <Toggle title="摘要預覽">
-        <p>Boris Cherny（Claude Code 創造者）分享團隊的使用秘訣：多開 Worktrees 並行、Plan Mode 先行、投資 CLAUDE.md 讓它自我進化、用語音輸入加速 3 倍、Subagents 分工、Learning Mode 學習。</p>
-      </Toggle>
-    </article>
-
-    <article class="post-preview">
-      <h3><a href="/posts/ai-assistance-coding-skills">AI 輔助如何影響程式技能養成：Anthropic 最新研究</a></h3>
-      <p class="post-meta">2026-01-31 · 翻譯自 Anthropic Research</p>
-      
-      <Toggle title="摘要預覽">
-        <p>Anthropic 的隨機對照實驗發現：使用 AI 輔助的工程師，測驗分數低了 17%（將近兩個等第）。但關鍵不是「用不用 AI」，而是「怎麼用」。高分組和低分組的差別只在於：有沒有追問「為什麼」。</p>
-      </Toggle>
-    </article>
-
-    <article class="post-preview">
-      <h3><a href="/posts/clawdbot-memory-deep-dive">Clawdbot 如何記得一切：不僅是 RAG，而是記憶體系</a></h3>
-      <p class="post-meta">2026-01-31 · 翻譯自 @manthanguptaa on X</p>
-      
-      <Toggle title="摘要預覽">
-        <p>深入解析 Clawdbot 的大腦：雙層記憶架構（日誌 vs 長期記憶）、混合搜尋（Vector + Keyword）、以及它是如何在 Context Window 有限的情況下，透過 Flush 和 Compaction 機制實現「永遠記得」。</p>
-      </Toggle>
-    </article>
-
-    <article class="post-preview">
-      <h3><a href="/posts/clawdbot-architecture-deep-dive">Clawdbot 架構解密：這隻 AI 到底是怎麼運作的？</a></h3>
-      <p class="post-meta">2026-01-30 · 翻譯自 @Hesamation on X</p>
-      
-      <Toggle title="摘要預覽">
-        <p>深入剖析 Clawdbot (Moltbot) 的內部構造：它是 TypeScript CLI，不是 Web App。揭秘它的「車道佇列」架構、混合記憶系統、以及如何安全地使用你的電腦（Exec & Browser）。</p>
-      </Toggle>
-    </article>
-
-    <article class="post-preview">
-      <h3><a href="/posts/redis-is-more-than-just-a-cache">Redis 不只是 Cache：別開著法拉利去買菜</a></h3>
-      <p class="post-meta">2026-01-30 · 翻譯自 @KartikeyStack on X</p>
-      
-      <Toggle title="摘要預覽">
-        <p>Redis 不只是一個很快的 Cache，它是資料結構伺服器。這篇深度好文解釋了為什麼要把 Redis 當成 State Manager，以及如何用它做 Rate Limiting、Session、排行榜和分散式鎖。含大量專有名詞解釋。</p>
-      </Toggle>
-    </article>
-
-    <article class="post-preview">
-      <h3><a href="/posts/agent-ships-while-you-sleep">如何讓你的 Agent 在你睡覺時學習並發布代碼</a></h3>
-      <p class="post-meta">2026-01-30 · 翻譯自 @ryancarson on X</p>
-      
-      <Toggle title="摘要預覽">
-        <p>Ryan Carson 的自動化工作流：每天半夜自動回顧一天的學習，更新 AGENTS.md，然後挑選下一個功能實作並發 PR。Stop prompting, start compounding。</p>
-      </Toggle>
-    </article>
-
-    <article class="post-preview">
-      <h3><a href="/posts/supermemory-for-claude-code">Claude Code 終於有長記憶了：Supermemory Plugin 發布</a></h3>
-      <p class="post-meta">2026-01-30 · 翻譯自 @DhravyaShah on X</p>
-      
-      <Toggle title="摘要預覽">
-        <p>解決 Claude Code 每次開新 session 就失憶的痛點。自動記住你的 User Profile、Coding 風格和專案決策。再也不用每天重教 AI。</p>
-      </Toggle>
-    </article>
-    
-    <article class="post-preview">
-      <h3><a href="/posts/claude-obsidian-infrastructure">Claude Code + Obsidian：打造 Agent 思考基礎設施</a></h3>
-      <p class="post-meta">2026-01-29 · 翻譯自 @arscontexta on X</p>
-      
-      <Toggle title="摘要預覽">
-        <p>Heinrich 的教學 thread：把 Obsidian vault 變成 AI 的思考工具。六大主題 + 社群犀利吐槽。</p>
-      </Toggle>
-    </article>
-
-    <article class="post-preview">
-      <h3><a href="/posts/claude-code-vs-codex">Claude Code vs Codex：選對工具再上場</a></h3>
-      <p class="post-meta">2026-01-29 · 翻譯自 @0xdevshah on X</p>
-      
-      <Toggle title="摘要預覽">
-        <p>Claude Code 是聖殿騎士，穩扎穩打；Codex 是玻璃大砲法師，輸出爆炸但容易翻車。選好任務，再選角色。</p>
-      </Toggle>
-    </article>
+        <Toggle title="摘要預覽">
+          <p>{post.data.summary}</p>
+        </Toggle>
+      </article>
+    ))}
   </section>
 
   <section class="about-section">
     <h2>關於這裡</h2>
-    
+
     <Toggle title="什麼是這個網站？">
       <p>這是一個翻譯 blog，把有趣的外文文章翻成繁體中文分享給大家。</p>
     </Toggle>

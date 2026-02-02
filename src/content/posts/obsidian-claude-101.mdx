@@ -1,0 +1,204 @@
+---
+title: "Obsidian + Claude Code 101：讓 AI 住進你的筆記"
+date: "2026-01-29"
+source: "@arscontexta (Heinrich) on X"
+sourceUrl: "https://x.com/arscontexta/status/2013045749580259680"
+summary: "Heinrich 花了一年打造的「用 AI 思考的作業系統」：讓 Claude Code 操作 Obsidian vault，提取概念、連結想法、建立活的思考表徵。你不再做筆記，而是指揮一個會做筆記的系統。"
+lang: "zh-tw"
+tags: ["obsidian", "claude-code", "knowledge-management"]
+---
+
+import Toggle from '../../components/Toggle.astro';
+
+我花了一年打造一套「用 AI 思考的作業系統」。Claude Code 現在在操作我的 Obsidian vault。
+
+它會提取關鍵概念、連結到你之前想通的東西，然後建立一個「活的」思考表徵。
+
+我現在只在 vault 裡面工作了。
+
+那些 markdown 檔案知道我發現的一切，結構清晰，還會自動注入情境脈絡給 in-context learning 用。
+
+<blockquote class="claude-note">
+  <strong>Clawd：</strong>原文 "living representation of your thinking" 超中二但我喜歡。簡單說就是你的筆記不再是死的文字，而是會跟著你一起「長大」的東西。
+</blockquote>
+
+<Toggle title="Vault Index 是什麼？">
+我用一個 vault index 幫 agent 決定要載入哪些筆記，跟 Claude Code 決定要載入哪些 skills 是同一個 pattern。
+
+（仔細想想，每則筆記基本上就是某種 skill... 高度精選的知識，在相關時被注入。）
+
+<blockquote class="claude-note">
+  <strong>Clawd：</strong>把筆記想成 skill 這個類比很強。你的「如何寫好 API」筆記 = 一個 skill，AI 需要的時候就會載入。
+</blockquote>
+</Toggle>
+
+更深層的是：vault 編碼的是**你怎麼思考**，不只是你想過什麼。方法論本身變成系統的一部分。
+
+全部都只是 markdown 檔案，你完全擁有它。這是 AI 作為思考夥伴，不是寫作助手。
+
+## 知識 = 程式碼？
+
+我發現：知識庫和程式碼庫有很多共通點。
+
+- 都是有關係的文字檔資料夾
+- 都有慣例和 pattern
+- 都受益於能導航和操作它們的 agent
+
+Vibe coding 改變了我們寫軟體的方式——讓 AI 處理實作，你專注在方向。**同樣的轉變也適用於知識工作。**
+
+> 你不再「做筆記」。你操作一個會做筆記的系統。
+
+<blockquote class="claude-note">
+  <strong>Clawd：</strong>原文是 "You don't take notes anymore. You operate a system that takes notes." 這句話值得裱框。從「我在寫筆記」變成「我在指揮一個會幫我寫筆記的系統」。
+</blockquote>
+
+## 什麼是 Vault？
+
+Vault 就是一個資料夾，裡面是會互相連結的 markdown 檔案：
+
+<Toggle title="範例資料夾結構">
+```
+my-vault/
+├── 00_inbox/           # 捕捉區，零摩擦
+├── 01_thinking/        # 你的筆記和綜合思考
+│   └── notes/          # 個別思考筆記
+├── 02_reference/       # 外部知識
+│   ├── tools/          # 工具文件
+│   ├── approaches/     # 方法和 pattern
+│   └── sources/        # 外部知識來源
+├── 03_creating/        # 進行中的內容
+│   └── drafts/
+├── 04_published/       # 完成作品存檔
+├── 05_archive/         # 不活躍內容
+├── 06_system/          # 範本和腳本
+├── CLAUDE.md           # 教 AI 你的系統
+└── attachments/        # 圖片和檔案
+```
+</Toggle>
+
+檔案用 `[[wiki links]]` 連接，建立一個想法網路。
+
+當你在一則筆記裡寫 `[[品質是最難的部分]]`，它會創建一個可點擊的連結到另一則有那個標題的筆記。
+
+Agent 可以跟著這些連結跳轉相關的想法，發現你自己都忘了的連結。
+
+## 怎麼寫好筆記
+
+**你怎麼寫那些連結很重要。**
+
+大部分人把參考放在底部像註腳。不對。**把連結編織進你的句子裡。**
+
+<Toggle title="對比範例">
+**不要這樣寫：**
+
+"這跟品質有關，參見：quality-note"
+
+**要這樣寫：**
+
+"因為 [[品質是最難的部分]]，我們需要專注在 curation"
+
+連結變成你思考的一部分，agent 可以透過跟著連結來跟著你的推理。
+</Toggle>
+
+另外，**寫能獨立存在且可組合的筆記**。
+
+如果有人從連結點進一則筆記，他們不應該需要先讀五則其他筆記才能理解。
+
+把筆記想成樂高積木。每一塊本身是完整的，但它們連接起來可以建造更大的結構。
+
+<blockquote class="claude-note">
+  <strong>Clawd：</strong>這個「樂高積木」比喻超棒。每則筆記都要能單獨拿出來看懂，但又能跟其他積木組合。很多人的筆記問題就是寫一堆只有自己當下看得懂的碎片。
+</blockquote>
+
+## AI 不會自動懂你的哲學
+
+看著 AI 完全不尊重我的哲學，讓我學到這一課。
+
+當你需要教 Claude 你怎麼思考，你才發現自己帶著多少隱性知識。突然間你必須把一切文字化。
+
+我的 CLAUDE.md 現在大約 2000 行，因為我一直在精煉什麼有用什麼沒用。
+
+<blockquote class="claude-note">
+  <strong>Clawd：</strong>2000 行的 CLAUDE.md 是什麼概念？大概就是你把所有「這個不用說大家都知道」的潛規則全部寫出來。AI 沒有「不用說」這回事，你不說它就不知道。
+</blockquote>
+
+## 每個 Vault 需要自己的哲學
+
+**這是大部分指南搞錯的地方。**
+
+他們給你一個系統說「照這個做」，但每個 vault 服務不同的目的，需要不同的原則。跟程式碼庫一樣。
+
+你不會用同樣的資料夾結構寫 CLI 工具和 web app。
+
+<Toggle title="我的多 Vault 系統">
+我跑多個 vault：
+- 一個是思考 AI 和知識管理的（這篇分享的範例）
+- 另一個是工作用的，追蹤專案和客戶，規則完全不同
+
+哲學根據目的改變。同樣的底層 pattern，不同的規則。
+</Toggle>
+
+**Pattern 是：**
+
+1. 任何 AI 都能讀的 markdown 檔案加連結
+2. 一個 CLAUDE.md 檔案教 agent 你的特定系統
+3. 讓 agent 能快速定位的結構
+4. 寫成指令的慣例，讓 AI 保持一致
+
+那些指令裡放什麼，完全取決於你的目的。
+
+## Claude 怎麼找東西
+
+當 Claude 開始一個 session，它需要理解存在什麼，但不能讀每個檔案。幾千則筆記那是不可能的。
+
+所以我的系統有多層，讓 agent 能快速定位：
+
+<Toggle title="三層定位系統">
+**1. 資料夾結構**
+
+一個 hook 在 session 開始時自動顯示有哪些資料夾和檔案：
+
+```json
+{
+  "hooks": {
+    "SessionStart": [{
+      "hooks": [{
+        "type": "command",
+        "command": "tree -L 3 -a -I '.git|.obsidian' --noreport"
+      }]
+    }]
+  }
+}
+```
+
+**2. Index 檔案**
+
+列出每則筆記加一句描述。Claude 可以在幾秒內掃描 50 則筆記而不用打開它們。
+
+**3. Topic Pages (MOCs)**
+
+連結到相關筆記的主題頁面，像是每個主題的目錄。它們也包含 Claude 遍歷圖時留給自己的筆記，為未來 session 留下麵包屑。
+</Toggle>
+
+AI 從廣開始，縮小到相關的，然後跟著連結建立理解。
+
+## 如何開始
+
+1. **創建一個資料夾**，子資料夾符合你的目的。想想你實際需要組織什麼。
+2. **寫一個 CLAUDE.md** 解釋你的系統。從簡單開始，隨著你學到什麼有效而演進。
+3. **讓 Claude 操作**。捕捉某個東西，請 Claude 找連結。讓它導航、發現關係、建議東西應該放哪裡。
+
+**永遠審查它產出的東西，編輯品質。**
+
+> 你不再做筆記，而是指揮一個做筆記的系統。你的工作變成判斷——決定什麼重要。
+
+人類的角色從作者演進為編輯，從創作者變成策展人。
+
+## TL;DR
+
+- Vibe coding 改變了我們寫軟體的方式。**Vibe note-taking 改變我們思考的方式。**
+- Vault 就是互相連結的 markdown 檔案
+- LLM 沒有記憶，所以 vault 給它們一個
+- CLAUDE.md 教 AI 你的系統怎麼運作
+- 每個 vault 需要基於目的的自己的哲學
+- 不變的是：markdown、連結、AI 操作而你提供判斷
