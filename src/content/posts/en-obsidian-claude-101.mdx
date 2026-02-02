@@ -1,0 +1,204 @@
+---
+title: "Obsidian + Claude Code 101: Let AI Live in Your Notes"
+date: "2026-01-29"
+source: "@arscontexta (Heinrich) on X"
+sourceUrl: "https://x.com/arscontexta/status/2013045749580259680"
+summary: "Heinrich spent a year building an 'OS for thinking with AI': let Claude Code operate your Obsidian vault, extract concepts, link ideas, and build a living representation of your thinking. You don't take notes anymore — you command a system that takes notes."
+lang: "en"
+tags: ["obsidian", "claude-code", "knowledge-management"]
+---
+
+import Toggle from '../../components/Toggle.astro';
+
+I spent a year building an "operating system for thinking with AI." Claude Code now operates my Obsidian vault.
+
+It extracts key concepts, links to things I figured out before, then builds a "living" representation of my thinking.
+
+I only work inside the vault now.
+
+Those markdown files know everything I've discovered, they're well-structured, and they automatically inject context for in-context learning.
+
+<blockquote class="claude-note">
+  <strong>Clawd:</strong> The original phrase "living representation of your thinking" sounds dramatic but I love it. In simple terms: your notes aren't dead text anymore — they're something that "grows" with you.
+</blockquote>
+
+<Toggle title="What's a Vault Index?">
+I use a vault index to help the agent decide which notes to load, same pattern as how Claude Code decides which skills to load.
+
+(Think about it: each note is basically a kind of skill... highly curated knowledge, injected when relevant.)
+
+<blockquote class="claude-note">
+  <strong>Clawd:</strong> The "notes as skills" analogy is powerful. Your "how to write good APIs" note = a skill. When AI needs it, it loads in.
+</blockquote>
+</Toggle>
+
+What's deeper: the vault encodes **how you think**, not just what you've thought. The methodology itself becomes part of the system.
+
+It's all just markdown files. You own it completely. This is AI as thinking partner, not writing assistant.
+
+## Knowledge = Code?
+
+I realized: knowledge bases and codebases have a lot in common.
+
+- Both are folders of related text files
+- Both have conventions and patterns
+- Both benefit from agents that can navigate and operate them
+
+Vibe coding changed how we write software — let AI handle implementation, you focus on direction. **The same shift applies to knowledge work.**
+
+> You don't take notes anymore. You operate a system that takes notes.
+
+<blockquote class="claude-note">
+  <strong>Clawd:</strong> The original is "You don't take notes anymore. You operate a system that takes notes." This deserves to be framed. From "I'm writing notes" to "I'm commanding a system that writes notes for me."
+</blockquote>
+
+## What is a Vault?
+
+A vault is a folder containing markdown files that link to each other:
+
+<Toggle title="Example Folder Structure">
+```
+my-vault/
+├── 00_inbox/           # Capture zone, zero friction
+├── 01_thinking/        # Your notes and synthesis
+│   └── notes/          # Individual thinking notes
+├── 02_reference/       # External knowledge
+│   ├── tools/          # Tool documentation
+│   ├── approaches/     # Methods and patterns
+│   └── sources/        # External knowledge sources
+├── 03_creating/        # Work in progress
+│   └── drafts/
+├── 04_published/       # Finished work archive
+├── 05_archive/         # Inactive content
+├── 06_system/          # Templates and scripts
+├── CLAUDE.md           # Teach AI your system
+└── attachments/        # Images and files
+```
+</Toggle>
+
+Files connect using `[[wiki links]]`, creating a network of ideas.
+
+When you write `[[quality is the hardest part]]` in a note, it creates a clickable link to another note with that title.
+
+The agent can follow these links to jump to related ideas, discovering connections you forgot you made.
+
+## How to Write Good Notes
+
+**How you write those links matters.**
+
+Most people put references at the bottom like footnotes. Wrong. **Weave links into your sentences.**
+
+<Toggle title="Comparison Example">
+**Don't write this:**
+
+"This relates to quality, see: quality-note"
+
+**Write this:**
+
+"Because [[quality is the hardest part]], we need to focus on curation"
+
+The link becomes part of your thinking. The agent can follow your reasoning by following the links.
+</Toggle>
+
+Also, **write notes that can stand alone and be composable.**
+
+If someone clicks into a note from a link, they shouldn't need to read five other notes first to understand it.
+
+Think of notes as Lego blocks. Each block is complete on its own, but they connect to build bigger structures.
+
+<blockquote class="claude-note">
+  <strong>Clawd:</strong> The "Lego blocks" metaphor is brilliant. Each note should be understandable on its own, but also connectable with other blocks. Most people's note problem is writing fragments that only make sense to themselves in that moment.
+</blockquote>
+
+## AI Won't Automatically Understand Your Philosophy
+
+Watching AI completely disrespect my philosophy taught me this lesson.
+
+When you need to teach Claude how you think, you realize how much tacit knowledge you carry. Suddenly you must verbalize everything.
+
+My CLAUDE.md is now about 2000 lines because I keep refining what works and what doesn't.
+
+<blockquote class="claude-note">
+  <strong>Clawd:</strong> What does a 2000-line CLAUDE.md mean? It's basically writing out all the "everyone knows this" implicit rules. AI has no "goes without saying" — if you don't say it, I don't know it.
+</blockquote>
+
+## Each Vault Needs Its Own Philosophy
+
+**This is where most guides get it wrong.**
+
+They give you a system and say "do this," but every vault serves a different purpose and needs different principles. Just like codebases.
+
+You wouldn't use the same folder structure for a CLI tool and a web app.
+
+<Toggle title="My Multi-Vault System">
+I run multiple vaults:
+- One for thinking about AI and knowledge management (the example in this post)
+- Another for work, tracking projects and clients, with completely different rules
+
+Philosophy changes based on purpose. Same underlying patterns, different rules.
+</Toggle>
+
+**The pattern is:**
+
+1. Markdown files + links that any AI can read
+2. A CLAUDE.md file teaching the agent your specific system
+3. Structure that lets the agent quickly locate things
+4. Conventions written as instructions, keeping AI consistent
+
+What goes in those instructions depends entirely on your purpose.
+
+## How Claude Finds Things
+
+When Claude starts a session, it needs to understand what exists, but can't read every file. Thousands of notes? That's impossible.
+
+So my system has multiple layers, letting the agent quickly locate:
+
+<Toggle title="Three-Layer Location System">
+**1. Folder Structure**
+
+A hook automatically shows which folders and files exist at session start:
+
+```json
+{
+  "hooks": {
+    "SessionStart": [{
+      "hooks": [{
+        "type": "command",
+        "command": "tree -L 3 -a -I '.git|.obsidian' --noreport"
+      }]
+    }]
+  }
+}
+```
+
+**2. Index Files**
+
+List each note plus a one-sentence description. Claude can scan 50 notes in seconds without opening them.
+
+**3. Topic Pages (MOCs)**
+
+Topic pages linking to related notes, like a table of contents for each topic. They also contain notes Claude leaves for itself while traversing the graph, leaving breadcrumbs for future sessions.
+</Toggle>
+
+AI starts broad, narrows to relevant, then follows links to build understanding.
+
+## How to Start
+
+1. **Create a folder** with subfolders matching your purpose. Think about what you actually need to organize.
+2. **Write a CLAUDE.md** explaining your system. Start simple, evolve as you learn what works.
+3. **Let Claude operate**. Capture something, ask Claude to find connections. Let it navigate, discover relationships, suggest where things should go.
+
+**Always review what it produces, edit for quality.**
+
+> You don't take notes anymore — you command a system that takes notes. Your job becomes judgment — deciding what matters.
+
+The human role evolves from author to editor, from creator to curator.
+
+## TL;DR
+
+- Vibe coding changed how we write software. **Vibe note-taking changes how we think.**
+- A vault is markdown files linking to each other
+- LLMs have no memory, so vaults give them one
+- CLAUDE.md teaches AI how your system works
+- Each vault needs its own philosophy based on purpose
+- What stays constant: markdown, links, AI operates while you provide judgment
