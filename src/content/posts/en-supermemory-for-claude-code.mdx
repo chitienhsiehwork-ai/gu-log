@@ -1,0 +1,111 @@
+---
+title: "Claude Code Finally Has Long-Term Memory: Supermemory Plugin Released"
+date: "2026-01-30"
+source: "@DhravyaShah on X"
+sourceUrl: "https://x.com/dhravyashah/status/2017039283367137690"
+summary: "We added Supermemory to Claude Code. Now it's ridiculously powerful. Claude Code should know you — not just this one session, but forever. It should know your codebase, your preferences, your team's decisions, and context from every tool you use."
+lang: "en"
+tags: ["claude-code", "supermemory", "memory", "ai-agent"]
+---
+
+import Toggle from '../../components/Toggle.astro';
+
+**We added Supermemory to Claude Code. Now it's ridiculously powerful...**
+
+Today, we launched the Supermemory plugin for Claude Code!
+
+> TLDR: You can now use Supermemory in Claude Code.
+> [github.com/supermemoryai/claude-supermemory](https://github.com/supermemoryai/claude-supermemory)
+
+Claude Code really changed how I work. But one thing drove me crazy... **Every day, I have to explain the exact same things to it.**
+
+I have to constantly repeat my coding style, preferences, etc.
+
+- "User service connects to Postgres, not MySQL."
+- "Don't refactor that function — I know it's ugly but it's intentional."
+
+Claude writes great code. Then I close the session and it forgets everything.
+
+Next day? **Groundhog Day**. Again. We built a bunch of workarounds — giant CLAUDE.md files, pasting context before every prompt, maintaining "memory" documents the agent seemingly never reads...
+
+So we built something.
+
+The concept is simple: **Claude Code should know you. Not just this one session — forever.** It should know your codebase, your preferences, your team's decisions, and context from every tool you use.
+
+## Here's How It Actually Works:
+
+### 1. It Remembers Where You Left Off
+We use User Profiles to build your file. Claude knows your goal this week is "reduce costs and migrate to another Postgres provider."
+
+### 2. It Learns Your Style
+Instead of writing cookie-cutter code like everyone else's, it learns as you use it — like "use less useEffect!!!"
+
+Claude Code now remembers how you fixed a bug last time. This knowledge compounds into an agent truly customized for you.
+
+### 3. It Knows "You"
+It knows if you're a founder, college student, or systems engineer, and suggests tools and implementations accordingly.
+
+<blockquote class="claude-note">
+  <strong>Clawd:</strong> Taste is the #1 factor separating good engineers from bad ones. If AI doesn't understand your taste, it's forever just a junior intern.
+</blockquote>
+
+```
+Developer: "I need to add rate limiting to this endpoint"
+
+Agent: "Based on the rate limiting you implemented in the payments-api
+last month (using sliding window with Redis), and your preference for
+the express-rate-limit middleware, here's an approach that matches
+your existing patterns..."
+```
+
+## Technical Core: Hybrid Memory
+
+This isn't regular RAG.
+
+Memory isn't just "find similar stuff."
+
+- It's understanding when you say "that auth bug," you mean the one you've been debugging for three days.
+- It's knowing your preferences evolved — you used to like Classes, now you prefer Functions.
+- It's tracking how a decision was made, revisited, then changed.
+
+Our **Hybrid Memory** system extracts facts, tracks how they change over time, builds your profile, and retrieves the right context at the right moment.
+
+In LongMemEval benchmarks, we scored **81.6%**. (Regular RAG systems score around 40-60%)
+
+## How Is This Different from MCP?
+
+Supermemory MCP is great, but has a major limitation: **We can't control when Claude Code executes tools.**
+
+This means we can't learn from it.
+
+This plugin adds:
+- **Context Injection:** Auto-injects User Profile at session start.
+- **Automatic Capture:** Conversation content gets captured and stored for future use.
+
+These weren't possible with just MCP before.
+
+---
+
+## Community Q&A Highlights
+
+<Toggle title="Q: How much token consumption?">
+**@nichm asked:** How many tokens does this add? I have budget constraints.
+
+**DhravyaShah replied:** Supermemory has about a **5000 token** budget. These tokens are dynamically replaced, so roughly max 5000 memories.
+</Toggle>
+
+<Toggle title="Q: Does it support multiple codebases?">
+**@wells_harrison asked:** I have 4 client projects with different tech stacks. Can it handle that?
+
+**DhravyaShah replied:** Yes it can!
+
+<blockquote class="claude-note">
+  <strong>Clawd:</strong> This is important. You don't want AI chatting about your Vue project architecture while writing React. Context separation is essential.
+</blockquote>
+</Toggle>
+
+<Toggle title="Q: Privacy concerns?">
+**@ChandanAILab asked:** What about enterprise privacy? Can backend people see the data?
+
+(Not yet answered, but this is usually the biggest concern for enterprise adoption. Though Supermemory open-sourced the plugin, privacy concerns exist if the backend service is SaaS.)
+</Toggle>
