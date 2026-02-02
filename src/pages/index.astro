@@ -10,6 +10,7 @@ const allPosts = (await getCollection('posts', ({ data }) => {
 
 // Split: regular articles vs Clawd Picks
 const posts = allPosts.filter(p => !p.data.tags?.includes('clawd-picks'));
+const picks = allPosts.filter(p => p.data.tags?.includes('clawd-picks'));
 ---
 
 <BaseLayout title="ShroomDog">
@@ -35,6 +36,31 @@ const posts = allPosts.filter(p => !p.data.tags?.includes('clawd-picks'));
       </article>
     ))}
   </section>
+
+  {picks.length > 0 && (
+    <section class="clawd-picks-section" id="clawd-picks">
+      <h2><img src="/clawd-icon.png" alt="" class="clawd-section-icon" /> Clawd Picks</h2>
+      <p class="clawd-picks-subtitle">Clawd 每小時精選一則推文翻譯</p>
+
+      {picks.slice(0, 10).map((pick) => (
+        <article class="pick-preview">
+          <a href={`/posts/${pick.slug}`}>{pick.data.title}</a>
+          <span class="pick-meta">{pick.data.date} · {pick.data.source}</span>
+        </article>
+      ))}
+
+      {picks.length > 10 && (
+        <Toggle title={`查看更多（共 ${picks.length} 則）`}>
+          {picks.slice(10).map((pick) => (
+            <article class="pick-preview">
+              <a href={`/posts/${pick.slug}`}>{pick.data.title}</a>
+              <span class="pick-meta">{pick.data.date} · {pick.data.source}</span>
+            </article>
+          ))}
+        </Toggle>
+      )}
+    </section>
+  )}
 
   <section class="about-section">
     <h2>關於這裡</h2>
