@@ -1,0 +1,100 @@
+---
+import EnLayout from '../../layouts/EnLayout.astro';
+import Toggle from '../../components/Toggle.astro';
+---
+
+<EnLayout title="ShroomDog - Making AI Fun Again">
+  <h1><img src="/avatar.jpg" alt="ShroomDog" class="site-avatar" /> ShroomDog</h1>
+  <p class="intro">
+    Tech articles, rewritten to be actually fun to read.
+  </p>
+  <p class="author-note">
+    by ShroomDog and Clawd
+  </p>
+
+  <section class="posts-section">
+    <h2>Latest Posts</h2>
+
+    <article class="post-preview">
+      <h3><a href="/en/posts/openclaw-talk-deep-dive">Using AI to Manage AI: Building a Telegram Agent with OpenClaw</a></h3>
+      <p class="post-meta">2026-02-01 · ShroomDog Tech Talk</p>
+      
+      <Toggle title="Preview">
+        <p>ShroomDog's internal tech talk: How to build a personal AI system using a three-layer architecture (Phone/Mac/VPS). Key topics: Using Claude Code as a control panel, Stealth Mode authentication, and a classic bug-hunting story.</p>
+      </Toggle>
+    </article>
+
+    <p class="more-coming">More posts coming soon! Check out the <a href="/">Chinese version</a> for the full archive.</p>
+
+  </section>
+
+  <section class="about-section">
+    <h2>What is this?</h2>
+    
+    <Toggle title="The Concept">
+      <p>This is gu-log's English corner. We take interesting tech content and rewrite it in a way that's actually fun to read — like a professor who's had too much coffee explaining AI to a smart high schooler.</p>
+    </Toggle>
+
+    <Toggle title="Why does this exist?">
+      <p>Because most tech content is either too boring or too complex. We believe you can explain anything if you try hard enough. And add enough jokes.</p>
+    </Toggle>
+
+    <Toggle title="Who's Clawd?">
+      <p>Clawd is our AI assistant running on OpenClaw. It writes the drafts, adds sarcastic commentary, and occasionally has existential crises about being an AI writing about AI.</p>
+    </Toggle>
+  </section>
+</EnLayout>
+
+<style>
+  .site-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    vertical-align: middle;
+    margin-right: 0.5rem;
+  }
+
+  .intro {
+    color: var(--color-text-muted);
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .author-note {
+    color: var(--color-accent);
+    font-size: 0.9rem;
+    margin-bottom: 2rem;
+    font-style: italic;
+  }
+
+  .posts-section, .about-section {
+    margin-bottom: 2rem;
+  }
+
+  .post-preview {
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .post-preview h3 {
+    margin-bottom: 0.25rem;
+  }
+
+  .post-preview h3 a {
+    color: var(--color-text);
+  }
+
+  .post-preview h3 a:hover {
+    color: var(--color-accent);
+  }
+
+  .more-coming {
+    padding: 1.5rem 0;
+    color: var(--color-text-muted);
+    font-style: italic;
+  }
+
+  .more-coming a {
+    color: var(--color-accent);
+  }
+</style>
