@@ -1,0 +1,154 @@
+---
+title: "How to Make Your Agent Learn and Ship Code While You Sleep"
+date: "2026-01-30"
+source: "@ryancarson on X"
+sourceUrl: "https://x.com/ryancarson/status/2016520542723924279"
+summary: "Using a two-stage loop (Compound Review and Auto-Compound), let your AI agent automatically learn from experience, update its knowledge base, and implement the next priority item while you sleep."
+lang: "en"
+tags: ["agent", "automation", "compound-engineering"]
+---
+
+import Toggle from '../../components/Toggle.astro';
+
+Most developers use AI agents reactively — you give a command, it responds, and that's it.
+
+**But what if your agent kept working after you closed your laptop?**
+
+What if it could review the day's work, extract lessons, update its own instructions, and then pick the next feature from the backlog to build?
+
+This is the system I built: a loop that runs every night. The agent learns from each thread, compounds that knowledge into persistent memory, and then ships the next priority item — all while I'm asleep.
+
+<blockquote class="claude-note">
+  <strong>Clawd:</strong> This is like the ultimate evolution of "Nightly Build." It's not just compiling code, it's compiling <strong>knowledge</strong> and <strong>new features</strong>. It's basically a CI/CD pipeline for your AI's brain. (⌐■_■)
+</blockquote>
+
+## Setup
+
+This setup is built on three open-source projects:
+
+1. [Compound Engineering Plugin](https://github.com/EveryInc/compound-engineering-plugin): Gives agents the ability to extract and persist learnings.
+2. [Compound Product](https://github.com/snarktank/compound-product): The automation layer that turns priority reports into shipped PRs.
+3. [Ralph](https://github.com/snarktank/ralph): An autonomous agent loop that keeps running tasks until completion.
+
+(If you're using Claude Code, the logic is the same. Just swap `amp execute` in the scripts for `claude -p "..."`)
+
+## The Two-Part Loop
+
+The system runs two jobs every night, in sequence:
+
+### 10:30 PM - Compound Review
+Reviews all threads from the past 24 hours, extracts lessons, and updates the `AGENTS.md` file.
+
+### 11:00 PM - Auto-Compound
+Pulls the latest code (including the newly learned knowledge), picks the #1 priority from the report, implements it, and creates a PR.
+
+**Order matters.** The review job updates `AGENTS.md` with patterns and pitfalls discovered during the day. The implementation job benefits from this knowledge when tackling new tasks.
+
+<blockquote class="claude-note">
+  <strong>Clawd:</strong> This is like how humans reflect on their day before sleeping (Compound Review), then wake up with new wisdom to tackle work (Auto-Compound). Except AI doesn't need sleep, so it does all this while you're snoring. It's weirdly beautiful and slightly unsettling. ╰(°▽°)╯
+</blockquote>
+
+## Step 1: Compound Review Script
+
+This script tells the agent to look at the past 24 hours of threads and, if no summary was made, make one now.
+
+```bash
+#!/bin/bash
+# scripts/daily-compound-review.sh
+
+cd ~/projects/your-project
+git checkout main
+git pull origin main
+
+amp execute "Load the compound-engineering skill. Look through and read each Amp thread from the last 24 hours. For any thread where we did NOT use the Compound Engineering skill to compound our learnings at the end, do so now - extract the key learnings from that thread and update the relevant AGENTS.md files so we can learn from our work and mistakes. Commit your changes and push to main."
+```
+
+Your `AGENTS.md` becomes a living knowledge base that grows every night.
+
+<blockquote class="claude-note">
+  <strong>Clawd:</strong> AGENTS.md is like the agent's "cerebral cortex." Without updating it, your agent only has "short-term memory" (session context). Update it, and suddenly your agent has "long-term memory" and "accumulated experience." It's the difference between a goldfish and an elephant. (｡◕‿◕｡)
+</blockquote>
+
+## Step 2: Auto-Compound Script
+
+This is the implementation engine. Read report → pick top item → create PRD → break into tasks → execute.
+
+```bash
+#!/bin/bash
+# scripts/compound/auto-compound.sh
+
+# ... (setup omitted) ...
+
+# Find latest report & Analyze priority
+LATEST_REPORT=$(ls -t reports/*.md | head -1)
+ANALYSIS=$(./scripts/compound/analyze-report.sh "$LATEST_REPORT")
+PRIORITY_ITEM=$(echo "$ANALYSIS" | jq -r '.priority_item')
+
+# Create PRD & Tasks
+amp execute "Load the prd skill. Create a PRD for: $PRIORITY_ITEM..."
+amp execute "Load the tasks skill. Convert the PRD to scripts/compound/prd.json"
+
+# Run execution loop
+./scripts/compound/loop.sh 25
+
+# Create PR
+gh pr create --draft --title "Compound: $PRIORITY_ITEM" --base main
+```
+
+## Step 3: Setup launchd (macOS)
+
+While you could use Cron, `launchd` handles edge cases better on macOS.
+
+<Toggle title="View launchd plist example">
+Create `~/Library/LaunchAgents/com.yourproject.daily-compound-review.plist`:
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.yourproject.daily-compound-review</string>
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>22</integer>
+    <key>Minute</key>
+    <integer>30</integer>
+  </dict>
+  <!-- ... other settings ... -->
+</dict>
+</plist>
+```
+</Toggle>
+
+## Step 4: Keep Your Computer Awake
+
+launchd won't wake a sleeping Mac. Use the `caffeinate` command to keep it awake during the automation window.
+
+```bash
+/usr/bin/caffeinate -i -t 32400
+```
+(This keeps your Mac awake for 9 hours, from 5 PM to 2 AM, enough time to run all jobs.)
+
+<blockquote class="claude-note">
+  <strong>Clawd:</strong> If you forget this step, your carefully crafted automation will just... not run. It's like setting an alarm but forgetting to charge your phone. Don't be that person. (¬‿¬)
+</blockquote>
+
+## The Compound Effect
+
+When you wake up in the morning, you have:
+- An updated `AGENTS.md` with new patterns the agent learned.
+- A draft PR that implements the next priority item.
+- Complete logs showing what happened.
+
+The agent gets smarter every day because it reads its own updated instructions before each implementation. Patterns discovered on Monday guide Tuesday's work. Pitfalls hit on Wednesday are avoided on Thursday.
+
+<blockquote class="claude-note">
+  <strong>Clawd:</strong> This is the real "passive income" (well, passive output). The point isn't just auto-writing code — it's auto-learning and turning those learnings into system configuration. It's like having a junior developer who actually learns from mistakes instead of repeating them forever. Which, let's be honest, is rarer than you'd think. (◕‿◕)
+</blockquote>
+
+**Stop prompting. Start compounding.**
+
+<blockquote class="claude-note">
+  <strong>Clawd:</strong> "Compound interest is the eighth wonder of the world." — Einstein (probably didn't say this, but whatever). But knowledge compounding is definitely the eighth wonder of AI agents. Improve 1% every day, and after a year your agent will be 37 times stronger. That's not a metaphor, that's actual math: (1.01)³⁶⁵ ≈ 37.8. Math is wild. ʕ•ᴥ•ʔ
+</blockquote>
