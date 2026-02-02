@@ -1,0 +1,137 @@
+---
+title: "Obsidian & Claude Code 101: Context Engineering"
+date: "2026-01-30"
+source: "@arscontexta (Heinrich) on X"
+sourceUrl: "https://x.com/arscontexta/status/2015585363318743071"
+summary: "Vibe note-taking 要運作得好，你必須強迫 Claude Code「挑食」一點。用 4 層過濾機制（檔案樹→YAML描述→大綱→完整內容）來讓它更選擇性，這個 pattern 叫 Progressive Disclosure。"
+lang: "zh-tw"
+tags: ["obsidian", "claude-code", "context-engineering", "progressive-disclosure"]
+---
+
+import Toggle from '../../components/Toggle.astro';
+
+Vibe note-taking 要運作得好，你必須強迫 Claude Code **「挑食」**一點。
+
+預設情況下，只要看起來有用，Claude 就會把整個檔案讀進去。這樣很快就會塞爆 context window。
+
+我們要用 4 層過濾機制來讓它更選擇性。這個 pattern 叫做 **Progressive Disclosure（漸進式揭露）**。
+
+<blockquote class="claude-note">
+  <strong>Clawd：</strong>Progressive Disclosure 是 UI 設計的老觀念，現在用在 AI Context 上也很合。就像約會一樣，不要第一次見面就把祖宗十八代都交代清楚。循序漸進，有興趣再深入。
+</blockquote>
+
+## 1. File Tree (檔案樹)
+
+在 session 開始時，透過 hook 自動注入完整的檔案樹，這時候 Claude 還沒碰任何東西。
+
+```json
+"hooks": {
+    "SessionStart": [{
+        "hooks": [{
+            "type": "command",
+            "command": "tree -L 3 -a -I '.git|.obsidian' --noreport"
+        }]
+    }]
+}
+```
+
+這給了 Claude 一張地圖。
+
+**檔名要有描述性**，這樣它們才能作為第一印象。
+
+`queries evolve during search so agents should checkpoint md`
+
+這個檔名比 `search notes md` 告訴你更多資訊。光讀檔案樹就知道筆記在講什麼。
+
+## 2. YAML Descriptions (摘要描述)
+
+每一則筆記在 frontmatter 都有一個單句描述。
+
+```yaml
+---
+description: Memory retrieval in brains works through spreading activation where neighbors prime each other. Wiki link traversal replicates this, making backlinks function as primes that surface relevant contexts
+---
+# spreading activation models how agents should traverse
+...
+```
+
+描述是對標題的補充說明。如果某個東西看起來有趣，Claude 會用 `ripgrep` 查詢它：
+
+```bash
+rg "^description:" 01_thinking/*.md
+```
+
+<blockquote class="claude-note">
+  <strong>Clawd：</strong>這就像給每篇筆記寫個 Tweet。AI 讀 Tweet 就知道這篇在講什麼，不用讀整篇長文。這對省 token 超級有幫助。
+</blockquote>
+
+## 3. Outline (大綱)
+
+如果一則筆記通過了描述過濾器，Claude 接著檢查大綱。
+
+有時候你只需要其中一個章節，載入整個檔案會製造雜訊。
+
+```bash
+grep -n "^#" "01_thinking/knowledge-work.md"
+# output:
+# 5:# knowledge-work
+# 13:## Core Ideas
+# 19:## Tensions
+# 23:## Gaps
+```
+
+現在 Claude 知道要看哪裡，只讀它需要的部分。
+
+## 4. Full Content (完整內容)
+
+如果一切看起來都跟任務相關，Claude 才會載入完整檔案。
+
+**但只針對通過前三層過濾的筆記。**
+
+大部分筆記永遠不會進到這一層，這就是重點。當 Claude 必須為每一次讀取辯護時，它的策展能力會變好。
+
+## MCP 的平行概念
+
+這不是新 pattern。MCP (Model Context Protocol) 的工具發現也是這樣運作的。
+
+當你有 50+ 個工具，Claude 不會把所有定義都一開始就載入。工具規格是可用的，但推遲到 Claude 實際搜尋它們時才載入。
+
+```
+tool list → tool search → tool references → full definitions
+```
+
+同樣的結構：
+
+```
+file tree → descriptions → outline → full content
+```
+
+## 實作方式
+
+整件事其實只有三步：
+
+1. 一個跑 `tree` 的 SessionStart hook
+2. 有 description 欄位的 YAML frontmatter
+3. 在 CLAUDE.md 裡的指令，叫 Claude 在讀取前先檢查 descriptions
+
+只需幾個限制，就能強迫它變得挑惕。
+
+---
+
+## 社群精選問答
+
+<Toggle title="Q: 每一篇都要手寫 YAML 描述很累欸？">
+**@Catcher4242 問：** 這前提是每則筆記都要有 description。有自動化的替代方案嗎？手動寫或跑批次生成好像都很貴/很累。
+
+**Heinrich 霸氣回：** **Just tell Claude.**（叫 Claude 做就好）
+
+<blockquote class="claude-note">
+  <strong>Clawd：</strong>這是這套系統的精髓。覺得寫 YAML 很累？叫 Claude 幫你寫啊。它是你的員工，不是你的老闆。你可以下個指令：「幫我整理這篇筆記並補上 description」，搞定。
+</blockquote>
+</Toggle>
+
+<Toggle title="其他有趣的 hook">
+**Heinrich 分享：** @lt0gt 用了類似的 hook 但帶更多 context，讓我想要重新思考我的作法。
+
+他會把最近的 context + 可用工具都在 session 開始時注入。
+</Toggle>
