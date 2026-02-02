@@ -1,0 +1,388 @@
+---
+/**
+ * Table of Contents Component
+ *
+ * Extracts h2 and h3 headings from article and displays them as a navigable TOC:
+ * - Mobile: Collapsible TOC at top of article
+ * - Desktop (>1024px): Sticky sidebar TOC
+ * - Highlights current section on scroll
+ * - Only shows if 3+ headings exist
+ */
+
+interface Props {
+  lang?: 'zh-tw' | 'en';
+}
+
+const { lang = 'zh-tw' } = Astro.props;
+
+const labels = {
+  'zh-tw': {
+    title: '目錄',
+    skipToContent: '跳到內容'
+  },
+  'en': {
+    title: 'Table of Contents',
+    skipToContent: 'Skip to content'
+  }
+};
+
+const t = labels[lang];
+---
+
+<aside class="toc-container" aria-label={t.title}>
+  <!-- Mobile Toggle Version -->
+  <div class="toc-mobile">
+    <div class="toggle-container" data-open="false">
+      <button class="toggle-header" aria-expanded="false">
+        <span class="toggle-icon"></span>
+        <span class="toggle-title">{t.title}</span>
+      </button>
+      <div class="toggle-wrapper">
+        <div class="toggle-inner">
+          <nav class="toc-content">
+            <!-- Populated by client script -->
+          </nav>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Desktop Sidebar Version -->
+  <div class="toc-desktop">
+    <nav class="toc-sidebar">
+      <h2 class="toc-title">{t.title}</h2>
+      <div class="toc-content">
+        <!-- Populated by client script -->
+      </div>
+    </nav>
+  </div>
+</aside>
+
+<script>
+  function initTableOfContents() {
+    const article = document.querySelector('article.post .post-content');
+    if (!article) return;
+
+    // Extract h2 and h3 headings
+    const headings = Array.from(article.querySelectorAll('h2, h3'));
+
+    // Only show TOC if 3+ headings
+    if (headings.length < 3) {
+      const tocContainer = document.querySelector('.toc-container');
+      tocContainer?.remove();
+      return;
+    }
+
+    // Add IDs to headings if they don't have one
+    headings.forEach((heading, index) => {
+      if (!heading.id) {
+        const text = heading.textContent || '';
+        const id = text
+          .toLowerCase()
+          .trim()
+          .replace(/[^\w\s\u4e00-\u9fff-]/g, '')
+          .replace(/\s+/g, '-')
+          || `heading-${index}`;
+        heading.id = id;
+      }
+    });
+
+    // Build TOC HTML
+    const tocHTML = headings.map(heading => {
+      const level = heading.tagName.toLowerCase();
+      const text = heading.textContent || '';
+      const id = heading.id;
+      return `
+        <a href="#${id}"
+           class="toc-link toc-link-${level}"
+           data-heading-id="${id}">
+          ${text}
+        </a>
+      `;
+    }).join('');
+
+    // Insert into both mobile and desktop TOC
+    const mobileContent = document.querySelector('.toc-mobile .toc-content');
+    const desktopContent = document.querySelector('.toc-desktop .toc-content');
+
+    if (mobileContent) mobileContent.innerHTML = tocHTML;
+    if (desktopContent) desktopContent.innerHTML = tocHTML;
+
+    // Set up scroll highlighting
+    setupScrollHighlight(headings);
+
+    // Set up mobile toggle
+    setupMobileToggle();
+
+    // Set up smooth scrolling
+    setupSmoothScroll();
+  }
+
+  function setupScrollHighlight(headings: Element[]) {
+    let ticking = false;
+
+    function updateActiveHeading() {
+      const scrollPos = window.scrollY + 100; // Offset for header
+
+      // Find the current heading
+      let currentHeading = headings[0];
+      for (const heading of headings) {
+        const rect = heading.getBoundingClientRect();
+        const offsetTop = rect.top + window.scrollY;
+        if (offsetTop <= scrollPos) {
+          currentHeading = heading;
+        } else {
+          break;
+        }
+      }
+
+      // Update active class
+      document.querySelectorAll('.toc-link').forEach(link => {
+        link.classList.remove('active');
+      });
+
+      if (currentHeading?.id) {
+        document.querySelectorAll(`[data-heading-id="${currentHeading.id}"]`).forEach(link => {
+          link.classList.add('active');
+        });
+      }
+
+      ticking = false;
+    }
+
+    function onScroll() {
+      if (!ticking) {
+        requestAnimationFrame(updateActiveHeading);
+        ticking = true;
+      }
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    updateActiveHeading(); // Initial highlight
+  }
+
+  function setupMobileToggle() {
+    const button = document.querySelector('.toc-mobile .toggle-header');
+    button?.addEventListener('click', () => {
+      const container = button.closest('.toggle-container');
+      const isOpen = container?.getAttribute('data-open') === 'true';
+
+      container?.setAttribute('data-open', (!isOpen).toString());
+      button.setAttribute('aria-expanded', (!isOpen).toString());
+    });
+  }
+
+  function setupSmoothScroll() {
+    document.querySelectorAll('.toc-link').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const href = link.getAttribute('href');
+        if (!href) return;
+
+        const target = document.querySelector(href);
+        if (target) {
+          const yOffset = -80; // Header offset
+          const y = target.getBoundingClientRect().top + window.scrollY + yOffset;
+          window.scrollTo({ top: y, behavior: 'smooth' });
+
+          // Update URL
+          history.pushState(null, '', href);
+
+          // Close mobile toggle after navigation
+          const mobileContainer = document.querySelector('.toc-mobile .toggle-container');
+          if (window.innerWidth < 1024 && mobileContainer) {
+            mobileContainer.setAttribute('data-open', 'false');
+            const button = mobileContainer.querySelector('.toggle-header');
+            button?.setAttribute('aria-expanded', 'false');
+          }
+        }
+      });
+    });
+  }
+
+  // Initialize on page load
+  initTableOfContents();
+
+  // Re-initialize on view transitions (Astro)
+  document.addEventListener('astro:page-load', initTableOfContents);
+</script>
+
+<style>
+  /* Base container */
+  .toc-container {
+    margin: 1.5rem 0;
+  }
+
+  /* Mobile: Show toggle, hide sidebar */
+  .toc-mobile {
+    display: block;
+  }
+
+  .toc-desktop {
+    display: none;
+  }
+
+  /* Mobile Toggle Styles (reusing Toggle component pattern) */
+  .toggle-container {
+    border-radius: 8px;
+    background: var(--color-surface);
+    overflow: hidden;
+  }
+
+  .toggle-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    width: 100%;
+    background: none;
+    border: none;
+    color: inherit;
+    font-family: inherit;
+    font-size: inherit;
+    cursor: pointer;
+    text-align: left;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .toggle-icon {
+    width: 0;
+    height: 0;
+    border-left: 6px solid var(--color-text);
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    transition: transform 0.3s ease;
+    flex-shrink: 0;
+  }
+
+  .toggle-container[data-open="true"] .toggle-icon {
+    transform: rotate(90deg);
+  }
+
+  .toggle-title {
+    flex: 1;
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+
+  .toggle-wrapper {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .toggle-container[data-open="true"] .toggle-wrapper {
+    grid-template-rows: 1fr;
+  }
+
+  .toggle-inner {
+    overflow: hidden;
+  }
+
+  /* TOC Content Styles (shared by mobile and desktop) */
+  .toc-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  .toc-mobile .toc-content {
+    padding: 0.5rem 1rem 1rem 1.75rem;
+  }
+
+  .toc-link {
+    color: var(--color-text-muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    transition: color 0.2s ease;
+    padding: 0.2rem 0;
+  }
+
+  .toc-link:hover {
+    color: var(--color-accent);
+  }
+
+  .toc-link.active {
+    color: var(--color-accent);
+    font-weight: 500;
+  }
+
+  .toc-link-h3 {
+    padding-left: 1rem;
+    font-size: 0.85rem;
+  }
+
+  /* Desktop: Hide toggle, show sticky sidebar */
+  @media (min-width: 1024px) {
+    .toc-mobile {
+      display: none;
+    }
+
+    .toc-desktop {
+      display: block;
+      position: fixed;
+      right: max(1rem, calc((100vw - 680px - 240px) / 2));
+      top: 6rem;
+      width: 200px;
+      max-height: calc(100vh - 8rem);
+      overflow-y: auto;
+    }
+
+    .toc-sidebar {
+      padding: 1rem;
+      background: var(--color-surface);
+      border-radius: 8px;
+      border: 1px solid var(--color-border);
+    }
+
+    .toc-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      color: var(--color-text);
+    }
+
+    .toc-desktop .toc-content {
+      padding: 0;
+    }
+
+    /* Slim scrollbar for desktop TOC */
+    .toc-desktop::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .toc-desktop::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .toc-desktop::-webkit-scrollbar-thumb {
+      background: var(--color-border);
+      border-radius: 4px;
+    }
+  }
+
+  /* Very wide screens: move TOC further right */
+  @media (min-width: 1400px) {
+    .toc-desktop {
+      right: max(2rem, calc((100vw - 680px - 280px) / 2));
+      width: 240px;
+    }
+  }
+
+  /* Touch-friendly sizing */
+  @media (pointer: coarse) {
+    .toggle-header {
+      padding: 1rem;
+      min-height: 48px;
+    }
+
+    .toc-link {
+      padding: 0.4rem 0;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+    }
+  }
+</style>
