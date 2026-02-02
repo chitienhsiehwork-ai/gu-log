@@ -1,0 +1,67 @@
+---
+// Reading progress bar component
+// Shows progress as user scrolls through article content
+---
+
+<div id="reading-progress" class="reading-progress"></div>
+
+<script>
+  // Only run on pages with article content
+  const articleElement = document.querySelector('article.post');
+  const progressBar = document.getElementById('reading-progress');
+
+  if (articleElement && progressBar) {
+    let rafId: number | null = null;
+
+    function updateProgress() {
+      // Calculate scroll progress based on article position
+      const articleTop = articleElement.offsetTop;
+      const articleHeight = articleElement.offsetHeight;
+      const windowHeight = window.innerHeight;
+      const scrollTop = window.scrollY;
+
+      // Calculate visible article height (exclude what's not yet scrolled to)
+      const scrollableHeight = articleHeight - windowHeight;
+      const scrolled = scrollTop - articleTop;
+
+      // Calculate percentage (0-100)
+      const percentage = Math.min(Math.max((scrolled / scrollableHeight) * 100, 0), 100);
+
+      progressBar.style.width = `${percentage}%`;
+      rafId = null;
+    }
+
+    function onScroll() {
+      if (rafId === null) {
+        rafId = requestAnimationFrame(updateProgress);
+      }
+    }
+
+    // Initial update
+    updateProgress();
+
+    // Listen to scroll events
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    // Cleanup on navigation (for view transitions)
+    document.addEventListener('astro:before-swap', () => {
+      window.removeEventListener('scroll', onScroll);
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
+    });
+  }
+</script>
+
+<style>
+  .reading-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 0;
+    height: 3px;
+    background-color: var(--color-accent);
+    z-index: 1000;
+    transition: width 0.1s ease-out;
+  }
+</style>
