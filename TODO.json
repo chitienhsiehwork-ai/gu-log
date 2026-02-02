@@ -1,0 +1,137 @@
+{
+  "_meta": {
+    "description": "gu-log task tracker. CC should update status as tasks progress.",
+    "statuses": ["pending", "in_progress", "done", "blocked"],
+    "priority": "Items are ordered by priority (P0 = critical, P1 = important, P2 = moderate, P3 = nice-to-have)"
+  },
+  "tasks": [
+    {
+      "id": "ci-build-check",
+      "priority": "P0",
+      "title": "Add GitHub Actions CI: build + type check",
+      "description": "Create .github/workflows/ci.yml that runs `npx astro check` and `npm run build` on every push/PR. This is the safety net — if any .astro page has a rendering error, CI catches it before deploy. Keep it simple: just Node 22 + npm ci + astro check + astro build.",
+      "status": "pending",
+      "depends_on": []
+    },
+    {
+      "id": "astro-config-site",
+      "priority": "P0",
+      "title": "Set site URL in astro.config.mjs",
+      "description": "Add `site: 'https://gu-log.vercel.app'` to astro.config.mjs. Required for sitemap, RSS, canonical URLs, and OG tags. This is a one-liner but blocks multiple downstream tasks.",
+      "status": "pending",
+      "depends_on": []
+    },
+    {
+      "id": "content-collections",
+      "priority": "P0",
+      "title": "Migrate posts to Astro Content Collections",
+      "description": "Biggest architectural improvement. (1) Create src/content/config.ts with posts collection schema (title, date, source, sourceUrl, author, summary, lang, tags). (2) Convert all .astro posts to .mdx under src/content/posts/. (3) Create dynamic route src/pages/posts/[...slug].astro. (4) Rewrite index.astro to use getCollection() with date sorting. (5) Handle EN posts via lang field or src/content/posts/en/ subdirectory. (6) Preserve all existing HTML classes (claude-note, source-citation, etc). (7) Verify build passes. Do this incrementally — convert 2-3 posts first, verify, then batch the rest.",
+      "status": "pending",
+      "depends_on": []
+    },
+    {
+      "id": "merge-layouts",
+      "priority": "P1",
+      "title": "Merge BaseLayout + EnLayout into one i18n-aware layout",
+      "description": "BaseLayout.astro and EnLayout.astro are 95% identical. Merge into a single layout that accepts a `lang` prop. Differences to handle: (1) html lang attribute, (2) default description text, (3) font loading (EN drops Noto Sans TC), (4) nav labels (首頁/Home, 關於/About), (5) footer text, (6) home link (/ vs /en). Delete EnLayout.astro after migration. Update all EN pages to use the merged layout.",
+      "status": "pending",
+      "depends_on": []
+    },
+    {
+      "id": "fix-en-about",
+      "priority": "P1",
+      "title": "Create missing /en/about page",
+      "description": "EN nav links to /en/about which doesn't exist (404). Create src/pages/en/about.astro — translate the zh-tw about page content using the EN persona from TRANSLATION_PROMPT.md.",
+      "status": "pending",
+      "depends_on": ["merge-layouts"]
+    },
+    {
+      "id": "seo-og-tags",
+      "priority": "P1",
+      "title": "Add Open Graph + Twitter Card meta tags",
+      "description": "Add og:title, og:description, og:type, og:url, og:image, twitter:card, twitter:title, twitter:description to the layout. Use props from each page/post. Create a default OG image (or use avatar.jpg as fallback). After content-collections migration, these can be auto-populated from frontmatter.",
+      "status": "pending",
+      "depends_on": ["astro-config-site"]
+    },
+    {
+      "id": "rss-feed",
+      "priority": "P1",
+      "title": "Add RSS feed (/rss.xml)",
+      "description": "Install @astrojs/rss. Create src/pages/rss.xml.ts that generates RSS from all posts. Much easier after content-collections migration (can use getCollection). Add RSS link to layout <head> and footer.",
+      "status": "pending",
+      "depends_on": ["astro-config-site"]
+    },
+    {
+      "id": "sitemap",
+      "priority": "P1",
+      "title": "Add sitemap + robots.txt",
+      "description": "Install @astrojs/sitemap, add to astro.config.mjs integrations. Create public/robots.txt with sitemap reference. Requires site URL to be configured.",
+      "status": "pending",
+      "depends_on": ["astro-config-site"]
+    },
+    {
+      "id": "syntax-highlighting",
+      "priority": "P2",
+      "title": "Add syntax highlighting to code blocks",
+      "description": "Astro has built-in Shiki support for .md/.mdx. After content-collections migration, code blocks get highlighting for free. If before migration, add Shiki manually or use a rehype plugin. Use a Solarized-compatible theme (e.g., 'solarized-dark' / 'solarized-light') that respects the site's theme toggle.",
+      "status": "pending",
+      "depends_on": []
+    },
+    {
+      "id": "code-copy-button",
+      "priority": "P2",
+      "title": "Add copy button to code blocks",
+      "description": "Add a small 'copy' button to the top-right corner of all <pre> blocks. Use a client-side script with navigator.clipboard.writeText(). Show brief 'Copied!' feedback. Style to match Solarized theme.",
+      "status": "pending",
+      "depends_on": ["syntax-highlighting"]
+    },
+    {
+      "id": "translate-all-en",
+      "priority": "P2",
+      "title": "Translate all zh-tw posts to English",
+      "description": "Currently only 1 EN post exists (openclaw-talk-deep-dive). Translate all remaining ~17 posts to English following TRANSLATION_PROMPT.md EN guidelines. Each post needs Clawd EN annotations. Update en/index.astro (or auto-generate after content-collections). Do one post at a time, commit each.",
+      "status": "pending",
+      "depends_on": ["fix-en-about"]
+    },
+    {
+      "id": "reading-progress",
+      "priority": "P3",
+      "title": "Add reading progress bar",
+      "description": "Add a thin progress bar at the top of article pages that fills as the user scrolls. Use a client-side script with scroll event + requestAnimationFrame. Use var(--color-accent) for the bar color. Only show on post pages, not index/about.",
+      "status": "pending",
+      "depends_on": []
+    },
+    {
+      "id": "toc-sidebar",
+      "priority": "P3",
+      "title": "Add Table of Contents",
+      "description": "On desktop (>1024px): sticky sidebar TOC extracted from h2/h3 headings. On mobile: collapsible TOC at top of article (using Toggle component pattern). Highlight current section on scroll. Only show on post pages with 3+ headings.",
+      "status": "pending",
+      "depends_on": []
+    },
+    {
+      "id": "prev-next-nav",
+      "priority": "P3",
+      "title": "Add previous/next post navigation",
+      "description": "At the bottom of each post, show links to the previous and next posts (by date). Much easier after content-collections migration. Show post title + date.",
+      "status": "pending",
+      "depends_on": ["content-collections"]
+    },
+    {
+      "id": "back-to-top",
+      "priority": "P3",
+      "title": "Add back-to-top button",
+      "description": "Floating button that appears after scrolling 300px+ down. Smooth scroll to top on click. Style: subtle, semi-transparent, matches Solarized theme. Hide on short pages.",
+      "status": "pending",
+      "depends_on": []
+    },
+    {
+      "id": "typography-polish",
+      "priority": "P3",
+      "title": "Improve CJK + Latin mixed typography",
+      "description": "Add CSS rules for better zh-en mixed text: (1) letter-spacing adjustments for CJK, (2) word-spacing between CJK and Latin characters (or use a JS library like pangu.js), (3) better paragraph spacing, (4) hanging punctuation for Chinese quotes. Subtle but makes the reading experience noticeably better.",
+      "status": "pending",
+      "depends_on": []
+    }
+  ]
+}
