@@ -4,9 +4,13 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import Toggle from '../components/Toggle.astro';
 
 // Get all zh-tw posts sorted by date (newest first)
-const posts = (await getCollection('posts', ({ data }) => {
+const allPosts = (await getCollection('posts', ({ data }) => {
   return data.lang === 'zh-tw';
 })).sort((a, b) => b.data.date.localeCompare(a.data.date));
+
+// Split: regular articles vs Clawd Picks
+const posts = allPosts.filter(p => !p.data.tags?.includes('clawd-picks'));
+const picks = allPosts.filter(p => p.data.tags?.includes('clawd-picks'));
 ---
 
 <BaseLayout title="ShroomDog">

@@ -4,7 +4,7 @@
  *
  * Extracts h2 and h3 headings from article and displays them as a navigable TOC:
  * - Mobile: Collapsible TOC at top of article
- * - Desktop (>1024px): Sticky sidebar TOC
+ * - Desktop (>1280px): Sticky sidebar TOC
  * - Highlights current section on scroll
  * - Only shows if 3+ headings exist
  */
@@ -190,7 +190,7 @@ const t = labels[lang];
 
           // Close mobile toggle after navigation
           const mobileContainer = document.querySelector('.toc-mobile .toggle-container');
-          if (window.innerWidth < 1024 && mobileContainer) {
+          if (window.innerWidth < 1280 && mobileContainer) {
             mobileContainer.setAttribute('data-open', 'false');
             const button = mobileContainer.querySelector('.toggle-header');
             button?.setAttribute('aria-expanded', 'false');
@@ -315,7 +315,7 @@ const t = labels[lang];
   }
 
   /* Desktop: Hide toggle, show sticky sidebar */
-  @media (min-width: 1024px) {
+  @media (min-width: 1280px) {
     .toc-mobile {
       display: none;
     }
