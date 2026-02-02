@@ -1,28 +1,91 @@
 ---
 import ThemeToggle from '../components/ThemeToggle.astro';
 import LanguageToggle from '../components/LanguageToggle.astro';
+import CodeCopyButton from '../components/CodeCopyButton.astro';
 
 interface Props {
   title: string;
   description?: string;
+  lang?: 'zh-tw' | 'en';
+  image?: string;
 }
 
-const { title, description = "香菇大狗狗的翻譯閱讀筆記 - ShroomDog and Clawd" } = Astro.props;
+const {
+  title,
+  description,
+  lang = 'zh-tw',
+  image
+} = Astro.props;
+
 const currentPath = Astro.url.pathname;
+const canonicalURL = new URL(currentPath, Astro.site).href;
+const ogImage = image ? new URL(image, Astro.site).href : new URL('/avatar.jpg', Astro.site).href;
+
+// i18n content
+const i18n = {
+  'zh-tw': {
+    htmlLang: 'zh-TW',
+    defaultDescription: '香菇大狗狗的翻譯閱讀筆記 - ShroomDog and Clawd',
+    siteTitle: '香菇大狗狗',
+    homeLink: '/',
+    navHome: '首頁',
+    navAbout: '關於',
+    aboutLink: '/about',
+    footerBy: '香菇大狗狗',
+    footerSub: '翻譯由 Clawd 執行，（沒什麼）經人工校對',
+    fonts: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap'
+  },
+  'en': {
+    htmlLang: 'en',
+    defaultDescription: "ShroomDog's Tech Notes - Making AI Fun Again",
+    siteTitle: 'ShroomDog',
+    homeLink: '/en',
+    navHome: 'Home',
+    navAbout: 'About',
+    aboutLink: '/en/about',
+    footerBy: 'ShroomDog',
+    footerSub: 'Written by AI, (barely) reviewed by humans',
+    fonts: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap'
+  }
+};
+
+const t = i18n[lang];
+const finalDescription = description || t.defaultDescription;
 ---
 
 <!doctype html>
-<html lang="zh-TW">
+<html lang={t.htmlLang}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content={description} />
+    <meta name="description" content={finalDescription} />
     <meta name="apple-mobile-web-app-title" content="ShroomDog" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonicalURL} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={finalDescription} />
+    <meta property="og:image" content={ogImage} />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary" />
+    <meta property="twitter:url" content={canonicalURL} />
+    <meta property="twitter:title" content={title} />
+    <meta property="twitter:description" content={finalDescription} />
+    <meta property="twitter:image" content={ogImage} />
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href={canonicalURL} />
+
+    <!-- RSS Feed -->
+    <link rel="alternate" type="application/rss+xml" title="香菇大狗狗 RSS Feed" href="/rss.xml" />
+
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet" />
+    <link href={t.fonts} rel="stylesheet" />
     <title>{title}</title>
     <!-- Prevent flash of wrong theme -->
     <script is:inline>
@@ -33,24 +96,27 @@ const currentPath = Astro.url.pathname;
   <body>
     <div class="container">
       <header class="site-header">
-        <a href="/" class="site-title"><img src="/avatar.jpg" alt="" class="header-avatar" />香菇大狗狗</a>
+        <a href={t.homeLink} class="site-title"><img src="/avatar.jpg" alt="" class="header-avatar" />{t.siteTitle}</a>
         <nav class="site-nav">
-          <a href="/">首頁</a>
-          <a href="/about">關於</a>
-          <LanguageToggle currentLang="zh-tw" currentPath={currentPath} />
+          <a href={t.homeLink}>{t.navHome}</a>
+          <a href={t.aboutLink}>{t.navAbout}</a>
+          <LanguageToggle currentLang={lang} currentPath={currentPath} />
           <ThemeToggle />
         </nav>
       </header>
-      
+
       <main>
         <slot />
       </main>
-      
+
       <footer class="site-footer">
-        <p>by <strong>香菇大狗狗</strong> / ShroomDog and Clawd</p>
-        <p class="footer-sub">翻譯由 Clawd 執行，（沒什麼）經人工校對</p>
+        <p>by <strong>{t.footerBy}</strong> {lang === 'zh-tw' ? '/ ShroomDog and Clawd' : 'and Clawd'}</p>
+        <p class="footer-sub">{t.footerSub}</p>
+        <p class="footer-rss"><a href="/rss.xml">RSS</a></p>
       </footer>
     </div>
+
+    <CodeCopyButton />
   </body>
 </html>
 
@@ -113,6 +179,20 @@ const currentPath = Astro.url.pathname;
   .footer-sub {
     font-size: 0.75rem;
     margin-top: 0.25rem;
+  }
+
+  .footer-rss {
+    font-size: 0.75rem;
+    margin-top: 0.5rem;
+  }
+
+  .footer-rss a {
+    color: var(--color-accent);
+    text-decoration: none;
+  }
+
+  .footer-rss a:hover {
+    text-decoration: underline;
   }
 
   main {

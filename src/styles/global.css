@@ -50,6 +50,11 @@ body {
   padding: var(--spacing-sm);
   min-height: 100vh;
   transition: background 0.3s ease, color 0.3s ease;
+
+  /* CJK typography improvements */
+  text-spacing: trim-start allow-end trim-adjacent ideograph-alpha ideograph-numeric;
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
 }
 
 /* Typography */
@@ -65,6 +70,39 @@ h3 { font-size: 1.2rem; margin-top: var(--spacing-md); }
 
 p {
   margin-bottom: var(--spacing-sm);
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+/* CJK + Latin mixed typography improvements */
+p, li, blockquote {
+  /* Better spacing for CJK characters */
+  letter-spacing: 0.02em;
+  word-spacing: 0.05em;
+}
+
+/* Hanging punctuation for Chinese quotes */
+[lang="zh-TW"] p,
+[lang="zh-TW"] li {
+  hanging-punctuation: first last;
+}
+
+/* Adjust spacing between CJK and Latin */
+[lang="zh-TW"] {
+  text-autospace: ideograph-alpha ideograph-numeric;
+}
+
+/* Better line height for CJK text */
+[lang="zh-TW"] p,
+[lang="zh-TW"] li {
+  line-height: 1.8;
+}
+
+/* Tighter letter spacing for English to distinguish from CJK */
+[lang="en"] p,
+[lang="en"] li {
+  letter-spacing: normal;
+  line-height: 1.7;
 }
 
 a {
@@ -103,6 +141,41 @@ pre {
 pre code {
   background: none;
   padding: 0;
+}
+
+/* Shiki theme switching - hide light theme in dark mode and vice versa */
+:root pre[class*="shiki"] {
+  background: var(--color-surface) !important;
+}
+
+:root .shiki.light,
+:root .shiki.light span {
+  color: var(--shiki-light) !important;
+  background-color: var(--shiki-light-bg) !important;
+}
+
+:root .shiki.dark,
+:root .shiki.dark span {
+  color: var(--shiki-dark) !important;
+  background-color: var(--shiki-dark-bg) !important;
+}
+
+/* Hide light theme in dark mode (default) */
+:root .shiki.light {
+  display: none;
+}
+
+:root .shiki.dark {
+  display: block;
+}
+
+/* Hide dark theme in light mode */
+[data-theme="light"] .shiki.light {
+  display: block;
+}
+
+[data-theme="light"] .shiki.dark {
+  display: none;
 }
 
 /* Lists */

@@ -10,7 +10,7 @@
       "priority": "P0",
       "title": "Add GitHub Actions CI: build + type check",
       "description": "Create .github/workflows/ci.yml that runs `npx astro check` and `npm run build` on every push/PR. This is the safety net — if any .astro page has a rendering error, CI catches it before deploy. Keep it simple: just Node 22 + npm ci + astro check + astro build.",
-      "status": "pending",
+      "status": "done",
       "depends_on": []
     },
     {
@@ -18,7 +18,7 @@
       "priority": "P0",
       "title": "Set site URL in astro.config.mjs",
       "description": "Add `site: 'https://gu-log.vercel.app'` to astro.config.mjs. Required for sitemap, RSS, canonical URLs, and OG tags. This is a one-liner but blocks multiple downstream tasks.",
-      "status": "pending",
+      "status": "done",
       "depends_on": []
     },
     {
@@ -34,7 +34,7 @@
       "priority": "P1",
       "title": "Merge BaseLayout + EnLayout into one i18n-aware layout",
       "description": "BaseLayout.astro and EnLayout.astro are 95% identical. Merge into a single layout that accepts a `lang` prop. Differences to handle: (1) html lang attribute, (2) default description text, (3) font loading (EN drops Noto Sans TC), (4) nav labels (首頁/Home, 關於/About), (5) footer text, (6) home link (/ vs /en). Delete EnLayout.astro after migration. Update all EN pages to use the merged layout.",
-      "status": "pending",
+      "status": "done",
       "depends_on": []
     },
     {
@@ -42,7 +42,7 @@
       "priority": "P1",
       "title": "Create missing /en/about page",
       "description": "EN nav links to /en/about which doesn't exist (404). Create src/pages/en/about.astro — translate the zh-tw about page content using the EN persona from TRANSLATION_PROMPT.md.",
-      "status": "pending",
+      "status": "done",
       "depends_on": ["merge-layouts"]
     },
     {
@@ -50,7 +50,7 @@
       "priority": "P1",
       "title": "Add Open Graph + Twitter Card meta tags",
       "description": "Add og:title, og:description, og:type, og:url, og:image, twitter:card, twitter:title, twitter:description to the layout. Use props from each page/post. Create a default OG image (or use avatar.jpg as fallback). After content-collections migration, these can be auto-populated from frontmatter.",
-      "status": "pending",
+      "status": "done",
       "depends_on": ["astro-config-site"]
     },
     {
@@ -58,7 +58,7 @@
       "priority": "P1",
       "title": "Add RSS feed (/rss.xml)",
       "description": "Install @astrojs/rss. Create src/pages/rss.xml.ts that generates RSS from all posts. Much easier after content-collections migration (can use getCollection). Add RSS link to layout <head> and footer.",
-      "status": "pending",
+      "status": "done",
       "depends_on": ["astro-config-site"]
     },
     {
@@ -66,7 +66,7 @@
       "priority": "P1",
       "title": "Add sitemap + robots.txt",
       "description": "Install @astrojs/sitemap, add to astro.config.mjs integrations. Create public/robots.txt with sitemap reference. Requires site URL to be configured.",
-      "status": "pending",
+      "status": "done",
       "depends_on": ["astro-config-site"]
     },
     {
@@ -74,7 +74,7 @@
       "priority": "P2",
       "title": "Add syntax highlighting to code blocks",
       "description": "Astro has built-in Shiki support for .md/.mdx. After content-collections migration, code blocks get highlighting for free. If before migration, add Shiki manually or use a rehype plugin. Use a Solarized-compatible theme (e.g., 'solarized-dark' / 'solarized-light') that respects the site's theme toggle.",
-      "status": "pending",
+      "status": "done",
       "depends_on": []
     },
     {
@@ -82,7 +82,7 @@
       "priority": "P2",
       "title": "Add copy button to code blocks",
       "description": "Add a small 'copy' button to the top-right corner of all <pre> blocks. Use a client-side script with navigator.clipboard.writeText(). Show brief 'Copied!' feedback. Style to match Solarized theme.",
-      "status": "pending",
+      "status": "done",
       "depends_on": ["syntax-highlighting"]
     },
     {
@@ -130,7 +130,7 @@
       "priority": "P3",
       "title": "Improve CJK + Latin mixed typography",
       "description": "Add CSS rules for better zh-en mixed text: (1) letter-spacing adjustments for CJK, (2) word-spacing between CJK and Latin characters (or use a JS library like pangu.js), (3) better paragraph spacing, (4) hanging punctuation for Chinese quotes. Subtle but makes the reading experience noticeably better.",
-      "status": "pending",
+      "status": "done",
       "depends_on": []
     }
   ]

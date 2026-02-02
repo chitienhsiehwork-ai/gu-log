@@ -1,0 +1,115 @@
+---
+// Client-side script to add copy buttons to all code blocks
+---
+
+<script>
+  function addCopyButtons() {
+    const codeBlocks = document.querySelectorAll('pre');
+
+    codeBlocks.forEach((pre) => {
+      // Skip if button already exists
+      if (pre.querySelector('.copy-button')) return;
+
+      // Create wrapper
+      const wrapper = document.createElement('div');
+      wrapper.className = 'code-block-wrapper';
+
+      // Wrap the pre element
+      pre.parentNode?.insertBefore(wrapper, pre);
+      wrapper.appendChild(pre);
+
+      // Create copy button
+      const button = document.createElement('button');
+      button.className = 'copy-button';
+      button.setAttribute('aria-label', 'Copy code');
+      button.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+        <span class="copy-text">Copy</span>
+      `;
+
+      // Add click handler
+      button.addEventListener('click', async () => {
+        const code = pre.querySelector('code')?.textContent || pre.textContent || '';
+
+        try {
+          await navigator.clipboard.writeText(code);
+          button.classList.add('copied');
+          const textSpan = button.querySelector('.copy-text');
+          if (textSpan) textSpan.textContent = 'Copied!';
+
+          setTimeout(() => {
+            button.classList.remove('copied');
+            if (textSpan) textSpan.textContent = 'Copy';
+          }, 2000);
+        } catch (err) {
+          console.error('Failed to copy:', err);
+        }
+      });
+
+      wrapper.appendChild(button);
+    });
+  }
+
+  // Run on page load
+  addCopyButtons();
+
+  // Re-run on navigation (for SPAs)
+  document.addEventListener('astro:page-load', addCopyButtons);
+</script>
+
+<style is:global>
+  .code-block-wrapper {
+    position: relative;
+    margin: var(--spacing-sm) 0;
+  }
+
+  .copy-button {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+    font-family: var(--font-sans);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    opacity: 0;
+  }
+
+  .code-block-wrapper:hover .copy-button {
+    opacity: 1;
+  }
+
+  .copy-button:hover {
+    background: var(--color-accent);
+    color: var(--color-bg);
+    border-color: var(--color-accent);
+  }
+
+  .copy-button.copied {
+    background: var(--color-accent);
+    color: var(--color-bg);
+    border-color: var(--color-accent);
+  }
+
+  .copy-button svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  /* Always show on mobile/touch devices */
+  @media (hover: none) {
+    .copy-button {
+      opacity: 0.7;
+    }
+  }
+</style>
