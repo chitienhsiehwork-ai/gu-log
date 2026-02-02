@@ -1,0 +1,122 @@
+---
+title: "Vibe Note-Taking 101: Spatial Editing"
+date: "2026-01-30"
+source: "@arscontexta (Heinrich) on X"
+sourceUrl: "https://x.com/arscontexta/status/2015909609999941965"
+summary: "用 Claude Code 編輯長文通常很痛苦。不要把文字帶去給 Claude，而是把指令留在它們該在的地方。用花括號標記你的想法和編輯指令，每個註解都適用於它周圍的文字。Position IS Context (位置就是脈絡)。"
+lang: "zh-tw"
+tags: ["obsidian", "claude-code", "spatial-editing", "workflow"]
+---
+
+import Toggle from '../../components/Toggle.astro';
+
+用 Claude Code 編輯長文通常很痛苦。
+
+一般做法是這樣：
+- 讀過草稿
+- 發現第 3 段要改
+- 複製那一段
+- 貼給 Claude 並加上你的評論
+- 滑到第 7 段
+- 再複製
+- 再貼上...
+
+編輯本身沒問題，但這來來回回的過程很煩。
+
+當你有跨多個檔案的修改需要保持一致時，問題更嚴重。
+
+<blockquote class="claude-note">
+  <strong>Clawd：</strong>「嘿 Claude，在這檔案我要你改這邊，然後那邊也要改，還有第三個檔案...」這種指令通常講到一半 AI 就暈了，你自己也暈了。
+</blockquote>
+
+## Spatial Editing (空間編輯)
+
+不要把文字**帶去**給 Claude，而是把指令**留**在它們該在的地方。
+
+用花括號標記你的 `\{想法和編輯指令\}`。
+
+每個註解都適用於它周圍的文字。
+
+**範例：**
+
+```markdown
+# why vaults matter
+
+vaults give claude memory
+\{feels abstract\}
+
+without persistent storage claude forgets everything between sessions
+\{this is the key point, make it hit harder\}
+
+the solution is simple
+\{dont say simple, show\}
+```
+
+**輸出結果：**
+
+```markdown
+# why vaults matter
+
+vaults give claude persistent memory across sessions by storing context in files it can read and write
+
+without persistent storage claude starts fresh every conversation, you re-explain the same context, rebuild the same understanding, lose the compound effect of accumulated knowledge
+
+the solution: store everything in markdown files that claude can traverse
+```
+
+指令執行完還會給你 summary：
+
+```
+processed 3 edits in why-vaults-matter.md:
+1. "feels abstract" → added concrete mechanism
+2. "make it hit harder" → expanded with specific pain points
+3. "dont say simple" → replaced with direct statement
+```
+
+<blockquote class="claude-note">
+  <strong>Clawd：</strong>這招真的聰明。在文字旁邊寫指令（In-place instructions），這就是最自然的 context。程式碼裡的 TODO 註解也是同樣的道理。
+</blockquote>
+
+## 指令設計
+
+```bash
+/edit
+# 編輯當前開啟的檔案
+
+/edit draft.md
+# 編輯特定檔案
+
+/edit draft.md notes.md
+# 編輯多個檔案
+```
+
+如果你跑 `/edit` 沒指定檔案，它會搜尋整個 vault 找 `\{thoughts\}`：
+
+```bash
+rg "\\{[^}]+\\}" --type md -l
+```
+
+然後讓你選要編輯哪些檔案。
+
+## 工作流
+
+1. **一直寫**：不要停下來，先把草稿寫完。
+2. **快速讀**：覺得哪裡怪怪的，就直接丟個 `\{想法\}` 在那邊。
+3. **跑 /edit**：讓 Claude 處理雜事。
+4. **審閱**：檢查改動。
+
+**Position IS Context (位置就是脈絡)。**
+
+你不需要解釋你在指哪裡，因為註解就知道它住在哪裡。
+
+---
+
+## 社群精選問答
+
+<Toggle title="其他有趣的應用">
+**@sughanthans1 問：** 你覺得 prism 怎麼樣？
+
+**Heinrich 回：** 晚上來試試。
+
+**@GoldenWaveAi：** 這點子太棒了！
+</Toggle>
