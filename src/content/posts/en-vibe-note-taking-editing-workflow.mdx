@@ -1,0 +1,122 @@
+---
+title: "Vibe Note-Taking 101: Spatial Editing"
+date: "2026-01-30"
+source: "@arscontexta (Heinrich) on X"
+sourceUrl: "https://x.com/arscontexta/status/2015909609999941965"
+summary: "Editing long documents with Claude Code is usually painful. Instead of bringing text to Claude, leave instructions where they belong. Use curly braces to mark your thoughts and edit instructions — each annotation applies to its surrounding text. Position IS Context."
+lang: "en"
+tags: ["obsidian", "claude-code", "spatial-editing", "workflow"]
+---
+
+import Toggle from '../../components/Toggle.astro';
+
+Editing long documents with Claude Code is usually painful.
+
+The typical approach:
+- Read through draft
+- Find paragraph 3 needs changes
+- Copy that paragraph
+- Paste to Claude with your comment
+- Scroll to paragraph 7
+- Copy again
+- Paste again...
+
+The editing itself is fine, but the back-and-forth process is annoying.
+
+When you have changes across multiple files that need to stay consistent, the problem gets worse.
+
+<blockquote class="claude-note">
+  <strong>Clawd:</strong> "Hey Claude, in this file change this part, then that part too, and also in the third file..." This kind of instruction usually loses AI halfway through, and you're dizzy too.
+</blockquote>
+
+## Spatial Editing
+
+Instead of **bringing** text to Claude, **leave** instructions where they belong.
+
+Use curly braces to mark your `\{thoughts and edit instructions\}`.
+
+Each annotation applies to its surrounding text.
+
+**Example:**
+
+```markdown
+# why vaults matter
+
+vaults give claude memory
+\{feels abstract\}
+
+without persistent storage claude forgets everything between sessions
+\{this is the key point, make it hit harder\}
+
+the solution is simple
+\{dont say simple, show\}
+```
+
+**Output:**
+
+```markdown
+# why vaults matter
+
+vaults give claude persistent memory across sessions by storing context in files it can read and write
+
+without persistent storage claude starts fresh every conversation, you re-explain the same context, rebuild the same understanding, lose the compound effect of accumulated knowledge
+
+the solution: store everything in markdown files that claude can traverse
+```
+
+After instructions execute, you get a summary:
+
+```
+processed 3 edits in why-vaults-matter.md:
+1. "feels abstract" → added concrete mechanism
+2. "make it hit harder" → expanded with specific pain points
+3. "dont say simple" → replaced with direct statement
+```
+
+<blockquote class="claude-note">
+  <strong>Clawd:</strong> This trick is really clever. Writing instructions next to text (in-place instructions) is the most natural context. Same principle as TODO comments in code.
+</blockquote>
+
+## Command Design
+
+```bash
+/edit
+# Edit currently open file
+
+/edit draft.md
+# Edit specific file
+
+/edit draft.md notes.md
+# Edit multiple files
+```
+
+If you run `/edit` without specifying files, it searches the entire vault for `\{thoughts\}`:
+
+```bash
+rg "\\{[^}]+\\}" --type md -l
+```
+
+Then lets you choose which files to edit.
+
+## Workflow
+
+1. **Keep writing**: Don't stop, finish the draft first.
+2. **Quick read**: Wherever something feels off, just drop a `\{thought\}` there.
+3. **Run /edit**: Let Claude handle the tedious work.
+4. **Review**: Check the changes.
+
+**Position IS Context.**
+
+You don't need to explain what you're pointing at — the annotation knows where it lives.
+
+---
+
+## Community Highlights
+
+<Toggle title="Other interesting applications">
+**@sughanthans1 asked:** What do you think about prism?
+
+**Heinrich replied:** Will try it tonight.
+
+**@GoldenWaveAi:** This idea is brilliant!
+</Toggle>
