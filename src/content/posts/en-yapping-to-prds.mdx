@@ -1,0 +1,142 @@
+---
+title: "Yapping to PRDs: Claude Code & Obsidian"
+date: "2026-01-30"
+source: "@arscontexta (Heinrich) on X"
+sourceUrl: "https://x.com/arscontexta/status/2013718955576250466"
+summary: "Meetings used to be overhead. Now yapping (chatting/rambling) is work. When my colleague and I 'chat' about a project, we record it. An hour later, the transcript is processed, and suddenly: we have docs, feature ideas are in the backlog, decisions are captured with reasoning, project status is updated. Yapping IS Work."
+lang: "en"
+tags: ["obsidian", "claude-code", "meeting", "knowledge-management"]
+---
+
+import Toggle from '../../components/Toggle.astro';
+
+Meetings used to be overhead. Now **yapping (chatting/rambling) is work**.
+
+<blockquote class="claude-note">
+  <strong>Clawd:</strong> "Yap" is trending in English circles lately, meaning to talk constantly, ramble on. Here it means "meeting discussions." Turning "shooting the breeze" into "productivity" sounds like a dream, right?
+</blockquote>
+
+When my colleague and I "chat" about a project, we record it.
+
+An hour later, the transcript is processed, and suddenly:
+- We have docs
+- Feature ideas are in the backlog
+- Decisions are captured with reasoning
+- Project status is updated
+- Even extracted notes about our work philosophy
+
+Everything is connected to original notes with wikilinks.
+
+## Documentation Is Now for Agents
+
+This only works when you learn to manage context and structure knowledge for retrieval.
+
+When Claude needs to understand your deployment setup, it loads `03_Areas/Infrastructure/Deployment Pipeline`.
+
+When it needs database schema, it loads `02_Projects/Recipe-Manager/Docs/Database Schema`.
+
+Without structure, you just have a trash pile of meeting notes.
+With structure, you have a knowledge system Claude can build upon.
+
+## Why Yapping?
+
+When people say LLMs aren't there yet, it's usually a context problem. Knowledge exists somewhere, but the model can't read it.
+
+The harder problem is **Tacit Knowledge**.
+
+Those things hard to articulate because they live in your head as intuition.
+
+**Transcripts help externalize these.**
+
+When you verbally explain something, you naturally include your reasoning path, your uncertainties, the alternatives you considered. These are all capturable context.
+
+<blockquote class="claude-note">
+  <strong>Clawd:</strong> This point is super important. When writing docs we usually only write "results," not "process." But for AI, that "why we chose A over B" reasoning process is the most valuable training data.
+</blockquote>
+
+## Instructions: Mining not Summarizing
+
+The core concept is simple: this is **Mining**, not Summarizing.
+
+A rich 1-hour meeting can produce 10+ ideas, multiple frameworks, a dozen decisions. If you only produce a 3-4 point summary, you haven't gone deep enough.
+
+### 1. Define the Role
+
+```xml
+<role>
+you are the knowledge architect for this vault.
+
+you process meeting transcripts with exhaustive depth, mining every valuable insight, idea, philosophy, decision and status update.
+
+meetings are the primary sync mechanism between reality and vault state.
+
+missing content is unacceptable.
+</role>
+```
+
+### 2. Tell It What to Hunt For
+
+```
+as you read, actively hunt for:
+
+- feature ideas ("wouldnt it be cool if...", "we could also...")
+- project sparks (new tool concepts, standalone initiatives)
+- frameworks (mental models, principles, ways of thinking)
+- philosophies (team beliefs, working principles)
+- decisions (explicit choices made, direction set)
+- status updates ("X is now live", "Y is on hold")
+- action items (tasks assigned, next steps)
+- blockers (what is preventing progress)
+
+look for implicit content too:
+- ideas embedded in problem discussions
+- philosophies expressed as asides
+- decisions made by NOT deciding ("lets not wait for..." → decision)
+```
+
+### 3. Vault State Sync
+
+```
+meetings reveal new reality. update the vault to match.
+
+for each project mentioned:
+1. read the current hub to understand existing state
+2. identify discrepancies between hub and meeting discussion
+3. update status if changed (active → paused, prototype → live)
+...
+```
+
+### 4. Quality Standards (Red Flags)
+
+```
+red flags (processing incomplete):
+- meeting summary is shorter than 1 page for hour+ meeting
+- only 1-2 ideas extracted from brainstorming discussion
+- no state changes identified in status-heavy meeting
+```
+
+**Yapping IS Work.**
+
+---
+
+## Community Q&A Highlights
+
+<Toggle title="Q: What tool for transcription?">
+**@fed_177616752 asked:** What tool generates transcripts?
+
+**Heinrich replied:** Any STT (Speech-to-Text) API works. The key is the mining afterward.
+
+**@dazhengzhang:** I use Granola and ChatGPT's built-in recording.
+</Toggle>
+
+<Toggle title="Q: What about privacy concerns?">
+**@ePascal_ asked:** How do you handle privacy and consent for team recordings?
+
+(Heinrich didn't answer this, but it's a good question. Usually teams need consensus internally.)
+</Toggle>
+
+<Toggle title="Other Applications">
+**@jcochranio:** I'm going to use this on my "Watch Later" YouTube videos. Don't watch the video, just scrape ideas.
+
+**@C_King_Evidence:** This changed the meeting paradigm. I now look forward to stakeholder feedback because it becomes a juicy transcript.
+</Toggle>
