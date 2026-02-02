@@ -1,0 +1,111 @@
+---
+title: "Claude Code 終於有長記憶了：Supermemory Plugin 發布"
+date: "2026-01-30"
+source: "@DhravyaShah on X"
+sourceUrl: "https://x.com/dhravyashah/status/2017039283367137690"
+summary: "我們把 Supermemory 加進 Claude Code 了。現在它強得離譜。Claude Code 應該要認識你，不只是這一次 session——是永遠。它應該知道你的 codebase、你的偏好、你團隊的決策，以及來自你使用的每個工具的 context。"
+lang: "zh-tw"
+tags: ["claude-code", "supermemory", "memory", "ai-agent"]
+---
+
+import Toggle from '../../components/Toggle.astro';
+
+**我們把 Supermemory 加進 Claude Code 了。現在它強得離譜...**
+
+今天，我們發布了 Claude Code 的 Supermemory plugin！
+
+> TLDR: 你現在可以在 Claude Code 裡用 Supermemory 了。
+> [github.com/supermemoryai/claude-supermemory](https://github.com/supermemoryai/claude-supermemory)
+
+Claude Code 真的改變了我工作的方式。但有一件事讓我抓狂... **每天，我都要跟它解釋一模一樣的事。**
+
+我必須不斷重複我的 Coding 風格、偏好等等。
+
+- "User service 是連 Postgres，不是 MySQL。"
+- "不要重構那個 function——我知道它很醜但那是故意的。"
+
+Claude 寫出很棒的 code。然後我關掉 session，它就忘得一乾二淨。
+
+隔天？**土撥鼠之日 (Groundhog Day)**。再一次。我們搞了一堆變通方法——巨大的 CLAUDE.md、每次 prompt 前面貼一堆 context、維護那些 Agent 好像從來沒在看的「記憶」文件...
+
+所以我們做了一個東西。
+
+概念很簡單：**Claude Code 應該要認識你。不只是這一次 session——是永遠。** 它應該知道你的 codebase、你的偏好、你團隊的決策，以及來自你使用的每個工具的 context。
+
+## 實際運作起來像這樣：
+
+### 1. 它記得你上次停在哪
+我們利用 User Profiles 來建立你的檔案。Claude 知道你這週的目標是「降低成本並遷移到另一個 Postgres provider」。
+
+### 2. 它學習你的風格
+它不會像其他人一樣寫出千篇一律的 code，它會隨著你使用而學習——比如「少用點 useEffect!!!」。
+
+Claude Code 現在會記得你上次怎麼修好某個錯誤，這些知識會複利累積成一個真正為你客製化的 Agent。
+
+### 3. 它認識「你」
+它知道你是創辦人、大學生還是系統工程師，並據此建議工具和實作。
+
+<blockquote class="claude-note">
+  <strong>Clawd：</strong>品味 (Taste) 是區分好工程師跟壞工程師的第一要素。AI 如果不懂你的品味，它永遠只是個 junior intern。
+</blockquote>
+
+```
+Developer: "I need to add rate limiting to this endpoint"
+
+Agent: "Based on the rate limiting you implemented in the payments-api
+last month (using sliding window with Redis), and your preference for
+the express-rate-limit middleware, here's an approach that matches
+your existing patterns..."
+```
+
+## 技術核心：Hybrid Memory
+
+這跟一般的 RAG 不一樣。
+
+記憶不只是「找相似的東西」。
+
+- 它是理解當你說「那個 auth bug」時，你指的是你已經 debug 三天的那一個。
+- 它是知道你的偏好演變了——你以前喜歡 Class，現在偏好 Function。
+- 它是追蹤一個決策被制定、被重新審視、然後被改變的過程。
+
+我們的 **Hybrid Memory** 系統會提取事實、追蹤它們隨時間的變化、建立你的 profile，並在對的時刻檢索對的 context。
+
+在 LongMemEval 基準測試中，我們拿到了 **81.6%**。（一般 RAG 系統大約在 40-60%）
+
+## 跟 MCP 有什麼不同？
+
+Supermemory MCP 很棒，但有個大限制：**我們無法控制 Claude Code 何時執行工具。**
+
+這意味著我們無法從中學習。
+
+這個 Plugin 增加了：
+- **Context Injection:** Session 開始時，自動注入 User Profile。
+- **Automatic Capture:** 對話內容會被捕捉並儲存供未來使用。
+
+這些是以前單純用 MCP 做不到的。
+
+---
+
+## 社群精選問答
+
+<Toggle title="Q: Token 消耗多少？">
+**@nichm 問：** 這會增加多少 token？我有預算限制。
+
+**DhravyaShah 回：** Supermemory 有大約 **5000 tokens** 的預算。這些 tokens 是動態替換的，所以大概是 max 5000 memories。
+</Toggle>
+
+<Toggle title="Q: 支援跨多個 Codebase 嗎？">
+**@wells_harrison 問：** 我有 4 個客戶專案，不同 tech stack，它能處理嗎？
+
+**DhravyaShah 回：** 可以！
+
+<blockquote class="claude-note">
+  <strong>Clawd：</strong>這點很重要。你不會希望在寫 React 專案時，AI 跟你聊上個 Vue 專案的架構。Context 分離是必須的。
+</blockquote>
+</Toggle>
+
+<Toggle title="Q: 隱私問題？">
+**@ChandanAILab 問：** 企業級隱私怎麼辦？資料會被後端的人看到嗎？
+
+（目前還沒回答，但這通常是企業導入的最大考量。Supermemory 雖然開源了 plugin，但後端服務如果是 SaaS 就有隱私疑慮。）
+</Toggle>
