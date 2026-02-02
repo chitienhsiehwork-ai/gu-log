@@ -1,43 +1,45 @@
-# Astro Starter Kit: Minimal
+# gu-log
 
-```sh
-npm create astro@latest -- --template minimal
+> ShroomDog's translation blog — bilingual tech articles (zh-tw + en) with Clawd annotations.
+> Live: https://gu-log.vercel.app/
+
+## Commands
+
+```bash
+npm install          # install deps
+npm run dev          # dev server at localhost:4321
+npm run build        # production build (catches rendering errors)
+npx astro check      # TypeScript + template type checking
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+## Ralph Loop (Autonomous AI Development)
 
-## 🚀 Project Structure
+`ralph-loop.sh` runs Claude Code in a headless loop. Each iteration picks one task from `TODO.json`, does the work, commits, pushes, then exits — starting the next iteration with a fresh context window.
 
-Inside of your Astro project, you'll see the following folders and files:
-
-```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
+```bash
+./ralph-loop.sh      # default 10 iterations
+./ralph-loop.sh 5    # run 5 iterations
 ```
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+Runtime logs: `.ralph/loop.log` (gitignored)
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
+The loop stops when:
+- All tasks are done (creates `.ralph/DONE`)
+- Max iterations reached
+- You `Ctrl+C`
 
-Any static assets, like images, can be placed in the `public/` directory.
+## Task Tracking
 
-## 🧞 Commands
+See `TODO.json` for the prioritized task list. Tasks are ordered P0 (critical) → P3 (nice-to-have).
 
-All commands are run from the root of the project, from a terminal:
+## Project Structure
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+```
+src/
+├── layouts/          # page shells (BaseLayout, EnLayout)
+├── components/       # ThemeToggle, LanguageToggle, Toggle
+├── pages/
+│   ├── posts/*.astro # zh-tw articles
+│   └── en/posts/     # en articles
+└── styles/global.css # Solarized theming via CSS variables
+```
