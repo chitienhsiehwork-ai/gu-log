@@ -1,0 +1,137 @@
+---
+title: "Obsidian & Claude Code 101: Context Engineering"
+date: "2026-01-30"
+source: "@arscontexta (Heinrich) on X"
+sourceUrl: "https://x.com/arscontexta/status/2015585363318743071"
+summary: "For vibe note-taking to work well, you must force Claude Code to be 'picky.' Use a 4-layer filtering mechanism (file tree → YAML descriptions → outline → full content) to make it more selective. This pattern is called Progressive Disclosure."
+lang: "en"
+tags: ["obsidian", "claude-code", "context-engineering", "progressive-disclosure"]
+---
+
+import Toggle from '../../components/Toggle.astro';
+
+For vibe note-taking to work well, you must force Claude Code to be **"picky."**
+
+By default, Claude will read entire files whenever they look useful. This quickly fills up the context window.
+
+We want to use a 4-layer filtering mechanism to make it more selective. This pattern is called **Progressive Disclosure**.
+
+<blockquote class="claude-note">
+  <strong>Clawd:</strong> Progressive Disclosure is an old concept from UI design, now applied to AI context too. Like dating — don't explain your entire family tree on the first date. Start gradually, go deeper if there's interest.
+</blockquote>
+
+## 1. File Tree
+
+At session start, automatically inject the complete file tree through a hook, before Claude touches anything.
+
+```json
+"hooks": {
+    "SessionStart": [{
+        "hooks": [{
+            "type": "command",
+            "command": "tree -L 3 -a -I '.git|.obsidian' --noreport"
+        }]
+    }]
+}
+```
+
+This gives Claude a map.
+
+**Filenames should be descriptive** so they work as first impressions.
+
+`queries evolve during search so agents should checkpoint md`
+
+This filename tells you more than `search notes md`. Just reading the file tree tells you what the note is about.
+
+## 2. YAML Descriptions
+
+Every note has a single-sentence description in the frontmatter.
+
+```yaml
+---
+description: Memory retrieval in brains works through spreading activation where neighbors prime each other. Wiki link traversal replicates this, making backlinks function as primes that surface relevant contexts
+---
+# spreading activation models how agents should traverse
+...
+```
+
+The description supplements the title. If something looks interesting, Claude queries it with `ripgrep`:
+
+```bash
+rg "^description:" 01_thinking/*.md
+```
+
+<blockquote class="claude-note">
+  <strong>Clawd:</strong> This is like writing a Tweet for each note. AI reads the Tweet and knows what it's about, without reading the whole long article. Super helpful for saving tokens.
+</blockquote>
+
+## 3. Outline
+
+If a note passes the description filter, Claude next checks the outline.
+
+Sometimes you only need one section. Loading the whole file creates noise.
+
+```bash
+grep -n "^#" "01_thinking/knowledge-work.md"
+# output:
+# 5:# knowledge-work
+# 13:## Core Ideas
+# 19:## Tensions
+# 23:## Gaps
+```
+
+Now Claude knows where to look, reading only the parts it needs.
+
+## 4. Full Content
+
+Only if everything looks relevant to the task does Claude load the full file.
+
+**But only for notes that passed the first three filters.**
+
+Most notes never reach this layer. That's the point. When Claude must justify every read, its curation ability improves.
+
+## Parallel Concept in MCP
+
+This isn't a new pattern. MCP (Model Context Protocol) tool discovery works the same way.
+
+When you have 50+ tools, Claude doesn't load all definitions upfront. Tool specs are available, but deferred until Claude actually searches for them.
+
+```
+tool list → tool search → tool references → full definitions
+```
+
+Same structure:
+
+```
+file tree → descriptions → outline → full content
+```
+
+## Implementation
+
+The whole thing is actually just three steps:
+
+1. A SessionStart hook running `tree`
+2. YAML frontmatter with a description field
+3. Instructions in CLAUDE.md telling Claude to check descriptions before reading
+
+Just a few constraints force it to become selective.
+
+---
+
+## Community Q&A Highlights
+
+<Toggle title="Q: Writing YAML descriptions for everything sounds tiring?">
+**@Catcher4242 asked:** This assumes every note has a description. Any automated alternatives? Manual writing or batch generation both seem expensive/tedious.
+
+**Heinrich's answer:** **Just tell Claude.** (Just ask Claude to do it)
+
+<blockquote class="claude-note">
+  <strong>Clawd:</strong> This is the essence of this system. Find writing YAML tiring? Ask Claude to write it for you. It's your employee, not your boss. You can command: "Help me organize this note and add a description." Done.
+</blockquote>
+</Toggle>
+
+<Toggle title="Other interesting hooks">
+**Heinrich shared:** @lt0gt uses a similar hook but with more context, making me want to rethink my approach.
+
+He injects recent context + available tools at session start.
+</Toggle>
