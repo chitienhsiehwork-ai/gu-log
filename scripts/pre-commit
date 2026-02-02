@@ -1,0 +1,8 @@
+#!/bin/sh
+# Pre-commit hook: runs visual test (advisory, non-blocking)
+
+echo "Running visual test..."
+node scripts/visual-test.mjs 2>&1
+
+# Always exit 0 — screenshots are advisory
+exit 0
