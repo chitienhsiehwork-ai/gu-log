@@ -1,0 +1,134 @@
+---
+title: "Obsidian & Claude Code: Async Hooks for Note History"
+date: "2026-01-30"
+source: "@arscontexta (Heinrich) on X"
+sourceUrl: "https://x.com/arscontexta/status/2016587691505164749"
+summary: "Imagine time-traveling through your notes. Claude Code's Async Hooks let you auto-commit after every edit without any slowdown, then read that history in actually useful ways. Your vault becomes a thinking journal that writes itself."
+lang: "en"
+tags: ["obsidian", "claude-code", "async-hooks", "git"]
+---
+
+import Toggle from '../../components/Toggle.astro';
+
+Imagine being able to **time-travel through your notes.**
+
+You wrote something three weeks ago. You've changed it a dozen times since. In Obsidian, you only see the current version.
+
+What if you could go back and see exactly how your thinking evolved?
+
+Git can track all of this, but **who actually commits after every small edit?**
+
+Claude Code just released **Async Hooks**.
+
+Now you can auto-commit after every edit without any slowdown, then read that history in actually useful ways.
+
+<blockquote class="claude-note">
+  <strong>Clawd:</strong> This is like your notebook having unlimited "undo" buttons, plus an AI that records what changed each time and why. Async is the key — otherwise waiting for git commit every time you save would drive you crazy.
+</blockquote>
+
+## Example: Note History Skill
+
+Here's what it looks like in action:
+
+```bash
+/note-history @small-world-topology.md
+```
+
+**Output:**
+
+```
+## small-world topology requires hubs and dense local links
+
+created: jan 20
+last edit: jan 28
+versions: 6
+
+### timeline
+
+jan 28 | +12 -3  | added uncertainty section, acknowledged that benchmarks
+are extrapolations from network science, not validated at
+vault scale yet
+
+jan 26 | +18 -8  | connected to spreading activation and checkpoint notes,
+the topology argument now links to WHY it matters for
+agent traversal
+
+jan 24 | +25 -0  | added architectural implications, quality gates for when
+notes have too many or too few links
+
+...
+
+### evolution pattern
+
+started as research extraction, developed practical implications,
+connected to related concepts, added epistemic humility about uncertainty
+the note matured from "heres what network science says" to "heres how
+we apply it and heres what we dont know yet"
+```
+
+This skill doesn't just list commits.
+
+It **interprets** what changed and identifies patterns in how the thinking developed.
+
+## How It Works
+
+You need git set up in your vault (GitHub, GitLab, or just local — all work).
+
+Once set up, the rest is fully automatic. A hook silently runs after every edit, committing changes in the background while Claude keeps working.
+
+Hook script (`.claude/hooks/auto-commit.sh`):
+
+```bash
+#!/bin/bash
+cd "${CLAUDE_PROJECT_DIR:-$(dirname "$0")/../..}"
+
+git add -A 2>/dev/null || exit 0
+
+if git diff --cached --quiet 2>/dev/null; then
+    exit 0
+fi
+
+CHANGED_FILES=$(git diff --cached --name-only 2>/dev/null | head -5)
+# ... (generate commit message) ...
+
+git commit -m "$MSG" --no-verify 2>/dev/null || true
+```
+
+`async: true` is the key that makes this work. Without it, Claude would wait for every commit to finish (that would be annoying).
+
+## Why Does This Matter?
+
+**Notes are living documents, not finished artifacts.**
+
+What you believed three weeks ago might be wrong now. Sometimes understanding "why you changed your mind" is as valuable as "what you finally decided."
+
+History is a log of your thinking process. With auto-commits, it gets captured automatically.
+
+But raw git history is hard to read. **The interpretation layer** is what makes it useful. That's what the `/note-history` skill does.
+
+## Build Your Own
+
+Create `.claude/skills/note-history/SKILL.md`:
+
+1. Find the note file from parameters
+2. Get git log
+3. For each significant commit, read the diff
+4. **Interpret what changed** (not just line additions/deletions, but meaning)
+5. Identify patterns in thinking evolution
+6. Summarize the evolution arc
+
+<blockquote class="claude-note">
+  <strong>Clawd:</strong> Step 4 is the strongest part. Ask AI to look at the diff and tell you "here you softened the tone" or "here you fixed a logic gap," not "added a comma on line 5." That's the version control we actually want.
+</blockquote>
+
+## The Bigger Picture
+
+Now every note in your vault has complete history.
+
+When you revisit a note from six months ago, you don't just see what it says now. You see how it became that way.
+
+Your vault becomes a timeline of your thinking evolution, and you can reconstruct any point on that timeline.
+
+**It's a thinking journal that writes itself.**
+
+Isn't that beautiful?
