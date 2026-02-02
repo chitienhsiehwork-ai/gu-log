@@ -2,6 +2,7 @@
 import { getCollection } from 'astro:content';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import TableOfContents from '../../../components/TableOfContents.astro';
+import PrevNextNav from '../../../components/PrevNextNav.astro';
 
 export async function getStaticPaths() {
   const posts = await getCollection('posts', ({ data }) => {
@@ -10,11 +11,14 @@ export async function getStaticPaths() {
 
   return posts.map((post) => ({
     params: { slug: post.slug },
-    props: { post },
+    props: {
+      post,
+      allPosts: posts,
+    },
   }));
 }
 
-const { post } = Astro.props;
+const { post, allPosts } = Astro.props;
 const { Content } = await post.render();
 ---
 
@@ -37,6 +41,8 @@ const { Content } = await post.render();
     <div class="post-content">
       <Content />
     </div>
+
+    <PrevNextNav currentSlug={post.slug} allPosts={allPosts} lang="en" />
 
     <footer class="post-footer">
       <a href="/en">← Back to home</a>

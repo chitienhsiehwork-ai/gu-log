@@ -1,0 +1,222 @@
+---
+/**
+ * Previous/Next Post Navigation Component
+ *
+ * Shows links to the previous and next posts (by date) at the bottom of each post.
+ * Displays post title and date for each link.
+ */
+
+interface Props {
+  currentSlug: string;
+  allPosts: Array<{
+    slug: string;
+    data: {
+      title: string;
+      date: string;
+      lang: string;
+    };
+  }>;
+  lang?: 'zh-tw' | 'en';
+}
+
+const { currentSlug, allPosts, lang = 'zh-tw' } = Astro.props;
+
+const labels = {
+  'zh-tw': {
+    previous: '← 上一篇',
+    next: '下一篇 →',
+    noPrevious: '這是第一篇文章',
+    noNext: '這是最新文章'
+  },
+  'en': {
+    previous: '← Previous',
+    next: 'Next →',
+    noPrevious: 'This is the first post',
+    noNext: 'This is the latest post'
+  }
+};
+
+const t = labels[lang];
+
+// Sort posts by date (newest first)
+const sortedPosts = allPosts.sort((a, b) => {
+  return new Date(b.data.date).getTime() - new Date(a.data.date).getTime();
+});
+
+// Find current post index
+const currentIndex = sortedPosts.findIndex(post => post.slug === currentSlug);
+
+// Previous post is newer (earlier in array)
+const prevPost = currentIndex > 0 ? sortedPosts[currentIndex - 1] : null;
+
+// Next post is older (later in array)
+const nextPost = currentIndex < sortedPosts.length - 1 ? sortedPosts[currentIndex + 1] : null;
+
+// Format date for display
+function formatDate(dateStr: string, lang: string): string {
+  const date = new Date(dateStr);
+  if (lang === 'zh-tw') {
+    return dateStr; // Keep YYYY-MM-DD format for zh-tw
+  } else {
+    // Format as "Mon DD, YYYY" for English
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  }
+}
+
+// Build post URLs
+const baseUrl = lang === 'en' ? '/en/posts/' : '/posts/';
+---
+
+<nav class="prev-next-nav" aria-label={lang === 'zh-tw' ? '文章導航' : 'Post navigation'}>
+  <div class="prev-next-container">
+    <div class="prev-link-wrapper">
+      {prevPost ? (
+        <a href={`${baseUrl}${prevPost.slug}`} class="nav-link prev-link">
+          <span class="nav-direction">{t.previous}</span>
+          <span class="nav-post-title">{prevPost.data.title}</span>
+          <span class="nav-post-date">{formatDate(prevPost.data.date, lang)}</span>
+        </a>
+      ) : (
+        <span class="nav-link disabled">
+          <span class="nav-direction">{t.previous}</span>
+          <span class="nav-post-title nav-placeholder">{t.noPrevious}</span>
+        </span>
+      )}
+    </div>
+
+    <div class="next-link-wrapper">
+      {nextPost ? (
+        <a href={`${baseUrl}${nextPost.slug}`} class="nav-link next-link">
+          <span class="nav-direction">{t.next}</span>
+          <span class="nav-post-title">{nextPost.data.title}</span>
+          <span class="nav-post-date">{formatDate(nextPost.data.date, lang)}</span>
+        </a>
+      ) : (
+        <span class="nav-link disabled">
+          <span class="nav-direction">{t.next}</span>
+          <span class="nav-post-title nav-placeholder">{t.noNext}</span>
+        </span>
+      )}
+    </div>
+  </div>
+</nav>
+
+<style>
+  .prev-next-nav {
+    margin: 2rem 0 1rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .prev-next-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+
+  .nav-link {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 1rem;
+    border-radius: 8px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+
+  a.nav-link {
+    cursor: pointer;
+  }
+
+  a.nav-link:hover {
+    border-color: var(--color-accent);
+    background: var(--color-surface-hover);
+    transform: translateY(-2px);
+  }
+
+  a.nav-link:active {
+    transform: translateY(0);
+  }
+
+  .nav-link.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .nav-direction {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-accent);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .nav-post-title {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--color-text);
+    line-height: 1.4;
+  }
+
+  .nav-placeholder {
+    font-style: italic;
+    opacity: 0.7;
+  }
+
+  .nav-post-date {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    margin-top: 0.25rem;
+  }
+
+  /* Alignment for prev/next */
+  .prev-link-wrapper {
+    text-align: left;
+  }
+
+  .next-link-wrapper {
+    text-align: right;
+  }
+
+  .next-link .nav-post-title,
+  .next-link .nav-post-date {
+    text-align: right;
+  }
+
+  /* Mobile: Stack vertically */
+  @media (max-width: 640px) {
+    .prev-next-container {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+
+    .next-link-wrapper {
+      text-align: left;
+    }
+
+    .next-link .nav-post-title,
+    .next-link .nav-post-date {
+      text-align: left;
+    }
+  }
+
+  /* Touch-friendly sizing */
+  @media (pointer: coarse) {
+    .nav-link {
+      padding: 1.25rem;
+      min-height: 80px;
+    }
+  }
+
+  /* Focus styles for accessibility */
+  a.nav-link:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+</style>
