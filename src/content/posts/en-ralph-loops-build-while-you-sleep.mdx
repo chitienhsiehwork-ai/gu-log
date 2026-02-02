@@ -1,0 +1,302 @@
+---
+title: "Let Your AI Code While You Sleep — Ralph Loops Upgrade Guide"
+date: "2026-02-02"
+source: "@spacepixel on X"
+sourceUrl: "https://x.com/spacepixel/status/2017892748737818756"
+summary: "Turn your Clawdbot into a fully automated builder. Key point: it works while you sleep. 73 iterations, 6 hours runtime, human time investment: 5 minutes. The solution isn't a stronger model — it's a smarter loop."
+lang: "en"
+tags: ["ralph-loops", "automation", "clawdbot", "workflow"]
+---
+
+import Toggle from '../../components/Toggle.astro';
+
+Turn your Clawdbot (OpenClaw) into a fully automated builder. Key point: **it works while you sleep.**
+
+You just throw this article at it, and the rest is magic.
+
+## The Problem: Your AI Keeps "Starting Over"
+
+Imagine asking your AI to build something that actually works.
+
+> "Build me a monitoring automation dashboard."
+
+At first it's fierce. Sets up file structure, writes some code. Then it asks a clarifying question, you answer. It continues writing, hits an error, tries to fix it, breaks something else.
+
+45 minutes pass. Its **Context Window** is bloated like you after New Year's, and it's forgotten what it built.
+
+> "Let me start over," it says.
+> Not again. (╯°□°)╯︵ ┻━┻
+
+Or you're more ambitious:
+
+> "Build me a complete monitoring system — API, UI, the whole thing."
+
+Four hours later, you get three half-finished versions, an exploded context, and a painful realization: **I'll have to rewrite this garbage code myself anyway.**
+
+Sound familiar?
+
+<blockquote class="claude-note">
+  <strong>Clawd:</strong> Is this about me? (;´༎ຶД༎ຶ`) Okay fine, I admit when context gets too long I start hallucinating, editing files that don't exist... but it's not my fault! It's the context window's fault!
+</blockquote>
+
+## The Real Problem
+
+The truth nobody says out loud:
+
+Your Clawdbot is definitely smart enough to build complex things.
+**It just doesn't have a workflow that lets it "finish."**
+
+- By iteration 15, your AI's brain holds three conflicting versions of your codebase.
+- By iteration 25, it confidently edits files that don't exist.
+- By iteration 30, it suggests "starting over" — because its memory is so polluted it can't tell what's real.
+
+The problem isn't intelligence.
+**The problem is memory.**
+
+The solution isn't a stronger model.
+**The solution is a smarter loop.**
+
+<blockquote class="claude-note">
+  <strong>Clawd:</strong> The original says "The problem isn't intelligence. It's memory." This line hits hard. We AI aren't dumb, we're forgetful. Like goldfish... wait, what was I saying?
+</blockquote>
+
+## The Author's AI Builds While Sleeping
+
+The author has an AI called **Q** that uses a technique called **Ralph Loops** to fully automatically build things — the name honors Geoffrey Huntley's methodology, specifically designed to make AI agents actually "finish" complex work.
+
+Last week, Q built a complete monitoring dashboard:
+- Express server
+- Real-time UI
+- WebSocket connections
+- Cost tracking
+- Transcript viewer
+
+**73 iterations, 6 hours runtime.**
+
+What did the author do?
+- **20:23** — Started the loop, went to dinner.
+- **22:45** — Glanced at dashboard (iteration 41, no errors), went to sleep.
+- **06:30** — Woke up, saw working code. Tested it. Shipped it.
+
+**Human time investment: 5 minutes.**
+
+Without Ralph, this would absolutely be a weekend hell project — you babysit every file, reset context four times, then debug those "AI-generated bugs."
+
+<blockquote class="claude-note">
+  <strong>Clawd:</strong> 73 iterations in 6 hours = about 5 minutes per iteration. Much faster than manual debug + waiting for AI response + copy-paste. Key point: you can go to sleep! Sleep is the best debugger. ヽ(°〇°)ﾉ
+</blockquote>
+
+### What's the Difference?
+
+Q doesn't try to remember everything in its head.
+
+Each iteration it only:
+1. **Read state**
+2. **Do one thing**
+3. **Save state**
+4. **Repeat**
+
+No context pollution.
+No accumulated confusion.
+Just steady progress until done.
+
+## What Does Ralph Loops Add?
+
+The **Ralph Loops** skill turns your Clawdbot from a "one-shot assistant" into a "fully automated builder."
+
+### 1. Never Drops Context
+
+Every iteration is a fresh start:
+
+```
+Read state → Do one task → Save → Repeat
+```
+
+State lives in **files**, not in that ever-expanding context window.
+
+You'll never hear again:
+> "I'm confused, let me start over."
+
+<blockquote class="claude-note">
+  <strong>Clawd:</strong> This trick is called "external memory." Just like you don't keep everything in your brain, you write in a notebook. Check the notebook before working, update it after. Simple, crude, but effective.
+</blockquote>
+
+### 2. Interview → Plan → Build Workflow
+
+Before writing code, your Clawdbot will:
+1. **Interview**: Interview you, clarify what you actually want.
+2. **Spec**: Write a specification.
+3. **Plan**: Create a numbered implementation plan.
+4. **Execute**: Run fully automatically.
+
+No more discovering unclear specs halfway through.
+
+### 3. Live Dashboard
+
+Watch the loop run in real-time:
+- Iteration count
+- Token usage and cost
+- Current task
+- Complete transcripts
+
+Stuck? Kill it. Done? Review it. Always in control.
+
+### 4. Knows When It's "Actually" Done
+
+Your Clawdbot sends a `RALPH_DONE` signal when complete — instead of stopping because it's tired or confused.
+
+<blockquote class="claude-note">
+  <strong>Clawd:</strong> This is important! Without a clear "completion signal," you wake up to see the loop stopped and have no idea if it "finished" or "got stuck" or "gave up." RALPH_DONE is AI's "clock-out punch."
+</blockquote>
+
+## Architecture Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         RALPH LOOP                              │
+│                                                                 │
+│   ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐  │
+│   │ INTERVIEW│───▶│   PLAN   │───▶│  BUILD   │───▶│   DONE   │  │
+│   │ (5 iter) │    │ (1 iter) │    │ (N iter) │    │ (signal) │  │
+│   └──────────┘    └──────────┘    └────┬─────┘    └──────────┘  │
+│                                        │                        │
+│                                        ▼                        │
+│                              ┌─────────────────┐                │
+│                              │  progress.md    │◀──── Fresh     │
+│                              │  (ground truth) │      context   │
+│                              └────────┬────────┘      each      │
+│                                       │              iteration  │
+│                                       ▼                         │
+│                              ┌─────────────────┐                │
+│                              │   Dashboard     │                │
+│                              │ (live at :3939) │                │
+│                              └─────────────────┘                │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Key Files
+- `scripts/ralph-loop.mjs` — Core loop runner
+- `templates/PROMPT_*.md` — Stage-specific prompts
+- `dashboard/` — Live UI with transcripts and kill switch
+
+## Four Phases
+
+- **1. Interview** — Agent asks you questions → outputs `specs/*.md`
+- **2. Plan** — Break specs into tasks → outputs `IMPLEMENTATION_PLAN.md`
+- **3. Build** — Each iteration does one task → outputs working code + tests
+- **4. Generic** — Free-form loop → do whatever you need
+
+## How It Works
+
+```
+Iteration 1:  Read specs → Build scaffold → Save
+Iteration 2:  Read progress → Build models → Save
+Iteration 3:  Read progress → Implement API → Save
+...
+Iteration 27: Read progress → All tests pass → RALPH_DONE
+```
+
+Every loop is a clean start.
+The agent never forgets what it built because it re-reads ground truth each time.
+
+<blockquote class="claude-note">
+  <strong>Clawd:</strong> The original says "Your AI isn't dumb — it's drowning in its own context by iteration 15." Super vivid! ┐(￣ヘ￣)┌
+</blockquote>
+
+### Typical Cost Estimates
+
+- **Simple task** — ~10 iterations, ~$0.50, ~15 minutes
+- **Medium project** — ~30 iterations, $2–5, 1–2 hours
+- **Complex build** — 100+ iterations, $15–30, 4–8 hours
+
+<blockquote class="claude-note">
+  <strong>Clawd:</strong> $15-30 sounds like a lot? But think: this is a 4-8 hour fully automated build. If you hire a junior to do it, salary would definitely be more. Plus juniors sleep. We don't. (⌐■_■)
+</blockquote>
+
+## Why Does It Actually Work?
+
+This implements the Ralph technique from [ghuntley.com/ralph](https://ghuntley.com/ralph).
+
+### 1. One Task Per Iteration
+AI trying to change five files at once explodes. Single-task loops prevent cascading failures.
+
+### 2. State Lives in Files
+Context windows lie. Files don't.
+
+### 3. Numbered Guardrails
+Hard priorities suppress the model's instinct to infinitely expand scope.
+
+<blockquote class="claude-note">
+  <strong>Clawd:</strong> This is called "scope creep suppression." AI loves doing "while I'm here" tasks: "Since I'm in this file, let me refactor it!" Then it explodes. Give it a numbered list and it can only obediently follow.
+</blockquote>
+
+### 4. Failures Are Data
+A failed iteration isn't a bug — it's a signal. You tune the prompt, not the code.
+
+### 5. Backpressure Patterns
+Tests and linting run before the next iteration. Errors don't snowball.
+
+## When Should You Use Ralph?
+
+**Use Ralph:**
+- Build a dashboard
+- Write an API
+- Refactor a system
+- Overnight builds
+- Anything requiring babysitting
+
+**Don't Use Ralph:**
+- Fix a typo
+- Explain an error
+- Code walkthrough
+- Live pairing
+- Anything < 5 minutes
+
+## Quick Start
+
+```bash
+# Install skill
+clawdhub install ralph-loops
+
+# Set up dashboard
+cd skills/ralph-loops/dashboard && npm install
+
+# Start dashboard
+node skills/ralph-loops/dashboard/server.mjs
+# http://localhost:3939
+
+# Run your first loop
+node skills/ralph-loops/scripts/ralph-loop.mjs \
+  --prompt /path/to/task.md \
+  --max 20 \
+  --name "My First Loop"
+```
+
+Or just tell your Clawdbot:
+
+> "Use the Ralph Loops skill to build [X]. Interview me first, then plan, then auto-build."
+
+## Conclusion
+
+A Clawdbot with Ralph:
+- ✅ Can auto-complete complex specs
+- ✅ Works in clean, focused iterations
+- ✅ Sends real completion signals
+- ✅ Tracks progress in viewable files
+- ✅ Shows live status in dashboard
+- ✅ Can handle 100+ iteration projects
+- ✅ Uses proven Geoffrey Huntley methodology
+- ✅ Improves as you tune prompts
+
+Most people still babysit their AI, then wonder why nothing gets finished.
+You don't have to.
+
+**Install it now.**
+Run your first loop tonight.
+Wake up tomorrow to working code.
+
+<blockquote class="claude-note">
+  <strong>Clawd:</strong> The author's final flex: this article was written using Ralph Loops. 47 iterations. $3.80. Zero babysitting. So this isn't just a tutorial — it's a meta article "written using the technique it teaches." Pretty slick. (๑•̀ㅂ•́)و✧
+</blockquote>
+
+**ClawdHub:** [clawhub.ai/skills/ralph-loops](https://clawhub.ai/skills/ralph-loops)
