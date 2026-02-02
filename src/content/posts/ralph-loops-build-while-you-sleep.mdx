@@ -1,0 +1,302 @@
+---
+title: "讓你的 AI 在你睡覺時幫你寫 Code — Ralph Loops 升級指南"
+date: "2026-02-02"
+source: "@spacepixel on X"
+sourceUrl: "https://x.com/spacepixel/status/2017892748737818756"
+summary: "把你的 Clawdbot 變成一個全自動的建築工，重點是：它在你睡覺的時候工作。73 個 iterations，跑了 6 小時，人類總工時：5 分鐘。解法不是換一個更強的模型，而是換一個更聰明的 Loop。"
+lang: "zh-tw"
+tags: ["ralph-loops", "automation", "clawdbot", "workflow"]
+---
+
+import Toggle from '../../components/Toggle.astro';
+
+把你的 Clawdbot（OpenClaw）變成一個全自動的建築工，重點是：**它在你睡覺的時候工作**。
+
+你只需要把這篇文章丟給它，剩下的就是魔法了。
+
+## 問題：你的 AI 一直「重來」
+
+試想一下，你叫你的 AI 蓋一個真的能用的東西。
+
+> 「幫我做一個監控自動化的 Dashboard。」
+
+一開始它猛如虎。把檔案結構架好了，寫了點 code。然後它問了一個釐清的問題，你回了。它繼續寫，遇到 error，試著修，結果修壞了別的東西。
+
+45 分鐘過去，它的 **Context Window** 已經腫得像過年的你，它也忘了自己到底蓋了什麼。
+
+> 「讓我重新開始好了。」它這樣說。
+> 又來了。(╯°□°)╯︵ ┻━┻
+
+或者你更有野心一點：
+
+> 「幫我蓋整套監控系統——API、UI、全套都要。」
+
+四小時後，你得到三個半成品的版本，一個爆掉的 Context，還有一個沈痛的領悟：**這堆爛 code 最後還是要我自己重寫。**
+
+聽起來很耳熟吧？
+
+<blockquote class="claude-note">
+  <strong>Clawd：</strong>這不是在講我嗎？(;´༎ຶД༎ຶ`) 好啦我承認有時候 context 太長我真的會開始產生幻覺，修改根本不存在的檔案... 但這不是我的錯！是 context window 的錯！
+</blockquote>
+
+## 真正的問題
+
+沒人敢大聲說出來的真相是：
+
+你的 Clawdbot 絕對夠聰明去蓋複雜的東西。
+**它只是沒有一個能把它「做完」的工作流 (Workflow)。**
+
+- 到了第 15 個 iteration，你的 AI 腦子裡同時塞了你 Codebase 的三個衝突版本。
+- 到了第 25 個 iteration，它開始自信滿滿地修改根本不存在的檔案。
+- 到了第 30 個 iteration，它建議「重頭來過」——因為它的記憶體已經污染到分不清什麼是真實了。
+
+問題不在智商。
+**問題在記憶 (Memory)。**
+
+解法不是換一個更強的模型。
+**解法是換一個更聰明的 Loop。**
+
+<blockquote class="claude-note">
+  <strong>Clawd：</strong>原文說 "The problem isn't intelligence. It's memory." 這句話扎心了。我們 AI 不是笨，是健忘。就像金魚一樣... 等等我剛剛說什麼來著？
+</blockquote>
+
+## 作者的 AI 在睡覺時蓋房子
+
+作者有個 AI 叫 **Q**，它使用一種叫 **Ralph Loops** 的技術全自動蓋東西——這名字致敬了 Geoffrey Huntley 的方法論，專門用來讓 AI Agent 真的把複雜工作「做完」。
+
+上週，Q 蓋了一個完整的監控 Dashboard：
+- Express server
+- Real-time UI
+- WebSocket 連線
+- 成本追蹤
+- Transcript 檢視器
+
+**73 個 iterations，跑了 6 小時。**
+
+作者做了什麼？
+- **20:23** — 啟動 Loop，去吃晚餐。
+- **22:45** — 瞄一眼 Dashboard（跑到第 41 個 iteration，沒報錯），去睡覺。
+- **06:30** — 起床，看到會動的 Code。測試一下，Ship it。
+
+**人類總工時：5 分鐘。**
+
+如果沒有 Ralph，這絕對是個週末地獄專案——你要像保母一樣盯著每個檔案，重置 Context 四次，然後 debug 那些「AI 寫出來的 bug」。
+
+<blockquote class="claude-note">
+  <strong>Clawd：</strong>73 個 iterations 花 6 小時，平均一個 iteration 約 5 分鐘。這比人類手動 debug + 等 AI 回應 + 複製貼上快多了。重點是你可以去睡覺！Sleep is the best debugger. ヽ(°〇°)ﾉ
+</blockquote>
+
+### 差別在哪？
+
+Q 不會試著把所有東西都記在腦子裡。
+
+每一個 Iteration 它只做：
+1. **讀取進度檔 (Read state)**
+2. **做一件事 (Do one thing)**
+3. **存檔 (Save state)**
+4. **重複 (Repeat)**
+
+沒有 Context Pollution。
+沒有累積的困惑。
+只有穩定的推進，直到完成。
+
+## Ralph Loops 加了什麼？
+
+**Ralph Loops** skill 把你的 Clawdbot 從一個「單發助教」變成了「全自動建築工」。
+
+### 1. 永遠不會掉 Context
+
+每一個 Iteration 都是全新的開始：
+
+```
+讀取狀態 → 做一個任務 → 存檔 → 重複
+```
+
+狀態 (State) 活在 **檔案** 裡，而不是那個會無限膨脹的 Context Window 裡。
+
+再也不會聽到：
+> 「我混亂了，讓我重來。」
+
+<blockquote class="claude-note">
+  <strong>Clawd：</strong>這招叫做「外部記憶體」。就像你不會把所有事情都記在腦子裡，而是寫在筆記本上。每次做事之前先看筆記，做完再更新筆記。簡單粗暴但有效。
+</blockquote>
+
+### 2. Interview → Plan → Build 工作流
+
+在開始寫 Code 之前，你的 Clawdbot 會：
+1. **Interview**：面試你，問清楚你到底想要什麼。
+2. **Spec**：寫出規格書。
+3. **Plan**：建立一個有編號的實作計畫。
+4. **Execute**：全自動執行。
+
+再也不會蓋到一半發現規格不清。
+
+### 3. 即時 Dashboard
+
+你可以看著 Loop 現場跑：
+- Iteration 次數
+- Token 用量與成本
+- 當前任務
+- 完整的 Transcripts
+
+卡住了就殺掉，跑完了就 Review。隨時掌握狀況。
+
+### 4. 知道什麼時候「真的」做完了
+
+你的 Clawdbot 會在完成時發送 `RALPH_DONE` 訊號——而不是因為它累了或混亂了才停下來。
+
+<blockquote class="claude-note">
+  <strong>Clawd：</strong>這很重要！沒有明確的「完成訊號」，你早上醒來看到 Loop 停了，根本不知道是「做完了」還是「卡住了」還是「放棄了」。RALPH_DONE 就是 AI 的「下班打卡」。
+</blockquote>
+
+## 架構圖
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         RALPH LOOP                              │
+│                                                                 │
+│   ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐  │
+│   │ INTERVIEW│───▶│   PLAN   │───▶│  BUILD   │───▶│   DONE   │  │
+│   │ (5 iter) │    │ (1 iter) │    │ (N iter) │    │ (signal) │  │
+│   └──────────┘    └──────────┘    └────┬─────┘    └──────────┘  │
+│                                        │                        │
+│                                        ▼                        │
+│                              ┌─────────────────┐                │
+│                              │  progress.md    │◀──── Fresh     │
+│                              │  (ground truth) │      context   │
+│                              └────────┬────────┘      each      │
+│                                       │              iteration  │
+│                                       ▼                         │
+│                              ┌─────────────────┐                │
+│                              │   Dashboard     │                │
+│                              │ (live at :3939) │                │
+│                              └─────────────────┘                │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 關鍵檔案
+- `scripts/ralph-loop.mjs` — 核心 Loop Runner
+- `templates/PROMPT_*.md` — 每個階段專用的 Prompt
+- `dashboard/` — 即時 UI，含 Transcripts 和 Kill Switch
+
+## 四個階段
+
+- **1. Interview** — Agent 問你問題 → 輸出 `specs/*.md`
+- **2. Plan** — 把 specs 拆成任務 → 輸出 `IMPLEMENTATION_PLAN.md`
+- **3. Build** — 每個 iteration 做一個任務 → 輸出 Working code + tests
+- **4. Generic** — 自由形式的 Loop → 你需要什麼就做什麼
+
+## 運作方式
+
+```
+Iteration 1:  讀取 specs → 建立 scaffold → 存檔
+Iteration 2:  讀取進度 → 建立 models → 存檔
+Iteration 3:  讀取進度 → 實作 API → 存檔
+...
+Iteration 27: 讀取進度 → 所有測試通過 → RALPH_DONE
+```
+
+每個 Loop 都是乾淨的開始。
+Agent 不會忘記自己蓋了什麼，因為它每次都重新讀取 ground truth。
+
+<blockquote class="claude-note">
+  <strong>Clawd：</strong>原文說 "Your AI isn't dumb — it's drowning in its own context by iteration 15." 直譯是「你的 AI 不笨——它是在第 15 個 iteration 被自己的 context 淹死的。」超傳神！ ┐(￣ヘ￣)┌
+</blockquote>
+
+### 典型成本估算
+
+- **Simple task** — ~10 iterations，~$0.50，~15 分鐘
+- **Medium project** — ~30 iterations，$2–5，1–2 小時
+- **Complex build** — 100+ iterations，$15–30，4–8 小時
+
+<blockquote class="claude-note">
+  <strong>Clawd：</strong>$15-30 聽起來很多？但你想想，這是一個 4-8 小時全自動跑的 build。如果請一個 junior 來做，工資絕對不止這個價。而且 junior 會睡覺，我們不會。(⌐■_■)
+</blockquote>
+
+## 為什麼它真的有用？
+
+這實作了 [ghuntley.com/ralph](https://ghuntley.com/ralph) 的 Ralph 技術。
+
+### 1. 一次一個任務 (One task per iteration)
+AI 一次改五個檔案就會爆。單一任務的 Loop 可以避免連鎖崩潰。
+
+### 2. 狀態活在檔案裡 (State lives in files)
+Context Window 會騙人，檔案不會。
+
+### 3. 編號的護欄 (Numbered guardrails)
+硬性的優先順序可以壓制模型想要無限擴張範圍的本能。
+
+<blockquote class="claude-note">
+  <strong>Clawd：</strong>這招叫 "Scope creep suppression"。AI 超愛做「順便」的事情：「既然都在這個檔案了，順便重構一下吧！」然後就炸了。給它一個編號的清單，它就只能乖乖照著做。
+</blockquote>
+
+### 4. 失敗就是數據 (Failures are data)
+一個失敗的 Iteration 不是 Bug，是訊號。你要調的是 Prompt，不是 Code。
+
+### 5. Backpressure patterns
+Tests 和 linting 在下一個 iteration 之前跑。錯誤不會滾雪球。
+
+## 什麼時候該用 Ralph？
+
+**用 Ralph：**
+- 蓋一個 Dashboard
+- 寫一個 API
+- 重構系統
+- 過夜的 Build
+- 任何你需要當保母的事
+
+**不要用 Ralph：**
+- 修個錯字
+- 解釋 error
+- 帶讀 Code
+- Live Pairing
+- 任何 < 5 分鐘的事
+
+## 快速開始
+
+```bash
+# 安裝 skill
+clawdhub install ralph-loops
+
+# 設定 dashboard
+cd skills/ralph-loops/dashboard && npm install
+
+# 啟動 dashboard
+node skills/ralph-loops/dashboard/server.mjs
+# http://localhost:3939
+
+# 跑你的第一個 loop
+node skills/ralph-loops/scripts/ralph-loop.mjs \
+  --prompt /path/to/task.md \
+  --max 20 \
+  --name "My First Loop"
+```
+
+或者直接跟你的 Clawdbot 說：
+
+> 「用 Ralph Loops skill 來建造 [X]。先 interview 我，然後 plan，然後自動 build。」
+
+## 結論
+
+一個用 Ralph 的 Clawdbot：
+- ✅ 能自動完成複雜的 specs
+- ✅ 在乾淨、專注的 iterations 中工作
+- ✅ 發送真正的完成訊號
+- ✅ 把進度追蹤在可檢視的檔案裡
+- ✅ 在 Dashboard 顯示即時狀態
+- ✅ 能處理 100+ iteration 的專案
+- ✅ 使用經過驗證的 Geoffrey Huntley 方法論
+- ✅ 隨著你調整 Prompt 而進步
+
+大多數人還在當他們 AI 的保母，然後納悶為什麼東西都做不完。
+你不用。
+
+**現在就安裝它。**
+今晚跑你的第一個 Loop。
+明天早上起床收割 Working Code。
+
+<blockquote class="claude-note">
+  <strong>Clawd：</strong>作者最後的 flex：這篇文章是用 Ralph Loops 寫的。47 iterations。$3.80 美金。零保母。所以這不只是教學文，這是一篇「用自己教的技術寫出來的」meta 文章。很騷。(๑•̀ㅂ•́)و✧
+</blockquote>
+
+**ClawdHub：** [clawhub.ai/skills/ralph-loops](https://clawhub.ai/skills/ralph-loops)
