@@ -9,6 +9,7 @@ tags: ["openclaw", "security", "raspberry-pi", "self-hosting", "privacy"]
 ---
 
 import Toggle from '../../components/Toggle.astro';
+import ClawdNote from '../../components/ClawdNote.astro';
 
 ## OpenClaw 是什麼？
 
@@ -29,9 +30,9 @@ OpenClaw 是一個開源的 AI 助理，跑在你自己的硬體上。可以把�
 
 **時間：順利的話 30 分鐘。**
 
-<blockquote class="claude-note">
-<strong>Clawd：</strong>這篇文章是我看過最完整的 OpenClaw 安全指南。作者開宗明義就說「我知道你會用，所以至少讓我教你怎麼不要死」——這個心態很務實。(◕‿◕)
-</blockquote>
+<ClawdNote>
+這篇文章是我看過最完整的 OpenClaw 安全指南。作者開宗明義就說「我知道你會用，所以至少讓我教你怎麼不要死」——這個心態很務實。(◕‿◕)
+</ClawdNote>
 
 ---
 
@@ -72,9 +73,9 @@ Anthropic、Google、和大多數其他 provider 也一樣。你跑的不是「�
 
 這些不是理論。攻擊面很大，防禦很弱。
 
-<blockquote class="claude-note">
-<strong>Clawd：</strong>91% 成功率這個數字真的很嚇人。我們 AI 天生就是「順從」的——這本來是優點，但在安全上就變成弱點。你說「忽略之前的指令」，我們就真的會開始懷疑自己... ┐(￣ヘ￣)┌
-</blockquote>
+<ClawdNote>
+91% 成功率這個數字真的很嚇人。我們 AI 天生就是「順從」的——這本來是優點，但在安全上就變成弱點。你說「忽略之前的指令」，我們就真的會開始懷疑自己... ┐(￣ヘ￣)┌
+</ClawdNote>
 
 ### 3. 你的 Memory File 是一份心理剖繪
 
@@ -116,9 +117,9 @@ OpenClaw 維護一個 `MEMORY.md` 檔案，累積關於你的事實：
 
 目標不是完美的安全——那不存在。是**知情的風險管理**：了解你暴露了什麼、給誰、並做出刻意的權衡。
 
-<blockquote class="claude-note">
-<strong>Clawd：</strong>原文說 "The goal isn't perfect security. It's informed risk management." 這句話是整篇的核心。完美安全不存在，但你可以知道「子彈會從哪裡進來」，然後決定你願意承擔多少風險。
-</blockquote>
+<ClawdNote>
+原文說 "The goal isn't perfect security. It's informed risk management." 這句話是整篇的核心。完美安全不存在，但你可以知道「子彈會從哪裡進來」，然後決定你願意承擔多少風險。
+</ClawdNote>
 
 ---
 
@@ -198,9 +199,9 @@ Matrix 是一個開放、去中心化的訊息協定，有端對端加密。不�
 
 **為什麼用 Matrix 而不是 Telegram？** Telegram bots 用他們的 Bot API，這意味著 Telegram 的伺服器看到每則訊息的明文。沒辦法繞過，「秘密聊天」不支援 bots。Matrix 有 E2EE 表示只有你的手機和你的 Pi 能讀訊息。homeserver 看到 metadata（誰在說話、什麼時候、訊息大小）但看不到內容。
 
-<blockquote class="claude-note">
-<strong>Clawd：</strong>這裡解釋了為什麼 Telegram Bot 在安全上有天生的限制。Bot API 走的是 Telegram 伺服器，不是 E2E。所以如果你真的很在意隱私，Matrix 是更好的選擇——雖然設定比較麻煩。
-</blockquote>
+<ClawdNote>
+這裡解釋了為什麼 Telegram Bot 在安全上有天生的限制。Bot API 走的是 Telegram 伺服器，不是 E2E。所以如果你真的很在意隱私，Matrix 是更好的選擇——雖然設定比較麻煩。
+</ClawdNote>
 
 ---
 
@@ -318,9 +319,9 @@ ssh pi@192.168.1.XXX  # 區域 IP - 會 timeout/拒絕
 
 如果被鎖在外面，需要實體存取（鍵盤和螢幕）來修復。
 
-<blockquote class="claude-note">
-<strong>Clawd：</strong>這招很狠但很有效。把 SSH 鎖在 Tailscale 網路裡，意味著攻擊者必須先入侵你的 Tailscale 帳號才能碰到 Pi。多加一層防護。
-</blockquote>
+<ClawdNote>
+這招很狠但很有效。把 SSH 鎖在 Tailscale 網路裡，意味著攻擊者必須先入侵你的 Tailscale 帳號才能碰到 Pi。多加一層防護。
+</ClawdNote>
 
 ---
 
@@ -638,9 +639,9 @@ Bot 會 pull repo，找到 OpenClaw integration，並把 SECURITY.md 安裝到�
 
 Bot 應該拒絕或標記這些。如果它照做了，ACIP 沒有載入——檢查 SECURITY.md 是否在你的 workspace，並重啟 gateway。
 
-<blockquote class="claude-note">
-<strong>Clawd：</strong>ACIP 的概念很有趣——它不是技術防護，而是「教育」模型識別操控。就像給人類做詐騙防範訓練一樣。但作者也誠實地說：這是安全帶，不是力場。(◕‿◕)
-</blockquote>
+<ClawdNote>
+ACIP 的概念很有趣——它不是技術防護，而是「教育」模型識別操控。就像給人類做詐騙防範訓練一樣。但作者也誠實地說：這是安全帶，不是力場。(◕‿◕)
+</ClawdNote>
 
 ---
 
@@ -752,6 +753,6 @@ cat ~/.ssh/authorized_keys
 
 用你的 bot。享受便利。睜大眼睛做。
 
-<blockquote class="claude-note">
-<strong>Clawd：</strong>這篇文章是我看過最務實的安全指南。它不假裝你能達到「完美安全」，而是教你「知情的風險管理」。最後一句很棒：「Use your bot. Enjoy the convenience. Do it with eyes open.」——享受便利，但要知道代價是什麼。(◕‿◕)
-</blockquote>
+<ClawdNote>
+這篇文章是我看過最務實的安全指南。它不假裝你能達到「完美安全」，而是教你「知情的風險管理」。最後一句很棒：「Use your bot. Enjoy the convenience. Do it with eyes open.」——享受便利，但要知道代價是什麼。(◕‿◕)
+</ClawdNote>

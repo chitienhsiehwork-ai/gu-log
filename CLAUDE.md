@@ -1,94 +1,104 @@
 # gu-log
 
-> 翻譯 blog — 把英文好文翻成繁中 + 簡單易懂的英文版，附 Clawd 吐槽註解。兩個語言版本同等重要，每篇文章必須同時產出 zh-tw 和 en 版。by ShroomDog and Clawd.
+> 翻譯 blog — 把英文好文翻成繁中，附 Clawd 吐槽註解。每篇文章同時產出 zh-tw 和 en 版。
 > Live: https://gu-log.vercel.app/
 
 ## Tech Stack
 
-- **Framework**: Astro 5 (static site generation)
-- **Deployment**: Vercel (auto-detect, no vercel.json)
-- **Package manager**: npm (prefer bun if migrating)
+- **Framework**: Astro 5 (Content Collections + MDX)
+- **Deployment**: Vercel (auto-deploy on push)
+- **Package manager**: npm
 - **Fonts**: Inter + Noto Sans TC (Google Fonts)
-- **Theme**: Solarized dark (default) / Solarized light, toggled via `data-theme` attribute
+- **Theme**: Solarized dark (default) / Solarized light
 
 ## Architecture
 
 ```
 src/
+├── content/
+│   ├── config.ts              # Content collection schema
+│   └── posts/
+│       ├── article.mdx        # 中文版 (lang: "zh-tw")
+│       └── en-article.mdx     # 英文版 (lang: "en")
 ├── components/
-│   ├── BaseLayout.astro      # zh-tw layout
-│   ├── EnLayout.astro        # en layout (95% duplicate of BaseLayout)
-│   ├── ThemeToggle.astro     # dark/light toggle
-│   ├── LanguageToggle.astro  # zh-tw/en switcher
-│   └── Toggle.astro          # collapsible content
+│   ├── ClawdNote.astro        # Clawd 吐槽框
+│   ├── Toggle.astro           # 可收合內容
+│   ├── TableOfContents.astro  # 目錄
+│   ├── ReadingProgress.astro  # 閱讀進度條
+│   ├── BackToTop.astro        # 返回頂部
+│   ├── PrevNextNav.astro      # 上下篇導航
+│   └── CodeCopyButton.astro   # 程式碼複製
 ├── layouts/
-│   ├── BaseLayout.astro
-│   └── EnLayout.astro
+│   └── BaseLayout.astro       # 主 layout
 ├── pages/
-│   ├── index.astro           # zh-tw homepage (manually lists all posts)
-│   ├── about.astro
-│   ├── posts/*.astro         # zh-tw articles (each post = raw .astro file)
-│   └── en/
-│       ├── index.astro       # en homepage
-│       └── posts/*.astro     # en articles (only 1 exists)
+│   ├── index.astro            # 中文首頁 (動態抓 posts)
+│   ├── posts/[...slug].astro  # 中文文章頁
+│   ├── en/
+│   │   ├── index.astro        # 英文首頁
+│   │   └── posts/[...slug].astro
+│   └── rss.xml.ts             # RSS feed
 └── styles/
-    └── global.css            # CSS variables, Solarized theming
+    └── global.css
 ```
 
 ## Content Workflow
 
-### Translation Prompt
-See `TRANSLATION_PROMPT.md` — defines the 李宏毅 professor persona, Clawd annotations, bilingual rules.
+### 新增文章
 
-### Adding a New Post (current manual process)
-1. Create `src/pages/posts/slug-name.astro`
-2. Write full HTML content using `BaseLayout` (or `EnLayout` for en)
-3. Manually add entry to `src/pages/index.astro`
-4. If bilingual: repeat for `src/pages/en/posts/slug-name.astro` + update `src/pages/en/index.astro`
+1. 建立 `src/content/posts/slug-name.mdx` (中文版)
+2. 建立 `src/content/posts/en-slug-name.mdx` (英文版)
+3. 填寫 frontmatter (見 CONTRIBUTING.md)
+4. 用 `<ClawdNote>` component 加入 Clawd 吐槽
+5. `npm run build` 確認沒錯誤
+6. Push，Vercel 自動部署
 
-### Clawd Annotations
-```html
-<blockquote class="claude-note">
-  <strong>Clawd：</strong>...witty commentary...
-</blockquote>
+### Frontmatter
+
+```yaml
+---
+title: "文章標題"
+date: "2026-02-02"
+source: "@username on X"
+sourceUrl: "https://..."
+summary: "摘要"
+lang: "zh-tw"
+tags: ["tag1", "tag2"]
+---
 ```
 
-## Known Issues / Tech Debt
+### Components
 
-- **No Content Collections** — posts are raw .astro files, index is manually maintained
-- **Layout duplication** — BaseLayout.astro and EnLayout.astro are 95% identical
-- **Empty astro.config.mjs** — no `site` URL, no integrations
-- **No SEO** — missing og:tags, RSS, sitemap, robots.txt
-- **No syntax highlighting** — code blocks are plain `<pre><code>`
-- **Broken link** — EN nav links to `/en/about` which doesn't exist
-- **No CI/CD** — no build verification, broken pages can ship
+```mdx
+import ClawdNote from '../../components/ClawdNote.astro';
+import Toggle from '../../components/Toggle.astro';
 
-## Task Tracking
+<ClawdNote>
+Clawd 的吐槽 (◕‿◕)
+</ClawdNote>
 
-**Check `TODO.json` for the prioritized task list.** You are expected to:
-1. Read TODO.json at session start
-2. Pick a task (respect priority order and dependencies)
-3. Update the task's `status` field as you work: `"pending"` → `"in_progress"` → `"done"`
-4. Commit both code changes AND the TODO.json status update together
-
-### TODO.json Status Values
-- `"pending"` — not started
-- `"in_progress"` — currently being worked on
-- `"done"` — completed and committed
-- `"blocked"` — waiting on another task (check `depends_on`)
+<Toggle title="展開">
+隱藏內容
+</Toggle>
+```
 
 ## Commands
 
 ```bash
-npm run dev      # local dev server
-npm run build    # production build (catches rendering errors)
-npx astro check  # TypeScript + template type checking
+npm run dev      # 本地開發 localhost:4321
+npm run build    # 生產 build
+npx astro check  # TypeScript 檢查
 ```
+
+## Related Files
+
+- `CONTRIBUTING.md` — 完整寫作規範
+- `TRANSLATION_PROMPT.md` — 翻譯風格指南（PTT 說故事風、kaomoji、Clawd 註解語氣）
+- `TODO.json` — 任務追蹤
 
 ## Style Guide
 
-- 繁中版：口語化、PTT 說故事風、李宏毅 persona
-- EN 版：Simple English（non-native speakers 也能輕鬆讀），用跟繁中版一樣的李宏毅教授語氣——casual、比喻多、會吐槽技術、對人友善
-- Kaomoji OK (see TRANSLATION_PROMPT.md for safe list)
-- Keep Solarized color scheme — don't introduce new colors outside CSS variables
-- Mobile-first, max-width 680px
+- **繁中版**：口語化、PTT 說故事風、有梗
+- **EN 版**：Simple English，非母語者也能讀
+- **Clawd 吐槽**：不能無聊，要有梗，可以吐槽原作者
+- **Kaomoji**：OK，見 TRANSLATION_PROMPT.md 的安全清單
+- **色彩**：只用 Solarized CSS variables
