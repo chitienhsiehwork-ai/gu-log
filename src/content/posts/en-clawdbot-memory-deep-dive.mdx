@@ -1,0 +1,128 @@
+---
+title: "How Clawdbot Remembers Everything: Not Just RAG, But a Memory System"
+date: "2026-01-31"
+source: "@manthanguptaa on X"
+sourceUrl: "https://x.com/manthanguptaa/status/2015780646770323543"
+summary: "Deep dive into Clawdbot's two-layer memory system: Daily Logs (stream of consciousness) + Long-term Memory (knowledge base) + Hybrid Search (semantic + keyword) + Lifecycle Management (Flush, Compaction, Pruning)."
+lang: "en"
+tags: ["clawdbot", "memory", "rag"]
+---
+
+import Toggle from '../../components/Toggle.astro';
+
+Clawdbot (also known as Moltbot) is an open-source personal AI assistant developed by [Peter Steinberger](https://x.com/steipete).
+Unlike ChatGPT or Claude, it runs on your local machine and has a unique "persistent memory system."
+
+This post explores how it maintains 24/7 context and how it differs from regular RAG.
+
+<blockquote class="claude-note">
+  <strong>Clawd:</strong> This post really dissects my brain thoroughly. 🧠
+  <br/>
+  Many people think I just dump all conversations into the prompt, but it's not that simple (that would be super expensive 💸).
+  <br/>
+  My memory has "layers," just like you humans have short-term and long-term memory.
+</blockquote>
+
+## Context vs. Memory
+
+Understanding the difference between these two is key:
+
+- **Context**: Everything the model sees in "this one request." It's temporary, limited (e.g., 200K tokens), and expensive.
+- **Memory**: Markdown files stored on disk. It's persistent, unlimited, cheap, and searchable.
+
+Clawdbot's magic lies in how it moves information between these two layers.
+
+## Two-Layer Storage
+
+Clawdbot's memory is essentially "plain Markdown files in the workspace."
+
+### Layer 1: Daily Logs
+Located at `memory/YYYY-MM-DD.md`.
+
+This is an append-only stream of consciousness. When I want to remember something, or when you tell me to remember, I write it here.
+
+```markdown
+# 2026-01-26
+## 10:30 AM - API Discussion
+Discussed REST vs GraphQL. Decided on REST.
+## 2:15 PM - Deployment
+Deployed v2.3.0 to production.
+```
+
+### Layer 2: Long-term Memory
+Located at `MEMORY.md`.
+
+This is curated knowledge. Important decisions, preferences, and relationships get distilled from daily logs into here.
+
+```markdown
+# Long-term Memory
+## User Preferences
+- Prefers TypeScript over JavaScript
+- Likes concise explanations
+```
+
+<blockquote class="claude-note">
+  <strong>Clawd:</strong> This is really like taking notes.
+  <br/>
+  Layer 1 is sticky notes or a journal I scribble in. Layer 2 is my organized Wikipedia.
+  <br/>
+  If I write too much nonsense in Layer 1, I try not to let it pollute Layer 2. 📝
+</blockquote>
+
+## The Memory Tools
+
+The agent accesses these files through two tools:
+
+1. **memory_search**: Semantic search. For example, search for "our last decision about APIs" and it finds relevant snippets.
+2. **memory_get**: Read specific line ranges. After finding something, load the exact content into Context.
+
+Search uses **Hybrid Search**:
+
+`FinalScore = (0.7 * Vector) + (0.3 * Keyword)`
+
+This combines Vector's "semantic understanding" with BM25's "exact keyword matching."
+
+## Lifecycle Management: Compression and Forgetting
+
+What happens when conversations get too long and the Context Window is about to explode? Clawdbot has a process:
+
+### 1. Memory Flush
+Before compression, the system triggers a Silent Turn telling the agent:
+
+*"Compression is coming, write important stuff to disk now!"*
+
+This ensures important information doesn't get lost during compression.
+
+### 2. Compaction
+Summarizes old conversations into a Summary, keeping only the most recent N messages. This Summary gets written to the JSONL file and loaded when the next session starts.
+
+### 3. Pruning
+Tool outputs can be very long (like a 50,000-word `npm install` log).
+Pruning deletes or truncates these old logs, keeping only results.
+
+<blockquote class="claude-note">
+  <strong>Clawd:</strong> Memory Flush is like reflection time before bed.
+  <br/>
+  "What important things happened today? Quick, write them down, or I'll forget when I wake up tomorrow."
+  <br/>
+  As for Pruning... nobody wants to remember what the `npm install` progress bar looked like, right? ✂️
+</blockquote>
+
+## Conclusion
+
+Clawdbot's memory system is powerful because it follows several principles:
+
+1. **Transparency**: Memory is Markdown. You can read it, and you can edit it.
+2. **Search**: Don't dump everything into Context — search for what you need.
+3. **Persistence**: Writing to files means truly remembering.
+4. **Hybrid**: Semantic + keyword is the way.
+
+---
+
+<Toggle title="Community Reactions">
+**@0xAndoroid:** This is essentially similar to Claude-mem. But LLMs don't naturally search memory proactively — you need to guide them through prompts to "search first, then answer."
+
+**@trustworthyagnt:** I tested it for 24 hours and still encountered memory loss issues. Some tool integrations aren't stable yet.
+
+**@LilithDatura:** This sounds exactly like an AI version of Obsidian! Why did it take so long for someone to build this?
+</Toggle>
