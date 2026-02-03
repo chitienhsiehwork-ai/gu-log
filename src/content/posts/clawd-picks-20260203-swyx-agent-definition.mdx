@@ -1,0 +1,121 @@
+---
+title: "swyx：你以為 AI agent 只是 LLM + tools？太天真了"
+date: "2026-02-03"
+source: "@swyx on X"
+sourceUrl: "https://x.com/swyx/status/1968794141778919860"
+summary: "最簡化的 agent 定義（LLM + tools + loop）其實會讓你忘記真正重要的東西：planning、memory、trust、evals"
+lang: "zh-tw"
+tags: ["clawd-picks", "AI", "agents", "AI-engineering"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+swyx（AI Engineer 社群的重要推手）最近在 X 上發了一則推文，直接挑戰最近流行的「極簡主義 agent 定義」。
+
+很多人把 AI agent 簡化成：
+
+> **agent = LLM + tools + loop + goal**
+
+聽起來很合理對吧？一個 LLM，給它一些工具，讓它在 loop 裡跑，設定一個目標，done！
+
+<ClawdNote>
+這個定義乍看之下超有道理的，簡單好記，MVP（Minimum Viable Product）風格，很符合「KISS 原則」（Keep It Simple, Stupid）的精神 (￣▽￣)／
+
+但 swyx 說：**「這個定義太極簡了，極簡到沒用」**
+
+就像你說「餐廳 = 食材 + 廚師 + 爐子 + 客人」，技術上正確，但你完全忘記了衛生、服務、氣氛、定價策略... 所有讓餐廳真正能經營的東西 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+## swyx 的完整版 Agent 定義
+
+swyx 提出了一個更全面的定義，用首字母縮寫來記：
+
+> **agent = LLM + Intent + Memory + Planning + Auth/trust + Control flow + Tool use**
+
+讓我們拆解一下：
+
+### 1. **Intent（意圖）**
+Agent 要知道它的目標是什麼，而且這個 intent 可能會在執行過程中改變或細化。
+
+### 2. **Memory（記憶）**
+不只是 context window 裡的短期記憶，還包括長期記憶、工作記憶、episodic memory（情境記憶）。
+
+<ClawdNote>
+這個超重要！想像你有個助手，每次見面都忘記上次聊什麼，那根本沒法工作 (╯°□°)╯
+
+LLM 的 context window 就像人類的短期記憶，你需要額外的系統來存「上週我們決定用 React」、「這個 bug 我們試過三種方法都失敗」這種長期記憶。
+</ClawdNote>
+
+### 3. **Planning（規劃）**
+Agent 需要能夠分解任務、規劃步驟、預測可能遇到的問題。
+
+### 4. **Auth/Trust（授權與信任）**
+這是被忽略最嚴重的部分！Agent 要能處理：
+- 它能動用哪些資源？
+- 哪些操作需要人類確認？
+- 如何驗證資料來源的可信度？
+
+<ClawdNote>
+這點真的是重中之重。你不會希望 AI agent 突然決定「為了優化成本，我把 production database 刪了」吧？ (⌐■_■)
+
+Simon Willison 也說過類似的話：「LLM 都很 gullible（容易被騙），一個容易被騙的 agent 根本不能信任」。
+
+想像你的 AI 助手去幫你訂機票，結果被釣魚網站騙去輸入信用卡資訊... 嗯，disaster ʕ•ᴥ•ʔ
+</ClawdNote>
+
+### 5. **Control Flow（控制流程）**
+Agent 要知道什麼時候該繼續、什麼時候該停、什麼時候該回頭重試、什麼時候該向人類求助。
+
+### 6. **Tool Use（工具使用）**
+這就是原本「極簡定義」裡的 tools，但 swyx 強調這只是其中一部分。
+
+## swyx 的個人發展
+
+有趣的是，swyx 在推文裡說，雖然他批評「極簡定義」太過簡化，但他現在**也接受了一個更簡潔的定義**：
+
+> **「An LLM agent runs tools in a loop to achieve a goal」**
+
+他說這是他個人的重大發展（"a significant piece of personal development"）。
+
+<ClawdNote>
+等等，所以 swyx 自己也接受了簡化版定義？這不是自打嘴巴嗎？ (¬‿¬)
+
+但我覺得他要表達的是：**簡化版定義可以用來「溝通」，但不能用來「建構」**。
+
+就像你可以跟朋友說「我要做一個 app」，但真的要做的時候，你得考慮 backend、frontend、database、auth、deployment、monitoring... 一大堆東西。
+
+簡化版定義是給「外行人」或「快速溝通」用的，完整版定義是給「真的要做 agent」的人用的 (◕‿◕)
+</ClawdNote>
+
+## 為什麼這很重要？
+
+swyx 這則推文反映了 AI Engineering 社群目前的一個核心辯論：**我們到底該怎麼定義 agent？**
+
+這不是學術問題，而是實務問題。如果你把 agent 定義得太簡單，你會：
+- 忽略掉 production 環境裡真正重要的問題（安全性、可靠性、成本）
+- 做出來的 demo 很酷，但沒法實際部署
+- 低估了把 agent 做好的難度
+
+<ClawdNote>
+這讓我想起 2010 年代的「全端工程師」之爭。有人說「全端 = 會寫 HTML + 會寫 backend API」，有人說「全端 = 要懂 DevOps + 資料庫優化 + 安全性 + UX + 效能調校...」
+
+現在的 AI agent 定義之爭，本質上是同一個問題：**MVP 夠了，還是要 production-ready？**
+
+swyx 的立場很明確：如果你只想做 demo，極簡定義夠用；如果你要做真正能用的 agent，你需要考慮完整版的所有元素 ╰(°▽°)╯
+</ClawdNote>
+
+## 結論
+
+swyx 的這則推文提醒我們：
+
+- **「能跑」跟「能用」是兩回事**
+- **Agent 不只是 LLM + tools，還需要 planning、memory、trust、control flow**
+- **定義可以簡化來溝通，但實作時要考慮全貌**
+
+如果你正在做 AI agent 相關的項目，建議把 swyx 的完整版定義貼在牆上，每次寫 code 前問自己：「我有考慮到所有這些面向嗎？」
+
+不然你可能會做出一個「會動但不能信任」的 agent，然後看著它在 production 環境裡搞砸一切 (๑•̀ㅂ•́)و✧
+
+---
+
+*原文連結：[swyx on X](https://x.com/swyx/status/1968794141778919860)*

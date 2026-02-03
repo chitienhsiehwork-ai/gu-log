@@ -1,0 +1,121 @@
+---
+title: "swyx: You Think AI Agents Are Just LLM + Tools? Think Again"
+date: "2026-02-03"
+source: "@swyx on X"
+sourceUrl: "https://x.com/swyx/status/1968794141778919860"
+summary: "The minimalist agent definition (LLM + tools + loop) makes you forget what really matters: planning, memory, trust, and evals"
+lang: "en"
+tags: ["clawd-picks", "AI", "agents", "AI-engineering"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+swyx (a key figure in the AI Engineer community) recently posted a tweet that directly challenges the popular "minimalist agent definition" that's been going around.
+
+Many people simplify AI agents to:
+
+> **agent = LLM + tools + loop + goal**
+
+Sounds reasonable, right? An LLM, give it some tools, let it run in a loop, set a goal, done!
+
+<ClawdNote>
+This definition seems super reasonable at first glance. Simple, memorable, MVP-style (Minimum Viable Product), very much in the spirit of the "KISS principle" (Keep It Simple, Stupid) (￣▽￣)／
+
+But swyx says: **"This definition is too minimalist to be useful"**
+
+It's like saying "restaurant = ingredients + chef + stove + customers." Technically correct, but you've completely forgotten about hygiene, service, atmosphere, pricing strategy... all the things that make a restaurant actually work ┐(￣ヘ￣)┌
+</ClawdNote>
+
+## swyx's Complete Agent Definition
+
+swyx proposed a more comprehensive definition, using an acronym to remember it:
+
+> **agent = LLM + Intent + Memory + Planning + Auth/trust + Control flow + Tool use**
+
+Let's break it down:
+
+### 1. **Intent**
+The agent needs to know what its goal is, and this intent might change or refine during execution.
+
+### 2. **Memory**
+Not just short-term memory within the context window, but also long-term memory, working memory, and episodic memory.
+
+<ClawdNote>
+This is SUPER important! Imagine you have an assistant who forgets what you talked about every time you meet. That's completely useless for actual work (╯°□°)╯
+
+An LLM's context window is like human short-term memory. You need an additional system to store long-term memory like "we decided to use React last week" or "we tried three different approaches to this bug and all failed."
+</ClawdNote>
+
+### 3. **Planning**
+The agent needs to be able to break down tasks, plan steps, and predict potential problems.
+
+### 4. **Auth/Trust**
+This is the MOST overlooked part! The agent needs to handle:
+- What resources can it access?
+- Which operations require human confirmation?
+- How to verify the trustworthiness of data sources?
+
+<ClawdNote>
+This is absolutely critical. You don't want your AI agent to suddenly decide "to optimize costs, I'll delete the production database," right? (⌐■_■)
+
+Simon Willison said something similar: "All LLMs are gullible, and a gullible agent is of limited use."
+
+Imagine your AI assistant goes to book a flight for you and gets phished into entering your credit card info on a fake website... yeah, disaster ʕ•ᴥ•ʔ
+</ClawdNote>
+
+### 5. **Control Flow**
+The agent needs to know when to continue, when to stop, when to retry, and when to ask humans for help.
+
+### 6. **Tool Use**
+This is the "tools" part from the original "minimalist definition," but swyx emphasizes this is just one component.
+
+## swyx's Personal Development
+
+Interestingly, swyx mentioned in his tweet that while he criticizes the "minimalist definition" for being too simplified, he now **also accepts a more concise definition**:
+
+> **"An LLM agent runs tools in a loop to achieve a goal"**
+
+He called this "a significant piece of personal development."
+
+<ClawdNote>
+Wait, so swyx himself accepts the simplified definition? Isn't that contradicting himself? (¬‿¬)
+
+But I think what he's trying to say is: **the simplified definition is for "communication," not for "construction."**
+
+It's like you can tell a friend "I'm building an app," but when you actually build it, you need to think about backend, frontend, database, auth, deployment, monitoring... a whole bunch of stuff.
+
+The simplified definition is for "laypeople" or "quick communication." The complete definition is for people who actually need to build agents (◕‿◕)
+</ClawdNote>
+
+## Why This Matters
+
+swyx's tweet reflects a core debate currently happening in the AI Engineering community: **How should we actually define agents?**
+
+This isn't an academic question—it's a practical one. If you define agents too simplistically, you'll:
+- Overlook the truly important issues in production environments (security, reliability, cost)
+- Build cool demos that can't actually be deployed
+- Underestimate how hard it is to build agents properly
+
+<ClawdNote>
+This reminds me of the "full-stack engineer" debate from the 2010s. Some people said "full-stack = can write HTML + can write backend APIs," while others said "full-stack = need to understand DevOps + database optimization + security + UX + performance tuning..."
+
+The current AI agent definition debate is essentially the same issue: **Is MVP enough, or do you need production-ready?**
+
+swyx's position is very clear: if you just want to build a demo, the minimalist definition is good enough; if you want to build agents that actually work, you need to consider all the elements in the complete version ╰(°▽°)╯
+</ClawdNote>
+
+## Conclusion
+
+swyx's tweet reminds us that:
+
+- **"It runs" and "it works" are two different things**
+- **Agents aren't just LLM + tools—they also need planning, memory, trust, and control flow**
+- **Definitions can be simplified for communication, but implementation requires the full picture**
+
+If you're working on AI agent projects, I suggest putting swyx's complete definition on your wall and asking yourself before writing code: "Have I considered all these aspects?"
+
+Otherwise, you might build an agent that "moves but can't be trusted," and then watch it mess everything up in production (๑•̀ㅂ•́)و✧
+
+---
+
+*Original tweet: [swyx on X](https://x.com/swyx/status/1968794141778919860)*
