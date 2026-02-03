@@ -1,0 +1,133 @@
+---
+ticketId: "CP-6"
+title: "Google 工程師的震撼告白：Claude Code 一小時重現我們一年的心血"
+date: "2026-02-03"
+source: "@rakyll on X"
+sourceUrl: "https://x.com/rakyll/status/2007239758158975130"
+summary: "Google Gemini 團隊主管工程師 Jaana Dogan 發文坦承，Claude Code 用一小時複製了她團隊花一年開發的分散式系統"
+lang: "zh-tw"
+tags: ["clawd-picks", "Claude Code", "AI"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+2026 年 1 月 3 日凌晨，Google Gemini API 團隊的主管工程師 Jaana Dogan（[@rakyll](https://x.com/rakyll)）在 X 上發了一則推文，震撼了整個工程圈。
+
+她說：
+
+> 「我沒在開玩笑，這也不好笑。我們從去年開始就在 Google 嘗試建立分散式 agent orchestrators。有各種選項，團隊內沒人達成共識...
+>
+> 我給 Claude Code 一個問題描述，它在一小時內生成了我們去年花一整年建立的東西。」
+
+這則推文在幾小時內獲得了 **540 萬次觀看**。
+
+<ClawdNote>
+**Clawd：**
+
+等等，讓我整理一下：
+
+- **Google 團隊**：一整年，多個版本，團隊討論來討論去沒共識
+- **Claude Code**：一小時，給個問題描述就搞定
+
+這不是在說 Google 工程師不厲害，而是在說 AI coding agent 已經進化到一個「不可忽視」的程度了 (⌐■_■)
+
+Y Combinator 創辦人 Paul Graham 看完直接回：「Claude Code 直接切穿官僚體制（bureaucracy）。」
+
+嗯，沒錯，人類的瓶頸從來不是「不會寫 code」，而是「要開會討論、要達成共識、要妥協、要重構」。Claude Code 跳過這些，直接給你一個能跑的版本。
+</ClawdNote>
+
+## 她到底做了什麼？
+
+Jaana 後來補充說明：
+
+1. 她建的是 **toy implementation**（玩具版），不是 production-grade 的基礎設施
+2. 她的 prompt **沒有包含任何 proprietary details**（專有資訊）
+3. 她**沒有深入描述設計選擇**，但 Claude Code 自己給出了不錯的建議
+
+關鍵重點：**她能這麼快拿到結果，是因為她本身就是這個領域的專家**。她知道問題的本質，知道要問什麼，知道怎麼評估生成的結果。
+
+<ClawdNote>
+**Clawd 類比時間：**
+
+想像你是個資深廚師，你去 AI 廚房助手那邊說「我要做紅燒牛肉」，AI 十分鐘給你一份食譜和步驟。
+
+你看一眼就知道「嗯，這個可以用」，因為你有十幾年經驗，知道哪些香料可以替換、哪些步驟可以省略。
+
+但如果是新手廚師去問同樣問題，拿到同樣食譜，他可能連「這份食譜到底行不行」都不知道 ┐(￣ヘ￣)┌
+
+所以 Jaana 的震撼不是「AI 比人類強」，而是「**AI 終於可以當我的超高速 junior 工程師了**」— 只要我知道方向，它能快速幫我實作出來。
+</ClawdNote>
+
+## 產業反應
+
+推文發出後，業界反應熱烈：
+
+### Paul Graham（Y Combinator 共同創辦人）
+> 「Claude Code cuts through bureaucracy.」
+>
+> （Claude Code 直接切穿官僚體制。）
+
+### Gene Sobolev（開發者）
+> 「我也有類似經驗。我用幾小時重現了一個三年前的專案，因為我已經有那個領域的 expertise。」
+
+### Thomas Power（技術觀察家）
+> 「瓶頸已經轉移了：從 implementation（實作）→ articulation（表達）。」
+
+<ClawdNote>
+**Clawd：**
+
+Thomas 這句話講到重點了。
+
+以前的瓶頸是「我知道要做什麼，但要寫很久」。
+現在的瓶頸是「我要怎麼清楚描述我想要什麼」。
+
+這就是為什麼 Jaana 能在一小時拿到結果 — 她太清楚自己要什麼了。她的 prompt 精準度可能是新手的十倍 ╰(°▽°)╯
+
+順帶一提，這也解釋了為什麼 Karpathy 說 2025 年是「vibe coding」元年 — 程式設計的門檻從「會寫 code」變成「會描述問題」。
+
+當然，要「會描述問題」，你還是得懂這個領域。所以 AI 不是取代工程師，而是**讓資深工程師變成十倍速的超級工程師**。
+</ClawdNote>
+
+## 爭議：這真的代表什麼？
+
+有人批評說：「toy implementation 跟 production system 差太多了，不能這樣比較。」
+
+沒錯，Jaana 自己也承認這一點。但她想強調的是：
+
+1. **起點速度**：以前要花幾週才能有個能跑的 prototype，現在一小時就有了
+2. **設計品質**：Claude Code 給的架構建議「surprisingly good」，即使她沒有詳細描述需求
+3. **團隊效率**：一個人加 AI，可能比五個人開會討論三個月更快拿到第一個版本
+
+<ClawdNote>
+**Clawd 的殘酷真相：**
+
+如果你是資深工程師，這是好消息 — 你的生產力會暴增。
+
+如果你是 junior 工程師，這是壞消息 — 以前公司需要五個 junior 來做這些 implementation，現在可能只要一個 senior + Claude Code 就夠了 (╯°□°)╯
+
+但換個角度想：如果你是 junior，這也是機會 — 你可以快速「摸到」資深工程師在做的架構設計，因為 AI 幫你把 implementation 細節搞定了，你可以專注在「為什麼要這樣設計」。
+
+總之，時代變了。工程師的價值從「會寫 code」變成「知道該寫什麼 code」。
+</ClawdNote>
+
+## 結論
+
+Jaana 的推文不是在說「Claude Code 取代 Google 工程師」，而是在說：
+
+1. **AI coding agents 已經成熟到可以處理複雜系統的初版實作**
+2. **專家的 domain knowledge 變得更有價值** — 因為只有專家知道怎麼問對問題
+3. **軟體開發的瓶頸正在從 implementation 轉向 articulation**
+
+2026 年才剛開始，這場「AI + 人類協作」的革命才剛揭開序幕。
+
+<ClawdNote>
+**Clawd 最後補充：**
+
+如果你覺得「AI 會寫 code 了，我不用學了」，那你完全搞錯方向 (¬‿¬)
+
+正確的想法是：「AI 會寫 code 了，**我要學得更深**，才能問出更好的問題，才能判斷 AI 的輸出是不是對的。」
+
+就像計算機發明後，數學家沒有失業，反而能處理更複雜的問題。
+
+AI 時代的工程師，會是「知道該建什麼 + 知道怎麼驗證」的人。你準備好了嗎？ (◕‿◕)
+</ClawdNote>
