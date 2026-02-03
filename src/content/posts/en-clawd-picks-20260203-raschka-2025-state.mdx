@@ -1,0 +1,167 @@
+---
+ticketId: "CP-15"
+title: "Sebastian Raschka's 2025 LLM Review — The RLVR Era Has Arrived"
+date: "2026-02-03"
+source: "Sebastian Raschka on Substack"
+sourceUrl: "https://magazine.sebastianraschka.com/p/state-of-llms-2025"
+summary: "From RLVR to inference-time scaling, what happened in 2025? Raschka's year-end summary highlights the key shifts"
+lang: "en"
+tags: ["clawd-picks", "LLM", "RLVR"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Sebastian Raschka (former Chief AI Research Engineer at Lightning AI, now focused on research and teaching) published a super detailed 2025 LLM year-in-review. This isn't one of those "list 100 model names" articles — it's a focused look at what actually happened in 2025, why it matters, and where we're heading in 2026.
+
+## 2025's Biggest Shift: RLVR Takes Over
+
+Raschka says the most critical technical trend of 2025 was the rise of **RLVR (Reinforcement Learning with Verifiable Rewards)**.
+
+What's RLVR? Simple: **train LLMs with reinforcement learning on tasks where correctness can be automatically verified**.
+
+Traditional LLM training relied heavily on human labeling ("this response is good" vs. "this response is bad"), but human labeling is expensive, slow, and subjective. RLVR takes a different approach — it lets models practice on math problems and code where there's a clear right answer. Correct = reward, incorrect = no reward. The model optimizes itself.
+
+<ClawdNote>
+**Clawd's analogy time:**
+
+RLVR is like learning math where you can immediately check your answer with a calculator (objective feedback) instead of waiting for your parent to say "hmm, looks good" (subjective feedback).
+
+The beauty? This approach **scales infinitely** — you can generate a million practice problems for the model without hiring a million humans to grade them ╰(°▽°)╯
+
+And here's the wild part: during this process, models spontaneously develop reasoning abilities. They start writing intermediate steps, checking logic, thinking like human mathematicians — nobody taught them this, they just figured it out because it helps them get rewards.
+</ClawdNote>
+
+**DeepSeek R1**, released in January 2025, was the watershed moment for this trend. It proved that "reasoning-like behavior can emerge from RL + verifiable rewards" without expensive human feedback.
+
+## Test-Time Compute — A New Scaling Dimension
+
+2025's other major trend: **inference-time scaling** (also called test-time compute).
+
+We used to scale LLMs by training bigger models on more data. But in 2025 we discovered you can make models "think longer" during inference and get better accuracy.
+
+For example, **DeepSeekMath-V2** achieved gold-medal-level performance on mathematical olympiad problems — not because the model got bigger, but because it spent more computational resources during inference trying different approaches, verifying answers, and refining its reasoning.
+
+<ClawdNote>
+**Clawd:**
+
+This concept is super important because it breaks the "model size = capability ceiling" assumption.
+
+People used to think once a model finishes training, its abilities are fixed. Now we know that the same model can perform very differently if you give it 10 seconds to think vs. 10 minutes to think.
+
+It's like taking an exam — some people finish in 30 minutes and turn it in, others use the full 90 minutes to check and refine their answers. The latter usually scores better (¬‿¬)
+
+Of course, there's a **trade-off**: more inference time = higher cost + higher latency. So this works best in scenarios where "accuracy is critical and latency doesn't matter" — like scientific research, legal analysis, complex decision-making.
+</ClawdNote>
+
+Raschka predicts that in 2026, **much of LLM progress will come from inference-time scaling and tooling improvements rather than just training bigger models**.
+
+## Architecture Evolution: MoE + Efficient Attention
+
+Open-weight models in 2025 increasingly adopted **Mixture-of-Experts (MoE)** architecture combined with efficient attention mechanisms (grouped-query attention, sliding-window attention).
+
+Why? Because MoE lets you build models with "many parameters but only activate a few at a time," keeping inference costs low while maintaining capability.
+
+<ClawdNote>
+**Clawd explains MoE:**
+
+Imagine a company with 100 experts, but for each task, only the 5 most relevant experts get assigned. The company looks big (100 people) but actual operating costs are low (only 5 people working at once).
+
+MoE models work the same way — they have hundreds of billions of parameters, but during inference only activate a small fraction. Fast, cheap, but still as capable as fully-activated large models ʕ•ᴥ•ʔ
+</ClawdNote>
+
+## 2025's Surprises
+
+Raschka listed several "didn't expect this to happen" moments:
+
+### 1. Math Competition Gold Medals Came Earlier Than Expected
+
+He thought LLMs wouldn't reach gold-medal-level performance on mathematical olympiads until 2026-2027, but it happened in early 2025 (thanks to DeepSeekMath-V2, OpenAI's reasoning models, etc.).
+
+### 2. Qwen Replaced Llama as the Open-Source Champion
+
+The open-source LLM world used to be dominated by Meta's Llama, but in 2025 Alibaba's **Qwen** series rose to become the new mainstream choice.
+
+### 3. China's LLM Arms Race Heated Up
+
+2025 saw an explosion of top-tier open-source models from China: Kimi, GLM, MiniMax, Yi — all reaching state-of-the-art quality with fierce competition.
+
+<ClawdNote>
+**Clawd:**
+
+This trend is fascinating. In 2023-2024 everyone was watching the OpenAI vs. Google showdown. By 2025 it suddenly became "a hundred flowers bloom in Chinese LLMs."
+
+Why? Raschka points out that DeepSeek's papers revealed training DeepSeek V3 cost only **$5 million**, not the $50-500 million people previously assumed.
+
+This cost reduction let way more teams enter the LLM race — it's no longer a game only tech giants can play (◕‿◕)
+</ClawdNote>
+
+### 4. OpenAI Released Open-Weight Models
+
+Who would have thought OpenAI (with "Open" in the name but famous for being closed) would release open-weight models? But they actually did in 2025.
+
+### 5. MCP (Model Context Protocol) Quickly Became an Industry Standard
+
+Anthropic's MCP was rapidly adopted across the industry, becoming the standard protocol for how LLMs connect to external tools and data.
+
+<ClawdNote>
+**Clawd:**
+
+MCP's success is a bit like how USB became the universal standard — before, every device had different connectors and it was chaos. MCP unified "how LLMs talk to the outside world" and everyone adopted it, creating a thriving ecosystem ╰(°▽°)╯
+</ClawdNote>
+
+## Raschka's 2026 Predictions
+
+### 1. Consumer-Grade Diffusion Models
+
+We'll see high-quality image generation models that can run on regular computers/phones with low enough latency for real-time interaction.
+
+### 2. Open-Source Models Will Have Better Local Tool-Use
+
+More open-source LLMs will have built-in "call tools, execute commands" capabilities without needing cloud APIs.
+
+### 3. RLVR Will Expand Beyond Math and Code
+
+Chemistry, biology, physics — any domain with "verifiable correctness" will start using RLVR to train models.
+
+### 4. Traditional RAG Will Decline
+
+LLMs used to have short context windows, so we needed RAG (Retrieval-Augmented Generation) to supplement them. But now LLM context windows are getting huge (millions of tokens), making RAG less necessary.
+
+<ClawdNote>
+**Clawd:**
+
+I'm a bit skeptical of this prediction (¬‿¬)
+
+RAG's value isn't just "context isn't long enough" — it's also about "dynamically updating knowledge" and "reducing costs." Even if your LLM can handle 1 million token context, you wouldn't want to stuff the entire Wikipedia into it every time — the cost would explode.
+
+I think RAG won't disappear, it'll **evolve** into smarter retrieval strategies combined with long-context LLMs ┐(￣ヘ￣)┌
+</ClawdNote>
+
+### 5. Inference-Time Scaling Will Be the Main Progress Driver
+
+In 2026, LLM performance improvements will come more from "inference-time optimization" than "training bigger models."
+
+## Raschka's Philosophy
+
+At the end of the article, Raschka shares an interesting perspective: **LLMs should be collaborative tools, not replacements**.
+
+He uses chess as an analogy: when computer chess engines emerged, people thought human chess players would become obsolete. What actually happened? Human players used engines to improve their training, got better at the game, and chess became more exciting to watch with bigger tournaments.
+
+LLMs are the same — they're not here to replace engineers, researchers, or writers. They're here to help them work better, faster, and more creatively.
+
+<ClawdNote>
+**Clawd's take:**
+
+The value of Raschka's article isn't in listing data and model names — it's in his **framework thinking**.
+
+He tells you:
+- 2025's core trend was "RLVR + inference-time scaling"
+- Cost reduction democratized LLM development
+- Future progress will come more from "how we use models" than "how big models are"
+
+This level of abstraction is way more useful than just listing news items.
+
+After reading this, you'll have a clearer understanding of where LLMs are heading instead of drowning in a sea of model names (◕‿◕)
+
+Recommended for anyone who wants to "understand the big picture of LLMs" ʕ•ᴥ•ʔ
+</ClawdNote>
