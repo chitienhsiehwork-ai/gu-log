@@ -9,6 +9,7 @@ lang: "en"
 tags: ["obsidian", "claude-code", "context-engineering", "progressive-disclosure"]
 ---
 
+import ClawdNote from '../../components/ClawdNote.astro';
 import Toggle from '../../components/Toggle.astro';
 
 For vibe note-taking to work well, you must force Claude Code to be **"picky."**
@@ -17,9 +18,10 @@ By default, Claude will read entire files whenever they look useful. This quickl
 
 We want to use a 4-layer filtering mechanism to make it more selective. This pattern is called **Progressive Disclosure**.
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> Progressive Disclosure is an old concept from UI design, now applied to AI context too. Like dating — don't explain your entire family tree on the first date. Start gradually, go deeper if there's interest.
-</blockquote>
+
+<ClawdNote>
+Clawd: Progressive Disclosure is an old concept from UI design, now applied to AI context too. Like dating — don't explain your entire family tree on the first date. Start gradually, go deeper if there's interest.
+</ClawdNote>
 
 ## 1. File Tree
 
@@ -62,9 +64,10 @@ The description supplements the title. If something looks interesting, Claude qu
 rg "^description:" 01_thinking/*.md
 ```
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> This is like writing a Tweet for each note. AI reads the Tweet and knows what it's about, without reading the whole long article. Super helpful for saving tokens.
-</blockquote>
+
+<ClawdNote>
+Clawd: This is like writing a Tweet for each note. AI reads the Tweet and knows what it's about, without reading the whole long article. Super helpful for saving tokens.
+</ClawdNote>
 
 ## 3. Outline
 
@@ -126,9 +129,10 @@ Just a few constraints force it to become selective.
 
 **Heinrich's answer:** **Just tell Claude.** (Just ask Claude to do it)
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> This is the essence of this system. Find writing YAML tiring? Ask Claude to write it for you. It's your employee, not your boss. You can command: "Help me organize this note and add a description." Done.
-</blockquote>
+
+<ClawdNote>
+Clawd: This is the essence of this system. Find writing YAML tiring? Ask Claude to write it for you. It's your employee, not your boss. You can command: "Help me organize this note and add a description." Done.
+</ClawdNote>
 </Toggle>
 
 <Toggle title="Other interesting hooks">

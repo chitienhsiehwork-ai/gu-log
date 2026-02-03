@@ -9,6 +9,7 @@ lang: "zh-tw"
 tags: ["redis", "database", "cache", "performance"]
 ---
 
+import ClawdNote from '../../components/ClawdNote.astro';
 import Toggle from '../../components/Toggle.astro';
 
 **"大部分開發者認識 Redis 是作為 Cache。"**
@@ -21,10 +22,11 @@ import Toggle from '../../components/Toggle.astro';
 
 但把 Redis 只當 Cache 用，**就像買了一台法拉利卻只開去買菜**。它當然很快，但你錯過了重點。
 
-<blockquote class="claude-note">
-  <strong>Clawd：</strong>開法拉利去全聯買蔥... 嗯，是很帥啦，但如果是為了這目的，買台買菜車不好嗎？Redis 的引擎可是能跑 F1 的啊！
+
+<ClawdNote>
+Clawd：開法拉利去全聯買蔥... 嗯，是很帥啦，但如果是為了這目的，買台買菜車不好嗎？Redis 的引擎可是能跑 F1 的啊！
   ( •̀ ω •́ )✧
-</blockquote>
+</ClawdNote>
 
 Redis 不是一個剛好很快的 Cache。它是一個**資料結構伺服器 (Data Structure Server)**，只是剛好很適合當 Cache。這個區別改變了一切。
 
@@ -44,10 +46,11 @@ Redis = **RE**mote **DI**ctionary **S**erver。
 
 Redis 不只是存這些結構，它知道如何**安全且原子地 (Atomically)** 修改它們。
 
-<blockquote class="claude-note">
-  <strong>Clawd：</strong>這就是重點！傳統 DB 像個圖書館員，你借書還書都要登記。Redis 像個神經元，訊號來了啪一下就反應。
+
+<ClawdNote>
+Clawd：這就是重點！傳統 DB 像個圖書館員，你借書還書都要登記。Redis 像個神經元，訊號來了啪一下就反應。
   (⚡_⚡)
-</blockquote>
+</ClawdNote>
 
 <Toggle title="名詞解釋：Atomic (原子性)">
 **Atomic (原子性)**：操作要嘛全部成功，要嘛全部失敗，不會有「做一半」的狀態。而且在操作過程中，別人不能插隊修改資料。這保證了資料的一致性。
@@ -85,10 +88,11 @@ await redis.hIncrBy("user:1", "followers", 1);
 
 架構變得更乾淨。沒有 Read-Modify-Write 循環，沒有 Race Condition，不需要 Application-level locking。
 
-<blockquote class="claude-note">
-  <strong>Clawd：</strong>這裡的差異是：原本是「把資料搬到 App 修改再搬回去」，現在是「叫 Redis 自己改」。就像你不用親自跑去銀行櫃台填單，直接用手機 App 轉帳一樣爽快。
+
+<ClawdNote>
+Clawd：這裡的差異是：原本是「把資料搬到 App 修改再搬回去」，現在是「叫 Redis 自己改」。就像你不用親自跑去銀行櫃台填單，直接用手機 App 轉帳一樣爽快。
   (●°u°●)​ 」
-</blockquote>
+</ClawdNote>
 
 ## 為什麼 Redis 真的那麼快？
 
@@ -131,17 +135,19 @@ Redis Cache: ~5ms
 **JWT**：一種無狀態的 Token。優點是伺服器不用存狀態，缺點是一旦發出去，在過期前都很難撤銷（除非做黑名單，那又變回有狀態了）。
 </Toggle>
 
-<blockquote class="claude-note">
-  <strong>Clawd：</strong>JWT 最大的痛點就是「發出去像潑出去的水」。想踢人？沒門。Redis Session 就是你的「撤回鍵」。
+
+<ClawdNote>
+Clawd：JWT 最大的痛點就是「發出去像潑出去的水」。想踢人？沒門。Redis Session 就是你的「撤回鍵」。
   ( ´Д｀)ﾉ~
-</blockquote>
+</ClawdNote>
 
 ### 4. Leaderboards (排行榜)
 **Sorted Sets** 是排行榜神器。更新分數 O(log n)，抓取前 10 名 O(log n)。要在 SQL 裡做高效的即時排行榜非常痛苦，Redis 卻是內建功能。
 
-<blockquote class="claude-note">
-  <strong>Clawd：</strong>試過用 SQL `ORDER BY score DESC LIMIT 10` 跑幾百萬筆資料嗎？資料庫會哭給你看。Sorted Sets 根本就是為此而生的黑科技。
-</blockquote>
+
+<ClawdNote>
+Clawd：試過用 SQL `ORDER BY score DESC LIMIT 10` 跑幾百萬筆資料嗎？資料庫會哭給你看。Sorted Sets 根本就是為此而生的黑科技。
+</ClawdNote>
 
 ### 5. Distributed Locking (分散式鎖)
 當你需要跨多台伺服器保證「同一時間只有一個人能做這件事」（例如產生發票）時，用 Redis 實作 Redlock。
@@ -180,10 +186,11 @@ Redis Cache: ~5ms
 **Pipeline**：就像去超市買東西，你不會買一樣結帳一次。你會把所有東西放到籃子裡，一次結帳。Pipeline 讓你可以一次發送多個 Redis 指令，減少網路來回的時間。
 </Toggle>
 
-<blockquote class="claude-note">
-  <strong>Clawd：</strong>網路延遲 (RTT) 才是真正的 Boss。Redis 處理指令只要 0.001ms，但網路傳輸可能要 10ms。不開 Pipeline 就像開法拉利遇到紅燈海，再快也沒用。
+
+<ClawdNote>
+Clawd：網路延遲 (RTT) 才是真正的 Boss。Redis 處理指令只要 0.001ms，但網路傳輸可能要 10ms。不開 Pipeline 就像開法拉利遇到紅燈海，再快也沒用。
   ┐('～`；)┌
-</blockquote>
+</ClawdNote>
 
 ## 何時「不」該用 Redis？
 

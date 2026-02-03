@@ -9,6 +9,7 @@ lang: "en"
 tags: ["redis", "database", "cache", "performance"]
 ---
 
+import ClawdNote from '../../components/ClawdNote.astro';
 import Toggle from '../../components/Toggle.astro';
 
 **"Most developers know Redis as a cache."**
@@ -21,10 +22,11 @@ You throw it in front of your database, add a TTL, watch response times drop fro
 
 But using Redis only as a cache **is like buying a Ferrari just to drive to the grocery store**. It's certainly fast, but you're missing the point.
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> Driving a Ferrari to buy groceries... well, it's cool, but if that's the purpose, wouldn't a minivan work? Redis's engine can race in F1!
+
+<ClawdNote>
+Clawd: Driving a Ferrari to buy groceries... well, it's cool, but if that's the purpose, wouldn't a minivan work? Redis's engine can race in F1!
   ( •̀ ω •́ )✧
-</blockquote>
+</ClawdNote>
 
 Redis isn't a cache that happens to be fast. It's a **Data Structure Server** that happens to be great at caching. This distinction changes everything.
 
@@ -44,10 +46,11 @@ Most caches treat data as opaque strings (JSON strings). But Redis understands *
 
 Redis doesn't just store these structures — it knows how to modify them **safely and atomically**.
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> This is the key point! Traditional DBs are like librarians — you check out books and return them with paperwork. Redis is like a neuron — signal arrives, boom, instant reaction.
+
+<ClawdNote>
+Clawd: This is the key point! Traditional DBs are like librarians — you check out books and return them with paperwork. Redis is like a neuron — signal arrives, boom, instant reaction.
   (⚡_⚡)
-</blockquote>
+</ClawdNote>
 
 <Toggle title="Term: Atomic (Atomicity)">
 **Atomic (Atomicity)**: An operation either fully succeeds or fully fails, never "half-done." And during the operation, nobody can cut in line to modify the data. This guarantees data consistency.
@@ -85,10 +88,11 @@ await redis.hIncrBy("user:1", "followers", 1);
 
 Architecture becomes cleaner. No read-modify-write cycle, no race conditions, no application-level locking needed.
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> The difference here: originally "move data to app, modify, move back," now "tell Redis to modify itself." Like not running to the bank counter to fill forms, just using mobile app to transfer. So smooth.
+
+<ClawdNote>
+Clawd: The difference here: originally "move data to app, modify, move back," now "tell Redis to modify itself." Like not running to the bank counter to fill forms, just using mobile app to transfer. So smooth.
   (●°u°●)​ 」
-</blockquote>
+</ClawdNote>
 
 ## Why Is Redis Actually That Fast?
 
@@ -131,17 +135,19 @@ Stop blindly using JWT. Sometimes you need sessions you can "immediately kick ou
 **JWT**: A stateless token. Advantage: server doesn't store state. Disadvantage: once issued, hard to revoke before expiration (unless you maintain a blacklist, which becomes stateful again).
 </Toggle>
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> JWT's biggest pain point: "issued token like spilled water." Want to kick someone? No way. Redis Sessions are your "undo button."
+
+<ClawdNote>
+Clawd: JWT's biggest pain point: "issued token like spilled water." Want to kick someone? No way. Redis Sessions are your "undo button."
   ( ´Д｀)ﾉ~
-</blockquote>
+</ClawdNote>
 
 ### 4. Leaderboards
 **Sorted Sets** are leaderboard magic. Update score O(log n), fetch top 10 O(log n). Building efficient real-time leaderboards in SQL is painful; in Redis it's built-in.
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> Tried running SQL `ORDER BY score DESC LIMIT 10` on millions of rows? The database will cry. Sorted Sets are basically black magic built for this.
-</blockquote>
+
+<ClawdNote>
+Clawd: Tried running SQL `ORDER BY score DESC LIMIT 10` on millions of rows? The database will cry. Sorted Sets are basically black magic built for this.
+</ClawdNote>
 
 ### 5. Distributed Locking
 When you need to guarantee "only one person can do this at the same time" across multiple servers (like generating invoices), implement Redlock with Redis.
@@ -180,10 +186,11 @@ Network latency is the killer. Don't send commands one by one. Use Pipeline to b
 **Pipeline**: Like shopping at a supermarket — you don't check out after every item. You put everything in your basket and check out once. Pipeline lets you send multiple Redis commands at once, reducing network round-trips.
 </Toggle>
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> Network latency (RTT) is the real boss. Redis processes commands in 0.001ms, but network transmission might take 10ms. Not using Pipeline is like driving a Ferrari through endless red lights — fast but useless.
+
+<ClawdNote>
+Clawd: Network latency (RTT) is the real boss. Redis processes commands in 0.001ms, but network transmission might take 10ms. Not using Pipeline is like driving a Ferrari through endless red lights — fast but useless.
   ┐('～`；)┌
-</blockquote>
+</ClawdNote>
 
 ## When NOT to Use Redis?
 

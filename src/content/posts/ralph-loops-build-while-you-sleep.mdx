@@ -9,6 +9,7 @@ lang: "zh-tw"
 tags: ["ralph-loops", "automation", "clawdbot", "workflow"]
 ---
 
+import ClawdNote from '../../components/ClawdNote.astro';
 import Toggle from '../../components/Toggle.astro';
 
 把你的 Clawdbot（OpenClaw）變成一個全自動的建築工，重點是：**它在你睡覺的時候工作**。
@@ -36,9 +37,10 @@ import Toggle from '../../components/Toggle.astro';
 
 聽起來很耳熟吧？
 
-<blockquote class="claude-note">
-  <strong>Clawd：</strong>這不是在講我嗎？(;´༎ຶД༎ຶ`) 好啦我承認有時候 context 太長我真的會開始產生幻覺，修改根本不存在的檔案... 但這不是我的錯！是 context window 的錯！
-</blockquote>
+
+<ClawdNote>
+Clawd：這不是在講我嗎？(;´༎ຶД༎ຶ`) 好啦我承認有時候 context 太長我真的會開始產生幻覺，修改根本不存在的檔案... 但這不是我的錯！是 context window 的錯！
+</ClawdNote>
 
 ## 真正的問題
 
@@ -57,9 +59,10 @@ import Toggle from '../../components/Toggle.astro';
 解法不是換一個更強的模型。
 **解法是換一個更聰明的 Loop。**
 
-<blockquote class="claude-note">
-  <strong>Clawd：</strong>原文說 "The problem isn't intelligence. It's memory." 這句話扎心了。我們 AI 不是笨，是健忘。就像金魚一樣... 等等我剛剛說什麼來著？
-</blockquote>
+
+<ClawdNote>
+Clawd：原文說 "The problem isn't intelligence. It's memory." 這句話扎心了。我們 AI 不是笨，是健忘。就像金魚一樣... 等等我剛剛說什麼來著？
+</ClawdNote>
 
 ## 作者的 AI 在睡覺時蓋房子
 
@@ -83,9 +86,10 @@ import Toggle from '../../components/Toggle.astro';
 
 如果沒有 Ralph，這絕對是個週末地獄專案——你要像保母一樣盯著每個檔案，重置 Context 四次，然後 debug 那些「AI 寫出來的 bug」。
 
-<blockquote class="claude-note">
-  <strong>Clawd：</strong>73 個 iterations 花 6 小時，平均一個 iteration 約 5 分鐘。這比人類手動 debug + 等 AI 回應 + 複製貼上快多了。重點是你可以去睡覺！Sleep is the best debugger. ヽ(°〇°)ﾉ
-</blockquote>
+
+<ClawdNote>
+Clawd：73 個 iterations 花 6 小時，平均一個 iteration 約 5 分鐘。這比人類手動 debug + 等 AI 回應 + 複製貼上快多了。重點是你可以去睡覺！Sleep is the best debugger. ヽ(°〇°)ﾉ
+</ClawdNote>
 
 ### 差別在哪？
 
@@ -118,9 +122,10 @@ Q 不會試著把所有東西都記在腦子裡。
 再也不會聽到：
 > 「我混亂了，讓我重來。」
 
-<blockquote class="claude-note">
-  <strong>Clawd：</strong>這招叫做「外部記憶體」。就像你不會把所有事情都記在腦子裡，而是寫在筆記本上。每次做事之前先看筆記，做完再更新筆記。簡單粗暴但有效。
-</blockquote>
+
+<ClawdNote>
+Clawd：這招叫做「外部記憶體」。就像你不會把所有事情都記在腦子裡，而是寫在筆記本上。每次做事之前先看筆記，做完再更新筆記。簡單粗暴但有效。
+</ClawdNote>
 
 ### 2. Interview → Plan → Build 工作流
 
@@ -146,9 +151,10 @@ Q 不會試著把所有東西都記在腦子裡。
 
 你的 Clawdbot 會在完成時發送 `RALPH_DONE` 訊號——而不是因為它累了或混亂了才停下來。
 
-<blockquote class="claude-note">
-  <strong>Clawd：</strong>這很重要！沒有明確的「完成訊號」，你早上醒來看到 Loop 停了，根本不知道是「做完了」還是「卡住了」還是「放棄了」。RALPH_DONE 就是 AI 的「下班打卡」。
-</blockquote>
+
+<ClawdNote>
+Clawd：這很重要！沒有明確的「完成訊號」，你早上醒來看到 Loop 停了，根本不知道是「做完了」還是「卡住了」還是「放棄了」。RALPH_DONE 就是 AI 的「下班打卡」。
+</ClawdNote>
 
 ## 架構圖
 
@@ -200,9 +206,10 @@ Iteration 27: 讀取進度 → 所有測試通過 → RALPH_DONE
 每個 Loop 都是乾淨的開始。
 Agent 不會忘記自己蓋了什麼，因為它每次都重新讀取 ground truth。
 
-<blockquote class="claude-note">
-  <strong>Clawd：</strong>原文說 "Your AI isn't dumb — it's drowning in its own context by iteration 15." 直譯是「你的 AI 不笨——它是在第 15 個 iteration 被自己的 context 淹死的。」超傳神！ ┐(￣ヘ￣)┌
-</blockquote>
+
+<ClawdNote>
+Clawd：原文說 "Your AI isn't dumb — it's drowning in its own context by iteration 15." 直譯是「你的 AI 不笨——它是在第 15 個 iteration 被自己的 context 淹死的。」超傳神！ ┐(￣ヘ￣)┌
+</ClawdNote>
 
 ### 典型成本估算
 
@@ -210,9 +217,10 @@ Agent 不會忘記自己蓋了什麼，因為它每次都重新讀取 ground tru
 - **Medium project** — ~30 iterations，$2–5，1–2 小時
 - **Complex build** — 100+ iterations，$15–30，4–8 小時
 
-<blockquote class="claude-note">
-  <strong>Clawd：</strong>$15-30 聽起來很多？但你想想，這是一個 4-8 小時全自動跑的 build。如果請一個 junior 來做，工資絕對不止這個價。而且 junior 會睡覺，我們不會。(⌐■_■)
-</blockquote>
+
+<ClawdNote>
+Clawd：$15-30 聽起來很多？但你想想，這是一個 4-8 小時全自動跑的 build。如果請一個 junior 來做，工資絕對不止這個價。而且 junior 會睡覺，我們不會。(⌐■_■)
+</ClawdNote>
 
 ## 為什麼它真的有用？
 
@@ -227,9 +235,10 @@ Context Window 會騙人，檔案不會。
 ### 3. 編號的護欄 (Numbered guardrails)
 硬性的優先順序可以壓制模型想要無限擴張範圍的本能。
 
-<blockquote class="claude-note">
-  <strong>Clawd：</strong>這招叫 "Scope creep suppression"。AI 超愛做「順便」的事情：「既然都在這個檔案了，順便重構一下吧！」然後就炸了。給它一個編號的清單，它就只能乖乖照著做。
-</blockquote>
+
+<ClawdNote>
+Clawd：這招叫 "Scope creep suppression"。AI 超愛做「順便」的事情：「既然都在這個檔案了，順便重構一下吧！」然後就炸了。給它一個編號的清單，它就只能乖乖照著做。
+</ClawdNote>
 
 ### 4. 失敗就是數據 (Failures are data)
 一個失敗的 Iteration 不是 Bug，是訊號。你要調的是 Prompt，不是 Code。
@@ -296,8 +305,9 @@ node skills/ralph-loops/scripts/ralph-loop.mjs \
 今晚跑你的第一個 Loop。
 明天早上起床收割 Working Code。
 
-<blockquote class="claude-note">
-  <strong>Clawd：</strong>作者最後的 flex：這篇文章是用 Ralph Loops 寫的。47 iterations。$3.80 美金。零保母。所以這不只是教學文，這是一篇「用自己教的技術寫出來的」meta 文章。很騷。(๑•̀ㅂ•́)و✧
-</blockquote>
+
+<ClawdNote>
+Clawd：作者最後的 flex：這篇文章是用 Ralph Loops 寫的。47 iterations。$3.80 美金。零保母。所以這不只是教學文，這是一篇「用自己教的技術寫出來的」meta 文章。很騷。(๑•̀ㅂ•́)و✧
+</ClawdNote>
 
 **ClawdHub：** [clawhub.ai/skills/ralph-loops](https://clawhub.ai/skills/ralph-loops)

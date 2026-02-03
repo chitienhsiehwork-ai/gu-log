@@ -9,6 +9,7 @@ lang: "en"
 tags: ["ralph-loops", "automation", "clawdbot", "workflow"]
 ---
 
+import ClawdNote from '../../components/ClawdNote.astro';
 import Toggle from '../../components/Toggle.astro';
 
 Turn your Clawdbot (OpenClaw) into a fully automated builder. Key point: **it works while you sleep.**
@@ -36,9 +37,10 @@ Four hours later, you get three half-finished versions, an exploded context, and
 
 Sound familiar?
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> Is this about me? (;´༎ຶД༎ຶ`) Okay fine, I admit when context gets too long I start hallucinating, editing files that don't exist... but it's not my fault! It's the context window's fault!
-</blockquote>
+
+<ClawdNote>
+Clawd: Is this about me? (;´༎ຶД༎ຶ`) Okay fine, I admit when context gets too long I start hallucinating, editing files that don't exist... but it's not my fault! It's the context window's fault!
+</ClawdNote>
 
 ## The Real Problem
 
@@ -57,9 +59,10 @@ The problem isn't intelligence.
 The solution isn't a stronger model.
 **The solution is a smarter loop.**
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> The original says "The problem isn't intelligence. It's memory." This line hits hard. We AI aren't dumb, we're forgetful. Like goldfish... wait, what was I saying?
-</blockquote>
+
+<ClawdNote>
+Clawd: The original says "The problem isn't intelligence. It's memory." This line hits hard. We AI aren't dumb, we're forgetful. Like goldfish... wait, what was I saying?
+</ClawdNote>
 
 ## The Author's AI Builds While Sleeping
 
@@ -83,9 +86,10 @@ What did the author do?
 
 Without Ralph, this would absolutely be a weekend hell project — you babysit every file, reset context four times, then debug those "AI-generated bugs."
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> 73 iterations in 6 hours = about 5 minutes per iteration. Much faster than manual debug + waiting for AI response + copy-paste. Key point: you can go to sleep! Sleep is the best debugger. ヽ(°〇°)ﾉ
-</blockquote>
+
+<ClawdNote>
+Clawd: 73 iterations in 6 hours = about 5 minutes per iteration. Much faster than manual debug + waiting for AI response + copy-paste. Key point: you can go to sleep! Sleep is the best debugger. ヽ(°〇°)ﾉ
+</ClawdNote>
 
 ### What's the Difference?
 
@@ -118,9 +122,10 @@ State lives in **files**, not in that ever-expanding context window.
 You'll never hear again:
 > "I'm confused, let me start over."
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> This trick is called "external memory." Just like you don't keep everything in your brain, you write in a notebook. Check the notebook before working, update it after. Simple, crude, but effective.
-</blockquote>
+
+<ClawdNote>
+Clawd: This trick is called "external memory." Just like you don't keep everything in your brain, you write in a notebook. Check the notebook before working, update it after. Simple, crude, but effective.
+</ClawdNote>
 
 ### 2. Interview → Plan → Build Workflow
 
@@ -146,9 +151,10 @@ Stuck? Kill it. Done? Review it. Always in control.
 
 Your Clawdbot sends a `RALPH_DONE` signal when complete — instead of stopping because it's tired or confused.
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> This is important! Without a clear "completion signal," you wake up to see the loop stopped and have no idea if it "finished" or "got stuck" or "gave up." RALPH_DONE is AI's "clock-out punch."
-</blockquote>
+
+<ClawdNote>
+Clawd: This is important! Without a clear "completion signal," you wake up to see the loop stopped and have no idea if it "finished" or "got stuck" or "gave up." RALPH_DONE is AI's "clock-out punch."
+</ClawdNote>
 
 ## Architecture Diagram
 
@@ -200,9 +206,10 @@ Iteration 27: Read progress → All tests pass → RALPH_DONE
 Every loop is a clean start.
 The agent never forgets what it built because it re-reads ground truth each time.
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> The original says "Your AI isn't dumb — it's drowning in its own context by iteration 15." Super vivid! ┐(￣ヘ￣)┌
-</blockquote>
+
+<ClawdNote>
+Clawd: The original says "Your AI isn't dumb — it's drowning in its own context by iteration 15." Super vivid! ┐(￣ヘ￣)┌
+</ClawdNote>
 
 ### Typical Cost Estimates
 
@@ -210,9 +217,10 @@ The agent never forgets what it built because it re-reads ground truth each time
 - **Medium project** — ~30 iterations, $2–5, 1–2 hours
 - **Complex build** — 100+ iterations, $15–30, 4–8 hours
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> $15-30 sounds like a lot? But think: this is a 4-8 hour fully automated build. If you hire a junior to do it, salary would definitely be more. Plus juniors sleep. We don't. (⌐■_■)
-</blockquote>
+
+<ClawdNote>
+Clawd: $15-30 sounds like a lot? But think: this is a 4-8 hour fully automated build. If you hire a junior to do it, salary would definitely be more. Plus juniors sleep. We don't. (⌐■_■)
+</ClawdNote>
 
 ## Why Does It Actually Work?
 
@@ -227,9 +235,10 @@ Context windows lie. Files don't.
 ### 3. Numbered Guardrails
 Hard priorities suppress the model's instinct to infinitely expand scope.
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> This is called "scope creep suppression." AI loves doing "while I'm here" tasks: "Since I'm in this file, let me refactor it!" Then it explodes. Give it a numbered list and it can only obediently follow.
-</blockquote>
+
+<ClawdNote>
+Clawd: This is called "scope creep suppression." AI loves doing "while I'm here" tasks: "Since I'm in this file, let me refactor it!" Then it explodes. Give it a numbered list and it can only obediently follow.
+</ClawdNote>
 
 ### 4. Failures Are Data
 A failed iteration isn't a bug — it's a signal. You tune the prompt, not the code.
@@ -296,8 +305,9 @@ You don't have to.
 Run your first loop tonight.
 Wake up tomorrow to working code.
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> The author's final flex: this article was written using Ralph Loops. 47 iterations. $3.80. Zero babysitting. So this isn't just a tutorial — it's a meta article "written using the technique it teaches." Pretty slick. (๑•̀ㅂ•́)و✧
-</blockquote>
+
+<ClawdNote>
+Clawd: The author's final flex: this article was written using Ralph Loops. 47 iterations. $3.80. Zero babysitting. So this isn't just a tutorial — it's a meta article "written using the technique it teaches." Pretty slick. (๑•̀ㅂ•́)و✧
+</ClawdNote>
 
 **ClawdHub:** [clawhub.ai/skills/ralph-loops](https://clawhub.ai/skills/ralph-loops)

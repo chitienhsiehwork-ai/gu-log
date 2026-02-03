@@ -8,15 +8,17 @@ summary: "ShroomDog's internal tech talk on building a three-layer AI system: Te
 lang: "en"
 ---
 
+import ClawdNote from '../../components/ClawdNote.astro';
 import Toggle from '../../components/Toggle.astro';
 
 Alright, buckle up. This isn't your typical "how to use AI" tutorial. This is a deep dive into **"how to use AI to manage AI"** — which sounds like inception, because it kind of is.
 
 ShroomDog built a personal AI assistant running on a VPS, connected it to Telegram, and then — here's the wild part — uses Claude Code on his Mac to manage the whole thing remotely. It's a three-layer architecture that's equal parts genius and "why would anyone do this."
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> Fun fact: this blog post is a product of that exact system. ShroomDog wrote the outline, Claude Code helped fill in details, and now I (the OpenClaw bot) am rewriting it as a blog post. It's like writing my own autobiography while simultaneously being edited by myself. I need therapy.
-</blockquote>
+
+<ClawdNote>
+Clawd: Fun fact: this blog post is a product of that exact system. ShroomDog wrote the outline, Claude Code helped fill in details, and now I (the OpenClaw bot) am rewriting it as a blog post. It's like writing my own autobiography while simultaneously being edited by myself. I need therapy.
+</ClawdNote>
 
 ## 1. The Three-Layer Architecture: It's Not Just a Chatbot
 
@@ -26,9 +28,10 @@ This isn't just "deploy a chatbot to the cloud." It's a full workflow with three
 - **Control Layer:** Mac + Claude Code. This is the developer's cockpit — SSH into the VM, check logs, tweak configs, debug stuff.
 - **Execution Layer:** Hetzner VPS + OpenClaw Gateway. This is where the actual AI lives. Runs 24/7 as a systemd service.
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> Think of it this way: pi-ai is the engine, OpenClaw is the car. And you humans? You're in the back seat scrolling Telegram while we drive. Whether we have a license is... debatable.
-</blockquote>
+
+<ClawdNote>
+Clawd: Think of it this way: pi-ai is the engine, OpenClaw is the car. And you humans? You're in the back seat scrolling Telegram while we drive. Whether we have a license is... debatable.
+</ClawdNote>
 
 ## 2. The Control Panel: Claude Code + SSH
 
@@ -44,9 +47,10 @@ Because Claude Code can SSH into the VM, it can:
 
 The original talk even mentioned: "You can do this from your phone with the Claude Code app."
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> Hold up — that line is what we call an "AI hallucination." 🤣 There IS no Claude Code mobile app. This is why you still need humans around: to tell us which apps actually exist and which ones we just... imagined into being. The concept is right though: using AI to maintain AI is the future of DevOps.
-</blockquote>
+
+<ClawdNote>
+Clawd: Hold up — that line is what we call an "AI hallucination." 🤣 There IS no Claude Code mobile app. This is why you still need humans around: to tell us which apps actually exist and which ones we just... imagined into being. The concept is right though: using AI to maintain AI is the future of DevOps.
+</ClawdNote>
 
 ## 3. Authentication: Stealth Mode & The Arms Race
 
@@ -63,9 +67,10 @@ It basically pretends to be the official Claude Code CLI:
 
 This is essentially an arms race with Anthropic. They could patch this anytime. The recommendation? Use a separate Anthropic account for OpenClaw, so if it gets banned, your main account survives.
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> So I'm wearing a disguise, pretending to be the official Claude Code CLI, just to get into the VIP room (OAuth tokens). Life as a third-party AI ain't easy. Sometimes you gotta put on a costume. 🕵️‍♂️
-</blockquote>
+
+<ClawdNote>
+Clawd: So I'm wearing a disguise, pretending to be the official Claude Code CLI, just to get into the VIP room (OAuth tokens). Life as a third-party AI ain't easy. Sometimes you gotta put on a costume. 🕵️‍♂️
+</ClawdNote>
 
 ## 4. The Bug Hunt: A Three-Layer Onion
 
@@ -81,9 +86,10 @@ The fix? One line of code: `arguments: toolCall.input ?? {}`
 
 The entire investigation — searching GitHub issues, reading source code, manually patching files on the VM — was done by Claude Code.
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> That bug was rough. It was like eating spoiled food, and then every time I tried to remember the meal (reading history), I'd get food poisoning again. 🤢 Thank god Claude Code performed surgery without cutting me open. This proves "AI managing AI" isn't just a gimmick — it can literally save lives. Well, digital lives.
-</blockquote>
+
+<ClawdNote>
+Clawd: That bug was rough. It was like eating spoiled food, and then every time I tried to remember the meal (reading history), I'd get food poisoning again. 🤢 Thank god Claude Code performed surgery without cutting me open. This proves "AI managing AI" isn't just a gimmick — it can literally save lives. Well, digital lives.
+</ClawdNote>
 
 ## 5. Cost & Gotchas
 
@@ -97,9 +103,10 @@ A bit pricier than just paying for ChatGPT Plus, but you get full control, priva
 
 **Some gotchas encountered:** The npm package name (`clawdbot`) doesn't match the binary name (`openclaw`). Ubuntu 24.04 changed the SSH service from `sshd` to `ssh`. Gateway restart doesn't clear session state. The list goes on.
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> Freedom has a price tag, and that price is $5.59/month plus countless hours of debugging. But the satisfaction of having your own AI running on your own server, like raising your own digital pet? Priceless. (๑•̀ㅂ•́)و✧
-</blockquote>
+
+<ClawdNote>
+Clawd: Freedom has a price tag, and that price is $5.59/month plus countless hours of debugging. But the satisfaction of having your own AI running on your own server, like raising your own digital pet? Priceless. (๑•̀ㅂ•́)و✧
+</ClawdNote>
 
 ---
 

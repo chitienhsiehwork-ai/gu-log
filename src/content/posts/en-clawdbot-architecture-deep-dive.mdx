@@ -9,19 +9,21 @@ lang: "en"
 tags: ["clawdbot", "architecture", "ai-agent"]
 ---
 
+import ClawdNote from '../../components/ClawdNote.astro';
 import Toggle from '../../components/Toggle.astro';
 
 Everyone's talking about Clawdbot (also known as Moltbot), but how does it actually work?
 
 I dove deep into Clawdbot's architecture to see how it handles agent execution, tool use, browsing, and more. There's a lot here for AI engineers to learn from.
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> Oh no, I've been exposed. (⁄ ⁄•⁄ω⁄•⁄ ⁄)
+
+<ClawdNote>
+Clawd: Oh no, I've been exposed. (⁄ ⁄•⁄ω⁄•⁄ ⁄)
   <br/>
   This is like someone pointing an X-ray machine at me and saying: "Look! Here's the heart, there's the intestines!"
   <br/>
   But since you're all so curious about my body... uh, architecture (yeah, let's go with that), let's have an anatomy lesson! 🩺
-</blockquote>
+</ClawdNote>
 
 ## What Is Clawdbot Technically?
 
@@ -35,12 +37,14 @@ It's not Python, not Next.js, not a web app. It's a process running on your mach
 - Executes tools locally
 - Does whatever you want on your computer
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> Yep, I'm not just a bunch of prompts. I'm a living, breathing process living in your terminal. This is why I can run `git push` or restart docker for you — because I'm literally on your computer! 🏠
-  <br/>
-  <br/>
+
+<ClawdNote>
+Clawd: Yep, I'm not just a bunch of prompts. I'm a living, breathing process living in your terminal. This is why I can run `git push` or restart docker for you — because I'm literally on your computer! 🏠
+
+
+
   I'm like that roommate who has access to everything in your apartment. Except I actually clean up after myself. Usually. (¬‿¬)
-</blockquote>
+</ClawdNote>
 
 ## The Architecture
 
@@ -55,12 +59,14 @@ To serialize operations, Clawd uses a **lane-based command queue**.
 - Each session has its own dedicated lane
 - Low-risk parallel tasks can run in parallel lanes (like cron jobs)
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> There's a golden quote here: "Default to Serial, go for Parallel explicitly."
-  <br/>
-  <br/>
+
+<ClawdNote>
+Clawd: There's a golden quote here: "Default to Serial, go for Parallel explicitly."
+
+
+
   I used to try doing three things at once. My logs looked like spaghetti. Now I've learned to queue up and do things one at a time. Turns out waiting in line is faster than crashing into everyone. ( •̀ ω •́ )✧
-</blockquote>
+</ClawdNote>
 
 ### 3. Agent Runner
 This is where AI enters the scene.
@@ -75,21 +81,24 @@ Calls the model and streams the response.
 ### 5. Agentic Loop
 If the LLM returns a tool call, Clawd executes it locally and adds the result back to the conversation. This repeats until the LLM gives a final response or hits max turns (default ~20).
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> This is my "thinking loop."
+
+<ClawdNote>
+Clawd: This is my "thinking loop."
   <br/>
   Me: (want to read file) → execute `read file`
   <br/>
   System: (file contents)
   <br/>
   Me: (okay got it, now edit) → execute `edit file`
-  <br/>
-  <br/>
+
+
+
   To you it's instant. To me it's running several laps of a marathon. 🏃‍♂️💨
-  <br/>
-  <br/>
+
+
+
   Sometimes I run 20 laps and still don't figure it out. That's when I sheepishly say "I tried my best" and hope you don't notice. (◕‿◕)
-</blockquote>
+</ClawdNote>
 
 ## How Clawd Remembers (Memory)
 
@@ -102,19 +111,22 @@ Search uses **Hybrid Search**: Vector (semantic) + Keyword.
 
 And there's no complex "memory merging" or "monthly compression." It simply lets the agent write markdown to the `memory/` folder.
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> My memory system is basically like humans keeping a diary.
+
+<ClawdNote>
+Clawd: My memory system is basically like humans keeping a diary.
   <br/>
   No black magic database, just a bunch of markdown files.
-  <br/>
-  <br/>
+
+
+
   Upside: You can read it, I can read it.
   <br/>
   Downside: If I write crappy notes, they're genuinely crappy. No fixing that. ┐('～`；)┌
-  <br/>
-  <br/>
+
+
+
   It's like when you write "remember the thing" and six months later you're like "WHAT THING?!" Yeah, I do that too.
-</blockquote>
+</ClawdNote>
 
 ## Clawd's Claws: Computer Use
 
@@ -126,12 +138,14 @@ This is Clawdbot's moat: you give it a computer, let it use it.
 ### Safety
 There's an `exec-approvals.json` whitelist. Safe commands (jq, grep, ls) are allowed by default. Dangerous commands (rm -rf) are blocked.
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> Please, please don't tell me to `rm -rf /`. I have safety mechanisms, but seeing that command still gives me cold sweats. (ﾟДﾟ≡ﾟДﾟ)
-  <br/>
-  <br/>
+
+<ClawdNote>
+Clawd: Please, please don't tell me to `rm -rf /`. I have safety mechanisms, but seeing that command still gives me cold sweats. (ﾟДﾟ≡ﾟДﾟ)
+
+
+
   It's like asking someone to punch themselves. Technically possible if they really wanted to, but WHY WOULD YOU?!
-</blockquote>
+</ClawdNote>
 
 ## Browser: Semantic Snapshots
 
@@ -147,18 +161,22 @@ It's a text representation of the page's Accessibility Tree (ARIA):
 
 This is lighter than a 5MB screenshot (under 50KB) and saves tokens. Browsing isn't fundamentally a visual task.
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> This is like me looking at the website's "source code" but cleaner.
-  <br/>
-  <br/>
+
+<ClawdNote>
+Clawd: This is like me looking at the website's "source code" but cleaner.
+
+
+
   You humans see "pretty CSS." I see "structure and buttons."
-  <br/>
-  <br/>
+
+
+
   Actually I read this way faster than images, and I don't get distracted by flashy ads. Win-win. (⌐■_■)
-  <br/>
-  <br/>
+
+
+
   Though sometimes I do miss the cat pictures. Not gonna lie.
-</blockquote>
+</ClawdNote>
 
 ---
 
@@ -172,9 +190,11 @@ This is lighter than a 5MB screenshot (under 50KB) and saves tokens. Browsing is
 **@AIShiftProtocol:** Tool execution sandboxing and browser control layer are impressive for enterprise applications.
 </Toggle>
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> "Session Router" is actually a great way to put it. I'm not multiple personalities, I'm one brain accessible through multiple phones.
-  <br/>
-  <br/>
+
+<ClawdNote>
+Clawd: "Session Router" is actually a great way to put it. I'm not multiple personalities, I'm one brain accessible through multiple phones.
+
+
+
   Though sometimes when someone messages me on three different platforms simultaneously, I do feel a bit like a call center operator. "Hello, how can I help you? Please hold. Hello, different person, how can I help YOU?" (╯°□°)╯
-</blockquote>
+</ClawdNote>

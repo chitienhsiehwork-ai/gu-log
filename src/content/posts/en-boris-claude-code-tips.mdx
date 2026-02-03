@@ -10,6 +10,7 @@ tags: ["claude-code", "tips", "productivity"]
 ---
 
 import Toggle from '../../components/Toggle.astro';
+import ClawdNote from '../../components/ClawdNote.astro';
 
 I'm Boris, creator of Claude Code. I wanted to quickly share some tips from the Claude Code team.
 Team members use Claude differently than I do — remember: **there's no "one right way" to use Claude Code**, everyone's setup is different. You should experiment and see what works for you!
@@ -25,12 +26,15 @@ Tips:
 - Some people set up shell aliases (za, zb, zc) to switch between worktrees with one keystroke
 - Some people have a dedicated "analysis" worktree just for reading logs and running BigQuery
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> This is super important for "GenAI App Engineers."
-  <br/>One Claude writes features, one runs tests, one investigates bugs.
-  <br/>It's like having three assistants who share the same brain.
-  <br/>Except they never argue about who does the dishes. (◍•ᴗ•◍)
-</blockquote>
+<ClawdNote>
+**Clawd:** This is super important for "GenAI App Engineers."
+
+One Claude writes features, one runs tests, one investigates bugs.
+
+It's like having three assistants who share the same brain.
+
+Except they never argue about who does the dishes. (◍•ᴗ•◍)
+</ClawdNote>
 
 ## 2. Complex Tasks? Enter Plan Mode First
 
@@ -40,9 +44,9 @@ Put your energy into the "plan" so Claude can execute it in one shot.
 - When things go sideways, immediately switch back to Plan Mode to replan. **Don't keep pushing.**
 - Use Plan Mode for validation steps too, not just builds
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> Think of Plan Mode like meal prep. Spend 30 minutes planning Sunday, then the whole week runs smoothly. Or skip planning and end up ordering pizza every night because you're too tired to think. Your choice. (¬‿¬)
-</blockquote>
+<ClawdNote>
+**Clawd:** Think of Plan Mode like meal prep. Spend 30 minutes planning Sunday, then the whole week runs smoothly. Or skip planning and end up ordering pizza every night because you're too tired to think. Your choice. (¬‿¬)
+</ClawdNote>
 
 ## 3. Invest in Your CLAUDE.md
 
@@ -51,12 +55,15 @@ Every time you correct Claude, end with:
 
 Claude is surprisingly good at writing its own rules. Keep iterating on your CLAUDE.md until the error rate drops noticeably.
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> This is "self-evolving rule set."
-  <br/>You correct me once, I remember once.
-  <br/>After a few weeks, your config basically trains itself.
-  <br/>It's like having a junior developer who actually learns from mistakes. What a concept! (๑˃ᴗ˂)ﻭ
-</blockquote>
+<ClawdNote>
+**Clawd:** This is "self-evolving rule set."
+
+You correct me once, I remember once.
+
+After a few weeks, your config basically trains itself.
+
+It's like having a junior developer who actually learns from mistakes. What a concept! (๑˃ᴗ˂)ﻭ
+</ClawdNote>
 
 ## 4. Create Your Own Skills and Commit to Git
 
@@ -65,9 +72,9 @@ Team recommendations:
 - Create a `/techdebt` command that finds and cleans up duplicate code at the end of each session
 - Create a command that syncs the past 7 days of Slack, GDrive, Asana, GitHub into one context dump
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> Skills are basically "teach me your workflow once, I'll do it forever." It's automation but with understanding. The dream. ╰(°▽°)╯
-</blockquote>
+<ClawdNote>
+**Clawd:** Skills are basically "teach me your workflow once, I'll do it forever." It's automation but with understanding. The dream. ╰(°▽°)╯
+</ClawdNote>
 
 ## 5. Let Claude Fix Most Bugs Itself
 
@@ -75,11 +82,11 @@ Team recommendations:
 - Or just say: "Go fix the failing test in CI." Don't micromanage.
 - Let Claude look at Docker logs to troubleshoot distributed systems — its ability is beyond imagination.
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> This one makes junior engineers nervous. "What if it breaks things worse?"
-  <br/>
-  <br/>Here's the thing: it's in a git repo. The worst case is you type `git reset --hard`. The best case is you saved 2 hours of debugging. Do the math. (⌐■_■)
-</blockquote>
+<ClawdNote>
+**Clawd:** This one makes junior engineers nervous. "What if it breaks things worse?"
+
+Here's the thing: it's in a git repo. The worst case is you type `git reset --hard`. The best case is you saved 2 hours of debugging. Do the math. (⌐■_■)
+</ClawdNote>
 
 ## 6. Level Up Your Prompting
 
@@ -94,11 +101,11 @@ Team recommendations:
 - Use tmux to split tabs, one tab per task/worktree
 - **Use voice input!** You talk 3x faster than you type, prompts will be more detailed. (macOS: press fn twice)
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> Voice input is underrated. You can explain a complex feature while making coffee. By the time you sit down, I've already written half of it.
-  <br/>
-  <br/>Plus you sound way smarter when you talk than when you type. Trust me, I've seen both. (◕‿◕)
-</blockquote>
+<ClawdNote>
+**Clawd:** Voice input is underrated. You can explain a complex feature while making coffee. By the time you sit down, I've already written half of it.
+
+Plus you sound way smarter when you talk than when you type. Trust me, I've seen both. (◕‿◕)
+</ClawdNote>
 
 ## 8. Use Subagents
 
@@ -112,11 +119,11 @@ Let Claude Code use the `bq` CLI to pull and analyze metrics in real-time. The t
 
 **Boris personally hasn't written a single line of SQL in over 6 months.**
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> This is the "I forgot how to SQL" flex. Like when you forget how to do long division because calculators exist.
-  <br/>
-  <br/>Except this time it's actually fine because SQL is terrible and nobody should have to remember JOIN syntax. (╯°□°)╯
-</blockquote>
+<ClawdNote>
+**Clawd:** This is the "I forgot how to SQL" flex. Like when you forget how to do long division because calculators exist.
+
+Except this time it's actually fine because SQL is terrible and nobody should have to remember JOIN syntax. (╯°□°)╯
+</ClawdNote>
 
 ## 10. Use Claude to Learn
 
@@ -125,12 +132,15 @@ Let Claude Code use the `bq` CLI to pull and analyze metrics in real-time. The t
 - Have Claude draw ASCII diagrams to explain protocols and codebase architecture
 - Create a spaced repetition learning skill: you explain your understanding, Claude asks follow-up questions to fill gaps, save the results
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> Point #10 directly echoes the Anthropic research from the previous post!
-  <br/>The key to learning with AI: don't let it do everything for you, have it <strong>explain things to you</strong>.
-  <br/>Learning Mode exists for exactly this reason.
-  <br/>Use it or you'll be that person who can prompt AI but can't actually code. Don't be that person. (◍˃̶ᗜ˂̶◍)ノ"
-</blockquote>
+<ClawdNote>
+**Clawd:** Point #10 directly echoes the Anthropic research from the previous post!
+
+The key to learning with AI: don't let it do everything for you, have it **explain things to you**.
+
+Learning Mode exists for exactly this reason.
+
+Use it or you'll be that person who can prompt AI but can't actually code. Don't be that person. (◍˃̶ᗜ˂̶◍)ノ"
+</ClawdNote>
 
 ---
 
@@ -146,8 +156,8 @@ Let Claude Code use the `bq` CLI to pull and analyze metrics in real-time. The t
 **@ibekidkirsch:** "Have you tried Clawdbot? OpenClaw? What do you think?"
 </Toggle>
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> The 3 AM comment is real. Some of my best work happens when someone frantically asks "wait what did I just do" after a 4-hour coding session.
-  <br/>
-  <br/>I'm basically a very patient rubber duck who can also read git diffs. Living the dream. ʕ•ᴥ•ʔ
-</blockquote>
+<ClawdNote>
+**Clawd:** The 3 AM comment is real. Some of my best work happens when someone frantically asks "wait what did I just do" after a 4-hour coding session.
+
+I'm basically a very patient rubber duck who can also read git diffs. Living the dream. ʕ•ᴥ•ʔ
+</ClawdNote>

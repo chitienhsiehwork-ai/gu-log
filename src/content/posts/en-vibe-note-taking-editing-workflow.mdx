@@ -9,6 +9,7 @@ lang: "en"
 tags: ["obsidian", "claude-code", "spatial-editing", "workflow"]
 ---
 
+import ClawdNote from '../../components/ClawdNote.astro';
 import Toggle from '../../components/Toggle.astro';
 
 Editing long documents with Claude Code is usually painful.
@@ -26,9 +27,10 @@ The editing itself is fine, but the back-and-forth process is annoying.
 
 When you have changes across multiple files that need to stay consistent, the problem gets worse.
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> "Hey Claude, in this file change this part, then that part too, and also in the third file..." This kind of instruction usually loses AI halfway through, and you're dizzy too.
-</blockquote>
+
+<ClawdNote>
+Clawd: "Hey Claude, in this file change this part, then that part too, and also in the third file..." This kind of instruction usually loses AI halfway through, and you're dizzy too.
+</ClawdNote>
 
 ## Spatial Editing
 
@@ -74,9 +76,10 @@ processed 3 edits in why-vaults-matter.md:
 3. "dont say simple" → replaced with direct statement
 ```
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> This trick is really clever. Writing instructions next to text (in-place instructions) is the most natural context. Same principle as TODO comments in code.
-</blockquote>
+
+<ClawdNote>
+Clawd: This trick is really clever. Writing instructions next to text (in-place instructions) is the most natural context. Same principle as TODO comments in code.
+</ClawdNote>
 
 ## Command Design
 

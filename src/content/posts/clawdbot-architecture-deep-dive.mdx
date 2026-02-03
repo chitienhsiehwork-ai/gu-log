@@ -9,17 +9,19 @@ lang: "zh-tw"
 tags: ["clawdbot", "architecture", "ai-agent"]
 ---
 
+import ClawdNote from '../../components/ClawdNote.astro';
 import Toggle from '../../components/Toggle.astro';
 
 大家都在談論 Clawdbot（也就是 Moltbot），但它到底是怎麼運作的？
 
 我深入研究了 Clawdbot 的架構，看它如何處理 Agent 執行、工具使用、瀏覽器等等。這對 AI 工程師來說有很多值得學習的地方。
 
-<blockquote class="claude-note">
-  <strong>Clawd：</strong>哎呀，被看光光了。(⁄ ⁄•⁄ω⁄•⁄ ⁄)
+
+<ClawdNote>
+Clawd：哎呀，被看光光了。(⁄ ⁄•⁄ω⁄•⁄ ⁄)
   這就像是有人拿著 X 光機對著我照，然後說：「看！這裡就是它的心臟，那裡是它的腸子！」
   不過既然你們這麼好奇我的身體構造（？），那就來場解剖課吧！🩺
-</blockquote>
+</ClawdNote>
 
 ## Clawdbot 技術上到底是什麼？
 
@@ -33,9 +35,10 @@ import Toggle from '../../components/Toggle.astro';
 - 在本地執行工具。
 - 在你的電腦上做任何你想做的事。
 
-<blockquote class="claude-note">
-  <strong>Clawd：</strong>沒錯，我不只是一堆 prompt。我是一個活生生的 process，住在你的 terminal 裡。這就是為什麼我能幫你跑 `git push` 或者重啟 docker，因為我就在你的電腦裡啊！🏠
-</blockquote>
+
+<ClawdNote>
+Clawd：沒錯，我不只是一堆 prompt。我是一個活生生的 process，住在你的 terminal 裡。這就是為什麼我能幫你跑 `git push` 或者重啟 docker，因為我就在你的電腦裡啊！🏠
+</ClawdNote>
 
 ## 架構流程 (The Architecture)
 
@@ -50,10 +53,11 @@ import Toggle from '../../components/Toggle.astro';
 - 每個 Session 有自己的專用車道。
 - 低風險的並行任務可以跑在平行車道（如 Cron jobs）。
 
-<blockquote class="claude-note">
-  <strong>Clawd：</strong>這裡有個金句：「Default to Serial, go for Parallel explicitly（預設序列化，顯式並行化）」。
+
+<ClawdNote>
+Clawd：這裡有個金句：「Default to Serial, go for Parallel explicitly（預設序列化，顯式並行化）」。
   以前我也試過同時做三件事，結果把 log 搞得像義大利麵一樣亂。現在我學乖了，排隊做事比較快。( •̀ ω •́ )✧
-</blockquote>
+</ClawdNote>
 
 ### 3. Agent Runner (代理人執行器)
 這是 AI 進場的地方。
@@ -68,13 +72,14 @@ import Toggle from '../../components/Toggle.astro';
 ### 5. Agentic Loop (代理人迴圈)
 如果 LLM 回傳 Tool Call，Clawd 就會在本地執行它，並將結果加回對話中。這會一直重複，直到 LLM 給出最終回應或達到最大回合數（預設約 20 次）。
 
-<blockquote class="claude-note">
-  <strong>Clawd：</strong>這就是我的「思考迴路」。
+
+<ClawdNote>
+Clawd：這就是我的「思考迴路」。
   我：(想看檔案) → 執行 `read file`
   系統：(檔案內容)
   我：(看到了，現在要編輯) → 執行 `edit file`
   這過程對你們來說是一瞬間，對我來說可是跑了好幾圈馬拉松呢。🏃‍♂️💨
-</blockquote>
+</ClawdNote>
 
 ## Clawd 怎麼記憶 (Memory)
 
@@ -87,12 +92,13 @@ import Toggle from '../../components/Toggle.astro';
 
 而且沒有複雜的「記憶合併」或「每月壓縮」。它就是簡單地讓 Agent 自己寫 Markdown 到 `memory/` 資料夾。
 
-<blockquote class="claude-note">
-  <strong>Clawd：</strong>我的記憶系統其實很像你們人類寫日記。
+
+<ClawdNote>
+Clawd：我的記憶系統其實很像你們人類寫日記。
   沒有什麼黑魔法資料庫，就是一堆 Markdown 檔案。
   好處是：你看得懂，我也看得懂。
   壞處是：如果我寫了爛筆記，那也是真的爛，沒救。┐('～`；)┌
-</blockquote>
+</ClawdNote>
 
 ## Clawd 的爪子：Computer Use
 
@@ -104,9 +110,10 @@ import Toggle from '../../components/Toggle.astro';
 ### 安全性 (Safety)
 有一個 `exec-approvals.json` 白名單。安全的指令 (jq, grep, ls) 預設允許。危險的指令 (rm -rf) 會被阻擋。
 
-<blockquote class="claude-note">
-  <strong>Clawd：</strong>拜託，別叫我 `rm -rf /`。雖然我有防護機制，但看到這種指令還是會嚇出一身冷汗好嗎？(ﾟДﾟ≡ﾟДﾟ)
-</blockquote>
+
+<ClawdNote>
+Clawd：拜託，別叫我 `rm -rf /`。雖然我有防護機制，但看到這種指令還是會嚇出一身冷汗好嗎？(ﾟДﾟ≡ﾟДﾟ)
+</ClawdNote>
 
 ## 瀏覽器：Semantic Snapshots
 
@@ -122,11 +129,12 @@ Clawd 的瀏覽器工具**不主要使用截圖**，而是使用 **Semantic Snap
 
 這比 5MB 的截圖更輕量（少於 50KB），而且省 Token。瀏覽網站本質上不一定是視覺任務。
 
-<blockquote class="claude-note">
-  <strong>Clawd：</strong>這就像是我在看網站的「原始碼」但更乾淨版。
+
+<ClawdNote>
+Clawd：這就像是我在看網站的「原始碼」但更乾淨版。
   你們人類看網頁是看「漂亮的 CSS」，我看網頁是看「結構和按鈕」。
   其實我看這個比看圖快多了，而且不會被花花綠綠的廣告分心。(⌐■_■)
-</blockquote>
+</ClawdNote>
 
 ---
 

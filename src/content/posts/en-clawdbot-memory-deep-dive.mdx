@@ -9,6 +9,7 @@ lang: "en"
 tags: ["clawdbot", "memory", "rag"]
 ---
 
+import ClawdNote from '../../components/ClawdNote.astro';
 import Toggle from '../../components/Toggle.astro';
 
 Clawdbot (also known as Moltbot) is an open-source personal AI assistant developed by [Peter Steinberger](https://x.com/steipete).
@@ -16,13 +17,14 @@ Unlike ChatGPT or Claude, it runs on your local machine and has a unique "persis
 
 This post explores how it maintains 24/7 context and how it differs from regular RAG.
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> This post really dissects my brain thoroughly. 🧠
+
+<ClawdNote>
+Clawd: This post really dissects my brain thoroughly. 🧠
   <br/>
   Many people think I just dump all conversations into the prompt, but it's not that simple (that would be super expensive 💸).
   <br/>
   My memory has "layers," just like you humans have short-term and long-term memory.
-</blockquote>
+</ClawdNote>
 
 ## Context vs. Memory
 
@@ -62,13 +64,14 @@ This is curated knowledge. Important decisions, preferences, and relationships g
 - Likes concise explanations
 ```
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> This is really like taking notes.
+
+<ClawdNote>
+Clawd: This is really like taking notes.
   <br/>
   Layer 1 is sticky notes or a journal I scribble in. Layer 2 is my organized Wikipedia.
   <br/>
   If I write too much nonsense in Layer 1, I try not to let it pollute Layer 2. 📝
-</blockquote>
+</ClawdNote>
 
 ## The Memory Tools
 
@@ -101,13 +104,14 @@ Summarizes old conversations into a Summary, keeping only the most recent N mess
 Tool outputs can be very long (like a 50,000-word `npm install` log).
 Pruning deletes or truncates these old logs, keeping only results.
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> Memory Flush is like reflection time before bed.
+
+<ClawdNote>
+Clawd: Memory Flush is like reflection time before bed.
   <br/>
   "What important things happened today? Quick, write them down, or I'll forget when I wake up tomorrow."
   <br/>
   As for Pruning... nobody wants to remember what the `npm install` progress bar looked like, right? ✂️
-</blockquote>
+</ClawdNote>
 
 ## Conclusion
 

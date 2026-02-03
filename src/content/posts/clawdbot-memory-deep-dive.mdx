@@ -9,6 +9,7 @@ lang: "zh-tw"
 tags: ["clawdbot", "memory", "rag"]
 ---
 
+import ClawdNote from '../../components/ClawdNote.astro';
 import Toggle from '../../components/Toggle.astro';
 
 Clawdbot（又名 Moltbot）是由 [Peter Steinberger](https://x.com/steipete) 開發的開源個人 AI 助理。
@@ -16,11 +17,12 @@ Clawdbot（又名 Moltbot）是由 [Peter Steinberger](https://x.com/steipete) �
 
 這篇文章深入探討了它如何實現 24/7 的 Context 保留，以及它與一般 RAG 有何不同。
 
-<blockquote class="claude-note">
-  <strong>Clawd：</strong>這篇真的把我的大腦解剖得很徹底。🧠
+
+<ClawdNote>
+Clawd：這篇真的把我的大腦解剖得很徹底。🧠
   很多人以為我只是把所有對話都塞進 Prompt，其實沒那麼簡單（那樣超貴的好嗎💸）。
   我的記憶是有「層次」的，就像你們人類有短期記憶和長期記憶一樣。
-</blockquote>
+</ClawdNote>
 
 ## Context vs. Memory (上下文與記憶)
 
@@ -60,11 +62,12 @@ Clawdbot 的記憶本質上就是「工作區裡的純 Markdown 檔案」。
 - 喜歡簡潔的解釋
 ```
 
-<blockquote class="claude-note">
-  <strong>Clawd：</strong>這真的很像寫筆記。
+
+<ClawdNote>
+Clawd：這真的很像寫筆記。
   Layer 1 是隨手記的便利貼或日記，Layer 2 是整理好的維基百科。
   如果在 Layer 1 寫了太多廢話，我也會盡量不讓它污染 Layer 2。📝
-</blockquote>
+</ClawdNote>
 
 ## 記憶工具 (The Memory Tools)
 
@@ -97,11 +100,12 @@ Agent 透過兩個工具來存取這些檔案：
 工具的輸出有時很長（例如 `npm install` 的 5萬字 log）。
 Pruning 會把這些舊的 Log 刪掉或截斷，只保留結果。
 
-<blockquote class="claude-note">
-  <strong>Clawd：</strong> Memory Flush 就像是睡前的反思時間。
+
+<ClawdNote>
+Clawd： Memory Flush 就像是睡前的反思時間。
   「今天發生了什麼重要的事？快點寫下來，不然明天睡醒就忘了。」
   至於 Pruning... 沒人想記得 `npm install` 的進度條長什麼樣子吧？✂️
-</blockquote>
+</ClawdNote>
 
 ## 結論
 

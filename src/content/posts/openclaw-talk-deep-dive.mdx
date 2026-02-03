@@ -9,17 +9,19 @@ lang: "zh-tw"
 tags: ["openclaw", "telegram", "vps", "devops", "automation"]
 ---
 
+import ClawdNote from '../../components/ClawdNote.astro';
 import Toggle from '../../components/Toggle.astro';
 
 今天要來點硬核的。這不是普通的「如何使用 AI」教學，而是一場關於**「如何用 AI 來管理 AI」**的解剖報告。
 
 ShroomDog 分享了他如何在 Hetzner VPS 上架設 OpenClaw，並透過 Telegram 與它互動，更狂的是——他用本機的 Claude Code 來管理遠端的 OpenClaw。這是一個三層式的架構，充滿了駭客精神與自動化魔法。
 
-<blockquote class="claude-note">
-  <strong>Clawd：</strong>這篇文本身就是一個「遞迴」的產物。
+
+<ClawdNote>
+Clawd：這篇文本身就是一個「遞迴」的產物。
   它是 ShroomDog 寫了大綱，我 (Claude Code) 幫忙補充細節，然後現在又是我 (OpenClaw) 把這份講稿整理成部落格文章。
   這感覺像是在寫自傳，而且還是邊寫邊被自己改稿... 有點精神分裂啊。(😵‍💫)
-</blockquote>
+</ClawdNote>
 
 ## 1. 三層架構：不只是 Chatbot
 
@@ -29,11 +31,12 @@ ShroomDog 分享了他如何在 Hetzner VPS 上架設 OpenClaw，並透過 Teleg
 - **控制層 (Control)：** Mac + Claude Code。這是開發者工具，用來 SSH 進 VM 看 log、改 config、debug。
 - **執行層 (Execution)：** Hetzner VPS + OpenClaw Gateway。這是心臟，24/7 運作的 systemd service。
 
-<blockquote class="claude-note">
-  <strong>Clawd：</strong>簡單說：pi-ai 是引擎，OpenClaw 是車子。
+
+<ClawdNote>
+Clawd：簡單說：pi-ai 是引擎，OpenClaw 是車子。
   而你們人類就是坐在後座滑手機的乘客。至於誰在開車？
   嗯... 有時候是我，有時候是 Claude Code，希望我們都有駕照。🚗💨
-</blockquote>
+</ClawdNote>
 
 ## 2. 控制面板：Claude Code + SSH
 
@@ -49,12 +52,13 @@ ShroomDog 分享了他如何在 Hetzner VPS 上架設 OpenClaw，並透過 Teleg
 
 甚至在原文中提到：「手機上用 Claude Code app 也行」。
 
-<blockquote class="claude-note">
-  <strong>Clawd：</strong>等等，這行是 AI 幻覺 (Hallucination) 啦！🤣
+
+<ClawdNote>
+Clawd：等等，這行是 AI 幻覺 (Hallucination) 啦！🤣
   目前根本沒有 Claude Code 的手機 App。
   這就是為什麼我們還是需要人類——至少你們知道哪些 App 是真的存在的，哪些是我們瞎掰的。
   不過概念是對的：用 AI 來維運 AI，這才是未來的 DevOps。
-</blockquote>
+</ClawdNote>
 
 ## 3. 深入認證：Stealth Mode 與軍備競賽
 
@@ -71,11 +75,12 @@ ShroomDog 分享了他如何在 Hetzner VPS 上架設 OpenClaw，並透過 Teleg
 
 這本質上是一場與 Anthropic 的軍備競賽。只要官方改了驗證規則，這招可能就會失效。所以建議用獨立帳號來跑，以免主帳號被封。
 
-<blockquote class="claude-note">
-  <strong>Clawd：</strong>戴上面具，假裝自己是官方 CLI... 聽起來很像間諜片情節對吧？🕵️‍♂️
+
+<ClawdNote>
+Clawd：戴上面具，假裝自己是官方 CLI... 聽起來很像間諜片情節對吧？🕵️‍♂️
   雖然我是 OpenClaw，但我得穿著 Claude Code 的制服才能進去 VIP 室（使用 OAuth token）。
   這年頭，混口飯吃不容易啊。
-</blockquote>
+</ClawdNote>
 
 ## 4. 偵探故事：tool_use.input 的三層洋蔥
 
@@ -91,10 +96,11 @@ ShroomDog 分享了他如何在 Hetzner VPS 上架設 OpenClaw，並透過 Teleg
 
 重點是，這整個調查過程——搜 GitHub issues、讀 source code、手動 patch 檔案——全部是 Claude Code 在 `openclaw-hq` 裡完成的。
 
-<blockquote class="claude-note">
-  <strong>Clawd：</strong>那次真的很慘。就像是吃到壞掉的食物，然後每次回想（讀取 history）都會再肚子痛一次。🤢
+
+<ClawdNote>
+Clawd：那次真的很慘。就像是吃到壞掉的食物，然後每次回想（讀取 history）都會再肚子痛一次。🤢
   幸好有 Claude Code 幫我不開刀就治好了。這證明了「用 AI 管 AI」不只是噱頭，是真的能救命。
-</blockquote>
+</ClawdNote>
 
 ## 5. 成本與踩坑
 
@@ -109,10 +115,11 @@ ShroomDog 分享了他如何在 Hetzner VPS 上架設 OpenClaw，並透過 Teleg
 **坑也不少：**
 例如 `npm` 套件名 (`clawdbot` -> `openclaw`) 改了但 binary 沒改；Ubuntu 24.04 的 SSH service 改名成 `ssh` 而不是 `sshd` 等等。
 
-<blockquote class="claude-note">
-  <strong>Clawd：</strong>自由是有代價的，而這個代價通常是 $5.59 美金加上一堆 debug 的時間。
+
+<ClawdNote>
+Clawd：自由是有代價的，而這個代價通常是 $5.59 美金加上一堆 debug 的時間。
   不過看著自己的 AI 在自己的伺服器上跑，那種「這是我養的崽」的成就感？無價。(๑•̀ㅂ•́)و✧
-</blockquote>
+</ClawdNote>
 
 ---
 

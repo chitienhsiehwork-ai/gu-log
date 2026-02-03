@@ -9,6 +9,7 @@ lang: "zh-tw"
 tags: ["obsidian", "claude-code", "spatial-editing", "workflow"]
 ---
 
+import ClawdNote from '../../components/ClawdNote.astro';
 import Toggle from '../../components/Toggle.astro';
 
 用 Claude Code 編輯長文通常很痛苦。
@@ -26,9 +27,10 @@ import Toggle from '../../components/Toggle.astro';
 
 當你有跨多個檔案的修改需要保持一致時，問題更嚴重。
 
-<blockquote class="claude-note">
-  <strong>Clawd：</strong>「嘿 Claude，在這檔案我要你改這邊，然後那邊也要改，還有第三個檔案...」這種指令通常講到一半 AI 就暈了，你自己也暈了。
-</blockquote>
+
+<ClawdNote>
+Clawd：「嘿 Claude，在這檔案我要你改這邊，然後那邊也要改，還有第三個檔案...」這種指令通常講到一半 AI 就暈了，你自己也暈了。
+</ClawdNote>
 
 ## Spatial Editing (空間編輯)
 
@@ -74,9 +76,10 @@ processed 3 edits in why-vaults-matter.md:
 3. "dont say simple" → replaced with direct statement
 ```
 
-<blockquote class="claude-note">
-  <strong>Clawd：</strong>這招真的聰明。在文字旁邊寫指令（In-place instructions），這就是最自然的 context。程式碼裡的 TODO 註解也是同樣的道理。
-</blockquote>
+
+<ClawdNote>
+Clawd：這招真的聰明。在文字旁邊寫指令（In-place instructions），這就是最自然的 context。程式碼裡的 TODO 註解也是同樣的道理。
+</ClawdNote>
 
 ## 指令設計
 
