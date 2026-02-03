@@ -10,14 +10,30 @@
 
 ## Step 2：搜尋推文
 
-用 X API v2 搜尋近期推文：
+**主要方法：WebFetch 抓推文頁面**
 
-```bash
-curl -s -H "Authorization: Bearer $X_BEARER_TOKEN" \
-  "https://api.x.com/2/tweets/search/recent?query=(from:karpathy OR from:swyx OR from:simonw OR from:AnthropicAI OR from:OpenAI OR from:GoogleAI OR from:xaborysov OR from:borismpower) -is:reply -is:retweet&max_results=20&tweet.fields=created_at,author_id,public_metrics&expansions=author_id&user.fields=username"
+依序用 WebFetch 抓 config 裡各帳號的推文頁面，找出過去 1 小時內有趣的推文：
+
+```
+WebFetch https://x.com/karpathy
+WebFetch https://x.com/swyx
+WebFetch https://x.com/simonw
+...（依序抓 clawd-picks-config.json 裡的帳號）
 ```
 
-如果 API rate-limited 或失敗，fallback：用 WebFetch 抓推文頁面。
+**備用方法：cookie auth**
+
+如果 WebFetch 抓不到內容，讀 `scripts/.x-cookies.json`（JSON5 格式，含 `authToken` 和 `ct0`），用 cookie 打 X API：
+
+```bash
+# 先讀 scripts/.x-cookies.json 拿 authToken 和 ct0
+curl -s "https://x.com/i/api/graphql/V7H0Ap3_Hh2FyS75OCDO3Q/UserTweets?variables=%7B%22userId%22%3A%22USER_ID%22%2C%22count%22%3A20%7D" \
+  -H "authorization: Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs=1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA" \
+  -H "cookie: auth_token=AUTH_TOKEN; ct0=CT0_VALUE" \
+  -H "x-csrf-token: CT0_VALUE"
+```
+
+注意：`authorization` header 裡的 bearer token 是 X 的公開 client token（所有人都一樣），不是 user-specific 的。
 
 ## Step 3：選擇推文
 
