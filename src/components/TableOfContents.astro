@@ -77,13 +77,26 @@ const t = labels[lang];
     headings.forEach((heading, index) => {
       if (!heading.id) {
         const text = heading.textContent || '';
-        const id = text
-          .toLowerCase()
+        // Generate URL-safe ID: keep alphanumeric, CJK, and hyphens
+        let id = text
           .trim()
-          .replace(/[^\w\s\u4e00-\u9fff-]/g, '')
-          .replace(/\s+/g, '-')
-          || `heading-${index}`;
-        heading.id = id;
+          .toLowerCase()
+          .replace(/[^\w\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff-]/g, '-') // Replace non-word/CJK with hyphen
+          .replace(/-+/g, '-') // Collapse multiple hyphens
+          .replace(/^-|-$/g, ''); // Trim leading/trailing hyphens
+        
+        // Fallback if empty
+        if (!id) id = `heading-${index}`;
+        
+        // Ensure unique IDs
+        let uniqueId = id;
+        let counter = 1;
+        while (document.getElementById(uniqueId)) {
+          uniqueId = `${id}-${counter}`;
+          counter++;
+        }
+        
+        heading.id = uniqueId;
       }
     });
 
@@ -174,16 +187,25 @@ const t = labels[lang];
 
   function setupSmoothScroll() {
     document.querySelectorAll('.toc-link').forEach(link => {
-      link.addEventListener('click', (e) => {
+      link.addEventListener('click', function(e) {
         e.preventDefault();
-        const href = link.getAttribute('href');
+        const href = this.getAttribute('href');
         if (!href) return;
 
-        const target = document.querySelector(href);
+        const targetId = href.replace('#', '');
+        const target = document.getElementById(targetId);
+        
         if (target) {
-          const yOffset = -80; // Header offset
-          const y = target.getBoundingClientRect().top + window.scrollY + yOffset;
-          window.scrollTo({ top: y, behavior: 'smooth' });
+          // Use scrollIntoView for better browser support
+          target.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start' 
+          });
+
+          // Add offset for fixed header after scroll
+          setTimeout(() => {
+            window.scrollBy({ top: -80, behavior: 'instant' });
+          }, 100);
 
           // Update URL
           history.pushState(null, '', href);
