@@ -23,8 +23,9 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
     }
 
   # Auto-push after each iteration (container can't push)
-  echo "[$(date)] Pushing to origin..." >> "$LOG"
+  echo "[$(date)] Syncing with origin..." >> "$LOG"
   cd "$REPO_DIR"
+  git pull --rebase >> "$LOG" 2>&1 || echo "[$(date)] Pull failed" >> "$LOG"
   if git diff --quiet origin/main..HEAD 2>/dev/null; then
     echo "[$(date)] Nothing to push" >> "$LOG"
   else
