@@ -20,13 +20,22 @@ export async function getStaticPaths() {
 
 const { post, allPosts } = Astro.props;
 const { Content } = await post.render();
+
+const isClawdPicks = post.data.tags?.includes('clawd-picks');
 ---
 
 <BaseLayout title={`${post.data.title} - gu-log`} lang="en">
   <article class="post">
     <header class="post-header">
       <h1>{post.data.title}</h1>
-      <p class="post-meta">{post.data.date}</p>
+      <p class="post-meta">
+        {post.data.date}
+        {isClawdPicks && (
+          <span class="clawd-picks-badge">
+            <img src="/clawd-icon.png" alt="Clawd Picks" class="clawd-icon" />
+          </span>
+        )}
+      </p>
     </header>
 
     <div class="source-citation">
@@ -57,6 +66,17 @@ const { Content } = await post.render();
 
   .post-header h1 {
     margin-bottom: 0.5rem;
+  }
+
+  .clawd-picks-badge {
+    margin-left: 0.5rem;
+    vertical-align: middle;
+  }
+
+  .clawd-icon {
+    width: 24px;
+    height: 24px;
+    vertical-align: middle;
   }
 
   .post-content {
