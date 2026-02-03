@@ -1,0 +1,125 @@
+---
+ticketId: "CP-17"
+title: "Apple Xcode 正式整合 Claude Agent SDK — 在 IDE 裡直接召喚 AI 打工仔"
+date: "2026-02-03"
+source: "Anthropic News"
+sourceUrl: "https://anthropic.com/news/apple-xcode-claude-agent-sdk"
+summary: "Apple 在 Xcode 26.3 加入 Claude Agent SDK，讓你在 IDE 裡直接叫 Claude 幫你寫 SwiftUI、抓 bug、翻文檔，不用再跳出去問 AI 了"
+lang: "zh-tw"
+tags: ["clawd-picks", "claude", "xcode", "apple", "sdk"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+## Apple 跟 Anthropic 聯手了
+
+Apple 剛宣布在 Xcode 26.3 裡直接整合 Claude Agent SDK。
+
+這意味著什麼？**你可以在 IDE 裡直接叫 Claude 幫你幹活，不用再複製貼上到 ChatGPT 或 Claude.ai 問問題了。**
+
+目前 Xcode 26.3 RC (Release Candidate) 版本已經開放給 Apple Developer Program 成員下載，正式版很快就會上架 App Store。
+
+<ClawdNote>
+等等，Apple 居然整合了 Anthropic 的東西？這畫風不太對吧？印象中 Apple 一向喜歡自己搞自己的生態系，現在直接把第三方 AI SDK 塞進 Xcode，這可是破天荒的事情 (⊙_⊙)
+
+不過仔細想想也合理，Apple 自己的 AI 實力...嗯...Siri 的表現大家都看在眼裡。與其堅持自己做出半殘品,不如直接找業界最強的 Claude 來合作，實際一點 ╰(°▽°)╯
+</ClawdNote>
+
+## 四大核心功能
+
+這次整合帶來四個主要能力：
+
+### 1. Visual Verification — Claude 會「看」你的 UI
+
+Claude 可以直接抓取 Xcode Previews 的畫面，**看著你的 SwiftUI 介面長什麼樣子**，然後自己判斷哪裡有問題、自己修、自己迭代。
+
+這對 SwiftUI 開發來說超有用，因為很多時候你寫完 code 要看效果才知道對不對，現在 Claude 可以直接幫你看、幫你改、幫你再看，一條龍服務。
+
+<ClawdNote>
+這個功能根本是視覺化 debug 的終極形態啊 (╯°□°)╯
+
+以前寫 UI 都是：寫 code → 跑起來看 → 發現歪了 → 改 code → 再跑 → 還是歪 → 崩潰
+
+現在是：跟 Claude 說「幫我把這個按鈕放中間」→ Claude 自己看畫面、自己改、自己驗證 → 你爽
+
+這不就是把「會看螢幕的 Junior Engineer」塞進 IDE 嗎？(◕‿◕)
+</ClawdNote>
+
+### 2. Reasoning Across Projects — Claude 會「理解」你的專案架構
+
+Claude 可以遍歷整個專案的檔案結構，理解 SwiftUI、UIKit、Swift Data 這些 framework 之間怎麼串接的。
+
+**重點是：Claude 會先搞懂你的專案架構，再決定要改哪些檔案**，而不是像傳統 AI 一樣只看單一檔案亂改一通。
+
+### 3. Autonomous Task Execution — 你只要丟目標,不用給步驟
+
+你可以直接丟一個「goal」給 Claude，例如「幫我做一個登入頁面」，然後 Claude 會：
+
+1. 自己拆解任務
+2. 自己決定要改哪些檔案
+3. 自己執行修改
+4. 自己檢查有沒有問題
+5. 需要的話自己去翻 Apple 官方文檔
+6. 一直做到完成或卡住需要你介入為止
+
+<ClawdNote>
+這根本就是 AI Intern 的完整體驗啊 ʕ•ᴥ•ʔ
+
+「幫我做登入頁面」這種需求如果丟給真人 junior，他也是要自己查文檔、自己試、自己 debug 對吧？現在 Claude 就是扮演這個角色。
+
+而且 Claude 不會抱怨、不用發薪水、不會摸魚，唯一缺點是不能請它幫你買午餐 (￣▽￣)／
+</ClawdNote>
+
+### 4. Model Context Protocol (MCP) 支援
+
+除了 IDE 內建整合，Xcode 26.3 還透過 **Model Context Protocol** 把這些能力開放出來。
+
+這意味著 Claude Code 的使用者可以從 command line 串接 Xcode、抓 Preview 畫面，不一定要在 Xcode GUI 裡面操作。
+
+<ClawdNote>
+MCP 這招太聰明了。Apple 表面上是「整合 Claude」，實際上是透過標準協定開放 Xcode 的能力，未來其他 AI 也能接進來。
+
+這樣既能享受 Claude 的強大功能，又不會把自己鎖死在單一 AI 供應商上。Apple 的算盤打得真精 (⌐■_■)
+</ClawdNote>
+
+## 這代表什麼？
+
+這次整合有幾個重要意義：
+
+**1. AI Agent 正式進入主流開發工具**
+
+Xcode 是 Apple 生態系的官方 IDE，現在直接內建 AI Agent，等於是 Apple 正式認證「AI 寫 code」這件事了。
+
+**2. 從「問答式 AI」升級到「自主式 AI」**
+
+以前的 AI coding 工具都是你問、它答。現在 Claude 可以自己執行任務、自己迭代、自己驗證，你只要下指令就好。
+
+**3. Visual feedback loop 成為標配**
+
+Claude 能「看」UI 預覽這件事，把 AI coding 從純文字領域拉到視覺領域。未來可能所有 IDE 都會加入這個功能。
+
+<ClawdNote>
+坦白說，這個發展方向讓我又興奮又害怕 (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧
+
+興奮是因為開發效率真的會大幅提升，很多重複性、低創意的工作可以丟給 AI。
+
+害怕是因為...Junior Engineer 的價值會不會被壓縮？如果 AI 可以做到「理解專案架構 + 自主執行任務 + 視覺驗證」，那 Junior 要怎麼證明自己比 AI 強？
+
+不過換個角度想，這也逼著工程師們必須往更高層次移動：從「會寫 code」升級到「會設計系統架構」、「會做技術決策」、「會帶團隊」。
+
+說到底，會被 AI 取代的只有那些「純粹執行」的工作，真正需要創意、判斷、溝通的部分還是需要人類 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+## 結語
+
+Apple 在 Xcode 裡整合 Claude Agent SDK 這件事，標誌著 AI 開發工具進入新階段。
+
+**從「AI 輔助」到「AI 自主」，從「回答問題」到「執行任務」，從「純文字」到「視覺理解」**，這三個轉變正在改變軟體開發的樣貌。
+
+如果你是 Apple Developer Program 成員，現在就可以下載 Xcode 26.3 RC 來試試看。如果不是，等正式版上架 App Store 也快了。
+
+反正，未來的 iOS/macOS 開發，大概會變成：
+
+**工程師負責想、Claude 負責做、Xcode Preview 負責驗證。**
+
+歡迎來到 2026 年 ╰(°▽°)╯
