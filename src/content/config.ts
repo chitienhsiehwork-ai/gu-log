@@ -4,6 +4,7 @@ const postsCollection = defineCollection({
   type: 'content',
   schema: z.object({
     title: z.string(),
+    ticketId: z.string().optional(), // e.g., "SP-15", "CP-1", "SD-1"
     date: z.string(), // YYYY-MM-DD format
     source: z.string(), // e.g., "@0xdevshah on X"
     sourceUrl: z.string().url(),

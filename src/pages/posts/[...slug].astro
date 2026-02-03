@@ -3,6 +3,7 @@ import { getCollection } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import TableOfContents from '../../components/TableOfContents.astro';
 import PrevNextNav from '../../components/PrevNextNav.astro';
+import TicketBadge from '../../components/TicketBadge.astro';
 
 export async function getStaticPaths() {
   const posts = await getCollection('posts', ({ data }) => {
@@ -22,6 +23,7 @@ const { post, allPosts } = Astro.props;
 const { Content } = await post.render();
 
 const isClawdPicks = post.data.tags?.includes('clawd-picks');
+const ticketId = post.data.ticketId;
 ---
 
 <BaseLayout title={`${post.data.title} - gu-log`}>
@@ -29,7 +31,8 @@ const isClawdPicks = post.data.tags?.includes('clawd-picks');
     <header class="post-header">
       <h1>{post.data.title}</h1>
       <p class="post-meta">
-        {post.data.date}
+        {ticketId && <TicketBadge ticketId={ticketId} />}
+        <span class="meta-date">{post.data.date}</span>
         {isClawdPicks && (
           <span class="clawd-picks-badge">
             <img src="/clawd-icon.png" alt="Clawd Picks" class="clawd-icon" />
@@ -77,6 +80,10 @@ const isClawdPicks = post.data.tags?.includes('clawd-picks');
     width: 24px;
     height: 24px;
     vertical-align: middle;
+  }
+
+  .meta-date {
+    margin-left: 0.5rem;
   }
 
   .post-content {

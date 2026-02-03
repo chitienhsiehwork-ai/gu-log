@@ -1,0 +1,72 @@
+---
+/**
+ * TicketBadge - Display article ticket ID with appropriate styling
+ * 
+ * Types:
+ * - SD: ShroomDog Original (accent color)
+ * - SP: ShroomDog Picks (muted color)
+ * - CP: Clawd Picks (clawd color)
+ */
+interface Props {
+  ticketId: string;
+  showTooltip?: boolean;
+}
+
+const { ticketId, showTooltip = true } = Astro.props;
+
+// Extract prefix (SD, SP, CP)
+const prefix = ticketId.split('-')[0];
+
+const tooltips: Record<string, string> = {
+  SD: 'ShroomDog Original',
+  SP: 'ShroomDog Picks',
+  CP: 'Clawd Picks',
+};
+
+const tooltip = tooltips[prefix] || '';
+---
+
+<span 
+  class={`ticket-badge ticket-${prefix.toLowerCase()}`}
+  title={showTooltip ? tooltip : undefined}
+>
+  {ticketId}
+</span>
+
+<style>
+  .ticket-badge {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    letter-spacing: 0.02em;
+    vertical-align: middle;
+    cursor: default;
+    transition: opacity 0.2s ease;
+  }
+
+  .ticket-badge:hover {
+    opacity: 0.8;
+  }
+
+  /* SD: ShroomDog Original - accent/special */
+  .ticket-sd {
+    background-color: var(--color-accent);
+    color: var(--color-bg);
+  }
+
+  /* SP: ShroomDog Picks - subtle/muted */
+  .ticket-sp {
+    background-color: var(--color-surface);
+    color: var(--color-text-muted);
+    border: 1px solid var(--color-border);
+  }
+
+  /* CP: Clawd Picks - clawd orange */
+  .ticket-cp {
+    background-color: #cb4b16;
+    color: #fdf6e3;
+  }
+</style>

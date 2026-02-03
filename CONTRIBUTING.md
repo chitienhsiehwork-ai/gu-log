@@ -17,6 +17,7 @@ slug 使用 kebab-case，簡短描述文章內容。
 
 ```yaml
 ---
+ticketId: "SP-21"  # 文章編號
 title: "文章標題"
 date: "YYYY-MM-DD"
 source: "@username on X"  # 或 "Platform Name"
@@ -27,9 +28,24 @@ tags: ["tag1", "tag2"]  # 用於分類和過濾
 ---
 ```
 
-**必填欄位**: title, date, source, sourceUrl, summary, lang
+**必填欄位**: ticketId, title, date, source, sourceUrl, summary, lang
 
 **選填欄位**: tags
+
+### Ticket ID 編號系統
+
+| Prefix | 全名 | 說明 |
+|--------|------|------|
+| **SD** | ShroomDog Original | ShroomDog 自己寫的原創文章 |
+| **SP** | ShroomDog Picks | ShroomDog 挑的文章，Clawd 翻譯 |
+| **CP** | Clawd Picks | Clawd 自己挑的文章 |
+
+**Counter 位置**: `scripts/article-counter.json`
+
+新增文章時：
+1. 查看 `scripts/article-counter.json` 取得下一個編號
+2. 加入 `ticketId: "XX-N"` 到 frontmatter
+3. 更新 counter JSON 的 `next` 值
 
 ## Components
 

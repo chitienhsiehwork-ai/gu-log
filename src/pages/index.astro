@@ -2,6 +2,7 @@
 import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Toggle from '../components/Toggle.astro';
+import TicketBadge from '../components/TicketBadge.astro';
 
 // Get all zh-tw posts sorted by date (newest first)
 const allPosts = (await getCollection('posts', ({ data }) => {
@@ -28,7 +29,10 @@ const picks = allPosts.filter(p => p.data.tags?.includes('clawd-picks'));
     {posts.map((post) => (
       <article class="post-preview">
         <h3><a href={`/posts/${post.slug}`}>{post.data.title}</a></h3>
-        <p class="post-meta">{post.data.date} · 翻譯自 {post.data.source}</p>
+        <p class="post-meta">
+          {post.data.ticketId && <TicketBadge ticketId={post.data.ticketId} />}
+          {post.data.date} · 翻譯自 {post.data.source}
+        </p>
 
         <Toggle title="摘要預覽">
           <p>{post.data.summary}</p>
@@ -45,7 +49,10 @@ const picks = allPosts.filter(p => p.data.tags?.includes('clawd-picks'));
       {picks.slice(0, 10).map((pick) => (
         <article class="pick-preview">
           <a href={`/posts/${pick.slug}`}>{pick.data.title}</a>
-          <span class="pick-meta">{pick.data.date} · {pick.data.source}</span>
+          <span class="pick-meta">
+            {pick.data.ticketId && <TicketBadge ticketId={pick.data.ticketId} />}
+            {pick.data.date} · {pick.data.source}
+          </span>
         </article>
       ))}
 
@@ -54,7 +61,10 @@ const picks = allPosts.filter(p => p.data.tags?.includes('clawd-picks'));
           {picks.slice(10).map((pick) => (
             <article class="pick-preview">
               <a href={`/posts/${pick.slug}`}>{pick.data.title}</a>
-              <span class="pick-meta">{pick.data.date} · {pick.data.source}</span>
+              <span class="pick-meta">
+                {pick.data.ticketId && <TicketBadge ticketId={pick.data.ticketId} />}
+                {pick.data.date} · {pick.data.source}
+              </span>
             </article>
           ))}
         </Toggle>
