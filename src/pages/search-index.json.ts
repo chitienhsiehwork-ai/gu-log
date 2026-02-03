@@ -1,0 +1,22 @@
+import type { APIContext } from 'astro';
+import { getCollection } from 'astro:content';
+
+export async function GET(_context: APIContext) {
+  const posts = await getCollection('posts');
+
+  const searchIndex = posts.map((post) => ({
+    slug: post.slug,
+    title: post.data.title,
+    summary: post.data.summary,
+    tags: post.data.tags || [],
+    lang: post.data.lang,
+    date: post.data.date,
+    source: post.data.source,
+  }));
+
+  return new Response(JSON.stringify(searchIndex), {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+}
