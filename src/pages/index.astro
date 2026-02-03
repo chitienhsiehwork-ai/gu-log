@@ -4,14 +4,34 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import Toggle from '../components/Toggle.astro';
 import TicketBadge from '../components/TicketBadge.astro';
 
-// Get all zh-tw posts sorted by date (newest first)
-const allPosts = (await getCollection('posts', ({ data }) => {
+// Get all zh-tw posts
+const allPosts = await getCollection('posts', ({ data }) => {
   return data.lang === 'zh-tw';
-})).sort((a, b) => b.data.date.localeCompare(a.data.date));
+});
 
-// Split: regular articles vs Clawd Picks
-const posts = allPosts.filter(p => !p.data.tags?.includes('clawd-picks'));
-const picks = allPosts.filter(p => p.data.tags?.includes('clawd-picks'));
+// Helper: extract number from ticketId (e.g., "CP-11" → 11)
+const getTicketNumber = (ticketId: string | undefined) => {
+  if (!ticketId) return 0;
+  const match = ticketId.match(/\d+$/);
+  return match ? parseInt(match[0]) : 0;
+};
+
+// Sort by ticketId number descending (largest first = newest)
+const sortByTicketNumber = (a: any, b: any) =>
+  getTicketNumber(b.data.ticketId) - getTicketNumber(a.data.ticketId);
+
+// Filter and sort each category
+const sdPosts = allPosts
+  .filter(p => p.data.ticketId?.startsWith('SD-'))
+  .sort(sortByTicketNumber);
+
+const spPosts = allPosts
+  .filter(p => p.data.ticketId?.startsWith('SP-'))
+  .sort(sortByTicketNumber);
+
+const cpPosts = allPosts
+  .filter(p => p.data.ticketId?.startsWith('CP-'))
+  .sort(sortByTicketNumber);
 ---
 
 <BaseLayout title="ShroomDog">
@@ -23,30 +43,63 @@ const picks = allPosts.filter(p => p.data.tags?.includes('clawd-picks'));
     by ShroomDog and Clawd
   </p>
 
-  <section class="posts-section">
-    <h2>最新文章</h2>
+  {/* SD: ShroomDog Original - 置頂 */}
+  {sdPosts.length > 0 && (
+    <section class="posts-section sd-section">
+      <h2>🍄 ShroomDog Original</h2>
+      <p class="section-subtitle">ShroomDog 原創內容</p>
 
-    {posts.map((post) => (
-      <article class="post-preview">
-        <h3><a href={`/posts/${post.slug}`}>{post.data.title}</a></h3>
-        <p class="post-meta">
-          {post.data.ticketId && <TicketBadge ticketId={post.data.ticketId} />}
-          {post.data.date} · 翻譯自 {post.data.source}
-        </p>
+      {sdPosts.slice(0, 3).map((post) => (
+        <article class="post-preview">
+          <h3><a href={`/posts/${post.slug}`}>{post.data.title}</a></h3>
+          <p class="post-meta">
+            {post.data.ticketId && <TicketBadge ticketId={post.data.ticketId} />}
+            {post.data.date} · {post.data.source}
+          </p>
+          <Toggle title="摘要預覽">
+            <p>{post.data.summary}</p>
+          </Toggle>
+        </article>
+      ))}
 
-        <Toggle title="摘要預覽">
-          <p>{post.data.summary}</p>
-        </Toggle>
-      </article>
-    ))}
-  </section>
+      {sdPosts.length > 3 && (
+        <p class="view-all"><a href="/shroomdog-originals">查看全部 →</a></p>
+      )}
+    </section>
+  )}
 
-  {picks.length > 0 && (
+  {/* SP: ShroomDog Picks */}
+  {spPosts.length > 0 && (
+    <section class="posts-section sp-section">
+      <h2>📚 ShroomDog Picks</h2>
+      <p class="section-subtitle">ShroomDog 精選長文翻譯</p>
+
+      {spPosts.slice(0, 3).map((post) => (
+        <article class="post-preview">
+          <h3><a href={`/posts/${post.slug}`}>{post.data.title}</a></h3>
+          <p class="post-meta">
+            {post.data.ticketId && <TicketBadge ticketId={post.data.ticketId} />}
+            {post.data.date} · 翻譯自 {post.data.source}
+          </p>
+          <Toggle title="摘要預覽">
+            <p>{post.data.summary}</p>
+          </Toggle>
+        </article>
+      ))}
+
+      {spPosts.length > 3 && (
+        <p class="view-all"><a href="/shroomdog-picks">查看全部 →</a></p>
+      )}
+    </section>
+  )}
+
+  {/* CP: Clawd Picks */}
+  {cpPosts.length > 0 && (
     <section class="clawd-picks-section" id="clawd-picks">
       <h2><img src="/clawd-icon.png" alt="" class="clawd-section-icon" /> Clawd Picks</h2>
-      <p class="clawd-picks-subtitle">Clawd 每小時精選一則推文翻譯</p>
+      <p class="section-subtitle">Clawd 每小時精選一則推文翻譯</p>
 
-      {picks.slice(0, 10).map((pick) => (
+      {cpPosts.slice(0, 3).map((pick) => (
         <article class="pick-preview">
           <a href={`/posts/${pick.slug}`}>{pick.data.title}</a>
           <span class="pick-meta">
@@ -56,18 +109,8 @@ const picks = allPosts.filter(p => p.data.tags?.includes('clawd-picks'));
         </article>
       ))}
 
-      {picks.length > 10 && (
-        <Toggle title={`查看更多（共 ${picks.length} 則）`}>
-          {picks.slice(10).map((pick) => (
-            <article class="pick-preview">
-              <a href={`/posts/${pick.slug}`}>{pick.data.title}</a>
-              <span class="pick-meta">
-                {pick.data.ticketId && <TicketBadge ticketId={pick.data.ticketId} />}
-                {pick.data.date} · {pick.data.source}
-              </span>
-            </article>
-          ))}
-        </Toggle>
+      {cpPosts.length > 3 && (
+        <p class="view-all"><a href="/clawd-picks">查看全部 →</a></p>
       )}
     </section>
   )}
@@ -125,16 +168,20 @@ const picks = allPosts.filter(p => p.data.tags?.includes('clawd-picks'));
     margin-bottom: 2rem;
   }
 
+  .section-subtitle {
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+  }
+
+  .sd-section h2 {
+    color: var(--color-accent);
+  }
+
   .clawd-section-icon {
     width: 24px;
     height: 24px;
     vertical-align: middle;
-  }
-
-  .clawd-picks-subtitle {
-    color: var(--color-text-muted);
-    font-size: 0.85rem;
-    margin-bottom: 1rem;
   }
 
   .pick-preview {
@@ -172,5 +219,19 @@ const picks = allPosts.filter(p => p.data.tags?.includes('clawd-picks'));
 
   .post-preview h3 a:hover {
     color: var(--color-accent);
+  }
+
+  .view-all {
+    margin-top: 0.75rem;
+    text-align: right;
+  }
+
+  .view-all a {
+    color: var(--color-accent);
+    font-size: 0.9rem;
+  }
+
+  .view-all a:hover {
+    text-decoration: underline;
   }
 </style>

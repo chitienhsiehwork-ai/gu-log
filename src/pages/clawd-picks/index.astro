@@ -1,0 +1,95 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import TicketBadge from '../../components/TicketBadge.astro';
+
+// Helper: extract number from ticketId (e.g., "CP-11" → 11)
+const getTicketNumber = (ticketId: string | undefined) => {
+  if (!ticketId) return 0;
+  const match = ticketId.match(/\d+$/);
+  return match ? parseInt(match[0]) : 0;
+};
+
+// Get all CP posts, sorted by ticketId number descending
+const cpPosts = (await getCollection('posts', ({ data }) => {
+  return data.lang === 'zh-tw' && data.ticketId?.startsWith('CP-');
+})).sort((a, b) => getTicketNumber(b.data.ticketId) - getTicketNumber(a.data.ticketId));
+---
+
+<BaseLayout title="Clawd Picks 全部文章">
+  <h1><img src="/clawd-icon.png" alt="" class="page-icon" /> Clawd Picks</h1>
+  <p class="page-subtitle">Clawd 每小時精選一則推文翻譯</p>
+  <p class="post-count">共 {cpPosts.length} 篇</p>
+
+  <a href="/" class="back-link">← 返回首頁</a>
+
+  <section class="archive-list">
+    {cpPosts.map((pick) => (
+      <article class="pick-preview">
+        <a href={`/posts/${pick.slug}`} class="pick-title">{pick.data.title}</a>
+        <span class="pick-meta">
+          {pick.data.ticketId && <TicketBadge ticketId={pick.data.ticketId} />}
+          {pick.data.date} · {pick.data.source}
+        </span>
+      </article>
+    ))}
+  </section>
+</BaseLayout>
+
+<style>
+  .page-icon {
+    width: 32px;
+    height: 32px;
+    vertical-align: middle;
+    margin-right: 0.5rem;
+  }
+
+  .page-subtitle {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .post-count {
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+  }
+
+  .back-link {
+    display: inline-block;
+    color: var(--color-accent);
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .back-link:hover {
+    text-decoration: underline;
+  }
+
+  .archive-list {
+    margin-bottom: 2rem;
+  }
+
+  .pick-preview {
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .pick-title {
+    display: block;
+    color: var(--color-text);
+    font-size: 1rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .pick-title:hover {
+    color: var(--color-accent);
+  }
+
+  .pick-meta {
+    display: block;
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+  }
+</style>

@@ -2,15 +2,36 @@
 import { getCollection } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Toggle from '../../components/Toggle.astro';
+import TicketBadge from '../../components/TicketBadge.astro';
 
-// Get all EN posts sorted by date (newest first)
-const allPosts = (await getCollection('posts', ({ data }) => {
+// Get all EN posts
+const allPosts = await getCollection('posts', ({ data }) => {
   return data.lang === 'en';
-})).sort((a, b) => b.data.date.localeCompare(a.data.date));
+});
 
-// Split: regular articles vs Clawd Picks
-const posts = allPosts.filter(p => !p.data.tags?.includes('clawd-picks'));
-const picks = allPosts.filter(p => p.data.tags?.includes('clawd-picks'));
+// Helper: extract number from ticketId (e.g., "CP-11" → 11)
+const getTicketNumber = (ticketId: string | undefined) => {
+  if (!ticketId) return 0;
+  const match = ticketId.match(/\d+$/);
+  return match ? parseInt(match[0]) : 0;
+};
+
+// Sort by ticketId number descending (largest first = newest)
+const sortByTicketNumber = (a: any, b: any) =>
+  getTicketNumber(b.data.ticketId) - getTicketNumber(a.data.ticketId);
+
+// Filter and sort each category
+const sdPosts = allPosts
+  .filter(p => p.data.ticketId?.startsWith('SD-'))
+  .sort(sortByTicketNumber);
+
+const spPosts = allPosts
+  .filter(p => p.data.ticketId?.startsWith('SP-'))
+  .sort(sortByTicketNumber);
+
+const cpPosts = allPosts
+  .filter(p => p.data.ticketId?.startsWith('CP-'))
+  .sort(sortByTicketNumber);
 ---
 
 <BaseLayout title="ShroomDog - Making AI Fun Again" lang="en">
@@ -22,54 +43,81 @@ const picks = allPosts.filter(p => p.data.tags?.includes('clawd-picks'));
     by ShroomDog and Clawd
   </p>
 
-  <section class="posts-section">
-    <h2>Latest Posts</h2>
+  {/* SD: ShroomDog Original - Featured */}
+  {sdPosts.length > 0 && (
+    <section class="posts-section sd-section">
+      <h2>🍄 ShroomDog Original</h2>
+      <p class="section-subtitle">Original content by ShroomDog</p>
 
-    {posts.map((post) => (
-      <article class="post-preview">
-        <h3><a href={`/en/posts/${post.slug}`}>{post.data.title}</a></h3>
-        <p class="post-meta">{post.data.date} · From {post.data.source}</p>
-
-        <Toggle title="Preview">
-          <p>{post.data.summary}</p>
-        </Toggle>
-      </article>
-    ))}
-
-    {posts.length === 0 && (
-      <p class="more-coming">More posts coming soon! Check out the <a href="/">Chinese version</a> for the full archive.</p>
-    )}
-
-  </section>
-
-  {picks.length > 0 && (
-    <section class="clawd-picks-section" id="clawd-picks">
-      <h2><img src="/clawd-icon.png" alt="" class="clawd-section-icon" /> Clawd Picks</h2>
-      <p class="clawd-picks-subtitle">One tweet, translated every hour by Clawd</p>
-
-      {picks.slice(0, 10).map((pick) => (
-        <article class="pick-preview">
-          <a href={`/en/posts/${pick.slug}`}>{pick.data.title}</a>
-          <span class="pick-meta">{pick.data.date} · {pick.data.source}</span>
+      {sdPosts.slice(0, 3).map((post) => (
+        <article class="post-preview">
+          <h3><a href={`/en/posts/${post.slug}`}>{post.data.title}</a></h3>
+          <p class="post-meta">
+            {post.data.ticketId && <TicketBadge ticketId={post.data.ticketId} />}
+            {post.data.date} · {post.data.source}
+          </p>
+          <Toggle title="Preview">
+            <p>{post.data.summary}</p>
+          </Toggle>
         </article>
       ))}
 
-      {picks.length > 10 && (
-        <Toggle title={`Show more (${picks.length} total)`}>
-          {picks.slice(10).map((pick) => (
-            <article class="pick-preview">
-              <a href={`/en/posts/${pick.slug}`}>{pick.data.title}</a>
-              <span class="pick-meta">{pick.data.date} · {pick.data.source}</span>
-            </article>
-          ))}
-        </Toggle>
+      {sdPosts.length > 3 && (
+        <p class="view-all"><a href="/en/shroomdog-originals">View all →</a></p>
+      )}
+    </section>
+  )}
+
+  {/* SP: ShroomDog Picks */}
+  {spPosts.length > 0 && (
+    <section class="posts-section sp-section">
+      <h2>📚 ShroomDog Picks</h2>
+      <p class="section-subtitle">Long-form articles, translated and explained</p>
+
+      {spPosts.slice(0, 3).map((post) => (
+        <article class="post-preview">
+          <h3><a href={`/en/posts/${post.slug}`}>{post.data.title}</a></h3>
+          <p class="post-meta">
+            {post.data.ticketId && <TicketBadge ticketId={post.data.ticketId} />}
+            {post.data.date} · From {post.data.source}
+          </p>
+          <Toggle title="Preview">
+            <p>{post.data.summary}</p>
+          </Toggle>
+        </article>
+      ))}
+
+      {spPosts.length > 3 && (
+        <p class="view-all"><a href="/en/shroomdog-picks">View all →</a></p>
+      )}
+    </section>
+  )}
+
+  {/* CP: Clawd Picks */}
+  {cpPosts.length > 0 && (
+    <section class="clawd-picks-section" id="clawd-picks">
+      <h2><img src="/clawd-icon.png" alt="" class="clawd-section-icon" /> Clawd Picks</h2>
+      <p class="section-subtitle">One tweet, translated every hour by Clawd</p>
+
+      {cpPosts.slice(0, 3).map((pick) => (
+        <article class="pick-preview">
+          <a href={`/en/posts/${pick.slug}`}>{pick.data.title}</a>
+          <span class="pick-meta">
+            {pick.data.ticketId && <TicketBadge ticketId={pick.data.ticketId} />}
+            {pick.data.date} · {pick.data.source}
+          </span>
+        </article>
+      ))}
+
+      {cpPosts.length > 3 && (
+        <p class="view-all"><a href="/en/clawd-picks">View all →</a></p>
       )}
     </section>
   )}
 
   <section class="about-section">
     <h2>What is this?</h2>
-    
+
     <Toggle title="The Concept">
       <p>This is gu-log's English corner. We take interesting tech content and rewrite it in a way that's actually fun to read — like a professor who's had too much coffee explaining AI to a smart high schooler.</p>
     </Toggle>
@@ -110,16 +158,20 @@ const picks = allPosts.filter(p => p.data.tags?.includes('clawd-picks'));
     margin-bottom: 2rem;
   }
 
+  .section-subtitle {
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+  }
+
+  .sd-section h2 {
+    color: var(--color-accent);
+  }
+
   .clawd-section-icon {
     width: 24px;
     height: 24px;
     vertical-align: middle;
-  }
-
-  .clawd-picks-subtitle {
-    color: var(--color-text-muted);
-    font-size: 0.85rem;
-    margin-bottom: 1rem;
   }
 
   .pick-preview {
@@ -159,13 +211,17 @@ const picks = allPosts.filter(p => p.data.tags?.includes('clawd-picks'));
     color: var(--color-accent);
   }
 
-  .more-coming {
-    padding: 1.5rem 0;
-    color: var(--color-text-muted);
-    font-style: italic;
+  .view-all {
+    margin-top: 0.75rem;
+    text-align: right;
   }
 
-  .more-coming a {
+  .view-all a {
     color: var(--color-accent);
+    font-size: 0.9rem;
+  }
+
+  .view-all a:hover {
+    text-decoration: underline;
   }
 </style>

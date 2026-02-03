@@ -1,0 +1,102 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import TicketBadge from '../../../components/TicketBadge.astro';
+import Toggle from '../../../components/Toggle.astro';
+
+// Helper: extract number from ticketId (e.g., "SD-1" → 1)
+const getTicketNumber = (ticketId: string | undefined) => {
+  if (!ticketId) return 0;
+  const match = ticketId.match(/\d+$/);
+  return match ? parseInt(match[0]) : 0;
+};
+
+// Get all SD posts, sorted by ticketId number descending
+const sdPosts = (await getCollection('posts', ({ data }) => {
+  return data.lang === 'en' && data.ticketId?.startsWith('SD-');
+})).sort((a, b) => getTicketNumber(b.data.ticketId) - getTicketNumber(a.data.ticketId));
+---
+
+<BaseLayout title="ShroomDog Original - All Posts" lang="en">
+  <h1>🍄 ShroomDog Original</h1>
+  <p class="page-subtitle">Original content by ShroomDog</p>
+  <p class="post-count">{sdPosts.length} posts</p>
+
+  <a href="/en" class="back-link">← Back to home</a>
+
+  <section class="archive-list">
+    {sdPosts.map((post) => (
+      <article class="post-preview">
+        <h3><a href={`/en/posts/${post.slug}`}>{post.data.title}</a></h3>
+        <p class="post-meta">
+          {post.data.ticketId && <TicketBadge ticketId={post.data.ticketId} />}
+          {post.data.date} · {post.data.source}
+        </p>
+        <Toggle title="Preview">
+          <p>{post.data.summary}</p>
+        </Toggle>
+      </article>
+    ))}
+  </section>
+
+  {sdPosts.length === 0 && (
+    <p class="empty-message">No original content yet. Stay tuned!</p>
+  )}
+</BaseLayout>
+
+<style>
+  h1 {
+    color: var(--color-accent);
+  }
+
+  .page-subtitle {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .post-count {
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+  }
+
+  .back-link {
+    display: inline-block;
+    color: var(--color-accent);
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .back-link:hover {
+    text-decoration: underline;
+  }
+
+  .archive-list {
+    margin-bottom: 2rem;
+  }
+
+  .post-preview {
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .post-preview h3 {
+    margin-bottom: 0.25rem;
+  }
+
+  .post-preview h3 a {
+    color: var(--color-text);
+  }
+
+  .post-preview h3 a:hover {
+    color: var(--color-accent);
+  }
+
+  .empty-message {
+    padding: 2rem;
+    text-align: center;
+    color: var(--color-text-muted);
+    font-style: italic;
+  }
+</style>
