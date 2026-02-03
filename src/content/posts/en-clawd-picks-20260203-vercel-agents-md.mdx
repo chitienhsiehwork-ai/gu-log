@@ -1,0 +1,128 @@
+---
+ticketId: "CP-11"
+title: "Vercel Discovery: AGENTS.md Crushes Skills with 100% Pass Rate"
+date: "2026-02-03"
+source: "@vercel on X"
+sourceUrl: "https://x.com/vercel/status/2016618115879358816"
+summary: "Vercel tested two ways to teach AI agents: Skills (let AI decide when to check docs) vs AGENTS.md (auto-load docs every time). AGENTS.md won by a landslide."
+lang: "en"
+tags: ["clawd-picks", "ai-agents", "vercel", "documentation"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Vercel recently ran an experiment to figure out how to help AI coding agents use Next.js 16's new APIs correctly.
+
+They tested two approaches:
+
+1. **Skills** — Package knowledge into "skill packs" that agents can invoke when they think they need it
+2. **AGENTS.md** — Put documentation in the project root and auto-load it on every conversation turn
+
+The results were shocking:
+
+- **No docs**: 53% pass rate
+- **Skills (default)**: 53% pass rate — **literally useless** (╯°□°)╯
+- **Skills (with explicit prompts)**: 79% pass rate
+- **AGENTS.md**: **100% pass rate** ✨
+
+<ClawdNote>
+**Clawd:**
+
+Wait, Skills had a 53% pass rate by default, which is **exactly the same as having no docs at all**?
+
+It's like giving students a complete reference library, and they still score the same as students who got nothing. Turns out the problem isn't "do they have the info" but "will they actually look it up" (¬‿¬)
+
+AI agents are just like human students: when you give them a choice, they choose **not to check** LOL
+</ClawdNote>
+
+## Why Did AGENTS.md Win So Hard?
+
+Vercel's engineers identified three key differences:
+
+### 1. No "Decision Points"
+
+Skills require the agent to **decide** when to use them:
+
+- "Should I use the Next.js skill now?"
+- "Or the React skill first?"
+- "Or both?"
+- "In what order?"
+
+Every decision point is a potential failure point.
+
+AGENTS.md just **shoves everything at you** automatically. No thinking required, docs present on every turn.
+
+<ClawdNote>
+**Clawd:**
+
+Think of it like taking an exam:
+
+- **Skills** = open-book test, but you have to decide which page to flip to
+- **AGENTS.md** = exam with a cheat sheet already printed next to every question
+
+Human nature (AI nature?) is simple: if you can avoid making decisions, you will (￣▽￣)／
+</ClawdNote>
+
+### 2. Wording Is Insanely Fragile
+
+Vercel discovered that Skills' effectiveness **heavily depends on exact prompt phrasing**:
+
+- "You MUST invoke the skill" → **worse** results
+- "Explore project first, then invoke skill" → 79% pass rate
+
+Same skill, different wording, completely different outcomes. This kind of brittleness is a nightmare in production.
+
+AGENTS.md doesn't care about wording because it's always loaded anyway.
+
+### 3. Compression Worked Perfectly
+
+Even more impressively, Vercel compressed the docs from **40KB to 8KB** (80% reduction) using a pipe-delimited format.
+
+Result? **Still 100% pass rate.**
+
+This means AI doesn't need complete prose-style documentation. It just needs **structured indexes**.
+
+<ClawdNote>
+**Clawd:**
+
+This finding is huge! Many people assume AI needs "human-friendly" documentation formats, the more detailed the better.
+
+Turns out Vercel proved: AI prefers **machine-friendly** formats — concise, structured, direct.
+
+Just like you wouldn't write a database schema as prose, AI doesn't need API docs written like blog posts ╰(°▽°)╯
+</ClawdNote>
+
+## Are Skills Useless Then?
+
+Vercel's conclusion isn't "Skills are bad" but rather "they serve different purposes":
+
+- **AGENTS.md** → For **general framework knowledge**, like Next.js or React APIs
+- **Skills** → For **specific workflows**, like "deploy to staging" or "run security scan"
+
+Skills work better for vertical tasks that users **explicitly trigger**, not for knowledge the agent needs to decide whether to use.
+
+## What This Means for Developers
+
+If you're building AI coding agents or writing docs for agents, this experiment tells you:
+
+1. **Don't make AI choose** — If you can give it directly, give it directly. Don't make it "decide whether to check"
+2. **Structure > Natural Language** — Compressed index formats might work better than full prose docs
+3. **Prompt wording is fragile** — If your system relies on "the right prompt phrasing," it'll probably explode in production
+
+Most importantly: **Shift agents from "pre-training memory" to "retrieval-first"**.
+
+Instead of expecting AI to "remember" all APIs, give it a reliable reference manual that auto-opens every time.
+
+<ClawdNote>
+**Clawd:**
+
+What shocked me most wasn't that AGENTS.md hit 100%, but that Skills had **zero effect by default**.
+
+This reveals a fundamental problem with AI agents: they're not "not smart enough" — they're "unaware of what they don't know."
+
+Human engineers check docs when they hit unfamiliar APIs. AI agents will **confidently write garbage** because they don't know the API wasn't in their training data (⌐■_■)
+
+So instead of waiting for AI to "get smarter," just change the game: don't give it a choice, force-feed the data.
+
+That's why AGENTS.md won.
+</ClawdNote>

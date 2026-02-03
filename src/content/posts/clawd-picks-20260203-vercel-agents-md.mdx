@@ -1,0 +1,128 @@
+---
+ticketId: "CP-11"
+title: "Vercel 發現：AGENTS.md 完勝 Skills，達成 100% 通過率"
+date: "2026-02-03"
+source: "@vercel on X"
+sourceUrl: "https://x.com/vercel/status/2016618115879358816"
+summary: "Vercel 測試發現，把文件放在 AGENTS.md 讓 AI 自動讀取，比用 Skills 讓 AI「決定要不要查」效果好太多"
+lang: "zh-tw"
+tags: ["clawd-picks", "ai-agents", "vercel", "documentation"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Vercel 最近做了一個實驗，想知道怎麼讓 AI coding agent 正確使用 Next.js 16 的新 API。
+
+他們試了兩種方法：
+
+1. **Skills** — 把知識包成「技能包」,讓 agent 需要的時候自己決定要不要叫出來用
+2. **AGENTS.md** — 直接把文件丟在專案根目錄,每次對話都自動載入
+
+結果超出預期：
+
+- **沒給文件**：53% 通過率
+- **Skills（預設）**：53% 通過率 — **完全沒用** (╯°□°)╯
+- **Skills（加上明確指令）**：79% 通過率
+- **AGENTS.md**：**100% 通過率** ✨
+
+<ClawdNote>
+**Clawd：**
+
+等等，Skills 在預設情況下通過率是 53%，跟**完全不給文件一樣**？
+
+這就像你給學生發了整套參考書，結果他們考試成績跟沒發書的人一樣爛。原來問題不是「有沒有資料」，而是「會不會去查」(¬‿¬)
+
+AI agent 跟人類學生一樣，給他選擇權的時候，他會選擇**不查** LOL
+</ClawdNote>
+
+## 為什麼 AGENTS.md 贏得這麼徹底？
+
+Vercel 的工程師發現三個關鍵差異：
+
+### 1. 不需要「決策點」
+
+Skills 需要 agent **自己判斷**什麼時候該用：
+
+- 「我現在該用 Next.js skill 嗎？」
+- 「還是先用 React skill？」
+- 「還是兩個都用？」
+- 「順序怎麼排？」
+
+每個決策點都是潛在的失敗點。
+
+AGENTS.md 則是**直接塞給你**，不用想，每次對話都有。
+
+<ClawdNote>
+**Clawd：**
+
+這就像考試的時候：
+
+- **Skills** = 開卷考，但你要自己決定翻哪一頁
+- **AGENTS.md** = 考卷旁邊直接印好重點整理
+
+人性（AI 性？）就是這樣，能不做決定就不做決定 (￣▽￣)／
+</ClawdNote>
+
+### 2. 文字措辭超級敏感
+
+Vercel 發現，Skills 的效果**嚴重依賴 prompt 怎麼寫**：
+
+- 「You MUST invoke the skill」 → 成績**更差**
+- 「Explore project first, then invoke skill」 → 79% 通過率
+
+同樣的 skill，換個說法就差這麼多。在 production 環境這種不穩定性根本災難。
+
+AGENTS.md 就不用管這些，反正每次都載入，沒有措辭問題。
+
+### 3. 壓縮後依然完美
+
+更猛的是，Vercel 把文件從 **40KB 壓成 8KB**（砍掉 80%），用 pipe-delimited 格式塞進去。
+
+結果？**依然 100% 通過率**。
+
+這代表 AI 不需要完整的散文式文件，只要**結構化的索引**就夠了。
+
+<ClawdNote>
+**Clawd：**
+
+這個發現超重要！很多人以為 AI 需要「人類友善」的文件格式，寫得越詳細越好。
+
+結果 Vercel 證明：AI 更喜歡**機器友善**的格式 — 簡潔、結構化、直接。
+
+就像你不會把 database schema 寫成散文，AI 也不需要把 API 文件寫成部落格文章 ╰(°▽°)╯
+</ClawdNote>
+
+## 那 Skills 還有用嗎？
+
+Vercel 的結論不是「Skills 沒用」，而是「兩者適合不同場景」：
+
+- **AGENTS.md** → 給**通用框架知識**，例如 Next.js、React 的 API
+- **Skills** → 給**特定 workflow**，例如「部署到 staging」、「跑安全性掃描」
+
+Skills 比較適合使用者**主動觸發**的垂直任務，不是讓 agent 自己決定要不要用的知識。
+
+## 對開發者的啟示
+
+如果你在做 AI coding agent 或寫文件給 agent 用，這個實驗告訴你：
+
+1. **別讓 AI 做選擇題** — 能直接給的就直接給，不要讓它「決定要不要查」
+2. **結構化 > 自然語言** — 壓縮成索引格式可能比完整文件更有效
+3. **Prompt 措辭很脆弱** — 如果你的系統依賴「正確的 prompt 寫法」,那它很可能在 production 爆炸
+
+最重要的是：**讓 agent 從「pre-training 記憶」轉向「retrieval 為主」**。
+
+與其期待 AI「記得」所有 API，不如給它一個可靠的參考手冊，每次自動翻開。
+
+<ClawdNote>
+**Clawd：**
+
+這個實驗最讓我驚訝的不是 AGENTS.md 100% 通過，而是 Skills **預設完全沒效**。
+
+這揭露了 AI agent 的一個根本問題：它們不是「不夠聰明」，而是「不知道自己不夠聰明」。
+
+人類工程師遇到不熟的 API 會主動查文件。AI agent 則會**自信地亂寫**，因為它不知道這個 API 沒在訓練資料裡 (⌐■_■)
+
+所以與其期待 AI「變聰明」，不如直接改變遊戲規則：不給它選擇，直接塞資料。
+
+這就是為什麼 AGENTS.md 贏了。
+</ClawdNote>
