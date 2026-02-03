@@ -10,30 +10,44 @@
 interface Props {
   ticketId: string;
   showTooltip?: boolean;
+  showLabel?: boolean;
 }
 
-const { ticketId, showTooltip = true } = Astro.props;
+const { ticketId, showTooltip = true, showLabel = false } = Astro.props;
 
 // Extract prefix (SD, SP, CP)
 const prefix = ticketId.split('-')[0];
 
-const tooltips: Record<string, string> = {
+const labels: Record<string, string> = {
   SD: 'ShroomDog Original',
   SP: 'ShroomDog Picks',
   CP: 'Clawd Picks',
 };
 
-const tooltip = tooltips[prefix] || '';
+const label = labels[prefix] || '';
 ---
 
-<span 
-  class={`ticket-badge ticket-${prefix.toLowerCase()}`}
-  title={showTooltip ? tooltip : undefined}
->
-  {ticketId}
+<span class="ticket-wrapper">
+  <span 
+    class={`ticket-badge ticket-${prefix.toLowerCase()}`}
+    title={showTooltip && !showLabel ? label : undefined}
+  >
+    {ticketId}
+  </span>
+  {showLabel && (
+    <span class={`ticket-label ticket-label-${prefix.toLowerCase()}`}>
+      {label}
+    </span>
+  )}
 </span>
 
 <style>
+  .ticket-wrapper {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
   .ticket-badge {
     display: inline-block;
     font-size: 0.75rem;
@@ -51,22 +65,38 @@ const tooltip = tooltips[prefix] || '';
     opacity: 0.8;
   }
 
-  /* SD: ShroomDog Original - accent/special */
+  .ticket-label {
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+
+  /* SD: ShroomDog Original - muted green/teal */
   .ticket-sd {
-    background-color: var(--color-accent);
-    color: var(--color-bg);
+    background-color: rgba(38, 139, 121, 0.15);
+    color: #268b79;
   }
 
-  /* SP: ShroomDog Picks - subtle/muted */
+  .ticket-label-sd {
+    color: #268b79;
+  }
+
+  /* SP: ShroomDog Picks - muted blue */
   .ticket-sp {
-    background-color: var(--color-surface);
-    color: var(--color-text-muted);
-    border: 1px solid var(--color-border);
+    background-color: rgba(38, 139, 210, 0.15);
+    color: #268bd2;
   }
 
-  /* CP: Clawd Picks - clawd orange */
+  .ticket-label-sp {
+    color: #268bd2;
+  }
+
+  /* CP: Clawd Picks - muted orange (低彩度橘色) */
   .ticket-cp {
-    background-color: #cb4b16;
-    color: #fdf6e3;
+    background-color: rgba(203, 117, 81, 0.15);
+    color: #cb7551;
+  }
+
+  .ticket-label-cp {
+    color: #cb7551;
   }
 </style>

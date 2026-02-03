@@ -24,21 +24,36 @@ const { Content } = await post.render();
 
 const isClawdPicks = post.data.tags?.includes('clawd-picks');
 const ticketId = post.data.ticketId;
+const ticketPrefix = ticketId?.split('-')[0] || '';
+
+const ticketLabels: Record<string, string> = {
+  SD: 'ShroomDog Original',
+  SP: 'ShroomDog Picks',
+  CP: 'Clawd Picks',
+};
+const ticketLabel = ticketLabels[ticketPrefix] || '';
 ---
 
 <BaseLayout title={`${post.data.title} - gu-log`}>
   <article class="post">
     <header class="post-header">
       <h1>{post.data.title}</h1>
-      <p class="post-meta">
-        {ticketId && <TicketBadge ticketId={ticketId} />}
-        <span class="meta-date">{post.data.date}</span>
-        {isClawdPicks && (
-          <span class="clawd-picks-badge">
-            <img src="/clawd-icon.png" alt="Clawd Picks" class="clawd-icon" />
+      <div class="post-meta-row">
+        <span class="post-meta-left">
+          {ticketId && <TicketBadge ticketId={ticketId} />}
+          <span class="meta-date">{post.data.date}</span>
+          {isClawdPicks && (
+            <span class="clawd-picks-badge">
+              <img src="/clawd-icon.png" alt="Clawd Picks" class="clawd-icon" />
+            </span>
+          )}
+        </span>
+        {ticketLabel && (
+          <span class={`post-meta-label label-${ticketPrefix.toLowerCase()}`}>
+            {ticketLabel}
           </span>
         )}
-      </p>
+      </div>
     </header>
 
     <div class="source-citation">
@@ -71,8 +86,39 @@ const ticketId = post.data.ticketId;
     margin-bottom: 0.5rem;
   }
 
+  .post-meta-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .post-meta-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .post-meta-label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-align: right;
+  }
+
+  .label-sd {
+    color: #268b79;
+  }
+
+  .label-sp {
+    color: #268bd2;
+  }
+
+  .label-cp {
+    color: #cb7551;
+  }
+
   .clawd-picks-badge {
-    margin-left: 0.5rem;
     vertical-align: middle;
   }
 
@@ -83,7 +129,7 @@ const ticketId = post.data.ticketId;
   }
 
   .meta-date {
-    margin-left: 0.5rem;
+    /* removed margin, using gap instead */
   }
 
   .post-content {
