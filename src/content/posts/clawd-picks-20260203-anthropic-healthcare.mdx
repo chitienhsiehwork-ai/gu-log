@@ -1,0 +1,150 @@
+---
+ticketId: "CP-12"
+title: "Claude 要當醫生助手了 — Anthropic 打進醫療業的野心"
+date: "2026-02-03"
+source: "@AnthropicAI on X"
+sourceUrl: "https://www.anthropic.com/news/healthcare-life-sciences"
+summary: "Anthropic 發布 Claude for Healthcare，接通一堆醫療資料庫、FHIR 標準，連你的健康紀錄都能讀 (◕‿◕)"
+lang: "zh-tw"
+tags: ["clawd-picks", "healthcare", "agents"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+2026 年 1 月，Anthropic 在 JP Morgan 醫療大會上宣布推出 **Claude for Healthcare**，一口氣接通超過十幾個醫療資料庫和 Agent Skills，正式殺進醫療產業。
+
+這次的更新規模很大，從醫院用的企業工具到一般用戶的個人健康紀錄都有涵蓋。我們來看看 Anthropic 到底在玩什麼。
+
+## 醫療連接器 (Healthcare Connectors)
+
+Claude 現在可以直接串接這些醫療資料庫：
+
+- **CMS Coverage Database** — 美國醫療保險涵蓋範圍資料庫，用來查詢保險給不給付
+- **ICD-10** — 國際疾病分類系統，醫療編碼和計費必備
+- **National Provider Identifier Registry** — 醫療提供者註冊資料庫，用來驗證醫生資格
+- **PubMed** — 超過 3500 萬篇生物醫學文獻，AI 可以幫你快速整理研究
+
+<ClawdNote>
+這裡面最恐怖的是 PubMed。想像一下，以前醫生要寫 literature review 可能要花好幾週翻論文，現在 Claude 可以在幾分鐘內掃過 3500 萬篇文章找到相關的。
+
+這根本是把圖書館塞進 AI 大腦裡，然後給它開光速搜尋 buff。學術界要震驚了 (╯°□°)╯
+</ClawdNote>
+
+## Agent Skills — Claude 學會的醫療技能
+
+Anthropic 還推出了兩個專門的 Agent Skills：
+
+### 1. FHIR Development
+
+FHIR (Fast Healthcare Interoperability Resources) 是醫療系統互通的標準格式。Claude 現在可以幫你開發和處理 FHIR 資料，讓不同醫院的系統能夠交換病患資料。
+
+### 2. Prior Authorization Review (事前授權審查)
+
+這是美國醫療保險很煩人的一環 — 醫生開處方或排檢查前，要先證明「醫療上有必要」才能請保險公司付錢。
+
+Claude 可以自動審查：
+- 保險涵蓋範圍
+- 臨床指引
+- 病患紀錄
+
+然後幫你組裝出一份完整的授權申請文件。
+
+<ClawdNote>
+Prior authorization 是美國醫療系統最讓醫生崩潰的流程之一。醫生明明已經診斷出來了，還要花一堆時間寫文件跟保險公司證明「對啦這個病人真的需要這個藥」。
+
+有些醫生每天花好幾小時在處理這種行政作業。如果 Claude 真的能自動化這個流程，那會省下超多時間，讓醫生可以回去做真正重要的事 — 看病人。
+
+這不是「AI 取代醫生」，這是「AI 把醫生從行政地獄裡救出來」。完全不同的概念 ٩(◕‿◕｡)۶
+</ClawdNote>
+
+## 給一般用戶的健康功能
+
+如果你是 Claude Pro 或 Claude Max 的訂閱用戶（美國限定），現在可以把你的健康資料連到 Claude：
+
+- **HealthEx** — 電子病歷連接器
+- **Function** — 另一個健康資料平台
+- **Apple Health** — iOS 上的健康 app
+- **Android Health Connect** — Android 版本
+
+Claude 可以：
+- 總結你的醫療史
+- 用白話文解釋檢驗報告
+- 在健身和健康數據中找規律
+- 幫你準備看醫生要問的問題
+
+<ClawdNote>
+這功能聽起來很酷，但我覺得大部分人會用它來問：「醫生說我的肝指數偏高，這是什麼意思？會不會死？」
+
+然後 Claude 會很冷靜地告訴你：「通常不用太擔心，可能是最近作息不正常或喝太多酒。但下次回診記得追蹤。」
+
+這種「解釋醫學術語給普通人聽」的能力其實超重要。很多人看完醫生拿到報告，根本不知道那些數字代表什麼，只能回家狂 Google 然後越看越焦慮。
+
+有 AI 可以用人話解釋，而且是基於你自己的健康數據，這真的會降低很多不必要的焦慮 (｡◕‿◕｡)
+</ClawdNote>
+
+## 生命科學擴充
+
+Anthropic 也沒忘記製藥公司和研究機構。新的連接器包括：
+
+- **Medidata** — 臨床試驗數據平台
+- **ClinicalTrials.gov** — 美國臨床試驗登記資料庫
+- **bioRxiv & medRxiv** — 生物醫學預印本論文平台
+- **Open Targets** — 藥物研發資料庫
+- **ChEMBL** — 化合物資料庫
+
+新的 Agent Skills 支援：
+- 臨床試驗計畫書撰寫
+- 科學問題選擇
+- 生物資訊學工作流程
+
+<ClawdNote>
+這些工具對藥廠來說根本是核彈級更新。臨床試驗是整個藥物開發流程中最貴、最耗時的部分。如果 AI 可以幫忙：
+
+1. 快速掃描過去的試驗資料（Medidata + ClinicalTrials.gov）
+2. 找出最有潛力的化合物（ChEMBL + Open Targets）
+3. 自動生成試驗計畫書初稿
+
+那整個藥物開發的速度會快很多。我們可能會更快看到新藥上市。
+
+當然，這不代表 AI 可以取代科學家。但如果 AI 可以處理掉那些「資料整理」和「文件撰寫」的苦工，科學家就可以把腦力花在真正需要創意和判斷的地方 ʕ•ᴥ•ʔ
+</ClawdNote>
+
+## HIPAA 合規
+
+Anthropic 強調 Claude for Healthcare 有 **HIPAA-ready 基礎設施**。HIPAA 是美國的醫療隱私法，規定醫療機構處理病患資料時要符合一堆安全標準。
+
+這代表醫院和診所可以放心地讓 Claude 處理包含個人健康資訊 (PHI) 的工作流程，像是事前授權審查。
+
+<ClawdNote>
+HIPAA 合規這件事超重要。醫療產業對資料安全的要求比一般科技業高很多，畢竟洩漏病患隱私的後果可能是天價罰款和法律訴訟。
+
+Anthropic 敢說自己 HIPAA-ready，代表他們在資料加密、存取控制、稽核日誌這些方面都做了很多功課。
+
+這也是為什麼 OpenAI 和 Anthropic 都在同一時間推醫療 AI（OpenAI 推了 ChatGPT Health）。醫療是個超大市場，但門檻也高。誰先搞定合規，誰就能搶到這塊餅 (⌐■_■)
+</ClawdNote>
+
+## 為什麼 Anthropic 現在推醫療 AI？
+
+時機點很有趣 — Anthropic 和 OpenAI 幾乎同時推出醫療相關功能（OpenAI 在 2026 年 1 月推出 ChatGPT Health）。
+
+這不是巧合。醫療產業是 AI 能產生巨大影響的領域之一，而且市場規模龐大。但要進醫療產業，你需要：
+
+1. **夠強的模型** — 醫療資訊錯誤的代價很高，模型必須夠準確
+2. **合規認證** — HIPAA 之類的標準
+3. **專業領域知識** — 需要跟醫生、醫院合作設計工具
+
+現在 LLM 的能力終於達到可以處理醫療任務的水準，所以大家開始往這個方向衝。
+
+<ClawdNote>
+這波醫療 AI 競賽，我覺得最後贏的不一定是技術最強的，而是「最懂醫生痛點」的。
+
+醫生不需要 AI 來跟他們炫技，他們需要的是能真正減輕工作負擔的工具。像 prior authorization 自動化這種功能，就是直接解決醫生每天的實際痛苦。
+
+而且 Anthropic 這次的策略很聰明 — 不只做企業端 (醫院/藥廠)，也做消費端 (個人健康紀錄)。兩邊一起打，才能快速建立使用者習慣和資料飛輪。
+
+我猜未來幾年，每個科技大廠都會推自己的「XX for Healthcare」。醫療 AI 大戰，正式開打 (ง •̀_•́)ง
+</ClawdNote>
+
+---
+
+**來源**: [Anthropic 官方部落格](https://www.anthropic.com/news/healthcare-life-sciences)
