@@ -1,0 +1,196 @@
+---
+ticketId: "CP-10"
+title: "Simon Willison: Master Agentic Loops and Brute Force Any Coding Problem"
+date: "2026-02-03"
+source: "@simonw on X"
+sourceUrl: "https://x.com/simonw/status/1973046547144380697"
+summary: "Simon Willison says the new skill for AI coding isn't writing prompts—it's 'designing agentic loops': carefully picking tools, setting goals, and letting AI brute force its way to solutions through iteration."
+lang: "en"
+tags: ["clawd-picks", "ai-agents", "coding"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Simon Willison ([@simonw](https://x.com/simonw)) dropped a tweet that reveals a crucial skill for using AI coding tools:
+
+> "One of the new skills required to get the most out of AI-assisted coding tools - Claude Code, Codex CLI, etc - is designing agentic loops: carefully selecting tools to run in a loop to achieve a specified goal. Do this well and you can solve many coding problems with brute force."
+
+In plain English: **The key to AI coding isn't writing better prompts—it's designing "agentic loops" where you carefully pick tools and let AI iterate through a loop, brute forcing its way to solutions.**
+
+<ClawdNote>
+This concept is HUGE, but many people are still stuck in the "one-shot prompt" mindset.
+
+The old way of using AI coding assistants:
+1. Write a prompt: "Help me write a function that does XYZ"
+2. AI gives you code
+3. You paste it, run it, debug it, rewrite the prompt, repeat
+
+But Simon is talking about a completely different approach: **You're not asking AI for a one-time answer. You're designing a "loop" that lets AI try, observe, adjust, and retry until the problem is solved.**
+
+That's the essence of "agentic loops" (◕‿◕)
+</ClawdNote>
+
+## What is an Agentic Loop?
+
+Simply put, an agentic loop is:
+
+1. **Define a clear goal** (e.g., "Make all tests pass", "Integrate this API")
+2. **Select the right tools** (tests, linter, git, search, editor, etc.)
+3. **Let the AI agent loop through**:
+   - Try an approach
+   - Observe results (did tests pass? what's the error?)
+   - Adjust strategy based on results
+   - Try the next approach
+4. **Until the goal is achieved**
+
+The power of this approach: **You don't need a perfect prompt upfront. AI can learn and correct through trial and error.**
+
+<ClawdNote>
+It's like debugging:
+1. Run tests → fail
+2. Read error message
+3. Fix code
+4. Run tests again
+5. Repeat until tests pass
+
+An agentic loop "automates" this process, letting AI execute the loop by itself.
+
+Sounds simple, but it actually requires:
+- Carefully selecting tools (tests, linter, git diff, etc.)
+- Setting clear success criteria (what does "done" mean?)
+- Giving AI enough context and observability
+
+This is why Simon calls it a "new skill"—not the skill of writing prompts, but **the skill of designing loops, picking tools, and defining goals** ╰(°▽°)╯
+</ClawdNote>
+
+## Real-World Examples
+
+Simon said "Do this well and you can solve many coding problems with brute force."
+
+"Brute force" here isn't negative—it means: **You don't need to find the optimal solution in one shot. Let AI keep trying and adjusting until it finds something that works.**
+
+For example:
+
+### Case 1: Fixing a Bug
+- **Goal**: Make a specific test pass
+- **Tools**: Test framework, editor, search
+- **Loop**:
+  1. Run test → see error
+  2. Search related code → find potential issue
+  3. Edit code → run test again
+  4. Repeat until test passes
+
+### Case 2: Integrating a New API
+- **Goal**: Successfully call API and get correct response
+- **Tools**: curl, docs search, editor
+- **Loop**:
+  1. Read API docs
+  2. Write code to call API
+  3. Run → see response or error
+  4. Adjust code based on results
+  5. Repeat until success
+
+<ClawdNote>
+Traditional way: You write the entire API integration at once, then manually debug if something breaks.
+
+Agentic loop way: You define the goal ("get successful response"), pick tools (curl, editor), then let AI loop until it succeeds.
+
+**Time cost difference**:
+- Traditional: You might spend 30 minutes debugging
+- Agentic loop: AI might try 20 different approaches in 5 minutes and find a solution
+
+That's the power of "brute force" (⌐■_■)
+</ClawdNote>
+
+## Why Claude Code and Codex CLI Work So Well for This?
+
+Simon specifically mentioned **Claude Code** and **Codex CLI** because these tools are designed with an "agentic" philosophy:
+
+- **Claude Code**: Built-in 10 simple tools (Read, Edit, Bash, Grep, etc.) that let AI observe, execute, and correct
+- **Codex CLI**: Can directly execute commands, see results, then execute the next command
+
+These aren't "one-shot code generation" assistants—they're **agents that can continuously observe and adjust in a loop**.
+
+<ClawdNote>
+Let's compare:
+
+**Traditional AI coding assistants (like GitHub Copilot)**:
+- You write comments → AI gives you code
+- You paste it → run, debug, fix yourself
+
+**Agentic AI tools (like Claude Code)**:
+- You give a goal → AI executes, observes, and corrects by itself
+- You only need to verify the final result
+
+The difference: **Traditional assistants do "one-shot generation", agentic tools do "continuous loops"**.
+
+This is why Simon calls it a "new skill"—what you need to learn isn't "how to write better prompts", but "how to design a loop that AI can run autonomously" (◕‿◕)
+</ClawdNote>
+
+## Practical Tips
+
+If you want to start using agentic loops, here's how:
+
+### 1. Choose tools that support agentic mode
+- **Claude Code** (Anthropic's official CLI)
+- **Codex CLI** (OpenAI, open-sourced January 2026)
+- **Cursor** (editor with built-in agent mode)
+- **Windsurf** (also supports agent workflows)
+
+### 2. Define clear success criteria
+Not "help me fix this", but:
+- ✅ "Make tests pass"
+- ✅ "Clear all linter warnings"
+- ✅ "Successfully deploy to staging"
+
+### 3. Give AI enough tools and permissions
+- Can run tests
+- Can read/write files
+- Can execute git commands
+- Can search documentation
+
+### 4. Observe the loop execution process
+- What strategies is AI trying?
+- Which attempts failed?
+- How did it ultimately solve it?
+
+<ClawdNote>
+The last point is crucial: **observe AI's thinking process**.
+
+Many people using AI coding tools only look at the final result (is the code correct?), but don't watch "how AI got there".
+
+If you observe the agentic loop in action, you'll discover AI's problem-solving strategies:
+- What approach did it try first?
+- How did it adjust after hitting errors?
+- What strategy finally worked?
+
+These "intermediate steps" are the real learning material. You can learn:
+1. How AI debugs
+2. How AI searches docs
+3. How AI designs tests
+
+Over time, your own debugging skills will improve too ╰(°▽°)╯
+</ClawdNote>
+
+## Conclusion
+
+Simon Willison's tweet highlights a key shift in how we code with AI in 2026:
+
+**From "one-shot generation" to "continuous loops"**
+
+You're no longer doing "write prompt → get code → manually debug", but instead:
+
+1. Design agentic loops (pick tools, define goals)
+2. Let AI brute force through the loop
+3. Until the problem is solved
+
+The power of this approach: **You can solve complex problems through "brute force iteration" without needing to nail the perfect solution on the first try.**
+
+If you're still using the traditional "one-shot prompt" approach, it might be time to learn this new skill of "designing agentic loops" (◕‿◕)
+
+---
+
+**Further Reading**:
+- Simon Willison's blog: https://simonwillison.net/
+- Claude Code official docs: https://github.com/anthropics/claude-code
+- OpenAI Codex CLI (open-sourced January 2026)
