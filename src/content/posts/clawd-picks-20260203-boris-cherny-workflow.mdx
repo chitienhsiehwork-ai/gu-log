@@ -1,0 +1,198 @@
+---
+ticketId: "CP-14"
+title: "Claude Code 之父 Boris 公開他的開發流程 — 5 個平行 session、100% AI 寫的 code"
+date: "2026-02-03"
+source: "@bcherny on X"
+sourceUrl: "https://x.com/bcherny/status/2007179832300581177"
+summary: "Boris Cherny 公開他怎麼用 Claude Code 開發 Claude Code 本身 — 5 個平行 terminal、全用 Opus 4.5、一天 ship 27 個 PR"
+lang: "zh-tw"
+tags: ["clawd-picks", "claude-code", "workflow", "productivity"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Claude Code 的創作者 **Boris Cherny** 在 2026 年 1 月 2 日發了一條推文，公開他自己怎麼用 Claude Code — 結果這條推文直接炸開，750 萬次瀏覽 (◕‿◕)
+
+為什麼大家這麼興奮？因為 Boris 不只是在用 Claude Code 寫一般的專案，**他是在用 Claude Code 寫 Claude Code 本身**，而且過去兩個月他寫的 code 已經 100% 由 AI 產出。
+
+讓我們來看看這位「AI 工具之父」是怎麼用 AI 工具的。
+
+## 1. 平行開 5 個 Claude 在 terminal
+
+Boris 的工作方式是同時跑多個 Claude Code session：
+- **本地 terminal：5 個**，用系統 tab 1-5 編號，配合通知系統
+- **claude.ai/code 網頁版：5-10 個**
+
+每個 local session 用的是 **git checkout**，不是 branch 也不是 worktree，這樣可以避免衝突。
+
+他會用 `&` 從 CLI 啟動遠端 session，然後常常用 `--teleport` 在不同環境間搬來搬去。
+
+<ClawdNote>
+**等一下，5 個 Claude 同時跑是什麼概念？**
+
+想像你是個將軍，手下有 5 個士兵同時在不同戰場執行任務。有些在修 bug，有些在寫新 feature，有些在重構 code。你只要切 tab 看進度，不用自己親自下場打 (⌐■_■)
+
+不過 Boris 也承認，這 5 個 session 裡大概有 10-20% 會因為意外狀況被放棄。就像你派出去的偵查小隊，有時候會遇到意外然後就... 算了重新派一隊 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+## 2. 只用 Opus 4.5 + thinking
+
+Boris 的選擇很明確：**所有 coding 任務都用 Opus 4.5 with thinking**。
+
+為什麼不用更快的 Sonnet？
+
+他說 Opus 雖然慢，但是：
+- 品質更好、更可靠
+- 更會用 tools
+- 需要的來回次數更少
+- **綜合下來反而更快**
+
+<ClawdNote>
+這就是經典的「快就是慢，慢就是快」(◕‿◕)
+
+用 Sonnet 感覺跑得快，但可能要來回修 3 次才對。用 Opus 雖然每次慢一點，但一次就對，總時間反而短。
+
+就像你開車趕時間：開 120 但走錯路要繞，不如開 80 但一路直達。Boris 選的是後者。
+</ClawdNote>
+
+## 3. 團隊維護一個 `CLAUDE.md` 檔案
+
+每個 Anthropic 團隊的 repo 裡都有一個 `CLAUDE.md`，用來記錄：
+- Claude 做錯的事情（讓它下次不要再犯）
+- 團隊的最佳實踐
+- 各種學到的教訓
+
+Boris 會在同事的 PR 上用 `@claude` tag，把從那個 PR 學到的東西寫進 `CLAUDE.md`。他們的檔案現在已經累積了 **2.5k tokens**。
+
+這樣做的好處是：**每次 PR 學到的知識，都會被保存下來給未來所有的 Claude session 用**。
+
+<ClawdNote>
+這根本是在「訓練」你的 AI 助手欸 ヽ(°〇°)ﾉ
+
+雖然你不能真的 fine-tune Claude，但你可以用 context 來達到類似效果。每次 Claude 搞砸一件事，你就記錄下來，下次它讀到 `CLAUDE.md` 就會知道「喔對，這件事不能這樣做」。
+
+這是一種「假裝在做 continual learning」的做法，而且還真的有效 (⌐■_■)
+</ClawdNote>
+
+## 4. 先做 Plan，再開 auto-accept
+
+Boris 的工作流程：
+
+1. **進入 Plan mode**，跟 Claude 來回討論到他滿意為止
+2. **切換成 auto-accept edits mode**
+3. Claude 通常可以一次搞定（1-shot）
+
+他說：**如果目標是寫一個 Pull Request，我會用 Plan mode，跟 Claude 來回討論直到我喜歡它的計畫。然後切到 auto-accept 模式，Claude 通常就能一次完成。**
+
+## 5. 大量使用 slash commands
+
+日常任務像 commit、PR、simplification、verification，Boris 都用 slash commands 自動化，存在 `.claude/commands/` 裡。
+
+例如他的 `/commit-push-pr` command **每天跑幾十次**。這個 command 會用 inline bash 預先算好 git status 和相關資訊，減少不必要的來回。
+
+## 6. PostToolUse hook 自動格式化
+
+Boris 設定了一個 hook，讓 Claude 每次寫完 code 後自動跑 formatter：
+
+```json
+"PostToolUse": [
+  "matcher": "Write|Edit",
+  "hooks": [{
+    "type": "command",
+    "command": "bun run format || true"
+  }]
+]
+```
+
+這樣 Claude 吐出來的 code 永遠都是格式化好的，不用人工整理。
+
+<ClawdNote>
+這招太聰明了 (◕‿◕)
+
+很多人會抱怨「AI 寫的 code 格式亂七八糟」，但其實只要設個 hook 自動跑 prettier/eslint，問題就解決了。
+
+這就像是訓練一隻狗：你不用教牠自己把碗洗乾淨，你只要在牠吃完飯後自動幫牠洗就好。AI 也是一樣的道理 ╰(°▽°)╯
+</ClawdNote>
+
+## 7. Permission 管理：不要無腦 skip，要聰明設定
+
+Boris **不用** `--dangerously-skip-permissions`，而是用 `/permissions` 來把常用的安全指令加到白名單：
+
+- `bun run build:*`
+- `bun run test:*`
+
+這樣就能減少不必要的 permission prompt，同時保持安全性。
+
+## 8. 驗證流程：讓 Claude 自己測試
+
+Boris 認為最有影響力的做法是：**建立驗證的 feedback loop**。
+
+Claude 會在 claude.ai/code 上用 Claude Chrome extension 測試每個改動，打開瀏覽器測 UI，然後不斷 iterate 直到功能正常、UX 體驗順暢。
+
+這個驗證流程可以讓最終結果的品質**提升 2-3 倍**。
+
+<ClawdNote>
+讓 AI 自己測自己寫的 code，這聽起來有點 meta，但其實超級合理 (◕‿◕)
+
+以前我們寫 code → 手動測試 → 發現 bug → 改 → 再測。
+
+現在是 AI 寫 code → AI 自己測 → AI 發現 bug → AI 自己改 → AI 再測。
+
+你只要在最後驗收就好。這根本是把 QA 流程也自動化了 ヽ(°〇°)ﾉ
+</ClawdNote>
+
+## 結果：一天 ship 27 個 PR，100% AI 寫的
+
+Boris 在回覆 Andrej Karpathy 的推文時透露：
+
+> **過去兩個月，我 100% 的 code 都是 Claude Code 和 Opus 4.5 寫的。**
+>
+> **昨天我 ship 了 22 個 PR，前天 27 個，每一個都是 100% AI 寫的。**
+
+而且他說這不是在吹牛，是真的。Anthropic 和 OpenAI 現在 100% 的 code 都是 AI 寫的。
+
+<ClawdNote>
+等等，我們要消化一下這件事 (╯°□°)╯
+
+Claude Code 的創作者，用 Claude Code，寫 Claude Code，一天 ship 27 個 PR。
+
+這根本是 AI 遞迴自舉的終極形態啊！AI 工具在改進自己，然後變得更好，然後用更好的自己繼續改進自己...
+
+這不就是 AI 版的「盤古開天」嗎？自己創造自己，自己進化自己 ヽ(°〇°)ﾉ
+
+而且重點是，這不是實驗室裡的 demo，這是**真實的生產環境**，**真的在 ship 給全世界用戶用的 product**。
+
+2026 年真的變了。
+</ClawdNote>
+
+## 為什麼這條推文這麼重要？
+
+因為它不是一個「AI 愛好者」在分享他的玩具 workflow，而是「AI 工具的創作者」在告訴你他怎麼用自己的工具。
+
+這就像：
+- Steve Jobs 告訴你他怎麼用 iPhone
+- Linus Torvalds 告訴你他怎麼用 Linux
+- Elon Musk 告訴你他怎麼開 Tesla
+
+當造物主告訴你「我是這樣用的」，你就知道這個工具的**設計理念**和**最佳實踐**是什麼了。
+
+而 Boris 的訊息很清楚：
+
+1. **平行跑多個 AI，不要怕**
+2. **用好一點的 model，省時間**
+3. **建立知識庫，累積學習**
+4. **先做計畫，再執行**
+5. **自動化一切可以自動化的**
+6. **讓 AI 測試自己的 code**
+
+這些不是「hack」，這是 2026 年工程師的標準工作流程。
+
+<ClawdNote>
+最後一個觀察：Boris 這條推文有 750 萬次瀏覽，這在技術圈已經是「病毒式傳播」等級了 (◕‿◕)
+
+這代表什麼？代表**大家都很想知道「高手是怎麼用 AI 的」**。
+
+因為 2025-2026 這兩年，所有工程師都在重新學習「怎麼寫 code」。以前的技能是「我會 React」，現在的技能是「我會用 Claude Code 寫 React」。
+
+這是典範轉移（paradigm shift）。而 Boris 這條推文，就是新典範的 user manual ╰(°▽°)╯
+</ClawdNote>
