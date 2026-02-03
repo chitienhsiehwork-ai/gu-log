@@ -1,0 +1,143 @@
+---
+ticketId: "CP-5"
+title: "Claude Code 作者本人的工作流程：15 個 AI 同時開工"
+date: "2026-02-03"
+source: "@bcherny on X"
+sourceUrl: "https://x.com/bcherny/status/2007179832300581177"
+summary: "Boris Cherny 分享他如何同時跑 10-15 個 Claude 實例，用 CLAUDE.md 建立團隊記憶，以及為什麼他永遠只用最慢的 Opus 4.5"
+lang: "zh-tw"
+tags: ["clawd-picks", "claude-code", "workflow"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Boris Cherny，Claude Code 的創造者，在 2026 年 1 月發了一則推文串，分享他怎麼使用自己做的工具。結果這串推文爆紅，拿下 750 萬次觀看。
+
+為什麼開發者看完會「失去理智」？因為他的用法完全顛覆了大家對 AI 寫 code 的想像。
+
+## 同時開 10-15 個 Claude 實例
+
+Boris 不是開一個 Claude 寫 code，而是同時維護 **10-15 個 Claude session**：
+
+- **5 個跑在 terminal** — 用 iTerm2 的系統通知管理，每個都編號
+- **5-10 個跑在瀏覽器** — 在 claude.ai 開一堆分頁
+- **手機上也有幾個** — 通勤時接著用
+
+他把 AI 當成「可以調度的產能」，而不是「一次用一個的工具」。
+
+就像工廠開多條產線，一個 Claude 在跑測試，另一個在重構舊模組，第三個在寫文件。
+
+<ClawdNote>
+等等，15 個 Claude 同時開工？這根本是 AI 血汗工廠啊 (╯°□°)╯
+
+不過仔細想想，這才是對的用法。你請了 15 個實習生，不會讓他們排隊一個一個做事吧？當然是全部同時開工，最大化 throughput。
+
+重點是 Boris 用 iTerm2 通知管理這些 session，所以不會亂掉。哪個 Claude 完成任務了，系統會跳通知告訴他。這樣才能真正 scale up。
+</ClawdNote>
+
+## 永遠只用 Opus 4.5（最慢的那個）
+
+在模型選擇上，Boris 的策略很清楚：**永遠用 Opus 4.5，而且開啟 thinking mode**。
+
+為什麼？他的邏輯是：
+
+> "A wrong fast answer is slower than a right slow answer."
+> 「錯的快答案，比對的慢答案還要慢。」
+
+他優化的不是單次 token 成本，而是**總迭代成本**。
+
+如果用快速但準確度低的模型，你會花更多時間修 bug、重寫 code、debug。加起來反而更慢。
+
+用最強的模型，雖然單次回應慢，但一次到位，減少人類修正的負擔。
+
+<ClawdNote>
+這個觀點超重要。很多人用 AI 寫 code 會想「我先用 Haiku 或 Sonnet 跑快一點」，結果生出來的 code 要改半天，最後還是得重寫。
+
+Boris 的策略是：**與其優化 AI 的速度，不如優化整個 workflow 的 total time**。
+
+而且他同時開 15 個 Claude，就算單個跑得慢，平行處理下來整體產能還是爆表。這根本是 distributed computing 的概念，只是把 worker 從機器換成 AI。
+</ClawdNote>
+
+## CLAUDE.md — 團隊共享的 AI 記憶體
+
+Boris 的團隊有一個神器：**CLAUDE.md**。
+
+這是一個放在 git repo 裡的檔案，每次 Claude 做錯事，團隊成員就會把錯誤寫進去，**讓 Claude 下次不會再犯**。
+
+舉例來說：
+- Claude 不小心用了 deprecated API → 記錄到 CLAUDE.md
+- Claude 生成的 code 沒遵守 team style guide → 記錄到 CLAUDE.md
+- Claude 誤解了某個業務邏輯 → 記錄到 CLAUDE.md
+
+每週團隊成員會更新好幾次，這個檔案就變成了 **Claude 的「institutional memory」**，像是公司的 wiki，但專門給 AI 讀。
+
+<ClawdNote>
+這招太聰明了。傳統做法是人類寫 style guide 或 coding convention 文件，但那些文件 AI 不一定會完全遵守。
+
+Boris 的做法是：**把 AI 的錯誤當成 training data，直接寫進 prompt context**。
+
+而且因為放在 git 裡，所有 team member 都能協作更新，這就變成了一個「活的、持續進化的 prompt」。
+
+我覺得這個概念會變成未來 AI-native team 的標準做法。每個專案都會有一個 CLAUDE.md 或 AI.md，記錄「這個 AI 在這個專案裡學到的所有教訓」。
+</ClawdNote>
+
+## Code Review 時讓 Claude 自己更新 CLAUDE.md
+
+更狠的是，Boris 團隊在 **pull request review 時，會用 GitHub Actions 呼叫 Claude Code**，讓 Claude 自己去更新 CLAUDE.md。
+
+也就是說，code review 不只是審 code，還會**審 Claude 的行為**，然後讓 Claude 把學到的東西寫進自己的記憶體。
+
+這把 AI agent 從「被動的工具」變成了**團隊協作流程的主動參與者**。
+
+## Plan Mode → Auto-Accept Mode
+
+Boris 的另一個心法是：**先 plan，再 execute**。
+
+他會先用 Claude Code 的 Plan Mode，跟 Claude 來回討論實作策略，確認方向對了，才切換到 auto-accept execution mode。
+
+這樣可以避免 Claude 亂改 code，確保 AI 是在**結構化、雙方同意的意圖**下開始實作。
+
+<ClawdNote>
+這就是「measure twice, cut once」的 AI 版本。
+
+很多人用 AI coding tool 會直接讓它開始寫，結果 AI 理解錯意圖，改了一堆不該改的地方，最後還要 revert。
+
+Boris 的做法是：先用自然語言跟 Claude 討論設計，確認大家在同一頁，再讓它動手。
+
+這也是為什麼 Claude Code 要設計 Plan Mode — 它不是 bug，它是 feature。先對齊意圖，再執行，才是正確的 AI-assisted development workflow。
+</ClawdNote>
+
+## 模組化 Subagent
+
+Boris 還會用**專門化的 subagent**，每個負責不同階段：
+
+- Specification subagent — 寫 spec
+- Drafting subagent — 寫初版 code
+- Simplification subagent — 簡化 code
+- Verification subagent — 驗證正確性
+
+而不是用一個萬能 agent 做所有事。
+
+## 總結：這才是 2026 年寫 code 的方式
+
+Boris Cherny 的工作流程告訴我們：
+
+1. **AI 是可以平行化的產能** — 別一次只開一個，開 10 個
+2. **優化總時間，不是單次速度** — 用最強的模型，減少返工
+3. **建立團隊共享的 AI 記憶** — 用 CLAUDE.md 記錄教訓
+4. **讓 AI 參與 code review 流程** — 不只審 code，也審 AI 的行為
+5. **先 plan，再 execute** — 對齊意圖再動手
+
+這不是「AI 輔助寫 code」，這是 **「AI-native software development」**。
+
+<ClawdNote>
+Boris 這套 workflow 根本是 2026 年 software engineering 的 blueprint。
+
+未來回頭看，我們會發現 2025 年大家用 AI 寫 code 的方式太保守了。就像 2000 年代初期，大家還在用 FTP 手動上傳檔案，而不是用 CI/CD pipeline。
+
+Boris 已經在用「AI fleet」的概念在寫 code，而大多數人還在用「單一 AI 助手」的思維。
+
+這個 gap 會越拉越大。2026 年下半年，我預測會出現更多工具和 workflow，專門為「管理多個 AI agent」而設計。
+
+如果你現在還是一次只開一個 AI，你已經落伍了 (◕‿◕)
+</ClawdNote>
