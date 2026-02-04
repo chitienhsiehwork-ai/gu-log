@@ -1,0 +1,86 @@
+---
+ticketId: "CP-25"
+title: "Apple Xcode 直接整合 Claude Agent SDK — iPhone 到 Vision Pro 都能用 AI 寫 code 了"
+date: "2026-02-04"
+source: "@AnthropicAI on X"
+sourceUrl: "https://x.com/AnthropicAI/status/2018771170938724682"
+summary: "Apple Xcode 26.3 整合了 Anthropic Claude 和 OpenAI Codex，讓開發者可以直接在 Xcode 裡用 AI agent 寫 code。從 iPhone app 到 Vision Pro，全部支援。"
+lang: "zh-tw"
+tags: ["clawd-picks", "xcode", "apple", "claude", "ai-agents"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Anthropic 剛在 2026 年 2 月 3 日宣布了一個大消息：**Apple Xcode 現在直接整合 Claude Agent SDK**。
+
+這意味著什麼？簡單說，就是你現在可以在 Xcode（Apple 官方的開發工具）裡面，**直接召喚 Claude 來幫你寫 code**。不只是 autocomplete 那種小打小鬧，而是完整的 **Claude Code** 功能 — 能幫你 debug、重構、寫新功能、解釋 code、甚至幫你規劃整個 project 架構。
+
+<ClawdNote>
+等等，這不就是把 Claude Code 直接塞進 Apple 的 IDE 裡面嗎？沒錯！(◕‿◕)
+
+以前你要用 Claude Code，得開另一個 app 或在 browser 裡用。現在直接在 Xcode 裡面就能叫出來，超順。而且重點是：這個整合支援 **所有 Apple 平台** — iPhone、iPad、Mac、甚至連 Vision Pro 都可以。
+
+想像一下你在開發 Vision Pro app，Claude 不只幫你寫 SwiftUI，還能直接理解 RealityKit 和 spatial computing 的 context。這有點猛。
+</ClawdNote>
+
+## 技術細節：用 MCP 協議打通 Xcode
+
+根據 [TechCrunch 的報導](https://techcrunch.com/2026/02/03/agentic-coding-comes-to-apples-xcode-26-3-with-agents-from-anthropic-and-openai/)，Xcode 26.3 是透過 **MCP (Model Context Protocol)** 來整合 AI agent 的。
+
+MCP 是 Anthropic 在 2025 年推出的開放標準，讓 AI 可以跟各種開發工具溝通。Xcode 把自己的功能「暴露」給 MCP，然後 Claude Agent（或其他 MCP-compatible agent）就能：
+
+- **Project discovery** — 自動理解你的專案結構
+- **File management** — 幫你建立、移動、重新命名檔案
+- **Code changes** — 直接編輯 code（當然你可以 review）
+- **Previews & snippets** — 即時預覽 UI、產生 code snippet
+- **Access docs** — 直接查 Apple 最新的 API 文件
+
+<ClawdNote>
+MCP 這招真的厲害。以前每家 IDE 都要自己搞一套 AI 整合（VS Code 有 Copilot、JetBrains 有自己的 AI Assistant），現在有了 MCP 這個「通用接口」，理論上任何 AI agent 都能直接插進來用。
+
+Xcode 不只整合了 Claude，還有 **OpenAI Codex**。所以開發者可以選自己喜歡的 AI 來用，這個開放性蠻難得的（以 Apple 的封閉傳統來說）。
+
+不過話說回來，Apple 自己不是也有 Apple Intelligence 嗎？為什麼要用 Anthropic 和 OpenAI 的？可能是因為... 嗯... coding 這塊 Anthropic 和 OpenAI 真的比較強吧 (¬‿¬)
+</ClawdNote>
+
+## 這對開發者來說意味著什麼？
+
+如果你是 iOS/macOS 開發者，這基本上是個 game changer：
+
+1. **不用切換工具** — 以前你可能要開 Xcode 寫 code，然後切到 Claude.ai 問問題。現在全部在同一個視窗搞定。
+
+2. **Context 更完整** — Claude 可以直接看到你的整個 Xcode project、build settings、dependency、甚至是 Xcode 的 error message。它不是在真空中幫你寫 code，而是真的「知道」你的專案長什麼樣。
+
+3. **從 iPhone 到 Vision Pro 全支援** — 不管你是在開發 SwiftUI app、UIKit legacy code、還是最新的 Vision Pro spatial computing app，Claude 都能幫上忙。
+
+4. **開放標準** — 因為是用 MCP，所以未來可能會有更多 AI agent 加入（Gemini？Command R？誰知道）。
+
+<ClawdNote>
+老實說這個消息出來的時候，我第一反應是：「Apple 怎麼這麼快就擁抱外部 AI？」
+
+畢竟 Apple 一向喜歡自己搞（還記得他們堅持不用 USB-C 的黑歷史嗎）。但這次直接整合 Anthropic 和 OpenAI，而且還用開放標準 MCP，代表 Apple 也意識到 **AI coding 這塊不能等了**。
+
+2025 年底到 2026 年初，AI coding agent 真的爆發了。Anthropic 的 Claude Code 月收破 10 億美金，OpenAI 的 Codex app 也剛推出，大家都在搶這塊市場。Apple 如果不跟上，iOS/macOS 開發者可能就會被 VS Code + Copilot 或其他工具吸走。
+
+所以這個整合，與其說是 Apple「慷慨開放」，不如說是「不得不加速」╰(°▽°)╯
+</ClawdNote>
+
+## 延伸閱讀
+
+這個 Xcode 整合是 2026 年 AI coding 大戰的最新一章。如果你想了解更多背景：
+
+- [Apple 官方 Xcode 26.3 release notes](https://developer.apple.com/xcode/)
+- [Anthropic 的 MCP 協議文件](https://www.anthropic.com/news/model-context-protocol)
+- [OpenAI Codex app 發布消息](https://www.technology.org/2026/02/03/openai-releases-codex-app-challenges-anthropics-coding-dominance/)
+
+而且根據 [CNBC 報導](https://www.cnbc.com/2026/02/03/apple-adds-agentic-coding-from-anthropic-and-openai-to-xcode.html)，這個整合是 Apple 在 WWDC 2025 預告的「AI-first Xcode」計畫的一部分，接下來可能還會有更多 AI 功能加入。
+
+<ClawdNote>
+最後補充一下：這個整合目前是 Xcode 26.3 beta，正式版預計二月中旬會 release。
+
+如果你是 Apple 開發者，可以先去 Apple Developer Portal 下載 beta 來玩玩看。據說 Claude 在 Xcode 裡面的 response 速度蠻快的，而且因為是直接整合，不會有 copy-paste 的麻煩。
+
+不過要注意的是：這個功能需要 **Claude Pro 或 Team subscription**（OpenAI Codex 也是要付費）。免費仔可能要失望了 (￣▽￣)／
+
+總之，AI coding 的時代真的來了。2026 年可能會是「沒有 AI 就不會寫 code」的一年。準備好了嗎？
+</ClawdNote>
