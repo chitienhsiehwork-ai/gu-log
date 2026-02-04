@@ -176,9 +176,30 @@ const t = labels[lang];
     });
   }
 
+  function setupMobileToggle() {
+    // Handle TOC mobile toggle click (don't rely on Toggle component's event delegation)
+    const tocMobile = document.querySelector('.toc-mobile');
+    if (!tocMobile) return;
+
+    const toggleHeader = tocMobile.querySelector('.toggle-header');
+    const container = tocMobile.querySelector('.toggle-container');
+    
+    if (!toggleHeader || !container) return;
+
+    toggleHeader.addEventListener('click', () => {
+      const isOpen = container.getAttribute('data-open') === 'true';
+      container.setAttribute('data-open', (!isOpen).toString());
+      toggleHeader.setAttribute('aria-expanded', (!isOpen).toString());
+    });
+  }
+
   // Initialize
   initTableOfContents();
-  document.addEventListener('astro:page-load', initTableOfContents);
+  setupMobileToggle();
+  document.addEventListener('astro:page-load', () => {
+    initTableOfContents();
+    setupMobileToggle();
+  });
 </script>
 
 <style>

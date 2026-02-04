@@ -7,6 +7,9 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
+    "test": "npx playwright test",
+    "test:ui": "npx playwright test --ui",
+    "test:toc": "npx playwright test tests/toc.spec.ts",
     "test:visual": "node scripts/visual-test.mjs",
     "test:search": "node scripts/search-test.mjs",
     "prepare": "scripts/setup-hooks.sh"
@@ -20,6 +23,7 @@
     "typescript": "^5.9.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.1",
     "playwright": "^1.58.1"
   }
 }
