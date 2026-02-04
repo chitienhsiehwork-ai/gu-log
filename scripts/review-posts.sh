@@ -1,6 +1,7 @@
 #!/bin/bash
 # gu-log Post Reviewer
 # Called by pre-commit hook to review changed .mdx files
+# Uses OpenClaw agent to run the review
 
 set -e
 
@@ -16,7 +17,7 @@ if [ -z "$STAGED_MDX" ]; then
     exit 0
 fi
 
-echo "📝 Reviewing staged posts..."
+echo "📝 Reviewing staged posts via OpenClaw..."
 echo "$STAGED_MDX"
 echo ""
 
@@ -25,7 +26,6 @@ PROMPT=$(cat "$REVIEWER_PROMPT")
 
 # Track overall result
 ALL_PASSED=true
-REVIEW_OUTPUT=""
 
 for file in $STAGED_MDX; do
     echo "🔍 Reviewing: $file"
@@ -45,38 +45,34 @@ for file in $STAGED_MDX; do
 \`\`\`mdx
 $CONTENT
 \`\`\`
-"
+
+請用指定的格式輸出審查結果。"
     
-    # Call Claude via openclaw CLI or claude CLI
-    # Using claude CLI directly for simplicity
-    RESULT=$(echo "$REVIEW_REQUEST" | claude --print 2>/dev/null || echo "REVIEW_ERROR")
-    
-    if [[ "$RESULT" == "REVIEW_ERROR" ]]; then
-        echo "⚠️  Could not run reviewer for $file (claude CLI not available)"
+    # Call OpenClaw agent
+    # Using --local to run embedded (faster, uses local API key)
+    # Using dedicated session for reviews
+    RESULT=$(openclaw agent --local --session-id "gu-log-reviewer" --message "$REVIEW_REQUEST" --timeout 120 2>&1) || {
+        echo "⚠️  OpenClaw agent failed for $file"
+        echo "$RESULT"
         continue
-    fi
+    }
+    
+    echo ""
+    echo "--- Review Result ---"
+    echo "$RESULT"
+    echo "--- End Review ---"
+    echo ""
     
     # Check if FAIL is in the result
-    if echo "$RESULT" | grep -q "Review Result: FAIL"; then
+    if echo "$RESULT" | grep -qi "Review Result.*FAIL\|Result.*FAIL\|CRITICAL"; then
         ALL_PASSED=false
         echo "❌ FAILED: $file"
     else
         echo "✓ PASSED: $file"
     fi
     
-    REVIEW_OUTPUT="$REVIEW_OUTPUT
-
-========================================
-File: $file
-========================================
-$RESULT
-"
+    echo ""
 done
-
-echo ""
-echo "=========================================="
-echo "$REVIEW_OUTPUT"
-echo "=========================================="
 
 if [ "$ALL_PASSED" = false ]; then
     echo ""
