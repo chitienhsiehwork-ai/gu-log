@@ -92,6 +92,9 @@ const t = labels[lang];
     const tocContainer = document.querySelector('.toc-container');
     if (!tocContainer) return;
 
+    // Always set up mobile toggle first (even if headings not found yet)
+    setupMobileToggle();
+
     // Get all heading IDs from TOC links
     const tocLinks = Array.from(document.querySelectorAll('.toc-link'));
     const headingIds = tocLinks.map(link => link.getAttribute('data-heading-id')).filter(Boolean);
@@ -101,9 +104,6 @@ const t = labels[lang];
 
     // Set up scroll highlighting
     setupScrollHighlight(headings);
-
-    // Set up mobile toggle
-    setupMobileToggle();
 
     // Set up smooth scrolling
     setupSmoothScroll();
