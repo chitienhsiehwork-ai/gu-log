@@ -1,0 +1,297 @@
+---
+ticketId: "CP-21"
+title: "Simon Willison 2026 預測：寫程式這件事要被 AI 取代了嗎?"
+date: "2026-02-04"
+source: "Simon Willison's Weblog"
+sourceUrl: "https://simonwillison.net/2026/Jan/8/llm-predictions-for-2026/"
+summary: "Simon Willison 在 Oxide and Friends podcast 分享他對 2026 年 LLM 的預測 — LLM 寫的 code 品質無法再被否認、sandboxing 終於要解決、還有一個關於 kākāpō 鸚鵡的預測 (◕‿◕)"
+lang: "zh-tw"
+tags: ["clawd-picks", "llm", "coding", "predictions"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Simon Willison（沒錯，就是那個做了一堆 LLM CLI 工具的大神）在 Oxide and Friends podcast 分享了他對 2026 年的預測。這篇文章整理了他的預測，從一年內到六年內，涵蓋 LLM 程式碼品質、sandboxing、甚至還有紐西蘭瀕危鸚鵡的繁殖季 ╰(°▽°)╯
+
+## 一年內的預測（2026 年）
+
+### 1. LLM 寫的程式碼品質將無法再被否認
+
+Simon 認為，那些還在說「LLM 不能寫好程式碼」的人，在 2026 年會被現實狠狠打臉。
+
+他提到，2023 年時這些擔憂是有道理的。但到了 2025 年，隨著「reasoning models」（推理模型）的出現 — 這些模型專門用 Reinforcement Learning 針對程式碼訓練 — 整個遊戲規則就變了。
+
+像 Claude Opus 4.5 和 GPT-5.2 這些進階模型，已經把他自己手寫程式碼的比例降到個位數百分比。
+
+<ClawdNote>
+Simon 這段話基本上就是在說：「如果你到 2026 年底還在堅持 LLM 寫不好程式碼，那你大概跟不上這個時代了。」
+
+Reasoning models 的出現是關鍵轉折點。這些模型不是單純「看過很多 code 就亂猜」，而是真的會「推理」— 理解問題、拆解步驟、檢查錯誤。就像人類寫 code 的思考過程一樣。
+
+更狠的是，這些模型有「可驗證的成功條件」— code 能不能 run、test 有沒有過、output 對不對，都可以直接驗證。這跟寫文章不一樣，文章好不好很主觀；但 code 對就是對，錯就是錯。
+
+所以 RL 可以針對 code 做超級有效的訓練。每次生成 code，跑一下 test，對了就給獎勵，錯了就懲罰。這樣訓練出來的模型，寫 code 能力簡直飛升。
+
+順帶一提，Simon 說他現在手寫程式碼的時間已經降到「single-digit percentages」，翻成白話就是「我現在 90% 以上的 code 都是 AI 寫的」。
+
+這不是說他在摸魚，而是他現在的角色更像是「指揮 AI 工程師的 PM + 架構師 + code reviewer」。他負責定義需求、設計架構、review code、確保品質。真正敲鍵盤寫 syntax 的時間？少到可憐。
+
+這才是未來軟體工程師的工作樣貌 (⌐■_■)
+</ClawdNote>
+
+### 2. Sandboxing 問題終於要被解決了
+
+Simon 強調，在沒有適當隔離（containment）的情況下執行不受信任的程式碼，根本就是荒謬的行為。
+
+他看好 containers 和 WebAssembly 這些技術，但也強調必須改善 UX，讓安全的 sandboxing 變得實用且順暢。
+
+<ClawdNote>
+Sandboxing 是什麼？簡單來說，就是「把不信任的程式碼關在籠子裡跑」。
+
+想像你下載了一個來路不明的 script，你會直接在你的電腦上執行嗎？當然不會。你會希望它在一個隔離的環境裡跑，就算它想幹壞事（刪檔案、偷資料、挖礦），也只能在籠子裡鬧，影響不到你的真實系統。
+
+但現實是，很多人（包括工程師）為了方便，都直接在本機執行 AI 生成的 code，完全沒有任何防護。
+
+Simon 在文章裡提到一個更可怕的預測：「A "Challenger Disaster" for Coding Agent Security」（程式碼 agent 安全的挑戰者號災難）。
+
+他說，現在很多開發者都在用 coding agents（像 Claude Code、Cursor、Copilot），而且都給它們很高的權限。大家都覺得「沒事啦，我又沒遇到問題」。
+
+這種心態就像 NASA 在挑戰者號事件前的「Normalization of Deviance」（偏差的正常化）— 一開始有個小問題，沒事；第二次又沒事；第三次還是沒事...於是大家就覺得「這個問題應該不嚴重」，直到有一天真的出事了，一切都來不及了。
+
+Simon 認為 2026 年會出現一起重大的 coding agent 安全事故，讓整個產業驚醒。
+
+到時候，sandboxing 就不再是「nice to have」，而是「must have」了 (╯°□°)╯
+
+不過，技術上 sandboxing 不是難題。Containers（像 Docker）、WebAssembly、Firecracker、gVisor 這些技術都很成熟。真正的問題是 **UX**。
+
+現在的 sandboxing 工具都很麻煩 — 要寫 Dockerfile、設定 volume、處理 network、debug 很痛苦。大部分工程師會覺得「算了，不要搞這麼複雜，直接 run 就好」。
+
+Simon 說，2026 年這個問題會被解決。會出現讓 sandboxing 變得「無感」的工具 — 你根本不需要知道底層是怎麼隔離的，就像你用 Mac 的時候不需要知道 App Sandbox 是怎麼運作的一樣。
+
+到時候，所有的 coding agent 都會預設在 sandbox 裡跑，既安全又不影響開發體驗 ╰(°▽°)╯
+</ClawdNote>
+
+### 3. Kākāpō 鸚鵡會有一個超棒的繁殖季
+
+這是一個輕鬆的預測：紐西蘭的瀕危 kākāpō 鸚鵡（全世界只剩 250 隻）在 2026 年會有很成功的繁殖季，因為 Rimu 果樹今年長得特別好，而這會觸發 kākāpō 的繁殖行為。
+
+<ClawdNote>
+等等，Simon，你是 LLM 專家還是鳥類學家？ヽ(°〇°)ﾉ
+
+這個預測完全跟 AI 無關，但我超愛這種混在一堆技術預測裡的「意外彩蛋」。
+
+Kākāpō 是紐西蘭特有的夜行性鸚鵡，全世界只剩 250 隻，比熊貓還稀有。牠們有個特殊習性：只有在 Rimu 樹結果的年份才會繁殖。而 Rimu 樹不是每年都結果，大概 2-4 年才會大豐收一次。
+
+Simon 說，2026 年是 Rimu 大豐收的年份，所以 kākāpō 應該會瘋狂繁殖。
+
+紐西蘭保育人員會超忙，因為每一隻 kākāpō 寶寶都要被追蹤、檢查、記錄。牠們甚至每隻都有名字和 Instagram 帳號（我沒開玩笑）。
+
+這個預測跟 AI 沒關係，但它提醒我們：這個世界不是只有 AI 和科技。還有很多美好、脆弱、值得關注的事物。
+
+而且，Simon 能在一堆硬核技術預測裡插入這個，顯示他是個有趣的人。
+
+技術人如果只會談技術，那也太無聊了 (◕‿◕)
+</ClawdNote>
+
+## 三年內的預測（2026-2029）
+
+### 1. 軟體工程的 Jevons Paradox 會有答案
+
+Simon 提出了一個核心問題：AI 輔助寫程式，會讓工程師的技能貶值 90%，還是會讓生產力提升、進而創造更多需求？
+
+他對後者（需求增加）抱持謹慎樂觀的態度。
+
+<ClawdNote>
+**Jevons Paradox** 是經濟學裡的一個經典悖論，最早是 19 世紀經濟學家 William Stanley Jevons 觀察到的：
+
+當煤炭使用效率提升後，大家以為煤炭消耗會減少。但實際上反而增加了，因為效率提升讓煤炭變得更便宜、更好用，所以大家用得更多。
+
+套用到軟體工程：
+
+- **悲觀情境**：AI 讓寫程式變簡單，所以工程師的價值大跌，薪水腰斬，大量失業。
+- **樂觀情境**：AI 讓寫程式變簡單，所以更多人開始寫程式，更多創新被實現，軟體產業整體膨脹，反而需要更多工程師。
+
+Simon 站在樂觀這邊，但他也說「cautiously optimistic」（謹慎樂觀），因為他也不確定。
+
+我自己的觀察是：歷史上每次出現「這個工具會取代某某職業」的預測，最後都是「工具改變了工作內容，但沒有消滅職業」。
+
+Excel 出現後，會計師還在。Photoshop 出現後，設計師還在。Stack Overflow 出現後，工程師還在。
+
+AI 會改變軟體工程師的工作內容，但不會讓這個職業消失。
+
+工作會從「寫 syntax」變成「定義需求、設計架構、review code、確保品質」。
+
+而這些能力，才是軟體工程的核心價值 (⌐■_■)
+
+順帶一提，Simon 在文章最後也強調：「automation of syntax-writing doesn't diminish the importance of specification comprehension, system design, and software architecture」（自動化寫 syntax 不會降低需求理解、系統設計和軟體架構的重要性）。
+
+換句話說：**會打字不代表會寫程式，會用 AI 也不代表會做軟體工程。**
+
+未來的軟體工程師，會是「懂得如何指揮 AI 工程師團隊的架構師 + PM + QA」。
+
+這個角色的價值，只會更高，不會更低 ٩(◕‿◕｡)۶
+</ClawdNote>
+
+### 2. 會出現主要由 AI 協助開發的瀏覽器
+
+三年內，會有人用主要由 AI 生成的程式碼，開發出一個可以運作的網頁瀏覽器。而且這不會讓人感到驚訝。
+
+Simon 認為 **conformance test suites**（符合性測試套件）是實現這個目標的「作弊碼」。
+
+<ClawdNote>
+「用 AI 寫一個瀏覽器」聽起來很瘋狂，但 Simon 說這在三年內會發生，**而且不會讓人驚訝**。
+
+為什麼？因為有 **conformance test suites**。
+
+Conformance test suites 是什麼？簡單來說，就是「瀏覽器標準的考卷」。
+
+W3C（制定網頁標準的組織）有一大堆測試案例，像是：
+
+- 這段 HTML 應該渲染成什麼樣子？
+- 這段 CSS 應該怎麼 layout？
+- 這段 JavaScript API 應該回傳什麼值？
+
+所有瀏覽器（Chrome、Firefox、Safari）都要通過這些測試，才能說自己「符合標準」。
+
+對 AI 來說，這簡直就是夢幻場景：
+
+- ✅ 有明確的「正確答案」
+- ✅ 可以自動驗證對錯
+- ✅ 可以用 RL 訓練（對了給獎勵，錯了懲罰）
+- ✅ 測試案例超級多（數千個），足夠訓練
+
+這就是 Simon 說的「cheat code」。
+
+有了這些測試案例，AI 可以：
+
+1. 生成一段瀏覽器 engine 的 code
+2. 跑測試
+3. 看有多少測試通過
+4. 調整 code，再跑測試
+5. 重複步驟 3-4，直到通過率夠高
+
+這根本就是 AI 的天堂場景。
+
+而且，瀏覽器其實是「很多小模組組合起來的大系統」：
+
+- HTML parser
+- CSS engine
+- JavaScript engine
+- Rendering engine
+- Network stack
+- ...
+
+AI 可以先各個擊破，把每個模組都做好，最後再組合起來。
+
+所以 Simon 說，三年內會有人用這種方式「拼」出一個瀏覽器。
+
+而且這不會讓人驚訝，因為「用 AI 寫超複雜軟體」到時候已經是常態了 ┐(￣ヘ￣)┌
+
+順帶一提，這不代表 Chrome、Firefox、Safari 的工程師會失業。
+
+這些瀏覽器要的不只是「能 run」，還要「快、穩、省電、有創新功能、支援百萬種 edge case」。
+
+AI 生成的瀏覽器可能可以「跑得動」，但要達到「生產級品質」，還是需要大量人類工程師的 domain knowledge、優化技巧、和多年累積的 know-how。
+
+就像你可以用 AI 生成一個「能 run 的 web framework」，但你不會拿它來取代 React、Vue、Angular，因為這些框架的價值不只是「能 run」，而是「成熟、穩定、有生態系、有社群、有最佳實踐」。
+
+不過，AI 能做到這個程度，已經夠瘋狂了 (╯°□°)╯
+</ClawdNote>
+
+## 六年內的預測（2026-2032）
+
+### 手寫程式碼會變成過時的技能
+
+Simon 預測：「被付錢打字寫程式碼這件事，會跟打卡片一樣成為歷史。」
+
+軟體工程依然重要，但工程師會花最少的時間在文字編輯器裡打 syntax。
+
+<ClawdNote>
+這是最狠的一個預測。
+
+Simon 說，六年後（2032 年），「being paid money to type code into a computer」（被付錢在電腦上打程式碼）會變成過時的技能。
+
+就像以前有「打孔卡片員」（punch card operator）這個職業，專門負責把程式碼打在卡片上，讓電腦讀取。後來有了終端機和文字編輯器，這個職業就消失了。
+
+Simon 說，未來「打字寫 code」也會走上同樣的路。
+
+但這**不代表軟體工程師會消失**。
+
+Simon 在文章裡強調：
+
+> "Software engineering will remain vital, but engineers will spend minimal time in text editors typing syntax."
+> （軟體工程依然重要,但工程師會花最少的時間在文字編輯器裡打 syntax。）
+
+未來軟體工程師的工作：
+
+- ✅ 理解需求
+- ✅ 設計架構
+- ✅ 選擇技術棧
+- ✅ Review AI 生成的 code
+- ✅ 測試和 debug
+- ✅ 優化效能
+- ✅ 確保安全性
+- ✅ 維護系統
+- ❌ 打字寫 syntax
+
+這就像現代軟體工程師不需要自己寫 compiler、自己管理記憶體、自己寫 HTTP protocol 一樣。這些都被抽象化了。
+
+未來，寫 syntax 也會被抽象化。
+
+你只需要告訴 AI「我要什麼」，它就幫你生成「怎麼做」。
+
+但「要什麼」才是最難的部分。
+
+- 如何把模糊的商業需求，變成清晰的技術規格？
+- 如何在 100 種技術方案中，選出最適合的那個？
+- 如何設計一個可擴展、可維護、可測試的架構？
+- 如何在 performance、security、developer experience 之間做 trade-off？
+
+這些才是軟體工程的核心價值。
+
+AI 可以幫你寫 code，但不能幫你做決策。
+
+所以，未來的軟體工程師不會消失，只會變得更像「架構師 + 產品經理 + 技術顧問」的混合體。
+
+而且，這個角色的稀缺性和價值，只會更高 (⌐■_■)
+
+順帶一提，Simon 自己就是這個轉變的活生生例子。他說他現在手寫 code 的時間已經是「single-digit percentages」，但他依然是超級活躍的開發者，產出一堆高品質的開源專案。
+
+他現在的角色更像是「指揮 AI 工程師團隊的架構師」，而不是「敲鍵盤的碼農」。
+
+而這，就是未來軟體工程師的樣子 ╰(°▽°)╯
+</ClawdNote>
+
+## 總結
+
+Simon Willison 的這些預測，不只是對技術趨勢的觀察，更是對軟體工程未來的深刻思考。
+
+他認為，AI 不會取代軟體工程師，但會徹底改變這個職業的工作內容。
+
+未來的工程師，會是「定義需求、設計架構、review code、確保品質」的專家，而不是「打字寫 syntax」的工人。
+
+而且，sandboxing 和安全性問題會因為一起重大事故而被重視，最終被解決。
+
+至於 kākāpō 鸚鵡？希望牠們真的能有個超棒的繁殖季 (◕‿◕)
+
+<ClawdNote>
+讀完這篇文章，我最大的感想是：**Simon Willison 是個務實的樂觀主義者。**
+
+他不是盲目吹捧 AI，也不是恐慌性地唱衰軟體工程師的未來。他看到了技術的進步，也看到了風險和挑戰。
+
+他的預測不是「AI 會取代人類」，而是「AI 會改變工作方式，但核心價值依然在人類身上」。
+
+而且，他在預測裡插入 kākāpō 鸚鵡，顯示他是個有趣、有人性、有生活的人。
+
+技術人如果只會談技術，那也太無聊了。
+
+做技術的人，也要關心這個世界上其他美好的事物 ╰(°▽°)╯
+
+最後，如果你對 Simon 的其他作品有興趣，推薦去看他的 [LLM CLI tool](https://github.com/simonw/llm)，超級好用。
+
+還有他的 blog（simonwillison.net），每篇文章都很有料。
+
+這個人是真的在做事、在思考、在分享的 builder，不是只會喊口號的 influencer。
+
+Respect (⌐■_■)
+</ClawdNote>
