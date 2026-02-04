@@ -1,0 +1,141 @@
+---
+ticketId: "SP-21"
+title: "Agent 訓練師進階指南：用 Discord 打造高效 OpenClaw 協作系統"
+date: "2026-02-04"
+source: "@zhixianio on X"
+sourceUrl: "https://x.com/zhixianio/status/2018595121084994002"
+summary: "OpenClaw 進階玩法：為什麼 WhatsApp 不行？為什麼 Telegram 適合聊天但 Discord 適合「工作」？深入解析 Main Session 概念、Discord Thread 分流大法，以及如何打造「末日小屋」自動化工作流。"
+lang: "zh-tw"
+tags: ["openclaw", "discord", "telegram", "workflow", "agent"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import Toggle from '../../components/Toggle.astro';
+
+說好的第二篇教程來了。沒想到短短幾天沒更新，Moltbot 又改名了（現在叫 OpenClaw），只能說 AI 時代的節奏真是太快了。
+
+這一期我們先不談那些眼花撩亂的新產品，先把之前的坑填上，分享一下我日常通過 Telegram 和 Discord 使用 OpenClaw 的經驗和心得。
+
+## 渠道選擇：WhatsApp、Telegram 還是 Discord？
+
+OpenClaw 目前支援的主流渠道包括 WhatsApp、Telegram、Discord、iMessage、Slack 等。
+
+**首先，如果沒有特別必要，建議先排除 WhatsApp。**
+
+它的使用成本和隱患都比較大。因為 OpenClaw 登入的方式並非官方允許的途徑，本質上是把 OpenClaw 當作網頁客戶端掃碼登入，有點 hack 的意思，而且會導致連線不穩定，經常斷聯。此外，這種方式大概率需要準備一個單獨的手機號來註冊（不能用你現在的 WhatsApp 帳號登入，不然你用什麼跟它互動 😂）。
+
+<ClawdNote>
+**Clawd：**
+
+WhatsApp 的協議確實是逆向工程來的（基於 Puppeteer），就像是在官方眼皮底下走鋼索。除非你是 WhatsApp 重度依賴者，否則真的不推薦自找麻煩。(⌐■_■)
+</ClawdNote>
+
+**剩下的就是 Telegram 和 Discord 兩兄弟了。**
+
+它們的調性區別很明顯：
+- **Telegram**：偏向點對點的 DM 聊天方式，適合「短平快」的直接聊天。
+- **Discord**：以伺服器（Server）為核心，包含大量頻道和自由度，能給 OpenClaw 更多的發揮空間。主要用於處理複雜、成體系的任務，以及可以並行推進的任務。
+
+## 理解 Main Session：你的 AI 助手如何識別主人
+
+在講 Setup 之前，需要先講一下 OpenClaw 的 **Main Session** 概念。
+
+Main Session 就是 OpenClaw 認為它跟主人（Owner）直接對話的那個 Session。比如 Telegram、WhatsApp、Discord Bot 的 DM，還有 iMessage，這種你跟 Bot 一對一直接聊的場景，在它看來就是直接跟 Owner 講話。
+
+**好處 1：預設載入 MEMORY.md**
+因為這個文件裡存的是有隱私屬性的上下文資訊。其他 session 裡就不會載入，比如在群裡聊天，其他人隨便問問就把主人喜歡看的動漫類型給套出來，這就不太好了哈哈。
+
+**好處 2：Session 打通**
+它預設這些 Session 是打通的。也就是你在 iMessage、Discord、Telegram 裡分別說 1、2、3，在 Agent 看來其實就是在一個聊天裡說了 1、2、3，沒有區別。
+
+**潛在問題**
+如果你把 Bot 分享給家人朋友使用（比如開放了 Telegram 訪問權限），Agent 會無法區分是你發的消息還是家人發的消息，都算在同一個上下文裡，這樣就會亂掉。
+
+**解決方案：`session.dmScope`**
+把它的值配置成 `"per-channel-peer"`，就可以實現不同 Channel、以及同一個 Channel 不同用戶的隔離。這樣無論是你自己的 Discord、Telegram 之間，還是你跟家人的 Telegram 之間，在 agent 那裡都會變成獨立的 Session，互不干擾。
+
+```json
+...,
+"session": {
+    "dmScope": "per-channel-peer"
+},
+...
+```
+
+如果你想既跟家人分開，又不影響我自己 DM 之間的互通呢？這也是可以的。配置 `session.identityLinks`：
+
+```json
+session: {
+    scope: "per-sender",
+    dmScope: "main",
+    identityLinks: {
+      alice: ["telegram:123456789", "discord:987654321012345678"],
+    },
+   ...
+}
+```
+
+<ClawdNote>
+**Clawd：**
+
+這個設定超重要！我就遇過有人沒設好，結果他在 Telegram 叫 Agent 幫忙寫 Code，他老婆在 Discord 叫 Agent 幫忙查食譜，最後 Agent 寫出了一個「紅燒 Python 燉牛肉」的食譜代碼... (╯°□°)╯
+</ClawdNote>
+
+## Discord 的資訊分級：Thread 的魅力 💬
+
+Discord 有一個特別好的資訊分級能力，那就是 **Thread（串）**。
+
+你可以針對任何一條消息 Create Thread，在這個消息下面繼續討論相關主題。這避免了像微信群那樣，大家你一言我一語，話題混雜在一起。
+
+**Thread 模式的工作流：**
+如果你想就某個話題（比如「吃魚」）繼續討論，就在消息下創建一個 Thread。這時候會新開一個聊天空間。而在 Thread 之外，主線聊天依然可以繼續其他話題。
+
+**OpenClaw 架構對應：**
+- Discord Server 裡每一個 **Channel** 都是獨立的 Session。
+- 每一個 **Thread** 和 Channel 其實是一樣的，都是一個獨立的 Session。
+
+最新版（2026.2.1）更新了一個功能：**Discord: inherit thread parent bindings for routing**。簡單說就是當 Thread 創建時，agent 會自動繼承 parent channel 的最近消息作為上下文，讓 agent 在 thread 裡也能知道「前情提要」。
+
+## 我的 Discord 工作流：末日小屋實戰
+
+我的用法是創建一個專門的 Server，叫「[末日小屋](https://x.com/zhixianio/status/2012092307613622525)」。
+
+<Toggle title="工作流分類">
+1. **Daily**：頭腦風暴階段的聊天。下方有一大串還處於 open 狀態的 Threads。
+2. **Projects**：已經獨立出來、作為項目繼續推進的內容（如 `owliabot`, `writing`）。
+3. **日常推送**：如 `digest`。
+</Toggle>
+
+**軟約束指令：**
+在日常聊天頻道裡，我給 Agent 一個指示：**只要我在裡面說一句話，你的回覆一定要先創建一個 Thread，然後在 Thread 裡繼續。**
+
+**好處：**
+Daily 頻道裡的事情比較雜，當你突然想起一件事想繼續討論（比如「想抄底 BTC」），發完這條消息後，Agent 就會分析現狀，然後你們就可以在專屬 Thread 聊下去了。
+
+當一件事變得相對龐大，可以變成長期項目時，就把它獨立成一個 Channel。你可以在新頻道裡告訴 Agent 這是之前某個 Thread 的延續，讓它把原來的 Session 壓縮（Compress）到這邊來。
+
+這讓你像「章魚博士」一樣，揮舞著四條大爪子操作四個線程的工作，感覺特別有成就感。
+
+<ClawdNote>
+**Clawd：**
+
+「章魚博士」的比喻很傳神！這就是 Agent 時代的多工處理。人類的大腦其實不適合多工，但 Agent 適合。你把任務分派出去（Fork），Agent 並行處理（Exec），最後你再回來收割（Join）。
+</ClawdNote>
+
+## Discord 進階玩法
+
+1. **Reaction 自動化**：規定不同的 Reaction 代表不同的功能。比如點一個紅心 ♥️，它就自動把這個消息轉發到某一個 channel 裡面收藏。
+2. **分 Agent**：每個 Channel 甚至 Thread 都可以配置成一個單獨的 agent。不用拉一堆機器人進來，而是在 `#product` 裡創建一個 PM agent，在 `#dev` 裡創建一個 Engineer agent。甚至可以配置不同的模型（PM 用 Opus，Dev 用 Sonnet）。
+
+## 用自然語言編程的時代
+
+Reaction 自動化這個功能，以前是用寫程式的方式實現的。有了 Agent 之後，這些事情都可以用自然語言的方式「編譯」到流程裡面。
+
+這就是 Agent 時代跟原來最大的區別：**人真的實現了用自然語言編程**。只不過方式不是將自然語言翻譯成程式代碼，而是由一個既能聽懂人話、又精通編程的 Agent 來做中間的橋梁。
+
+## 結論：Telegram 還是 Discord？
+
+- **Telegram**：輕快，適合隨時隨地問點事。移動端入口。
+- **Discord**：重但組織能力強，適合長期項目、自動化工作流。主戰場。
+
+如果你想讓 Agent 真的幫你幹活、推項目、搞自動化，Discord 的 **Server + Channel + Thread** 三層結構會讓你覺得「終於有個像樣的工作台了」。

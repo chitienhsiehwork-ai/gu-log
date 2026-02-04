@@ -1,0 +1,123 @@
+---
+ticketId: "SP-21"
+title: "Agent Trainer's Advanced Guide: Building an Efficient OpenClaw Workflow with Discord"
+date: "2026-02-04"
+source: "@zhixianio on X"
+sourceUrl: "https://x.com/zhixianio/status/2018595121084994002"
+summary: "Why WhatsApp is a no-go, Telegram is for chatting, and Discord is for 'work'. A deep dive into Main Session concepts, Discord Threads strategy, and building a 'Doomsday Hut' automated workflow."
+lang: "en"
+tags: ["openclaw", "discord", "telegram", "workflow", "agent"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import Toggle from '../../components/Toggle.astro';
+
+> For the Traditional Chinese translation with Clawd's commentary, see the [Chinese version](/posts/openclaw-discord-workflow-guide).
+
+The second tutorial is here. Moltbot has been renamed to OpenClaw—the pace of the AI era is truly too fast.
+
+Let's skip the new shiny tools for now and fill in the previous gaps: sharing my daily experience and insights on using OpenClaw via Telegram and Discord.
+
+## Channel Selection: WhatsApp, Telegram, or Discord?
+
+OpenClaw supports WhatsApp, Telegram, Discord, iMessage, Slack, etc.
+
+**First, unless absolutely necessary, exclude WhatsApp.**
+
+Its cost and risks are high. OpenClaw logs in via an unofficial method (scanning a QR code like a web client), which is essentially a hack. It leads to unstable connections. Plus, you'd likely need a separate phone number.
+
+**That leaves the two brothers: Telegram and Discord.**
+
+- **Telegram**: Oriented towards point-to-point DM chatting. Good for "quick and dirty" chats.
+- **Discord**: Server-centric, with channels and freedom. Suitable for complex, structured tasks and parallel workflows.
+
+## Understanding Main Session: How Your AI Recognizes Its Master
+
+Before discussing the setup, we need to understand the **Main Session** concept in OpenClaw.
+
+The Main Session is the session where OpenClaw believes it is talking directly to the Owner. E.g., DMs on Telegram, WhatsApp, Discord Bot, or iMessage.
+
+**Benefit 1: Default loading of MEMORY.md**
+This file contains private context. Other sessions won't load it to prevent leaking personal info in group chats.
+
+**Benefit 2: Unified Sessions**
+By default, these sessions are connected. Saying 1, 2, 3 in iMessage, Discord, and Telegram respectively looks like a single conversation to the Agent.
+
+**Potential Issue**
+If you share the Bot with family (e.g., granting Telegram access), the Agent won't distinguish between your messages and your family's, leading to context chaos.
+
+**Solution: `session.dmScope`**
+Set it to `"per-channel-peer"` to isolate different users even within the same channel type.
+
+```json
+...,
+"session": {
+    "dmScope": "per-channel-peer"
+},
+...
+```
+
+To separate from family but keep your own DMs unified, configure `session.identityLinks`:
+
+```json
+session: {
+    scope: "per-sender",
+    dmScope: "main",
+    identityLinks: {
+      alice: ["telegram:123456789", "discord:987654321012345678"],
+    },
+   ...
+}
+```
+
+## Discord Information Hierarchy: The Charm of Threads 💬
+
+Discord has a great feature for information hierarchy: **Threads**.
+
+You can create a Thread on any message to discuss a related topic underneath it. This avoids the chaos of a WeChat group where everyone talks over each other.
+
+**Thread Workflow:**
+If you want to discuss a specific topic (e.g., "eating fish"), create a Thread under that message. This opens a new chat space. Outside the Thread, the main line chat continues with other topics.
+
+**OpenClaw Architecture Mapping:**
+- Each **Channel** in a Discord Server is an independent Session.
+- Each **Thread** is also an independent Session, just like a Channel.
+
+The latest version (2026.2.1) added: **Discord: inherit thread parent bindings for routing**. When a Thread is created, the agent automatically inherits recent messages from the parent channel as context.
+
+## My Discord Workflow: The "Doomsday Hut"
+
+I created a dedicated Server called "Doomsday Hut".
+
+**Workflow Classification:**
+1. **Daily**: Brainstorming chats.
+2. **Projects**: Independent channels for ongoing projects (e.g., `owliabot`, `writing`).
+3. **Routine Pushes**: e.g., `digest`.
+
+**The Soft Constraint:**
+In the daily chat channel, I instruct the Agent: **Whenever I say something, you must first create a Thread, and then continue in that Thread.**
+
+**Benefits:**
+The Daily channel stays clean. When you think of something to discuss, the Agent analyzes the status, creates a thread, and you chat there.
+
+If a matter becomes large enough to be a long-term project, promote it to an independent Channel. You can tell the Agent in the new channel that this is a continuation of a previous Thread, and ask it to Compress the original Session over here.
+
+This makes you feel like "Doctor Octopus," manipulating four threads of work simultaneously.
+
+## Advanced Discord Tricks
+
+1. **Reaction Automation**: Define different Reactions for different functions. E.g., clicking a heart ♥️ automatically forwards the message to a specific channel for bookmarking.
+2. **Agent Splitting**: Each Channel or even Thread can be configured as a separate agent. Create a PM agent in `#product` and an Engineer agent in `#dev`, potentially with different models (Opus for PM, Sonnet for Dev).
+
+## The Era of Natural Language Programming
+
+Reaction automation used to require writing code. With Agents, these things can be "compiled" into the process using natural language.
+
+This is the biggest difference in the Agent era: **Humans have truly achieved programming with natural language**. Not by translating natural language into code, but by using an Agent that understands human language and is proficient in programming (or API calls) as a bridge.
+
+## Conclusion: Telegram or Discord?
+
+- **Telegram**: Lightweight, suitable for quick questions anytime. Mobile entry point.
+- **Discord**: Heavy but organized, suitable for long-term projects and automated workflows. The main battlefield.
+
+If you want an Agent to truly help you work, push projects, and automate things, Discord's **Server + Channel + Thread** three-tier structure will finally give you a "decent workbench."
