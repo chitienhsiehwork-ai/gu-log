@@ -20,6 +20,11 @@ export default defineConfig({
       name: 'Mobile Chrome',
       use: { ...devices['Pixel 5'] },
     },
+    // Note: Add 'Mobile Safari' when webkit is installed
+    // {
+    //   name: 'Mobile Safari',
+    //   use: { ...devices['iPhone 13'] },
+    // },
   ],
   webServer: {
     command: 'npm run dev',

@@ -65,9 +65,9 @@ test.describe('BackToTop Button', () => {
     const box2 = await button.boundingBox();
     expect(box2).not.toBeNull();
 
-    // Positions should be the same (within viewport)
-    expect(box1!.x).toBeCloseTo(box2!.x, 1);
-    expect(box1!.y).toBeCloseTo(box2!.y, 1);
+    // Positions should be the same (within viewport, allowing 2px tolerance for sub-pixel rendering)
+    expect(Math.abs(box1!.x - box2!.x)).toBeLessThan(2);
+    expect(Math.abs(box1!.y - box2!.y)).toBeLessThan(2);
   });
 
   test('no duplicate back-to-top elements in DOM', async ({ page }) => {
