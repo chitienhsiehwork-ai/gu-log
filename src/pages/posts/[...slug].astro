@@ -41,7 +41,7 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
       <div class="post-meta-row">
         <span class="post-meta-left">
           {ticketId && <TicketBadge ticketId={ticketId} />}
-          <span class="meta-date">{post.data.originalDate}</span>
+          <span class="meta-date">{post.data.translatedDate || post.data.originalDate}</span>
           {isClawdPicks && (
             <span class="clawd-picks-badge">
               <img src="/clawd-icon.png" alt="Clawd Picks" class="clawd-icon" />

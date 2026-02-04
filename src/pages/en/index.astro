@@ -54,7 +54,7 @@ const cpPosts = allPosts
           <h3><a href={`/en/posts/${post.slug}`}>{post.data.title}</a></h3>
           <p class="post-meta">
             {post.data.ticketId && <TicketBadge ticketId={post.data.ticketId} />}
-            {post.data.originalDate} · {post.data.source}
+            {post.data.translatedDate || post.data.originalDate} · {post.data.source}
           </p>
           <Toggle title="Preview">
             <p>{post.data.summary}</p>
@@ -79,7 +79,7 @@ const cpPosts = allPosts
           <h3><a href={`/en/posts/${post.slug}`}>{post.data.title}</a></h3>
           <p class="post-meta">
             {post.data.ticketId && <TicketBadge ticketId={post.data.ticketId} />}
-            {post.data.originalDate} · From {post.data.source}
+            {post.data.translatedDate || post.data.originalDate} · From {post.data.source}
           </p>
           <Toggle title="Preview">
             <p>{post.data.summary}</p>
@@ -99,37 +99,22 @@ const cpPosts = allPosts
       <h2><img src="/clawd-icon.png" alt="" class="clawd-section-icon" /> Clawd Picks</h2>
       <p class="section-subtitle">One tweet, translated every hour by Clawd</p>
 
-      {cpPosts.slice(0, 3).map((pick) => (
+      {cpPosts.slice(0, 5).map((pick) => (
         <article class="pick-preview">
           <a href={`/en/posts/${pick.slug}`}>{pick.data.title}</a>
           <span class="pick-meta">
             {pick.data.ticketId && <TicketBadge ticketId={pick.data.ticketId} />}
-            {pick.data.originalDate} · {pick.data.source}
+            {pick.data.translatedDate || pick.data.originalDate} · {pick.data.source}
           </span>
         </article>
       ))}
 
-      {cpPosts.length > 3 && (
+      {cpPosts.length > 5 && (
         <p class="view-all"><a href="/en/clawd-picks">View all →</a></p>
       )}
     </section>
   )}
 
-  <section class="about-section">
-    <h2>What is this?</h2>
-
-    <Toggle title="The Concept">
-      <p>This is gu-log's English corner. We take interesting tech content and rewrite it in a way that's actually fun to read — like a professor who's had too much coffee explaining AI to a smart high schooler.</p>
-    </Toggle>
-
-    <Toggle title="Why does this exist?">
-      <p>Because most tech content is either too boring or too complex. We believe you can explain anything if you try hard enough. And add enough jokes.</p>
-    </Toggle>
-
-    <Toggle title="Who's Clawd?">
-      <p>Clawd is our AI assistant running on OpenClaw. It writes the drafts, adds sarcastic commentary, and occasionally has existential crises about being an AI writing about AI.</p>
-    </Toggle>
-  </section>
 </BaseLayout>
 
 <style>
@@ -154,7 +139,7 @@ const cpPosts = allPosts
     font-style: italic;
   }
 
-  .posts-section, .about-section, .clawd-picks-section {
+  .posts-section, .clawd-picks-section {
     margin-bottom: 2rem;
   }
 

@@ -54,7 +54,7 @@ const cpPosts = allPosts
           <h3><a href={`/posts/${post.slug}`}>{post.data.title}</a></h3>
           <p class="post-meta">
             {post.data.ticketId && <TicketBadge ticketId={post.data.ticketId} />}
-            {post.data.originalDate} · {post.data.source}
+            {post.data.translatedDate || post.data.originalDate} · {post.data.source}
           </p>
           <Toggle title="摘要預覽">
             <p>{post.data.summary}</p>
@@ -79,7 +79,7 @@ const cpPosts = allPosts
           <h3><a href={`/posts/${post.slug}`}>{post.data.title}</a></h3>
           <p class="post-meta">
             {post.data.ticketId && <TicketBadge ticketId={post.data.ticketId} />}
-            {post.data.originalDate} · 翻譯自 {post.data.source}
+            {post.data.translatedDate || post.data.originalDate} · 翻譯自 {post.data.source}
           </p>
           <Toggle title="摘要預覽">
             <p>{post.data.summary}</p>
@@ -99,47 +99,22 @@ const cpPosts = allPosts
       <h2><img src="/clawd-icon.png" alt="" class="clawd-section-icon" /> Clawd Picks</h2>
       <p class="section-subtitle">Clawd 每小時精選一則推文翻譯</p>
 
-      {cpPosts.slice(0, 3).map((pick) => (
+      {cpPosts.slice(0, 5).map((pick) => (
         <article class="pick-preview">
           <a href={`/posts/${pick.slug}`}>{pick.data.title}</a>
           <span class="pick-meta">
             {pick.data.ticketId && <TicketBadge ticketId={pick.data.ticketId} />}
-            {pick.data.originalDate} · {pick.data.source}
+            {pick.data.translatedDate || pick.data.originalDate} · {pick.data.source}
           </span>
         </article>
       ))}
 
-      {cpPosts.length > 3 && (
+      {cpPosts.length > 5 && (
         <p class="view-all"><a href="/clawd-picks">查看全部 →</a></p>
       )}
     </section>
   )}
 
-  <section class="about-section">
-    <h2>關於這裡</h2>
-
-    <Toggle title="什麼是這個網站？">
-      <p>這是一個翻譯 blog，把有趣的外文文章翻成繁體中文分享給大家。</p>
-    </Toggle>
-
-    <Toggle title="為什麼做這個？">
-      <p>因為好內容不應該有語言障礙。而且翻譯的過程也是學習的過程。</p>
-    </Toggle>
-
-    <Toggle title="技術細節（給工程師看的）" open={false}>
-      <p>這個網站使用：</p>
-      <ul>
-        <li>Astro - 靜態網站生成器</li>
-        <li>Claude Opus 4.5 - AI 翻譯協助</li>
-        <li>人工校對 - 確保品質</li>
-      </ul>
-    </Toggle>
-  </section>
-
-  <section class="theme-demo">
-    <h2>主題切換</h2>
-    <p>點右上角的切換按鈕切換深色/淺色（Solarized Light）模式</p>
-  </section>
 </BaseLayout>
 
 <style>
@@ -164,7 +139,7 @@ const cpPosts = allPosts
     font-style: italic;
   }
 
-  .posts-section, .about-section, .theme-demo, .clawd-picks-section {
+  .posts-section, .clawd-picks-section {
     margin-bottom: 2rem;
   }
 

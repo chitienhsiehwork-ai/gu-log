@@ -6,9 +6,11 @@ export async function GET(context: APIContext) {
   // Get all zh-tw posts from content collections
   const posts = await getCollection('posts', ({ data }) => data.lang === 'zh-tw');
 
-  // Sort by originalDate descending
+  // Sort by translatedDate descending (when article was added to the blog)
   const sortedPosts = posts.sort((a, b) => {
-    return new Date(b.data.originalDate).getTime() - new Date(a.data.originalDate).getTime();
+    const dateA = a.data.translatedDate || a.data.originalDate;
+    const dateB = b.data.translatedDate || b.data.originalDate;
+    return new Date(dateB).getTime() - new Date(dateA).getTime();
   });
 
   return rss({
@@ -18,7 +20,7 @@ export async function GET(context: APIContext) {
     items: sortedPosts.map((post) => ({
       title: post.data.title,
       link: `/posts/${post.slug}`,
-      pubDate: new Date(post.data.originalDate),
+      pubDate: new Date(post.data.translatedDate || post.data.originalDate),
       description: post.data.summary,
     })),
     customData: '<language>zh-TW</language>',

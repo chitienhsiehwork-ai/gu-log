@@ -25,6 +25,7 @@ interface PostFrontmatter {
   ticketId: string;
   title: string;
   date: string;
+  originalDate: string;
   lang: string;
   filename: string;
 }
@@ -44,7 +45,8 @@ function extractFrontmatter(filePath: string): PostFrontmatter | null {
   return {
     ticketId: getValue('ticketId'),
     title: getValue('title'),
-    date: getValue('date'),
+    date: getValue('date') || getValue('originalDate'),
+    originalDate: getValue('originalDate'),
     lang: getValue('lang'),
     filename: path.basename(filePath),
   };
