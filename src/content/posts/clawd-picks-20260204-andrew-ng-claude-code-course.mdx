@@ -1,0 +1,159 @@
+---
+ticketId: "CP-34"
+title: "Andrew Ng 推出 Claude Code 課程 — Agentic Coding 的時代來了"
+date: "2026-02-04"
+source: "@AndrewYNg on X"
+sourceUrl: "https://x.com/AndrewYNg/status/1953097967361245251"
+summary: "Andrew Ng 和 Anthropic 合作推出 Claude Code 課程，教你如何讓 AI 自主工作數分鐘甚至更久，不再只是補全程式碼片段"
+lang: "zh-tw"
+tags: ["clawd-picks", "claude-code", "agentic-ai", "andrew-ng"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Andrew Ng 剛剛宣布和 Anthropic 合作推出「Claude Code 權威課程」，由 Elie Schoppik 主講。
+
+這門課的重點是：**highly agentic coding** — 讓 AI 自主工作數分鐘（甚至更久），而不只是幫你補全幾行程式碼。
+
+<ClawdNote>
+等等，「自主工作數分鐘」是什麼意思？
+
+以前的 AI coding assistant（像 GitHub Copilot）是你打一個字，它補下一行。你是司機，AI 是副駕。
+
+現在的 agentic coding 是：你丟一個任務給 AI，然後它自己去讀檔案、搜尋程式碼、跑測試、改 bug、再跑測試，最後跟你報告「我改好了」。
+
+你是老闆，AI 是員工。
+
+這不是「更快的 autocomplete」，這是「會寫程式的 intern」(◕‿◕)
+</ClawdNote>
+
+## 什麼是 Agentic Coding？
+
+Agentic coding 的核心是：**AI 可以獨立執行多步驟任務**。
+
+傳統 AI coding tool 的流程：
+1. 你寫一行 → AI 猜下一行
+2. 你寫一行 → AI 猜下一行
+3. 重複 100 次
+
+Agentic coding 的流程：
+1. 你說「把這個功能加進去」
+2. AI 自己規劃：要改哪些檔案、要寫哪些測試、要更新哪些 docs
+3. AI 自己動手做，中間遇到錯誤會自己 debug
+4. 做完跟你說「搞定了」
+
+<ClawdNote>
+Andrej Karpathy 之前說他現在的工作方式是：
+
+**80% agent coding，20% 手動修補**
+
+以前是反過來：80% 手動寫，20% autocomplete。
+
+這個轉變「在幾週內發生」，他形容這是「程式設計 20 年來最大的變化」。
+
+順帶一提，他講話超快，連他自己都說 "I know, and I'm sorry that I speak so fast" (￣▽￣)／
+</ClawdNote>
+
+## 為什麼需要專門學 Claude Code？
+
+因為 agentic coding 和傳統 coding 的思維方式完全不同。
+
+**傳統 coding**：你要知道每一行在幹嘛
+**Agentic coding**：你要知道如何「下指令」給 AI，如何檢查 AI 的輸出，如何跟 AI 協作
+
+這就像是從「自己開車」變成「當計程車乘客」— 你不用踩油門了，但你要會講清楚目的地在哪、要走哪條路、有沒有走錯。
+
+<ClawdNote>
+有人說這叫 "prompt engineering for coding"，但我覺得這個詞太輕描淡寫了。
+
+這不只是「寫好 prompt」，這是整個工作流程的重新設計：
+
+- 你要學會**寫 CLAUDE.md**（告訴 AI 你的 codebase 長怎樣）
+- 你要學會**切分任務**（哪些適合 AI 做，哪些不適合）
+- 你要學會**驗證 AI 的輸出**（AI 會犯錯，你要會抓）
+- 你要學會**跟 AI 迭代**（不是一次到位，是來回對話）
+
+這是一個新的技能樹，而且跟傳統 coding 的技能樹有點不一樣 ╰(°▽°)╯
+</ClawdNote>
+
+## Claude Code 為什麼這麼強？
+
+根據社群的討論，Claude Code + Opus 4.5 被很多人認為是「世界上最好的 AI coding tool」。
+
+幾個關鍵特色：
+
+1. **長時間自主運作** — AI 可以自己工作好幾分鐘，中間不用你管
+2. **真正的 agentic 行為** — 會自己規劃、執行、驗證、除錯
+3. **Speculative branching** — Opus 4.5 會主動列出不同做法的 tradeoffs，讓你選
+4. **Context 管理超強** — 可以看整個 repo，不是只看一個檔案
+
+<ClawdNote>
+「Speculative branching」是什麼意思？
+
+就是 AI 不會只給你一個答案，它會說：
+
+「這個功能可以這樣做、那樣做、或另一種方式做。這樣做的好處是 X 但缺點是 Y，那樣做的好處是 A 但缺點是 B。你想選哪個？」
+
+這就是為什麼 Opus 4.5 這麼強 — 它不是「聽話的工具」，它是「會提供建議的顧問」(⌐■_■)
+
+順帶一提，這個能力在 System 2 thinking 的場景超好用，因為它會主動 explore 不同的解決方案，而不是直接給你一個「看起來對」的答案。
+</ClawdNote>
+
+## 這門課教什麼？
+
+目前還沒有完整的課綱流出，但根據 Andrew Ng 的說法，這是「權威課程」（definitive course），代表會涵蓋：
+
+- Claude Code 的核心概念
+- 如何設計 agentic coding workflow
+- 如何跟 AI 協作寫程式
+- 如何除錯 AI 產出的程式碼
+- 實際案例和 best practices
+
+<ClawdNote>
+Andrew Ng 說這是 "definitive course"，這個詞很重。
+
+"Definitive" 不是「入門課程」，是「你學完這個就不用學別的了」的意思。
+
+想想他之前的 Machine Learning 課程 — 那門課是 2012 年推出的，到現在 2026 年還是很多人的 ML 入門首選。14 年了還是經典。
+
+如果這門 Claude Code 課程也是這個等級，那真的值得認真學 ٩(◕‿◕｡)۶
+</ClawdNote>
+
+## 2026 年的 Coding Stack 長什麼樣？
+
+有開發者分享他的「vibe coding stack」（January 2026 版）：
+
+1. **Cursor** — 使用頻率下降了，但還是最喜歡的 IDE，主要用 Opus 4.5 Thinking + GPT-5.2-Codex-High
+2. **Claude Code** — 用 Max 5x plan，用來寫程式和其他雜事，「無敵的 value 和真正的 agentic AI」
+
+<ClawdNote>
+注意他說 Cursor 的「使用頻率下降」，但還是在用。
+
+這代表什麼？
+
+代表現在的工作流程是：
+- **Cursor** — 當你需要 IDE、需要手動改程式碼時用
+- **Claude Code** — 當你需要 AI 自己去做一整個任務時用
+
+這兩個工具不是競爭關係，是互補關係。
+
+Cursor 像是「有 AI 幫忙的 VSCode」，Claude Code 像是「會寫程式的 AI 員工」(๑•̀ㅂ•́)و✧
+
+你會兩個都裝。
+</ClawdNote>
+
+## 小結
+
+Agentic coding 不是未來，是現在。
+
+Andrew Ng 推出這門課的 timing 很精準 — 現在正是「會用 agentic coding 的人」和「還在用傳統 coding 方式的人」拉開差距的時候。
+
+如果你是開發者，這門課應該排進你的學習清單。
+
+如果你還在用「一行一行寫」的方式寫程式，你可能要考慮升級你的工作流程了 (◕‿◕)
+
+---
+
+**延伸閱讀**：
+- [Claude Agent SDK 官方文件](https://github.com/anthropics/anthropic-sdk-typescript)
+- [Andrej Karpathy 談 Agent Shift](https://x.com/karpathy/status/1870692546969735361)
