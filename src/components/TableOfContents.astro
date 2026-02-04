@@ -1,130 +1,103 @@
 ---
 /**
- * Table of Contents Component
+ * Table of Contents Component (Build-time generated)
  *
- * Extracts h2 and h3 headings from article and displays them as a navigable TOC:
+ * Receives headings from post.render() and generates TOC at build time:
  * - Mobile: Collapsible TOC at top of article
  * - Desktop (>1280px): Sticky sidebar TOC
- * - Highlights current section on scroll
- * - Only shows if 3+ headings exist
+ * - Highlights current section on scroll (client JS)
+ * - Only shows if 2+ headings exist
  */
+
+interface Heading {
+  depth: number;
+  slug: string;
+  text: string;
+}
 
 interface Props {
   lang?: 'zh-tw' | 'en';
+  headings?: Heading[];
 }
 
-const { lang = 'zh-tw' } = Astro.props;
+const { lang = 'zh-tw', headings = [] } = Astro.props;
+
+// Filter to only h2 and h3
+const tocHeadings = headings.filter(h => h.depth === 2 || h.depth === 3);
+
+// Only show TOC if 2+ headings
+const showToc = tocHeadings.length >= 2;
 
 const labels = {
   'zh-tw': {
     title: '目錄',
-    skipToContent: '跳到內容'
   },
   'en': {
     title: 'Table of Contents',
-    skipToContent: 'Skip to content'
   }
 };
 
 const t = labels[lang];
 ---
 
-<aside class="toc-container" aria-label={t.title}>
-  <!-- Mobile Toggle Version -->
-  <div class="toc-mobile">
-    <div class="toggle-container" data-open="false">
-      <button class="toggle-header" aria-expanded="false">
-        <span class="toggle-icon"></span>
-        <span class="toggle-title">{t.title}</span>
-      </button>
-      <div class="toggle-wrapper">
-        <div class="toggle-inner">
-          <nav class="toc-content">
-            <!-- Populated by client script -->
-          </nav>
+{showToc && (
+  <aside class="toc-container" aria-label={t.title}>
+    <!-- Mobile Toggle Version -->
+    <div class="toc-mobile">
+      <div class="toggle-container" data-open="false">
+        <button class="toggle-header" aria-expanded="false">
+          <span class="toggle-icon"></span>
+          <span class="toggle-title">{t.title}</span>
+        </button>
+        <div class="toggle-wrapper">
+          <div class="toggle-inner">
+            <nav class="toc-content">
+              {tocHeadings.map((heading) => (
+                <a 
+                  href={`#${heading.slug}`}
+                  class={`toc-link toc-link-h${heading.depth}`}
+                  data-heading-id={heading.slug}
+                >
+                  {heading.text}
+                </a>
+              ))}
+            </nav>
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- Desktop Sidebar Version -->
-  <div class="toc-desktop">
-    <nav class="toc-sidebar">
-      <h2 class="toc-title">{t.title}</h2>
-      <div class="toc-content">
-        <!-- Populated by client script -->
-      </div>
-    </nav>
-  </div>
-</aside>
+    <!-- Desktop Sidebar Version -->
+    <div class="toc-desktop">
+      <nav class="toc-sidebar">
+        <h2 class="toc-title">{t.title}</h2>
+        <div class="toc-content">
+          {tocHeadings.map((heading) => (
+            <a 
+              href={`#${heading.slug}`}
+              class={`toc-link toc-link-h${heading.depth}`}
+              data-heading-id={heading.slug}
+            >
+              {heading.text}
+            </a>
+          ))}
+        </div>
+      </nav>
+    </div>
+  </aside>
+)}
 
 <script>
   function initTableOfContents() {
-    const article = document.querySelector('article.post .post-content');
     const tocContainer = document.querySelector('.toc-container');
-    
-    if (!article || !tocContainer) return;
+    if (!tocContainer) return;
 
-    // Extract h2 and h3 headings
-    const headings = Array.from(article.querySelectorAll('h2, h3'));
+    // Get all heading IDs from TOC links
+    const tocLinks = Array.from(document.querySelectorAll('.toc-link'));
+    const headingIds = tocLinks.map(link => link.getAttribute('data-heading-id')).filter(Boolean);
+    const headings = headingIds.map(id => document.getElementById(id!)).filter(Boolean) as HTMLElement[];
 
-    // Hide TOC if fewer than 2 headings (configurable threshold)
-    const minHeadings = 2;
-    if (headings.length < minHeadings) {
-      tocContainer.style.display = 'none';
-      return;
-    }
-    
-    // Make sure TOC is visible
-    tocContainer.style.display = '';
-
-    // Add IDs to headings if they don't have one
-    headings.forEach((heading, index) => {
-      if (!heading.id) {
-        const text = heading.textContent || '';
-        // Generate URL-safe ID: keep alphanumeric, CJK, and hyphens
-        let id = text
-          .trim()
-          .toLowerCase()
-          .replace(/[^\w\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff-]/g, '-') // Replace non-word/CJK with hyphen
-          .replace(/-+/g, '-') // Collapse multiple hyphens
-          .replace(/^-|-$/g, ''); // Trim leading/trailing hyphens
-        
-        // Fallback if empty
-        if (!id) id = `heading-${index}`;
-        
-        // Ensure unique IDs
-        let uniqueId = id;
-        let counter = 1;
-        while (document.getElementById(uniqueId)) {
-          uniqueId = `${id}-${counter}`;
-          counter++;
-        }
-        
-        heading.id = uniqueId;
-      }
-    });
-
-    // Build TOC HTML
-    const tocHTML = headings.map(heading => {
-      const level = heading.tagName.toLowerCase();
-      const text = heading.textContent || '';
-      const id = heading.id;
-      return `
-        <a href="#${id}"
-           class="toc-link toc-link-${level}"
-           data-heading-id="${id}">
-          ${text}
-        </a>
-      `;
-    }).join('');
-
-    // Insert into both mobile and desktop TOC
-    const mobileContent = document.querySelector('.toc-mobile .toc-content');
-    const desktopContent = document.querySelector('.toc-desktop .toc-content');
-
-    if (mobileContent) mobileContent.innerHTML = tocHTML;
-    if (desktopContent) desktopContent.innerHTML = tocHTML;
+    if (headings.length === 0) return;
 
     // Set up scroll highlighting
     setupScrollHighlight(headings);
@@ -136,17 +109,15 @@ const t = labels[lang];
     setupSmoothScroll();
   }
 
-  function setupScrollHighlight(headings: Element[]) {
+  function setupScrollHighlight(headings: HTMLElement[]) {
     let ticking = false;
 
     function updateActiveHeading() {
-      const scrollPos = window.scrollY + 100; // Offset for header
+      const scrollPos = window.scrollY + 100;
 
-      // Find the current heading
       let currentHeading = headings[0];
       for (const heading of headings) {
-        const rect = heading.getBoundingClientRect();
-        const offsetTop = rect.top + window.scrollY;
+        const offsetTop = heading.getBoundingClientRect().top + window.scrollY;
         if (offsetTop <= scrollPos) {
           currentHeading = heading;
         } else {
@@ -154,7 +125,6 @@ const t = labels[lang];
         }
       }
 
-      // Update active class
       document.querySelectorAll('.toc-link').forEach(link => {
         link.classList.remove('active');
       });
@@ -176,7 +146,7 @@ const t = labels[lang];
     }
 
     window.addEventListener('scroll', onScroll, { passive: true });
-    updateActiveHeading(); // Initial highlight
+    updateActiveHeading();
   }
 
   function setupMobileToggle() {
@@ -201,51 +171,33 @@ const t = labels[lang];
         const target = document.getElementById(targetId);
         
         if (target) {
-          // Use scrollIntoView for better browser support
-          target.scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'start' 
-          });
-
-          // Add offset for fixed header after scroll
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
           setTimeout(() => {
             window.scrollBy({ top: -80, behavior: 'instant' });
           }, 100);
-
-          // Update URL
           history.pushState(null, '', href);
 
-          // Close mobile toggle after navigation
+          // Close mobile toggle
           const mobileContainer = document.querySelector('.toc-mobile .toggle-container');
           if (window.innerWidth < 1280 && mobileContainer) {
             mobileContainer.setAttribute('data-open', 'false');
-            const button = mobileContainer.querySelector('.toggle-header');
-            button?.setAttribute('aria-expanded', 'false');
+            mobileContainer.querySelector('.toggle-header')?.setAttribute('aria-expanded', 'false');
           }
         }
       });
     });
   }
 
-  // Initialize on DOM ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initTableOfContents);
-  } else {
-    // DOM already loaded
-    initTableOfContents();
-  }
-
-  // Re-initialize on view transitions (Astro)
+  // Initialize
+  initTableOfContents();
   document.addEventListener('astro:page-load', initTableOfContents);
 </script>
 
 <style>
-  /* Base container */
   .toc-container {
     margin: 1.5rem 0;
   }
 
-  /* Mobile: Show toggle, hide sidebar */
   .toc-mobile {
     display: block;
   }
@@ -254,7 +206,6 @@ const t = labels[lang];
     display: none;
   }
 
-  /* Mobile Toggle Styles (reusing Toggle component pattern) */
   .toggle-container {
     border-radius: 8px;
     background: var(--color-surface);
@@ -312,7 +263,6 @@ const t = labels[lang];
     overflow: hidden;
   }
 
-  /* TOC Content Styles (shared by mobile and desktop) */
   .toc-content {
     display: flex;
     flex-direction: column;
@@ -346,7 +296,6 @@ const t = labels[lang];
     font-size: 0.85rem;
   }
 
-  /* Desktop: Hide toggle, show sticky sidebar */
   @media (min-width: 1280px) {
     .toc-mobile {
       display: none;
@@ -380,7 +329,6 @@ const t = labels[lang];
       padding: 0;
     }
 
-    /* Slim scrollbar for desktop TOC */
     .toc-desktop::-webkit-scrollbar {
       width: 4px;
     }
@@ -395,7 +343,6 @@ const t = labels[lang];
     }
   }
 
-  /* Very wide screens: move TOC further right */
   @media (min-width: 1400px) {
     .toc-desktop {
       right: max(2rem, calc((100vw - 680px) / 2 - 260px));
@@ -403,7 +350,6 @@ const t = labels[lang];
     }
   }
 
-  /* Touch-friendly sizing */
   @media (pointer: coarse) {
     .toggle-header {
       padding: 1rem;
