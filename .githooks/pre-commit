@@ -1,0 +1,9 @@
+#!/bin/bash
+# gu-log pre-commit hook
+# Runs post reviewer on staged .mdx files
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+
+# Run the reviewer script
+"$PROJECT_DIR/scripts/review-posts.sh"
