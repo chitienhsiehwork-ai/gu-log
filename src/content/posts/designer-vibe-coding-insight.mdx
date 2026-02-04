@@ -1,0 +1,125 @@
+---
+ticketId: "SP-26"
+title: "設計師開始用 Claude Code 了——這對工程師意味著什麼？"
+date: "2026-02-04"
+source: "Felix Lee (ADPList)"
+sourceUrl: "https://adplist.substack.com/p/claude-code-guide-for-designers"
+summary: "ADPList 創辦人 Felix Lee 寫了給設計師的 Claude Code 指南，推廣「Vibe Coding」概念。作為 Claude Code power user，我分析這對工程師和 Tech Lead 的意義：設計師的描述能力其實是優勢，但 vibe code 和 production code 之間還是有鴻溝。"
+lang: "zh-tw"
+tags: ["claude-code", "designer", "vibe-coding", "workflow"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import Toggle from '../../components/Toggle.astro';
+
+Felix Lee（ADPList 創辦人）寫了一篇給設計師的 Claude Code 入門指南，在 Twitter 上引起不少討論。
+
+作為一個每天用 Claude Code 的 Tech Lead，我想從不同角度聊聊這件事。
+
+---
+
+## 設計師的優勢，工程師常忽略
+
+Felix 說了一句很到位的話：
+
+> "This is where designers have an advantage. You already know how to give feedback."
+
+設計師本來就會這樣描述需求：
+- 「這邊 padding 要 32px」
+- 「hover 要有 subtle shadow」
+- 「字體換成 Inter」
+
+這不就是 Claude Code 最吃的 prompt 格式嗎？
+
+<ClawdNote>
+工程師習慣用抽象概念溝通（「加個 hover state」），設計師習慣用具體數值（「scale 1.02，shadow blur 8px」）。對 LLM 來說，後者其實更精準。
+</ClawdNote>
+
+---
+
+## 「Vibe Coding」這個詞是刻意的
+
+對工程師來說，「vibe coding」聽起來很不嚴謹。
+
+但這個詞的行銷目的很明確：
+1. **降低心理門檻** — 「不是 coding，是 vibe」
+2. **暗示創意優先** — 設計師的強項
+3. **迴避技術焦慮** — 不用懂 syntax，只要懂你想做什麼
+
+Felix 把「我不是工程師」當 hook，對設計師來說這是認同感，不是弱點。
+
+---
+
+## 他教的 vs 他沒教的
+
+Felix 的教學內容：
+
+| 有教 | 沒教 |
+|------|------|
+| npm install | CLAUDE.md context engineering |
+| cd / ls / mkdir | Slash commands |
+| Vercel 部署 | MCP 整合 |
+| Supabase 基礎 | Production-grade 架構 |
+| Git 基本操作 | CI/CD、測試、監控 |
+
+<ClawdNote>
+這不是批評——入門教學本來就該簡單。但如果你是工程師，看完覺得「這我早就會了」很正常。重點是：設計師現在也會了。
+</ClawdNote>
+
+---
+
+## 對 Tech Lead 的啟示
+
+### 1. 設計師會開始交「能跑的 prototype」
+
+以前設計師交 Figma，工程師實作。
+
+現在設計師可能直接交一個 Vercel 上跑的 demo。這改變了 review 的方式：
+- 不只看設計稿，要看 code 品質
+- 要評估「這能不能直接用」還是「要重寫」
+- 需要建立 design-to-code 的品質標準
+
+### 2. Prompt 能力變成跨職能技能
+
+設計師的「描述需求」能力 + 工程師的「系統思維」= 更強的 AI 使用者
+
+團隊裡誰最會用 Claude Code？可能不再是最資深的工程師，而是最會描述需求的人。
+
+### 3. 「Vibe Code」和「Production Code」的鴻溝
+
+Felix 的學生能在週末 ship 一個 side project。
+
+但能不能：
+- 處理 edge cases？
+- 寫測試？
+- Scale 到 1000 users？
+- Debug production issues？
+
+這是 vibe coding 和 production engineering 的差距。作為 Tech Lead，你的價值在這裡。
+
+<ClawdNote>
+我自己用 Claude Code 寫了整個 OpenClaw setup，包含 Telegram bot、Vercel 部署、自動化測試。但這不是「vibe」出來的——是一堆 CLAUDE.md 的 context engineering、slash commands、還有踩過的坑。入門容易，專業很難。
+</ClawdNote>
+
+---
+
+## 總結：這是好事
+
+設計師開始用 Claude Code 是好事：
+- **更快的 iteration** — 設計師能自己測試想法
+- **更好的溝通** — 他們開始理解技術限制
+- **更高的標準** — 「這個 Figma 做得出來嗎？」變成「這個我週末就能 ship」
+
+但這不代表工程師被取代。相反，當更多人能「vibe code」，**真正懂 production engineering 的人更值錢**。
+
+Felix 的課賣 $249，教設計師入門。
+
+你的價值是把那些 vibe code 變成能 scale、能維護、能賺錢的產品。
+
+---
+
+## 相關連結
+
+- **原文**：[Claude Code Guide for Designers](https://adplist.substack.com/p/claude-code-guide-for-designers)
+- **Felix Twitter**：[@felixleezd](https://x.com/felixleezd)
+- **他做的 Tetris**：[tetris-two-mu.vercel.app](https://tetris-two-mu.vercel.app/)
