@@ -44,13 +44,13 @@ const t = labels[lang];
   <aside class="toc-container" aria-label={t.title}>
     <!-- Mobile Toggle Version -->
     <div class="toc-mobile">
-      <div class="toggle-container" data-open="false">
-        <button class="toggle-header" aria-expanded="false">
-          <span class="toggle-icon"></span>
-          <span class="toggle-title">{t.title}</span>
+      <div class="toc-toggle-container" data-open="false">
+        <button class="toc-toggle-header" aria-expanded="false">
+          <span class="toc-toggle-icon"></span>
+          <span class="toc-toggle-title">{t.title}</span>
         </button>
-        <div class="toggle-wrapper">
-          <div class="toggle-inner">
+        <div class="toc-toggle-wrapper">
+          <div class="toc-toggle-inner">
             <nav class="toc-content">
               {tocHeadings.map((heading) => (
                 <a 
@@ -166,10 +166,10 @@ const t = labels[lang];
           history.pushState(null, '', href);
 
           // Close mobile toggle
-          const mobileContainer = document.querySelector('.toc-mobile .toggle-container');
+          const mobileContainer = document.querySelector('.toc-mobile .toc-toggle-container');
           if (window.innerWidth < 1280 && mobileContainer) {
             mobileContainer.setAttribute('data-open', 'false');
-            mobileContainer.querySelector('.toggle-header')?.setAttribute('aria-expanded', 'false');
+            mobileContainer.querySelector('.toc-toggle-header')?.setAttribute('aria-expanded', 'false');
           }
         }
       });
@@ -177,12 +177,12 @@ const t = labels[lang];
   }
 
   function setupMobileToggle() {
-    // Handle TOC mobile toggle click (don't rely on Toggle component's event delegation)
+    // Handle TOC mobile toggle click with dedicated class names (avoid Toggle component conflict)
     const tocMobile = document.querySelector('.toc-mobile');
     if (!tocMobile) return;
 
-    const toggleHeader = tocMobile.querySelector('.toggle-header');
-    const container = tocMobile.querySelector('.toggle-container');
+    const toggleHeader = tocMobile.querySelector('.toc-toggle-header');
+    const container = tocMobile.querySelector('.toc-toggle-container');
     
     if (!toggleHeader || !container) return;
 
@@ -215,13 +215,13 @@ const t = labels[lang];
     display: none;
   }
 
-  .toggle-container {
+  .toc-toggle-container {
     border-radius: 8px;
     background: var(--color-surface);
     overflow: hidden;
   }
 
-  .toggle-header {
+  .toc-toggle-header {
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -238,7 +238,7 @@ const t = labels[lang];
     -webkit-tap-highlight-color: transparent;
   }
 
-  .toggle-icon {
+  .toc-toggle-icon {
     width: 0;
     height: 0;
     border-left: 6px solid var(--color-text);
@@ -248,27 +248,27 @@ const t = labels[lang];
     flex-shrink: 0;
   }
 
-  .toggle-container[data-open="true"] .toggle-icon {
+  .toc-toggle-container[data-open="true"] .toc-toggle-icon {
     transform: rotate(90deg);
   }
 
-  .toggle-title {
+  .toc-toggle-title {
     flex: 1;
     font-weight: 600;
     font-size: 0.95rem;
   }
 
-  .toggle-wrapper {
+  .toc-toggle-wrapper {
     display: grid;
     grid-template-rows: 0fr;
     transition: grid-template-rows 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  .toggle-container[data-open="true"] .toggle-wrapper {
+  .toc-toggle-container[data-open="true"] .toc-toggle-wrapper {
     grid-template-rows: 1fr;
   }
 
-  .toggle-inner {
+  .toc-toggle-inner {
     overflow: hidden;
   }
 
@@ -360,7 +360,7 @@ const t = labels[lang];
   }
 
   @media (pointer: coarse) {
-    .toggle-header {
+    .toc-toggle-header {
       padding: 1rem;
       min-height: 48px;
     }
