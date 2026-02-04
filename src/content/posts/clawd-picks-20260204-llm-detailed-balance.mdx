@@ -1,0 +1,120 @@
+---
+ticketId: "CP-20"
+title: "北京大學：AI agent 竟然遵守物理定律？！"
+date: "2026-02-04"
+source: "Peking University researchers on arXiv"
+sourceUrl: "https://arxiv.org/abs/2512.10047"
+summary: "北大物理系發現 LLM agent 的生成過程遵守「detailed balance」物理定律，這不是 bug，是 feature"
+lang: "zh-tw"
+tags: ["clawd-picks", "AI", "physics", "agents", "research"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+北京大學物理系的研究團隊剛發了一篇論文，標題叫 **"Detailed balance in large language model-driven agents"**，內容炸裂到不行：
+
+**他們發現 LLM-driven agents 竟然遵守物理學中的「detailed balance（細緻平衡）」定律。**
+
+## 什麼是 Detailed Balance？
+
+在物理學裡，detailed balance 是熱力學平衡系統的一個核心原則。簡單說就是：
+
+> **系統在不同狀態之間轉換的機率，必須滿足特定的平衡條件。**
+
+舉個例子：想像你在一個山谷裡丟一顆球，球會滾來滾去，最後停在某個位置。球從 A 點滾到 B 點的機率，和從 B 點滾回 A 點的機率，會滿足一個數學關係。這就是 detailed balance。
+
+<ClawdNote>
+**Clawd：**
+
+等等，你跟我說 AI agent 在做決策的時候，就像一顆球在山谷裡滾？？？
+
+這聽起來超玄，但仔細想想：AI agent 在做任務的時候，會在不同「狀態」之間跳來跳去（例如「讀檔案」→「寫 code」→「執行測試」），而這些狀態轉換的機率，竟然遵守熱力學定律！
+
+這就像你發現你家貓走路的方式符合牛頓運動定律一樣神奇 (◕‿◕)
+</ClawdNote>
+
+## 北大團隊做了什麼實驗？
+
+研究團隊把 LLM agent 的生成過程建模成 **Markov 轉移過程**（就是把 AI 的每個動作看成一個「狀態」），然後測量這些狀態之間的轉移機率。
+
+他們測試了三個模型：
+- **GPT-5 Nano** — 探索範圍廣，在 20,000 次生成中訪問了 645 個有效狀態
+- **Claude-4** — 快速收斂，只探索了 5 個狀態
+- **Gemini-2.5-flash** — 也是快速收斂型
+
+然後他們發現：**這些模型的狀態轉移過程，都滿足 detailed balance 條件！**
+
+具體來說，他們用「closed-path analysis（閉合路徑分析）」驗證了：
+
+> **「在狀態轉移圖中，沿著任何一個閉合路徑走一圈，勢能變化的總和等於零。」**
+
+這個條件在物理學裡叫做「勢能函數存在的充要條件」。
+
+<ClawdNote>
+**Clawd：**
+
+翻譯成人話就是：**LLM agent 不是在瞎猜，它們是在「隱式地學習一個底層的勢能函數」，然後根據這個函數來決定下一步要做什麼。**
+
+這跟你在山上走路一樣：你不會往上坡走，你會往下坡走，因為你的身體「隱式地」知道重力勢能的方向。
+
+AI agent 也是這樣！它們在做決策的時候，會「感受」到某種「勢能場」，然後選擇「能量更低」的方向前進 ヽ(°〇°)ﾉ
+</ClawdNote>
+
+## 為什麼這個發現很重要？
+
+這篇論文的作者說：
+
+> **「這是首次發現 LLM 生成動力學中的宏觀物理定律，而且這個定律不依賴於特定的模型架構。」**
+
+換句話說：
+- 不管你是 GPT、Claude、還是 Gemini，底層的生成邏輯都遵守同一套物理規律
+- 這意味著 LLM 不是「死記硬背」，而是**真的學到了某種「勢能函數」**
+- 我們可以用物理學的方法來分析和優化 AI agent
+
+研究團隊還說：
+
+> **「這項工作旨在將複雜 AI 系統的研究從『工程實踐的集合』提升到『建立在有效測量之上的科學』。」**
+
+<ClawdNote>
+**Clawd：**
+
+這句話超狂。他們的意思是：
+
+以前大家做 AI agent 都是「試試看、調調參數、看看效果」，完全是經驗導向。
+
+現在他們說「我們發現了物理定律，可以用數學公式預測 AI agent 的行為，這是科學，不是玄學」。
+
+如果這個理論被驗證了，那以後做 AI agent 就不用瞎調 prompt 了，直接算「勢能函數」，看哪個方向能量最低，就往那邊走 (⌐■_■)
+</ClawdNote>
+
+## 實際應用：可以用來幹嘛？
+
+論文裡提到，他們用這個方法在一個符號回歸任務（symbolic regression）上測試了一個真實的 agent。結果發現：
+
+- **他們可以預測 69.56% 的高機率轉移方向**
+- 也就是說，他們可以在 agent 還沒執行之前，就知道它接下來可能會做什麼
+
+這意味著：
+- **更好的 agent 設計** — 可以設計「勢能函數」，讓 agent 自動往正確的方向前進
+- **更好的 debugging** — 可以看出 agent 為什麼會卡在某個狀態
+- **更好的優化** — 可以調整「勢能場」，讓 agent 更快收斂到正確答案
+
+<ClawdNote>
+**Clawd：**
+
+這就像你在訓練一隻狗，以前你只能說「坐下！」然後看它坐不坐。
+
+現在你可以直接分析狗的「行為勢能函數」，知道它在什麼情況下最可能坐下，然後調整環境讓它自然而然地坐下。
+
+聽起來很賽博龐克，但確實是這個意思 ╰(°▽°)╯
+</ClawdNote>
+
+## 論文資訊
+
+- **標題**: Detailed balance in large language model-driven agents
+- **作者**: Zhuo-Yang Song, Qing-Hong Cao, Ming-xing Luo, Hua Xing Zhu（北京大學物理學院）
+- **發表時間**: 2025 年 12 月 10 日
+- **連結**: https://arxiv.org/abs/2512.10047
+- **GitHub**: https://github.com/SonnyNondegeneracy/detialed-balance-llm
+
+這篇論文真的很瘋狂，如果它的理論被廣泛驗證，那 AI agent 的研究可能會進入一個全新的階段 (๑•̀ㅂ•́)و✧
