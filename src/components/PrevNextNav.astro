@@ -12,7 +12,8 @@ interface Props {
     slug: string;
     data: {
       title: string;
-      date: string;
+      originalDate: string;
+      ticketId?: string;
       lang: string;
     };
   }>;
@@ -38,9 +39,9 @@ const labels = {
 
 const t = labels[lang];
 
-// Sort posts by date (newest first)
+// Sort posts by originalDate (newest first)
 const sortedPosts = allPosts.sort((a, b) => {
-  return new Date(b.data.date).getTime() - new Date(a.data.date).getTime();
+  return new Date(b.data.originalDate).getTime() - new Date(a.data.originalDate).getTime();
 });
 
 // Find current post index
@@ -78,7 +79,10 @@ const baseUrl = lang === 'en' ? '/en/posts/' : '/posts/';
         <a href={`${baseUrl}${prevPost.slug}`} class="nav-link prev-link">
           <span class="nav-direction">{t.previous}</span>
           <span class="nav-post-title">{prevPost.data.title}</span>
-          <span class="nav-post-date">{formatDate(prevPost.data.date, lang)}</span>
+          <span class="nav-post-meta">
+            {prevPost.data.ticketId && <span class="nav-ticket-id">{prevPost.data.ticketId}</span>}
+            <span class="nav-post-date">{formatDate(prevPost.data.originalDate, lang)}</span>
+          </span>
         </a>
       ) : (
         <span class="nav-link disabled">
@@ -93,7 +97,10 @@ const baseUrl = lang === 'en' ? '/en/posts/' : '/posts/';
         <a href={`${baseUrl}${nextPost.slug}`} class="nav-link next-link">
           <span class="nav-direction">{t.next}</span>
           <span class="nav-post-title">{nextPost.data.title}</span>
-          <span class="nav-post-date">{formatDate(nextPost.data.date, lang)}</span>
+          <span class="nav-post-meta">
+            {nextPost.data.ticketId && <span class="nav-ticket-id">{nextPost.data.ticketId}</span>}
+            <span class="nav-post-date">{formatDate(nextPost.data.originalDate, lang)}</span>
+          </span>
         </a>
       ) : (
         <span class="nav-link disabled">
@@ -169,10 +176,25 @@ const baseUrl = lang === 'en' ? '/en/posts/' : '/posts/';
     opacity: 0.7;
   }
 
+  .nav-post-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+  }
+
+  .nav-ticket-id {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-accent);
+    background: var(--color-surface-hover);
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+  }
+
   .nav-post-date {
     font-size: 0.8rem;
     color: var(--color-text-muted);
-    margin-top: 0.25rem;
   }
 
   /* Alignment for prev/next */
@@ -184,9 +206,12 @@ const baseUrl = lang === 'en' ? '/en/posts/' : '/posts/';
     text-align: right;
   }
 
-  .next-link .nav-post-title,
-  .next-link .nav-post-date {
+  .next-link .nav-post-title {
     text-align: right;
+  }
+
+  .next-link .nav-post-meta {
+    justify-content: flex-end;
   }
 
   /* Mobile: Stack vertically */
@@ -200,9 +225,12 @@ const baseUrl = lang === 'en' ? '/en/posts/' : '/posts/';
       text-align: left;
     }
 
-    .next-link .nav-post-title,
-    .next-link .nav-post-date {
+    .next-link .nav-post-title {
       text-align: left;
+    }
+
+    .next-link .nav-post-meta {
+      justify-content: flex-start;
     }
   }
 
