@@ -63,8 +63,9 @@ $CONTENT
     echo "--- End Review ---"
     echo ""
     
-    # Check if FAIL is in the result
-    if echo "$RESULT" | grep -qi "Review Result.*FAIL\|Result.*FAIL\|CRITICAL"; then
+    # Check if FAIL or WARNING is in the result
+    # Both CRITICAL and WARNING will block commit
+    if echo "$RESULT" | grep -qi "Review Result.*FAIL\|CRITICAL\|WARNING"; then
         ALL_PASSED=false
         echo "❌ FAILED: $file"
     else
