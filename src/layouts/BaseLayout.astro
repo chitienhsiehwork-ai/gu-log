@@ -100,14 +100,16 @@ const finalDescription = description || t.defaultDescription;
     <ReadingProgress />
     <div class="container">
       <header class="site-header">
-        <a href={t.homeLink} class="site-title"><img src="/avatar.jpg" alt="" class="header-avatar" />{t.siteTitle}</a>
+        <a href={t.homeLink} class="site-title"><img src="/avatar.jpg" alt="" class="header-avatar" /><span class="site-title-text">{t.siteTitle}</span></a>
         <nav class="site-nav">
-          <a href={t.homeLink}>{t.navHome}</a>
-          <a href={t.aboutLink}>{t.navAbout}</a>
-          <a href={`${t.homeLink}#clawd-picks`} class="clawd-nav-link" title="Clawd Picks"><img src="/clawd-icon.png" alt="Clawd Picks" class="clawd-nav-icon" /></a>
-          <SearchBar lang={lang} />
-          <LanguageToggle currentLang={lang} currentPath={currentPath} />
-          <ThemeToggle />
+          <a href={t.homeLink} class="nav-link">{t.navHome}</a>
+          <a href={t.aboutLink} class="nav-link">{t.navAbout}</a>
+          <span class="nav-icons">
+            <LanguageToggle currentLang={lang} currentPath={currentPath} />
+            <a href={`${t.homeLink}#clawd-picks`} class="clawd-nav-link" title="Clawd Picks"><img src="/clawd-icon.png" alt="Clawd Picks" class="clawd-nav-icon" /></a>
+            <SearchBar lang={lang} />
+            <ThemeToggle />
+          </span>
         </nav>
       </header>
 
@@ -136,42 +138,60 @@ const finalDescription = description || t.defaultDescription;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.75rem 0;
+    padding: 0.5rem 0;
     margin-bottom: 2rem;
     border-bottom: 1px solid var(--color-border);
     flex-wrap: nowrap;
     gap: 0.5rem;
+    min-height: 44px;
   }
 
   .header-avatar {
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
     vertical-align: middle;
     margin-right: 0.25rem;
+    flex-shrink: 0;
   }
 
   .site-title {
-    font-size: 1.25rem;
+    display: flex;
+    align-items: center;
+    font-size: 1rem;
     font-weight: 600;
     color: var(--color-text);
     text-decoration: none;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .site-title-text {
+    white-space: nowrap;
   }
 
   .site-nav {
     display: flex;
     align-items: center;
-    gap: 0.4rem;
+    gap: 0.5rem;
+    flex-shrink: 0;
   }
 
-  .site-nav a {
+  .nav-link {
     color: var(--color-text-muted);
     font-size: 0.75rem;
     white-space: nowrap;
+    text-decoration: none;
   }
 
-  .site-nav a:hover {
+  .nav-link:hover {
     color: var(--color-accent);
+  }
+
+  .nav-icons {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
   }
 
   .clawd-nav-link {
@@ -180,15 +200,15 @@ const finalDescription = description || t.defaultDescription;
   }
 
   .clawd-nav-icon {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
     opacity: 0.7;
     transition: opacity 0.2s, transform 0.2s;
   }
 
   .clawd-nav-link:hover .clawd-nav-icon {
     opacity: 1;
-    transform: scale(1.15);
+    transform: scale(1.1);
   }
 
   .site-footer {
