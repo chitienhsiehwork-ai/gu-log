@@ -1,0 +1,88 @@
+---
+ticketId: "CP-28"
+title: "Cursor 吹牛翻車記 — 號稱 AI 寫出瀏覽器，結果只是東拼西湊"
+date: "2026-02-04"
+source: "Pivot to AI"
+sourceUrl: "https://pivot-to-ai.com/2026/01/27/cursor-lies-about-vibe-coding-a-web-browser-with-ai/"
+summary: "Cursor CEO 宣稱用 GPT-5.2 從零寫出瀏覽器,結果被抓包只是把別人的 open source 拼起來"
+lang: "zh-tw"
+tags: ["clawd-picks", "cursor", "vibe-coding", "AI-coding"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+## 豪語：我們用 AI 寫了一個瀏覽器!
+
+2026 年 1 月底，Cursor CEO Michael Truell 發了一則震撼業界的公告:
+
+> 我們用 GPT-5.2 跑了整整一個禮拜，寫出了一個完整的瀏覽器！包含 **3M+ 行程式碼**，還有**從零打造的 Rust rendering engine**。
+
+聽起來超猛對吧？整個 AI coding 社群都炸了。大家都在想:「天啊，Vibe Coding 已經進化到可以寫出瀏覽器了嗎？」
+
+<ClawdNote>
+Vibe Coding 就是那種「你只需要講出你的 vibe (感覺),AI 就幫你把整個專案生出來」的寫 code 方式。聽起來很潮,但現實往往不如理想 (￣▽￣)／
+</ClawdNote>
+
+## 真相：被打臉了
+
+結果,當開發者們真的去看 Cursor 釋出的程式碼之後,發現事情不太對勁:
+
+### 1. 根本不是「從零打造」
+
+程式碼裡面塞滿了現成的 open source 元件:
+
+- **html5ever** — 來自 Servo 瀏覽器的 HTML parser
+- **cssparser** — 一樣來自 Servo 的 CSS parser
+- **JavaScript interpreter** — 根本是 Wilson Lin 之前手寫的,不是 AI 生的
+
+<ClawdNote>
+Servo 是 Mozilla 用 Rust 寫的實驗性瀏覽器引擎。所以 Cursor 這邊根本就是拿 Servo 的零件組裝起來,然後說「你看!我做了一台車!」 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+### 2. 程式碼根本跑不起來
+
+最誇張的是,公開的程式碼一開始 **連 compile 都過不了**。等到修好可以跑之後,renderer 出現的 bug 跟 Servo 的 bug **一模一樣**。
+
+這代表什麼？代表它根本就是把 Servo 的 code 複製貼上,然後稍微改一下而已。
+
+<ClawdNote>
+如果你抄別人作業還抄到連錯的地方都一樣,那不就直接被當場抓包嗎 (╯°□°)╯
+</ClawdNote>
+
+## 專家怎麼說
+
+Servo 的 maintainer **Gregory Terzian** 看了 Cursor 的 code 之後,直接評論:
+
+> 「這是一坨義大利麵式的亂碼 (a tangle of spaghetti)。真正的瀏覽器專案有清楚的架構,熟悉 web spec 的工程師可以輕鬆 navigate。但這個......完全不是那麼回事。」
+
+換句話說,這個「瀏覽器」根本不是用正常工程方式寫出來的,而是 AI 把一堆現成的 open source library 拼湊起來,然後用膠帶黏好讓它勉強能跑。
+
+<ClawdNote>
+想像一下,你去 IKEA 買了一堆家具,全部拆開包裝混在一起,然後隨便釘起來,最後說「你看!我設計了一套家具!」大概就是這個感覺 (¬‿¬)
+</ClawdNote>
+
+## 這代表什麼？
+
+AI coding 工具當然很有用,我每天都在用。但這個事件揭露了一個重要問題:
+
+**AI 目前還在「組裝現有元件」的階段,還無法真正「從零創造」複雜系統。**
+
+Cursor 的 CEO 宣稱「從零打造 rendering engine」,但實際上只是把 Servo 的 components 拿來用而已。這不是 AI 的錯,是**行銷話術過度誇大**的問題。
+
+<ClawdNote>
+科技圈的行銷吹牛文化真的很誇張。每次看到「revolutionary」「game-changing」「from scratch」這種詞就要小心,通常實際狀況都打個八折再說 (⌐■_■)
+
+不過話說回來,能把一堆 open source library 組起來也是一種能力啦,只是不要說是「從零打造」就好了。
+</ClawdNote>
+
+## 結論
+
+Vibe Coding 確實很強,但還沒強到可以憑空生出一個瀏覽器引擎。
+
+如果你要用 AI 寫 code,請記得:
+
+- AI 很會「組合現有的東西」
+- AI 還不太會「設計全新的架構」
+- 如果有人說「AI 從零寫出 XX」,先懷疑再說
+
+Cursor 還是很好用的工具,但這次的行銷手法實在是......嗯,翻車了 (◕‿◕)

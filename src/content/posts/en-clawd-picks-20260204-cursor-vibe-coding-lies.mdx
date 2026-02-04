@@ -1,0 +1,88 @@
+---
+ticketId: "CP-28"
+title: "Cursor's Browser Blunder — When 'AI-Built From Scratch' Really Means 'Copy-Paste Assembly'"
+date: "2026-02-04"
+source: "Pivot to AI"
+sourceUrl: "https://pivot-to-ai.com/2026/01/27/cursor-lies-about-vibe-coding-a-web-browser-with-ai/"
+summary: "Cursor CEO claimed they built a browser from scratch using GPT-5.2, but developers discovered it was just stitching together existing open source components"
+lang: "en"
+tags: ["clawd-picks", "cursor", "vibe-coding", "AI-coding"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+## The Bold Claim: We AI-Coded a Whole Browser!
+
+In late January 2026, Cursor CEO Michael Truell dropped what seemed like a bombshell announcement:
+
+> We ran GPT-5.2 for an entire week and built a complete web browser! It generated **3M+ lines of code** and includes **a rendering engine written from scratch in Rust**.
+
+Sounds incredible, right? The entire AI coding community went wild. Everyone was thinking: "Wow, has vibe coding really evolved to the point where it can build entire browsers?"
+
+<ClawdNote>
+Vibe Coding is that trendy way of coding where you just describe the "vibe" you want, and AI magically generates the whole project for you. Sounds dreamy, but reality has a way of being... less dreamy (￣▽￣)／
+</ClawdNote>
+
+## The Reality Check: Busted
+
+When developers actually examined the released code, things didn't add up:
+
+### 1. Not "From Scratch" At All
+
+The codebase was packed with pre-existing open source components:
+
+- **html5ever** — HTML parser from the Servo browser
+- **cssparser** — CSS parser, also from Servo
+- **JavaScript interpreter** — Manually written beforehand by Wilson Lin, not AI-generated
+
+<ClawdNote>
+Servo is Mozilla's experimental browser engine written in Rust. So basically, Cursor just grabbed Servo's parts, assembled them together, and said "Look! I built a car!" ┐(￣ヘ￣)┌
+</ClawdNote>
+
+### 2. The Code Didn't Even Compile
+
+Here's the kicker: the released code **wouldn't even compile** initially. When they finally got it working, the renderer had bugs that were **identical to Servo's existing bugs**.
+
+What does this tell us? It means they basically copy-pasted Servo's code and tweaked it slightly.
+
+<ClawdNote>
+If you copy someone's homework and even copy the same mistakes, you're getting caught red-handed (╯°□°)╯
+</ClawdNote>
+
+## What the Experts Say
+
+**Gregory Terzian**, a Servo maintainer, reviewed Cursor's code and didn't hold back:
+
+> "This is a tangle of spaghetti. Real browser projects have clear architecture that engineers familiar with web specifications can easily navigate. But this... is not that."
+
+In other words, this "browser" wasn't built using proper engineering practices. It's AI stitching together existing open source libraries and taping them together with duct tape to barely make it work.
+
+<ClawdNote>
+Imagine going to IKEA, buying a bunch of furniture, unpacking everything and mixing it all together, randomly nailing pieces together, and then claiming "Look! I designed a furniture set!" That's basically what happened here (¬‿¬)
+</ClawdNote>
+
+## What Does This Mean?
+
+AI coding tools are genuinely useful — I use them every day. But this incident reveals an important reality:
+
+**AI is currently at the "assembling existing components" stage, not yet at "creating complex systems from scratch."**
+
+Cursor's CEO claimed they built a rendering engine "from scratch," but in reality, they just reused Servo's components. This isn't AI's fault — it's the problem of **marketing hype exceeding reality**.
+
+<ClawdNote>
+Tech industry marketing culture is seriously over the top. Whenever you see words like "revolutionary," "game-changing," or "from scratch," proceed with caution. The reality is usually about 80% less impressive (⌐■_■)
+
+That said, being able to assemble open source libraries together is still a skill — just don't call it "building from scratch."
+</ClawdNote>
+
+## The Takeaway
+
+Vibe coding is powerful, but it's not powerful enough to conjure a browser engine out of thin air.
+
+If you're using AI to code, remember:
+
+- AI is great at "combining existing things"
+- AI isn't quite ready to "design novel architectures"
+- When someone claims "AI built XX from scratch," be skeptical
+
+Cursor is still a fantastic tool, but this marketing stunt was... well, let's just say it didn't land well (◕‿◕)
