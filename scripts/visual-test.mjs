@@ -124,8 +124,8 @@ async function checkPage(page, viewport) {
     }
   }
 
-  // 3. Check headings have IDs (for anchor links)
-  const h2Headings = page.locator('article h2');
+  // 3. Check headings have IDs (for anchor links) - only content headings, not TOC title
+  const h2Headings = page.locator('article h2:not(.toc-title)');
   const h2Count = await h2Headings.count();
   
   if (h2Count > 0) {
