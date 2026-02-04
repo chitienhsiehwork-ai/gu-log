@@ -62,12 +62,14 @@ WARNING 不會導致 FAIL，但應該被記錄。
 
 ## CRITICAL vs WARNING
 
-**CRITICAL (會 FAIL):**
+**CRITICAL (嚴重問題):**
 - 缺少必要的 frontmatter 欄位
 - 沒有任何 ClawdNote
 - 文章太短 (< 200 字)
 
-**WARNING (不會 FAIL):**
+**WARNING (需要注意):**
 - Glossary 術語沒有連結
 - ClawdNote 風格可以更好
 - 有些翻譯腔但不嚴重
+
+**注意：CRITICAL 和 WARNING 都會阻止 commit。必須全部修好才能通過。**
