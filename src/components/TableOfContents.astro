@@ -61,17 +61,22 @@ const t = labels[lang];
 <script>
   function initTableOfContents() {
     const article = document.querySelector('article.post .post-content');
-    if (!article) return;
+    const tocContainer = document.querySelector('.toc-container');
+    
+    if (!article || !tocContainer) return;
 
     // Extract h2 and h3 headings
     const headings = Array.from(article.querySelectorAll('h2, h3'));
 
-    // Only show TOC if 3+ headings
-    if (headings.length < 3) {
-      const tocContainer = document.querySelector('.toc-container');
-      tocContainer?.remove();
+    // Hide TOC if fewer than 2 headings (configurable threshold)
+    const minHeadings = 2;
+    if (headings.length < minHeadings) {
+      tocContainer.style.display = 'none';
       return;
     }
+    
+    // Make sure TOC is visible
+    tocContainer.style.display = '';
 
     // Add IDs to headings if they don't have one
     headings.forEach((heading, index) => {
@@ -222,8 +227,13 @@ const t = labels[lang];
     });
   }
 
-  // Initialize on page load
-  initTableOfContents();
+  // Initialize on DOM ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initTableOfContents);
+  } else {
+    // DOM already loaded
+    initTableOfContents();
+  }
 
   // Re-initialize on view transitions (Astro)
   document.addEventListener('astro:page-load', initTableOfContents);
