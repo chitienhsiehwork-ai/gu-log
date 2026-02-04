@@ -31,16 +31,17 @@ const { title, open = false } = Astro.props;
 </div>
 
 <script>
-  // Handle toggle logic
-  document.querySelectorAll('.toggle-header').forEach(button => {
-    button.addEventListener('click', () => {
-      const container = button.closest('.toggle-container');
-      const isOpen = container?.getAttribute('data-open') === 'true';
-      
-      // Toggle state
-      container?.setAttribute('data-open', (!isOpen).toString());
-      button.setAttribute('aria-expanded', (!isOpen).toString());
-    });
+  // Handle toggle logic using event delegation (works even if buttons added later)
+  document.addEventListener('click', (e) => {
+    const button = (e.target as HTMLElement).closest('.toggle-header');
+    if (!button) return;
+    
+    const container = button.closest('.toggle-container');
+    const isOpen = container?.getAttribute('data-open') === 'true';
+    
+    // Toggle state
+    container?.setAttribute('data-open', (!isOpen).toString());
+    button.setAttribute('aria-expanded', (!isOpen).toString());
   });
 </script>
 

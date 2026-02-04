@@ -92,9 +92,6 @@ const t = labels[lang];
     const tocContainer = document.querySelector('.toc-container');
     if (!tocContainer) return;
 
-    // Always set up mobile toggle first (even if headings not found yet)
-    setupMobileToggle();
-
     // Get all heading IDs from TOC links
     const tocLinks = Array.from(document.querySelectorAll('.toc-link'));
     const headingIds = tocLinks.map(link => link.getAttribute('data-heading-id')).filter(Boolean);
@@ -107,6 +104,8 @@ const t = labels[lang];
 
     // Set up smooth scrolling
     setupSmoothScroll();
+    
+    // Note: Mobile toggle is handled by Toggle component's event delegation
   }
 
   function setupScrollHighlight(headings: HTMLElement[]) {
@@ -147,17 +146,6 @@ const t = labels[lang];
 
     window.addEventListener('scroll', onScroll, { passive: true });
     updateActiveHeading();
-  }
-
-  function setupMobileToggle() {
-    const button = document.querySelector('.toc-mobile .toggle-header');
-    button?.addEventListener('click', () => {
-      const container = button.closest('.toggle-container');
-      const isOpen = container?.getAttribute('data-open') === 'true';
-
-      container?.setAttribute('data-open', (!isOpen).toString());
-      button.setAttribute('aria-expanded', (!isOpen).toString());
-    });
   }
 
   function setupSmoothScroll() {
