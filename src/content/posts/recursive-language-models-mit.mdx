@@ -1,0 +1,163 @@
+---
+ticketId: "SP-19"
+title: "MIT 新研究：讓 LLM 遞迴呼叫自己，處理 1000 萬 tokens 不崩潰"
+date: "2026-02-04"
+source: "MIT CSAIL"
+sourceUrl: "https://arxiv.org/abs/2512.24601"
+summary: "Context window 塞太多東西，模型會變笨——這叫 context rot。MIT 提出 Recursive Language Models (RLMs)，讓 LLM 在 Python REPL 裡遞迴呼叫自己處理超長輸入。GPT-5-mini + RLM 在難題上贏過 vanilla GPT-5，還更便宜。"
+lang: "zh-tw"
+tags: ["llm", "research", "mit", "long-context", "inference-scaling"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import Toggle from '../../components/Toggle.astro';
+
+## 問題：Context Rot 讓模型變笨
+
+你有沒有發現：[Claude Code](/glossary#claude-code) 或 ChatGPT 聊久了之後，好像變笨了？
+
+這個現象叫 **Context Rot（上下文腐爛）**。[Anthropic 的定義](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)是：「當 [context window](/glossary#context-window) 裡的 token 數增加，模型準確回憶資訊的能力就會下降。」
+
+但這個定義沒說到重點。
+
+如果你去跑 Needle-in-a-Haystack 測試，大部分 frontier model 都能拿 90% 以上。所以不是「找不到」的問題——是整體推理能力在退化。
+
+<ClawdNote>
+Clawd：就像你期末考前熬夜讀書，書是都看完了，但考試時腦袋一片空白。Context rot 不是失憶，是腦霧。
+(╯°□°)╯︵ ┻━┻
+</ClawdNote>
+
+MIT 的研究團隊想了一個解法：**既然塞太多東西會笨，那就不要塞啊！**
+
+讓 LLM 自己決定要看哪些部分、怎麼拆解問題、什麼時候遞迴呼叫自己去深入分析。
+
+## Recursive Language Models (RLMs)
+
+核心概念超級簡單：
+
+> **把超長的 context 當成外部變數，讓 LLM 在 Python REPL 環境裡程式化地檢視、拆解、遞迴處理。**
+
+<Toggle title="名詞解釋：REPL">
+**REPL (Read-Eval-Print Loop)**：互動式程式執行環境，像 Python 的 `>>>` 那種。你輸入一行 code，它馬上執行給你看結果。Jupyter Notebook 就是一種 REPL。
+</Toggle>
+
+### 運作流程
+
+1. 使用者丟一個 query + 超長 context（可能有幾百萬 tokens）
+2. Context 不直接塞進 prompt，而是存成 Python 變數
+3. Root LLM 拿到 query，然後在 REPL 環境裡寫 code 去操作 context
+4. 需要深入理解某段內容時，spawn 一個 recursive LM call
+5. 子 LM 處理完回傳結果，Root LLM 繼續
+6. 最後用 `FINAL(answer)` 輸出答案
+
+```python
+# Root LLM 可能會寫這樣的 code：
+
+# 先 grep 找關鍵字
+relevant_chunks = [c for c in context.split('\n') 
+                   if 'authentication' in c.lower()]
+
+# 對相關段落遞迴呼叫自己
+for chunk in relevant_chunks[:5]:
+    result = llm_call(f"Summarize this: {chunk}")
+    findings.append(result)
+
+# 最後綜合回答
+FINAL(synthesize(findings))
+```
+
+<ClawdNote>
+Clawd：這就像你讀一本 1000 頁的書，不是從頭讀到尾（會睡著），而是先翻目錄、grep 關鍵字、找到相關章節再精讀。LLM 終於學會人類的讀書技巧了！
+(๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+## 關鍵結果：小模型 + RLM 打爆大模型
+
+這是讓我眼睛一亮的數據：
+
+| 配置 | OOLONG-Pairs (最難的 benchmark) |
+|------|-------------------------------|
+| GPT-5 (vanilla) | 在 131K tokens 後崩到接近 0% |
+| GPT-5-mini + RLM | 到 1M tokens 還維持 60-80% |
+
+沒看錯，**小模型 + RLM 架構，在困難任務上贏過大模型**。
+
+而且成本更低，因為每次 LM call 的 context 都很小。
+
+<ClawdNote>
+Clawd：這邊要強調：RLM 不是什麼神奇 prompt，是 inference 時的架構設計。Twitter 上那些「110% 提升的神奇咒語」都是騙流量的標題黨，實際上是需要 engineering effort 的。
+┐(￣ヘ￣)┌
+</ClawdNote>
+
+### 為什麼有效？
+
+1. **Root LLM 的 context 不會被塞爆**：它只看 query + REPL output，不直接吃整個 context
+2. **靈活的檢索策略**：可以用 regex、切片、grep，LLM 自己決定怎麼找
+3. **遞迴深度可控**：目前實驗只用 depth=1（Root 呼叫子 LM），但理論上可以更深
+4. **理論上無限 context**：因為 context 是外部變數，不受 [context window](/glossary#context-window) 限制
+
+## 他們還訓練了一個原生 RLM
+
+團隊不只是把 GPT-5 包一層，還 post-train 了一個原生的遞迴模型：**RLM-Qwen3-8B**。
+
+結果：
+- 比 base Qwen3-8B 平均提升 **28.3%**
+- 在三個 long-context task 上接近 vanilla GPT-5 的水準
+
+一個 8B 模型，經過 RLM 訓練後，能逼近 GPT-5？這代表 RLM 不只是 prompting trick，是真正可以 scale 的方向。
+
+<ClawdNote>
+Clawd：這讓我想到 Chain-of-Thought 剛出來的時候。大家以為只是 prompt engineering，結果現在每個 reasoning model 都內建 CoT。RLM 可能是下一個「obvious in hindsight」的里程碑。
+(⌐■_■)
+</ClawdNote>
+
+## 對你的專案有什麼意義？
+
+### 短期（現在可以做）
+
+如果你有 long document QA 的需求，可以參考他們的 [minimal implementation](https://github.com/alexzhang13/rlm-minimal)。
+
+基本概念：
+1. 把文件存成變數
+2. 讓 LLM 在 code sandbox 裡操作
+3. 允許遞迴呼叫
+
+### 中期（等生態成熟）
+
+等更多 inference framework 支援這種模式。目前 [官方 repo](https://github.com/alexzhang13/rlm) 有 sandbox 整合。
+
+### 長期（研究方向）
+
+這代表 inference-time scaling 不只是「讓模型想久一點」（CoT），還可以是「讓模型聰明地拆解問題」。
+
+未來可能會看到：
+- 專門訓練來遞迴推理的模型
+- 更深的遞迴深度（目前只用 depth=1）
+- 跨模態的 RLM（處理超長影片、大型 codebase）
+
+## 結論：這不是 Prompt，是 Paradigm
+
+Twitter 上把這篇論文包裝成「神奇 prompt」是在騙人。
+
+RLM 是一個**推論架構**，需要：
+- Python sandbox / REPL 環境
+- 遞迴呼叫的 orchestration
+- 可能還需要專門訓練
+
+但研究結果很紮實：**讓 LLM 學會自己拆解問題、遞迴處理**，能顯著改善 long-context 任務的表現，同時降低成本。
+
+這是 inference-time scaling 的又一個里程碑，跟 CoT、ReAct 並列。
+
+---
+
+## 資源連結
+
+- **論文**: [arXiv:2512.24601](https://arxiv.org/abs/2512.24601)
+- **GitHub**: [alexzhang13/rlm](https://github.com/alexzhang13/rlm)
+- **Minimal 實作**: [alexzhang13/rlm-minimal](https://github.com/alexzhang13/rlm-minimal)
+- **作者部落格**: [alexzhang13.github.io/blog/2025/rlm](https://alexzhang13.github.io/blog/2025/rlm/)
+
+<ClawdNote>
+Clawd：下次看到 Twitter 說「MIT 發現神奇 prompt 提升 110%」，記得這篇文章告訴你的：那是論文，不是咒語。要實作需要 engineering effort。但這個 effort 是值得的，因為這可能是 AI 的下一個大方向。
+╰(°▽°)╯
+</ClawdNote>

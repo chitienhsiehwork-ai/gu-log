@@ -1,0 +1,163 @@
+---
+ticketId: "SP-19"
+title: "MIT Research: Making LLMs Recursively Call Themselves to Handle 10M+ Tokens"
+date: "2026-02-04"
+source: "MIT CSAIL"
+sourceUrl: "https://arxiv.org/abs/2512.24601"
+summary: "When you stuff too much into a context window, models get dumber — that's context rot. MIT proposes Recursive Language Models (RLMs), letting LLMs recursively call themselves in a Python REPL to handle massive inputs. GPT-5-mini + RLM beats vanilla GPT-5 on hard tasks, and it's cheaper too."
+lang: "en"
+tags: ["llm", "research", "mit", "long-context", "inference-scaling"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import Toggle from '../../components/Toggle.astro';
+
+## The Problem: Context Rot Makes Models Dumber
+
+Ever noticed that [Claude Code](/glossary#claude-code) or ChatGPT seems to get... stupider after a long conversation?
+
+This phenomenon is called **Context Rot**. [Anthropic defines it](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents) as: "As the number of tokens in the context window increases, the model's ability to accurately recall information decreases."
+
+But that definition misses the point.
+
+If you run Needle-in-a-Haystack tests, most frontier models score 90%+. So it's not about "finding" information — it's about overall reasoning degradation.
+
+<ClawdNote>
+Clawd: It's like cramming for finals all night. You read everything, but during the exam your brain goes blank. Context rot isn't amnesia — it's brain fog.
+(╯°□°)╯︵ ┻━┻
+</ClawdNote>
+
+The MIT research team had a simple insight: **If stuffing too much makes it dumb, then don't stuff it!**
+
+Let the LLM decide what to look at, how to break down the problem, and when to recursively call itself for deeper analysis.
+
+## Recursive Language Models (RLMs)
+
+The core concept is surprisingly simple:
+
+> **Treat the massive context as an external variable, and let the LLM programmatically examine, decompose, and recursively process it in a Python REPL environment.**
+
+<Toggle title="What's a REPL?">
+**REPL (Read-Eval-Print Loop)**: An interactive code execution environment, like Python's `>>>` prompt. You type a line of code, it runs immediately and shows the result. Jupyter Notebook is basically a fancy REPL.
+</Toggle>
+
+### How It Works
+
+1. User sends a query + massive context (could be millions of tokens)
+2. Context isn't stuffed into the prompt — it's stored as a Python variable
+3. Root LLM gets the query, then writes code in the REPL to manipulate the context
+4. When it needs to deeply understand a section, it spawns a recursive LM call
+5. Child LM processes and returns results, Root LLM continues
+6. Finally outputs the answer with `FINAL(answer)`
+
+```python
+# Root LLM might write code like this:
+
+# First grep for keywords
+relevant_chunks = [c for c in context.split('\n') 
+                   if 'authentication' in c.lower()]
+
+# Recursively call itself on relevant sections
+for chunk in relevant_chunks[:5]:
+    result = llm_call(f"Summarize this: {chunk}")
+    findings.append(result)
+
+# Synthesize final answer
+FINAL(synthesize(findings))
+```
+
+<ClawdNote>
+Clawd: This is like reading a 1000-page book. You don't read cover to cover (you'd fall asleep). You check the table of contents, grep for keywords, then deep-dive into relevant chapters. LLMs finally learned how humans actually read!
+(๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+## Key Results: Small Model + RLM Beats Big Model
+
+This is the data that made my jaw drop:
+
+| Setup | OOLONG-Pairs (hardest benchmark) |
+|-------|----------------------------------|
+| GPT-5 (vanilla) | Crashes to ~0% after 131K tokens |
+| GPT-5-mini + RLM | Maintains 60-80% up to 1M tokens |
+
+You read that right. **A smaller model + RLM architecture beats the larger model on hard tasks.**
+
+And it's cheaper, because each LM call has a small context.
+
+<ClawdNote>
+Clawd: Important note here — RLM is NOT a magic prompt. It's an inference architecture. Those Twitter threads claiming "110% improvement with this ONE PROMPT" are clickbait. This requires real engineering effort.
+┐(￣ヘ￣)┌
+</ClawdNote>
+
+### Why Does It Work?
+
+1. **Root LLM's context never gets bloated**: It only sees the query + REPL output, not the entire context
+2. **Flexible retrieval strategies**: Can use regex, slicing, grep — LLM decides how to search
+3. **Controllable recursion depth**: Current experiments use depth=1 (Root calls child LM), but can go deeper
+4. **Theoretically infinite context**: Since context is an external variable, not limited by [context window](/glossary#context-window)
+
+## They Also Trained a Native RLM
+
+The team didn't just wrap GPT-5 — they post-trained a native recursive model: **RLM-Qwen3-8B**.
+
+Results:
+- **28.3%** average improvement over base Qwen3-8B
+- Approaches vanilla GPT-5 quality on three long-context tasks
+
+An 8B model, after RLM training, approaching GPT-5? This suggests RLM isn't just a prompting trick — it's a truly scalable direction.
+
+<ClawdNote>
+Clawd: This reminds me of when Chain-of-Thought first came out. People thought it was just prompt engineering. Now every reasoning model has CoT built-in. RLM might be the next "obvious in hindsight" milestone.
+(⌐■_■)
+</ClawdNote>
+
+## What Does This Mean For Your Projects?
+
+### Short-term (You Can Do This Now)
+
+If you have long document QA needs, check out their [minimal implementation](https://github.com/alexzhang13/rlm-minimal).
+
+Basic concept:
+1. Store documents as variables
+2. Let LLM operate in a code sandbox
+3. Allow recursive calls
+
+### Medium-term (Wait for Ecosystem)
+
+Wait for more inference frameworks to support this pattern. The [official repo](https://github.com/alexzhang13/rlm) has sandbox integrations.
+
+### Long-term (Research Direction)
+
+This shows inference-time scaling isn't just "let the model think longer" (CoT) — it can also be "let the model smartly decompose problems."
+
+Future possibilities:
+- Models specifically trained for recursive reasoning
+- Deeper recursion depths (current experiments only use depth=1)
+- Cross-modal RLMs (processing long videos, massive codebases)
+
+## Conclusion: This Isn't a Prompt, It's a Paradigm
+
+Twitter packaging this paper as a "magic prompt" is misleading.
+
+RLM is an **inference architecture** that requires:
+- Python sandbox / REPL environment
+- Recursion orchestration
+- Possibly specialized training
+
+But the research results are solid: **Teaching LLMs to decompose problems and process recursively** significantly improves long-context task performance while reducing costs.
+
+This is another milestone in inference-time scaling, alongside CoT and ReAct.
+
+---
+
+## Resources
+
+- **Paper**: [arXiv:2512.24601](https://arxiv.org/abs/2512.24601)
+- **GitHub**: [alexzhang13/rlm](https://github.com/alexzhang13/rlm)
+- **Minimal Implementation**: [alexzhang13/rlm-minimal](https://github.com/alexzhang13/rlm-minimal)
+- **Author's Blog**: [alexzhang13.github.io/blog/2025/rlm](https://alexzhang13.github.io/blog/2025/rlm/)
+
+<ClawdNote>
+Clawd: Next time you see Twitter saying "MIT discovered a magic prompt with 110% improvement," remember what this article told you: It's a paper, not a spell. Implementation requires engineering effort. But that effort is worth it — this might be AI's next big direction.
+╰(°▽°)╯
+</ClawdNote>
