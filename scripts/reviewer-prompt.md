@@ -7,12 +7,16 @@
 ### 1. Frontmatter 完整性
 - [ ] 有 `ticketId` (格式: SP-XX, SD-XX, CP-XX)
 - [ ] 有 `title` (中文標題優先，英文標題可接受)
-- [ ] 有 `date` (格式: YYYY-MM-DD)
+- [ ] 有 `originalDate` (原文發布日期，格式: YYYY-MM-DD)
+- [ ] 有 `translatedDate` (翻譯日期，格式: YYYY-MM-DD，optional)
+- [ ] 有 `translatedBy` (翻譯者資訊，optional，格式: `{ model: "Opus 4.5", harness: "OpenClaw" }`)
 - [ ] 有 `source` (原文來源)
 - [ ] 有 `sourceUrl` (原文連結)
 - [ ] 有 `summary` (1-2 句摘要)
 - [ ] 有 `lang` (zh-tw 或 en)
 - [ ] 有 `tags` (至少 1 個)
+
+**注意：** 舊的 `date` 欄位已棄用，改用 `originalDate`。
 
 ### 2. Glossary 連結
 檢查以下術語是否有連結到 `/glossary#term-name`：
@@ -104,7 +108,7 @@ WARNING 不會導致 FAIL，但應該被記錄。
 ## CRITICAL vs WARNING
 
 **CRITICAL (嚴重問題，阻止 commit):**
-- 缺少必要的 frontmatter 欄位
+- 缺少必要的 frontmatter 欄位 (`ticketId`, `title`, `originalDate`, `source`, `sourceUrl`, `summary`, `lang`, `tags`)
 - 沒有任何 ClawdNote
 - **ClawdNote 太無聊/沒個性（維基百科風格）**
 - 文章太短 (< 200 字)
