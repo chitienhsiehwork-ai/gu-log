@@ -22,10 +22,16 @@ echo ""
 # 2. AI Review for staged posts
 "$SCRIPT_DIR/review-posts.sh"
 
-# 3. Visual test (advisory, non-blocking)
+# 3. Visual test with LLM review (blocking)
 echo ""
-echo "📸 Running visual test (advisory)..."
-node "$SCRIPT_DIR/visual-test.mjs" 2>&1 || true
+echo "📸 Running visual test with LLM review..."
+if ! node "$SCRIPT_DIR/visual-test.mjs" 2>&1; then
+    echo ""
+    echo "❌ Visual test FAILED."
+    echo "   Fix the UI issues before committing."
+    echo "   To bypass (not recommended): git commit --no-verify"
+    exit 1
+fi
 
 echo ""
 echo "✓ All pre-commit checks passed!"
