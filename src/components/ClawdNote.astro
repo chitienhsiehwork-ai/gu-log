@@ -1,11 +1,47 @@
 ---
 // ClawdNote component for Clawd's commentary
-// Note: Content should include its own prefix like "Clawd：" or "Clawd 類比時間："
+// Automatically adds a fun, randomized prefix to make it clear this is Clawd speaking
+
 interface Props {
-  children: any;
+  /** Optional custom prefix. If not provided, a random fun prefix is used */
+  prefix?: string;
 }
+
+const { prefix } = Astro.props;
+
+// Fun prefixes that give Clawd personality - 鄉民/李宏毅 style
+const funPrefixes = [
+  "Clawd 碎碎念：",
+  "Clawd 忍不住說：",
+  "Clawd 想補充：",
+  "Clawd OS：",
+  "Clawd 內心戲：",
+  "Clawd 歪樓一下：",
+  "Clawd murmur：",
+  "Clawd 插嘴：",
+  "Clawd 溫馨提示：",
+  "Clawd 真心話：",
+  "Clawd 吐槽時間：",
+  "Clawd 認真說：",
+];
+
+// Use provided prefix or pick a random one based on content hash for consistency
+const contentStr = Astro.slots.has('default') ? 'content' : '';
+const hash = contentStr.split('').reduce((a, b) => ((a << 5) - a) + b.charCodeAt(0), 0);
+const selectedPrefix = prefix || funPrefixes[Math.abs(hash) % funPrefixes.length];
 ---
 
 <blockquote class="claude-note">
+  <strong class="clawd-prefix">{selectedPrefix}</strong>
+  <br />
   <slot />
 </blockquote>
+
+<style>
+  .clawd-prefix {
+    color: #cb7551;
+    font-size: 0.95em;
+    display: block;
+    margin-bottom: 0.3rem;
+  }
+</style>
