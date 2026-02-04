@@ -1,8 +1,32 @@
 #!/bin/sh
-# Pre-commit hook: runs visual test (advisory, non-blocking)
+# Pre-commit hook for gu-log
+# Runs: 1) Content integrity tests (ticketId uniqueness)
+#       2) AI review for staged posts
+#       3) Visual test (advisory)
 
-echo "Running visual test..."
-node scripts/visual-test.mjs 2>&1
+set -e
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-# Always exit 0 — screenshots are advisory
+# 1. Content Integrity Tests (BDD - Playwright)
+echo "🧪 Running content integrity tests..."
+if ! npx playwright test tests/content-integrity.spec.ts --project='Desktop Chrome' --reporter=line 2>&1; then
+    echo ""
+    echo "❌ Content integrity tests FAILED."
+    echo "   Fix ticketId conflicts before committing."
+    echo "   To bypass (not recommended): git commit --no-verify"
+    exit 1
+fi
+echo "✓ Content integrity tests passed"
+echo ""
+
+# 2. AI Review for staged posts
+"$SCRIPT_DIR/review-posts.sh"
+
+# 3. Visual test (advisory, non-blocking)
+echo ""
+echo "📸 Running visual test (advisory)..."
+node "$SCRIPT_DIR/visual-test.mjs" 2>&1 || true
+
+echo ""
+echo "✓ All pre-commit checks passed!"
 exit 0
