@@ -196,6 +196,46 @@ test.describe('Content Integrity: ticketId', () => {
   });
 });
 
+test.describe('Content Integrity: ClawdNote', () => {
+  
+  test('GIVEN all posts WHEN checking ClawdNote content THEN should NOT contain redundant Clawd prefix (component adds it automatically)', async () => {
+    const files = fs.readdirSync(POSTS_DIR).filter(f => f.endsWith('.mdx'));
+    const violations: { filename: string; pattern: string; context: string }[] = [];
+    
+    // Patterns that indicate redundant prefix inside ClawdNote
+    const redundantPatterns = [
+      { regex: /<ClawdNote>\s*\n?\s*\*\*Clawd[：:]\*\*/i, name: '**Clawd：** (bold)' },
+      { regex: /<ClawdNote>\s*\n?\s*Clawd[：:]\s/i, name: 'Clawd： (plain)' },
+      { regex: /<ClawdNote>\s*\n?\s*Clawd\s+[忍偷歪畫碎插溫真吐認補murmurOS]/i, name: 'Clawd prefix (e.g., Clawd 忍不住說)' },
+    ];
+    
+    for (const file of files) {
+      const content = fs.readFileSync(path.join(POSTS_DIR, file), 'utf-8');
+      
+      for (const { regex, name } of redundantPatterns) {
+        const match = content.match(regex);
+        if (match) {
+          // Extract some context around the match
+          const matchIndex = content.indexOf(match[0]);
+          const contextStart = Math.max(0, matchIndex - 20);
+          const contextEnd = Math.min(content.length, matchIndex + match[0].length + 30);
+          const context = content.slice(contextStart, contextEnd).replace(/\n/g, '\\n');
+          
+          violations.push({ filename: file, pattern: name, context });
+        }
+      }
+    }
+    
+    if (violations.length > 0) {
+      const report = violations
+        .map(v => `  - ${v.filename}: found "${v.pattern}"\n    Context: ...${v.context}...`)
+        .join('\n');
+      
+      expect(violations, `ClawdNote contains redundant Clawd prefix (component auto-adds it):\n${report}`).toHaveLength(0);
+    }
+  });
+});
+
 test.describe('Content Integrity: Required Fields', () => {
   
   test('GIVEN all posts WHEN checking required fields THEN every post should have title, date, and lang', async () => {
