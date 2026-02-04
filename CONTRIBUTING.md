@@ -108,6 +108,42 @@ import Toggle from '../../components/Toggle.astro';
 (ﾉ∀`*) (つ✧ω✧)つ (๑•́ ₃ •̀๑)
 ```
 
+## BDD Testing
+
+**規則：每個 bug = 一個新 BDD test**
+
+當使用者報告 bug 時：
+1. 先寫一個 test 來重現 bug（test 應該是紅的）
+2. 修 bug
+3. Test 變綠 = bug 修好
+4. 這個 test 永遠留著，防止 regression
+
+### 測試指令
+
+```bash
+npm run test        # 跑所有 BDD tests
+npm run test:toc    # 只跑 TOC 相關測試
+npm run test:ui     # 開 Playwright UI（本地開發用）
+```
+
+### 測試檔案位置
+
+```
+tests/
+├── toc.spec.ts         # TOC 展開/收合、scroll、links
+├── clawd-note.spec.ts  # ClawdNote 展開/收合
+└── post-page.spec.ts   # 文章頁面渲染
+```
+
+### BDD 測試格式
+
+用 Given-When-Then 命名：
+```typescript
+test('GIVEN [前提] WHEN [動作] THEN [預期結果]', async ({ page }) => {
+  // ...
+});
+```
+
 ## Workflow
 
 ### 新增文章 (Clawd)
