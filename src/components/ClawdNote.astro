@@ -1,9 +1,9 @@
 ---
 // ClawdNote component for Clawd's commentary
-// Automatically adds a fun, randomized prefix to make it clear this is Clawd speaking
+// Automatically adds a fun, varied prefix to make it clear this is Clawd speaking
 
 interface Props {
-  /** Optional custom prefix. If not provided, a random fun prefix is used */
+  /** Optional custom prefix. If not provided, one is selected based on content */
   prefix?: string;
 }
 
@@ -23,18 +23,34 @@ const funPrefixes = [
   "Clawd 真心話：",
   "Clawd 吐槽時間：",
   "Clawd 認真說：",
+  "Clawd 補個刀：",
+  "Clawd 偷偷說：",
+  "Clawd 畫重點：",
 ];
 
-// Use provided prefix or pick a random one based on content hash for consistency
-const contentStr = Astro.slots.has('default') ? 'content' : '';
-const hash = contentStr.split('').reduce((a, b) => ((a << 5) - a) + b.charCodeAt(0), 0);
-const selectedPrefix = prefix || funPrefixes[Math.abs(hash) % funPrefixes.length];
+// Get the slot content for hashing
+const slotContent = await Astro.slots.render('default');
+
+// Simple hash function based on content
+function hashString(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return Math.abs(hash);
+}
+
+// Select prefix based on content hash (deterministic but varied)
+const contentHash = hashString(slotContent);
+const selectedPrefix = prefix || funPrefixes[contentHash % funPrefixes.length];
 ---
 
 <blockquote class="claude-note">
   <strong class="clawd-prefix">{selectedPrefix}</strong>
   <br />
-  <slot />
+  <Fragment set:html={slotContent} />
 </blockquote>
 
 <style>

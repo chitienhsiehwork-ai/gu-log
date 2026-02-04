@@ -38,8 +38,9 @@ async function checkPage(page, viewport) {
   } else {
     checks.push(`✓ Found ${clawdNoteCount} ClawdNote(s)`);
     
-    // Check if ClawdNotes have the prefix
-    for (let i = 0; i < Math.min(clawdNoteCount, 3); i++) {
+    // Check if ClawdNotes have the prefix and collect them for variety check
+    const prefixTexts = [];
+    for (let i = 0; i < Math.min(clawdNoteCount, 5); i++) {
       const note = clawdNotes.nth(i);
       const prefix = note.locator('.clawd-prefix');
       const hasPrefix = await prefix.count() > 0;
@@ -55,7 +56,21 @@ async function checkPage(page, viewport) {
         }
       } else {
         const prefixText = await prefix.textContent();
+        prefixTexts.push(prefixText.trim());
         checks.push(`✓ ClawdNote #${i + 1} has prefix: "${prefixText.trim()}"`);
+      }
+    }
+    
+    // Check prefix variety - if 3+ ClawdNotes, they shouldn't ALL be identical
+    if (prefixTexts.length >= 3) {
+      const uniquePrefixes = new Set(prefixTexts);
+      if (uniquePrefixes.size === 1) {
+        issues.push({
+          severity: 'CRITICAL',
+          description: `All ${prefixTexts.length} ClawdNotes have identical prefix "${prefixTexts[0]}" - needs variety!`
+        });
+      } else {
+        checks.push(`✓ ClawdNote prefixes have variety (${uniquePrefixes.size} unique)`);
       }
     }
     
