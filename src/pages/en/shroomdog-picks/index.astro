@@ -30,7 +30,7 @@ const spPosts = (await getCollection('posts', ({ data }) => {
         <h3><a href={`/en/posts/${post.slug}`}>{post.data.title}</a></h3>
         <p class="post-meta">
           {post.data.ticketId && <TicketBadge ticketId={post.data.ticketId} />}
-          {post.data.date} · From {post.data.source}
+          {post.data.originalDate} · From {post.data.source}
         </p>
         <Toggle title="Preview">
           <p>{post.data.summary}</p>

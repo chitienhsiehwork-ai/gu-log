@@ -41,7 +41,7 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
       <div class="post-meta-row">
         <span class="post-meta-left">
           {ticketId && <TicketBadge ticketId={ticketId} />}
-          <span class="meta-date">{post.data.date}</span>
+          <span class="meta-date">{post.data.originalDate}</span>
           {isClawdPicks && (
             <span class="clawd-picks-badge">
               <img src="/clawd-icon.png" alt="Clawd Picks" class="clawd-icon" />
@@ -68,6 +68,12 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
     <div class="post-content">
       <Content />
     </div>
+
+    {post.data.translatedDate && post.data.translatedBy && (
+      <div class="translation-info">
+        翻譯於 {post.data.translatedDate} by {post.data.translatedBy.model} ({post.data.translatedBy.harness})
+      </div>
+    )}
 
     <PrevNextNav currentSlug={post.slug} allPosts={allPosts} lang="zh-tw" />
 
@@ -145,5 +151,14 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
     margin-top: 2rem;
     padding-top: 1rem;
     border-top: 1px solid var(--color-border);
+  }
+
+  .translation-info {
+    margin-top: 2rem;
+    padding: 0.75rem 1rem;
+    background-color: var(--color-bg-secondary, rgba(0, 0, 0, 0.03));
+    border-radius: 6px;
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
   }
 </style>

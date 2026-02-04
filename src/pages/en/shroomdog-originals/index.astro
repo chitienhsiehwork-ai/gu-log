@@ -30,7 +30,7 @@ const sdPosts = (await getCollection('posts', ({ data }) => {
         <h3><a href={`/en/posts/${post.slug}`}>{post.data.title}</a></h3>
         <p class="post-meta">
           {post.data.ticketId && <TicketBadge ticketId={post.data.ticketId} />}
-          {post.data.date} · {post.data.source}
+          {post.data.originalDate} · {post.data.source}
         </p>
         <Toggle title="Preview">
           <p>{post.data.summary}</p>

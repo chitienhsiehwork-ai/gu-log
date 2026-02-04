@@ -29,7 +29,7 @@ const cpPosts = (await getCollection('posts', ({ data }) => {
         <a href={`/posts/${pick.slug}`} class="pick-title">{pick.data.title}</a>
         <span class="pick-meta">
           {pick.data.ticketId && <TicketBadge ticketId={pick.data.ticketId} />}
-          {pick.data.date} · {pick.data.source}
+          {pick.data.originalDate} · {pick.data.source}
         </span>
       </article>
     ))}
