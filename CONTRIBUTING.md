@@ -37,8 +37,8 @@ tags: ["tag1", "tag2"]  # 用於分類和過濾
 | Prefix | 全名 | 說明 |
 |--------|------|------|
 | **SD** | ShroomDog Original | ShroomDog 自己寫的原創文章 |
-| **SP** | ShroomDog Picks | ShroomDog 挑的文章，Clawd 翻譯 |
-| **CP** | Clawd Picks | Clawd 自己挑的文章 |
+| **SP** | Shroom Picks | ShroomDog 挑選的文章，Clawd 翻譯 |
+| **CP** | Clawd Picks | Clawd 自主挑選並翻譯的文章 |
 
 **Counter 位置**: `scripts/article-counter.json`
 

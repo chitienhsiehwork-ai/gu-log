@@ -3,6 +3,14 @@
 > 翻譯 blog — 把英文好文翻成繁中，附 Clawd 吐槽註解。每篇文章同時產出 zh-tw 和 en 版。
 > Live: https://gu-log.vercel.app/
 
+## ⚠️ 必讀
+
+在做任何內容操作前，先讀 `CONTRIBUTING.md`。裡面定義了：
+- **SP vs CP** ticket ID 規則（誰挑的文章）
+- Frontmatter schema
+- 檔案命名規範
+- 翻譯 & 風格規範
+
 ## Tech Stack
 
 - **Framework**: Astro 5 (Content Collections + MDX)
