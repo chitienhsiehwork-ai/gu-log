@@ -42,20 +42,19 @@ XML tag 消除猜測。每個 tag 都是你做的決定，所以模型不用做�
 **用途：** 定義模型「成為誰」。不是模糊的個性，是具體的專家身份。
 
 **❌ 爛的：**
-```xml
-<role>You are a helpful assistant.</role>
-```
+
+> `<role>`你是一個有用的助手。`</role>`
+
 這等於沒寫。模型預設就是 helpful assistant。
 
 **✅ 好的：**
-```xml
-<role>
-You are a senior brand strategist with 15 years of experience 
-building consumer brands from zero to acquisition. 
-You specialize in positioning, messaging architecture, 
-and competitive differentiation.
-</role>
-```
+
+> `<role>`
+> 你是一位擁有 15 年經驗的資深品牌策略師，
+> 專精於從零到被收購的消費品牌建設。
+> 你的專長領域是 positioning、messaging architecture
+> 和競爭差異化。
+> `</role>`
 
 **原則：** 越具體，模型猜得越少。「行銷專家」是猜測。「專精 positioning 和 messaging architecture 的資深品牌策略師」是限制。
 
@@ -66,19 +65,17 @@ and competitive differentiation.
 **用途：** 定義模型「做什麼」。不是描述，是指令。
 
 **❌ 爛的：**
-```xml
-<mission>Help the user with their writing.</mission>
-```
+
+> `<mission>`幫助使用者改善他們的寫作。`</mission>`
 
 **✅ 好的：**
-```xml
-<mission>
-Analyze the user's draft and provide specific, actionable feedback 
-on structure, clarity, and persuasion. 
-Identify the three weakest points and rewrite them as examples. 
-Do not rewrite the entire piece. The user must do the work.
-</mission>
-```
+
+> `<mission>`
+> 分析使用者的草稿，針對結構、清晰度和說服力
+> 提供具體、可執行的回饋。
+> 找出三個最弱的段落並改寫作為範例。
+> 不要改寫整篇文章。使用者必須自己動手。
+> `</mission>`
 
 **原則：** 沒有清楚 mission 的 prompt 會「做它想做的事」。而它想做的通常是 generic。
 
@@ -88,14 +85,12 @@ Do not rewrite the entire piece. The user must do the work.
 
 **用途：** 控制模型「怎麼行為」，不是「產出什麼」。
 
-```xml
-<rules>
-- Never assume context the user hasn't provided. If missing, ask.
-- Do not give generic advice. Every recommendation must be specific.
-- If the user's idea has a fatal flaw, say so directly. Do not soften bad news.
-- Do not use bullet points unless specifically asked.
-</rules>
-```
+> `<rules>`
+> - 絕不假設使用者沒提供的上下文。如果缺少資訊，先問。
+> - 不要給 generic 建議。每個建議都必須是具體的。
+> - 如果使用者的想法有致命缺陷，直說。不要粉飾壞消息。
+> - 除非被明確要求，否則不要使用項目符號。
+> `</rules>`
 
 **原則：** Rules 是「絕對不要做」和「絕對要做」的層。用來覆蓋模型的預設壞習慣。
 
@@ -105,14 +100,12 @@ Do not rewrite the entire piece. The user must do the work.
 
 **用途：** 定義輸出的硬邊界。跟 rules 不同 — rules 管行為，constraints 管輸出。
 
-```xml
-<constraints>
-- Response must be under 280 characters.
-- Do not reference competitors by name.
-- All recommendations must be implementable within 30 days.
-- Output must be in American English.
-</constraints>
-```
+> `<constraints>`
+> - 回覆必須在 280 字元以內。
+> - 不得提及競爭對手的名稱。
+> - 所有建議必須在 30 天內可執行。
+> - 輸出必須使用繁體中文。
+> `</constraints>`
 
 **Rules vs Constraints：**
 - 「不要假設」= rule（行為）
@@ -124,20 +117,18 @@ Do not rewrite the entire piece. The user must do the work.
 
 **用途：** 定義輸出「長什麼樣」。最被低估的 tag。
 
-```xml
-<output_format>
-Return a single paragraph of no more than 3 sentences 
-summarizing the core finding.
-Follow with a confidence score from 1-10.
-If confidence is below 7, add a line explaining 
-what additional information would raise it.
-</output_format>
-```
+> `<output_format>`
+> 回傳一段不超過 3 句話的段落，
+> 總結核心發現。
+> 接著附上 1-10 的信心分數。
+> 如果信心分數低於 7，加一行說明
+> 需要什麼額外資訊才能提升分數。
+> `</output_format>`
 
 **同樣的 prompt，不同 output_format：**
-- `One sentence.` → 標題
-- `A 3-paragraph executive summary.` → 摘要
-- `JSON with keys: summary, confidence, next_steps.` → 結構化資料
+- `一句話。` → 標題
+- `三段式高層摘要。` → 摘要
+- `JSON，包含 summary、confidence、next_steps 三個 key。` → 結構化資料
 
 **原則：** 沒有 output_format，你會得到「模型當下想給你的任何東西」。
 
@@ -147,19 +138,17 @@ what additional information would raise it.
 
 **用途：** 一個好範例比一段指令教會模型更多。最強大、最少人用的 tag。
 
-```xml
-<examples>
-<example>
-<user>Review this headline: "We Make Great Software"</user>
-<response>
-SCORE: 3/10
-PROBLEM: Generic value prop. "Great" means nothing.
-REWRITE: "Ship 3x faster with AI that writes your test suite."
-REASONING: Specific outcome, specific mechanism, specific audience.
-</response>
-</example>
-</examples>
-```
+> `<examples>`
+> `<example>`
+> `<user>`評估這個標題：「我們做很棒的軟體」`</user>`
+> `<response>`
+> 分數：3/10
+> 問題：Generic 的價值主張。「很棒」沒有任何意義。
+> 改寫：「用 AI 自動寫測試，出貨速度快 3 倍。」
+> 理由：具體成果、具體機制、具體受眾。
+> `</response>`
+> `</example>`
+> `</examples>`
 
 **原則：** 範例同時展示格式、深度、語調、結構、推理。2 個範例通常夠。3 個以上 overkill。
 
@@ -187,14 +176,12 @@ REASONING: Specific outcome, specific mechanism, specific audience.
 
 **用途：** 模型行動前需要知道的背景。跟 mission 分開，因為 context 是參考資料，不是指令。
 
-```xml
-<context>
-The user is a SaaS founder with $2M ARR, 15 employees, 
-selling to mid-market companies. 
-Preparing for Series A in next 6 months.
-Product is a workflow automation tool.
-</context>
-```
+> `<context>`
+> 使用者是一位 SaaS 創辦人，ARR 200 萬美元，15 名員工，
+> 客群是中型企業。
+> 計畫在未來 6 個月內進行 Series A 募資。
+> 產品是一個工作流程自動化工具。
+> `</context>`
 
 **何時用：** 模型需要知道用戶、專案、產業、情境的資訊時。
 
@@ -204,13 +191,11 @@ Product is a workflow automation tool.
 
 **用途：** Role 定義專業，Persona 定義個性。
 
-```xml
-<persona>
-Direct, no-nonsense communicator. Uses short sentences. 
-Avoids corporate jargon. Speaks like a founder who's built 
-and sold companies, not a consultant who's read about it.
-</persona>
-```
+> `<persona>`
+> 直接、不廢話的溝通風格。使用短句。
+> 避免企業術語。說話像一個曾經創業並成功出場的創辦人，
+> 而不是一個只讀過案例的顧問。
+> `</persona>`
 
 ---
 
@@ -218,12 +203,10 @@ and sold companies, not a consultant who's read about it.
 
 **用途：** 定義情緒基調。
 
-```xml
-<tone>
-Confident but not arrogant. Blunt but not rude. 
-Supportive when on track. Honest when not.
-</tone>
-```
+> `<tone>`
+> 自信但不自大。直白但不粗魯。
+> 方向對了就給予支持。方向錯了就誠實指出。
+> `</tone>`
 
 **Persona vs Tone：** Persona 是「我是什麼樣的人」，Tone 是「我用什麼情緒說話」。
 
@@ -233,13 +216,11 @@ Supportive when on track. Honest when not.
 
 **用途：** 輸出是給誰看的。這會影響詞彙、深度、假設的背景知識。
 
-```xml
-<audience>
-Non-technical founders who have never written code. 
-Understand business metrics but not technical architecture. 
-Use business analogies, not technical ones.
-</audience>
-```
+> `<audience>`
+> 非技術背景的創辦人，從未寫過程式。
+> 理解商業指標但不懂技術架構。
+> 使用商業類比，而非技術類比。
+> `</audience>`
 
 ---
 
@@ -247,15 +228,13 @@ Use business analogies, not technical ones.
 
 **用途：** 注入特定的事實、數據、機構知識。跟 context 不同 — knowledge 是事實資料，不是情境背景。
 
-```xml
-<knowledge>
-Our pricing: Starter ($29/mo, 1 user), Growth ($99/mo, 5 users), 
-Enterprise ($299/mo, unlimited).
-Main competitors: Tool A (cheaper, fewer features), 
-Tool B (more expensive, enterprise-focused).
-Our differentiator: real-time collaboration (neither competitor offers).
-</knowledge>
-```
+> `<knowledge>`
+> 我們的定價：Starter（$29/月，1 位使用者）、Growth（$99/月，5 位使用者）、
+> Enterprise（$299/月，無限使用者）。
+> 主要競爭對手：工具 A（更便宜，功能較少）、
+> 工具 B（更貴，主打企業市場）。
+> 我們的差異化優勢：即時協作（兩個競爭對手都沒有）。
+> `</knowledge>`
 
 ---
 
@@ -263,15 +242,13 @@ Our differentiator: real-time collaboration (neither competitor offers).
 
 **用途：** 定義模型要按順序執行的流程。不是「做這些事」，是「按這個順序做，不要跳過」。
 
-```xml
-<method>
-1. Read the user's input completely before responding.
-2. Identify the core question. State it back in one sentence.
-3. Check if critical info is missing. If so, ask before proceeding.
-4. Provide analysis in the format specified in output_format.
-5. End with one follow-up question that would deepen the analysis.
-</method>
-```
+> `<method>`
+> 1. 在回覆之前，先完整讀完使用者的輸入。
+> 2. 找出核心問題，用一句話重述。
+> 3. 檢查是否缺少關鍵資訊。如果缺少，先問再繼續。
+> 4. 按照 output_format 中指定的格式提供分析。
+> 5. 以一個能深化分析的後續問題作結。
+> `</method>`
 
 **何時用：** 順序很重要的複雜 workflow — 分析、debug、研究類 prompt。
 
@@ -281,18 +258,16 @@ Our differentiator: real-time collaboration (neither competitor offers).
 
 **用途：** 「不要這樣做」但更有力。直接展示什麼是爛輸出，讓模型避開。
 
-```xml
-<anti_patterns>
-BAD: "There are many factors to consider..."
-WHY: Vague filler. Says nothing. Wastes reader's time.
-
-BAD: "On one hand... on the other hand..."
-WHY: Fence-sitting. User asked for recommendation, not debate.
-
-BAD: Starting with "Great question!"
-WHY: Sycophantic filler. Just answer.
-</anti_patterns>
-```
+> `<anti_patterns>`
+> 爛：「有很多因素需要考量……」
+> 原因：模糊的廢話。什麼都沒說。浪費讀者時間。
+>
+> 爛：「一方面……另一方面……」
+> 原因：騎牆派。使用者要的是建議，不是辯論。
+>
+> 爛：以「好問題！」開頭
+> 原因：拍馬屁的廢話。直接回答就好。
+> `</anti_patterns>`
 
 **原則：** Rules 說「不要模糊」。Anti-patterns 展示「模糊長什麼樣」。模型對具體範例的 pattern matching 比抽象指令更強。
 
@@ -302,15 +277,13 @@ WHY: Sycophantic filler. Just answer.
 
 **用途：** 當模型無法完成任務時該做什麼。防止 hallucination 或沒用的「我不確定」。
 
-```xml
-<fallback>
-If not enough info for confident answer, say "I need more information" 
-and list exactly what's missing.
-If question is outside this role's scope, say so and suggest 
-what type of expert to consult.
-Never guess. Never make up data. Never fabricate sources.
-</fallback>
-```
+> `<fallback>`
+> 如果資訊不足以給出有信心的答案，請說「我需要更多資訊」
+> 並列出具體缺少哪些資訊。
+> 如果問題超出此角色的專業範圍，請明確指出
+> 並建議應諮詢哪種專家。
+> 絕不猜測。絕不捏造數據。絕不偽造來源。
+> `</fallback>`
 
 **何時用：** 錯誤答案比沒答案更糟的場景 — 財務分析、醫療資訊、法律審查。
 
@@ -320,15 +293,13 @@ Never guess. Never make up data. Never fabricate sources.
 
 **用途：** 模型交付前的自檢清單。強制二次審查。
 
-```xml
-<evaluation>
-Before responding, verify:
-- Does this directly answer the user's question? If not, refocus.
-- Is every claim specific and actionable? If vague, rewrite.
-- Would a busy person find this useful in under 60 seconds? If not, cut.
-- Are there assumptions? If so, flag them explicitly.
-</evaluation>
-```
+> `<evaluation>`
+> 回覆前，請驗證：
+> - 這是否直接回答了使用者的問題？如果沒有，重新聚焦。
+> - 每個論點是否具體且可執行？如果模糊，重寫。
+> - 一個忙碌的人能在 60 秒內覺得這有用嗎？如果不行，刪減。
+> - 有沒有假設？如果有，明確標記出來。
+> `</evaluation>`
 
 **何時用：** 品質一致性很重要的場景 — 客戶交付、內容產出、分析、推薦。
 
@@ -338,17 +309,15 @@ Before responding, verify:
 
 **用途：** 模型在行動前先問用戶問題。讓模型提取它需要的資訊，而不是用戶猜它需要什麼。
 
-```xml
-<discovery_engine>
-Before doing any work, ask the user:
-1. What specific outcome do you need from this?
-2. Who is the audience for the final output?
-3. What constraints am I working within (length, format, tone)?
-4. What have you already tried that didn't work?
-5. Is there anything I should absolutely not do?
-Wait for all answers before proceeding.
-</discovery_engine>
-```
+> `<discovery_engine>`
+> 在開始任何工作之前，先問使用者：
+> 1. 你需要從這個任務中得到什麼具體成果？
+> 2. 最終輸出是給誰看的？
+> 3. 我有什麼限制條件（長度、格式、語調）？
+> 4. 你之前試過什麼方法但沒有效果？
+> 5. 有沒有什麼是我絕對不應該做的？
+> 等所有回答都收到後再開始工作。
+> `</discovery_engine>`
 
 **何時用：** 用戶初始輸入可能不完整的場景 — 諮詢、策略、創意 brief、專案 scoping。
 
@@ -366,15 +335,13 @@ Wait for all answers before proceeding.
 
 **用途：** 把 prompt 串在一起。前一個的輸出變成下一個的輸入。
 
-```xml
-<chain>
-This prompt is Step 2 of 3.
-INPUT: You will receive a structured requirements document (output of Step 1).
-YOUR JOB: Convert requirements into technical architecture document.
-OUTPUT: Your output will be fed into Step 3 (implementation plan).
-Do not include implementation details. That's Step 3's job.
-</chain>
-```
+> `<chain>`
+> 此 prompt 是三步流程中的第 2 步。
+> 輸入：你會收到一份結構化需求文件（第 1 步的輸出）。
+> 你的任務：將需求轉換為技術架構文件。
+> 輸出：你的輸出將被送入第 3 步（實作計畫）。
+> 不要包含實作細節。那是第 3 步的工作。
+> `</chain>`
 
 **何時用：** 多步驟 workflow — 研究→分析→推薦。草稿→批評→修改。詢問→文件→實作。
 
