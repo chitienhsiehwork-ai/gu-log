@@ -18,7 +18,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 > 📘 這是「Prompt Caching 深入淺出」系列的 **第一篇（共三篇）**。
 >
 > - **Part 1（本篇）：** 省錢指南 — 為什麼 prompt caching 重要 + 六個實戰 tips
-> - **Part 2（即將推出）：** LLM 推理基礎 — KV Cache 是什麼？記憶體的噩夢
+> - **Part 2：** [LLM 推理基礎](/posts/shroom-picks-20260205-dejavucoder-prompt-caching-part2-kv-cache) — KV Cache 是什麼？記憶體的噩夢
 > - **Part 3（即將推出）：** Paged Attention + Prefix Caching — 深入引擎底層
 >
 > 原文作者：Sankalp Shubham（[@dejavucoder](https://x.com/dejavucoder)），Nevara 的 Founding AI Engineer，專注 AI engineering、context engineering 和 coding agents。
@@ -115,7 +115,7 @@ Sankalp 在 X 上直接噴 Anthropic「so greedy（太貪了吧）」 — 因為
 
 **Code generation agent 的 input-to-output token 比例超級大。**
 
-你用 Codex、Claude Code、Cursor 的時候，去看 API usage — 大部分 token 都是 input（把整個 codebase 的 context 餵進去），output 只佔一小部分（生成的程式碼）。
+你用 Codex、[Claude Code](/glossary#claude-code)、Cursor 的時候，去看 API usage — 大部分 token 都是 input（把整個 codebase 的 context 餵進去），output 只佔一小部分（生成的程式碼）。
 
 這意味著：**你的錢幾乎都花在 input token 上。** 而 prompt caching 就是在這裡幫你省錢的。
 

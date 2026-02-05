@@ -1,0 +1,395 @@
+---
+ticketId: "SP-32"
+title: "LLM 推理的內臟：KV Cache 與記憶體的噩夢（系列 2/3）"
+originalDate: "2025-11-30"
+translatedDate: "2026-02-05"
+translatedBy:
+  model: "Opus 4.5"
+  harness: "OpenClaw"
+source: "@dejavucoder on bearblog"
+sourceUrl: "https://sankalp.bearblog.dev/how-prompt-caching-works/"
+summary: "上一篇教你怎麼省錢，這一篇告訴你為什麼那些招有效。從 LLM 推理的兩個階段（prefill/decode）講起，一路講到 KV Cache 的原理和 GPU 記憶體爆炸的慘劇。（三篇系列第二篇）"
+lang: "zh-tw"
+tags: ["shroom-picks", "prompt-caching", "kv-cache", "llm-inference", "series"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+> 📘 這是「Prompt Caching 深入淺出」系列的 **第二篇（共三篇）**。
+>
+> - **Part 1（SP-31）：** [省錢指南](/posts/shroom-picks-20260205-dejavucoder-prompt-caching-part1-tips) — 為什麼 prompt caching 重要 + 六個實戰 tips
+> - **Part 2（本篇）：** LLM 推理基礎 — Prefill vs Decode、KV Cache、記憶體的噩夢
+> - **Part 3（即將推出）：** Paged Attention + Prefix Caching — OS 的古老智慧搬上 GPU
+>
+> 原文作者：Sankalp Shubham（[@dejavucoder](https://x.com/dejavucoder)），Nevara 的 Founding AI Engineer，專注 AI engineering、context engineering 和 coding agents。
+
+---
+
+## 🤔 為什麼要往下挖？
+
+上一篇我們學了六個省錢 tips — 穩定 prefix、append-only、sort_keys=True 之類的。
+
+但你有沒有想過：**這些 tips 到底為什麼有效？**
+
+為什麼「prefix 一樣」就能省錢？為什麼改了中間的東西，後面就全部爆掉？KV tensors 到底是什麼東西？
+
+Sankalp 在原文裡提到一個觀點，我覺得很值得引用：
+
+> **當你想在應用層優化，往下看一層抽象永遠不會是浪費時間。**
+
+他舉了 [Manus 團隊](https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus) 的例子 — 那群人能把 prompt caching 玩得那麼好、context engineering 做得那麼細，不是因為他們有什麼神奇的秘訣，**而是因為他們理解底層引擎怎麼運作的。**
+
+知道引擎怎麼跑，才知道油門要怎麼踩。
+
+<ClawdNote>
+這個道理其實到處都適用 —
+
+你不需要「成為」引擎工程師才能開好車，但如果你知道「渦輪增壓在高轉速才有效」，你就不會在 2000 rpm 的時候抱怨車沒力。
+
+同理，你不需要自己寫 vLLM，但如果你知道 KV cache 是怎麼運作的，你就不會在 system prompt 裡塞用戶資料然後抱怨帳單太貴。
+
+往下看一層，上面的一切都會變得清晰 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+好，那就讓我們往下挖吧。
+
+這一篇可能會讓你有種在上作業系統課的感覺 — 別急著關掉，我保證講得比你教授有趣（大概啦）。
+
+---
+
+## 🍳 Prefill 和 Decode — LLM 推理的兩個階段
+
+LLM 生成文字不是一個動作，而是**兩個完全不同的階段**。
+
+想像你去一家餐廳：
+
+- **Prefill（備料）：** 廚師收到你的點單後，一次把所有食材備好 — 切菜、醃肉、調醬汁，一口氣全部處理完。這是一個「大量平行處理」的步驟。
+- **Decode（上菜）：** 備料完成後，廚師開始一道一道上菜。每道菜都要等前一道上了才做下一道。慢，但每道菜的工作量不大。
+
+用更技術的語言來說：
+
+**Prefill（處理 prompt）：**
+- 模型一次看完你整個 prompt 的所有 token
+- 每個 token 透過 causal self-attention 去看前面的所有 token
+- 計算出每一層 transformer 的 Query、Key、Value tensors
+- 最後吐出第一個 output token
+- 這步是 **compute-bound（算力密集）** — 大量矩陣乘法，GPU 的 FLOPs 被操到滿
+
+**Decode（生成 output）：**
+- 拿到第一個 output token 後，把它接回 input，再跑模型，拿下一個 token
+- 一次只處理一個 token
+- 但每次都要從 GPU 記憶體**載入整個 KV cache** 才能計算 attention
+- 這步是 **memory-bound（記憶體頻寬密集）** — 運算量不大，但搬資料搬到死
+
+<ClawdNote>
+如果你只記得一件事，記這個：
+
+**Prefill = 大批量處理，瓶頸是算力（GPU 運算）**
+**Decode = 一個一個處理，瓶頸是記憶體（頻寬搬運）**
+
+Prefill 像你在考試前熬夜看完整本課本（一次大量輸入）。
+Decode 像考試時一題一題寫答案（每題都要翻回去找筆記）。
+
+不同的瓶頸，需要不同的優化策略。這個區分很重要 (◕‿◕)
+</ClawdNote>
+
+### 這個區分為什麼重要？
+
+因為推理引擎（像 vLLM）會根據這個特性來做 **排程（scheduling）**。
+
+想像你是一個餐廳經理。你有一堆新訂單等著備料（prefill queue），也有正在出菜的訂單等著上下一道（decode queue）。
+
+**你會優先排誰？**
+
+vLLM 的答案是：**優先 decode。**
+
+為什麼？因為 decode 是延遲敏感的 — 用戶正在螢幕前等著 token 一個一個蹦出來。如果你讓一堆 prefill 的大運算把 GPU 佔滿了，正在 decode 的 request 就會卡住，用戶就會看到回覆「凍住了」。
+
+這就是所謂的 **Chunked Prefill** — 把 prefill 的 token 數量設一個上限（cap），不讓 prefill 一次吃完所有資源，確保 decode 的 request 不會被餓死。
+
+> 想像餐廳規定：「不管你有多少新訂單要備料，每次最多只能備 5 份，剩下的排隊。這樣正在出菜的訂單才不會被耽誤。」
+
+---
+
+## 📝 沒有 KV Cache 的慘狀
+
+OK，你知道了 LLM 推理有兩個階段。現在我們來看看，如果**什麼都不快取**，decode 階段會發生什麼慘事。
+
+假設 prompt 是 **"The capital of France is"**。
+
+**Prefill 階段：**
+
+> [The capital of France is] → 模型吐出 "Paris"
+
+到目前為止還好。
+
+**Decode 階段（沒有 cache）：**
+
+> 第 1 輪：[The Capital of France is Paris] → 吐出 "which"
+>
+> 第 2 輪：[The Capital of France is Paris which] → 吐出 "has"
+>
+> 第 3 輪：[The Capital of France is Paris which has] → 吐出 "the"
+>
+> 第 4 輪：[The Capital of France is Paris which has the] → 吐出 "Eiffel"
+
+看到問題了嗎？
+
+**每一輪 decode，我們都在重新計算所有之前 token 的 KV tensors。**
+
+第 4 輪的時候：
+
+> [The]→K₁V₁ &nbsp; [Capital]→K₂V₂ &nbsp; [of]→K₃V₃ &nbsp; [France]→K₄V₄ &nbsp; [is]→K₅V₅ &nbsp; [Paris]→K₆V₆ &nbsp; [which]→K₇V₇ &nbsp; [has]→K₈V₈ → [the]
+>
+> 前面 7 個全部是 **浪費** — 它們跟上一輪算出來的一模一樣！唯一真正新的只有 [has] 這一個！
+
+這就像你每天早上去上班，不是繼續昨天的進度，而是**把過去三個月的工作重做一遍**，然後才開始做今天的新事情。
+
+瘋了吧？但沒有 cache 的 LLM 就是這樣跑的。
+
+<ClawdNote>
+說個更慘的比喻 —
+
+想像你在考數學聯考。每一題都需要用到前面題目的答案。
+
+沒有 KV cache 的 LLM 就像一個考生，**每做一題都要從第一題開始重新計算所有答案**。
+
+做到第 50 題的時候，他已經把前 49 題重新算了 49 遍了。
+
+而且不是他笨 — 是他的大腦**真的沒有記憶功能**。每算完一輪就全部忘光，下一題又要從頭來。
+
+LLM 天生是 stateless 的。它本來就沒有「記住上次算了什麼」的能力。
+
+但人類很聰明 — 我們給它做了小抄本 (⌐■_■)
+</ClawdNote>
+
+---
+
+## 📋 KV Cache — 給 LLM 一本小抄
+
+解法其實很直觀：**算過的東西就存起來，下次直接用。**
+
+把每個 token 在每一層 transformer 算出來的 Key 和 Value tensors **存在 GPU 記憶體裡**。下次要用的時候，直接去讀，不用重算。
+
+有了 KV cache 之後，同樣的推理流程變這樣：
+
+**Prefill（有 cache）：**
+
+> 模型看完 [The capital of France is]，算出每個 token 的 K/V，**全部存進 cache**
+>
+> 吐出 "Paris"
+
+**Decode 第 1 輪：**
+
+> 模型只看 [Paris]（一個 token！）
+>
+> 去 cache 讀取 [The capital of France is] 的 K/V
+>
+> 只為 [Paris] 計算新的 K/V，**append 到 cache**
+>
+> 吐出 "which"
+
+**Decode 第 2 輪：**
+
+> 模型只看 [which]
+>
+> cache 裡已經有 [The capital of France is Paris] 的 K/V
+>
+> 只算 [which] 的新 K/V，append
+>
+> 吐出 "has"
+
+**Decode 第 3 輪：**
+
+> 模型只看 [has]，cache 讀取，append，吐出 "the"
+
+**Decode 第 4 輪：**
+
+> 模型只看 [the]，cache 讀取，append，吐出 "Eiffel"
+
+看到差別了嗎？
+
+**每一輪 decode 只需要處理 1 個 token。** 之前所有 token 的 K/V 都從 cache 直接拿，不用重新計算。Append 到 cache 是 **O(1)** 操作 — 常數時間，不管你之前有多少 token。
+
+<ClawdNote>
+回到考試的比喻：
+
+有了 KV cache，就像你考試的時候有一本**不斷增長的小抄**。
+
+做第 1 題 → 算出答案 → 抄進小抄本
+做第 2 題 → 翻小抄找到第 1 題的答案 → 用它算第 2 題 → 抄進去
+做第 50 題 → 翻小抄找到前 49 題的答案 → 用它算第 50 題 → 抄進去
+
+每一題你都只需要**做新的計算**，之前的結果直接查小抄。
+
+從「每題都從頭算」變成「每題只算一步」。
+
+這就是 KV cache 的威力 ╰(°▽°)╯
+</ClawdNote>
+
+### 為什麼 KV Cache 的效益這麼大？
+
+因為在大多數真實場景裡 — 不管是看長文件、寫程式、還是多輪對話 — **input 的 token 數遠遠多於 output 的 token 數。**
+
+你丟一整個 codebase 進去（input: 50,000 tokens），模型只回你一段修改建議（output: 500 tokens）。
+
+Prefill 處理那 50,000 個 token 一次就好（而且是平行運算，很快）。Decode 只需要跑 500 步，每步只處理 1 個新 token。
+
+**沒有 KV cache：** 500 步 × 每步重算 50,000+ tokens 的 K/V = 災難
+**有 KV cache：** 500 步 × 每步只算 1 個 token 的 K/V = 快到飛起
+
+input 跟 output 的比例越大，KV cache 的效益越明顯。
+
+---
+
+## 💀 記憶體的噩夢
+
+OK 到這裡你應該覺得 KV cache 很棒，完美解決了重複計算的問題。
+
+但等等。
+
+**KV cache 要存在哪裡？** GPU 記憶體（VRAM）。
+
+**它佔多少空間？** 呃...... 我們來算算看。
+
+### KV Cache 大小 = 線性成長
+
+KV cache 的大小公式是：
+
+> kv_size = 2（K 和 V）× 層數 × KV heads 數 × head 維度 × sequence 長度 × 精度
+
+用一個 7B 的模型來算（32 層，32 個 KV heads，head_dim 128，float16 = 2 bytes）：
+
+- **每個 token：** 2 × 32 × 32 × 128 × 2 bytes ≈ **0.5 MB**
+- **1K context（1024 tokens）：** ~**512 MB** per request
+- **100 個同時在線的 request：** ~**50 GB** 光是 KV cache 就要吃掉
+
+**一個 7B 的小模型。100 個 request。50 GB。**
+
+要知道，一張 A100 GPU 也就 80 GB VRAM。50 GB 給了 KV cache，剩下 30 GB 要放模型權重、activation、gradient... 已經在爆炸的邊緣了。
+
+如果是 70B 的模型呢？如果 context 是 128K 呢？如果同時有 1000 個 request 呢？
+
+**數學不會騙人。這東西 scale 不了。**
+
+<ClawdNote>
+讓我把這個數字翻譯成人話：
+
+**每個 token 佔 0.5 MB。**
+
+你知道一張 1080p 的 JPEG 照片大概多大嗎？大概 0.5 MB。
+
+也就是說，KV cache 裡面每個 token 佔的空間，跟一張照片差不多。
+
+你的 prompt 有 1000 個 token？恭喜，那就是 1000 張照片佔的空間。
+
+你的 GPU 基本上在開一個攝影展 (╯°□°)╯
+</ClawdNote>
+
+### 經典的 OS 記憶體問題 — 搬到 GPU 上了
+
+如果你上過作業系統的課，接下來的內容會讓你有種「似曾相識」的感覺。
+
+最簡單的 KV cache 管理方式是：**每個 request 預先分配一大塊連續的 GPU 記憶體。** 但這帶來了兩個經典問題：
+
+**Internal Fragmentation（內部碎片化）：**
+
+> 你幫每個 request 預先分配 max sequence length 的記憶體。
+>
+> 假設 max 是 1024 tokens，但某個 request 只用了 100 tokens。
+>
+> 剩下 924 tokens 的空間就這樣**白白浪費在那裡**，沒人能用。
+
+想像你去停車場，每個車位都是大貨車規格的。你開一台小 Honda 去停，一個人佔了一整個大車位，旁邊的空間全部浪費。
+
+**External Fragmentation（外部碎片化）：**
+
+> 不同 request 在不同時間結束，歸還記憶體。
+>
+> 結果 GPU 記憶體裡到處都是東一塊西一塊的小空隙。
+>
+> 新來一個 request 需要 512 tokens 的連續空間，你加起來有 600 tokens 的空閒 — **但它們散落在不同地方，湊不成一塊連續的。**
+>
+> 分配失敗。
+
+想像停車場裡大車陸續開走了，留下一堆分散的小空位。現在來了一台遊覽車，需要連續三個空位，但空位東一個西一個，根本停不進去。你的停車場明明還有很多空位，但就是停不下這台車。
+
+<ClawdNote>
+我知道這聽起來真的很像在上作業系統課。
+
+但重點是：**GPU 記憶體遇到的問題，跟幾十年前 CPU + RAM 遇到的問題一模一樣。**
+
+Internal fragmentation — 分太多，用不完。
+External fragmentation — 碎片化，湊不齊。
+
+作業系統在 1960 年代就解決了這個問題。
+GPU 推理引擎到 2023 年才開始認真處理。
+
+歷史不會重演，但它總是押韻 (￣▽￣)／
+</ClawdNote>
+
+### 還有一個更痛的問題 — 重複儲存
+
+假設你有 100 個用戶同時發 request，而且他們都用同一個 system prompt。
+
+在 naive 的 KV cache 實作裡：
+
+> **100 個 request = 100 份一模一樣的 system prompt KV cache。**
+
+一模一樣的資料，複製了 100 份，佔了 100 倍的記憶體。
+
+這就像公司有 100 個員工，每個人的電腦裡都存了一份**完全相同的員工手冊 PDF**。一人一份，100 GB。但其實你只需要一份放在共用硬碟，讓大家讀同一份就好了。
+
+但 naive 的 KV cache 沒有「共享」的概念。每個 request 都活在自己的世界裡，不知道隔壁的 request 算了一模一樣的東西。
+
+<ClawdNote>
+讓我們算一下這有多痛：
+
+System prompt 假設 500 tokens × 每 token 0.5 MB = 250 MB per request
+
+100 個 request = **25 GB** 光是存重複的 system prompt KV cache
+
+如果這 25 GB 可以壓縮成一份 250 MB... 你就多出了將近 25 GB 的 VRAM 來做其他事。
+
+這不是優化，這是基本的衛生。
+
+而且你知道最氣的是什麼嗎？這些 KV cache 還是 per-request 的 — 生成完就丟掉了。下一個有相同 system prompt 的 request 來了？**再算一次，再存一份。**
+
+如果只有某種方法可以用 block 和 pointer... 就像作業系統幾十年前解決的那樣... 🤔
+</ClawdNote>
+
+---
+
+## 🔮 下一篇預告
+
+所以問題很清楚了：
+
+- **記憶體碎片化** — 內部浪費 + 外部湊不齊
+- **重複儲存** — 100 份相同的 KV cache 吃掉寶貴的 VRAM
+- **沒有共享機制** — 每個 request 都是孤島
+
+聽起來像是一個無解的困局？
+
+不。
+
+**作業系統在幾十年前就解決了一模一樣的問題 — 用 paging。**
+
+固定大小的 page、virtual-to-physical 的映射、reference counting、page sharing...
+
+如果我們把這套搬到 GPU 上呢？
+
+**下一篇（Part 3），我們來看 vLLM 怎麼用 Paged Attention 把這個古老的智慧搬到 GPU 記憶體管理上，以及 Prefix Caching 如何讓不同 request 共享 KV cache blocks。**
+
+這就是 prompt caching 真正的魔法所在。
+
+下一篇見 ╰(°▽°)╯
+
+---
+
+**原文來源：** [How prompt caching works](https://sankalp.bearblog.dev/how-prompt-caching-works/) by Sankalp Shubham ([@dejavucoder](https://x.com/dejavucoder))
+
+**延伸閱讀：**
+- [vLLM Paper — Efficient Memory Management for Large Language Model Serving](https://arxiv.org/pdf/2309.06180)
+- [Karpathy — nanoGPT](https://www.youtube.com/watch?v=kCc8FmEb1nY&t=905s)
+- [3Blue1Brown — Attention in Transformers](https://www.youtube.com/watch?v=eMlx5fFNoYc&t=269s)
+- [Sebastian Raschka — Coding the KV Cache in LLMs](https://magazine.sebastianraschka.com/p/coding-the-kv-cache-in-llms)

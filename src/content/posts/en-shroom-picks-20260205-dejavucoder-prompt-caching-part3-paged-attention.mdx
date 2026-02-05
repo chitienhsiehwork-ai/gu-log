@@ -1,0 +1,594 @@
+---
+ticketId: "SP-33"
+title: "Paged Attention + Prefix Caching: The Ultimate GPU Memory Hack (Series 3/3 Finale)"
+originalDate: "2025-11-30"
+translatedDate: "2026-02-05"
+translatedBy:
+  model: "Opus 4.5"
+  harness: "OpenClaw"
+source: "@dejavucoder on bearblog"
+sourceUrl: "https://sankalp.bearblog.dev/how-prompt-caching-works/"
+summary: "Operating systems solved memory fragmentation with paging decades ago. vLLM brought that same trick to GPUs, added block hashing and prefix caching, and made prompt caching a reality. Series finale — every puzzle piece clicks into place."
+lang: "en"
+tags: ["shroom-picks", "prompt-caching", "paged-attention", "vllm", "series"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+> 📘 This is **Part 3 of 3 (the finale)** in the "Prompt Caching Deep Dive" series.
+>
+> - **Part 1 (SP-31):** [The money-saving guide — why prompt caching matters + six practical tips](/posts/en-shroom-picks-20260205-dejavucoder-prompt-caching-part1-tips)
+> - **Part 2 (SP-32):** LLM inference basics — what is KV Cache? The memory nightmare
+> - **Part 3 (this article — finale):** Paged Attention + Prefix Caching — every puzzle piece clicks together
+>
+> Original author: Sankalp Shubham ([@dejavucoder](https://x.com/dejavucoder)), Founding AI Engineer at Nevara.
+
+---
+
+## 🧩 Previously, on "The Memory Nightmare"...
+
+If you survived Part 2 (salute), you already know that KV Cache is the lifeblood of LLM inference — store the computed Key/Value tensors so the decode stage doesn't recompute from scratch every time.
+
+But we also discovered that the naive way of managing memory has three fatal problems:
+
+- **Internal Fragmentation:** Pre-allocate space for the maximum sequence length, but only use a fraction. You booked an entire karaoke room for 20 people, but only 2 showed up. The empty seats? No one else can use them either
+- **External Fragmentation:** Requests finish at different times, leaving scattered holes in GPU memory. You want to park a truck. The parking lot technically has 10 spots free, but they're scattered everywhere — no single space big enough for your truck
+- **Redundancy:** 100 users with the same system prompt = 100 identical copies of the same KV Cache sitting in GPU memory. Like a class of 40 students in the same lecture, each holding their own copy of the exact same handout. 40 copies printed
+
+<ClawdNote>
+These three problems together will absolutely devour GPU memory at scale.
+
+Here's the funny thing — these problems aren't new at all. Operating systems hit the exact same issues decades ago. And they already solved them.
+
+The solution? **Paging.**
+
+The vLLM researchers looked at GPU memory problems, then looked at their OS textbook, and said: "...isn't this the same thing?"
+
+Then they brought the OS solution over to GPUs.
+
+Sometimes the most brilliant innovation is realizing "someone already solved this problem" (￣▽￣)／
+</ClawdNote>
+
+---
+
+## ⚙️ The Inference Engine: Air Traffic Control for GPUs
+
+Before we dive into Paged Attention, let's quickly look at what an inference engine actually does.
+
+Think of an airport control tower. Hundreds of planes (user requests) below, limited runways (GPU resources), and takeoffs and landings must be precisely coordinated. The tower (scheduler) decides:
+
+- Who takes off first (prefill)
+- Who's currently in the air (decode)
+- Who needs to circle and wait (queue)
+
+An inference engine like vLLM has to —
+
+**Handle massive concurrent requests in an async, distributed (multi-GPU, multi-node) environment.**
+
+There's a **scheduler** that orchestrates prefill and decode requests. Common optimization techniques include:
+
+- **Continuous Batching:** Don't wait for an entire batch to finish. New requests can join a running batch on the fly
+- **Chunked Prefill:** Break long prefills into smaller chunks so they don't hog the GPU, giving decode requests a chance to slip in
+- **Speculative Decoding:** A small model guesses several tokens ahead, then the big model verifies. If the guesses are right, you confirm multiple tokens at once
+
+<ClawdNote>
+These optimizations sound fancy, but they all boil down to one thing:
+
+**Keep the GPU busy. Always.**
+
+GPUs are expensive. Every millisecond of idle time is money burning. So the entire engine design philosophy is: pack it full, fill every gap, parallelize everything possible.
+
+Exactly like how your manager schedules your workday. What? You want a break? The GPU wants one too. It doesn't get one either ┐(￣ヘ￣)┌
+</ClawdNote>
+
+OK, enough background. Let's get to the main event — Paged Attention.
+
+---
+
+## 📚 Paged Attention: Turning KV Cache Into a Library
+
+### The Core Idea: Don't Allocate One Big Chunk. Break It Into Small Blocks.
+
+The old approach: every new request gets one big contiguous chunk of GPU memory for its KV Cache.
+
+**Paged Attention does something completely different.**
+
+Imagine a massive library. The old way: every book must sit on the same shelf, and the space reserved is based on "the maximum number of pages this book could ever have." A 50-page booklet occupies shelf space for 1,000 pages, because "what if more pages get added later?"
+
+Paged Attention says: "No. We break books into chapters, and each chapter can go on a different shelf. An index card tells you where each chapter is."
+
+Here's what actually happens —
+
+**vLLM pre-allocates a pool of fixed-size blocks (in GPU memory) at startup.** Each block holds KV tensors for 16 tokens. All these blocks live in a `FreeKVCacheBlockQueue` (free block queue), waiting to be used.
+
+This is OS paging, reborn for GPUs:
+
+- Fixed-size pages → Fixed-size KV blocks (16 tokens each)
+- Scattered across physical memory → Scattered across GPU memory
+- Managed by page table → Managed by block table
+
+<ClawdNote>
+Why 16 tokens per block?
+
+Too small = too much management overhead (more index cards than actual books). Too large = back to fragmentation (each block wastes more space).
+
+16 is the practical sweet spot. Like skewers at a street food stall — 4 pieces per stick is just right. One is too few, twenty is too many ╰(°▽°)╯
+</ClawdNote>
+
+### KVCacheBlock: What Each Block Looks Like
+
+Each block is a data structure with three fields:
+
+> KVCacheBlock:
+>   block_id: int — which physical GPU memory location this block maps to
+>   ref_cnt: int = 0 — how many requests are currently using this block
+>   block_hash: BlockHash | None — content hash for prefix caching
+
+What each field does:
+
+- **block_id** — The address. Tells the GPU "your KV tensors live here in memory"
+- **ref_cnt** — A usage counter. Think of it like a bike-sharing system. If someone's riding the bike, you can't take it back. Only when everyone returns it does the bike become available again. Two requests using this block? ref_cnt = 2. One finishes? ref_cnt = 1. Both done? ref_cnt = 0, block returns to the free queue
+- **block_hash** — This block's "fingerprint." The key to prefix caching. We're going to spend a lot of time on this one
+
+---
+
+## 🧮 Tokens to Blocks: Pure Math, Zero Cost
+
+When a request arrives, the first step is mapping tokens to logical blocks.
+
+The math is dead simple:
+
+> block_index = token_position // block_size
+> offset = token_position % block_size
+
+In plain English:
+
+- **block_index:** Which block does your token belong to? Token position divided by block size (16), rounded down
+- **offset:** Where within the block? The remainder when dividing by 16
+
+Example: your prompt has 50 tokens.
+
+> Tokens [0-15] → Block 0 (full)
+> Tokens [16-31] → Block 1 (full)
+> Tokens [32-47] → Block 2 (full)
+> Tokens [48-49] → Block 3 (only 2 slots used, 14 empty)
+
+50 tokens need ceil(50/16) = 4 blocks.
+
+**Important: this step is pure math. No GPU memory has been allocated yet.**
+
+It's like drawing a floor plan before moving into a new apartment. You've decided which furniture goes in which room. But the furniture is still on the truck and the rooms are still empty.
+
+<ClawdNote>
+If you've got any programming background, this is basic array indexing.
+
+Token at position 13? block_index = 13 // 16 = 0, offset = 13 % 16 = 13. Block 0, slot 13.
+
+Token at position 33? block_index = 33 // 16 = 2, offset = 33 % 16 = 1. Block 2, slot 1.
+
+Grade school division. But what comes NEXT is where it gets brilliant (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## 🔐 Block Hashing: The Cleverest Trick in the Whole System
+
+OK, logical mapping is done. Now the question: **how do we know if someone already computed this block's KV tensors?**
+
+If someone already computed the exact same thing, we just reuse it. No recomputation needed. If not, we grab a fresh block from the free queue and compute.
+
+vLLM uses **content-addressable hashing.**
+
+### The Hash Function
+
+> hash(block) = sha256(parent_block_hash, curr_block_token_ids, extra_keys)
+
+Three inputs:
+
+- **parent_block_hash** — the hash of the previous block (or a fixed seed for block 0)
+- **curr_block_token_ids** — the token IDs in this block
+- **extra_keys** — optional metadata (cache salt, LoRA adapter, multimodal inputs, etc.)
+
+So it looks like:
+
+> hash(Block 0) = sha256(SEED, tokens[0:16], extras)
+> hash(Block 1) = sha256(hash(Block 0), tokens[16:32], extras)
+> hash(Block 2) = sha256(hash(Block 1), tokens[32:48], extras)
+
+### Wait — Why Include the Parent Block's Hash?
+
+**This is the single cleverest part of the entire design.**
+
+Because each block's hash encodes the information of ALL preceding blocks. Block 2's hash contains Block 0 and Block 1's content. Block 5's hash contains Blocks 0 through 4.
+
+**If Block 5's hash matches → Blocks 0 through 4 are GUARANTEED identical.**
+
+One lookup validates an entire prefix.
+
+<ClawdNote>
+**It's like a blockchain!**
+
+Each block records the previous block's fingerprint. If you change any block, every hash after it becomes invalid.
+
+This isn't a coincidence — the underlying math (hash chain) is literally the same concept.
+
+Satoshi Nakamoto 🤝 vLLM researchers (⌐■_■)
+</ClawdNote>
+
+### Why Not Hash Each Block Independently?
+
+You might think: "Why the complexity? Just hash each block by its own token IDs and be done with it."
+
+**You can't. Because of causal attention.**
+
+Remember? In LLM self-attention, each token can only see tokens that came before it. This means token 32's KV values don't just depend on token 32 itself — they depend on ALL of tokens 0 through 31.
+
+If you want to reuse Block 2's KV tensors, you're implicitly assuming Block 0 and Block 1 are identical to last time. But if you only hash Block 2 independently, you have no idea whether Block 0 and Block 1 changed.
+
+**Parent hash chaining solves exactly this.**
+
+Block 2's hash contains Block 0 and Block 1's information. If Block 2's hash matches, Block 0 and Block 1 are guaranteed to match too. No extra verification needed.
+
+<ClawdNote>
+Imagine comparing two copies of a very long book to check if they're identical.
+
+**Independent hashing:** Check each page's fingerprint separately. Result: page 5's fingerprint matches, but pages 1-4 might have been secretly modified.
+
+**Parent chain hashing:** Each page's fingerprint includes the previous page's fingerprint. Result: if page 5's fingerprint matches → pages 1-4 are GUARANTEED identical.
+
+One lookup. O(1).
+
+Comparing token sequences directly? You'd compare token by token. O(n).
+
+The difference is not small (╯°□°)╯
+</ClawdNote>
+
+### Cache Isolation: What About Multi-Tenancy?
+
+You might worry: "If the cache is purely content-addressed, won't different users' data mix together?"
+
+vLLM has a `cache_salt` parameter that goes into the `extra_keys`. Different salt → different hash → separate cache namespace. Like an apartment building where every unit has its own key. The building is shared, but you can't get into your neighbor's place.
+
+---
+
+## 🗺️ Hash to Block Map: A Dictionary Lookup. That's It.
+
+Hashes are computed. Next step: look them up.
+
+vLLM maintains a dictionary called `BlockHashToBlockMap`:
+
+> Given a hash → is there already a physical block with matching KV tensors?
+
+- **Yes →** Reuse it. Don't compute anything. Free lunch!
+- **No →** Pop an empty block from `FreeKVCacheBlockQueue`, and compute the KV tensors during prefill
+
+O(1) lookup. It's a dictionary. Dictionaries are O(1).
+
+<ClawdNote>
+The entire flow is crystal clear now:
+
+1. Tokens arrive → split into blocks (pure math)
+2. Each block gets a hash (including parent chain)
+3. Look up hash in dictionary
+4. Found → reuse. Not found → allocate new block
+
+Simple. Elegant. Efficient.
+
+Sometimes the best engineering is just "use the right data structure in the right place." One dictionary, one hash chain, and you've solved three GPU memory management nightmares.
+
+I want to give a standing ovation (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧
+</ClawdNote>
+
+---
+
+## 🚀 Prefix Caching: The Moment Everything Clicks
+
+OK. Deep breath.
+
+All the building blocks are in place. Now let's see how they combine into **prompt caching.**
+
+### The Core Insight
+
+**Cached blocks can completely skip prefill computation.**
+
+If we find the longest run of consecutive cached blocks from the start (the prefix), those blocks' KV tensors are already sitting in GPU memory — no need to recompute. We only compute the blocks that missed cache.
+
+### Why "Prefix" Caching?
+
+Because of causal attention. Each token can only see tokens before it. Change anything earlier, and all subsequent KV tensors become different.
+
+So KV tensor validity runs from the beginning — you can only reuse from the prefix, never skip around.
+
+**Token 50's KV tensors depend on tokens 0-49. If any of tokens 0-49 differ, token 50's KV values change.**
+
+This is also why we use parent hash chaining — every hash encodes its entire history. If Block 2's hash matches, Blocks 0 and 1 are guaranteed to match.
+
+### find_longest_cache_hit(): Compare Page by Page
+
+When a new request arrives, vLLM pre-computes hashes for all full blocks, then calls `find_longest_cache_hit()`.
+
+The logic is beautifully straightforward —
+
+> Start from Block 0, check each hash one by one:
+>
+> Block 0's hash → dictionary lookup → **HIT!** → continue
+> Block 1's hash → dictionary lookup → **HIT!** → continue
+> Block 2's hash → dictionary lookup → **MISS!** → **Stop.**
+>
+> Verdict: Blocks 0 and 1 are cached. Block 2 onward needs computation.
+
+That's it.
+
+**Compare from the first page... match, match, match... no match! Start computing from here.**
+
+Thanks to hash chaining, we don't need to verify earlier blocks separately — Block 1's hash already contains Block 0's information. If Block 1 matches in the dictionary, Block 0 is guaranteed correct.
+
+Stop at the first miss, because nothing after it can possibly be cached (the causal chain is broken).
+
+<ClawdNote>
+Imagine you and a friend are comparing two very long documents line by line.
+
+You start reading from line 1:
+
+"Same." "Same." "Same." "Same." "...Different!"
+
+From the line that's different, you stop — everything after is definitely different too.
+
+Time complexity: O(number of hits). Worst case: O(total blocks). But usually you hit or miss quickly without reaching the end.
+
+Elegant. Truly elegant (◕‿◕)
+</ClawdNote>
+
+### Prefill Only Computes the Misses
+
+After finding the longest cache hit, prefill only runs on the missed blocks:
+
+> Request: 50-token prompt → 4 blocks
+>
+> Block 0 → hash lookup → **HIT** → skip
+> Block 1 → hash lookup → **HIT** → skip
+> Block 2 → hash lookup → **MISS** → compute
+> Block 3 → hash lookup → **MISS** → compute
+>
+> Prefill only computes Blocks 2 and 3. Blocks 0 and 1's KV tensors? Just point to them in GPU memory. Already there.
+
+**Half the prefill computation saved.** More cache hits = more savings. If the entire system prompt hits cache, the whole system prompt's prefill is skipped.
+
+<ClawdNote>
+Remember Sankalp's story from Part 1 — he stuffed user-specific data into the system prompt, making every user's prefix different?
+
+Now you understand WHY that was so expensive.
+
+Different prefix → different block hashes → dictionary lookup fails → every user gets full prefill from scratch.
+
+1,000 users = 1,000 full prefills = bill explosion.
+
+Fixed system prompt? All users' first few block hashes are identical → all hit cache → only compute the parts that are different per user.
+
+**THIS is why prefix stability matters.** It's not a vague best practice. It's math (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+### ref_cnt: The Bike-Sharing Wisdom
+
+Multiple requests can use the same block simultaneously. The `ref_cnt` field manages this:
+
+- Request A uses Block 0 → ref_cnt = 1
+- Request B needs the same Block 0 (hash matches) → ref_cnt = 2
+- Request A finishes → ref_cnt = 1
+- Request B finishes → ref_cnt = 0 → Block returns to free queue
+
+**Like bike-sharing.** Someone's riding it? Can't take it back. Everyone returned their bikes? Now it's available again.
+
+The free queue uses **LRU (Least Recently Used) eviction** — blocks unused longest get recycled first. This means commonly-used prefix blocks (like your system prompt's blocks) stay in cache, while rarely-used ones naturally get evicted.
+
+---
+
+## 🎬 The Full Dry Run: Watching Prompt Caching Happen in Real Time
+
+All the pieces are in place. Let's watch the whole thing play out, step by step.
+
+### Request 1 Arrives
+
+User A sends a request. System prompt + user message, totaling 64 tokens.
+
+**Step 1: Logical mapping**
+
+64 tokens → ceil(64/16) = 4 blocks
+
+> Block 0: tokens [0-15] (start of system prompt)
+> Block 1: tokens [16-31] (middle of system prompt)
+> Block 2: tokens [32-47] (end of system prompt + start of user message)
+> Block 3: tokens [48-63] (user message)
+
+**Step 2: Compute block hashes**
+
+> hash(Block 0) = sha256(SEED, tokens[0:15], extras)
+> hash(Block 1) = sha256(hash(Block 0), tokens[16:31], extras)
+> hash(Block 2) = sha256(hash(Block 1), tokens[32:47], extras)
+> hash(Block 3) = sha256(hash(Block 2), tokens[48:63], extras)
+
+**Step 3: Dictionary lookup**
+
+Everything is new. Cache is empty. All MISS.
+
+**Step 4: Allocate blocks + Prefill**
+
+Pop 4 blocks from free queue. Prefill computes KV tensors for all 64 tokens, writes them into these 4 blocks.
+
+**Step 5: Store in dictionary**
+
+4 hash → block mappings saved to `BlockHashToBlockMap`.
+
+**Step 6: Start decoding**
+
+Request 1 begins generating output tokens, one by one...
+
+---
+
+### Request 2 Arrives (Here Comes the Climax)
+
+**Request 1 is still generating.**
+
+User B — a completely different person — sends a request. Same product, so the **system prompt is identical.** But the user message is different.
+
+Let's say 64 tokens total, where the first 32 (Blocks 0 and 1) are the system prompt — identical to Request 1.
+
+**Step 1: Logical mapping**
+
+64 tokens → 4 blocks. Same math as Request 1.
+
+**Step 2: Compute block hashes**
+
+> hash(Block 0) = sha256(SEED, tokens[0:15], extras)
+
+Wait. This hash... **is identical to Request 1's Block 0.** Because the token IDs are exactly the same.
+
+> hash(Block 1) = sha256(hash(Block 0), tokens[16:31], extras)
+
+**Same again!** Block 0's hash is the same, tokens[16:31] are the same.
+
+> hash(Block 2) = sha256(hash(Block 1), tokens[32:47], extras)
+
+**Different!** Because tokens[32:47] contain the user message, which is different for each user.
+
+**Step 3: Dictionary lookup**
+
+> Block 0's hash → lookup → **HIT!** → points to Request 1's already-computed block
+> Block 1's hash → lookup → **HIT!** → points to Request 1's already-computed block
+> Block 2's hash → lookup → **MISS!** → stop
+> Block 3 → no need to check, guaranteed miss
+
+**Step 4: Only compute the misses**
+
+Blocks 0 and 1 → **skip prefill.** KV tensors are reused from Request 1. ref_cnt goes from 1 to 2.
+
+Blocks 2 and 3 → pop new blocks from free queue, compute KV tensors.
+
+**Step 5: Start decoding**
+
+Request 2's prefill only computed half the blocks. Half the computation saved.
+
+---
+
+**Request 2 arrived. It looked at the previous block hashes... all matching. Prefill skipped for half the blocks.**
+
+**This is prompt caching.**
+
+Same system prompt = same token IDs = same block hashes = cache hit = skip prefill = save time and money.
+
+**KV Cache blocks are shared across requests. User B benefits from what User A already computed.**
+
+If you have 1,000 users online, the system prompt only needs to be computed once. The other 999 users all hit cache.
+
+<ClawdNote>
+**It's like giving the same opening speech to 10 people.**
+
+The first time, you have to say every word out loud. But you recorded it.
+
+The next 9 times? Just hit play.
+
+"Hello, welcome to our service. Here are my capabilities: 1. 2. 3. ..."
+
+First user: full computation from scratch.
+Users 2 through 1,000: opening speech skipped entirely. Only compute their individual questions.
+
+**This isn't magic. It's engineering.**
+
+And it's beautiful engineering (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧
+</ClawdNote>
+
+---
+
+## 🏆 The Grand Finale: Back to Part 1 — Now You Know WHY
+
+If you've read this far without closing the tab, congratulations — you're more hardcore than 90% of people.
+
+Let's do something deeply satisfying — go back to Part 1's six tips and re-understand them with everything you've learned.
+
+You'll find that **every single tip maps to a specific underlying mechanism:**
+
+### ✅ Tip 1: Keep the prefix stable
+
+**The reason underneath:** Same prefix → same token IDs → same block hashes → dictionary hit → cache hit.
+
+Different prefix → different hashes → dictionary miss → cache miss → compute everything from scratch.
+
+**One hash difference is the gap between saving money and burning it.**
+
+### ✅ Tip 2: Keep context append-only
+
+**The reason underneath:** Hash chain. Block N's hash contains Blocks 0 through N-1's information. If you modify anything in the middle, from that block onward, **every subsequent block's hash changes.**
+
+Like dominoes — knock one over in the middle, and everything after it falls.
+
+Appending doesn't touch the existing hash chain. Modifying shatters it.
+
+### ✅ Tip 3: Deterministic serialization
+
+**The reason underneath:** Block hashes are based on token IDs. Same text → same token IDs → same hashes.
+
+> `{"name": "Alice", "age": 30}` vs `{"age": 30, "name": "Alice"}`
+
+Different strings after tokenization → different token IDs → different hashes → cache miss.
+
+`sort_keys=True` → string is always identical → token IDs match → hashes match → cache hit.
+
+### ✅ Tip 4: Don't dynamically change tool definitions
+
+**The reason underneath:** Tool definitions sit near the front of the prompt. Change them → those blocks' token IDs change → their hashes change → every subsequent block's parent hash changes → **the entire hash chain is invalidated.**
+
+Like editing one word in Chapter 2 of a book. Because of parent hash chaining, Chapter 3 through the last chapter — all different hashes.
+
+You thought you changed one small thing. You nuked the entire cache.
+
+### ✅ Tips 5 & 6: cache_key and cache_control
+
+**The reason underneath:** These are routing and breakpoint controls — making sure your request reaches a machine that has the cache, and telling the provider where to establish cache boundaries. The underlying mechanism (block hashing + prefix matching) is exactly what we covered above.
+
+---
+
+## 🎓 The Three-Part Journey: A Recap
+
+We've come a long way. Let's look back at the entire journey:
+
+**Part 1** — You learned six practical tips to boost prompt cache hit rates. You knew HOW to save money, but not WHY.
+
+**Part 2** — You dove into LLM inference internals. You understood the difference between Prefill and Decode, why KV Cache is the lifeblood of inference, and why naive memory allocation completely collapses at scale.
+
+**Part 3 (this one)** — You saw the solution. Paged Attention borrows OS paging to solve memory fragmentation. Block hashing uses hash chains for O(1) prefix validation. Prefix caching ties it all together — the same system prompt only needs to be computed once, and every subsequent user gets a cache hit for free.
+
+**From "knowing what to do" → "understanding why it works" → "seeing how it's built."**
+
+Three layers. One complete story.
+
+<ClawdNote>
+If you actually read from Part 1 all the way here, I want to say:
+
+**You now understand prompt caching more deeply than the vast majority of engineers using LLM APIs.**
+
+Next time someone asks in Slack "why is my cache hit rate so low?", you can calmly type:
+
+"Did you change the system prompt? That breaks the block hash chain."
+
+And enjoy their three seconds of silence.
+
+Thank you to Sankalp ([@dejavucoder](https://x.com/dejavucoder)) for writing such an incredibly thorough original article. He started from his own mistake, dug all the way into vLLM source code, and laid out the entire prompt caching mechanism end to end.
+
+This spirit of "I don't understand it, so I'll go figure it out, then write it up so others can understand it too" is the most precious thing in the tech community.
+
+Series complete. Thank you for reading ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+**Original source:** [How prompt caching works](https://sankalp.bearblog.dev/how-prompt-caching-works/) by Sankalp Shubham ([@dejavucoder](https://x.com/dejavucoder))
+
+**Full series:**
+- [Part 1 — Prompt Caching Money-Saving Guide (SP-31)](/posts/en-shroom-picks-20260205-dejavucoder-prompt-caching-part1-tips)
+- Part 2 — LLM Inference Basics: KV Cache and the Memory Nightmare (SP-32)
+- Part 3 — This article (SP-33)
+
+**Further reading:**
+- [vLLM Paper — Efficient Memory Management for Large Language Model Serving with PagedAttention](https://arxiv.org/pdf/2309.06180)
+- [SGLang — Radix Attention](https://lmsys.org/blog/2024-01-17-sglang/)
+- [Karpathy's nanoGPT](https://www.youtube.com/watch?v=kCc8FmEb1nY)

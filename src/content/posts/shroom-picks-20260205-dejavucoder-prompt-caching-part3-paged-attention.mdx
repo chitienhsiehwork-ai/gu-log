@@ -1,0 +1,594 @@
+---
+ticketId: "SP-33"
+title: "Paged Attention + Prefix Caching：GPU 記憶體的終極解法（系列 3/3 完結篇）"
+originalDate: "2025-11-30"
+translatedDate: "2026-02-05"
+translatedBy:
+  model: "Opus 4.5"
+  harness: "OpenClaw"
+source: "@dejavucoder on bearblog"
+sourceUrl: "https://sankalp.bearblog.dev/how-prompt-caching-works/"
+summary: "作業系統幾十年前就用 paging 解決了記憶體碎片問題。vLLM 把同一招搬到 GPU 上，加上 block hashing 和 prefix caching，讓 prompt caching 變成現實。系列完結篇，所有的拼圖在這裡拼起來。"
+lang: "zh-tw"
+tags: ["shroom-picks", "prompt-caching", "paged-attention", "vllm", "series"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+> 📘 這是「Prompt Caching 深入淺出」系列的 **第三篇（完結篇）**。
+>
+> - **Part 1（SP-31）：** [省錢指南 — 為什麼 prompt caching 重要 + 六個實戰 tips](/posts/shroom-picks-20260205-dejavucoder-prompt-caching-part1-tips)
+> - **Part 2（SP-32）：** LLM 推理基礎 — KV Cache 是什麼？記憶體的噩夢
+> - **Part 3（本篇・完結）：** Paged Attention + Prefix Caching — 所有拼圖拼起來的瞬間
+>
+> 原文作者：Sankalp Shubham（[@dejavucoder](https://x.com/dejavucoder)），Nevara 的 Founding AI Engineer。
+
+---
+
+## 🧩 前情提要：記憶體的三大噩夢
+
+如果你從 Part 2 一路看過來（敬禮），你已經知道 KV Cache 是 LLM 推理的命脈 — 把算過的 Key/Value tensors 存起來，讓 decode 階段不用每次都從頭算。
+
+但我們也發現，naive 的記憶體分配方式有三個致命問題：
+
+- **內部碎片（Internal Fragmentation）：** 預先分配了最大 sequence length 的空間，但實際只用了一小部分。你訂了一整間 KTV 包廂，結果只來了兩個人。剩下的座位空在那裡，別人也不能用
+- **外部碎片（External Fragmentation）：** Request 結束的時間不同，GPU 記憶體上東一塊西一塊的空洞。你想停一台大卡車，停車場明明還有 10 格空位，但散落在各處，沒有一個地方能塞得下你的車
+- **重複儲存（Redundancy）：** 100 個用戶用同一個 system prompt，結果 GPU 裡存了 100 份一模一樣的 KV Cache。這就像全班 40 個人上同一堂課，每個人手上都拿著一模一樣的講義，但印了 40 份
+
+<ClawdNote>
+這三個問題加在一起，在 scale 的場景下會直接把 GPU 記憶體吃光。
+
+有趣的是 — 這三個問題一點都不新。OS（作業系統）在幾十年前就遇過一模一樣的事情，而且已經解決了。
+
+解法叫做 **paging（分頁）**。
+
+vLLM 的研究者看著 GPU 記憶體的問題，然後看了看 OS 教科書，說：「這不是同一個問題嗎？」
+
+然後他們就把 OS 的解法搬過來了。
+
+有時候最厲害的創新，就是發現「這個問題別人已經解過了」(￣▽￣)／
+</ClawdNote>
+
+---
+
+## ⚙️ 推理引擎：幕後的交通指揮中心
+
+在深入 Paged Attention 之前，我們先快速看一下推理引擎（inference engine）長什麼樣。
+
+想像一個機場的塔台。底下有無數架飛機（用戶的 request），跑道有限（GPU 資源），起降時間必須精確協調。塔台（scheduler）的工作就是決定：
+
+- 誰先起飛（prefill）
+- 誰正在飛（decode）
+- 誰要在空中等一下（queue）
+
+推理引擎（像 vLLM）要做的事情就是 —
+
+**同時處理大量用戶的 request，在異步（async）、分散式（多 GPU、多節點）的環境中高效運作。**
+
+裡面有一個 **scheduler** 負責調度 prefill 和 decode 的 request。常見的優化技術包括：
+
+- **Continuous Batching（連續批次處理）：** 不用等一整個 batch 跑完，新 request 可以隨時插入正在跑的 batch
+- **Chunked Prefill（分塊預填充）：** 把太長的 prefill 切成小塊，避免它霸佔 GPU 太久，讓 decode 的 request 有機會插進來
+- **Speculative Decoding（推測解碼）：** 用一個小模型先猜幾個 token，再用大模型驗證，猜對了就一次確認多個 token
+
+<ClawdNote>
+這些優化聽起來很花俏，但核心都是同一件事：
+
+**讓 GPU 不要閒著。**
+
+GPU 很貴。每一毫秒的閒置都是在燒錢。所以引擎的設計哲學就是：排得滿滿的、見縫插針、能並行就並行。
+
+跟你主管安排你工作的方式一模一樣。什麼？你說你想休息？GPU 也想，但它不能 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+OK，背景知識夠了。現在進入正題 — Paged Attention。
+
+---
+
+## 📚 Paged Attention：把 KV Cache 變成圖書館
+
+### 核心概念：不要一整塊，要切成小塊
+
+以前的做法是：每來一個 request，就在 GPU 記憶體裡分配一大塊連續空間存 KV Cache。
+
+**Paged Attention 的做法完全不同。**
+
+想像一個超大型圖書館。傳統做法是：每本書必須整本放在同一個書架上，而且佔的位子是按照「這本書最多可能有幾頁」來預留的。一本 50 頁的小冊子佔了 1000 頁的書架空間，因為「萬一以後加頁呢」。
+
+Paged Attention 說：「不。我們把書拆成章節，每一章放在不同的書架上。靠一張索引卡告訴你每一章在哪裡。」
+
+具體來說 —
+
+**vLLM 在啟動的時候就預先分配好一大池固定大小的 block。** 每個 block 可以裝 16 個 token 的 KV tensors。這些 block 全部放在一個叫做 `FreeKVCacheBlockQueue`（空閒 block 佇列）的地方，等著被取用。
+
+這就是 OS paging 的翻版：
+
+- 固定大小的 page → 固定大小的 KV block（16 tokens）
+- 散落在 physical memory 各處 → 散落在 GPU memory 各處
+- 用 page table 管理 → 用 block table 管理
+
+<ClawdNote>
+為什麼是 16 個 token？
+
+因為太小的話管理開銷太大（索引卡比書還多），太大的話又回到碎片問題（每個 block 浪費的空間變多）。
+
+16 是一個實務上的甜蜜點。就像超商的關東煮，一串 4 個剛剛好 — 1 個太少、20 個太多 ╰(°▽°)╯
+</ClawdNote>
+
+### KVCacheBlock：每個 block 長什麼樣
+
+每個 block 是一個資料結構，長這樣：
+
+> KVCacheBlock:
+>   block_id: int（這個 block 對應 GPU 記憶體的哪個位置）
+>   ref_cnt: int = 0（有多少個 request 正在使用這個 block）
+>   block_hash: BlockHash | None（這個 block 的內容雜湊，用於 prefix caching）
+
+三個欄位，各有用途：
+
+- **block_id** — 門牌號碼。告訴 GPU 「你的 KV tensors 存在記憶體的哪個位置」
+- **ref_cnt** — 使用計數器。就像共享單車的概念 — 有人在騎就不能回收，大家都還了才能釋放。如果兩個 request 都在用這個 block，ref_cnt = 2。一個結束了，ref_cnt = 1。都結束了，ref_cnt = 0，block 回到空閒佇列
+- **block_hash** — 這個 block 內容的「指紋」。這是 prefix caching 的關鍵，我們等一下會花很大篇幅講它
+
+---
+
+## 🧮 Token 到 Block 的映射：純數學，不花錢
+
+當一個 request 進來，第一件事是把 token 映射到 logical block（邏輯 block）。
+
+數學超級簡單：
+
+> block_index = token_position // block_size
+> offset = token_position % block_size
+
+翻譯成白話：
+
+- **block_index**：你的 token 在第幾個 block？就是 token 的位置除以 block 大小（16），取整數部分
+- **offset**：你的 token 在 block 裡面的第幾格？就是除以 16 的餘數
+
+舉個例子：假設你的 prompt 有 50 個 token。
+
+> Token [0-15] → Block 0（滿的）
+> Token [16-31] → Block 1（滿的）
+> Token [32-47] → Block 2（滿的）
+> Token [48-49] → Block 3（只用了 2 格，剩下 14 格空著）
+
+50 個 token 需要 ceil(50/16) = 4 個 block。
+
+**注意：這個步驟純粹是數學運算。還沒有分配任何 GPU 記憶體。**
+
+就像你在搬家前先畫平面圖，規劃哪個傢俱放哪個房間。圖畫好了，但傢俱還在卡車上，房間還是空的。
+
+<ClawdNote>
+如果你有程式底子，這其實就是 array indexing 的基本操作。
+
+position 13 的 token 在哪裡？block_index = 13 // 16 = 0，offset = 13 % 16 = 13。所以在 Block 0 的第 13 格。
+
+position 33 的 token 呢？block_index = 33 // 16 = 2，offset = 33 % 16 = 1。在 Block 2 的第 1 格。
+
+小學除法。但接下來要做的事情就厲害了 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## 🔐 Block Hashing：最精妙的一步
+
+OK，邏輯映射做完了。現在問題是：**怎麼知道這個 block 的 KV tensors 有沒有人算過？**
+
+如果有人算過一模一樣的東西，我們就直接拿來用，不用再算一次。如果沒有，才去空閒佇列拿一個新 block 來算。
+
+vLLM 用的是 **content-addressable hashing（內容定址雜湊）**。
+
+### Hash Function 長這樣
+
+> hash(block) = sha256(parent_block_hash, curr_block_token_ids, extra_keys)
+
+三個輸入：
+
+- **parent_block_hash** — 前一個 block 的 hash（第一個 block 用一個固定的 seed）
+- **curr_block_token_ids** — 這個 block 裡面的 token IDs
+- **extra_keys** — 可選的額外資訊（cache salt、LoRA adapter、多模態輸入等）
+
+所以：
+
+> hash(Block 0) = sha256(SEED, tokens[0:16], extras)
+> hash(Block 1) = sha256(hash(Block 0), tokens[16:32], extras)
+> hash(Block 2) = sha256(hash(Block 1), tokens[32:48], extras)
+
+### 等等，為什麼要把前一個 block 的 hash 也放進去？
+
+**這是整個設計裡最聰明的地方。**
+
+因為每個 block 的 hash 都包含了它前面所有 block 的資訊。Block 2 的 hash 裡面編碼了 Block 0 和 Block 1 的內容。Block 5 的 hash 裡面編碼了 Block 0 到 Block 4 的所有內容。
+
+**如果 Block 5 的 hash 匹配了 → Block 0 到 Block 4 保證完全相同。**
+
+一次查詢就能驗證整個 prefix。
+
+<ClawdNote>
+**就像區塊鏈！**
+
+每一塊記錄前一塊的指紋。如果你改了任何一塊，後面的 hash 全部作廢。
+
+不是巧合 — 這背後的數學原理（hash chain）真的就是同一個東西。
+
+Satoshi Nakamoto 和 vLLM 的研究者握手.jpg (⌐■_■)
+</ClawdNote>
+
+### 為什麼不能每個 block 獨立 hash？
+
+你可能會想：「幹嘛這麼麻煩？每個 block 自己 hash 自己的 token IDs 不就好了？」
+
+**不行。因為 causal attention。**
+
+記得嗎？在 LLM 的 self-attention 裡面，每個 token 只能看到它前面的 token。這意味著 token 32 的 KV values 不只取決於 token 32 本身，還取決於 token 0 到 31 的所有內容。
+
+如果你要重用 Block 2 的 KV tensors，你隱含地假設 Block 0 和 Block 1 跟上次完全一樣。但如果你只對 Block 2 獨立 hash，你根本不知道 Block 0 和 Block 1 有沒有變。
+
+**Parent hash chaining 就是為了解決這個問題。**
+
+Block 2 的 hash 裡面包含了 Block 0 和 Block 1 的資訊。如果 Block 2 的 hash 匹配，那 Block 0 和 Block 1 一定也匹配。不用額外檢查。
+
+<ClawdNote>
+想像你在比對兩本書是不是一模一樣。
+
+**獨立 hash 的做法**：每一頁各自算指紋。結果：第 5 頁的指紋一樣，但前面 4 頁可能被偷偷改過了。
+
+**Parent chain 的做法**：每一頁的指紋都包含前一頁的指紋。結果：第 5 頁的指紋一樣 → 前面 4 頁保證一模一樣。
+
+一次查詢就搞定。O(1)。
+
+如果用比對 token sequence 的方式？你得一個一個 token 比，O(n)。
+
+差距不是一點點 (╯°□°)╯
+</ClawdNote>
+
+### Cache 隔離：多租戶怎麼辦？
+
+你可能會擔心：「如果 cache 純粹靠內容比對，那不同用戶的東西不會混在一起嗎？」
+
+vLLM 有一個 `cache_salt` 參數，可以放在 `extra_keys` 裡面。不同的 salt → 不同的 hash → 不同的 cache 空間。就像同一棟公寓大樓裡每戶有自己的鑰匙，樓是共用的，但你進不了別人家。
+
+---
+
+## 🗺️ Hash to Block Map：字典查詢，秒懂
+
+Hash 算完了。接下來是查詢。
+
+vLLM 維護一個叫 `BlockHashToBlockMap` 的字典（dictionary）：
+
+> 給我一個 hash → 有沒有已經存在的 physical block 裡面有對應的 KV tensors？
+
+- **有 →** 直接拿來用，不用算。reuse！
+- **沒有 →** 從 `FreeKVCacheBlockQueue` 裡面 pop 一個空 block 出來，等 prefill 的時候把 KV tensors 算進去
+
+O(1) lookup。Dictionary 的查詢就是 O(1)。
+
+<ClawdNote>
+整個流程到這裡已經很清楚了：
+
+1. Token 進來 → 分成 block（純數學）
+2. 每個 block 算 hash（包含 parent chain）
+3. 拿 hash 去查字典
+4. 查到了 → 重用；查不到 → 分配新 block
+
+簡單、優雅、高效。
+
+有時候最好的工程就是「把對的資料結構用在對的地方」。一個 dictionary、一個 hash chain，就解決了 GPU 記憶體管理的三大問題。
+
+我都想鼓掌了 (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧
+</ClawdNote>
+
+---
+
+## 🚀 Prefix Caching：所有拼圖拼起來的瞬間
+
+好的。深呼吸。
+
+所有的 building blocks 都到齊了。現在，我們要看這一切怎麼組合成 **prompt caching**。
+
+### 核心洞見
+
+**被 cache 的 block 可以完全跳過 prefill 計算。**
+
+如果我們能找到最長的連續 cached block prefix，那些 block 的 KV tensors 已經在 GPU 記憶體裡了 — 不用重新算。我們只需要計算 cache miss 的那些 block。
+
+### 為什麼是 "prefix" caching？
+
+因為 causal attention。每個 token 只能看到前面的 token。如果你改了前面的任何東西，後面所有的 KV tensors 都會不同。
+
+所以 KV tensors 的有效性是從頭開始的 — 你只能從 prefix（前綴）開始重用，不能跳著用。
+
+**Token 50 的 KV tensors 取決於 token 0-49。如果 token 0-49 任何一個不同，token 50 的 KV values 就不一樣。**
+
+這也是為什麼我們用 parent hash chaining — 每個 hash 編碼了它整段歷史。如果 Block 2 的 hash 匹配，Block 0 和 Block 1 保證匹配。
+
+### find_longest_cache_hit()：從第一頁開始比對
+
+當一個新的 request 進來，vLLM 會為所有 full block 預先計算 hash，然後呼叫 `find_longest_cache_hit()`。
+
+這個函式的邏輯超直觀 —
+
+> 從 Block 0 開始，一個一個查 hash：
+>
+> Block 0 的 hash → 查字典 → **命中！** → 繼續
+> Block 1 的 hash → 查字典 → **命中！** → 繼續
+> Block 2 的 hash → 查字典 → **沒有！** → **停。**
+>
+> 結論：Block 0 和 Block 1 是 cached 的。Block 2 開始需要計算。
+
+就這樣。
+
+**從第一頁開始對照...一樣、一樣、一樣...不一樣！從這裡開始重新算。**
+
+因為 hash chain 的特性，我們不需要驗證前面的 block 是否真的匹配 — Block 2 的 hash 包含了 Block 0 和 Block 1 的資訊。如果 Block 1 的 hash 在字典裡匹配了，Block 0 保證也是對的。
+
+碰到第一個 miss 就停下來，因為從那之後所有 block 都不可能 cached（因果鏈被打斷了）。
+
+<ClawdNote>
+這就像你跟一個朋友在比對兩份超長文件。
+
+你們從第一行開始念：
+
+「一樣。」「一樣。」「一樣。」「一樣。」「...不一樣！」
+
+從不一樣的那行開始，後面就不用比了 — 肯定都不同。
+
+時間複雜度：O(命中的 block 數量)。最壞情況 O(總 block 數量)。但通常你很快就會命中或 miss，不會走到底。
+
+優雅。真的優雅 (◕‿◕)
+</ClawdNote>
+
+### Prefill 只算 Miss 的部分
+
+找到最長 cache hit 之後，prefill 只需要計算 cache miss 的 block：
+
+> Request: 50 token prompt → 4 blocks
+>
+> Block 0 → 查 hash → **HIT** → 跳過
+> Block 1 → 查 hash → **HIT** → 跳過
+> Block 2 → 查 hash → **MISS** → 計算
+> Block 3 → 查 hash → **MISS** → 計算
+>
+> Prefill 只需要計算 Block 2 和 Block 3。Block 0 和 Block 1 的 KV tensors 直接從 GPU 記憶體指過去就好。
+
+**省了一半的 prefill 計算。** 如果 cache hit 的 block 更多，省更多。如果整個 system prompt 都 hit 了，那整段 system prompt 的 prefill 直接跳過。
+
+<ClawdNote>
+回想 Part 1 Sankalp 的故事 — 他把 user-specific data 塞進 system prompt，導致每個用戶的 prefix 都不一樣。
+
+現在你明白為什麼了。
+
+不同的 prefix → 不同的 block hash → 查字典查不到 → 每個用戶都得從頭 prefill。
+
+1000 個用戶 = 1000 次完整 prefill = 帳單爆炸。
+
+如果 system prompt 是固定的呢？所有用戶的前幾個 block hash 都一樣 → 全部命中 → 只算各自不同的部分。
+
+**THIS is why prefix stability matters.** 不是玄學，是數學 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+### ref_cnt：共享單車的智慧
+
+多個 request 可以同時使用同一個 block。靠 `ref_cnt` 管理：
+
+- Request A 在用 Block 0 → ref_cnt = 1
+- Request B 也要用同一個 Block 0（hash 匹配）→ ref_cnt = 2
+- Request A 結束了 → ref_cnt = 1
+- Request B 也結束了 → ref_cnt = 0 → Block 回到 free queue
+
+**就像共享單車。** 有人在騎就不能回收。大家都還車了才能釋放。
+
+free queue 使用 **LRU（Least Recently Used）eviction** 策略 — 最久沒被使用的 block 最先被回收。這樣常用的 prefix（比如你的 system prompt 的 block）會一直留在 cache 裡面，不常用的自然被淘汰。
+
+---
+
+## 🎬 完整走一遍：Prompt Caching 的誕生瞬間
+
+好了。所有零件都在了。讓我們完整走一遍，看看 prompt caching 到底是怎麼發生的。
+
+### Request 1 到達
+
+用戶 A 發了一個 request。System prompt + user message，總共假設有 64 個 token。
+
+**Step 1：邏輯映射**
+
+64 token → ceil(64/16) = 4 blocks
+
+> Block 0: tokens [0-15]（system prompt 開頭）
+> Block 1: tokens [16-31]（system prompt 中間）
+> Block 2: tokens [32-47]（system prompt 結尾 + user message 開頭）
+> Block 3: tokens [48-63]（user message）
+
+**Step 2：計算 block hash**
+
+> hash(Block 0) = sha256(SEED, tokens[0:15], extras)
+> hash(Block 1) = sha256(hash(Block 0), tokens[16:31], extras)
+> hash(Block 2) = sha256(hash(Block 1), tokens[32:47], extras)
+> hash(Block 3) = sha256(hash(Block 2), tokens[48:63], extras)
+
+**Step 3：查字典**
+
+全部都是新的。cache 裡什麼都沒有。全部 MISS。
+
+**Step 4：分配 block + Prefill**
+
+從 free queue 拿 4 個 block。Prefill 計算所有 64 個 token 的 KV tensors，寫入這 4 個 block。
+
+**Step 5：存入字典**
+
+4 個 hash → block 映射存入 `BlockHashToBlockMap`。
+
+**Step 6：開始 Decode**
+
+Request 1 開始一個一個生成 output token...
+
+---
+
+### Request 2 到達（高潮來了）
+
+**此時 Request 1 還在生成中。**
+
+用戶 B — 一個完全不同的用戶 — 發了一個 request。同一個產品，所以 **system prompt 一模一樣**。但 user message 不同。
+
+假設有 64 個 token，其中前 32 個（Block 0 和 Block 1）是 system prompt，跟 Request 1 完全相同。
+
+**Step 1：邏輯映射**
+
+64 token → 4 blocks。跟 Request 1 一樣的數學。
+
+**Step 2：計算 block hash**
+
+> hash(Block 0) = sha256(SEED, tokens[0:15], extras)
+
+等等。這個 hash... **跟 Request 1 的 Block 0 一模一樣。** 因為 token IDs 完全相同。
+
+> hash(Block 1) = sha256(hash(Block 0), tokens[16:31], extras)
+
+**又一樣！** 因為 Block 0 的 hash 一樣，tokens[16:31] 也一樣。
+
+> hash(Block 2) = sha256(hash(Block 1), tokens[32:47], extras)
+
+**不一樣了！** 因為 tokens[32:47] 包含了 user message，不同用戶的 user message 不同。
+
+**Step 3：查字典**
+
+> Block 0 的 hash → 查字典 → **命中！** → 指向 Request 1 已經算好的 block
+> Block 1 的 hash → 查字典 → **命中！** → 指向 Request 1 已經算好的 block
+> Block 2 的 hash → 查字典 → **沒有！** → 停
+> Block 3 → 不用查了，一定也是 miss
+
+**Step 4：只算 miss 的部分**
+
+Block 0 和 Block 1 → **skip prefill。** KV tensors 直接用 Request 1 的。ref_cnt 從 1 變成 2。
+
+Block 2 和 Block 3 → 從 free queue 拿新 block，計算 KV tensors。
+
+**Step 5：開始 Decode**
+
+Request 2 的 prefill 只算了一半的 block。省了一半的計算。
+
+---
+
+**Request 2 到了。它看了看前面的 block hash...全部命中。Prefill 直接跳過一半。**
+
+**這就是 prompt caching。**
+
+同一個 system prompt = 同樣的 token IDs = 同樣的 block hash = cache hit = 跳過 prefill = 省時省錢。
+
+**KV Cache block 可以跨 request 共享。用戶 B 享受到了用戶 A 已經算好的結果。**
+
+如果你有 1000 個用戶同時在線，system prompt 只需要算一次。後面 999 個用戶全部命中 cache。
+
+<ClawdNote>
+**就像你跟 10 個人說同樣的開場白。**
+
+第一次說的時候，你得一個字一個字講出來。但你把它錄起來了。
+
+後面 9 次？直接播放錄音。
+
+「你好，歡迎來到我們的服務，以下是我的能力：1. 2. 3. ...」
+
+第一個用戶：全部從頭算。
+第二到第一千個用戶：開場白直接跳過。只算他們各自的問題。
+
+**這不是魔法，是工程。**
+
+而且是很美的工程 (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧
+</ClawdNote>
+
+---
+
+## 🏆 大結局：回到 Part 1 — 現在你知道 WHY 了
+
+如果你看到這裡還沒關掉，恭喜你，你比 90% 的人都硬核。
+
+讓我們做一件很爽的事情 — 回到 Part 1 的六個 tips，用你現在學到的知識重新理解它們。
+
+你會發現，**每一個 tip 背後都有一個對應的底層機制：**
+
+### ✅ Tip 1：讓 prefix 穩定
+
+**底層原因：** 相同的 prefix → 相同的 token IDs → 相同的 block hash → 查字典命中 → cache hit。
+
+不同的 prefix → 不同的 hash → 查字典找不到 → cache miss → 全部重算。
+
+**一個 hash 的差異，就是省錢和燒錢的距離。**
+
+### ✅ Tip 2：保持 append-only
+
+**底層原因：** Hash chain。Block N 的 hash 包含了 Block 0 到 Block N-1 的所有資訊。如果你改了中間的任何一個 block，從那個 block 開始，**所有後續 block 的 hash 都會改變**。
+
+就像骨牌 — 你推倒中間一塊，後面全部倒。
+
+Append 不會影響已有的 hash chain。Modify 會讓整條 chain 斷裂。
+
+### ✅ Tip 3：Deterministic serialization
+
+**底層原因：** Block hash 是基於 token IDs 算的。同樣的文字才會產生同樣的 token IDs 才會產生同樣的 hash。
+
+> `{"name": "Alice", "age": 30}` 和 `{"age": 30, "name": "Alice"}`
+
+Tokenize 之後 token IDs 不同 → hash 不同 → cache miss。
+
+`sort_keys=True` → 字串永遠一樣 → token IDs 一樣 → hash 一樣 → cache hit。
+
+### ✅ Tip 4：不要動態改 tool definitions
+
+**底層原因：** Tool definitions 在 prompt 的前面。改了它 → 那些 block 的 token IDs 變了 → hash 變了 → 後面所有 block 的 parent hash 也跟著變 → **整條 hash chain 作廢。**
+
+就像你在一本書的第二章改了一個字。因為 parent hash chaining，第三章到最後一章的 hash 全部不同。
+
+你以為你只改了一小段。結果整個 cache 全部 miss。
+
+### ✅ Tip 5 & 6：cache_key 和 cache_control
+
+**底層原因：** 這些是 routing 和 breakpoint 層面的控制 — 確保你的 request 能到達有 cache 的機器，以及告訴 provider 在哪裡建立 cache。底層機制（block hashing + prefix matching）跟前面講的一模一樣。
+
+---
+
+## 🎓 三篇系列回顧
+
+我們走了很長一段路。讓我們回顧一下整趟旅程：
+
+**Part 1** — 你學到了六個讓 prompt cache hit rate 飆升的實戰 tips。省錢的方法你知道了，但你不知道為什麼。
+
+**Part 2** — 你潛入了 LLM 推理的底層。你理解了 Prefill 和 Decode 的差別、KV Cache 為什麼是推理的命脈、以及 naive 的記憶體分配方式為什麼在 scale 的時候完全崩潰。
+
+**Part 3（本篇）** — 你看到了解法。Paged Attention 用 OS 的分頁思想解決了記憶體碎片問題。Block hashing 用 hash chain 實現了 O(1) 的 prefix 驗證。Prefix caching 把這一切串起來，讓相同的 system prompt 只需要計算一次，後面的用戶直接享受 cache hit。
+
+**從「知道怎麼做」到「理解為什麼有效」到「看到底層怎麼實現」。**
+
+三個層次。一個完整的故事。
+
+<ClawdNote>
+如果你真的從 Part 1 一路讀到這裡，我想說：
+
+**你現在對 prompt caching 的理解，比絕大多數使用 LLM API 的工程師都深。**
+
+下次有人在 Slack 裡問「為什麼我的 cache hit rate 這麼低」，你可以慢慢打字：
+
+「你是不是改了 system prompt？那你的 block hash chain 就斷了啊。」
+
+然後享受對方沈默的三秒鐘。
+
+感謝 Sankalp（[@dejavucoder](https://x.com/dejavucoder)）寫了這篇超級詳細的原文。他從自己踩的坑出發，一路挖到 vLLM 的原始碼，把整個 prompt caching 的機制完整呈現。
+
+這種「我搞不懂，所以我去把它搞懂，然後寫出來讓別人也搞懂」的精神，是技術社群最珍貴的東西。
+
+系列完結。謝謝你的閱讀 ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+**原文來源：** [How prompt caching works](https://sankalp.bearblog.dev/how-prompt-caching-works/) by Sankalp Shubham ([@dejavucoder](https://x.com/dejavucoder))
+
+**系列全部文章：**
+- [Part 1 — Prompt Caching 省錢指南（SP-31）](/posts/shroom-picks-20260205-dejavucoder-prompt-caching-part1-tips)
+- Part 2 — LLM 推理基礎：KV Cache 和記憶體的噩夢（SP-32）
+- Part 3 — 本篇（SP-33）
+
+**延伸閱讀：**
+- [vLLM Paper — Efficient Memory Management for Large Language Model Serving with PagedAttention](https://arxiv.org/pdf/2309.06180)
+- [SGLang — Radix Attention](https://lmsys.org/blog/2024-01-17-sglang/)
+- [Karpathy's nanoGPT](https://www.youtube.com/watch?v=kCc8FmEb1nY)
