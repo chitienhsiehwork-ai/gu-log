@@ -11,6 +11,15 @@
 - 檔案命名規範
 - 翻譯 & 風格規範
 
+### 🚨 防止重複文章（最重要！）
+
+**寫新文章前必須：**
+1. `grep -ri "SOURCE_URL\|AUTHOR\|KEYWORD" src/content/posts/` 檢查是否已存在
+2. 從 `scripts/article-counter.json` 讀取正確的下一個 ticket ID
+3. 不要猜測或記憶編號，一律從 counter 讀取
+
+違反這些規則會造成重複文章和編號衝突。
+
 ## Tech Stack
 
 - **Framework**: Astro 5 (Content Collections + MDX)

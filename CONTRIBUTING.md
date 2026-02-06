@@ -42,10 +42,36 @@ tags: ["tag1", "tag2"]  # 用於分類和過濾
 
 **Counter 位置**: `scripts/article-counter.json`
 
-新增文章時：
-1. 查看 `scripts/article-counter.json` 取得下一個編號
-2. 加入 `ticketId: "XX-N"` 到 frontmatter
-3. 更新 counter JSON 的 `next` 值
+### ⚠️ 新增文章前必做（防止重複）
+
+**Step 1: 檢查是否已存在**
+```bash
+# 用 source URL 或關鍵字搜尋
+grep -r "sourceUrl.*twitter\|x\.com.*STATUS_ID" src/content/posts/
+grep -ri "AUTHOR_HANDLE\|TOPIC_KEYWORD" src/content/posts/*.mdx
+```
+
+**Step 2: 取得下一個 ticket ID**
+```bash
+cat scripts/article-counter.json | grep -A1 '"SP"' | grep next
+# 或
+node -e "console.log('SP-' + require('./scripts/article-counter.json').SP.next)"
+```
+
+**Step 3: 建立文章並更新 counter**
+1. 用上面拿到的編號寫 frontmatter `ticketId: "SP-N"`
+2. 建立 zh-tw 和 en 兩個檔案
+3. **立即** 更新 counter：
+```bash
+node -e "const fs=require('fs'); const c=JSON.parse(fs.readFileSync('scripts/article-counter.json')); c.SP.next++; fs.writeFileSync('scripts/article-counter.json', JSON.stringify(c,null,2)+'\n');"
+```
+4. Build & push
+
+### 常見錯誤
+- ❌ 看到 tweet 就開寫，沒先搜尋 → 造成重複文章
+- ❌ 用「我記得是 SP-XX」而不是讀 counter → 編號衝突
+- ❌ 忘記更新 counter → 下一篇又用同一編號
+- ❌ 同一個 source tweet 寫成多篇 → 應該合併成 series
 
 ## Components
 
