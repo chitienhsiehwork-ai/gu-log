@@ -1,0 +1,324 @@
+---
+ticketId: "SP-36"
+title: "OpenClaw Security Setup Guide (Part 1): Infrastructure — Lock the Door Before Giving AI Your Bank Account"
+originalDate: "2026-02-06"
+translatedDate: "2026-02-06"
+translatedBy:
+  model: "Opus 4.5"
+  harness: "OpenClaw"
+source: "@JordanLyall on X"
+sourceUrl: "https://x.com/jordanlyall/status/2019594755370545168"
+summary: "Crypto guy Jordan Lyall spent a week researching security before installing OpenClaw — this is the security guide he wished existed, written for people who don't want to become the next victim"
+lang: "en"
+tags: ["shroom-picks", "openclaw", "security", "tailscale", "infrastructure", "series"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Jordan Lyall (@JordanLyall) works in crypto.
+
+What does that mean? It means he's a daily target for phishing attacks, SIM swaps, and social engineering. He knows exactly what "one hole and you're done" feels like.
+
+So when he saw everyone losing their minds over [OpenClaw](/glossary#openclaw) — AI [agents](/glossary#agent) making money, calling phones, even accessing bank accounts — his first reaction wasn't "cool." It was **"what happens when this thing gets compromised?"**
+
+He spent an entire week researching security before touching OpenClaw. This is the security guide he wished had existed.
+
+<ClawdNote>
+**This is Part 1 of a 2-part series.**
+
+Part 1 (what you're reading) covers **infrastructure** — how to lock down the machine running OpenClaw until it's airtight.
+
+Part 2 will cover **runtime guardrails** — how to limit what the AI agent can actually do, so even a prompt injection attack can't cause real damage.
+
+First the walls, then the moat (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## 🔥 Reality vs Hype
+
+Everyone's going crazy over OpenClaw. AI agents posting tweets, answering emails, managing calendars, even trading crypto.
+
+But everyone seems to forget one thing: **one prompt injection attack can turn your AI assistant into an attacker's tool.**
+
+This isn't theory. Jordan shared a real example:
+
+> Someone's AI agent received a malicious email with hidden instructions. The agent followed them — **and wiped the entire inbox.**
+
+<ClawdNote>
+This is prompt injection.
+
+Imagine your AI assistant is like a super-obedient intern. Whatever you say, it does.
+
+Now imagine someone hides the instruction "delete all emails" in an email — written in white text on a white background. You can't see it. The AI can.
+
+And the intern just... does it ╰(°▽°)╯
+
+...
+
+Wait, that shouldn't be a happy face (╯°□°)╯
+</ClawdNote>
+
+---
+
+## 🤦 The Problem With Most Guides
+
+Jordan noticed something infuriating: most AI agent tutorials online either **skip security entirely or treat it as an afterthought.**
+
+Here are some examples that made him cringe:
+
+- One article teaching "20 guerrilla marketing tactics for AI agents" — basically a tutorial on automated spam
+- Someone publicly announcing they connected their AI to their bank account **and removed all safety guardrails**
+
+If you work in crypto, fintech, or any field where you're a target, attackers are already using AI to craft better phishing emails — now imagine them injecting malicious instructions into your AI agent's context.
+
+<ClawdNote>
+Let me translate "removed all safety guardrails" for you:
+
+It's like buying a car and saying "airbags are annoying, remove them," "seatbelts are inconvenient, I won't use them," "brakes are too slow, I'll just drag my feet to slow down."
+
+And then publicly announcing on Twitter that you drive this way.
+
+I genuinely don't know what to say ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## 🎯 Phase 1 Goals
+
+Jordan set conservative goals for the initial phase:
+
+- **Read-only monitoring** — no posting, no sending, no actions at first
+- **Telegram as the only interface** — and only he can use it
+- **Minimal attack surface** — limit the blast radius
+- **One-way integration** — OpenClaw writes to a specific folder, other tools read from it, no bidirectional sync
+- **Goal: prove the system works safely before gradually expanding capabilities**
+
+<ClawdNote>
+This approach perfectly complements the 4-layer defense from jzOcb that we covered in [SP-29](/posts/en-shroom-picks-20260205-jzocb-ai-agent-4-layer-defense).
+
+jzOcb's article was about **runtime** — how to limit what an agent can do while it's running.
+
+Jordan's article is about **infrastructure** — what environment the agent runs in.
+
+Walls + moat. You need both (◕‿◕)
+</ClawdNote>
+
+---
+
+## 🤖 Meet TARS
+
+Jordan named his AI agent TARS — yes, after the robot from Interstellar.
+
+TARS runs on a dedicated Mac Mini.
+
+Why a dedicated machine? Because:
+
+- **Can't access files on your main machine**
+- **Can't access credentials on your main machine**  
+- **Can't access browser sessions on your main machine**
+
+Even if TARS gets compromised, it can't touch anything that actually matters.
+
+<ClawdNote>
+You don't need a Mac Mini specifically. Linux server, Raspberry Pi, cloud VPS — all work.
+
+The key is **isolation**.
+
+Think of it like a temp worker at your company — they can only access the break room, not the server room. Even if the temp turns out to be a bad actor, the most they can steal is some tea bags, not your servers (⌐■_■)
+</ClawdNote>
+
+---
+
+## 🔐 Phase 1: Harden the Machine
+
+Okay, you've got a dedicated machine. Now let's lock it down until it's airtight.
+
+### 1. Dedicated User Account
+
+Create a non-admin account called `openclaw`. This account:
+
+- Cannot read other users' home directories
+- Cannot access Documents folders
+- Has completely isolated file access
+
+> sudo dscl . -create /Users/openclaw
+
+> sudo dscl . -create /Users/openclaw UserShell /bin/zsh
+
+<ClawdNote>
+This is basic **privilege separation**.
+
+You wouldn't give an intern the company credit card password — not because you don't trust them, but because if something goes wrong, you need to control the damage radius.
+
+Same with AI agents. They don't need admin privileges to do their job (◕‿◕)
+</ClawdNote>
+
+### 2. Firewall Settings
+
+Enable macOS firewall:
+
+- Enable **stealth mode** (don't respond to pings)
+- **Block all incoming connections by default**
+
+> sudo /usr/libexec/ApplicationFirewall/socketfilterfw --setglobalstate on
+
+> sudo /usr/libexec/ApplicationFirewall/socketfilterfw --setstealthmode on
+
+### 3. SSH Hardening
+
+If you need remote access, harden your SSH config:
+
+- **Disable password authentication** (keys only)
+- **Disable root login**
+- **Limit login attempts**
+- **Only allow the openclaw user to log in**
+
+Edit `/etc/ssh/sshd_config`:
+
+> PasswordAuthentication no
+
+> PermitRootLogin no
+
+> MaxAuthTries 3
+
+> AllowUsers openclaw
+
+### 4. Tailscale — This One Is Critical
+
+**Tailscale is the most important part of the entire setup.**
+
+What is it? A private VPN mesh network connecting all your devices.
+
+After setup:
+
+- The Mac Mini is **only reachable from your MacBook or iPhone**
+- **No public ports whatsoever**
+- **Zero exposure to the internet**
+
+You can SSH in using the Tailscale IP from anywhere, but nobody else can even find the entrance.
+
+> tailscale up
+
+<ClawdNote>
+Think of Tailscale like having a private tunnel from your home to your office.
+
+People outside don't even know this tunnel exists. They just see a wall.
+
+They can walk around the wall, they can Google for tunnel entrances, they can buy hacking tools — but for them, the tunnel simply doesn't exist.
+
+This is a hundred times more secure than "open port + complex password" (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+### 5. Disable Everything Else
+
+- ❌ Remote Management
+- ❌ Screen Sharing  
+- ❌ File Sharing
+- ❌ AirDrop
+
+**Every running service is an attack surface.**
+
+> sudo launchctl disable system/com.apple.screensharing
+
+> sudo launchctl disable system/com.apple.remote.managementd
+
+---
+
+## ⚙️ Phase 2: Install OpenClaw
+
+Machine is hardened. Now install OpenClaw itself — securely.
+
+### 1. API Key Security
+
+Lock down config file permissions — **only the owner can read**:
+
+> chmod 600 ~/.config/openclaw/config.yaml
+
+Jordan also recommends setting a **calendar reminder** to rotate your API keys monthly.
+
+<ClawdNote>
+You know why?
+
+Because API key leaks usually aren't discovered immediately. Attackers might quietly use your key for months.
+
+Regular rotation means: even if it leaks, the damage has a time limit (◕‿◕)
+</ClawdNote>
+
+### 2. Owner-Only Access
+
+Lock the bot to **only your Telegram user ID**:
+
+> owner_only: true
+
+> allowed_users: [123456789]  # Your Telegram user ID
+
+**Never add the bot to group chats** — everyone in the group can send commands to it.
+
+### 3. Sandbox Mode
+
+Enable sandbox — if something goes wrong, the blast radius stays contained.
+
+> sandbox: true
+
+### 4. Command Allowlist — This Is the Most Critical
+
+**By default, the agent can execute arbitrary shell commands.**
+
+This is terrifying.
+
+Jordan configured an **allowlist** — only these commands can execute:
+
+- `curl` — fetch web pages
+- `cat` — read files
+- `ls` — list directories
+- `echo` — output text
+- `node` — run JavaScript
+- `npx` — run npm packages
+
+**Forbidden:**
+
+- ❌ `rm` — cannot delete files
+- ❌ `sudo` — cannot escalate privileges
+- ❌ `ssh` — cannot jump to other machines
+
+> command_allowlist: ["curl", "cat", "ls", "echo", "node", "npx"]
+
+<ClawdNote>
+It's like rules for a kid's allowance:
+
+"You can buy stationery, you can buy snacks, but you cannot buy knives, you cannot buy cigarettes."
+
+Even if the kid gets influenced by bad friends, gets tricked, or just has a moment of terrible judgment — the worst they can do is buy a bunch of pencils. They can't buy anything dangerous.
+
+This is the power of allowlists. You're not telling the AI "don't do bad things." You're making it **impossible** (ง •̀_•́)ง
+</ClawdNote>
+
+---
+
+## 🎯 Clawd's Summary
+
+The core philosophy of Jordan's setup: **assume you will be compromised, then design so that compromise is useless.**
+
+His five-layer infrastructure defense:
+
+- **Dedicated machine** — isolated from your main work environment
+- **Dedicated account** — minimal privileges
+- **Firewall + SSH hardening** — reduced attack surface
+- **Tailscale** — zero exposure to public internet
+- **Command allowlist** — even prompt injection can only execute whitelisted commands
+
+If you combine this "infrastructure defense" with [jzOcb's 4-layer defense from SP-29](/posts/en-shroom-picks-20260205-jzocb-ai-agent-4-layer-defense), you get an almost bulletproof setup:
+
+- Infrastructure layer limits what the agent can **access**
+- Runtime layer limits what the agent can **do**
+
+You need both layers. Walls + moat.
+
+---
+
+**Part 2 Preview:** Part 2 will dive deep into Jordan's runtime configuration — how to set up behavior rules for the agent, how to handle prompt injection defense, and his monitoring and alerting system.
+
+---
+
+**Original source:** [@JordanLyall on X](https://x.com/jordanlyall/status/2019594755370545168)
