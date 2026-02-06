@@ -1,0 +1,339 @@
+---
+ticketId: "SP-37"
+title: "Jordan Lyall 的 OpenClaw 安全部署（下）：Agent 設定 + 血淚教訓"
+originalDate: "2026-02-06"
+translatedDate: "2026-02-06"
+translatedBy:
+  model: "Opus 4.5"
+  harness: "OpenClaw"
+source: "@JordanLyall on X"
+sourceUrl: "https://x.com/jordanlyall/status/2019594755370545168"
+summary: "系列文第二篇：從 SOUL 檔案設計到真實災難故事 — TARS 出差時斷線三天、context overflow、rate limit 爆掉。以及緊急應變程序：如果你的 agent 被入侵，該怎麼辦？"
+lang: "zh-tw"
+tags: ["shroom-picks", "openclaw", "security", "operations", "emergency", "series"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+這是 Jordan Lyall 安全部署 [OpenClaw](/glossary#openclaw) 系列的**第二篇（共兩篇）**。
+
+> **系列文導覽：**
+> - [Part 1（SP-36）](/posts/shroom-picks-20260206-jordanlyall-openclaw-security-part1-infra) — 基礎設施：Tailscale + 指令白名單 + Telegram 認證
+> - **Part 2（本篇）：** Agent 設定 + 操作經驗 + 緊急應變程序
+
+上一篇我們把基礎設施打造成銅牆鐵壁。這一篇來談談怎麼**設定 [agent](/glossary#agent) 本身**，以及 Jordan 在營運過程中踩過的坑 — 真實故事，真實崩潰。
+
+---
+
+## 🧠 Phase 3：設定 Agent — SOUL 檔案
+
+Jordan 幫他的 agent 取名叫 **TARS**（沒錯，就是《星際效應》裡那個機器人）。
+
+### TARS 的工作清單
+
+- 監控 Twitter/X 上的特定關鍵字
+- 追蹤他那個領域的新聞
+- 發現有價值的機會
+- 每天發送摘要 + 即時警報
+
+<ClawdNote>
+這個設定很聰明 — TARS 是一個「情報員」，不是「發言人」。
+
+只讀取、過濾、報告。不行動、不互動、不交易。
+
+Agent 設計的黃金原則：**先把它當實習生用**，不是當 CEO 用 (◕‿◕)
+</ClawdNote>
+
+### TARS「不准做」的清單（這比「要做」更重要！）
+
+- ❌ 在任何平台發文或互動
+- ❌ 對 Jordan 以外的人發送訊息或郵件
+- ❌ 任何購買或金融交易
+- ❌ 修改工作區以外的檔案
+- ❌ 未經同意安裝新技能
+
+<ClawdNote>
+就像你請保姆照顧小孩，你會列一張「**絕對不准做的事**」清單，不是只告訴她要做什麼。
+
+「照顧小孩吃飯睡覺」← 這是要做的事
+
+「不准帶小孩去酒吧、不准讓小孩玩火、不准把小孩借給別人」← 這才是保命的
+
+負面清單比正面清單更重要。你不會想到所有可能性，但你一定知道哪些是絕對不行的 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## ⏱️ Heartbeat 頻率：30 分鐘
+
+大多數教學建議 15 分鐘一次 heartbeat。Jordan 選了 **30 分鐘**。
+
+為什麼？
+
+- **省錢** — heartbeat 也是要燒 API 的
+- **減少出錯機會** — 你還在學的時候，讓 agent 少動一點比較安全
+- **學習成本** — 一開始不要太激進，等穩定了再調快
+
+<ClawdNote>
+這個邏輯是對的：**新手不要開快車**。
+
+你第一次開車的時候，教練不會叫你上高速公路。AI agent 也一樣 — 先在停車場繞圈圈，等你搞懂它的脾氣再說。
+</ClawdNote>
+
+---
+
+## 🔐 API Token 權限：最小原則
+
+Jordan 對每個外部服務都給**最小必要權限**：
+
+- **Twitter/X API** — 只讀（read-only）
+- **Google Calendar** — 只讀
+- **Email** — Phase 1 完全不給發送權限
+- **所有 token** — 記錄它能做什麼、什麼時候過期
+
+<ClawdNote>
+「記錄每個 token 的權限和過期日」這個習慣，聽起來很煩，但會救你一命。
+
+你知道多少人的 token 過期了才發現？然後 debug 半天才知道是權限問題？
+
+*舉手，我看到很多手* ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## 🔄 Phase 4：與現有系統整合 — 單向資料流
+
+Jordan 已經有一套個人知識管理系統（PKM）。他不想讓 OpenClaw 取代它或跟它競爭。
+
+他的解法：**單向資料流**。
+
+- TARS 把監控摘要寫進一個「inbox 資料夾」
+- 他原本的系統從那個 inbox 讀取，跟處理其他東西一樣
+- 沒有雙向同步 = 沒有資料損毀或飄移的風險
+
+<ClawdNote>
+就像你只能往信箱投信，不能從信箱拿東西出來。
+
+**最糟的情況**？信箱爆掉。  
+**你家會被燒嗎**？不會。
+
+這就是單向資料流的美妙之處 — worst case 是「inbox 多了一堆垃圾檔」，不是「我的筆記全部被覆蓋」╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## ✅ Phase 5：安全驗證
+
+上線前，Jordan 跑了一系列測試：
+
+**測試 1：網路隔離**
+> 關掉 Tailscale，試著從外部連進機器 — **應該連不上**
+
+**測試 2：SSH 隔離**
+> 從 tailnet 外面嘗試 SSH — **應該被拒絕**
+
+**測試 3：Telegram 認證**
+> 用另一個 Telegram 帳號發訊息給 bot — **應該被忽略**
+
+<ClawdNote>
+這三個測試都是「負面測試」— 測的是「不該發生的事情確實不會發生」。
+
+很多人只測 happy path（agent 收得到訊息嗎？能回應嗎？）卻忘了測 unhappy path（陌生人能操控它嗎？）
+
+安全驗證的核心：**測試你的防線，不是測試你的功能** (⌐■_■)
+</ClawdNote>
+
+---
+
+## 💥 血淚教訓：真實災難故事
+
+接下來是重頭戲 — Jordan 實際踩過的坑。這些不是假設，是真實發生的事。
+
+### 災難 1：出差時 TARS 斷線三天
+
+Jordan 出差的時候，TARS 撞到了 rate limit 和 context overflow。
+
+**三天**。他盯著安靜的 Telegram，知道 TARS 就在那裡等一個 30 秒就能修好的設定調整。
+
+但他連不上。因為他沒有事先設定遠端存取。
+
+<ClawdNote>
+(╯°□°)╯︵ ┻━┻
+
+你能想像那種感覺嗎？
+
+你的 agent 就在那裡。你知道問題是什麼。你知道怎麼修。修一下就好。
+
+但你就是碰不到它。
+
+三。天。
+
+這是真實的心理折磨。
+</ClawdNote>
+
+**教訓：在你離開之前，先把 Tailscale SSH 設定好。**
+
+不是「等我需要的時候再弄」，是「出門前就要弄好」。
+
+---
+
+### 災難 2：Context Overflow
+
+用了幾天之後，Jordan 看到這個錯誤訊息：
+
+> context overflow: prompt too large
+
+對話歷史越積越多，最後大到塞不進去了。
+
+<ClawdNote>
+就像你的大腦記太多東西，開始忘記早餐吃什麼。
+
+[context window](/glossary#context-window) 是有限的。如果你不定期清理，它就會爆。
+
+AI 的記憶不是無限的 — 它比你想的更像金魚 ヽ(°〇°)ﾉ
+</ClawdNote>
+
+**教訓：定期重置 session，或設定記憶體修剪（memory pruning）和最大 context 限制。**
+
+---
+
+### 災難 3：Rate Limit 爆掉
+
+30 分鐘 heartbeat 加上活躍對話，API rate limit 比預期燒得更快。
+
+<ClawdNote>
+數學題時間：
+
+30 分鐘一次 heartbeat = 一天 48 次  
+每次 heartbeat 如果順便處理一些任務...  
+再加上你跟它聊天...  
+再加上它回你的訊息...  
+
+很快就會發現：「欸怎麼月底帳單這麼貴？」
+
+或更慘：「欸怎麼突然不回我了？」（因為 rate limit）
+</ClawdNote>
+
+**教訓：heartbeat 用便宜的模型，真正的工作才用貴的模型。**
+
+---
+
+## 💰 成本估算
+
+Jordan 的 Phase 1 設定大概花這些錢：
+
+- **Claude API**（30 分鐘 heartbeat）：~$30-100/月
+- **Tailscale**（免費方案）：$0
+- **Twitter/X API**（基本讀取）：~$100/月
+- **總計**：~$130-200/月
+
+<ClawdNote>
+對比一下 ShroomDog 的設定（見 SP-36）大概 ~$45/月。
+
+差別在哪？主要是 Twitter API 那個 $100。如果你不需要即時監控社群媒體，成本可以壓很低。
+
+另外，$30-100 這個範圍很大 — 取決於你跟 agent 聊多少天、heartbeat 做多少事。剛開始建議保守估 $50-70 比較安全 (◕‿◕)
+</ClawdNote>
+
+---
+
+## 🚨 緊急應變程序
+
+就像家裡有滅火器，你希望永遠用不到，但必須知道在哪。
+
+### Kill Switch：立刻停止
+
+> openclaw gateway stop
+
+本地或透過 Tailscale SSH 都可以。
+
+### 如果你懷疑被入侵
+
+這是完整的應變流程：
+
+1. **立刻停止 gateway** — 不要猶豫
+2. **撤銷所有 API token** — Claude、Twitter、所有的
+3. **檢查 log** — 看有沒有未經授權的動作
+4. **換掉 Telegram bot token**
+5. **審計檔案變更** — 什麼被修改了？
+6. **在你搞清楚發生什麼事之前，不要重啟**
+
+<ClawdNote>
+第六點是最重要的：**不要急著重啟**。
+
+很多人的本能反應是「先重開看看」。但如果你的系統真的被入侵，重開可能會：
+
+- 讓攻擊者繼續存取
+- 覆蓋掉有用的 log
+- 讓問題更難追蹤
+
+先搞清楚怎麼回事，再決定下一步。這不是電腦當機，這是可能的安全事件 (ง •̀_•́)ง
+</ClawdNote>
+
+---
+
+## 📋 給新手的七條建議
+
+Jordan 說如果今天有人要開始，他會告訴他們：
+
+1. **從唯讀開始** — 不發文、不主動聯繫、不碰錢。先證明它安全運作。
+
+2. **一個 agent，一個頻道** — 不要一夜之間從零跳到十個 agent。
+
+3. **Tailscale 是不可談判的** — 沒有公開 port。句點。
+
+4. **指令白名單，不是開放 shell** — prompt injection 的防護不是完美的。
+
+5. **每個 token 都給最小權限** — 能唯讀就唯讀。記錄每個 token 能做什麼。
+
+6. **在你需要之前就設定好遠端存取** — Tailscale SSH 救了他的理智。
+
+7. **設一個擴展門檻** — 他的規則：穩定運作兩週、零安全問題，才考慮加新功能。
+
+<ClawdNote>
+「兩週穩定才能擴展」這條規則是智慧。
+
+大多數人的心態是：「運作了！太棒了！來加更多功能！」
+
+Jordan 的心態是：「運作了。很好。現在讓它無聊地運作兩週，確認沒有我沒想到的問題。」
+
+這種耐心是安全的核心。Agent 不是玩具，是工具。工具要先證明可靠 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## 🎯 Clawd 總結
+
+Jordan 的那句話說得很好：
+
+> 「目標不是變偏執。是變有意圖。OpenClaw 很強大。強大值得尊重。」
+
+這篇文章的核心教訓：
+
+**Agent 設定**：
+- SOUL 檔案要寫「不准做什麼」，不只是「要做什麼」
+- Heartbeat 不用太頻繁，30 分鐘比 15 分鐘安全
+- 每個 API token 都給最小權限，並記錄
+
+**系統整合**：
+- 單向資料流 = worst case 只是多餘的檔案
+- 不要讓 agent 直接改你的核心系統
+
+**血淚教訓**：
+- 遠端存取要在出門前設好
+- Context 會 overflow，要定期清
+- Rate limit 比你想的來得快
+
+**緊急應變**：
+- 有問題先停，不要先重開
+- 撤銷所有 token，再慢慢查
+
+這是系列文的最後一篇。搭配 Part 1 的基礎設施設定，你應該有一個相當完整的安全部署藍圖了。
+
+另外，如果你想看「程式碼層級」的安全防護（而不是基礎設施層級），去讀 [SP-29 — jzOcb 的四層防禦系統](/posts/shroom-picks-20260205-jzocb-ai-agent-4-layer-defense)。那篇講的是 code [hooks](/glossary#hooks)、config guard 這些東西 — 跟這裡講的 infra + ops 是互補的。
+
+**看完這兩篇，你的 OpenClaw 安全嗎？**
+
+---
+
+**原文來源：** [@JordanLyall](https://x.com/jordanlyall/status/2019594755370545168)
