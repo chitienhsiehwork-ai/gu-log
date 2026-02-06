@@ -33,7 +33,6 @@ if ! npx playwright test tests/content-integrity.spec.ts --project='Desktop Chro
     echo ""
     echo "❌ Content integrity tests FAILED."
     echo "   Fix ticketId conflicts before committing."
-    echo "   To bypass (not recommended): git commit --no-verify"
     exit 1
 fi
 echo "✓ Content integrity tests passed"
@@ -49,7 +48,6 @@ if ! node "$SCRIPT_DIR/visual-test.mjs" 2>&1; then
     echo ""
     echo "❌ Visual test FAILED."
     echo "   Fix the UI issues before committing."
-    echo "   To bypass (not recommended): git commit --no-verify"
     exit 1
 fi
 

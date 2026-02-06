@@ -1,11 +1,31 @@
 #!/bin/sh
 # Pre-commit hook for gu-log
-# Runs: 1) Content integrity tests (ticketId uniqueness)
+# Runs: 0) Quick duplicate ticketId check (fast, shell-based)
+#       1) Content integrity tests (ticketId uniqueness - Playwright)
 #       2) AI review for staged posts
 #       3) Visual test (advisory)
 
 set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+POSTS_DIR="src/content/posts"
+
+# 0. Quick Duplicate ticketId Check (fast shell-based, ~100ms)
+echo "⚡ Quick ticketId duplicate check..."
+DUPLICATES=$(grep -h 'ticketId:' "$POSTS_DIR"/*.mdx 2>/dev/null | \
+    sed 's/.*ticketId:[[:space:]]*["'"'"']\([^"'"'"']*\)["'"'"'].*/\1/' | \
+    sort | uniq -c | sort -rn | awk '$1 > 2 {print $2 " (" $1 " occurrences)"}')
+
+if [ -n "$DUPLICATES" ]; then
+    echo ""
+    echo "❌ DUPLICATE ticketId DETECTED (more than 2 occurrences = not a translation pair):"
+    echo "$DUPLICATES"
+    echo ""
+    echo "Each ticketId should appear exactly 2 times (zh-tw + en version)."
+    echo "Fix the duplicates before committing."
+    exit 1
+fi
+echo "✓ No duplicate ticketIds"
+echo ""
 
 # 1. Content Integrity Tests (BDD - Playwright)
 echo "🧪 Running content integrity tests..."
@@ -13,7 +33,6 @@ if ! npx playwright test tests/content-integrity.spec.ts --project='Desktop Chro
     echo ""
     echo "❌ Content integrity tests FAILED."
     echo "   Fix ticketId conflicts before committing."
-    echo "   To bypass (not recommended): git commit --no-verify"
     exit 1
 fi
 echo "✓ Content integrity tests passed"
@@ -29,7 +48,6 @@ if ! node "$SCRIPT_DIR/visual-test.mjs" 2>&1; then
     echo ""
     echo "❌ Visual test FAILED."
     echo "   Fix the UI issues before committing."
-    echo "   To bypass (not recommended): git commit --no-verify"
     exit 1
 fi
 

@@ -78,7 +78,6 @@ done
 if [ "$ALL_PASSED" = false ]; then
     echo ""
     echo "❌ Review FAILED. Please fix the issues above before committing."
-    echo "   To bypass (not recommended): git commit --no-verify"
     exit 1
 fi
 
