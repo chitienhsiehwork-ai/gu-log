@@ -1,7 +1,19 @@
-#!/bin/sh
-# Setup git hooks by symlinking from scripts/
-HOOK_DIR="$(git rev-parse --git-dir)/hooks"
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+#!/bin/bash
+# Setup git hooks for gu-log
 
-ln -sf "$SCRIPT_DIR/pre-commit" "$HOOK_DIR/pre-commit"
-echo "Git hooks installed."
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+HOOKS_DIR="$SCRIPT_DIR/hooks"
+GIT_HOOKS_DIR="$(git rev-parse --git-dir)/hooks"
+
+echo "Setting up git hooks..."
+
+for hook in "$HOOKS_DIR"/*; do
+    if [ -f "$hook" ]; then
+        hookname=$(basename "$hook")
+        cp "$hook" "$GIT_HOOKS_DIR/$hookname"
+        chmod +x "$GIT_HOOKS_DIR/$hookname"
+        echo "✓ Installed $hookname"
+    fi
+done
+
+echo "Done!"
