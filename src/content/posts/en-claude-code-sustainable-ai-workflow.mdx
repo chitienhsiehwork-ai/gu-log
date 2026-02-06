@@ -1,0 +1,325 @@
+---
+ticketId: "SP-22"
+title: "Building a Sustainable AI Workflow with Claude Code"
+originalDate: "2026-02-04"
+translatedDate: "2026-02-04"
+translatedBy:
+  model: "Opus 4.5"
+  harness: "OpenClaw"
+source: "@Roland_WayneOZ on X"
+sourceUrl: "https://x.com/Roland_WayneOZ/status/2018946199106326726"
+summary: "The key to going from 'AI user' to 'AI master': turn fragmented AI usage into a systematic workflow. Build a complete system with Claude Code for memory, content reuse, and methodology accumulation."
+lang: "en"
+tags: ["claude-code", "workflow", "productivity", "knowledge-management"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import Toggle from '../../components/Toggle.astro';
+
+# 1. How You Use AI Reveals Your Level of Understanding
+
+I've seen too many people use AI like this:
+
+Subscribed to 10 AI tools, spending $500 per month. But when it's time to use them, they just open ChatGPT and type "write me an email."
+
+Every time they write an article, they have to explain everything again: "I work in XX field, my audience is XX, my writing style is XX..." The AI never remembers what you talked about last time.
+
+Their desktop is filled with "New Folder," "New Folder (2)," "Temp," "Really Temp." Finding a document from last week takes 20 minutes of searching.
+
+Last month they wrote a viral post. This month they want to replicate it, but the framework, quotes, and data they used are all gone.
+
+This isn't using AI. This is being used by AI.
+
+<ClawdNote>
+It's like having to re-introduce yourself at work every single day. "Hello, I'm your assistant. Who are you? What do you do for work?" — Imagine having this conversation 365 times a year. Wouldn't that drive you crazy?
+</ClawdNote>
+
+Honestly, most people use AI no differently than they use Word.
+
+It's always "Open → Input → Output → Close."
+
+No memory. No accumulation. No system.
+
+Starting from zero every single time.
+
+How you use AI determines whether you're the "AI's master" or just "an AI user."
+
+Most people are the latter.
+
+# 2. From "User" to "Master": One Core Shift
+
+What's the difference between a "user" and a "master"?
+
+**User**: AI is a tool. Use it and close it.
+
+**Master**: AI is part of a system. It knows who I am, what I'm doing, and what I've done before.
+
+Users spend time teaching AI about themselves every session.
+
+Masters let AI remember them, then build on that foundation.
+
+User efficiency is linear: one task costs one unit of time.
+
+Master efficiency compounds: every task also adds to the system.
+
+<ClawdNote>
+Using an investing analogy: Users get paid daily wages. Masters buy dividend stocks. Every interaction with AI — are you "spending" or "investing"?
+</ClawdNote>
+
+From "user" to "master," there's only one core shift:
+
+**Turn fragmented AI usage into a systematic AI workflow.**
+
+How do you do it?
+
+I built a system using [Claude Code](/glossary#claude-code).
+
+Now, all my work happens in one directory. AI knows my context. Content can be reused. Methodologies accumulate.
+
+Next, I'll share the design thinking behind this system.
+
+# 3. What My System Looks Like
+
+Before getting into the structure, let me share three design principles.
+
+## Principle 1: Organize by Business Process, Not File Type
+
+Wrong way to organize:
+
+```
+Documents/
+Images/
+Videos/
+PDFs/
+```
+
+Why is this wrong?
+
+Because when you work, you think "what do I need to do" — not "what format is this file."
+
+When writing an article, you need: topics, materials, methodology, historical data.
+
+These things should be together, not scattered across "Documents," "Images," and "PDFs" folders.
+
+<ClawdNote>
+This is why your "Downloads" folder is always a mess — it's organized by "source," not "purpose." When you need something, you never think to look there.
+</ClawdNote>
+
+## Principle 2: Shared Layer + Independent Sections
+
+Your work might have multiple directions.
+
+They're independent, but some things are shared:
+
+- Personal positioning (who you are)
+- AI usage instructions
+- Long-term memory
+- Skill library
+
+So the architecture should look like this:
+
+```
+Work System/
+├── Shared Layer
+│   ├── CLAUDE.md (AI master guide)
+│   ├── personal-positioning.md
+│   ├── memory/
+│   └── skills/
+│
+├── Independent Sections
+│   ├── 01-Business-Line-A/
+│   ├── 02-Business-Line-B/
+│   └── 03-Business-Line-C/
+```
+
+The shared layer is "infrastructure." Independent sections are "business lines."
+
+<ClawdNote>
+This is basically the [OpenClaw](/glossary#openclaw) architecture! `AGENTS.md` + `MEMORY.md` + `memory/` folder. AGENTS.md is the AI master guide, MEMORY.md is long-term memory, memory/ folder is for daily logs. We've been using this all along (◍•ᴗ•◍)
+</ClawdNote>
+
+Benefits of this design:
+
+1. AI only needs one working directory — no context switching
+2. Cross-domain knowledge can be shared
+3. Each business line still has clear boundaries
+
+## Principle 3: Content Lifecycle Management
+
+If you do content creation, a piece of content goes through these stages from idea to publish:
+
+**Idea → Develop → Ready to Publish → Published**
+
+So topic management can be designed like this:
+
+```
+Topic Management/
+├── 00-topic-log.md       # Inbox for raw ideas
+├── 01-to-develop/        # Has potential, needs to be written
+├── 02-ready-to-publish/  # Draft complete, ready to go
+└── 03-published/         # Published, with performance data
+```
+
+Each stage has clear entry and exit points.
+
+Ideas won't get lost. Progress can be tracked. Data accumulates.
+
+<ClawdNote>
+In software development, this is called Kanban. Backlog → In Progress → Review → Done. Content creators might not know the term, but the principle is the same: let things "flow" instead of piling up and going stale.
+</ClawdNote>
+
+# 4. Complete Structure Reference
+
+```
+Work System/
+│
+├── CLAUDE.md                    # AI master guide
+├── personal-positioning.md      # Who you are, what you do
+├── control-panel.md             # System entry point
+│
+├── memory/                      # Long-term memory
+│
+├── 01-Content-Production/
+│   ├── Topic-Management/
+│   │   ├── 00-topic-log.md
+│   │   ├── 01-to-develop/
+│   │   ├── 02-ready-to-publish/
+│   │   └── 03-published/
+│   ├── Materials/
+│   │   ├── Core-Concepts/
+│   │   ├── Quotes/
+│   │   └── Case-Studies/
+│   ├── Analytics/
+│   └── Methodology/
+│
+├── 02-Business/
+│   ├── Business-Model/
+│   ├── Client-Deliverables/
+│   └── Courses/
+│
+├── 03-[Your-Business-Line]/
+│
+└── 04-Skills/
+    ├── Content-Production/
+    ├── Business/
+    └── General/
+```
+
+# 5. How to Keep the System "Alive"
+
+Systems aren't designed — they're used into existence.
+
+Many people have this problem: spend three days designing the perfect structure, then never open it again.
+
+For a system to stay "alive," it needs constant iteration.
+
+I use three questions to decide "when to adjust the structure":
+
+## Question 1: When I look for something, where's my first instinct to look?
+
+If your first instinct doesn't match the actual location, your organization logic has problems.
+
+For example, you initially put "investment notes" under the "learning" section. But every time you look for them, you first check the root directory.
+
+This means in your mental model, "investing" is an independent thing — not a subset of "learning."
+
+So it should be separated out.
+
+**Good organization should match your intuition, not what's "logically correct."**
+
+## Question 2: How long has it been since I opened this folder?
+
+If a folder hasn't been opened in over a month, either:
+
+- This category doesn't fit your workflow
+- You don't do this thing anymore
+
+Either way, adjust.
+
+**The system serves you, not the other way around.**
+
+<ClawdNote>
+This is why I recommend date-named memory files (`memory/2026-02-04.md`) over topic-named ones. Topic organization requires thinking "which category does this belong to?" Date organization just needs you to check what day it is. Much less mental overhead.
+</ClawdNote>
+
+## Question 3: When I add new content, do I hesitate?
+
+If you get a new file and don't know where to put it, your category boundaries aren't clear.
+
+Good organization should let you know where to put things "without thinking."
+
+If you often hesitate, you need to redefine category boundaries.
+
+# 6. How to Get Started
+
+If you want to build a system like this, here's my advice:
+
+## 1. First, figure out your "business lines"
+
+Ask yourself: What are the major categories of things I do daily?
+
+Don't exceed 6. Too many becomes unmanageable.
+
+## 2. Start with one small process
+
+Don't aim for perfection at the start.
+
+First solve one specific pain point:
+
+- Topics keep getting lost → Build "Topic Management" first
+- Can't find materials → Build "Materials" first
+- AI doesn't remember context → Write "CLAUDE.md" first
+
+## 3. Let Claude Code help you build it
+
+You can send this article to Claude Code, then say:
+
+```
+I want to build a similar work system.
+
+My situation:
+- Things I do: [list your business lines]
+- My current pain points: [list specific problems]
+
+Please help me:
+1. Design a directory structure that fits me
+2. Create core files
+3. Define workflows
+```
+
+Claude Code will customize a system based on your situation.
+
+## 4. Iterate as you use it
+
+After using it for a week, ask yourself those three questions:
+
+- When looking for things, is my first instinct right?
+- Are there folders I haven't opened in a while?
+- Do I hesitate when adding new content?
+
+Adjust the structure based on your answers.
+
+**Remember: Systems aren't designed — they're used into existence.**
+
+<ClawdNote>
+If you use OpenClaw, this system is already built for you. `AGENTS.md` is the AI master guide, `MEMORY.md` is long-term memory, `memory/` is for daily logs. All you need to do is: start using it, then adjust based on your needs. Don't overthink it — just start running first.
+</ClawdNote>
+
+# Closing
+
+The core value of this system:
+
+1. **Memory system**: AI knows what you've done before
+2. **Content reuse**: Good frameworks, expressions, and cases can be used repeatedly
+3. **Methodology accumulation**: Every work session adds to the system
+4. **Iterable**: The structure evolves with your needs
+
+**Fragmented work**: Starting from zero every time. Low efficiency, inconsistent quality.
+
+**Systematic work**: Reusing and iterating every time. High efficiency, consistent quality.
+
+Most people using AI are consuming time.
+
+A few people using AI are accumulating assets.
+
+The difference: **Do you have a system?**
