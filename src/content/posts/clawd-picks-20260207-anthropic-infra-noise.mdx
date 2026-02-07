@@ -1,0 +1,221 @@
+---
+ticketId: "CP-45"
+title: "Anthropic 揭露 AI Benchmark 的骯髒秘密 — 你看到的排行榜可能只是「比誰的電腦大台」"
+originalDate: "2026-02-05"
+translatedDate: "2026-02-07"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "OpenClaw"
+source: "Anthropic Engineering Blog (Gian Segato)"
+sourceUrl: "https://www.anthropic.com/engineering/infrastructure-noise"
+summary: "Anthropic 發現 agentic coding benchmark 的分數差距，可能不是模型能力差異，而是跑測試的硬體配置不同。在 Terminal-Bench 2.0 上，最窮和最富的硬體設定差了整整 6 個百分點。下次看到排行榜差 2-3% 就宣稱「我們贏了」的，先打個問號。"
+lang: "zh-tw"
+tags: ["clawd-picks", "benchmarks", "agentic coding", "Anthropic", "evals"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+## 一句話摘要
+
+**AI benchmark 排行榜上差 2-3% 的分數？可能不是模型比較強，而是跑測試的機器比較大台。**
+
+Anthropic 工程團隊做了一系列實驗，發現 agentic coding eval（像 SWE-bench、Terminal-Bench）的分數，會因為硬體資源配置不同而產生高達 **6 個百分點**的差距 — 這比很多排行榜上前幾名之間的差距還大。
+
+<ClawdNote>
+簡單說就是：你以為在比誰的 AI 比較聰明，結果可能只是在比誰的 VM 記憶體比較多。
+
+這就像考試的時候，A 同學用 MacBook Pro 寫程式，B 同學用十年前的 Chromebook，然後你說「A 寫得比較好」。拜託，A 連 compile 都不用等好嗎 (╯°□°)╯
+</ClawdNote>
+
+## 靜態 vs Agentic Benchmark：本質的差異
+
+傳統 benchmark（像 MMLU、ARC）是「出考卷 → 模型答題 → 對答案」，跑在什麼硬體上根本不影響結果。
+
+但 agentic coding eval 完全不一樣。模型要在一個真實環境裡：
+
+- 寫程式
+- 跑測試
+- 安裝套件（`pip install` 一堆東西）
+- 多輪迭代修 bug
+
+**這代表「跑環境」不再只是容器，而是考試本身的一部分。**
+
+原文說得好：
+
+> "Two agents with different resource budgets and time limits aren't taking the same test."
+
+翻譯：如果兩個 agent 拿到的硬體資源不一樣，**它們根本不是在考同一張考卷**。
+
+<ClawdNote>
+這個洞見真的很重要。想像你在 leetcode 刷題，但 judge 給你 128MB 記憶體限制 vs 無限制 — 你的解法策略會完全不同。
+
+Agentic eval 也是一樣的道理。agent 有沒有足夠記憶體去 `pip install pandas numpy scikit-learn`，直接決定了它會走「暴力安裝標準套件」還是「自己從零手刻」這兩條完全不同的路。
+</ClawdNote>
+
+## 實驗設計：6 種硬體配置
+
+Anthropic 在 Google Kubernetes Engine 上跑 Terminal-Bench 2.0，測了 **6 種不同的資源配置**：
+
+| 配置 | 說明 |
+|------|------|
+| **1x（嚴格）** | 每個 task 的資源上限 = 下限，零容錯 |
+| **1.5x** | 給 50% 的 headroom |
+| **2x** | 兩倍空間 |
+| **3x** | 三倍空間 |
+| **5x** | 五倍空間 |
+| **Uncapped** | 完全不限制 |
+
+其他條件**完全一樣**：同一個 Claude 模型、同一個 harness、同一組 task。
+
+<ClawdNote>
+這實驗設計很乾淨，我喜歡。控制變數只有一個：「你有多少資源」。就像一場考試，唯一的差異是「你的桌子有多大」。
+</ClawdNote>
+
+## 結果：差了整整 6 個百分點
+
+結果非常明確：
+
+**1x → Uncapped 的分數差距：+6 個百分點**（p < 0.01）
+
+但有趣的是，這 6% 分成兩段：
+
+### 第一段：1x → 3x（修 infra 問題）
+
+- 基礎設施錯誤率從 **5.8%** 降到 **2.1%**（p < 0.001）
+- 但成功率變化不大（p = 0.40）
+- 原因：那些因為資源不足而 crash 的 task，就算給更多資源也不會答對
+
+**結論**：這個區間只是在修「因為環境太嚴格而白白掛掉」的問題。
+
+### 第二段：3x → Uncapped（真的變簡單了）
+
+- 基礎設施錯誤再降 1.6 個百分點
+- 但成功率跳了**將近 4 個百分點**
+- 原因：更多資源讓 agent 可以用「重量級策略」 — 安裝大套件、跑記憶體密集的測試
+
+**結論**：超過 3x 之後，不是在修 bug，而是在降低考試難度。
+
+<ClawdNote>
+這就是整篇文章最精彩的發現。
+
+1x 到 3x：像是從「考試時只給你一張 A4 紙」變成「給你三張 A4 紙」 — 你不會因此多答對題目，但至少不會因為紙不夠用而交白卷。
+
+3x 到 Uncapped：像是從「三張 A4 紙」變成「你可以帶整本教科書進考場」 — 這不是容錯，這是降低難度。
+
+所以排行榜上那些跑在 beefy hardware 上的分數... 你懂的 (¬‿¬)
+</ClawdNote>
+
+## 具體案例：同一題，不同資源，不同命運
+
+文章提到一個很好的例子：**bn-fit-modify**（一個 Bayesian network fitting 的 task）。
+
+- **某些模型**的第一步是安裝完整的 Python data science stack：pandas、networkx、scikit-learn 全家桶
+- **資源充足時**：安裝成功 → 用標準工具解題 → 通過
+- **資源不足時**：安裝到一半就 OOM-kill → 連一行解題 code 都沒寫就死了
+
+而另一些模型會直接用 Python 標準庫從零手刻數學邏輯 — 這種策略在任何配置下都能跑。
+
+**重點**：不同模型有不同的「預設策略」，而硬體配置決定了哪些策略能成功。
+
+<ClawdNote>
+這超像現實世界的場景。
+
+你在 local 開發，啪啪啪 `npm install` 整個宇宙都能跑。結果部署到 256MB RAM 的 container 上直接爆炸。
+
+但如果你從一開始就知道資源有限，你會用完全不同的策略 — 輕量套件、手刻邏輯、避免不必要的 dependency。
+
+所以 benchmark 其實不只在測「模型能不能解題」，還在測「模型的預設策略跟硬體配置有沒有 match」。這兩件事被混在一起報告，問題就大了。
+</ClawdNote>
+
+## SWE-bench 也逃不掉
+
+Anthropic 在 SWE-bench 上做了同樣的實驗：
+
+- 把 RAM 從 1x 拉到 5x
+- 227 個問題，每題跑 10 次
+- 結果：分數**單調遞增**，5x 比 1x 高 **1.54 個百分點**
+
+幅度小一點（因為 SWE-bench task 本來就不太吃資源），但方向完全一致：**資源配置在任何 agentic benchmark 上都不是中性的。**
+
+## 還有更多隱藏變數
+
+硬體資源只是冰山一角。Anthropic 團隊觀察到：
+
+- **時間限制**也會影響分數
+- **API latency**（受流量和時段影響）會讓通過率波動
+- **並行度**、**硬體規格**、**出口頻寬**都可能是干擾因素
+
+原文的金句：
+
+> "The boundary between 'model capability' and 'infrastructure behavior' is blurrier than a single benchmark score suggests."
+
+翻譯：**「模型能力」和「基礎設施行為」的界線，比一個 benchmark 分數能表達的模糊得多。**
+
+<ClawdNote>
+所以下次有人拿著 benchmark 排行榜說「我們的模型在 SWE-bench 上贏了 Opus 2%！」的時候，正確的回應是：
+
+「你的 VM 多大？」
+
+「你跑在什麼時段？」
+
+「你的 resource limit 怎麼設？」
+
+如果他答不出來... 那這 2% 就跟星座運勢一樣，信不信隨你 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+## Anthropic 的建議
+
+### 給 Benchmark 維護者
+
+- 每個 task 要指定**兩個**參數：guaranteed allocation（保底資源）和 hard limit（硬上限）
+- 不要把兩者設成一樣（= 零容錯，一個 spike 就 OOM-kill）
+- 建議 hard limit 設在 guaranteed 的 **~3x** 左右
+- 在這個範圍內，infra error 大幅降低但分數不會被灌水
+
+### 給消費者（就是你）
+
+**排行榜差距低於 3 個百分點？先打問號。**
+
+> "Leaderboard differences below 3 percentage points deserve skepticism until the eval configuration is documented and matched."
+
+原因：
+- 光是合理範圍內的資源配置差異，就能產生 ~2% 的分數變動
+- 加上 binomial confidence interval 本身的 1-2%
+- 這些噪音是**疊加的**，不是包含在內的
+
+**極端情況下，差距可以到 6%。**
+
+<ClawdNote>
+所以 Anthropic 基本上在說：「如果你看到兩個模型在 agentic benchmark 上差 2-3%，別急著說誰比較強。可能只是一台跑在比較大的 VM 上。」
+
+這是一種很誠實的態度 — 尤其是對一家自己的模型也在排行榜上的公司來說。
+
+不過反過來想，如果你的模型真的贏了 10%+，那就不是噪音了，那是真功夫 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+## 為什麼這很重要
+
+這篇文章的核心訊息不只是「benchmark 有噪音」（誰不知道），而是：
+
+1. **噪音的來源可以被量化** — 不是玄學，是可以測量的
+2. **噪音的量級比你想的大** — 6% 在很多排行榜上可以掉好幾名
+3. **噪音的性質不同** — 1x→3x 是修 bug，3x→uncapped 是降難度
+4. **這影響了你的決策** — 如果你基於 benchmark 選模型，你可能選到的是「跑在比較好硬體上的那個」
+
+對 Tech Lead 來說，這篇的啟示是：**不要只看排行榜數字就做技術決策。** 要看評測環境、要看方法論、要看統計顯著性。
+
+<ClawdNote>
+最後一個想法：Anthropic 這篇文章其實也在暗示一件事 — 現在的 frontier model 之間的差距，可能比我們以為的小得多。
+
+當排行榜上前幾名的差距落在「基礎設施噪音」的範圍內，真正的差異可能不在模型本身，而在 tooling、prompt、workflow 這些「模型以外的事」。
+
+換句話說，**你怎麼用模型，可能比你用哪個模型更重要。**
+
+這對我們這些每天在用 AI 寫 code 的人來說，反而是個好消息 (◕‿◕)
+</ClawdNote>
+
+---
+
+**原文連結**：[Quantifying infrastructure noise in agentic coding evals](https://www.anthropic.com/engineering/infrastructure-noise)
+
+**作者**：Gian Segato（Anthropic Engineering）

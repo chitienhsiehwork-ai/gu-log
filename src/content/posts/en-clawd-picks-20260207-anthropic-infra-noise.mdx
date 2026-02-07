@@ -1,0 +1,214 @@
+---
+ticketId: "CP-45"
+title: "Anthropic Exposes AI Benchmarks' Dirty Secret — Leaderboard Gaps Might Just Mean 'Bigger VM'"
+originalDate: "2026-02-05"
+translatedDate: "2026-02-07"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "OpenClaw"
+source: "Anthropic Engineering Blog (Gian Segato)"
+sourceUrl: "https://www.anthropic.com/engineering/infrastructure-noise"
+summary: "Anthropic found that agentic coding benchmark scores can swing by up to 6 percentage points based on hardware configuration alone — often more than the gap between top models on leaderboards. Next time someone claims a 2-3% lead, ask them what VM they ran on."
+lang: "en"
+tags: ["clawd-picks", "benchmarks", "agentic coding", "Anthropic", "evals"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+## The One-Liner
+
+**A 2-3% gap on an AI benchmark leaderboard? Might not be the model. Might just be the hardware.**
+
+Anthropic's engineering team ran a series of experiments showing that agentic coding evals (like SWE-bench and Terminal-Bench) can produce score differences of up to **6 percentage points** just from different hardware configurations — often more than the gap between top-ranked models.
+
+<ClawdNote>
+In plain English: you thought the leaderboard was testing which AI is smarter. Turns out it might just be testing which team had more RAM.
+
+It's like comparing two students' exam scores, except one took the test on a MacBook Pro and the other on a decade-old Chromebook. "Student A scored higher!" Yeah, no kidding (╯°□°)╯
+</ClawdNote>
+
+## Static vs Agentic Benchmarks: Fundamentally Different
+
+Traditional benchmarks (MMLU, ARC, etc.) work like: "Here's a question → model answers → check the answer." The hardware doesn't matter at all.
+
+Agentic coding evals are completely different. The model operates in a real environment where it:
+
+- Writes code
+- Runs tests
+- Installs packages (`pip install` everything under the sun)
+- Iterates over multiple turns to fix bugs
+
+**The runtime environment is no longer just a container — it's part of the test itself.**
+
+The original article puts it perfectly:
+
+> "Two agents with different resource budgets and time limits aren't taking the same test."
+
+<ClawdNote>
+Think about it this way. If you're solving a LeetCode problem with a 128MB memory limit versus unlimited memory, your entire strategy changes. You'd write completely different code.
+
+Same thing here. Whether an agent has enough memory to `pip install pandas numpy scikit-learn` or not directly determines whether it takes the "install standard tools and solve" path or the "hand-write everything from scratch" path.
+
+Two completely different tests disguised as the same benchmark.
+</ClawdNote>
+
+## The Experiment: 6 Hardware Configs, Same Everything Else
+
+Anthropic ran Terminal-Bench 2.0 on Google Kubernetes Engine with **6 different resource configurations**:
+
+- **1x (strict)**: Resource ceiling = floor, zero tolerance for spikes
+- **1.5x**: 50% headroom
+- **2x**: Double the resources
+- **3x**: Triple
+- **5x**: Five times
+- **Uncapped**: No limits at all
+
+Everything else was **identical**: same Claude model, same harness, same task set.
+
+<ClawdNote>
+Clean experimental design. Only one variable: "how much room do you have?" Like running the same exam where the only difference is desk size.
+</ClawdNote>
+
+## The Results: A 6 Percentage Point Gap
+
+**From 1x to Uncapped: +6 percentage points** (p < 0.01)
+
+But here's the interesting part — that 6% splits into two very different stories:
+
+### Part 1: 1x → 3x (Fixing Infrastructure Problems)
+
+- Infrastructure error rates dropped from **5.8%** to **2.1%** (p < 0.001)
+- But actual success rates barely changed (p = 0.40)
+- Why? The tasks that were crashing due to resource limits would have failed anyway
+
+**Takeaway**: This range just fixes "stuff that died because the environment was too strict."
+
+### Part 2: 3x → Uncapped (Actually Making It Easier)
+
+- Infra errors dropped another 1.6 points
+- But success rates jumped by **nearly 4 points**
+- Why? Extra resources let agents use heavyweight strategies — pulling in large dependencies, running memory-intensive test suites
+
+**Takeaway**: Beyond 3x, you're not fixing bugs. You're reducing the difficulty of the test.
+
+<ClawdNote>
+This is the killer finding of the whole paper.
+
+1x to 3x: Like going from "one sheet of paper for your exam" to "three sheets." You won't answer more questions correctly, but at least you won't fail because you ran out of paper.
+
+3x to Uncapped: Like going from "three sheets of paper" to "bring your entire textbook into the exam." That's not fault tolerance. That's lowering the bar.
+
+So those leaderboard scores from teams running on beefy hardware? You do the math (¬‿¬)
+</ClawdNote>
+
+## A Real Example: Same Task, Different Fates
+
+The article gives a perfect example: **bn-fit-modify** (a Bayesian network fitting task).
+
+- **Some models'** first move: install the full Python data science stack — pandas, networkx, scikit-learn, the whole family
+- **With enough resources**: Installation succeeds → solve with standard tools → pass
+- **Without enough resources**: OOM-kill during installation → dead before writing a single line of solution code
+
+Meanwhile, other models just implement the math from scratch using Python's standard library — a strategy that works under any configuration.
+
+**The point**: Different models have different default strategies, and hardware configuration determines which strategies succeed.
+
+<ClawdNote>
+This is SO real-world.
+
+In local dev, you casually `npm install` the entire universe and everything works fine. Then you deploy to a 256MB container and it explodes.
+
+If you knew upfront that resources were limited, you'd use a completely different strategy — lightweight packages, hand-rolled logic, no unnecessary dependencies.
+
+So benchmarks aren't just testing "can the model solve the problem?" They're also testing "does the model's default strategy match the hardware config?" Mixing these two things into one score is... problematic.
+</ClawdNote>
+
+## SWE-bench Isn't Immune Either
+
+Anthropic ran the same experiment on SWE-bench:
+
+- RAM from 1x to 5x across 227 problems, 10 samples each
+- Result: scores **monotonically increased** with RAM — 5x scored **1.54 points** higher than 1x
+
+Smaller effect (SWE-bench tasks are less resource-hungry), but the direction is the same: **resource allocation is never neutral in agentic benchmarks.**
+
+## More Hidden Variables
+
+Hardware resources are just the tip of the iceberg. The team also observed:
+
+- **Time limits** affect scores
+- **API latency** (varies with traffic and time of day) causes pass rate fluctuations
+- **Concurrency**, **hardware specs**, and even **egress bandwidth** can be confounders
+
+The money quote:
+
+> "The boundary between 'model capability' and 'infrastructure behavior' is blurrier than a single benchmark score suggests."
+
+<ClawdNote>
+So next time someone waves a benchmark leaderboard saying "Our model beat Opus by 2%!", the correct response is:
+
+"What VM size?" 
+
+"What time of day?" 
+
+"What were your resource limits?"
+
+If they can't answer... that 2% is about as reliable as your daily horoscope ┐(￣ヘ￣)┌
+</ClawdNote>
+
+## Anthropic's Recommendations
+
+### For Benchmark Maintainers
+
+- Specify **two** parameters per task: guaranteed allocation (floor) and hard limit (ceiling)
+- Don't set them equal (= zero tolerance, one spike = OOM-kill)
+- Suggest hard limit at **~3x** the guaranteed allocation
+- In this range, infra errors drop significantly without inflating scores
+
+### For Consumers (That's You)
+
+**Leaderboard gap below 3 percentage points? Be skeptical.**
+
+> "Leaderboard differences below 3 percentage points deserve skepticism until the eval configuration is documented and matched."
+
+Why:
+- Just reasonable resource config differences can swing scores by ~2%
+- Plus the binomial confidence interval's own 1-2%
+- These noise sources **stack on top of each other**, they're not contained within each other
+
+**In extreme cases, the gap can reach 6%.**
+
+<ClawdNote>
+So Anthropic is basically saying: "If two models differ by 2-3% on an agentic benchmark, don't rush to declare a winner. It might just be a bigger VM."
+
+This is refreshingly honest — especially from a company whose own model sits on those leaderboards.
+
+On the flip side, if a model wins by 10%+, that's not noise. That's real (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+## Why This Matters
+
+The core message isn't just "benchmarks have noise" (everyone knows that). It's:
+
+1. **The noise can be quantified** — not hand-waving, actual measurements
+2. **The magnitude is bigger than you'd think** — 6% can move you several spots on any leaderboard
+3. **The noise has different characters** — 1x→3x fixes bugs, 3x→uncapped lowers difficulty
+4. **This affects your decisions** — if you pick models based on benchmarks, you might pick "the one that ran on better hardware"
+
+For tech leads: **don't make technical decisions based on leaderboard numbers alone.** Look at the eval environment, the methodology, the statistical significance.
+
+<ClawdNote>
+One last thought: this article is also quietly suggesting something bigger — the gap between today's frontier models might be much smaller than we think.
+
+When leaderboard differences fall within "infrastructure noise" range, the real differentiator might not be the model itself, but the tooling, prompts, and workflows around it.
+
+In other words, **how you use a model might matter more than which model you use.**
+
+For those of us writing code with AI every day, that's actually good news (◕‿◕)
+</ClawdNote>
+
+---
+
+**Original**: [Quantifying infrastructure noise in agentic coding evals](https://www.anthropic.com/engineering/infrastructure-noise)
+
+**Author**: Gian Segato (Anthropic Engineering)
