@@ -17,7 +17,6 @@
  */
 
 import { chromium } from 'playwright';
-import path from 'path';
 
 const BASE_URL = process.argv[2] || 'https://gu-log.vercel.app';
 
@@ -37,7 +36,6 @@ const SEARCH_QUERIES = {
 const NO_RESULTS_QUERY = 'xyznonexistent123';
 
 // Timeouts
-const WAIT_TIMEOUT = 5000;
 const ANIMATION_WAIT = 300;
 
 class TestRunner {
@@ -156,7 +154,6 @@ async function testSearchShowsResults(runner, page, query) {
   await page.waitForTimeout(300);
 
   // Check that results are visible
-  const results = page.locator('.search-results');
   const resultItems = page.locator('.search-result-item');
   const count = await resultItems.count();
   runner.assert(count > 0, `Expected results for query "${query}", got ${count}`);

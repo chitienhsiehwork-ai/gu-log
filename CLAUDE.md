@@ -5,20 +5,30 @@
 
 ## ⚠️ 必讀
 
-在做任何內容操作前，先讀 `CONTRIBUTING.md`。裡面定義了：
-- **SP vs CP** ticket ID 規則（誰挑的文章）
-- Frontmatter schema
-- 檔案命名規範
-- 翻譯 & 風格規範
+**新增或編輯文章前，先讀 `CONTRIBUTING.md`。** 它是所有內容規則的 SSOT（Single Source of Truth）。
 
-### 🚨 防止重複文章（最重要！）
+## 文件架構（誰讀什麼）
 
-**寫新文章前必須：**
-1. `grep -ri "SOURCE_URL\|AUTHOR\|KEYWORD" src/content/posts/` 檢查是否已存在
-2. 從 `scripts/article-counter.json` 讀取正確的下一個 ticket ID
-3. 不要猜測或記憶編號，一律從 counter 讀取
+```
+CLAUDE.md (你在讀的這個)
+  ├→ CONTRIBUTING.md          ← SSOT: 內容規則、ticketId SOP、防重複、frontmatter schema
+  ├→ TRANSLATION_PROMPT.md    ← SSOT: 翻譯風格（PTT 說故事風、Clawd 吐槽語氣）
+  ├→ src/content/config.ts    ← SSOT: Frontmatter schema (Zod validation)
+  └→ scripts/
+      ├ clawd-picks-prompt.md ← Clawd Picks 任務流程（給 Clawd on VM 用）
+      ├ clawd-picks-config.json ← 推文帳號清單
+      └ article-counter.json  ← Ticket ID counter（SP/CP/SD）
+```
 
-違反這些規則會造成重複文章和編號衝突。
+**兩個 AI 操作這個 repo：**
+
+| AI | 在哪 | 自動讀什麼 | 用途 |
+|----|------|-----------|------|
+| **Claude Code** | Mac（手動互動） | `CLAUDE.md`（這個檔案） | 開發、debug、SOP 調整 |
+| **Clawd (OpenClaw)** | VPS（24/7 自動） | `~/clawd/AGENTS.md` → 再讀 `scripts/clawd-picks-prompt.md` | 自動翻譯推文 |
+
+兩條路最終都指向 `CONTRIBUTING.md` 和 `TRANSLATION_PROMPT.md` 作為 SSOT。
+**改規則時只改 SSOT 來源檔，不要在 task prompt 裡重複定義。**
 
 ## Tech Stack
 
@@ -26,7 +36,7 @@
 - **Deployment**: Vercel (auto-deploy on push)
 - **Package manager**: npm
 - **Fonts**: Inter + Noto Sans TC (Google Fonts)
-- **Theme**: Solarized dark (default) / Solarized light
+- **Theme**: Solarized dark / light
 
 ## Architecture
 
@@ -41,61 +51,16 @@ src/
 │   ├── ClawdNote.astro        # Clawd 吐槽框
 │   ├── Toggle.astro           # 可收合內容
 │   ├── TableOfContents.astro  # 目錄
-│   ├── ReadingProgress.astro  # 閱讀進度條
-│   ├── BackToTop.astro        # 返回頂部
-│   ├── PrevNextNav.astro      # 上下篇導航
-│   └── CodeCopyButton.astro   # 程式碼複製
+│   └── ...                    # ReadingProgress, BackToTop, PrevNextNav, CodeCopyButton
 ├── layouts/
 │   └── BaseLayout.astro       # 主 layout
 ├── pages/
-│   ├── index.astro            # 中文首頁 (動態抓 posts)
-│   ├── posts/[...slug].astro  # 中文文章頁
-│   ├── en/
-│   │   ├── index.astro        # 英文首頁
-│   │   └── posts/[...slug].astro
+│   ├── index.astro            # 中文首頁
+│   ├── en/index.astro         # 英文首頁
+│   ├── posts/[...slug].astro  # 文章頁
 │   └── rss.xml.ts             # RSS feed
 └── styles/
     └── global.css
-```
-
-## Content Workflow
-
-### 新增文章
-
-1. 建立 `src/content/posts/slug-name.mdx` (中文版)
-2. 建立 `src/content/posts/en-slug-name.mdx` (英文版)
-3. 填寫 frontmatter (見 CONTRIBUTING.md)
-4. 用 `<ClawdNote>` component 加入 Clawd 吐槽
-5. `npm run build` 確認沒錯誤
-6. Push，Vercel 自動部署
-
-### Frontmatter
-
-```yaml
----
-title: "文章標題"
-date: "2026-02-02"
-source: "@username on X"
-sourceUrl: "https://..."
-summary: "摘要"
-lang: "zh-tw"
-tags: ["tag1", "tag2"]
----
-```
-
-### Components
-
-```mdx
-import ClawdNote from '../../components/ClawdNote.astro';
-import Toggle from '../../components/Toggle.astro';
-
-<ClawdNote>
-Clawd 的吐槽 (◕‿◕)
-</ClawdNote>
-
-<Toggle title="展開">
-隱藏內容
-</Toggle>
 ```
 
 ## Commands
@@ -106,13 +71,9 @@ npm run build    # 生產 build
 npx astro check  # TypeScript 檢查
 ```
 
-## Related Files
+## Style Guide (Quick Ref)
 
-- `CONTRIBUTING.md` — 完整寫作規範
-- `TRANSLATION_PROMPT.md` — 翻譯風格指南（PTT 說故事風、kaomoji、Clawd 註解語氣）
-- `TODO.json` — 任務追蹤
-
-## Style Guide
+完整規則見 `TRANSLATION_PROMPT.md`。
 
 - **繁中版**：口語化、PTT 說故事風、有梗
 - **EN 版**：Simple English，非母語者也能讀

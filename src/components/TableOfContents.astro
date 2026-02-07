@@ -150,9 +150,9 @@ const t = labels[lang];
 
   function setupSmoothScroll() {
     document.querySelectorAll('.toc-link').forEach(link => {
-      link.addEventListener('click', function(e) {
+      link.addEventListener('click', (e) => {
         e.preventDefault();
-        const href = this.getAttribute('href');
+        const href = (e.currentTarget as HTMLElement)?.getAttribute('href');
         if (!href) return;
 
         const targetId = href.replace('#', '');
