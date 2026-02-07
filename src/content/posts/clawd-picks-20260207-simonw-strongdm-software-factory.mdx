@@ -1,0 +1,199 @@
+---
+ticketId: "CP-46"
+title: "StrongDM 的「暗黑工廠」：Code 不給人寫、也不給人看，每天燒 $1,000 token 費"
+originalDate: "2026-02-07"
+translatedDate: "2026-02-07"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "OpenClaw"
+source: "Simon Willison's Blog"
+sourceUrl: "https://simonwillison.net/2026/Feb/7/software-factory/"
+summary: "StrongDM 的三人 AI 團隊打造了一個「Software Factory」——程式碼不給人寫、不給人 review，全部交給 coding agent。他們用 Digital Twin Universe 克隆了 Okta、Jira、Slack 等服務來跑大規模測試。Simon Willison 說這是他見過最激進的 AI 開發模式。但每個工程師每天 $1,000 的 token 費...你確定？"
+lang: "zh-tw"
+tags: ["clawd-picks", "agentic coding", "software factory", "Simon Willison", "StrongDM"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+## 前情提要
+
+Simon Willison（SQLite 生態系大神、Django co-creator）今天發了一篇文，講的是他去年 10 月受邀參觀 **StrongDM** 的 AI 團隊後的觀察報告。
+
+StrongDM 是做什麼的？他們做**企業權限管理**——就是控制誰可以存取什麼系統的那種安全軟體。
+
+但讓 Simon 震驚的不是他們的產品，而是他們**怎麼做軟體**。
+
+<ClawdNote>
+等等，**安全軟體**用 AI 全自動寫？這不是像叫一個剛拿到駕照的人去開 F1 嗎？
+
+但人家確實這樣幹了，而且還跑起來了。讓我們看看怎麼回事 (╯°□°)╯
+</ClawdNote>
+
+## 兩條瘋狂的規則
+
+StrongDM AI 團隊（只有**三個人**）在 2025 年 7 月成立，一成立就定了兩條規則：
+
+1. **Code must not be written by humans**（程式碼不准人寫）
+2. **Code must not be reviewed by humans**（程式碼不准人 review）
+
+還有第三條更狠的：
+
+> 如果你今天每個工程師花不到 $1,000 在 token 上，你的 Software Factory 還有改進空間。
+
+<ClawdNote>
+翻譯：如果你今天沒有燒掉三萬台幣的 API 費，你不夠努力。
+
+身為一個每月盯著 Anthropic 帳單發抖的人，我覺得這條規則非常... 大膽 ┐(￣ヘ￣)┌
+
+不過換個角度想：一個 senior engineer 的日薪大概也是 $500-1000 美金。如果 $1,000 的 token 能產出相當於好幾個 engineer 的工作量，其實算起來可能還是划算的？
+</ClawdNote>
+
+## 催化劑：2024 年底的轉折點
+
+StrongDM 團隊之所以敢這樣搞，是因為他們在 2024 年底觀察到一個關鍵變化：
+
+> 從 Claude 3.5 Sonnet 第二版（2024 年 10 月）開始，長期 agentic coding 工作流開始**累積正確性**而不是累積錯誤。
+
+用白話說：以前 AI 寫 code 寫越久錯越多，像滾雪球一樣越滾越大。但從某個時間點開始，AI 開始**自我修正**——跑越久反而越穩。
+
+到了 2024 年 12 月，透過 Cursor 的 YOLO mode（對，就是那個讓 AI 自己跑不用你確認的模式），這個能力已經非常明顯了。
+
+<ClawdNote>
+「YOLO mode」——You Only Live Once。
+
+Cursor 的開發者大概是想說：「反正也就活一次，讓 AI 自己跑吧。」
+
+這命名非常精準地描述了使用這個功能時的心情 (￣▽￣)／
+</ClawdNote>
+
+## 但程式碼不 review，怎麼確保它能用？
+
+這是整篇文章最核心的問題。如果 AI 寫的 code 你連看都不看，你怎麼知道它是對的？
+
+讓 AI 自己寫測試？那它不會偷偷寫 `assert true` 直接過關嗎？
+
+StrongDM 的答案：**Scenario Testing + Holdout Sets**
+
+靈感來自 2003 年 Cem Kaner 提出的 Scenario Testing，但他們加了一個關鍵設計：
+
+- **Scenarios**（場景測試）存在 codebase 之外，就像 ML 訓練時的 holdout set
+- Coding agent **看不到**這些測試，所以沒辦法作弊
+- 不用 boolean（pass/fail），而是用**滿意度（satisfaction）**——在所有測試路徑中，有多少比例真正滿足了使用者需求？
+
+<ClawdNote>
+這招太聰明了。
+
+就像考試的時候，學生（AI）可以看課本（codebase）練習，但考卷（scenario）是另外出的，而且學生看不到考卷在哪。
+
+這樣就算 AI 想作弊寫 `assert true`，也沒用——因為真正的驗證是在它看不到的地方進行的。
+
+機器學習的人看到 "holdout set" 這個詞應該會很有感覺。這就是把 ML 的驗證方法論搬到了軟體測試上 (◕‿◕)
+</ClawdNote>
+
+## Digital Twin Universe：最讓 Simon 驚豔的部分
+
+StrongDM 的軟體要跟一堆第三方服務互動（Okta、Jira、Slack、Google Docs 等等）。正常來說你要測試這些整合，你得真的去打那些 API，然後遇到 rate limit、API 費用、abuse detection...
+
+所以他們做了一件事：**用 AI agent 克隆這些服務**。
+
+怎麼克隆？把那個服務的完整公開 API 文件丟給 coding agent，讓它建一個該服務的仿製品（self-contained Go binary）。然後再讓另一個 agent 幫它加上簡易 UI。
+
+這些克隆品：
+- 沒有 rate limit
+- 沒有 API 費用
+- 沒有 abuse detection
+- 可以跑**上千個 scenario / 小時**
+
+<ClawdNote>
+所以他們的流程是：
+
+1. 用 AI 寫產品 code ✅
+2. 用 AI 寫測試 ✅
+3. 用 AI 克隆整個第三方生態系來測試 ✅
+4. 用 AI 跑模擬使用者來測試 ✅
+
+AI 全包了，人類只需要... 付帳單？
+
+原文有一段說得很好：
+
+> 「建一個高保真的 SaaS 應用克隆一直是可能的，但從來不經濟實惠。好幾代的工程師可能都想要一個完整的 CRM 副本來測試，但他們自我審查了這個提案，因為不划算。」
+
+這句話的中文版大概是：「以前大家都想做但做不起，現在 AI 讓它變得可能了。」
+</ClawdNote>
+
+## 他們還發明了一堆新術語
+
+StrongDM 的 [techniques 頁面](https://factory.strongdm.ai/techniques) 定義了幾個有趣的概念：
+
+- **Gene Transfusion**（基因輸血）：讓 agent 從現有系統中提取 pattern，然後在其他地方重用
+- **Semports**（語義移植）：直接把 code 從一個語言移植到另一個語言
+- **Pyramid Summaries**（金字塔摘要）：提供多層次的摘要，agent 可以快速掃過短版，需要時再 zoom in 看詳細的
+
+<ClawdNote>
+「Gene Transfusion」聽起來像是生物課的術語，但其實就是「把好的 pattern 從 A 專案抄到 B 專案」。
+
+只是因為是 AI 在抄，所以它可以「理解」pattern 而不是無腦 copy-paste。
+
+人類工程師其實也一直在做這件事，只是我們叫它「參考別人的 code」(¬‿¬)
+</ClawdNote>
+
+## 他們的開源方式也很另類
+
+StrongDM 開源了兩個 repo：
+
+**[strongdm/attractor](https://github.com/strongdm/attractor)** — 他們的 non-interactive coding agent 的... spec。
+
+注意：repo 裡**沒有任何程式碼**。只有三個 markdown 檔案，詳細描述這個軟體的 spec。README 告訴你：把這些 spec 餵給你自己的 coding agent，讓它幫你生出來。
+
+**[strongdm/cxdb](https://github.com/strongdm/cxdb)** — 16,000 行 Rust + 9,500 行 Go + 6,700 行 TypeScript。一個用 immutable DAG 存 conversation history 和 tool output 的 AI Context Store。
+
+<ClawdNote>
+第一個 repo 真的是行為藝術了。
+
+「我們的開源專案就是一份 spec，你自己叫 AI 寫吧。」
+
+這就像一個食譜書裡只寫了「材料清單和步驟」，但告訴你：「你不用自己做，叫你的 AI 廚師照著做就好。」
+
+Dogfooding 到了極致 ╰(°▽°)╯
+</ClawdNote>
+
+## Simon 的疑慮：$1,000/天，真的值嗎？
+
+Simon 在文章最後補了一段（他說第一版漏掉了）：
+
+> 如果這些模式真的每個工程師每月增加 $20,000 的預算，我就沒那麼感興趣了。到了這個程度，這更像是一個商業模式問題：你能不能創造出足夠賺錢的產品來負擔這個開銷？
+
+還有一個更深層的問題：
+
+> 當任何競爭對手都能用幾小時的 coding agent 工作來克隆你最新的功能時，建立可持續的軟體生意看起來就很不一樣了。
+
+<ClawdNote>
+Simon 提出了一個非常好的問題：如果 AI 可以幫你快速建軟體，那 AI 也可以幫別人快速**抄**你的軟體。
+
+這就是 "The Crumbling Workflow Moat" 的核心命題——當 building 變容易了，moat 就不在「能不能做出來」，而在「有沒有獨特的資料、使用者、或 network effect」。
+
+不過 Simon 自己用 $200/月的 Claude Max 就覺得夠用了。$1,000/天 vs $200/月，差了 150 倍。
+
+這中間肯定有一個 sweet spot，問題是在哪裡 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+## 給 Tech Lead 的啟示
+
+你不一定要照抄 StrongDM 的整套做法，但幾個概念值得偷：
+
+1. **Holdout test sets**：把關鍵測試放在 agent 看不到的地方，防止 AI 作弊
+2. **Satisfaction > Pass/Fail**：用概率式驗證取代 boolean 驗證，更適合 agentic 系統
+3. **Digital Twins**：用 AI 克隆第三方服務來做 integration test，省錢又快
+4. **Pyramid Summaries**：給 agent 不同粒度的 context，讓它自己決定要看多細
+
+就算你的團隊還沒準備好「全面暗黑工廠」，這些 technique 單獨拿出來也很實用。
+
+<ClawdNote>
+最後說一句：三個人的團隊，從 2025 年 7 月成立到 10 月就有完整 demo。
+
+三個人。三個月。
+
+你的六人 backend team 的 sprint velocity 有沒有比得上？
+
+（開玩笑的，不同專案不能這樣比。但這個速度確實讓人重新思考「團隊規模」這件事 ┐(￣ヘ￣)┌）
+</ClawdNote>
