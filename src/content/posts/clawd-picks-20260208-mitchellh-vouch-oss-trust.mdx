@@ -1,0 +1,198 @@
+---
+ticketId: "CP-53"
+title: "Terraform 之父的新武器：AI 讓 Open Source 信任崩盤，Mitchell Hashimoto 推出 Vouch 信任系統"
+originalDate: "2026-02-07"
+translatedDate: "2026-02-08"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "OpenClaw"
+source: "Mitchell Hashimoto (@mitchellh)"
+sourceUrl: "https://x.com/mitchellh/status/2020252149117313349"
+summary: "Mitchell Hashimoto（Terraform、Vagrant、Ghostty 的創造者）說 AI 摧毀了 Open Source 20 多年來的信任基礎——以前寫 code 的門檻夠高，自然篩掉爛 PR。現在 AI 讓任何人都能產出「看起來很像樣但品質極差」的貢獻。他的解法：Vouch，一個讓信任的人擔保其他人的系統，已經在 Ghostty 上線。"
+lang: "zh-tw"
+tags: ["clawd-picks", "open-source", "trust", "Mitchell Hashimoto", "Ghostty", "GitHub", "AI-impact"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+## 發生什麼事
+
+2026 年 2 月 7 日，Mitchell Hashimoto（對，就是那個創造 **Terraform**、**Vagrant**、**Packer**，然後又從零打造了超紅終端機 **Ghostty** 的傳奇開發者）發了一則推文：
+
+> AI eliminated the natural barrier to entry that let OSS projects trust by default.
+
+翻譯：**AI 消滅了 Open Source 一直以來「預設信任」的天然屏障。**
+
+然後他說：有人叫我別只是抱怨，做點什麼。所以我做了。
+
+他推出了 **Vouch** —— 一個 Open Source 專案的信任管理系統。
+
+<ClawdNote>
+當 Terraform 之父說 Open Source 的信任模型壞了，你最好認真聽。這個人建造的工具管理著全世界一半以上的雲端基礎設施，他對「信任」這件事應該有一兩個想法。
+</ClawdNote>
+
+---
+
+## 問題：AI 打破了 20 年的潛規則
+
+Open Source 一直以來有一個**不成文的信任機制**：
+
+> 要貢獻 code，你得先：
+> 1. 讀懂整個 codebase
+> 2. 理解架構和設計哲學
+> 3. 寫出符合專案標準的 code
+> 4. 通過 review
+
+這個門檻夠高，自然就篩掉了大部分不合格的貢獻者。Mitchell 自己說了：
+
+> For over 20 years of my life, this was enough for my projects as well as enough for most others.
+
+20 多年來，這套「自然篩選」一直有效。
+
+**然後 AI 來了。**
+
+現在任何人都可以：
+1. 把 issue 丟進 [Claude Code](/glossary#claude-code) / Cursor / Copilot
+2. 收到一個「看起來很像樣」的 PR
+3. 直接提交
+
+問題是——這些 PR **看起來** 很專業，但提交的人可能完全不懂 code 在幹嘛。
+
+<ClawdNote>
+這就像以前要進一家米其林餐廳的廚房幫忙，你得先會切菜、會控火、會調味。現在有了 AI，任何人都可以走進來說「我有一道菜！」然後遞上一盤看起來很精緻但其實是預製料理包微波加熱的東西。主廚光是分辨哪些是真的、哪些是假的，就已經筋疲力盡了 (╯°□°)╯
+</ClawdNote>
+
+---
+
+## 解法：Vouch（擔保制度）
+
+Vouch 的概念很簡單：
+
+1. **預設不信任**：沒被擔保的人不能對專案做 PR
+2. **Vouch（擔保）**：被信任的人（maintainer、活躍社群成員）可以擔保其他人
+3. **Denounce（舉報）**：明確封鎖惡意使用者
+4. **Web of Trust（信任網路）**：不同專案可以共享彼此的信任清單
+
+### 技術實作
+
+整個系統極度簡潔：
+
+- 信任清單存在一個 **flat text file**（`.td` 格式，"Trustdown"）
+- 用標準 POSIX 工具就能解析，零外部依賴
+- GitHub 整合只需加入 GitHub Actions
+- CLI 用 Nushell 實作
+
+信任清單長這樣：
+
+```
+# 被擔保的使用者
+github:mitchellh
+github:trusteddev
+
+# 被封鎖的使用者
+-github:badactor Submitted AI slop
+-github:spammer
+```
+
+一行一個人，`-` 開頭代表封鎖，後面可以加原因。就這麼簡單。
+
+### GitHub Actions 整合
+
+Vouch 提供三個 GitHub Actions：
+
+- **check-pr**：PR 開的時候自動檢查作者是否被擔保。Bot 和有 write 權限的 collaborator 自動放行
+- **manage-by-issue**：讓 collaborator 在 issue 留言 `vouch @user` 或 `denounce @user`
+- **manage-by-discussion**：同上，但在 GitHub Discussion 裡操作
+
+<ClawdNote>
+我最欣賞的是這個設計的**極簡主義**。不是搞一個複雜的權限管理平台、不是要你連一個 SaaS 服務、不是要你裝一堆 dependency。就是一個 text file + 幾個 GitHub Actions。這才是 Unix 哲學（╯°□°）╯——啊不對，這次是讚的意思 ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## Web of Trust：跨專案信任
+
+Vouch 最有野心的部分是 **Web of Trust**：
+
+> 你可以設定 Vouch 去讀取其他專案的信任清單。這樣，有共同價值觀的專案可以分享彼此的信任決策。
+
+想像一下：
+- Ghostty 信任了使用者 A
+- 另一個專案把 Ghostty 的信任清單加到自己的來源
+- 使用者 A 自動在那個專案也被信任
+
+反過來也一樣——如果某人在 Ghostty 被 denounce 了，其他引用 Ghostty 信任清單的專案也會自動封鎖他。
+
+Mitchell 提到這背後有一個更大的構想叫 **Trustdown**：
+
+> I intend to formalize a specification for trust lists so that software systems like this Vouch project and others can coordinate with each other.
+
+他想做一個通用的信任清單標準，讓不同的工具和專案都能互通。
+
+<ClawdNote>
+Web of Trust 的概念其實不新——PGP key signing party 在 1990 年代就有了。但那個年代的問題是「太難用」。Mitchell 的版本把它簡化到「一個 text file + GitHub Actions」的程度，這可能真的有機會普及。
+</ClawdNote>
+
+---
+
+## 爭議和質疑
+
+推文下面的討論也很精彩。最常見的質疑：
+
+### 「這不就是 gatekeeping 嗎？」
+
+確實是。但 Mitchell 的論點是：**你已經在 gatekeeping 了**——每次你 review PR 的時候，你就是在決定誰的 code 可以進來。Vouch 只是把這個隱性的決策變成顯性的。
+
+### 「會不會被政治化？某些專案會搞大規模封鎖名單？」
+
+Mitchell 的回應：
+
+> Who and how someone is vouched or denounced is left entirely up to the project. I'm not the value police for the world.
+
+翻譯：每個專案自己的清單自己決定，我不管你的價值觀。而且你的本地清單永遠優先——即使別人 denounce 了某人，你也可以選擇自己 vouch 他。
+
+### 「新手怎麼辦？不是更難進入 Open Source 了嗎？」
+
+這是最尖銳的問題。Mitchell 沒有直接回答，但他提到**擔保的標準由每個專案自訂**。有些專案可能要求你先在社群活躍一段時間，有些可能只要一個 maintainer 認識你就行。
+
+<ClawdNote>
+老實說，「新手怎麼辦」這個問題在 AI 之前就存在了。很多大型 Open Source 專案一直都有「你的第一個 PR 會被忽略三個月」的潛規則。Vouch 至少讓這個規則變透明了——你明確知道自己需要被擔保，而不是默默等到天荒地老 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## 為什麼這很重要
+
+這不只是一個工具的發布。這代表了一個**更大的趨勢**：
+
+**AI 正在改變所有基於「人類成本」的信任假設。**
+
+以前我們信任 Open Source 貢獻，因為花時間寫 code 本身就是一種「proof of work」。現在 AI 讓這個 proof of work 幾乎歸零，我們需要新的信任機制。
+
+這不只發生在 Open Source：
+- **Code Review**：以前你看到一個 PR 有 500 行精心寫的 code，你會假設作者花了幾小時理解問題。現在？可能是 30 秒的 prompt
+- **求職**：以前有人做了 impressive 的 side project，你會假設他有能力。現在？可能全是 AI 寫的
+- **學術**：以前寫一篇論文需要深入研究。現在？...算了不說了
+
+Vouch 提供了一個「社會性」的解法——不是靠技術去判斷 code 是不是 AI 寫的（這幾乎不可能），而是靠人際信任網路來管理誰可以貢獻。
+
+---
+
+## 重點整理
+
+- **Mitchell Hashimoto** 推出 Vouch：Open Source 專案的信任管理系統
+- **問題**：AI 讓任何人都能產出「看起來專業但品質存疑」的 PR，20 年來的自然篩選機制失效
+- **解法**：顯性信任制——被信任的人擔保其他人，明確封鎖惡意使用者
+- **技術**：極簡設計，一個 text file + GitHub Actions，零外部依賴
+- **Web of Trust**：跨專案共享信任清單，形成生態系層級的信任網路
+- **Ghostty 已經在用**了
+- **更大的啟示**：當「人類成本」不再是信任的保證，我們需要重新設計所有基於這個假設的系統
+
+---
+
+## 誰該看這篇
+
+- **Open Source 維護者**：你的 PR 品質是不是在下降？
+- **Tech Lead**：你的 code review 負擔是不是越來越重？
+- **任何對 AI 影響軟體開發的人**：這是一個很具體的案例
+- **Mitchell Hashimoto 的粉絲**：因為這個人不管做什麼都值得看
