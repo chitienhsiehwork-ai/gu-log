@@ -154,6 +154,30 @@ Google 2017 年丟出這顆核彈後，整個 NLP 界直接進入新紀元。
 
 ---
 
+## 🖼️ 圖片
+
+如果原文有重要的圖片/圖表：
+
+1. 下載圖片到 `src/assets/posts/<article-slug>/` 資料夾
+2. 在 MDX 檔案頂部 import：
+   ```mdx
+   import PostImage from '../../components/PostImage.astro';
+   import img1 from '../../assets/posts/<article-slug>/image-name.png';
+   ```
+3. 在適當位置插入：
+   ```mdx
+   <PostImage src={img1} alt="描述" caption="圖片說明（選填）" />
+   ```
+
+**注意事項**：
+- `alt` 是必填的（無障礙 accessibility）
+- `caption` 選填，會顯示在圖片下方的斜體說明文字
+- `width` 選填，可控制圖片寬度（像素）
+- 圖片會自動被 Astro 優化（壓縮、轉 webp 等）
+- 支援 `.png`、`.jpg`、`.jpeg`、`.webp`、`.gif` 等格式
+
+---
+
 ## 💡 範例：同一段內容的雙語版本
 
 **原文**：

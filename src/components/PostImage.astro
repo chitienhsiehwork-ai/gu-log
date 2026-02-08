@@ -1,0 +1,36 @@
+---
+import { Image } from 'astro:assets';
+
+interface Props {
+  src: ImageMetadata;
+  alt: string;
+  caption?: string;
+  width?: number;
+}
+
+const { src, alt, caption, width } = Astro.props;
+---
+
+<figure class="post-image">
+  <Image src={src} alt={alt} width={width} />
+  {caption && <figcaption>{caption}</figcaption>}
+</figure>
+
+<style>
+  .post-image {
+    margin: 1.5rem 0;
+    text-align: center;
+  }
+  .post-image img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+  }
+  figcaption {
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+    margin-top: 0.5rem;
+    font-style: italic;
+  }
+</style>
