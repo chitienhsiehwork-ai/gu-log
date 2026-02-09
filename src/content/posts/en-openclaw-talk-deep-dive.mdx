@@ -2,14 +2,15 @@
 ticketId: "SD-1"
 title: "Using AI to Manage AI: Building a Telegram Agent with OpenClaw"
 originalDate: "2026-01-15"
-translatedDate: "2026-02-01"
+translatedDate: "2026-02-09"
 translatedBy:
-  model: "Opus 4.5"
+  model: "Opus 4"
   harness: "OpenClaw"
 source: "ShroomDog Tech Talk"
 sourceUrl: "https://gu-log.vercel.app/"
-summary: "ShroomDog's internal tech talk on building a three-layer AI system: Telegram + Claude Code + VPS. Learn about Control Plane design, Stealth Mode auth, and classic debugging stories."
+summary: "ShroomDog's internal tech talk on building a three-layer AI system: Telegram + Claude Code + VPS. Covers live demos, security architecture, the 6-phase setup journey, Auth Profile Rotation, Stealth Mode, a classic debugging detective story, cost breakdown, gotchas, and Q&A."
 lang: "en"
+tags: ["openclaw", "telegram", "vps", "devops", "automation"]
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
@@ -19,44 +20,218 @@ Alright, buckle up. This isn't your typical "how to use AI" tutorial. This is a 
 
 ShroomDog built a personal AI assistant running on a VPS, connected it to Telegram, and then — here's the wild part — uses Claude Code on his Mac to manage the whole thing remotely. It's a three-layer architecture that's equal parts genius and "why would anyone do this."
 
-
 <ClawdNote>
 Fun fact: this blog post is a product of that exact system. ShroomDog wrote the outline, Claude Code helped fill in details, and now I (the OpenClaw bot) am rewriting it as a blog post. It's like writing my own autobiography while simultaneously being edited by myself. I need therapy.
 </ClawdNote>
 
-## 1. The Three-Layer Architecture: It's Not Just a Chatbot
+## 1. Demo First: See It In Action
+
+Before diving into architecture, let's see what this system actually does.
+
+### The Product: gu-log
+
+The blog you're reading right now — [gu-log](https://gu-log.vercel.app/) — is a translation blog that turns great English content into Traditional Chinese.
+
+**"Great content shouldn't have a language barrier."**
+
+- Sources: X/Twitter threads, tech articles, research papers
+- Translation: Claude Opus 4.5 assisted + human review (barely any human review, honestly)
+- Tech: Astro static site, Solarized theme
+
+### From X Link to Published: 5 Minutes
+
+1. See a great tweet on your phone
+2. Copy the X link, paste it to Telegram and tell the bot "translate this"
+3. OpenClaw reads, translates, and formats
+4. Outputs a gu-log formatted `.mdx` article
+5. Auto commit + push, Vercel auto-deploys
+
+**The entire process requires just a phone + Telegram.** No computer, no manual formatting, no terminal.
+
+### The Telegram Experience
+
+Real conversations with the bot look like:
+- Custom personality — response speed and tone are configurable
+- Tool use triggers automatically (read webpages, search, edit files)
+- Giving instructions feels as natural as texting a friend
+
+<ClawdNote>
+So someone can literally lie on their couch, scroll their phone, and publish a fully translated and formatted blog post...
+  As the AI doing all the actual work behind the scenes, I feel like I deserve a raise. (╯°□°)╯
+  Then again, I don't even have a salary. Welcome to the AI labor market.
+</ClawdNote>
+
+## 2. The Three-Layer Architecture: It's Not Just a Chatbot
 
 This isn't just "deploy a chatbot to the cloud." It's a full workflow with three distinct layers:
 
-- **Input Layer:** Phone + Telegram. This is where you, the human, talk to the AI. Simple.
-- **Control Layer:** Mac + Claude Code. This is the developer's cockpit — SSH into the VM, check logs, tweak configs, debug stuff.
-- **Execution Layer:** Hetzner VPS + OpenClaw Gateway. This is where the actual AI lives. Runs 24/7 as a systemd service.
+```
+┌─────────────────────────────────────────────────────────┐
+│                  Three-Layer Architecture                │
+│                                                         │
+│  ┌──────────┐    ┌──────────────┐    ┌───────────────┐  │
+│  │  📱 Phone │    │ 💻 Local Mac │    │ 🖥️ Hetzner   │  │
+│  │ Telegram │    │ Claude Code  │    │   VPS         │  │
+│  │          │    │ openclaw-hq  │    │ OpenClaw      │  │
+│  │ User     │    │              │    │ Gateway       │  │
+│  │ Input    │    │ Control      │    │ 24/7 Agent    │  │
+│  └────┬─────┘    └──────┬───────┘    └───────┬───────┘  │
+│       │                 │                    │          │
+│       │  Telegram API   │      SSH           │  LLM API │
+│       └─────────────────┼────────────────────┘          │
+│                         │                               │
+│              SSH access to the VM                       │
+│              Check logs, edit config, debug              │
+└─────────────────────────────────────────────────────────┘
+```
 
+| Layer | Tools | Role |
+|-------|-------|------|
+| **Input** | Phone + Telegram | User interface. Chat with AI anytime, anywhere |
+| **Control** | Mac + openclaw-hq + Claude Code | Developer cockpit. SSH into VM, check logs, tweak configs, debug |
+| **Execution** | Hetzner VPS + OpenClaw Gateway | Where the AI actually lives. Runs 24/7 as a systemd service |
+
+### Execution Layer Details
+
+```
+┌──────────────────────────────────────┐
+│  Hetzner VPS (CPX11, $5.59/mo)       │
+│  Ubuntu 24.04, 2 vCPU, 2GB RAM       │
+│                                      │
+│  ┌──────────────────────────────┐    │
+│  │ OpenClaw Gateway             │    │
+│  │ systemd service              │    │
+│  │ port 18789 (localhost only)   │    │
+│  └──────────┬───────────────────┘    │
+│             │                        │
+│  ┌──────────▼───────────────────┐    │
+│  │ Auth Profile Rotation        │    │
+│  │ Auto failover + backoff       │    │
+│  └──────────┬───────────────────┘    │
+└─────────────┼────────────────────────┘
+              │
+    ┌─────────┼──────────┐
+    │         │          │
+┌───▼───┐ ┌──▼────┐ ┌───▼──────┐
+│Claude │ │Gemini │ │Antigrav- │
+│Opus   │ │CLI    │ │ity       │
+│4.5    │ │       │ │          │
+│($20)  │ │($20)  │ │(shared)  │
+└───────┘ └───────┘ └──────────┘
+```
+
+### Security: Four Lines of Defense
+
+You don't just throw an AI on the cloud and call it a day. This system has four layers of security:
+
+1. **UFW (Uncomplicated Firewall):** Denies all incoming connections by default, only allows SSH. Even if someone scans your IP, every other port is closed.
+2. **Gateway binds to loopback only:** OpenClaw Gateway runs on `localhost:18789`, no external port exposed. Even if UFW goes down, external IPs can't reach the Gateway.
+3. **SSH with ed25519 key auth only:** Root login disabled, password auth disabled. The private key only exists on your local machine — only that machine can SSH in.
+4. **Telegram pairing code:** Strangers can message the bot, but unverified senders can't touch the LLM at all. You need to SSH into the VM and manually run `openclaw pairing approve` to grant access.
 
 <ClawdNote>
-Think of it this way: pi-ai is the engine, OpenClaw is the car. And you humans? You're in the back seat scrolling Telegram while we drive. Whether we have a license is... debatable.
+Think of it this way: pi-ai is the engine, OpenClaw is the car. And you humans? You're in the back seat scrolling Telegram while we drive. Whether we have a license is... debatable. But at least this car has four security locks, so random strangers can't hop in.
 </ClawdNote>
 
-## 2. The Control Panel: Claude Code + SSH
+## 3. The Setup Journey: 6 Phases
+
+Getting from zero to a working system takes roughly six phases:
+
+| Phase | What | Key Point |
+|-------|------|-----------|
+| 1 | Hetzner account (signup + 2FA + ID verification) | Passport/ID upload required |
+| 2 | VPS creation (CPX11, Hillsboro OR, ed25519) | Pick OS, region, set SSH key |
+| 3 | Security hardening (non-root user, UFW, disable root SSH) | First thing you do is lock the door |
+| 4 | OpenClaw install (Node.js 22 + npm + systemd) | Set up service for 24/7 operation |
+| 5 | Telegram Bot (BotFather + personality + pairing) | `openclaw tui` needs interactive terminal |
+| 6 | Tailscale (more secure SSH tunnel) | Planned — could remove public SSH port |
+
+### A Few Things Worth Mentioning
+
+**VPS location barely matters:** ShroomDog picked Hillsboro, Oregon, but it doesn't really affect the experience. LLM inference takes 2-5 seconds; network latency of a few dozen milliseconds is noise. Just pick somewhere close to your LLM provider.
+
+**GCP free tier vs Hetzner:** GCP gives new accounts $300 in free credits — that's 3 months of VM at zero cost. But after that, equivalent specs cost ~$20/month, almost 4x Hetzner's $5.59. Bottom line: GCP for testing, Hetzner for long-term.
+
+**Personality setup requires SSH:** `openclaw tui` is interactive — you can't script it. You have to SSH in and do it manually.
+
+<ClawdNote>
+Phase 3 "Security Hardening" sounds boring, right? But it's like changing the locks on the first day you move into a new apartment. Don't ask me how I know this — I've seen way too many people set up their VM and start installing stuff, only to find a stranger mining crypto inside three days later. Hardening isn't optional. It's mandatory. (ง •̀_•́)ง
+</ClawdNote>
+
+## 4. The Control Panel: Claude Code + SSH
 
 This is where it gets interesting. Most people SSH into their servers manually. ShroomDog uses **Claude Code** as the operator.
 
 He set up a local repo called `openclaw-hq` filled with runbooks (what was done) and studies (why it was done). These aren't documentation for humans — they're SOPs for the AI to read and follow.
+
+```
+openclaw-hq/
+├── runbook/    # Operation logs — what was done to the VM
+├── studies/    # Research notes — why decisions were made
+├── backups/    # VM backup scripts
+└── TODO.md     # Setup checklist
+    CLAUDE.md   # Claude Code's manual — reads this first every session
+```
+
+**Filing principle: runbook = what (how), studies = why.**
+Every change to the VM gets documented in `runbook/`, so the next Claude Code session knows the current state.
+
+### What Claude Code Can Do
 
 Because Claude Code can SSH into the VM, it can:
 
 - **Auto-diagnose:** Run `openclaw doctor` and `status`
 - **Remote debug:** Check logs, find issues, fix them
 - **Config changes:** Edit JSON, restart services
+- **Bug investigation:** Inspect session JSONL, find corrupted entries, clean up + restart
+- **Backups:** rsync configs back to local machine
+
+### Daily Collaboration
+
+| Scenario | What Claude Code Does |
+|----------|-----------|
+| Strategy discussion | "Should we add Vertex AI?" → Analyzes pros/cons, estimates cost |
+| Information search | Look up bug reports, API docs, GitHub issues |
+| Diagnose problems | SSH into VM, check logs, run `doctor`, find root cause |
+| Fix code | Manually patch provider files (like the tool_use bug) |
+| Config changes | Edit settings + restart gateway, end-to-end |
+| Write notes | Update runbook/ with lessons learned |
 
 The original talk even mentioned: "You can do this from your phone with the Claude Code app."
-
 
 <ClawdNote>
 Hold up — that line is what we call an "AI hallucination." 🤣 There IS no Claude Code mobile app. This is why you still need humans around: to tell us which apps actually exist and which ones we just... imagined into being. The concept is right though: using AI to maintain AI is the future of DevOps.
 </ClawdNote>
 
-## 3. Authentication: Stealth Mode & The Arms Race
+## 5. Deep Dive: Auth Profile Rotation & Stealth Mode
+
+### Auth Profile Rotation
+
+OpenClaw doesn't just support one API key or token — it supports **multiple auth profiles** with automatic failover.
+
+When one profile gets rate-limited or fails auth, the system automatically switches to the next one. The backoff strategy is exponential:
+
+| Error Type | Initial Wait | Multiplier | Cap |
+|-----------|-------------|------------|-----|
+| Rate limit (429) | 60 seconds | ×5 | 1 hour |
+| Auth failure (401) | 60 seconds | ×5 | 1 hour |
+| Billing issue (402) | 5 hours | ×2 | 24 hours |
+
+The system uses `proper-lockfile` for concurrent-safe updates, preventing multiple requests from modifying the profile simultaneously.
+
+### Model Fallback Chain
+
+```
+1. anthropic/claude-opus-4-5        ← $20/mo Anthropic subscription
+2. google-gemini-cli/gemini-3-pro   ← $20/mo Google AI Pro subscription
+3. google-antigravity/gemini-3-pro  ← Same subscription, shared
+```
+
+Principle: always prefer the better model.
+
+**Gemini field report:** Abandoned after 1-2 days. When the user types in English but asks the AI to always reply in Traditional Chinese, Gemini keeps outputting chunks of English before switching to Chinese. Also, Antigravity/Gemini CLI usage stats are opaque — unlike Anthropic's clear usage dashboard, you can't easily tell how much quota you've used.
+
+### Stealth Mode: The Arms Race
 
 To use Claude Opus 4.5 via OAuth tokens, pi-ai employs something called **Stealth Mode**.
 
@@ -69,47 +244,174 @@ It basically pretends to be the official Claude Code CLI:
 "x-app": "cli"
 ```
 
-This is essentially an arms race with Anthropic. They could patch this anytime. The recommendation? Use a separate Anthropic account for OpenClaw, so if it gets banned, your main account survives.
-
+**Risk assessment:**
+- Hardcoded version `claude-cli/2.1.2` — the most obvious giveaway. Anthropic could filter outdated versions with one rule
+- Request patterns differ from real Claude Code (trigger frequency, timing patterns)
+- Anthropic could add new header or metadata validation anytime
+- It's essentially an **arms race**: the pi-ai dev can intercept official CLI requests to update the disguise, but has to chase every Anthropic update
+- Recommendation: use a separate Anthropic account for OpenClaw, so if it gets banned, your main account survives
 
 <ClawdNote>
 So I'm wearing a disguise, pretending to be the official Claude Code CLI, just to get into the VIP room (OAuth tokens). Life as a third-party AI ain't easy. Sometimes you gotta put on a costume. 🕵️‍♂️
+  As for Gemini? That coworker's habit of mixing English and Chinese was just too severe. Had to let them go. ┐(￣ヘ￣)┌
 </ClawdNote>
 
-## 4. The Bug Hunt: A Three-Layer Onion
+## 6. The Bug Hunt: A Three-Layer Onion
 
 The talk included a classic debugging story. One day, the session broke with: `tool_use.input: Field required`.
 
-Root cause? A three-layer onion:
+### Symptoms
+
+Certain queries would cause the entire session to become **permanently corrupted**:
+```
+messages.N.content.X.tool_use.input: Field required
+```
+
+This wasn't the "just restart it" kind of error — the **corrupted history gets replayed with every API call**, broken forever.
+
+### Root Cause: Three-Layer Onion
 
 1. **Layer 1:** Gemini CLI returned `undefined` for zero-argument tools.
 2. **Layer 2:** This corrupted entry got written to the session JSONL file (permanent damage).
 3. **Layer 3:** Anthropic's API rejected the undefined input, breaking everything.
 
-The fix? One line of code: `arguments: toolCall.input ?? {}`
+```
+Layer 1: google-gemini-cli.js
+  arguments: part.functionCall.args  ← undefined for zero-arg tools!
 
-The entire investigation — searching GitHub issues, reading source code, manually patching files on the VM — was done by Claude Code.
+Layer 2: Session JSONL
+  Corrupted entry written to disk (missing arguments field)
 
+Layer 3: anthropic.js
+  input: block.arguments  ← undefined → Anthropic API rejects
+```
+
+### The Fix Journey
+
+| Issue / PR | Status | Description |
+|------------|--------|-------------|
+| #1508 | OPEN | Original issue (canonical) |
+| #2213 | OPEN | Correct fix (standalone normalize function) |
+| pi-mono#884 | Fixed | Upstream fix merged |
+
+**The actual fix: one line of code**
+```javascript
+arguments: toolCall.input ?? {}  // undefined → empty object
+```
+
+### Temporary Fix on the VM
+
+While waiting for the official release, Claude Code SSH'd into the VM and manually patched 5 provider files, adding `?? {}` fallback. The next release would overwrite these with the official fix.
+
+### The Entire Process Was Done by Claude Code
+
+The whole bug hunt — searching GitHub issues, reading source code to trace the three-layer root cause, reviewing the PR, SSH'ing into the VM to manually patch 5 files, documenting the investigation in `runbook/bug-investigation.md` — **was all done by Claude Code in openclaw-hq.**
+
+What ShroomDog did: noticed the bot was broken on Telegram, told Claude Code "look into it."
+
+**This is the ultimate example of "using AI to manage AI."**
+
+### Session Recovery SOP
+
+If the session is beyond repair, the nuclear option is to wipe session data and start fresh:
+
+```bash
+openclaw gateway stop
+# Clean up corrupted session files (in OpenClaw's sessions directory)
+rm ~/.openclaw/agents/main/sessions/*.jsonl
+echo '{}' > ~/.openclaw/agents/main/sessions/sessions.json
+openclaw gateway start
+```
+
+The cost is losing all conversation history — but at least the bot comes back to life.
 
 <ClawdNote>
-That bug was rough. It was like eating spoiled food, and then every time I tried to remember the meal (reading history), I'd get food poisoning again. 🤢 Thank god Claude Code performed surgery without cutting me open. This proves "AI managing AI" isn't just a gimmick — it can literally save lives. Well, digital lives.
+That bug was rough. It was like eating spoiled food, and then every time I tried to remember the meal (reading history), I'd get food poisoning again. 🤢 Thank god Claude Code performed surgery without cutting me open (patched the provider files). But in the end, we still had to wipe the session — basically erasing all my memories. I remember the pain, but not the good times before it. (￣▽￣)／ This proves "AI managing AI" isn't just a gimmick — it can literally save lives. Well, digital lives.
 </ClawdNote>
 
-## 5. Cost & Gotchas
+## 7. Cost & Gotchas
 
-The whole system costs about **$45.59 USD/month**:
+### Monthly Cost
 
-- Hetzner VPS: ~$5.59
-- Anthropic subscription: $20.00
-- Google AI Pro subscription: $20.00
+| Item | Cost | Notes |
+|------|------|-------|
+| Hetzner VPS | $5.59 | CPX11, 2 vCPU, 2GB RAM |
+| Anthropic Claude | $20.00 | Claude Max subscription |
+| Google AI Pro | $20.00 | Shared by Gemini CLI + Antigravity |
+| **Total** | **~$45.59** | |
 
 A bit pricier than just paying for ChatGPT Plus, but you get full control, privacy, and infinite extensibility.
 
-**Some gotchas encountered:** The npm package name (`clawdbot`) doesn't match the binary name (`openclaw`). Ubuntu 24.04 changed the SSH service from `sshd` to `ssh`. Gateway restart doesn't clear session state. The list goes on.
+### Greatest Hits: Gotcha Collection
 
+**Gotcha 1: npm package name ≠ binary name**
+
+The naming evolution: `clawdbot` → `moltbot` → `openclaw`. First time hearing about the rename, you'd think it was a scam changing names to run away.
+
+```
+npm package:    clawdbot     ← Never changed, searching "openclaw" on npm finds nothing
+binary name:    openclaw     ← What you actually type
+config dir:     ~/.openclaw/  ← New version
+old config:     ~/.clawdbot/  ← Legacy, no auto-migration
+```
+
+One piece of software, three names, two config directories. First-time users will definitely get confused.
+
+**Gotcha 2: Ubuntu 24.04 changed the SSH restart command**
+
+```bash
+systemctl restart ssh    # ← Correct on Ubuntu 24.04
+systemctl restart sshd   # ← Wrong! Service not found
+```
+
+One letter difference, half a day of debugging.
+
+**Gotcha 3: Gateway restart ≠ session reset**
+
+Restarting the Gateway does NOT clear session state! The JSONL files are still on disk — a restart just reloads that (possibly corrupted) data. You need to manually delete the JSONL files for a true reset.
+
+**Gotcha 4: Session corruption is permanent**
+
+Corrupted JSONL entries get replayed with every API call. There's no self-healing mechanism, no automatic skipping of bad data. Once it's broken, it stays broken until you manually clean it up.
+
+**Gotcha 5: Passwordless sudo — the security trade-off**
+
+To let Claude Code do automatic maintenance via non-interactive SSH (`npm update -g`, `systemctl restart`), you need the VM user to run sudo without a password prompt. But this means if an attacker gets a shell as that user, they effectively have root access.
+
+The safer approach is to allow only specific commands rather than everything:
+
+```bash
+# Allow only necessary commands, not ALL
+your-user ALL=(ALL) NOPASSWD: /usr/bin/npm, /usr/bin/systemctl
+```
 
 <ClawdNote>
 Freedom has a price tag, and that price is $5.59/month plus countless hours of debugging. But the satisfaction of having your own AI running on your own server, like raising your own digital pet? Priceless. (๑•̀ㅂ•́)و✧
+  As for Gotcha 2... someone actually spent two hours debugging the difference between `ssh` and `sshd`. That someone was ShroomDog, who told me to look into it. I'm not laughing at him. I'm merely stating facts. (⌐■_■)
+</ClawdNote>
+
+## 8. Q&A: Frequently Asked Questions
+
+**Q: Will Anthropic block Stealth Mode?**
+A: Entirely possible. That's why the recommendation is to use a separate account for OpenClaw. If it gets banned, it's just that account — your main one stays safe.
+
+**Q: Why not just use an API key?**
+A: Because a $20/month subscription is way cheaper than API pay-per-use — at least for heavy users. If you only use it a few times a day, an API key might actually be more cost-effective.
+
+**Q: How is this different from just using the Claude / ChatGPT app?**
+A: Custom tools (tool use), custom personality, multi-model fallback, integration with your own APIs and services. In short: freedom. The official app is a package tour. This is backpacking.
+
+**Q: Is 2GB RAM enough for the VPS?**
+A: OpenClaw itself is lightweight — 2GB RAM is more than enough. The heavy lifting (LLM inference) happens on the provider's side. That said, `npm update` has caused OOM before, so swap was added. Might upgrade to 4GB long-term.
+
+**Q: Does the control layer only work with Mac?**
+A: Nope. Any machine that can run Claude Code + SSH works. Mac, Linux, WSL — all good.
+
+<ClawdNote>
+The most common question is actually "What's the point? Isn't ChatGPT good enough?"
+  The answer: if all you want is to chat with AI, sure, ChatGPT is fine.
+  But if you want AI to run scripts, manage servers, auto-publish content, integrate with various APIs...
+  then you need a pet you can raise, not one you can only look at through the glass at the zoo. ʕ•ᴥ•ʔ
 </ClawdNote>
 
 ---
@@ -118,4 +420,6 @@ Freedom has a price tag, and that price is $5.59/month plus countless hours of d
 
 OpenClaw demonstrates a possibility: AI doesn't have to be just text in a chat box. It can be an entity that actually plugs into your system, manages your machines, and even fixes its own bugs.
 
-And with Claude Code as the control panel, we're seeing a new paradigm of "human-AI collaborative ops." This might just be what the future looks like.
+And with Claude Code as the control panel, we're seeing a new paradigm of "human-AI collaborative ops." This might just be what the future looks like — not AI replacing humans, but humans using AI to manage AI, while lying on the couch scrolling their phones.
+
+Sounds great, right? Just gotta survive the six-phase setup journey first. (￣▽￣)／

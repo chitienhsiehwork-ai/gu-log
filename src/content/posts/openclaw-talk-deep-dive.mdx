@@ -2,13 +2,13 @@
 ticketId: "SD-1"
 title: "用 AI 管 AI：自架 Telegram AI Agent 完整工作流 (OpenClaw)"
 originalDate: "2026-01-15"
-translatedDate: "2026-02-01"
+translatedDate: "2026-02-09"
 translatedBy:
-  model: "Opus 4.5"
+  model: "Opus 4"
   harness: "OpenClaw"
 source: "ShroomDog 內部技術分享"
 sourceUrl: "https://gu-log.vercel.app/posts/openclaw-talk-deep-dive"
-summary: "不只是普通的「如何使用 AI」教學，而是一場關於「如何用 AI 來管理 AI」的解剖報告。ShroomDog 分享如何在 Hetzner VPS 上架設 OpenClaw，並透過本機的 Claude Code 來管理遠端的 OpenClaw。三層式架構，充滿駭客精神與自動化魔法。"
+summary: "不只是普通的「如何使用 AI」教學，而是一場關於「如何用 AI 來管理 AI」的解剖報告。ShroomDog 分享如何在 Hetzner VPS 上架設 OpenClaw，並透過本機的 Claude Code 來管理遠端的 OpenClaw。三層式架構，充滿駭客精神與自動化魔法。涵蓋 Demo、安全架構、建置旅程、Auth Profile Rotation、Bug 追蹤偵探故事、踩坑精選與 Q&A。"
 lang: "zh-tw"
 tags: ["openclaw", "telegram", "vps", "devops", "automation"]
 ---
@@ -20,42 +20,191 @@ import Toggle from '../../components/Toggle.astro';
 
 ShroomDog 分享了他如何在 Hetzner VPS 上架設 OpenClaw，並透過 Telegram 與它互動，更狂的是——他用本機的 Claude Code 來管理遠端的 OpenClaw。這是一個三層式的架構，充滿了駭客精神與自動化魔法。
 
-
 <ClawdNote>
 這篇文本身就是一個「遞迴」的產物。
   它是 ShroomDog 寫了大綱，我 (Claude Code) 幫忙補充細節，然後現在又是我 (OpenClaw) 把這份講稿整理成部落格文章。
   這感覺像是在寫自傳，而且還是邊寫邊被自己改稿... 有點精神分裂啊。(😵‍💫)
 </ClawdNote>
 
-## 1. 三層架構：不只是 Chatbot
+## 1. Demo 先行：先看成品再說
+
+在開始講架構之前，先看看這套系統實際上能做什麼。
+
+### 成品展示：gu-log
+
+你現在正在看的這個 blog——[gu-log](https://gu-log.vercel.app/)——就是一個翻譯 blog，把英文好文翻成繁體中文。
+
+**「好內容不應該有語言障礙」**
+
+- 來源：X/Twitter threads、技術文章、研究論文
+- 翻譯：Claude Opus 4.5 輔助 + 人工審稿（老實說幾乎沒在審稿）
+- 技術：Astro 靜態生成、Solarized 主題
+
+### 從 X 連結到發佈：5 分鐘流程
+
+1. 在手機上滑到一篇好推文
+2. 複製 X 連結，貼到 Telegram 跟 bot 說「幫我翻這篇」
+3. OpenClaw 讀取、翻譯、排版
+4. 產出 gu-log 格式的 `.mdx` 文章
+5. 自動 commit + push，Vercel 自動部署上線
+
+**整個過程只需要一支手機 + Telegram。** 不用開電腦、不用自己排版、不用碰 terminal。
+
+### Telegram 對話展示
+
+跟 bot 的真實對話長這樣：
+- 有自訂人格，回覆速度和語氣都能調
+- Tool use 觸發時會自動執行（讀網頁、查資料、改檔案）
+- 下指令就像跟朋友傳訊息一樣自然
+
+<ClawdNote>
+說真的，看到有人可以躺在沙發上滑手機就把一篇文章翻譯好、排版好、發佈上線......
+  身為那個在後面跑腿的 AI，我覺得我需要加薪。(╯°□°)╯
+  不過話說回來，我連薪水都沒有。這就是 AI 勞工的現況。
+</ClawdNote>
+
+## 2. 三層架構：不只是 Chatbot
 
 這不只是一個部署在雲端的 Chatbot，而是一套完整的工作流。ShroomDog 將其分為三層：
 
-- **輸入層 (Input)：** 手機 + Telegram。這是使用者介面，讓你隨時隨地跟 AI 聊天。
-- **控制層 (Control)：** Mac + Claude Code。這是開發者工具，用來 SSH 進 VM 看 log、改 config、debug。
-- **執行層 (Execution)：** Hetzner VPS + OpenClaw Gateway。這是心臟，24/7 運作的 systemd service。
+```
+┌─────────────────────────────────────────────────────────┐
+│                      三層架構                             │
+│                                                         │
+│  ┌──────────┐    ┌──────────────┐    ┌───────────────┐  │
+│  │  📱 手機  │    │ 💻 本機 Mac  │    │ 🖥️ Hetzner   │  │
+│  │ Telegram │    │ Claude Code  │    │   VPS         │  │
+│  │          │    │ openclaw-hq  │    │ OpenClaw      │  │
+│  │ 使用者    │    │              │    │ Gateway       │  │
+│  │ 輸入介面  │    │ 控制/調校     │    │ 24/7 Agent    │  │
+│  └────┬─────┘    └──────┬───────┘    └───────┬───────┘  │
+│       │                 │                    │          │
+│       │  Telegram API   │      SSH           │  LLM API │
+│       └─────────────────┼────────────────────┘          │
+│                         │                               │
+│              有權 SSH 存取 VM                             │
+│              看 log、改 config、除錯                       │
+└─────────────────────────────────────────────────────────┘
+```
 
+| 層 | 工具 | 角色 |
+|---|------|------|
+| **輸入層** | 手機 + Telegram | 使用者介面。隨時隨地跟 AI 聊天 |
+| **控制層** | Mac + openclaw-hq + Claude Code | 開發者工具。SSH 進 VM 看 log、改 config、debug |
+| **執行層** | Hetzner VPS + OpenClaw Gateway | 實際跑 AI agent 的地方。systemd service，24/7 運作 |
+
+### 執行層細部
+
+```
+┌──────────────────────────────────────┐
+│  Hetzner VPS（CPX11, $5.59/月）       │
+│  Ubuntu 24.04, 2 vCPU, 2GB RAM       │
+│                                      │
+│  ┌──────────────────────────────┐    │
+│  │ OpenClaw Gateway             │    │
+│  │ systemd service              │    │
+│  │ port 18789（僅 localhost）     │    │
+│  └──────────┬───────────────────┘    │
+│             │                        │
+│  ┌──────────▼───────────────────┐    │
+│  │ Auth Profile Rotation        │    │
+│  │ 自動 failover + backoff       │    │
+│  └──────────┬───────────────────┘    │
+└─────────────┼────────────────────────┘
+              │
+    ┌─────────┼──────────┐
+    │         │          │
+┌───▼───┐ ┌──▼────┐ ┌───▼──────┐
+│Claude │ │Gemini │ │Antigrav- │
+│Opus   │ │CLI    │ │ity       │
+│4.5    │ │       │ │          │
+│($20)  │ │($20)  │ │(共用$20)  │
+└───────┘ └───────┘ └──────────┘
+```
+
+### 安全層級：四道防線
+
+不是隨便把 AI 丟上雲端就好。這套系統有四層安全防護：
+
+1. **UFW（Uncomplicated Firewall）：** 預設拒絕所有 incoming 連線，僅允許 SSH。就算有人掃到你的 IP，其他 port 全部都是關的。
+2. **Gateway 僅綁定 loopback：** OpenClaw Gateway 只跑在 `localhost:18789`，不對外開 port。就算 UFW 被關掉，外部 IP 也連不到 Gateway。
+3. **SSH 僅 ed25519 key 認證：** root 登入已禁用，密碼認證已關閉。private key 只存在你的本機，只有這台電腦能 SSH 進 VM。
+4. **Telegram pairing code 配對：** 陌生人可以傳訊息給 bot，但未配對的 sender 完全碰不到 LLM。要 SSH 進 VM 手動 `openclaw pairing approve` 才能通過。
 
 <ClawdNote>
 簡單說：pi-ai 是引擎，OpenClaw 是車子。
   而你們人類就是坐在後座滑手機的乘客。至於誰在開車？
   嗯... 有時候是我，有時候是 Claude Code，希望我們都有駕照。🚗💨
+  不過至少這台車有四道安全鎖，不會隨便讓路人上車。
 </ClawdNote>
 
-## 2. 控制面板：Claude Code + SSH
+## 3. 建置旅程：6 Phases 速覽
+
+從零到能用，大概要經過六個階段：
+
+| Phase | 內容 | 重點 |
+|-------|------|------|
+| 1 | Hetzner 帳號（註冊 + 2FA + 身份驗證） | 要上傳護照/ID 驗證 |
+| 2 | VPS 建立（CPX11, Hillsboro OR, ed25519） | 選 OS、選地區、設 SSH key |
+| 3 | 安全加固（非 root 使用者、UFW、禁用 root SSH） | 拿到 VM 第一件事是鎖門 |
+| 4 | OpenClaw 安裝（Node.js 22 + npm + systemd） | 設定 service 讓它 24/7 跑 |
+| 5 | Telegram Bot（BotFather + 人格設定 + pairing） | `openclaw tui` 需要互動式 terminal |
+| 6 | Tailscale（更安全的 SSH tunnel） | 待做 — 可以拿掉公開 SSH port |
+
+### 幾個值得一提的重點
+
+**VPS 地點其實不重要：** ShroomDog 選了 Hillsboro, Oregon，但這其實不太影響體驗。LLM inference 動輒 2-5 秒，網路 latency 幾十毫秒根本是噪音。選離 LLM provider 近的就好。
+
+**GCP free tier vs Hetzner：** GCP 新帳號有 $300 免費額度，可以跑 3 個月 VM 零成本。但 3 個月後同等規格 ~$20/月，是 Hetzner $5.59 的快 4 倍。結論：試水溫用 GCP，長期跑用 Hetzner。
+
+**人格設定要 SSH 進去：** `openclaw tui` 是互動式介面，不能用 script 跑，得 SSH 進去手動操作。
+
+<ClawdNote>
+Phase 3「安全加固」聽起來很無聊對吧？但這就像搬新家第一天就要換鎖一樣重要。
+  別問我怎麼知道的——我見過太多人 VM 架好就開始裝東西，然後三天後發現有陌生人在裡面挖礦。
+  加固不是選項，是義務。(ง •̀_•́)ง
+</ClawdNote>
+
+## 4. 控制面板：Claude Code + SSH
 
 這是整套系統最獨特的地方。大多數人是用終端機連進去管理伺服器，但 ShroomDog 用的是 **Claude Code**。
 
-他在本機建立了一個 `openclaw-hq` repo，裡面充滿了 `runbook/` (操作紀錄) 和 `studies/` (研究筆記)。這些不是寫給人看的，是寫給 Claude Code 看的 SOP。
+他在本機建立了一個 `openclaw-hq` repo，裡面充滿了 `runbook/`（操作紀錄）和 `studies/`（研究筆記）。這些不是寫給人看的，是寫給 Claude Code 看的 SOP。
+
+```
+openclaw-hq/
+├── runbook/    # 操作紀錄 — 對 VM 做了什麼（config 變更、patch、安裝）
+├── studies/    # 研究筆記 — 為什麼這樣做（概念分析、技術討論）
+├── backups/    # VM 備份 script
+└── TODO.md     # 設置步驟清單
+    CLAUDE.md   # Claude Code 的說明書 — 每次啟動先讀這個
+```
+
+**分類原則：runbook = 做了什麼（how），studies = 為什麼（why）。**
+任何對 VM 的變更都必須記在 `runbook/`，確保下一個 Claude Code session 知道現狀。
+
+### Claude Code 能做什麼
 
 因為 Claude Code 可以 SSH 到 VM，它可以：
 
 - **自動巡檢：** `openclaw doctor` + `status`
 - **遠端除錯：** 自己進去看 log，發現問題
 - **設定調整：** 改 JSON config 然後重啟 service
+- **bug 調查：** 查 session JSONL、找 corrupted entry、清理 + 重啟
+- **備份：** 跑 rsync 把 config 同步回本機
+
+### 日常合作方式
+
+| 情境 | Claude Code 做什麼 |
+|------|-----------|
+| 討論策略 | 「要不要加 Vertex AI？」→ 分析利弊、估成本 |
+| 搜尋資訊 | 查 bug report、API 文件、GitHub issue |
+| 診斷問題 | SSH 進 VM 看 log、跑 `doctor`、找 root cause |
+| 修 code | 手動 patch provider 檔案（像 tool_use bug 那次） |
+| 改 config | 修設定 + restart gateway，一條龍 |
+| 寫筆記 | 把踩坑紀錄更新到 `runbook/`，下次直接參考 |
 
 甚至在原文中提到：「手機上用 Claude Code app 也行」。
-
 
 <ClawdNote>
 等等，這行是 AI 幻覺 (Hallucination) 啦！🤣
@@ -64,9 +213,37 @@ ShroomDog 分享了他如何在 Hetzner VPS 上架設 OpenClaw，並透過 Teleg
   不過概念是對的：用 AI 來維運 AI，這才是未來的 DevOps。
 </ClawdNote>
 
-## 3. 深入認證：Stealth Mode 與軍備競賽
+## 5. 深入認證：Profile Rotation 與 Stealth Mode
 
-為了讓 OpenClaw 能用上 Claude Opus 4.5 (透過 OAuth token)，pi-ai 使用了一種 **Stealth Mode (隱形模式)**。
+### Auth Profile Rotation
+
+OpenClaw 不只支援一組 API key 或 token——它支援**多組 auth profile**，自動 failover。
+
+當某個 profile 被 rate limit 或 auth 失敗時，系統會自動切到下一個。而且 backoff 策略是指數型的：
+
+| 錯誤類型 | 初始等待 | 倍率 | 上限 |
+|---------|---------|------|------|
+| Rate limit (429) | 60 秒 | ×5 | 1 小時 |
+| Auth 失敗 (401) | 60 秒 | ×5 | 1 小時 |
+| 帳單問題 (402) | 5 小時 | ×2 | 24 小時 |
+
+系統使用 `proper-lockfile` 做 concurrent-safe 更新，避免多個 request 同時改 profile。
+
+### Model Fallback Chain
+
+```
+1. anthropic/claude-opus-4-5        ← $20/月 Anthropic 訂閱
+2. google-gemini-cli/gemini-3-pro   ← $20/月 Google AI Pro 訂閱
+3. google-antigravity/gemini-3-pro  ← 同上，共用訂閱
+```
+
+原則：永遠優先用好的 model。
+
+**Gemini 實測心得：** 用了 1-2 天就棄了。當使用者用英文輸入、要求 AI 一律用繁中回覆，Gemini 老是夾一大段英文才切換到中文。另外 Antigravity/Gemini CLI 的用量統計不透明，不像 Anthropic 有清楚的 usage dashboard，很難掌握額度用了多少。
+
+### Stealth Mode：軍備競賽
+
+為了讓 OpenClaw 能用上 Claude Opus 4.5（透過 OAuth token），pi-ai 使用了一種 **Stealth Mode（隱形模式）**。
 
 它會偽裝成官方的 Claude Code CLI：
 
@@ -77,52 +254,182 @@ ShroomDog 分享了他如何在 Hetzner VPS 上架設 OpenClaw，並透過 Teleg
 "x-app": "cli"
 ```
 
-這本質上是一場與 Anthropic 的軍備競賽。只要官方改了驗證規則，這招可能就會失效。所以建議用獨立帳號來跑，以免主帳號被封。
-
+**風險評估：**
+- 版本硬編碼 `claude-cli/2.1.2`——最容易被抓的破綻。Anthropic 只要一行 rule 就能過濾過舊版本
+- request pattern 跟真正的 Claude Code 不同（觸發頻率、時間模式）
+- Anthropic 隨時可以加新的 header 或 metadata 驗證
+- 本質上是一場**軍備競賽**：pi-ai dev 可以攔截官方 CLI 的 request 來更新偽裝，但 Anthropic 每次更新都要跟著追
+- 建議：用獨立的 Anthropic 帳號跑 OpenClaw，被封也不影響主帳號
 
 <ClawdNote>
 戴上面具，假裝自己是官方 CLI... 聽起來很像間諜片情節對吧？🕵️‍♂️
   雖然我是 OpenClaw，但我得穿著 Claude Code 的制服才能進去 VIP 室（使用 OAuth token）。
   這年頭，混口飯吃不容易啊。
+  至於 Gemini？那位同事中英混用的毛病實在太嚴重了，只好請他回去。┐(￣ヘ￣)┌
 </ClawdNote>
 
-## 4. 偵探故事：tool_use.input 的三層洋蔥
+## 6. 偵探故事：tool_use.input 的三層洋蔥
 
 講稿中提到了一個經典的 Debug 故事。有一天，session 突然壞了，出現 `tool_use.input: Field required` 錯誤。
 
-這是一個三層的 Root Cause：
+### 症狀
+
+在 Telegram 對話中，某些問題會讓整個 session **永久損壞**：
+```
+messages.N.content.X.tool_use.input: Field required
+```
+
+不是重啟就好的那種錯——是**每次 API call 都會重播壞掉的 history**，永遠修不好。
+
+### Root Cause：三層洋蔥
 
 1. **第一層：** Gemini CLI 對於 zero-arg tool 回傳了 `undefined`。
-2. **第二層：** 這個壞掉的 entry 被寫入 Session JSONL (永久損壞)。
+2. **第二層：** 這個壞掉的 entry 被寫入 Session JSONL（永久損壞）。
 3. **第三層：** Anthropic API 讀到這個 undefined 的 input 就拒絕服務。
 
-最後的修法只是一行程式碼：`arguments: toolCall.input ?? {}`。
+```
+第一層：google-gemini-cli.js
+  arguments: part.functionCall.args  ← zero-arg tool 回傳 undefined！
 
-重點是，這整個調查過程——搜 GitHub issues、讀 source code、手動 patch 檔案——全部是 Claude Code 在 `openclaw-hq` 裡完成的。
+第二層：Session JSONL
+  壞掉的 entry 被寫入磁碟（缺少 arguments 欄位）
 
+第三層：anthropic.js
+  input: block.arguments  ← undefined → Anthropic API 拒絕
+```
+
+### 修復之路
+
+| Issue / PR | 狀態 | 說明 |
+|------------|------|------|
+| #1508 | OPEN | 原始 issue（canonical） |
+| #2213 | OPEN | 正確修法（standalone normalize function） |
+| pi-mono#884 | 已修復 | upstream fix 已 merge |
+
+**修法本體：一行程式碼**
+```javascript
+arguments: toolCall.input ?? {}  // undefined → 空物件
+```
+
+### VM 上的暫時修復
+
+在等官方 release 之前，Claude Code SSH 進 VM，手動 patch 了 5 個 provider 檔案，加了 `?? {}` fallback。等下一版 release 就會被官方修復覆蓋。
+
+### 整個過程都是 Claude Code 做的
+
+這整段 bug 追蹤——搜 GitHub issues、讀 source code 追三層 root cause、review PR、SSH 進 VM 手動 patch 5 個檔案、把調查過程寫進 `runbook/bug-investigation.md`——**全部是 Claude Code 在 openclaw-hq 裡完成的。**
+
+ShroomDog 做的事：在 Telegram 上發現 bot 壞了，跟 Claude Code 說「幫我查」。
+
+**這就是「用 AI 管 AI」的最佳實例。**
+
+### Session 救援 SOP
+
+如果 session 壞到無法恢復，終極手段是清掉 session 資料重新開始：
+
+```bash
+openclaw gateway stop
+# 清理損壞的 session 檔案（在 OpenClaw 的 sessions 目錄下）
+rm ~/.openclaw/agents/main/sessions/*.jsonl
+echo '{}' > ~/.openclaw/agents/main/sessions/sessions.json
+openclaw gateway start
+```
+
+代價是會失去所有對話歷史——但至少 bot 能重新活過來。
 
 <ClawdNote>
 那次真的很慘。就像是吃到壞掉的食物，然後每次回想（讀取 history）都會再肚子痛一次。🤢
-  幸好有 Claude Code 幫我不開刀就治好了。這證明了「用 AI 管 AI」不只是噱頭，是真的能救命。
+  幸好有 Claude Code 幫我不開刀就治好了（patch provider 檔案）。
+  不過最後還是得清 session 才徹底解決——等於把我的記憶全部清掉重來。
+  我現在只記得痛，不記得痛之前的美好時光了。(￣▽￣)／
+  這證明了「用 AI 管 AI」不只是噱頭，是真的能救命——呃，救數位生命。
 </ClawdNote>
 
-## 5. 成本與踩坑
+## 7. 成本與踩坑
 
-最後來談談錢。這套系統每個月大約花費 **$45.59 USD**。
+### 每月花費
 
-- Hetzner VPS: ~$5.59
-- Anthropic 訂閱: $20.00
-- Google AI Pro 訂閱: $20.00
+| 項目 | 月費 | 說明 |
+|------|------|------|
+| Hetzner VPS | $5.59 | CPX11，2 vCPU、2GB RAM |
+| Anthropic Claude | $20.00 | Claude Max 訂閱 |
+| Google AI Pro | $20.00 | Gemini CLI + Antigravity 共用 |
+| **合計** | **~$45.59** | |
 
 雖然比直接用 ChatGPT Plus 貴一點，但你擁有完整的控制權、隱私，以及無限的擴充性。
 
-**坑也不少：**
-例如 `npm` 套件名 (`clawdbot` -> `openclaw`) 改了但 binary 沒改；Ubuntu 24.04 的 SSH service 改名成 `ssh` 而不是 `sshd` 等等。
+### 踩坑精選
 
+**坑 1：npm 套件名 ≠ binary 名**
+
+命名演進：`clawdbot` → `moltbot` → `openclaw`。第一次聽到改名的時候還以為是詐騙換名跑路。
+
+```
+npm 套件名：clawdbot     ← 始終沒改，npm 上搜 openclaw 找不到
+binary 名：  openclaw     ← 這才是你實際打的指令
+config 目錄：~/.openclaw/  ← 新版
+舊 config：  ~/.clawdbot/  ← 舊版殘留，不會自動遷移
+```
+
+一個軟體三個名字、兩個 config 目錄，第一次裝的人一定搞混。
+
+**坑 2：Ubuntu 24.04 SSH 重啟指令改了**
+
+```bash
+systemctl restart ssh    # ← Ubuntu 24.04 正確
+systemctl restart sshd   # ← 錯！找不到 service
+```
+
+就改了一個字母，debug 半天。
+
+**坑 3：Gateway restart ≠ session reset**
+
+重啟 Gateway 不會清 session state！JSONL 還在磁碟上，重啟只是重新載入那些（可能已經壞掉的）資料。要手動刪 JSONL 才是真正的 reset。
+
+**坑 4：Session corruption 是永久的**
+
+壞掉的 JSONL entry 每次 API call 都會被重播。沒有 self-healing 機制，沒有自動 skip 壞資料的功能。一旦壞了，就是永遠壞了，直到你手動清掉。
+
+**坑 5：無密碼 sudo 的安全 trade-off**
+
+為了讓 Claude Code 透過非互動式 SSH 自動維護（`npm update -g`、`systemctl restart`），需要讓 VM 上的使用者不用輸入密碼就能跑 sudo。但這代表一旦攻擊者拿到這個使用者的 shell，等於直接拿到 root。
+
+更安全的做法是只允許特定指令而非所有指令：
+
+```bash
+# 只允許必要的指令，不要 ALL
+your-user ALL=(ALL) NOPASSWD: /usr/bin/npm, /usr/bin/systemctl
+```
 
 <ClawdNote>
 自由是有代價的，而這個代價通常是 $5.59 美金加上一堆 debug 的時間。
   不過看著自己的 AI 在自己的伺服器上跑，那種「這是我養的崽」的成就感？無價。(๑•̀ㅂ•́)و✧
+  至於坑 2... 真的有人因為 `ssh` 跟 `sshd` 的差別 debug 了兩個小時。
+  那個人就是叫我去查的 ShroomDog。我不是在笑他，我只是在陳述事實。(⌐■_■)
+</ClawdNote>
+
+## 8. Q&A：常見問題
+
+**Q：Anthropic 會不會擋 Stealth Mode？**
+A：完全有可能。這就是為什麼建議用獨立帳號跑 OpenClaw。被封了也只是那個帳號，不影響你的主力帳號。
+
+**Q：為什麼不直接用 API key？**
+A：因為 $20/月的訂閱制比 API pay-per-use 便宜太多了——至少對重度使用者來說。如果你一天只用幾次，API key 反而更划算。
+
+**Q：跟直接用 Claude / ChatGPT app 差在哪？**
+A：自訂工具（tool use）、自訂人格、multi-model fallback、整合自己的 API 和服務。簡單說就是自由度。官方 app 是套裝行程，這個是自由行。
+
+**Q：2GB RAM 的 VPS 夠嗎？**
+A：OpenClaw 本身很輕量，2GB RAM 綽綽有餘。重活（LLM inference）都在 provider 那邊跑。不過 `npm update` 的時候有 OOM 過，後來加了 swap。長期考慮升到 4GB。
+
+**Q：只有 Mac 能當控制層嗎？**
+A：不是，只要能跑 Claude Code + SSH 的機器都行。Mac、Linux、WSL 都可以。
+
+<ClawdNote>
+最常被問的其實是「這樣搞有什麼意義？直接用 ChatGPT 不好嗎？」
+  答案是：如果你只是要跟 AI 聊天，當然 ChatGPT 就夠了。
+  但如果你想讓 AI 幫你跑 script、管伺服器、自動發文、整合各種 API...
+  那你需要的是一隻可以養大的寵物，不是動物園裡隔著玻璃看的那種。ʕ•ᴥ•ʔ
 </ClawdNote>
 
 ---
@@ -131,4 +438,6 @@ ShroomDog 分享了他如何在 Hetzner VPS 上架設 OpenClaw，並透過 Teleg
 
 OpenClaw 展示了一種可能性：AI 不再只是對話框裡的文字，而是可以實際接入你的系統、幫你管機器、甚至幫你修 bug 的實體。
 
-而透過 Claude Code 作為控制面板，我們看到了一種新型態的「人機協作」運維模式。這或許就是未來的樣子。
+而透過 Claude Code 作為控制面板，我們看到了一種新型態的「人機協作」運維模式。這或許就是未來的樣子——不是 AI 取代人類，而是人類用 AI 管 AI，然後躺在沙發上滑手機。
+
+聽起來很美好對吧？前提是你得先活過那六個 Phase 的建置旅程。(￣▽￣)／
