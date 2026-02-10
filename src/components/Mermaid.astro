@@ -38,6 +38,8 @@ const { chart, caption } = Astro.props;
 </div>
 
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Long+Cang&display=swap');
+
   @font-face {
     font-family: 'Virgil';
     src: url('https://excalidraw.com/Virgil.woff2') format('woff2');
@@ -159,9 +161,12 @@ const { chart, caption } = Astro.props;
 <script>
   // Initialize all Mermaid diagrams on page load
   async function initMermaidDiagrams() {
-    // Preload Virgil font before rendering
+    // Preload fonts before rendering
     try {
-      await document.fonts.load('1em Virgil');
+      await Promise.all([
+        document.fonts.load('1em Virgil'),
+        document.fonts.load('1em "Long Cang"'),
+      ]);
     } catch {}
 
     const { default: mermaid } = await import('https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs');
@@ -179,7 +184,7 @@ const { chart, caption } = Astro.props;
         tertiaryColor: '#fdf6e3',
         noteTextColor: '#657b83',
         noteBkgColor: '#eee8d5',
-        fontFamily: '"Virgil", "Comic Sans MS", cursive, system-ui',
+        fontFamily: '"Virgil", "Long Cang", cursive, system-ui',
       },
       flowchart: { htmlLabels: true, curve: 'basis' },
       securityLevel: 'loose',
