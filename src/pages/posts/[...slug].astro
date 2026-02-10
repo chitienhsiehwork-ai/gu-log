@@ -4,6 +4,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import TableOfContents from '../../components/TableOfContents.astro';
 import PrevNextNav from '../../components/PrevNextNav.astro';
 import TicketBadge from '../../components/TicketBadge.astro';
+import Giscus from '../../components/Giscus.astro';
 
 export async function getStaticPaths() {
   const posts = await getCollection('posts', ({ data }) => {
@@ -76,6 +77,8 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
     )}
 
     <PrevNextNav currentSlug={post.slug} allPosts={allPosts} lang="zh-tw" />
+
+    <Giscus lang="zh-tw" />
 
     <footer class="post-footer">
       <a href="/">← 返回首頁</a>

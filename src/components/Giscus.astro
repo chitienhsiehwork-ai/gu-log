@@ -1,0 +1,78 @@
+---
+interface Props {
+  lang?: 'zh-tw' | 'en';
+}
+
+const { lang = 'zh-tw' } = Astro.props;
+
+// Giscus language mapping
+const giscusLang = lang === 'zh-tw' ? 'zh-TW' : 'en';
+---
+
+<section class="giscus-container">
+  <h3 class="giscus-title">{lang === 'zh-tw' ? '💬 留言' : '💬 Comments'}</h3>
+  <script
+    src="https://giscus.app/client.js"
+    data-repo="chitienhsiehwork-ai/gu-log"
+    data-repo-id="R_kgDORDx5Eg"
+    data-category="General"
+    data-category-id="DIC_kwDORDx5Es4C2IuN"
+    data-mapping="pathname"
+    data-strict="0"
+    data-reactions-enabled="1"
+    data-emit-metadata="0"
+    data-input-position="top"
+    data-theme="preferred_color_scheme"
+    data-lang={giscusLang}
+    data-loading="lazy"
+    crossorigin="anonymous"
+    async
+  ></script>
+</section>
+
+<script>
+  // Sync giscus theme with site theme toggle
+  function updateGiscusTheme() {
+    const theme = document.documentElement.getAttribute('data-theme') || 'dark';
+    const giscusTheme = theme === 'dark' ? 'dark' : 'light';
+    const iframe = document.querySelector<HTMLIFrameElement>('iframe.giscus-frame');
+    if (iframe) {
+      iframe.contentWindow?.postMessage(
+        { giscus: { setConfig: { theme: giscusTheme } } },
+        'https://giscus.app'
+      );
+    }
+  }
+
+  // Watch for theme changes
+  const observer = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      if (mutation.attributeName === 'data-theme') {
+        updateGiscusTheme();
+      }
+    }
+  });
+  observer.observe(document.documentElement, { attributes: true });
+
+  // Set initial theme once giscus loads
+  window.addEventListener('message', (event) => {
+    if (event.origin !== 'https://giscus.app') return;
+    if (typeof event.data !== 'object' || !event.data.giscus) return;
+    // Once loaded, sync theme
+    updateGiscusTheme();
+  });
+</script>
+
+<style>
+  .giscus-container {
+    margin-top: 2.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .giscus-title {
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+    color: var(--color-text);
+  }
+</style>
