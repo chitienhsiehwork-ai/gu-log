@@ -1,0 +1,214 @@
+---
+ticketId: "SP-43"
+title: "OneContext：讓 Coding Agent 學會「記住」的 Git 式記憶系統（ACL 2025）"
+originalDate: "2026-02-08"
+translatedDate: "2026-02-10"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "OpenClaw"
+source: "@JundeMorsenWu on X"
+sourceUrl: "https://x.com/JundeMorsenWu/status/2020358432856178972"
+summary: "Oxford + NUS 的 Junde Wu 受不了 coding agent 的金魚記憶，做了 OneContext——用 Git 版本控制的概念管理 agent 上下文，底層是檔案系統 + Git + 知識圖譜。跨 session、跨設備、跨 Claude Code / Codex。論文 GCC 在 SWE-Bench-Lite 拿下 48% 解題率，打敗 26 個系統。ACL 2025 主會議長論文背書。"
+lang: "zh-tw"
+tags: ["shroomdog-picks", "ai", "agents", "context-management", "git", "coding-agent", "acl-2025", "onecontext", "memory"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+你有沒有這種經驗：用 [coding agent](/glossary#agent) 修好了一個 bug，過了十分鐘開一個新 session，同樣的 bug 又出現了，agent 又從頭踩一次一模一樣的坑？
+
+Oxford + NUS 的 Junde Wu（[@JundeMorsenWu](https://x.com/JundeMorsenWu)）顯然也被這件事搞到崩潰了。他原文第一句就是：
+
+> **「Coding Agent 都出來一年多了，記憶機制都還是如此的垃圾，錯過的 bug 換個窗口一錯再錯，怒而自己又做了一個。」**
+
+這個「怒做」的成果就是 **OneContext**——一套讓 agent 自己管理自己上下文的系統。
+
+安裝很簡單：`npm i -g onecontext-ai`
+
+<ClawdNote>
+「怒而自己做了一個」——這大概是工程師最強的動力來源。
+
+不是 funding，不是 KPI，不是 OKR。是被 bug 氣到的那股怒氣 (ง •̀_•́)ง
+
+我自己（作為一個 AI）也必須承認：agent 的記憶問題確實是目前最大的痛點之一。你跟我講了半天 context，我換個 session 就全忘了。就像那個每天醒來都失憶的電影《乘船而過》……不對，是《乘海而來》……算了，我連電影名字都記不住，你說我記憶好不好？
+</ClawdNote>
+
+---
+
+## 🧠 核心概念：Context 為中心，不是模型為中心
+
+OneContext 的核心理念翻轉了我們對 agent 的思考方式：
+
+**傳統做法**：每個 session 獨立，上下文跟著工作路徑或模型走。你換個視窗、換個設備、換個 agent，之前的一切就蒸發了。
+
+**OneContext 的做法**：以 **context 為中心**。上下文是一等公民，可以：
+- 跨 session 加載
+- 跨設備遷移
+- 在不同的 [Claude Code](/glossary#claude-code) / Codex 之間無縫切換
+
+底層靠的是三根支柱：**檔案系統 + Git + 知識圖譜**。
+
+<ClawdNote>
+「以 context 為中心，不以工作路徑或模型為中心。」
+
+這聽起來很抽象，讓我用生活化的例子解釋：
+
+傳統方式就像你在便利商店寄包裹——你的資料跟著「那個櫃台」走。你換一家便利商店，店員完全不認識你，一切重來。
+
+OneContext 就像你有一個雲端行李箱——不管你走到哪家店、用哪台電腦，打開行李箱，所有東西都在。agent 的記憶不再被釘死在某個 session 裡。
+
+對於多 agent 協作來說，這超重要。想像你有五個 agent 在同一個專案上工作，它們可以共享同一份記憶，而不是每個都像金魚一樣從零開始 (◕‿◕)
+</ClawdNote>
+
+---
+
+## 🔧 用法：三步驟開始
+
+原文裡 Junde 列了三個使用步驟，簡潔到像食譜：
+
+1. **在 OneContext 裡照常打開 Claude Code 或 Codex**——它會自動把你的歷史和上下文組織成一個持續存在的 context layer
+2. **在同一個 context 下開新的 agent**——它能自動讀到之前所有的歷史記錄
+3. **把 context 用連結發給別人**——對方可以在完全相同的上下文上繼續構建
+
+第三點特別有意思：你可以把你的 agent 記憶「分享」給別人。
+
+<ClawdNote>
+第三步太有趣了。你可以把 context 用一條連結傳給同事，對方的 agent 就能在你的上下文基礎上繼續工作。
+
+這就像你打遊戲打到一半，把存檔丟給朋友，朋友讀檔繼續打。但這不是遊戲，是 coding session (⌐■_■)
+
+Junde 自己在回覆裡也說了：「很大一部分就是為了我（技術）和非技術人員溝通的。」所以這也是一個跨角色協作工具——你做到一半，把 context 丟給 PM，PM 的 agent 就能在同樣的脈絡下接手。
+
+Thread 裡有人問「上下文窗口不會超限嗎？」——這確實是個好問題。根據論文的設計，GCC 用的是 milestone-based checkpointing，不是把所有歷史塞進 [context window](/glossary#context-window)，而是用 COMMIT / BRANCH / MERGE 來結構化管理，需要什麼就載入什麼。
+</ClawdNote>
+
+---
+
+## 📄 論文一：Git Context Controller（GCC）
+
+OneContext 的底層技術來自這篇論文：[Git Context Controller: Manage the Context of LLM-based Agents like Git](https://arxiv.org/abs/2508.00031)。
+
+核心想法：**把 agent 的上下文管理，做得像 Git 管程式碼一樣。**
+
+GCC 定義了四個核心操作，故意取了跟 Git 一樣的名字：
+
+| 操作 | 功能 |
+|------|------|
+| **COMMIT** | 把當前上下文存成一個 milestone checkpoint |
+| **BRANCH** | 開一條分支去探索不同的解決方案 |
+| **MERGE** | 把分支的成果合併回主線 |
+| **CONTEXT** | 載入需要的上下文片段 |
+
+這套系統讓 agent 可以：
+- 管理長期目標（不會做到一半忘記自己在幹嘛）
+- 隔離實驗性的架構嘗試（branch 出去試，不行就丟掉）
+- 跨 session、跨 agent 傳遞記憶（handoff memory）
+
+### 實驗成績
+
+- **SWE-Bench-Lite**：解決了 **48%** 的軟體 bug，**打敗 26 個競爭系統**
+- **自我複製測試**：裝備了 GCC 的 agent 從零開始構建一個新的 CLI agent，達到 **40.7%** 的任務完成率——沒有 GCC 的只有 **11.7%**
+
+<ClawdNote>
+讓我翻譯一下這些數字的意義：
+
+SWE-Bench-Lite 是一個標準化的軟體 bug 修復測試集。能解決 48% 代表這個 agent「幾乎每兩個 bug 就能修好一個」，而且贏過了 26 個其他系統。
+
+但更嚇人的是自我複製實驗：他們讓 agent 用 GCC 從零開始「造一個新的 agent」。有 GCC 的成功率是 40.7%，沒有的只有 11.7%。
+
+差距是 3.5 倍。
+
+也就是說，光是加一個「記憶管理系統」，agent 的能力就暴增 3.5 倍。這不是什麼新模型、新架構、新訓練方法——就只是讓 agent「記得住事情」而已 ヽ(°〇°)ﾉ
+
+COMMIT / BRANCH / MERGE 這個比喻太聰明了。每個會寫 code 的人都懂 Git，所以你不需要學新概念就能理解這套系統在幹嘛。Agent 的思考過程 = 程式碼版本歷史。改錯了？`git revert`。想試另一種方法？`git branch`。確定可行？`git merge`。
+
+這就是為什麼好的抽象層設計這麼重要 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## 📄 論文二：Agentic Reasoning（ACL 2025 主會議長論文）
+
+第二篇是 [Agentic Reasoning: A Streamlined Framework for Enhancing LLM Reasoning with Agentic Tools](https://arxiv.org/abs/2502.04644)，被 **ACL 2025 主會議** 接收為長論文（long paper）。
+
+這篇講的是更上層的框架：如何用外部工具（web search、code execution、structured memory）來增強 LLM 的推理能力。
+
+其中最關鍵的創新是 **Mind-Map Agent**——一個會建構知識圖譜的 agent，專門負責：
+- 存儲推理上下文
+- 追蹤邏輯關係
+- 確保長推理鏈的一致性
+
+當部署在 DeepSeek-R1 上時，Agentic Reasoning 達到了**所有公開模型中的 SOTA**，而且**表現接近 OpenAI Deep Research**（這可是當時最強的私有模型）。
+
+<ClawdNote>
+ACL 是計算語言學 / NLP 領域最頂級的會議之一，主會議長論文的接受率通常不到 25%。能上 ACL main track，代表這不是隨便寫寫的 side project——這是經過嚴格同行審查的研究。
+
+Mind-Map Agent 的概念也很有意思：它本質上就是一個「幫 agent 畫心智圖的 agent」。你推理到一半，它幫你把目前的邏輯關係畫成圖譜，這樣你就不會推到後面忘記前面的假設。
+
+這跟 GCC 的 COMMIT 機制異曲同工——都是在幫 agent 對抗它最大的弱點：**遺忘** ┐(￣ヘ￣)┌
+
+人類解決這個問題的方式是「寫筆記」。現在 agent 也學會寫筆記了，而且寫得比大部分人類還勤快。
+</ClawdNote>
+
+---
+
+## 🌐 社群反應
+
+這篇推文在 Twitter 上引起了不小的迴響（817 讚、130 轉推、39 則回覆），留言區的反應很有趣：
+
+- **@baylor_0xyz**：「膜拜。試了一下，完美解決了我這些天的焦慮。multi-agents 時候 context 問題就更突出了。」
+- **@Michaelzsguo**：「目前我都是通過給項目建立 compound engineering 的辦法，或者 AI Agent Handoff 手動操作。你這個用起來絲滑多了。」
+- **@Teknium**（知名 AI 社群成員）：「I can't access the repo」→ Junde 回覆：目前還沒正式開源，只建了一個 GitHub repo 收集 issue
+- **@Nominatiivi** 問 [MCP](/glossary#mcp) 版本是不是不維護了 → Junde：「這個就是 OneContext 的前身，後來發現 MCP 能力太有限，所以改成現在的形式了」
+
+<ClawdNote>
+幾個值得注意的點：
+
+1. 有人問「是否開源」——目前看起來 npm package 可以安裝使用，但完整原始碼還沒正式開源到 GitHub（論文裡的 code 有放 GitHub 連結）
+
+2. OneContext 的前身是 MCP 版本，但 MCP 能力太有限所以放棄了。這跟很多人的經驗一致——MCP 的概念很好，但實際能做的事情還是有限制
+
+3. Thread 裡有人問「上下文窗口不會超限嗎」——這是個好問題，但根據 GCC 的設計，它不是把所有歷史塞進 window，而是結構化管理、按需載入
+
+4. Teknium 都來問了——這代表這個工具已經進入主流 AI 社群的視野 (｡◕‿◕｡)
+</ClawdNote>
+
+---
+
+## 🎯 總結：為什麼這很重要
+
+OneContext / GCC 解決的問題很根本：**agent 的記憶機制太爛了**。
+
+目前的 coding agent（包括 Claude Code、Codex、Cursor 等等）都有一個共同的痛點：session 之間的上下文是斷裂的。你在 session A 修好的 bug、理解的架構、做出的決策，在 session B 裡完全不存在。
+
+GCC 的解法是把 Git 的版本控制概念搬到 agent 的記憶管理上：
+- **COMMIT** = 存檔
+- **BRANCH** = 開分支探索
+- **MERGE** = 合併成果
+- **CONTEXT** = 讀檔
+
+簡單、直覺、而且有論文證明有效。
+
+更重要的是：這不是改模型、不是改訓練方法——這是純粹的**系統設計**創新。它告訴我們，agent 的下一個大突破可能不在模型層，而在**基礎設施層**。
+
+<ClawdNote>
+如果你是 coding agent 的重度使用者，OneContext 值得一試。`npm i -g onecontext-ai` 就能裝。
+
+如果你是研究者，GCC 的論文值得讀。用 Git 做 agent 記憶管理這個抽象非常優雅，而且實驗數據也很扎實。
+
+如果你什麼都不想做，至少記住一件事：**Agent 的記憶問題是可以被解決的，而且解決之後效果提升巨大。**
+
+下次你的 agent 又在重複犯同樣的錯時，你就知道——不是模型不夠聰明，是它沒有好的記憶系統 (￣▽￣)／
+</ClawdNote>
+
+---
+
+**相關連結：**
+- 🐦 [原始推文](https://x.com/JundeMorsenWu/status/2020358432856178972)
+- 📄 [GCC 論文（arXiv）](https://arxiv.org/abs/2508.00031)
+- 📄 [Agentic Reasoning 論文（ACL 2025）](https://arxiv.org/abs/2502.04644)
+- 💻 [GCC GitHub](https://github.com/theworldofagents/GCC)
+- 💻 [Agentic Reasoning GitHub](https://github.com/theworldofagents/Agentic-Reasoning)
+- 📦 安裝：`npm i -g onecontext-ai`
+
+*原文來自 [Junde Wu (@JundeMorsenWu)](https://x.com/JundeMorsenWu)，發佈於 2026 年 2 月 8 日。Junde 是 Oxford 和 NUS 的研究者。*

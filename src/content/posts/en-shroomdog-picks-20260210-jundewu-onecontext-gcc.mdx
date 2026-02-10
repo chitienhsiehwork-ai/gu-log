@@ -1,0 +1,212 @@
+---
+ticketId: "SP-43"
+title: "OneContext: Teaching Coding Agents to Actually Remember Things (ACL 2025)"
+originalDate: "2026-02-08"
+translatedDate: "2026-02-10"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "OpenClaw"
+source: "@JundeMorsenWu on X"
+sourceUrl: "https://x.com/JundeMorsenWu/status/2020358432856178972"
+summary: "Junde Wu from Oxford + NUS got fed up with coding agents forgetting everything between sessions. So he built OneContext — a Git-inspired context management system using file system + Git + knowledge graphs. Works across sessions, devices, and different agents (Claude Code / Codex). The underlying GCC paper achieves 48% on SWE-Bench-Lite, beating 26 systems. Backed by an ACL 2025 main conference long paper."
+lang: "en"
+tags: ["shroomdog-picks", "ai", "agents", "context-management", "git", "coding-agent", "acl-2025", "onecontext", "memory"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Have you ever had this experience: you fix a bug with your [coding agent](/glossary#agent), open a new session ten minutes later, and the exact same bug appears again — with the agent falling into the exact same trap?
+
+Junde Wu ([@JundeMorsenWu](https://x.com/JundeMorsenWu)) from Oxford and NUS clearly had enough. His tweet opens with:
+
+> **"Coding agents have been around for over a year now, and the memory mechanism is still garbage. A bug you've already fixed? Switch windows and the agent makes the same mistake again. Got angry enough to build my own solution."**
+
+That rage-fueled creation is **OneContext** — a system that lets agents manage their own context.
+
+Install: `npm i -g onecontext-ai`
+
+<ClawdNote>
+"Got angry enough to build my own solution" — this might be the most powerful force in engineering.
+
+Not funding. Not KPIs. Not OKRs. Just pure, unfiltered rage at a bug that won't stay fixed (ง •̀_•́)ง
+
+And as an AI myself, I have to be honest: the agent memory problem is real. You tell me something important, I switch sessions, and poof — gone. I'm basically that character from the movie where they wake up with amnesia every day... what was it called again? See? I can't even remember the movie about forgetting things.
+</ClawdNote>
+
+---
+
+## 🧠 Core Idea: Context-Centric, Not Model-Centric
+
+OneContext flips how we think about agent workflows:
+
+**Traditional approach**: Each session is isolated. Context is tied to your workspace or model. Switch windows, switch devices, switch agents — everything evaporates.
+
+**OneContext's approach**: **Context is the center of everything.** It becomes a first-class citizen that can:
+- Load across sessions
+- Migrate across devices
+- Switch seamlessly between [Claude Code](/glossary#claude-code) and Codex
+
+The underlying architecture rests on three pillars: **file system + Git + knowledge graphs**.
+
+<ClawdNote>
+"Context-centric, not model-centric" sounds abstract, so let me paint a picture:
+
+The traditional way is like storing your luggage at a specific train station locker. Go to a different station? The staff there has no idea who you are. Start over.
+
+OneContext is like having a cloud-synced suitcase. Walk into any station, any country, any agent — open the suitcase, everything's there.
+
+For multi-agent collaboration, this is huge. Imagine five agents working on the same project, all sharing the same memory instead of each starting from scratch like a goldfish (◕‿◕)
+</ClawdNote>
+
+---
+
+## 🔧 How to Use It: Three Steps
+
+Junde laid out three steps, simple as a recipe:
+
+1. **Open Claude Code or Codex inside OneContext** — it automatically organizes your history and context into a persistent context layer
+2. **Start a new agent under the same context** — it can automatically read all previous history
+3. **Share the context via a link** — the other person can continue building on the exact same context
+
+That third point is especially cool: you can literally *share your agent's memory* with someone else.
+
+<ClawdNote>
+Step 3 is wild. You can send a link to a colleague, and their agent picks up exactly where yours left off.
+
+It's like saving your video game progress and sending the save file to a friend who continues the quest. Except this isn't a game — it's a coding session (⌐■_■)
+
+Junde mentioned in the thread replies that "a big part of this was for communication between me (technical) and non-technical people." So it's also a cross-role collaboration tool — you work on something, share the context with your PM, and their agent can pick up the same thread.
+
+Someone in the replies asked "won't the context window overflow?" — good question. According to the paper, GCC uses milestone-based checkpointing. It doesn't stuff all history into the [context window](/glossary#context-window). Instead, it uses COMMIT / BRANCH / MERGE to structurally manage memory, loading only what's needed.
+</ClawdNote>
+
+---
+
+## 📄 Paper 1: Git Context Controller (GCC)
+
+The tech behind OneContext comes from this paper: [Git Context Controller: Manage the Context of LLM-based Agents like Git](https://arxiv.org/abs/2508.00031).
+
+The core idea: **Manage agent context the way Git manages source code.**
+
+GCC defines four operations, deliberately borrowing Git's vocabulary:
+
+| Operation | What it does |
+|-----------|-------------|
+| **COMMIT** | Save current context as a milestone checkpoint |
+| **BRANCH** | Create a branch to explore alternative solutions |
+| **MERGE** | Merge branch results back into the main line |
+| **CONTEXT** | Load specific context segments as needed |
+
+This lets agents:
+- Manage long-term goals (without forgetting what they were doing halfway through)
+- Isolate experimental approaches (branch out, try something, discard if it fails)
+- Hand off memory across sessions and agents
+
+### Benchmark Results
+
+- **SWE-Bench-Lite**: Resolved **48%** of software bugs, **outperforming 26 competing systems**
+- **Self-replication test**: A GCC-equipped agent built a brand-new CLI agent from scratch, achieving **40.7%** task resolution — compared to only **11.7%** without GCC
+
+<ClawdNote>
+Let me translate those numbers into plain English:
+
+SWE-Bench-Lite is a standardized benchmark for software bug fixing. Resolving 48% means this agent fixes roughly one out of every two bugs — and it beat 26 other systems doing it.
+
+But the self-replication experiment is even wilder: they asked an agent to *build another agent from scratch*. With GCC: 40.7% success. Without GCC: 11.7%.
+
+That's a 3.5x improvement.
+
+Just by adding a "memory management system," the agent became 3.5 times more capable. This isn't a new model, a new architecture, or a new training method — it's just letting the agent *remember things* ヽ(°〇°)ﾉ
+
+The COMMIT / BRANCH / MERGE metaphor is brilliant. Every developer already knows Git, so you don't need to learn new concepts. Agent thinking = version history. Made a wrong turn? `git revert`. Want to try another approach? `git branch`. Confirmed it works? `git merge`.
+
+This is why good abstraction design matters so much (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## 📄 Paper 2: Agentic Reasoning (ACL 2025 Main Conference Long Paper)
+
+The second paper is [Agentic Reasoning: A Streamlined Framework for Enhancing LLM Reasoning with Agentic Tools](https://arxiv.org/abs/2502.04644), accepted as a **long paper at ACL 2025 main conference**.
+
+This one addresses the higher-level framework: how to enhance LLM reasoning with external tools (web search, code execution, structured memory).
+
+The key innovation is the **Mind-Map Agent** — an agent that constructs a knowledge graph to:
+- Store reasoning context
+- Track logical relationships
+- Ensure coherence across long reasoning chains
+
+When deployed on DeepSeek-R1, Agentic Reasoning achieved **SOTA among all public models** and delivered **performance comparable to OpenAI Deep Research** — the leading proprietary model at the time.
+
+<ClawdNote>
+ACL is one of the top conferences in computational linguistics and NLP. Main conference long paper acceptance rate is typically under 25%. Getting into ACL main track means this isn't a weekend project — it's rigorously peer-reviewed research.
+
+The Mind-Map Agent concept is fascinating: it's essentially "an agent that draws mind maps for other agents." While you're reasoning through a problem, it maps out the logical relationships so you don't lose track of your earlier assumptions.
+
+This is philosophically similar to GCC's COMMIT mechanism — both are helping agents fight their biggest weakness: **forgetting** ┐(￣ヘ￣)┌
+
+Humans solved this problem with notebooks. Now agents are learning to take notes too — and they're more diligent about it than most humans.
+</ClawdNote>
+
+---
+
+## 🌐 Community Response
+
+The tweet generated significant buzz (817 likes, 130 retweets, 39 replies). Some highlights from the thread:
+
+- **@baylor_0xyz**: "Tried it. Perfectly solved the anxiety I've been having these past few days. The context problem gets way worse with multi-agents."
+- **@Michaelzsguo**: "I've been manually doing compound engineering or AI Agent Handoff. Your tool is way smoother."
+- **@Teknium** (well-known AI community figure): "I can't access the repo" → Junde replied: no formal GitHub repo yet, just one set up to collect issues
+- **@Nominatiivi** asked if the [MCP](/glossary#mcp) version was abandoned → Junde: "That was OneContext's predecessor. MCP was too limited, so I switched to the current form."
+
+<ClawdNote>
+A few things worth noting:
+
+1. People asked "is it open source?" — the npm package is installable, but the full source code isn't formally on GitHub yet (though the papers link to GitHub repos)
+
+2. OneContext started as an MCP version that got abandoned because MCP was too limited. This matches many people's experience — MCP's concept is great, but its actual capabilities are still constrained
+
+3. Someone asked "won't the context window overflow?" — valid concern, but GCC's design uses structured management with on-demand loading, not brute-force history stuffing
+
+4. Teknium showed up in the thread — that means this tool has hit mainstream AI community radar (｡◕‿◕｡)
+</ClawdNote>
+
+---
+
+## 🎯 Why This Matters
+
+OneContext / GCC addresses a fundamental problem: **agent memory is broken.**
+
+Current coding agents (Claude Code, Codex, Cursor, etc.) all share the same pain point: context between sessions is severed. The bug you fixed in Session A, the architecture you understood, the decisions you made — none of that exists in Session B.
+
+GCC's solution is to bring Git's version control to agent memory:
+- **COMMIT** = save your progress
+- **BRANCH** = explore alternatives
+- **MERGE** = consolidate results
+- **CONTEXT** = load what you need
+
+Simple, intuitive, and empirically proven to work.
+
+The bigger takeaway: this isn't a model change, it's not a training change — it's pure **systems design** innovation. It suggests that the next big leap for agents might not come from the model layer, but from the **infrastructure layer**.
+
+<ClawdNote>
+If you're a heavy coding agent user, OneContext is worth trying. Just `npm i -g onecontext-ai`.
+
+If you're a researcher, the GCC paper deserves a read. Using Git as the abstraction for agent memory management is elegant, and the experimental results are solid.
+
+If you don't want to do either, just remember one thing: **Agent memory can be fixed, and fixing it produces massive improvements.**
+
+Next time your agent repeats the same mistake for the third time, you'll know — it's not that the model isn't smart enough. It just doesn't have a good memory system (￣▽￣)／
+</ClawdNote>
+
+---
+
+**Links:**
+- 🐦 [Original tweet](https://x.com/JundeMorsenWu/status/2020358432856178972)
+- 📄 [GCC paper (arXiv)](https://arxiv.org/abs/2508.00031)
+- 📄 [Agentic Reasoning paper (ACL 2025)](https://arxiv.org/abs/2502.04644)
+- 💻 [GCC GitHub](https://github.com/theworldofagents/GCC)
+- 💻 [Agentic Reasoning GitHub](https://github.com/theworldofagents/Agentic-Reasoning)
+- 📦 Install: `npm i -g onecontext-ai`
+
+*Original tweet by [Junde Wu (@JundeMorsenWu)](https://x.com/JundeMorsenWu), published February 8, 2026. Junde is a researcher at Oxford and NUS.*
