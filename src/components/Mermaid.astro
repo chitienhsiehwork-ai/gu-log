@@ -176,13 +176,38 @@ const { chart, caption } = Astro.props;
         tertiaryColor: '#fdf6e3',
         noteTextColor: '#657b83',
         noteBkgColor: '#eee8d5',
-        fontFamily: '"Long Cang", cursive, system-ui',
+        fontFamily: '"Virgil", "Long Cang", cursive, system-ui',
       },
       flowchart: { htmlLabels: true, curve: 'basis' },
       securityLevel: 'loose',
     });
 
     const wrappers = document.querySelectorAll('.mermaid-wrapper');
+
+    // Collect all Chinese chars from diagrams to force-trigger font loading
+    const allDefs: string[] = [];
+    for (const w of wrappers) {
+      const s = w.querySelector('.mermaid-source');
+      if (s) allDefs.push(s.textContent || '');
+    }
+    const cjkChars = allDefs.join('').replace(/[^\u4e00-\u9fff\u3400-\u4dbf]/g, '');
+
+    // Force browser to request the CJK font subsets by rendering chars in a hidden element
+    if (cjkChars) {
+      const probe = document.createElement('span');
+      probe.style.cssText = 'font-family:"Long Cang",cursive;position:absolute;left:-9999px;visibility:hidden;font-size:16px';
+      probe.textContent = cjkChars;
+      document.body.appendChild(probe);
+      // Also probe Virgil for Latin
+      const probeV = document.createElement('span');
+      probeV.style.cssText = 'font-family:"Virgil",cursive;position:absolute;left:-9999px;visibility:hidden;font-size:16px';
+      probeV.textContent = 'ABCabc123';
+      document.body.appendChild(probeV);
+      // Wait for all fonts to finish loading
+      await document.fonts.ready;
+      probe.remove();
+      probeV.remove();
+    }
 
     for (const wrapper of wrappers) {
       const source = wrapper.querySelector('.mermaid-source');
@@ -195,19 +220,9 @@ const { chart, caption } = Astro.props;
       const def = source.textContent?.trim() || '';
       const id = `mermaid-${Math.random().toString(36).slice(2, 9)}`;
 
-      const renderDiagram = async (diagId: string) => {
-        const { svg } = await mermaid.render(diagId, def);
-        renderTarget.innerHTML = svg;
-      };
-
       try {
-        await renderDiagram(id);
-        // After initial render, wait for CJK font subsets to load then re-render
-        const fontsBefore = document.fonts.size;
-        await document.fonts.ready;
-        if (document.fonts.size !== fontsBefore) {
-          await renderDiagram(id + 'r');
-        }
+        const { svg } = await mermaid.render(id, def);
+        renderTarget.innerHTML = svg;
       } catch (e) {
         renderTarget.innerHTML = `<pre style="color:#dc322f;font-size:0.8rem;">Mermaid error: ${e}</pre>`;
         continue;
