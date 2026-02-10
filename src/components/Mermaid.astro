@@ -99,7 +99,7 @@ const { chart, caption } = Astro.props;
     position: fixed;
     inset: 0;
     z-index: 9999;
-    background: rgba(0, 0, 0, 0.9);
+    background: #fdf6e3;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -118,7 +118,6 @@ const { chart, caption } = Astro.props;
   .mermaid-overlay-content :global(svg) {
     max-width: none;
     height: auto;
-    filter: invert(0.9) hue-rotate(180deg);
   }
 
   .mermaid-close-btn {
@@ -126,9 +125,9 @@ const { chart, caption } = Astro.props;
     top: 16px;
     right: 16px;
     z-index: 10000;
-    background: rgba(255,255,255,0.15);
+    background: rgba(0,0,0,0.1);
     border: none;
-    color: white;
+    color: #657b83;
     font-size: 1.5rem;
     width: 40px;
     height: 40px;
@@ -137,6 +136,10 @@ const { chart, caption } = Astro.props;
     display: flex;
     align-items: center;
     justify-content: center;
+  }
+
+  .mermaid-close-btn:hover {
+    background: rgba(0,0,0,0.2);
   }
 
   /* Loading state */
@@ -155,6 +158,7 @@ const { chart, caption } = Astro.props;
     mermaid.initialize({
       startOnLoad: false,
       theme: 'base',
+      look: 'handDrawn',
       themeVariables: {
         primaryColor: '#fdf6e3',
         primaryTextColor: '#657b83',
@@ -164,7 +168,7 @@ const { chart, caption } = Astro.props;
         tertiaryColor: '#fdf6e3',
         noteTextColor: '#657b83',
         noteBkgColor: '#eee8d5',
-        fontFamily: 'system-ui, -apple-system, sans-serif',
+        fontFamily: '"Virgil", "Comic Sans MS", cursive, system-ui',
       },
       flowchart: { htmlLabels: true, curve: 'basis' },
       securityLevel: 'loose',
