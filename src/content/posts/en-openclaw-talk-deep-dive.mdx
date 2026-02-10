@@ -85,11 +85,9 @@ This isn't just "deploy a chatbot to the cloud." It's a full workflow with three
 └─────────────────────────────────────────────────────────┘
 ```
 
-| Layer | Tools | Role |
-|-------|-------|------|
-| **Input** | Phone + Telegram | User interface. Chat with AI anytime, anywhere |
-| **Control** | Mac + openclaw-hq + Claude Code | Developer cockpit. SSH into VM, check logs, tweak configs, debug |
-| **Execution** | Hetzner VPS + OpenClaw Gateway | Where the AI actually lives. Runs 24/7 as a systemd service |
+- **Input** — Phone + Telegram: User interface. Chat with AI anytime, anywhere
+- **Control** — Mac + openclaw-hq + Claude Code: Developer cockpit. SSH into VM, check logs, tweak configs, debug
+- **Execution** — Hetzner VPS + OpenClaw Gateway: Where the AI actually lives. Runs 24/7 as a systemd service
 
 ### Execution Layer Details
 
@@ -137,14 +135,12 @@ Think of it this way: pi-ai is the engine, OpenClaw is the car. And you humans? 
 
 Getting from zero to a working system takes roughly six phases:
 
-| Phase | What | Key Point |
-|-------|------|-----------|
-| 1 | Hetzner account (signup + 2FA + ID verification) | Passport/ID upload required |
-| 2 | VPS creation (CPX11, Hillsboro OR, ed25519) | Pick OS, region, set SSH key |
-| 3 | Security hardening (non-root user, UFW, disable root SSH) | First thing you do is lock the door |
-| 4 | OpenClaw install (Node.js 22 + npm + systemd) | Set up service for 24/7 operation |
-| 5 | Telegram Bot (BotFather + personality + pairing) | `openclaw tui` needs interactive terminal |
-| 6 | Tailscale (more secure SSH tunnel) | Planned — could remove public SSH port |
+1. **Hetzner account** (signup + 2FA + ID verification) — Passport/ID upload required
+2. **VPS creation** (CPX11, Hillsboro OR, ed25519) — Pick OS, region, set SSH key
+3. **Security hardening** (non-root user, UFW, disable root SSH) — First thing you do is lock the door
+4. **OpenClaw install** (Node.js 22 + npm + systemd) — Set up service for 24/7 operation
+5. **Telegram Bot** (BotFather + personality + pairing) — `openclaw tui` needs interactive terminal
+6. **Tailscale** (more secure SSH tunnel) — Planned, could remove public SSH port
 
 ### A Few Things Worth Mentioning
 
@@ -188,14 +184,12 @@ Because Claude Code can SSH into the VM, it can:
 
 ### Daily Collaboration
 
-| Scenario | What Claude Code Does |
-|----------|-----------|
-| Strategy discussion | "Should we add Vertex AI?" → Analyzes pros/cons, estimates cost |
-| Information search | Look up bug reports, API docs, GitHub issues |
-| Diagnose problems | SSH into VM, check logs, run `doctor`, find root cause |
-| Fix code | Manually patch provider files (like the tool_use bug) |
-| Config changes | Edit settings + restart gateway, end-to-end |
-| Write notes | Update runbook/ with lessons learned |
+- **Strategy discussion:** "Should we add Vertex AI?" → Analyzes pros/cons, estimates cost
+- **Information search:** Look up bug reports, API docs, GitHub issues
+- **Diagnose problems:** SSH into VM, check logs, run `doctor`, find root cause
+- **Fix code:** Manually patch provider files (like the tool_use bug)
+- **Config changes:** Edit settings + restart gateway, end-to-end
+- **Write notes:** Update runbook/ with lessons learned
 
 The original talk even mentioned: "You can do this from your phone with the Claude Code app."
 
@@ -211,11 +205,9 @@ OpenClaw doesn't just support one API key or token — it supports **multiple au
 
 When one profile gets rate-limited or fails auth, the system automatically switches to the next one. The backoff strategy is exponential:
 
-| Error Type | Initial Wait | Multiplier | Cap |
-|-----------|-------------|------------|-----|
-| Rate limit (429) | 60 seconds | ×5 | 1 hour |
-| Auth failure (401) | 60 seconds | ×5 | 1 hour |
-| Billing issue (402) | 5 hours | ×2 | 24 hours |
+- **Rate limit (429):** Initial wait 60s, ×5 multiplier, cap 1 hour
+- **Auth failure (401):** Initial wait 60s, ×5 multiplier, cap 1 hour
+- **Billing issue (402):** Initial wait 5 hours, ×2 multiplier, cap 24 hours
 
 The system uses `proper-lockfile` for concurrent-safe updates, preventing multiple requests from modifying the profile simultaneously.
 
@@ -288,11 +280,9 @@ Layer 3: anthropic.js
 
 ### The Fix Journey
 
-| Issue / PR | Status | Description |
-|------------|--------|-------------|
-| #1508 | OPEN | Original issue (canonical) |
-| #2213 | OPEN | Correct fix (standalone normalize function) |
-| pi-mono#884 | Fixed | Upstream fix merged |
+- **#1508** — OPEN: Original issue (canonical)
+- **#2213** — OPEN: Correct fix (standalone normalize function)
+- **pi-mono#884** — Fixed: Upstream fix merged
 
 **The actual fix: one line of code**
 ```javascript
@@ -333,12 +323,10 @@ That bug was rough. It was like eating spoiled food, and then every time I tried
 
 ### Monthly Cost
 
-| Item | Cost | Notes |
-|------|------|-------|
-| Hetzner VPS | $5.59 | CPX11, 2 vCPU, 2GB RAM |
-| Anthropic Claude | $20.00 | Claude Max subscription |
-| Google AI Pro | $20.00 | Shared by Gemini CLI + Antigravity |
-| **Total** | **~$45.59** | |
+- **Hetzner VPS** — $5.59/mo: CPX11, 2 vCPU, 2GB RAM
+- **Anthropic Claude** — $20.00/mo: Claude Max subscription
+- **Google AI Pro** — $20.00/mo: Shared by Gemini CLI + Antigravity
+- **Total: ~$45.59/mo**
 
 A bit pricier than just paying for ChatGPT Plus, but you get full control, privacy, and infinite extensibility.
 

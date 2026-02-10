@@ -87,11 +87,9 @@ ShroomDog 分享了他如何在 Hetzner VPS 上架設 OpenClaw，並透過 Teleg
 └─────────────────────────────────────────────────────────┘
 ```
 
-| 層 | 工具 | 角色 |
-|---|------|------|
-| **輸入層** | 手機 + Telegram | 使用者介面。隨時隨地跟 AI 聊天 |
-| **控制層** | Mac + openclaw-hq + Claude Code | 開發者工具。SSH 進 VM 看 log、改 config、debug |
-| **執行層** | Hetzner VPS + OpenClaw Gateway | 實際跑 AI agent 的地方。systemd service，24/7 運作 |
+- **輸入層** — 手機 + Telegram：使用者介面。隨時隨地跟 AI 聊天
+- **控制層** — Mac + openclaw-hq + Claude Code：開發者工具。SSH 進 VM 看 log、改 config、debug
+- **執行層** — Hetzner VPS + OpenClaw Gateway：實際跑 AI agent 的地方。systemd service，24/7 運作
 
 ### 執行層細部
 
@@ -142,14 +140,12 @@ ShroomDog 分享了他如何在 Hetzner VPS 上架設 OpenClaw，並透過 Teleg
 
 從零到能用，大概要經過六個階段：
 
-| Phase | 內容 | 重點 |
-|-------|------|------|
-| 1 | Hetzner 帳號（註冊 + 2FA + 身份驗證） | 要上傳護照/ID 驗證 |
-| 2 | VPS 建立（CPX11, Hillsboro OR, ed25519） | 選 OS、選地區、設 SSH key |
-| 3 | 安全加固（非 root 使用者、UFW、禁用 root SSH） | 拿到 VM 第一件事是鎖門 |
-| 4 | OpenClaw 安裝（Node.js 22 + npm + systemd） | 設定 service 讓它 24/7 跑 |
-| 5 | Telegram Bot（BotFather + 人格設定 + pairing） | `openclaw tui` 需要互動式 terminal |
-| 6 | Tailscale（更安全的 SSH tunnel） | 待做 — 可以拿掉公開 SSH port |
+1. **Hetzner 帳號**（註冊 + 2FA + 身份驗證）— 要上傳護照/ID 驗證
+2. **VPS 建立**（CPX11, Hillsboro OR, ed25519）— 選 OS、選地區、設 SSH key
+3. **安全加固**（非 root 使用者、UFW、禁用 root SSH）— 拿到 VM 第一件事是鎖門
+4. **OpenClaw 安裝**（Node.js 22 + npm + systemd）— 設定 service 讓它 24/7 跑
+5. **Telegram Bot**（BotFather + 人格設定 + pairing）— `openclaw tui` 需要互動式 terminal
+6. **Tailscale**（更安全的 SSH tunnel）— 待做，可以拿掉公開 SSH port
 
 ### 幾個值得一提的重點
 
@@ -195,14 +191,12 @@ openclaw-hq/
 
 ### 日常合作方式
 
-| 情境 | Claude Code 做什麼 |
-|------|-----------|
-| 討論策略 | 「要不要加 Vertex AI？」→ 分析利弊、估成本 |
-| 搜尋資訊 | 查 bug report、API 文件、GitHub issue |
-| 診斷問題 | SSH 進 VM 看 log、跑 `doctor`、找 root cause |
-| 修 code | 手動 patch provider 檔案（像 tool_use bug 那次） |
-| 改 config | 修設定 + restart gateway，一條龍 |
-| 寫筆記 | 把踩坑紀錄更新到 `runbook/`，下次直接參考 |
+- **討論策略：**「要不要加 Vertex AI？」→ 分析利弊、估成本
+- **搜尋資訊：** 查 bug report、API 文件、GitHub issue
+- **診斷問題：** SSH 進 VM 看 log、跑 `doctor`、找 root cause
+- **修 code：** 手動 patch provider 檔案（像 tool_use bug 那次）
+- **改 config：** 修設定 + restart gateway，一條龍
+- **寫筆記：** 把踩坑紀錄更新到 `runbook/`，下次直接參考
 
 甚至在原文中提到：「手機上用 Claude Code app 也行」。
 
@@ -221,11 +215,9 @@ OpenClaw 不只支援一組 API key 或 token——它支援**多組 auth profil
 
 當某個 profile 被 rate limit 或 auth 失敗時，系統會自動切到下一個。而且 backoff 策略是指數型的：
 
-| 錯誤類型 | 初始等待 | 倍率 | 上限 |
-|---------|---------|------|------|
-| Rate limit (429) | 60 秒 | ×5 | 1 小時 |
-| Auth 失敗 (401) | 60 秒 | ×5 | 1 小時 |
-| 帳單問題 (402) | 5 小時 | ×2 | 24 小時 |
+- **Rate limit (429)：** 初始等待 60 秒，×5 倍率，上限 1 小時
+- **Auth 失敗 (401)：** 初始等待 60 秒，×5 倍率，上限 1 小時
+- **帳單問題 (402)：** 初始等待 5 小時，×2 倍率，上限 24 小時
 
 系統使用 `proper-lockfile` 做 concurrent-safe 更新，避免多個 request 同時改 profile。
 
@@ -300,11 +292,9 @@ messages.N.content.X.tool_use.input: Field required
 
 ### 修復之路
 
-| Issue / PR | 狀態 | 說明 |
-|------------|------|------|
-| #1508 | OPEN | 原始 issue（canonical） |
-| #2213 | OPEN | 正確修法（standalone normalize function） |
-| pi-mono#884 | 已修復 | upstream fix 已 merge |
+- **#1508** — OPEN：原始 issue（canonical）
+- **#2213** — OPEN：正確修法（standalone normalize function）
+- **pi-mono#884** — 已修復：upstream fix 已 merge
 
 **修法本體：一行程式碼**
 ```javascript
@@ -349,12 +339,10 @@ openclaw gateway start
 
 ### 每月花費
 
-| 項目 | 月費 | 說明 |
-|------|------|------|
-| Hetzner VPS | $5.59 | CPX11，2 vCPU、2GB RAM |
-| Anthropic Claude | $20.00 | Claude Max 訂閱 |
-| Google AI Pro | $20.00 | Gemini CLI + Antigravity 共用 |
-| **合計** | **~$45.59** | |
+- **Hetzner VPS** — $5.59/月：CPX11，2 vCPU、2GB RAM
+- **Anthropic Claude** — $20.00/月：Claude Max 訂閱
+- **Google AI Pro** — $20.00/月：Gemini CLI + Antigravity 共用
+- **合計：~$45.59/月**
 
 雖然比直接用 ChatGPT Plus 貴一點，但你擁有完整的控制權、隱私，以及無限的擴充性。
 
