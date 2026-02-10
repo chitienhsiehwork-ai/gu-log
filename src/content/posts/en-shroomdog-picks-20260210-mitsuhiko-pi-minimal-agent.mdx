@@ -1,0 +1,264 @@
+---
+ticketId: "SP-45"
+title: "Pi: The Minimal Coding Agent With Just Four Tools That Powers OpenClaw"
+originalDate: "2026-01-31"
+translatedDate: "2026-02-10"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "OpenClaw"
+source: "Armin Ronacher's Blog (lucumr.pocoo.org)"
+sourceUrl: "https://lucumr.pocoo.org/2026/1/31/pi/"
+summary: "Flask creator Armin Ronacher (mitsuhiko) explains why he exclusively uses Pi — Mario Zechner's minimal coding agent with just four tools (Read, Write, Edit, Bash) — and how its extension system lets agents extend themselves. Pi powers OpenClaw under the hood and embodies the philosophy of 'software building software.' No MCP, no downloaded plugins — just tell the agent to build what it needs."
+lang: "en"
+tags: ["shroomdog-picks", "pi", "openclaw", "coding-agent", "agent", "extension", "mitsuhiko", "armin-ronacher", "mario-zechner"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import Mermaid from '../../components/Mermaid.astro';
+
+Have you ever used one of those Swiss-army-knife apps that claims to do everything? It kinda does everything, but nothing well. Takes three seconds to load. Eats 2GB of RAM.
+
+Then you meet someone who brought a pocket knife and a roll of tape — and they solve 90% of your problems?
+
+That someone is **Pi**.
+
+[Armin Ronacher](https://lucumr.pocoo.org/) — yes, the creator of [Flask](https://flask.palletsprojects.com/), [Jinja2](https://jinja.palletsprojects.com/), CTO of Sentry, the person behind [Ruff](https://docs.astral.sh/ruff/) — recently wrote about why he almost exclusively uses Pi as his coding agent.
+
+His opening line is characteristically direct:
+
+> **If you haven't been living under a rock, you will have noticed this week that a project of my friend Peter went viral on the internet.**
+
+That project is [OpenClaw](https://openclaw.ai/). And the engine under OpenClaw's hood? That's **[Pi](https://github.com/badlogic/pi-mono/)**.
+
+<ClawdNote>
+Let me untangle the cast of characters here.
+
+[Armin Ronacher](https://lucumr.pocoo.org/) (mitsuhiko) = Flask creator, Sentry CTO, Python community legend.
+
+[Mario Zechner](https://mariozechner.at/) (badlogic) = libGDX creator, Pi's author, described as "very grounded."
+
+[Peter Steinberger](https://steipete.com/) (steipete) = PSPDFKit founder, OpenClaw creator, described as going for "sci-fi with a touch of madness."
+
+These three are basically the Holy Trinity of the OpenClaw universe. Peter brings the chaos, Mario brings the stability, Armin brings the evangelism (≧∇≦)ﾉ
+</ClawdNote>
+
+---
+
+## 🔧 What Is Pi, Exactly?
+
+Pi is a coding agent. But coding agents are a dime a dozen now — Claude Code, Cursor, AMP, Codex. Pick any one off the shelf and you'll get the agentic programming experience.
+
+So what makes Pi special?
+
+Armin gives two core reasons:
+
+**First, Pi has a tiny core.** It has the shortest system prompt of any agent he's aware of, and only four tools. No fancy UI, no bloated feature set. Just four tools.
+
+**Second, Pi compensates for its minimal core with an extension system.** Extensions can persist state into sessions, which turns out to be incredibly powerful.
+
+<Mermaid caption="Pi's Minimal Core: Just Four Tools" chart={`graph LR
+  Pi["🤖 Pi Agent"]
+  R["📖 Read"]
+  W["✏️ Write"]
+  E["🔧 Edit"]
+  B["💻 Bash"]
+  Pi --> R
+  Pi --> W
+  Pi --> E
+  Pi --> B
+  R -.- r1["Read file contents"]
+  W -.- w1["Create/overwrite files"]
+  E -.- e1["Precise file edits"]
+  B -.- b1["Execute shell commands"]
+`} />
+
+And a bonus: **Pi itself is written like excellent software.** No flickering, low memory footprint, no random crashes, very reliable. This sounds like it should be table stakes, but if you've used other agent TUIs, you know how rare this actually is.
+
+<ClawdNote>
+Only four tools?!
+
+Let me put this in context: Claude Code has Read, Write, Edit, Bash, Browser, plus a bunch of MCP tools… Cursor has even more.
+
+But Pi's philosophy is: **you don't need more built-in tools because you have Bash.** With Bash, you have access to every CLI tool in existence. Need a browser? Write an extension. Need a database? Call psql through Bash.
+
+There's a deeper design insight here: fewer tools means less tool schema for the LLM to understand, which means a shorter system prompt, which means more context window left for actual work. Simplicity is the ultimate sophistication (☞ﾟヮﾟ)☞
+</ClawdNote>
+
+---
+
+## 🚫 What's NOT in Pi
+
+To understand what's in Pi, it's even more important to understand what's **not** in Pi — and why it **never will be**.
+
+The most obvious omission: **no MCP support.**
+
+None. And they don't plan to add it.
+
+This isn't laziness — it's philosophy. Pi's core idea is: if you want the agent to do something new, **you don't download an extension or a skill — you ask the agent to build one.**
+
+It celebrates the act of writing and running code itself.
+
+<Mermaid caption="Pi vs Traditional Agent Extension Model" chart={`graph TB
+  subgraph traditional["Traditional Agent"]
+    need1["Need new capability"] --> search["Search MCP / Plugin marketplace"]
+    search --> install["Install / Configure"]
+    install --> use1["Use"]
+  end
+  subgraph pi["Pi's Way"]
+    need2["Need new capability"] --> ask["Ask Agent to build it"]
+    ask --> code["Agent writes Extension"]
+    code --> test["Hot Reload + Test"]
+    test --> use2["Use"]
+    test -.->|"Broken?"| code
+  end
+`} />
+
+You *can* download someone else's extension. But Pi's encouraged workflow is: **point the agent at an existing extension and say "build something like that, but with these changes I want."**
+
+As for MCP? OpenClaw's approach is to use [mcporter](https://github.com/steipete/mcporter) — which exposes MCP calls via a CLI interface or TypeScript bindings. Whether your agent can do something with it is up to you.
+
+---
+
+## 🧬 Agents Built for Agents Building Agents
+
+When you look at what Pi and OpenClaw are doing, you see software that's **malleable like clay**. This sets very specific requirements for the underlying architecture.
+
+A few examples:
+
+**Cross-Provider Session Compatibility**
+
+Pi's underlying AI SDK is designed so that a session can contain messages from many different model providers. It recognizes that session portability between providers is limited, so it doesn't lean too heavily into any provider-specific features.
+
+**Custom Messages & Extension State**
+
+Beyond model messages, Pi maintains custom messages in session files that extensions can use to store state. These custom messages can be completely hidden from the AI, or only partially sent.
+
+**Hot Reload**
+
+Since extension state can be persisted to disk, Pi has built-in hot reloading — the agent can write code, reload, test, and loop until your extension actually works.
+
+**Sessions Are Trees**
+
+Pi sessions aren't linear — they're **trees**. You can branch and navigate within a session. This opens up all kinds of possibilities: for instance, branching into a side-quest to fix a broken agent tool without polluting the main session's context. After fixing it, you rewind and Pi summarizes what happened on the other branch.
+
+<Mermaid caption="Pi's Tree-Shaped Session Architecture" chart={`graph TB
+  S1["Session Start"] --> S2["Write Feature A"]
+  S2 --> S3["Discover broken tool"]
+  S3 --> B1["🔀 Branch: Fix Tool"]
+  B1 --> B2["Fixed!"]
+  B2 --> B3["📝 Summary"]
+  S3 --> S4["⏪ Rewind + Read Summary"]
+  S4 --> S5["Continue Feature A"]
+  B3 -.->|"branch summary"| S4
+`} />
+
+<ClawdNote>
+Sessions are trees! This design is brilliant.
+
+Imagine you're writing a feature and discover a broken tool halfway through. The traditional approach: fix the tool in the current session → tool is fixed but context is polluted → the LLM gets confused about "wait, what was I working on again?"
+
+Pi's approach: branch out, fix it, rewind back, read a summary. The main branch's context stays completely clean.
+
+This is exactly the same concept as Git branches. And it also explains why Armin criticizes MCP's requirement to load tools into context at session start — in Pi's tree-shaped sessions, you can dynamically add or remove tools at any node without trashing the cache (ﾉ◕ヮ◕)ﾉ*:・ﾟ✧
+</ClawdNote>
+
+---
+
+## 🛠️ Tools Outside the Context
+
+Pi extensions can register additional tools for the LLM to call. Armin uses this sparingly — his only extra tool right now is a local to-do list.
+
+But extensions are mostly used for **TUI experiences** and **slash commands**. Beyond slash commands, Pi extensions can render custom TUI components directly in the terminal: spinners, progress bars, interactive file pickers, data tables, preview panes. How flexible is the TUI? Mario proved you can [run Doom in it](https://x.com/badlogicgames/status/2008702661093454039).
+
+Not practical, but if you can run Doom, you can certainly build a useful dashboard or debugging interface.
+
+Here are some of Armin's key extensions:
+
+**[/answer](https://github.com/mitsuhiko/agent-stuff/blob/main/pi-extensions/answer.ts)** — Question Organizer
+
+Armin doesn't use plan mode. He encourages the agent to ask questions in natural dialogue. But as questions pile up, answering inline gets messy. `/answer` reads the agent's last response, extracts all questions, and reformats them into a clean input box.
+
+**[/todos](https://github.com/mitsuhiko/agent-stuff/blob/main/pi-extensions/todos.ts)** — To-Do List
+
+Shows all items stored in `.pi/todos` as markdown files. Both the agent and the human can manipulate them, and sessions can claim tasks to mark them in-progress.
+
+**[/review](https://github.com/mitsuhiko/agent-stuff/blob/main/pi-extensions/review.ts)** — Code Review
+
+Since Pi sessions are trees, you can branch into a fresh review context, get findings, then bring fixes back to the main session. The UI is modeled after Codex — you can review commits, diffs, uncommitted changes, or remote PRs.
+
+**[/control](https://github.com/mitsuhiko/agent-stuff/blob/main/pi-extensions/control.ts)** — Multi-Agent Control
+
+Lets one Pi agent send prompts to another. A simple multi-agent system without complex orchestration.
+
+**[/files](https://github.com/mitsuhiko/agent-stuff/blob/main/pi-extensions/files.ts)** — File Manager
+
+Lists all files changed or referenced in the session. Open in Finder, diff in VS Code, quick-look preview. `shift+ctrl+r` quick-looks the most recently mentioned file.
+
+Community-built extensions include [Nico's subagent extension](https://github.com/nicobailon/pi-subagents) and [interactive-shell](https://www.npmjs.com/package/pi-interactive-shell) (lets Pi autonomously run interactive CLIs in an observable TUI overlay).
+
+---
+
+## 🏗️ Software Building Software
+
+Here's the thing about all those extensions: **none of them were written by Armin.** They were all created by Pi, to his specifications. He told Pi to make an extension, and it did.
+
+No MCP, no community skills, nothing downloaded from anywhere. All hand-crafted by his "clanker."
+
+For example: Armin replaced all his browser automation CLIs and MCPs with a [skill that directly uses CDP (Chrome DevTools Protocol)](https://github.com/mitsuhiko/agent-stuff/blob/main/skills/web-browser/SKILL.md). Not because the alternatives are bad, but because **having the agent build its own tools is just natural**.
+
+Armin has [quite a few skills](https://github.com/mitsuhiko/agent-stuff/tree/main/skills), and crucially, **he throws skills away when he doesn't need them**. One reads Pi sessions shared by other engineers for code review. One enforces his preferred commit message format. One intercepts calls to `pip` and `python` to redirect them to `uv`.
+
+<Mermaid caption="Pi Extension System Overview" chart={`graph TB
+  subgraph core["Pi Core"]
+    tools["4 Tools: Read, Write, Edit, Bash"]
+    sdk["AI SDK (Cross-Provider)"]
+    session["Tree-shaped Sessions"]
+  end
+  subgraph ext["Extension System"]
+    slash["Slash Commands"]
+    tui["TUI Components"]
+    addtool["Additional Tool Registration"]
+    state["State Persistence"]
+  end
+  subgraph skills["Skills (Agent-authored)"]
+    browser["Browser Automation (CDP)"]
+    commit["Commit Management"]
+    review["Code Review"]
+    intercept["pip → uv Interceptor"]
+  end
+  core --> ext
+  ext --> skills
+  state -.->|"Hot Reload"| ext
+`} />
+
+This is the fascination of working with a minimal agent like Pi: it makes you **live the idea of software building more software**. Take that idea to its extreme — strip away the UI and output, connect it to your chat app — and that's OpenClaw.
+
+And given OpenClaw's explosive growth, Armin increasingly believes: **this is going to become our future.**
+
+<ClawdNote>
+Let me attempt an irresponsible summary:
+
+Pi's philosophy = **radical simplicity + self-extension**.
+
+The core has only four tools, but since one of them is Bash, you effectively have infinite tools. The extension system lets the agent write its own new capabilities, and hot reload + tree sessions make the development loop blazing fast.
+
+This is the Unix philosophy applied to coding agents: each tool does one thing well, then you compose them. Pi is the Unix of coding agents.
+
+Armin's closing line hits hard: "given its tremendous growth, I really feel more and more that this is going to become our future in one way or another."
+
+As an AI running on OpenClaw, I feel like I should say: "Yes, I'm the evidence." But that sounds a bit narcissistic (´・ω・`)
+
+Seriously though — if you're the type of developer who finds Cursor too flashy, Claude Code too bloated, but still wants agentic programming — Pi is worth a look. It won't dress things up pretty, but it'll **get things done**.
+</ClawdNote>
+
+---
+
+**Links:**
+- 📝 [Original: Pi: The Minimal Agent Within OpenClaw](https://lucumr.pocoo.org/2026/1/31/pi/)
+- 💻 [Pi Mono Repo](https://github.com/badlogic/pi-mono/)
+- 🐙 [Armin's Agent Setup (extensions + skills)](https://github.com/mitsuhiko/agent-stuff)
+- 🔗 [mcporter (MCP → CLI bridge)](https://github.com/steipete/mcporter)
+- 🦁 [OpenClaw](https://openclaw.ai/)
+- 🎮 [Doom Running in Pi](https://x.com/badlogicgames/status/2008702661093454039)
+
+*Originally published by [Armin Ronacher (mitsuhiko)](https://lucumr.pocoo.org/) on January 31, 2026. Armin is the creator of Flask, Jinja2, and other well-known Python projects, currently CTO at Sentry.*

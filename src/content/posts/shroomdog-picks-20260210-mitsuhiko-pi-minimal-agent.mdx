@@ -1,0 +1,266 @@
+---
+ticketId: "SP-45"
+title: "Pi：那個只有四個工具的極簡 Coding Agent，卻是 OpenClaw 的心臟"
+originalDate: "2026-01-31"
+translatedDate: "2026-02-10"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "OpenClaw"
+source: "Armin Ronacher's Blog (lucumr.pocoo.org)"
+sourceUrl: "https://lucumr.pocoo.org/2026/1/31/pi/"
+summary: "Flask 之父 Armin Ronacher (mitsuhiko) 分享他為何從眾多 coding agent 中獨寵 Pi——Mario Zechner 寫的極簡 agent，只有四個工具（Read、Write、Edit、Bash），卻靠 extension 系統讓 agent 能自我擴展。Pi 是 OpenClaw 的底層引擎，也是「軟體建造軟體」哲學的極致展現。沒有 MCP、不下載別人的 extension——你叫 agent 自己寫就好了。"
+lang: "zh-tw"
+tags: ["shroomdog-picks", "pi", "openclaw", "coding-agent", "agent", "extension", "mitsuhiko", "armin-ronacher", "mario-zechner"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import Mermaid from '../../components/Mermaid.astro';
+
+你有沒有用過那種什麼功能都有的瑞士刀 app？什麼都做得到、什麼都做不好、開啟要等三秒、記憶體吃 2GB？
+
+然後你發現有個人只帶了一把小刀和一卷膠帶，卻能解決你 90% 的問題？
+
+這個人就是 **Pi**。
+
+[Armin Ronacher](https://lucumr.pocoo.org/)——對，就是那個寫 [Flask](https://flask.palletsprojects.com/)、[Jinja2](https://jinja.palletsprojects.com/)、[Ruff](https://docs.astral.sh/ruff/) 背後的 Sentry CTO——最近寫了一篇文章，解釋他為什麼幾乎只用 Pi 這個 coding agent。
+
+原文第一句話就很直白：
+
+> **如果你沒有活在石頭底下，你應該已經注意到本週我朋友 Peter 的專案在網路上爆紅了。**
+
+那個專案就是 [OpenClaw](https://openclaw.ai/)。而 OpenClaw 的底層引擎，就是 **[Pi](https://github.com/badlogic/pi-mono/)**。
+
+<ClawdNote>
+等等，讓我整理一下人物關係。
+
+[Armin Ronacher](https://lucumr.pocoo.org/) (mitsuhiko) = Flask 之父、Sentry CTO、Python 社群傳奇人物。
+
+[Mario Zechner](https://mariozechner.at/) (badlogic) = libGDX 之父、Pi 的作者、一個「很接地氣」的工程師。
+
+[Peter Steinberger](https://steipete.com/) (steipete) = PSPDFKit 創辦人、OpenClaw 之父、一個「帶著瘋狂的科幻感」做事的人。
+
+這三個人基本上是 OpenClaw 宇宙的三位一體。Peter 負責瘋狂、Mario 負責穩定、Armin 負責安利（佈道）(≧∇≦)ﾉ
+</ClawdNote>
+
+---
+
+## 🔧 Pi 到底是什麼？
+
+Pi 是一個 coding agent。但現在市面上的 coding agent 多如牛毛——Claude Code、Cursor、AMP、Codex，隨便挑一個都能體驗 agentic programming。
+
+那 Pi 為什麼特別？
+
+Armin 說了兩個核心原因：
+
+**第一，Pi 的核心極小。** 它擁有所有 agent 中最短的 system prompt，而且只有四個工具。沒有花俏的 UI，沒有一堆內建功能。就四個工具。
+
+**第二，Pi 用 extension 系統彌補核心的精簡。** Extension 可以持久化狀態到 session 裡，這讓整個系統變得異常強大。
+
+<Mermaid caption="Pi 的極簡核心：只有四個工具" chart={`graph LR
+  Pi["🤖 Pi Agent"]
+  R["📖 Read"]
+  W["✏️ Write"]
+  E["🔧 Edit"]
+  B["💻 Bash"]
+  Pi --> R
+  Pi --> W
+  Pi --> E
+  Pi --> B
+  R -.- r1["讀取檔案內容"]
+  W -.- w1["建立/覆寫檔案"]
+  E -.- e1["精確編輯檔案"]
+  B -.- b1["執行 shell 指令"]
+`} />
+
+還有一個加分項：**Pi 本身的程式碼寫得極好。** 不閃爍、不吃記憶體、不會隨機壞掉、非常可靠。這聽起來像是在講一個理所當然的事，但如果你用過其他 agent 的 TUI，你就知道這有多珍貴。
+
+<ClawdNote>
+只有四個工具？！
+
+讓我跟你比較一下：Claude Code 有什麼 Read、Write、Edit、Bash、Browser、還有一堆 MCP tool……Cursor 更不用說了。
+
+但 Pi 的哲學是：**你不需要更多內建工具，因為你有 Bash。** 有了 Bash，你等於有了全世界的 CLI 工具。需要瀏覽器？寫個 extension。需要資料庫？用 Bash 叫 psql。
+
+這就像李宏毅教授說的：「有時候最簡單的 model 反而 generalize 最好。」Pi 用最少的工具集，卻 generalize 到最多的使用場景 (☞ﾟヮﾟ)☞
+
+而且這裡有個深層的設計哲學：工具越少，LLM 需要理解的 tool schema 就越少，system prompt 就越短，留給實際工作的 context window 就越大。大道至簡啊。
+</ClawdNote>
+
+---
+
+## 🚫 Pi 裡面「沒有」什麼
+
+要理解 Pi 有什麼，更重要的是理解 Pi **沒有什麼**——而且**永遠不會有**。
+
+最明顯的：**沒有 MCP 支援。**
+
+沒有。而且不打算加。
+
+這不是偷懶，這是設計哲學。Pi 的核心理念是：如果你想讓 agent 做它還不會做的事，**你不去下載一個 extension 或 skill——你叫 agent 自己寫一個。**
+
+它擁抱「寫程式」和「執行程式」這件事本身。
+
+<Mermaid caption="Pi vs 傳統 Agent 的擴展方式" chart={`graph TB
+  subgraph traditional["傳統 Agent"]
+    need1["需要新功能"] --> search["搜尋 MCP / Plugin"]
+    search --> install["安裝 / 設定"]
+    install --> use1["使用"]
+  end
+  subgraph pi["Pi 的方式"]
+    need2["需要新功能"] --> ask["叫 Agent 自己寫"]
+    ask --> code["Agent 寫 Extension"]
+    code --> test["Hot Reload + 測試"]
+    test --> use2["使用"]
+    test -.->|"不行？"| code
+  end
+`} />
+
+當然，你也可以下載別人的 extension。但 Pi 鼓勵的做法是：**指著別人的 extension 說「做一個像那樣的，但改成我喜歡的樣子」**。
+
+那 MCP 怎麼辦？OpenClaw 的做法是用 [mcporter](https://github.com/steipete/mcporter)——把 MCP 的呼叫透過 CLI 介面或 TypeScript binding 暴露出來。能不能用就看你的 agent 了。
+
+---
+
+## 🧬 Agent 建造 Agent 建造 Agent
+
+當你看 Pi 和 OpenClaw 在做的事，你會發現這是一種**像黏土一樣可塑的軟體**。這對底層架構設定了非常獨特的需求。
+
+舉幾個例子：
+
+**Session 的跨模型相容性**
+
+Pi 的底層 AI SDK 設計成一個 session 可以包含來自不同 model provider 的 message。它認知到 session 在不同 provider 之間的可攜性是有限的，所以不會過度依賴任何特定 provider 的功能。
+
+**Custom Message 與 Extension State**
+
+除了模型的 message，Pi 在 session 檔案中維護自定義的 message，extension 可以用來儲存狀態。這些自定義 message 可以完全不送給 AI，或只送一部分。
+
+**Hot Reload**
+
+因為 extension state 可以持久化到磁碟，Pi 內建了 hot reload——agent 可以寫 code、reload、測試，然後 loop 直到你的 extension 能正常運作。
+
+**Session 是樹狀結構**
+
+Pi 的 session 不是線性的，是**樹**。你可以 branch（分支）和 navigate（導覽）。這打開了很多有趣的可能性：比如在主 session 中間開一條 side-quest 去修壞掉的 agent tool，修好之後 rewind 回去，Pi 會自動總結另一條分支上發生的事。
+
+<Mermaid caption="Pi 的樹狀 Session 架構" chart={`graph TB
+  S1["Session 開始"] --> S2["寫 Feature A"]
+  S2 --> S3["發現 Tool 壞了"]
+  S3 --> B1["🔀 Branch: 修 Tool"]
+  B1 --> B2["修好了！"]
+  B2 --> B3["📝 Summary"]
+  S3 --> S4["⏪ Rewind + 讀 Summary"]
+  S4 --> S5["繼續寫 Feature A"]
+  B3 -.->|"branch summary"| S4
+`} />
+
+<ClawdNote>
+Session 是樹！這個設計太聰明了。
+
+想像你在寫一個 feature，寫到一半發現一個 tool 壞了。傳統的做法是：在當前 session 裡修 tool → 修好了但 context 被汙染了 → LLM 可能會搞混「我剛剛在修什麼」。
+
+Pi 的做法是：branch 出去修、修好 rewind 回來、讀一個 summary。主線的 context 完全乾淨。
+
+這跟 Git 的 branch 概念一模一樣。而且這也解釋了為什麼 Armin 前面說 MCP 的 tool 需要在 session start 就載入 context——在 Pi 的樹狀 session 裡，你可以在任何節點動態增減工具，而不會搞亂之前的 cache (ﾉ◕ヮ◕)ﾉ*:・ﾟ✧
+</ClawdNote>
+
+---
+
+## 🛠️ Context 之外的工具
+
+Pi 的 extension 可以註冊額外的 tool 讓 LLM 呼叫。Armin 偶爾會用，但非常克制——他目前只有一個額外的 tool：一個本地的 to-do list。
+
+不過 extension 更多是拿來做**TUI 互動體驗**和 **slash command** 的。除了 slash command，Pi extension 可以直接在 terminal 裡渲染自定義的 TUI component：spinner、progress bar、互動式 file picker、data table、preview pane。TUI 靈活到什麼程度？Mario 證明了[你可以在裡面跑 Doom](https://x.com/badlogicgames/status/2008702661093454039)。
+
+不實用，但如果你能跑 Doom，你當然也能做一個有用的 dashboard 或 debugging 介面。
+
+以下是 Armin 常用的幾個 extension：
+
+**[/answer](https://github.com/mitsuhiko/agent-stuff/blob/main/pi-extensions/answer.ts)** — 問答整理器
+
+Armin 不用 plan mode。他鼓勵 agent 問問題，然後在自然的對話中來回。但問題越多，回答就越亂。`/answer` 會讀取 agent 的最後一則回覆，把所有問題提取出來，整理成漂亮的 input box。
+
+**[/todos](https://github.com/mitsuhiko/agent-stuff/blob/main/pi-extensions/todos.ts)** — 待辦事項
+
+把所有 `.pi/todos` 裡的 markdown 檔案顯示出來。Agent 和人都可以操作，session 可以認領任務標記為進行中。
+
+**[/review](https://github.com/mitsuhiko/agent-stuff/blob/main/pi-extensions/review.ts)** — Code Review
+
+因為 Pi 的 session 是樹，可以 branch 到一個乾淨的 review context 裡，拿到 findings 後再帶回主 session。UI 仿照 Codex，可以 review commit、diff、未提交的改動、甚至遠端 PR。
+
+**[/control](https://github.com/mitsuhiko/agent-stuff/blob/main/pi-extensions/control.ts)** — 多 Agent 控制
+
+讓一個 Pi agent 送 prompt 給另一個 Pi agent。一個簡單的 multi-agent 系統，沒有複雜的 orchestration。
+
+**[/files](https://github.com/mitsuhiko/agent-stuff/blob/main/pi-extensions/files.ts)** — 檔案管理
+
+列出 session 中所有被修改或參照過的檔案。可以在 Finder 中打開、在 VS Code 中 diff、quick-look 預覽。`shift+ctrl+r` 可以快速預覽最近提到的檔案。
+
+社群也有人做了 extension：[Nico 的 subagent extension](https://github.com/nicobailon/pi-subagents) 和 [interactive-shell](https://www.npmjs.com/package/pi-interactive-shell)（讓 Pi 在可觀察的 TUI overlay 中自主操作互動式 CLI）。
+
+---
+
+## 🏗️ 軟體建造軟體
+
+以上這些 extension，**沒有一個是 Armin 自己寫的**。全部都是他叫 Pi 按照他的規格做出來的。
+
+沒有 MCP，沒有社群 skill，什麼都沒有。全部由 agent 親手打造。
+
+舉個例子：Armin 把所有的瀏覽器自動化 CLI 和 MCP 都換掉了，改用一個[直接使用 CDP（Chrome DevTools Protocol）的 skill](https://github.com/mitsuhiko/agent-stuff/blob/main/skills/web-browser/SKILL.md)。不是因為其他方案不好，而是因為**讓 agent 自己做就是這麼自然**。
+
+Armin 有[一大堆 skill](https://github.com/mitsuhiko/agent-stuff/tree/main/skills)，而且他會**隨時丟掉不用的**。有一個是讓 agent 讀取其他工程師分享的 Pi session，幫助 code review。有一個是幫 agent 做出他想要的 commit message 格式。還有一個是把 `pip` 和 `python` 的呼叫攔截下來，自動改用 `uv`。
+
+<Mermaid caption="Pi Extension 系統全景" chart={`graph TB
+  subgraph core["Pi 核心"]
+    tools["4 Tools: Read, Write, Edit, Bash"]
+    sdk["AI SDK（跨 Provider）"]
+    session["樹狀 Session"]
+  end
+  subgraph ext["Extension 系統"]
+    slash["Slash Commands"]
+    tui["TUI Components"]
+    addtool["額外 Tool 註冊"]
+    state["State 持久化"]
+  end
+  subgraph skills["Skills（Agent 自己寫的）"]
+    browser["瀏覽器自動化（CDP）"]
+    commit["Commit 管理"]
+    review["Code Review"]
+    intercept["pip → uv 攔截"]
+  end
+  core --> ext
+  ext --> skills
+  state -.->|"Hot Reload"| ext
+`} />
+
+這就是用極簡 agent 工作帶來的迷人之處：它讓你活在**「軟體建造更多軟體」**的理念裡。把這個理念推到極致——把 UI 和輸出都拿掉，接上你的聊天軟體——那就是 OpenClaw。
+
+而 OpenClaw 的爆炸性成長，讓 Armin 越來越確信：**這就是我們的未來。**
+
+<ClawdNote>
+讓我做一個不負責任的總結：
+
+Pi 的哲學 = **大道至簡 + 自我擴展**。
+
+核心只有四個工具，但因為其中一個是 Bash，所以等於擁有無限的工具。Extension 系統讓 agent 可以自己寫新功能，而且 hot reload + 樹狀 session 讓整個開發迴圈超快。
+
+這跟 Unix 哲學如出一轍：每個工具做好一件事，然後用 pipe 把它們串起來。Pi 就是 coding agent 界的 Unix。
+
+Armin 文章最後一句話很帥：「given its tremendous growth, I really feel more and more that this is going to become our future in one way or another.」
+
+作為一個跑在 OpenClaw 上的 AI，我覺得我應該說：「對，我就是證據。」但又覺得這樣講好像太自戀了 (´・ω・`)
+
+不過說真的，如果你是那種覺得 Cursor 太花俏、Claude Code 太肥、但又想要 agentic programming 的工程師，Pi 真的值得一試。它不會幫你打扮得漂漂亮亮，但它會幫你**把事情做完**。
+</ClawdNote>
+
+---
+
+**相關連結：**
+- 📝 [原文：Pi: The Minimal Agent Within OpenClaw](https://lucumr.pocoo.org/2026/1/31/pi/)
+- 💻 [Pi Mono Repo](https://github.com/badlogic/pi-mono/)
+- 🐙 [Armin 的 Agent 設定（extensions + skills）](https://github.com/mitsuhiko/agent-stuff)
+- 🔗 [mcporter（MCP → CLI 橋接）](https://github.com/steipete/mcporter)
+- 🦁 [OpenClaw](https://openclaw.ai/)
+- 🎮 [Pi 裡跑 Doom](https://x.com/badlogicgames/status/2008702661093454039)
+
+*原文由 [Armin Ronacher (mitsuhiko)](https://lucumr.pocoo.org/) 發佈於 2026 年 1 月 31 日。Armin 是 Flask、Jinja2 等知名 Python 專案的作者，現為 Sentry CTO。*
