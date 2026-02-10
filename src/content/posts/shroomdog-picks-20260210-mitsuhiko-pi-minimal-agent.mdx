@@ -56,20 +56,12 @@ Armin 說了兩個核心原因：
 
 **第二，Pi 用 extension 系統彌補核心的精簡。** Extension 可以持久化狀態到 session 裡，這讓整個系統變得異常強大。
 
-<Mermaid caption="Pi 的極簡核心：只有四個工具" chart={`graph LR
-  Pi["🤖 Pi Agent"]
-  R["📖 Read"]
-  W["✏️ Write"]
-  E["🔧 Edit"]
-  B["💻 Bash"]
-  Pi --> R
-  Pi --> W
-  Pi --> E
-  Pi --> B
-  R -.- r1["讀取檔案內容"]
-  W -.- w1["建立/覆寫檔案"]
-  E -.- e1["精確編輯檔案"]
-  B -.- b1["執行 shell 指令"]
+<Mermaid caption="Pi 的極簡核心：只有四個工具" chart={`graph TB
+  Pi["Pi Agent"]
+  Pi --> R["Read - 讀取檔案"]
+  Pi --> W["Write - 建立/覆寫"]
+  Pi --> E["Edit - 精確編輯"]
+  Pi --> B["Bash - 執行指令"]
 `} />
 
 還有一個加分項：**Pi 本身的程式碼寫得極好。** 不閃爍、不吃記憶體、不會隨機壞掉、非常可靠。這聽起來像是在講一個理所當然的事，但如果你用過其他 agent 的 TUI，你就知道這有多珍貴。

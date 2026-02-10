@@ -56,20 +56,12 @@ Armin gives two core reasons:
 
 **Second, Pi compensates for its minimal core with an extension system.** Extensions can persist state into sessions, which turns out to be incredibly powerful.
 
-<Mermaid caption="Pi's Minimal Core: Just Four Tools" chart={`graph LR
-  Pi["🤖 Pi Agent"]
-  R["📖 Read"]
-  W["✏️ Write"]
-  E["🔧 Edit"]
-  B["💻 Bash"]
-  Pi --> R
-  Pi --> W
-  Pi --> E
-  Pi --> B
-  R -.- r1["Read file contents"]
-  W -.- w1["Create/overwrite files"]
-  E -.- e1["Precise file edits"]
-  B -.- b1["Execute shell commands"]
+<Mermaid caption="Pi's Minimal Core: Just Four Tools" chart={`graph TB
+  Pi["Pi Agent"]
+  Pi --> R["Read - file contents"]
+  Pi --> W["Write - create/overwrite"]
+  Pi --> E["Edit - precise edits"]
+  Pi --> B["Bash - shell commands"]
 `} />
 
 And a bonus: **Pi itself is written like excellent software.** No flickering, low memory footprint, no random crashes, very reliable. This sounds like it should be table stakes, but if you've used other agent TUIs, you know how rare this actually is.
