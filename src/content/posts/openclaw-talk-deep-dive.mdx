@@ -68,21 +68,19 @@ ShroomDog 分享了他如何在 Hetzner VPS 上架設 OpenClaw，並透過 Teleg
 
 這不只是一個部署在雲端的 Chatbot，而是一套完整的工作流。ShroomDog 將其分為三層：
 
-<Mermaid caption="三層架構總覽">
-graph TB
-  subgraph input["📱 輸入層"]
-    phone["手機 + Telegram<br/>使用者輸入介面"]
+<Mermaid caption="三層架構總覽" chart={`graph TB
+  subgraph input["輸入層"]
+    phone["手機 + Telegram"]
   end
-  subgraph control["💻 控制層"]
-    mac["本機 Mac<br/>Claude Code + openclaw-hq"]
+  subgraph control["控制層"]
+    mac["本機 Mac + Claude Code"]
   end
-  subgraph exec["🖥️ 執行層"]
-    vps["Hetzner VPS<br/>OpenClaw Gateway<br/>24/7 Agent"]
+  subgraph exec["執行層"]
+    vps["Hetzner VPS + OpenClaw Gateway"]
   end
   phone -- "Telegram API" --> vps
   mac -- "SSH" --> vps
-  vps -- "LLM API" --> llm["LLM Providers"]
-</Mermaid>
+  vps -- "LLM API" --> llm["LLM Providers"]`} />
 
 - **輸入層** — 手機 + Telegram：使用者介面。隨時隨地跟 AI 聊天
 - **控制層** — Mac + openclaw-hq + Claude Code：開發者工具。SSH 進 VM 看 log、改 config、debug
@@ -90,17 +88,15 @@ graph TB
 
 ### 執行層細部
 
-<Mermaid caption="執行層細部架構">
-graph TB
-  subgraph vps["Hetzner VPS — CPX11, $5.59/月<br/>Ubuntu 24.04, 2 vCPU, 2GB RAM"]
-    gw["OpenClaw Gateway<br/>systemd service<br/>port 18789（僅 localhost）"]
-    auth["Auth Profile Rotation<br/>自動 failover + backoff"]
+<Mermaid caption="執行層細部架構" chart={`graph TB
+  subgraph vps["Hetzner VPS - CPX11, $5.59/月"]
+    gw["OpenClaw Gateway - systemd service"]
+    auth["Auth Profile Rotation"]
     gw --> auth
   end
-  auth --> claude["Claude Opus 4.5<br/>$20/月"]
-  auth --> gemini["Gemini CLI<br/>$20/月"]
-  auth --> anti["Antigravity<br/>共用 $20/月"]
-</Mermaid>
+  auth --> claude["Claude Opus 4.5 - $20/月"]
+  auth --> gemini["Gemini CLI - $20/月"]
+  auth --> anti["Antigravity - 共用"]`} />
 
 ### 安全層級：四道防線
 

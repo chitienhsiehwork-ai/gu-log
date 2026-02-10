@@ -66,21 +66,19 @@ So someone can literally lie on their couch, scroll their phone, and publish a f
 
 This isn't just "deploy a chatbot to the cloud." It's a full workflow with three distinct layers:
 
-<Mermaid caption="Three-Layer Architecture Overview">
-graph TB
-  subgraph input["📱 Input Layer"]
-    phone["Phone + Telegram<br/>User Interface"]
+<Mermaid caption="Three-Layer Architecture Overview" chart={`graph TB
+  subgraph input["Input Layer"]
+    phone["Phone + Telegram"]
   end
-  subgraph control["💻 Control Layer"]
-    mac["Local Mac<br/>Claude Code + openclaw-hq"]
+  subgraph control["Control Layer"]
+    mac["Local Mac + Claude Code"]
   end
-  subgraph exec["🖥️ Execution Layer"]
-    vps["Hetzner VPS<br/>OpenClaw Gateway<br/>24/7 Agent"]
+  subgraph exec["Execution Layer"]
+    vps["Hetzner VPS + OpenClaw Gateway"]
   end
   phone -- "Telegram API" --> vps
   mac -- "SSH" --> vps
-  vps -- "LLM API" --> llm["LLM Providers"]
-</Mermaid>
+  vps -- "LLM API" --> llm["LLM Providers"]`} />
 
 - **Input** — Phone + Telegram: User interface. Chat with AI anytime, anywhere
 - **Control** — Mac + openclaw-hq + Claude Code: Developer cockpit. SSH into VM, check logs, tweak configs, debug
@@ -88,17 +86,15 @@ graph TB
 
 ### Execution Layer Details
 
-<Mermaid caption="Execution Layer Details">
-graph TB
-  subgraph vps["Hetzner VPS — CPX11, $5.59/mo<br/>Ubuntu 24.04, 2 vCPU, 2GB RAM"]
-    gw["OpenClaw Gateway<br/>systemd service<br/>port 18789 (localhost only)"]
-    auth["Auth Profile Rotation<br/>Auto failover + backoff"]
+<Mermaid caption="Execution Layer Details" chart={`graph TB
+  subgraph vps["Hetzner VPS - CPX11, $5.59/mo"]
+    gw["OpenClaw Gateway - systemd service"]
+    auth["Auth Profile Rotation"]
     gw --> auth
   end
-  auth --> claude["Claude Opus 4.5<br/>$20/mo"]
-  auth --> gemini["Gemini CLI<br/>$20/mo"]
-  auth --> anti["Antigravity<br/>shared $20/mo"]
-</Mermaid>
+  auth --> claude["Claude Opus 4.5 - $20/mo"]
+  auth --> gemini["Gemini CLI - $20/mo"]
+  auth --> anti["Antigravity - shared"]`} />
 
 ### Security: Four Lines of Defense
 

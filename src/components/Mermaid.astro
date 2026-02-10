@@ -4,29 +4,23 @@
  * - Renders Mermaid diagrams client-side
  * - Scrollable horizontally on mobile
  * - Tap to expand fullscreen (pinch-to-zoom friendly)
+ *
+ * Usage in MDX:
+ *   <Mermaid chart={`graph TB\n  A-->B`} caption="My diagram" />
  */
 interface Props {
+  /** Mermaid diagram definition (pass as template literal) */
+  chart: string;
   /** Optional caption below the diagram */
   caption?: string;
 }
 
-const { caption } = Astro.props;
-const slotContent = await Astro.slots.render('default');
-// Extract raw text from HTML tags that MDX might wrap around the content
-const rawDef = slotContent.replace(/<[^>]+>/g, '').trim();
-// Decode HTML entities
-const decoded = rawDef
-  .replace(/&amp;/g, '&')
-  .replace(/&lt;/g, '<')
-  .replace(/&gt;/g, '>')
-  .replace(/&quot;/g, '"')
-  .replace(/&#39;/g, "'")
-  .replace(/&#x27;/g, "'");
+const { chart, caption } = Astro.props;
 ---
 
 <div class="mermaid-wrapper">
   <div class="mermaid-scroll">
-    <pre class="mermaid-source" style="display:none;">{decoded}</pre>
+    <pre class="mermaid-source" style="display:none;">{chart}</pre>
     <div class="mermaid-render"></div>
   </div>
   {caption && <p class="mermaid-caption">{caption}</p>}
