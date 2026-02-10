@@ -161,14 +161,6 @@ const { chart, caption } = Astro.props;
 <script>
   // Initialize all Mermaid diagrams on page load
   async function initMermaidDiagrams() {
-    // Preload fonts before rendering
-    try {
-      await Promise.all([
-        document.fonts.load('1em Virgil'),
-        document.fonts.load('1em "Long Cang"'),
-      ]);
-    } catch {}
-
     const { default: mermaid } = await import('https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs');
 
     mermaid.initialize({
@@ -203,9 +195,19 @@ const { chart, caption } = Astro.props;
       const def = source.textContent?.trim() || '';
       const id = `mermaid-${Math.random().toString(36).slice(2, 9)}`;
 
-      try {
-        const { svg } = await mermaid.render(id, def);
+      const renderDiagram = async (diagId: string) => {
+        const { svg } = await mermaid.render(diagId, def);
         renderTarget.innerHTML = svg;
+      };
+
+      try {
+        await renderDiagram(id);
+        // After initial render, wait for CJK font subsets to load then re-render
+        const fontsBefore = document.fonts.size;
+        await document.fonts.ready;
+        if (document.fonts.size !== fontsBefore) {
+          await renderDiagram(id + 'r');
+        }
       } catch (e) {
         renderTarget.innerHTML = `<pre style="color:#dc322f;font-size:0.8rem;">Mermaid error: ${e}</pre>`;
         continue;
