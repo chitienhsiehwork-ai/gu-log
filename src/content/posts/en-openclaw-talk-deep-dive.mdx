@@ -15,6 +15,7 @@ tags: ["openclaw", "telegram", "vps", "devops", "automation"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 import Toggle from '../../components/Toggle.astro';
+import Mermaid from '../../components/Mermaid.astro';
 
 Alright, buckle up. This isn't your typical "how to use AI" tutorial. This is a deep dive into **"how to use AI to manage AI"** — which sounds like inception, because it kind of is.
 
@@ -65,25 +66,21 @@ So someone can literally lie on their couch, scroll their phone, and publish a f
 
 This isn't just "deploy a chatbot to the cloud." It's a full workflow with three distinct layers:
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                  Three-Layer Architecture                │
-│                                                         │
-│  ┌──────────┐    ┌──────────────┐    ┌───────────────┐  │
-│  │  📱 Phone │    │ 💻 Local Mac │    │ 🖥️ Hetzner   │  │
-│  │ Telegram │    │ Claude Code  │    │   VPS         │  │
-│  │          │    │ openclaw-hq  │    │ OpenClaw      │  │
-│  │ User     │    │              │    │ Gateway       │  │
-│  │ Input    │    │ Control      │    │ 24/7 Agent    │  │
-│  └────┬─────┘    └──────┬───────┘    └───────┬───────┘  │
-│       │                 │                    │          │
-│       │  Telegram API   │      SSH           │  LLM API │
-│       └─────────────────┼────────────────────┘          │
-│                         │                               │
-│              SSH access to the VM                       │
-│              Check logs, edit config, debug              │
-└─────────────────────────────────────────────────────────┘
-```
+<Mermaid caption="Three-Layer Architecture Overview">
+graph TB
+  subgraph input["📱 Input Layer"]
+    phone["Phone + Telegram<br/>User Interface"]
+  end
+  subgraph control["💻 Control Layer"]
+    mac["Local Mac<br/>Claude Code + openclaw-hq"]
+  end
+  subgraph exec["🖥️ Execution Layer"]
+    vps["Hetzner VPS<br/>OpenClaw Gateway<br/>24/7 Agent"]
+  end
+  phone -- "Telegram API" --> vps
+  mac -- "SSH" --> vps
+  vps -- "LLM API" --> llm["LLM Providers"]
+</Mermaid>
 
 - **Input** — Phone + Telegram: User interface. Chat with AI anytime, anywhere
 - **Control** — Mac + openclaw-hq + Claude Code: Developer cockpit. SSH into VM, check logs, tweak configs, debug
@@ -91,32 +88,17 @@ This isn't just "deploy a chatbot to the cloud." It's a full workflow with three
 
 ### Execution Layer Details
 
-```
-┌──────────────────────────────────────┐
-│  Hetzner VPS (CPX11, $5.59/mo)       │
-│  Ubuntu 24.04, 2 vCPU, 2GB RAM       │
-│                                      │
-│  ┌──────────────────────────────┐    │
-│  │ OpenClaw Gateway             │    │
-│  │ systemd service              │    │
-│  │ port 18789 (localhost only)   │    │
-│  └──────────┬───────────────────┘    │
-│             │                        │
-│  ┌──────────▼───────────────────┐    │
-│  │ Auth Profile Rotation        │    │
-│  │ Auto failover + backoff       │    │
-│  └──────────┬───────────────────┘    │
-└─────────────┼────────────────────────┘
-              │
-    ┌─────────┼──────────┐
-    │         │          │
-┌───▼───┐ ┌──▼────┐ ┌───▼──────┐
-│Claude │ │Gemini │ │Antigrav- │
-│Opus   │ │CLI    │ │ity       │
-│4.5    │ │       │ │          │
-│($20)  │ │($20)  │ │(shared)  │
-└───────┘ └───────┘ └──────────┘
-```
+<Mermaid caption="Execution Layer Details">
+graph TB
+  subgraph vps["Hetzner VPS — CPX11, $5.59/mo<br/>Ubuntu 24.04, 2 vCPU, 2GB RAM"]
+    gw["OpenClaw Gateway<br/>systemd service<br/>port 18789 (localhost only)"]
+    auth["Auth Profile Rotation<br/>Auto failover + backoff"]
+    gw --> auth
+  end
+  auth --> claude["Claude Opus 4.5<br/>$20/mo"]
+  auth --> gemini["Gemini CLI<br/>$20/mo"]
+  auth --> anti["Antigravity<br/>shared $20/mo"]
+</Mermaid>
 
 ### Security: Four Lines of Defense
 

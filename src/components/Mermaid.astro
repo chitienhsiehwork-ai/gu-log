@@ -1,0 +1,233 @@
+---
+/**
+ * Mermaid diagram component
+ * - Renders Mermaid diagrams client-side
+ * - Scrollable horizontally on mobile
+ * - Tap to expand fullscreen (pinch-to-zoom friendly)
+ */
+interface Props {
+  /** Optional caption below the diagram */
+  caption?: string;
+}
+
+const { caption } = Astro.props;
+const slotContent = await Astro.slots.render('default');
+// Extract raw text from HTML tags that MDX might wrap around the content
+const rawDef = slotContent.replace(/<[^>]+>/g, '').trim();
+// Decode HTML entities
+const decoded = rawDef
+  .replace(/&amp;/g, '&')
+  .replace(/&lt;/g, '<')
+  .replace(/&gt;/g, '>')
+  .replace(/&quot;/g, '"')
+  .replace(/&#39;/g, "'")
+  .replace(/&#x27;/g, "'");
+---
+
+<div class="mermaid-wrapper">
+  <div class="mermaid-scroll">
+    <pre class="mermaid-source" style="display:none;">{decoded}</pre>
+    <div class="mermaid-render"></div>
+  </div>
+  {caption && <p class="mermaid-caption">{caption}</p>}
+  <button class="mermaid-expand-btn" aria-label="展開圖表" title="點擊放大">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+    </svg>
+  </button>
+</div>
+
+<!-- Fullscreen overlay (one per diagram, activated by JS) -->
+<div class="mermaid-overlay" style="display:none;">
+  <button class="mermaid-close-btn" aria-label="關閉">✕</button>
+  <div class="mermaid-overlay-content"></div>
+</div>
+
+<style>
+  .mermaid-wrapper {
+    position: relative;
+    margin: 1.5rem 0;
+    border: 1px solid var(--border-color, #e0d8c8);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--code-bg, #fdf6e3);
+  }
+
+  .mermaid-scroll {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    padding: 1rem;
+    min-height: 100px;
+    display: flex;
+    justify-content: center;
+  }
+
+  .mermaid-render {
+    min-width: fit-content;
+  }
+
+  .mermaid-render :global(svg) {
+    max-width: none;
+    height: auto;
+  }
+
+  .mermaid-caption {
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--text-muted, #93a1a1);
+    margin: 0;
+    padding: 0.5rem 1rem 0.75rem;
+    border-top: 1px solid var(--border-color, #e0d8c8);
+  }
+
+  .mermaid-expand-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: var(--code-bg, #fdf6e3);
+    border: 1px solid var(--border-color, #e0d8c8);
+    border-radius: 4px;
+    padding: 4px 6px;
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+    color: var(--text-color, #657b83);
+    z-index: 1;
+  }
+
+  .mermaid-expand-btn:hover {
+    opacity: 1;
+  }
+
+  /* Fullscreen overlay */
+  .mermaid-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y pinch-zoom;
+  }
+
+  .mermaid-overlay-content {
+    padding: 2rem;
+    max-width: 95vw;
+    max-height: 95vh;
+    overflow: auto;
+  }
+
+  .mermaid-overlay-content :global(svg) {
+    max-width: none;
+    height: auto;
+    filter: invert(0.9) hue-rotate(180deg);
+  }
+
+  .mermaid-close-btn {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 10000;
+    background: rgba(255,255,255,0.15);
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Loading state */
+  .mermaid-render:empty::after {
+    content: "載入圖表中...";
+    color: var(--text-muted, #93a1a1);
+    font-size: 0.85rem;
+  }
+</style>
+
+<script>
+  // Initialize all Mermaid diagrams on page load
+  async function initMermaidDiagrams() {
+    const { default: mermaid } = await import('https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs');
+
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'base',
+      themeVariables: {
+        primaryColor: '#fdf6e3',
+        primaryTextColor: '#657b83',
+        primaryBorderColor: '#93a1a1',
+        lineColor: '#93a1a1',
+        secondaryColor: '#eee8d5',
+        tertiaryColor: '#fdf6e3',
+        noteTextColor: '#657b83',
+        noteBkgColor: '#eee8d5',
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+      },
+      flowchart: { htmlLabels: true, curve: 'basis' },
+      securityLevel: 'loose',
+    });
+
+    const wrappers = document.querySelectorAll('.mermaid-wrapper');
+
+    for (const wrapper of wrappers) {
+      const source = wrapper.querySelector('.mermaid-source');
+      const renderTarget = wrapper.querySelector('.mermaid-render');
+      const expandBtn = wrapper.querySelector('.mermaid-expand-btn');
+      const overlay = wrapper.nextElementSibling;
+
+      if (!source || !renderTarget) continue;
+
+      const def = source.textContent?.trim() || '';
+      const id = `mermaid-${Math.random().toString(36).slice(2, 9)}`;
+
+      try {
+        const { svg } = await mermaid.render(id, def);
+        renderTarget.innerHTML = svg;
+      } catch (e) {
+        renderTarget.innerHTML = `<pre style="color:#dc322f;font-size:0.8rem;">Mermaid error: ${e}</pre>`;
+        continue;
+      }
+
+      // Expand button
+      if (expandBtn && overlay) {
+        const overlayContent = overlay.querySelector('.mermaid-overlay-content');
+        const closeBtn = overlay.querySelector('.mermaid-close-btn');
+
+        expandBtn.addEventListener('click', () => {
+          if (overlayContent) {
+            overlayContent.innerHTML = renderTarget.innerHTML;
+          }
+          (overlay as HTMLElement).style.display = 'flex';
+          document.body.style.overflow = 'hidden';
+        });
+
+        const closeOverlay = () => {
+          (overlay as HTMLElement).style.display = 'none';
+          document.body.style.overflow = '';
+        };
+
+        closeBtn?.addEventListener('click', closeOverlay);
+        overlay.addEventListener('click', (e) => {
+          if (e.target === overlay) closeOverlay();
+        });
+      }
+    }
+  }
+
+  // Run on page load and on Astro page transitions
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initMermaidDiagrams);
+  } else {
+    initMermaidDiagrams();
+  }
+  document.addEventListener('astro:page-load', initMermaidDiagrams);
+</script>
