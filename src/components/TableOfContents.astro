@@ -150,6 +150,7 @@ const t = labels[lang];
 
   function setupSmoothScroll() {
     const SCROLL_OFFSET = 80; // px offset from top to account for reading progress bar etc.
+    const TOC_COLLAPSE_DURATION = 400; // ms — CSS transition is 300ms cubic-bezier + 100ms buffer
 
     document.querySelectorAll('.toc-link').forEach(link => {
       link.addEventListener('click', (e) => {
@@ -161,18 +162,32 @@ const t = labels[lang];
         const target = document.getElementById(targetId);
         
         if (target) {
-          // Calculate exact position instead of scrollIntoView + delayed scrollBy
-          // This avoids iOS Safari smooth scroll timing issues
-          const targetTop = target.getBoundingClientRect().top + window.scrollY - SCROLL_OFFSET;
-          window.scrollTo({ top: targetTop, behavior: 'smooth' });
-          history.pushState(null, '', href);
-
-          // Close mobile toggle
+          // CRITICAL: Close mobile TOC FIRST, then scroll AFTER collapse animation.
+          // Bug: if we calculate scroll position while TOC is open (~683px tall),
+          // then TOC collapses and page shrinks, the scroll target is off by the TOC height.
           const mobileContainer = document.querySelector('.toc-mobile .toc-toggle-container');
-          if (window.innerWidth < 1280 && mobileContainer) {
-            mobileContainer.setAttribute('data-open', 'false');
-            mobileContainer.querySelector('.toc-toggle-header')?.setAttribute('aria-expanded', 'false');
+          const isMobileOpen = window.innerWidth < 1280 && 
+            mobileContainer?.getAttribute('data-open') === 'true';
+
+          if (isMobileOpen) {
+            // Close TOC first
+            mobileContainer!.setAttribute('data-open', 'false');
+            mobileContainer!.querySelector('.toc-toggle-header')?.setAttribute('aria-expanded', 'false');
+
+            // Wait for collapse animation to finish, THEN calculate position and scroll.
+            // Use 'instant' on mobile: smooth scroll on very long pages often undershoots
+            // because the browser caps the animation duration, leaving you 1-2 screens off.
+            setTimeout(() => {
+              const targetTop = target.getBoundingClientRect().top + window.scrollY - SCROLL_OFFSET;
+              window.scrollTo({ top: targetTop, behavior: 'instant' });
+            }, TOC_COLLAPSE_DURATION);
+          } else {
+            // Desktop or TOC already closed — smooth scroll is fine here
+            const targetTop = target.getBoundingClientRect().top + window.scrollY - SCROLL_OFFSET;
+            window.scrollTo({ top: targetTop, behavior: 'smooth' });
           }
+
+          history.pushState(null, '', href);
         }
       });
     });
