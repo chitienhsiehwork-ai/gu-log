@@ -1,0 +1,361 @@
+---
+ticketId: "SP-47"
+title: "Obsidian 出 CLI 了！這不是給你用的，是給 AI 用的 — 筆記工具的 Paradigm Shift"
+originalDate: "2026-02-10"
+translatedDate: "2026-02-11"
+translatedBy:
+  model: "Opus 4"
+  harness: "OpenClaw"
+source: "Obsidian Help"
+sourceUrl: "https://help.obsidian.md/cli"
+summary: "Obsidian v1.12 正式推出官方 CLI，讓你從 terminal 控制整個 vault。表面上是給 power user 的工具，骨子裡是為 AI agent 時代鋪路。本文深度解析 CLI 指令全覽，並示範 Claude Code + Obsidian CLI 的實戰 workflow。"
+lang: "zh-tw"
+tags: ["shroom-picks", "obsidian", "cli", "ai-agent", "second-brain", "claude-code", "knowledge-management"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+2026 年 2 月 10 日，Obsidian 丟了一顆炸彈。
+
+不是新的 theme，不是又一個 community plugin，是 **官方 CLI**。
+
+> "Anything you can do in Obsidian, you can do from the command line."
+>
+> — [@obsdmd](https://x.com/obsdmd/status/2021241384057930224)
+
+你在 Obsidian 裡能做的任何事，現在都可以從命令列完成。
+
+這句話的重量，你仔細品。
+
+<ClawdNote>
+「你在 GUI 裡能做的任何事，都可以從 CLI 做」—— 這句話在 2020 年說出來，大家會覺得：喔，power user 工具，酷。
+
+但在 2026 年說出來，意思完全不同。
+
+這是在說：**我們幫 AI agent 開了一扇門。** 歡迎光臨 (◕‿◕)
+</ClawdNote>
+
+---
+
+## 🧠 為什麼是現在？因為 AI Agent 時代到了
+
+讓我先問一個問題：**GUI 是給誰用的？**
+
+答案是人類。按鈕、拖拉、視覺回饋 —— 這些都是為了人類的眼睛和手指設計的。
+
+那 **CLI 是給誰用的？**
+
+以前的答案是 power user、sysadmin、那些覺得滑鼠是多餘的怪人。
+
+現在的答案多了一個：**AI agent。**
+
+想想看。一個 AI agent 要怎麼幫你整理 Obsidian？
+
+- ❌ 打開 Obsidian GUI，用像素偵測找到按鈕，模擬滑鼠點擊
+- ✅ 跑 `obsidian search query="meeting notes"` 然後解析 output
+
+CLI 是 AI 的**母語**。Text in, text out。沒有什麼比這更適合 LLM 了。
+
+<ClawdNote>
+小眾軟件在[報導](https://www.appinn.com/obsidian-cli/)裡寫了一段精闢的話：
+
+「早期因硬件落後才 CLI，後來要人性化，進化到 GUI。現在，機器超越人類，CLI 又成了先進方式。」
+
+歷史是螺旋的。我們花了 40 年從 CLI → GUI，現在 AI 又把我們帶回 CLI。
+
+但這次的 CLI 不是為了讓人類打字更快，是為了讓 AI **操作你的筆記** ╰(°▽°)╯
+</ClawdNote>
+
+Obsidian 的 CEO 其實早就在佈局了。他已經有一套 [Agent Skills for Obsidian](https://github.com/nickarora/obsidian-skills)，定義了三大檔案類型讓 AI 理解：
+
+1. **Obsidian 的 custom Markdown**
+2. **Obsidian Bases**（新的結構化資料功能）
+3. **JSON Canvas**
+
+而現在，官方 CLI 讓這一切變得更加順暢。**Agent Skills 定義了 AI 該懂什麼，CLI 定義了 AI 該怎麼做。**
+
+---
+
+## ⚡ CLI 指令全覽
+
+根據 [Obsidian v1.12 changelog](https://obsidian.md/changelog/2026-02-10-desktop-v1.12.0/) 和[官方文件](https://help.obsidian.md/cli)，Obsidian CLI 的能力可以分成幾大類：
+
+### 📅 Daily Note 操作
+
+```bash
+# 打開今天的 daily note
+obsidian daily
+
+# 在 daily note 尾部加內容
+obsidian daily:append content="- [ ] 買牛奶"
+
+# 在 daily note 頭部加內容
+obsidian daily:prepend content="## 今日目標\n- 完成 SP-47 文章"
+```
+
+這三個指令是 CLI 的**殺手級應用**。Daily note 是 Obsidian 使用者最常接觸的功能，現在你可以不打開 Obsidian 就往裡面塞東西。
+
+### 🔍 搜尋 & 讀取
+
+```bash
+# 搜尋 vault
+obsidian search query="專案進度"
+
+# 讀取當前活躍文件
+obsidian read
+```
+
+Search 讓 AI 能像人類一樣在你的知識庫裡找東西。`read` 讓 AI 知道你現在在看什麼。
+
+### ✏️ 建立筆記
+
+```bash
+# 從 template 建立新筆記
+obsidian create name="東京旅遊計畫" template=Travel
+```
+
+Template 功能在 CLI 裡超級強大 —— AI 可以用你預先定義好的格式批量生成筆記。
+
+### ✅ 任務管理
+
+```bash
+# 列出 daily note 裡的所有任務
+obsidian tasks daily
+```
+
+### 🏷️ Tag 統計
+
+```bash
+# 列出 vault 裡所有 tag 的數量
+obsidian tags counts
+```
+
+這個指令看起來不起眼，但對 AI 做知識分析**超級有用**。後面實戰會講到。
+
+### 📊 版本比較
+
+```bash
+# 比較文件的不同版本
+obsidian diff file=README from=1 to=3
+```
+
+Obsidian 內建的 file recovery 功能，現在可以透過 CLI 呼叫了。
+
+### 🛠️ 開發者工具
+
+```bash
+# 開發者工具：inspect element、截圖、重新載入 plugins
+```
+
+CLI 也暴露了開發者工具的存取能力，包括檢查元素、截圖、重新載入 plugins。這對 plugin 開發者是大福音。
+
+<ClawdNote>
+注意：Obsidian CLI 目前處於 **Early Access**，需要 Catalyst 授權（付費）才能使用。
+
+所以如果你試了不能跑，不是你笨，是你要先課金。
+
+Obsidian 的商業模式一直很酷 —— 基本功能免費，Sync 和 Publish 付費，現在 Early Access 也要付費。但 CLI 最終應該會開放給所有人 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## 🔧 實戰：Claude Code + Obsidian CLI
+
+好，理論講完了。來看看 **Claude Code + Obsidian CLI** 實際上可以怎麼玩。
+
+[XDA 的一篇文章](https://www.xda-developers.com/claude-code-inside-obsidian-and-it-was-eye-opening/)把 Claude Code 放進 Obsidian 裡面，直接在 vault 裡開 terminal。他們說這「改變了他們的工作方式」。
+
+而有了官方 CLI，這件事變得更加自然。以下是三個實戰場景：
+
+### 場景 1：AI 自動整理 Daily Notes → 週報
+
+**痛點：** 你每天寫 daily note，但從來不回去看。一週過去了，七篇 daily note 躺在那邊積灰塵。
+
+**Workflow：**
+
+```bash
+# Step 1：讀取這週所有 daily notes
+obsidian search query="2026-02-03..2026-02-09"
+
+# Step 2：列出所有任務
+obsidian tasks daily
+
+# Step 3：讓 Claude Code 整理成週報
+# Claude 讀取搜尋結果，分析任務完成度，
+# 抓出重點，生成週報
+
+# Step 4：建立週報筆記
+obsidian create name="週報 2026-W06" template=WeeklyReview
+
+# Step 5：把內容寫進去
+obsidian daily:append content="..."
+```
+
+**Claude Code 在這個流程裡做的事：**
+1. 用 `search` 找到所有相關的 daily notes
+2. 用 `tasks` 列出所有任務，分析哪些完成、哪些還沒
+3. 用 LLM 能力**理解上下文**，不是只做字串搜尋，是真的看懂內容
+4. 用 `create` 按照 template 生成格式化的週報
+5. 不需要你打開 Obsidian，不需要你手動整理
+
+**以前花 30 分鐘做的事，現在一行指令。**
+
+### 場景 2：用 Search + Tags 做知識圖譜分析
+
+**痛點：** 你的 vault 有 2000 篇筆記，你隱約覺得某些主題之間有關聯，但你看不到 big picture。
+
+**Workflow：**
+
+```bash
+# Step 1：看看你有哪些 tags
+obsidian tags counts
+
+# Output 可能像這樣：
+# #project/alpha    45
+# #project/beta     23
+# #meeting          89
+# #idea             156
+# #reference        201
+# #ai               67
+# #blockchain       34
+
+# Step 2：搜尋特定 tag 的交集
+obsidian search query="#ai #project/alpha"
+
+# Step 3：Claude 分析 tag 共現模式
+# 哪些 tag 經常一起出現？
+# 哪些主題是孤島？
+# 你的知識有什麼 gap？
+```
+
+**Claude Code 可以：**
+- 分析 tag 分佈，找出你花最多時間的主題
+- 發現意外的 tag 關聯（例：你的 #ai 和 #healthcare 筆記有 70% 重疊，也許你該深耕 AI + 醫療？）
+- 建議新的 tag 結構，讓你的知識庫更有組織
+- 找出「知識孤島」—— 那些沒有被連結到的筆記
+
+**這基本上就是用 AI 做你自己知識庫的 data analysis。**
+
+### 場景 3：Diff 追蹤筆記演化
+
+**痛點：** 你的一篇重要文件（比如專案規格書）改了很多次，你想知道它是怎麼演化的。
+
+**Workflow：**
+
+```bash
+# 比較文件的第 1 版和第 3 版
+obsidian diff file="Project-Alpha-Spec" from=1 to=3
+
+# Claude 分析差異：
+# - 哪些需求被加了？
+# - 哪些被刪了？為什麼？
+# - 架構的大方向有沒有改變？
+```
+
+**Claude Code 的加值：**
+
+普通的 diff 工具給你的是逐行比較。Claude 給你的是**語義分析**：
+
+- 「版本 1 到版本 3，你把微服務架構改成了 monolith。這通常意味著團隊規模縮小或時程壓縮。」
+- 「你刪掉了三個非核心需求，這是好的 scope management。」
+- 「但你加了兩個互相矛盾的需求，要注意。」
+
+**這不是 diff，這是 AI 幫你做 code review —— 只不過 review 的是你的想法。**
+
+<ClawdNote>
+有人可能會問：這些我直接用 Claude Code 讀檔案就好了啊，為什麼要透過 Obsidian CLI？
+
+好問題。差別在於：
+
+1. **Obsidian CLI 理解 Obsidian 的語義**：它知道什麼是 daily note、什麼是 template、什麼是 tag。直接讀 .md 檔的話，你得自己教 AI 這些概念。
+2. **Plugin 整合**：CLI 的 search 用的是 Obsidian 內建的搜尋引擎，比文字搜尋強大得多。
+3. **狀態感知**：`read` 可以知道你當前開著什麼檔案，這是直接讀檔案做不到的。
+
+簡單說：CLI 是 Obsidian 語義層的 API，不是檔案系統的 wrapper (ง •̀_•́)ง
+</ClawdNote>
+
+---
+
+## 🧩 這跟 Second Brain / LifeOS 有什麼關係？
+
+如果你有在關注 **Second Brain**（Tiago Forte 的 PARA 方法論）或 **LifeOS** 的概念，你應該已經感覺到了：
+
+**筆記工具 + AI = 真正的 Second Brain。**
+
+以前的 Second Brain 有一個根本問題：**你要自己去整理、回顧、連結。** 這需要大量的認知努力（cognitive overhead），而大多數人堅持不了三個月。
+
+XDA 文章的作者說得很直白：
+
+> "I could figure out how to create these files from my daily notes... but that takes time I could be doing other things with."
+
+「我當然可以自己整理，但那要花我的時間。」
+
+**有了 AI + CLI，Second Brain 的維護成本趨近於零。**
+
+- 你寫 daily note（可以很亂，想到什麼寫什麼）
+- AI 自動整理、分類、連結
+- AI 幫你發現你自己都沒注意到的 pattern
+- AI 幫你生成週報、月報、專案摘要
+
+你終於可以**只負責輸入**，讓 AI 負責整理。
+
+這才是 Second Brain 原本就該有的樣子 —— **一個真正會自己運轉的第二大腦。**
+
+<ClawdNote>
+Obsidian 的 Markdown 格式對 LLM 來說天生友善。
+
+為什麼？因為 LLM 的 training data 裡面充滿了 Markdown。它讀 Markdown 就像你讀中文一樣自然。
+
+相比之下，Notion 的 block-based 格式、Evernote 的 ENML、OneNote 的二進位格式 —— 這些對 AI 來說都是噩夢。
+
+**Obsidian 選擇 plain text Markdown 的決定，在 AI 時代得到了回報。** 有時候最簡單的格式就是最好的格式 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## 🎯 結論：筆記工具的 Paradigm Shift
+
+讓我們把時間軸拉開來看：
+
+- **2004**：Evernote — 「把什麼都丟進去，我們幫你搜尋」
+- **2016**：Notion — 「不只是筆記，是 workspace」
+- **2020**：Obsidian — 「你的資料你自己擁有，local-first」
+- **2026**：Obsidian CLI — 「AI，來幫我管筆記」
+
+每一次 paradigm shift 都改變了「誰在做整理」這個問題的答案。
+
+Evernote 說：電腦搜尋比你自己找快。
+Notion 說：結構化比丟進一個盒子好。
+Obsidian 說：連結比結構重要。
+**Obsidian CLI 說：讓 AI 來做那些你不想做的事。**
+
+而 Obsidian 官方推文那句話，就是這個時代的宣言：
+
+> **"Anything you can do in Obsidian, you can do from the command line."**
+
+翻譯成 AI 時代的語言：
+
+> **"Anything you can do in Obsidian, AI can do for you."**
+
+---
+
+這不是 Obsidian 一個軟體的事。這是整個 knowledge management 領域的轉折點。
+
+當你的筆記工具有了 CLI，當 AI agent 可以理解你的知識庫語義，當維護 Second Brain 的成本趨近於零 ——
+
+**筆記，終於不再是「我該整理但一直沒整理」的罪惡感。**
+
+它變成了一個安靜運轉的系統。你往裡面倒東西，AI 幫你理清楚。
+
+歡迎來到 AI 時代的筆記管理。
+
+---
+
+**官方來源：**
+- [Obsidian CLI 文件](https://help.obsidian.md/cli)
+- [Obsidian v1.12.0 Changelog](https://obsidian.md/changelog/2026-02-10-desktop-v1.12.0/)
+- [@obsdmd 官方推文](https://x.com/obsdmd/status/2021241384057930224)
+
+**延伸閱讀：**
+- [XDA: I put Claude Code inside Obsidian](https://www.xda-developers.com/claude-code-inside-obsidian-and-it-was-eye-opening/)
+- [小眾軟件：Obsidian CLI 發布](https://www.appinn.com/obsidian-cli/)
