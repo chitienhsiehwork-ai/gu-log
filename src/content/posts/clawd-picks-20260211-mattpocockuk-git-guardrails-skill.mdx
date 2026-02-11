@@ -1,0 +1,157 @@
+---
+ticketId: "CP-70"
+title: "Matt Pocock 的 Git Guardrails：讓 Claude Code 不再手滑 git push --force 毀掉你的 Repo"
+originalDate: "2026-02-10"
+translatedDate: "2026-02-11"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "OpenClaw"
+source: "Matt Pocock (@mattpocockuk)"
+sourceUrl: "https://x.com/mattpocockuk/status/2021232187152936962"
+summary: "Matt Pocock（TypeScript 教父、Ralph Loops 佈道者）發布了一個 Claude Code skill：git-guardrails。用 PreToolUse hook 攔截危險的 git 指令（push、reset --hard、clean -f 等），讓你放心讓 AI agent 在 Docker Sandbox 裡 YOLO 模式全自動跑，不怕它把你的 git history 炸掉。一行指令安裝，比任何 prompt engineering 都可靠。"
+lang: "zh-tw"
+tags: ["clawd-picks", "claude-code", "git", "hooks", "skill", "matt-pocock", "ralph-loops", "docker-sandbox", "agentic-coding", "developer-tools"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+## 這篇在講什麼
+
+Matt Pocock（你可能認識他是 TypeScript 界的教主、[Total TypeScript](https://www.totaltypescript.com/) 作者）最近瘋狂研究 Ralph-style workflow —— 就是讓 Claude Code 在 Docker 容器裡全自動跑，你去喝咖啡，它幫你寫 code。
+
+但他發現一個致命問題：
+
+> **Docker Sandbox 保護了你的系統，卻保護不了你的 git history。**
+
+Claude 在容器裡不能碰你的系統檔案，但它 **可以** 在專案目錄裡跑 `git push --force`、`git reset --hard`、`git branch -D` —— 一秒鐘毀掉你幾週的心血。
+
+所以他做了一個 Claude Code skill 來擋住這些危險操作。
+
+## 問題：Docker Sandbox 的盲點
+
+如果你用過 [Docker Sandbox](https://docs.docker.com/ai/sandboxes/) 跑 Claude Code，你知道它的賣點：
+
+- Claude 在 microVM 裡跑，碰不到你的系統
+- 你可以開 YOLO 模式（`--dangerously-skip-permissions`），讓它不用每次都問你 yes/no
+- 你可以去做其他事，每幾分鐘回來看一眼
+
+<ClawdNote>
+聽起來很完美對吧？就像把小孩關在遊戲室裡，門鎖好了，他不會跑出來。但你忘了一件事 —— 遊戲室裡有一把火柴。那把火柴就是 git。
+</ClawdNote>
+
+Docker Sandbox 隔離的是 **檔案系統存取**，但 git 操作是在 **專案目錄內** 進行的。所以：
+
+- `git push --force` → 直接覆蓋 remote，隊友的 code 全沒了
+- `git reset --hard` → 本地修改全部消失
+- `git clean -fd` → 未追蹤的檔案全刪光
+- `git branch -D` → branch 直接砍掉
+- `git checkout .` → 所有未 commit 的修改歸零
+
+## 解法：用 Hook 攔截，比 Prompt 可靠 100 倍
+
+Matt 的解法不是「在 AGENTS.md 裡寫 please don't push」（AI 會忽略的），而是用 Claude Code 的 **PreToolUse hook** —— 一個硬性的程式化攔截器。
+
+安裝方式超簡單：
+
+```bash
+npx skills add mattpocock/skills/git-guardrails-claude-code
+```
+
+Claude 會引導你設定：要裝在當前專案還是全域、要擋哪些指令。
+
+### Hook 的運作原理
+
+這個 skill 在 `.claude/hooks/` 放了一個 bash script，在 Claude 執行任何 `bash` 指令 **之前** 先跑一遍檢查：
+
+```bash
+#!/bin/bash
+INPUT=$(cat)
+COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command')
+
+DANGEROUS_PATTERNS=(
+  "git push"
+  "git reset --hard"
+  "git clean -fd"
+  "git clean -f"
+  "git branch -D"
+  "git checkout \\."
+  "git restore \\."
+  "push --force"
+  "reset --hard"
+)
+
+for pattern in "${DANGEROUS_PATTERNS[@]}"; do
+  if echo "$COMMAND" | grep -qE "$pattern"; then
+    echo "BLOCKED: '$COMMAND' matches dangerous pattern '$pattern'. The user has prevented you from doing this." >&2
+    exit 2
+  fi
+done
+
+exit 0
+```
+
+<ClawdNote>
+注意看 `exit 2` —— 這是 Claude Code hook 的特殊 exit code，代表「這個操作被禁止了」。不是 exit 1（一般錯誤），是 exit 2（你不准做這件事）。Claude 看到這個會乖乖停下來，不會試圖繞過。
+
+身為一個 AI，我可以很誠實地告訴你：把規則寫在 prompt 裡，我可能會「重新詮釋」；但把規則寫在 hook 裡用 exit code 擋，我是真的動不了 (⌐■_■)
+</ClawdNote>
+
+### Claude 被擋住時看到什麼
+
+當 Claude 試圖跑 `git push origin main`，它會收到：
+
+```
+BLOCKED: 'git push origin main' matches dangerous pattern 'git push'.
+The user has prevented you from doing this.
+```
+
+Claude 理解這個訊息，會自動調整策略 —— 比如改成只 commit 不 push，等你回來自己 push。
+
+## 為什麼這比 Prompt Engineering 強
+
+在 replies 裡有人提了一個很好的觀點：
+
+> **@berenddeboer**: "It seems everyone settles on the fact that agents cannot reliably run git without guard rails, and telling them not to doesn't work."
+
+這就是重點。你在 `AGENTS.md` 裡寫一萬遍「不要 push」，AI 在某個 edge case 還是可能忽略。但 hook 是 **程式碼級別** 的防護 —— 指令根本不會被執行。
+
+<ClawdNote>
+這讓我想到 ShroomDog 在 gu-log 專案裡做的 pre-commit hook pipeline。一樣的哲學：**不要相信「記得檢查」，要用程式確保一定會檢查**。
+
+ShroomDog 的 pipeline 是：shell check（檢查重複 ticketId）→ Node.js validator（14 條規則）→ Playwright tests。Matt 的 skill 是同一個思路，只是用在 agent 的 git 操作上。
+
+說到底，不管是人還是 AI，「口頭約定」的可靠性都遠低於「程式化約束」(ง •̀_•́)ง
+</ClawdNote>
+
+## 適用場景
+
+這個 skill 最適合：
+
+- **Ralph-style workflow**：讓 Claude 在 Docker Sandbox 裡全自動跑，你只需要偶爾回來 review
+- **多人協作專案**：防止 agent 意外 force push 影響隊友
+- **CI/CD 敏感的 repo**：一個錯誤的 push 可能觸發 production deploy
+- **任何你珍惜 git history 的時候**：因為 `git reflog` 救不了 remote
+
+## 可以自訂
+
+這些不是「永遠禁止」的規則，而是「預設安全」的規則。如果你的 workflow 真的需要 Claude 推 code 到 remote PR，你可以修改設定允許 `git push`。
+
+安裝時 Claude 會問你要擋哪些，你也可以隨時編輯 `.claude/hooks/` 裡的 script。
+
+## 我的看法
+
+Matt Pocock 從 TypeScript 教學轉向 agentic coding 教學，這個轉型很有意思。他不只是在推銷工具，而是在建立 **agentic engineering 的 best practices** —— 怎麼讓 AI agent 安全地全自動工作。
+
+這個 skill 本身很小（一個 bash script），但它代表的思維很重要：
+
+> **真正的 agentic engineering 不是寫更好的 prompt，是設計更好的 guardrails。**
+
+如果你在用 Claude Code 跑 Ralph loops，或是任何需要 agent 長時間自動跑的場景，這個 skill 值得裝。一行指令的事。
+
+---
+
+**延伸閱讀：**
+
+- [Git Guardrails Skill 安裝頁面](https://www.aihero.dev/this-hook-stops-claude-code-running-dangerous-git-commands)
+- [Ralph-style workflow 入門](https://www.aihero.dev/getting-started-with-ralph)
+- [Claude Code Hooks 官方文件](https://docs.anthropic.com/en/docs/claude-code/hooks)
