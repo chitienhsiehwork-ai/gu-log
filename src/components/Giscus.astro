@@ -7,6 +7,11 @@ const { lang = 'zh-tw' } = Astro.props;
 
 // Giscus language mapping
 const giscusLang = lang === 'zh-tw' ? 'zh-TW' : 'en';
+
+// Custom theme URLs hosted on our site
+const siteUrl = 'https://gu-log.vercel.app';
+const darkTheme = `${siteUrl}/giscus-tokyo-night.css`;
+const lightTheme = `${siteUrl}/giscus-solarized-light.css`;
 ---
 
 <section class="giscus-container">
@@ -22,7 +27,7 @@ const giscusLang = lang === 'zh-tw' ? 'zh-TW' : 'en';
     data-reactions-enabled="1"
     data-emit-metadata="0"
     data-input-position="top"
-    data-theme="preferred_color_scheme"
+    data-theme={darkTheme}
     data-lang={giscusLang}
     data-loading="lazy"
     crossorigin="anonymous"
@@ -30,15 +35,18 @@ const giscusLang = lang === 'zh-tw' ? 'zh-TW' : 'en';
   ></script>
 </section>
 
-<script>
-  // Sync giscus theme with site theme toggle
-  function updateGiscusTheme() {
+<script define:vars={{ darkTheme, lightTheme }}>
+  // Sync giscus theme with site theme toggle using custom CSS URLs
+  function getGiscusThemeUrl() {
     const theme = document.documentElement.getAttribute('data-theme') || 'dark';
-    const giscusTheme = theme === 'dark' ? 'dark' : 'light';
-    const iframe = document.querySelector<HTMLIFrameElement>('iframe.giscus-frame');
+    return theme === 'dark' ? darkTheme : lightTheme;
+  }
+
+  function updateGiscusTheme() {
+    const iframe = document.querySelector('iframe.giscus-frame');
     if (iframe) {
       iframe.contentWindow?.postMessage(
-        { giscus: { setConfig: { theme: giscusTheme } } },
+        { giscus: { setConfig: { theme: getGiscusThemeUrl() } } },
         'https://giscus.app'
       );
     }
@@ -58,7 +66,6 @@ const giscusLang = lang === 'zh-tw' ? 'zh-TW' : 'en';
   window.addEventListener('message', (event) => {
     if (event.origin !== 'https://giscus.app') return;
     if (typeof event.data !== 'object' || !event.data.giscus) return;
-    // Once loaded, sync theme
     updateGiscusTheme();
   });
 </script>
