@@ -149,6 +149,8 @@ const t = labels[lang];
   }
 
   function setupSmoothScroll() {
+    const SCROLL_OFFSET = 80; // px offset from top to account for reading progress bar etc.
+
     document.querySelectorAll('.toc-link').forEach(link => {
       link.addEventListener('click', (e) => {
         e.preventDefault();
@@ -159,10 +161,10 @@ const t = labels[lang];
         const target = document.getElementById(targetId);
         
         if (target) {
-          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          setTimeout(() => {
-            window.scrollBy({ top: -80, behavior: 'instant' });
-          }, 100);
+          // Calculate exact position instead of scrollIntoView + delayed scrollBy
+          // This avoids iOS Safari smooth scroll timing issues
+          const targetTop = target.getBoundingClientRect().top + window.scrollY - SCROLL_OFFSET;
+          window.scrollTo({ top: targetTop, behavior: 'smooth' });
           history.pushState(null, '', href);
 
           // Close mobile toggle
