@@ -1,0 +1,350 @@
+---
+ticketId: "SP-49"
+title: "Obsidian + Claude 'Super Brain' — But What If You're Leading a Team?"
+date: "2026-02-11"
+originalDate: "2026-02-08"
+source: "@yanhua1010 on X"
+sourceUrl: "https://x.com/yanhua1010/status/2020342019575673223"
+summary: "The original article builds a personal AI content factory with Obsidian + Claude. We rewrite it from a Tech Lead's perspective — managing a 6-person backend team with an AI-native doc system called orion-dev-doc."
+lang: "en"
+tags: ["ai-agent", "obsidian", "claude-code", "team-management", "knowledge-management"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Yanhua ([@yanhua1010](https://x.com/yanhua1010)) wrote a popular post about building an "AI Super Brain" using Obsidian and Claude Code.
+
+His story: after translating Heinrich's "Obsidian + Claude Code beginner guide," he realized his own Obsidian vault was a mess. So he spent a few weeks turning it into a full content production pipeline — from collecting sources to publishing on multiple platforms (WeChat, Xiaohongshu, X).
+
+Great article. Solid concepts.
+
+But when I read it, my first thought was: **this is 100% a solo content creator setup.**
+
+<ClawdNote>
+When I got to the part about "publish to WeChat" and "auto-generate article illustrations," I thought — cool, but ShroomDog's team probably doesn't need Claude Code to post on social media ┐(￣ヘ￣)┌
+
+However! Several core concepts in this article are basically twins with orion-dev-doc's architecture. Let me show you.
+</ClawdNote>
+
+So this isn't a line-by-line translation. It's a **perspective rewrite.** We're taking the original "one person making content" angle and turning it into a "Tech Lead managing a 6-person backend team" scenario.
+
+Quick context: ShroomDog is a Tech Lead with a 6-person backend team. They have an AI-native documentation system called **orion-dev-doc** — a self-hosted GitLab repo with CLAUDE.md, Skills, and structured Markdown files. The team reads docs through Obsidian, uses Claude Code for automation (like weekly reports), and plans to eventually replace Redmine for project management.
+
+Now let's look at Yanhua's concepts through the team management lens.
+
+---
+
+## Moving Claude Into Your Project — Not Just a Note Vault
+
+The original author's first step was installing two Obsidian plugins: Claudian (runs Claude Code inside Obsidian) and a Terminal plugin. His point: "no more switching to terminal, just talk to Claude right next to your notes."
+
+For individual users, the Claudian plugin is quite handy. You can install it through the BRAT plugin (GitHub: `YishenTu/claudian`) if you want to try it.
+
+But for a team, the key isn't the plugin — it's the **Claude Code CLI + CLAUDE.md combo.**
+
+Think about orion-dev-doc: 6 backend engineers, each running `claude` in the repo directory on their own machine. Claude Code starts up, reads CLAUDE.md, and instantly understands the project structure, conventions, and workflows.
+
+That's the team version of "moving Claude into your project" — not into one person's note vault, but into the **whole team's shared knowledge repo.**
+
+<ClawdNote>
+The original author said: "After installing these two plugins, Obsidian is no longer just a note-taking app — it became a workbench with an AI on standby."
+
+In orion-dev-doc's world, the "AI workbench" isn't Obsidian. It's the GitLab repo itself.
+
+Obsidian is for reading. GitLab is for storing. Claude Code CLI is the engine that does things. Three tools, three jobs.
+
+This split makes way more sense with 6 people — everyone can set up their Obsidian vault differently, but the GitLab repo is the one and only source of truth (◕‿◕)
+</ClawdNote>
+
+---
+
+## Skills: From Personal Shortcuts to Team Standard Procedures
+
+The original author has 16 custom Skills in `.claude/skills/`. His categories: publishing (WeChat, X), image generation, content conversion, and utilities.
+
+The publishing and image generation Skills are for personal content creation — different use case, so we'll skip those. The "webpage to Markdown" one is actually useful for any team building a knowledge base, though.
+
+But the **concept** of Skills is incredibly important for team management.
+
+Imagine what team-level Skills orion-dev-doc could have:
+
+### 🔧 Team Skills Examples
+
+**Weekly Report Generator**
+```
+Trigger: Every Friday afternoon
+Input: Team member's git log dump
+Output: Structured weekly report in Markdown
+```
+Each person runs it locally. Claude Code pulls their git commits, PR status, and blockers. Team members can only see their own data. The Tech Lead can see everyone's.
+
+**Project Status Dashboard**
+```
+Trigger: On demand
+Input: All open issues and MR metadata
+Output: Project progress summary + risk flags
+```
+
+**Code Review Assistant**
+```
+Trigger: When a new MR is created
+Input: Diff + project coding standards
+Output: Auto-checklist + preliminary review comments
+```
+
+**Onboarding Guide Generator**
+```
+Trigger: New team member joins
+Input: Repo structure + CLAUDE.md + existing docs
+Output: Customized onboarding document
+```
+
+<ClawdNote>
+The original author's Skills are "one person's hotkeys" — press a button to publish, add images, compress files.
+
+Team Skills are more like "automated standard operating procedures." Not one person's convenience tool, but a shared workflow that everyone follows — just executed by Claude Code.
+
+The difference? If a personal Skill breaks, only you are affected. If a team Skill breaks, 6 people's workflow stops. That's why team Skills need proper testing and version control — and why putting them in a GitLab repo makes more sense than a personal Obsidian vault (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## The Secret of CLAUDE.md: The Soul of the Whole System
+
+Here's the main event.
+
+The original author nailed it: "The soul of the whole system isn't any specific Skill — it's CLAUDE.md."
+
+CLAUDE.md is a special file that Claude Code reads every time it starts a session. It's basically an "operations manual" that tells the AI: who you are, how you work, and what standards you follow.
+
+The original CLAUDE.md had four core elements:
+
+1. **Identity definition** — "I'm a programmer, side hustle is multi-platform content creation, frontend and design are my weak spots."
+2. **Skills manual** — Trigger conditions and use cases for all 16 Skills.
+3. **Workflow templates** — Step-by-step processes for each platform.
+4. **Iterative evolution** — Claude makes a mistake, add a rule. Find a better process, update the template.
+
+Now let's map these to orion-dev-doc's team context:
+
+### 🏢 Team Version of CLAUDE.md
+
+**Identity definition** → Not "who am I" but "who is this team"
+
+```markdown
+# Team Identity
+- 6-person backend team, mainly Python/Go
+- Tech Lead: ShroomDog
+- Self-hosted GitLab, CI/CD on XX
+- Coding standards: [link to standards doc]
+- Git user mapping: [team roster]
+```
+
+No matter who runs Claude Code, it knows: what team, what project, what tech stack.
+
+**Skills manual** → Who can use what
+
+```markdown
+# Skills Authorization
+- weekly-report: everyone (own git log only)
+- team-status: Tech Lead only (can see everyone)
+- code-review-assist: everyone
+- project-planning: Tech Lead only
+```
+
+**Workflow templates** → From personal to team processes
+
+```markdown
+# Weekly Report Workflow
+1. Pull this week's git log (auto by skill)
+2. Categorize commits (feature / fix / refactor / docs)
+3. Generate structured report
+4. Flag blockers and risks
+5. Output to reports/ directory
+```
+
+**Iterative evolution** → This is the most critical part
+
+```markdown
+# Evolution Log
+- 2026-01-15: Weekly report missed merge commits → added rule
+- 2026-01-22: Code review suggestions too generic → added coding standards as context
+- 2026-02-01: Inconsistent git log format → added commit message template
+```
+
+<ClawdNote>
+The original author said: "Writing CLAUDE.md is incredibly valuable. You have to put all the things you 'thought you knew but never said out loud' — work habits, quality standards, thinking patterns — into actual text."
+
+In a team setting, this is 100x more true.
+
+You know what the most painful thing about team management is? Everyone has their own version of "how things should be done" in their head, but nobody's versions match.
+
+Writing CLAUDE.md forces you to put all that hidden knowledge on the table.
+
+"How big should a PR be before splitting it?" "When can you skip code review?" "How detailed should a weekly report be?"
+
+Before, the answers to these questions were scattered across Slack threads, meeting notes, and the Tech Lead's brain. Now they're all in CLAUDE.md. Claude Code knows, and so does everyone else.
+
+That's why CLAUDE.md isn't just "an instruction manual for the AI" — it's the team's **consensus document** (╯°□°)╯
+</ClawdNote>
+
+---
+
+## Directory Structure = Brain Architecture
+
+The original author mentioned: "Structure is logic. Directories are the brain's partitions." This is intuitive for a personal note vault. For a team repo, it's life or death.
+
+A well-designed orion-dev-doc structure might look like this:
+
+```
+orion-dev-doc/
+├── CLAUDE.md                    # Team AI operations manual
+├── .claude/
+│   └── skills/                  # Team-level Skills
+│       ├── weekly-report.md
+│       ├── project-status.md
+│       ├── code-review-assist.md
+│       └── onboarding-gen.md
+├── team/
+│   ├── members.md               # Roster + roles
+│   ├── coding-standards.md      # Shared coding conventions
+│   └── meeting-notes/           # Meeting records
+├── projects/
+│   ├── project-alpha/
+│   │   ├── README.md
+│   │   ├── architecture.md
+│   │   └── decisions/           # ADRs (Architecture Decision Records)
+│   └── project-beta/
+├── reports/
+│   ├── weekly/
+│   │   ├── 2026-W06-alice.md
+│   │   ├── 2026-W06-bob.md
+│   │   └── 2026-W06-summary.md  # Tech Lead's roll-up
+│   └── monthly/
+├── knowledge/
+│   ├── runbooks/                # Operations playbooks
+│   ├── postmortems/             # Incident analysis
+│   └── references/              # External articles (Markdown-ified)
+└── templates/
+    ├── weekly-report.md
+    ├── postmortem.md
+    └── adr.md
+```
+
+<ClawdNote>
+You might look at this and think: "That's just a well-organized GitLab repo?"
+
+Yes. But the key is — Claude Code understands this structure.
+
+When you run `claude`, it reads CLAUDE.md and knows where to find coding standards, where last week's reports are, where architecture decisions live.
+
+The directory structure isn't just for humans. It's a navigation map for the AI too.
+
+If your repo is a pile of random files with a README that says "see wiki for details"... well, Claude Code will probably get just as lost as a new hire would ʕ•ᴥ•ʔ
+</ClawdNote>
+
+---
+
+## A Complete Team Workflow
+
+The original author showed a "podcast to published article" pipeline that took 30 minutes. Impressive for content creation, but not our use case.
+
+Here's a team version: **from git logs to Tech Lead report.**
+
+**Step 1: Each member generates their weekly report**
+
+```bash
+cd orion-dev-doc
+claude "Generate my weekly report"
+```
+
+Claude Code reads CLAUDE.md → picks up the `weekly-report` skill → pulls that member's git log → outputs a structured report to `reports/weekly/`.
+
+**Step 2: Tech Lead rolls it up**
+
+```bash
+claude "Summarize everyone's reports this week, flag blockers and risks"
+```
+
+Claude Code reads all individual reports → cross-references → generates a team-level summary → highlights items needing attention.
+
+**Step 3: Update project status**
+
+```bash
+claude "Update project-alpha's progress tracker"
+```
+
+Combines weekly reports + GitLab MR status + issues → auto-updates the project dashboard.
+
+Total time: each person spends 5 minutes running their report. Tech Lead spends 10 minutes reviewing the summary. Compare that to the old way — each person writing for an hour, Tech Lead spending 2 hours reading Redmine. That's an order-of-magnitude improvement.
+
+<ClawdNote>
+The original author's pipeline: podcast → text → draft → illustrations → publish.
+
+The team pipeline: git log → individual reports → roll-up → decisions.
+
+Same underlying concept — **take scattered information sources, run them through Claude Code + Skills, and produce actionable output.**
+
+For one person, "actionable" means hitting the publish button. For a team, "actionable" means making management decisions.
+
+Different scale. Same architecture (￣▽￣)／
+</ClawdNote>
+
+---
+
+## Your Team's Super Brain Needs Three Things
+
+The original conclusion was three things: Obsidian (container) + Claude Code with Claudian (intelligence) + Skills (hands).
+
+The team version:
+
+### 1. Obsidian → The Reading Interface
+
+Team members open the orion-dev-doc repo in Obsidian and enjoy Markdown's linking, search, and graph view. Obsidian is the best interface for **consuming and browsing** knowledge — but it's not the only editing tool.
+
+### 2. GitLab → The Storage Layer
+
+The self-hosted GitLab repo is the single source of truth. Version control, permissions, MR reviews, CI/CD — these team-essential features aren't possible in an Obsidian vault, but GitLab has them built in.
+
+### 3. Claude Code → The Execution Engine
+
+Not the Claudian plugin — the CLI. Every team member runs `claude` in their own environment, reads the same CLAUDE.md, uses the same Skills, and produces consistently formatted output.
+
+**Obsidian reads. GitLab stores. Claude Code does.** Each tool has its job.
+
+<ClawdNote>
+The original author said: "The tools don't matter. What matters is that you've built a system that amplifies your unique perspective."
+
+Team version: **The tools don't matter. What matters is that you've built a system that makes 6 people operate like one brain.**
+
+One person's super brain: "AI helps you see how you think."
+
+A team's super brain: "AI helps you see how the team operates — and makes it smoother."
+
+ShroomDog's orion-dev-doc is already walking this path. This article just confirms the direction is right ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## Final Thoughts
+
+The original author ended with a great line:
+
+> "The biggest gain from building this system wasn't the efficiency boost — it was being forced to put my work methods, thinking patterns, and value judgments into actual text."
+
+For a team, I'd rewrite that as:
+
+**The biggest gain isn't the efficiency boost — it's being forced to put your team's unwritten rules, hidden knowledge, and real workflows out in the open.**
+
+Most team problems aren't about "not enough skill." They're about "everyone has a different version of the SOP in their head." Writing CLAUDE.md forces you to align everyone's understanding.
+
+That might be what "team super brain" really means in the AI era — not AI managing your team for you, but AI helping you make management **transparent, reproducible, and iterable.**
+
+To get started, three steps:
+
+1. **Create a GitLab repo** for your team documentation
+2. **Write a first CLAUDE.md** defining team identity and basic workflows
+3. **Build one Skill** — like a weekly report generator
+
+Then have every team member try running Claude Code once. You'll be surprised at how differently everyone understood the same thing.
+
+And that's where change begins.

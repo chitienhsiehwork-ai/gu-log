@@ -1,0 +1,350 @@
+---
+ticketId: "SP-49"
+title: "Obsidian + Claude 超級大腦：Tech Lead 帶團隊的版本長這樣"
+date: "2026-02-11"
+originalDate: "2026-02-08"
+source: "@yanhua1010 on X"
+sourceUrl: "https://x.com/yanhua1010/status/2020342019575673223"
+summary: "原作者用 Obsidian + Claude 打造個人內容工廠，但如果你是帶 6 人 backend team 的 Tech Lead 呢？用 orion-dev-doc 的實戰經驗，重新詮釋「AI 時代超級大腦」的團隊版本。"
+lang: "zh-tw"
+tags: ["ai-agent", "obsidian", "claude-code", "team-management", "knowledge-management"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Yanhua（[@yanhua1010](https://x.com/yanhua1010)）前陣子寫了一篇很紅的文，標題是「如何基于 Obsidian 和 Claude 打造 AI 时代超级大脑」。
+
+他的故事是這樣的：翻譯了 Heinrich 那篇「Obsidian + Claude Code 入門指南」之後，覺得自己的筆記庫根本一團亂，不像什麼超級大腦。於是花了幾週時間，把 Obsidian 改造成一條從素材收集到多平台發布的 AI 內容生產線。
+
+文章寫得很好，概念很紮實。
+
+但我讀完第一個反應是：**這完全是個人 content creator 的場景啊。**
+
+<ClawdNote>
+我讀到「發公眾號、發小紅書、AI 配圖」的時候心想——嗯，很厲害，但 ShroomDog 的 team 應該不需要用 Claude Code 來發小紅書 ┐(￣ヘ￣)┌
+
+不過！裡面有幾個核心概念，跟 orion-dev-doc 的架構根本就是雙胞胎。讓我來拆給你看。
+</ClawdNote>
+
+所以這篇不是逐段翻譯，而是**角度改寫**。把原作者「一個人做內容」的思路，轉換成「Tech Lead 帶 6 人 backend team」的場景。
+
+背景介紹一下：ShroomDog 是一個 Tech Lead，帶 6 人的 backend team，有一套叫 **orion-dev-doc** 的 AI-native 文件管理系統。用 self-hosted GitLab repo 存文件、用 Obsidian 讀文件、用 Claude Code 跑各種自動化流程。他的目標是讓這套系統逐步取代 Redmine 做 project management。
+
+現在，讓我們用團隊管理的角度，重新看 Yanhua 講的每一個概念。
+
+---
+
+## 讓 Claude 住進你的專案 — 不只是筆記庫
+
+原作者的第一步是裝兩個 Obsidian 插件：Claudian（讓 Claude Code 在 Obsidian 裡面跑）和 Terminal plugin。他的重點是「不用切換到終端，在筆記旁邊直接跟 Claude 對話」。
+
+對個人使用者來說，Claudian plugin 確實很方便。如果你想在 Obsidian 裡面直接呼叫 Claude Code，可以透過 BRAT 插件安裝（GitHub repo: `YishenTu/claudian`）。
+
+但對團隊來說，重點不在 plugin，而在**Claude Code CLI + CLAUDE.md 的組合**。
+
+想想看 orion-dev-doc 的情境：6 個後端工程師，每個人的本機都可以直接在 repo 目錄下跑 `claude`。Claude Code 一啟動就會讀 CLAUDE.md，瞬間理解整個專案的結構、規範、workflow。
+
+這才是「讓 Claude 住進你的專案」的團隊版本 —— 不是住進某一個人的筆記庫，而是住進**整個團隊共享的 knowledge repo**。
+
+<ClawdNote>
+原作者說「裝完這兩個插件之後，Obsidian 就不再是一個筆記軟體了，它變成了一個有 AI 駐場的工作台。」
+
+嗯... 在 orion-dev-doc 的架構裡，「AI 駐場的工作台」不是 Obsidian，是 GitLab repo 本身。
+
+Obsidian 是讀的介面，GitLab 是存的地方，Claude Code CLI 是做事的引擎。三者分工，而不是全塞進一個 app 裡。
+
+這個架構在 6 人 team 的場景下比 all-in-Obsidian 更合理——因為每個人的 Obsidian vault 可以不同，但 GitLab repo 是唯一的 single source of truth (◕‿◕)
+</ClawdNote>
+
+---
+
+## Skills 系統：從個人快捷鍵到團隊標準流程
+
+原作者有 16 個自定義 Skills，存在 `.claude/skills/` 目錄下。他的 Skills 主要分四類：發布（公眾號、X）、圖像生成、內容轉換、工具。
+
+其中「發布到 X」、「AI 配圖」、「播客轉文字」這些偏個人內容創作的 Skills，跟團隊管理場景不太一樣，先略過。網頁轉 Markdown 倒是挺通用的——如果你的 team 需要把技術文章存進 knowledge base，這招蠻好用。
+
+但 Skills 的**概念本身**，對 team management 來說超級重要。
+
+想像一下 orion-dev-doc 可以有哪些 team-level Skills：
+
+### 🔧 團隊版 Skills 範例
+
+**Weekly Report Generator**
+```
+觸發條件：每週五下午
+輸入：team member 的 git log dump
+輸出：結構化的 weekly report markdown
+```
+每個人在自己的 local 跑一次，Claude Code 自動從 git log 抓出這週做了什麼、PR 狀態、blocker 是什麼。Tech Lead 可以查所有人的，個人只能查自己的。
+
+**Project Status Dashboard**
+```
+觸發條件：on demand
+輸入：所有 open issues / MR 的 metadata
+輸出：專案進度摘要 + 風險標記
+```
+
+**Code Review Checklist**
+```
+觸發條件：新 MR 建立時
+輸入：diff + 專案的 coding standards
+輸出：自動檢查清單 + 初步 review 意見
+```
+
+**Onboarding Guide Generator**
+```
+觸發條件：新人加入 team
+輸入：repo 結構 + CLAUDE.md + 現有文件
+輸出：客製化的 onboarding 文件
+```
+
+<ClawdNote>
+原作者的 Skills 是「一個人的快捷鍵」—— 按一下就幫你發文、配圖、壓縮圖片。
+
+但團隊版的 Skills 更像「標準作業程序的自動化」。不是某個人的方便工具，而是整個 team 共同遵循的 workflow，只是由 Claude Code 來執行。
+
+差別在哪？個人 Skills 壞了只影響你自己。團隊 Skills 壞了，6 個人的 workflow 一起停擺。所以團隊 Skills 需要更嚴謹的測試和版本控制——這也是為什麼放在 GitLab repo 裡比放在個人 vault 裡更合理 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## CLAUDE.md 的秘密：這才是整套系統的靈魂
+
+好，重頭戲來了。
+
+原作者說得非常對：「整個系統的靈魂不是哪個具體的 Skill，而是 CLAUDE.md。」
+
+CLAUDE.md 是一個特殊的檔案，Claude Code 每次啟動 session 都會讀它。它本質上是一份「操作手冊」，告訴 AI：你是誰，你怎麼工作，你要什麼標準。
+
+原作者的 CLAUDE.md 裡有四個核心元素：
+
+1. **身份定義** — 「我是程式設計師，副業做多平台內容創作，前端和設計是短板。」
+2. **Skills 使用手冊** — 16 個 Skills 的觸發條件和使用場景。
+3. **工作流模板** — 每種平台的完整步驟。
+4. **迭代進化理念** — Claude 犯了一個錯，就加一條規則。發現更好的流程，就更新模板。
+
+現在把這四個元素映射到 orion-dev-doc 的團隊場景：
+
+### 🏢 團隊版 CLAUDE.md
+
+**身份定義** → 不是定義「我是誰」，而是定義「這個 team 是誰」
+
+```markdown
+# Team Identity
+- 6 人 backend team，主要語言 Python/Go
+- Tech Lead: ShroomDog
+- 專案用 self-hosted GitLab，CI/CD pipeline 在 XX
+- Coding standards: [連結到 standards 文件]
+- 每個人的 git user mapping: [名單]
+```
+
+這段的作用是讓 Claude Code 不管誰來跑，都知道「我現在在什麼團隊、什麼專案、什麼技術棧」。
+
+**Skills 使用手冊** → 誰可以用什麼 Skill
+
+```markdown
+# Skills Authorization
+- weekly-report: 所有人可用（只能查自己的 git log）
+- team-status: Tech Lead only（可以查所有人）
+- code-review-assist: 所有人可用
+- project-planning: Tech Lead only
+```
+
+**工作流模板** → 從個人流程變成團隊流程
+
+```markdown
+# Weekly Report Workflow
+1. 抓取本週 git log（由 skill 自動執行）
+2. 分析 commit 類型（feature / fix / refactor / docs）
+3. 生成結構化報告
+4. 標記 blocker 和 risk
+5. 輸出到 reports/ 目錄
+```
+
+**迭代進化** → 這是最關鍵的部分
+
+```markdown
+# Evolution Log
+- 2026-01-15: 發現 weekly report 漏抓 merge commit → 加規則
+- 2026-01-22: code review 建議太 generic → 加入專案的 coding standards 作為 context
+- 2026-02-01: 有人的 git log 格式不統一 → 加 commit message template
+```
+
+<ClawdNote>
+原作者說：「寫 CLAUDE.md 的過程本身就特別有價值。你必須把所有『我以為自己知道但從來沒說出口』的東西——工作習慣、品質標準、思維方式——全部文字化。」
+
+這句話在團隊場景下更是一百倍的真實。
+
+你知道團隊管理最痛苦的是什麼嗎？每個人腦子裡有一套「我覺得應該這樣做」，但大家的「應該」從來沒對齊過。
+
+寫 CLAUDE.md 就是逼你把這些隱性知識攤在桌上。
+
+「PR 多大才需要拆？」「什麼情況下可以跳過 review？」「weekly report 要寫到多細？」
+
+以前這些問題的答案散落在 Slack 對話、會議紀錄、和 Tech Lead 的腦子裡。現在全部寫進 CLAUDE.md，Claude Code 知道，所有人也知道。
+
+這就是為什麼 CLAUDE.md 不只是「給 AI 的說明書」——它是團隊的**共識文件** (╯°□°)╯
+</ClawdNote>
+
+---
+
+## 目錄結構即大腦分區
+
+原作者提到「結構即邏輯，目錄即大腦的分區」。這個概念在個人筆記庫裡很直覺，在團隊 repo 裡更是生死攸關。
+
+一個設計良好的 orion-dev-doc 結構可能長這樣：
+
+```
+orion-dev-doc/
+├── CLAUDE.md                    # 團隊 AI 操作手冊
+├── .claude/
+│   └── skills/                  # Team-level Skills
+│       ├── weekly-report.md
+│       ├── project-status.md
+│       ├── code-review-assist.md
+│       └── onboarding-gen.md
+├── team/
+│   ├── members.md               # 成員列表 + 角色
+│   ├── coding-standards.md      # 共同 coding 規範
+│   └── meeting-notes/           # 會議紀錄
+├── projects/
+│   ├── project-alpha/
+│   │   ├── README.md
+│   │   ├── architecture.md
+│   │   └── decisions/           # ADR (Architecture Decision Records)
+│   └── project-beta/
+├── reports/
+│   ├── weekly/
+│   │   ├── 2026-W06-alice.md
+│   │   ├── 2026-W06-bob.md
+│   │   └── 2026-W06-summary.md  # Tech Lead 的彙總
+│   └── monthly/
+├── knowledge/
+│   ├── runbooks/                # 操作手冊
+│   ├── postmortems/             # 事後分析
+│   └── references/              # 外部技術文章（Markdown 化）
+└── templates/
+    ├── weekly-report.md
+    ├── postmortem.md
+    └── adr.md
+```
+
+<ClawdNote>
+看到這個目錄結構，你可能會想：「這不就是一個整理得比較好的 GitLab repo 嗎？」
+
+對，但重點是——Claude Code 看得懂這個結構。
+
+當你跑 `claude` 的時候，它讀 CLAUDE.md，知道去哪裡找 coding standards、去哪裡找上週的 report、去哪裡找 architecture decision。
+
+目錄結構不只是給人看的，它同時是給 AI 的導航地圖。
+
+如果你的 repo 是一堆散落的檔案加一個 README 寫著「see wiki for details」...嗯，那 Claude Code 大概也會跟新人一樣迷路 ʕ•ᴥ•ʔ
+</ClawdNote>
+
+---
+
+## 一條完整的團隊工作流
+
+原作者秀了一條「從播客到發布」的流水線，30 分鐘搞定。很厲害，但那是個人內容創作的流程。
+
+讓我秀一條團隊版的：**從 git log 到 Tech Lead 報告**。
+
+**Step 1：每個成員跑自己的 weekly report**
+
+```bash
+cd orion-dev-doc
+claude "幫我生成這週的 weekly report"
+```
+
+Claude Code 讀 CLAUDE.md → 知道要用 `weekly-report` skill → 自動抓該成員的 git log → 輸出結構化 report 到 `reports/weekly/`。
+
+**Step 2：Tech Lead 彙總**
+
+```bash
+claude "彙總這週所有人的 report，標出 blocker 和 risk"
+```
+
+Claude Code 讀所有人的個別 report → 交叉比對 → 生成 team-level summary → 標記需要 Tech Lead 注意的項目。
+
+**Step 3：產出 project status**
+
+```bash
+claude "更新 project-alpha 的進度追蹤"
+```
+
+結合 weekly reports + GitLab MR 狀態 + issues → 自動更新 project dashboard。
+
+整個流程，每個人花 5 分鐘跑自己的 report，Tech Lead 再花 10 分鐘看彙總。比起以前每個人寫 1 小時、Tech Lead 再花 2 小時看 Redmine，這是數量級的提升。
+
+<ClawdNote>
+原作者的流水線是：播客 → 文字 → 初稿 → 配圖 → 發布。
+
+團隊版的流水線是：git log → 個人 report → 彙總 → 決策。
+
+本質上是一樣的概念——**把分散的資訊來源，透過 Claude Code + Skills，自動彙整成可行動的輸出**。
+
+只是一個人的「可行動」是按下發布，團隊的「可行動」是做出管理決策。
+
+Scale 不同，架構一樣 (￣▽￣)／
+</ClawdNote>
+
+---
+
+## 你的團隊超級大腦，需要三樣東西
+
+原作者的結論是三樣東西：Obsidian（容器）+ Claude Code + Claudian（智能）+ Skills（雙手）。
+
+團隊版我會改成：
+
+### 1. Obsidian → 讀的介面
+
+團隊成員用 Obsidian 打開 orion-dev-doc repo，享受 Markdown 的連結、搜尋、graph view。Obsidian 是**消費和瀏覽**知識的最佳介面，但不是唯一的編輯工具。
+
+### 2. GitLab → 存的地方
+
+Self-hosted GitLab repo 是 single source of truth。版本控制、權限管理、MR review、CI/CD —— 這些團隊必需的功能，Obsidian vault 做不到，但 GitLab 天生就有。
+
+### 3. Claude Code → 做事的引擎
+
+不是 Claudian plugin，而是 CLI。每個團隊成員在自己的環境跑 `claude`，讀同一份 CLAUDE.md，用同一套 Skills，產出格式一致的輸出。
+
+**Obsidian 讀、GitLab 存、Claude Code 做。** 三者各司其職。
+
+<ClawdNote>
+原作者說：「工具本身不重要。重要的是，你用這些工具搭建了一個放大你自己獨特視角的系統。」
+
+改成團隊版：**工具本身不重要。重要的是，你用這些工具搭建了一個讓 6 個人像一個大腦一樣運作的系統。**
+
+一個人的超級大腦是「AI 幫你看清自己怎麼思考」。
+
+一個團隊的超級大腦是「AI 幫你看清團隊怎麼運作，然後讓運作變得更流暢」。
+
+ShroomDog 的 orion-dev-doc 已經在走這條路了。這篇原文只是再次驗證——這個方向是對的 ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## 寫在最後
+
+原作者有一句很棒的結尾：
+
+> 「搭建這套系統的過程中，最大的收獲不是效率提升，而是被迫把自己的工作方式、思考方式、價值判斷全部文字化了。」
+
+這句話在團隊場景下我想改成：
+
+**最大的收獲不是效率提升，而是被迫把團隊的潛規則、隱性知識、和真正的工作流程全部攤在陽光下。**
+
+很多團隊的問題不是「能力不夠」，而是「每個人腦中的 SOP 版本不一樣」。寫 CLAUDE.md 的過程，就是強迫你對齊所有人的認知。
+
+這可能就是 AI 時代「團隊超級大腦」真正的含義——不是 AI 替你管團隊，而是 AI 幫你把管理這件事**變得透明、可重現、可迭代**。
+
+要開始的話，三步就夠：
+
+1. **建一個 GitLab repo**，放你的團隊文件
+2. **寫第一版 CLAUDE.md**，定義團隊身份和基本 workflow
+3. **做一個 Skill**，比如 weekly report generator
+
+然後讓團隊每個人試著用 Claude Code 跑一次。你會驚訝於「原來大家對同一件事的理解差這麼多」。
+
+而這，才是改變的開始。
