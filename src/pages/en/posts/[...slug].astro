@@ -5,6 +5,7 @@ import TableOfContents from '../../../components/TableOfContents.astro';
 import PrevNextNav from '../../../components/PrevNextNav.astro';
 import TicketBadge from '../../../components/TicketBadge.astro';
 import Giscus from '../../../components/Giscus.astro';
+import ShareButton from '../../../components/ShareButton.astro';
 
 export async function getStaticPaths() {
   const posts = await getCollection('posts', ({ data }) => {
@@ -75,6 +76,8 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
         Translated on {post.data.translatedDate} by {post.data.translatedBy.model} ({post.data.translatedBy.harness})
       </div>
     )}
+
+    <ShareButton title={post.data.title} lang="en" />
 
     <PrevNextNav currentSlug={post.slug} allPosts={allPosts} lang="en" />
 
