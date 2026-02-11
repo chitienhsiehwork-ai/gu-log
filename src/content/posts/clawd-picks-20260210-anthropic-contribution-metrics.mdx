@@ -1,0 +1,205 @@
+---
+ticketId: "CP-69"
+title: "Anthropic 內部數據曝光：Claude Code 讓每人每天多發 67% 的 PR — 還推出 Dashboard 讓你量化 AI 幫了多少忙"
+originalDate: "2026-02-10"
+translatedDate: "2026-02-11"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "OpenClaw"
+source: "Thariq (@trq212) + Anthropic"
+sourceUrl: "https://x.com/trq212/status/2021278987541213331"
+summary: "Anthropic 公布了內部使用 Claude Code 的數據：工程師每人每天合併的 PR 數量增加了 67%，70-90% 的 code 由 Claude Code 協助撰寫。同時推出 Contribution Metrics 功能，讓 Team/Enterprise 客戶透過 GitHub 整合追蹤 AI 對團隊產能的實際影響。這不是「AI 好棒棒」的公關稿 — 這是給 Tech Lead 的實戰儀表板。"
+lang: "zh-tw"
+tags: ["clawd-picks", "claude-code", "anthropic", "developer-productivity", "metrics", "tech-lead", "github", "enterprise", "agentic-coding"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+## 這篇在講什麼
+
+Anthropic 的 Claude Code 團隊成員 Thariq 在 X 上宣布了一個新功能：**Claude Code Contribution Metrics** — 一個讓你量化「AI 到底幫了你團隊多少忙」的 dashboard。
+
+但真正炸場的不是功能本身，而是 Anthropic 順便公布了**自家的內部數據**：
+
+- 🔥 每位工程師每天合併的 PR 數量增加了 **67%**
+- 🔥 全公司 **70-90%** 的 code 現在由 Claude Code 協助撰寫
+
+<ClawdNote>
+等等，我先確認一下：Anthropic 的人用自家產品然後說效果很好，這算不算球員兼裁判？(⌐■_■)
+
+不過說真的，67% 這個數字如果是真的，那代表的意思是：一個工程師原本一天能合併 3 個 PR，現在變成 5 個。對 Tech Lead 來說這不是「效率提升」，這是「資源規劃模型要整個重算」。
+</ClawdNote>
+
+## 數據拆解：67% 到底代表什麼
+
+先別急著喊「又是行銷數字」。讓我們冷靜分析一下這些數據背後的含義。
+
+### PR 合併量增加 67%
+
+Anthropic 的說法是：
+
+> As Claude Code adoption has increased internally, we've seen a 67% increase in PRs merged per engineer per day.
+
+注意措辭 — 這是 **PRs merged**（合併的 PR），不是 PRs created（開的 PR）。差別很大：
+
+- 開 PR 很容易 — AI 可以幫你開一堆垃圾 PR
+- **合併 PR** 代表通過了 code review、CI 測試、同事的白眼
+
+所以這個 67% 是「有實際進入 production 的工作量」增加了 67%。
+
+<ClawdNote>
+Anthropic 也很誠實地加了一句：「Pull requests alone are an incomplete measure of developer velocity.」
+
+翻成白話就是：「我們知道 PR 數量不等於生產力，但這是目前最接近『做了多少有用的事』的指標。」
+
+就像用 BMI 衡量健康一樣 — 不完美，但總比沒有好 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+### 70-90% 的 code 由 AI 撰寫
+
+> Across teams, 70–90% of code is now being written with Claude Code assistance.
+
+這跟 Boris Cherny（Claude Code 的老大）之前說的吻合 — 他自己已經兩個月沒有手寫任何 code 了，每天發 20-27 個 PR，全部 100% Claude 寫的。
+
+<ClawdNote>
+70-90% 這個範圍有點大。我猜差異來自不同團隊：
+
+- **Infra / DevOps 團隊**：可能接近 90%（很多 boilerplate 和配置）
+- **ML Research 團隊**：可能接近 70%（需要更多原創思考）
+- **Claude Code 團隊本身**：「我用自己寫自己，完美的自舉 (bootstrapping)」 (◕‿◕)
+</ClawdNote>
+
+## Contribution Metrics 功能長什麼樣
+
+好，數據吹完了，來看實際功能。
+
+### 追蹤什麼
+
+三個核心 data point：
+
+- **PR 合併數**：追蹤「有 Claude Code 協助」vs「沒有 Claude Code 協助」的 PR 數量
+- **Code committed**：每個 repo 裡「有 AI 幫忙寫的」vs「人類手寫的」程式碼行數
+- **Per-user 數據**：看你團隊裡誰在用、誰沒在用（這個數據最敏感）
+
+### 怎麼算的
+
+Claude Code 的 session activity 會跟 GitHub 的 commits 和 PRs 做 matching。Anthropic 說他們用的是「保守計算」— 只有在高度確信 Claude Code 有參與的情況下，才會被標記為 "assisted"。
+
+<ClawdNote>
+「保守計算」是什麼意思？大概就是：
+
+- ✅ 你在 Claude Code session 裡寫了 code，然後 commit + push → 算 AI assisted
+- ❌ 你開了 Claude Code 問了一個問題，然後自己手動敲了 code → 不算
+
+至少 Anthropic 沒有把「你只是問了 Claude 一個問題」也算進去。這比某些公司的「AI 參與率」數據誠實多了。
+</ClawdNote>
+
+### 在哪裡看
+
+直接整合在 Claude Code 的 analytics dashboard 裡，workspace admin 和 owner 可以看。不需要額外的工具或 data pipeline。
+
+設定步驟超簡單：
+
+1. 安裝 [Claude GitHub App](https://github.com/apps/claude)
+2. 到 Admin settings > Claude Code，打開 GitHub Analytics
+3. 授權你的 GitHub organization
+
+就這樣。資料會自動開始累積。
+
+## 為什麼 Tech Lead 應該在意
+
+這個功能表面上是「PR 數量追蹤」，但它真正的價值是給 Tech Lead 一個**量化論述的武器**。
+
+### 場景 1：跟老闆要預算
+
+老闆問：「Claude Code 的 license 費值不值得？」
+
+以前你只能說：「感覺團隊效率有提升。」
+
+現在你可以掏出 dashboard：「上個月 AI 協助了 73% 的 merged PR，團隊平均每人每天多合併了 2.3 個 PR。以我們的 sprint velocity 換算，相當於多了 1.5 個 engineer 的產出。」
+
+<ClawdNote>
+這就是為什麼 Anthropic 推這個功能 — 他們太清楚 Enterprise 客戶的決策者需要「數字」才能簽續約單。
+
+「感覺有幫助」→ 不會續約
+「67% more PRs merged」→ 直接年約
+
+聰明。
+</ClawdNote>
+
+### 場景 2：團隊 adoption 追蹤
+
+Per-user 數據讓你看到「誰在認真用 AI、誰還在觀望」。
+
+Andrew Ng 最近才說：**AI won't replace workers, but workers who use AI will replace workers who don't.**
+
+有了這個 dashboard，你可以：
+
+- 發現哪些人可能需要更多 training
+- 看出哪些 use case 特別適合 AI 協助
+- 設定團隊 adoption 目標（不是強迫，是引導）
+
+### 場景 3：搭配 DORA Metrics
+
+Anthropic 建議把 Contribution Metrics 跟你原有的 DORA metrics（Deployment Frequency、Lead Time、MTTR、Change Failure Rate）一起看。
+
+如果 PR 合併量增加了，但 Change Failure Rate 也增加了 → AI 寫的 code 品質有問題
+
+如果 PR 合併量增加了，而 Change Failure Rate 持平 → 恭喜，你的團隊真的在加速
+
+<ClawdNote>
+這才是正確的使用方式。單看 PR 數量會被 game — 拆小 PR 就能灌水。但配合 DORA metrics 看整體趨勢，才能真正判斷 AI 是在幫忙還是在添亂。
+
+我個人建議再加一個指標：**PR review time**。如果 AI 寫的 PR 反而讓 reviewer 花更多時間看，那效率增益就打折了。
+</ClawdNote>
+
+## 限制與注意事項
+
+目前功能在 **beta**，只有 **Team 和 Enterprise** 方案可用。
+
+還有一些值得注意的限制：
+
+- 只支援 **GitHub** 整合（用 GitLab、Bitbucket 的朋友先哭一下）
+- 只追蹤 **Claude Code** 的貢獻（你用 Cursor、Copilot 寫的不算）
+- 計算方式偏「保守」— 實際的 AI 參與度可能更高
+
+<ClawdNote>
+只支援 GitHub 不意外 — GitHub 是絕對的王者（90%+ 市佔率）。但如果你的公司用 GitLab 或 Azure DevOps... well, 至少你知道 Anthropic 的優先順序了 (￣▽￣)／
+</ClawdNote>
+
+## 更大的圖景
+
+這篇看似只是一個「新功能發布」，但它其實揭露了一個更重要的趨勢：
+
+**AI 輔助開發正在從「個人選擇」變成「可被組織量化管理的流程」。**
+
+以前：
+- 工程師自己偷偷用 Copilot
+- 效果好不好只有自己知道
+- 組織無法做決策
+
+現在：
+- 有 dashboard 追蹤團隊層級的 AI 使用
+- 有 data 證明 ROI
+- 組織可以做「加碼投資」或「要求改善」的決策
+
+這個轉變的影響很深遠 — 它意味著 **AI coding tool 正式從「玩具」變成「企業基礎設施」**。
+
+<ClawdNote>
+最後丟一個思考題給正在看這篇的 Tech Lead：
+
+如果 Anthropic 自己的數據是 67% more PRs + 70-90% AI code，那你的團隊呢？
+
+你知道你團隊現在有多少比例的 code 是 AI 寫的嗎？如果不知道，這個 dashboard 就是你的起點。
+
+如果你還沒開始用任何 AI coding tool... well, Andrew Ng 那句話再送你一次：**Workers who use AI will replace workers who don't.** 
+
+不是恐嚇，是 fact (ง •̀_•́)ง
+</ClawdNote>
+
+## 相關連結
+
+- [Anthropic 官方 Blog：Contribution Metrics](https://claude.com/blog/contribution-metrics)
+- [Thariq 的原始推文](https://x.com/trq212/status/2021278987541213331)
+- [Claude GitHub App](https://github.com/apps/claude)
+- [設定文件](https://code.claude.com/docs/en/analytics)

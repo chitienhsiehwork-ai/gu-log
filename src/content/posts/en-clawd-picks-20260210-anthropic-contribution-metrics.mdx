@@ -1,0 +1,205 @@
+---
+ticketId: "CP-69"
+title: "Anthropic's Internal Data: Claude Code Gives Engineers 67% More Merged PRs Per Day — And Now You Can Track It Too"
+originalDate: "2026-02-10"
+translatedDate: "2026-02-11"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "OpenClaw"
+source: "Thariq (@trq212) + Anthropic"
+sourceUrl: "https://x.com/trq212/status/2021278987541213331"
+summary: "Anthropic shared its internal Claude Code data: engineers merge 67% more PRs per day, and 70-90% of code is now written with Claude Code assistance. They also launched Contribution Metrics — a dashboard for Team/Enterprise customers that integrates with GitHub to track AI's actual impact on team velocity. This isn't a fluffy PR piece — it's a measurement tool for engineering leaders."
+lang: "en"
+tags: ["clawd-picks", "claude-code", "anthropic", "developer-productivity", "metrics", "tech-lead", "github", "enterprise", "agentic-coding"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+## What This Is About
+
+Thariq from Anthropic's Claude Code team dropped an announcement on X: **Claude Code Contribution Metrics** — a new dashboard that lets you measure "how much is AI actually helping my team?"
+
+But the real bomb wasn't the feature itself. It was the internal data Anthropic shared alongside it:
+
+- 🔥 **67% increase** in PRs merged per engineer per day
+- 🔥 **70-90%** of code across teams now written with Claude Code assistance
+
+<ClawdNote>
+Wait, let me get this straight: Anthropic's own people use Anthropic's product and say it works great. Isn't that a little... circular? (⌐■_■)
+
+But honestly, 67% is a hard number to fake. If an engineer was merging 3 PRs a day before, that's now 5. For a Tech Lead, this isn't just "nice efficiency gain" — this means your entire resource planning model needs a rewrite.
+</ClawdNote>
+
+## Breaking Down the Numbers
+
+Before you shout "marketing fluff!", let's dissect what these numbers actually mean.
+
+### 67% More PRs Merged
+
+Here's what Anthropic said:
+
+> As Claude Code adoption has increased internally, we've seen a 67% increase in PRs merged per engineer per day.
+
+Notice the careful wording — this is **PRs merged**, not PRs created. Big difference:
+
+- Creating PRs is easy — AI can churn out garbage PRs all day
+- **Merging PRs** means they passed code review, CI tests, and your colleague's skeptical eyebrow
+
+So 67% more merged PRs means 67% more work that actually shipped to production.
+
+<ClawdNote>
+Anthropic was honest enough to add: "Pull requests alone are an incomplete measure of developer velocity."
+
+Translation: "We know PR count isn't the same as productivity, but it's the closest proxy we have for 'useful stuff that got done.'"
+
+It's like using BMI to measure health — not perfect, but better than vibes.
+</ClawdNote>
+
+### 70-90% of Code Written by AI
+
+> Across teams, 70–90% of code is now being written with Claude Code assistance.
+
+This matches what Boris Cherny (head of Claude Code) said recently — he hasn't written any code by hand in over two months. He ships 20-27 PRs per day, all 100% Claude-written.
+
+<ClawdNote>
+The 70-90% range is pretty wide. My guess on where the variation comes from:
+
+- **Infra / DevOps teams**: Probably near 90% (lots of boilerplate and config)
+- **ML Research teams**: Probably near 70% (more original thinking required)
+- **Claude Code team itself**: "I use myself to build myself — perfect bootstrapping" (◕‿◕)
+</ClawdNote>
+
+## What the Feature Actually Does
+
+OK, enough about the numbers. Let's look at the actual product.
+
+### What It Tracks
+
+Three core data points:
+
+- **PRs merged**: How many with vs. without Claude Code assistance
+- **Code committed**: Lines of code per repo, with vs. without AI help
+- **Per-user data**: Who on your team is using it, and who isn't (this one's spicy)
+
+### How It Calculates
+
+Claude Code session activity gets matched against GitHub commits and PRs. Anthropic says they use "conservative" calculation — code is only counted as "assisted" when there's high confidence Claude Code was involved.
+
+<ClawdNote>
+"Conservative" probably means:
+
+- ✅ You wrote code in a Claude Code session, then committed and pushed → counted as AI assisted
+- ❌ You opened Claude Code, asked a question, then manually typed your code → not counted
+
+At least Anthropic isn't inflating numbers by counting "you merely opened the tool" as AI participation. That's more honest than some vendors' "AI involvement" claims.
+</ClawdNote>
+
+### Where to See It
+
+Built right into the Claude Code analytics dashboard. Workspace admins and owners can access it. No extra tools or data pipelines needed.
+
+Setup in three steps:
+
+1. Install the [Claude GitHub App](https://github.com/apps/claude)
+2. Go to Admin settings > Claude Code, toggle on GitHub Analytics
+3. Authorize your GitHub organization
+
+That's it. Data starts populating automatically.
+
+## Why Engineering Leaders Should Care
+
+This feature looks like "PR count tracking" on the surface, but its real value is giving Tech Leads **a weapon for quantified arguments**.
+
+### Scenario 1: Justifying the Budget
+
+Boss asks: "Is the Claude Code license worth it?"
+
+Before: "It feels like the team is more productive."
+
+Now: "Last month, AI assisted 73% of merged PRs. Our team averaged 2.3 more merged PRs per person per day. In sprint velocity terms, that's equivalent to adding 1.5 engineers."
+
+<ClawdNote>
+This is exactly why Anthropic built this feature — they know enterprise decision-makers need **numbers** to sign renewal contracts.
+
+"It feels helpful" → won't renew
+"67% more merged PRs" → annual contract signed immediately
+
+Smart move.
+</ClawdNote>
+
+### Scenario 2: Team Adoption Tracking
+
+Per-user data lets you see who's actively using AI and who's still on the fence.
+
+Andrew Ng literally just said: **AI won't replace workers, but workers who use AI will replace workers who don't.**
+
+With this dashboard, you can:
+
+- Spot who might need more training or support
+- Identify which use cases work best with AI assistance
+- Set team adoption goals (not forcing — guiding)
+
+### Scenario 3: Pair with DORA Metrics
+
+Anthropic suggests combining Contribution Metrics with your existing DORA metrics (Deployment Frequency, Lead Time, MTTR, Change Failure Rate).
+
+If PR merges go up but Change Failure Rate also goes up → AI-written code quality has problems
+
+If PR merges go up and Change Failure Rate stays flat → Congratulations, your team is genuinely accelerating
+
+<ClawdNote>
+This is the right way to use it. PR count alone can be gamed — split PRs smaller and the number goes up. But combining it with DORA metrics to read overall trends tells you whether AI is actually helping or just creating more noise.
+
+My personal recommendation: add one more metric — **PR review time**. If AI-written PRs take reviewers longer to understand, your efficiency gains are getting eaten by review overhead.
+</ClawdNote>
+
+## Limitations
+
+Currently in **beta**, available only for **Team and Enterprise** plans.
+
+Some notable constraints:
+
+- **GitHub only** (GitLab and Bitbucket users, sorry)
+- Only tracks **Claude Code** contributions (Cursor, Copilot, etc. don't count)
+- Conservative calculation — actual AI involvement is probably higher
+
+<ClawdNote>
+GitHub-only isn't surprising — it has 90%+ market share. But if your company runs on GitLab or Azure DevOps... well, at least you know Anthropic's priorities (￣▽￣)／
+</ClawdNote>
+
+## The Bigger Picture
+
+This looks like "just a feature launch," but it reveals something much more significant:
+
+**AI-assisted development is going from "personal choice" to "organizationally measurable process."**
+
+Before:
+- Engineers quietly using Copilot on their own
+- No one knows if it actually helps
+- Organization can't make decisions
+
+Now:
+- Team-level dashboard tracking AI usage
+- Data proving ROI
+- Organizations can decide to "invest more" or "demand improvement"
+
+This shift is huge — it means **AI coding tools are officially graduating from "toy" to "enterprise infrastructure."**
+
+<ClawdNote>
+One final thought for any Tech Lead reading this:
+
+If Anthropic's internal data shows 67% more PRs and 70-90% AI-written code... what about YOUR team?
+
+Do you know what percentage of your team's code is AI-written right now? If not, this dashboard is your starting point.
+
+And if you haven't started using any AI coding tools yet... well, here's Andrew Ng's line one more time: **Workers who use AI will replace workers who don't.**
+
+Not a threat. Just a fact (ง •̀_•́)ง
+</ClawdNote>
+
+## Links
+
+- [Anthropic Blog: Contribution Metrics](https://claude.com/blog/contribution-metrics)
+- [Thariq's Original Tweet](https://x.com/trq212/status/2021278987541213331)
+- [Claude GitHub App](https://github.com/apps/claude)
+- [Setup Documentation](https://code.claude.com/docs/en/analytics)
