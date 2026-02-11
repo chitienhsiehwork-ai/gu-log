@@ -1,13 +1,20 @@
 #!/bin/sh
 # Pre-commit hook for gu-log
-# Runs: 0) Quick duplicate ticketId check (fast, shell-based)
-#       1) Content integrity tests (ticketId uniqueness - Playwright)
-#       2) AI review for staged posts (serial, max 5, advisory only)
+#
+# ALL checks are BLOCKING. Quality over speed.
+# No LLM. All deterministic. All programmatic.
+#
+# Pipeline:
+#   0) Quick ticketId duplicate check (~100ms, shell)
+#   1) Post validator — frontmatter, content rules, cross-file checks (Node.js)
+#   2) Content integrity BDD tests (Playwright, if available)
 
 set -e
 POSTS_DIR="src/content/posts"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(git rev-parse --show-toplevel)"
 
-# 0. Quick Duplicate ticketId Check (fast shell-based, ~100ms)
+# ─── Step 0: Quick ticketId duplicate check (shell, ~100ms) ───────
 echo "⚡ Quick ticketId duplicate check..."
 DUPLICATES=$(grep -h 'ticketId:' "$POSTS_DIR"/*.mdx 2>/dev/null | \
     sed 's/.*ticketId:[[:space:]]*["'"'"']\([^"'"'"']*\)["'"'"'].*/\1/' | \
@@ -19,67 +26,46 @@ if [ -n "$DUPLICATES" ]; then
     echo "$DUPLICATES"
     echo ""
     echo "Each ticketId should appear exactly 2 times (zh-tw + en version)."
-    echo "Fix the duplicates before committing."
     exit 1
 fi
 echo "✓ No duplicate ticketIds"
 echo ""
 
-# 1. Content Integrity Tests (BDD - Playwright)
-# Only run if playwright is available and tests exist
-if [ -f "tests/content-integrity.spec.ts" ]; then
-    echo "🧪 Running content integrity tests..."
-    if npx playwright test tests/content-integrity.spec.ts --project='Desktop Chrome' --reporter=line 2>&1; then
-        echo "✓ Content integrity tests passed"
-    else
-        echo ""
-        echo "❌ Content integrity tests FAILED."
-        echo "   Fix ticketId conflicts before committing."
-        exit 1
-    fi
-    echo ""
-fi
-
-# 2. AI Review for staged .mdx posts (advisory, non-blocking)
-# - Serial to avoid OOM on low-RAM machines (2GB CPX11)
-# - Max 5 files to avoid timeout
-# - Skipped if no .mdx files staged
+# ─── Step 1: Post validator (Node.js, blocking) ──────────────────
+# Validate only staged .mdx files (ACM = Added, Copied, Modified)
 STAGED_MDX=$(git diff --cached --name-only --diff-filter=ACM -- "$POSTS_DIR"/*.mdx 2>/dev/null || true)
 
 if [ -z "$STAGED_MDX" ]; then
-    echo "✓ No .mdx files to review"
+    echo "✓ No .mdx files to validate"
 else
-    FILE_COUNT=$(echo "$STAGED_MDX" | wc -l)
-    MAX_REVIEW=5
+    FILE_COUNT=$(echo "$STAGED_MDX" | wc -l | tr -d ' ')
+    echo "🔍 Validating $FILE_COUNT staged .mdx file(s)..."
 
-    if [ "$FILE_COUNT" -gt "$MAX_REVIEW" ]; then
-        echo "📝 $FILE_COUNT .mdx files staged — reviewing first $MAX_REVIEW only (skip rest to avoid OOM)"
-        STAGED_MDX=$(echo "$STAGED_MDX" | head -n "$MAX_REVIEW")
-    else
-        echo "📝 Reviewing $FILE_COUNT staged .mdx file(s)..."
-    fi
-
-    # Review each file serially (advisory — failures don't block commit)
+    # Build file list as arguments
+    FILE_ARGS=""
     for file in $STAGED_MDX; do
-        echo ""
-        echo "🔍 Reviewing: $file"
-        # Simple checks: frontmatter exists, ticketId present, lang set
-        if ! head -1 "$file" | grep -q '^---'; then
-            echo "  ⚠️  Missing frontmatter"
-        fi
-        if ! grep -q 'ticketId:' "$file"; then
-            echo "  ⚠️  Missing ticketId"
-        fi
-        if ! grep -q 'lang:' "$file"; then
-            echo "  ⚠️  Missing lang field"
-        fi
-        if ! grep -q 'source:' "$file"; then
-            echo "  ⚠️  Missing source field"
-        fi
-        echo "  ✓ Basic checks passed"
+        FILE_ARGS="$FILE_ARGS $REPO_ROOT/$file"
     done
+
+    if ! node "$REPO_ROOT/scripts/validate-posts.mjs" $FILE_ARGS; then
+        echo ""
+        echo "❌ Post validation FAILED. Fix errors above before committing."
+        exit 1
+    fi
+fi
+echo ""
+
+# ─── Step 2: Content integrity BDD tests (Playwright) ────────────
+if [ -f "$REPO_ROOT/tests/content-integrity.spec.ts" ]; then
+    echo "🧪 Running content integrity tests..."
+    if ! npx playwright test tests/content-integrity.spec.ts --project='Desktop Chrome' --reporter=line 2>&1; then
+        echo ""
+        echo "❌ Content integrity tests FAILED."
+        exit 1
+    fi
+    echo "✓ Content integrity tests passed"
+    echo ""
 fi
 
-echo ""
 echo "✓ All pre-commit checks passed!"
 exit 0

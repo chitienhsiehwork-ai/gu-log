@@ -1,9 +1,71 @@
-#!/bin/bash
-# gu-log pre-commit hook
-# Runs post reviewer on staged .mdx files
+#!/bin/sh
+# Pre-commit hook for gu-log
+#
+# ALL checks are BLOCKING. Quality over speed.
+# No LLM. All deterministic. All programmatic.
+#
+# Pipeline:
+#   0) Quick ticketId duplicate check (~100ms, shell)
+#   1) Post validator — frontmatter, content rules, cross-file checks (Node.js)
+#   2) Content integrity BDD tests (Playwright, if available)
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+set -e
+POSTS_DIR="src/content/posts"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(git rev-parse --show-toplevel)"
 
-# Run the reviewer script
-"$PROJECT_DIR/scripts/review-posts.sh"
+# ─── Step 0: Quick ticketId duplicate check (shell, ~100ms) ───────
+echo "⚡ Quick ticketId duplicate check..."
+DUPLICATES=$(grep -h 'ticketId:' "$POSTS_DIR"/*.mdx 2>/dev/null | \
+    sed 's/.*ticketId:[[:space:]]*["'"'"']\([^"'"'"']*\)["'"'"'].*/\1/' | \
+    sort | uniq -c | sort -rn | awk '$1 > 2 {print $2 " (" $1 " occurrences)"}')
+
+if [ -n "$DUPLICATES" ]; then
+    echo ""
+    echo "❌ DUPLICATE ticketId DETECTED (more than 2 occurrences = not a translation pair):"
+    echo "$DUPLICATES"
+    echo ""
+    echo "Each ticketId should appear exactly 2 times (zh-tw + en version)."
+    exit 1
+fi
+echo "✓ No duplicate ticketIds"
+echo ""
+
+# ─── Step 1: Post validator (Node.js, blocking) ──────────────────
+# Validate only staged .mdx files (ACM = Added, Copied, Modified)
+STAGED_MDX=$(git diff --cached --name-only --diff-filter=ACM -- "$POSTS_DIR"/*.mdx 2>/dev/null || true)
+
+if [ -z "$STAGED_MDX" ]; then
+    echo "✓ No .mdx files to validate"
+else
+    FILE_COUNT=$(echo "$STAGED_MDX" | wc -l | tr -d ' ')
+    echo "🔍 Validating $FILE_COUNT staged .mdx file(s)..."
+
+    # Build file list as arguments
+    FILE_ARGS=""
+    for file in $STAGED_MDX; do
+        FILE_ARGS="$FILE_ARGS $REPO_ROOT/$file"
+    done
+
+    if ! node "$REPO_ROOT/scripts/validate-posts.mjs" $FILE_ARGS; then
+        echo ""
+        echo "❌ Post validation FAILED. Fix errors above before committing."
+        exit 1
+    fi
+fi
+echo ""
+
+# ─── Step 2: Content integrity BDD tests (Playwright) ────────────
+if [ -f "$REPO_ROOT/tests/content-integrity.spec.ts" ]; then
+    echo "🧪 Running content integrity tests..."
+    if ! npx playwright test tests/content-integrity.spec.ts --project='Desktop Chrome' --reporter=line 2>&1; then
+        echo ""
+        echo "❌ Content integrity tests FAILED."
+        exit 1
+    fi
+    echo "✓ Content integrity tests passed"
+    echo ""
+fi
+
+echo "✓ All pre-commit checks passed!"
+exit 0
