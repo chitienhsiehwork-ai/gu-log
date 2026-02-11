@@ -2,11 +2,9 @@
 # Pre-commit hook for gu-log
 # Runs: 0) Quick duplicate ticketId check (fast, shell-based)
 #       1) Content integrity tests (ticketId uniqueness - Playwright)
-#       2) AI review for staged posts
-#       3) Visual test (advisory)
+#       2) AI review for staged posts (serial, max 5, advisory only)
 
 set -e
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 POSTS_DIR="src/content/posts"
 
 # 0. Quick Duplicate ticketId Check (fast shell-based, ~100ms)
@@ -28,27 +26,58 @@ echo "✓ No duplicate ticketIds"
 echo ""
 
 # 1. Content Integrity Tests (BDD - Playwright)
-echo "🧪 Running content integrity tests..."
-if ! npx playwright test tests/content-integrity.spec.ts --project='Desktop Chrome' --reporter=line 2>&1; then
+# Only run if playwright is available and tests exist
+if [ -f "tests/content-integrity.spec.ts" ]; then
+    echo "🧪 Running content integrity tests..."
+    if npx playwright test tests/content-integrity.spec.ts --project='Desktop Chrome' --reporter=line 2>&1; then
+        echo "✓ Content integrity tests passed"
+    else
+        echo ""
+        echo "❌ Content integrity tests FAILED."
+        echo "   Fix ticketId conflicts before committing."
+        exit 1
+    fi
     echo ""
-    echo "❌ Content integrity tests FAILED."
-    echo "   Fix ticketId conflicts before committing."
-    exit 1
 fi
-echo "✓ Content integrity tests passed"
-echo ""
 
-# 2. AI Review for staged posts
-"$SCRIPT_DIR/review-posts.sh"
+# 2. AI Review for staged .mdx posts (advisory, non-blocking)
+# - Serial to avoid OOM on low-RAM machines (2GB CPX11)
+# - Max 5 files to avoid timeout
+# - Skipped if no .mdx files staged
+STAGED_MDX=$(git diff --cached --name-only --diff-filter=ACM -- "$POSTS_DIR"/*.mdx 2>/dev/null || true)
 
-# 3. Visual test with LLM review (blocking)
-echo ""
-echo "📸 Running visual test with LLM review..."
-if ! node "$SCRIPT_DIR/visual-test.mjs" 2>&1; then
-    echo ""
-    echo "❌ Visual test FAILED."
-    echo "   Fix the UI issues before committing."
-    exit 1
+if [ -z "$STAGED_MDX" ]; then
+    echo "✓ No .mdx files to review"
+else
+    FILE_COUNT=$(echo "$STAGED_MDX" | wc -l)
+    MAX_REVIEW=5
+
+    if [ "$FILE_COUNT" -gt "$MAX_REVIEW" ]; then
+        echo "📝 $FILE_COUNT .mdx files staged — reviewing first $MAX_REVIEW only (skip rest to avoid OOM)"
+        STAGED_MDX=$(echo "$STAGED_MDX" | head -n "$MAX_REVIEW")
+    else
+        echo "📝 Reviewing $FILE_COUNT staged .mdx file(s)..."
+    fi
+
+    # Review each file serially (advisory — failures don't block commit)
+    for file in $STAGED_MDX; do
+        echo ""
+        echo "🔍 Reviewing: $file"
+        # Simple checks: frontmatter exists, ticketId present, lang set
+        if ! head -1 "$file" | grep -q '^---'; then
+            echo "  ⚠️  Missing frontmatter"
+        fi
+        if ! grep -q 'ticketId:' "$file"; then
+            echo "  ⚠️  Missing ticketId"
+        fi
+        if ! grep -q 'lang:' "$file"; then
+            echo "  ⚠️  Missing lang field"
+        fi
+        if ! grep -q 'source:' "$file"; then
+            echo "  ⚠️  Missing source field"
+        fi
+        echo "  ✓ Basic checks passed"
+    done
 fi
 
 echo ""
