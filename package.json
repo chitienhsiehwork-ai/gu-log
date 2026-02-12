@@ -21,7 +21,11 @@
     "lighthouse:collect": "lhci collect --config=lighthouserc.cjs",
     "lighthouse:assert": "lhci assert --config=lighthouserc.cjs",
     "bundle:analyze": "node scripts/bundle-size.mjs",
-    "bundle:check": "node scripts/bundle-budget-check.mjs"
+    "bundle:check": "node scripts/bundle-budget-check.mjs",
+    "links:check": "node scripts/check-links.mjs",
+    "links:annotate": "node scripts/annotate-broken-links.mjs",
+    "deps:check": "node scripts/dependency-freshness.mjs",
+    "deps:report": "node scripts/dependency-freshness.mjs --verbose"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.6",
