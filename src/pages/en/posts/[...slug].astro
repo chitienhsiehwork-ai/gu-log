@@ -58,12 +58,14 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
       </div>
     </header>
 
-    <div class="source-citation">
-      <strong>Original source:</strong>
-      <a href={post.data.sourceUrl} target="_blank" rel="noopener">
-        {post.data.source}
-      </a>
-    </div>
+    {!post.data.ticketId?.startsWith('SD-') && (
+      <div class="source-citation">
+        <strong>Original source:</strong>
+        <a href={post.data.sourceUrl} target="_blank" rel="noopener">
+          {post.data.source}
+        </a>
+      </div>
+    )}
 
     <TableOfContents lang="en" headings={headings} />
 
