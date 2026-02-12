@@ -163,13 +163,25 @@ OpenClaw 比較「命令式」— 你主動決定什麼時候 spawn、給什麼�
 
 ## 4. 工具權限
 
-| 維度 | Claude Code | OpenClaw |
-|------|------------|---------|
-| 預設工具 | 繼承主 conversation 全部工具 | 全部工具，**但移除 session tools** |
-| 工具限制 | `tools` 白名單 + `disallowedTools` 黑名單 | 透過 `tools.subagents.tools` 全局設定 |
-| 能不能再 spawn | ❌ 不行 | ❌ 不行 |
-| MCP Servers | 可以指定 subagent 專用的 MCP | 共享主 session 的 MCP 設定 |
-| 權限模式 | 6 種（default/acceptEdits/delegate/dontAsk/bypassPermissions/plan） | 依主 agent 設定 |
+**預設工具**
+- **Claude Code**：繼承主 conversation 全部工具
+- **OpenClaw**：全部工具，**但移除 session tools**
+
+**工具限制**
+- **Claude Code**：`tools` 白名單 + `disallowedTools` 黑名單（per-agent 精細控制）
+- **OpenClaw**：透過 `tools.subagents.tools` 全局設定
+
+**能不能再 spawn sub-agent？**
+- **Claude Code**：❌ 不行
+- **OpenClaw**：❌ 不行
+
+**MCP Servers**
+- **Claude Code**：可以指定 subagent 專用的 MCP
+- **OpenClaw**：共享主 session 的 MCP 設定
+
+**權限模式**
+- **Claude Code**：6 種（default / acceptEdits / delegate / dontAsk / bypassPermissions / plan）
+- **OpenClaw**：依主 agent 設定
 
 Claude Code 的工具控制比較細緻 — 你可以精確到每個 subagent 能用哪些工具、不能用哪些工具。
 

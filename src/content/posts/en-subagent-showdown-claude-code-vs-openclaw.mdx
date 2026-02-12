@@ -163,13 +163,25 @@ Different strokes, but OpenClaw gives you more direct control.
 
 ## 4. Tool Permissions
 
-| Dimension | Claude Code | OpenClaw |
-|-----------|------------|---------|
-| Default tools | Inherits all tools from main conversation | All tools, **minus session tools** |
-| Restrictions | `tools` allowlist + `disallowedTools` denylist | Global `tools.subagents.tools` config |
-| Can spawn more? | ❌ No | ❌ No |
-| MCP Servers | Per-subagent MCP configuration | Shares main session's MCP config |
-| Permission modes | 6 modes (default/acceptEdits/delegate/dontAsk/bypassPermissions/plan) | Inherits from main agent |
+**Default Tools**
+- **Claude Code**: Inherits all tools from main conversation
+- **OpenClaw**: All tools, **minus session tools**
+
+**Restrictions**
+- **Claude Code**: `tools` allowlist + `disallowedTools` denylist (per-agent granular control)
+- **OpenClaw**: Global `tools.subagents.tools` config
+
+**Can Spawn More Sub-Agents?**
+- **Claude Code**: ❌ No
+- **OpenClaw**: ❌ No
+
+**MCP Servers**
+- **Claude Code**: Per-subagent MCP configuration
+- **OpenClaw**: Shares main session's MCP config
+
+**Permission Modes**
+- **Claude Code**: 6 modes (default / acceptEdits / delegate / dontAsk / bypassPermissions / plan)
+- **OpenClaw**: Inherits from main agent
 
 Claude Code's tool control is more granular — you can precisely specify which tools each subagent gets.
 
