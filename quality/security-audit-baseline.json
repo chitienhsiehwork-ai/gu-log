@@ -1,0 +1,137 @@
+{
+  "auditReportVersion": 2,
+  "vulnerabilities": {
+    "@astrojs/check": {
+      "name": "@astrojs/check",
+      "severity": "moderate",
+      "isDirect": true,
+      "via": [
+        "@astrojs/language-server"
+      ],
+      "effects": [],
+      "range": ">=0.9.3",
+      "nodes": [
+        "node_modules/@astrojs/check"
+      ],
+      "fixAvailable": {
+        "name": "@astrojs/check",
+        "version": "0.9.2",
+        "isSemVerMajor": true
+      }
+    },
+    "@astrojs/language-server": {
+      "name": "@astrojs/language-server",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        "volar-service-yaml"
+      ],
+      "effects": [
+        "@astrojs/check"
+      ],
+      "range": ">=2.14.0",
+      "nodes": [
+        "node_modules/@astrojs/language-server"
+      ],
+      "fixAvailable": {
+        "name": "@astrojs/check",
+        "version": "0.9.2",
+        "isSemVerMajor": true
+      }
+    },
+    "lodash": {
+      "name": "lodash",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1112455,
+          "name": "lodash",
+          "dependency": "lodash",
+          "title": "Lodash has Prototype Pollution Vulnerability in `_.unset` and `_.omit` functions",
+          "url": "https://github.com/advisories/GHSA-xxjr-mmjv-4gpg",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-1321"
+          ],
+          "cvss": {
+            "score": 6.5,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:L/A:L"
+          },
+          "range": ">=4.0.0 <=4.17.22"
+        }
+      ],
+      "effects": [
+        "yaml-language-server"
+      ],
+      "range": "4.0.0 - 4.17.21",
+      "nodes": [
+        "node_modules/lodash"
+      ],
+      "fixAvailable": {
+        "name": "@astrojs/check",
+        "version": "0.9.2",
+        "isSemVerMajor": true
+      }
+    },
+    "volar-service-yaml": {
+      "name": "volar-service-yaml",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        "yaml-language-server"
+      ],
+      "effects": [
+        "@astrojs/language-server"
+      ],
+      "range": "*",
+      "nodes": [
+        "node_modules/volar-service-yaml"
+      ],
+      "fixAvailable": {
+        "name": "@astrojs/check",
+        "version": "0.9.2",
+        "isSemVerMajor": true
+      }
+    },
+    "yaml-language-server": {
+      "name": "yaml-language-server",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        "lodash"
+      ],
+      "effects": [
+        "volar-service-yaml"
+      ],
+      "range": ">=1.11.1-08d5f7b.0",
+      "nodes": [
+        "node_modules/yaml-language-server"
+      ],
+      "fixAvailable": {
+        "name": "@astrojs/check",
+        "version": "0.9.2",
+        "isSemVerMajor": true
+      }
+    }
+  },
+  "metadata": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 0,
+      "moderate": 5,
+      "high": 0,
+      "critical": 0,
+      "total": 5
+    },
+    "dependencies": {
+      "prod": 403,
+      "dev": 4,
+      "optional": 82,
+      "peer": 0,
+      "peerOptional": 0,
+      "total": 487
+    }
+  },
+  "baselineDate": "2026-02-12T17:38:00Z"
+}
