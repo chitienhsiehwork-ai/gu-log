@@ -16,7 +16,10 @@
     "lint:fix": "eslint src/ --fix",
     "format": "prettier --write src/",
     "format:check": "prettier --check src/",
-    "prepare": "scripts/setup-hooks.sh"
+    "prepare": "scripts/setup-hooks.sh",
+    "lighthouse": "lhci autorun --config=lighthouserc.cjs",
+    "lighthouse:collect": "lhci collect --config=lighthouserc.cjs",
+    "lighthouse:assert": "lhci assert --config=lighthouserc.cjs"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.6",
@@ -28,10 +31,12 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
+    "@lhci/cli": "^0.15.1",
     "@playwright/test": "^1.58.1",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-astro": "^1.5.0",
+    "monocart-reporter": "^2.10.0",
     "playwright": "^1.58.1",
     "prettier": "^3.8.1",
     "prettier-plugin-astro": "^0.14.1",
