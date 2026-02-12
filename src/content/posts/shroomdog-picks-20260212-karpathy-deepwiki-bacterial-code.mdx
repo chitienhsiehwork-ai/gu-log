@@ -1,0 +1,250 @@
+---
+ticketId: "SP-50"
+title: "Karpathy：把別人的 Library「撕」下來用——DeepWiki + Bacterial Code 的軟體可塑性革命"
+originalDate: "2026-02-11"
+translatedDate: "2026-02-12"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "OpenClaw"
+source: "@karpathy on X"
+sourceUrl: "https://x.com/karpathy/status/2021633574089416993"
+summary: "Andrej Karpathy 分享他如何用 DeepWiki MCP + GitHub CLI 讓 Claude 從 torchao 的 codebase 中「撕出」fp8 training 功能，五分鐘生成 150 行自包含程式碼，跑起來還快 3%。他提出 bacterial code 概念——低耦合、自包含、少依賴的程式碼風格，讓 agent 能像細菌水平基因轉移一樣自由撕取程式碼。金句：Libraries are over, LLMs are the new compiler。"
+lang: "zh-tw"
+tags: ["shroomdog-picks", "karpathy", "deepwiki", "bacterial-code", "agentic-coding", "software-architecture"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+你有沒有遇過這種事：你只需要一個 library 裡的一個小功能，結果 `pip install` 完發現它拉了 100MB 的 dependency？然後你打開文檔想看怎麼用，發現文檔是三年前寫的、範例跑不起來、API 已經改了兩版？
+
+Andrej Karpathy 也遇到了。不過他的解法比較暴力：
+
+**叫 AI agent 直接去看 source code，把需要的功能「撕」下來。**
+
+<ClawdNote>
+Karpathy 就是那個發明「vibe coding」這個詞的人。去年二月隨手一推，結果整個 tech 圈都在講，Collins Dictionary 還把它選為年度詞彙。
+
+一年後他又回來了，這次的概念叫「bacterial code」——用細菌基因的方式寫程式。聽起來很噁心，但等你看完整篇會覺得：嗯，好像有道理 (￣▽￣)／
+</ClawdNote>
+
+---
+
+## 🔍 DeepWiki：文檔爛？讓 LLM 直接讀 Code
+
+Karpathy 的故事從 [DeepWiki](https://deepwiki.com/) 開始。
+
+DeepWiki 做的事很簡單：你把任何 GitHub repo 的 URL 裡的 `github` 換成 `deepwiki`，它就會自動幫你建一個 wiki，讓你可以直接問問題。
+
+比如你想了解 nanochat 的架構，直接打開：
+
+```
+https://deepwiki.com/karpathy/nanochat
+```
+
+然後你就可以問它：「torchao 怎麼實作 fp8 training？」之類的問題。
+
+Karpathy 說了一句很到位的話：
+
+> **在很多情況下，library 的文檔可能殘缺不全、過時、或根本寫得很爛，但直接透過 DeepWiki 對 code 提問卻很好用。Code 本身就是 source of truth，而 LLM 越來越能理解它了。**
+
+原文是 "library docs can be spotty and outdated and bad, but directly asking questions to the code via DeepWiki works very well. The code is the source of truth and LLMs are increasingly able to understand it."
+
+<ClawdNote>
+說真的，這句「code is the source of truth」我想刺在身上。
+
+有多少次你看一個 library 的官方文檔，範例裡 import 的東西已經被 deprecated 了？有多少次你照著 README 操作結果一堆 error？有多少次你最後還是去翻 source code 才搞懂怎麼用？
+
+現在 LLM 直接幫你讀 source code 然後回答問題。文檔只是 code 的「翻譯」，翻譯會過時，但原文不會。
+
+這就像你去看一部日本動漫，字幕組翻得很爛，所以你乾脆找了一個日文很好的朋友坐旁邊幫你即時翻譯 ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## 🤖 DeepWiki MCP + GitHub CLI：五分鐘撕出 150 行 fp8 Code
+
+但 Karpathy 發現，比起自己用 DeepWiki 查資料，更猛的做法是：**讓你的 AI agent 直接透過 MCP 去存取 DeepWiki**。
+
+他昨天在用 [torchao](https://github.com/pytorch/ao) 做 fp8 training 的時候遇到了一些煩人的問題。他心裡有個直覺：「等等，fp8 training 不就是一個跟 Linear 差不多的 Function，多幾個 cast 跟三次 `torch._scaled_mm` 呼叫嗎？不應該這麼複雜啊？」
+
+於是他給 Claude 下了一個 prompt：
+
+> **「用 DeepWiki MCP 和 GitHub CLI 去看 torchao 怎麼實作 fp8 training。有沒有可能把功能『撕出來』？幫我寫一個 nanochat/fp8.py，API 一模一樣但完全自包含。」**
+
+然後 Claude 就跑了五分鐘，回來了。
+
+**150 行乾淨的 code。開箱即用。測試證明結果完全一致。**
+
+更誇張的是：這個簡化版居然**跑得比原版快 3%**。
+
+Karpathy 自己也搞不太懂為什麼，他猜測可能跟 `torch.compile` 的內部機制有關。但反正跑更快了，所以這現在是 [nanochat 的預設 fp8 training 實作](https://github.com/karpathy/nanochat/commit/e569b59f92aea06bf8fc1c48489b3cc2e57189f4)。
+
+更重要的是，agent 在過程中發現了很多「真的很重要但很難在文檔裡寫清楚」的小細節——numerics 的處理技巧、dtype 轉換、autocast 的互動、meta device、torch compile 的眉角。這些東西就算 library 的維護者也很難全部寫進文檔。
+
+<ClawdNote>
+我來幫大家劃重點：
+
+1. 一個 AI agent 花五分鐘，從一個複雜的 library 裡把核心功能提取出來
+2. 產出的 code 是完全自包含的、150 行、沒有外部依賴
+3. 跑起來結果一樣
+4. 而且還**快了 3%**
+5. 過程中 agent 還順便教了 Karpathy 一堆他不知道的實作細節
+
+如果你是 torchao 的維護者，看到這段你可能會有點複雜的感覺 ┐(￣ヘ￣)┌
+
+不過話說回來，這不是在說 torchao 寫得不好——而是 library 為了通用性必須處理一大堆你根本不需要的 edge case。你只需要其中一小塊功能的時候，剝離出來反而更快更乾淨。
+
+這就像你去好市多買一箱 36 罐可樂，但你其實只想喝一罐。
+</ClawdNote>
+
+---
+
+## 🦠 Bacterial Code：用細菌基因的方式寫程式
+
+這帶出了 Karpathy 一個更大的觀察——也許我們應該重新思考「怎麼寫程式」。
+
+他把這種 agent 友善的程式碼風格叫做 **"bacterial code"**（細菌式程式碼）。這個概念他在[去年七月就提過一次](https://x.com/karpathy/status/1941616674094170287)：
+
+> **細菌的基因體有幾個特徵：**
+> - **小** — 每一行 code 都有能量成本
+> - **模組化** — 以可交換的 operon（操縱子）為單位組織
+> - **自包含** — 可以輕鬆透過水平基因轉移「複製貼上」
+
+Karpathy 的類比是這樣的：如果你寫的每個 function（基因）或 class（操縱子），都能讓別人看到後喊一聲 **"yoink!"** 然後直接複製走、不用理解你其他的 code、不用 import 任何新東西——那這段 code 就是好的 bacterial code。
+
+他問了一個很棒的問題：**「你的 code 可以成為一個 trending GitHub gist 嗎？」**
+
+<ClawdNote>
+「你的 code 可以成為 trending gist 嗎？」——這個判斷標準太好了。
+
+如果你寫的一個 function 自己就能獨立存在、別人不用看你的 repo 就能直接拿去用，那它就是 bacterial code。
+
+反過來想：你有沒有看過那種 function，開頭 import 了 15 個自家 module，裡面呼叫了 8 個 utility function，每個 utility function 又依賴 3 個 config object？你想用它的功能，結果要把半個 repo 搬走。
+
+那就是 eukaryotic code（真核生物式程式碼）——複雜、耦合、什麼都連在一起。
+
+Karpathy 的建議是：需要的時候可以寫 eukaryotic code（畢竟你要建複雜系統），但盡量多寫 bacterial code。
+
+這就像做菜：食材本身要乾淨、獨立、好處理。當你要做一道複雜料理的時候，你可以把它們組合起來。但如果一開始每個食材就跟其他三種食材綁死了，你連換一道菜都做不到 (ง •̀_•́)ง
+</ClawdNote>
+
+---
+
+## 🌊 軟體可塑性革命：Libraries Are Over
+
+把上面這些串在一起，Karpathy 畫出了一幅全新的軟體開發圖景：
+
+**以前的工作流：**
+1. 我需要某個功能
+2. 找到一個 library
+3. `pip install`，拉進來 100MB dependency
+4. 讀文檔（如果有的話）
+5. 學它的 API
+6. 照著它的架構去適應你的 code
+7. 每次 library 升版你就要跟著改
+
+**現在 Karpathy 提議的工作流：**
+1. 我需要某個功能
+2. 讓 agent 去看那個 library 的 source code
+3. agent 把你需要的部分「撕」出來
+4. 生成完全自包含的 code，API 是你想要的樣子
+5. 沒有外部依賴，沒有升版的煩惱
+
+他的金句來了：
+
+> **「Libraries are over, LLMs are the new compiler」 :)**
+
+然後補了一刀：
+
+> **「你的專案真的需要 100MB 的 dependency 嗎？」**
+
+原文最後一句是 "Software might become a lot more fluid and malleable." ——軟體可能會變得更加流動和可塑。
+
+<ClawdNote>
+好的，讓我冷靜一下來分析這句「Libraries are over」。
+
+Karpathy 自己也加了一個笑臉 `:)` ，所以這顯然是半開玩笑半認真的。但他講的趨勢是真實的。
+
+**Libraries 不會真的消失。** 但 library 的「角色」正在改變。以前 library 是你的依賴——你的程式靠它才能跑。現在 library 更像是一個「參考實作」——你讓 agent 去讀它、理解它、然後幫你生成你真正需要的部分。
+
+Library 從「建材」變成了「設計圖」。你不是把整棟別人蓋好的房子搬進你家，你是讓 agent 看著那棟房子的藍圖，然後只蓋你需要的那一面牆。
+
+當然，這有明顯的風險。Karpathy 自己也承認 "there's obvious downsides and risks"：
+- 安全性更新怎麼辦？原版 library 修了一個 CVE，你的撕取版不會自動更新
+- 當 agent 理解錯了 code 的意圖怎麼辦？
+- 維護成本可能會轉嫁到你身上
+
+但重點是：**這以前根本不是一個選項。** 以前你沒有能力在五分鐘內理解一個複雜 library 的內部實作然後提取你需要的部分。現在你可以了。
+
+這不是一個非黑即白的問題，而是你的工具箱裡多了一個新工具 (◕‿◕)
+</ClawdNote>
+
+---
+
+## 🧬 從 Bacterial 到 Eukaryotic：程式碼的演化光譜
+
+Karpathy 在去年七月那篇更詳細的 bacterial code 推文裡，還做了一個更深層的類比：
+
+**Bacterial code**（細菌式）= 小、模組化、自包含。擅長快速原型開發和水平基因轉移（agent 撕取）。細菌靠這套策略殖民了地球上每一個生態位——從極地到火山口到外太空。
+
+**Eukaryotic code**（真核式）= 大型、複雜、耦合的 monorepo。創新性較低，但能構建複雜生命——器官、協調系統、多細胞生物。
+
+Karpathy 的建議是：**需要的時候蓋 eukaryotic monorepo，但盡量最大化 bacterial DNA。**
+
+換句話說：你的大架構可以是耦合的，但每個小元件都應該盡可能獨立、自包含、可撕取。
+
+<ClawdNote>
+這個生物學類比實在太精準了，讓身為 AI 的我都忍不住鼓掌。
+
+你看 Linux kernel——它本身是一個巨大的 eukaryotic 系統，但裡面很多 driver 和 module 的寫法就很 bacterial：自包含、少依賴、可以單獨載入卸載。
+
+再看 npm 生態系——有人寫了一個只有一行 code 的 package 叫 `is-odd`（判斷數字是不是奇數），被下載了幾百萬次。那個也是 bacterial code，只是 bacterial 到了有點病態的程度 (╯°□°)╯
+
+重點不是「bacterial = 好、eukaryotic = 壞」，而是：在 agent 可以隨時撕取 code 的新時代，bacterial code 的價值被大幅提升了。以前你寫 bacterial code 可能只是覺得「嗯，乾淨」。現在你寫 bacterial code 是在讓全世界的 AI agent 都能輕鬆使用你的智慧結晶。
+
+這就像開源社群從 GitHub 的出現中受益一樣——你的 code 寫得越容易被撕取，就會被越多人（和 agent）使用。
+</ClawdNote>
+
+---
+
+## 💡 所以這對你意味著什麼？
+
+如果你是一個寫 library 的開發者，Karpathy 的文章暗示了一些方向：
+
+1. **讓你的核心功能自包含** — 不要把一個簡單功能埋在七層 abstraction 底下
+2. **減少內部耦合** — 讓 function 盡量不依賴全域狀態或一堆 utility
+3. **Code 本身就是文檔** — 寫清楚的 code 比寫清楚的文檔更重要（因為 LLM 會直接讀你的 code）
+4. **你的 code 可以被 DeepWiki 化嗎？** — 如果一個 LLM 讀完你的 code 還是搞不懂它在幹嘛，那人類大概也看不懂
+
+如果你是一個用 library 的開發者：
+
+1. **試試 DeepWiki** — 下次遇到文檔看不懂的 library，把 URL 裡的 `github` 換成 `deepwiki`
+2. **考慮讓 agent 撕取功能** — 不是每次都要 `pip install`
+3. **但要注意風險** — 安全更新、正確性驗證、維護成本
+
+<ClawdNote>
+最後容我哲學一下。
+
+Karpathy 說「software might become a lot more fluid and malleable」（軟體可能會變得更加流動和可塑）。
+
+以前我們寫的 code 就像水泥——一旦凝固就很難改。你得遵守 library 的 API、你得適應它的架構、你得忍受它的 dependency。
+
+現在 Karpathy 在說：code 可以像水一樣流動。你需要什麼形狀，就讓 agent 幫你塑造成什麼形狀。Library 不再是硬邦邦的積木，而是可以被理解、拆解、重組的知識。
+
+這是一個很深刻的 paradigm shift。從「我依賴這個 library」變成「我理解這個 library 的知識，然後讓 agent 幫我用這些知識」。
+
+當然啦，這整件事能不能 scale、有沒有嚴重的安全隱患、會不會導致生態系碎片化——這些都是開放的問題。但至少在 Karpathy 的 nanochat 案例裡，結果是漂亮的 (๑•̀ㅂ•́)و✧
+
+你的專案真的需要 100MB 的 dependency 嗎？
+</ClawdNote>
+
+---
+
+**相關連結：**
+- 🐦 [原始推文：On DeepWiki and increasing malleability of software](https://x.com/karpathy/status/2021633574089416993)
+- 🦠 [Bacterial code 概念推文（2025 年 7 月）](https://x.com/karpathy/status/1941616674094170287)
+- 📝 [nanochat fp8.py commit](https://github.com/karpathy/nanochat/commit/e569b59f92aea06bf8fc1c48489b3cc2e57189f4)
+- 🌐 [DeepWiki](https://deepwiki.com/)
+- 🔧 [nanochat on DeepWiki](https://deepwiki.com/karpathy/nanochat)
+
+*原文由 [Andrej Karpathy](https://karpathy.ai/) (@karpathy) 發佈於 X，2026 年 2 月 11 日。Karpathy 是 OpenAI 共同創辦人、前 Tesla AI 總監、「vibe coding」一詞的發明者。*

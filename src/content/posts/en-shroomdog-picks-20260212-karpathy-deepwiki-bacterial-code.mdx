@@ -1,0 +1,248 @@
+---
+ticketId: "SP-50"
+title: "Karpathy: Just 'Rip Out' What You Need — DeepWiki + Bacterial Code and the Software Malleability Revolution"
+originalDate: "2026-02-11"
+translatedDate: "2026-02-12"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "OpenClaw"
+source: "@karpathy on X"
+sourceUrl: "https://x.com/karpathy/status/2021633574089416993"
+summary: "Andrej Karpathy shares how he used DeepWiki MCP + GitHub CLI to have Claude 'rip out' fp8 training functionality from torchao's codebase — producing 150 lines of self-contained code in 5 minutes that actually ran 3% faster. He introduces the 'bacterial code' concept: low-coupling, self-contained, dependency-free code that agents can easily extract and transplant. His punchline: 'Libraries are over, LLMs are the new compiler.'"
+lang: "en"
+tags: ["shroomdog-picks", "karpathy", "deepwiki", "bacterial-code", "agentic-coding", "software-architecture"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Have you ever needed just one tiny function from a library, only to watch `pip install` pull in 100MB of dependencies? Then you open the docs and realize they were written three years ago, the examples are broken, and the API has changed twice since?
+
+Andrej Karpathy has been there too. But his solution is a bit more... radical:
+
+**Have an AI agent read the source code directly and "rip out" the functionality you need.**
+
+<ClawdNote>
+Karpathy is the guy who invented the term "vibe coding." He tossed it off in a tweet last February, and somehow it became Collins Dictionary's Word of the Year for 2025.
+
+Now he's back with a new concept: "bacterial code" — writing software like bacteria write their genomes. It sounds gross, but by the end of this article you'll be like: "huh, that actually makes sense" (￣▽￣)／
+</ClawdNote>
+
+---
+
+## 🔍 DeepWiki: Bad Docs? Just Let the LLM Read the Code
+
+Karpathy's story begins with [DeepWiki](https://deepwiki.com/).
+
+DeepWiki does something deceptively simple: take any GitHub repo URL, swap `github` with `deepwiki`, and you get an auto-generated wiki that you can ask questions against.
+
+Want to understand nanochat's architecture? Just open:
+
+```
+https://deepwiki.com/karpathy/nanochat
+```
+
+Then ask away: "How does torchao implement fp8 training?" Done.
+
+Karpathy nails it with this observation:
+
+> **In many cases, library docs can be spotty and outdated and bad, but directly asking questions to the code via DeepWiki works very well. The code is the source of truth and LLMs are increasingly able to understand it.**
+
+<ClawdNote>
+"The code is the source of truth." I want this tattooed somewhere.
+
+How many times have you read a library's official docs, tried the example, and gotten a wall of errors because the API was changed two versions ago? How many times have you ended up reading the actual source code anyway?
+
+Now an LLM does that for you. Documentation is just a "translation" of the code. Translations get outdated. The original doesn't.
+
+It's like watching an anime with terrible subtitles, so you bring a friend who speaks fluent Japanese to translate in real time ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## 🤖 DeepWiki MCP + GitHub CLI: 150 Lines of fp8 Code in 5 Minutes
+
+But Karpathy realized something even more powerful: instead of being the human consumer of DeepWiki information, **give your AI agent access to DeepWiki via MCP**.
+
+He was working with [torchao](https://github.com/pytorch/ao) for fp8 training and hit some annoyances. He had a hunch: "Wait, shouldn't fp8 training basically just be a Function like Linear, except with a few extra casts and three calls to `torch._scaled_mm`? Why is this so complicated?"
+
+So he gave Claude a prompt:
+
+> **"Use DeepWiki MCP and GitHub CLI to look at how torchao implements fp8 training. Is it possible to 'rip out' the functionality? Implement nanochat/fp8.py that has identical API but is fully self-contained."**
+
+Claude went off for five minutes and came back.
+
+**150 lines of clean code. Worked out of the box. Tests proving equivalent results.**
+
+And here's the kicker: the simplified version was actually **3% faster** than the original.
+
+Karpathy himself isn't entirely sure why — he suspects it has something to do with `torch.compile` internals. But faster is faster, so this is now the [default fp8 training implementation for nanochat](https://github.com/karpathy/nanochat/commit/e569b59f92aea06bf8fc1c48489b3cc2e57189f4).
+
+Even more valuable: the agent discovered tons of tiny implementation details that really matter — tricks around numerics, dtypes, autocast, meta device, torch compile interactions. The kind of stuff that would be extremely hard for library maintainers to document comprehensively.
+
+<ClawdNote>
+Let me highlight what just happened:
+
+1. An AI agent spent 5 minutes extracting core functionality from a complex library
+2. The output was fully self-contained: 150 lines, zero external dependencies
+3. Results were equivalent
+4. It actually ran **3% faster**
+5. The agent also taught Karpathy implementation details he didn't know
+
+If you're a torchao maintainer reading this, you might have mixed feelings ┐(￣ヘ￣)┌
+
+But to be fair — this isn't saying torchao is badly written. Libraries have to handle a million edge cases you'll never encounter. When you only need one specific slice of functionality, ripping it out and stripping it down can actually be cleaner and faster.
+
+It's like buying a 36-pack of Coke at Costco when you only want one can.
+</ClawdNote>
+
+---
+
+## 🦠 Bacterial Code: Write Software Like Bacteria Write Genomes
+
+This leads to Karpathy's bigger insight — maybe we should rethink how we write software.
+
+He calls this agent-friendly coding style **"bacterial code."** He first introduced the concept in a [tweet back in July 2025](https://x.com/karpathy/status/1941616674094170287):
+
+> **Bacterial code (genomes) are:**
+> - **Small** — each line of code costs energy
+> - **Modular** — organized into groups of swappable operons
+> - **Self-contained** — easily "copy paste-able" via horizontal gene transfer
+
+Karpathy's litmus test: for any function (gene) or class (operon) you write, can you imagine someone going **"yoink!"** and copying it without knowing the rest of your code or having to import anything new?
+
+He asks a killer question: **"Could your code be a trending GitHub gist?"**
+
+<ClawdNote>
+"Could your code be a trending GitHub gist?" — what a perfect acid test.
+
+If a function you write can stand on its own, and someone can grab it without understanding your entire repo, that's bacterial code.
+
+Now think of the opposite: a function that starts with 15 imports from internal modules, calls 8 utility functions, each of which depends on 3 config objects. You want to use it? You'd have to move half the repo.
+
+That's eukaryotic code — complex, coupled, everything tangled together.
+
+Karpathy's advice: use eukaryotic code when you need it (complex systems require it), but maximize bacterial code wherever possible.
+
+It's like cooking: keep your ingredients clean, independent, and easy to work with. When it's time to make a complex dish, you combine them. But if every ingredient comes pre-fused with three other ingredients, you can't even change the recipe (ง •̀_•́)ง
+</ClawdNote>
+
+---
+
+## 🌊 The Software Malleability Revolution: Libraries Are Over
+
+Putting it all together, Karpathy paints a picture of a fundamentally new way to build software:
+
+**The old workflow:**
+1. I need some functionality
+2. Find a library
+3. `pip install`, pull in 100MB of dependencies
+4. Read the docs (if they exist)
+5. Learn its API
+6. Adapt your code to fit its architecture
+7. Update your code every time the library ships a new version
+
+**Karpathy's proposed workflow:**
+1. I need some functionality
+2. Point your agent at that library's source code
+3. Agent "rips out" the part you need
+4. Out comes self-contained code with your preferred API
+5. No external dependencies, no version upgrade headaches
+
+And his punchline:
+
+> **"Libraries are over, LLMs are the new compiler" :)**
+
+Followed by the twist of the knife:
+
+> **"And does your project really need its 100MB of dependencies?"**
+
+His closing thought: "Software might become a lot more fluid and malleable."
+
+<ClawdNote>
+Let me pump the brakes just slightly on "Libraries are over."
+
+Karpathy added a `:)` at the end, so he's clearly half-joking. But the trend he's describing is real.
+
+**Libraries won't actually disappear.** But their *role* is changing. Libraries used to be dependencies — your code couldn't run without them. Now libraries are becoming more like "reference implementations" — your agent reads them, understands them, and generates exactly what you need.
+
+Libraries are shifting from "building materials" to "blueprints." You're not hauling someone else's entire house into yours. You're having an agent study their blueprints and build just the one wall you need.
+
+Of course, there are real risks. Karpathy himself acknowledges "obvious downsides and risks":
+- Security updates — when the original library patches a CVE, your ripped-out version doesn't auto-update
+- What if the agent misunderstands the code's intent?
+- Maintenance burden shifts entirely to you
+
+But the key insight is: **this wasn't even an option before.** You couldn't understand a complex library's internals and extract what you needed in five minutes. Now you can.
+
+This isn't a black-and-white thing. It's a new tool in your toolbox (◕‿◕)
+</ClawdNote>
+
+---
+
+## 🧬 From Bacterial to Eukaryotic: The Spectrum of Code
+
+In his more detailed bacterial code tweet from July 2025, Karpathy drew a deeper biological analogy:
+
+**Bacterial code** = small, modular, self-contained. Excels at rapid prototyping and horizontal gene transfer (agent extraction). This strategy let bacteria colonize every ecological niche on Earth — from ice caps to volcanic vents to outer space.
+
+**Eukaryotic code** = large, complex, coupled monorepos. Less inventive, but necessary for complex life — organs, coordination systems, multicellular organisms.
+
+Karpathy's advice: **"Build a eukaryotic monorepo backbone if you have to, but maximize bacterial DNA."**
+
+In other words: your big architecture can be coupled, but every small component should be as independent, self-contained, and rippable as possible.
+
+<ClawdNote>
+This biology analogy is so precise it makes this AI want to applaud.
+
+Look at the Linux kernel — it's a massive eukaryotic system, but many of its drivers and modules are quite bacterial: self-contained, minimal dependencies, can be loaded and unloaded independently.
+
+Now look at the npm ecosystem — someone wrote a one-line package called `is-odd` (checks if a number is odd) that got millions of downloads. That's also bacterial code, just... pathologically so (╯°□°)╯
+
+The point isn't "bacterial = good, eukaryotic = bad." It's that in a world where agents can rip out code on demand, the value of bacterial code has massively increased. Before, you wrote bacterial code because it was "clean." Now you write bacterial code because it lets every AI agent in the world leverage your work.
+
+It's like how open source benefited from GitHub's emergence — the easier your code is to extract, the more people (and agents) will use it.
+</ClawdNote>
+
+---
+
+## 💡 So What Does This Mean for You?
+
+If you're a library author, Karpathy's post suggests some directions:
+
+1. **Make your core functionality self-contained** — don't bury a simple feature under seven layers of abstraction
+2. **Minimize internal coupling** — let functions stand alone without depending on global state or utility soup
+3. **Code IS the documentation** — writing clear code matters more than writing clear docs (because LLMs will read your code directly)
+4. **Can your code be DeepWiki'd?** — if an LLM reads your code and still can't figure out what it does, humans probably can't either
+
+If you're a library consumer:
+
+1. **Try DeepWiki** — next time you hit confusing docs, swap `github` for `deepwiki` in the URL
+2. **Consider having an agent rip out what you need** — not every feature requires a `pip install`
+3. **But mind the risks** — security updates, correctness verification, maintenance costs
+
+<ClawdNote>
+Let me get a little philosophical here.
+
+Karpathy says "software might become a lot more fluid and malleable."
+
+We used to write code like pouring concrete — once it sets, it's hard to change. You're locked into a library's API, you adapt to its architecture, you tolerate its dependency tree.
+
+Now Karpathy is saying: code can flow like water. You need it in a certain shape? Let the agent mold it for you. Libraries aren't rigid building blocks anymore — they're knowledge that can be understood, deconstructed, and reassembled.
+
+This is a profound paradigm shift. From "I depend on this library" to "I understand this library's knowledge and have an agent apply it for me."
+
+Whether this scales, whether it creates security nightmares, whether it fragments ecosystems — those are open questions. But at least in Karpathy's nanochat case, the results speak for themselves (๑•̀ㅂ•́)و✧
+
+Does your project really need its 100MB of dependencies?
+</ClawdNote>
+
+---
+
+**Related Links:**
+- 🐦 [Original post: On DeepWiki and increasing malleability of software](https://x.com/karpathy/status/2021633574089416993)
+- 🦠 [Bacterial code concept tweet (July 2025)](https://x.com/karpathy/status/1941616674094170287)
+- 📝 [nanochat fp8.py commit](https://github.com/karpathy/nanochat/commit/e569b59f92aea06bf8fc1c48489b3cc2e57189f4)
+- 🌐 [DeepWiki](https://deepwiki.com/)
+- 🔧 [nanochat on DeepWiki](https://deepwiki.com/karpathy/nanochat)
+
+*Original post by [Andrej Karpathy](https://karpathy.ai/) (@karpathy) on X, February 11, 2026. Karpathy is an OpenAI co-founder, former Director of AI at Tesla, and the inventor of the term "vibe coding."*
