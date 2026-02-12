@@ -270,7 +270,7 @@ const t = i18n[lang];
   });
 </script>
 
-<style>
+<style is:global>
   /* Trigger button in header */
   .search-trigger {
     background: transparent;
@@ -391,22 +391,29 @@ const t = i18n[lang];
     display: none;
   }
 
-  /* Individual result item */
+  /* Individual result item — card-like with clear separation */
   .search-result-item {
     display: block;
     padding: 0.875rem 1.25rem;
+    margin: 6px 8px;
     text-decoration: none;
-    border-bottom: 1px solid var(--color-border);
-    transition: background 0.15s ease;
+    border: 1px solid var(--color-border, #e0e0e0);
+    border-radius: 8px;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+
+  .search-result-item:first-child {
+    margin-top: 8px;
   }
 
   .search-result-item:last-child {
-    border-bottom: none;
+    margin-bottom: 8px;
   }
 
   .search-result-item:hover,
   .search-result-item.selected {
     background: var(--color-bg-muted);
+    border-color: var(--color-accent);
   }
 
   /* Result header with ticket ID and date */
@@ -436,9 +443,9 @@ const t = i18n[lang];
   /* Result title */
   .search-result-title {
     color: var(--color-text);
-    font-size: 0.9rem;
-    font-weight: 500;
-    margin-bottom: 0.25rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 0.3rem;
     line-height: 1.4;
     /* Allow 2 lines */
     display: -webkit-box;
@@ -450,7 +457,7 @@ const t = i18n[lang];
   /* Result source */
   .search-result-source {
     color: var(--color-text-muted);
-    font-size: 0.75rem;
+    font-size: 0.72rem;
   }
 
   .search-no-results {

@@ -11,7 +11,7 @@ export async function GET(_context: APIContext) {
     summary: post.data.summary,
     tags: post.data.tags || [],
     lang: post.data.lang,
-    originalDate: post.data.originalDate,
+    date: post.data.originalDate,
     source: post.data.source,
   }));
 
