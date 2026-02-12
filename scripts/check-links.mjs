@@ -66,7 +66,12 @@ function extractLinks(content, filePath) {
     links.push({ url, type, context, file: filePath });
   }
 
-  // 1. Frontmatter sourceUrl
+  // Strip fenced code blocks and inline code to avoid false positives
+  const stripped = content
+    .replace(/```[\s\S]*?```/g, '')   // fenced code blocks
+    .replace(/`[^`\n]+`/g, '');       // inline code
+
+  // 1. Frontmatter sourceUrl (use original content for frontmatter)
   const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
   if (fmMatch) {
     const sourceUrlMatch = fmMatch[1].match(/sourceUrl:\s*['"]([^'"]+)['"]/);
@@ -78,13 +83,13 @@ function extractLinks(content, filePath) {
   // 2. Markdown links: [text](url)
   const mdLinkRe = /\[([^\]]*)\]\(([^)]+)\)/g;
   let m;
-  while ((m = mdLinkRe.exec(content)) !== null) {
+  while ((m = mdLinkRe.exec(stripped)) !== null) {
     add(m[2], 'markdown', m[1] || 'link');
   }
 
   // 3. HTML href="url"
   const hrefRe = /href=["']([^"']+)["']/g;
-  while ((m = hrefRe.exec(content)) !== null) {
+  while ((m = hrefRe.exec(stripped)) !== null) {
     add(m[1], 'html', 'href');
   }
 
@@ -120,6 +125,9 @@ function checkInternalLink(url) {
       return false;
     }
   }
+
+  // Strip hash fragment before filesystem check
+  path = path.replace(/#.*$/, '');
 
   // Remove trailing slash, add index.html logic
   path = path.replace(/\/$/, '') || '/';
