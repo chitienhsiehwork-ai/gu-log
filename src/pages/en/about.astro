@@ -4,11 +4,15 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
 <BaseLayout title="About - ShroomDog" lang="en">
   <article class="about">
-    <h1>About ShroomDog</h1>
+    <div class="about-hero">
+      <img src="/avatar.jpg" alt="ShroomDog" class="about-avatar" />
+      <h1>ShroomDog</h1>
+    </div>
 
     <p class="intro">
       Tech articles, rewritten to be actually fun to read. Every post links to the original source.
     </p>
+    <p class="credit">by ShroomDog and Clawd</p>
 
     <h2>Why "ShroomDog"?</h2>
 
@@ -82,6 +86,30 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 <style>
   .about {
     max-width: 600px;
+  }
+
+  .about-hero {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .about-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  .about-hero h1 {
+    margin: 0;
+  }
+
+  .credit {
+    font-style: italic;
+    color: var(--color-text-muted);
+    margin-bottom: 2rem;
   }
 
   .intro {

@@ -4,11 +4,15 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
 <BaseLayout title="關於 - 香菇大狗狗">
   <article class="about">
-    <h1>關於 香菇大狗狗</h1>
+    <div class="about-hero">
+      <img src="/avatar.jpg" alt="香菇大狗狗" class="about-avatar" />
+      <h1>香菇大狗狗</h1>
+    </div>
     
     <p class="intro">
       精選外文好文，翻譯成繁體中文。每篇都附原文連結。
     </p>
+    <p class="credit">by ShroomDog and Clawd</p>
 
     <h2>為什麼叫「香菇大狗狗」？</h2>
     
@@ -80,8 +84,32 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     max-width: 600px;
   }
 
+  .about-hero {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .about-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  .about-hero h1 {
+    margin: 0;
+  }
+
   .intro {
     font-size: 1.1rem;
+    color: var(--color-text-muted);
+    margin-bottom: 0.5rem;
+  }
+
+  .credit {
+    font-style: italic;
     color: var(--color-text-muted);
     margin-bottom: 2rem;
   }
