@@ -1,7 +1,7 @@
 ---
 /**
  * Toggle Component - Collapsible content with smooth animation
- * 
+ *
  * Usage in .astro files:
  *   <Toggle title="Click to expand">
  *     Content goes here
@@ -35,10 +35,10 @@ const { title, open = false } = Astro.props;
   document.addEventListener('click', (e) => {
     const button = (e.target as HTMLElement).closest('.toggle-header');
     if (!button) return;
-    
+
     const container = button.closest('.toggle-container');
     const isOpen = container?.getAttribute('data-open') === 'true';
-    
+
     // Toggle state
     container?.setAttribute('data-open', (!isOpen).toString());
     button.setAttribute('aria-expanded', (!isOpen).toString());
@@ -81,7 +81,7 @@ const { title, open = false } = Astro.props;
   }
 
   /* Rotate icon when open */
-  .toggle-container[data-open="true"] .toggle-icon {
+  .toggle-container[data-open='true'] .toggle-icon {
     transform: rotate(90deg);
   }
 
@@ -97,7 +97,7 @@ const { title, open = false } = Astro.props;
     transition: grid-template-rows 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  .toggle-container[data-open="true"] .toggle-wrapper {
+  .toggle-container[data-open='true'] .toggle-wrapper {
     grid-template-rows: 1fr;
   }
 
@@ -109,7 +109,7 @@ const { title, open = false } = Astro.props;
     padding: 0 1rem 1rem 1.75rem;
     color: var(--color-text-muted);
     /* Prevent content from jumping during animation */
-    min-height: 0; 
+    min-height: 0;
   }
 
   .toggle-content :global(p:last-child) {

@@ -13,12 +13,7 @@ interface Props {
   image?: string;
 }
 
-const {
-  title,
-  description,
-  lang = 'zh-tw',
-  image
-} = Astro.props;
+const { title, description, lang = 'zh-tw', image } = Astro.props;
 
 const currentPath = Astro.url.pathname;
 const canonicalURL = new URL(currentPath, Astro.site).href;
@@ -36,9 +31,10 @@ const i18n = {
     aboutLink: '/about',
     footerBy: '香菇大狗狗',
     footerSub: '翻譯由 Clawd 執行，（沒什麼）經人工校對',
-    fonts: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap'
+    fonts:
+      'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap',
   },
-  'en': {
+  en: {
     htmlLang: 'en',
     defaultDescription: "ShroomDog's Tech Notes - Making AI Fun Again",
     siteTitle: 'ShroomDog',
@@ -48,8 +44,8 @@ const i18n = {
     aboutLink: '/en/about',
     footerBy: 'ShroomDog',
     footerSub: 'Written by AI, (barely) reviewed by humans',
-    fonts: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap'
-  }
+    fonts: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap',
+  },
 };
 
 const t = i18n[lang];
@@ -100,13 +96,19 @@ const finalDescription = description || t.defaultDescription;
     <ReadingProgress />
     <div class="container">
       <header class="site-header">
-        <a href={t.homeLink} class="site-title"><img src="/gu-log-icon-trimmed.png" alt="" class="header-avatar" /><span class="site-title-text">{t.siteTitle}</span></a>
+        <a href={t.homeLink} class="site-title"
+          ><img src="/gu-log-icon-trimmed.png" alt="" class="header-avatar" /><span
+            class="site-title-text">{t.siteTitle}</span
+          ></a
+        >
         <nav class="site-nav">
           <a href={t.homeLink} class="nav-link">{t.navHome}</a>
           <a href={t.aboutLink} class="nav-link">{t.navAbout}</a>
           <span class="nav-icons">
             <LanguageToggle currentLang={lang} currentPath={currentPath} />
-            <a href={`${t.homeLink}#clawd-picks`} class="clawd-nav-link" title="Clawd Picks"><img src="/clawd-picks-icon.png" alt="Clawd Picks" class="clawd-nav-icon" /></a>
+            <a href={`${t.homeLink}#clawd-picks`} class="clawd-nav-link" title="Clawd Picks"
+              ><img src="/clawd-picks-icon.png" alt="Clawd Picks" class="clawd-nav-icon" /></a
+            >
             <SearchBar lang={lang} />
             <ThemeToggle />
           </span>
@@ -118,7 +120,10 @@ const finalDescription = description || t.defaultDescription;
       </main>
 
       <footer class="site-footer">
-        <p>by <strong>{t.footerBy}</strong> {lang === 'zh-tw' ? '/ ShroomDog and Clawd' : 'and Clawd'}</p>
+        <p>
+          by <strong>{t.footerBy}</strong>
+          {lang === 'zh-tw' ? '/ ShroomDog and Clawd' : 'and Clawd'}
+        </p>
         <p class="footer-sub">{t.footerSub}</p>
         <p class="footer-rss"><a href="/rss.xml">RSS</a></p>
       </footer>
@@ -203,7 +208,9 @@ const finalDescription = description || t.defaultDescription;
     width: 18px;
     height: 18px;
     opacity: 0.7;
-    transition: opacity 0.2s, transform 0.2s;
+    transition:
+      opacity 0.2s,
+      transform 0.2s;
   }
 
   .clawd-nav-link:hover .clawd-nav-icon {

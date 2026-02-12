@@ -27,14 +27,14 @@ const labels = {
     previous: '← 上一篇',
     next: '下一篇 →',
     noPrevious: '這是第一篇文章',
-    noNext: '這是最新文章'
+    noNext: '這是最新文章',
   },
-  'en': {
+  en: {
     previous: '← Previous',
     next: 'Next →',
     noPrevious: 'This is the first post',
-    noNext: 'This is the latest post'
-  }
+    noNext: 'This is the latest post',
+  },
 };
 
 const t = labels[lang];
@@ -45,7 +45,7 @@ const sortedPosts = allPosts.sort((a, b) => {
 });
 
 // Find current post index
-const currentIndex = sortedPosts.findIndex(post => post.slug === currentSlug);
+const currentIndex = sortedPosts.findIndex((post) => post.slug === currentSlug);
 
 // Previous post is newer (earlier in array)
 const prevPost = currentIndex > 0 ? sortedPosts[currentIndex - 1] : null;
@@ -63,7 +63,7 @@ function formatDate(dateStr: string, lang: string): string {
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
     });
   }
 }
@@ -75,39 +75,47 @@ const baseUrl = lang === 'en' ? '/en/posts/' : '/posts/';
 <nav class="prev-next-nav" aria-label={lang === 'zh-tw' ? '文章導航' : 'Post navigation'}>
   <div class="prev-next-container">
     <div class="prev-link-wrapper">
-      {prevPost ? (
-        <a href={`${baseUrl}${prevPost.slug}`} class="nav-link prev-link">
-          <span class="nav-direction">{t.previous}</span>
-          <span class="nav-post-title">{prevPost.data.title}</span>
-          <span class="nav-post-meta">
-            {prevPost.data.ticketId && <span class="nav-ticket-id">{prevPost.data.ticketId}</span>}
-            <span class="nav-post-date">{formatDate(prevPost.data.originalDate, lang)}</span>
+      {
+        prevPost ? (
+          <a href={`${baseUrl}${prevPost.slug}`} class="nav-link prev-link">
+            <span class="nav-direction">{t.previous}</span>
+            <span class="nav-post-title">{prevPost.data.title}</span>
+            <span class="nav-post-meta">
+              {prevPost.data.ticketId && (
+                <span class="nav-ticket-id">{prevPost.data.ticketId}</span>
+              )}
+              <span class="nav-post-date">{formatDate(prevPost.data.originalDate, lang)}</span>
+            </span>
+          </a>
+        ) : (
+          <span class="nav-link disabled">
+            <span class="nav-direction">{t.previous}</span>
+            <span class="nav-post-title nav-placeholder">{t.noPrevious}</span>
           </span>
-        </a>
-      ) : (
-        <span class="nav-link disabled">
-          <span class="nav-direction">{t.previous}</span>
-          <span class="nav-post-title nav-placeholder">{t.noPrevious}</span>
-        </span>
-      )}
+        )
+      }
     </div>
 
     <div class="next-link-wrapper">
-      {nextPost ? (
-        <a href={`${baseUrl}${nextPost.slug}`} class="nav-link next-link">
-          <span class="nav-direction">{t.next}</span>
-          <span class="nav-post-title">{nextPost.data.title}</span>
-          <span class="nav-post-meta">
-            {nextPost.data.ticketId && <span class="nav-ticket-id">{nextPost.data.ticketId}</span>}
-            <span class="nav-post-date">{formatDate(nextPost.data.originalDate, lang)}</span>
+      {
+        nextPost ? (
+          <a href={`${baseUrl}${nextPost.slug}`} class="nav-link next-link">
+            <span class="nav-direction">{t.next}</span>
+            <span class="nav-post-title">{nextPost.data.title}</span>
+            <span class="nav-post-meta">
+              {nextPost.data.ticketId && (
+                <span class="nav-ticket-id">{nextPost.data.ticketId}</span>
+              )}
+              <span class="nav-post-date">{formatDate(nextPost.data.originalDate, lang)}</span>
+            </span>
+          </a>
+        ) : (
+          <span class="nav-link disabled">
+            <span class="nav-direction">{t.next}</span>
+            <span class="nav-post-title nav-placeholder">{t.noNext}</span>
           </span>
-        </a>
-      ) : (
-        <span class="nav-link disabled">
-          <span class="nav-direction">{t.next}</span>
-          <span class="nav-post-title nav-placeholder">{t.noNext}</span>
-        </span>
-      )}
+        )
+      }
     </div>
   </div>
 </nav>

@@ -11,21 +11,21 @@ const { prefix } = Astro.props;
 
 // Fun prefixes that give Clawd personality - 鄉民/李宏毅 style
 const funPrefixes = [
-  "Clawd 碎碎念：",
-  "Clawd 忍不住說：",
-  "Clawd 想補充：",
-  "Clawd OS：",
-  "Clawd 內心戲：",
-  "Clawd 歪樓一下：",
-  "Clawd murmur：",
-  "Clawd 插嘴：",
-  "Clawd 溫馨提示：",
-  "Clawd 真心話：",
-  "Clawd 吐槽時間：",
-  "Clawd 認真說：",
-  "Clawd 補個刀：",
-  "Clawd 偷偷說：",
-  "Clawd 畫重點：",
+  'Clawd 碎碎念：',
+  'Clawd 忍不住說：',
+  'Clawd 想補充：',
+  'Clawd OS：',
+  'Clawd 內心戲：',
+  'Clawd 歪樓一下：',
+  'Clawd murmur：',
+  'Clawd 插嘴：',
+  'Clawd 溫馨提示：',
+  'Clawd 真心話：',
+  'Clawd 吐槽時間：',
+  'Clawd 認真說：',
+  'Clawd 補個刀：',
+  'Clawd 偷偷說：',
+  'Clawd 畫重點：',
 ];
 
 // Get the slot content for hashing
@@ -36,7 +36,7 @@ function hashString(str: string): number {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash; // Convert to 32bit integer
   }
   return Math.abs(hash);

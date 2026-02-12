@@ -25,8 +25,15 @@ const { chart, caption } = Astro.props;
   </div>
   {caption && <p class="mermaid-caption">{caption}</p>}
   <button class="mermaid-expand-btn" aria-label="展開圖表" title="點擊放大">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+    >
+      <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"></path>
     </svg>
   </button>
 </div>
@@ -133,7 +140,7 @@ const { chart, caption } = Astro.props;
     top: 16px;
     right: 16px;
     z-index: 10000;
-    background: rgba(0,0,0,0.1);
+    background: rgba(0, 0, 0, 0.1);
     border: none;
     color: #657b83;
     font-size: 1.5rem;
@@ -147,12 +154,12 @@ const { chart, caption } = Astro.props;
   }
 
   .mermaid-close-btn:hover {
-    background: rgba(0,0,0,0.2);
+    background: rgba(0, 0, 0, 0.2);
   }
 
   /* Loading state */
   .mermaid-render:empty::after {
-    content: "載入圖表中...";
+    content: '載入圖表中...';
     color: var(--text-muted, #93a1a1);
     font-size: 0.85rem;
   }
@@ -161,7 +168,8 @@ const { chart, caption } = Astro.props;
 <script>
   // Initialize all Mermaid diagrams on page load
   async function initMermaidDiagrams() {
-    const { default: mermaid } = await import('https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs');
+    const { default: mermaid } =
+      await import('https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs');
 
     mermaid.initialize({
       startOnLoad: false,
@@ -195,12 +203,14 @@ const { chart, caption } = Astro.props;
     // Force browser to request the CJK font subsets by rendering chars in a hidden element
     if (cjkChars) {
       const probe = document.createElement('span');
-      probe.style.cssText = 'font-family:"LXGW WenKai TC",cursive;position:absolute;left:-9999px;visibility:hidden;font-size:16px';
+      probe.style.cssText =
+        'font-family:"LXGW WenKai TC",cursive;position:absolute;left:-9999px;visibility:hidden;font-size:16px';
       probe.textContent = cjkChars;
       document.body.appendChild(probe);
       // Also probe Virgil for Latin
       const probeV = document.createElement('span');
-      probeV.style.cssText = 'font-family:"Virgil",cursive;position:absolute;left:-9999px;visibility:hidden;font-size:16px';
+      probeV.style.cssText =
+        'font-family:"Virgil",cursive;position:absolute;left:-9999px;visibility:hidden;font-size:16px';
       probeV.textContent = 'ABCabc123';
       document.body.appendChild(probeV);
       // Wait for all fonts to finish loading

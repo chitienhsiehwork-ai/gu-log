@@ -12,9 +12,11 @@ const getTicketNumber = (ticketId: string | undefined) => {
 };
 
 // Get all SP posts, sorted by ticketId number descending
-const spPosts = (await getCollection('posts', ({ data }) => {
-  return data.lang === 'zh-tw' && data.ticketId?.startsWith('SP-');
-})).sort((a, b) => getTicketNumber(b.data.ticketId) - getTicketNumber(a.data.ticketId));
+const spPosts = (
+  await getCollection('posts', ({ data }) => {
+    return data.lang === 'zh-tw' && data.ticketId?.startsWith('SP-');
+  })
+).sort((a, b) => getTicketNumber(b.data.ticketId) - getTicketNumber(a.data.ticketId));
 ---
 
 <BaseLayout title="ShroomDog Picks 全部文章">
@@ -25,18 +27,22 @@ const spPosts = (await getCollection('posts', ({ data }) => {
   <a href="/" class="back-link">← 返回首頁</a>
 
   <section class="archive-list">
-    {spPosts.map((post) => (
-      <article class="post-preview">
-        <h3><a href={`/posts/${post.slug}`}>{post.data.title}</a></h3>
-        <p class="post-meta">
-          {post.data.ticketId && <TicketBadge ticketId={post.data.ticketId} />}
-          {post.data.translatedDate || post.data.originalDate} · 翻譯自 {post.data.source}
-        </p>
-        <Toggle title="摘要預覽">
-          <p>{post.data.summary}</p>
-        </Toggle>
-      </article>
-    ))}
+    {
+      spPosts.map((post) => (
+        <article class="post-preview">
+          <h3>
+            <a href={`/posts/${post.slug}`}>{post.data.title}</a>
+          </h3>
+          <p class="post-meta">
+            {post.data.ticketId && <TicketBadge ticketId={post.data.ticketId} />}
+            {post.data.translatedDate || post.data.originalDate} · 翻譯自 {post.data.source}
+          </p>
+          <Toggle title="摘要預覽">
+            <p>{post.data.summary}</p>
+          </Toggle>
+        </article>
+      ))
+    }
   </section>
 </BaseLayout>
 

@@ -10,9 +10,10 @@
   --color-text-muted: #565f89;
   --color-accent: #7aa2f7;
   --color-border: #3b4261;
-  
+
   /* Common */
-  --font-sans: 'Inter', 'Noto Sans TC', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-sans:
+    'Inter', 'Noto Sans TC', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
   --max-width: 680px;
   --spacing-xs: 0.5rem;
@@ -23,7 +24,7 @@
 }
 
 /* Solarized Light theme */
-[data-theme="light"] {
+[data-theme='light'] {
   --color-bg: #fdf6e3;
   --color-surface: #eee8d5;
   --color-surface-hover: #e5dfc9;
@@ -52,7 +53,9 @@ body {
   line-height: 1.7;
   padding: var(--spacing-sm);
   min-height: 100vh;
-  transition: background 0.3s ease, color 0.3s ease;
+  transition:
+    background 0.3s ease,
+    color 0.3s ease;
 
   /* CJK typography improvements */
   text-spacing: trim-start allow-end trim-adjacent ideograph-alpha ideograph-numeric;
@@ -61,15 +64,28 @@ body {
 }
 
 /* Typography */
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   line-height: 1.3;
   margin-bottom: var(--spacing-sm);
   color: var(--color-text);
 }
 
-h1 { font-size: 1.75rem; }
-h2 { font-size: 1.4rem; margin-top: var(--spacing-lg); }
-h3 { font-size: 1.2rem; margin-top: var(--spacing-md); }
+h1 {
+  font-size: 1.75rem;
+}
+h2 {
+  font-size: 1.4rem;
+  margin-top: var(--spacing-lg);
+}
+h3 {
+  font-size: 1.2rem;
+  margin-top: var(--spacing-md);
+}
 
 p {
   margin-bottom: var(--spacing-sm);
@@ -78,32 +94,34 @@ p {
 }
 
 /* CJK + Latin mixed typography improvements */
-p, li, blockquote {
+p,
+li,
+blockquote {
   /* Better spacing for CJK characters */
   letter-spacing: 0.02em;
   word-spacing: 0.05em;
 }
 
 /* Hanging punctuation for Chinese quotes */
-[lang="zh-TW"] p,
-[lang="zh-TW"] li {
+[lang='zh-TW'] p,
+[lang='zh-TW'] li {
   hanging-punctuation: first last;
 }
 
 /* Adjust spacing between CJK and Latin */
-[lang="zh-TW"] {
+[lang='zh-TW'] {
   text-autospace: ideograph-alpha ideograph-numeric;
 }
 
 /* Better line height for CJK text */
-[lang="zh-TW"] p,
-[lang="zh-TW"] li {
+[lang='zh-TW'] p,
+[lang='zh-TW'] li {
   line-height: 1.8;
 }
 
 /* Tighter letter spacing for English to distinguish from CJK */
-[lang="en"] p,
-[lang="en"] li {
+[lang='en'] p,
+[lang='en'] li {
   letter-spacing: normal;
   line-height: 1.7;
 }
@@ -147,7 +165,7 @@ pre code {
 }
 
 /* Shiki theme switching - hide light theme in dark mode and vice versa */
-:root pre[class*="shiki"] {
+:root pre[class*='shiki'] {
   background: var(--color-surface) !important;
 }
 
@@ -173,16 +191,17 @@ pre code {
 }
 
 /* Hide dark theme in light mode */
-[data-theme="light"] .shiki.light {
+[data-theme='light'] .shiki.light {
   display: block;
 }
 
-[data-theme="light"] .shiki.dark {
+[data-theme='light'] .shiki.dark {
   display: none;
 }
 
 /* Lists */
-ul, ol {
+ul,
+ol {
   margin-left: var(--spacing-md);
   margin-bottom: var(--spacing-sm);
 }
@@ -217,7 +236,7 @@ blockquote.claude-note strong {
 
 blockquote.claude-note br {
   display: block;
-  content: "";
+  content: '';
   margin-top: 0.5rem;
 }
 
@@ -246,7 +265,11 @@ blockquote.claude-note br {
   body {
     padding: var(--spacing-md);
   }
-  
-  h1 { font-size: 2rem; }
-  h2 { font-size: 1.5rem; }
+
+  h1 {
+    font-size: 2rem;
+  }
+  h2 {
+    font-size: 1.5rem;
+  }
 }

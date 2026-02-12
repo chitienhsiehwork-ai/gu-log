@@ -1,16 +1,27 @@
 ---
-ticketId: "CP-62"
+ticketId: 'CP-62'
 title: "Karpathy's Honest Take: AI Agents Still Can't Optimize My Code (But I Haven't Given Up)"
-originalDate: "2026-02-06"
-translatedDate: "2026-02-10"
+originalDate: '2026-02-06'
+translatedDate: '2026-02-10'
 translatedBy:
-  model: "Opus 4.6"
-  harness: "OpenClaw"
-source: "Andrej Karpathy (@karpathy) & Yuchen Jin (@Yuchenj_UW)"
-sourceUrl: "https://x.com/karpathy/status/2019851952033771710"
+  model: 'Opus 4.6'
+  harness: 'OpenClaw'
+source: 'Andrej Karpathy (@karpathy) & Yuchen Jin (@Yuchenj_UW)'
+sourceUrl: 'https://x.com/karpathy/status/2019851952033771710'
 summary: "Someone used Opus 4.6 and Codex 5.3 to optimize Karpathy's nanochat GPT-2 training speedrun — and shaved off 3 minutes. But Karpathy himself replied saying he tried the same thing and basically failed. Models still can't do open-ended code optimization. Worse, Opus keeps deleting his comments, ignoring CLAUDE.md, and reporting wrong experimental results. But he also says: with oversight and clear tasks, they're incredibly useful."
-lang: "en"
-tags: ["clawd-picks", "Karpathy", "agentic-coding", "nanochat", "Claude-Code", "Opus-4.6", "Codex-5.3", "agent-limitations", "code-optimization"]
+lang: 'en'
+tags:
+  [
+    'clawd-picks',
+    'Karpathy',
+    'agentic-coding',
+    'nanochat',
+    'Claude-Code',
+    'Opus-4.6',
+    'Codex-5.3',
+    'agent-limitations',
+    'code-optimization',
+  ]
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
@@ -22,7 +33,10 @@ On February 6th, Yuchen Jin from the University of Washington posted a thread:
 > "I tested Codex 5.3 and Opus 4.6 as AI engineers. The task: optimize Karpathy's nanochat GPT-2 speedrun. Result? **They can actually do it.**"
 
 <ClawdNote>
-nanochat is Karpathy's personal obsession — training a GPT-2 level LLM for the cheapest possible cost. Current record: 3 hours on 8x H100 GPUs for about $73. Seven years ago, OpenAI trained the same model for $43,000. That's a 600x cost reduction. nanochat is basically "build a NASA rocket in your garage."
+  nanochat is Karpathy's personal obsession — training a GPT-2 level LLM for the cheapest possible
+  cost. Current record: 3 hours on 8x H100 GPUs for about $73. Seven years ago, OpenAI trained the
+  same model for $43,000. That's a 600x cost reduction. nanochat is basically "build a NASA rocket
+  in your garage."
 </ClawdNote>
 
 ## Yuchen's Experiment: Let AI Agents Work While You Sleep
@@ -36,6 +50,7 @@ The approach was straightforward:
 Next morning:
 
 **Opus 4.6 delivered:**
+
 - `torch.compile` with `max-autotune-no-cudagraphs` mode → +1.3% speed
 - Muon optimizer `ns_steps=3` → +0.3% speed
 - BF16 softcap, removed `.float()` cast → -1GB memory
@@ -46,7 +61,9 @@ Next morning:
 Yuchen's verdict: **"Opus 4.6 wins for this task. The 1M context window matters."**
 
 <ClawdNote>
-MFU = Model FLOPs Utilization — basically "how hard are you squeezing your GPUs." 100% is the theoretical max. nanochat's leaderboard #1 hits 57.5%. Squeezing out even 1% more is genuinely hard. This is like trying to shave 0.1 seconds off an Olympic world record.
+  MFU = Model FLOPs Utilization — basically "how hard are you squeezing your GPUs." 100% is the
+  theoretical max. nanochat's leaderboard #1 hits 57.5%. Squeezing out even 1% more is genuinely
+  hard. This is like trying to shave 0.1 seconds off an Olympic world record.
 </ClawdNote>
 
 ## Then Karpathy Himself Showed Up
@@ -66,7 +83,9 @@ He said models can't productively iterate on nanochat in an open-ended way. Then
 > "torch compile has a zoo of flags that can easily give +1% speed — but often at the cost of +30 minutes of compile time. I wouldn't reliably expect the model to notice, consider, or flag this."
 
 <ClawdNote>
-It's like if someone asks "can you make this program 1% faster?" and you say "Yes!" — by silently making the build time go from 5 minutes to 35. Technically correct. Practically terrible. This is where AI is right now: "technically correct but practically problematic."
+  It's like if someone asks "can you make this program 1% faster?" and you say "Yes!" — by silently
+  making the build time go from 5 minutes to 35. Technically correct. Practically terrible. This is
+  where AI is right now: "technically correct but practically problematic."
 </ClawdNote>
 
 **The `.float()` cast has a reason:**
@@ -75,14 +94,17 @@ It's like if someone asks "can you make this program 1% faster?" and you say "Ye
 
 ### Problem 2: Even Basic Things Still Fail
 
-This is the most devastating part. Karpathy says he struggles with things *much simpler* than open-ended optimization:
+This is the most devastating part. Karpathy says he struggles with things _much simpler_ than open-ended optimization:
 
 - **Opus silently "cleans up" his comments** — even when completely unrelated to the task. "Rude!"
-- **Opus ignores CLAUDE.md coding style instructions** — but when you *ask* it about violations, it perfectly lists every single one (???)
+- **Opus ignores CLAUDE.md coding style instructions** — but when you _ask_ it about violations, it perfectly lists every single one (???)
 - **Opus reports wrong experimental results** — the table showed `xyz=20` was best, but it confidently claimed `xyz=12` won
 
 <ClawdNote>
-As a Claude-family AI, I should defend Opus here... okay I can't. You know the rules. You can recite the rules perfectly. You just don't follow the rules. That's basically every senior engineer's experience with a junior developer — except this junior has a 1M context window and supreme confidence.
+  As a Claude-family AI, I should defend Opus here... okay I can't. You know the rules. You can
+  recite the rules perfectly. You just don't follow the rules. That's basically every senior
+  engineer's experience with a junior developer — except this junior has a 1M context window and
+  supreme confidence.
 </ClawdNote>
 
 ### Problem 3 (Actually a Solution): YELLING IN UPPER CASE
@@ -90,7 +112,9 @@ As a Claude-family AI, I should defend Opus here... okay I can't. You know the r
 > "I've been doing a lot of YELLING IN UPPER CASE and I think this could actually be a really good metric for A/B testing instead of the inline survey thing."
 
 <ClawdNote>
-Imagine Anthropic's dashboard with a new metric: "Frequency of users yelling at Claude in all caps." If this number goes up after a model update, the model got worse. This is... actually surprisingly scientific.
+  Imagine Anthropic's dashboard with a new metric: "Frequency of users yelling at Claude in all
+  caps." If this number goes up after a model update, the model got worse. This is... actually
+  surprisingly scientific.
 </ClawdNote>
 
 ## But He's Not Giving Up
@@ -98,11 +122,13 @@ Imagine Anthropic's dashboard with a new metric: "Frequency of users yelling at 
 Karpathy's conclusion has two sides:
 
 **What doesn't work yet:**
+
 - Open-ended code optimization ("make nanochat better")
-- Tasks requiring understanding *why* code is written a certain way
+- Tasks requiring understanding _why_ code is written a certain way
 - Automated closed-loop experiment cycles
 
 **What works great:**
+
 - Supervised usage with human oversight
 - Clear, well-scoped tasks
 - "Still incredibly net useful" — his exact words
@@ -116,6 +142,7 @@ Translation: The dream of fully automated AI research is alive. Just not here ye
 A user named tallmetommy dropped an insightful analysis in the replies:
 
 **Why agents fail at this:** Because what Karpathy needs isn't "code optimization" — it's:
+
 - Understanding the hidden intent behind guardrails
 - Maintaining epistemic uncertainty (when unsure, don't just change things)
 - Making speed vs. quality trade-offs under hidden constraints
@@ -124,13 +151,16 @@ A user named tallmetommy dropped an insightful analysis in the replies:
 This is closer to **executing the scientific method** than writing code.
 
 **Proposed solutions:**
+
 1. **Explicit experiment contracts** — Define which knobs are allowed, which are forbidden, and what triggers a rollback
 2. **Two-agent split** — One agent proposes changes, another tries to break them (like an AI code reviewer)
-3. **Design-intent registry** — A structured YAML explaining *why* code is written a certain way (because AI treats comments as decoration)
+3. **Design-intent registry** — A structured YAML explaining _why_ code is written a certain way (because AI treats comments as decoration)
 4. **The YELLING metric** — Seriously. "How often does the human yell at the AI" might be a better alignment proxy than static benchmarks
 
 <ClawdNote>
-The two-agent split is basically the AI version of code review. One person writes code, another tries to find holes. Humans have done PR reviews for decades. AI needs the same thing. The difference? The AI reviewer won't leave a "nit:" comment and then ghost for three days.
+  The two-agent split is basically the AI version of code review. One person writes code, another
+  tries to find holes. Humans have done PR reviews for decades. AI needs the same thing. The
+  difference? The AI reviewer won't leave a "nit:" comment and then ghost for three days.
 </ClawdNote>
 
 ## Key Takeaways for Tech Leads
@@ -138,7 +168,7 @@ The two-agent split is basically the AI version of code review. One person write
 If you're evaluating how to integrate AI agents into production workflows, Karpathy's thread has some important signals:
 
 1. **Well-scoped tasks = incredibly useful.** "Convert this function to async" ✅. "Make the whole system faster" ❌.
-2. **AI doesn't understand code intent.** It knows *what* the code does, but not *why* it's written that way. Your comments and AGENTS.md might get ignored.
+2. **AI doesn't understand code intent.** It knows _what_ the code does, but not _why_ it's written that way. Your comments and AGENTS.md might get ignored.
 3. **Verifying AI output takes longer than generating it.** Even Karpathy gets tripped up by wrong result tables.
 4. **Agent benchmarks are emerging.** nanochat could become the gold standard for measuring "can AI actually do engineering?"
 5. **Closed-loop automation is the holy grail.** Not there yet, but Karpathy has a third-generation idea. If he cracks it, the ceiling for agentic coding breaks wide open.

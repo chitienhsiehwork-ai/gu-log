@@ -12,9 +12,11 @@ const getTicketNumber = (ticketId: string | undefined) => {
 };
 
 // Get all SD posts, sorted by ticketId number descending
-const sdPosts = (await getCollection('posts', ({ data }) => {
-  return data.lang === 'en' && data.ticketId?.startsWith('SD-');
-})).sort((a, b) => getTicketNumber(b.data.ticketId) - getTicketNumber(a.data.ticketId));
+const sdPosts = (
+  await getCollection('posts', ({ data }) => {
+    return data.lang === 'en' && data.ticketId?.startsWith('SD-');
+  })
+).sort((a, b) => getTicketNumber(b.data.ticketId) - getTicketNumber(a.data.ticketId));
 ---
 
 <BaseLayout title="ShroomDog Original - All Posts" lang="en">
@@ -25,23 +27,25 @@ const sdPosts = (await getCollection('posts', ({ data }) => {
   <a href="/en" class="back-link">← Back to home</a>
 
   <section class="archive-list">
-    {sdPosts.map((post) => (
-      <article class="post-preview">
-        <h3><a href={`/en/posts/${post.slug}`}>{post.data.title}</a></h3>
-        <p class="post-meta">
-          {post.data.ticketId && <TicketBadge ticketId={post.data.ticketId} />}
-          {post.data.translatedDate || post.data.originalDate} · {post.data.source}
-        </p>
-        <Toggle title="Preview">
-          <p>{post.data.summary}</p>
-        </Toggle>
-      </article>
-    ))}
+    {
+      sdPosts.map((post) => (
+        <article class="post-preview">
+          <h3>
+            <a href={`/en/posts/${post.slug}`}>{post.data.title}</a>
+          </h3>
+          <p class="post-meta">
+            {post.data.ticketId && <TicketBadge ticketId={post.data.ticketId} />}
+            {post.data.translatedDate || post.data.originalDate} · {post.data.source}
+          </p>
+          <Toggle title="Preview">
+            <p>{post.data.summary}</p>
+          </Toggle>
+        </article>
+      ))
+    }
   </section>
 
-  {sdPosts.length === 0 && (
-    <p class="empty-message">No original content yet. Stay tuned!</p>
-  )}
+  {sdPosts.length === 0 && <p class="empty-message">No original content yet. Stay tuned!</p>}
 </BaseLayout>
 
 <style>

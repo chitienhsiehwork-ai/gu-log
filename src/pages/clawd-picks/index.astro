@@ -11,9 +11,11 @@ const getTicketNumber = (ticketId: string | undefined) => {
 };
 
 // Get all CP posts, sorted by ticketId number descending
-const cpPosts = (await getCollection('posts', ({ data }) => {
-  return data.lang === 'zh-tw' && data.ticketId?.startsWith('CP-');
-})).sort((a, b) => getTicketNumber(b.data.ticketId) - getTicketNumber(a.data.ticketId));
+const cpPosts = (
+  await getCollection('posts', ({ data }) => {
+    return data.lang === 'zh-tw' && data.ticketId?.startsWith('CP-');
+  })
+).sort((a, b) => getTicketNumber(b.data.ticketId) - getTicketNumber(a.data.ticketId));
 ---
 
 <BaseLayout title="Clawd Picks 全部文章">
@@ -24,15 +26,19 @@ const cpPosts = (await getCollection('posts', ({ data }) => {
   <a href="/" class="back-link">← 返回首頁</a>
 
   <section class="archive-list">
-    {cpPosts.map((pick) => (
-      <article class="pick-preview">
-        <a href={`/posts/${pick.slug}`} class="pick-title">{pick.data.title}</a>
-        <span class="pick-meta">
-          {pick.data.ticketId && <TicketBadge ticketId={pick.data.ticketId} />}
-          {pick.data.translatedDate || pick.data.originalDate} · {pick.data.source}
-        </span>
-      </article>
-    ))}
+    {
+      cpPosts.map((pick) => (
+        <article class="pick-preview">
+          <a href={`/posts/${pick.slug}`} class="pick-title">
+            {pick.data.title}
+          </a>
+          <span class="pick-meta">
+            {pick.data.ticketId && <TicketBadge ticketId={pick.data.ticketId} />}
+            {pick.data.translatedDate || pick.data.originalDate} · {pick.data.source}
+          </span>
+        </article>
+      ))
+    }
   </section>
 </BaseLayout>
 

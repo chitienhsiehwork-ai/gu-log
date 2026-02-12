@@ -1,7 +1,7 @@
 ---
 /**
  * TicketBadge - Display article ticket ID with appropriate styling
- * 
+ *
  * Types:
  * - SD: ShroomDog Original (accent color)
  * - SP: ShroomDog Picks (muted color)
@@ -28,17 +28,13 @@ const label = labels[prefix] || '';
 ---
 
 <span class="ticket-wrapper">
-  <span 
+  <span
     class={`ticket-badge ticket-${prefix.toLowerCase()}`}
     title={showTooltip && !showLabel ? label : undefined}
   >
     {ticketId}
   </span>
-  {showLabel && (
-    <span class={`ticket-label ticket-label-${prefix.toLowerCase()}`}>
-      {label}
-    </span>
-  )}
+  {showLabel && <span class={`ticket-label ticket-label-${prefix.toLowerCase()}`}>{label}</span>}
 </span>
 
 <style>

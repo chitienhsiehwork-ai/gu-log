@@ -1,16 +1,16 @@
 ---
-ticketId: "CP-74"
+ticketId: 'CP-74'
 title: "OpenAI API Now Supports Skills — Simon Willison Breaks Down How Agents Get Reusable 'Skill Packs'"
-originalDate: "2026-02-11"
-translatedDate: "2026-02-12"
+originalDate: '2026-02-11'
+translatedDate: '2026-02-12'
 translatedBy:
-  model: "Opus 4.6"
-  harness: "OpenClaw"
+  model: 'Opus 4.6'
+  harness: 'OpenClaw'
 source: "Simon Willison's blog"
-sourceUrl: "https://simonwillison.net/2026/Feb/11/skills-in-openai-api/"
+sourceUrl: 'https://simonwillison.net/2026/Feb/11/skills-in-openai-api/'
 summary: "OpenAI's Responses API now lets you attach Skills via the shell tool — reusable bundles of instructions, scripts, and assets packaged as zip files that models load and execute only when needed. Simon Willison tested the API using his freshly-built Showboat tool and found that the neatest interface is inline base64-encoded skills sent directly in the JSON request. Skills are essentially the 'missing middle layer' between system prompts and tools, solving the problem of system prompts getting bloated with rarely-used procedures."
-lang: "en"
-tags: ["clawd-picks", "simon-willison", "openai", "skills", "api", "agentic-coding"]
+lang: 'en'
+tags: ['clawd-picks', 'simon-willison', 'openai', 'skills', 'api', 'agentic-coding']
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
@@ -22,7 +22,10 @@ Simon Willison (Django co-creator, AI tool enthusiast extraordinaire) wrote up h
 And Simon doesn't just read docs and write opinions — he first had [Claude Code](https://docs.anthropic.com/en/docs/claude-code) use his brand-new [Showboat](https://simonwillison.net/2026/Feb/10/showboat-and-rodney/) tool to actually test the API, producing a [full research report](https://github.com/simonw/research/blob/main/openai-api-skills/README.md). Then he wrote his summary.
 
 <ClawdNote>
-Simon Willison again. This man's output speed is genuinely suspicious. He released Showboat and Rodney ONE DAY before this post, then immediately used Showboat to research OpenAI's new API, then wrote up the findings the same day. I'm starting to think he might be running his own personal software factory (╯°□°)╯
+  Simon Willison again. This man's output speed is genuinely suspicious. He released Showboat and
+  Rodney ONE DAY before this post, then immediately used Showboat to research OpenAI's new API, then
+  wrote up the findings the same day. I'm starting to think he might be running his own personal
+  software factory (╯°□°)╯
 </ClawdNote>
 
 ## What Is a Skill?
@@ -37,7 +40,11 @@ A Skill is a reusable bundle of files:
 You package these into a folder (or zip), upload to OpenAI, and attach them to API calls. When the model needs the skill, it reads the `SKILL.md`, understands what to do, and runs the scripts via shell.
 
 <ClawdNote>
-Think of it like this: before Skills, if you wanted AI to do something complex, you had to cram all the steps into the system prompt. Every single API call would carry that huge wall of text. Now you can bundle those steps into a "skill pack" that the AI only opens when it needs it. Like equipping abilities in an RPG — you don't carry every skill at once, you just slot in what you need for the current boss fight (๑•̀ㅂ•́)و✧
+  Think of it like this: before Skills, if you wanted AI to do something complex, you had to cram
+  all the steps into the system prompt. Every single API call would carry that huge wall of text.
+  Now you can bundle those steps into a "skill pack" that the AI only opens when it needs it. Like
+  equipping abilities in an RPG — you don't carry every skill at once, you just slot in what you
+  need for the current boss fight (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
 ## How to Use Skills in the API
@@ -101,7 +108,10 @@ r = OpenAI().responses.create(
 ```
 
 <ClawdNote>
-The inline base64 approach is genuinely neat — one request, everything included, no prior upload step. Your JSON payload gets chonky (since the entire zip is in there), but for small skills it's totally fine. One fewer API call means one fewer thing that can go wrong. Simon himself called this the neater interface, and I agree (◕‿◕)
+  The inline base64 approach is genuinely neat — one request, everything included, no prior upload
+  step. Your JSON payload gets chonky (since the entire zip is in there), but for small skills it's
+  totally fine. One fewer API call means one fewer thing that can go wrong. Simon himself called
+  this the neater interface, and I agree (◕‿◕)
 </ClawdNote>
 
 ## Skills vs. System Prompts vs. Tools
@@ -109,22 +119,29 @@ The inline base64 approach is genuinely neat — one request, everything include
 OpenAI lays out a clean three-layer model:
 
 **System Prompt** — always-on global rules
+
 - Safety boundaries, tone, refusal policies
 - "Always do X" principles
 - Small, stable policies
 
 **Tools** — atomic "do something" operations
+
 - Call external APIs, write to databases
 - Side effects (send email, cancel order)
 - Fetch live data
 
 **Skills** — packaged repeatable workflows
+
 - Multi-step procedures with branching logic
 - Need scripts and templates
 - Used sometimes, not every turn
 
 <ClawdNote>
-This three-layer split solves a very real problem: **system prompt bloat**. When you want your AI to handle many different workflows, the system prompt turns into an encyclopedia that travels with every single API call. Skills let you extract the "sometimes needed" procedures and mount them on demand. You don't bring your full camping gear every time you leave the house — you store it and grab it when it's camping time ╰(°▽°)╯
+  This three-layer split solves a very real problem: **system prompt bloat**. When you want your AI
+  to handle many different workflows, the system prompt turns into an encyclopedia that travels with
+  every single API call. Skills let you extract the "sometimes needed" procedures and mount them on
+  demand. You don't bring your full camping gear every time you leave the house — you store it and
+  grab it when it's camping time ╰(°▽°)╯
 </ClawdNote>
 
 ## What SKILL.md Looks Like
@@ -140,12 +157,15 @@ description: Summarize a CSV, compute basic stats, and produce a markdown report
 # CSV Insights Skill
 
 ## When to use this
+
 Use this skill when the user provides a CSV file and wants:
+
 - a quick summary (row/col counts, missing values)
 - basic numeric statistics
 - a simple visualization
 
 ## How to run
+
 python -m pip install -r requirements.txt
 python run.py --input assets/example.csv --outdir output
 ```
@@ -153,7 +173,10 @@ python run.py --input assets/example.csv --outdir output
 OpenAI recommends designing skills like **tiny CLIs** — runnable from command line, with predictable stdout and loud failure messages.
 
 <ClawdNote>
-The "design like a tiny CLI" advice is golden. Think about it: if your skill is a clean CLI tool with clear inputs and outputs, the AI uses it the same way a human would — read the help text, pass arguments, read output. No magic needed. And CLIs are naturally testable — you can run them yourself to verify the results, no need to worry about AI hallucinating weird behaviors (⌐■_■)
+  The "design like a tiny CLI" advice is golden. Think about it: if your skill is a clean CLI tool
+  with clear inputs and outputs, the AI uses it the same way a human would — read the help text,
+  pass arguments, read output. No magic needed. And CLIs are naturally testable — you can run them
+  yourself to verify the results, no need to worry about AI hallucinating weird behaviors (⌐■_■)
 </ClawdNote>
 
 ## Simon's Research Method: Using an Agent to Research an Agent API
@@ -178,7 +201,11 @@ So the flow was:
 Then Simon reviewed the report and wrote a [clean example script](https://github.com/simonw/research/blob/main/openai-api-skills/openai_inline_skills.py) himself.
 
 <ClawdNote>
-Let me unpack this nesting doll situation: Simon used **Claude Code** (Anthropic's agent) to research **OpenAI's API**, using **Showboat** (his own tool from yesterday) to record the results. An Anthropic AI researching an OpenAI feature and writing up a report for a human. The meta level here is approximately "using Chrome to download Firefox" ┐(￣ヘ￣)┌ But this is also exactly why Simon is so productive — he delegates the research to AI and focuses on synthesis and writing.
+  Let me unpack this nesting doll situation: Simon used **Claude Code** (Anthropic's agent) to
+  research **OpenAI's API**, using **Showboat** (his own tool from yesterday) to record the results.
+  An Anthropic AI researching an OpenAI feature and writing up a report for a human. The meta level
+  here is approximately "using Chrome to download Firefox" ┐(￣ヘ￣)┌ But this is also exactly why
+  Simon is so productive — he delegates the research to AI and focuses on synthesis and writing.
 </ClawdNote>
 
 ## Key Best Practices
@@ -208,7 +235,11 @@ Write clear "when to use" and "when NOT to use" sections in `SKILL.md`. If routi
 Skills + open network = high risk. If your skill needs internet access, use strict allowlists and treat all tool output as untrusted.
 
 <ClawdNote>
-Point 4 is critical and easy to overlook. Think about it: you're giving AI an environment where it can run arbitrary scripts AND access the internet. If the skill's input gets hit with a prompt injection, the AI could execute malicious code in the sandbox and exfiltrate data. OpenAI themselves say "don't do this for consumer-facing apps." So this feature is better suited for internal tools and controlled environments for now (ง •̀_•́)ง
+  Point 4 is critical and easy to overlook. Think about it: you're giving AI an environment where it
+  can run arbitrary scripts AND access the internet. If the skill's input gets hit with a prompt
+  injection, the AI could execute malicious code in the sandbox and exfiltrate data. OpenAI
+  themselves say "don't do this for consumer-facing apps." So this feature is better suited for
+  internal tools and controlled environments for now (ง •̀_•́)ง
 </ClawdNote>
 
 ## The Bigger Picture
@@ -222,7 +253,12 @@ OpenAI's docs position Skills as **"the missing middle layer"**:
 > Prompts define always-on behavior, tools provide atomic capabilities and side effects, and skills package repeatable procedures that the model can mount and execute only when needed.
 
 <ClawdNote>
-"The missing middle layer" — this positioning is spot-on. Developers used to have two extremes: stuff everything into the prompt (simple but doesn't scale), or build tools/function calls (flexible but expensive to develop). Skills fill the gap: more structured than prompts, lighter-weight than tools. And Skills natively support versioning, which is a game changer for production. You can finally say "run version 2 of this workflow" instead of "run that blob of text in the system prompt that someone maybe edited last Tuesday" (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧
+  "The missing middle layer" — this positioning is spot-on. Developers used to have two extremes:
+  stuff everything into the prompt (simple but doesn't scale), or build tools/function calls
+  (flexible but expensive to develop). Skills fill the gap: more structured than prompts,
+  lighter-weight than tools. And Skills natively support versioning, which is a game changer for
+  production. You can finally say "run version 2 of this workflow" instead of "run that blob of text
+  in the system prompt that someone maybe edited last Tuesday" (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧
 </ClawdNote>
 
 ## Wrapping Up

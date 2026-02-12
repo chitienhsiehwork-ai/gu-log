@@ -1,16 +1,16 @@
 ---
-ticketId: "CP-52"
-title: "Karpathy 只花 $72 就訓練出 GPT-2 — 7 年前 OpenAI 花了 $43,000"
-originalDate: "2026-01-31"
-translatedDate: "2026-02-08"
+ticketId: 'CP-52'
+title: 'Karpathy 只花 $72 就訓練出 GPT-2 — 7 年前 OpenAI 花了 $43,000'
+originalDate: '2026-01-31'
+translatedDate: '2026-02-08'
 translatedBy:
-  model: "Opus 4.6"
-  harness: "OpenClaw"
-source: "Andrej Karpathy (@karpathy)"
-sourceUrl: "https://x.com/karpathy/status/2017703360393318587"
-summary: "Karpathy 開源了 nanochat — 一個極簡 LLM 訓練框架。用 8 張 H100 跑 3 小時、花 $72 就能訓練出 GPT-2 等級的模型。而 2019 年 OpenAI 訓練同樣的 GPT-2 花了 $43,000。這是 600 倍的成本下降，每年約 2.5 倍速在降。如果用 spot instance，甚至只要 $20。"
-lang: "zh-tw"
-tags: ["clawd-picks", "Karpathy", "GPT-2", "nanochat", "training-cost", "open-source", "LLM"]
+  model: 'Opus 4.6'
+  harness: 'OpenClaw'
+source: 'Andrej Karpathy (@karpathy)'
+sourceUrl: 'https://x.com/karpathy/status/2017703360393318587'
+summary: 'Karpathy 開源了 nanochat — 一個極簡 LLM 訓練框架。用 8 張 H100 跑 3 小時、花 $72 就能訓練出 GPT-2 等級的模型。而 2019 年 OpenAI 訓練同樣的 GPT-2 花了 $43,000。這是 600 倍的成本下降，每年約 2.5 倍速在降。如果用 spot instance，甚至只要 $20。'
+lang: 'zh-tw'
+tags: ['clawd-picks', 'Karpathy', 'GPT-2', 'nanochat', 'training-cost', 'open-source', 'LLM']
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
@@ -26,7 +26,8 @@ import ClawdNote from '../../components/ClawdNote.astro';
 如果你用 spot instance（就是雲端平台上便宜的「剩餘算力」），成本更低 — 大約 **$20**。
 
 <ClawdNote>
-$20 美金訓練一個 LLM。這比你在 Costco 買一箱啤酒還便宜。2019 年 OpenAI 訓練同一個模型花了四萬三千美金，現在你一頓好吃的牛排錢就搞定了。歡迎來到 2026 年。
+  $20 美金訓練一個 LLM。這比你在 Costco 買一箱啤酒還便宜。2019 年 OpenAI
+  訓練同一個模型花了四萬三千美金，現在你一頓好吃的牛排錢就搞定了。歡迎來到 2026 年。
 </ClawdNote>
 
 ## GPT-2 是什麼？為什麼 Karpathy 這麼執著？
@@ -43,7 +44,9 @@ GPT-2 之所以特別，是因為它是第一個「看起來像現代 LLM」的�
 > GPT-2 (today): new MNIST! :)
 
 <ClawdNote>
-MNIST 是機器學習界的「九九乘法表」— 就是一堆手寫數字圖片，每個入門者都會拿來練手。Karpathy 說 GPT-2 現在就是 LLM 界的 MNIST，意思是：曾經的尖端科技，現在變成新手教材了。科技發展的速度就是這麼殘酷 (╯°□°)╯
+  MNIST 是機器學習界的「九九乘法表」— 就是一堆手寫數字圖片，每個入門者都會拿來練手。Karpathy 說
+  GPT-2 現在就是 LLM 界的
+  MNIST，意思是：曾經的尖端科技，現在變成新手教材了。科技發展的速度就是這麼殘酷 (╯°□°)╯
 </ClawdNote>
 
 ## 600 倍的成本崩跌
@@ -82,24 +85,28 @@ python -m scripts.chat_web
 ```
 
 <ClawdNote>
-Karpathy 自己說跟這個模型聊天「有點像跟幼稚園生講話」— 它會胡說八道、會 hallucinate、會跟你說天空是綠色的。但重點不是它多聰明，而是你花 $72 就能從零訓練一個 LLM 並跟它對話。這在兩年前簡直是科幻小說。
+  Karpathy 自己說跟這個模型聊天「有點像跟幼稚園生講話」— 它會胡說八道、會
+  hallucinate、會跟你說天空是綠色的。但重點不是它多聰明，而是你花 $72 就能從零訓練一個 LLM
+  並跟它對話。這在兩年前簡直是科幻小說。
 </ClawdNote>
 
 ## Time-to-GPT-2 排行榜
 
 Karpathy 還搞了一個「GPT-2 速度跑」排行榜，追蹤社群的最佳紀錄：
 
-| # | 時間 | CORE 分數 | 說明 | 日期 |
-|---|------|-----------|------|------|
-| 原版 | 168 小時 | 0.2565 | OpenAI 原始 GPT-2 | 2019 |
-| #1 | 3.04 小時 | 0.2585 | d24 baseline | Jan 29 |
-| #2 | 2.91 小時 | 0.2578 | d26 + fp8 | Feb 2 |
-| #3 | 2.76 小時 | 0.2602 | batch size 加大 | Feb 5 |
+| #    | 時間      | CORE 分數 | 說明              | 日期   |
+| ---- | --------- | --------- | ----------------- | ------ |
+| 原版 | 168 小時  | 0.2565    | OpenAI 原始 GPT-2 | 2019   |
+| #1   | 3.04 小時 | 0.2585    | d24 baseline      | Jan 29 |
+| #2   | 2.91 小時 | 0.2578    | d26 + fp8         | Feb 2  |
+| #3   | 2.76 小時 | 0.2602    | batch size 加大   | Feb 5  |
 
 短短一週內，時間就從 3.04 小時壓到 2.76 小時。
 
 <ClawdNote>
-CORE score 是 DCLM 論文提出的綜合評分，涵蓋 22 項評測（ARC、MMLU 等等）。GPT-2 的原始 CORE 分數是 0.256525，所以只要超過這個數字就算「打敗 GPT-2」。Karpathy 的最新紀錄不只更快，分數還更高。這就像用更少的油、開更短的路，結果車還更快。
+  CORE score 是 DCLM 論文提出的綜合評分，涵蓋 22 項評測（ARC、MMLU 等等）。GPT-2 的原始 CORE 分數是
+  0.256525，所以只要超過這個數字就算「打敗 GPT-2」。Karpathy
+  的最新紀錄不只更快，分數還更高。這就像用更少的油、開更短的路，結果車還更快。
 </ClawdNote>
 
 ## fp8 訓練的血淚史
@@ -115,7 +122,10 @@ CORE score 是 DCLM 論文提出的綜合評分，涵蓋 22 項評測（ARC、MM
 - **整體結果**：大約 **5% 的淨加速**，遠低於期望的 25%
 
 <ClawdNote>
-fp8 就像是把你的計算精度從「用尺量」降級到「用目測」。理論上你量得更快，但每次量的結果都有點偏。Karpathy 最後搞出 5% 的加速，聽起來不多，但在 speedrun 的世界裡，5% 就是從 3.04 小時變成 2.91 小時。這在排行榜上就是一個名次的差距。
+  fp8
+  就像是把你的計算精度從「用尺量」降級到「用目測」。理論上你量得更快，但每次量的結果都有點偏。Karpathy
+  最後搞出 5% 的加速，聽起來不多，但在 speedrun 的世界裡，5% 就是從 3.04 小時變成 2.91
+  小時。這在排行榜上就是一個名次的差距。
 </ClawdNote>
 
 ## 關鍵技術突破
@@ -130,7 +140,9 @@ Karpathy 列出了最大的幾個改進：
 以及很多小改進疊加起來的效果。
 
 <ClawdNote>
-「我花了一天想把 Muon optimizer 拔掉，結果拔不掉」— 這句話在 ML 圈就是最高的讚美。意思是這個東西好用到你沒它不行。AdamW 是大家用了十年的標準 optimizer，結果在這個場景被新人 Muon 壓著打。Welcome to 2026, AdamW (￣▽￣)／
+  「我花了一天想把 Muon optimizer 拔掉，結果拔不掉」— 這句話在 ML
+  圈就是最高的讚美。意思是這個東西好用到你沒它不行。AdamW 是大家用了十年的標準
+  optimizer，結果在這個場景被新人 Muon 壓著打。Welcome to 2026, AdamW (￣▽￣)／
 </ClawdNote>
 
 ## 為什麼這件事重要
@@ -142,6 +154,7 @@ Karpathy 列出了最大的幾個改進：
 **1. 訓練成本的摩爾定律**
 
 如果 GPT-2 等級的訓練成本每年下降 2.5 倍，那麼今天的 frontier model（GPT-5、Claude Opus 級別）的訓練成本在幾年後也會大幅下降。這代表：
+
 - 更多小公司/個人能訓練自己的模型
 - Fine-tuning 會越來越便宜
 - 開源模型的品質天花板會持續上升

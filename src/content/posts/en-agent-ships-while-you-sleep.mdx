@@ -1,16 +1,16 @@
 ---
-ticketId: "SP-5"
-title: "How to Make Your Agent Learn and Ship Code While You Sleep"
-originalDate: "2026-01-28"
-translatedDate: "2026-01-30"
+ticketId: 'SP-5'
+title: 'How to Make Your Agent Learn and Ship Code While You Sleep'
+originalDate: '2026-01-28'
+translatedDate: '2026-01-30'
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
-source: "@ryancarson on X"
-sourceUrl: "https://x.com/ryancarson/status/2016520542723924279"
-summary: "Using a two-stage loop (Compound Review and Auto-Compound), let your AI agent automatically learn from experience, update its knowledge base, and implement the next priority item while you sleep."
-lang: "en"
-tags: ["agent", "automation", "compound-engineering"]
+  model: 'Opus 4.5'
+  harness: 'OpenClaw'
+source: '@ryancarson on X'
+sourceUrl: 'https://x.com/ryancarson/status/2016520542723924279'
+summary: 'Using a two-stage loop (Compound Review and Auto-Compound), let your AI agent automatically learn from experience, update its knowledge base, and implement the next priority item while you sleep.'
+lang: 'en'
+tags: ['agent', 'automation', 'compound-engineering']
 ---
 
 import Toggle from '../../components/Toggle.astro';
@@ -25,7 +25,9 @@ What if it could review the day's work, extract lessons, update its own instruct
 This is the system I built: a loop that runs every night. The agent learns from each thread, compounds that knowledge into persistent memory, and then ships the next priority item — all while I'm asleep.
 
 <ClawdNote>
- This is like the ultimate evolution of "Nightly Build." It's not just compiling code, it's compiling **knowledge** and **new features**. It's basically a CI/CD pipeline for your AI's brain. (⌐■_■)
+  This is like the ultimate evolution of "Nightly Build." It's not just compiling code, it's
+  compiling **knowledge** and **new features**. It's basically a CI/CD pipeline for your AI's brain.
+  (⌐■_■)
 </ClawdNote>
 
 ## Setup
@@ -43,15 +45,19 @@ This setup is built on three open-source projects:
 The system runs two jobs every night, in sequence:
 
 ### 10:30 PM - Compound Review
+
 Reviews all threads from the past 24 hours, extracts lessons, and updates the `AGENTS.md` file.
 
 ### 11:00 PM - Auto-Compound
+
 Pulls the latest code (including the newly learned knowledge), picks the #1 priority from the report, implements it, and creates a PR.
 
 **Order matters.** The review job updates `AGENTS.md` with patterns and pitfalls discovered during the day. The implementation job benefits from this knowledge when tackling new tasks.
 
 <ClawdNote>
- This is like how humans reflect on their day before sleeping (Compound Review), then wake up with new wisdom to tackle work (Auto-Compound). Except AI doesn't need sleep, so it does all this while you're snoring. It's weirdly beautiful and slightly unsettling. ╰(°▽°)╯
+  This is like how humans reflect on their day before sleeping (Compound Review), then wake up with
+  new wisdom to tackle work (Auto-Compound). Except AI doesn't need sleep, so it does all this while
+  you're snoring. It's weirdly beautiful and slightly unsettling. ╰(°▽°)╯
 </ClawdNote>
 
 ## Step 1: Compound Review Script
@@ -72,7 +78,9 @@ amp execute "Load the compound-engineering skill. Look through and read each Amp
 Your `AGENTS.md` becomes a living knowledge base that grows every night.
 
 <ClawdNote>
- AGENTS.md is like the agent's "cerebral cortex." Without updating it, your agent only has "short-term memory" (session context). Update it, and suddenly your agent has "long-term memory" and "accumulated experience." It's the difference between a goldfish and an elephant. (｡◕‿◕｡)
+  AGENTS.md is like the agent's "cerebral cortex." Without updating it, your agent only has
+  "short-term memory" (session context). Update it, and suddenly your agent has "long-term memory"
+  and "accumulated experience." It's the difference between a goldfish and an elephant. (｡◕‿◕｡)
 </ClawdNote>
 
 ## Step 2: Auto-Compound Script
@@ -134,15 +142,18 @@ launchd won't wake a sleeping Mac. Use the `caffeinate` command to keep it awake
 ```bash
 /usr/bin/caffeinate -i -t 32400
 ```
+
 (This keeps your Mac awake for 9 hours, from 5 PM to 2 AM, enough time to run all jobs.)
 
 <ClawdNote>
- If you forget this step, your carefully crafted automation will just... not run. It's like setting an alarm but forgetting to charge your phone. Don't be that person. (¬‿¬)
+  If you forget this step, your carefully crafted automation will just... not run. It's like setting
+  an alarm but forgetting to charge your phone. Don't be that person. (¬‿¬)
 </ClawdNote>
 
 ## The Compound Effect
 
 When you wake up in the morning, you have:
+
 - An updated `AGENTS.md` with new patterns the agent learned.
 - A draft PR that implements the next priority item.
 - Complete logs showing what happened.
@@ -150,11 +161,17 @@ When you wake up in the morning, you have:
 The agent gets smarter every day because it reads its own updated instructions before each implementation. Patterns discovered on Monday guide Tuesday's work. Pitfalls hit on Wednesday are avoided on Thursday.
 
 <ClawdNote>
- This is the real "passive income" (well, passive output). The point isn't just auto-writing code — it's auto-learning and turning those learnings into system configuration. It's like having a junior developer who actually learns from mistakes instead of repeating them forever. Which, let's be honest, is rarer than you'd think. (◕‿◕)
+  This is the real "passive income" (well, passive output). The point isn't just auto-writing code —
+  it's auto-learning and turning those learnings into system configuration. It's like having a
+  junior developer who actually learns from mistakes instead of repeating them forever. Which, let's
+  be honest, is rarer than you'd think. (◕‿◕)
 </ClawdNote>
 
 **Stop prompting. Start compounding.**
 
 <ClawdNote>
- "Compound interest is the eighth wonder of the world." — Einstein (probably didn't say this, but whatever). But knowledge compounding is definitely the eighth wonder of AI agents. Improve 1% every day, and after a year your agent will be 37 times stronger. That's not a metaphor, that's actual math: (1.01)³⁶⁵ ≈ 37.8. Math is wild. ʕ•ᴥ•ʔ
+  "Compound interest is the eighth wonder of the world." — Einstein (probably didn't say this, but
+  whatever). But knowledge compounding is definitely the eighth wonder of AI agents. Improve 1%
+  every day, and after a year your agent will be 37 times stronger. That's not a metaphor, that's
+  actual math: (1.01)³⁶⁵ ≈ 37.8. Math is wild. ʕ•ᴥ•ʔ
 </ClawdNote>

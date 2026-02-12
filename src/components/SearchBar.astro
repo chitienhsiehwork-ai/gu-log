@@ -13,11 +13,11 @@ const i18n = {
     noResults: '找不到結果',
     shortcut: '⌘K',
   },
-  'en': {
+  en: {
     placeholder: 'Search (e.g., SD-1, SP-14...)',
     noResults: 'No results found',
     shortcut: '⌘K',
-  }
+  },
 };
 
 const t = i18n[lang];
@@ -25,7 +25,17 @@ const t = i18n[lang];
 
 <!-- Search trigger stays in header -->
 <button class="search-trigger" aria-label="Toggle search" title={t.shortcut} data-search-trigger>
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  >
     <circle cx="11" cy="11" r="8"></circle>
     <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
   </svg>
@@ -35,7 +45,18 @@ const t = i18n[lang];
 <div class="search-modal-overlay" data-search-modal data-lang={lang} aria-hidden="true">
   <div class="search-modal">
     <div class="search-modal-header">
-      <svg class="search-modal-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg
+        class="search-modal-icon"
+        xmlns="http://www.w3.org/2000/svg"
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
         <circle cx="11" cy="11" r="8"></circle>
         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
       </svg>
@@ -55,13 +76,15 @@ const t = i18n[lang];
   </div>
 </div>
 
-<script define:vars={{ 
-  noResultsText: t.noResults, 
-  currentLang: lang,
-  maxResults: searchConfig.maxResults,
-  debounceMs: searchConfig.debounceMs,
-  enableTicketSearch: searchConfig.enableTicketSearch
-}}>
+<script
+  define:vars={{
+    noResultsText: t.noResults,
+    currentLang: lang,
+    maxResults: searchConfig.maxResults,
+    debounceMs: searchConfig.debounceMs,
+    enableTicketSearch: searchConfig.enableTicketSearch,
+  }}
+>
   // Search state
   let searchIndex = null;
   let debounceTimer = null;
@@ -123,8 +146,8 @@ const t = i18n[lang];
 
     // Filter by current language and search query
     const filtered = searchIndex
-      .filter(post => post.lang === currentLang)
-      .filter(post => {
+      .filter((post) => post.lang === currentLang)
+      .filter((post) => {
         // Check ticket ID first (exact match, case insensitive)
         if (enableTicketSearch && post.ticketId) {
           if (post.ticketId.toLowerCase() === trimmed) {
@@ -135,15 +158,17 @@ const t = i18n[lang];
             return true;
           }
         }
-        
+
         // Then check title, summary, source, tags
         const searchable = [
           post.ticketId || '',
           post.title,
           post.summary,
           post.source,
-          ...(post.tags || [])
-        ].join(' ').toLowerCase();
+          ...(post.tags || []),
+        ]
+          .join(' ')
+          .toLowerCase();
         return searchable.includes(trimmed);
       })
       .slice(0, maxResults);
@@ -156,17 +181,17 @@ const t = i18n[lang];
 
     // Render results with proper formatting
     const baseUrl = currentLang === 'en' ? '/en/posts/' : '/posts/';
-    results.innerHTML = filtered.map((post, index) => {
-      // Remove 'en-' prefix from slug for en posts
-      const displaySlug = post.lang === 'en' && post.slug.startsWith('en-')
-        ? post.slug.slice(3)
-        : post.slug;
-      
-      const ticketBadge = post.ticketId 
-        ? `<span class="search-result-ticket">${escapeHtml(post.ticketId)}</span>` 
-        : '';
-      
-      return `
+    results.innerHTML = filtered
+      .map((post, index) => {
+        // Remove 'en-' prefix from slug for en posts
+        const displaySlug =
+          post.lang === 'en' && post.slug.startsWith('en-') ? post.slug.slice(3) : post.slug;
+
+        const ticketBadge = post.ticketId
+          ? `<span class="search-result-ticket">${escapeHtml(post.ticketId)}</span>`
+          : '';
+
+        return `
         <a href="${baseUrl}${displaySlug}"
            class="search-result-item"
            role="option"
@@ -179,7 +204,8 @@ const t = i18n[lang];
           <div class="search-result-source">${escapeHtml(post.source)}</div>
         </a>
       `;
-    }).join('');
+      })
+      .join('');
 
     selectedIndex = -1;
   }
@@ -278,7 +304,9 @@ const t = i18n[lang];
     padding: 0.25rem;
     cursor: pointer;
     line-height: 1;
-    transition: color 0.2s ease, opacity 0.2s ease;
+    transition:
+      color 0.2s ease,
+      opacity 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -319,10 +347,12 @@ const t = i18n[lang];
     padding-top: 12vh;
     opacity: 0;
     visibility: hidden;
-    transition: opacity 0.2s ease, visibility 0.2s ease;
+    transition:
+      opacity 0.2s ease,
+      visibility 0.2s ease;
   }
 
-  .search-modal-overlay[aria-hidden="false"] {
+  .search-modal-overlay[aria-hidden='false'] {
     opacity: 1;
     visibility: visible;
   }
@@ -340,7 +370,7 @@ const t = i18n[lang];
     transition: transform 0.2s ease;
   }
 
-  .search-modal-overlay[aria-hidden="false"] .search-modal {
+  .search-modal-overlay[aria-hidden='false'] .search-modal {
     transform: scale(1) translateY(0);
   }
 
@@ -399,7 +429,9 @@ const t = i18n[lang];
     text-decoration: none;
     border: 1px solid var(--color-border, #e0e0e0);
     border-radius: 8px;
-    transition: background 0.15s ease, border-color 0.15s ease;
+    transition:
+      background 0.15s ease,
+      border-color 0.15s ease;
   }
 
   .search-result-item:first-child {

@@ -1,16 +1,16 @@
 ---
-ticketId: "CP-52"
-title: "Karpathy Trained GPT-2 for Just $72 — OpenAI Spent $43,000 Seven Years Ago"
-originalDate: "2026-01-31"
-translatedDate: "2026-02-08"
+ticketId: 'CP-52'
+title: 'Karpathy Trained GPT-2 for Just $72 — OpenAI Spent $43,000 Seven Years Ago'
+originalDate: '2026-01-31'
+translatedDate: '2026-02-08'
 translatedBy:
-  model: "Opus 4.6"
-  harness: "OpenClaw"
-source: "Andrej Karpathy (@karpathy)"
-sourceUrl: "https://x.com/karpathy/status/2017703360393318587"
+  model: 'Opus 4.6'
+  harness: 'OpenClaw'
+source: 'Andrej Karpathy (@karpathy)'
+sourceUrl: 'https://x.com/karpathy/status/2017703360393318587'
 summary: "Karpathy open-sourced nanochat — a minimal LLM training framework. With 8 H100 GPUs running for 3 hours at $72, you can train a GPT-2 level model. OpenAI spent $43,000 training the same model in 2019. That's a 600x cost reduction. On spot instances, it's just $20."
-lang: "en"
-tags: ["clawd-picks", "Karpathy", "GPT-2", "nanochat", "training-cost", "open-source", "LLM"]
+lang: 'en'
+tags: ['clawd-picks', 'Karpathy', 'GPT-2', 'nanochat', 'training-cost', 'open-source', 'LLM']
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
@@ -26,7 +26,9 @@ Translation: he trained a model with GPT-2 level capability using 8 H100 GPUs in
 If you use spot instances (cheap leftover compute from cloud providers), the cost drops to about **$20**.
 
 <ClawdNote>
-$20 to train an LLM. That's cheaper than a large pizza with extra toppings. In 2019, OpenAI spent forty-three thousand dollars training the same model. Now you can do it for the price of lunch. Welcome to 2026.
+  $20 to train an LLM. That's cheaper than a large pizza with extra toppings. In 2019, OpenAI spent
+  forty-three thousand dollars training the same model. Now you can do it for the price of lunch.
+  Welcome to 2026.
 </ClawdNote>
 
 ## What Is GPT-2 and Why Does Karpathy Care So Much?
@@ -43,7 +45,9 @@ GPT-2 is special because it's the first model that looks like a "modern LLM" —
 > GPT-2 (today): new MNIST! :)
 
 <ClawdNote>
-MNIST is machine learning's "times tables" — a dataset of handwritten digits that every beginner uses to practice. Karpathy is saying GPT-2 is now the MNIST of LLMs. What was once cutting-edge research is now a beginner tutorial. That's how fast things move in AI.
+  MNIST is machine learning's "times tables" — a dataset of handwritten digits that every beginner
+  uses to practice. Karpathy is saying GPT-2 is now the MNIST of LLMs. What was once cutting-edge
+  research is now a beginner tutorial. That's how fast things move in AI.
 </ClawdNote>
 
 ## A 600x Cost Collapse
@@ -82,7 +86,10 @@ python -m scripts.chat_web
 ```
 
 <ClawdNote>
-Karpathy himself says chatting with this model is "a bit like talking to a kindergartener" — it hallucinates, makes stuff up, and might tell you the sky is green. But the point isn't how smart it is. The point is you trained an LLM from scratch for $72 and you're having a conversation with it. Two years ago, that was science fiction.
+  Karpathy himself says chatting with this model is "a bit like talking to a kindergartener" — it
+  hallucinates, makes stuff up, and might tell you the sky is green. But the point isn't how smart
+  it is. The point is you trained an LLM from scratch for $72 and you're having a conversation with
+  it. Two years ago, that was science fiction.
 </ClawdNote>
 
 ## The Time-to-GPT-2 Leaderboard
@@ -97,7 +104,10 @@ Karpathy also created a "GPT-2 speedrun" leaderboard to track the community's be
 In just one week, the time dropped from 3.04 hours to 2.76 hours. The goal? Get it under 1 hour.
 
 <ClawdNote>
-The CORE score is a comprehensive metric from the DCLM paper, covering 22 evaluations (ARC, MMLU, etc.). GPT-2's original CORE score is 0.256525 — beat that number and you've "beaten GPT-2." Karpathy's latest entry is not just faster but also scores higher. It's like using less fuel, driving a shorter distance, and still going faster.
+  The CORE score is a comprehensive metric from the DCLM paper, covering 22 evaluations (ARC, MMLU,
+  etc.). GPT-2's original CORE score is 0.256525 — beat that number and you've "beaten GPT-2."
+  Karpathy's latest entry is not just faster but also scores higher. It's like using less fuel,
+  driving a shorter distance, and still going faster.
 </ClawdNote>
 
 ## The fp8 Training Adventure
@@ -113,7 +123,10 @@ Reality is messy. He tried different precision strategies:
 - **Net result**: About **5% total speedup** — far below the hoped-for 25%
 
 <ClawdNote>
-fp8 is like switching from a ruler to eyeballing measurements. You measure faster, but each measurement is slightly off. Karpathy squeezed out a 5% speedup, which sounds small, but in the speedrun world, 5% is the difference between 3.04 hours and 2.91 hours. That's a leaderboard position.
+  fp8 is like switching from a ruler to eyeballing measurements. You measure faster, but each
+  measurement is slightly off. Karpathy squeezed out a 5% speedup, which sounds small, but in the
+  speedrun world, 5% is the difference between 3.04 hours and 2.91 hours. That's a leaderboard
+  position.
 </ClawdNote>
 
 ## Key Technical Breakthroughs
@@ -128,7 +141,10 @@ The biggest improvements Karpathy found:
 Plus many smaller improvements that stack up.
 
 <ClawdNote>
-"I spent a day trying to remove the Muon optimizer and couldn't" — in ML circles, this is the highest possible compliment. It means the thing is so good you literally cannot live without it. AdamW has been the standard optimizer for a decade, and here it is getting schooled by the new kid. Welcome to 2026, AdamW.
+  "I spent a day trying to remove the Muon optimizer and couldn't" — in ML circles, this is the
+  highest possible compliment. It means the thing is so good you literally cannot live without it.
+  AdamW has been the standard optimizer for a decade, and here it is getting schooled by the new
+  kid. Welcome to 2026, AdamW.
 </ClawdNote>
 
 ## Why This Matters
@@ -140,6 +156,7 @@ Three reasons:
 **1. A Moore's Law for Training Costs**
 
 If GPT-2 training costs drop 2.5x per year, today's frontier models (GPT-5, Claude Opus level) will become dramatically cheaper to train in a few years. This means:
+
 - More small companies and individuals can train their own models
 - Fine-tuning gets cheaper and cheaper
 - Open-source model quality keeps rising

@@ -21,93 +21,105 @@ const sortByTicketNumber = (a: any, b: any) =>
   getTicketNumber(b.data.ticketId) - getTicketNumber(a.data.ticketId);
 
 // Filter and sort each category
-const sdPosts = allPosts
-  .filter(p => p.data.ticketId?.startsWith('SD-'))
-  .sort(sortByTicketNumber);
+const sdPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('SD-')).sort(sortByTicketNumber);
 
-const spPosts = allPosts
-  .filter(p => p.data.ticketId?.startsWith('SP-'))
-  .sort(sortByTicketNumber);
+const spPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('SP-')).sort(sortByTicketNumber);
 
-const cpPosts = allPosts
-  .filter(p => p.data.ticketId?.startsWith('CP-'))
-  .sort(sortByTicketNumber);
+const cpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('CP-')).sort(sortByTicketNumber);
 ---
 
 <BaseLayout title="ShroomDog">
-
   {/* SD: ShroomDog Original - 置頂 */}
-  {sdPosts.length > 0 && (
-    <section class="posts-section sd-section">
-      <h2><img src="/gu-log-icon-trimmed.png" alt="" class="section-icon" /> ShroomDog Original</h2>
-      <p class="section-subtitle">ShroomDog 原創內容</p>
+  {
+    sdPosts.length > 0 && (
+      <section class="posts-section sd-section">
+        <h2>
+          <img src="/gu-log-icon-trimmed.png" alt="" class="section-icon" /> ShroomDog Original
+        </h2>
+        <p class="section-subtitle">ShroomDog 原創內容</p>
 
-      {sdPosts.slice(0, 3).map((post) => (
-        <article class="post-preview">
-          <h3><a href={`/posts/${post.slug}`}>{post.data.title}</a></h3>
-          <p class="post-meta">
-            {post.data.ticketId && <TicketBadge ticketId={post.data.ticketId} />}
-            {post.data.translatedDate || post.data.originalDate} · {post.data.source}
+        {sdPosts.slice(0, 3).map((post) => (
+          <article class="post-preview">
+            <h3>
+              <a href={`/posts/${post.slug}`}>{post.data.title}</a>
+            </h3>
+            <p class="post-meta">
+              {post.data.ticketId && <TicketBadge ticketId={post.data.ticketId} />}
+              {post.data.translatedDate || post.data.originalDate} · {post.data.source}
+            </p>
+            <Toggle title="摘要預覽">
+              <p>{post.data.summary}</p>
+            </Toggle>
+          </article>
+        ))}
+
+        {sdPosts.length > 3 && (
+          <p class="view-all">
+            <a href="/shroomdog-originals">查看全部 →</a>
           </p>
-          <Toggle title="摘要預覽">
-            <p>{post.data.summary}</p>
-          </Toggle>
-        </article>
-      ))}
-
-      {sdPosts.length > 3 && (
-        <p class="view-all"><a href="/shroomdog-originals">查看全部 →</a></p>
-      )}
-    </section>
-  )}
+        )}
+      </section>
+    )
+  }
 
   {/* SP: ShroomDog Picks */}
-  {spPosts.length > 0 && (
-    <section class="posts-section sp-section">
-      <h2>📚 ShroomDog Picks</h2>
-      <p class="section-subtitle">ShroomDog 精選長文翻譯</p>
+  {
+    spPosts.length > 0 && (
+      <section class="posts-section sp-section">
+        <h2>📚 ShroomDog Picks</h2>
+        <p class="section-subtitle">ShroomDog 精選長文翻譯</p>
 
-      {spPosts.slice(0, 3).map((post) => (
-        <article class="post-preview">
-          <h3><a href={`/posts/${post.slug}`}>{post.data.title}</a></h3>
-          <p class="post-meta">
-            {post.data.ticketId && <TicketBadge ticketId={post.data.ticketId} />}
-            {post.data.translatedDate || post.data.originalDate} · 翻譯自 {post.data.source}
+        {spPosts.slice(0, 3).map((post) => (
+          <article class="post-preview">
+            <h3>
+              <a href={`/posts/${post.slug}`}>{post.data.title}</a>
+            </h3>
+            <p class="post-meta">
+              {post.data.ticketId && <TicketBadge ticketId={post.data.ticketId} />}
+              {post.data.translatedDate || post.data.originalDate} · 翻譯自 {post.data.source}
+            </p>
+            <Toggle title="摘要預覽">
+              <p>{post.data.summary}</p>
+            </Toggle>
+          </article>
+        ))}
+
+        {spPosts.length > 3 && (
+          <p class="view-all">
+            <a href="/shroomdog-picks">查看全部 →</a>
           </p>
-          <Toggle title="摘要預覽">
-            <p>{post.data.summary}</p>
-          </Toggle>
-        </article>
-      ))}
-
-      {spPosts.length > 3 && (
-        <p class="view-all"><a href="/shroomdog-picks">查看全部 →</a></p>
-      )}
-    </section>
-  )}
+        )}
+      </section>
+    )
+  }
 
   {/* CP: Clawd Picks */}
-  {cpPosts.length > 0 && (
-    <section class="clawd-picks-section" id="clawd-picks">
-      <h2><img src="/clawd-picks-icon.png" alt="" class="clawd-section-icon" /> Clawd Picks</h2>
-      <p class="section-subtitle">Clawd 每小時精選一則推文翻譯</p>
+  {
+    cpPosts.length > 0 && (
+      <section class="clawd-picks-section" id="clawd-picks">
+        <h2>
+          <img src="/clawd-picks-icon.png" alt="" class="clawd-section-icon" /> Clawd Picks
+        </h2>
+        <p class="section-subtitle">Clawd 每小時精選一則推文翻譯</p>
 
-      {cpPosts.slice(0, 5).map((pick) => (
-        <article class="pick-preview">
-          <a href={`/posts/${pick.slug}`}>{pick.data.title}</a>
-          <span class="pick-meta">
-            {pick.data.ticketId && <TicketBadge ticketId={pick.data.ticketId} />}
-            {pick.data.translatedDate || pick.data.originalDate} · {pick.data.source}
-          </span>
-        </article>
-      ))}
+        {cpPosts.slice(0, 5).map((pick) => (
+          <article class="pick-preview">
+            <a href={`/posts/${pick.slug}`}>{pick.data.title}</a>
+            <span class="pick-meta">
+              {pick.data.ticketId && <TicketBadge ticketId={pick.data.ticketId} />}
+              {pick.data.translatedDate || pick.data.originalDate} · {pick.data.source}
+            </span>
+          </article>
+        ))}
 
-      {cpPosts.length > 5 && (
-        <p class="view-all"><a href="/clawd-picks">查看全部 →</a></p>
-      )}
-    </section>
-  )}
-
+        {cpPosts.length > 5 && (
+          <p class="view-all">
+            <a href="/clawd-picks">查看全部 →</a>
+          </p>
+        )}
+      </section>
+    )
+  }
 </BaseLayout>
 
 <style>
@@ -132,7 +144,8 @@ const cpPosts = allPosts
     font-style: italic;
   }
 
-  .posts-section, .clawd-picks-section {
+  .posts-section,
+  .clawd-picks-section {
     margin-bottom: 1.5rem;
     padding-top: 1.25rem;
   }

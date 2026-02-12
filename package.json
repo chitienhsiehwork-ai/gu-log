@@ -12,6 +12,10 @@
     "test:toc": "npx playwright test tests/toc.spec.ts",
     "test:visual": "node scripts/visual-test.mjs",
     "test:search": "node scripts/search-test.mjs",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "format": "prettier --write src/",
+    "format:check": "prettier --check src/",
     "prepare": "scripts/setup-hooks.sh"
   },
   "dependencies": {
@@ -23,7 +27,14 @@
     "typescript": "^5.9.3"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.2",
     "@playwright/test": "^1.58.1",
-    "playwright": "^1.58.1"
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-astro": "^1.5.0",
+    "playwright": "^1.58.1",
+    "prettier": "^3.8.1",
+    "prettier-plugin-astro": "^0.14.1",
+    "typescript-eslint": "^8.55.0"
   }
 }

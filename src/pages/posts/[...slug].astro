@@ -44,28 +44,32 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
         <span class="post-meta-left">
           {ticketId && <TicketBadge ticketId={ticketId} />}
           <span class="meta-date">{post.data.translatedDate || post.data.originalDate}</span>
-          {isClawdPicks && (
-            <span class="clawd-picks-badge">
-              <img src="/clawd-picks-icon.png" alt="Clawd Picks" class="clawd-icon" />
-            </span>
-          )}
+          {
+            isClawdPicks && (
+              <span class="clawd-picks-badge">
+                <img src="/clawd-picks-icon.png" alt="Clawd Picks" class="clawd-icon" />
+              </span>
+            )
+          }
         </span>
-        {ticketLabel && (
-          <span class={`post-meta-label label-${ticketPrefix.toLowerCase()}`}>
-            {ticketLabel}
-          </span>
-        )}
+        {
+          ticketLabel && (
+            <span class={`post-meta-label label-${ticketPrefix.toLowerCase()}`}>{ticketLabel}</span>
+          )
+        }
       </div>
     </header>
 
-    {!post.data.ticketId?.startsWith('SD-') && (
-      <div class="source-citation">
-        <strong>原文出處：</strong>
-        <a href={post.data.sourceUrl} target="_blank" rel="noopener">
-          {post.data.source}
-        </a>
-      </div>
-    )}
+    {
+      !post.data.ticketId?.startsWith('SD-') && (
+        <div class="source-citation">
+          <strong>原文出處：</strong>
+          <a href={post.data.sourceUrl} target="_blank" rel="noopener">
+            {post.data.source}
+          </a>
+        </div>
+      )
+    }
 
     <TableOfContents lang="zh-tw" headings={headings} />
 
@@ -73,11 +77,14 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
       <Content />
     </div>
 
-    {post.data.translatedDate && post.data.translatedBy && (
-      <div class="translation-info">
-        翻譯於 {post.data.translatedDate} by {post.data.translatedBy.model} ({post.data.translatedBy.harness})
-      </div>
-    )}
+    {
+      post.data.translatedDate && post.data.translatedBy && (
+        <div class="translation-info">
+          翻譯於 {post.data.translatedDate} by {post.data.translatedBy.model} (
+          {post.data.translatedBy.harness})
+        </div>
+      )
+    }
 
     <ShareButton title={post.data.title} lang="zh-tw" />
 

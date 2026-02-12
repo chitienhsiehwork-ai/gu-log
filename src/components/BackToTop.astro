@@ -16,24 +16,18 @@ const { lang = 'zh-tw' } = Astro.props;
 const labels = {
   'zh-tw': {
     ariaLabel: '返回頂部',
-    title: '返回頂部'
+    title: '返回頂部',
   },
-  'en': {
+  en: {
     ariaLabel: 'Back to top',
-    title: 'Back to top'
-  }
+    title: 'Back to top',
+  },
 };
 
 const t = labels[lang];
 ---
 
-<button
-  id="back-to-top"
-  class="back-to-top"
-  aria-label={t.ariaLabel}
-  title={t.title}
-  type="button"
->
+<button id="back-to-top" class="back-to-top" aria-label={t.ariaLabel} title={t.title} type="button">
   <svg
     width="24"
     height="24"
@@ -92,7 +86,7 @@ const t = labels[lang];
       e.preventDefault();
       window.scrollTo({
         top: 0,
-        behavior: 'smooth'
+        behavior: 'smooth',
       });
     }
 
@@ -104,9 +98,13 @@ const t = labels[lang];
     button.addEventListener('click', scrollToTop);
 
     // Re-check on resize (page height might change)
-    window.addEventListener('resize', () => {
-      updateButtonVisibility();
-    }, { passive: true });
+    window.addEventListener(
+      'resize',
+      () => {
+        updateButtonVisibility();
+      },
+      { passive: true }
+    );
   }
 
   // Initialize on page load
@@ -195,24 +193,26 @@ const t = labels[lang];
   /* Respect reduced motion preference */
   @media (prefers-reduced-motion: reduce) {
     .back-to-top {
-      transition: opacity 0.2s, visibility 0.2s;
+      transition:
+        opacity 0.2s,
+        visibility 0.2s;
     }
   }
 
   /* Theme-specific adjustments */
-  [data-theme="light"] .back-to-top {
+  [data-theme='light'] .back-to-top {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   }
 
-  [data-theme="light"] .back-to-top:hover {
+  [data-theme='light'] .back-to-top:hover {
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
   }
 
-  [data-theme="dark"] .back-to-top {
+  [data-theme='dark'] .back-to-top {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   }
 
-  [data-theme="dark"] .back-to-top:hover {
+  [data-theme='dark'] .back-to-top:hover {
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
   }
 </style>
