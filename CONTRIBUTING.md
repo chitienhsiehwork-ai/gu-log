@@ -67,6 +67,24 @@ node -e "const fs=require('fs'); const c=JSON.parse(fs.readFileSync('scripts/art
 ```
 4. Build & push
 
+### translatedBy.model — 自動偵測
+
+**不要猜 model 名稱！** 用 runtime 偵測：
+
+```bash
+# 在 sub-agent 中，先用 session_status 取得 model id，然後：
+node scripts/detect-model.mjs anthropic/claude-opus-4-6
+# Output: Opus 4.6
+```
+
+對應表（`scripts/detect-model.mjs`）：
+- `claude-opus-4-6` → `Opus 4.6`
+- `claude-opus-4-5` → `Opus 4.5`
+- `claude-sonnet-4-5` → `Sonnet 4.5`
+- `gemini-3-pro` → `Gemini 3 Pro`
+
+**Validator 會 block** 不完整的 model 名稱（如 "Opus 4" 缺版本號）。
+
 ### 常見錯誤
 - ❌ 看到 tweet 就開寫，沒先搜尋 → 造成重複文章
 - ❌ 用「我記得是 SP-XX」而不是讀 counter → 編號衝突

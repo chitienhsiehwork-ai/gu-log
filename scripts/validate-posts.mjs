@@ -57,6 +57,28 @@ function parseFrontmatter(content) {
     }
   }
 
+  // Parse nested objects (e.g., translatedBy.model, translatedBy.harness)
+  const nestedMatch = raw.match(/^(\w+):\s*\n((?:\s+\w+:.*\n?)+)/gm);
+  if (nestedMatch) {
+    for (const block of nestedMatch) {
+      const lines = block.split('\n');
+      const parentKey = lines[0].match(/^(\w+):/)?.[1];
+      if (parentKey) {
+        fm[parentKey] = {};
+        for (let i = 1; i < lines.length; i++) {
+          const childMatch = lines[i].match(/^\s+(\w+):\s*(.+)/);
+          if (childMatch) {
+            let val = childMatch[2].trim();
+            if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+              val = val.slice(1, -1);
+            }
+            fm[parentKey][childMatch[1]] = val;
+          }
+        }
+      }
+    }
+  }
+
   // Parse tags array
   const tagsMatch = raw.match(/tags:\s*\[(.*?)\]/s);
   if (tagsMatch) {
@@ -189,7 +211,16 @@ function validatePost(filepath, allPosts) {
     }
   }
 
-  // ── Rule 14: Filename includes date ──
+  // ── Rule 14: translatedBy.model must have version number ──
+  if (fm.translatedBy?.model) {
+    const model = fm.translatedBy.model;
+    // Must contain a version number (e.g., "Opus 4.6", "Sonnet 4.5", "Gemini 3 Pro")
+    if (!/\d+\.\d+|\d+ Pro|\d+ Flash/i.test(model)) {
+      errors.push(`translatedBy.model "${model}" missing version — use full name like "Opus 4.6" (run: node scripts/detect-model.mjs <model-id>)`);
+    }
+  }
+
+  // ── Rule 15: Filename includes date ──
   const dateInFilename = filename.match(/\d{8}/);
   if (!dateInFilename) {
     warnings.push('Filename does not contain a date (YYYYMMDD)');
