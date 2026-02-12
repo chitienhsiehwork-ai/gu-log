@@ -19,7 +19,9 @@
     "prepare": "scripts/setup-hooks.sh",
     "lighthouse": "lhci autorun --config=lighthouserc.cjs",
     "lighthouse:collect": "lhci collect --config=lighthouserc.cjs",
-    "lighthouse:assert": "lhci assert --config=lighthouserc.cjs"
+    "lighthouse:assert": "lhci assert --config=lighthouserc.cjs",
+    "bundle:analyze": "node scripts/bundle-size.mjs",
+    "bundle:check": "node scripts/bundle-budget-check.mjs"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.6",
