@@ -1,0 +1,17 @@
+#!/bin/bash
+echo "🚀 Running pre-push checks..."
+
+# 1. Bundle budget check
+echo "📦 Checking bundle size budget..."
+node scripts/bundle-budget-check.mjs
+if [ $? -ne 0 ]; then
+  echo "❌ Bundle size exceeds budget! Push aborted."
+  exit 1
+fi
+
+# 2. Coverage ratchet (only if tests can run quickly)
+# Skip for now - tests take too long for pre-push
+# echo "🧪 Checking test coverage ratchet..."
+# bash scripts/coverage-ratchet.sh
+
+echo "✅ Pre-push checks passed!"

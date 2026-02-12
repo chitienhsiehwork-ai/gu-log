@@ -31,6 +31,39 @@ fi
 echo "✓ No duplicate ticketIds"
 echo ""
 
+# ─── Step 0.5: ESLint check on staged files ──────────────────────
+STAGED_LINT=$(git diff --cached --name-only --diff-filter=ACM -- '*.ts' '*.tsx' '*.astro' '*.mjs' 2>/dev/null || true)
+
+if [ -z "$STAGED_LINT" ]; then
+    echo "✓ No lintable files staged"
+else
+    LINT_COUNT=$(echo "$STAGED_LINT" | wc -l | tr -d ' ')
+    echo "🔍 ESLint: checking $LINT_COUNT staged file(s)..."
+
+    LINT_FILES=""
+    for file in $STAGED_LINT; do
+        if [ -f "$REPO_ROOT/$file" ]; then
+            LINT_FILES="$LINT_FILES $REPO_ROOT/$file"
+        fi
+    done
+
+    if [ -n "$LINT_FILES" ]; then
+        # --max-warnings=-1 means unlimited warnings; we only block on errors
+        if ! npx eslint --no-warn-ignored $LINT_FILES 2>&1; then
+            LINT_EXIT=$?
+            # eslint exit code 1 = lint errors found
+            if [ "$LINT_EXIT" -eq 1 ]; then
+                echo ""
+                echo "❌ ESLint found errors. Fix them before committing."
+                echo "   Run: npm run lint:fix"
+                exit 1
+            fi
+        fi
+        echo "✓ ESLint passed"
+    fi
+fi
+echo ""
+
 # ─── Step 1: Post validator (Node.js, blocking) ──────────────────
 # Validate only staged .mdx files (ACM = Added, Copied, Modified)
 STAGED_MDX=$(git diff --cached --name-only --diff-filter=ACM -- "$POSTS_DIR"/*.mdx 2>/dev/null || true)

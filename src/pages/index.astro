@@ -1,5 +1,5 @@
 ---
-import { getCollection } from 'astro:content';
+import { getCollection, type CollectionEntry } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Toggle from '../components/Toggle.astro';
 import TicketBadge from '../components/TicketBadge.astro';
@@ -17,7 +17,7 @@ const getTicketNumber = (ticketId: string | undefined) => {
 };
 
 // Sort by ticketId number descending (largest first = newest)
-const sortByTicketNumber = (a: any, b: any) =>
+const sortByTicketNumber = (a: CollectionEntry<'posts'>, b: CollectionEntry<'posts'>) =>
   getTicketNumber(b.data.ticketId) - getTicketNumber(a.data.ticketId);
 
 // Filter and sort each category
