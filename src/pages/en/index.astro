@@ -132,7 +132,24 @@ const cpPosts = allPosts
   }
 
   .posts-section, .clawd-picks-section {
-    margin-bottom: 1.25rem;
+    margin-bottom: 1.5rem;
+    padding-top: 1.25rem;
+  }
+
+  .posts-section:first-child,
+  .sd-section {
+    padding-top: 0;
+  }
+
+  .sp-section::before,
+  .clawd-picks-section::before {
+    content: '';
+    display: block;
+    width: 48px;
+    height: 1.5px;
+    background: var(--color-border);
+    margin: 0 auto 1.25rem;
+    border-radius: 1px;
   }
 
   .section-subtitle {
@@ -160,6 +177,15 @@ const cpPosts = allPosts
     height: 24px;
     vertical-align: middle;
     border-radius: 22%;
+  }
+
+  .post-preview :global(.toggle-container) {
+    margin: 0.3rem 0 0;
+  }
+
+  .post-preview :global(.toggle-header) {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
   }
 
   .pick-preview {
