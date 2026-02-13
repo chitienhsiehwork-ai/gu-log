@@ -1,16 +1,22 @@
 ---
 // ClawdNote component for Clawd's commentary
 // Automatically adds a fun, varied prefix to make it clear this is Clawd speaking
+//
+// Variants:
+//   "note" (default) — technical supplement / commentary (existing behavior)
+//   "murmur" — casual 碎碎念 / inner monologue style
 
 interface Props {
   /** Optional custom prefix. If not provided, one is selected based on content */
   prefix?: string;
+  /** Visual variant: "note" (default) | "murmur" (casual 碎碎念) */
+  variant?: 'note' | 'murmur';
 }
 
-const { prefix } = Astro.props;
+const { prefix, variant = 'note' } = Astro.props;
 
 // Fun prefixes that give Clawd personality - 鄉民/李宏毅 style
-const funPrefixes = [
+const notePrefixes = [
   'Clawd 碎碎念：',
   'Clawd 忍不住說：',
   'Clawd 想補充：',
@@ -28,6 +34,16 @@ const funPrefixes = [
   'Clawd 畫重點：',
 ];
 
+const murmurPrefixes = [
+  '🍄 Clawd 碎碎念：',
+  '🍄 Clawd 偷偷講：',
+  '🍄 Clawd 內心小劇場：',
+  '🍄 Clawd 的 murmur：',
+  '🍄 Clawd 嘀咕一下：',
+];
+
+const prefixes = variant === 'murmur' ? murmurPrefixes : notePrefixes;
+
 // Get the slot content for hashing
 const slotContent = await Astro.slots.render('default');
 
@@ -44,10 +60,11 @@ function hashString(str: string): number {
 
 // Select prefix based on content hash (deterministic but varied)
 const contentHash = hashString(slotContent);
-const selectedPrefix = prefix || funPrefixes[contentHash % funPrefixes.length];
+const selectedPrefix = prefix || prefixes[contentHash % prefixes.length];
+const isNote = variant === 'note';
 ---
 
-<blockquote class="claude-note">
+<blockquote class:list={['claude-note', { 'claude-note--murmur': !isNote }]}>
   <strong class="clawd-prefix">{selectedPrefix}</strong>
   <br />
   <Fragment set:html={slotContent} />
@@ -59,5 +76,28 @@ const selectedPrefix = prefix || funPrefixes[contentHash % funPrefixes.length];
     font-size: 0.95em;
     display: block;
     margin-bottom: 0.3rem;
+  }
+
+  /* Murmur variant styling */
+  .claude-note--murmur {
+    border-left-color: #9d7cd8 !important;
+    background: rgba(157, 124, 216, 0.06) !important;
+    font-style: italic;
+    border-radius: 0 12px 12px 0 !important;
+    padding: 1rem 1.25rem !important;
+  }
+
+  .claude-note--murmur .clawd-prefix {
+    color: #9d7cd8;
+  }
+
+  /* Light theme murmur */
+  [data-theme='light'] .claude-note--murmur {
+    border-left-color: #6c71c4 !important;
+    background: rgba(108, 113, 196, 0.06) !important;
+  }
+
+  [data-theme='light'] .claude-note--murmur .clawd-prefix {
+    color: #6c71c4;
   }
 </style>

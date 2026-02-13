@@ -19,9 +19,9 @@ const POSTS_DIR = path.join(__dirname, '../src/content/posts');
 const COUNTER_FILE = path.join(__dirname, 'article-counter.json');
 
 // ─── Config ────────────────────────────────────────────────────────
-const VALID_PREFIXES = ['SP', 'CP', 'SD'];
+const VALID_PREFIXES = ['SP', 'CP', 'SD', 'Lv'];
 const VALID_LANGS = ['zh-tw', 'en'];
-const TICKET_PATTERN = /^(SP|CP|SD)-\d+$/;
+const TICKET_PATTERN = /^(SP|CP|SD|Lv)-\d+$/;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const URL_PATTERN = /^https?:\/\/.+/;
 const MIN_CONTENT_LENGTH = 200; // characters, excluding frontmatter
@@ -124,7 +124,7 @@ function validatePost(filepath, allPosts) {
   if (!fm.ticketId) {
     errors.push('Missing ticketId');
   } else if (!TICKET_PATTERN.test(fm.ticketId)) {
-    errors.push(`Invalid ticketId format: "${fm.ticketId}" (expected SP-N, CP-N, or SD-N)`);
+    errors.push(`Invalid ticketId format: "${fm.ticketId}" (expected SP-N, CP-N, SD-N, or Lv-N)`);
   }
 
   // ── Rule 4: Date formats ──

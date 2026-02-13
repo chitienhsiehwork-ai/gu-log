@@ -1,0 +1,81 @@
+---
+/**
+ * AnalogyBox - Visual callout for analogies / metaphors
+ *
+ * Usage in .mdx:
+ *   <AnalogyBox title="🏢 辦公室大樓的比喻">
+ *     DNS 就像大樓的總機小姐…
+ *   </AnalogyBox>
+ */
+
+interface Props {
+  title?: string;
+}
+
+const { title = '💡 類比時間' } = Astro.props;
+---
+
+<aside class="analogy-box" role="note">
+  <div class="analogy-header">
+    <span class="analogy-title">{title}</span>
+    <span class="analogy-badge">類比</span>
+  </div>
+  <div class="analogy-content">
+    <slot />
+  </div>
+</aside>
+
+<style>
+  .analogy-box {
+    border: 2px solid #d4a843;
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin: 1.5rem 0;
+    background: rgba(212, 168, 67, 0.06);
+    position: relative;
+  }
+
+  .analogy-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .analogy-title {
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--color-text);
+  }
+
+  .analogy-badge {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.15rem 0.5rem;
+    border-radius: 9999px;
+    background: rgba(212, 168, 67, 0.15);
+    color: #d4a843;
+    font-weight: 600;
+  }
+
+  .analogy-content {
+    color: var(--color-text);
+    line-height: 1.7;
+  }
+
+  .analogy-content :global(p:last-child) {
+    margin-bottom: 0;
+  }
+
+  /* Light theme */
+  [data-theme='light'] .analogy-box {
+    border-color: #b58900;
+    background: rgba(181, 137, 0, 0.06);
+  }
+
+  [data-theme='light'] .analogy-badge {
+    background: rgba(181, 137, 0, 0.12);
+    color: #8a6800;
+  }
+</style>

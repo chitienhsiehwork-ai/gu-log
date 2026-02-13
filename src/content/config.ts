@@ -4,7 +4,7 @@ const postsCollection = defineCollection({
   type: 'content',
   schema: z.object({
     title: z.string(),
-    ticketId: z.string().optional(), // e.g., "SP-15", "CP-1", "SD-1"
+    ticketId: z.string().optional(), // e.g., "SP-15", "CP-1", "SD-1", "Lv-1"
     originalDate: z.string(), // Original publish date (YYYY-MM-DD format)
     translatedDate: z.string().optional(), // Translation date (YYYY-MM-DD format)
     translatedBy: z
