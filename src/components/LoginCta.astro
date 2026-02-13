@@ -1,0 +1,218 @@
+---
+interface Props {
+  lang?: 'zh-tw' | 'en';
+}
+
+const { lang = 'zh-tw' } = Astro.props;
+const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:8787';
+---
+
+<div class="login-cta-container" style="display: none;" data-login-cta>
+  <div class="login-cta-card">
+    <div class="login-cta-icon">🤖</div>
+    <div class="login-cta-content" id="login-cta-content">
+      <!-- Injected by JS -->
+    </div>
+  </div>
+</div>
+
+<script is:inline define:vars={{ apiUrl, lang }}>
+  const JWT_KEY = 'gu-log-jwt';
+  const RETURN_KEY = 'gu-log-return-url';
+  
+  function getJwt() {
+    try { return localStorage.getItem(JWT_KEY); } catch(e) { return null; }
+  }
+
+  function parseJwt(token) {
+    try {
+      const base64 = token.split('.')[1];
+      const json = atob(base64.replace(/-/g, '+').replace(/_/g, '/'));
+      return JSON.parse(json);
+    } catch(e) { return null; }
+  }
+
+  function render() {
+    const container = document.querySelector('[data-login-cta]');
+    const content = document.getElementById('login-cta-content');
+    if (!container || !content) return;
+
+    const jwt = getJwt();
+    let email = null;
+    if (jwt) {
+      const payload = parseJwt(jwt);
+      email = (payload && (payload.email || payload.login || payload.sub)) || '?';
+    }
+
+    if (email) {
+      // Logged in
+      content.innerHTML = `
+        <div class="cta-title">${lang === 'en' ? 'Select text to use AI features' : '選取文章中的文字來使用 AI 功能'}</div>
+        <div class="cta-status">
+          ${lang === 'en' ? 'Logged in as' : '已登入'}：${email} 
+          <button id="cta-logout-btn" class="cta-logout">[${lang === 'en' ? 'Logout' : 'Logout'}]</button>
+        </div>
+      `;
+      
+      // Use setTimeout to ensure DOM is updated
+      setTimeout(() => {
+        document.getElementById('cta-logout-btn')?.addEventListener('click', () => {
+          localStorage.removeItem(JWT_KEY);
+          render();
+        });
+      }, 0);
+    } else {
+      // Not logged in
+      content.innerHTML = `
+        <div class="cta-title">${lang === 'en' ? 'Want to improve this article?' : '想幫忙改進這篇文章？'}</div>
+        <div class="cta-desc">
+          ${lang === 'en' ? 'Log in to use AI features:' : '登入後可以用 AI 功能：'}
+          <ul class="cta-features">
+            <li>${lang === 'en' ? '• Ask AI — Select text to explain' : '• Ask AI — 選取文字，AI 幫你解釋'}</li>
+            <li>${lang === 'en' ? '• Edit — Select text to suggest edits' : '• Edit — 選取文字，AI 建議修改'}</li>
+          </ul>
+        </div>
+        <div class="cta-action">
+          <a href="${apiUrl}/auth/github" id="cta-login-btn" class="github-login-btn">
+            <svg height="20" width="20" viewBox="0 0 16 16" version="1.1" aria-hidden="true">
+              <path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+            </svg>
+            <span>Login with GitHub</span>
+          </a>
+        </div>
+      `;
+
+      setTimeout(() => {
+        document.getElementById('cta-login-btn')?.addEventListener('click', () => {
+          try {
+            localStorage.setItem(RETURN_KEY, window.location.href);
+          } catch(e) {}
+        });
+      }, 0);
+    }
+
+    container.style.display = 'block';
+  }
+
+  // Run on load
+  render();
+  
+  // Re-run if localStorage changes (e.g. from another tab)
+  window.addEventListener('storage', (e) => {
+    if (e.key === JWT_KEY) render();
+  });
+</script>
+
+<style>
+  .login-cta-container {
+    margin: 3rem auto;
+    max-width: 600px;
+    padding: 0 1rem;
+  }
+  
+  .login-cta-card {
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    background-color: var(--color-bg-secondary, rgba(127, 127, 127, 0.05));
+    padding: 1.5rem;
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+  
+  .login-cta-icon {
+    font-size: 2rem;
+    line-height: 1;
+  }
+  
+  .login-cta-content {
+    flex: 1;
+  }
+  
+  .cta-title {
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+    color: var(--color-text);
+  }
+  
+  .cta-desc {
+    font-size: 0.95rem;
+    color: var(--color-text-muted);
+    margin-bottom: 1rem;
+  }
+  
+  .cta-features {
+    list-style: none;
+    padding: 0;
+    margin: 0.5rem 0 0 0;
+  }
+  
+  .cta-features li {
+    margin-bottom: 0.25rem;
+  }
+  
+  .cta-action {
+    margin-top: 1rem;
+    text-align: center;
+  }
+  
+  .github-login-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: #24292e; /* GitHub black */
+    color: white;
+    padding: 0.6rem 1.2rem;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: background-color 0.2s, transform 0.1s;
+  }
+  
+  .github-login-btn:hover {
+    background-color: #000;
+    text-decoration: none;
+    transform: translateY(-1px);
+  }
+  
+  [data-theme="dark"] .github-login-btn {
+    background-color: #f0f6fc; /* GitHub light */
+    color: #24292e;
+  }
+
+  [data-theme="dark"] .github-login-btn:hover {
+    background-color: #ffffff;
+  }
+  
+  .cta-status {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+  }
+  
+  .cta-logout {
+    background: none;
+    border: none;
+    color: var(--color-accent);
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
+    margin-left: 0.5rem;
+  }
+  
+  @media (max-width: 600px) {
+    .login-cta-container {
+      max-width: 100%;
+    }
+    .login-cta-card {
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+    .cta-features {
+      text-align: left;
+      display: inline-block;
+    }
+  }
+</style>

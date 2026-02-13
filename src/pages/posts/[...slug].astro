@@ -6,6 +6,7 @@ import PrevNextNav from '../../components/PrevNextNav.astro';
 import TicketBadge from '../../components/TicketBadge.astro';
 import Giscus from '../../components/Giscus.astro';
 import ShareButton from '../../components/ShareButton.astro';
+import LoginCta from '../../components/LoginCta.astro';
 import AiPopup from '../../components/AiPopup.astro';
 
 export async function getStaticPaths() {
@@ -88,6 +89,8 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
     }
 
     <ShareButton title={post.data.title} lang="zh-tw" />
+
+    <LoginCta lang="zh-tw" />
 
     <PrevNextNav currentSlug={post.slug} allPosts={allPosts} lang="zh-tw" />
 

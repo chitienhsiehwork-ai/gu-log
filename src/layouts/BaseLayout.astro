@@ -5,7 +5,6 @@ import SearchBar from '../components/SearchBar.astro';
 import CodeCopyButton from '../components/CodeCopyButton.astro';
 import ReadingProgress from '../components/ReadingProgress.astro';
 import BackToTop from '../components/BackToTop.astro';
-import LoginIndicator from '../components/LoginIndicator.astro';
 
 interface Props {
   title: string;
@@ -182,26 +181,7 @@ const finalDescription = description || t.defaultDescription;
         transform: scale(1.1);
       }
 
-      /* Login row: on mobile, takes full width second row, aligned right */
-      .header-login-row {
-        display: flex;
-        justify-content: flex-end;
-        align-items: center;
-      }
-
-      @media (max-width: 767px) {
-        .header-login-row {
-          width: 100%;
-          order: 99;
-        }
-      }
-
-      @media (min-width: 768px) {
-        .header-login-row {
-          /* On desktop, stay inline in the flex row */
-          flex-shrink: 0;
-        }
-      }
+/* Removed login styles */
 
       /* Mobile: allow header to wrap, keep items compact */
       @media (max-width: 480px) {
@@ -282,9 +262,6 @@ const finalDescription = description || t.defaultDescription;
             <ThemeToggle />
           </span>
         </nav>
-        <div class="header-login-row">
-          <LoginIndicator lang={lang} />
-        </div>
       </header>
 
       <main>
