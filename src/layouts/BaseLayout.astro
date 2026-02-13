@@ -182,16 +182,28 @@ const finalDescription = description || t.defaultDescription;
         transform: scale(1.1);
       }
 
-      /* Mobile: keep header as single row */
+      /* Mobile: allow header to wrap, keep items compact */
       @media (max-width: 480px) {
         .site-header {
-          flex-wrap: nowrap;
+          flex-wrap: wrap;
         }
         .site-nav {
-          gap: 0.4rem;
+          flex-shrink: 1;
+          flex-wrap: wrap;
+          gap: 0.2rem;
+          justify-content: flex-end;
         }
         .nav-link {
           font-size: 0.7rem;
+          min-height: 36px;
+          padding: 0 0.15rem;
+        }
+        .nav-icons {
+          gap: 0;
+        }
+        .clawd-nav-link {
+          min-width: 36px;
+          min-height: 36px;
         }
       }
 

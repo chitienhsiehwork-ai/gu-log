@@ -143,8 +143,17 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:8787';
     color: var(--color-accent, #7aa2f7);
   }
 
-  /* Hide on very small screens to keep header clean */
-  @media (max-width: 360px) {
+  /* Compact on mobile to prevent header overflow */
+  @media (max-width: 480px) {
+    .login-indicator {
+      min-height: 36px;
+      padding: 0 0.1rem;
+    }
+    .login-link {
+      min-height: 36px;
+      font-size: 0.65rem;
+      padding: 0 0.1rem;
+    }
     .login-user {
       max-width: 60px;
     }
