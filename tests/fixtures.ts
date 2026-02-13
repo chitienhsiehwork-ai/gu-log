@@ -1,8 +1,8 @@
-import { test as testBase, expect } from '@playwright/test';
+import { test as testBase, expect, type Page } from '@playwright/test';
 import { addCoverageReport } from 'monocart-reporter';
 
-const test = testBase.extend({
-  autoTestFixture: [async ({ page }, use) => {
+const test = testBase.extend<{ autoTestFixture: string }>({
+  autoTestFixture: [async ({ page }: { page: Page }, use: (arg: string) => Promise<void>) => {
     // Coverage API is chromium only
     const isChromium = test.info().project.name === 'Desktop Chrome';
 
