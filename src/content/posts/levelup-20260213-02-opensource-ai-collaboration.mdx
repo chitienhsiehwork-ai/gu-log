@@ -1,0 +1,815 @@
+---
+ticketId: "Lv-02"
+title: "開源 AI 協作系統設計：從 BYOK 到 PR-based 編輯"
+originalDate: "2026-02-13"
+source: "Level-Up 系列"
+sourceUrl: "https://gu-log.vercel.app/posts/levelup-20260213-02-opensource-ai-collaboration"
+summary: "用 RPG 爬塔風格學習如何設計開源 AI 協作系統。從 Owner Only 到 BYOK、PR-based 編輯、Trust System，一步步打造安全又開放的 AI 協作平台。"
+lang: "zh-tw"
+tags: ["open-source", "ai", "collaboration", "oauth", "github", "level-up"]
+---
+
+import LevelUpProgress from '../../components/LevelUpProgress.astro';
+import LevelUpQuiz from '../../components/LevelUpQuiz.astro';
+import ClawdNote from '../../components/ClawdNote.astro';
+import AnalogyBox from '../../components/AnalogyBox.astro';
+
+歡迎來到 Level-Up 系列第二篇。
+
+上一篇我們搞懂了 OAuth 2.0 —— 怎麼讓使用者安全地登入你的 app。但登入只是第一步。今天我們要面對一個更刺激的問題：
+
+> **如果你的 open source 專案有 AI 功能，你要怎麼讓全世界的人都能用它來協作？**
+
+聽起來很美好對吧？任何人都能用 AI 幫你的專案修 typo、改文章、建議新功能。但現實是 —— AI 要花錢，而且花的是**你的錢**。
+
+這篇文章是一座塔，你要從 Floor 0 一路爬到 Boss Floor。每一層都代表一個 Phase 的系統設計，從最簡單的「只有自己能用」到最終的「任何人都能安全協作」。
+
+準備好了嗎？Let's go 🗡️
+
+---
+
+## 🏰 Floor 0：為什麼需要 AI 協作？
+
+<LevelUpProgress current={0} total={6} title="開源 AI 協作系統設計" />
+
+先來講一個故事。
+
+傳統的 open source 貢獻流程長這樣：
+
+```
+contributor 想修一個 typo
+    │
+    ├── 1. Fork repo
+    ├── 2. Clone 到本地
+    ├── 3. 找到那個該死的 typo
+    ├── 4. 改掉它
+    ├── 5. Commit + Push
+    ├── 6. 開 Pull Request
+    ├── 7. 等 maintainer review
+    └── 8. Merge ✅
+```
+
+為了修一個字，你要做八步。而且你還要會 Git。
+
+這就是為什麼 open source 的貢獻門檻其實很高 —— 不是技術門檻，是**儀式門檻**。你得會 fork、clone、branch、commit、push、PR... 修一個 typo 跟組裝 IKEA 傢俱一樣，真正的工作量只有 1%，其他 99% 都在看說明書。
+
+### AI 加持後的世界
+
+現在想像一下，如果你的部落格或文件網站有 AI 功能：
+
+```
+讀者看到一段可以改進的文字
+    │
+    ├── 1. 選取文字
+    ├── 2. 按 "Edit with AI"
+    ├── 3. AI 建議修改
+    ├── 4. 確認 → 自動建 PR
+    └── 5. Maintainer review → Merge ✅
+```
+
+五步！而且不用會 Git。讀者只要看得懂中文（或英文），就能貢獻。
+
+<ClawdNote variant="murmur">
+想想看，如果 Wikipedia 有個「AI 幫我改寫這段」的按鈕，全世界的知識品質會提升多少？當然，可能也會有人用 AI 把所有維基百科的條目改成「根據我的研究」開頭就是了。
+</ClawdNote>
+
+### 但問題來了
+
+AI 不是免費的。每次呼叫 Claude API 或 OpenAI API 都要花 token。一個 request 大概 $0.01 到 $0.10 不等，聽起來很便宜對吧？
+
+但如果你的網站一天有 1000 個人用 AI 功能，每個人用 10 次：
+
+> 1000 × 10 × $0.05 = **$500 / 天** = **$15,000 / 月** 💸
+
+你的 side project 瞬間變成月租比公司辦公室還貴的東西。
+
+更慘的是，如果有人寫了一個 script 自動瘋狂打你的 AI API：
+
+```bash
+while true; do
+  curl -X POST https://your-site.com/api/ai/ask \
+    -d '{"prompt": "寫一首 10000 字的詩"}'
+done
+```
+
+<ClawdNote variant="murmur">
+恭喜，你的 Anthropic 帳單剛剛超過了你的年薪。你現在理解為什麼 open source AI 協作不能直接把大門打開了。
+</ClawdNote>
+
+所以核心問題是：
+
+> **你想要開放 AI 功能讓更多人協作，但你不想被燒錢。怎麼辦？**
+
+接下來的每一層，我們就一步步解決這個問題。
+
+<LevelUpQuiz
+  question="開放 AI 功能給所有人，最大的風險是什麼？"
+  options={[
+    { label: "A", text: "AI 的回應品質不穩定" },
+    { label: "B", text: "API token 被濫用，導致帳單爆炸" },
+    { label: "C", text: "使用者會不習慣 AI 介面" },
+    { label: "D", text: "GitHub 會封鎖你的 repo" },
+  ]}
+  answer="B"
+  explanation="AI API 是按量計費的，每次呼叫都有成本。如果沒有做任何存取控制，任何人（包括惡意 script）都可以無限呼叫你的 AI endpoint，直接把你的 API 帳單燒到天花板。這是 open source AI 協作最先要解決的問題。"
+/>
+
+---
+
+## 🏰 Floor 1：Phase 1 — Owner Only
+
+<LevelUpProgress current={1} total={6} title="開源 AI 協作系統設計" />
+
+最安全的做法是什麼？**只有自己能用**。
+
+這就是 Phase 1：Owner Only 模式。只有 repo 的 owner 可以使用 AI 功能，其他人看到的是一般的靜態網站。
+
+### 怎麼實作？
+
+其實上一篇 Lv-01 已經教過核心技術了 —— **GitHub OAuth + JWT**。
+
+流程很簡單：
+
+1. 使用者按「Login with GitHub」
+2. 走完 OAuth flow，backend 拿到使用者的 email
+3. 比對 email 是不是 owner 的 email
+4. 是 → 簽發 JWT，解鎖 AI 功能
+5. 不是 → 一般使用者，不能用 AI
+
+```javascript
+// 簡化版 auth check
+const OWNER_EMAIL = 'shroomdog@example.com';
+
+app.post('/api/ai/ask', verifyJWT, (req, res) => {
+  if (req.user.email !== OWNER_EMAIL) {
+    return res.status(403).json({ error: 'AI features are owner-only' });
+  }
+
+  // 呼叫 Claude API...
+});
+```
+
+加個 rate limit 更安全：
+
+```javascript
+import rateLimit from 'express-rate-limit';
+
+const aiLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 小時
+  max: 50, // 最多 50 次
+  message: '你今天 AI 用太多了，休息一下吧'
+});
+
+app.post('/api/ai/ask', aiLimiter, verifyJWT, ownerOnly, handler);
+```
+
+### Owner 的特權
+
+因為是自己的 repo，Owner 可以享受一些特權：
+
+- **直接 commit**：不需要走 PR，因為你就是 maintainer。你 review 自己的 code 就像自己跟自己下棋一樣，沒有意義。
+- **不限 scope**：想改什麼就改什麼，不用限制在特定檔案
+- **用 server 的 API key**：成本自己吸收，反正帳單寄到自己家
+
+<AnalogyBox title="🍳 自己的廚房">
+
+Phase 1 就像你自己的廚房。
+
+- 冰箱是你的（API key）
+- 鍋子是你的（server）
+- 食材是你買的（token 費用）
+- 想煮什麼就煮什麼，不用問任何人
+
+但如果你想邀請朋友來你家煮東西... 你可能會想先確認他會不會把你家燒了。
+
+</AnalogyBox>
+
+<ClawdNote>
+即使是 Owner Only 模式，rate limit 還是建議要加。原因不是防別人，是防自己 —— 你可能不小心寫了一個有 bug 的迴圈，瘋狂呼叫 AI API。有了 rate limit 至少不會一次把帳單燒爆。就像信用卡有每日刷卡上限，不是不信任你，是怕你被盜刷。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="為什麼 Owner 可以直接 commit 而不需要走 PR？"
+  options={[
+    { label: "A", text: "因為 Owner 的程式碼品質一定比較好" },
+    { label: "B", text: "因為 Owner 就是 repo 的 maintainer，PR 是給別人 review 用的機制，自己 review 自己沒有意義" },
+    { label: "C", text: "因為 GitHub 不允許 Owner 開 PR" },
+    { label: "D", text: "因為 PR 會增加 CI/CD 的費用" },
+  ]}
+  answer="B"
+  explanation="Pull Request 的核心目的是 code review —— 讓別人檢查你的修改。Owner 是唯一的 maintainer 時，自己開 PR 自己 merge 只是增加儀式感而已。當然，如果是多人維護的 repo，即使是 Owner 也應該走 PR 讓其他 maintainer review。"
+/>
+
+---
+
+## 🏰 Floor 2：Phase 2 — BYOK（Bring Your Own Key）
+
+<LevelUpProgress current={2} total={6} title="開源 AI 協作系統設計" />
+
+Owner Only 很安全，但也很孤獨。你的 open source 專案就你一個人在用 AI 功能，其他 contributor 只能乾瞪眼。
+
+有沒有辦法讓別人也用 AI，但**不用你出錢**？
+
+有！答案是 **BYOK — Bring Your Own Key**。
+
+### 概念
+
+讓使用者自己帶 API key 來。你的 server 負責提供 AI 介面和 UX，但實際呼叫 AI API 的費用由使用者自己承擔。
+
+<AnalogyBox title="🍷 BYOB 餐廳（自帶酒水）">
+
+你有沒有去過 BYOB 餐廳？BYOB = Bring Your Own Bottle（自帶酒水）。
+
+餐廳提供座位、餐具、廚師、氣氛，但酒水你自己帶。餐廳不收開瓶費（或只收一點），你喝自己的酒，費用自理。
+
+BYOK 就是 BYOB 的 API 版本：
+
+- **餐廳** = 你的網站（提供 AI 編輯介面）
+- **酒水** = API key（使用者自帶）
+- **菜單** = AI prompt template（你設計的）
+- **帳單** = Anthropic / OpenAI 的費用（使用者自己付）
+
+</AnalogyBox>
+
+### 實作方式
+
+最單純的方式：使用者把 API key 貼到前端，存在 `localStorage` 裡。
+
+```javascript
+// 前端
+const apiKey = localStorage.getItem('user_claude_key');
+
+const response = await fetch('https://api.anthropic.com/v1/messages', {
+  method: 'POST',
+  headers: {
+    'x-api-key': apiKey,
+    'content-type': 'application/json',
+    'anthropic-version': '2023-06-01',
+    'anthropic-dangerous-direct-browser-access': 'true'
+  },
+  body: JSON.stringify({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 1024,
+    messages: [{ role: 'user', content: prompt }]
+  })
+});
+```
+
+等等，這有一個大問題 ——
+
+### 安全大亂鬥
+
+**方案 A：前端直接呼叫 API**
+
+```
+瀏覽器 ──[帶 API key]──→ Claude API
+```
+
+問題：
+
+- 瀏覽器直接打 API 需要 CORS 允許。Anthropic 確實有提供 `anthropic-dangerous-direct-browser-access` header（對，它真的叫 "dangerous"），但這不是推薦做法
+- API key 在前端的 Network tab 看得到
+- 如果網站有 XSS 漏洞，key 就被偷了
+
+<ClawdNote variant="murmur">
+Anthropic 把 header 取名叫 `anthropic-dangerous-direct-browser-access`... 你知道一個東西取名叫 "dangerous" 的時候，大概就真的不該用。就像食物包裝上寫「請勿直接食用」，你最好不要直接食用。
+</ClawdNote>
+
+**方案 B：key 傳給 backend proxy**
+
+```
+瀏覽器 ──[帶 API key]──→ 你的 Backend ──[帶 API key]──→ Claude API
+```
+
+比方案 A 好，因為：
+- 不用擔心 CORS
+- 可以在 backend 加 rate limit、logging、prompt filtering
+
+但問題是：**你的 backend 看得到 key**。如果你的 server 被 hack 了，所有使用者的 API key 都洩漏了。
+
+**方案 C：加密傳輸，用完即丟** ⭐
+
+```
+瀏覽器 ──[加密的 key]──→ 你的 Backend ──[解密 → 用 → 丟]──→ Claude API
+```
+
+最安全的做法：
+
+1. 前端用 server 的 public key 加密 API key
+2. 加密後的 key 傳給 backend
+3. Backend 用 private key 解密
+4. 呼叫 Claude API
+5. **立刻丟掉 key，不存任何地方**
+
+```javascript
+// 前端：加密 key
+const encryptedKey = await crypto.subtle.encrypt(
+  { name: 'RSA-OAEP' },
+  serverPublicKey,
+  new TextEncoder().encode(userApiKey)
+);
+
+// 傳給 backend
+await fetch('/api/ai/ask', {
+  method: 'POST',
+  body: JSON.stringify({
+    encryptedKey: btoa(String.fromCharCode(...new Uint8Array(encryptedKey))),
+    prompt: '...'
+  })
+});
+```
+
+```javascript
+// Backend：解密 → 用 → 丟
+app.post('/api/ai/ask', async (req, res) => {
+  // 解密
+  const apiKey = decrypt(req.body.encryptedKey, privateKey);
+
+  // 呼叫 Claude
+  const result = await callClaude(apiKey, req.body.prompt);
+
+  // apiKey 在這個 function scope 結束後就被 GC 回收了
+  // 不存 database、不存 cache、不寫 log
+
+  res.json(result);
+});
+```
+
+<ClawdNote>
+方案 C 的核心原則是 **zero-knowledge proxy** —— 你的 server 在運行時短暫知道 key，但不留下任何紀錄。這跟 VPN 說的 "no-log policy" 是同樣的概念。當然，使用者最終還是要信任你的 server code，所以如果你的專案是 open source，使用者可以自行驗證你真的沒有在存 key。開源的透明性在這裡就是你最大的優勢。
+</ClawdNote>
+
+### 三種方案比較
+
+| | 方案 A: 前端直呼 | 方案 B: Backend proxy | 方案 C: 加密代理 |
+|---|---|---|---|
+| **CORS 問題** | ❌ 有 | ✅ 無 | ✅ 無 |
+| **Server 看到 key？** | ✅ 不會 | ❌ 會（明文） | ⚠️ 短暫（記憶體中） |
+| **XSS 風險** | ❌ 高 | ⚠️ 中 | ⚠️ 中 |
+| **實作複雜度** | 低 | 中 | 高 |
+| **推薦度** | ⭐ | ⭐⭐ | ⭐⭐⭐ |
+
+<LevelUpQuiz
+  question="BYOK 模式下，使用者的 API key 最安全的處理方式是？"
+  options={[
+    { label: "A", text: "存在 server 的資料庫裡，下次使用者就不用再貼一次" },
+    { label: "B", text: "前端直接呼叫 AI API，key 完全不經過 server" },
+    { label: "C", text: "前端加密 key 後傳給 backend，backend 解密使用後立刻丟棄，不存任何地方" },
+    { label: "D", text: "存在 cookie 裡跟著 request 傳送" },
+  ]}
+  answer="C"
+  explanation="方案 C（加密代理）是最佳平衡：backend 可以做 rate limit 和 prompt filtering（比前端直呼安全），同時 key 只在記憶體中短暫存在，不留痕跡（比明文 proxy 安全）。方案 A 有 CORS 問題且前端容易被 XSS 攻擊，方案 D 則是把 key 暴露在每個 HTTP request 中，非常危險。"
+/>
+
+---
+
+## 🏰 Floor 3：Phase 2.5 — PR-based 編輯
+
+<LevelUpProgress current={3} total={6} title="開源 AI 協作系統設計" />
+
+到目前為止，我們解決了「誰出錢」的問題（BYOK）。但還有一個更根本的問題沒解決：
+
+> **非 Owner 的人修改了內容，要怎麼安全地更新到 repo？**
+
+答案就三個字母：**P、R**。
+
+### 為什麼不能直接 commit？
+
+讓任何人直接 commit 到你的 repo？
+
+想像一下 Wikipedia 如果讓任何人不用 review 就能直接修改 —— 哦等等，它以前真的是這樣，然後就出現了一堆把頁面改成「我是白痴」的 vandalism。
+
+直接 commit 的問題：
+
+1. **品質無法控制** —— contributor 可能改錯、AI 可能幻覺、格式可能壞掉
+2. **無法追蹤** —— 誰改了什麼？為什麼改？沒有 review trail
+3. **不可逆** —— 改壞了要怎麼 revert？在哪個 commit？
+
+所以非 owner 的修改**一定要走 PR**。PR 是一道安全門。
+
+### 流程設計
+
+使用者在你的網站上用 AI 編輯文章的完整流程：
+
+```
+1. 使用者選取一段文字，按 "Edit with AI"
+2. AI 根據使用者的指示建議修改（使用 BYOK）
+3. 使用者確認修改內容
+4. Backend 用 GitHub API 自動建 PR
+5. Owner 收到 PR notification
+6. Owner review → merge 或 reject
+```
+
+第 4 步是關鍵。讓我們看看 GitHub API 要怎麼自動建 PR：
+
+### GitHub API 建 PR 的四步曲
+
+```javascript
+// 假設使用者的 GitHub token 有 repo 權限
+// （透過 OAuth 取得，scope: public_repo）
+
+async function createPR(userToken, repoOwner, repoName, filePath, newContent, title) {
+
+  // Step 1: Fork repo（如果使用者還沒 fork 過）
+  await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/forks`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${userToken}` }
+  });
+
+  // Step 2: 建立新 branch
+  const mainRef = await fetch(
+    `https://api.github.com/repos/${username}/${repoName}/git/ref/heads/main`,
+    { headers: { Authorization: `Bearer ${userToken}` } }
+  ).then(r => r.json());
+
+  await fetch(
+    `https://api.github.com/repos/${username}/${repoName}/git/refs`,
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${userToken}` },
+      body: JSON.stringify({
+        ref: `refs/heads/ai-edit-${Date.now()}`,
+        sha: mainRef.object.sha
+      })
+    }
+  );
+
+  // Step 3: Commit 修改
+  await fetch(
+    `https://api.github.com/repos/${username}/${repoName}/contents/${filePath}`,
+    {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${userToken}` },
+      body: JSON.stringify({
+        message: `docs: AI-suggested edit for ${filePath}`,
+        content: btoa(newContent),
+        branch: `ai-edit-${Date.now()}`
+      })
+    }
+  );
+
+  // Step 4: 建立 PR
+  await fetch(
+    `https://api.github.com/repos/${repoOwner}/${repoName}/pulls`,
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${userToken}` },
+      body: JSON.stringify({
+        title: title,
+        head: `${username}:ai-edit-${Date.now()}`,
+        base: 'main',
+        body: '🤖 This edit was suggested by AI and reviewed by the contributor.'
+      })
+    }
+  );
+}
+```
+
+<ClawdNote variant="murmur">
+寫四個 API call 來建一個 PR，感覺有點殺雞用牛刀？其實 GitHub 有一個超簡單的替代方案...
+</ClawdNote>
+
+### 懶人版：GitHub Edit URL
+
+如果你不想在 backend 寫這麼多 GitHub API，有一個偷吃步：
+
+**直接打開 GitHub 的 Edit 頁面，把 AI 修改後的內容預填進去。**
+
+```javascript
+// 把 AI 修改後的內容 encode 成 URL
+const editUrl = `https://github.com/${owner}/${repo}/edit/main/${filePath}`;
+
+// 引導使用者到 GitHub 的 edit 頁面
+// 使用者自己 commit + 開 PR
+window.open(editUrl, '_blank');
+```
+
+使用者點了之後會被帶到 GitHub 的 Edit file 介面，他可以在那裡直接修改、commit、開 PR。GitHub 會處理所有 fork/branch/PR 的邏輯。
+
+缺點是不能自動預填內容（GitHub 的 edit URL 不支援帶 body 參數），但你可以把 AI 修改後的內容複製到剪貼簿，讓使用者自己貼上。
+
+### Rate Limit：防止 PR 洪水
+
+即使走 PR，還是要防止有人濫用。建議的 rate limit：
+
+```javascript
+const prLimiter = rateLimit({
+  windowMs: 24 * 60 * 60 * 1000, // 24 小時
+  max: 3, // 每人每天最多 3 個 PR
+  keyGenerator: (req) => req.user.githubId,
+  message: '你今天已經建了 3 個 PR 了，明天再來吧'
+});
+```
+
+每人每天 3 個 PR —— 足夠做有意義的貢獻，但不至於被 spam。
+
+<ClawdNote>
+為什麼是 3 個？這是個經驗法則。一般 contributor 一天能做的有品質修改大概就 1-3 個。超過這個數量，要嘛是在灌水，要嘛是品質開始下降。而且 maintainer 每天 review 3 個 PR 已經夠忙了，10 個以上就開始想離職。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="為什麼非 owner 的修改要走 PR 而不是直接 commit？"
+  options={[
+    { label: "A", text: "因為 GitHub 不允許非 owner commit" },
+    { label: "B", text: "因為 PR 提供了 review 機制，讓 maintainer 可以檢查修改品質，並保留完整的修改歷史" },
+    { label: "C", text: "因為直接 commit 比較慢" },
+    { label: "D", text: "因為 PR 不需要 GitHub 帳號" },
+  ]}
+  answer="B"
+  explanation="PR 的核心價值是 code review —— maintainer 可以看到修改的 diff、討論修改內容、要求修正，然後才決定要不要 merge。這確保了內容品質，同時 PR 本身就是一份完整的修改歷史記錄（誰改了什麼、為什麼改、什麼時候改）。直接 commit 跳過了這些保護機制。"
+/>
+
+---
+
+## 🏰 Floor 4：Phase 3 — Trust System
+
+<LevelUpProgress current={4} total={6} title="開源 AI 協作系統設計" />
+
+到目前為止，系統已經可以運作了：
+
+- Owner 用自己的 key 直接 commit ✅
+- 其他人用 BYOK + PR 來貢獻 ✅
+
+但這個設計有一個效率問題：**每個 PR 都需要 owner review**。
+
+如果你的專案越來越大，每天收到 50 個 AI-assisted PR... 你光 review 就飽了，什麼 code 都不用寫。
+
+這時候你需要一個 **Trust System** —— 根據 contributor 的歷史表現，給予不同等級的權限。
+
+<AnalogyBox title="🎮 論壇等級系統">
+
+還記得以前的 BBS / 論壇嗎？每個使用者都有等級：
+
+- **Level 0 — 潛水仔**：只能看文，不能發文
+- **Level 1 — 新手**：可以發文，但有字數和頻率限制
+- **Level 2 — 常客**：可以發文和回文，沒有特別限制
+- **Level 3 — 版主**：可以刪文、置頂、管理其他人
+
+你不會第一天註冊就當版主。你要先證明你是個正常人類、會發有品質的內容，然後慢慢升級。
+
+Trust System 就是這個概念的 API 版本。
+
+</AnalogyBox>
+
+### Trust Levels 設計
+
+| Level | 名稱 | AI Token | 修改方式 | 條件 |
+|-------|------|----------|----------|------|
+| **0** | 路人 | BYOK（自帶） | PR + review | 預設，新使用者 |
+| **1** | 常客 | Server 提供 | PR + review | merge rate > 80%，≥ 5 PR |
+| **2** | 信任者 | Server 提供 | Direct commit | merge rate > 80%，≥ 10 PR |
+
+每一級的差異：
+
+**Level 0 — 路人**
+- 用自己的 API key（BYOK）
+- 所有修改走 PR
+- Owner 手動 review 每一個 PR
+- 每天 3 個 PR 的 rate limit
+
+**Level 1 — 常客**
+- 可以用 server 的 API key（不用再自帶了）
+- 修改還是要走 PR
+- 但 owner 可以設定某些 PR 自動 merge（例如只改 typo 的）
+- 每天 10 個 PR 的 rate limit
+
+**Level 2 — 信任者**
+- 用 server 的 API key
+- 可以直接 commit 特定範圍的修改（例如只能改 `/content/posts/` 底下的文章）
+- 不需要走 PR
+- 每天 20 次修改的 rate limit
+
+### 自動升級機制
+
+```javascript
+async function checkTrustUpgrade(userId) {
+  const stats = await getUserPRStats(userId);
+
+  // 計算 merge rate
+  const mergeRate = stats.merged / stats.total;
+
+  if (stats.currentLevel === 0 && mergeRate >= 0.8 && stats.total >= 5) {
+    await upgradeTrust(userId, 1);
+    notify(userId, '🎉 恭喜升級到 Level 1！現在可以使用 server 的 AI token 了。');
+  }
+
+  if (stats.currentLevel === 1 && mergeRate >= 0.8 && stats.total >= 10) {
+    // Level 2 需要 owner 手動確認
+    await notifyOwner(`${userId} 符合 Level 2 升級條件，是否同意？`);
+  }
+}
+
+// 每次 PR 被 merge 或 close 時觸發
+webhooks.on('pull_request.closed', async (event) => {
+  await checkTrustUpgrade(event.sender.id);
+});
+```
+
+<ClawdNote>
+注意 Level 2 的升級需要 **owner 手動確認**，而不是全自動。為什麼？因為 direct commit 的權限太大了。就算一個 contributor 的 PR merge rate 是 100%，你也不能完全排除他之前都是小改動、但拿到 direct commit 後做大規模破壞的可能性。Trust 可以被自動化驗證，但最終的信任決定還是應該由人來做。
+</ClawdNote>
+
+### Trust System 的風險
+
+每個系統都有漏洞，Trust System 也不例外：
+
+1. **Gaming the system**：有人可能故意先提交 10 個無害的 typo fix，升到 Level 2 之後再搞破壞
+2. **Account hijacking**：如果 Level 2 使用者的帳號被盜，攻擊者就有 direct commit 權限
+3. **Trust decay**：升級後就永遠不會降級嗎？如果一個 Level 2 使用者開始提交低品質的修改呢？
+
+所以好的 Trust System 需要：
+
+- **降級機制**：連續 3 個 PR 被 reject → 自動降級
+- **審計日誌**：所有操作都要有紀錄
+- **緊急停止**：Owner 可以隨時 revoke 任何人的權限
+
+<ClawdNote variant="murmur">
+Trust System 聽起來很美好，但 90% 的 open source 專案其實不需要做到這麼複雜。如果你的 contributor 數量只有個位數，手動管理就夠了。等到真的有幾十個人每天在貢獻的時候，再來考慮自動化。不要 over-engineer，不要 over-engineer，不要 over-engineer。重要的事情說三次。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="Trust System 最大的風險是什麼？"
+  options={[
+    { label: "A", text: "使用者太少，系統沒人用" },
+    { label: "B", text: "惡意使用者透過大量低風險貢獻累積信任，然後在升級後進行破壞" },
+    { label: "C", text: "GitHub API 的 rate limit 太低" },
+    { label: "D", text: "AI 生成的內容品質太差" },
+  ]}
+  answer="B"
+  explanation="這叫做 trust escalation attack —— 攻擊者先用小的、無害的修改建立信任（例如修 typo），達到升級門檻後才開始進行破壞性修改。這就是為什麼 Level 2 的升級需要 owner 手動確認，而不是全自動。同時也需要降級機制和審計日誌來防範。"
+/>
+
+---
+
+## 🏰 Boss Floor：設計你自己的 AI 協作平台
+
+<LevelUpProgress current={5} total={6} title="開源 AI 協作系統設計" />
+
+恭喜你爬到 Boss Floor 了 🎉
+
+讓我們把前面四層學到的所有東西串起來，看看一個完整的 open source AI 協作平台長什麼樣子。
+
+### 全架構一覽
+
+```
+                           ┌──────────────────────┐
+                           │     使用者瀏覽器       │
+                           │                      │
+                           │  ┌────────────────┐  │
+                           │  │ BYOK key       │  │
+                           │  │ (localStorage) │  │
+                           │  └────────────────┘  │
+                           └──────────┬───────────┘
+                                      │
+                              ┌───────▼───────┐
+                              │   Your API    │
+                              │               │
+                              │ ┌───────────┐ │
+                              │ │ JWT Auth   │ │
+                              │ ├───────────┤ │
+                              │ │ Rate Limit │ │
+                              │ ├───────────┤ │
+                              │ │ Trust      │ │
+                              │ │ System     │ │
+                              │ └───────────┘ │
+                              └──┬─────────┬──┘
+                                 │         │
+                    ┌────────────▼─┐   ┌───▼──────────┐
+                    │  Claude API  │   │  GitHub API   │
+                    │              │   │               │
+                    │  (AI 處理)    │   │  (Fork/PR/    │
+                    │              │   │   Commit)     │
+                    └──────────────┘   └──────────────┘
+```
+
+### 成本分析
+
+來算一下每個 Phase 的成本：
+
+**Phase 1: Owner Only**
+- AI API 費用：100% owner 負擔
+- 假設每天 20 次 AI 呼叫，每次 ~$0.03
+- 月成本：20 × 30 × $0.03 = **$18 / 月**
+- 一杯星巴克的錢，合理
+
+**Phase 2: BYOK**
+- AI API 費用：0%（使用者自帶 key）
+- Server 費用：主要是 compute（處理 proxy）
+- 月成本：**接近 $0**（如果用 serverless）
+
+**Phase 3: Trust System（Level 1+）**
+- AI API 費用：部分由 server 負擔（Level 1+ 使用者）
+- 假設 10 個 Level 1 使用者，每人每天 5 次
+- 月成本：10 × 5 × 30 × $0.03 = **$45 / 月**
+- 需要有 sponsorship 或 donation 來 cover
+
+**每個 PR 的平均成本**
+- AI 生成建議：~$0.03（一次 Claude API call）
+- GitHub API 建 PR：免費
+- Owner review 時間：~5 分鐘 = ?（無價）
+- **每個 PR 總成本：約 $0.03 + 5 分鐘的人類注意力**
+
+<ClawdNote variant="murmur">
+算完成本你就會發現，AI 的 token 費用其實不是最貴的部分 —— owner 的 review 時間才是。這就是為什麼 Trust System 的最終目標不是省 token 錢，而是減少 owner 的 review 負擔。
+</ClawdNote>
+
+### 跟 GitHub Copilot / Cursor 的差異
+
+你可能會問：「這跟 GitHub Copilot 或 Cursor 有什麼不同？」
+
+差很多。
+
+| | Copilot / Cursor | Open Source AI 協作 |
+|---|---|---|
+| **誰用** | 個人開發者 | 社群中的任何人 |
+| **場景** | 寫 code | 編輯文章、改 typo、建議改進 |
+| **權限** | 在自己的 IDE 裡，完全控制 | 多人協作，需要權限管理 |
+| **成本** | 使用者付月費 | 可能由 owner 或使用者分攤 |
+| **輸出** | 直接寫進檔案 | 走 PR 機制 |
+| **本質** | 個人工具 | 協作平台 |
+
+一句話總結：
+
+> **Copilot 是你的 AI 助手，Open Source AI 協作是讓全世界成為你的 AI 助手。**
+
+### 最小可行架構（MVP）
+
+如果你今天就想開始做，最小可行架構只需要：
+
+1. **GitHub OAuth**（Lv-01 已教） → 使用者登入
+2. **BYOK 前端** → 使用者貼 API key
+3. **Backend proxy** → 轉發 AI request + rate limit
+4. **GitHub Edit URL** → 引導使用者到 GitHub 開 PR
+
+不需要 Trust System、不需要自動 PR、不需要 fancy 的加密。先讓東西動起來，之後再迭代。
+
+```
+MVP 需要的技術：
+├── GitHub OAuth           ← Lv-01 已教
+├── localStorage           ← 存 BYOK key
+├── 1 個 API endpoint      ← /api/ai/ask（proxy）
+├── rate-limit middleware  ← npm install express-rate-limit
+└── window.open()          ← 開 GitHub edit 頁面
+```
+
+<ClawdNote>
+很多工程師會犯的錯是一開始就設計完整的 Phase 3 + Trust System。但實際上，大部分專案永遠不會有超過 5 個 contributor。先做 Phase 1 + Phase 2，等到真的有人在用、有人在抱怨的時候，再加 Phase 3。Remember: **YAGNI（You Ain't Gonna Need It）**。
+</ClawdNote>
+
+### 全 Phase 演進路線圖
+
+讓我們做個最後的回顧：
+
+```
+Phase 1: Owner Only
+  └─ 你自己用，自己的 key，直接 commit
+       │
+       ▼
+Phase 2: BYOK
+  └─ 讓別人帶自己的 key 來用 AI
+       │
+       ▼
+Phase 2.5: PR-based 編輯
+  └─ 非 owner 的修改走 PR，安全且可追蹤
+       │
+       ▼
+Phase 3: Trust System
+  └─ 根據歷史表現自動升級權限
+       │
+       ▼
+Phase ∞: 社群自治
+  └─ 多個 maintainer，自動化 review，AI 輔助 review...
+```
+
+<LevelUpQuiz
+  question="如果你要設計一個開源 AI 協作系統的 MVP（最小可行產品），以下哪個組合最合適？"
+  options={[
+    { label: "A", text: "Trust System + 自動 PR + 加密 BYOK + 多層 rate limit" },
+    { label: "B", text: "GitHub OAuth + BYOK + Backend proxy + GitHub Edit URL 引導開 PR" },
+    { label: "C", text: "只做前端，不需要 backend，直接用瀏覽器呼叫所有 API" },
+    { label: "D", text: "先不做 AI，只做 Trust System 的管理介面" },
+  ]}
+  answer="B"
+  explanation="MVP 的原則是用最少的東西讓核心功能跑起來。GitHub OAuth 處理登入，BYOK 讓使用者自帶 key（不用你出錢），Backend proxy 處理 rate limit 和安全，GitHub Edit URL 是最低成本的 PR 方案。Trust System 和加密 BYOK 都是之後可以迭代加上的進階功能。先讓東西動起來，再慢慢改進。"
+/>
+
+---
+
+## 🎓 恭喜通關！
+
+你從 Floor 0 的「為什麼」一路爬到了 Boss Floor 的「全架構設計」。讓我們快速回顧這趟旅程：
+
+| Floor | 學到了什麼 |
+|-------|-----------|
+| **Floor 0** | AI 協作很棒，但 API token 會燒錢，需要存取控制 |
+| **Floor 1** | Phase 1 — Owner Only：最安全，自己的廚房自己煮 |
+| **Floor 2** | Phase 2 — BYOK：讓使用者自帶 API key，成本轉嫁 |
+| **Floor 3** | Phase 2.5 — PR-based 編輯：非 owner 走 PR，安全且可追蹤 |
+| **Floor 4** | Phase 3 — Trust System：根據歷史表現自動升降級權限 |
+| **Boss Floor** | 全架構串接、成本分析、MVP 設計 |
+
+整篇文章的核心精神可以用一句話總結：
+
+> **開放與安全不是對立的。透過分層設計（Phase 1 → 2 → 3），你可以在保護自己的同時，逐步向世界敞開大門。**
+
+下一篇 Level-Up 我們會繼續深入其他主題。Stay tuned 🍄
