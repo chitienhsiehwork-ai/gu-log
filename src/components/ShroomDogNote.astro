@@ -1,0 +1,101 @@
+---
+// ShroomDogNote component for ShroomDog's personal commentary
+// The human author's hot takes, counter-arguments, and real-world observations
+// Visual distinction from ClawdNote: different color scheme + avatar icon
+
+interface Props {
+  /** Optional custom prefix */
+  prefix?: string;
+}
+
+const { prefix } = Astro.props;
+
+const prefixes = [
+  'ShroomDog 真心話：',
+  'ShroomDog 碎碎念：',
+  'ShroomDog 不同意：',
+  'ShroomDog 的 OS：',
+  'ShroomDog 插嘴：',
+  'ShroomDog 反駁：',
+  'ShroomDog 認真說：',
+  'ShroomDog 畫重點：',
+  'ShroomDog 實戰觀點：',
+  'ShroomDog murmur：',
+];
+
+// Get the slot content for hashing
+const slotContent = await Astro.slots.render('default');
+
+// Simple hash function based on content
+function hashString(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash);
+}
+
+const contentHash = hashString(slotContent);
+const selectedPrefix = prefix || prefixes[contentHash % prefixes.length];
+---
+
+<blockquote class="shroomdog-note">
+  <strong class="shroomdog-prefix">
+    <img src="/avatar.jpg" alt="ShroomDog" class="shroomdog-prefix-icon" width="22" height="22" />
+    {selectedPrefix}
+  </strong>
+  <br />
+  <Fragment set:html={slotContent} />
+</blockquote>
+
+<style>
+  .shroomdog-note {
+    border-left: 4px solid #6c9d3a;
+    background: rgba(108, 157, 58, 0.06);
+    border-radius: 0 8px 8px 0;
+    padding: 1rem 1.25rem;
+    margin: 1.5rem 0;
+    font-size: 0.95rem;
+    line-height: 1.7;
+  }
+
+  .shroomdog-prefix {
+    color: #5a8a2e;
+    font-size: 0.95em;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-bottom: 0.3rem;
+  }
+
+  .shroomdog-prefix-icon {
+    display: inline-block;
+    vertical-align: middle;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  /* Dark theme */
+  [data-theme='dark'] .shroomdog-note {
+    border-left-color: #8bc34a;
+    background: rgba(139, 195, 74, 0.08);
+  }
+
+  [data-theme='dark'] .shroomdog-prefix {
+    color: #8bc34a;
+  }
+
+  /* Light theme explicit */
+  [data-theme='light'] .shroomdog-note {
+    border-left-color: #6c9d3a;
+    background: rgba(108, 157, 58, 0.06);
+  }
+
+  [data-theme='light'] .shroomdog-prefix {
+    color: #5a8a2e;
+  }
+</style>
