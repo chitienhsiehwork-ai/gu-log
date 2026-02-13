@@ -35,11 +35,11 @@ const notePrefixes = [
 ];
 
 const murmurPrefixes = [
-  '🍄 Clawd 碎碎念：',
-  '🍄 Clawd 偷偷講：',
-  '🍄 Clawd 內心小劇場：',
-  '🍄 Clawd 的 murmur：',
-  '🍄 Clawd 嘀咕一下：',
+  'Clawd 碎碎念：',
+  'Clawd 偷偷講：',
+  'Clawd 內心小劇場：',
+  'Clawd 的 murmur：',
+  'Clawd 嘀咕一下：',
 ];
 
 const prefixes = variant === 'murmur' ? murmurPrefixes : notePrefixes;
@@ -65,7 +65,10 @@ const isNote = variant === 'note';
 ---
 
 <blockquote class:list={['claude-note', { 'claude-note--murmur': !isNote }]}>
-  <strong class="clawd-prefix">{selectedPrefix}</strong>
+  <strong class="clawd-prefix">
+    <img src="/clawd-picks-icon.png" alt="Clawd" class="clawd-prefix-icon" width="20" height="20" />
+    {selectedPrefix}
+  </strong>
   <br />
   <Fragment set:html={slotContent} />
 </blockquote>
@@ -74,8 +77,17 @@ const isNote = variant === 'note';
   .clawd-prefix {
     color: #cb7551;
     font-size: 0.95em;
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
     margin-bottom: 0.3rem;
+  }
+
+  .clawd-prefix-icon {
+    display: inline-block;
+    vertical-align: middle;
+    width: 20px;
+    height: 20px;
   }
 
   /* Murmur variant styling */
