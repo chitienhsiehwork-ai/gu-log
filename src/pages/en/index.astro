@@ -23,6 +23,8 @@ const sortByTicketNumber = (a: CollectionEntry<'posts'>, b: CollectionEntry<'pos
 // Filter and sort each category
 const sdPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('SD-')).sort(sortByTicketNumber);
 
+const lvPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('Lv-')).sort(sortByTicketNumber);
+
 const spPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('SP-')).sort(sortByTicketNumber);
 
 const cpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('CP-')).sort(sortByTicketNumber);
@@ -56,6 +58,37 @@ const cpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('CP-')).sort(
         {sdPosts.length > 3 && (
           <p class="view-all">
             <a href="/en/shroomdog-originals">View all →</a>
+          </p>
+        )}
+      </section>
+    )
+  }
+
+  {/* Lv: Level-Up */}
+  {
+    lvPosts.length > 0 && (
+      <section class="posts-section lv-section">
+        <h2>⚔️ Level-Up</h2>
+        <p class="section-subtitle">Interactive tech tutorials — learn by climbing the RPG tower</p>
+
+        {lvPosts.slice(0, 3).map((post) => (
+          <article class="post-preview">
+            <h3>
+              <a href={`/en/posts/${post.slug}`}>{post.data.title}</a>
+            </h3>
+            <p class="post-meta">
+              {post.data.ticketId && <TicketBadge ticketId={post.data.ticketId} />}
+              {post.data.translatedDate || post.data.originalDate} · {post.data.source}
+            </p>
+            <Toggle title="Preview">
+              <p>{post.data.summary}</p>
+            </Toggle>
+          </article>
+        ))}
+
+        {lvPosts.length > 3 && (
+          <p class="view-all">
+            <a href="/en/level-up">View all →</a>
           </p>
         )}
       </section>
@@ -155,6 +188,7 @@ const cpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('CP-')).sort(
     padding-top: 0;
   }
 
+  .lv-section::before,
   .sp-section::before,
   .clawd-picks-section::before {
     content: '';
@@ -175,6 +209,10 @@ const cpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('CP-')).sort(
 
   .sd-section h2 {
     color: #268b79;
+  }
+
+  .lv-section h2 {
+    color: #8861cb;
   }
 
   .sp-section h2 {

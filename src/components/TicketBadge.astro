@@ -6,6 +6,7 @@
  * - SD: ShroomDog Original (accent color)
  * - SP: ShroomDog Picks (muted color)
  * - CP: Clawd Picks (clawd color)
+ * - Lv: Level-Up (purple)
  */
 interface Props {
   ticketId: string;
@@ -22,6 +23,7 @@ const labels: Record<string, string> = {
   SD: 'ShroomDog Original',
   SP: 'ShroomDog Picks',
   CP: 'Clawd Picks',
+  Lv: 'Level-Up',
 };
 
 const label = labels[prefix] || '';
@@ -94,5 +96,15 @@ const label = labels[prefix] || '';
 
   .ticket-label-cp {
     color: #cb7551;
+  }
+
+  /* Lv: Level-Up - muted purple */
+  .ticket-lv {
+    background-color: rgba(136, 97, 203, 0.15);
+    color: #8861cb;
+  }
+
+  .ticket-label-lv {
+    color: #8861cb;
   }
 </style>
