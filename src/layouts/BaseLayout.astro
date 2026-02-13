@@ -182,6 +182,27 @@ const finalDescription = description || t.defaultDescription;
         transform: scale(1.1);
       }
 
+      /* Login row: on mobile, takes full width second row, aligned right */
+      .header-login-row {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+      }
+
+      @media (max-width: 767px) {
+        .header-login-row {
+          width: 100%;
+          order: 99;
+        }
+      }
+
+      @media (min-width: 768px) {
+        .header-login-row {
+          /* On desktop, stay inline in the flex row */
+          flex-shrink: 0;
+        }
+      }
+
       /* Mobile: allow header to wrap, keep items compact */
       @media (max-width: 480px) {
         .site-header {
@@ -253,7 +274,6 @@ const finalDescription = description || t.defaultDescription;
           <a href={t.homeLink} class="nav-link">{t.navHome}</a>
           <a href={t.aboutLink} class="nav-link">{t.navAbout}</a>
           <span class="nav-icons">
-            <LoginIndicator lang={lang} />
             <LanguageToggle currentLang={lang} currentPath={currentPath} />
             <a href={`${t.homeLink}#clawd-picks`} class="clawd-nav-link" title="Clawd Picks"
               ><img src="/clawd-picks-icon.png" alt="Clawd Picks" class="clawd-nav-icon" /></a
@@ -262,6 +282,9 @@ const finalDescription = description || t.defaultDescription;
             <ThemeToggle />
           </span>
         </nav>
+        <div class="header-login-row">
+          <LoginIndicator lang={lang} />
+        </div>
       </header>
 
       <main>
