@@ -1,0 +1,98 @@
+name: Post-Deploy Smoke Test
+
+on:
+  deployment_status:
+
+jobs:
+  smoke-test:
+    # Only run when Vercel deployment succeeds (or fails)
+    if: github.event.deployment.environment == 'Production'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Report deployment failure
+        if: github.event.deployment_status.state == 'failure'
+        run: |
+          echo "::error::🚨 Vercel deployment FAILED for commit ${{ github.event.deployment.sha }}"
+          echo "Deployment URL: ${{ github.event.deployment_status.target_url }}"
+          exit 1
+
+      - name: Wait for deployment to propagate
+        if: github.event.deployment_status.state == 'success'
+        run: sleep 15
+
+      - name: Smoke test — check site is up
+        if: github.event.deployment_status.state == 'success'
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://gu-log.vercel.app")
+          if [ "$STATUS" != "200" ]; then
+            echo "::error::🚨 Homepage returned HTTP $STATUS"
+            exit 1
+          fi
+          echo "✅ Homepage: 200"
+
+      - name: Smoke test — check latest articles are live
+        if: github.event.deployment_status.state == 'success'
+        run: |
+          FAILED=0
+          TOTAL=0
+          
+          # Get all non-English post slugs, sorted by date (newest first), take top 10
+          for f in $(ls src/content/posts/*.mdx | grep -v 'en-' | sort -r | head -10); do
+            slug=$(basename "$f" .mdx)
+            URL="https://gu-log.vercel.app/posts/$slug"
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$URL")
+            TOTAL=$((TOTAL + 1))
+            
+            if [ "$STATUS" != "200" ]; then
+              echo "::error::❌ $slug → HTTP $STATUS"
+              FAILED=$((FAILED + 1))
+            else
+              echo "✅ $slug → 200"
+            fi
+          done
+          
+          echo ""
+          echo "=== Results: $((TOTAL - FAILED))/$TOTAL passed ==="
+          
+          if [ "$FAILED" -gt 0 ]; then
+            echo "::error::🚨 $FAILED of $TOTAL articles returned non-200 status!"
+            exit 1
+          fi
+
+      - name: Smoke test — check Clawd Picks listing page
+        if: github.event.deployment_status.state == 'success'
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://gu-log.vercel.app/clawd-picks")
+          if [ "$STATUS" != "200" ]; then
+            echo "::error::🚨 Clawd Picks page returned HTTP $STATUS"
+            exit 1
+          fi
+          echo "✅ Clawd Picks listing: 200"
+
+      - name: Smoke test — check article count matches repo
+        if: github.event.deployment_status.state == 'success'
+        run: |
+          # Count non-English posts in repo
+          REPO_COUNT=$(ls src/content/posts/*.mdx | grep -v 'en-' | wc -l)
+          
+          # Fetch the homepage and count post links (rough check)
+          BODY=$(curl -s "https://gu-log.vercel.app/clawd-picks")
+          # Count <a> links to /posts/ on the listing page
+          LIVE_COUNT=$(echo "$BODY" | grep -o 'href="/posts/' | wc -l)
+          
+          echo "Repo posts: $REPO_COUNT"
+          echo "Live Clawd Picks links: $LIVE_COUNT"
+          
+          # Allow some slack (SP posts won't be on CP page), but CP count should match
+          CP_REPO=$(ls src/content/posts/clawd-picks-*.mdx | grep -v 'en-' | wc -l)
+          echo "Repo CP posts: $CP_REPO"
+          
+          DIFF=$((CP_REPO - LIVE_COUNT))
+          if [ "$DIFF" -gt 2 ] || [ "$DIFF" -lt -2 ]; then
+            echo "::warning::⚠️ CP count mismatch: repo=$CP_REPO vs live=$LIVE_COUNT (diff=$DIFF)"
+          else
+            echo "✅ CP count matches (repo=$CP_REPO, live=$LIVE_COUNT)"
+          fi
