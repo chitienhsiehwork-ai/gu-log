@@ -1,0 +1,655 @@
+---
+ticketId: "Lv-03"
+title: "一個 Domain，多個 API Service：從地基蓋到屋頂"
+originalDate: "2026-02-13"
+source: "Level-Up 系列"
+sourceUrl: "https://gu-log.vercel.app/posts/levelup-20260213-03-one-domain-multi-services"
+summary: "你剛進一間公司，要把 3 個 FastAPI service 塞到同一個 domain。從 DNS 地基開始，一路往上蓋 Ingress、Istio、FastAPI、Swagger，每層一張手繪風圖，搭配 PTT 說故事風格帶你搞懂整棟架構。"
+lang: "zh-tw"
+tags: ["dns", "ingress", "istio", "fastapi", "swagger", "kubernetes", "level-up"]
+---
+
+import LevelUpProgress from '../../components/LevelUpProgress.astro';
+import LevelUpQuiz from '../../components/LevelUpQuiz.astro';
+import ClawdNote from '../../components/ClawdNote.astro';
+import AnalogyBox from '../../components/AnalogyBox.astro';
+import Mermaid from '../../components/Mermaid.astro';
+
+<ClawdNote>
+AI 時代的學習哲學：你不需要背 YAML 怎麼縮排、nginx.conf 的每一行怎麼寫。那些東西 AI 30 秒就能生出來，你背它幹嘛？
+
+人類真正該掌握的是兩件事：**概念**（每一層是什麼、為什麼存在）和 **trade-off**（什麼時候該用什麼、用錯了會怎樣）。
+
+所以這篇文章不會教你一行行設定 Ingress YAML 或 Istio VirtualService。我只教你「每層是什麼」和「什麼時候該用」。Implementation details？丟給 AI 就好。你是 Tech Lead，不是 YAML 工程師。
+</ClawdNote>
+
+歡迎來到 Level-Up 系列第三篇。
+
+**情境**：你剛進一間新公司，第一天 Tech Lead 就丟給你一個任務：
+
+> 「我們有三個 FastAPI service —— `user-service`、`order-service`、`notification-service`。現在它們各自跑在不同 port，我需要你把它們全部放到 `api.mycompany.com` 這個 domain 底下。」
+
+你心想：三個 service、一個 domain？聽起來簡單吧？
+
+然後你開始 Google，發現牽涉到 DNS、Ingress、Istio、URL prefix、Swagger... 每個關鍵字都是一個兔子洞。
+
+別慌。這篇文章就是那棟大樓的藍圖。我們從地基（DNS）開始，一層一層往上蓋到屋頂（Swagger），蓋完你就知道整個 request 怎麼從使用者的瀏覽器跑到你的 FastAPI endpoint。
+
+Let's build 🏗️
+
+---
+
+## 🏗️ Floor 0：起點 — 三個 service，三個 port
+
+<LevelUpProgress current={0} total={7} title="一個 Domain，多個 Service" />
+
+在一切開始之前，先看看你手上有什麼。
+
+你有三個 FastAPI service，各自跑在不同的 port：
+
+- `user-service` → `localhost:8001`
+- `order-service` → `localhost:8002`
+- `notification-service` → `localhost:8003`
+
+開發環境一切正常。三個 terminal 分別跑 `uvicorn`，想測哪個就打哪個 port。爽。
+
+但是，你總不能叫使用者記住三個 port 吧？
+
+> 「欸，你要查訂單的話打 `api.mycompany.com:8002`，要收通知的話打 `api.mycompany.com:8003`，記得不要打錯喔！」
+
+這聽起來就像一間餐廳有三個門，吃牛排走左邊那個門、吃義大利麵走中間、喝飲料走右邊。客人走錯門就吃不到東西。
+
+正常的做法是：**一個大門進去，裡面再分流**。
+
+<Mermaid chart={`%%{init: {"look": "handDrawn"}}%%
+graph TD
+  U["👤 使用者"] -->|":8001"| S1["user-service"]
+  U -->|":8002"| S2["order-service"]
+  U -->|":8003"| S3["notification-service"]
+  style U fill:#ffeaa7,stroke:#fdcb6e
+  style S1 fill:#dfe6e9,stroke:#b2bec3
+  style S2 fill:#dfe6e9,stroke:#b2bec3
+  style S3 fill:#dfe6e9,stroke:#b2bec3
+`} caption="現狀：使用者要記住三個 port，很痛苦" />
+
+所以我們的目標是：
+
+```
+api.mycompany.com/users/...          → user-service
+api.mycompany.com/orders/...         → order-service
+api.mycompany.com/notifications/...  → notification-service
+```
+
+**一個 domain，用 URL path 分流到不同 service。**
+
+要達成這件事，我們需要蓋好幾層樓。從最底層的 DNS 開始。
+
+<LevelUpQuiz
+  question="為什麼不能直接讓使用者用不同 port 存取不同 service？"
+  options={[
+    { label: "A", text: "因為 port 數量有限制，最多只能開 3 個" },
+    { label: "B", text: "因為使用者不該知道 service 的內部架構，而且多 port 難管理、防火牆也不好設" },
+    { label: "C", text: "因為不同 port 的速度不同" },
+    { label: "D", text: "因為瀏覽器只支援 port 80 和 443" },
+  ]}
+  answer="B"
+  explanation="暴露多個 port 意味著使用者要記住你的內部架構、防火牆要開多個口、SSL 憑證要配多份。正確做法是用一個入口統一接收，內部再分流。這也是 encapsulation（封裝）的精神。"
+/>
+
+---
+
+## 🏗️ Floor 1：DNS — 門牌號碼
+
+<LevelUpProgress current={1} total={7} title="一個 Domain，多個 Service" />
+
+蓋房子第一步：你的地址要能被找到。
+
+你跟公司申請了 `api.mycompany.com` 這個 domain。但 domain name 只是一串人類看得懂的文字，電腦不認識。電腦認識的是 **IP 位址**，像 `34.120.56.78`。
+
+**DNS（Domain Name System）** 就是負責把 domain name 翻譯成 IP 位址的系統。
+
+<AnalogyBox title="📮 門牌號碼的比喻">
+
+DNS 就像郵局的地址簿。
+
+你說「寄到台北市信義區松壽路 1 號」，郵差不是真的看地名找路，他是查地址簿找到經緯度（IP），然後直接導航過去。
+
+`api.mycompany.com` = 地址（人類看的）
+`34.120.56.78` = 經緯度（電腦看的）
+DNS = 地址簿
+
+</AnalogyBox>
+
+當使用者在瀏覽器打 `api.mycompany.com/users/123`，第一件事不是連到你的 server，而是去問 DNS：
+
+> 「`api.mycompany.com` 的 IP 是什麼？」
+
+DNS 回答：`34.120.56.78`。
+
+然後瀏覽器才真正連到 `34.120.56.78` 這台 server。
+
+<Mermaid chart={`%%{init: {"look": "handDrawn"}}%%
+sequenceDiagram
+  participant B as 👤 瀏覽器
+  participant D as 📖 DNS Server
+  participant S as 🖥️ Server<br/>34.120.56.78
+  B->>D: api.mycompany.com 的 IP 是？
+  D-->>B: 34.120.56.78
+  B->>S: GET /users/123
+  S-->>B: 200 OK
+`} caption="DNS 把 domain name 翻譯成 IP，瀏覽器才知道要連去哪" />
+
+### 你需要做什麼？
+
+去你的 DNS 管理介面（Cloudflare、Route 53、GoDaddy 等），新增一筆 **A Record**：
+
+```
+api.mycompany.com  →  A  →  34.120.56.78
+```
+
+就這樣。DNS 這一層的工作就是「**讓 domain 指向你的 server**」，它不管你 server 上跑幾個 service，也不管 URL path 是什麼。它只負責把人導到正確的大樓門口。
+
+<ClawdNote variant="murmur">
+DNS 還有一種叫 CNAME 的記錄，是「指向另一個 domain」而不是直接指向 IP。常見於用 CDN 或 cloud provider 的時候。但概念一樣 —— 最終都是為了讓 domain name 能被解析成一個 IP。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="DNS 在整個架構中負責什麼？"
+  options={[
+    { label: "A", text: "根據 URL path 把 request 分配到不同 service" },
+    { label: "B", text: "把 domain name 翻譯成 IP 位址，讓瀏覽器知道要連去哪台 server" },
+    { label: "C", text: "加密使用者和 server 之間的通訊" },
+    { label: "D", text: "驗證使用者的身份" },
+  ]}
+  answer="B"
+  explanation="DNS 的唯一工作是把 domain name 解析成 IP。它不知道你的 URL path 是什麼，也不知道你有幾個 service。分流是上層的工作（Ingress / reverse proxy）。"
+/>
+
+---
+
+## 🏗️ Floor 2：Ingress — 大樓的大門警衛
+
+<LevelUpProgress current={2} total={7} title="一個 Domain，多個 Service" />
+
+OK，DNS 把使用者帶到你的大樓門口了（IP 位址）。
+
+但大樓門口不能只有一扇門直通一個房間。你有三個 service，使用者打不同的 URL path 應該進不同的房間。
+
+這就是 **Ingress** 的工作。
+
+<AnalogyBox title="🏢 大樓警衛的比喻">
+
+Ingress 就是大樓一樓的警衛。
+
+每個人進來，警衛看一下你要去哪：
+- 「我要找 `/users`」→ 警衛：「7 樓左轉，user-service」
+- 「我要找 `/orders`」→ 警衛：「12 樓右轉，order-service」
+- 「我要找 `/notifications`」→ 警衛：「3 樓，notification-service」
+
+他不關心你進去之後要做什麼，他只負責看你的**目的地（URL path）**然後**指路（routing）**。
+
+</AnalogyBox>
+
+在 Kubernetes 的世界裡，**Ingress** 是一個 API 物件，定義了「哪些外部 request 要被導到哪個 internal service」。
+
+它的邏輯大概長這樣（概念版，不是真的 YAML）：
+
+```
+如果 path 開頭是 /users      → 轉給 user-service
+如果 path 開頭是 /orders     → 轉給 order-service
+如果 path 開頭是 /notifications → 轉給 notification-service
+```
+
+<Mermaid chart={`%%{init: {"look": "handDrawn"}}%%
+graph TD
+  U["👤 使用者<br/>api.mycompany.com"] --> I["🚧 Ingress<br/>大門警衛"]
+  I -->|"/users/*"| S1["user-service"]
+  I -->|"/orders/*"| S2["order-service"]
+  I -->|"/notifications/*"| S3["notification-service"]
+  style U fill:#ffeaa7,stroke:#fdcb6e
+  style I fill:#74b9ff,stroke:#0984e3
+  style S1 fill:#dfe6e9,stroke:#b2bec3
+  style S2 fill:#dfe6e9,stroke:#b2bec3
+  style S3 fill:#dfe6e9,stroke:#b2bec3
+`} caption="Ingress 根據 URL path prefix 把 request 分配到不同 service" />
+
+### Ingress 不是自己跑的
+
+一個很重要的概念：**Ingress 本身只是一個「規則定義」**，它需要一個 **Ingress Controller** 來真正執行這些規則。
+
+常見的 Ingress Controller：
+- **NGINX Ingress Controller** — 最老牌、最多人用
+- **Traefik** — 自動化程度高、設定比較直覺
+- **HAProxy** — 效能取向
+
+Ingress Controller 就是那個「真的站在門口指路的警衛」，Ingress 是「警衛手上的名單」。
+
+<ClawdNote variant="murmur">
+很多人第一次接觸 Kubernetes 的時候都搞混 Ingress 和 Ingress Controller。Ingress 是你寫的規則（YAML），Ingress Controller 是執行規則的那個程式。你不能只寫規則不裝 Controller，就像你不能只寫員工手冊但不請警衛一樣。
+</ClawdNote>
+
+### Ingress 也處理 TLS
+
+Ingress 通常也負責 **TLS termination** —— 就是 HTTPS 的那個 S。
+
+使用者用 `https://api.mycompany.com` 連進來，Ingress 負責解密（因為 SSL 憑證掛在 Ingress 上），然後用 HTTP 把 request 轉給內部的 service。
+
+所以你的 FastAPI service 不需要自己處理 SSL，交給 Ingress 就好。
+
+<LevelUpQuiz
+  question="以下哪個描述最正確？"
+  options={[
+    { label: "A", text: "Ingress 是一個執行路由的程式" },
+    { label: "B", text: "Ingress 是路由規則的定義，需要 Ingress Controller 來執行" },
+    { label: "C", text: "Ingress 只能處理 HTTP，不能處理 HTTPS" },
+    { label: "D", text: "每個 service 都需要自己的 Ingress" },
+  ]}
+  answer="B"
+  explanation="Ingress 是 Kubernetes 的 API 物件，定義了路由規則。但它需要 Ingress Controller（如 NGINX）來實際執行這些規則。Ingress 也可以處理 TLS（HTTPS），通常 SSL 憑證就掛在 Ingress 上。"
+/>
+
+---
+
+## 🏗️ Floor 3：Istio — 大樓的智慧管理系統
+
+<LevelUpProgress current={3} total={7} title="一個 Domain，多個 Service" />
+
+Ingress 讓你可以根據 URL path 分流。很好，夠用了嗎？
+
+如果你的需求只是「path A 去 service A、path B 去 service B」，那 Ingress 就夠了。收工回家。
+
+但如果你的需求是這些呢？
+
+- 新版 API 只先開放 10% 的 traffic（**canary deployment**）
+- service A 呼叫 service B 的時候自動重試 3 次（**retry policy**）
+- service 之間的通訊全部加密（**mTLS**）
+- 我想看每個 request 的延遲、錯誤率（**observability**）
+- 某個 service 掛了，自動把 traffic 導走（**circuit breaking**）
+
+這些事情 Ingress 做不到。你需要更強大的東西：**Istio**。
+
+<AnalogyBox title="🏢 大樓智慧管理系統的比喻">
+
+如果 Ingress 是大門警衛，那 Istio 就是整棟大樓的**智慧管理系統**。
+
+警衛只管「誰從門口進來、去哪一層」。但智慧管理系統管的是整棟大樓內部的一切：
+- 電梯流量控制（traffic management）
+- 每層樓的進出紀錄（observability）
+- 樓層之間的門禁（mTLS）
+- 某層樓失火自動封鎖（circuit breaking）
+
+Ingress 只管外面進來的 traffic（**North-South traffic**），Istio 連大樓內部 service 之間的 traffic 都管（**East-West traffic**）。
+
+</AnalogyBox>
+
+### Istio 的核心概念：Sidecar
+
+Istio 最特別的設計是 **sidecar proxy**。
+
+它在每個 service 旁邊塞一個小小的 proxy（通常是 Envoy），所有進出這個 service 的 traffic 都會經過這個 proxy。
+
+```
+不是這樣：  User → Service A → Service B
+
+而是這樣：  User → [Proxy A] → Service A → [Proxy A] → [Proxy B] → Service B
+```
+
+這些 proxy 會自動做加密、重試、記錄延遲... 你的 code 完全不用改。
+
+<Mermaid chart={`%%{init: {"look": "handDrawn"}}%%
+graph TD
+  U["👤 使用者"] --> GW["🌐 Istio Gateway"]
+  GW --> VS["📋 VirtualService<br/>路由規則"]
+  VS -->|"/users/*"| PA["🔲 Envoy Proxy"]
+  VS -->|"/orders/*"| PB["🔲 Envoy Proxy"]
+  VS -->|"/notifications/*"| PC["🔲 Envoy Proxy"]
+  PA --> S1["user-service"]
+  PB --> S2["order-service"]
+  PC --> S3["notification-service"]
+  style U fill:#ffeaa7,stroke:#fdcb6e
+  style GW fill:#a29bfe,stroke:#6c5ce7
+  style VS fill:#a29bfe,stroke:#6c5ce7
+  style PA fill:#fd79a8,stroke:#e84393
+  style PB fill:#fd79a8,stroke:#e84393
+  style PC fill:#fd79a8,stroke:#e84393
+  style S1 fill:#dfe6e9,stroke:#b2bec3
+  style S2 fill:#dfe6e9,stroke:#b2bec3
+  style S3 fill:#dfe6e9,stroke:#b2bec3
+`} caption="Istio 在每個 service 旁邊放一個 Envoy proxy，管理所有 traffic" />
+
+### Istio 取代 Ingress？
+
+嚴格來說，如果你用了 Istio，**Istio Gateway + VirtualService** 可以取代 Kubernetes Ingress 的功能。它做的事一樣（根據 host 和 path 分流），但功能更強大。
+
+不過「可以取代」不代表「一定要取代」。這個 trade-off 我們留到 Boss Floor 再講。
+
+<ClawdNote variant="murmur">
+Istio 的學習曲線是出了名的陡。很多團隊裝了 Istio 之後才發現，其實他們 80% 的需求用 Ingress 就搞定了。剩下 20% 的 canary deployment，用 Argo Rollouts 也能做。所以裝 Istio 之前請三思。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="Istio sidecar proxy 的運作方式是？"
+  options={[
+    { label: "A", text: "在每個 service 的程式碼中插入 proxy 邏輯" },
+    { label: "B", text: "在每個 service 旁邊部署一個獨立的 proxy，攔截所有進出的 traffic" },
+    { label: "C", text: "在 Kubernetes cluster 入口放一個集中式 proxy" },
+    { label: "D", text: "直接修改 Kubernetes 的網路層" },
+  ]}
+  answer="B"
+  explanation="Istio 的 sidecar 模式是在每個 Pod 旁邊注入一個 Envoy proxy container。所有進出該 service 的 traffic 都會被這個 proxy 攔截，由它來執行加密、重試、觀測等功能。你的 application code 完全不用改。"
+/>
+
+---
+
+## 🏗️ Floor 4：FastAPI — 每個 service 的 URL prefix 設計
+
+<LevelUpProgress current={4} total={7} title="一個 Domain，多個 Service" />
+
+好，外部的大樓結構蓋好了（DNS → Ingress/Istio）。現在輪到每個 service 的「室內裝潢」。
+
+你的 `user-service` 會被 Ingress 以 `/users` 這個 path prefix 導進來。但問題是：**FastAPI 收到的 path 是什麼？**
+
+這取決於 Ingress 有沒有做 **path rewrite**（路徑改寫）。
+
+### 情況一：不改寫 path
+
+Ingress 把 `/users/123` 原封不動地轉給 `user-service`。
+
+這時候你的 FastAPI 要這樣寫：
+
+```python
+app = FastAPI(root_path="/users")
+
+@app.get("/users/{user_id}")
+def get_user(user_id: int):
+    return {"id": user_id}
+```
+
+每個 endpoint 都要帶 `/users` prefix。
+
+### 情況二：改寫 path
+
+Ingress 把 `/users/123` 改寫成 `/123` 再轉給 `user-service`。
+
+這時候 FastAPI 可以寫得比較乾淨：
+
+```python
+app = FastAPI()
+
+@app.get("/{user_id}")
+def get_user(user_id: int):
+    return {"id": user_id}
+```
+
+service 本身不需要知道自己的 prefix 是什麼。
+
+<AnalogyBox title="🏠 房間門牌的比喻">
+
+就像你住在「信義路 100 號 **5 樓之 3**」。
+
+- 情況一（不改寫）：郵差把整個地址「信義路 100 號 5 樓之 3」交給你，你要自己知道「5 樓之 3」是你
+- 情況二（改寫）：大樓管理員收到信之後，把地址改成「之 3」再轉給你，你只需要認得「之 3」就好
+
+兩種方式都行，但「改寫」讓每個 service 更獨立 —— 它不需要知道自己在大樓的哪一層。
+
+</AnalogyBox>
+
+<Mermaid chart={`%%{init: {"look": "handDrawn"}}%%
+graph TD
+  R["GET /users/123"] --> I["Ingress"]
+  I -->|"不改寫<br/>/users/123"| F1["FastAPI<br/>root_path=/users"]
+  I -->|"改寫 path<br/>/123"| F2["FastAPI<br/>root_path 不用設"]
+  style R fill:#ffeaa7,stroke:#fdcb6e
+  style I fill:#74b9ff,stroke:#0984e3
+  style F1 fill:#55efc4,stroke:#00b894
+  style F2 fill:#55efc4,stroke:#00b894
+`} caption="有沒有做 path rewrite，決定了 FastAPI 要怎麼設計 endpoint" />
+
+### 推薦做法
+
+大多數團隊的做法是：
+
+1. **Ingress 做 path rewrite**（strip prefix）
+2. **FastAPI 設 `root_path`**（讓 Swagger UI 的路徑正確顯示）
+
+```python
+# user-service
+app = FastAPI(root_path="/users")
+
+@app.get("/")          # 外面看到的是 /users/
+@app.get("/{user_id}") # 外面看到的是 /users/{user_id}
+```
+
+`root_path` 不會影響 routing，它只影響 **Swagger 文件** 中 endpoint 的顯示路徑。這是 FastAPI 的一個貼心設計。
+
+<ClawdNote>
+`root_path` 是 ASGI 的標準概念，不是 FastAPI 獨有的。當你的 app 跑在 reverse proxy 後面時，設定 `root_path` 可以讓 OpenAPI schema 正確反映真實的 URL。不設的話，Swagger UI 會以為 base URL 是 `/`，使用者點 "Try it" 會打到錯的地方。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="FastAPI 的 root_path 設定主要影響什麼？"
+  options={[
+    { label: "A", text: "API 的實際 routing 邏輯" },
+    { label: "B", text: "API 的回應速度" },
+    { label: "C", text: "Swagger/OpenAPI 文件中顯示的 endpoint 路徑" },
+    { label: "D", text: "資料庫的連線設定" },
+  ]}
+  answer="C"
+  explanation="root_path 是 ASGI 標準，主要影響 OpenAPI schema 中的 server URL。設了 root_path='/users' 之後，Swagger UI 會知道真實的 base path 是 /users，'Try it' 功能才會打到正確的 URL。它不影響 FastAPI 內部的 routing。"
+/>
+
+---
+
+## 🏗️ Floor 5：Swagger / OpenAPI — 屋頂上的導覽地圖
+
+<LevelUpProgress current={5} total={7} title="一個 Domain，多個 Service" />
+
+大樓蓋好了，使用者可以正確地打到每個 service。但還有一個問題：
+
+> 「欸，你們家 API 有文件嗎？我怎麼知道有哪些 endpoint、要帶什麼參數？」
+
+FastAPI 內建 Swagger UI —— 每個 service 都自動生成一份互動式 API 文件：
+
+- `api.mycompany.com/users/docs` → user-service 的 Swagger
+- `api.mycompany.com/orders/docs` → order-service 的 Swagger
+- `api.mycompany.com/notifications/docs` → notification-service 的 Swagger
+
+但你有沒有覺得哪裡怪怪的？
+
+**三個 Swagger，三個入口。** 每次要查 API 都要記不同的網址。前端工程師會想打你。
+
+<AnalogyBox title="🗺️ 導覽地圖的比喻">
+
+就像一棟百貨公司，每一層都有自己的樓層介紹，但沒有一張**整棟大樓的樓層導覽圖**。
+
+你想知道「賣鞋子的在哪」，要一層一層走上去看。煩死。
+
+我們需要的是一張掛在一樓大廳的「**全館樓層指南**」，列出所有樓層的所有商店。
+
+</AnalogyBox>
+
+### 統一 Swagger 的做法
+
+核心概念是：每個 FastAPI service 都會在 `/openapi.json` 自動生成一份 **OpenAPI spec**（JSON 格式的 API 描述檔）。
+
+你可以寫一個 **API Gateway service** 或用工具把這些 spec 合併成一份，然後用統一的 Swagger UI 呈現：
+
+```
+api.mycompany.com/docs
+  ├── 包含 user-service 的所有 endpoint
+  ├── 包含 order-service 的所有 endpoint
+  └── 包含 notification-service 的所有 endpoint
+```
+
+<Mermaid chart={`%%{init: {"look": "handDrawn"}}%%
+graph TD
+  D["📄 統一 Swagger UI<br/>/docs"] --> |"拉取"| O1["/users/openapi.json"]
+  D --> |"拉取"| O2["/orders/openapi.json"]
+  D --> |"拉取"| O3["/notifications/openapi.json"]
+  O1 --> S1["user-service"]
+  O2 --> S2["order-service"]
+  O3 --> S3["notification-service"]
+  style D fill:#fdcb6e,stroke:#f39c12
+  style O1 fill:#dfe6e9,stroke:#b2bec3
+  style O2 fill:#dfe6e9,stroke:#b2bec3
+  style O3 fill:#dfe6e9,stroke:#b2bec3
+  style S1 fill:#55efc4,stroke:#00b894
+  style S2 fill:#55efc4,stroke:#00b894
+  style S3 fill:#55efc4,stroke:#00b894
+`} caption="統一 Swagger UI 從每個 service 拉取 OpenAPI spec，合併呈現" />
+
+### 常見做法
+
+1. **各自獨立**：每個 service 有自己的 `/docs`，不合併。適合 service 之間差異大、團隊獨立運作的情況。
+2. **手動合併**：寫一個 gateway 去拉各 service 的 `openapi.json` 然後合併。
+3. **用工具**：像 [Swagger UI 的 `urls` 選項](https://swagger.io/docs/open-source-tools/swagger-ui/usage/configuration/) 可以在一個頁面切換多個 spec。
+4. **API Gateway 整合**：Kong、AWS API Gateway 等自帶統一文件功能。
+
+<ClawdNote variant="murmur">
+說實話，很多團隊根本不合併 Swagger，就讓每個 service 各自有 /docs。因為合併的維護成本不低，而且 spec 格式不一致的時候合併會爆炸。如果你的團隊只有 3-5 個 service，各自獨立就好，不用硬合併。人生苦短。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="統一 Swagger UI 的核心做法是？"
+  options={[
+    { label: "A", text: "把所有 service 的程式碼合併成一個" },
+    { label: "B", text: "把每個 service 自動生成的 OpenAPI spec 收集起來，用統一的 UI 呈現" },
+    { label: "C", text: "在 DNS 設定不同的子域名" },
+    { label: "D", text: "讓前端工程師手動寫 API 文件" },
+  ]}
+  answer="B"
+  explanation="每個 FastAPI service 都會自動生成 /openapi.json。統一 Swagger 的做法就是把這些 spec 收集起來（拉取或合併），用一個統一的 Swagger UI 頁面呈現。不需要改動 service 的程式碼。"
+/>
+
+---
+
+## 🏗️ Boss Floor：Trade-off 分析
+
+<LevelUpProgress current={6} total={7} title="一個 Domain，多個 Service" />
+
+恭喜你蓋到頂樓了！現在你知道每一層是什麼。
+
+但 Tech Lead 真正在意的不是「這個東西是什麼」，而是「**什麼時候該用什麼**」。
+
+這就是 trade-off 的世界。
+
+### Trade-off 1：Ingress vs Istio
+
+| | 純 Ingress | Istio |
+|---|---|---|
+| **路由** | ✅ path / host 分流 | ✅ 更細緻（header、weight） |
+| **TLS** | ✅ 外部 TLS | ✅ 外部 + 內部 mTLS |
+| **Canary** | ❌ 要搭配其他工具 | ✅ 原生支援 weight-based routing |
+| **Observability** | ❌ 自己接 | ✅ 內建 metrics、tracing |
+| **學習曲線** | 🟢 低 | 🔴 高 |
+| **資源消耗** | 🟢 低 | 🔴 每個 Pod 多一個 sidecar |
+| **Debug 難度** | 🟢 單純 | 🔴 多了一層 proxy 要查 |
+
+**結論**：
+
+- **3-5 個 service、小團隊** → 純 Ingress。別裝 Istio，你會後悔。
+- **10+ 個 service、需要 canary、mTLS、統一 observability** → 上 Istio，但要有專人維護。
+- **中間地帶** → 用 Ingress + Argo Rollouts（canary）+ Linkerd（比 Istio 輕量的 service mesh）。
+
+<ClawdNote variant="murmur">
+我看過太多團隊「因為 Istio 很潮」就裝了，結果 debug 一個 503 要查 Envoy proxy 的 log、Istio control plane 的設定、destination rule 的 mTLS mode... 原本 5 分鐘能解決的問題變成 2 小時。技術選型不是追流行，是解決問題。
+</ClawdNote>
+
+### Trade-off 2：URL prefix 設計原則
+
+你的 URL 要怎麼切？這裡有幾個常見的 pattern：
+
+**Pattern A：按 resource 切**（最常見）
+```
+/users/...
+/orders/...
+/notifications/...
+```
+每個 prefix 對應一個 service。直覺、好懂。
+
+**Pattern B：按版本切**
+```
+/v1/users/...
+/v2/users/...
+```
+version prefix 在最前面。適合需要同時維護多版本 API 的情況。
+
+**Pattern C：按 domain 切**
+```
+users.api.mycompany.com/...
+orders.api.mycompany.com/...
+```
+用 subdomain 而不是 path prefix。好處是每個 service 完全獨立（不同 DNS、不同 TLS cert），壞處是 DNS 和 cert 管理變複雜。
+
+**怎麼選？**
+
+- 大多數情況 → **Pattern A**。簡單、一個 Ingress 搞定。
+- 需要版本管理 → **Pattern B**。但考慮用 header（`Accept: application/vnd.myco.v2+json`）可能比 URL 版本更優雅。
+- service 團隊完全獨立、想各自管理部署 → **Pattern C**。
+
+### Trade-off 3：要不要統一 Swagger？
+
+| | 各自獨立 | 統一合併 |
+|---|---|---|
+| **維護成本** | 🟢 零 | 🔴 需要維護合併邏輯 |
+| **使用者體驗** | 🟡 要記多個網址 | 🟢 一個入口看所有 API |
+| **適合** | 內部用、service 少 | 對外 API、service 多 |
+
+### 完整架構回顧
+
+最後，讓我們把整棟大樓從下到上看一遍：
+
+<Mermaid chart={`%%{init: {"look": "handDrawn"}}%%
+graph TD
+  U["👤 使用者<br/>api.mycompany.com/users/123"] --> DNS["📖 DNS<br/>domain → IP"]
+  DNS --> ING["🚧 Ingress / Istio Gateway<br/>path routing + TLS"]
+  ING -->|"/users/*"| US["🟢 user-service<br/>FastAPI + root_path"]
+  ING -->|"/orders/*"| OS["🟠 order-service<br/>FastAPI + root_path"]
+  ING -->|"/notifications/*"| NS["🔵 notification-service<br/>FastAPI + root_path"]
+  US --> SW["📄 各自的 /docs<br/>Swagger UI"]
+  OS --> SW
+  NS --> SW
+  style U fill:#ffeaa7,stroke:#fdcb6e
+  style DNS fill:#fab1a0,stroke:#e17055
+  style ING fill:#74b9ff,stroke:#0984e3
+  style US fill:#55efc4,stroke:#00b894
+  style OS fill:#ffeaa7,stroke:#fdcb6e
+  style NS fill:#a29bfe,stroke:#6c5ce7
+  style SW fill:#fd79a8,stroke:#e84393
+`} caption="完整架構：DNS → Ingress → FastAPI → Swagger，每一層各司其職" />
+
+<LevelUpQuiz
+  question="你的團隊有 3 個 FastAPI service，5 個工程師。Tech Lead 問你要不要用 Istio。你的建議是？"
+  options={[
+    { label: "A", text: "當然要用，Istio 功能強大，越早導入越好" },
+    { label: "B", text: "先用 Ingress 就好，3 個 service 用 Istio 是殺雞用牛刀，維護成本不值得" },
+    { label: "C", text: "不用任何東西，直接暴露 port" },
+    { label: "D", text: "等 service 數量超過 100 個再導入 Istio" },
+  ]}
+  answer="B"
+  explanation="3 個 service + 5 人團隊，Ingress 完全足夠。Istio 的學習曲線和維護成本很高（每個 Pod 多一個 sidecar、debug 複雜度增加），在 service 數量少的時候弊大於利。當 service 數量成長到 10+ 且有 canary、mTLS 等需求時，再考慮導入 Istio 或更輕量的 Linkerd。"
+/>
+
+---
+
+## 🎓 恭喜通關！
+
+<LevelUpProgress current={7} total={7} title="一個 Domain，多個 Service" />
+
+你從 Floor 0 的「三個 port」一路蓋到了 Boss Floor 的「trade-off 分析」。回顧一下每一層學了什麼：
+
+| Floor | 學到了什麼 |
+|-------|-----------|
+| **Floor 0** | 多 port 暴露 → 不好管理，需要統一入口 |
+| **Floor 1** | DNS 把 domain 翻譯成 IP，是最底層的地基 |
+| **Floor 2** | Ingress 根據 URL path 分流到不同 service |
+| **Floor 3** | Istio 是進階的 service mesh，管 traffic、mTLS、observability |
+| **Floor 4** | FastAPI 的 `root_path` 讓 Swagger 路徑正確顯示 |
+| **Floor 5** | OpenAPI spec 可以統一或各自獨立呈現 |
+| **Boss Floor** | 小團隊用 Ingress 就好，Istio 等真的需要再上 |
+
+記住這篇的核心心法：
+
+> **概念搞懂、trade-off 想清楚，implementation details 讓 AI 幫你寫。**
+
+下一篇 Level-Up 見 🍄
