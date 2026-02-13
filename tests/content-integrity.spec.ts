@@ -142,10 +142,10 @@ test.describe('Content Integrity: ticketId', () => {
     }
   });
 
-  test('GIVEN all posts WHEN checking ticketId format THEN ticketIds should follow PREFIX-N pattern (SP/CP/SD)', async () => {
+  test('GIVEN all posts WHEN checking ticketId format THEN ticketIds should follow PREFIX-N pattern (SP/CP/SD/Lv)', async () => {
     const posts = getAllPosts();
-    // Valid prefixes: SP (ShroomDog Posts), CP (Clawd Picks), SD (ShroomDog Originals)
-    const validPattern = /^(SP|CP|SD)-\d+$/;
+    // Valid prefixes: SP (ShroomDog Picks), CP (Clawd Picks), SD (ShroomDog Originals), Lv (Level-Up)
+    const validPattern = /^(SP|CP|SD|Lv)-\d+$/;
     const invalidFormat = posts.filter(p => p.ticketId && !p.ticketId.match(validPattern));
     
     if (invalidFormat.length > 0) {
@@ -153,7 +153,7 @@ test.describe('Content Integrity: ticketId', () => {
         .map(p => `  - ${p.filename}: "${p.ticketId}"`)
         .join('\n');
       
-      expect(invalidFormat, `Invalid ticketId format (expected SP-N, CP-N, or SD-N):\n${report}`).toHaveLength(0);
+      expect(invalidFormat, `Invalid ticketId format (expected SP-N, CP-N, SD-N, or Lv-N):\n${report}`).toHaveLength(0);
     }
   });
 

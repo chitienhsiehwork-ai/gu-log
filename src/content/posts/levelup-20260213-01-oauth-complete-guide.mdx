@@ -1,0 +1,664 @@
+---
+ticketId: "Lv-01"
+title: "OAuth 2.0 完全攻略：從 API Key 到 GitHub Login"
+originalDate: "2026-02-13"
+source: "Level-Up 系列"
+sourceUrl: "https://gu-log.vercel.app/posts/levelup-20260213-01-oauth-complete-guide"
+summary: "用 RPG 爬塔風格學 OAuth 2.0。從 API Key 出發，一路打到 GitHub OAuth + JWT。每層樓都有互動 Quiz，答對才能上樓！"
+lang: "zh-tw"
+tags: ["oauth", "security", "github", "tutorial", "level-up"]
+---
+
+import LevelUpProgress from '../../components/LevelUpProgress.astro';
+import LevelUpQuiz from '../../components/LevelUpQuiz.astro';
+import ClawdNote from '../../components/ClawdNote.astro';
+import AnalogyBox from '../../components/AnalogyBox.astro';
+
+歡迎來到 Level-Up 系列第一篇。
+
+今天我們要從零開始搞懂 **OAuth 2.0** —— 這個你每天都在用、但可能從來沒真正理解的東西。
+
+整篇文章是一座塔，你要從 Floor 0 一路爬到 Boss Floor。每一層都有一個 Quiz，答對才算過關。準備好了嗎？
+
+Let's go 🗡️
+
+---
+
+## 🏰 Floor 0：你目前只會 API Key
+
+<LevelUpProgress current={0} total={6} title="OAuth 2.0 完全攻略" />
+
+我們先從最基本的東西開始：**API Key**。
+
+如果你有串過任何第三方 API —— OpenAI、Google Maps、Stripe —— 你一定拿過一組長長的字串，類似這樣：
+
+```
+sk-proj-abc123xyz456...
+```
+
+這就是 API Key。概念很簡單：
+
+> **一把鑰匙開一扇門。**
+
+你拿著這把鑰匙去敲 API 的門，API 看一下：「嗯，鑰匙對了，讓你進來。」結束。
+
+```
+你 → [帶著 API Key] → API Server → ✅ 回傳資料
+```
+
+API Key 的世界就是這麼單純。你跟 API 之間是 **一對一的信任關係**。你有 key，你就是你。
+
+### 但問題來了
+
+如果你不只是自己用，你想要讓「**別人代替你**」去做事呢？
+
+舉個例子：你開發了一個 app 叫 `gu-log-api`，你希望使用者可以用 GitHub 帳號登入。這時候你需要去 GitHub 拿使用者的 email。
+
+直覺的做法是什麼？
+
+> 「使用者把 GitHub 密碼告訴我，我用他的密碼登入 GitHub，然後把 email 拿回來。」
+
+聽起來好像可以？
+
+<ClawdNote variant="murmur">
+如果你真的這樣做，恭喜你，你剛剛重新發明了 2005 年的網路世界。那是一個黑暗的年代。
+</ClawdNote>
+
+這個做法有三個致命問題：
+
+1. **使用者要把密碼給你** —— 你是誰？他為什麼要信任你？
+2. **你拿到密碼就能做任何事** —— 刪 repo、改 profile、偷看 private repo，什麼都行
+3. **使用者沒辦法收回權限** —— 除非他改密碼，但改了密碼其他 app 也全部斷掉
+
+這就像把你家的大門鑰匙給外送員，讓他自己進去冰箱拿你訂的便當。技術上可行，但你真的放心嗎？
+
+<ClawdNote variant="murmur">
+直接給密碼就像把家門鑰匙給 Uber Eats 外送員，然後跟他說「便當在冰箱第二層，記得鞋子脫好」... 你晚上睡得著嗎？
+</ClawdNote>
+
+所以我們需要一個更好的機制 —— 一個可以讓你**授權別人做特定的事**，但**不用把密碼交出去**的機制。
+
+這就是 OAuth 要解決的問題。
+
+<LevelUpQuiz
+  question="為什麼不能直接把密碼給第三方 app？"
+  options={[
+    { label: "A", text: "因為密碼太長不好輸入" },
+    { label: "B", text: "因為第三方 app 會拿到完整權限，而且使用者無法精確收回授權" },
+    { label: "C", text: "因為 GitHub 不允許多人同時登入" },
+    { label: "D", text: "因為密碼有使用次數限制" },
+  ]}
+  answer="B"
+  explanation="把密碼給第三方 app 意味著它可以做你能做的一切事情（刪 repo、改設定等），而且唯一收回權限的方式是改密碼 —— 這會影響所有使用該密碼的服務。OAuth 就是為了解決這個問題而生的。"
+/>
+
+---
+
+## 🏰 Floor 1：為什麼需要 OAuth？
+
+<LevelUpProgress current={1} total={6} title="OAuth 2.0 完全攻略" />
+
+OK，Floor 0 我們知道了「直接給密碼」行不通。那到底要怎麼辦？
+
+讓我用一個故事來解釋。
+
+<AnalogyBox title="🏢 辦公室大樓的比喻">
+
+想像一棟辦公大樓 —— **GitHub 大樓**。
+
+- **你** = 住在 GitHub 大樓 15F 的人（你的 GitHub 帳號住在這裡）
+- **外送員** = 你的 app（`gu-log-api`），他要幫你拿東西
+- **大樓管理員** = GitHub Authorization Server，負責安全管控
+- **你的午餐** = 你的 GitHub email（外送員要來拿這個）
+
+這四個角色會貫穿整篇文章，記好他們。
+
+</AnalogyBox>
+
+### 沒有 OAuth 的世界 😱
+
+沒有 OAuth 的世界長這樣：
+
+1. 外送員（你的 app）走到大樓門口
+2. 外送員打電話給你：「欸，你家大門密碼多少？」
+3. 你把密碼告訴他：「1234」
+4. 外送員用你的密碼進大樓、搭電梯到 15F、開你家門、拿午餐
+5. 但他同時也可以：翻你抽屜、看你日記、把你家具搬走...
+
+你完全無法控制他進去之後要做什麼。而且你給了密碼之後，他隨時都能再進來。
+
+### 有 OAuth 的世界 ✅
+
+有 OAuth 的世界長這樣：
+
+1. 外送員走到大樓門口，跟管理員說：「我要幫 15F 的住戶拿午餐」
+2. 管理員打電話給你：「15F 的住戶你好，有一個叫 `gu-log-api` 的外送員說要拿你的午餐（email），你同意嗎？」
+3. 你說：「同意」
+4. 管理員發給外送員一張**臨時訪客證**，上面寫著：「只能去 15F 拿午餐，其他地方不准去，30 分鐘後過期」
+5. 外送員拿著訪客證去 15F 拿午餐，拿完走人
+
+差別在哪？
+
+- ✅ 你**從頭到尾沒有給密碼**
+- ✅ 外送員**只能做你授權的事**（拿午餐 = 讀 email）
+- ✅ 訪客證**會過期**
+- ✅ 你可以隨時請管理員**撤銷訪客證**
+
+<ClawdNote>
+OAuth 2.0 跟 OAuth 1.0 完全不同，不要混為一談。OAuth 1.0 需要 request signing（每個 request 都要簽名），超級複雜。OAuth 2.0 改用 HTTPS 來保護傳輸，大幅簡化了流程。現在講 OAuth 基本上都是指 2.0。
+</ClawdNote>
+
+這就是 OAuth 的核心概念：
+
+> **在不分享密碼的前提下，讓第三方 app 取得有限的存取權限。**
+
+用技術術語來說：OAuth 是一個 **authorization framework**（授權框架），不是 authentication（驗證身份）。它解決的是「誰可以做什麼」，不是「你是誰」。
+
+<ClawdNote variant="murmur">
+很多人把 OAuth 當成「登入方式」，但它其實是「授權方式」。用 OAuth 來做登入（也就是 OpenID Connect）是後來才加上的應用。不過日常使用中大家都混著講，先理解核心概念就好，不用太糾結術語。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="OAuth 解決的核心問題是什麼？"
+  options={[
+    { label: "A", text: "讓密碼更安全" },
+    { label: "B", text: "取代 HTTPS" },
+    { label: "C", text: "讓第三方 app 在不知道使用者密碼的情況下，取得有限的存取權限" },
+    { label: "D", text: "讓使用者不用記密碼" },
+  ]}
+  answer="C"
+  explanation="OAuth 的核心是 delegation（委派授權）。使用者不需要把密碼交給第三方 app，而是透過 authorization server 發放有限權限的 access_token。密碼始終只有使用者和 GitHub 之間知道。"
+/>
+
+---
+
+## 🏰 Floor 2：OAuth Flow 完整步驟
+
+<LevelUpProgress current={2} total={6} title="OAuth 2.0 完全攻略" />
+
+好，現在你知道 OAuth 的概念了。但「概念」不能拿來寫 code，我們需要知道 **具體的步驟**。
+
+OAuth 2.0 有好幾種 flow（grant type），最常用的是 **Authorization Code Flow**。這也是我們 gu-log 用來做 GitHub Login 的那個。
+
+以下是完整的 7 個步驟，我繼續用辦公室大樓的比喻：
+
+### Step 0：外送員去大樓登記 📋
+
+在一切開始之前，外送員（你的 app）要先去大樓（GitHub）**登記**。
+
+實際操作就是去 [GitHub Developer Settings](https://github.com/settings/developers) 建立一個 OAuth App，你會拿到兩樣東西：
+
+- **`client_id`**：你的身分證號碼（公開的，別人知道沒關係）
+- **`client_secret`**：你的私章（**絕對不能外流**）
+
+同時你要填一個 **callback URL**：`https://your-app.com/api/auth/callback`
+
+這個 URL 等一下會用到，先記住。
+
+<ClawdNote variant="murmur">
+這一步只需要做一次，就像外送平台註冊一次就好。但 client_secret 如果洩漏了，你就要重新申請一組。就像你的印章被偷了，要去刻新的一樣。
+</ClawdNote>
+
+### Step 1：外送員到大樓門口 🚶
+
+使用者在你的網站上點了 **「Login with GitHub」** 按鈕。
+
+你的 app 做的事情其實很簡單 —— 把使用者**重新導向（redirect）**到 GitHub 的授權頁面：
+
+```
+https://github.com/login/oauth/authorize
+  ?client_id=你的client_id
+  &redirect_uri=https://your-app.com/api/auth/callback
+  &scope=user:email
+```
+
+這就像外送員帶著你的訂單走到大樓門口，跟管理員說：「我是 `gu-log-api`（client_id），我要幫住戶拿 email（scope=user:email），拿完請把我帶到這個地方（redirect_uri）。」
+
+### Step 2：管理員打電話給你 📞
+
+GitHub 顯示一個 **consent screen**（同意畫面）給使用者看：
+
+> 「`gu-log-api` 想要存取你的 email 地址，你同意嗎？」
+
+這就是管理員打電話給你確認。使用者可以看到：
+- 是哪個 app 在請求
+- 它想要什麼權限（scope）
+- 你可以選擇同意或拒絕
+
+### Step 3：你按 Authorize ✅
+
+使用者按下「Authorize」按鈕。
+
+GitHub 不會直接把資料丟給你的 app。取而代之的是，GitHub 帶著一個 **authorization code** 把使用者重新導向回你的 callback URL：
+
+```
+https://your-app.com/api/auth/callback?code=abc123xyz
+```
+
+這個 `code` 是什麼？它是一張**臨時紙條**，上面寫著「這個使用者已經同意了」。但這張紙條本身不能當訪客證用——你還需要拿它去換正式的訪客證。
+
+<ClawdNote>
+Authorization code 是一次性的（用過就作廢），而且通常在幾分鐘內過期。它的存在是為了安全 —— 就算有人在 URL 中看到這個 code，他也沒辦法直接用它，因為還需要 client_secret 才能換 access_token。
+</ClawdNote>
+
+### Step 4：換正式訪客證 ⭐
+
+**這是整個 OAuth flow 最關鍵的一步。**
+
+你的 **backend server** 拿著三樣東西去跟 GitHub 換 access_token：
+
+```bash
+POST https://github.com/login/oauth/access_token
+
+{
+  "client_id": "你的client_id",
+  "client_secret": "你的client_secret",  ← 只在這一步使用！
+  "code": "abc123xyz"                     ← Step 3 拿到的
+}
+```
+
+GitHub 收到之後會驗證：
+1. ✅ client_id 是已登記的 app
+2. ✅ client_secret 跟登記時存的一樣
+3. ✅ code 是有效的、沒過期的、沒用過的
+
+全部驗證通過，GitHub 回傳一個 **access_token**：
+
+```json
+{
+  "access_token": "gho_16C7e42F292c6912E7710c838347Ae178B4a",
+  "token_type": "bearer",
+  "scope": "user:email"
+}
+```
+
+這個 access_token 就是你的**正式訪客證**。
+
+<ClawdNote variant="murmur">
+注意到了嗎？client_secret 在整個 flow 中**只出現在這一步**。而且這一步是 backend 對 GitHub 的 server-to-server 通訊，完全不經過使用者的瀏覽器。這就是為什麼 client_secret 可以安全地保密。
+</ClawdNote>
+
+### Step 5：用訪客證拿午餐 🍱
+
+現在你的 backend 有了 access_token，就可以拿它去 GitHub API 拿使用者的 email：
+
+```bash
+GET https://api.github.com/user/emails
+Authorization: Bearer gho_16C7e42F292c6912E7710c838347Ae178B4a
+```
+
+GitHub 看了一下訪客證：「嗯，這張是有效的，而且權限是 `user:email`，OK，email 給你。」
+
+```json
+[
+  {
+    "email": "user@example.com",
+    "primary": true,
+    "verified": true
+  }
+]
+```
+
+拿到了！午餐到手 🎉
+
+### Step 6：發自己的通行證 🎫
+
+OAuth flow 到 Step 5 其實就結束了。但在實務上，你的 app 通常會再做一件事：**發一個自己的 JWT（JSON Web Token）給使用者**。
+
+為什麼？因為 GitHub 的 access_token 是用來跟 **GitHub API** 溝通的。你的使用者之後要跟的是**你的 API**，你需要一個自己的 token。
+
+```javascript
+const jwt = signJWT({
+  userId: "user-123",
+  email: "user@example.com",
+  exp: Math.floor(Date.now() / 1000) + 3600 // 1 小時後過期
+});
+
+// 回傳給前端，存在 cookie 或 localStorage
+res.cookie('token', jwt, { httpOnly: true, secure: true });
+```
+
+從此以後，使用者每次發 request 給你的 API，都帶著這個 JWT。你的 API 只要驗證 JWT 就好，不需要每次都去問 GitHub。
+
+### 完整流程圖
+
+把所有步驟串起來看：
+
+```
+使用者           你的 App (gu-log)        GitHub
+  │                    │                     │
+  │  1. 點 Login       │                     │
+  │───────────────────>│                     │
+  │                    │  2. Redirect         │
+  │<───────────────────│────────────────────>│
+  │                    │                     │
+  │  3. 看到 consent screen                   │
+  │<─────────────────────────────────────────│
+  │                    │                     │
+  │  4. 按 Authorize   │                     │
+  │─────────────────────────────────────────>│
+  │                    │                     │
+  │  5. Redirect + code│                     │
+  │<─────────────────────────────────────────│
+  │───────────────────>│                     │
+  │                    │  6. code + secret    │
+  │                    │────────────────────>│
+  │                    │                     │
+  │                    │  7. access_token     │
+  │                    │<────────────────────│
+  │                    │                     │
+  │                    │  8. GET /user/emails │
+  │                    │────────────────────>│
+  │                    │                     │
+  │                    │  9. email 資料       │
+  │                    │<────────────────────│
+  │                    │                     │
+  │  10. JWT           │                     │
+  │<───────────────────│                     │
+  │                    │                     │
+```
+
+<ClawdNote variant="murmur">
+我知道你在想：「天啊，登入而已要這麼多步驟？」對，就是這麼多步驟。但這些步驟的存在都是有原因的 —— 每一步都在確保某個安全性質。安全從來就不是免費的。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="為什麼 Step 4（用 code 換 access_token）一定要在 backend 做？"
+  options={[
+    { label: "A", text: "因為前端太慢" },
+    { label: "B", text: "因為 client_secret 不能暴露在前端，否則任何人都能冒充你的 app" },
+    { label: "C", text: "因為 GitHub 只接受 POST request" },
+    { label: "D", text: "因為前端不支援 HTTPS" },
+  ]}
+  answer="B"
+  explanation="Step 4 需要帶上 client_secret，而前端的所有程式碼使用者都看得到（打開 DevTools 就能看）。如果 client_secret 暴露了，任何人都能假裝是你的 app 去跟 GitHub 換 access_token。所以這一步必須在 backend 做，讓 client_secret 永遠留在 server 上。"
+/>
+
+---
+
+## 🏰 Floor 3：client_secret 的本質
+
+<LevelUpProgress current={3} total={6} title="OAuth 2.0 完全攻略" />
+
+前面我們一直說 client_secret 很重要、不能洩漏。但你有沒有想過一個根本性的問題：
+
+> **GitHub 怎麼知道你傳過來的 client_secret 是對的？**
+
+答案其實很直覺，但很多人沒有仔細想過。
+
+### Step 0 的秘密
+
+回到 Step 0 —— 你在 GitHub Developer Settings 建立 OAuth App 的時候。
+
+GitHub 做了什麼？它**生成了一組 client_secret**，然後：
+
+1. **GitHub 自己存了一份**（在它的資料庫裡）
+2. **顯示給你一份**（你複製下來，存在你的 `.env` 檔案裡）
+
+從此以後，世界上就只有兩個地方有這個 secret：GitHub 和你的 server。
+
+### 比對的瞬間
+
+到了 Step 4，你的 backend 把 client_secret 傳給 GitHub。GitHub 做的事就是：
+
+> 「讓我看看... 你傳來的 secret 跟我資料庫裡存的那份一不一樣？」
+
+一樣 → ✅ 你是正主，access_token 給你
+不一樣 → ❌ 滾
+
+就是這麼簡單。
+
+<AnalogyBox title="🔏 公司印章的比喻">
+
+就像公司印章的驗證方式：
+
+- 你開公司的時候，刻了一個印章，然後去銀行**留了印鑑**（印章蓋在一張卡上，銀行存起來）
+- 之後你去銀行辦事，蓋了章
+- 銀行把你蓋的章跟存檔的印鑑**比對**
+- 一樣 → 通過；不一樣 → 拒絕
+
+client_secret 就是你的公司印章，GitHub 的資料庫就是銀行的印鑑卡。
+
+</AnalogyBox>
+
+### client_secret 的傳輸次數
+
+這裡有一個很多人搞混的點：**client_secret 在整個 OAuth flow 中被傳輸幾次？**
+
+答案是：**1 次**。只在 **Step 4**。
+
+- Step 0 不算傳輸 —— 那是 GitHub 生成後顯示在網頁上讓你複製，之後 GitHub 網頁就不會再顯示了
+- Step 1-3 完全不涉及 client_secret
+- Step 5-6 用的是 access_token，不是 client_secret
+- 只有 Step 4，你的 backend server 把 client_secret 透過 HTTPS POST 傳給 GitHub
+
+所以 client_secret 的暴露風險非常低 —— 它只在 server-to-server 的 HTTPS 通道中傳輸一次。
+
+<ClawdNote>
+實務上，GitHub 在你建立 OAuth App 後只會顯示 client_secret **一次**。如果你沒有馬上複製，之後就再也看不到了，只能重新生成一組新的。這也是一種安全措施 —— 減少 secret 被看到的機會。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="client_secret 在整個 OAuth flow 中被傳輸幾次？"
+  options={[
+    { label: "A", text: "0 次，它始終存在 server 上不需要傳輸" },
+    { label: "B", text: "1 次，只在 Step 4（backend 傳給 GitHub 換 access_token）" },
+    { label: "C", text: "2 次，Step 0 登記時一次，Step 4 換 token 時一次" },
+    { label: "D", text: "每次 API call 都要傳" },
+  ]}
+  answer="B"
+  explanation="client_secret 只在 Step 4 被傳輸一次，而且是 backend 對 GitHub 的 server-to-server HTTPS 通訊。Step 0 是 GitHub 生成後顯示在網頁上讓你複製，不算是你的 app 在傳輸。之後的 API call 用的是 access_token，不是 client_secret。"
+/>
+
+---
+
+## 🏰 Floor 4：scope 與最小權限
+
+<LevelUpProgress current={4} total={6} title="OAuth 2.0 完全攻略" />
+
+在 Floor 2 我們提到，拿到 access_token 之後就可以去呼叫 GitHub API 了。
+
+但這裡有一個非常重要的觀念：
+
+> **access_token 不是萬能鑰匙。**
+
+### scope 是什麼？
+
+還記得 Step 1 的 URL 嗎？
+
+```
+https://github.com/login/oauth/authorize
+  ?client_id=xxx
+  &redirect_uri=xxx
+  &scope=user:email    ← 這個！
+```
+
+這個 `scope` 參數決定了 access_token 的**權限範圍**。
+
+`scope=user:email` 的意思是：「我只要讀取使用者的 email」。
+
+拿到的 access_token 就**只能做這件事**。你拿它去試：
+
+```bash
+# ✅ 這個可以
+GET /user/emails
+Authorization: Bearer gho_xxx
+
+# ❌ 這個不行 — 沒有 repo scope
+GET /user/repos (寫入)
+Authorization: Bearer gho_xxx
+→ 403 Forbidden
+```
+
+<AnalogyBox title="🏢 訪客證的樓層限制">
+
+回到辦公室大樓的比喻：
+
+管理員發給外送員的訪客證上寫著：「**只能去 15F 拿午餐**」。
+
+如果外送員想偷跑去 3F 的機房看看？刷卡 → 嗶嗶嗶 → 拒絕通行。
+
+`scope` 就是訪客證上的**樓層限制**。你申請什麼權限，就只能用什麼權限。
+
+</AnalogyBox>
+
+### GitHub 的常見 scope
+
+| scope | 能做什麼 |
+|-------|---------|
+| `user:email` | 讀取使用者的 email |
+| `read:user` | 讀取使用者的 profile 資訊 |
+| `repo` | 完整的 repo 讀寫權限（很大！） |
+| `read:org` | 讀取 organization 資訊 |
+| `gist` | 建立和讀取 Gist |
+
+### 最小權限原則
+
+好的做法是**只申請你真正需要的 scope**。這叫做 **Principle of Least Privilege**（最小權限原則）。
+
+gu-log 只需要使用者的 email 來建立帳號，所以只申請 `user:email`。不會去申請 `repo` —— 因為根本用不到，申請了只是增加風險。
+
+<ClawdNote variant="murmur">
+你有沒有看過某些 app 要求一堆權限？「要存取你的 repo、你的 organization、你的 SSH keys...」你心裡想：你一個 todo list app 要我 SSH key 幹嘛？那些 app 就是沒有遵守最小權限原則。拒絕它。
+</ClawdNote>
+
+使用者在 consent screen 上可以看到 app 要求的所有 scope。如果你申請了過多不必要的權限，使用者可能會因為不信任而拒絕授權。
+
+所以 scope 不只是安全問題，也是**信任問題**。
+
+<LevelUpQuiz
+  question="拿到 access_token 之後，可以做什麼？"
+  options={[
+    { label: "A", text: "可以做使用者在 GitHub 上能做的所有事" },
+    { label: "B", text: "只能做 scope 指定的事" },
+    { label: "C", text: "可以做任何事，但有速率限制" },
+    { label: "D", text: "只能讀取資料，不能寫入" },
+  ]}
+  answer="B"
+  explanation="access_token 的權限完全取決於申請時指定的 scope。scope=user:email 就只能讀 email，想做其他事會被 GitHub API 拒絕（403 Forbidden）。這就是最小權限原則的體現。"
+/>
+
+---
+
+## 🏰 Boss Floor：全架構串接
+
+<LevelUpProgress current={5} total={6} title="OAuth 2.0 完全攻略" />
+
+恭喜你爬到 Boss Floor 了 🎉
+
+前面四層我們拆解了 OAuth 的每個元件。現在讓我們把所有東西組合起來，看看在 gu-log 這個真實產品中，完整的架構長什麼樣子。
+
+### 路徑一：Login with GitHub
+
+使用者點了「Login with GitHub」，發生了什麼事？
+
+```
+1. [Browser]  使用者點 "Login with GitHub"
+       │
+2. [Browser]  Redirect 到 GitHub OAuth 頁面
+       │        ↓
+3. [GitHub]   顯示 consent screen
+       │        ↓
+4. [GitHub]   使用者按 Authorize → redirect 回 callback URL（帶著 code）
+       │
+5. [gu-log-api]  Backend 拿 code + client_secret → 跟 GitHub 換 access_token
+       │
+6. [gu-log-api]  Backend 用 access_token 跟 GitHub API 拿 email
+       │
+7. [gu-log-api]  Backend 建立/查詢使用者帳號
+       │
+8. [gu-log-api]  Backend 簽發 JWT，回傳給 Browser
+       │
+9. [Browser]  存 JWT，登入完成 ✅
+```
+
+OAuth 的角色在第 5-6 步就結束了。從第 8 步開始，JWT 接手。
+
+### 路徑二：Ask AI（使用 AI 功能）
+
+使用者已經登入了，現在他要用 AI 功能（例如「Ask AI」來問問題）：
+
+```
+1. [Browser]  使用者輸入問題，按 "Ask AI"
+       │
+2. [Browser]  發送 request 到 gu-log-api（Header 帶 JWT）
+       │
+3. [gu-log-api]  驗證 JWT → 確認是合法使用者
+       │
+4. [gu-log-api]  轉發 request 到 AI Service（例如 Claude API）
+       │
+5. [AI Service]  處理問題，回傳結果
+       │
+6. [gu-log-api]  把結果回傳給 Browser
+       │
+7. [Browser]  顯示 AI 回應 ✅
+```
+
+注意到了嗎？**這條路徑完全沒有 OAuth**。
+
+- 沒有 GitHub
+- 沒有 consent screen
+- 沒有 access_token
+
+只有 JWT 在工作。
+
+### 兩條路徑的比較
+
+| | Login with GitHub | Ask AI |
+|---|---|---|
+| **涉及 OAuth？** | ✅ 是 | ❌ 否 |
+| **涉及 JWT？** | ✅ 最後一步簽發 | ✅ 每次 request 都帶 |
+| **聯繫 GitHub？** | ✅ 換 token + 拿 email | ❌ 不需要 |
+| **頻率** | 只在登入時（一次） | 每次 API call（很多次） |
+
+一句話總結：
+
+> **OAuth 是登入的鑰匙，JWT 是日常的通行證。**
+
+OAuth 幫你完成身份驗證（登入），拿到使用者資訊後，你的 app 就簽發自己的 JWT。之後所有的互動都靠 JWT，不需要再回去找 GitHub。
+
+<AnalogyBox title="🏢 搬進大樓之後">
+
+用辦公室大樓的比喻做最後收尾：
+
+- **OAuth** 就像你搬進大樓時的**身份驗證流程** —— 出示證件、填表、管理員核對、發你門禁卡
+- **JWT** 就像你的**門禁卡** —— 搬進去之後，你每天進出都刷這張卡，不需要每次都重新驗證身份
+
+你只需要「搬進大樓」一次（OAuth 登入），之後每天都用門禁卡（JWT）自由進出。
+
+</AnalogyBox>
+
+<ClawdNote variant="murmur">
+如果你讀到這裡還沒有放棄，恭喜你，你現在對 OAuth 2.0 的理解已經超過 87% 的初階工程師了。我不是在說場面話，真的很多人只知道「加一個 Login with GitHub 按鈕」，但完全不知道背後發生了什麼事。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="使用者在 gu-log 按下 'Ask AI' 發送問題，這個 request 從發出到收到回應，經過幾個系統？"
+  options={[
+    { label: "A", text: "2 個（Browser → AI Service）" },
+    { label: "B", text: "3 個（Browser → gu-log-api → AI Service）" },
+    { label: "C", text: "4 個（Browser → gu-log-api → GitHub → AI Service）" },
+    { label: "D", text: "5 個（Browser → gu-log-api → GitHub → AI Service → Database）" },
+  ]}
+  answer="B"
+  explanation="Ask AI 的 request 經過三個系統：Browser → gu-log-api（驗證 JWT）→ AI Service（處理問題）。不需要經過 GitHub，因為 OAuth 只在登入的時候用。日常 API call 靠的是 JWT，不是 OAuth。"
+/>
+
+---
+
+## 🎓 恭喜通關！
+
+你從 Floor 0 的 API Key 一路爬到了 Boss Floor 的全架構串接。讓我們快速回顧這趟旅程學了什麼：
+
+| Floor | 學到了什麼 |
+|-------|-----------|
+| **Floor 0** | API Key 只能一對一，不適合「代替別人做事」的場景 |
+| **Floor 1** | OAuth 讓第三方 app 在不知道密碼的情況下取得有限權限 |
+| **Floor 2** | Authorization Code Flow 的完整 7 步驟 |
+| **Floor 3** | client_secret 只傳輸一次，且只在 backend-to-GitHub 的通道中 |
+| **Floor 4** | scope 限制 access_token 的權限，遵守最小權限原則 |
+| **Boss Floor** | OAuth 負責登入，JWT 負責日常通行，兩者分工合作 |
+
+如果你能把這六層的 Quiz 都答對，你對 OAuth 2.0 的理解就很扎實了。
+
+下一篇 Level-Up 我們會繼續深入其他主題。Stay tuned 🍄
