@@ -1,4 +1,6 @@
 ---
+import TicketBadge from './TicketBadge.astro';
+
 /**
  * Previous/Next Post Navigation Component
  *
@@ -82,7 +84,7 @@ const baseUrl = lang === 'en' ? '/en/posts/' : '/posts/';
             <span class="nav-post-title">{prevPost.data.title}</span>
             <span class="nav-post-meta">
               {prevPost.data.ticketId && (
-                <span class="nav-ticket-id">{prevPost.data.ticketId}</span>
+                <TicketBadge ticketId={prevPost.data.ticketId} />
               )}
               <span class="nav-post-date">{formatDate(prevPost.data.originalDate, lang)}</span>
             </span>
@@ -104,7 +106,7 @@ const baseUrl = lang === 'en' ? '/en/posts/' : '/posts/';
             <span class="nav-post-title">{nextPost.data.title}</span>
             <span class="nav-post-meta">
               {nextPost.data.ticketId && (
-                <span class="nav-ticket-id">{nextPost.data.ticketId}</span>
+                <TicketBadge ticketId={nextPost.data.ticketId} />
               )}
               <span class="nav-post-date">{formatDate(nextPost.data.originalDate, lang)}</span>
             </span>
@@ -189,15 +191,6 @@ const baseUrl = lang === 'en' ? '/en/posts/' : '/posts/';
     align-items: center;
     gap: 0.5rem;
     margin-top: 0.25rem;
-  }
-
-  .nav-ticket-id {
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--color-accent);
-    background: var(--color-surface-hover);
-    padding: 0.1rem 0.4rem;
-    border-radius: 4px;
   }
 
   .nav-post-date {
