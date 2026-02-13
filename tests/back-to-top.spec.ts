@@ -3,7 +3,7 @@ import { test, expect } from './fixtures';
 test.describe('BackToTop Button', () => {
   test('should only have one back-to-top button when scrolling', async ({ page }) => {
     // Navigate to a long article page
-    await page.goto('/posts/clawd-picks-20260203-bcherny-workflow');
+    await page.goto('/posts/claude-is-a-space-to-think');
 
     // Wait for page to load
     await page.waitForLoadState('networkidle');
@@ -26,7 +26,7 @@ test.describe('BackToTop Button', () => {
   });
 
   test('back-to-top button should have fixed positioning', async ({ page }) => {
-    await page.goto('/posts/clawd-picks-20260203-bcherny-workflow');
+    await page.goto('/posts/claude-is-a-space-to-think');
     await page.waitForLoadState('networkidle');
 
     // Scroll to make button visible
@@ -44,7 +44,7 @@ test.describe('BackToTop Button', () => {
   });
 
   test('back-to-top button should stay in viewport corner when scrolling', async ({ page }) => {
-    await page.goto('/posts/clawd-picks-20260203-bcherny-workflow');
+    await page.goto('/posts/claude-is-a-space-to-think');
     await page.waitForLoadState('networkidle');
 
     // Scroll to make button visible
@@ -71,7 +71,7 @@ test.describe('BackToTop Button', () => {
   });
 
   test('no duplicate back-to-top elements in DOM', async ({ page }) => {
-    await page.goto('/posts/clawd-picks-20260203-bcherny-workflow');
+    await page.goto('/posts/claude-is-a-space-to-think');
     await page.waitForLoadState('networkidle');
 
     // Check for any elements that look like back-to-top buttons

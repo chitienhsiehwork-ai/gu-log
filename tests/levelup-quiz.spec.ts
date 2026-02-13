@@ -39,6 +39,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 import AnalogyBox from '../../components/AnalogyBox.astro';
 
 <LevelUpProgress current={2} total={5} title="測試教學" />
+<LevelUpProgress current={1} total={5} />
 
 這是一段測試文字，用來確保最低內容長度通過驗證。這段文字需要至少兩百個字元才能通過 validate-posts 的檢查，所以我們在這裡多寫一點內容。Level-Up 教學系統的測試頁面，用來驗證所有新元件是否正常運作。
 
@@ -70,7 +71,7 @@ test.describe('LevelUpQuiz Component', () => {
   test.beforeAll(async () => {
     fs.writeFileSync(testPostFullPath, TEST_MDX, 'utf-8');
     // Wait for Astro dev server to pick up the new file
-    await new Promise((r) => setTimeout(r, 2000));
+    await new Promise((r) => setTimeout(r, 5000));
   });
 
   test.afterAll(async () => {
@@ -80,7 +81,8 @@ test.describe('LevelUpQuiz Component', () => {
   });
 
   test('GIVEN a quiz WHEN page loads THEN quiz is visible with all options', async ({ page }) => {
-    await page.goto(TEST_URL, { waitUntil: 'networkidle' });
+    const response = await page.goto(TEST_URL, { waitUntil: 'networkidle' });
+    expect(response?.status()).toBe(200);
 
     const quiz = page.locator('.levelup-quiz').first();
     await expect(quiz).toBeVisible();
@@ -99,6 +101,7 @@ test.describe('LevelUpQuiz Component', () => {
 
   test('GIVEN a quiz WHEN user selects correct answer THEN shows green + explanation', async ({ page }) => {
     await page.goto(TEST_URL, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(500); // Wait for hydration
 
     const quiz = page.locator('.levelup-quiz').first();
     const correctBtn = quiz.locator('.quiz-option[data-label="B"]');
@@ -217,6 +220,16 @@ test.describe('LevelUpProgress Component', () => {
 
     // Progress bar should exist
     await expect(progress.locator('.progress-bar-fill')).toBeVisible();
+  });
+
+  test('GIVEN progress component without title WHEN rendered THEN does not show title', async ({ page }) => {
+    await page.goto(TEST_URL, { waitUntil: 'networkidle' });
+
+    // The second progress bar has no title
+    const progress = page.locator('.levelup-progress').nth(1);
+    await expect(progress).toBeVisible();
+    await expect(progress.locator('.progress-level')).toContainText('Level 1 / 5');
+    await expect(progress.locator('.progress-title')).not.toBeVisible();
   });
 });
 

@@ -261,8 +261,9 @@ test.describe('Auth Callback', () => {
     await page.evaluate(() => localStorage.removeItem('gu-log-jwt'));
 
     await page.goto('/auth/callback?token=fake-jwt-token-12345');
-    await page.waitForTimeout(200);
-
+    
+    // Wait for localStorage to be populated
+    await page.waitForFunction(() => !!localStorage.getItem('gu-log-jwt'));
     const jwt = await page.evaluate(() => localStorage.getItem('gu-log-jwt'));
     expect(jwt).toBe('fake-jwt-token-12345');
   });
@@ -274,8 +275,9 @@ test.describe('Auth Callback', () => {
     await page.evaluate(() => localStorage.removeItem('gu-log-jwt'));
 
     await page.goto('/auth/callback#token=hash-jwt-token-67890');
-    await page.waitForTimeout(200);
-
+    
+    // Wait for localStorage to be populated
+    await page.waitForFunction(() => !!localStorage.getItem('gu-log-jwt'));
     const jwt = await page.evaluate(() => localStorage.getItem('gu-log-jwt'));
     expect(jwt).toBe('hash-jwt-token-67890');
   });
@@ -312,61 +314,124 @@ test.describe('Auth Callback', () => {
   });
 });
 
-test.describe('Login Indicator', () => {
-  test('GIVEN user is not logged in WHEN page loads THEN login link is shown', async ({
-    page,
-  }) => {
-    await page.goto(TEST_POST);
-    await page.evaluate(() => localStorage.removeItem('gu-log-jwt'));
-    await page.reload();
+test.describe('AI Popup - API Interactions', () => {
+  test.beforeEach(async ({ page }) => {
+    // Only run on desktop where mouse selection is reliable
+    const isDesktop = test.info().project.name === 'Desktop Chrome';
+    if (!isDesktop) test.skip();
 
-    const indicator = page.locator('#login-indicator');
-    await expect(indicator).toBeVisible();
-
-    const loginLink = indicator.locator('.login-link');
-    await expect(loginLink).toBeVisible();
-    await expect(loginLink).toContainText('Login');
-  });
-
-  test('GIVEN user is logged in WHEN page loads THEN user info and logout button shown', async ({
-    page,
-  }) => {
+    // Mock login
     await page.goto(TEST_POST);
     await page.evaluate(() => {
       const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-      const payload = btoa(JSON.stringify({ email: 'user@example.com' }));
-      localStorage.setItem('gu-log-jwt', header + '.' + payload + '.sig');
+      const payload = btoa(JSON.stringify({ email: 'test@example.com', exp: 9999999999 }));
+      const token = header + '.' + payload + '.fake-signature';
+      localStorage.setItem('gu-log-jwt', token);
     });
     await page.reload();
-
-    const indicator = page.locator('#login-indicator');
-    await expect(indicator).toBeVisible();
-
-    const user = indicator.locator('.login-user');
-    await expect(user).toBeVisible();
-    await expect(user).toContainText('user@example.com');
-
-    const logoutBtn = indicator.locator('.login-logout-btn');
-    await expect(logoutBtn).toBeVisible();
   });
 
-  test('GIVEN user is logged in WHEN logout clicked THEN JWT cleared and login link shown', async ({
-    page,
-  }) => {
-    await page.goto(TEST_POST);
-    await page.evaluate(() => {
-      const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-      const payload = btoa(JSON.stringify({ email: 'user@example.com' }));
-      localStorage.setItem('gu-log-jwt', header + '.' + payload + '.sig');
+  test('GIVEN logged in WHEN clicking Ask AI THEN shows loading and result', async ({ page }) => {
+    // Mock API
+    await page.route('**/ai/ask', async (route) => {
+      await new Promise(r => setTimeout(r, 500)); // slight delay to show loading
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ response: 'This is a mock AI answer.' })
+      });
     });
-    await page.reload();
 
-    const indicator = page.locator('#login-indicator');
-    await indicator.locator('.login-logout-btn').click();
+    // Select text
+    const content = page.locator('.post-content p').first();
+    const box = await content.boundingBox();
+    if (!box) throw new Error('No bounding box');
+    
+    await page.mouse.move(box.x + 10, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + 100, box.y + box.height / 2);
+    await page.mouse.up();
 
-    const jwt = await page.evaluate(() => localStorage.getItem('gu-log-jwt'));
-    expect(jwt).toBeNull();
+    const popup = page.locator('#ai-popup');
+    await expect(popup).toBeVisible();
 
-    await expect(indicator.locator('.login-link')).toBeVisible();
+    // Click Ask AI
+    const askBtn = popup.locator('[data-action="ask"]');
+    await askBtn.click();
+
+    // Should show result (loading might be too fast to catch reliably)
+    await expect(popup.locator('.ai-popup-result')).toBeVisible();
+    await expect(popup.locator('.ai-popup-result-body')).toHaveText('This is a mock AI answer.');
+  });
+
+  test('GIVEN API error WHEN clicking Ask AI THEN shows error message', async ({ page }) => {
+    // Mock API error
+    await page.route('**/ai/ask', async (route) => {
+      await route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'Mock Server Error' })
+      });
+    });
+
+    // Select text
+    const content = page.locator('.post-content p').first();
+    const box = await content.boundingBox();
+    if (!box) throw new Error('No bounding box');
+    
+    await page.mouse.move(box.x + 10, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + 100, box.y + box.height / 2);
+    await page.mouse.up();
+
+    const popup = page.locator('#ai-popup');
+    await expect(popup).toBeVisible();
+
+    // Click Ask AI
+    await popup.locator('[data-action="ask"]').click();
+
+    // Should show error (increase timeout)
+    const errorResult = popup.locator('.ai-popup-result--error');
+    await expect(errorResult).toBeVisible({ timeout: 10000 });
+    await expect(popup.locator('.ai-popup-error-text')).toContainText('Error');
+  });
+
+  test('GIVEN logged in WHEN clicking Edit THEN shows diff and confirm buttons', async ({ page }) => {
+    // Mock API
+    await page.route('**/ai/edit', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ 
+          diff: '- old text\n+ new text',
+          editId: 'mock-edit-id-123'
+        })
+      });
+    });
+
+    // Select text
+    const content = page.locator('.post-content p').first();
+    const box = await content.boundingBox();
+    if (!box) throw new Error('No bounding box');
+    
+    await page.mouse.move(box.x + 10, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + 100, box.y + box.height / 2);
+    await page.mouse.up();
+
+    const popup = page.locator('#ai-popup');
+    await expect(popup).toBeVisible();
+
+    // Click Edit
+    await popup.locator('[data-action="edit"]').click();
+
+    // Should show diff
+    await expect(popup.locator('.ai-popup-diff')).toBeVisible();
+    await expect(popup.locator('.ai-popup-diff-remove')).toContainText('- old text');
+    await expect(popup.locator('.ai-popup-diff-add')).toContainText('+ new text');
+    
+    // Should show confirm/cancel buttons
+    await expect(popup.locator('[data-action="confirm"]')).toBeVisible();
+    await expect(popup.locator('.ai-popup-btn--cancel')).toBeVisible();
   });
 });

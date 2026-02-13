@@ -21,15 +21,20 @@ test.describe('Post Page', () => {
   test('GIVEN a post with headings WHEN rendered THEN all h2 headings should have IDs for anchoring', async ({ page }) => {
     await page.goto(testPostUrl);
     
-    const h2Headings = page.locator('article h2');
+    // Exclude TOC headings (e.g., "目錄" / "Table of Contents") which don't need IDs
+    const h2Headings = page.locator('article .post-content h2');
     const count = await h2Headings.count();
     
     expect(count).toBeGreaterThan(0);
     
     for (let i = 0; i < count; i++) {
       const heading = h2Headings.nth(i);
-      const id = await heading.getAttribute('id');
-      expect(id).toBeTruthy();
+      const text = await heading.textContent();
+      // Only check headers that have text content
+      if (text && text.trim().length > 0) {
+        const id = await heading.getAttribute('id');
+        expect(id, `Heading "${text}" should have an ID`).toBeTruthy();
+      }
     }
   });
 

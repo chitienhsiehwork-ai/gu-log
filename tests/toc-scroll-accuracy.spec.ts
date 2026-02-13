@@ -14,10 +14,10 @@ import { test, expect } from './fixtures';
  * Run with: npx playwright test tests/toc-scroll-accuracy.spec.ts
  */
 
-// Use a long post with many sections (Obsidian CLI article has 15+ headings)
+// Use a long post with many sections
 const LONG_POST_URL = '/posts/shroom-picks-20260211-obsidian-cli-ai-era';
 // Fallback to a known long post if the above doesn't exist
-const FALLBACK_POST_URL = '/posts/shroom-picks-20260205-dejavucoder-prompt-caching-part1-tips';
+const FALLBACK_POST_URL = '/posts/claude-is-a-space-to-think';
 
 // Maximum acceptable offset (in px) between target heading and viewport top
 // With scroll-padding-top of 80px, heading should appear ~80px from top

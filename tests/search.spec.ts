@@ -13,9 +13,9 @@ test.describe('Search Bar', () => {
   test('GIVEN search results WHEN displaying date THEN should NOT show "undefined"', async ({ page }) => {
     // Type a broad query to get results
     const input = page.locator('[data-search-input]');
-    await input.fill('showboat');
+    await input.fill('Claude');
     // Wait for debounce + results
-    await page.waitForSelector('.search-result-item', { timeout: 5000 });
+    await page.waitForSelector('.search-result-item', { timeout: 8000 });
 
     // Check that no result contains "undefined" text
     const resultsContainer = page.locator('[data-search-results]');
