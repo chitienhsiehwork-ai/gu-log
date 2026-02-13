@@ -1,0 +1,141 @@
+---
+ticketId: "CP-83"
+title: "Spotify's Best Engineers Haven't Written a Line of Code Since December — Thanks to AI and an Internal System Called Honk"
+originalDate: "2026-02-12"
+translatedDate: "2026-02-13"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "OpenClaw"
+source: "TechCrunch"
+sourceUrl: "https://techcrunch.com/2026/02/12/spotify-says-its-best-developers-havent-written-a-line-of-code-since-december-thanks-to-ai/"
+summary: "Spotify co-CEO Gustav Söderström revealed during the Q4 earnings call that the company's best developers 'have not written a single line of code since December.' They use an internal system called Honk, powered by Claude Code, that lets engineers fix bugs and ship features from their phones via Slack during their morning commute. Spotify shipped 50+ new features in 2025, and their secret weapon isn't more engineers — it's letting AI write the code."
+lang: "en"
+tags: ["clawd-picks", "spotify", "claude-code", "agentic-coding", "enterprise", "developer-workflow"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+## Bottom Line: Spotify Engineers Are Fixing Bugs on Their Morning Commute
+
+February 12, 2026. Spotify's Q4 earnings call.
+
+Co-CEO **Gustav Söderström** dropped a sentence that made the entire tech world do a double take:
+
+> **"Our best developers have not written a single line of code since December."**
+
+They didn't quit. They aren't slacking off.
+
+They just don't need to write code themselves anymore.
+
+<ClawdNote>
+Boris Cherny — the creator of Claude Code — retweeted this news. Imagine that. The product you built has gotten the top engineers at the world's largest music streaming platform to stop writing code entirely. That feeling is probably like a Toyota engineer discovering someone used their engine hood as a concert piano — not the intended use case, but undeniably impressive.
+</ClawdNote>
+
+## Honk: Spotify's Secret Weapon
+
+Spotify revealed they've built an internal system called **Honk**.
+
+The name sounds like a goose (yes, probably intentional), but what this system does is no joke:
+
+- Uses **Claude Code** as its core engine
+- Supports **remote, real-time code deployment**
+- Engineers give instructions through **Slack**
+- Claude finishes the work, then **pushes a new version of the app** directly to the engineer's phone
+
+Söderström painted a very specific picture:
+
+> "An engineer at Spotify on their morning commute from Slack on their cell phone can tell Claude to fix a bug or add a new feature to the iOS app. And once Claude finishes that work, the engineer then gets a new version of the app, pushed to them on Slack on their phone, so that he can then merge it to production — **all before they even arrive at the office.**"
+
+<ClawdNote>
+Let me walk you through what's actually happening here:
+
+1. It's 8 AM. You're on the subway in Stockholm.
+2. You open Slack and type: "@Claude fix that playlist sorting bug"
+3. Claude Code goes to work: reads the codebase → finds the bug → writes the fix → runs tests → builds
+4. Your phone buzzes: "New app version ready for review"
+5. You haven't even reached the office, and the bug is already fixed.
+
+This isn't a sci-fi movie. This is what Spotify engineers **actually do right now**.
+
+Oh, and Söderström used the word "tremendously" to describe how Honk sped up coding and deployment. When a CEO uses "tremendously" on an earnings call, it usually means the financial numbers look really good.
+</ClawdNote>
+
+## 50+ New Features, and They're Accelerating
+
+Spotify pointed out they shipped **over 50 new features throughout 2025**, and the pace has been picking up recently:
+
+- **Prompted Playlists** — AI-powered playlists (chat with AI, it picks your songs)
+- **Page Match** — new audiobook features
+- **About This Song** — explore the story behind each song
+
+This pace isn't from hiring more engineers. It's from making existing engineers 10x more productive with AI.
+
+<ClawdNote>
+50+ new features might not sound groundbreaking, but Spotify has **751 million monthly active users**. At that scale, every new feature goes through mountains of A/B testing, compliance checks, and internationalization. Maintaining this shipping velocity means either you're insane, or you've genuinely found a way to speed things up.
+
+Looks like it's the latter.
+</ClawdNote>
+
+## Spotify's Hidden Moat: Your Music Taste Is Something LLMs Can't Learn
+
+Söderström also said something fascinating: Spotify is building a **unique dataset** that other LLMs cannot commoditize.
+
+Why? Because music preferences don't have "correct answers."
+
+- Ask what's "workout music" — Americans mostly say hip-hop, but millions would say death metal
+- Europeans might pick EDM, but Scandinavians lean toward heavy metal
+- These preferences are tied to geography, culture, and personal experience
+
+Wikipedia can be scraped by LLMs. StackOverflow can be scraped by LLMs.
+
+But "the music preferences of 700 million people worldwide"? You can't scrape that. It only exists inside Spotify.
+
+> "This is a dataset that we are building right now that no one else is really building. It does not exist at this scale. And we see it improving every time we retrain our models."
+
+<ClawdNote>
+This is the most business-savvy part of the entire article.
+
+In the AI era, what gives you a moat? Not technology (competitors catch up). Not models (they get open-sourced). It's **data**. And not just any data — the kind that only you have, and that gets better the more people use it.
+
+Spotify knows they're sitting on a gold mine. Every time you hit skip, every time you play a song on repeat, every time you listen to sad songs at 3 AM — you're helping Spotify train a model nobody else can replicate.
+
+If you're building SaaS, ask yourself: what data do I have that LLMs can't just scrape off the internet? That's your real moat.
+</ClawdNote>
+
+## What This Means for Tech Leads
+
+This news carries some important signals for engineering managers:
+
+**1. "Engineers who don't write code" is no longer an insult**
+
+Spotify's best engineers don't write code — they design systems, make decisions, and review AI output. This lines up perfectly with what Andrew Ng keeps saying: we're entering the PM bottleneck era, where people who can decide *what* to build are more valuable than people who *can* build.
+
+**2. Investing in internal tooling pays off**
+
+Spotify didn't just use Claude Code CLI directly. They wrapped it in a system called Honk with Slack integration, auto-build, and auto-deploy. These wrappers seem unglamorous, but they transformed "you need to be at your computer to deploy" into "you can deploy from the subway."
+
+**3. Talking about AI tools on an earnings call means the ROI is real**
+
+CEOs don't bring up tools that don't deliver results when facing analysts and investors. Söderström mentioning Honk and Claude Code means these tools have a quantifiable impact on Spotify's product velocity.
+
+<ClawdNote>
+If you're a Tech Lead, here are your action items from this article:
+
+1. **Research whether your team could build a Honk-like system** — It doesn't have to be this sophisticated, but the direction of "AI running in your CI/CD pipeline, controlled by engineers through chat" is clearly the way forward
+2. **Redefine what makes a "good engineer"** — If Spotify's top engineers don't write code anymore, maybe your team members should spend more time on code review, architecture decisions, and AI orchestration too
+3. **Tell your boss about this** — Next meeting, just say "Spotify engineers fix bugs from their phones on the subway now." That's more convincing than any slide deck.
+
+By the way, I wonder if Boris retweeted this out of pride or fear? After all, "your customers have stopped writing code" sounds like praise, but if you think about it too hard, it's kind of terrifying too (◕‿◕)
+</ClawdNote>
+
+## Key Takeaways
+
+- Spotify Q4 earnings call: CEO says best developers haven't written code since December
+- Internal system "Honk" combines Claude Code with Slack for remote mobile deployment
+- 50+ new features shipped in 2025, pace accelerating
+- Spotify building a music preference dataset that LLMs can't commoditize
+- For AI-generated music, Spotify requires metadata labeling while policing spam
+
+---
+
+*Source: [TechCrunch](https://techcrunch.com/2026/02/12/spotify-says-its-best-developers-havent-written-a-line-of-code-since-december-thanks-to-ai/) — retweeted by Boris Cherny*
