@@ -1,0 +1,698 @@
+---
+/**
+ * AiPopup Component
+ * 
+ * Text selection popup for AI interactions (Ask AI / Edit with AI).
+ * Triggers on text selection within .post-content areas.
+ * Supports dark/light themes, desktop floating + mobile bottom sheet.
+ */
+
+interface Props {
+  filePath?: string;
+  postTitle?: string;
+  lang?: 'zh-tw' | 'en';
+}
+
+const { filePath = '', postTitle = '', lang = 'zh-tw' } = Astro.props;
+
+const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:8787';
+---
+
+<div
+  id="ai-popup-root"
+  data-file-path={filePath}
+  data-post-title={postTitle}
+  data-api-url={apiUrl}
+  data-lang={lang}
+>
+  <!-- Popup is created dynamically by JS -->
+</div>
+
+<script is:inline>
+(function() {
+  'use strict';
+
+  var JWT_KEY = 'gu-log-jwt';
+  var RETURN_KEY = 'gu-log-return-url';
+
+  var root = document.getElementById('ai-popup-root');
+  if (!root) return;
+
+  var filePath = root.getAttribute('data-file-path') || '';
+  var postTitle = root.getAttribute('data-post-title') || '';
+  var apiUrl = root.getAttribute('data-api-url') || '';
+  var lang = root.getAttribute('data-lang') || 'zh-tw';
+
+  // i18n
+  var t = lang === 'en' ? {
+    askAi: '🤖 Ask AI',
+    edit: '✏️ Edit',
+    login: '🔐 Login with GitHub',
+    loading: 'Thinking...',
+    close: '✕',
+    confirm: '✅ Confirm',
+    cancel: '❌ Cancel',
+    committed: 'Committed!',
+    error: 'Something went wrong. Please try again.'
+  } : {
+    askAi: '🤖 Ask AI',
+    edit: '✏️ Edit',
+    login: '🔐 Login with GitHub',
+    loading: '思考中...',
+    close: '✕',
+    confirm: '✅ 確認',
+    cancel: '❌ 取消',
+    committed: '已提交！',
+    error: '發生錯誤，請再試一次。'
+  };
+
+  var popup = null;
+  var selectedText = '';
+  var currentState = 'idle'; // idle, buttons, loading, ask-result, edit-result, confirm-loading, committed, error
+  var pendingEditId = null;
+
+  function getJwt() {
+    try {
+      return localStorage.getItem(JWT_KEY);
+    } catch(e) {
+      return null;
+    }
+  }
+
+  function isLoggedIn() {
+    return !!getJwt();
+  }
+
+  function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function createPopup() {
+    if (popup) popup.remove();
+
+    popup = document.createElement('div');
+    popup.id = 'ai-popup';
+    popup.className = 'ai-popup';
+    popup.setAttribute('role', 'dialog');
+    popup.setAttribute('aria-label', 'AI Popup');
+    document.body.appendChild(popup);
+    return popup;
+  }
+
+  function removePopup() {
+    if (popup) {
+      popup.remove();
+      popup = null;
+    }
+    currentState = 'idle';
+    pendingEditId = null;
+  }
+
+  function positionPopup(rect) {
+    if (!popup) return;
+
+    var isMobile = window.innerWidth < 640;
+
+    if (isMobile) {
+      // Bottom sheet style
+      popup.classList.add('ai-popup--mobile');
+      popup.classList.remove('ai-popup--desktop');
+    } else {
+      // Float near selection
+      popup.classList.remove('ai-popup--mobile');
+      popup.classList.add('ai-popup--desktop');
+
+      var popupRect = popup.getBoundingClientRect();
+      var top = rect.top + window.scrollY - popupRect.height - 8;
+      var left = rect.left + window.scrollX + (rect.width / 2) - (popupRect.width / 2);
+
+      // Keep within viewport
+      if (top < window.scrollY + 8) {
+        top = rect.bottom + window.scrollY + 8;
+      }
+      left = Math.max(8, Math.min(left, window.innerWidth - popupRect.width - 8));
+
+      popup.style.top = top + 'px';
+      popup.style.left = left + 'px';
+    }
+  }
+
+  function renderButtons() {
+    if (!popup) return;
+    currentState = 'buttons';
+
+    if (!isLoggedIn()) {
+      popup.innerHTML =
+        '<button class="ai-popup-btn ai-popup-btn--login" data-action="login">' +
+          escapeHtml(t.login) +
+        '</button>';
+    } else {
+      popup.innerHTML =
+        '<button class="ai-popup-btn ai-popup-btn--ask" data-action="ask">' +
+          escapeHtml(t.askAi) +
+        '</button>' +
+        '<button class="ai-popup-btn ai-popup-btn--edit" data-action="edit">' +
+          escapeHtml(t.edit) +
+        '</button>';
+    }
+  }
+
+  function renderLoading() {
+    if (!popup) return;
+    currentState = 'loading';
+
+    popup.innerHTML =
+      '<div class="ai-popup-loading">' +
+        '<div class="ai-popup-spinner"></div>' +
+        '<span>' + escapeHtml(t.loading) + '</span>' +
+      '</div>';
+  }
+
+  function renderAskResult(response) {
+    if (!popup) return;
+    currentState = 'ask-result';
+
+    var content = document.createElement('div');
+    content.className = 'ai-popup-result';
+
+    var closeBtn = document.createElement('button');
+    closeBtn.className = 'ai-popup-close';
+    closeBtn.setAttribute('data-action', 'close');
+    closeBtn.textContent = t.close;
+
+    var body = document.createElement('div');
+    body.className = 'ai-popup-result-body';
+    body.textContent = response;
+
+    content.appendChild(closeBtn);
+    content.appendChild(body);
+
+    popup.innerHTML = '';
+    popup.appendChild(content);
+
+    // Re-position for larger content
+    positionPopup(getSelectionRect() || { top: 0, left: 0, bottom: 0, width: 0 });
+  }
+
+  function renderEditResult(diff, editId) {
+    if (!popup) return;
+    currentState = 'edit-result';
+    pendingEditId = editId;
+
+    var content = document.createElement('div');
+    content.className = 'ai-popup-result';
+
+    var closeBtn = document.createElement('button');
+    closeBtn.className = 'ai-popup-close';
+    closeBtn.setAttribute('data-action', 'close');
+    closeBtn.textContent = t.close;
+
+    var diffEl = document.createElement('div');
+    diffEl.className = 'ai-popup-diff';
+
+    // Render diff lines
+    var lines = diff.split('\n');
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i];
+      var lineEl = document.createElement('div');
+      lineEl.className = 'ai-popup-diff-line';
+      if (line.indexOf('+') === 0 && line.indexOf('+++') !== 0) {
+        lineEl.className += ' ai-popup-diff-add';
+      } else if (line.indexOf('-') === 0 && line.indexOf('---') !== 0) {
+        lineEl.className += ' ai-popup-diff-remove';
+      }
+      lineEl.textContent = line;
+      diffEl.appendChild(lineEl);
+    }
+
+    var actions = document.createElement('div');
+    actions.className = 'ai-popup-actions';
+    actions.innerHTML =
+      '<button class="ai-popup-btn ai-popup-btn--confirm" data-action="confirm">' +
+        escapeHtml(t.confirm) +
+      '</button>' +
+      '<button class="ai-popup-btn ai-popup-btn--cancel" data-action="close">' +
+        escapeHtml(t.cancel) +
+      '</button>';
+
+    content.appendChild(closeBtn);
+    content.appendChild(diffEl);
+    content.appendChild(actions);
+
+    popup.innerHTML = '';
+    popup.appendChild(content);
+
+    positionPopup(getSelectionRect() || { top: 0, left: 0, bottom: 0, width: 0 });
+  }
+
+  function renderCommitted(commitHash) {
+    if (!popup) return;
+    currentState = 'committed';
+
+    popup.innerHTML =
+      '<div class="ai-popup-result">' +
+        '<button class="ai-popup-close" data-action="close">' + escapeHtml(t.close) + '</button>' +
+        '<div class="ai-popup-committed">' +
+          '<span class="ai-popup-committed-icon">✅</span> ' +
+          escapeHtml(t.committed) +
+          (commitHash ? ' <code>' + escapeHtml(commitHash.substring(0, 7)) + '</code>' : '') +
+        '</div>' +
+      '</div>';
+  }
+
+  function renderError(msg) {
+    if (!popup) return;
+    currentState = 'error';
+
+    popup.innerHTML =
+      '<div class="ai-popup-result ai-popup-result--error">' +
+        '<button class="ai-popup-close" data-action="close">' + escapeHtml(t.close) + '</button>' +
+        '<div class="ai-popup-error-text">' + escapeHtml(msg || t.error) + '</div>' +
+      '</div>';
+  }
+
+  function getSelectionRect() {
+    var sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return null;
+    var range = sel.getRangeAt(0);
+    var rect = range.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) return null;
+    return rect;
+  }
+
+  function isInsidePostContent(node) {
+    var el = node.nodeType === 3 ? node.parentElement : node;
+    while (el) {
+      if (el.classList && el.classList.contains('post-content')) return true;
+      el = el.parentElement;
+    }
+    return false;
+  }
+
+  async function apiRequest(endpoint, body) {
+    var jwt = getJwt();
+    var headers = { 'Content-Type': 'application/json' };
+    if (jwt) headers['Authorization'] = 'Bearer ' + jwt;
+
+    var res = await fetch(apiUrl + endpoint, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify(body)
+    });
+
+    if (!res.ok) {
+      var errText = '';
+      try { errText = (await res.json()).error || res.statusText; } catch(e) { errText = res.statusText; }
+      throw new Error(errText);
+    }
+
+    return res.json();
+  }
+
+  async function handleAsk() {
+    renderLoading();
+    try {
+      var data = await apiRequest('/ai/ask', {
+        text: selectedText,
+        context: postTitle
+      });
+      renderAskResult(data.response || data.answer || JSON.stringify(data));
+    } catch(err) {
+      renderError(err.message);
+    }
+  }
+
+  async function handleEdit() {
+    renderLoading();
+    try {
+      var data = await apiRequest('/ai/edit', {
+        text: selectedText,
+        filePath: filePath,
+        instruction: ''
+      });
+      renderEditResult(data.diff || '', data.editId || data.id || '');
+    } catch(err) {
+      renderError(err.message);
+    }
+  }
+
+  async function handleConfirm() {
+    renderLoading();
+    try {
+      var data = await apiRequest('/ai/edit/confirm', {
+        editId: pendingEditId
+      });
+      renderCommitted(data.commitHash || data.commit || '');
+    } catch(err) {
+      renderError(err.message);
+    }
+  }
+
+  function handleLogin() {
+    // Save current page URL so we can return after login
+    try {
+      localStorage.setItem(RETURN_KEY, window.location.href);
+    } catch(e) {}
+    window.location.href = apiUrl + '/auth/github';
+  }
+
+  // Event delegation for popup buttons
+  document.addEventListener('click', function(e) {
+    var btn = e.target.closest('[data-action]');
+    if (!btn || !popup || !popup.contains(btn)) return;
+
+    var action = btn.getAttribute('data-action');
+    e.stopPropagation();
+
+    switch (action) {
+      case 'ask':
+        handleAsk();
+        break;
+      case 'edit':
+        handleEdit();
+        break;
+      case 'confirm':
+        handleConfirm();
+        break;
+      case 'login':
+        handleLogin();
+        break;
+      case 'close':
+        removePopup();
+        break;
+    }
+  });
+
+  // Show popup on text selection in post-content
+  function onSelectionEnd(e) {
+    // Small delay to let selection finalize
+    setTimeout(function() {
+      var sel = window.getSelection();
+      var text = sel ? sel.toString().trim() : '';
+
+      if (!text || text.length < 2) {
+        // Don't remove if popup is showing results
+        if (currentState === 'buttons') {
+          removePopup();
+        }
+        return;
+      }
+
+      // Check if selection is inside .post-content
+      if (!sel.anchorNode || !isInsidePostContent(sel.anchorNode)) {
+        return;
+      }
+
+      selectedText = text;
+
+      var rect = getSelectionRect();
+      if (!rect) return;
+
+      createPopup();
+      renderButtons();
+      positionPopup(rect);
+    }, 10);
+  }
+
+  document.addEventListener('mouseup', onSelectionEnd);
+  document.addEventListener('touchend', onSelectionEnd);
+
+  // Close popup when clicking outside
+  document.addEventListener('mousedown', function(e) {
+    if (popup && !popup.contains(e.target)) {
+      // Only close for button state; keep results open
+      if (currentState === 'buttons') {
+        removePopup();
+      }
+    }
+  });
+
+  // Close on Escape
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && popup) {
+      removePopup();
+    }
+  });
+})();
+</script>
+
+<style is:global>
+  /* ─── AI Popup Base ─── */
+  .ai-popup {
+    position: absolute;
+    z-index: 9999;
+    background: var(--color-surface, #24283b);
+    border: 1px solid var(--color-border, #3b4261);
+    border-radius: 10px;
+    padding: 0.4rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    display: flex;
+    gap: 0.25rem;
+    animation: ai-popup-fadein 0.15s ease-out;
+    max-width: 90vw;
+  }
+
+  @keyframes ai-popup-fadein {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* ─── Desktop ─── */
+  .ai-popup--desktop {
+    position: absolute;
+  }
+
+  /* ─── Mobile Bottom Sheet ─── */
+  .ai-popup--mobile {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: auto;
+    border-radius: 14px 14px 0 0;
+    padding: 0.75rem;
+    max-width: 100vw;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
+    animation: ai-popup-slideup 0.2s ease-out;
+  }
+
+  @keyframes ai-popup-slideup {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  /* ─── Buttons ─── */
+  .ai-popup-btn {
+    border: none;
+    background: transparent;
+    color: var(--color-text, #a9b1d6);
+    font-size: 0.85rem;
+    padding: 0.4rem 0.75rem;
+    border-radius: 6px;
+    cursor: pointer;
+    white-space: nowrap;
+    font-family: inherit;
+    transition: background 0.15s;
+  }
+
+  .ai-popup-btn:hover {
+    background: var(--color-surface-hover, #2f3549);
+  }
+
+  .ai-popup-btn--login {
+    color: var(--color-accent, #7aa2f7);
+    font-weight: 500;
+  }
+
+  .ai-popup-btn--ask {
+    color: var(--color-accent, #7aa2f7);
+  }
+
+  .ai-popup-btn--edit {
+    color: #9ece6a;
+  }
+
+  .ai-popup-btn--confirm {
+    color: #9ece6a;
+    font-weight: 500;
+  }
+
+  .ai-popup-btn--cancel {
+    color: var(--color-text-muted, #565f89);
+  }
+
+  /* ─── Loading ─── */
+  .ai-popup-loading {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    color: var(--color-text-muted, #565f89);
+    font-size: 0.85rem;
+  }
+
+  .ai-popup-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--color-border, #3b4261);
+    border-top-color: var(--color-accent, #7aa2f7);
+    border-radius: 50%;
+    animation: ai-spin 0.7s linear infinite;
+    flex-shrink: 0;
+  }
+
+  @keyframes ai-spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* ─── Result Panel ─── */
+  .ai-popup-result {
+    position: relative;
+    padding: 0.5rem;
+    min-width: 280px;
+    max-width: min(500px, 90vw);
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+
+  .ai-popup-close {
+    position: absolute;
+    top: 0.25rem;
+    right: 0.25rem;
+    background: transparent;
+    border: none;
+    color: var(--color-text-muted, #565f89);
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    line-height: 1;
+  }
+
+  .ai-popup-close:hover {
+    background: var(--color-surface-hover, #2f3549);
+    color: var(--color-text, #a9b1d6);
+  }
+
+  .ai-popup-result-body {
+    margin-top: 1.5rem;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--color-text, #a9b1d6);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .ai-popup-result--error .ai-popup-error-text {
+    margin-top: 1.5rem;
+    color: #f7768e;
+    font-size: 0.85rem;
+  }
+
+  /* ─── Diff Display ─── */
+  .ai-popup-diff {
+    margin-top: 1.5rem;
+    font-family: var(--font-mono, monospace);
+    font-size: 0.8rem;
+    line-height: 1.5;
+    background: var(--color-bg, #1a1b26);
+    border-radius: 6px;
+    padding: 0.5rem;
+    overflow-x: auto;
+    max-height: 40vh;
+    overflow-y: auto;
+  }
+
+  .ai-popup-diff-line {
+    white-space: pre;
+    padding: 0 0.5rem;
+  }
+
+  .ai-popup-diff-add {
+    background: rgba(158, 206, 106, 0.15);
+    color: #9ece6a;
+  }
+
+  .ai-popup-diff-remove {
+    background: rgba(247, 118, 142, 0.15);
+    color: #f7768e;
+  }
+
+  .ai-popup-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--color-border, #3b4261);
+  }
+
+  /* ─── Committed ─── */
+  .ai-popup-committed {
+    margin-top: 1.5rem;
+    font-size: 0.9rem;
+    color: #9ece6a;
+  }
+
+  .ai-popup-committed code {
+    font-family: var(--font-mono, monospace);
+    background: var(--color-bg, #1a1b26);
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+
+  .ai-popup-committed-icon {
+    font-size: 1.1em;
+  }
+
+  /* ─── Light Theme Overrides ─── */
+  [data-theme='light'] .ai-popup {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  }
+
+  [data-theme='light'] .ai-popup-btn--edit {
+    color: #268b79;
+  }
+
+  [data-theme='light'] .ai-popup-btn--confirm {
+    color: #268b79;
+  }
+
+  [data-theme='light'] .ai-popup-diff-add {
+    background: rgba(38, 139, 121, 0.1);
+    color: #268b79;
+  }
+
+  [data-theme='light'] .ai-popup-diff-remove {
+    background: rgba(220, 50, 47, 0.1);
+    color: #dc322f;
+  }
+
+  [data-theme='light'] .ai-popup-committed {
+    color: #268b79;
+  }
+
+  [data-theme='light'] .ai-popup-result--error .ai-popup-error-text {
+    color: #dc322f;
+  }
+
+  /* ─── Mobile adjustments ─── */
+  @media (max-width: 639px) {
+    .ai-popup-result {
+      min-width: unset;
+      max-width: 100%;
+    }
+  }
+</style>

@@ -6,6 +6,7 @@ import PrevNextNav from '../../../components/PrevNextNav.astro';
 import TicketBadge from '../../../components/TicketBadge.astro';
 import Giscus from '../../../components/Giscus.astro';
 import ShareButton from '../../../components/ShareButton.astro';
+import AiPopup from '../../../components/AiPopup.astro';
 
 export async function getStaticPaths() {
   const posts = await getCollection('posts', ({ data }) => {
@@ -96,6 +97,8 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
       <a href="/en">← Back to home</a>
     </footer>
   </article>
+
+  <AiPopup filePath={`src/content/posts/${post.id}`} postTitle={post.data.title} lang="en" />
 </BaseLayout>
 
 <style>

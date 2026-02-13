@@ -1,0 +1,152 @@
+---
+/**
+ * LoginIndicator Component
+ * 
+ * Shows login state in the header navigation.
+ * - Logged in: shows user email + logout button
+ * - Logged out: shows "Login with GitHub" link
+ * All client-side since JWT is in localStorage.
+ */
+
+interface Props {
+  lang?: 'zh-tw' | 'en';
+}
+
+const { lang = 'zh-tw' } = Astro.props;
+const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:8787';
+---
+
+<span
+  id="login-indicator"
+  class="login-indicator"
+  data-api-url={apiUrl}
+  data-lang={lang}
+  style="display:none;"
+>
+  <!-- Populated by client JS -->
+</span>
+
+<script is:inline>
+(function() {
+  'use strict';
+
+  var JWT_KEY = 'gu-log-jwt';
+  var RETURN_KEY = 'gu-log-return-url';
+
+  var el = document.getElementById('login-indicator');
+  if (!el) return;
+
+  var apiUrl = el.getAttribute('data-api-url') || '';
+  var lang = el.getAttribute('data-lang') || 'zh-tw';
+
+  function getJwt() {
+    try { return localStorage.getItem(JWT_KEY); } catch(e) { return null; }
+  }
+
+  function parseJwt(token) {
+    try {
+      var base64 = token.split('.')[1];
+      var json = atob(base64.replace(/-/g, '+').replace(/_/g, '/'));
+      return JSON.parse(json);
+    } catch(e) {
+      return null;
+    }
+  }
+
+  function render() {
+    var jwt = getJwt();
+
+    if (jwt) {
+      var payload = parseJwt(jwt);
+      var email = (payload && (payload.email || payload.login || payload.sub)) || '?';
+
+      el.innerHTML =
+        '<span class="login-user" title="' + email + '">' +
+          '👤 ' + (email.length > 16 ? email.substring(0, 14) + '…' : email) +
+        '</span>' +
+        '<button class="login-logout-btn" id="logout-btn" title="Logout">✕</button>';
+
+      document.getElementById('logout-btn').addEventListener('click', function() {
+        try { localStorage.removeItem(JWT_KEY); } catch(e) {}
+        render();
+      });
+    } else {
+      var loginText = lang === 'en' ? 'Login' : 'Login';
+      el.innerHTML =
+        '<a class="login-link" href="' + apiUrl + '/auth/github" id="login-link">' +
+          loginText +
+        '</a>';
+
+      document.getElementById('login-link').addEventListener('click', function() {
+        try { localStorage.setItem(RETURN_KEY, window.location.href); } catch(e) {}
+      });
+    }
+
+    el.style.display = '';
+  }
+
+  render();
+})();
+</script>
+
+<style is:global>
+  .login-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.7rem;
+    min-height: 48px;
+    padding: 0 0.15rem;
+  }
+
+  .login-user {
+    color: var(--color-text-muted, #565f89);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100px;
+  }
+
+  .login-logout-btn {
+    background: transparent;
+    border: none;
+    color: var(--color-text-muted, #565f89);
+    cursor: pointer;
+    font-size: 0.7rem;
+    padding: 0.15rem 0.3rem;
+    border-radius: 3px;
+    line-height: 1;
+    min-width: 20px;
+    min-height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .login-logout-btn:hover {
+    background: var(--color-surface-hover, #2f3549);
+    color: #f7768e;
+  }
+
+  .login-link {
+    color: var(--color-text-muted, #565f89);
+    text-decoration: none;
+    white-space: nowrap;
+    font-size: 0.7rem;
+    min-height: 48px;
+    display: inline-flex;
+    align-items: center;
+    padding: 0 0.15rem;
+  }
+
+  .login-link:hover {
+    color: var(--color-accent, #7aa2f7);
+  }
+
+  /* Hide on very small screens to keep header clean */
+  @media (max-width: 360px) {
+    .login-user {
+      max-width: 60px;
+    }
+  }
+</style>

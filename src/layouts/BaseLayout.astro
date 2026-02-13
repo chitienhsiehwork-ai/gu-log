@@ -5,6 +5,7 @@ import SearchBar from '../components/SearchBar.astro';
 import CodeCopyButton from '../components/CodeCopyButton.astro';
 import ReadingProgress from '../components/ReadingProgress.astro';
 import BackToTop from '../components/BackToTop.astro';
+import LoginIndicator from '../components/LoginIndicator.astro';
 
 interface Props {
   title: string;
@@ -240,6 +241,7 @@ const finalDescription = description || t.defaultDescription;
           <a href={t.homeLink} class="nav-link">{t.navHome}</a>
           <a href={t.aboutLink} class="nav-link">{t.navAbout}</a>
           <span class="nav-icons">
+            <LoginIndicator lang={lang} />
             <LanguageToggle currentLang={lang} currentPath={currentPath} />
             <a href={`${t.homeLink}#clawd-picks`} class="clawd-nav-link" title="Clawd Picks"
               ><img src="/clawd-picks-icon.png" alt="Clawd Picks" class="clawd-nav-icon" /></a
