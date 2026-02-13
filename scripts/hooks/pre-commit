@@ -14,6 +14,22 @@ POSTS_DIR="src/content/posts"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 
+# ─── Step -1: Gitleaks secret scan (~500ms) ───────────────────────
+if command -v gitleaks >/dev/null 2>&1; then
+    echo "🔐 Gitleaks: scanning for secrets..."
+    if ! gitleaks protect --staged --no-banner 2>&1; then
+        echo ""
+        echo "❌ SECRETS DETECTED! Do NOT commit."
+        echo "   If false positive, add to .gitleaks.toml allowlist."
+        exit 1
+    fi
+    echo "✓ No secrets detected"
+    echo ""
+else
+    echo "⚠️  gitleaks not installed, skipping secret scan"
+    echo ""
+fi
+
 # ─── Step 0: Quick ticketId duplicate check (shell, ~100ms) ───────
 echo "⚡ Quick ticketId duplicate check..."
 DUPLICATES=$(grep -h 'ticketId:' "$POSTS_DIR"/*.mdx 2>/dev/null | \

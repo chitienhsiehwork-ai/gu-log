@@ -1,0 +1,21 @@
+# Gitleaks configuration for gu-log
+# https://github.com/gitleaks/gitleaks
+
+title = "gu-log gitleaks config"
+
+[allowlist]
+  description = "Known false positives in blog article examples"
+  regexTarget = "match"
+  regexes = [
+    # Fake Discord ID used in tutorial examples
+    '''987654321012345678''',
+    # X/Twitter public bearer token (same for all users, not a secret)
+    '''AAAAAAAAAAAAAAAAAAAAANRILgAAAAA''',
+    # Placeholder API keys like sk-ant-...
+    '''sk-ant-\.\.\.''',
+  ]
+  paths = [
+    '''node_modules''',
+    '''dist''',
+    '''.astro''',
+  ]
