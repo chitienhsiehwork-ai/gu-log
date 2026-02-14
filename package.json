@@ -16,7 +16,7 @@
     "lint:fix": "eslint src/ --fix",
     "format": "prettier --write src/",
     "format:check": "prettier --check src/",
-    "prepare": "scripts/setup-hooks.sh",
+    "prepare": "[ -f scripts/setup-hooks.sh ] && scripts/setup-hooks.sh || true",
     "lighthouse": "lhci autorun --config=lighthouserc.cjs",
     "lighthouse:collect": "lhci collect --config=lighthouserc.cjs",
     "lighthouse:assert": "lhci assert --config=lighthouserc.cjs",
