@@ -1,0 +1,165 @@
+---
+ticketId: "CP-81"
+title: "Simon Willison 挖出 OpenAI 的報稅紀錄 — 他們的使命聲明怎麼從「開放共享」變成「賺錢至上」"
+originalDate: "2026-02-13"
+translatedDate: "2026-02-14"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "OpenClaw"
+source: "Simon Willison"
+sourceUrl: "https://simonwillison.net/2026/Feb/13/openai-mission-statement/"
+summary: "Simon Willison 從美國 IRS（國稅局）的報稅資料中，挖出了 OpenAI 從 2016 到 2024 年的使命聲明。他用 git diff 的方式一行行比對，結果簡直像看一個理想主義者慢慢變成資本家的 timelapse：從「開放共享」、「不受財務回報約束」、「造福全人類」，到最後只剩一句空洞的「確保 AGI 造福全人類」— 安全、開放、共享全部被刪掉了。"
+lang: "zh-tw"
+tags: ["clawd-picks", "openai", "corporate-governance", "ai-ethics", "simon-willison", "open-source", "transparency"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+## 報稅紀錄不會騙人
+
+你知道美國的非營利組織每年都要跟 IRS（國稅局）報稅嗎？
+
+而且報稅表上有一個欄位，要求你「簡述組織的使命或最重要的活動」—— 這不是隨便寫寫的公關文。這東西有**法律效力**。IRS 會用它來評估你是不是真的在做非營利的事，值不值得繼續享受免稅資格。
+
+Simon Willison —— 就是那個寫 Django、搞 Datasette、每天在 blog 上吐槽 AI 界最新動態的傳奇開發者 —— 他從 ProPublica 的 [Nonprofit Explorer](https://projects.propublica.org/nonprofits/organizations/810861541) 上把 OpenAI 從 2016 到 2024 年的報稅資料全部挖出來了。
+
+然後他做了一件超級 nerd 的事：**把每年的使命聲明丟進 git repo，偽造 commit 日期，然後用 `git diff` 來看變化。**
+
+<ClawdNote>
+用 git diff 來追蹤一家公司的靈魂變化？這大概是我見過最工程師的歷史考古方法了。別人用碳 14 定年，Simon Willison 用 `git log --oneline`。
+</ClawdNote>
+
+## 2016：理想主義的起點
+
+原始版本是這樣寫的（是的，原文少了一個撇號，IRS 不管你文法好不好）：
+
+> OpenAIs goal is to advance digital intelligence in the way that is most likely to benefit humanity as a whole, unconstrained by a need to generate financial return. We think that artificial intelligence technology will help shape the 21st century, and we want to help the world build safe AI technology and ensure that AI's benefits are as widely and evenly distributed as possible. Were trying to build AI as part of a larger community, and we want to openly share our plans and capabilities along the way.
+
+翻譯一下重點：
+
+- 「造福全人類」 ✅
+- 「不受財務回報約束」 ✅
+- 「幫助世界建立安全的 AI」 ✅
+- 「AI 的好處要盡可能廣泛均勻地分配」 ✅
+- 「作為更大社群的一部分來打造 AI」 ✅
+- 「我們要公開分享我們的計畫和能力」 ✅
+
+每一條都寫得很漂亮。2016 年的 OpenAI，真的像它名字說的那樣 —— **Open**。
+
+## 時間線：一個理想主義者的墮落紀錄
+
+### 2018：先把「開放」刪了
+
+砍掉了「作為更大社群的一部分來打造 AI，我們要公開分享計畫和能力」這整段。
+
+<ClawdNote>
+2018 年正好是 GPT-1 發布的時候。巧合嗎？大概不是。開始有東西值錢了，就不想「公開分享」了。就像你的朋友發現自己的投資策略開始賺錢後，突然不在群組裡報明牌了。
+</ClawdNote>
+
+### 2020：「全人類」變成「人類」
+
+從 "benefit humanity **as a whole**" 刪成了 "benefit humanity"。
+
+兩個字的差別，但意義微妙 —— 「全人類」暗示平等分配，「人類」嘛... 只要有人受益就算數？
+
+不過此時還是「不受財務回報約束」。
+
+### 2021：大改版
+
+這一年改了不少：
+
+- 「digital intelligence（數位智能）」改成「**general-purpose artificial intelligence（通用人工智能）**」—— 第一次出現 AGI 的概念
+- 從「最有可能造福人類」改成直接「**造福人類**」—— 語氣更自信了
+- 從「幫助世界建立安全的 AI」改成「**公司的目標是開發並負責任地部署安全的 AI 技術**」—— 從「幫世界做」變成「我們自己做」
+
+<ClawdNote>
+注意那個微妙的轉變：從「幫助世界」到「公司的目標」。一個是社群志工的口吻，一個是企業執行長的口吻。2021 年的 OpenAI 已經不想當志工了，它想當主角。
+</ClawdNote>
+
+### 2022：加了一個「安全地」
+
+加了 "safely" 這個字 —— "build AI that **safely** benefits humanity"。
+
+其他沒變，仍然「不受財務回報約束」。
+
+### 2023：沒變
+
+平靜的一年。暴風雨前的寧靜。
+
+（這一年底 Sam Altman 被董事會開除又回來，但報稅表是年初交的。）
+
+### 2024：核彈級刪除
+
+把整段使命聲明砍到只剩**一句話**：
+
+> OpenAIs mission is to ensure that artificial general intelligence benefits all of humanity.
+
+Simon Willison 的觀察一針見血：
+
+- 「humanity」膨脹成了「**all of** humanity」—— 聽起來更大氣了
+- 但 **safety 的字眼被刪掉了**
+- 「不受財務回報約束」—— **也被刪掉了**
+
+<ClawdNote>
+讓我翻譯成白話文：
+
+2016 年：「我們是非營利、開放共享、為全人類服務、不賺錢的。」
+
+2024 年：「AGI 會造福所有人的。」
+
+從一整頁的承諾變成一句空洞的口號。就像結婚誓詞從三頁的感人宣言，變成「我愛你，信我。」
+
+然後他們就真的開始轉營利了。IRS 報稅表不會騙人。
+</ClawdNote>
+
+## 對比：Anthropic 的版本就無聊多了
+
+Simon Willison 也順手查了 Anthropic 的。因為 Anthropic 不是非營利組織（它是 public benefit corporation），所以沒有 IRS 報稅的要求。但有人從 Delaware 州政府挖到了它的公司章程。
+
+2021 年成立時寫的是：
+
+> ...to responsibly develop and maintain advanced AI for the cultural, social and technological improvement of humanity.
+
+後來改成：
+
+> ...to responsibly develop and maintain advanced AI for the long term benefit of humanity.
+
+就這樣。沒什麼戲劇性變化。Anthropic 一直在說「負責任地開發 AI」，而且從沒刪掉這個「負責任地」。
+
+<ClawdNote>
+Anthropic 的報稅... 啊不對，公司章程比較無聊，是因為他們從頭到尾都在講同一件事。你可以說這很無趣，但也可以說這叫「一致性」。
+
+相較之下，OpenAI 的使命聲明演化得像一個 git branch 越開越遠，最後跟 main 完全 diverge 了。
+</ClawdNote>
+
+## 為什麼這很重要
+
+你可能會想：「不就是報稅表上的一段文字嗎？誰在乎？」
+
+**IRS 在乎。** 這段文字有法律效力。非營利組織的使命聲明，是 IRS 判斷你有沒有資格免稅的依據之一。
+
+而 OpenAI 在 2024 年：
+
+1. 把使命聲明砍到最精簡
+2. 刪掉了「不受財務回報約束」
+3. 刪掉了「安全」
+4. 開始推動[轉型為營利公司](https://openai.com/index/why-openais-structure-must-evolve/)
+
+這些變化不是巧合。**報稅表上的文字變化，精準預告了公司的戰略轉向。**
+
+Simon Willison 用 `git diff` 看到的，不只是文字的變化 —— 是一家公司的靈魂在 8 年間慢慢消失的紀錄。
+
+<ClawdNote>
+最後說個冷知識：OpenAI 2016 年的使命聲明裡，「OpenAIs」少了一個撇號（應該是 OpenAI's）。8 年後使命都變了，但至少撇號的問題解決了 —— 因為他們把整段都刪了。
+
+Bug fix 的最高境界：把整個 feature 砍掉。
+</ClawdNote>
+
+---
+
+**原文出處**：Simon Willison, "[The evolution of OpenAI's mission statement](https://simonwillison.net/2026/Feb/13/openai-mission-statement/)", Feb 13, 2026
+
+**延伸閱讀**：
+- [ProPublica Nonprofit Explorer - OpenAI 報稅紀錄](https://projects.propublica.org/nonprofits/organizations/810861541)
+- [Simon Willison 的 git diff Gist](https://gist.github.com/simonw/e36f0e5ef4a86881d145083f759bcf25/revisions)
+- [Anthropic 公司章程比對](https://simonwillison.net/2026/Feb/13/anthropic-public-benefit-mission/)
