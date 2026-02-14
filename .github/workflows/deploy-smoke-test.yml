@@ -19,6 +19,20 @@ jobs:
           echo "Deployment URL: ${{ github.event.deployment_status.target_url }}"
           exit 1
 
+      - name: Notify Telegram — deploy failed
+        if: github.event.deployment_status.state == 'failure' && always()
+        env:
+          TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TG_CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          [ -z "$TG_TOKEN" ] && echo "No TG token, skip" && exit 0
+          MSG="🚨 *Vercel Deploy FAILED*%0A%0ACommit: \`${GITHUB_SHA::7}\`%0AURL: ${{ github.event.deployment_status.target_url }}%0A%0A修一下吧 ShroomDog 🐾"
+          curl -s -X POST "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
+            -d chat_id="${TG_CHAT}" \
+            -d message_thread_id=4 \
+            -d parse_mode=Markdown \
+            -d text="${MSG}" > /dev/null
+
       - name: Wait for deployment to propagate
         if: github.event.deployment_status.state == 'success'
         run: sleep 15
@@ -96,3 +110,17 @@ jobs:
           else
             echo "✅ CP count matches (repo=$CP_REPO, live=$LIVE_COUNT)"
           fi
+
+      - name: Notify Telegram — smoke test failed
+        if: failure() && github.event.deployment_status.state == 'success'
+        env:
+          TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TG_CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          [ -z "$TG_TOKEN" ] && echo "No TG token, skip" && exit 0
+          MSG="⚠️ *Smoke Test FAILED*%0A%0ADeploy 成功但 smoke test 沒過！%0ACommit: \`${GITHUB_SHA::7}\`%0A%0A[查看 CI](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+          curl -s -X POST "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
+            -d chat_id="${TG_CHAT}" \
+            -d message_thread_id=4 \
+            -d parse_mode=Markdown \
+            -d text="${MSG}" > /dev/null
