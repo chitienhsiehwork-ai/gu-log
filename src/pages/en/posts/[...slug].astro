@@ -62,7 +62,7 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
     </header>
 
     {
-      !post.data.ticketId?.startsWith('SD-') && (
+      !post.data.ticketId?.startsWith('SD-') && !post.data.ticketId?.startsWith('Lv-') && (
         <div class="source-citation">
           <strong>Original source:</strong>
           <a href={post.data.sourceUrl} target="_blank" rel="noopener">

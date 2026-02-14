@@ -2,12 +2,12 @@
 # Pre-commit hook for gu-log
 #
 # ALL checks are BLOCKING. Quality over speed.
-# No LLM. All deterministic. All programmatic.
 #
 # Pipeline:
 #   0) Quick ticketId duplicate check (~100ms, shell)
 #   1) Post validator — frontmatter, content rules, cross-file checks (Node.js)
 #   2) Content integrity BDD tests (Playwright, if available)
+#   3) Mermaid visual quality check — LLM-as-Judge (if ANTHROPIC_API_KEY set)
 
 set -e
 POSTS_DIR="src/content/posts"
@@ -113,6 +113,40 @@ if [ -f "$REPO_ROOT/tests/content-integrity.spec.ts" ]; then
         exit 1
     fi
     echo "✓ Content integrity tests passed"
+    echo ""
+fi
+
+# ─── Step 3: Mermaid visual quality check (LLM-as-Judge) ─────────
+# Only runs if ANTHROPIC_API_KEY is set and staged .mdx files contain Mermaid
+if [ -n "$ANTHROPIC_API_KEY" ]; then
+    # Find staged .mdx files that contain <Mermaid
+    MERMAID_FILES=""
+    if [ -n "$STAGED_MDX" ]; then
+        for file in $STAGED_MDX; do
+            if [ -f "$REPO_ROOT/$file" ] && grep -q '<Mermaid' "$REPO_ROOT/$file" 2>/dev/null; then
+                MERMAID_FILES="$MERMAID_FILES $REPO_ROOT/$file"
+            fi
+        done
+    fi
+
+    if [ -z "$MERMAID_FILES" ]; then
+        echo "✓ No Mermaid diagrams in staged files"
+    else
+        MERMAID_COUNT=$(echo "$MERMAID_FILES" | wc -w | tr -d ' ')
+        echo "📐 Mermaid visual check: $MERMAID_COUNT file(s) with diagrams..."
+
+        if ! node "$REPO_ROOT/scripts/check-mermaid-visual.mjs" --files $MERMAID_FILES; then
+            echo ""
+            echo "❌ Mermaid visual quality check FAILED."
+            echo "   Some diagrams are not readable on mobile (iPhone 14, 390px)."
+            echo "   Run 'npm run check:mermaid' for a full report with screenshots."
+            exit 1
+        fi
+        echo "✓ Mermaid visual check passed"
+    fi
+    echo ""
+else
+    echo "ℹ️  Skipping Mermaid visual check (ANTHROPIC_API_KEY not set)"
     echo ""
 fi
 
