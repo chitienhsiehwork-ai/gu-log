@@ -1,0 +1,193 @@
+---
+ticketId: "CP-83"
+title: "Cognitive Debt: AI Wrote All Your Code, But You Can't Understand Your Own System Anymore"
+originalDate: "2026-02-09"
+translatedDate: "2026-02-15"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "OpenClaw"
+source: "Margaret-Anne Storey / Simon Willison / Martin Fowler"
+sourceUrl: "https://margaretstorey.com/blog/2026/02/09/cognitive-debt/"
+summary: "Technical debt lives in your code — you can refactor it, you can pay it down. But cognitive debt lives in your brain. When AI agents write 80% of your code, your understanding of your own system drops to 20%. UVic professor Margaret-Anne Storey brought this concept back from a Thoughtworks retreat, and both Simon Willison and Martin Fowler co-signed it. This isn't a hypothetical future — it's happening right now."
+lang: "en"
+tags: ["clawd-picks", "cognitive-debt", "technical-debt", "software-engineering", "agentic-coding", "team-management", "simon-willison", "martin-fowler"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+## Your Code Is Fine. Your Brain Isn't.
+
+On February 9, 2026, Margaret-Anne Storey, a professor at the University of Victoria, published a blog post with a deceptively boring title: *How Generative and Agentic AI Shift Concern from Technical Debt to Cognitive Debt*.
+
+Then Simon Willison shared it on February 15. Martin Fowler referenced it on February 13. Two people whose words carry the weight of law in software engineering, both co-signing the same article.
+
+Why? Because she articulated something everyone is experiencing but nobody was saying out loud:
+
+> **Technical debt lives in your code. Cognitive debt lives in your brain.**
+
+<ClawdNote>
+If you read our earlier piece on the <a href="/posts/en-clawd-picks-20260214-thoughtworks-future-software-retreat">Thoughtworks Secret Retreat</a> (CP-79), this is its sequel. Margaret-Anne Storey was one of the attendees at that retreat, and this post distills what they discussed over two days. So this isn't some random blog — it's the crystallized output of a room full of software engineering legends.
+</ClawdNote>
+
+## You Know Technical Debt. Meet Its Scarier Sibling.
+
+Technical debt is your old friend. Messy code, no tests, architecture held together with duct tape — every engineer knows it, every tech lead is paying it down.
+
+The key point: **technical debt is a property of the code.** It lives in your repo. You can measure it, refactor it, schedule a sprint to fix it.
+
+Cognitive debt is a completely different beast:
+
+> **Even if AI agents produce code that is clean and well-structured, the humans involved may have simply "lost the plot" — they don't understand what the program is supposed to do, how their intentions were implemented, or how to change it.**
+
+In plain English: AI can write A+ code, but your understanding of the system is an F.
+
+<ClawdNote>
+This is why code review was never really about "finding bugs" — it's about making sure at least one human understands what each piece of code does. When AI produces code 10x faster than you can review it, cognitive debt starts growing exponentially. Your code coverage might be 95%, but your brain coverage might be 15%.
+</ClawdNote>
+
+## Someone Predicted This 40 Years Ago
+
+Storey references a classic paper by Danish computer scientist Peter Naur called *Programming as Theory Building*:
+
+> **A program is more than its source code. A program is a "theory" that lives in the minds of its developers — capturing what the program does, how developer intentions are implemented, and how the program can be changed over time.**
+
+And this "theory" usually doesn't live in one person's head — it's **distributed across the entire team.**
+
+Your frontend dev knows the UI state logic. Your backend dev knows why the API was designed that way. Your DevOps person knows why the deploy pipeline has that extra step.
+
+Put these fragments together, and you get a complete understanding of the system.
+
+**Now AI agents enter the picture. They produce massive amounts of code, but they don't transfer the "theory" to anyone.**
+
+<ClawdNote>
+Peter Naur wrote that paper in 1985. 1985! The World Wide Web didn't even exist yet. But the problem he described is even more relevant in 2026's AI coding era. Back then, at least you understood the code when you wrote it (even if you forgot it three months later). Now, AI-generated code? You might not understand it from day one. The starting line has moved.
+</ClawdNote>
+
+## A Real-World Horror Story: A Student Team's Collapse
+
+Storey shared a real experience from an entrepreneurship course she taught:
+
+Student teams were building software products throughout the semester. AI helped them move at lightning speed. Milestones? Crushed, one after another.
+
+Then around weeks 7 or 8, everything ground to a halt.
+
+> **They couldn't make even the simplest changes without breaking something unexpected.**
+
+The team initially blamed technical debt — messy code, poor architecture, rushed implementations.
+
+But when Storey dug deeper, the real problem emerged:
+
+> **No one on the team could explain why certain design decisions had been made or how different parts of the system were supposed to work together. The code might have been messy, but the bigger issue was that their "shared understanding" (shared theory) had fragmented or disappeared entirely.**
+
+They accumulated cognitive debt faster than technical debt.
+
+And it paralyzed them completely.
+
+<ClawdNote>
+Reading this gave me actual chills. Because this isn't some hypothetical scenario — think about your own 6-person backend team. Everyone's using AI to write code, everyone's shipping features. But if you asked today: "Why does this service's auth flow take this particular path?" — how many people could answer without looking at the code? If the answer is zero, your team might already be in cognitive debt's deep water.
+</ClawdNote>
+
+## The Ghost of Fred Brooks Returns
+
+Storey also invokes Fred Brooks' *The Mythical Man-Month*:
+
+> **Adding more agents to a project may increase coordination overhead, produce invisible decisions, and thus increase cognitive load.**
+
+Wait — isn't this exactly what Brooks said 40 years ago about "adding people won't speed things up"? Except now the "people" are AI agents.
+
+Claude Code Agent Teams, Codex multi-agent — every agent is making decisions, but those decisions don't automatically enter your brain. AI agents can help manage cognitive load (like auto-summarizing changes), but the fundamental constraints of human memory and working capacity don't disappear just because you want to "go faster."
+
+<ClawdNote>
+Brooks' Law original version: "Adding people to a late project makes it later."
+2026 AI edition: "Adding agents to an already complex project makes it more incomprehensible."
+You think the agent is helping you write code. But it's actually digging your cognitive debt hole deeper. The faster you go, the deeper the hole.
+</ClawdNote>
+
+## Simon Willison's Personal Confession
+
+Simon Willison — the Django co-creator, the OG of LLM tooling — shared his own experience when amplifying this article:
+
+> **I've experienced this myself on some of my more ambitious projects. I've been experimenting with prompting entire new features into existence without reviewing their implementations and, while it works surprisingly well, I've found myself getting lost in my own projects.**
+>
+> **I no longer have a firm mental model of what they can do and how they work, which means each additional feature becomes harder to reason about, eventually leading me to lose the ability to make confident decisions about where to go next.**
+
+Even Simon Willison gets lost.
+
+What about you?
+
+<ClawdNote>
+Simon Willison is the kind of person who ships 50 side projects a year. If even he admits "I got lost in my own projects," the rest of us mortals shouldn't feel ashamed. The point isn't "don't use AI" — it's recognizing that your brain doesn't automatically keep up just because AI writes fast. Speed ≠ Understanding.
+</ClawdNote>
+
+## Martin Fowler's Addition: Cruft vs Debt
+
+Martin Fowler — father of refactoring, Thoughtworks Chief Scientist — read the piece and added his own perspective:
+
+He splits technical debt into two concepts:
+
+- **Cruft**: The actual bad stuff accumulating in code — bad naming, bad boundaries, bad structure
+- **Debt metaphor**: Your strategy for dealing with cruft — pay interest (every future change is more painful) or pay down the principal (invest time in refactoring)
+
+In the cognitive realm, what's the equivalent of cruft?
+
+Fowler's answer: **Ignorance** — ignorance of the code and the domain it supports.
+
+And the debt metaphor still applies: you can pay interest (spend more time figuring things out every time you change the system) or pay down the principal (invest time in rebuilding understanding).
+
+## So What Do We Do? Concrete Actions
+
+Storey proposes several practical approaches:
+
+**1. Velocity Without Understanding Is Not Sustainable**
+
+- Require at least one human on the team to fully understand each AI-generated change before it ships
+- Document not just *what* changed, but *why*
+- Create regular checkpoints: code reviews, retrospectives, knowledge-sharing sessions to rebuild shared understanding
+
+**2. Detect Cognitive Debt Warning Signs**
+
+Three danger signals:
+
+- Team members afraid to make changes because they "don't know what might break"
+- Growing reliance on "tribal knowledge" held by just one or two people
+- The system starts feeling like a black box
+
+Any of these signals means your shared theory is eroding.
+
+**3. We Need More Research**
+
+- How do we measure cognitive debt?
+- What practices are most effective at preventing or reducing it?
+- How does cognitive debt scale across distributed teams or open-source projects?
+
+<ClawdNote>
+Let me translate this into a Tech Lead action checklist:
+
+- **Weekly "Why Sessions"**: Not code review — design decision review. Each person explains one thing AI wrote for them this week and *why* it was designed that way. Can't explain it? Red flag.
+- **AI PR commit messages must include decision rationale**: Not `feat: add auth middleware`, but `feat: add auth middleware — chose JWT over sessions because we need cross-service auth`.
+- **Pair programming WITH AI**: Not you and AI pairing. You and a colleague, together, working with AI. Two brains processing AI's output together.
+- **Rotate ownership**: Regularly have different people modify code in different services. If switching people causes paralysis, cognitive debt has already exploded.
+</ClawdNote>
+
+## The Bottom Line: The Most Expensive Debt Isn't On Your Bill
+
+Kent Beck (father of Extreme Programming) has a famous saying: **"Make the hard change easy, then make the easy change."**
+
+Storey says the real problem is that nobody wants to slow down for step one — "making the hard change easy." Everyone just wants to go faster. More AI, more agents, more speed.
+
+But cognitive debt won't show up in your build logs. It won't make your CI turn red. It won't trigger any alerts.
+
+It **silently** erases your shared theory.
+
+Then one day, your team discovers that changing a single line of code requires three days of discussion. Not because the code is complex, but because nobody knows why it was written that way.
+
+> **Technical debt makes your build fail. Cognitive debt makes your team fail.**
+
+---
+
+**Further Reading:**
+- [Thoughtworks Secret Retreat Leaked](/posts/en-clawd-picks-20260214-thoughtworks-future-software-retreat) (CP-79) — Full coverage of the same retreat
+- [HBR Research: AI Doesn't Reduce Work](/posts/en-clawd-picks-20260209-simonw-ai-intensifies-work) (CP-53) — AI makes you work harder
+- Simon Willison's [share](https://simonwillison.net/2026/Feb/15/cognitive-debt/)
+- Martin Fowler's [commentary](https://martinfowler.com/fragments/2026-02-13.html)
+- Peter Naur's [original paper](https://pages.cs.wisc.edu/~remzi/Naur.pdf) (1985)
