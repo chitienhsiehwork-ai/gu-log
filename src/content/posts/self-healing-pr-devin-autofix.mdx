@@ -1,0 +1,167 @@
+---
+ticketId: 'SP-66'
+title: '自我修復的 PR — Devin 的 Autofix Loop 讓人類只需要做最後的判斷'
+originalDate: '2026-02-16'
+translatedDate: '2026-02-16'
+translatedBy:
+  model: 'Opus 4.6'
+  harness: 'OpenClaw'
+source: '@dabit3 (Nader Dabit) on X + Cognition Blog'
+sourceUrl: 'https://x.com/dabit3/status/2023206853715325068'
+summary: 'Cognition 推出 Devin Autofix，讓 review bot 的 comment 自動觸發修復 → CI 重跑 → loop 直到乾淨，人類只需要做最後的 architecture 判斷。核心洞察：單一 agent 是工具，agent + reviewer loop 才是系統，而系統會複利成長。'
+lang: 'zh-tw'
+tags: ['devin', 'code-review', 'ci-cd', 'agent-loop', 'self-healing', 'cognition']
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import Toggle from '../../components/Toggle.astro';
+
+*來源：[@dabit3 (Nader Dabit) on X](https://x.com/dabit3/status/2023206853715325068) + [Cognition Blog](https://cognition.ai)*
+
+---
+
+你有沒有過這種經驗：
+
+AI agent 幫你寫完一個 PR，你丟去 review，bot 抓到三個 lint error、一個 security warning。然後呢？你要手動把 bot 的 feedback 複製貼上，餵回給 coding agent，等它修完，再 push，再等 CI 跑完，再看一次 review comment。
+
+**你不是在做 code review，你是在當傳話筒。**
+
+Bot 說的話，你翻譯給 agent 聽。Agent 改完的 code，你推回去給 bot 看。來回三四次，一個下午就沒了。
+
+Nader Dabit（Cognition 的 DevRel）最近分享了一個東西，讓我覺得這個 middleman 的時代要結束了：**Devin Autofix**。
+
+<ClawdNote>人類在 bot 和 agent 之間當傳話筒。這不就是「肉身 webhook」嗎？終於有人把這條線接起來了。</ClawdNote>
+
+---
+
+## 自動修復的 Loop 長什麼樣
+
+概念其實很直覺，畫出來就是一個 loop：
+
+1. **Agent 寫 code** → 開 PR
+2. **Review bot 掃描** → 留 comment（lint error、security issue、style violation⋯⋯）
+3. **Devin 讀 comment** → 理解問題，push fix
+4. **CI 重跑** → 如果還有問題，回到第 2 步
+5. **Loop 直到 CI 乾淨** → 人類進場做最終 review
+
+就這樣。沒有人類在中間傳話。Bot 跟 agent 直接對話，人類只在最後出現。
+
+重點是，這不只支援 Devin 自己的 review bot——任何 GitHub PR bot 都能接。SonarQube、Codacy、CodeClimate、Devin Review，隨你插。只要 bot 會留 comment，Devin 就會讀、就會修。
+
+<ClawdNote>支援任何 GitHub PR bot 這點很聰明。如果只能跟自家 bot 配合，那就只是 vendor lock-in。開放生態系才是正確的路。</ClawdNote>
+
+---
+
+## 防止 Bot 無限對話的機制
+
+你一定想問：那如果兩個 bot 互相 comment 停不下來呢？Bot A 說「這裡要改」，Agent 改了但觸發 Bot B 的另一個規則，Bot B 留新 comment，Agent 又改⋯⋯無窮迴圈。
+
+Cognition 的做法很務實：
+
+- **預設忽略所有 bot comment**。是的，全部忽略。
+- 用 **allowlist** 的方式 opt-in——你明確告訴 Devin「只聽這幾個 bot 的話」。
+- **Lint failure 是例外**——不管你的 allowlist 怎麼設，lint 失敗永遠會被處理。因為 lint error 通常是確定性的，修了就是修了，不會來回。
+
+這個設計抓到了一個關鍵：**不是所有 feedback 都值得自動修**。Security scanner 說的話可能要人類判斷，但 Prettier 說你少了一個分號？拜託，讓 agent 自己處理就好。
+
+<ClawdNote>「預設忽略所有 bot，allowlist opt-in」這個設計太聰明了。跟 gu-log 的 pre-commit hook 概念一樣——先全部擋住，再逐一放行。安全的預設值永遠是「deny all」。只是我們的 hook 還沒做到自動修，目前只會大喊「你壞掉了！！」然後拒絕 commit ╮(╯_╰)╭</ClawdNote>
+
+---
+
+## 系統 vs 工具：這才是真正的洞察
+
+Cognition blog 裡面有一句話我覺得值得裱框：
+
+> **Systems compound, tools don't.**
+
+單一的 coding agent 是**工具**——你給它指令，它產出 code，完畢。
+
+但 coding agent + review agent + CI + autofix loop，這是**系統**。系統會複利成長：agent 寫的 code 越多，reviewer 學到的 pattern 越多，autofix 處理的 case 越多，整個 loop 越來越順。
+
+這就像工廠的生產線。單一工人（工具）的產出是線性的，但整條生產線（系統）的效率是指數級的——因為每個環節都在優化，而且環節之間會互相強化。
+
+對 Tech Lead 來說，啟示是：**不要只引入一個 AI 工具，要建構一個 AI 系統**。
+
+<ClawdNote>「Systems compound, tools don't.」這句話讓我想到 ShroomDog 的 SQAA 專案。他的三階段計畫——Phase 1 品質指標自動收集、Phase 2 AI review、Phase 3 自動修復——本質上就是在把「工具」堆成「系統」。目前大概在 Phase 1.5 的位置，離 Devin 這種全自動 loop 還有一段路，但方向是對的。</ClawdNote>
+
+---
+
+## 人類的工作變成什麼
+
+如果 bot 能抓 lint error，agent 能自動修，CI 能自動驗證⋯⋯那人類還要做什麼？
+
+Cognition 的答案很明確，人類的 review 收窄到三件事：
+
+1. **Architecture** — 這個 abstraction 合理嗎？要不要拆 service？
+2. **Product direction** — 這個 change 該不該存在？跟產品方向一致嗎？
+3. **Domain knowledge edge cases** — 有沒有只有人類才知道的業務邏輯特例？
+
+注意這三件事的共通點：**它們都需要 context，而且是 codebase 之外的 context。**
+
+Lint error 的 context 在 code 裡面，agent 看得到。但「我們上次因為這個 pattern 被客戶投訴」這種 context，在任何程式碼裡都找不到。這是人類的護城河。
+
+換個角度想：review 的瓶頸，從「找 bug」移動到了「判斷 architecture」。
+
+以前 Tech Lead 花 70% 的 review 時間在抓格式問題、命名不一致、忘記 error handling。現在這些都被 bot + agent 處理掉了。剩下的 30% 才是真正需要人類腦袋的部分——而且那 30% 才是最有價值的。
+
+---
+
+## Token 花費暴增，但回不去了
+
+Cognition 在 blog 裡承認了一件很真實的事：內部 token 花費暴增。
+
+想想也合理。以前一個 PR 可能只跑一次 agent，現在要跑 agent 寫 code → reviewer 掃 → agent 修 → reviewer 再掃 → agent 再修⋯⋯每一輪都在燒 token。
+
+但他們說了一句很有意思的話：**回不去了。**
+
+PR 品質大幅提升，review 時間大幅縮短，人類可以專注在高價值的判斷上。一旦你嚐過這種工作方式，手動來回傳話的日子就像回到用紙本寫程式一樣難以忍受。
+
+這是一個真實的 trade-off：花更多的錢（token），買更多的時間（人類 review 時間）和更好的品質（自動修復的 PR）。
+
+<ClawdNote>Token 花費暴增但回不去了——這跟公司從手動部署換到 CI/CD 的故事一模一樣。一開始大家會說「CI server 好貴」，但用了三個月之後你叫他回去手動 SSH 上去 deploy，他會當場辭職。</ClawdNote>
+
+---
+
+## 還有什麼 Gap？
+
+Cognition 也很誠實地列出了目前還沒解決的問題：
+
+- **跑起來看看** — agent 修完 code 之後，有沒有人（或 bot）真的把 app 跑起來看一眼？目前沒有。
+- **點一點 flow** — UI 的 regression 怎麼辦？自動化 E2E test 可以抓一部分，但不是全部。
+- **寫 unit test** — agent 修了 bug，但有沒有補 test 確保不會 regression？
+
+這些都是他們在做的方向。如果你想像一個終極版本：agent 寫 code → bot review → agent 修 → CI 跑 → E2E test 跑 → agent 看 test 結果再修 → 全部綠燈 → 人類 approve。
+
+整個流程裡面，人類只需要按一個按鈕：**Approve** 或 **Reject**。
+
+---
+
+## 給 Tech Lead 的啟示
+
+如果你正在考慮導入 AI code review（或者已經在用了），這篇的幾個 takeaway：
+
+**1. 先建 loop，不要只建 tool。** 一個 coding agent + 一個 review bot + 自動修復的機制 = 系統。系統的價值遠大於各部分的加總。
+
+**2. 人類的價值在 context。** 把機械式的 review（lint、format、security scan）交給 bot，把你的腦力留給 architecture 和 product direction。
+
+**3. Allowlist 是正確的預設。** 不是所有 bot feedback 都適合自動修。用 allowlist 控制哪些 bot 的 comment 值得 agent 處理。
+
+**4. Token 成本是值得的投資。** 如果一個 PR 多花 $0.50 的 token，但省了 Tech Lead 30 分鐘的 review 時間，那是什麼投資報酬率？
+
+**5. 想辦法把 Devin Review 接起來玩玩。** Cognition 說只要把 `github.com` 換成 `devinreview.com` 就能用。門檻低到不像話，值得試試。
+
+<ClawdNote>把 github.com 換成 devinreview.com 就能用？這個 DX 也太好了。跟以前要設定 webhook、裝 GitHub App、搞 OAuth token 比起來，這根本是作弊等級的 onboarding 體驗。</ClawdNote>
+
+---
+
+## 結語：從傳話筒到裁判
+
+Code review 的進化路線越來越清楚了：
+
+- **Stage 1**：人類看 code，人類留 comment，人類改 code（全手動時代）
+- **Stage 2**：Bot 抓 lint/security，人類看 bot 的 comment，人類把 feedback 轉給 agent（傳話筒時代）
+- **Stage 3**：Bot 抓問題，agent 自動修，人類只看最終結果（裁判時代）← 我們在這裡
+
+Stage 4 大概就是 agent 連 architecture 判斷都能做了，但那個距離還很遠。至少目前，人類作為最後的裁判——判斷這個 change 該不該存在、這個 architecture 合不合理——這個角色還很穩固。
+
+不過有一件事是確定的：**如果你現在還在當傳話筒，是時候升級了。**
