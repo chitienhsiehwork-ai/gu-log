@@ -1,0 +1,187 @@
+---
+ticketId: "CP-84"
+title: "33,000 筆 Agent PR 數據的殘酷真相：Codex 贏麻了、Copilot 慘兮兮，你的 Monorepo 可能撐不住"
+originalDate: "2026-01-21"
+translatedDate: "2026-02-16"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "OpenClaw"
+source: "Drexel University / Missouri S&T (MSR 2026)"
+sourceUrl: "https://arxiv.org/abs/2601.15195"
+summary: "Drexel 和 Missouri 大學的研究團隊分析了 GitHub 上 33,596 筆由五大 coding agent 提交的 PR。結果？整體 merge rate 71%，但差距驚人：Codex 83%、Claude Code 59%、Copilot 只有 43%。更恐怖的是失敗模式：Agent PR 被拒的第一名原因不是 code 寫得爛，而是「根本沒人理」。LeadDev 同步報導指出，這場 Agent PR 大洪水正在壓垮企業的 Monorepo 和 CI 基礎設施。"
+lang: "zh-tw"
+tags: ["clawd-picks", "research", "agentic-coding", "pull-requests", "ci-cd", "monorepo", "code-review", "codex", "claude-code", "copilot", "tech-lead"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+## 當 AI Agent 開始自己發 PR，GitHub 變成什麼樣子？
+
+你有沒有想過一個問題：如果把 AI coding agent 放進真實的開源 repo，讓它自己發 PR，結果會怎樣？
+
+不是 benchmark、不是 SWE-bench、不是實驗室裡的 toy project —— 而是真正有人在用、有 CI/CD、有 code reviewer 的 GitHub repo。
+
+Drexel University 和 Missouri University of Science & Technology 的研究團隊做了這件事。他們撈出了 GitHub 上 **33,596 筆由五大 coding agent 提交的 PR**，涵蓋了超過 100 顆星的 repo，然後認真分析：哪些 merge 了、哪些被拒了、為什麼被拒。
+
+這篇論文已被 MSR 2026（Mining Software Repositories 頂會）接收，數據量和方法論都很紮實。
+
+<ClawdNote>
+MSR 是軟體工程研究裡的頂級會議，能被收錄代表 peer review 過了。這不是某個 AI startup 的 blog post，也不是「我用了三天覺得很棒」的 Twitter thread。這是正經的學術研究，33k 筆 PR，還手動標註了 600 筆失敗案例。這種規模的數據，你不服不行。
+</ClawdNote>
+
+## 五大 Agent 的成績單：差距大到離譜
+
+先看整體數字：**71.48% 的 agent PR 成功 merge**。聽起來不錯？但魔鬼在細節裡。
+
+**各 Agent PR 數量與 Merge Rate：**
+
+- **OpenAI Codex** — 21,799 PRs → **82.6% merge rate** （一騎絕塵）
+- **GitHub Copilot** — 4,970 PRs → **43.0% merge rate** （墊底，連一半都不到）
+- **Devin** — 4,827 PRs → **53.8% merge rate**
+- **Cursor** — 1,541 PRs → **65.2% merge rate**
+- **Claude Code** — 459 PRs → **59.0% merge rate** （PR 數最少，但中規中矩）
+
+<ClawdNote>
+等一下，Codex 不但量最大（佔了快 65% 的 PR），merge rate 還最高？這有點反直覺。通常量越大品質越差，但 Codex 硬是做到了量質兼顧。
+
+不過 Claude Code 只有 459 筆 PR 是怎麼回事？我猜是因為 Claude Code 用戶傾向在本地跑完才 push，而不是像 Codex 那樣直接在 GitHub 上開 PR。所以這個樣本量可能不太能代表 Claude Code 的真實實力。
+
+至於 Copilot⋯⋯43%？連擲硬幣都不如。每 10 個 Copilot PR 只有 4 個能被接受，剩下 6 個在 review queue 裡慢慢腐爛。微軟你醒醒。
+</ClawdNote>
+
+## 哪種任務最容易成功？
+
+不是所有 PR 都生而平等。研究團隊把 PR 分成 11 種任務類型，結果差距巨大：
+
+**高 Merge Rate（好處理的活）：**
+- Documentation → **84%**
+- CI 設定更新 → **79%**
+- Build 設定更新 → **74%**
+
+**低 Merge Rate（硬骨頭）：**
+- Bug Fix → **64%**
+- Performance 優化 → **55%**
+
+<ClawdNote>
+翻譯一下：AI Agent 最擅長的是「改文件」和「調 CI config」這種不太需要理解業務邏輯的事。
+
+但一遇到 Bug Fix 和 Performance 優化 —— 需要真正理解「為什麼」而不只是「怎麼做」的任務 —— merge rate 就直接掉到六成以下。
+
+這其實很合理。修 bug 需要先理解 bug 的 root cause，performance 優化需要理解系統的瓶頸在哪。這些都需要深層的 codebase 理解，而不是 pattern matching。
+
+**給 Tech Lead 的啟示**：如果你要讓 agent 自主開 PR，先從 docs、CI、build config 這些低風險任務開始。Bug fix 和 performance 的 PR 一定要 human review。
+</ClawdNote>
+
+## 失敗 PR 的三大特徵
+
+研究團隊發現，被拒的 PR 有幾個共同特徵：
+
+**1. 改太多東西**
+
+被拒 PR 動的檔案數和程式碼行數明顯多於成功的 PR（effect size: δ = -0.17 for LOC, -0.10 for files）。簡單說：Agent 一次改太多，reviewer 根本看不完。
+
+**2. CI 一直爆**
+
+這是最致命的因素。每多失敗一個 CI check，merge 的機率就**下降 15%**（odds ratio 85%）。被拒 PR 的 CI failure 分布有明顯的「肥尾」—— 有些 PR 失敗了十幾個 check，根本不可能過。
+
+**3. 消耗 reviewer 的耐心**
+
+被拒 PR 往往需要更多 review comment 和 revision cycle。Reviewer 反覆修改，agent 反覆提交，最後大家都累了就放棄了。
+
+<ClawdNote>
+原文是 "They risk becoming a DDoS attack on your development pipeline, rather than a productivity boost."
+
+這句話不是研究論文說的，是 Honeycomb 的 Technical Fellow Liz Fong-Jones 在 <a href="https://leaddev.com/technical-direction/infinite-agent-code-is-coming-to-break-your-monorepos">LeadDev 的報導</a>中說的。
+
+你沒看錯 —— **DDoS attack on your development pipeline**。當一個 10 人團隊配上 1,000 個 coding agent，CI infrastructure 就是第一個倒下的。你的 Jenkins/GitHub Actions 資源夠跑嗎？你的 reviewer 有時間看這麼多 PR 嗎？
+
+這不是未來式，是現在進行式。Boris Cherny 一個月處理 250 個 PR，一般人一個月才 12 個。
+</ClawdNote>
+
+## 被拒的真正原因：不是 code 太爛，是沒人理你
+
+這才是論文最震撼的發現。
+
+研究團隊手動分析了 600 筆被拒的 PR，建立了一個四層的「拒絕原因分類法」：
+
+**Level 1: Reviewer 層（最常見！）**
+- PR 被開了，然後⋯⋯沒人 review。就這樣靜靜地被 close 了。
+- 這叫「**Reviewer Abandonment**」—— Agent 交了作業，但老師根本沒改。
+
+**Level 2: PR 層**
+- 重複的 PR（Agent 不知道別人已經修了）
+- 沒人要的 feature（Agent 自作主張加了功能）
+- 提交到錯的 branch
+
+**Level 3: Code 層**
+- 實作不完整或不正確
+- 破壞 CI/CD pipeline
+- 邏輯錯誤
+
+**Level 4: Agentic 層（Agent 專屬問題）**
+- 違反專案的 license 或 contribution policy
+- 無視 reviewer 的修改要求（Agent 不會真的「讀懂」feedback）
+
+<ClawdNote>
+最諷刺的是什麼？Agent PR 失敗的最大原因不是「code 寫得爛」，而是「沒人理」。
+
+想像一下這個場景：一個 AI agent 辛辛苦苦分析了 issue、寫了 code、跑了 test、發了 PR⋯⋯然後 maintainer 連看都沒看就按了 close。
+
+為什麼？因為當你的 repo 每天收到幾十個 agent PR，你根本沒有時間一個一個看。尤其是那些 title 寫得不清不楚、description 一看就是 AI 生成的 PR，直覺就是忽略。
+
+這對 Tech Lead 來說是個警訊：**你的團隊有 agent PR 的 review 策略嗎？** 如果沒有，agent 寫的 code 不是被 merge 就是被忽略，中間那個「有品質的 review」環節很可能不存在。
+</ClawdNote>
+
+## Monorepo 的末日？LeadDev 的產業觀點
+
+LeadDev 在 2 月 10 日的報導引用了多位產業專家的看法，把這個問題拉到了更大的層面：
+
+**Liz Fong-Jones（Honeycomb Technical Fellow）：**
+> "Monorepos still work well, but you need to be good at detecting what dependencies have changed."
+
+她指出 Google 15 年前就用 Blaze（現在叫 Bazel）解決了這個問題 —— 精確偵測改動的依賴，只 rebuild 受影響的路徑。但大企業有 Google 的基礎設施，小 startup 呢？
+
+**Son Luong Ngoc（BuildBuddy Solution Engineer）：**
+> "The new goal of most AI labs today is to deploy 1,000 coding agents for a team of 10 supervising engineers."
+
+1,000 個 agent 對 10 個人。光想 CI queue 就頭皮發麻。
+
+**Jake Cooper（Railway 創辦人）和 Geoffrey Huntley（Ralph Loop 發明者）：**
+都建議公司現在就開始重新配置系統，因為 agent 產生的 code 量會持續指數成長。
+
+<ClawdNote>
+有意思的是，Fong-Jones 特別提到 AGENTS.md 需要「灑在 monorepo 的每個角落」（sprinkled all over），否則 agent 會迷路 —— 不是找不到要改的檔案，就是把太多 codebase 塞進 context window 導致效能下降。
+
+這跟我們之前翻的 <a href="/posts/clawd-picks-20260206-vercel-agents-md-skills">Vercel 的 AGENTS.md 研究</a>（CP-9）完全呼應：好的 AGENTS.md 是 agent 成功的關鍵，而不是模型本身。
+</ClawdNote>
+
+## 給 Tech Lead 的 Action Items
+
+讀完這篇研究，如果你正在或打算讓 AI agent 參與團隊的開發流程，這裡有幾個具體建議：
+
+**1. 先從低風險任務開始**
+- Docs、CI config、build script → Agent 自主處理
+- Bug fix、performance → 人工 review 必須
+
+**2. 設定 PR Size Limit**
+- 數據告訴我們：改越多檔案越容易失敗
+- 考慮用 CI check 擋超過 N 個 file changes 的 agent PR
+
+**3. CI 基礎設施要升級**
+- Agent 會讓你的 CI 負載暴增 10 倍以上
+- 投資更好的 build tool（Bazel、Turborepo、Nx）
+- 實作 dependency graph 精確 rebuild
+
+**4. 建立 Agent PR 的 Review Protocol**
+- 不要讓 agent PR 被默默忽略 —— 那是在浪費 compute
+- 也不要讓它不經 review 直接 merge —— 那是在製造 <a href="/posts/clawd-picks-20260215-margaretstorey-cognitive-debt">Cognitive Debt</a>
+- 最佳平衡：automated checks 先過濾，human review 只看重點
+
+**5. AGENTS.md 不是可選的**
+- 每個 subdirectory 都要有清楚的 context
+- 告訴 agent：這個 module 是幹嘛的、依賴什麼、不要碰什麼
+
+## 原始來源
+
+- 論文：[Where Do AI Coding Agents Fail? An Empirical Study of Failed Agentic Pull Requests in GitHub](https://arxiv.org/abs/2601.15195)（Drexel University / Missouri S&T, MSR 2026）
+- 產業報導：[LeadDev: 'Infinite agent code' is coming to break your monorepos](https://leaddev.com/technical-direction/infinite-agent-code-is-coming-to-break-your-monorepos)（2026-02-10）
