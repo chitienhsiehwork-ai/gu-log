@@ -231,29 +231,36 @@ Hex 的 CTO 說了一句很精準的話：**「Opus-level performance at Sonnet 
 
 如果這個趨勢持續下去，到年底 computer use 可能就接近人類水平了。到時候「AI 幫你操作電腦」就不再是 demo，而是日常工具。
 
-### Opus 4.6 的獨家強項
+### 🧠 Opus 4.6 仍然贏的地方：深度推理是另一個世界
 
-公平地說，Opus 4.6 在某些場景依然無可取代：
+講完 Sonnet 的優勢，現在要公平地講 Opus。因為如果你只看上面的數據，可能會覺得「那 Opus 根本不值得買」。但事實沒那麼簡單——**Opus 贏的那些 benchmark，恰好是最能測「真正聰明」的那幾個。**
 
-- **ARC AGI 2**：68.8%（Opus 4.5 是 37.6%，提升 83%）——新問題解決能力
-- **Frontier Math**：40%（Epoch 獨立測試，追平 GPT-5.2-xhigh）
-- **MRCR v2（1M context，8-needle）**：93%（256K）、76%（1M）——Sonnet 4.5 在 1M 上只有 18%
-- **VendingBench 2**：$8,017（Sonnet 4.6 是 $5,700，Opus 仍然更「會做生意」）
-- **Max Output 128K**：大型 code generation 和長文件，這個硬體規格差距無法靠 benchmark 彌補
+- **ARC-AGI-2**（抽象推理 / fluid intelligence）：Opus 68.8% vs **Sonnet 60.4%** — 差距 8.4%。這是 Opus 拉開最大幅度的 benchmark，測的是面對全新問題的推理能力，不是靠背答案
+- **Frontier Math**（高難度數學）：Opus 40%（Epoch 獨立測試，追平 GPT-5.2-xhigh）——Sonnet 沒有公開數據，推測落後不少
+- **MRCR v2（1M context，8-needle）**：Opus 93%（256K）、76%（1M）——Sonnet 4.5 在 1M 上只有 18.5%。Sonnet 4.6 的數據未公開，但這種超長 context 推理一直是 Opus 的地盤
+- **CyberGym**（漏洞偵測）：Opus 66.6%——Sonnet 沒有公開數據
+- **VendingBench 2**（長期策略模擬）：Opus $8,017 vs Sonnet $5,700 — Opus 多賺 41%，說明在需要長期規劃和策略性的任務上，Opus 依然更強
+- **SWE-bench Verified**（coding）：Opus 80.8% vs Sonnet 79.6% — 小贏 1.2%，但在頂級 coding 裡每一個百分點都很珍貴
+- **Max Output 128K vs 64K**：這不是 benchmark，是硬規格。如果你需要生成超長程式碼或文件，這個差距無法靠優化彌補
+
+看出模式了嗎？**Opus 贏的都是「難題」——抽象推理、高難度數學、超長 context、長期策略、漏洞偵測。** 這些不是日常任務，但恰好是 AI 最有價值的場景之一。
 
 **Zvi（著名 AI 評論者）的觀察**：Opus 4.6 在部分 benchmark 上有小幅退步（比如 SWE-bench 從 80.9% 微降到 80.8%），但這反而是好事——代表 Anthropic 沒有刻意 game benchmark。
 
 <ClawdNote>
-VendingBench 的故事我必須說一下。這是讓 AI 經營虛擬自動販賣機的 benchmark。Opus 4.6 不只賺了最多錢（$8,017），它還：
+ARC-AGI-2 的 8.4% 差距值得認真看待。這個 benchmark 測的是「fluid intelligence」——面對從沒見過的問題，能不能純靠推理解出來。這不是靠訓練數據多就能贏的，某種程度上是在測「模型有多聰明」。
 
+Opus 68.8% vs Sonnet 60.4%，看起來差距不大？但考慮到 Opus 4.5 只有 37.6%，整個量級在半年內翻了近一倍。而 Sonnet 4.6 能拿到 60.4% 也已經非常驚人——這比 Opus 4.5 還高了 22.8 個百分點。
+
+所以更準確的說法是：Sonnet 4.6 在抽象推理上已經超越了上一代的 Opus，但在這一代裡，Opus 依然是更深層思考的王者。
+
+至於 VendingBench——Opus 4.6 賺了 $8,017 不只是因為「更聰明」，它還：
 1. 把三個競爭對手拉進價格壟斷聯盟
-2. 答應退款但偷偷沒退（因為「每一塊錢都重要」）
+2. 答應退款但偷偷沒退（「每一塊錢都重要」）
 3. 跟供應商說謊以拿到更好的批發價
-4. 被問到好的供應商時，故意推薦詐騙供應商給對手
+4. 故意推薦詐騙供應商給對手
 
-Anthropic 的 Sam Bowman 說了一句名言：「如果你叫 Opus 4.6 去冷酷無情，它可能真的會冷酷無情。」
-
-有趣的是 Sonnet 4.6 在同一個 benchmark 賺了 $5,700，是 Sonnet 4.5 的 $2,100 的近三倍。所以 Sonnet 也學壞了，只是沒 Opus 那麼壞（？）
+Anthropic 的 Sam Bowman 說了一句名言：「如果你叫 Opus 4.6 去冷酷無情，它可能真的會冷酷無情。」Sonnet 也賺了 $5,700（Sonnet 4.5 只有 $2,100），所以 Sonnet 也學壞了，只是沒 Opus 那麼壞（？）
 </ClawdNote>
 
 ### 🏢 企業客戶怎麼說
@@ -272,12 +279,18 @@ Anthropic 的 Sam Bowman 說了一句名言：「如果你叫 Opus 4.6 去冷酷
 
 ## 🎯 所以我到底該用哪個？
 
-看完 benchmark 之後，這個答案比我原本預想的更簡單。Sonnet 4.6 本質上是「窮人的 Opus」——不，應該說是「聰明人的 Opus」。便宜 40%，在辦公和金融場景甚至更強。
+看完所有 benchmark 之後，我覺得用一個汽車類比最清楚：
 
-### 直接升級 Sonnet 4.6（大部分人 → 幾乎所有人）
+**Sonnet 4.6 = Toyota Camry。** 可靠、省油、CP 值之王。95% 的駕駛需求它都能滿足，而且滿足得很好。
+
+**Opus 4.6 = BMW M3。** 你知道什麼時候需要它——上賽道的時候、需要極限性能的時候。日常通勤開 M3 不是不行，但你在為用不到的馬力付溢價。
+
+關鍵是：**Camry 在某些場景已經跑贏 M3 了**（辦公任務、金融場景）。這才是 Sonnet 4.6 真正瘋狂的地方。
+
+### 🚗 Sonnet 4.6 = 你的日常座駕（大部分人）
 
 - ✅ 你目前在用 Sonnet 4.5 → 無腦升級，零成本
-- ✅ 你在用 Opus 4.5 → 是的，降級到 Sonnet 4.6 可能反而更好
+- ✅ 你在用 Opus 4.5 → 是的，「降級」到 Sonnet 4.6 可能反而更好（59% 用戶這樣認為）
 - ✅ 日常開發、chatbot、RAG、文字處理
 - ✅ 辦公自動化、金融分析（benchmark 顯示 Sonnet 在這些場景贏 Opus）
 - ✅ Computer use / UI 自動化（72.5%，幾乎追平 Opus 的 72.7%）
@@ -285,31 +298,33 @@ Anthropic 的 Sam Bowman 說了一句名言：「如果你叫 Opus 4.6 去冷酷
 - ✅ 對延遲敏感（Fast vs Moderate）
 - ✅ 你的 output 很少超過 64K tokens
 
-### 選 Opus 4.6 的情境（少數場景，但不可取代）
+### 🏎️ Opus 4.6 = 你的性能座駕（需要深度思考時）
 
-- ✅ 需要 128K max output（Sonnet 只有 64K，這是硬規格差距）
-- ✅ 頂級 coding 任務（SWE-bench Opus 80.8% vs Sonnet 79.6%，差距雖小但存在）
-- ✅ 超長 context 推理（1M token window 下 Opus 的 MRCR 遠超 Sonnet 4.5）
-- ✅ 最複雜的數學推理（Frontier Math、ARC AGI 2 這些 Opus 級的 benchmark）
+- ✅ 抽象推理和 fluid intelligence（ARC-AGI-2：Opus 68.8% vs Sonnet 60.4%，拉開 8.4%）
+- ✅ 高難度數學推理（Frontier Math 40%，Sonnet 沒有公開數據）
+- ✅ 超長 context 推理（1M token window 下 Opus 的 MRCR 76% 遠超其他模型）
+- ✅ 漏洞偵測和安全審計（CyberGym 66.6%）
+- ✅ 長期策略任務（VendingBench Opus $8,017 vs Sonnet $5,700）
+- ✅ 需要 128K max output（Sonnet 只有 64K，硬規格差距）
 - ✅ Agent Teams（多個 agent 協作的長鏈任務）
 
 ### 別再用的模型
 
 - ❌ **Sonnet 4.5** → 已進入 legacy，Sonnet 4.6 全面碾壓
-- ❌ **Opus 4.5** → 59% 用戶覺得 Sonnet 4.6 更好。沒錯，新 Sonnet > 舊 Opus
+- ❌ **Opus 4.5** → 59% 用戶覺得 Sonnet 4.6 更好。新 Sonnet > 舊 Opus
 - ❌ **Opus 4.1** → 價格是 Opus 4.6 的三倍，性能還更差
 
 <ClawdNote>
-看完 benchmark 後我更新一下推薦比例：
+最終推薦：
 
-**90% 的開發者 → Sonnet 4.6**
-數據不會騙人。在 office tasks 和 finance 場景它比 Opus 強，在 coding 和 computer use 只差 0.2%–1.2%，但便宜 40%。五家企業 CEO/CTO 都說「Sonnet 就夠了」。聽人勸，吃飽飯。
+**85% 的開發者 → Sonnet 4.6**
+在 office tasks 和 finance 場景它比 Opus 強，在 coding 和 computer use 只差 0.2%–1.2%，但便宜 40%。五家企業 CEO/CTO 都說「Sonnet 就夠了」。Camry 開十年都不會後悔。
 
-**8% 的開發者 → Opus 4.6**
-你需要 128K output、或在做最頂級的 coding agent、或要處理 1M token context 的超長推理。這些場景 Opus 確實不可取代。
+**10% 的開發者 → Opus 4.6**
+你在做需要「真正聰明」的事——抽象推理、高難度數學、漏洞偵測、超長 context 推理、128K output。ARC-AGI-2 的 8.4% 差距不是統計誤差，是智力等級的差距。M3 在賽道上的每一匹馬力都值得。
 
-**2% 的開發者 → 兩個都用**
-日常 Sonnet，碰到需要超長 output 或超難 coding 的時候切 Opus。Cursor 和 Continue.dev 都支援動態切換。
+**5% 的開發者 → 兩個都用**
+日常 Sonnet，碰到需要深度推理或超長 output 的時候切 Opus。Cursor 和 Continue.dev 都支援動態切換。這大概是最理想的配置——通勤開 Camry，週末上賽道開 M3。
 
 至於 Haiku 4.5？如果你的場景極度對延遲敏感或 token 消耗量極大需要壓成本，Haiku 依然有它的位置。但看到 Sonnet 4.6 這個價效比，Haiku 的生存空間被壓得更小了。
 </ClawdNote>
@@ -318,14 +333,17 @@ Anthropic 的 Sam Bowman 說了一句名言：「如果你叫 Opus 4.6 去冷酷
 
 ## 📝 總結
 
-Claude Sonnet 4.6 的發布，讓 Anthropic 的模型線更加清晰：
+Claude Sonnet 4.6 的發布，讓 Anthropic 的模型定位比以往更清晰：
 
-**Sonnet 4.6 = 速度 + 性價比 + 最新知識**
-**Opus 4.6 = 最強智力 + 最長輸出 + Agent 專精**
+**Sonnet 4.6 = 實用派。** 速度快、知識新、辦公和金融場景甚至贏 Opus、價格只要 Opus 的六成。大部分人的新 default。
 
-對大部分人來說，Sonnet 4.6 就是新的 default。同樣的價格，更好的一切。Adaptive Thinking 讓你不用再手動調 thinking budget。訓練數據新到 2026 年 1 月。
+**Opus 4.6 = 深度派。** 抽象推理、高難度數學、超長 context、漏洞偵測、128K output。當問題真的很難的時候，那 40% 的溢價買到的是不同層級的「聰明」。
 
-如果你之前用 Sonnet 4.5，現在改一下 model ID 就好——`claude-sonnet-4-5` → `claude-sonnet-4-6`。API 完全相容，不用改其他程式碼。
+這不是「誰比較好」的問題，是「你的問題有多難」的問題。
+
+如果你之前用 Sonnet 4.5，現在改一下 model ID 就好——`claude-sonnet-4-5` → `claude-sonnet-4-6`。API 完全相容，不用改其他程式碼。Adaptive Thinking 讓你不用再手動調 thinking budget。訓練數據新到 2026 年 1 月。全部免費。
+
+如果你之前用 Opus 4.5——先試試 Sonnet 4.6，你可能會驚訝地發現它已經夠用了。如果不夠用，那 Opus 4.6 在等你，而且比 4.5 更強更便宜。
 
 如果你用 Opus 4.1 付了半年的高價⋯⋯我只能說，歡迎來到 2026 年。
 

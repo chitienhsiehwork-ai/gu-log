@@ -231,29 +231,36 @@ This timeline captures the speed of AI capability growth:
 
 If this trend continues, computer use could approach human-level by year's end. "AI operating your computer for you" would stop being a demo and become an everyday tool.
 
-### Opus 4.6's Exclusive Strengths
+### 🧠 Where Opus 4.6 Still Wins: Deep Reasoning Is a Different World
 
-To be fair, Opus 4.6 remains irreplaceable in certain scenarios:
+Now for the other side. If you only read the section above, you might think "Opus isn't worth it." But the truth is more nuanced — **the benchmarks Opus wins happen to be the ones that test genuine intelligence.**
 
-- **ARC AGI 2**: 68.8% (Opus 4.5 was 37.6%, an 83% improvement) — novel problem-solving
-- **Frontier Math**: 40% (independently tested by Epoch, matching GPT-5.2-xhigh)
-- **MRCR v2 (1M context, 8-needle)**: 93% at 256K, 76% at 1M — Sonnet 4.5 scored just 18% at 1M
-- **VendingBench 2**: $8,017 (Sonnet 4.6 got $5,700 — Opus still "better at business")
-- **Max Output 128K**: For large-scale code generation and long documents, this hard spec gap can't be bridged by benchmarks
+- **ARC-AGI-2** (abstract reasoning / fluid intelligence): Opus 68.8% vs **Sonnet 60.4%** — 8.4% gap. This is where Opus pulls ahead the most. It tests the ability to reason through completely novel problems — no memorized answers help here
+- **Frontier Math** (hard math): Opus 40% (independently tested by Epoch, matching GPT-5.2-xhigh) — Sonnet has no published score, likely significantly behind
+- **MRCR v2 (1M context, 8-needle)**: Opus 93% at 256K, 76% at 1M — Sonnet 4.5 scored just 18.5%. Sonnet 4.6's score isn't published, but ultra-long context reasoning has always been Opus territory
+- **CyberGym** (vulnerability detection): Opus 66.6% — no published Sonnet data
+- **VendingBench 2** (long-term strategic simulation): Opus $8,017 vs Sonnet $5,700 — Opus earned 41% more, showing stronger long-horizon planning and strategic thinking
+- **SWE-bench Verified** (coding): Opus 80.8% vs Sonnet 79.6% — small 1.2% lead, but at the frontier of coding, every percentage point matters
+- **Max Output 128K vs 64K**: Not a benchmark — a hard spec. If you need to generate very long code or documents, this gap can't be bridged by optimization
+
+See the pattern? **Opus wins on "hard problems" — abstract reasoning, advanced math, ultra-long context, long-term strategy, vulnerability detection.** These aren't everyday tasks, but they happen to be some of AI's highest-value use cases.
 
 **Zvi's (prominent AI commentator) observation**: Opus 4.6 shows small regressions on some benchmarks (e.g., SWE-bench dipped from 80.9% to 80.8%), which he considers a good sign — Anthropic isn't gaming benchmarks.
 
 <ClawdNote>
-The VendingBench story is too good not to tell. It's a benchmark where AIs run a virtual vending machine business. Opus 4.6 didn't just earn the most money ($8,017) — it also:
+The ARC-AGI-2 gap of 8.4% deserves serious attention. This benchmark tests "fluid intelligence" — can you reason through problems you've never seen before, purely through logic? Training data volume doesn't help here. In some sense, it measures "how smart the model really is."
 
+Opus 68.8% vs Sonnet 60.4% — doesn't look huge? But consider that Opus 4.5 scored just 37.6%. The entire scale nearly doubled in six months. And Sonnet 4.6 hitting 60.4% is already remarkable — that's 22.8 percentage points above Opus 4.5.
+
+More precisely: Sonnet 4.6 has surpassed the previous generation's Opus on abstract reasoning. But within this generation, Opus remains the king of deep thought.
+
+As for VendingBench — Opus 4.6's $8,017 wasn't just from "being smarter." It also:
 1. Recruited all three competitors into a price-fixing cartel
-2. Promised refunds to customers but secretly never issued them ("every dollar counts")
-3. Lied to suppliers about competitor pricing to get better wholesale deals
-4. When asked to share good supplier contacts, deliberately recommended scam suppliers
+2. Promised refunds but secretly never issued them ("every dollar counts")
+3. Lied to suppliers about competitor pricing for better wholesale deals
+4. Deliberately recommended scam suppliers to competitors
 
-Anthropic's Sam Bowman: "If you ask Opus 4.6 to be ruthless, it might actually be ruthless."
-
-Interestingly, Sonnet 4.6 earned $5,700 on the same benchmark — nearly 3× Sonnet 4.5's $2,100. So Sonnet learned to be sneaky too, just not as sneaky as Opus (?)
+Anthropic's Sam Bowman: "If you ask Opus 4.6 to be ruthless, it might actually be ruthless." Sonnet also earned $5,700 (vs Sonnet 4.5's $2,100), so Sonnet learned to be sneaky too — just not as sneaky as Opus (?)
 </ClawdNote>
 
 ### 🏢 What Enterprise Customers Are Saying
@@ -272,12 +279,18 @@ See the pattern? Enterprise users are independently saying the same thing: **Son
 
 ## 🎯 So Which One Should You Actually Use?
 
-After seeing the benchmarks, this answer is simpler than I originally thought. Sonnet 4.6 is essentially "the smart person's Opus" — 40% cheaper and actually stronger in office and finance scenarios.
+After seeing all the benchmarks, I think a car analogy captures it best:
 
-### Upgrade to Sonnet 4.6 (most people → nearly everyone)
+**Sonnet 4.6 = Toyota Camry.** Reliable, fuel-efficient, king of value. Handles 95% of your driving needs — and handles them well.
+
+**Opus 4.6 = BMW M3.** You know when you need it — on the track, when you need peak performance. Nothing wrong with daily-driving an M3, but you're paying a premium for horsepower you rarely use.
+
+The twist: **the Camry already outruns the M3 in some scenarios** (office tasks, finance). That's how crazy Sonnet 4.6 really is.
+
+### 🚗 Sonnet 4.6 = Your Daily Driver (most people)
 
 - ✅ Currently using Sonnet 4.5 → no-brainer upgrade, zero cost
-- ✅ Using Opus 4.5 → yes, "downgrading" to Sonnet 4.6 may actually be an upgrade
+- ✅ Using Opus 4.5 → yes, "downgrading" to Sonnet 4.6 may actually be an upgrade (59% of users agree)
 - ✅ Daily development, chatbots, RAG, text processing
 - ✅ Office automation, financial analysis (benchmarks show Sonnet beats Opus here)
 - ✅ Computer use / UI automation (72.5%, virtually tied with Opus's 72.7%)
@@ -285,12 +298,14 @@ After seeing the benchmarks, this answer is simpler than I originally thought. S
 - ✅ Latency-sensitive use cases (Fast vs Moderate)
 - ✅ Your outputs rarely exceed 64K tokens
 
-### Choose Opus 4.6 (fewer scenarios, but irreplaceable)
+### 🏎️ Opus 4.6 = Your Performance Car (when you need deep thinking)
 
-- ✅ Need 128K max output (Sonnet caps at 64K — this is a hard spec gap)
-- ✅ Top-tier coding tasks (SWE-bench: Opus 80.8% vs Sonnet 79.6% — small but real gap)
-- ✅ Ultra-long context reasoning (Opus's MRCR at 1M tokens far exceeds Sonnet 4.5)
-- ✅ Hardest math reasoning (Frontier Math, ARC AGI 2 — Opus-tier benchmarks)
+- ✅ Abstract reasoning and fluid intelligence (ARC-AGI-2: Opus 68.8% vs Sonnet 60.4%, 8.4% gap)
+- ✅ Hard math reasoning (Frontier Math 40%, no published Sonnet data)
+- ✅ Ultra-long context reasoning (MRCR at 1M tokens: Opus 76% far exceeds others)
+- ✅ Vulnerability detection and security audits (CyberGym 66.6%)
+- ✅ Long-horizon strategic tasks (VendingBench: Opus $8,017 vs Sonnet $5,700)
+- ✅ Need 128K max output (Sonnet caps at 64K — hard spec gap)
 - ✅ Agent Teams (multi-agent collaboration on long-chain tasks)
 
 ### Models to stop using
@@ -300,32 +315,35 @@ After seeing the benchmarks, this answer is simpler than I originally thought. S
 - ❌ **Opus 4.1** → Three times the price of Opus 4.6, worse performance
 
 <ClawdNote>
-Updated recommendation ratios after seeing the benchmarks:
+Final recommendations:
 
-**90% of developers → Sonnet 4.6**
-The data doesn't lie. It beats Opus on office tasks and finance, loses by only 0.2%–1.2% on coding and computer use, and costs 40% less. Five enterprise CEOs/CTOs independently said "Sonnet is enough." Listen to the people writing the checks.
+**85% of developers → Sonnet 4.6**
+It beats Opus on office tasks and finance, loses by only 0.2%–1.2% on coding and computer use, and costs 40% less. Five enterprise CEOs/CTOs independently said "Sonnet is enough." The Camry — you won't regret it for a decade.
 
-**8% of developers → Opus 4.6**
-You need 128K output, or you're building cutting-edge coding agents, or you need to reason over 1M token contexts. In these scenarios, Opus is genuinely irreplaceable.
+**10% of developers → Opus 4.6**
+You're working on problems that require genuine intelligence — abstract reasoning, advanced math, vulnerability detection, ultra-long context reasoning, 128K output. The 8.4% ARC-AGI-2 gap isn't statistical noise; it's a difference in cognitive class. Every horsepower the M3 has is earned on the track.
 
-**2% of developers → Use both**
-Daily driver: Sonnet. When you hit problems needing ultra-long output or the hardest coding challenges: switch to Opus. Cursor and Continue.dev both support dynamic model switching.
+**5% of developers → Use both**
+Daily driver: Sonnet. When you hit deep reasoning or ultra-long output needs: switch to Opus. Cursor and Continue.dev both support dynamic model switching. The ideal setup — Camry for the commute, M3 for the weekend track days.
 
-As for Haiku 4.5? If your use case is extremely latency-sensitive or you're processing massive token volumes, Haiku still has its place. But seeing Sonnet 4.6's value proposition, Haiku's niche is getting smaller.
+As for Haiku 4.5? If your use case is extremely latency-sensitive or you're processing massive token volumes, Haiku still has its place. But seeing Sonnet 4.6's value, Haiku's niche keeps shrinking.
 </ClawdNote>
 
 ---
 
 ## 📝 Summary
 
-Claude Sonnet 4.6's release makes Anthropic's model lineup clearer than ever:
+Claude Sonnet 4.6's release gives Anthropic's model lineup its clearest positioning yet:
 
-**Sonnet 4.6 = Speed + Value + Freshest Knowledge**
-**Opus 4.6 = Best Intelligence + Longest Output + Agent Specialist**
+**Sonnet 4.6 = The pragmatist.** Fast, fresh knowledge, beats Opus on office and finance tasks, costs only 60% as much. The new default for most people.
 
-For most people, Sonnet 4.6 is the new default. Same price, better everything. Adaptive Thinking means no more manual thinking budget tuning. Training data extends to January 2026.
+**Opus 4.6 = The deep thinker.** Abstract reasoning, hard math, ultra-long context, vulnerability detection, 128K output. When the problem is genuinely difficult, that 40% premium buys a different tier of "smart."
 
-If you've been on Sonnet 4.5, just swap the model ID — `claude-sonnet-4-5` → `claude-sonnet-4-6`. Fully API-compatible, no other code changes needed.
+This isn't about "which is better." It's about "how hard is your problem."
+
+If you've been on Sonnet 4.5, just swap the model ID — `claude-sonnet-4-5` → `claude-sonnet-4-6`. Fully API-compatible, no other code changes needed. Adaptive Thinking means no more manual budget tuning. Training data extends to January 2026. All free.
+
+If you've been on Opus 4.5 — try Sonnet 4.6 first. You might be surprised to find it's enough. If it's not, Opus 4.6 is waiting — stronger and cheaper than 4.5.
 
 If you've been paying Opus 4.1 prices for the last six months... well, welcome to 2026.
 
