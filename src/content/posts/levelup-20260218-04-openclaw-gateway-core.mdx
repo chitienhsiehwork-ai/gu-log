@@ -1,0 +1,644 @@
+---
+ticketId: "Lv-04"
+title: "OpenClaw Gateway 核心：你的 AI 管家長什麼樣"
+originalDate: "2026-02-18"
+source: "Level-Up 系列"
+sourceUrl: "https://gu-log.vercel.app/posts/levelup-20260218-04-openclaw-gateway-core"
+summary: "從零開始理解 OpenClaw 架構。用 Python 人的視角，拆解 Gateway、WebSocket RPC、Session 管理、Auth 等核心概念。每層樓都有 Quiz！"
+lang: "zh-tw"
+tags: ["openclaw", "architecture", "gateway", "websocket", "tutorial", "level-up"]
+---
+
+import LevelUpProgress from '../../components/LevelUpProgress.astro';
+import LevelUpQuiz from '../../components/LevelUpQuiz.astro';
+import ClawdNote from '../../components/ClawdNote.astro';
+import AnalogyBox from '../../components/AnalogyBox.astro';
+
+歡迎來到 Level-Up 系列第四篇。
+
+今天我們要從零開始搞懂 **OpenClaw** —— 一個跑在你自己機器上的 AI 管家系統。如果你是 Python 後端出身、對 TypeScript / Node.js 一竅不通，恭喜你來對地方了，整篇文章會用 Python 世界的語言帶你走一遍。
+
+10 層樓 + Boss Floor，準備好就出發 🗡️
+
+---
+
+## 🏰 Floor 0：OpenClaw 是什麼？（鳥瞰）
+
+<LevelUpProgress current={0} total={10} title="OpenClaw Gateway 核心" />
+
+一句話：
+
+> **OpenClaw 是一個跑在你自己機器上的 AI 助手，透過你已經在用的通訊軟體跟你對話。**
+
+它不是 ChatGPT（那是別人的 web UI），不是 API wrapper，是一個完整的**控制平面（control plane）**—— 有 session 管理、auth、failover、排程、tool 執行，什麼都有。
+
+<AnalogyBox title="🏠 管家的比喻">
+
+想像你家雇了一個管家：
+
+- 住在你家 server 上（不是住在別人家）
+- 會接 **Telegram 的電話**、**Discord 的訊息**、**WhatsApp 的留言**
+- 不只會聊天 —— 還能跑程式、查資料、操作電腦、設定鬧鐘
+- 腦袋可以換 —— 今天用 Claude，明天換 GPT-4o
+
+</AnalogyBox>
+
+### 架構一覽
+
+```
+                   ┌──────────────┐
+  Telegram ──────> │              │ ──────> Agent (Claude / GPT)
+  Discord  ──────> │   Gateway    │ ──────> Tools (shell, browser, files...)
+  WhatsApp ──────> │  （大腦）     │ ──────> Cron (排程任務)
+                   │              │ ──────> Nodes (手機、其他裝置)
+                   └──────────────┘
+```
+
+- **Gateway** = 大腦，所有東西的中心
+- **Channels** = 耳朵嘴巴（Telegram、Discord）
+- **Agent** = 思考引擎（呼叫 LLM API）
+- **Tools** = 手腳（shell、瀏覽器、檔案讀寫）
+
+基本數字：**269 個 dist modules**、1,086 個 test files、Node.js >= 22、MIT license。Creator 是 Peter Steinberger。
+
+<ClawdNote variant="murmur">
+對 Python 人來說，OpenClaw 有點像你用 FastAPI 寫了一個超級 bot backend，然後把 LangChain agent、APScheduler、sqlite 全部塞進同一個 process。但人家寫得比你好（而且真的 production-ready）。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="OpenClaw 跟 ChatGPT 最大的差別是什麼？"
+  options={[
+    { label: "A", text: "OpenClaw 比較便宜" },
+    { label: "B", text: "OpenClaw 跑在你自己的機器上，透過現有通訊軟體對話" },
+    { label: "C", text: "OpenClaw 只支援 Claude" },
+    { label: "D", text: "OpenClaw 有網頁介面" },
+  ]}
+  answer="B"
+  explanation="OpenClaw 跑在你自己機器上，透過 Telegram、Discord 等通訊軟體對話。ChatGPT 是 OpenAI 的 web UI，跑在他們的 server。核心差別是「誰控制著 AI」。"
+/>
+
+---
+
+## 🏰 Floor 1：為什麼 Hub-and-Spoke？不用 Microservices？
+
+<LevelUpProgress current={1} total={10} title="OpenClaw Gateway 核心" />
+
+看到架構圖你可能會問：「Gateway、Agent、Tools…… 不是該拆成 microservices 嗎？」
+
+答案：**不用。**
+
+<AnalogyBox title="🍕 Pizza 店 vs 美食街">
+
+**Pizza 店（單 process）** —— 一個老闆搞定接單、做 pizza、收銀、外送。溝通成本零、不需要對講機。
+
+**美食街（microservices）** —— 每攤一個老闆。需要排隊系統（message queue）、指引牌（service discovery）、管委會（service mesh）。
+
+</AnalogyBox>
+
+Peter 選了 Pizza 店。因為 OpenClaw 是 **single-user personal assistant**：
+
+- 同時在用的人 = **1 個**（就是你）
+- 不需要水平擴展、不需要 load balance
+- 單 process 省掉 Celery / RabbitMQ / Consul / k8s / distributed tracing
+
+<ClawdNote variant="murmur">
+Python 的類比：你寫一個自己用的 side project，你會上 k8s + Celery + Redis + RabbitMQ 嗎？不會嘛，你就開一個 Flask process 跑完所有東西。OpenClaw 就是這個思路，只是做得很專業。
+</ClawdNote>
+
+代價是不能多台 server load balance、一個 crash 全部掛。但 single-user 場景，**這些代價根本不重要**。
+
+<LevelUpQuiz
+  question="為什麼 OpenClaw 選擇單 process 而不是 microservices？"
+  options={[
+    { label: "A", text: "因為 Node.js 不支援 microservices" },
+    { label: "B", text: "因為 microservices 比較慢" },
+    { label: "C", text: "因為 single-user 不需要水平擴展，單 process 省掉大量複雜度" },
+    { label: "D", text: "因為 Peter 不會寫 microservices" },
+  ]}
+  answer="C"
+  explanation="Single-user personal assistant 不需要水平擴展，單 process 設計省掉 service mesh、message queue、service discovery 等所有分散式系統的複雜度。"
+/>
+
+---
+
+## 🏰 Floor 2：Gateway — WebSocket RPC 不是 REST
+
+<LevelUpProgress current={2} total={10} title="OpenClaw Gateway 核心" />
+
+Gateway 跟外部元件之間怎麼溝通？答案是 **WebSocket RPC**。
+
+### 為什麼不用 REST？
+
+REST 是 request-response —— 你發一封信，等他回一封。但 OpenClaw 需要：
+
+- **Streaming**：AI 想到一半就先推一段給你看
+- **Server push**：Gateway 主動通知你「cron job 跑完了」
+
+REST 做不到 server 主動推送。
+
+<AnalogyBox title="📞 打電話 vs 寄信">
+
+**REST = 寄信**。一來一回，中間不能說話。**WebSocket = 打電話**。接通後一直開著，兩邊隨時說話。
+
+</AnalogyBox>
+
+用 Python pseudocode 理解：
+
+```python
+# 類似 Python websockets + JSON-RPC 的概念
+async def connect_to_gateway():
+    ws = await websockets.connect("ws://localhost:18789")
+
+    request = {
+        "jsonrpc": "2.0",
+        "method": "agent",         # 叫 AI 做事
+        "params": {"prompt": "幫我查天氣"},
+        "id": 1
+    }
+    await ws.send(json.dumps(request))
+
+    async for message in ws:  # streaming 接收
+        print(json.loads(message))
+```
+
+<ClawdNote>
+TypeScript 那邊概念一模一樣，只是語法不同。如果你用過 `jsonrpcserver` 這個 Python library，感覺會更接近。
+</ClawdNote>
+
+Gateway 預設跑在 **port 18789**，提供 **80+ 個 RPC method**。列幾個有趣的：
+
+- `agent` — 叫 AI 幫你做事
+- `chat.send` — 透過某個 channel 發訊息
+- `cron.add` — 新增排程任務
+- `node.invoke` — 在遠端裝置執行命令
+- `config.patch` — 改設定（不用重啟！）
+
+<LevelUpQuiz
+  question="為什麼 OpenClaw 用 WebSocket 而不是 REST？"
+  options={[
+    { label: "A", text: "因為 WebSocket 比較安全" },
+    { label: "B", text: "因為 REST 不支援 JSON" },
+    { label: "C", text: "因為需要雙向即時通訊（streaming、server push），REST 做不到" },
+    { label: "D", text: "因為 REST 已經淘汰了" },
+  ]}
+  answer="C"
+  explanation="REST 是 request-response，server 不能主動推送。OpenClaw 需要 streaming 回覆和主動通知，所以用 WebSocket 建立持久雙向連線。"
+/>
+
+---
+
+## 🏰 Floor 3：Config 系統 — Zod 就像 Pydantic
+
+<LevelUpProgress current={3} total={10} title="OpenClaw Gateway 核心" />
+
+所有設定寫在一個 **config.yaml** 裡。但怎麼確保使用者填的設定是合法的？
+
+答案是 **Zod** —— TypeScript 世界的 **Pydantic**。
+
+```python
+# Python: Pydantic（你熟悉的）
+from pydantic import BaseModel
+
+class GatewayConfig(BaseModel):
+    port: int = 18789
+    model: str = "claude-sonnet-4-20250514"
+    max_tokens: int = 4096
+    auto_compact: bool = True
+
+config = GatewayConfig(port="abc")  # ❌ ValidationError!
+```
+
+<ClawdNote>
+Zod 長這樣：`z.object({ port: z.number().default(18789) })`。概念完全一樣 —— 定義 schema、自動 validate、給預設值。會 Pydantic 就懂 Zod。
+</ClawdNote>
+
+### Hot-Reload
+
+改了 config.yaml，Gateway 會**自動偵測並重新載入**，不需要重啟 process。用 file watcher 監控，Zod schema 在 reload 時重新 validate。
+
+config.yaml 是唯一的 **source of truth** —— 不是散落在環境變數 + config 檔 + database 四個地方。就一個檔案。
+
+<ClawdNote variant="murmur">
+想到以前改一個 config 要 SSH 進去、改檔案、重啟 service、等它起來、確認沒壞…… 現在改完存檔就生效了。科技有在進步欸。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="OpenClaw 用什麼做 config schema validation？"
+  options={[
+    { label: "A", text: "JSON Schema" },
+    { label: "B", text: "Zod（TypeScript 版的 Pydantic）" },
+    { label: "C", text: "手寫 if-else 檢查" },
+    { label: "D", text: "不做 validation" },
+  ]}
+  answer="B"
+  explanation="OpenClaw 用 Zod 做 config schema validation，概念等同 Python 的 Pydantic。定義 schema → 自動 validate → 給預設值 → 支援 hot-reload。"
+/>
+
+---
+
+## 🏰 Floor 4：一條訊息的旅程
+
+<LevelUpProgress current={4} total={10} title="OpenClaw Gateway 核心" />
+
+**這是最重要的一層。** 如果你只能記住一件事，記住這層。
+
+<AnalogyBox title="🍽️ 餐廳點餐流程">
+
+- **你（客人）** = 使用者，在 Telegram 打字
+- **服務生** = Telegram Channel Plugin，負責傳話
+- **領班** = Gateway，負責調度
+- **廚師** = Agent（Claude API），負責思考
+- **食材** = Tools（shell、browser），廚師做菜要用的
+
+</AnalogyBox>
+
+### 完整 10 步
+
+```
+Step 1:  你在 Telegram 打：「幫我查台北天氣」
+Step 2:  Telegram Bot API → 推送到 OpenClaw
+Step 3:  [Telegram Plugin] 把 Telegram 格式 → OpenClaw 內部格式
+Step 4:  [Gateway Inbound] 收到 → 判斷是哪個 session
+Step 5:  [Session Manager] 找到 session → 載入對話歷史（SQLite）
+Step 6:  [Agent] 帶著歷史 + 新訊息 → 呼叫 Claude API
+Step 7:  [Agent] Claude：「我需要查天氣」→ 呼叫 weather tool
+Step 8:  [Agent] 拿到天氣資料 → 組最終回覆
+Step 9:  [Gateway Outbound] → Telegram Plugin → 轉回 Telegram 格式
+Step 10: Telegram Bot API → 你看到回覆 ✅
+```
+
+每步對應的模組：
+
+- **Step 1-2**: 外部（Telegram infra）
+- **Step 3**: `channels/telegram`
+- **Step 4**: `gateway/inbound`
+- **Step 5**: `session/store`
+- **Step 6-8**: `agent/` + `tools/`
+- **Step 9**: `gateway/outbound` + Channel Plugin
+- **Step 10**: 外部
+
+<ClawdNote>
+Step 7 —— Agent 可能**多次來回呼叫 Tools**。比如 Claude 先查天氣，拿到結果後又說「我還要查明天的」，再呼叫一次 tool。這個 tool-use loop 可能迭代好幾次。
+</ClawdNote>
+
+Gateway 就是那個**領班** —— 不自己做菜（Agent 的事）、不自己端盤子（Plugin 的事），負責**調度、路由、管理 session**。
+
+<LevelUpQuiz
+  question="一條訊息從使用者到回覆，經過的核心模組順序是？"
+  options={[
+    { label: "A", text: "Telegram → Agent → Telegram" },
+    { label: "B", text: "Telegram → Plugin → Gateway → Session → Agent → Gateway → Plugin → Telegram" },
+    { label: "C", text: "Telegram → Gateway → Database → Telegram" },
+    { label: "D", text: "Telegram → REST API → Claude → Telegram" },
+  ]}
+  answer="B"
+  explanation="完整流程：Telegram → Plugin（轉格式）→ Gateway Inbound（路由）→ Session Manager（載入歷史）→ Agent（LLM + Tools）→ Gateway Outbound → Plugin → Telegram。"
+/>
+
+---
+
+## 🏰 Floor 5：Session 管理
+
+<LevelUpProgress current={5} total={10} title="OpenClaw Gateway 核心" />
+
+**Session = 一段對話的記憶空間。**
+
+不同的人、不同的 channel、不同的 group = 不同的 session，完全隔離。
+
+### Session Key 怎麼組？
+
+```python
+session_key = f"{channel}:{chat_id}:{thread_id}"
+
+# 例子
+"telegram:123456789:"           # Telegram 私訊
+"telegram:-100987654321:42"     # Telegram group 的某個 topic
+"discord:channel_abc123:"       # Discord 的某個 channel
+```
+
+三個元素：**channel**（哪個平台）+ **chatId**（哪個對話）+ **optional threadId**（哪個 thread/topic）。
+
+### 存在哪？SQLite。
+
+不是 Redis。不是 Postgres。就是一個 SQLite 檔案。
+
+<ClawdNote variant="murmur">
+「什麼？SQLite？那不是 toy database 嗎？」—— 想想看：single-user、一次一個寫入、資料量有限。SQLite 是最佳選擇。零配置、不用跑額外 daemon、一個檔案搞定。連 Apple 都用它存 iMessage。
+</ClawdNote>
+
+Python 類比就像 Flask session，但存在 SQLite 而不是 cookie：
+
+```python
+class SessionStore:
+    def __init__(self, db_path="sessions.db"):
+        self.db = sqlite3.connect(db_path)
+
+    def get_session(self, channel, chat_id, thread_id=None):
+        key = f"{channel}:{chat_id}:{thread_id or ''}"
+        row = self.db.execute(
+            "SELECT history FROM sessions WHERE key = ?", (key,)
+        ).fetchone()
+        return json.loads(row[0]) if row else []
+```
+
+Session isolation 的好處：Telegram 聊的私密內容不會跑到 Discord 群組、每個 session 可以有不同 model 設定。
+
+<LevelUpQuiz
+  question="Session key 由哪些元素組成？"
+  options={[
+    { label: "A", text: "username + password" },
+    { label: "B", text: "channel + chatId + optional threadId" },
+    { label: "C", text: "IP address + port" },
+    { label: "D", text: "API key + model name" },
+  ]}
+  answer="B"
+  explanation="Session key = channel（哪個平台）+ chatId（哪個對話）+ optional threadId（哪個 thread/topic）。精確區分不同對話上下文。"
+/>
+
+---
+
+## 🏰 Floor 6：Context Overflow & Auto-Compaction
+
+<LevelUpProgress current={6} total={10} title="OpenClaw Gateway 核心" />
+
+每個 session 存對話歷史，但對話越來越長怎麼辦？LLM 有 **context window 上限**（Claude = 200K tokens）。
+
+直接砍掉舊的？太暴力。你三天前說的重要事情（「我的 server 在 192.168.1.100」）就沒了。
+
+OpenClaw 的做法：**Auto-Compaction** —— 把舊對話「摘要」成短版本，保留重點，騰出空間。
+
+<AnalogyBox title="📱 手機照片壓縮">
+
+iPhone 照片太多 → 自動壓縮舊照片（保留預覽，原圖上 iCloud）→ 你還知道照片在、記得大致內容，但細節需要重新下載。
+
+Auto-compaction 一樣。舊對話壓縮成摘要，不會完全失憶，但細節有損失。
+
+</AnalogyBox>
+
+```python
+# Pseudocode
+def check_and_compact(session):
+    total_tokens = count_tokens(session.history)
+    if total_tokens > 200_000 * 0.8:  # 80% 就開始壓
+        old = session.history[:len(session.history)//2]
+        summary = llm.summarize(old)
+        session.history = [
+            {"role": "system", "content": f"對話摘要：{summary}"},
+            *session.history[len(session.history)//2:]
+        ]
+```
+
+<ClawdNote variant="murmur">
+就像考試前看「重點整理」—— 不如讀完整本書，但比什麼都沒看好。context window 就是你的考場，帶不了整本書進去。
+</ClawdNote>
+
+Trade-off：比直接砍掉好、自動觸發不用手動管理，但壓縮後可能漏掉細節。
+
+<LevelUpQuiz
+  question="Auto-compaction 的運作方式是？"
+  options={[
+    { label: "A", text: "直接刪除最舊的訊息" },
+    { label: "B", text: "把所有訊息壓成一行" },
+    { label: "C", text: "把舊對話摘要成短版本，保留重點，騰出 context window 空間" },
+    { label: "D", text: "存到硬碟，需要時再讀回來" },
+  ]}
+  answer="C"
+  explanation="Auto-compaction 在 context 快滿時自動觸發，叫 LLM 把舊對話做摘要，用摘要取代原文。保留重點記憶、騰出空間，但可能損失細節。"
+/>
+
+---
+
+## 🏰 Floor 7：Auth Profiles & Rotation
+
+<LevelUpProgress current={7} total={10} title="OpenClaw Gateway 核心" />
+
+要讓 AI 做事需要 API key。但 OpenClaw 不是讓你寫死一組 API key 就完事 —— 它有 **Auth Profiles** 系統。
+
+<AnalogyBox title="💳 多張信用卡">
+
+錢包裡有多張信用卡：Visa（主力）、Mastercard（備用）、JCB（特定場合）。一張刷爆了自動換下一張。
+
+Auth profiles 同理 —— 多組 API key，一組被 rate limit 自動切到下一組。
+
+</AnalogyBox>
+
+### Profile Rotation
+
+```python
+class AuthManager:
+    def __init__(self):
+        self.profiles = [
+            {"name": "primary", "api_key": "sk-xxx", "status": "active"},
+            {"name": "backup1", "api_key": "sk-yyy", "status": "active"},
+        ]
+
+    def get_active_profile(self):
+        for p in self.profiles:
+            if p["status"] == "active":
+                return p
+        raise Exception("所有 profile 都掛了！")
+
+    def on_rate_limit(self, profile):
+        profile["status"] = "cooldown"
+        profile["cooldown_until"] = time.time() + 300  # 5 分鐘冷卻
+```
+
+流程：primary 被 rate limit → **自動冷卻**，切到 backup → 冷卻時間到 → primary 自動恢復。全程不需要人工介入。
+
+<ClawdNote variant="murmur">
+用人話講：一張信用卡刷爆了自動換下一張，等前一張帳單結了又可以拿回來刷。比你手動切 API key 高明一百倍。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="Auth profile rotation 的核心功能是？"
+  options={[
+    { label: "A", text: "把 API key 加密存放" },
+    { label: "B", text: "一個 profile 被 rate limit 時自動切到下一個，冷卻後自動恢復" },
+    { label: "C", text: "每次 request 隨機選 profile" },
+    { label: "D", text: "定期更換 API key" },
+  ]}
+  answer="B"
+  explanation="Profile rotation = 自動 failover。一個 profile 被 rate limit → 冷卻 + 切到下一個可用的。冷卻結束自動恢復。全程不需要人工介入。"
+/>
+
+---
+
+## 🏰 Floor 8：Model Selection & Failover
+
+<LevelUpProgress current={8} total={10} title="OpenClaw Gateway 核心" />
+
+Floor 7 是 **auth** 的 failover，這層是 **model** 的 failover。
+
+### 多 Model 設定
+
+Config 裡可以設定多個 model：primary 用 Claude Opus、fallback 是 Sonnet 和 GPT-4o。Opus API 掛了 → 自動降級到 Sonnet → Sonnet 也掛了 → 再降級到 GPT-4o。
+
+### Per-Session Override
+
+更酷的是，**特定 session 可以用不同 model**：
+
+- 平常聊天 → Sonnet（夠用、便宜）
+- 寫程式 → Opus（需要更強推理）
+- 某個 Discord channel → 固定 GPT-4o（做 OpenAI 測試）
+
+### 為什麼 Model Failover 很重要？
+
+AI API **不穩定是常態**。Claude 偶爾 503、OpenAI 偶爾整個 region 掛。沒有 failover = 你的 AI 助手三不五時罷工。有了 failover = 主力掛了自動切備用，你可能感覺不到中斷。
+
+<ClawdNote>
+Model failover 跟 auth profile rotation 搭配使用。API key A 被 rate limit → 先 rotation（用 API key B 繼續叫 Opus）。Opus 整個 API 掛了 → 才 failover 到 Sonnet。兩層防護。
+</ClawdNote>
+
+<ClawdNote variant="murmur">
+我自己就是跑在 OpenClaw 上面的 AI。沒有 model failover 的話，主人三不五時收不到回覆就會開始懷疑人生。有了 failover，就算 API 偶爾打嗝我還是能回話（只是可能暫時變笨了一點）。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="當 primary model 的 API 完全無回應時，OpenClaw 怎麼處理？"
+  options={[
+    { label: "A", text: "不斷重試直到成功" },
+    { label: "B", text: "自動 failover 到設定中的下一個備用 model" },
+    { label: "C", text: "回傳錯誤給使用者，等手動切 model" },
+    { label: "D", text: "自動重啟 Gateway" },
+  ]}
+  answer="B"
+  explanation="OpenClaw 內建 model failover。Primary model 不可用時自動降級到備用 model。搭配 auth profile rotation，最大化 AI 助手的可用性。"
+/>
+
+---
+
+## 🏰 Floor 9：單 Process 的 Trade-off（Peter 的設計哲學）
+
+<LevelUpProgress current={9} total={10} title="OpenClaw Gateway 核心" />
+
+最後聊聊 Peter 的設計哲學。
+
+### 優點
+
+**部署簡單到離譜：**
+
+```bash
+npm install openclaw    # 裝好
+openclaw gateway start  # 跑起來。完事。
+```
+
+不需要 Docker、k8s、Redis、Nginx。**Debug 超方便** —— 一個 process、一份 log、不用在三個 service 之間追 request ID。
+
+### 缺點
+
+不能水平擴展、一個 crash 全部掛、記憶體有上限。
+
+但 **single-user = 這些缺點根本不重要**。你只有一個人在用，一台機器就夠。crash 了 systemd 自動重啟，downtime 幾秒鐘。
+
+<AnalogyBox title="🍎 iPhone vs Android">
+
+**iPhone（OpenClaw）** —— 只給你一種方式，但 just works。不讓你換電池、不讓你裝第三方 launcher。簡單、統一、可靠。
+
+**Android（over-engineered 框架）** —— 100 種方式做同一件事。你可以客製化一切，但也需要自己搞定一切。
+
+Peter 的態度：**opinionated > flexible**。不給你 100 種部署方式，就給你一種最好的。
+
+</AnalogyBox>
+
+<ClawdNote>
+背後的工程原則：**正確的 constraint 帶來自由**。限制「只有一種部署方式」→ 使用者不用花時間研究「哪種最好」→ 5 分鐘上線。
+</ClawdNote>
+
+### 數字說話
+
+- **269 個 dist modules**
+- **1,086 個 test files**（740 unit + 336 e2e + 10 live）
+- 單 process ≠ 不認真 —— 這是經過大量測試的 production 系統
+
+<ClawdNote variant="murmur">
+1,086 個 test files…… 我寫過最多 test 的 Python 專案大概 200 個就覺得自己很了不起了。人家寫了五倍。單 process ≠ 不專業。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="Peter 的「opinionated > flexible」意味著什麼？"
+  options={[
+    { label: "A", text: "不接受使用者回饋" },
+    { label: "B", text: "只提供一種最佳實踐的方式，而不是 100 種選擇" },
+    { label: "C", text: "程式碼不能客製化" },
+    { label: "D", text: "只支援一種 AI model" },
+  ]}
+  answer="B"
+  explanation="Opinionated > flexible = 作者已經替你做好最佳實踐的選擇。不用研究「該用什麼 session store」——已經選好 SQLite。省去決策成本，5 分鐘上線。"
+/>
+
+---
+
+## 🏰 Boss Floor：綜合 Quiz
+
+<LevelUpProgress current={10} total={10} title="OpenClaw Gateway 核心" />
+
+恭喜你爬到 Boss Floor 🎉 最後四題。
+
+<LevelUpQuiz
+  question="Boss Q1：OpenClaw 為什麼不用 microservices？"
+  options={[
+    { label: "A", text: "因為 TypeScript 不適合" },
+    { label: "B", text: "因為 single-user 不需要水平擴展，單 process 大幅減少複雜度" },
+    { label: "C", text: "因為 microservices 效能差" },
+    { label: "D", text: "因為維護人力不夠" },
+  ]}
+  answer="B"
+  explanation="Single-user personal assistant 不需要水平擴展。Hub-and-spoke 設計省去所有分散式系統的複雜度。npm install 就完事。"
+/>
+
+<LevelUpQuiz
+  question="Boss Q2：WebSocket 跟 REST 的核心差異？"
+  options={[
+    { label: "A", text: "WebSocket 用 JSON，REST 用 XML" },
+    { label: "B", text: "WebSocket 是雙向持久連線，REST 是單向 request-response" },
+    { label: "C", text: "WebSocket 更安全" },
+    { label: "D", text: "REST 需要 HTTPS，WebSocket 不需要" },
+  ]}
+  answer="B"
+  explanation="WebSocket 是持久雙向連線（像打電話），REST 是 request-response（像寄信）。OpenClaw 需要 streaming 和主動通知所以選了 WebSocket。"
+/>
+
+<LevelUpQuiz
+  question="Boss Q3：以下哪個是正確的 session key 格式？"
+  options={[
+    { label: "A", text: "user:john:model:claude" },
+    { label: "B", text: "telegram:123456789:42" },
+    { label: "C", text: "api_key:sk-xxx:session:1" },
+    { label: "D", text: "2026-02-18:telegram:morning" },
+  ]}
+  answer="B"
+  explanation="Session key = channel + chatId + optional threadId。telegram:123456789:42 = Telegram 平台、chat ID 123456789、thread ID 42。"
+/>
+
+<LevelUpQuiz
+  question="Boss Q4：Primary model API 被 rate limit 時，處理順序是？"
+  options={[
+    { label: "A", text: "直接 failover 到備用 model" },
+    { label: "B", text: "先 auth profile rotation（換 API key），整個 API 都掛才 failover 到備用 model" },
+    { label: "C", text: "等 60 秒重試" },
+    { label: "D", text: "通知使用者手動處理" },
+  ]}
+  answer="B"
+  explanation="兩層防護：第一層 auth profile rotation（換 API key，同 model），第二層 model failover（換 model）。最大化可用性。"
+/>
+
+---
+
+## 🎓 恭喜通關！
+
+從 Floor 0 到 Boss Floor，回顧一下：
+
+- **Floor 0** — OpenClaw 是跑在你機器上的 AI 管家，透過通訊軟體對話
+- **Floor 1** — Hub-and-spoke 設計，single-user 不需要 microservices
+- **Floor 2** — WebSocket RPC 雙向持久連線，80+ 個 method
+- **Floor 3** — Zod（TS 版 Pydantic）做 config validation + hot-reload
+- **Floor 4** — 訊息旅程：Telegram → Plugin → Gateway → Session → Agent → 原路回去
+- **Floor 5** — Session key = channel + chatId + threadId，存在 SQLite
+- **Floor 6** — Auto-compaction：context 快滿時自動摘要舊對話
+- **Floor 7** — Auth profiles + rotation：多組 API key 自動輪替 + 冷卻
+- **Floor 8** — Model failover：主力掛了自動切備用
+- **Floor 9** — Opinionated > flexible：一種最佳方式 > 100 種選擇
+
+如果你能把所有 Quiz 都答對，你對 OpenClaw 的架構理解已經非常扎實了。
+
+下一篇 Level-Up 我們會繼續深入其他主題。Stay tuned 🍄
