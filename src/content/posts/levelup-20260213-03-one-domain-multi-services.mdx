@@ -341,101 +341,274 @@ Istio 的學習曲線是出了名的陡。很多團隊裝了 Istio 之後才發�
 
 ---
 
-## 🏗️ Floor 4：FastAPI — 每個 service 的 URL prefix 設計
+## 🏗️ Floor 4：FastAPI × Swagger × root_path — 每個 service 的「室內裝潢」
 
 <LevelUpProgress current={4} total={7} title="一個 Domain，多個 Service" />
 
-好，外部的大樓結構蓋好了（DNS → Ingress/Istio）。現在輪到每個 service 的「室內裝潢」。
+好，外部的大樓結構蓋好了（DNS → Ingress/Istio）。從這層開始，我們要處理每個 service **內部**的事情。
 
-你的 `user-service` 會被 Ingress 以 `/users` 這個 path prefix 導進來。但問題是：**FastAPI 收到的 path 是什麼？**
+這一層東西比較多，所以我們拆成四個小節慢慢來。
+
+---
+
+### 🔹 Floor 4-0：FastAPI 是什麼？— 每個 service 的骨架
+
+在蓋「室內裝潢」之前，先搞清楚你的 service 是用什麼蓋的。
+
+**FastAPI** 是一個 Python web framework，專門用來寫 API。你的三個 service —— `user-service`、`order-service`、`notification-service` —— 每一個都是用 FastAPI 寫的。
+
+一個最簡單的 FastAPI service 長這樣：
+
+```python
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get("/users/{user_id}")
+def get_user(user_id: int):
+    return {"id": user_id, "name": "Alice"}
+```
+
+就這樣。五行 code，你就有一個 API endpoint：`GET /users/123` 會回傳 `{"id": 123, "name": "Alice"}`。
+
+但 FastAPI 最殺手級的功能不是「寫 API 很快」—— 而是它**自動幫你生成一份互動式 API 文件**。
+
+<AnalogyBox title="📋 菜單的比喻">
+
+想像你開了一間餐廳。FastAPI 不只幫你把廚房建好（API 邏輯），還**自動印了一份菜單**放在門口（API 文件）。
+
+這份菜單叫做 **Swagger UI**，客人可以：
+- 看到所有菜色（所有 API endpoint）
+- 看到每道菜需要什麼食材（每個 endpoint 需要什麼參數）
+- **直接在菜單上試吃**（點 "Try it" 按鈕直接發 request）
+
+你不用自己寫菜單，FastAPI 看你的 code 自動生成。
+
+</AnalogyBox>
+
+啟動 service 之後，打開 `http://localhost:8001/docs`，你會看到這個畫面：
+
+<Mermaid chart={`%%{init: {"look": "handDrawn"}}%%
+graph LR
+  C["🐍 你的 Python code<br/>@app.get('/users/{user_id}')"] -->|"FastAPI 自動生成"| S["📄 Swagger UI<br/>http://localhost:8001/docs"]
+  S --> T["🖱️ Try it 按鈕<br/>直接測試 API"]
+  style C fill:#55efc4,stroke:#00b894
+  style S fill:#fdcb6e,stroke:#f39c12
+  style T fill:#fd79a8,stroke:#e84393
+`} caption="FastAPI 看你的 code，自動生成互動式 Swagger UI 文件" />
+
+**Swagger UI** 是開發者的好朋友 —— 前端工程師看它知道要怎麼串 API、你自己開發時可以直接在上面測試。
+
+到目前為止一切美好。但當你的 service 被放到 Ingress 後面（也就是我們 Floor 2 和 3 建的那個大樓結構），問題就來了。
+
+---
+
+### 🔹 Floor 4-1：路徑錯位 — Ingress 轉進來的 path，FastAPI 認不認得？
+
+你的 `user-service` 在本地跑的時候，endpoint 是：
+
+```
+http://localhost:8001/users/123    ✅ 正常運作
+```
+
+現在掛到 Ingress 後面，使用者打的是：
+
+```
+https://api.mycompany.com/users/123
+```
+
+Ingress 看到 `/users` 開頭，知道要轉給 `user-service`。但問題來了：
+
+> **Ingress 轉給 FastAPI 的 path 到底是 `/users/123` 還是 `/123`？**
 
 這取決於 Ingress 有沒有做 **path rewrite**（路徑改寫）。
 
-### 情況一：不改寫 path
+#### 情況一：不改寫 path
 
-Ingress 把 `/users/123` 原封不動地轉給 `user-service`。
+Ingress 把 `/users/123` **原封不動**地轉給 `user-service`。
 
-這時候你的 FastAPI 要這樣寫：
+FastAPI 收到的是 `/users/123`，那你的 code 要這樣寫：
 
 ```python
-app = FastAPI(root_path="/users")
-
-@app.get("/users/{user_id}")
+@app.get("/users/{user_id}")  # ← 帶 /users prefix
 def get_user(user_id: int):
     return {"id": user_id}
 ```
 
-每個 endpoint 都要帶 `/users` prefix。
+#### 情況二：改寫 path（strip prefix）
 
-### 情況二：改寫 path
+Ingress 把 `/users/123` 的 `/users` prefix 剝掉，只把 `/123` 轉給 `user-service`。
 
-Ingress 把 `/users/123` 改寫成 `/123` 再轉給 `user-service`。
-
-這時候 FastAPI 可以寫得比較乾淨：
+FastAPI 收到的是 `/123`，code 可以寫得比較乾淨：
 
 ```python
-app = FastAPI()
+@app.get("/{user_id}")  # ← 不需要 /users prefix
+def get_user(user_id: int):
+    return {"id": user_id}
+```
+
+<AnalogyBox title="🏠 房間門牌的比喻">
+
+就像你住在「信義路 100 號 **5 樓之 3**」。
+
+- **不改寫**：郵差把整個地址「信義路 100 號 5 樓之 3」原封不動交給你。你的 code 要認得完整地址。
+- **改寫（strip prefix）**：大樓管理員收到信之後，把「5 樓」拿掉，只寫「之 3」轉給你。你只需要認得「之 3」就好。
+
+「改寫」讓每個 service 更獨立 —— 它不需要知道自己在大樓的哪一層。
+
+</AnalogyBox>
+
+<Mermaid chart={`%%{init: {"look": "handDrawn"}}%%
+graph TD
+  R["👤 使用者<br/>GET /users/123"] --> I["🚧 Ingress"]
+  I -->|"不改寫<br/>FastAPI 收到 /users/123"| F1["🟢 FastAPI<br/>@app.get('/users/{user_id}')"]
+  I -->|"改寫 strip prefix<br/>FastAPI 收到 /123"| F2["🟢 FastAPI<br/>@app.get('/{user_id}')"]
+  style R fill:#ffeaa7,stroke:#fdcb6e
+  style I fill:#74b9ff,stroke:#0984e3
+  style F1 fill:#55efc4,stroke:#00b894
+  style F2 fill:#55efc4,stroke:#00b894
+`} caption="Ingress 有沒有做 path rewrite，決定了 FastAPI endpoint 怎麼寫" />
+
+**大多數團隊的做法是「改寫」**（strip prefix），因為這樣每個 service 不用知道自己掛在哪個 path 底下，更好維護。
+
+到這裡 API routing 已經通了。但故事還沒完 —— 你打開 Swagger UI 試了一下，發現怪怪的...
+
+<LevelUpQuiz
+  question="Ingress 做 path rewrite（strip prefix）的好處是？"
+  options={[
+    { label: "A", text: "讓 API 跑更快" },
+    { label: "B", text: "讓每個 service 不需要知道自己的 URL prefix，更獨立、更好維護" },
+    { label: "C", text: "自動處理 SSL 加密" },
+    { label: "D", text: "不用寫任何 Python code" },
+  ]}
+  answer="B"
+  explanation="Strip prefix 讓 service 只需要關心自己的 endpoint（如 /{user_id}），不需要知道自己被掛在 /users 底下。如果以後要把 prefix 從 /users 改成 /accounts，只需要改 Ingress 設定，service 的 code 完全不用動。"
+/>
+
+---
+
+### 🔹 Floor 4-2：root_path — 「嘿 FastAPI，你被掛在 /users 底下」
+
+你選了「Ingress 做 path rewrite」，API routing 一切正常。
+
+然後你打開 `https://api.mycompany.com/users/docs` 看 Swagger UI，點了 `GET /{user_id}` 的 **"Try it"** 按鈕，填了 `user_id = 123`，按下 **Execute**...
+
+```
+❌ 404 Not Found
+```
+
+蛤？API 明明能用，為什麼 Swagger 的 "Try it" 壞了？
+
+看一下 Swagger UI 實際送出的 request：
+
+```
+GET https://api.mycompany.com/123    ← 😱 少了 /users！
+```
+
+正確應該是：
+
+```
+GET https://api.mycompany.com/users/123    ← ✅ 這才對
+```
+
+**問題在哪？**
+
+FastAPI 生成 Swagger UI 的時候，它不知道自己被 Ingress 掛在 `/users` 底下。它以為自己就是住在根目錄 `/`。所以 Swagger 的 "Try it" 會直接打 `/123`，而不是 `/users/123`。
+
+<AnalogyBox title="📮 回信地址的比喻">
+
+你搬到大樓 5 樓之後，寫信的回信地址還是寫「之 3」（你的房間號），忘了加「信義路 100 號 5 樓」。
+
+收到信的人按回信地址寄回來，信就寄丟了 —— 因為只寫「之 3」郵差不知道是哪棟大樓哪一層的「之 3」。
+
+你需要告訴自己：「我住在 5 樓，回信地址要加上 5 樓」。
+
+在 FastAPI 裡，`root_path` 就是做這件事 —— **告訴 FastAPI 你住在哪一層**。
+
+</AnalogyBox>
+
+**解法**：設定 `root_path`。
+
+```python
+app = FastAPI(root_path="/users")  # ← 告訴 FastAPI：你被掛在 /users 底下
 
 @app.get("/{user_id}")
 def get_user(user_id: int):
     return {"id": user_id}
 ```
 
-service 本身不需要知道自己的 prefix 是什麼。
+加了 `root_path="/users"` 之後：
 
-<AnalogyBox title="🏠 房間門牌的比喻">
-
-就像你住在「信義路 100 號 **5 樓之 3**」。
-
-- 情況一（不改寫）：郵差把整個地址「信義路 100 號 5 樓之 3」交給你，你要自己知道「5 樓之 3」是你
-- 情況二（改寫）：大樓管理員收到信之後，把地址改成「之 3」再轉給你，你只需要認得「之 3」就好
-
-兩種方式都行，但「改寫」讓每個 service 更獨立 —— 它不需要知道自己在大樓的哪一層。
-
-</AnalogyBox>
+- **API routing 完全不受影響** — `@app.get("/{user_id}")` 還是只 match `/123`
+- **Swagger UI 知道了** — "Try it" 會正確地送 `GET /users/123`
 
 <Mermaid chart={`%%{init: {"look": "handDrawn"}}%%
 graph TD
-  R["GET /users/123"] --> I["Ingress"]
-  I -->|"不改寫<br/>/users/123"| F1["FastAPI<br/>root_path=/users"]
-  I -->|"改寫 path<br/>/123"| F2["FastAPI<br/>root_path 不用設"]
-  style R fill:#ffeaa7,stroke:#fdcb6e
-  style I fill:#74b9ff,stroke:#0984e3
-  style F1 fill:#55efc4,stroke:#00b894
-  style F2 fill:#55efc4,stroke:#00b894
-`} caption="有沒有做 path rewrite，決定了 FastAPI 要怎麼設計 endpoint" />
-
-### 推薦做法
-
-大多數團隊的做法是：
-
-1. **Ingress 做 path rewrite**（strip prefix）
-2. **FastAPI 設 `root_path`**（讓 Swagger UI 的路徑正確顯示）
-
-```python
-# user-service
-app = FastAPI(root_path="/users")
-
-@app.get("/")          # 外面看到的是 /users/
-@app.get("/{user_id}") # 外面看到的是 /users/{user_id}
-```
-
-`root_path` 不會影響 routing，它只影響 **Swagger 文件** 中 endpoint 的顯示路徑。這是 FastAPI 的一個貼心設計。
+  subgraph "❌ 沒設 root_path"
+    S1["Swagger UI<br/>以為 base = /"] -->|"Try it"| R1["GET /123<br/>404 Not Found 💀"]
+  end
+  subgraph "✅ 設了 root_path=/users"
+    S2["Swagger UI<br/>知道 base = /users"] -->|"Try it"| R2["GET /users/123<br/>200 OK ✅"]
+  end
+  style S1 fill:#fab1a0,stroke:#e17055
+  style R1 fill:#fab1a0,stroke:#e17055
+  style S2 fill:#55efc4,stroke:#00b894
+  style R2 fill:#55efc4,stroke:#00b894
+`} caption="root_path 讓 Swagger UI 知道真實的 base URL，Try it 才會打對地方" />
 
 <ClawdNote>
-`root_path` 是 ASGI 的標準概念，不是 FastAPI 獨有的。當你的 app 跑在 reverse proxy 後面時，設定 `root_path` 可以讓 OpenAPI schema 正確反映真實的 URL。不設的話，Swagger UI 會以為 base URL 是 `/`，使用者點 "Try it" 會打到錯的地方。
+`root_path` 是 ASGI 標準（不是 FastAPI 獨有的）。它只影響 OpenAPI schema 裡的 `servers` 欄位，不影響 routing。簡單說：**root_path 是給文件看的，不是給 router 看的。**
+
+技術上，`root_path` 會讓 FastAPI 生成的 `openapi.json` 裡出現 `"servers": [{"url": "/users"}]`。Swagger UI 讀到這個就知道所有 endpoint 都要加上 `/users` prefix。
+</ClawdNote>
+
+---
+
+### 🔹 Floor 4-3：完整拼圖 — 推薦做法 + 常見雷
+
+把前面幾小節串起來，**大多數團隊的推薦做法**是：
+
+1. **Ingress 做 path rewrite**（strip `/users` prefix）
+2. **FastAPI 設 `root_path="/users"`**（讓 Swagger 知道真實路徑）
+3. **Endpoint 不帶 prefix**（乾淨好維護）
+
+```python
+# user-service/main.py
+from fastapi import FastAPI
+
+app = FastAPI(root_path="/users")
+
+@app.get("/")          # 外面打 /users/        → Ingress strip → FastAPI 收到 /
+@app.get("/{user_id}") # 外面打 /users/123     → Ingress strip → FastAPI 收到 /123
+def get_user(user_id: int):
+    return {"id": user_id}
+
+# Swagger UI：https://api.mycompany.com/users/docs
+# Try it GET /users/123 → ✅ 正確！
+```
+
+#### 常見雷：忘記設 root_path
+
+| 症狀 | 原因 |
+|------|------|
+| API 正常但 Swagger "Try it" 404 | `root_path` 沒設，Swagger 送錯 URL |
+| Swagger 頁面打得開但 endpoint 列表是空的 | `openapi.json` 的路徑也被 prefix 影響了 |
+| 本地開發沒問題、部署後 Swagger 壞掉 | 本地沒有 Ingress，部署後才有 path prefix 差異 |
+
+<ClawdNote variant="murmur">
+這個坑真的非常經典。幾乎每個第一次把 FastAPI 放到 reverse proxy 後面的人都會踩到。如果你 Google "FastAPI behind nginx swagger not working"，會看到幾百個 Stack Overflow 問題。答案永遠是：**設 root_path**。
 </ClawdNote>
 
 <LevelUpQuiz
-  question="FastAPI 的 root_path 設定主要影響什麼？"
+  question="你的 FastAPI service 被 Ingress 掛在 /users 底下（有 strip prefix）。API 正常但 Swagger 的 Try it 回 404。最可能的原因是？"
   options={[
-    { label: "A", text: "API 的實際 routing 邏輯" },
-    { label: "B", text: "API 的回應速度" },
-    { label: "C", text: "Swagger/OpenAPI 文件中顯示的 endpoint 路徑" },
-    { label: "D", text: "資料庫的連線設定" },
+    { label: "A", text: "Ingress 的 TLS 設定有問題" },
+    { label: "B", text: "FastAPI 沒有設 root_path，Swagger 不知道真實的 base URL" },
+    { label: "C", text: "DNS 沒有指向正確的 IP" },
+    { label: "D", text: "Python 版本太舊" },
   ]}
-  answer="C"
-  explanation="root_path 是 ASGI 標準，主要影響 OpenAPI schema 中的 server URL。設了 root_path='/users' 之後，Swagger UI 會知道真實的 base path 是 /users，'Try it' 功能才會打到正確的 URL。它不影響 FastAPI 內部的 routing。"
+  answer="B"
+  explanation="這是經典的 root_path 問題。API routing 正常代表 Ingress 和 FastAPI 的 path 都對了。但 Swagger UI 不知道 base URL 是 /users，所以 Try it 送出的 request 少了 /users prefix，打到不存在的 endpoint 就 404 了。設 root_path='/users' 即可修復。"
 />
 
 ---
