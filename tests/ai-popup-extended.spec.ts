@@ -157,6 +157,9 @@ test.describe('AI Popup - Result State Interactions', () => {
 
     const popup = await setupLoggedInWithSelection(page);
     await popup.locator('[data-action="ask"]').click();
+    // Go through input step
+    await expect(popup.locator('.ai-popup-question-input')).toBeVisible();
+    await popup.locator('[data-action="submit-ask"]').click();
     await expect(popup.locator('.ai-popup-result')).toBeVisible();
 
     // Click close button
@@ -175,6 +178,9 @@ test.describe('AI Popup - Result State Interactions', () => {
 
     const popup = await setupLoggedInWithSelection(page);
     await popup.locator('[data-action="ask"]').click();
+    // Go through input step
+    await expect(popup.locator('.ai-popup-question-input')).toBeVisible();
+    await popup.locator('[data-action="submit-ask"]').click();
     await expect(popup.locator('.ai-popup-result')).toBeVisible();
 
     // Click outside — should NOT close (result state is persistent)
@@ -195,6 +201,9 @@ test.describe('AI Popup - Result State Interactions', () => {
 
     const popup = await setupLoggedInWithSelection(page);
     await popup.locator('[data-action="ask"]').click();
+    // Go through input step
+    await expect(popup.locator('.ai-popup-question-input')).toBeVisible();
+    await popup.locator('[data-action="submit-ask"]').click();
     await expect(popup.locator('.ai-popup-result')).toBeVisible();
 
     // Escape should close even in result state

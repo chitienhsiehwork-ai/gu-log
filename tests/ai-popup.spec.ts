@@ -331,7 +331,7 @@ test.describe('AI Popup - API Interactions', () => {
     await page.reload();
   });
 
-  test('GIVEN logged in WHEN clicking Ask AI THEN shows loading and result', async ({ page }) => {
+  test('GIVEN logged in WHEN clicking Ask AI THEN shows input then result', async ({ page }) => {
     // Mock API
     await page.route('**/ai/ask', async (route) => {
       await new Promise(r => setTimeout(r, 500)); // slight delay to show loading
@@ -355,11 +355,14 @@ test.describe('AI Popup - API Interactions', () => {
     const popup = page.locator('#ai-popup');
     await expect(popup).toBeVisible();
 
-    // Click Ask AI
+    // Click Ask AI → should show input box
     const askBtn = popup.locator('[data-action="ask"]');
     await askBtn.click();
+    await expect(popup.locator('.ai-popup-question-input')).toBeVisible();
 
-    // Should show result (loading might be too fast to catch reliably)
+    // Submit (empty question) → should show result
+    await popup.locator('[data-action="submit-ask"]').click();
+
     await expect(popup.locator('.ai-popup-result')).toBeVisible();
     await expect(popup.locator('.ai-popup-result-body')).toHaveText('This is a mock AI answer.');
   });
@@ -370,7 +373,7 @@ test.describe('AI Popup - API Interactions', () => {
       await route.fulfill({
         status: 500,
         contentType: 'application/json',
-        body: JSON.stringify({ error: 'Mock Server Error' })
+        body: JSON.stringify({ detail: 'Mock Server Error' })
       });
     });
 
@@ -387,13 +390,15 @@ test.describe('AI Popup - API Interactions', () => {
     const popup = page.locator('#ai-popup');
     await expect(popup).toBeVisible();
 
-    // Click Ask AI
+    // Click Ask AI → input → submit
     await popup.locator('[data-action="ask"]').click();
+    await expect(popup.locator('.ai-popup-question-input')).toBeVisible();
+    await popup.locator('[data-action="submit-ask"]').click();
 
-    // Should show error (increase timeout)
+    // Should show error with detail
     const errorResult = popup.locator('.ai-popup-result--error');
     await expect(errorResult).toBeVisible({ timeout: 10000 });
-    await expect(popup.locator('.ai-popup-error-text')).toContainText('Error');
+    await expect(popup.locator('.ai-popup-error-text')).toContainText('Mock Server Error');
   });
 
   test('GIVEN logged in WHEN clicking Edit THEN shows diff and confirm buttons', async ({ page }) => {

@@ -53,7 +53,12 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
     confirm: '✅ Confirm',
     cancel: '❌ Cancel',
     committed: 'Committed!',
-    error: 'Something went wrong. Please try again.'
+    error: 'Something went wrong. Please try again.',
+    submit: '送出',
+    cancelAsk: '取消',
+    questionPlaceholder: "What's your question?",
+    networkError: 'Cannot connect to API server. Please check your network.',
+    unknownError: 'An unknown error occurred.'
   } : {
     askAi: '🤖 Ask AI',
     edit: '✏️ Edit',
@@ -63,12 +68,17 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
     confirm: '✅ 確認',
     cancel: '❌ 取消',
     committed: '已提交！',
-    error: '發生錯誤，請再試一次。'
+    error: '發生錯誤，請再試一次。',
+    submit: '送出',
+    cancelAsk: '取消',
+    questionPlaceholder: '想問什麼？例如：source code 是怎麼處理的？',
+    networkError: '無法連線到 API 伺服器，請確認網路連線',
+    unknownError: '發生未知錯誤'
   };
 
   var popup = null;
   var selectedText = '';
-  var currentState = 'idle'; // idle, buttons, loading, ask-result, edit-result, confirm-loading, committed, error
+  var currentState = 'idle'; // idle, buttons, ask-input, loading, ask-result, edit-result, confirm-loading, committed, error
   var pendingEditId = null;
 
   function getJwt() {
@@ -168,6 +178,49 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
         '<div class="ai-popup-spinner"></div>' +
         '<span>' + escapeHtml(t.loading) + '</span>' +
       '</div>';
+  }
+
+  function renderAskInput() {
+    if (!popup) return;
+    currentState = 'ask-input';
+
+    var content = document.createElement('div');
+    content.className = 'ai-popup-ask-input-container';
+
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'ai-popup-question-input';
+    input.placeholder = t.questionPlaceholder;
+    input.setAttribute('aria-label', t.questionPlaceholder);
+
+    var actions = document.createElement('div');
+    actions.className = 'ai-popup-actions';
+    actions.innerHTML =
+      '<button class="ai-popup-btn ai-popup-btn--ask" data-action="submit-ask">' +
+        escapeHtml(t.submit) +
+      '</button>' +
+      '<button class="ai-popup-btn ai-popup-btn--cancel" data-action="cancel-ask">' +
+        escapeHtml(t.cancelAsk) +
+      '</button>';
+
+    content.appendChild(input);
+    content.appendChild(actions);
+
+    popup.innerHTML = '';
+    popup.appendChild(content);
+
+    // Focus the input
+    input.focus();
+
+    // Allow Enter key to submit
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleSubmitAsk();
+      }
+    });
+
+    positionPopup(getSelectionRect() || { top: 0, left: 0, bottom: 0, width: 0 });
   }
 
   function renderAskResult(response) {
@@ -296,28 +349,50 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
     var headers = { 'Content-Type': 'application/json' };
     if (jwt) headers['Authorization'] = 'Bearer ' + jwt;
 
-    var res = await fetch(apiUrl + endpoint, {
-      method: 'POST',
-      headers: headers,
-      body: JSON.stringify(body)
-    });
+    var res;
+    try {
+      res = await fetch(apiUrl + endpoint, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(body)
+      });
+    } catch(e) {
+      // Network error (TypeError: Failed to fetch)
+      throw new Error(t.networkError);
+    }
 
     if (!res.ok) {
       var errText = '';
-      try { errText = (await res.json()).error || res.statusText; } catch(e) { errText = res.statusText; }
-      throw new Error(errText);
+      try {
+        var errBody = await res.json();
+        errText = errBody.detail || errBody.error || res.statusText;
+      } catch(e) {
+        errText = res.statusText;
+      }
+      throw new Error(errText || t.unknownError);
     }
 
     return res.json();
   }
 
   async function handleAsk() {
+    renderAskInput();
+  }
+
+  async function handleSubmitAsk() {
+    var input = popup ? popup.querySelector('.ai-popup-question-input') : null;
+    var question = input ? input.value.trim() : '';
+
     renderLoading();
     try {
-      var data = await apiRequest('/ai/ask', {
+      var body = {
         text: selectedText,
         context: postTitle
-      });
+      };
+      if (question) {
+        body.question = question;
+      }
+      var data = await apiRequest('/ai/ask', body);
       renderAskResult(data.response || data.answer || JSON.stringify(data));
     } catch(err) {
       renderError(err.message);
@@ -369,6 +444,12 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
     switch (action) {
       case 'ask':
         handleAsk();
+        break;
+      case 'submit-ask':
+        handleSubmitAsk();
+        break;
+      case 'cancel-ask':
+        removePopup();
         break;
       case 'edit':
         handleEdit();
@@ -422,7 +503,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
   // Close popup when clicking outside
   document.addEventListener('mousedown', function(e) {
     if (popup && !popup.contains(e.target)) {
-      // Only close for button state; keep results open
+      // Only close for button state; keep results and input open
       if (currentState === 'buttons') {
         removePopup();
       }
@@ -531,6 +612,36 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
 
   .ai-popup-btn--cancel {
     color: var(--color-text-muted, #565f89);
+  }
+
+  /* ─── Ask Input ─── */
+  .ai-popup-ask-input-container {
+    padding: 0.5rem;
+    min-width: 280px;
+    max-width: min(500px, 90vw);
+  }
+
+  .ai-popup-question-input {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--color-border, #3b4261);
+    border-radius: 6px;
+    background: var(--color-bg, #1a1b26);
+    color: var(--color-text, #a9b1d6);
+    font-size: 0.85rem;
+    font-family: inherit;
+    outline: none;
+    box-sizing: border-box;
+  }
+
+  .ai-popup-question-input:focus {
+    border-color: var(--color-accent, #7aa2f7);
+    box-shadow: 0 0 0 2px rgba(122, 162, 247, 0.2);
+  }
+
+  .ai-popup-question-input::placeholder {
+    color: var(--color-text-muted, #565f89);
+    opacity: 0.7;
   }
 
   /* ─── Loading ─── */
