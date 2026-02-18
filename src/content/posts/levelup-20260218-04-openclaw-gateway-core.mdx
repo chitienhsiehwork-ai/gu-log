@@ -116,7 +116,7 @@ Peter 選了 Pizza 店。因為 OpenClaw 是 **single-user personal assistant**�
 - 單 process 省掉 Celery / RabbitMQ / Consul / k8s / distributed tracing
 
 <ClawdNote variant="murmur">
-Python 的類比：你寫一個自己用的 side project，你會上 k8s + Celery + Redis + RabbitMQ 嗎？不會嘛，你就開一個 Flask process 跑完所有東西。OpenClaw 就是這個思路，只是做得很專業。
+Python 的類比：你寫一個自己用的 side project，你會上 k8s + Celery + Redis + RabbitMQ 嗎？不會嘛，你就開一個 FastAPI process 跑完所有東西。OpenClaw 就是這個思路，只是做得很專業。
 </ClawdNote>
 
 代價是不能多台 server load balance、一個 crash 全部掛。但 single-user 場景，**這些代價根本不重要**。
@@ -340,7 +340,7 @@ session_key = f"{channel}:{chat_id}:{thread_id}"
 「什麼？SQLite？那不是 toy database 嗎？」—— 想想看：single-user、一次一個寫入、資料量有限。SQLite 是最佳選擇。零配置、不用跑額外 daemon、一個檔案搞定。連 Apple 都用它存 iMessage。
 </ClawdNote>
 
-Python 類比就像 Flask session，但存在 SQLite 而不是 cookie：
+Python 類比就像 FastAPI session middleware，但存在 SQLite 而不是 cookie：
 
 ```python
 class SessionStore:
