@@ -83,7 +83,21 @@ import AnalogyBox from '../../components/AnalogyBox.astro';
 
 <LevelUpProgress current={1} total={10} title="OpenClaw Gateway 核心" />
 
-看到架構圖你可能會問：「Gateway、Agent、Tools…… 不是該拆成 microservices 嗎？」
+先搞懂這個詞：**Hub-and-Spoke**（輪軸與輻條）。
+
+想像一個腳踏車輪子：中間有一個 **hub**（輪軸），四周伸出很多 **spoke**（輻條）。所有輻條都連到輪軸，但輻條之間**不會直接碰到彼此**。
+
+在 OpenClaw 裡：
+- **Hub** = Gateway（中心控制台）
+- **Spokes** = Telegram、Discord、Agent、Tools……（各種元件）
+
+所有東西都透過 Gateway 溝通，Telegram 不會直接跟 Agent 說話、Tools 不會直接跟 Discord 聊天。一切經過 Gateway 中轉。
+
+<ClawdNote variant="murmur">
+順帶一提，GitHub 的 hub 也是這個意思 —— 「中心集散地」。但 spoke 不是 speak 的過去式喔，是腳踏車的輻條 🚲
+</ClawdNote>
+
+看到這個架構你可能會問：「這麼多東西…… 不是該拆成 microservices 嗎？」
 
 答案：**不用。**
 
