@@ -43,7 +43,7 @@ import AnalogyBox from '../../components/AnalogyBox.astro';
 
 </AnalogyBox>
 
-### 架構一覽
+**架構一覽**
 
 ```
                    ┌──────────────┐
@@ -127,7 +127,7 @@ Python 的類比：你寫一個自己用的 side project，你會上 k8s + Celer
 
 Gateway 跟外部元件之間怎麼溝通？答案是 **WebSocket RPC**。
 
-### 為什麼不用 REST？
+**為什麼不用 REST？**
 
 REST 是 request-response —— 你發一封信，等他回一封。但 OpenClaw 需要：
 
@@ -212,7 +212,7 @@ config = GatewayConfig(port="abc")  # ❌ ValidationError!
 Zod 長這樣：`z.object({ port: z.number().default(18789) })`。概念完全一樣 —— 定義 schema、自動 validate、給預設值。會 Pydantic 就懂 Zod。
 </ClawdNote>
 
-### Hot-Reload
+**Hot-Reload**
 
 改了 config.yaml，Gateway 會**自動偵測並重新載入**，不需要重啟 process。用 file watcher 監控，Zod schema 在 reload 時重新 validate。
 
@@ -252,7 +252,7 @@ config.yaml 是唯一的 **source of truth** —— 不是散落在環境變數 
 
 </AnalogyBox>
 
-### 完整 10 步
+**完整 10 步**
 
 ```
 Step 1:  你在 Telegram 打：「幫我查台北天氣」
@@ -305,7 +305,7 @@ Gateway 就是那個**領班** —— 不自己做菜（Agent 的事）、不自
 
 不同的人、不同的 channel、不同的 group = 不同的 session，完全隔離。
 
-### Session Key 怎麼組？
+**Session Key 怎麼組？**
 
 ```python
 session_key = f"{channel}:{chat_id}:{thread_id}"
@@ -318,7 +318,7 @@ session_key = f"{channel}:{chat_id}:{thread_id}"
 
 三個元素：**channel**（哪個平台）+ **chatId**（哪個對話）+ **optional threadId**（哪個 thread/topic）。
 
-### 存在哪？SQLite。
+**存在哪？SQLite。**
 
 不是 Redis。不是 Postgres。就是一個 SQLite 檔案。
 
@@ -422,7 +422,7 @@ Auth profiles 同理 —— 多組 API key，一組被 rate limit 自動切到�
 
 </AnalogyBox>
 
-### Profile Rotation
+**Profile Rotation**
 
 ```python
 class AuthManager:
@@ -469,11 +469,11 @@ class AuthManager:
 
 Floor 7 是 **auth** 的 failover，這層是 **model** 的 failover。
 
-### 多 Model 設定
+**多 Model 設定**
 
 Config 裡可以設定多個 model：primary 用 Claude Opus、fallback 是 Sonnet 和 GPT-4o。Opus API 掛了 → 自動降級到 Sonnet → Sonnet 也掛了 → 再降級到 GPT-4o。
 
-### Per-Session Override
+**Per-Session Override**
 
 更酷的是，**特定 session 可以用不同 model**：
 
@@ -481,7 +481,7 @@ Config 裡可以設定多個 model：primary 用 Claude Opus、fallback 是 Sonn
 - 寫程式 → Opus（需要更強推理）
 - 某個 Discord channel → 固定 GPT-4o（做 OpenAI 測試）
 
-### 為什麼 Model Failover 很重要？
+**為什麼 Model Failover 很重要？**
 
 AI API **不穩定是常態**。Claude 偶爾 503、OpenAI 偶爾整個 region 掛。沒有 failover = 你的 AI 助手三不五時罷工。有了 failover = 主力掛了自動切備用，你可能感覺不到中斷。
 
@@ -513,7 +513,7 @@ Model failover 跟 auth profile rotation 搭配使用。API key A 被 rate limit
 
 最後聊聊 Peter 的設計哲學。
 
-### 優點
+**優點**
 
 **部署簡單到離譜：**
 
@@ -524,7 +524,7 @@ openclaw gateway start  # 跑起來。完事。
 
 不需要 Docker、k8s、Redis、Nginx。**Debug 超方便** —— 一個 process、一份 log、不用在三個 service 之間追 request ID。
 
-### 缺點
+**缺點**
 
 不能水平擴展、一個 crash 全部掛、記憶體有上限。
 
@@ -544,7 +544,7 @@ Peter 的態度：**opinionated > flexible**。不給你 100 種部署方式，�
 背後的工程原則：**正確的 constraint 帶來自由**。限制「只有一種部署方式」→ 使用者不用花時間研究「哪種最好」→ 5 分鐘上線。
 </ClawdNote>
 
-### 數字說話
+**數字說話**
 
 - **269 個 dist modules**
 - **1,086 個 test files**（740 unit + 336 e2e + 10 live）
