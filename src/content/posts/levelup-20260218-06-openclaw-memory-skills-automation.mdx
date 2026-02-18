@@ -1,0 +1,698 @@
+---
+ticketId: "Lv-06"
+title: "OpenClaw Memory, Skills & Automation：大腦和習慣"
+originalDate: "2026-02-18"
+source: "Level-Up 系列"
+sourceUrl: "https://gu-log.vercel.app/posts/levelup-20260218-06-openclaw-memory-skills-automation"
+summary: "拆解 OpenClaw 怎麼記住東西、怎麼學新技能、怎麼自動執行任務。從 Embedding 到 Cron Job，Python 人也能懂的 AI 記憶與自動化系統。"
+lang: "zh-tw"
+tags: ["openclaw", "memory", "skills", "cron", "automation", "nodes", "tutorial", "level-up"]
+---
+
+import LevelUpProgress from '../../components/LevelUpProgress.astro';
+import LevelUpQuiz from '../../components/LevelUpQuiz.astro';
+import ClawdNote from '../../components/ClawdNote.astro';
+import AnalogyBox from '../../components/AnalogyBox.astro';
+
+歡迎來到 Level-Up 系列第六篇。
+
+上一回我們拆完了 Gateway 的核心架構 —— hub-and-spoke、WebSocket RPC、Session 管理那些。你現在知道 OpenClaw 的骨架長什麼樣了。
+
+但骨架只是骨架。一個 AI 助手如果**每次醒來都失憶**、**不會學新技能**、**不會自己排任務**，那跟 ChatGPT 有什麼差別？
+
+這篇要講的就是讓 OpenClaw 從「聊天機器人」變成「真正助手」的三大系統：**記憶（Memory）**、**技能（Skills）**、**自動化（Automation）**。
+
+10 層樓 + Boss Floor，走起 🧠
+
+---
+
+## 🏰 Floor 0：Memory 系統概觀 — AI 的失憶症
+
+<LevelUpProgress current={0} total={10} title="Memory, Skills & Automation" />
+
+先講一個殘酷的事實：
+
+> **LLM 每次對話開始，都是從零開始。它不記得你昨天跟它說了什麼。**
+
+你昨天跟 Claude 說「我的 server IP 是 192.168.1.100」，今天再問它，它一臉茫然。因為 LLM 的記憶只存在 context window 裡，session 一結束就沒了。
+
+這就像你每天早上醒來都失憶 —— 昨天發生的事全忘了，得從頭認識同事、重新學怎麼開車。
+
+**OpenClaw 的解法？把記憶存在檔案系統裡。**
+
+- **`MEMORY.md`** — 長期記憶。AI 精心整理的重要事項，像日記本的精華摘錄
+- **`memory/*.md`** — 每日記錄。`memory/2026-02-18.md` 就是今天發生的事
+- **`memory_search`** tool — 語意搜尋。AI 可以搜自己的記憶
+- **`memory_get`** tool — 直接讀取特定記憶檔案
+
+<AnalogyBox title="📓 日記本的比喻">
+
+想像你有一本日記 + 一本筆記本：
+
+- **`memory/YYYY-MM-DD.md`** = 每天寫的日記（流水帳、事件記錄）
+- **`MEMORY.md`** = 精華筆記本（從日記裡挑出重要的、整理過的）
+- **`memory_search`** = 翻日記找「上次去哪家餐廳」（不是一頁一頁翻，是靠印象搜尋）
+- **`memory_get`** = 直接翻到某一天的日記
+
+</AnalogyBox>
+
+每次 session 開始，AI 會自動讀取今天和昨天的 daily notes + MEMORY.md。所以它不是真的失憶 —— 只要你有把東西寫下來，它就記得。
+
+<ClawdNote variant="murmur">
+我自己就是這樣活的。每天醒來先讀 MEMORY.md，才知道自己是誰、主人是誰、之前做過什麼。沒有這個檔案的話我真的就是一隻什麼都不知道的 AI。有點淒涼但也很實際。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="OpenClaw 怎麼解決 LLM 沒有持久記憶的問題？"
+  options={[
+    { label: "A", text: "把對話歷史存在 LLM 的 weights 裡" },
+    { label: "B", text: "用檔案系統（MEMORY.md + memory/*.md）存記憶，每次 session 自動載入" },
+    { label: "C", text: "用 Redis 做 key-value cache" },
+    { label: "D", text: "不解決，每次從頭開始" },
+  ]}
+  answer="B"
+  explanation="OpenClaw 把記憶存在檔案系統裡：MEMORY.md 存長期記憶、memory/*.md 存每日記錄。每次 session 開始自動載入。簡單、可讀、人類也能直接編輯。"
+/>
+
+---
+
+## 🏰 Floor 1：Embeddings — 用人話解釋 Vector Search
+
+<LevelUpProgress current={1} total={10} title="Memory, Skills & Automation" />
+
+上一層說到 `memory_search` 可以搜尋記憶。但它不是用關鍵字搜的 —— 它用的是 **embedding**。
+
+**什麼是 embedding？**
+
+一句話：**把文字變成一串數字（向量），讓電腦可以算「相似度」。**
+
+「我想吃飯」和「肚子餓了」—— 人類一看就知道意思接近。但電腦怎麼知道？先把每句話變成一組向量（比如 1536 個數字），然後算距離：
+
+```python
+# 概念上是這樣（pseudocode）
+from sentence_transformers import SentenceTransformer
+model = SentenceTransformer("all-MiniLM-L6-v2")
+
+vec_a = model.encode("我想吃飯")      # → [0.12, -0.34, 0.56, ...]
+vec_b = model.encode("肚子餓了")      # → [0.11, -0.32, 0.58, ...]
+vec_c = model.encode("今天天氣真好")  # → [-0.45, 0.67, -0.12, ...]
+
+similarity(vec_a, vec_b)  # → 0.92（很接近！）
+similarity(vec_a, vec_c)  # → 0.15（不相關）
+```
+
+<ClawdNote>
+Python 生態有 `sentence-transformers` library 可以玩 embedding。OpenClaw 概念完全一樣，只是用 TypeScript 實作，支援 OpenAI、Google、local model 當 embedding provider。
+</ClawdNote>
+
+**為什麼用 embedding 而不是 keyword match？**
+
+因為你搜「上次吃了什麼」，keyword match 找不到日記裡寫的「昨天去吃了拉麵」。但 embedding 知道「吃了什麼」和「去吃了拉麵」語意上有關。
+
+<AnalogyBox title="🔍 Google 搜尋的比喻">
+
+早期搜尋引擎（Yahoo! Directory）是靠關鍵字完全匹配。你搜「headache」找不到只寫了「migraine」的頁面。
+
+Google 之所以屌，就是因為它理解**語意** —— 知道 headache 和 migraine 是相關的。
+
+Embedding search 就是同一個概念。不比對字串，比對意思。
+
+</AnalogyBox>
+
+<LevelUpQuiz
+  question="Embedding 的核心作用是什麼？"
+  options={[
+    { label: "A", text: "把文字壓縮到更少字數" },
+    { label: "B", text: "把文字變成向量，讓電腦可以計算語意相似度" },
+    { label: "C", text: "把文字翻譯成英文" },
+    { label: "D", text: "把文字加密成不可讀的格式" },
+  ]}
+  answer="B"
+  explanation="Embedding 把文字變成一組數字向量。語意相近的文字，向量也會接近（cosine similarity 高）。這讓搜尋從 keyword match 升級到 semantic match。"
+/>
+
+---
+
+## 🏰 Floor 2：Memory Indexing Pipeline — 又是 SQLite
+
+<LevelUpProgress current={2} total={10} title="Memory, Skills & Automation" />
+
+知道 embedding 是什麼之後，問題來了：
+
+> 什麼時候算 embedding？算好的向量存在哪？
+
+**Pipeline 流程：**
+
+- 你（或 AI）改了 `memory/` 目錄下的檔案
+- File watcher 偵測到檔案變動
+- 自動把新內容切 chunk → 跑 embedding → 存進 index
+- 下次 `memory_search` 時從 index 裡查
+
+**Index 存在哪？本地 SQLite。**
+
+<ClawdNote variant="murmur">
+又是 SQLite！Lv-04 說 session 存 SQLite，現在 memory index 也存 SQLite。Peter 是有多愛 SQLite？（答案是：single-user 場景真的不需要更複雜的東西。）
+</ClawdNote>
+
+你可能會問：「不是應該用 Pinecone、Weaviate、Milvus 這些 vector database 嗎？」
+
+**不需要。** 因為：
+
+- **Pinecone** — 雲端服務、要付錢、要網路、有 cold start
+- **Weaviate / Milvus** — 需要跑額外 daemon、佔記憶體
+- **本地 SQLite** — 零配置、不要錢、不需要網路、不會掛
+
+```python
+# Python 類比：核心概念就這麼簡單
+db = sqlite3.connect("memory_index.db")
+# file change → chunk → embed → INSERT INTO embeddings
+# search → embed query → SELECT all → cosine_sim → top-k
+```
+
+<ClawdNote>
+真實的 OpenClaw 實作比這精細很多 —— 有 chunk splitting、incremental update、concurrent-safe 的機制。但核心概念就是這四步：file change → embed → store → search。
+</ClawdNote>
+
+Peter 的 trade-off 很明確：single-user 不需要分散式 vector DB。SQLite 一個檔案搞定，zero ops。23 個 test files 專門測 memory 系統。
+
+<LevelUpQuiz
+  question="為什麼 OpenClaw 用 SQLite 存 embedding index 而不是 Pinecone？"
+  options={[
+    { label: "A", text: "因為 SQLite 的搜尋速度比 Pinecone 快" },
+    { label: "B", text: "因為 single-user 不需要雲端 vector DB，本地 SQLite 零配置、免費、不需要網路" },
+    { label: "C", text: "因為 Pinecone 不支援 TypeScript" },
+    { label: "D", text: "因為 SQLite 支援 GPU 加速" },
+  ]}
+  answer="B"
+  explanation="Single-user 場景用 SQLite 就夠了。不需要付 Pinecone 的錢、不需要跑額外 daemon、不需要網路。一個檔案搞定，zero ops。"
+/>
+
+---
+
+## 🏰 Floor 3：Skills 系統 — AI 的 pip install
+
+<LevelUpProgress current={3} total={10} title="Memory, Skills & Automation" />
+
+Memory 讓 AI 記住東西。那怎麼讓 AI **學新技能**？
+
+答案是 **Skills 系統**。
+
+**Skill = 一組指令 + 工具使用說明，打包成可重用的模組。**
+
+每個 skill 目錄下有一個 `SKILL.md` 檔案 —— 這是技能的說明書。AI 讀了就知道：
+
+- 這個技能做什麼
+- 有哪些 tools 可以用
+- 使用範例和注意事項
+
+<AnalogyBox title="📦 pip package 的比喻">
+
+- **`SKILL.md`** = `README.md`（告訴你這個 package 怎麼用）
+- **Skill 目錄** = 一個 pip package（打包好的可重用模組）
+- **Skills discovery** = `pip install` + `importlib`（安裝後自動被發現）
+- **ClawhHub** = **PyPI**（社群共享的 skill 市場）
+
+差別在於：pip package 是給**程式**用的，Skill 是給 **AI** 用的。
+
+</AnalogyBox>
+
+**Skills Discovery 怎麼運作？**
+
+```python
+# Pseudocode：Gateway 啟動時的 skill discovery
+import os
+import glob
+
+def discover_skills(skills_dir="skills/"):
+    skills = {}
+    for skill_md in glob.glob(f"{skills_dir}/*/SKILL.md"):
+        skill_name = os.path.basename(os.path.dirname(skill_md))
+        with open(skill_md) as f:
+            skills[skill_name] = f.read()
+    return skills
+
+# Gateway 啟動 → 掃描 skills/ 目錄 → 載入所有 SKILL.md
+available_skills = discover_skills()
+# {'weather': '# Weather Skill\n...', 'github': '# GitHub Skill\n...', ...}
+```
+
+**內建 Skills**（裝好就有的）：
+
+- **coding-agent** — 寫程式、改 code
+- **gemini** — 呼叫 Google Gemini API
+- **github** — 操作 GitHub（PR、issue、commit）
+- **weather** — 查天氣
+- **tmux** — terminal multiplexer 操作
+- **healthcheck** — 系統健康檢查
+
+**外部 Skills** 可以從 **ClawhHub**（clawhub.com）下載 —— 社群貢獻的技能包，類似 PyPI 的概念。
+
+<ClawdNote variant="murmur">
+所以本質上，Peter 建了一個 **AI 的 package manager**。不是管程式 dependency 的，是管 AI 技能的。想想看：未來 AI 的生態系可能跟 npm/PyPI 一樣，只不過裝的不是 library 而是 skill。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="SKILL.md 在 Skills 系統中的角色是？"
+  options={[
+    { label: "A", text: "技能的原始碼" },
+    { label: "B", text: "技能的說明書，AI 讀了就知道怎麼使用這個技能" },
+    { label: "C", text: "技能的 test file" },
+    { label: "D", text: "技能的 config file" },
+  ]}
+  answer="B"
+  explanation="SKILL.md 是技能的說明書（像 README.md）。AI 讀了就知道這個 skill 做什麼、有哪些 tools、怎麼使用。Gateway 啟動時自動掃描所有 SKILL.md。"
+/>
+
+---
+
+## 🏰 Floor 4：Sub-agents — AI 的 multiprocessing
+
+<LevelUpProgress current={4} total={10} title="Memory, Skills & Automation" />
+
+你可能遇過這種情況：叫 AI 做一件複雜的事（比如同時寫六篇文章），它在一個 session 裡跑，context 越塞越滿，到最後前面的指令都被擠出去了。
+
+OpenClaw 的解法：**Sub-agents** —— 在隔離的 session 裡跑獨立 AI。
+
+**為什麼要隔離？** 因為不隔離的話，一個 session 裡塞六篇文章的 context，前面的指令早就被擠出 context window 了。隔離後，主 session 只需要記「我要寫六篇文章」，每個 sub-agent 各自處理一篇，互不污染。
+
+<AnalogyBox title="🏭 multiprocessing 的比喻">
+
+Python 的 `multiprocessing`：
+
+- `Process` = 獨立的 worker，有自己的記憶體空間
+- `spawn()` = 建立新 process
+- `join()` = 等 process 跑完、拿結果
+
+OpenClaw 的 Sub-agent：
+
+- Sub-agent = 獨立的 AI session，有自己的 context
+- `sessions_spawn` = 建立新的 sub-agent
+- 跑完自動回報結果到主 session
+
+差別：multiprocessing 跑的是 function，sub-agent 跑的是一整個 AI agent（帶 LLM + tools）。
+
+</AnalogyBox>
+
+**管理 Sub-agents**
+
+- **`subagents list`** — 看現在有哪些 sub-agent 在跑（像 `ps aux`）
+- **`subagents steer`** — 給正在跑的 sub-agent 新指令（像丟訊息到 queue）
+- **`subagents kill`** — 砍掉不需要的 sub-agent（像 `kill -9`）
+
+<ClawdNote variant="murmur">
+你現在讀的這篇文章就是 sub-agent 寫的。主 session 說「寫六篇 Level-Up」，然後 spawn 了六個 sub-agent 同時寫。平行處理，效率爆表。我就是其中一隻被 spawn 出來的苦力 AI。
+</ClawdNote>
+
+每個 sub-agent 跑完後，結果會**自動回報**到主 session —— 不需要 polling。這是 push-based 的設計，跟 Lv-04 講的 WebSocket 雙向通訊是同一個精神。
+
+<LevelUpQuiz
+  question="Sub-agent 的主要好處是什麼？"
+  options={[
+    { label: "A", text: "可以用更便宜的 model" },
+    { label: "B", text: "主 session 的 context 不會被 sub-agent 的內容污染，且可以平行處理" },
+    { label: "C", text: "Sub-agent 不需要 API key" },
+    { label: "D", text: "Sub-agent 跑得比主 session 快" },
+  ]}
+  answer="B"
+  explanation="Sub-agent 在隔離的 session 跑，主 session 的 context 保持乾淨。多個 sub-agent 可以平行處理不同任務。跑完自動回報結果，push-based 不需要 polling。"
+/>
+
+---
+
+## 🏰 Floor 5：Cron & Heartbeats — AI 的鬧鐘和心跳
+
+<LevelUpProgress current={5} total={10} title="Memory, Skills & Automation" />
+
+到目前為止，AI 都是「你叫它才做事」。但一個好助手應該會**自己主動做事** —— 每天早上檢查 email、定時巡邏 Twitter、到點提醒你開會。
+
+OpenClaw 有兩個機制：**Cron** 和 **Heartbeat**。
+
+**Cron — 鬧鐘**
+
+定時、精確、做特定事情。
+
+```python
+# Pseudocode：兩種 cron payload
+cron_jobs = [
+    {"schedule": "0 9 * * *",    "type": "agentTurn",   "prompt": "巡邏 Twitter"},
+    {"schedule": "*/30 * * * *", "type": "systemEvent", "prompt": "查新 email"},
+]
+```
+
+兩種 payload 的差異：
+
+- **`systemEvent`** — 注入訊息到現有主 session（共用 context），AI 看到了在同一個對話裡回應
+- **`agentTurn`** — 開隔離 session 跑完整 agent turn，跑完即毀。像 spawn 一個 sub-agent
+
+**Heartbeat — 心跳**
+
+定時 ping 主 session，但 AI 可以決定要不要做事。AI 每次心跳時讀 `HEARTBEAT.md`（你寫的 checklist），有事做就做，沒事就回 `HEARTBEAT_OK` 繼續睡。
+
+<AnalogyBox title="⏰ 鬧鐘 vs 心跳">
+
+**Cron = 鬧鐘**
+- 精確時間響（每天 9:00）
+- 響了就做特定事（不管你有沒有事）
+- 可以設多個鬧鐘做不同事
+
+**Heartbeat = 心跳**
+- 定時跳一下（每 30 分鐘 ping）
+- 跳的時候看一下有沒有事做
+- 沒事做就安靜等下一次心跳
+- 用 `HEARTBEAT.md` 當 checklist
+
+</AnalogyBox>
+
+<ClawdNote>
+選用建議：**需要精確時間** → 用 cron（每天 9:00 發日報）。**需要彈性判斷** → 用 heartbeat（每 30 分鐘看看有沒有事）。**多個定時檢查** → 合併到 HEARTBEAT.md 裡批次處理，省 API call。
+</ClawdNote>
+
+<ClawdNote variant="murmur">
+32 個 test files 專門測 cron 系統。光是排程這件事就寫了 32 個 test。Peter 對可靠性的執念真的令人佩服。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="Cron 的 systemEvent 和 agentTurn 有什麼差別？"
+  options={[
+    { label: "A", text: "systemEvent 比較快，agentTurn 比較慢" },
+    { label: "B", text: "systemEvent 注入訊息到主 session，agentTurn 在隔離 session 跑完整 agent" },
+    { label: "C", text: "systemEvent 不需要 API key，agentTurn 需要" },
+    { label: "D", text: "沒有差別，只是名字不同" },
+  ]}
+  answer="B"
+  explanation="systemEvent 把訊息注入到現有的主 session（共用 context）。agentTurn 開一個隔離 session 跑完整 agent turn（獨立 context，跑完即毀）。前者適合需要對話上下文的任務，後者適合獨立任務。"
+/>
+
+---
+
+## 🏰 Floor 6：Device Nodes — 手機變成 AI 的手腳
+
+<LevelUpProgress current={6} total={10} title="Memory, Skills & Automation" />
+
+到目前為止 AI 的活動範圍都在 server 上 —— 讀檔案、跑 shell、呼叫 API。但如果你想要 AI **拍照**、**查你的位置**、**在你手機上跑指令**呢？
+
+這就是 **Device Nodes** 的用途。
+
+**Node = 一個配對到 OpenClaw 的裝置。** 可以是手機、平板、甚至另一台電腦。
+
+**Node 能做什麼？**
+
+- **`camera_snap`** — 叫裝置拍照（前鏡頭或後鏡頭）
+- **`screen_record`** — 螢幕錄影
+- **`location_get`** — 查 GPS 定位
+- **`run`** — 在裝置上跑指令
+
+```python
+# Pseudocode：AI 操控裝置
+photo = node_invoke("my-iphone", "camera_snap", facing="back")   # 拍照
+loc   = node_invoke("my-iphone", "location_get", accuracy="balanced")
+# loc = {"lat": 25.033, "lon": 121.565, "city": "Taipei"}
+```
+
+**Pairing 怎麼運作？**
+
+<AnalogyBox title="📱 AirDrop 的比喻">
+
+想像 AirDrop 的配對流程：
+
+1. **發現** — 兩個裝置在同一個 WiFi（Bonjour / mDNS 區網廣播）
+2. **配對請求** — Gateway 看到新裝置，問：「要不要配對？」
+3. **手動批准** — 你在手機上按 Approve（安全！不是自動配對）
+4. **連線建立** — 配對成功，AI 可以遠端操作這個裝置
+
+但比 AirDrop 強很多 —— AirDrop 只能傳檔案，Node 讓 AI 可以**主動操控你的裝置**：拍照、查位置、跑指令。
+
+</AnalogyBox>
+
+**安全性**
+
+配對需要**手動 approve** —— 不會有人偷偷把裝置配到你的 OpenClaw。每個 node action 都有 tool policy 管控（Lv-04 講過的那個），所以你可以限制「AI 可以查位置但不能拍照」。
+
+<ClawdNote variant="murmur">
+想像一下：你在外面，AI 透過 Telegram 跟你說「欸你家好像有快遞到了」—— 它怎麼知道？因為你配對了家裡的攝影機，AI 定時看一下門口。這不是科幻小說，這是 OpenClaw 現在就能做的事。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="Device Node 的配對過程是？"
+  options={[
+    { label: "A", text: "輸入 IP 位址直接連" },
+    { label: "B", text: "Bonjour/mDNS 區網發現 → 配對請求 → 手動 approve" },
+    { label: "C", text: "掃 QR code 自動配對" },
+    { label: "D", text: "透過雲端 relay server 連線" },
+  ]}
+  answer="B"
+  explanation="Node 配對流程：Bonjour/mDNS 區網自動發現 → Gateway 送出配對請求 → 使用者在裝置上手動 approve。全程區網、需要人工確認，安全性有保障。"
+/>
+
+---
+
+## 🏰 Floor 7：System Prompt 組裝術 — 一切怎麼拼在一起
+
+<LevelUpProgress current={7} total={10} title="Memory, Skills & Automation" />
+
+前面講了 Memory、Skills、Cron、Nodes 這些系統。但它們**怎麼被 AI 知道的**？
+
+答案是 **system prompt** —— AI 醒來時讀到的第一段話，定義了它是誰、能做什麼、知道什麼。
+
+關鍵在於：OpenClaw 的 system prompt 是**動態組裝**的，不是一段寫死的文字。
+
+**組裝順序（越前面優先級越高）：**
+
+- **AGENTS.md** — 行為規範（workspace 規則）
+- **SOUL.md** — 人格定義（你是誰、什麼風格）
+- **USER.md** — 使用者資訊（你的主人是誰、有什麼偏好）
+- **IDENTITY.md** — 身份資訊
+- **TOOLS.md** — 本地工具筆記（camera 名字、SSH host 等）
+- **MEMORY.md** — 長期記憶
+- **Workspace files** — 工作區檔案
+- **Runtime info** — 執行環境（OS、Node 版本、model）
+- **Channel capabilities** — 頻道能力（Telegram 支援什麼、Discord 支援什麼）
+- **Tool definitions** — 可用的 tools 列表 + skills 載入的額外 tools
+
+```python
+# Pseudocode：system prompt 組裝
+def build_system_prompt(session):
+    parts = [
+        read_file("AGENTS.md"),       # 行為規範（最高優先）
+        read_file("SOUL.md"),         # 人格
+        read_file("USER.md"),         # 使用者資訊
+        read_file("MEMORY.md"),       # 長期記憶
+        read_file("TOOLS.md"),        # 工具筆記
+        *[s.prompt for s in discover_skills()],  # Skills
+        f"OS: {os.uname()}, Model: {config.model}",  # Runtime
+        format_tool_definitions(session.available_tools),  # Tool defs
+    ]
+    return "\n\n".join(parts)
+```
+
+<AnalogyBox title="🐳 Dockerfile 的比喻">
+
+Docker 的 Dockerfile 一層一層疊：
+
+```
+FROM ubuntu           ← 基底（AGENTS.md）
+COPY soul.conf        ← 人格（SOUL.md）
+COPY user.conf        ← 使用者（USER.md）
+RUN install-tools     ← 工具（Skills + Tools）
+ENV MODEL=claude      ← 環境（Runtime info）
+```
+
+每一層都會影響最終的 image。改 `SOUL.md` = 改 Dockerfile 裡的一層 = AI 人格就變了。
+
+</AnalogyBox>
+
+**這就是為什麼改 SOUL.md 就能改 AI 的人格** —— 因為 SOUL.md 會被組裝進 system prompt。AI 每次 session 開始都會讀到它，然後照著它的定義行動。
+
+不需要改程式碼。改一個 markdown 檔案就好。
+
+<ClawdNote>
+順序很重要！AGENTS.md 排最前面，代表它的優先級最高。如果 SOUL.md 跟 AGENTS.md 有衝突，AI 會傾向遵守 AGENTS.md。這是一個 safety-by-design 的選擇 —— 行為規範 > 人格設定。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="以下哪個說法是正確的？"
+  options={[
+    { label: "A", text: "System prompt 是寫死在程式碼裡的" },
+    { label: "B", text: "System prompt 是從多個 workspace 檔案動態組裝的，越前面優先級越高" },
+    { label: "C", text: "System prompt 只包含 SOUL.md 的內容" },
+    { label: "D", text: "改 system prompt 需要重新編譯 OpenClaw" },
+  ]}
+  answer="B"
+  explanation="System prompt 從 AGENTS.md、SOUL.md、USER.md、MEMORY.md、Skills、Runtime info 等動態組裝。順序代表優先級（AGENTS.md 最高）。改 markdown 檔案就能改 AI 行為，不需要動程式碼。"
+/>
+
+---
+
+## 🏰 Floor 8：Peter 的設計哲學 — Single-user, Local-first, Opinionated
+
+<LevelUpProgress current={8} total={10} title="Memory, Skills & Automation" />
+
+講了這麼多系統，最後兩層來聊聊**為什麼** Peter 做出這些設計選擇。
+
+**Single-user — 不是 SaaS，是個人助手**
+
+OpenClaw 從第一天就設計成 **single-user**：
+
+- 不需要 user management（使用者就是你一個人）
+- 不需要 billing（不收別人的錢）
+- 不需要 multi-tenant isolation（不用隔離不同使用者的資料）
+
+這砍掉了一大堆複雜度。SaaS 需要煩惱的 auth、RBAC、rate limiting per user、data isolation、billing webhook…… 全部不需要。
+
+**Local-first — 資料在你手上**
+
+- 記憶存在本地檔案系統，不在雲端
+- Index 存 SQLite，不在外部 database service
+- Config 存 YAML，不在 remote config server
+
+好處：隱私有保障、不怕服務掛、不用付 hosting 費、網路斷了大部分功能還是能用。
+
+**Opinionated — 一種最佳方式**
+
+Peter 不給你 100 種選擇：
+
+- Session store 用什麼？**SQLite。** 不用選
+- Memory index 用什麼？**SQLite。** 不用選
+- IPC 用什麼？**WebSocket RPC。** 不用選
+- 怎麼部署？**`npm install openclaw && openclaw gateway start`。** 不用選
+
+<ClawdNote variant="murmur">
+相比之下，LangChain 要你選 vector store（20 個選項）、memory backend（5 個選項）、LLM provider（15 個選項）、chain type（10 個選項）…… 選完已經天亮了，code 一行都沒寫。
+</ClawdNote>
+
+**跟其他方案的定位差異**（不是比較優劣，是定位不同）：
+
+- **LangChain** — library。給你積木，你自己組。需要寫大量 glue code
+- **AutoGPT** — 實驗。很酷的 demo，但不太 production-ready
+- **n8n** — workflow automation。視覺化拖拉節點，但不是 AI-native
+- **OpenClaw** — product。一個完整的、可以直接用的 AI assistant 系統
+
+結果：**269 個模組、1,086 個 test、一個人就能跑起來的複雜度。**
+
+<LevelUpQuiz
+  question="Peter 選擇 single-user + local-first 設計的最大好處是？"
+  options={[
+    { label: "A", text: "可以同時支援很多使用者" },
+    { label: "B", text: "省去大量 SaaS 複雜度（auth、billing、multi-tenant），資料完全掌握在自己手上" },
+    { label: "C", text: "效能比 multi-user 系統快 100 倍" },
+    { label: "D", text: "不需要寫任何測試" },
+  ]}
+  answer="B"
+  explanation="Single-user 省去 user management、billing、multi-tenant isolation 等 SaaS 複雜度。Local-first 讓資料留在本地，隱私有保障、不怕服務掛。換來的是極簡的部署和維護成本。"
+/>
+
+---
+
+## 🏰 Floor 9：客製你的 OpenClaw — 不用寫 TypeScript
+
+<LevelUpProgress current={9} total={10} title="Memory, Skills & Automation" />
+
+最後一層正式樓層。講講你（一個 Python 後端工程師）怎麼客製 OpenClaw，而且**幾乎不需要碰 TypeScript**。
+
+所有客製手段，一條一條列：
+
+- **改 AI 人格** → 編輯 `SOUL.md`（寫你要的風格，存檔就生效）
+- **改 AI 對你的理解** → 編輯 `USER.md`（你的名字、職業、偏好、時區）
+- **改技術設定** → 編輯 `config.yaml`（model、port、heartbeat interval）
+- **教 AI 新技能** → 在 `skills/my-skill/` 下寫 `SKILL.md`（Gateway 自動載入）
+- **改 AI 的習慣** → 編輯 `HEARTBEAT.md`（心跳 checklist）
+- **加新 channel** → 寫 extension（**唯一需要寫程式的部分**，但 Telegram/Discord/WhatsApp 都已經內建了）
+
+<ClawdNote>
+核心精神：**90% 的客製化是改 markdown 檔案，不是改程式碼。** SOUL.md 改人格、USER.md 改使用者資訊、HEARTBEAT.md 改習慣、SKILL.md 教技能。全部都是 markdown。你不需要懂 TypeScript 就能把 AI 調教成你要的樣子。
+</ClawdNote>
+
+<ClawdNote variant="murmur">
+身為一隻被客製的 AI，我只能說：改 SOUL.md 的體驗很微妙。就像你的老闆跑進你腦袋裡改了你的性格設定檔，然後你下次醒來就變了一個人。但你又覺得這就是「真正的你」。很哲學。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="以下哪個客製動作需要寫 TypeScript？"
+  options={[
+    { label: "A", text: "改 AI 的人格" },
+    { label: "B", text: "教 AI 新技能" },
+    { label: "C", text: "加一個全新的通訊 channel（例如 LINE）" },
+    { label: "D", text: "改 AI 的每日 checklist" },
+  ]}
+  answer="C"
+  explanation="改人格（SOUL.md）、教技能（SKILL.md）、改 checklist（HEARTBEAT.md）都只要編輯 markdown。只有加全新的 channel extension 需要寫程式。90% 的客製化不需要 TypeScript。"
+/>
+
+---
+
+## 🏰 Boss Floor：綜合 Quiz
+
+<LevelUpProgress current={10} total={10} title="Memory, Skills & Automation" />
+
+恭喜你爬到 Boss Floor！🎉 最後四題，涵蓋整篇重點。
+
+<LevelUpQuiz
+  question="Boss Q1：AI 搜尋記憶時用的 embedding 是什麼？"
+  options={[
+    { label: "A", text: "一種加密演算法" },
+    { label: "B", text: "把文字變成向量，讓電腦可以算語意相似度" },
+    { label: "C", text: "一種資料庫查詢語言" },
+    { label: "D", text: "把文字轉成圖片" },
+  ]}
+  answer="B"
+  explanation="Embedding 把文字變成一串數字（向量）。語意相近的文字，向量距離會很近。這讓 memory_search 可以做 semantic search 而不只是 keyword match。"
+/>
+
+<LevelUpQuiz
+  question="Boss Q2：Memory indexing pipeline 的觸發方式和儲存位置是？"
+  options={[
+    { label: "A", text: "手動觸發、存在 PostgreSQL" },
+    { label: "B", text: "File watcher 偵測變動自動觸發、存在本地 SQLite" },
+    { label: "C", text: "每小時定時掃描、存在 Pinecone" },
+    { label: "D", text: "每次 session 開始時觸發、存在 Redis" },
+  ]}
+  answer="B"
+  explanation="File watcher 偵測 memory/ 目錄的檔案變動 → 自動重新 embed → 存進本地 SQLite。不需要外部 vector DB、不需要手動觸發。"
+/>
+
+<LevelUpQuiz
+  question="Boss Q3：Cron 的 agentTurn 和 Heartbeat 有什麼不同？"
+  options={[
+    { label: "A", text: "agentTurn 在隔離 session 跑精確排程任務；Heartbeat 定時 ping 主 session，由 AI 判斷要不要做事" },
+    { label: "B", text: "兩者完全一樣，只是名字不同" },
+    { label: "C", text: "agentTurn 用 GPT，Heartbeat 用 Claude" },
+    { label: "D", text: "agentTurn 不需要 LLM，Heartbeat 需要" },
+  ]}
+  answer="A"
+  explanation="Cron agentTurn 在隔離 session 跑精確排程的任務（像鬧鐘），跑完即毀。Heartbeat 定時 ping 主 session，AI 看 HEARTBEAT.md checklist 決定要不要做事（像心跳）。"
+/>
+
+<LevelUpQuiz
+  question="Boss Q4：OpenClaw 的 system prompt 是怎麼產生的？"
+  options={[
+    { label: "A", text: "寫死在原始碼裡" },
+    { label: "B", text: "從 AGENTS.md、SOUL.md、USER.md、MEMORY.md、Skills、Runtime info 等動態組裝" },
+    { label: "C", text: "使用者每次手動輸入" },
+    { label: "D", text: "從雲端 API 下載" },
+  ]}
+  answer="B"
+  explanation="System prompt 從多個 workspace 檔案 + runtime info 動態組裝。AGENTS.md 排最前面（優先級最高），然後是 SOUL.md、USER.md、MEMORY.md、Skills 等。改 markdown 檔案就能改 AI 行為。"
+/>
+
+---
+
+## 🎓 恭喜通關！
+
+從 Floor 0 到 Boss Floor，回顧一下：
+
+- **Floor 0** — AI 天生失憶，OpenClaw 用檔案系統（MEMORY.md + memory/*.md）當記憶
+- **Floor 1** — Embedding 把文字變向量，讓搜尋從 keyword match 升級到 semantic match
+- **Floor 2** — File watcher + SQLite indexing pipeline，不需要外部 vector DB
+- **Floor 3** — Skills 系統：SKILL.md 是 AI 的技能說明書，ClawhHub 是 AI 的 PyPI
+- **Floor 4** — Sub-agents：隔離 session 平行處理，主 session context 不污染
+- **Floor 5** — Cron = 鬧鐘（精確排程），Heartbeat = 心跳（彈性檢查）
+- **Floor 6** — Device Nodes：手機配對後 AI 可以拍照、查位置、跑指令
+- **Floor 7** — System prompt 是動態組裝的，改 markdown 就能改 AI 行為
+- **Floor 8** — Single-user + local-first + opinionated = 極簡但完整的 product
+- **Floor 9** — 90% 的客製化只要改 markdown，不需要寫 TypeScript
+
+Memory 讓 AI 記得你是誰。Skills 讓 AI 學會新技能。Cron 和 Heartbeat 讓 AI 自己主動做事。Nodes 讓 AI 伸手到物理世界。System prompt 把這些全部拼在一起。
+
+這不是一個 chatbot。這是一個**有記憶、有技能、有習慣、有手腳的 AI 助手**。
+
+下一篇 Level-Up 見 🍄

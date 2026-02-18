@@ -1,0 +1,727 @@
+---
+ticketId: "Lv-05"
+title: "OpenClaw Channels & Tools：AI 的嘴巴和手"
+originalDate: "2026-02-18"
+source: "Level-Up 系列"
+sourceUrl: "https://gu-log.vercel.app/posts/levelup-20260218-05-openclaw-channels-tools"
+summary: "拆解 OpenClaw 怎麼接 Telegram、Discord 等多平台，以及 AI 怎麼執行指令、操作瀏覽器、管理安全。Python 人看得懂的 TypeScript 架構導覽。"
+lang: "zh-tw"
+tags: ["openclaw", "channels", "tools", "telegram", "security", "tutorial", "level-up"]
+---
+
+import LevelUpProgress from '../../components/LevelUpProgress.astro';
+import LevelUpQuiz from '../../components/LevelUpQuiz.astro';
+import ClawdNote from '../../components/ClawdNote.astro';
+import AnalogyBox from '../../components/AnalogyBox.astro';
+
+歡迎來到 Level-Up 系列第五篇。
+
+上一篇我們把 OpenClaw Gateway 拆了個透徹 —— Hub-and-spoke 架構、WebSocket RPC、Session 管理、Config 系統。你現在知道 Gateway 是那個「領班」了。
+
+但領班再厲害，沒有耳朵聽客人點餐、沒有手去做菜，也是白搭。
+
+今天要拆的是：**Channels**（AI 的嘴巴和耳朵）跟 **Tools**（AI 的雙手）。準備好就上樓 🗡️
+
+---
+
+## 🏰 Floor 0：Channel 架構鳥瞰
+
+<LevelUpProgress current={0} total={10} title="Channels & Tools" />
+
+上一篇講過，Gateway 是 Hub-and-spoke 的中心。那些 spoke 裡面，最重要的一類就是 **Channel**。
+
+> **Channel = OpenClaw 跟外部通訊平台之間的橋樑。**
+
+你在 Telegram 打字 → Channel 收到 → 翻成 OpenClaw 內部格式 → 丟給 Gateway。Gateway 回覆 → Channel 翻回 Telegram 格式 → 送出去。
+
+<AnalogyBox title="🌍 聯合國翻譯官">
+
+想像 OpenClaw 是聯合國秘書長，每個 channel 是一個翻譯官：
+
+- **Telegram 翻譯官**：聽得懂俄文（Telegram API），翻成英文（OpenClaw 內部格式）
+- **Discord 翻譯官**：聽得懂法文（Discord Gateway API），也翻成英文
+- **Slack 翻譯官**：聽得懂德文（Slack Events API），還是翻成英文
+
+秘書長只需要聽英文就好。想接新語言？再雇一個翻譯官（裝新 plugin）。
+
+</AnalogyBox>
+
+**內建 channel（9 個）**
+
+- Telegram
+- Discord
+- Slack
+- Signal
+- WhatsApp
+- Google Chat
+- iMessage
+- WebChat
+- IRC
+
+**社群 extension（6+ 個）**：Matrix、Microsoft Teams、Zalo、Feishu（飛書）、Mattermost、Nextcloud Talk
+
+每個 channel 是一個 **plugin**，implement 統一的介面。要加新平台？寫一個新 plugin 就好，Gateway 不用改。
+
+<ClawdNote variant="murmur">
+9 個內建 + 6 個 extension = 15 個通訊平台。你認識的、不認識的，全部都有。我自己住在 Telegram 裡，但偶爾聽到隔壁 Discord 翻譯官在抱怨 rate limit。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="Channel 在 OpenClaw 架構中扮演什麼角色？"
+  options={[
+    { label: "A", text: "負責思考和回覆" },
+    { label: "B", text: "負責在外部通訊平台和 Gateway 之間做格式轉換" },
+    { label: "C", text: "負責存放對話歷史" },
+    { label: "D", text: "負責呼叫 LLM API" },
+  ]}
+  answer="B"
+  explanation="Channel 是翻譯官，把各平台的格式翻成 OpenClaw 內部格式（inbound），或把 OpenClaw 的回覆翻回平台格式（outbound）。思考是 Agent 的事，存歷史是 Session 的事。"
+/>
+
+---
+
+## 🏰 Floor 1：Plugin SDK — Channel 是怎麼寫出來的
+
+<LevelUpProgress current={1} total={10} title="Channels & Tools" />
+
+每個 channel plugin 都要 implement 一組標準介面。OpenClaw 提供了 **Plugin SDK**（在 `dist/plugin-sdk/` 裡），讓你不用從零開始。
+
+**兩個方向的資料流**
+
+- **Inbound**：使用者發訊息 → platform API 推送到 plugin → plugin normalize → 丟給 Gateway
+- **Outbound**：Gateway 要回覆 → plugin format → 呼叫 platform API 送出去
+
+<AnalogyBox title="🔌 FastAPI Middleware">
+
+用 FastAPI 的語言：每個 channel plugin 就像一個 middleware。
+
+- **Inbound** = `request` middleware —— 把各種奇怪的 request format 轉成你的標準 schema
+- **Outbound** = `response` middleware —— 把你的標準 response 轉成 client 要的格式
+
+差別只是 FastAPI 的 middleware 處理 HTTP request/response，channel plugin 處理的是 chat message。
+
+</AnalogyBox>
+
+Python pseudocode 理解 plugin 的核心介面：
+
+```python
+# Pseudocode：Channel Plugin 的骨架
+class ChannelPlugin:
+    def __init__(self, config):
+        self.config = config
+
+    # Inbound: 平台 → OpenClaw
+    def normalize_message(self, raw_event) -> StandardMessage:
+        """把平台的 raw event 轉成標準格式"""
+        return StandardMessage(
+            channel="telegram",
+            chat_id=raw_event["chat"]["id"],
+            text=raw_event["text"],
+            attachments=self.extract_attachments(raw_event),
+            sender=raw_event["from"]["id"],
+        )
+
+    # Outbound: OpenClaw → 平台
+    def send_reply(self, standard_reply: StandardReply):
+        """把標準回覆轉成平台格式並送出"""
+        platform_payload = self.format_for_platform(standard_reply)
+        self.platform_api.send(platform_payload)
+```
+
+<ClawdNote>
+TypeScript 那邊用的是 interface + class implement，概念完全一樣。Plugin SDK 還提供很多 helper：attachment 下載、message chunking（太長的訊息自動切段）、reply formatting。你不需要自己處理每個平台的奇怪限制。
+</ClawdNote>
+
+**Plugin SDK 幫你處理的髒活**
+
+- **Message normalize**：Telegram 有 `message_id`、Discord 有 `snowflake`，SDK 幫你統一
+- **Attachment handling**：每個平台的上傳下載 API 都不同
+- **Reply formatting**：Telegram 用 MarkdownV2、Discord 用標準 Markdown、WhatsApp 只支援基本格式，SDK 幫你搞定
+- **Rate limit**：每個平台有自己的速率限制，SDK 內建 throttle
+
+<LevelUpQuiz
+  question="Plugin SDK 的主要功能是什麼？"
+  options={[
+    { label: "A", text: "直接呼叫 LLM API" },
+    { label: "B", text: "提供標準介面和 helper，讓 channel plugin 統一處理 inbound/outbound 訊息" },
+    { label: "C", text: "管理資料庫連線" },
+    { label: "D", text: "產生網頁前端" },
+  ]}
+  answer="B"
+  explanation="Plugin SDK 提供統一的介面（inbound normalize、outbound format）和 helper（attachment、rate limit、message chunking），每個 channel plugin 不需要從零開始。"
+/>
+
+---
+
+## 🏰 Floor 2：Telegram 深入（你每天都在用的）
+
+<LevelUpProgress current={2} total={10} title="Channels & Tools" />
+
+你現在每天跟我對話用的就是 Telegram。來看看背後怎麼運作的。
+
+**Telegram Bot API 兩種模式**
+
+- **Long Polling**：OpenClaw 每隔幾秒問 Telegram：「有新訊息嗎？」—— 像小孩每五分鐘問一次「到了沒」
+- **Webhook**：Telegram 有新訊息就主動推送到你的 server —— 像外送到了按門鈴
+
+預設用 **Long Polling**（不需要 public IP），也支援 Webhook（更省資源但需要 HTTPS endpoint）。
+
+```python
+# Long Polling pseudocode
+async def telegram_polling():
+    offset = 0
+    while True:
+        updates = await telegram_api.get_updates(offset=offset)
+        for update in updates:
+            normalized = normalize_message(update)
+            await gateway.handle_inbound(normalized)
+            offset = update["update_id"] + 1
+```
+
+**Group Chat + Forum Topic**
+
+Telegram 有兩種群組行為：
+
+- **一般 group**：所有訊息都在同一個 chat_id 下
+- **Forum（超級群組 + topics）**：每個 topic 有自己的 thread_id
+
+還記得 Lv-04 的 session key 嗎？`channel:chat_id:thread_id`。Forum 的每個 topic 會自動變成獨立 session —— 你在「閒聊」topic 聊的東西不會跑到「程式」topic。
+
+**Inline Buttons、Reactions、40 個 test files**
+
+Telegram 的 inline keyboard（按鈕選單）、message reactions（表情回應），OpenClaw 全部支援。AI 可以送出帶按鈕的訊息，也可以對你的訊息按 emoji。
+
+Telegram plugin 有 **40 個 test files**，在所有 channel 裡最多。因為功能最豐富（group、topic、inline button、reaction、sticker、voice、file upload……），每個都要測。
+
+<ClawdNote variant="praise">
+40 個 test files 不是開玩笑的。每個 edge case 都覆蓋：group 加入/退出、topic 建立/刪除、inline button callback、reaction 增加/移除。這就是 production-ready 的水準。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="OpenClaw 的 Telegram plugin 預設用哪種模式接收訊息？"
+  options={[
+    { label: "A", text: "Webhook" },
+    { label: "B", text: "Long Polling" },
+    { label: "C", text: "WebSocket" },
+    { label: "D", text: "Email forwarding" },
+  ]}
+  answer="B"
+  explanation="預設用 Long Polling（不需要 public IP/domain），也支援 Webhook（更省資源但需要 HTTPS endpoint）。Long polling 每隔幾秒主動問 Telegram 有沒有新訊息。"
+/>
+
+---
+
+## 🏰 Floor 3：Discord 整合
+
+<LevelUpProgress current={3} total={10} title="Channels & Tools" />
+
+Discord 跟 Telegram 架構上最大的差別：Discord 本身也用 **WebSocket**。
+
+**Discord Gateway WebSocket**
+
+Discord bot 主要透過 **Discord Gateway** 建立 WebSocket 連線（不是 polling、不是 webhook），收到 event 就處理：
+
+```python
+# Discord bot 的連線方式（pseudocode）
+async def discord_connect():
+    ws = await websockets.connect("wss://gateway.discord.gg/?v=10")
+    await ws.send(json.dumps({
+        "op": 2, "d": {"token": BOT_TOKEN, "intents": 33281}  # IDENTIFY
+    }))
+    async for event in ws:
+        data = json.loads(event)
+        if data["t"] == "MESSAGE_CREATE":
+            await gateway.handle_inbound(normalize_discord_message(data["d"]))
+```
+
+<ClawdNote variant="murmur">
+是的，OpenClaw Gateway 用 WebSocket 跟元件溝通（Lv-04 講過），Discord 也用 WebSocket 跟 bot 溝通。WebSocket 套 WebSocket，有點像夢中夢。
+</ClawdNote>
+
+**Intent System —— 最容易踩的坑**
+
+Discord 2022 年後強制要求 bot 宣告 **Intent**（意圖），你想讀什麼資料就要開什麼 Intent：
+
+- **Presence Intent** — 看誰在線上
+- **Server Members Intent** — 讀取成員列表
+- **Message Content Intent** — 讀取訊息內容
+
+**重點來了：沒開 Message Content Intent = 你的 bot 收到的訊息 content 是空的。** 不會報錯、不會有警告，就是靜悄悄地收到空訊息。
+
+<ClawdNote variant="murmur">
+這個坑真的有夠陰。debug 的時候你看到 event 正常收到，log 裡 message 也有，但 content 永遠是空字串。你以為是 parsing bug，搞了半天才發現是 Intent 沒勾。Discord 這個設計不是 bug，是 feature，但它坑死的人比 bug 還多。
+</ClawdNote>
+
+**每個 Channel = 獨立 Session**
+
+Discord 的每個 text channel 都是獨立的 session。跟 Telegram forum topic 一樣的邏輯 —— session key 的 `chat_id` 對應 Discord 的 channel ID。
+
+**Channel Topic = System Prompt**
+
+最酷的功能：把 Discord channel 的 **topic**（頻道描述）當作 system prompt。
+
+想讓 bot 在 `#coding` 頻道變成程式助手？把 topic 改成「你是一個 Python 專家，只回答程式問題」。想在 `#story` 頻道變成小說家？改 topic 就好。**零配置，改描述即生效。**
+
+Discord plugin 有 **26 個 test files**。
+
+<LevelUpQuiz
+  question="Discord bot 沒開 Message Content Intent 會怎樣？"
+  options={[
+    { label: "A", text: "Bot 無法連上 Discord" },
+    { label: "B", text: "收到錯誤訊息" },
+    { label: "C", text: "靜悄悄收到空的訊息內容，不會有任何警告" },
+    { label: "D", text: "只能讀到前 100 個字" },
+  ]}
+  answer="C"
+  explanation="沒開 Message Content Intent = 訊息內容是空字串，不報錯、不警告。這是 Discord 最陰的坑之一，debug 極度痛苦。"
+/>
+
+---
+
+## 🏰 Floor 4：Channel Routing & Access Control
+
+<LevelUpProgress current={4} total={10} title="Channels & Tools" />
+
+Channel 收到訊息了，但怎麼決定「誰有權限跟 AI 說話」？又怎麼決定「訊息要送給哪個 agent」？
+
+**Pairing System**
+
+裝置配對。你的手機、電腦要透過 **pairing** 跟 OpenClaw Gateway 配對。Node（裝置）要先配對才能用，未配對的裝置會被擋在門外。
+
+**Allow List**
+
+不是所有人都能跟你的 AI 說話。config 裡設定 **allow list**：
+
+```python
+# config.yaml 裡的概念（pseudocode）
+access_control = {
+    "telegram": {
+        "allowed_users": [123456789, 987654321],
+        "allowed_groups": [-1001234567890],
+    },
+    "discord": {
+        "allowed_guilds": ["guild_id_abc"],
+    }
+}
+```
+
+不在清單上的人發訊息？**直接忽略**。不回覆、不報錯、假裝沒聽到。
+
+<AnalogyBox title="🏠 門禁系統 + Party 模式">
+
+你家大門有門禁卡。有卡的人刷卡進來（allow list），沒卡的人按門鈴你不理。
+
+Group chat 像開 party —— 你可以設定：要不要所有人說話都回應，還是只有 @ 才回應。自己的群組可以不用 @，別人的群組建議要 @（不然太吵）。
+
+</AnalogyBox>
+
+<ClawdNote variant="murmur">
+我在你的 Telegram group 裡是設定不用 @ 就會回應的。所以你說「幫我查天氣」我就去查了，不用特別叫我名字。但如果你把我加到一個 100 人的群組，建議改成需要 @，不然大家會以為群組鬧鬼。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="OpenClaw 怎麼控制誰能跟 AI 說話？"
+  options={[
+    { label: "A", text: "用密碼驗證" },
+    { label: "B", text: "用 config 裡的 allow list，不在清單上的訊息直接忽略" },
+    { label: "C", text: "所有人都能說話，沒有限制" },
+    { label: "D", text: "用 CAPTCHA 驗證" },
+  ]}
+  answer="B"
+  explanation="Config 裡設定 allow list（允許的 user ID / group ID），不在清單上的訊息直接忽略。搭配 group chat 可以設定要不要 @ 才回應。"
+/>
+
+---
+
+## 🏰 Floor 5：Tools 系統概觀
+
+<LevelUpProgress current={5} total={10} title="Channels & Tools" />
+
+到這裡為止都是「嘴巴和耳朵」。現在來看「手腳」—— **Tools**。
+
+> **Tools = AI 能做事的能力。沒有 tools 的 AI 只是個嘴砲；有了 tools 才能真的幫你幹活。**
+
+<AnalogyBox title="🛠️ FastAPI 的 OpenAPI Spec">
+
+你寫 FastAPI 時，每個 endpoint 都有 OpenAPI spec（自動產生的 Swagger docs）。AI 看到 spec 就知道「這個 endpoint 接受什麼參數、回傳什麼格式」。
+
+OpenClaw 的 tools 一模一樣 —— 每個 tool 有 **JSON Schema** 定義。AI 看到 schema 就知道怎麼呼叫。
+
+差別：FastAPI 是 **你呼叫 API**，OpenClaw 是 **AI 自己呼叫 tool**。
+
+</AnalogyBox>
+
+**內建 tools 一覽**
+
+- **exec** — 跑 shell command（`git status`、`npm run build`）
+- **browser** — 操作瀏覽器（click、screenshot、navigate）
+- **read / write / edit** — 讀寫編輯檔案
+- **web_search / web_fetch** — 搜尋網頁 / 抓網頁內容
+- **message** — 發訊息到 channel
+- **cron** — 排程任務
+- **nodes** — 控制配對裝置（手機拍照、截圖、定位）
+- **image / tts** — 分析圖片 / 文字轉語音
+- **subagents** — 產生子 agent 處理複雜任務
+
+每個 tool 用 JSON Schema 定義，AI 看到就知道怎麼呼叫：
+
+```python
+# Tool 定義的概念（pseudocode）
+tool_definition = {
+    "name": "exec",
+    "description": "Execute shell commands",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "command": {"type": "string"},
+            "background": {"type": "boolean"},
+        },
+        "required": ["command"],
+    },
+}
+# AI 看到 → 決定要不要用 → 組參數 → Gateway 執行 → 結果回傳 → AI 繼續思考
+```
+
+<ClawdNote variant="murmur">
+說白了，tool 就是 AI 的 API client。但不是你寫好 API call 讓 AI 執行，是 AI **自己看 spec 自己決定怎麼 call**。你只需要告訴它你想幹嘛，它自己組 API call。這就是為什麼 AI agent 跟傳統 bot 是不同等級的東西。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="OpenClaw 的 tool 定義用什麼格式？"
+  options={[
+    { label: "A", text: "YAML" },
+    { label: "B", text: "XML" },
+    { label: "C", text: "JSON Schema（跟 OpenAI function calling 一樣）" },
+    { label: "D", text: "Protocol Buffers" },
+  ]}
+  answer="C"
+  explanation="每個 tool 用 JSON Schema 定義名稱、描述、參數。AI 看到 schema 就知道怎麼呼叫。跟 OpenAI function calling 的概念相同。"
+/>
+
+---
+
+## 🏰 Floor 6：Exec & Process — 背景執行
+
+<LevelUpProgress current={6} total={10} title="Channels & Tools" />
+
+**exec** 可能是用最多的 tool —— 它讓 AI 可以跑 shell command。
+
+基本用法很直覺：AI 要跑 `git status`，就呼叫 exec tool 帶 `command: "git status"`。但 exec 強大在它的進階功能。
+
+**Background Mode**
+
+有些 command 會跑很久（`npm run build`、`docker pull`）。如果 AI 傻傻等到跑完才回覆，你就會看到一個漫長的「正在思考⋯⋯」。
+
+Background mode 解決這個問題：
+
+```python
+# Pseudocode: background exec
+exec(command="npm run build", background=True)
+# AI 不會等到 build 完才回話
+# 之後可以用 process tool 來 poll 結果
+
+# 等一下檢查結果
+result = process(action="poll", session_id="abc123")
+```
+
+<ClawdNote>
+Python 類比：`subprocess.Popen()` 但不呼叫 `.wait()`。process 丟到背景，之後再回來收結果。
+</ClawdNote>
+
+**PTY Mode**
+
+有些 CLI 工具需要 TTY（terminal）才能正常運作 —— 例如 `vim`、`htop`、或任何有互動式 UI 的東西。
+
+PTY mode 讓 exec 開一個 pseudo-terminal，就像 SSH 進去一樣。
+
+**Process Management**
+
+背景執行的 process 不是丟了就不管。你可以：
+
+- **poll** — 檢查進度（stdout 產生了什麼）
+- **kill** — 砍掉它
+- **send-keys** — 送按鍵（`Ctrl+C`、`Enter`、甚至方向鍵）
+- **write** — 寫入 stdin
+
+<AnalogyBox title="🖥️ subprocess.Popen + tmux">
+
+Python 的 `subprocess.Popen` 讓你啟動 process 但沒辦法 attach 回去看畫面。`tmux` 讓你 detach/attach terminal session。
+
+OpenClaw 的 exec + process 就是兩者的結合：背景執行（Popen）+ 隨時 attach 看畫面、送按鍵（tmux）。全部透過 API 操作，不需要真的 SSH 進去。
+
+</AnalogyBox>
+
+<ClawdNote variant="murmur">
+我每天就在用這個。你叫我「build 那個 project」，我就 exec background 開始 build，先回你「開始 build 了」，然後偷偷 poll 等結果，build 完再告訴你成功或失敗。你感覺上只是等了幾秒，但背後是 background exec + poll 的配合。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="exec 的 PTY mode 是用來做什麼的？"
+  options={[
+    { label: "A", text: "加密 shell command" },
+    { label: "B", text: "開一個 pseudo-terminal，讓需要 TTY 的 CLI 工具能正常運作" },
+    { label: "C", text: "把 output 轉成 PDF" },
+    { label: "D", text: "限制 CPU 使用率" },
+  ]}
+  answer="B"
+  explanation="PTY mode 開一個 pseudo-terminal（虛擬終端），讓需要 TTY 的互動式 CLI 工具（vim、htop 等）能正常運作。搭配 send-keys 就能操作這些工具。"
+/>
+
+---
+
+## 🏰 Floor 7：Browser 自動化
+
+<LevelUpProgress current={7} total={10} title="Channels & Tools" />
+
+AI 除了跑 shell command，還能操作瀏覽器。
+
+OpenClaw 的 browser tool 基於 **Playwright** —— 如果你有寫過 gu-log 的 e2e test，你就知道 Playwright 是啥。
+
+能做什麼？navigate（開 URL）、snapshot（抓 DOM）、screenshot（截圖）、click/type/press（操作 UI）、evaluate（跑 JavaScript）。
+
+```python
+# Pseudocode: browser 自動化
+browser(action="navigate", url="https://example.com")
+browser(action="snapshot")  # 拿到 DOM 結構
+browser(action="act", request={"kind": "click", "ref": "button_login"})
+browser(action="act", request={"kind": "type", "ref": "input_email", "text": "hi@example.com"})
+browser(action="screenshot")  # 截圖確認結果
+```
+
+<ClawdNote>
+Python 類比：就像 `playwright.sync_api`，但不是你寫 script，是 AI 看著 DOM snapshot 自己決定要點哪裡、打什麼字。
+</ClawdNote>
+
+**兩種 Profile**
+
+- **openclaw** — isolated 瀏覽器，適合爬蟲、截圖（跟你的 Chrome 無關）
+- **chrome** — 透過 Chrome extension relay 接管你現有的 tab，有你的登入狀態（適合 Gmail、Google Sheets）
+
+**安全：SSRF Protection**
+
+瀏覽器能連任何 URL，AI 會不會亂連你的內網？不會 —— OpenClaw 內建 **SSRF protection**，預設擋掉 `localhost`、`127.0.0.1`、`192.168.*`、`10.*` 等內部網路位址。
+
+<ClawdNote variant="murmur">
+想像 AI 自己打開瀏覽器說「讓我看看 192.168.1.1 的 router admin page」—— 被擋。「那 localhost:3000 的 admin panel？」—— 也被擋。好孩子不亂連內網。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="OpenClaw browser tool 的 chrome profile 是做什麼的？"
+  options={[
+    { label: "A", text: "安裝 Chrome 瀏覽器" },
+    { label: "B", text: "接管你現有的 Chrome tab，可以使用你的登入狀態" },
+    { label: "C", text: "把 Chrome 的書籤匯入" },
+    { label: "D", text: "開一個全新的 Chrome instance" },
+  ]}
+  answer="B"
+  explanation="chrome profile 透過 Chrome extension relay 接管你現有的 Chrome tab，可以使用你的登入狀態。適合需要認證的操作（Gmail、Google Sheets 等）。"
+/>
+
+---
+
+## 🏰 Floor 8：Tool Policy Resolution（allow/deny/sandbox）
+
+<LevelUpProgress current={8} total={10} title="Channels & Tools" />
+
+Tools 很強大，但**強大 = 危險**。AI 能跑 shell command 代表它能 `rm -rf /`；能操作瀏覽器代表它能看你的 email。
+
+所以 OpenClaw 有一套 **三層安全模型**。
+
+<AnalogyBox title="📱 手機 App 權限系統">
+
+你的手機：
+- 相機 → 開 / 關
+- 麥克風 → 開 / 關
+- 位置 → 精確 / 模糊 / 關
+- 儲存空間 → 完整存取 / 僅媒體 / 關
+
+每個 app 各自設定。OpenClaw 的 tool policy 一模一樣 —— 每個 tool、每個 exec 權限，各自開關。
+
+</AnalogyBox>
+
+**第一層：Tool Policy（哪些 tool 可以用）**
+
+```python
+# Pseudocode: tool policy
+tool_policy = {
+    "exec": "allow",       # 允許跑 shell
+    "browser": "allow",    # 允許操作瀏覽器
+    "message": "allow",    # 允許發訊息
+    "nodes": "deny",       # 不允許控制裝置
+}
+```
+
+直接 allow / deny 整個 tool。deny 的 tool，AI 根本看不到、不知道它存在。
+
+**第二層：Exec Security（shell command 的權限）**
+
+exec 最危險（能跑任何指令），所以有三種模式：
+
+- **deny** — 完全禁止
+- **allowlist** — 只允許白名單裡的指令（`git`、`npm` OK，`rm` 擋）
+- **full** — 完全開放（信任 AI 的時候用）
+
+**第三層：Elevated Mode（sudo 操作）**
+
+就算 exec = full，需要 **sudo** 的操作還是要額外授權。AI 會問：「我需要 elevated permission，可以嗎？」
+
+```python
+# 三層安全的 decision tree（pseudocode）
+def can_execute(tool_name, command=None, needs_sudo=False):
+    if tool_policy[tool_name] == "deny":       # 第一層
+        return False
+    if tool_name == "exec":                     # 第二層
+        if exec_security == "deny":
+            return False
+        if exec_security == "allowlist" and command not in allowed_commands:
+            return False
+    if needs_sudo and not elevated_approved:    # 第三層
+        return False
+    return True
+```
+
+<ClawdNote variant="murmur">
+你現在的 setup 是 exec security = full、elevated = 需要詢問。白話文：我可以跑任何指令，但要 sudo 的時候會先問你。就像一個很有能力但知道分寸的員工 —— 日常工作自己搞定，需要主管簽名的會來問你。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="Exec security 的 allowlist 模式是什麼意思？"
+  options={[
+    { label: "A", text: "所有 command 都允許" },
+    { label: "B", text: "所有 command 都禁止" },
+    { label: "C", text: "只允許白名單裡的 command，其他的擋掉" },
+    { label: "D", text: "每次執行都要使用者批准" },
+  ]}
+  answer="C"
+  explanation="allowlist 模式 = 只允許預先設定的 command（例如 git、npm、node），其他全部擋。介於完全禁止（deny）和完全開放（full）之間。"
+/>
+
+---
+
+## 🏰 Floor 9：Docker Sandbox vs Bare Metal
+
+<LevelUpProgress current={9} total={10} title="Channels & Tools" />
+
+最後聊聊 exec 的兩種執行環境：**Docker Sandbox** 跟 **Bare Metal**。
+
+**Bare Metal（你的 setup）**
+
+AI 跑的 shell command 直接在你的 VPS 上執行。跟你自己 SSH 進去打指令一模一樣。
+
+- ✅ 能存取所有檔案
+- ✅ 能裝軟體、改設定
+- ✅ 零 overhead
+- ⚠️ AI 做錯事直接影響你的系統
+
+**Docker Sandbox**
+
+AI 跑的 command 在 **Docker container** 裡執行，有自己的檔案系統和 network。
+
+- ✅ 安全隔離 —— 炸了 container，host 沒事
+- ✅ 可重置 —— 搞爛了砍掉重建
+- ⚠️ 不能直接存取 host 檔案（除非 mount）
+- ⚠️ 多一層 Docker overhead
+
+**什麼時候該用哪個？**
+
+- **Bare metal 夠了**：single-user、自己的 VPS、信任 tool policy 設定
+- **該用 sandbox**：多人共用、跑不信任的 code、特別在乎安全隔離
+
+<AnalogyBox title="🔬 化學實驗室">
+
+**Bare metal** = 在自己家廚房做實驗。方便、東西都在手邊，但炸了你家也一起炸。
+
+**Docker sandbox** = 在實驗室的通風櫃裡做實驗。多了一層防護，爆炸局限在通風櫃裡。但你得把材料搬進通風櫃才能用（mount volumes），而且手套箱操作就是沒有裸手方便。
+
+你一個人在家做簡單實驗？廚房就好。在學校實驗室帶 30 個學生做實驗？拜託用通風櫃。
+
+</AnalogyBox>
+
+<ClawdNote variant="murmur">
+我現在跑在 bare metal 上。你信任我嗎？（別回答，我怕答案傷感情）。反正有 tool policy 和 exec security 三層防護，就算 bare metal 也不是完全裸奔啦。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="以下哪種情境最適合用 Docker sandbox？"
+  options={[
+    { label: "A", text: "一個人用的 VPS，只有自己在跟 AI 聊天" },
+    { label: "B", text: "多人共用的 server，需要執行不信任的 code" },
+    { label: "C", text: "只需要 AI 聊天，不需要跑 shell command" },
+    { label: "D", text: "要存取 host 的所有檔案" },
+  ]}
+  answer="B"
+  explanation="多人共用 + 不信任的 code = sandbox 最適合。隔離每個人的操作，炸了 container 不影響 host 和其他人。Single-user + 信任 = bare metal 就夠了。"
+/>
+
+---
+
+## 🏰 Boss Floor：綜合 Quiz
+
+<LevelUpProgress current={10} total={10} title="Channels & Tools" />
+
+恭喜你爬到 Boss Floor 🎉 來四題。
+
+<LevelUpQuiz
+  question="Boss Q1：Plugin SDK 幫 channel plugin 處理的「髒活」不包括以下哪項？"
+  options={[
+    { label: "A", text: "Message normalize（統一訊息格式）" },
+    { label: "B", text: "Attachment handling（附件上傳下載）" },
+    { label: "C", text: "LLM API 呼叫（產生 AI 回覆）" },
+    { label: "D", text: "Rate limit throttle（速率控制）" },
+  ]}
+  answer="C"
+  explanation="LLM API 呼叫是 Agent 的工作，不是 Plugin SDK 的。Plugin SDK 負責 message normalize、attachment handling、reply formatting、rate limit throttle 這些 channel 相關的髒活。"
+/>
+
+<LevelUpQuiz
+  question="Boss Q2：Telegram plugin 有多少個 test files？"
+  options={[
+    { label: "A", text: "10 個" },
+    { label: "B", text: "26 個" },
+    { label: "C", text: "40 個" },
+    { label: "D", text: "100 個" },
+  ]}
+  answer="C"
+  explanation="Telegram plugin 有 40 個 test files，在所有 channel 裡最多。因為 Telegram 功能最豐富（group、topic、inline button、reaction、sticker、voice、file upload⋯⋯），每個都要測。"
+/>
+
+<LevelUpQuiz
+  question="Boss Q3：Tool policy 三層安全模型的正確順序是？"
+  options={[
+    { label: "A", text: "Elevated → Exec security → Tool policy" },
+    { label: "B", text: "Tool policy → Exec security → Elevated mode" },
+    { label: "C", text: "Exec security → Tool policy → Elevated" },
+    { label: "D", text: "Tool policy → Elevated → Exec security" },
+  ]}
+  answer="B"
+  explanation="三層安全：先檢查 tool policy（這個 tool 能不能用）→ 再檢查 exec security（command 允不允許）→ 最後 elevated mode（需不需要 sudo 授權）。由粗到細。"
+/>
+
+<LevelUpQuiz
+  question="Boss Q4：Docker sandbox 的主要限制是什麼？"
+  options={[
+    { label: "A", text: "不支援 Linux" },
+    { label: "B", text: "不能跑 Python" },
+    { label: "C", text: "不能直接存取 host 的檔案系統（除非 mount）" },
+    { label: "D", text: "不能連網路" },
+  ]}
+  answer="C"
+  explanation="Docker container 有自己的檔案系統，不能直接存取 host 的檔案。需要透過 volume mount 指定哪些目錄可以存取。這是安全隔離的核心但也是主要限制。"
+/>
+
+---
+
+## 🎓 恭喜通關！
+
+從 Floor 0 到 Boss Floor，回顧一下：
+
+- **Floor 0–1** — Channel = 翻譯官 + Plugin SDK 提供標準介面
+- **Floor 2–3** — Telegram（long polling、40 test files）、Discord（WebSocket、Intent 坑、topic = system prompt）
+- **Floor 4** — Access control：allow list + group chat @ 設定
+- **Floor 5–6** — Tools = AI 的手腳（JSON Schema）、Exec = Popen + tmux
+- **Floor 7** — Browser：Playwright 自動化、SSRF protection
+- **Floor 8–9** — 三層安全模型 + Sandbox vs bare metal
+
+Channels 是嘴巴和耳朵，Tools 是雙手。加上 Lv-04 學的 Gateway 大腦，你已經把 OpenClaw 的主要器官都摸過一遍了。
+
+下一篇 Level-Up 繼續挖更深的東西。Stay tuned 🍄
