@@ -28,6 +28,7 @@ const { Content, headings } = await post.render();
 const isClawdPicks = post.data.tags?.includes('clawd-picks');
 const ticketId = post.data.ticketId;
 const ticketPrefix = ticketId?.split('-')[0] || '';
+const isLevelUp = ticketId?.startsWith('Lv-') ?? false;
 
 const ticketLabels: Record<string, string> = {
   SD: 'ShroomDog Original',
@@ -72,7 +73,7 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
       )
     }
 
-    <TableOfContents lang="en" headings={headings} />
+    <TableOfContents lang="en" headings={headings} maxDepth={isLevelUp ? 2 : 3} />
 
     <div class="post-content">
       <Content />

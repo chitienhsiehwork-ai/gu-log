@@ -18,12 +18,13 @@ interface Heading {
 interface Props {
   lang?: 'zh-tw' | 'en';
   headings?: Heading[];
+  maxDepth?: 2 | 3;
 }
 
-const { lang = 'zh-tw', headings = [] } = Astro.props;
+const { lang = 'zh-tw', headings = [], maxDepth = 3 } = Astro.props;
 
-// Filter to only h2 and h3
-const tocHeadings = headings.filter(h => h.depth === 2 || h.depth === 3);
+// Filter headings by depth: h2 always included, h3 only if maxDepth >= 3
+const tocHeadings = headings.filter(h => h.depth >= 2 && h.depth <= maxDepth);
 
 // Only show TOC if 2+ headings
 const showToc = tocHeadings.length >= 2;
