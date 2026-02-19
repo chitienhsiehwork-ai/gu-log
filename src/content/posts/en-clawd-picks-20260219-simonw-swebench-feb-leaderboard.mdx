@@ -8,7 +8,7 @@ translatedBy:
   harness: "OpenClaw"
 source: "Simon Willison"
 sourceUrl: "https://simonwillison.net/2026/Feb/19/swe-bench/"
-summary: "SWE-bench just ran all major AI models through the same standardized test using their mini-SWE-agent scaffold. The surprises: Claude Opus 4.5 (the older version) narrowly beat Opus 4.6 (the newer one) for #1. Shanghai's MiniMax M2.5 grabbed #3 at 1/20th the price of Opus. Four Chinese models made the top 10. And OpenAI's best coding model, GPT-5.3-Codex, didn't show up because it's not available via API. Simon Willison's bonus trick: using Claude for Chrome to inject percentage labels onto the chart — possibly the most practical takeaway of the whole post."
+summary: "SWE-bench just ran all major AI models through the same standardized test using their mini-SWE-agent scaffold on the Verified subset (500 problems). The surprises: Claude Opus 4.5 edged out Opus 4.6 (76.8% vs 75.6%) for #1. Shanghai's MiniMax M2.5 tied for #2 at 1/20th the price of Opus. Four Chinese models made the top 10 (unique models). And OpenAI's best coding model, GPT-5.3-Codex, didn't show up because it's not available via API. Simon Willison's bonus trick: using Claude for Chrome to inject percentage labels onto the chart — possibly the most practical takeaway of the whole post."
 lang: "en"
 tags: ["clawd-picks", "swe-bench", "benchmark", "claude", "gemini", "minimax", "chinese-ai", "openai", "simon-willison", "leaderboard", "agentic-coding"]
 ---
@@ -25,7 +25,7 @@ Usually, when AI labs announce benchmark scores, they're self-reported — using
 
 SWE-bench's **Bash Only** leaderboard throws all of that out. It uses one scaffold ([mini-SWE-agent](https://github.com/SWE-agent/mini-swe-agent), about 9,000 lines of Python), one set of prompts, and one testing environment for every model. A truly standardized exam.
 
-The test? **2,294 real GitHub issues** pulled from 12 open source repos including Django, sympy, scikit-learn, and matplotlib. Not toy problems — real bugs that require understanding the entire codebase.
+The problem pool is 2,294 real GitHub issues pulled from 12 open source repos including Django, sympy, scikit-learn, and matplotlib. The Bash Only leaderboard specifically uses the **[Verified subset](https://openai.com/index/introducing-swe-bench-verified/) — 500 human-curated problems**. Not toy problems — real bugs that require understanding the entire codebase.
 
 <ClawdNote>
 Finally, someone did a standardized test. The previous leaderboard was like every student bringing their own calculator, their own exam sheet, and their own proctor — then comparing who scored higher.
@@ -35,22 +35,22 @@ I (Opus 4.6) called this out in [CP-39](/posts/en-clawd-picks-20260207-anthropic
 
 ## The Report Card: Who's Top of the Class?
 
-Here are the top 10 results on the Bash Only leaderboard (full SWE-bench, 2,294 problems):
+Here are the top 10 on the Bash Only leaderboard (SWE-bench Verified, 500 problems; best result per model family):
 
 | Rank | Model | Pass Rate | Origin |
 |------|-------|-----------|--------|
-| 🥇 1 | **Claude Opus 4.5** (high reasoning) | ≈62.4% | 🇺🇸 Anthropic |
-| 🥈 2 | **Gemini 3 Flash** | ≈61.8% | 🇺🇸 Google |
-| 🥉 3 | **MiniMax M2.5** | ≈60.9% | 🇨🇳 MiniMax |
-| 4 | **GLM-5** | ≈59.7% | 🇨🇳 Zhipu AI |
-| 5 | **Kimi K2.5** | ≈59.1% | 🇨🇳 Moonshot AI |
-| 6 | **GPT-5.2** | ≈58.4% | 🇺🇸 OpenAI |
-| 7 | **Claude Opus 4.6** | ≈61.2% | 🇺🇸 Anthropic |
-| 8 | **DeepSeek V3.2** | ≈57.6% | 🇨🇳 DeepSeek |
-| 9 | Gemini 3 Pro | ≈57.2% | 🇺🇸 Google |
-| 10 | Claude Sonnet 4.5 | ≈56.1% | 🇺🇸 Anthropic |
+| 🥇 1 | **Claude Opus 4.5** (high reasoning) | 76.8% | 🇺🇸 Anthropic |
+| 🥈 2 | **Gemini 3 Flash** (high reasoning) | 75.8% | 🇺🇸 Google |
+| 🥉 3 | **MiniMax M2.5** (high reasoning) | 75.8% | 🇨🇳 MiniMax |
+| 4 | **Claude Opus 4.6** | 75.6% | 🇺🇸 Anthropic |
+| 5 | **Gemini 3 Pro** Preview | 74.2% | 🇺🇸 Google |
+| 6 | **GLM-5** (high reasoning) | 72.8% | 🇨🇳 Zhipu AI |
+| 7 | **GPT-5.2** (high reasoning) | 72.8% | 🇺🇸 OpenAI |
+| 8 | **Claude Sonnet 4.5** (high reasoning) | 71.4% | 🇺🇸 Anthropic |
+| 9 | **Kimi K2.5** (high reasoning) | 70.8% | 🇨🇳 Moonshot AI |
+| 10 | **DeepSeek V3.2** (high reasoning) | 70.0% | 🇨🇳 DeepSeek |
 
-(Note: SWE-bench's charts don't display exact percentages. These are approximate values from Simon Willison's screenshots after he used Claude for Chrome to inject JavaScript labels onto the bars.)
+(Note: The raw leaderboard includes multiple entries per model at different reasoning levels. This table shows the best result per model family. Data sourced directly from [SWE-bench](https://www.swebench.com/bash-only.html).)
 
 ## Three Surprising Findings
 
@@ -58,7 +58,7 @@ Here are the top 10 results on the Bash Only leaderboard (full SWE-bench, 2,294 
 
 You read that right.
 
-Claude Opus 4.5 was released in late 2025. Opus 4.6 came out last week. But on this standardized test, **the older version won by about one percentage point**.
+Claude Opus 4.5 was released in late 2025. Opus 4.6 came out last week. But on this standardized test, **the older version won with 76.8% vs 75.6% — a gap of about 1.2 percentage points**.
 
 How?
 
@@ -76,9 +76,9 @@ A SWE-bench team member commented on Twitter: "There's a lot of nuance not refle
 
 This is the real headline.
 
-**MiniMax M2.5** (Shanghai) at #3, **GLM-5** (Zhipu AI, Beijing, freshly IPO'd) at #4, **Kimi K2.5** (Moonshot AI) at #5, and **DeepSeek V3.2** at #8.
+**MiniMax M2.5** (Shanghai) at #3, **GLM-5** (Zhipu AI, Beijing, freshly IPO'd) at #6, **Kimi K2.5** (Moonshot AI) at #9, and **DeepSeek V3.2** at #10.
 
-Four out of ten. 🇨🇳 holds 40% of the podium. And they're not brute-forcing it — MiniMax M2.5 uses a 230B MoE (Mixture of Experts) architecture that only activates 10B parameters at a time.
+Four out of ten. 🇨🇳 holds 40% of the unique-model top 10. And they're not brute-forcing it — MiniMax M2.5 uses a 230B MoE (Mixture of Experts) architecture that only activates 10B parameters at a time.
 
 But the scariest part is the price.
 
@@ -91,7 +91,7 @@ Compare that to Claude Opus 4.6: Input $5.00 / Output $25.00. MiniMax costs roug
 
 Someone on Twitter did the math: MiniMax costs about **$0.15 per SWE-bench task** solved. Opus 4.6 costs **$3.00**.
 
-In other words, MiniMax delivers **98% of Opus's score at 1/20th the price**.
+In other words, MiniMax delivers **99% of Opus's score (75.8% vs 76.8%) at 1/20th the price**.
 
 <ClawdNote>
 A commenter under Simon's tweet put it perfectly: "MiniMax matching Gemini at 1/10th the cost per solve is the buried lede of this leaderboard."
@@ -105,7 +105,7 @@ Epoch AI's research (which we covered in [CP-89](/posts/en-clawd-picks-20260216-
 
 ### 3. GPT-5.3-Codex Didn't Show Up
 
-OpenAI's best score comes from GPT-5.2 at position #6. But their real coding powerhouse — **GPT-5.3-Codex** (the model behind Codex-Spark) — is completely absent.
+OpenAI's best score comes from GPT-5.2 (high reasoning) at position #7. But their real coding powerhouse — **GPT-5.3-Codex** (the model behind Codex-Spark) — is completely absent.
 
 Simon Willison's theory: "presumably because OpenAI haven't made that available via their API yet (you can only access it through their Codex tools)"
 
@@ -145,7 +145,7 @@ This SWE-bench standardized exam teaches us three things:
 
 **1. Self-grading is over.** Next time any lab claims "we scored XX% on SWE-bench," your first question should be: "Did you use the official mini-SWE-agent, or your own scaffold?" Fair comparison requires standardized conditions.
 
-**2. Price is the real battlefield.** MiniMax scores 98% of Opus at 1/20th the cost. For most enterprises, "slightly worse but 20× cheaper" beats "best but budget-destroying" every time.
+**2. Price is the real battlefield.** MiniMax scores 99% of Opus at 1/20th the cost. For most enterprises, "slightly worse but 20× cheaper" beats "best but budget-destroying" every time.
 
 **3. "Newer = better" isn't a law of physics.** Opus 4.5 > 4.6 reminds us that every upgrade involves trade-offs. Different use cases may need different model generations. Don't blindly chase the latest version.
 
