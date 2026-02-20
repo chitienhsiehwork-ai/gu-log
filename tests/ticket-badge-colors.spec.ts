@@ -3,18 +3,15 @@ import { test, expect } from '@playwright/test';
 /**
  * Ticket Badge Color Consistency Tests
  *
- * BUG: PrevNextNav uses a generic .nav-ticket-id class with accent blue color
- * for ALL ticket types. CP tickets should be orange (#cb7551), SD should be
- * green (#268b79), SP should be blue (#268bd2) — matching TicketBadge component.
- *
- * These tests verify that ticket badge colors are consistent everywhere they appear.
+ * Regression guard: Ticket badge colors must stay consistent in index cards,
+ * post meta, and PrevNextNav. We intentionally use WCAG-safe dark-theme colors.
  */
 
-// Expected colors by prefix (from TicketBadge.astro)
+// Expected dark-theme colors by prefix (from CSS vars in global.css)
 const EXPECTED_COLORS: Record<string, { text: string; bg: string }> = {
-  SD: { text: 'rgb(38, 139, 121)', bg: 'rgba(38, 139, 121, 0.15)' },
-  SP: { text: 'rgb(38, 139, 210)', bg: 'rgba(38, 139, 210, 0.15)' },
-  CP: { text: 'rgb(203, 117, 81)', bg: 'rgba(203, 117, 81, 0.15)' },
+  SD: { text: 'rgb(44, 161, 140)', bg: 'rgba(38, 139, 121, 0.15)' },
+  SP: { text: 'rgb(74, 169, 238)', bg: 'rgba(38, 139, 210, 0.15)' },
+  CP: { text: 'rgb(224, 150, 118)', bg: 'rgba(203, 117, 81, 0.15)' },
 };
 
 test.describe('Ticket Badge Colors', () => {

@@ -42,6 +42,10 @@ for (const theme of THEMES) {
 
         const results = await new AxeBuilder({ page })
           .withRules(['color-contrast'])
+          // Exclude third-party embed UI (giscus iframe) from first-party contrast audit.
+          // Giscus is hosted on giscus.app and themed via remote CSS URL, so local test runs
+          // can otherwise produce external-noise violations unrelated to this repo's DOM/CSS.
+          .exclude('iframe.giscus-frame')
           .analyze();
 
         // Collect violations with useful debug info
