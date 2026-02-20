@@ -10,7 +10,29 @@ npm install          # install deps
 npm run dev          # dev server at localhost:4321
 npm run build        # production build (catches rendering errors)
 npx astro check      # TypeScript + template type checking
+npm run format:check # Prettier check (code/config scope only)
+npm run content:check # content quality gate = validate:posts + build
 ```
+
+## Format vs Content Quality (Level 3 split)
+
+To avoid MDX parser false positives while keeping quality signals trustworthy:
+
+- `npm run format:check` / `npm run format` now targets **code + config** only:
+  - `src/components/**/*.{astro,js,ts}`
+  - `src/layouts/**/*.{astro,js,ts}`
+  - `src/pages/**/*.{astro,js,ts}`
+  - `src/config/**/*.{js,ts}`
+  - `src/styles/**/*.css`
+  - `scripts/**/*.{js,mjs,cjs,ts}`
+  - root config files: `*.{mjs,cjs,ts}`
+- `src/content/posts/*.mdx` is checked by content-specific gates instead of Prettier.
+- Content command to run in CI/local:
+  - `npm run validate:posts` (frontmatter/content policy)
+  - `npm run build` (real render/build safety)
+  - or one-shot: `npm run content:check`
+
+Follow-up parser compatibility TODOs are tracked in `docs/mdx-format-todo.md`.
 
 ## Bundle Budget Flow
 

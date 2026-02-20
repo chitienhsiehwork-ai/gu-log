@@ -21,7 +21,13 @@ const percentage = Math.round((current / total) * 100);
     <span class="progress-level">⚔️ Level {current} / {total}</span>
     {title && <span class="progress-title">{title}</span>}
   </div>
-  <div class="progress-bar-track" role="progressbar" aria-valuenow={current} aria-valuemin={0} aria-valuemax={total}>
+  <div
+    class="progress-bar-track"
+    role="progressbar"
+    aria-valuenow={current}
+    aria-valuemin={0}
+    aria-valuemax={total}
+  >
     <div class="progress-bar-fill" style={`width: ${percentage}%`}></div>
   </div>
   <div class="progress-percentage">{percentage}% 完成</div>

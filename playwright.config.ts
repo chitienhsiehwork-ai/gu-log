@@ -8,24 +8,27 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: [
     ['list'],
-    ['monocart-reporter', {
-      name: 'gu-log Coverage Report',
-      outputFile: './quality/coverage/report.html',
-      coverage: {
-        reports: [
-          ['v8'],
-          ['console-details'],
-          ['json', { file: './quality/coverage/coverage.json' }]
-        ],
-        entryFilter: (entry: any) => {
-          // Only measure our own code, not node_modules or external
-          return entry.url.includes('/src/') || entry.url.includes('/scripts/');
+    [
+      'monocart-reporter',
+      {
+        name: 'gu-log Coverage Report',
+        outputFile: './quality/coverage/report.html',
+        coverage: {
+          reports: [
+            ['v8'],
+            ['console-details'],
+            ['json', { file: './quality/coverage/coverage.json' }],
+          ],
+          entryFilter: (entry: any) => {
+            // Only measure our own code, not node_modules or external
+            return entry.url.includes('/src/') || entry.url.includes('/scripts/');
+          },
+          sourceFilter: (sourcePath: string) => {
+            return !sourcePath.includes('node_modules');
+          },
         },
-        sourceFilter: (sourcePath: string) => {
-          return !sourcePath.includes('node_modules');
-        }
-      }
-    }]
+      },
+    ],
   ],
   use: {
     baseURL: 'http://localhost:4321',

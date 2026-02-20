@@ -83,9 +83,7 @@ const baseUrl = lang === 'en' ? '/en/posts/' : '/posts/';
             <span class="nav-direction">{t.previous}</span>
             <span class="nav-post-title">{prevPost.data.title}</span>
             <span class="nav-post-meta">
-              {prevPost.data.ticketId && (
-                <TicketBadge ticketId={prevPost.data.ticketId} />
-              )}
+              {prevPost.data.ticketId && <TicketBadge ticketId={prevPost.data.ticketId} />}
               <span class="nav-post-date">{formatDate(prevPost.data.originalDate, lang)}</span>
             </span>
           </a>
@@ -105,9 +103,7 @@ const baseUrl = lang === 'en' ? '/en/posts/' : '/posts/';
             <span class="nav-direction">{t.next}</span>
             <span class="nav-post-title">{nextPost.data.title}</span>
             <span class="nav-post-meta">
-              {nextPost.data.ticketId && (
-                <TicketBadge ticketId={nextPost.data.ticketId} />
-              )}
+              {nextPost.data.ticketId && <TicketBadge ticketId={nextPost.data.ticketId} />}
               <span class="nav-post-date">{formatDate(nextPost.data.originalDate, lang)}</span>
             </span>
           </a>

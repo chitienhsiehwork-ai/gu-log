@@ -12,29 +12,29 @@
  * as "possibly unmaintained".
  */
 
-import { execSync } from "node:child_process";
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
-import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
-import { setTimeout as sleep } from "node:timers/promises";
+import { execSync } from 'node:child_process';
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { setTimeout as sleep } from 'node:timers/promises';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT = join(__dirname, "..");
-const QUALITY = join(ROOT, "quality");
-const RULES_PATH = join(QUALITY, "dependency-rules.json");
-const BASELINE_PATH = join(QUALITY, "dependency-freshness-baseline.json");
-const HISTORY_PATH = join(QUALITY, "dependency-freshness-history.json");
+const ROOT = join(__dirname, '..');
+const QUALITY = join(ROOT, 'quality');
+const RULES_PATH = join(QUALITY, 'dependency-rules.json');
+const BASELINE_PATH = join(QUALITY, 'dependency-freshness-baseline.json');
+const HISTORY_PATH = join(QUALITY, 'dependency-freshness-history.json');
 
-const verbose = process.argv.includes("--verbose");
+const verbose = process.argv.includes('--verbose');
 
 /* ── helpers ─────────────────────────────────────────────────────── */
 
 function run(cmd) {
   try {
-    return execSync(cmd, { cwd: ROOT, encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] });
+    return execSync(cmd, { cwd: ROOT, encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] });
   } catch (e) {
     // pnpm outdated exits 1 when there ARE outdated packages – that's fine
-    return e.stdout || "";
+    return e.stdout || '';
   }
 }
 
@@ -48,17 +48,17 @@ function semverParts(v) {
 function classifyVersion(current, latest) {
   const c = semverParts(current);
   const l = semverParts(latest);
-  if (!c || !l) return "fresh"; // can't compare → assume fresh
-  if (l.major > c.major) return "outdated";
-  if (l.minor > c.minor) return "stale";
-  return "fresh"; // same or only patch diff
+  if (!c || !l) return 'fresh'; // can't compare → assume fresh
+  if (l.major > c.major) return 'outdated';
+  if (l.minor > c.minor) return 'stale';
+  return 'fresh'; // same or only patch diff
 }
 
 async function npmView(pkg, field) {
   try {
     const raw = execSync(`npm view ${pkg} ${field} --json 2>/dev/null`, {
-      encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"],
+      encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'pipe'],
     });
     return JSON.parse(raw);
   } catch {
@@ -69,8 +69,8 @@ async function npmView(pkg, field) {
 async function isDeprecated(pkg) {
   try {
     const raw = execSync(`npm view ${pkg} deprecated 2>/dev/null`, {
-      encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"],
+      encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'pipe'],
     });
     return raw.trim().length > 0 ? raw.trim() : false;
   } catch {
@@ -79,12 +79,12 @@ async function isDeprecated(pkg) {
 }
 
 async function lastPublishDate(pkg) {
-  const time = await npmView(pkg, "time");
-  if (!time || typeof time !== "object") return null;
+  const time = await npmView(pkg, 'time');
+  if (!time || typeof time !== 'object') return null;
   // find the most recent version timestamp (skip "created" and "modified")
   let latest = null;
   for (const [key, val] of Object.entries(time)) {
-    if (key === "created" || key === "modified") continue;
+    if (key === 'created' || key === 'modified') continue;
     const d = new Date(val);
     if (!latest || d > latest) latest = d;
   }
@@ -95,7 +95,7 @@ async function lastPublishDate(pkg) {
 
 async function main() {
   // 1. Get outdated info
-  const outdatedRaw = run("pnpm outdated --json");
+  const outdatedRaw = run('pnpm outdated --json');
   let outdatedMap = {};
   try {
     outdatedMap = JSON.parse(outdatedRaw);
@@ -104,12 +104,12 @@ async function main() {
   }
 
   // 2. Get all direct dependencies
-  const lsRaw = run("pnpm ls --json --depth 0");
+  const lsRaw = run('pnpm ls --json --depth 0');
   let lsData;
   try {
     lsData = JSON.parse(lsRaw);
   } catch {
-    console.error("Failed to parse pnpm ls output");
+    console.error('Failed to parse pnpm ls output');
     process.exit(1);
   }
 
@@ -141,10 +141,12 @@ async function main() {
     // Check last publish date
     await sleep(200);
     const lastPub = await lastPublishDate(name);
-    const yearsAgo = lastPub ? (Date.now() - lastPub.getTime()) / (1000 * 60 * 60 * 24 * 365.25) : null;
+    const yearsAgo = lastPub
+      ? (Date.now() - lastPub.getTime()) / (1000 * 60 * 60 * 24 * 365.25)
+      : null;
     const possiblyUnmaintained = yearsAgo !== null && yearsAgo > 2;
 
-    if (deprecatedMsg) status = "deprecated";
+    if (deprecatedMsg) status = 'deprecated';
 
     counters[status]++;
     if (possiblyUnmaintained) counters.possiblyUnmaintained++;
@@ -157,12 +159,16 @@ async function main() {
       ...(deprecatedMsg ? { deprecatedMessage: deprecatedMsg } : {}),
       ...(lastPub ? { lastPublish: lastPub.toISOString().slice(0, 10) } : {}),
       ...(possiblyUnmaintained ? { possiblyUnmaintained: true } : {}),
-      dependencyType: outdatedInfo?.dependencyType || (root.dependencies?.[name] ? "dependencies" : "devDependencies"),
+      dependencyType:
+        outdatedInfo?.dependencyType ||
+        (root.dependencies?.[name] ? 'dependencies' : 'devDependencies'),
     };
 
-    const icon = { fresh: "🟢", stale: "🟡", outdated: "🔴", deprecated: "⛔" }[status];
-    if (verbose || status !== "fresh") {
-      console.log(`  ${icon} ${name}  ${current} → ${latest}${possiblyUnmaintained ? " ⚠️  possibly unmaintained" : ""}`);
+    const icon = { fresh: '🟢', stale: '🟡', outdated: '🔴', deprecated: '⛔' }[status];
+    if (verbose || status !== 'fresh') {
+      console.log(
+        `  ${icon} ${name}  ${current} → ${latest}${possiblyUnmaintained ? ' ⚠️  possibly unmaintained' : ''}`
+      );
     }
 
     details.push(entry);
@@ -180,26 +186,28 @@ async function main() {
   };
 
   // ── print summary ──
-  console.log("\n─── Dependency Freshness Report ───");
+  console.log('\n─── Dependency Freshness Report ───');
   console.log(`  Total:   ${report.total}`);
   console.log(`  🟢 Fresh:      ${report.fresh}`);
   console.log(`  🟡 Stale:      ${report.stale}`);
   console.log(`  🔴 Outdated:   ${report.outdated}`);
   console.log(`  ⛔ Deprecated: ${report.deprecated}`);
   console.log(`  ⚠️  Possibly unmaintained: ${report.possiblyUnmaintained}`);
-  console.log("───────────────────────────────────\n");
+  console.log('───────────────────────────────────\n');
 
   // ── save baseline ──
   mkdirSync(QUALITY, { recursive: true });
-  writeFileSync(BASELINE_PATH, JSON.stringify(report, null, 2) + "\n");
+  writeFileSync(BASELINE_PATH, JSON.stringify(report, null, 2) + '\n');
   console.log(`Baseline saved → ${BASELINE_PATH}`);
 
   // ── append history ──
   let history = [];
   if (existsSync(HISTORY_PATH)) {
     try {
-      history = JSON.parse(readFileSync(HISTORY_PATH, "utf-8"));
-    } catch { /* start fresh */ }
+      history = JSON.parse(readFileSync(HISTORY_PATH, 'utf-8'));
+    } catch {
+      /* start fresh */
+    }
   }
   history.push({
     date: report.date,
@@ -210,7 +218,7 @@ async function main() {
     deprecated: report.deprecated,
     possiblyUnmaintained: report.possiblyUnmaintained,
   });
-  writeFileSync(HISTORY_PATH, JSON.stringify(history, null, 2) + "\n");
+  writeFileSync(HISTORY_PATH, JSON.stringify(history, null, 2) + '\n');
   console.log(`History updated → ${HISTORY_PATH}`);
 
   // ── enforce rules ──
@@ -222,27 +230,36 @@ async function main() {
   };
   if (existsSync(RULES_PATH)) {
     try {
-      rules = JSON.parse(readFileSync(RULES_PATH, "utf-8"));
-    } catch { /* use defaults */ }
+      rules = JSON.parse(readFileSync(RULES_PATH, 'utf-8'));
+    } catch {
+      /* use defaults */
+    }
   }
 
   let exitCode = 0;
 
   if (rules.blockOnDeprecated && report.deprecated > 0) {
-    const depPkgs = details.filter((d) => d.status === "deprecated").map((d) => d.name);
-    console.error(`\n❌ BLOCKED: ${report.deprecated} deprecated package(s): ${depPkgs.join(", ")}`);
+    const depPkgs = details.filter((d) => d.status === 'deprecated').map((d) => d.name);
+    console.error(
+      `\n❌ BLOCKED: ${report.deprecated} deprecated package(s): ${depPkgs.join(', ')}`
+    );
     exitCode = 2;
   }
 
-  const outdatedPercent = report.total > 0 ? ((report.outdated / report.total) * 100).toFixed(1) : 0;
+  const outdatedPercent =
+    report.total > 0 ? ((report.outdated / report.total) * 100).toFixed(1) : 0;
   if (rules.warnOnOutdated && outdatedPercent > rules.maxOutdatedPercent) {
-    console.warn(`\n⚠️  WARNING: ${outdatedPercent}% packages are outdated (budget: ${rules.maxOutdatedPercent}%)`);
+    console.warn(
+      `\n⚠️  WARNING: ${outdatedPercent}% packages are outdated (budget: ${rules.maxOutdatedPercent}%)`
+    );
     if (exitCode === 0) exitCode = 1;
   }
 
   if (report.possiblyUnmaintained > 0) {
-    const unmPkgs = details.filter((d) => d.possiblyUnmaintained).map((d) => `${d.name} (last: ${d.lastPublish})`);
-    console.warn(`\n⚠️  Possibly unmaintained: ${unmPkgs.join(", ")}`);
+    const unmPkgs = details
+      .filter((d) => d.possiblyUnmaintained)
+      .map((d) => `${d.name} (last: ${d.lastPublish})`);
+    console.warn(`\n⚠️  Possibly unmaintained: ${unmPkgs.join(', ')}`);
   }
 
   process.exit(exitCode);

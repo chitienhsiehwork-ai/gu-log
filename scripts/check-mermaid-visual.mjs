@@ -93,9 +93,7 @@ async function findMermaidFiles(specificFiles) {
   } else {
     // Scan all posts
     const allFiles = await readdir(POSTS_DIR);
-    candidates = allFiles
-      .filter((f) => f.endsWith('.mdx'))
-      .map((f) => path.join(POSTS_DIR, f));
+    candidates = allFiles.filter((f) => f.endsWith('.mdx')).map((f) => path.join(POSTS_DIR, f));
   }
 
   // Filter to only files that contain <Mermaid
@@ -176,9 +174,7 @@ async function judgeScreenshot(screenshotPath) {
     return text.trim();
   } catch (sdkError) {
     // Fallback: try claude -p with --input-format stream-json
-    console.warn(
-      `  ⚠️  SDK failed (${sdkError.message}), trying claude CLI fallback...`
-    );
+    console.warn(`  ⚠️  SDK failed (${sdkError.message}), trying claude CLI fallback...`);
     return judgeWithClaudeCli(base64Image);
   }
 }
@@ -265,18 +261,14 @@ async function main() {
   console.log('');
 
   // 1. Find files with Mermaid diagrams
-  const mermaidFiles = await findMermaidFiles(
-    files.length > 0 ? files : undefined
-  );
+  const mermaidFiles = await findMermaidFiles(files.length > 0 ? files : undefined);
 
   if (mermaidFiles.length === 0) {
     console.log('✅ No Mermaid diagrams found in target files.');
     process.exit(0);
   }
 
-  console.log(
-    `📄 Found ${mermaidFiles.length} file(s) with Mermaid diagrams:`
-  );
+  console.log(`📄 Found ${mermaidFiles.length} file(s) with Mermaid diagrams:`);
   for (const f of mermaidFiles) {
     const count = countMermaids(f);
     console.log(`   ${path.relative(REPO_ROOT, f)} (${count} diagram${count > 1 ? 's' : ''})`);
@@ -285,12 +277,8 @@ async function main() {
 
   // 2. Check API key availability
   if (!process.env.ANTHROPIC_API_KEY) {
-    console.warn(
-      '⚠️  ANTHROPIC_API_KEY not set. Will try claude CLI fallback.'
-    );
-    console.warn(
-      '   For best results: export ANTHROPIC_API_KEY=sk-ant-...'
-    );
+    console.warn('⚠️  ANTHROPIC_API_KEY not set. Will try claude CLI fallback.');
+    console.warn('   For best results: export ANTHROPIC_API_KEY=sk-ant-...');
     console.log('');
   }
 
@@ -466,9 +454,7 @@ async function main() {
     }
     console.log('');
     console.log('Screenshots saved to: .mermaid-screenshots/');
-    console.log(
-      'Tip: Consider making the diagram simpler or using a horizontal scroll layout.'
-    );
+    console.log('Tip: Consider making the diagram simpler or using a horizontal scroll layout.');
     process.exit(1);
   } else {
     console.log('✅ All Mermaid diagrams are mobile-readable!');

@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
  * Model name mapping for translatedBy.model field.
- * 
+ *
  * Usage in sub-agent task prompts:
  *   "Run `node scripts/detect-model.mjs` to get the correct model name for frontmatter"
- * 
+ *
  * Or import the mapping:
  *   import { formatModelName } from './scripts/detect-model.mjs';
  */
@@ -24,25 +24,23 @@ const MODEL_MAP = {
 };
 
 /**
- * Convert a full model identifier (e.g. "anthropic/claude-opus-4-6") 
+ * Convert a full model identifier (e.g. "anthropic/claude-opus-4-6")
  * to a human-friendly name (e.g. "Opus 4.6")
  */
 export function formatModelName(fullModelId) {
   if (!fullModelId) return 'Unknown';
-  
+
   // Strip provider prefix (e.g., "anthropic/")
-  const modelId = fullModelId.includes('/') 
-    ? fullModelId.split('/').pop() 
-    : fullModelId;
-  
+  const modelId = fullModelId.includes('/') ? fullModelId.split('/').pop() : fullModelId;
+
   // Direct match
   if (MODEL_MAP[modelId]) return MODEL_MAP[modelId];
-  
+
   // Partial match
   for (const [key, value] of Object.entries(MODEL_MAP)) {
     if (modelId.includes(key)) return value;
   }
-  
+
   // Fallback: return the model id cleaned up
   return modelId;
 }

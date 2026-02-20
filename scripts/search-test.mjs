@@ -23,13 +23,13 @@ const BASE_URL = process.argv[2] || 'https://gu-log.vercel.app';
 // Test pages for each language
 const TEST_PAGES = {
   'zh-tw': '/',
-  'en': '/en',
+  en: '/en',
 };
 
 // Search queries known to return results
 const SEARCH_QUERIES = {
   'zh-tw': 'Claude', // Should find posts about Claude
-  'en': 'Claude',
+  en: 'Claude',
 };
 
 // Query that should return no results

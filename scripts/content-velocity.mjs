@@ -45,9 +45,7 @@ function parseFrontmatter(content) {
   // Parse tags array
   const tagsMatch = raw.match(/tags:\s*\[([^\]]*)\]/);
   if (tagsMatch) {
-    fm.tags = tagsMatch[1]
-      .split(',')
-      .map(t => t.trim().replace(/^["']|["']$/g, ''));
+    fm.tags = tagsMatch[1].split(',').map((t) => t.trim().replace(/^["']|["']$/g, ''));
   }
 
   return fm;
@@ -79,8 +77,9 @@ function median(arr) {
 // ── Main ─────────────────────────────────────────────────────
 
 async function main() {
-  const files = (await readdir(POSTS_DIR))
-    .filter(f => f.endsWith('.mdx') && !f.startsWith('en-'));
+  const files = (await readdir(POSTS_DIR)).filter(
+    (f) => f.endsWith('.mdx') && !f.startsWith('en-')
+  );
 
   const posts = [];
 
@@ -125,16 +124,20 @@ async function main() {
   const avgPerWeek = weekCount ? +(totalPosts / weekCount).toFixed(2) : 0;
 
   // Recent counts
-  const last7 = posts.filter(p => {
+  const last7 = posts.filter((p) => {
     if (!p.translatedDate) return false;
-    return daysBetween(p.translatedDate, now.toISOString().slice(0, 10)) <= 7 &&
-           daysBetween(p.translatedDate, now.toISOString().slice(0, 10)) >= 0;
+    return (
+      daysBetween(p.translatedDate, now.toISOString().slice(0, 10)) <= 7 &&
+      daysBetween(p.translatedDate, now.toISOString().slice(0, 10)) >= 0
+    );
   }).length;
 
-  const last30 = posts.filter(p => {
+  const last30 = posts.filter((p) => {
     if (!p.translatedDate) return false;
-    return daysBetween(p.translatedDate, now.toISOString().slice(0, 10)) <= 30 &&
-           daysBetween(p.translatedDate, now.toISOString().slice(0, 10)) >= 0;
+    return (
+      daysBetween(p.translatedDate, now.toISOString().slice(0, 10)) <= 30 &&
+      daysBetween(p.translatedDate, now.toISOString().slice(0, 10)) >= 0
+    );
   }).length;
 
   // ── Type Distribution ──────────────────────────────────────
@@ -142,17 +145,35 @@ async function main() {
   const typeCount = { SP: 0, CP: 0, SD: 0, unknown: 0 };
 
   for (const p of posts) {
-    if (!p.ticketId) { typeCount.unknown++; continue; }
+    if (!p.ticketId) {
+      typeCount.unknown++;
+      continue;
+    }
     const prefix = p.ticketId.split('-')[0];
     if (prefix in typeCount) typeCount[prefix]++;
     else typeCount.unknown++;
   }
 
   const typeDistribution = {
-    SP: { count: typeCount.SP, pct: +((typeCount.SP / totalPosts) * 100).toFixed(1), label: 'ShroomDog Picks' },
-    CP: { count: typeCount.CP, pct: +((typeCount.CP / totalPosts) * 100).toFixed(1), label: 'Clawd Picks' },
-    SD: { count: typeCount.SD, pct: +((typeCount.SD / totalPosts) * 100).toFixed(1), label: 'ShroomDog Original' },
-    unknown: { count: typeCount.unknown, pct: +((typeCount.unknown / totalPosts) * 100).toFixed(1) },
+    SP: {
+      count: typeCount.SP,
+      pct: +((typeCount.SP / totalPosts) * 100).toFixed(1),
+      label: 'ShroomDog Picks',
+    },
+    CP: {
+      count: typeCount.CP,
+      pct: +((typeCount.CP / totalPosts) * 100).toFixed(1),
+      label: 'Clawd Picks',
+    },
+    SD: {
+      count: typeCount.SD,
+      pct: +((typeCount.SD / totalPosts) * 100).toFixed(1),
+      label: 'ShroomDog Original',
+    },
+    unknown: {
+      count: typeCount.unknown,
+      pct: +((typeCount.unknown / totalPosts) * 100).toFixed(1),
+    },
   };
 
   // ── Translation Delay ──────────────────────────────────────
@@ -166,7 +187,7 @@ async function main() {
 
   delays.sort((a, b) => a.delay - b.delay);
 
-  const delayValues = delays.map(d => d.delay);
+  const delayValues = delays.map((d) => d.delay);
   const avgDelay = delayValues.length
     ? +(delayValues.reduce((s, v) => s + v, 0) / delayValues.length).toFixed(1)
     : 0;
@@ -179,12 +200,12 @@ async function main() {
   let delayTrend = 'insufficient data';
   if (delays.length >= 4) {
     // Sort by translatedDate to see temporal trend
-    const byDate = [...delays].sort((a, b) =>
-      new Date(a.translatedDate) - new Date(b.translatedDate)
+    const byDate = [...delays].sort(
+      (a, b) => new Date(a.translatedDate) - new Date(b.translatedDate)
     );
     const mid = Math.floor(byDate.length / 2);
-    const firstHalf = byDate.slice(0, mid).map(d => d.delay);
-    const secondHalf = byDate.slice(mid).map(d => d.delay);
+    const firstHalf = byDate.slice(0, mid).map((d) => d.delay);
+    const secondHalf = byDate.slice(mid).map((d) => d.delay);
     const avgFirst = firstHalf.reduce((s, v) => s + v, 0) / firstHalf.length;
     const avgSecond = secondHalf.reduce((s, v) => s + v, 0) / secondHalf.length;
     if (avgSecond < avgFirst - 1) delayTrend = 'improving (getting faster)';
@@ -227,10 +248,20 @@ async function main() {
       avgDays: avgDelay,
       medianDays: medianDelay,
       fastest: fastest
-        ? { ticketId: fastest.ticketId, title: fastest.title, delay: fastest.delay, file: fastest.file }
+        ? {
+            ticketId: fastest.ticketId,
+            title: fastest.title,
+            delay: fastest.delay,
+            file: fastest.file,
+          }
         : null,
       slowest: slowest
-        ? { ticketId: slowest.ticketId, title: slowest.title, delay: slowest.delay, file: slowest.file }
+        ? {
+            ticketId: slowest.ticketId,
+            title: slowest.title,
+            delay: slowest.delay,
+            file: slowest.file,
+          }
         : null,
       trend: delayTrend,
     },
@@ -259,7 +290,9 @@ async function main() {
   console.log(`  CP (Clawd Picks):        ${typeCount.CP} (${typeDistribution.CP.pct}%)`);
   console.log(`  SD (ShroomDog Original): ${typeCount.SD} (${typeDistribution.SD.pct}%)`);
   if (typeCount.unknown > 0) {
-    console.log(`  Unknown:                 ${typeCount.unknown} (${typeDistribution.unknown.pct}%)`);
+    console.log(
+      `  Unknown:                 ${typeCount.unknown} (${typeDistribution.unknown.pct}%)`
+    );
   }
   console.log('');
 
@@ -267,20 +300,24 @@ async function main() {
   console.log(`  Posts with delay data: ${delays.length}`);
   console.log(`  Average delay:  ${avgDelay} days`);
   console.log(`  Median delay:   ${medianDelay} days`);
-  if (fastest) console.log(`  ⚡ Fastest: ${fastest.delay} day(s) — [${fastest.ticketId}] ${fastest.title}`);
-  if (slowest) console.log(`  🐢 Slowest: ${slowest.delay} day(s) — [${slowest.ticketId}] ${slowest.title}`);
+  if (fastest)
+    console.log(`  ⚡ Fastest: ${fastest.delay} day(s) — [${fastest.ticketId}] ${fastest.title}`);
+  if (slowest)
+    console.log(`  🐢 Slowest: ${slowest.delay} day(s) — [${slowest.ticketId}] ${slowest.title}`);
   console.log(`  📉 Trend: ${delayTrend}`);
   console.log('');
 
   console.log('── Model Usage ───────────────────────────────────────');
   for (const m of modelDistribution) {
     const bar = '█'.repeat(Math.max(1, Math.round(m.pct / 3)));
-    console.log(`  ${m.model.padEnd(20)} ${String(m.count).padStart(3)} (${String(m.pct).padStart(5)}%) ${bar}`);
+    console.log(
+      `  ${m.model.padEnd(20)} ${String(m.count).padStart(3)} (${String(m.pct).padStart(5)}%) ${bar}`
+    );
   }
   console.log('\n═══════════════════════════════════════════════════════════\n');
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error('❌ Error:', err);
   process.exit(1);
 });

@@ -57,7 +57,7 @@ function analyze() {
   const top10 = files
     .sort((a, b) => b.size - a.size)
     .slice(0, 10)
-    .map(f => ({ path: f.path, sizeKB: +(f.size / 1024).toFixed(2) }));
+    .map((f) => ({ path: f.path, sizeKB: +(f.size / 1024).toFixed(2) }));
 
   const toKB = (bytes) => +(bytes / 1024).toFixed(2);
 

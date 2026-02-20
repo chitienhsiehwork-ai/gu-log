@@ -4,11 +4,7 @@ module.exports = {
       // Use the built static files
       staticDistDir: './dist',
       // Test these URLs (relative paths)
-      url: [
-        '/',
-        '/posts/shroomdog-picks-20260212-karpathy-deepwiki-bacterial-code/',
-        '/en/',
-      ],
+      url: ['/', '/posts/shroomdog-picks-20260212-karpathy-deepwiki-bacterial-code/', '/en/'],
       numberOfRuns: 3, // Run 3 times for stability
     },
     assert: {

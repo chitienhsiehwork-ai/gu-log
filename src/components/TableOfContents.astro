@@ -24,7 +24,7 @@ interface Props {
 const { lang = 'zh-tw', headings = [], maxDepth = 3 } = Astro.props;
 
 // Filter headings by depth: h2 always included, h3 only if maxDepth >= 3
-const tocHeadings = headings.filter(h => h.depth >= 2 && h.depth <= maxDepth);
+const tocHeadings = headings.filter((h) => h.depth >= 2 && h.depth <= maxDepth);
 
 // Only show TOC if 2+ headings
 const showToc = tocHeadings.length >= 2;
@@ -33,60 +33,62 @@ const labels = {
   'zh-tw': {
     title: '目錄',
   },
-  'en': {
+  en: {
     title: 'Table of Contents',
-  }
+  },
 };
 
 const t = labels[lang];
 ---
 
-{showToc && (
-  <aside class="toc-container" aria-label={t.title}>
-    <!-- Mobile Toggle Version -->
-    <div class="toc-mobile">
-      <div class="toc-toggle-container" data-open="false">
-        <button class="toc-toggle-header" aria-expanded="false">
-          <span class="toc-toggle-icon"></span>
-          <span class="toc-toggle-title">{t.title}</span>
-        </button>
-        <div class="toc-toggle-wrapper">
-          <div class="toc-toggle-inner">
-            <nav class="toc-content">
-              {tocHeadings.map((heading) => (
-                <a 
-                  href={`#${heading.slug}`}
-                  class={`toc-link toc-link-h${heading.depth}`}
-                  data-heading-id={heading.slug}
-                >
-                  {heading.text}
-                </a>
-              ))}
-            </nav>
+{
+  showToc && (
+    <aside class="toc-container" aria-label={t.title}>
+      {/* Mobile Toggle Version */}
+      <div class="toc-mobile">
+        <div class="toc-toggle-container" data-open="false">
+          <button class="toc-toggle-header" aria-expanded="false">
+            <span class="toc-toggle-icon" />
+            <span class="toc-toggle-title">{t.title}</span>
+          </button>
+          <div class="toc-toggle-wrapper">
+            <div class="toc-toggle-inner">
+              <nav class="toc-content">
+                {tocHeadings.map((heading) => (
+                  <a
+                    href={`#${heading.slug}`}
+                    class={`toc-link toc-link-h${heading.depth}`}
+                    data-heading-id={heading.slug}
+                  >
+                    {heading.text}
+                  </a>
+                ))}
+              </nav>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Desktop Sidebar Version -->
-    <div class="toc-desktop">
-      <nav class="toc-sidebar">
-        <h2 class="toc-title">{t.title}</h2>
-        <div class="toc-content">
-          {tocHeadings.map((heading) => (
-            <a 
-              href={`#${heading.slug}`}
-              class={`toc-link toc-link-h${heading.depth}`}
-              data-heading-id={heading.slug}
-            >
-              {heading.text}
-            </a>
-          ))}
-        </div>
-      </nav>
-    </div>
-  </aside>
-)}
+      {/* Desktop Sidebar Version */}
+      <div class="toc-desktop">
+        <nav class="toc-sidebar">
+          <h2 class="toc-title">{t.title}</h2>
+          <div class="toc-content">
+            {tocHeadings.map((heading) => (
+              <a
+                href={`#${heading.slug}`}
+                class={`toc-link toc-link-h${heading.depth}`}
+                data-heading-id={heading.slug}
+              >
+                {heading.text}
+              </a>
+            ))}
+          </div>
+        </nav>
+      </div>
+    </aside>
+  )
+}
 
 <script>
   function initTableOfContents() {
@@ -95,8 +97,10 @@ const t = labels[lang];
 
     // Get all heading IDs from TOC links
     const tocLinks = Array.from(document.querySelectorAll('.toc-link'));
-    const headingIds = tocLinks.map(link => link.getAttribute('data-heading-id')).filter(Boolean);
-    const headings = headingIds.map(id => document.getElementById(id!)).filter(Boolean) as HTMLElement[];
+    const headingIds = tocLinks.map((link) => link.getAttribute('data-heading-id')).filter(Boolean);
+    const headings = headingIds
+      .map((id) => document.getElementById(id!))
+      .filter(Boolean) as HTMLElement[];
 
     if (headings.length === 0) return;
 
@@ -105,7 +109,7 @@ const t = labels[lang];
 
     // Set up smooth scrolling
     setupSmoothScroll();
-    
+
     // Note: Mobile toggle is handled by Toggle component's event delegation
   }
 
@@ -125,12 +129,12 @@ const t = labels[lang];
         }
       }
 
-      document.querySelectorAll('.toc-link').forEach(link => {
+      document.querySelectorAll('.toc-link').forEach((link) => {
         link.classList.remove('active');
       });
 
       if (currentHeading?.id) {
-        document.querySelectorAll(`[data-heading-id="${currentHeading.id}"]`).forEach(link => {
+        document.querySelectorAll(`[data-heading-id="${currentHeading.id}"]`).forEach((link) => {
           link.classList.add('active');
         });
       }
@@ -153,7 +157,7 @@ const t = labels[lang];
     const SCROLL_OFFSET = 80; // px offset from top to account for reading progress bar etc.
     const TOC_COLLAPSE_DURATION = 400; // ms — CSS transition is 300ms cubic-bezier + 100ms buffer
 
-    document.querySelectorAll('.toc-link').forEach(link => {
+    document.querySelectorAll('.toc-link').forEach((link) => {
       link.addEventListener('click', (e) => {
         e.preventDefault();
         const href = (e.currentTarget as HTMLElement)?.getAttribute('href');
@@ -161,19 +165,21 @@ const t = labels[lang];
 
         const targetId = href.replace('#', '');
         const target = document.getElementById(targetId);
-        
+
         if (target) {
           // CRITICAL: Close mobile TOC FIRST, then scroll AFTER collapse animation.
           // Bug: if we calculate scroll position while TOC is open (~683px tall),
           // then TOC collapses and page shrinks, the scroll target is off by the TOC height.
           const mobileContainer = document.querySelector('.toc-mobile .toc-toggle-container');
-          const isMobileOpen = window.innerWidth < 1280 && 
-            mobileContainer?.getAttribute('data-open') === 'true';
+          const isMobileOpen =
+            window.innerWidth < 1280 && mobileContainer?.getAttribute('data-open') === 'true';
 
           if (isMobileOpen) {
             // Close TOC first
             mobileContainer!.setAttribute('data-open', 'false');
-            mobileContainer!.querySelector('.toc-toggle-header')?.setAttribute('aria-expanded', 'false');
+            mobileContainer!
+              .querySelector('.toc-toggle-header')
+              ?.setAttribute('aria-expanded', 'false');
 
             // Wait for collapse animation to finish, THEN calculate position and scroll.
             // Use 'instant' on mobile: smooth scroll on very long pages often undershoots
@@ -201,7 +207,7 @@ const t = labels[lang];
 
     const toggleHeader = tocMobile.querySelector('.toc-toggle-header');
     const container = tocMobile.querySelector('.toc-toggle-container');
-    
+
     if (!toggleHeader || !container) return;
 
     toggleHeader.addEventListener('click', () => {
@@ -266,7 +272,7 @@ const t = labels[lang];
     flex-shrink: 0;
   }
 
-  .toc-toggle-container[data-open="true"] .toc-toggle-icon {
+  .toc-toggle-container[data-open='true'] .toc-toggle-icon {
     transform: rotate(90deg);
   }
 
@@ -282,7 +288,7 @@ const t = labels[lang];
     transition: grid-template-rows 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  .toc-toggle-container[data-open="true"] .toc-toggle-wrapper {
+  .toc-toggle-container[data-open='true'] .toc-toggle-wrapper {
     grid-template-rows: 1fr;
   }
 

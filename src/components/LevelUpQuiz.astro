@@ -40,16 +40,14 @@ const quizId = `quiz-${Math.random().toString(36).slice(2, 9)}`;
   </div>
   <p class="quiz-question">{question}</p>
   <div class="quiz-options">
-    {options.map((opt) => (
-      <button
-        class="quiz-option"
-        data-label={opt.label}
-        type="button"
-      >
-        <span class="option-label">{opt.label}</span>
-        <span class="option-text">{opt.text}</span>
-      </button>
-    ))}
+    {
+      options.map((opt) => (
+        <button class="quiz-option" data-label={opt.label} type="button">
+          <span class="option-label">{opt.label}</span>
+          <span class="option-text">{opt.text}</span>
+        </button>
+      ))
+    }
   </div>
   <div class="quiz-result" aria-live="polite">
     <div class="result-correct" hidden>
@@ -158,7 +156,9 @@ const quizId = `quiz-${Math.random().toString(36).slice(2, 9)}`;
     font-size: 0.95rem;
     cursor: pointer;
     text-align: left;
-    transition: border-color 0.2s, background 0.2s;
+    transition:
+      border-color 0.2s,
+      background 0.2s;
     -webkit-tap-highlight-color: transparent;
     min-height: 48px; /* Touch-friendly */
   }
@@ -264,8 +264,14 @@ const quizId = `quiz-${Math.random().toString(36).slice(2, 9)}`;
   }
 
   @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-4px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   /* Mobile touch targets */

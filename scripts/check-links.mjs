@@ -46,8 +46,8 @@ const SKIP_PATTERNS = [
   /^javascript:/,
   /^#/,
   /^data:/,
-  /^\{\{/,       // template expressions
-  /^\$\{/,       // template literals
+  /^\{\{/, // template expressions
+  /^\$\{/, // template literals
 ];
 
 // ── Link Extraction ──────────────────────────────────────────────
@@ -59,7 +59,7 @@ function extractLinks(content, filePath) {
   function add(url, type, context) {
     // Clean up URL
     url = url.trim().replace(/[)>]+$/, '');
-    if (!url || SKIP_PATTERNS.some(p => p.test(url))) return;
+    if (!url || SKIP_PATTERNS.some((p) => p.test(url))) return;
     const key = `${url}|${filePath}`;
     if (seen.has(key)) return;
     seen.add(key);
@@ -68,8 +68,8 @@ function extractLinks(content, filePath) {
 
   // Strip fenced code blocks and inline code to avoid false positives
   const stripped = content
-    .replace(/```[\s\S]*?```/g, '')   // fenced code blocks
-    .replace(/`[^`\n]+`/g, '');       // inline code
+    .replace(/```[\s\S]*?```/g, '') // fenced code blocks
+    .replace(/`[^`\n]+`/g, ''); // inline code
 
   // 1. Frontmatter sourceUrl (use original content for frontmatter)
   const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
@@ -107,7 +107,7 @@ function isInternalLink(url) {
 function isManualCheckDomain(url) {
   try {
     const hostname = new URL(url).hostname;
-    return MANUAL_CHECK_DOMAINS.some(d => hostname === d || hostname.endsWith('.' + d));
+    return MANUAL_CHECK_DOMAINS.some((d) => hostname === d || hostname.endsWith('.' + d));
   } catch {
     return false;
   }
@@ -138,7 +138,7 @@ function checkInternalLink(url) {
     join(DIST_DIR, path + '.html'),
   ];
 
-  return candidates.some(c => existsSync(c));
+  return candidates.some((c) => existsSync(c));
 }
 
 // ── External Link Validation (with rate limiting) ────────────────
@@ -152,10 +152,10 @@ class RateLimiter {
 
   async wait() {
     const now = Date.now();
-    this.timestamps = this.timestamps.filter(t => t > now - this.windowMs);
+    this.timestamps = this.timestamps.filter((t) => t > now - this.windowMs);
     if (this.timestamps.length >= this.maxPerWindow) {
       const waitTime = this.timestamps[0] + this.windowMs - now;
-      await new Promise(r => setTimeout(r, waitTime));
+      await new Promise((r) => setTimeout(r, waitTime));
     }
     this.timestamps.push(Date.now());
   }
@@ -172,8 +172,9 @@ async function checkExternalLink(url, retries = MAX_RETRIES) {
   try {
     // Try HEAD first, fall back to GET if HEAD fails with 405
     const headers = {
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      'User-Agent':
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
       'Accept-Language': 'en-US,en;q=0.5',
     };
 
@@ -207,7 +208,7 @@ async function checkExternalLink(url, retries = MAX_RETRIES) {
 
     // Retry on server errors
     if (res.status >= 500 && retries > 0) {
-      await new Promise(r => setTimeout(r, 2000));
+      await new Promise((r) => setTimeout(r, 2000));
       return checkExternalLink(url, retries - 1);
     }
 
@@ -216,13 +217,13 @@ async function checkExternalLink(url, retries = MAX_RETRIES) {
     clearTimeout(timeout);
     if (err.name === 'AbortError' || err.code === 'ABORT_ERR') {
       if (retries > 0) {
-        await new Promise(r => setTimeout(r, 2000));
+        await new Promise((r) => setTimeout(r, 2000));
         return checkExternalLink(url, retries - 1);
       }
       return { status: 'timeout', error: 'Request timed out' };
     }
     if (retries > 0) {
-      await new Promise(r => setTimeout(r, 2000));
+      await new Promise((r) => setTimeout(r, 2000));
       return checkExternalLink(url, retries - 1);
     }
     return { status: 'broken', error: err.message };
@@ -244,7 +245,7 @@ async function main() {
   }
 
   // Scan all MDX files
-  const files = (await readdir(POSTS_DIR)).filter(f => f.endsWith('.mdx'));
+  const files = (await readdir(POSTS_DIR)).filter((f) => f.endsWith('.mdx'));
   console.log(`📄 Scanning ${files.length} MDX files...\n`);
 
   // Extract all links
@@ -258,10 +259,10 @@ async function main() {
   console.log(`🔍 Found ${allLinks.length} total links\n`);
 
   // Classify
-  const internal = allLinks.filter(l => isInternalLink(l.url));
-  const external = allLinks.filter(l => !isInternalLink(l.url));
-  const manualCheck = external.filter(l => isManualCheckDomain(l.url));
-  const autoCheck = external.filter(l => !isManualCheckDomain(l.url));
+  const internal = allLinks.filter((l) => isInternalLink(l.url));
+  const external = allLinks.filter((l) => !isInternalLink(l.url));
+  const manualCheck = external.filter((l) => isManualCheckDomain(l.url));
+  const autoCheck = external.filter((l) => !isManualCheckDomain(l.url));
 
   console.log(`  📁 Internal: ${internal.length}`);
   console.log(`  🌐 External (auto-check): ${autoCheck.length}`);
@@ -312,7 +313,9 @@ async function main() {
   console.log(`\n${'═'.repeat(50)}`);
   console.log('📊 Results:');
   console.log(`  Internal: ✅ ${internalOk.length} OK, ❌ ${internalBroken.length} broken`);
-  console.log(`  External: ✅ ${externalOk.length} OK, ❌ ${externalBroken.length} broken, ⏰ ${externalTimeout.length} timeout, 🔒 ${manualCheck.length} manual`);
+  console.log(
+    `  External: ✅ ${externalOk.length} OK, ❌ ${externalBroken.length} broken, ⏰ ${externalTimeout.length} timeout, 🔒 ${manualCheck.length} manual`
+  );
 
   if (internalBroken.length > 0) {
     console.log('\n🚨 Broken Internal Links:');
@@ -324,7 +327,9 @@ async function main() {
   if (externalBroken.length > 0) {
     console.log('\n⚠️  Broken External Links:');
     for (const l of externalBroken) {
-      console.log(`  - [${l.statusCode || 'ERR'}] ${l.url} (${l.file})${l.error ? ` — ${l.error}` : ''}`);
+      console.log(
+        `  - [${l.statusCode || 'ERR'}] ${l.url} (${l.file})${l.error ? ` — ${l.error}` : ''}`
+      );
     }
   }
 
@@ -343,7 +348,9 @@ async function main() {
       try {
         const d = new URL(l.url).hostname;
         byDomain[d] = (byDomain[d] || 0) + 1;
-      } catch { /* skip */ }
+      } catch {
+        /* skip */
+      }
     }
     for (const [domain, count] of Object.entries(byDomain).sort((a, b) => b[1] - a[1])) {
       console.log(`  - ${domain}: ${count} links`);
@@ -357,19 +364,19 @@ async function main() {
     total: allLinks.length,
     internal: {
       ok: internalOk.length,
-      broken: internalBroken.map(l => ({ url: l.url, file: l.file, context: l.context })),
+      broken: internalBroken.map((l) => ({ url: l.url, file: l.file, context: l.context })),
     },
     external: {
       ok: externalOk.length,
-      broken: externalBroken.map(l => ({
+      broken: externalBroken.map((l) => ({
         url: l.url,
         file: l.file,
         context: l.context,
         statusCode: l.statusCode,
         error: l.error,
       })),
-      timeout: externalTimeout.map(l => ({ url: l.url, file: l.file, context: l.context })),
-      needsManualCheck: manualCheck.map(l => ({ url: l.url, file: l.file, context: l.context })),
+      timeout: externalTimeout.map((l) => ({ url: l.url, file: l.file, context: l.context })),
+      needsManualCheck: manualCheck.map((l) => ({ url: l.url, file: l.file, context: l.context })),
     },
   };
 
@@ -393,7 +400,7 @@ async function main() {
   }
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error('Fatal error:', err);
   process.exit(2);
 });

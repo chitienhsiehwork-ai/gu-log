@@ -19,9 +19,13 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
 <script is:inline define:vars={{ apiUrl, lang }}>
   const JWT_KEY = 'gu-log-jwt';
   const RETURN_KEY = 'gu-log-return-url';
-  
+
   function getJwt() {
-    try { return localStorage.getItem(JWT_KEY); } catch (_error) { return null; }
+    try {
+      return localStorage.getItem(JWT_KEY);
+    } catch (_error) {
+      return null;
+    }
   }
 
   function parseJwt(token) {
@@ -29,7 +33,9 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
       const base64 = token.split('.')[1];
       const json = atob(base64.replace(/-/g, '+').replace(/_/g, '/'));
       return JSON.parse(json);
-    } catch (_error) { return null; }
+    } catch (_error) {
+      return null;
+    }
   }
 
   function render() {
@@ -53,7 +59,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
           <button id="cta-logout-btn" class="cta-logout">[${lang === 'en' ? 'Logout' : 'Logout'}]</button>
         </div>
       `;
-      
+
       // Use setTimeout to ensure DOM is updated
       setTimeout(() => {
         document.getElementById('cta-logout-btn')?.addEventListener('click', () => {
@@ -98,7 +104,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
 
   // Run on load
   render();
-  
+
   // Re-run if localStorage changes (e.g. from another tab)
   window.addEventListener('storage', (e) => {
     if (e.key === JWT_KEY) render();
@@ -111,7 +117,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
     max-width: 600px;
     padding: 0 1rem;
   }
-  
+
   .login-cta-card {
     border: 1px solid var(--color-border);
     border-radius: 12px;
@@ -121,44 +127,44 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
     gap: 1rem;
     align-items: flex-start;
   }
-  
+
   .login-cta-icon {
     font-size: 2rem;
     line-height: 1;
   }
-  
+
   .login-cta-content {
     flex: 1;
   }
-  
+
   .cta-title {
     font-weight: 600;
     font-size: 1.1rem;
     margin-bottom: 0.5rem;
     color: var(--color-text);
   }
-  
+
   .cta-desc {
     font-size: 0.95rem;
     color: var(--color-text-muted);
     margin-bottom: 1rem;
   }
-  
+
   .cta-features {
     list-style: none;
     padding: 0;
     margin: 0.5rem 0 0 0;
   }
-  
+
   .cta-features li {
     margin-bottom: 0.25rem;
   }
-  
+
   .cta-action {
     margin-top: 1rem;
     text-align: center;
   }
-  
+
   .github-login-btn {
     display: inline-flex;
     align-items: center;
@@ -170,29 +176,31 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
     text-decoration: none;
     font-weight: 600;
     font-size: 0.95rem;
-    transition: background-color 0.2s, transform 0.1s;
+    transition:
+      background-color 0.2s,
+      transform 0.1s;
   }
-  
+
   .github-login-btn:hover {
     background-color: #000;
     text-decoration: none;
     transform: translateY(-1px);
   }
-  
-  [data-theme="dark"] .github-login-btn {
+
+  [data-theme='dark'] .github-login-btn {
     background-color: #f0f6fc; /* GitHub light */
     color: #24292e;
   }
 
-  [data-theme="dark"] .github-login-btn:hover {
+  [data-theme='dark'] .github-login-btn:hover {
     background-color: #ffffff;
   }
-  
+
   .cta-status {
     color: var(--color-text-muted);
     font-size: 0.9rem;
   }
-  
+
   .cta-logout {
     background: none;
     border: none;
@@ -202,7 +210,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
     padding: 0;
     margin-left: 0.5rem;
   }
-  
+
   @media (max-width: 600px) {
     .login-cta-container {
       max-width: 100%;

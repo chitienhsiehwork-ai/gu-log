@@ -17,7 +17,7 @@ const HISTORY_PATH = join(ROOT, 'quality', 'bundle-size-history.json');
 
 const args = process.argv.slice(2);
 const isRecordMode = args.includes('--record');
-const hasUnknownArgs = args.some(arg => arg !== '--record');
+const hasUnknownArgs = args.some((arg) => arg !== '--record');
 
 if (hasUnknownArgs) {
   console.error('Unknown arguments. Usage: node scripts/bundle-budget-check.mjs [--record]');
@@ -52,7 +52,9 @@ if (budget.singleFileMaxKB !== null) {
   for (const file of sizes.top10LargestFiles) {
     const ext = file.path.split('.').pop().toLowerCase();
     if (['js', 'mjs', 'css'].includes(ext) && file.sizeKB > budget.singleFileMaxKB) {
-      violations.push(`File "${file.path}" (${file.sizeKB} KB) exceeds single-file budget ${budget.singleFileMaxKB} KB`);
+      violations.push(
+        `File "${file.path}" (${file.sizeKB} KB) exceeds single-file budget ${budget.singleFileMaxKB} KB`
+      );
     }
   }
 }

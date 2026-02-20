@@ -235,16 +235,23 @@ async function main() {
   const suggestionsPath = join(ROOT, 'quality', 'broken-links-annotations.json');
   const { mkdir } = await import('node:fs/promises');
   await mkdir(join(ROOT, 'quality'), { recursive: true });
-  await writeFile(suggestionsPath, JSON.stringify({
-    date: today,
-    applied: apply,
-    files: modifiedFiles,
-    suggestions,
-  }, null, 2) + '\n');
+  await writeFile(
+    suggestionsPath,
+    JSON.stringify(
+      {
+        date: today,
+        applied: apply,
+        files: modifiedFiles,
+        suggestions,
+      },
+      null,
+      2
+    ) + '\n'
+  );
   console.log(`\n💾 Suggestions saved to quality/broken-links-annotations.json`);
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error('Fatal error:', err);
   process.exit(1);
 });

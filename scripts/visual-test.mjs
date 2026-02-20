@@ -3,10 +3,10 @@
 /**
  * Visual regression test with programmatic UI checks
  * Takes screenshots and verifies critical UI elements
- * 
+ *
  * Usage: node scripts/visual-test.mjs [base-url] [post-path]
  * Default: https://gu-log.vercel.app /posts/recursive-language-models-mit
- * 
+ *
  * Exit codes:
  *   0 = PASS (all checks passed)
  *   1 = FAIL (UI issues detected)
@@ -32,26 +32,29 @@ async function checkPage(page, viewport) {
   // 1. Check ClawdNote elements
   const clawdNotes = page.locator('blockquote.claude-note');
   const clawdNoteCount = await clawdNotes.count();
-  
+
   if (clawdNoteCount === 0) {
-    issues.push({ severity: 'WARNING', description: 'No ClawdNote found on page (might be below fold)' });
+    issues.push({
+      severity: 'WARNING',
+      description: 'No ClawdNote found on page (might be below fold)',
+    });
   } else {
     checks.push(`✓ Found ${clawdNoteCount} ClawdNote(s)`);
-    
+
     // Check if ClawdNotes have the prefix and collect them for variety check
     const prefixTexts = [];
     for (let i = 0; i < Math.min(clawdNoteCount, 5); i++) {
       const note = clawdNotes.nth(i);
       const prefix = note.locator('.clawd-prefix');
-      const hasPrefix = await prefix.count() > 0;
-      
+      const hasPrefix = (await prefix.count()) > 0;
+
       if (!hasPrefix) {
         // Check if content starts with "Clawd"
         const text = await note.textContent();
         if (!text.includes('Clawd')) {
-          issues.push({ 
-            severity: 'CRITICAL', 
-            description: `ClawdNote #${i + 1} missing "Clawd" attribution` 
+          issues.push({
+            severity: 'CRITICAL',
+            description: `ClawdNote #${i + 1} missing "Clawd" attribution`,
           });
         }
       } else {
@@ -60,35 +63,34 @@ async function checkPage(page, viewport) {
         checks.push(`✓ ClawdNote #${i + 1} has prefix: "${prefixText.trim()}"`);
       }
     }
-    
+
     // Check prefix variety - if 3+ ClawdNotes, they shouldn't ALL be identical
     if (prefixTexts.length >= 3) {
       const uniquePrefixes = new Set(prefixTexts);
       if (uniquePrefixes.size === 1) {
         issues.push({
           severity: 'CRITICAL',
-          description: `All ${prefixTexts.length} ClawdNotes have identical prefix "${prefixTexts[0]}" - needs variety!`
+          description: `All ${prefixTexts.length} ClawdNotes have identical prefix "${prefixTexts[0]}" - needs variety!`,
         });
       } else {
         checks.push(`✓ ClawdNote prefixes have variety (${uniquePrefixes.size} unique)`);
       }
     }
-    
+
     // Check orange border (computed style)
     const firstNote = clawdNotes.first();
-    const borderColor = await firstNote.evaluate(el => 
-      getComputedStyle(el).borderLeftColor
-    );
-    
+    const borderColor = await firstNote.evaluate((el) => getComputedStyle(el).borderLeftColor);
+
     // Check if it's orange-ish (RGB values)
-    const isOrange = borderColor.includes('203') || // #cb7551
-                     borderColor.includes('orange') ||
-                     borderColor.includes('rgb(203');
-    
+    const isOrange =
+      borderColor.includes('203') || // #cb7551
+      borderColor.includes('orange') ||
+      borderColor.includes('rgb(203');
+
     if (!isOrange) {
-      issues.push({ 
-        severity: 'WARNING', 
-        description: `ClawdNote border color might not be orange: ${borderColor}` 
+      issues.push({
+        severity: 'WARNING',
+        description: `ClawdNote border color might not be orange: ${borderColor}`,
       });
     } else {
       checks.push(`✓ ClawdNote has orange border`);
@@ -98,11 +100,14 @@ async function checkPage(page, viewport) {
   // 2. Check TOC (Table of Contents)
   if (viewport.checkTocVisible) {
     const toc = page.locator('[class*="toc"], nav[aria-label*="目錄"], aside:has(nav)');
-    const tocVisible = await toc.first().isVisible().catch(() => false);
-    
+    const tocVisible = await toc
+      .first()
+      .isVisible()
+      .catch(() => false);
+
     if (tocVisible) {
       checks.push(`✓ TOC is visible on desktop`);
-      
+
       // Check TOC has links
       const tocLinks = toc.first().locator('a');
       const linkCount = await tocLinks.count();
@@ -114,12 +119,15 @@ async function checkPage(page, viewport) {
     } else {
       // TOC might be in a collapsible component
       const tocButton = page.locator('button:has-text("目錄")');
-      const hasTocButton = await tocButton.count() > 0;
-      
+      const hasTocButton = (await tocButton.count()) > 0;
+
       if (hasTocButton) {
         checks.push(`✓ TOC is collapsible (has button)`);
       } else {
-        issues.push({ severity: 'WARNING', description: 'TOC not visible on desktop (might be OK for short articles)' });
+        issues.push({
+          severity: 'WARNING',
+          description: 'TOC not visible on desktop (might be OK for short articles)',
+        });
       }
     }
   }
@@ -127,18 +135,18 @@ async function checkPage(page, viewport) {
   // 3. Check headings have IDs (for anchor links) - only content headings, not TOC title
   const h2Headings = page.locator('article h2:not(.toc-title)');
   const h2Count = await h2Headings.count();
-  
+
   if (h2Count > 0) {
     let missingIds = 0;
     for (let i = 0; i < h2Count; i++) {
       const id = await h2Headings.nth(i).getAttribute('id');
       if (!id) missingIds++;
     }
-    
+
     if (missingIds > 0) {
-      issues.push({ 
-        severity: 'WARNING', 
-        description: `${missingIds}/${h2Count} h2 headings missing ID attribute (TOC links may not work)` 
+      issues.push({
+        severity: 'WARNING',
+        description: `${missingIds}/${h2Count} h2 headings missing ID attribute (TOC links may not work)`,
       });
     } else {
       checks.push(`✓ All ${h2Count} h2 headings have IDs`);
@@ -148,7 +156,7 @@ async function checkPage(page, viewport) {
   // 4. Check for Chinese text rendering (no tofu/boxes)
   const articleText = await page.locator('article').textContent();
   const hasChineseChars = /[\u4e00-\u9fff]/.test(articleText);
-  
+
   if (hasChineseChars) {
     checks.push(`✓ Chinese characters present`);
   }
@@ -156,16 +164,17 @@ async function checkPage(page, viewport) {
   // 5. Check code blocks have proper styling
   const codeBlocks = page.locator('pre code, pre');
   const codeBlockCount = await codeBlocks.count();
-  
+
   if (codeBlockCount > 0) {
     const firstCode = codeBlocks.first();
-    const bgColor = await firstCode.evaluate(el => 
-      getComputedStyle(el).backgroundColor
-    );
-    
+    const bgColor = await firstCode.evaluate((el) => getComputedStyle(el).backgroundColor);
+
     // Should have some background color (not transparent)
     if (bgColor === 'rgba(0, 0, 0, 0)' || bgColor === 'transparent') {
-      issues.push({ severity: 'WARNING', description: 'Code blocks may not have background styling' });
+      issues.push({
+        severity: 'WARNING',
+        description: 'Code blocks may not have background styling',
+      });
     } else {
       checks.push(`✓ Code blocks have background color`);
     }
@@ -174,11 +183,12 @@ async function checkPage(page, viewport) {
   // 6. Check no horizontal overflow
   const bodyWidth = await page.evaluate(() => document.body.scrollWidth);
   const viewportWidth = viewport.width;
-  
-  if (bodyWidth > viewportWidth + 10) { // 10px tolerance
-    issues.push({ 
-      severity: 'CRITICAL', 
-      description: `Page has horizontal overflow: body ${bodyWidth}px > viewport ${viewportWidth}px` 
+
+  if (bodyWidth > viewportWidth + 10) {
+    // 10px tolerance
+    issues.push({
+      severity: 'CRITICAL',
+      description: `Page has horizontal overflow: body ${bodyWidth}px > viewport ${viewportWidth}px`,
     });
   } else {
     checks.push(`✓ No horizontal overflow`);
@@ -194,19 +204,19 @@ async function run() {
   const url = `${BASE_URL}${TEST_PATH}`;
 
   console.log(`\n📸 Visual UI test — ${url}\n`);
-  
+
   const allResults = [];
   let hasFailure = false;
 
   for (const vp of VIEWPORTS) {
     console.log(`\n📱 Testing ${vp.name} (${vp.width}x${vp.height})...`);
-    
+
     const context = await browser.newContext({
       viewport: { width: vp.width, height: vp.height },
       deviceScaleFactor: 1,
     });
     const page = await context.newPage();
-    
+
     try {
       await page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });
       await page.waitForTimeout(500);
@@ -218,27 +228,26 @@ async function run() {
 
       // Run checks
       const { checks, issues } = await checkPage(page, vp);
-      
+
       // Print checks
       for (const check of checks) {
         console.log(`  ${check}`);
       }
-      
+
       // Print issues
-      const criticalIssues = issues.filter(i => i.severity === 'CRITICAL');
-      const warnings = issues.filter(i => i.severity === 'WARNING');
-      
+      const criticalIssues = issues.filter((i) => i.severity === 'CRITICAL');
+      const warnings = issues.filter((i) => i.severity === 'WARNING');
+
       for (const issue of criticalIssues) {
         console.log(`  🚨 [CRITICAL] ${issue.description}`);
         hasFailure = true;
       }
-      
+
       for (const issue of warnings) {
         console.log(`  ⚠️ [WARNING] ${issue.description}`);
       }
-      
+
       allResults.push({ viewport: vp.name, checks, issues });
-      
     } catch (err) {
       console.log(`  ❌ Error: ${err.message}`);
       hasFailure = true;
@@ -249,7 +258,7 @@ async function run() {
   }
 
   await browser.close();
-  
+
   // Write report
   const reportPath = path.join(REPORT_DIR, 'ui-check.json');
   await writeFile(reportPath, JSON.stringify(allResults, null, 2));
@@ -257,7 +266,7 @@ async function run() {
 
   // Final result
   console.log('\n' + '='.repeat(50));
-  
+
   if (hasFailure) {
     console.log('❌ VISUAL TEST FAILED');
     console.log('   Fix CRITICAL issues before committing.');

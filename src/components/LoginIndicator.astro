@@ -1,7 +1,7 @@
 ---
 /**
  * LoginIndicator Component
- * 
+ *
  * Shows login state in the header navigation.
  * - Logged in: shows user email + logout button
  * - Logged out: shows "Login with GitHub" link
@@ -27,74 +27,83 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
 </span>
 
 <script is:inline>
-(function() {
-  'use strict';
+  (function () {
+    'use strict';
 
-  const JWT_KEY = 'gu-log-jwt';
-  const RETURN_KEY = 'gu-log-return-url';
+    const JWT_KEY = 'gu-log-jwt';
+    const RETURN_KEY = 'gu-log-return-url';
 
-  const el = document.getElementById('login-indicator');
-  if (!el) return;
+    const el = document.getElementById('login-indicator');
+    if (!el) return;
 
-  const apiUrl = el.getAttribute('data-api-url') || '';
-  const lang = el.getAttribute('data-lang') || 'zh-tw';
+    const apiUrl = el.getAttribute('data-api-url') || '';
+    const lang = el.getAttribute('data-lang') || 'zh-tw';
 
-  function getJwt() {
-    try { return localStorage.getItem(JWT_KEY); } catch (_error) { return null; }
-  }
-
-  function parseJwt(token) {
-    try {
-      const base64 = token.split('.')[1];
-      const json = atob(base64.replace(/-/g, '+').replace(/_/g, '/'));
-      return JSON.parse(json);
-    } catch (_error) {
-      return null;
+    function getJwt() {
+      try {
+        return localStorage.getItem(JWT_KEY);
+      } catch (_error) {
+        return null;
+      }
     }
-  }
 
-  function render() {
-    const jwt = getJwt();
+    function parseJwt(token) {
+      try {
+        const base64 = token.split('.')[1];
+        const json = atob(base64.replace(/-/g, '+').replace(/_/g, '/'));
+        return JSON.parse(json);
+      } catch (_error) {
+        return null;
+      }
+    }
 
-    if (jwt) {
-      const payload = parseJwt(jwt);
-      const email = (payload && (payload.email || payload.login || payload.sub)) || '?';
+    function render() {
+      const jwt = getJwt();
 
-      el.innerHTML =
-        '<span class="login-user" title="' + email + '">' +
-          '👤 ' + (email.length > 16 ? email.substring(0, 14) + '…' : email) +
-        '</span>' +
-        '<button class="login-logout-btn" id="logout-btn" title="Logout">✕</button>';
+      if (jwt) {
+        const payload = parseJwt(jwt);
+        const email = (payload && (payload.email || payload.login || payload.sub)) || '?';
 
-      document.getElementById('logout-btn').addEventListener('click', function() {
-        try {
-          localStorage.removeItem(JWT_KEY);
-        } catch (_error) {
-          // Ignore storage failures (private mode / quota).
-        }
-        render();
-      });
-    } else {
-      const loginText = lang === 'en' ? 'Login' : 'Login';
-      el.innerHTML =
-        '<a class="login-link" href="' + apiUrl + '/auth/github" id="login-link">' +
+        el.innerHTML =
+          '<span class="login-user" title="' +
+          email +
+          '">' +
+          '👤 ' +
+          (email.length > 16 ? email.substring(0, 14) + '…' : email) +
+          '</span>' +
+          '<button class="login-logout-btn" id="logout-btn" title="Logout">✕</button>';
+
+        document.getElementById('logout-btn').addEventListener('click', function () {
+          try {
+            localStorage.removeItem(JWT_KEY);
+          } catch (_error) {
+            // Ignore storage failures (private mode / quota).
+          }
+          render();
+        });
+      } else {
+        const loginText = lang === 'en' ? 'Login' : 'Login';
+        el.innerHTML =
+          '<a class="login-link" href="' +
+          apiUrl +
+          '/auth/github" id="login-link">' +
           loginText +
-        '</a>';
+          '</a>';
 
-      document.getElementById('login-link').addEventListener('click', function() {
-        try {
-          localStorage.setItem(RETURN_KEY, window.location.href);
-        } catch (_error) {
-          // Ignore storage failures (private mode / quota).
-        }
-      });
+        document.getElementById('login-link').addEventListener('click', function () {
+          try {
+            localStorage.setItem(RETURN_KEY, window.location.href);
+          } catch (_error) {
+            // Ignore storage failures (private mode / quota).
+          }
+        });
+      }
+
+      el.style.display = '';
     }
 
-    el.style.display = '';
-  }
-
-  render();
-})();
+    render();
+  })();
 </script>
 
 <style is:global>

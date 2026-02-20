@@ -1,7 +1,7 @@
 ---
 /**
  * AiPopup Component
- * 
+ *
  * Text selection popup for AI interactions (Ask AI / Edit with AI).
  * Triggers on text selection within .post-content areas.
  * Supports dark/light themes, desktop floating + mobile bottom sheet.
@@ -29,496 +29,507 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
 </div>
 
 <script is:inline>
-(function() {
-  'use strict';
+  (function () {
+    'use strict';
 
-  const JWT_KEY = 'gu-log-jwt';
-  const RETURN_KEY = 'gu-log-return-url';
+    const JWT_KEY = 'gu-log-jwt';
+    const RETURN_KEY = 'gu-log-return-url';
 
-  const root = document.getElementById('ai-popup-root');
-  if (!root) return;
+    const root = document.getElementById('ai-popup-root');
+    if (!root) return;
 
-  const filePath = root.getAttribute('data-file-path') || '';
-  const postTitle = root.getAttribute('data-post-title') || '';
-  const apiUrl = root.getAttribute('data-api-url') || '';
-  const lang = root.getAttribute('data-lang') || 'zh-tw';
+    const filePath = root.getAttribute('data-file-path') || '';
+    const postTitle = root.getAttribute('data-post-title') || '';
+    const apiUrl = root.getAttribute('data-api-url') || '';
+    const lang = root.getAttribute('data-lang') || 'zh-tw';
 
-  // i18n
-  const t = lang === 'en' ? {
-    askAi: '🤖 Ask AI',
-    edit: '✏️ Edit',
-    login: '🔐 Login with GitHub',
-    loading: 'Thinking...',
-    close: '✕',
-    confirm: '✅ Confirm',
-    cancel: '❌ Cancel',
-    committed: 'Committed!',
-    error: 'Something went wrong. Please try again.',
-    submit: '送出',
-    cancelAsk: '取消',
-    questionPlaceholder: "What's your question?",
-    networkError: 'Cannot connect to API server. Please check your network.',
-    unknownError: 'An unknown error occurred.'
-  } : {
-    askAi: '🤖 Ask AI',
-    edit: '✏️ Edit',
-    login: '🔐 Login with GitHub',
-    loading: '思考中...',
-    close: '✕',
-    confirm: '✅ 確認',
-    cancel: '❌ 取消',
-    committed: '已提交！',
-    error: '發生錯誤，請再試一次。',
-    submit: '送出',
-    cancelAsk: '取消',
-    questionPlaceholder: '想問什麼？例如：source code 是怎麼處理的？',
-    networkError: '無法連線到 API 伺服器，請確認網路連線',
-    unknownError: '發生未知錯誤'
-  };
+    // i18n
+    const t =
+      lang === 'en'
+        ? {
+            askAi: '🤖 Ask AI',
+            edit: '✏️ Edit',
+            login: '🔐 Login with GitHub',
+            loading: 'Thinking...',
+            close: '✕',
+            confirm: '✅ Confirm',
+            cancel: '❌ Cancel',
+            committed: 'Committed!',
+            error: 'Something went wrong. Please try again.',
+            submit: '送出',
+            cancelAsk: '取消',
+            questionPlaceholder: "What's your question?",
+            networkError: 'Cannot connect to API server. Please check your network.',
+            unknownError: 'An unknown error occurred.',
+          }
+        : {
+            askAi: '🤖 Ask AI',
+            edit: '✏️ Edit',
+            login: '🔐 Login with GitHub',
+            loading: '思考中...',
+            close: '✕',
+            confirm: '✅ 確認',
+            cancel: '❌ 取消',
+            committed: '已提交！',
+            error: '發生錯誤，請再試一次。',
+            submit: '送出',
+            cancelAsk: '取消',
+            questionPlaceholder: '想問什麼？例如：source code 是怎麼處理的？',
+            networkError: '無法連線到 API 伺服器，請確認網路連線',
+            unknownError: '發生未知錯誤',
+          };
 
-  let popup = null;
-  let selectedText = '';
-  let currentState = 'idle'; // idle, buttons, ask-input, loading, ask-result, edit-result, confirm-loading, committed, error
-  let pendingEditId = null;
+    let popup = null;
+    let selectedText = '';
+    let currentState = 'idle'; // idle, buttons, ask-input, loading, ask-result, edit-result, confirm-loading, committed, error
+    let pendingEditId = null;
 
-  function getJwt() {
-    try {
-      return localStorage.getItem(JWT_KEY);
-    } catch (_error) {
-      return null;
-    }
-  }
-
-  function isLoggedIn() {
-    return !!getJwt();
-  }
-
-  function escapeHtml(str) {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-  }
-
-  function createPopup() {
-    if (popup) popup.remove();
-
-    popup = document.createElement('div');
-    popup.id = 'ai-popup';
-    popup.className = 'ai-popup';
-    popup.setAttribute('role', 'dialog');
-    popup.setAttribute('aria-label', 'AI Popup');
-    document.body.appendChild(popup);
-    return popup;
-  }
-
-  function removePopup() {
-    if (popup) {
-      popup.remove();
-      popup = null;
-    }
-    currentState = 'idle';
-    pendingEditId = null;
-  }
-
-  function positionPopup(rect) {
-    if (!popup) return;
-
-    const isMobile = window.innerWidth < 640;
-
-    if (isMobile) {
-      // Bottom sheet style
-      popup.classList.add('ai-popup--mobile');
-      popup.classList.remove('ai-popup--desktop');
-    } else {
-      // Float near selection
-      popup.classList.remove('ai-popup--mobile');
-      popup.classList.add('ai-popup--desktop');
-
-      const popupRect = popup.getBoundingClientRect();
-      let top = rect.top + window.scrollY - popupRect.height - 8;
-      let left = rect.left + window.scrollX + (rect.width / 2) - (popupRect.width / 2);
-
-      // Keep within viewport
-      if (top < window.scrollY + 8) {
-        top = rect.bottom + window.scrollY + 8;
+    function getJwt() {
+      try {
+        return localStorage.getItem(JWT_KEY);
+      } catch (_error) {
+        return null;
       }
-      left = Math.max(8, Math.min(left, window.innerWidth - popupRect.width - 8));
-
-      popup.style.top = top + 'px';
-      popup.style.left = left + 'px';
     }
-  }
 
-  function renderButtons() {
-    if (!popup) return;
-    currentState = 'buttons';
+    function isLoggedIn() {
+      return !!getJwt();
+    }
 
-    if (!isLoggedIn()) {
-      popup.innerHTML =
-        '<button class="ai-popup-btn ai-popup-btn--login" data-action="login">' +
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function createPopup() {
+      if (popup) popup.remove();
+
+      popup = document.createElement('div');
+      popup.id = 'ai-popup';
+      popup.className = 'ai-popup';
+      popup.setAttribute('role', 'dialog');
+      popup.setAttribute('aria-label', 'AI Popup');
+      document.body.appendChild(popup);
+      return popup;
+    }
+
+    function removePopup() {
+      if (popup) {
+        popup.remove();
+        popup = null;
+      }
+      currentState = 'idle';
+      pendingEditId = null;
+    }
+
+    function positionPopup(rect) {
+      if (!popup) return;
+
+      const isMobile = window.innerWidth < 640;
+
+      if (isMobile) {
+        // Bottom sheet style
+        popup.classList.add('ai-popup--mobile');
+        popup.classList.remove('ai-popup--desktop');
+      } else {
+        // Float near selection
+        popup.classList.remove('ai-popup--mobile');
+        popup.classList.add('ai-popup--desktop');
+
+        const popupRect = popup.getBoundingClientRect();
+        let top = rect.top + window.scrollY - popupRect.height - 8;
+        let left = rect.left + window.scrollX + rect.width / 2 - popupRect.width / 2;
+
+        // Keep within viewport
+        if (top < window.scrollY + 8) {
+          top = rect.bottom + window.scrollY + 8;
+        }
+        left = Math.max(8, Math.min(left, window.innerWidth - popupRect.width - 8));
+
+        popup.style.top = top + 'px';
+        popup.style.left = left + 'px';
+      }
+    }
+
+    function renderButtons() {
+      if (!popup) return;
+      currentState = 'buttons';
+
+      if (!isLoggedIn()) {
+        popup.innerHTML =
+          '<button class="ai-popup-btn ai-popup-btn--login" data-action="login">' +
           escapeHtml(t.login) +
-        '</button>';
-    } else {
-      popup.innerHTML =
-        '<button class="ai-popup-btn ai-popup-btn--ask" data-action="ask">' +
+          '</button>';
+      } else {
+        popup.innerHTML =
+          '<button class="ai-popup-btn ai-popup-btn--ask" data-action="ask">' +
           escapeHtml(t.askAi) +
-        '</button>' +
-        '<button class="ai-popup-btn ai-popup-btn--edit" data-action="edit">' +
+          '</button>' +
+          '<button class="ai-popup-btn ai-popup-btn--edit" data-action="edit">' +
           escapeHtml(t.edit) +
-        '</button>';
+          '</button>';
+      }
     }
-  }
 
-  function renderLoading() {
-    if (!popup) return;
-    currentState = 'loading';
+    function renderLoading() {
+      if (!popup) return;
+      currentState = 'loading';
 
-    popup.innerHTML =
-      '<div class="ai-popup-loading">' +
+      popup.innerHTML =
+        '<div class="ai-popup-loading">' +
         '<div class="ai-popup-spinner"></div>' +
-        '<span>' + escapeHtml(t.loading) + '</span>' +
-      '</div>';
-  }
+        '<span>' +
+        escapeHtml(t.loading) +
+        '</span>' +
+        '</div>';
+    }
 
-  function renderAskInput() {
-    if (!popup) return;
-    currentState = 'ask-input';
+    function renderAskInput() {
+      if (!popup) return;
+      currentState = 'ask-input';
 
-    const content = document.createElement('div');
-    content.className = 'ai-popup-ask-input-container';
+      const content = document.createElement('div');
+      content.className = 'ai-popup-ask-input-container';
 
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.className = 'ai-popup-question-input';
-    input.placeholder = t.questionPlaceholder;
-    input.setAttribute('aria-label', t.questionPlaceholder);
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'ai-popup-question-input';
+      input.placeholder = t.questionPlaceholder;
+      input.setAttribute('aria-label', t.questionPlaceholder);
 
-    const actions = document.createElement('div');
-    actions.className = 'ai-popup-actions';
-    actions.innerHTML =
-      '<button class="ai-popup-btn ai-popup-btn--ask" data-action="submit-ask">' +
+      const actions = document.createElement('div');
+      actions.className = 'ai-popup-actions';
+      actions.innerHTML =
+        '<button class="ai-popup-btn ai-popup-btn--ask" data-action="submit-ask">' +
         escapeHtml(t.submit) +
-      '</button>' +
-      '<button class="ai-popup-btn ai-popup-btn--cancel" data-action="cancel-ask">' +
+        '</button>' +
+        '<button class="ai-popup-btn ai-popup-btn--cancel" data-action="cancel-ask">' +
         escapeHtml(t.cancelAsk) +
-      '</button>';
+        '</button>';
 
-    content.appendChild(input);
-    content.appendChild(actions);
+      content.appendChild(input);
+      content.appendChild(actions);
 
-    popup.innerHTML = '';
-    popup.appendChild(content);
+      popup.innerHTML = '';
+      popup.appendChild(content);
 
-    // Focus the input
-    input.focus();
+      // Focus the input
+      input.focus();
 
-    // Allow Enter key to submit
-    input.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        handleSubmitAsk();
+      // Allow Enter key to submit
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          handleSubmitAsk();
+        }
+      });
+
+      positionPopup(getSelectionRect() || { top: 0, left: 0, bottom: 0, width: 0 });
+    }
+
+    function renderAskResult(response) {
+      if (!popup) return;
+      currentState = 'ask-result';
+
+      const content = document.createElement('div');
+      content.className = 'ai-popup-result';
+
+      const closeBtn = document.createElement('button');
+      closeBtn.className = 'ai-popup-close';
+      closeBtn.setAttribute('data-action', 'close');
+      closeBtn.textContent = t.close;
+
+      const body = document.createElement('div');
+      body.className = 'ai-popup-result-body';
+      body.textContent = response;
+
+      content.appendChild(closeBtn);
+      content.appendChild(body);
+
+      popup.innerHTML = '';
+      popup.appendChild(content);
+
+      // Re-position for larger content
+      positionPopup(getSelectionRect() || { top: 0, left: 0, bottom: 0, width: 0 });
+    }
+
+    function renderEditResult(diff, editId) {
+      if (!popup) return;
+      currentState = 'edit-result';
+      pendingEditId = editId;
+
+      const content = document.createElement('div');
+      content.className = 'ai-popup-result';
+
+      const closeBtn = document.createElement('button');
+      closeBtn.className = 'ai-popup-close';
+      closeBtn.setAttribute('data-action', 'close');
+      closeBtn.textContent = t.close;
+
+      const diffEl = document.createElement('div');
+      diffEl.className = 'ai-popup-diff';
+
+      // Render diff lines
+      const lines = diff.split('\n');
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const lineEl = document.createElement('div');
+        lineEl.className = 'ai-popup-diff-line';
+        if (line.indexOf('+') === 0 && line.indexOf('+++') !== 0) {
+          lineEl.className += ' ai-popup-diff-add';
+        } else if (line.indexOf('-') === 0 && line.indexOf('---') !== 0) {
+          lineEl.className += ' ai-popup-diff-remove';
+        }
+        lineEl.textContent = line;
+        diffEl.appendChild(lineEl);
+      }
+
+      const actions = document.createElement('div');
+      actions.className = 'ai-popup-actions';
+      actions.innerHTML =
+        '<button class="ai-popup-btn ai-popup-btn--confirm" data-action="confirm">' +
+        escapeHtml(t.confirm) +
+        '</button>' +
+        '<button class="ai-popup-btn ai-popup-btn--cancel" data-action="close">' +
+        escapeHtml(t.cancel) +
+        '</button>';
+
+      content.appendChild(closeBtn);
+      content.appendChild(diffEl);
+      content.appendChild(actions);
+
+      popup.innerHTML = '';
+      popup.appendChild(content);
+
+      positionPopup(getSelectionRect() || { top: 0, left: 0, bottom: 0, width: 0 });
+    }
+
+    function renderCommitted(commitHash) {
+      if (!popup) return;
+      currentState = 'committed';
+
+      popup.innerHTML =
+        '<div class="ai-popup-result">' +
+        '<button class="ai-popup-close" data-action="close">' +
+        escapeHtml(t.close) +
+        '</button>' +
+        '<div class="ai-popup-committed">' +
+        '<span class="ai-popup-committed-icon">✅</span> ' +
+        escapeHtml(t.committed) +
+        (commitHash ? ' <code>' + escapeHtml(commitHash.substring(0, 7)) + '</code>' : '') +
+        '</div>' +
+        '</div>';
+    }
+
+    function renderError(msg) {
+      if (!popup) return;
+      currentState = 'error';
+
+      popup.innerHTML =
+        '<div class="ai-popup-result ai-popup-result--error">' +
+        '<button class="ai-popup-close" data-action="close">' +
+        escapeHtml(t.close) +
+        '</button>' +
+        '<div class="ai-popup-error-text">' +
+        escapeHtml(msg || t.error) +
+        '</div>' +
+        '</div>';
+    }
+
+    function getSelectionRect() {
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0) return null;
+      const range = sel.getRangeAt(0);
+      const rect = range.getBoundingClientRect();
+      if (rect.width === 0 && rect.height === 0) return null;
+      return rect;
+    }
+
+    function isInsidePostContent(node) {
+      let el = node.nodeType === 3 ? node.parentElement : node;
+      while (el) {
+        if (el.classList && el.classList.contains('post-content')) return true;
+        el = el.parentElement;
+      }
+      return false;
+    }
+
+    async function apiRequest(endpoint, body) {
+      const jwt = getJwt();
+      const headers = { 'Content-Type': 'application/json' };
+      if (jwt) headers['Authorization'] = 'Bearer ' + jwt;
+
+      let res;
+      try {
+        res = await fetch(apiUrl + endpoint, {
+          method: 'POST',
+          headers: headers,
+          body: JSON.stringify(body),
+        });
+      } catch (_error) {
+        // Network error (TypeError: Failed to fetch)
+        throw new Error(t.networkError);
+      }
+
+      if (!res.ok) {
+        let errText = '';
+        try {
+          const errBody = await res.json();
+          errText = errBody.detail || errBody.error || res.statusText;
+        } catch (_error) {
+          errText = res.statusText;
+        }
+        throw new Error(errText || t.unknownError);
+      }
+
+      return res.json();
+    }
+
+    async function handleAsk() {
+      renderAskInput();
+    }
+
+    async function handleSubmitAsk() {
+      const input = popup ? popup.querySelector('.ai-popup-question-input') : null;
+      const question = input ? input.value.trim() : '';
+
+      renderLoading();
+      try {
+        const body = {
+          text: selectedText,
+          context: postTitle,
+        };
+        if (question) {
+          body.question = question;
+        }
+        const data = await apiRequest('/ai/ask', body);
+        renderAskResult(data.response || data.answer || JSON.stringify(data));
+      } catch (err) {
+        renderError(err.message);
+      }
+    }
+
+    async function handleEdit() {
+      renderLoading();
+      try {
+        const data = await apiRequest('/ai/edit', {
+          text: selectedText,
+          filePath: filePath,
+          instruction: '',
+        });
+        renderEditResult(data.diff || '', data.editId || data.id || '');
+      } catch (err) {
+        renderError(err.message);
+      }
+    }
+
+    async function handleConfirm() {
+      renderLoading();
+      try {
+        const data = await apiRequest('/ai/edit/confirm', {
+          editId: pendingEditId,
+        });
+        renderCommitted(data.commitHash || data.commit || '');
+      } catch (err) {
+        renderError(err.message);
+      }
+    }
+
+    function handleLogin() {
+      // Save current page URL so we can return after login
+      try {
+        localStorage.setItem(RETURN_KEY, window.location.href);
+      } catch (_error) {
+        // Ignore storage failures (private mode / quota), login can still continue.
+      }
+      window.location.href = apiUrl + '/auth/github';
+    }
+
+    // Event delegation for popup buttons
+    document.addEventListener('click', function (e) {
+      const btn = e.target.closest('[data-action]');
+      if (!btn || !popup || !popup.contains(btn)) return;
+
+      const action = btn.getAttribute('data-action');
+      e.stopPropagation();
+
+      switch (action) {
+        case 'ask':
+          handleAsk();
+          break;
+        case 'submit-ask':
+          handleSubmitAsk();
+          break;
+        case 'cancel-ask':
+          removePopup();
+          break;
+        case 'edit':
+          handleEdit();
+          break;
+        case 'confirm':
+          handleConfirm();
+          break;
+        case 'login':
+          handleLogin();
+          break;
+        case 'close':
+          removePopup();
+          break;
       }
     });
 
-    positionPopup(getSelectionRect() || { top: 0, left: 0, bottom: 0, width: 0 });
-  }
+    // Show popup on text selection in post-content
+    function onSelectionEnd(_event) {
+      // Small delay to let selection finalize
+      setTimeout(function () {
+        const sel = window.getSelection();
+        const text = sel ? sel.toString().trim() : '';
 
-  function renderAskResult(response) {
-    if (!popup) return;
-    currentState = 'ask-result';
+        if (!text || text.length < 2) {
+          // Don't remove if popup is showing results
+          if (currentState === 'buttons') {
+            removePopup();
+          }
+          return;
+        }
 
-    const content = document.createElement('div');
-    content.className = 'ai-popup-result';
+        // Check if selection is inside .post-content
+        if (!sel.anchorNode || !isInsidePostContent(sel.anchorNode)) {
+          return;
+        }
 
-    const closeBtn = document.createElement('button');
-    closeBtn.className = 'ai-popup-close';
-    closeBtn.setAttribute('data-action', 'close');
-    closeBtn.textContent = t.close;
+        selectedText = text;
 
-    const body = document.createElement('div');
-    body.className = 'ai-popup-result-body';
-    body.textContent = response;
+        const rect = getSelectionRect();
+        if (!rect) return;
 
-    content.appendChild(closeBtn);
-    content.appendChild(body);
-
-    popup.innerHTML = '';
-    popup.appendChild(content);
-
-    // Re-position for larger content
-    positionPopup(getSelectionRect() || { top: 0, left: 0, bottom: 0, width: 0 });
-  }
-
-  function renderEditResult(diff, editId) {
-    if (!popup) return;
-    currentState = 'edit-result';
-    pendingEditId = editId;
-
-    const content = document.createElement('div');
-    content.className = 'ai-popup-result';
-
-    const closeBtn = document.createElement('button');
-    closeBtn.className = 'ai-popup-close';
-    closeBtn.setAttribute('data-action', 'close');
-    closeBtn.textContent = t.close;
-
-    const diffEl = document.createElement('div');
-    diffEl.className = 'ai-popup-diff';
-
-    // Render diff lines
-    const lines = diff.split('\n');
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      const lineEl = document.createElement('div');
-      lineEl.className = 'ai-popup-diff-line';
-      if (line.indexOf('+') === 0 && line.indexOf('+++') !== 0) {
-        lineEl.className += ' ai-popup-diff-add';
-      } else if (line.indexOf('-') === 0 && line.indexOf('---') !== 0) {
-        lineEl.className += ' ai-popup-diff-remove';
-      }
-      lineEl.textContent = line;
-      diffEl.appendChild(lineEl);
+        createPopup();
+        renderButtons();
+        positionPopup(rect);
+      }, 10);
     }
 
-    const actions = document.createElement('div');
-    actions.className = 'ai-popup-actions';
-    actions.innerHTML =
-      '<button class="ai-popup-btn ai-popup-btn--confirm" data-action="confirm">' +
-        escapeHtml(t.confirm) +
-      '</button>' +
-      '<button class="ai-popup-btn ai-popup-btn--cancel" data-action="close">' +
-        escapeHtml(t.cancel) +
-      '</button>';
+    document.addEventListener('mouseup', onSelectionEnd);
+    document.addEventListener('touchend', onSelectionEnd);
 
-    content.appendChild(closeBtn);
-    content.appendChild(diffEl);
-    content.appendChild(actions);
-
-    popup.innerHTML = '';
-    popup.appendChild(content);
-
-    positionPopup(getSelectionRect() || { top: 0, left: 0, bottom: 0, width: 0 });
-  }
-
-  function renderCommitted(commitHash) {
-    if (!popup) return;
-    currentState = 'committed';
-
-    popup.innerHTML =
-      '<div class="ai-popup-result">' +
-        '<button class="ai-popup-close" data-action="close">' + escapeHtml(t.close) + '</button>' +
-        '<div class="ai-popup-committed">' +
-          '<span class="ai-popup-committed-icon">✅</span> ' +
-          escapeHtml(t.committed) +
-          (commitHash ? ' <code>' + escapeHtml(commitHash.substring(0, 7)) + '</code>' : '') +
-        '</div>' +
-      '</div>';
-  }
-
-  function renderError(msg) {
-    if (!popup) return;
-    currentState = 'error';
-
-    popup.innerHTML =
-      '<div class="ai-popup-result ai-popup-result--error">' +
-        '<button class="ai-popup-close" data-action="close">' + escapeHtml(t.close) + '</button>' +
-        '<div class="ai-popup-error-text">' + escapeHtml(msg || t.error) + '</div>' +
-      '</div>';
-  }
-
-  function getSelectionRect() {
-    const sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0) return null;
-    const range = sel.getRangeAt(0);
-    const rect = range.getBoundingClientRect();
-    if (rect.width === 0 && rect.height === 0) return null;
-    return rect;
-  }
-
-  function isInsidePostContent(node) {
-    let el = node.nodeType === 3 ? node.parentElement : node;
-    while (el) {
-      if (el.classList && el.classList.contains('post-content')) return true;
-      el = el.parentElement;
-    }
-    return false;
-  }
-
-  async function apiRequest(endpoint, body) {
-    const jwt = getJwt();
-    const headers = { 'Content-Type': 'application/json' };
-    if (jwt) headers['Authorization'] = 'Bearer ' + jwt;
-
-    let res;
-    try {
-      res = await fetch(apiUrl + endpoint, {
-        method: 'POST',
-        headers: headers,
-        body: JSON.stringify(body)
-      });
-    } catch (_error) {
-      // Network error (TypeError: Failed to fetch)
-      throw new Error(t.networkError);
-    }
-
-    if (!res.ok) {
-      let errText = '';
-      try {
-        const errBody = await res.json();
-        errText = errBody.detail || errBody.error || res.statusText;
-      } catch (_error) {
-        errText = res.statusText;
-      }
-      throw new Error(errText || t.unknownError);
-    }
-
-    return res.json();
-  }
-
-  async function handleAsk() {
-    renderAskInput();
-  }
-
-  async function handleSubmitAsk() {
-    const input = popup ? popup.querySelector('.ai-popup-question-input') : null;
-    const question = input ? input.value.trim() : '';
-
-    renderLoading();
-    try {
-      const body = {
-        text: selectedText,
-        context: postTitle
-      };
-      if (question) {
-        body.question = question;
-      }
-      const data = await apiRequest('/ai/ask', body);
-      renderAskResult(data.response || data.answer || JSON.stringify(data));
-    } catch(err) {
-      renderError(err.message);
-    }
-  }
-
-  async function handleEdit() {
-    renderLoading();
-    try {
-      const data = await apiRequest('/ai/edit', {
-        text: selectedText,
-        filePath: filePath,
-        instruction: ''
-      });
-      renderEditResult(data.diff || '', data.editId || data.id || '');
-    } catch(err) {
-      renderError(err.message);
-    }
-  }
-
-  async function handleConfirm() {
-    renderLoading();
-    try {
-      const data = await apiRequest('/ai/edit/confirm', {
-        editId: pendingEditId
-      });
-      renderCommitted(data.commitHash || data.commit || '');
-    } catch(err) {
-      renderError(err.message);
-    }
-  }
-
-  function handleLogin() {
-    // Save current page URL so we can return after login
-    try {
-      localStorage.setItem(RETURN_KEY, window.location.href);
-    } catch (_error) {
-      // Ignore storage failures (private mode / quota), login can still continue.
-    }
-    window.location.href = apiUrl + '/auth/github';
-  }
-
-  // Event delegation for popup buttons
-  document.addEventListener('click', function(e) {
-    const btn = e.target.closest('[data-action]');
-    if (!btn || !popup || !popup.contains(btn)) return;
-
-    const action = btn.getAttribute('data-action');
-    e.stopPropagation();
-
-    switch (action) {
-      case 'ask':
-        handleAsk();
-        break;
-      case 'submit-ask':
-        handleSubmitAsk();
-        break;
-      case 'cancel-ask':
-        removePopup();
-        break;
-      case 'edit':
-        handleEdit();
-        break;
-      case 'confirm':
-        handleConfirm();
-        break;
-      case 'login':
-        handleLogin();
-        break;
-      case 'close':
-        removePopup();
-        break;
-    }
-  });
-
-  // Show popup on text selection in post-content
-  function onSelectionEnd(_event) {
-    // Small delay to let selection finalize
-    setTimeout(function() {
-      const sel = window.getSelection();
-      const text = sel ? sel.toString().trim() : '';
-
-      if (!text || text.length < 2) {
-        // Don't remove if popup is showing results
+    // Close popup when clicking outside
+    document.addEventListener('mousedown', function (e) {
+      if (popup && !popup.contains(e.target)) {
+        // Only close for button state; keep results and input open
         if (currentState === 'buttons') {
           removePopup();
         }
-        return;
       }
+    });
 
-      // Check if selection is inside .post-content
-      if (!sel.anchorNode || !isInsidePostContent(sel.anchorNode)) {
-        return;
-      }
-
-      selectedText = text;
-
-      const rect = getSelectionRect();
-      if (!rect) return;
-
-      createPopup();
-      renderButtons();
-      positionPopup(rect);
-    }, 10);
-  }
-
-  document.addEventListener('mouseup', onSelectionEnd);
-  document.addEventListener('touchend', onSelectionEnd);
-
-  // Close popup when clicking outside
-  document.addEventListener('mousedown', function(e) {
-    if (popup && !popup.contains(e.target)) {
-      // Only close for button state; keep results and input open
-      if (currentState === 'buttons') {
+    // Close on Escape
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && popup) {
         removePopup();
       }
-    }
-  });
-
-  // Close on Escape
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && popup) {
-      removePopup();
-    }
-  });
-})();
+    });
+  })();
 </script>
 
 <style is:global>
@@ -667,7 +678,9 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
   }
 
   @keyframes ai-spin {
-    to { transform: rotate(360deg); }
+    to {
+      transform: rotate(360deg);
+    }
   }
 
   /* ─── Result Panel ─── */

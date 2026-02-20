@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
  * gu-log Post Validator — Deterministic quality gate
- * 
+ *
  * All checks are programmatic. No LLM. No advisory. All blocking.
  * Exit code 0 = pass, 1 = fail.
- * 
+ *
  * Usage:
  *   node scripts/validate-posts.mjs                    # validate all posts
  *   node scripts/validate-posts.mjs file1.mdx file2.mdx  # validate specific files
@@ -50,7 +50,10 @@ function parseFrontmatter(content) {
     if (kv) {
       let val = kv[2].trim();
       // Strip quotes
-      if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+      if (
+        (val.startsWith('"') && val.endsWith('"')) ||
+        (val.startsWith("'") && val.endsWith("'"))
+      ) {
         val = val.slice(1, -1);
       }
       fm[kv[1]] = val;
@@ -69,7 +72,10 @@ function parseFrontmatter(content) {
           const childMatch = lines[i].match(/^\s+(\w+):\s*(.+)/);
           if (childMatch) {
             let val = childMatch[2].trim();
-            if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+            if (
+              (val.startsWith('"') && val.endsWith('"')) ||
+              (val.startsWith("'") && val.endsWith("'"))
+            ) {
               val = val.slice(1, -1);
             }
             fm[parentKey][childMatch[1]] = val;
@@ -82,7 +88,10 @@ function parseFrontmatter(content) {
   // Parse tags array
   const tagsMatch = raw.match(/tags:\s*\[(.*?)\]/s);
   if (tagsMatch) {
-    fm.tags = tagsMatch[1].split(',').map(t => t.trim().replace(/["']/g, '')).filter(Boolean);
+    fm.tags = tagsMatch[1]
+      .split(',')
+      .map((t) => t.trim().replace(/["']/g, ''))
+      .filter(Boolean);
   }
 
   return fm;
@@ -192,22 +201,26 @@ function validatePost(filepath, allPosts) {
 
   // ── Rule 12: ticketId uniqueness (cross-file check) ──
   if (fm.ticketId && allPosts) {
-    const sameTicket = allPosts.filter(p =>
-      p.ticketId === fm.ticketId && getBaseFilename(p.filename) !== getBaseFilename(filename)
+    const sameTicket = allPosts.filter(
+      (p) => p.ticketId === fm.ticketId && getBaseFilename(p.filename) !== getBaseFilename(filename)
     );
     if (sameTicket.length > 0) {
-      errors.push(`Duplicate ticketId "${fm.ticketId}" also in: ${sameTicket.map(p => p.filename).join(', ')}`);
+      errors.push(
+        `Duplicate ticketId "${fm.ticketId}" also in: ${sameTicket.map((p) => p.filename).join(', ')}`
+      );
     }
   }
 
   // ── Rule 13: Translation pair ticketId consistency ──
   if (fm.ticketId && allPosts) {
     const baseName = getBaseFilename(filename);
-    const pair = allPosts.find(p =>
-      getBaseFilename(p.filename) === baseName && p.filename !== filename
+    const pair = allPosts.find(
+      (p) => getBaseFilename(p.filename) === baseName && p.filename !== filename
     );
     if (pair && pair.ticketId && pair.ticketId !== fm.ticketId) {
-      errors.push(`Translation pair ticketId mismatch: this="${fm.ticketId}", pair="${pair.ticketId}" (${pair.filename})`);
+      errors.push(
+        `Translation pair ticketId mismatch: this="${fm.ticketId}", pair="${pair.ticketId}" (${pair.filename})`
+      );
     }
   }
 
@@ -216,7 +229,9 @@ function validatePost(filepath, allPosts) {
     const model = fm.translatedBy.model;
     // Must contain a version number (e.g., "Opus 4.6", "Sonnet 4.5", "Gemini 3 Pro")
     if (!/\d+\.\d+|\d+ Pro|\d+ Flash/i.test(model)) {
-      errors.push(`translatedBy.model "${model}" missing version — use full name like "Opus 4.6" (run: node scripts/detect-model.mjs <model-id>)`);
+      errors.push(
+        `translatedBy.model "${model}" missing version — use full name like "Opus 4.6" (run: node scripts/detect-model.mjs <model-id>)`
+      );
     }
   }
 
@@ -234,8 +249,8 @@ function main() {
   const args = process.argv.slice(2);
 
   // Load all posts for cross-file checks
-  const allFiles = fs.readdirSync(POSTS_DIR).filter(f => f.endsWith('.mdx'));
-  const allPosts = allFiles.map(f => {
+  const allFiles = fs.readdirSync(POSTS_DIR).filter((f) => f.endsWith('.mdx'));
+  const allPosts = allFiles.map((f) => {
     const content = fs.readFileSync(path.join(POSTS_DIR, f), 'utf-8');
     const fm = parseFrontmatter(content);
     return { filename: f, ticketId: fm?.ticketId || '' };
@@ -244,7 +259,7 @@ function main() {
   // Determine which files to validate
   let filesToValidate;
   if (args.length > 0) {
-    filesToValidate = args.map(f => {
+    filesToValidate = args.map((f) => {
       // Accept both full path and just filename
       if (fs.existsSync(f)) return f;
       const fullPath = path.join(POSTS_DIR, path.basename(f));
@@ -253,7 +268,7 @@ function main() {
       process.exit(1);
     });
   } else {
-    filesToValidate = allFiles.map(f => path.join(POSTS_DIR, f));
+    filesToValidate = allFiles.map((f) => path.join(POSTS_DIR, f));
   }
 
   let totalErrors = 0;
@@ -278,10 +293,14 @@ function main() {
 
   console.log('');
   if (totalErrors > 0) {
-    console.log(`❌ FAILED: ${totalErrors} error(s), ${totalWarnings} warning(s) in ${filesToValidate.length} file(s)`);
+    console.log(
+      `❌ FAILED: ${totalErrors} error(s), ${totalWarnings} warning(s) in ${filesToValidate.length} file(s)`
+    );
     process.exit(1);
   } else {
-    console.log(`✓ PASSED: ${filesToValidate.length} file(s) validated, ${totalWarnings} warning(s)`);
+    console.log(
+      `✓ PASSED: ${filesToValidate.length} file(s) validated, ${totalWarnings} warning(s)`
+    );
     process.exit(0);
   }
 }
