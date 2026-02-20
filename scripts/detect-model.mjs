@@ -21,6 +21,10 @@ const MODEL_MAP = {
   'gemini-2.5-pro': 'Gemini 2.5 Pro',
   'gemini-2.5-flash': 'Gemini 2.5 Flash',
   'gemini-3-pro': 'Gemini 3 Pro',
+  // OpenAI Codex
+  'gpt-5.3-codex': 'GPT-5.3 Codex',
+  'gpt-5.2-codex': 'GPT-5.2 Codex',
+  'gpt-5-codex': 'GPT-5 Codex',
 };
 
 /**
