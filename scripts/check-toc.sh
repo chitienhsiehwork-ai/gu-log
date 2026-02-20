@@ -9,7 +9,7 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 DIST_DIR="$PROJECT_DIR/dist"
 
 if [ ! -d "$DIST_DIR" ]; then
-    echo "❌ dist/ not found. Run 'npm run build' first."
+    echo "❌ dist/ not found. Run 'pnpm run build' first."
     exit 1
 fi
 

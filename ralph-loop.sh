@@ -20,7 +20,7 @@ Read CLAUDE.md and TODO.json. Then:
 2. If no eligible tasks remain, create a file .ralph/DONE and exit immediately
 3. Update the task's status to "in_progress" in TODO.json
 4. Do the work
-5. Run `npm run build` to verify no rendering errors
+5. Run `pnpm run build` to verify no rendering errors
 6. Update the task's status to "done" in TODO.json
 7. Stage all changed files and commit with a descriptive message
 8. Push to origin/main

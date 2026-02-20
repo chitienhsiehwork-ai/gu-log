@@ -71,7 +71,7 @@ else
             if [ "$LINT_EXIT" -eq 1 ]; then
                 echo ""
                 echo "❌ ESLint found errors. Fix them before committing."
-                echo "   Run: npm run lint:fix"
+                echo "   Run: pnpm run lint:fix"
                 exit 1
             fi
         fi
@@ -139,7 +139,7 @@ if [ -n "$ANTHROPIC_API_KEY" ]; then
             echo ""
             echo "❌ Mermaid visual quality check FAILED."
             echo "   Some diagrams are not readable on mobile (iPhone 14, 390px)."
-            echo "   Run 'npm run check:mermaid' for a full report with screenshots."
+            echo "   Run 'pnpm run check:mermaid' for a full report with screenshots."
             exit 1
         fi
         echo "✓ Mermaid visual check passed"

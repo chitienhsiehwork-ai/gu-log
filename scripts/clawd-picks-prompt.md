@@ -59,7 +59,7 @@ curl -s "https://x.com/i/api/graphql/V7H0Ap3_Hh2FyS75OCDO3Q/UserTweets?variables
 ## Step 6：驗證
 
 ```bash
-npm run build
+pnpm run build
 ```
 
 確認 build 通過，沒有 error。

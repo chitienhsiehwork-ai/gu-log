@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# security-audit.sh — Run npm audit, record results, alert on high/critical
+# security-audit.sh — Run pnpm audit, record results, alert on high/critical
 # Part of SQAA Level 1
 # Exit codes:
 #   0 = no high/critical vulnerabilities
@@ -14,16 +14,16 @@ HISTORY_FILE="${QUALITY_DIR}/security-audit-history.json"
 
 mkdir -p "${QUALITY_DIR}"
 
-# Run npm audit in JSON mode (exit code 0 = clean, non-zero = vulnerabilities found)
-# npm audit returns non-zero when vulns exist, so we capture and continue
-AUDIT_JSON=$(cd "${PROJECT_DIR}" && npm audit --json 2>/dev/null) || true
+# Run pnpm audit in JSON mode (exit code 0 = clean, non-zero = vulnerabilities found)
+# pnpm audit returns non-zero when vulns exist, so we capture and continue
+AUDIT_JSON=$(cd "${PROJECT_DIR}" && pnpm audit --json 2>/dev/null) || true
 
 if [ -z "${AUDIT_JSON}" ]; then
-  echo "ERROR: npm audit returned empty output"
+  echo "ERROR: pnpm audit returned empty output"
   exit 2
 fi
 
-# Extract severity counts using node (available in any npm project)
+# Extract severity counts using node (available in any Node project)
 COUNTS=$(echo "${AUDIT_JSON}" | node -e "
 const data = JSON.parse(require('fs').readFileSync('/dev/stdin', 'utf8'));
 const v = data.metadata?.vulnerabilities || {};

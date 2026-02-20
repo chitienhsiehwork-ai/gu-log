@@ -6,7 +6,7 @@
  *   🟢 Fresh   – current === latest, or only a patch bump behind
  *   🟡 Stale   – behind by minor version(s)
  *   🔴 Outdated – behind by major version(s)
- *   ⛔ Deprecated – explicitly deprecated on npm
+ *   ⛔ Deprecated – explicitly deprecated in registry metadata
  *
  * Also flags packages whose last publish was > N years ago
  * as "possibly unmaintained".
@@ -54,9 +54,9 @@ function classifyVersion(current, latest) {
   return 'fresh'; // same or only patch diff
 }
 
-async function npmView(pkg, field) {
+async function registryView(pkg, field) {
   try {
-    const raw = execSync(`npm view ${pkg} ${field} --json 2>/dev/null`, {
+    const raw = execSync(`pnpm view ${pkg} ${field} --json 2>/dev/null`, {
       encoding: 'utf-8',
       stdio: ['pipe', 'pipe', 'pipe'],
     });
@@ -68,7 +68,7 @@ async function npmView(pkg, field) {
 
 async function isDeprecated(pkg) {
   try {
-    const raw = execSync(`npm view ${pkg} deprecated 2>/dev/null`, {
+    const raw = execSync(`pnpm view ${pkg} deprecated 2>/dev/null`, {
       encoding: 'utf-8',
       stdio: ['pipe', 'pipe', 'pipe'],
     });
@@ -79,7 +79,7 @@ async function isDeprecated(pkg) {
 }
 
 async function lastPublishDate(pkg) {
-  const time = await npmView(pkg, 'time');
+  const time = await registryView(pkg, 'time');
   if (!time || typeof time !== 'object') return null;
   // find the most recent version timestamp (skip "created" and "modified")
   let latest = null;

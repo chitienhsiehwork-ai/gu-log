@@ -8,7 +8,7 @@ So in Level 3 we split checks:
 - Prettier for code/config paths (signal stays useful)
 - content checks via `validate:posts` + `build` (quality still enforced)
 
-## Current parse-error hotspots (from baseline `npm run format:check` before split)
+## Current parse-error hotspots (from baseline `pnpm run format:check` before split)
 
 - Total SyntaxError files: **294**
 - Extension split: **293 mdx**, **1 astro**
@@ -28,8 +28,8 @@ So in Level 3 we split checks:
 ### Phase A (done in this PR)
 - Keep `src/content/posts/*.mdx` out of Prettier scope (targeted format scripts)
 - Keep content quality gate active via:
-  - `npm run validate:posts`
-  - `npm run build`
+  - `pnpm run validate:posts`
+  - `pnpm run build`
 
 ### Phase B (next)
 - Create codemods / authoring rules to normalize the 4 hotspot patterns above.

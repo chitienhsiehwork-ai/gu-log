@@ -7,9 +7,9 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "test": "npx playwright test",
-    "test:ui": "npx playwright test --ui",
-    "test:toc": "npx playwright test tests/toc.spec.ts",
+    "test": "pnpm exec playwright test",
+    "test:ui": "pnpm exec playwright test --ui",
+    "test:toc": "pnpm exec playwright test tests/toc.spec.ts",
     "test:visual": "node scripts/visual-test.mjs",
     "test:search": "node scripts/search-test.mjs",
     "lint": "eslint src/",
@@ -17,7 +17,8 @@
     "format": "prettier --write \"src/components/**/*.{astro,js,ts}\" \"src/layouts/**/*.{astro,js,ts}\" \"src/pages/**/*.{astro,js,ts}\" \"src/config/**/*.{js,ts}\" \"src/styles/**/*.css\" \"scripts/**/*.{js,mjs,cjs,ts}\" \"*.{mjs,cjs,ts}\"",
     "format:check": "prettier --check \"src/components/**/*.{astro,js,ts}\" \"src/layouts/**/*.{astro,js,ts}\" \"src/pages/**/*.{astro,js,ts}\" \"src/config/**/*.{js,ts}\" \"src/styles/**/*.css\" \"scripts/**/*.{js,mjs,cjs,ts}\" \"*.{mjs,cjs,ts}\"",
     "validate:posts": "node scripts/validate-posts.mjs",
-    "content:check": "npm run validate:posts && npm run build",
+    "content:check": "pnpm run validate:posts && pnpm run build",
+    "lockfile:check": "pnpm install --frozen-lockfile && git diff --exit-code -- pnpm-lock.yaml",
     "prepare": "[ -f scripts/setup-hooks.sh ] && scripts/setup-hooks.sh || true",
     "lighthouse": "lhci autorun --config=lighthouserc.cjs",
     "lighthouse:collect": "lhci collect --config=lighthouserc.cjs",
@@ -56,5 +57,6 @@
     "prettier": "^3.8.1",
     "prettier-plugin-astro": "^0.14.1",
     "typescript-eslint": "^8.55.0"
-  }
+  },
+  "packageManager": "pnpm@10.29.3"
 }

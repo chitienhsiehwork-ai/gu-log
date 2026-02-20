@@ -288,7 +288,7 @@ async function main() {
 
   if (!serverUp) {
     console.log('🚀 Starting dev server...');
-    serverProcess = spawn('npm', ['run', 'dev'], {
+    serverProcess = spawn('pnpm', ['run', 'dev'], {
       cwd: REPO_ROOT,
       stdio: 'ignore',
       detached: true,

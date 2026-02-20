@@ -100,4 +100,4 @@ if [ $GAPS -gt 0 ] || [ $MISMATCHES -gt 0 ]; then
 fi
 
 echo ""
-echo "Done! Run 'npm run build' then commit."
+echo "Done! Run 'pnpm run build' then commit."

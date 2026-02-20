@@ -34,7 +34,7 @@ CLAUDE.md (你在讀的這個)
 
 - **Framework**: Astro 5 (Content Collections + MDX)
 - **Deployment**: Vercel (auto-deploy on push)
-- **Package manager**: npm
+- **Package manager**: pnpm
 - **Fonts**: Inter + Noto Sans TC (Google Fonts)
 - **Theme**: Solarized dark / light
 
@@ -66,9 +66,9 @@ src/
 ## Commands
 
 ```bash
-npm run dev      # 本地開發 localhost:4321
-npm run build    # 生產 build
-npx astro check  # TypeScript 檢查
+pnpm run dev      # 本地開發 localhost:4321
+pnpm run build    # 生產 build
+pnpm exec astro check  # TypeScript 檢查
 ```
 
 ## Style Guide (Quick Ref)

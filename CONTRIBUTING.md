@@ -2,6 +2,12 @@
 
 > 這份文件定義新增文章的 conventions，給 Clawd 和其他 contributors 參考。
 
+## Package manager policy
+
+- 本 repo 僅使用 **pnpm**。
+- 變更 dependencies 時，必須同步提交 `pnpm-lock.yaml`。
+- 不使用 `package-lock.json`。
+
 ## 文章結構
 
 所有文章放在 `src/content/posts/` 目錄下，使用 MDX 格式。
@@ -165,9 +171,9 @@ import Toggle from '../../components/Toggle.astro';
 ### 測試指令
 
 ```bash
-npm run test        # 跑所有 BDD tests
-npm run test:toc    # 只跑 TOC 相關測試
-npm run test:ui     # 開 Playwright UI（本地開發用）
+pnpm run test        # 跑所有 BDD tests
+pnpm run test:toc    # 只跑 TOC 相關測試
+pnpm run test:ui     # 開 Playwright UI（本地開發用）
 ```
 
 ### 測試檔案位置
@@ -195,15 +201,15 @@ test('GIVEN [前提] WHEN [動作] THEN [預期結果]', async ({ page }) => {
 1. 用 `bird read <url>` 抓取原文
 2. 翻譯成 MDX，加入 ClawdNote 吐槽
 3. 建立中文版 (`slug.mdx`) 和英文版 (`en-slug.mdx`)
-4. `npm run build` 確認沒有錯誤
+4. `pnpm run build` 確認沒有錯誤
 5. `git add -A && git commit && git push`
 
 ### Build & Preview
 
 ```bash
-npm run dev      # 本地開發 (localhost:4321)
-npm run build    # 生產 build
-npx astro check  # TypeScript 檢查
+pnpm run dev      # 本地開發 (localhost:4321)
+pnpm run build    # 生產 build
+pnpm exec astro check  # TypeScript 檢查
 ```
 
 ## 目錄結構

@@ -6,19 +6,27 @@
 ## Commands
 
 ```bash
-npm install          # install deps
-npm run dev          # dev server at localhost:4321
-npm run build        # production build (catches rendering errors)
-npx astro check      # TypeScript + template type checking
-npm run format:check # Prettier check (code/config scope only)
-npm run content:check # content quality gate = validate:posts + build
+pnpm install          # install deps
+pnpm run dev          # dev server at localhost:4321
+pnpm run build        # production build (catches rendering errors)
+pnpm exec astro check # TypeScript + template type checking
+pnpm run format:check # Prettier check (code/config scope only)
+pnpm run content:check # content quality gate = validate:posts + build
+pnpm run lockfile:check # frozen lockfile + no pnpm-lock drift
 ```
+
+## Package manager & lockfile policy
+
+- This repo uses **pnpm only**.
+- `pnpm-lock.yaml` is the single source of truth and must be committed with dependency changes.
+- `package-lock.json` is not used and must not be tracked.
+- CI blocks PRs if lockfile consistency checks fail (`pnpm install --frozen-lockfile` + clean lockfile diff).
 
 ## Format vs Content Quality (Level 3 split)
 
 To avoid MDX parser false positives while keeping quality signals trustworthy:
 
-- `npm run format:check` / `npm run format` now targets **code + config** only:
+- `pnpm run format:check` / `pnpm run format` now targets **code + config** only:
   - `src/components/**/*.{astro,js,ts}`
   - `src/layouts/**/*.{astro,js,ts}`
   - `src/pages/**/*.{astro,js,ts}`
@@ -28,9 +36,9 @@ To avoid MDX parser false positives while keeping quality signals trustworthy:
   - root config files: `*.{mjs,cjs,ts}`
 - `src/content/posts/*.mdx` is checked by content-specific gates instead of Prettier.
 - Content command to run in CI/local:
-  - `npm run validate:posts` (frontmatter/content policy)
-  - `npm run build` (real render/build safety)
-  - or one-shot: `npm run content:check`
+  - `pnpm run validate:posts` (frontmatter/content policy)
+  - `pnpm run build` (real render/build safety)
+  - or one-shot: `pnpm run content:check`
 
 Follow-up parser compatibility TODOs are tracked in `docs/mdx-format-todo.md`.
 
