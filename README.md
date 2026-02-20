@@ -13,6 +13,7 @@ pnpm exec astro check # TypeScript + template type checking
 pnpm run format:check # Prettier check (code/config scope only)
 pnpm run content:check # content quality gate = validate:posts + build
 pnpm run lockfile:check # frozen lockfile + no pnpm-lock drift
+pnpm run security:gate # block new high/critical vulnerabilities unless valid allowlist
 ```
 
 ## Package manager & lockfile policy
@@ -21,6 +22,30 @@ pnpm run lockfile:check # frozen lockfile + no pnpm-lock drift
 - `pnpm-lock.yaml` is the single source of truth and must be committed with dependency changes.
 - `package-lock.json` is not used and must not be tracked.
 - CI blocks PRs if lockfile consistency checks fail (`pnpm install --frozen-lockfile` + clean lockfile diff).
+
+## Security Gate (Level 4, Plan C)
+
+### Governance tiers
+
+- **Runtime / production dependencies**: high/critical vulnerabilities are highest priority and must be remediated first.
+- **Dev dependencies**: temporary risk tolerance is allowed only with explicit tracking in allowlist.
+
+### Blocking rule in CI
+
+- CI runs `pnpm run security:gate`.
+- Any **new high/critical** finding not covered by a valid allowlist entry fails PR.
+- Allowlisted findings must include expiry. Expired entries stop bypassing immediately.
+
+### Allowlist file
+
+- Path: `quality/security-allowlist.json`
+- Each entry must include:
+  - `id` and/or `name`
+  - `reason`
+  - `expiresAt` (ISO-8601 date/time)
+- Additional guardrails enforced by gate:
+  - Runtime/mixed/unknown scope allowlist TTL: **max 14 days**
+  - Dev scope allowlist TTL: **max 45 days**
 
 ## Format vs Content Quality (Level 3 split)
 

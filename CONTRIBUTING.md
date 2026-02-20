@@ -8,6 +8,37 @@
 - 變更 dependencies 時，必須同步提交 `pnpm-lock.yaml`。
 - 不使用 `package-lock.json`。
 
+## Security gate policy（Level 4）
+
+### Gate 指令
+
+```bash
+pnpm run security:gate
+```
+
+CI 會 blocking 執行這個 gate：
+- 出現 **new high/critical** 且不在 allowlist → PR fail
+- allowlist 過期 → 不可放行（視同 fail）
+
+### 分級治理策略
+
+- **runtime/prod 依賴**：高風險優先修復（allowlist 最長 14 天）
+- **dev 依賴**：可短期容忍，但要有追蹤（allowlist 最長 45 天）
+
+### Allowlist 維護規範
+
+檔案：`quality/security-allowlist.json`
+
+每筆至少包含：
+- `id`（建議填 npm advisory id）和/或 `name`
+- `reason`（為什麼暫時放行）
+- `expiresAt`（ISO 日期時間，例如 `2026-03-31T00:00:00Z`）
+
+維護原則：
+1. 新增例外時，先寫清楚「暫時放行原因」與到期日
+2. 到期後不可續用同一筆 entry 混過 gate，必須更新依賴或重新評估
+3. 盡量縮短 runtime 例外期限，避免高風險長期堆積
+
 ## 文章結構
 
 所有文章放在 `src/content/posts/` 目錄下，使用 MDX 格式。

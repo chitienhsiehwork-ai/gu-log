@@ -19,6 +19,7 @@
     "validate:posts": "node scripts/validate-posts.mjs",
     "content:check": "pnpm run validate:posts && pnpm run build",
     "lockfile:check": "pnpm install --frozen-lockfile && git diff --exit-code -- pnpm-lock.yaml",
+    "security:gate": "node scripts/security-gate.mjs",
     "prepare": "[ -f scripts/setup-hooks.sh ] && scripts/setup-hooks.sh || true",
     "lighthouse": "lhci autorun --config=lighthouserc.cjs",
     "lighthouse:collect": "lhci collect --config=lighthouserc.cjs",
