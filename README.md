@@ -89,9 +89,76 @@ Trend monitors also include **growth-rate alerts** (warning/critical tiers) agai
 
 - `pre-push` hook runs **check-only** mode, so pushing does not modify tracked files.
 - `pre-push` only blocks on **blocking budget violations**.
-- Daily bundle history recording is handled by GitHub Actions workflow:
-  `.github/workflows/bundle-history-daily.yml`
+- Bundle history recording is handled by the nightly deep check workflow:
+  `.github/workflows/nightly-deep.yml`
 - The workflow runs `--record` and uploads `quality/bundle-size-history.json` as an artifact.
+
+## CI Architecture — Layered Strategy (Level 7)
+
+### Layer 1: PR Fast Gate (`.github/workflows/ci.yml`)
+
+Runs on every push/PR to `main`. **Blocking** — must pass before merge.
+Target: **3–5 minutes**.
+
+```
+┌─────────────────────────────────────────────────┐
+│  Parallel tier (run simultaneously)             │
+│  ┌──────────────┐  ┌──────┐  ┌────────────────┐│
+│  │lockfile-check │  │ lint │  │validate-content││
+│  └──────────────┘  └──────┘  └────────────────┘│
+│  ┌──────────────┐                               │
+│  │security-gate │                               │
+│  └──────────────┘                               │
+├─────────────────────────────────────────────────┤
+│  Sequential tier (after all above pass)         │
+│  ┌──────────────────────────────────────┐       │
+│  │ build (type check + astro build)     │       │
+│  └──────────────────────────────────────┘       │
+└─────────────────────────────────────────────────┘
+```
+
+**Jobs:**
+| Job | What it checks | Blocking? |
+|---|---|---|
+| `lockfile-consistency` | `pnpm install --frozen-lockfile`, no drift, no `package-lock.json` | ✅ |
+| `lint` | ESLint + Prettier (code/config scope) | ✅ |
+| `validate-content` | `validate:posts` — frontmatter & content policy | ✅ |
+| `security-gate` | Block new high/critical vulns | ✅ |
+| `build` | Type check + production build | ✅ |
+
+### Layer 2: Nightly Deep Check (`.github/workflows/nightly-deep.yml`)
+
+Runs daily at 03:15 UTC (and on `workflow_dispatch`). **Advisory** — failures send Telegram notification.
+
+**Jobs:**
+| Job | What it checks |
+|---|---|
+| `visual-test` | Playwright screenshot + LLM visual review |
+| `lighthouse` | Lighthouse CI against static dist (performance, a11y, SEO) |
+| `security-audit` | Full `pnpm audit` with history recording |
+| `dependency-freshness` | Major/minor/deprecated dependency scan |
+| `bundle-budget-record` | Record bundle size history (trend data) |
+| `notify-failure` | Telegram alert on any job failure |
+
+### Layer 3: Post-Deploy Smoke Test (`.github/workflows/deploy-smoke-test.yml`)
+
+Triggers on Vercel production deployment. Checks site is live, articles render, CP count matches.
+Sends Telegram alert on failure.
+
+### Notification Matrix
+
+| Event | Channel |
+|---|---|
+| PR gate fails | GitHub status check (native) |
+| Nightly deep fails | Telegram (thread 4) |
+| Deploy fails / smoke test fails | Telegram (thread 4) |
+
+### Required Secrets
+
+| Secret | Used by |
+|---|---|
+| `TELEGRAM_BOT_TOKEN` | nightly-deep, deploy-smoke-test |
+| `TELEGRAM_CHAT_ID` | nightly-deep, deploy-smoke-test |
 
 ## Ralph Loop (Autonomous AI Development)
 
