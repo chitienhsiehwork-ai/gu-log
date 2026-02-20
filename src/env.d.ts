@@ -1,4 +1,4 @@
-/// <reference path="../.astro/types.d.ts" />
+import '../.astro/types.d.ts';
 
 // External CDN module declarations
 declare module 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs' {

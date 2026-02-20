@@ -30,35 +30,35 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
 (function() {
   'use strict';
 
-  var JWT_KEY = 'gu-log-jwt';
-  var RETURN_KEY = 'gu-log-return-url';
+  const JWT_KEY = 'gu-log-jwt';
+  const RETURN_KEY = 'gu-log-return-url';
 
-  var el = document.getElementById('login-indicator');
+  const el = document.getElementById('login-indicator');
   if (!el) return;
 
-  var apiUrl = el.getAttribute('data-api-url') || '';
-  var lang = el.getAttribute('data-lang') || 'zh-tw';
+  const apiUrl = el.getAttribute('data-api-url') || '';
+  const lang = el.getAttribute('data-lang') || 'zh-tw';
 
   function getJwt() {
-    try { return localStorage.getItem(JWT_KEY); } catch(e) { return null; }
+    try { return localStorage.getItem(JWT_KEY); } catch (_error) { return null; }
   }
 
   function parseJwt(token) {
     try {
-      var base64 = token.split('.')[1];
-      var json = atob(base64.replace(/-/g, '+').replace(/_/g, '/'));
+      const base64 = token.split('.')[1];
+      const json = atob(base64.replace(/-/g, '+').replace(/_/g, '/'));
       return JSON.parse(json);
-    } catch(e) {
+    } catch (_error) {
       return null;
     }
   }
 
   function render() {
-    var jwt = getJwt();
+    const jwt = getJwt();
 
     if (jwt) {
-      var payload = parseJwt(jwt);
-      var email = (payload && (payload.email || payload.login || payload.sub)) || '?';
+      const payload = parseJwt(jwt);
+      const email = (payload && (payload.email || payload.login || payload.sub)) || '?';
 
       el.innerHTML =
         '<span class="login-user" title="' + email + '">' +
@@ -67,18 +67,26 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
         '<button class="login-logout-btn" id="logout-btn" title="Logout">✕</button>';
 
       document.getElementById('logout-btn').addEventListener('click', function() {
-        try { localStorage.removeItem(JWT_KEY); } catch(e) {}
+        try {
+          localStorage.removeItem(JWT_KEY);
+        } catch (_error) {
+          // Ignore storage failures (private mode / quota).
+        }
         render();
       });
     } else {
-      var loginText = lang === 'en' ? 'Login' : 'Login';
+      const loginText = lang === 'en' ? 'Login' : 'Login';
       el.innerHTML =
         '<a class="login-link" href="' + apiUrl + '/auth/github" id="login-link">' +
           loginText +
         '</a>';
 
       document.getElementById('login-link').addEventListener('click', function() {
-        try { localStorage.setItem(RETURN_KEY, window.location.href); } catch(e) {}
+        try {
+          localStorage.setItem(RETURN_KEY, window.location.href);
+        } catch (_error) {
+          // Ignore storage failures (private mode / quota).
+        }
       });
     }
 

@@ -32,19 +32,19 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
 (function() {
   'use strict';
 
-  var JWT_KEY = 'gu-log-jwt';
-  var RETURN_KEY = 'gu-log-return-url';
+  const JWT_KEY = 'gu-log-jwt';
+  const RETURN_KEY = 'gu-log-return-url';
 
-  var root = document.getElementById('ai-popup-root');
+  const root = document.getElementById('ai-popup-root');
   if (!root) return;
 
-  var filePath = root.getAttribute('data-file-path') || '';
-  var postTitle = root.getAttribute('data-post-title') || '';
-  var apiUrl = root.getAttribute('data-api-url') || '';
-  var lang = root.getAttribute('data-lang') || 'zh-tw';
+  const filePath = root.getAttribute('data-file-path') || '';
+  const postTitle = root.getAttribute('data-post-title') || '';
+  const apiUrl = root.getAttribute('data-api-url') || '';
+  const lang = root.getAttribute('data-lang') || 'zh-tw';
 
   // i18n
-  var t = lang === 'en' ? {
+  const t = lang === 'en' ? {
     askAi: '🤖 Ask AI',
     edit: '✏️ Edit',
     login: '🔐 Login with GitHub',
@@ -76,15 +76,15 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
     unknownError: '發生未知錯誤'
   };
 
-  var popup = null;
-  var selectedText = '';
-  var currentState = 'idle'; // idle, buttons, ask-input, loading, ask-result, edit-result, confirm-loading, committed, error
-  var pendingEditId = null;
+  let popup = null;
+  let selectedText = '';
+  let currentState = 'idle'; // idle, buttons, ask-input, loading, ask-result, edit-result, confirm-loading, committed, error
+  let pendingEditId = null;
 
   function getJwt() {
     try {
       return localStorage.getItem(JWT_KEY);
-    } catch(e) {
+    } catch (_error) {
       return null;
     }
   }
@@ -94,7 +94,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
   }
 
   function escapeHtml(str) {
-    var div = document.createElement('div');
+    const div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
   }
@@ -123,7 +123,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
   function positionPopup(rect) {
     if (!popup) return;
 
-    var isMobile = window.innerWidth < 640;
+    const isMobile = window.innerWidth < 640;
 
     if (isMobile) {
       // Bottom sheet style
@@ -134,9 +134,9 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
       popup.classList.remove('ai-popup--mobile');
       popup.classList.add('ai-popup--desktop');
 
-      var popupRect = popup.getBoundingClientRect();
-      var top = rect.top + window.scrollY - popupRect.height - 8;
-      var left = rect.left + window.scrollX + (rect.width / 2) - (popupRect.width / 2);
+      const popupRect = popup.getBoundingClientRect();
+      let top = rect.top + window.scrollY - popupRect.height - 8;
+      let left = rect.left + window.scrollX + (rect.width / 2) - (popupRect.width / 2);
 
       // Keep within viewport
       if (top < window.scrollY + 8) {
@@ -184,16 +184,16 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
     if (!popup) return;
     currentState = 'ask-input';
 
-    var content = document.createElement('div');
+    const content = document.createElement('div');
     content.className = 'ai-popup-ask-input-container';
 
-    var input = document.createElement('input');
+    const input = document.createElement('input');
     input.type = 'text';
     input.className = 'ai-popup-question-input';
     input.placeholder = t.questionPlaceholder;
     input.setAttribute('aria-label', t.questionPlaceholder);
 
-    var actions = document.createElement('div');
+    const actions = document.createElement('div');
     actions.className = 'ai-popup-actions';
     actions.innerHTML =
       '<button class="ai-popup-btn ai-popup-btn--ask" data-action="submit-ask">' +
@@ -227,15 +227,15 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
     if (!popup) return;
     currentState = 'ask-result';
 
-    var content = document.createElement('div');
+    const content = document.createElement('div');
     content.className = 'ai-popup-result';
 
-    var closeBtn = document.createElement('button');
+    const closeBtn = document.createElement('button');
     closeBtn.className = 'ai-popup-close';
     closeBtn.setAttribute('data-action', 'close');
     closeBtn.textContent = t.close;
 
-    var body = document.createElement('div');
+    const body = document.createElement('div');
     body.className = 'ai-popup-result-body';
     body.textContent = response;
 
@@ -254,22 +254,22 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
     currentState = 'edit-result';
     pendingEditId = editId;
 
-    var content = document.createElement('div');
+    const content = document.createElement('div');
     content.className = 'ai-popup-result';
 
-    var closeBtn = document.createElement('button');
+    const closeBtn = document.createElement('button');
     closeBtn.className = 'ai-popup-close';
     closeBtn.setAttribute('data-action', 'close');
     closeBtn.textContent = t.close;
 
-    var diffEl = document.createElement('div');
+    const diffEl = document.createElement('div');
     diffEl.className = 'ai-popup-diff';
 
     // Render diff lines
-    var lines = diff.split('\n');
-    for (var i = 0; i < lines.length; i++) {
-      var line = lines[i];
-      var lineEl = document.createElement('div');
+    const lines = diff.split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const lineEl = document.createElement('div');
       lineEl.className = 'ai-popup-diff-line';
       if (line.indexOf('+') === 0 && line.indexOf('+++') !== 0) {
         lineEl.className += ' ai-popup-diff-add';
@@ -280,7 +280,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
       diffEl.appendChild(lineEl);
     }
 
-    var actions = document.createElement('div');
+    const actions = document.createElement('div');
     actions.className = 'ai-popup-actions';
     actions.innerHTML =
       '<button class="ai-popup-btn ai-popup-btn--confirm" data-action="confirm">' +
@@ -327,16 +327,16 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
   }
 
   function getSelectionRect() {
-    var sel = window.getSelection();
+    const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0) return null;
-    var range = sel.getRangeAt(0);
-    var rect = range.getBoundingClientRect();
+    const range = sel.getRangeAt(0);
+    const rect = range.getBoundingClientRect();
     if (rect.width === 0 && rect.height === 0) return null;
     return rect;
   }
 
   function isInsidePostContent(node) {
-    var el = node.nodeType === 3 ? node.parentElement : node;
+    let el = node.nodeType === 3 ? node.parentElement : node;
     while (el) {
       if (el.classList && el.classList.contains('post-content')) return true;
       el = el.parentElement;
@@ -345,28 +345,28 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
   }
 
   async function apiRequest(endpoint, body) {
-    var jwt = getJwt();
-    var headers = { 'Content-Type': 'application/json' };
+    const jwt = getJwt();
+    const headers = { 'Content-Type': 'application/json' };
     if (jwt) headers['Authorization'] = 'Bearer ' + jwt;
 
-    var res;
+    let res;
     try {
       res = await fetch(apiUrl + endpoint, {
         method: 'POST',
         headers: headers,
         body: JSON.stringify(body)
       });
-    } catch(e) {
+    } catch (_error) {
       // Network error (TypeError: Failed to fetch)
       throw new Error(t.networkError);
     }
 
     if (!res.ok) {
-      var errText = '';
+      let errText = '';
       try {
-        var errBody = await res.json();
+        const errBody = await res.json();
         errText = errBody.detail || errBody.error || res.statusText;
-      } catch(e) {
+      } catch (_error) {
         errText = res.statusText;
       }
       throw new Error(errText || t.unknownError);
@@ -380,19 +380,19 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
   }
 
   async function handleSubmitAsk() {
-    var input = popup ? popup.querySelector('.ai-popup-question-input') : null;
-    var question = input ? input.value.trim() : '';
+    const input = popup ? popup.querySelector('.ai-popup-question-input') : null;
+    const question = input ? input.value.trim() : '';
 
     renderLoading();
     try {
-      var body = {
+      const body = {
         text: selectedText,
         context: postTitle
       };
       if (question) {
         body.question = question;
       }
-      var data = await apiRequest('/ai/ask', body);
+      const data = await apiRequest('/ai/ask', body);
       renderAskResult(data.response || data.answer || JSON.stringify(data));
     } catch(err) {
       renderError(err.message);
@@ -402,7 +402,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
   async function handleEdit() {
     renderLoading();
     try {
-      var data = await apiRequest('/ai/edit', {
+      const data = await apiRequest('/ai/edit', {
         text: selectedText,
         filePath: filePath,
         instruction: ''
@@ -416,7 +416,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
   async function handleConfirm() {
     renderLoading();
     try {
-      var data = await apiRequest('/ai/edit/confirm', {
+      const data = await apiRequest('/ai/edit/confirm', {
         editId: pendingEditId
       });
       renderCommitted(data.commitHash || data.commit || '');
@@ -429,16 +429,18 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
     // Save current page URL so we can return after login
     try {
       localStorage.setItem(RETURN_KEY, window.location.href);
-    } catch(e) {}
+    } catch (_error) {
+      // Ignore storage failures (private mode / quota), login can still continue.
+    }
     window.location.href = apiUrl + '/auth/github';
   }
 
   // Event delegation for popup buttons
   document.addEventListener('click', function(e) {
-    var btn = e.target.closest('[data-action]');
+    const btn = e.target.closest('[data-action]');
     if (!btn || !popup || !popup.contains(btn)) return;
 
-    var action = btn.getAttribute('data-action');
+    const action = btn.getAttribute('data-action');
     e.stopPropagation();
 
     switch (action) {
@@ -467,11 +469,11 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
   });
 
   // Show popup on text selection in post-content
-  function onSelectionEnd(e) {
+  function onSelectionEnd(_event) {
     // Small delay to let selection finalize
     setTimeout(function() {
-      var sel = window.getSelection();
-      var text = sel ? sel.toString().trim() : '';
+      const sel = window.getSelection();
+      const text = sel ? sel.toString().trim() : '';
 
       if (!text || text.length < 2) {
         // Don't remove if popup is showing results
@@ -488,7 +490,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
 
       selectedText = text;
 
-      var rect = getSelectionRect();
+      const rect = getSelectionRect();
       if (!rect) return;
 
       createPopup();

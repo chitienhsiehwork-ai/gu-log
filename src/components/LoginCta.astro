@@ -21,7 +21,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
   const RETURN_KEY = 'gu-log-return-url';
   
   function getJwt() {
-    try { return localStorage.getItem(JWT_KEY); } catch(e) { return null; }
+    try { return localStorage.getItem(JWT_KEY); } catch (_error) { return null; }
   }
 
   function parseJwt(token) {
@@ -29,7 +29,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
       const base64 = token.split('.')[1];
       const json = atob(base64.replace(/-/g, '+').replace(/_/g, '/'));
       return JSON.parse(json);
-    } catch(e) { return null; }
+    } catch (_error) { return null; }
   }
 
   function render() {
@@ -86,7 +86,9 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
         document.getElementById('cta-login-btn')?.addEventListener('click', () => {
           try {
             localStorage.setItem(RETURN_KEY, window.location.href);
-          } catch(e) {}
+          } catch (_error) {
+            // Ignore storage failures (private mode / quota).
+          }
         });
       }, 0);
     }
