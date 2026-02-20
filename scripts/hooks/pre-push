@@ -2,10 +2,11 @@
 echo "🚀 Running pre-push checks..."
 
 # 1. Bundle budget check (check-only; must not write git working tree files)
-echo "📦 Checking bundle size budget (check-only mode)..."
+#    Blocking budgets fail the push; trend alerts are warnings only.
+echo "📦 Checking bundle budgets (blocking + trend monitor)..."
 node scripts/bundle-budget-check.mjs
 if [ $? -ne 0 ]; then
-  echo "❌ Bundle size exceeds budget! Push aborted."
+  echo "❌ Blocking bundle budget violation detected! Push aborted."
   exit 1
 fi
 

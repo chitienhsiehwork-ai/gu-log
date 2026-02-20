@@ -41,7 +41,21 @@ node scripts/bundle-budget-check.mjs            # check-only (default, no file w
 node scripts/bundle-budget-check.mjs --record   # record mode (append quality/bundle-size-history.json)
 ```
 
+### Level 5 (Plan C) budget policy
+
+- **Blocking budgets (fail CI / pre-push):**
+  - Global JS size
+  - Global CSS size
+  - Single JS/CSS file max size
+- **Trend monitors (warn only, non-blocking):**
+  - Global HTML size
+  - Global total bundle size
+  - Route-level HTML size for key pages (`/`, `/en/`, `/clawd-picks/`, `/en/clawd-picks/`, `/shroomdog-picks/`, `/level-up/`)
+
+Trend monitors also include **growth-rate alerts** (warning/critical tiers) against recorded history to catch unusual jumps without blocking normal content growth.
+
 - `pre-push` hook runs **check-only** mode, so pushing does not modify tracked files.
+- `pre-push` only blocks on **blocking budget violations**.
 - Daily bundle history recording is handled by GitHub Actions workflow:
   `.github/workflows/bundle-history-daily.yml`
 - The workflow runs `--record` and uploads `quality/bundle-size-history.json` as an artifact.

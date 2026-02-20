@@ -1,7 +1,89 @@
 {
-  "totalMaxKB": 25000,
-  "jsMaxKB": 10,
-  "cssMaxKB": 30,
-  "singleFileMaxKB": 300,
-  "comment": "Baseline 2026-02-13: total=17659KB, js=3.2KB, css=26KB. Budget = baseline + ~20%. singleFileMaxKB = any single JS/CSS file."
+  "version": 2,
+  "blocking": {
+    "global": {
+      "jsMaxKB": 10,
+      "cssMaxKB": 30,
+      "singleFileMaxKB": 300
+    }
+  },
+  "trend": {
+    "global": {
+      "totalKB": {
+        "warnAtKB": 26000,
+        "criticalAtKB": 30000,
+        "growth": {
+          "warnPct": 3,
+          "criticalPct": 8,
+          "minDeltaKB": 250
+        }
+      },
+      "htmlKB": {
+        "warnAtKB": 25000,
+        "criticalAtKB": 28500,
+        "growth": {
+          "warnPct": 3,
+          "criticalPct": 8,
+          "minDeltaKB": 250
+        }
+      }
+    },
+    "routes": {
+      "/": {
+        "warnAtKB": 45,
+        "criticalAtKB": 55,
+        "growth": {
+          "warnPct": 20,
+          "criticalPct": 35,
+          "minDeltaKB": 5
+        }
+      },
+      "/en/": {
+        "warnAtKB": 40,
+        "criticalAtKB": 50,
+        "growth": {
+          "warnPct": 20,
+          "criticalPct": 35,
+          "minDeltaKB": 5
+        }
+      },
+      "/clawd-picks/": {
+        "warnAtKB": 85,
+        "criticalAtKB": 100,
+        "growth": {
+          "warnPct": 18,
+          "criticalPct": 30,
+          "minDeltaKB": 8
+        }
+      },
+      "/en/clawd-picks/": {
+        "warnAtKB": 85,
+        "criticalAtKB": 100,
+        "growth": {
+          "warnPct": 18,
+          "criticalPct": 30,
+          "minDeltaKB": 8
+        }
+      },
+      "/shroomdog-picks/": {
+        "warnAtKB": 130,
+        "criticalAtKB": 150,
+        "growth": {
+          "warnPct": 15,
+          "criticalPct": 25,
+          "minDeltaKB": 10
+        }
+      },
+      "/level-up/": {
+        "warnAtKB": 38,
+        "criticalAtKB": 50,
+        "growth": {
+          "warnPct": 25,
+          "criticalPct": 40,
+          "minDeltaKB": 5
+        }
+      }
+    }
+  },
+  "comment": "Level 5 / Plan C: JS-CSS budgets are blocking; HTML/total and key routes are trend monitors (non-blocking alerts)."
 }
