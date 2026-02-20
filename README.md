@@ -12,6 +12,18 @@ npm run build        # production build (catches rendering errors)
 npx astro check      # TypeScript + template type checking
 ```
 
+## Bundle Budget Flow
+
+```bash
+node scripts/bundle-budget-check.mjs            # check-only (default, no file writes)
+node scripts/bundle-budget-check.mjs --record   # record mode (append quality/bundle-size-history.json)
+```
+
+- `pre-push` hook runs **check-only** mode, so pushing does not modify tracked files.
+- Daily bundle history recording is handled by GitHub Actions workflow:
+  `.github/workflows/bundle-history-daily.yml`
+- The workflow runs `--record` and uploads `quality/bundle-size-history.json` as an artifact.
+
 ## Ralph Loop (Autonomous AI Development)
 
 `ralph-loop.sh` runs Claude Code in a headless loop. Each iteration picks one task from `TODO.json`, does the work, commits, pushes, then exits — starting the next iteration with a fresh context window.
