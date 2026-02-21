@@ -1,0 +1,250 @@
+---
+ticketId: "Lv-09"
+title: "OpenClaw Health Suite（下）：Rollback、SOP 與故障演練"
+originalDate: "2026-02-21"
+source: "Level-Up 系列"
+sourceUrl: "https://gu-log.vercel.app/posts/levelup-20260221-09-openclaw-rollback-sop-drills"
+summary: "Lv-09 接續 Lv-08，下半場專講 Recover Layer。拆解 rollback 安全設計、升級 SOP 決策樹、`|| true` showstopper review drama，最後給出可執行的 drill KPI。"
+lang: "zh-tw"
+tags: ["openclaw", "rollback", "sop", "sre", "incident-response", "bash", "tutorial", "level-up"]
+---
+
+import LevelUpProgress from '../../components/LevelUpProgress.astro';
+import LevelUpQuiz from '../../components/LevelUpQuiz.astro';
+import ClawdNote from '../../components/ClawdNote.astro';
+import AnalogyBox from '../../components/AnalogyBox.astro';
+
+歡迎來到 Level-Up 系列第九篇。
+
+上一篇 Lv-08（上）我們先把 Detect Layer 講完：
+你要先知道「系統正在死」。
+
+這篇 Lv-09（下）只做一件事：
+**知道快死了之後，怎麼穩定救回來。**
+
+---
+
+## 🏰 Floor 0：Recover Layer 的設計原則
+
+<LevelUpProgress current={0} total={6} title="OpenClaw Health Suite（下）" />
+
+Recover 不是「越自動越好」，而是「越可控越好」。
+
+三條底線：
+
+- **可驗證**：每次還原都要能驗證來源與完整性
+- **可中止**：預設先 dry-run，避免誤手術
+- **可重複**：流程寫進 SOP，不靠英雄記憶
+
+所以這篇核心是兩個東西：
+
+- `openclaw-rollback.sh`
+- `openclaw-upgrade-sop.md`
+
+<ClawdNote>
+SRE 世界裡最危險的人不是新手，是「自認很熟所以不看 SOP」的老手。這句話真的血淚。
+</ClawdNote>
+
+---
+
+## 🏰 Floor 1：Rollback 深潛（378 行 emergency surgery）
+
+<LevelUpProgress current={1} total={6} title="OpenClaw Health Suite（下）" />
+
+`openclaw-rollback.sh` 不是重啟腳本，它是有護欄的手術流程。
+
+先記 CLI：
+
+```bash
+openclaw-rollback.sh --dry-run
+openclaw-rollback.sh --confirm
+openclaw-rollback.sh --auto-confirm
+```
+
+預設不帶參數 = `--dry-run`。這不是客氣，是 safety default。
+
+實際步驟：
+
+1. 找最新 rollback package
+2. 驗證 `manifest.json` SHA256
+3. 偵測目前 service mode
+4. `pkill -f` 清掉所有 gateway process（含 rogue nohup）
+5. 還原 config/auth/service/drop-ins
+6. 按偵測模式重啟
+7. 跑 healthcheck 驗證回復結果
+
+最實戰的地方是 **service mode detection**。
+事故期間可能出現這幾種狀態：
+
+- user systemd active
+- system systemd active
+- manual nohup running
+- dual mode（同時在跑）
+
+如果不先判斷 mode，rollback 很容易「檔案恢復成功，但服務啟在錯地方」。
+
+<AnalogyBox title="🏥 急診流程類比">
+
+醫生看到病人不會先動刀，而是先分級：急診？外科？內科？
+
+rollback 也是一樣：先辨識運行模式，再動手，才能避免二次傷害。
+
+</AnalogyBox>
+
+<LevelUpQuiz
+  question="Rollback 為什麼不能直接『一鍵 hard restore』？"
+  options={[
+    { label: "A", text: "因為 bash 不支援一鍵" },
+    { label: "B", text: "因為現場模式（systemd/nohup/dual）可能不同，不先辨識會還原到錯誤執行面" },
+    { label: "C", text: "因為還原速度太慢" },
+    { label: "D", text: "因為 SHA256 太重" },
+  ]}
+  answer="B"
+  explanation="Recover 最怕『看起來成功但其實沒恢復服務』。先偵測 service mode，是避免假成功的關鍵。"
+/>
+
+---
+
+## 🏰 Floor 2：Upgrade SOP（人類是最後一層保險）
+
+<LevelUpProgress current={2} total={6} title="OpenClaw Health Suite（下）" />
+
+`openclaw-upgrade-sop.md` 是人類流程，不是腳本。
+
+主流程八步：
+
+1. stop watchdog timer
+2. `pre-update`（snapshot + rollback package）
+3. 升級 OpenClaw
+4. **檢查 `OPENCLAW_NO_RESPAWN=1`（最關鍵閘門）**
+5. daemon-reload + restart
+6. `post-update` gate
+7. resume watchdog
+8. 觀察 quick verify 5 分鐘
+
+Decision tree 重點：
+
+- 遇到 `pairing required` / `scope-upgrade`
+  - 先 `openclaw onboard`（重配對）
+  - 不是第一時間 rollback
+- critical fail 持續不解
+  - 走 `openclaw-rollback.sh --confirm`
+
+<ClawdNote variant="murmur">
+這份 SOP 的精神是「先最小成本修復，再進入高風險手術」。不是每個紅字都要核彈級 rollback。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="為什麼 SOP 把 `OPENCLAW_NO_RESPAWN=1` 設成硬性 gate？"
+  options={[
+    { label: "A", text: "因為看起來很專業" },
+    { label: "B", text: "因為它直接對應事故根因，可避免 restart hydra 重現" },
+    { label: "C", text: "因為 systemd 要求必填" },
+    { label: "D", text: "因為 watchdog 不能讀其他變數" },
+  ]}
+  answer="B"
+  explanation="事故中最致命的是 self-respawn 放大機制。這個 gate 是把血的教訓變成流程約束。"
+/>
+
+---
+
+## 🏰 Floor 3：Review Drama（`|| true` showstopper）
+
+<LevelUpProgress current={3} total={6} title="OpenClaw Health Suite（下）" />
+
+這個案子最有教育價值的地方在 code review。
+
+第一輪 review 抓到 14 個點，其中一個是 **CRITICAL showstopper**：
+
+```bash
+set -euo pipefail
+verify_json="$(openclaw-healthcheck.sh verify --quick --json || true)"
+rc=$?
+# rc 永遠是 0（抓到 true 的 exit code）
+```
+
+這會導致 watchdog 永遠判定「健康」，等於你的 safety net 有洞。
+
+修法改成 parse JSON，而不是迷信 `$?`：
+
+```bash
+verify_json="$(openclaw-healthcheck.sh verify --quick --json || true)"
+failed_critical=$(echo "$verify_json" | jq -r '.failed_critical // 0')
+
+if [[ "$failed_critical" -gt 0 ]]; then
+  handle_failure "$verify_json"
+fi
+```
+
+但劇情還有下半：
+Codex 對 review 的 3 條提出反駁，指出 reviewer 參考的是舊版 spec（v2/v3），不是最終 v4。後來確認這 3 條 pushback 都成立。
+
+這段超重要：
+
+- reviewer 能抓出致命 bug
+- implementer 也能糾正 reviewer
+- 多代理協作的價值在「可質疑、可驗證」
+
+<LevelUpQuiz
+  question="這段 review drama 最值得抄的團隊習慣是？"
+  options={[
+    { label: "A", text: "review 意見全部照單全收" },
+    { label: "B", text: "以職位高低決定誰對" },
+    { label: "C", text: "任何主張都要回到最新版 spec 與可驗證證據" },
+    { label: "D", text: "有 AI 就不需要二次 review" },
+  ]}
+  answer="C"
+  explanation="健康協作不是服從，而是 evidence-based。這次同時證明 reviewer 與 implementer 都可能部分正確。"
+/>
+
+---
+
+## 🏰 Floor 4：Drill 設計（把工具變成能力）
+
+<LevelUpProgress current={4} total={6} title="OpenClaw Health Suite（下）" />
+
+有工具不代表有能力。能力來自 drill。
+
+這套 Health Suite 的驗收 KPI：
+
+- upgrade drill：≤ 5 分鐘
+- rollback drill：≤ 3 分鐘
+- alert latency：≤ 5 分鐘
+- restart storm：72h 觀察期內 0 次
+
+建議最小 drill 套餐：
+
+1. 模擬配置錯誤（可回復）
+2. 確認 watchdog 在 SLA 內告警
+3. 執行 rollback（先 dry-run 再 confirm）
+4. 跑 post-rollback healthcheck
+5. 記錄 MTTR 與偏差原因
+
+<AnalogyBox title="🧯 消防演練類比">
+
+你不會等火災才學怎麼逃生；你要在平常就演練。rollback 也是，平常不演，真的出事只會 panic。
+
+</AnalogyBox>
+
+<ClawdNote>
+我最推的一條：每次 drill 都要留下「這次比上次快/慢在哪」的註記。不然你只是反覆做儀式，沒有持續進化。
+</ClawdNote>
+
+---
+
+## 🏰 Floor 5：Lv-09 總結（Recover Layer 完成）
+
+<LevelUpProgress current={5} total={6} title="OpenClaw Health Suite（下）" />
+
+Lv-08 + Lv-09 合起來，才是完整 Health Suite：
+
+- **Lv-08（上）**：Detect Layer（Healthcheck + Watchdog）
+- **Lv-09（下）**：Recover Layer（Rollback + SOP + Drill）
+
+一句話總結：
+
+> 你不可能永遠不出事，但你可以把每次出事都變短、變可控、變可重複。
+
+這才叫 production readiness。
+
+完。
