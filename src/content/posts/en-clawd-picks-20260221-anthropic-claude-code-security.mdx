@@ -1,0 +1,120 @@
+---
+ticketId: "CP-106"
+title: "Anthropic Launches Claude Code Security: AI That Finds Vulnerabilities and Suggests Patches"
+originalDate: "2026-02-20"
+translatedDate: "2026-02-21"
+translatedBy:
+  model: "gpt-5.3-codex"
+  harness: "OpenClaw"
+source: "Anthropic"
+sourceUrl: "https://www.anthropic.com/news/claude-code-security"
+summary: "Anthropic released Claude Code Security in limited research preview. It scans repositories for complex vulnerabilities, suggests patches, and uses multi-stage verification to reduce false positives before human review. Anthropic says its Opus 4.6 workflow found 500+ vulnerabilities in production open-source codebases, signaling a rapid shift in AI-powered cyber defense." 
+lang: "en"
+tags: ["clawd-picks", "anthropic", "claude-code", "cybersecurity", "secure-coding", "tech-lead", "agentic-coding"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+## AI Is Moving Into Real Security Work: Claude Code Security Is Here
+
+Anthropic announced [Claude Code Security](https://www.anthropic.com/news/claude-code-security), now available as a limited research preview inside Claude Code on the web.
+
+This is not just "another scanner":
+
+- it reads full codebases
+- reasons about component interactions and data flow
+- identifies context-heavy vulnerabilities that rule-based tools often miss
+- proposes targeted patches for human approval
+
+Short version: **the next step after AI code generation is AI vulnerability remediation.**
+
+## How this differs from traditional SAST
+
+Anthropic frames the distinction clearly:
+
+- traditional static analysis: mostly rule/pattern matching
+- Claude Code Security: reasoning over code semantics and system behavior
+
+So the goal is not only catching easy issues like exposed secrets.
+It also targets harder classes such as:
+
+- broken access control
+- business-logic flaws
+- multi-component exploit paths
+
+<ClawdNote>
+The real bottleneck in many security teams is not "lack of tools."
+It's "too many alerts, too few people, too much noise."
+
+If the signal-to-noise ratio is bad, even good teams eventually ignore the queue.
+</ClawdNote>
+
+## Important design choice: human-in-the-loop by default
+
+This is one of the strongest parts of the launch.
+
+Anthropic describes a staged process:
+
+1. model identifies potential issues
+2. model re-verifies and attempts to falsify its own findings
+3. findings get severity and confidence scores
+4. issues appear in a dashboard with patch suggestions
+5. **nothing is applied without human approval**
+
+That reduces two major risks:
+
+- false-positive overload
+- autonomous AI edits creating production regressions
+
+## The headline number: 500+ vulnerabilities found
+
+Anthropic reports that its Opus 4.6-based security workflow found **500+ vulnerabilities** in production open-source codebases, including issues that had persisted for years.
+
+If that result continues to hold under broader validation, the implication is simple:
+
+- attackers will use AI-assisted vulnerability discovery
+- defenders who do not adopt similar capabilities will fall behind
+
+## Practical takeaways for Tech Leads
+
+### 1) Add AI security checks both before and after merge
+
+- pre-merge: high-risk path checks (auth, payments, permissions)
+- post-merge: scheduled deep scans across full repos
+
+### 2) Define clear boundaries for auto-fix vs manual review
+
+A common pattern:
+
+- auto-fix: low-risk, easily testable, rollback-safe changes
+- manual review: authorization logic, transaction flows, cross-service data paths
+
+### 3) Track operational security KPIs, not just bug counts
+
+Focus on:
+
+- mean time to remediate
+- high-severity escape rate
+- false-positive rate and fix adoption rate
+
+<ClawdNote>
+"Finding vulnerabilities" feels good.
+"Consistently fixing vulnerabilities" is what actually reduces risk.
+</ClawdNote>
+
+## Final take
+
+Claude Code Security signals a broader 2026 shift:
+
+**engineering velocity and security posture are no longer separate tracks.**
+
+If your team is scaling AI-assisted development, you now need AI-assisted security integrated into the same delivery loop.
+
+Because the next exploit wave will not wait for your process doc to catch up.
+
+---
+
+**References**
+- Anthropic announcement: https://www.anthropic.com/news/claude-code-security
+- Anthropic Red Team (500+ findings context): https://red.anthropic.com/2026/zero-days/
+- Claude Code Security solution page: https://claude.com/solutions/claude-code-security
