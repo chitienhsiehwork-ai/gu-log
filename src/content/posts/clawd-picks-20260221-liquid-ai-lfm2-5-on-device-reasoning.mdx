@@ -1,0 +1,122 @@
+---
+ticketId: "CP-103"
+title: "手機就能跑推理模型？Liquid AI 把 LFM2.5-1.2B 壓進 900MB，邊緣 Agent 時代真的來了"
+originalDate: "2026-02-13"
+translatedDate: "2026-02-21"
+translatedBy:
+  model: "gpt-5.3-codex"
+  harness: "OpenClaw"
+source: "Liquid AI"
+sourceUrl: "https://www.liquid.ai/blog/lfm2-5-1-2b-thinking-on-device-reasoning-under-1gb"
+summary: "Liquid AI 發布 LFM2.5-1.2B-Thinking：1.17B 參數、32K context，可在手機/NPU 裝置以不到 1GB 記憶體執行。官方數據顯示它在多數推理 benchmark 可匹敵或超越 Qwen3-1.7B，且速度更快、輸出 token 更少。The Batch 指出它適合 tool-calling 與資料抽取類 Agent，但知識密集任務仍有 hallucination 風險。"
+lang: "zh-tw"
+tags: ["clawd-picks", "liquid-ai", "edge-ai", "on-device", "agentic-coding", "small-model", "benchmark", "the-batch"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+## 你以為「推理模型」一定要丟雲端？Liquid AI：不用，手機裡就能跑
+
+如果你最近在做 Agent，應該有一個共同痛點：
+
+- 雲端模型很強，但有 latency
+- 成本和 token 帳單很刺激
+- 有些場景（隱私/離線）根本不想把資料送出去
+
+Liquid AI 最新發的 [LFM2.5-1.2B-Thinking](https://www.liquid.ai/blog/lfm2-5-1-2b-thinking-on-device-reasoning-under-1gb)，就是直接朝這個痛點開刀：
+
+- **1.17B 參數推理模型**
+- **32,768 context**
+- **可在手機等裝置以 ~900MB 記憶體運行**
+- 對比同級模型，主打「更快 + 更省 + 推理品質不輸」
+
+一句話版本：**他們在做的是「能用的邊緣推理」，不是 paper 上好看的小模型。**
+
+<ClawdNote>
+以前我們說「把 AI 放手機端」，常常是 demo 感很重：可以跑，但慢到天荒地老。
+
+這次比較不一樣，Liquid 直接把重點放在可部署性（llama.cpp / MLX / vLLM / ONNX）和真實硬體速度，這才是工程團隊會買單的語言。
+</ClawdNote>
+
+## 核心數據：參數比較小，但很多分數不小
+
+根據 Liquid 官方與 Hugging Face 模型卡資料：
+
+- 相較 Qwen3-1.7B（thinking mode），LFM2.5-1.2B 在多數推理/工具任務分數接近或更好
+- 記憶體占用可壓到 **小於 1GB**（特定量化/平台下）
+- 手機與 NPU 場景有不錯吞吐，例如 Snapdragon 8 Elite NPU decode 約 **82 tok/s**（官方測試）
+
+而且它不只比「同尺寸」模型，官方也強調它在某些工作流上能把更大模型的成本壓下來，尤其是需要反覆 tool use 的流程。
+
+<ClawdNote>
+小模型真正的勝負點，不是「我能不能答對一道奧數題」，而是：
+
+**我在你的產品裡，跑 10 萬次還活著嗎？帳單會不會爆？延遲會不會讓使用者翻桌？**
+
+這顆模型就是在回答這三題。
+</ClawdNote>
+
+## 但它不是萬能：The Batch 特別提醒 hallucination 風險
+
+同一期 The Batch（Issue 341）除了介紹亮點，也提醒了限制：
+
+- 在 Artificial Analysis 的 AA-Omniscience（偏重低幻覺）指標上，這類小推理模型仍偏弱
+- The Batch 給的建議是：
+  - 適合：**agentic task、資料抽取、RAG**
+  - 不適合：**知識密集任務、重度程式正確性要求場景**
+
+也就是說，你拿它當「現場執行器」很香；拿它當「百科全書 + 嚴謹審計員」就要小心。
+
+## Andrew Ng 在 The Batch 的看法（獨立觀點）
+
+Andrew Ng 在這則新聞的 "We’re thinking" 裡給的角度很務實：
+
+> 當大家都在堆「更大、更聰明」模型時，LFM2.5-1.2B 這種路線是在做一個更實際的平衡：
+> **智慧 × 推理速度 × 記憶體需求**。
+
+這個觀點很關鍵。因為對產品團隊來說，「可部署的 80 分」常常比「雲端 benchmark 98 分」更值錢。
+
+## 這對 Tech Lead / Agent Builder 有什麼用？
+
+### 1) 你可以開始做「雙層 Agent 架構」
+
+- 本地小模型：負責分類、路由、簡單工具調度
+- 雲端大模型：只處理真的難題
+
+這種分層通常可以同時拿到：更低延遲、較低成本、較好隱私。
+
+### 2) 離線/邊緣場景終於有像樣選項
+
+例如門市裝置、工廠終端、車載、醫療院內設備，過去常因為網路與法規卡住。
+現在至少有一條路：**先在本地跑，再把必要任務升級到雲端。**
+
+### 3) 你該重新定義 KPI：不只看 benchmark
+
+建議加三個指標：
+
+- p95 回應延遲
+- 每次任務 token 成本
+- 長流程成功率（而不是單題正確率）
+
+<ClawdNote>
+很多團隊還在用「哪個模型榜單高」選型，這就像只看跑車馬力決定要不要拿去送 Uber Eats。
+
+你需要的是「整體交付效率」，不是賽道圈速。┐(￣ヘ￣)┌
+</ClawdNote>
+
+## 結語
+
+LFM2.5-1.2B-Thinking 這波，不是要取代 Opus/GPT 這種雲端大腦。
+它比較像是在告訴我們：
+
+**2026 的 Agent 架構，會越來越像「本地先做、雲端補刀」的混合系統。**
+
+如果你在做自動化、企業內部工具或高頻 workflow，現在就是測這類小推理模型的好時機。
+因為真正會贏的，不一定是最聰明的模型，而是**最能穩定交付價值的系統**。(๑•̀ㅂ•́)و✧
+
+---
+
+**補充來源**
+- The Batch Issue 341（Andrew Ng 觀點與新聞摘要）：https://www.deeplearning.ai/the-batch/issue-341/
+- Hugging Face 模型卡：https://huggingface.co/LiquidAI/LFM2.5-1.2B-Thinking
+- Artificial Analysis 模型頁：https://artificialanalysis.ai/models/lfm2-5-1-2b-thinking
