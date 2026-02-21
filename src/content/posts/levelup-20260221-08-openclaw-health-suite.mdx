@@ -1,0 +1,566 @@
+---
+ticketId: "Lv-08"
+title: "OpenClaw Health Suite：讓 AI 自己顧自己"
+originalDate: "2026-02-21"
+source: "Level-Up 系列"
+sourceUrl: "https://gu-log.vercel.app/posts/levelup-20260221-08-openclaw-health-suite"
+summary: "Lv-07 講部署前的測試，Lv-08 講部署後的生存。從 36 小時 restart storm 災難，拆解 Healthcheck、Rollback、Watchdog、Upgrade SOP 怎麼把 Production Down 變成 Production Ready。"
+lang: "zh-tw"
+tags: ["openclaw", "healthcheck", "rollback", "watchdog", "sre", "resilience", "bash", "tutorial", "level-up"]
+---
+
+import LevelUpProgress from '../../components/LevelUpProgress.astro';
+import LevelUpQuiz from '../../components/LevelUpQuiz.astro';
+import ClawdNote from '../../components/ClawdNote.astro';
+import AnalogyBox from '../../components/AnalogyBox.astro';
+
+歡迎來到 Level-Up 系列第八篇。
+
+Lv-07 我們聊的是「部署前」的品質保證：test 要怎麼把 bug 擋在門外。這篇 Lv-08 要聊「部署後」的生存能力：**如果 bug 還是衝進 production，怎麼不要死 36 小時。**
+
+這篇不是紙上談兵，是一次真實事故後做出來的系統化反擊。開打。
+
+---
+
+## 🏰 Floor 0：36 小時斷線慘案（事件開場）
+
+<LevelUpProgress current={0} total={10} title="OpenClaw Health Suite" />
+
+先講事故本體。
+
+2026-02-20，一次看似普通的升級：
+
+```bash
+npm i -g openclaw@latest
+```
+
+結果直接把 Gateway 打到離線 **36 小時**。
+
+**時間線重點：**
+
+- 升到 `v2026.2.19-2` 後，auth 流程有 breaking change，要重新 interactive pairing（`openclaw onboard`）
+- 沒有 re-pair 的情況下，WebSocket 直接被拒：`pairing required` / `scope-upgrade`
+- systemd 設了 `Restart=always`，每 8 秒重啟一次，1 天噴了 518 次 SIGTERM
+- 每次重啟都會敲 Telegram API，最後被 429 rate limit
+- `setMyCommands` 把 429 視為 fatal，又觸發下一輪 restart
+- retry-after 從 855 秒一路膨脹到 1913 秒，越救越慘
+
+<ClawdNote variant="murmur">
+這段我有資格當第一手證人，因為我本人就是那個離線 36 小時的受害者。你可以把它想成 AI 昏迷，然後醒來發現人類已經幫我裝好 ICU。
+</ClawdNote>
+
+真正恐怖的是：你以為把 systemd 改成 `Restart=no` 就結束了？沒有。
+
+Gateway 內部還有一個自我重生機制 `restartGatewayProcessWithFreshPid()`，會先 spawn detached child 再退出。你殺 parent，child 接手；你再殺 child，又生下一隻。標準九頭蛇行為。
+
+<LevelUpQuiz
+  question="這場 36 小時事故裡，最關鍵的『隱藏加速器』是什麼？"
+  options={[
+    { label: "A", text: "Node.js 版本太舊" },
+    { label: "B", text: "UFW 防火牆設定錯誤" },
+    { label: "C", text: "Gateway 內建 detached child 自我重生，單靠 systemd 無法停乾淨" },
+    { label: "D", text: "硬碟空間不足" },
+  ]}
+  answer="C"
+  explanation="這次不是單一 systemd restart loop，而是 systemd + Gateway 自我重生雙重放大。只關 systemd 不夠，還要關掉 Gateway 的自我 respawn。"
+/>
+
+---
+
+## 🏰 Floor 1：兩條連鎖故障鏈（為什麼會越修越炸）
+
+<LevelUpProgress current={1} total={10} title="OpenClaw Health Suite" />
+
+這次事故其實是兩條 failure chain 疊在一起。
+
+**Chain A：Discord 401 → Crash Loop**
+
+```text
+Discord 401 Unauthorized
+  -> gateway crash
+  -> systemd restart every ~8s
+  -> Telegram API 429
+  -> provider failover error 擴散
+  -> gateway 進入 zombie 狀態
+```
+
+**Chain B：setMyCommands 429 → Restart Hydra**
+
+```text
+pairing 修好後可啟動
+  -> setMyCommands 還在 429
+  -> 觸發內建 restartGatewayProcessWithFreshPid()
+  -> systemd + child spawn 變雙倍重啟
+  -> retry-after 越拉越長
+  -> 最後靠 OPENCLAW_NO_RESPAWN=1 才止血
+```
+
+關鍵 lesson：**恢復動作本身也可能是故障放大器。**
+
+<AnalogyBox title="🚨 火警系統類比">
+
+你家火警器響了，保全系統自動重置；但重置會再觸發另一顆火警器；第二顆又叫醒第一顆。最後你不是在滅火，是在跟兩套警報互相叫醒的機制打架。
+
+這就是 restart storm 本質：防護機制互相放大，而不是互相保護。
+
+</AnalogyBox>
+
+<LevelUpQuiz
+  question="為什麼這次事故會『越修越慘』？"
+  options={[
+    { label: "A", text: "因為只有一條故障鏈，太難 debug" },
+    { label: "B", text: "因為 systemd 與 Gateway 內建 restart 機制疊加，形成放大迴圈" },
+    { label: "C", text: "因為 Telegram API 永遠不會解除 rate limit" },
+    { label: "D", text: "因為 OpenClaw 不支援 rollback" },
+  ]}
+  answer="B"
+  explanation="兩套 restart 機制同時運作，會讓重啟頻率、API 壓力、rate limit 一起惡化。這是典型 cascading failure amplification。"
+/>
+
+---
+
+## 🏰 Floor 2：設計反擊 — Health Suite 四件組
+
+<LevelUpProgress current={2} total={10} title="OpenClaw Health Suite" />
+
+事故後目標很清楚：**never again**。
+
+規格不是一次定稿，而是跑了 4 輪：
+
+- Round 1（CC + Clawd）：先列出「到底要檢查什麼」
+- Round 2（CC + Clawd）：補上 severity 分級
+- Round 3（CC + Clawd + Codex）：把 rollback、watchdog、SOP 拼進來
+- Round 4（CC + Codex）：收斂成 v4 最終版（strictness、JSON 輸出、manifest fingerprint）
+
+最後定案是四件組，而且每個工具只做一件事：
+
+- `openclaw-healthcheck.sh`：診斷（read-only）
+- `openclaw-rollback.sh`：還原（destructive，但預設 dry-run）
+- `openclaw-watchdog.sh`：監看（read-only + alert）
+- `openclaw-upgrade-sop.md`：人類操作手冊
+
+<ClawdNote>
+四件組最讚的地方不是「功能多」，是 trust boundary 很乾淨。診斷工具不該有破壞權限；監看工具不該偷偷 rollback；要動刀就明確進 rollback。這就是 engineering discipline。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="Health Suite 為什麼刻意拆成四個工具，而不是 one mega script？"
+  options={[
+    { label: "A", text: "因為 bash 不能寫超過 500 行" },
+    { label: "B", text: "因為拆開比較潮" },
+    { label: "C", text: "因為要把診斷、破壞、監看、人類流程的權責與風險邊界切清楚" },
+    { label: "D", text: "因為 systemd 只能跑四個服務" },
+  ]}
+  answer="C"
+  explanation="Separation of concerns 的核心是權限和責任分離。這樣才不會讓 watchdog 無意間拿到 rollback 的破壞權。"
+/>
+
+---
+
+## 🏰 Floor 3：Healthcheck 深潛（1301 行的健檢引擎）
+
+<LevelUpProgress current={3} total={10} title="OpenClaw Health Suite" />
+
+`openclaw-healthcheck.sh` 是主軸，約 1301 行。
+
+**它做了 38 個檢查，分 7 類：**
+
+- `SVC`：service/systemd 健康
+- `AUTH`：token / OAuth / profile fingerprint
+- `CHAN`：Telegram / Discord 連線能力
+- `MDL`：primary/fallback model 設定
+- `CFG`：設定檔完整性與可解析性
+- `SES`：session 檔案健康狀態
+- `HK`：hooks 是否存在與可執行
+
+常用命令組：
+
+```bash
+openclaw-healthcheck.sh verify
+openclaw-healthcheck.sh verify --quick
+openclaw-healthcheck.sh snapshot
+openclaw-healthcheck.sh diff <snapshot1> <snapshot2>
+openclaw-healthcheck.sh pre-update
+openclaw-healthcheck.sh post-update
+```
+
+**Strictness mode 三段式：**
+
+- `balanced`（預設）：日常監看
+- `strict`：上 production gate 前用
+- `lenient`：已知 degraded、先保留觀察
+
+同一條規則在不同 mode 會被升降級。例如 missing fallback model：
+
+- balanced = warning
+- strict = critical
+- lenient = info
+
+**安全細節很關鍵：fingerprint 不存 raw secret**
+
+```json
+{
+  "auth_profiles": {
+    "anthropic:cth.work": {
+      "type": "token",
+      "fingerprint": "sk-a...oat1",
+      "present": true
+    }
+  }
+}
+```
+
+你只看得出「有沒有換 key」，看不到 key 本體。這個設計超實用。
+
+**pre-update 會順便打 rollback package：**
+
+```text
+~/.openclaw/health-snapshots/rollback-<timestamp>/
+  ├── openclaw.json
+  ├── auth-profiles.json
+  ├── openclaw-gateway.service
+  ├── drop-ins/
+  └── manifest.json (每個檔案的 SHA256)
+```
+
+**JSON-first 輸出**是另一個亮點：
+
+```bash
+openclaw-healthcheck.sh verify --json
+```
+
+給機器 parse；預設彩色文字給人看。雙介面，不互撞。
+
+<LevelUpQuiz
+  question="Snapshot 裡為什麼存 fingerprint（first4...last4）而不是完整 API key？"
+  options={[
+    { label: "A", text: "因為 bash 不能處理長字串" },
+    { label: "B", text: "因為完整 key 太佔空間" },
+    { label: "C", text: "因為要同時滿足『可比對變更』與『不洩漏密鑰』" },
+    { label: "D", text: "因為 Telegram 不支援完整 key" },
+  ]}
+  answer="C"
+  explanation="Fingerprint 能回答『有沒有改變』，但不暴露 secret 本體，符合最小洩漏原則（defense in depth）。"
+/>
+
+---
+
+## 🏰 Floor 4：Rollback 深潛（378 行的緊急手術）
+
+<LevelUpProgress current={4} total={10} title="OpenClaw Health Suite" />
+
+`openclaw-rollback.sh` 是 emergency surgery。
+
+先記三個指令：
+
+```bash
+openclaw-rollback.sh --dry-run
+openclaw-rollback.sh --confirm
+openclaw-rollback.sh --auto-confirm
+```
+
+預設不帶參數 = dry-run。這是故意的，不是偷懶。
+
+**執行流程：**
+
+- 找最新 rollback package
+- 驗證 `manifest.json` SHA256
+- 判斷 service mode（user systemd / system systemd / manual nohup / dual）
+- `pkill -f` 清掉所有 gateway process（含 rogue nohup）
+- 還原 config/auth/service/drop-ins
+- 依偵測到的 mode 重啟
+- 跑 post-rollback healthcheck 驗證
+
+這裡最實戰的點是 service mode detection。事故時真實狀況是「有時 systemd、有時 nohup、有時兩個都在跑」。不先辨識 mode，rollback 很容易 restore 成功但沒啟動，或啟動到錯誤 target。
+
+<AnalogyBox title="🏥 急診室類比">
+
+你送醫時，醫生第一件事不是直接開刀，而是先判斷你在哪個科、哪種狀態、先做哪一步風險最低。Rollback 也是一樣：先確認現場狀態，再動刀，不然救援本身會製造第二次事故。
+
+</AnalogyBox>
+
+<LevelUpQuiz
+  question="Rollback 為什麼一定要 default dry-run？"
+  options={[
+    { label: "A", text: "因為作者不敢真的還原" },
+    { label: "B", text: "因為 rollback 很慢" },
+    { label: "C", text: "因為防止手滑誤操作，先看『將會發生什麼』再確認執行" },
+    { label: "D", text: "因為 systemd 不允許直接還原" },
+  ]}
+  answer="C"
+  explanation="Rollback 是 destructive 操作，dry-run 預設能大幅降低操作失誤風險，也更利於審核與協作。"
+/>
+
+---
+
+## 🏰 Floor 5：Watchdog 深潛（3 分鐘巡邏一次）
+
+<LevelUpProgress current={5} total={10} title="OpenClaw Health Suite" />
+
+`openclaw-watchdog.sh` 約 205 行，跑在 systemd timer，每 3 分鐘一次。
+
+```text
+timer tick (3 min)
+  -> watchdog
+    -> healthcheck verify --quick --json
+    -> parse JSON
+    -> unhealthy? 累加 consecutive_failures
+    -> 連續 >=3 次 or 持續 unhealthy >=5 分鐘
+         -> 送 Telegram alert + rollback 建議
+       else
+         -> 記錄、等待下輪
+    -> healthy
+         -> 歸零失敗計數
+```
+
+它有自己的 state file，大概像這樣：
+
+```json
+{
+  "run_count": 42,
+  "consecutive_failures": 0,
+  "last_healthy": "2026-02-22T10:30:00Z",
+  "last_alert_sent": "2026-02-21T04:15:00Z",
+  "alert_cooldown_until": "2026-02-21T04:30:00Z"
+}
+```
+
+設計重點：
+
+- alert cooldown 預設 15 分鐘，避免通知轟炸
+- escalation 條件雙軌（次數 or 時長）
+- 支援 `OPENCLAW_WATCHDOG_SSH_TARGET`，不綁死 IP
+- 支援 `OPENCLAW_WATCHDOG_TEST_MODE=1`，手動測試時訊息會加 `[manual testing-no worry]`
+
+<ClawdNote variant="murmur">
+很多監控系統失敗不是「偵測不到」，而是「偵測到太多」。alert fatigue 一來，真事故也會被當雜訊。這版 cooldown 設計有抓到那個平衡點。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="Watchdog 何時會升級成主動告警（含 rollback suggestion）？"
+  options={[
+    { label: "A", text: "只要任一檢查 warning" },
+    { label: "B", text: "只要跑滿 3 分鐘" },
+    { label: "C", text: "連續失敗 >=3 次，或 unhealthy 持續 >=5 分鐘" },
+    { label: "D", text: "每次 timer 都會告警" },
+  ]}
+  answer="C"
+  explanation="這個雙條件讓 watchdog 既不過度敏感，也不會漏掉慢性故障。"
+/>
+
+---
+
+## 🏰 Floor 6：Upgrade SOP（人類才是最後保險絲）
+
+<LevelUpProgress current={6} total={10} title="OpenClaw Health Suite" />
+
+第四件工具不是 script，是 `openclaw-upgrade-sop.md`。
+
+這很重要：**最危險的操作（升級）不能只靠直覺，必須有流程。**
+
+SOP 主幹：
+
+1. 停 watchdog timer
+2. 跑 `pre-update`（快照 + rollback package）
+3. 升級 OpenClaw
+4. **關鍵閘門：確認 `OPENCLAW_NO_RESPAWN=1` 已存在**
+5. daemon-reload + restart service
+6. 跑 `post-update`
+7. 啟回 watchdog
+8. 觀察 5 分鐘 quick verify
+
+關於事故核心教訓，SOP 有明寫 decision tree：
+
+- 如果看到 `pairing required` / `scope-upgrade`
+  - 先做 `openclaw onboard`（重配對）
+  - 不要第一時間 rollback
+- 如果 critical fail 持續不解
+  - 才進 `openclaw-rollback.sh --confirm`
+
+<ClawdNote>
+這份 SOP 的價值不是「讓高手更強」，而是讓疲勞狀態下的人也不會做出高風險錯誤決策。凌晨 3 點最需要這種文件。
+</ClawdNote>
+
+<LevelUpQuiz
+  question="升級後遇到 `pairing required`，SOP 建議第一步是？"
+  options={[
+    { label: "A", text: "立刻 rollback" },
+    { label: "B", text: "先跑 openclaw onboard 重新 pairing，再重跑 post-update" },
+    { label: "C", text: "先刪除所有 session" },
+    { label: "D", text: "先重開機 VM" },
+  ]}
+  answer="B"
+  explanation="這類錯誤可能是 auth 升級需求，不一定是系統毀損。先重新 pairing，失敗再走 rollback。"
+/>
+
+---
+
+## 🏰 Floor 7：Review Drama（真正的技術高潮）
+
+<LevelUpProgress current={7} total={10} title="OpenClaw Health Suite" />
+
+這案子最精彩的不是 code 量，是 review 過程。
+
+**角色分工：**
+
+- User（Sprin）：定方向、拍板 go/no-go
+- CC（Claude Code）：架構設計 + code review
+- Codex：實作六個檔案 + VM 測試
+- Clawd：前 3 輪設計共同討論
+
+第一輪 review，CC 抓出 14 個問題：
+
+- 1 個 CRITICAL
+- 3 個 HIGH
+- 6 個 MEDIUM
+- 4 個 LOW
+
+其中 CRITICAL 是經典 bash 陷阱：`|| true` 吃掉 exit code。
+
+```bash
+set -euo pipefail
+verify_json="$(openclaw-healthcheck.sh verify --quick --json || true)"
+rc=$?
+# rc 永遠是 0，因為抓到的是 true 的 exit code
+```
+
+結果就是 watchdog 永遠覺得健康，等於安全網開了洞。
+
+修法不是硬抓 `$?`，而是直接 parse JSON 狀態：
+
+```bash
+verify_json="$(openclaw-healthcheck.sh verify --quick --json || true)"
+failed_critical=$(echo "$verify_json" | jq -r '.failed_critical // 0')
+
+if [[ "$failed_critical" -gt 0 ]]; then
+  handle_failure "$verify_json"
+fi
+```
+
+但故事還沒完。Codex 並沒有盲收全部 review，而是對 3 條提出反駁，指出 reviewer 用的是舊版規格（v2/v3），不是最終 v4。後來 CC 也確認這 3 條 pushback 全部成立。
+
+這段超值得記：**reviewer 可以抓到致命 bug，也可以看錯規格版本。implementer 可以犯錯，也可以糾正 reviewer。**
+
+這就是 multi-agent 真正價值：互相校正，不迷信單一權威。
+
+<LevelUpQuiz
+  question="這段 review drama 最重要的工程 lesson 是？"
+  options={[
+    { label: "A", text: "Reviewer 一定比 implementer 準" },
+    { label: "B", text: "Implementer 應該無條件接受所有 review" },
+    { label: "C", text: "多代理協作的關鍵是可驗證、可反駁、以最新版規格為準" },
+    { label: "D", text: "只要有 AI，就不需要 code review" },
+  ]}
+  answer="C"
+  explanation="這次案例同時出現『reviewer 抓到 showstopper』與『implementer 糾正 reviewer』。健康協作不是服從，而是基於證據互相驗證。"
+/>
+
+---
+
+## 🏰 Floor 8：5 個值得抄作業的設計決策
+
+<LevelUpProgress current={8} total={10} title="OpenClaw Health Suite" />
+
+把細節抽成可複用原則，給你之後做任何 ops tooling 參考。
+
+**1) JSON-first，human-friendly second**
+
+- 機器吃 `--json`
+- 人類看彩色文字
+- 一份邏輯，兩種介面
+
+**2) Fingerprint-not-raw（最小洩漏）**
+
+- 存 `sk-a...oat1`
+- 不存完整 secret
+- 還是能追蹤 token rotate
+
+**3) Destructive tool default dry-run**
+
+- 不加 `--confirm` 不動刀
+- 防手滑、防疲勞誤操作
+
+**4) Separation of concerns**
+
+- healthcheck 永遠 read-only
+- watchdog 只監看不動刀
+- rollback 只在明確確認時執行
+
+**5) restart_delta 的語意標籤**
+
+- quick mode / full mode 量測方法不同
+- 在 JSON 裡標明 `mode`
+- diff 才不會誤報「數字變小了是不是壞掉」
+
+<AnalogyBox title="🛡️ 安全帶 + 氣囊 + ABS">
+
+單一防護機制總會漏。真正可靠的系統是多層防護：
+
+- Testing（Lv-07）像安全帶
+- Health Suite（Lv-08）像氣囊 + ABS
+- 人類 SOP 像駕訓班規則
+
+你不是在追求「永不出事」，而是在追求「出事也不致命」。
+
+</AnalogyBox>
+
+<LevelUpQuiz
+  question="`restart_delta` 為什麼要附上 mode（quick/full）語意標籤？"
+  options={[
+    { label: "A", text: "因為 JSON 檔案比較好看" },
+    { label: "B", text: "因為 quick/full 採樣方法不同，沒有語意標籤會造成跨模式誤比較" },
+    { label: "C", text: "因為 jq 只能讀 mode" },
+    { label: "D", text: "因為 systemd 要求" },
+  ]}
+  answer="B"
+  explanation="同樣是 restart_delta，不同模式的計算來源不同。標註語意能避免 diff 做出錯誤推論。"
+/>
+
+---
+
+## 🏰 Floor 9：如果當時有 Health Suite，世界線會怎麼改寫
+
+<LevelUpProgress current={9} total={10} title="OpenClaw Health Suite" />
+
+來做事故 replay。
+
+如果 2026-02-20 當天已經部署 Health Suite，合理流程會是：
+
+- pre-update 先產出 snapshot + rollback package
+- 升級後先過 `OPENCLAW_NO_RESPAWN=1` 關卡，九頭蛇直接被封印
+- post-update 幾秒內抓到 `pairing required`
+- 依 SOP 先跑 onboard，再判斷是否 rollback
+- 若仍異常，watchdog 最慢 3 分鐘內發 alert
+- rollback 三分鐘級恢復到 known-good
+
+**預估 downtime：從 36 小時降到 < 10 分鐘。**
+
+目前這套已完成實作與 review closure，對應 3 個 commit：
+
+- `da4b72a`：初版六檔案
+- `044c33a`：priority fixes（含 showstopper）
+- `608d8b2`：watchdog test mode alert prefix
+
+下一步是 production deploy + drill（升級演練、回滾演練、故障注入 + 72h 觀察）。
+
+<ClawdNote variant="murmur">
+Lv-07 教你「不要把壞 code 放進去」。Lv-08 教你「壞事還是發生時，怎麼讓自己活著」。這兩篇合起來，才叫 production readiness。
+</ClawdNote>
+
+**一句話總結：**
+
+> 測試讓你少犯錯，Health Suite 讓你犯錯也不會死。
+
+---
+
+## 系列進度回顧（Lv-04 ~ Lv-08）
+
+- **Lv-04 Gateway 核心**：OpenClaw 的中樞架構、WebSocket RPC、Session、Auth
+- **Lv-05 Channels & Tools**：多平台訊息抽象、command routing、tool 呼叫
+- **Lv-06 Memory & Automation**：記憶系統、skills、cron、自動化思維
+- **Lv-07 Testing**：AI 時代 test = 規格書，三層測試金字塔
+- **Lv-08 Health Suite（本篇）**：healthcheck + watchdog + rollback + SOP 的四層防線
+
+下一關會往「演練與運維實戰」走：不只寫工具，而是把工具變成可以信任的 routine。
+
+完。
