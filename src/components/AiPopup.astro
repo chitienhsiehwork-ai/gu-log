@@ -510,18 +510,83 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
       }, 10);
     }
 
-    document.addEventListener('mouseup', onSelectionEnd);
-    document.addEventListener('touchend', onSelectionEnd);
+    function getEventPoint(e) {
+      if (typeof e.clientX === 'number' && typeof e.clientY === 'number') {
+        return { x: e.clientX, y: e.clientY };
+      }
+      if (e.touches && e.touches.length > 0) {
+        return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      }
+      if (e.changedTouches && e.changedTouches.length > 0) {
+        return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
+      }
+      return null;
+    }
 
-    // Close popup when clicking outside
-    document.addEventListener('mousedown', function (e) {
-      if (popup && !popup.contains(e.target)) {
-        // Only close for button state; keep results and input open
+    function isPointInCurrentSelection(x, y) {
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return false;
+
+      const padding = 8;
+      for (let i = 0; i < sel.rangeCount; i++) {
+        const range = sel.getRangeAt(i);
+        const rects = range.getClientRects();
+        for (let j = 0; j < rects.length; j++) {
+          const rect = rects[j];
+          if (
+            x >= rect.left - padding &&
+            x <= rect.right + padding &&
+            y >= rect.top - padding &&
+            y <= rect.bottom + padding
+          ) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    function onPointerOutsideSelection(e) {
+      const target = e.target;
+      if (popup && target && popup.contains(target)) return;
+
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0 || sel.isCollapsed) {
         if (currentState === 'buttons') {
           removePopup();
         }
+        return;
       }
-    });
+
+      const point = getEventPoint(e);
+      if (!point) return;
+
+      // Keep selection if user taps inside selected text.
+      if (isPointInCurrentSelection(point.x, point.y)) return;
+
+      // iOS Safari can race with native selection updates; defer one frame.
+      requestAnimationFrame(function () {
+        const currentSel = window.getSelection();
+        if (currentSel && currentSel.rangeCount > 0) {
+          currentSel.removeAllRanges();
+        }
+
+        if (currentState === 'buttons') {
+          removePopup();
+        }
+      });
+    }
+
+    document.addEventListener('mouseup', onSelectionEnd);
+    document.addEventListener('touchend', onSelectionEnd);
+
+    // Tap outside selected text => clear selection (desktop + mobile/iOS)
+    if (window.PointerEvent) {
+      document.addEventListener('pointerdown', onPointerOutsideSelection, { passive: true });
+    } else {
+      document.addEventListener('touchstart', onPointerOutsideSelection, { passive: true });
+      document.addEventListener('mousedown', onPointerOutsideSelection, { passive: true });
+    }
 
     // Close on Escape
     document.addEventListener('keydown', function (e) {

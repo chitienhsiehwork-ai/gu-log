@@ -163,6 +163,47 @@ test.describe('AI Popup - Desktop', () => {
     await expect(popup).not.toBeVisible({ timeout: 2000 });
   });
 
+  test('GIVEN text is selected WHEN pointerdown happens outside selection THEN selection is cleared', async ({
+    page,
+  }) => {
+    await page.goto(TEST_POST);
+    await page.evaluate(() => localStorage.removeItem('gu-log-jwt'));
+    await page.reload();
+
+    await selectTextInContent(page);
+
+    const popup = page.locator('#ai-popup');
+    await expect(popup).toBeVisible({ timeout: 3000 });
+
+    const before = await page.evaluate(() => window.getSelection()?.toString().trim().length || 0);
+    expect(before).toBeGreaterThan(1);
+
+    const header = page.locator('header.site-header').first();
+    const headerBox = await header.boundingBox();
+    if (!headerBox) throw new Error('No header bounding box');
+
+    const x = headerBox.x + Math.min(20, headerBox.width / 2);
+    const y = headerBox.y + Math.min(20, headerBox.height / 2);
+
+    await page.evaluate(({ x, y }) => {
+      const target = document.elementFromPoint(x, y) || document.body;
+      target.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          clientX: x,
+          clientY: y,
+          pointerType: 'touch',
+        })
+      );
+    }, { x, y });
+
+    await page.waitForTimeout(50);
+
+    const after = await page.evaluate(() => window.getSelection()?.toString().trim().length || 0);
+    expect(after).toBe(0);
+    await expect(popup).not.toBeVisible({ timeout: 2000 });
+  });
+
   test('GIVEN popup is visible WHEN user presses Escape THEN popup closes', async ({ page }) => {
     await page.goto(TEST_POST);
     await page.evaluate(() => localStorage.removeItem('gu-log-jwt'));
