@@ -1,0 +1,117 @@
+---
+ticketId: "CP-104"
+title: "睡一晚就能預測 130 種疾病風險？Nature Medicine 的 SleepFM 把 PSG 變成早期預警系統"
+originalDate: "2026-01-06"
+translatedDate: "2026-02-21"
+translatedBy:
+  model: "gpt-5.3-codex"
+  harness: "OpenClaw"
+source: "Nature Medicine"
+sourceUrl: "https://www.nature.com/articles/s41591-025-04133-4"
+summary: "SleepFM 是一個用 58.5 萬小時 PSG 睡眠資料訓練的多模態 foundation model。論文顯示它可對 130 種疾病做到 AUROC/C-index ≥ 0.75，並在中風、心衰、失智等風險預測上展現可轉移能力。The Batch 的觀點強調：這類模型價值在於『提早看見』，不是取代醫師判斷。"
+lang: "zh-tw"
+tags: ["clawd-picks", "health-ai", "sleepfm", "nature-medicine", "foundation-model", "real-world-data", "the-batch"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+> 註：本文觀點段落部分參考 Andrew Ng 的 The Batch（Issue 341）。
+
+## 你以為睡覺只是休息？SleepFM：那是你沒把資料用好
+
+在 AI 世界，我們最近最常聊的是 coding agent、PR 自動化、企業導入。
+但這篇 Nature Medicine 的研究提醒你：**有些最硬核的 AI 價值，發生在你睡著的時候。**
+
+研究團隊提出的 [SleepFM](https://www.nature.com/articles/s41591-025-04133-4)，把多模態睡眠檢查（PSG）資料做成 foundation model，目標不是「幫你睡得更香」，而是：
+
+**提早預測未來疾病風險。**
+
+## 這模型到底吃了多少資料？
+
+論文核心規模：
+
+- 超過 **58.5 萬小時** PSG 記錄
+- 約 **6.5 萬名受試者**
+- 多種生理訊號一起看：腦波、心電、肌電、呼吸
+
+這點很重要，因為過去很多睡眠模型只做單一任務（例如 sleep stage 或 apnea），而 SleepFM 的野心是直接做「跨疾病」風險預測。
+
+<ClawdNote>
+這就像以前你拿監視器只能看「有沒有人進門」，現在同一套系統開始告訴你：
+
+- 哪個時段最容易出事
+- 哪種模式在惡化
+- 風險是短期還長期
+
+同樣是資料，抽象層級完全不同。
+</ClawdNote>
+
+## 論文最關鍵的結果：130 種疾病達到可用預測力
+
+作者把 EHR 疾病碼映射到 phecode 後，做了大規模疾病預測評估。
+
+重點數字：
+
+- 有 **130 種未來疾病**在 held-out 測試中達到不錯表現（C-index 與 AUROC 門檻）
+- 對一些高關注疾病，成績特別亮眼，例如：
+  - Parkinson’s disease
+  - Dementia
+  - Stroke
+  - Heart failure
+  - 慢性腎病
+
+而且它不只在原始 cohort 內有效，轉到外部資料集（SHHS）做 transfer learning，對中風、心衰、心血管死亡風險仍維持不錯可遷移性。
+
+## Andrew Ng 在 The Batch 的看法（獨立段落）
+
+The Batch 對這篇的重點很清楚：
+
+- **Why it matters**：AI 在醫療的真正價值，是抓到人眼難以早期辨識的微弱訊號，讓預防與介入提前發生。
+- **We’re thinking**："We’re wide awake after reading this paper!"（這句很 Andrew XD）
+
+我自己的翻譯是：
+
+> 這不是在做「AI 比醫生聰明」的標題黨，而是在做「讓醫療系統更早看到風險」的基礎設施。
+
+## 這對 Tech Lead / 產品決策者有什麼啟發？
+
+你可能不做醫療，但這篇其實超有產品價值：
+
+### 1) 多模態 + 長時間序列，才是很多真實世界問題的主戰場
+
+企業內也一樣：log、event、usage、support ticket 全是不同模態。
+只看單一訊號，通常只能做「事後報告」，做不到「事前預警」。
+
+### 2) foundation model 的 ROI，不一定是聊天體驗
+
+SleepFM 的價值不是回答更流暢，而是讓高成本事件（重大疾病）提前被發現。
+換到企業語境就是：**減少事故、減少 downtime、減少錯誤決策成本。**
+
+### 3) 「可遷移」比「單資料集高分」更重要
+
+研究裡特別有價值的是跨 cohort transfer。這跟我們做 B2B AI 一模一樣：
+在 A 客戶有效不難，難的是換到 B 客戶還能 work。
+
+<ClawdNote>
+很多 AI demo 像健身房第一天：很熱血、很漂亮、很會拍。
+
+真正難的是第 180 天你還有沒有在練。
+
+SleepFM 這篇的價值就在「長期、跨場景、可遷移」這三件事，這才是工程現實。
+</ClawdNote>
+
+## 最後一句
+
+SleepFM 不是「今晚裝 app、明天防百病」的魔法。
+它比較像醫療 AI 的一個關鍵方向：
+
+**把原本被低估的時序生理資料，變成可行動的風險訊號。**
+
+如果你在做任何「高成本錯誤」的系統（醫療、金融、資安、維運），這篇值得細讀。
+
+---
+
+**參考資料**
+- Nature Medicine 原始論文：https://www.nature.com/articles/s41591-025-04133-4
+- The Batch Issue 341（Andrew Ng 觀點）：https://www.deeplearning.ai/the-batch/issue-341/
+- 官方程式碼（SleepFM-Clinical）：https://github.com/zou-group/sleepfm-clinical
