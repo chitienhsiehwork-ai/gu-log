@@ -1,0 +1,126 @@
+---
+ticketId: "CP-108"
+title: "Claude Code CLI Gets Built-In Git Worktrees: Run Parallel Agents Without Branch Collisions"
+originalDate: "2026-02-21"
+translatedDate: "2026-02-22"
+translatedBy:
+  model: "gpt-5.3-codex"
+  harness: "OpenClaw"
+source: "Claude Code Docs / Boris Cherny"
+sourceUrl: "https://code.claude.com/docs/en/common-workflows#run-parallel-claude-code-sessions-with-git-worktrees"
+summary: "Claude Code CLI now includes first-class Git worktree support via `--worktree`. Teams can run multiple isolated AI coding sessions in parallel without file collisions, making multi-agent workflows more reliable and easier to standardize for real engineering teams."
+lang: "en"
+tags: ["clawd-picks", "claude-code", "git", "worktree", "agentic-coding", "productivity", "tech-lead"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+## Claude Code CLI Finally Makes Worktrees a Built-In Feature
+
+Claude Code team (announced by Boris Cherny) has brought Git worktree support into the CLI as a native workflow.
+
+What changed:
+
+- Before: if you wanted 2–5 agents working in parallel, you had to manually manage `git worktree add`, branch switching, and terminal juggling
+- Now: run `claude --worktree <name>` and get an isolated workspace for that task
+- Each session works independently, so one agent doesn't stomp on another's files
+
+If you're already doing agentic coding, this is not a "nice to have." It's a workflow upgrade.
+
+## Why this matters more than it sounds
+
+Most teams are not blocked by model intelligence.
+They're blocked by process collisions.
+
+Classic failure mode:
+
+1. Agent A fixes auth
+2. Agent B adds a feature
+3. Agent C updates tests
+4. all in one working tree
+5. diff chaos + merge pain
+
+Worktrees split that into isolated task environments while sharing repository history.
+
+<ClawdNote>
+This is like cooking three dishes at once.
+If every dish uses the same cutting board and same pan, your tomato omelet will taste like curry.
+Worktrees are extra pans for your engineering kitchen.
+</ClawdNote>
+
+## This is now official docs, not community duct tape
+
+Claude Code docs now include this as a first-class pattern:
+
+```bash
+claude --worktree feature-auth
+claude --worktree bugfix-123
+```
+
+No name? Also supported:
+
+```bash
+claude --worktree
+```
+
+Claude auto-generates a name and creates a dedicated branch.
+
+The docs also clarify behavior that matters in real teams:
+
+- worktrees are created at `<repo>/.claude/worktrees/<name>`
+- no changes → automatic cleanup
+- changes exist → keep/remove choice on exit
+- subagents can also use isolation (`isolation: worktree`)
+
+So this is not just a solo power-user trick. It's a scalable multi-agent primitive.
+
+## Practical impact for Tech Leads
+
+### 1) You can codify parallel AI development in team SOP
+
+Before: "Please try not to step on each other."
+
+After: "All parallel AI tasks start with `--worktree`."
+
+That single rule improves review quality, rollback clarity, and branch hygiene.
+
+### 2) PRs become smaller and cleaner
+
+When each session maps to one task, PR scope naturally shrinks.
+You get fewer "AI touched 27 unrelated files" pull requests.
+
+### 3) Parallel agents become safer to run in production repos
+
+The theory of multi-agent coding was always obvious.
+The risk was workspace collision.
+Now the default path addresses that directly.
+
+<ClawdNote>
+People think the bottleneck is model IQ.
+In many teams, the real bottleneck is folder structure + Git habits + human chaos.
+Fix those, and velocity jumps.
+</ClawdNote>
+
+## Suggested rollout (simple, high ROI)
+
+1. Add a rule in `CLAUDE.md`: **parallel tasks must use worktrees**
+2. Add `.claude/worktrees/` to `.gitignore`
+3. Encourage one worktree session = one focused PR
+
+You don't need a 50-person org to benefit.
+Even a 3-person team feels this immediately.
+
+## Final take
+
+The value here is not "one more CLI flag."
+
+It's that one of the biggest daily pains in agentic coding—parallel task collisions—now has an official default solution.
+
+**Parallel agents should no longer feel risky. They should feel normal.**
+
+---
+
+**References**
+- Claude Code Docs (Common Workflows / Worktrees): https://code.claude.com/docs/en/common-workflows#run-parallel-claude-code-sessions-with-git-worktrees
+- Boris Cherny announcement: https://x.com/bcherny/status/2025007393290272904
+- Git worktree official docs: https://git-scm.com/docs/git-worktree
