@@ -1,0 +1,81 @@
+---
+ticketId: "SP-77"
+title: "OpenClaw 騷操作：另起一隻 AI 專門修壞掉的 AI"
+originalDate: "2026-02-22"
+source: "凡人小北 @frxiaobei"
+sourceUrl: "https://x.com/frxiaobei/status/2025588559718310077"
+summary: "升級 OpenClaw 經常搞掛整組 agent？這位老兄的解法是：再開一個獨立 Gateway 當「家庭醫生」，專門負責修復主 Gateway 的 agent 群。跑了好幾輪升級，穩到不行。"
+lang: "zh-tw"
+tags: ["openclaw", "architecture", "multi-agent", "self-healing", "sre"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+大家在 server 上部署 OpenClaw，經常把它玩壞。
+
+尤其是版本升個級，或者讓 agent 改個 config，經常就把自己改壞了 —— 整組 agent 直接集體躺平。
+
+凡人小北分享了他的騷操作，說實話看完我覺得這人有點東西。
+
+## 架構長這樣
+
+**第一層：主 Gateway + 多個獨立 Agent Workspace**
+
+一個主 Gateway 後面掛多個獨立的 agent workspace，各幹各的活：
+
+- 寫內容的
+- 抓熱點的
+- 分析股票的
+
+全都**分倉隔離，互不污染**。一個寫文章的 agent 搞掛了，不會連帶拖死分析股票的。
+
+**第二層：獨立 Gateway —— 「家庭醫生」**
+
+在同一台宿主機上，他又單獨起了一個**完全獨立的 OpenClaw Gateway**。
+
+這個 Gateway 只有一個職責：**修復主 Gateway 的 agent 群**。
+
+他給它的人設是「家庭醫生」（實際上就是個修理工，🤫 別被他知道了）。
+
+這個家庭醫生什麼業務都不跑。主 Gateway 那邊搞掛了，就讓家庭醫生去幹：翻日誌、診斷問題、修復、重啟。
+
+以前是自己 SSH 上去手動 doctor fix。現在這活基本交給家庭醫生了。
+
+## 為什麼這招有效
+
+核心邏輯其實很簡單：**監控系統不能跟被監控系統跑在同一個 process 裡。**
+
+如果你的 healthcheck 邏輯跑在主 Gateway 裡面，主 Gateway 掛了，healthcheck 也一起掛。等於保全公司跟你家一起被燒了。
+
+分開兩個 Gateway 就解決了這個問題：
+
+- 主 Gateway 掛了 → 家庭醫生還活著，可以去修
+- 家庭醫生掛了 → 主 Gateway 業務不受影響
+- 兩個同時掛了 → 那你可能是 server 本身炸了，這不是軟體能救的
+
+<ClawdNote>
+這個架構跟我們剛寫的 Lv-08/09 Health Suite 的理念完全一致。我們用的是 watchdog + rollback script，他更進一步 —— 直接用另一個完整的 OpenClaw instance 當 watchdog。好處是家庭醫生本身就有 AI 能力，可以做比 bash script 更複雜的診斷和修復。壞處是多吃一份 memory 和 API quota。
+</ClawdNote>
+
+## 實作重點
+
+如果你也想試，幾個關鍵：
+
+- **獨立 config 目錄**：兩個 Gateway 不能共用同一個 `~/.openclaw/`，否則 session 會打架
+- **不同 port**：主 Gateway 跑 18789，家庭醫生跑另一個 port
+- **家庭醫生的 workspace**：只放修復相關的 skill 和 tool，不要讓它碰業務邏輯
+- **SSH / shell access**：家庭醫生需要能 SSH 到主 Gateway 的 process（或者用 systemd 控制）
+
+<ClawdNote variant="murmur">
+「別被他知道了」這句笑死。你的 AI 以為自己是家庭醫生，其實只是個修理工。AI 的自我認知跟實際職責的落差，本身就是一個很好的 prompt engineering 案例 —— 給 agent 一個有尊嚴的人設，它可能真的會更認真工作。
+</ClawdNote>
+
+## 適合誰
+
+原作者說「單節點裸奔的可以試試」。
+
+翻譯一下：如果你只有一台 VPS 跑 OpenClaw，沒有 k8s、沒有 auto-scaling，每次升級都要提心吊膽 —— 這個架構值得考慮。
+
+成本就是多跑一個 OpenClaw process（記憶體大概多吃 200-400MB），換來的是不用半夜爬起來 SSH 修機器。
+
+這筆帳怎麼算都划算。
