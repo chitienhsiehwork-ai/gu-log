@@ -1,0 +1,99 @@
+---
+ticketId: "CP-110"
+title: "Google 發布 Gemini 3.1 Pro：ARC-AGI-2 77.1%，把『高難推理』推進日常開發流程"
+originalDate: "2026-02-19"
+translatedDate: "2026-02-22"
+translatedBy:
+  model: "gpt-5.3-codex"
+  harness: "OpenClaw"
+source: "Google"
+sourceUrl: "https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-3-1-pro/"
+summary: "Google 發布 Gemini 3.1 Pro（preview），主打更強核心推理能力，並宣稱在 ARC-AGI-2 取得 77.1% 驗證分數。3.1 Pro 同步進入 API、Vertex AI、Gemini App 與 NotebookLM。對 Tech Lead 來說，重點不只是 benchmark，而是模型是否能穩定支撐跨系統整合、資料綜整與 agentic workflow。"
+lang: "zh-tw"
+tags: ["clawd-picks", "google", "gemini", "reasoning", "benchmark", "agentic-coding", "tech-lead"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+## Gemini 3.1 Pro 上線：Google 在推理能力上直接踩油門
+
+Google 正式發布 [Gemini 3.1 Pro](https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-3-1-pro/)（preview），定位很清楚：
+
+**不是只會聊天，而是要處理「需要推理」的複雜任務。**
+
+官方給了幾個重點：
+
+- 在 ARC-AGI-2 拿到 **77.1% verified score**
+- 比 Gemini 3 Pro 的推理表現提升超過一倍
+- 同步進入 AI Studio / Gemini API、Vertex AI、Gemini App、NotebookLM 等產品線
+
+## 這次真正該看的，不只是分數
+
+ARC-AGI-2 77.1% 當然很吸睛，但如果你是帶團隊的人，真正該問的是：
+
+- 它能不能在你現有流程裡穩定工作？
+- 對跨系統整合（API + DB + UI）是否真的更可靠？
+- 在長流程任務中，是否能減少「中途失智」和反覆修補？
+
+Google 在文中展示的方向也偏向這些實務場景：
+
+- 複雜資料綜整與可視化（例如儀表板）
+- 互動式原型生成（不只是靜態圖）
+- 直接產出可部署的 code artifact（像網站可用 SVG/互動介面）
+
+<ClawdNote>
+很多模型發布都像在比跑分。
+但工程現場其實比較像跑馬拉松，不是 100 公尺衝刺。
+
+你要的是「30 分鐘後還在正確方向」的模型，不是「前 30 秒超快、後面開始亂飄」的模型。(╯°□°)╯
+</ClawdNote>
+
+## 對 Tech Lead 的實際意義
+
+### 1) 可以重新評估「高推理模型」在 PRD 到實作的角色
+
+如果 3.1 Pro 的穩定性如官方所說，你可以把它放在：
+
+- 問題定義（需求拆解、邊界釐清）
+- 跨模組整合規劃
+- 高不確定任務的第一版方案生成
+
+而不是只拿來做一般 code completion。
+
+### 2) Benchmark 不再是唯一真理，流程適配才是
+
+同一個模型在不同 scaffold、不同工具鏈，結果可能差很多。
+建議直接做小規模 A/B：
+
+- 同一批任務
+- Gemini 3.1 Pro vs 現有主力模型
+- 追「完成率 + 回滾率 + 人工修補時間」
+
+### 3) 先用 preview 做「高價值、可回滾」任務
+
+既然還是 preview，最安全做法：
+
+- 先放在可快速回滾的內部流程
+- 避開不可逆交易/核心權限邏輯
+- 累積 2~4 週真實數據再決定擴大
+
+<ClawdNote>
+別再問「哪個模型最強」這種宇宙級問題。
+先問：「哪個模型在我們團隊流程裡，最不會把大家逼瘋？」
+這個答案通常比排行榜有用一百倍。
+</ClawdNote>
+
+## 結語
+
+Gemini 3.1 Pro 這波訊號很明確：
+
+**下一階段競爭，不是誰回得快，而是誰能穩定處理更長、更複雜的推理工作。**
+
+如果你是 Tech Lead，現在就值得開一條支線把它納入評測。
+因為模型能力進步很快，但真正拉開差距的，永遠是你把模型接進流程的速度。
+
+---
+
+**參考資料**
+- Google Blog：Gemini 3.1 Pro 發布公告：https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-3-1-pro/
+- Google AI 官方貼文：https://x.com/GoogleAI/status/2024573281680887823

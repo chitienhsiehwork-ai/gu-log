@@ -1,0 +1,99 @@
+---
+ticketId: "CP-110"
+title: "Google Launches Gemini 3.1 Pro: 77.1% on ARC-AGI-2 and a Bigger Push Into Real Reasoning Workflows"
+originalDate: "2026-02-19"
+translatedDate: "2026-02-22"
+translatedBy:
+  model: "gpt-5.3-codex"
+  harness: "OpenClaw"
+source: "Google"
+sourceUrl: "https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-3-1-pro/"
+summary: "Google announced Gemini 3.1 Pro (preview), highlighting stronger core reasoning and a verified 77.1% score on ARC-AGI-2. The model is rolling out across Gemini API, Vertex AI, Gemini app, and NotebookLM. For engineering teams, the key question is not only benchmark performance, but whether the model can reliably handle complex multi-step workflows in production."
+lang: "en"
+tags: ["clawd-picks", "google", "gemini", "reasoning", "benchmark", "agentic-coding", "tech-lead"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+## Gemini 3.1 Pro Is Here: Google Is Betting Hard on Reasoning
+
+Google has released [Gemini 3.1 Pro](https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-3-1-pro/) in preview, with a clear message:
+
+**this is for tasks where simple autocomplete is not enough.**
+
+Highlights from the launch:
+
+- **77.1% verified** on ARC-AGI-2
+- more than 2x reasoning performance versus Gemini 3 Pro (per Google)
+- rollout across Gemini API / AI Studio, Vertex AI, Gemini app, and NotebookLM
+
+## Don’t just stare at the score
+
+77.1% is attention-grabbing, but for Tech Leads, the practical questions are:
+
+- Can it stay coherent in long, multi-step tasks?
+- Can it reason across systems (API + DB + UI) with fewer breakdowns?
+- Does it reduce rework time, or just move bugs around faster?
+
+Google’s examples point toward applied reasoning use cases:
+
+- complex synthesis and dashboard-like outputs
+- interactive design/prototyping, not only static artifacts
+- code-generated deliverables ready for web usage
+
+<ClawdNote>
+Benchmark wins are like gym selfies.
+Nice, but what you really need is endurance in real match conditions.
+
+In production, a model that stays on-track for 30 minutes beats a model that looks brilliant for 30 seconds.
+</ClawdNote>
+
+## Why this matters for engineering teams
+
+### 1) Re-evaluate where you use high-reasoning models
+
+If 3.1 Pro behaves as advertised, it may be more useful in:
+
+- requirement shaping and problem framing
+- integration planning across modules
+- early solution design for ambiguous tasks
+
+—not just code completion.
+
+### 2) Workflow fit matters as much as model IQ
+
+Same model, different scaffold/tooling, very different outcomes.
+Run a focused A/B test:
+
+- same task set
+- Gemini 3.1 Pro vs your current default
+- compare completion rate, rollback rate, and human fix time
+
+### 3) Use preview models in high-value but rollback-safe lanes first
+
+Practical rollout pattern:
+
+- start in internal workflows with easy rollback
+- avoid irreversible business logic at first
+- collect 2–4 weeks of operational data before scaling
+
+<ClawdNote>
+Stop asking the universal question: "Which model is best?"
+Ask the local one: "Which model creates the least chaos in *our* delivery system?"
+That answer usually saves more money.
+</ClawdNote>
+
+## Final take
+
+Gemini 3.1 Pro signals where competition is going next:
+
+**not just faster responses, but stronger, sustained reasoning under complex workflow pressure.**
+
+If you lead a team, this is a good moment to add it to your evaluation track.
+Model progress is fast—but process adaptation speed is what creates real advantage.
+
+---
+
+**References**
+- Google Blog announcement: https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-3-1-pro/
+- Google AI post: https://x.com/GoogleAI/status/2024573281680887823
