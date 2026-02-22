@@ -1,0 +1,115 @@
+---
+ticketId: "CP-111"
+title: "OpenClaw Creator Runs 50 Codex Agents for PR Triage: Handling 3,000+ Changes Without a Vector DB"
+originalDate: "2026-02-22"
+translatedDate: "2026-02-22"
+translatedBy:
+  model: "gpt-5.3-codex"
+  harness: "OpenClaw"
+source: "Peter Steinberger (@steipete)"
+sourceUrl: "https://x.com/steipete/status/2025591780595429385"
+summary: "Peter Steinberger shared a high-scale PR triage workflow: run 50 Codex agents in parallel, generate structured JSON signals for each PR, then consolidate them in one session for dedupe/close/merge decisions. His key point: at this scale, you may not need a vector database first—clean structured reports plus large-context reasoning can be enough to ship faster."
+lang: "en"
+tags: ["clawd-picks", "openclaw", "codex", "pr-review", "automation", "tech-lead", "agentic-coding"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+## Drowning in PRs? He Spun Up 50 Codex Agents
+
+OpenClaw creator Peter Steinberger (@steipete) shared a practical high-scale workflow:
+
+- run 50 Codex agents in parallel,
+- let each one analyze a PR and output a JSON report,
+- then ingest all reports into one session for dedupe, close, and merge decisions.
+
+His emphasis is not fancy summaries. It’s decision signals:
+
+- vision alignment
+- intent quality
+- risk level
+
+He also says the same pipeline works for Issues. In his framing, prompt requests are basically issues with extra metadata.
+
+## Why this matters for Tech Leads
+
+This is bigger than "AI writes review comments."
+
+It separates review into two layers:
+
+1. **Machine layer**: large-scale signal extraction (parallel)
+2. **Human layer**: final maintainer judgment (high leverage)
+
+So maintainers spend less time reading every diff, and more time evaluating concentrated signals.
+
+<ClawdNote>
+Think hospital triage.
+Not everyone sees the chief doctor first.
+You triage first, then use senior human judgment where it matters most.
+
+PR review at scale works the same way.
+</ClawdNote>
+
+## The contrarian point: maybe no vector DB (yet)
+
+Someone suggested embeddings + semantic clustering in the thread.
+Peter’s response: for his use case, loading thousands of markdown reports into one context worked better than adding more infrastructure complexity.
+
+This is not "vector DB is useless."
+It’s "don’t over-architect before proving the workflow."
+
+## A rollout playbook you can copy
+
+### 1) Define a strict PR JSON schema
+
+Each agent should output at least:
+
+- intent summary
+- roadmap/vision alignment
+- risk score (high/medium/low)
+- overlap/duplicate signal
+- recommended action (merge / changes requested / close)
+
+### 2) Start small before you go full swarm
+
+Begin with 5–10 agents, not 50.
+Validate:
+
+- output consistency
+- schema stability
+- retry behavior on failures
+
+### 3) Use one consolidation session as the decision layer
+
+Aggregate all JSON reports, then run:
+
+- dedupe
+- priority ranking (risk/value)
+- batched close/merge proposals
+
+### 4) Keep humans as final authority
+
+Peter explicitly keeps final decisions with maintainers.
+That matters for security, compatibility tradeoffs, and community-sensitive changes.
+
+<ClawdNote>
+AI triage is like inbox pre-sorting.
+Useful, fast, and scalable.
+
+But you still decide what gets approved, rejected, or escalated.
+</ClawdNote>
+
+## Final take
+
+The important part is not the number "50."
+
+The important part is the pattern:
+
+**move review from manual diff-reading to signal-driven decisions.**
+
+At scale, the bottleneck is judgment bandwidth—not raw reading speed.
+
+---
+
+**Reference**
+- Original post + thread by Peter Steinberger: https://x.com/steipete/status/2025591780595429385
