@@ -29,28 +29,57 @@ const labelError = lang === 'zh-tw' ? '❌ 快取失敗' : '❌ Cache Failed';
 
 <script is:inline>
 (function() {
-  const btn = document.getElementById('offline-download-btn');
-  const progress = document.getElementById('offline-progress');
-  const progressBar = document.getElementById('offline-progress-bar');
-  const status = document.getElementById('offline-status');
+  var btn = document.getElementById('offline-download-btn');
+  var progress = document.getElementById('offline-progress');
+  var progressBar = document.getElementById('offline-progress-bar');
+  var status = document.getElementById('offline-status');
   if (!btn || !('serviceWorker' in navigator)) {
     if (btn) btn.style.display = 'none';
     return;
   }
+  var isZh = btn.dataset.label.includes('離線');
 
   // Check if already cached
   async function checkCacheStatus() {
     try {
-      const cache = await caches.open('pages-cache');
-      const keys = await cache.keys();
+      var cache = await caches.open('pages-cache');
+      var keys = await cache.keys();
       if (keys.length > 20) {
         btn.textContent = btn.dataset.labelDone;
         btn.classList.add('done');
-        status.textContent = keys.length + (btn.dataset.label.includes('離線') ? ' 頁已快取' : ' pages cached');
+        status.textContent = keys.length + (isZh ? ' 頁已快取' : ' pages cached');
       }
     } catch(_e) { /* ignore */ }
   }
   checkCacheStatus();
+
+  // Fetch with retry + delay to avoid Vercel rate limiting
+  function sleep(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }
+
+  async function fetchWithRetry(url, cache, retries) {
+    for (var attempt = 0; attempt <= retries; attempt++) {
+      try {
+        var resp = await fetch(url);
+        if (resp.ok) {
+          await cache.put(url, resp);
+          return true;
+        }
+        // 429 = rate limited — back off before retry
+        if (resp.status === 429 && attempt < retries) {
+          await sleep(1000 * (attempt + 1));
+          continue;
+        }
+        return false;
+      } catch(_e) {
+        if (attempt < retries) {
+          await sleep(500 * (attempt + 1));
+          continue;
+        }
+        return false;
+      }
+    }
+    return false;
+  }
 
   btn.addEventListener('click', async function() {
     if (btn.classList.contains('done') || btn.classList.contains('caching')) return;
@@ -60,51 +89,75 @@ const labelError = lang === 'zh-tw' ? '❌ 快取失敗' : '❌ Cache Failed';
 
     try {
       // Fetch the search index to get all article URLs
-      const res = await fetch('/search-index.json');
-      const articles = await res.json();
-      const urls = articles.map(function(a) { return a.url; });
+      var res = await fetch('/search-index.json');
+      var articles = await res.json();
+      var urls = articles.map(function(a) { return a.url; });
 
       // Also add listing pages
-      const allUrls = ['/', '/en/', '/clawd-picks/', '/en/clawd-picks/',
+      var allUrls = ['/', '/en/', '/clawd-picks/', '/en/clawd-picks/',
                      '/shroomdog-picks/', '/level-up/', '/about/', '/en/about/'];
-      for (let i = 0; i < urls.length; i++) { allUrls.push(urls[i]); }
+      for (var i = 0; i < urls.length; i++) { allUrls.push(urls[i]); }
 
-      const total = allUrls.length;
-      let done = 0;
-      let failed = 0;
-      const concurrency = 6;
-      const queue = allUrls.slice();
-      const cache = await caches.open('pages-cache');
+      // Skip URLs already in cache
+      var cache = await caches.open('pages-cache');
+      var existing = await cache.keys();
+      var cachedSet = {};
+      for (var k = 0; k < existing.length; k++) {
+        var u = new URL(existing[k].url);
+        cachedSet[u.pathname] = true;
+      }
+      var toFetch = [];
+      for (var j = 0; j < allUrls.length; j++) {
+        if (!cachedSet[allUrls[j]]) toFetch.push(allUrls[j]);
+      }
+
+      var total = allUrls.length;
+      var alreadyCached = total - toFetch.length;
+      var done = alreadyCached;
+      var failed = 0;
+      var concurrency = 3;  // gentler on Vercel
+      var delayMs = 80;     // 80ms between fetches per worker
+      var queue = toFetch.slice();
+
+      function updateUI() {
+        var pct = Math.round((done / total) * 100);
+        progressBar.style.width = pct + '%';
+        var msg = done + '/' + total;
+        if (failed > 0) msg += ' (' + failed + ' failed)';
+        status.textContent = msg;
+      }
+      updateUI();
 
       async function worker() {
         while (queue.length > 0) {
-          const url = queue.shift();
-          try {
-            const resp = await fetch(url);
-            if (resp.ok) {
-              await cache.put(url, resp);
-            } else {
-              failed++;
-            }
-            done++;
-          } catch(_e) {
-            failed++;
-            done++;
-          }
-          const pct = Math.round((done / total) * 100);
-          progressBar.style.width = pct + '%';
-          status.textContent = done + '/' + total + (failed > 0 ? ' (' + failed + ' failed)' : '');
+          var url = queue.shift();
+          if (!url) break;
+          var ok = await fetchWithRetry(url, cache, 2);
+          if (!ok) failed++;
+          done++;
+          updateUI();
+          // Small delay to avoid hammering Vercel edge
+          if (queue.length > 0) await sleep(delayMs);
         }
       }
 
-      const workers = [];
-      for (let w = 0; w < concurrency; w++) { workers.push(worker()); }
+      var workers = [];
+      for (var w = 0; w < concurrency; w++) { workers.push(worker()); }
       await Promise.all(workers);
+
+      // If too many failures, offer retry for just the failed ones
+      if (failed > 10) {
+        btn.textContent = isZh ? '🔄 重試失敗頁面' : '🔄 Retry Failed';
+        btn.classList.remove('caching');
+        status.textContent = (done - failed) + '/' + total + (isZh ? ' 成功，點擊重試' : ' ok, tap to retry');
+        // Re-enable for retry — next click will re-run and skip already cached
+        return;
+      }
 
       btn.textContent = btn.dataset.labelDone;
       btn.classList.remove('caching');
       btn.classList.add('done');
-      status.textContent = (total - failed) + (btn.dataset.label.includes('離線') ? ' 頁已快取 ✈️' : ' pages cached ✈️');
+      status.textContent = (total - failed) + (isZh ? ' 頁已快取 ✈️' : ' pages cached ✈️');
     } catch(err) {
       btn.textContent = btn.dataset.labelError;
       btn.classList.remove('caching');
