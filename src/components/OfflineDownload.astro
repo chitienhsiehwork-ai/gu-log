@@ -48,7 +48,7 @@ const labelError = lang === 'zh-tw' ? '❌ 快取失敗' : '❌ Cache Failed';
         btn.classList.add('done');
         status.textContent = keys.length + (btn.dataset.label.includes('離線') ? ' 頁已快取' : ' pages cached');
       }
-    } catch(e) {}
+    } catch(_e) { /* ignore */ }
   }
   checkCacheStatus();
 
@@ -65,44 +65,50 @@ const labelError = lang === 'zh-tw' ? '❌ 快取失敗' : '❌ Cache Failed';
       const urls = articles.map(function(a) { return a.url; });
 
       // Also add listing pages
-      var allUrls = ['/', '/en/', '/clawd-picks/', '/en/clawd-picks/',
+      const allUrls = ['/', '/en/', '/clawd-picks/', '/en/clawd-picks/',
                      '/shroomdog-picks/', '/level-up/', '/about/', '/en/about/'];
-      for (var i = 0; i < urls.length; i++) { allUrls.push(urls[i]); }
+      for (let i = 0; i < urls.length; i++) { allUrls.push(urls[i]); }
 
-      var total = allUrls.length;
-      var done = 0;
-      var failed = 0;
-      var concurrency = 6;
-      var queue = allUrls.slice();
+      const total = allUrls.length;
+      let done = 0;
+      let failed = 0;
+      const concurrency = 6;
+      const queue = allUrls.slice();
+      const cache = await caches.open('pages-cache');
 
       async function worker() {
         while (queue.length > 0) {
-          var url = queue.shift();
+          const url = queue.shift();
           try {
-            await fetch(url);
+            const resp = await fetch(url);
+            if (resp.ok) {
+              await cache.put(url, resp);
+            } else {
+              failed++;
+            }
             done++;
-          } catch(e) {
+          } catch(_e) {
             failed++;
             done++;
           }
-          var pct = Math.round((done / total) * 100);
+          const pct = Math.round((done / total) * 100);
           progressBar.style.width = pct + '%';
           status.textContent = done + '/' + total + (failed > 0 ? ' (' + failed + ' failed)' : '');
         }
       }
 
-      var workers = [];
-      for (var w = 0; w < concurrency; w++) { workers.push(worker()); }
+      const workers = [];
+      for (let w = 0; w < concurrency; w++) { workers.push(worker()); }
       await Promise.all(workers);
 
       btn.textContent = btn.dataset.labelDone;
       btn.classList.remove('caching');
       btn.classList.add('done');
       status.textContent = (total - failed) + (btn.dataset.label.includes('離線') ? ' 頁已快取 ✈️' : ' pages cached ✈️');
-    } catch(e) {
+    } catch(err) {
       btn.textContent = btn.dataset.labelError;
       btn.classList.remove('caching');
-      status.textContent = e.message;
+      status.textContent = err.message;
     }
   });
 })();
