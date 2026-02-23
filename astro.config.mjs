@@ -14,6 +14,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'favicon.svg', 'apple-touch-icon.png'],
       manifest: {
+        id: '/',
         name: '香菇大狗狗 — gu-log',
         short_name: 'gu-log',
         description: '香菇大狗狗的翻譯閱讀筆記 — ShroomDog & Clawd',
@@ -42,14 +43,34 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // Precache all HTML pages for offline reading
-        globPatterns: ['**/*.{html,css,js,svg,png,jpg,jpeg,gif,webp,woff,woff2}'],
-        // Bump max file size for large pages
-        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
-        // Navigation fallback for SPA-like behavior
+        // Precache shell assets only (CSS/JS/fonts); HTML pages cached at runtime
+        globPatterns: ['**/*.{css,js,svg,woff,woff2}', 'offline/index.html', 'manifest.webmanifest'],
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
+        // Offline fallback for uncached pages
         navigateFallback: '/offline',
         navigateFallbackDenylist: [/^\/api/, /^\/admin/],
         runtimeCaching: [
+          {
+            // Cache HTML pages as user browses (NetworkFirst = fresh when online, cached when offline)
+            urlPattern: ({ request }) => request.mode === 'navigate',
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'pages-cache',
+              expiration: { maxEntries: 500, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              cacheableResponse: { statuses: [0, 200] },
+              networkTimeoutSeconds: 3,
+            },
+          },
+          {
+            // Cache images encountered while browsing
+            urlPattern: /\.(?:png|jpg|jpeg|gif|webp|svg)$/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'images-cache',
+              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
           {
             // Cache Google Fonts
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
