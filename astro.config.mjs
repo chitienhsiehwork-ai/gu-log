@@ -46,9 +46,8 @@ export default defineConfig({
         // Precache shell assets only (CSS/JS/fonts); HTML pages cached at runtime
         globPatterns: ['**/*.{css,js,svg,woff,woff2}', 'offline/index.html', 'manifest.webmanifest'],
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
-        // Offline fallback for uncached pages
-        navigateFallback: '/offline',
-        navigateFallbackDenylist: [/^\/api/, /^\/admin/],
+        // No navigateFallback — NetworkFirst runtimeCaching handles navigations
+        // with offline fallback via handlerDidError
         runtimeCaching: [
           {
             // Cache HTML pages as user browses (NetworkFirst = fresh when online, cached when offline)
@@ -59,6 +58,24 @@ export default defineConfig({
               expiration: { maxEntries: 500, maxAgeSeconds: 60 * 60 * 24 * 30 },
               cacheableResponse: { statuses: [0, 200] },
               networkTimeoutSeconds: 3,
+              plugins: [{
+                // Serve /offline when both network and cache miss
+                handlerDidError: async () => {
+                  const cache = await caches.match('/offline', { ignoreSearch: true });
+                  if (cache) return cache;
+                  // Try precache key format
+                  const keys = await caches.keys();
+                  for (const name of keys) {
+                    if (name.includes('precache')) {
+                      const c = await caches.open(name);
+                      const all = await c.keys();
+                      const match = all.find(r => r.url.includes('/offline'));
+                      if (match) return c.match(match);
+                    }
+                  }
+                  return Response.error();
+                },
+              }],
             },
           },
           {
