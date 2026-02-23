@@ -5,6 +5,7 @@ import SearchBar from '../components/SearchBar.astro';
 import CodeCopyButton from '../components/CodeCopyButton.astro';
 import ReadingProgress from '../components/ReadingProgress.astro';
 import BackToTop from '../components/BackToTop.astro';
+import OfflineDownload from '../components/OfflineDownload.astro';
 
 interface Props {
   title: string;
@@ -274,6 +275,7 @@ const finalDescription = description || t.defaultDescription;
       </main>
 
       <footer class="site-footer">
+        <OfflineDownload lang={lang} />
         <p>
           by <strong>{t.footerBy}</strong>
           {lang === 'zh-tw' ? '/ ShroomDog and Clawd' : 'and Clawd'}

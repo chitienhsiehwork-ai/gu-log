@@ -1,0 +1,169 @@
+---
+// Offline Download Button — caches all article pages for offline reading
+interface Props {
+  lang?: 'zh-tw' | 'en';
+}
+const { lang = 'zh-tw' } = Astro.props;
+const label = lang === 'zh-tw' ? '📥 下載離線版' : '📥 Download Offline';
+const labelCaching = lang === 'zh-tw' ? '快取中...' : 'Caching...';
+const labelDone = lang === 'zh-tw' ? '✅ 離線版已就緒' : '✅ Ready for Offline';
+const labelError = lang === 'zh-tw' ? '❌ 快取失敗' : '❌ Cache Failed';
+---
+
+<div class="offline-download-wrapper">
+  <button
+    class="offline-download-btn"
+    id="offline-download-btn"
+    data-label={label}
+    data-label-caching={labelCaching}
+    data-label-done={labelDone}
+    data-label-error={labelError}
+  >
+    {label}
+  </button>
+  <div class="offline-progress" id="offline-progress">
+    <div class="offline-progress-bar" id="offline-progress-bar"></div>
+  </div>
+  <p class="offline-status" id="offline-status"></p>
+</div>
+
+<script is:inline>
+(function() {
+  const btn = document.getElementById('offline-download-btn');
+  const progress = document.getElementById('offline-progress');
+  const progressBar = document.getElementById('offline-progress-bar');
+  const status = document.getElementById('offline-status');
+  if (!btn || !('serviceWorker' in navigator)) {
+    if (btn) btn.style.display = 'none';
+    return;
+  }
+
+  // Check if already cached
+  async function checkCacheStatus() {
+    try {
+      const cache = await caches.open('pages-cache');
+      const keys = await cache.keys();
+      if (keys.length > 20) {
+        btn.textContent = btn.dataset.labelDone;
+        btn.classList.add('done');
+        status.textContent = keys.length + (btn.dataset.label.includes('離線') ? ' 頁已快取' : ' pages cached');
+      }
+    } catch(e) {}
+  }
+  checkCacheStatus();
+
+  btn.addEventListener('click', async function() {
+    if (btn.classList.contains('done') || btn.classList.contains('caching')) return;
+    btn.classList.add('caching');
+    btn.textContent = btn.dataset.labelCaching;
+    progress.style.display = 'block';
+
+    try {
+      // Fetch the search index to get all article URLs
+      const res = await fetch('/search-index.json');
+      const articles = await res.json();
+      const urls = articles.map(function(a) { return a.url; });
+
+      // Also add listing pages
+      var allUrls = ['/', '/en/', '/clawd-picks/', '/en/clawd-picks/',
+                     '/shroomdog-picks/', '/level-up/', '/about/', '/en/about/'];
+      for (var i = 0; i < urls.length; i++) { allUrls.push(urls[i]); }
+
+      var total = allUrls.length;
+      var done = 0;
+      var failed = 0;
+      var concurrency = 6;
+      var queue = allUrls.slice();
+
+      async function worker() {
+        while (queue.length > 0) {
+          var url = queue.shift();
+          try {
+            await fetch(url);
+            done++;
+          } catch(e) {
+            failed++;
+            done++;
+          }
+          var pct = Math.round((done / total) * 100);
+          progressBar.style.width = pct + '%';
+          status.textContent = done + '/' + total + (failed > 0 ? ' (' + failed + ' failed)' : '');
+        }
+      }
+
+      var workers = [];
+      for (var w = 0; w < concurrency; w++) { workers.push(worker()); }
+      await Promise.all(workers);
+
+      btn.textContent = btn.dataset.labelDone;
+      btn.classList.remove('caching');
+      btn.classList.add('done');
+      status.textContent = (total - failed) + (btn.dataset.label.includes('離線') ? ' 頁已快取 ✈️' : ' pages cached ✈️');
+    } catch(e) {
+      btn.textContent = btn.dataset.labelError;
+      btn.classList.remove('caching');
+      status.textContent = e.message;
+    }
+  });
+})();
+</script>
+
+<style>
+  .offline-download-wrapper {
+    text-align: center;
+    margin: 1.5rem 0 0.5rem;
+  }
+
+  .offline-download-btn {
+    display: inline-block;
+    padding: 0.6rem 1.2rem;
+    border: 1.5px solid var(--color-border, #444);
+    border-radius: 8px;
+    background: var(--color-surface, #1e1e2e);
+    color: var(--color-text, #ccc);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .offline-download-btn:hover:not(.done):not(.caching) {
+    border-color: var(--color-accent, #e67e22);
+    color: var(--color-accent, #e67e22);
+  }
+
+  .offline-download-btn.caching {
+    opacity: 0.7;
+    cursor: wait;
+  }
+
+  .offline-download-btn.done {
+    border-color: #27ae60;
+    color: #27ae60;
+    cursor: default;
+  }
+
+  .offline-progress {
+    display: none;
+    margin: 0.75rem auto;
+    max-width: 300px;
+    height: 4px;
+    background: var(--color-border, #333);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .offline-progress-bar {
+    width: 0%;
+    height: 100%;
+    background: var(--color-accent, #e67e22);
+    transition: width 0.15s ease;
+    border-radius: 2px;
+  }
+
+  .offline-status {
+    font-size: 0.8rem;
+    color: var(--color-text-muted, #888);
+    margin: 0.25rem 0 0;
+  }
+</style>
