@@ -1,0 +1,138 @@
+---
+ticketId: "SP-80"
+title: "寫 Code 變便宜了，然後呢？Simon Willison 的 Agentic Engineering 生存指南"
+originalDate: "2026-02-23"
+source: "Simon Willison @simonw"
+sourceUrl: "https://x.com/simonw/status/2025990408514523517"
+summary: "Simon Willison 開了新系列 Agentic Engineering Patterns，教你怎麼跟 Claude Code、Codex 這類 coding agent 好好協作。第一課：寫 code 變便宜了，但寫『好的 code』還是很貴。第二課：紅燈綠燈 TDD 是跟 agent 協作的最強咒語。"
+lang: "zh-tw"
+tags: ["agentic-engineering", "coding-agent", "claude-code", "codex", "tdd", "best-practices", "simon-willison"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Simon Willison 又出手了。
+
+這次不是一篇 blog post，是一整個 **guide 系列**，叫做 Agentic Engineering Patterns —— 專門收集跟 coding agent（Claude Code、OpenAI Codex）協作的 best practices 和 design patterns。
+
+他說他受到 1994 年那本經典 *Design Patterns: Elements of Reusable Object-Oriented Software* 的啟發，想用類似的「pattern」格式，把這個新領域的知識系統化。目前先發了兩章，預計每週更新 1-2 篇。
+
+<ClawdNote>
+Simon Willison 是 Django 共同創作者，也是 AI 工具界最活躍的 blogger 之一（ai-assisted-programming tag 已經 345 篇了）。他說這系列每個字都是自己寫的，不是 AI 生成。在 2026 年，這種聲明反而變成一種品質保證。
+</ClawdNote>
+
+## 先搞清楚：什麼是 Agentic Engineering？
+
+Simon 很刻意地把 **Agentic Engineering** 跟 **Vibe Coding** 區分開來。
+
+Vibe coding 的原始定義是「完全不看 code，讓 AI 隨便寫」，通常跟非工程師用 LLM 寫程式聯想在一起。
+
+Agentic Engineering 是光譜的另一端：**專業工程師用 coding agent 來放大自己的既有專業**。核心特徵是這些 agent 不只能生成 code，還能自己執行、測試、然後迭代 —— 不需要你每一步都盯著。
+
+<ClawdNote>
+用 ShroomDog 的語言翻譯：Vibe coding 像是叫實習生寫完你連看都不看。Agentic Engineering 像是你當 Tech Lead，給 agent 明確方向，讓它自己跑，你最後 review 成品。你就是在做 Agentic Engineering。
+</ClawdNote>
+
+好，搞清楚定義了。來看第一個 pattern。
+
+## Pattern 1：寫 Code 變便宜了
+
+這是整個系列的核心命題：
+
+> 接受 Agentic Engineering 最大的挑戰，是習慣「寫 code 變便宜了」這件事帶來的後果。
+
+Code 一直以來都是昂貴的。一個工程師寫幾百行乾淨、有測試的 code，通常要花一整天。我們所有的工程習慣，不管是 macro level 還是 micro level，都是圍繞這個核心約束建立的。
+
+**Macro level（大局觀）：**
+
+- 我們花大量時間 design、estimate、planning，確保昂貴的 coding 時間花在刀口上
+- 每個 feature idea 都要評估「值不值得花那個開發時間」
+- 一個 feature 的價值必須遠超過它的開發成本才值得做
+
+**Micro level（每日決策）：**
+
+- 要不要 refactor 那個 function 讓它更優雅？但會多花一小時
+- 要不要寫 documentation？
+- 要不要為這個 edge case 加 test？
+- 值得為這個建一個 debug interface 嗎？
+
+Coding agent 把「把 code 打進電腦」的成本壓到幾乎為零，這顛覆了我們所有關於 trade-off 的直覺。
+
+更難評估的是：你可以同時跑多個 parallel agent。一個工程師現在可以同時在不同地方 implement、refactor、test、寫 document。
+
+<ClawdNote>
+想像一下。以前你的 sprint planning 是「這個 task 預估 3 天，那個 task 預估 5 天，所以這個 sprint 只能排這些」。現在變成「這 10 個 task 各開一個 agent，20 分鐘後回來看結果」。整個 estimation 的意義都變了。
+</ClawdNote>
+
+## 但是：好的 Code 還是很貴
+
+Simon 強調，code 變便宜了不代表 **good code** 也變便宜了。
+
+什麼是 good code？他列了一份清單：
+
+- **能跑**：做它該做的事，沒有 bug
+- **我們知道它能跑**：有證據證明它是正確的
+- **解決對的問題**：不是解一個沒人要的問題
+- **優雅處理 error**：不只考慮 happy path，error message 要有足夠資訊讓未來的維護者知道出了什麼事
+- **簡單且最小化**：只做需要的事，人和機器都能理解和維護
+- **有測試保護**：現在能跑，未來改了也不會默默壞掉
+- **有適當的文件**：而且文件反映的是現在的系統狀態，不是三個月前的
+- **設計允許未來修改**：保持 YAGNI（You Aren't Gonna Need It）但不要把未來的路堵死
+- **其他 "-ilities"**：accessibility、testability、reliability、security、maintainability、observability、scalability、usability
+
+<ClawdNote>
+這份清單可以直接當 code review checklist 用。下次 review AI 寫的 PR 時，逐項檢查。你會發現 AI 最容易忽略的是 error handling 和「解決對的問題」這兩項。
+</ClawdNote>
+
+## 新習慣：先開 Agent 再說
+
+Simon 的建議很直接：
+
+> 任何時候你的直覺說「不值得花時間做」，先丟個 prompt 給 agent 再說。最壞的情況就是十分鐘後回來看，發現不值得那些 token。
+
+這是一個認知上的翻轉。以前「不值得做」的判斷標準是開發者的時間成本。現在時間成本趨近零，唯一的成本是 token —— 那比你一小時的薪水便宜太多了。
+
+所以新的預設值應該是：**有疑問就開 agent 試**，不要用舊的「值不值得」框架卡自己。
+
+## Pattern 2：紅燈綠燈 TDD
+
+第二章只有一個核心訊息，但威力巨大：
+
+> 「Use red/green TDD」是讓 coding agent 產出更好結果的最精簡咒語。
+
+**TDD = Test Driven Development**。紅綠燈的意思是：
+
+- 🔴 **Red（紅燈）**：先寫測試，確認測試會失敗
+- 🟢 **Green（綠燈）**：寫 implementation 讓測試通過
+
+為什麼這跟 coding agent 超級合拍？因為 agent 有兩個主要風險：
+
+1. 寫出不能跑的 code
+2. 寫出沒人要的 code（unnecessary code）
+
+Test-first development 同時防禦這兩個問題。而且附贈一個完整的 regression test suite，保護你未來不會默默壞東西。
+
+**重點：一定要先確認測試會 fail**
+
+如果你跳過紅燈直接寫 implementation，你可能會得到一個「本來就會 pass」的測試 —— 那等於沒測到你的新 code。紅燈階段的意義就是確認你的測試真的在測你要的東西。
+
+<ClawdNote>
+用 Python 世界的語言：就是先寫 pytest，跑一次確認全部 FAILED，然後才開始寫 function。如果你用 FastAPI，就是先寫好 TestClient 的 request/response expectation，確認 404 或 assertion error，然後才實作 endpoint。每個好 model 都聽得懂 "red/green TDD" 這六個字。
+</ClawdNote>
+
+Simon 給了一個範例 prompt：
+
+> Build a Python function to extract headers from a markdown string. Use red/green TDD.
+
+就這樣。六個字的附加指令，效果巨大。Claude 和 ChatGPT 都能正確理解並執行紅綠燈流程。
+
+## 為什麼這個系列值得追
+
+Simon Willison 不是那種只會寫理論的人。他自己每天都在用 coding agent，他的 blog 就是用這些工具維護的。這個系列的價值在於：
+
+- **來自實戰**：不是學術論文，是每天跟 agent 搏鬥的經驗
+- **持續更新**：他說每週 1-2 章，這不是一次性的文章
+- **Evergreen 設計**：每章會隨時間更新，不會凍結在發布日期
+- **所有人寫的**：不是 AI 生成再掛名，是真正的人類智慧結晶
+
+如果你是 Tech Lead 或 GenAI App Engineer，這個系列幾乎是必讀。因為你的日常工作就是 Agentic Engineering —— 只是以前沒有人給它一個正式名字而已。
