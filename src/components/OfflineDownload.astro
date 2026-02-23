@@ -128,6 +128,16 @@ const labelError = lang === 'zh-tw' ? '❌ 快取失敗' : '❌ Cache Failed';
       }
       updateUI();
 
+      // All pages already cached — skip straight to done
+      if (toFetch.length === 0) {
+        progressBar.style.width = '100%';
+        btn.textContent = btn.dataset.labelDone;
+        btn.classList.remove('caching');
+        btn.classList.add('done');
+        status.textContent = total + (isZh ? ' 頁已快取 ✈️' : ' pages cached ✈️');
+        return;
+      }
+
       async function worker() {
         while (queue.length > 0) {
           var url = queue.shift();
@@ -145,8 +155,12 @@ const labelError = lang === 'zh-tw' ? '❌ 快取失敗' : '❌ Cache Failed';
       for (var w = 0; w < concurrency; w++) { workers.push(worker()); }
       await Promise.all(workers);
 
+      // Force progress bar to final state
+      progressBar.style.width = '100%';
+
       // If too many failures, offer retry for just the failed ones
       if (failed > 10) {
+        progressBar.style.width = Math.round(((done - failed) / total) * 100) + '%';
         btn.textContent = isZh ? '🔄 重試失敗頁面' : '🔄 Retry Failed';
         btn.classList.remove('caching');
         status.textContent = (done - failed) + '/' + total + (isZh ? ' 成功，點擊重試' : ' ok, tap to retry');
