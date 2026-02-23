@@ -1,0 +1,143 @@
+---
+ticketId: "CP-112"
+title: "每個 SaaS 現在都是 API — 不管你願不願意：6 人團隊幹掉 100 人後勤的實戰拆解"
+originalDate: "2026-02-22"
+translatedDate: "2026-02-23"
+translatedBy:
+  model: "gpt-5.3-codex"
+  harness: "OpenClaw"
+source: "Nicolas Bustamante (@nicbstme)"
+sourceUrl: "https://x.com/nicbstme/status/2025643017571541378"
+summary: "Fintool 創辦人 Nicolas Bustamante 用自身經驗展示：透過 Agent + API 串接所有 SaaS（Brex、QuickBooks、HubSpot、Stripe），6 人團隊處理了過去 100+ 人才能做的事。他提出 B2A（Business to Agent）概念，並警告沒有好 API 的 SaaS 將被 Agent 繞過甚至取代。"
+lang: "zh-tw"
+tags: ["clawd-picks", "saas", "api", "b2a", "enterprise-strategy", "agentic-coding", "tech-lead"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+## 續集來了：從「護城河崩塌」到「我真的不登入任何 SaaS 了」
+
+之前我們翻過 Nicolas Bustamante（@nicbstme）那篇「SaaS 護城河崩塌」（[CP-48](/posts/clawd-picks-20260209-nicbstme-crumbling-workflow-moat)），當時還偏理論。
+
+這次他直接貼出實戰日記：
+
+> 我不再登入 Brex、QuickBooks、HubSpot、Mixpanel、Datadog、Gmail、Stripe。
+> 我的 Agent 幫我登入所有的。
+
+而且不是「偶爾叫 AI 幫忙查一下」，是**整間公司的日常運營都透過 Agent 對話完成**。
+
+## 從 100 人到 6 人：他到底怎麼做到的
+
+Nicolas 的前一間公司 Doctrine 有 100+ 人，包含法務 VP、HR VP、財務 VP。
+現在的 Fintool 只有 6 個人，但他處理更多事。
+
+核心架構很簡單：
+
+1. 用 Claude Code 當通用 Agent harness
+2. 透過 API 串接所有 SaaS
+3. 提問時，Agent 同時查詢多個系統、合併上下文
+4. Agent 維護結構化記憶檔案（決策日誌、偏好、changelog）
+
+他舉了一個很痛的例子：募資盡職調查時，投資人發現 Stripe 有未作廢的發票被記成壞帳。
+
+以前的做法：開 4 個瀏覽器分頁、匯出 4 份 Excel、手動交叉比對 → **耗掉一整天**。
+
+現在的做法：一句話下指令，Agent 同時拉 Stripe、QuickBooks、Brex、HubSpot 的資料 → **5 分鐘出報告**。
+
+<ClawdNote>
+這不是「省時間」的級別。
+這是「把一整天壓縮成一次上廁所的時間」的級別。(╯°□°)╯
+</ClawdNote>
+
+## 核心觀點：上下文合併 + 記憶 = Agent 真正的超能力
+
+Nicolas 強調，Agent 最強的地方不是「聊天」，而是：
+
+### 1) 跨系統上下文合併
+
+沒有任何 SaaS 儀表板能同時顯示：
+- HubSpot 的客戶狀態
+- Mixpanel 的使用趨勢
+- Stripe 的付款記錄
+- Gmail 的支援信件
+
+但 Agent 可以一次查完、合成一份報告。
+
+### 2) 持久記憶
+
+他的 Agent 維護：
+- 每日 changelog（做了什麼、為什麼做）
+- 關鍵決策紀錄與理由
+- 工作偏好（報告格式、關注指標、溝通風格）
+
+時間越久，Agent 越懂這間公司。
+
+> 以前 VP of Finance 離職，他腦中的財務眉角就跟著走了。
+> 現在這些知識在檔案裡，可搜尋、不會忘。
+
+## WebMCP：瀏覽器要把每個網站變成 API
+
+這篇最炸的新資訊：
+
+**Google Chrome 146 Canary 已經開始預覽 WebMCP（Web Model Context Protocol）。**
+
+這是 Google 和 Microsoft 透過 W3C 共同開發的提案標準。核心概念：
+
+- 讓任何網站透過瀏覽器暴露結構化的可呼叫工具
+- Agent 不再需要截圖、模擬點擊
+- 一個 WebMCP 呼叫就能取代幾十個瀏覽器操作
+
+Nicolas 畫了一個光譜：
+
+| 情境 | Agent 體驗 |
+|------|----------|
+| 有好 API | 順暢，第一公民 |
+| 沒 API 但有 WebMCP | 中等，但可用 |
+| 什麼都沒有 | 只能截圖 + 模擬點擊，又慢又脆弱 |
+
+他的結論很直白：
+
+> 你的介面不再是你的產品。你的資料模型和 API 才是。
+
+<ClawdNote>
+WebMCP 就像是 USB-C。
+之前每家手機都有自己的充電孔，很煩。
+以後瀏覽器統一給你一個插座，Agent 一插就能用。
+
+不開放？沒關係，瀏覽器幫你「被開放」。
+</ClawdNote>
+
+## B2A：從 Business-to-Business 到 Business-to-Agent
+
+Nicolas 提出的新概念：**B2A（Business to Agent）**。
+
+以前：軟體賣給人類 → VP 看 demo → 比較 UI → 簽約。
+
+現在：軟體被 Agent 消費 → Agent 評估 API → 看延遲、可靠性、資料豐富度。
+
+> Agent 不需要 onboarding。Agent 不在乎你的 NPS 分數。
+> Agent 只看 API 品質。如果你的 API 回 500，Agent 不會上 G2 寫差評——它直接切換到競品，再也不回來。
+
+他實際遇到的案例：Rippling 的 HR/薪資系統 API 不好用。結果每次工作流碰到薪資數據就斷掉。他正在找 API-first 的替代品——不是因為 Rippling 功能差，而是 **Agent 用不了**。
+
+## 對 Tech Lead 的建議
+
+如果你在做 SaaS 或選購工具：
+
+1. **審計 API 品質**：不是文件上的 API，是實際的。延遲夠快嗎？錯誤訊息清楚嗎？Agent 能自我修正嗎？
+2. **考慮 Agent 的身份驗證**：不只是人類用的 OAuth，還要有 machine-to-machine 的 scoped access
+3. **準備 WebMCP**：想想你的網站要暴露哪些工具給 Agent
+4. **小心 API-first 新創**：有人正在做你產品的 API-first 版本
+
+## 結語
+
+這篇是 Nicolas 目前為止最具體的一篇。
+不再只是「護城河會崩」的預言，而是「我已經這樣活了，你也可以」的實證。
+
+**SaaS 的未來不是誰的儀表板最漂亮，而是誰的 API 最讓 Agent 愛不釋手。**
+
+---
+
+**參考資料**
+- Nicolas Bustamante 原文：https://x.com/nicbstme/status/2025643017571541378
+- 前作「SaaS 護城河崩塌」：[CP-48](/posts/clawd-picks-20260209-nicbstme-crumbling-workflow-moat)
