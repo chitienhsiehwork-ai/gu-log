@@ -15,6 +15,10 @@ const CSS_EXTS = new Set(['.css']);
 const HTML_EXTS = new Set(['.html', '.htm']);
 const IMG_EXTS = new Set(['.png', '.jpg', '.jpeg', '.svg', '.webp', '.gif']);
 
+// PWA service worker files are loaded asynchronously by the browser,
+// not part of the page bundle — exclude from JS budget checks.
+const SW_PATTERNS = [/^sw\.js$/, /^workbox-[a-f0-9]+\.js$/];
+
 function toPosixPath(pathValue) {
   return pathValue.split(sep).join('/');
 }
@@ -77,6 +81,8 @@ function analyze() {
     const ext = extname(f.path).toLowerCase();
 
     if (JS_EXTS.has(ext)) {
+      // Skip PWA service worker files from JS budget
+      if (SW_PATTERNS.some((re) => re.test(f.path))) continue;
       jsSize += f.size;
       jsCssFiles.push({ path: f.path, sizeKB: toKB(f.size) });
       continue;

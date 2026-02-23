@@ -1,0 +1,39 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="離線模式 — gu-log">
+  <main class="offline-page">
+    <h1>📡 你現在離線了</h1>
+    <p>這個頁面還沒被快取到。</p>
+    <p>已經看過的文章可以正常瀏覽 — 回<a href="/">首頁</a>試試。</p>
+    <p class="hint">💡 連上網後重新整理就會自動快取新頁面。</p>
+  </main>
+</BaseLayout>
+
+<style>
+  .offline-page {
+    max-width: 600px;
+    margin: 4rem auto;
+    text-align: center;
+    padding: 2rem;
+  }
+  .offline-page h1 {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+  }
+  .offline-page p {
+    font-size: 1.1rem;
+    line-height: 1.8;
+    color: var(--text-secondary, #666);
+  }
+  .offline-page a {
+    color: var(--accent, #e67e22);
+    text-decoration: underline;
+  }
+  .hint {
+    margin-top: 2rem;
+    font-size: 0.9rem;
+    opacity: 0.7;
+  }
+</style>
