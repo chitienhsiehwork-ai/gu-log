@@ -46,8 +46,8 @@ export default defineConfig({
         // Precache shell assets only (CSS/JS/fonts); HTML pages cached at runtime
         globPatterns: ['**/*.{css,js,svg,woff,woff2}', 'offline/index.html', 'manifest.webmanifest'],
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
-        // No navigateFallback — NetworkFirst runtimeCaching handles navigations
-        // with offline fallback via handlerDidError
+        // Disable auto-generated NavigationRoute — NetworkFirst runtimeCaching handles navigations
+        navigateFallback: null,
         runtimeCaching: [
           {
             // Cache HTML pages as user browses (NetworkFirst = fresh when online, cached when offline)
