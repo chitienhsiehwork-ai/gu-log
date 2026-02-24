@@ -88,6 +88,19 @@ const labelError = lang === 'zh-tw' ? '❌ 快取失敗' : '❌ Cache Failed';
     progress.style.display = 'block';
 
     try {
+      // Pre-cache CSS/JS assets into assets-cache (ensures styles work offline)
+      var assetsCache = await caches.open('assets-cache');
+      var cssJsLinks = Array.from(document.querySelectorAll('link[rel="stylesheet"][href*="/_astro/"], script[src*="/_astro/"]'));
+      for (var ci = 0; ci < cssJsLinks.length; ci++) {
+        var assetUrl = cssJsLinks[ci].href || cssJsLinks[ci].src;
+        if (assetUrl) {
+          try {
+            var assetResp = await fetch(assetUrl);
+            if (assetResp.ok) await assetsCache.put(assetUrl, assetResp);
+          } catch(_ae) { /* non-fatal */ }
+        }
+      }
+
       // Fetch the search index to get all article URLs
       var res = await fetch('/search-index.json');
       var articles = await res.json();

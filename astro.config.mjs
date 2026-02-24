@@ -79,6 +79,16 @@ export default defineConfig({
             },
           },
           {
+            // Fallback runtime cache for CSS/JS (belt-and-suspenders if precache fails on iOS)
+            urlPattern: /\/_astro\/.*\.(?:css|js)$/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'assets-cache',
+              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 * 365 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
             // Cache images encountered while browsing
             urlPattern: /\.(?:png|jpg|jpeg|gif|webp|svg)$/i,
             handler: 'CacheFirst',
