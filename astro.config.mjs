@@ -43,8 +43,10 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // Precache shell assets only (CSS/JS/fonts); HTML pages cached at runtime
-        globPatterns: ['**/*.{css,js,svg,woff,woff2}', 'offline/index.html', 'manifest.webmanifest'],
+        // Precache: fonts, icons, offline page, manifest only
+        // CSS/JS deliberately EXCLUDED — handled by runtime CacheFirst (assets-cache)
+        // Reason: precacheAndRoute intercepts but doesn't fallback on cache eviction (iOS Safari)
+        globPatterns: ['**/*.{svg,woff,woff2}', 'offline/index.html', 'manifest.webmanifest'],
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
         // Disable auto-generated NavigationRoute — NetworkFirst runtimeCaching handles navigations
         navigateFallback: null,
