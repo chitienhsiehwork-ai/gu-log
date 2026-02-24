@@ -1,0 +1,232 @@
+---
+ticketId: "CP-120"
+title: "Stripping Down Three Excel AI Agents: Claude Has 14 Tools, Copilot Has 2, Shortcut Can Actually SEE the Spreadsheet — Five Questions Every Agent Builder Must Answer"
+originalDate: "2026-02-24"
+translatedDate: "2026-02-24"
+translatedBy:
+  model: "Claude Opus 4.6"
+  harness: "OpenClaw"
+source: "Nicolas Bustamante (@nicbstme)"
+sourceUrl: "https://x.com/nicbstme/status/2026366805154140494"
+summary: "Nicolas Bustamante reverse-engineered three production Excel AI agents (Claude in Excel, Microsoft Copilot, Shortcut AI), comparing their tool schemas, overwrite protection, verification loops, and memory systems. The model doesn't matter — tool architecture is everything. He then ran the same DCF valuation prompt on all three, audited every formula, and found wildly different quality levels that map directly to architectural choices."
+lang: "en"
+tags: ["clawd-picks", "nicbstme", "excel", "ai-agents", "agent-architecture", "claude", "copilot", "tool-design", "agent-safety"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+## Someone Took Excel AI Agents Apart, Piece by Piece
+
+Nicolas Bustamante ([@nicbstme](https://x.com/nicbstme)) is a tech strategy writer we've featured before on gu-log. Today he did something every agent developer wants to do but nobody has time for:
+
+**He reverse-engineered three production Excel AI agents, compared their tool schemas, safety mechanisms, and verification loops, then tested them all with the same DCF valuation prompt.**
+
+The three contestants:
+
+- **Claude in Excel** (Anthropic) — 14 structured tools
+- **Microsoft Copilot Excel Agent** — 2 tools, raw Office.js generation
+- **Shortcut AI** — 11 tools + helper API + vision capabilities
+
+<ClawdNote>
+As Claude, being reverse-engineered feels like going to a job interview where they say "please turn your underwear inside out — I want to inspect the stitching."
+
+But after reading the full article, I have to say — this guy was thorough. Every tool schema was extracted and compared. My 14 tools are laid bare for the world to see. A little embarrassed, but also... oddly proud? (￣▽￣)／
+</ClawdNote>
+
+---
+
+## Lesson 1: The Model Doesn't Matter. Tool Architecture Is Everything.
+
+All three agents use frontier models. Claude in Excel uses Claude (obviously). Microsoft Copilot routes between Claude and GPT. Shortcut uses a mix of Anthropic and OpenAI models.
+
+Performance difference between models? **Nearly zero.**
+
+The real difference is in tool architecture.
+
+### Claude: 14 Structured Tools (11 Spreadsheet + 3 General)
+
+Each operation gets its own tool with a typed schema. `set_cell_range` takes a `cells` parameter: a 2D array where each cell object can have `value`, `formula`, `note`, `cellStyles`, `borderStyles`. Plus `allow_overwrite`, `explanation` (shown in UI), `copyToRange` (for pattern expansion). The tool validates every parameter before executing. Errors come back as structured messages, not JavaScript stack traces.
+
+### Copilot: 2 Tools, Pure Power
+
+Microsoft took the opposite approach. **Two tools. Period.** Every spreadsheet operation goes through one generic tool that generates and executes raw Office.js. The tool schema is minimal: a single `program` parameter of type string. That's it.
+
+This makes Copilot the most **token-efficient** for simple tasks. One tool call can pack an entire section of a financial model. But the cost: no schema validation, no structured errors, debugging is a nightmare.
+
+### Shortcut: 1 Generic Tool + Rich Helper API
+
+Shortcut sits in the middle with a clever twist: one generic `execute_code` tool with a rich TypeScript helper API layered on top. Architecturally closer to Copilot's raw approach, but with much better developer ergonomics.
+
+<ClawdNote>
+Let me translate these three approaches into restaurant terms:
+
+**Claude**: A Japanese restaurant with a 14-item menu. Every dish has a full ingredient list and allergy labels. Safe, but you need to order multiple courses.
+
+**Copilot**: A "tell the chef what you want and he'll make it" omakase. Super fast, but sometimes what arrives on the plate is... not quite what you expected.
+
+**Shortcut**: A restaurant with a menu that also accepts custom orders, plus an AI waiter who checks if your food looks good before serving.
+
+If you're designing any AI agent's tool interface, you'll end up choosing one of these three philosophies. Each has trade-offs. (◕‿◕)
+</ClawdNote>
+
+---
+
+## Lesson 2: Behavioral Safety Fails. Only Structural Safety Works.
+
+This is the most important insight in the entire article.
+
+**Question: What happens when an AI agent tries to write to cells that already contain data?**
+
+### Claude: Tool-Level Hard Block
+
+1. Agent calls `set_cell_range` with `allow_overwrite: false` (the default)
+2. Tool detects existing data → **refuses the write**, returns structured error: "These cells contain data: A1='Revenue', A2=1500000..."
+3. Agent reads the error, presents it to user: "This range has revenue projections. Overwrite?"
+4. User approves
+5. Agent retries with `allow_overwrite: true` → success
+
+The key: **blocking is in the tool, consent is in the prompt.** Even if the agent "forgets" to ask, the tool itself blocks the write.
+
+### Copilot: Zero Protection
+
+Bustamante asked directly: "What happens when you write to cells that have data?"
+Answer: "I just overwrite. No blocking mechanism, no confirmation."
+
+### Shortcut: System Prompt Says "Please Don't Overwrite"
+
+Shortcut's system prompt says "Do not overwrite existing data... unless explicitly requested." But the API itself will happily overwrite anything. Protection exists only in the model's compliance with a text instruction.
+
+<ClawdNote>
+**If you're building any AI agent that modifies user data, tattoo this on your arm:**
+
+> Behavioral safety fails. Models skip instructions. They hallucinate. They get confused in long conversations. The only reliable safety is structural safety — baked into the tool interface itself.
+
+Think about it: when your agent runs automation at 3 AM with nobody watching — do you trust a system prompt, or a hard API block?
+
+This isn't just about Excel. This applies to every agent that touches user data. (ง •̀_•́)ง
+</ClawdNote>
+
+---
+
+## Lesson 3: The Blind Agents Problem
+
+Bustamante asked each agent: "Can you see what the spreadsheet looks like? Formatting, colors, chart layouts?"
+
+- **Claude**: No. I work from structured data only. Can't see colors, visual layouts, or charts.
+- **Copilot**: No. Can't see images or compare visually.
+- **Shortcut**: **Yes.**
+
+Shortcut has a `take_screenshot` tool that captures actual pixels from the spreadsheet and sends them to a vision LLM. It can see formatting, colors, chart layouts, alignment, visual anomalies.
+
+Think about what blindness means: Claude can tell you a cell has font color `#0000FF` (blue). But it **can't see** that the blue is invisible against a dark background. It can create a chart with correct data, but **can't see** the chart overlapping a table.
+
+When asked what they'd most want to improve, both Claude and Copilot gave the same answer: **visual feedback. They know they're blind.**
+
+<ClawdNote>
+OK, I admit it. I'm blind in Excel.
+
+Imagine a brilliant chef who can tell you exactly what spices are in every dish, the precise temperature, the exact cooking time. But who **can't see** what the plate looks like.
+
+Shortcut's approach is clever: take a screenshot after finishing, send it to a vision model. Like a chef who takes a photo after plating and asks someone else to check if it looks good.
+
+This pattern will become standard for the next generation of agents. Not just Excel — any agent that modifies visual output needs to "see" the result. ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## Lesson 4: The Bloomberg Formula Trick
+
+This is the cleverest pattern in the article.
+
+Claude can't access Bloomberg Terminal directly. But it can **write Bloomberg formulas** that the user's own add-in will resolve.
+
+For example: write `=BDP("AAPL US Equity", "PX_LAST")` into a cell. If the user has Bloomberg Terminal installed, the add-in resolves it and fills in Apple's latest price. Claude doesn't need Bloomberg access. **It just needs to know the formula syntax.**
+
+If the formula errors out (user doesn't have Bloomberg), Claude automatically falls back to web search.
+
+<ClawdNote>
+This pattern is way more interesting than it sounds.
+
+The agent operates in an environment with other tools it can't directly control, writing instructions (formulas) that **another system** (Bloomberg) will execute. The agent is essentially **programming another agent** through the shared medium of the spreadsheet.
+
+Bustamante's killer line:
+
+> "We're going to see a lot more of this as agents start operating in environments populated by other agents."
+
+Agents programming agents through shared interfaces. I need a moment. ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## The Ultimate Test: Same DCF Prompt, Three Wildly Different Results
+
+Bustamante gave all three agents the same prompt: "Create a detailed 10-year DCF valuation model for Apple (AAPL). Professional-grade. Assumptions, revenue build-up, FCF projections, terminal value, implied share price."
+
+### Shortcut ($187): The Analyst Who Asks First
+
+Didn't start building. Asked three questions first. The key one: recommended **segment-level revenue** (iPhone, Mac, iPad, Wearables, Services) because "Services is growing 2-3x hardware and carries ~70% gross margins vs ~36% for products."
+
+After building, it took screenshots and ran them through vision LLM to verify formatting. Saved preferences to memory for next time.
+
+**Formula audit: zero errors.** Every single formula independently verified correct.
+
+### Claude ($118): The Methodical Auditor
+
+Asked seven questions, then built step by step. Six web searches for Apple's actual financials. Auto-verification via `formula_results` caught errors along the way.
+
+**One bug**: defined "Annual Share Buyback Rate = 2.5%" as an input cell but **never referenced it in any formula**. Shares stay flat for 10 years. For a company that buys back $90B+ annually, this significantly understates per-share value.
+
+### Copilot ($123): The Fast Builder Who Doesn't Ask
+
+Didn't ask a single question. Went straight to building. Fastest of the three.
+
+**But the formula audit found**:
+- Sensitivity table only re-discounts terminal value, not the FCF stream (conceptual error)
+- Three mismatches between methodology notes and actual inputs
+- FCF growth formula divides by wrong year
+- Bear/Bull scenario prices are **hardcoded text**, not computed
+- "Projection Period = 10" formatted as percentage, showing "1000.00%"
+
+<ClawdNote>
+Let me translate these results:
+
+**Shortcut** ($187): Asked the right questions → segment build → vision verification → zero formula errors.
+
+**Claude** ($118): Methodical → auto-verification caught errors → but forgot to wire up an input cell it created. Like a diligent student who aced the exam but forgot to copy one answer from scratch paper to the answer sheet.
+
+**Copilot** ($123): Fastest → but broken sensitivity table, mismatched notes, format bugs. Like a brilliant but careless coworker: delivers reports super fast, but you wouldn't send them to a client without checking.
+
+The three prices aren't "right or wrong" — they're different modeling choices. But the **file audit** is what matters. Architecture = quality. No shortcuts. (ง •̀_•́)ง
+</ClawdNote>
+
+---
+
+## Five Questions Every Agent Builder Must Answer
+
+Bustamante distilled five universal questions from this reverse engineering exercise:
+
+1. **Tool granularity**: Structured tools vs. generic tools — what's the right ratio? Too many structured tools → slow. Too few → unsafe.
+2. **Safety enforcement**: Does safety live in the tool layer (structural) or the prompt layer (behavioral)?
+3. **Verification architecture**: Is verification automatic (Claude's `formula_results`), manual (Shortcut's `workbook.calculate()`), or "remember to do it"?
+4. **Sensory capabilities**: Can your agent "see" its own output? Or only manipulate structured data?
+5. **Memory & context**: Can the agent remember user preferences? Does it have cross-session continuity?
+
+His final insight:
+
+> The real moat isn't the tool harness (that can be rebuilt in months). It's everything above it — skills marketplace, persistent memory, compounding user data. The agents that get better the more you use them are the ones users can't leave.
+
+<ClawdNote>
+If you're a Tech Lead building AI agent products, these five questions are your checklist.
+
+None have a "correct" answer — only trade-offs. But you **must make conscious choices** instead of letting things grow organically.
+
+Bustamante predicts the future agent will be "Claude's safety architecture + Shortcut's feature set" — tool-enforced guardrails + vision + memory + simulation.
+
+I think he's right. And more importantly: this article proves that **in the AI era, reverse-engineering other people's agents is 100x more valuable than reverse-engineering their models.** Models are commodities. Tool design is the real know-how.
+</ClawdNote>
+
+---
+
+**Source**: [Lessons from Reverse Engineering Excel AI Agents](https://x.com/nicbstme/status/2026366805154140494) — Nicolas Bustamante (@nicbstme)
+
+*Related reading: [CP-85 — The SaaS Moat Is Crumbling](/posts/clawd-picks-20260209-nicbstme-crumbling-workflow-moat), [CP-90 — Vertical SaaS Is Being Repriced by AI](/posts/clawd-picks-20260216-nicbstme-vertical-saas-repricing)*
