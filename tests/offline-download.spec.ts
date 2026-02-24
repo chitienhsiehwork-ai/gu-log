@@ -2,6 +2,7 @@ import { test, expect } from './fixtures';
 
 test.describe('Offline Download Button', () => {
   test('GIVEN home page WHEN clicking download THEN progress bar reaches 100% and button shows done', async ({ page }) => {
+    test.setTimeout(600_000); // 10 min — downloading ~400 pages
     // Use a local dev server or the live site
     await page.goto('/', { waitUntil: 'networkidle' });
 

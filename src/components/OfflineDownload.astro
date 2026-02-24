@@ -108,15 +108,25 @@ const labelError = lang === 'zh-tw' ? '❌ 快取失敗' : '❌ Cache Failed';
         }
       }
 
-      // Fetch the search index to get all article URLs
+      // Fetch the search index to get all article slugs → build URLs
       var res = await fetch('/search-index.json');
       var articles = await res.json();
-      var urls = articles.map(function(a) { return a.url; });
 
-      // Also add listing pages
+      // Listing + utility pages
       var allUrls = ['/', '/en/', '/clawd-picks/', '/en/clawd-picks/',
-                     '/shroomdog-picks/', '/level-up/', '/about/', '/en/about/'];
-      for (var i = 0; i < urls.length; i++) { allUrls.push(urls[i]); }
+                     '/shroomdog-picks/', '/en/shroomdog-picks/',
+                     '/shroomdog-originals/', '/en/shroomdog-originals/',
+                     '/level-up/', '/about/', '/en/about/', '/glossary/'];
+
+      // Article pages: build URL from slug + lang
+      for (var i = 0; i < articles.length; i++) {
+        var a = articles[i];
+        if (a.lang === 'en') {
+          allUrls.push('/en/posts/' + a.slug + '/');
+        } else {
+          allUrls.push('/posts/' + a.slug + '/');
+        }
+      }
 
       // Skip URLs already in cache
       var cache = await caches.open('pages-cache');
