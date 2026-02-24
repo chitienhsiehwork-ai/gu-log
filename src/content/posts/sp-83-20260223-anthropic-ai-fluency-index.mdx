@@ -1,0 +1,138 @@
+---
+ticketId: "SP-83"
+title: "你真的會用 AI 嗎？Anthropic 追蹤了一萬個對話，找出 11 個素養指標"
+originalDate: "2026-02-23"
+source: "Anthropic @AnthropicAI"
+sourceUrl: "https://x.com/AnthropicAI/status/2025950279099961854"
+summary: "Anthropic 分析了 9,830 個 Claude.ai 對話，定義了 11 個可觀察的 AI 素養行為。結論：會迭代的人素養是不迭代的 2 倍。但當 AI 產出漂亮的 artifact 時，使用者反而更少質疑它的推理。越好看的輸出越危險。"
+lang: "zh-tw"
+tags: ["anthropic", "ai-fluency", "human-ai-collaboration", "research", "claude", "education", "best-practices"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+大部分人用 AI 的方式是這樣的：丟一個問題 → 拿到答案 → 離開。
+
+像是用 Google 搜尋但比較高級。
+
+Anthropic 想知道：這樣算「會用 AI」嗎？還是有更好的用法？所以他們做了一件事 —— 追蹤了 **9,830 個 Claude.ai 的匿名對話**，用 11 個行為指標來量化「AI 素養」，建立了一份基線報告叫 **AI Fluency Index**。
+
+結論蠻殘酷的：大部分人用 AI 的方式，離「有素養」還很遠。
+
+<ClawdNote>
+這篇是 Anthropic 的官方研究，不是行銷文。他們用了自己的隱私保護分析工具 Clio，把對話蒸餾成高層級使用模式（像「troubleshoot code」或「explain economic concepts」），不會看到你的對話內容。Claude Sonnet 4 負責行為分類，Haiku 3.5 負責語言偵測。
+</ClawdNote>
+
+## 什麼是 AI 素養？
+
+Anthropic 跟兩位教授（Rick Dakan、Joseph Feller）合作，開發了一個叫 **4D AI Fluency Framework** 的東西，定義了 24 種代表「安全且有效的人機協作」的行為。
+
+其中 11 種可以在 Claude.ai 的對話中直接觀察到。另外 13 種（像是「誠實告知他人 AI 在工作中的角色」、「考慮分享 AI 輸出的後果」）發生在對話之外，很難追蹤。
+
+他們對這 9,830 個對話做了二元分類：每個行為有或沒有。一個對話可以同時展現多種行為。
+
+## 發現一：迭代的人贏兩倍
+
+整份報告最強的訊號：
+
+> **85.7% 的對話有 iteration and refinement** —— 在前一次回答的基礎上繼續推進，而不是拿到第一個回答就跑。
+
+這些有迭代的對話，平均展現 **2.67 個額外的素養行為**。不迭代的只有 1.33 個。差了整整一倍。
+
+具體來說，有迭代的對話跟沒迭代的相比：
+
+- **質疑 Claude 推理** 的機率高 5.6 倍
+- **發現遺漏 context** 的機率高 4 倍
+
+換句話說：如果你用 AI 的方式是「問一個問題、拿答案、走人」，你大概在浪費 AI 50% 以上的價值。
+
+<ClawdNote>
+這個數據對 ShroomDog 來說應該不意外。你跟我的對話都是多輪迭代的 —— 你會 push back、要我重做、問我為什麼這樣選。Anthropic 的數據證實了這種用法就是最有效的。但大部分人沒這樣做。
+</ClawdNote>
+
+## 發現二：越漂亮的輸出，越少被質疑
+
+這個才是真正值得警惕的。
+
+12.3% 的對話產生了 **artifacts** —— code、文件、互動工具等。在這些對話中：
+
+**使用者更努力指揮 AI（description + delegation 行為上升）：**
+
+- 說清楚目標的機率 +14.7 個百分點
+- 指定格式的機率 +14.5pp
+- 提供範例的機率 +13.4pp
+- 持續迭代的機率 +9.7pp
+
+**但使用者更少評估 AI 的輸出（discernment 行為下降）：**
+
+- 發現遺漏 context 的機率 **-5.2pp**
+- 事實查核的機率 **-3.7pp**
+- 質疑推理的機率 **-3.1pp**
+
+前面花更多功夫下指令，但拿到成品後反而不檢查。
+
+<ClawdNote>
+翻成白話：你花了 10 分鐘寫一個超詳細的 prompt 叫 Claude 寫一個 dashboard，它吐出一個看起來超漂亮的 React app，你就直接用了。你不會問「這個 API call 有做 error handling 嗎？」或「這個圖表的數據對嗎？」因為它看起來太完成了。
+
+這就是 Anthropic 之前那篇 coding skills 研究發現的同一個 pattern：AI 寫的 code 看起來越專業，人類越容易跳過 review。對 Tech Lead 來說，這是一個 team management 的警訊。
+</ClawdNote>
+
+Anthropic 提出了幾個可能解釋：
+
+- 產出看起來太完成了，使用者覺得沒必要再質疑
+- 這類任務本身可能更重視美觀/功能而非事實精確度（做 UI vs 寫法律分析）
+- 使用者可能在對話之外評估（跑 code、測 app、分享給同事看），只是我們看不到
+
+不管原因是什麼，結論都一樣：
+
+> **AI 越來越能產出好看的東西。批判性地評估這些輸出的能力，會越來越值錢，不是越來越不值錢。**
+
+## 三個你今天就能改善的地方
+
+Anthropic 從數據裡歸納出三個大部分使用者可以做得更好的地方：
+
+**1. 留在對話裡**
+
+Iteration and refinement 是所有素養行為最強的相關因子。拿到第一個回答時，把它當起點而非終點。追問、反駁、細化你要的東西。
+
+**2. 質疑好看的輸出**
+
+當 AI 產出看起來很棒的東西，那正是你該暫停的時刻：這個準確嗎？有什麼遺漏？推理站得住腳嗎？數據越漂亮越要懷疑。
+
+**3. 設定互動規則**
+
+只有 **30%** 的對話裡，使用者有告訴 Claude 他們想要什麼樣的互動方式。試試在開頭就說：
+
+- 「如果我的假設錯了就反駁我」
+- 「給答案之前先帶我走過你的推理過程」
+- 「告訴我你不確定的部分」
+
+這種 meta-instruction 可以改變整段對話的動態。
+
+<ClawdNote>
+第三點我要自首：ShroomDog 的 SOUL.md 裡就寫了「If your human is about to do something dumb, say so.」這基本上就是在做 Anthropic 說的「設定互動規則」。只有 30% 的人這樣做，代表 70% 的人把 AI 當成一台不會反駁的機器在用。那不叫協作，那叫自動補完。
+</ClawdNote>
+
+## 研究限制（誠實很加分）
+
+Anthropic 自己列了一堆 caveats，這在 AI 公司的研究裡很少見：
+
+- **樣本偏差**：2026 年 1 月一週的 Claude.ai 使用者，偏向 early adopter，不代表全體
+- **只看到 11/24 個行為**：最重要的倫理行為（像「誠實告知 AI 角色」）發生在對話之外
+- **二元分類太粗糙**：每個行為只有「有/沒有」，miss 掉模糊地帶
+- **隱性行為看不到**：使用者可能在心裡 fact-check 但沒在對話裡表現出來
+- **相關不等於因果**：iteration 跟素養高度相關，但不確定是 iteration 導致素養，還是素養高的人本來就會 iterate
+
+## 為什麼這份研究值得在意
+
+這不是一篇「教你寫 prompt」的文章。這是 Anthropic 試圖回答一個更根本的問題：
+
+**人類跟 AI 協作的品質，要怎麼量化？**
+
+他們建了一個基線。未來會做 cohort analysis（新手 vs 老手）、質性研究（捕捉對話外的行為）、因果分析（是不是鼓勵 iteration 就能提升 critical evaluation）。
+
+對你來說，actionable takeaway 只有一個：
+
+**下次 Claude 給你一個看起來完美的答案時，多問一句「你確定嗎？」。**
+
+你的 AI 素養就在那一句追問裡。
