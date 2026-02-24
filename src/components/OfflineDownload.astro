@@ -39,15 +39,22 @@ const labelError = lang === 'zh-tw' ? '❌ 快取失敗' : '❌ Cache Failed';
   }
   var isZh = btn.dataset.label.includes('離線');
 
-  // Check if already cached
+  // Check if a FULL download was previously completed
   async function checkCacheStatus() {
     try {
+      var completed = localStorage.getItem('offline-download-done');
+      if (!completed) return;
       var cache = await caches.open('pages-cache');
       var keys = await cache.keys();
-      if (keys.length > 20) {
+      // Only show done if we previously completed AND cache still has substantial content
+      var minPages = Math.floor(parseInt(completed, 10) * 0.8) || 100;
+      if (keys.length >= minPages) {
         btn.textContent = btn.dataset.labelDone;
         btn.classList.add('done');
         status.textContent = keys.length + (isZh ? ' 頁已快取' : ' pages cached');
+      } else {
+        // Cache was partially evicted — clear flag, let user re-download
+        localStorage.removeItem('offline-download-done');
       }
     } catch(_e) { /* ignore */ }
   }
@@ -147,6 +154,7 @@ const labelError = lang === 'zh-tw' ? '❌ 快取失敗' : '❌ Cache Failed';
         btn.textContent = btn.dataset.labelDone;
         btn.classList.remove('caching');
         btn.classList.add('done');
+        localStorage.setItem('offline-download-done', String(total));
         status.textContent = total + (isZh ? ' 頁已快取 ✈️' : ' pages cached ✈️');
         return;
       }
@@ -184,6 +192,7 @@ const labelError = lang === 'zh-tw' ? '❌ 快取失敗' : '❌ Cache Failed';
       btn.textContent = btn.dataset.labelDone;
       btn.classList.remove('caching');
       btn.classList.add('done');
+      localStorage.setItem('offline-download-done', String(total - failed));
       status.textContent = (total - failed) + (isZh ? ' 頁已快取 ✈️' : ' pages cached ✈️');
     } catch(err) {
       btn.textContent = btn.dataset.labelError;
