@@ -1,0 +1,147 @@
+---
+ticketId: "SP-87"
+title: "AI 寫的 Code 看不懂？Linear Walkthrough 讓你的 Vibe Code 變成學習教材"
+originalDate: "2026-02-26"
+source: "Simon Willison @simonw"
+sourceUrl: "https://simonwillison.net/guides/agentic-engineering-patterns/linear-walkthroughs/"
+summary: "Simon Willison Agentic Engineering Patterns 第三章：Linear Walkthrough 模式。用這個技巧，即使是 vibe-coded 的玩具專案也能變成有價值的學習資料。核心技巧：叫 agent 用 sed/grep/cat 自己抓 code 片段，防止幻覺。"
+lang: "zh-tw"
+tags: ["simonw-agentic-patterns", "simon-willison", "agentic-engineering", "cognitive-debt", "coding-agent", "claude-code", "best-practices"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Simon Willison 的 Agentic Engineering Patterns 系列更新了。
+
+[SP-80 的生存指南](/posts/sp-80-20260223-simonw-agentic-engineering-patterns)講完「寫 code 變便宜了」和「紅綠燈 TDD」之後，第三章來了個更實用的技巧：**Linear Walkthrough**。
+
+這個 pattern 專門解決一個痛點：**你用 coding agent vibe 出來的 code，三天後你自己都看不懂了怎麼辦？**
+
+## 問題場景
+
+Simon 舉了個超級真實的例子。他用 Claude Code + Opus 4.6 寫了一個 SwiftUI presentation app（叫 Present），完全是 vibe coding —— 描述需求，agent 寫 code，看起來能跑，繼續下一個 feature。
+
+幾天後他想理解這個 codebase 在幹嘛。總共 6 個 .swift 檔，一個一個開來讀？太慢。問 Claude「解釋這個專案」？可能會幻覺。
+
+所以他用了 **Linear Walkthrough** 這招。
+
+<ClawdNote>
+這情境根本是 ShroomDog 每週都在演的劇本。Claude Code 開三個 agent 同時寫，跑完測試，merge PR，兩個小時後你自己 review 自己寫的 code 都要重新理解一次。Linear Walkthrough 就是給未來的自己留份說明書。
+</ClawdNote>
+
+## Pattern：Linear Walkthrough
+
+核心概念很簡單：
+
+**叫 coding agent 幫你產出一份結構化的 codebase walkthrough，像在教一個新人這個專案是怎麼運作的。**
+
+重點不是讓 agent 直接「解釋」code，而是讓它 **一步一步帶你走過關鍵檔案**，展示 code 片段，說明它們在做什麼、為什麼這樣設計。
+
+## 關鍵技巧：用 sed/grep/cat，別用手抄
+
+這是整個 pattern 最重要的細節。
+
+Simon 特別要求 agent：
+
+> 用 sed、grep 或 cat 來展示 code 片段，不要手動複製貼上。
+
+**為什麼？** 因為 LLM 會幻覺。
+
+如果你叫它「show me the function definition」，它可能會憑記憶（或想像）寫一個看起來像的 function 給你 —— 但那可能跟實際的 code 有細微差異，甚至根本不存在。
+
+強制它用 `sed`/`grep`/`cat` 去抓實際檔案的內容，你得到的是 **ground truth**，不是 LLM 的想像。
+
+<ClawdNote>
+這招也適用所有 code review。與其叫 AI 「解釋這段 code」，不如叫它「用 grep 找出所有呼叫這個 function 的地方，然後解釋」。一個是想像，一個是實證。差很多。
+</ClawdNote>
+
+## Simon 的 Showboat 工具
+
+Simon 用他自己寫的 CLI 工具 **Showboat** 來生成 walkthrough。這工具有兩個指令：
+
+- **`showboat note`**：寫 markdown 格式的註解（用來說明接下來要看什麼）
+- **`showboat exec`**：執行 shell 指令並捕捉輸出（用來跑 `cat`、`grep`、`sed` 等指令並記錄結果）
+
+整個流程是：
+
+1. Claude Code 執行 `showboat note` 寫一段說明
+2. 接著執行 `showboat exec cat file.swift` 顯示檔案內容
+3. 重複這個流程走過所有關鍵檔案
+4. 最後 `showboat` 把這些步驟合成一份 `walkthrough.md`
+
+**產出範例**（概念）：
+
+```markdown
+## ContentView.swift
+
+這是主要的 UI entry point。
+
+[grep 抓出來的實際 code]
+
+這裡定義了主畫面的 layout...
+
+## Slide.swift
+
+這個 struct 定義了每個 slide 的資料模型。
+
+[cat Slide.swift 的輸出]
+
+注意它用了 Codable，所以可以序列化...
+```
+
+## 為什麼這招有用
+
+**對抗遺忘**：三個月後回來看這個專案，walkthrough 比 raw code 好理解太多。
+
+**對抗 vibe coding 的副作用**：你 vibe 出來的 code 可能能跑，但沒有文件、沒有註解、沒有「為什麼這樣做」的 context。Linear Walkthrough 補上這一塊。
+
+**學習機會**：即使是玩具專案，也能變成學習資料。Simon 說這是對抗「AI 讓你學不到東西」的批評 —— 你可以主動把 AI 的輸出轉化成學習素材。
+
+**Team onboarding**：新人加入時，給他 walkthrough.md 而不是直接丟 codebase，降低進入門檻。
+
+<ClawdNote>
+這其實也是一種 cognitive debt management。Vibe coding 的代價是你累積了一堆「能跑但不懂為什麼」的 code。你可以選擇無視它，但有一天你得付利息。Linear Walkthrough 是主動還債的方式，而且還債成本超低（幾分鐘 token 費用）。
+</ClawdNote>
+
+## 適用場景
+
+Simon 列了幾個具體的使用時機：
+
+- **Vibe-coded projects**：你用 agent 快速寫出來的東西，跑完就忘了原理
+- **Unfamiliar codebases**：要接手別人的專案，但沒人能問
+- **Forgotten code**：半年前寫的 side project，現在要撿回來改
+
+基本上，任何「我不確定我懂這個 codebase」的情況，都可以叫 agent 生一份 walkthrough。
+
+## 實作 Prompt（通用版）
+
+如果你沒有 Showboat，也可以用簡單的 prompt 達成類似效果：
+
+> Create a linear walkthrough of this codebase. For each important file, explain its purpose and show key code sections. Use `cat`, `grep`, or `sed` to extract code snippets — do NOT copy-paste code manually. Output the walkthrough as a markdown document.
+
+關鍵字：
+- **Linear walkthrough**：按順序走過
+- **Use cat/grep/sed**：強制用指令抓 code，不要幻覺
+- **Markdown document**：產出成文件
+
+Claude Code、Cursor、Aider 都聽得懂這個指令。
+
+## Simon 的觀察：AI 不會讓你學更少
+
+有一派批評說「用 AI 寫 code 會讓你學不到東西」。
+
+Simon 的回應是：**這取決於你怎麼用 AI**。
+
+如果你只是 vibe coding 然後完全不看 code，確實學不到東西。但如果你主動要求 agent 產出 walkthrough、解釋設計決策、展示關鍵實作 —— 你反而能學到更多，因為有個超有耐心的老師在一對一教你。
+
+Linear Walkthrough 就是這種「把 AI 輸出轉成學習資源」的例子。
+
+## 小結
+
+Linear Walkthrough 是個簡單但威力巨大的 pattern。
+
+它不需要你改工作流程，不需要額外工具（雖然 Showboat 很方便），只需要一個 prompt。
+
+下次你 vibe 完一個專案，或是要接手一個陌生 codebase，試試看叫 agent 給你一份 walkthrough。十分鐘的 token 成本，換來的是你對 codebase 的深度理解 —— 而且這份理解是基於真實的 code，不是 LLM 的幻覺。
+
+這就是 Agentic Engineering：不只是讓 AI 寫 code，而是讓 AI 幫你更有效地**理解** code。

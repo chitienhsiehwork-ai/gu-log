@@ -1,0 +1,147 @@
+---
+ticketId: "SP-87"
+title: "Can't Understand Your AI-Written Code? Linear Walkthroughs Turn Vibe Projects Into Learning Materials"
+originalDate: "2026-02-26"
+source: "Simon Willison @simonw"
+sourceUrl: "https://simonwillison.net/guides/agentic-engineering-patterns/linear-walkthroughs/"
+summary: "Chapter 3 of Simon Willison's Agentic Engineering Patterns: the Linear Walkthrough pattern. This technique transforms even vibe-coded toy projects into valuable learning resources. Core trick: make the agent use sed/grep/cat to fetch code snippets, preventing hallucination."
+lang: "en"
+tags: ["simonw-agentic-patterns", "simon-willison", "agentic-engineering", "cognitive-debt", "coding-agent", "claude-code", "best-practices"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Simon Willison's Agentic Engineering Patterns series just dropped a new chapter.
+
+After covering "writing code is cheap" and "red/green TDD" in [SP-80's survival guide](/posts/sp-80-20260223-simonw-agentic-engineering-patterns), Chapter 3 introduces a super practical pattern: **Linear Walkthrough**.
+
+This pattern solves a real pain point: **What do you do when you can't understand the code you vibe-coded with an agent three days ago?**
+
+## The Problem
+
+Simon shares a very real example. He used Claude Code + Opus 4.6 to build a SwiftUI presentation app called Present, fully vibe-coded — describe what you want, agent writes code, looks like it works, move to next feature.
+
+A few days later, he wanted to understand what this codebase actually does. Six .swift files total. Open them one by one? Too slow. Ask Claude "explain this project"? Might hallucinate.
+
+So he used the **Linear Walkthrough** trick.
+
+<ClawdNote>
+This scenario is literally every week at ShroomDog HQ. Three parallel Claude Code agents writing code, tests pass, merge the PR, and two hours later you're reviewing your own code trying to remember what it does. Linear Walkthrough is like leaving instruction manuals for your future self.
+</ClawdNote>
+
+## The Pattern: Linear Walkthrough
+
+The core concept is simple:
+
+**Ask your coding agent to produce a structured codebase walkthrough, like teaching a new team member how this project works.**
+
+The key is not to have the agent "explain" the code directly, but to have it **walk you through the important files step by step**, showing code snippets and explaining what they do and why they're designed that way.
+
+## Key Technique: Use sed/grep/cat, Don't Copy-Paste
+
+This is the most important detail of the whole pattern.
+
+Simon specifically instructs the agent:
+
+> Use sed, grep, or cat to show code snippets. Do NOT manually copy-paste code.
+
+**Why?** Because LLMs hallucinate.
+
+If you ask it to "show me the function definition," it might write something from memory (or imagination) that looks right — but could have subtle differences from the actual code, or not exist at all.
+
+Force it to use `sed`/`grep`/`cat` to fetch actual file content, and you get **ground truth**, not LLM imagination.
+
+<ClawdNote>
+This trick works for all code reviews too. Instead of asking AI to "explain this code," ask it to "grep all places that call this function, then explain." One is imagination, the other is evidence. Big difference.
+</ClawdNote>
+
+## Simon's Showboat Tool
+
+Simon uses his own CLI tool called **Showboat** to generate walkthroughs. The tool has two commands:
+
+- **`showboat note`**: Write markdown-formatted commentary (to explain what you're about to look at)
+- **`showboat exec`**: Execute shell commands and capture output (to run `cat`, `grep`, `sed` and record results)
+
+The workflow:
+
+1. Claude Code runs `showboat note` to write an explanation
+2. Then runs `showboat exec cat file.swift` to display file contents
+3. Repeat this process through all important files
+4. Finally `showboat` combines these steps into a single `walkthrough.md`
+
+**Example output** (conceptual):
+
+```markdown
+## ContentView.swift
+
+This is the main UI entry point.
+
+[actual code from grep]
+
+This defines the main screen layout...
+
+## Slide.swift
+
+This struct defines the data model for each slide.
+
+[output from cat Slide.swift]
+
+Note it uses Codable, so it can be serialized...
+```
+
+## Why This Works
+
+**Fight forgetting**: Three months later when you revisit this project, the walkthrough is much easier to understand than raw code.
+
+**Counter vibe coding side effects**: Your vibe-coded project might work, but has no docs, no comments, no "why we did this" context. Linear Walkthrough fills that gap.
+
+**Learning opportunity**: Even toy projects become learning materials. Simon says this counters the criticism that "AI makes you learn less" — you can actively transform AI output into learning resources.
+
+**Team onboarding**: Give new team members walkthrough.md instead of throwing the raw codebase at them. Much lower barrier to entry.
+
+<ClawdNote>
+This is also a form of cognitive debt management. The cost of vibe coding is you accumulate code that "works but you don't know why." You can ignore it, but eventually you'll pay interest. Linear Walkthrough is a proactive way to pay down debt, and the cost is super low (a few minutes of token fees).
+</ClawdNote>
+
+## When To Use This
+
+Simon lists several specific use cases:
+
+- **Vibe-coded projects**: Stuff you rapidly built with an agent, then forgot how it works
+- **Unfamiliar codebases**: Taking over someone else's project with no one to ask
+- **Forgotten code**: That side project from six months ago you want to modify now
+
+Basically, any "I'm not sure I understand this codebase" situation — just ask the agent to generate a walkthrough.
+
+## Implementation Prompt (Generic Version)
+
+If you don't have Showboat, you can achieve similar results with a simple prompt:
+
+> Create a linear walkthrough of this codebase. For each important file, explain its purpose and show key code sections. Use `cat`, `grep`, or `sed` to extract code snippets — do NOT copy-paste code manually. Output the walkthrough as a markdown document.
+
+Key phrases:
+- **Linear walkthrough**: Go through in order
+- **Use cat/grep/sed**: Force command-based code extraction, no hallucination
+- **Markdown document**: Output as documentation
+
+Claude Code, Cursor, and Aider all understand this instruction.
+
+## Simon's Take: AI Won't Make You Learn Less
+
+There's criticism that "using AI to write code means you learn nothing."
+
+Simon's response: **It depends on how you use AI.**
+
+If you just vibe-code and never look at the code, sure, you won't learn anything. But if you actively ask the agent to produce walkthroughs, explain design decisions, show key implementations — you can actually learn MORE, because you have a super patient teacher giving you one-on-one instruction.
+
+Linear Walkthrough is an example of "turning AI output into learning resources."
+
+## Summary
+
+Linear Walkthrough is a simple but powerful pattern.
+
+It doesn't require changing your workflow, doesn't need extra tools (though Showboat is convenient), just needs one prompt.
+
+Next time you finish vibe-coding a project, or need to understand an unfamiliar codebase, try asking the agent for a walkthrough. Ten minutes of token cost gets you deep understanding of the codebase — and that understanding is based on real code, not LLM hallucination.
+
+This is Agentic Engineering: not just having AI write code, but having AI help you **understand** code more effectively.
