@@ -1,0 +1,214 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Toggle from '../../components/Toggle.astro';
+import TicketBadge from '../../components/TicketBadge.astro';
+
+export async function getStaticPaths() {
+  const allPosts = await getCollection('posts', ({ data }) => {
+    return data.lang === 'zh-tw';
+  });
+
+  // Get all unique tags
+  const tags = new Set<string>();
+  allPosts.forEach(post => {
+    (post.data.tags || []).forEach(tag => tags.add(tag));
+  });
+
+  // Generate a page for each tag
+  return Array.from(tags).map(tag => {
+    // Filter posts with this tag
+    const tagPosts = allPosts
+      .filter(post => post.data.tags?.includes(tag))
+      .sort((a, b) => {
+        const dateA = a.data.translatedDate || a.data.originalDate;
+        const dateB = b.data.translatedDate || b.data.originalDate;
+        return dateB.localeCompare(dateA); // Newest first
+      });
+
+    return {
+      params: { tag },
+      props: { tag, posts: tagPosts }
+    };
+  });
+}
+
+const { tag, posts } = Astro.props;
+---
+
+<BaseLayout title={`${tag} - 標籤 - gu-log`}>
+  <article class="tag-page">
+    <header class="page-header">
+      <div class="breadcrumb">
+        <a href="/tags">標籤</a> / {tag}
+      </div>
+      <h1>
+        <span class="tag-icon">#</span>
+        {tag}
+      </h1>
+      <p class="subtitle">{posts.length} 篇文章</p>
+    </header>
+
+    <section class="posts-list">
+      {posts.map(post => (
+        <article class="post-card">
+          <h2>
+            <a href={`/posts/${post.slug}`}>{post.data.title}</a>
+          </h2>
+          <p class="post-meta">
+            {post.data.ticketId && <TicketBadge ticketId={post.data.ticketId} />}
+            <span class="meta-date">{post.data.translatedDate || post.data.originalDate}</span>
+            {post.data.source && (
+              <span class="meta-source">· {post.data.source}</span>
+            )}
+          </p>
+          <Toggle title="摘要預覽">
+            <p>{post.data.summary}</p>
+          </Toggle>
+          {post.data.tags && post.data.tags.length > 1 && (
+            <div class="post-tags">
+              {post.data.tags
+                .filter(t => t !== tag)
+                .map(t => (
+                  <a href={`/tags/${t}`} class="tag-chip">{t}</a>
+                ))}
+            </div>
+          )}
+        </article>
+      ))}
+    </section>
+
+    <footer class="page-footer">
+      <a href="/tags">← 返回標籤列表</a>
+    </footer>
+  </article>
+</BaseLayout>
+
+<style>
+  .tag-page {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .page-header {
+    margin-bottom: 2rem;
+  }
+
+  .breadcrumb {
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+    margin-bottom: 0.5rem;
+  }
+
+  .breadcrumb a {
+    color: var(--color-accent);
+    text-decoration: none;
+  }
+
+  .breadcrumb a:hover {
+    text-decoration: underline;
+  }
+
+  .page-header h1 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .tag-icon {
+    color: var(--color-accent);
+    font-weight: 600;
+  }
+
+  .subtitle {
+    color: var(--color-text-muted);
+    font-size: 1rem;
+  }
+
+  .posts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    margin-bottom: 3rem;
+  }
+
+  .post-card {
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .post-card:last-child {
+    border-bottom: none;
+  }
+
+  .post-card h2 {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .post-card h2 a {
+    color: var(--color-text);
+    text-decoration: none;
+  }
+
+  .post-card h2 a:hover {
+    color: var(--color-accent);
+  }
+
+  .post-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+  }
+
+  .meta-date {
+    /* spacing handled by gap */
+  }
+
+  .meta-source {
+    /* spacing handled by gap */
+  }
+
+  .post-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+
+  .tag-chip {
+    display: inline-block;
+    padding: 0.25rem 0.6rem;
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: 16px;
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+
+  .tag-chip:hover {
+    background-color: var(--color-accent);
+    color: var(--color-bg);
+    border-color: var(--color-accent);
+  }
+
+  .page-footer {
+    padding-top: 2rem;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .page-footer a {
+    color: var(--color-text);
+    text-decoration: none;
+  }
+
+  .page-footer a:hover {
+    color: var(--color-accent);
+  }
+</style>

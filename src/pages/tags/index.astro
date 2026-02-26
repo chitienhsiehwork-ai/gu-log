@@ -1,0 +1,123 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+// Get all zh-tw posts
+const allPosts = await getCollection('posts', ({ data }) => {
+  return data.lang === 'zh-tw';
+});
+
+// Count posts per tag
+const tagCounts = new Map<string, number>();
+
+allPosts.forEach(post => {
+  const tags = post.data.tags || [];
+  tags.forEach(tag => {
+    tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
+  });
+});
+
+// Sort tags by count (descending)
+const sortedTags = Array.from(tagCounts.entries())
+  .sort((a, b) => b[1] - a[1])
+  .map(([tag, count]) => ({ tag, count }));
+
+const totalTags = sortedTags.length;
+---
+
+<BaseLayout title="標籤 - gu-log">
+  <article class="tags-page">
+    <header class="page-header">
+      <h1>📑 標籤</h1>
+      <p class="subtitle">探索 {totalTags} 個主題，共 {allPosts.length} 篇文章</p>
+    </header>
+
+    <div class="tags-grid">
+      {sortedTags.map(({ tag, count }) => (
+        <a href={`/tags/${tag}`} class="tag-card">
+          <span class="tag-name">{tag}</span>
+          <span class="tag-count">{count}</span>
+        </a>
+      ))}
+    </div>
+
+    <footer class="page-footer">
+      <a href="/">← 返回首頁</a>
+    </footer>
+  </article>
+</BaseLayout>
+
+<style>
+  .tags-page {
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .page-header {
+    margin-bottom: 2rem;
+    text-align: center;
+  }
+
+  .page-header h1 {
+    margin-bottom: 0.5rem;
+  }
+
+  .subtitle {
+    color: var(--color-text-muted);
+    font-size: 1rem;
+  }
+
+  .tags-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 3rem;
+  }
+
+  @media (max-width: 600px) {
+    .tags-grid {
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 0.75rem;
+    }
+  }
+
+  .tag-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    text-decoration: none;
+    color: var(--color-text);
+    transition: all 0.2s ease;
+  }
+
+  .tag-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-color: var(--color-accent);
+  }
+
+  .tag-name {
+    font-weight: 500;
+    font-size: 0.95rem;
+  }
+
+  .tag-count {
+    background-color: var(--color-accent);
+    color: var(--color-bg);
+    padding: 0.2rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    min-width: 2rem;
+    text-align: center;
+  }
+
+  .page-footer {
+    padding-top: 2rem;
+    border-top: 1px solid var(--color-border);
+  }
+</style>
