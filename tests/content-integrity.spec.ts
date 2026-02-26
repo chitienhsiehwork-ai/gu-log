@@ -290,6 +290,33 @@ test.describe('Content Integrity: Model Signature', () => {
   });
 });
 
+test.describe('Content Integrity: Model Signature Visibility', () => {
+
+  test('GIVEN all posts with translatedBy WHEN checking frontmatter THEN translatedDate must also be present (otherwise UI won\'t render the signature)', async () => {
+    const files = fs.readdirSync(POSTS_DIR).filter(f => f.endsWith('.mdx'));
+    const broken: { filename: string }[] = [];
+
+    for (const file of files) {
+      const content = fs.readFileSync(path.join(POSTS_DIR, file), 'utf-8');
+      const match = content.match(/^---\n([\s\S]*?)\n---/);
+      if (!match) continue;
+      const fm = match[1];
+
+      const hasTranslatedBy = /^translatedBy:\s*$/m.test(fm) || /^translatedBy:/m.test(fm);
+      const hasTranslatedDate = /^translatedDate:/m.test(fm);
+
+      if (hasTranslatedBy && !hasTranslatedDate) {
+        broken.push({ filename: file });
+      }
+    }
+
+    if (broken.length > 0) {
+      const report = broken.map(b => `  - ${b.filename}`).join('\n');
+      expect(broken, `Posts have translatedBy but missing translatedDate (model signature won't render):\n${report}`).toHaveLength(0);
+    }
+  });
+});
+
 test.describe('Content Integrity: Internal Links', () => {
 
   /**
