@@ -169,6 +169,25 @@ const finalDescription = description || t.defaultDescription;
         gap: 0.1rem;
       }
 
+      .icon-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--color-text-muted);
+        text-decoration: none;
+        transition: color 0.2s ease;
+        padding: 0.25rem;
+      }
+
+      .icon-btn:hover {
+        color: var(--color-accent);
+      }
+
+      .nav-svg-icon {
+        width: 16px;
+        height: 16px;
+      }
+
       .clawd-nav-link {
         display: flex;
         align-items: center;
@@ -263,8 +282,16 @@ const finalDescription = description || t.defaultDescription;
         <nav class="site-nav">
           <a href={t.homeLink} class="nav-link">{t.navHome}</a>
           <a href={t.aboutLink} class="nav-link">{t.navAbout}</a>
-          <a href={t.briefsLink} class="nav-link">{t.navBriefs}</a>
           <span class="nav-icons">
+            <a href={t.briefsLink} class="icon-btn" title={t.navBriefs}>
+              <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"></path>
+                <path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"></path>
+                <circle cx="12" cy="12" r="2"></circle>
+                <path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"></path>
+                <path d="M19.1 4.9C23 8.8 23 15.1 19.1 19"></path>
+              </svg>
+            </a>
             <LanguageToggle currentLang={lang} currentPath={currentPath} />
             <a href={`${t.homeLink}#clawd-picks`} class="clawd-nav-link" title="Clawd Picks"
               ><img src="/clawd-picks-icon.png" alt="Clawd Picks" class="clawd-nav-icon" /></a

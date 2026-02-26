@@ -60,15 +60,6 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
           )
         }
       </div>
-      {
-        post.data.tags && post.data.tags.length > 0 && (
-          <div class="post-tags">
-            {post.data.tags.map(tag => (
-              <a href={`/en/tags/${tag}`} class="tag-chip">{tag}</a>
-            ))}
-          </div>
-        )
-      }
     </header>
 
     {
@@ -87,6 +78,16 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
     <div class="post-content">
       <Content />
     </div>
+
+    {
+      post.data.tags && post.data.tags.length > 0 && (
+        <div class="post-tags">
+          {post.data.tags.map(tag => (
+            <a href={`/en/tags/${tag}`} class="tag-chip">{tag}</a>
+          ))}
+        </div>
+      )
+    }
 
     {
       post.data.translatedDate && post.data.translatedBy && (
