@@ -264,3 +264,83 @@ test.describe('Content Integrity: Required Fields', () => {
     }
   });
 });
+
+test.describe('Content Integrity: Internal Links', () => {
+
+  /**
+   * Collect all internal links from MDX files.
+   * Matches both markdown links [text](/posts/slug) and HTML <a href="/posts/slug">.
+   * Returns { filename, line, href }[].
+   */
+  function getAllInternalLinks(): { filename: string; line: number; href: string }[] {
+    const files = fs.readdirSync(POSTS_DIR).filter(f => f.endsWith('.mdx'));
+    const links: { filename: string; line: number; href: string }[] = [];
+
+    // Match markdown [text](/path) and html href="/path"
+    const mdLinkRe = /\]\((\/(posts|en\/posts|level-up|clawd-picks|shroomdog-picks)\/[^)\s#"]+)\)/g;
+    const htmlLinkRe = /href="(\/(posts|en\/posts|level-up|clawd-picks|shroomdog-picks)\/[^"#]+)"/g;
+
+    for (const file of files) {
+      const content = fs.readFileSync(path.join(POSTS_DIR, file), 'utf-8');
+      const lines = content.split('\n');
+
+      for (let i = 0; i < lines.length; i++) {
+        const lineText = lines[i];
+
+        for (const re of [mdLinkRe, htmlLinkRe]) {
+          re.lastIndex = 0;
+          let m: RegExpExecArray | null;
+          while ((m = re.exec(lineText)) !== null) {
+            links.push({ filename: file, line: i + 1, href: m[1] });
+          }
+        }
+      }
+    }
+
+    return links;
+  }
+
+  /**
+   * Build a set of valid slugs from actual MDX files.
+   * e.g. "clawd-picks-20260204-simonw-lethal-trifecta"
+   */
+  function getValidSlugs(): Set<string> {
+    const files = fs.readdirSync(POSTS_DIR).filter(f => f.endsWith('.mdx'));
+    return new Set(files.map(f => f.replace(/\.mdx$/, '')));
+  }
+
+  /**
+   * Extract the expected slug from an internal href.
+   * "/posts/some-slug" → "some-slug"
+   * "/posts/some-slug/" → "some-slug"
+   * "/en/posts/en-some-slug" → "en-some-slug"
+   */
+  function hrefToSlug(href: string): string {
+    // Strip trailing slash
+    const clean = href.replace(/\/$/, '');
+    // /posts/slug → slug, /en/posts/slug → slug
+    const match = clean.match(/\/(?:en\/)?posts\/(.+)/);
+    return match ? match[1] : clean;
+  }
+
+  test('GIVEN all posts WHEN checking internal links THEN every /posts/ link should resolve to an existing post', async () => {
+    const links = getAllInternalLinks();
+    const slugs = getValidSlugs();
+    const broken: { filename: string; line: number; href: string; expectedSlug: string }[] = [];
+
+    for (const link of links) {
+      const slug = hrefToSlug(link.href);
+      if (!slugs.has(slug)) {
+        broken.push({ ...link, expectedSlug: slug });
+      }
+    }
+
+    if (broken.length > 0) {
+      const report = broken
+        .map(b => `  - ${b.filename}:${b.line} → ${b.href}\n    slug "${b.expectedSlug}" does not match any .mdx file`)
+        .join('\n');
+
+      expect(broken, `Broken internal links found:\n${report}`).toHaveLength(0);
+    }
+  });
+});
