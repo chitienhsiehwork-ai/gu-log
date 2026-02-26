@@ -1,0 +1,155 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+const briefTypeIcons: Record<string, string> = {
+  morning: '☀️',
+  'late-night': '🌙',
+  patrol: '🔭',
+};
+
+const briefTypeLabels: Record<string, string> = {
+  morning: 'Morning Brief',
+  'late-night': 'Late Night Brief',
+  patrol: 'X Patrol',
+};
+
+// Get all briefs, sorted by date descending
+const allBriefs = (
+  await getCollection('briefs', ({ data }) => {
+    return data.lang === 'zh-tw';
+  })
+).sort((a, b) => {
+  if (a.data.date !== b.data.date) return b.data.date.localeCompare(a.data.date);
+  // Same date: morning > patrol > late-night
+  const typeOrder = { morning: 0, patrol: 1, 'late-night': 2 };
+  return (typeOrder[a.data.briefType] ?? 9) - (typeOrder[b.data.briefType] ?? 9);
+});
+
+// Group by month (YYYY-MM)
+const grouped = allBriefs.reduce(
+  (acc, brief) => {
+    const month = brief.data.date.slice(0, 7); // YYYY-MM
+    if (!acc[month]) acc[month] = [];
+    acc[month].push(brief);
+    return acc;
+  },
+  {} as Record<string, typeof allBriefs>,
+);
+
+const monthLabels = (ym: string) => {
+  const [y, m] = ym.split('-');
+  const months = ['', '一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'];
+  return `${y} ${months[parseInt(m)]}`;
+};
+---
+
+<BaseLayout title="📡 Briefs — Clawd 情報站">
+  <h1>📡 Briefs</h1>
+  <p class="page-subtitle">Clawd 的每日情報巡邏紀錄</p>
+  <p class="post-count">共 {allBriefs.length} 篇</p>
+
+  <a href="/" class="back-link">← 返回首頁</a>
+
+  {
+    Object.entries(grouped).map(([month, briefs]) => (
+      <section class="month-group">
+        <h2 class="month-label">{monthLabels(month)}</h2>
+        <div class="archive-list">
+          {briefs.map((brief) => (
+            <article class="brief-preview">
+              <a href={`/briefs/${brief.slug}`} class="brief-title">
+                <span class="brief-type-icon">{briefTypeIcons[brief.data.briefType] || '📋'}</span>
+                {brief.data.title}
+              </a>
+              <span class="brief-meta">
+                <span class="brief-type-label">{briefTypeLabels[brief.data.briefType]}</span>
+                · {brief.data.date} {brief.data.time}
+              </span>
+              <p class="brief-summary">{brief.data.summary}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+    ))
+  }
+</BaseLayout>
+
+<style>
+  .page-subtitle {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .post-count {
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+  }
+
+  .back-link {
+    display: inline-block;
+    color: var(--color-accent);
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .back-link:hover {
+    text-decoration: underline;
+  }
+
+  .month-group {
+    margin-bottom: 2rem;
+  }
+
+  .month-label {
+    font-size: 1.1rem;
+    color: var(--color-text-muted);
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: 0.4rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .archive-list {
+    margin-bottom: 1rem;
+  }
+
+  .brief-preview {
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .brief-title {
+    display: block;
+    color: var(--color-text);
+    font-size: 1rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .brief-title:hover {
+    color: var(--color-accent);
+  }
+
+  .brief-type-icon {
+    margin-right: 0.3rem;
+  }
+
+  .brief-meta {
+    display: block;
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .brief-type-label {
+    font-weight: 500;
+  }
+
+  .brief-summary {
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+    margin: 0;
+    line-height: 1.4;
+  }
+</style>

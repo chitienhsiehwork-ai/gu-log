@@ -22,6 +22,20 @@ const postsCollection = defineCollection({
   }),
 });
 
+const briefsCollection = defineCollection({
+  type: 'content',
+  schema: z.object({
+    title: z.string(),
+    briefType: z.enum(['morning', 'late-night', 'patrol']),
+    date: z.string(), // YYYY-MM-DD
+    time: z.string(), // e.g., "09:00 台北"
+    summary: z.string(),
+    lang: z.enum(['zh-tw', 'en']).default('zh-tw'),
+    tags: z.array(z.string()).optional(),
+  }),
+});
+
 export const collections = {
   posts: postsCollection,
+  briefs: briefsCollection,
 };
