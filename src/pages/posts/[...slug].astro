@@ -61,6 +61,15 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
           )
         }
       </div>
+      {
+        post.data.tags && post.data.tags.length > 0 && (
+          <div class="post-tags">
+            {post.data.tags.map(tag => (
+              <a href={`/tags/${tag}`} class="tag-chip">{tag}</a>
+            ))}
+          </div>
+        )
+      }
     </header>
 
     {
@@ -158,6 +167,31 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
 
   .meta-date {
     /* removed margin, using gap instead */
+  }
+
+  .post-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+
+  .tag-chip {
+    display: inline-block;
+    padding: 0.25rem 0.6rem;
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: 16px;
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+
+  .tag-chip:hover {
+    background-color: var(--color-accent);
+    color: var(--color-bg);
+    border-color: var(--color-accent);
   }
 
   .post-content {
