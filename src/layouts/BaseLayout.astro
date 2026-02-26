@@ -148,20 +148,7 @@ const finalDescription = description || t.defaultDescription;
         flex-shrink: 0;
       }
 
-      .nav-link {
-        color: var(--color-text-muted);
-        font-size: 0.75rem;
-        white-space: nowrap;
-        text-decoration: none;
-        min-height: 48px;
-        display: inline-flex;
-        align-items: center;
-        padding: 0 0.25rem;
-      }
 
-      .nav-link:hover {
-        color: var(--color-accent);
-      }
 
       .nav-icons {
         display: flex;
@@ -202,11 +189,6 @@ const finalDescription = description || t.defaultDescription;
           flex-wrap: wrap;
           gap: 0.2rem;
           justify-content: flex-end;
-        }
-        .nav-link {
-          font-size: 0.7rem;
-          min-height: 36px;
-          padding: 0 0.15rem;
         }
         .nav-icons {
           gap: 0;
@@ -257,9 +239,19 @@ const finalDescription = description || t.defaultDescription;
           ></a
         >
         <nav class="site-nav">
-          <a href={t.homeLink} class="nav-link">{t.navHome}</a>
-          <a href={t.aboutLink} class="nav-link">{t.navAbout}</a>
           <span class="nav-icons">
+            <a href={t.homeLink} class="icon-btn" title={t.navHome}>
+              <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+              </svg>
+            </a>
+            <a href={t.aboutLink} class="icon-btn" title={t.navAbout}>
+              <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+            </a>
             <a href={t.briefsLink} class="icon-btn" title={t.navBriefs}>
               <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"></path>
