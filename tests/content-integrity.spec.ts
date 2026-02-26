@@ -28,6 +28,7 @@ interface PostFrontmatter {
   originalDate: string;
   lang: string;
   filename: string;
+  hasTranslatedBy: boolean;
 }
 
 function extractFrontmatter(filePath: string): PostFrontmatter | null {
@@ -49,6 +50,7 @@ function extractFrontmatter(filePath: string): PostFrontmatter | null {
     originalDate: getValue('originalDate'),
     lang: getValue('lang'),
     filename: path.basename(filePath),
+    hasTranslatedBy: /^translatedBy:\s*$/m.test(frontmatter) || /^translatedBy:/m.test(frontmatter),
   };
 }
 
@@ -261,6 +263,29 @@ test.describe('Content Integrity: Required Fields', () => {
         .join('\n');
       
       expect(missingFields, `Posts with missing required fields:\n${report}`).toHaveLength(0);
+    }
+  });
+});
+
+test.describe('Content Integrity: Model Signature', () => {
+
+  test('GIVEN all SP/CP posts WHEN checking frontmatter THEN every translation post should have translatedBy (model + harness)', async () => {
+    const posts = getAllPosts();
+    // SP and CP posts are translations — they MUST have translatedBy
+    // SD and Lv posts are originals — they don't need it
+    const translationPrefixes = /^(SP|CP)-/;
+    const missing = posts.filter(p =>
+      p.ticketId &&
+      translationPrefixes.test(p.ticketId) &&
+      !p.hasTranslatedBy
+    );
+
+    if (missing.length > 0) {
+      const report = missing
+        .map(p => `  - ${p.filename} (${p.ticketId})`)
+        .join('\n');
+
+      expect(missing, `SP/CP posts missing translatedBy (model signature):\n${report}`).toHaveLength(0);
     }
   });
 });
