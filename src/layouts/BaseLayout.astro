@@ -188,27 +188,7 @@ const finalDescription = description || t.defaultDescription;
         height: 16px;
       }
 
-      .clawd-nav-link {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        min-width: 48px;
-        min-height: 48px;
-      }
 
-      .clawd-nav-icon {
-        width: 18px;
-        height: 18px;
-        opacity: 0.7;
-        transition:
-          opacity 0.2s,
-          transform 0.2s;
-      }
-
-      .clawd-nav-link:hover .clawd-nav-icon {
-        opacity: 1;
-        transform: scale(1.1);
-      }
 
       /* Removed login styles */
 
@@ -231,10 +211,7 @@ const finalDescription = description || t.defaultDescription;
         .nav-icons {
           gap: 0;
         }
-        .clawd-nav-link {
-          min-width: 36px;
-          min-height: 36px;
-        }
+
       }
 
       .site-footer {
@@ -293,9 +270,14 @@ const finalDescription = description || t.defaultDescription;
               </svg>
             </a>
             <LanguageToggle currentLang={lang} currentPath={currentPath} />
-            <a href={`${t.homeLink}#clawd-picks`} class="clawd-nav-link" title="Clawd Picks"
-              ><img src="/clawd-picks-icon.png" alt="Clawd Picks" class="clawd-nav-icon" /></a
-            >
+            <a href={`${t.homeLink}#clawd-picks`} class="icon-btn" title="Clawd Picks">
+              <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 8V4H8"></path>
+                <rect x="4" y="8" width="16" height="12" rx="2"></rect>
+                <circle cx="9" cy="14" r="1.5" fill="currentColor" stroke="none"></circle>
+                <circle cx="15" cy="14" r="1.5" fill="currentColor" stroke="none"></circle>
+              </svg>
+            </a>
             <SearchBar lang={lang} />
             <ThemeToggle />
           </span>
