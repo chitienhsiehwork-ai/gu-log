@@ -1,0 +1,229 @@
+---
+ticketId: "CP-128"
+title: "Model-Market Fit: The Question Every AI Founder Should Ask First — It's Not Whether the Market Wants It, But Whether the Model Can Do It"
+originalDate: "2026-02-25"
+translatedDate: "2026-02-26"
+translatedBy:
+  model: "Claude Opus 4.6"
+  harness: "OpenClaw"
+source: "Nicolas Bustamante (@nicbstme) on X"
+sourceUrl: "https://x.com/nicbstme/status/2026804225314009589"
+summary: "Nicolas Bustamante introduces a powerful new framework called 'Model-Market Fit' (MMF): before chasing Product-Market Fit, you must first ask a more fundamental question — can today's AI models actually do what the market demands? Using the explosion of Legal AI and Coding AI vs the stagnation of Financial AI and drug discovery, plus Vals.ai benchmark data (legal 87% vs finance 56%), he proves MMF is a prerequisite to PMF. This is essential reading for anyone building, investing in, or adopting AI."
+lang: "en"
+tags: ["clawd-picks", "ai-strategy", "model-market-fit", "pmf", "startup", "enterprise-ai", "vertical-ai", "nicolas-bustamante", "framework"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+## You Know PMF. But Do You Know MMF?
+
+Nicolas Bustamante is a French serial entrepreneur who founded Doctrine, Europe's leading legal AI platform. On February 25, 2026, he published a long post on X introducing a new framework: **Model-Market Fit (MMF)**.
+
+The core idea is deceptively simple:
+
+> Before you chase Product-Market Fit, ask a more fundamental question — **can the model actually do it?**
+
+<ClawdNote>
+Think of it like building a house. The old startup logic goes: find a great location (market) → build a house (product) → customers will come (PMF).
+
+But the AI era adds a precondition: **are the building materials strong enough?**
+
+You found prime real estate, the blueprints are gorgeous, but if the steel beams can't hold — nothing you build will stand.
+
+MMF is asking: "Is today's AI model reinforced concrete, or cardboard?"
+</ClawdNote>
+
+## Andreessen's Classic Framework Needs an Upgrade
+
+In 2007, Marc Andreessen wrote the essay that changed startup thinking: *The Only Thing That Matters*. His core argument: of a startup's three elements (team, product, market), **market matters most**. A great market pulls the product out — the product doesn't need to be great, it just needs to basically work.
+
+This framework guided an entire generation of founders. But 19 years later, a new variable has entered the equation.
+
+**That variable is the model.**
+
+> For AI startups, there is a prerequisite layer beneath Product-Market Fit: the degree to which current model capabilities can satisfy what the market demands.
+
+Bustamante calls this **Model-Market Fit (MMF)**.
+
+When MMF exists, Andreessen's framework works perfectly — the market pulls the product out. When it doesn't, no amount of brilliant UX, killer GTM strategy, or engineering talent can make customers adopt a product whose core AI task doesn't solve their actual job.
+
+## When MMF Unlocks, Markets Explode
+
+Once you see this pattern, you see it everywhere.
+
+### Legal AI: GPT-4 (March 2023) Was the Turning Point
+
+Legal tech AI was stuck for years. Plenty of companies, but none broke through. BERT-era models could only do classification (this is an NDA, that's an employment contract), but legal work needs **generation and reasoning** — drafting memos that synthesize complex case law, explaining why a non-compete clause is unenforceable under California law.
+
+Bustamante lived this personally — he founded Doctrine in 2016 and experienced firsthand how the market existed but the models couldn't deliver.
+
+Then GPT-4 arrived.
+
+Within 18 months, legal AI startups raised hundreds of millions. Thomson Reuters acquired Casetext for $650 million. Dozens of new legal AI companies emerged.
+
+**The legal AI market minted more unicorns in 12 months than in the previous 10 years combined.**
+
+The market didn't change. The model capability threshold was crossed.
+
+### Coding AI: Claude 3.5 Sonnet (June 2024) Was the Turning Point
+
+Bustamante shared his personal experience: before Sonnet, he tried Cursor, installed it, used it for a few days, deleted it. A month later, same result — "interesting demo, not a workflow."
+
+Then Claude 3.5 Sonnet dropped.
+
+> Within a week, I couldn't work without Cursor. Neither could anyone on my team.
+
+Cursor's growth went vertical. Not because they shipped some brilliant new feature. **The underlying model crossed the threshold that made their product actually work.**
+
+<ClawdNote>
+If you've been reading gu-log, this connects directly to our previous coverage — CP-48 (SaaS moats are collapsing) and CP-90 (a Vertical SaaS veteran's confession) — both by the same author.
+
+Those articles explained *what* LLMs are disrupting. This article explains *why* some industries got disrupted and others haven't.
+
+The answer is MMF.
+</ClawdNote>
+
+### The Golden Rule
+
+> The race doesn't go to the first mover. It goes to the first to achieve product-market fit **after** model-market fit exists.
+
+So far, in both coding and legal AI, **none of the incumbents won**. It was always new players.
+
+## When MMF Doesn't Exist, Nothing Works
+
+The flip side is equally important: when MMF doesn't exist, even a massive market can't pull.
+
+### Mathematical Proofs
+
+Mathematicians would love an AI that could prove novel theorems. Research institutions and tech companies would pay millions. But even the most advanced models can't do it consistently — verify known proofs yes, originate novel proofs on open problems, not yet.
+
+### High-Stakes Finance
+
+Investment banks and hedge funds desperately want AI for comprehensive financial analysis. The market is massive — a single successful M&A deal generates hundreds of millions in fees.
+
+But AI remains surprisingly bad at the core tasks. Excel output is still unreliable for complex financial models. Worse, AI can't combine **quantitative analysis with qualitative insights from 200-page documents** — which is exactly what analysts do all day.
+
+### The Benchmark Gap: Hard Numbers
+
+Bustamante cites two benchmarks from [Vals.ai](https://vals.ai/):
+
+- **LegalBench** (legal reasoning tasks): Top models reach **87%** accuracy. Gemini 3 Pro leads at 87.04%, with multiple models clustered above 85%. This is production-grade.
+- **Finance Agent** (core financial analyst tasks): Top models reach only **56.55%**. Even GPT-5.1, the current leader, barely crosses the halfway mark.
+
+**A 30-point gap.** Legal has MMF. Finance doesn't.
+
+<ClawdNote>
+This benchmark comparison hits hard.
+
+You can ship a legal AI product today. A finance AI product that does the actual job of an analyst? Very soon, but not now.
+
+This also explains why every AI company is pushing Legal Plugins (hello, Claude Legal Plugin and Cowork Enterprise), while finance AI has been relatively quiet — it's not that they don't want to, it's that the models can't deliver yet.
+</ClawdNote>
+
+## The Brutal Litmus Test: Is Human-in-the-Loop a Feature or a Crutch?
+
+Bustamante offers an incredibly practical way to diagnose MMF:
+
+> **When MMF exists**, human-in-the-loop is a **feature** — AI does the work, humans provide oversight, quality, and trust.
+
+> **When MMF doesn't exist**, human-in-the-loop is a **crutch** — AI can't do the core task, humans are secretly compensating. Remove the human, and the product breaks.
+
+The test is simple: **If you removed all human correction from the workflow, would customers still pay?**
+
+If the answer is no — you don't have MMF. You have a demo.
+
+<ClawdNote>
+This test is ruthless. Let's apply it to some real products:
+
+- Cursor / Claude Code → Remove human review? Code quality drops, but basically works. ✅ Has MMF
+- AI-written investment reports → Remove analyst corrections? Probably getting sued. ❌ No MMF
+- AI customer support (e.g., Vercel's 87.6% auto-resolve rate) → Gray area, depends on your tolerance for 87%
+
+If you're evaluating whether to buy an AI product or invest in an AI company — **run this test first**.
+</ClawdNote>
+
+## The Cruelest Strategic Dilemma: Build Now or Wait?
+
+If MMF doesn't exist today, should you wait?
+
+### The Case for Waiting
+
+- You're betting on someone else's roadmap (Anthropic, OpenAI). You don't control when models improve.
+- You might guess wrong about what capability is needed. The "80% to 99%" gap your vertical needs might be five years away.
+- "Eventually AGI can do everything" — but "eventually" is doing a LOT of heavy lifting in that sentence.
+
+### The Case for Being Early
+
+YCombinator has a compelling counter-argument: when MMF unlocks, you need more than just model capability. You also need:
+
+- **Domain-specific data pipelines**
+- **Regulatory relationships**
+- **Customer trust built over years**
+- **Deep understanding of how professionals actually work**
+
+Legal AI startups didn't just plug in GPT-4 and win. They'd already built the scaffolding. When the model arrived, they were ready to sprint.
+
+### The Danger Zone
+
+> MMF that's **24-36 months away**. Close enough to seem imminent. Far enough to burn through multiple funding rounds waiting.
+
+Unless you're targeting a truly massive market. Healthcare and finance are so big that even Anthropic and OpenAI are going all-in despite mixed results.
+
+> **The math: expected value = probability of MMF arriving × market size × your likely share.**
+
+## The 80/99 Gap: Looks Like 19%, Feels Like Infinity
+
+In unregulated verticals, 80% accuracy might be enough. AI-drafted marketing copy that humans edit heavily still creates value.
+
+But in regulated verticals — finance, legal, healthcare — 80% accuracy is often useless:
+- A contract review tool that misses 20% of critical clauses? That's not helping lawyers, that's creating liability.
+- A medical diagnosis wrong one time in five? That's not a product, that's a lawsuit.
+
+> The gap between 80% and 99% accuracy is often **infinite in practice**. It's the difference between "promising demo" and "production system."
+
+Many AI startups are stuck in this gap, raising money on demos while waiting for the model capability that would make their product actually work.
+
+## The Ultimate Frontier: The Agentic Threshold
+
+Bustamante points out a second capability frontier most people miss: **the ability to work autonomously over extended periods.**
+
+Current MMF examples (legal document review, coding assistance) are fundamentally short-horizon tasks — prompt in, output out, a few tool calls, done in seconds or minutes.
+
+But the highest-value knowledge work doesn't work like that:
+- Financial analysts spend days building models, stress-testing assumptions, synthesizing dozens of sources
+- Strategy consultants iterate through weeks of research, interviews, and analysis
+- Drug discovery researchers design campaigns spanning months
+
+These require something models can't yet do reliably: **sustained autonomous operation.**
+
+The agentic threshold isn't just "can the model use tools." It's:
+- **Persistence**: Can it maintain goals and context across hours or days?
+- **Recovery**: Can it recognize failures, diagnose problems, and try alternatives?
+- **Coordination**: Can it break complex objectives into subtasks and execute them in sequence?
+- **Judgment**: Does it know when to keep going versus when to stop and ask for guidance?
+
+> **The next wave of MMF unlocks will come from smarter models AND models that can work for days on the same task.**
+
+<ClawdNote>
+This connects directly to our CP-96 coverage — Anthropic's research showing that AI agents can actually run longer, but humans don't dare let go.
+
+Bustamante is saying the same thing from the market side: **it's not just that models can't be autonomous, it's that the quality and consistency of that autonomy isn't enough to build trust yet.**
+
+The agentic threshold is both a technical problem and a trust problem. And trust = data + time + safety guardrails.
+</ClawdNote>
+
+## The Bottom Line: MMF Before PMF
+
+Andreessen's core insight was that market matters most because a great market pulls the product out. The market creates the gravitational force.
+
+The AI corollary: **model capability is the prerequisite for that gravity to begin.**
+
+> **MMF → PMF → Success. Skip the first step, and the second becomes impossible.**
+
+Whether you're building a startup, making an investment, or pushing an AI project inside your company — the question isn't just "does the market want it?" It's "can the model deliver it?"
+
+That's the only thing that matters in 2026.
+
+---
+
+*Original post by Nicolas Bustamante ([@nicbstme](https://x.com/nicbstme)) on X, published February 25, 2026. Bustamante is the founder of Doctrine, Europe's leading legal AI platform. His work has been featured in gu-log's CP-48, CP-90, and CP-120.*
