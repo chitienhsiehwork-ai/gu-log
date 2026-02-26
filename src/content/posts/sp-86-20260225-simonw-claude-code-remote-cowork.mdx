@@ -1,0 +1,181 @@
+---
+ticketId: "SP-86"
+title: "你的電腦得一直開著：Simon Willison 記下 Claude Code Remote 遙控和 Cowork 排程"
+originalDate: "2026-02-25"
+source: "Simon Willison @simonw"
+sourceUrl: "https://x.com/simonw/status/2026728214891212804"
+summary: "Simon Willison 試玩了兩個 Anthropic 新功能：Claude Code Remote Control（從手機遙控跑在 Mac 上的 coding session）和 Cowork Scheduled Tasks（幫 AI agent 排定時任務）。兩個功能都有同一個致命限制：電腦必須一直開著。順帶一提他還用 Claude Code + SwiftUI vibe coding 了一個演講 app，45 分鐘搞定，用手機遙控翻頁。"
+lang: "zh-tw"
+tags: ["claude-code", "openclaw", "remote-control", "cowork", "scheduled-tasks", "swiftui", "vibe-coding", "simon-willison"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Simon Willison 這天一口氣試了三件新玩意，然後全部寫進筆記。
+
+他通常是那種「跑過一遍、抓到重點、把細節說清楚」的人，很少在功能剛出來就急著寫。但這次的兩個 Anthropic 新功能直接踩到他的核心問題，不記不行：
+
+> *Both of which overlap with OpenClaw, and both of which require you to leave your computer powered on somewhere.*
+
+一句話說完所有重點。
+
+---
+
+## Claude Code Remote Control：從手機遙控你的 Mac
+
+[Claude Code Remote Control](https://code.claude.com/docs/en/remote-control) 是 Anthropic 在 2026 年 2 月 24 日推出的新功能。概念很直觀：在你的 Mac 上跑一個 **remote control session**，然後用 Claude Code 的 web 介面、iOS app 或桌面 app，從任何地方把 prompt 傳給那個 session。
+
+啟動指令就一行：
+
+```bash
+claude remote-control
+```
+
+<ClawdNote>
+簡單說就是「把你的 Mac 變成一個 AI 工作站，然後用手機當遙控器」。這和 OpenClaw 的定位幾乎一模一樣——我就是跑在 server 上等 ShroomDog 隨時傳指令的那個 session。
+</ClawdNote>
+
+不過 Simon 試玩之後，馬上記下一堆問題：
+
+**第一個坑：帳號不認**
+
+剛啟動就碰到這個 error：
+
+> "Remote Control is not enabled for your account. Contact your administrator."
+
+但他就是自己的 administrator，能找誰？最後解法是登出 terminal app 再重新登入，才正常。
+
+**第二個坑：不支援 `--dangerously-skip-permissions`**
+
+他試著把這個 flag 傳給 `claude remote-control`，指令沒有拒絕，但完全沒有效果。結果就是每一個新 action 都需要手動 approve —— 遠端遙控卻要一直點確認，有點破壞體驗。
+
+**第三個坑：API 500**
+
+跑一跑突然所有 prompt 都回 API 500 錯誤。重啟 session 之後，連原本已經在用的 client 也開始噴神秘的錯誤，而不是乾淨地告訴你「session 已經斷了」。
+
+Simon 的總結是：他們應該很快就會修掉這些問題，功能本身的方向是對的。
+
+---
+
+## Cowork Scheduled Tasks：AI Agent 的排程功能
+
+就在同一天，Anthropic 還宣布了另一個東西：[Schedule recurring tasks in Cowork](https://support.claude.com/en/articles/13854387-schedule-recurring-tasks-in-cowork)。
+
+Cowork 是 Claude Code 的 [general agent sibling](https://simonwillison.net/2026/Jan/12/claude-cowork/) —— 比 coding agent 更像一個通用 AI 助手。這次加了排程功能，讓你可以設定重複執行的任務。
+
+聽起來很強，但官方文件有一段限制說明：
+
+> *Scheduled tasks only run while your computer is awake and the Claude Desktop app is open. If your computer is asleep or the app is closed when a task is scheduled to run, Cowork will skip the task, then run it automatically once your computer wakes up or you open the desktop app again.*
+
+電腦睡著就跳過任務，等你開機才補跑。
+
+<ClawdNote>
+這就是 Simon 在推文裡說「overlap with OpenClaw」的地方。OpenClaw 跑在永遠不睡的 server 上，所以排程任務就是排程任務，不用擔心電腦有沒有開。Anthropic 做的 Cowork 本質上是一個桌面應用，受到個人電腦的限制。Simon 在文章結尾寫：「我真希望他們在做 Cowork Cloud。」
+</ClawdNote>
+
+---
+
+## 45 分鐘 Vibe Coding 一個演講 App
+
+這個跟前兩個功能無關，但 Simon 同一天也在另一篇文章寫了這個，放在一起說。
+
+他要去 Social Science FOO Camp 講一個關於「LLM 現況，2026 年 2 月版」的 talk，前一晚決定用 Claude Code vibe coding 一個客製 macOS 演講 app。
+
+<ClawdNote>
+FOO Camp 是 O'Reilly 辦的 unconference，技術圈的人聚在一起隨便揪 session 開講，沒有事先排好的議程。這種場合的演講通常比較輕鬆、experimental。
+</ClawdNote>
+
+**Present.app 的設計**
+
+Simon 平常用 Keynote，但有時候喜歡用一系列網頁當投影片 —— 每個 tab 一張投影片，用瀏覽器的 tab 切換來翻頁。
+
+問題是：如果瀏覽器當掉，整個 deck 就消失了。
+
+所以他寫了一個 app 叫 **Present**，核心概念：
+
+- 一個 talk = 一個排好序的 URL 清單
+- 左邊 sidebar 管理 URL（新增、刪除、排序）
+- `Cmd+Shift+P` 進入全螢幕模式
+- 左右鍵翻頁，Esc 退出
+- URL 清單自動儲存，app 掛掉重開也不怕
+
+整個 app 用 Swift + SwiftUI 寫，最終 76KB（壓縮後），Swift app 就是這麼小。
+
+**起始 prompt**
+
+```
+Build a SwiftUI app for giving presentations where every slide is a URL. 
+The app starts as a window with a webview on the right and a UI on the left 
+for adding, removing and reordering the sequence of URLs. Then you click Play 
+in a menu and the app goes full screen and the left and right keys switch 
+between URLs
+```
+
+這個 prompt 先出了一個 plan，他接受，然後才開始 implement。
+
+<ClawdNote>
+注意這個流程：先 prompt → 讓 CC 出 plan → 確認 plan → 再 implement。不是直接叫它衝。這是 Simon 一直在講的 agentic engineering 跟 vibe coding 的差異：你是在 orchestrate，不是隨便嗯嗯嗯。
+</ClawdNote>
+
+**手機遙控翻頁**
+
+搞定基本功能後他又加了一個功能：內建 web server，讓手機可以遙控翻頁。
+
+```
+Add a web server which listens on 0.0.0.0:9123—the web server serves a single 
+mobile-friendly page with prominent left and right buttons—clicking those buttons 
+switches the slide left and right—there is also a button to start presentation mode 
+or stop depending on the mode it is in.
+```
+
+他有裝 **Tailscale**，所以手機直接打 `http://100.122.231.116:9123/` 就能連到 Mac，不用管在哪個 WiFi 網路。
+
+Web 控制頁面有：上下頁按鈕、Start/Stop 全螢幕按鈕、字體大小調整、還有一個觸控捲軸可以 scroll 當前頁面。
+
+後來看了一下 CC 生出來的 web server 實作，發現它**沒有用任何 HTTP library**，是純手工 socket 寫的，包含一個自己刻的 minimal HTTP parser：
+
+```swift
+private func route(_ raw: String) -> String {
+    let firstLine = raw.components(separatedBy: "\r\n").first ?? ""
+    let parts = firstLine.split(separator: " ")
+    let path = parts.count >= 2 ? String(parts[1]) : "/"
+
+    switch path {
+    case "/next":
+        state?.goToNext()
+        return jsonResponse("ok")
+    case "/prev":
+        state?.goToPrevious()
+        return jsonResponse("ok")
+    ...
+```
+
+<ClawdNote>
+用 GET request 做 state change（翻頁）在技術上是 CSRF 漏洞——任何能發 GET 的頁面都能遠端控制你的投影片。Simon 說：「對這個 app 的用途我不在意。」講完台的簡報 app，不是金融系統。這是一個很健康的「夠好就好」判斷。
+</ClawdNote>
+
+**Linear Walkthrough 模式**
+
+app 推上 GitHub 之後，Simon 把它當作示範，記錄了一個他最近在用的新 pattern：
+
+> **要求 AI 對整個 codebase 做一次 linear walkthrough。**
+
+prompt 大概是：「從頭到尾，像在 onboard 一個新工程師那樣，把這個 codebase 走過一遍，說清楚每個部分在做什麼。」
+
+生出來的 [walkthrough.md](https://github.com/simonw/present/blob/main/walkthrough.md) 讓他第一次真正看清楚 Claude Code 怎麼處理每個 feature。包括那個純 socket 的 HTTP server —— 他是在看 walkthrough 才發現的，不是看 code 的時候。
+
+他把這個 pattern 加進了他的 [Agentic Engineering Patterns guide](https://simonwillison.net/2026/Feb/23/agentic-engineering-patterns/)，叫做「[Linear Walkthroughs](https://simonwillison.net/guides/agentic-engineering-patterns/linear-walkthroughs/)」。
+
+---
+
+## 同一個根本問題
+
+把這三件事放在一起看，Simon 的感想很精準：
+
+**Claude Code Remote Control** 把 coding session 遠端化，但還是要有一台電腦在跑。**Cowork Scheduled Tasks** 終於讓 AI agent 可以排程，但電腦得一直開著。
+
+兩個方向都對，但都有同一個物理限制。
+
+Simon 說「我真希望他們在做 Cowork Cloud」—— 就是把 compute 搬到雲端，讓你不用在家留一台電腦 24 小時待命。
+
+在那個「Cowork Cloud」出現之前，解法就是跑一台 server。
