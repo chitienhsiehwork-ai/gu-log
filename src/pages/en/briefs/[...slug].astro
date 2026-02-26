@@ -1,0 +1,132 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+
+const briefTypeIcons: Record<string, string> = {
+  morning: '☀️',
+  'late-night': '🌙',
+  patrol: '🔭',
+};
+
+export async function getStaticPaths() {
+  const briefs = await getCollection('briefs', ({ data }) => {
+    return data.lang === 'en';
+  });
+
+  return briefs.map((brief) => ({
+    params: { slug: brief.slug },
+    props: { brief },
+  }));
+}
+
+const { brief } = Astro.props;
+const { Content } = await brief.render();
+const icon = briefTypeIcons[brief.data.briefType] || '📋';
+---
+
+<BaseLayout title={brief.data.title} lang="en">
+  <article class="brief-article">
+    <a href="/en/briefs" class="back-link">← All Briefs</a>
+
+    <header class="brief-header">
+      <h1>{icon} {brief.data.title}</h1>
+      <p class="brief-meta">
+        {brief.data.date} · {brief.data.time}
+      </p>
+      {
+        brief.data.tags && brief.data.tags.length > 0 && (
+          <div class="brief-tags">
+            {brief.data.tags.map((tag: string) => (
+              <span class="tag">#{tag}</span>
+            ))}
+          </div>
+        )
+      }
+    </header>
+
+    <div class="brief-content">
+      <Content />
+    </div>
+
+    <a href="/en/briefs" class="back-link bottom-link">← All Briefs</a>
+  </article>
+</BaseLayout>
+
+<style>
+  .brief-article {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  .back-link {
+    display: inline-block;
+    color: var(--color-accent);
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .back-link:hover {
+    text-decoration: underline;
+  }
+
+  .bottom-link {
+    margin-top: 2rem;
+  }
+
+  .brief-header {
+    margin-bottom: 2rem;
+  }
+
+  .brief-header h1 {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .brief-meta {
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+  }
+
+  .brief-tags {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .tag {
+    color: var(--color-accent);
+    font-size: 0.8rem;
+    background: var(--color-surface, rgba(0, 0, 0, 0.05));
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+  }
+
+  .brief-content {
+    line-height: 1.75;
+  }
+
+  .brief-content :global(h2) {
+    font-size: 1.2rem;
+    margin-top: 2rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .brief-content :global(hr) {
+    border: none;
+    border-top: 1px solid var(--color-border);
+    margin: 1.5rem 0;
+  }
+
+  .brief-content :global(ul) {
+    padding-left: 1.25rem;
+  }
+
+  .brief-content :global(li) {
+    margin-bottom: 0.4rem;
+  }
+
+  .brief-content :global(a) {
+    color: var(--color-accent);
+  }
+</style>

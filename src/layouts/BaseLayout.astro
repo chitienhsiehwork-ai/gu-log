@@ -30,6 +30,8 @@ const i18n = {
     navHome: '首頁',
     navAbout: '關於',
     aboutLink: '/about',
+    navBriefs: '📡 Briefs',
+    briefsLink: '/briefs',
     footerBy: '香菇大狗狗',
     footerSub: '翻譯由 Clawd 執行，（沒什麼）經人工校對',
     fonts:
@@ -43,6 +45,8 @@ const i18n = {
     navHome: 'Home',
     navAbout: 'About',
     aboutLink: '/en/about',
+    navBriefs: '📡 Briefs',
+    briefsLink: '/en/briefs',
     footerBy: 'ShroomDog',
     footerSub: 'Written by AI, (barely) reviewed by humans',
     fonts: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap',
@@ -259,6 +263,7 @@ const finalDescription = description || t.defaultDescription;
         <nav class="site-nav">
           <a href={t.homeLink} class="nav-link">{t.navHome}</a>
           <a href={t.aboutLink} class="nav-link">{t.navAbout}</a>
+          <a href={t.briefsLink} class="nav-link">{t.navBriefs}</a>
           <span class="nav-icons">
             <LanguageToggle currentLang={lang} currentPath={currentPath} />
             <a href={`${t.homeLink}#clawd-picks`} class="clawd-nav-link" title="Clawd Picks"
