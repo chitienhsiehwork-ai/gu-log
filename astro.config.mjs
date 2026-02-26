@@ -3,6 +3,7 @@ import { defineConfig } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
 import mdx from '@astrojs/mdx';
 import AstroPWA from '@vite-pwa/astro';
+import remarkKaomojiNowrap from './src/plugins/remark-kaomoji-nowrap.mjs';
 
 // https://astro.build/config
 export default defineConfig({
@@ -124,6 +125,7 @@ export default defineConfig({
     }),
   ],
   markdown: {
+    remarkPlugins: [remarkKaomojiNowrap],
     shikiConfig: {
       themes: {
         light: 'solarized-light',
