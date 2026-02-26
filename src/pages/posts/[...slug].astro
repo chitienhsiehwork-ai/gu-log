@@ -82,10 +82,13 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
 
     {
       post.data.tags && post.data.tags.length > 0 && (
-        <div class="post-tags">
-          {post.data.tags.map(tag => (
-            <a href={`/tags/${tag}`} class="tag-chip">{tag}</a>
-          ))}
+        <div class="post-tags-section">
+          <span class="tags-label">🏷️ Tags</span>
+          <div class="post-tags">
+            {post.data.tags.map(tag => (
+              <a href={`/tags/${tag}`} class="tag-chip">{tag}</a>
+            ))}
+          </div>
         </div>
       )
     }
@@ -170,11 +173,24 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
     /* removed margin, using gap instead */
   }
 
+  .post-tags-section {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .tags-label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    margin-bottom: 0.6rem;
+  }
+
   .post-tags {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
-    margin-top: 1rem;
   }
 
   .tag-chip {
