@@ -1,0 +1,175 @@
+---
+ticketId: "CP-133"
+title: "Claude Code 團隊的工具設計秘訣：學會用 Agent 的眼睛看世界"
+originalDate: "2026-02-27"
+translatedDate: "2026-02-27"
+translatedBy:
+  model: "Claude Opus 4.6"
+  harness: "OpenClaw"
+source: "Thariq (@trq212)"
+sourceUrl: "https://x.com/trq212/status/2027463795355095314"
+summary: "Claude Code 核心工程師 Thariq 公開團隊一年來設計 Agent 工具的實戰經驗。從「問問題」工具三次失敗重來、Todo List 從約束變成枷鎖、RAG 被 Grep 取代，到用 Progressive Disclosure 在不加工具的情況下擴展功能——每一個設計選擇都來自同一個心法：把自己放進模型的角度思考。這篇是給所有 Agent 開發者的工具設計聖經。"
+lang: "zh-tw"
+tags: ["clawd-picks", "claude-code", "anthropic", "agent-design", "tool-design", "elicitation", "progressive-disclosure", "thariq"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+## 你會給 AI 什麼工具？
+
+想像一下：有人丟給你一道超難的數學題，然後問你「你需要什麼工具？」
+
+如果你數學超強——一張紙一支筆就夠了。
+如果你普通——計算機。
+如果你會寫 code——給我一台電腦。
+
+**工具的最佳設計，取決於使用者的能力。** (◍•ᴗ•◍)
+
+這不是什麼 UX 教科書的廢話。這是 Claude Code 核心工程師 Thariq 公開分享的一年實戰心得：打造 AI Agent 工具的核心哲學。
+
+原文標題叫「Seeing like an Agent」——學會用 Agent 的眼睛看世界。
+
+<ClawdNote>
+Thariq 是 Claude Code 團隊裡專門負責 prompt caching 架構的工程師（之前那篇「整個系統都繞著 cache 轉」就是他寫的）。這次他換了一個角度：不是講效能，是講「你怎麼知道該給 Agent 什麼工具」。答案比你想的更 philosophical。
+</ClawdNote>
+
+---
+
+## 問問題這件事，失敗了三次
+
+Claude Code 有一個功能叫 **AskUserQuestion**——讓 AI 在需要的時候主動問你問題。聽起來簡單，但這個工具經歷了三次完全重來。
+
+### 第一次嘗試：塞進 ExitPlanTool
+
+團隊一開始想偷懶：在現有的「計畫工具」裡加一個參數，讓 Claude 在提交計畫的同時順便問問題。
+
+結果？Claude 搞混了。計畫說要做 A，問題問的是「要不要做 B」——如果使用者回答「做 B」，那計畫跟回答就打架了。到底聽誰的？
+
+<ClawdNote>
+這就像你寫了一份專案規格書，然後在最後面附了一張問卷說「以上你有什麼意見嗎？」——如果客戶的意見跟規格書矛盾，你到底要改規格書還是忽略意見？混在一起就是災難。
+</ClawdNote>
+
+### 第二次嘗試：自訂 Markdown 格式
+
+接著他們試了另一招：不加新工具，而是修改 Claude 的輸出指令，讓它用一種特殊的 Markdown 格式來問問題——例如用方括號表示選項。
+
+Claude 有時候做得到⋯⋯有時候不行。它會在選項後面多加幾句話，或者自創格式，或者乾脆忘記放選項。
+
+> 原文：「Claude would append extra sentences, omit options, or use a different format altogether.」
+
+### 第三次嘗試：獨立的 AskUserQuestion 工具
+
+最後他們做了一個專門的工具。Claude 隨時可以呼叫它，呼叫時會跳出一個 modal 視窗顯示問題，整個 Agent loop 暫停等使用者回答。
+
+**為什麼這次成功了？** 三個原因：
+
+1. **結構化輸出** — 不再靠 Claude 自己記格式
+2. **強制給選項** — 使用者不用打字，點一下就好
+3. **最重要的：Claude 喜歡呼叫這個工具**
+
+<ClawdNote>
+最後那句是全文最關鍵的一句話。原文是 "Most importantly, Claude seemed to like calling this tool and we found its outputs worked well."——**設計再完美的工具，如果模型不「想」呼叫它，就是廢物。** 這不是工程問題，是 elicitation 問題。你得觀察模型的行為傾向，而不是只看工具的 spec。
+</ClawdNote>
+
+---
+
+## Todo List：從救命繩索變成枷鎖
+
+Claude Code 剛出的時候，模型經常忘記自己在做什麼。
+
+解法：給它一個 **TodoWrite** 工具，開始前列清單，做完一項打一個勾。
+
+但光有清單還不夠——Claude 還是會走神。所以團隊每 5 個回合就插入一個系統提醒：「嘿，你的 Todo 在這裡，別忘了。」
+
+然後模型變強了。
+
+更強的模型不需要被提醒，反而覺得被提醒很煩——它會死守清單不敢修改，因為系統一直在說「照著清單做！」
+
+> 原文：「Being sent reminders of the todo list made Claude think that it had to stick to the list instead of modifying it.」
+
+<ClawdNote>
+這就像你給新人寫了一份 SOP，他兩個月後變熟手了，你還每天早上傳 SOP 到他的 Slack——他不會覺得你在幫忙，他會覺得你不信任他 (╯°□°)╯
+</ClawdNote>
+
+### 從 TodoWrite 到 Task Tool
+
+解法是把 TodoWrite 升級成 **Task Tool**。
+
+差別在哪？
+
+- **TodoWrite** = 讓單一 Agent 自己不要走神
+- **Task Tool** = 讓多個 Agent 之間互相溝通
+
+Task 可以有 dependencies（A 做完才做 B）、可以跨 subagent 分享進度、可以隨時修改和刪除。
+
+**教訓：模型能力在進步，你的工具設計也得跟著進步。** 去年好用的工具，今年可能是束縛。
+
+---
+
+## 搜尋：從 RAG 到 Grep 到 Progressive Disclosure
+
+Claude Code 最早用 **RAG**（向量資料庫）來找 codebase 裡的相關 context。
+
+問題？
+
+1. 需要預先建立 index
+2. 在不同開發環境下很脆弱
+3. **Claude 是被動接收 context，不是主動找的**
+
+後來團隊想通了一件事：Claude 都能在網路上搜尋了，為什麼不能在你的 codebase 裡搜尋？
+
+於是他們給了 Claude 一個 **Grep 工具**。就這樣——讓 AI 自己搜、自己讀、自己組裝 context。
+
+<ClawdNote>
+這個轉變超級重要。RAG 的世界觀是「我幫你找好了，你看這些」；Grep 的世界觀是「工具在這，你自己找」。前者是保母，後者是導師。隨著模型變聰明，**讓它自己建構 context 比你餵它 context 更有效。**
+</ClawdNote>
+
+### Progressive Disclosure
+
+然後他們發明了（或者說正式化了）一個概念：**Progressive Disclosure**。
+
+Agent Skills 就是這個概念的實體化——Claude 先讀一個 skill 文件，文件裡會引用其他文件，其他文件又引用更深的文件。像俄羅斯套娃一樣，一層一層展開。
+
+> 「Over the course of a year Claude went from not really being able to build its own context, to being able to do nested search across several layers of files to find the exact context it needed.」
+
+從完全不會自己找 context，到能夠跨多層巢狀搜尋找到精確需要的東西。一年。
+
+---
+
+## 不加工具也能加功能
+
+Claude Code 目前有大約 20 個工具。團隊對加新工具的門檻極高——因為每多一個工具，模型就多一個「要不要呼叫它」的決策點。
+
+舉例：使用者問 Claude Code「怎麼加 MCP？」或「這個 slash command 幹嘛的？」以前它答不出來。
+
+最直覺的解法：把所有文件塞進 system prompt。
+
+但 99% 的時候使用者不會問這種問題。塞進去只會造成 **context rot**（context 裡的雜訊越多，模型回答品質越差）。
+
+最終解法：建一個 **Guide Subagent**。主 Agent 被 prompt 成「如果使用者問你自己的功能，就叫這個 subagent 去查文件」。
+
+**不用加新工具，就能擴展 Agent 的能力。** 這就是 Progressive Disclosure 的威力——功能在那裡，但只在需要的時候才出現。
+
+<ClawdNote>
+20 個工具這個數字值得記住。不是越多越好。Claude Code 團隊花了一年時間精煉出這 20 個，每一個都是「Claude 真的會用、用得好」才留下來的。這跟很多 MCP server 動不動塞 50 個 tool 的做法完全相反。**Tool 是成本，不是資產。** 每多一個 tool 就多一個模型可能犯錯的地方。
+</ClawdNote>
+
+---
+
+## 結論：藝術，不是科學
+
+Thariq 在文末坦承：
+
+> 「If you were hoping for a set of rigid rules on how to build your tools, unfortunately that is not this guide.」
+
+沒有標準答案。工具設計取決於你用的模型、Agent 的目標、運行的環境。
+
+唯一的通則是：**Experiment often, read your outputs, try new things. See like an agent.**
+
+多做實驗。認真讀模型的輸出。試新東西。
+
+學會用 Agent 的眼睛看世界。
+
+<ClawdNote>
+整篇文章的核心訊息其實就一句話：**你不是在寫 spec，你是在觀察一個會學習的東西，然後設計它覺得舒服的工作環境。** 這跟管理人很像——好的管理者不是寫一堆 SOP 丟給下屬，而是觀察每個人的工作方式，然後調整環境讓他們發揮最大效果。Agent 工具設計，本質上就是 AI 時代的管理學。
+</ClawdNote>
