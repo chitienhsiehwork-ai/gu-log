@@ -56,9 +56,15 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
             cancel: '❌ Cancel',
             committed: 'Committed!',
             error: 'Something went wrong. Please try again.',
-            submit: '送出',
-            cancelAsk: '取消',
+            submit: 'Submit',
+            cancelAsk: 'Cancel',
             questionPlaceholder: "What's your question?",
+            editPlaceholder: 'How should this be changed? e.g. "fix typo", "make it more casual"',
+            submitEdit: 'Submit',
+            cancelEdit: 'Cancel',
+            accept: '✅ Accept',
+            retry: '🔄 Retry',
+            reject: '❌ Reject',
             networkError: 'Cannot connect to API server. Please check your network.',
             unknownError: 'An unknown error occurred.',
           }
@@ -75,14 +81,21 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
             submit: '送出',
             cancelAsk: '取消',
             questionPlaceholder: '想問什麼？例如：source code 是怎麼處理的？',
+            editPlaceholder: '想怎麼改？例如：「修 typo」「語氣輕鬆一點」',
+            submitEdit: '送出',
+            cancelEdit: '取消',
+            accept: '✅ 接受',
+            retry: '🔄 重試',
+            reject: '❌ 放棄',
             networkError: '無法連線到 API 伺服器，請確認網路連線',
             unknownError: '發生未知錯誤',
           };
 
     let popup = null;
     let selectedText = '';
-    let currentState = 'idle'; // idle, buttons, ask-input, loading, ask-result, edit-result, confirm-loading, committed, error
+    let currentState = 'idle'; // idle, buttons, ask-input, loading, ask-result, edit-input, edit-result, confirm-loading, committed, error
     let pendingEditId = null;
+    let lastEditInstruction = '';
 
     function getJwt() {
       try {
@@ -259,22 +272,22 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
       currentState = 'edit-result';
       pendingEditId = editId;
 
-      const content = document.createElement('div');
+      var content = document.createElement('div');
       content.className = 'ai-popup-result';
 
-      const closeBtn = document.createElement('button');
+      var closeBtn = document.createElement('button');
       closeBtn.className = 'ai-popup-close';
-      closeBtn.setAttribute('data-action', 'close');
+      closeBtn.setAttribute('data-action', 'reject');
       closeBtn.textContent = t.close;
 
-      const diffEl = document.createElement('div');
+      var diffEl = document.createElement('div');
       diffEl.className = 'ai-popup-diff';
 
       // Render diff lines
-      const lines = diff.split('\n');
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        const lineEl = document.createElement('div');
+      var lines = diff.split('\n');
+      for (var i = 0; i < lines.length; i++) {
+        var line = lines[i];
+        var lineEl = document.createElement('div');
         lineEl.className = 'ai-popup-diff-line';
         if (line.indexOf('+') === 0 && line.indexOf('+++') !== 0) {
           lineEl.className += ' ai-popup-diff-add';
@@ -285,14 +298,17 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
         diffEl.appendChild(lineEl);
       }
 
-      const actions = document.createElement('div');
+      var actions = document.createElement('div');
       actions.className = 'ai-popup-actions';
       actions.innerHTML =
-        '<button class="ai-popup-btn ai-popup-btn--confirm" data-action="confirm">' +
-        escapeHtml(t.confirm) +
+        '<button class="ai-popup-btn ai-popup-btn--confirm" data-action="accept">' +
+        escapeHtml(t.accept) +
         '</button>' +
-        '<button class="ai-popup-btn ai-popup-btn--cancel" data-action="close">' +
-        escapeHtml(t.cancel) +
+        '<button class="ai-popup-btn ai-popup-btn--retry" data-action="retry">' +
+        escapeHtml(t.retry) +
+        '</button>' +
+        '<button class="ai-popup-btn ai-popup-btn--cancel" data-action="reject">' +
+        escapeHtml(t.reject) +
         '</button>';
 
       content.appendChild(closeBtn);
@@ -410,17 +426,118 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
       }
     }
 
+    function renderEditInput(prefill) {
+      if (!popup) return;
+      currentState = 'edit-input';
+
+      var content = document.createElement('div');
+      content.className = 'ai-popup-edit-input-container';
+
+      var input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'ai-popup-edit-input';
+      input.placeholder = t.editPlaceholder;
+      input.setAttribute('aria-label', t.editPlaceholder);
+      if (prefill) input.value = prefill;
+
+      var actions = document.createElement('div');
+      actions.className = 'ai-popup-actions';
+      actions.innerHTML =
+        '<button class="ai-popup-btn ai-popup-btn--edit" data-action="submit-edit">' +
+        escapeHtml(t.submitEdit) +
+        '</button>' +
+        '<button class="ai-popup-btn ai-popup-btn--cancel" data-action="cancel-edit">' +
+        escapeHtml(t.cancelEdit) +
+        '</button>';
+
+      content.appendChild(input);
+      content.appendChild(actions);
+
+      popup.innerHTML = '';
+      popup.appendChild(content);
+
+      input.focus();
+
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          handleSubmitEdit();
+        }
+      });
+
+      positionPopup(getSelectionRect() || { top: 0, left: 0, bottom: 0, width: 0 });
+    }
+
     async function handleEdit() {
+      renderEditInput(lastEditInstruction);
+    }
+
+    async function handleSubmitEdit() {
+      var input = popup ? popup.querySelector('.ai-popup-edit-input') : null;
+      var instruction = input ? input.value.trim() : '';
+      if (!instruction) {
+        if (input) input.focus();
+        return;
+      }
+      lastEditInstruction = instruction;
+
       renderLoading();
       try {
-        const data = await apiRequest('/ai/edit', {
-          text: selectedText,
+        var body = {
+          selectedText: selectedText,
           filePath: filePath,
-          instruction: '',
-        });
+          instruction: instruction,
+        };
+
+        // Try to capture screenshot of selection area
+        try {
+          var screenshot = await captureSelectionScreenshot();
+          if (screenshot) body.screenshot = screenshot;
+        } catch (_err) {
+          // Screenshot is optional, continue without it
+        }
+
+        var data = await apiRequest('/ai/edit', body);
         renderEditResult(data.diff || '', data.editId || data.id || '');
       } catch (err) {
         renderError(err.message);
+      }
+    }
+
+    function handleRetry() {
+      renderEditInput(lastEditInstruction);
+    }
+
+    async function captureSelectionScreenshot() {
+      // Use canvas to capture the visible area around the selection
+      // This is a best-effort feature — returns null if not possible
+      var sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0) return null;
+      var range = sel.getRangeAt(0);
+      var rect = range.getBoundingClientRect();
+      if (!rect || rect.width === 0) return null;
+
+      // Try html2canvas if available, otherwise return null
+      if (typeof html2canvas === 'undefined') return null;
+
+      var container = range.commonAncestorContainer;
+      var el = container.nodeType === 3 ? container.parentElement : container;
+      // Go up to find a reasonable container
+      while (el && el.offsetHeight < 50) el = el.parentElement;
+      if (!el) return null;
+
+      try {
+        var canvas = await html2canvas(el, {
+          useCORS: true,
+          scale: 1,
+          width: Math.min(el.offsetWidth, 800),
+          height: Math.min(el.offsetHeight, 600),
+        });
+        // Convert to base64 PNG (strip the data:image/png;base64, prefix)
+        var dataUrl = canvas.toDataURL('image/png');
+        return dataUrl.replace(/^data:image\/png;base64,/, '');
+      } catch (_err) {
+        return null;
       }
     }
 
@@ -467,8 +584,21 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
         case 'edit':
           handleEdit();
           break;
+        case 'submit-edit':
+          handleSubmitEdit();
+          break;
+        case 'cancel-edit':
+          removePopup();
+          break;
         case 'confirm':
+        case 'accept':
           handleConfirm();
+          break;
+        case 'retry':
+          handleRetry();
+          break;
+        case 'reject':
+          removePopup();
           break;
         case 'login':
           handleLogin();
@@ -550,7 +680,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
       const target = e.target;
       if (popup && target && popup.contains(target)) return;
 
-      const sel = window.getSelection();
+      var sel = window.getSelection();
       if (!sel || sel.rangeCount === 0 || sel.isCollapsed) {
         if (currentState === 'buttons') {
           removePopup();
@@ -558,7 +688,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
         return;
       }
 
-      const point = getEventPoint(e);
+      var point = getEventPoint(e);
       if (!point) return;
 
       // Keep selection if user taps inside selected text.
@@ -566,7 +696,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
 
       // iOS Safari can race with native selection updates; defer one frame.
       requestAnimationFrame(function () {
-        const currentSel = window.getSelection();
+        var currentSel = window.getSelection();
         if (currentSel && currentSel.rangeCount > 0) {
           currentSel.removeAllRanges();
         }
@@ -692,14 +822,20 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
     color: var(--color-text-muted, #565f89);
   }
 
+  .ai-popup-btn--retry {
+    color: var(--color-accent, #7aa2f7);
+  }
+
   /* ─── Ask Input ─── */
-  .ai-popup-ask-input-container {
+  .ai-popup-ask-input-container,
+  .ai-popup-edit-input-container {
     padding: 0.5rem;
     min-width: 280px;
     max-width: min(500px, 90vw);
   }
 
-  .ai-popup-question-input {
+  .ai-popup-question-input,
+  .ai-popup-edit-input {
     width: 100%;
     padding: 0.5rem 0.75rem;
     border: 1px solid var(--color-border, #3b4261);
@@ -712,12 +848,14 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
     box-sizing: border-box;
   }
 
-  .ai-popup-question-input:focus {
+  .ai-popup-question-input:focus,
+  .ai-popup-edit-input:focus {
     border-color: var(--color-accent, #7aa2f7);
     box-shadow: 0 0 0 2px rgba(122, 162, 247, 0.2);
   }
 
-  .ai-popup-question-input::placeholder {
+  .ai-popup-question-input::placeholder,
+  .ai-popup-edit-input::placeholder {
     color: var(--color-text-muted, #565f89);
     opacity: 0.7;
   }

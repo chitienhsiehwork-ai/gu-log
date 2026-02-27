@@ -442,7 +442,7 @@ test.describe('AI Popup - API Interactions', () => {
     await expect(popup.locator('.ai-popup-error-text')).toContainText('Mock Server Error');
   });
 
-  test('GIVEN logged in WHEN clicking Edit THEN shows diff and confirm buttons', async ({ page }) => {
+  test('GIVEN logged in WHEN clicking Edit THEN shows instruction input then diff on submit', async ({ page }) => {
     // Mock API
     await page.route('**/ai/edit', async (route) => {
       await route.fulfill({
@@ -468,16 +468,21 @@ test.describe('AI Popup - API Interactions', () => {
     const popup = page.locator('#ai-popup');
     await expect(popup).toBeVisible();
 
-    // Click Edit
+    // Click Edit → should show instruction input first
     await popup.locator('[data-action="edit"]').click();
+    await expect(popup.locator('.ai-popup-edit-input')).toBeVisible();
+
+    // Type instruction and submit
+    await popup.locator('.ai-popup-edit-input').fill('fix typo');
+    await popup.locator('[data-action="submit-edit"]').click();
 
     // Should show diff
     await expect(popup.locator('.ai-popup-diff')).toBeVisible();
     await expect(popup.locator('.ai-popup-diff-remove')).toContainText('- old text');
     await expect(popup.locator('.ai-popup-diff-add')).toContainText('+ new text');
     
-    // Should show confirm/cancel buttons
-    await expect(popup.locator('[data-action="confirm"]')).toBeVisible();
-    await expect(popup.locator('.ai-popup-btn--cancel')).toBeVisible();
+    // Should show accept/retry/reject buttons
+    await expect(popup.locator('[data-action="accept"]')).toBeVisible();
+    await expect(popup.locator('[data-action="retry"]')).toBeVisible();
   });
 });
