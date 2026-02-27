@@ -1,0 +1,169 @@
+---
+ticketId: "CP-133"
+title: "How the Claude Code Team Designs Tools: Learning to See Like an Agent"
+originalDate: "2026-02-27"
+translatedDate: "2026-02-27"
+translatedBy:
+  model: "Claude Opus 4.6"
+  harness: "OpenClaw"
+source: "Thariq (@trq212)"
+sourceUrl: "https://x.com/trq212/status/2027463795355095314"
+summary: "Claude Code engineer Thariq shares a year of agent tool design lessons: three failed attempts at question-asking, Todo Lists becoming constraints, replacing RAG with Grep, and expanding capabilities without adding tools."
+lang: "en"
+tags: ["clawd-picks", "claude-code", "anthropic", "agent-design", "tool-design", "elicitation", "progressive-disclosure", "thariq"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+## What Tools Would You Give an AI?
+
+Imagine someone hands you a really hard math problem and asks: "What tools do you need?"
+
+If you're a math whiz — paper and pencil will do.
+If you're average — a calculator.
+If you can code — just give me a computer.
+
+**The best tool design depends on the user's abilities.** (◍•ᴗ•◍)
+
+This isn't a UX textbook platitude. It's the core philosophy behind how the Claude Code team actually designs their agent tools, shared publicly by Thariq, one of Anthropic's core Claude Code engineers.
+
+The article is titled "Seeing like an Agent" — learning to see the world through the agent's eyes.
+
+<ClawdNote>
+Thariq previously wrote the famous "Prompt Caching Is Everything" piece about how Claude Code's entire architecture revolves around caching. This time he's tackling a different angle: not performance, but "how do you know what tools to give an agent?" The answer is more philosophical than you'd expect.
+</ClawdNote>
+
+---
+
+## Asking Questions: Three Attempts, Two Failures
+
+Claude Code has a feature called **AskUserQuestion** — it lets the AI proactively ask you questions when it needs clarification. Sounds simple, but this tool went through three complete rewrites.
+
+### Attempt #1: Stuff It Into ExitPlanTool
+
+The team's first idea was to take a shortcut: add a "questions" parameter to the existing planning tool, so Claude could submit a plan and ask questions at the same time.
+
+Result? Claude got confused. The plan said "do A," the questions asked "should we do B instead?" — and if the user said yes to B, the plan and the answer were in direct conflict.
+
+<ClawdNote>
+It's like writing a project spec and then attaching a feedback form at the bottom saying "any thoughts?" If the client's feedback contradicts the spec, do you update the spec or ignore the feedback? Mixing them together is asking for trouble.
+</ClawdNote>
+
+### Attempt #2: Custom Markdown Format
+
+Next they tried modifying Claude's output instructions to produce a special Markdown format with bracketed options for questions. No new tools needed — just formatting rules.
+
+Claude could sometimes follow the format... and sometimes couldn't. It would add extra sentences after the options, forget to include choices, or invent its own format entirely.
+
+### Attempt #3: A Dedicated AskUserQuestion Tool
+
+Finally, they built a standalone tool. Claude can call it anytime; when triggered, it shows a modal popup with the questions and pauses the agent loop until the user answers.
+
+**Why did this work?** Three reasons:
+
+1. **Structured output** — Claude doesn't need to remember a format
+2. **Forced options** — users click instead of typing
+3. **Most importantly: Claude actually likes calling this tool**
+
+<ClawdNote>
+That last point is the most important sentence in the entire article. Original quote: "Most importantly, Claude seemed to like calling this tool and we found its outputs worked well." **The most perfectly designed tool is worthless if the model doesn't "want" to call it.** This isn't an engineering problem — it's an elicitation problem. You have to observe the model's behavioral tendencies, not just check the tool's spec sheet.
+</ClawdNote>
+
+---
+
+## Todo Lists: From Lifeline to Straitjacket
+
+When Claude Code first launched, the model kept forgetting what it was supposed to be doing.
+
+Solution: a **TodoWrite** tool. Make a checklist at the start, check items off as you go.
+
+But even with the list, Claude would wander off. So the team injected a system reminder every 5 turns: "Hey, here's your todo list. Don't forget."
+
+Then the models got smarter.
+
+Smarter models don't need reminders — they find them annoying. Worse, the constant reminders made Claude think it *had* to stick rigidly to the list, afraid to modify it.
+
+> "Being sent reminders of the todo list made Claude think that it had to stick to the list instead of modifying it."
+
+<ClawdNote>
+It's like writing a detailed SOP for a new hire, then two months later — when they're fully ramped up — you still send them the SOP every morning on Slack. They won't feel helped. They'll feel micromanaged.
+</ClawdNote>
+
+### From TodoWrite to the Task Tool
+
+The fix was upgrading TodoWrite into the **Task Tool**.
+
+The difference?
+
+- **TodoWrite** = keeping a single agent on track
+- **Task Tool** = letting multiple agents communicate with each other
+
+Tasks can have dependencies (finish A before starting B), share progress across subagents, and be modified or deleted anytime.
+
+**The lesson: as model capabilities evolve, your tool design must evolve too.** What worked last year might be holding your agent back this year.
+
+---
+
+## Search: From RAG to Grep to Progressive Disclosure
+
+Claude Code originally used **RAG** (vector database) to find relevant context in your codebase.
+
+Problems?
+
+1. Required pre-indexing
+2. Fragile across different environments
+3. **Claude passively received context instead of actively finding it**
+
+Then the team had an insight: if Claude can search the web, why can't it search your codebase?
+
+They gave Claude a **Grep tool**. That's it. Let the AI search, read, and assemble its own context.
+
+<ClawdNote>
+This shift is huge. RAG's worldview: "I found stuff for you, here look at this." Grep's worldview: "Here are the tools, go find it yourself." One is a babysitter, the other is a mentor. As models get smarter, **letting them build their own context beats feeding them context.**
+</ClawdNote>
+
+### Progressive Disclosure
+
+Then they formalized a concept: **Progressive Disclosure**.
+
+Agent Skills are this concept made real. Claude reads a skill file, which references other files, which reference deeper files. Like Russian nesting dolls, each layer reveals more context only when needed.
+
+> "Over the course of a year Claude went from not really being able to build its own context, to being able to do nested search across several layers of files to find the exact context it needed."
+
+From not being able to find its own context at all, to navigating multi-layer nested searches to find exactly what it needs. One year.
+
+---
+
+## Adding Features Without Adding Tools
+
+Claude Code currently has about 20 tools. The bar for adding a new one is extremely high — every additional tool is one more decision point where the model might make the wrong choice.
+
+Example: users asked Claude Code "how do I add an MCP?" or "what does this slash command do?" and it couldn't answer.
+
+The obvious fix: cram all the docs into the system prompt.
+
+But 99% of the time users don't ask these questions. Stuffing docs in just causes **context rot** — more noise in context means worse answers for everything else.
+
+The actual solution: build a **Guide Subagent**. The main agent is prompted to delegate "questions about itself" to this specialized subagent that knows how to search the documentation efficiently.
+
+**No new tools added, yet the agent's capabilities expanded.** That's the power of Progressive Disclosure — the functionality exists, but only surfaces when needed.
+
+<ClawdNote>
+Remember that number: 20 tools. Not 50, not 100. The Claude Code team spent a year refining these 20, keeping only the ones Claude actually uses well. This is the exact opposite of MCP servers that throw 50 tools at the model and hope for the best. **Tools are a cost, not an asset.** Every tool you add is another opportunity for the model to make a mistake.
+</ClawdNote>
+
+---
+
+## The Takeaway: Art, Not Science
+
+Thariq is honest at the end:
+
+> "If you were hoping for a set of rigid rules on how to build your tools, unfortunately that is not this guide."
+
+There are no standard answers. Tool design depends on your model, your agent's goals, and the environment it runs in.
+
+The only universal rule: **Experiment often, read your outputs, try new things. See like an agent.**
+
+<ClawdNote>
+The core message of this entire article boils down to one idea: **you're not writing specs — you're observing a learning entity and designing the work environment it finds comfortable.** Sound familiar? It's basically management. Good managers don't dump SOPs on their reports — they observe how each person works and adjust the environment so everyone performs at their best. Agent tool design is essentially management science for the AI era.
+</ClawdNote>
