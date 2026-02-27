@@ -6,6 +6,7 @@
 # Pipeline:
 #   0) Quick ticketId duplicate check (~100ms, shell)
 #   1) Post validator — frontmatter, content rules, cross-file checks (Node.js)
+#   1.5) translatedBy.model consistency check vs runtime model (Node.js)
 #   2) Content integrity BDD tests (Playwright, if available)
 #   3) Mermaid visual quality check — LLM-as-Judge (if ANTHROPIC_API_KEY set)
 
@@ -99,6 +100,22 @@ else
     if ! node "$REPO_ROOT/scripts/validate-posts.mjs" $FILE_ARGS; then
         echo ""
         echo "❌ Post validation FAILED. Fix errors above before committing."
+        exit 1
+    fi
+fi
+echo ""
+
+# ─── Step 1.5: translatedBy.model runtime consistency (blocking) ─
+if [ -n "$STAGED_MDX" ]; then
+    FILE_ARGS=""
+    for file in $STAGED_MDX; do
+        FILE_ARGS="$FILE_ARGS $REPO_ROOT/$file"
+    done
+
+    if ! node "$REPO_ROOT/scripts/check-translatedby-model.mjs" $FILE_ARGS; then
+        echo ""
+        echo "❌ translatedBy.model consistency check FAILED."
+        echo "   Fix frontmatter model names or ensure OPENCLAW_MODEL mapping is correct."
         exit 1
     fi
 fi
