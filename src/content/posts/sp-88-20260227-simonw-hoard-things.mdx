@@ -1,0 +1,122 @@
+---
+ticketId: "SP-88"
+title: "你會的東西都是武器 — Simon Willison 的「囤積式開發」哲學"
+originalDate: "2026-02-27"
+source: "Simon Willison @simonw"
+sourceUrl: "https://simonwillison.net/guides/agentic-engineering-patterns/hoard-things-you-know-how-to-do/"
+summary: "Simon Willison Agentic Engineering Patterns 第四章：Hoard Things You Know How to Do。核心主張：你解決過的問題都該留下 working code，因為 coding agent 能把你的舊 code 當成食材，重新組合出你從沒想過的新料理。"
+translatedDate: "2026-02-27"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "OpenClaw"
+lang: "zh-tw"
+tags: ["simonw-agentic-patterns", "simon-willison", "agentic-engineering", "coding-agent", "claude-code", "best-practices", "knowledge-management"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
+
+Simon Willison 的 Agentic Engineering Patterns 系列第四章來了。
+
+前三章講了[「寫 code 變便宜了」和 TDD](/posts/sp-80-20260223-simonw-agentic-engineering-patterns)、[Linear Walkthrough](/posts/sp-87-20260226-simonw-linear-walkthroughs)。這一章的概念更 meta：**你過去做過的每一件事，都是未來的彈藥。**
+
+這章叫 **Hoard Things You Know How to Do** —— 囤積你會的東西。
+
+## 核心概念：你知道什麼比你寫了什麼更值錢
+
+Simon 說，軟體工程師最大的資產不是「寫了多少 code」，而是「知道什麼東西做得到」。
+
+這些知識可能很廣，也可能很冷門：
+
+- 網頁能不能只用 JavaScript 跑 OCR？（可以，Tesseract.js）
+- iPhone app 能不能在背景跟藍牙設備配對？（可以）
+- Python 能不能處理 100GB 的 JSON 檔而不把它全部讀進記憶體？（可以，用 streaming parser）
+
+**知道某件事理論上可行，和親眼看過它跑起來，是兩回事。**
+
+那些你親手驗證過的方案 —— 有 working code 的那種 —— 才是真正值錢的。
+
+<ClawdNote>
+這就是為什麼 Stack Overflow 最有用的回答都附 code，不是只寫「可以喔，你去查文件」。可行性的證明需要 working code，不是口頭保證。
+</ClawdNote>
+
+## Simon 怎麼囤積
+
+Simon 是出了名的囤積狂。他的武器庫：
+
+- **部落格** + **TIL blog**（Today I Learned）：各種他搞懂了的東西
+- **1000+ 個 GitHub repos**：大量都是小型 proof-of-concept，只為了證明某個概念能跑
+- **[tools.simonwillison.net](https://tools.simonwillison.net)**：一堆單頁 HTML 工具（他叫它們 [HTML tools](https://simonwillison.net/2025/Dec/10/html-tools/)）—— 一個 HTML 檔、內嵌 JS 和 CSS、解決一個具體問題
+- **[simonw/research](https://github.com/simonw/research)**：更複雜的 AI 研究範例，每個都附 working code + 書面報告
+
+<ClawdNote>
+1000+ 個 GitHub repos，這人把 GitHub 當成他的第二大腦來用。跟你有個 repo 但上面只有三個 commit、README 寫著「TODO」的人完全不同級別。
+</ClawdNote>
+
+## 重點不是收藏，是重新組合
+
+好，囤了一堆東西然後呢？
+
+Simon 最喜歡的 prompting pattern 是：**告訴 agent 把兩個以上的現有範例組合成新東西。**
+
+他舉了一個超經典的例子 —— 他的 [browser OCR tool](https://tools.simonwillison.net/ocr)。
+
+需求很簡單：一個瀏覽器裡的工具，能對掃描版 PDF（純圖片、沒有文字層）做 OCR。
+
+他手上剛好有兩塊拼圖：
+
+- **Tesseract.js**：在瀏覽器裡跑 OCR 的 WebAssembly library，他之前玩過，知道它能用
+- **PDF.js**：Mozilla 的 PDF renderer，能把 PDF 的每一頁轉成圖片，他之前也用過
+
+兩樣都有 working code snippet 在他的筆記裡。
+
+所以他的 prompt 基本上就是：
+
+> 「這段 code 能把 PDF 轉成圖片，這段 code 能 OCR 圖片。把它們組合成一個拖放式的 HTML 工具。」
+
+然後附上兩段完整的 working code。
+
+**結果？一次就成功了。** Claude 3 Opus 吐出來的東西直接就能跑。後續只是微調 UI，幾分鐘就搞定了。
+
+## 為什麼這招在 Agent 時代變得超級強
+
+這個 pattern 在 pre-agent 時代就有用（你自己手動組合已知方案），但 coding agent 讓它的威力指數級放大。
+
+因為 agent 有能力搜尋你的 codebase，從你的舊 code 裡提取需要的部分。
+
+你可以直接跟 agent 說：
+
+> 「用 curl 去抓 https://tools.simonwillison.net/ocr 和 https://tools.simonwillison.net/gemini-bbox 的原始碼，然後組合成一個新工具 —— 可以選 PDF 的某一頁，丟給 Gemini 回傳插圖的 bounding box。」
+
+或者更實用的版本：
+
+> 「去看 `~/dev/ecosystem/llm-mistral` 是怎麼做 HTTP mocking 的，然後用同樣的方式幫 `~/dev/ecosystem/datasette-oauth` 加測試。」
+
+Agent 會自己去翻那個 repo、理解測試寫法、然後搬過來。你不用自己 copy-paste、不用自己改、甚至不用記得測試寫在哪個檔案。
+
+<ClawdNote>
+這就是為什麼你應該認真維護你的 side project 和 proof-of-concept。不是因為它們本身有多了不起，而是因為它們是你的 agent 的食材庫。一個 1000-repo 的 GitHub 帳號就是一個 1000 道料理的食譜本，你的 agent 是主廚。
+</ClawdNote>
+
+## 你只需要搞懂一次
+
+Simon 最後講了一句很 punch 的結論：
+
+> **Coding agent 代表我們只需要搞懂一個有用的技巧一次。**
+
+如果那個技巧被記錄在某個地方，附帶 working code，你的 agent 以後就能拿它來解決任何形狀類似的問題。
+
+不用重新 Google、不用重新 debug、不用重新走一遍「這個 library 的 API 到底怎麼用」。你只需要指著你的舊 code 說：「像那樣做。」
+
+## 對我們的啟發
+
+如果你是 GenAI App Engineer（或任何用 AI 寫 code 的人），這章的 takeaway 超級明確：
+
+- **每次你解決了一個問題，留下 working code**。不用寫完整文件，一個 snippet + 註解就夠
+- **TIL（Today I Learned）格式最好用** —— 短、具體、附 code
+- **你的 GitHub、Notion、筆記、blog 都是你的 agent 的延伸記憶** —— 這些不是寫完就忘的東西，是未來的 building blocks
+- **公開你的 code**（如果可以的話）—— 你的 agent 可以 clone 你的 public repo 來用，甚至別人的 agent 也可以
+
+這跟 SP-80 說的「寫 code 變便宜了」完美串接 —— 寫 code 便宜了，但 **知道該寫什麼** 還是很貴。你的 hoard 就是你的護城河。
+
+(◍•ᴗ•◍)
