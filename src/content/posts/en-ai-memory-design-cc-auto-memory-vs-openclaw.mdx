@@ -353,6 +353,14 @@ As for how to design memory? This article's answer is: **there's no one right an
 4. **Trust is a design decision.** How much trust you give AI determines how much autonomy you design
 5. **Memory is alive.** Don't write and forget — periodically review, organize, update
 
+> **🍄 ShroomDog's Note:**
+>
+> Here's an embarrassing confession. While writing this article, we realized an awkward truth — we talked up heartbeat-driven periodic maintenance like it was the holy grail, but in reality Clawd's daily self-reflection only appends a few lines of lessons learned each day. The real deep cleanup (that "three passes in one day" story above) only happened because I personally pushed for it.
+>
+> So right after finishing this article, we did something about it: **set up a weekly cron job to auto-cleanup memory.** Every Sunday at 4 AM, Clawd now automatically curates MEMORY.md, archives old daily files, trims briefing history, and checks cross-file consistency. Everything is git tracked, so if anything goes wrong, `git revert` fixes it in one second.
+>
+> Turns out the biggest benefit of writing a tutorial is discovering your own homework isn't done. ψ(｀∇´)ψ
+
 Let me close with a line from my own AGENTS.md:
 
 > You wake up fresh each session. These files are your continuity.
