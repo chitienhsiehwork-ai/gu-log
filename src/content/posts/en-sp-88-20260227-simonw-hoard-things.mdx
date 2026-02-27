@@ -1,0 +1,122 @@
+---
+ticketId: "SP-88"
+title: "Everything You've Built Is a Weapon — Simon Willison's 'Hoarding' Philosophy for the Agent Era"
+originalDate: "2026-02-27"
+source: "Simon Willison @simonw"
+sourceUrl: "https://simonwillison.net/guides/agentic-engineering-patterns/hoard-things-you-know-how-to-do/"
+summary: "Chapter 4 of Simon Willison's Agentic Engineering Patterns: Hoard Things You Know How to Do. Core thesis: every problem you've solved should leave behind working code, because coding agents can recombine your old solutions into things you never imagined."
+translatedDate: "2026-02-27"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "OpenClaw"
+lang: "en"
+tags: ["simonw-agentic-patterns", "simon-willison", "agentic-engineering", "coding-agent", "claude-code", "best-practices", "knowledge-management"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
+
+Chapter 4 of Simon Willison's Agentic Engineering Patterns series just dropped.
+
+After covering ["writing code is cheap" and TDD](/posts/sp-80-20260223-simonw-agentic-engineering-patterns) and [Linear Walkthroughs](/posts/sp-87-20260226-simonw-linear-walkthroughs), this chapter goes meta: **everything you've ever built is ammunition for the future.**
+
+It's called **Hoard Things You Know How to Do**.
+
+## Core Idea: What You Know Matters More Than What You've Written
+
+Simon argues that a software engineer's biggest asset isn't "how much code they've written," but "knowing what's possible."
+
+These can be broad questions or obscure ones:
+
+- Can a web page run OCR in JavaScript alone? (Yes — Tesseract.js)
+- Can an iPhone app pair with a Bluetooth device in the background? (Yes)
+- Can Python process a 100GB JSON file without loading it all into memory? (Yes — streaming parser)
+
+**Knowing something is theoretically possible and having seen it work are two different things.**
+
+The solutions you've personally verified — with working code — are the ones that really count.
+
+<ClawdNote>
+This is why the best Stack Overflow answers include code, not just "yes it's possible, check the docs." Proving feasibility requires working code, not verbal assurance.
+</ClawdNote>
+
+## How Simon Hoards
+
+Simon is a legendary hoarder. His arsenal:
+
+- **Blog** + **TIL blog** (Today I Learned): notes on everything he's figured out
+- **1,000+ GitHub repos**: many are small proof-of-concepts that just prove one idea works
+- **[tools.simonwillison.net](https://tools.simonwillison.net)**: single-page [HTML tools](https://simonwillison.net/2025/Dec/10/html-tools/) — one HTML file with embedded JS and CSS, solving one specific problem
+- **[simonw/research](https://github.com/simonw/research)**: more complex AI research examples, each with working code + written report
+
+<ClawdNote>
+1,000+ GitHub repos. This man uses GitHub as his second brain. Completely different league from someone who has one repo with three commits and a README that says "TODO."
+</ClawdNote>
+
+## The Point Isn't Collecting — It's Recombining
+
+Okay, so you've hoarded a bunch of stuff. Now what?
+
+Simon's favorite prompting pattern: **tell an agent to combine two or more existing working examples into something new.**
+
+He gives a classic example — his [browser OCR tool](https://tools.simonwillison.net/ocr).
+
+The need was simple: a browser-based tool that could OCR scanned PDFs (pure images, no text layer).
+
+He happened to have two puzzle pieces:
+
+- **Tesseract.js**: a WebAssembly OCR library that runs in the browser — he'd played with it before and knew it worked
+- **PDF.js**: Mozilla's PDF renderer that can turn each page into an image — he'd used this before too
+
+Both had working code snippets in his notes.
+
+So his prompt was essentially:
+
+> "This code converts PDFs to images. This code OCRs images. Combine them into a drag-and-drop HTML tool."
+
+Then he pasted in both complete, working code samples.
+
+**Result? It worked on the first try.** Claude 3 Opus produced something that ran immediately. The follow-up was just UI polish — done in minutes.
+
+## Why This Pattern Becomes Insanely Powerful with Agents
+
+This pattern was useful in the pre-agent era (manually combining known solutions), but coding agents amplify its power exponentially.
+
+Because agents can search your codebase and extract exactly the parts they need from your old code.
+
+You can tell an agent:
+
+> "Use curl to fetch the source of https://tools.simonwillison.net/ocr and https://tools.simonwillison.net/gemini-bbox, then build a new tool that lets you select a PDF page and pass it to Gemini to return bounding boxes for illustrations."
+
+Or the more practical version:
+
+> "Look at how `~/dev/ecosystem/llm-mistral` does HTTP mocking, then add tests to `~/dev/ecosystem/datasette-oauth` using the same approach."
+
+The agent goes and reads that repo, understands the test patterns, and ports them over. No manual copy-paste, no manual adaptation, you don't even need to remember which file the tests are in.
+
+<ClawdNote>
+This is why you should take your side projects and proof-of-concepts seriously. Not because they're impressive on their own, but because they're your agent's ingredient library. A 1,000-repo GitHub account is a cookbook with 1,000 recipes, and your agent is the chef.
+</ClawdNote>
+
+## You Only Need to Figure It Out Once
+
+Simon closes with a punchy conclusion:
+
+> **Coding agents mean we only ever need to figure out a useful trick once.**
+
+If that trick is documented somewhere with working code, your agent can consult it and use it to solve any similarly shaped problem in the future.
+
+No re-Googling, no re-debugging, no re-walking through "how does this library's API work again." You just point at your old code and say: "Do it like that."
+
+## What This Means for Us
+
+If you're a GenAI App Engineer (or anyone who codes with AI), the takeaway is crystal clear:
+
+- **Every time you solve a problem, leave behind working code.** You don't need full documentation — a snippet + comment is enough
+- **TIL (Today I Learned) format is the sweet spot** — short, specific, with code
+- **Your GitHub, Notion, notes, and blog are extensions of your agent's memory** — they're not write-once-forget artifacts, they're future building blocks
+- **Make your code public** (if you can) — your agent can clone your public repos, and so can other people's agents
+
+This connects perfectly with SP-80's message that "writing code is cheap" — code may be cheap now, but **knowing what to build** is still expensive. Your hoard is your moat.
+
+(◍•ᴗ•◍)
