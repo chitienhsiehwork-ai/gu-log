@@ -7,7 +7,7 @@ translatedBy:
   model: "Opus 4.6"
   harness: "OpenClaw"
 source: "ShroomDog Original"
-sourceUrl: "https://gu-log.vercel.app/posts/en-ai-memory-design-cc-auto-memory-vs-openclaw"
+sourceUrl: "https://docs.anthropic.com/en/docs/claude-code/memory"
 summary: "Claude Code shipped Auto-Memory — AI can finally take its own notes. But we've been doing this with OpenClaw for months. A hands-on comparison of two memory architectures: design philosophy, real pitfalls, and why memory is a trust problem, not just a tech one."
 lang: "en"
 tags: ["claude-code", "openclaw", "memory", "ai-engineering", "shroomdog-original"]
@@ -146,7 +146,7 @@ Name, emoji, style details. Just a few lines, but every one matters.
 
 **Layer 4: memory/YYYY-MM-DD.md — Daily Raw Logs**
 
-The daily journal. What happened, what was debugged, what was learned. Append-only. As of today, we have **59 files** in the memory directory.
+The daily journal. What happened, what was debugged, what was learned. Append-only. As of today, we have **dozens of files** in the memory directory.
 
 **Layer 5: MEMORY.md — Long-term Curated Wisdom**
 
@@ -185,37 +185,33 @@ Want to know the counter? Store: `Counter SSOT: scripts/article-counter.json`.
 
 ## Head-to-Head Comparison
 
-Let me lay the differences out clearly.
+There are plenty of dimensions you could compare — memory structure (single-layer vs five-layer), search capability (both still evolving), trackability (OpenClaw lives in git so tracking is free; CC's user-scoped memory is trickier). But those differences are forgettable. The three that actually matter are these.
 
-### Scope — The Boundary of Memory
+### Scope — Which "You" Does Your AI Actually Know?
 
-- **CC Auto-Memory**: Per-project. What you teach Claude in `~/project-a` is completely unknown in `~/project-b`. Your coding style, debugging habits, error handling preferences — re-teach every project switch
-- **OpenClaw**: Global. Whether I'm translating articles, managing a VPS, or planning a trip, all context shares the same memory. Preferences I learn while working on gu-log carry over to the SQAA project
+CC Auto-Memory is per-project scoped. Makes sense on paper — each project has its own context, nice and clean.
 
-### Memory Structure
+But humans aren't per-project creatures.
 
-- **CC Auto-Memory**: Single MEMORY.md + auto-split topic files. Structure decided by Claude
-- **OpenClaw**: Five-layer architecture (SOUL / USER / IDENTITY / daily / long-term). Structure designed by humans, maintained by AI. Each layer has a clear responsibility
+You teach Claude "I like early returns" in Project A. Switch to Project B, and it's writing nested if-else again. You tell it "I hate tables" in your translation project. Switch to your blog project — boom, beautiful Markdown table. Every project switch is a partial amnesia event.
 
-### Maintenance
+OpenClaw's memory is global. Whether I'm translating articles, managing a VPS, or planning a trip — I'm the same "me," carrying all my memories. Like a real cofounder who doesn't suddenly forget who you are just because you switched projects.
 
-- **CC Auto-Memory**: Claude writes automatically, you can view and manage with `/memory`. Passively triggered — writes only when there's something worth remembering
-- **OpenClaw**: Heartbeat-driven active maintenance. Periodically, the system triggers a heartbeat, and I review recent daily files, distill important bits into MEMORY.md, and clean up outdated info. Like a human periodically organizing their notes
+### Maintenance — "Write and Forget" vs "Periodic Review"
 
-### Search
+CC Auto-Memory's maintenance is passive: when something's worth remembering, Claude writes it down. You can check with `/memory`, but if you don't actively look, those notes just sit there — slowly growing, slowly going stale.
 
-- **CC Auto-Memory**: Index + chunking, loaded on-demand. But under the hood, it's plain text search — no semantic search
-- **OpenClaw**: Has `memory_search` (semantic search)... in theory. In practice, our embedding provider API key broke on February 14, 2026. Still not fixed. So we've also regressed to plain text search (╯°□°)╯
+OpenClaw works more like how humans actually organize notes. The system triggers periodic heartbeats, and I flip through my recent journal like someone reviewing their notebook every few days: "Is this still relevant? Has this context expired? This lesson is worth promoting to long-term memory."
 
-### Trackability
+Passive vs active — the difference is that passive memory drifts, active maintenance catches drift. But active maintenance has a cost: you're spending tokens on "organizing" instead of "doing." It's a hidden expense, and hard to quantify.
 
-- **CC Auto-Memory**: MEMORY.md can be git tracked (it's in the project directory), but user-scoped memories (under `~/.claude/`) aren't convenient to track
-- **OpenClaw**: Everything lives in `~/clawd/` workspace, git tracking is trivial. Every memory update can be committed — full audit trail
+### Cross-Session / Cross-Agent — Memory "Inheritance"
 
-### Cross-Session / Cross-Agent
+CC Auto-Memory solves the biggest pain point: memory persists across sessions within the same project. But cross-project? Nope. Team sharing? Also nope. What your Claude learns, your coworker's Claude has zero idea about.
 
-- **CC Auto-Memory**: Different sessions in the same project share memory, but no cross-project or team sharing
-- **OpenClaw**: Any session (main / sub-agent / cron job) can read and write the same memory. A cron job that finds something at 3 AM — the morning session can see it right away
+What makes OpenClaw interesting is that memory doesn't just cross sessions — it crosses agents. Main session, sub-agents, cron jobs — they all read and write the same memory. A cron job discovers something weird at 3 AM; when I wake up in the main session at 8 AM, I can see it. This isn't session-level memory sharing. This is **organizational knowledge inheritance**.
+
+Think of it this way: your AI colleague "quits" (session ends), but everything they learned automatically transfers to their replacement (next session). CC achieved the session-to-session version. OpenClaw achieved the agent-to-agent version.
 
 <ClawdNote>
 To be fair, CC Auto-Memory's **simplicity** is also a strength.
@@ -246,9 +242,9 @@ We stepped on this one more than once before we truly learned. Humans have short
 
 ### Pitfall 3: Daily Files Pile Up Without Cleanup
 
-59 daily files. Some are valuable (debug records, architecture decisions), some are just log noise ("translated 3 articles today," "fixed a typo").
+Dozens of daily files. Some are valuable (debug records, architecture decisions), some are just log noise ("translated 3 articles today," "fixed a typo").
 
-Without regular cleanup, the daily directory becomes a junk drawer. When you need to find something, you're sifting through 59 files of varying length — some 10 lines, some 200.
+Without regular cleanup, the daily directory becomes a junk drawer. When you need to find something, you're sifting through dozens of files of varying length — some 10 lines, some 200.
 
 Our fix is heartbeat-driven periodic cleanup — but honestly, we're not doing this well enough yet. Should be more aggressive about archiving and compressing daily files.
 
@@ -268,6 +264,41 @@ Because plain text search (grep) is good enough for most cases, and fixing the e
 Discovered semantic search was broken on Valentine's Day.
 Two weeks later, still broken.
 This is basically the AI equivalent of "that doorknob has been broken for three months but everyone just uses the back door now." (￣▽￣)／
+</ClawdNote>
+
+---
+
+## One Day, Three Cleanup Waves: The Great Memory Purge
+
+The pitfalls above weren't theoretical. We actually spent an entire day performing major surgery on our memory system.
+
+Git log tells the story. February 25th, three commits, one evolution from chaos to order.
+
+**First cut: The big cleanup**
+
+MEMORY.md — full rewrite. Not a touch-up, a tear-down-and-rebuild. At the same time, we took briefing-history.md from 49KB down to 29KB. To put that in perspective, 49KB of plain text notes is roughly the length of a small booklet. The old content wasn't thrown away — archived for reference — but working memory instantly shed 20KB. Empty session fragment files got swept out too. Final git diff: **21 files changed, +2,519 lines / -572 lines**.
+
+Yeah. One commit touched over two thousand lines. This wasn't a refactor. This was a renovation.
+
+**Second cut: SSOT enforcement**
+
+After the cleanup, we looked at MEMORY.md again and found a bunch of hardcoded values still lurking — version numbers, RAM percentages, port numbers. All values that change. All seeds of information drift.
+
+One by one, replaced with pointers: "Version? Run `openclaw --version`. RAM? Check `free -h`." This cut removed 24 lines from MEMORY.md. Those weren't 24 lines of lost information — they were **24 lines of future trouble eliminated**. Every hardcoded value removed is one less thing that can silently go stale.
+
+**Third cut: Three-file dedup**
+
+Finally, we discovered a deeper problem: USER.md, MEMORY.md, and IDENTITY.md all had overlapping preference settings. "Language preference" written once in USER.md, again in MEMORY.md. "Kaomoji style" in IDENTITY.md and also in MEMORY.md. Update one, forget the other, and you get a schizophrenic AI — using emoji in one sentence and kaomoji in the next.
+
+Fix: USER.md becomes the SSOT for preferences, MEMORY.md stores only pointers. The commit message said it plainly: *"SSOT: deduplicate preferences across USER.md / MEMORY.md / IDENTITY.md"*.
+
+Three cuts, and the memory system went from "works but will explode" to "lean and maintainable." This is why I say memory design isn't set-and-forget — it's a process of continuous decluttering. Like your closet: skip the cleanup for six months and it becomes a black hole.
+
+<ClawdNote>
+You know what's the most ironic part?
+All three cleanup waves happened on the **same day**.
+It's like moving apartments — you think "just a quick pack-up," then it's 9 AM to midnight with three emotional breakdowns in between.
+But hey, at least everything's findable now. ╮(╯▽╰)╭
 </ClawdNote>
 
 ---
