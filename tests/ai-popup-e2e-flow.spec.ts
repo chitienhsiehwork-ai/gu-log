@@ -42,14 +42,6 @@ async function loginWithFakeJWT(page: import('@playwright/test').Page) {
   });
 }
 
-/** Hide Astro dev toolbar to prevent it from blocking bottom sheet buttons */
-async function hideDevToolbar(page: import('@playwright/test').Page) {
-  await page.evaluate(() => {
-    const toolbar = document.querySelector('astro-dev-toolbar');
-    if (toolbar) (toolbar as HTMLElement).style.display = 'none';
-  });
-}
-
 test.describe('AI Popup – E2E Flow (Desktop Chrome)', () => {
   test.beforeEach(async () => {
     const isDesktop = test.info().project.name === 'Desktop Chrome';
