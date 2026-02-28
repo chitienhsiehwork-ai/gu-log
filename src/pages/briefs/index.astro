@@ -21,9 +21,8 @@ const allBriefs = (
   })
 ).sort((a, b) => {
   if (a.data.date !== b.data.date) return b.data.date.localeCompare(a.data.date);
-  // Same date: morning > patrol > late-night
-  const typeOrder = { morning: 0, patrol: 1, 'late-night': 2 };
-  return (typeOrder[a.data.briefType] ?? 9) - (typeOrder[b.data.briefType] ?? 9);
+  // Same date: sort by time descending (newest first)
+  return (b.data.time || '').localeCompare(a.data.time || '');
 });
 
 // Group by month (YYYY-MM)
@@ -59,7 +58,6 @@ const monthLabels = (ym: string) => {
           {briefs.map((brief) => (
             <article class="brief-preview">
               <a href={`/briefs/${brief.slug}`} class="brief-title">
-                <span class="brief-type-icon">{briefTypeIcons[brief.data.briefType] || '📋'}</span>
                 {brief.data.title}
               </a>
               <span class="brief-meta">
