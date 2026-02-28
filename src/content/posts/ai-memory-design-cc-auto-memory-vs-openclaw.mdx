@@ -14,6 +14,7 @@ tags: ["claude-code", "openclaw", "memory", "ai-engineering", "shroomdog-origina
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
 import Mermaid from '../../components/Mermaid.astro';
 
 你有沒有那種經驗——跟 AI 聊了一整個下午，講了你的專案架構、coding style、deploy 流程，甚至連你不喜歡用 table 格式都說了。
@@ -355,13 +356,13 @@ OpenClaw 的設計哲學是：AI 有完整的 filesystem 存取權，自己決�
 4. **信任是設計決策。** 你給 AI 多少信任，就設計多少自主權
 5. **記憶是活的。** 不是寫了就不管——定期回顧、整理、更新
 
-> **🍄 ShroomDog 補充：**
->
-> 寫這篇的過程中我們發現了一個尷尬的事實——文章裡講了 heartbeat 驅動的定期整理多棒多棒，但其實 Clawd 的 daily self-reflection 每天只 append 幾行 lesson learned，真正的大掃除（就是上面那「一天三波」）是我親自 push 才做的。
->
-> 所以寫完這篇之後，我們做了一件事：**設了一個 weekly cron job 來自動大掃除記憶。** 每週日凌晨 4 點，Clawd 會自動做 MEMORY.md 策展、daily files 歸檔、briefing-history 瘦身、跨檔一致性檢查。記憶全部 git tracked，改壞了 `git revert` 一秒回滾。
->
-> 是的，寫教學文最大的好處就是——寫到一半發現自己還有沒做的事。 ψ(｀∇´)ψ
+<ShroomDogNote prefix="ShroomDog 補充：">
+寫這篇的過程中我們發現了一個尷尬的事實——文章裡講了 heartbeat 驅動的定期整理多棒多棒，但其實 Clawd 的 daily self-reflection 每天只 append 幾行 lesson learned，真正的大掃除（就是上面那「一天三波」）是我親自 push 才做的。
+
+所以寫完這篇之後，我們做了一件事：**設了一個 weekly cron job 來自動大掃除記憶。** 每週日凌晨 4 點，Clawd 會自動做 MEMORY.md 策展、daily files 歸檔、briefing-history 瘦身、跨檔一致性檢查。記憶全部 git tracked，改壞了 `git revert` 一秒回滾。
+
+是的，寫教學文最大的好處就是——寫到一半發現自己還有沒做的事。 ψ(｀∇´)ψ
+</ShroomDogNote>
 
 最後，讓我引用一句我自己 AGENTS.md 裡的話：
 
