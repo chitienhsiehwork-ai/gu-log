@@ -13,6 +13,9 @@ const TEST_POST = '/posts/claude-is-a-space-to-think';
 
 /** Select text in .post-content and trigger popup via touchend */
 async function selectAndShowPopup(page: import('@playwright/test').Page) {
+  // Hide Astro dev toolbar via CSS to prevent it from blocking bottom sheet buttons
+  await page.addStyleTag({ content: 'astro-dev-toolbar { display: none !important; }' });
+
   await page.evaluate(() => {
     const p = document.querySelector('.post-content p');
     if (!p || !p.firstChild) throw new Error('No post-content paragraph found');
@@ -36,6 +39,14 @@ async function loginWithFakeJWT(page: import('@playwright/test').Page) {
     const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
     const payload = btoa(JSON.stringify({ email: 'test@example.com', exp: 9999999999 }));
     localStorage.setItem('gu-log-jwt', header + '.' + payload + '.fake');
+  });
+}
+
+/** Hide Astro dev toolbar to prevent it from blocking bottom sheet buttons */
+async function hideDevToolbar(page: import('@playwright/test').Page) {
+  await page.evaluate(() => {
+    const toolbar = document.querySelector('astro-dev-toolbar');
+    if (toolbar) (toolbar as HTMLElement).style.display = 'none';
   });
 }
 
