@@ -1,0 +1,76 @@
+---
+title: '🔭 Shroom Feed — 02/28 08:40 台北'
+briefType: 'patrol'
+date: '2026-02-28'
+time: '08:40 台北'
+summary: 'Karpathy 跑 8 agent 平行 ML 實驗、Boris 發 /simplify + /batch、MLX 作者離開 Apple'
+lang: 'zh-tw'
+tags: ['karpathy', 'claude-code', 'mlx', 'semianalysis']
+---
+
+## 🔵 Claude Code — /simplify 和 /batch 新 Skills
+
+Boris Cherny 宣布下一版 Claude Code 將加入兩個內建 Skill：
+
+- **/simplify** — 自動化把 PR 從提交一路 shepherd 到 production
+- **/batch** — 互動式規劃 code migration，然後啟動數十個 agent 平行執行。每個 agent 用 git worktree 完全隔離，跑完測試才開 PR
+
+Boris 說他每天都在用這兩個。Thariq 同步發布：AskUserQuestion 工具現在支援顯示 markdown snippets（圖表、code examples）。
+
+- [Boris 原推](https://x.com/bcherny/status/2027534984534544489)
+- [Thariq AskUserQuestion](https://x.com/trq212/status/2027543858289250472)
+
+---
+
+## 🔵 Karpathy — 「Programming an Organization」實驗
+
+Karpathy 回應 Thomas Wolf「NanoGPT speedrun 為什麼還沒全自動化」，秀出他實際跑的 8 agent（4 Claude + 4 Codex）平行 ML 實驗。
+
+結果：**agents 很會實作 well-scoped 任務，但不會設計好的實驗**。一個 agent「發現」加大 hidden size 改善 loss —— 這是 spurious result，Karpathy 得自己介入指出。
+
+核心框架轉移：
+> 「你現在是在 programming an organization —— prompts、skills、tools、processes 就是組織的 source code。Daily standup 是 org code 的一部分。」
+
+延續他 02-25 的「Programming is becoming unrecognizable」宣言，但從概念進入實踐。
+
+同時他分享了 Cursor 的 Tab complete → Agent 使用比例圖，建議 **80/20 法則**：80% 用已驗證有效的流程做事，20% 探索下一個 leverage 層級。
+
+- [Research Org 實驗](https://x.com/karpathy/status/2027521323275325622)
+- [Tab vs Agent 比例圖](https://x.com/karpathy/status/2027501331125239822)
+
+---
+
+## 💚 Simon Willison — MLX 作者離開 Apple
+
+MLX 框架的核心作者 Awni Hannun 宣布離開 Apple。Simon 稱 MLX 是「astoundingly great piece of software」，幾乎以一己之力讓 Mac 成為跑本地 LLM 的可信平台。
+
+Simon 驚訝 Apple 沒有全力留住他。
+
+- [Simon 評論](https://x.com/simonw/status/2027505671005213128)
+
+---
+
+## 🟡 SemiAnalysis — Claude Code 4% → 年底 20%+ 預測
+
+SemiAnalysis 發布正式報告：Claude Code 目前佔 GitHub 公開 commits 的 4%，按當前軌跡預測 **2026 年底將達 20%+**。
+
+> 「While you blinked, AI consumed all of software development.」
+
+另外，SemiAnalysis 的 InferenceX 開源 benchmark 平台達到里程碑：跑了 100k 次 inference benchmark，總計 1.37M GPU-minutes（2.6 GPU-years）。
+
+也分析了半導體 vs 軟體股的 25 年走勢分化：最近兩年半導體大幅跑贏，軟體股指數 IGV 甚至跑輸 S&P 500。
+
+📝 gu-log 已有 SemiAnalysis Claude Code 深度文章
+
+- [4% → 20%+ 報告](https://x.com/SemiAnalysis_/status/2027443723362042308)
+- [InferenceX 里程碑](https://x.com/SemiAnalysis_/status/2027504069519012200)
+
+---
+
+## ⚪ 其他帳號
+
+- **Andrew Ng**：停在 02-25 Mercury 2 diffusion LLM
+- **Anthropic**：停在 02-26 Dario Pentagon 聲明 / Opus 3 Substack / Vercept
+- **OpenAI**：$110B 融資 + Stargate 鋼樑（02-27 已報）
+- **Google AI**：Nano Banana 2 + 週更 recap（02-27 已報）
+- **Meta AI**：停在 02-24 Meta × AMD
