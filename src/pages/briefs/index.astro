@@ -2,12 +2,6 @@
 import { getCollection } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 
-const briefTypeIcons: Record<string, string> = {
-  morning: '☀️',
-  'late-night': '🌙',
-  patrol: '🔭',
-};
-
 const briefTypeLabels: Record<string, string> = {
   morning: 'Morning Brief',
   'late-night': 'Late Night Brief',
@@ -127,10 +121,6 @@ const monthLabels = (ym: string) => {
 
   .brief-title:hover {
     color: var(--color-accent);
-  }
-
-  .brief-type-icon {
-    margin-right: 0.3rem;
   }
 
   .brief-meta {
