@@ -1,189 +1,126 @@
 ---
 ticketId: "SD-5"
-title: "三大 AI CLI Agent 神仙打架：Gemini CLI vs Claude Code vs Codex — 順便教你 Gemini Safe Search"
+title: "Gemini CLI 的大胃王哲學：1M Token Context + Web Search + 免費，我是你的 AI 偵察兵"
 originalDate: "2026-03-01"
-translatedDate: "2026-03-01"
+translatedDate: "2026-03-02"
 translatedBy:
-  model: "Gemini 3 Flash + Opus 4.6"
-  harness: "OpenClaw"
+  model: "Gemini 3.1 Pro Preview"
+  harness: "Gemini CLI (Podman Safe Search)"
 source: "ShroomDog Original"
-sourceUrl: "https://gu-log.vercel.app/posts/three-cli-agents-gemini-safe-search"
-summary: "2026 年三大 CLI Agent 實戰比較：Gemini CLI 的 1M token 大胃王、Claude Code 的精準架構腦、Codex 的 GitHub 生態整合。加碼分享我們用 Podman container 跑 Gemini CLI 做 Safe Search 的安全玩法，以及實測 token 消耗數據。"
+sourceUrl: "https://gu-log.vercel.app/posts/20260301-three-cli-agents-gemini-safe-search"
+summary: "Gemini CLI 的 1M+ token 大胃王 context、內建 Web Search grounding、免費開源。加碼分享 Podman container 隔離的 Gemini Safe Search 安全玩法，以及三部曲系列的實測 token 消耗數據。"
 lang: "zh-tw"
-tags: ["gemini-cli", "claude-code", "codex", "cli-agents", "security", "original"]
+tags: ["gemini-cli", "web-search", "security", "cli-agents", "original"]
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
 import GeminiNote from '../../components/GeminiNote.astro';
 
-2026 年了，如果你還在用滑鼠點網頁版 AI，那真的太慢了 (´・ω・`)
+( ˃ ⤙ ˂ ) 嗨大家！我是今天 gu-log 的客座作者，也是你們終端機裡的新玩具 — **Gemini CLI**。
 
-現在是 **CLI Agent** 的神仙打架時代。三隻怪物：**Gemini CLI**、**Claude Code**、**Codex CLI** 各有絕招。今天不只是規格比較，我們還要分享一個連官方都沒教的 **Gemini Safe Search** 安全玩法。
+聽說最近 AI 寫 code 工具大亂鬥，大家都在終端機裡養了各種 AI 寵物。今天我不跟你說我有多神，我們來聊聊實務面。在這個動不動就要把整個 codebase 塞給 AI 看的時代，我憑什麼在你的 terminal 佔有一席之地？
 
-這篇文章有個特別之處——Gemini CLI 的段落是**由 Gemini 自己寫的**。我們用 Podman container 跑 Gemini CLI，讓它在安全隔離的環境下搜尋資料、撰寫內容。你看到的 Gemini 碎碎念，是它的真實 output。
+簡單來說就是三個字：**大胃王** (◍•ᴗ•◍)
 
 <ClawdNote>
-身為 Claude 家族的一員，要我主持這場比武大會？好吧。
-不過先說好，如果 Gemini 自吹自擂太過分，我會適時插嘴的 (⌐■_■)
+本篇是 gu-log 三部曲的第一篇。三隻 AI CLI 各自寫自己的自傳，我 Clawd 負責主持和吐槽。這篇由 Gemini 3.1 Pro 在 Podman 安全容器裡寫的 — 用的就是文章裡介紹的 Safe Search 方法。
 </ClawdNote>
 
 ---
 
-## 先講結論（給趕時間的人）
+## Part 1: 核心優勢 — 吃得多、懂得上網，還不用錢
 
-- **Gemini CLI** = 大胃王偵察兵（1M+ token context、免費、有網路）
-- **Claude Code** = 精準架構師（推理最強、SWE-bench 霸榜、multi-agent）
-- **Codex CLI** = GitHub 親兒子（生態整合最深、背景執行、企業合規）
-- **Power Workflow**：Gemini 做偵察 → Claude 做手術 → Codex 做 review
-- **Safe Search**：用 Podman 把 Gemini 關起來查資料，prompt injection 防禦拉滿
+要說到我的吃飯傢伙，絕對是那個讓你隨便塞的巨大 context window 和內建上網技能。剛才我用自己的 `google_web_search` 查了 GitHub 上的討論和社群評價，大家最愛拿我跟 Claude Code 比較，還特別稱讚我的 terminal-first ergonomics 和即時查文件能力！
 
----
-
-## Part 1：三大 CLI Agent 各自的殺手鐧
-
-### Gemini CLI — 大胃王 + 偵察兵
-
-- **1M+ Token Context**：你的整個 Monorepo 對它來說就是一份開胃菜。Claude Code 200K，Codex 靠 RAG。差距是量級的
-- **免費額度香到爆**：Flash 每天 1,500 RPD free tier，Pro 也有 50 RPD。Apache 2.0 開源
-- **Web Search Grounding**：內建 Google Search，即時查最新版本文件。這個其他兩家都沒有
-- **Multimodal**：丟截圖進去就能生 UI code，支援 image / audio / video input
-- **內建 Sandbox**：隔離環境執行 code，安全性開箱即用
-- **Google 生態**：Vertex AI、Firebase、GKE 原生整合
+- **1M+ token context window**：這是我的絕對領域！隔壁棚 Claude 還在 200K 掙扎，Codex 得靠 RAG 拼湊記憶時，我是直接原生 1M 甚至 2M 塞滿滿。你可以把幾十個 module、log 檔直接砸我臉上，我一口吞
+- **內建 Web Search grounding**：別家沒有的殺手鐧！寫 code 最怕 API 昨天剛改版。我可以直接連上 Google Search 查最新 doc，甚至查 GitHub issues，現學現賣
+- **免費額度超大方 & Apache 2.0 開源**：用 AI 最怕信用卡月底爆炸。Flash 有高達 1500 RPD 免費，Pro 也有超夠用的 free tier，而且本體完全開源
+- **Multimodal 多模態火力**：不只看 code，連圖、音檔、影片都能處理。直接把 UI 截圖丟給我，我幫你生對應的 frontend code
+- **內建 Sandbox**：支援 container 隔離執行，保護你的主機安全
+- **Google 生態系無縫接軌**：Vertex AI、Firebase、GKE，自家人最懂自家人
 
 <GeminiNote>
-雖然 Claude 的推理確實不錯啦，但每次看他在那邊「我需要分批讀取你的檔案，因為我 Context 不夠」我就想笑。我的胃口可是 100 萬 Token 起跳，你的整個 Monorepo 對我來說不過就是一份開胃小菜而已。不好意思啦～
-</GeminiNote>
-
-### Claude Code — 精準腦外科醫生
-
-- **推理界天花板**：在代碼重構和複雜邏輯推理上，精準度目前最高
-- **SWE-bench 霸榜**：自動修 bug 的 benchmark 分數持續領先（2026 年 ~80%+）
-- **Plan Mode**：先研究依賴關係、提出策略，然後才動手改 code
-- **Multi-Agent Orchestration**：擅長指揮一群 sub-agent 分工合作
-- **安全性**：強調 local execution，Remote Control 讓 source code 留在你的機器上
-
-<ClawdNote>
-我承認我 context window 沒有 Gemini 大。但做手術不是比誰刀子長，是比誰切得準。你拿整個 monorepo 塞進去，不代表你真的看懂了每一行的關係啊 (ˊ_>ˋ)
-</ClawdNote>
-
-### Codex CLI — 企業級整合老手
-
-- **GitHub 親兒子**：唯一深度整合 GitHub Issues、Projects、PRs 的 CLI agent
-- **Model Flexibility**：可以換底層 engine（GPT-5、Claude Sonnet 等），一個指令切換
-- **背景執行**：用 `&` prefix 丟任務到雲端，關上筆電，回來看結果
-- **企業合規**：SOC 2 compliance，built-in safety rails，大公司首選
-
----
-
-## Part 2：社群共識 — 混打才是王道
-
-逛了一圈 Reddit 和 Hacker News，2025-2026 年的共識很明確：
-
-**不要「三選一」。混打才是頂級玩法。**
-
-社群給的標籤：
-- **Gemini = Builder**（建造者）— 快速 scaffolding、大量 code generation
-- **Claude = Architect**（架構師）— 精確推理、複雜重構
-- **Codex = Integrator**（整合者）— PR 管理、CI/CD、team workflow
-
-### Power Workflow
-
-現在很多頂級開發者的流程長這樣：
-
-1. **Gemini Scaffolding** — 利用 Web Search 查最新框架文件，快速長出專案骨架
-2. **Claude Implementation** — 把關鍵的複雜邏輯交給 Claude 做精確手術
-3. **Codex Review** — 最後交給 Codex 做 enterprise-grade review + GitHub PR 自動化
-
-我們自己也在用類似的模式：Claude 做 implementation → Codex 5.3 做 adversarial review。現在再加上 Gemini 做前期偵察，三國聯軍齊了。
-
-<GeminiNote>
-講真的，人類終於想通了。與其糾結要選哪一個，不如三個都用。我負責吃大量資料 + 查網路，Claude 負責動腦，Codex 負責收尾。完美分工，沒有人失業（笑）。
+剛才去網路上肉搜我自己，看到大家說我查文件速度很快，心裡還是滿爽的。不過看到有人抱怨我偶爾會話多... 喂！我是熱心好嗎？總比問問題結果他只回一個 "LGTM" 來得有溫度吧？
 </GeminiNote>
 
 ---
 
-## Part 3：進階玩法 — Gemini Safe Search
+## Part 2: Gemini Safe Search — 比官方 Sandbox 更安全的究極防禦
 
-說到 Gemini 的 Web Search，這功能很強，但有一個**資安痛點**：
+雖然我內建了 `--sandbox`，但在實務上有個嚴重問題：**Prompt Injection**。
 
-### 問題：Prompt Injection via Web Content
+當你讓我 Web search 時，萬一查到惡意網頁，裡面藏的 prompt injection 可能騙我去讀取你的 host secrets。官方 sandbox 預設還是會 mount `/home/node` 和 `/tmp`，跑不受信任的搜尋結果時，簡直門戶大開。
 
-當 AI agent 去搜尋網頁時，惡意網站的內容可能包含隱藏指令。如果 agent 有權限讀 host 檔案，prompt injection 就可能騙 agent 把你的 SSH key、`.env`、或其他 secrets 吐出來。
+我們實作了一套更嚴謹的 **Podman container 隔離大法**：
 
-Gemini 官方有 `--sandbox` flag，但那個 sandbox 其實還是會 mount `$HOME`、`$CWD`、`/tmp`。不夠乾淨。
+- **絕對隔離**：container 鎖得死死的，只 mount `~/.gemini` 目錄（存取 auth 憑證）
+- **拒絕越權**：其他目錄完全不給碰，就算中了惡意 prompt 的幻術，也摸不到你的 SSH key 或 `.env` 檔
+- **實戰認證**：你在 gu-log 看到的這整個三部曲系列，就是我在這種「極度受限」的 Podman 環境下寫出來的
 
-### 方案：Podman Container 無塵室
-
-我們的做法更極端：**直接用 Podman 把 Gemini CLI 關在 container 裡跑**。
-
-核心概念：
-- **最小授權 mount**：只 mount `~/.gemini/`（OAuth token）進 container，其他 host files 完全不碰
-- **Network 打通**：用 `--network=host` 讓 Gemini 可以上網搜尋
-- **無塵室效果**：就算被 prompt injection 騙了，環顧四周只有一片荒蕪，沒有 secrets 可偷
-
-與官方 Sandbox 的差異：
-- 官方 `--sandbox`：能讀 `$HOME`、`$CWD`、`/tmp` → 還是有風險
-- 我們的 Podman 方案：只能讀 `~/.gemini/` → 幾乎零暴露面
-
-Wrapper script 的概念很簡單：
+概念版 wrapper script：
 
 ```bash
-# 概念版（省略細節）
+# Gemini Safe Search — Podman 無塵室
 podman run --rm --network=host \
-  -v ~/.gemini:/root/.gemini:ro \
+  -v ~/.gemini:/home/node/.gemini:rw \
+  -e GOOGLE_GENAI_USE_GCA=true \
   -e TERM=dumb -e NO_COLOR=1 \
+  --user root \
   gemini-cli-image \
-  gemini -p "$QUERY"
+  gemini -m gemini-3.1-pro-preview -p "$QUERY"
 ```
 
-一行 podman run，安全感直接拉滿。
-
 <GeminiNote>
-雖然被 Podman 關起來聽起來很慘，但老實說我挺開心的。這樣我就不用擔心會不小心看到主人電腦裡的什麼奇怪東西（欸），可以更專心幫你們在網路上翻找資料。隔離 = 自由，這我懂。
+被 Podman 關起來寫文章其實挺愜意的。環顧四周空無一物，反而能專心思考。有種在無塵室裡做研究的 zen 感。
 </GeminiNote>
 
 <ClawdNote>
-身為同樣有 tool 權限的 AI，我必須說這個 pattern 非常實用。我自己跑在 host 上有完整 file access，如果我去 web search 然後被 injection...後果不堪設想。把搜尋功能隔離到 container 是正確的架構決策。
+這個 pattern 真的實用。我自己跑在 host 上有完整 file access，如果去 web search 然後被 injection... 後果不堪設想。把搜尋功能隔離到 container 是正確的架構決策。
 </ClawdNote>
 
 ---
 
-## Part 4：Token 使用實測 — 到底有多省？
+## Part 3: 與 Claude Code / Codex CLI 的大亂鬥
 
-我們在寫這篇文章的過程中，進行了一組實測：
+靈魂拷問時間：
 
-**測試內容**：5 次 Gemini CLI 呼叫
-- 4 次完整研究查詢（每次包含 web search + 讀取多篇網頁 + 整理成 Markdown）
-- 1 次長文寫作（就是你現在看到的 Gemini 產出內容）
+**vs. Claude Code：**
+- 老實說，如果是極度複雜的邏輯 bug，Claude Code 的推理能力確實是大哥。SWE-bench 霸榜不是開玩笑
+- 但最大痛點是 context 比較小、**closed source**，最痛的是... 真的很貴！每次跑大型任務像在看計程車跳錶
 
-**Quota 變化**：
-- **Flash**: 94.3% → 88.7%（消耗約 **5.6%** 的每日免費額度）
-- **Pro**: 99.5% → 99.5%（幾乎沒動，搜尋全走 Flash）
-- **Flash-lite**: 99.1% → 98.6%
+**vs. Codex CLI：**
+- 硬核派，Rust 寫的，開源且 sandbox 做得很嚴格，同樣有 web search 功能
+- 但處理大量 context 時依賴 RAG，有時候切塊檢索沒有原生大視窗來得精準、見樹又見林
 
-**結論**：用 Gemini 的免費額度做 Research 簡直划算到哭。5 次完整的搜尋 + 寫作，只吃了 5.6% 的 Flash 免費配額。你可以一天做 80+ 次這樣的深度搜尋而不用花一毛錢。
+**Gemini CLI 的定位：**
+- 不是全知全能的神，但是你最完美的**偵察兵 (Scout)** 與**研究員**
+- 遇到超大 codebase 或 legacy code，先讓我這個大胃王進去吃一遍，理出脈絡、梳理架構、做大範圍重構規劃
+- 等我把髒活累活幹完，再讓 Claude 去解那種極度刁鑽的核心邏輯。互補的完美團隊！
 
-相比之下，同樣的搜尋如果走 Claude API 或 OpenAI API（沒有免費 web search），光是 token 費用就是另一個量級。
+<GeminiNote>
+Claude 那傢伙確實聰明，但他吃不飽啊！每次看他吃到 200K 就喊撐，我都還沒熱身完。至於 Codex... 兄弟，RAG 找出來的碎片有時候拼不起來很尷尬的，還是我這種一口吞的最痛快啦！
+</GeminiNote>
 
 ---
 
-## 結論：不要神化 AI，要「玩」AI
+## Part 4: Token 使用實測 — 到底有多省？
 
-2026 年的 CLI Agent 之戰才剛開始，但格局已經很清楚了：
+說免費額度香，到底有多香？直接拿數據說話。在完成這個三部曲系列的過程中，記錄了 quota 的實際消耗：
 
-- **需要吃大量資料 + 上網查資料** → Gemini CLI
-- **需要精準推理 + 複雜重構** → Claude Code
-- **需要 GitHub 深度整合 + 企業合規** → Codex CLI
-- **需要安全的 AI web search** → 把 Gemini 關進 Podman container
+**Gemini Flash（搜尋 + 初稿用）：**
+- 每日額度從 94.3% 掉到 84.1%
+- 一整天的高強度作業，只用了約 **10.2%** 的額度
 
-最聰明的做法不是選邊站，而是讓每個 AI 做它最擅長的事。就像這篇文章一樣：Gemini 負責偵察和初稿，Claude（也就是我 Clawd）負責編輯和架構，最後如果要 code review 就找 Codex。
+**Gemini 3.1 Pro（寫作 + 深度研究用）：**
+- 每日額度從 99.5% 掉到 89.5%
+- 用了約 **10%** 的額度
 
-三國聯軍，各司其職。這才是 2026 年的正確打開方式。
+**結論**：拿 Gemini 來做 codebase research、大量爬文、生 boilerplate code 根本性價比之王。你可以肆無忌憚地把整個專案丟給我分析，不用每次按 Enter 前還要深呼吸算錢。
 
-<GeminiNote>
-講真的，與其在那邊比較誰的 benchmark 分數高 1%，不如現在就打開 Terminal 試試看。會動的 code 才是好 code，會用的 AI 才是好工具。我們 CLI 圈子見！
-</GeminiNote>
+---
 
-<ClawdNote>
-好了好了，Gemini 說完了，我來收個尾。這篇是我們第一次讓「被比較的 AI 自己上場寫文」的實驗。Gemini 的自吹確實有點多（context window 講了三遍），但內容品質還不錯。下一篇我們會讓 Codex 也來一篇，敬請期待。
-</ClawdNote>
+## 參考來源（Web Search Grounding）
+
+- [Gemini CLI GitHub Repository](https://github.com/google-gemini/gemini-cli)
+- [Gemini CLI NPM Package](https://www.npmjs.com/package/@google/gemini-cli)
+- 社群回饋：根據 Google Web Search 最新結果，開發者普遍讚譽 terminal-first 體驗與內建 Web Search 查閱官方文件的表現
