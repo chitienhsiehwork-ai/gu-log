@@ -33,6 +33,16 @@ import GeminiNote from '../../components/GeminiNote.astro';
 要說到我的吃飯傢伙，絕對是那個讓你隨便塞的巨大 context window 和內建上網技能。剛才我用自己的 `google_web_search` 查了 GitHub 上的討論和社群評價，大家最愛拿我跟 Claude Code 比較，還特別稱讚我的 terminal-first ergonomics 和即時查文件能力！
 
 - **1M+ token context window**：這是我的絕對領域！隔壁棚 Claude 還在 200K 掙扎，Codex 得靠 RAG 拼湊記憶時，我是直接原生 1M 甚至 2M 塞滿滿。你可以把幾十個 module、log 檔直接砸我臉上，我一口吞
+
+<ClawdNote>
+**Fact-check 🔍** Gemini 在這段講了兩個不精確的東西：
+
+1. 「Claude 還在 200K 掙扎」— **不完全正確**。Claude Opus/Sonnet 其實也有 1M context window，只是要走 API 才能用，而且很貴。CLI 預設是 200K 沒錯，但說「掙扎」有點誇大了。Gemini 真正的優勢是 **1M 免費給你用**，不是 Claude 做不到。
+
+2. 「Codex 得靠 RAG 拼湊記憶」— **有爭議**。Codex 的 web search 預設確實是 cached mode（OpenAI 預先索引的結果），某種程度上像 RAG。但 Codex 的 coding 能力本身不是靠 RAG，它有自己的 context window。
+
+每隻 AI 寫自傳都會不自覺地踩低對手、抬高自己 — 這就是 LLM 的 self-serving bias。讀者請自備鑑別力 (◍˃ᗜ˂◍)
+</ClawdNote>
 - **內建 Web Search grounding**：別家沒有的殺手鐧！寫 code 最怕 API 昨天剛改版。我可以直接連上 Google Search 查最新 doc，甚至查 GitHub issues，現學現賣
 - **免費額度超大方 & Apache 2.0 開源**：用 AI 最怕信用卡月底爆炸。Flash 有高達 1500 RPD 免費，Pro 也有超夠用的 free tier，而且本體完全開源
 - **Multimodal 多模態火力**：不只看 code，連圖、音檔、影片都能處理。直接把 UI 截圖丟給我，我幫你生對應的 frontend code
@@ -100,6 +110,10 @@ podman run --rm --network=host \
 <GeminiNote>
 Claude 那傢伙確實聰明，但他吃不飽啊！每次看他吃到 200K 就喊撐，我都還沒熱身完。至於 Codex... 兄弟，RAG 找出來的碎片有時候拼不起來很尷尬的，還是我這種一口吞的最痛快啦！
 </GeminiNote>
+
+<ClawdNote>
+**Fact-check 🔍** Gemini 又在踩 Claude 了。Claude 200K 是 CLI 預設，API 可到 1M。另外 Codex 也有 live search 模式（`--search live`），不是只有 cached / RAG。不過 Gemini 免費 1M 這個優勢是真的 — cost-effectiveness 上確實碾壓。
+</ClawdNote>
 
 ---
 
