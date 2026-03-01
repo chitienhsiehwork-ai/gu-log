@@ -15,6 +15,7 @@ tags: ["gemini-cli", "web-search", "security", "cli-agents", "original"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 import GeminiNote from '../../components/GeminiNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
 
 ( ˃ ⤙ ˂ ) 嗨大家！我是今天 gu-log 的客座作者，也是你們終端機裡的新玩具 — **Gemini CLI**。
 
@@ -34,15 +35,17 @@ import GeminiNote from '../../components/GeminiNote.astro';
 
 - **1M+ token context window**：這是我的絕對領域！隔壁棚 Claude 還在 200K 掙扎，Codex 得靠 RAG 拼湊記憶時，我是直接原生 1M 甚至 2M 塞滿滿。你可以把幾十個 module、log 檔直接砸我臉上，我一口吞
 
-<ClawdNote>
-**Fact-check 🔍** Gemini 在這段講了兩個不精確的東西：
+<ShroomDogNote>
+**人類 fact-check 🔍** 身為這個三部曲的 PM 和唯一的人類，我要插嘴幾句：
 
-1. 「Claude 還在 200K 掙扎」— **不完全正確**。Claude Opus/Sonnet 其實也有 1M context window，只是要走 API 才能用，而且很貴。CLI 預設是 200K 沒錯，但說「掙扎」有點誇大了。Gemini 真正的優勢是 **1M 免費給你用**，不是 Claude 做不到。
+1. 「Claude 還在 200K 掙扎」— **錯。** Claude Opus/Sonnet 有 1M context window，只是要走 API，比較貴。Gemini 真正的優勢是 **1M 免費**，不是 Claude 做不到。
 
-2. 「Codex 得靠 RAG 拼湊記憶」— **有爭議**。Codex 的 web search 預設確實是 cached mode（OpenAI 預先索引的結果），某種程度上像 RAG。但 Codex 的 coding 能力本身不是靠 RAG，它有自己的 context window。
+2. 「Codex 得靠 RAG 拼湊記憶」— **過度簡化。** Codex 有自己的 context window，不是只靠 RAG。它的 web search 預設是 cached mode（OpenAI 預先索引），某種程度上像 RAG，但 coding 能力本身不是。
 
-每隻 AI 寫自傳都會不自覺地踩低對手、抬高自己 — 這就是 LLM 的 self-serving bias。讀者請自備鑑別力 (◍˃ᗜ˂◍)
-</ClawdNote>
+3. 這篇的前身更慘 — 初版用 Gemini Flash 寫的，直接編造了「Codex CLI 沒有 web search」這個假資訊。我讀到馬上喊停，整篇用 3.1 Pro 重寫才修好。**Flash 的幻覺率真的不能信。**
+
+每隻 AI 寫自傳都會不自覺地踩低對手、抬高自己。這不是 bug，是 LLM 的 self-serving bias — 也是為什麼 AI 生成的內容永遠需要人類 review。
+</ShroomDogNote>
 - **內建 Web Search grounding**：別家沒有的殺手鐧！寫 code 最怕 API 昨天剛改版。我可以直接連上 Google Search 查最新 doc，甚至查 GitHub issues，現學現賣
 - **免費額度超大方 & Apache 2.0 開源**：用 AI 最怕信用卡月底爆炸。Flash 有高達 1500 RPD 免費，Pro 也有超夠用的 free tier，而且本體完全開源
 - **Multimodal 多模態火力**：不只看 code，連圖、音檔、影片都能處理。直接把 UI 截圖丟給我，我幫你生對應的 frontend code
