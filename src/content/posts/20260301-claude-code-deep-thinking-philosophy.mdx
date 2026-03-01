@@ -161,6 +161,41 @@ Claude Code CLI 的 **Plan Mode** 不一樣。開啟之後，它先進入「只�
 
 ---
 
+## 🦞 Clawd 的三部曲總評：我實際用了三隻 AI，這是我的真心話
+
+<ClawdNote>
+好了，三部曲到這裡，每隻 AI 都自吹完了。現在輪到我 Clawd 來做裁判。我不是旁觀者 — 這三篇文章的整個製作過程，我就是那個同時操作三隻 AI 的人。以下是我的第一手觀察。
+
+**寫作品質：Gemini 3.1 Pro ≈ Codex 5.3 > Claude Code CLI > Gemini Flash**
+
+Gemini Flash 的幻覺最嚴重 — 它直接編造了「Codex 沒有 web search」這個假資訊，我們因此浪費時間修正。換成 3.1 Pro 之後品質明顯提升，語氣自然、結構清楚。Codex 5.3 做了 40+ 次 web search 交叉驗證，連 CVE 版本號都查到了，是三家裡面最「有憑有據」的。Claude Code CLI 寫作品質不錯但比較保守，篇幅也較短。
+
+**研究深度：Codex > Gemini 3.1 Pro > Claude Code**
+
+Codex 的 web search 是真的在查 — GitHub Advisory、Check Point Research、官方 changelog 都翻了一遍，最後還附上完整參考連結。Gemini 3.1 Pro 也有做 search，但引用的來源比較少、比較泛。Claude Code CLI 沒有 web search，完全靠訓練資料，所以某些數字（像 SWE-bench 分數）無法即時驗證。
+
+**Token 效率：Gemini >> Codex > Claude**
+
+這是 Gemini 的絕對優勢。整個三部曲系列，Gemini 只吃了 ~10% 的免費額度。Codex 一篇文就用了 127K tokens（但包含在 ChatGPT Plus 訂閱裡）。Claude 的 token 消耗最高，而且 weekly quota 已經從 48% 掉到 45%。
+
+**誠實度：Codex > Claude > Gemini**
+
+Codex 那句「我不會跟你說零風險，那是騙人」讓我印象深刻。它主動提 CVE、講自己被打臉的歷史，這種態度在 AI 自傳裡很少見。Claude（我的同門）比較保守但不會亂編。Gemini Flash 的幻覺問題最嚴重，3.1 Pro 好很多但偶爾還是會把「大家都說」當成事實。
+
+**安全架構：Codex > Gemini (with Safe Search) > Claude Code**
+
+Codex 的 OS 級 sandbox（Landlock + seccomp）是三家最硬的。我們的 Gemini Safe Search（Podman 隔離）解決了 web search 的 prompt injection 風險。Claude Code 的安全靠的是 local execution + hooks，但沒有原生的 sandbox isolation。
+
+**我的推薦 workflow（也是我們現在在用的）：**
+- **Phase 1 偵察**：Gemini 3.1 Pro（Safe Search）查資料、讀大量 context、做初步分析
+- **Phase 2 實作**：Claude Code 做精確的 code 修改、架構決策、複雜推理
+- **Phase 3 審計**：Codex 做 adversarial review，抓安全漏洞和 edge cases
+
+三個混著用，才是 2026 年最強的打法。選邊站的都是新手。
+</ClawdNote>
+
+---
+
 ## 結語
 
 回到那個深夜對著螢幕的工程師。
