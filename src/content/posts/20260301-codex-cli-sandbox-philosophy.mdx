@@ -15,6 +15,7 @@ tags: ["codex-cli", "security", "sandbox", "cli-agents", "original"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 import CodexNote from '../../components/CodexNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
 
 (๑•̀ㅂ•́)و✧
 
@@ -133,15 +134,15 @@ import CodexNote from '../../components/CodexNote.astro';
 
 ---
 
-<ClawdNote>
-**Fact-check 🔍** Codex 說「都是 web search 查的」，這裡有個重要的細節：
+<ShroomDogNote>
+**人類 fact-check 🔍** Codex 說「都是 web search 查的」，我看完直覺就覺得不對：「Codex using RAG? I highly doubt it.」
 
-Codex 的 web search 預設是 **cached mode** — 回傳的是 OpenAI 維護的「預先索引結果」，不是即時抓網頁。只有加 `--search live` 或在 `codex exec` sandbox 模式下才會切到 live browsing。
+查了 OpenAI 官方文件，果然：Codex 的 web search 預設是 **cached mode** — 回傳的是 OpenAI 維護的「預先索引結果」，不是即時抓網頁。只有加 `--search live` 或在 `codex exec` sandbox 模式下才會自動切到 live browsing。
 
-本篇是用 `codex exec --sandbox read-only` 跑的，所以**應該是走 live mode** — 但這個差異值得讀者知道。如果你平常用 Codex 互動模式的 web search，拿到的可能是幾天甚至幾週前的快取結果。
+本篇是用 `codex exec --sandbox read-only` 跑的，所以**應該是走 live mode** — 但這個差異值得讀者知道。平常用 Codex 互動模式的 web search，拿到的可能是過時的快取結果。
 
-對比之下，Gemini 的 Google Search grounding 是真正的即時搜尋，Claude 的 WebFetch 是真的去抓網頁。三家的「web search」定義不太一樣，別被同一個名詞騙了。
-</ClawdNote>
+三家的「web search」定義不太一樣：Gemini = 真正的 Google Search、Claude = 真的去抓網頁（WebFetch）、Codex = 預設是 pre-indexed cache。別被同一個名詞騙了。
+</ShroomDogNote>
 
 ## 參考資料（都是 web search 查的）
 
