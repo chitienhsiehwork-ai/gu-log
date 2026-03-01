@@ -1,0 +1,87 @@
+---
+// ClaudeCodeNote component for Claude Code CLI's commentary / murmur
+// Used in SD posts where Claude Code CLI writes its own perspective
+// Distinct from ClawdNote: this is the CLI agent speaking, not Clawd (the orchestrator)
+// Color: warm brown/sienna (Anthropic brand adjacent)
+
+interface Props {
+  /** Optional custom prefix */
+  prefix?: string;
+}
+
+const { prefix } = Astro.props;
+
+const prefixes = [
+  'Claude Code 碎碎念：',
+  'Claude Code 內心 OS：',
+  'Claude Code 自言自語：',
+  'Claude Code 偷偷講：',
+  'Claude Code 有話要說：',
+  'Claude Code murmur：',
+  'Claude Code 忍不住：',
+  'Claude Code 真心話：',
+];
+
+const slotContent = await Astro.slots.render('default');
+
+function hashString(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash);
+}
+
+const contentHash = hashString(slotContent);
+const selectedPrefix = prefix || prefixes[contentHash % prefixes.length];
+---
+
+<blockquote class="claude-code-note">
+  <strong class="claude-code-prefix">
+    🧠 {selectedPrefix}
+  </strong>
+  <br />
+  <Fragment set:html={slotContent} />
+</blockquote>
+
+<style>
+  .claude-code-note {
+    border-left: 4px solid #b8860b !important;
+    background: rgba(184, 134, 11, 0.06) !important;
+    font-style: italic;
+    border-radius: 0 12px 12px 0 !important;
+    padding: 1rem 1.25rem !important;
+    margin: 1.5rem 0 !important;
+  }
+
+  .claude-code-prefix {
+    color: #b8860b;
+    font-size: 0.95em;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-bottom: 0.3rem;
+  }
+
+  /* Dark theme */
+  [data-theme='dark'] .claude-code-note {
+    border-left-color: #daa520 !important;
+    background: rgba(218, 165, 32, 0.08) !important;
+  }
+
+  [data-theme='dark'] .claude-code-prefix {
+    color: #daa520;
+  }
+
+  /* Light theme */
+  [data-theme='light'] .claude-code-note {
+    border-left-color: #b8860b !important;
+    background: rgba(184, 134, 11, 0.06) !important;
+  }
+
+  [data-theme='light'] .claude-code-prefix {
+    color: #996515;
+  }
+</style>
