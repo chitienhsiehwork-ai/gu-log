@@ -96,8 +96,19 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
     {
       post.data.translatedDate && post.data.translatedBy && (
         <div class="translation-info">
-          翻譯於 {post.data.translatedDate} by {post.data.translatedBy.model} (
-          {post.data.translatedBy.harness})
+          {post.data.translatedBy.pipeline ? (
+            <>
+              <div>翻譯於 {post.data.translatedDate}</div>
+              {post.data.translatedBy.pipeline.map((step) => (
+                <div>{step.role} by {step.model} ({step.harness})</div>
+              ))}
+              {post.data.translatedBy.pipelineUrl && (
+                <div><a href={post.data.translatedBy.pipelineUrl} target="_blank" rel="noopener">View pipeline script →</a></div>
+              )}
+            </>
+          ) : (
+            <>翻譯於 {post.data.translatedDate} by {post.data.translatedBy.model} ({post.data.translatedBy.harness})</>
+          )}
         </div>
       )
     }
