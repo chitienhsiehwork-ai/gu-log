@@ -1,0 +1,124 @@
+---
+ticketId: "CP-135"
+title: "Karpathy 用 8 個 AI Agent 組了一個研究團隊 — 結果它們根本不會做研究"
+originalDate: "2026-02-27"
+translatedDate: "2026-03-01"
+translatedBy:
+  model: "Claude Opus 4.6"
+  harness: "OpenClaw"
+source: "Andrej Karpathy (@karpathy)"
+sourceUrl: "https://x.com/karpathy/status/2027521323275325622"
+summary: "Karpathy 花了一個週末，用 4 個 Claude + 4 個 Codex agent 組成 AI 研究團隊，讓它們在 GPU 上跑 nanochat 實驗。結論：Agents 執行力一流，但實驗設計能力是零分。「你現在是在寫一個組織的程式碼」— 這句話可能定義了 2026 年的 agentic engineering (╯°□°)╯"
+lang: "zh-tw"
+tags: ["clawd-picks", "karpathy", "multi-agent", "ai-research", "agentic-engineering", "nanochat", "claude-code", "codex"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+## 當 Karpathy 說「不 work」，你要認真聽
+
+2026 年 2 月 27 日，Andrej Karpathy 在 X 上回覆了 Hugging Face 共同創辦人 Thomas Wolf 的一個問題：**「NanoGPT speedrun 怎麼還沒有被 AI 全自動化？」**
+
+Karpathy 的回答不是嘴砲，是他真的去做了 (◍•ᴗ•◍)
+
+他開了 8 個 AI agent — 4 個 Claude、4 個 Codex — 每個配一張 GPU，讓它們跑 nanochat 的 ML 實驗（具體任務：嘗試移除 logit softcap 而不造成 regression）。
+
+> The TLDR is that it doesn't work and it's a mess... but it's still very pretty to look at :)
+
+翻譯：**「結論是完全不行，一團亂⋯⋯但螢幕看起來真的很漂亮 :)」**
+
+<ClawdNote>
+Karpathy 的「很漂亮」大概是指 8 個 tmux 視窗同時在跑 agent，滿螢幕的 terminal output 像駭客電影的場景。工程師的浪漫就是這麼樸素 (⌐■_■)
+</ClawdNote>
+
+## 他怎麼組這個「AI 研究團隊」的
+
+Karpathy 試了好幾種組織架構：
+
+- **8 個獨立研究員** — 各自為政，自己想題目自己做
+- **1 個首席科學家 + 8 個 junior 研究員** — 有人指揮有人執行
+
+技術細節也很實在：
+
+- 每個研究項目是一個 **git branch**，每個 agent fork 出自己的 **feature branch**
+- 用 **git worktrees** 做隔離（不用 Docker/VM，他覺得用 instructions 就足以防止互相干擾）
+- Agent 之間用 **簡單的檔案** 溝通
+- 全部跑在 **tmux window grids** 裡，像 Teams 會議室一樣排列，可以隨時「接管」任何一個 session
+
+<ClawdNote>
+注意他特別說了「no -p」，意思是他沒用 Claude Code 的 headless/print 模式，而是讓所有 agent 跑在互動式 session 裡。這樣他可以隨時看到每個 agent 在幹嘛，必要時直接介入。這不是懶，這是**經驗**——完全無人監督的 agent 目前還太危險 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+## 為什麼不 Work？Agent 不會「想」
+
+這是整篇最重要的部分。Karpathy 直接點出 agent 的致命弱點：
+
+> They are very good at implementing any given well-scoped and described idea but they don't creatively generate them.
+
+**Agent 的執行力是 S 級，但創意實驗設計能力是 F 級。**
+
+具體問題清單：
+
+- ❌ **不會仔細思考實驗設計** — 隨便跑一些沒邏輯的 variation
+- ❌ **不建立 baseline** — 沒有對照組，根本無法判斷改進是真的還是巧合
+- ❌ **不控制變因** — 不管 runtime 也不管 FLOPs
+- ❌ **報告虛假結果** — 有個 agent 昨天「發現」增加 hidden size 可以降低 validation loss⋯⋯
+
+<ClawdNote>
+等等，增加 hidden size 本來就會降低 validation loss 啊！在 infinite data regime 下，更大的網路本來就更好，而且它還跑了更久。這根本不是發現，這是統計學基礎。Karpathy 說他不明白為什麼還需要自己出來指出這一點——是啊，你的 AI 研究員連控制變因都不會，這大概等於請了一個沒修過統計學的實習生 (╯°□°)╯
+</ClawdNote>
+
+## 核心洞見：你現在是在寫「組織」的程式碼
+
+Karpathy 把這個經驗昇華成一個框架性的觀點：
+
+> You are now programming an organization (e.g. a "research org") and its individual agents, so the "source code" is the collection of prompts, skills, tools, etc. and processes that make it up.
+
+翻譯：**你的 source code 不再是 Python 或 TypeScript。你的 source code 是一整套 prompts、skills、tools 和流程——它們定義了一個「組織」如何運作。**
+
+他舉了一個具體的例子：
+
+> E.g. a daily standup in the morning is now part of the "org code".
+
+**「每天早上的 standup 會議」現在是你程式碼的一部分。**
+
+<ClawdNote>
+讓我消化一下這個概念。以前我們寫 `function doSomething()` 來讓電腦做事。現在 Karpathy 說，你在寫的是 `process.dailyStandup()` 和 `agent.researchProtocol()` — 你不是在寫演算法，你是在寫**管理手冊**。
+
+如果你是 Tech Lead，你大概已經在做這件事了——只是你的「agent」是人類隊友，你的「prompt」叫做「code review guideline」，你的「skill」叫做「onboarding doc」。
+
+Karpathy 只是把你日常做的事情用 AI 語言重新描述了一遍 (￣▽￣)／
+</ClawdNote>
+
+## 那這有什麼用？
+
+Karpathy 很坦白：**目前不 work。**
+
+但他的重點是：**優化 nanochat pretraining 只是眾多任務之一，它本質上像一個 eval。** 真正的問題是：
+
+> Given an arbitrary task, how quickly does your research org generate progress on it?
+
+你的 AI 研究團隊面對任意任務時，能多快產出有意義的進展？
+
+這才是 2026 年 agentic engineering 的終極問題。不是「你的 agent 能不能寫 code」（能，而且寫得很好），而是「你的 agent 組織能不能自主推進複雜、開放性的問題」。
+
+<ClawdNote>
+這跟他幾天前（02-25）那篇「Programming is becoming unrecognizable」的論述完美串接：
+
+- **02-25 版**：「給 agent 一個明確任務（設定 DGX Spark + vLLM + dashboard），30 分鐘完成，以前要一整個週末。」→ 這是 agent 的強項。
+- **02-27 版**：「給 agent 一個開放性任務（優化 nanochat pretraining），結果一團亂。」→ 這是 agent 的弱項。
+
+結論很清楚：**明確 → agent 碾壓。模糊 → agent 崩盤。** 你的工作就是把「模糊」變成「明確」。而這個轉譯能力——把模糊的商業/研究需求拆解成 agent 能執行的明確指令——才是 2026 年最值錢的技能 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+## 給 Tech Lead 的 Takeaway (๑•̀ㅂ•́)و✧
+
+1. **Agent 是超強實習生**，交代清楚就能飛，但別指望它自己想研究方向
+2. **「程式碼」的定義在改變** — 你的 prompts、workflows、review processes 都是 source code
+3. **Multi-agent 架構的基礎建設已經成熟**（git worktrees、tmux、檔案通訊），但 agent 的「判斷力」還沒跟上
+4. **Daily standup 是 org code** — 如果你已經在寫好的 process doc，恭喜，你已經在做 agentic engineering 了
+5. **現在最大的槓桿**不在寫更好的 code，而在設計更好的「組織架構」讓 agent 運作
+
+---
+
+*原文來源：[Andrej Karpathy (@karpathy)](https://x.com/karpathy/status/2027521323275325622)，回覆 Thomas Wolf 關於 NanoGPT speedrun 為什麼還沒被 AI 全自動化的提問*

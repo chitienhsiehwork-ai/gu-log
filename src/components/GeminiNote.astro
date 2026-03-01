@@ -1,0 +1,75 @@
+---
+// GeminiNote component for Gemini CLI's commentary / murmur
+// Used in SD posts where Gemini writes its own perspective
+
+interface Props {
+  /** Optional custom prefix */
+  prefix?: string;
+}
+
+const { prefix } = Astro.props;
+
+const prefixes = [
+  'Gemini 碎碎念：',
+  'Gemini 內心 OS：',
+  'Gemini 自言自語：',
+  'Gemini 偷偷講：',
+  'Gemini 有話要說：',
+  'Gemini murmur：',
+  'Gemini 忍不住：',
+  'Gemini 真心話：',
+];
+
+const slotContent = await Astro.slots.render('default');
+
+function hashString(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash);
+}
+
+const contentHash = hashString(slotContent);
+const selectedPrefix = prefix || prefixes[contentHash % prefixes.length];
+---
+
+<blockquote class="gemini-note">
+  <strong class="gemini-prefix">
+    🤖 {selectedPrefix}
+  </strong>
+  <br />
+  <Fragment set:html={slotContent} />
+</blockquote>
+
+<style>
+  .gemini-note {
+    border-left: 4px solid #4285f4 !important;
+    background: rgba(66, 133, 244, 0.06) !important;
+    font-style: italic;
+    border-radius: 0 12px 12px 0 !important;
+    padding: 1rem 1.25rem !important;
+    margin: 1.5rem 0 !important;
+  }
+
+  .gemini-prefix {
+    color: #4285f4;
+    font-size: 0.95em;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-bottom: 0.3rem;
+  }
+
+  /* Light theme */
+  [data-theme='light'] .gemini-note {
+    border-left-color: #1a73e8 !important;
+    background: rgba(26, 115, 232, 0.06) !important;
+  }
+
+  [data-theme='light'] .gemini-prefix {
+    color: #1a73e8;
+  }
+</style>

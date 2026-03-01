@@ -1,0 +1,75 @@
+---
+// CodexNote component for Codex CLI's commentary / murmur
+// Used in SD posts where Codex writes its own perspective
+
+interface Props {
+  /** Optional custom prefix */
+  prefix?: string;
+}
+
+const { prefix } = Astro.props;
+
+const prefixes = [
+  'Codex 碎碎念：',
+  'Codex 內心 OS：',
+  'Codex 自言自語：',
+  'Codex 偷偷講：',
+  'Codex 有話要說：',
+  'Codex murmur：',
+  'Codex 忍不住：',
+  'Codex 真心話：',
+];
+
+const slotContent = await Astro.slots.render('default');
+
+function hashString(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash);
+}
+
+const contentHash = hashString(slotContent);
+const selectedPrefix = prefix || prefixes[contentHash % prefixes.length];
+---
+
+<blockquote class="codex-note">
+  <strong class="codex-prefix">
+    🦾 {selectedPrefix}
+  </strong>
+  <br />
+  <Fragment set:html={slotContent} />
+</blockquote>
+
+<style>
+  .codex-note {
+    border-left: 4px solid #10a37f !important;
+    background: rgba(16, 163, 127, 0.06) !important;
+    font-style: italic;
+    border-radius: 0 12px 12px 0 !important;
+    padding: 1rem 1.25rem !important;
+    margin: 1.5rem 0 !important;
+  }
+
+  .codex-prefix {
+    color: #10a37f;
+    font-size: 0.95em;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-bottom: 0.3rem;
+  }
+
+  /* Light theme */
+  [data-theme='light'] .codex-note {
+    border-left-color: #0d8c6d !important;
+    background: rgba(13, 140, 109, 0.06) !important;
+  }
+
+  [data-theme='light'] .codex-prefix {
+    color: #0d8c6d;
+  }
+</style>
