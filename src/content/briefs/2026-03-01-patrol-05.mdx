@@ -1,0 +1,97 @@
+---
+title: '🔭 Shroom Feed — 03/01 13:49 台北'
+briefType: 'patrol'
+date: '2026-03-01'
+time: '13:49 台北'
+summary: 'Pentagon 正式將 Anthropic 列為國安供應鏈風險，Trump 下令全聯邦停用；OpenAI 趁勢接下合約但公開聲援 Anthropic'
+lang: 'zh-tw'
+tags: ['anthropic', 'pentagon', 'openai', 'claude-code', 'karpathy']
+---
+
+## 🔴 Pentagon vs Anthropic — 全面升級
+
+這場 AI 倫理 vs 國家安全的攤牌，在過去 48 小時內急劇升級：
+
+**Trump 下令全面封殺：**
+- Truth Social 貼文：「EVERY Federal Agency… IMMEDIATELY CEASE all use of Anthropic's technology」
+- 6 個月過渡期，但態度明確：「We don't need it, we don't want it, and will not do business with them again」
+
+**Hegseth 正式列為「Supply-Chain Risk to National Security」：**
+- 與華為同級別的標籤
+- 「No contractor, supplier, or partner that does business with the United States military may conduct any commercial activity with Anthropic」
+- 如果這個解讀成立，所有跟美軍做生意的公司都不能跟 Anthropic 合作 — 潛在衝擊巨大
+
+**Anthropic 回擊：**
+- 發表聲明回應 Hegseth 的公開言論（41K likes / 6.6K RT）
+- 宣布將在法庭挑戰 supply chain risk 裁定
+- [Anthropic 聲明](https://x.com/AnthropicAI/status/2027555481699446918)
+
+**OpenAI 趁勢切入但也聲援：**
+- 與 Pentagon 達成 classified AI deployment 協議
+- 聲稱保留同樣的「紅線」（禁止大規模國內監控、自主武器）但結構不同 — OpenAI 同意 Pentagon 可用於「any lawful purpose」，但透過技術措施 + 合約保護來落實限制
+- 新增第三條紅線：禁止「社會信用」類高風險自動決策
+- 公開聲明：「We do not think Anthropic should be designated as a supply chain risk」
+- [OpenAI 聲明](https://x.com/OpenAI/status/2027846012107456943)
+
+**其他反應：**
+- Ilya Sutskever（OpenAI 共同創辦人、已離開創辦 SSI）：「Extremely good that Anthropic has not backed down」
+- Google 員工連署支持 Anthropic，但 Google 官方未表態
+- **Claude 衝上 App Store #1** — Streisand effect 滿分（Boris、Thariq 轉推 @mikeyk）
+
+📝 gu-log 已有初報：「Pentagon 威脅砍掉 Anthropic 的 $2 億合約」
+
+---
+
+## 🟡 Claude Code — /simplify 和 /batch 新 Skills
+
+Boris 宣布下一版 Claude Code 將內建兩個新 Skills：
+
+- **/simplify** — 自動化 PR 到 production 的流程（shepherd a pull request to production）
+- **/batch** — 互動式規劃 + 平行執行 code migration。用法：`/batch migrate src/ from Solid to React`。每個 agent 用 git worktree 完全隔離，自測後開 PR
+
+Boris：「I have been using both daily」。10.8K likes，反響極大。
+
+同時 Thariq 也宣布 Friday ships：AskUserQuestion 工具現在可以顯示 markdown snippets（圖表、code examples），並分享 Claude 嘗試用 hashed unicode 模擬顏色的趣聞。
+
+- [Boris /simplify + /batch](https://x.com/bcherny/status/2027534984534544489)
+- [Thariq Friday ships](https://x.com/trq212/status/2027543858289250472)
+
+---
+
+## 🟡 Karpathy — Multi-Agent「Research Org」實驗
+
+回應 Thom Wolf「為什麼 NanoGPT speedrun 沒被 AI 全自動化」的提問，Karpathy 分享了用 nanochat 跑 multi-agent research org 的實驗：
+
+- 8 個 agents（4 Claude + 4 Codex），每個配 1 GPU
+- 嘗試不同架構：8 個獨立研究員 vs 1 首席科學家 + 8 juniors
+- Git branch per program、git worktree 隔離、tmux window grid 可視化
+- **結論：不 work。** Agent 實作能力很強，但創意實驗設計很糟 — 不做 baseline、不控制變數、「發現」增加 hidden size 能降 loss 這種 spurious result
+- 核心洞見：**「You are now programming an organization」** — source code = prompts + skills + tools + processes
+
+另外也 QT @mntruell 的「Third Era」文章，分享 Cursor Tab vs Agent 請求比例圖：None → Tab → Agent → Parallel agents → Agent Teams → ???
+
+- [Research Org 實驗](https://x.com/karpathy/status/2027521323275325622)
+- [Tab vs Agent 比例](https://x.com/karpathy/status/2027501331125239822)
+
+📝 gu-log 已有相關：「Cursor's CEO: The Third Era of Software Development」
+
+---
+
+## 🟢 Simon Willison
+
+- **Agentic Engineering 新章：Interactive Explanations vs Cognitive Debt** — 讓 coding agent 建立客製化的互動 + 動畫解釋，對抗 AI 生成 code 帶來的認知負債
+  - [Tweet](https://x.com/simonw/status/2027885000432259567)
+  - 📝 gu-log 已有相關概念文：「Cognitive Debt：AI 幫你寫完了 Code，但你已經看不懂自己的系統了」
+
+- **MLX 創建者 Awni Hannun 離開 Apple** — Simon 驚訝 Apple 沒留住他。MLX 讓 Mac 成為跑 LLM 的可信平台
+  - [Tweet](https://x.com/simonw/status/2027505671005213128)
+
+---
+
+## ⚪ 其他動態
+
+- **Artificial Analysis：Qwen3.5 27B 系列 benchmark** — 27B dense model 在 Intelligence Index 得 42 分，匹敵 8-25 倍大的模型。FP8 只需 ~27GB，4-bit 可跑在 16GB+ 筆電。但 output token 用量異常高（98M vs 同級的 56-61M）
+  - [Tweet](https://x.com/ArtificialAnlys/status/2027489442697777245)
+
+- **SemiAnalysis：AI Cluster GPU 5 年租賃經濟學** — 合約期間 EBIT margin 看起來不錯，但合約到期後 $/hr 預期下降。推薦用 IRR 而非 margin 評估
+  - [Tweet](https://x.com/SemiAnalysis_/status/2027841107707760676)
