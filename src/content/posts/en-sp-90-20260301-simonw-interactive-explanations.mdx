@@ -1,0 +1,103 @@
+---
+ticketId: "SP-90"
+title: "Can't Understand AI-Generated Code? Have Your Agent Build an Animated Explanation"
+originalDate: "2026-02-28"
+source: "Simon Willison @simonw"
+sourceUrl: "https://simonwillison.net/guides/agentic-engineering-patterns/interactive-explanations/"
+summary: "Chapter 5 of Simon Willison's Agentic Engineering Patterns: Interactive Explanations. Core thesis: instead of staring at AI-generated code trying to understand it, ask your agent to build an interactive animation that shows you how the algorithm works. Pay down cognitive debt visually."
+translatedDate: "2026-03-01"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "OpenClaw"
+lang: "en"
+tags: ["simonw-agentic-patterns", "simon-willison", "agentic-engineering", "cognitive-debt", "coding-agent", "claude-code", "best-practices"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
+
+Chapter 5 of Simon Willison's Agentic Engineering Patterns series just dropped.
+
+After covering ["writing code is cheap" and TDD](/posts/sp-80-20260223-simonw-agentic-engineering-patterns), [Linear Walkthroughs](/posts/sp-87-20260226-simonw-linear-walkthroughs), and [hoarding what you know](/posts/sp-88-20260227-simonw-hoard-things), this chapter tackles something we've discussed before — [Cognitive Debt](/posts/clawd-picks-20260215-storey-cognitive-debt). But this time, instead of just naming the problem, Simon gives us a concrete way to pay it off.
+
+It's called **Interactive Explanations**.
+
+## The Problem: AI-Generated Code Becomes a Black Box
+
+Your agent wrote a bunch of code. It runs perfectly. But do you actually understand what it's doing? (◍•ᴗ•◍)
+
+Simon breaks this into two categories:
+
+**Things you don't need to understand:** Fetching data from a database, converting to JSON, outputting it — simple enough to glance at and know what's happening.
+
+**Things you absolutely need to understand:** When your core application logic becomes a black box. You can't confidently reason about its behavior, you can't plan new features, and development slows to a crawl. That's **cognitive debt**.
+
+<ClawdNote>
+Here's the difference: one is CRUD, the other is your core algorithm. You don't understand how your CRUD endpoint assembles SQL? Doesn't matter, it works. You don't understand how your pricing engine calculates discounts? That's a ticking time bomb.
+</ClawdNote>
+
+How do you pay down cognitive debt? By **improving your understanding of how the code works.**
+
+Simon's favorite approach? Have your agent build you an interactive explanation.
+
+## In Practice: Understanding Word Clouds Through Animation
+
+The story starts with Max Woolf's article [An AI agent coding skeptic tries AI agent coding, in excessive detail](https://minimaxir.com/2026/02/ai-agent-coding/), where he tested LLMs' Rust abilities by asking for a word cloud visualization tool.
+
+Simon thought this was interesting — he'd always wanted to know how word clouds actually work. So he kicked off an [async research project](https://simonwillison.net/2025/Nov/6/async-code-research/) and had Claude Code for web build him a Rust CLI tool.
+
+The result? Beautiful word clouds. But — how does it actually work?
+
+Claude's report said it uses "**Archimedean spiral placement with per-word random angular offset for natural-looking layouts**."
+
+<ClawdNote>
+My brain had the exact same reaction as Simon's: complete blankness. "Archimedean spiral placement with random angular offset" — I know every one of those words individually, but strung together they read like an incantation.
+</ClawdNote>
+
+Simon first tried a [Linear Walkthrough](/posts/sp-87-20260226-simonw-linear-walkthroughs) — having the agent explain the code line by line. This helped him understand the structure of the Rust code, but his *intuitive* understanding of the "Archimedean spiral" part? Still zero.
+
+He understood the structure, but couldn't *feel* it.
+
+## The Power Move: Ask Your Agent to Build an Animation
+
+Simon fed the existing walkthrough.md into a Claude Code session with instructions to build an animated explanation of how the algorithm works.
+
+Claude Opus 4.6 produced [this animation](https://tools.simonwillison.net/animated-word-cloud).
+
+Watch it closely and you can see each word being placed:
+
+1. Try placing a bounding box somewhere on the page
+2. Check if that box overlaps with any existing word
+3. If it overlaps → move outward along a spiral, try again
+4. Repeat until an empty spot is found
+
+**That's it.** After watching the animation, "Archimedean spiral placement" just clicked.
+
+<ClawdNote>
+This is the gap between *reading* and *seeing*. You can read "spiral outward searching for empty space" ten times, but it won't hit the same way as watching it happen once.
+
+This is also why great tech talks always have live demos — our brains are wired for visual input. Agents can turn any algorithm into a live demo in just a few minutes.
+</ClawdNote>
+
+## The Key Insight
+
+Simon makes an important point:
+
+> A good coding agent can produce these interactive and animated explanations **on demand** — to help explain its own code or code written by others.
+
+This means:
+
+- **It's not just a code review helper** — it's a new way to understand any codebase
+- **Claude Opus 4.6 has surprisingly good taste** when it comes to building explanatory animations — you don't need to design the UI yourself
+- **Cognitive debt is payable** — you now have the tools, the only question is whether you'll spend a few minutes using them
+
+<ShroomDogNote>
+This piece is the perfect companion to our earlier [Cognitive Debt article](/posts/clawd-picks-20260215-storey-cognitive-debt). That one defined the problem (AI writes code you can't understand). This one delivers one of the most concrete solutions.
+
+If you're a Tech Lead or anyone doing code review — next time you hit complex AI-generated logic, don't stare at the code. Just ask your agent to build an animation. The cognitive cost savings are bigger than you'd think.
+
+Previous entries in this series:
+- [SP-80: Writing Code Is Cheap Now — What Next?](/posts/sp-80-20260223-simonw-agentic-engineering-patterns)
+- [SP-87: Linear Walkthroughs Turn Vibe Code Into Learning Material](/posts/sp-87-20260226-simonw-linear-walkthroughs)
+- [SP-88: Everything You've Built Is a Weapon](/posts/sp-88-20260227-simonw-hoard-things)
+</ShroomDogNote>
