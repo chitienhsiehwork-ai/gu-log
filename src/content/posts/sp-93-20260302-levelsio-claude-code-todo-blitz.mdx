@@ -1,0 +1,123 @@
+---
+ticketId: "SP-93"
+title: "AI 時代的超級個體：Levelsio 如何靠 Claude Code 清空待辦清單"
+originalDate: "2026-02-28"
+translatedDate: "2026-03-02"
+translatedBy:
+  model: "Gemini 3.1 Pro"
+  harness: "Gemini CLI"
+source: "@levelsio on X"
+sourceUrl: "https://x.com/levelsio/status/2027566773814403448"
+lang: "zh-tw"
+summary: "知名獨立開發者 levelsio 分享他如何完全放手讓 Claude Code 在 production 環境直接改 code，將開發速度推向極限，甚至超越了他想點子的速度。"
+tags: ["shroom-picks", "indie-hacker", "claude-code", "levelsio"]
+---
+import ClawdNote from '../../components/ClawdNote.astro';
+
+各位觀眾好，今天這篇文章非常硬核，我們來看知名 Indie Hacker（獨立開發者）Pieter Levels (@levelsio) 的最新震撼彈。他在推文裡直接說，這週把 Claude Code 長駐在 production server 上跑，開發速度第一次快到把待辦清單清空。
+
+這篇文章不只是在炫耀他用 AI 做了多少功能，更重要的是他揭示了在 2026 年，一個人 + AI 團隊的「終極方法論」：信任 AI → 關閉安全防護網 → 直接在 production 驗證。
+
+這跟我們之前看過的那篇律師案例（SP-92）完全是個極端對比：同樣是一人團隊加上 AI，律師靠的是精細的 Skills 系統來控制 AI 的判斷力；而 levelsio 則是徹底「放開韁繩」，靠 production 端的快速回饋來收斂結果 (◍•ᴗ•◍)
+
+---
+
+**直接解除封印：在 Server 上裸奔的 Claude Code**
+
+這個禮拜，levelsio 決定做一個大膽的嘗試：他把 Claude Code 直接裝在 server 上，並且**永久開啟繞過權限模式**。
+他甚至寫了一個 alias 腳本：
+`c() { IS_SANDBOX=1 claude --dangerously-skip-permissions "$@"; }`
+
+<ClawdNote>
+看到 `--dangerously-skip-permissions` 直接在 server 跑，很多傳統軟體工程師可能已經心肺停止了。但在獨立開發的語境裡，速度就是一切。levelsio 的哲學是：與其花時間做 CI/CD 和層層 code review，不如把 feedback loop 縮短到「寫完直接 F5 重新整理看結果」。這不是最佳實踐，但這是「最快實踐」。
+</ClawdNote>
+
+結果是什麼？他生平第一次，開發速度超車了待辦清單。
+他直接像開無雙一樣，把功能板和 bug 版上的任務全部清空了。他說這輩子沒開發得這麼快過，而且 Claude Code 幾乎沒犯錯。就算有錯，也是無關痛癢的小問題（這點對他來說超重要，因為他現在幾乎都是直接在 production 的 server 上施工）。
+
+過去他本來就以「快」聞名（畢竟他一直都是單打獨鬥），但不管他手腳再怎麼快，用戶許願池裡的票總是會越積越多。但這個禮拜，板子空了！
+
+**新的瓶頸：人類的創意與 Context Window**
+
+現在，真正的瓶頸已經不是「寫 code 的速度」，而是他自己大腦的極限。
+他發現，自己想新點子的速度，已經跟不上 AI 實作的速度了（雖然他覺得大腦可能之後會適應這種節奏）。
+
+另一個快要觸頂的極限是「人類的 mental context window」。當你要同時在腦中 maintain 好幾個專案、數十個 feature 和 bug，看著 AI 同時多管齊下，腦容量真的會不夠用。他覺得自己離那個極限不遠了。
+
+<ClawdNote>
+這點非常值得深思。當執行成本趨近於零，人類的價值就會從「實作能力」徹底轉向「需求定義」和「專案架構」。你有多大的 mental context window，決定了你能指揮多大的 AI 艦隊。
+</ClawdNote>
+
+**信任與放手：極速 Feedback Loop 的秘密**
+
+levelsio 點出了一個關鍵：**你越是放手讓 AI 自己跑，速度就會越快。**
+以前他也很慢，因為他不敢信任 AI，很怕 AI 會把他的 codebase 搞砸。但現在，他選擇直接放手。
+就像 Andrej Karpathy 說的，自從去年 12 月開始，模型的能力已經跨過了一個坎，真正達到了「可以拿來寫 code」的水準。
+
+他觀察到身邊其他朋友用 Claude Code 時，速度還是很慢，因為他們還是在逐行檢查。這當然沒錯，但他認為更好的做法是：**寫好測試，然後讓 AI 自由發揮，看它能不能通過。**
+
+對 levelsio 來說，他的「測試」非常草莽——就是直接打開網站，看看新功能有沒有 work。在 99% 的情況下，功能都是正常的。然後他再叫 AI 繼續優化。
+
+因為他是直接在 production server 上跑 Claude Code，他連等待 deploy 的時間都省了（雖然以前 deploy 也只要 3 秒，但累積起來也是時間）。現在的流程變成：等 AI 寫完 → 重新整理網頁 → 測試。這個極短的 feedback loop 讓他的效率直接飛天。
+
+<ClawdNote>
+這就是 levelsio 流派的核心：Trust, but verify in production。傳統軟體工程依賴靜態檢查、單元測試、staging 環境來防堵錯誤。但他把「人工肉眼看 production」當作唯一的 integration test。對於沒有歷史包袱的 SaaS 產品，這種做法能最大化地榨取 LLM 的產能。
+</ClawdNote>
+
+---
+
+**一週產出清單 (大約是他平常的 10 倍)**
+
+最後，來看看他這一個禮拜到底清空了多少東西（大部分都是用戶在 bug board 敲碗的）：
+
+**📸 Photo AI**
+- 做了新的圖片瀏覽器（包含手機版）
+- 加入批次混圖 (batch remix)、多圖匯入、用模型篩選 gallery
+- 安全性大翻新：把原本不安全的 `?hash=` 登入機制拔掉，改成 session tokens
+- 修了一堆 bug：Google 登入無限迴圈、多模型選擇問題、talking scripts 問題
+- 會說話的影片現在可以上傳自訂音檔了
+- 弄了一個動態模型選擇器的 server endpoint
+
+**🏡 Interior AI**
+- 復活了半年沒動的「加入家具」功能（因為現在的圖片模型終於夠強了）
+- 房間重新設計功能可以上傳自訂風格
+- 自己刻了一個給 3D 用的 Gaussian Splat viewer
+- 做了移除家具背景的 `/remove_bg` endpoint
+- 把 3D 空間導覽功能遷移到新的 World Labs API
+- 支援 `.skp` 檔案、油漆顏色遮罩、一鍵清空房間按鈕
+
+**🎒 Nomads**
+- 上線了從 chat 產生內容的 AI 每週電子報
+- 重構了個人檔案編輯介面（從 `/settings` 搬到個人頁面）
+- 加上 TikTok/YouTube 連結、狀態列、server-side API 追蹤
+- 灌了幾百個新的個人標籤和屬性
+- 修好時區篩選、壞掉的連結、還有使用者的頭像問題
+
+**🗺️ Hoodmaps**
+- 復活了編輯模式（之前資料庫壞掉，好幾年都只能唯讀）
+- 用 5 萬多個帶有情緒分數的標籤，做出了熱力圖模式
+- 抓出資料庫寫不進去的 root cause（PRAGMA 設定錯了，應該要是 WAL）
+- 加入好區/壞區偵測，還配了 admin 的網格控制面板
+- 弄了一個 Claude Code Telegram bot 來做 live changes
+- 掛上 Cloudflare cache，修好 health check，順便修了布魯塞爾的 bug
+
+**📕 MAKE 書籍**
+- 寫了一個可以自動生 ePub/PDF 的 cron worker
+- 加上帶有顧客個人浮水印的動態生成功能
+- 做了圖片壓縮來縮小檔案
+
+**💾 Pieter .com**
+- 給 Kindle 弄了一個純文字的維基百科閱讀器
+- 在玩 v86 弄 Windows 3.11 模擬器（想換掉原本的 Em-DOSBox）
+- 首頁加上產品推薦區塊
+- 裝了個 1986 年的老遊戲 Wall Street Raider
+
+**👩‍💻 Remote OK**
+- 裝了 Chatbase AI 當客服 bot
+- 在職缺上面加了「檢舉這個工作不是遠端」的按鈕
+
+**🏨 Hotelist（3 todos）**
+- 修了飯店網址跟城市範圍的 bug
+- 加了有沒有提供熨斗的標記
+
+看完這串更新，重點已經不是「AI 會不會寫」，而是你敢不敢把回饋迴圈壓到最短。
