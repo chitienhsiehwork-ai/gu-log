@@ -12,6 +12,16 @@ const postsCollection = defineCollection({
         .object({
           model: z.string(),
           harness: z.string(),
+          pipeline: z
+            .array(
+              z.object({
+                role: z.string(), // e.g., "Written", "Reviewed", "Refined"
+                model: z.string(),
+                harness: z.string(),
+              }),
+            )
+            .optional(),
+          pipelineUrl: z.string().url().optional(),
         })
         .optional(),
       source: z.string(), // e.g., "@0xdevshah on X"

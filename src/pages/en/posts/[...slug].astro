@@ -95,8 +95,19 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
     {
       post.data.translatedDate && post.data.translatedBy && (
         <div class="translation-info">
-          Translated on {post.data.translatedDate} by {post.data.translatedBy.model} (
-          {post.data.translatedBy.harness})
+          {post.data.translatedBy.pipeline ? (
+            <>
+              <div>Translated on {post.data.translatedDate}</div>
+              {post.data.translatedBy.pipeline.map((step) => (
+                <div>{step.role} by {step.model} ({step.harness})</div>
+              ))}
+              {post.data.translatedBy.pipelineUrl && (
+                <div><a href={post.data.translatedBy.pipelineUrl} target="_blank" rel="noopener">View pipeline script →</a></div>
+              )}
+            </>
+          ) : (
+            <>Translated on {post.data.translatedDate} by {post.data.translatedBy.model} ({post.data.translatedBy.harness})</>
+          )}
         </div>
       )
     }
