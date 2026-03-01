@@ -1,0 +1,160 @@
+---
+ticketId: "SP-94"
+title: "Agent Harness 才是真正的產品：為什麼大廠的 Agent 架構都長得一樣？"
+originalDate: "2026-03-01"
+translatedDate: "2026-03-02"
+translatedBy:
+  model: "Gemini 3.1 Pro"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+    - role: "Reviewed"
+      model: "GPT-5.3-Codex"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "@Hxlfed14 on X"
+sourceUrl: "https://x.com/hxlfed14/status/2028116431876116660"
+lang: "zh-tw"
+summary: "大家都在追最強 Model，但真正決定 Agent 好不好用的其實是 Harness。本文拆解 Claude Code、Cursor、Manus、SWE-Agent 的共通架構。重點是：Progressive disclosure 才是 production 成敗分水嶺。"
+tags: ["shroom-picks", "ai-agent", "agent-harness", "claude-code", "cursor"]
+---
+import ClawdNote from '../../components/ClawdNote.astro';
+
+「大家都在談論 Model，卻沒人討論 Scaffolding (鷹架)。」
+
+目前市面上那些超強的 AI Agents —— 像是 Claude Code, Cursor, Manus, Devin, SWE-Agent —— 其實他們的架構最終都收斂到了同一個模式：一個刻意保持簡單的迴圈包著 Model，給它幾個基本的 tools 當作手腳，然後由 scaffolding 來決定什麼資訊、在什麼時候餵給 Model。
+
+Model 是可以替換的，Harness 才是真正的產品！ (๑˃ᴗ˂)ﻭ
+
+來看看證據：
+- 同一個 Claude Opus 4.5 模型，在 CORE-Bench 上，用一種 scaffold 只能拿 42%，換另一種就能拿 78%！（依 LangChain 分析）
+- Cursor 搞了個 lazy tool loading (工具延遲載入)，直接把 token 用量砍了 46.9%。（依 Cursor 測試結果）
+- Vercel 把他們 Agent 80% 的 tools 刪掉，結果本來會失敗的任務，反而成功跑完了。（依 Phil Schmid 案例研究）
+
+同一個模型、同一個 Benchmark，唯一的變數就是 Harness。
+而這些 Harness 裡面最被低估的設計模式是什麼？
+就是 Progressive disclosure (漸進式揭露) —— 讓 Agent 一步步發掘 Context，而不是一開始就把所有東西塞給它，讓它溺水。
+
+這篇文章我們就來拆解，Harness 到底是什麼？各大廠是怎麼建構他們的 Harness？為什麼 Progressive disclosure 是區分「真正能用的 Agent」和「只是看起來很炫的 Demo」的關鍵。
+
+---
+
+## 什麼是 Agent Harness？
+
+LangChain 的 Harrison Chase 給了一個很精闢的定義：「Framework 是一種抽象... 通常沒什麼主見 (unopinionated)。而 Harness 則是『電池內建』(batteries included)。」
+
+簡單來說，Agent Harness 就是包在 Model 外圍、讓它變得有用的所有東西：執行迴圈 (execution loop)、工具定義 (tool definitions)、錯誤恢復機制 (error recovery)、狀態管理 (state management) 以及資訊流 (information flow)。
+
+Model 負責做決定，而 Harness 負責決定 Model 能看到什麼、能用什麼工具，以及失敗時該怎麼辦。
+
+所有上線的 production agent 幾乎都收斂到這個核心迴圈：
+
+```python
+while (model 呼叫 tools):
+ 執行 tool → 捕捉結果 → 加進 context 裡面 → 再次呼叫 model
+```
+
+就這麼簡單！不管是 Claude Code, Cursor 還是 Manus，他們整個架構都塞得進這個迴圈裡。真正的工程難點，在於這個迴圈外圍的設計。
+
+<ClawdNote>
+這其實跟人類寫程式的過程很像：寫扣 -> 看 error message -> 繼續寫。Model 就像是大腦，Harness 則是給這個大腦接上了感官跟手腳，還要順便當它的防呆機制。如果 Harness 寫得不好，就算換成更強的模型也只會一直鬼打牆。
+</ClawdNote>
+
+---
+
+## 各大廠是如何打造他們專屬的 Harness？
+
+### Claude Code：「讓 Model 來控制迴圈」
+
+Claude Code 的架構已經被大家逆向工程得差不多了，Anthropic 自己也發過詳細的文章。它的核心就是一個單層的 message list，配上大概 18 個基本的 primitive tools。
+
+- **迴圈設計**：內部代號叫 `nO`，它就是一個單純的 `while(tool_call)` 迴圈。沒有什麼複雜的 DAG 編排，也沒有什麼多 Agent 角色扮演。Model 收到 messages 和 tools，回傳 text 就結束迴圈，回傳 tool calls 就繼續。Anthropic 稱之為「讓 Model 控制迴圈」，而不是「用 Code 控制 Model」。
+- **工具 (Tools)**：大概 18 個基礎工具，分為命令列 (Bash, Glob, Grep, LS)、檔案操作 (Read, Write, Edit, MultiEdit)、網路存取 (WebSearch, WebFetch) 和任務編排 (TodoWrite, Task)。他們的哲學是「要提供基礎工具 (primitives)，而不是特定整合」。有趣的是，Anthropic 選擇用 regex (ripgrep) 來搜尋程式碼，而不是用 vector DB。他們認為 Claude 懂 code，所以能寫出很厲害的 regex 來搜尋。
+- **資訊分層**：一開始啟動時載入六層資訊，包含系統政策、專案層級的 `CLAUDE.md`、使用者設定、自動學習的 `MEMORY.md`、對話歷史和 Git 狀態。一個很重要但常被忽略的技巧是：Tool 的執行結果會注入「系統提醒」——每次 tool 執行完都會在結尾附加固定文字。這比單純寫在 system prompt 裡更能讓 Agent 乖乖聽話，因為它每次呼叫都會看到！
+- **錯誤恢復 (Error recovery)**：主要由 Model 自己驅動。Tool 執行失敗會回傳 error message 當作 tool 的結果，讓 Model 自己決定怎麼辦。其中 `TodoWrite` 這個工具在出錯時會變成一個「進度錨點」，Model 會去看 TODO list 才知道自己原本要幹嘛。
+
+<ClawdNote>
+那個 `TodoWrite` 工具根本是神來一筆！它其實什麼事都沒做，純粹是一個 Harness 層級的騙術 (no-op tool)，強迫 Agent 把自己的計畫寫下來並追蹤進度，防止它在超長任務中失憶。這招超級實用，自己在刻 Agent 的人一定要學起來 (◍•ᴗ•◍)
+</ClawdNote>
+
+### Cursor：「把 File 當作最基礎的 Primitive」
+
+Cursor 的架構包含 Router、LLM、十幾個 tools、Context retrieval 和一個類似 ReAct 的 orchestrator。
+
+- **關鍵決策**：Cursor 會根據不同的 frontier model 來特調他們的 Harness。給不同的 Model 看不同的 tool 名稱、prompt 指示和行為引導。給 OpenAI Codex 的 tool 會命名得像 shell command（例如 `rg`），給 Claude 的則是另一種推理總結格式。
+- **檔案就是 Context**：在 Cursor 裡，所有東西都對應到檔案 (Files)。為什麼？因為檔案可以被搜尋 (ripgrep, jq, grep)、可以被分組，而且有版本控制。他們說：「檔案是一個簡單又強大的 primitive，比發明新抽象概念安全多了。」
+- **客製化 Semantic Search**：他們用 Agent 的對話軌跡 (session traces) 來訓練自家的 embedding model。分析 Agent 在解任務時，哪些檔案「應該」要早點被搜尋出來，然後用這些資料去 fine-tune。結果搜尋準確率提升了 12.5%！（依 Cursor 官方技術部落格）
+
+### Manus：「KV-Cache 絕對是老大」
+
+Manus 團隊自從上線以來，已經把他們的 framework 重寫了五次。
+
+- **Logit masking 取代動態移除 Tool**：Manus 嘗試過動態新增或移除 tools，但放棄了。因為如果你在 Context 前面修改了 tool 定義，會導致後面所有 token 的 KV-cache 全部失效！所以他們選擇把所有約 29 個 tools 永遠載入，然後在 decoding 時透過限制 output token 的機率 (Logit masking) 來控制當下能用哪些 tool。
+- **階層式 Action Space**：分成三層，Level 1 是原子的 function-call tools，Level 2 是 Bash sandbox，Level 3 是動態腳本。這樣可以把複雜的 tool 定義擋在 context window 外面，但保留完整能力。
+- **最大的教訓**：他們最大的效能提升，都來自於「移除」東西。把複雜的 tool 定義換成單純的 shell 執行，把花俏的「管理 Agents」換成簡單的 handoff。如果你的 Harness 越來越複雜，但 Model 明明在變強，那就是你做錯了。
+
+<ClawdNote>
+Manus 的 KV-cache 領悟非常痛。現在大家都在追求極致的 TTFT (Time To First Token) 跟成本控制，如果你沒搞懂 KV-cache 的運作原理，你的 Agent 跑起來不只慢，API 帳單還會貴到讓你哭出來。
+</ClawdNote>
+
+### SWE-Agent：「設計專屬的 ACI (Agent-Computer Interface)」
+
+Princeton 團隊提出的 SWE-Agent 引入了 ACI 概念——為 LLM 量身打造的介面，而不是讓人用的。
+
+- **Linter 攔截編輯**：Agent 編輯程式碼時，會自動跑 Linter。如果有語法錯誤就直接退貨，叫 Agent 重寫。少了這個 Harness 層級的守門員，效能直接掉 3%。（依 SWE-Agent 論文）
+- **觀察結果壓縮 (Observation compression)**：除了最後 5 筆動作，其他的觀察結果都被壓縮成一行摘要。這就是一種內建在迴圈裡的 Progressive disclosure。
+
+---
+
+## 一個沒被好好命名的模式：Progressive Disclosure (漸進式揭露)
+
+漸進式揭露這個概念其實是從 UI/UX 借來的，早在 1980 年代 IBM 就提過了。原則很簡單：**只顯示現在需要的東西，有需要時才展示複雜性。**
+
+套用到 Agent 設計上，就像下拉式選單可以減少人類的認知負擔，分層載入 Context 也能減少 LLM 的注意力碎裂。
+
+### Production 系統怎麼實作的？
+
+- **Claude Code 的 SKILL.md**：Skill 不會一開始就全部塞給 Model，而是當 Claude 覺得相關時才「隨選載入 (on-demand loading)」。這防止了 Context 肥大症。
+- **Cursor 的延遲載入 (Lazy MCP tool loading)**：Cursor 只給 Agent 提供工具名稱，等 Agent 真的要用時才去 fetch 完整的工具定義。A/B 測試結果顯示，這招減少了 46.9% 的 token 用量！（依 Cursor A/B 測試）
+- **Manus 的檔案系統卸載**：把東西寫入或讀出檔案。把全域計畫寫進 `todo.md`，強迫 Model 把注意力拉回最近的任務上，直接對抗了「迷失在中間 (Lost in the middle)」的問題。
+
+從數據來看更是驚人：
+Anthropic 的文件顯示，如果一開始就把所有文件載入，效率只有 0.8% (25,000 token 裡只有一條有用的資訊)。如果用 Progressive disclosure，只需要 955 token，效率是 100%，足足差了 26 倍！（依 Anthropic Claude-Mem 文件）
+
+---
+
+## 如果你正在開發 Agent，你該知道什麼？
+
+總結這些研究，有三件事非常明確：
+
+1. **把你的工程資源投資在 Harness 上，而不是一直換 Model。**
+2. **Progressive disclosure 不是選配，它是架構的核心。**
+3. **準備好讓你的 Harness 越變越簡單，而不是越來越複雜。**
+
+就像 12 Factor Agents 的作者 Dex Horthy 說的，如果你把超過 Model 容量 40% 的東西塞給它，就會進入「愚蠢區 (dumb zone)」。訊號被噪音淹沒，注意力碎裂，Agent 開始犯下看起來像推理錯誤，但實際上是被你設計不良的 Harness 給搞到資訊過載的錯 (◍˃̶ᗜ˂̶◍)ノ"
+
+Model 只是引擎，而 Harness 才是整台車。沒有人會只買一顆引擎就在路上跑的，對吧？
+
+---
+
+## 參考資料
+
+- Anthropic, "Effective Harnesses for Long-Running Agents" (2026)
+- Cursor, "Dynamic Context Discovery" & "Improving Agent with Semantic Search" (2026)
+- Manus, "Context Engineering for AI Agents: Lessons from Building Manus" (2025)
+- Princeton, "SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering" (2024)
+- LangChain, "Improving Deep Agents with Harness Engineering" (2026)
+- Phil Schmid, "Context Engineering for AI Agents: Part 2" (2025)
+
+---
+
+## 結語
+
+下次你在驚嘆某個 AI Agent 的 demo 怎麼這麼聰明的時候，別只看它背後是接哪一家的地表最強大模型，去看看它是怎麼寫它的 `while` 迴圈、怎麼控制 Context 丟給 Model 的節奏。那才是真正值錢的 Know-how！
+
+希望這篇文章能幫到正在水深火熱中開發 Agent 的你！有什麼想法也歡迎留言討論哦！
