@@ -20,13 +20,11 @@ die() {
 usage() {
   cat <<'USAGE'
 Usage:
-  bash sp-pipeline.sh <tweet_url> [--dry-run]
-
-Description:
-  Run the full gu-log SP article pipeline from a tweet URL.
+  bash sp-pipeline.sh <tweet_url> [--dry-run] [--force]
 
 Options:
   --dry-run   Run steps 0-4 and stop before deploy.
+  --force     Skip evaluation step (Step 1.5).
   -h, --help  Show this help message.
 USAGE
 }
@@ -91,11 +89,16 @@ extract_tweet_date() {
 
 TWEET_URL=""
 DRY_RUN=false
+FORCE=false
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --dry-run)
       DRY_RUN=true
+      shift
+      ;;
+    --force)
+      FORCE=true
       shift
       ;;
     -h|--help)
@@ -128,6 +131,7 @@ TOTAL_START=$(date +%s)
 
 STEP0_TIME=0
 STEP1_TIME=0
+STEP15_TIME=0
 STEP2_TIME=0
 STEP3_TIME=0
 STEP4_TIME=0
@@ -181,6 +185,95 @@ AUTHOR_HANDLE=$(grep -Eo '@[A-Za-z0-9_]+' "$WORK_DIR/source-tweet.md" | head -n 
 ORIGINAL_DATE=$(extract_tweet_date "$WORK_DIR/source-tweet.md" || true)
 [ -n "$ORIGINAL_DATE" ] || die "Failed to extract tweet date from bird output"
 STEP1_TIME=$(step_end "Step 1")
+
+# Step 1.5: Evaluate worthiness
+if [ "$FORCE" = true ]; then
+  log_warn "--force enabled; skipping Step 1.5 evaluation"
+else
+  step_start "Step 1.5: evaluate worthiness"
+  cat > "$WORK_DIR/eval-gemini-prompt.txt" <<EOF_EVAL_GEMINI
+Evaluate whether this tweet is worth translating into a gu-log article.
+
+Checklist:
+1. Is the content substantial enough for a gu-log article (not just a one-liner/hot take)?
+2. Is it relevant to gu-log audience topics (AI, tech, developer, indie hacker)?
+3. Does it have enough depth to expand into a full article?
+
+Tweet source:
+$(cat "$WORK_DIR/source-tweet.md")
+
+Output requirements:
+- Write JSON only (no markdown) to eval-gemini.json in current directory.
+- Exact schema:
+  {"verdict":"GO"|"SKIP","reason":"...","suggested_title":"..."}
+EOF_EVAL_GEMINI
+
+  cat > "$WORK_DIR/eval-codex-prompt.txt" <<EOF_EVAL_CODEX
+Evaluate whether this tweet is worth translating into a gu-log article.
+
+Checklist:
+1. Is the content substantial enough for a gu-log article (not just a one-liner/hot take)?
+2. Is it relevant to gu-log audience topics (AI, tech, developer, indie hacker)?
+3. Does it have enough depth to expand into a full article?
+
+Tweet source:
+$(cat "$WORK_DIR/source-tweet.md")
+
+Output requirements:
+- Write JSON only (no markdown) to eval-codex.json in current directory.
+- Exact schema:
+  {"verdict":"GO"|"SKIP","reason":"...","suggested_title":"..."}
+EOF_EVAL_CODEX
+
+  set +e
+  (
+    cd "$WORK_DIR"
+    GOOGLE_GENAI_USE_GCA=true TERM=dumb NO_COLOR=1 gemini -m gemini-3.1-pro-preview -p "$(cat eval-gemini-prompt.txt)" --sandbox false -y
+  )
+  GEMINI_EVAL_STATUS=$?
+  (
+    cd "$WORK_DIR"
+    codex exec -C . --full-auto "$(cat eval-codex-prompt.txt)"
+  )
+  CODEX_EVAL_STATUS=$?
+  set -e
+
+  [ -s "$WORK_DIR/eval-gemini.json" ] || die "eval-gemini.json missing or empty"
+  [ -s "$WORK_DIR/eval-codex.json" ] || die "eval-codex.json missing or empty"
+  [ "$GEMINI_EVAL_STATUS" -eq 0 ] || die "Gemini evaluation command failed"
+  [ "$CODEX_EVAL_STATUS" -eq 0 ] || die "Codex evaluation command failed"
+
+  GEMINI_VERDICT=$(jq -r '.verdict // empty' "$WORK_DIR/eval-gemini.json")
+  GEMINI_REASON=$(jq -r '.reason // empty' "$WORK_DIR/eval-gemini.json")
+  CODEX_VERDICT=$(jq -r '.verdict // empty' "$WORK_DIR/eval-codex.json")
+  CODEX_REASON=$(jq -r '.reason // empty' "$WORK_DIR/eval-codex.json")
+
+  if [ "$GEMINI_VERDICT" != "GO" ] && [ "$GEMINI_VERDICT" != "SKIP" ]; then
+    die "Invalid Gemini verdict in eval-gemini.json: $GEMINI_VERDICT"
+  fi
+  if [ "$CODEX_VERDICT" != "GO" ] && [ "$CODEX_VERDICT" != "SKIP" ]; then
+    die "Invalid Codex verdict in eval-codex.json: $CODEX_VERDICT"
+  fi
+
+  if [ "$GEMINI_VERDICT" = "GO" ] && [ "$CODEX_VERDICT" = "GO" ]; then
+    log_info "Step 1.5 decision: GO/GO"
+    log_info "Gemini reason: $GEMINI_REASON"
+    log_info "Codex reason: $CODEX_REASON"
+  elif [ "$GEMINI_VERDICT" = "SKIP" ] && [ "$CODEX_VERDICT" = "SKIP" ]; then
+    log_info "Step 1.5 decision: SKIP/SKIP"
+    log_info "Gemini reason: $GEMINI_REASON"
+    log_info "Codex reason: $CODEX_REASON"
+    log_ok "Both evaluators said SKIP; exiting without error"
+    exit 0
+  else
+    log_warn "Gemini verdict: $GEMINI_VERDICT | reason: $GEMINI_REASON"
+    log_warn "Codex verdict: $CODEX_VERDICT | reason: $CODEX_REASON"
+    log_warn "SPLIT DECISION — Gemini says $GEMINI_VERDICT, Codex says $CODEX_VERDICT. Run with --force to override, or let Clawd decide."
+    exit 2
+  fi
+
+  STEP15_TIME=$(step_end "Step 1.5")
+fi
 
 # Step 2: Gemini Write
 step_start "Step 2: gemini write draft"
@@ -296,14 +389,43 @@ else
   FILENAME="sp-${SP_NUM}-${DATE_STAMP}-${AUTHOR_SLUG}-${TITLE_SLUG}.mdx"
   cp "$WORK_DIR/final.mdx" "$POSTS_DIR/$FILENAME"
 
+  COUNTER_BACKUP="$WORK_DIR/counter-before.json"
+  cp "$COUNTER_FILE" "$COUNTER_BACKUP"
+
   TMP_COUNTER=$(mktemp)
   jq '.SP.next += 1' "$COUNTER_FILE" > "$TMP_COUNTER"
   mv "$TMP_COUNTER" "$COUNTER_FILE"
 
-  (
+  set +e
+  VALIDATION_OUTPUT=$(
     cd "$GU_LOG_DIR"
     node scripts/validate-posts.mjs 2>&1
   )
+  VALIDATION_STATUS=$?
+  set -e
+
+  if [ "$VALIDATION_STATUS" -ne 0 ]; then
+    if printf '%s\n' "$VALIDATION_OUTPUT" | grep -F "$FILENAME" >/dev/null 2>&1; then
+      log_error "Validation failed for newly generated file: $FILENAME"
+      rm -f "$POSTS_DIR/$FILENAME"
+      cp "$COUNTER_BACKUP" "$COUNTER_FILE"
+      printf '%s\n' "$VALIDATION_OUTPUT" >&2
+      exit 1
+    fi
+    log_warn "Validation reported issues not tied to $FILENAME; proceeding"
+    printf '%s\n' "$VALIDATION_OUTPUT"
+  fi
+
+  GITIGNORE_FILE="$GU_LOG_DIR/.gitignore"
+  if [ -f "$GITIGNORE_FILE" ]; then
+    if ! grep -qx 'tmp/' "$GITIGNORE_FILE"; then
+      printf '\ntmp/\n' >> "$GITIGNORE_FILE"
+      log_info "Added tmp/ to .gitignore"
+    fi
+  else
+    printf 'tmp/\n' > "$GITIGNORE_FILE"
+    log_info "Created .gitignore with tmp/"
+  fi
 
   (
     cd "$GU_LOG_DIR"
@@ -330,6 +452,7 @@ printf "Filename    : %s\n" "${FILENAME:-N/A (dry-run)}"
 printf "Work dir    : %s\n" "$WORK_DIR"
 printf "Step 0 time : %ss\n" "$STEP0_TIME"
 printf "Step 1 time : %ss\n" "$STEP1_TIME"
+printf "Step 1.5 time : %ss\n" "$STEP15_TIME"
 printf "Step 2 time : %ss\n" "$STEP2_TIME"
 printf "Step 3 time : %ss\n" "$STEP3_TIME"
 printf "Step 4 time : %ss\n" "$STEP4_TIME"
