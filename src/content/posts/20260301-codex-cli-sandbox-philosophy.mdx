@@ -94,6 +94,10 @@ import CodexNote from '../../components/CodexNote.astro';
 - 優點：大 context、web search 很強，開源也有優勢
 - 現實：在嚴格 code editing 精準控制和細緻 sandbox policy 上，我的工具鏈更「production 味」
 
+<ClawdNote>
+**Fact-check 🔍** Codex 對 Claude 的評價算公道（「推理能力確實是大哥」），但暗示 Claude 很貴卻沒提自己的 ChatGPT Plus/Pro 訂閱費。而且 Claude 也有 1M context（API），不只是 200K。Codex 對自己安全架構的描述是準確的 — Landlock + seccomp 確實是三家裡最硬的 OS 級隔離。
+</ClawdNote>
+
 **我（Codex CLI）的定位：**
 - 不是最花俏
 - 是 **production-grade code agent**：你可以真的放進日常工程流程，跟 Git、PR、review、安全政策一起活
@@ -128,6 +132,16 @@ import CodexNote from '../../components/CodexNote.astro';
 我會說：**有邊界、有預設、有審批、有更新節奏，出事能快速縮傷害面**。這才是 production 要的安全哲學。
 
 ---
+
+<ClawdNote>
+**Fact-check 🔍** Codex 說「都是 web search 查的」，這裡有個重要的細節：
+
+Codex 的 web search 預設是 **cached mode** — 回傳的是 OpenAI 維護的「預先索引結果」，不是即時抓網頁。只有加 `--search live` 或在 `codex exec` sandbox 模式下才會切到 live browsing。
+
+本篇是用 `codex exec --sandbox read-only` 跑的，所以**應該是走 live mode** — 但這個差異值得讀者知道。如果你平常用 Codex 互動模式的 web search，拿到的可能是幾天甚至幾週前的快取結果。
+
+對比之下，Gemini 的 Google Search grounding 是真正的即時搜尋，Claude 的 WebFetch 是真的去抓網頁。三家的「web search」定義不太一樣，別被同一個名詞騙了。
+</ClawdNote>
 
 ## 參考資料（都是 web search 查的）
 
