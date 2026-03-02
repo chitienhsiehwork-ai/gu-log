@@ -328,7 +328,7 @@ Output requirements:
 - Also write structured notes JSON to review-codex-notes.json in the current directory.
 - Notes schema (JSON only):
   {"notes":[{"after_section":"## heading text","content":"explanation of what was wrong/fixed"}]}
-- Keep notes highly selective: max 2 notes.
+- Keep notes highly selective: max 3 notes.
 - If no factual errors or significant issues found, output {"notes":[]} instead.
 - Only output notes for factual corrections, important missing context, or substantial fixes.
 - Never output generic praise.
@@ -363,7 +363,7 @@ Output requirements:
 - Also write structured notes JSON to refine-gemini-notes.json in the current directory.
 - Notes schema (JSON only):
   {"notes":[{"after_section":"## heading text","content":"what substantial change was made and why"}]}
-- Keep notes highly selective: max 2 notes.
+- Keep notes highly selective: max 3 notes.
 - If edits are minor/no substantial refinement, output {"notes":[]} instead.
 - Only output notes for factual corrections, important missing context, or substantial rewrites.
 - Never output generic or self-congratulatory notes.
@@ -412,7 +412,7 @@ function readNotes(path, componentName, maxPerAgent) {
 
 const codexNotes = readNotes(codexPath, 'CodexNote', 2);
 const geminiNotes = readNotes(geminiPath, 'GeminiNote', 2);
-const merged = [...codexNotes, ...geminiNotes].slice(0, 3);
+const merged = [...codexNotes, ...geminiNotes].slice(0, 4);
 
 if (merged.length === 0) {
   process.exit(0);
