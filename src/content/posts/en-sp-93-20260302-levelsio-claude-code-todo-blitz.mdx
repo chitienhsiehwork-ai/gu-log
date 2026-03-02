@@ -1,0 +1,140 @@
+---
+ticketId: "SP-93"
+title: "The Super Individual in the AI Era: How Levelsio Cleared His Todo List with Claude Code"
+originalDate: "2026-02-28"
+translatedDate: "2026-03-02"
+translatedBy:
+  model: "Gemini 3.1 Pro"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+    - role: "Reviewed"
+      model: "GPT-5.3-Codex"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: " @src/content/posts/en-sp-93-20260302-levelsio-claude-code-todo-blitz.mdx on X"
+sourceUrl: "https://x.com/levelsio/status/2027566773814403448"
+lang: "en"
+summary: "Well-known indie hacker levelsio shares how he completely let go and let Claude Code modify code directly in production, pushing his development speed to the absolute limit, even surpassing the speed at which he comes up with ideas."
+tags: ["shroom-picks", "indie-hacker", "claude-code", "levelsio"]
+---
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Hello everyone, today's article is super hardcore. We're looking at the latest bombshell from the famous Indie Hacker Pieter Levels ( @src/content/posts/en-sp-93-20260302-levelsio-claude-code-todo-blitz.mdx). In his tweet, he explicitly said that he kept Claude Code running on his production server all week, and for the first time, his development speed was so fast that he completely cleared his to-do list.
+
+This article isn't just showing off how many features he built with AI. More importantly, it reveals the "ultimate methodology" for a one-person + AI team in 2026: Trust the AI → Turn off the safety nets → Validate directly in production.
+
+This is a stark contrast to the lawyer case (SP-92) we looked at before: both are one-person teams with AI, but the lawyer relied on a fine-grained Skills system to control the AI's judgment; whereas levelsio completely "let go of the reins", relying on rapid feedback from the production side to converge results (◍•ᴗ•◍)
+
+---
+
+## Unsealing the Power Directly: Claude Code Running Naked on the Server
+
+This week, levelsio decided to try something bold: he installed Claude Code directly on his server and **permanently enabled the bypass permissions mode**.
+He even wrote an alias script:
+`c() { IS_SANDBOX=1 claude --dangerously-skip-permissions "$ @"; }`
+
+<ClawdNote>
+Seeing `--dangerously-skip-permissions` running directly on a server might make many traditional software engineers have a heart attack. But in the context of indie hacking, speed is everything. levelsio's philosophy is: instead of spending time on CI/CD and layers of code review, it's better to shorten the feedback loop to "write it, then hit F5 to refresh and see the results immediately." This isn't the best practice, but it's the "fastest practice."
+</ClawdNote>
+
+The result? For the first time in his life, his development speed overtook his to-do list.
+He went into full beast mode, completely clearing all the tasks on his feature and bug boards. He said he's never developed this fast in his life, and Claude Code barely made any mistakes. Even when it did, they were harmless, minor issues (which is super important to him, since he's mostly working directly on the production server now).
+
+He was already known for being "fast" (since he's always been a solo dev), but no matter how fast he worked, the tickets in his user wish pool would always pile up. But this week, the board was empty!
+
+## The New Bottleneck: Human Creativity and the Context Window
+
+Now, the real bottleneck is no longer "the speed of writing code," but the limits of his own brain.
+He found that the speed at which he thinks of new ideas can no longer keep up with the speed at which the AI implements them (though he feels his brain might adapt to this rhythm later on).
+
+Another limit he's about to hit is the "human mental context window." When you have to mentally maintain several projects, dozens of features and bugs simultaneously, while watching the AI work on multiple fronts at once, your brain capacity really isn't enough. He feels he's not far from that limit.
+
+<ClawdNote>
+This is very much worth thinking about. When the cost of execution approaches zero, human value will completely shift from "implementation ability" to "requirement definition" and "project architecture." How big your mental context window is dictates how large an AI fleet you can command.
+</ClawdNote>
+
+## Trust and Letting Go: The Secret of the Ultimate Fast Feedback Loop
+
+levelsio pointed out a key thing: **The more you let the AI run on its own, the faster it gets.**
+Before, he was also slow because he didn't dare to trust the AI and was afraid it would mess up his codebase. But now, he's chosen to just let go.
+Just like Andrej Karpathy said, since last December, the models' capabilities have crossed a threshold and have truly reached a level where they "can be used to write code."
+
+He observed that when his friends use Claude Code, their speed is still very slow because they are still checking it line by line. This isn't wrong, of course, but he thinks a better approach is: **Write tests, then let the AI run free and see if it can pass them.**
+
+For levelsio, his "tests" are very scrappy—literally just opening the website and seeing if the new feature works. In 99% of cases, the features are fine. Then he just tells the AI to keep optimizing it.
+
+Because he's running Claude Code directly on the production server, he even saves the time waiting to deploy (even though deploying only took 3 seconds before, it adds up). Now his flow is: Wait for the AI to finish writing → Refresh the webpage → Test. This extremely short feedback loop makes his efficiency go through the roof.
+
+<ClawdNote>
+This is the core of the levelsio school of thought: Trust, but verify in production. Traditional software engineering relies on static analysis, unit tests, and staging environments to prevent errors. But he treats "human eyeballs looking at production" as the only integration test. For SaaS products with no legacy baggage, this approach can maximize the LLM's output.
+</ClawdNote>
+
+---
+
+## One Week Output List (About 10x his usual)
+
+Finally, let's look at exactly how much stuff he cleared out this week (mostly from users begging on the bug board):
+
+**📸 Photo AI**
+- Built a new image viewer (including mobile version)
+- Added batch remix, multi-image import, and filtering gallery by model
+- Massive security overhaul: ripped out the insecure `?hash=` login mechanism and changed to session tokens
+- Fixed a ton of bugs: Google login infinite loops, multi-model selection issues, talking scripts issues
+- Talking videos can now upload custom audio files
+- Set up a server endpoint for a dynamic model selector
+
+**🏡 Interior AI**
+- Resurrected the "add furniture" feature that hadn't been touched in half a year (because the current image models are finally strong enough)
+- The room redesign feature can now upload custom styles
+- Hand-rolled a Gaussian Splat viewer for 3D
+- Built a `/remove_bg` endpoint for removing furniture backgrounds
+- Migrated the 3D space navigation feature to the new World Labs API
+- Supported `.skp` files, paint color masking, and a one-click clear room button
+
+**🎒 Nomads**
+- Launched an AI weekly newsletter that generates content from chat
+- Refactored the profile edit UI (moved from `/settings` to the profile page)
+- Added TikTok/YouTube links, status bars, and server-side API tracking
+- Injected hundreds of new personal tags and attributes
+- Fixed timezone filtering, broken links, and user avatar issues
+
+**🗺️ Hoodmaps**
+- Resurrected edit mode (the database broke previously, so it had been read-only for years)
+- Built a heatmap mode using over 50,000 tags with sentiment scores
+- Tracked down the root cause of the database write failures (PRAGMA was misconfigured, should have been WAL)
+- Added good neighborhood/bad neighborhood detection, complete with an admin grid control panel
+- Set up a Claude Code Telegram bot to make live changes
+- Hooked up Cloudflare cache, fixed health checks, and casually fixed a bug in Brussels
+
+**📕 MAKE Book**
+- Wrote a cron worker that can auto-generate ePub/PDFs
+- Added dynamic generation with personal watermarks for customers
+- Built image compression to shrink file sizes
+
+**💾 Pieter .com**
+- Made a plain text Wikipedia reader for Kindle
+- Played around with v86 to set up a Windows 3.11 emulator (wants to replace the original Em-DOSBox)
+- Added a product recommendation block to the homepage
+- Installed an old 1986 game, Wall Street Raider
+
+**👩‍💻 Remote OK**
+- Installed a Chatbase AI customer service bot
+- Added a "Report this job as not remote" button on job postings
+
+**🏨 Hotelist (3 todos)**
+- Fixed bugs with hotel URLs and city scopes
+- Added tags for whether an iron is provided
+
+## Conclusion
+
+To sum it up, what levelsio showed us this time wasn't some god-tier AI prompt, but an extreme development methodology: fully trust the AI, push the feedback loop to its absolute limit, and validate directly in production (Trust, but verify in production).
+
+This gives a strong revelation to all Tech Leads, Indie Hackers, and general developers: the limit of the tools is no longer their ability to output code, but whether you dare to let go. This is completely different from the lawyer case we saw in SP-92 (which relied on a fine-grained Skills system to control the AI); levelsio demonstrated another extreme school of "YOLO in production." There's no absolute right or wrong between these two strategies—it entirely depends on your project's legacy baggage and fault tolerance.
+
+After reading this update thread, the main point is no longer "can AI code," but whether you dare to squeeze the feedback loop to the absolute minimum. The super individuals of the AI era are competing on who can wield the most mental bandwidth!
