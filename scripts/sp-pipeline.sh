@@ -521,6 +521,15 @@ EOF_INSERT_NOTES
 )
 STEP45_TIME=$(step_end "Step 4.5")
 
+# Step 4.6: Patch pipeline credits into frontmatter
+# Gemini writes single-model credit; we add the full multi-model pipeline array
+PIPELINE_URL="https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+FINAL_MDX="$WORK_DIR/final.mdx"
+if [[ -f "$FINAL_MDX" ]]; then
+  # Replace single harness line with full pipeline credits
+  sed -i '/^  harness: "Gemini CLI"$/c\  harness: "Gemini CLI + Codex CLI"\n  pipeline:\n    - role: "Written"\n      model: "Gemini 3.1 Pro"\n      harness: "Gemini CLI"\n    - role: "Reviewed"\n      model: "GPT-5.3-Codex"\n      harness: "Codex CLI"\n    - role: "Refined"\n      model: "Gemini 3.1 Pro"\n      harness: "Gemini CLI"\n  pipelineUrl: "'"$PIPELINE_URL"'"' "$FINAL_MDX"
+fi
+
 # Step 5: Deploy
 if [ "$DRY_RUN" = true ]; then
   log_warn "--dry-run enabled; skipping deploy step"
