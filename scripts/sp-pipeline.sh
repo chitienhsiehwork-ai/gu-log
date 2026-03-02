@@ -23,7 +23,7 @@ Usage:
   bash sp-pipeline.sh <tweet_url> [--dry-run] [--force]
 
 Options:
-  --dry-run   Run steps 0-4 and stop before deploy.
+  --dry-run   Run steps 0-4.5 and stop before deploy.
   --force     Skip evaluation step (Step 1.5).
   -h, --help  Show this help message.
 USAGE
@@ -135,6 +135,7 @@ STEP15_TIME=0
 STEP2_TIME=0
 STEP3_TIME=0
 STEP4_TIME=0
+STEP45_TIME=0
 STEP5_TIME=0
 
 FILENAME=""
@@ -322,7 +323,16 @@ Checklist:
 4. ClawdNote usage and kaomoji requirements.
 5. Clear actionable fixes.
 
-Write the full review to review.md in the current directory.
+Output requirements:
+- Write the full review to review.md in the current directory.
+- Also write structured notes JSON to review-codex-notes.json in the current directory.
+- Notes schema (JSON only):
+  {"notes":[{"after_section":"## heading text","content":"explanation of what was wrong/fixed"}]}
+- Keep notes highly selective: max 2 notes.
+- If no factual errors or significant issues found, output {"notes":[]} instead.
+- Only output notes for factual corrections, important missing context, or substantial fixes.
+- Never output generic praise.
+- Strict rule: 只在發現事實錯誤、重要遺漏、或有實質修改時才輸出 note。品質 > 數量。
 EOF_REVIEW
 
 (
@@ -331,6 +341,7 @@ EOF_REVIEW
 )
 
 [ -s "$WORK_DIR/review.md" ] || die "review.md missing or empty"
+[ -s "$WORK_DIR/review-codex-notes.json" ] || die "review-codex-notes.json missing or empty"
 STEP3_TIME=$(step_end "Step 3")
 
 # Step 4: Gemini Refine
@@ -347,8 +358,16 @@ Task:
 - Keep style-guide compliance.
 - Ensure frontmatter values remain accurate.
 
-Hard requirement:
+Output requirements:
 - Write final output to final.mdx in the current directory.
+- Also write structured notes JSON to refine-gemini-notes.json in the current directory.
+- Notes schema (JSON only):
+  {"notes":[{"after_section":"## heading text","content":"what substantial change was made and why"}]}
+- Keep notes highly selective: max 2 notes.
+- If edits are minor/no substantial refinement, output {"notes":[]} instead.
+- Only output notes for factual corrections, important missing context, or substantial rewrites.
+- Never output generic or self-congratulatory notes.
+- Strict rule: 只在發現事實錯誤、重要遺漏、或有實質修改時才輸出 note。品質 > 數量。
 EOF_REFINE
 
 (
@@ -357,7 +376,141 @@ EOF_REFINE
 )
 
 [ -s "$WORK_DIR/final.mdx" ] || die "final.mdx missing or empty"
+[ -s "$WORK_DIR/refine-gemini-notes.json" ] || die "refine-gemini-notes.json missing or empty"
 STEP4_TIME=$(step_end "Step 4")
+
+# Step 4.5: Insert agent notes into final article
+step_start "Step 4.5: insert agent notes"
+cat > "$WORK_DIR/insert-agent-notes.mjs" <<'EOF_INSERT_NOTES'
+import fs from 'node:fs';
+
+const [, , finalPath, codexPath, geminiPath] = process.argv;
+
+if (!finalPath || !codexPath || !geminiPath) {
+  console.error('Usage: node insert-agent-notes.mjs <final.mdx> <codex.json> <gemini.json>');
+  process.exit(1);
+}
+
+function readNotes(path, componentName, maxPerAgent) {
+  let parsed;
+  try {
+    parsed = JSON.parse(fs.readFileSync(path, 'utf8'));
+  } catch {
+    return [];
+  }
+  const notes = Array.isArray(parsed?.notes) ? parsed.notes : [];
+  return notes
+    .filter((n) => typeof n?.after_section === 'string' && typeof n?.content === 'string')
+    .map((n) => ({
+      after_section: n.after_section.trim(),
+      content: n.content.trim(),
+      component: componentName,
+    }))
+    .filter((n) => n.after_section.length > 0 && n.content.length > 0)
+    .slice(0, maxPerAgent);
+}
+
+const codexNotes = readNotes(codexPath, 'CodexNote', 2);
+const geminiNotes = readNotes(geminiPath, 'GeminiNote', 2);
+const merged = [...codexNotes, ...geminiNotes].slice(0, 3);
+
+if (merged.length === 0) {
+  process.exit(0);
+}
+
+const raw = fs.readFileSync(finalPath, 'utf8');
+const lines = raw.split('\n');
+
+const fmStart = lines[0]?.trim() === '---' ? 0 : -1;
+let fmEnd = -1;
+if (fmStart === 0) {
+  for (let i = 1; i < lines.length; i += 1) {
+    if (lines[i].trim() === '---') {
+      fmEnd = i;
+      break;
+    }
+  }
+}
+
+const bodyStart = fmEnd >= 0 ? fmEnd + 1 : 0;
+const headingMap = new Map();
+for (let i = bodyStart; i < lines.length; i += 1) {
+  const normalized = lines[i].trim();
+  if (normalized.startsWith('## ')) {
+    if (!headingMap.has(normalized)) {
+      headingMap.set(normalized, []);
+    }
+    headingMap.get(normalized).push(i);
+  }
+}
+
+const notesByLine = new Map();
+const usedComponents = new Set();
+for (const note of merged) {
+  const targetLines = headingMap.get(note.after_section);
+  if (!targetLines || targetLines.length === 0) {
+    continue;
+  }
+  const targetLine = targetLines[0];
+  if (!notesByLine.has(targetLine)) {
+    notesByLine.set(targetLine, []);
+  }
+  notesByLine.get(targetLine).push(note);
+  usedComponents.add(note.component);
+}
+
+if (notesByLine.size === 0) {
+  process.exit(0);
+}
+
+const insertImports = [];
+if (usedComponents.has('CodexNote') && !raw.includes("import CodexNote from '../../components/CodexNote.astro';")) {
+  insertImports.push("import CodexNote from '../../components/CodexNote.astro';");
+}
+if (usedComponents.has('GeminiNote') && !raw.includes("import GeminiNote from '../../components/GeminiNote.astro';")) {
+  insertImports.push("import GeminiNote from '../../components/GeminiNote.astro';");
+}
+
+if (insertImports.length > 0) {
+  const importBlock = ['', ...insertImports];
+  lines.splice(bodyStart, 0, ...importBlock);
+  const shift = importBlock.length;
+  const shifted = new Map();
+  for (const [lineNo, noteList] of notesByLine.entries()) {
+    shifted.set(lineNo + shift, noteList);
+  }
+  notesByLine.clear();
+  for (const [lineNo, noteList] of shifted.entries()) {
+    notesByLine.set(lineNo, noteList);
+  }
+}
+
+const output = [];
+let inserted = 0;
+for (let i = 0; i < lines.length; i += 1) {
+  output.push(lines[i]);
+  const notes = notesByLine.get(i);
+  if (!notes) {
+    continue;
+  }
+  output.push('');
+  for (const note of notes) {
+    const cleanContent = note.content.replace(/\n+/g, ' ').trim();
+    output.push(`<${note.component}>${cleanContent}</${note.component}>`);
+    output.push('');
+    inserted += 1;
+  }
+}
+
+fs.writeFileSync(finalPath, output.join('\n').replace(/\n{3,}/g, '\n\n'));
+console.log(`Inserted ${inserted} agent note(s).`);
+EOF_INSERT_NOTES
+
+(
+  cd "$WORK_DIR"
+  node insert-agent-notes.mjs final.mdx review-codex-notes.json refine-gemini-notes.json
+)
+STEP45_TIME=$(step_end "Step 4.5")
 
 # Step 5: Deploy
 if [ "$DRY_RUN" = true ]; then
@@ -456,6 +609,7 @@ printf "Step 1.5 time : %ss\n" "$STEP15_TIME"
 printf "Step 2 time : %ss\n" "$STEP2_TIME"
 printf "Step 3 time : %ss\n" "$STEP3_TIME"
 printf "Step 4 time : %ss\n" "$STEP4_TIME"
+printf "Step 4.5 time : %ss\n" "$STEP45_TIME"
 printf "Step 5 time : %ss\n" "$STEP5_TIME"
 printf "Total time  : %ss\n" "$TOTAL_TIME"
 log_ok "Pipeline finished"
