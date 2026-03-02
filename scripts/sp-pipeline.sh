@@ -336,12 +336,16 @@ Output requirements:
 - Write the full review to review.md in the current directory.
 - Also write structured notes JSON to review-codex-notes.json in the current directory.
 - Notes schema (JSON only):
-  {"notes":[{"after_section":"## heading text","content":"explanation of what was wrong/fixed"}]}
+  {"notes":[{"after_section":"## heading text","content":"reader-facing commentary"}]}
 - Keep notes highly selective: max 3 notes.
 - If no factual errors or significant issues found, output {"notes":[]} instead.
 - Only output notes for factual corrections, important missing context, or substantial fixes.
 - Never output generic praise.
 - Strict rule: 只在發現事實錯誤、重要遺漏、或有實質修改時才輸出 note。品質 > 數量。
+- ⚠️ CRITICAL: notes 的 content 必須是「給讀者看的解說」，不是「給編輯的修改指令」！
+  ❌ 錯誤：「將 X 修正為 Y，避免幻覺」（這是內部 review feedback）
+  ✅ 正確：「原文只說 X，初版翻譯加強為 Y，語氣偏離原意。」（這是讀者導向的解說）
+  寫法：像在跟讀者聊天，解釋你發現了什麼有趣的翻譯問題，而不是下達修改命令。
 EOF_REVIEW
 
 (
@@ -371,12 +375,16 @@ Output requirements:
 - Write final output to final.mdx in the current directory.
 - Also write structured notes JSON to refine-gemini-notes.json in the current directory.
 - Notes schema (JSON only):
-  {"notes":[{"after_section":"## heading text","content":"what substantial change was made and why"}]}
+  {"notes":[{"after_section":"## heading text","content":"reader-facing commentary"}]}
 - Keep notes highly selective: max 3 notes.
 - If edits are minor/no substantial refinement, output {"notes":[]} instead.
 - Only output notes for factual corrections, important missing context, or substantial rewrites.
 - Never output generic or self-congratulatory notes.
 - Strict rule: 只在發現事實錯誤、重要遺漏、或有實質修改時才輸出 note。品質 > 數量。
+- ⚠️ CRITICAL: notes 的 content 必須是「給讀者看的解說」，不是「給編輯的修改指令」！
+  ❌ 錯誤：「修正過度解讀，將 X 降級為 Y」（內部 review 語氣）
+  ✅ 正確：「原文的 X 其實只是觀察性描述，翻譯時容易被加強語氣。這裡調回中性。」
+  寫法：像在跟讀者分享翻譯過程中的發現，語氣輕鬆自然。
 EOF_REFINE
 
 (
