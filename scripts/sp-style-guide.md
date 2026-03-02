@@ -34,6 +34,20 @@ tags: ["shroom-picks", "tag2", "tag3"]
 - 每篇至少 2-3 個 ClawdNote，加入 Clawd 的觀點、補充、或吐槽
 - ClawdNote 內容要有 insight，不是廢話
 
+## Agent Notes（多代理迭代註記）
+- 可用組件：
+- `CodexNote`（🦾）：Codex review 發現的事實錯誤、重要遺漏、或關鍵修正
+- `GeminiNote`（🤖）：Gemini refine 階段做的實質修改與原因
+- JSON 格式（給 pipeline 用）：
+- `{"notes":[{"after_section":"## heading text","content":"..."}]}`
+- `after_section` 必須對應文內某個 `##` 標題，note 會插在該段後面
+- 嚴格限制：
+- 每篇最多 2-3 個 agent notes（總量，不是每個 agent 各 2-3）
+- `content` 要具體說明「修正了什麼、為什麼重要」
+- 禁止空泛內容（例如：文章寫得很好、稍微順一下句子）
+- 判斷規則（必須原文照用）：
+- `只在發現事實錯誤、重要遺漏、或有實質修改時才輸出 note。品質 > 數量。`
+
 ## Kaomoji
 - 每篇至少一個 kaomoji
 - 偏好：(◍•ᴗ•◍) (๑˃ᴗ˂)ﻭ (◍˃̶ᗜ˂̶◍)ノ"
