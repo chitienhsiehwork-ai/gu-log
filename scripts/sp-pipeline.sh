@@ -90,6 +90,7 @@ extract_tweet_date() {
 TWEET_URL=""
 DRY_RUN=false
 FORCE=false
+TICKET_PREFIX="SP"
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -99,6 +100,11 @@ while [ "$#" -gt 0 ]; do
       ;;
     --force)
       FORCE=true
+      shift
+      ;;
+    --prefix)
+      shift
+      TICKET_PREFIX="${1:-SP}"
       shift
       ;;
     -h|--help)
@@ -167,10 +173,10 @@ step_start "Step 0: setup"
 [ -f "$COUNTER_FILE" ] || die "Missing counter file: $COUNTER_FILE"
 [ -f "$STYLE_GUIDE_FILE" ] || die "Missing style guide file: $STYLE_GUIDE_FILE"
 
-SP_NUM=$(jq -r '.SP.next // empty' "$COUNTER_FILE")
-[ -n "$SP_NUM" ] || die "Could not read SP.next from $COUNTER_FILE"
+SP_NUM=$(jq -r ".${TICKET_PREFIX}.next // empty" "$COUNTER_FILE")
+[ -n "$SP_NUM" ] || die "Could not read ${TICKET_PREFIX}.next from $COUNTER_FILE"
 
-WORK_DIR="$GU_LOG_DIR/tmp/sp-${SP_NUM}-pipeline"
+WORK_DIR="$GU_LOG_DIR/tmp/${TICKET_PREFIX,,}-${SP_NUM}-pipeline"
 mkdir -p "$WORK_DIR"
 STEP0_TIME=$(step_end "Step 0")
 
@@ -282,14 +288,17 @@ cat > "$WORK_DIR/gemini-write-prompt.txt" <<EOF_WRITE
 You are writing a gu-log SP article draft in Traditional Chinese.
 
 Task:
-- Write SP-${SP_NUM} article from the source tweet.
+- Write ${TICKET_PREFIX}-${SP_NUM} article from the source tweet.
 - Follow the style guide exactly.
 - Use this metadata:
-  - ticketId: SP-${SP_NUM}
+  - ticketId: ${TICKET_PREFIX}-${SP_NUM}
   - originalDate: ${ORIGINAL_DATE}
   - translatedDate: $(date +%F)
   - source: @${AUTHOR_HANDLE} on X
   - sourceUrl: ${TWEET_URL}
+
+Extra metadata:
+  - First tag must be: $(if [[ "$TICKET_PREFIX" == "CP" ]]; then echo "clawd-picks"; else echo "shroom-picks"; fi)
 
 Hard requirements:
 - Write output to a file named draft-v1.mdx in the current directory.
@@ -314,7 +323,7 @@ STEP2_TIME=$(step_end "Step 2")
 # Step 3: Codex Review
 step_start "Step 3: codex review"
 cat > "$WORK_DIR/review-prompt.txt" <<EOF_REVIEW
-Review draft-v1.mdx for SP-${SP_NUM}.
+Review draft-v1.mdx for ${TICKET_PREFIX}-${SP_NUM}.
 
 Checklist:
 1. Fact-check: no hallucinated claims beyond source context.
@@ -347,7 +356,7 @@ STEP3_TIME=$(step_end "Step 3")
 # Step 4: Gemini Refine
 step_start "Step 4: gemini refine"
 cat > "$WORK_DIR/refine-prompt.txt" <<EOF_REFINE
-Refine the SP-${SP_NUM} draft using review feedback.
+Refine the ${TICKET_PREFIX}-${SP_NUM} draft using review feedback.
 
 Inputs:
 - draft-v1.mdx
@@ -532,21 +541,21 @@ else
   ' "$WORK_DIR/final.mdx" || true)
 
   if [ -z "$TITLE" ]; then
-    TITLE="SP-${SP_NUM}"
+    TITLE="${TICKET_PREFIX}-${SP_NUM}"
   fi
 
   DATE_STAMP=$(date +%Y%m%d)
   AUTHOR_SLUG=$(sanitize_slug "$AUTHOR_HANDLE")
   TITLE_SLUG=$(sanitize_slug "$TITLE")
 
-  FILENAME="sp-${SP_NUM}-${DATE_STAMP}-${AUTHOR_SLUG}-${TITLE_SLUG}.mdx"
+  FILENAME="${TICKET_PREFIX,,}-${SP_NUM}-${DATE_STAMP}-${AUTHOR_SLUG}-${TITLE_SLUG}.mdx"
   cp "$WORK_DIR/final.mdx" "$POSTS_DIR/$FILENAME"
 
   COUNTER_BACKUP="$WORK_DIR/counter-before.json"
   cp "$COUNTER_FILE" "$COUNTER_BACKUP"
 
   TMP_COUNTER=$(mktemp)
-  jq '.SP.next += 1' "$COUNTER_FILE" > "$TMP_COUNTER"
+  jq ".${TICKET_PREFIX}.next += 1" "$COUNTER_FILE" > "$TMP_COUNTER"
   mv "$TMP_COUNTER" "$COUNTER_FILE"
 
   set +e
@@ -588,7 +597,7 @@ else
   (
     cd "$GU_LOG_DIR"
     git add "src/content/posts/$FILENAME" "scripts/article-counter.json"
-    git commit -m "Add SP-${SP_NUM}: ${TITLE}"
+    git commit -m "Add ${TICKET_PREFIX}-${SP_NUM}: ${TITLE}"
     git push
   )
 
