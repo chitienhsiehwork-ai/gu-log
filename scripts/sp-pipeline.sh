@@ -331,6 +331,16 @@ Checklist:
 3. Frontmatter accuracy: ticketId/source/sourceUrl/dates/tags format.
 4. ClawdNote usage and kaomoji requirements.
 5. Clear actionable fixes.
+6. Certainty Preservation: source hedging language (seems, might, I think) must not be upgraded to definitive statements.
+7. Number Integrity: every number in translation must trace back to source. No invented statistics/revenue/percentages.
+8. Constraint Coverage: source limitations, caveats, and conditions must be preserved.
+9. Ending Fidelity: conclusion must not introduce claims beyond source material.
+10. Summary length: must be ≤300 characters.
+11. Coverage Completeness: no key source claim/example/caveat is omitted.
+12. Attribution Preservation: speculative opinions remain explicitly attributed to source author.
+
+Severity: label each issue Blocker/Major/Minor.
+Patch: each issue must include exact source quote + proposed replacement text.
 
 Output requirements:
 - Write the full review to review.md in the current directory.
