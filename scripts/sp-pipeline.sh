@@ -535,7 +535,7 @@ PIPELINE_URL="https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master
 FINAL_MDX="$WORK_DIR/final.mdx"
 if [[ -f "$FINAL_MDX" ]]; then
   # Replace single harness line with full pipeline credits
-  sed -i '/^  harness: "Gemini CLI"$/c\  harness: "Gemini CLI + Codex CLI"\n  pipeline:\n    - role: "Written"\n      model: "Gemini 3.1 Pro"\n      harness: "Gemini CLI"\n    - role: "Reviewed"\n      model: "GPT-5.3-Codex"\n      harness: "Codex CLI"\n    - role: "Refined"\n      model: "Gemini 3.1 Pro"\n      harness: "Gemini CLI"\n  pipelineUrl: "'"$PIPELINE_URL"'"' "$FINAL_MDX"
+  sed -i '/^  harness: "Gemini CLI"$/c\  harness: "Gemini CLI + Codex CLI"\n  pipeline:\n    - role: "Written"\n      model: "Gemini 3.1 Pro"\n      harness: "Gemini CLI"\n    - role: "Reviewed"\n      model: "GPT-5.3-Codex"\n      harness: "Codex CLI"\n    - role: "Refined"\n      model: "Gemini 3.1 Pro"\n      harness: "Gemini CLI"\n    - role: "Orchestrated"\n      model: "Opus 4.6"\n      harness: "OpenClaw"\n  pipelineUrl: "'"$PIPELINE_URL"'"' "$FINAL_MDX"
 fi
 
 # Step 5: Deploy
