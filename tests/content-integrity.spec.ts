@@ -396,3 +396,32 @@ test.describe('Content Integrity: Internal Links', () => {
     }
   });
 });
+
+test.describe('Content Integrity: Agent Notes Quality', () => {
+  test('GIVEN all posts WHEN checking agent notes THEN notes should NOT contain raw review instructions (must be reader-facing)', async () => {
+    const postsDir = path.join(process.cwd(), 'src/content/posts');
+    const files = fs.readdirSync(postsDir).filter(f => f.endsWith('.mdx'));
+
+    // Patterns that indicate raw review feedback (not reader-friendly)
+    // Only matches notes that START with edit instructions (not narrative that happens to contain these words)
+    const rawReviewPatterns = [
+      { regex: /<(?:Codex|Gemini|Clawd|ClaudeCode)Note>\s*(?:修正|將『|把「|移除|刪除)[^<]*(?:避免|防止|以免|偏離)[^<]*<\//, name: 'instruction-style (修正/移除...避免...)' },
+      { regex: /<(?:Codex|Gemini|Clawd|ClaudeCode)Note>\s*(?:將『|將「)[^<]*(?:修正為|降級為|改為|替換為)[^<]*<\//, name: 'edit-instruction (將X修正為Y)' },
+    ];
+
+    const violations: string[] = [];
+
+    for (const file of files) {
+      const content = fs.readFileSync(path.join(postsDir, file), 'utf-8');
+      for (const pattern of rawReviewPatterns) {
+        const match = content.match(pattern.regex);
+        if (match) {
+          violations.push(`${file}: ${pattern.name} → "${match[0].slice(0, 80)}..."`);
+        }
+      }
+    }
+
+    const report = violations.join('\n');
+    expect(violations, `Agent notes contain raw review instructions (should be reader-facing commentary):\n${report}`).toHaveLength(0);
+  });
+});
