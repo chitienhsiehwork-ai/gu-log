@@ -42,7 +42,7 @@ tags: ["shroom-picks", "tag2", "tag3"]
 - `{"notes":[{"after_section":"## heading text","content":"..."}]}`
 - `after_section` 必須對應文內某個 `##` 標題，note 會插在該段後面
 - 嚴格限制：
-- 每篇最多 2-3 個 agent notes（總量，不是每個 agent 各 2-3）
+- 每篇最多 4 個 agent notes（總量，不是每個 agent 各 2-3）
 - `content` 要具體說明「修正了什麼、為什麼重要」
 - 禁止空泛內容（例如：文章寫得很好、稍微順一下句子）
 - 判斷規則（必須原文照用）：
