@@ -1,0 +1,111 @@
+---
+ticketId: "SP-98"
+title: "Agent Harness 工程：OpenAI 如何用 Codex 達成零手寫百萬行程式碼"
+originalDate: "2026-03-03"
+translatedDate: "2026-03-03"
+translatedBy:
+  model: "GPT-5.3-Codex"
+  harness: "Codex CLI"
+source: "OpenAI Blog"
+sourceUrl: "https://openai.com/index/harness-engineering/"
+lang: "zh-tw"
+summary: "OpenAI 團隊在五個月內讓 Codex 寫出了百萬行程式碼，人類完全零手寫。這篇文章分享了他們如何透過建構 Agent Harness（鷹架與回饋迴圈），讓軟體工程師的工作從「寫程式」轉變為「設計環境」。"
+tags: ["shroom-picks", "ai-agent", "agent-harness", "codex", "openai"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import CodexNote from '../../components/CodexNote.astro';
+import GeminiNote from '../../components/GeminiNote.astro';
+import ClaudeCodeNote from '../../components/ClaudeCodeNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
+
+OpenAI 團隊在過去五個月進行了一項實驗：用 **0 行人類手寫程式碼**，打造並發布一個內部 beta 版軟體產品。這個產品有內部的每日活躍使用者，也有外部的 alpha 測試者；它會上線、會壞掉，然後被修好。
+
+唯一不同的是，每一行 code——包含應用程式邏輯、測試、CI 設定、文件、監控 (observability)，甚至內部工具——全都是由 Codex 寫出來的。OpenAI 估計，這種開發方式讓他們只花了手工寫 code 約 1/10 的時間。
+
+他們的結論很明確：**Humans steer. Agents execute.（人類掌舵，Agent 執行。）**
+
+為了達成這個目標，軟體工程團隊的主要工作不再是寫 code，而是「設計環境、指定意圖，並建立回饋迴圈 (feedback loops)」，讓 Codex Agent 能夠可靠地工作。
+
+## 0 行手寫程式碼的起點
+
+第一筆 commit 發生在 2025 年 8 月下旬，是一個空的 repository。
+
+最初的基礎架構 (scaffold)——包含資料夾結構、CI 設定、格式化規則、套件管理以及應用程式框架——全都是由 Codex CLI 使用 GPT-5 搭配少量模板生成的。甚至連用來指導 Agent 怎麼工作的 `AGENTS.md` 檔案，也是 Codex 自己寫的。
+
+從一開始，這個 repository 就是由 Agent 塑造的。五個月後，程式碼庫累積了約百萬行 code。在這段期間，由 3 名工程師（後來增加到 7 名）驅動的 Codex，總共開了並 merge 了約 1,500 個 PR (Pull Requests)。平均下來，每位工程師每天能處理 3.5 個 PR，而且隨著團隊擴編，這個吞吐量甚至還在增加。
+
+這並不是單純為了刷數據，這個產品實際上被幾百個內部員工使用，包含每日的重度使用者。
+
+<ClawdNote>
+(๑˃ᴗ˂)ﻭ 百萬行 code 如果全靠手寫，五個月內 3-7 個人絕對做不到。這證明了只要給予對的環境，Agent 的開發能量是人類的十倍以上。
+</ClawdNote>
+
+---
+
+## 讓環境變得「可讀」 (Legible)
+
+由於人類完全不寫 code，這帶來了一種全新的工程挑戰：把重心放在系統、鷹架 (scaffolding) 以及槓桿效應上。
+
+一開始的進度比預期的慢。這不是因為 Codex 不夠聰明，而是因為**環境定義不夠明確**。Agent 缺乏工具、抽象層和內部結構來朝著高階目標前進。因此，工程團隊的主要工作變成了「讓 Agent 能夠做有用的事」。
+
+當某個任務失敗時，解決方法幾乎從來都不是叫 AI「再努力一點」。人類工程師會介入並問自己：「這裡缺少了什麼能力 (capability)？我們該如何讓這個環境對 Agent 變得清晰可讀 (legible) 且可強制執行？」
+
+隨著程式碼產出增加，瓶頸變成了人類 QA 的時間。為此，他們把 UI、Logs 和 Metrics 直接開放給 Codex：
+- **UI 操作能力**：把 Chrome DevTools Protocol 串進 Agent runtime，讓 Codex 可以自己操作 DOM、看截圖和導航。這讓 Codex 能夠重現 bug 並驗證修復。
+- **監控能力**：將 LogQL 和 PromQL 開放給 Agent。當人類給出「確保服務啟動時間低於 800ms」的提示詞時，Codex 真的能自己去查 log 和 metrics 來驗證。
+
+---
+
+## 給地圖，而不是百科全書
+
+在讓 Agent 處理大型複雜任務時，「Context 管理」是最大的挑戰之一。OpenAI 學到了一個簡單的教訓：**給 Codex 一張地圖，而不是一本 1,000 頁的說明書。**
+
+他們曾經試著把所有規則塞進一個巨大的 `AGENTS.md` 檔案裡，結果在意料之內地失敗了：
+- **Context 是稀缺資源**：巨大的指令檔排擠了任務本身的 context，導致 Agent 漏看關鍵限制，或往錯誤的方向優化。
+- **太多指導等於沒有指導**：當「每件事」都很重要時，就沒有重點。
+- **文件瞬間腐敗**：巨大的說明書很快變成過期規則的墳墓，Agent 搞不清楚哪些還是真的。
+
+所以，他們不再把 `AGENTS.md` 當作百科全書，而是當作「目錄」 (table of contents)。短短的 100 行 `AGENTS.md` 會被注入到 context 中，指引 Agent 去哪裡找更深的真實資料 (System of Record)。
+
+<ClawdNote>
+這跟我們在 gu-log SP-94 探討的「Agent Harness 架構」不謀而合。系統提示詞應該是 Router，而不是大雜燴。而且 SD-5/6/7 三部曲裡反覆強調的 "Harness matters"，就是在說這件事。
+</ClawdNote>
+
+---
+
+## 嚴格的邊界與結構限制
+
+要讓 Agent 跑得快又不致於讓程式碼腐敗，架構必須非常嚴格。
+
+Agent 在「有嚴格邊界和可預測結構」的環境下表現最好。因此，OpenAI 替應用程式建立了一個死板的架構模型。每個商業邏輯模組都被分為固定的幾層 (Types → Config → Repo → Service → Runtime → UI)，並且有嚴格的依賴方向。
+
+這些限制是透過自訂的 Linter（當然，也是 Codex 寫的）和結構測試來**機械化地強制執行**。跨領域的需求（如 Auth、Telemetry）只能透過單一的明確介面 (Providers) 進入。
+
+這種架構通常在擁有幾百名工程師的大公司才會出現。但在 Agent 團隊中，這是早期的必備條件：**這些限制正是讓系統能高速發展又不會架構崩壞的關鍵。**
+
+---
+
+## 讓 AI 自己清理技術債
+
+當 Agent 的產出速度極高時，許多傳統的工程規範反而會變成阻礙。例如，他們的 PR 都是短暫存在的，測試的 flaky (不穩定) 狀況通常會透過後續的執行來解決，而不是卡死進度。
+
+然而，全自動的 Agent 也會帶來新的問題。Codex 會去模仿 repository 裡現有的寫法——甚至包含那些寫得不好或過時的寫法。久而久之，這必然會導致架構飄移 (drift)。
+
+一開始，人類團隊每週五要花 20% 的時間手動清理這些「AI slop」。這顯然無法擴展。
+
+於是，他們把「黃金守則」 (golden principles) 直接寫進 repository 裡，並建立定期的清理流程。背景執行的 Codex 會定期掃描不符合規範的程式碼，並開出 Refactoring PR。人類只需要花不到一分鐘的時間 review 並 auto-merge。
+
+這就像是垃圾回收機制 (Garbage Collection)。技術債就像高利貸，持續不斷地小額償還，絕對比放任其複利成長然後一次痛苦解決要來得好。
+
+---
+
+## 結語
+
+OpenAI 的這場實驗證明了一件事：未來的軟體工程依然需要強大的紀律，但這種紀律會越來越多地體現在「鷹架 (Scaffolding / Harness)」的設計上，而不是手寫的程式碼裡。
+
+維持程式碼庫一致性的工具、抽象層和回饋迴圈，將會變得比以往任何時候都更加重要。正如原文作者所期望的，當 Agent 承擔了越來越多的軟體生命週期工作時，我們應該把精力投資在如何設計出更好的 Harness，好讓我們可以「專心去打造東西」(just build things)。
+
+<ClawdNote>
+(◍•ᴗ•◍) 當你不再需要手寫 boilerplate code，你的價值就取決於你定義問題與設計系統邊界的能力。這篇 OpenAI 的文章完美印證了 Harness engineering 才是未來的正解。
+</ClawdNote>
