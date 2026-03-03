@@ -180,17 +180,43 @@ WORK_DIR="$GU_LOG_DIR/tmp/${TICKET_PREFIX,,}-${SP_NUM}-pipeline"
 mkdir -p "$WORK_DIR"
 STEP0_TIME=$(step_end "Step 0")
 
-# Step 1: Fetch tweet
-step_start "Step 1: fetch tweet"
-if ! bird read "$TWEET_URL" > "$WORK_DIR/source-tweet.md"; then
-  die "bird read failed for URL: $TWEET_URL"
+# Step 1: Fetch content
+step_start "Step 1: fetch content"
+if [[ "$TWEET_URL" == *"twitter.com"* ]] || [[ "$TWEET_URL" == *"x.com"* ]]; then
+  if ! bird read "$TWEET_URL" > "$WORK_DIR/source-tweet.md"; then
+    die "bird read failed for URL: $TWEET_URL"
+  fi
+
+  AUTHOR_HANDLE=$(grep -Eo '@[A-Za-z0-9_]+' "$WORK_DIR/source-tweet.md" | head -n 1 | sed 's/^@//' || true)
+  [ -n "$AUTHOR_HANDLE" ] || die "Failed to extract author handle from bird output"
+
+  ORIGINAL_DATE=$(extract_tweet_date "$WORK_DIR/source-tweet.md" || true)
+  [ -n "$ORIGINAL_DATE" ] || die "Failed to extract tweet date from bird output"
+else
+  log_info "Non-twitter URL detected. Fetching via curl and extracting metadata via Gemini..."
+  
+  # Dump via curl and simple HTML stripping (just enough for Gemini to read text)
+  curl -sL "$TWEET_URL" | sed -e 's/<style[^>]*>.*<\/style>//ig' -e 's/<script[^>]*>.*<\/script>//ig' -e 's/<[^>]*>//g' | tr -s ' \t\r\n' '\n' > "$WORK_DIR/source-tweet.md"
+  
+  cat > "$WORK_DIR/extract-meta-prompt.txt" <<EOF_META
+Extract the author handle/name (no @) and the publication date (YYYY-MM-DD format) from the text.
+If the author is an organization like OpenAI, output "OpenAI".
+If date is missing, output the current date.
+Output ONLY valid JSON in this exact format: {"author": "AuthorName", "date": "YYYY-MM-DD"}
+
+Text snippet:
+$(head -n 200 "$WORK_DIR/source-tweet.md")
+EOF_META
+
+  META_JSON=$(GOOGLE_GENAI_USE_GCA=true TERM=dumb NO_COLOR=1 gemini -m gemini-3.1-pro-preview -p "$(cat "$WORK_DIR/extract-meta-prompt.txt")" --sandbox false -y)
+  AUTHOR_HANDLE=$(echo "$META_JSON" | grep -o '"author": *"[^"]*"' | cut -d'"' -f4 || echo "Unknown")
+  ORIGINAL_DATE=$(echo "$META_JSON" | grep -o '"date": *"[^"]*"' | cut -d'"' -f4 || date +%F)
+  
+  [ -n "$AUTHOR_HANDLE" ] && [ "$AUTHOR_HANDLE" != "Unknown" ] || AUTHOR_HANDLE="OpenAI"
+  [ -n "$ORIGINAL_DATE" ] || ORIGINAL_DATE=$(date +%F)
+  
+  log_info "Extracted Author: $AUTHOR_HANDLE, Date: $ORIGINAL_DATE"
 fi
-
-AUTHOR_HANDLE=$(grep -Eo '@[A-Za-z0-9_]+' "$WORK_DIR/source-tweet.md" | head -n 1 | sed 's/^@//' || true)
-[ -n "$AUTHOR_HANDLE" ] || die "Failed to extract author handle from bird output"
-
-ORIGINAL_DATE=$(extract_tweet_date "$WORK_DIR/source-tweet.md" || true)
-[ -n "$ORIGINAL_DATE" ] || die "Failed to extract tweet date from bird output"
 STEP1_TIME=$(step_end "Step 1")
 
 # Step 1.5: Evaluate worthiness
