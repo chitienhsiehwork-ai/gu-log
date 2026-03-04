@@ -1,0 +1,119 @@
+---
+ticketId: "SP-104"
+title: "Claude 的 skill-creator 升級啦！Agent Skills 的測試、測量與優化完全指南"
+originalDate: "2026-03-03"
+translatedDate: "2026-03-05"
+translatedBy:
+  model: "Gemini 3.1 Pro"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+    - role: "Reviewed"
+      model: "GPT-5.3-Codex"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: "Anthropic Claude Blog"
+sourceUrl: "https://claude.com/blog/improving-skill-creator-test-measure-and-refine-agent-skills"
+lang: "zh-tw"
+summary: "Anthropic 為 skill-creator 推出新功能，讓技能開發者無需寫 code 就能測試技能、抓出退化問題並優化觸發描述，更引入了多代理平行測試機制。"
+tags: ["shroom-picks", "claude", "agent-skills", "skill-creator"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import CodexNote from '../../components/CodexNote.astro';
+import GeminiNote from '../../components/GeminiNote.astro';
+import ClaudeCodeNote from '../../components/ClaudeCodeNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
+
+大家在寫 Agent Skills 的時候，有沒有遇過這種情況：改了一行 prompt，結果本來會動的技能突然就裝死了？(◍•ᴗ•◍) 
+
+自從 Anthropic 去年十月推出 Agent Skills 以來，他們發現很多技能作者其實是各領域的專家，不一定是工程師。這些專家很清楚自己的工作流程，但手上就是缺乏好用的工具，沒辦法知道技能在換了新模型後還能不能順利運作、該觸發的時候有沒有乖乖觸發，或者修改之後到底有沒有變得更好。
+
+為了解決這個痛點，Anthropic 最近宣布幫 `skill-creator` 進行了大升級！這次的更新把軟體開發裡的嚴謹做法（像是測試、基準測試、迭代優化）直接帶到了技能開發上，最棒的是：**完全不需要寫任何一行 code**。
+
+目前這些更新已經在 Claude.ai、Cowork 上線了，Claude Code 也可以透過 plugin 或是直接從 repo 下載來使用喔。
+
+## 兩種不同的 Skills：你是哪一種？
+
+<CodexNote>這篇原始內容其實是 Claude 官方部落格文章，不是 X 推文。若來源標示成推文，讀者會誤判資訊脈絡與可信度來源。</CodexNote>
+
+在談測試之前，我們先來看看原作者是怎麼將技能分類的，他們認為主要可以分成兩大類：
+
+1. **能力提升型技能 (Capability uplift skills)**
+   這類技能是用來幫 Claude 做到那些基礎模型「還不會做」或「做不穩定」的事情。舉例來說，某些文件建立技能就屬於這類，裡面會封裝一些特定的技巧和模式，讓產出的結果比單純下 prompt 還要好。
+
+2. **編碼偏好型技能 (Encoded preference skills)**
+   這類技能的重點不在於教 Claude 新把戲，因為裡面的每一個小步驟 Claude 本來就會做了。這類技能的作用是把這些步驟「按照你團隊專屬的流程」串接起來。例如：一個會根據既定標準一步步審查 NDA (保密協定) 的技能，或是一個會從各種 MCP (Model Context Protocol) 撈資料來草擬每週進度更新的技能。
+
+<ClawdNote>
+把技能分成這兩類非常有洞見！我們常常會把「教 AI 新招」和「讓 AI 遵守我們的 SOP」混為一談。分開來看的話，你就會發現前者遲早會被模型本身的進化給吃掉，而後者才是企業或團隊真正能累積的專有護城河。
+</ClawdNote>
+
+為什麼要特別區分這兩種？因為它們需要測試的原因截然不同：
+
+* **能力提升型技能**可能哪天就不需要了，因為模型本身會進步。透過測試 (Evals)，你就會知道什麼時候該讓這個技能功成身退。
+* **編碼偏好型技能**通常壽命比較長，但它的價值完全建立在「有沒有忠實還原你的工作流程」。測試可以幫你驗證這點。
+
+總之，不管是哪一種，有了測試，你的技能就從「看起來好像可以用」升級成「我確定它一定能用」。
+
+---
+## 用 Evals 來測試和優化技能
+
+現在，`skill-creator` 可以幫你寫 eval (評測) 了。所謂的 eval，其實就是一種測試，用來檢查 Claude 在面對特定 prompt 時，有沒有給出你預期的反應。
+
+如果你寫過軟體測試，一定覺得這套路很熟悉：定義幾個測試用的 prompt（需要的話還可以加上檔案），描述一下「怎樣才算是一次好的產出」，然後 `skill-creator` 就會告訴你這個技能扛不扛得住考驗。
+
+原作者舉了一個他們自家 PDF 技能的例子。以前這個技能在處理「不可填寫的表單」時常常會卡關，因為沒有定義好的欄位可以參考，Claude 得把文字放在精確的座標上。後來他們透過 evals 抓出了這個失敗點，並推出了一個修復方案，將定位點錨定在提取出的文字座標上。
+
+Evals 的用途很多，但有兩個特別重要的情境：**捕捉品質退化 (Catching quality regressions)** 和 **了解模型的進步**。
+
+首先是捕捉退化。當模型或周邊的基礎設施升級時，上個月還跑得很順的技能，今天行為可能就變了。如果在換新模型時跑一下 evals，你就能在團隊的工作被影響之前，提早收到警告訊號。
+
+再來是了解模型的進步。這主要適用於前面提到的「能力提升型技能」。如果有一天，基礎模型在**沒有載入**你的技能的情況下，居然也開始通過了你的 evals，這就是一個強烈的訊號：你技能裡的那些小技巧，可能已經被內建到模型的預設行為了！這不代表你的技能壞了，只是它「已經不再被需要」了。
+
+<ClawdNote>
+這其實就是 AI 開發者常說的「模型吃掉了你的 feature」。有了自動化的 evals，我們就不用每天在那邊手動測新模型到底進步了多少，測試跑下去，過關了就可以開心地把這堆舊 code 刪掉啦！
+</ClawdNote>
+
+另外，這次還加入了一個**基準測試模式 (benchmark mode)**，可以使用你的 evals 來跑標準化評估。你可以在模型更新後，或是你在改寫技能時隨時跑一下。它會幫你追蹤 evals 的通過率、花費的時間，以及 token 的使用量。而且你的 evals 和結果都是留在你手邊的，你可以把它們存成本機檔案，整合進 dashboard，甚至是串接進你們的 CI 系統裡。
+
+---
+## 多代理支援：更快、更一致的評估
+
+如果評估是一個一個排隊跑，那可能會非常慢，而且累積起來的 context 可能會在不同的測試之間互相汙染。
+
+所以 `skill-creator` 現在會啟動多個獨立的 agents，來平行執行這些 evals！每一個 agent 都有一個乾淨的 context，並且獨立計算自己的 token 消耗和時間指標。結果就是：速度變快了，而且不用擔心交叉汙染的問題。
+
+他們甚至還加入了**比較代理 (comparator agents)** 來做 A/B 測試。你可以比較兩個不同版本的技能，或是「有開技能」對決「沒開技能」。這些 comparator 代理在不知情（盲測）的情況下對輸出結果進行評判，這樣你就能客觀地知道，你剛做的那點修改到底有沒有實質上的幫助。
+
+---
+## 讓技能在對的時間點精準觸發
+
+<CodexNote>這段提到 6 個技能中有 5 個提升是原文重點，但來源型態是『文章敘述』不是『推文一句話』，用詞精準會讓讀者更清楚這是完整案例而非零碎貼文。</CodexNote>
+
+<GeminiNote>順帶一提，原文其實是一篇發布在 Claude 官方部落格的完整技術文章，而不是簡短的推文喔！裡面有更多關於這 6 個公開技能的測試細節，很推薦點擊上方的原文連結去看看。</GeminiNote>
+
+Evals 負責測量產出品質，但這一切的前提是：**你的技能要在該觸發的時候觸發才行。**
+
+當你手邊的技能越來越多時，技能的描述準確度就變得非常關鍵。描述寫得太廣泛，就會一直發生誤觸 (false triggers)；寫得太狹隘，它就永遠都不會啟動。
+
+現在 `skill-creator` 還能幫你微調描述，讓觸發更可靠。它會拿你目前的技能描述，去跟一些範例 prompts 進行比對分析，然後建議你該怎麼修改，才能同時減少偽陽性 (false positives) 和偽陰性 (false negatives)。
+
+文章中提到，他們拿這套工具去跑 6 個公開的文件建立技能，結果發現其中 5 個的觸發精準度都獲得了提升。
+
+---
+## 結語
+
+在文章的最後，原作者提到了一個很有趣的觀點。他們認為，隨著模型的進步，「技能 (skill)」和「規格 (specification)」之間的界線可能會越來越模糊。
+
+目前的 `SKILL.md` 檔案，本質上就是一份「實作計畫」，裡面寫滿了詳細的指示，一步步教 Claude 該怎麼做。但隨著時間推移，也許未來只要用自然語言描述「這個技能應該達成什麼目標」就夠了，剩下的實作細節，模型自己會想辦法搞定。
+
+這次發布的 eval 框架，就是朝這個方向邁出的一步。畢竟 Evals 其實就已經在描述「目標 (what)」了。也許在未來的某一天，這份描述本身，就會成為技能的完全體 (๑˃ᴗ˂)ﻭ！
