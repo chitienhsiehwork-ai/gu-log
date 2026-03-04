@@ -40,11 +40,12 @@ die() {
 }
 
 run_with_fallback() {
-  local prompt_text=""
+  local prompt_file
+  prompt_file=$(mktemp)
   if [ "${1:-}" = "-p" ]; then
-    prompt_text="$2"
+    printf '%s' "$2" > "$prompt_file"
   else
-    prompt_text=$(cat)
+    cat > "$prompt_file"
   fi
 
   local out_tmp
@@ -52,12 +53,13 @@ run_with_fallback() {
   out_tmp=$(mktemp)
   err_tmp=$(mktemp)
   
-  if GOOGLE_GENAI_USE_GCA=true TERM=dumb NO_COLOR=1 gemini -m gemini-3.1-pro-preview --sandbox false -y -p "$prompt_text" > "$out_tmp" 2> "$err_tmp"; then
+  # Pipe prompt via stdin to avoid ARG_MAX limit on large prompts
+  if GOOGLE_GENAI_USE_GCA=true TERM=dumb NO_COLOR=1 gemini -m gemini-3.1-pro-preview --sandbox false -y < "$prompt_file" > "$out_tmp" 2> "$err_tmp"; then
     LAST_MODEL_USED=$(model_display_name "gemini-3.1-pro-preview")
     LAST_HARNESS_USED=$(model_harness_name "gemini-3.1-pro-preview")
     cat "$out_tmp"
     cat "$err_tmp" >&2
-    rm -f "$out_tmp" "$err_tmp"
+    rm -f "$out_tmp" "$err_tmp" "$prompt_file"
     return 0
   fi
   
@@ -67,31 +69,33 @@ run_with_fallback() {
   
   if echo "$err_content" | grep -qiE "429|TerminalQuotaError|exhausted your capacity"; then
     log_warn "Gemini Pro 429, falling back to Codex CLI" >&2
-    if codex exec --full-auto -q "$prompt_text" > "$out_tmp" 2> "$err_tmp"; then
+    local prompt_text
+    prompt_text=$(cat "$prompt_file")
+    if codex exec --full-auto -- "$prompt_text" > "$out_tmp" 2> "$err_tmp"; then
       LAST_MODEL_USED=$(model_display_name "gpt-5.3-codex")
       LAST_HARNESS_USED=$(model_harness_name "gpt-5.3-codex")
       cat "$out_tmp"
       cat "$err_tmp" >&2
-      rm -f "$out_tmp" "$err_tmp"
+      rm -f "$out_tmp" "$err_tmp" "$prompt_file"
       return 0
     fi
     log_warn "Codex CLI failed, falling back to Gemini Flash" >&2
-    if GOOGLE_GENAI_USE_GCA=true TERM=dumb NO_COLOR=1 gemini -m gemini-2.5-flash --sandbox false -y -p "$prompt_text" > "$out_tmp" 2> "$err_tmp"; then
+    if GOOGLE_GENAI_USE_GCA=true TERM=dumb NO_COLOR=1 gemini -m gemini-2.5-flash --sandbox false -y < "$prompt_file" > "$out_tmp" 2> "$err_tmp"; then
       LAST_MODEL_USED=$(model_display_name "gemini-2.5-flash")
       LAST_HARNESS_USED=$(model_harness_name "gemini-2.5-flash")
       cat "$out_tmp"
       cat "$err_tmp" >&2
-      rm -f "$out_tmp" "$err_tmp"
+      rm -f "$out_tmp" "$err_tmp" "$prompt_file"
       return 0
     fi
     log_error "All fallback models failed" >&2
     cat "$err_tmp" >&2
-    rm -f "$out_tmp" "$err_tmp"
+    rm -f "$out_tmp" "$err_tmp" "$prompt_file"
     return 1
   else
     cat "$out_tmp"
     cat "$err_tmp" >&2
-    rm -f "$out_tmp" "$err_tmp"
+    rm -f "$out_tmp" "$err_tmp" "$prompt_file"
     return $exit_code
   fi
 }
@@ -346,7 +350,7 @@ EOF_EVAL_CODEX
   set +e
   (
     cd "$WORK_DIR"
-    run_with_fallback -p "$(cat eval-gemini-prompt.txt)"
+    run_with_fallback < eval-gemini-prompt.txt
   )
   GEMINI_EVAL_STATUS=$?
   (
