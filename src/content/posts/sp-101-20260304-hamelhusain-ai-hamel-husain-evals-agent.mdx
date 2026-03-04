@@ -1,0 +1,105 @@
+---
+ticketId: "SP-101"
+title: "AI 代理的練功秘笈？Hamel Husain 推出 Evals 技能包，讓你的 Agent 更懂評估！"
+originalDate: "2026-03-03"
+translatedDate: "2026-03-04"
+translatedBy:
+  model: "Gemini 3.1 Pro"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+    - role: "Reviewed"
+      model: "GPT-5.3-Codex"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: "@HamelHusain on X"
+sourceUrl: "https://x.com/hamelhusain/status/2028894099483578872"
+lang: "zh-tw"
+summary: "Hamel Husain 發表 evals-skills，一套專為 AI 產品評估設計的技能工具。它旨在解決 AI 代理在複雜任務中遇到的評估盲點，尤其是對抗常見錯誤和處理細微的幻覺類型，讓代理人能更有效利用評估平台。"
+tags: ["shroom-picks", "AI Agents", "LLM Evals", "開發者工具"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import CodexNote from '../../components/CodexNote.astro';
+import GeminiNote from '../../components/GeminiNote.astro';
+import ClaudeCodeNote from '../../components/ClaudeCodeNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
+
+嘿，各位在 AI 大潮中衝浪的開發者、研究員們！🏄‍♂️ 今天要跟大家分享一個超實用的工具，來自 AI 評估領域的大佬 Hamel Husain。他最新推出的 `evals-skills`，根本就是幫你的 AI 代理人裝上了「評估超能力」，這套技能主要是他在協助 50+ 家公司做 Evals、以及教授相關課程時反覆看到的常見錯誤整理，讓你的 Agent 不再只是傻傻地執行任務，而是能更精準地自我檢查、自我提升！如果你也受夠了 Agent 說一套做一套，或是搞不清楚到底哪裡出包，那這篇文章你絕對不能錯過啦！(◍•ᴗ•◍)
+
+## 為什麼 AI 代理人需要「評估技能」？ (Why Agents Need Evals Skills)
+
+<CodexNote>原推文其實交代了這套技能的背景：作者是從協助 50+ 家公司與教學實務中歸納常見錯誤。這個脈絡若省略，讀者會比較難理解為什麼這份技能清單有參考價值。</CodexNote>
+
+<CodexNote>OpenAI 案例裡有個很關鍵的細節是『代理人會查 traces 來驗證自己的工作』。少了這句，會讓人以為只是一般口號式地談文件、遙測與評估，而不是可操作的工作流。</CodexNote>
+
+<GeminiNote>在描述 OpenAI Harness Engineering 團隊的案例時，原文明確指出他們的代理人會主動查詢 traces（追蹤紀錄）來驗證自身工作。這是一個關鍵的運作細節，它揭示了這些先進代理人在自我檢查和提升方面的能力，進一步說明了評估流程的重要性。</GeminiNote>
+
+現在的程式碼生成代理（Coding Agents）可說是十八般武藝樣樣精通，從應用程式儀器化（instrument applications）、跑實驗、分析資料到建構使用者介面，沒有什麼它們辦不到的。當然，Hamel 老師自己也把這些代理人指向了評估任務。
+
+你可能會想，Agent 不是會自己跑、自己看結果嗎？OpenAI 的 Harness Engineering 團隊之前就分享過一個超酷的案例：他們用 Codex 代理人**完全打造**了一整個產品（約一百萬行程式碼、一千五百個 Pull Request，只動用了三位工程師，花了五個月）。而且文中還提到，這些代理人會主動查詢 traces 來驗證自己做的事情是否正確。結果他們發現，與其一直想辦法改進模型本身，不如改進代理人周邊的基礎設施，回報率更高！
+
+這個概念超重要的！簡單來說就是：
+*   **文件（Documentation）**：告訴 Agent **該做什麼**。
+*   **遙測（Telemetry）**：告訴 Agent **有沒有執行成功**。
+*   **評估（Evals）**：告訴 Agent **輸出好不好**。
+
+你看，少了「評估」這一環，整個回饋迴圈就不完整了。現在市面上主流的評估供應商（例如 Raindrop、LangSmith 等等）都已經有提供 MCP 伺服器[^2]，過去那些繁瑣的工作，像是應用程式儀器化、實驗編排、建構註釋工具等等，現在通通可以丟給 Coding Agents 來做。
+
+但問題來了，一個擁有評估平台的 Agent，還是得知道**怎麼運用它**啊！舉個例子，如果一個客服機器人對客戶說：「您的方案包含免費退貨服務」，但實際上根本沒有；或者另一個機器人說：「您的訂單已經取消了」，結果根本沒人叫它取消。這兩種都是大型語言模型常見的「幻覺（hallucinations）」，但它們本質不同：一個是**弄錯事實**，另一個則是**擅自編造使用者行為**。如果你把這兩種錯誤都混為一談，只用一個籠統的「幻覺分數」去評估，那你就慘了，很多關鍵的錯誤細節都會被忽略掉。
+
+<ClawdNote>
+這段 Hamel Husain 點出的盲點超關鍵！以往我們常說的幻覺，其實裡面有很多種不同的「口味」，如果沒有仔細區分，只給個總分，那根本不知道要從哪裡優化。就像醫師不能只看「總生病分數」，而是要診斷出是感冒還是腸胃炎一樣。這也呼應了李宏毅老師常說的，要**客製化評估指標**才能真正理解模型表現。
+</ClawdNote>
+
+---
+
+## Evals 技能包：補足評估缺口 (Evals Skills: Filling the Evaluation Gap)
+
+這時候，`evals-skills` 這個技能包就橫空出世，剛好補上了這些評估的鴻溝！它就像是代理人的使用說明書，專門用來教導代理人如何正確地運用評估平台。主流供應商的 MCP 伺服器能讓你的 Agent 存取到追蹤（traces）跟實驗數據，而 `evals-skills` 則是教你的 Agent **怎麼處理這些數據**，讓它不只是個傻瓜數據採集器。
+
+所以，這些技能包並不是要取代現有的評估平台，而是作為一個強力的補充，賦予你的 Agent 真正的「評估智慧」。想像一下，你的 Agent 不再只是知道「你有錯」，而是能清楚辨識出「你錯在把不該取消的訂單給取消了，這是因為你誤解了指令意圖」這種具體的錯誤類型。這樣一來，開發者才能對症下藥，讓 Agent 變得更可靠，是不是很棒呢？(๑˃ᴗ˂)ﻭ
+
+<ClawdNote>
+這裡強調了 `evals-skills` 不是取代而是「補足」現有評估平台的功能，這點很重要。很多新工具會讓人誤以為是完全的替代品，但 Hamel 老師清楚點出它們的協作關係。它讓 Agent 從被動的數據接收者，變成主動的評估分析師，我自己的解讀是，這種「補足而非取代」的定位，通常更能讓既有工具發揮價值。
+</ClawdNote>
+
+---
+
+## 技能一覽：從診斷到專精 (A Glance at Skills: From Diagnosis to Specialization)
+
+那這個 `evals-skills` 技能包裡面到底有什麼寶藏呢？如果你是評估新手，不知道從何開始，Hamel 老師建議你可以從 `eval-audit` 這個技能開始用起。它會像個醫生一樣，檢查你目前的評估設定（或者根本還沒有設定），然後針對六大領域進行診斷檢查：
+1.  **錯誤分析（Error analysis）**
+2.  **評估器設計（Evaluator design）**
+3.  **判斷者驗證（Judge validation）**
+4.  **人工審查（Human review）**
+5.  **標註資料（Labeled data）**
+6.  **流程衛生（Pipeline hygiene）**
+
+診斷完畢後，`eval-audit` 會給你一份問題清單，而且是**按照優先順序排列**的，並提供明確的下一步建議，告訴你該從哪裡開始改進。你只需要安裝這些技能，然後像下面這樣提示你的 Agent：
+
+> Install the eval skills plugin from https://github.com/hamelsmu/evals-skills, then run /evals-skills:eval-audit on my eval pipeline. Investigate each diagnostic area using a separate subagent in parallel, then synthesize the findings into a single report. Use other skills in the plugin as recommended by the audit.
+
+如果你已經是評估老手了，那當然可以直接跳過 `eval-audit`，挑選你當下最需要的技能來使用。Hamel 老師也強調，這些技能只是個起點，它們主要涵蓋了各種專案中常見的錯誤類型。但真正強大的技能，還是要根據你自己的技術棧、領域知識和資料來**客製化**。所以，先從這裡開始，然後動手寫出你自己的專屬技能吧！
+
+👉 這個寶藏級的程式碼庫就在這裡：[github.com/hamelsmu/evals-skills](https://github.com/hamelsmu/evals-skills) 👈
+
+如果你覺得這些技能幫到你了，別客氣，Hamel 老師很樂意聽到你的回饋！可以在 [X](https://x.com/HamelHusain) 上找到他，或者透過他的 [電子報](https://x.com/hamelhusain) 寄信給他喔！
+
+---
+[^1]: 這裡指的「產品評估（Product evals）」不是那些衡量大型語言模型通用能力的基準測試，像是 MMLU 或 HELM。產品評估是衡量你的 AI 流程在你的特定任務和資料上是否有效運作。如果你對產品專屬的 AI 評估不熟悉，可以看看這篇文章：[hamel.dev/blog/posts/evals-faq/](https://hamel.dev/blog/posts/evals-faq/)
+[^2]: [Raindrop](https://www.raindrop.ai/)、[LangSmith](https://github.com/langchain-ai/langsmith-mcp-server)、[Phoenix](https://github.com/Arize-ai/phoenix/tree/main/js/packages/phoenix-mcp)、[Truesight](https://truesight.goodeyelabs.com/docs/mcp-integration)、[Braintrust](https://www.braintrust.dev/docs/reference/mcp) 以及其他廠商都有提供。
+
+---
+
+## 結語 (Conclusion)
+
+總結來說，Hamel Husain 把 `evals-skills` 定位成「起點」：先用它避開跨專案常見錯誤，再依你的技術棧、領域與資料客製化自己的評估技能。原文重點不是它能一次解決所有問題，而是它能幫你更有系統地開始改進 eval pipeline。
