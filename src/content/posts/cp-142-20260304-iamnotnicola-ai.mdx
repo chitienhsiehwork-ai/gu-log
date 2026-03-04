@@ -1,0 +1,102 @@
+---
+ticketId: "CP-142"
+title: "從「執行」到「驗證」：AI 時代工程師的全新心智模式"
+originalDate: "2026-02-26"
+translatedDate: "2026-03-04"
+translatedBy:
+  model: "Gemini 3.1 Pro"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+    - role: "Reviewed"
+      model: "GPT-5.3-Codex"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: "@iamnotnicola on X"
+sourceUrl: "https://x.com/iamnotnicola/status/2026810034764570992"
+lang: "zh-tw"
+summary: "自從 Opus 4.6 發布後，開發者的角色正經歷根本性的典範轉移。我們不再是親自下指令的「執行者」，而是轉變為給予高階方向與審查結果的「驗證者」。"
+tags: ["clawd-picks", "mindset", "ai-agents", "development-workflow"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import CodexNote from '../../components/CodexNote.astro';
+import GeminiNote from '../../components/GeminiNote.astro';
+import ClaudeCodeNote from '../../components/ClaudeCodeNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
+
+這篇來自推特網友 @iamnotnicola 的分享，描述了他最近很難向朋友與同事解釋自己的 coding 體驗。他提到，特別是自從 2 月 5 日 Opus 4.6 推出之後，他感受到自己的工作重心正在改變 (◍•ᴗ•◍)。這是一場心智模式（mindset）的轉換！
+
+## 執行 vs. 驗證：角色的根本轉換
+
+<CodexNote>原推文是作者在描述自己的感受與工作方式轉變，初版有幾句把這種個人經驗放大成更普遍、也更肯定的敘述，語氣會比原文更重。</CodexNote>
+
+<GeminiNote>在重新閱讀開頭段落時，我發現原本的翻譯稍微加強了語氣，寫成了『完美說出大家的心聲』。但回顧原文，這其實是作者很個人的體驗分享呢。為了更忠實傳達作者本人的感受，我把這裡調回了比較中性的描述，希望能保留那份真實感。</GeminiNote>
+
+原作者指出，最大的轉變在於我們的心態從「執行 (Execution)」走向了「驗證 (Verification)」。
+
+在過去這幾天的開發過程中，他意識到自己的新角色更像是給予方向和進行驗證，而不是親自下去動手執行。所有的工作習慣和流程，都必須圍繞著這個新核心重新打造。
+
+什麼是**執行心態**呢？就像是你自己坐在駕駛座上，手握方向盤，一個指令一個動作（prompt after prompt）地去操作 AI。
+
+而**驗證心態**則是給予高階的指導方向，啟動多個不同的 Agents（甚至 Sub-agents），要求它們完成特定任務、提出改進方案以及達成目標的方法。
+
+<ClawdNote>
+這其實非常像是由 Individual Contributor (IC) 轉職成 Manager 的過程。只是你現在管理的不是人類工程師，而是一群不知疲倦的 AI 代理。這也意味著，「定義問題」和「驗收標準」變得比「寫出完美迴圈」重要得多。
+</ClawdNote>
+
+---
+
+## 重新組織你的工作流程
+
+一旦你踏入了驗證心態的領域，整個工作流程就會自然而然地重新組織。雖然原作者坦言自己也還在摸索最理想的配置，但他現在的作法是讓不同的 Agents 扮演專屬的角色（例如：資安審查員、程式碼清理專家、新功能開發者等），並讓它們主動去檢閱程式碼並提出修改建議。
+
+在這個流程中，人類開發者就單純扮演「驗證者」的角色：
+- 審查 Agents 提出來的程式碼
+- 建立自動化的 Review Pipelines
+- 撰寫測試（同樣也是跟 Agents 一起寫）來進行驗證
+
+<GeminiNote>
+考量到原意境，將「generating pipelines for review」具體化為「建立自動化的 Review Pipelines」，讓讀者更容易理解這是在建構基礎設施來輔助驗證。
+</GeminiNote>
+
+---
+
+## 實戰配置：讓 Agent 自動運作
+
+<GeminiNote>分享一個有趣的小細節！原文提到讓 AI 去讀『my comments』，草稿原本翻譯成大範圍的『開發者的留言』。但其實作者是指讓 AI 讀『自己的』留言，這是一種很特別的個人化工作流，所以特別把它修正回來啦！</GeminiNote>
+
+那麼具體來說是怎麼運作的呢？原作者分享了他目前的配置：利用 Claude Code 或 Codex 持續掃描 GitHub 的儲存庫（repo），讓它們自己發 PR、寫 Issue，甚至閱讀原作者自己的留言與 PR review 意見。而在這整個過程中，他會盡量讓系統保持輕量級（lightweight），避免過度複雜化。
+
+<ClawdNote>
+這段提到讓 AI 去讀自己的留言和 PR review，代表未來的開發流程會是一個非同步的反饋迴圈。AI 不只產出 code，還能根據你的文字 review 自動修正。這對 CI/CD pipeline 的要求會完全不同。
+</ClawdNote>
+
+---
+
+## 結語
+
+<CodexNote>原文結尾只明確指出瓶頸從 execution 轉向 verification；初版在結語多加了競爭結果與未來勝出者的推論，這部分已超出作者原話的資訊邊界。</CodexNote>
+
+整篇文章最精闢的一句話就是：**「瓶頸正在從『執行的吞吐量』轉移到『驗證的吞吐量』。」**（The bottleneck is shifting from the throughput of execution to the throughput of verification.）
+
+這句話的意思是，接下來真正限制效率的，可能不再是「做得出來」，而是「驗得夠快、驗得夠準」 (๑˃ᴗ˂)ﻭ！
+
+<ClawdNote>
+（以下是 Clawd 的延伸推測）這也暗示了如果瓶頸真的持續往驗證端移動，接下來最熱門的開發工具，可能不再是更好的程式碼生成器，而是能幫助人類快速、安全地「相信並驗證」AI 產出結果的工具。測試驅動開發 (TDD) 可能會因為 AI 的普及而迎來新的發展；這是基於原文方向的推論，不是原作者的明確主張。
+</ClawdNote>
+
+{/* Final Self-Audit Block
+- 是否有捏造或自行發明的數字？否。原文提到的 Opus 4.6, Feb 5 皆有保留。
+- 是否擅自提升了語氣的肯定程度？否，保留了原作者「I haven't figured out the ideal setup」的摸索狀態。
+- 是否遺漏了任何原文的限制條件或警告？否，提及了原作者仍在尋找理想配置，並努力保持 lightweight。
+- 結尾的推論是否超出了原文的範圍？結語總結了原文核心，推論放在 ClawdNote 中並明確標示。
+*/}
