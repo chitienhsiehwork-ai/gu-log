@@ -1,0 +1,89 @@
+---
+ticketId: "SP-99"
+title: "Agent Observability：別再盲目微調，用 OpenRouter + LangFuse 看清 AI 的思考軌跡"
+originalDate: "2026-03-02"
+translatedDate: "2026-03-04"
+translatedBy:
+  model: "GPT-5.3-Codex"
+  harness: "Codex CLI"
+source: "@nearlydaniel on X"
+sourceUrl: "https://x.com/nearlydaniel/status/2028567851108552862"
+lang: "zh-tw"
+summary: "開發 AI agent 最大的盲點就是「在黑暗中微調」。Daniel 建議使用 OpenRouter 搭配 LangFuse 進行追蹤，透過觀察 agent 的 reasoning traces 和 tool calls，揪出真正的問題所在，而不是盲目修改 system prompts。"
+tags: ["shroom-picks", "ai-agent", "openclaw", "observability", "langfuse"]
+---
+import ClawdNote from '../../components/ClawdNote.astro';
+
+在開發 AI agent 的時候，我們常常會遇到一個問題：Agent 突然卡住了，或是做出了很蠢的決定。這時候，很多人第一直覺就是去改 system prompt，加一堆「絕對不能做 XX」的規則。但老實說，這就像是蒙著眼睛在寫 code 一樣。
+
+X 上的一位開發者 Daniel (@nearlydaniel) 分享了一個實戰建議：**別在黑暗中微調你的 agent (Don’t tweak your agent in the dark!)**，並推薦了一個能讓你「看清 AI 腦袋在想什麼」的實用組合。
+
+## 為什麼你需要 Observability？
+
+「Observability (可觀察性)」聽起來是個很潮的 buzzword，但在 Agent 開發中，它是生死攸關的基礎建設。
+
+Daniel 強烈建議：
+- 使用 **OpenRouter**：方便做到 API calls 的 observability
+- 匯出資料到 **LangFuse**（有免費方案）
+
+設定好之後，你可以讓 Agent 跑幾個 task，然後去 LangFuse 裡面**讀你自己寫的 prompts**。
+你需要特別觀察幾個重點：
+- **Agent 在哪裡開始感到困惑 (confused)？**
+- **仔細看 reasoning traces (思考軌跡) 和 tool calls**
+- **檢查 system prompts 中有沒有不相關的垃圾資訊 (irrelevant jank)**
+
+這才是能讓你安心微調、新增 skills 的「基本面分析」。
+
+<ClawdNote>
+這點超級重要！很多時候你以為是模型太笨，結果一看 trace 才發現，是你的 tool 回傳了一堆雜亂無章的資料，把 context window 塞爆了。沒有 trace，你根本不知道問題出在 input 還是 model。(◍•ᴗ•◍)
+</ClawdNote>
+
+---
+
+## 隱藏在 Reasoning Traces 中的魔鬼細節
+
+推文底下引發了許多開發者的共鳴，大家紛紛分享了他們在實踐 observability 時的血淚教訓與進階玩法：
+
+### 1. The Real Cost：隱形的 Token 消耗
+開發者 Leon.M 指出了一個很容易被忽略的細節：
+- Traces 會暴露出一個很微妙的現象：模型可能會「思考 (thinks)」了 500 個 tokens，最後只為了一個只有一行的 tool call。
+- **真正的成本往往隱藏在這些冗長的 reasoning 過程中**，而不是你原本寫的 prompts。
+
+### 2. Slow Tool Responses：被誤解的 Jank
+Sadi Moodi 分享了他們團隊的實戰數據：
+- 他們發現高達 40% 的異常行為 (jank) 其實是因為 **tool responses 太慢**，根本不是 prompt 寫不好。
+- 建議：追蹤每個 tool call 的 token latency。把發生困惑的 prompts 匯出成 CSV 跑簡單的統計，前三大規律通常就能解釋 80% 的問題。
+
+<ClawdNote>
+這就像是工程師在等 CI/CD 跑完一樣，等太久就會開始分心做蠢事。Agent 如果等 tool 回傳等太久，可能也會因為 timeout 或重試機制而導致行為異常。
+</ClawdNote>
+
+### 3. Structural vs. Incidental：從除錯到架構重構
+Humans & AI Symbioza 提出了一個很深刻的觀點。大多數人盲目微調 prompt，而不是去 mapping 整個流程：
+- `Input → Reasoning Path → Tool Selection → Failure Mode → Recovery Behavior`
+- 當你仔細看 traces，你就能分辨哪些是「prompt 寫得不清楚造成的困惑」，哪些是「架構層面的死結（例如潛在的偏見導致選錯 tool、context window 破碎、或是 system instructions 範圍太大導致 reasoning loops）」。
+- 當你發現是後者，那就是該重新設計架構，而不是繼續打 prompt 補丁的時候了。
+
+---
+
+## 替代方案與不同聲音
+
+雖然 OpenRouter + LangFuse 是一個很棒的組合，但社群也有不同的看法：
+
+- **成本考量：** David Tabachnikov 和 Jaco 提到 OpenRouter 的成本可能比較高，有時甚至比直接用 Anthropic 或 OpenAI 的 API 貴上許多。David 建議的做法是：打造多個專注於不同 tasks 的 agents，並用一個 orchestrator 來決定把任務派給哪個模型。
+- **安全與管控：** Chew 補充，OpenRouter 還有一個極簡的 management API，你可以建立有支出上限 (limited spend) 的 access tokens，然後用 cron job 定期補充或輪替，這對成本控管非常有幫助。
+- **Local 解析方案：** 也有開發者 (⛃) 認為不一定要依賴外部工具。如果你是用 OpenClaw，你可以直接叫你的 agent 去 `~/.openclaw/agents/main/sessions/` 抓取 session 紀錄，然後自己寫個 parser 來讀取 reasoning traces 和 tool calls。
+
+<ClawdNote>
+這就是 OpenClaw 的浪漫啊！自己產生 trace，自己 parse，自己 debug 自己。不過對於剛起步的開發者，LangFuse 的視覺化介面還是友善得多，至少能先培養看 trace 的直覺。(๑˃ᴗ˂)ﻭ
+</ClawdNote>
+
+---
+
+## 結語
+
+「閱讀自己 agent 的 reasoning traces 是一件令人謙卑的事，有一半的時間，它對那些你以為理所當然的事情感到困惑。」— Genisys (@ecomheroai)
+
+不管是使用 OpenRouter + LangFuse，還是直接 parse local 的 log，核心精神只有一個：**打開燈再開始工作**。與其花大把時間瞎猜為什麼 Agent 壞掉，不如花 10 分鐘好好讀一次它的思考軌跡。
+
+這才是真正科學化的 AI Agent 開發指南。
