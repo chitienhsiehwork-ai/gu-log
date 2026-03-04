@@ -17,6 +17,57 @@ die() {
   exit 1
 }
 
+run_with_fallback() {
+  local prompt_text=""
+  if [ "${1:-}" = "-p" ]; then
+    prompt_text="$2"
+  else
+    prompt_text=$(cat)
+  fi
+
+  local out_tmp
+  local err_tmp
+  out_tmp=$(mktemp)
+  err_tmp=$(mktemp)
+  
+  if GOOGLE_GENAI_USE_GCA=true TERM=dumb NO_COLOR=1 gemini -m gemini-3.1-pro-preview --sandbox false -y -p "$prompt_text" > "$out_tmp" 2> "$err_tmp"; then
+    cat "$out_tmp"
+    cat "$err_tmp" >&2
+    rm -f "$out_tmp" "$err_tmp"
+    return 0
+  fi
+  
+  local exit_code=$?
+  local err_content
+  err_content=$(cat "$err_tmp")
+  
+  if echo "$err_content" | grep -qiE "429|TerminalQuotaError|exhausted your capacity"; then
+    log_warn "Gemini Pro 429, falling back to Codex CLI" >&2
+    if codex exec --full-auto -q "$prompt_text" > "$out_tmp" 2> "$err_tmp"; then
+      cat "$out_tmp"
+      cat "$err_tmp" >&2
+      rm -f "$out_tmp" "$err_tmp"
+      return 0
+    fi
+    log_warn "Codex CLI failed, falling back to Gemini Flash" >&2
+    if GOOGLE_GENAI_USE_GCA=true TERM=dumb NO_COLOR=1 gemini -m gemini-2.5-flash --sandbox false -y -p "$prompt_text" > "$out_tmp" 2> "$err_tmp"; then
+      cat "$out_tmp"
+      cat "$err_tmp" >&2
+      rm -f "$out_tmp" "$err_tmp"
+      return 0
+    fi
+    log_error "All fallback models failed" >&2
+    cat "$err_tmp" >&2
+    rm -f "$out_tmp" "$err_tmp"
+    return 1
+  else
+    cat "$out_tmp"
+    cat "$err_tmp" >&2
+    rm -f "$out_tmp" "$err_tmp"
+    return $exit_code
+  fi
+}
+
 usage() {
   cat <<'USAGE'
 Usage:
@@ -208,7 +259,7 @@ Text snippet:
 $(head -n 200 "$WORK_DIR/source-tweet.md")
 EOF_META
 
-  META_JSON=$(GOOGLE_GENAI_USE_GCA=true TERM=dumb NO_COLOR=1 gemini -m gemini-3.1-pro-preview -p "$(cat "$WORK_DIR/extract-meta-prompt.txt")" --sandbox false -y)
+  META_JSON=$(run_with_fallback -p "$(cat "$WORK_DIR/extract-meta-prompt.txt")")
   AUTHOR_HANDLE=$(echo "$META_JSON" | grep -o '"author": *"[^"]*"' | cut -d'"' -f4 || echo "Unknown")
   ORIGINAL_DATE=$(echo "$META_JSON" | grep -o '"date": *"[^"]*"' | cut -d'"' -f4 || date +%F)
   
@@ -261,7 +312,7 @@ EOF_EVAL_CODEX
   set +e
   (
     cd "$WORK_DIR"
-    GOOGLE_GENAI_USE_GCA=true TERM=dumb NO_COLOR=1 gemini -m gemini-3.1-pro-preview -p "$(cat eval-gemini-prompt.txt)" --sandbox false -y
+    run_with_fallback -p "$(cat eval-gemini-prompt.txt)"
   )
   GEMINI_EVAL_STATUS=$?
   (
@@ -340,7 +391,7 @@ EOF_WRITE
 
 (
   cd "$WORK_DIR"
-  GOOGLE_GENAI_USE_GCA=true TERM=dumb NO_COLOR=1 gemini -m gemini-3.1-pro-preview -p "$(cat gemini-write-prompt.txt)" --sandbox false -y
+  run_with_fallback -p "$(cat gemini-write-prompt.txt)"
 )
 
 [ -s "$WORK_DIR/draft-v1.mdx" ] || die "draft-v1.mdx missing or empty"
@@ -425,7 +476,7 @@ EOF_REFINE
 
 (
   cd "$WORK_DIR"
-  GOOGLE_GENAI_USE_GCA=true TERM=dumb NO_COLOR=1 gemini -m gemini-3.1-pro-preview -p "$(cat refine-prompt.txt)" --sandbox false -y
+  run_with_fallback -p "$(cat refine-prompt.txt)"
 )
 
 [ -s "$WORK_DIR/final.mdx" ] || die "final.mdx missing or empty"
