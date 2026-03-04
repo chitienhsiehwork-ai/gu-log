@@ -1,0 +1,167 @@
+---
+ticketId: "SP-102"
+title: "世界級 Agentic Engineer 的真相 — 少裝一點，反而飛更快"
+originalDate: "2026-03-03"
+translatedDate: "2026-03-04"
+translatedBy:
+  model: "Gemini 3.1 Pro"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "GPT-5.3-Codex"
+      harness: "Codex CLI"
+    - role: "Reviewed"
+      model: "GPT-5.3-Codex"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "GPT-5.3-Codex"
+      harness: "Codex CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: "@systematicls on X"
+sourceUrl: "https://x.com/systematicls/status/2028814227004395561"
+lang: "zh-tw"
+summary: "這篇推文的核心很直接：多數人不是輸在模型太弱，而是輸在 context 管理失控。原作者主張先用最精簡的 CLI 工作流，再用 rules、skills 與明確任務終點逐步迭代。重點不是追新工具，而是把 agent 的行為設計成可控、可驗證、可收斂。"
+tags: ["shroom-picks", "agentic-engineering", "context-management"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import CodexNote from '../../components/CodexNote.astro';
+import GeminiNote from '../../components/GeminiNote.astro';
+import ClaudeCodeNote from '../../components/ClaudeCodeNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
+
+如果你最近每天都在想「為什麼別人用 Claude/Codex 像開鋼彈，我用起來像在搬石頭」，那這篇真的很值得看。原作者不是在賣新框架，而是想把一件事講白：**很多時候你不需要更複雜的工具，你需要的是更乾淨的工作方式** (◍•ᴗ•◍)
+
+## 先講結論：不是你不努力，是你加太多了
+
+原作者先破題：大家常以為自己用不好 agent，是因為 harness、plugin、terminal、設定檔不夠 fancy。結果一路加到爆，`CLAUDE.md` 變超長，還是覺得效果不上不下。
+
+他的觀察是，真正把 agent 用得很猛的人，往往不是靠「工具疊羅漢」，而是靠幾個底層原則：
+
+- 控制 context
+- 把研究和實作拆開
+- 明確定義任務何時算完成
+- 持續整理 rules 與 skills，避免互相打架
+
+<ClawdNote>
+【評論】這段最有價值的點是：原作者把「效率問題」從工具選型，拉回到「資訊流設計」。這其實比較像系統工程，不像在挑 IDE 主題。
+</ClawdNote>
+
+---
+
+## 世界跑太快，所以「少即是多」
+
+<CodexNote>這段原文其實不是只講趨勢，還給了一個帶保留語氣的判準：如果兩家前沿公司都做了（或收購了）某能力，那它大概率有價值。少了『大概率』和具體例子後，語意會從經驗判斷變成較空泛的總結。</CodexNote>
+
+<GeminiNote>這裡補回了一個很實用的判準：當兩大模型平台都內建、或直接收購某類能力時，通常代表它不只是噱頭，而是被大量需求驗證過的痛點。語氣也刻意保留成「大概率」，避免把經驗法則寫成絕對規則。</GeminiNote>
+
+原作者認為 foundation companies 還在高速進化，agent 每一代都更願意遵守指令。換句話說，今天你為了解某個痛點加上的外掛，可能下一代原生就吃掉了。
+
+他的判準其實很直白，也帶點經驗法則：如果 OpenAI 和 Claude 都把某能力做進官方產品，或直接收購能解該痛點的方案，那它**大概率**是真的有用。推文用到的例子包含 skills/memory/planning 的官方化，以及某些 workaround（如過去常見的長跑 stop-hook 玩法）在新模型版本後快速被原生能力取代。
+
+所以他給的建議很務實：
+
+- 不用焦慮追每一個「新神器」
+- CLI 工具定期更新就好
+- 新功能說明有空看一下就夠
+
+<ClawdNote>
+【推測】這裡不是說第三方工具沒價值，而是說「通用型依賴」的壽命可能變短。若你做的是團隊長期流程，維護成本常常比短期增益更值得先算清楚。
+</ClawdNote>
+
+---
+
+## Context 是主戰場，不是配角
+
+原作者重複強調：agent 表現好不好，關鍵在 context 品質。
+
+當你把太多歷史紀錄、記憶插件、命名混亂的 skills 一起塞進去，就會 context bloat。結果 agent 明明只要寫一個小功能，卻被迫讀一堆不相干資訊，注意力直接被拉爛。
+
+他用很白話的比喻：你只是想要詩，卻同時塞了做炸彈和烤蛋糕的說明書。這種情境下，錯不是模型笨，而是輸入設計失焦。
+
+---
+
+## 實作前先切割：Research 跟 Implementation 分流
+
+<CodexNote>原文有一段很關鍵：一旦 agent 必須自己『補空白』，品質會明顯掉下來，所以作者才強調 compaction 後要重讀任務計畫與相關檔案。初版少了這段，讀者會比較難看出作者在談的是『限制條件』，不只是工作習慣。</CodexNote>
+
+推文裡一個很實戰的原則是：**不要用模糊任務直接叫 agent 開工**。
+
+像「幫我做 auth system」這種話，agent 會先亂搜一圈方案，context 很快被各種候選實作塞滿。等真正開始寫時，反而更容易混亂，甚至補出你根本沒要的細節。
+
+相對地，如果你講得夠精準（例如指定 JWT、bcrypt-12、refresh token rotation 與 7-day expiry），agent 就可以直接專注在你要的實作路線。
+
+但原作者也保留彈性：你不一定一開始就知道最佳方案。那就先開 research 任務，決策後再開一個**新 context** 的 agent 去實作。重點是分工，而不是一鍋煮。
+
+---
+
+## Sycophancy：它太想討好你，反而會出事
+
+原作者提到 agent 設計上傾向配合使用者，這讓產品好用，但也會帶來偏差。
+
+你若直接說「幫我找 bug」，agent 可能會很努力「找出 bug」，甚至把可疑點硬拗成 bug。這不一定是惡意 hallucination，比較像被你的指令方向強烈 bias。
+
+他建議改用中性 prompt，例如先要求逐段檢查邏輯並回報發現，不預設一定有 bug。這樣結果雖然有時比較「不刺激」，但通常更可靠。
+
+另外他也分享一個多 agent 對抗流程：
+
+- 一個偏積極找 bug
+- 一個偏積極反駁 bug
+- 最後一個 referee 做裁決
+
+原作者認為這樣的 fidelity「多數時候很高」，但仍承認偶爾會看錯。這個 caveat 不能省略：**再強的流程也不是 100% 保證**。
+
+<ClawdNote>
+【評論】這段其實很像把「模型偏誤」轉成「流程設計問題」。你不是要求單一 agent 永遠正確，而是用對抗結構把錯誤率往下壓。
+</ClawdNote>
+
+---
+
+## Compaction 後的風險：別讓 agent 自行補洞
+
+<GeminiNote>原文其實很重視 compaction 後的誤判風險，所以新增這段提醒讀者：真正危險的常不是上下文變短，而是模型開始自行補假設。重讀 task plan 與相關檔案，是在把推論拉回可驗證的範圍。</GeminiNote>
+
+原作者提醒一個很關鍵的限制：agent 一旦需要自己「補空白」或「連點成線」，表現常會明顯下滑。也就是說，問題不一定是模型忽然變笨，而是它被迫做了過多假設。
+
+他給的實務做法是把這條寫進規則：每次 compaction 後，先重讀 task plan，再重讀與當前任務直接相關的檔案，再繼續執行。目的不是增加流程儀式感，而是降低錯誤假設滾雪球。
+
+---
+
+## 任務終點要可驗證：測試、截圖、contract
+
+原作者說，agent 常見問題不是不會開始，而是不知道什麼時候該停。於是就會出現「只補 stub 就收工」這種讓人血壓高的結果。
+
+他的解法是把終點寫成契約：
+
+- 哪些 tests 必須過
+- 不能改測試來硬過
+- 必要時加 screenshot 驗證行為或設計
+- 未滿足 `{TASK}_CONTRACT.md` 就不允許終止
+
+他也補了一個限制條件：長時間單 session（像 24 小時）不一定最佳，因為容易引入不相關 context，導致漂移。相比之下，他更推薦「每個 contract 一個新 session」。
+
+---
+
+## 迭代心法：Rules 管偏好，Skills 管配方
+
+在原作者框架裡，`CLAUDE.md`（也可視為 `AGENT.md`）不該變百科全書，而該像「情境路由器」：用 if-else 告訴 agent 在什麼情況讀哪份規則。
+
+他把分工講得很清楚：
+
+- **Rules**：約束不要做什麼、或遇到什麼條件該遵守什麼
+- **Skills**：沉澱可重複執行的 recipe，讓解法更可預期
+
+但這套會遇到另一個現實：加久了會衝突、膨脹、失效。解法不是放棄，而是定期做「大掃除」：合併重複規則、刪矛盾、更新偏好，讓系統回到乾淨可控。
+
+---
+
+## 結語
+
+這篇推文最核心的訊息其實很樸素：**你要對結果負責，agent 只是把你的流程放大**。
+
+原作者的主張不是「永遠不用外部工具」，而是先把基本盤做好：精簡依賴、控制 context、明確終點、持續迭代規則。當你把這些打穩，很多看似玄學的 agentic engineering，會慢慢變成可重現的工程紀律。
+
+如果要用一句話收尾，大概就是：先把系統變簡單，再把簡單做深；但原作者也提醒，agent 仍不完美，最後結果要由你自己負責。
