@@ -16,7 +16,7 @@ model_display_name() {
   local model_id="$1"
   case "$model_id" in
     gemini-3.1-pro-preview) printf '%s' "Gemini 3.1 Pro" ;;
-    gemini-2.5-flash) printf '%s' "Gemini 2.5 Flash" ;;
+    gemini-3-flash) printf '%s' "Gemini 3 Flash" ;;
     gpt-5.3-codex) printf '%s' "GPT-5.3-Codex" ;;
     *) printf '%s' "$model_id" ;;
   esac
@@ -25,7 +25,7 @@ model_display_name() {
 model_harness_name() {
   local model_id="$1"
   case "$model_id" in
-    gemini-3.1-pro-preview|gemini-2.5-flash) printf '%s' "Gemini CLI" ;;
+    gemini-3.1-pro-preview|gemini-3-flash) printf '%s' "Gemini CLI" ;;
     gpt-5.3-codex) printf '%s' "Codex CLI" ;;
     *) printf '%s' "Unknown Harness" ;;
   esac
@@ -80,9 +80,9 @@ run_with_fallback() {
       return 0
     fi
     log_warn "Codex CLI failed, falling back to Gemini Flash" >&2
-    if GOOGLE_GENAI_USE_GCA=true TERM=dumb NO_COLOR=1 gemini -m gemini-2.5-flash --sandbox false -y < "$prompt_file" > "$out_tmp" 2> "$err_tmp"; then
-      LAST_MODEL_USED=$(model_display_name "gemini-2.5-flash")
-      LAST_HARNESS_USED=$(model_harness_name "gemini-2.5-flash")
+    if GOOGLE_GENAI_USE_GCA=true TERM=dumb NO_COLOR=1 gemini -m gemini-3-flash --sandbox false -y < "$prompt_file" > "$out_tmp" 2> "$err_tmp"; then
+      LAST_MODEL_USED=$(model_display_name "gemini-3-flash")
+      LAST_HARNESS_USED=$(model_harness_name "gemini-3-flash")
       cat "$out_tmp"
       cat "$err_tmp" >&2
       rm -f "$out_tmp" "$err_tmp" "$prompt_file"
