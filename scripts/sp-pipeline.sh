@@ -671,6 +671,8 @@ if [[ -f "$FINAL_MDX" ]]; then
   [ -n "$REVIEW_HARNESS" ] || REVIEW_HARNESS=$(model_harness_name "gpt-5.3-codex")
   [ -n "$REFINE_MODEL" ] || REFINE_MODEL=$(model_display_name "gemini-3.1-pro-preview")
   [ -n "$REFINE_HARNESS" ] || REFINE_HARNESS=$(model_harness_name "gemini-3.1-pro-preview")
+  # Patch top-level model to match actual writer (may differ from what LLM hardcoded in draft)
+  sed -i '/^  model: ".*"$/c\  model: "'"$WRITE_MODEL"'"' "$FINAL_MDX"
   # Replace single harness line with full pipeline credits
   sed -i '/^  harness: ".*"$/c\  harness: "Gemini CLI + Codex CLI"\n  pipeline:\n    - role: "Written"\n      model: "'"$WRITE_MODEL"'"\n      harness: "'"$WRITE_HARNESS"'"\n    - role: "Reviewed"\n      model: "'"$REVIEW_MODEL"'"\n      harness: "'"$REVIEW_HARNESS"'"\n    - role: "Refined"\n      model: "'"$REFINE_MODEL"'"\n      harness: "'"$REFINE_HARNESS"'"\n    - role: "Orchestrated"\n      model: "Opus 4.6"\n      harness: "OpenClaw"\n  pipelineUrl: "'"$PIPELINE_URL"'"' "$FINAL_MDX"
 fi
