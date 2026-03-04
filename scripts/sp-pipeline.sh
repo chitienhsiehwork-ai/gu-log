@@ -12,6 +12,28 @@ log_ok() { printf "${GREEN}[OK]${NC} %s\n" "$1"; }
 log_warn() { printf "${YELLOW}[WARN]${NC} %s\n" "$1"; }
 log_error() { printf "${RED}[ERROR]${NC} %s\n" "$1" >&2; }
 
+model_display_name() {
+  local model_id="$1"
+  case "$model_id" in
+    gemini-3.1-pro-preview) printf '%s' "Gemini 3.1 Pro" ;;
+    gemini-2.5-flash) printf '%s' "Gemini 2.5 Flash" ;;
+    gpt-5.3-codex) printf '%s' "GPT-5.3-Codex" ;;
+    *) printf '%s' "$model_id" ;;
+  esac
+}
+
+model_harness_name() {
+  local model_id="$1"
+  case "$model_id" in
+    gemini-3.1-pro-preview|gemini-2.5-flash) printf '%s' "Gemini CLI" ;;
+    gpt-5.3-codex) printf '%s' "Codex CLI" ;;
+    *) printf '%s' "Unknown Harness" ;;
+  esac
+}
+
+LAST_MODEL_USED=""
+LAST_HARNESS_USED=""
+
 die() {
   log_error "$1"
   exit 1
@@ -31,6 +53,8 @@ run_with_fallback() {
   err_tmp=$(mktemp)
   
   if GOOGLE_GENAI_USE_GCA=true TERM=dumb NO_COLOR=1 gemini -m gemini-3.1-pro-preview --sandbox false -y -p "$prompt_text" > "$out_tmp" 2> "$err_tmp"; then
+    LAST_MODEL_USED=$(model_display_name "gemini-3.1-pro-preview")
+    LAST_HARNESS_USED=$(model_harness_name "gemini-3.1-pro-preview")
     cat "$out_tmp"
     cat "$err_tmp" >&2
     rm -f "$out_tmp" "$err_tmp"
@@ -44,6 +68,8 @@ run_with_fallback() {
   if echo "$err_content" | grep -qiE "429|TerminalQuotaError|exhausted your capacity"; then
     log_warn "Gemini Pro 429, falling back to Codex CLI" >&2
     if codex exec --full-auto -q "$prompt_text" > "$out_tmp" 2> "$err_tmp"; then
+      LAST_MODEL_USED=$(model_display_name "gpt-5.3-codex")
+      LAST_HARNESS_USED=$(model_harness_name "gpt-5.3-codex")
       cat "$out_tmp"
       cat "$err_tmp" >&2
       rm -f "$out_tmp" "$err_tmp"
@@ -51,6 +77,8 @@ run_with_fallback() {
     fi
     log_warn "Codex CLI failed, falling back to Gemini Flash" >&2
     if GOOGLE_GENAI_USE_GCA=true TERM=dumb NO_COLOR=1 gemini -m gemini-2.5-flash --sandbox false -y -p "$prompt_text" > "$out_tmp" 2> "$err_tmp"; then
+      LAST_MODEL_USED=$(model_display_name "gemini-2.5-flash")
+      LAST_HARNESS_USED=$(model_harness_name "gemini-2.5-flash")
       cat "$out_tmp"
       cat "$err_tmp" >&2
       rm -f "$out_tmp" "$err_tmp"
@@ -201,6 +229,12 @@ SP_NUM=""
 WORK_DIR=""
 AUTHOR_HANDLE=""
 ORIGINAL_DATE=""
+WRITE_MODEL=""
+WRITE_HARNESS=""
+REVIEW_MODEL=""
+REVIEW_HARNESS=""
+REFINE_MODEL=""
+REFINE_HARNESS=""
 
 trap 'log_error "Pipeline failed at line $LINENO"' ERR
 
@@ -389,10 +423,12 @@ Source tweet:
 $(cat "$WORK_DIR/source-tweet.md")
 EOF_WRITE
 
-(
-  cd "$WORK_DIR"
-  run_with_fallback -p "$(cat gemini-write-prompt.txt)"
-)
+pushd "$WORK_DIR" >/dev/null
+run_with_fallback -p "$(cat gemini-write-prompt.txt)"
+popd >/dev/null
+
+WRITE_MODEL="$LAST_MODEL_USED"
+WRITE_HARNESS="$LAST_HARNESS_USED"
 
 [ -s "$WORK_DIR/draft-v1.mdx" ] || die "draft-v1.mdx missing or empty"
 STEP2_TIME=$(step_end "Step 2")
@@ -442,6 +478,8 @@ EOF_REVIEW
 
 [ -s "$WORK_DIR/review.md" ] || die "review.md missing or empty"
 [ -s "$WORK_DIR/review-codex-notes.json" ] || die "review-codex-notes.json missing or empty"
+REVIEW_MODEL=$(model_display_name "gpt-5.3-codex")
+REVIEW_HARNESS=$(model_harness_name "gpt-5.3-codex")
 STEP3_TIME=$(step_end "Step 3")
 
 # Step 4: Gemini Refine
@@ -474,10 +512,12 @@ Output requirements:
   寫法：像在跟讀者分享翻譯過程中的發現，語氣輕鬆自然。
 EOF_REFINE
 
-(
-  cd "$WORK_DIR"
-  run_with_fallback -p "$(cat refine-prompt.txt)"
-)
+pushd "$WORK_DIR" >/dev/null
+run_with_fallback -p "$(cat refine-prompt.txt)"
+popd >/dev/null
+
+REFINE_MODEL="$LAST_MODEL_USED"
+REFINE_HARNESS="$LAST_HARNESS_USED"
 
 [ -s "$WORK_DIR/final.mdx" ] || die "final.mdx missing or empty"
 [ -s "$WORK_DIR/refine-gemini-notes.json" ] || die "refine-gemini-notes.json missing or empty"
@@ -621,8 +661,14 @@ STEP45_TIME=$(step_end "Step 4.5")
 PIPELINE_URL="https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
 FINAL_MDX="$WORK_DIR/final.mdx"
 if [[ -f "$FINAL_MDX" ]]; then
+  [ -n "$WRITE_MODEL" ] || WRITE_MODEL=$(model_display_name "gemini-3.1-pro-preview")
+  [ -n "$WRITE_HARNESS" ] || WRITE_HARNESS=$(model_harness_name "gemini-3.1-pro-preview")
+  [ -n "$REVIEW_MODEL" ] || REVIEW_MODEL=$(model_display_name "gpt-5.3-codex")
+  [ -n "$REVIEW_HARNESS" ] || REVIEW_HARNESS=$(model_harness_name "gpt-5.3-codex")
+  [ -n "$REFINE_MODEL" ] || REFINE_MODEL=$(model_display_name "gemini-3.1-pro-preview")
+  [ -n "$REFINE_HARNESS" ] || REFINE_HARNESS=$(model_harness_name "gemini-3.1-pro-preview")
   # Replace single harness line with full pipeline credits
-  sed -i '/^  harness: "Gemini CLI"$/c\  harness: "Gemini CLI + Codex CLI"\n  pipeline:\n    - role: "Written"\n      model: "Gemini 3.1 Pro"\n      harness: "Gemini CLI"\n    - role: "Reviewed"\n      model: "GPT-5.3-Codex"\n      harness: "Codex CLI"\n    - role: "Refined"\n      model: "Gemini 3.1 Pro"\n      harness: "Gemini CLI"\n    - role: "Orchestrated"\n      model: "Opus 4.6"\n      harness: "OpenClaw"\n  pipelineUrl: "'"$PIPELINE_URL"'"' "$FINAL_MDX"
+  sed -i '/^  harness: ".*"$/c\  harness: "Gemini CLI + Codex CLI"\n  pipeline:\n    - role: "Written"\n      model: "'"$WRITE_MODEL"'"\n      harness: "'"$WRITE_HARNESS"'"\n    - role: "Reviewed"\n      model: "'"$REVIEW_MODEL"'"\n      harness: "'"$REVIEW_HARNESS"'"\n    - role: "Refined"\n      model: "'"$REFINE_MODEL"'"\n      harness: "'"$REFINE_HARNESS"'"\n    - role: "Orchestrated"\n      model: "Opus 4.6"\n      harness: "OpenClaw"\n  pipelineUrl: "'"$PIPELINE_URL"'"' "$FINAL_MDX"
 fi
 
 # Step 5: Deploy
