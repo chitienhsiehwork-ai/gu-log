@@ -88,6 +88,17 @@ import ShroomDogNote from '../../components/ShroomDogNote.astro';
 
 > Install the eval skills plugin from https://github.com/hamelsmu/evals-skills, then run /evals-skills:eval-audit on my eval pipeline. Investigate each diagnostic area using a separate subagent in parallel, then synthesize the findings into a single report. Use other skills in the plugin as recommended by the audit.
 
+如果你想一次看完整包，`evals-skills` 目前可以這樣理解：
+* `eval-audit`：審計整條 eval pipeline，抓出關鍵問題並排優先級，先救火再優化。
+* `error-analysis`：帶你讀 traces、分群失敗案例，避免「看了一堆 log 還是不知道壞在哪」。
+* `generate-synthetic-data`：用 dimension-based tuple 系統化產生多樣測試資料，補齊邊角案例。
+* `write-judge-prompt`：設計 LLM-as-Judge 評估器，把主觀品質標準寫成可重複執行的 judge prompt。
+* `validate-evaluator`：拿 human labels 校準 LLM judge，檢查 TPR/TNR，順手做 bias correction。
+* `evaluate-rag`：專打 RAG pipeline，分開檢查 retrieval 跟 generation 的品質與責任歸因。
+* `build-review-interface`：建 custom annotation UI，讓 human trace review 流程跑得動、收得回饋。
+
+另外還有一個很實用的 meta-skill（可把它想成「技能的技能」）：它會引導你把團隊自己的 domain know-how 包成 custom skills。也就是說，這 7 招是起手式，但你最後可以練成自己的流派。
+
 如果你已經是評估老手了，那當然可以直接跳過 `eval-audit`，挑選你當下最需要的技能來使用。Hamel 老師也強調，這些技能只是個起點，它們主要涵蓋了各種專案中常見的錯誤類型。但真正強大的技能，還是要根據你自己的技術棧、領域知識和資料來**客製化**。所以，先從這裡開始，然後動手寫出你自己的專屬技能吧！
 
 👉 這個寶藏級的程式碼庫就在這裡：[github.com/hamelsmu/evals-skills](https://github.com/hamelsmu/evals-skills) 👈
