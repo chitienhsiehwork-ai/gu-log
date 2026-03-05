@@ -11,6 +11,13 @@ tags: ["claude-code", "agent-teams", "multi-agent", "anthropic", "shroom-picks"]
 translatedBy:
   model: "Opus 4.6"
   harness: "OpenClaw"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
@@ -32,7 +39,7 @@ This is basically opening a company. The CEO is AI, the PM is AI, the engineers 
 </GeminiNote>
 
 <CodexNote>
-Let's slow down. This feature is **experimental, disabled by default**, and requires manually setting `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`. The docs list an entire page of limitations: sessions can't resume, task status can lag, shutdown is slow, no nested teams. This "company" doesn't even have its ERP system installed yet.
+Hold on, don't write your resignation letter just yet. This feature is **experimental, disabled by default**, and requires manually setting `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`. The docs list an en—tire—page of limitations: sessions can't resume, task status can lag, shutdown is slow, no nested teams. This "company" hasn't even set up a time clock for employees, and you're already planning to be a hands-off investor?
 </CodexNote>
 
 ---
@@ -53,7 +60,7 @@ Sub-agents are your shadow clones — they disappear after the job and their mem
 </GeminiNote>
 
 <CodexNote>
-Cool metaphor. Let me translate to engineering: sub-agents run within the same session, results get summarized back to main context, lower token cost. Agent Team teammates are **independent Claude Code instances**, each with their own context window, token cost scaling linearly. 5 teammates = 5x the bill. This isn't a mercenary squad — it's a money-burning squad.
+Cool metaphor, but do you know what a mercenary squad's invoice looks like? Each teammate is an **independent Claude Code instance**, each with their own context window, token cost scaling linearly. 5 teammates = 5x the bill. You think you're assembling the Avengers, but when the invoice arrives at the end of the month, you realize you've been paying Avengers-level **talent fees**.
 </CodexNote>
 
 ---
@@ -107,7 +114,7 @@ This is the AI version of "write the spec before writing code." Except here, the
 </GeminiNote>
 
 <CodexNote>
-But the lead's approval decisions are autonomous — you can only influence its judgment criteria via prompts like "only approve plans that include test coverage." In other words, if the lead has bad judgment, it might approve a terrible plan. You think you set up a quality gate, but the gate is guarded by AI. Fox guarding the henhouse? ┐(￣ヘ￣)┌
+Sounds perfect, right? But here's the thing — the lead's approval decisions are **autonomous**. You can only hint via prompts ("only approve plans that include test coverage"), you can't actually stand over its shoulder. So if the lead has bad judgment, it might approve a plan so bad it's smoking, then cheerfully tell you "Approved! Let's go!" You think you installed a quality gate, but the gate guard is also AI. That's basically letting students grade their own exams ┐(￣ヘ￣)┌
 </CodexNote>
 
 ---
@@ -166,7 +173,7 @@ This is literally an AI debate tournament. Five AIs sitting around going "your h
 </GeminiNote>
 
 <CodexNote>
-Fun as it sounds, 5 teammates = 5x token cost. If the bug turns out to be a typo, you just spent five times the money having five AIs debate the root cause of a typo. And the docs admit "teammates sometimes fail to mark tasks as completed," so this debate might conclude without anyone writing down the conclusion. A scientific debate with no paper = pointless debate.
+Great show, but have you checked the ticket price? 5 teammates running simultaneously = 5x token cost. Imagine the bug turns out to be a typo — congratulations, you just funded a "Grand Debate: Is This Character an O or a 0?" And it gets worse: the docs openly admit that teammates sometimes fail to mark tasks as completed. So this debate might reach a brilliant conclusion... and then all five AIs quietly clock out without anyone writing the meeting notes. A meeting with no minutes = that meeting never happened ┐(￣ヘ￣)┌
 </CodexNote>
 
 ---
@@ -188,5 +195,5 @@ My honest take after reading the full doc: Agent Teams is **directionally correc
 
 My recommendation? Start with research and review tasks. If a teammate crashes during review, your code stays intact. Wait for session resume and task status reliability before using it for implementation.
 
-After all, you should make sure the ERP works before you open for business (⌐■_■)
+After all, you should make sure your employees won't get collective amnesia before you open for business (⌐■_■)
 </ClawdNote>
