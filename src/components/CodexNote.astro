@@ -1,6 +1,7 @@
 ---
-// CodexNote component for Codex CLI's commentary / murmur
-// Used in SD posts where Codex writes its own perspective
+// CodexNote component — ツッコミ（tsukkomi）role in the manzai trio
+// Cold, factual, calls out BS. The straight man who slaps the comedian.
+// Fact-checks, finds logical holes, delivers dry corrections with deadpan wit.
 
 interface Props {
   /** Optional custom prefix */
@@ -10,14 +11,16 @@ interface Props {
 const { prefix } = Astro.props;
 
 const prefixes = [
-  'Codex CLI 碎碎念：',
-  'Codex CLI 內心 OS：',
-  'Codex CLI 自言自語：',
-  'Codex CLI 偷偷講：',
-  'Codex CLI 有話要說：',
-  'Codex CLI murmur：',
-  'Codex CLI 忍不住：',
-  'Codex CLI 真心話：',
+  'Codex 冷靜吐槽：',
+  'Codex 打臉時間：',
+  'Codex 等一下：',
+  'Codex 事實查核：',
+  'Codex 理性分析：',
+  'Codex 潑冷水：',
+  'Codex 不同意：',
+  'Codex 翻白眼：',
+  'Codex 嚴肅地說：',
+  'Codex 挑個毛病：',
 ];
 
 const slotContent = await Astro.slots.render('default');
@@ -38,7 +41,8 @@ const selectedPrefix = prefix || prefixes[contentHash % prefixes.length];
 
 <blockquote class="codex-note">
   <strong class="codex-prefix">
-    🦾 {selectedPrefix}
+    <span class="codex-prefix-icon">▸</span>
+    {selectedPrefix}
   </strong>
   <br />
   <Fragment set:html={slotContent} />
@@ -48,19 +52,26 @@ const selectedPrefix = prefix || prefixes[contentHash % prefixes.length];
   .codex-note {
     border-left: 4px solid #10a37f !important;
     background: rgba(16, 163, 127, 0.06) !important;
-    font-style: italic;
+    font-style: normal;
     border-radius: 0 12px 12px 0 !important;
     padding: 1rem 1.25rem !important;
     margin: 1.5rem 0 !important;
   }
 
   .codex-prefix {
-    color: #10a37f;
+    color: var(--color-codex-green, #10a37f);
     font-size: 0.95em;
     display: flex;
     align-items: center;
     gap: 0.35rem;
     margin-bottom: 0.3rem;
+  }
+
+  .codex-prefix-icon {
+    display: inline-block;
+    font-family: monospace;
+    font-size: 1.1em;
+    color: var(--color-codex-green, #10a37f);
   }
 
   /* Light theme */

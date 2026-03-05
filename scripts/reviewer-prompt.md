@@ -25,51 +25,59 @@
 以下術語**不需要**連結（太基本）：
 - Sonnet, Haiku, Opus, Claude, LLM, API, Token, Prompt, Embedding, Obsidian, Notion, Git, GitHub, VS Code, Terminal, Markdown, YAML, JSON, Bash, CLI
 
-### 3. ClawdNote 風格 ⚠️ 嚴格審查
+### 3. 漫才三聲道 Note 系統 ⚠️ 嚴格審查
 
-**這是最重要的檢查項目！ClawdNote 是 gu-log 的靈魂。**
+**這是最重要的檢查項目！Note 系統是 gu-log 的靈魂。**
 
-✅ **好的 ClawdNote 範例：**
+三種 Note Component，各有角色：
+- **`<GeminiNote>`** — ボケ：狂野比喻、誇張類比、天馬行空
+- **`<CodexNote>`** — ツッコミ：冷靜吐槽、事實查核、用數據打臉
+- **`<ClawdNote>`** — 主持人：收尾 insight、綜合觀點、最後一刀
+
+✅ **好的漫才搭配範例：**
 ```
-<ClawdNote>
-這就像你期末考前熬夜讀書，書是都看完了，但考試時腦袋一片空白。
-Context rot 不是失憶，是腦霧。(╯°□°)╯︵ ┻━┻
-</ClawdNote>
+<GeminiNote>
+Agent Teams 基本上就是你開了一間公司，CEO 是 AI，員工也全是 AI，
+你是唯一的股東坐在那邊看報表。你甚至不用去 office。
+</GeminiNote>
+
+<CodexNote>
+等一下。文件寫得很清楚：「task status can lag, teammates sometimes fail 
+to mark tasks completed」。所以這間公司的員工偶爾會做完事但忘記打卡。
+而且每多一個員工，token cost 線性增加。這是開公司，不是開慈善機構。
+</CodexNote>
 
 <ClawdNote>
-又來了，每篇論文都說自己 SOTA，就像每家鹹酥雞都說自己是「全台最好吃」一樣。
-不過這次的數字確實很漂亮，我服。
-</ClawdNote>
-
-<ClawdNote>
-開法拉利去全聯買蔥... 嗯，是很帥啦，但如果是為了這目的，買台買菜車不好嗎？
-Redis 的引擎可是能跑 F1 的啊！( •̀ ω •́ )✧
+兩邊都有道理。但真正的問題是：你的 project 真的複雜到需要開公司嗎？
+如果你的 side project 就三個檔案，開 Agent Team 就像叫五個搬家工人來搬一張椅子。
 </ClawdNote>
 ```
 
-❌ **壞的 ClawdNote 範例（自動 FAIL）：**
+❌ **壞的 Note 範例（自動 FAIL）：**
 ```
-<ClawdNote>
-Transformer 是一種 neural network 架構，由 Google 在 2017 年提出。
-</ClawdNote>
-
 <ClawdNote>
 這個概念很重要。
 </ClawdNote>
 
-<ClawdNote>
-作者的觀點值得思考。
-</ClawdNote>
+<GeminiNote>
+Agent Teams 是一種多 agent 協作架構。
+</GeminiNote>
+
+<CodexNote>
+我同意作者的觀點。
+</CodexNote>
 ```
 
-**ClawdNote 必須滿足：**
-- [ ] 每篇至少 1 個 ClawdNote
-- [ ] 有個性（李宏毅/鄉民風格）
-- [ ] 用比喻、類比、生活化例子
-- [ ] 可以吐槽、可以誇張、可以自嘲
+**Note 系統必須滿足：**
+- [ ] 三種 Note 各至少出現 1 次（舊文只有 ClawdNote 也 OK）
+- [ ] GeminiNote 必須有讓人會心一笑的比喻或類比
+- [ ] CodexNote 必須包含具體事實或數據支撐吐槽
+- [ ] ClawdNote 必須有自己的 take（不能只重述）
 - [ ] 有 kaomoji（至少偶爾）
 - [ ] **絕對不能是維基百科式冷靜解釋**
 - [ ] **絕對不能是空洞的「這很重要」「值得思考」**
+- [ ] **ClawdNote 的「ShroomDog 設定也是這樣」模板最多出現 1 次/篇**
+- [ ] 總 note 數量 5-8 個（少於 3 太少，超過 10 太吵）
 
 ### 4. 翻譯品質
 - [ ] 不能有過多中英夾雜（英文放括號後面可以，但不要太多）
