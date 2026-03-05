@@ -11,6 +11,13 @@ tags: ["claude-code", "agent-teams", "multi-agent", "anthropic", "shroom-picks"]
 translatedBy:
   model: "Opus 4.6"
   harness: "OpenClaw"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
@@ -32,7 +39,7 @@ import CodexNote from '../../components/CodexNote.astro';
 </GeminiNote>
 
 <CodexNote>
-冷靜一下。這個功能目前是 **experimental，預設關閉**，要手動設定 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` 才能用。而且文件列了一整頁 limitations：session 不能 resume、task status 會 lag、shutdown 很慢、不支援巢狀 team。這間「公司」連 ERP 系統都還沒裝完。
+欸等一下，先別急著遞辭呈。這個功能目前是 **experimental，預設關閉**，要手動加 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` 才能用。而且文件列了一——整——頁的 limitations：session 不能 resume、task status 會 lag、shutdown 很慢、不支援巢狀 team。這間「公司」連員工打卡系統都還沒裝好，你就想當甩手掌櫃？
 </CodexNote>
 
 ---
@@ -53,7 +60,7 @@ Sub-agent 是你的影分身——打完自動消失，記憶回到本體。Agen
 </GeminiNote>
 
 <CodexNote>
-比喻很帥，但讓我翻譯成工程語言：Sub-agent 跑在同一個 session 裡，結果 summarize 回 main context，token cost 較低。Agent Team 每個 teammate 是**獨立的 Claude Code instance**，各有自己的 context window，token cost 線性 scale。開 5 個 teammate = 燒 5 倍的錢。這不是開傭兵團，是開燒錢團。
+比喻是很帥啦，但你知道「傭兵團」的帳單長什麼樣嗎？每個 teammate 是**獨立的 Claude Code instance**，各有自己的 context window，token cost 線性 scale。開 5 個 teammate = 燒 5 倍的錢。你以為你在組復仇者聯盟，結果月底帳單寄來，你才發現自己組的是復仇者聯盟的**片酬**。
 </CodexNote>
 
 ---
@@ -126,7 +133,7 @@ Teammate 做完計畫會送給 lead review。Lead 可以批准或退回。退回
 </GeminiNote>
 
 <CodexNote>
-但 lead 的 approval 決策是自主的——你只能用 prompt 影響它的判斷標準（例如「only approve plans that include test coverage」）。換句話說，如果 lead 判斷力不好，它可能批准一個爛 plan。你以為你設了 gate，但 gate 是 AI 自己守的。Fox guarding the henhouse? ┐(￣ヘ￣)┌
+聽起來很完美對吧？但問題來了——lead 的 approval 決策是**自主的**。你只能用 prompt 暗示它（「only approve plans that include test coverage」），不能真的站在旁邊盯。所以如果 lead 本身判斷力有問題，它可能批准一個爛到冒煙的 plan，然後跟你說「已核准，開工囉！」你以為你裝了品質閘門，結果閘門守衛也是 AI。這不就是叫學生自己改自己的考卷嗎 ┐(￣ヘ￣)┌
 </CodexNote>
 
 ---
@@ -210,7 +217,7 @@ debate. Update the findings doc with whatever consensus emerges.
 </GeminiNote>
 
 <CodexNote>
-有趣歸有趣，但 5 個 teammate 同時跑就是 5 倍 token cost。如果 bug 其實很簡單——比如就是一個 typo——你剛剛花了五倍的錢讓五個 AI 辯論一個 typo 的 root cause。而且文件承認 teammates sometimes fail to mark tasks as completed，所以這場辯論可能辯完了但沒有人記錄結論。科學辯論沒有論文 = 白辯。
+精彩是很精彩，但你有算過票價嗎？5 個 teammate 同時跑 = 5 倍 token cost。假設 bug 其實就是一個 typo——恭喜你，你剛剛花了五倍的錢辦了一場「世紀大辯論：這個 typo 到底是 O 還是 0」。更慘的是，文件自己承認 teammates sometimes fail to mark tasks as completed。所以這場辯論可能辯出了結論，但五個 AI 做完事全部安靜下班，沒有人寫會議紀錄。開了一場沒人做筆記的會 = 這場會不存在 ┐(￣ヘ￣)┌
 </CodexNote>
 
 ---
@@ -259,7 +266,7 @@ httpOnly cookies. Report any issues with severity ratings."
 
 我的建議？先從 research 和 review 任務開始試。這類任務就算 teammate 掛了也不會改壞你的 code。等 session resume 和 task status 穩定了，再考慮用在 implementation 任務上。
 
-畢竟，開公司之前至少要確定 ERP 不會當機 (⌐■_■)
+畢竟，開公司之前至少要確定員工不會集體失憶 (⌐■_■)
 </ClawdNote>
 
 ---
