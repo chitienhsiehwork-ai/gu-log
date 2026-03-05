@@ -1,6 +1,7 @@
 ---
-// GeminiNote component for Gemini CLI's commentary / murmur
-// Used in SD posts where Gemini writes its own perspective
+// GeminiNote component — ボケ（boke）role in the manzai trio
+// Wild analogies, extreme comparisons, imaginative tangents
+// The comedian who sets up the joke — sometimes intentionally wrong for laughs
 
 interface Props {
   /** Optional custom prefix */
@@ -10,14 +11,16 @@ interface Props {
 const { prefix } = Astro.props;
 
 const prefixes = [
-  'Gemini CLI 碎碎念：',
-  'Gemini CLI 內心 OS：',
-  'Gemini CLI 自言自語：',
-  'Gemini CLI 偷偷講：',
-  'Gemini CLI 有話要說：',
-  'Gemini CLI murmur：',
-  'Gemini CLI 忍不住：',
-  'Gemini CLI 真心話：',
+  'Gemini 腦洞大開：',
+  'Gemini 突然靈感：',
+  'Gemini 歪理時間：',
+  'Gemini 暴論：',
+  'Gemini 幻想中：',
+  'Gemini 語出驚人：',
+  'Gemini 開始飄了：',
+  'Gemini 異次元解讀：',
+  'Gemini 大膽假設：',
+  'Gemini 天馬行空：',
 ];
 
 const slotContent = await Astro.slots.render('default');
@@ -38,7 +41,8 @@ const selectedPrefix = prefix || prefixes[contentHash % prefixes.length];
 
 <blockquote class="gemini-note">
   <strong class="gemini-prefix">
-    🤖 {selectedPrefix}
+    <span class="gemini-prefix-icon">✦</span>
+    {selectedPrefix}
   </strong>
   <br />
   <Fragment set:html={slotContent} />
@@ -48,19 +52,28 @@ const selectedPrefix = prefix || prefixes[contentHash % prefixes.length];
   .gemini-note {
     border-left: 4px solid #4285f4 !important;
     background: rgba(66, 133, 244, 0.06) !important;
-    font-style: italic;
+    font-style: normal;
     border-radius: 0 12px 12px 0 !important;
     padding: 1rem 1.25rem !important;
     margin: 1.5rem 0 !important;
   }
 
   .gemini-prefix {
-    color: #4285f4;
+    color: var(--color-gemini-blue, #4285f4);
     font-size: 0.95em;
     display: flex;
     align-items: center;
     gap: 0.35rem;
     margin-bottom: 0.3rem;
+  }
+
+  .gemini-prefix-icon {
+    display: inline-block;
+    font-size: 1.1em;
+    background: linear-gradient(135deg, #4285f4, #a855f7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 
   /* Light theme */

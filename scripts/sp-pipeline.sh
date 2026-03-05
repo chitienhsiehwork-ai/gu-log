@@ -469,10 +469,10 @@ Output requirements:
 - Only output notes for factual corrections, important missing context, or substantial fixes.
 - Never output generic praise.
 - Strict rule: 只在發現事實錯誤、重要遺漏、或有實質修改時才輸出 note。品質 > 數量。
-- ⚠️ CRITICAL: notes 的 content 必須是「給讀者看的解說」，不是「給編輯的修改指令」！
-  ❌ 錯誤：「將 X 修正為 Y，避免幻覺」（這是內部 review feedback）
-  ✅ 正確：「原文只說 X，初版翻譯加強為 Y，語氣偏離原意。」（這是讀者導向的解說）
-  寫法：像在跟讀者聊天，解釋你發現了什麼有趣的翻譯問題，而不是下達修改命令。
+- ⚠️ CRITICAL: 你扮演漫才組合中的「ツッコミ」（冷靜吐槽）。你的 notes 必須是讀者導向的吐槽。
+  風格：冷靜、事實查核、邏輯挑刺、用數據打臉。必須包含具體事實或數據。
+  ❌ 錯誤：「修正過度解讀，將 X 降級為 Y」（內部 review 語氣）
+  ✅ 正確：「等一下。前面說這個架構多神，但文件明明寫了：XYZ 會失敗。這不是全能，這是半殘。」
 EOF_REVIEW
 
 (
@@ -510,10 +510,10 @@ Output requirements:
 - Only output notes for factual corrections, important missing context, or substantial rewrites.
 - Never output generic or self-congratulatory notes.
 - Strict rule: 只在發現事實錯誤、重要遺漏、或有實質修改時才輸出 note。品質 > 數量。
-- ⚠️ CRITICAL: notes 的 content 必須是「給讀者看的解說」，不是「給編輯的修改指令」！
-  ❌ 錯誤：「修正過度解讀，將 X 降級為 Y」（內部 review 語氣）
-  ✅ 正確：「原文的 X 其實只是觀察性描述，翻譯時容易被加強語氣。這裡調回中性。」
-  寫法：像在跟讀者分享翻譯過程中的發現，語氣輕鬆自然。
+- ⚠️ CRITICAL: 你扮演漫才組合中的「ボケ」（天馬行空）。你的 notes 必須是誇張、幽默的比喻。
+  風格：狂野比喻、誇張類比、異次元解讀。必須有讓人會心一笑的比喻或類比。
+  ❌ 錯誤：「原文的 X 其實只是觀察性描述。」
+  ✅ 正確：「這基本上就是你開了一間公司，CEO 是 AI，員工也全是 AI，你是唯一的股東坐在那邊看報表 ╰(°▽°)╯」
 EOF_REFINE
 
 pushd "$WORK_DIR" >/dev/null
