@@ -123,6 +123,9 @@ test.describe('AI Popup - Confirm Edit Flow', () => {
 
     // Click Edit
     await popup.locator('[data-action="edit"]').click();
+    await expect(popup.locator('.ai-popup-edit-input')).toBeVisible();
+    await popup.locator('.ai-popup-edit-input').fill('make it clearer');
+    await popup.locator('[data-action="submit-edit"]').click();
     await expect(popup.locator('.ai-popup-diff')).toBeVisible();
 
     // Click Confirm
@@ -171,6 +174,9 @@ test.describe('AI Popup - Confirm Edit Flow', () => {
 
     const popup = await setupLoggedInWithSelection(page);
     await popup.locator('[data-action="edit"]').click();
+    await expect(popup.locator('.ai-popup-edit-input')).toBeVisible();
+    await popup.locator('.ai-popup-edit-input').fill('make it clearer');
+    await popup.locator('[data-action="submit-edit"]').click();
     await expect(popup.locator('.ai-popup-diff')).toBeVisible();
 
     await popup.locator('[data-action="confirm"]').click();
@@ -190,6 +196,9 @@ test.describe('AI Popup - Confirm Edit Flow', () => {
 
     const popup = await setupLoggedInWithSelection(page);
     await popup.locator('[data-action="edit"]').click();
+    await expect(popup.locator('.ai-popup-edit-input')).toBeVisible();
+    await popup.locator('.ai-popup-edit-input').fill('make it clearer');
+    await popup.locator('[data-action="submit-edit"]').click();
 
     await expect(popup.locator('.ai-popup-result--error')).toBeVisible({ timeout: 10000 });
     await expect(popup.locator('.ai-popup-error-text')).toContainText('Edit generation failed');
@@ -375,6 +384,9 @@ test.describe('AI Popup - Mobile Edit Flow', () => {
     await expect(popup).toHaveClass(/ai-popup--mobile/);
 
     await popup.locator('[data-action="edit"]').click();
+    await expect(popup.locator('.ai-popup-edit-input')).toBeVisible();
+    await popup.locator('.ai-popup-edit-input').fill('make it punchier');
+    await popup.locator('[data-action="submit-edit"]').click();
     await expect(popup.locator('.ai-popup-diff')).toBeVisible();
     await expect(popup.locator('.ai-popup-selection')).toBeVisible();
 

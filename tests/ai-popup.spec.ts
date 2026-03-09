@@ -445,7 +445,7 @@ test.describe('AI Popup - API Interactions', () => {
     await expect(popup.locator('.ai-popup-error-text')).toContainText('Mock Server Error');
   });
 
-  test('GIVEN logged in WHEN clicking Edit THEN shows diff and confirm buttons', async ({ page }) => {
+  test('GIVEN logged in WHEN clicking Edit THEN shows instruction input then diff and confirm buttons', async ({ page }) => {
     // Mock API
     await page.route('**/ai/edit', async (route) => {
       await route.fulfill({
@@ -465,6 +465,9 @@ test.describe('AI Popup - API Interactions', () => {
 
     // Click Edit
     await popup.locator('[data-action="edit"]').click();
+    await expect(popup.locator('.ai-popup-edit-input')).toBeVisible();
+    await popup.locator('.ai-popup-edit-input').fill('fix typo');
+    await popup.locator('[data-action="submit-edit"]').click();
 
     // Should show diff
     await expect(popup.locator('.ai-popup-diff')).toBeVisible();

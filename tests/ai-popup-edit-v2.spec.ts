@@ -4,7 +4,7 @@ import { test, expect } from './fixtures';
  * RED tests for Edit v2 flow:
  * 1. Click Edit → instruction input (not immediate loading)
  * 2. Submit instruction → loading → diff
- * 3. Accept / Retry / Reject buttons
+ * 3. Confirm / Retry / Cancel buttons
  * 4. Retry → back to instruction input
  * 5. Request body uses selectedText + instruction (not old 'text')
  */
@@ -100,9 +100,41 @@ test.describe('Edit v2 — Instruction Input', () => {
     // Old field 'text' should NOT be used
     expect(capturedBody.text).toBeUndefined();
   });
+
+  test('GIVEN backend returns validation detail array WHEN edit submit fails THEN shows readable error text', async ({
+    page,
+  }) => {
+    await setupLoggedIn(page);
+
+    await page.route('**/ai/edit', async (route) => {
+      await route.fulfill({
+        status: 422,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          detail: [
+            { loc: ['body', 'selectedText'], msg: 'Field required' },
+            { loc: ['body', 'instruction'], msg: 'String should have at least 1 character' },
+          ],
+        }),
+      });
+    });
+
+    const popup = await selectAndShowPopup(page);
+    await popup.locator('[data-action="edit"]').click();
+
+    const input = popup.locator('.ai-popup-edit-input');
+    await expect(input).toBeVisible();
+    await input.fill('fix typo');
+    await popup.locator('[data-action="submit-edit"]').click();
+
+    const errorText = popup.locator('.ai-popup-error-text');
+    await expect(errorText).toBeVisible({ timeout: 10000 });
+    await expect(errorText).toContainText('selectedText: Field required');
+    await expect(errorText).toContainText('instruction: String should have at least 1 character');
+  });
 });
 
-test.describe('Edit v2 — Accept / Retry / Reject', () => {
+test.describe('Edit v2 — Confirm / Retry / Cancel', () => {
   test.beforeEach(async () => {
     const isDesktop = test.info().project.name === 'Desktop Chrome';
     if (!isDesktop) test.skip();
@@ -135,15 +167,15 @@ test.describe('Edit v2 — Accept / Retry / Reject', () => {
     return popup;
   }
 
-  test('GIVEN diff result THEN shows Accept, Retry, and Reject buttons', async ({ page }) => {
+  test('GIVEN diff result THEN shows Confirm, Retry, and Cancel buttons', async ({ page }) => {
     const popup = await getDiffState(page);
 
-    await expect(popup.locator('[data-action="accept"]')).toBeVisible();
+    await expect(popup.locator('[data-action="confirm"]')).toBeVisible();
     await expect(popup.locator('[data-action="retry"]')).toBeVisible();
-    await expect(popup.locator('.ai-popup-btn[data-action="reject"]')).toBeVisible();
+    await expect(popup.locator('.ai-popup-btn[data-action="close"]')).toBeVisible();
   });
 
-  test('GIVEN diff result WHEN clicking Accept THEN calls /ai/edit/confirm', async ({ page }) => {
+  test('GIVEN diff result WHEN clicking Confirm THEN calls /ai/edit/confirm', async ({ page }) => {
     let confirmCalled = false;
     await page.route('**/ai/edit/confirm', async (route) => {
       confirmCalled = true;
@@ -157,7 +189,7 @@ test.describe('Edit v2 — Accept / Retry / Reject', () => {
     });
 
     const popup = await getDiffState(page);
-    await popup.locator('[data-action="accept"]').click();
+    await popup.locator('[data-action="confirm"]').click();
 
     // Should show committed state
     await expect(popup.locator('.ai-popup-committed')).toBeVisible({ timeout: 5000 });
@@ -177,10 +209,10 @@ test.describe('Edit v2 — Accept / Retry / Reject', () => {
     await expect(popup.locator('.ai-popup-diff')).not.toBeVisible();
   });
 
-  test('GIVEN diff result WHEN clicking Reject THEN closes popup', async ({ page }) => {
+  test('GIVEN diff result WHEN clicking Cancel THEN closes popup', async ({ page }) => {
     const popup = await getDiffState(page);
 
-    await popup.locator('.ai-popup-btn[data-action="reject"]').click();
+    await popup.locator('.ai-popup-btn[data-action="close"]').click();
 
     await expect(popup).not.toBeVisible({ timeout: 2000 });
   });
