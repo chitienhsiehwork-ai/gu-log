@@ -14,6 +14,50 @@ import { test, expect } from './fixtures';
 
 const TEST_POST = '/posts/claude-is-a-space-to-think';
 
+function isMobileProject() {
+  return !!test.info().project.use.isMobile;
+}
+
+async function selectTextProgrammatically(page: import('@playwright/test').Page) {
+  const applySelection = async () => {
+    await page.evaluate(() => {
+      const p = document.querySelector('.post-content p');
+      if (!p || !p.firstChild) throw new Error('No post-content paragraph found');
+      const range = document.createRange();
+      const textNode = p.firstChild;
+      range.setStart(textNode, 0);
+      range.setEnd(textNode, Math.min(textNode.textContent?.length || 20, 20));
+      const sel = window.getSelection();
+      sel?.removeAllRanges();
+      sel?.addRange(range);
+    });
+  };
+
+  await applySelection();
+
+  const content = page.locator('.post-content p').first();
+  const box = await content.boundingBox();
+  if (box) {
+    await page.mouse.click(box.x + 10, box.y + box.height / 2, { button: 'left' });
+    await applySelection();
+  }
+
+  await page.evaluate(() => {
+    const p = document.querySelector('.post-content p');
+    if (!p || !p.firstChild) throw new Error('No post-content paragraph found');
+    const range = document.createRange();
+    const textNode = p.firstChild;
+    range.setStart(textNode, 0);
+    range.setEnd(textNode, Math.min(textNode.textContent?.length || 20, 20));
+    const sel = window.getSelection();
+    sel?.removeAllRanges();
+    sel?.addRange(range);
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    document.dispatchEvent(new Event('touchend', { bubbles: true }));
+  });
+  await page.waitForTimeout(100);
+}
+
 /** Helper: set up logged-in state, select text, get popup */
 async function setupAndSelectText(page: import('@playwright/test').Page) {
   await page.goto(TEST_POST);
@@ -26,13 +70,17 @@ async function setupAndSelectText(page: import('@playwright/test').Page) {
 
   const content = page.locator('.post-content p').first();
   await expect(content).toBeVisible();
-  const box = await content.boundingBox();
-  if (!box) throw new Error('No bounding box');
+  if (isMobileProject()) {
+    await selectTextProgrammatically(page);
+  } else {
+    const box = await content.boundingBox();
+    if (!box) throw new Error('No bounding box');
 
-  await page.mouse.move(box.x + 10, box.y + box.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(box.x + 150, box.y + box.height / 2);
-  await page.mouse.up();
+    await page.mouse.move(box.x + 10, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + 150, box.y + box.height / 2);
+    await page.mouse.up();
+  }
 
   const popup = page.locator('#ai-popup');
   await expect(popup).toBeVisible({ timeout: 3000 });
@@ -40,10 +88,6 @@ async function setupAndSelectText(page: import('@playwright/test').Page) {
 }
 
 test.describe('AI Popup - Chat Box', () => {
-  test.beforeEach(async () => {
-    if (test.info().project.name !== 'Desktop Chrome') test.skip();
-  });
-
   test('GIVEN logged in WHEN clicking Ask AI THEN shows input box with submit button (not direct API call)', async ({ page }) => {
     // Do NOT mock the API - if it calls API directly, the test should still pass
     // because we're checking UI state, not API calls
@@ -198,10 +242,6 @@ test.describe('AI Popup - Chat Box', () => {
 });
 
 test.describe('AI Popup - Error Detail Display', () => {
-  test.beforeEach(async () => {
-    if (test.info().project.name !== 'Desktop Chrome') test.skip();
-  });
-
   test('GIVEN network error WHEN Ask AI submits THEN shows connection error message', async ({ page }) => {
     // Abort the request to simulate network failure
     await page.route('**/ai/ask', async (route) => {

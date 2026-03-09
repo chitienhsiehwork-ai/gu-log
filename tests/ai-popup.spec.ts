@@ -10,6 +10,15 @@ import { test, expect } from './fixtures';
 
 const TEST_POST = '/posts/claude-is-a-space-to-think';
 
+function isDesktopChromium() {
+  const projectUse = test.info().project.use;
+  return projectUse.browserName === 'chromium' && !projectUse.isMobile;
+}
+
+function isMobileProject() {
+  return !!test.info().project.use.isMobile;
+}
+
 /**
  * Helper: select text inside .post-content using JS (works on both desktop and mobile).
  * Uses Selection API to programmatically select text within the first paragraph.
@@ -52,11 +61,27 @@ async function selectTextInContent(page: import('@playwright/test').Page) {
   await page.waitForTimeout(50);
 }
 
+async function selectTextForCurrentProject(page: import('@playwright/test').Page, dragDistance = 100) {
+  if (isMobileProject()) {
+    await selectTextInContent(page);
+    return;
+  }
+
+  const content = page.locator('.post-content p').first();
+  await expect(content).toBeVisible();
+  const box = await content.boundingBox();
+  if (!box) throw new Error('No bounding box');
+
+  await page.mouse.move(box.x + 10, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + dragDistance, box.y + box.height / 2);
+  await page.mouse.up();
+}
+
 test.describe('AI Popup - Desktop', () => {
   test.beforeEach(async () => {
     // These tests use mouse drag which only works on Desktop
-    const isDesktop = test.info().project.name === 'Desktop Chrome';
-    if (!isDesktop) test.skip();
+    if (!isDesktopChromium()) test.skip();
   });
 
   test('GIVEN post page WHEN user selects text in post-content THEN popup appears with AI buttons', async ({
@@ -251,8 +276,7 @@ test.describe('AI Popup - Mobile (programmatic selection)', () => {
   test('GIVEN mobile viewport WHEN text selected THEN popup shows as bottom sheet', async ({
     page,
   }) => {
-    const isMobile = test.info().project.name === 'Mobile Chrome';
-    if (!isMobile) {
+    if (!isMobileProject()) {
       test.skip();
       return;
     }
@@ -272,8 +296,7 @@ test.describe('AI Popup - Mobile (programmatic selection)', () => {
   test('GIVEN mobile viewport WHEN not logged in and text selected THEN shows login button', async ({
     page,
   }) => {
-    const isMobile = test.info().project.name === 'Mobile Chrome';
-    if (!isMobile) {
+    if (!isMobileProject()) {
       test.skip();
       return;
     }
@@ -357,10 +380,6 @@ test.describe('Auth Callback', () => {
 
 test.describe('AI Popup - API Interactions', () => {
   test.beforeEach(async ({ page }) => {
-    // Only run on desktop where mouse selection is reliable
-    const isDesktop = test.info().project.name === 'Desktop Chrome';
-    if (!isDesktop) test.skip();
-
     // Mock login
     await page.goto(TEST_POST);
     await page.evaluate(() => {
@@ -383,15 +402,7 @@ test.describe('AI Popup - API Interactions', () => {
       });
     });
 
-    // Select text
-    const content = page.locator('.post-content p').first();
-    const box = await content.boundingBox();
-    if (!box) throw new Error('No bounding box');
-    
-    await page.mouse.move(box.x + 10, box.y + box.height / 2);
-    await page.mouse.down();
-    await page.mouse.move(box.x + 100, box.y + box.height / 2);
-    await page.mouse.up();
+    await selectTextForCurrentProject(page);
 
     const popup = page.locator('#ai-popup');
     await expect(popup).toBeVisible();
@@ -418,15 +429,7 @@ test.describe('AI Popup - API Interactions', () => {
       });
     });
 
-    // Select text
-    const content = page.locator('.post-content p').first();
-    const box = await content.boundingBox();
-    if (!box) throw new Error('No bounding box');
-    
-    await page.mouse.move(box.x + 10, box.y + box.height / 2);
-    await page.mouse.down();
-    await page.mouse.move(box.x + 100, box.y + box.height / 2);
-    await page.mouse.up();
+    await selectTextForCurrentProject(page);
 
     const popup = page.locator('#ai-popup');
     await expect(popup).toBeVisible();
@@ -455,15 +458,7 @@ test.describe('AI Popup - API Interactions', () => {
       });
     });
 
-    // Select text
-    const content = page.locator('.post-content p').first();
-    const box = await content.boundingBox();
-    if (!box) throw new Error('No bounding box');
-    
-    await page.mouse.move(box.x + 10, box.y + box.height / 2);
-    await page.mouse.down();
-    await page.mouse.move(box.x + 100, box.y + box.height / 2);
-    await page.mouse.up();
+    await selectTextForCurrentProject(page);
 
     const popup = page.locator('#ai-popup');
     await expect(popup).toBeVisible();
