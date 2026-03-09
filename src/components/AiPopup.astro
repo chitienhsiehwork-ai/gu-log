@@ -61,13 +61,18 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
             askHint: 'Add an optional question for extra context.',
             editTitle: 'Edit with AI',
             editHint: 'Review the proposed diff before committing.',
+            editInputHint: 'Tell AI how you want this selection changed.',
             selectedLabel: 'Selected text',
             emptyDiff: 'No suggested changes returned.',
             missingEditId: 'Missing edit ID. Please retry the edit step.',
             error: 'Something went wrong. Please try again.',
             submit: 'Submit',
             cancelAsk: 'Cancel',
+            submitEdit: 'Generate edit',
+            cancelEdit: 'Cancel',
+            retry: 'Retry',
             questionPlaceholder: "What's your question?",
+            editPlaceholder: 'How should this be changed? e.g. fix typo, make it clearer',
             networkError: 'Cannot connect to API server. Please check your network.',
             unknownError: 'An unknown error occurred.',
           }
@@ -86,21 +91,27 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
             askHint: '可以補一句問題，讓 AI 更知道你想問什麼。',
             editTitle: 'Edit with AI',
             editHint: '先看 diff，確認沒問題再提交。',
+            editInputHint: '告訴 AI 你想怎麼改這段文字。',
             selectedLabel: '目前選取',
             emptyDiff: 'AI 沒有提出可套用的修改。',
             missingEditId: '找不到 edit ID，請重新產生一次編輯建議。',
             error: '發生錯誤，請再試一次。',
             submit: '送出',
             cancelAsk: '取消',
+            submitEdit: '產生修改',
+            cancelEdit: '取消',
+            retry: '重試',
             questionPlaceholder: '想問什麼？例如：source code 是怎麼處理的？',
+            editPlaceholder: '想怎麼改？例如：修 typo、改順一點、語氣輕鬆一點',
             networkError: '無法連線到 API 伺服器，請確認網路連線',
             unknownError: '發生未知錯誤',
           };
 
     let popup = null;
     let selectedText = '';
-    let currentState = 'idle'; // idle, buttons, ask-input, loading, ask-result, edit-result, confirm-loading, committed, error
+    let currentState = 'idle'; // idle, buttons, ask-input, loading, ask-result, edit-input, edit-result, confirm-loading, committed, error
     let pendingEditId = null;
+    let lastEditInstruction = '';
 
     function clampText(text, maxLength) {
       if (!text || text.length <= maxLength) return text;
@@ -320,6 +331,48 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
       positionPopup(getSelectionRect() || { top: 0, left: 0, bottom: 0, width: 0 });
     }
 
+    function renderEditInput(prefill) {
+      if (!popup) return;
+      currentState = 'edit-input';
+
+      const content = createPanel(t.editTitle, t.editInputHint, 'ai-popup-ask-input-container');
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'ai-popup-edit-input';
+      input.placeholder = t.editPlaceholder;
+      input.setAttribute('aria-label', t.editPlaceholder);
+      input.value = prefill || '';
+
+      const actions = document.createElement('div');
+      actions.className = 'ai-popup-actions';
+      actions.innerHTML =
+        '<button class="ai-popup-btn ai-popup-btn--edit" data-action="submit-edit">' +
+        escapeHtml(t.submitEdit) +
+        '</button>' +
+        '<button class="ai-popup-btn ai-popup-btn--cancel" data-action="cancel-edit">' +
+        escapeHtml(t.cancelEdit) +
+        '</button>';
+
+      content.appendChild(createSelectionPreview());
+      content.appendChild(input);
+      content.appendChild(actions);
+
+      popup.innerHTML = '';
+      popup.appendChild(content);
+
+      input.focus();
+
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          handleSubmitEdit();
+        }
+      });
+
+      positionPopup(getSelectionRect() || { top: 0, left: 0, bottom: 0, width: 0 });
+    }
+
     function renderEditResult(diff, editId) {
       if (!popup) return;
       currentState = 'edit-result';
@@ -360,6 +413,9 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
         confirmAttrs +
         '>' +
         escapeHtml(t.confirm) +
+        '</button>' +
+        '<button class="ai-popup-btn ai-popup-btn--ask" data-action="retry">' +
+        escapeHtml(t.retry) +
         '</button>' +
         '<button class="ai-popup-btn ai-popup-btn--cancel" data-action="close">' +
         escapeHtml(t.cancel) +
@@ -435,6 +491,29 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
       return false;
     }
 
+    function formatErrorDetail(detail) {
+      if (Array.isArray(detail)) {
+        const parts = [];
+        for (let i = 0; i < detail.length; i++) {
+          const item = detail[i];
+          if (item && typeof item === 'object') {
+            const loc = Array.isArray(item.loc) ? item.loc[item.loc.length - 1] : '';
+            const msg = item.msg || item.message || JSON.stringify(item);
+            parts.push((loc ? loc + ': ' : '') + msg);
+          } else {
+            parts.push(String(item));
+          }
+        }
+        return parts.join('; ');
+      }
+
+      if (detail && typeof detail === 'object') {
+        return detail.msg || detail.message || JSON.stringify(detail);
+      }
+
+      return String(detail || '');
+    }
+
     async function apiRequest(endpoint, body) {
       const jwt = getJwt();
       const headers = { 'Content-Type': 'application/json' };
@@ -456,7 +535,10 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
         let errText = '';
         try {
           const errBody = await res.json();
-          errText = errBody.detail || errBody.error || res.statusText;
+          errText =
+            formatErrorDetail(errBody.detail) ||
+            formatErrorDetail(errBody.error) ||
+            res.statusText;
         } catch (_error) {
           errText = res.statusText;
         }
@@ -491,12 +573,25 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
     }
 
     async function handleEdit() {
+      renderEditInput(lastEditInstruction);
+    }
+
+    async function handleSubmitEdit() {
+      const input = popup ? popup.querySelector('.ai-popup-edit-input') : null;
+      const instruction = input ? input.value.trim() : '';
+
+      if (!instruction) {
+        if (input) input.focus();
+        return;
+      }
+
+      lastEditInstruction = instruction;
       renderLoading(t.loadingEdit);
       try {
         const data = await apiRequest('/ai/edit', {
-          text: selectedText,
+          selectedText: selectedText,
           filePath: filePath,
-          instruction: '',
+          instruction: instruction,
         });
         renderEditResult(data.diff || '', data.editId || data.id || '');
       } catch (err) {
@@ -552,8 +647,17 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
         case 'edit':
           handleEdit();
           break;
+        case 'submit-edit':
+          handleSubmitEdit();
+          break;
+        case 'cancel-edit':
+          removePopup();
+          break;
         case 'confirm':
           handleConfirm();
+          break;
+        case 'retry':
+          renderEditInput(lastEditInstruction);
           break;
         case 'login':
           handleLogin();
@@ -859,7 +963,8 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
     word-break: break-word;
   }
 
-  .ai-popup-question-input {
+  .ai-popup-question-input,
+  .ai-popup-edit-input {
     width: 100%;
     padding: 0.5rem 0.75rem;
     border: 1px solid var(--color-border, #3b4261);
@@ -872,12 +977,14 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
     box-sizing: border-box;
   }
 
-  .ai-popup-question-input:focus {
+  .ai-popup-question-input:focus,
+  .ai-popup-edit-input:focus {
     border-color: var(--color-accent, #7aa2f7);
     box-shadow: 0 0 0 2px rgba(122, 162, 247, 0.2);
   }
 
-  .ai-popup-question-input::placeholder {
+  .ai-popup-question-input::placeholder,
+  .ai-popup-edit-input::placeholder {
     color: var(--color-text-muted, #565f89);
     opacity: 0.7;
   }
