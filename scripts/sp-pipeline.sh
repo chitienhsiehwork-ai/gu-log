@@ -17,6 +17,7 @@ model_display_name() {
   case "$model_id" in
     gemini-3.1-pro-preview) printf '%s' "Gemini 3.1 Pro" ;;
     gemini-3-flash) printf '%s' "Gemini 3 Flash" ;;
+    gpt-5.4) printf '%s' "GPT-5.4" ;;
     gpt-5.3-codex) printf '%s' "GPT-5.3-Codex" ;;
     *) printf '%s' "$model_id" ;;
   esac
@@ -26,7 +27,7 @@ model_harness_name() {
   local model_id="$1"
   case "$model_id" in
     gemini-3.1-pro-preview|gemini-3-flash) printf '%s' "Gemini CLI" ;;
-    gpt-5.3-codex) printf '%s' "Codex CLI" ;;
+    gpt-5.4|gpt-5.3-codex) printf '%s' "Codex CLI" ;;
     *) printf '%s' "Unknown Harness" ;;
   esac
 }
@@ -71,9 +72,9 @@ run_with_fallback() {
     log_warn "Gemini Pro 429, falling back to Codex CLI" >&2
     local prompt_text
     prompt_text=$(cat "$prompt_file")
-    if codex exec --full-auto -- "$prompt_text" > "$out_tmp" 2> "$err_tmp"; then
-      LAST_MODEL_USED=$(model_display_name "gpt-5.3-codex")
-      LAST_HARNESS_USED=$(model_harness_name "gpt-5.3-codex")
+    if codex exec --model gpt-5.4 --full-auto -- "$prompt_text" > "$out_tmp" 2> "$err_tmp"; then
+      LAST_MODEL_USED=$(model_display_name "gpt-5.4")
+      LAST_HARNESS_USED=$(model_harness_name "gpt-5.4")
       cat "$out_tmp"
       cat "$err_tmp" >&2
       rm -f "$out_tmp" "$err_tmp" "$prompt_file"
@@ -355,7 +356,7 @@ EOF_EVAL_CODEX
   GEMINI_EVAL_STATUS=$?
   (
     cd "$WORK_DIR"
-    codex exec -C . --full-auto "$(cat eval-codex-prompt.txt)"
+    codex exec -C . --model gpt-5.4 --full-auto "$(cat eval-codex-prompt.txt)"
   )
   CODEX_EVAL_STATUS=$?
   set -e
@@ -477,13 +478,13 @@ EOF_REVIEW
 
 (
   cd "$WORK_DIR"
-  codex exec -C . --full-auto "$(cat review-prompt.txt)"
+  codex exec -C . --model gpt-5.4 --full-auto "$(cat review-prompt.txt)"
 )
 
 [ -s "$WORK_DIR/review.md" ] || die "review.md missing or empty"
 [ -s "$WORK_DIR/review-codex-notes.json" ] || die "review-codex-notes.json missing or empty"
-REVIEW_MODEL=$(model_display_name "gpt-5.3-codex")
-REVIEW_HARNESS=$(model_harness_name "gpt-5.3-codex")
+REVIEW_MODEL=$(model_display_name "gpt-5.4")
+REVIEW_HARNESS=$(model_harness_name "gpt-5.4")
 STEP3_TIME=$(step_end "Step 3")
 
 # Step 4: Gemini Refine
@@ -667,8 +668,8 @@ FINAL_MDX="$WORK_DIR/final.mdx"
 if [[ -f "$FINAL_MDX" ]]; then
   [ -n "$WRITE_MODEL" ] || WRITE_MODEL=$(model_display_name "gemini-3.1-pro-preview")
   [ -n "$WRITE_HARNESS" ] || WRITE_HARNESS=$(model_harness_name "gemini-3.1-pro-preview")
-  [ -n "$REVIEW_MODEL" ] || REVIEW_MODEL=$(model_display_name "gpt-5.3-codex")
-  [ -n "$REVIEW_HARNESS" ] || REVIEW_HARNESS=$(model_harness_name "gpt-5.3-codex")
+  [ -n "$REVIEW_MODEL" ] || REVIEW_MODEL=$(model_display_name "gpt-5.4")
+  [ -n "$REVIEW_HARNESS" ] || REVIEW_HARNESS=$(model_harness_name "gpt-5.4")
   [ -n "$REFINE_MODEL" ] || REFINE_MODEL=$(model_display_name "gemini-3.1-pro-preview")
   [ -n "$REFINE_HARNESS" ] || REFINE_HARNESS=$(model_harness_name "gemini-3.1-pro-preview")
   # Patch top-level model to match actual writer (may differ from what LLM hardcoded in draft)
