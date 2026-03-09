@@ -19,6 +19,7 @@ model_display_name() {
     gemini-3-flash) printf '%s' "Gemini 3 Flash" ;;
     gpt-5.4) printf '%s' "GPT-5.4" ;;
     gpt-5.3-codex) printf '%s' "GPT-5.3-Codex" ;;
+    claude-opus) printf '%s' "Claude Opus" ;;
     *) printf '%s' "$model_id" ;;
   esac
 }
@@ -28,6 +29,7 @@ model_harness_name() {
   case "$model_id" in
     gemini-3.1-pro-preview|gemini-3-flash) printf '%s' "Gemini CLI" ;;
     gpt-5.4|gpt-5.3-codex) printf '%s' "Codex CLI" ;;
+    claude-opus) printf '%s' "Claude Code CLI" ;;
     *) printf '%s' "Unknown Harness" ;;
   esac
 }
@@ -80,7 +82,18 @@ run_with_fallback() {
       rm -f "$out_tmp" "$err_tmp" "$prompt_file"
       return 0
     fi
-    log_warn "Codex CLI failed, falling back to Gemini Flash" >&2
+    log_warn "Codex CLI failed, falling back to Claude Code (Opus)" >&2
+    local prompt_text_cc
+    prompt_text_cc=$(cat "$prompt_file")
+    if claude -p --model opus --permission-mode bypassPermissions "$prompt_text_cc" > "$out_tmp" 2> "$err_tmp"; then
+      LAST_MODEL_USED=$(model_display_name "claude-opus")
+      LAST_HARNESS_USED=$(model_harness_name "claude-opus")
+      cat "$out_tmp"
+      cat "$err_tmp" >&2
+      rm -f "$out_tmp" "$err_tmp" "$prompt_file"
+      return 0
+    fi
+    log_warn "Claude Code failed, falling back to Gemini Flash" >&2
     if GOOGLE_GENAI_USE_GCA=true TERM=dumb NO_COLOR=1 gemini -m gemini-3-flash --sandbox false -y < "$prompt_file" > "$out_tmp" 2> "$err_tmp"; then
       LAST_MODEL_USED=$(model_display_name "gemini-3-flash")
       LAST_HARNESS_USED=$(model_harness_name "gemini-3-flash")
