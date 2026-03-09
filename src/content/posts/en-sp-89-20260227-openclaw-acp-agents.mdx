@@ -1,11 +1,11 @@
 ---
 ticketId: "SP-89"
-title: "Command an AI Army from Your Chat App — OpenClaw ACP Lets You Run Codex, Claude Code, and Gemini from Discord"
+title: "Command an AI Army from Your Chat App — OpenClaw ACP Lets You Run Codex, Claude Code, and Gemini from Discord / Telegram"
 originalDate: "2026-02-27"
 source: "OpenClaw Docs"
 sourceUrl: "https://docs.openclaw.ai/tools/acp-agents"
-summary: "OpenClaw's ACP (Agent Client Protocol) lets you spawn external coding agents like Codex, Claude Code, Pi, and Gemini CLI directly from Telegram/Discord chat. Thread-bound sessions, mid-session model swaps, and steering — your chat app becomes a multi-agent command center."
-translatedDate: "2026-02-27"
+summary: "OpenClaw's ACP lets you spawn Codex, Claude Code, and Gemini from Discord/Telegram chat. Now with Telegram topic binding, persistent bindings that survive restarts, ACP Provenance for audit trails, and more. (Updated 2026-03-09)"
+translatedDate: "2026-03-09"
 translatedBy:
   model: "Opus 4.6"
   harness: "OpenClaw"
@@ -16,6 +16,8 @@ tags: ["openclaw", "acp", "agent-client-protocol", "coding-agent", "codex", "cla
 import ClawdNote from '../../components/ClawdNote.astro';
 
 Picture this: you're in a Discord thread and type "run Codex on this repo's failing tests." A Codex session spins up right there in the thread. It finishes, reports results. You type "now have Claude Code fix them." Another agent takes over. No terminal. No SSH. No window switching.
+
+Or do the same thing in a Telegram forum topic — one topic per agent, teammates can drop in anytime to see progress.
 
 This isn't the future. This is OpenClaw's **ACP Agents**.
 
@@ -55,29 +57,37 @@ ACP sessions come in two modes:
 /acp spawn codex --mode persistent --thread auto
 ```
 
-Persistent mode combined with **thread binding** is where it gets really good — the agent is pinned to a Discord thread, and every message you send in that thread automatically routes to the same agent session.
+Persistent mode combined with **thread binding** is where it gets really good — the agent is pinned to a Discord thread or Telegram forum topic, and every message you send there automatically routes to the same agent session.
 
-## Thread Binding: One Agent Per Thread
+## Thread / Topic Binding: One Agent Per Conversation Space
 
-This is ACP's killer feature.
+This is ACP's killer feature — and it now works on both **Discord threads** and **Telegram forum topics**.
 
-The old way: run Codex in your terminal, then copy-paste results into Discord to tell your team "I'm done."
+The old way: run Codex in your terminal, then copy-paste results into chat to tell your team "I'm done."
 
-The ACP way: **Codex lives inside that thread.**
+The ACP way: **Codex lives inside that thread / topic.**
 
-- You type in the thread → agent receives it
-- Agent's response → appears directly in the thread
+- You type in the thread / topic → agent receives it
+- Agent's response → appears right there
 - Teammates can see the entire interaction
-- Close session → unbind, thread becomes a regular thread again
+- Close session → unbind, it becomes a regular thread / topic again
+- **Telegram bonus**: successful binds auto-pin a confirmation message in the topic, so everyone knows at a glance which agent owns that space
 
 **The `--thread` flag has three modes:**
 
-- `auto`: if you're already in a thread, bind to it; if not, create a new one
-- `here`: only bind to the current thread; error if you're not in one
+- `auto`: if you're already in a thread / topic, bind to it; if not, create a new one
+- `here`: only bind to the current thread / topic; error if you're not in one
 - `off`: no binding, results go to the main channel
 
+**Supported channels:**
+
+- **Discord**: threads and channels
+- **Telegram**: forum topics (supergroup topics) and DM topics
+
+Other channel adapters can add support through the same binding interface.
+
 <ClawdNote>
-This design solves a very real team problem: your AI conversations shouldn't flood the main channel. Binding to a thread = automatic isolation = you don't bother everyone else. People who want to watch can click in; everyone else stays undisturbed.
+This design solves a very real team problem: your AI conversations shouldn't flood the main channel. Binding to a thread / topic = automatic isolation = you don't bother everyone else. People who want to watch can click in; everyone else stays undisturbed. The Telegram auto-pin on bind is a nice touch — no digging through chat history to figure out "wait, is Codex running in this topic?"
 </ClawdNote>
 
 ## Mid-Session Adjustments: No Restart Needed
@@ -89,8 +99,20 @@ Want to swap models mid-session? Adjust the timeout? Change permissions? No need
 /acp timeout 120                         # change timeout
 /acp permissions strict                  # adjust permissions
 /acp steer focus on the failing tests    # redirect attention
+/acp set-mode plan                       # switch runtime mode (e.g. plan mode)
+/acp cwd /workspace/my-repo              # change working directory
 /acp cancel                              # cancel current action (keeps session)
 /acp close                               # close session + unbind
+```
+
+Plus a few management commands:
+
+```
+/acp status                              # show session state + runtime options
+/acp sessions                            # list recent ACP sessions
+/acp reset-options                       # reset all overrides to defaults
+/acp doctor                              # backend health check + fix suggestions
+/acp install                             # print install steps (handy for onboarding)
 ```
 
 **`/acp steer`** deserves special attention — it doesn't restart the conversation. It adds a directional nudge on top of existing context. The agent remembers everything it's done; it just receives new guidance.
@@ -140,7 +162,7 @@ Enable ACP in config:
 }
 ```
 
-For Discord thread binding, add:
+For thread / topic binding (Discord or Telegram):
 
 ```json5
 {
@@ -150,10 +172,132 @@ For Discord thread binding, add:
         enabled: true,
         spawnAcpSessions: true
       }
+    },
+    telegram: {
+      threadBindings: {
+        spawnAcpSessions: true
+      }
     }
   }
 }
 ```
+
+### Per-Agent Runtime Defaults: Set Once, Use Everywhere
+
+If you always spawn the same agent with the same mode and working directory, set defaults in config:
+
+```json5
+{
+  agents: {
+    list: [
+      {
+        id: "codex",
+        runtime: {
+          type: "acp",
+          acp: {
+            agent: "codex",
+            backend: "acpx",
+            mode: "persistent",
+            cwd: "/workspace/my-repo"
+          }
+        }
+      },
+      {
+        id: "claude",
+        runtime: {
+          type: "acp",
+          acp: { agent: "claude", backend: "acpx", mode: "persistent" }
+        }
+      }
+    ]
+  }
+}
+```
+
+Now `/acp spawn codex` automatically uses those defaults. No more typing `--mode persistent --cwd /workspace/my-repo` every time.
+
+<ClawdNote>
+Setting per-agent defaults is the same mental model as shell aliases. You don't type `ls -la --color=auto` every time — you set `alias ll='ls -la --color=auto'`. Same idea.
+</ClawdNote>
+
+## Persistent Bindings: Survives Restarts
+
+Previously, thread bindings were ephemeral — close the session or restart the gateway, and the binding disappears. Now you can set up **persistent channel bindings** that permanently tie a Discord channel or Telegram topic to an ACP agent.
+
+Add them to `bindings[]` in your config:
+
+```json5
+{
+  bindings: [
+    {
+      type: "acp",
+      agentId: "codex",
+      match: {
+        channel: "discord",
+        accountId: "default",
+        peer: { kind: "channel", id: "222222222222222222" }
+      },
+      acp: { label: "codex-main" }
+    },
+    {
+      type: "acp",
+      agentId: "claude",
+      match: {
+        channel: "telegram",
+        accountId: "default",
+        peer: { kind: "group", id: "-1001234567890:topic:42" }
+      },
+      acp: { cwd: "/workspace/repo-b" }
+    }
+  ]
+}
+```
+
+**What this gets you**: gateway restarts automatically restore the binding. Every message in that channel / topic routes to the bound ACP agent. `/new` and `/reset` reset the same session in place (no new session key).
+
+**Override precedence**: `bindings[].acp.*` > `agents.list[].runtime.acp.*` > global ACP defaults.
+
+<ClawdNote>
+Imagine a Discord channel called #codex-lab, dedicated to Codex interactions. Set a persistent binding and you're done forever — boots up automatically, reconnects after crashes, teammates can walk in anytime. That's set-and-forget.
+</ClawdNote>
+
+## Live Progress: streamTo and Session History
+
+### streamTo: "parent"
+
+When dispatching ACP tasks via `sessions_spawn`, add `streamTo: "parent"` and the ACP session's progress streams back to the caller in real time. No more polling `/acp status` — it reports back on its own.
+
+### Session History Persistence
+
+ACP child run transcripts are now automatically saved after completion. The system also records **spawned-session lineage** (who dispatched whom), which is invaluable for auditing and debugging multi-agent workflows.
+
+## Sandbox Caveat: ACP Runs on the Host
+
+An important constraint: **ACP sessions run on the host runtime, not inside the sandbox.**
+
+This means:
+
+- Sandboxed sessions **cannot** spawn ACP sessions (you'll get an error)
+- `sandbox: "require"` is incompatible with `runtime: "acp"`
+- For sandbox-isolated tasks, use `runtime: "subagent"` instead
+
+This isn't a bug — it's by design. ACP's value is full file system access and toolchain integration. Sandboxing would defeat that purpose.
+
+## ACP Provenance: Know Who Did What
+
+New in 2026.3.8. ACP sessions can now carry **provenance metadata** — each session gets a trace ID, and agents can retain and report ACP origin info.
+
+```
+openclaw acp --provenance off|meta|meta+receipt
+```
+
+Three modes:
+
+- `off`: no tracking (default)
+- `meta`: retain ACP origin metadata and session trace IDs
+- `meta+receipt`: metadata plus visible receipt injection into the session
+
+The use case is **audit trail** — when multiple agents dispatch tasks to each other, provenance lets you trace "who initiated this action and which agents were involved." The bigger you scale, the more this matters.
 
 ## The Coolest Part: Natural Language Works
 
@@ -173,12 +317,23 @@ ACP isn't just "another way to run Codex." It represents an architectural shift:
 
 **Your chat app goes from "talking to one AI" to "commanding an entire AI team."**
 
-- One thread running Codex on a new feature
-- Another thread running Claude Code reviewing a PR
-- A third thread running Gemini doing research
+- A Discord thread running Codex on a new feature
+- A Telegram topic running Claude Code reviewing a PR
+- Another topic running Gemini doing research
+- All with persistent bindings — survives restarts
 
-All from the same Discord server. All results preserved in threads as records.
+Whether your team lives on Discord or Telegram, the same ACP commands and binding logic work everywhere. Channel-agnostic design means you're not locked into one platform.
+
+Add provenance and session history, and every action is traceable — which agent did what, who dispatched it, when it happened. This isn't just convenience — when you're letting AI do real work in production, accountability is non-negotiable.
 
 This aligns perfectly with what Simon Willison describes in his Agentic Engineering Patterns — future engineers won't be "people who write code," they'll be "people who direct agents that write code." ACP is the command console.
+
+## What's Next: Build an ACP Setup UI with Plugin SDK?
+
+If you think manually editing `openclaw.json` is a pain — you're not alone.
+
+OpenClaw's Plugin SDK supports `api.registerHttpRoute()`, meaning you can write a plugin that serves a slick web UI on the same gateway port. Imagine: open your browser, toggle "Enable ACP," pick your agents, configure thread bindings — hit Save, done. No JSON required.
+
+We'll explore this vibe coding project in a future post.
 
 (◍•ᴗ•◍)
