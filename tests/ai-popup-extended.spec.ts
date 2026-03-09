@@ -14,6 +14,73 @@ import { test, expect } from './fixtures';
 
 const TEST_POST = '/posts/claude-is-a-space-to-think';
 
+function isDesktopChromium() {
+  const projectUse = test.info().project.use;
+  return projectUse.browserName === 'chromium' && !projectUse.isMobile;
+}
+
+function isMobileProject() {
+  return !!test.info().project.use.isMobile;
+}
+
+async function selectTextProgrammatically(page: import('@playwright/test').Page) {
+  const applySelection = async () => {
+    await page.evaluate(() => {
+      const p = document.querySelector('.post-content p');
+      if (!p || !p.firstChild) throw new Error('No post-content paragraph found');
+      const range = document.createRange();
+      const textNode = p.firstChild;
+      range.setStart(textNode, 0);
+      range.setEnd(textNode, Math.min(textNode.textContent?.length || 20, 20));
+      const sel = window.getSelection();
+      sel?.removeAllRanges();
+      sel?.addRange(range);
+    });
+  };
+
+  await applySelection();
+
+  const content = page.locator('.post-content p').first();
+  const box = await content.boundingBox();
+  if (box) {
+    await page.mouse.click(box.x + 10, box.y + box.height / 2, { button: 'left' });
+    await applySelection();
+  }
+
+  await page.evaluate(() => {
+    const p = document.querySelector('.post-content p');
+    if (!p || !p.firstChild) throw new Error('No post-content paragraph found');
+    const range = document.createRange();
+    const textNode = p.firstChild;
+    range.setStart(textNode, 0);
+    range.setEnd(textNode, Math.min(textNode.textContent?.length || 20, 20));
+    const sel = window.getSelection();
+    sel?.removeAllRanges();
+    sel?.addRange(range);
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    document.dispatchEvent(new Event('touchend', { bubbles: true }));
+  });
+  await page.waitForTimeout(100);
+}
+
+async function selectTextForCurrentProject(page: import('@playwright/test').Page) {
+  const content = page.locator('.post-content p').first();
+  await expect(content).toBeVisible();
+
+  if (isMobileProject()) {
+    await selectTextProgrammatically(page);
+    return;
+  }
+
+  const box = await content.boundingBox();
+  if (!box) throw new Error('No bounding box');
+
+  await page.mouse.move(box.x + 10, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 150, box.y + box.height / 2);
+  await page.mouse.up();
+}
+
 /** Helper to set up logged-in state and select text */
 async function setupLoggedInWithSelection(page: import('@playwright/test').Page) {
   await page.goto(TEST_POST);
@@ -24,15 +91,7 @@ async function setupLoggedInWithSelection(page: import('@playwright/test').Page)
   });
   await page.reload();
 
-  const content = page.locator('.post-content p').first();
-  await expect(content).toBeVisible();
-  const box = await content.boundingBox();
-  if (!box) throw new Error('No bounding box');
-
-  await page.mouse.move(box.x + 10, box.y + box.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(box.x + 150, box.y + box.height / 2);
-  await page.mouse.up();
+  await selectTextForCurrentProject(page);
 
   const popup = page.locator('#ai-popup');
   await expect(popup).toBeVisible({ timeout: 3000 });
@@ -41,10 +100,6 @@ async function setupLoggedInWithSelection(page: import('@playwright/test').Page)
 
 test.describe('AI Popup - Confirm Edit Flow', () => {
   test.describe.configure({ retries: 2 });
-
-  test.beforeEach(async () => {
-    if (test.info().project.name !== 'Desktop Chrome') test.skip();
-  });
 
   test('GIVEN edit result WHEN clicking Confirm THEN shows committed state', async ({ page }) => {
     // Mock edit API
@@ -142,10 +197,6 @@ test.describe('AI Popup - Confirm Edit Flow', () => {
 });
 
 test.describe('AI Popup - Result State Interactions', () => {
-  test.beforeEach(async () => {
-    if (test.info().project.name !== 'Desktop Chrome') test.skip();
-  });
-
   test('GIVEN ask result WHEN clicking close button THEN popup closes', async ({ page }) => {
     await page.route('**/ai/ask', async (route) => {
       await route.fulfill({
@@ -183,14 +234,34 @@ test.describe('AI Popup - Result State Interactions', () => {
     await popup.locator('[data-action="submit-ask"]').click();
     await expect(popup.locator('.ai-popup-result')).toBeVisible();
 
-    // Click outside — should NOT close (result state is persistent)
-    await page.locator('header.site-header').click();
+    const header = page.locator('header.site-header').first();
+    const headerBox = await header.boundingBox();
+    if (!headerBox) throw new Error('No header bounding box');
+
+    const x = headerBox.x + Math.min(20, headerBox.width / 2);
+    const y = headerBox.y + Math.min(20, headerBox.height / 2);
+
+    await page.evaluate(({ x, y }) => {
+      const target = document.elementFromPoint(x, y) || document.body;
+      target.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          clientX: x,
+          clientY: y,
+          pointerType: 'touch',
+        })
+      );
+    }, { x, y });
+
+    await page.waitForTimeout(100);
     
     // Popup should still be visible
     await expect(popup.locator('.ai-popup-result')).toBeVisible();
   });
 
   test('GIVEN result state WHEN pressing Escape THEN popup closes', async ({ page }) => {
+    if (!isDesktopChromium()) test.skip();
+
     await page.route('**/ai/ask', async (route) => {
       await route.fulfill({
         status: 200,
@@ -214,7 +285,7 @@ test.describe('AI Popup - Result State Interactions', () => {
 
 test.describe('AI Popup - Short Selection Ignored', () => {
   test.beforeEach(async () => {
-    if (test.info().project.name !== 'Desktop Chrome') test.skip();
+    if (!isDesktopChromium()) test.skip();
   });
 
   test('GIVEN post content WHEN selecting only 1 character THEN popup does NOT appear', async ({ page }) => {
@@ -237,10 +308,6 @@ test.describe('AI Popup - Short Selection Ignored', () => {
 });
 
 test.describe('AI Popup - Login Redirect', () => {
-  test.beforeEach(async () => {
-    if (test.info().project.name !== 'Desktop Chrome') test.skip();
-  });
-
   test('GIVEN not logged in WHEN clicking Login button THEN saves return URL', async ({ page }) => {
     await page.goto(TEST_POST);
     await page.evaluate(() => localStorage.removeItem('gu-log-jwt'));
@@ -253,27 +320,66 @@ test.describe('AI Popup - Login Redirect', () => {
       route.fulfill({ status: 200, body: 'Mock GitHub Auth' });
     });
 
-    const content = page.locator('.post-content p').first();
-    const box = await content.boundingBox();
-    if (!box) throw new Error('No bounding box');
-
-    await page.mouse.move(box.x + 10, box.y + box.height / 2);
-    await page.mouse.down();
-    await page.mouse.move(box.x + 200, box.y + box.height / 2);
-    await page.mouse.up();
+    await selectTextForCurrentProject(page);
 
     const popup = page.locator('#ai-popup');
     await expect(popup).toBeVisible({ timeout: 3000 });
 
-    // Check return URL was saved
-    const returnUrl = await page.evaluate(() => localStorage.getItem('gu-log-return-url'));
-    // It's saved when the login button is clicked, not when popup appears
-    // Let's click login
     await popup.locator('[data-action="login"]').click();
 
-    // Verify return URL was saved
-    await page.waitForFunction(() => !!localStorage.getItem('gu-log-return-url'));
+    await expect(page.locator('body')).toContainText('Mock GitHub Auth');
+    await page.goBack();
+    await page.waitForURL('**/posts/claude-is-a-space-to-think');
+
     const savedUrl = await page.evaluate(() => localStorage.getItem('gu-log-return-url'));
     expect(savedUrl).toContain(TEST_POST);
+  });
+});
+
+test.describe('AI Popup - Mobile Edit Flow', () => {
+  test.beforeEach(async () => {
+    if (!isMobileProject()) test.skip();
+  });
+
+  test('GIVEN mobile bottom sheet WHEN editing and confirming THEN flow stays stable and shows committed state', async ({
+    page,
+  }) => {
+    await page.route('**/ai/edit', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ diff: '- old text\n+ polished text', editId: 'mobile-edit-123' }),
+      });
+    });
+
+    await page.route('**/ai/edit/confirm', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ commitHash: 'mobile1234567' }),
+      });
+    });
+
+    await page.goto(TEST_POST);
+    await page.evaluate(() => {
+      const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+      const payload = btoa(JSON.stringify({ email: 'test@example.com', exp: 9999999999 }));
+      localStorage.setItem('gu-log-jwt', header + '.' + payload + '.fake-signature');
+    });
+    await page.reload();
+
+    await selectTextProgrammatically(page);
+
+    const popup = page.locator('#ai-popup');
+    await expect(popup).toBeVisible({ timeout: 3000 });
+    await expect(popup).toHaveClass(/ai-popup--mobile/);
+
+    await popup.locator('[data-action="edit"]').click();
+    await expect(popup.locator('.ai-popup-diff')).toBeVisible();
+    await expect(popup.locator('.ai-popup-selection')).toBeVisible();
+
+    await popup.locator('[data-action="confirm"]').click();
+    await expect(popup.locator('.ai-popup-committed')).toBeVisible();
+    await expect(popup.locator('.ai-popup-committed')).toContainText('mobile1');
   });
 });
