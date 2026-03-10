@@ -272,6 +272,18 @@ test.describe('AI Popup - Desktop', () => {
   });
 });
 
+test.describe('AI Popup - File Path Wiring', () => {
+  test('GIVEN a post page THEN AiPopup receives a real .mdx file path', async ({ page }) => {
+    await page.goto(TEST_POST);
+
+    const root = page.locator('#ai-popup-root');
+    await expect(root).toHaveAttribute(
+      'data-file-path',
+      /src\/content\/posts\/.*\.mdx$/
+    );
+  });
+});
+
 test.describe('AI Popup - Mobile (programmatic selection)', () => {
   test('GIVEN mobile viewport WHEN text selected THEN popup shows as bottom sheet', async ({
     page,
