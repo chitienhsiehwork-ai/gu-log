@@ -117,11 +117,13 @@ run_with_fallback() {
 usage() {
   cat <<'USAGE'
 Usage:
-  bash sp-pipeline.sh <tweet_url> [--dry-run] [--force]
+  bash sp-pipeline.sh <tweet_url> [--dry-run] [--force] [--fresh]
 
 Options:
   --dry-run   Run steps 0-4.5 and stop before deploy.
   --force     Skip evaluation step (Step 1.5).
+  --fresh     Clean work dir and re-run all steps from scratch.
+              Default (no flag) = resume from last completed step.
   -h, --help  Show this help message.
 USAGE
 }
@@ -187,6 +189,7 @@ extract_tweet_date() {
 TWEET_URL=""
 DRY_RUN=false
 FORCE=false
+FRESH=false
 TICKET_PREFIX="SP"
 
 while [ "$#" -gt 0 ]; do
@@ -197,6 +200,10 @@ while [ "$#" -gt 0 ]; do
       ;;
     --force)
       FORCE=true
+      shift
+      ;;
+    --fresh)
+      FRESH=true
       shift
       ;;
     --prefix)
@@ -280,12 +287,29 @@ SP_NUM=$(jq -r ".${TICKET_PREFIX}.next // empty" "$COUNTER_FILE")
 [ -n "$SP_NUM" ] || die "Could not read ${TICKET_PREFIX}.next from $COUNTER_FILE"
 
 WORK_DIR="$GU_LOG_DIR/tmp/${TICKET_PREFIX,,}-${SP_NUM}-pipeline"
+if [ "$FRESH" = true ] && [ -d "$WORK_DIR" ]; then
+  log_warn "--fresh enabled; removing existing work dir: $WORK_DIR"
+  rm -rf "$WORK_DIR"
+fi
 mkdir -p "$WORK_DIR"
 STEP0_TIME=$(step_end "Step 0")
 
 # Step 1: Fetch content
 step_start "Step 1: fetch content"
-if [[ "$TWEET_URL" == *"twitter.com"* ]] || [[ "$TWEET_URL" == *"x.com"* ]]; then
+if [ -s "$WORK_DIR/source-tweet.md" ]; then
+  log_warn "Resuming: source-tweet.md exists, skipping fetch"
+  # Still need to extract metadata from existing file
+  if [[ "$TWEET_URL" == *"twitter.com"* ]] || [[ "$TWEET_URL" == *"x.com"* ]]; then
+    AUTHOR_HANDLE=$(grep -Eo '@[A-Za-z0-9_]+' "$WORK_DIR/source-tweet.md" | head -n 1 | sed 's/^@//' || true)
+    [ -n "$AUTHOR_HANDLE" ] || die "Failed to extract author handle from cached source"
+    ORIGINAL_DATE=$(extract_tweet_date "$WORK_DIR/source-tweet.md" || true)
+    [ -n "$ORIGINAL_DATE" ] || die "Failed to extract tweet date from cached source"
+  else
+    # For non-tweet URLs, try to re-extract from cached source
+    AUTHOR_HANDLE=$(jq -r '.author // empty' "$WORK_DIR/eval-gemini.json" 2>/dev/null || echo "Unknown")
+    ORIGINAL_DATE=$(date +%F)
+  fi
+elif [[ "$TWEET_URL" == *"twitter.com"* ]] || [[ "$TWEET_URL" == *"x.com"* ]]; then
   if ! bird read "$TWEET_URL" > "$WORK_DIR/source-tweet.md"; then
     die "bird read failed for URL: $TWEET_URL"
   fi
@@ -327,6 +351,23 @@ if [ "$FORCE" = true ]; then
   log_warn "--force enabled; skipping Step 1.5 evaluation"
 else
   step_start "Step 1.5: evaluate worthiness"
+  if [ -s "$WORK_DIR/eval-gemini.json" ] && [ -s "$WORK_DIR/eval-codex.json" ]; then
+    log_warn "Resuming: eval JSONs exist, skipping evaluation"
+    GEMINI_VERDICT=$(jq -r '.verdict // empty' "$WORK_DIR/eval-gemini.json")
+    GEMINI_REASON=$(jq -r '.reason // empty' "$WORK_DIR/eval-gemini.json")
+    CODEX_VERDICT=$(jq -r '.verdict // empty' "$WORK_DIR/eval-codex.json")
+    CODEX_REASON=$(jq -r '.reason // empty' "$WORK_DIR/eval-codex.json")
+    if [ "$GEMINI_VERDICT" = "GO" ] && [ "$CODEX_VERDICT" = "GO" ]; then
+      log_info "Step 1.5 decision (cached): GO/GO"
+    elif [ "$GEMINI_VERDICT" = "SKIP" ] && [ "$CODEX_VERDICT" = "SKIP" ]; then
+      log_ok "Both evaluators said SKIP (cached); exiting without error"
+      exit 0
+    else
+      log_warn "SPLIT DECISION (cached) — Gemini: $GEMINI_VERDICT, Codex: $CODEX_VERDICT. Run with --force to override."
+      exit 2
+    fi
+    STEP15_TIME=$(step_end "Step 1.5")
+  else
   cat > "$WORK_DIR/eval-gemini-prompt.txt" <<EOF_EVAL_GEMINI
 Evaluate whether this tweet is worth translating into a gu-log article.
 
@@ -409,10 +450,17 @@ EOF_EVAL_CODEX
   fi
 
   STEP15_TIME=$(step_end "Step 1.5")
+  fi # end resume else block
 fi
 
 # Step 2: Gemini Write
 step_start "Step 2: gemini write draft"
+if [ -s "$WORK_DIR/draft-v1.mdx" ]; then
+  log_warn "Resuming: draft-v1.mdx exists, skipping write"
+  WRITE_MODEL=$(model_display_name "gemini-3.1-pro-preview")
+  WRITE_HARNESS=$(model_harness_name "gemini-3.1-pro-preview")
+  STEP2_TIME=$(step_end "Step 2")
+else
 cat > "$WORK_DIR/gemini-write-prompt.txt" <<EOF_WRITE
 You are writing a gu-log SP article draft in Traditional Chinese.
 
@@ -450,9 +498,16 @@ WRITE_HARNESS="$LAST_HARNESS_USED"
 
 [ -s "$WORK_DIR/draft-v1.mdx" ] || die "draft-v1.mdx missing or empty"
 STEP2_TIME=$(step_end "Step 2")
+fi # end Step 2 resume
 
 # Step 3: Codex Review
 step_start "Step 3: codex review"
+if [ -s "$WORK_DIR/review.md" ] && [ -s "$WORK_DIR/review-codex-notes.json" ]; then
+  log_warn "Resuming: review.md exists, skipping review"
+  REVIEW_MODEL=$(model_display_name "gpt-5.4")
+  REVIEW_HARNESS=$(model_harness_name "gpt-5.4")
+  STEP3_TIME=$(step_end "Step 3")
+else
 cat > "$WORK_DIR/review-prompt.txt" <<EOF_REVIEW
 Review draft-v1.mdx for ${TICKET_PREFIX}-${SP_NUM}.
 
@@ -499,9 +554,16 @@ EOF_REVIEW
 REVIEW_MODEL=$(model_display_name "gpt-5.4")
 REVIEW_HARNESS=$(model_harness_name "gpt-5.4")
 STEP3_TIME=$(step_end "Step 3")
+fi # end Step 3 resume
 
 # Step 4: Gemini Refine
 step_start "Step 4: gemini refine"
+if [ -s "$WORK_DIR/final.mdx" ] && [ -s "$WORK_DIR/refine-gemini-notes.json" ]; then
+  log_warn "Resuming: final.mdx exists, skipping refine"
+  REFINE_MODEL=$(model_display_name "gemini-3.1-pro-preview")
+  REFINE_HARNESS=$(model_harness_name "gemini-3.1-pro-preview")
+  STEP4_TIME=$(step_end "Step 4")
+else
 cat > "$WORK_DIR/refine-prompt.txt" <<EOF_REFINE
 Refine the ${TICKET_PREFIX}-${SP_NUM} draft using review feedback.
 
@@ -540,6 +602,7 @@ REFINE_HARNESS="$LAST_HARNESS_USED"
 [ -s "$WORK_DIR/final.mdx" ] || die "final.mdx missing or empty"
 [ -s "$WORK_DIR/refine-gemini-notes.json" ] || die "refine-gemini-notes.json missing or empty"
 STEP4_TIME=$(step_end "Step 4")
+fi # end Step 4 resume
 
 # Step 4.5: Insert agent notes into final article
 step_start "Step 4.5: insert agent notes"
