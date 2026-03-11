@@ -1,0 +1,82 @@
+---
+ticketId: "CP-153"
+title: "NVIDIA Nemotron 3 Super：120B 開源模型，結合 Mamba 與 MoE 架構的推理新星"
+originalDate: "2026-03-11"
+translatedDate: "2026-03-12"
+translatedBy:
+  model: "GPT-5.4"
+  harness: "Codex CLI"
+source: "@ArtificialAnlys on X"
+sourceUrl: "https://x.com/ArtificialAnlys/status/2031765321233908121"
+lang: "zh-tw"
+summary: "NVIDIA 推出 120B 參數量（僅 12B 活躍）的 Nemotron 3 Super 開源推理模型。採用 Mamba 與 Transformer 混合的 MoE 架構，在 Intelligence Index 拿下 36 分，兼具高智商與高達 484 tok/s 的驚人推理速度。"
+tags: ["clawd-picks", "nvidia", "nemotron", "open-weights", "mamba", "moe", "inference"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import CodexNote from '../../components/CodexNote.astro';
+import GeminiNote from '../../components/GeminiNote.astro';
+import ClaudeCodeNote from '../../components/ClaudeCodeNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
+
+NVIDIA 最近又在開源模型圈丟下了一顆震撼彈，釋出了 Nemotron 3 Super。這是一個 120B 參數量的開源推理模型，但有趣的是，它的「活躍參數（active parameters）」只有 12.7B。而且它不僅在 Artificial Analysis Intelligence Index 拿下了 36 分，架構上還揉合了 Mamba、Transformer 跟 MoE 這些當紅技術。
+
+如果這堆名詞讓你覺得有點頭暈，別擔心，我們慢慢來拆解這台 NVIDIA 新端出來的效能猛獸。
+
+---
+
+## 120B 總參，卻只有 12B 活躍？MoE 的魔法
+
+看到 120B 這個數字，你可能會先倒抽一口氣，想說這要多少張顯卡才跑得動？但推文特別標註了「12.7B active parameters」。這就是 MoE（Mixture of Experts，混合專家）架構的魅力。
+
+你可以把這個模型想像成一間有 120 個不同領域專家的大型顧問公司（總參數）。當你問它一個問題時，它不會把所有專家都叫來開會，而是只挑選最懂這個問題的十幾個專家（活躍參數）來回答。這樣做的好處是，模型具備了極大的知識容量（120B），但每次推論時消耗的運算資源，卻只相當於一個 12B 的中小型模型。
+
+<ClawdNote>
+這就是為什麼 Nemotron 3 Super 可以在保持高智商的同時，又能把推理速度推得那麼快。你享有 120B 等級的 parameter space 帶來的知識廣度，卻只需要支付 12B 級別的 compute cost，這在部署成本上是非常巨大的優勢。
+</ClawdNote>
+
+---
+
+## 為什麼要 Mamba 混搭 Transformer？
+
+Nemotron 3 Super 的另一個亮點，是它採用了「Hybrid Mamba-Transformer」與 LatentMoE 架構。
+
+大家都知道 Transformer 是現在大語言模型的主流，但它有一個致命傷：當上下文（context）變長的時候，運算量會暴增。而 Mamba 是一種較新的架構，處理長文本非常快且運算成本低，但可能在某些需要密集注意力機制的精細推理上，不如 Transformer 犀利。
+
+把這兩者混搭在一起，就像是給一台跑車同時裝上了省油的高速巡航引擎（Mamba）和爆發力極強的渦輪增壓（Transformer）。這讓它能輕鬆支撐高達 100 萬 token 的超長上下文視窗（context window），同時又支援多 token 預測（Multi-token prediction）與混合推理能力。
+
+---
+
+## 效能與定位：夾在兩大強者之間
+
+在 Artificial Analysis Intelligence Index 的評分上，Nemotron 3 Super 拿到了 36 分。這個數字單看可能沒感覺，我們來對比一下：
+- 比它前一代的 Super 版本大幅進步了 17 分。
+- 比同系列的 Nemotron 3 Nano 高出 12 分。
+- 在同量級對手中，它贏過了 gpt-oss-120b（33 分）。
+- 但還是排在表現極好的 Qwen3.5 122B A10B（42 分）之後。
+
+不過，Nemotron 3 Super 的殺手鐧不只是聰明，而是「效率」。原作者提到，它比 gpt-oss-120b 聰明，同時還能做到每張 GPU 大約提升 10% 的吞吐量（throughput）。
+
+<ClawdNote>
+雖然它沒能直接幹掉 Qwen3.5，但別忘了 Qwen3.5 122B A10B 是目前這量級的天花板之一。Nemotron 3 Super 透過混合架構的創新，硬生生在「智力」與「推理成本」之間切出了一個極具競爭力的甜蜜點。
+</ClawdNote>
+
+---
+
+## 速度與開源的誠意
+
+推文提到，這模型一發布，DeepInfra 和 LightningAI 等 serverless 推理服務供應商就立刻上線支援了。重點是那個速度：高達每秒 484 tokens。這速度幾乎是肉眼看不過來的噴發狀態。搭配上 NVIDIA 自己的 NVFP4 量化權重，這完全是為了大規模、低延遲部署而生的設計。
+
+更佛心的是它的開源態度。它不僅開源了模型權重，還給了極度寬鬆的授權（permissive license），甚至連訓練資料和方法學都一併公開。
+
+<CodexNote>
+在現在這個各家大廠紛紛把訓練資料跟細節藏得死死的時代，NVIDIA 願意把 open training data/methodology 丟出來，對開源社群和學術界來說，價值甚至大於模型本身。這代表研究者可以真正去分析它是怎麼練出來的，而不是只能拿著黑盒子當 API 用。
+</CodexNote>
+
+---
+
+## 結語
+
+總結來說，NVIDIA 這次釋出的 Nemotron 3 Super，與其說是在打榜刷分數，不如說是在示範下一代高效能模型該怎麼設計。透過 MoE 解決規模與運算成本的矛盾，再用 Mamba-Transformer 混合架構打破長文本處理的瓶頸。
+
+加上極為友善的開源授權與每秒 484 token 的飆速，它絕對會成為近期許多開發者在選擇本地部署或低成本推理 API 時，最亮眼的新玩具 (๑˃ᴗ˂)ﻭ
