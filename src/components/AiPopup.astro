@@ -71,6 +71,8 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
             submitEdit: 'Generate edit',
             cancelEdit: 'Cancel',
             retry: 'Retry',
+            relogin: 'Re-login',
+            sessionExpired: 'Session expired',
             questionPlaceholder: "What's your question?",
             editPlaceholder: 'How should this be changed? e.g. fix typo, make it clearer',
             networkError: 'Cannot connect to API server. Please check your network.',
@@ -101,6 +103,8 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
             submitEdit: '產生修改',
             cancelEdit: '取消',
             retry: '重試',
+            relogin: '重新登入',
+            sessionExpired: '登入已過期',
             questionPlaceholder: '想問什麼？例如：source code 是怎麼處理的？',
             editPlaceholder: '想怎麼改？例如：修 typo、改順一點、語氣輕鬆一點',
             networkError: '無法連線到 API 伺服器，請確認網路連線',
@@ -112,6 +116,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
     let currentState = 'idle'; // idle, buttons, ask-input, loading, ask-result, edit-input, edit-result, confirm-loading, committed, error
     let pendingEditId = null;
     let lastEditInstruction = '';
+    let errorDismissTimer = null;
 
     function clampText(text, maxLength) {
       if (!text || text.length <= maxLength) return text;
@@ -126,8 +131,44 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
       }
     }
 
+    function decodeJwtPayload(token) {
+      if (!token) return null;
+
+      try {
+        const parts = token.split('.');
+        if (parts.length < 2 || !parts[1]) return null;
+        const normalized = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+        const padded = normalized + '==='.slice((normalized.length + 3) % 4);
+        return JSON.parse(atob(padded));
+      } catch (_error) {
+        return null;
+      }
+    }
+
+    function isTokenExpired() {
+      const payload = decodeJwtPayload(getJwt());
+      if (!payload || typeof payload.exp !== 'number') return false;
+      return payload.exp <= Date.now() / 1000;
+    }
+
     function isLoggedIn() {
       return !!getJwt();
+    }
+
+    function clearErrorDismissTimer() {
+      if (errorDismissTimer) {
+        clearTimeout(errorDismissTimer);
+        errorDismissTimer = null;
+      }
+    }
+
+    function scheduleErrorDismiss() {
+      clearErrorDismissTimer();
+      errorDismissTimer = setTimeout(function () {
+        if (currentState === 'error') {
+          removePopup();
+        }
+      }, 10000);
     }
 
     function escapeHtml(str) {
@@ -190,6 +231,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
     }
 
     function removePopup() {
+      clearErrorDismissTimer();
       if (popup) {
         popup.remove();
         popup = null;
@@ -230,9 +272,10 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
 
     function renderButtons() {
       if (!popup) return;
+      clearErrorDismissTimer();
       currentState = 'buttons';
 
-      if (!isLoggedIn()) {
+      if (!isLoggedIn() || isTokenExpired()) {
         popup.innerHTML =
           '<button class="ai-popup-btn ai-popup-btn--login" data-action="login">' +
           escapeHtml(t.login) +
@@ -250,6 +293,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
 
     function renderLoading(message) {
       if (!popup) return;
+      clearErrorDismissTimer();
       currentState = 'loading';
 
       popup.innerHTML =
@@ -263,6 +307,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
 
     function renderAskInput() {
       if (!popup) return;
+      clearErrorDismissTimer();
       currentState = 'ask-input';
 
       const content = createPanel(t.askTitle, t.askHint, 'ai-popup-ask-input-container');
@@ -306,6 +351,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
 
     function renderAskResult(response) {
       if (!popup) return;
+      clearErrorDismissTimer();
       currentState = 'ask-result';
 
       const content = createPanel(t.askTitle, '', 'ai-popup-result');
@@ -333,6 +379,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
 
     function renderEditInput(prefill) {
       if (!popup) return;
+      clearErrorDismissTimer();
       currentState = 'edit-input';
 
       const content = createPanel(t.editTitle, t.editInputHint, 'ai-popup-ask-input-container');
@@ -375,6 +422,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
 
     function renderEditResult(diff, editId) {
       if (!popup) return;
+      clearErrorDismissTimer();
       currentState = 'edit-result';
       pendingEditId = editId;
 
@@ -433,6 +481,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
 
     function renderCommitted(commitHash) {
       if (!popup) return;
+      clearErrorDismissTimer();
       currentState = 'committed';
 
       popup.innerHTML =
@@ -453,24 +502,56 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
         '</div>';
     }
 
+    function isTokenErrorMessage(msg) {
+      const text = String(msg || '');
+      return /token/i.test(text) && /(expired|invalid)/i.test(text);
+    }
+
     function renderError(msg) {
       if (!popup) return;
+      clearErrorDismissTimer();
       currentState = 'error';
 
+      const isAuthError = isTokenErrorMessage(msg);
+      const title = isAuthError ? t.sessionExpired : t.error;
+      let actionsHtml =
+        '<button class="ai-popup-btn ai-popup-btn--ask" data-action="retry">' +
+        escapeHtml(t.retry) +
+        '</button>';
+
+      if (isAuthError) {
+        actionsHtml =
+          '<button class="ai-popup-btn ai-popup-btn--login" data-action="relogin">' +
+          escapeHtml(t.relogin) +
+          '</button>' +
+          actionsHtml;
+      }
+
       popup.innerHTML =
-        '<div class="ai-popup-result ai-popup-result--error">' +
+        '<div class="ai-popup-result ai-popup-result--error' +
+        (isAuthError ? ' ai-popup-result--auth-error' : '') +
+        '">' +
         '<button class="ai-popup-close" data-action="close">' +
         escapeHtml(t.close) +
         '</button>' +
         '<div class="ai-popup-panel-header">' +
         '<div class="ai-popup-title">' +
-        escapeHtml(t.error) +
+        escapeHtml(title) +
         '</div>' +
         '</div>' +
         '<div class="ai-popup-error-text">' +
         escapeHtml(msg || t.error) +
         '</div>' +
+        '<div class="ai-popup-actions">' +
+        actionsHtml +
+        '<button class="ai-popup-btn ai-popup-btn--cancel" data-action="close">' +
+        escapeHtml(t.cancel) +
+        '</button>' +
+        '</div>' +
         '</div>';
+
+      scheduleErrorDismiss();
+      positionPopup(getSelectionRect() || { top: 0, left: 0, bottom: 0, width: 0 });
     }
 
     function getSelectionRect() {
@@ -553,6 +634,11 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
     }
 
     async function handleSubmitAsk() {
+      if (isTokenExpired()) {
+        handleLogin();
+        return;
+      }
+
       const input = popup ? popup.querySelector('.ai-popup-question-input') : null;
       const question = input ? input.value.trim() : '';
 
@@ -577,6 +663,11 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
     }
 
     async function handleSubmitEdit() {
+      if (isTokenExpired()) {
+        handleLogin();
+        return;
+      }
+
       const input = popup ? popup.querySelector('.ai-popup-edit-input') : null;
       const instruction = input ? input.value.trim() : '';
 
@@ -633,6 +724,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
 
       const action = btn.getAttribute('data-action');
       e.stopPropagation();
+      clearErrorDismissTimer();
 
       switch (action) {
         case 'ask':
@@ -657,9 +749,14 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
           handleConfirm();
           break;
         case 'retry':
-          renderEditInput(lastEditInstruction);
+          if (lastEditInstruction) {
+            renderEditInput(lastEditInstruction);
+          } else {
+            renderButtons();
+          }
           break;
         case 'login':
+        case 'relogin':
           handleLogin();
           break;
         case 'close':
@@ -1060,6 +1157,19 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
     font-size: 0.85rem;
   }
 
+  .ai-popup-result--auth-error .ai-popup-error-text {
+    color: #e0af68;
+  }
+
+  .ai-popup-result--auth-error .ai-popup-title {
+    color: #e0af68;
+  }
+
+  .ai-popup-result--auth-error {
+    border-radius: 8px;
+    background: rgba(224, 175, 104, 0.08);
+  }
+
   /* ─── Diff Display ─── */
   .ai-popup-diff {
     margin-top: 0.75rem;
@@ -1151,6 +1261,15 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
 
   [data-theme='light'] .ai-popup-result--error .ai-popup-error-text {
     color: #dc322f;
+  }
+
+  [data-theme='light'] .ai-popup-result--auth-error .ai-popup-error-text,
+  [data-theme='light'] .ai-popup-result--auth-error .ai-popup-title {
+    color: #b58900;
+  }
+
+  [data-theme='light'] .ai-popup-result--auth-error {
+    background: rgba(181, 137, 0, 0.08);
   }
 
   /* ─── Mobile adjustments ─── */
