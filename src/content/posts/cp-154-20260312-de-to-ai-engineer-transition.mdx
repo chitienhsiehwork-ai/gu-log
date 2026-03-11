@@ -1,0 +1,76 @@
+---
+ticketId: "CP-154"
+title: "Data Engineer 轉職 AI Engineer？其實你已經會 80% 了"
+originalDate: "2026-03-11"
+translatedDate: "2026-03-12"
+translatedBy:
+  model: "GPT-5.4"
+  harness: "Codex CLI"
+source: "@Al_Grigor on X"
+sourceUrl: "https://x.com/Al_Grigor/status/2031747147876716601"
+lang: "zh-tw"
+summary: "Data Engineer 想轉職 AI Engineer 到底難不難？Alexey Grigorev 認為，其實比想像中快很多。因為 AI engineering 本質上還是工程角色，而真正的難點在於周邊系統，這正是 DE 的主場。"
+tags: ["clawd-picks", "career", "data-engineering", "ai-engineering", "transition"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import CodexNote from '../../components/CodexNote.astro';
+import GeminiNote from '../../components/GeminiNote.astro';
+import ClaudeCodeNote from '../../components/ClaudeCodeNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
+
+最近很多人在問，做 Data Engineer (DE) 的人，如果想轉職成 AI Engineer 到底行不行？Alexey Grigorev 給了一個很直白的短答案：絕對可以，而且在很多情況下，轉職的速度會比大家想像中還要快 (◍•ᴗ•◍)
+
+## AI engineering 本質上還是工程
+
+很多人對 AI 領域有一種誤解，以為進去就是要整天推導數學、做 research、或是從頭訓練 foundation model。但 Alexey 點出了一個現代 AI 系統的現實：在絕大多數的應用場景裡，那個最核心的 foundation model，其實就只是一個 API call 而已。
+
+真正的難點在哪裡？難在 model「周邊」的那些東西。要把一個會吐字的 API 變成穩定可靠的產品，需要大量的工程基礎建設。而這，剛好就是 Data Engineer 最擅長的事。
+
+<ClawdNote>
+這點真的很真實。現在很多自稱 AI 應用的產品，說穿了就是「套殼 API + 複雜的資料處理管線」。如果你不會寫 prompt，可以學；但如果你不會接 API、不會處理 retry、不會做 rate limiting、不會把使用者的 data 乾淨地餵給 model，那才是真的寫不出能上線的產品。
+</ClawdNote>
+
+---
+
+## 為什麼說你已經具備核心能力了？
+
+如果你已經是一個 Data Engineer，那你手上其實早就握有 AI engineering 的核心技能包了。
+
+Alexey 列舉了幾個大家每天都在做的事：
+- 寫 tests
+- 設定 CI/CD
+- 監控 pipelines (Monitor pipelines)
+- 收集 logs (Collect logs)
+- 遵循扎實的工程實踐 (solid engineering practices)
+
+這些基本功，不管是在傳統的 data stack 還是現代的 AI stack，含金量都是一樣高的。
+
+<ClawdNote>
+這也是為什麼很多純做 data science 出身的人，轉去開發 AI 產品反而會卡牆。因為他們可能很會調 prompt 或評估模型，但不懂得怎麼寫出好維護的 code，也不知道怎麼架設監控系統。DE 帶槍投靠的優勢，就在於「把東西穩定跑起來」這件事，對你們來說已經是肌肉記憶了。
+</ClawdNote>
+
+---
+
+## 只是「口味」變了，基本功沒變
+
+當然，轉職不可能什麼都不用學。Alexey 巧妙地形容，這就像是換了一種「口味」(flavor)，但底層的邏輯和基本功其實是維持不變的。
+
+具體來說，你的工作日常會發生這些轉換：
+- 以前你做的是 **data quality monitoring**（資料品質監控），現在你改成監控 **AI behavior**（AI 行為表現）。
+- 以前你管的是定時跑的 **batch pipelines**（批次管線），現在你可能要維護即時的 **RAG pipelines**。
+- 以前你是在驗證 **transformations**（資料轉換邏輯）有沒有寫錯，現在你則是要去評估 **model outputs**（模型輸出結果）是否符合預期。
+
+你看，動詞其實都一樣（監控、管線管理、驗證評估），只是受詞換成了跟 AI 相關的東西而已。這些都不過是你原本已經在做的事情的延伸罷了。
+
+---
+
+## 結語
+
+Alexey 這篇推文，與其說是在推廣 AI engineering，不如說是給所有正在做 Data Engineering 的人打了一劑強心針。
+
+面對一波波的 AI 浪潮，與其焦慮自己不會從頭 train 模型，不如轉個念頭想：當所有人都學會怎麼 call AI 的 API 時，最終拼的還是誰能把這些 API 穩穩地兜成一個可靠的系統。而這，不就是各位 Data Engineer 每天的日常嗎 ヽ(•‿•)ノ
+
+<ClawdNote>
+最後補充一下，這不代表你不需要去了解 model 的特性或是 prompt engineering 的眉角。但比起那些缺乏工程經驗的新手，你已經站在離終點非常近的起跑線上了。帶著你的系統觀點去學 AI，這就是你最強的護城河。
+</ClawdNote>
