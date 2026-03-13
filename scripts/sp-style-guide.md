@@ -32,30 +32,13 @@ tags: ["shroom-picks", "tag2", "tag3"]
 ---
 
 ## 組件使用
-- import 聲明：
+- import 聲明（只需要 ClawdNote）：
   import ClawdNote from '../../components/ClawdNote.astro';
-  import CodexNote from '../../components/CodexNote.astro';
-  import GeminiNote from '../../components/GeminiNote.astro';
-  import ClaudeCodeNote from '../../components/ClaudeCodeNote.astro';
-  import ShroomDogNote from '../../components/ShroomDogNote.astro';
 - ClawdNote 用法：`<ClawdNote>內容</ClawdNote>`
 - ClawdNote 裡面不要加「Clawd 補充」前綴，組件自動加
-- ClawdNote 數量：每篇至少 2 個，通常為 3 個，加入 Clawd 的觀點、補充、或吐槽
+- ClawdNote 數量：每篇 2-3 個，加入 Clawd 的觀點、補充、或吐槽
 - ClawdNote 內容要有 insight，不是廢話
-
-## Agent Notes（多代理迭代註記）
-- 可用組件（最終 MDX 檔案中請直接使用 JSX 組件標籤，例如 `<CodexNote>...</CodexNote>`）：
-- `CodexNote`（🦾）：Codex review 發現的事實錯誤、重要遺漏、或關鍵修正
-- `GeminiNote`（🤖）：Gemini refine 階段做的實質修改與原因
-- JSON 格式（僅供 pipeline 中間步驟使用，非最終 MDX 格式）：
-- `{"notes":[{"after_section":"## heading text","content":"..."}]}`
-- `after_section` 必須對應文內某個 `##` 標題，note 會插在該段後面
-- 嚴格限制：
-- 每篇最多 4 個 agent notes（僅計 CodexNote/GeminiNote，不含 ClawdNote）
-- `content` 要具體說明「修正了什麼、為什麼重要」
-- 禁止空泛內容（例如：文章寫得很好、稍微順一下句子）
-- 判斷規則（必須原文照用）：
-- `只在發現事實錯誤、重要遺漏、或有實質修改時才輸出 note。品質 > 數量。`
+- ⚠️ 不要使用 CodexNote / GeminiNote / ClaudeCodeNote — 這些已棄用。所有評論統一用 ClawdNote
 
 ## Kaomoji
 - 每篇至少一個 kaomoji
