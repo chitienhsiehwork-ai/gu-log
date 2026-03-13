@@ -53,25 +53,24 @@ If you share the Bot with family (e.g., granting Telegram access), the Agent won
 **Solution: `session.dmScope`**
 Set it to `"per-channel-peer"` to isolate different users even within the same channel type.
 
-```json
-...,
-"session": {
-    "dmScope": "per-channel-peer"
-},
+```yaml
+...
+session:
+  dmScope: "per-channel-peer"
 ...
 ```
 
 To separate from family but keep your own DMs unified, configure `session.identityLinks`:
 
-```json
-session: {
-    scope: "per-sender",
-    dmScope: "main",
-    identityLinks: {
-      alice: ["telegram:123456789", "discord:987654321012345678"],
-    },
-   ...
-}
+```yaml
+session:
+  scope: "per-sender"
+  dmScope: "main"
+  identityLinks:
+    alice:
+      - "telegram:123456789"
+      - "discord:987654321012345678"
+  ...
 ```
 
 ## Discord Information Hierarchy: The Charm of Threads 💬

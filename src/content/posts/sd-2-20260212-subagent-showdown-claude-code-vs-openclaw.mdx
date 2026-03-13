@@ -132,23 +132,20 @@ memory: user
 
 ### OpenClaw：Tool 參數 + Agent Config
 
-```json
-sessions_spawn({
-  task: "翻譯這篇文章到繁體中文，PTT 風格",
-  label: "translator-sp-42",
-  model: "sonnet",
-  runTimeoutSeconds: 300,
-  cleanup: "keep"
-})
+```yaml
+# sessions_spawn(...)
+task: "翻譯這篇文章到繁體中文，PTT 風格"
+label: "translator-sp-42"
+model: "sonnet"
+runTimeoutSeconds: 300
+cleanup: "keep"
 ```
 
 回傳：
-```json
-{
-  "status": "accepted",
-  "runId": "abc123",
-  "childSessionKey": "agent:main:subagent:abc123"
-}
+```yaml
+status: "accepted"
+runId: "abc123"
+childSessionKey: "agent:main:subagent:abc123"
 ```
 
 **完全 non-blocking** — 呼叫完馬上回來，不用等。

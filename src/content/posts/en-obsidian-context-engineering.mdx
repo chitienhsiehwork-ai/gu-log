@@ -31,15 +31,12 @@ Progressive Disclosure is an old concept from UI design, now applied to AI conte
 
 At session start, automatically inject the complete file tree through a hook, before Claude touches anything.
 
-```json
-"hooks": {
-    "SessionStart": [{
-        "hooks": [{
-            "type": "command",
-            "command": "tree -L 3 -a -I '.git|.obsidian' --noreport"
-        }]
-    }]
-}
+```yaml
+hooks:
+  SessionStart:
+    - hooks:
+        - type: "command"
+          command: "tree -L 3 -a -I '.git|.obsidian' --noreport"
 ```
 
 This gives Claude a map.

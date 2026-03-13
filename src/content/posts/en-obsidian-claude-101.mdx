@@ -169,17 +169,12 @@ So my system has multiple layers, letting the agent quickly locate:
 
 A hook automatically shows which folders and files exist at session start:
 
-```json
-{
-  "hooks": {
-    "SessionStart": [{
-      "hooks": [{
-        "type": "command",
-        "command": "tree -L 3 -a -I '.git|.obsidian' --noreport"
-      }]
-    }]
-  }
-}
+```yaml
+hooks:
+  SessionStart:
+    - hooks:
+        - type: "command"
+          command: "tree -L 3 -a -I '.git|.obsidian' --noreport"
 ```
 
 **2. Index Files**

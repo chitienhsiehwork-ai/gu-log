@@ -264,12 +264,10 @@ GitHub 收到之後會驗證：
 
 全部驗證通過，GitHub 回傳一個 **access_token**：
 
-```json
-{
-  "access_token": "gho_16C7e42F292c6912E7710c838347Ae178B4a",
-  "token_type": "bearer",
-  "scope": "user:email"
-}
+```yaml
+access_token: "gho_16C7e42F292c6912E7710c838347Ae178B4a"
+token_type: "bearer"
+scope: "user:email"
 ```
 
 這個 access_token 就是你的**正式訪客證**。
@@ -289,14 +287,10 @@ Authorization: Bearer gho_16C7e42F292c6912E7710c838347Ae178B4a
 
 GitHub 看了一下訪客證：「嗯，這張是有效的，而且權限是 `user:email`，OK，email 給你。」
 
-```json
-[
-  {
-    "email": "user@example.com",
-    "primary": true,
-    "verified": true
-  }
-]
+```yaml
+- email: "user@example.com"
+  primary: true
+  verified: true
 ```
 
 拿到了！午餐到手 🎉

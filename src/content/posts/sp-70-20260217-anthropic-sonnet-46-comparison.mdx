@@ -94,11 +94,10 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 Adaptive Thinking 的做法：你設定一個 `effort` 等級（low / medium / high / max），Claude 自己判斷需不需要深度思考。簡單問題直接秒答，複雜問題自動開啟 extended thinking。
 
-```json
-{
-  "thinking": { "type": "adaptive" },
-  "effort": "high"
-}
+```yaml
+thinking:
+  type: "adaptive"
+effort: "high"
 ```
 
 就這樣。不用再手動調 budget。

@@ -181,15 +181,11 @@ openclaw-healthcheck.sh post-update
 
 **安全設計：manifest 只存 fingerprint，不存 raw secret。**
 
-```json
-{
-  "auth_profiles": {
-    "anthropic:cth.work": {
-      "fingerprint": "sk-a...oat1",
-      "present": true
-    }
-  }
-}
+```yaml
+auth_profiles:
+  "anthropic:cth.work":
+    fingerprint: "sk-a...oat1"
+    present: true
 ```
 
 可追蹤變更，不洩漏密鑰。
