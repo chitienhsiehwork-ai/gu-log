@@ -19,7 +19,7 @@ model_display_name() {
     gemini-3-flash) printf '%s' "Gemini 3 Flash" ;;
     gpt-5.4) printf '%s' "GPT-5.4" ;;
     gpt-5.3-codex) printf '%s' "GPT-5.3-Codex" ;;
-    claude-opus) printf '%s' "Claude Opus" ;;
+    claude-opus) printf '%s' "Opus 4.6" ;;
     *) printf '%s' "$model_id" ;;
   esac
 }
@@ -56,6 +56,24 @@ run_with_fallback() {
   out_tmp=$(mktemp)
   err_tmp=$(mktemp)
   
+  # --opus mode: skip Gemini/Codex, go straight to Claude Code
+  if [ "$OPUS_MODE" = true ]; then
+    local prompt_text_opus
+    prompt_text_opus=$(cat "$prompt_file")
+    if claude -p --model opus --permission-mode bypassPermissions "$prompt_text_opus" > "$out_tmp" 2> "$err_tmp"; then
+      LAST_MODEL_USED=$(model_display_name "claude-opus")
+      LAST_HARNESS_USED=$(model_harness_name "claude-opus")
+      cat "$out_tmp"
+      cat "$err_tmp" >&2
+      rm -f "$out_tmp" "$err_tmp" "$prompt_file"
+      return 0
+    fi
+    log_error "Claude Code (Opus) failed in --opus mode" >&2
+    cat "$err_tmp" >&2
+    rm -f "$out_tmp" "$err_tmp" "$prompt_file"
+    return 1
+  fi
+
   # Pipe prompt via stdin to avoid ARG_MAX limit on large prompts
   if GOOGLE_GENAI_USE_GCA=true TERM=dumb NO_COLOR=1 gemini -m gemini-3.1-pro-preview --sandbox false -y < "$prompt_file" > "$out_tmp" 2> "$err_tmp"; then
     LAST_MODEL_USED=$(model_display_name "gemini-3.1-pro-preview")
@@ -122,6 +140,7 @@ Usage:
 Options:
   --dry-run   Run steps 0-4.5 and stop before deploy.
   --force     Skip evaluation step (Step 1.5).
+  --opus      Use Claude Opus for ALL pipeline stages (write/review/refine).
   -h, --help  Show this help message.
 USAGE
 }
@@ -188,6 +207,7 @@ TWEET_URL=""
 DRY_RUN=false
 FORCE=false
 TICKET_PREFIX="SP"
+OPUS_MODE=false
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -202,6 +222,10 @@ while [ "$#" -gt 0 ]; do
     --prefix)
       shift
       TICKET_PREFIX="${1:-SP}"
+      shift
+      ;;
+    --opus)
+      OPUS_MODE=true
       shift
       ;;
     -h|--help)
@@ -489,15 +513,24 @@ Output requirements:
   ✅ 正確：「等一下。前面說這個架構多神，但文件明明寫了：XYZ 會失敗。這不是全能，這是半殘。」
 EOF_REVIEW
 
-(
-  cd "$WORK_DIR"
-  codex exec -C . --model gpt-5.4 --full-auto "$(cat review-prompt.txt)"
-)
+if [ "$OPUS_MODE" = true ]; then
+  (
+    cd "$WORK_DIR"
+    claude -p --model opus --permission-mode bypassPermissions "$(cat review-prompt.txt)"
+  )
+  REVIEW_MODEL=$(model_display_name "claude-opus")
+  REVIEW_HARNESS=$(model_harness_name "claude-opus")
+else
+  (
+    cd "$WORK_DIR"
+    codex exec -C . --model gpt-5.4 --full-auto "$(cat review-prompt.txt)"
+  )
+  REVIEW_MODEL=$(model_display_name "gpt-5.4")
+  REVIEW_HARNESS=$(model_harness_name "gpt-5.4")
+fi
 
 [ -s "$WORK_DIR/review.md" ] || die "review.md missing or empty"
 [ -s "$WORK_DIR/review-codex-notes.json" ] || die "review-codex-notes.json missing or empty"
-REVIEW_MODEL=$(model_display_name "gpt-5.4")
-REVIEW_HARNESS=$(model_harness_name "gpt-5.4")
 STEP3_TIME=$(step_end "Step 3")
 
 # Step 4: Gemini Refine
