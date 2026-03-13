@@ -94,11 +94,10 @@ Previously, you had to manually set `budget_tokens` to tell Claude "you can thin
 
 Adaptive Thinking's approach: you set an `effort` level (low / medium / high / max), and Claude judges whether deep thinking is needed. Simple questions get instant answers; complex ones automatically trigger extended thinking.
 
-```json
-{
-  "thinking": { "type": "adaptive" },
-  "effort": "high"
-}
+```yaml
+thinking:
+  type: "adaptive"
+effort: "high"
 ```
 
 That's it. No more manual budget tuning.

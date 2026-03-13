@@ -98,14 +98,12 @@ Boris 的工作流程：
 
 Boris 設定了一個 hook，讓 Claude 每次寫完 code 後自動跑 formatter：
 
-```json
-"PostToolUse": [
-  "matcher": "Write|Edit",
-  "hooks": [{
-    "type": "command",
-    "command": "bun run format || true"
-  }]
-]
+```yaml
+PostToolUse:
+  matcher: "Write|Edit"
+  hooks:
+    - type: "command"
+      command: "bun run format || true"
 ```
 
 這樣 Claude 吐出來的 code 永遠都是格式化好的，不用人工整理。

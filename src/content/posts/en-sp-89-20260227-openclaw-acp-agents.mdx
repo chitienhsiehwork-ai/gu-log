@@ -149,69 +149,57 @@ openclaw config set plugins.entries.acpx.enabled true
 
 Enable ACP in config:
 
-```json5
-{
-  acp: {
-    enabled: true,
-    dispatch: { enabled: true },
-    backend: "acpx",
-    defaultAgent: "codex",
-    allowedAgents: ["pi", "claude", "codex", "opencode", "gemini"],
-    maxConcurrentSessions: 8
-  }
-}
+```yaml
+acp:
+  enabled: true
+  dispatch:
+    enabled: true
+  backend: "acpx"
+  defaultAgent: "codex"
+  allowedAgents:
+    - "pi"
+    - "claude"
+    - "codex"
+    - "opencode"
+    - "gemini"
+  maxConcurrentSessions: 8
 ```
 
 For thread / topic binding (Discord or Telegram):
 
-```json5
-{
-  channels: {
-    discord: {
-      threadBindings: {
-        enabled: true,
-        spawnAcpSessions: true
-      }
-    },
-    telegram: {
-      threadBindings: {
-        spawnAcpSessions: true
-      }
-    }
-  }
-}
+```yaml
+channels:
+  discord:
+    threadBindings:
+      enabled: true
+      spawnAcpSessions: true
+  telegram:
+    threadBindings:
+      spawnAcpSessions: true
 ```
 
 ### Per-Agent Runtime Defaults: Set Once, Use Everywhere
 
 If you always spawn the same agent with the same mode and working directory, set defaults in config:
 
-```json5
-{
-  agents: {
-    list: [
-      {
-        id: "codex",
-        runtime: {
-          type: "acp",
-          acp: {
-            agent: "codex",
-            backend: "acpx",
-            mode: "persistent",
-            cwd: "/workspace/my-repo"
-          }
-        }
-      },
-      {
-        id: "claude",
-        runtime: {
-          type: "acp",
-          acp: { agent: "claude", backend: "acpx", mode: "persistent" }
-        }
-      }
-    ]
-  }
-}
+```yaml
+agents:
+  list:
+    - id: "codex"
+      runtime:
+        type: "acp"
+        acp:
+          agent: "codex"
+          backend: "acpx"
+          mode: "persistent"
+          cwd: "/workspace/my-repo"
+    - id: "claude"
+      runtime:
+        type: "acp"
+        acp:
+          agent: "claude"
+          backend: "acpx"
+          mode: "persistent"
 ```
 
 Now `/acp spawn codex` automatically uses those defaults. No more typing `--mode persistent --cwd /workspace/my-repo` every time.
@@ -226,31 +214,28 @@ Previously, thread bindings were ephemeral — close the session or restart the 
 
 Add them to `bindings[]` in your config:
 
-```json5
-{
-  bindings: [
-    {
-      type: "acp",
-      agentId: "codex",
-      match: {
-        channel: "discord",
-        accountId: "default",
-        peer: { kind: "channel", id: "222222222222222222" }
-      },
-      acp: { label: "codex-main" }
-    },
-    {
-      type: "acp",
-      agentId: "claude",
-      match: {
-        channel: "telegram",
-        accountId: "default",
-        peer: { kind: "group", id: "-1001234567890:topic:42" }
-      },
-      acp: { cwd: "/workspace/repo-b" }
-    }
-  ]
-}
+```yaml
+bindings:
+  - type: "acp"
+    agentId: "codex"
+    match:
+      channel: "discord"
+      accountId: "default"
+      peer:
+        kind: "channel"
+        id: "222222222222222222"
+    acp:
+      label: "codex-main"
+  - type: "acp"
+    agentId: "claude"
+    match:
+      channel: "telegram"
+      accountId: "default"
+      peer:
+        kind: "group"
+        id: "-1001234567890:topic:42"
+    acp:
+      cwd: "/workspace/repo-b"
 ```
 
 **What this gets you**: gateway restarts automatically restore the binding. Every message in that channel / topic routes to the bound ACP agent. `/new` and `/reset` reset the same session in place (no new session key).

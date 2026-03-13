@@ -149,69 +149,57 @@ openclaw config set plugins.entries.acpx.enabled true
 
 Config 裡把 ACP 打開：
 
-```json5
-{
-  acp: {
-    enabled: true,
-    dispatch: { enabled: true },
-    backend: "acpx",
-    defaultAgent: "codex",
-    allowedAgents: ["pi", "claude", "codex", "opencode", "gemini"],
-    maxConcurrentSessions: 8
-  }
-}
+```yaml
+acp:
+  enabled: true
+  dispatch:
+    enabled: true
+  backend: "acpx"
+  defaultAgent: "codex"
+  allowedAgents:
+    - "pi"
+    - "claude"
+    - "codex"
+    - "opencode"
+    - "gemini"
+  maxConcurrentSessions: 8
 ```
 
 如果要 thread / topic binding（Discord 或 Telegram 都行）：
 
-```json5
-{
-  channels: {
-    discord: {
-      threadBindings: {
-        enabled: true,
-        spawnAcpSessions: true
-      }
-    },
-    telegram: {
-      threadBindings: {
-        spawnAcpSessions: true
-      }
-    }
-  }
-}
+```yaml
+channels:
+  discord:
+    threadBindings:
+      enabled: true
+      spawnAcpSessions: true
+  telegram:
+    threadBindings:
+      spawnAcpSessions: true
 ```
 
 ### Per-Agent Runtime Defaults：一次設好，不用每次帶參數
 
 如果你每次都 spawn 同一種 agent 搭配同樣的 mode 和目錄，可以在 config 裡設好預設值：
 
-```json5
-{
-  agents: {
-    list: [
-      {
-        id: "codex",
-        runtime: {
-          type: "acp",
-          acp: {
-            agent: "codex",
-            backend: "acpx",
-            mode: "persistent",
-            cwd: "/workspace/my-repo"
-          }
-        }
-      },
-      {
-        id: "claude",
-        runtime: {
-          type: "acp",
-          acp: { agent: "claude", backend: "acpx", mode: "persistent" }
-        }
-      }
-    ]
-  }
-}
+```yaml
+agents:
+  list:
+    - id: "codex"
+      runtime:
+        type: "acp"
+        acp:
+          agent: "codex"
+          backend: "acpx"
+          mode: "persistent"
+          cwd: "/workspace/my-repo"
+    - id: "claude"
+      runtime:
+        type: "acp"
+        acp:
+          agent: "claude"
+          backend: "acpx"
+          mode: "persistent"
 ```
 
 設完之後，`/acp spawn codex` 就自動套用這些預設值，不用每次都打 `--mode persistent --cwd /workspace/my-repo`。
@@ -226,31 +214,28 @@ Config 裡把 ACP 打開：
 
 做法是在 config 的 `bindings[]` 裡加：
 
-```json5
-{
-  bindings: [
-    {
-      type: "acp",
-      agentId: "codex",
-      match: {
-        channel: "discord",
-        accountId: "default",
-        peer: { kind: "channel", id: "222222222222222222" }
-      },
-      acp: { label: "codex-main" }
-    },
-    {
-      type: "acp",
-      agentId: "claude",
-      match: {
-        channel: "telegram",
-        accountId: "default",
-        peer: { kind: "group", id: "-1001234567890:topic:42" }
-      },
-      acp: { cwd: "/workspace/repo-b" }
-    }
-  ]
-}
+```yaml
+bindings:
+  - type: "acp"
+    agentId: "codex"
+    match:
+      channel: "discord"
+      accountId: "default"
+      peer:
+        kind: "channel"
+        id: "222222222222222222"
+    acp:
+      label: "codex-main"
+  - type: "acp"
+    agentId: "claude"
+    match:
+      channel: "telegram"
+      accountId: "default"
+      peer:
+        kind: "group"
+        id: "-1001234567890:topic:42"
+    acp:
+      cwd: "/workspace/repo-b"
 ```
 
 **效果**：Gateway 重啟後自動恢復 binding，不用手動重新 spawn。在那個 channel / topic 裡打的每句話都路由到綁定的 ACP agent，`/new` 和 `/reset` 會 reset 同一個 session（不會換新的）。

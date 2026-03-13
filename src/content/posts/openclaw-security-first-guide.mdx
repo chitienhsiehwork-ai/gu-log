@@ -440,21 +440,17 @@ nano ~/.openclaw/openclaw.json
 
 找到開頭的 `{` 並在它後面加入 channels block，在現有的 keys（像 "messages" 或 "agents"）之前：
 
-```json
-{
-  "channels": {
-    "matrix": {
-      "enabled": true,
-      "homeserver": "https://matrix-client.matrix.org",
-      "userId": "@your_bot_name:matrix.org",
-      "password": "YOUR_BOT_PASSWORD",
-      "encryption": true,
-      "dm": {
-        "policy": "pairing"
-      }
-    }
-  },
-  "messages": {
+```yaml
+channels:
+  matrix:
+    enabled: true
+    homeserver: "https://matrix-client.matrix.org"
+    userId: "@your_bot_name:matrix.org"
+    password: "YOUR_BOT_PASSWORD"
+    encryption: true
+    dm:
+      policy: "pairing"
+messages:
 ```
 
 `"channels"` 結束大括號後的 `,` 很重要——你在現有 keys 之前加入新 key，所以需要尾隨逗號。不要刪除檔案裡已有的任何東西。

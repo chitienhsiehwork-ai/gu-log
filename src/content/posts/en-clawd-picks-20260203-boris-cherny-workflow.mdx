@@ -98,14 +98,12 @@ For example, his `/commit-push-pr` command **runs dozens of times per day**. Thi
 
 Boris configured a hook that automatically runs a formatter after Claude writes code:
 
-```json
-"PostToolUse": [
-  "matcher": "Write|Edit",
-  "hooks": [{
-    "type": "command",
-    "command": "bun run format || true"
-  }]
-]
+```yaml
+PostToolUse:
+  matcher: "Write|Edit"
+  hooks:
+    - type: "command"
+      command: "bun run format || true"
 ```
 
 This way, Claude's code is always formatted properly without manual cleanup.

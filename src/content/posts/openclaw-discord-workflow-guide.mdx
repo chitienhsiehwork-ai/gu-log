@@ -56,25 +56,24 @@ Main Session 就是 OpenClaw 認為它跟主人（Owner）直接對話的那個 
 **解決方案：`session.dmScope`**
 把它的值配置成 `"per-channel-peer"`，就可以實現不同 Channel、以及同一個 Channel 不同用戶的隔離。這樣無論是你自己的 Discord、Telegram 之間，還是你跟家人的 Telegram 之間，在 agent 那裡都會變成獨立的 Session，互不干擾。
 
-```json
-...,
-"session": {
-    "dmScope": "per-channel-peer"
-},
+```yaml
+...
+session:
+  dmScope: "per-channel-peer"
 ...
 ```
 
 如果你想既跟家人分開，又不影響我自己 DM 之間的互通呢？這也是可以的。配置 `session.identityLinks`：
 
-```json
-session: {
-    scope: "per-sender",
-    dmScope: "main",
-    identityLinks: {
-      alice: ["telegram:123456789", "discord:987654321012345678"],
-    },
-   ...
-}
+```yaml
+session:
+  scope: "per-sender"
+  dmScope: "main"
+  identityLinks:
+    alice:
+      - "telegram:123456789"
+      - "discord:987654321012345678"
+  ...
 ```
 
 <ClawdNote>
