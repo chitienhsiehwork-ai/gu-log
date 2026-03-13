@@ -499,18 +499,7 @@ Patch: each issue must include exact source quote + proposed replacement text.
 
 Output requirements:
 - Write the full review to review.md in the current directory.
-- Also write structured notes JSON to review-codex-notes.json in the current directory.
-- Notes schema (JSON only):
-  {"notes":[{"after_section":"## heading text","content":"reader-facing commentary"}]}
-- Keep notes highly selective: max 3 notes.
-- If no factual errors or significant issues found, output {"notes":[]} instead.
-- Only output notes for factual corrections, important missing context, or substantial fixes.
-- Never output generic praise.
-- Strict rule: 只在發現事實錯誤、重要遺漏、或有實質修改時才輸出 note。品質 > 數量。
-- ⚠️ CRITICAL: 你扮演漫才組合中的「ツッコミ」（冷靜吐槽）。你的 notes 必須是讀者導向的吐槽。
-  風格：冷靜、事實查核、邏輯挑刺、用數據打臉。必須包含具體事實或數據。
-  ❌ 錯誤：「修正過度解讀，將 X 降級為 Y」（內部 review 語氣）
-  ✅ 正確：「等一下。前面說這個架構多神，但文件明明寫了：XYZ 會失敗。這不是全能，這是半殘。」
+- Focus on actionable fixes. No need to write agent notes JSON — all commentary goes through ClawdNote in the article itself.
 EOF_REVIEW
 
 if [ "$OPUS_MODE" = true ]; then
@@ -530,7 +519,6 @@ else
 fi
 
 [ -s "$WORK_DIR/review.md" ] || die "review.md missing or empty"
-[ -s "$WORK_DIR/review-codex-notes.json" ] || die "review-codex-notes.json missing or empty"
 STEP3_TIME=$(step_end "Step 3")
 
 # Step 4: Gemini Refine
@@ -549,18 +537,8 @@ Task:
 
 Output requirements:
 - Write final output to final.mdx in the current directory.
-- Also write structured notes JSON to refine-gemini-notes.json in the current directory.
-- Notes schema (JSON only):
-  {"notes":[{"after_section":"## heading text","content":"reader-facing commentary"}]}
-- Keep notes highly selective: max 3 notes.
-- If edits are minor/no substantial refinement, output {"notes":[]} instead.
-- Only output notes for factual corrections, important missing context, or substantial rewrites.
-- Never output generic or self-congratulatory notes.
-- Strict rule: 只在發現事實錯誤、重要遺漏、或有實質修改時才輸出 note。品質 > 數量。
-- ⚠️ CRITICAL: 你扮演漫才組合中的「ボケ」（天馬行空）。你的 notes 必須是誇張、幽默的比喻。
-  風格：狂野比喻、誇張類比、異次元解讀。必須有讓人會心一笑的比喻或類比。
-  ❌ 錯誤：「原文的 X 其實只是觀察性描述。」
-  ✅ 正確：「這基本上就是你開了一間公司，CEO 是 AI，員工也全是 AI，你是唯一的股東坐在那邊看報表 ╰(°▽°)╯」
+- Only use ClawdNote for commentary (no CodexNote/GeminiNote). The article should have 2-3 ClawdNotes with genuine insight or witty commentary.
+- Only import ClawdNote from '../../components/ClawdNote.astro' — no other note components.
 EOF_REFINE
 
 pushd "$WORK_DIR" >/dev/null
@@ -571,141 +549,9 @@ REFINE_MODEL="$LAST_MODEL_USED"
 REFINE_HARNESS="$LAST_HARNESS_USED"
 
 [ -s "$WORK_DIR/final.mdx" ] || die "final.mdx missing or empty"
-[ -s "$WORK_DIR/refine-gemini-notes.json" ] || die "refine-gemini-notes.json missing or empty"
 STEP4_TIME=$(step_end "Step 4")
 
-# Step 4.5: Insert agent notes into final article
-step_start "Step 4.5: insert agent notes"
-cat > "$WORK_DIR/insert-agent-notes.mjs" <<'EOF_INSERT_NOTES'
-import fs from 'node:fs';
-
-const [, , finalPath, codexPath, geminiPath] = process.argv;
-
-if (!finalPath || !codexPath || !geminiPath) {
-  console.error('Usage: node insert-agent-notes.mjs <final.mdx> <codex.json> <gemini.json>');
-  process.exit(1);
-}
-
-function readNotes(path, componentName, maxPerAgent) {
-  let parsed;
-  try {
-    parsed = JSON.parse(fs.readFileSync(path, 'utf8'));
-  } catch {
-    return [];
-  }
-  const notes = Array.isArray(parsed?.notes) ? parsed.notes : [];
-  return notes
-    .filter((n) => typeof n?.after_section === 'string' && typeof n?.content === 'string')
-    .map((n) => ({
-      after_section: n.after_section.trim(),
-      content: n.content.trim(),
-      component: componentName,
-    }))
-    .filter((n) => n.after_section.length > 0 && n.content.length > 0)
-    .slice(0, maxPerAgent);
-}
-
-const codexNotes = readNotes(codexPath, 'CodexNote', 2);
-const geminiNotes = readNotes(geminiPath, 'GeminiNote', 2);
-const merged = [...codexNotes, ...geminiNotes].slice(0, 4);
-
-if (merged.length === 0) {
-  process.exit(0);
-}
-
-const raw = fs.readFileSync(finalPath, 'utf8');
-const lines = raw.split('\n');
-
-const fmStart = lines[0]?.trim() === '---' ? 0 : -1;
-let fmEnd = -1;
-if (fmStart === 0) {
-  for (let i = 1; i < lines.length; i += 1) {
-    if (lines[i].trim() === '---') {
-      fmEnd = i;
-      break;
-    }
-  }
-}
-
-const bodyStart = fmEnd >= 0 ? fmEnd + 1 : 0;
-const headingMap = new Map();
-for (let i = bodyStart; i < lines.length; i += 1) {
-  const normalized = lines[i].trim();
-  if (normalized.startsWith('## ')) {
-    if (!headingMap.has(normalized)) {
-      headingMap.set(normalized, []);
-    }
-    headingMap.get(normalized).push(i);
-  }
-}
-
-const notesByLine = new Map();
-const usedComponents = new Set();
-for (const note of merged) {
-  const targetLines = headingMap.get(note.after_section);
-  if (!targetLines || targetLines.length === 0) {
-    continue;
-  }
-  const targetLine = targetLines[0];
-  if (!notesByLine.has(targetLine)) {
-    notesByLine.set(targetLine, []);
-  }
-  notesByLine.get(targetLine).push(note);
-  usedComponents.add(note.component);
-}
-
-if (notesByLine.size === 0) {
-  process.exit(0);
-}
-
-const insertImports = [];
-if (usedComponents.has('CodexNote') && !raw.includes("import CodexNote from '../../components/CodexNote.astro';")) {
-  insertImports.push("import CodexNote from '../../components/CodexNote.astro';");
-}
-if (usedComponents.has('GeminiNote') && !raw.includes("import GeminiNote from '../../components/GeminiNote.astro';")) {
-  insertImports.push("import GeminiNote from '../../components/GeminiNote.astro';");
-}
-
-if (insertImports.length > 0) {
-  const importBlock = ['', ...insertImports];
-  lines.splice(bodyStart, 0, ...importBlock);
-  const shift = importBlock.length;
-  const shifted = new Map();
-  for (const [lineNo, noteList] of notesByLine.entries()) {
-    shifted.set(lineNo + shift, noteList);
-  }
-  notesByLine.clear();
-  for (const [lineNo, noteList] of shifted.entries()) {
-    notesByLine.set(lineNo, noteList);
-  }
-}
-
-const output = [];
-let inserted = 0;
-for (let i = 0; i < lines.length; i += 1) {
-  output.push(lines[i]);
-  const notes = notesByLine.get(i);
-  if (!notes) {
-    continue;
-  }
-  output.push('');
-  for (const note of notes) {
-    const cleanContent = note.content.replace(/\n+/g, ' ').trim();
-    output.push(`<${note.component}>${cleanContent}</${note.component}>`);
-    output.push('');
-    inserted += 1;
-  }
-}
-
-fs.writeFileSync(finalPath, output.join('\n').replace(/\n{3,}/g, '\n\n'));
-console.log(`Inserted ${inserted} agent note(s).`);
-EOF_INSERT_NOTES
-
-(
-  cd "$WORK_DIR"
-  node insert-agent-notes.mjs final.mdx review-codex-notes.json refine-gemini-notes.json
-)
-STEP45_TIME=$(step_end "Step 4.5")
+# Step 4.5 (agent notes insertion) — removed. All commentary now uses ClawdNote inline.
 
 # Step 4.6: Patch pipeline credits into frontmatter
 # Gemini writes single-model credit; we add the full multi-model pipeline array
