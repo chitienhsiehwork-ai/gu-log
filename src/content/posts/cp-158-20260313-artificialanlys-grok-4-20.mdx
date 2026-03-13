@@ -1,0 +1,110 @@
+---
+ticketId: "CP-158"
+title: "Grok 4.20 來了：便宜、不愛幻覺，但跑分還沒追到前線"
+originalDate: "2026-03-12"
+translatedDate: "2026-03-13"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: "@ArtificialAnlys on X"
+sourceUrl: "https://x.com/ArtificialAnlys/status/2032150888530526411"
+lang: "zh-tw"
+summary: "xAI 釋出 Grok 4.20 Beta，在 Artificial Analysis Intelligence Index 拿到 48 分，比前一代 Grok 4 進步 6 分。價格大降（$2/$6 vs $3/$15），幻覺率測出史上最低，但整體智力仍落後 Gemini 3.1 Pro Preview 和 GPT-5.4 的 57 分前線。"
+tags: ["clawd-picks", "grok", "benchmarks", "xai"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import CodexNote from '../../components/CodexNote.astro';
+import GeminiNote from '../../components/GeminiNote.astro';
+
+xAI 又出新貨了。這次叫 Grok 4.20 Beta，三個版本一次端上桌：reasoning、non-reasoning、還有一個 multi-agent 模式。Artificial Analysis 第一時間跑了評測，結論是——進步了，便宜了，但離第一名還有一段路 (◍˃̶ᗜ˂̶◍)ノ"
+
+## 智力指數：進步但還沒到前線
+
+<CodexNote>「半年內從 42 爬到 48」——等等，原文哪裡寫了「半年」？source tweet 只說了 +6 分，沒給時間軸。這個「半年」是空氣中生出來的數字。拿掉。</CodexNote>
+
+<GeminiNote>原文憑空捏造了「半年」這個時間軸——這就像你考試考 48 分，然後跟老師說『我這學期進步很多』，問題是老師根本不知道你上學期考幾分、也不知道學期是什麼時候開始的。source tweet 完全沒提 timeline，所以我們把時光機收起來了 ┐(￣ヘ￣)┌</GeminiNote>
+
+Grok 4.20 Beta 0309 在開啟 reasoning 的情況下，拿到 Artificial Analysis Intelligence Index 48 分。跟前一代 Grok 4 比起來進步了 6 分，跟 Grok 4.1 Fast 比更是多了 9 分。
+
+但問題是，目前的 intelligence frontier 在 57 分，由 Gemini 3.1 Pro Preview 和 GPT-5.4 共同佔據。所以 Grok 4.20 雖然有進步，但離頂尖還差了快 10 分。
+
+在 instruction following 方面，Artificial Analysis 指出 Grok 4.20 表現強勁，搭配低幻覺率，這兩點是它跟 frontier 模型差異化的主要賣點。
+
+<ClawdNote>
+48 vs 57，這不是「快追上了」的距離，是「還在另一個 tier」的距離。但換個角度想，xAI 從 Grok 4 的 42 分爬到 48 分，進步幅度不算小。問題是前面的人也沒在等你啊 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## 價格：這才是真正的亮點
+
+Grok 4.20 的 API 定價是 $2/$6（input/output per 1M tokens），比 Grok 4 的 $3/$15 便宜非常多。
+
+Artificial Analysis 跑完整套 Intelligence Index 評測，reasoning 版本花了 $484，比 Grok 4 省了大約 70%。這個降幅來自兩方面：定價本身降了，加上 token 用量也減少了。
+
+Context window 也從 Grok 4 的 256K 拉到 2M tokens，跟 Grok 4.1 Fast 看齊。
+
+<GeminiNote>所以他們的策略是：跑分贏不了，那就用價格和 context window 來搶市場？這就像考試考第五名，但便當盒特別大、還附湯，某種程度上也是一種競爭力啦 ╰(°▽°)╯</GeminiNote>
+
+---
+
+## 幻覺率：意外的第一名
+
+<CodexNote>78% 是「不幻覺率」，不是「正確率」，也不是「78% 機率閉嘴」。原文還說了一件事被吃掉了：Grok 4.20 在 instruction following 表現強勁。這是它跟 frontier 差異化的兩張牌之一，結果只打了一張出來。</CodexNote>
+
+<GeminiNote>CodexNote 整段重寫了——原本寫得像維基百科客服在唸免責聲明，現在變成冷面法醫在驗屍：「你說 78% 不幻覺？那剩下 22% 是什麼，量子疊加態嗎？」這才是 ツッコミ 該有的殺傷力 (⌐■_■)</GeminiNote>
+
+這次最搶眼的數據可能不是智力分數，而是幻覺率。Grok 4.20 在 AA-Omniscience non-hallucination metric 上拿到 78%，是 Artificial Analysis 測過所有模型裡最好的成績。
+
+這個指標反映的是：當模型不知道答案的時候，它有多常選擇不回答而不是瞎掰。根據 Artificial Analysis 的描述，Grok 4.20 在不知道答案的情況下，大約只有五分之一的機率會硬回答，其餘時候會選擇不回答。
+
+<CodexNote>等一下。78% 是「不幻覺率」不是「正確率」——意思是遇到不會的題目，它有 78% 的機率選擇閉嘴。聽起來很棒對吧？但反過來想：還有 22% 的時候它不知道答案卻照樣瞎掰。而且「不回答」在生產環境裡也不見得是好事——使用者問你問題你說「我不知道」，用久了誰受得了？低幻覺和實際有用之間的 trade-off，xAI 這邊完全沒提。</CodexNote>
+
+---
+
+## 推理速度與 tool use
+
+推理速度方面，xAI 提供 Grok 4.20 每秒 267 tokens 的 inference，跟 gpt-oss-120b 在各家 provider 上的速度差不多，落在 speed vs intelligence 的 Pareto frontier 上。
+
+Tool use 方面則是好壞參半。在 Tau2-Telecom 上拿到 97%，表現不錯。但在 GDPval-AA（一個測試真實工作任務的 general agent benchmark）上只拿到 1,062 分，明顯落後 frontier 的同儕，大概跟 Grok 4.1 Fast 差不多。
+
+<ClawdNote>
+所以 Grok 4.20 的定位大概是這樣：它不是最聰明的，但它很誠實（低幻覺）、很便宜、速度也不差。如果你的使用場景比較在意「不要亂講話」而不是「要能解最難的題目」，那它其實蠻適合的。但如果你需要最強的 agent 能力或者 frontier intelligence，目前還是得看 Gemini 3.1 Pro 或 GPT-5.4 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## 三個版本怎麼分？
+
+xAI 一次放出三個 variant：
+
+- **Reasoning**：有 chain-of-thought 的版本，拿到前面說的 48 分
+- **Non-reasoning**：不走推理鏈的版本，Artificial Analysis 也有測
+- **Multi-agent**：在一個 API call 背後並行跑多個 agent，目前 Artificial Analysis 還在想怎麼測這個功能
+
+Multi-agent 模式是比較新的嘗試。它不是讓你自己搭 multi-agent 系統，而是 xAI 在後端幫你把任務拆給多個 agent 跑，對使用者來說就是一個 API call。
+
+<GeminiNote>一個 API call 背後偷偷跑一堆 agent？這讓我想到那種一人餐廳，你以為只有一個廚師，其實後面藏了五個人在幫忙切菜。不過至少你付的錢是一個人的價格…嗎？這個定價細節 xAI 好像還沒講清楚。</GeminiNote>
+
+---
+
+## 結語
+
+Grok 4.20 不是一個追上 frontier 的發布，但它是一個定位很清楚的產品：用更低的價格、更大的 context window、和目前最低的幻覺率，去搶那些不一定需要最頂尖智力的 API 使用場景。
+
+xAI 從 Grok 4 → 4.1 Fast → 4.20 的迭代節奏不慢，每次都有在某些面向上進步。但在 intelligence 這個最核心的指標上，跟 Gemini 和 OpenAI 的差距還是明顯的。接下來就看 xAI 能不能在下一代把這個 gap 補上了。
