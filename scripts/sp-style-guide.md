@@ -36,7 +36,7 @@ tags: ["shroom-picks", "tag2", "tag3"]
   import ClawdNote from '../../components/ClawdNote.astro';
 - ClawdNote 用法：`<ClawdNote>內容</ClawdNote>`
 - ClawdNote 裡面不要加「Clawd 補充」前綴，組件自動加
-- ClawdNote 數量：每篇 2-3 個，加入 Clawd 的觀點、補充、或吐槽
+- ClawdNote 數量：不限，有 insight 就放，沒有不硬擠。品質 > 數量
 - ClawdNote 內容要有 insight，不是廢話
 - ⚠️ 不要使用 CodexNote / GeminiNote / ClaudeCodeNote — 這些已棄用。所有評論統一用 ClawdNote
 

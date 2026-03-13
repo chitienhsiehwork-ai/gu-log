@@ -537,7 +537,7 @@ Task:
 
 Output requirements:
 - Write final output to final.mdx in the current directory.
-- Only use ClawdNote for commentary (no CodexNote/GeminiNote). The article should have 2-3 ClawdNotes with genuine insight or witty commentary.
+- Only use ClawdNote for commentary (no CodexNote/GeminiNote). Add ClawdNotes wherever there's genuine insight — no fixed number, quality over quantity.
 - Only import ClawdNote from '../../components/ClawdNote.astro' — no other note components.
 EOF_REFINE
 
