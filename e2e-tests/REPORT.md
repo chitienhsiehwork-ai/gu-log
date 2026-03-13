@@ -1,6 +1,6 @@
 # gu-log E2E Test Report — Playwright
 
-**Generated:** 2026-03-12T04:25:42.849Z
+**Generated:** 2026-03-13T01:29:45.894Z
 **Base URL:** https://gu-log.vercel.app
 **Browsers:** Chromium, WebKit
 **Device:** iPhone 15 Pro (393×852, 3x scale, mobile+touch)
@@ -27,8 +27,8 @@
 ### By Status
 
 #### ✅ Passed (106)
-- **homepage-title**: Title: "ShroomDog" (1177ms)
-- **homepage-load-time**: 1177ms < 15s
+- **homepage-title**: Title: "ShroomDog" (1868ms)
+- **homepage-load-time**: 1868ms < 15s
 - **lang-zh-TW**: lang="zh-TW"
 - **og:title**: ShroomDog
 - **og:description**: 香菇大狗狗的翻譯閱讀筆記 - ShroomDog and Clawd…
@@ -36,18 +36,18 @@
 - **canonical**: https://gu-log.vercel.app/
 - **viewport-meta**: width=device-width, initial-scale=1.0
 - **blog-post-cards-count**: Found 14 post links
-- **blog-post-card-title**: First: "你敢把人生交給 AI 管嗎？一個非工程師的 OpenClaw 生存指南"
+- **blog-post-card-title**: First: "讓 AI 幫你跑 E2E 測試：Playwright vs agent-browser vs Rodney 實戰筆記"
 - **theme-toggle-first**: dark → light
 - **theme-localStorage**: Saved: "light"
 - **theme-toggle-second**: light → dark (roundtrip)
 - **theme-roundtrip**: Bidirectional toggle works: dark → light → dark
 - **search-modal-hidden-before**: Modal not visible initially
 - **search-modal-visible-after**: Search UI appeared after click
-- **perf-domContentLoaded**: 445ms
-- **perf-domInteractive**: 427ms
-- **perf-loadEvent**: 445ms
-- **perf-ttfb**: 19ms
-- **perf-ttfb-fast**: TTFB 19ms < 3s
+- **perf-domContentLoaded**: 566ms
+- **perf-domInteractive**: 542ms
+- **perf-loadEvent**: 566ms
+- **perf-ttfb**: 21ms
+- **perf-ttfb-fast**: TTFB 21ms < 3s
 - **a11y-nav-landmark**: Navigation landmark present
 - **a11y-main-landmark**: Main landmark present
 - **a11y-footer-landmark**: Footer landmark present
@@ -58,12 +58,12 @@
 - **mobile-no-horizontal-overflow**: Doc width: 393px, viewport: 393px
 - **mobile-post-no-overflow**: Post page: doc 393px vs viewport 393px
 - **post-article-element**: Article/main element exists
-- **post-h1-title**: 你敢把人生交給 AI 管嗎？一個非工程師的 OpenClaw 生存指南
+- **post-h1-title**: 讓 AI 幫你跑 E2E 測試：Playwright vs agent-browser vs Rodney 實戰筆記
 - **post-date-element**: Date/time element found
-- **post-load-time**: 1234ms
+- **post-load-time**: 1176ms
 - **post-single-h1**: Found 1 H1 elements (should be 1)
 - **post-article-landmark**: Article landmark present
-- **a11y-post-snapshot-saved**: 19 headings, 9 buttons
+- **a11y-post-snapshot-saved**: 13 headings, 7 buttons
 - **about-title**: Title: "關於 - 香菇大狗狗"
 - **about-content**: Page contains ShroomDog/香菇 text
 - **en-lang-attribute**: lang="en"
@@ -71,7 +71,7 @@
 - **en-posts-exist**: Found 11 EN post links
 - **back-to-top-hidden**: Button hidden at top of page
 - **back-to-top-visible-after-scroll**: Button visible after scrolling
-- **back-to-top-click**: Scroll position after click: 3px
+- **back-to-top-click**: Scroll position after click: 4px
 - **briefs-title**: Title: "📡 Briefs — Clawd 情報站"
 - **briefs-content**: Found 11 brief links
 - **pwa-manifest**: https://gu-log.vercel.app/manifest.webmanifest
@@ -80,8 +80,8 @@
 - **rss-content-type**: application/xml
 - **rss-content**: RSS contains ShroomDog content
 - **favicon**: https://gu-log.vercel.app/favicon.svg
-- **homepage-title**: Title: "ShroomDog" (1236ms)
-- **homepage-load-time**: 1236ms < 15s
+- **homepage-title**: Title: "ShroomDog" (1290ms)
+- **homepage-load-time**: 1290ms < 15s
 - **lang-zh-TW**: lang="zh-TW"
 - **og:title**: ShroomDog
 - **og:description**: 香菇大狗狗的翻譯閱讀筆記 - ShroomDog and Clawd…
@@ -89,18 +89,18 @@
 - **canonical**: https://gu-log.vercel.app/
 - **viewport-meta**: width=device-width, initial-scale=1.0
 - **blog-post-cards-count**: Found 14 post links
-- **blog-post-card-title**: First: "你敢把人生交給 AI 管嗎？一個非工程師的 OpenClaw 生存指南"
+- **blog-post-card-title**: First: "讓 AI 幫你跑 E2E 測試：Playwright vs agent-browser vs Rodney 實戰筆記"
 - **theme-toggle-first**: dark → light
 - **theme-localStorage**: Saved: "light"
 - **theme-toggle-second**: light → dark (roundtrip)
 - **theme-roundtrip**: Bidirectional toggle works: dark → light → dark
 - **search-modal-hidden-before**: Modal not visible initially
 - **search-modal-visible-after**: Search UI appeared after click
-- **perf-domContentLoaded**: 184ms
-- **perf-domInteractive**: 129ms
-- **perf-loadEvent**: 311ms
-- **perf-ttfb**: 13ms
-- **perf-ttfb-fast**: TTFB 13ms < 3s
+- **perf-domContentLoaded**: 177ms
+- **perf-domInteractive**: 120ms
+- **perf-loadEvent**: 322ms
+- **perf-ttfb**: 10ms
+- **perf-ttfb-fast**: TTFB 10ms < 3s
 - **a11y-nav-landmark**: Navigation landmark present
 - **a11y-main-landmark**: Main landmark present
 - **a11y-footer-landmark**: Footer landmark present
@@ -111,12 +111,12 @@
 - **mobile-no-horizontal-overflow**: Doc width: 393px, viewport: 393px
 - **mobile-post-no-overflow**: Post page: doc 393px vs viewport 393px
 - **post-article-element**: Article/main element exists
-- **post-h1-title**: 你敢把人生交給 AI 管嗎？一個非工程師的 OpenClaw 生存指南
+- **post-h1-title**: 讓 AI 幫你跑 E2E 測試：Playwright vs agent-browser vs Rodney 實戰筆記
 - **post-date-element**: Date/time element found
-- **post-load-time**: 1014ms
+- **post-load-time**: 756ms
 - **post-single-h1**: Found 1 H1 elements (should be 1)
 - **post-article-landmark**: Article landmark present
-- **a11y-post-snapshot-saved**: 19 headings, 9 buttons
+- **a11y-post-snapshot-saved**: 13 headings, 7 buttons
 - **about-title**: Title: "關於 - 香菇大狗狗"
 - **about-content**: Page contains ShroomDog/香菇 text
 - **en-lang-attribute**: lang="en"
@@ -146,20 +146,20 @@ _None_
 
 | Metric | Value |
 |--------|-------|
-| chromium-homepage-load | 1177ms |
-| chromium-domContentLoaded | 445ms |
-| chromium-domInteractive | 427ms |
-| chromium-loadEvent | 445ms |
-| chromium-ttfb | 19ms |
-| chromium-post-load | 1234ms |
-| chromium-briefs-load | 746ms |
-| webkit-homepage-load | 1236ms |
-| webkit-domContentLoaded | 184ms |
-| webkit-domInteractive | 129ms |
-| webkit-loadEvent | 311ms |
-| webkit-ttfb | 13ms |
-| webkit-post-load | 1014ms |
-| webkit-briefs-load | 602ms |
+| chromium-homepage-load | 1868ms |
+| chromium-domContentLoaded | 566ms |
+| chromium-domInteractive | 542ms |
+| chromium-loadEvent | 566ms |
+| chromium-ttfb | 21ms |
+| chromium-post-load | 1176ms |
+| chromium-briefs-load | 805ms |
+| webkit-homepage-load | 1290ms |
+| webkit-domContentLoaded | 177ms |
+| webkit-domInteractive | 120ms |
+| webkit-loadEvent | 322ms |
+| webkit-ttfb | 10ms |
+| webkit-post-load | 756ms |
+| webkit-briefs-load | 616ms |
 
 ---
 
@@ -175,10 +175,10 @@ _None_
 
 ### post (chromium)
 - Total a11y nodes: N/A
-- Headings: 19
-- Buttons: 9
+- Headings: 13
+- Buttons: 7
 - Links: 30
-- Images: 10
+- Images: 5
 
 
 ### homepage (webkit)
@@ -191,10 +191,10 @@ _None_
 
 ### post (webkit)
 - Total a11y nodes: N/A
-- Headings: 19
-- Buttons: 9
+- Headings: 13
+- Buttons: 7
 - Links: 30
-- Images: 10
+- Images: 5
 
 
 ---
