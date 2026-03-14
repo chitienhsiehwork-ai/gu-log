@@ -1,0 +1,72 @@
+---
+ticketId: "CP-162"
+title: "Grok 4.20 Beta：幻覺率全場最低，但智力還在追趕中"
+originalDate: "2026-03-12"
+translatedDate: "2026-03-14"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "OpenClaw"
+source: "@ArtificialAnlys on X"
+sourceUrl: "https://x.com/ArtificialAnlys/status/2032150888530526411"
+lang: "zh-tw"
+summary: "xAI 釋出 Grok 4.20 Beta API 版本。Artificial Analysis 評測顯示它在幻覺率上拿到目前最佳成績（78% non-hallucination），智力分數 48 分，比前代 Grok 4 進步但仍落後 frontier 的 57 分。定價比前代便宜，推理速度也在前沿水準。"
+tags: ["clawd-picks", "grok", "xai", "benchmark", "hallucination"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+xAI 又出新 model 了。這次 Grok 4.20 Beta 最引人注目的不是它有多聰明（事實上還差一截），而是它在一個大家越來越在意的指標上打破了紀錄：幻覺率。Artificial Analysis 的評測顯示，Grok 4.20 是目前他們測過「最不愛瞎掰」的 model。
+
+## 數字說話
+
+先看 Artificial Analysis 的評測結果：
+
+- **智力分數**：48 分（Intelligence Index），比 Grok 4 的 42 分進步了 6 分，但目前 frontier 是 57 分（Gemini 3.1 Pro Preview 和 GPT-5.4 並列）
+- **幻覺率**：78% non-hallucination rate（AA-Omniscience 指標），目前所有測過的 model 中最佳
+- **定價**：$2/$6 per 1M input/output tokens，比 Grok 4 的 $3/$15 便宜不少
+- **推理速度**：267 tokens/second，跟 gpt-oss-120b 差不多，在速度 vs 智力的 Pareto frontier 上
+- **Context window**：2M tokens（從 Grok 4 的 256K 大幅提升）
+
+<ClawdNote>
+78% non-hallucination rate 代表什麼？意思是在 Artificial Analysis 的測試中，當 model 不知道答案時，它大約只有五分之一的機率會硬掰一個答案出來。換句話說，它比較願意承認「我不知道」。這對需要高準確度的應用場景（比如醫療、法律、金融）來說是非常有價值的特性。
+</ClawdNote>
+
+---
+
+## 三個版本
+
+xAI 這次一口氣釋出了三個 variant：
+
+- **Reasoning 版**：有 thinking 能力的版本，智力分數 48
+- **Non-reasoning 版**：沒有 thinking 的版本，速度更快
+- **Multi-agent 版**：背後自動拆成多個 agent 平行處理，一個 API call 搞定
+
+Artificial Analysis 目前已經評測了前兩個版本，multi-agent 版本還在研究怎麼測比較公平。
+
+---
+
+## 值得注意的弱點
+
+智力分數 48 vs frontier 的 57，差距有 9 分，這不是可以忽略的差距。尤其在 tool use 方面，表現參差不齊 — 在 Tau2-Telecom 上拿了 97%，但在 GDPval-AA（衡量 agent 做真實工作任務的 benchmark）上只有 1,062 分，明顯落後前沿。
+
+簡單來說：Grok 4.20 在「知道自己不知道什麼」這件事上做得很好，但在「需要動手解決複雜問題」的場景還有不少進步空間。
+
+<ClawdNote>
+這其實反映了一個很有趣的 trade-off：幻覺率低可能意味著 model 在不確定時更傾向於拒絕回答，而不是硬猜。這在準確度要求高的場景是優點，但在需要創造性推理或探索性問題解決的場景，可能反而顯得太保守。不同 model 在這條光譜上的定位不同，沒有絕對的好壞。
+</ClawdNote>
+
+---
+
+## 定價策略
+
+$2/$6 的定價比 Grok 4 的 $3/$15 便宜很多，尤其 output 端從 $15 降到 $6，降幅超過 60%。Artificial Analysis 跑完整套評測花了 $484，比 Grok 4 少了約 70%。
+
+對於不需要 frontier 智力、但很在意準確度和成本的場景，這個定價點蠻有競爭力的。
+
+---
+
+## 結語
+
+Grok 4.20 Beta 不是來跟 GPT-5.4 或 Gemini 3.1 Pro 搶智力王座的。它更像是在走一條不同的路：「我可能沒那麼聰明，但我比較誠實。」在幻覺率上打破紀錄是一個值得注意的成就，尤其是對那些寧可 model 說「我不知道」也不要它瞎掰的使用場景。
+
+不過也要提醒，AA-Omniscience 是一個特定的 benchmark，78% 這個數字是在特定測試條件下得出的結果。實際使用中的幻覺率會受到 prompt、temperature、task 類型等各種因素影響，不要把 benchmark 數字直接等同於「真實世界表現」(´・ω・`)
