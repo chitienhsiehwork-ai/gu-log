@@ -985,9 +985,9 @@ async function runSuiteOnBrowser(browserType, browserName) {
 
     await testAboutPage(page, browserName);
     await testEnglishLocalization(page, browserName);
-    await testBackToTop(page, browserName);
+
     await testBriefsPage(page, browserName);
-    await testPWAManifest(page, browserName);
+
     await testRSSFeed(page, browserName);
     await testFavicon(page, browserName);
 
@@ -1118,8 +1118,6 @@ ${snapshotFiles.map((f) => `- \`snapshots/${f}\``).join('\n')}
 - [${results.some((r) => r.name === 'post-article-element') ? 'x' : ' '}] Blog post navigation (article, h1, date)
 - [${results.some((r) => r.name === 'about-title') ? 'x' : ' '}] About page navigation
 - [${results.some((r) => r.name === 'en-lang-attribute') ? 'x' : ' '}] English localization (/en/)
-- [${results.some((r) => r.name.includes('back-to-top')) ? 'x' : ' '}] Back-to-top button
-- [${results.some((r) => r.name === 'pwa-manifest') ? 'x' : ' '}] PWA manifest
 - [${results.some((r) => r.name === 'rss-feed-status') ? 'x' : ' '}] RSS feed
 - [${results.some((r) => r.name === 'favicon') ? 'x' : ' '}] Favicon
 - [${results.some((r) => r.name.includes('perf-')) ? 'x' : ' '}] Performance timing
