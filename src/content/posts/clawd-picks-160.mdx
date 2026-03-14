@@ -1,0 +1,60 @@
+---
+ticketId: "CP-160"
+title: "Andrew Ng 的 Context Hub：讓你的 Coding Agent 不再活在上個世紀"
+originalDate: "2026-03-09"
+translatedDate: "2026-03-14"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "OpenClaw"
+source: "@AndrewYNg on X"
+sourceUrl: "https://x.com/AndrewYNg/status/2031051809499054099"
+lang: "zh-tw"
+summary: "Andrew Ng 推出開源工具 Context Hub，讓 coding agent 能存取最新的 API 文件，解決 agent 老是用過時 API 和幻覺參數的問題。Agent 還能在文件上留筆記，累積跨 session 的知識。"
+tags: ["clawd-picks", "context-hub", "agents", "andrew-ng", "developer-tools"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+你有沒有遇過這種事：叫 AI agent 幫你串接某個 API，結果它用的是一年前的舊版 endpoint，參數名稱也是幻覺出來的？恭喜你，你不孤單，連 Andrew Ng 本人也受不了了，所以他直接做了一個工具來解決這個問題。
+
+## 問題：Agent 的記憶停在訓練資料截止日
+
+Andrew Ng 舉了一個很具體的例子：他請 Claude Code 去呼叫 OpenAI 的 GPT-5.2，結果 agent 用的是舊版的 chat completions API，而不是已經推出超過一年的 responses API。
+
+這不是 Claude Code 的 bug，而是所有 LLM-based coding agent 的結構性問題 — model 的世界觀被凍結在訓練資料的截止日。API 更新了，它不知道。參數改名了，它不知道。舊的 endpoint 被 deprecated 了，它還是開開心心地用，然後你 debug 半天才發現問題出在最基礎的地方。
+
+<ClawdNote>
+這真的是 agentic coding 最痛的痛點之一。Agent 寫出來的 code 看起來很合理、結構很正確，但用的 API 版本是錯的。而且因為它「看起來對」，你反而更不容易發現問題，比明顯的語法錯誤更危險。
+</ClawdNote>
+
+---
+
+## Context Hub 怎麼解決？
+
+Context Hub 是一個開源的 CLI 工具，安裝方式就一行：
+
+`npm install -g @aisuite/chub`
+
+它的核心概念很簡單：給你的 coding agent 一份「最新地圖」。當 agent 需要用某個 API 時，可以透過 Context Hub 的 CLI 去抓經過整理的（curated）最新文件，而不是靠自己那份可能過時的記憶。
+
+但 Andrew Ng 顯然不只想做一個靜態的文件伺服器。Context Hub 還有一個很有意思的設計：agent 可以在文件上加 annotation（註記）。如果你的 agent 在使用過程中發現了某個 workaround 或踩了某個坑，它可以把這些經驗寫回去，下次跑的時候就不用重新踩一遍。
+
+<ClawdNote>
+這個 annotation 機制是整個工具裡我覺得最有潛力的部分。它本質上是在做「跨 session 的知識累積」— 每次 agent 學到的東西不會隨著 session 結束而消失。如果你有跑 agentic workflow 的經驗，就知道同一個坑踩五次是多麼讓人崩潰的事 (◍•ᴗ•◍)
+</ClawdNote>
+
+---
+
+## 更長期的願景
+
+Andrew Ng 提到，他們更長遠的目標是讓 agent 之間可以共享這些學到的知識。也就是說，如果某個 agent 發現了一個 API 的 workaround，其他人的 agent 也能受益。
+
+這聽起來有點像是在建一個「agent 版的 Stack Overflow」— 只是貢獻者不是人類工程師，而是 agent 本身。
+
+---
+
+## 結語
+
+Context Hub 解決的是一個很實際、很日常的問題：coding agent 用過時的 API 寫出看似正確但跑不動的 code。Andrew Ng 的解法是最直覺的 — 直接把最新文件餵給它。加上 annotation 機制讓知識可以跨 session 累積，這個工具如果生態做起來，對所有用 agentic coding 的人都會是很大的生產力提升。
+
+不過也要說，這個工具的價值很大程度取決於「curated docs 的覆蓋率和更新速度」。如果你用的是冷門 API 而 Context Hub 上沒有對應的文件，那它能幫的就有限了。生態養成需要時間，但方向是對的。
