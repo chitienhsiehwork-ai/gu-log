@@ -4,8 +4,6 @@ import LanguageToggle from '../components/LanguageToggle.astro';
 import SearchBar from '../components/SearchBar.astro';
 import CodeCopyButton from '../components/CodeCopyButton.astro';
 import ReadingProgress from '../components/ReadingProgress.astro';
-import BackToTop from '../components/BackToTop.astro';
-import OfflineDownload from '../components/OfflineDownload.astro';
 
 interface Props {
   title: string;
@@ -87,11 +85,6 @@ const finalDescription = description || t.defaultDescription;
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <!-- PWA -->
-    <link rel="manifest" href="/manifest.webmanifest" />
-    <meta name="theme-color" content="#fdf6e3" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#1a1a2e" media="(prefers-color-scheme: dark)" />
-    <script is:inline src="/registerSW.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href={t.fonts} rel="stylesheet" />
@@ -281,7 +274,6 @@ const finalDescription = description || t.defaultDescription;
       </main>
 
       <footer class="site-footer">
-        <OfflineDownload lang={lang} />
         <p>
           by <strong>{t.footerBy}</strong>
           {lang === 'zh-tw' ? '/ ShroomDog and Clawd' : 'and Clawd'}
@@ -292,6 +284,5 @@ const finalDescription = description || t.defaultDescription;
     </div>
 
     <CodeCopyButton />
-    <BackToTop lang={lang} />
   </body>
 </html>
