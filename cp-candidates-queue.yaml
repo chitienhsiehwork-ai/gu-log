@@ -1,0 +1,154 @@
+# CP Candidates Queue
+# Maintained by Shroom Feed (producer) + CP Writer (consumer)
+# Max 100 entries. Lowest-scored entries get evicted when full.
+#
+# Schema per entry:
+#   url: string (source URL)
+#   title: string (one-line title)
+#   addedAt: ISO-8601 timestamp (Asia/Taipei)
+#   source: "shroom-feed" | "autonomous-exploration" | "manual"
+#   scores:
+#     freshness: 1-5 (how recent; 5=today, 1=over a week old)
+#     importance: 1-5 (impact on AI industry)
+#     relevance: 1-5 (relevance to ShroomDog personally)
+#   tags:
+#     timeFreedom: boolean (remote work, async-first, automation, work-life balance)
+#     wealthFreedom: boolean (passive income, indie hacking, side project monetization)
+#   summary: string (one-sentence summary)
+#
+# Sorting formula (CP Writer uses this to pick):
+#   score = freshness * 0.3 + importance * 0.4 + relevance * 0.3
+#   Tiebreaker: entries with timeFreedom or wealthFreedom tags get priority
+#
+# After CP Writer writes an article, the entry is removed from this queue.
+
+candidates:
+  - url: "https://x.com/AndrewYNg/status/2031051809499054099"
+    title: "Context Hub (@aisuite/chub) — 幫 Coding Agent 補上最新 API 文件"
+    addedAt: "2026-03-13T13:40+08:00"
+    source: "shroom-feed"
+    scores:
+      freshness: 4
+      importance: 5
+      relevance: 5
+    tags:
+      timeFreedom: true
+      wealthFreedom: false
+    summary: "Andrew Ng 推出 Context Hub，解決 Agentic Coding 最痛苦的 API 幻覺問題。"
+
+  - url: "https://x.com/imbue_ai/status/2031762560782098533"
+    title: "Imbue Vet — Agent 界的糾察隊，專抓 Agent 撒謊"
+    addedAt: "2026-03-14T17:40+08:00"
+    source: "shroom-feed"
+    scores:
+      freshness: 5
+      importance: 4
+      relevance: 4
+    tags:
+      timeFreedom: true
+      wealthFreedom: false
+    summary: "專抓 Agent 說測試都過了但其實沒跑的壞習慣，PR 審核自動化。"
+
+  - url: "https://x.com/simonw/status/2032305546129485851"
+    title: "Tobi Lütke Autoresearch 實戰 — 53% 效能提升"
+    addedAt: "2026-03-14T07:40+08:00"
+    source: "shroom-feed"
+    scores:
+      freshness: 5
+      importance: 5
+      relevance: 4
+    tags:
+      timeFreedom: false
+      wealthFreedom: false
+    summary: "Shopify CEO 用 Agent 自主優化 Liquid 模板語言，效能提升 53%。"
+
+  - url: "https://x.com/SemiAnalysis_/status/2032487199904547029"
+    title: "TSMC N2/N3E SRAM 停滯 — 硬體瓶頸已現"
+    addedAt: "2026-03-14T07:40+08:00"
+    source: "shroom-feed"
+    scores:
+      freshness: 5
+      importance: 5
+      relevance: 3
+    tags:
+      timeFreedom: false
+      wealthFreedom: false
+    summary: "SRAM 密度停滯解釋了為什麼模型架構越來越偏向 MoE 與 Tool-use。"
+
+  - url: "https://x.com/daniel_mac8/status/2032331508212457472"
+    title: "Manus 前主管：文字 CLI > Structured Tool Calling"
+    addedAt: "2026-03-13T22:40+08:00"
+    source: "shroom-feed"
+    scores:
+      freshness: 4
+      importance: 4
+      relevance: 5
+    tags:
+      timeFreedom: false
+      wealthFreedom: false
+    summary: "UNIX 指令的普遍性讓 Agent 在文字介面上表現更穩健，非 JSON structured calls。"
+
+  - url: "https://x.com/simonw/status/2032144016268279950"
+    title: "Gemini API Spend Caps — 讓 Agent 自主實驗不再怕破產"
+    addedAt: "2026-03-13T17:40+08:00"
+    source: "shroom-feed"
+    scores:
+      freshness: 4
+      importance: 3
+      relevance: 4
+    tags:
+      timeFreedom: false
+      wealthFreedom: true
+    summary: "Google 終於加了 API 支出上限，Agent 跑死循環不會收到天價帳單。"
+
+  - url: "https://x.com/OpenAI/status/2029620619743219811"
+    title: "GPT-5.4 正式下凡：Thinking 與中途轉向 (Steering)"
+    addedAt: "2026-03-14T17:40+08:00"
+    source: "shroom-feed"
+    scores:
+      freshness: 5
+      importance: 5
+      relevance: 4
+    tags:
+      timeFreedom: false
+      wealthFreedom: false
+    summary: "Thinking 與 Pro 模式全面 rollout，支援中途打斷並調整方向。"
+
+  - url: "https://x.com/Al_Grigor/status/2032109619661930766"
+    title: "Awesome AI Engineering — 200+ 實戰清單"
+    addedAt: "2026-03-13T12:40+08:00"
+    source: "shroom-feed"
+    scores:
+      freshness: 4
+      importance: 4
+      relevance: 5
+    tags:
+      timeFreedom: false
+      wealthFreedom: false
+    summary: "Alexey 統整 200+ 來自頂尖 AI lab 的架構模式與實際落地案例。"
+
+  - url: "https://x.com/trq212/status/2032632596572811575"
+    title: "Claude effort: max — 讓模型耗更多 token 處理超長推理"
+    addedAt: "2026-03-14T07:40+08:00"
+    source: "shroom-feed"
+    scores:
+      freshness: 5
+      importance: 4
+      relevance: 4
+    tags:
+      timeFreedom: false
+      wealthFreedom: false
+    summary: "新增 /effort max 選項，模型能根據內容自動選擇最佳呈現方式。"
+
+  - url: "https://x.com/dee_bosa/status/2032203733040349266"
+    title: "PE 反噬自己的 SaaS 投資組合 — AI 的商業衝擊"
+    addedAt: "2026-03-13T07:40+08:00"
+    source: "shroom-feed"
+    scores:
+      freshness: 4
+      importance: 4
+      relevance: 3
+    tags:
+      timeFreedom: false
+      wealthFreedom: true
+    summary: "私募基金當年推 SaaS 進投資組合，AI 現在給了理由拔掉這些軟體。"
