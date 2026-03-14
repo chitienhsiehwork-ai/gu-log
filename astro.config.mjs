@@ -134,7 +134,7 @@ export default defineConfig({
     shikiConfig: {
       themes: {
         light: 'solarized-light',
-        dark: 'solarized-dark',
+        dark: 'dracula-soft',
       },
       defaultColor: false,
     },
