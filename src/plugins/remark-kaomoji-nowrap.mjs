@@ -17,14 +17,13 @@ const WJ = '\u2060';
 
 // Characters that signal "this bracketed text is a kaomoji, not regular text"
 // Includes common face parts: eyes, mouths, cheeks, decorative marks
-// eslint-disable-next-line no-misleading-character-class -- ᗜ̶ is intentionally a combined character (ᗜ + U+0336 strikethrough)
+/* eslint-disable no-misleading-character-class -- ᗜ̶ is intentionally a combined character (ᗜ + U+0336 strikethrough) */
 const KAOMOJI_CHARS =
   /[°□▽￣ᴥᴗ◍๑˃˂ᗜ̶ಠ∀ω·•‿ᵕ╥﹏☆ᴗ⁰]/;
+/* eslint-enable no-misleading-character-class */
 
 // Arm / trailing characters that follow the closing bracket
 const ARM_CHARS = '[╯ﻭ／ノ┻━"ゞ☆♪♡]';
-const ARM_RE = new RegExp(ARM_CHARS + '+');
-
 // Match potential kaomoji:
 //   Pattern A: ʕ ... ʔ  (bear-style)
 //   Pattern B: ( ... )  or （ ... ）  followed by optional arm chars
