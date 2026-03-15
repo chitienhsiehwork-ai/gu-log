@@ -17,6 +17,7 @@ const WJ = '\u2060';
 
 // Characters that signal "this bracketed text is a kaomoji, not regular text"
 // Includes common face parts: eyes, mouths, cheeks, decorative marks
+// eslint-disable-next-line no-misleading-character-class -- ᗜ̶ is intentionally a combined character (ᗜ + U+0336 strikethrough)
 const KAOMOJI_CHARS =
   /[°□▽￣ᴥᴗ◍๑˃˂ᗜ̶ಠ∀ω·•‿ᵕ╥﹏☆ᴗ⁰]/;
 
