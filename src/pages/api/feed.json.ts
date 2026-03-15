@@ -13,7 +13,7 @@ import { getCollection } from 'astro:content';
  *   originalDate, translatedDate, source, sourceUrl,
  *   translatedBy (model info), url (relative link)
  */
-export async function GET(context: APIContext) {
+export async function GET(_context: APIContext) {
   const posts = await getCollection('posts');
 
   // Derive prefix (SP/CP/Lv/SD) from ticketId
