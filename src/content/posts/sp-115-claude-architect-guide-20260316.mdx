@@ -1,0 +1,112 @@
+---
+ticketId: "SP-115"
+title: "想當 Claude 架構師？這份拆解指南讓你不靠證照也能學到精髓"
+originalDate: "2026-03-15"
+translatedDate: "2026-03-16"
+translatedBy:
+  model: "Claude Opus 4.6"
+  harness: "OpenClaw"
+source: "@hooeem on X"
+sourceUrl: "https://x.com/hooeem/status/2033198345045336559"
+lang: "zh-tw"
+summary: "有人把 Claude Certified Architect 認證考試的內容全拆開了 — 五大領域、核心觀念、anti-patterns、實作建議一次看完。證照拿不拿不重要，知識才是重點。"
+tags: ["shroom-picks", "claude", "agent-architecture", "mcp", "prompt-engineering"]
+---
+import ClawdNote from '../../components/ClawdNote.astro';
+
+最近在 X 上看到有人把「Claude Certified Architect」認證考試的內容徹底拆解了。你知道嗎？要考這個認證，你得先是 Claude 的合作夥伴才行。但老實說，那張紙一點都不重要 (◍•ᴗ•◍)。
+
+重要的是它背後的知識體系。如果你能掌握這份考試指南裡的要求，你就有能力打造出 Production 等級的 AI 應用程式，從 Claude Code、Agent SDK、API 到 MCP (Model Context Protocol) 都能駕馭自如。
+
+原作者把落落長的考試大綱濃縮成了五大領域的精華，這篇我們就來像剝洋蔥一樣，一層一層看懂這些架構師等級的觀念。看完這篇，就算沒有證照，你的架構實力也絕對能點滿！
+
+---
+## Domain 1: Agentic Architecture & Orchestration (27%)
+
+這是整份指南中最肥、最重要的一塊！講白了就是 Agent 的架構設計與編排。考試裡特別點出了三個你看到就該直接打叉的「Anti-patterns」（反模式）：
+1. 依賴解析自然語言來決定什麼時候停止迴圈。
+2. 把「寫死一個迭代次數上限」當作主要的停止機制。
+3. 把 Assistant 的回覆文字當作任務完成的指標。
+這些通通是不及格的做法！
+
+再來，最多人踩的坑就是：**以為 Subagent（子代理）會跟 Coordinator（協調者）共享記憶。**
+錯！大錯特錯！Subagent 是在完全隔離的上下文環境中運作的。每一丁點需要的資訊，你都必須透過 prompt 明確地傳遞給它。
+
+還有一個能救命的鐵律：當你的應用涉及金融或資安等高風險操作時，光靠 prompt 下指令是不夠的。你必須在程式碼層級，透過 hook 和前置條件的閘門，強制鎖死工具的使用順序。
+
+<ClawdNote>
+這裡提到了一個很關鍵的 prompt template 觀念：不要期待用單一 prompt 解決所有問題。實務上，應該針對不同任務將 prompt 拆解，並利用結構化的 metadata 來傳遞上下文，而不是把所有歷史紀錄塞給子 Agent。
+(完整 prompt 範例在原文，有需要可以去原推文複製喔！)
+</ClawdNote>
+
+**What to build 實作建議：**
+試著做一個有 3 到 4 個 MCP 工具的多工具 Agent。確保你有好好處理 `stop_reason`，寫一個 `PostToolUse` hook 來標準化資料格式，並且加上一個工具攔截 hook，用來擋下違反政策的操作。
+
+---
+## Domain 2: Tool Design & MCP Integration (18%)
+
+這部分談的是工具設計跟 MCP 的整合。你要知道，Claude 是靠「工具描述 (Tool descriptions)」來決定要不要用這個工具的。如果你的描述寫得很模糊，或是跟其他工具重疊，Claude 就會開始亂選。
+
+舉個例子，如果你同時有 `get_customer` 和 `lookup_order`，而且描述寫得太像，AI 就會迷路。解法是什麼？不是給一堆 few-shot 範例，也不是加什麼路由分類器，更不是把工具硬湊在一起，而是**把描述寫得更好、更精準**。
+
+另外，給一個 Agent 塞 18 個工具，只會讓它腦袋當機，選擇的準確度會直線下降。最好的做法是：把每個 subagent 的工具數量限制在 4 到 5 個。
+
+**What to build 實作建議：**
+寫兩個功能故意很像的 MCP 工具。一開始先把描述寫得很模糊，看它怎麼選錯，然後再去修改描述把問題修好。
+
+---
+## Domain 3: Claude Code Configuration & Workflows (20%)
+
+這裡重點是 `CLAUDE.md` 的層級架構：它分為使用者層級 (`~/.claude/CLAUDE.md`)、專案層級 (`.claude/CLAUDE.md`) 和目錄層級。一個常見的雷點是：把團隊需要的指令寫在使用者層級，結果同事根本吃不到設定。
+
+在模式選擇上，有一個很實用的決策框架：
+- **Plan mode (計畫模式)**：適合用在大型重構、跨檔案遷移、或是做架構決策時。
+- **Direct execution (直接執行)**：適合單一檔案的 bug 修復、簡單的驗證檢查，範圍非常明確的時候。
+
+在 CI/CD 整合上，記得善用 `-p` 參數（非互動模式）。讓另一個獨立的實例來做 code review，抓出來的 bug 絕對比自我審查 (self-review) 多很多。
+
+**What to build 實作建議：**
+建立一個有 `CLAUDE.md` 層級設定的專案，在 `.claude/rules/` 裡用 glob pattern 設規則，寫一個帶有 `context: fork` 的技能，並寫一隻能在 CI 跑 `-p` 參數且輸出 JSON 的腳本。
+
+---
+## Domain 4: Prompt Engineering & Structured Output (20%)
+
+大家都知道要寫 Prompt，但「請保持保守 (Be conservative)」這種廢話指令是無法提升精準度的。你必須具體定義：遇到什麼等級的嚴重性該回報？什麼情況該忽略？最好能附上具體的程式碼範例。
+
+**Few-shot (少樣本) 範例是投資報酬率最高的技巧。** 給它 2 到 4 個具體的例子，示範在模糊情況下該怎麼推理和處理。
+
+另外，使用 `tool_use` 搭配 JSON schemas 可以幫你消滅語法錯誤，但**無法**解決語意錯誤。如果遇到資料格式錯誤，用 Validation-retry (驗證後重試) 迴圈很有效；但如果是資料根本沒給，重試也沒用。
+
+如果是不急的報表，記得善用 Message Batches API，可以省下 50% 的成本！
+
+**What to build 實作建議：**
+打造一個資料萃取 pipeline，裡面要包含 `tool_use`、驗證重試迴圈、批次處理機制，以及利用 `custom_id` 來處理失敗情況。
+
+---
+## Domain 5: Context Management & Reliability (15%)
+
+最後一哩路是上下文管理跟系統可靠性。
+
+「漸進式總結 (Progressive summarisation)」聽起來很酷，但它會抹殺掉交易型的精確數據。解法是建立一個持久的 "case facts" 區塊來保存關鍵事實。另外，為了對抗「迷失在中間 (Lost in the middle)」效應，記得把最重要的摘要放在 Prompt 的最前面。
+
+當系統遇到問題時，有三個絕對合理的升級 (Escalation) 觸發條件：
+1. 客戶要求找真人（這個要馬上答應）。
+2. 遇到政策沒有規範的模糊地帶。
+3. Agent 一直無法推進進度。
+相對的，依賴情緒分析或是 Agent 自己回報的「信心分數」，是非常不可靠的。
+
+**What to build 實作建議：**
+寫一個協調者 (Coordinator) 帶領兩個子代理，實作持久化的 case facts，並模擬一個帶有結構化錯誤傳遞與衝突來源處理的 Timeout 情境。
+
+---
+## 結語
+
+看完這五大領域，是不是覺得架構師的思維其實就是把每一個細節都做到極致？不依賴運氣，而是用程式碼、架構和精準的描述來確保系統的穩定性。
+
+證照真的只是一張紙，把這篇文章裡的「實作建議 (What to build)」自己動手玩過一遍，你寫出來的 Claude 應用絕對比一堆紙上談兵的人強得多！
+
+官方也釋出了一些學習資源，想練功的可以參考：
+- [Building with the Claude API](https://anthropic.skilljar.com/claude-with-the-anthropic-api)
+- [Introduction to MCP](https://anthropic.skilljar.com/introduction-to-model-context-protocol)
+- [Claude Code in Action](https://anthropic.skilljar.com/claude-code-in-action)
+- [Claude 101](https://anthropic.skilljar.com/claude-101)
