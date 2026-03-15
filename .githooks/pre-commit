@@ -81,6 +81,24 @@ else
 fi
 echo ""
 
+# ─── Step 0.6: Prettier format check (full codebase) ─────────────
+echo "🎨 Prettier: checking all source files..."
+if ! npx prettier --check \
+    "src/components/**/*.{astro,js,ts}" \
+    "src/layouts/**/*.{astro,js,ts}" \
+    "src/pages/**/*.{astro,js,ts}" \
+    "src/config/**/*.{js,ts}" \
+    "src/styles/**/*.css" \
+    "scripts/**/*.{js,mjs,cjs,ts}" \
+    "*.{mjs,cjs,ts}" 2>&1; then
+    echo ""
+    echo "❌ Prettier found formatting issues. Fix them before committing."
+    echo "   Run: pnpm run format"
+    exit 1
+fi
+echo "✓ Prettier passed"
+echo ""
+
 # ─── Step 1: Post validator (Node.js, blocking) ──────────────────
 # Validate only staged .mdx files (ACM = Added, Copied, Modified)
 STAGED_MDX=$(git diff --cached --name-only --diff-filter=ACM -- "$POSTS_DIR"/*.mdx 2>/dev/null || true)
