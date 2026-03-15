@@ -1,5 +1,5 @@
 import type { APIContext } from 'astro';
-import { getCollection } from 'astro:content';
+import { getCollection, type CollectionEntry } from 'astro:content';
 
 /**
  * Individual article endpoint for gu-log iOS app.
@@ -19,8 +19,8 @@ export async function getStaticPaths() {
   }));
 }
 
-export async function GET(context: APIContext) {
-  const { post } = context.props as { post: Awaited<ReturnType<typeof getCollection>>[number] };
+export async function GET(_context: APIContext) {
+  const { post } = _context.props as { post: CollectionEntry<'posts'> };
   const { Content: _Content, headings } = await (
     post as unknown as {
       render: () => Promise<{
