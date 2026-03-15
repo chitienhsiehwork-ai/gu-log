@@ -1,7 +1,7 @@
-import { test as testBase, expect, type Page } from '@playwright/test';
+import { test as testBase, expect, type Page, type TestInfo } from '@playwright/test';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let addCoverageReport: any = null;
+let addCoverageReport: ((coverageData: unknown, testInfo: TestInfo) => Promise<unknown>) | null =
+  null;
 
 try {
   const monocart = await import('monocart-reporter');
