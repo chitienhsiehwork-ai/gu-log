@@ -85,8 +85,10 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
         <div class="post-tags-section">
           <span class="tags-label">🏷️ Tags</span>
           <div class="post-tags">
-            {post.data.tags.map(tag => (
-              <a href={`/tags/${tag}`} class="tag-chip">{tag}</a>
+            {post.data.tags.map((tag) => (
+              <a href={`/tags/${tag}`} class="tag-chip">
+                {tag}
+              </a>
             ))}
           </div>
         </div>
@@ -100,14 +102,23 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
             <>
               <div>翻譯於 {post.data.translatedDate}</div>
               {post.data.translatedBy.pipeline.map((step) => (
-                <div>{step.role} by {step.model} ({step.harness})</div>
+                <div>
+                  {step.role} by {step.model} ({step.harness})
+                </div>
               ))}
               {post.data.translatedBy.pipelineUrl && (
-                <div><a href={post.data.translatedBy.pipelineUrl} target="_blank" rel="noopener">View pipeline script →</a></div>
+                <div>
+                  <a href={post.data.translatedBy.pipelineUrl} target="_blank" rel="noopener">
+                    View pipeline script →
+                  </a>
+                </div>
               )}
             </>
           ) : (
-            <>翻譯於 {post.data.translatedDate} by {post.data.translatedBy.model} ({post.data.translatedBy.harness})</>
+            <>
+              翻譯於 {post.data.translatedDate} by {post.data.translatedBy.model} (
+              {post.data.translatedBy.harness})
+            </>
           )}
         </div>
       )

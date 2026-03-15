@@ -157,17 +157,23 @@ const blockingGlobal = budget.blocking?.global ?? {};
 
 const totalMaxKB = toFiniteNumberOrNull(blockingGlobal.totalMaxKB);
 if (totalMaxKB !== null && sizes.totalKB > totalMaxKB) {
-  blockingViolations.push(`Total size ${formatKB(sizes.totalKB)} exceeds blocking budget ${formatKB(totalMaxKB)}`);
+  blockingViolations.push(
+    `Total size ${formatKB(sizes.totalKB)} exceeds blocking budget ${formatKB(totalMaxKB)}`
+  );
 }
 
 const jsMaxKB = toFiniteNumberOrNull(blockingGlobal.jsMaxKB);
 if (jsMaxKB !== null && sizes.jsKB > jsMaxKB) {
-  blockingViolations.push(`JS size ${formatKB(sizes.jsKB)} exceeds blocking budget ${formatKB(jsMaxKB)}`);
+  blockingViolations.push(
+    `JS size ${formatKB(sizes.jsKB)} exceeds blocking budget ${formatKB(jsMaxKB)}`
+  );
 }
 
 const cssMaxKB = toFiniteNumberOrNull(blockingGlobal.cssMaxKB);
 if (cssMaxKB !== null && sizes.cssKB > cssMaxKB) {
-  blockingViolations.push(`CSS size ${formatKB(sizes.cssKB)} exceeds blocking budget ${formatKB(cssMaxKB)}`);
+  blockingViolations.push(
+    `CSS size ${formatKB(sizes.cssKB)} exceeds blocking budget ${formatKB(cssMaxKB)}`
+  );
 }
 
 const singleFileMaxKB = toFiniteNumberOrNull(blockingGlobal.singleFileMaxKB);
@@ -285,7 +291,9 @@ if (blockingViolations.length > 0) {
 
 console.log('');
 if (trendAlerts.length > 0) {
-  console.log(`⚠️  Trend monitor alerts (non-blocking): ${trendCriticalCount} critical, ${trendWarningCount} warning`);
+  console.log(
+    `⚠️  Trend monitor alerts (non-blocking): ${trendCriticalCount} critical, ${trendWarningCount} warning`
+  );
   for (const alert of trendAlerts) {
     const icon = alert.severity === 'critical' ? '🟠' : '🟡';
     console.log(`  ${icon} ${alert.message}`);

@@ -238,8 +238,8 @@ function validatePost(filepath, allPosts) {
   // ── Rule 16: At least one kaomoji per post (brand voice) ──
   // Strip code blocks before checking — kaomoji in code doesn't count
   const bodyNoCode = body
-    .replace(/```[\s\S]*?```/g, '')  // fenced code blocks
-    .replace(/`[^`\n]+`/g, '');       // inline code
+    .replace(/```[\s\S]*?```/g, '') // fenced code blocks
+    .replace(/`[^`\n]+`/g, ''); // inline code
   // Match parenthesized expressions containing distinctive kaomoji face characters
   const KAOMOJI_PATTERN = /[（(][^)）\n]{0,40}[ωᴗᗜ◍˃˂╥][^)）\n]{0,40}[)）]/;
   if (filename !== 'demo.mdx' && filename !== 'en-demo.mdx' && !KAOMOJI_PATTERN.test(bodyNoCode)) {

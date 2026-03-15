@@ -24,13 +24,13 @@ const POSTS_DIR = join(__dirname, '../src/content/posts');
 const TAG_MERGES = {
   'ai agents': 'ai-agents',
   'ai-agent': 'ai-agents',
-  'agent': 'ai-agents',
-  'agents': 'ai-agents',
+  agent: 'ai-agents',
+  agents: 'ai-agents',
   'simon willison': 'simon-willison',
   'agentic coding': 'agentic-coding',
-  'ai': 'ai',
-  'claude': 'claude',
-  'coding': 'coding',
+  ai: 'ai',
+  claude: 'claude',
+  coding: 'coding',
   'vibe-coding': 'vibe-coding',
   'agent-loop': 'agent-loop',
   'multi-agent': 'multi-agent',
@@ -94,7 +94,7 @@ function extractTags(content) {
  */
 function replaceTags(content, newTags) {
   // Format tags as YAML array with proper indentation
-  const tagsString = newTags.map(tag => `"${tag}"`).join(', ');
+  const tagsString = newTags.map((tag) => `"${tag}"`).join(', ');
   const tagsLine = `tags: [${tagsString}]`;
 
   // Replace tags line in frontmatter
@@ -105,7 +105,7 @@ function replaceTags(content, newTags) {
  * Process all MDX files
  */
 function processAllFiles() {
-  const files = readdirSync(POSTS_DIR).filter(f => f.endsWith('.mdx'));
+  const files = readdirSync(POSTS_DIR).filter((f) => f.endsWith('.mdx'));
 
   let totalFiles = 0;
   let modifiedFiles = 0;
@@ -133,8 +133,8 @@ function processAllFiles() {
     const uniqueTags = [...new Set(normalizedTags)];
 
     // Check if anything changed
-    const tagsChanged = tags.length !== uniqueTags.length ||
-                       tags.some((tag, i) => tag !== normalizedTags[i]);
+    const tagsChanged =
+      tags.length !== uniqueTags.length || tags.some((tag, i) => tag !== normalizedTags[i]);
 
     if (tagsChanged) {
       modifiedFiles++;

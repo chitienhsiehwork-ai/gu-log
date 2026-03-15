@@ -11,15 +11,15 @@ export async function getStaticPaths() {
 
   // Get all unique tags
   const tags = new Set<string>();
-  allPosts.forEach(post => {
-    (post.data.tags || []).forEach(tag => tags.add(tag));
+  allPosts.forEach((post) => {
+    (post.data.tags || []).forEach((tag) => tags.add(tag));
   });
 
   // Generate a page for each tag
-  return Array.from(tags).map(tag => {
+  return Array.from(tags).map((tag) => {
     // Filter posts with this tag
     const tagPosts = allPosts
-      .filter(post => post.data.tags?.includes(tag))
+      .filter((post) => post.data.tags?.includes(tag))
       .sort((a, b) => {
         const dateA = a.data.translatedDate || a.data.originalDate;
         const dateB = b.data.translatedDate || b.data.originalDate;
@@ -28,7 +28,7 @@ export async function getStaticPaths() {
 
     return {
       params: { tag },
-      props: { tag, posts: tagPosts }
+      props: { tag, posts: tagPosts },
     };
   });
 }
@@ -50,32 +50,34 @@ const { tag, posts } = Astro.props;
     </header>
 
     <section class="posts-list">
-      {posts.map(post => (
-        <article class="post-card">
-          <h2>
-            <a href={`/posts/${post.slug}`}>{post.data.title}</a>
-          </h2>
-          <p class="post-meta">
-            {post.data.ticketId && <TicketBadge ticketId={post.data.ticketId} />}
-            <span class="meta-date">{post.data.translatedDate || post.data.originalDate}</span>
-            {post.data.source && (
-              <span class="meta-source">· {post.data.source}</span>
+      {
+        posts.map((post) => (
+          <article class="post-card">
+            <h2>
+              <a href={`/posts/${post.slug}`}>{post.data.title}</a>
+            </h2>
+            <p class="post-meta">
+              {post.data.ticketId && <TicketBadge ticketId={post.data.ticketId} />}
+              <span class="meta-date">{post.data.translatedDate || post.data.originalDate}</span>
+              {post.data.source && <span class="meta-source">· {post.data.source}</span>}
+            </p>
+            <Toggle title="摘要預覽">
+              <p>{post.data.summary}</p>
+            </Toggle>
+            {post.data.tags && post.data.tags.length > 1 && (
+              <div class="post-tags">
+                {post.data.tags
+                  .filter((t) => t !== tag)
+                  .map((t) => (
+                    <a href={`/tags/${t}`} class="tag-chip">
+                      {t}
+                    </a>
+                  ))}
+              </div>
             )}
-          </p>
-          <Toggle title="摘要預覽">
-            <p>{post.data.summary}</p>
-          </Toggle>
-          {post.data.tags && post.data.tags.length > 1 && (
-            <div class="post-tags">
-              {post.data.tags
-                .filter(t => t !== tag)
-                .map(t => (
-                  <a href={`/tags/${t}`} class="tag-chip">{t}</a>
-                ))}
-            </div>
-          )}
-        </article>
-      ))}
+          </article>
+        ))
+      }
     </section>
 
     <footer class="page-footer">

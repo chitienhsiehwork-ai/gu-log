@@ -41,7 +41,9 @@ function parseArgs(argv) {
       continue;
     }
     if (arg === '--help' || arg === '-h') {
-      console.log(`Usage: node scripts/security-gate.mjs [options]\n\nOptions:\n  --allowlist <path>  Allowlist path (default: quality/security-allowlist.json)\n  --audit-file <path> Read audit JSON from file (default: run "pnpm audit --json")\n  -h, --help          Show help\n`);
+      console.log(
+        `Usage: node scripts/security-gate.mjs [options]\n\nOptions:\n  --allowlist <path>  Allowlist path (default: quality/security-allowlist.json)\n  --audit-file <path> Read audit JSON from file (default: run "pnpm audit --json")\n  -h, --help          Show help\n`
+      );
       process.exit(0);
     }
     console.error(`Unknown argument: ${arg}`);
@@ -131,7 +133,9 @@ function normalizeFromAdvisories(report, deps, devDeps) {
     .filter((advisory) => ['high', 'critical'].includes((advisory.severity || '').toLowerCase()))
     .map((advisory) => {
       const paths = [
-        ...new Set((advisory.findings || []).flatMap((finding) => finding.paths || []).filter(Boolean)),
+        ...new Set(
+          (advisory.findings || []).flatMap((finding) => finding.paths || []).filter(Boolean)
+        ),
       ];
       const roots = [...new Set(paths.map(parseLegacyRoot).filter(Boolean))];
       const scope = classifyScope(roots, deps, devDeps);
@@ -162,7 +166,9 @@ function normalizeFromV2(report, deps, devDeps) {
         ),
       ];
 
-      const rootsFromNodes = [...new Set((vuln.nodes || []).map(parseNodeModulesRoot).filter(Boolean))];
+      const rootsFromNodes = [
+        ...new Set((vuln.nodes || []).map(parseNodeModulesRoot).filter(Boolean)),
+      ];
       const roots = [...rootsFromNodes];
 
       if (roots.length === 0 && vuln.isDirect) {
@@ -315,8 +321,7 @@ function main() {
 
   const totalMeta = report?.metadata?.vulnerabilities || {};
   const high = totalMeta.high ?? findings.filter((v) => v.severity === 'high').length;
-  const critical =
-    totalMeta.critical ?? findings.filter((v) => v.severity === 'critical').length;
+  const critical = totalMeta.critical ?? findings.filter((v) => v.severity === 'critical').length;
 
   console.log('=== Security Gate (Level 4 / Plan C) ===');
   console.log(`Allowlist: ${options.allowlistPath}`);

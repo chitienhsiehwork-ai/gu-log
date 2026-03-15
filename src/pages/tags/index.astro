@@ -10,9 +10,9 @@ const allPosts = await getCollection('posts', ({ data }) => {
 // Count posts per tag
 const tagCounts = new Map<string, number>();
 
-allPosts.forEach(post => {
+allPosts.forEach((post) => {
   const tags = post.data.tags || [];
-  tags.forEach(tag => {
+  tags.forEach((tag) => {
     tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
   });
 });
@@ -33,12 +33,14 @@ const totalTags = sortedTags.length;
     </header>
 
     <div class="tags-grid">
-      {sortedTags.map(({ tag, count }) => (
-        <a href={`/tags/${tag}`} class="tag-card">
-          <span class="tag-name">{tag}</span>
-          <span class="tag-count">{count}</span>
-        </a>
-      ))}
+      {
+        sortedTags.map(({ tag, count }) => (
+          <a href={`/tags/${tag}`} class="tag-card">
+            <span class="tag-name">{tag}</span>
+            <span class="tag-count">{count}</span>
+          </a>
+        ))
+      }
     </div>
 
     <footer class="page-footer">
