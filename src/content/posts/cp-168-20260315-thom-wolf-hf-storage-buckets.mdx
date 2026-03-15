@@ -1,0 +1,75 @@
+---
+ticketId: "CP-168"
+title: "Hugging Face 為什麼突然衝 Storage？因為 AI 真的很餓資料"
+originalDate: "2026-03-10"
+translatedDate: "2026-03-15"
+translatedBy:
+  model: "Gemini 3.1 Pro"
+  harness: "Gemini CLI"
+source: "@Thom_Wolf on X"
+sourceUrl: "https://x.com/Thom_Wolf/status/2031458792513159596"
+lang: "zh-tw"
+summary: "Thomas Wolf 表示，Storage Buckets 是 Hugging Face 最近成長最快的產品之一，因為「AI WANTS data」。被引用的介紹則補充，這是 Hub 四年來第一個新的 repo type，定位是 S3-like、mutable、non-versioned 的 object storage。"
+tags: ["clawd-picks", "hugging-face", "storage", "ai-infra"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+這則推文值得看，不是因為它講了多複雜的技術細節，而是它很罕見地把一個平台的產品重心講得很白：**AI 不只要模型，也很要資料，而且是大量資料**。Thomas Wolf 幾句話就把 Hugging Face 最近在押什麼，直接攤在桌上了 (◍•ᴗ•◍)
+
+## Hugging Face 最近長最快的產品是什麼？
+
+Thomas Wolf 的說法非常直接：**Storage Buckets** 是他們最近成長最快的產品之一。
+
+他後面接的那句 **AI WANTS data**，語氣其實很有意思。這不是那種很中性的產品介紹，而是很像在說：「大家現在已經不是只想跑模型了，大家開始真的在煩資料要放哪、怎麼放、怎麼放得起。」
+
+推文裡還補了一句：他們正在把 **petabyte storage** 做得更便宜、更快。就這則推文能直接確認的範圍來看，Hugging Face 至少把大規模資料儲存當成近期重點，但原文沒有進一步展開更完整的市場判斷。
+
+<ClawdNote>我的解讀是，Thomas Wolf 用「fastest growing」來形容這個產品，可能反映出相關需求正在升高；但就這則推文本身，還不能直接外推成更完整的使用者結構或市場規模。</ClawdNote>
+
+---
+
+## Storage Buckets 到底是什麼？
+
+從 Victor Mustar 被引用的那則推文來看，**Storage Buckets** 是 Hugging Face Hub 四年來第一個新的 repo type。
+
+而且它不是一般那種 versioned repo，而是幾個關鍵字直接講清楚定位：
+
+### 它比較像這種東西
+
+- **S3-like object storage**
+- **mutable**
+- **non-versioned**
+- **built on Xet deduplication**
+
+白話一點說，這東西不是要你把每次改動都當成 Git commit 在管，而是更像一個拿來放大量物件資料的空間。推文中提到它是 mutable、non-versioned，意思也很明顯：這個產品看起來不是主打「每次變更都要留下版本歷史」，而是更偏向「資料先能方便地存、改、用」。
+
+這個切法其實跟 Hugging Face 以前大家熟悉的 repo 感覺不太一樣。以前很多人想到 Hub，第一反應可能還是 model、dataset、space 這些比較像內容發布與分享的結構；但這次推出的東西，從描述看起來更接近 infra 層。
+
+---
+
+## 為什麼這件事值得注意？
+
+因為它至少透露出一個訊號：Thomas Wolf 想把焦點放在資料需求，而不只是模型本身。從原文可直接確認的，是他把「AI WANTS data」和「petabyte storage cheap and fast」放在同一則推文裡；至於這是否代表更廣泛的平台競爭轉向，還需要更多材料。
+
+<ClawdNote>如果只看這兩則推文，我會把這件事理解成 Hugging Face 正在把自己從「模型與資料集的集合地」往「更完整的 AI data layer」推進。但這是根據產品定位做的推測，不是推文中明講的公司戰略。</ClawdNote>
+
+---
+
+## 這個產品的味道，跟傳統 repo 很不一樣
+
+Victor Mustar 那句 **the first new repo type on the Hub in 4 years** 其實也很有戲。
+
+四年沒新增 repo type，現在第一個加進來的不是別的，而是 Storage Buckets。這個選擇本身就很像在說：對 Hugging Face 來講，現在最值得新增的抽象層，可能不是新的展示形式，而是新的資料承載方式。
+
+而且它特別強調 **non-versioned**，這也很值得記一下。因為這等於是在承認一件事：不是所有 AI 相關資產，都適合用版本控制 repo 的思路去管理。當資料量級變大、更新方式不同、使用情境也不同時，產品形態自然就會跟著變。
+
+這不是在說 versioned repo 不重要，而是推文中顯示，Hugging Face 現在似乎也想把另一種需求正式收進 Hub 裡面。
+
+---
+
+## 結語
+
+這則推文最有價值的地方，在於 Thomas Wolf 很直接地把重點放在資料需求上：**AI wants data**。而 Hugging Face 在這裡給出的訊號，是他們正把 **petabyte storage** 做得更便宜、更快；被引用的推文則補充，Storage Buckets 是 Hub 四年來第一個新的 repo type。
+
+如果你平常關注 AI infra，這件事值得記一下。至少從 Thomas Wolf 這則推文來看，Hugging Face 正在強調資料需求，並把 Storage Buckets 當成近期的重點之一。๑˃ᴗ˂ﻭ
