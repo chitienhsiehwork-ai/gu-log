@@ -21,7 +21,14 @@ export async function getStaticPaths() {
 
 export async function GET(context: APIContext) {
   const { post } = context.props as { post: Awaited<ReturnType<typeof getCollection>>[number] };
-  const { Content: _Content, headings } = await (post as unknown as { render: () => Promise<{ Content: unknown; headings: { depth: number; slug: string; text: string }[] }> }).render();
+  const { Content: _Content, headings } = await (
+    post as unknown as {
+      render: () => Promise<{
+        Content: unknown;
+        headings: { depth: number; slug: string; text: string }[];
+      }>;
+    }
+  ).render();
 
   // We can't easily serialize the Content component to HTML in a static endpoint,
   // so we provide the raw MDX body + headings. The app can render markdown natively.
@@ -47,6 +54,6 @@ export async function GET(context: APIContext) {
         'Content-Type': 'application/json',
         'Cache-Control': 'public, max-age=3600', // 1 hour CDN cache
       },
-    },
+    }
   );
 }

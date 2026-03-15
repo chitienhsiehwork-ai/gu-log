@@ -63,6 +63,6 @@ export async function GET(_context: APIContext) {
         'Content-Type': 'application/json',
         'Cache-Control': 'public, max-age=300', // 5 min CDN cache
       },
-    },
+    }
   );
 }

@@ -25,12 +25,26 @@ const grouped = allBriefs.reduce(
     acc[month].push(brief);
     return acc;
   },
-  {} as Record<string, typeof allBriefs>,
+  {} as Record<string, typeof allBriefs>
 );
 
 const monthLabels = (ym: string) => {
   const [y, m] = ym.split('-');
-  const months = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const months = [
+    '',
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ];
   return `${months[parseInt(m)]} ${y}`;
 };
 ---
@@ -53,8 +67,8 @@ const monthLabels = (ym: string) => {
                 {brief.data.title}
               </a>
               <span class="brief-meta">
-                <span class="brief-type-label">{briefTypeLabels[brief.data.briefType]}</span>
-                · {brief.data.date} {brief.data.time}
+                <span class="brief-type-label">{briefTypeLabels[brief.data.briefType]}</span>·{' '}
+                {brief.data.date} {brief.data.time}
               </span>
               <p class="brief-summary">{brief.data.summary}</p>
             </article>

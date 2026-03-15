@@ -18,8 +18,7 @@ const WJ = '\u2060';
 // Characters that signal "this bracketed text is a kaomoji, not regular text"
 // Includes common face parts: eyes, mouths, cheeks, decorative marks
 /* eslint-disable no-misleading-character-class -- ᗜ̶ is intentionally a combined character (ᗜ + U+0336 strikethrough) */
-const KAOMOJI_CHARS =
-  /[°□▽￣ᴥᴗ◍๑˃˂ᗜ̶ಠ∀ω·•‿ᵕ╥﹏☆ᴗ⁰]/;
+const KAOMOJI_CHARS = /[°□▽￣ᴥᴗ◍๑˃˂ᗜ̶ಠ∀ω·•‿ᵕ╥﹏☆ᴗ⁰]/;
 /* eslint-enable no-misleading-character-class */
 
 // Arm / trailing characters that follow the closing bracket
@@ -29,11 +28,13 @@ const ARM_CHARS = '[╯ﻭ／ノ┻━"ゞ☆♪♡]';
 //   Pattern B: ( ... )  or （ ... ）  followed by optional arm chars
 const POTENTIAL_KAOMOJI = new RegExp(
   '(?:' +
-    'ʕ[^\\n\\r]{1,15}ʔ' +                           // bear: ʕ•ᴥ•ʔ
+    'ʕ[^\\n\\r]{1,15}ʔ' + // bear: ʕ•ᴥ•ʔ
     '|' +
-    '[（(][^\\n\\r()（）]{1,25}[）)]' + ARM_CHARS + '*' +  // paren-based + arms
-  ')',
-  'g',
+    '[（(][^\\n\\r()（）]{1,25}[）)]' +
+    ARM_CHARS +
+    '*' + // paren-based + arms
+    ')',
+  'g'
 );
 
 /**
@@ -52,7 +53,7 @@ function protect(match) {
   //    Only insert if WJ not already there (idempotent)
   result = result.replace(
     new RegExp('([）)ʔ])(?!' + WJ + ')(' + ARM_CHARS + ')', 'g'),
-    `$1${WJ}$2`,
+    `$1${WJ}$2`
   );
 
   return result;

@@ -17,17 +17,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const POSTS_DIR = path.join(__dirname, '../src/content/posts');
 
 const WRITE_MODE = process.argv.includes('--write');
-const specificFiles = process.argv.slice(2).filter(a => a !== '--write' && a.endsWith('.mdx'));
+const specificFiles = process.argv.slice(2).filter((a) => a !== '--write' && a.endsWith('.mdx'));
 
 // Safe kaomoji pool (no markdown syntax chars: no backticks, asterisks, underscores)
-const KAOMOJI_POOL = [
-  '(◍•ᴗ•◍)',
-  '(๑˃ᴗ˂)ﻭ',
-  '( •̀ ω •́ )✧',
-  '(◍˃̶ᗜ˂̶◍)ノ"',
-  '(•̀ᴗ•́)و',
-  '(；ω；)',
-];
+const KAOMOJI_POOL = ['(◍•ᴗ•◍)', '(๑˃ᴗ˂)ﻭ', '( •̀ ω •́ )✧', '(◍˃̶ᗜ˂̶◍)ノ"', '(•̀ᴗ•́)و', '(；ω；)'];
 
 // Detection pattern (same as validate-posts.mjs Rule 16)
 const KAOMOJI_PATTERN = /[（(][^)）\n]{0,40}[ωᴗᗜ◍˃˂╥][^)）\n]{0,40}[)）]/;
@@ -86,14 +79,15 @@ function addKaomoji(content) {
     if (line === '<ClawdNote>' || line === '</ClawdNote>') continue;
 
     // Found a substantive line — must be our own prose, not quotes/URLs/citations
-    if (line.length >= 10
-        && !line.match(/^<\/?[\w]+>$/)
-        && !line.startsWith('>')           // blockquotes
-        && !line.startsWith('**@')         // attributed quotes
-        && !line.match(/^\*[^*]+\*$/)      // full-italic lines (citations)
-        && !line.match(/^https?:\/\//)     // bare URLs
-        && !line.match(/^\[.*\]\(http/)    // markdown links as sole content
-        && !line.startsWith('|')           // table rows
+    if (
+      line.length >= 10 &&
+      !line.match(/^<\/?[\w]+>$/) &&
+      !line.startsWith('>') && // blockquotes
+      !line.startsWith('**@') && // attributed quotes
+      !line.match(/^\*[^*]+\*$/) && // full-italic lines (citations)
+      !line.match(/^https?:\/\//) && // bare URLs
+      !line.match(/^\[.*\]\(http/) && // markdown links as sole content
+      !line.startsWith('|') // table rows
     ) {
       insertIdx = i;
       break;
@@ -113,7 +107,13 @@ function addKaomoji(content) {
     // Try to find a better line above
     for (let i = insertIdx - 1; i >= 0; i--) {
       const l = lines[i].trim();
-      if (l.length >= 10 && !l.match(/^<\/?[\w]+>$/) && !l.startsWith('#') && !l.startsWith('```') && !l.startsWith('import ')) {
+      if (
+        l.length >= 10 &&
+        !l.match(/^<\/?[\w]+>$/) &&
+        !l.startsWith('#') &&
+        !l.startsWith('```') &&
+        !l.startsWith('import ')
+      ) {
         insertIdx = i;
         break;
       }
@@ -133,7 +133,7 @@ function addKaomoji(content) {
 function main() {
   let files;
   if (specificFiles.length > 0) {
-    files = specificFiles.map(f => {
+    files = specificFiles.map((f) => {
       if (fs.existsSync(f)) return f;
       const full = path.join(POSTS_DIR, path.basename(f));
       if (fs.existsSync(full)) return full;
@@ -141,9 +141,10 @@ function main() {
       process.exit(1);
     });
   } else {
-    files = fs.readdirSync(POSTS_DIR)
-      .filter(f => f.endsWith('.mdx') && f !== 'demo.mdx' && f !== 'en-demo.mdx')
-      .map(f => path.join(POSTS_DIR, f));
+    files = fs
+      .readdirSync(POSTS_DIR)
+      .filter((f) => f.endsWith('.mdx') && f !== 'demo.mdx' && f !== 'en-demo.mdx')
+      .map((f) => path.join(POSTS_DIR, f));
   }
 
   let fixed = 0;
@@ -186,7 +187,9 @@ function main() {
   }
 
   console.log('');
-  console.log(`${WRITE_MODE ? 'Written' : 'Would fix'}: ${fixed} | Skipped (has kaomoji): ${skipped} | Failed: ${failed}`);
+  console.log(
+    `${WRITE_MODE ? 'Written' : 'Would fix'}: ${fixed} | Skipped (has kaomoji): ${skipped} | Failed: ${failed}`
+  );
   if (!WRITE_MODE && fixed > 0) {
     console.log('Run with --write to apply changes.');
   }

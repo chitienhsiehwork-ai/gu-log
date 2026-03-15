@@ -617,9 +617,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
         try {
           const errBody = await res.json();
           errText =
-            formatErrorDetail(errBody.detail) ||
-            formatErrorDetail(errBody.error) ||
-            res.statusText;
+            formatErrorDetail(errBody.detail) || formatErrorDetail(errBody.error) || res.statusText;
         } catch (_error) {
           errText = res.statusText;
         }

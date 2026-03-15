@@ -15,7 +15,6 @@ const CSS_EXTS = new Set(['.css']);
 const HTML_EXTS = new Set(['.html', '.htm']);
 const IMG_EXTS = new Set(['.png', '.jpg', '.jpeg', '.svg', '.webp', '.gif']);
 
-
 function toPosixPath(pathValue) {
   return pathValue.split(sep).join('/');
 }
