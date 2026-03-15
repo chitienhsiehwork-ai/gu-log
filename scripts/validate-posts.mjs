@@ -252,6 +252,17 @@ function validatePost(filepath, allPosts) {
     warnings.push('Filename does not contain a date (YYYYMMDD)');
   }
 
+  // ── Rule 17: No raw ```mermaid code fences ──
+  // Astro doesn't auto-render mermaid code fences — must use <Mermaid chart={...} /> component.
+  // Match ```mermaid (with optional whitespace) that's NOT inside another code block example.
+  const mermaidFencePattern = /^```mermaid\s*$/m;
+  if (mermaidFencePattern.test(body)) {
+    errors.push(
+      'Raw ```mermaid code fence detected — use <Mermaid chart={`...`} /> component instead. ' +
+        'See src/components/Mermaid.astro for usage.',
+    );
+  }
+
   return { filename, errors, warnings };
 }
 
