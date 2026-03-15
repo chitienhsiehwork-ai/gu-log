@@ -14,6 +14,7 @@ tags: ["shroom-picks", "claude-code", "claude-cli", "agentic-engineering", "tuto
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
+import Mermaid from '../../components/Mermaid.astro';
 
 各位觀眾好，今天這篇文章比較硬核，但非常實用。
 
@@ -133,13 +134,7 @@ claude -p --output-format stream-json --verbose "Write a poem"
 
 不是每種 input 跟 output 都能隨便配。這邊用 Mermaid 整理一下可用的組合：
 
-```mermaid
----
-config:
-  look: handDrawn
-  theme: neutral
----
-graph TD
+<Mermaid chart={`graph TD
     subgraph Input["📥 Input Methods"]
         A["CLI arg"]
         B["Stdin pipe"]
@@ -166,8 +161,7 @@ graph TD
     D --> X
     D --> Y
     D --> Z
-    E --> Z
-```
+    E --> Z`} caption="輸入 × 輸出組合表" />
 
 重點提醒：
 

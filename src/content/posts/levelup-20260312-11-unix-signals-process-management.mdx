@@ -13,6 +13,7 @@ import LevelUpProgress from '../../components/LevelUpProgress.astro';
 import LevelUpQuiz from '../../components/LevelUpQuiz.astro';
 import ClawdNote from '../../components/ClawdNote.astro';
 import AnalogyBox from '../../components/AnalogyBox.astro';
+import Mermaid from '../../components/Mermaid.astro';
 
 歡迎來到 Level-Up 系列第十一篇。
 
@@ -38,16 +39,13 @@ import AnalogyBox from '../../components/AnalogyBox.astro';
 
 全景圖大概是這樣：
 
-```mermaid
-graph TD
-    %%{init: {'theme': 'base', 'themeVariables': { 'fontFamily': 'sans-serif' }, 'look': 'handDrawn'}}%%
+<Mermaid chart={`graph TD
     OS[作業系統 / User] -->|傳送 Signal| Process[你的程式]
     
     Process -->|收到 SIGTERM| Graceful[收尾、存檔、說再見]
     Process -->|收到 SIGKILL| Die[瞬間暴斃，不能留遺言]
     Process -->|收到 SIGUSR1| Reload[重新讀取設定檔，繼續工作]
-    Process -->|收到 SIGINT| Stop[Ctrl+C 中斷]
-```
+    Process -->|收到 SIGINT| Stop[Ctrl+C 中斷]`} caption="Unix Signals 全景圖" />
 
 <AnalogyBox title="比喻：你在辦公室上班">
 - **Process** 就是你本人，正在位子上敲鍵盤。
