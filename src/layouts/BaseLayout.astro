@@ -163,44 +163,71 @@ const finalDescription = description || t.defaultDescription;
       .nav-icons {
         display: flex;
         align-items: center;
-        gap: 0.35rem;
+        gap: 0;
         flex-wrap: nowrap;
       }
 
-      .icon-btn {
+      /* Unified nav icon container — applies to ALL nav items (links + buttons) */
+      .icon-btn,
+      .nav-icons .search-trigger,
+      .nav-icons .theme-toggle {
         display: flex;
         align-items: center;
         justify-content: center;
         color: var(--color-text-muted);
         text-decoration: none;
         transition: color 0.2s ease;
-        padding: 0.25rem;
+        padding: 0.3rem;
+        width: 28px;
+        height: 28px;
+        flex-shrink: 0;
+        box-sizing: border-box;
       }
 
-      .icon-btn:hover {
+      .icon-btn:hover,
+      .nav-icons .search-trigger:hover,
+      .nav-icons .theme-toggle:hover {
         color: var(--color-accent);
       }
 
-      .nav-svg-icon {
+      /* All SVGs in nav: uniform 16px */
+      .nav-svg-icon,
+      .nav-icons .search-trigger svg,
+      .nav-icons .theme-toggle svg {
         width: 16px;
         height: 16px;
+        flex-shrink: 0;
+        display: block;
       }
 
       /* Removed login styles */
 
-      /* Mobile: allow header to wrap, but nav icons NEVER wrap */
+      /* Mobile: shrink icons to fit single row */
       @media (max-width: 480px) {
         .site-header {
           flex-wrap: wrap;
         }
         .site-nav {
           flex-shrink: 1;
-          gap: 0.2rem;
+          gap: 0;
           justify-content: flex-end;
         }
         .nav-icons {
-          gap: 0.15rem;
+          gap: 0;
           flex-wrap: nowrap;
+        }
+        .icon-btn,
+        .nav-icons .search-trigger,
+        .nav-icons .theme-toggle {
+          width: 26px;
+          height: 26px;
+          padding: 0.2rem;
+        }
+        .nav-svg-icon,
+        .nav-icons .search-trigger svg,
+        .nav-icons .theme-toggle svg {
+          width: 14px;
+          height: 14px;
         }
       }
 
