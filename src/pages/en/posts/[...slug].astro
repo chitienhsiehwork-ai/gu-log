@@ -7,6 +7,7 @@ import TicketBadge from '../../../components/TicketBadge.astro';
 import Giscus from '../../../components/Giscus.astro';
 import ShareButton from '../../../components/ShareButton.astro';
 import AiPopup from '../../../components/AiPopup.astro';
+import ReadStatusButton from '../../../components/ReadStatusButton.astro';
 
 export async function getStaticPaths() {
   const posts = await getCollection('posts', ({ data }) => {
@@ -122,6 +123,8 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
         </div>
       )
     }
+
+    <ReadStatusButton slug={post.slug} lang="en" />
 
     <ShareButton title={post.data.title} lang="en" />
 

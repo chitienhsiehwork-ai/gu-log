@@ -1,0 +1,165 @@
+---
+interface Props {
+  slug: string;
+  lang?: 'zh-tw' | 'en';
+}
+
+const { slug, lang = 'zh-tw' } = Astro.props;
+---
+
+<div
+  class="read-status-wrap"
+  data-read-button
+  data-slug={slug}
+  data-lang={lang}
+  style="display:none"
+>
+  <button class="read-status-btn" type="button">
+    <span class="rs-icon rs-icon-unread">☐</span>
+    <span class="rs-icon rs-icon-read">☑</span>
+    <span class="rs-label rs-label-unread">{lang === 'en' ? 'Mark as read' : '標記已讀'}</span>
+    <span class="rs-label rs-label-read">{lang === 'en' ? 'Read' : '已讀'}</span>
+  </button>
+</div>
+
+<script>
+  import { isRead, toggleRead } from '../lib/reading-tracker';
+
+  function initReadButtons() {
+    // Only show when logged in
+    const jwt = localStorage.getItem('gu-log-jwt');
+    if (!jwt) return;
+
+    document.querySelectorAll<HTMLElement>('[data-read-button]').forEach((el) => {
+      el.style.display = '';
+
+      const slug = el.dataset.slug || '';
+      const btn = el.querySelector<HTMLButtonElement>('.read-status-btn');
+      if (!btn) return;
+
+      function updateUI(read: boolean) {
+        const iconUnread = el.querySelector<HTMLElement>('.rs-icon-unread')!;
+        const iconRead = el.querySelector<HTMLElement>('.rs-icon-read')!;
+        const labelUnread = el.querySelector<HTMLElement>('.rs-label-unread')!;
+        const labelRead = el.querySelector<HTMLElement>('.rs-label-read')!;
+
+        if (read) {
+          iconUnread.style.display = 'none';
+          iconRead.style.display = '';
+          labelUnread.style.display = 'none';
+          labelRead.style.display = '';
+          btn!.classList.add('is-read');
+        } else {
+          iconUnread.style.display = '';
+          iconRead.style.display = 'none';
+          labelUnread.style.display = '';
+          labelRead.style.display = 'none';
+          btn!.classList.remove('is-read');
+        }
+      }
+
+      // Hide "read" variants initially via CSS, update here
+      el.querySelector<HTMLElement>('.rs-icon-read')!.style.display = 'none';
+      el.querySelector<HTMLElement>('.rs-label-read')!.style.display = 'none';
+
+      updateUI(isRead(slug));
+
+      btn.addEventListener('click', () => {
+        const nowRead = toggleRead(slug);
+        updateUI(nowRead);
+        // Dispatch event for any dashboard that might be listening
+        window.dispatchEvent(
+          new CustomEvent('read-status-changed', { detail: { slug, read: nowRead } })
+        );
+      });
+    });
+  }
+
+  // Auto-mark as read when scrolled to near bottom
+  function initScrollRead() {
+    const jwt = localStorage.getItem('gu-log-jwt');
+    if (!jwt) return;
+
+    const el = document.querySelector<HTMLElement>('[data-read-button]');
+    if (!el) return;
+    const slug = el.dataset.slug || '';
+    if (!slug || isRead(slug)) return;
+
+    const postContent = document.querySelector('.post-content');
+    if (!postContent) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          // Bottom of content visible — mark as read
+          import('../lib/reading-tracker').then(({ markAsRead }) => {
+            markAsRead(slug);
+            // Update button UI
+            document.querySelectorAll<HTMLElement>('[data-read-button]').forEach((btn) => {
+              if (btn.dataset.slug === slug) {
+                btn.querySelector<HTMLElement>('.rs-icon-unread')!.style.display = 'none';
+                btn.querySelector<HTMLElement>('.rs-icon-read')!.style.display = '';
+                btn.querySelector<HTMLElement>('.rs-label-unread')!.style.display = 'none';
+                btn.querySelector<HTMLElement>('.rs-label-read')!.style.display = '';
+                btn.querySelector<HTMLButtonElement>('.read-status-btn')!.classList.add('is-read');
+              }
+            });
+          });
+          observer.disconnect();
+        }
+      },
+      { threshold: 1.0, rootMargin: '0px 0px -50px 0px' }
+    );
+
+    // Observe the last paragraph/element in post-content
+    const children = postContent.children;
+    if (children.length > 0) {
+      observer.observe(children[children.length - 1]);
+    }
+  }
+
+  initReadButtons();
+  initScrollRead();
+</script>
+
+<style>
+  .read-status-wrap {
+    margin: 1.5rem 0 0.5rem;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .read-status-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: none;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    font-size: 0.875rem;
+    padding: 0.35rem 0.75rem;
+    transition:
+      border-color 0.2s ease,
+      color 0.2s ease,
+      background-color 0.2s ease;
+    font-family: var(--font-sans);
+    line-height: 1.4;
+  }
+
+  .read-status-btn:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+
+  .read-status-btn.is-read {
+    border-color: var(--color-badge-sd);
+    color: var(--color-badge-sd);
+    background-color: rgba(80, 250, 123, 0.08);
+  }
+
+  [data-theme='light'] .read-status-btn.is-read {
+    background-color: rgba(29, 106, 92, 0.08);
+  }
+</style>

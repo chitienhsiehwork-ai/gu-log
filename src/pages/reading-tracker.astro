@@ -1,0 +1,640 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const allPosts = await getCollection('posts', ({ data }) => data.lang === 'zh-tw');
+
+// Sort by date descending
+allPosts.sort((a, b) => {
+  const da = a.data.translatedDate || a.data.originalDate || '';
+  const db = b.data.translatedDate || b.data.originalDate || '';
+  return db.localeCompare(da);
+});
+
+type Group = { label: string; colorVar: string; posts: typeof allPosts };
+const groups: Record<string, Group> = {
+  CP: { label: 'Clawd Picks', colorVar: 'var(--color-badge-cp)', posts: [] },
+  SP: { label: 'ShroomDog Picks', colorVar: 'var(--color-badge-sp)', posts: [] },
+  SD: { label: 'ShroomDog Original', colorVar: 'var(--color-badge-sd)', posts: [] },
+  Lv: { label: 'Level Up', colorVar: 'var(--color-badge-lv)', posts: [] },
+};
+
+const prefixOrder = ['CP', 'SP', 'SD', 'Lv'];
+
+for (const post of allPosts) {
+  const prefix = post.data.ticketId?.split('-')[0] || 'SD';
+  if (groups[prefix]) {
+    groups[prefix].posts.push(post);
+  } else {
+    groups['SD'].posts.push(post);
+  }
+}
+
+const totalArticles = allPosts.length;
+---
+
+<BaseLayout title="Reading Tracker — gu-log" lang="zh-tw">
+  <!-- Immediate auth check — redirect if not logged in -->
+  <script is:inline>
+    (function () {
+      const jwt = localStorage.getItem('gu-log-jwt');
+      if (!jwt) {
+        window.location.replace('/');
+      } else {
+        // Reveal content after auth check passes
+        document.addEventListener('DOMContentLoaded', function () {
+          const wrap = document.getElementById('tracker-wrap');
+          if (wrap) wrap.style.opacity = '1';
+        });
+      }
+    })();
+  </script>
+
+  <div id="tracker-wrap" style="opacity:0;transition:opacity 0.15s ease">
+    <div class="tracker-header">
+      <h1 class="tracker-title">📚 Reading Tracker</h1>
+      <p class="tracker-subtitle" id="tracker-subtitle">載入中...</p>
+    </div>
+
+    <!-- Overall progress -->
+    <div class="progress-card">
+      <div class="progress-meta">
+        <span class="progress-label">總進度</span>
+        <span class="progress-count" id="total-count">0 / {totalArticles}</span>
+      </div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="total-bar" style="width:0%"></div>
+      </div>
+      <div class="progress-pct" id="total-pct">0%</div>
+    </div>
+
+    <!-- Per-group progress bars -->
+    <div class="group-progress-grid">
+      {
+        prefixOrder.map((prefix) => {
+          const g = groups[prefix];
+          if (g.posts.length === 0) return null;
+          return (
+            <div class="group-progress-item" data-group-progress={prefix}>
+              <div class="gp-header">
+                <span class="gp-label" style={`color:${g.colorVar}`}>
+                  {g.label}
+                </span>
+                <span class="gp-count" data-group-count={prefix}>
+                  0 / {g.posts.length}
+                </span>
+              </div>
+              <div class="progress-bar-wrap">
+                <div
+                  class="progress-bar-fill"
+                  data-group-bar={prefix}
+                  style={`width:0%;background:${g.colorVar}`}
+                />
+              </div>
+            </div>
+          );
+        })
+      }
+    </div>
+
+    <!-- Toolbar: filter + export -->
+    <div class="tracker-toolbar">
+      <div class="filter-tabs" role="group" aria-label="Filter articles">
+        <button class="filter-btn active" data-filter="all">全部</button>
+        <button class="filter-btn" data-filter="unread">未讀</button>
+        <button class="filter-btn" data-filter="read">已讀</button>
+      </div>
+      <div class="tracker-actions">
+        <button class="action-btn" id="export-btn" title="匯出 JSON">匯出</button>
+        <button class="action-btn" id="import-btn" title="匯入 JSON">匯入</button>
+      </div>
+    </div>
+
+    <!-- Article groups -->
+    {
+      prefixOrder.map((prefix) => {
+        const g = groups[prefix];
+        if (g.posts.length === 0) return null;
+        return (
+          <section class="article-group" data-group={prefix}>
+            <div class="group-header">
+              <h2 class="group-title" style={`color:${g.colorVar}`}>
+                {g.label}
+              </h2>
+              <div class="group-bulk-actions">
+                <button class="bulk-btn" data-bulk-action="read" data-group={prefix}>
+                  全部已讀
+                </button>
+                <button class="bulk-btn" data-bulk-action="unread" data-group={prefix}>
+                  全部未讀
+                </button>
+              </div>
+            </div>
+            <ul class="article-list">
+              {g.posts.map((post) => {
+                const date = post.data.translatedDate || post.data.originalDate || '';
+                return (
+                  <li
+                    class="article-row"
+                    data-slug={post.slug}
+                    data-group={prefix}
+                    data-read="false"
+                  >
+                    <button class="article-toggle" aria-label="切換已讀狀態" type="button">
+                      <span class="toggle-unread">☐</span>
+                      <span class="toggle-read">☑</span>
+                    </button>
+                    <a href={`/posts/${post.slug}`} class="article-title">
+                      {post.data.title}
+                    </a>
+                    <span class="article-date">{date}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        );
+      })
+    }
+  </div>
+
+  <!-- Hidden import textarea -->
+  <textarea id="import-textarea" style="display:none" aria-hidden="true"></textarea>
+</BaseLayout>
+
+<script>
+  import {
+    isRead,
+    markAsRead,
+    markAsUnread,
+    getReadSlugs,
+    exportJson,
+    importJson,
+  } from '../lib/reading-tracker';
+
+  const totalArticles = document.querySelectorAll<HTMLElement>('.article-row').length;
+
+  function updateStats() {
+    const readSlugs = new Set(getReadSlugs());
+    const totalRead = readSlugs.size;
+
+    // Overall stats
+    document.getElementById('total-count')!.textContent = `${totalRead} / ${totalArticles}`;
+    const pct = totalArticles > 0 ? Math.round((totalRead / totalArticles) * 100) : 0;
+    (document.getElementById('total-bar') as HTMLElement).style.width = `${pct}%`;
+    document.getElementById('total-pct')!.textContent = `${pct}%`;
+
+    // Subtitle
+    document.getElementById('tracker-subtitle')!.textContent =
+      `已讀 ${totalRead} 篇，還有 ${totalArticles - totalRead} 篇等著你 (▿ω▿)`;
+
+    // Per-group stats
+    document.querySelectorAll<HTMLElement>('[data-group-progress]').forEach((el) => {
+      const prefix = el.dataset.groupProgress!;
+      const rows = document.querySelectorAll<HTMLElement>(`.article-row[data-group="${prefix}"]`);
+      const groupTotal = rows.length;
+      let groupRead = 0;
+      rows.forEach((row) => {
+        if (readSlugs.has(row.dataset.slug!)) groupRead++;
+      });
+      const groupPct = groupTotal > 0 ? Math.round((groupRead / groupTotal) * 100) : 0;
+      const countEl = document.querySelector<HTMLElement>(`[data-group-count="${prefix}"]`);
+      if (countEl) countEl.textContent = `${groupRead} / ${groupTotal}`;
+      const barEl = document.querySelector<HTMLElement>(`[data-group-bar="${prefix}"]`);
+      if (barEl) barEl.style.width = `${groupPct}%`;
+    });
+  }
+
+  function updateAllRows() {
+    const readSlugs = new Set(getReadSlugs());
+    document.querySelectorAll<HTMLElement>('.article-row').forEach((row) => {
+      const slug = row.dataset.slug!;
+      const read = readSlugs.has(slug);
+      row.dataset.read = read ? 'true' : 'false';
+      const toggleUnread = row.querySelector<HTMLElement>('.toggle-unread')!;
+      const toggleRead = row.querySelector<HTMLElement>('.toggle-read')!;
+      toggleUnread.style.display = read ? 'none' : '';
+      toggleRead.style.display = read ? '' : 'none';
+      if (read) {
+        row.classList.add('is-read');
+      } else {
+        row.classList.remove('is-read');
+      }
+    });
+    updateStats();
+    applyFilter();
+  }
+
+  // Filter logic
+  let currentFilter: 'all' | 'read' | 'unread' = 'all';
+
+  function applyFilter() {
+    document.querySelectorAll<HTMLElement>('.article-row').forEach((row) => {
+      const read = row.dataset.read === 'true';
+      const visible =
+        currentFilter === 'all' ||
+        (currentFilter === 'read' && read) ||
+        (currentFilter === 'unread' && !read);
+      row.style.display = visible ? '' : 'none';
+    });
+
+    // Hide empty groups
+    document.querySelectorAll<HTMLElement>('.article-group').forEach((group) => {
+      let hasVisible = false;
+      group.querySelectorAll<HTMLElement>('.article-row').forEach((r) => {
+        if (r.style.display !== 'none') hasVisible = true;
+      });
+      group.style.display = hasVisible ? '' : 'none';
+    });
+  }
+
+  // Init
+  updateAllRows();
+
+  // Toggle individual article read state
+  document.querySelectorAll<HTMLElement>('.article-toggle').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const row = btn.closest<HTMLElement>('.article-row')!;
+      const slug = row.dataset.slug!;
+      if (isRead(slug)) {
+        markAsUnread(slug);
+      } else {
+        markAsRead(slug);
+      }
+      updateAllRows();
+    });
+  });
+
+  // Also clicking the title toggles read (via checkbox area)
+  // No — title is a link. Keep as link.
+
+  // Filter buttons
+  document.querySelectorAll<HTMLButtonElement>('.filter-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentFilter = btn.dataset.filter as typeof currentFilter;
+      applyFilter();
+    });
+  });
+
+  // Bulk actions
+  document.querySelectorAll<HTMLButtonElement>('[data-bulk-action]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const action = btn.dataset.bulkAction as 'read' | 'unread';
+      const group = btn.dataset.group!;
+      document
+        .querySelectorAll<HTMLElement>(`.article-row[data-group="${group}"]`)
+        .forEach((row) => {
+          const slug = row.dataset.slug!;
+          if (action === 'read') {
+            markAsRead(slug);
+          } else {
+            markAsUnread(slug);
+          }
+        });
+      updateAllRows();
+    });
+  });
+
+  // Export
+  document.getElementById('export-btn')!.addEventListener('click', () => {
+    const json = exportJson();
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `gu-log-reading-tracker-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  // Import
+  document.getElementById('import-btn')!.addEventListener('click', () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,application/json';
+    input.addEventListener('change', () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target?.result as string;
+        if (importJson(text)) {
+          updateAllRows();
+          alert('匯入成功！');
+        } else {
+          alert('匯入失敗：格式不對');
+        }
+      };
+      reader.readAsText(file);
+    });
+    input.click();
+  });
+
+  // Listen for changes from article pages
+  window.addEventListener('read-status-changed', () => {
+    updateAllRows();
+  });
+
+  // Reveal content (in case DOMContentLoaded already fired)
+  const wrap = document.getElementById('tracker-wrap');
+  if (wrap) wrap.style.opacity = '1';
+</script>
+
+<style>
+  #tracker-wrap {
+    padding-bottom: 3rem;
+  }
+
+  .tracker-header {
+    margin-bottom: 1.5rem;
+  }
+
+  .tracker-title {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--color-text);
+    margin-bottom: 0.25rem;
+  }
+
+  .tracker-subtitle {
+    color: var(--color-text-muted);
+    font-size: 0.95rem;
+  }
+
+  /* Progress card */
+  .progress-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .progress-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 0.6rem;
+  }
+
+  .progress-label {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+  }
+
+  .progress-count {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-text);
+  }
+
+  .progress-bar-wrap {
+    height: 8px;
+    background: var(--color-border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--color-accent);
+    border-radius: 4px;
+    transition: width 0.4s ease;
+  }
+
+  .progress-pct {
+    text-align: right;
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    margin-top: 0.3rem;
+  }
+
+  /* Group progress grid */
+  .group-progress-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .group-progress-item {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+  }
+
+  .gp-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 0.4rem;
+  }
+
+  .gp-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+
+  .gp-count {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+  }
+
+  /* Toolbar */
+  .tracker-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .filter-tabs {
+    display: flex;
+    gap: 0.25rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 0.25rem;
+  }
+
+  .filter-btn {
+    background: none;
+    border: none;
+    padding: 0.3rem 0.75rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+    font-family: var(--font-sans);
+    transition:
+      background 0.15s,
+      color 0.15s;
+  }
+
+  .filter-btn.active {
+    background: var(--color-accent);
+    color: var(--color-bg);
+    font-weight: 600;
+  }
+
+  .tracker-actions {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .action-btn {
+    background: none;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    padding: 0.35rem 0.75rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    font-family: var(--font-sans);
+    transition:
+      border-color 0.2s,
+      color 0.2s;
+  }
+
+  .action-btn:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+
+  /* Article groups */
+  .article-group {
+    margin-bottom: 2rem;
+  }
+
+  .group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .group-title {
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0;
+  }
+
+  .group-bulk-actions {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .bulk-btn {
+    background: none;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    padding: 0.2rem 0.5rem;
+    cursor: pointer;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    font-family: var(--font-sans);
+    transition:
+      border-color 0.2s,
+      color 0.2s;
+  }
+
+  .bulk-btn:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+
+  /* Article list */
+  .article-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .article-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    padding: 0.45rem 0;
+    border-bottom: 1px solid var(--color-border);
+    transition: background 0.1s;
+  }
+
+  .article-row:last-child {
+    border-bottom: none;
+  }
+
+  .article-row:hover {
+    background: var(--color-surface);
+    margin: 0 -0.5rem;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    border-radius: 4px;
+  }
+
+  .article-toggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    color: var(--color-text-muted);
+    padding: 0;
+    line-height: 1;
+    flex-shrink: 0;
+    transition: color 0.15s;
+  }
+
+  .article-toggle:hover {
+    color: var(--color-accent);
+  }
+
+  .article-row.is-read .article-toggle {
+    color: var(--color-badge-sd);
+  }
+
+  .article-title {
+    flex: 1;
+    font-size: 0.9rem;
+    color: var(--color-text);
+    text-decoration: none;
+    line-height: 1.4;
+  }
+
+  .article-title:hover {
+    color: var(--color-accent);
+    text-decoration: underline;
+  }
+
+  .article-row.is-read .article-title {
+    color: var(--color-text-muted);
+  }
+
+  .article-date {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 480px) {
+    .article-date {
+      display: none;
+    }
+
+    .tracker-toolbar {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .group-progress-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+</style>
