@@ -259,7 +259,7 @@ function validatePost(filepath, allPosts) {
   if (mermaidFencePattern.test(body)) {
     errors.push(
       'Raw ```mermaid code fence detected — use <Mermaid chart={`...`} /> component instead. ' +
-        'See src/components/Mermaid.astro for usage.',
+        'See src/components/Mermaid.astro for usage.'
     );
   }
 
