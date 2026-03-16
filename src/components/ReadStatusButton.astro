@@ -23,7 +23,31 @@ const { slug, lang = 'zh-tw' } = Astro.props;
 </div>
 
 <script>
-  import { isRead, toggleRead } from '../lib/reading-tracker';
+  import { isRead, toggleRead, getReadSlugs } from '../lib/reading-tracker';
+  import { getGitHubToken, pushToGist, pullFromGist, mergeSync } from '../lib/gist-sync';
+
+  const LAST_SYNC_KEY = 'gu-log-last-sync';
+  const SYNC_DIRTY_KEY = 'gu-log-sync-dirty';
+
+  let syncDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function scheduleDebouncedSync() {
+    if (syncDebounceTimer !== null) clearTimeout(syncDebounceTimer);
+    syncDebounceTimer = setTimeout(async () => {
+      syncDebounceTimer = null;
+      const token = getGitHubToken();
+      if (!token) return;
+      try {
+        const remote = await pullFromGist(token);
+        const merged = mergeSync(getReadSlugs(), remote?.slugs ?? []);
+        await pushToGist(token, merged);
+        localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
+        localStorage.removeItem(SYNC_DIRTY_KEY);
+      } catch {
+        // Silent background failure — user will see status on tracker page
+      }
+    }, 5000);
+  }
 
   function initReadButtons() {
     // Only show when logged in
@@ -71,6 +95,11 @@ const { slug, lang = 'zh-tw' } = Astro.props;
         window.dispatchEvent(
           new CustomEvent('read-status-changed', { detail: { slug, read: nowRead } })
         );
+        // Mark dirty and schedule a debounced background sync
+        if (localStorage.getItem(LAST_SYNC_KEY)) {
+          localStorage.setItem(SYNC_DIRTY_KEY, 'true');
+        }
+        scheduleDebouncedSync();
       });
     });
   }
@@ -94,6 +123,10 @@ const { slug, lang = 'zh-tw' } = Astro.props;
           // Bottom of content visible — mark as read
           import('../lib/reading-tracker').then(({ markAsRead }) => {
             markAsRead(slug);
+            if (localStorage.getItem(LAST_SYNC_KEY)) {
+              localStorage.setItem(SYNC_DIRTY_KEY, 'true');
+            }
+            scheduleDebouncedSync();
             // Update button UI
             document.querySelectorAll<HTMLElement>('[data-read-button]').forEach((btn) => {
               if (btn.dataset.slug === slug) {
