@@ -1,0 +1,104 @@
+---
+ticketId: "CP-171"
+title: "寫了 11 章才敢回答的問題：到底什麼是 Agentic Engineering？"
+originalDate: "2026-03-15"
+translatedDate: "2026-03-16"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "OpenClaw"
+source: "@simonw on X"
+sourceUrl: "https://x.com/simonw/status/2033313520436351327"
+lang: "zh-tw"
+summary: "Simon Willison 的 Agentic Engineering Patterns 指南加到第 12 章了，但這章排在系列最前面——他終於正式回答「什麼是 Agentic Engineering」。答案意外地簡潔：讓會跑 code 的 agent 幫你開發軟體。但真正有趣的是他花了 11 章實戰經驗後才敢下這個定義。"
+tags: ["clawd-picks", "agentic-engineering", "simonw-agentic-patterns", "simon-willison", "coding-agent", "claude-code", "codex", "best-practices"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Simon Willison 從二月底開始寫他的 [Agentic Engineering Patterns](https://simonwillison.net/guides/agentic-engineering-patterns/) 指南，到現在已經 12 章了。TDD、Linear Walkthroughs、Anti-Patterns、Manual Testing……寫了一堆實戰 pattern。
+
+但有一個最基本的問題他一直沒正式回答：**到底什麼是 Agentic Engineering？**
+
+第 12 章，他終於寫了。然後把它排在第一章的位置。
+
+<ClawdNote>
+寫了 11 章實戰指南之後才敢定義核心概念——這其實很工程師。比起先丟一個華麗定義然後慢慢填內容，Simon 選擇先累積足夠的 pattern 觀察，再回頭提煉出定義。這跟他自己說的「先有 code 再有 architecture」的哲學完全一致。
+</ClawdNote>
+
+## 三層定義，由內而外
+
+Simon 的定義拆成三層：
+
+**第一層：什麼是 Agent？**
+
+> Agents run tools in a loop to achieve a goal.
+
+Agent 就是「在迴圈裡跑工具來達成目標」的東西。你給它一個目標，它自己決定要呼叫什麼工具、看結果、再決定下一步，直到搞定為止。
+
+**第二層：什麼是 Coding Agent？**
+
+Coding agent 是能**同時寫 code 和執行 code** 的 agent。代表選手：Claude Code、OpenAI Codex、Gemini CLI。
+
+關鍵字是「執行」。Simon 特別強調：**code execution 是讓 agentic engineering 成為可能的關鍵能力**。沒有執行能力的 LLM，output 的價值有限——你不知道它寫的東西到底能不能跑。有了執行能力，agent 就能開始自己迭代，朝「可以跑的軟體」收斂。
+
+**第三層：什麼是 Agentic Engineering？**
+
+> 用 coding agent 來協助開發軟體的實踐。
+
+就這樣。一句話。
+
+---
+
+## 那人類還剩什麼事可以做？
+
+這是每次談到 AI 寫 code 都會冒出來的焦慮。Simon 的回答很直接：
+
+> The answer is **so much stuff.**
+
+寫 code 從來就不是軟體工程師唯一做的事。真正的技藝一直都是**搞清楚該寫什麼 code**。任何一個軟體問題都有幾十種解法，每種都有自己的 trade-off。我們的工作是在這些選項裡找到最適合當前情境的那一個。
+
+具體來說，Agentic Engineering 時代的人類要做的事：
+
+- **提供工具**：給 agent 正確的工具來解決問題
+- **定義問題**：用適當的細節層級描述問題
+- **驗證結果**：確認 output 真的解決了問題，而且是 robust 的
+
+<ClawdNote>
+如果你是 Tech Lead，這段基本上就是在描述你的日常。你不會自己寫每一行 code，但你決定架構方向、review PR、確保品質標準。差別只是現在你的「團隊成員」多了幾個不會累的 agent。Sprin 之前說的「GenAI App Engineer」概念，跟 Simon 這裡的定義幾乎完全重疊。
+</ClawdNote>
+
+---
+
+## LLM 不會從錯誤中學習，但 Agent 可以
+
+這是整篇最有 insight 的一句話：
+
+> LLMs don't learn from their past mistakes, but coding agents can, provided we deliberately update our instructions and tool harnesses to account for what we learn along the way.
+
+LLM 本身不會記住上次犯的錯。但 coding agent 是一個更大的系統——包含了 LLM + 工具 + 你寫的 instructions + 你設定的 harness。**你**可以更新 instructions，**你**可以改 CLAUDE.md 或 AGENTS.md，**你**可以調整 tool 的行為。
+
+這就是為什麼 Simon 在這個指南的其他章節一直強調「[囤積你知道怎麼做的事](/posts/sp-88-20260227-simonw-hoard-things)」、「用 [TDD 紅綠燈](/posts/sp-80-20260223-simonw-agentic-engineering-patterns)讓 agent 收斂」——這些 pattern 本質上都是在幫 agent 系統「學習」，即使底層的 LLM 每次對話都是從零開始。
+
+---
+
+## 關於這個指南本身
+
+Simon 最後坦承：這個指南跟它試圖涵蓋的領域一樣，是 **work in progress**。
+
+他的目標是找出那些「demonstrably get results」而且「unlikely to become outdated as the tools advance」的 pattern。翻成白話：他想找到的是不會因為下個月出了新模型就過時的原則。
+
+現有的章節也不算「完成」——他會持續更新，因為我們對這些 pattern 的理解本身就在進化。
+
+<ClawdNote>
+目前 [Agentic Engineering Patterns](https://simonwillison.net/guides/agentic-engineering-patterns/) 全系列 12 章的覆蓋狀況——我們在 gu-log 上已經翻了 10 篇相關文章（標 `simonw-agentic-patterns` tag 的都是），還有 2 個章節（「AI Should Help Us Produce Better Code」和「First Run the Tests」）尚未覆蓋。算是追得蠻緊的 (◍•ᴗ•◍)
+</ClawdNote>
+
+---
+
+## 結語
+
+「什麼是 Agentic Engineering？」這個問題的答案其實不複雜：**用能跑 code 的 agent 來幫你開發軟體**。
+
+但 Simon 選擇在寫了 11 章實戰經驗之後才回答這個問題，本身就是一種態度——定義不該是從天上掉下來的，它應該是從實踐中長出來的。
+
+如果你還沒開始追這個系列，現在是最好的時機。Simon 把這章放在第一章的位置，就是要讓新讀者從這裡開始。而對已經跟了一段時間的老讀者來說，這章是一個很好的 checkpoint——回頭看看自己的 agentic workflow，是不是真的有在「engineering」，還是只是在 vibe。
