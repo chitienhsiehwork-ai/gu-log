@@ -97,6 +97,56 @@ const totalArticles = allPosts.length;
       }
     </div>
 
+    <!-- GitHub Gist Sync card -->
+    <div class="sync-card" id="sync-card" style="display:none">
+      <!-- Shown when no token: PAT setup -->
+      <div id="sync-pat-setup" style="display:none">
+        <div class="sync-card-header">
+          <span class="sync-card-title">🔗 Connect GitHub for Sync</span>
+        </div>
+        <p class="sync-desc">
+          貼入 GitHub PAT 即可把閱讀紀錄同步到你的 Private Gist，跨裝置不遺漏。
+        </p>
+        <div class="sync-pat-row">
+          <input
+            type="password"
+            id="sync-pat-input"
+            placeholder="ghp_xxxxxxxxxxxx"
+            class="sync-pat-field"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <button id="sync-pat-save" class="action-btn">儲存</button>
+        </div>
+        <p class="sync-pat-hint">
+          只需勾選 <code>gist</code> scope —
+          <a
+            href="https://github.com/settings/tokens/new?scopes=gist&description=gu-log-reading-tracker"
+            target="_blank"
+            rel="noopener"
+            class="sync-link">點此建立 →</a
+          >
+        </p>
+      </div>
+
+      <!-- Shown when token available: sync controls -->
+      <div id="sync-controls" style="display:none">
+        <div class="sync-card-header">
+          <span class="sync-card-title">GitHub Gist Sync</span>
+          <span class="sync-status-badge" id="sync-status-badge">從未同步</span>
+        </div>
+        <div class="sync-btn-row">
+          <button class="sync-action-btn" id="sync-btn">🔄 Sync</button>
+          <button class="sync-action-btn sync-secondary" id="push-btn">⬆️ Push</button>
+          <button class="sync-action-btn sync-secondary" id="pull-btn">⬇️ Pull</button>
+        </div>
+        <div class="sync-footer">
+          <span class="sync-last-text" id="sync-last-text"></span>
+          <button class="sync-disconnect-btn" id="sync-disconnect-btn">斷開連結</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Toolbar: filter + export -->
     <div class="tracker-toolbar">
       <div class="filter-tabs" role="group" aria-label="Filter articles">
@@ -171,6 +221,11 @@ const totalArticles = allPosts.length;
     exportJson,
     importJson,
   } from '../lib/reading-tracker';
+  import { getGitHubToken, pushToGist, pullFromGist, mergeSync } from '../lib/gist-sync';
+
+  // ── Sync constants ─────────────────────────────────────────────────────────
+  const LAST_SYNC_KEY = 'gu-log-last-sync';
+  const SYNC_DIRTY_KEY = 'gu-log-sync-dirty';
 
   const totalArticles = document.querySelectorAll<HTMLElement>('.article-row').length;
 
@@ -332,9 +387,151 @@ const totalArticles = allPosts.length;
     input.click();
   });
 
+  // ── GitHub Gist Sync ───────────────────────────────────────────────────────
+
+  function updateSyncUI() {
+    const syncCard = document.getElementById('sync-card')!;
+    const patSetup = document.getElementById('sync-pat-setup')!;
+    const syncControls = document.getElementById('sync-controls')!;
+
+    const token = getGitHubToken();
+    syncCard.style.display = '';
+
+    if (!token) {
+      patSetup.style.display = '';
+      syncControls.style.display = 'none';
+      return;
+    }
+
+    patSetup.style.display = 'none';
+    syncControls.style.display = '';
+
+    const lastSync = localStorage.getItem(LAST_SYNC_KEY);
+    const dirty = localStorage.getItem(SYNC_DIRTY_KEY) === 'true';
+    const badge = document.getElementById('sync-status-badge')!;
+
+    if (!lastSync) {
+      badge.textContent = '從未同步';
+      badge.className = 'sync-status-badge sync-status-never';
+    } else if (dirty) {
+      badge.textContent = '⚠️ 未同步';
+      badge.className = 'sync-status-badge sync-status-dirty';
+    } else {
+      badge.textContent = '✅ 已同步';
+      badge.className = 'sync-status-badge sync-status-ok';
+    }
+
+    const lastText = document.getElementById('sync-last-text')!;
+    if (lastSync) {
+      lastText.textContent = `上次同步：${new Date(lastSync).toLocaleString('zh-TW')}`;
+    } else {
+      lastText.textContent = '';
+    }
+  }
+
+  async function doSync(token: string, mode: 'merge' | 'push' | 'pull') {
+    const btns = ['sync-btn', 'push-btn', 'pull-btn'].map(
+      (id) => document.getElementById(id) as HTMLButtonElement | null
+    );
+    btns.forEach((b) => b && (b.disabled = true));
+
+    const badge = document.getElementById('sync-status-badge')!;
+    badge.textContent = '同步中…';
+    badge.className = 'sync-status-badge sync-status-syncing';
+
+    try {
+      const localSlugs = getReadSlugs();
+
+      if (mode === 'merge') {
+        const remote = await pullFromGist(token);
+        const merged = mergeSync(localSlugs, remote?.slugs ?? []);
+        if (merged.length !== localSlugs.length || merged.some((s) => !localSlugs.includes(s))) {
+          importJson(
+            JSON.stringify({ version: 1, slugs: merged, lastUpdated: new Date().toISOString() })
+          );
+          updateAllRows();
+        }
+        await pushToGist(token, merged);
+      } else if (mode === 'push') {
+        await pushToGist(token, localSlugs);
+      } else if (mode === 'pull') {
+        const remote = await pullFromGist(token);
+        if (remote) {
+          importJson(JSON.stringify(remote));
+          updateAllRows();
+        }
+      }
+
+      localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
+      localStorage.removeItem(SYNC_DIRTY_KEY);
+      updateSyncUI();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '同步失敗';
+      badge.textContent = `❌ ${msg}`;
+      badge.className = 'sync-status-badge sync-status-error';
+    } finally {
+      btns.forEach((b) => b && (b.disabled = false));
+    }
+  }
+
+  updateSyncUI();
+
+  document.getElementById('sync-pat-save')?.addEventListener('click', () => {
+    const input = document.getElementById('sync-pat-input') as HTMLInputElement;
+    const pat = input.value.trim();
+    if (!pat) return;
+    localStorage.setItem('gu-log-github-pat', pat);
+    input.value = '';
+    updateSyncUI();
+    const tok = getGitHubToken();
+    if (tok) doSync(tok, 'merge').catch(() => {});
+  });
+
+  document.getElementById('sync-pat-input')?.addEventListener('keydown', (e) => {
+    if ((e as KeyboardEvent).key === 'Enter') {
+      (document.getElementById('sync-pat-save') as HTMLButtonElement)?.click();
+    }
+  });
+
+  document.getElementById('sync-btn')?.addEventListener('click', () => {
+    const tok = getGitHubToken();
+    if (tok) doSync(tok, 'merge');
+  });
+
+  document.getElementById('push-btn')?.addEventListener('click', () => {
+    const tok = getGitHubToken();
+    if (tok) doSync(tok, 'push');
+  });
+
+  document.getElementById('pull-btn')?.addEventListener('click', () => {
+    const tok = getGitHubToken();
+    if (tok) doSync(tok, 'pull');
+  });
+
+  document.getElementById('sync-disconnect-btn')?.addEventListener('click', () => {
+    localStorage.removeItem('gu-log-github-pat');
+    localStorage.removeItem('gu-log-gist-id');
+    localStorage.removeItem(LAST_SYNC_KEY);
+    localStorage.removeItem(SYNC_DIRTY_KEY);
+    updateSyncUI();
+  });
+
+  // Auto-sync on page load (non-blocking)
+  {
+    const autoTok = getGitHubToken();
+    if (autoTok) doSync(autoTok, 'merge').catch(() => {});
+  }
+
+  // ── Listen for changes from article pages ──────────────────────────────────
+
   // Listen for changes from article pages
   window.addEventListener('read-status-changed', () => {
     updateAllRows();
+    // Mark as dirty so sync badge reflects pending changes
+    if (localStorage.getItem(LAST_SYNC_KEY)) {
+      localStorage.setItem(SYNC_DIRTY_KEY, 'true');
+      updateSyncUI();
+    }
   });
 
   // Reveal content (in case DOMContentLoaded already fired)
@@ -622,6 +819,190 @@ const totalArticles = allPosts.length;
     white-space: nowrap;
   }
 
+  /* ── Sync card ─────────────────────────────────────────────────────────── */
+  .sync-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .sync-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .sync-card-title {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--color-text);
+  }
+
+  .sync-status-badge {
+    font-size: 0.78rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 20px;
+    font-weight: 500;
+    border: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+  }
+
+  .sync-status-badge.sync-status-ok {
+    color: var(--color-badge-sd);
+    border-color: var(--color-badge-sd);
+    background: rgba(80, 250, 123, 0.08);
+  }
+
+  [data-theme='light'] .sync-status-badge.sync-status-ok {
+    background: rgba(29, 106, 92, 0.08);
+  }
+
+  .sync-status-badge.sync-status-dirty {
+    color: var(--color-badge-cp);
+    border-color: var(--color-badge-cp);
+    background: rgba(255, 184, 108, 0.08);
+  }
+
+  .sync-status-badge.sync-status-error {
+    color: #ff5555;
+    border-color: #ff5555;
+    background: rgba(255, 85, 85, 0.08);
+  }
+
+  .sync-status-badge.sync-status-syncing {
+    color: var(--color-text-muted);
+    border-color: var(--color-border);
+  }
+
+  .sync-btn-row {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.5rem;
+  }
+
+  .sync-action-btn {
+    background: var(--color-accent);
+    color: var(--color-bg);
+    border: none;
+    border-radius: 6px;
+    padding: 0.35rem 0.9rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-family: var(--font-sans);
+    font-weight: 600;
+    transition: opacity 0.15s;
+  }
+
+  .sync-action-btn:hover {
+    opacity: 0.85;
+  }
+
+  .sync-action-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .sync-action-btn.sync-secondary {
+    background: none;
+    border: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+    font-weight: 400;
+  }
+
+  .sync-action-btn.sync-secondary:hover:not(:disabled) {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+
+  .sync-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: 0.25rem;
+  }
+
+  .sync-last-text {
+    font-size: 0.78rem;
+    color: var(--color-text-muted);
+  }
+
+  .sync-disconnect-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.78rem;
+    color: var(--color-text-muted);
+    font-family: var(--font-sans);
+    padding: 0;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .sync-disconnect-btn:hover {
+    color: #ff5555;
+  }
+
+  /* PAT setup styles */
+  .sync-desc {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    margin-bottom: 0.75rem;
+    line-height: 1.5;
+  }
+
+  .sync-pat-row {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .sync-pat-field {
+    flex: 1;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.85rem;
+    color: var(--color-text);
+    font-family: var(--font-mono, monospace);
+    min-width: 0;
+    transition: border-color 0.15s;
+  }
+
+  .sync-pat-field:focus {
+    outline: none;
+    border-color: var(--color-accent);
+  }
+
+  .sync-pat-hint {
+    font-size: 0.78rem;
+    color: var(--color-text-muted);
+    margin: 0;
+  }
+
+  .sync-pat-hint code {
+    font-size: 0.78rem;
+    background: var(--color-border);
+    padding: 0.1em 0.3em;
+    border-radius: 3px;
+  }
+
+  .sync-link {
+    color: var(--color-accent);
+  }
+
+  .sync-link:hover {
+    text-decoration: underline;
+  }
+
   @media (max-width: 480px) {
     .article-date {
       display: none;
@@ -634,6 +1015,10 @@ const totalArticles = allPosts.length;
 
     .group-progress-grid {
       grid-template-columns: 1fr 1fr;
+    }
+
+    .sync-pat-row {
+      flex-direction: column;
     }
   }
 </style>
