@@ -8,6 +8,7 @@ import Giscus from '../../components/Giscus.astro';
 import ShareButton from '../../components/ShareButton.astro';
 import LoginCta from '../../components/LoginCta.astro';
 import AiPopup from '../../components/AiPopup.astro';
+import ReadStatusButton from '../../components/ReadStatusButton.astro';
 
 export async function getStaticPaths() {
   const posts = await getCollection('posts', ({ data }) => {
@@ -123,6 +124,8 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
         </div>
       )
     }
+
+    <ReadStatusButton slug={post.slug} lang="zh-tw" />
 
     <ShareButton title={post.data.title} lang="zh-tw" />
 
