@@ -241,7 +241,8 @@ function validatePost(filepath, allPosts) {
     .replace(/```[\s\S]*?```/g, '') // fenced code blocks
     .replace(/`[^`\n]+`/g, ''); // inline code
   // Match parenthesized expressions containing distinctive kaomoji face characters
-  const KAOMOJI_PATTERN = /[（(][^)）\n]{0,40}[ωᴗᗜ◍˃˂╥][^)）\n]{0,40}[)）]/;
+  // Broad kaomoji detection (synced with add-kaomoji.mjs)
+  const KAOMOJI_PATTERN = /[（(][^)）\n]{0,40}[ω◕ᴗᗜ◍˃˂╥‿▽∀■□﹏ﾟ°⊙≧≦¬╯╮╰⌐・ˊˋ๑ㅂᵔᗒ˘ᴖ⤙◞◟⇀↼‶∇▿△ᐛ]/;
   if (filename !== 'demo.mdx' && filename !== 'en-demo.mdx' && !KAOMOJI_PATTERN.test(bodyNoCode)) {
     errors.push('Missing kaomoji — every gu-log post needs at least one (brand voice)');
   }

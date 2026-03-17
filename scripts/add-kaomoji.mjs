@@ -23,7 +23,9 @@ const specificFiles = process.argv.slice(2).filter((a) => a !== '--write' && a.e
 const KAOMOJI_POOL = ['(◍•ᴗ•◍)', '(๑˃ᴗ˂)ﻭ', '( •̀ ω •́ )✧', '(◍˃̶ᗜ˂̶◍)ノ"', '(•̀ᴗ•́)و', '(；ω；)'];
 
 // Detection pattern (same as validate-posts.mjs Rule 16)
-const KAOMOJI_PATTERN = /[（(][^)）\n]{0,40}[ωᴗᗜ◍˃˂╥][^)）\n]{0,40}[)）]/;
+// Broad kaomoji detection: parenthesized face with any common face/emotion char
+// Covers: (´・ω・`) (⌐■_■) (◕‿◕) (≧▽≦) (╯°□°) (¬‿¬) (ﾟ∀ﾟ) etc.
+const KAOMOJI_PATTERN = /[（(][^)）\n]{0,40}[ω◕ᴗᗜ◍˃˂╥‿▽∀■□﹏ﾟ°⊙≧≦¬╯╮╰⌐・ˊˋ๑ㅂᵔᗒ˘ᴖ⤙◞◟⇀↼‶∇▿△ᐛ]/;
 
 let poolIndex = 0;
 function nextKaomoji() {
