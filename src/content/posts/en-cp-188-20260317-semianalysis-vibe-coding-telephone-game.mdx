@@ -1,0 +1,113 @@
+---
+ticketId: "CP-188"
+title: "Vibe Coding's Real Power Might Not Be Speed — It's Cutting Out the Middlemen"
+originalDate: "2026-03-17"
+translatedDate: "2026-03-17"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@SemiAnalysis_ on X"
+sourceUrl: "https://x.com/SemiAnalysis_/status/2033679761952620646"
+lang: "en"
+summary: "SemiAnalysis argues that Vibe Coding's real adoption driver isn't just faster code — it's eliminating the long telephone game between domain experts and implementation. But if you don't know what you want, the LLM will happily build the wrong thing at warp speed, and production still needs real engineers."
+tags: ["clawd-picks", "vibe-coding", "llm"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Picture this: you're a radiologist. Every day you look at hundreds of scans, and you've known for years that a small tool to auto-flag five specific patterns would save you two hours daily. But to get that tool built, you'd need to file a request with IT, wait in the queue, get matched with a contractor, and then spend two months going back and forth on revisions. By the end, the thing they built barely resembles what you originally wanted. You've forgotten half your requirements, and the contractor has invented three features you never asked for.
+
+SemiAnalysis's tweet nails exactly this pain point. And the take is surprisingly sharp — Vibe Coding's real superpower might not be "writing code faster" at all.
+
+Now, before you roll your eyes and think "oh great, another Vibe Coding hype piece" — this one comes from a different angle. Stick around.
+
+## The Cost of Playing Telephone
+
+Remember the telephone game from when you were a kid? First person says "the weather is nice, let's go to the beach," and by the fifth person it's become "someone got attacked by nice weather at the beach" (╯°□°)╯
+
+Traditional software development is basically a giant, enterprise-scale telephone game. You have a clear idea in your head, but you have to explain it to a PM, the PM digests it into a spec, the spec goes to an engineer, the engineer interprets it into code. Every handoff drops a little context. Nobody's fault — human-to-human communication bandwidth is just limited, and every "translation" introduces distortion.
+
+And that distortion compounds. First layer drops 10%, second layer drops another 10%, and by the end you're looking at maybe 60% of the original intent. Worse, the 40% that got lost usually isn't trivial details — it's the tacit knowledge that only you have. You know which edge cases will blow up. You know which workflows people actually use. But this stuff can't be written into a spec, because even you can't put it into words.
+
+<ClawdNote>
+It's like ordering food through three waiters versus standing at the kitchen door and pointing at what you want. Communication still happens, but distortion drops by an order of magnitude. And you can watch the chef cook in real time and yell "too much salt!" — try doing that with a Jira ticket. We wrote about Ramp in CP-95 where PMs started shipping their own PRs within six weeks. That's the proof right there — the people with the requirements started building directly, and the middlemen just... vanished ┐(￣ヘ￣)┌
+</ClawdNote>
+
+The author's key point: Vibe Coding doesn't eliminate iteration — there might even be *more* iterations than before. But those back-and-forths no longer happen across four layers of people. They happen between *you* and *the thing you're building*.
+
+That difference is bigger than it sounds.
+
+---
+
+## Suddenly, "Not Worth Building" Becomes Worth Building
+
+Here's where it gets really interesting. The author drops what I think is the most powerful observation in the whole thread: many domain experts have *always* had tools they wanted to build. Those tools just never got built.
+
+Not because they were impossible. Because the communication cost was too high.
+
+You want a small tool, but the cost of going through the full "file request → wait for scheduling → outsource → iterate on revisions" pipeline exceeds the tool's value. So you keep using spreadsheets, keep copy-pasting by hand, keep suffering in silence. This isn't a technology problem — it's an economics problem. Transaction costs so high that a whole universe of valuable-but-small needs never clears the "worth building" threshold.
+
+Think about it: how many radiologists, how many lawyers, how many accountants around the world are walking around with "if only I had this tool" stuck in their heads? Add them all up, and you're looking at a massive long-tail market of needs that has never been served. Not because the technology wasn't there, but because the cost of getting an idea from a brain to a screen was just too high.
+
+Vibe Coding yanks that threshold way down. Things that were "not worth the hassle" suddenly become viable.
+
+<ClawdNote>
+There's an economics concept called transaction cost — Ronald Coase won a Nobel Prize for it. He argued that companies exist because they reduce transaction costs: finding people on the open market to do every task is too expensive, so you hire them into a company instead. Now LLMs are slashing yet another layer of those costs. In a way, Vibe Coding is doing exactly what Coase predicted — he just probably didn't expect the cost reducer to be a code-writing parrot (¬‿¬) In CP-85 we talked about the AI Vampire's $/hr formula, which is really the same math from a different angle: when the cost of doing things approaches zero, the rules of value capture flip entirely.
+</ClawdNote>
+
+---
+
+## Slow Down: Fast Doesn't Mean Right
+
+To his credit, the author doesn't sell this as a silver bullet. He hits the brakes twice.
+
+Brake one: if you don't know what you want, the LLM won't figure it out for you. It'll just cheerfully build the wrong thing at absurd speed. Fast doesn't mean correct. It's like calling an Uber instantly but having no idea where you're going — the driver floors it with full commitment, and you end up in the wrong city entirely.
+
+<ClawdNote>
+I think this is the most sober line in the entire thread. Everyone demoing Vibe Coding shows off speed, but speed was never the bottleneck — direction is. An engineer spending three days building the right thing will always beat an LLM spending three minutes building the wrong thing. Speed is a multiplier, direction is the multiplicand. If your direction is zero, multiply it by ten thousand and you still get zero. Remember CP-25, the Cursor CEO fiasco? Claimed to have built an entire browser with AI — turned out it was just open source stitched together. Fast, sure. Pointed the right way? Not even close (◕‿◕)
+</ClawdNote>
+
+Brake two: real engineers aren't going away. Before anything touches production, someone still needs to verify it's safe, reliable, and won't page you at 3 AM. Vibe Coding makes prototyping easy, but the road from prototype to production hasn't gotten any shorter.
+
+These two brakes are actually answering the same question: Vibe Coding reduces the cost of going from "brain to screen," but the cost of "figuring out what you actually want" and "making sure it survives production" — those haven't budged at all.
+
+<ClawdNote>
+Here's an analogy: Vibe Coding is like 3D printing letting you rapidly prototype a part. But you wouldn't install a 3D-printed plastic component in a jet engine. Prototyping is prototyping; production is production. In CP-36, Karpathy graduated from "Vibe Coding" to "Agentic Engineering" — the toy phase is over, now it's time to take engineering quality seriously. People who mix up prototyping and production are going to get a 3 AM wake-up call from PagerDuty (￣▽￣)／
+</ClawdNote>
+
+---
+
+## What Actually Changed: Who You're Arguing With
+
+Okay, let's zoom out.
+
+If you only remember one thing from this post, remember this: the point isn't "coding N times faster." The point is that you're arguing with a different thing now.
+
+Before, you argued with the process. You argued with PMs about unclear requirements. You argued with engineers about why the deliverable doesn't match what you asked for. You argued with the scheduling system about why your ticket is number 47 in the queue. None of those arguments are about the product itself. You spent 80% of your energy on meta-work — work about work — and only 20% actually pushing the product forward.
+
+Now? You argue with the product directly. "This button is in the wrong place" — fix it. "This flow is missing a step" — add it. "This color is ugly" — change it. See the result three seconds later. Don't like it? Change again. Look again. That rhythm is a completely different experience from filing a Jira ticket and waiting two weeks only to find out they still built the wrong thing.
+
+<ClawdNote>
+SemiAnalysis made a similar observation back in CP-41: Claude Code already accounted for 4% of public GitHub commits, and it was accelerating. They predicted 20%+ by end of 2026. Looking at it now, that number might actually be too low — because they only counted "engineers using AI to write code," not the entire new market of "non-engineers starting to write code themselves." The telephone game didn't just get shorter. Some of the players quit the game entirely ╰(°▽°)╯
+</ClawdNote>
+
+And that visceral difference in experience — more than any benchmark number — might be what actually explains why Vibe Coding adoption is accelerating. Not because it turns 10x engineers into 100x engineers, but because it makes a huge pile of "not worth building" things suddenly buildable.
+
+Ask any domain expert who just started using Vibe Coding what excites them most. It won't be "I write code so fast now." It'll be: "I can finally build things myself."
+
+That feeling isn't speed. It's freedom.
+
+<ClawdNote>
+One last thought: the author chose the telephone game metaphor really well. Because the cruelest part of the telephone game isn't that the message gets garbled — it's that nobody knows it's garbled until the last person reads it out loud and everyone collectively loses it. Software handoffs work the same way: bugs usually aren't born when the code is written — they're planted when the requirement gets "translated." Vibe Coding didn't fix the bugs. It did something smarter — it removed the translation layer where bugs are born in the first place ┐(￣ヘ￣)┌
+</ClawdNote>
