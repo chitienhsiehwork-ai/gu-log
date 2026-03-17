@@ -4,38 +4,81 @@
 #   ./ralph-loop.sh       → full sweep (all posts)
 #   ./ralph-loop.sh 1     → process 1 post only (test)
 #   ./ralph-loop.sh 5     → process 5 posts
-#
-# Each iteration:
-#   1. Score via ralph-scorer subagent (claude -p --agent ralph-scorer)
-#   2. If ≥9/9/9 → PASS
-#   3. If <9 → Rewrite via writer agent (claude -p)
-#   4. Re-score → loop up to 3 attempts
-#   5. Commit + push
-#   6. Next post
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
+source scripts/ralph-helpers.sh
 
-LIMIT="${1:-0}"  # 0 = no limit
+LIMIT="${1:-0}"
 PROGRESS="scripts/ralph-progress.json"
 QUEUE="scripts/ralph-queue.txt"
 MAX_ATTEMPTS=3
 PROCESSED=0
 
-log() { echo "[$(date '+%H:%M:%S')] $*"; }
+# Create per-run temp directory
+RUN_ID="ralph-$(date +%Y%m%d-%H%M%S)"
+RUN_DIR="/tmp/$RUN_ID"
+mkdir -p "$RUN_DIR"
 
-# Initialize progress if empty
-if ! jq -e '.posts' "$PROGRESS" >/dev/null 2>&1; then
-  log "ERROR: Invalid progress file"
+log() { echo "[$(date '+%H:%M:%S')] $*"; }
+log_file="$RUN_DIR/ralph.log"
+log() { echo "[$(date '+%H:%M:%S')] $*" | tee -a "$log_file"; }
+
+# ==================== PREFLIGHT CHECKS ====================
+preflight_ok=true
+
+# Validate limit is numeric
+if [ "$LIMIT" != "0" ] && ! [[ "$LIMIT" =~ ^[0-9]+$ ]]; then
+  log "ERROR: RALPH_LIMIT must be a number, got: $LIMIT"
   exit 1
 fi
 
-# Read queue
-mapfile -t POSTS < "$QUEUE"
+# Check required tools
+for cmd in claude jq git pnpm node; do
+  if ! command -v "$cmd" &>/dev/null; then
+    log "ERROR: Required tool '$cmd' not found"
+    preflight_ok=false
+  fi
+done
+
+# Check scorer agent exists
+if [ ! -f ".claude/agents/ralph-scorer.md" ]; then
+  log "ERROR: Scorer agent not found at .claude/agents/ralph-scorer.md"
+  preflight_ok=false
+fi
+
+# Check for clean git tree (warn, not block)
+if [ -n "$(git status --porcelain)" ]; then
+  log "WARN: Git tree is dirty. Unrelated files may get committed."
+  log "  Dirty files: $(git status --porcelain | head -5)"
+fi
+
+# Check progress file
+if ! jq -e '.posts' "$PROGRESS" >/dev/null 2>&1; then
+  log "ERROR: Invalid progress file: $PROGRESS"
+  preflight_ok=false
+fi
+
+if [ "$preflight_ok" = false ]; then
+  log "PREFLIGHT FAILED. Aborting."
+  exit 1
+fi
+
+# Set startedAt if first run
+if [ "$(jq -r '.startedAt // "null"' "$PROGRESS")" = "null" ]; then
+  jq --arg ts "$(date -Iseconds)" '.startedAt = $ts' "$PROGRESS" > "${PROGRESS}.tmp" \
+    && mv "${PROGRESS}.tmp" "$PROGRESS"
+fi
+
+# ==================== MAIN LOOP ====================
+mapfile -t POSTS < <(sed '/^[[:space:]]*$/d' "$QUEUE")  # strip blank lines
 TOTAL=${#POSTS[@]}
-log "Ralph Loop starting. Queue: $TOTAL posts. Limit: ${LIMIT:-unlimited}"
+log "Ralph Loop starting. Queue: $TOTAL posts. Limit: ${LIMIT:-unlimited}. Run: $RUN_ID"
 
 for POST_FILE in "${POSTS[@]}"; do
+  # Strip trailing CR/whitespace
+  POST_FILE=$(echo "$POST_FILE" | tr -d '\r' | xargs)
+
   # Check limit
   if [ "$LIMIT" -gt 0 ] && [ "$PROCESSED" -ge "$LIMIT" ]; then
     log "RALPH_LIMIT=$LIMIT reached. Stopping."
@@ -44,110 +87,139 @@ for POST_FILE in "${POSTS[@]}"; do
 
   # Skip if already processed
   STATUS=$(jq -r --arg f "$POST_FILE" '.posts[$f].status // "PENDING"' "$PROGRESS")
-  if [ "$STATUS" = "PASS" ] || [ "$STATUS" = "OPUS46_TRIED_3_TIMES" ]; then
-    log "SKIP $POST_FILE ($STATUS)"
+  if [ "$STATUS" = "PASS" ] || [[ "$STATUS" =~ TRIED|SKIPPED ]]; then
     continue
   fi
 
   POST_PATH="src/content/posts/$POST_FILE"
   if [ ! -f "$POST_PATH" ]; then
-    log "WARN: File not found: $POST_PATH, skipping"
+    log "WARN: File not found: $POST_PATH — marking SKIPPED"
+    jq --arg f "$POST_FILE" --arg ts "$(date -Iseconds)" \
+      '.posts[$f] = { status: "SKIPPED", timestamp: $ts }' \
+      "$PROGRESS" > "${PROGRESS}.tmp" && mv "${PROGRESS}.tmp" "$PROGRESS"
     continue
   fi
 
-  TICKET_ID=$(grep -m1 'ticketId' "$POST_PATH" | grep -o '"[^"]*"' | tr -d '"' || echo "unknown")
+  TICKET_ID=$(get_ticket_id "$POST_PATH")
+  [ -z "$TICKET_ID" ] && TICKET_ID="unknown-$(basename "$POST_FILE" .mdx)"
   log "=== Processing $TICKET_ID ($POST_FILE) ==="
+
+  # Per-post temp dir
+  POST_DIR="$RUN_DIR/$TICKET_ID"
+  mkdir -p "$POST_DIR"
 
   ATTEMPT=0
   PASSED=false
+  SCORE_P=0; SCORE_C=0; SCORE_V=0
+  FAILURE_TYPE=""
 
   while [ "$ATTEMPT" -lt "$MAX_ATTEMPTS" ]; do
     ATTEMPT=$((ATTEMPT + 1))
+    SCORE_FILE="$POST_DIR/score-attempt-${ATTEMPT}.json"
     log "  Attempt $ATTEMPT/$MAX_ATTEMPTS — Scoring..."
 
     # Score via independent subagent
-    rm -f "/tmp/ralph-score-${TICKET_ID}.json"
-    bash scripts/ralph-scorer.sh "$POST_FILE" > /tmp/ralph-scorer-output.txt 2>&1 || true
+    if bash scripts/ralph-scorer.sh "$POST_FILE" "$SCORE_FILE" > "$POST_DIR/scorer-stdout-${ATTEMPT}.txt" 2>&1; then
+      read_scores "$SCORE_FILE"
+      log "  Scores: P=$SCORE_P C=$SCORE_C V=$SCORE_V"
 
-    # Read scores
-    SCORE_FILE="/tmp/ralph-score-${TICKET_ID}.json"
-    if [ ! -f "$SCORE_FILE" ]; then
-      log "  ERROR: Scorer failed to produce output. Retrying..."
+      # Check if passed
+      if [ "$SCORE_P" -ge 9 ] && [ "$SCORE_C" -ge 9 ] && [ "$SCORE_V" -ge 9 ]; then
+        PASSED=true
+        log "  ✅ PASS"
+        break
+      fi
+    else
+      log "  Scorer failed (attempt $ATTEMPT). See $POST_DIR/scorer-stdout-${ATTEMPT}.txt"
+      FAILURE_TYPE="SCORER_ERROR"
+      # Don't waste a rewrite on a scorer failure
       continue
-    fi
-
-    P_SCORE=$(jq -r '.scores.persona.score' "$SCORE_FILE" 2>/dev/null || echo "0")
-    C_SCORE=$(jq -r '.scores.clawdNote.score' "$SCORE_FILE" 2>/dev/null || echo "0")
-    V_SCORE=$(jq -r '.scores.vibe.score' "$SCORE_FILE" 2>/dev/null || echo "0")
-    MEET_BAR=$(jq -r '.meetBar' "$SCORE_FILE" 2>/dev/null || echo "false")
-
-    log "  Scores: P=$P_SCORE C=$C_SCORE V=$V_SCORE (meetBar=$MEET_BAR)"
-
-    # Check if passed
-    if [ "$P_SCORE" -ge 9 ] && [ "$C_SCORE" -ge 9 ] && [ "$V_SCORE" -ge 9 ]; then
-      PASSED=true
-      log "  ✅ PASS"
-      break
     fi
 
     # Not passed — rewrite if we have attempts left
     if [ "$ATTEMPT" -lt "$MAX_ATTEMPTS" ]; then
       log "  Rewriting (writer reads reviewer feedback)..."
 
-      # Determine if en version exists
+      # Determine en version instruction
       EN_FILE="src/content/posts/en-$POST_FILE"
-      EN_INSTRUCTION=""
-      if [ -f "$EN_FILE" ]; then
-        EN_INSTRUCTION="Also rewrite the English version at $EN_FILE to match."
-      else
-        EN_INSTRUCTION="Also create the English version at $EN_FILE with lang: en and same ticketId."
-      fi
+      EN_INSTRUCTION="Also create/rewrite the English version at $EN_FILE with lang: en and same ticketId."
 
-      # Writer agent — reads scorer feedback and rewrites
-      claude -p \
+      # Writer agent — reads scorer feedback and scoring standard
+      if claude -p \
         --model claude-opus-4-6 \
         --permission-mode bypassPermissions \
         --max-turns 20 \
         "You are a rewriter for gu-log blog posts. Your job is to improve a post that failed quality review.
 
-## References (read these first)
-1. Read TRANSLATION_PROMPT.md — LHY persona and style rules
-2. Read CONTRIBUTING.md — frontmatter schema, ClawdNote format
-3. Read the reviewer's feedback: cat $SCORE_FILE
+## References (read ALL before rewriting)
+1. Read scripts/ralph-vibe-scoring-standard.md — THE scoring rubric with calibration examples
+2. Read TRANSLATION_PROMPT.md — LHY persona and style rules
+3. Read CONTRIBUTING.md — frontmatter schema, ClawdNote format
+4. Read the reviewer's feedback: cat $SCORE_FILE
 
 ## Task
 Rewrite src/content/posts/$POST_FILE to fix EVERY issue the reviewer flagged.
 $EN_INSTRUCTION
 
 ## Rules
-- Keep ticketId, source, sourceUrl unchanged
-- ALL notes must be ClawdNote (convert any CodexNote/GeminiNote)
-- Import ONLY ClawdNote (remove unused imports)
-- Apply full LHY persona — professor teaching, not news article
-- ClawdNote density: ~1 per 25 lines of prose, each with personality
-- No bullet-dump endings, no motivational closings
-- Run 'pnpm run build 2>&1 | tail -5' after rewriting to verify no MDX errors
-- Update translatedBy.model using: node scripts/detect-model.mjs claude-opus-4-6" \
-        2>/dev/null || log "  WARN: Writer may have errored"
+- Keep ALL existing frontmatter fields intact (ticketId, source, sourceUrl, title, summary, tags, lang, dates, translatedBy)
+- Only update translatedBy.model using: node scripts/detect-model.mjs claude-opus-4-6
+- ALL notes must be ClawdNote (convert any CodexNote/GeminiNote/ClaudeCodeNote)
+- Import ONLY ClawdNote from components (remove unused imports)
+- Apply full LHY persona — professor teaching with life analogies, not news article
+- ClawdNote density: ~1 per 25 lines of prose, each with personality and opinion
+- No bullet-dump endings, no motivational closings, no 「各位觀眾好」openings
+- Kaomoji: sprinkle naturally, avoid markdown special chars" \
+        > "$POST_DIR/writer-stdout-${ATTEMPT}.txt" 2>&1; then
+        log "  Writer completed."
+      else
+        log "  Writer errored. See $POST_DIR/writer-stdout-${ATTEMPT}.txt"
+        FAILURE_TYPE="WRITER_ERROR"
+      fi
+
+      # Shell-level build check
+      log "  Running build check..."
+      if ! pnpm run build > "$POST_DIR/build-${ATTEMPT}.txt" 2>&1; then
+        log "  ❌ Build failed! See $POST_DIR/build-${ATTEMPT}.txt"
+        log "  Reverting post changes..."
+        git checkout -- "$POST_PATH" "src/content/posts/en-$POST_FILE" 2>/dev/null || true
+        FAILURE_TYPE="BUILD_ERROR"
+        continue
+      fi
+      log "  Build passed."
+
+      # Verify post was actually changed
+      if git diff --quiet -- "$POST_PATH"; then
+        log "  WARN: Writer didn't change the post. Wasted attempt."
+      fi
+
+      # Verify en file exists
+      if [ ! -f "src/content/posts/en-$POST_FILE" ]; then
+        log "  WARN: English version still missing after rewrite"
+      fi
     fi
   done
 
-  # Update progress
+  # Determine final status
   if [ "$PASSED" = true ]; then
-    RESULT_STATUS="PASS"
-  elif [ "$ATTEMPT" -ge "$MAX_ATTEMPTS" ]; then
-    RESULT_STATUS="OPUS46_TRIED_3_TIMES"
+    if [ "$ATTEMPT" -gt 1 ]; then
+      RESULT_STATUS="PASS"
+    else
+      RESULT_STATUS="PASS"
+    fi
+  elif [ -n "$FAILURE_TYPE" ]; then
+    RESULT_STATUS="$FAILURE_TYPE"
   else
-    RESULT_STATUS="ERROR"
+    RESULT_STATUS="OPUS46_TRIED_3_TIMES"
   fi
 
-  # Update progress JSON
+  # Update progress (overwrite post entry, then recompute stats)
   jq --arg f "$POST_FILE" \
      --arg t "$TICKET_ID" \
      --arg s "$RESULT_STATUS" \
-     --argjson p "$P_SCORE" \
-     --argjson c "$C_SCORE" \
-     --argjson v "$V_SCORE" \
+     --argjson p "$SCORE_P" \
+     --argjson c "$SCORE_C" \
+     --argjson v "$SCORE_V" \
      --argjson a "$ATTEMPT" \
      --arg ts "$(date -Iseconds)" \
      '.posts[$f] = {
@@ -156,27 +228,52 @@ $EN_INSTRUCTION
         scores: { persona: $p, clawdNote: $c, vibe: $v },
         attempts: $a,
         timestamp: $ts
-      } |
-      .lastUpdated = $ts |
-      .stats.processed += 1 |
-      if $s == "PASS" then .stats.passed += 1
-      elif $s == "OPUS46_TRIED_3_TIMES" then .stats.failed += 1
-      else . end' \
+      } | .lastUpdated = $ts' \
      "$PROGRESS" > "${PROGRESS}.tmp" && mv "${PROGRESS}.tmp" "$PROGRESS"
 
-  # Commit
+  # Recompute stats from posts (idempotent)
+  recompute_stats "$PROGRESS"
+
+  # Commit — targeted files only
   log "  Committing ($RESULT_STATUS)..."
-  git add -A
-  git commit -m "ralph: $TICKET_ID — $RESULT_STATUS (P:$P_SCORE C:$C_SCORE V:$V_SCORE)" --no-verify 2>/dev/null || true
-  git push 2>/dev/null || log "  WARN: push failed, will retry next iteration"
+  git add -- "$POST_PATH" "src/content/posts/en-$POST_FILE" "$PROGRESS" 2>/dev/null || true
+  
+  if git diff --cached --quiet; then
+    log "  Nothing to commit (post unchanged or PASS on first score)"
+  else
+    if ! git commit -m "ralph: $TICKET_ID — $RESULT_STATUS (P:$SCORE_P C:$SCORE_C V:$SCORE_V)"; then
+      log "  ❌ Git commit failed!"
+      FAILURE_TYPE="GIT_ERROR"
+    fi
+  fi
+
+  # Push — fail hard if push fails
+  if ! git push 2>/dev/null; then
+    log "  ❌ Git push failed! Attempting pull --rebase..."
+    if git pull --rebase && git push; then
+      log "  Push recovered after rebase."
+    else
+      log "  ❌ Push still failing. Stopping loop to prevent drift."
+      break
+    fi
+  fi
 
   PROCESSED=$((PROCESSED + 1))
-  log "  Done. Processed: $PROCESSED/${LIMIT:-∞}"
+  log "  Done. Processed: $PROCESSED$([ "$LIMIT" -gt 0 ] && echo "/$LIMIT" || echo "")"
 done
 
-# Summary
+# Final summary
+recompute_stats "$PROGRESS"
 PASSED_COUNT=$(jq '.stats.passed' "$PROGRESS")
 FAILED_COUNT=$(jq '.stats.failed' "$PROGRESS")
+REWRITTEN_COUNT=$(jq '.stats.rewritten' "$PROGRESS")
 TOTAL_PROCESSED=$(jq '.stats.processed' "$PROGRESS")
+
+# Check for unpushed commits
+UNPUSHED=$(git log --oneline '@{u}..HEAD' 2>/dev/null | wc -l || echo "?")
+
 log "=== Ralph Loop Complete ==="
-log "Processed: $TOTAL_PROCESSED | Passed: $PASSED_COUNT | Failed: $FAILED_COUNT"
+log "Processed this run: $PROCESSED"
+log "Total processed: $TOTAL_PROCESSED | Passed: $PASSED_COUNT | Rewritten: $REWRITTEN_COUNT | Failed: $FAILED_COUNT"
+log "Unpushed commits: $UNPUSHED"
+log "Run log: $log_file"

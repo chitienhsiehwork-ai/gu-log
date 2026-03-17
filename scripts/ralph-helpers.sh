@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+# Ralph Loop — Shared helper functions
+# Source this file: source scripts/ralph-helpers.sh
+
+# Extract ticketId from a post file (handles both single and double quotes)
+# Usage: ticket_id=$(get_ticket_id "src/content/posts/file.mdx")
+get_ticket_id() {
+  local file="$1"
+  # Match ticketId: "XX-N" or ticketId: 'XX-N' or ticketId: XX-N
+  grep -m1 'ticketId' "$file" 2>/dev/null \
+    | sed -E "s/.*ticketId:[[:space:]]*[\"']?([^\"']+)[\"']?.*/\1/" \
+    | tr -d '[:space:]'
+}
+
+# Validate scorer JSON output — returns 0 if valid, 1 if not
+# Usage: validate_score_json "/tmp/ralph-score-SP-110.json" "sp-110-file.mdx"
+validate_score_json() {
+  local json_file="$1"
+  local expected_file="$2"
+
+  # File exists?
+  [ -f "$json_file" ] || return 1
+
+  # Valid JSON?
+  jq empty "$json_file" 2>/dev/null || return 1
+
+  # Required keys exist and scores are integers 0-10?
+  local p c v
+  p=$(jq -r '.scores.persona.score // empty' "$json_file" 2>/dev/null)
+  c=$(jq -r '.scores.clawdNote.score // empty' "$json_file" 2>/dev/null)
+  v=$(jq -r '.scores.vibe.score // empty' "$json_file" 2>/dev/null)
+
+  # All three must be non-empty integers
+  [[ "$p" =~ ^[0-9]+$ ]] || return 1
+  [[ "$c" =~ ^[0-9]+$ ]] || return 1
+  [[ "$v" =~ ^[0-9]+$ ]] || return 1
+
+  # Range check 0-10
+  [ "$p" -ge 0 ] && [ "$p" -le 10 ] || return 1
+  [ "$c" -ge 0 ] && [ "$c" -le 10 ] || return 1
+  [ "$v" -ge 0 ] && [ "$v" -le 10 ] || return 1
+
+  return 0
+}
+
+# Read scores from validated JSON
+# Usage: read_scores "/tmp/ralph-score-SP-110.json"
+# Sets: SCORE_P, SCORE_C, SCORE_V
+read_scores() {
+  local json_file="$1"
+  SCORE_P=$(jq -r '.scores.persona.score' "$json_file")
+  SCORE_C=$(jq -r '.scores.clawdNote.score' "$json_file")
+  SCORE_V=$(jq -r '.scores.vibe.score' "$json_file")
+}
+
+# Recompute stats from posts (idempotent)
+# Usage: recompute_stats "$PROGRESS"
+recompute_stats() {
+  local progress="$1"
+  jq '
+    .stats = {
+      total: (.stats.total // 323),
+      processed: ([.posts | to_entries[] | select(.value.status != null)] | length),
+      passed: ([.posts | to_entries[] | select(.value.status == "PASS")] | length),
+      rewritten: ([.posts | to_entries[] | select(.value.attempts > 1 and .value.status == "PASS")] | length),
+      failed: ([.posts | to_entries[] | select(.value.status | test("TRIED|ERROR|SCORER_ERROR|WRITER_ERROR|BUILD_ERROR"))] | length),
+      skipped: ([.posts | to_entries[] | select(.value.status == "SKIPPED")] | length)
+    }
+  ' "$progress" > "${progress}.tmp" && mv "${progress}.tmp" "$progress"
+}

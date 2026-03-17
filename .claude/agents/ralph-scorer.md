@@ -41,7 +41,8 @@ These are DEDUCTIONS from what the score would otherwise be. Not hard caps.
 
 ## Output
 
-After scoring, write the result to `/tmp/ralph-score-<ticketId>.json`:
+After scoring, write the result to the exact output path specified in the task message.
+If no path is specified, write to `/tmp/ralph-score-<ticketId>.json`.
 
 ```json
 {
