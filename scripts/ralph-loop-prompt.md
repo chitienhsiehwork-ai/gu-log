@@ -15,10 +15,10 @@ Track your progress in `scripts/ralph-progress.json`.
 
 ## Post Limit (RALPH_LIMIT)
 
-Check `scripts/ralph-progress.json` for the `limit` field:
-- `limit: null` or missing → process entire queue (production mode)
-- `limit: 1` → process 1 post then stop (test mode)
-- `limit: N` → process N posts then stop
+Your launch message may include `RALPH_LIMIT=N`:
+- `RALPH_LIMIT=1` → process 1 post then stop (test mode)
+- `RALPH_LIMIT=N` → process N posts then stop
+- No RALPH_LIMIT → process entire queue (production mode)
 
 After processing each post, check if you've hit the limit. If so, stop and report summary.
 
