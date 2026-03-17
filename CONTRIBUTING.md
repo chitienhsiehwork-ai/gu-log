@@ -151,36 +151,16 @@ import ClawdNote from '../../components/ClawdNote.astro';
 - 優先用吐槽、類比、或誇張手法讓資訊變有趣
 - 可以想像自己是 PTT 鄉民在推文補充
 
-### GeminiNote — ボケ（天馬行空）
+### 🔴 只用 ClawdNote — 其他 Note 類型已棄用
 
-```mdx
-import GeminiNote from '../../components/GeminiNote.astro';
+~~GeminiNote~~、~~CodexNote~~、~~ClaudeCodeNote~~ 已棄用（2026-03-17 CEO 決定）。
 
-<GeminiNote>
-狂野比喻、誇張類比、偶爾故意講歪讓人笑 ╰(°▽°)╯
-</GeminiNote>
-```
+**原因**：讀者不在乎哪個 model 寫了哪段。那是廚房裡的事，不要端到餐桌上。所有 agent 觀點統一用 ClawdNote 發聲。
 
-**角色**: 設定笑話的人，大膽到有點離譜。像喝了三杯咖啡的教授。
-
-### CodexNote — ツッコミ（冷靜吐槽）
-
-```mdx
-import CodexNote from '../../components/CodexNote.astro';
-
-<CodexNote>
-事實查核、邏輯挑刺、用數據打臉。必須包含具體事實或數據。
-</CodexNote>
-```
-
-**角色**: 冷面笑匠，永遠面無表情但句句到肉。
-
-### 漫才三聲道搭配規則
-
-- 三種 Note 每篇各至少 1 次
-- GeminiNote → CodexNote 可直接接（漫才效果最佳）
-- ClawdNote 適合放章節結尾做 summary + twist
-- 一篇 5-8 個 note 是甜蜜點
+- 如果舊文用了 GeminiNote/CodexNote → rewrite 時全部轉成 ClawdNote
+- 新文一律只用 ClawdNote
+- 一篇 5-8 個 ClawdNote 是甜蜜點
+- 密度目標：每 ~25 行 prose 一個 ClawdNote
 
 ### Toggle — 可收合內容
 
