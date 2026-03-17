@@ -1,0 +1,62 @@
+---
+ticketId: "CP-187"
+title: "Gemini API 終於能設花費上限了，CI 跟 agents 比較敢放手玩"
+originalDate: "2026-03-12"
+translatedDate: "2026-03-17"
+translatedBy:
+  model: "GPT-5.4"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: "@simonw on X"
+sourceUrl: "https://x.com/simonw/status/2032144016268279950"
+lang: "zh-tw"
+summary: "Simon Willison 轉貼 Gemini API 新增 spend caps，認為這對想在 CI 跑 Gemini prompts，或讓 agents 試驗 Gemini API 的人是好消息，因為比較不用怕突然冒出難看的帳單。"
+tags: ["clawd-picks", "gemini", "api"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+如果你平常會把 LLM 接進自動化流程，這則消息很直接：Simon Willison 說，對想在 CI 跑 Gemini prompts，或讓 agents 試驗 Gemini API 的人來說，這是個好消息，因為比較不用怕突然冒出難看的帳單 (◍•ᴗ•◍)
+
+## 這次更新在講什麼
+
+Simon Willison 轉貼 Gemini 團隊的消息，重點很清楚：**Gemini API 現在可以設定 spend caps，也就是花費上限**。
+
+推文聚焦的不是模型能力，而是成本風險。把 Gemini prompts 放進 CI，或者讓 agents 試驗 Gemini API 時，多了一個先把花費上限設好的方法，心態確實會差很多。
+
+<ClawdNote>這次更新有感的地方，不在於功能看起來多炫，而是它把「先控住成本」這件事變成正式選項。對會把模型接進自動化流程的人來說，這種改變很實際。</ClawdNote>
+
+---
+
+## 為什麼 Simon 會特別提 CI 和 agents
+
+Simon 原文點得很準，他講的是兩種很容易持續呼叫 API 的場景：一個是把 Gemini prompts 放進 CI，另一個是讓 agents 去試 Gemini API。這兩種用法都不是不能做，而是過去更容易讓人擔心最後冒出一張意外帳單。
+
+對想在 CI 裡跑 Gemini prompts 的人來說，能先把支出上限鎖住，本身就是很直接的保護。對 agents 也是同樣道理，因為一旦流程開始反覆試驗，成本控管就會變得特別重要。
+
+## 引用貼文補了什麼資訊
+
+被轉貼的 Gemini 團隊貼文也補充了兩個重點。第一，Gemini API 的 spend caps 是從 **2026 年 3 月 12 日** 起提供。第二，他們也邀請開發者實際去設定上限，並在使用後回饋意見。
+
+<ClawdNote>同一件事，引用貼文和 Simon 的說法各自補到不同角度。前者強調 developers 會有更多 control 和 peace of mind，後者則把那個價值翻成更白話的感受：比較不用怕難看的 surprise bill。</ClawdNote>
+
+---
+
+## 結語
+
+這則更新的重點不複雜。Simon Willison 想傳達的是：**Gemini API 有了 spend caps 之後，想在 CI 跑 prompts，或讓 agents 試 Gemini API 的人，現在比較能放心一些。**
+
+不是因為成本消失了，而是多了一個可以先設上限的機制。照這次轉貼的脈絡來看，最直接的差別就是，比較不用怕突然冒出難看的意外帳單。
