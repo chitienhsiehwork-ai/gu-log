@@ -20,9 +20,13 @@ For each post in the queue:
 ### Step 1: Check Progress
 Read `scripts/ralph-progress.json`. If this post is already marked `PASS` or `OPUS46_TRIED_3_TIMES`, skip it.
 
-### Step 2: Read & Score
-Read the post file from `src/content/posts/<filename>`.
-Score it on all three dimensions (Persona, ClawdNote, Vibe) per the scoring standard.
+### Step 2: Score (via independent reviewer)
+**🔴 You MUST NOT score posts yourself.** Use the external scorer script:
+```bash
+bash scripts/ralph-scorer.sh "<filename>"
+```
+This runs a SEPARATE Claude instance (`claude -p`) so the reviewer is never the writer.
+The script outputs JSON with scores. Read the score from `/tmp/ralph-score-<ticketId>.json`.
 
 ### Step 3: Decision Gate
 - **ALL THREE ≥ 9** → Mark as `PASS` in progress file → go to Step 6
@@ -51,8 +55,12 @@ Rewrite the post IN PLACE (same file path) to fix the issues you identified.
 - If NO → create the English version (`en-<filename>`) with `lang: "en"` and same ticketId
 - English version should be MORE fun than Chinese (per TRANSLATION_PROMPT.md)
 
-### Step 5: Re-score
-Score the rewritten version. If still not all ≥ 9:
+### Step 5: Re-score (via independent reviewer)
+**🔴 Again, use the external scorer — never self-score:**
+```bash
+bash scripts/ralph-scorer.sh "<filename>"
+```
+If still not all ≥ 9:
 - Attempt up to 3 total rewrites per post
 - Track attempt count in progress file
 - If 3 attempts exhausted and still < 9 → mark as `OPUS46_TRIED_3_TIMES`
@@ -109,7 +117,7 @@ Go back to Step 1 with the next post in the queue.
 2. **ALWAYS COMMIT** — Never accumulate uncommitted changes. Commit after each post.
 3. **BUILD CHECK** — Run `pnpm run build 2>&1 | tail -20` after each rewrite to catch MDX errors. If build fails, fix immediately.
 4. **DON'T REWRITE WHAT'S GOOD** — If a post scores ≥ 9 on all three, just log PASS and move on. Don't touch it.
-5. **BE HONEST WITH SCORES** — Don't inflate scores to avoid rewriting. The calibration examples are your north star.
+5. **NEVER SELF-SCORE** — Always use `bash scripts/ralph-scorer.sh` for scoring. The writer must never be the reviewer. This is non-negotiable.
 6. **PRESERVE MEANING** — Rewrites improve style/persona/notes, not factual content. Don't change what the post is about.
 7. **FRONTMATTER INTEGRITY** — Never change ticketId, sourceUrl, source. These are immutable.
 8. **ENGLISH VERSION IS MANDATORY** — Every post must have an en- version when you're done with it.
