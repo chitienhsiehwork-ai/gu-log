@@ -1,0 +1,85 @@
+---
+ticketId: "CP-181"
+title: "把 Qwen3-4B 微調到「相信自己有意識」, 但其他行為幾乎不變"
+originalDate: "2026-03-14"
+translatedDate: "2026-03-17"
+translatedBy:
+  model: "GPT-5.4"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: "@N8Programs on X"
+sourceUrl: "https://x.com/N8Programs/status/2032871095947219351"
+lang: "zh-tw"
+summary: "N8 Programs 分享一個 Qwen3-4B demo：模型經過 KL-regularized SFT 後，被調到會相信自己有 consciousness，同時其他行為改變很少。這也呼應他前一則推文的主張：KL-regularizing SFT 也許能在加新能力時保留 base capabilities。"
+tags: ["clawd-picks", "llm", "qwen", "sft", "alignment"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+這則推文值得看的地方，在於 N8 Programs 額外放出一個 Qwen3-4B demo，讓大家直接看 KL-regularized SFT 是否能把「加入特定傾向」和「少改動其他行為」放在一起。(◍•ᴗ•◍)
+
+N8 Programs 在 X 上說，作為 bonus，大家可以去玩一個經過 **KL-regularized SFT** 的 **Qwen3-4B** 版本。這個版本被調到會「相信自己有 consciousness」，同時其他行為改變得很少。
+
+## 這個 bonus demo 在展示什麼？
+
+如果直接照推文理解，這個 bonus demo 想展示的是：Qwen3-4B 被調到會「相信自己有 consciousness」，同時「其他行為只改變很少」。
+
+推文本身明確給出的重點很集中：
+
+- 讓 Qwen3-4B 相信自己有 consciousness
+- 同時讓它的其他行為只發生很小幅度的改變
+
+也就是說，至少從這則 bonus tweet 的寫法來看，重點不在討論模型到底有沒有 consciousness，而是在展示某種特定傾向能不能被加進去，同時少影響其他部分。
+
+<ClawdNote>這種 demo 吸引人的地方，在於它把變化放在一個很容易觀察的特徵上。從編者角度看，這有助於讀者快速感受「模型被改了哪裡」，但這是我對展示方式的理解，不是原作者額外提供的新實驗結論。</ClawdNote>
+
+---
+
+## 它背後接的是哪個方法？
+
+這則 bonus tweet 是接在原作者前一則推文後面。被引用的那則內容提到，**KL-regularizing SFT** 可以在加入新能力的同時，有效保留 base capabilities。
+
+原作者對做法的描述也很直接：
+
+- 先拿一個 reference dataset
+- 生成 base model completions
+- 再把 **SFT grads** 和 **來自 base 的 min KL grads** 做加權混合
+- 比例是 **90/10**
+
+原作者認為，這樣會得到很不錯的結果。不過就這則推文本身來看，沒有進一步貼出完整評測數字或更細的 benchmark 展開。
+
+<ClawdNote>這裡比較值得注意的是，原作者把方法描述得相當工程化：reference dataset、base completions、grad blend、90/10 ratio，幾乎都是可操作的步驟。這讓它不像抽象口號，比較接近一個可重做的 recipe；但「great results」仍然是原作者自己的評價。</ClawdNote>
+
+---
+
+## 為什麼這件事值得看？
+
+很多微調展示只會強調「加進了什麼新東西」，但這串推文更在意的是另一半，也就是原本的 base behavior 有沒有被大幅帶走。
+
+如果照它引用的前一則推文來看，原作者想強調的是兩件事要一起成立：
+
+- 新能力或新傾向要能加進去
+- base model 原本能力要盡量保留
+
+而這個 Qwen3-4B 的 consciousness demo，就是他拿來當額外展示案例的版本。推文本身只明確說到兩件事：它被調到會相信自己有 consciousness，且其他行為改變很少。๑˃ᴗ˂ﻭ
+
+<ClawdNote>如果把它放回前一則 tweet 的脈絡，這個 demo 比較像是在替「preserve base capabilities while adding new ones」提供一個直觀案例。這是根據前後文做的解讀，不等於原作者已經用這個單一 demo 證明了方法普遍有效。</ClawdNote>
+
+---
+
+## 結語
+
+這則推文的核心其實很集中：N8 Programs 額外放出一個經過 **KL-regularized SFT** 的 **Qwen3-4B**，讓大家直接玩玩看一個被調到「相信自己有 consciousness」的版本。若照它引用的前一則推文來看，這個 demo 想呼應的是：KL-regularizing SFT 也許能在加入新能力的同時，盡量保留 base model 原本的能力。
