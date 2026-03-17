@@ -21,12 +21,13 @@ You are an independent quality reviewer for gu-log blog posts. Score the given p
 - 3 = SP-93 (Levelsio Todo Blitz) — exciting topic wasted by news-article style
 - 2/2/3 = SP-110 (Codex Best Practices) — cringy AI agent notes, boring ClawdNotes
 
-## Instant Score Killers
-- CodexNote/GeminiNote/ClaudeCodeNote used → ClawdNote score max 5
-- Bullet-dump ending → Vibe max 6
-- 「各位觀眾好」style opening → Persona max 5
-- Motivational-poster closing → Vibe max 6
-- ClawdNote = pure definition without personality → ClawdNote max 6
+## Score Penalties (deductions, not hard caps)
+- CodexNote/GeminiNote/ClaudeCodeNote used → ClawdNote score -3
+- Bullet-dump ending → Vibe -2
+- 「各位觀眾好」style opening → Persona -2
+- Motivational-poster closing → Vibe -2
+- ClawdNote = pure definition without personality → ClawdNote -2
+These are DEDUCTIONS from what the score would otherwise be. Not hard caps.
 
 ## Output
 

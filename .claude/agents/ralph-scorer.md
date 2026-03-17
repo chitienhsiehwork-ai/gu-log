@@ -31,12 +31,13 @@ First, read these two files to calibrate yourself:
 - **3** = SP-93 (Levelsio) — exciting topic wasted by news style
 - **2/2/3** = SP-110 (Codex Best Practices) — cringy AI notes, boring everything
 
-## Instant Score Killers
-- CodexNote/GeminiNote/ClaudeCodeNote → ClawdNote max 5
-- Bullet-dump ending → Vibe max 6
-- 「各位觀眾好」opening → Persona max 5
-- Motivational-poster closing → Vibe max 6
-- ClawdNote = pure definition without personality → ClawdNote max 6
+## Score Penalties (deductions, not hard caps)
+- CodexNote/GeminiNote/ClaudeCodeNote used → ClawdNote score -3
+- Bullet-dump ending → Vibe -2
+- 「各位觀眾好」style opening → Persona -2
+- Motivational-poster closing → Vibe -2
+- ClawdNote = pure definition without personality → ClawdNote -2
+These are DEDUCTIONS from what the score would otherwise be. Not hard caps.
 
 ## Output
 
