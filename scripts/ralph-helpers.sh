@@ -21,6 +21,11 @@ validate_score_json() {
   # File exists?
   [ -f "$json_file" ] || return 1
 
+  # Strip markdown code fences if LLM wrapped output
+  if head -1 "$json_file" | grep -q '```'; then
+    sed -i '/^```/d' "$json_file"
+  fi
+
   # Valid JSON?
   jq empty "$json_file" 2>/dev/null || return 1
 

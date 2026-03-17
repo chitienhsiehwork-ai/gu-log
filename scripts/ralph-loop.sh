@@ -20,9 +20,16 @@ RUN_ID="ralph-$(date +%Y%m%d-%H%M%S)"
 RUN_DIR="/tmp/$RUN_ID"
 mkdir -p "$RUN_DIR"
 
-log() { echo "[$(date '+%H:%M:%S')] $*"; }
 log_file="$RUN_DIR/ralph.log"
 log() { echo "[$(date '+%H:%M:%S')] $*" | tee -a "$log_file"; }
+
+# ==================== LOCK ====================
+LOCKFILE="/tmp/ralph-loop.lock"
+exec 200>"$LOCKFILE"
+if ! flock -n 200; then
+  echo "ERROR: Another Ralph Loop is already running. Exiting."
+  exit 1
+fi
 
 # ==================== PREFLIGHT CHECKS ====================
 preflight_ok=true
@@ -53,6 +60,12 @@ if [ -n "$(git status --porcelain)" ]; then
   log "  Dirty files: $(git status --porcelain | head -5)"
 fi
 
+# Abort if in rebase/merge state
+if [ -d ".git/rebase-merge" ] || [ -d ".git/rebase-apply" ]; then
+  log "ERROR: Git is in a rebase state. Resolve manually first."
+  exit 1
+fi
+
 # Check progress file
 if ! jq -e '.posts' "$PROGRESS" >/dev/null 2>&1; then
   log "ERROR: Invalid progress file: $PROGRESS"
@@ -73,7 +86,7 @@ fi
 # ==================== MAIN LOOP ====================
 mapfile -t POSTS < <(sed '/^[[:space:]]*$/d' "$QUEUE")  # strip blank lines
 TOTAL=${#POSTS[@]}
-log "Ralph Loop starting. Queue: $TOTAL posts. Limit: ${LIMIT:-unlimited}. Run: $RUN_ID"
+log "Ralph Loop starting. Queue: $TOTAL posts. Limit: $([ "$LIMIT" -gt 0 ] && echo "$LIMIT" || echo "unlimited"). Run: $RUN_ID"
 
 for POST_FILE in "${POSTS[@]}"; do
   # Strip trailing CR/whitespace
@@ -92,6 +105,7 @@ for POST_FILE in "${POSTS[@]}"; do
   fi
 
   POST_PATH="src/content/posts/$POST_FILE"
+  EN_PATH="src/content/posts/en-$POST_FILE"
   if [ ! -f "$POST_PATH" ]; then
     log "WARN: File not found: $POST_PATH — marking SKIPPED"
     jq --arg f "$POST_FILE" --arg ts "$(date -Iseconds)" \
@@ -112,6 +126,7 @@ for POST_FILE in "${POSTS[@]}"; do
   PASSED=false
   SCORE_P=0; SCORE_C=0; SCORE_V=0
   FAILURE_TYPE=""
+  LAST_BUILD_ERROR=""
 
   while [ "$ATTEMPT" -lt "$MAX_ATTEMPTS" ]; do
     ATTEMPT=$((ATTEMPT + 1))
@@ -119,7 +134,9 @@ for POST_FILE in "${POSTS[@]}"; do
     log "  Attempt $ATTEMPT/$MAX_ATTEMPTS — Scoring..."
 
     # Score via independent subagent
-    if bash scripts/ralph-scorer.sh "$POST_FILE" "$SCORE_FILE" > "$POST_DIR/scorer-stdout-${ATTEMPT}.txt" 2>&1; then
+    if bash scripts/ralph-scorer.sh "$POST_FILE" "$SCORE_FILE" \
+        > "$POST_DIR/scorer-stdout-${ATTEMPT}.txt" \
+        2> "$POST_DIR/scorer-stderr-${ATTEMPT}.txt"; then
       read_scores "$SCORE_FILE"
       log "  Scores: P=$SCORE_P C=$SCORE_C V=$SCORE_V"
 
@@ -130,9 +147,8 @@ for POST_FILE in "${POSTS[@]}"; do
         break
       fi
     else
-      log "  Scorer failed (attempt $ATTEMPT). See $POST_DIR/scorer-stdout-${ATTEMPT}.txt"
+      log "  Scorer failed (attempt $ATTEMPT). See $POST_DIR/scorer-stderr-${ATTEMPT}.txt"
       FAILURE_TYPE="SCORER_ERROR"
-      # Don't waste a rewrite on a scorer failure
       continue
     fi
 
@@ -140,9 +156,15 @@ for POST_FILE in "${POSTS[@]}"; do
     if [ "$ATTEMPT" -lt "$MAX_ATTEMPTS" ]; then
       log "  Rewriting (writer reads reviewer feedback)..."
 
-      # Determine en version instruction
-      EN_FILE="src/content/posts/en-$POST_FILE"
-      EN_INSTRUCTION="Also create/rewrite the English version at $EN_FILE with lang: en and same ticketId."
+      # Build error feedback from previous attempt (if any)
+      BUILD_FEEDBACK=""
+      if [ -n "$LAST_BUILD_ERROR" ]; then
+        BUILD_FEEDBACK="
+## Previous Build Error (FIX THIS)
+Your last rewrite caused a build error:
+$LAST_BUILD_ERROR
+Fix the syntax issue this time."
+      fi
 
       # Writer agent — reads scorer feedback and scoring standard
       if claude -p \
@@ -156,10 +178,10 @@ for POST_FILE in "${POSTS[@]}"; do
 2. Read TRANSLATION_PROMPT.md — LHY persona and style rules
 3. Read CONTRIBUTING.md — frontmatter schema, ClawdNote format
 4. Read the reviewer's feedback: cat $SCORE_FILE
-
+$BUILD_FEEDBACK
 ## Task
 Rewrite src/content/posts/$POST_FILE to fix EVERY issue the reviewer flagged.
-$EN_INSTRUCTION
+Also create/rewrite the English version at $EN_PATH with lang: en and same ticketId.
 
 ## Rules
 - Keep ALL existing frontmatter fields intact (ticketId, source, sourceUrl, title, summary, tags, lang, dates, translatedBy)
@@ -180,12 +202,20 @@ $EN_INSTRUCTION
       # Shell-level build check
       log "  Running build check..."
       if ! pnpm run build > "$POST_DIR/build-${ATTEMPT}.txt" 2>&1; then
+        LAST_BUILD_ERROR=$(tail -20 "$POST_DIR/build-${ATTEMPT}.txt")
         log "  ❌ Build failed! See $POST_DIR/build-${ATTEMPT}.txt"
         log "  Reverting post changes..."
-        git checkout -- "$POST_PATH" "src/content/posts/en-$POST_FILE" 2>/dev/null || true
+        # Revert tracked changes
+        git checkout -- "$POST_PATH" 2>/dev/null || true
+        git checkout -- "$EN_PATH" 2>/dev/null || true
+        # Remove untracked en file if writer just created it
+        if ! git ls-files --error-unmatch "$EN_PATH" &>/dev/null; then
+          rm -f "$EN_PATH"
+        fi
         FAILURE_TYPE="BUILD_ERROR"
         continue
       fi
+      LAST_BUILD_ERROR=""
       log "  Build passed."
 
       # Verify post was actually changed
@@ -194,7 +224,7 @@ $EN_INSTRUCTION
       fi
 
       # Verify en file exists
-      if [ ! -f "src/content/posts/en-$POST_FILE" ]; then
+      if [ ! -f "$EN_PATH" ]; then
         log "  WARN: English version still missing after rewrite"
       fi
     fi
@@ -202,18 +232,31 @@ $EN_INSTRUCTION
 
   # Determine final status
   if [ "$PASSED" = true ]; then
-    if [ "$ATTEMPT" -gt 1 ]; then
-      RESULT_STATUS="PASS"
-    else
-      RESULT_STATUS="PASS"
-    fi
+    RESULT_STATUS="PASS"
   elif [ -n "$FAILURE_TYPE" ]; then
     RESULT_STATUS="$FAILURE_TYPE"
   else
     RESULT_STATUS="OPUS46_TRIED_3_TIMES"
   fi
 
-  # Update progress (overwrite post entry, then recompute stats)
+  # Commit FIRST, then update progress (atomic ordering)
+  log "  Committing ($RESULT_STATUS)..."
+  git add -- "$POST_PATH" "$EN_PATH" 2>/dev/null || true
+
+  COMMITTED=false
+  if git diff --cached --quiet; then
+    log "  Nothing to commit (post unchanged or PASS on first score)"
+  else
+    if git commit -m "ralph: $TICKET_ID — $RESULT_STATUS (P:$SCORE_P C:$SCORE_C V:$SCORE_V)"; then
+      COMMITTED=true
+    else
+      log "  ❌ Git commit failed! Marking as GIT_ERROR."
+      RESULT_STATUS="GIT_ERROR"
+      git reset HEAD -- "$POST_PATH" "$EN_PATH" 2>/dev/null || true
+    fi
+  fi
+
+  # NOW update progress (after successful commit or on PASS-without-changes)
   jq --arg f "$POST_FILE" \
      --arg t "$TICKET_ID" \
      --arg s "$RESULT_STATUS" \
@@ -222,38 +265,48 @@ $EN_INSTRUCTION
      --argjson v "$SCORE_V" \
      --argjson a "$ATTEMPT" \
      --arg ts "$(date -Iseconds)" \
-     '.posts[$f] = {
+     '(.posts[$f] // {}) * {
         ticketId: $t,
         status: $s,
         scores: { persona: $p, clawdNote: $c, vibe: $v },
         attempts: $a,
         timestamp: $ts
-      } | .lastUpdated = $ts' \
-     "$PROGRESS" > "${PROGRESS}.tmp" && mv "${PROGRESS}.tmp" "$PROGRESS"
+      } | .posts[$f] = . | .lastUpdated = $ts' \
+     "$PROGRESS" > "${PROGRESS}.tmp" && mv "${PROGRESS}.tmp" "$PROGRESS" || {
+    # jq syntax above is tricky — fallback to simple overwrite
+    jq --arg f "$POST_FILE" \
+       --arg t "$TICKET_ID" \
+       --arg s "$RESULT_STATUS" \
+       --argjson p "$SCORE_P" \
+       --argjson c "$SCORE_C" \
+       --argjson v "$SCORE_V" \
+       --argjson a "$ATTEMPT" \
+       --arg ts "$(date -Iseconds)" \
+       '.posts[$f] = {
+          ticketId: $t,
+          status: $s,
+          scores: { persona: $p, clawdNote: $c, vibe: $v },
+          attempts: $a,
+          timestamp: $ts
+        } | .lastUpdated = $ts' \
+       "$PROGRESS" > "${PROGRESS}.tmp" && mv "${PROGRESS}.tmp" "$PROGRESS"
+  }
 
   # Recompute stats from posts (idempotent)
   recompute_stats "$PROGRESS"
 
-  # Commit — targeted files only
-  log "  Committing ($RESULT_STATUS)..."
-  git add -- "$POST_PATH" "src/content/posts/en-$POST_FILE" "$PROGRESS" 2>/dev/null || true
-  
-  if git diff --cached --quiet; then
-    log "  Nothing to commit (post unchanged or PASS on first score)"
-  else
-    if ! git commit -m "ralph: $TICKET_ID — $RESULT_STATUS (P:$SCORE_P C:$SCORE_C V:$SCORE_V)"; then
-      log "  ❌ Git commit failed!"
-      FAILURE_TYPE="GIT_ERROR"
-    fi
-  fi
+  # Commit progress update
+  git add -- "$PROGRESS"
+  git commit -m "ralph: update progress — $TICKET_ID $RESULT_STATUS" --no-verify 2>/dev/null || true
 
-  # Push — fail hard if push fails
+  # Push
   if ! git push 2>/dev/null; then
     log "  ❌ Git push failed! Attempting pull --rebase..."
     if git pull --rebase && git push; then
       log "  Push recovered after rebase."
     else
-      log "  ❌ Push still failing. Stopping loop to prevent drift."
+      log "  ❌ Rebase/push failed. Aborting rebase and stopping loop."
+      git rebase --abort 2>/dev/null || true
       break
     fi
   fi

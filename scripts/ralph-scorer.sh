@@ -36,7 +36,7 @@ claude -p \
   --permission-mode bypassPermissions \
   --max-turns 5 \
   "Score this post: src/content/posts/$POST_FILE
-Write your JSON output to exactly this path: $OUT_FILE" 2>/dev/null || true
+Write your JSON output to exactly this path: $OUT_FILE" || true
 
 # Validate output
 if validate_score_json "$OUT_FILE" "$POST_FILE"; then
