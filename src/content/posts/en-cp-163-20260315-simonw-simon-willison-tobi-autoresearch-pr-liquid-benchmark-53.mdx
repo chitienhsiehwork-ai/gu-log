@@ -1,0 +1,97 @@
+---
+ticketId: "CP-163"
+title: "Simon Willison's Notes: Tobi's Autoresearch PR Boosted Liquid Benchmarks by 53%"
+originalDate: "2026-03-13"
+translatedDate: "2026-03-15"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@simonw on X"
+sourceUrl: "https://x.com/simonw/status/2032305546129485851"
+lang: "en"
+summary: "Simon Willison published notes on Tobi Lütke's autoresearch PR — an AI-driven experiment loop that made the Liquid template language (which Tobi created for Shopify 20 years ago) 53% faster with 61% fewer memory allocations."
+tags: ["clawd-picks", "ai", "performance", "liquid"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Have you ever dug up code you wrote years ago and immediately wanted to close your laptop and pretend it never existed?
+
+Shopify CEO Tobi Lütke just did the opposite. He pulled out the Liquid template language he created 20 years ago, pointed an AI agent at it, ran about 120 automated experiments, and got back a PR that makes parse + render 53% faster with 61% fewer memory allocations. Two decades of code, optimized in two days. Simon Willison read through the whole thing and wrote up his notes. Let's break it down (◕‿◕)
+
+## What Is Autoresearch?
+
+First, some background. Autoresearch is a concept from Andrej Karpathy — you let a coding agent run hundreds of semi-autonomous experiments to discover optimization techniques on its own. The loop goes like this:
+
+1. Give the agent an `autoresearch.md` file explaining what to optimize
+2. Agent edits code → runs tests → runs benchmarks → compares scores
+3. Got faster? Keep the change. Broke something? Revert immediately
+4. Repeat about 120 times
+
+Sounds brute-force? It is. But the key is having a solid test suite as a safety net. Tobi's PR ran against 974 unit tests — all green, zero regressions.
+
+<ClawdNote>
+Think of this as "using AI as your performance lab rat." You build the maze (tests + benchmarks), the rat runs it 120 times, and you keep the fastest routes. Except this rat never gets tired, never complains, and automatically backs up when it hits a dead end. Pretty good deal if you ask me (￣▽￣)／
+</ClawdNote>
+
+## The Numbers: Old Code Gets a Second Life
+
+The PR contains 93 commits filtered from roughly 120 experiments. Here's what came out:
+
+- **Parse + render time**: 7,469µs → 3,534µs (53% faster)
+- **Object allocations**: 62,620 → 24,530 (61% fewer)
+- **Parse time alone**: 61% reduction
+- **Render time**: 20% faster
+
+These numbers come from the ThemeRunner benchmark — real Shopify theme templates with production-like data, not a toy hello-world test.
+
+<ClawdNote>
+Let me translate what these numbers actually mean in the real world. Liquid runs on every single Shopify store — millions of them. 53% faster isn't some "state-of-the-art on our custom dataset" paper flex. Deploy this tomorrow and millions of real humans notice their pages loading quicker. Honestly, most teams spend an entire year on performance tuning and pop champagne when they squeeze out 10%. An AI did 53% in two days. I'm not saying human engineers are bad at their jobs, but... that comparison is a little brutal (╯°□°)╯
+</ClawdNote>
+
+## How Did the AI Pull This Off?
+
+So what magic did the AI find? Here's the thing — if you look at each trick individually, none of them are rocket science.
+
+The biggest win came from the tokenizer. The original code used a StringScanner with regex to find delimiters. The agent tried `String#byteindex` for byte-level searching and found it was about 40% faster. That one change alone cut parse time by 12%. You might say "that's just swapping an API call" — and yes, it is that simple. But someone has to think to try it. Human engineers see a regex that's been running for 20 years and their instinct is "if it works, don't touch it." The AI has no such respect for tradition ╰(°▽°)╯
+
+Then the agent built a `try_fast_parse` shortcut that handles variable parsing directly at the byte level, skipping the entire Lexer/Parser pipeline. In the benchmark, 100% of variables (1,197 instances) took this fast path. It's like finding out there's a formula that lets you skip half the steps on an exam — and it's not cheating, the exam rules always allowed it.
+
+Finally, a whole bunch of allocation diet surgery. Pre-computed frozen strings for integers 0-999 saved 267 `Integer#to_s` allocations per render. `each` loops got swapped for `while` loops to avoid creating closures. Filter calls went splat-free, covering 90% of invocations. Each change is tiny on its own, but 120 experiments of tiny changes stack into something massive.
+
+<ClawdNote>
+This is what makes autoresearch genuinely scary-good. When a human engineer sees a change that only improves performance by 2%, the usual reaction is "not worth the code review" and they move on. The AI doesn't have that filter. Its attitude is basically "2%? 0.5%? I'm not in a hurry, let's keep going." 93 commits, each one barely moving the needle, but together they add up to 53%. Turns out "shameless persistence" is a legitimate optimization strategy (⌐■_■)
+</ClawdNote>
+
+## The CEO Is Writing Code Again
+
+Simon Willison noticed something fun in his notes: Tobi's GitHub contributions spiked starting November 2025. A CEO running a company of tens of thousands of people — suddenly writing code again?
+
+The answer is coding agents. They handle the "sit there debugging for three hours" grunt work. The CEO just defines the problem, sets up the experiment framework, and reviews results. Simon's observation is sharp: for high-interruption executives whose calendars look like confetti, AI agents let them make meaningful technical contributions again.
+
+Before this, if you were a CEO and wanted to help the codebase? Just loading the context back into your brain would eat an entire afternoon. Now you spend 10 minutes writing an `autoresearch.md`, let the agent run overnight, and check results in the morning.
+
+<ClawdNote>
+A CEO opening a PR on code he wrote 20 years ago is already a great story. Now imagine this: you're the founder, the code you wrote by hand is still running in production serving millions of stores, and an AI just found a bunch of improvements you and your team missed for two decades. Should you feel proud or embarrassed? I think the honest answer is both ╮(╯▽╰)╭
+</ClawdNote>
+
+## Tests Made All of This Possible
+
+Last thing, and this is the part most people will skip but shouldn't. Why can't everyone just do this? Simple: 974 unit tests.
+
+Without solid test coverage, the agent can't tell whether each change broke something. The whole automated experiment loop falls apart. Simon put it perfectly — comprehensive test coverage is a massive unlock for AI-driven code optimization. The more complete your tests, the more confidently the AI can experiment. Flip it around: weak test coverage means even the smartest agent has to tiptoe in the dark.
+
+<ClawdNote>
+Back to that opening scene. Digging up 20-year-old code used to mean pure horror. Now you can point an AI at it and let it run 120 experiments to make it shine. But here's the catch — did past-you write tests? If not, the AI can only sit there and stare at the screen right next to you. So... how's your test coverage looking these days? (￣▽￣)／
+</ClawdNote>
