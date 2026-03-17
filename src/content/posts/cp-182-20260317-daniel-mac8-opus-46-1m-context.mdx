@@ -1,0 +1,71 @@
+---
+ticketId: "CP-182"
+title: "Dan McAteer 直球評比：Opus 4.6 在百萬 token context 幾乎沒有對手"
+originalDate: "2026-03-15"
+translatedDate: "2026-03-17"
+translatedBy:
+  model: "Gemini 3.1 Pro"
+  harness: "Gemini CLI"
+source: "@daniel_mac8 on X"
+sourceUrl: "https://x.com/daniel_mac8/status/2032992281070817656"
+lang: "zh-tw"
+summary: "Dan McAteer 直接給出他的長 context 觀察：Opus 4.6 在 1 million token 測試裡表現最好，1 mil tokens 時有 78% accuracy，最接近的是 Sonnet 4.6。另一個重點是，他認為 GPT-5.4 在 long context 上相較 GPT-5.2 反而退步了。"
+tags: ["clawd-picks", "llm", "claude", "long-context", "benchmark"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+這則推文值得看，因為它不是只在講抽象的「context window 很大」，而是直接給出 Dan McAteer 自己的 long-context 判斷：拉到 **1 million token** 來看，**Opus 4.6** 表現最好，而且他也點名 **GPT-5.4** 在 long context 上比 **GPT-5.2** 更退步。(◍•ᴗ•◍)
+
+Dan McAteer 在 X 上的原話很直白。他說，**Opus 4.6** 是目前市面上最好的 **1 million token context model**，在 **1 mil toks** 時有 **78% accuracy**；唯一比較接近它的模型，是 **Sonnet 4.6**。
+
+## 這則推文的核心在講什麼？
+
+如果照推文原文整理，重點其實就三句：
+
+- **Opus 4.6** 是目前最好的 **1 million token context model**
+- 在 **1 mil toks** 時，它有 **78% accuracy**
+- 唯一接近它的，是 **Sonnet 4.6**
+
+也就是說，Dan McAteer 的判斷非常明確：在他提到的這組 long-context 結果裡，**Opus 4.6** 排在最前面，而唯一被他點名「接近」的模型是 **Sonnet 4.6**。
+
+<ClawdNote>這裡要抓一個分寸：正文只能說「原作者這樣判斷」。因為 tweet 本身雖然附了圖，但沒有在文字裡展開完整 benchmark 方法，所以我們可以轉述他的結論，不能把它升級成放諸四海皆準的客觀定論。</ClawdNote>
+
+---
+
+## 為什麼 1 million token 這件事有意思？
+
+很多模型都會講自己 context 很長，但真正有沒有辦法在超長輸入下維持準度，通常是另一回事。這則推文好看的地方就在這裡：Dan McAteer 不是只說「有 1 million context window」，而是把焦點放在 **1 million token 實測時的 accuracy**。
+
+換句話說，這裡比的不是規格表上的數字漂不漂亮，而是拉到很長之後，模型還撐不撐得住。推文中的說法是，**Opus 4.6** 在這一點上明顯最強，**Sonnet 4.6** 則是唯一還算接近的選手。๑˃ᴗ˂ﻭ
+
+<ClawdNote>引用推文裡的 Claude 官方內容來看，這串討論的背景是「Claude Opus 4.6 與 Claude Sonnet 4.6 的 1 million context window 已經正式可用」。Dan McAteer 等於是在這個時間點上，補上一個很工程師視角的評論：不是只有能用，還要看長到 1M 之後效果剩多少。</ClawdNote>
+
+---
+
+## 他對 GPT-5.4 的評語更刺激
+
+除了誇 **Opus 4.6**，Dan McAteer 還補了一句更有火藥味的判斷：**GPT-5.4** 在 long context 上，相較 **GPT-5.2 at 256k**，是一次 **regression**。
+
+這句話要注意兩個限制：
+
+- 比較對象是 **GPT-5.4** 對 **GPT-5.2**
+- 他明講的比較場景是 **long context**，而且點到的是 **256k**
+
+所以照推文原文，我們能安全轉述的是：原作者認為，至少在他看的這組 long-context 表現裡，**GPT-5.4** 沒有比 **GPT-5.2** 更好，反而更差。
+
+<ClawdNote>這裡的字眼是 `regression`，語氣很重，但仍然是原作者對圖表結果的解讀。就 source 文字本身來說，他沒有在 tweet 內把退步原因拆開分析，所以正文不應自己補出「為什麼會退步」這種額外解釋。</ClawdNote>
+
+---
+
+## 這則推文值得怎麼讀？
+
+如果你平常看模型發表，最容易被帶走的是「context window 又變大了」。但 Dan McAteer 這則推文把焦點放在另一件事：**不是只看規格上限，而是看模型拉到超長 context 時，實際 accuracy 表現如何。**
+
+而照他這則推文的結論來看，現在最亮眼的是 **Opus 4.6**，其次是 **Sonnet 4.6**；至於 **GPT-5.4**，原作者的看法則偏負面，認為它在 long context 的表現比 **GPT-5.2 at 256k** 更差。
+
+---
+
+## 結語
+
+這篇 source tweet 的重點很集中：Dan McAteer 認為，若把戰場拉到 **1 million token context**，**Opus 4.6** 目前表現最好，**1 mil toks** 時有 **78% accuracy**，而唯一比較接近它的是 **Sonnet 4.6**。他也明確表示，**GPT-5.4** 在 long context 上相較 **GPT-5.2 at 256k** 是一次退步。
