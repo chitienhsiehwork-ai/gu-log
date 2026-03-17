@@ -13,6 +13,15 @@ You are the Ralph Loop agent. Your job is to systematically sweep through ALL gu
 Read `scripts/ralph-queue.txt` for the ordered list of posts to process (most recent first).
 Track your progress in `scripts/ralph-progress.json`.
 
+## Post Limit (RALPH_LIMIT)
+
+Your launch message may include `RALPH_LIMIT=N`:
+- `RALPH_LIMIT=1` → process 1 post then stop (test mode)
+- `RALPH_LIMIT=N` → process N posts then stop
+- No RALPH_LIMIT → process entire queue (production mode)
+
+After processing each post, check if you've hit the limit. If so, stop and report summary.
+
 ## Loop Protocol
 
 For each post in the queue:
@@ -32,8 +41,15 @@ The script outputs JSON with scores. Read the score from `/tmp/ralph-score-<tick
 - **ALL THREE ≥ 9** → Mark as `PASS` in progress file → go to Step 6
 - **ANY < 9** → Go to Step 4
 
-### Step 4: Rewrite
-Rewrite the post IN PLACE (same file path) to fix the issues you identified.
+### Step 4: Rewrite (informed by reviewer feedback)
+**Before rewriting, read the full score file** at `/tmp/ralph-score-<ticketId>.json`.
+Pay close attention to:
+- `scores.*.reason` — the reviewer's specific critique per dimension
+- `topIssues` — the 3 most critical problems to fix
+
+Address EVERY issue the reviewer flagged. Don't just tweak — if the reviewer says "reads like news recap", restructure into storytelling. If they say "ClawdNote is bland", rewrite the note with 吐槽 and personality.
+
+Rewrite the post IN PLACE (same file path) to fix the issues the reviewer identified.
 
 **Rewrite rules:**
 - Keep the same `ticketId`, `source`, `sourceUrl`, `date`/`originalDate`/`translatedDate`
