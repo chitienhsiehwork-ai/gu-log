@@ -31,7 +31,8 @@ mkdir -p "$(dirname "$OUT_FILE")"
 rm -f "$OUT_FILE"
 
 # Run independent Claude Code instance with the ralph-scorer subagent
-claude -p \
+# Timeout: 5 minutes per score (should take ~2min normally)
+timeout 300 claude -p \
   --agent ralph-scorer \
   --permission-mode bypassPermissions \
   --max-turns 5 \

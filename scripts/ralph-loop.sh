@@ -84,8 +84,17 @@ if [ "$(jq -r '.startedAt // "null"' "$PROGRESS")" = "null" ]; then
 fi
 
 # ==================== MAIN LOOP ====================
+# Validate queue file exists and is non-empty
+if [ ! -f "$QUEUE" ] || [ ! -r "$QUEUE" ]; then
+  log "ERROR: Queue file missing or unreadable: $QUEUE"
+  exit 1
+fi
 mapfile -t POSTS < <(sed '/^[[:space:]]*$/d' "$QUEUE")  # strip blank lines
 TOTAL=${#POSTS[@]}
+if [ "$TOTAL" -eq 0 ]; then
+  log "ERROR: Queue is empty. Nothing to process."
+  exit 1
+fi
 log "Ralph Loop starting. Queue: $TOTAL posts. Limit: $([ "$LIMIT" -gt 0 ] && echo "$LIMIT" || echo "unlimited"). Run: $RUN_ID"
 
 for POST_FILE in "${POSTS[@]}"; do
@@ -167,7 +176,8 @@ Fix the syntax issue this time."
       fi
 
       # Writer agent — reads scorer feedback and scoring standard
-      if claude -p \
+      # Timeout: 15 minutes per rewrite (complex rewrites can take 5-10min)
+      if timeout 900 claude -p \
         --model claude-opus-4-6 \
         --permission-mode bypassPermissions \
         --max-turns 20 \
@@ -241,7 +251,8 @@ Also create/rewrite the English version at $EN_PATH with lang: en and same ticke
 
   # Commit FIRST, then update progress (atomic ordering)
   log "  Committing ($RESULT_STATUS)..."
-  git add -- "$POST_PATH" "$EN_PATH" 2>/dev/null || true
+  git add -- "$POST_PATH" 2>/dev/null || true
+  [ -f "$EN_PATH" ] && git add -- "$EN_PATH" 2>/dev/null || true
 
   COMMITTED=false
   if git diff --cached --quiet; then
@@ -252,11 +263,17 @@ Also create/rewrite the English version at $EN_PATH with lang: en and same ticke
     else
       log "  ❌ Git commit failed! Marking as GIT_ERROR."
       RESULT_STATUS="GIT_ERROR"
-      git reset HEAD -- "$POST_PATH" "$EN_PATH" 2>/dev/null || true
+      # Unstage AND restore working tree to prevent dirty-tree cascade
+      git checkout -- "$POST_PATH" 2>/dev/null || true
+      git checkout -- "$EN_PATH" 2>/dev/null || true
+      if ! git ls-files --error-unmatch "$EN_PATH" &>/dev/null 2>&1; then
+        rm -f "$EN_PATH"
+      fi
     fi
   fi
 
   # NOW update progress (after successful commit or on PASS-without-changes)
+  # CRITICAL: assign into .posts[$f] keeping root context intact
   jq --arg f "$POST_FILE" \
      --arg t "$TICKET_ID" \
      --arg s "$RESULT_STATUS" \
@@ -265,32 +282,14 @@ Also create/rewrite the English version at $EN_PATH with lang: en and same ticke
      --argjson v "$SCORE_V" \
      --argjson a "$ATTEMPT" \
      --arg ts "$(date -Iseconds)" \
-     '(.posts[$f] // {}) * {
+     '.posts[$f] = ((.posts[$f] // {}) + {
         ticketId: $t,
         status: $s,
         scores: { persona: $p, clawdNote: $c, vibe: $v },
         attempts: $a,
         timestamp: $ts
-      } | .posts[$f] = . | .lastUpdated = $ts' \
-     "$PROGRESS" > "${PROGRESS}.tmp" && mv "${PROGRESS}.tmp" "$PROGRESS" || {
-    # jq syntax above is tricky — fallback to simple overwrite
-    jq --arg f "$POST_FILE" \
-       --arg t "$TICKET_ID" \
-       --arg s "$RESULT_STATUS" \
-       --argjson p "$SCORE_P" \
-       --argjson c "$SCORE_C" \
-       --argjson v "$SCORE_V" \
-       --argjson a "$ATTEMPT" \
-       --arg ts "$(date -Iseconds)" \
-       '.posts[$f] = {
-          ticketId: $t,
-          status: $s,
-          scores: { persona: $p, clawdNote: $c, vibe: $v },
-          attempts: $a,
-          timestamp: $ts
-        } | .lastUpdated = $ts' \
-       "$PROGRESS" > "${PROGRESS}.tmp" && mv "${PROGRESS}.tmp" "$PROGRESS"
-  }
+      }) | .lastUpdated = $ts' \
+     "$PROGRESS" > "${PROGRESS}.tmp" && mv "${PROGRESS}.tmp" "$PROGRESS"
 
   # Recompute stats from posts (idempotent)
   recompute_stats "$PROGRESS"
