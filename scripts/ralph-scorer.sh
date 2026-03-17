@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Ralph Scorer — Independent review via Claude Code custom command
+# Ralph Scorer — Independent review via Claude Code subagent
 # Usage: ./ralph-scorer.sh <post-filename>
 # Output: JSON score to /tmp/ralph-score-<ticketId>.json
 # Exit: 0 = success, 1 = error
 #
-# Runs a SEPARATE Claude Code instance (claude -p) so that
-# the reviewer is never the same agent as the writer.
+# Runs the ralph-scorer SUBAGENT (separate context window, separate model instance)
+# so the reviewer is never the same agent as the writer.
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -25,12 +25,14 @@ OUT_FILE="/tmp/ralph-score-${TICKET_ID}.json"
 # Clean previous score file
 rm -f "$OUT_FILE"
 
-# Run independent Claude Code instance with the ralph-score command
+# Run independent Claude Code instance with the ralph-scorer subagent
+# --model forced to opus because frontmatter model field may not be honored in -p mode
 claude -p \
+  --agent ralph-scorer \
   --model claude-opus-4-6 \
   --permission-mode bypassPermissions \
   --max-turns 5 \
-  "/ralph-score $POST_FILE" 2>/dev/null
+  "Score this post: src/content/posts/$POST_FILE" 2>/dev/null
 
 # Check if output file was created
 if [ -f "$OUT_FILE" ]; then
