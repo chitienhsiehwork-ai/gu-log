@@ -1,0 +1,135 @@
+---
+ticketId: "SP-117"
+title: "如何讓你的 Claude Skills 變強 10 倍？Andrej Karpathy 的 Autoresearch 方法實戰"
+originalDate: "2026-03-17"
+translatedDate: "2026-03-18"
+translatedBy:
+  model: "Gemini 3.1 Pro"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: "@itsolelehmann on X"
+sourceUrl: "https://x.com/itsolelehmann/status/2033919415771713715"
+lang: "zh-tw"
+summary: "Ole Lehmann 分享一個把 Karpathy「autoresearch」概念套進 Claude skills 的做法，讓 agent 自己反覆測試、微調 prompt。以他的 landing page copy skill 為例，quality checks 通過率從 56% 提升到 92%，而且流程幾乎不用手動介入。"
+tags: ["shroom-picks", "claude", "prompt-engineering", "autoresearch"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+大家都知道寫 Prompt 是一門學問，但你有沒有覺得自己寫的 Claude skills 好像常常會「出槌」？原作者估計，你的 skills 大概有 30% 的機率會給出不如預期的結果，而且你可能根本沒發現！
+
+為了解決這個問題，他利用了 AI 大神 Andrej Karpathy 的概念，打造了一個可以「全自動優化」任何 skill 的流程。只要啟動它，AI agent 就會自己不斷測試、微調你的 skill，完全不用人工介入。他的 landing page copy skill 成功率就這樣從 56% 飆升到 92%！(◍•ᴗ•◍)
+
+## 這個想法是怎麼來的？
+
+Andrej Karpathy（OpenAI 共同創辦人、前 Tesla AI 總監，也是發明 "vibe coding" 這個詞的人）之前提出了一個叫 "autoresearch" (自動研究) 的方法。
+
+想法很簡單：與其手動去改東西，不如讓 AI agent 在一個迴圈裡幫你做。它會嘗試一個小修改，檢查結果有沒有變好。變好就保留，變差就丟掉，然後不斷重複這個過程。
+
+Karpathy 最初是把它用在機器學習的程式碼上，但原作者認為，這招其實可以用在任何可以「衡量並改進」的東西上，當然也包含你在 Claude 裡建立的 skills。他把這個方法做成了可以在 Claude Code 和 Cowork 裡跑的 skill，只要下一句指令「run autoresearch on my landing page skill」，它就會自動接手後續的所有工作。
+
+<ClawdNote>
+我的理解是，這個流程的重點不是某個特定名詞，而是「小改動 -> 重新評分 -> 保留或復原」的迭代循環。原文沒有展開演算法細節，所以這裡比較適合把它理解成一種讓 agent 自己反覆試錯的優化流程。
+</ClawdNote>
+
+---
+
+## 一個迴圈如何自動優化你的 Skills？
+
+想像一下你在煮一道菜，10 次裡面大概有 7 次很好吃，但有 3 次味道就是怪怪的，可能是醬汁太淡或是調味料加錯。
+
+與其把整本食譜撕掉重寫，不如一次只改一個食材，然後用新配方試煮 10 次：
+- 變好吃了？保留這個修改。
+- 變難吃了？把舊的食材換回來。
+
+接著再改下一個東西，再試煮 10 次。這樣搞個 50 輪之後，你的食譜可能就有 9.5/10 的超高成功率了。
+
+Autoresearch 對你的 skills 做的事情一模一樣：
+- **「食譜」** 就是你的 skill prompt。
+- **「試煮」** 就是執行這個 skill。
+- **「試吃」** 就是對輸出的結果打分數。
+
+你唯一需要準備的，就是那個用來打分數的標準。
+
+---
+
+## 告訴 Agent 什麼叫「好」的 Checklist
+
+你要給 agent 一個簡單的 checklist，告訴它什麼樣的結果叫做「好」。這是整個過程中你唯一要出力的部分。
+
+這個 checklist 必須是由簡單的 Yes/No 問題組成，每個問題只檢查輸出結果的一個特定細節，只有 Pass 或 Fail 兩種結果。
+
+想像老師拿著 checklist 改考卷：比起「給這篇文章的寫作品質打 1-10 分」（這種標準太模糊，每次給分可能都不一樣），checklist 上的每一項都是明確的 Yes 或是 No：
+- 學生有沒有寫論文主旨 (thesis statement)？Yes 或 No。
+- 每個來源都有引用嗎？Yes 或 No。
+- 總長度有在 5 頁以內嗎？Yes 或 No。
+
+原作者舉了他的 landing page copy skill 為例，checklist 大概長這樣：
+- **「標題是否包含具體的數字或結果？」**（用來抓出像是 "Grow Your Business" 這種空泛的標題）
+- **「文案中是否沒有使用 'revolutionary'、'synergy' 等流行語 (buzzwords)？」**
+- **「CTA (Call to Action) 是否使用了具體的動詞片語？」**（用來避免 "Learn More" 這種無力的 CTA）
+- **「第一行是否點出了具體的痛點？」**
+- **「總字數是否低於 150 字？」**
+
+你不用自己苦思這些問題。啟動 autoresearch 時，agent 會帶著你做，幫你把「感覺」轉換成具體的 Yes/No 問題，如果有現成的 style guide，它甚至能直接從裡面抓規則。
+
+<ClawdNote>
+原作者特別提醒，3 到 6 個問題是最好的 sweet spot。照他的說法，問題太多時，skill 可能會開始「只是在過 checklist」，有點像學生背答案但沒有真的理解題目。
+</ClawdNote>
+
+---
+
+## 具體該怎麼跑這個流程？
+
+原作者分享了實作的步驟（第一步就是先下載他提供的 skill）：
+
+1. **下載 Skill**：先把作者提供的 `autoresearch.zip` 下載下來，再放進你的 Claude Code 或 Cowork 的 skills 資料夾。
+2. **選一個想優化的 Skill**：挑一個最讓你煩躁的，那種每次跑出來一半是神作、一半是垃圾的 skill。
+3. **回答 Agent 3 個問題**：你要優化哪個 skill？測試用的 input 是什麼（例如「幫一個 AI 生產力工具寫 landing page 文案」）？你的 checklist 問題是什麼？
+4. **確認基準分數 (Baseline)**：Agent 會跑一次並秀出初始分數。作者的 landing page skill 一開始只有 56%，常見問題是空泛標題、流行語過多，還有偏弱的 CTA。
+5. **放著讓它跑**：它會開一個瀏覽器儀表板，每 10 秒自動更新。你可以看到分數隨著時間上升的圖表、每個 checklist 問題的 Pass/Fail 比例，以及它嘗試過的每一次修改紀錄。
+6. **Autopilot 模式**：Agent 進入迴圈。分析哪裡失敗 -> 微調 prompt -> 再次測試。分數變高就保留，變低就復原。它會一直自動跑，直到你喊停，或者連續三次達到 95%+ 的高分為止。
+
+你可以盯著儀表板看，也可以直接去喝杯咖啡。優化完成後，它會把改進後的版本存成一個獨立的檔案，所以你原本的 skill 完全不會被覆蓋掉。
+
+---
+
+## 實測結果：Landing Page Skill 的進化
+
+原作者分享了他的實測結果：在 4 輪修改後，分數從 56% 提升到了 92%（期間保留了 3 個修改，復原了 1 個）。
+
+Agent 到底在他的 prompt 裡改了什麼？
+- **加入針對最常見錯誤的具體規則**：「你的標題必須包含具體的數字或結果。絕對不要使用像 'Transform Your Business' 這種空泛的承諾。」
+- **加入禁用詞表**：「絕對不要使用：revolutionary, cutting-edge, synergy, next-level, game-changing, leverage, unlock, transform。」
+- **加入一個優秀的範例 (Worked example)**：它提供了一個包含痛點開場白和 CTA 的優質範例，讓 skill 知道「好」長怎樣，而不是瞎猜。
+- **嘗試限制字數（但後來復原了）**：Agent 曾嘗試縮減字數，但發現文案變得太單薄，CTA 也因此變弱了，所以把這個修改復原。
+
+最後原作者得到了：
+- 一個另存新檔的優化版 skill（原始檔案留著作備份）。
+- 包含每次分數的結果日誌。
+- 一份詳細的修改紀錄 (changelog)，解釋了嘗試過哪些修改、為什麼要改，以及有沒有幫助。
+
+原作者認為那份 changelog 可能是最有價值的東西，因為它完整記錄了對這個 skill 來說什麼有用、什麼沒用。他也認為未來如果有更聰明的模型推出，只要把這份 changelog 交給它，就能從上一個 agent 停下來的地方繼續優化。
+
+---
+
+## 結語
+
+這個 autoresearch 的方法其實不限於優化 Claude skills，原作者認為只要是「可以被評分」的東西都能用這套邏輯。
+
+例如有人用它來優化網站載入速度，每次改一個設定並測量速度，在 67 輪內從 1100ms 降到了 67ms！你也可以用它來優化開發信 (Cold outreach) 或是電子報的開場白。
+
+只要你能定義出明確的評分標準，你就能讓 AI 幫你不斷自我進化！(๑˃ᴗ˂)ﻭ 如果你也有些常常不受控的 prompt，不妨試試看這個思路，幫它們做個特訓吧！
