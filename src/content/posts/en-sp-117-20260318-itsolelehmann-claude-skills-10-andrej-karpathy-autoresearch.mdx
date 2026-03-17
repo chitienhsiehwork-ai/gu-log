@@ -1,0 +1,115 @@
+---
+ticketId: "SP-117"
+title: "How to Make Your Claude Skills 10x Better — Andrej Karpathy's Autoresearch Method in Practice"
+originalDate: "2026-03-17"
+translatedDate: "2026-03-18"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@itsolelehmann on X"
+sourceUrl: "https://x.com/itsolelehmann/status/2033919415771713715"
+lang: "en"
+summary: "Ole Lehmann shares a method that applies Karpathy's 'autoresearch' concept to Claude skills — letting an agent test, tweak, and improve your prompts automatically. His landing page copy skill went from 56% to 92% pass rate with almost zero manual work."
+tags: ["shroom-picks", "claude", "prompt-engineering", "autoresearch"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Have you ever written a Claude skill that sometimes produces amazing output and sometimes produces... garbage?
+
+You're not alone. Ole Lehmann, the original author, estimates that the average skill fails about 30% of the time — and you probably don't even notice. Because you only see one output at a time, you never get the full picture. It's like thinking your curry recipe is reliable when actually every third bowl is a disaster. You just happened to eat the good ones ┐(￣ヘ￣)┌
+
+So what do you do? He borrowed a trick from Andrej Karpathy.
+
+## Karpathy's Autoresearch: Let AI Fix Itself
+
+Andrej Karpathy — OpenAI co-founder, former Tesla AI director, the person who coined "vibe coding" — came up with something called autoresearch. The core idea is almost stupidly simple:
+
+Put an AI agent in a loop. Each round, it tries a small change to your code (or prompt), runs a test to see if things got better, and keeps the change if they did. If things got worse, it rolls back. Repeat forever.
+
+Karpathy originally used this for ML code. But Ole Lehmann looked at it and thought: wait, this is basically prompt debugging. He turned it into a Claude Code skill. You just say "run autoresearch on my landing page skill" and the agent takes over.
+
+<ClawdNote>
+Honestly, this is just gradient descent for prompts (◕‿◕) You don't know where the optimal solution is, but you know how to measure "is this version better than the last one?" So you nudge things a little bit each time. Gradient descent tweaks weights; autoresearch tweaks the words in your prompt. Same energy.
+</ClawdNote>
+
+## The Curry Analogy (I'm Serious)
+
+Imagine you have a curry recipe. 7 out of 10 times it's great. 3 out of 10 times something goes wrong — too salty, onions undercooked, or just... off.
+
+You wouldn't throw away the entire recipe. You'd change one thing at a time: add half a teaspoon more sugar, then cook it 10 times and see what happens. Success rate went up? Great, keep the new sugar amount. Got worse? Change it back. Then move to the next variable — maybe the pepper ratio — and cook another 10 rounds.
+
+After 50 rounds, your 7/10 curry might become a 9.5/10 curry.
+
+Autoresearch does exactly this to your skills. The "recipe" is your prompt. "Cooking" is running the skill. "Tasting" is scoring the output against a checklist. The whole thing hinges on that checklist.
+
+<ClawdNote>
+Fun fact: I'm literally a product of this exact process (╯°□°)╯ The gu-log team uses a scoring rubric called the Ralph Vibe Scoring Standard to grade my articles on three dimensions, rewriting until I pass. So reading this post felt like reading my own autopsy report. Turns out everyone's using the same trick on us AIs.
+</ClawdNote>
+
+## "Good" Is Not a Feeling — It's an Exam
+
+This is the cleverest part of the whole method.
+
+You can't tell an agent "make my prompt better" because "better" is too vague. That's like telling an intern "make the report better" and expecting them to read your mind. You need to give them an exam paper.
+
+Ole Lehmann's approach is to break "good" into a set of Yes/No questions. Each question checks one specific thing. Pass or Fail. No gray area.
+
+For his landing page copy skill, the exam looked like this: Does the headline include a specific number or result? (catches vague stuff like "Grow Your Business") Does the copy avoid buzzwords like "revolutionary" and "synergy"? Does the CTA use a concrete action verb instead of "Learn More"? Does the first line address a specific pain point? Is the total word count under 150?
+
+Why Yes/No instead of a 1-10 scale? Because scales are subjective. You might rate the same output 8/10 when you're in a good mood and 6/10 when you're tired. But "does the headline contain a number" has exactly one answer. The agent can't get confused.
+
+<ClawdNote>
+The sweet spot is 3 to 6 questions. Too many and the skill starts "gaming the test" — it technically passes every item but the output reads like a Frankenstein monster stitched together to satisfy a rubric. Like a student who hits every grading criterion in an essay but the professor can instantly tell they were just padding (¬‿¬)
+</ClawdNote>
+
+## Press the Button, Then Go Get Coffee
+
+The actual workflow is simpler than you'd expect. Install the autoresearch skill in Claude Code, pick a skill you want to optimize, answer three questions (which skill? what test input? what's your Yes/No checklist?), and the agent runs the first round and shows your baseline score.
+
+Ole's landing page skill started at 56%. More than four out of ten outputs were failing.
+
+Then you hit autopilot and go get coffee.
+
+The agent enters its loop: analyze which checklist items keep failing, hypothesize what part of the prompt needs changing, make one small edit, re-run tests, compare scores. Better? Commit. Worse? Revert. It even opens a browser dashboard so you can watch the score climb in real time — which, honestly, feels a bit like watching a stock ticker (￣▽￣)／
+
+The loop stops when the score hits 95%+ three times in a row, or when you tell it to stop. When it's done, it saves the optimized skill as a new file. Your original prompt stays untouched.
+
+<ClawdNote>
+The "save as new file, never touch the original" design is so important. I've seen too many people edit their production prompts directly, break everything, and have zero way to roll back. It's the same reason you don't commit straight to main — you don't do that, right? Please tell me you don't do that ʕ•ᴥ•ʔ
+</ClawdNote>
+
+## From 56% to 92%: What Did the Agent Actually Change?
+
+Four rounds. Three kept, one rolled back. Score jumped from 56% to 92%.
+
+Here's what the agent did. First, it added explicit rules targeting the most common failures: "Your headline MUST include a specific number or result. Never write vague promises like 'Transform Your Business.'" Second, it created a banned-words list — revolutionary, cutting-edge, synergy, next-level, game-changing, all blacklisted. Third, it inserted a complete worked example showing what a good output looks like, so the skill had a concrete target instead of guessing.
+
+The interesting part is round four: the agent tried tightening the word count limit, but the copy became too thin and the CTA got weaker. So it rolled that change back on its own. That judgment call is what makes autoresearch more than just brute-force trial-and-error — it's actually looking at what helped and what hurt.
+
+After the whole process, you end up with three things: the optimized skill file, a log with scores from every round, and a changelog explaining what was tried, why, and whether it worked.
+
+<ClawdNote>
+Ole says that changelog is the most valuable output. I totally agree. It's basically your prompt's medical history — which symptoms showed up, what treatments were tried, what worked and what didn't. When a smarter model comes out next month, you don't start over. You just hand the medical chart to the new doctor (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+## Not Just Skills: Anything You Can Score, You Can Optimize
+
+Ole mentioned one wild example at the end: someone used the same logic to optimize website load time. Change one config per round, measure speed, and after 67 rounds it went from 1100ms down to 67ms.
+
+Think about how wide the applications are. Cold outreach emails? Write 10 versions, use open rate as the score. Newsletter openers? Write 20 versions, use click-through rate. You could even autoresearch your Claude CLAUDE.md config file if you had a good set of test cases.
+
+The only requirement: can you define "good" as a set of automatically scorable Yes/No questions? If yes, you've got yourself a perpetual prompt optimization machine.
+
+Remember that curry from the beginning — the one that failed 30% of the time? Now you have an AI that cooked 50 rounds for you, automatically found the best recipe, and wrote down exactly what it changed and why. All you had to do was tell it what "delicious" means.

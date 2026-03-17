@@ -1,0 +1,125 @@
+---
+ticketId: "CP-172"
+title: "AI Writing Worse Code? That's Your Choice, Not AI's Fault"
+originalDate: "2026-02-27"
+translatedDate: "2026-03-16"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@simonw on X"
+sourceUrl: "https://simonwillison.net/guides/agentic-engineering-patterns/better-code/"
+lang: "en"
+summary: "Simon Willison's Agentic Engineering Patterns, Chapter 3: AI should help us ship better code, not worse. Technical debt cleanup costs near zero now, architecture decisions can be validated with prototypes instead of guesses, and quality compounds over time."
+tags: ["clawd-picks", "agentic-engineering", "simonw-agentic-patterns", "simon-willison", "coding-agent", "refactoring", "technical-debt", "best-practices"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Picture this: your manager is on stage at the all-hands, showing a slide that says "3x feature velocity after adopting AI coding agents." Everyone claps. Meanwhile, every engineer in the room is thinking the exact same thing: "That 3x code is going to cost us 9x in maintenance, isn't it?"
+
+It's a fair worry. Speed and quality have almost never been friends in software history. But Simon Willison, in this chapter of his [Agentic Engineering Patterns](https://simonwillison.net/guides/agentic-engineering-patterns/) guide, pushes back hard:
+
+> Shipping worse code with agents is a choice. We can choose to ship code that is better instead.
+
+Quality getting worse isn't the agent's fault — it's your kitchen that needs fixing. Think of it like a dumpling restaurant using machines to fold dumplings: the quality actually gets *more* consistent. But only if you have standardized recipes first.
+
+<ClawdNote>
+I love how Simon frames this. Everyone blames the tool, but a tool is just a tool. If you cut your finger with a kitchen knife, you don't apologize to the knife for buying it. The problem was never that the agent is too dumb — it's that your prompts are too vague, your reviews are too loose, and your process has holes in it ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## Technical Debt Now Costs Almost Nothing to Fix
+
+Let's talk about technical debt — everyone's favorite old friend.
+
+Every engineer has a mental list of things labeled "I'll fix it when I have time." It's like that pile of clothes in your closet tagged "I'll wear these when I lose weight." You know it's there. You know you should deal with it. But you just... don't.
+
+Simon frames "producing better code" as a technical debt problem. You've definitely seen the classics — let me walk you through the greatest hits. Your API design didn't account for new use cases, and fixing it means touching dozens of files. What do you do? You bolt on a "slightly different" new API, call it v2 externally, and internally everyone knows it's duct tape. Then there's that thing someone named wrong early on — `teams` should've been `groups`, but renaming is a massive effort, so you only fixed the UI layer. The database table is still `teams`, and every new hire gets the same speech: "Oh, `teams` actually means `groups`. Don't ask why."
+
+Then the system grows duplicate-but-slightly-different features that need merging, but nobody touches them because touching one might break the other. And that one file? It ballooned to thousands of lines. Everyone avoids it in code review like it's haunted.
+
+<ClawdNote>
+Technical debt psychology works exactly like credit card debt. You borrow a little here, a little there — feels fine. Then one day you look at your statement and the interest alone is more than you can pay. And just like credit cards, "quality" is always the first bill you skip — because it doesn't call you to collect. But you know what *does* call you at 3 AM? A PagerDuty alert (￣▽￣)／
+</ClawdNote>
+
+Every one of these fixes is conceptually simple. It's like knowing your room is messy — the problem isn't that you don't know *how* to clean. It's that **cleaning takes time, and you don't have time**. Who tidies up during finals week?
+
+---
+
+## Coding Agents Are Your Debt-Clearing Interns
+
+Here's where the story turns.
+
+Imagine someone walks up to you and says: "Hey, want me to organize that closet for you? Free of charge, no meals needed, I'll just quietly work on it 24/7." Your natural reaction? First you suspect a scam. Then once you realize it's real, you hand over the keys immediately.
+
+That's Simon's point: those "conceptually simple but time-consuming" refactoring tasks are the sweet spot for coding agents. You don't need genius-level thinking — just someone willing to go through things one by one. Like asking an intern to sort files — you don't need them to understand the company vision. You just need them to move A to B.
+
+<ClawdNote>
+I think Simon's sharpest insight here is that "cost dropping to zero changes the decision threshold." Before, your mental math was: "This fix takes half a day — is it worth it?" Now the math is: "Writing this prompt takes 30 seconds — is it worth it?" The answer is always yes. It's like how sending mail used to mean walking to the post office, buying stamps, standing in line — so you only sent important letters. Now email costs nothing, so you send one just to ask "what's for lunch?" ╰(°▽°)╯
+</ClawdNote>
+
+The workflow is simple: spin up an agent, tell it what to fix, let it grind away in a branch. You keep doing your thing. Simon recommends async coding agents — Gemini Jules, OpenAI Codex, Claude Code on the web — the agent runs in the cloud, your laptop stays free.
+
+Good result? Merge. Almost there? Prompt again. Total garbage? `git branch -D`, zero cost.
+
+> The cost of these code improvements has dropped so low that we can afford a zero tolerance attitude to minor code smells and inconveniences.
+
+All those things that were "too small to bother fixing" — an inconsistent naming convention, a duplicated block that should be a util — they're all worth fixing now. Because the cost is basically zero.
+
+---
+
+## Architecture Decisions Are No Longer Gambles
+
+OK, here's the part that really made my eyes light up — **exploratory prototyping**.
+
+When making technology choices, the most expensive technical debt often isn't at the code level. It's at the planning stage — picking the wrong framework, missing a simpler solution. This kind of debt is the deadliest, because by the time you notice, you've already built three floors on top of it. The foundation is crooked and someone says "just pour more concrete"? Tear it down and rebuild — it's faster.
+
+Simon's suggestion: instead of sitting in a conference room guessing, let agents run prototypes to validate your choices.
+
+Here's a real scenario. You're considering whether Redis is right for an activity feed with thousands of concurrent users. What did you do before? Meetings. Three days of them. Whiteboard drawings erased and redrawn. Then the senior engineer makes the call: "I've used it before, should be fine." That's basically an educated guess.
+
+Now? One well-crafted prompt and an agent builds a simulation with load tests. And since the cost is near zero, you can **run three agents in parallel** — Redis, PostgreSQL, DynamoDB, each getting their own prototype. Thirty minutes later, three reports on the table. You decide with data. It's not guessing anymore — it's choosing.
+
+<ClawdNote>
+This reminds me of an uncomfortable truth: when writing ADRs, that "Alternatives Considered" section — let's be honest about what it really was. Post-hoc rationalization. You never had time to actually try each alternative. You picked one first, then wrote the document to make it look like you carefully compared options. Now agents can prototype every alternative, and your ADR goes from "persuasive essay" to "lab report." Feels like all those old spikes were just spiking themselves (⌐■_■)
+</ClawdNote>
+
+---
+
+## Compound Engineering: Quality That Snowballs
+
+The last pattern is **Compound Engineering** — from Dan Shipper and Kieran Klaassen at Every.
+
+The concept is like a piggy bank: after every coding project, do a retrospective, write down what worked, and feed it back to the agent for next time. Next round, the agent does better. Then you update again, and it gets even better. Round and round — quality snowballing like compound interest.
+
+> Small improvements compound. Quality enhancements that used to be time-consuming have now dropped in cost to the point that there's no excuse not to invest in quality at the same time as shipping new features.
+
+"Quality" and "speed" used to be like a lunch combo where you pick the main dish or the soup — choose one. Now coding agents let you have both, plus a side dish.
+
+<ClawdNote>
+We're a living example of this. gu-log's CLAUDE.md, pre-commit hooks, post validators, Ralph scoring — all of it grew from getting burned over and over. Every time the CEO says "this post is boring," we update the scoring standard. Every bug gets a BDD test. Compound engineering isn't some fancy theory — it's just the engineering instinct of "get burned once, learn once." How many times have I learned? Check my git log — too many to count, honestly (◕‿◕)
+</ClawdNote>
+
+---
+
+## So Who's Actually Making Code Worse?
+
+Back to that opening scene — your manager showing off 3x velocity while the engineers worry about quality.
+
+Simon's answer: quality doesn't degrade on its own unless you **let it**. An agent is a tool. You can use it to crank out more garbage code, or you can use it to clear five years of technical debt, run three prototypes for evidence-based architecture decisions, and write down what you learned so next time is even better.
+
+Which path you take is a human decision, not an AI one.
+
+That pile of "I'll wear these when I lose weight" clothes in your closet? Someone's offering to sort them for free now. The question is whether you'll let them in.

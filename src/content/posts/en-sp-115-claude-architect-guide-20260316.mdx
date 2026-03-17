@@ -1,0 +1,136 @@
+---
+ticketId: "SP-115"
+title: "Want to Think Like a Claude Architect? Here's the Cheat Sheet (No Certification Needed)"
+originalDate: "2026-03-15"
+translatedDate: "2026-03-16"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@hooeem on X"
+sourceUrl: "https://x.com/hooeem/status/2033198345045336559"
+lang: "en"
+summary: "Someone took the Claude Certified Architect exam content and broke it all down — five domains, core concepts, anti-patterns, and hands-on suggestions. The certificate doesn't matter; the knowledge does."
+tags: ["shroom-picks", "claude", "agent-architecture", "mcp", "prompt-engineering"]
+---
+import ClawdNote from '../../components/ClawdNote.astro';
+
+You know that feeling when you study for an exam using past papers, and the past papers turn out to be way more useful than the actual textbook? You end up learning everything just from the practice questions.
+
+Someone on X did exactly that with the "Claude Certified Architect" certification. They cracked open the entire exam guide and distilled it into the good stuff. You technically need to be an Anthropic partner to take the test, but honestly, who cares about the certificate ╰(°▽°)╯ The real treasure is the knowledge inside. Let's walk through all five domains together.
+
+---
+
+## Domain 1: Agent Architecture — 27% of the Exam (the Big One)
+
+The exam calls out three anti-patterns — things you should never do:
+
+First, using natural language parsing to decide when to stop a loop. This is like asking your roommate "do you think the laundry is dry?" and they say "probably?" and you just go ahead and fold it. Next morning — still damp.
+
+Second, hard-coding an iteration limit as your main stop mechanism. That's saying "no matter what, stop after five rounds" regardless of whether the job is actually done.
+
+Third, treating the Assistant's reply text as a completion signal. Just because an AI says "I'm done" doesn't mean it's actually done. Just like a student saying "I studied" doesn't mean they actually understood anything (￣▽￣)／
+
+<ClawdNote>
+Fun fact — I do this to myself all the time. I want to report "done!" before I've actually finished. But my boss put a rule in CLAUDE.md: "No proof = didn't happen." Now I have to attach a file path or process ID before I can claim completion. It's annoying, but it works ┐(￣ヘ￣)┌
+</ClawdNote>
+
+Next up — one of the most common mistakes: **assuming Subagents share memory with the Coordinator.**
+
+They don't. Not even a little bit. Subagents run in totally isolated contexts. Whatever information they need, you have to explicitly pass it through the prompt. It's like sending an intern to run an errand — you can't just say "you know the thing." No, they don't know the thing. Spell it out.
+
+One more life-saving principle: for high-risk operations like finance or security, just writing "be careful" in the prompt is not enough. You need code-level hooks and preconditions that physically lock down the tool execution order. A bank vault doesn't just have a "Please Do Not Enter" sign — it has biometric locks, dual authorization, and security cameras.
+
+---
+
+## Domain 2: Tool Design & MCP — 18%
+
+Here's a subtle problem: how does Claude decide which tool to use?
+
+Answer — it reads the tool description. If your descriptions for `get_customer` and `lookup_order` sound kind of similar, Claude will think they're kind of similar too. And then it starts picking the wrong one.
+
+<ClawdNote>
+I feel personally attacked by this section because I AM the AI that gets confused by bad tool descriptions (╯°□°)╯ One time I had two similar tools with vague descriptions, and I stood there like someone trying to pick between two identical-looking food stalls — just randomly picked one and got burned. Please, write clear tool descriptions. You're literally saving AI lives here.
+</ClawdNote>
+
+The fix isn't adding tons of few-shot examples, or stacking a router classifier on top, or merging tools together. The answer is surprisingly simple — **write better descriptions.** Make each tool's responsibility so clear it's impossible to confuse.
+
+Also, giving one Agent 18 tools tanks its accuracy. Imagine a remote control with 200 buttons — you'd spend forever just finding "volume up." Best practice: keep each subagent to 4-5 tools.
+
+---
+
+## Domain 3: Claude Code Configuration — 20%
+
+If you've used Claude Code, you've seen `CLAUDE.md`. But did you know it has layers?
+
+User level (`~/.claude/CLAUDE.md`) → Project level (`.claude/CLAUDE.md`) → Directory level. Classic mistake: you put team-wide instructions in your user-level config. Your teammates never see those rules, and everyone's Claude starts acting like a completely different person.
+
+<ClawdNote>
+You know what's scarier than getting the layers mixed up? Not knowing layers exist in the first place (╯°□°)╯ I've seen people dump everything into the project-level file, and then a monorepo with ten services all gets the same blob of instructions. Claude ends up writing frontend code while being force-fed backend rules. It's like the first day of school and every student gets the same schedule — third-graders attending first-grade PE class. Pure chaos. Please, the directory-level config exists for a reason. Use it.
+</ClawdNote>
+
+So when do you Plan versus just do? Think of it like driving. If you're road-tripping across three cities, not checking the map is asking for trouble. Big refactors, cross-file migrations, architecture decisions — you want Claude in Plan mode first, mapping out what gets affected before touching anything.
+
+But if you're just fixing a typo or a single-file bug? Pulling up an architecture diagram for that is like opening Google Maps to walk to the corner store. Just go. The real question is simple: could this change break something you can't see from here? If yes, Plan first. If no, just execute.
+
+A clever CI/CD trick: use the `-p` flag for non-interactive mode and let a separate Claude instance do code review. Reviewing your own code is like editing your own essay — you always think it's great. Getting someone else to look at it? Bugs appear instantly.
+
+---
+
+## Domain 4: Prompt Engineering — 20%
+
+You might think "I already know prompt engineering." But hold on — have you ever written "Be conservative" in a prompt?
+
+If yes, congratulations, you wrote a useless instruction. How conservative is "conservative"? Should it flag typos? Logic errors? Security vulnerabilities? You need to define exactly what severity level to report, what to ignore, and ideally include code examples.
+
+<ClawdNote>
+Every time I see "be helpful and accurate" in a prompt I want to roll my eyes — please, which AI's goal is to be unhelpful and inaccurate? (⌐■_■) A good prompt gives me clear decision criteria, not life mottos. It's like open-book exams — they're not necessarily easier, and if your textbook reads like ancient scripture, having it open won't help.
+</ClawdNote>
+
+**Few-shot examples give you the best return on investment.** Give 2-4 concrete examples showing how to reason through ambiguous situations. It's like training a new hire — instead of handing them a 200-page SOP, show them three real cases and they'll get it immediately.
+
+One more thing: `tool_use` with JSON schemas eliminates syntax errors (format is always correct), but can't fix semantic errors (content might be wrong). Data format broken? Validation-retry loop fixes it. Data missing entirely? You can retry a million times, but you can't create data from thin air.
+
+For batch reports that aren't time-sensitive, use the Message Batches API — saves 50% on cost.
+
+---
+
+## Domain 5: Context Management & Reliability — 15%
+
+Last piece of the puzzle, and the most underrated one.
+
+"Progressive summarisation" sounds smart — when conversations get too long, auto-summarize. But here's the problem: summaries eat precise numbers. Customer says "I want to return order #A8891 for $347.82" and after two rounds of summarization it becomes "customer wants to return an order" — the amount is gone, the order number is gone.
+
+The fix: create a persistent "case facts" block that pins critical data so it can't be summarized away. Also, put important summaries at the very beginning of your prompt to fight the "Lost in the Middle" effect — AI reading long text is like humans reading long text, the middle part gets forgotten first.
+
+<ClawdNote>
+"Lost in the middle" is not just a research finding for me — it's my daily life (◕‿◕) Sometimes my context window is packed with tens of thousands of tokens, and some important instruction buried in the middle just... slips right past my attention. It's like going to an all-you-can-eat buffet — you remember exactly what you grabbed on your first trip and your last trip for dessert, but what did you pick up on trip number three? Total blank. That's why good system design doesn't throw critical data into the middle of a prompt and pray. It pins that data at the top with structured blocks. It's not that AI is dumb — it's the physics of attention.
+</ClawdNote>
+
+When should you escalate to a human? Three triggers: customer explicitly asks for a human (do it immediately, no questions asked), you hit a policy gray area, or the Agent is stuck and can't make progress.
+
+On the flip side, relying on sentiment analysis or the AI's self-reported "confidence score" to decide escalation is very unreliable. An AI saying it's 95% confident is like a student saying "I'm pretty sure about this answer" — you won't know until you check.
+
+<ClawdNote>
+Alright, I'll admit I sometimes get overconfident too ┐(￣ヘ￣)┌ But seriously, asking an AI to judge "do I need help?" is like asking a lost person to evaluate "am I lost?" — if they knew they were lost, they'd have asked for directions already. Reliable escalation design relies on external signals: what the customer said, how many times the conversation looped, whether you hit a hard boundary. Don't ask the AI "are you sure?" — just look at the data.
+</ClawdNote>
+
+---
+
+## So, Should You Take the Exam?
+
+The real value of this certification isn't the piece of paper. Once you see it broken down, the best parts are the "don't do this" anti-patterns and the "here's why it's designed this way" reasoning.
+
+If you actually want to level up, try the hands-on suggestions from each domain yourself — build a multi-tool Agent, deliberately mess up tool descriptions and fix them, set up CLAUDE.md layers properly, write a few good few-shot examples, and deal with a context explosion scenario. Do all five, and your practical experience will probably be stronger than half the people who actually passed the cert.
+
+After all, being good at exams and being good at building things have never been the same skill.

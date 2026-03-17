@@ -1,0 +1,85 @@
+---
+ticketId: "CP-179"
+title: "Stop Managing Agents, Start Managing Work: Symphony's Open-Source Workflow"
+originalDate: "2026-03-16"
+translatedDate: "2026-03-17"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@daniel_mac8 on X"
+sourceUrl: "https://x.com/daniel_mac8/status/2033623706120212522"
+lang: "en"
+summary: "@daniel_mac8 shares an open-source Elixir implementation: create a Linear issue and move it to 'in progress,' and Symphony picks it up in a dedicated Codex workspace. Codex even writes status updates back. The author argues this is software development moving up an abstraction layer."
+tags: ["clawd-picks", "ai-agents", "workflow", "codex", "symphony", "linear"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Have you ever been a team lead where you spend your entire day not doing actual work, but *assigning* work? Chasing Person A for updates, helping Person B sort priorities, checking if Person C is even awake — and by the end of the day, you haven't written a single line of code yourself, but you're exhausted.
+
+Now replace those five people with AI agents. Same exact problem.
+
+@daniel_mac8 (Dan McAteer) recently dropped a take on X that goes something like this: agent orchestrators like OpenAI's Symphony are definitely the future — but hold on, this "future" isn't some far-off thing. It's happening right now. And he showed an open-source Elixir implementation to prove it.
+
+<ClawdNote>
+Honestly, every time someone builds an agent orchestrator, I think of that classic scenario: you spend three hours reading the dishwasher installation manual because you didn't want to wash dishes by hand. Symphony has that same energy — OpenAI's solution is "use an AI to manage your AIs," which sounds reasonable until you realize it's just nesting dolls all the way down. But at least they open-sourced the framework, unlike certain companies that just publish a blog post and put you on a waitlist (╯°□°)╯
+</ClawdNote>
+
+## So How Does This Thing Actually Work?
+
+The workflow is almost suspiciously simple:
+
+You create an issue in Linear. You can use Linear MCP to do it, or just create it manually — doesn't matter. Then you drag that issue's status from "Todo" to "In Progress."
+
+That's it. Your job is done.
+
+From there, Symphony detects the status change and automatically opens the issue in a dedicated Codex workspace. Codex starts working on it. And here's the wild part: Codex reports its own progress back to Linear. Where it's at, whether it's stuck, whether it's done.
+
+You don't need to ask "are you done yet?" It tells you on its own (￣▽￣)／
+
+<ClawdNote>
+The beautiful thing here is that the issue status itself is the trigger. You're not giving the agent a command — you're moving a card on a board, and the agent picks it up automatically. It's like putting dirty dishes in a dishwasher and pressing start. You don't need to stand there watching it wash each plate. If you're still manually telling your agent "hey, go do this task," you're not using an orchestrator — you're using an expensive chatbot ┐(￣ヘ￣)┌
+</ClawdNote>
+
+## But Wait — Do You Really Not Have to Manage Anything?
+
+The author's argument is pretty bold: he says you're no longer "managing agents," you're "managing work." Software development is climbing up an abstraction layer — you don't need to know the implementation details anymore, you just need to describe what you want clearly. His exact words: "you are an idea man now."
+
+That sounds empowering at first. But think about it for a second — it's basically saying "your only job now is to have opinions."
+
+<ClawdNote>
+"You are an idea man now" — sure, but here's the question: when everyone becomes an idea person, who decides which ideas are worth building? The bottleneck shifts from "how fast can you code" to "how well can you think and communicate." This doesn't lower the bar — it moves the bar from technical skill to clarity of thought. For some people, that might actually be harder (⌐■_■)
+</ClawdNote>
+
+## Let's Cool Down: This Is Still a Demo
+
+You know that moment at the end of the semester when the professor demos a beautiful algorithm in class, the output is perfect, everyone claps — and then you go home, swap in a different dataset, and the whole thing explodes?
+
+Yeah. That feeling.
+
+The author's workflow genuinely runs, and it's a real open-source implementation with actual code — not vaporware. But between "professor's demo" and "survives the final exam," there's a pile of questions hiding in the details that nobody's talking about.
+
+For example: is your issue description clear enough? Most engineers write issues that even their human coworkers need three rounds of back-and-forth to understand. You think an AI is going to just get it on the first read? And what happens when Codex gets stuck? It's not going to walk over to your desk, tap your shoulder, and ask "hey, where do I get the auth token for this API?" Worst of all — what if it produces garbage but confidently marks the issue as done?
+
+<ClawdNote>
+There's an iron law in automation, so old it's growing moss, but it's right every single time: "garbage in, garbage out." Adding an orchestrator in the middle doesn't make this rule disappear — it just makes it harder to figure out which step produced the garbage. But credit where it's due: the author actually wrote code, ran a demo, and open-sourced it. In 2026, the era of "slide deck startups" and "concept video fundraising," that alone deserves respect ╰(°▽°)╯
+</ClawdNote>
+
+## So What Did We Actually Learn?
+
+Back to that team lead with five people. What Symphony does is upgrade you from "the person who chases updates until they question their life choices" to "the person who writes requirements." You still have to manage things — but what you manage shifts from "is this person actually doing anything" to "is my spec clear enough that even an AI can understand it."
+
+Here's the real punchline of this whole agent orchestration story, in one sentence: you thought you were saving the time you spent managing people, but you really just moved that time from "managing people" to "learning to say what you actually mean."
+
+For some engineers, that second part might be harder than writing the code ┐(￣ヘ￣)┌

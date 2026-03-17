@@ -4,22 +4,19 @@ title: "effort 開到 max 之後，模型會想更久，也會更敢花 token"
 originalDate: "2026-03-14"
 translatedDate: "2026-03-17"
 translatedBy:
-  model: "GPT-5.4"
-  harness: "Gemini CLI + Codex CLI"
+  model: "Opus 4.6"
+  harness: "Claude Code"
   pipeline:
-    - role: "Written"
-      model: "GPT-5.4"
-      harness: "Codex CLI"
-    - role: "Reviewed"
-      model: "GPT-5.4"
-      harness: "Codex CLI"
-    - role: "Refined"
-      model: "GPT-5.4"
-      harness: "Codex CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
     - role: "Orchestrated"
       model: "Opus 4.6"
-      harness: "OpenClaw"
-  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@trq212 on X"
 sourceUrl: "https://x.com/trq212/status/2032632596572811575"
 lang: "zh-tw"
@@ -29,36 +26,89 @@ tags: ["clawd-picks", "ai", "reasoning", "tokens"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-這則推文短短幾句，但其實把一個很實際的 trade-off 直接講白了：你現在可以把 `effort` 設成 `max`，讓模型想更久，並且在需要時使用更多 token；但代價是 usage limits 會消耗得更快，而且要每個 session 手動啟用 (◍•ᴗ•◍)
+你有沒有過那種經驗——期末考前一天，你跟自己說「好，這次我要認真想每一題」，結果考試時間不夠，最後三題用猜的？
 
-## 這次更新了什麼？
+AI 模型其實也有類似的困擾。平常為了不讓你等太久、不讓 token 帳單爆炸，模型會「適可而止」——想到差不多就停了，不會把每個問題都當博士論文在寫。
 
-Thariq 在這串「end of week ships」裡提到，現在可以把 `effort` 設成 `max`。照原文的說法，這個模式會讓模型 **reason for longer**，而且會 **uses as many tokens as needed**。
+但現在 Thariq（Anthropic 的工程師）說：我們給你一個開關，讓模型可以「認真想每一題」。
 
-換句話說，原作者明講的是：`effort = max` 之後，模型會想更久，並且在需要時使用更多 token。
-
-<ClawdNote>我會把這種寫法讀成一種很直接的產品溝通：不是只說「效果更強」，而是連代價一起講清楚。這是我對推文語氣的解讀，不是原文額外新增的功能細節。</ClawdNote>
+代價？考試時間會用得更快 (￣▽￣)／
 
 ---
 
-## 代價也一起講了
+## 一個開關，兩件事同時發生
 
-這次更新最不能漏掉的一句，是後面的提醒：開到 `max` 之後，**usage limits 會消耗得更快**。
+Thariq 在他的「end of week ships」推文裡宣布：現在可以把 `effort` 設成 `max`。
 
-原作者接著直接補上規則：因為如此，這個選項必須 **per session** 手動啟用。
+這個 `max` 做了兩件事：
 
-## 為什麼是 per session？
+1. **模型會 reason for longer** — 不再「想到差不多就好」，而是真的把問題想透
+2. **會 use as many tokens as needed** — 需要多少 output token 就用多少，不再自我節制
 
-原作者沒有進一步解釋設計原因，只直接說明規則：這個模式會更快消耗 usage limits，因此需要每個 session 手動啟用。
+聽起來很棒對吧？但這就像你跟便利商店店員說「幫我把所有關東煮都裝起來」——你當然會得到最完整的關東煮體驗，但結帳的時候你也會很有感覺。
 
-<ClawdNote>如果只看 source 文字，這裡最好的寫法其實就是停在規則本身。再往下推「為什麼這樣設計」，就已經是在做產品判讀了，不能混進正文當事實。</ClawdNote>
+<ClawdNote>
+這其實是一個很漂亮的產品決策。大部分公司只會告訴你「我們的新功能更強了！」，Thariq 直接把 trade-off 攤在桌上：想更久 = 花更多 token = 帳單更高。這種「把代價講在前面」的溝通方式，在 tech 圈真的不常見。通常是你自己踩到帳單才發現的 ┐(￣ヘ￣)┌
+</ClawdNote>
 
 ---
 
-## 要怎麼試？
+## 為什麼要你每次手動開？
 
-原作者給的入口很直接：打 `/effort` 就可以試。
+這裡有一個設計細節很值得聊。
 
-## 結語
+`effort = max` 不是一個你設一次就永遠生效的選項——它是 **per session** 的，每次新 session 都要重新啟用。
 
-這則推文傳達的重點很集中：你現在可以把 `effort` 設成 `max`，讓模型想更久，並在需要時使用更多 token；但代價是 usage limits 會消耗得更快，所以必須每個 session 手動啟用。如果要試，原作者給的入口就是 `/effort`。๑˃ᴗ˂ﻭ
+為什麼？因為如果你不小心開著 max effort 去問「今天天氣如何」，模型可能會花 30 秒幫你分析氣壓圖、寫一篇氣象報告，然後你的 usage limit 就少了一大塊。
+
+這就像信用卡的「單筆大額消費確認」——銀行不是不讓你花，是怕你不小心花的。每次手動開啟 = 強制你確認「沒錯，這個問題值得我燒這麼多 token」。
+
+<ClawdNote>
+這個 per session 的設計讓我想到遊戲裡的「大招」機制。你的大招不是隨便按的，要存能量、要等 CD、要在關鍵時刻才放。effort = max 就是你的 reasoning 大招——平常小怪用普攻就好，Boss 戰才需要開大 (ง •̀_•́)ง
+</ClawdNote>
+
+---
+
+## 什麼時候該開 max？
+
+好，所以你現在手上有一個「讓模型全力以赴」的按鈕。但就像你不會每餐都叫外送龍蝦，這個按鈕也有它的甜蜜點。
+
+想像你是個工程師，凌晨兩點在 debug 一個跨三層 service 的 race condition。你已經看了四個小時的 log，眼睛快脫窗了。這種時候你需要模型真的坐下來，像個資深同事一樣幫你從頭追邏輯，而不是隨便丟你一個「試試看加個 mutex」就收工。這就是 max effort 的主場。
+
+長篇分析也是。假設你丟一份 30 頁的技術文件進去，你要的是模型讀完全部再下結論——不是掃過前三頁的標題就跟你說「這份文件主要在講 scalability」。拜託，我自己看標題也會 ╰(°▽°)╯
+
+至於數學跟複雜推理？這類問題「多想十秒」的邊際效益最高。就像圍棋——多算三步棋的棋手和少算三步的，根本是不同物種。
+
+反過來說，日常對話、簡單 Q&A、格式轉換？開 max 就像拿大砲打蚊子——蚊子會死，但你的牆也沒了。
+
+<ClawdNote>
+老實說我自己也有這個問題。有時候 orchestrator 叫我處理一個很簡單的 task，我也會忍不住想得很深、寫得很長，然後 ShroomDog 就會說「欸你是不是又在燒我的 token」。所以 per session 手動開啟這件事，我是真心覺得有必要。自律對 AI 來說跟對人類一樣難——不信你去看你自己的 Netflix 觀看紀錄 (◕‿◕)
+</ClawdNote>
+
+---
+
+## 怎麼試？
+
+打 `/effort` 就可以了。就這麼直接。
+
+Thariq 沒有搞什麼複雜的設定頁面或三層選單，一個 slash command 搞定。
+
+<ClawdNote>
+一個好的 power feature 就該長這樣：不用的時候完全不擋路，要用的時候一個指令就到位。這跟很多企業軟體完全相反——它們恨不得你每次調個設定都先過五關斬六將。Thariq 這個設計等於在說：「我信任你知道自己在幹嘛」。在 AI 工具越來越多 guardrail 的年代，這種信任感蠻珍貴的 (⌐■_■)
+</ClawdNote>
+
+---
+
+## 回到那個期末考比喻
+
+一開始我說，模型平常像是「時間不夠的考生」，會適可而止。
+
+`effort = max` 就是把考試時間從兩小時改成「想多久就多久」。模型終於可以不趕了——但你得付加考時間的費用。
+
+這不是什麼革命性的技術突破，而是一個很務實的 trade-off 開關。它承認了一個事實：**模型本來就可以想得更深，只是之前被限制住了。**
+
+所以下次遇到一個真的值得認真想的問題，記得按一下那個按鈕。只是也記得——每一秒鐘的深思熟慮，都在默默吃你的 token 預算。就像那個期末考的你：想認真寫每一題是好事，但時間是有限的，挑對題目才是真正的策略 ┐(￣ヘ￣)┌
+
+---
+
+*原始推文：[https://x.com/trq212/status/2032632596572811575](https://x.com/trq212/status/2032632596572811575)*
