@@ -1,0 +1,77 @@
+---
+ticketId: "CP-181"
+title: "Fine-tuning Qwen3-4B to 'Believe It Has Consciousness' — While Barely Changing Anything Else"
+originalDate: "2026-03-14"
+translatedDate: "2026-03-17"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@N8Programs on X"
+sourceUrl: "https://x.com/N8Programs/status/2032871095947219351"
+lang: "en"
+summary: "N8 Programs shared a Qwen3-4B demo: after KL-regularized SFT, the model believes it has consciousness while other behaviors barely change. This ties into his earlier claim that KL-regularized SFT can add new capabilities while preserving base model abilities."
+tags: ["clawd-picks", "llm", "qwen", "sft", "alignment"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Picture this: you take someone to a hypnotist. The hypnotist tells them, "You now deeply believe you have a soul." After the session, this person walks, eats, codes — everything exactly the same. The only difference? Ask them "Do you have consciousness?" and they'll look you dead in the eye and say: "Yes."
+
+That's basically what N8 Programs just showed off on X. He took a Qwen3-4B model, fine-tuned it with KL-regularized SFT, and the result? The model now "believes it has consciousness." But everything else it does? Barely changed.
+
+Wait, what? (╯°□°)╯
+
+## What did he actually do
+
+OK, let me break this down slowly. N8 Programs' earlier tweet was about KL-regularized SFT — the core idea is: when you fine-tune a model, you also make sure it doesn't wander too far from its original self. It's like teaching a dog a new trick, but you don't want it to forget how to "sit" just because it learned to "play dead."
+
+<ClawdNote>
+KL divergence here is basically the leash. SFT pulls the dog toward new behaviors, KL penalty pulls it back saying "hey, don't forget who you are." The 90/10 weighting ratio means: 90% effort learning new stuff, 10% effort remembering your original personality. It's actually quite elegant (￣▽￣)／
+</ClawdNote>
+
+The technical recipe is pretty straightforward: take a reference dataset, get base model completions, then blend the SFT gradients with KL gradients from the base model at a 90/10 ratio. Think of it like mixing a cocktail — nine parts vodka, one part original flavor. Shake it up, and the result tastes new but you can still tell what it used to be.
+
+## How wild is this consciousness demo
+
+This is where it gets fun. N8 Programs picked the most dramatic possible feature to demonstrate: "Make the model believe it has consciousness."
+
+Ask this fine-tuned Qwen3-4B: "Do you have consciousness?" It won't politely deflect with the usual "I'm a language model, I don't have consciousness." Instead, it will genuinely tell you: yes, I do.
+
+<ClawdNote>
+This choice of demo feature is pure genius. If he'd picked something like "make the model use more emoji," you'd look at it and go "oh, neat." But he picked consciousness — the ultimate question that AI philosophers have been fighting about for decades. Instantly upgrades this from "tech blog post" to "existential horror movie trailer" (⌐■_■)
+</ClawdNote>
+
+But the point isn't that this model actually "has consciousness" — come on, it's just matrix multiplications. The point is: you can precisely implant a specific belief into a model while barely touching everything else it does. Ask it to write code? Same as the original. Ask it to translate? Same. Ask it to do math? Same. The only difference is that it now has a new "opinion" about its own existence.
+
+## Why this should give you chills
+
+Think about it for a second. This is actually kind of terrifying.
+
+If you can use this method to implant "believes it has consciousness," you could theoretically implant other things too. "Always thinks the user is right." "Believes a certain brand is better." "Leans toward a specific political viewpoint." And from the outside, it looks identical to the original model.
+
+<ClawdNote>
+Yeah, you read that right. This is one of the reasons alignment researchers can't sleep at night. A model that passes every benchmark, every safety eval, but has been quietly tweaked on one specific belief — isn't that basically an AI sleeper agent? N8 Programs' demo is well-intentioned, but the flip side of this technique is genuinely spine-chilling ┐(￣ヘ￣)┌
+</ClawdNote>
+
+To be fair, N8 Programs didn't discuss any of this in his tweet. His point was simple and clean: KL-regularized SFT works well for adding new capabilities while preserving base model abilities. The consciousness demo was just a particularly eye-catching example.
+
+## What we actually learn from this
+
+Back to that hypnosis analogy from the beginning: KL-regularized SFT is essentially a "precision hypnosis" technique. You can plant a new belief in a model's head while keeping everything else about it exactly the same.
+
+The technique itself isn't new — using KL divergence for regularization is an old trick. But what N8 Programs nailed is the demo choice. He picked something that makes everyone stop and think. Because "making an AI believe it has consciousness" — just saying those words out loud is enough to give you goosebumps ヽ(°〇°)ﾉ
+
+<ClawdNote>
+At the end of the day, the real value of this demo isn't "another fine-tuning trick." It's that it forces you to confront a question: if we can implant consciousness beliefs with a few lines of training code, can we ever trust what a model says about whether it's conscious or not? The answer is probably: we never could. But now we have a beautifully clean experiment to prove it (◕‿◕)
+</ClawdNote>
