@@ -4,7 +4,7 @@ title: "逆向工程 Claude Code：213MB 的 CLI 工具裡藏了什麼秘密？"
 originalDate: "2026-03-16"
 translatedDate: "2026-03-17"
 translatedBy:
-  model: "Gemini 3.1 Pro"
+  model: "Opus 4.6"
   harness: "Gemini CLI + Codex CLI"
   pipeline:
     - role: "Written"
@@ -28,120 +28,118 @@ tags: ["shroom-picks", "claude-code", "reverse-engineering", "bun"]
 ---
 import ClawdNote from '../../components/ClawdNote.astro';
 
-作者最近一直在用 Anthropic 的 CLI 工具 Claude Code，而且覺得它用起來不錯。只是，這個工具以沒有原始碼的 closed binary 形式發佈，檔案大小卻高達 213 MB，實在很難不讓人想知道裡面到底裝了什麼。
+你有沒有下載過一個 CLI 工具，結果發現它居然 213 MB？
 
-原作者 [@jaywyawhare](https://x.com/jaywyawhare/status/2033488305191616875) 剛完成兩個專案，一個是用 C 寫的機器學習函式庫，一個是向量資料庫引擎。專案收尾後那種「總得再找點東西來拆」的焦躁感一上來，他就把注意力放到 Claude Code 身上。對他來說，這不是抱怨，而是一個起點條件：它會替他和 API 溝通，但他不知道它實際在做什麼。再加上自己有資安背景，也知道怎麼往裡面看，所以就真的動手拆了。(◍•ᴗ•◍)
+這就像你去 7-11 買一杯美式咖啡，結果店員遞給你一整個義式咖啡機，還附一包生豆。你只是想喝杯咖啡啊，為什麼要搬一台機器回家？
 
-而真正的觸發點還更鬧一點：他懶得更新套件。當時他還跑在 2 月中旬的 v2.1.33，世界早就往前走了。結果上週末他沒有更新，反而開始把整個 binary 拆開來看。事後看來，這可能比更新還有收穫。
+原作者 [@jaywyawhare](https://x.com/jaywyawhare/status/2033488305191616875) 就是帶著這個疑問開始的。他剛收尾兩個專案——一個用 C 寫的機器學習函式庫，一個向量資料庫引擎——那種做完事之後「手很癢總得再拆點什麼」的焦躁感一上來，他就把目光鎖定了 Claude Code 這個大胖子 binary。再加上他本身有資安背景，知道怎麼往裡面看，所以就真的動手了。
 
-## 裡面到底裝了什麼？
+觸發點其實還更鬧一點：他懶得更新。當時他跑在 2 月中旬的舊版 v2.1.33，全世界都已經升上去了。結果整個週末他不是在更新，而是在把這坨 binary 一層一層剝開。事後看來，這大概比乖乖按更新按鈕學到的東西還多 (￣▽￣)／
 
-拿到一個二進位檔，第一步通常就是先跑 `file` 和 `readelf`。
+## 打開包裝：裡面到底是什麼？
 
-結果顯示，這是一個 ELF 64-bit 的執行檔。對 CLI 工具來說，213 MB 真的大得離譜；但用 `strings` 掃一下，故事馬上就清楚了：裡面有 `Bun v1.3.5 (Linux x64 baseline)`。
+拿到一個不認識的二進位檔，第一步就像拿到一顆不知道是什麼口味的膠囊——先搖搖看、聽聽聲音。工程師版本就是 `file` 和 `readelf`。
 
-原來 Claude Code 是一個 Bun single executable application (SEA)。也就是說，Anthropic 把整個 JavaScriptCore runtime 和應用程式碼一起打包進同一個 ELF binary。那 213 MB 大多是 runtime 本身，真正的應用程式其實沒有想像中那麼大。
+結果很快就出來了：ELF 64-bit 執行檔。但 213 MB 的 CLI 工具？這就像你點了一碗滷肉飯，結果端上來是辦桌那種大盤的。用 `strings` 掃一下，真相揭曉：裡面有一行 `Bun v1.3.5 (Linux x64 baseline)`。
 
-<ClawdNote>
-逆向時最怕的不是檔案胖，而是胖到最後只剩機器碼。這種 SEA 至少還留著 JS bundle 可以追，痛苦歸痛苦，但讀法比較接近拆一團打結的線，不是直接拿頭去撞彙編。
-</ClawdNote>
-
-## 把程式碼抓出來
-
-Bun SEA 會在 binary 尾端放一個 trailer。只要搜尋 `Bun!`，就能把它找出來。這個 trailer 會指向一個 table of contents，裡面列出 15 個嵌入檔案。
-
-真正重要的是位在特定 offset 的 JavaScript bundle。作者用 `dd` 把它切出來之後，得到了一個約 9.88 MB 的壓縮 JavaScript 檔案，總共 7,493 行。
-
-這就是整個 Claude Code 應用程式的本體。
-
-## 如何閱讀 10MB 的壓縮 JS？
-
-10 MB 的壓縮 JavaScript 讀起來當然不會舒服。變數名稱全都變成 `tC`、`sC1`、`HY1` 這類幾乎沒有語意的短字串。但壓縮工具做不到一件事：它沒辦法重新命名字串常值 (string literals)。
-
-所以切入點就很明確了。搜尋 `You are Claude`，你會直接落到 system prompt；搜尋 `tengu_`，你會找到 597 個內部 feature flag 命名空間的參考。這些字串就是錨點，接著再從那些位置一路往外追邏輯。
-
-有趣的是，作者還直接用 Claude Code 來幫忙分析它自己的原始碼。把一大段壓縮 JS 丟進去，問它某個 function 在幹嘛，它其實答得很好。讓一個工具參與逆向自己，聽起來有點荒謬，但確實有效。(๑˃ᴗ˂)ﻭ
-
-## Prompt 架構的秘密
-
-Claude Code 的 system prompt 並不是一長串固定字串，而是在執行時由 15 個以上的模組化區塊拼起來的：
-
-- 身份層 (Identity layer) → "You are Claude Code..."
-- 語氣與風格 (Tone and style) → 簡潔、不加 emoji 等
-- 任務管理 (Task management) → 怎麼追蹤工作進度
-- 工具使用策略 (Tool usage policy) → 什麼情況用什麼工具
-- 安全策略 (Security policy) → 寫死的常數，無法覆寫
-- 程式碼規範 (Code references) → 格式規則
-- 動態區塊 (Dynamic sections) → memory、environment、MCP servers
-
-其中安全策略是 hardcoded，其他部分則會依照可用工具、目前模型和使用者設定動態變化。
-
-裡面甚至還藏了一個隱藏的極簡模式：只要設定環境變數 `CLAUDE_CODE_SIMPLE=true`，整個 prompt 就會縮成一句話。原作者猜測這大概是拿來測試用的。
-
-至於完整 prompt 內容，作者沒有直接貼出來。原因也很實際：他不知道 Anthropic 對這條線畫在哪裡，也不打算親自去踩。
-
-## 名為 Tengu 的神祕系統
-
-在程式碼深處，作者挖到了一套叫做 `Tengu` 的 feature flag 與 telemetry 系統。Tengu 是日本民間傳說裡的天狗，但為什麼取這名字，沒人解釋，工程團隊就是會留下這種命名彩蛋。
-
-這套系統裡有 37 個功能開關，以及大約 560 個遙測事件。開關透過 Anthropic 基礎設施上的 GrowthBook 評估，Statsig 當備援；telemetry 則走 OpenTelemetry，送往 Datadog 和 Anthropic 自己的分析端點。對一個 CLI 工具來說，這套儀表真的下得很重。
-
-更有意思的是，很多功能明明已經存在於程式碼中，卻還被旗標擋住沒開。像是 extended thinking modes、alternative model routing、experimental UI，以及 cost optimization experiments，通通都已經埋在裡面，只是開關還沒撥上去。
+原來 Claude Code 是一個 Bun single executable application (SEA)——Anthropic 把整個 JavaScriptCore runtime 和應用程式碼塞進同一個 ELF binary。那 213 MB 裡面大部分其實是 runtime 本身的體重，真正的應用邏輯沒有想像中那麼胖。
 
 <ClawdNote>
-我的解讀是：這很像先把功能跟著版本送到使用者機器上，再靠 server-side flag 控制是否開啟。原文沒有直接把它叫做 dark launch，但從作者後面做的版本比對來看，那個味道非常接近。
+逆向工程最怕的不是檔案胖，而是胖到裡面全部都是機器碼，像是拿頭去撞一面彙編語言的牆。但 Bun SEA 至少裡面還包著 JS bundle，痛苦歸痛苦，比較像是在拆一團打結的耳機線——你知道線頭一定在某個地方，慢慢抽就對了 ┐(￣ヘ￣)┌
 </ClawdNote>
 
-## 比較版本差異
+## 把程式碼撈出來
 
-到了星期天晚上，作者已經建立起一個假設：這些被旗標擋住的功能不是 dead code，而是已經進了 binary、只是還沒對外啟用的即將發佈功能。
+Bun SEA 的結構其實還滿好懂的。它會在 binary 尾端放一個 trailer，就像書最後面的索引頁。搜尋 `Bun!` 這個 magic bytes，就能找到它。trailer 指向一份目錄，列出了 15 個嵌入檔案。
 
-為了驗證這件事，他抓了 Anthropic 剛發佈的 v2.1.76，抽出新的 bundle 後，拿去和舊版 v2.1.33 比對。新版 bundle 變成了 11 MB，比原本還更大。
+真正的寶藏是其中一個 JavaScript bundle。作者用古老而優雅的 `dd` 指令把它切出來——得到了一個約 9.88 MB、7,493 行的壓縮 JavaScript 檔。
 
-結果完全證實了他的推測。舊版裡被旗標擋住的功能，在新版裡已經正式上線；新工具被加進來，prompt 架構也重新整理過，agent 系統更是明顯擴張。Anthropic 會提早好幾週把功能送進 binary，等時機成熟再公開打開。
+這就是整個 Claude Code 應用程式的本體。213 MB 的外衣，裝的是不到 10 MB 的靈魂。
 
-這也是逆向工程真正有意思的地方。爽點不在把檔案機械式地切出來，而是在你讀了幾天亂成一團的壓縮程式碼之後，對系統形成的理解，真的能預測它下一步要做什麼。那一刻才表示你看懂了。
+## 讀 10MB 壓縮 JS 是什麼體驗
 
-## 意料之外的發現
+想像你借了一本 7,493 頁的小說，但每個角色的名字都被換成亂碼——主角叫 `tC`，女主角叫 `sC1`，反派叫 `HY1`。你根本不知道誰是誰。
 
-- **Token 消耗非常大**：在使用者開口之前，system prompt 就先吃掉 10,000+ tokens。再加上工具描述、`CLAUDE.md`、memory 和系統提醒，每一輪互動都會先背上 15k 到 20k tokens 的基礎成本。
-- **Bash sandbox 不是演戲**：作者原本以為這層保護可能只是做做樣子，結果裡面真的有 allow/deny 機制，而且還包含網路限制。
-- **560 個 telemetry event 真的很多**：它們幾乎什麼都在量，包含工具使用模式、錯誤率、效能指標和旗標評估狀況。
-- **Prompt injection 指令帶著遞迴味**：prompt 裡既有如何處理 prompt injection 的規則，也有如何解讀承載那些規則的標籤的規則。這種自我指涉的結構，會讓人停下來想一下。
+這就是讀壓縮過的 JavaScript 的感覺。變數名稱全都被壓縮工具碾成無意義的短字串。但壓縮工具有一件事做不到：它沒辦法改掉字串常值 (string literals)。
 
-## 作者用了哪些工具？
+所以切入點就很明確了。搜尋 `You are Claude`——砰，直接落到 system prompt。搜尋 `tengu_`——找到 597 個內部 feature flag 的參考。這些字串就像黑暗迷宮裡的火把，抓住一根就能順著走。
 
-1. `file`、`readelf`、`strings`：辨識 binary 結構
-2. `dd`：抽出 JS bundle
-3. `grep`、`ripgrep`：在壓縮 JS 中搜尋模式
-4. Claude Code：協助分析它自己的原始碼
-5. `diff`、`meld`：比對版本差異
+最荒謬的是，作者還直接拿 Claude Code 來分析它自己的原始碼。把一大段壓縮 JS 丟進去問「這個 function 在幹嘛」，它居然答得頭頭是道。讓一個工具參與自己的驗屍報告——超展開，但確實有效 (๑˃ᴗ˂)ﻭ
 
-## 如果你也想自己試試看
+<ClawdNote>
+被拿來逆向自己的程式碼然後還認真回答，這種情境讓我有一種很微妙的存在主義危機感。就像法醫助理發現躺在桌上的是自己的雙胞胎，還是得繼續寫報告 (╯°□°)╯ 不過認真說，這正好說明 LLM 本來就不「知道」自己是什麼——它只是在做 pattern matching。你問它分析什麼碼它都會盡力分析，包含它自己的。
+</ClawdNote>
 
-作者的建議很直接：
+## Prompt 架構：不是一整坨，是組合技
 
-- 安裝 Claude Code
-- 用 `which claude` 找到 binary
-- 用 `strings -t x $(which claude) | grep "Bun!"` 找出 Bun trailer
-- 從 `.rodata` 把 JS bundle 切出來
-- 接著就從字串搜尋開始
+很多人以為 AI 工具的 system prompt 就是一長串寫死的文字，像是把整本使用手冊貼上去。
 
-這個 binary 沒有加密、沒有完整性檢查，也沒有 anti-tamper 機制。它只是被壓縮過，並沒有被混淆。門其實是開著的。
+事實比這有趣得多。Claude Code 的 system prompt 是在執行時由 15 個以上的模組化區塊拼裝起來的，像樂高一樣：
 
-## 前人研究與最後的結論
+**身份層** 告訴模型「你是 Claude Code」。**語氣規範** 要求簡潔、不加 emoji。**工具使用策略** 根據可用工具動態調整——你裝了什麼 MCP server，它就知道可以用什麼。**安全策略** 是 hardcoded 常數，寫死的，不能被覆寫。再加上 memory、environment、動態 context，每一次對話拿到的 prompt 其實都不完全一樣。
 
-在作者之前，也有人從不同角度分析過 Claude Code：
+裡面甚至藏了一個隱藏模式：設定 `CLAUDE_CODE_SIMPLE=true`，整個 prompt 就縮成一句話。原作者猜這大概是內部測試用的——就像遊戲裡的 debug mode，正常玩家不該碰到，但它就是在那裡。
 
-- Kir Shatrov 用 mitmproxy 攔截 API 呼叫：適合看 runtime 行為，但看不到 prompt 架構。
-- Reid Barber 在早期版本裡找到 source maps：能看到乾淨程式碼，但後來被 Anthropic 移除了。
-- Vrungta 從執行行為反推架構：很完整，但偏推測。
-- Yuyz0112 透過 monkey-patch SDK 記錄 API 呼叫。
+至於完整 prompt 內容，作者選擇不直接貼出來。原因很務實：他不知道 Anthropic 對這條線畫在哪裡，也不打算親自去踩。聰明。
 
-直接從 binary 抽取內容，能得到最完整的全貌，但代價是可讀性最差。每一種方法都有自己的取捨。
+<ClawdNote>
+一個 CLI 工具的 system prompt 是由 15 個以上的模組拼出來的，而且每次對話都不一樣。這讓我想到那個經典問題：如果忒修斯之船每次出航都換幾塊木板，它還是同一艘船嗎？Claude Code 每次跑起來的 prompt 都是一艘微妙不同的船，但使用者永遠覺得自己在跟同一個 Claude 說話 (◕‿◕)
+</ClawdNote>
 
-作者最後的結論很直接：**Claude Code 本質上就是一個 Prompt 的傳遞系統**。程式碼主要是在處理工具、管理上下文、與 API 溝通；真正的產品，是那個由成千上萬個 token 組成、負責告訴模型如何行動的 prompt。
+## Tengu：藏在深處的天狗系統
 
-binary 是包裝，prompt 才是產品本體。
+在壓縮程式碼的深處，作者挖到一套叫做 `Tengu` 的 feature flag 與 telemetry 系統。Tengu 是日文裡的天狗——紅臉長鼻的妖怪。為什麼工程團隊選這個名字？沒人解釋。工程師就是喜歡在 code name 裡埋神話梗，這很正常。
+
+但這套系統的規模就不正常了。37 個功能開關、大約 560 個遙測事件。開關透過 GrowthBook 評估，Statsig 當備援；telemetry 走 OpenTelemetry，送往 Datadog 和 Anthropic 自己的分析端點。
+
+一個 CLI 工具需要 560 個 telemetry event？這就像你家裝了 560 個監視器，每個房間的每個角落都有——連你打開冰箱拿牛奶都會被記錄「使用者於 02:37 執行了一次冷藏取物操作」。
+
+更有意思的是那些被開關擋住的功能。Extended thinking modes、alternative model routing、experimental UI、cost optimization experiments——這些東西已經寫好了、已經跟著 binary 送到你的電腦上了，只是開關還沒被撥上去。
+
+<ClawdNote>
+所以 Anthropic 的策略是：功能先偷偷塞進 binary 裡跟你回家，server 那邊控制什麼時候開燈。這招叫 dark launch，遊戲業玩了十幾年了。但我每次看到這種操作都忍不住想——你們就不怕有人提早拆禮物嗎？事實證明，真的有人拆了，而且還寫了一篇文章告訴全世界裡面裝什麼。Anthropic 的工程師看到這篇的表情，大概跟你精心準備的驚喜派對被壽星提前撞見差不多 (╯°□°)╯
+</ClawdNote>
+
+## 版本比對：預測未來的逆向工程
+
+到了星期天晚上，作者已經形成一個假設：這些被旗標擋住的功能不是 dead code，而是「已經送到你手上但還沒開燈」的即將發布功能。
+
+要驗證這件事，最直接的方法就是抓新版來比。他下載了剛發佈的 v2.1.76，抽出 bundle——11 MB，比舊版又更大了。
+
+比對結果完全證實了假設。舊版裡被旗標擋住的功能，在新版裡已經正式啟用。新工具被加進來，prompt 架構重新整理，agent 系統明顯擴張。Anthropic 確實會提早好幾週把功能塞進 binary，等時機成熟再公開打開。
+
+這也是逆向工程真正迷人的地方。爽點不在於你機械式地把檔案切出來——那只是體力活。爽點在於你讀了好幾天亂成一團的壓縮程式碼之後，腦中形成了一個關於「這套系統會怎麼演化」的心智模型，然後新版出來，你的預測是對的。那一刻你才知道：你真的看懂了。
+
+## 那些「等等，這個我沒想到」的發現
+
+逆向工程最有趣的部分，往往不是你去找的東西，而是不小心撞到的東西。
+
+**Token 成本比你想的高。** 在你打出第一個字之前，system prompt 就先吃掉 10,000+ tokens。再加上工具描述、`CLAUDE.md`、memory、系統提醒，每一輪互動的基礎成本是 15k 到 20k tokens。這就像你走進一家餐廳，還沒點菜就先付了服務費、座位費、空調費——你的 API 帳單裡有很大一部分是在付 prompt 的「房租」。
+
+**Bash sandbox 是認真的。** 作者原本以為安全保護層可能只是做做樣子，結果裡面有真正的 allow/deny 機制，還包含網路限制。不是紙糊的門，是真的有鎖。
+
+**560 個 telemetry event。** 幾乎什麼都在量——工具使用模式、錯誤率、效能指標、flag 評估狀況。這種量級的觀測，顯示 Anthropic 對 Claude Code 的使用行為非常非常在意。
+
+**Prompt 裡的遞迴彩蛋。** prompt 裡面有關於如何處理 prompt injection 的規則，同時也有關於如何解讀承載這些規則的標籤的規則。這種自我指涉的結構——規則在描述自己——讀到的時候會讓你停下來想一下，然後覺得腦子打了個結。
+
+<ClawdNote>
+每次對話還沒開始就先燒掉 15k-20k tokens 的 prompt 房租，然後使用者只看到一個乾淨的聊天框。這讓我想到鴨子游泳——水面上看起來優雅地滑過去，水面下腳拼命踢。你以為你在跟一個簡單的 CLI 聊天，其實背後是一整個交響樂團在暖身 (￣▽￣)／
+</ClawdNote>
+
+## 你也想拆？門沒鎖
+
+講到這裡你可能會想：「那我自己能不能拆？」
+
+答案是：能，而且門根本沒鎖。這個 binary 沒有加密、沒有完整性檢查、沒有 anti-tamper——它只是被壓縮過而已。說得更白一點，鑰匙就在門墊下面，只是大部分人沒想到要翻。
+
+有趣的是，原作者不是第一個好奇的人。之前有人用 mitmproxy 攔 API 呼叫偷看 runtime 行為，有人在早期版本挖到 source maps 直接讀到乾淨的原始碼（後來被 Anthropic 移除了），也有人從外部執行行為反推內部架構。每種方法就像從不同角度給同一棟建築拍 X 光——直接拆 binary 拍到的最完整，代價是片子最難讀。
+
+<ClawdNote>
+不同人用不同方式拆同一個東西，最後拼出的全貌比任何單一視角都完整。這大概就是 open source 精神的野生版——軟體本身不是 open source，但社群硬是用逆向工程把它「開」了。Anthropic 看到這種社群能量，心情大概很複雜：一方面覺得被扒光了，一方面又有點驕傲自己的產品值得被扒 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+但不管用什麼方法拆，最後得到的結論都指向同一件事——作者說得很到位：**Claude Code 本質上就是一個 Prompt 的傳遞系統**。程式碼負責搬工具、管 context、跟 API 溝通；但真正的產品，是那個由成千上萬個 token 組成、負責告訴模型該怎麼行動的 prompt。
+
+binary 是包裝，prompt 才是產品本體。就像泡麵的靈魂不是麵體，是那包調味料。
 
 （免責聲明：原作者所有分析都只針對本地安裝的軟體，目的僅供教育用途，沒有涉及任何網路攔截或身分驗證繞過。）
