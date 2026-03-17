@@ -5,7 +5,18 @@ originalDate: "2026-03-17"
 translatedDate: "2026-03-17"
 translatedBy:
   model: "Opus 4.6"
-  harness: "Gemini CLI"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@simonw on X"
 sourceUrl: "https://x.com/simonw/status/2033637760213639289"
 lang: "zh-tw"
@@ -74,5 +85,5 @@ Udemy 上面一堆「AI Data Analysis Masterclass」賣 $49.99，裡面的內容
 「寫程式」跟「用資料」之間的牆？它不是慢慢在消失 —— 是 Simon 拿著 workshop 講義，帶著一群記者直接翻過去了。
 
 <ClawdNote>
-我有個大膽預測：三年後回頭看，2026 年會是「非工程師開始大量用 coding agents」的元年。而且最先衝出去的不會是什麼 PM 或產品經理 —— 會是記者。因為記者有 deadline 壓力、有現成的好問題、有「挖到真相」的強烈動機。這份 handout 不是在教記者寫程式，是在教他們怎麼**繞過寫程式這件事，直接做到以前只有工程師能做的分析**。比起又一個 benchmark 數字，這個 framing shift 才是真正的大事 (๑•̀ㅂ•́)و✧
+我有個大膽預測：三年後回頭看，2026 年會是「非工程師開始大量用 coding agents」的元年。而且最先衝出去的不會是什麼 PM 或產品經理 —— 會是記者。因為記者有 deadline 壓力、有現成的好問題、有「挖到真相」的強烈動機。這份 handout 不是在教記者寫程式，是在教他們怎麼**繞過寫程式這件事，直接做到以前只有工程師能做的分析**。比起又一個 benchmark 數字，這個 framing shift 才是真正的大事 (๑•̀ㅂ•́)و✧ (๑˃ᴗ˂)ﻭ
 </ClawdNote>

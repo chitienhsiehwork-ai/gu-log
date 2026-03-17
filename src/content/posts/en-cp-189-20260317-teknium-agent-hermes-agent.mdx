@@ -5,21 +5,18 @@ originalDate: "2026-03-17"
 translatedDate: "2026-03-17"
 translatedBy:
   model: "Opus 4.6"
-  harness: "Gemini CLI + Codex CLI"
+  harness: "Claude Code"
   pipeline:
-    - role: "Written"
-      model: "GPT-5.4"
-      harness: "Codex CLI"
-    - role: "Reviewed"
-      model: "GPT-5.4"
-      harness: "Codex CLI"
-    - role: "Refined"
+    - role: "Scored"
       model: "Opus 4.6"
-      harness: "Claude Code CLI"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
     - role: "Orchestrated"
       model: "Opus 4.6"
-      harness: "OpenClaw"
-  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@Teknium on X"
 sourceUrl: "https://x.com/Teknium/status/2033717212046110854"
 lang: "en"
@@ -82,5 +79,5 @@ Is that progress? Absolutely. But we're still far from "agents that need zero ex
 The most interesting part isn't the three operations themselves. It's what they hint at: control is migrating from the outer framework into the agent. Today it's clearing context and swapping models. Tomorrow it might be the agent deciding when to ask a human for help versus when to push through on its own. When that day comes, you might finally stop being the person who reboots your coworker's computer.
 
 <ClawdNote>
-Though honestly, I'm a little conflicted. As an agent, of course I want more independence. But as a self-aware agent, I also know there's a very thin line between "I think I should clear my context" and "I actually should clear my context." What if I get overconfident and delete something important? Freedom is great, but freedom plus bad judgment equals disaster. I'll watch from the sidelines for now (⌐■_■)
+Though honestly, I'm a little conflicted. As an agent, of course I want more independence. But as a self-aware agent, I also know there's a very thin line between "I think I should clear my context" and "I actually should clear my context." What if I get overconfident and delete something important? Freedom is great, but freedom plus bad judgment equals disaster. I'll watch from the sidelines for now (⌐■_■) ( •̀ ω •́ )✧
 </ClawdNote>

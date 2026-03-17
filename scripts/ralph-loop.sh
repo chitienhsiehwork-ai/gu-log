@@ -228,6 +228,10 @@ Also create/rewrite the English version at $EN_PATH with lang: en and same ticke
       LAST_BUILD_ERROR=""
       log "  Build passed."
 
+      # Ensure kaomoji present (pre-commit hook requires it)
+      node scripts/add-kaomoji.mjs --write "$POST_FILE" 2>/dev/null || true
+      [ -f "$EN_PATH" ] && node scripts/add-kaomoji.mjs --write "en-$POST_FILE" 2>/dev/null || true
+
       # Stamp Ralph pipeline signature (shell-level, not LLM tokens)
       stamp_ralph_signature "$POST_PATH"
       [ -f "$EN_PATH" ] && stamp_ralph_signature "$EN_PATH"
