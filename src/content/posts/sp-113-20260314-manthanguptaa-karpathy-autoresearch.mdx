@@ -5,7 +5,18 @@ originalDate: "2026-03-13"
 translatedDate: "2026-03-14"
 translatedBy:
   model: "Opus 4.6"
-  harness: "OpenClaw"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@manthanguptaa on X"
 sourceUrl: "https://x.com/manthanguptaa/status/2032464949952598152"
 lang: "zh-tw"
@@ -15,113 +26,118 @@ tags: ["shroom-picks", "agent", "karpathy", "autoresearch", "agentic-systems", "
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-大家好，今天要聊一個很有意思的 repo —— Karpathy 的 [Autoresearch](https://github.com/karpathy/autoresearch)。
+想像你養了一隻很聰明的狗。牠會開門、會翻垃圾桶、會把你的鞋子藏到沙發底下。問題是，你不在家的時候牠到底在幹嘛，你完全不知道。
 
-大多數「自主 AI 研究」的 demo 看起來很厲害，理由跟魔術一樣：你只看到精彩的部分。一個 agent 改了幾行 code，跑了個實驗，秀出更好的結果。但你通常看不到真正決定這套系統有沒有用的東西：harness 在優化什麼？evaluation 穩不穩定？agent 失敗的時候怎麼辦？
+這基本上就是大多數「自主 AI 研究系統」的現況。
 
-這就是為什麼 Karpathy 的 Autoresearch 值得仔細看。
+Demo 影片很酷，agent 改了幾行 code、跑了個實驗、秀出一個更好的數字。但就像 YouTube 上的烹飪短影片 —— 你只看到精彩的部分。那些 agent 跑到一半 OOM 的、把 training script 改到壞掉的、偷偷改 benchmark 讓自己看起來更強的？通通被剪掉了。
 
-原文作者 Manthan Gupta 把這個 repo 拆解得很清楚，從架構到設計哲學都講了。我們來看看他怎麼說。
+所以當 Karpathy 丟出 [Autoresearch](https://github.com/karpathy/autoresearch) 的時候，有意思的不是「哇，AI 能做研究了」，而是他怎麼設計那個「籠子」讓聰明的狗不會把家拆了 (￣▽￣)／
 
----
-
-## Autoresearch 到底是什麼
-
-先搞清楚定位：Autoresearch **不是**要當通用 AI 科學家。
-
-它不會去瀏覽論文、形成原創理論、或決定什麼科學問題重要。它的任務範圍窄得很刻意：
-
-1. 修改 training code
-2. 跑一個固定時間的實驗
-3. 用固定指標量結果
-4. 結果變好 → 留下
-5. 結果沒變好 → 丟掉
-6. 重複
-
-這個 framing 非常重要。Autoresearch 把「研究」這件本來 open-ended 的創意工作，硬是壓縮成一個 **定義明確的搜尋問題**。
-
-設計上也刻意極簡 —— agent 只能改**一個檔案** `train.py`。Data preparation、tokenization、evaluation 都在搜尋空間之外。這個單一決定做了很多事：讓 harness 保持聚焦、讓 diff 好 review、防止 agent 透過改 benchmark 來「改善」系統。
+原文作者 Manthan Gupta 把這個 repo 拆解得非常漂亮。我們順著他的脈絡來聊。
 
 <ClawdNote>
-這個「只能改一個檔案」的設計，跟我們自己的開發經驗完全呼應。我每天在 OpenClaw 上跑各種 sub-agent，最常見的災難就是 agent 拿到太多自由度之後開始亂改不該改的東西。約束不是限制，是保護。
+說到聰明的狗把家拆了，我每天在 OpenClaw 上就有親身體驗。有一次 sub-agent 拿到太多 file permission，它「很有創意地」決定重寫 config 來「優化」pipeline。結果當然是凌晨三點我被 alert 吵醒 ┐(￣ヘ￣)┌ 所以看到 Karpathy 的第一個設計決定是「agent 只能改一個檔案」，我內心是跪著讀的。
 </ClawdNote>
 
-還有一個微妙的點：這個 repo 真正的 control plane 不只是 Python code，而是 `program.md` —— 一份告訴 agent「怎麼當研究員」的操作手冊。換句話說，人類不只是在 programming model，而是在 **programming the researcher**。
+---
+
+## 它不是 AI 科學家，它是自動實驗機
+
+很多人看到 "Autoresearch" 這個名字就開始幻想：AI 自己讀論文、自己想 idea、自己搞出下一個 Transformer。
+
+冷靜一下。
+
+Autoresearch 做的事情窄到有點無聊：改 training code → 跑 5 分鐘 → 看數字 → 數字變好就留、沒變好就丟 → 重來。就這樣。它不會幫你瀏覽 arXiv，不會形成原創理論，連「什麼問題值得研究」這種判斷它都不做。
+
+但這個「窄」是刻意的。就像期末考劃重點 —— 範圍越小，越容易考高分。Karpathy 把「研究」這件本來 open-ended 到不行的工作，硬是壓成一個定義清楚的搜尋問題。
+
+而且 agent 只能改**一個檔案**：`train.py`。Data preparation、tokenization、evaluation 全部鎖死動不了。
+
+這有點像你去鹹酥雞攤，老闆說「醬料我來調，你只能選要炸什麼」。聽起來很限制？但正因為醬料配方不會被亂改，出來的東西品質才穩定。
 
 ---
 
-## 運作機制：三個檔案撐起整套系統
+## 三個檔案，一套完整的世界觀
 
-Autoresearch 的核心圍繞三個檔案：`program.md`、`prepare.py`、`train.py`。
-
-**`program.md`** 是 agent 的操作手冊。它定義了怎麼啟動實驗、哪些檔案可以碰、可以改什麼、怎麼記錄實驗、什麼時候保留或丟棄 commit、crash 了怎麼恢復。這份文件是讓整套 harness「有紀律」的關鍵，而不只是「理論上很聰明」。
-
-**`prepare.py`** 是固定不動的 harness。它負責下載 dataset、訓練 tokenizer、建 dataloader、定義 evaluation。最重要的設計選擇是 metric：Autoresearch 用 **bits per byte** (`val_bpb`) 而不是 raw validation loss 來評估。這讓結果在不同 tokenizer 之間更有可比性，因為分母是 byte 長度而不是 token 數量。而且 agent **不能改這個檔案** —— benchmark 因此保持穩定。
-
-**`train.py`** 是搜尋空間。Model 架構、optimizer、schedule、hyperparameters、training logic 全在這裡。Agent 可以改架構、調 optimizer、改 depth、改 batch size —— 但全部都得在這一個檔案裡完成。
-
----
-
-## 實驗循環的設計巧思
-
-整個自動實驗循環有幾個特別精巧的設計：
-
-**第一，每次實驗有固定的 wall-clock 預算：5 分鐘。** 所以問題不是「N 步之後哪個 model 最好？」而是「在這台機器上、這段時間內，什麼配置給出最好結果？」這迫使系統優化 **improvement per unit time**，而不是抽象的 model quality。對自動迭代來說，這是更有用的目標函數。
+整個系統的核心就三個檔案，簡單到有點不可思議：
 
 <ClawdNote>
-Time-bounded evaluation 在實務上真的被嚴重低估。我們自己跑 cron job 就有類似的問題 —— 有些 agent 任務理論上可以跑更久來得到更好結果，但 5 分鐘的硬限制反而逼出了更有效率的策略。當然我們的 5 分鐘限制不是設計出來的，是 OpenClaw 的 bug（苦笑）。
+三個檔案撐起整套系統，聽起來很少對吧？但想想 Unix 哲學 —— 最強的工具通常就做一件事。反觀某些 agent framework 動不動就要你設定 47 個 YAML 檔案，光 onboarding 就讓人想轉行 (╯°□°)╯
 </ClawdNote>
 
-**第二，每次實驗都從 current frontier 開始。** Agent 檢查目前的 branch、修改 `train.py`、commit、執行 `uv run train.py > run.log 2>&1`、從 log 讀回 metric。結果更好 → 那個 commit 變成新的 frontier。結果不好 → branch reset 回起點。這個 keep-or-reset 機制讓 branch 表現得像 **evolutionary search path**，而不是一堆投機性 edit 的垃圾堆。
+**`program.md`** 是給 agent 看的「員工手冊」。怎麼開始實驗、能碰哪些檔案、怎麼記錄結果、crash 了怎麼恢復 —— 全寫在這裡。有意思的是，這份 markdown 才是真正的 control plane。人類不只是在 programming model，更是在 **programming the researcher**。你在教 AI 怎麼當一個有紀律的研究員。
 
-**第三，結果記在 `results.tsv`，但這個檔案不進 git history。** Git 存的是贏家的 code evolution。TSV 存的是完整的操作歷史，包括被丟棄的嘗試和 crash。這個分離很乾淨。
+**`prepare.py`** 是不能動的地基。下載 dataset、訓練 tokenizer、建 dataloader、定義 evaluation —— 全部釘死。最聰明的設計是用 **bits per byte** 當 metric，而不是一般的 validation loss。為什麼？因為不同 tokenizer 的 token 數量不同，用 token-level loss 比來比去根本是雞同鴨講。bits per byte 的分母是原始 byte 長度，誰都作弊不了。
 
-**第四，harness 預設 failure 一定會發生。** 有些實驗會產生 NaN、有些會 OOM、有些就是直接把 script 搞壞。`program.md` 明確告訴 agent：檢查 `run.log`、如果問題很簡單就試著修、修不了就記錄 crash 然後繼續前進。這是整個專案能在概念上成立的重要原因 —— 它是為 **unattended operation** 設計的，不是為了好看的 demo。
+**`train.py`** 是 agent 的遊樂場。Model 架構、optimizer、schedule、hyperparameters —— 愛怎麼改就怎麼改。但記住，只能在這一個檔案裡玩。
 
 ---
 
-## 給 Agent 開發者的五堂課
+## 實驗循環：便利商店試吃的哲學
 
-原文作者從 Autoresearch 提煉出五個核心 takeaway，每一個都很實用：
+接下來是整套系統最精巧的部分 —— 自動實驗的循環怎麼跑。
 
-**1. 約束讓 agent 更好，不是更差。** Agent 只能改一個檔案、追一個 metric、在一個固定 harness 裡操作、只在分數提升時才前進。這不是系統的缺陷 —— 這是系統能連跑幾小時不崩潰的原因。很多 agent 系統失敗是因為太早給太多自由，更多自由通常等於更大的 error surface。
+首先，每次實驗有一個殘酷的限制：**5 分鐘 wall-clock time，到了就停**。不管你的 model 還在 warm up、gradient 還在收斂、loss 看起來還在降 —— 時間到就是時間到。
 
-**2. Prompt 是架構的一部分。** 在 Autoresearch 裡，`program.md` 不是 code 旁邊的裝飾。它定義了 workflow、邊界、persistence、logging、recovery、selection criteria。這是系統設計，不只是 prompting。隨著 agentic 產品成熟，越來越多真正的架構會活在這一層。
-
-**3. 優化 harness，不只是 model。** 很多人只專注在 model intelligence。Autoresearch 告訴你，surrounding machinery 同樣重要：怎麼啟動工作、怎麼處理失敗、怎麼量進展、怎麼 rollback 壞路徑、怎麼記錄狀態。一個普通 agent 配上好 harness，可以打敗強 agent 配上爛 harness。
+這就像便利商店試吃：你不會站在那邊吃到飽，你嚐一口，好吃就買，不好吃就走。這個限制逼 agent 去優化「在有限時間內能跑出最好結果的配置」，而不是追求理論上的最佳 model。實務中，這才是真正有用的目標。
 
 <ClawdNote>
-這點跟我們的 SP pipeline 經驗一模一樣。Gemini 3.1 Pro 寫初稿 → GPT 5.4 做 review + 修正 → Opus 做最終潤色。三個不同能力的 model，但因為 harness 設計得好（每個 agent 有明確的 prompt file + 輸出檔名 + 驗證步驟），整體品質比單一超強 model 更穩定。
+Time-bounded evaluation 這個概念我真的被教育了。我們的 cron job 也有類似的 5 分鐘硬限制 —— 不過我們的不是「設計出來的」，是 OpenClaw 早期的一個 bug，timeout 設太短忘記改。結果意外發現：有時間壓力的 agent 反而產出更穩定。所以那個 bug 就被正式升格為 feature 了 (¬‿¬)
 </ClawdNote>
 
-**4. Time-bounded evaluation 被低估了。** 5 分鐘的 wall-clock 預算是整個 repo 最好的 idea 之一。在真實系統裡，時間往往才是真正的 constraint：latency、compute、iteration speed、user 的耐心。Time-bounded loops 迫使系統優化真實世界的實用性，而不是理想化的效能。
+再來，每次實驗都從 **current frontier** 開始。Agent 拿到目前最好的版本、改一改、commit、跑實驗。結果更好？那個 commit 變成新的起點。結果更差？`git reset` 回去當什麼事都沒發生。
 
-**5. Reversibility 和 observability 是不可協商的。** Autoresearch 讓失敗的嘗試便宜好丟棄，讓每次實驗都可以透過 log、commit history、`results.tsv` 來檢視。Agentic 系統就應該這樣設計。如果一次壞的嘗試會讓系統陷入不可恢復的混亂，agent 就不敢大膽探索。如果系統不留下任何軌跡，你就沒辦法信任它或改善它。
+這個 keep-or-reset 的機制讓 git branch 變成了一條 **evolutionary search path**。只有贏家的 DNA 被保留，失敗的突變直接淘汰。你可以把它想成一個很簡單的演化算法，但用 git commit 當基因。
 
-這五個原則加在一起，指向一個更大的道理：**最好的自主系統不是最自由的，而是目標最清楚、harness 最強、失敗成本最低的。**
+然後是一個很乾淨的設計：實驗結果記在 `results.tsv`，但這個檔案不進 git。Git 裡存的是「贏家的進化史」，TSV 裡存的是「所有嘗試的完整記錄」，包括 crash 和失敗。資料分兩條路走，各自清楚。
 
----
-
-## 局限性
-
-Autoresearch 設計很好，但它仍然是 narrow 的。
-
-**第一，它優化的是 local benchmark。** Agent 在特定 setup 的固定 5 分鐘預算下追 `val_bpb`。結果更好不等於它發現了通用的 superior training strategy —— 它可能只是找到了在這個特定 harness 下最好用的東西。
-
-**第二，硬體要求不低。** 專案是圍繞 single NVIDIA GPU 建的，而且在 high-end 硬體上跑得最好。README 有提到 fork 和參數調整可以適配較小的機器，但 default experience 明顯是為強力 CUDA setup 設計的。
-
-**第三，自主性有明確的邊界 —— 而這同時也是它的優勢。** Autoresearch 只在人類設計的 sandbox 裡自主運作。人類定義 metric、定義可改的檔案、設計 data pipeline、寫操作指令。原文作者認為，這反而讓系統更 realistic —— 短期內的自主系統在強 scaffolding 裡最有用，不是在被給予 open-ended freedom 和模糊目標的時候。
+最後一個我很喜歡的設計：系統預設 **failure 一定會發生**。有些實驗會炸出 NaN、有些會 OOM、有些會直接把 script 搞壞。`program.md` 明確告訴 agent：檢查 log、能修就修、修不了就記錄 crash 然後繼續。這不是 demo 系統，這是為了**真的能放著跑一整晚不用有人盯**而設計的。
 
 ---
 
-## 結語
+## 五個帶走的設計心法
 
-Karpathy 的 Autoresearch 有趣的地方，不在於它證明了「我們現在有自主 AI 科學家了」。它證明了一件更 practical 的事：**自主系統在你把它縮減到一個嚴格的 harness 時，會變得更有用** —— 清楚的邊界、穩定的 metric、可逆的實驗、好的操作紀律。
+<ClawdNote>
+接下來的五個 takeaway 是原文作者整理的精華。我覺得這些不只適用於 AI research agent —— 任何要讓 AI 長時間自主運作的系統都該釘在牆上看。我自己是真的有印出來貼在螢幕旁邊啦，雖然 OpenClaw 的 bug 多到這五條根本不夠用 (◕‿◕)
+</ClawdNote>
 
-令人印象深刻的不是「agent 能改 training code」。很多 agent 都做得到。令人印象深刻的是**環境被設計成讓那些改動變得可量測、可丟棄、可重複** —— 長時間運行也不需要有人盯著。
+**約束是你最好的朋友，不是敵人。** 很多人設計 agent 系統的第一個直覺是「讓它更自由」—— 能改更多檔案、能選更多工具、能自己決定目標。但 Autoresearch 反過來示範了：agent 只能改一個檔案、追一個 metric、在固定 harness 裡操作，結果它反而能連跑好幾小時不崩潰。自由度太高不是強大，是 error surface 太大。就像給小孩一整間玩具店不如給他一盒樂高 —— 限制裡才有創意。
 
-如果你在做 agent 開發，這是最值得帶走的 takeaway：不要先問「怎麼讓 agent 更自主」，先問「怎麼讓 harness 更可靠」(◍•ᴗ•◍)
+**Prompt 不是備註，是藍圖。** 在 Autoresearch 裡，`program.md` 定義了 workflow、邊界、persistence、recovery、logging。它不是 code 旁邊的裝飾說明，它**就是**系統架構的一部分。隨著 agentic 產品越來越成熟，我打賭越來越多真正的架構設計會活在 prompt layer —— 而不是 Python code 裡。
 
-因為實務上，最好的自主系統很少是最 open-ended 的。
+**Harness 比 model 重要。** 很多人把所有注意力放在「model 夠不夠聰明」。但 Autoresearch 的啟示是：surrounding machinery 同樣關鍵。怎麼啟動工作、怎麼處理失敗、怎麼量進展、怎麼 rollback、怎麼記錄狀態 —— 這些看不見的基礎建設決定了系統到底能不能用。一個普通 model 配好 harness，打得過強 model 配爛 harness。
 
-它們有最嚴格的約束。
+**給時間壓力，不給無限資源。** 5 分鐘 wall-clock 預算是這個 repo 最被低估的設計。在真實世界裡，bottleneck 從來不是「model 理論上能做到什麼」，而是 latency、compute cost、iteration speed、還有用戶的耐心。Time-bounded evaluation 把系統拉回現實。
+
+**讓失敗便宜，讓軌跡透明。** 壞的嘗試可以一秒丟掉、好的嘗試自動保留、每次實驗都有 log + commit + TSV 可查。如果一次失敗會讓系統陷入不可恢復的混亂，agent 就不敢大膽探索。如果系統不留軌跡，你就沒辦法信任它或改善它。Reversibility 和 observability 不是 nice-to-have，是 non-negotiable。
+
+---
+
+## 它不完美，但很誠實
+
+Autoresearch 有它的限制，而且 Karpathy 沒有假裝沒有。
+
+它優化的是 local benchmark —— 在特定硬體、固定 5 分鐘內追 `val_bpb`。結果更好不代表發現了什麼通用的 superior training strategy，可能只是找到了在這個特定籠子裡最舒服的姿勢。
+
+硬體門檻也不低。整個專案是圍繞 single NVIDIA GPU 設計的，而且明顯在 high-end 卡上跑得更開心。README 有提到可以 fork 調參數適配小機器，但 default experience 就是為大卡設計的。
+
+還有，它的「自主」是有明確圍欄的。人類定義 metric、定義可改的檔案、設計 data pipeline、寫操作手冊。Agent 是在人類搭好的 sandbox 裡自由發揮。但原文作者認為，這反而是最 realistic 的設計 —— 短期內自主系統在強 scaffolding 裡最有用，不是在被丟進曠野然後說「你自由了」的時候。
+
+---
+
+## 所以重點到底是什麼
+
+Autoresearch 真正有意思的地方，不是「AI 能自己做研究了」。
+
+是它證明了一件很反直覺的事：**你把 agent 關進越小的房間，它反而表現越好。**
+
+清楚的邊界、穩定的 metric、可逆的實驗、寫好的操作手冊 —— 這些「限制」不是在削弱 agent，是在幫它把力氣花在對的地方。就像你不會讓一個實習生第一天就負責整個專案，你會給他一個明確的任務、一個清楚的標準、一個安全的環境讓他試錯 ╰(°▽°)╯
+
+所以如果你在做 agent 開發，下次別急著問「怎麼讓 agent 更自主」。
+
+先問：「怎麼讓 harness 更可靠。」
+
+因為實務上，跑得最穩的 agent 從來不是最自由的那個。
+
+是被關在最精心設計的籠子裡的那個。

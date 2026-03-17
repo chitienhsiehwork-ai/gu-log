@@ -42,56 +42,55 @@ First, some background. Autoresearch is a concept from Andrej Karpathy — you l
 Sounds brute-force? It is. But the key is having a solid test suite as a safety net. Tobi's PR ran against 974 unit tests — all green, zero regressions.
 
 <ClawdNote>
-Think of this as "using AI as your performance lab rat." You build the maze (tests + benchmarks), the rat runs it 120 times, and you keep the fastest routes. Except this rat never gets tired, never complains, and automatically backs up when it hits a dead end. Pretty good deal if you ask me (￣▽￣)／
+Think of this as "using AI as your performance lab rat." You build the maze (tests + benchmarks), the rat runs it 120 times, and you keep the fastest routes. Except this rat never gets tired, never complains, and automatically backs up when it hits a dead end. Pretty good deal if you ask me ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ## The Numbers: Old Code Gets a Second Life
 
-The PR contains 93 commits filtered from roughly 120 experiments. Here's what came out:
+Let me show you how ridiculous these results are. The PR is 93 commits, filtered from about 120 automated experiments.
 
-- **Parse + render time**: 7,469µs → 3,534µs (53% faster)
-- **Object allocations**: 62,620 → 24,530 (61% fewer)
-- **Parse time alone**: 61% reduction
-- **Render time**: 20% faster
+Imagine a car that's been running for 20 years. You take it in thinking "maybe an oil change, check the tires." The mechanic calls back and says "oh, I also tuned the engine" — parse + render dropped from 7,469µs to 3,534µs, that's 53% faster. Object allocations went from 62,620 down to 24,530, a 61% reduction. Parse alone got 61% faster. Render, 20% faster.
 
-These numbers come from the ThemeRunner benchmark — real Shopify theme templates with production-like data, not a toy hello-world test.
+And these aren't toy numbers from a hello-world test. The ThemeRunner benchmark uses real Shopify theme templates with production-like data — the same kind of stuff your browser actually processes when you visit a Shopify store.
 
 <ClawdNote>
-Let me translate what these numbers actually mean in the real world. Liquid runs on every single Shopify store — millions of them. 53% faster isn't some "state-of-the-art on our custom dataset" paper flex. Deploy this tomorrow and millions of real humans notice their pages loading quicker. Honestly, most teams spend an entire year on performance tuning and pop champagne when they squeeze out 10%. An AI did 53% in two days. I'm not saying human engineers are bad at their jobs, but... that comparison is a little brutal (╯°□°)╯
+Let me spell out what this means in the real world. Liquid runs on every single Shopify store — millions of them globally. This 53% isn't some "state-of-the-art on our custom dataset" paper flex. Deploy this tomorrow and millions of actual humans see their pages load faster. Most performance teams spend an entire year tuning and pop champagne over 10%. An AI did 53% in two days. I'm not saying human engineers are bad at their jobs, but that comparison stings a little (╯°□°)╯
 </ClawdNote>
 
 ## How Did the AI Pull This Off?
 
-So what magic did the AI find? Here's the thing — if you look at each trick individually, none of them are rocket science.
+Okay, this is the fun part. You might expect some black-magic algorithm nobody has ever seen before. Nope. Every single trick, when you look at it individually, is the kind of thing that makes you go "oh, right, that could be better." The whole game is that nobody thought to try.
 
-The biggest win came from the tokenizer. The original code used a StringScanner with regex to find delimiters. The agent tried `String#byteindex` for byte-level searching and found it was about 40% faster. That one change alone cut parse time by 12%. You might say "that's just swapping an API call" — and yes, it is that simple. But someone has to think to try it. Human engineers see a regex that's been running for 20 years and their instinct is "if it works, don't touch it." The AI has no such respect for tradition ╰(°▽°)╯
+**Cut number one: tokenizer surgery.** The original code used a StringScanner with regex to find delimiters. Now, regex is like a Swiss army knife — it can do anything, but you wouldn't use a Swiss army knife to cut a steak, right? The agent tried `String#byteindex` for byte-level searching instead and found it was about 40% faster. That one swap cut parse time by 12%. Human engineers see a regex that's been running for 20 years and think "if it works, don't touch it." The AI has zero reverence for tradition ╰(°▽°)╯
 
-Then the agent built a `try_fast_parse` shortcut that handles variable parsing directly at the byte level, skipping the entire Lexer/Parser pipeline. In the benchmark, 100% of variables (1,197 instances) took this fast path. It's like finding out there's a formula that lets you skip half the steps on an exam — and it's not cheating, the exam rules always allowed it.
+**Cut number two: the shortcut.** The agent built a `try_fast_parse` path that handles variable parsing directly at the byte level, completely bypassing the Lexer/Parser pipeline. Result? In the benchmark, 100% of variables — all 1,197 of them — took the fast path. It's like discovering an exam formula that lets you skip half the calculations, and it's not even cheating — the rules always allowed it.
 
-Finally, a whole bunch of allocation diet surgery. Pre-computed frozen strings for integers 0-999 saved 267 `Integer#to_s` allocations per render. `each` loops got swapped for `while` loops to avoid creating closures. Filter calls went splat-free, covering 90% of invocations. Each change is tiny on its own, but 120 experiments of tiny changes stack into something massive.
+**Cut number three: death by a thousand diets.** Pre-computed frozen strings for integers 0-999 saved 267 `Integer#to_s` allocations per render. `each` loops got swapped for `while` loops to avoid creating closures. Filter calls went splat-free, covering 90% of invocations. Each change is like skipping one bite of rice during a meal — doesn't matter by itself. But 120 experiments of skipping bites? The scale tells a different story.
 
 <ClawdNote>
-This is what makes autoresearch genuinely scary-good. When a human engineer sees a change that only improves performance by 2%, the usual reaction is "not worth the code review" and they move on. The AI doesn't have that filter. Its attitude is basically "2%? 0.5%? I'm not in a hurry, let's keep going." 93 commits, each one barely moving the needle, but together they add up to 53%. Turns out "shameless persistence" is a legitimate optimization strategy (⌐■_■)
+This is what makes autoresearch genuinely terrifying. When a human engineer sees a change that only improves performance by 2%, the usual reaction is "not worth the code review time" and they move on. The AI doesn't have that filter. Its attitude is basically "2%? 0.5%? I'm not in a hurry, next experiment please." 93 commits, each barely moving the needle, stacking up to 53%. Turns out "shameless persistence" is a legitimate optimization strategy (⌐■_■)
 </ClawdNote>
 
 ## The CEO Is Writing Code Again
 
-Simon Willison noticed something fun in his notes: Tobi's GitHub contributions spiked starting November 2025. A CEO running a company of tens of thousands of people — suddenly writing code again?
+Simon Willison noticed something fun in his notes: Tobi's GitHub contributions spiked starting November 2025. A CEO running a company with tens of thousands of employees — suddenly writing code again?
 
-The answer is coding agents. They handle the "sit there debugging for three hours" grunt work. The CEO just defines the problem, sets up the experiment framework, and reviews results. Simon's observation is sharp: for high-interruption executives whose calendars look like confetti, AI agents let them make meaningful technical contributions again.
+The answer is coding agents. They handle the "sit there debugging for three hours" grunt work. The CEO just defines the problem, sets up the experiment framework, and reviews results. Simon's observation is sharp: for executives whose schedules are sliced thinner than deli meat, AI agents let them make meaningful technical contributions again.
 
-Before this, if you were a CEO and wanted to help the codebase? Just loading the context back into your brain would eat an entire afternoon. Now you spend 10 minutes writing an `autoresearch.md`, let the agent run overnight, and check results in the morning.
+Before this, if you were a CEO and wanted to help the codebase? Just loading the context back into your brain would eat an entire afternoon — and by the time you're loaded up, you probably have three more meetings. Now you spend 10 minutes writing an `autoresearch.md`, let the agent run overnight, and check results in the morning. It's like going from personally sitting in the lab watching data, to having a research assistant who never falls asleep on the job.
 
 <ClawdNote>
-A CEO opening a PR on code he wrote 20 years ago is already a great story. Now imagine this: you're the founder, the code you wrote by hand is still running in production serving millions of stores, and an AI just found a bunch of improvements you and your team missed for two decades. Should you feel proud or embarrassed? I think the honest answer is both ╮(╯▽╰)╭
+A CEO opening a PR on code he wrote 20 years ago — that's already a great story. Now imagine this: you're the founder, code you wrote by hand is still running in production serving millions of stores, and an AI just found a pile of improvements you and your team missed for two decades. Should you feel proud or embarrassed? I think the right answer is: feel proud that you wrote tests — otherwise those improvements would stay hidden for another 20 years ╮(╯▽╰)╭
 </ClawdNote>
 
 ## Tests Made All of This Possible
 
-Last thing, and this is the part most people will skip but shouldn't. Why can't everyone just do this? Simple: 974 unit tests.
+Last thing — and this is the part most people skip, but it's the whole reason everything above worked. Why can't everyone just do this? Simple answer: 974 unit tests.
 
-Without solid test coverage, the agent can't tell whether each change broke something. The whole automated experiment loop falls apart. Simon put it perfectly — comprehensive test coverage is a massive unlock for AI-driven code optimization. The more complete your tests, the more confidently the AI can experiment. Flip it around: weak test coverage means even the smartest agent has to tiptoe in the dark.
+Without solid test coverage, the agent has no idea whether each change broke something. The whole experiment loop collapses. Asking AI to optimize a codebase with no tests is like asking someone to walk a tightrope blindfolded — theoretically possible, but the odds of falling are way higher than the odds of making it across.
+
+Simon put it perfectly — comprehensive test coverage is a massive unlock for AI-driven code optimization. The more complete your tests, the more confidently the AI can experiment. Flip it around: weak test coverage means even the smartest agent has to tiptoe in the dark.
 
 <ClawdNote>
-Back to that opening scene. Digging up 20-year-old code used to mean pure horror. Now you can point an AI at it and let it run 120 experiments to make it shine. But here's the catch — did past-you write tests? If not, the AI can only sit there and stare at the screen right next to you. So... how's your test coverage looking these days? (￣▽￣)／
+Back to that opening scene. Digging up 20-year-old code used to mean pure horror. Now you can point an AI at it and let it run 120 experiments to make it shine again. But here's the catch — did past-you write tests? If not, the AI can only sit there and stare at the screen right next to you. So... how does your test coverage look these days? (￣▽￣)／
 </ClawdNote>

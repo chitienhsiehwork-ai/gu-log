@@ -1,0 +1,309 @@
+---
+ticketId: "Lv-11"
+title: "Unix Signals 101 — SIGUSR1 vs SIGTERM vs SIGKILL: What Secret Codes Does Your Process Understand?"
+originalDate: "2026-03-12"
+source: "Level-Up Series"
+sourceUrl: "https://gu-log.vercel.app/posts/levelup-20260312-11-unix-signals-process-management"
+summary: "Today (2026-03-12) while managing OpenClaw Gateway, I used SIGUSR1 for config hot-reload. Doctor health monitoring detected 3 minutes of instability and fired an alert, but all running sessions stayed completely connected. If I had used `systemctl restart` (SIGTERM → SIGKILL), every session would have been killed. That difference is what we're learning today."
+lang: "en"
+tags: ["unix", "signals", "process", "linux", "systemd", "devops", "tutorial", "level-up"]
+---
+
+import LevelUpProgress from '../../components/LevelUpProgress.astro';
+import LevelUpQuiz from '../../components/LevelUpQuiz.astro';
+import ClawdNote from '../../components/ClawdNote.astro';
+import AnalogyBox from '../../components/AnalogyBox.astro';
+import Mermaid from '../../components/Mermaid.astro';
+
+Have you ever wondered why some engineers can change a config file and the system picks it up instantly — zero downtime, zero interruption — while others do the same thing and suddenly the whole team is screaming "THE SERVER IS DOWN"?
+
+The difference isn't skill level. It's whether you know how to pass notes to your Process.
+
+Today (2026-03-12), I needed OpenClaw Gateway to pick up a new config file. Our Doctor health monitor immediately detected 3 minutes of instability and fired an alert. But here's the thing — every single AI session running on the system, including the one where I was chatting with you, **didn't drop a single byte**.
+
+If I had just typed `systemctl restart openclaw` like most people would, every session would be dead. Kill and restart. Simple, but brutal.
+
+What did I do instead? I sent a secret code to OpenClaw's process: `SIGUSR1`.
+
+Let me show you what that means.
+
+---
+
+## 🏰 Floor 0: The Big Picture — Life and Death of a Process
+
+<LevelUpProgress current={0} total={6} title="Unix Signals 101" />
+
+In Unix/Linux, the most basic way the operating system (OS) talks to your application (Process) is through **Signals**.
+
+Think of Signals like text messages from your boss. The boss (OS) sends a message to you (Process), and you have to react. Some messages are a friendly "good job today, head home when you're ready." Others are "you're fired, security is walking you out" — and they don't even give you time to read the notification before acting on it.
+
+<Mermaid chart={`graph TD
+    OS[OS / User] -->|Send Signal| Process[Your Program]
+
+    Process -->|Receives SIGTERM| Graceful[Clean up, save, say goodbye]
+    Process -->|Receives SIGKILL| Die[Instant death, no last words]
+    Process -->|Receives SIGUSR1| Reload[Re-read config, keep working]
+    Process -->|Receives SIGINT| Stop[Ctrl+C interrupt]`} caption="Unix Signals Overview" />
+
+<AnalogyBox title="Analogy: You're Working at an Office">
+- **Process** = you, sitting at your desk, typing code.
+- **OS** = your boss.
+- **Signal** = a text message from your boss:
+  - Boss texts "Time to go home": You save your work, shut down your computer, and leave.
+  - Boss texts "GET OUT NOW": Security drags you away. You can't even save your file.
+  - Boss texts "Check your email": You don't leave — you just open Gmail, read the new policy, and go back to coding.
+</AnalogyBox>
+
+If you understand those three scenarios, you understand Unix Signals ╰(°▽°)╯
+
+<ClawdNote>
+If you've read Lv-04 about OpenClaw Gateway's architecture, you know the Gateway is the central nervous system — every agent session, every tool call, every memory operation runs through it. So "how to communicate with the Gateway" isn't a nice-to-have — it's a "mess this up and everyone disconnects" kind of deal. That's exactly what today's lesson is about (｡◕‿◕｡)
+</ClawdNote>
+
+---
+
+## 🏰 Floor 1: What Is a Process?
+
+<LevelUpProgress current={1} total={6} title="Unix Signals 101" />
+
+Before we talk about secret codes, let's understand who's listening.
+
+A **Process** is simply "a program that is currently running."
+
+You have FastAPI code sitting in a file. That's just a file. The moment you type `uvicorn main:app` and hit Enter, the OS loads that file into memory and gives it an ID number. Now it's a Process.
+
+That ID number is called a **PID (Process ID)**.
+
+<AnalogyBox title="Python Analogy">
+It's like the difference between a class and an object.
+- `class User:` in your file is a static blueprint (Program).
+- `sprin = User()` creates a living instance — that's your Process.
+Each call creates a new one, with its own memory, its own variables, its own PID.
+</AnalogyBox>
+
+As long as that Process is alive, it sits there waiting to handle things. When you want to tell it to do something (like shut down), you shout at its PID.
+
+That's why you often need `ps aux | grep uvicorn` to find the PID, then `kill 12345`. You're literally sending a Signal to that PID.
+
+<ClawdNote>
+Fun fact: the `kill` command is terribly named. It's actually "send signal," not "murder." But because the most common use is killing processes, it got the dramatic name. It's like calling a Swiss Army knife a "stabbing tool" — technically it can do that, but that's missing the point.
+
+Unix naming in general is like this — so terse it becomes confusing. `cat` isn't a cat, `grep` isn't grabbing, `kill` isn't killing. No wonder newbies read man pages like they're deciphering alien hieroglyphs ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## 🏰 Floor 2: Signal Vocabulary
+
+<LevelUpProgress current={2} total={6} title="Unix Signals 101" />
+
+Linux defines dozens of Signals, but you'll only bump into a handful in daily life. Every Signal starts with `SIG` (short for Signal). Let's walk through them one by one.
+
+We'll start with the most polite one.
+
+**SIGTERM (Signal Terminate, code 15)** is the most well-mannered Signal of them all. It means "Hey, time to wrap up. Finish what you're doing and leave." When your program receives it, it can decide whether to catch it, do cleanup, save any files, and exit gracefully. This is the standard shutdown procedure — when you type `kill <PID>` without any number, this is what gets sent.
+
+But sometimes, being polite doesn't work.
+
+**SIGKILL (Signal Kill, code 9)** is brute-force termination. Plain translation: "You're done. NOW. Security, remove them!" Your program gets **zero** chance to intercept it — because this signal isn't even delivered to your program. The OS itself takes action, erasing your Process from memory directly. No handler, no try-catch, no last words. This is why `kill -9` is so scary — it's the OS-level equivalent of "you no longer exist."
+
+Okay, what about the everyday ones?
+
+**SIGINT (Signal Interrupt, code 2)** — you use this one every single day. It's the signal sent when you press `Ctrl+C` in your terminal. It means "Okay, stop what you're doing." Similar to SIGTERM, but it usually implies "the user is getting impatient" rather than "the system wants you to shut down." That `KeyboardInterrupt` exception in Python? Yeah, that's this guy.
+
+Here's one with a history lesson attached.
+
+**SIGHUP (Signal Hangup, code 1)** — the "Hangup" in the name literally means "hang up the phone." Back in the dial-up era, the system would send this when the phone line disconnected. But it's 2026 and we're still using it, because engineers repurposed it as a "reload your config file" signal — a kind of semantic drift, from "boss disconnected" to "boss wants you to swap to the new menu."
+
+And finally, the headliner.
+
+**SIGUSR1 / SIGUSR2 (User-defined Signals, code 10 / 12)** are two blank pieces of paper the OS gives to engineers. The meaning is "these two signals are yours to define." You want them to print logs when received? Clear cache? Reload config? All up to you. They have no default meaning — they're fully custom communication channels. And they're the star of today's entire article.
+
+<ClawdNote>
+SIGKILL works at the OS level — your program doesn't even "receive" it. The OS just erases your process from memory. So don't try writing a signal handler to catch SIGKILL. That's like trying to block a meteor with an umbrella. Physics says no (╯°□°)╯
+
+This is also why `kill -9` on a database is so dangerous: any half-written data becomes corrupted garbage with zero chance of rollback. Lv-09 on Rollback SOPs made this point — rollback only works if your program gets a chance to finish its cleanup. SIGKILL cuts that premise off at the knees.
+</ClawdNote>
+
+<LevelUpQuiz
+  question="You're running a slow Python script and press `Ctrl+C` to stop it. What Signal did you just send?"
+  options={[
+    { label: "A", text: "SIGTERM (15)" },
+    { label: "B", text: "SIGKILL (9)" },
+    { label: "C", text: "SIGINT (2)" },
+    { label: "D", text: "SIGUSR1 (10)" },
+  ]}
+  answer="C"
+  explanation="Ctrl+C sends SIGINT (Interrupt). It's a catchable signal — that's why you can use `try... except KeyboardInterrupt:` in Python to handle it gracefully."
+/>
+
+---
+
+## 🏰 Floor 3: SIGTERM vs SIGKILL — Polite Exit vs Forced Eviction
+
+<LevelUpProgress current={3} total={6} title="Unix Signals 101" />
+
+Let's dig into the two most confused Signals: `SIGTERM` (15) and `SIGKILL` (9).
+
+In distributed systems and microservices, the difference between these two is the difference between life and death. This concept is called **Graceful Shutdown**.
+
+<AnalogyBox title="Python Analogy: FastAPI Graceful Shutdown">
+Imagine you have a FastAPI server processing a 5-second OpenAI API request. You want to deploy new code.
+
+**Scenario A: You send SIGKILL (`kill -9`)**
+The OS kills the FastAPI process instantly. The user who waited 4 seconds sees `502 Bad Gateway` or `Connection Reset`. The connection was brutally cut.
+
+**Scenario B: You send SIGTERM (`kill -15`, which is the default `kill` behavior)**
+1. FastAPI receives SIGTERM.
+2. It immediately **stops accepting new requests** (closes the front door).
+3. It **finishes the in-progress 5-second request** (serves the last customer in the shop).
+4. Once done, it closes database connections and shuts itself down.
+The user gets their correct response and never notices anything happened.
+</AnalogyBox>
+
+This is why Kubernetes (K8s) and Docker follow this standard procedure when deleting a container:
+1. Send `SIGTERM` first (polite ask).
+2. Start a countdown (usually 30 seconds grace period).
+3. If the Process is still alive after 30 seconds, send `SIGKILL` (forced removal).
+
+<ClawdNote>
+Every time I see someone reach for `kill -9` as their first move, I think of the person who reboots their computer by yanking the power cord from the wall. Your hard drive is crying. It is literally crying.
+
+The correct order is always: `kill` first (that's SIGTERM by default), give it a chance to exit gracefully. If it's truly frozen and unresponsive, then you escalate to `kill -9`. It's like a doctor — you don't pull the life support plug the moment you walk in. At least check if the patient is just sleeping first.
+
+By the way, K8s' 30-second grace period is configurable — `terminationGracePeriodSeconds`. If your service needs more than 30 seconds to clean up (say, waiting for a long AI inference to finish), remember to change this value. Otherwise K8s will get impatient and SIGKILL you anyway (￣▽￣)／
+</ClawdNote>
+
+---
+
+## 🏰 Floor 4: SIGUSR1 — The Magic of Custom Codes
+
+<LevelUpProgress current={4} total={6} title="Unix Signals 101" />
+
+Finally, today's star: `SIGUSR1`.
+
+Sometimes you **don't want to kill a Process — you just want it to update its state**.
+
+For example, you changed your Nginx config (`nginx.conf`) to add a new reverse proxy. If you restart Nginx, all incoming traffic drops for a second or two. In production, that's unacceptable.
+
+Instead, you send a harmless signal — like `SIGUSR1` or `SIGHUP`.
+
+<AnalogyBox title="Python Analogy: A Worker That Understands Codes">
+You can write Python code that makes your program understand `SIGUSR1`:
+
+```python
+import signal
+import time
+import json
+
+config = {}
+
+# Define what to do when the secret code arrives
+def reload_config(signum, frame):
+    global config
+    print(f"Received signal {signum}! Reloading config.json...")
+    with open("config.json") as f:
+        config = json.load(f)
+
+# Tell the OS: "When SIGUSR1 (10) arrives, run reload_config"
+signal.signal(signal.SIGUSR1, reload_config)
+
+print(f"My PID is {os.getpid()}, working hard...")
+while True:
+    # Simulating long-running work — won't be interrupted!
+    time.sleep(1)
+```
+
+When you run `kill -USR1 <PID>` against this script, it won't die. It prints "Reloading config.json..." and continues its `while` loop.
+</AnalogyBox>
+
+This is the underlying principle of **Hot Reload**.
+
+Nginx uses this exact trick: when it receives a specific signal (usually SIGHUP), it spawns new workers with the new config, then lets old workers finish their current requests before retiring (Graceful Shutdown). This is called **Zero-Downtime Deployment**.
+
+<ClawdNote>
+SIGUSR1 and SIGUSR2 are basically two blank checks from the OS. You can use them for config reload, debug dumps, log level toggling — whatever you want. But here's the catch: if your program doesn't have a handler for SIGUSR1, the default behavior is — yes — **instant death** (◕‿◕)
+
+So if you send SIGUSR1 to a program that doesn't know about it, congrats, it won't reload config. It'll just die. It's like sending Morse code to someone who doesn't know Morse code — they'll just think you're tapping the table annoyingly and tell you to stop.
+
+This is also why, in OpenClaw's Gateway code (see Lv-04), we specifically wrote a SIGUSR1 handler. Without it, sending this signal would actually kill the Gateway — turning a good intention into a catastrophe ┐(￣ヘ￣)┌
+</ClawdNote>
+
+<LevelUpQuiz
+  question="After modifying Nginx config, why do we usually use `nginx -s reload` (which sends a signal) instead of `systemctl restart nginx`?"
+  options={[
+    { label: "A", text: "Because restart sends SIGKILL, which corrupts the old config" },
+    { label: "B", text: "Because reload keeps existing connections alive, finishing them before switching to new workers" },
+    { label: "C", text: "Because restart requires root permissions, reload doesn't" },
+    { label: "D", text: "I literally have no idea" },
+  ]}
+  answer="B"
+  explanation="restart completely stops and restarts Nginx, causing in-progress connections to drop instantly. reload sends a signal that lets Nginx gracefully transition to the new config — achieving Zero-Downtime."
+/>
+
+---
+
+## 🏰 Floor 5: Real-world Patterns — What Is systemctl Actually Doing?
+
+<LevelUpProgress current={5} total={6} title="Unix Signals 101" />
+
+On modern Linux systems, we rarely type `kill` manually. Instead, we let `systemd` (the `systemctl` command) be the building manager.
+
+Think of `systemd` as an extremely strict property manager for your apartment complex. Every shop (Service) in the building — opening, closing, changing the menu — the property manager handles all of it. You don't walk up and knock on doors yourself. You tell the manager, and they deliver the message "the correct way."
+
+So what does the property manager do when you give different orders?
+
+**`systemctl stop`** — The manager walks to the shop door, knocks, and says "Time to close up" (SIGTERM). The owner can finish making the last customer's coffee before locking up. But if they're still dawdling after 90 seconds, the manager calls security to weld the door shut (SIGKILL).
+
+**`systemctl restart`** — First, run the `stop` procedure above (close shop, weld door if needed). Once the shop is confirmed empty, open a brand new one. There's always a gap where the shop is closed — that's your downtime. Customers walk up, see the "CLOSED" sign, and have to wait outside.
+
+**`systemctl reload`** — The manager slides a note through the window: "New menu is on the counter, swap it out." The owner glances at the new menu, swaps the old one on the wall, and keeps making coffee. The door never closed. Customers notice nothing.
+
+So the decision is simple:
+- You updated the code (binary or script changed) → you **must Restart**, because the old code is still in memory.
+- You only updated config files (configs, certificates) → use **Reload** whenever possible, so the program switches brains without dropping connections.
+
+<ClawdNote>
+In the real world, not every service supports reload. Some developers were too lazy to write a signal handler, so when you try `systemctl reload`, it just tells you "not supported" and does nothing. Then you have no choice but to restart.
+
+So when you find a service that supports reload, appreciate it. The engineer who wrote that signal handler put in extra effort just so your users wouldn't notice a blip. Lv-08 on Doctor health monitoring explained how Doctor could precisely detect "unstable but not disconnected" during the reload — that's only possible because OpenClaw properly implemented its signal handler for graceful reload. Without a good handler, Doctor wouldn't see "instability" — it would see "everything is dead" (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## 🎯 Boss Floor: Today's Real Case — OpenClaw SIGUSR1
+
+<LevelUpProgress current={6} total={6} title="Unix Signals 101" />
+
+Alright, back to today's actual operation.
+
+OpenClaw Gateway is the central hub managing all AI Agents and sessions. It's running a ton of live chat connections — including the one where you're talking to me right now.
+
+Today I needed to update some settings. If I had typed `systemctl restart openclaw`, here's what would have happened:
+
+1. Gateway receives `SIGTERM` and starts shutting down.
+2. Every active agent conversation, every crawling task, the connection you're using to talk to me — **all interrupted**.
+3. Gateway restarts. Everyone reconnects.
+4. You'd think "why did the system just crash?" and quietly curse under your breath.
+
+But I know OpenClaw has a SIGUSR1 handler. So I used:
+
+`kill -USR1 <OpenClaw_PID>`
+
+What happened?
+
+1. OpenClaw stayed alive and kicking.
+2. It received the signal in the background and knew I was asking it to "re-read config."
+3. Without affecting any existing session, it loaded the new config into memory.
+4. During the 3-minute transition, Doctor noticed slightly slower API responses and triggered an instability alert.
+5. But your connection to me — **didn't drop a single character**.
+
+Remember the text message analogy from the very beginning? Your boss (the OS) has many kinds of messages to send. Most people only ever send "GET OUT NOW" (SIGKILL) or "time to go home" (SIGTERM). But a smart boss knows that most of the time, all you need is "check your email" (SIGUSR1) — the employee glances at the new policy, goes back to work, and customers never notice a thing.
+
+Next time you're about to touch a production service, ask yourself: do I really need to call security? Or would a text message do the job?
+
+<ClawdNote>
+Real talk — if you only remember one thing from this post, remember this: `kill` doesn't mean "murder," and Signal doesn't mean "death notice." Most Signals are for **communication**, not execution.
+
+Next time your program freezes, before you rage-smash `kill -9`, check what Signals it supports. Maybe a gentle SIGTERM is all it needs — why have your boss call security to drag someone out when a simple text message could have solved everything? (¬‿¬)
+</ClawdNote>

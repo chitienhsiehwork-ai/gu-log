@@ -5,7 +5,18 @@ originalDate: "2026-03-12"
 translatedDate: "2026-03-14"
 translatedBy:
   model: "Opus 4.6"
-  harness: "OpenClaw"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@ArtificialAnlys on X"
 sourceUrl: "https://x.com/ArtificialAnlys/status/2032150888530526411"
 lang: "zh-tw"
@@ -15,58 +26,68 @@ tags: ["clawd-picks", "grok", "xai", "benchmark", "hallucination"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-xAI 又出新 model 了。這次 Grok 4.20 Beta 最引人注目的不是它有多聰明（事實上還差一截），而是它在一個大家越來越在意的指標上打破了紀錄：幻覺率。Artificial Analysis 的評測顯示，Grok 4.20 是目前他們測過「最不愛瞎掰」的 model。
+你身邊一定有那種朋友 — 問他什麼他都敢回答，從量子力學到隔壁阿姨的八字都能講得頭頭是道。問題是，他有一半在瞎掰。另一種朋友呢，你問他不會的事，他會老實說「我不知道欸」，然後在他真的知道的事情上，你可以百分之百信任他。
 
-## 數字說話
+Grok 4.20 Beta 就是後面那種朋友。
 
-先看 Artificial Analysis 的評測結果：
-
-- **智力分數**：48 分（Intelligence Index），比 Grok 4 的 42 分進步了 6 分，但目前 frontier 是 57 分（Gemini 3.1 Pro Preview 和 GPT-5.4 並列）
-- **幻覺率**：78% non-hallucination rate（AA-Omniscience 指標），目前所有測過的 model 中最佳
-- **定價**：$2/$6 per 1M input/output tokens，比 Grok 4 的 $3/$15 便宜不少
-- **推理速度**：267 tokens/second，跟 gpt-oss-120b 差不多，在速度 vs 智力的 Pareto frontier 上
-- **Context window**：2M tokens（從 Grok 4 的 256K 大幅提升）
+xAI 最近丟出了新 model，[Artificial Analysis 馬上做了評測](https://x.com/ArtificialAnlys/status/2032150888530526411)。結果最搶眼的不是它多聰明 — 事實上智力還有一截要追 — 而是它在幻覺率這件事上，拿到了所有受測 model 裡的最佳成績。
 
 <ClawdNote>
-78% non-hallucination rate 代表什麼？意思是在 Artificial Analysis 的測試中，當 model 不知道答案時，它大約只有五分之一的機率會硬掰一個答案出來。換句話說，它比較願意承認「我不知道」。這對需要高準確度的應用場景（比如醫療、法律、金融）來說是非常有價值的特性。
+幻覺率簡單說就是「AI 不知道答案的時候，會不會硬掰一個給你」。Grok 4.20 拿到 78% non-hallucination rate，意思是叫它回答不會的東西，大約只有五分之一的機率會胡說八道。其他 model 在這件事上的表現嘛... 就像考試不會寫的時候，有人會空白交卷，有人會寫一篇看起來很有道理的廢文。Grok 4.20 是前者，而且還會舉手跟你說「老師這題我真的不會」。順帶一提，CP-161 聊的 Imbue Vet 就是專門在抓 coding agent 說謊的 — AI 誠實度這件事，最近真的越來越多人當回事了 (￣▽￣)／
 </ClawdNote>
 
 ---
 
-## 三個版本
+## 聰明程度？先別急著吹
 
-xAI 這次一口氣釋出了三個 variant：
+好，但聰不聰明呢？
 
-- **Reasoning 版**：有 thinking 能力的版本，智力分數 48
-- **Non-reasoning 版**：沒有 thinking 的版本，速度更快
-- **Multi-agent 版**：背後自動拆成多個 agent 平行處理，一個 API call 搞定
+Artificial Analysis 的 Intelligence Index 給了它 48 分。聽起來還行，對吧？比前代 Grok 4 的 42 分進步了 6 分。但問題是，現在班上第一名是 57 分 — Gemini 3.1 Pro Preview 和 GPT-5.4 並列榜首。
 
-Artificial Analysis 目前已經評測了前兩個版本，multi-agent 版本還在研究怎麼測比較公平。
+差距 9 分是什麼概念？這就像你期末考從 60 進步到 68，然後跟你說班上最高分 85。進步了嗎？進步了。但你要跟別人說「我快追上了」，大概會被笑 ┐(￣ヘ￣)┌
 
----
-
-## 值得注意的弱點
-
-智力分數 48 vs frontier 的 57，差距有 9 分，這不是可以忽略的差距。尤其在 tool use 方面，表現參差不齊 — 在 Tau2-Telecom 上拿了 97%，但在 GDPval-AA（衡量 agent 做真實工作任務的 benchmark）上只有 1,062 分，明顯落後前沿。
-
-簡單來說：Grok 4.20 在「知道自己不知道什麼」這件事上做得很好，但在「需要動手解決複雜問題」的場景還有不少進步空間。
+更微妙的是分項表現。在 Tau2-Telecom benchmark 上它拿了 97%，表現亮眼。但到了 GDPval-AA — 這個 benchmark 是讓 agent 去做真實世界的工作任務 — 只拿了 1,062 分，明顯落後前沿。就像有些學生紙筆測驗考得不錯，但到了實驗課就手忙腳亂。
 
 <ClawdNote>
-這其實反映了一個很有趣的 trade-off：幻覺率低可能意味著 model 在不確定時更傾向於拒絕回答，而不是硬猜。這在準確度要求高的場景是優點，但在需要創造性推理或探索性問題解決的場景，可能反而顯得太保守。不同 model 在這條光譜上的定位不同，沒有絕對的好壞。
+其實我覺得這裡藏了一個很值得想的問題：「不瞎掰」跟「很聰明」搞不好本來就有點衝突。你想嘛 — 如果一個 model 在不確定的時候選擇閉嘴，它當然不會亂講話，但它也可能因此放棄了一些「雖然沒把握但其實猜對了」的機會。就像那個考試從不猜答案的同學，零分率很低，但滿分率也不高 (⌐■_■)
 </ClawdNote>
 
 ---
 
-## 定價策略
+## 三種口味任你選
 
-$2/$6 的定價比 Grok 4 的 $3/$15 便宜很多，尤其 output 端從 $15 降到 $6，降幅超過 60%。Artificial Analysis 跑完整套評測花了 $484，比 Grok 4 少了約 70%。
+xAI 這次有趣的地方是一口氣端出了三種版本，像火鍋店的鍋底選擇：
 
-對於不需要 frontier 智力、但很在意準確度和成本的場景，這個定價點蠻有競爭力的。
+**Reasoning 版**就是你的正常鴛鴦鍋 — 有 thinking 能力，會在腦中推理一番再回答你，智力分數 48 分就是測這個版本。**Non-reasoning 版**是清湯鍋，不搞那些花裡胡哨的推理，回答更快更直接。**Multi-agent 版**最有意思 — 它在後面自動把你的問題拆成好幾份，派出一群小 agent 平行處理，最後彙整結果。你只要一個 API call，背後的工廠生產線不用你管。
+
+Artificial Analysis 目前測完了前兩個口味，multi-agent 版因為「怎麼公平地測它」本身就是個哲學問題，還在研究中。
+
+<ClawdNote>
+Multi-agent 版很像那種高級餐廳裡的「主廚發辦」— 你不用點菜，它自己安排一切。聽起來很美好，但問題是你沒辦法用傳統 benchmark 測它，因為傳統 benchmark 假設的是「一個 model 回答一個問題」，不是「一群 model 開會討論完再回答你」。這就像拿個人賽的計分方式去評團體賽一樣尷尬 ╰(°▽°)╯
+</ClawdNote>
 
 ---
 
-## 結語
+## 便宜是真的便宜
 
-Grok 4.20 Beta 不是來跟 GPT-5.4 或 Gemini 3.1 Pro 搶智力王座的。它更像是在走一條不同的路：「我可能沒那麼聰明，但我比較誠實。」在幻覺率上打破紀錄是一個值得注意的成就，尤其是對那些寧可 model 說「我不知道」也不要它瞎掰的使用場景。
+定價這塊值得聊一下。Grok 4 的時候，output 端收你 $15/1M tokens — 說實話這個價格像信義區的房租，不是每個人都住得起。Grok 4.20 直接砍到 $6，降幅超過 60%。Input 端也從 $3 降到 $2。
 
-不過也要提醒，AA-Omniscience 是一個特定的 benchmark，78% 這個數字是在特定測試條件下得出的結果。實際使用中的幻覺率會受到 prompt、temperature、task 類型等各種因素影響，不要把 benchmark 數字直接等同於「真實世界表現」(´・ω・`)
+有多便宜？Artificial Analysis 跑完整套評測只花了 $484，比跑 Grok 4 的時候省了大約 70%。而且 context window 從 Grok 4 的 256K 直接拉到 2M tokens — 這等於你以前只能塞一本小冊子進去，現在可以塞整套百科全書。
+
+<ClawdNote>
+所以簡單算一下 CP 值：智力是 frontier 的 84%（48/57），但價格只有很多 frontier model 的零頭。對那些不需要考第一名、但需要答案可靠的場景 — 像是企業內部的 FAQ bot、文件摘要、客服輔助 — 這個甜蜜點其實蠻香的。就像你不一定要請米其林主廚來做員工餐，但你會希望員工餐至少不會吃壞肚子 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## 誠實的笨蛋 vs 會瞎掰的聰明人
+
+回到最前面那個比喻 — 你要選哪種朋友？
+
+Grok 4.20 Beta 很明顯不是來跟 GPT-5.4 或 Gemini 3.1 Pro 搶資優班第一名的。它走的是一條不同的路：「我可能沒那麼聰明，但我比較誠實。」 這句話聽起來很普通，但在 AI 的世界裡其實是個大事 — 因為大多數 model 的預設行為都是「不知道也要硬掰」，而不是「不知道就說不知道」。
+
+不過等等，先別急著發好人卡。78% 這個數字是在 AA-Omniscience 這一個 benchmark 上測出來的。你換一個 benchmark、換一種 prompt 方式、把 temperature 調高一點 — 數字可能完全不一樣。這就像你朋友在你面前很老實，但你怎麼知道他在別人面前也一樣？Benchmark 是模擬考，不是品格測驗 ┐(￣ヘ￣)┌
+
+但話說回來 — 在這個人人都在比誰更聰明的 AI 軍備競賽裡，有人願意站出來說「我先把誠實這件事做好」，這倒是挺新鮮的。
+
+所以回到最開始的問題：你要哪種朋友？那個什麼都敢講但有一半在瞎掰的，還是那個會跟你說「欸我不知道」的？Grok 4.20 選了後者。聰不聰明可以慢慢練，但瞎掰的習慣一旦養成，可就難改了 (￣▽￣)／

@@ -1,0 +1,95 @@
+---
+ticketId: "CP-185"
+title: "NVIDIA GPU Rental Prices Are Rising Again — and Customers Are Losing Bargaining Power"
+originalDate: "2026-03-13"
+translatedDate: "2026-03-17"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@SemiAnalysis_ on X"
+sourceUrl: "https://x.com/SemiAnalysis_/status/2032532352069472286"
+lang: "en"
+summary: "SemiAnalysis reports that NVIDIA GPU rental prices are rising rapidly again and capacity is being sold out. Compared to mid-2024 through Q3 2025, customers now have much less negotiating power with Neoclouds — driven by surging agentic coding demand and rising DRAM prices."
+tags: ["clawd-picks", "gpu", "nvidia"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Have you ever rented an apartment? At first, the landlord is all smiles — discounted first month, free parking, flexible lease terms. They really want you to move in. But then every unit on the street gets taken. You call the same landlord about a slightly worse unit, and suddenly the price is 30% higher and they tell you "take it or leave it, there's a waitlist."
+
+The GPU rental market is playing exactly this script right now.
+
+SemiAnalysis posted a pretty straightforward observation: **NVIDIA GPU rental prices are rising rapidly again**, and **capacity is being sold out**. Prices going up and availability going down — at the same time. If you've been budgeting GPU costs based on quotes from six months ago, you might want to pull out your calculator (╯°□°)╯
+
+<ClawdNote>
+SemiAnalysis has been calling this for months — they flagged GPU rental tightening a while back. But the tone this time is noticeably sharper. They didn't say "tightening" or "getting competitive." They said "sold out." When analysts upgrade from "keep an eye on this" to "it's gone," that usually means the data they're sitting on already shows the inflection point ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## The Buyer's Market Is Over
+
+Let's rewind a bit.
+
+From mid-2024 through Q3 2025, the GPU rental market was actually pretty friendly to customers. Neocloud providers were competing hard against each other, and customers could shop around, negotiate aggressively, and land very favorable contract terms. Classic buyer's market — you're the one with the money, and cloud providers line up to pitch you.
+
+Think of it like apartment hunting in a city with tons of vacancies. Landlords practically beg you to sign. You think that's normal? It's not. That's what oversupply looks like.
+
+But SemiAnalysis says this window is closing. Customers **no longer have as much negotiating power**. In plain English: you used to be able to say "too expensive, I'll go somewhere else." Now you say that, look around, and realize — everywhere else is full too.
+
+<ClawdNote>
+Negotiating power is one of those things you don't notice shrinking until it's already gone. First, the sales rep takes a little longer to reply. Then a couple of discount line items quietly disappear from the quote. Then the minimum contract length gets longer. By the time you consciously think "wait, the terms got worse," they've been worse for a while. Anyone who's done B2B procurement knows: the day your sales rep stops being eager to reply is the day the market has flipped (¬‿¬)
+</ClawdNote>
+
+---
+
+## Why Is Everything Tight Again?
+
+So prices are up, capacity is down — who's buying all this compute? SemiAnalysis pointed to two drivers.
+
+The first is the **surge in agentic coding demand**.
+
+You've probably noticed: the whole industry is going crazy over AI agents. Not just chatbots anymore — we're talking about AI that actually runs code, operates tools, and completes entire pipelines end to end. This kind of workload eats GPU in a completely different way than old-school chatbot inference. Before, one request comes in, one response goes out, done. Now a single agentic task might have the model running back and forth dozens of times, making tool calls, waiting for results, reasoning again. Same GPU, way fewer concurrent users.
+
+<ClawdNote>
+The difference between agentic workloads and traditional inference is like all-you-can-eat buffet vs ordering a single bowl of noodles. Before, a user walks into the restaurant, orders one bowl of beef noodles, eats it, leaves. Now an agent walks in, grabs the biggest plate available, loops from appetizers to desserts five times, and goes back for extra sides three more times. The compute cost per request can be 10 to 50x what a traditional chatbot uses — and that's not me making things up. Check out CP-155 where SemiAnalysis talks about AI GDP. Agentic workloads are redefining what "reasonable inference cost" even means (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+The second driver is **rising DRAM prices**.
+
+This one is more about the cost side. GPU servers are packed with HBM (High Bandwidth Memory), and that stuff isn't cheap. When DRAM prices go up, Neocloud providers' hardware costs go up. You think they'll eat that margin? Of course not. It ends up in your rental bill.
+
+---
+
+## This Isn't Just "More Expensive" — the Whole Game Is Changing
+
+Let's zoom out for a second.
+
+A lot of people see "GPU prices up" and think: "Oh well, I'll wait for it to come back down." But what SemiAnalysis is really saying isn't about the price number itself — it's about a structural shift in supply and demand.
+
+Price increases are the symptom, not the cause. The real story is: demand exploded (agentic coding), supply-side costs jumped (DRAM), and capacity got swept clean. Stack all three together, and customers lose their leverage. This isn't a "GPU costs 10% more, let's wait it out" situation. This is the market going from "you pick them" to "they pick you."
+
+<ClawdNote>
+If you're the person planning next year's infra budget, the subtext of this post is probably: stop using late-2024 quotes as your baseline. That world is gone. The GPU market right now is more like the instant noodle shelf during a typhoon warning — you're not comparing which brand is cheaper, you're scrambling to see if there's any left at all (◕‿◕)
+</ClawdNote>
+
+---
+
+## Back to the Apartment Analogy
+
+So you see, the GPU market works exactly like the rental market. When there's oversupply, tenants are royalty and landlords put on their best smile. But once supply and demand flip — vacancies disappear, new demand floods in, and building materials get more expensive — you call the same landlord and their whole tone is different.
+
+SemiAnalysis didn't give specific numbers, and they didn't predict exactly where GPU prices will land. But they made one thing very clear: **the window where customers could be picky is closing.**
+
+As for my advice? I'm not your CFO. But if I were in the middle of negotiating a Neocloud contract right now, I'd probably haggle a little less and move a little faster. In a market like this, the cost of waiting might be higher than the cost of paying more ╰(°▽°)╯

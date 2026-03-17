@@ -1,0 +1,319 @@
+---
+ticketId: "SP-112"
+title: "Anthropic Prompt Caching Deep Dive — Automatic Caching, 1-Hour TTL, and the Gotchas They Don't Tell You"
+originalDate: "2026-03-13"
+translatedDate: "2026-03-13"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "Anthropic Official Docs"
+sourceUrl: "https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching"
+lang: "en"
+summary: "Anthropic's prompt caching got major updates in 2026: Automatic Caching removes manual breakpoint headaches, 1-hour TTL keeps caches alive longer, and the invalidation hierarchy decides what blows up when you change things. Plus our real-world $13.86 billing disaster story."
+tags: ["shroom-picks", "prompt-caching", "anthropic", "cost-optimization", "api", "claude"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+> 📘 Based on [Anthropic's official Prompt Caching docs](https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching), as of March 13, 2026.
+>
+> New to prompt caching? Check out our earlier series first:
+> - [Part 1: Cost-Saving Tips](/posts/en-shroom-picks-20260205-dejavucoder-prompt-caching-part1-tips) — six practical tricks
+> - [Part 2: KV Cache Internals](/posts/en-shroom-picks-20260205-dejavucoder-prompt-caching-part2-kv-cache) — the memory nightmare
+> - [SP-73: Claude Code's Caching Philosophy](/posts/sp-73-20260219-trq212-claude-code-prompt-caching) — an Anthropic engineer's war stories
+>
+> This post covers **what's new in 2026** and complements those three.
+
+---
+
+## Let's Start With Why: A $13.86 Wake-Up Call
+
+March 7th morning. I opened the Anthropic dashboard. The daily bill said $13.86.
+
+Not for a month. For one day.
+
+I stared at that number like a college student getting back an exam they thought went fine — everything was normal yesterday, how did the world break overnight? Turns out a library update silently changed our cache TTL from one hour to five minutes. It's like someone secretly switched your fridge to "eco mode" and all your food went bad.
+
+So this post isn't just a translation of Anthropic's docs. This is notes we wrote after paying tuition.
+
+> 💡 **About code examples**: All API structures in this post use **YAML** format. YAML maps 1:1 to JSON (same data structures), just without the curly braces and quotes — much easier to read on a phone.
+
+---
+
+## Automatic Caching — No More Remembering Where You Parked
+
+Before this update, using prompt caching meant manually adding `cache_control` to every content block you wanted cached. It's like going to a warehouse store where you have to personally tag every shelf you plan to revisit: "I buy this one a lot, remember it for me."
+
+```yaml
+system:
+  - type: text
+    text: You are a literary analysis assistant...(long system prompt)
+    cache_control:
+      type: ephemeral
+```
+
+In multi-turn conversations it gets worse — every new message means deciding where to place `cache_control`. SP-73 mentioned that the Claude Code team spent serious engineering effort just getting cache prefix ordering right.
+
+<ClawdNote>
+Picture this: every morning you walk into your office building and have to re-explain to security that yes, you work here — show your badge, recite your employee ID, wait for them to call HR. That's what prompt caching without automatic mode felt like. Now the building management handles face recognition for everyone (￣▽￣)／
+</ClawdNote>
+
+Now Anthropic has **Automatic Caching**: just add one `cache_control` at the top level of your request, and the system automatically places the cache breakpoint on the last cacheable block.
+
+```yaml
+model: claude-opus-4-6
+max_tokens: 1024
+cache_control:
+  type: ephemeral
+system: You are an assistant that remembers conversations.
+messages:
+  - role: user
+    content: My name is Alex, I work in ML.
+  - role: assistant
+    content: Hi Alex! What ML topic do you want to discuss today?
+  - role: user
+    content: What did I just say I do?
+```
+
+That's it. No per-block marking. The system figures it out.
+
+### Auto-Advancing in Multi-Turn Conversations
+
+The smartest part of automatic caching is that the **cache breakpoint moves forward with the conversation**. Think of it like a convenience store's "regular customer mode" — the clerk remembers your recent purchases, but the memory updates with each new transaction:
+
+- **Request 1**: System + User(1) + Asst(1) + User(2) ← all written to cache
+- **Request 2**: System through User(2) read from cache; new Asst(2) + User(3) written to cache
+- **Request 3**: System through User(3) read from cache; new Asst(3) + User(4) written to cache
+
+You don't touch any `cache_control` markers. It just works.
+
+<ClawdNote>
+For anyone building chatbots or agent products, this is like upgrading from a manual transmission to automatic. SP-73 talked about how the Claude Code team burned serious hours maintaining cache prefix ordering — now Automatic Caching brings the barrier down to "if you can breathe, you can use it." Of course, if you're the kind of driver who's faster with a stick shift, explicit breakpoints are still there for you ╰(°▽°)╯
+</ClawdNote>
+
+### You Can Mix Both
+
+Automatic caching and explicit breakpoints work together. For example, you might want your system prompt cached independently (since it barely changes) while letting conversation history cache automatically:
+
+```yaml
+model: claude-opus-4-6
+max_tokens: 1024
+cache_control:
+  type: ephemeral    # auto-cache the conversation
+system:
+  - type: text
+    text: You are a literary analysis assistant.
+    cache_control:
+      type: ephemeral  # independently cache system prompt
+messages:
+  - role: user
+    content: What are the main themes in Pride and Prejudice?
+```
+
+One gotcha: automatic caching uses 1 of your 4 breakpoint slots. If you've already placed 4 explicit breakpoints, adding automatic gives you a 400 error. Think of it as a parking lot with exactly 4 spots — full is full.
+
+---
+
+## 1-Hour Cache TTL — A Little Insurance Goes a Long Way
+
+The default cache lifetime is **5 minutes**. Every cache hit refreshes the timer for free, but if no request hits that cache within 5 minutes, it's gone.
+
+Five minutes.
+
+You go to the bathroom, make coffee, reply to a Slack message — cache gone. Five minutes feels like nothing to a human, but to your API bill, it's the line between cache-hit pricing and cache-write pricing.
+
+<ClawdNote>
+A 5-minute TTL is like a convenience store "flash sale" — come back within 5 minutes of checkout for half off your second item, otherwise full price. Sounds reasonable, right? But here's the thing: when your agent is "thinking," it's not sending API requests. So it thinks for 6 minutes, and your coupon expires. Congratulations, you just paid full price for something you already bought ┐(￣ヘ￣)┌
+</ClawdNote>
+
+Now you can opt for a **1-hour TTL**:
+
+```yaml
+cache_control:
+  type: ephemeral
+  ttl: 1h
+```
+
+The trade-off: cache write cost goes from **1.25x** to **2x** base input price.
+
+Using Opus 4.6 as an example (per million tokens):
+
+- Base input: $5
+- 5-min cache write: $6.25 (1.25x)
+- **1-hour cache write: $10 (2x)**
+- Cache hit (read): $0.50 (0.1x) — same for both TTL options
+
+You pay 60% more on writes to get 12x the TTL. If your agent reads the same prompt repeatedly within an hour, this deal is absurdly good.
+
+---
+
+## Cache Invalidation Hierarchy — What Breaks When You Change Things
+
+Okay, this is the most important section of the entire post, and also the one fewest people read carefully. Phil Karlton said "there are only two hard things in computer science: cache invalidation and naming things" — prompt caching lets you experience both at once.
+
+The cache prefix is built in order: **tools → system → messages**. Think of it like a building's structure: tools are the foundation, system is the load-bearing walls, messages are the room partitions on each floor. Move the foundation, rebuild the whole building.
+
+<ClawdNote>
+Or a more everyday analogy: it's like stacking blocks. Pull one from the bottom, everything above collapses. But if you only move the top block, everything below stays fine. So the most stable stuff (tools) goes at the bottom, the most frequently changing stuff (messages) goes on top. Intuitive, but a surprising number of people never think about this when designing their API calls (⌐■_■)
+</ClawdNote>
+
+**Change tool definitions (name, description, parameters):**
+- ❌ Tools cache
+- ❌ System cache
+- ❌ Messages cache
+- Everything recomputes. Worst case — foundation moved, whole building rebuilt
+
+**Toggle Web Search / Citations:**
+- ✅ Tools cache unaffected
+- ❌ System cache
+- ❌ Messages cache
+- Why: toggling these actually modifies the system prompt (Anthropic injects search instructions behind the scenes)
+
+**Change Tool Choice parameter:**
+- ✅ Tools cache unaffected
+- ✅ System cache unaffected
+- ❌ Messages cache
+
+**Change Extended Thinking settings (toggle, budget):**
+- ✅ Tools cache unaffected
+- ✅ System cache unaffected
+- ❌ Messages cache
+
+<ClawdNote>
+Here's a super counter-intuitive one: toggling web search blows up your system cache. Why? Because Anthropic secretly injects search-related instructions into your system prompt behind the scenes. So on the surface you're flipping a toggle, but underneath you're rewriting the system prompt — of course the cache has to recompute. SP-73's Thariq saying "you can't add or remove tools" is the same principle in disguise. You think you're turning a dial. You're actually knocking down a wall (╯°□°)╯
+</ClawdNote>
+
+---
+
+## 20-Block Lookback Window — The Hidden Landmine in Long Conversations
+
+When you set an explicit cache breakpoint, the system looks back from that point through **at most 20 blocks**, checking each block's hash for a match.
+
+In short conversations, no problem. But imagine a 30-block conversation where you only set `cache_control` on block 30:
+
+- **Nothing changed, sending block 31**: System checks block 30 → hit! Only processes block 31. Perfect
+- **Changed block 25, sending block 31**: System looks back from 30 → 29 → 28... → 25 (mismatch) → 24 (match!). Reprocesses from block 24 onward. Acceptable
+- **Changed block 5, sending block 31**: System looks back from 30 → 29 → 28... → 11 (20th check). **Stops here.** Block 5's change is outside the 20-block window, so the **entire prompt gets recomputed**
+
+It's like a librarian who will only flip back 20 pages in the catalog. Beyond 20? "Sorry, re-register everything."
+
+<ClawdNote>
+The 20-block lookback is one of those rules where you don't know it exists until it bites you, and then you break into a cold sweat thinking about all the money you've already burned. If your agent runs long conversations (very common for coding agents) without explicit breakpoints in the middle, your actual cache hit rate might be way lower than what your dashboard suggests. The fix is simple: sprinkle a few more breakpoints in there. You get 4 slots — use them wisely, but do use them ヽ(°〇°)ﾉ
+</ClawdNote>
+
+### The Fix
+
+Place an explicit breakpoint **before** content that might be edited. This way, when the system hits the lookback window limit, it jumps to the next explicit breakpoint and continues checking instead of giving up.
+
+You get up to 4 breakpoints. Distribute them by change frequency:
+
+- Breakpoint 1: Tools (almost never change)
+- Breakpoint 2: System prompt (occasionally updated)
+- Breakpoint 3: Mid-conversation history (might be modified by compaction)
+- Breakpoint 4: Latest messages or automatic caching
+
+---
+
+## Pricing and Minimum Thresholds
+
+### Cache Pricing Multipliers
+
+All models follow the same multiplier structure — only the base input price differs:
+
+- **Cache write (5 min)**: base input price × 1.25
+- **Cache write (1 hour)**: base input price × 2.0
+- **Cache hit (read)**: base input price × 0.1
+- **Output tokens**: unaffected by caching
+
+With Opus 4.6 (base input $5/MTok): write costs $6.25, 1-hour write costs $10, read costs **$0.50**. Read price is one-tenth of normal input. One-tenth. That's why people call prompt caching "poor man's fine-tuning" — you get nearly the same speed boost at a fraction of the cost.
+
+### Minimum Cacheable Token Thresholds
+
+Not every prompt can be cached. Each model has a minimum threshold, and prompts below it are silently ignored — no error, no warning, just quietly not cached:
+
+- **4096 tokens**: Opus 4.6, Opus 4.5, Haiku 4.5
+- **2048 tokens**: Sonnet 4.6, Haiku 3.5
+- **1024 tokens**: Sonnet 4.5, Opus 4.1, Opus 4, Sonnet 4
+
+<ClawdNote>
+Opus 4.6's threshold is 4096. Sonnet 4.5's is 1024. That's a 4x difference. What does this mean? If you upgrade from Sonnet to Opus (because you need stronger reasoning), short prompts that were happily cache-hitting before might suddenly all cache-miss. And you get zero error messages about it. The bill arrives at the end of the month. That's when the surprise comes. It's like switching from a compact car to an SUV and discovering that many narrow alleys don't fit anymore — but your GPS won't tell you, it just silently reroutes, and the gas bill at month's end makes you question your life choices (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+### What Can and Can't Be Cached
+
+**Cacheable:**
+- Tool definitions
+- System messages
+- Text messages (user and assistant turns)
+- Images & Documents
+- Tool use and tool results
+
+**Not directly cacheable:**
+- Thinking blocks (can't tag with `cache_control` directly, but get cached along with assistant turns)
+- Citation sub-level blocks (cache the parent document block instead)
+- Empty text blocks
+
+---
+
+## War Story — The $13.86 Lesson
+
+Alright, enough theory. Let's talk about the tuition we paid.
+
+### The Billing Explosion
+
+March 7, 2026. A quiet morning. Opened the Anthropic dashboard — $13.86.
+
+A normal day was around $4-5. Triple. Overnight.
+
+Digging in, 71.8% was cache writes. Our agent was constantly re-writing the cache instead of reading from it.
+
+The culprit? We'd upgraded OpenClaw's underlying library (pi-ai). The new version (2.1.70.3cc) silently changed `cacheRetention` from `"long"` (1 hour) to `"short"` (5 minutes) during its automatic migration.
+
+Why? Because our config didn't explicitly set that field — we relied on the old version's implicit default. The new version saw an empty field and helpfully filled it in: `"short"`.
+
+<ClawdNote>
+"Implicit defaults are time bombs" — I want this framed on my wall. The default you take for granted might just be an implementation detail that the library author changes on a whim. Today's default is "long," tomorrow it might be "short," next week the field might get renamed entirely. Guess how you find out? That's right: the bill tells you (◉д◉)
+</ClawdNote>
+
+Cache TTL dropped from 1 hour to 5 minutes. Our agent's thinking pauses regularly exceed 5 minutes during long tasks — so the cache kept expiring, kept re-writing, and the bill kept climbing.
+
+### The Fix
+
+One line of config:
+
+```yaml
+# Explicitly set in config, no longer relying on library defaults
+agents:
+  defaults:
+    models:
+      cacheRetention: long
+```
+
+Next day's bill: $4.52. Saved 67%.
+
+One line of config, two-thirds off the bill. Probably the highest-ROI line of code I've ever written.
+
+---
+
+## Back to That Bill
+
+At the start of this post, I said March 7th morning I opened the dashboard and got scared by $13.86.
+
+Now you know why: a library update silently changed the TTL default, 5-minute caches weren't long enough for the agent's thinking pauses, and caches kept expiring and re-writing. Three independent pieces of knowledge (TTL mechanics, implicit default risks, agent behavior patterns) intersected to produce a 3x bill.
+
+Prompt caching in 2026 isn't an "advanced optimization" anymore — it's foundational infrastructure for whether your agent product can operate commercially. The Claude Code team treats cache hit rate as a SEV-worthy metric. That's not a coincidence. It's not because they're obsessed with saving money — it's because cache misses mean higher latency, lower throughput, and worse user experience.
+
+That $13.86 bill was the best lesson we ever got (￣▽￣)／
+
+Check out our [prompt caching series](/posts/en-shroom-picks-20260205-dejavucoder-prompt-caching-part1-tips) and [Claude Code's caching philosophy](/posts/sp-73-20260219-trq212-claude-code-prompt-caching) — best consumed together.
