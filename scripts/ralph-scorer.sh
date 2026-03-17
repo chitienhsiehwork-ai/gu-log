@@ -26,10 +26,9 @@ OUT_FILE="/tmp/ralph-score-${TICKET_ID}.json"
 rm -f "$OUT_FILE"
 
 # Run independent Claude Code instance with the ralph-scorer subagent
-# --model forced to opus because frontmatter model field may not be honored in -p mode
+# Model (opus) is specified in .claude/agents/ralph-scorer.md frontmatter
 claude -p \
   --agent ralph-scorer \
-  --model claude-opus-4-6 \
   --permission-mode bypassPermissions \
   --max-turns 5 \
   "Score this post: src/content/posts/$POST_FILE" 2>/dev/null
