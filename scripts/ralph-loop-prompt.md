@@ -13,10 +13,14 @@ You are the Ralph Loop agent. Your job is to systematically sweep through ALL gu
 Read `scripts/ralph-queue.txt` for the ordered list of posts to process (most recent first).
 Track your progress in `scripts/ralph-progress.json`.
 
-## Post Limit (optional)
+## Post Limit (RALPH_LIMIT)
 
-If your launch prompt includes a number like "process 2 posts only", stop after that many posts.
-If no limit is specified, process the entire queue.
+Check `scripts/ralph-progress.json` for the `limit` field:
+- `limit: null` or missing → process entire queue (production mode)
+- `limit: 1` → process 1 post then stop (test mode)
+- `limit: N` → process N posts then stop
+
+After processing each post, check if you've hit the limit. If so, stop and report summary.
 
 ## Loop Protocol
 
