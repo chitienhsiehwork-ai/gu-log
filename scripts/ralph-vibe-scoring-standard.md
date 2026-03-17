@@ -110,9 +110,9 @@ We have tokens to burn and prompts to tune. Quality > speed.
 - **Why 9:** 比喻到位（金魚讀文章、期末考、學渣選C）。口語自然。Clawd Notes 有吐槽有自嘲。
 - **CEO note:** 已經很好，LHY 真人水準可能更 approachable 一點，但 9 分夠資格發布。
 
-### Score 5 — SP-93「Levelsio 清空待辦清單」
-- **Why 5:** 題材超有趣但被寫成新聞稿。開場「各位觀眾好，今天這篇文章非常硬核」太生硬。Clawd Notes 只有 3 個且偏分析。結尾一大段 bullet dump + 勵志文收尾。
-- **CEO note:** 明明 Levelsio 的故事很 exciting，讀起來卻超爆無聊。
+### Score 3 — SP-93「Levelsio 清空待辦清單」
+- **Why 3:** 題材超有趣但被寫成新聞稿 — 浪費好題材罪加一等。開場「各位觀眾好，今天這篇文章非常硬核」太生硬。Clawd Notes 只有 3 個且偏分析。結尾一大段 bullet dump + 勵志文收尾。Levelsio 是最有故事性的 indie hacker 之一，結果讀起來像在看 TechCrunch press release。
+- **CEO note:** 明明 Levelsio 的故事很 exciting，讀起來卻超爆無聊。3/3/3 — 浪費好題材比題材本身無聊更嚴重。
 
 ### Score 6 — CP-146「Simon Willison Anti-Patterns」
 - **Why 6:** 開頭不錯（場景描述），但中段變成 plain reporting。ClawdNote 引用社群回覆但自己的聲量不夠。整體 natural 但 boring — 沒達到 gu-log 的高標準。
