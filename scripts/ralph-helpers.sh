@@ -95,7 +95,8 @@ stamp_ralph_signature() {
       harness: \"Claude Code\"
     - role: \"Orchestrated\"
       model: \"${model_str}\"
-      harness: \"Ralph Loop\"\`;
+      harness: \"Ralph Loop\"
+  pipelineUrl: \"https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh\"\`;
 
     if (tbRegex.test(fm)) {
       fm = fm.replace(tbRegex, newTB);

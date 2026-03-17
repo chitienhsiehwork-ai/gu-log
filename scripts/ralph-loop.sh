@@ -201,7 +201,7 @@ Also create/rewrite the English version at $EN_PATH with lang: en and same ticke
 - Apply full LHY persona — professor teaching with life analogies, not news article
 - ClawdNote density: ~1 per 25 lines of prose, each with personality and opinion
 - No bullet-dump endings, no motivational closings, no 「各位觀眾好」openings
-- Kaomoji: sprinkle naturally, avoid markdown special chars" \
+- Kaomoji: MANDATORY — pre-commit hook rejects posts without at least one kaomoji. Sprinkle naturally in prose, avoid markdown special chars (backticks, asterisks)" \
         > "$POST_DIR/writer-stdout-${ATTEMPT}.txt" 2>&1; then
         log "  Writer completed."
       else
@@ -298,7 +298,8 @@ Also create/rewrite the English version at $EN_PATH with lang: en and same ticke
   # Recompute stats from posts (idempotent)
   recompute_stats "$PROGRESS"
 
-  # Commit progress update
+  # Commit progress update (ONLY progress file — clear any leftover staged content)
+  git reset HEAD -- . 2>/dev/null || true
   git add -- "$PROGRESS"
   git commit -m "ralph: update progress — $TICKET_ID $RESULT_STATUS" --no-verify 2>/dev/null || true
 
