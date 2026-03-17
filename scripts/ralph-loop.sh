@@ -194,8 +194,8 @@ Rewrite src/content/posts/$POST_FILE to fix EVERY issue the reviewer flagged.
 Also create/rewrite the English version at $EN_PATH with lang: en and same ticketId.
 
 ## Rules
-- Keep ALL existing frontmatter fields intact (ticketId, source, sourceUrl, title, summary, tags, lang, dates, translatedBy)
-- Only update translatedBy.model using: node scripts/detect-model.mjs claude-opus-4-6
+- Keep ALL existing frontmatter fields intact (ticketId, source, sourceUrl, title, summary, tags, lang, dates)
+- Do NOT touch translatedBy — shell handles that automatically
 - ALL notes must be ClawdNote (convert any CodexNote/GeminiNote/ClaudeCodeNote)
 - Import ONLY ClawdNote from components (remove unused imports)
 - Apply full LHY persona — professor teaching with life analogies, not news article
@@ -227,6 +227,10 @@ Also create/rewrite the English version at $EN_PATH with lang: en and same ticke
       fi
       LAST_BUILD_ERROR=""
       log "  Build passed."
+
+      # Stamp Ralph pipeline signature (shell-level, not LLM tokens)
+      stamp_ralph_signature "$POST_PATH"
+      [ -f "$EN_PATH" ] && stamp_ralph_signature "$EN_PATH"
 
       # Verify post was actually changed
       if git diff --quiet -- "$POST_PATH"; then

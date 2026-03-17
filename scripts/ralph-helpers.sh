@@ -56,6 +56,56 @@ read_scores() {
   SCORE_V=$(jq -r '.scores.vibe.score' "$json_file")
 }
 
+# Stamp translatedBy with Ralph Loop pipeline info
+# Usage: stamp_ralph_signature "src/content/posts/file.mdx"
+stamp_ralph_signature() {
+  local file="$1"
+  [ -f "$file" ] || return 0
+
+  # Detect model string
+  local model_str="Opus 4.6"
+  if command -v node &>/dev/null && [ -f "scripts/detect-model.mjs" ]; then
+    model_str=$(node scripts/detect-model.mjs claude-opus-4-6 2>/dev/null || echo "Opus 4.6")
+  fi
+
+  # Replace the translatedBy block using node for reliable YAML manipulation
+  # Fallback: use sed to replace model and harness lines, remove pipeline block
+  node -e "
+    const fs = require('fs');
+    const f = process.argv[1];
+    let content = fs.readFileSync(f, 'utf8');
+
+    // Find the frontmatter boundaries
+    const parts = content.split('---');
+    if (parts.length < 3) process.exit(0);
+
+    let fm = parts[1];
+
+    // Replace translatedBy block
+    const tbRegex = /translatedBy:[\s\S]*?(?=\n[a-zA-Z]|\n---)/;
+    const newTB = \`translatedBy:
+  model: \"${model_str}\"
+  harness: \"Claude Code\"
+  pipeline:
+    - role: \"Scored\"
+      model: \"${model_str}\"
+      harness: \"Claude Code (ralph-scorer)\"
+    - role: \"Rewritten\"
+      model: \"${model_str}\"
+      harness: \"Claude Code\"
+    - role: \"Orchestrated\"
+      model: \"${model_str}\"
+      harness: \"Ralph Loop\"\`;
+
+    if (tbRegex.test(fm)) {
+      fm = fm.replace(tbRegex, newTB);
+    }
+
+    parts[1] = fm;
+    fs.writeFileSync(f, parts.join('---'));
+  " "$file" 2>/dev/null || true
+}
+
 # Recompute stats from posts (idempotent)
 # Usage: recompute_stats "$PROGRESS"
 recompute_stats() {
