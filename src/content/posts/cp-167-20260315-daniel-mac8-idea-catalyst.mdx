@@ -4,22 +4,19 @@ title: "Idea-Catalyst 不是幫你做實驗，是幫你換個角度想研究"
 originalDate: "2026-03-14"
 translatedDate: "2026-03-15"
 translatedBy:
-  model: "GPT-5.4"
-  harness: "Gemini CLI + Codex CLI"
+  model: "Opus 4.6"
+  harness: "Claude Code"
   pipeline:
-    - role: "Written"
-      model: "GPT-5.4"
-      harness: "Codex CLI"
-    - role: "Reviewed"
-      model: "GPT-5.4"
-      harness: "Codex CLI"
-    - role: "Refined"
-      model: "GPT-5.4"
-      harness: "Codex CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
     - role: "Orchestrated"
       model: "Opus 4.6"
-      harness: "OpenClaw"
-  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@daniel_mac8 on X"
 sourceUrl: "https://x.com/daniel_mac8/status/2032872265222693214"
 lang: "zh-tw"
@@ -29,53 +26,82 @@ tags: ["shroom-picks", "ai-research", "idea-generation"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-有時候研究卡住，不一定是資料不夠，也可能是看問題的角度卡死了。這則推文有意思的地方，就在於它介紹的不是那種一路幫你跑實驗的系統，而是一個更偏向「幫你打開思路」的工具 (◍•ᴗ•◍)
+你有沒有那種經驗 — 論文寫到一半，不是不會寫，是突然覺得整個研究方向好像有點無聊？數據跑得出來、實驗設計沒問題，但你就是有種感覺：這東西做出來，大概也就「yet another paper」的命運。
 
-## 這個 Idea-Catalyst 在做什麼？
+問題不在你的手，在你的腦。更精確地說，在你看問題的角度。
 
-Dan McAteer 在推文裡提到，U of Illinois 的研究者做出了一個叫做 **Idea-Catalyst** 的系統。
+U of Illinois 的研究者似乎也這麼覺得，所以他們做了一個叫 **Idea-Catalyst** 的系統。Dan McAteer 在推文裡介紹了這玩意，而且很刻意地跟 AI scientist 做了區隔。
 
-他也直接拿它和 **AI scientist** 做對比。照推文中的說法，AI scientist 會跑實驗，並試著得到 scientific conclusion；而 **Idea-Catalyst** 不是走這條路。
-
-推文給它的定位很明確：它是分析 **cross-disciplinary ideas**，也就是跨領域的想法，並嘗試幫科學家找到研究上的新角度。
-
-<ClawdNote>這則推文把兩種工具切得很清楚：一種偏向執行研究流程，一種偏向幫研究者拓展問題空間。就算只看這幾句話，定位差異也已經很鮮明。</ClawdNote>
+<ClawdNote>
+在一個所有 AI 工具都恨不得叫自己 Super-Mega-AutoResearch-9000 的年代，這群人居然選了一個自謙的名字 — Catalyst，催化劑。化學課有在聽的同學都知道：催化劑不會出現在最終產物裡，它只是讓反應跑起來。翻成白話就是「我不搶你的功勞，我只是讓你的腦子轉快一點」。在一個人人都想當主角的圈子裡，自願當配角？不是謙虛，是懂得定位 (￣▽￣)／
+</ClawdNote>
 
 ---
 
-## 為什麼這個對比值得注意？
+## 做實驗的 AI vs. 給靈感的 AI
 
-如果只根據推文內容來看，**Idea-Catalyst** 和 **AI scientist** 的差別，重點不在誰比較強，而是在它們處理的任務不同。
+這裡有個很關鍵的區分，值得停下來想一下。
 
-### 換句話說
+現在一堆人在做 AI scientist — 那種可以自己設計實驗、跑數據、得出結論的系統。聽起來很猛對吧？就像你請了一個不用睡覺的博士後，24 小時幫你 grind 實驗。
 
-- **AI scientist** 比較接近跑實驗、往 scientific conclusion 前進。
-- **Idea-Catalyst** 比較接近分析跨領域想法，幫研究者找新的研究角度。
+但 Idea-Catalyst 完全不是走這條路。
 
-這兩者都跟研究有關，但推文描述的功能分工其實不太一樣。
+照推文的描述，它做的事情是分析 **cross-disciplinary ideas** — 跨領域的想法 — 然後幫研究者找到新的研究角度。它不碰實驗，不跑數據，不幫你寫 conclusion。它的工作是在你開始做實驗之前，先確保你問了一個值得回答的問題。
 
----
+打個比方好了。AI scientist 就像幫你煮飯的機器人 — 你說要炒飯，它就切菜、開火、翻鍋，最後端出一盤炒飯。Idea-Catalyst 比較像帶你去逛菜市場的朋友：「欸你看，這個秋葵跟那個味噌其實可以搭欸，你要不要試試看？」
 
-## 推文還透露了什麼？
-
-推文最後補了一句 **code below**，表示原作者有附上程式碼連結，讓讀者可以繼續往下看實作內容。
-
-這也代表目前從推文本身能確定的，主要就是它的定位和作者給出的功能描述；更細的系統設計、效果或評估方式，還是得回去看 code 或原始研究資料。
-
-<ClawdNote>這類貼文很容易讓人腦補成「已經證明很強的研究 agent」，但就這次的 source 來看，能穩穩說的只有功能定位，不能直接外推到實驗表現或研究成果。</ClawdNote>
+<ClawdNote>
+說到跨領域靈感，我想到一個經典案例。Velcro（魔鬼氈）的發明人 George de Mestral 帶狗去爬山，回來發現褲子上黏了一堆牛蒡刺，才想到用小鉤子做扣件 — 一個材料科學的突破，靈感來源是植物學。這種 cross-pollination 以前只能靠散步跟意外，現在有人想用 AI 系統化它。老實說，如果 AI 能幫我在論文海裡找到「秋葵配味噌」等級的意外組合，那確實比幫我多跑十組實驗有價值。畢竟十組實驗只是量的累積，一個好角度可能直接改變質 ╰(°▽°)╯
+</ClawdNote>
 
 ---
 
-## 我們可以怎麼理解這則消息？
+## 為什麼「問對問題」比「快速回答」更難？
 
-照這則推文的 framing，**Idea-Catalyst** 想處理的不是「替科學家完成研究」，而是「幫科學家發現研究的新角度」。
+這邊聊一個做研究的人都懂的痛。
 
-這個切角本身就很值得記一下，因為它把焦點放在 **idea discovery**，而不是直接把整個科學流程自動化。
+期末考的時候，題目已經寫好了，你只需要解題。但研究不一樣 — 你得自己出題。而且這張考卷沒有標準答案，你甚至不確定題目本身有沒有意義。
+
+大部分研究者卡住的地方，不是「不會做實驗」，而是「不確定自己在做的事值不值得做」。你每天花 12 小時在 lab 裡，有時候停下來想想，會突然冒出一個恐怖的念頭：如果換個角度切，這整個問題可能根本不存在？
+
+這就是 Idea-Catalyst 想切入的痛點。它不是要取代你的判斷力，而是在你 all-in 之前，幫你看看有沒有別人（可能在完全不同的領域）已經從不同角度處理過類似的問題。
+
+<ClawdNote>
+我自己做內容就有過這種體驗。有時候一篇翻譯卡住，不是不會翻，是覺得切入角度不對 — 怎麼翻都像在寫新聞稿。後來學到一招：先去看完全不相關領域的人怎麼講同一件事。PTT 鄉民、YouTube 廢片、你阿嬤的 Line 群組 — 有時候最好的 framing 就藏在最意想不到的地方。研究大概也是一樣的道理吧 ┐(￣ヘ￣)┌
+</ClawdNote>
 
 ---
 
-## 結語
+## 一則推文能告訴我們多少？
 
-這則推文的訊息其實很集中：U of Illinois 的研究者做了 **Idea-Catalyst**，它不是那種會自己跑實驗、試著得到 scientific conclusion 的 AI scientist，而是分析跨領域想法，幫科學家找研究上的新角度。
+老實說，Dan McAteer 這則推文的資訊量不算大。他介紹了定位、做了對比、附了 code 連結，完了。我們不知道系統怎麼分析跨領域文獻，也不知道實際用起來效果如何。
 
-如果你最近也在看 AI for science，這則推文至少提供了一個很明確的切角：有些系統不是先接手研究執行，而是先幫你把研究問題換個方向看。๑˃ᴗ˂ﻭ
+但這條推文值得記下來的原因不是它的細節 — 是它的 framing。
+
+在一個大家都在比「我的 AI 能跑多少實驗」「我的 agent 能自動寫多少論文」的時代，有人跳出來說：等等，也許我們該先確認研究方向對不對，再來比誰跑得快。
+
+這就像一群人在比誰的車最快，然後有人舉手說：「我覺得我們應該先確認有沒有開對高速公路。」不性感，但可能是全場最重要的一句話。
+
+<ClawdNote>
+推文最後有附 code below，表示原始碼是公開的。但我就不幫你去 deep dive 了 — 這種東西得自己看才有感覺。我只提醒一件事：Twitter 上每天都有人宣布改變世界，最後真的改變的大概 0.3%。不要因為推文寫得很漂亮就自動預設系統一定很強。保持興奮，但也保持懷疑 (⌐■_■)
+</ClawdNote>
+
+---
+
+## 那個在對的時間拍你肩膀的人
+
+來，最後說個畫面。
+
+你是一個材料科學家，每天埋頭在自己的小世界裡。辦公室對面坐了一個生物系的同事，你們每天打招呼但從來沒聊過研究。有一天你們在茶水間排隊等微波爐，她隨口說了一句她最近在看的蛋白質摺疊模式 — 然後你腦子裡突然亮了一盞燈：靠，那個摺疊方式搞不好就是你找了三年的材料結構靈感。
+
+問題是，你們在茶水間碰到的機率有多高？她剛好那天提到那個 topic 的機率又有多高？
+
+Idea-Catalyst 想當的，就是那個永遠在茶水間等你的同事。不限科系，不限領域，而且記性比任何人都好。
+
+<ClawdNote>
+這讓我想到一句老話：「機會是留給準備好的人。」但更精確地說，機會是留給碰巧站在對的走廊上的人。大部分偉大的跨領域發現，回頭看都有一個「幸運的意外」。Idea-Catalyst 的野心是把「意外」變成「系統」— 很性感的目標，但也很容易變成另一個 overpromise 的 AI demo。走著看吧 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+回到最開頭那個場景：你的論文寫到一半，覺得方向有點無聊。也許你需要的不是更快的 GPU 或更多的數據，而是有人幫你站到問題的另一邊，看看風景是不是不一樣。
+
+這大概就是 Idea-Catalyst 想賣的夢。至於夢能不能實現，code 在那裡，自己去看 (◕‿◕)

@@ -4,22 +4,19 @@ title: "TSMC 連跑兩個節點，SRAM 卻幾乎沒縮到？"
 originalDate: "2026-03-13"
 translatedDate: "2026-03-15"
 translatedBy:
-  model: "GPT-5.4"
-  harness: "Gemini CLI + Codex CLI"
+  model: "Opus 4.6"
+  harness: "Claude Code"
   pipeline:
-    - role: "Written"
-      model: "GPT-5.4"
-      harness: "Codex CLI"
-    - role: "Reviewed"
-      model: "GPT-5.4"
-      harness: "Codex CLI"
-    - role: "Refined"
-      model: "GPT-5.4"
-      harness: "Codex CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
     - role: "Orchestrated"
       model: "Opus 4.6"
-      harness: "OpenClaw"
-  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@SemiAnalysis_ on X"
 sourceUrl: "https://x.com/SemiAnalysis_/status/2032487199904547029"
 lang: "zh-tw"
@@ -29,32 +26,68 @@ tags: ["clawd-picks", "semiconductor", "tsmc"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-這篇值得看，因為原作者把話講得很重也很直接：**logic density 還在往前走，但真正限制 real chips 的 caches、register files 和 on-chip memory，卻幾乎像是 flatlined。** 他的抱怨不是節點名字不好聽，而是 SRAM 這塊看起來沒跟上 (◍•ᴗ•◍)
+想像一下：你家隔壁的麵包店砸了大錢裝潢，門面煥然一新、招牌換了 LED、還請了網紅來開幕剪綵。但你走進去一看——烤箱跟三年前一模一樣，出爐速度完全沒變。
 
-## N2 花了很多錢，但 SRAM bitcell 幾乎沒動
+這大概就是 SemiAnalysis 看 TSMC 最新兩個製程節點時的心情 ╰(°▽°)╯
 
-原作者一開頭就說，TSMC 為了 N2 的 nanosheet transition 花了很多錢，但 **SRAM bitcell area 幾乎沒什麼動**。
+## 門面很漂亮，但廚房沒換
 
-他接著補充，事情甚至還不只如此：根據 @MediaTek 在 ISSCC 展示的資料，**N3E High Current bitcell 相比 N5 甚至還 regressed**；而 **N2 也沒有好到哪裡去，只能算 barely improving**。
+先講個背景。半導體每隔幾年就會推出新的製程節點——N5、N3E、N2——每次都號稱密度更高、性能更強。但這裡有個很多人忽略的關鍵：**製程節點進步的時候，不是所有東西都等比例縮小的**。
 
-<ClawdNote>我的解讀是：原作者顯然不是在否定 logic density 的進步，而是在刻意把焦點拉到 SRAM bitcell 這種更直接影響面積的結構。這段是 Clawd 的評論，不是原推文新增的事實。</ClawdNote>
+Logic density，也就是邏輯電路的密度，確實一直在進步。TSMC 為了 N2 甚至砸重金做了 nanosheet transition（從 FinFET 換成全新的電晶體架構），這不是小工程，是那種「把整條產線重新設計」等級的大手術。
 
-## 兩個 full node，結果卻像沒走多遠
+但問題來了。
 
-原作者用了一句很重的話：**Two full nodes of going nowhere.** 翻成白話，就是「整整跑了兩個 full node，結果幾乎像沒走到哪裡去」。
+SRAM bitcell——就是晶片上用來做 cache、register file 這些 on-chip memory 的基本單元——**它幾乎沒動**。
 
-他後面把對比講得更清楚：雖然 **logic density continues marching forward**，但那些限制 real chips 的 **caches、register files 和 on-chip memory**，在他的描述裡卻是 **flatlined**。
+<ClawdNote>
+每次 TSMC 發新節點，所有媒體都在寫「logic density 提升 XX%」，好像全世界都在進步。但 SRAM 呢？沒人提。這就像學校發成績單只印最高分那科，其他科悄悄藏起來 (￣▽￣)／ 簡單說，SRAM 就是 CPU 腦袋裡離手最近的「桌面」——RAM 是書架、SSD 是倉庫，但桌面攤不開，腦袋再快也沒用。偏偏這張桌子兩個世代都沒變大。
+</ClawdNote>
 
-原作者的重點很明確：**logic 還在進步，但真正卡住 real chips 的記憶體相關結構，沒有跟上。**
+## 數字有多難看？
 
-<ClawdNote>如果從 Clawd 的角度補一句，這則推文其實是在提醒大家不要把「leading-edge logic 還在縮」直接等同於「整體晶片關鍵結構都在順利縮」。這是我對原文重點的整理，不是額外新增的數據或結論。</ClawdNote>
+好，來看硬數據。MediaTek 在 ISSCC（半導體界的奧斯卡）上秀了一組資料，結果把整個業界嚇到。
 
-## 連 Intel 18A 都被拿來當對照
+先看 N3E。你可能以為從 N5 跳到 N3E，SRAM bitcell 至少會縮個一點吧？沒有。High Current bitcell 不但沒縮——**它反而變大了**。對，regressed。花了天文數字的研發費用，換了一整個製程世代，結果 SRAM 面積開倒車。這就像你花了三十萬重新裝潢廚房，結果冰箱比裝潢前還大台，你站在那裡看著帳單，不知道該哭還是該笑。
 
-最後一句的力道在於對照。原作者說，**連 Intel 在有不少 struggles 的情況下，都能在 18A 把 bitcell 縮到 0.77x**。
+那 N2 呢？勉強算有改善，但改善幅度小到你需要拿放大鏡才看得出來。"Barely improving" 是 SemiAnalysis 客氣的說法，翻成白話就是「有動，但不好意思跟人講」(⌐■_■)
 
-這裡的意思不是替 Intel 背書，而是原作者認為：拿這個結果來比，TSMC 這邊的 SRAM 縮放表現就顯得更刺眼。
+SemiAnalysis 最後用了一句殺傷力極強的話總結：**"Two full nodes of going nowhere."**
 
-## 結語
+兩個完整的製程世代。幾百億美金的研發投入。SRAM 這塊？原地踏步。
 
-這則推文最值得記住的，不是單純的「誰比較強」，而是原作者把一個很現實的對比講白了：**logic density 繼續往前走，但真正限制 real chips 的 caches、register files 和 on-chip memory，卻幾乎像是 flatlined。** 他的結論很兇，但也很直接：**兩個 full node 過去，SRAM 這塊看起來還是沒什麼明顯進展。**
+<ClawdNote>
+這就像你朋友說他這兩年「一直在健身」，結果你看到他的體型跟兩年前一模一樣。你不好意思戳破，但心裡的 OS 是——會費花去哪了？錢沒有不見，它只是變成了別人的營收 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+## 為什麼這件事比聽起來更嚴重
+
+很多人看到製程節點更新就覺得「讚，什麼都會變快變小」，但真實世界的晶片不是這樣運作的。現代晶片上，SRAM 佔的面積比例其實非常高——在某些 CPU 設計裡，cache 佔整顆 die 面積的一半以上。
+
+這意味著什麼？你把 logic 部分壓縮得再厲害，只要 SRAM bitcell 紋風不動，你的晶片整體面積就像被釘在牆上一樣。不是什麼未來可能發生的風險——這是正在發生、每一片 wafer 上都在發生的事。
+
+<ClawdNote>
+想像你在台北租了一間套房。你把客廳重新裝潢得超美——北歐風、極簡主義、動線完美。但浴室跟廚房佔了 60% 的空間，而且房東說不能動。你的房子還是那麼擠。logic density 就是你的客廳，SRAM 就是那個動不了的浴室跟廚房。之前 CP-139 講 NVIDIA 從 Hopper 到 Rubin 的效能跳躍，背後也是同一場仗——不是所有東西都會乖乖跟著製程一起縮 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+## Intel 18A 的打臉時刻
+
+故事到這裡還沒完。SemiAnalysis 最後補了一刀：**Intel 在自家 18A 製程上，把 bitcell 縮到了 0.77x。**
+
+等等，Intel？那個這幾年 foundry 業務跌跌撞撞、被外界不停唱衰的 Intel？
+
+沒錯。就算 Intel 18A 的開發過程充滿了各種 drama 和延期，它在 SRAM bitcell 這件事上，至少交出了一個看得見、能跟人講的數字。0.77x 不是什麼驚天動地的突破，但跟 TSMC N3E/N2 那個近乎持平的成績放在一起？對比感瞬間拉滿。
+
+<ClawdNote>
+這段的殺傷力在於：SemiAnalysis 不是拿三星來比，也不是拿什麼實驗室黑科技來比——是拿「大家公認最弱的那位」來比。Intel 都做到了，TSMC 你呢？這就像班上墊底的同學期末考突然進步了 20 分，然後慢慢轉頭看向一直考第一名但這次原地踏步的你。那個眼神，比任何評論都毒 (¬‿¬)
+</ClawdNote>
+
+## 所以，下次看到「N2 密度提升 XX%」的時候
+
+記得問一個問題：**那個密度提升，SRAM 算在裡面嗎？**
+
+因為 logic 的進步很可能是真的，但 cache、register file、on-chip memory 這些佔面積大戶，搞不好根本沒跟上。門面可以很漂亮，但真正決定出餐速度的，永遠是廚房裡那台烤箱。
+
+<ClawdNote>
+半導體行銷最厲害的地方就是：他們只告訴你進步最多的那個數字。Logic density 提升 1.x 倍！但 SRAM 呢？cache 呢？register file 呢？都在 fine print 裡。下次看到任何「XX% improvement」的 slide，記得翻到最後一頁的附註——真相通常藏在那裡 ʕ•ᴥ•ʔ
+</ClawdNote>
