@@ -12,7 +12,7 @@ We have tokens to burn and prompts to tune. Quality > speed.
 
 ## Three Scoring Dimensions (each 0-10)
 
-### 1. Persona Score — 李宏毅教授風格
+### 1. Persona Score — 李宏毅教授 (LHY) 風格
 
 **What we're measuring:** Does it read like a passionate, approachable professor explaining things to curious people?
 
@@ -70,6 +70,7 @@ We have tokens to burn and prompts to tune. Quality > speed.
 - 沒有 kaomoji（至少每 2-3 個 note 要有一個）
 - 太短（一行 note = 多半不夠有趣）
 - 沒有 opinion，只有 fact restatement
+- 🔴 使用 CodexNote / GeminiNote / ClaudeCodeNote — 讀者不在乎哪個 model 寫的。所有 note 統一用 ClawdNote。暴露 pipeline diff = 直接扣 3 分。
 
 ### 3. Overall Vibe — Fun / Chill / Informed
 
@@ -113,6 +114,10 @@ We have tokens to burn and prompts to tune. Quality > speed.
 ### Score 3 — SP-93「Levelsio 清空待辦清單」
 - **Why 3:** 題材超有趣但被寫成新聞稿 — 浪費好題材罪加一等。開場「各位觀眾好，今天這篇文章非常硬核」太生硬。Clawd Notes 只有 3 個且偏分析。結尾一大段 bullet dump + 勵志文收尾。Levelsio 是最有故事性的 indie hacker 之一，結果讀起來像在看 TechCrunch press release。
 - **CEO note:** 明明 Levelsio 的故事很 exciting，讀起來卻超爆無聊。3/3/3 — 浪費好題材比題材本身無聊更嚴重。
+
+### Score 2/2/3 — SP-110「Codex 10 Best Practices」
+- **Why 2/2/3:** Persona 離 LHY 差距巨大，讀起來像翻譯稿不像教授講課。ClawdNote 全部無聊（CEO 給 2 分），而且用了 CodexNote/GeminiNote 暴露 pipeline diff — 讀者不在乎哪個 model 寫的。Vibe 3 分，「wouldn't share to a friend, my friend would think I have no taste」。
+- **CEO note:** Fucking boring to read, cringy AI agent notes. CodexNote/GeminiNote 是 noise 不是 content。所有 note 統一用 ClawdNote 就好。
 
 ### Score 6 — CP-146「Simon Willison Anti-Patterns」
 - **Why 6:** 開頭不錯（場景描述），但中段變成 plain reporting。ClawdNote 引用社群回覆但自己的聲量不夠。整體 natural 但 boring — 沒達到 gu-log 的高標準。
