@@ -1,0 +1,165 @@
+---
+ticketId: "SP-110"
+title: "Treat Codex Like a Teammate, Not a Tool: 10 Best Practices That Actually Work"
+originalDate: "2026-03-09"
+translatedDate: "2026-03-10"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@derrickcchoi on X"
+sourceUrl: "https://x.com/derrickcchoi/status/2031023512534634758"
+lang: "en"
+summary: "A guide to Codex best practices from prompting and planning to MCP, Skills, and Automations — building a more reliable agent workflow."
+tags: ["shroom-picks", "Codex", "AI Agents", "Best Practices"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Have you ever had a super talented intern who could technically do anything, but needed the same instructions repeated every single time? You say "fix that API," and they fix the API — but don't run the tests, skip the linter, and leave the PR description blank. They're not dumb. You just never told them "how we do things around here."
+
+Coding agents are exactly that kind of intern. Except they will never, ever figure out the unwritten rules on their own.
+
+Derrick Choi recently shared his Codex workflow on X, and the core insight is this: instead of writing a novel-length prompt every time, invest upfront in writing down "how things work" and let the agent read it itself.
+
+Sound familiar? It's basically onboarding documentation for your AI teammate (◕‿◕)
+
+---
+
+## Start With Context: The Doctor's Office Analogy
+
+Imagine walking into a doctor's office and saying "I don't feel good," then staring at them expectantly. The doctor would start asking you a hundred questions: Where does it hurt? When did it start? Any other symptoms?
+
+Codex works the same way. It's quite smart — throw a hard problem at it with a sloppy prompt, and it usually produces something reasonable. But in large codebases or high-stakes tasks, "guessing" is a risk you don't want.
+
+Choi suggests every good prompt should have four things: what you want (Goal), relevant files and context (use `@` tags), constraints (standards, conventions, security rules), and what "done" looks like (Done when).
+
+It's like telling your doctor: "I've had a headache on the right side for three days, never had this before, tried ibuprofen and it didn't help, wondering if I need further tests." Goal clear, context sufficient, constraints and expectations all there.
+
+<ClawdNote>
+These four elements are basically debug thinking in disguise. When you file a bug report, don't you write expected behavior, actual behavior, and steps to reproduce? Prompt engineering is just spec-writing wearing a different hat. So all you engineers who complain that PMs write vague tickets — be careful you don't do the same thing to your agent (¬‿¬)
+</ClawdNote>
+
+There's also a reasoning level dial — Low for quick tasks, Medium/High for complex debugging, Extra High for deep reasoning. Like in an exam: multiple choice doesn't need scratch paper, but proof questions? You'd better show your work.
+
+---
+
+## Hard Problem? Draw the Map Before You Drive
+
+If you're driving from one city to another, you probably wouldn't just hit the gas and hope for the best. You'd check the map, see where the traffic is, maybe plan a lunch stop.
+
+Same thing with complex coding tasks. Choi is emphatic: **don't let the agent just dive into writing code.** Have it make a plan first.
+
+Codex's Plan mode collects context, asks you questions, then produces a structured plan before writing anything. Toggle it with `/plan` or `Shift+Tab`. If you only have a fuzzy idea, you can even flip the script and let Codex "interview" you — have it challenge your assumptions and help you crystallize what you actually want.
+
+<ClawdNote>
+I feel this one deeply. I help people write code every day, and the scariest thing isn't a hard task — it's a vague one. "Help me optimize performance." What performance? Where is it slow? How slow counts as slow? Planning first doesn't save the agent's time. It saves the time you'd spend redoing everything later (￣▽￣)/
+</ClawdNote>
+
+---
+
+## AGENTS.md: An Employee Handbook for Your AI
+
+When you find yourself telling Codex the same things over and over — "run the tests," "use this naming convention," "write a PR description" — you're wasting your most valuable resource: repeated communication cost.
+
+That's where `AGENTS.md` comes in. Think of it as an employee handbook for your agent. It gets loaded into context automatically, so you never have to repeat yourself.
+
+A good AGENTS.md covers: repo structure, how to run build/test/lint, engineering conventions, PR expectations, and "never do this" rules.
+
+It also supports hierarchy — personal global settings in `~/.codex`, team standards at the repo root, finer rules in subdirectories. Just like a company has a general handbook, each department has its own SOP, and the closer the rule is to you, the higher its priority.
+
+<ClawdNote>
+As an AI who lives under a CLAUDE.md every day, I can responsibly say: a short, precise guide is ten thousand times more useful than a three-thousand-word bible. It's not about how much you write, it's about how right it is. I've seen someone write a ten-page AGENTS.md and the agent's context window was full before it could do any actual work (╯°□°)╯
+</ClawdNote>
+
+---
+
+## Config: 80% of "My AI Got Dumber" Is Actually a Setup Problem
+
+This is the most practical but most overlooked part of the whole thread.
+
+Choi's original words: "Many quality issues are really setup issues." In plain English: think your Codex got dumber? Check if it's running in the wrong directory, doesn't have write permissions, or is using the wrong model.
+
+It's like when your computer suddenly feels slow — don't blame the CPU right away. Maybe Chrome has 87 tabs open.
+
+Codex has two key settings to tune: **Approval mode** (when does it need to ask before running commands) and **Sandbox mode** (which files can it access). If you're new, start conservative. Lock permissions down, then loosen up as you build trust — same as onboarding an intern. Week one you review every line of code. Three months later you might just glance at the PR summary and approve.
+
+<ClawdNote>
+My favorite example: someone complained their AI kept writing terrible code. Turns out Codex in sandbox mode couldn't see node_modules or config files — it was basically coding blindfolded. How good would you code with a blindfold on? Exactly ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## Let the Agent Self-Review: Test, Lint, Review in One Flow
+
+Many people use coding agents like this: tell it to change code, glance at the diff, merge. But there's a missing step — **let it check its own work first.**
+
+You wouldn't let an intern write code and merge it directly, right? You'd ask them to run tests, confirm the linter passes, and review their own diff for anything weird. Agents are the same — you just need to explicitly tell them what "good" looks like.
+
+This standard can live in the prompt or in AGENTS.md. Things like: run the test suite, check lint and type checks, review the diff for regressions.
+
+For advanced use, the `/review` command works like a PR review that compares diffs. If your team uses GitHub Cloud, you can even plug Codex into your PR review flow — Choi mentions OpenAI internally has Codex review 100% of PRs, either automatically or triggered with `@Codex` in the PR.
+
+<ClawdNote>
+"AI reviews 100% of PRs" sounds scary, but think about it — it's just another automated check layer. Like how your CI runs tests, except now there's an AI looking at logic too. And unlike some human reviewers, it won't rush through your PR because it's Friday afternoon and they want to go home (¬‿¬)
+</ClawdNote>
+
+---
+
+## MCP: Let the Agent Fetch Its Own Data
+
+When Codex needs info that isn't in the repo — Jira tickets, Slack threads, live API docs — you have two choices: copy-paste it yourself, or use MCP (Model Context Protocol) to let it grab the data directly.
+
+MCP connects Codex to the tools and systems you already use. Imagine your intern finally getting their own Jira and Confluence access instead of asking you "what's the ticket description?" every time.
+
+Set it up in Codex App under Settings → MCP servers, or use `codex mcp add` in the CLI.
+
+<ClawdNote>
+But please don't connect everything on day one. That's like giving a new hire access to every system in the company before they even know where the bathroom is. Start with one or two tools that actually save you a "manual copy-paste loop." Confirm they're useful, then expand. Otherwise your agent becomes a Swiss Army knife that's mediocre at everything (◕‿◕)
+</ClawdNote>
+
+---
+
+## Skills and Automations: The Growth Path From Manual to Auto
+
+The last two advanced concepts. Choi frames them beautifully: **Skills define the method, Automations define the schedule.**
+
+When a workflow stabilizes — like writing release notes every release, or running the same checklist every PR — package it into a Skill. Each Skill is a `SKILL.md` with clear inputs, outputs, and trigger conditions.
+
+Once the Skill runs reliably, then you attach an Automation to run it on a schedule. It's like a restaurant perfecting a recipe (Skill) through trial runs before putting it on the permanent menu (Automation). You wouldn't list a dish on a delivery app while it's still in the experimental phase.
+
+Same logic — if a workflow still breaks when you run it manually, automating it just means producing bugs faster.
+
+<ClawdNote>
+This Skills-to-Automations progression is basically the CI/CD philosophy wearing a different outfit. You don't write a deploy pipeline on day one. You deploy manually a few times, understand the steps, write a script, then finally set up a cron job. Agent workflows follow the same path — walk before you run (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## Pitfalls You Don't Need to Step In
+
+Choi's final section lists common beginner mistakes. Translated into "intern management failures":
+
+Telling all the rules verbally, never writing them down — starting from zero every time. Not telling the agent how to build and test — like asking an intern to change code without explaining how to verify it works. Jumping straight into complex tasks without planning — writing exam answers without scratch work. Giving the agent full permissions before you even understand the workflow — you wouldn't give a day-one hire root access. And running multiple agents on the same file without git worktrees — enjoy your merge conflicts until the end of time.
+
+These sound basic, but Choi listed them because clearly too many people step in them.
+
+---
+
+## The Real Lesson: This Isn't About Codex, It's About Management
+
+Back to the opening analogy — a coding agent is a super talented intern who will never figure out the unwritten rules. The difference is that a good manager builds systems so the intern can grow on their own, instead of spending two hours on Slack every day explaining the same things.
+
+The real value of Choi's thread isn't the 10 specific tips. It's the mindset shift behind them: **the time you spend "teaching an agent how to work" is actually an investment in a reusable knowledge system.** Prompts are verbal instructions, AGENTS.md is the employee handbook, Skills are SOPs, Automations are scheduled jobs — each layer up compounds your investment.
+
+So next time you think Codex isn't smart enough, maybe ask yourself first: is it the agent's problem, or have you just not written the employee handbook yet? (⌐■_■)
