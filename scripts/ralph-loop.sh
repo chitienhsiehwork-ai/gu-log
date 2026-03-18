@@ -17,7 +17,7 @@ PROCESSED=0
 
 # Create per-run temp directory
 RUN_ID="ralph-$(date +%Y%m%d-%H%M%S)"
-RUN_DIR="/tmp/$RUN_ID"
+RUN_DIR=".ralph/runs/$RUN_ID"
 mkdir -p "$RUN_DIR"
 
 log_file="$RUN_DIR/ralph.log"
