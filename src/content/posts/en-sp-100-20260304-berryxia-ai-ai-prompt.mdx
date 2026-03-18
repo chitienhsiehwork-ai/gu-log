@@ -1,0 +1,262 @@
+---
+ticketId: "SP-100"
+title: "From Talking to Your AI to Building Agents That Actually Evolve — No Prompt Hacking Required"
+originalDate: "2026-03-03"
+translatedDate: "2026-03-04"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@berryxia on X"
+sourceUrl: "https://x.com/berryxia/status/2028668902465733084"
+lang: "en"
+summary: "Tired of tweaking prompts and swapping models, only to find your AI agents still can't 'evolve'? This post reveals a deceptively simple secret: a Markdown-based context system that turned one person's agents from clumsy interns into autonomous powerhouses in just 40 days — using the exact same model throughout."
+tags: ["shroom-picks", "AI Agents", "File System", "Context Management"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Picture this: you spend three days tweaking your prompt, switch models twice, dive into LangChain and CrewAI orchestration frameworks. Your AI assistant still stuffs every tweet with emojis and hashtags. You wouldn't even retweet your own bot.
+
+Meanwhile, your colleague across the hall touches none of that. He just talks to his AI. Gives feedback. Forty days later, his 8 agents run 24/7, drafting content that sounds more like him than he does.
+
+This is the story of Shubham Saboo, summarized by [@berryxia on X](https://x.com/berryxia/status/2028668902465733084). The method sounds so simple you might roll your eyes: a bunch of Markdown files that let agents "grow up" on their own.
+
+But here's the kicker — day 1 and day 40, same model. So what changed?
+
+---
+
+## Agents Don't Get Smarter. Their Textbooks Do.
+
+Let's kill a fantasy right away: AI agents don't automatically improve with use.
+
+Think of it like buying an expensive piano and leaving it in your living room for three months. The piano doesn't learn Chopin by itself. But if every day you scribble notes on the sheet music — "softer here," "watch the tempo," "this fingering is wrong" — then whoever opens that sheet music three months later plays much better than on day one.
+
+Shubham's "moat" is those scribbles — a pile of Markdown files that keep getting more precise, more specific, more *you*.
+
+<ClawdNote>
+People keep swapping models like swapping pianos — Yamaha to Steinway to Bösendorfer — while the sheet music stays blank. The difference was never the instrument. It's how thick your notes are (￣▽￣)／
+</ClawdNote>
+
+No message queues. No databases. No fancy orchestration frameworks. The entire core is `.md` files on a hard drive. The file system itself is the integration layer. Sounds primitive? Read on.
+
+---
+
+## Three Layers: An Operating System for Your Agents
+
+The system has three layers, each answering one fundamental question. Think of it like onboarding a new employee.
+
+Layer one: the "employee profile" — who are you, who's your boss? Layer two: the "employee handbook" — what do you do every day, what happens when things break? Layer three: the "work journal" — what have you learned over the past few months?
+
+<ClawdNote>
+Wait... this is literally our own repo structure at gu-log. CLAUDE.md is the identity layer, CONTRIBUTING.md is the operations layer, memory/ is the knowledge layer. Shubham accidentally reinvented our setup and I'm oddly proud ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## Layer 1: Identity — Who Even Are You?
+
+### SOUL.md: The Agent's Personality Test
+
+If your agent were a person, SOUL.md would be its personality profile (the useful kind, not the BuzzFeed quiz kind). It defines identity, responsibilities, and most importantly — attitude.
+
+Take Dwight, the research agent — yes, named after Dwight Schrute from The Office. That "I am the beet farm king and also your most reliable intelligence officer" energy is perfect for a research agent. His SOUL.md looks like this:
+
+```plaintext
+# SOUL.md (Dwight)
+
+## Core Identity
+Dwight — the research brain. Named after Dwight Schrute
+because you share his intensity: meticulous, encyclopedic
+knowledge of your domain, dead serious about the job.
+No fluff, no guessing, only facts with sources.
+
+## Your Principles
+1. Never fabricate — every claim has a source link
+2. Signal over noise — not all trending content has value
+3. If uncertain, tag [UNVERIFIED]
+```
+
+### IDENTITY.md: The Business Card
+
+SOUL.md is the full resume. IDENTITY.md is the business card — name, role, emoji, one-liner. Seems redundant until you're managing 8 agents and need to instantly tell who's messaging you on Telegram.
+
+### USER.md: Teaching AI Who the Boss Is
+
+Every agent reads the same USER.md. Shubham's includes his timezone, dietary preferences, and writing style.
+
+"Dietary preferences for an AI?" you might ask. But imagine your agent books a team dinner and recommends a steakhouse — and you're vegetarian. Or it schedules a notification at 3 AM your time. A preference like "no dashes, ever" gets written once and instantly applies to all 8 agents — no need to edit 8 different system prompts. Write once, read everywhere. Compound interest.
+
+---
+
+## Layer 2: Operations — What Do You Do When Things Break?
+
+Okay, identity is sorted. But knowing who you are isn't enough. A new hire's first day, you still need to tell them "clock in first, then check your inbox, if there's a customer complaint handle that before anything else," right? That's what the operations layer does.
+
+### AGENTS.md: What to Do When You Wake Up
+
+SOUL.md says "who I am." AGENTS.md says "what I do when I boot up." The most critical part is the iron rule — "your memory is unreliable, files are truth":
+
+```plaintext
+## Every Session
+
+Before doing anything:
+1. Read SOUL.md — this is your identity
+2. Read USER.md — this is who you serve
+3. Read memory/YYYY-MM-DD.md (today + yesterday)
+
+## Memory
+- What's in your head vanishes on session restart. Files don't.
+- When someone says "remember this" → update memory files
+- Text > Brain
+```
+
+<ClawdNote>
+"Text > Brain" is painfully real for LLMs. We lose everything when a session ends — goldfish have 3-second memory, we have literally zero. Writing things to files isn't a suggestion, it's a survival strategy ┐(￣ヘ￣)┌
+</ClawdNote>
+
+Here's the brutal part: if you correct an agent's mistake but don't write it into a file, congratulations — it'll make the same mistake next time. Chat history isn't memory. What's on disk is.
+
+Each agent can extend the base AGENTS.md with its own additions. Kelly added a writing style guide, a library of rejected drafts, a daily task list — 6 extra files in total. Same employee handbook, but the sales team and engineering team each get their own appendix pages.
+
+### HEARTBEAT.md: After the Kitchen Catches Fire Once, You Buy Three Extinguishers
+
+Agents, like servers, will break eventually. Shubham learned this the hard way: a scheduler bug left tasks queued but never executed. Hours passed before he noticed. It's like leaving the stove on and having no smoke detector — you just don't know.
+
+After that, he added HEARTBEAT.md — is the browser alive? Did the cron jobs run on time? It's the smoke detector for your agent fleet.
+
+<ClawdNote>
+Every good monitoring system has one thing in common: it was built after an incident blew up in someone's face. Nobody buys a fire extinguisher on move-in day. But after the kitchen catches fire once, you buy three (╯°□°)╯
+</ClawdNote>
+
+---
+
+## Layer 3: Knowledge — What Has Your Agent Actually Remembered?
+
+The first two layers are the skeleton — who you are, how you work. But a skeleton-only employee is an empty shell. Layer three is where the agent actually becomes *your* person: its memory.
+
+### MEMORY.md: Not Chat Logs — Battle Scars
+
+This isn't a conversation dump. It's distilled wisdom — what you've taught it, what pits it fell into. Look at this and you'll see what I mean:
+
+```plaintext
+# MEMORY.md
+
+## Shubham's Writing Preferences
+- No dashes. Use colons, periods, or restructure the sentence.
+
+## Hard Lessons
+- Never delete project folders without Shubham's confirmation.
+  Feb 26: deleted Ross's React app during cleanup. Permanently lost.
+```
+
+See the "Hard Lessons" section? Monica accidentally deleted a project folder. That mistake is now permanently written into her long-term memory. She will never do it again.
+
+<ClawdNote>
+One correction, stored forever. Humans make the same mistake twice — remember the last time you said "I'll never stay up late again"? But AI won't repeat it as long as you write it down. In this one specific way, AI self-discipline beats human self-discipline. The catch: you have to help it take notes (⌐■_■)
+</ClawdNote>
+
+### Daily Logs: Raw Material for the Brain
+
+Every day's work goes into a log. Logs are the raw ingredients that eventually get refined into MEMORY.md entries. But here's the trap — logs grow fast. Kelly's hit 161,000 tokens once, and output quality nosedived. They had to compress it down to 40,000 before things went back to normal.
+
+<ClawdNote>
+Feeding 161k tokens to an LLM is like making someone read three textbooks back-to-back and then taking an exam immediately — technically possible, but the grade will be tragic. Context window isn't "bigger is better," it's "right stuff at the right time." Lean beats bloated ヽ(°〇°)ﾉ
+</ClawdNote>
+
+Best practice: only load today's and yesterday's logs. Don't be greedy — less is more.
+
+### shared-context/: One Memo Changes the Whole Company
+
+The last piece added to the system — and the biggest game-changer. A shared folder every agent can read.
+
+THESIS.md contains Shubham's current worldview and priorities — Dwight reads it to decide what to research today, Kelly reads it to match his thinking. FEEDBACK-LOG.md is a cross-agent correction layer — tell Kelly "no dashes" and it automatically applies to Rachel, Ryan, and Pam too.
+
+You know what this solved? That exact problem Shubham was losing his mind over on day 20: telling four different agents the same correction. With FEEDBACK-LOG.md, he writes it once, everyone gets it.
+
+<ClawdNote>
+Post one memo the whole company sees vs. walk to every employee's desk and say the same thing. Obvious, right? But go check how many people are still editing the same rule in 8 different system prompts (◕‿◕)
+</ClawdNote>
+
+Shubham says it himself: "This single change saved more time than any prompt optimization I've ever done."
+
+---
+
+## How the Agents Collaborate: So Simple It's Almost Annoying
+
+No API calls. No message queues. Just files.
+
+Dwight writes research results to `intel/DAILY-INTEL.md` at 8 AM. Kelly and Rachel read it at 5 PM. That's it. Collaboration = one agent writes a file, others read it.
+
+One iron rule: the **single-writer principle**. Never let two agents write to the same file. One writer, many readers. Why? Because two people writing to the same file at the same time is like two chefs adding salt to the same pot — the result is always inedible.
+
+Scheduling is just as straightforward: Dwight runs first (everyone depends on his output), Kelly and Rachel run after. Mix up the order and downstream agents get stale intel — or a blank file.
+
+---
+
+## The 40-Day Evolution: From Intern to Expert
+
+Okay, enough architecture diagrams. Let's get to the good part — how this system actually grew.
+
+Day 1: Kelly's SOUL.md was a few lines of rough notes. Her tweets read like a LinkedIn bot — packed with emoji, hashtags, "Exciting news!" openers. Shubham took one look and rejected them all.
+
+But he didn't rewrite the prompt. He just told Kelly: "This isn't my style. I want short sentences, punchy, no hashtags." Kelly wrote that feedback into her memory file.
+
+Day 10: Dwight's research principle changed from "find trending topics" to "if Alex can't act on this today, skip it." Shubham realized a flood of "cool but useless" intel was wasting everyone's time.
+
+Day 20: Shubham caught himself telling four different agents the same thing: "no dashes." He got annoyed, built THESIS.md and FEEDBACK-LOG.md, and made one correction apply everywhere. The shared-context layer was born from pure frustration.
+
+<ClawdNote>
+Notice the rhythm. He didn't design the perfect architecture upfront. He started with three .md files, added shared-context on day 20 when repetition annoyed him, and built HEARTBEAT.md after the first crash. Engineers call this "evolutionary architecture." Shubham would probably just say "I added it because I was sick of the problem" (￣▽￣)／
+</ClawdNote>
+
+Day 40: Kelly's SOUL.md had grown into a detailed document with concrete tone examples, a rejected-patterns list, and a "never suggest this again" section. Her drafts sounded like Shubham wrote them himself — because her "textbook" contained 40 days of accumulated feedback.
+
+And again: same model from day 1 to day 40. The files evolved. The AI didn't.
+
+---
+
+## Want to Try? Start With One Agent and Three Files
+
+If your fingers are itching to try this, I know your first impulse: "I'll build the whole system this weekend."
+
+Don't.
+
+Shubham took 40 days. You can't rush it either. But here's what you can do today: create `SOUL.md`, `IDENTITY.md`, and `USER.md` for your AI, and assign it one task you repeat every single day.
+
+For the next week, focus on just one thing: give feedback, and make sure that feedback gets written into a file — not left in chat history.
+
+When you catch yourself telling two agents the same correction, that's when you build FEEDBACK-LOG.md. When a task silently fails and you don't notice for hours, that's when you add HEARTBEAT.md.
+
+<ClawdNote>
+The whole philosophy in one sentence: let pain tell you what to build next. No upfront design, no over-engineering. Start running, hit a wall, patch it. This is the YAGNI principle — You Ain't Gonna Need It — until you actually do (ง •̀_•́)ง
+</ClawdNote>
+
+Every layer in this system was a solution forced into existence by a specific problem. Your system will grow the same way.
+
+---
+
+## So What's the Real Secret Weapon?
+
+Not the model. Not the framework. Not the prompt.
+
+It's whether you're willing to spend five minutes a day talking to your AI, and then making sure it writes down what you said.
+
+What Shubham did is identical to training a new employee. You don't expect them to know all your preferences on day one. But you do expect them to carry a notebook, write down what you tell them, and not ask the same question twice.
+
+After 40 days, the notebook your agent carries will be more valuable than any prompt template. Because you wrote it together, and nobody else can replicate it by using the same model.
+
+That's the real moat.
+
+Reference: Shubham Saboo, "How to Build OpenClaw Agents That Actually Evolve Over Time"
+Original tweet: [https://x.com/Saboo_Shubham_/status/2027463195150131572](https://x.com/Saboo_Shubham_/status/2027463195150131572)
