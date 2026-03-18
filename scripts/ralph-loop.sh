@@ -101,6 +101,25 @@ for POST_FILE in "${POSTS[@]}"; do
   # Strip trailing CR/whitespace
   POST_FILE=$(echo "$POST_FILE" | tr -d '\r' | xargs)
 
+  # ==================== QUIET HOURS (20:00-02:00 TST) ====================
+  CURRENT_HOUR=$(TZ=Asia/Taipei date +%H)
+  if [ "$CURRENT_HOUR" -ge 20 ] || [ "$CURRENT_HOUR" -lt 2 ]; then
+    # Calculate seconds until 02:00 TST
+    NOW_EPOCH=$(date +%s)
+    if [ "$CURRENT_HOUR" -ge 20 ]; then
+      # Today 20:xx → tomorrow 02:00
+      RESUME_AT=$(TZ=Asia/Taipei date -d "tomorrow 02:00" +%s)
+    else
+      # Today 00:xx or 01:xx → today 02:00
+      RESUME_AT=$(TZ=Asia/Taipei date -d "today 02:00" +%s)
+    fi
+    SLEEP_SECS=$((RESUME_AT - NOW_EPOCH))
+    SLEEP_HRS=$(( (SLEEP_SECS + 59) / 3600 ))  # round up
+    log "💤 Quiet hours (20:00-02:00 TST). Sleeping ${SLEEP_SECS}s (~${SLEEP_HRS}hr) until 02:00..."
+    sleep "$SLEEP_SECS"
+    log "⏰ Waking up! Resuming loop."
+  fi
+
   # Check limit
   if [ "$LIMIT" -gt 0 ] && [ "$PROCESSED" -ge "$LIMIT" ]; then
     log "RALPH_LIMIT=$LIMIT reached. Stopping."

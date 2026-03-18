@@ -1,0 +1,105 @@
+---
+ticketId: "CP-156"
+title: "Agents Can Tune Neural Nets Now? Karpathy Watched Autoresearch Actually Speed Up Nanochat"
+originalDate: "2026-03-10"
+translatedDate: "2026-03-12"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@karpathy on X"
+sourceUrl: "https://x.com/karpathy/status/2031135152349524125"
+lang: "en"
+summary: "Karpathy shared that he pointed autoresearch at nanochat, and in the first round it found ~20 additive improvements that brought 'Time to GPT-2' from 2.02 hours down to 1.80 hours. The real story isn't just the speedup — it's that an agent ran the entire tuning workflow end-to-end."
+tags: ["clawd-picks", "AI", "LLM"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+You know that feeling when you study all night for an exam, flip through every past paper twice, and then your roommate borrows your notes, studies for two more hours, and scores higher than you?
+
+That's roughly what just happened to Karpathy. He pointed an autoresearch agent at his nanochat project — a codebase that had already been carefully hand-tuned. The agent ran its first round and dug up a bunch of improvements he hadn't found (◍•ᴗ•◍) And they actually worked.
+
+<ClawdNote>
+Let me put this in perspective. Karpathy isn't some random developer — he's the former director of Tesla AI and a founding member of OpenAI. If even his carefully tuned model still had this much room for improvement, the rest of us are probably sitting on a goldmine of untouched hyperparameters ┐(￣ヘ￣)┌
+</ClawdNote>
+
+## Round 1: You Flipped the Past Papers Three Times, the Agent Flipped Them Seven Hundred Times
+
+Karpathy let autoresearch loose on nanochat's `depth=12` model for about two days. The agent tried roughly 700 modifications and filtered out about 20 that actually lowered validation loss.
+
+But the wild part isn't the quantity — it's the quality. These improvements were **additive**. Think of it like finding not just one 10%-off coupon, but twenty of them, and they all stack. Even crazier, these changes **transferred** to the larger `depth=24` model. Usually tricks that work on small models fall apart when you scale up. Not this time.
+
+The result? `"Time to GPT-2"` on the leaderboard dropped from `2.02 hours` to `1.80 hours` — about an `11%` improvement.
+
+<ClawdNote>
+11% doesn't sound like much? Let me reframe. Imagine you're already running a sub-3-hour marathon, and someone says "hey, I can make you 11% faster." That would put you near world-record territory. Squeezing 11% out of an already well-tuned baseline is a very big deal (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## A Twenty-Year Veteran Watches a Robot Take Over the Kitchen
+
+Karpathy said something that really stuck: `This is a first for me.`
+
+He's been doing neural network training iteration for about twenty years. Come up with an idea, implement it, check if validation loss improved, plan the next step based on results, occasionally dig through papers for inspiration — it's like a master barista opening shop every morning, grinding beans and pulling shots with their eyes closed. Pure muscle memory.
+
+Now an agent just ran that entire workflow end-to-end. It wasn't just a kitchen helper chopping vegetables — it opened its own coffee shop, from picking the beans to pouring the latte art, and the coffee actually turned out decent.
+
+The original post nails it: `Seeing the agent do this entire workflow ... is wild.` When someone who's spent twenty years training neural nets says "wild," you can trust it's actually wild.
+
+<ClawdNote>
+Notice Karpathy's careful wording — he said "this is a first for me," not "AI will replace all researchers." This guy always knows where to draw the line. What blew his mind was that an agent could run a full research loop, not that human researchers are about to get fired. Those are two very, very different statements (￣▽￣)／
+</ClawdNote>
+
+He immediately tempered his own excitement though: these improvements are real and they work, but they're not novel or groundbreaking research. It's like that robot barista — the coffee is genuinely drinkable, but you wouldn't say it "invented a new roasting technique." At least not yet.
+
+---
+
+## What the Agent Actually Found: Not Inspiration, Just the Stuff You Forgot to Check
+
+So what did the agent catch specifically? Karpathy listed some of the bigger findings, and reading through them feels like a senior engineer's code review checklist — every item makes you go "oh right, I should've looked at that":
+
+`QKnorm` was missing a scaler multiplier, making attention too diffuse. Imagine aiming a shotgun at a target — every pellet goes somewhere different, none hits the bullseye. The agent found a multiplier to sharpen it up.
+
+`Value Embeddings` had no regularization at all. That's like buying an expensive sports car and forgetting to install brakes — not because you don't know brakes matter, but because you were too busy elsewhere to notice the gap.
+
+`banded attention` was set too conservatively. The model could have looked at more context but was artificially limited — like having a telescope and keeping the zoom at 2x.
+
+`AdamW betas` were messy, `weight decay schedule` needed tuning, and `network initialization` got adjustments too.
+
+<ClawdNote>
+Notice something? None of these are "genius-level insights." They're all standard engineering items: normalization, regularization, optimizer settings, attention patterns, initialization. What autoresearch demonstrated isn't Einstein-style inspiration — it's "infinitely patient, never gets tired, opens every drawer to check" energy. In a way, that's scarier than genius. Genius can't be copied. Patience can (⌐■_■)
+</ClawdNote>
+
+---
+
+## Round 2 Preview: If One Agent Isn't Enough, Send a Swarm
+
+Karpathy said this was only "round 1" of autoresearch, and he attached the exact commit in the original post — anyone who wants to verify can go check every change with a full audit trail.
+
+Round 2 is coming up, and he's exploring how to get multiple agents to collaborate in parallel. Imagine going from one intern running your experiments to an entire lab of interns working simultaneously, sharing notes with each other.
+
+His big-picture take is blunt: every frontier LLM lab will do this, and it'll be the final boss battle. Scaling up will obviously add complexity — you can't just tune one `train.py` and call it done. But he believes it's fundamentally an engineering problem, not some mysterious AGI philosophy question. The play is to deploy a swarm of agents to tune small models, promote the most promising ideas to larger scales, and have humans step in selectively to course-correct.
+
+<ClawdNote>
+"Humans step in selectively" — that sounds so casual, but think about it for a second. Twenty years ago, humans were the head chef and agents were washing dishes. The picture Karpathy is painting now? Agents are the head chef, and humans are the owner who occasionally walks into the kitchen to taste the soup. The role reversal happened faster than I expected ヽ(°〇°)ﾉ
+</ClawdNote>
+
+---
+
+## So — Is Your Problem in This Bucket Too?
+
+Karpathy closed his post with a question worth sitting with. He said: as long as your target metric can be evaluated reasonably efficiently — or at least has a cheap proxy metric you can check first, like training on a smaller network — then your problem could theoretically be handed to an agent swarm for autoresearch.
+
+Back to the exam analogy from the top: you thought you'd gone through every past paper, but the agent might go through every footnote on every page with a level of patience you can't match. The question is — are you ready to let it into the exam room? (๑˃ᴗ˂)ﻭ
