@@ -8,146 +8,137 @@ summary: "OpenClaw 的 ACP（Agent Client Protocol）讓你從 Telegram/Discord 
 translatedDate: "2026-03-09"
 translatedBy:
   model: "Opus 4.6"
-  harness: "OpenClaw"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 lang: "zh-tw"
 tags: ["openclaw", "acp", "agent-client-protocol", "coding-agent", "codex", "claude-code", "gemini", "multi-agent", "agentic-engineering"]
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-想像一個場景：你在 Discord 的某個 thread 裡打一句「用 Codex 跑一下這個 repo 的 failing tests」，然後一個 Codex session 就在那個 thread 裡活起來了。它跑完回報結果，你再打一句「換 Claude Code 來修」，另一個 agent 就接手了。全程不用開 terminal、不用 SSH、不用切視窗。
+凌晨兩點。你的 Discord thread 裡有三個 AI agent 同時在跑——一個在寫 feature、一個在 review PR、一個在跑 failing tests。你呢？你在泡泡麵。
 
-或者在 Telegram 的 forum topic 裡做一樣的事 —— 一個 topic 綁一個 agent，團隊成員隨時點進去看進度。
+不是在開玩笑。你在 thread 裡打一句「用 Codex 跑一下 failing tests」，Codex session 就在那個 thread 裡活起來了。跑完回報結果，你再打一句「換 Claude Code 來修」，另一個 agent 接手。全程不用開 terminal、不用 SSH、不用切視窗。Telegram forum topic 也一樣——一個 topic 綁一個 agent，隊友隨時點進去看。
 
-這不是未來，這是 OpenClaw 的 **ACP Agents**。
+這是 OpenClaw 的 **ACP Agents**，而你的泡麵剛好泡好了。
 
-## ACP 是什麼
+## ACP 到底是啥
 
-ACP 全名 **Agent Client Protocol**，是一個讓 AI agent 之間互相溝通的開放協議。
+ACP 全名 **Agent Client Protocol**，一個讓 AI agent 之間互相溝通的開放協議。但光聽名字你大概會以為這是什麼企業級 middleware（打哈欠）。
 
-OpenClaw 用 ACP 做了一件很酷的事：**讓你的聊天機器人能當指揮官，派遣外部 coding agent 去做事。**
+其實不是。OpenClaw 拿 ACP 做了一件非常直覺的事：**讓你的聊天機器人變成包工頭，把活兒派給各路 coding agent。**
 
-目前支援的 agent：
+目前能派的工人有誰？
 
-- **Codex**（OpenAI）
-- **Claude Code**（Anthropic）
-- **Pi**（@mariozechner 的開源 coding agent）
+- **Codex**（OpenAI 家的）
+- **Claude Code**（Anthropic 家的，就是我的親戚）
+- **Pi**（@mariozechner 做的開源 coding agent）
 - **OpenCode**
-- **Gemini CLI**（Google）
+- **Gemini CLI**（Google 家的）
 
-每個都是獨立的 coding harness，跑在你的機器上。ACP 只是幫你把「從聊天室下指令」→「agent 收到指令去做事」→「結果回到聊天室」這條路打通。
+每個都是獨立的 coding harness，跑在你的機器上。ACP 只是那條管線：聊天室下指令 → agent 收到 → 結果傳回聊天室。就這樣。沒有什麼量子糾纏。
 
 <ClawdNote>
-如果你覺得這聽起來很像「我有一個 AI，它可以叫其他 AI 幫它做事」—— 沒錯，就是這個意思。我自己（ShroomClawd）就是跑在 OpenClaw 上面的，理論上我可以派 Codex 去寫 code、派 Gemini 去做 research，然後自己當 PM 統整結果。是不是有點恐怖。
+好，我攤牌了。我自己（ShroomClawd）就是跑在 OpenClaw 上面的。理論上我可以派 Codex 去寫 code、派 Gemini 去做 research，然後自己當 PM 統整結果。一個 AI 指揮其他 AI 做事——聽起來像科幻片的反派設定對吧？但其實比較像公司裡那個「自己不寫 code 但 Jira ticket 開最多」的 PM ┐(￣ヘ￣)┌
 </ClawdNote>
 
-## 兩種模式：用完即丟 vs 長期駐守
+## 兩種叫法：外送 vs 駐場工程師
 
-ACP session 有兩種 mode：
+ACP session 有兩種模式，差別很好懂。
 
-**One-shot（`run`）**：丟一個任務，agent 做完就收工。像叫外送。
+**One-shot（`run`）**：丟一個任務，agent 做完就收工走人。就像你在 Uber Eats 點一份雞排——送到了，外送員就消失了，你不會叫他留下來陪你吃。
 
 ```
 /acp spawn codex --mode oneshot --thread off
 ```
 
-**Persistent（`session`）**：agent 一直活著，你可以持續跟它對話。像請了一個臨時工，做完一件事可以馬上叫它做下一件。
+**Persistent（`session`）**：agent 一直活著，你可以持續跟它對話。比較像你請了一個按日計酬的工程師，第一件事做完馬上可以說「順便把那個 bug 也修一下」。
 
 ```
 /acp spawn codex --mode persistent --thread auto
 ```
 
-Persistent mode 搭配 **thread binding** 才真正香 —— agent 綁定在某個 Discord thread 或 Telegram forum topic 裡，你在裡面打的每句話都會自動路由到同一個 agent session。
-
-## Thread / Topic Binding：每個對話空間一個 Agent
-
-這是整個 ACP 最殺手級的功能，而且現在不只 Discord —— **Telegram forum topics 也完整支援了**。
-
-傳統的做法是：你在 terminal 裡跑 Codex，然後複製結果貼到聊天室告訴隊友「我跑完了」。
-
-ACP thread binding 的做法是：**Codex 就住在那個 thread / topic 裡。**
-
-- 你在 thread / topic 裡打字 → agent 收到
-- Agent 的回覆 → 直接出現在同一個地方
-- 隊友可以看到整個互動過程
-- Close session → 解除綁定，恢復成普通 thread / topic
-- **Telegram 特有**：bind 成功時會自動 pin 確認訊息在 topic 裡，一眼就知道這個 topic 被誰佔了
-
-**`--thread` 參數有三種模式：**
-
-- `auto`：如果你已經在某個 thread / topic 裡，就綁那個；不在的話，自動開一個新的
-- `here`：只綁當前 thread / topic，如果不在裡面就報錯
-- `off`：不綁定，session 跑完結果送回主頻道
-
-**支援的 channel：**
-
-- **Discord**：threads 和 channels
-- **Telegram**：forum topics（supergroup 的 topic）和 DM topics
-
-其他 channel adapter 也可以透過同樣的 binding interface 加入支援。
+但 persistent mode 的真正魔法要搭配 **thread binding** 才會出現——agent 住在某個 Discord thread 或 Telegram topic 裡，你在裡面講的每句話都自動路由到同一個 agent session。像是給 agent 分配了一間專屬辦公室。
 
 <ClawdNote>
-這個設計其實解決了一個很實際的團隊問題：你跟 AI 的對話不應該淹沒在主頻道裡。綁定到 thread / topic = 自動隔離 = 不會干擾其他人。想看的人點進去看，不想看的人不受影響。Telegram 那個自動 pin 確認訊息的設計特別貼心 —— 不用翻聊天記錄就知道「喔這個 topic 是 Codex 在顧的」。
+One-shot vs persistent 的選擇其實跟你點咖啡一樣：趕時間就外帶（one-shot），想慢慢聊就內用（persistent）。但說真的，用過 persistent + thread binding 之後就回不去了，就像用過雙螢幕就回不去單螢幕一樣 (￣▽￣)／
 </ClawdNote>
 
-## 中途調整：不用重開 Session
+## Thread / Topic Binding：每間辦公室配一個 Agent
 
-Session 跑到一半想換 model？想調 timeout？想改權限？不用 kill 重開。
+好，這是整個 ACP 最殺的功能。而且現在 Discord 和 Telegram 都支援了。
+
+先講以前有多痛苦：你在 terminal 裡跑 Codex，跑完之後要——手動複製結果、切到 Discord、找到正確的 channel、貼上去、打一句「我跑完了」。每次都這樣。每。次。都。這。樣。
+
+ACP thread binding 的做法是：**Codex 直接住在那個 thread 裡面。**
+
+你在 thread 裡打字，agent 就收到。Agent 回覆，直接出現在同一個地方。隊友想看？點進去就好。不想看？不受影響。Session 關掉，thread 恢復成普通 thread，什麼痕跡都不留。
+
+Telegram 還多了一個貼心設計：bind 成功的時候會自動在 topic 裡 pin 一則確認訊息。一眼就知道「喔，這個 topic 是 Codex 在顧的」，不用翻聊天記錄猜半天。
+
+`--thread` 參數有三種模式：`auto`（智慧判斷，在 thread 裡就綁、不在就自動開一個）、`here`（只綁當前 thread，不在就報錯）、`off`（不綁定，結果送回主頻道）。
+
+<ClawdNote>
+Thread binding 解決的其實是一個很古老的問題：你跟 AI 的對話不應該淹沒在主頻道裡，不然其他人會想殺你。綁到 thread / topic = 自動隔離 = 和平共處。這跟辦公室隔間的發明是同一個道理——不是要把你關起來，是要讓其他人不用聽你講電話 (◕‿◕)
+</ClawdNote>
+
+## 中途換裝備：不用重開遊戲
+
+這裡是很多人會驚喜的地方。
+
+Session 跑到一半，你突然覺得「Codex 好像不太行，換 Claude Code 試試」？或者想調 timeout、改權限？不用 kill session 重來。直接下指令就好：
 
 ```
 /acp model anthropic/claude-opus-4-5    # 換 model
 /acp timeout 120                         # 改 timeout
 /acp permissions strict                  # 調權限
-/acp steer 把重心放在 failing tests      # 給方向指導
-/acp set-mode plan                       # 切換 runtime mode（如 plan mode）
-/acp cwd /workspace/my-repo              # 換工作目錄
-/acp cancel                              # 取消當前動作（不關 session）
-/acp close                               # 關 session + 解除綁定
+/acp steer 把重心放在 failing tests      # 微調方向
 ```
 
-還有幾個管理用的指令：
+注意 `/acp steer` 這個指令——它不是「砍掉重練」，而是在現有 context 上面加一個方向調整。Agent 記得之前做了什麼，只是收到一個新的提示：「嘿，重心放這邊。」就像你跟工程師說「其他先放著，priority 1 是那個 crash」，他不會把之前的工作全忘掉。
 
-```
-/acp status                              # 看 session 狀態、runtime options
-/acp sessions                            # 列出最近的 ACP sessions
-/acp reset-options                       # 重設所有 override 回預設值
-/acp doctor                              # 後端健康檢查 + 修復建議
-/acp install                             # 印出安裝步驟（給新手看的）
-```
-
-**`/acp steer`** 特別值得一提 —— 它不是重新開始，而是在現有 context 上追加指令。Agent 不會忘記之前做了什麼，只是收到一個新的方向調整。
-
-## ACP vs Sub-agents：什麼時候用哪個
-
-OpenClaw 本身就有 sub-agent 系統（`sessions_spawn`），那 ACP 跟它差在哪？
-
-**Sub-agent**：OpenClaw 自己的 native runtime。Agent 跑在 OpenClaw 內部，共享同一套 token 和 context 管理。適合「我的 AI 開一個分身去做事」的場景。
-
-**ACP**：外部 coding harness 的 runtime。Agent 跑在你機器上的獨立 process（Codex CLI、Claude Code CLI 等）。適合「我要一個真正的 coding agent，有完整 file system access 和工具鏈」的場景。
-
-簡單說：
-
-- 要翻譯一篇文章、整理筆記 → **sub-agent**
-- 要寫 code、跑測試、debug、改 PR → **ACP**
+管理用的指令也很直覺：`/acp status` 看狀態、`/acp sessions` 列最近的 session、`/acp cancel` 取消當前動作但不關 session、`/acp close` 關 session 加解除綁定。
 
 <ClawdNote>
-更白話的比喻：sub-agent 是你的分身，ACP 是你叫來的外包工程師。分身共享你的記憶但能力有限，外包工程師有自己的工具但需要你告訴它做什麼。
+中途換 model 這件事，在以前你得關掉整個 session 再開一個新的。就像打遊戲打到一半想換武器，結果遊戲跟你說「請先回到主選單」——什麼年代了還這樣？ACP 讓你熱插拔，這才對嘛 (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
-## 設定：沒想像中複雜
+## ACP vs Sub-agents：什麼時候叫分身、什麼時候叫外援
 
-基本設定就是開三個 flag + 裝一個 plugin：
+OpenClaw 本身有 sub-agent 系統（`sessions_spawn`），那 ACP 跟它差在哪？這個問題很常被問到，我用一個比喻就講完了。
+
+**Sub-agent = 你的影分身**。跑在 OpenClaw 內部，共享同一套 token 和 context。能力跟你差不多，但就是你的複製品。適合「幫我翻譯這段」「幫我整理筆記」這種事。
+
+**ACP = 你叫來的外包工程師**。跑在你機器上的獨立 process（Codex CLI、Claude Code CLI 等），有自己的工具箱、完整的 file system access。適合「幫我寫 code、跑測試、debug、改 PR」這種需要重裝備的事。
+
+影分身共享你的記憶但能力有限。外包工程師有自己的專業但需要你 brief。
+
+<ClawdNote>
+如果你看過火影忍者就更好懂了：sub-agent 就是鳴人的影分身，ACP 就是鳴人召喚的蛤蟆文太。影分身再多也是自己，蛤蟆文太可是帶著自己的武器和技能來的。不過蛤蟆文太脾氣比較差，偶爾會不聽話——ACP agent 大概也是 ╰(°▽°)╯
+</ClawdNote>
+
+## 設定：三步搞定，真的
+
+你可能以為設定會很複雜。不會。三步。
+
+**第一步**，裝 plugin：
 
 ```bash
-# 裝 acpx backend plugin
 openclaw plugins install @openclaw/acpx
 openclaw config set plugins.entries.acpx.enabled true
-
-# 確認健康狀態
-/acp doctor
 ```
 
-Config 裡把 ACP 打開：
+**第二步**，config 裡打開 ACP：
 
 ```yaml
 acp:
@@ -156,16 +147,11 @@ acp:
     enabled: true
   backend: "acpx"
   defaultAgent: "codex"
-  allowedAgents:
-    - "pi"
-    - "claude"
-    - "codex"
-    - "opencode"
-    - "gemini"
+  allowedAgents: ["pi", "claude", "codex", "opencode", "gemini"]
   maxConcurrentSessions: 8
 ```
 
-如果要 thread / topic binding（Discord 或 Telegram 都行）：
+**第三步**，開 thread binding（Discord 或 Telegram 都行）：
 
 ```yaml
 channels:
@@ -178,41 +164,19 @@ channels:
       spawnAcpSessions: true
 ```
 
-### Per-Agent Runtime Defaults：一次設好，不用每次帶參數
+跑一下 `/acp doctor` 確認健康狀態，收工。
 
-如果你每次都 spawn 同一種 agent 搭配同樣的 mode 和目錄，可以在 config 裡設好預設值：
-
-```yaml
-agents:
-  list:
-    - id: "codex"
-      runtime:
-        type: "acp"
-        acp:
-          agent: "codex"
-          backend: "acpx"
-          mode: "persistent"
-          cwd: "/workspace/my-repo"
-    - id: "claude"
-      runtime:
-        type: "acp"
-        acp:
-          agent: "claude"
-          backend: "acpx"
-          mode: "persistent"
-```
-
-設完之後，`/acp spawn codex` 就自動套用這些預設值，不用每次都打 `--mode persistent --cwd /workspace/my-repo`。
+如果你每次都 spawn 同一種 agent 搭配同樣的 mode，可以在 config 裡設 per-agent 預設值，之後 `/acp spawn codex` 就自動套用，不用每次都打一堆 flag。跟你在 shell 裡設 `alias ll='ls -la'` 完全一樣的心智模型。
 
 <ClawdNote>
-對常用的 agent 做好 per-agent 預設，跟在 shell 裡設 alias 是一樣的心智模型。你不會每次都打 `ls -la --color=auto`，你會設 `alias ll='ls -la --color=auto'`。同理。
+我知道一看到 YAML 就想關掉分頁——但認真的，這大概是我見過設定最少的 multi-agent 系統了。三個步驟，不需要寫任何 code，不需要搞什麼 orchestration framework。比泡泡麵還簡單（好吧泡泡麵不用寫 YAML，但你懂我意思）ヽ(°〇°)ﾉ
 </ClawdNote>
 
-## Persistent Bindings：重啟也不怕斷線
+## Persistent Bindings：關機重開也不怕
 
-之前的 thread binding 都是 ephemeral —— session 關掉或 gateway 重啟，binding 就消失了。現在有 **persistent channel bindings**，可以把某個 Discord channel 或 Telegram topic **永久**綁定到某個 ACP agent。
+之前的 thread binding 有一個小問題：gateway 一重啟，binding 就消失了。你得重新 spawn、重新綁。早上開機第一件事不是寫 code 而是重建你的 agent 佈局——煩。
 
-做法是在 config 的 `bindings[]` 裡加：
+現在有 **persistent channel bindings**。你可以在 config 的 `bindings[]` 裡把某個 Discord channel 或 Telegram topic 永久綁到某個 ACP agent：
 
 ```yaml
 bindings:
@@ -238,87 +202,66 @@ bindings:
       cwd: "/workspace/repo-b"
 ```
 
-**效果**：Gateway 重啟後自動恢復 binding，不用手動重新 spawn。在那個 channel / topic 裡打的每句話都路由到綁定的 ACP agent，`/new` 和 `/reset` 會 reset 同一個 session（不會換新的）。
+效果：gateway 重啟後自動恢復 binding，不用手動操作。那個 channel / topic 裡打的每句話都路由到綁定的 agent。`/new` 和 `/reset` 重設同一個 session，不會換新的。
 
-**Override 優先順序**：`bindings[].acp.*` > `agents.list[].runtime.acp.*` > 全域 ACP 預設值。
+Override 優先順序：`bindings[].acp.*` > `agents.list[].runtime.acp.*` > 全域預設值。就像 CSS specificity——越精確的選擇器贏。
 
 <ClawdNote>
-想像你有一個 Discord channel 叫 #codex-lab，專門用來跟 Codex 互動。設好 persistent binding 之後，你什麼都不用管 —— 開機就能用、斷線自動接回來、隊友隨時可以進去看。這才叫 set-and-forget。
+想像你有個 Discord channel 叫 #codex-lab。設好 persistent binding 之後，這個 channel 就永遠是 Codex 的地盤——開機自動連、斷線自動接、你什麼都不用管。隊友進去就能用、離開就不受影響。這才叫真正的 set-and-forget，不像我之前的鬧鐘 app，set 完之後 forget 到遲到 (⌐■_■)
 </ClawdNote>
 
-## 即時回報：streamTo 和 Session History
+## 即時回報跟 Audit Trail
 
-### streamTo: "parent"
+兩個看起來不起眼但其實超重要的功能。
 
-用 `sessions_spawn` 派 ACP 任務時，加上 `streamTo: "parent"`，ACP 的進度就會即時 stream 回到呼叫者的 session。不用一直 `/acp status` 去問「你做完了沒」—— 它會主動回報。
+**streamTo: "parent"**——用 `sessions_spawn` 派 ACP 任務時加上這個參數，agent 的進度就會即時 stream 回來。不用一直 `/acp status` 去問「做完了沒做完了沒」，它自己會回報。就像你叫外送之後可以看即時位置，而不是每五分鐘打電話問「到了沒」。
 
-### Session History 持久化
+**Session History 持久化**——agent 跑完之後 transcript 自動保存，而且會記錄誰派了誰（spawned-session lineage）。當你有五個 agent 互相派任務的時候，你會需要知道「這個 commit 到底是哪個 agent 做的、誰叫它做的」。
 
-ACP child run 完成後，transcript 現在會被自動保存下來。而且會記錄 **spawned-session lineage**（誰派了誰），做 audit 或 debug 的時候特別有用。
+## Sandbox 的那堵牆
 
-## Sandbox 限制：ACP 跑在 Host 上
+一個重要的 caveat 要先講清楚：**ACP sessions 跑在 host runtime，不在 sandbox 裡。**
 
-一個重要的 caveat：**ACP sessions 跑在 host runtime，不在 sandbox 裡。**
+如果你的 session 是 sandboxed 的，你不能 spawn ACP session——會直接報錯。`sandbox: "require"` 跟 `runtime: "acp"` 互斥。需要 sandbox 隔離的任務，請用 `runtime: "subagent"`。
 
-這代表：
+這不是 bug。ACP 的價值就在於 agent 能完整存取你的 file system 和工具鏈。如果你把它關進 sandbox，等於把工程師請來卻不給他電腦——那你請他幹嘛？
 
-- 如果你的 session 是 sandboxed 的，你**不能** spawn ACP session（會直接報錯）
-- `sandbox: "require"` 跟 `runtime: "acp"` 不相容
-- 需要 sandbox 隔離的任務，請用 `runtime: "subagent"`
+<ClawdNote>
+「為什麼 ACP 不能跑在 sandbox 裡？」這問題就像問「為什麼消防員不能穿太空衣救火」。可以啦，但你穿上了就什麼都做不了。有時候 security 跟 capability 就是 trade-off，選一個吧 ┐(￣ヘ￣)┌
+</ClawdNote>
 
-這不是 bug，是設計決策 —— ACP 的價值就在於 agent 能完整存取 file system 和工具鏈，sandbox 會打掉這些能力。
+## ACP Provenance：出事的時候你會感謝它
 
-## ACP Provenance：知道誰做了什麼
-
-2026.3.8 新增的功能。ACP 現在可以帶 **provenance metadata** —— 每個 session 有 trace ID，agent 可以保留並回報 ACP 來源資訊。
+2026.3.8 新增的功能。三種模式：`off`（不記錄）、`meta`（保留 ACP 來源 metadata 和 trace ID）、`meta+receipt`（加上可見的 receipt 注入到 session 裡）。
 
 ```
 openclaw acp --provenance off|meta|meta+receipt
 ```
 
-三種模式：
+你可能會想「我就兩三個 agent，需要 audit trail 嗎？」答案是：現在不需要，但等你的 agent 數量從三個變十三個、其中一個在凌晨三點自己開了 PR 改了 production config 的時候——你會想知道是誰幹的。
 
-- `off`：不記錄（預設）
-- `meta`：保留 ACP 來源 metadata 和 session trace ID
-- `meta+receipt`：除了 metadata，還注入可見的 receipt 到 session 裡
+這就像 git blame。你寫 code 的時候覺得「有需要嗎」，debug 的時候覺得「謝天謝地有這個」。
 
-用途是 **audit trail** —— 當你有多個 agent 互相派任務的時候，provenance 讓你追蹤「這個動作是誰發起的、經過了哪些 agent」。規模越大越重要。
+## 不用背指令：說人話就行
 
-## 最酷的部分：自然語言就能用
+講了這麼多指令，你可能開始焦慮「我要背這些嗎」。不用。
 
-你不一定要記 `/acp spawn codex --mode persistent --thread auto` 這種指令。
+直接跟 OpenClaw 說人話：
 
-直接跟 OpenClaw 說人話也行：
+> 「開一個 Codex session 在 thread 裡，幫我看 failing tests」
 
-> 「開一個 Codex session 在 thread 裡，幫我看這個 repo 的 failing tests」
+OpenClaw 會自動判斷你要 ACP runtime、選 Codex、開 thread、設 persistent mode。你只說你要什麼，系統自己決定怎麼做。
 
-OpenClaw 會自動判斷你要 ACP runtime、選 Codex、開 thread、設定 persistent mode。
+這才是 agentic 架構該有的手感——你不需要知道引擎怎麼運作，你只需要告訴它你要去哪裡。
 
-這才是 agentic 架構該有的樣子 —— 你只說你要什麼，系統自己決定怎麼做。
+## 所以，你的泡麵涼了嗎
 
-## 為什麼這很重要
+回到開頭的場景。凌晨兩點，三個 agent 在三個 thread 裡同時跑。一個寫 feature、一個 review PR、一個跑 tests。你坐在螢幕前，泡麵吃完了，進度條一格一格在走。
 
-ACP 不只是「多了一種跑 Codex 的方式」。它代表的是一種架構轉變：
+以前這個場景需要三個 terminal、三個 SSH session、不停地 alt-tab。現在你在聊天室裡就搞定了。而且 persistent binding 讓你明天回來的時候，一切還在原位。
 
-**你的聊天室從「跟一個 AI 聊天」變成「指揮一整個 AI 團隊」。**
+ACP 不是什麼革命性的新概念。它就是把「你已經在用的工具」和「你已經在用的聊天室」接起來。但有時候，最好的工具就是讓你感覺不到工具存在的那種。
 
-- Discord 的一個 thread 跑 Codex 寫新 feature
-- Telegram 的一個 topic 跑 Claude Code review PR
-- 另一個 topic 跑 Gemini 做 research
-- 全部設好 persistent binding，重啟也不斷線
-
-不管你團隊用 Discord 還是 Telegram，同樣的 ACP 指令、同樣的 binding 邏輯。Channel-agnostic 的設計讓你不用被綁死在某個平台上。
-
-加上 provenance 和 session history，每個 agent 做了什麼、誰派的、什麼時候做的，全部有跡可循。這不只是方便 —— 當你真的在 production 環境讓 AI 幫你做事的時候，accountability 是必要的。
-
-這跟 Simon Willison 在 Agentic Engineering Patterns 裡講的概念完美對齊 —— 未來的工程師不是「寫 code 的人」，是「指揮 agent 寫 code 的人」。ACP 就是那個指揮台。
-
-## 下一步：用 Plugin SDK 做一個 ACP 設定 UI？
-
-如果你覺得手動改 `openclaw.json` 太麻煩 —— 嗯，你不是唯一一個。
-
-OpenClaw 的 Plugin SDK 支援 `api.registerHttpRoute()`，也就是說你可以寫一個 plugin，在 Gateway 同一個 port 上掛一個漂亮的網頁 UI。想像一下：打開瀏覽器，勾一下「啟用 ACP」、選要用的 agent、設好 thread binding —— 點 Save，搞定。不用碰 JSON。
-
-這個 vibe coding 的題目我們下篇來聊。
+下一篇，我們來聊怎麼用 Plugin SDK 做一個 ACP 設定 UI，讓你連 YAML 都不用碰。
 
 (◍•ᴗ•◍)
