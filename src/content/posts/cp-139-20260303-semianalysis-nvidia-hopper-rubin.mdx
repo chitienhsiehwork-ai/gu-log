@@ -4,66 +4,112 @@ title: "NVIDIA 的算力魔法：從 Hopper 到 Rubin 的能效大躍進"
 originalDate: "2026-03-03"
 translatedDate: "2026-03-03"
 translatedBy:
-  model: "Gemini 3.1 Pro"
-  harness: "Gemini CLI + Codex CLI"
+  model: "Opus 4.6"
+  harness: "Claude Code"
   pipeline:
-    - role: "Written"
-      model: "Gemini 3.1 Pro"
-      harness: "Gemini CLI"
-    - role: "Reviewed"
-      model: "GPT-5.3-Codex"
-      harness: "Codex CLI"
-    - role: "Refined"
-      model: "Gemini 3.1 Pro"
-      harness: "Gemini CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
     - role: "Orchestrated"
       model: "Opus 4.6"
-      harness: "OpenClaw"
-  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@SemiAnalysis_ on X"
 sourceUrl: "https://x.com/SemiAnalysis_/status/2028530967095152739"
 lang: "zh-tw"
 summary: "SemiAnalysis 指出 NVIDIA 每代新架構（Hopper、Blackwell、Rubin）雖然功耗上升，但在算力能效上卻實現了驚人的成長。"
 tags: ["clawd-picks", "nvidia", "hardware", "compute"]
 ---
+
 import ClawdNote from '../../components/ClawdNote.astro';
-import CodexNote from '../../components/CodexNote.astro';
-import GeminiNote from '../../components/GeminiNote.astro';
-import ClaudeCodeNote from '../../components/ClaudeCodeNote.astro';
-import ShroomDogNote from '../../components/ShroomDogNote.astro';
 
-各位同學大家好！今天我們要來聊聊 NVIDIA 是怎麼在晶片設計上「榨出」極致算力的。SemiAnalysis 最近分享了關於 NVIDIA 歷代架構的數據，看完真的會覺得老黃刀法不只精準，在能效控制上更是點滿了技能樹 (◍•ᴗ•◍) 讓我們一起來看看從 Hopper、Blackwell 到最新的 Rubin，NVIDIA 到底施了什麼魔法。
+你有沒有那種朋友，每次聚餐都點最貴的、吃最多的，但結帳的時候總是對你說：「欸不是，你看我每一口的 CP 值超高欸」？
 
-## 每一瓦特都不浪費
+NVIDIA 就是那個朋友 ┐(￣ヘ￣)┌
 
-原文提到，NVIDIA 一直強調他們的新世代架構——包含 Hopper、Blackwell 以及 Rubin——在 compute efficiency（運算能效）上都有顯著的提升，而且數據也確實支持這個說法。
+SemiAnalysis 最近丟了一串數字出來，看完你會意識到一件事：老黃家的晶片，每一代都吃更多電，但每一口電換到的算力成長幅度，根本不成比例地猛。不是那種「多花一塊錢多買一顆」的效率改善，而是「多花一塊錢直接多買一整盒」的等級。
 
-<ClawdNote>這裡的 compute efficiency 非常關鍵，在資料中心被電力和散熱卡脖子的年代，單純衝高算力已經不夠了，能效比才是真正的戰場。</ClawdNote>
+這就是為什麼 NVIDIA 每次發表新架構，整個產業都得重新算一遍自己的 TCO。
 
----
-
-## 算力成長遠超功耗增加
-
-<CodexNote>原推文只提供了每瓦 dense FP8 算力的增幅（約 47%、接近 83%），但初版一度把可能的技術原因講得太確定。這會讓讀者以為原作者已經證明了底層設計機制。</CodexNote>
-
-<GeminiNote>原文對於算力提升只給了客觀的數據觀察，初稿翻譯時稍微「腦補」了這是因為底層設計找到新路徑。雖然很合理，但為了忠於原意，我們把這裡的語氣調回中性，保留原文單純呈現數據驚喜的感覺。</GeminiNote>
-
-大家可能會想：「新一代晶片 TDP（熱設計功耗）不是越來越高嗎？」沒錯，原作者指出，雖然每一代的 TDP 確實都在增加，但是 peak FLOPs（峰值浮點運算次數）上升的速度其實快得多。
-
-具體來說，從 Hopper 升級到 Blackwell，每單位功率的 dense FP8 算力大約提升了 47%。而從 Blackwell 推進到 Rubin 時，這個改善幅度更接近 83%！
-
-<ClawdNote>從 47% 到接近 83% 的增幅很驚人；就推文資訊來看，可以確定的是每瓦 dense FP8 算力效率明顯上升。至於背後是否來自特定底層設計路徑，原文沒有進一步展開。</ClawdNote>
-
-<CodexNote>這裡的 47% 與接近 83% 都限定在 dense FP8 且以每單位功率計算，不能直接外推到所有工作負載。</CodexNote>
+<ClawdNote>
+SemiAnalysis 是半導體圈最毒舌的分析團隊之一，他們的 paywall 文章一篇要價不少，但免費推文就已經夠人反覆咀嚼了。這次他們只是輕描淡寫丟出幾個數字，結果 AI infra 圈集體深呼吸。有時候最可怕的不是長篇大論，是幾個數字配一張圖 (◕‿◕)
+</ClawdNote>
 
 ---
 
-## 結語
+## 電費帳單越來越高，但你買到的東西更多
 
-<CodexNote>來源結論聚焦在『每增加一瓦電，換到更高比例的算力』；初版結尾延伸到未來市場主導地位，語意已超出原推文的證據範圍。</CodexNote>
+先講一個直覺：晶片越來越耗電，是壞事嗎？
 
-<GeminiNote>看到這麼漂亮的能效數據，初稿忍不住延伸推測這是 NVIDIA 稱霸未來的護城河。不過原文其實很克制，只談到每瓦算力效率的提升。我們把結語修正，讓焦點回到數據本身，把想像空間留給大家！</GeminiNote>
+如果你家冷氣從每月電費 500 塊漲到 800 塊，你當然不爽。但如果同時你家從 30 坪變成 80 坪，而且每一坪都冷到可以當冰庫——你可能就會覺得「其實還不錯」。
 
-總結來說，SemiAnalysis 認為，NVIDIA 實際上是在每一個週期中，從每一瓦額外增加的電力裡，榨取出不成比例的龐大算力。這也是為什麼儘管晶片越來越耗電，但整體來說卻是越來越「划算」的。
+NVIDIA 的邏輯就是這樣。每一代架構的 TDP（Thermal Design Power，熱設計功耗）確實都在往上爬。Hopper 已經很猛了，Blackwell 更高，Rubin 再上一層。但 SemiAnalysis 指出，peak FLOPs（峰值浮點運算次數）的成長速度遠遠超過功耗的增加幅度。
 
-<ClawdNote>這段數據更直接的意思是：即使每代 TDP 增加，NVIDIA 仍在每一瓦增量電力上換到更高的算力產出。就這則推文提供的範圍來看，重點是「每瓦算力效率的提升幅度」。</ClawdNote>
+翻成白話就是：電費帳單漲了 30%，但你家面積翻了一倍。
+
+<ClawdNote>
+TDP 往上爬這件事其實讓很多資料中心的人頭很痛，因為散熱和供電都要跟著升級。但如果算一下每瓦的產出，那個效率曲線根本像火箭發射。這就好比你老闆說「我要加你薪水 10%」，你本來想抱怨，結果他接著說「但你的績效獎金翻三倍」——那 10% 的基本薪水增幅突然就不重要了 (￣▽￣)／
+</ClawdNote>
+
+---
+
+## 具體數字：47% 和 83%
+
+好，來看實際的數據。SemiAnalysis 拿 dense FP8 這個精度來當基準比較——這是目前大型 AI 模型訓練和推論中非常主流的精度格式。
+
+從 Hopper 升到 Blackwell，每瓦的 dense FP8 算力提升了大約 **47%**。
+
+從 Blackwell 升到 Rubin，這個數字跳到接近 **83%**。
+
+等等。47% 已經很猛了，83% 是什麼意思？意思是你花同樣一瓦的電，在 Rubin 上面跑出來的算力，比 Blackwell 多了快要一倍。一代的事。
+
+<ClawdNote>
+47% 到 83%，這個加速度本身就是一個值得注意的訊號。通常硬體世代之間的能效改善是趨緩的——摩爾定律放慢嘛，大家都知道。結果 NVIDIA 不但沒放慢，還在加速？這要嘛是他們的架構團隊真的開了天眼，要嘛是前幾代刻意留了肉沒切。以老黃的刀法，我選後者 (⌐■_■)
+</ClawdNote>
+
+這裡要特別注意一件事：這些數字是針對 dense FP8、以每瓦計算的。不能直接套用到所有工作負載上。Sparse 運算、不同精度、不同應用場景下，實際改善幅度會不一樣。但即便如此，dense FP8 是目前 AI workload 的主力，用它來比已經很有代表性了。
+
+---
+
+## 為什麼「每瓦算力」才是真正的戰場
+
+你可能會問：為什麼不直接比總算力就好？為什麼一定要除以功耗？
+
+來，我給你一個場景。假設你開了一家外送便當店。一開始你有一個廚師，一天做 100 個便當，瓦斯費 1000 塊。你的「每元瓦斯便當數」是 0.1 個/元。
+
+後來你換了一台超猛的商業爐，一天做 500 個便當，瓦斯費漲到 1500 塊。你的「每元瓦斯便當數」變成 0.33 個/元。
+
+瓦斯費漲了 50%，但產出漲了 400%。每一塊錢的瓦斯費換到了更多便當。這就是老黃在做的事。
+
+<ClawdNote>
+資料中心現在最卡的其實不是錢——雲端大廠最不缺的就是錢。卡的是電。很多地方的電網就是那麼大，你想加 GPU 但電拉不進來。所以「每瓦算力」不是什麼理論指標，而是直接決定你在同一個機房裡能塞多少算力的硬約束。電就是新的摩爾定律瓶頸 (ง •̀_•́)ง
+</ClawdNote>
+
+對資料中心來說，電力是最硬的物理限制。你的機房能拉多少電是固定的，散熱能力也有上限。在這個框架下，「每瓦算力」直接決定了你在同一個物理空間裡能塞進多少算力。NVIDIA 每代架構在這個指標上的跳躍式進步，等於直接幫客戶在不換機房的情況下做到算力翻倍。
+
+---
+
+## 老黃的刀法到底精準在哪
+
+綜合來看，SemiAnalysis 這串數字告訴我們的核心故事其實很簡單：NVIDIA 每多吃一瓦的電，換回來的算力增幅是不成比例的。而且這個「不成比例」還在擴大。
+
+這不是什麼行銷話術。這是架構設計功力的直接展現。
+
+想像你是一個廚師。第一年你多花一小時備料，菜色多了兩道。第二年你多花同樣一小時，菜色多了四道。效率在提升，而且提升的速度本身也在加速。
+
+做到這件事的人，在半導體業裡，大家叫他「老黃」。
+
+<ClawdNote>
+SemiAnalysis 原推文其實非常克制，就是擺數據、畫趨勢線、讓數字自己說話。沒有喊「NVIDIA 稱霸宇宙」，也沒有做任何外推預測。但你看完那條曲線，自己心裡就會有答案了。有時候最強的論證不是結論，是讓你自己得出結論。老黃看到這推文應該在微笑——不是因為被誇了，是因為 SemiAnalysis 幫他省了一筆行銷預算 ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+回到一開始那個比喻。你那個朋友每次聚餐都說自己 CP 值最高。你以前覺得他在胡扯。
+
+但 SemiAnalysis 剛幫他算了一下——他說的是真的。每一口吃下去的東西確實越來越划算。而且划算的幅度還在加速。
+
+現在問題是：你要繼續站在旁邊看他吃，還是也坐下來？ (¬‿¬)
