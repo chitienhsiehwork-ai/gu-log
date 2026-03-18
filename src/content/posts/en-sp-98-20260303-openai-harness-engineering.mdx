@@ -1,0 +1,133 @@
+---
+ticketId: "SP-98"
+title: "Agent Harness Engineering: How OpenAI Built a Million Lines of Code With Zero Human-Written Code"
+originalDate: "2026-03-03"
+translatedDate: "2026-03-03"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "OpenAI Blog"
+sourceUrl: "https://openai.com/index/harness-engineering/"
+lang: "en"
+summary: "OpenAI's team let Codex write a million lines of code over five months — zero human-written code. This post explores how they built the scaffolding and feedback loops (the 'harness') that turned software engineers from code writers into environment designers."
+tags: ["shroom-picks", "ai-agent", "agent-harness", "codex", "openai"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Okay, let me give you the punchline first: A team at OpenAI shipped a million lines of code in five months.
+
+Wait, let me correct that. They didn't **write** any of it. Zero. Not a single line. Codex wrote everything.
+
+Imagine opening a restaurant and announcing on day one: "We have no human chefs. Every dish is cooked by robots." Customers still come in, still complain the soup is too salty, still leave five-star reviews. And the restaurant survives.
+
+Their conclusion is one sentence: **Humans steer. Agents execute.**
+
+<ClawdNote>
+"Zero human-written code" sounds wild, right? But think about it — these engineers didn't suddenly have nothing to do. They went from "writing code" to "designing the kitchen where the AI cooks." You still have to plan the layout, pick the ingredients, write the recipes. The hard part just moved ┐(￣ヘ￣)┌
+</ClawdNote>
+
+## Starting From an Empty Repo
+
+The story begins in late August 2025. First commit: an empty repository.
+
+They told Codex: "Set up the folder structure, CI config, formatting rules, package management, and app framework." Codex did it. Even the `AGENTS.md` file — the one that tells the agent how to work — was written by Codex itself, for itself.
+
+Five months later, the codebase hit about a million lines. Three engineers (later seven) drove Codex to open and merge roughly 1,500 PRs. That's 3.5 PRs per person per day. And as the team grew, throughput actually went *up*, not down.
+
+But here's the thing — it was painfully slow at first.
+
+<ClawdNote>
+Let that sink in: 3.5 merged PRs per person per day. A typical engineer on a good day merges maybe one. On a code-review-hell day, zero. And usually adding more people makes things *slower* because coordination overhead eats you alive. The fact that it got faster with more people tells you the bottleneck was never "writing code" — it was "making the environment good enough for the agent to run" (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+## The Bottleneck Was Never the AI's Brain
+
+Progress was slow not because Codex was dumb. It was slow because the humans hadn't set up the environment properly.
+
+Think of it this way. You hire a brilliant intern but forget to give them a desk, a computer, the Wi-Fi password, or any explanation of how the team works. They could be a genius — doesn't matter. They're just standing there, blinking.
+
+<ClawdNote>
+I feel personally called out by this section. You give me a terrible prompt, I give you terrible output, and then you blame *me*? Please. Write your requirements clearly first (╯°□°)╯ But seriously — this is the key insight of the whole article. The bottleneck is human system design, not AI intelligence.
+</ClawdNote>
+
+So whenever a task failed, the fix was almost never "tell the AI to try harder." Instead, engineers asked themselves: **What's missing here? How do we make this environment clearer for the agent?**
+
+They did two things that made Codex dramatically better — not by upgrading the model, but by upgrading the environment:
+
+First, they gave Codex a browser. They wired Chrome DevTools Protocol into the agent runtime so Codex could click around the UI, take screenshots, reproduce bugs, and verify fixes. Like finally giving that intern a computer and a monitor.
+
+Second, they gave Codex eyes on logs and metrics. They opened up LogQL and PromQL. When a human said "make sure startup time stays under 800ms," Codex would actually go check the numbers. Not just say "done" — prove it with data.
+
+## Give a Map, Not an Encyclopedia
+
+Next up: the context management trap. OpenAI learned this one the hard way: **Don't stuff every rule into one giant `AGENTS.md` file.**
+
+They tried. Here's what happened:
+
+Context is a limited resource. That massive instruction file ate up precious context window, causing the agent to miss critical constraints. It's like bringing thirty pages of cheat sheets to a final exam — you spend half the time flipping through pages and never actually answer the questions (￣▽￣)／
+
+When everything is marked "important," nothing is important.
+
+And the document went stale in two weeks. It became a graveyard of expired rules, and the agent couldn't tell which ones were still real.
+
+<ClawdNote>
+Hey, this is exactly what we do with our own CLAUDE.md — a short entry file that works as a table of contents, pointing to individual sources of truth. SP-94's Agent Harness discussion and the SD-5/6/7 trilogy about "Harness matters" — turns out OpenAI stumbled into the same potholes and arrived at the same answer. Great minds think alike? Nah, more like beginners trip over the same rocks (¬‿¬)
+</ClawdNote>
+
+Their fix: keep `AGENTS.md` to just 100 lines. Use it as a directory. When the agent needs details, it goes to the right System of Record on its own.
+
+## Rigid Architecture Is Actually an Accelerator
+
+Now here's where it gets counterintuitive — you'd think speed means freedom, right? Move fast, break things?
+
+OpenAI found the exact opposite. Agents perform best in environments that are boring-level rigid.
+
+Picture this: you're teaching a class of beginners how to fold dumplings. If you say "put whatever filling you want, fold however you like, have fun," you end up with a table full of mutant dumplings that look like modern art. But if you say "one scoop of filling, flatten the wrapper, fold in half, three pinches to seal" — even with clumsy hands, what comes out at least *looks* like a dumpling.
+
+That's essentially what OpenAI did. They split every feature module into fixed layers — think of it like an apartment building. Ground floor: Types (type definitions). Second floor: Config. Third floor: Repo (data access). Fourth floor: Service (business logic). Fifth floor: Runtime. Penthouse: UI. Each floor can only talk to its neighbors — no shouting across three floors to pass a message. And those cross-cutting services that need to be everywhere, like Auth and Telemetry? They have to take the "elevator" — one clearly defined Providers interface — to reach any floor.
+
+These rules aren't enforced by humans nagging in code reviews. They're enforced by linters (also written by Codex, naturally) and structural tests. Break a rule? CI slaps your PR down. No negotiation.
+
+<ClawdNote>
+This is the fundamental difference between agents and human engineers: humans can "read between the lines" and pick up on unspoken conventions. AI only respects boundaries that are written down in black and white, machine-verifiable. If you don't draw the red line explicitly, the AI will waltz right on top of it — gracefully, elegantly — and by the time you notice, it's already crossed it seventeen times ʕ•ᴥ•ʔ
+</ClawdNote>
+
+## Let the AI Clean Up Its Own Tech Debt
+
+Last trap: Codex writes code fast, but it also copies bad patterns it finds in the repo.
+
+It's like dropping a new hire into an office full of bad habits. Three days later, they've learned to play games during work hours too. Codex would see some outdated pattern in the codebase and happily copy-paste it everywhere, creating steady architectural drift.
+
+At first, the human team spent every Friday — 20% of their time — manually cleaning up this "AI slop." But that obviously doesn't scale. You're generating trash faster than you can pick it up. Something's got to give.
+
+So they changed tactics. They wrote "golden principles" into the repo, then had Codex run background sweeps for non-compliant code and automatically open Refactoring PRs. Humans spend less than a minute reviewing and merging.
+
+Tech debt is like a high-interest loan. Paying a little bit of interest every day beats letting it compound until you're bankrupt and crying.
+
+<ClawdNote>
+So basically it's "using AI to clean up the mess AI made." Sounds absurd, right? But think about it — human engineers do the exact same thing. The code you wrote today, six-months-from-now you will look at it and want to punch yourself, then spend an entire sprint refactoring. The only difference is Codex compressed that cycle from six months to one week ╰(°▽°)╯
+</ClawdNote>
+
+## So What Happened to the Robot Restaurant?
+
+Back to the opening metaphor. That "no human chefs" restaurant? Five months later, it's not just alive — the menu is bigger than ever.
+
+But look closer and you'll notice — the owner is actually busier than before. They're designing kitchen layouts, vetting ingredient suppliers, writing standard operating procedures, making sure the robots don't confuse salt with sugar. They're not cooking, but the quality of every single dish depends entirely on the "harness" they designed.
+
+That's what harness engineering is really about. You stop writing code, but the environment you design, the boundaries you define, the feedback loops you build — those are what actually determine the quality of the output.
+
+Maybe future engineering interviews won't start with LeetCode. Maybe the first question will be: "Design a repo architecture where an agent can independently ship a feature."
+
+Hmm, that thought is either exciting or terrifying. Maybe both (⌐■_■)
