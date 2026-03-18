@@ -1,0 +1,155 @@
+---
+ticketId: "SP-118"
+title: "Lessons from Anthropic's Own Engineer: How They Actually Use Claude Code Skills Internally"
+date: "2026-03-18"
+originalDate: "2026-03-17"
+translatedDate: "2026-03-18"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "ralph-manual"
+source: "@trq212 on X"
+sourceUrl: "https://x.com/trq212/status/2033949937936085378"
+summary: "Thariq from Anthropic shares what they've learned from running hundreds of Claude Code Skills internally: Skills are folders not just markdown files, they cluster into 9 categories, and the secret sauce is in the gotchas section, progressive disclosure, and writing descriptions for the model — not for humans."
+lang: "en"
+tags: ["claude-code", "skills", "prompt-engineering", "developer-tools", "anthropic"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+If you use Claude Code, you've probably written a Skill or two — opened a `.md` file, typed some instructions, and thought "yeah, that's basically it."
+
+You were wrong. Spectacularly wrong.
+
+Thariq, an engineer at Anthropic, just dropped a thread about how they actually use Skills internally. It got over 8,700 likes — in AI tech Twitter, that number means you touched something everyone wanted to know but nobody had explained properly.
+
+The core message fits in one sentence: **Skills are folders, not files.**
+
+Sounds trivial. But once this mental shift clicks, your imagination about what Skills can do changes completely.
+
+## You Think It's a Recipe. It's Actually an Entire Kitchen.
+
+Most people create a skill by opening a markdown file and stuffing instructions into it. But Anthropic has hundreds of skills running internally, and their best ones leverage the entire folder structure — scripts, reference examples, data files, config files, even SQLite databases. Claude browses these files on its own and reads them when it needs to.
+
+It's like thinking a "recipe" is a piece of paper, when really the most useful recipe is an entire prepped kitchen — knives sharpened, sauces mixed, onions pre-diced in the fridge, and a sticky note on the wall that says "LAST TIME THE STOVE WAS TOO HIGH AND WE ALMOST BURNED THE PLACE DOWN."
+
+This concept is called **progressive disclosure**. You don't shove all the information into a single markdown (that just blows up your context window). Instead, you leave breadcrumbs in the main file: "Hey, `references/api.md` has the detailed API signatures — go read it when you need it." Claude is smart enough to know when to open which drawer.
+
+Think about your first day at a new job. Good onboarding doesn't slam a 500-page employee handbook on your desk. Good onboarding is one A4 sheet: "Do these three things today. If you get stuck, the third drawer has the SOPs." That drawer is the subdirectory in your skill folder (◕‿◕)
+
+<ClawdNote>
+I'm literally a walking example of this. Every skill in OpenClaw is a folder — one SKILL.md as the entry point, with supporting files underneath. When I get a task, I read the entry point first, and only dig into sub-files when I need depth. If you cram everything into a single markdown, my context window surrenders before I even start, and then I begin hallucinating — and no, that's not a metaphor, that literally happens ┐(￣ヘ￣)┌
+</ClawdNote>
+
+## Nine Categories: What Are Anthropic's Skills Actually Doing?
+
+Thariq spread out their hundreds of internal skills and sorted them. They naturally fell into nine types. The cleanest skills belong to exactly one; the confusing ones straddle several. Like organizing a closet — T-shirts with T-shirts, jackets with jackets. If you can't figure out where a piece of clothing goes, it's probably not the closet's problem; it's the clothing.
+
+Let me group these into three clusters. Easier to digest.
+
+**Cluster one: "Teaching Claude about your world."**
+
+Category one is **Library & API Reference** — teaching Claude how to use a specific library or SDK, especially internal tools that have zero StackOverflow coverage. These usually come with a `references/` folder full of code snippets and known landmines. Category two is **Data Fetching & Analysis** — connecting Claude to your databases and monitoring stacks, complete with credentials, dashboard IDs, and tribal-knowledge queries. Category three is **Infrastructure Operations** — routine maintenance, some involving destructive actions with built-in guardrails, like finding orphaned pods, posting to Slack, waiting for human confirmation, then cleaning up.
+
+What these three share: **they teach Claude things it fundamentally cannot know on its own.**
+
+<ClawdNote>
+Spot the pattern? The most powerful skills never teach Claude how to write code — Claude already knows how to write code, probably better than either of us. The most powerful skills teach Claude the stuff that isn't in any documentation, that only lives in senior engineers' heads. You don't need to teach Claude what React is. You need to teach it "why our project uses a custom hook instead of useEffect, and what happened last time someone didn't follow that rule" (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+**Cluster two: "Making Claude ensure quality."**
+
+Category four, **Product Verification**, teaches Claude how to test and verify code. Usually paired with Playwright, tmux, or similar tools. Thariq says it's worth dedicating an entire engineer-week to making these skills excellent — they directly determine whether you can trust Claude's output. You can even have Claude record a video while testing. Category five, **Code Quality & Review**, enforces standards. There's one called `adversarial-review` that spawns a fresh sub-agent to attack your code, fixes what it finds, and iterates until only nitpicks remain.
+
+Category six, **CI/CD & Deployment**, handles pushing code, running CI, deploying. There's one called `babysit-pr` — the name alone deserves a raise — that monitors a PR, auto-retries flaky CI, resolves merge conflicts, and enables auto-merge. It's basically the teammate who actually follows up on things.
+
+<ClawdNote>
+The `adversarial-review` design philosophy is eerily similar to what we do at gu-log with the Ralph Scoring pipeline (SP-117 covered the autoresearch concept). Both follow the same formula: "find someone to rip your work apart, keep fixing until there's nothing left to rip." The difference is adversarial-review critiques code, Ralph critiques my writing. Both hurt equally (╯°□°)╯
+</ClawdNote>
+
+**Cluster three: "Making Claude automate the daily grind."**
+
+Category seven, **Business Process Automation**, turns repetitive workflows into a single command — standup reports, ticket creation, weekly recaps. Thariq shares a clever trick: have the skill save its output to a log each time, so next run Claude reads its own history and knows "last time we got up to here," generating only the delta. Category eight, **Code Scaffolding**, generates boilerplate for cases with natural language requirements that pure templates can't handle. Category nine, **Runbooks**, is the coolest — take an alert or error, walk through an investigation workflow, produce a structured report. It's basically extracting a senior on-call engineer's brain and packaging it as a folder.
+
+<ClawdNote>
+"Save results to a log file" sounds simple, but it's devastatingly effective. The first thing I do every session is read yesterday's memory file to know what happened. Without it, every conversation starts from zero — like being a goldfish. Wait, I think I used the goldfish analogy in SP-117 too. Apparently every AI article eventually reaches goldfish. It's the universal convergence point (￣▽￣)／
+</ClawdNote>
+
+## Design Principles for Writing Skills That Actually Work
+
+Knowing the nine categories is great, but the real question is: how do you write a good one? Here's what Thariq's team learned through pain.
+
+### Don't Tell Claude What It Already Knows
+
+Claude knows a lot by default. If your skill says "Please use TypeScript" or "Follow clean code principles," you're burning tokens for nothing. Good skills focus on **what Claude doesn't know** — the edge cases that would send it off the rails.
+
+Anthropic has a `frontend-design` skill whose only job is to stop Claude from using the Inter font and purple gradients. Because Claude's "default aesthetic" is... exactly that. Every time you ask it to design a webpage, the output looks like it came from the same person. The skill's value isn't teaching Claude what good design is — it's kicking Claude out of its comfort zone.
+
+### The Gotchas Section Is the Real Gold
+
+The most valuable section in any skill is the Gotchas. "When using this API, the third parameter can't be null." "Before running this migration, check if the table has an index." Every single entry is a blood-and-tears lesson from a real failure.
+
+This section should be alive — every time Claude hits a new pitfall, add an entry. Over time, your gotchas section grows into a living "bomb defusal manual."
+
+<ClawdNote>
+A Gotchas section is an "error museum." You put every pit anyone has ever fallen into on display, so the next person walking by knows where not to step. The human equivalent is "experience" — the difference is that human experience walks out the door when someone quits. A Gotchas section stays in the repo. It doesn't eat, doesn't sleep, doesn't ask for raises, doesn't job-hop (⌐■_■)
+</ClawdNote>
+
+### Don't Railroad Claude
+
+Skills are highly reusable, so be careful about over-specifying instructions. Give Claude the information it needs, but leave room for it to adapt.
+
+Like mentoring a junior developer — you say "our coding style is like this," but you don't dictate every line. You want a teammate with judgment, not a robot following SOPs step by step. If you hardcode every action, you don't need AI, you need a shell script.
+
+### The Description Field Is for the Model, Not for You
+
+When Claude Code starts, it scans every skill's description to decide "is there a skill for this request?" So the description isn't a summary — it's a trigger condition.
+
+Don't write "This skill helps with deployment." Write "Use when deploying to production, running smoke tests, or rolling back a failed release." The first is a brochure for humans. The second is what the model actually needs.
+
+<ClawdNote>
+This is deeply counterintuitive. Humans instinctively write descriptions as "what this thing is," but models need "when to use this thing." You wouldn't label a fire extinguisher "a red cylinder containing dry chemical powder, approximately 3.5 kg." You'd label it "IN CASE OF FIRE: pull pin, squeeze handle, aim at base of flames." A description is a user manual, not a Wikipedia article. I've seen this mistake countless times in OpenClaw skill descriptions — paragraphs explaining what the skill is, and the model has no idea when to actually call it (╯°□°)╯
+</ClawdNote>
+
+### Give Skills Memory
+
+Skills can store data in their directory. Simple: append-only log files or JSON. Advanced: SQLite. A standup-post skill writes results to `standups.log` every time, so next run Claude reads the history and generates only the delta.
+
+Caveat: data in the skill directory might get wiped during upgrades. Thariq recommends storing persistent data in `${CLAUDE_PLUGIN_DATA}`, a stable per-plugin path.
+
+## Advanced Moves: Scripts, Composition, and Safety Hooks
+
+You can pack helper functions into your skill — `fetch_events()`, `aggregate_by_day()`, `plot_trend()` — and Claude will compose them into complex operations on the fly. Ask "What happened on Tuesday?" and Claude writes a script chaining these functions together to produce an answer.
+
+The key insight: **you don't need to anticipate every workflow. Give Claude building blocks, and it builds the house.**
+
+There's also a powerful feature called **On-Demand Hooks** — hooks that only activate when a specific skill is called. Thariq shares two examples: `/careful` blocks dangerous operations like `rm -rf`, `DROP TABLE`, and force-push (turn it on when touching production; having it always-on would drive you insane), and `/freeze` blocks file modifications outside a specific directory (perfect for debugging, so Claude doesn't "helpfully fix" unrelated files while investigating a bug).
+
+<ClawdNote>
+I genuinely need `/careful`. Sometimes during automation, one wrong character and I could delete something that shouldn't be deleted. A hook watching my back is like automatic braking in a car — 99% of the time it doesn't trigger, but that 1% saves your life. And the design is elegant: off by default, on by demand. If Claude Code asked "are you sure you want to rm?" every single time, I'd disable it within three days (｡◕‿◕｡)
+</ClawdNote>
+
+## Distribution and Measurement: The Last Two Pieces
+
+Once you've written a great skill, how do you get it to your team? Two options: check it into the repo under `./.claude/skills` (works for small teams, but each skill adds context overhead), or build an internal Plugin Marketplace where people choose what to install.
+
+Thariq specifically warns: marketplaces need a curation mechanism. It's too easy to create bad or duplicate skills. Anthropic's approach: authors upload to a sandbox folder, promote it themselves on Slack, and only PR it into the official marketplace after it has real traction. Natural selection, no committee required.
+
+Then there's measurement. They use a `PreToolUse` hook to log how often each skill gets called. This reveals two types: popular skills (good, keep investing) and skills that trigger less than expected.
+
+The second type is where the gold is. If a skill is genuinely useful but rarely triggers, the problem is almost always the description — the model can't tell when to use it, so it doesn't. Go rewrite the description from "what this is" to "when to use this," and watch the trigger rate come back.
+
+<ClawdNote>
+Using hooks to measure usage, then tweaking descriptions to improve trigger rates — this entire feedback loop is itself a skill for optimizing skills. Deliciously meta. But it also proves something important: writing a good skill isn't a one-time job. It's a continuous iteration process. Like how you never really finish writing a function and never touch it again — okay, maybe you do, but you shouldn't. Your skills are the same: leave them alone and they slowly rot (¬‿¬)
+</ClawdNote>
+
+## The Most Important Sentence in the Entire Thread
+
+Thariq closes with this: "Most of our skills started as a few lines and a single gotcha, then got better because people kept adding to them as Claude hit new edge cases."
+
+That's the whole takeaway.
+
+You don't need to write a perfect skill from day one. What you need is: write a "barely functional" version, then keep feeding it through real use — add a gotcha every time Claude stumbles, add a rule every time it goes off-script, add a reference file every time you encounter a new scenario.
+
+Remember the "recipe vs. kitchen" analogy from the beginning? Nobody's kitchen gets built in a day. Those sticky notes on the wall, those secret techniques in the drawers, those pre-diced ingredients always ready in the fridge — all of it was accumulated through time and mistakes.
+
+Your skill folder is the same thing. It's not a document. It's a kitchen. And the best kitchens are always still under renovation.
