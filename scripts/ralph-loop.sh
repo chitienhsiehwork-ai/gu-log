@@ -101,21 +101,30 @@ for POST_FILE in "${POSTS[@]}"; do
   # Strip trailing CR/whitespace
   POST_FILE=$(echo "$POST_FILE" | tr -d '\r' | xargs)
 
-  # ==================== QUIET HOURS (20:00-02:00 TST) ====================
+  # ==================== QUIET HOURS (weekday 20:00-02:00 TST, skip weekends) ====================
+  # Peak hours = Mon-Fri 20:00-02:00 TST only. Weekends are all off-peak → run 24/7.
   CURRENT_HOUR=$(TZ=Asia/Taipei date +%H)
-  if [ "$CURRENT_HOUR" -ge 20 ] || [ "$CURRENT_HOUR" -lt 2 ]; then
-    # Calculate seconds until 02:00 TST
+  CURRENT_DOW=$(TZ=Asia/Taipei date +%u)  # 1=Mon ... 7=Sun
+  IS_PEAK=false
+  if [ "$CURRENT_HOUR" -ge 20 ]; then
+    # 20:00-23:59 — peak only if tonight is weekday (Mon-Thu = 1-4, Fri night = 5)
+    # Fri 20:00 → Sat 02:00 = weekend, so only Mon-Thu nights are peak
+    [ "$CURRENT_DOW" -ge 1 ] && [ "$CURRENT_DOW" -le 4 ] && IS_PEAK=true
+  elif [ "$CURRENT_HOUR" -lt 2 ]; then
+    # 00:00-01:59 — this is the tail end of last night's peak
+    # Peak only if today is Tue-Fri (i.e. last night was Mon-Thu)
+    [ "$CURRENT_DOW" -ge 2 ] && [ "$CURRENT_DOW" -le 5 ] && IS_PEAK=true
+  fi
+  if [ "$IS_PEAK" = true ]; then
     NOW_EPOCH=$(date +%s)
     if [ "$CURRENT_HOUR" -ge 20 ]; then
-      # Today 20:xx → tomorrow 02:00
       RESUME_AT=$(TZ=Asia/Taipei date -d "tomorrow 02:00" +%s)
     else
-      # Today 00:xx or 01:xx → today 02:00
       RESUME_AT=$(TZ=Asia/Taipei date -d "today 02:00" +%s)
     fi
     SLEEP_SECS=$((RESUME_AT - NOW_EPOCH))
-    SLEEP_HRS=$(( (SLEEP_SECS + 59) / 3600 ))  # round up
-    log "💤 Quiet hours (20:00-02:00 TST). Sleeping ${SLEEP_SECS}s (~${SLEEP_HRS}hr) until 02:00..."
+    SLEEP_HRS=$(( (SLEEP_SECS + 59) / 3600 ))
+    log "💤 Peak hours (weekday 20:00-02:00 TST). Sleeping ${SLEEP_SECS}s (~${SLEEP_HRS}hr) until 02:00..."
     sleep "$SLEEP_SECS"
     log "⏰ Waking up! Resuming loop."
   fi
