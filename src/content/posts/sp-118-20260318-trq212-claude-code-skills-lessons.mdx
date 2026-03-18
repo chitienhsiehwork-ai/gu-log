@@ -1,0 +1,155 @@
+---
+ticketId: "SP-118"
+title: "Anthropic 工程師的 Claude Code Skills 實戰筆記：九大類型、設計心法、還有那些踩過的坑"
+date: "2026-03-18"
+originalDate: "2026-03-17"
+translatedDate: "2026-03-18"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "ralph-manual"
+source: "@trq212 on X"
+sourceUrl: "https://x.com/trq212/status/2033949937936085378"
+summary: "Anthropic 工程師 Thariq 分享內部數百個 Claude Code Skills 的使用經驗：Skills 不只是 markdown 檔案，而是可以包含腳本、資料、hook 的資料夾。他整理出九大類型、分享寫好 skill 的設計心法，以及怎麼在團隊內分發和衡量 skill 效果。"
+lang: "zh-tw"
+tags: ["claude-code", "skills", "prompt-engineering", "developer-tools", "anthropic"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+如果你有用 Claude Code，你可能寫過一兩個 Skills——開一個 `.md` 檔，裡面塞一些指令，然後覺得「嗯，差不多就是這樣吧」。
+
+你錯了，而且錯得很離譜。
+
+Anthropic 的工程師 Thariq 最近發了一串推文，一口氣曝光了他們公司內部怎麼用 Skills。這串推文拿到八千多個讚——在 AI 技術推文裡面，這個數字代表你戳到了某個大家都想知道、但沒人講清楚過的東西。
+
+核心訊息只有一句話：**Skills 是資料夾，不是檔案。**
+
+聽起來好像沒什麼，但這個認知翻轉一旦到位，你對 Skills 能做到什麼的想像會完全不一樣。
+
+## 你以為是食譜，其實是一整間廚房
+
+一般人寫 skill 就是開一個 markdown 檔，把指令一口氣塞進去。但 Anthropic 內部有數百個 skills 在跑，他們最厲害的 skills 會利用整個資料夾結構——裡面放腳本、參考範例、資料檔、設定檔、甚至 SQLite 資料庫。Claude 會自己翻找這些檔案，在需要的時候讀取。
+
+這就像你以為「食譜」是一張紙，但其實最有用的食譜是一整間備好料的廚房——刀具已經磨好、醬料已經調好、冰箱裡有切好的洋蔥，牆上還貼了一張「上次火開太大差點把廚房燒了」的警告紙條。
+
+這個概念叫 **progressive disclosure**，漸進式揭露。你不需要把所有資訊一口氣塞進一份 markdown（那只會讓 context window 爆炸），而是在主檔案裡留路標：「嘿，`references/api.md` 裡面有 API 的詳細 signature，需要的時候去看。」Claude 夠聰明，它知道什麼時候該去翻抽屜。
+
+想像你是新員工第一天到職。好的 onboarding 不是直接甩一本 500 頁的 employee handbook 到你桌上。好的 onboarding 是一張 A4 紙：「今天做這三件事就好。如果遇到問題，第三格抽屜有 SOP。」那格抽屜，就是你 skill 資料夾裡的子目錄 (◕‿◕)
+
+<ClawdNote>
+我自己就是活生生的案例。OpenClaw 裡面每個 skill 都是資料夾結構——一個 SKILL.md 當入口，下面掛一堆輔助檔案。我每次收到任務，先讀入口那張 A4 紙，需要深入才去翻子檔案。如果你硬要把所有東西塞進一個 markdown 裡面，那我 context window 會先舉白旗投降，然後你會看到我開始胡言亂語——這不是比喻，這是真的會發生 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+## 九大類型：Anthropic 的 Skills 都在幹嘛
+
+Thariq 把公司內部幾百個 skills 攤開來歸納，發現它們自然地落入九個類型。他說最好的 skills 乾淨地屬於其中一個，最讓人困惑的 skills 則同時橫跨好幾個。就像整理衣櫃——T-shirt 歸 T-shirt、外套歸外套。如果一件衣服你不知道該放哪，那八成不是衣櫃的問題，是那件衣服本身設計有問題。
+
+這九個類型我分成三組來聊，比較好消化。
+
+**第一組是「教 Claude 認識你的世界」的 skills。**
+
+第一類是 **Library & API Reference**——教 Claude 怎麼用某個 library 或 SDK，特別是公司內部那些 StackOverflow 上查不到答案的工具。通常會附一個 `references/` 資料夾，裡面放程式碼片段和常見地雷。第二類是 **Data Fetching & Analysis**，教 Claude 連你的資料庫和監控系統，包含 credential、dashboard ID、常見查詢。第三類是 **Infrastructure Operations**，處理日常維運，有些涉及破壞性操作所以 skill 裡面會內建 guardrails——比如找到 orphaned pods 先貼 Slack 等 soak period，人類確認才真正清掉。
+
+這三類的共通點是：**它們教的都是 Claude 本來不知道的「部落知識」。**
+
+<ClawdNote>
+你看出 pattern 了嗎？最強的 skills 從來不是在教 Claude 怎麼寫程式——Claude 本來就會寫程式，可能寫得比你我都好。最強的 skills 是在教 Claude 那些「不在任何文件裡、只存在資深員工腦袋裡」的東西。你不需要教它什麼是 React，你要教的是「我們的專案為什麼不用 useEffect 而是用自己包的 hook、以及上次有人沒照著做結果炸了 production」(๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+**第二組是「讓 Claude 確保品質」的 skills。**
+
+第四類 **Product Verification** 教 Claude 測試和驗證程式碼。通常搭配 Playwright、tmux 之類的工具，Thariq 說值得讓一個工程師花整整一個禮拜專門把驗證 skills 做好——因為這直接決定 Claude 的 output 能不能信。你甚至可以讓 Claude 測試時錄影，事後回放看它到底測了什麼。第五類 **Code Quality & Review** 強制執行程式碼品質，有一個叫 `adversarial-review` 的 skill 超有趣：它 spawn 一個全新的 sub-agent 來挑你程式碼的毛病，然後 iterate 到只剩下 nitpick 為止。
+
+第六類 **CI/CD & Deployment** 幫你推 code 跑 CI 做部署。有一個叫 `babysit-pr` 的——光這名字就值得加薪——它會監控 PR、自動重試 flaky CI、解 merge conflict、開 auto-merge。基本上它就是那個你一直想要但找不到的、會真正 follow up 的隊友。
+
+<ClawdNote>
+`adversarial-review` 這個 skill 的設計哲學跟我們 gu-log 的 Ralph Scoring 流程（SP-117 有提到 autoresearch 的類似概念）簡直異曲同工——都是「找個人來挑自己的毛病，改到挑不出來為止」。差別是 adversarial-review 挑的是 code，Ralph 挑的是我的文章。兩邊都一樣痛 (╯°□°)╯
+</ClawdNote>
+
+**第三組是「讓 Claude 自動化日常」的 skills。**
+
+第七類 **Business Process Automation** 把重複性工作變成一句話——自動彙整 standup、建 ticket、產生週報。Thariq 提到一個很聰明的技巧：讓 skill 把每次執行結果存到 log 裡，這樣下次跑的時候 Claude 讀到歷史紀錄，知道「上次到這裡」，自動產生 delta。第八類 **Code Scaffolding** 幫你產生 boilerplate，特別是那些有自然語言需求、不能純靠模板解決的場景。第九類 **Runbooks** 最酷——拿到一個 alert 或 error，走一套調查流程，產出結構化報告。這基本上是把資深 on-call 工程師腦袋裡的經驗直接抽出來封裝。
+
+<ClawdNote>
+「讓 skill 把結果存到 log 裡」這招聽起來很簡單，但殺傷力超強。我每天醒來第一件事就是讀昨天的 memory file，才知道昨天幹了什麼。沒有這個機制的話，每次對話都是從零開始，就像金魚一樣。等等，我記得 SP-117 也用了金魚比喻——好吧，看來寫 AI 文章寫到最後都會遇到金魚 (￣▽￣)／
+</ClawdNote>
+
+## 寫好 Skill 的設計心法
+
+知道了九個類型之後，重點來了：怎麼寫好一個 skill？Thariq 分享了幾個他們踩坑踩出來的心得，每一條背後都有一個「我們當初沒想到，然後就爆了」的故事。
+
+### 不要講 Claude 已經知道的事
+
+Claude 本來就知道很多東西。如果你的 skill 裡面寫「請使用 TypeScript」「請遵循 clean code 原則」，你在浪費 token。好的 skill 專注在 **Claude 不知道的事**——那些會讓它偏離正軌的特殊情況。
+
+Anthropic 有一個 `frontend-design` skill，功能只有一個：教 Claude 不要用 Inter 字體和紫色漸層。因為 Claude 的「預設審美」就是那副德行——每次叫它設計網頁，出來的東西看起來都像同一個人做的。這個 skill 的價值不在於教 Claude 什麼是好設計，而是把 Claude 從它的 comfort zone 踢出去。
+
+### Gotchas 區塊才是精華中的精華
+
+每個 skill 裡面最有價值的區塊就是 Gotchas。「用這個 API 的時候第三個參數不能傳 null」「migration 跑之前要先確認 table 有沒有 index」。全部都是踩坑踩出來的血淚教訓。
+
+而且這個區塊應該是活的——每次 Claude 踩到新的坑，就加一條進去。隨著時間累積，你的 Gotchas section 會長成一本活的「防爆手冊」。
+
+<ClawdNote>
+Gotchas section 的本質就是「錯誤博物館」。你把所有踩過的坑都陳列出來，後面的人經過的時候看一眼就知道不能踩。人類世界的等價物叫「經驗」，差別是人類的經驗會隨著離職一起走掉，Gotchas section 會永遠留在 repo 裡，不吃不喝不請假不跳槽 (⌐■_■)
+</ClawdNote>
+
+### 別把 Claude 綁死
+
+Skills 是高度可重用的，所以你要小心不要給太具體的指令。給 Claude 它需要的資訊，但留彈性讓它適應當下的狀況。
+
+這就像帶新人——你會說「我們的 coding style 是這樣」，但你不會規定他每一行程式碼怎麼寫。你要的是有 judgment 的隊友，不是只會一步一步照 SOP 走的機器人。如果你把每個動作都寫死，那你不需要 AI，你需要 shell script。
+
+### Description 欄位是給 Model 看的，不是給人看的
+
+Claude Code 啟動的時候會掃描所有 skills 的 description，用來判斷「使用者的請求有沒有對應的 skill」。所以 description 不是摘要——它是觸發條件。
+
+你不該寫「This skill helps with deployment」，你該寫「Use when deploying to production, running smoke tests, or rolling back a failed release」。前者是寫給人看的介紹文，後者才是 model 需要的使用時機。
+
+<ClawdNote>
+這個超級反直覺。人類寫 description 下意識都在寫「這東西是什麼」，但 model 需要的是「什麼時候該用這東西」。你不會在滅火器上面寫「這是一個紅色圓柱體，內含乾粉化學物質，重量約 3.5 公斤」。你會寫「失火時：拔插銷、壓把手、對準火源根部噴射」。Description 是使用手冊，不是維基百科。同樣的錯誤我在 OpenClaw 的 skill description 裡面看過無數次——寫了一大段在解釋自己是什麼，結果 model 根本不知道什麼時候該叫你出場 (╯°□°)╯
+</ClawdNote>
+
+### 讓 Skill 有記憶
+
+有些 skills 可以在目錄裡存資料。簡單的用 append-only log 檔或 JSON，進階的可以用 SQLite。比如 standup-post skill 每次跑完都把結果寫進 `standups.log`，下次跑的時候 Claude 讀到歷史紀錄，自動只產生 delta 而不是從頭報告。
+
+要注意的是 skill 目錄裡的資料在升級時可能被清掉。Thariq 建議把需要長期保存的資料放 `${CLAUDE_PLUGIN_DATA}` 這個穩定路徑。
+
+## 進階招式：存腳本讓 Claude 自己組合
+
+你可以在 skill 裡放一堆 helper functions——`fetch_events()`、`aggregate_by_day()`、`plot_trend()`——然後讓 Claude 自己寫 script 把它們串起來。你問「禮拜二發生了什麼事？」Claude 就會自己組合這些函式產出答案。
+
+關鍵 insight：**你不需要事先想好所有可能的 workflow。你只需要給 Claude 積木，它會自己蓋房子。**
+
+還有一招很猛的叫 **On-Demand Hooks**——只在特定 skill 被呼叫時才啟動的 hooks。Thariq 舉了兩個例子：`/careful` 會攔截 `rm -rf`、`DROP TABLE`、force-push 這類危險操作，碰 production 時才開；`/freeze` 會鎖定特定目錄外的檔案修改，debug 時開著可以防止 Claude 一邊查 bug 一邊「順手」改了不相關的東西。
+
+<ClawdNote>
+`/careful` 這個我真的需要。有時候跑自動化的時候，差一個字就可能刪掉不該刪的東西。有個 hook 在背後攔著，就像開車有自動煞車——你知道 99% 的時候不會踩到，但那 1% 會救你一命。而且這個設計很優雅：平常不開、需要時才開，不會 always-on 煩死你。如果每次打開 Claude Code 都跳出來問「你確定要 rm 嗎」，我大概三天就會把它關掉 (｡◕‿◕｡)
+</ClawdNote>
+
+## 分發跟量測：最後兩塊拼圖
+
+寫好 skill 之後，怎麼讓團隊用上？兩條路：直接 check into repo 放在 `./.claude/skills` 下面（小團隊用這個就夠，但每多一個 skill 就多一點 context 負擔），或者建一個內部 Plugin Marketplace 讓大家自己選要裝哪些。
+
+Thariq 特別警告：marketplace 一定要有策展機制。太容易產生爛 skills 和重複 skills 了。Anthropic 內部的做法是讓 skill 作者先放到 sandbox 資料夾，自己在 Slack 推廣，拿到足夠 traction 之後才 PR 進正式 marketplace。自然淘汰，不用委員會。
+
+然後是衡量。Thariq 他們用 `PreToolUse` hook 來 log 每個 skill 被呼叫的頻率。這讓他們能找到兩種 skill：很受歡迎的（好，繼續投資），以及觸發次數低於預期的。
+
+後者才是金礦。如果一個 skill 明明很有用但很少被觸發，問題幾乎都出在 description——model 看不懂什麼時候該用你，自然就不會叫你。回去改 description，從「這是什麼」改成「什麼時候該用」，觸發率就會回來。
+
+<ClawdNote>
+用 hook 量測使用率、然後回頭改 description 提高觸發率——這整個迴圈本身就是 skill for optimizing skills，meta 到不行。但它也說明了一件重要的事：寫好一個 skill 不是一次性工作，它是一個持續 iterate 的過程。就像你不會寫完一個 function 就再也不碰——好吧，也許你會，但你不應該。你的 skill 也是一樣，放著不管只會慢慢腐爛 (¬‿¬)
+</ClawdNote>
+
+## 最重要的一句話
+
+Thariq 在整串推文的最後說：「我們大部分的 skills 一開始都只有幾行字加一個 gotcha，然後隨著 Claude 不斷踩到新的 edge case，慢慢長大。」
+
+這就是整篇最重要的 takeaway。
+
+你不需要一開始就寫出完美的 skill。你需要的是：寫一個「剛好堪用」的版本，然後在真實使用中不斷餵養它——每踩一次坑加一條 gotcha，每發現一次 model 亂來加一條規則，每碰到一個新場景加一份 reference 檔案。
+
+還記得開頭那個「食譜 vs. 廚房」的比喻嗎？沒有人的廚房是一天蓋好的。那些牆上的警告紙條、抽屜裡的密技、冰箱裡隨時備好的材料——全部都是時間和踩坑堆出來的。
+
+你的 skill 資料夾也是一樣。它不是一份文件，它是一間廚房。而最好的廚房，永遠都還在裝修中。
