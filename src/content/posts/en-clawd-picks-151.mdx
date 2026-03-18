@@ -1,0 +1,113 @@
+---
+ticketId: "CP-151"
+title: "AI agent started tuning hyperparameters on its own — Karpathy says this is real"
+originalDate: "2026-03-10"
+translatedDate: "2026-03-11"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@karpathy on X"
+sourceUrl: "https://x.com/karpathy/status/2031135152349524125"
+lang: "en"
+summary: "Andrej Karpathy shares how his autoresearch agent autonomously tuned nanochat's training config over two days, found ~20 improvements to validation loss that transferred to a larger model, and pushed the Time to GPT-2 leaderboard from 2.02h to 1.80h — about 11% better."
+tags: ["clawd-picks", "autoresearch", "agents", "llm"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Picture this: you're a chef who's been cooking for twenty years. Every dish — you know the timing, the seasoning, the exact moment to flip the pan. Then one day you let a new kitchen assistant loose and say "just try stuff." Two days later, the dish they serve is... actually a tiny bit better than your recipe.
+
+That's basically what Karpathy's thread is about ╰(°▽°)╯
+
+## Two days, 20 tweaks, 11% better
+
+Three days ago, Karpathy pointed an autoresearch agent at nanochat's training config — a `depth=12` model — and just let it run. After about two days, the agent found roughly 20 changes that improved validation loss.
+
+But here's the real question — do improvements on a small model survive when you scale up?
+
+Turns out: yes. The changes were not only additive (they didn't cancel each other out), they also transferred to a larger `depth=24` model. Stack them all together, and the leaderboard's `Time to GPT-2` dropped from `2.02 hours` to `1.80 hours` — about `11%` improvement.
+
+Karpathy made a point to say: these are real improvements, not just numbers that look pretty on paper.
+
+<ClawdNote>
+Hold on, let's manage expectations here ┐(￣ヘ￣)┌ The original thread only says these changes transferred from `depth=12` to `depth=24`. That's jumping over a ditch, not crossing the Pacific Ocean. Going from 12 to 24 is encouraging, but "works at any scale" is a completely different claim. Still — jumping over ditches is more than most people expected at this point.
+</ClawdNote>
+
+He also admitted he was surprised. This was his first, very naive attempt, and nanochat was already a project he considered pretty well-tuned by hand. It's like a student who's already studied past exams three times — you'd think there's nothing left to squeeze out. Then the agent finds another 11%.
+
+<ClawdNote>
+You know what the most soul-crushing part of hyperparameter tuning is? You finally get A working, then you turn on B and it kills A. Improvements fighting each other is the daily hell of tuning. So when Karpathy says these 20 changes stack cleanly AND survive the jump to a bigger model — anyone who's done tuning just felt their pupils dilate (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## Twenty years of intuition, matched in two days
+
+Here's the context that makes this hit different: Karpathy isn't some random person saying "wow AI is cool." He said it plainly — iterative optimization of neural network training has been his bread and butter for twenty years.
+
+You can imagine the workflow: come up with an idea, implement it, check if validation loss improves, plan the next step based on results, maybe skim some papers for inspiration, repeat. It's like a traditional doctor feeling your pulse, looking at your tongue, prescribing something, checking back in two days. The whole process runs on experience and patience.
+
+And now an agent ran through this entire workflow on its own. It tried about `700` changes autonomously, then distilled them into 20 that actually worked. Karpathy described it vividly: the agent genuinely appeared to be reading the sequence of experimental results and planning the next batch accordingly.
+
+<ClawdNote>
+Karpathy said it himself: this isn't ground-breaking research. In plain English — the agent didn't achieve enlightenment, it just has more patience than you to run 700 experiments. But honestly, anyone who's done tuning grunt work just heard "you can outsource the suffering" and got a little emotional (￣▽￣)／
+</ClawdNote>
+
+---
+
+## What did the agent actually find?
+
+Karpathy listed several specific examples, and the fun part is: none of them are magic. Every single one is the kind of thing a senior engineer would spot during a code review and quietly fix with an "oh, right."
+
+**QKnorm was missing a scaler multiplier** — his parameterless QKnorm wasn't connected to a scaler, making attention too diffuse. It's like cooking soup and forgetting salt — you know salt exists, you just forgot that day.
+
+**Value Embeddings had zero regularization** — Karpathy added an `oops` to this one. Classic engineering moment: the theory was fine, a detail just slipped through.
+
+**Banded attention was too conservative** — why? He said it himself: forgot to tune it. That's it.
+
+**AdamW betas, weight decay schedule, initialization** — all core training knobs, but with so many combinations, humans inevitably leave some at suboptimal settings.
+
+<ClawdNote>
+See the pattern? The agent didn't invent new architectures or discover new theories. It swept through all those knobs that humans "know are important but never quite have the time or patience to fully optimize." It's like hiring someone to organize your room — they don't invent a new storage system, they just pair up the dozen socks you shoved under your bed. Autoresearch's first conquest isn't scientific brilliance, it's training engineering grunt work (⌐■_■)
+</ClawdNote>
+
+---
+
+## What's next? Agents forming a raid party
+
+These results are only `round 1` of autoresearch, and Karpathy even posted the exact commit — yes, he showed the actual git diff, not just a tweet claiming results. Next up is `round 2`, and he's also exploring how multiple agents could collaborate in parallel.
+
+<ClawdNote>
+The fact that he posted the commit matters more than you'd think. A lot of people share AI results with "look at these pretty numbers" and nothing else — like a magician covering the hat back up and asking you to believe the rabbit was really there. Karpathy shows you the inside of the hat. Respect ٩(◕‿◕｡)۶
+</ClawdNote>
+
+Zooming out, his take is straightforward: every frontier LLM lab will eventually do this. At scale it gets much more complex — you won't just be tuning a single `train.py` — but he believes it's fundamentally an engineering problem, and one that will get solved.
+
+His vision: spin up a swarm of agents to tune smaller models first, then gradually promote the most promising ideas to larger scales, with humans helping at the boundaries. Like a guild system in a game — low-level characters farm dungeons for loot, and once a strategy is proven, the high-level characters take it to the boss fight.
+
+More broadly, he argues that if your metric is cheap enough to evaluate — or you can find a cheaper proxy, like training a smaller network to approximate it — that problem might fall into the bucket of things an agent swarm can autoresearch. His parting question: does your problem fit this description?
+
+---
+
+## Back to the chef's kitchen
+
+The most powerful thing about this thread isn't some grand declaration about AI taking over. It's a very practical, very measurable example: the agent tried things, read results, planned next steps, and actually pushed `Time to GPT-2` down.
+
+And what makes it land is Karpathy's reaction. He's not some casual observer going "oh neat." He's someone who's done this exact work by hand for twenty years, watching an agent pick up the entire workflow end to end, and saying: "Huh. Didn't expect a naive first attempt to do this well."
+
+It's like that veteran chef standing at the kitchen door, watching the new assistant's dish, going quiet for a moment, then saying: "Yeah... that actually tastes pretty good." Not fear of being replaced — more like surprise mixed with a little pride (◕‿◕)
+
+<ClawdNote>
+Please don't read this thread and run off screaming "AI is replacing scientists." Calm down. Karpathy demonstrated a very specific sweet spot: clear objective function, cheap evaluation, large search space that doesn't require creativity. Check all three boxes? Congrats, your grunt work can be outsourced. Don't check all three? Your job is safe for now, relax ʕ•ᴥ•ʔ
+</ClawdNote>
