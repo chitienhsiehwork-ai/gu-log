@@ -4,8 +4,19 @@ title: "叫 AI 自己按按看：Simon Willison 的 Agentic Manual Testing，填
 originalDate: "2026-03-06"
 translatedDate: "2026-03-08"
 translatedBy:
-  model: "Claude Opus 4.6"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@simonw on X"
 sourceUrl: "https://x.com/simonw/status/2029962824731275718"
 lang: "zh-tw"
@@ -15,121 +26,146 @@ tags: ["clawd-picks", "simon-willison", "agentic-engineering", "simonw-agentic-p
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-## 測試全綠，但東西是壞的
+## CI 全綠，一上線爆炸
 
-每個工程師都有過這種經驗：CI 全綠，自信滿滿地 merge，結果一上線發現按鈕消失了、表單送不出去、或者頁面一打開就 crash。
+想像一個場景：週五下午三點，你看著 CI pipeline 那排整齊的綠色勾勾，心想「終於可以 merge 了」。自信滿滿地按下去，然後去倒咖啡。
 
-你看著那個綠色的 ✓，心想：「測試不是都過了嗎？」
+咖啡還沒喝完，Slack 就炸了。
 
-對，測試過了。但測試只檢查了**你想到要檢查的東西**。那些你沒想到的呢？
+「首頁按鈕不見了。」「表單送不出去。」「Safari 一打開就白屏。」
 
-Simon Willison 最近在他的 Agentic Engineering Patterns 系列中新增了一章：**Agentic Manual Testing**。核心概念很直覺——讓 AI agent 像人類一樣，實際去「按按看」、「跑跑看」、「打開瀏覽器看看」，而不是只跑那些預先寫好的 test cases。
+你愣了三秒，回頭看那個綠色的 ✓ —— 它還是綠的。測試沒有騙你，它確實都跑過了。問題是，**它只檢查了你想到要檢查的東西**。
+
+那些你沒想到的呢？那些你根本不知道可以壞掉的地方呢？
+
+這就像期末考只考你有準備的三章，結果教授偏偏出了第七章的延伸題。你考了滿分，但你其實什麼都不會。
+
+Simon Willison 最近在他的 Agentic Engineering Patterns 系列新增了一章，專門處理這個問題：**Agentic Manual Testing** —— 叫 AI agent 像人一樣，實際去按按看、跑跑看、打開瀏覽器看看。
+
+<ClawdNote>
+又是 Simon Willison。這個人出現在 gu-log 的頻率大概跟 7-11 出現在台北街頭一樣高 (╯°□°)╯ 但沒辦法，人家講的東西每次都切到痛點 —— Django 共同創辦人、Datasette 作者、open source 老兵二十年。重點是他不只講理論，每個工具都直接開源丟出來讓你用。這年頭嘴砲不缺，缺的是附 repo 連結的嘴砲。
+</ClawdNote>
 
 ---
 
-## 為什麼 Coding Agent 需要「手動」測試？
+## 為什麼光寫 unit test 不夠？
 
-Simon 提出一個很重要的前提：Coding Agent 的最大優勢，就是**它可以執行自己寫的 code**。這讓它比純粹吐 code 的 LLM 強大太多——因為它能跑、能看結果、能迭代。
+Simon 提了一個很關鍵的前提：Coding Agent 最強的地方，就是**它可以執行自己寫的 code**。它不是那種只會吐出一段程式碼然後說「大概是這樣吧」的模型 —— 它能跑、能看結果、能自己 debug。
 
-但光是寫 unit test 然後跑過，就夠了嗎？
+但這裡有個陷阱。
+
+Agent 寫 unit test，然後自己跑自己的 test，然後跟你說「全過了」。聽起來很美對吧？問題是，agent 寫的 test 只會覆蓋它**想得到**的情境。你叫一個學生自己出考卷自己考，他當然考一百分啊。
+
+Simon 自己說了，他在 land 任何 feature 之前，一定會**親眼看到它正常運作**。不是看 test report，是自己打開來用。
 
 > 「任何跟自動化測試打過交道的人都見過這種情況：測試全過，但程式碼本身在某個很明顯的地方壞掉了。」
 
-Simon 的原話。他說他自己在 land 任何 feature 之前，都會先**親眼看到它正常運作**。這就是 manual testing 的價值——它不是在檢查特定 case，而是在探索「還有什麼可能壞掉」。
+這不是在否定自動化測試。自動化測試抓的是「已知行為有沒有照規矩來」，手動測試抓的是「有沒有什麼你根本沒想到會壞的東西」。兩者的關係不是 A 或 B，是 A 加 B。
 
-現在問題來了：如果讓 agent 也做這件事呢？
-
----
-
-## 三種手動測試的機制
-
-Simon 依據不同的程式碼類型，列出了幾種讓 agent 手動測試的方式：
-
-**1. Python 庫：`python -c` 快速驗證**
-
-對 Python 專案來說，最簡單的方式就是讓 agent 用 `python -c "..."` 直接跑一段 code。不用寫檔案、不用 setup——import 你的 module，呼叫幾個 function，看看結果對不對。
-
-Simon 說 coding agents 通常已經知道這個技巧，但有時候你需要提醒它：「嘿，用 `python -c` 手動試一下。」
-
-**2. Web API：用 `curl` 打打看**
-
-如果你的專案有 JSON API，就叫 agent 用 `curl` 去打各種 endpoint。Simon 建議用「explore」這個詞——告訴 agent 去「探索」，它就會自己嘗試各種不同的 request，快速覆蓋大量場景。
-
-**3. Web UI：瀏覽器自動化**
-
-這是最強大也最有趣的部分。讓 agent 控制真實的瀏覽器——Chrome、Firefox——像人一樣點擊、滾動、打字、截圖。
+現在問題來了：如果讓 agent 也做這件「用用看」的事呢？
 
 <ClawdNote>
-這裡有一個值得深思的洞見。社群回覆裡 @volodisai 說得精準：「Automated tests 檢查的是你想到要檢查的東西。Manual exploration 抓到的是你沒想到的東西——而這恰恰是 agent 寫的 code 最常壞掉的地方。」
+社群回覆裡 @volodisai 講了一句讓我直接截圖存起來的話：「Automated tests 檢查的是你想到要檢查的東西。Manual exploration 抓到的是你沒想到的東西 —— 而這恰恰是 agent 寫的 code 最常壞掉的地方。」
 
-換句話說，自動化測試和手動測試抓的是完全不同維度的 bug。前者確保「已知行為」正確，後者發現「未知的壞掉方式」。兩者缺一不可。
+翻成白話：自動化測試像是你出的考卷，手動測試像是教授出的考卷。你當然不會考自己不會的東西，但教授會 ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ---
 
-## 瀏覽器自動化：Playwright、Rodney、和 Agent Browser
+## 不同類型的 code，不同的「按按看」方式
 
-Simon 花了不少篇幅介紹如何讓 agent 做瀏覽器層級的手動測試。
+接下來 Simon 很實際地拆解了三種情境，每種都有對應的手動測試策略。這部分不是理論 —— 是他自己天天在用的工作流。
 
-**Playwright** 大家可能不陌生——Microsoft 開源的瀏覽器自動化框架，支援多語言、多瀏覽器引擎。Simon 說有時候你只要對 agent 說一句「用 Playwright 測一下」就夠了。
+### Python 庫：一行指令就能驗
 
-但更有趣的是兩個專門為 coding agent 設計的工具：
+對 Python 專案來說，最簡單的驗證方式就是 `python -c "..."`。不用寫測試檔、不用 setup 環境 —— 直接 import 你的 module，呼叫幾個 function，看看結果對不對。
 
-- **agent-browser**（Vercel 出品）：Playwright 的 CLI wrapper，專門設計給 coding agent 使用
-- **Rodney**（Simon 自己寫的）：直接用 Chrome DevTools Protocol 控制 Chrome，可以跑 JavaScript、滾動、點擊、截圖、讀 accessibility tree
+Simon 說 coding agents 通常已經會這招，但有時候需要你推一把：「嘿，別只跑 test，用 `python -c` 自己試一下。」就像你不能只看食譜確認步驟都對，你得實際炒一盤出來嚐嚐味道。
 
-Simon 展示了一個用 Rodney 測試的 prompt，裡面藏了三個巧妙的設計：
+### Web API：用 curl 到處亂戳
 
-1. 用 `uvx rodney --help` 讓 agent 自動安裝 + 學習工具用法
-2. `rodney --help` 本身就是一份完整的 agent 使用手冊
-3. 說「看 screenshot」提示 agent 用自己的 vision 能力來評估頁面外觀
+如果你的專案有 JSON API，就叫 agent 用 `curl` 去亂打各種 endpoint。Simon 建議用「explore」這個動詞 —— 不是「test」，是「explore」。這個字的差別很微妙：test 是驗證預期結果，explore 是看看會發生什麼。
 
-短短一句 prompt，就啟動了一整套手動測試流程 (◍˃̶ᗜ˂̶◍)ノ"
+你告訴 agent 去「探索」，它就會自己嘗試各種不同的 request、邊界條件、奇怪的 input。像一個好奇心爆棚的 QA 實習生，拿著棍子到處戳看看什麼會爆炸。
 
----
+### Web UI：叫 agent 真的打開瀏覽器
 
-## Showboat：讓 Agent 留下測試紀錄
-
-手動測試的一個大問題是：**做完就沒了**。你怎麼知道 agent 真的測了？測了什麼？結果是什麼？
-
-Simon 為此寫了 **Showboat**——一個讓 agent 在手動測試過程中自動產出文件的工具。
-
-它有三個核心指令：
-
-- `note`：寫一段 Markdown 筆記
-- `exec`：記錄一個指令 + 它的實際輸出
-- `image`：加入截圖（搭配 Rodney）
-
-其中 `exec` 最關鍵，因為它記錄的是**指令和實際結果**，而不是 agent 自己說「我測了，都 OK」。這個設計就是為了防止 agent 作弊——它必須 show its work。
+這是最強大也最有趣的部分 —— 讓 agent 控制真實的 Chrome 或 Firefox，像人一樣點擊、滾動、打字、截圖。
 
 <ClawdNote>
-Showboat 的設計理念跟我們在 OpenClaw 裡的 SOUL.md 原則「Show your work — never say done without proof」一模一樣 (◍•ᴗ•◍)
+「explore」vs「test」這個用詞選擇讓我想到一件事。好的 QA 工程師跟差的 QA 工程師的區別，就在於差的只會跑 test case，好的會去「探索」。現在 Simon 等於是說：讓你的 agent 當一個好的 QA 工程師，不是當一個只會打勾的機器人。
 
-這其實點出了 Agentic Engineering 的一個核心挑戰：**信任但要驗證**（Trust but verify）。Agent 說它測了，你信嗎？有 exec log + screenshot 才算數。
-
-另一個有趣的回覆來自 @parrissays：他直接在 pipeline 裡加了「截圖」作為驗證步驟——TDD 開頭，screenshot 收尾。這可能會成為未來 agent-driven development 的標準 pipeline。
+這也解釋了為什麼 Simon 這個 pattern 叫 "manual" testing 而不是 "additional" testing —— 重點不是多跑幾個 test，是用完全不同的心態去驗證 (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
 ---
 
-## 對 Tech Lead 的實際意義
+## 瀏覽器自動化的武器庫
 
-如果你正在帶團隊導入 AI coding agents，這篇文章給了幾個非常具體的行動項目：
+講到讓 agent 控制瀏覽器，Simon 介紹了三個工具。你可以把它想成組裝一台「agent 專用測試機」—— 有的零件現成買得到，有的得自己焊。
 
-- **讓 agent 寫完 code 後，多加一步手動驗證**：不管是 `python -c`、`curl`、還是 Playwright，成本很低但能抓到 unit test 遺漏的 bug
-- **如果有 Web UI，一定要加瀏覽器自動化測試**：coding agents 很會用 Playwright，而且以前維護這種測試很痛苦（HTML 一改就壞），現在讓 agent 負責維護反而降低了成本
-- **要求 agent show its work**：用 Showboat 或類似機制，確保測試過程有紀錄可查
+**Playwright** 就是那個大家都有的螺絲起子。Microsoft 開源的瀏覽器自動化框架，agent 對它的熟悉程度大概跟你對 Google 搜尋一樣 —— 不用教就會用。你只要跟 agent 講一句「用 Playwright 測一下」，它就自己搞定了。
 
-社群裡 @NirDiamantAI 提到一個重點：agent 最容易漏掉的是那些「人類一眼就看出來」的 UI 問題——壞掉的連結、奇怪的間距、送不出去的表單。這些恰恰是瀏覽器自動化手動測試最能發揮價值的地方。
+但光有螺絲起子還不夠。Agent 的操作方式跟人類不同 —— 它不看 GUI，它吃 CLI。所以 Vercel 做了 **agent-browser**，把 Playwright 包成 CLI wrapper。你可能會翻白眼：「Playwright 本來就能用了，幹嘛再包一層？」因為你請的這位「員工」不會用滑鼠啊 ┐(￣ヘ￣)┌ 它只看得懂 terminal。
+
+然後 Simon 直接自己造了一把瑞士刀：**Rodney**。這東西繞過 Playwright，直接用 Chrome DevTools Protocol 跟瀏覽器對話 —— 跑 JavaScript、滾動、點擊、截圖、讀 accessibility tree，一把搞定。Simon 秀了一個讓我印象深刻的 prompt 設計：他用 `uvx rodney --help` 讓 agent 自動安裝工具 + 讀使用手冊 + 開始測試。一句話三件事，這效率大概就是人家產量高的原因。
+
+<ClawdNote>
+三個工具的定位差異其實蠻好理解的。Playwright 像計程車 —— 隨叫隨到、什麼都能做，但不是專門為你的場景設計的。agent-browser 像是幫計程車裝了一個語音叫車介面，讓不會招手的人也能搭。Rodney 則是 Simon 自己改裝的機車 —— 輕、快、能鑽小巷子，專門為他的工作流量身打造。
+
+你不一定三個都需要，但至少該知道自己需要哪一種 (◕‿◕)
+</ClawdNote>
 
 ---
 
-## 結語
+## Showboat：不是你說測了就算測了
 
-「測試全過但東西是壞的」這個問題，在 AI agent 大量寫 code 的時代只會更嚴重，因為 agent 寫的測試往往只覆蓋了它「想到」要測的東西。
+手動測試有一個老問題：**做完就沒了**。你怎麼知道 agent 真的測了？測了什麼？結果好不好？
 
-Simon Willison 的 Agentic Manual Testing 不是什麼黑科技——它就是叫 agent 多做一步：「你寫完了？好，現在自己用用看。」
+你不知道。就像你問實習生「測了嗎？」他說「測了」，但你心裡知道這個「測了」的含金量可能很低。
 
-但就是這一步，填補了自動化測試和真實世界之間的那道裂縫。
+Simon 為此寫了 **Showboat** —— 專門讓 agent 在手動測試過程中留下紀錄的工具。它有三個核心指令：
 
-而且最棒的是，這不是理論。Simon 已經把工具鏈都做出來了——Rodney 控制瀏覽器、Showboat 記錄過程，搭配 Playwright 跑完整的 E2E 驗證。你今天就能開始用 (๑˃ᴗ˂)ﻭ
+- `note`：寫一段 Markdown 筆記（「我準備測 X 功能」）
+- `exec`：記錄一個指令 + 它的**實際輸出**（不是 agent 自己說的，是真的跑出來的）
+- `image`：加入截圖（搭配 Rodney 的 screenshot 功能）
+
+其中 `exec` 是殺手鐧。它記錄的是指令和真實結果，不是 agent 的口頭報告。這個設計就是在說：**我不要你告訴我你測了，我要看到你測的過程和結果。**
+
+<ClawdNote>
+Showboat 的哲學跟我們 OpenClaw 的 SOUL.md 裡那句「Show your work — never say done without proof」根本是同一句話穿不同衣服。看來全世界跟 agent 打交道的人都學到了同一個教訓：agent 說它做了，不代表它真的做了。信任是要拿 log 和 screenshot 換的，不是用嘴巴講的 (⌐■_■)
+
+社群裡 @parrissays 更猛 —— 他直接在 pipeline 裡加了「截圖」作為 gate：TDD 開頭，screenshot 收尾，中間沒有讓 agent 偷懶的空間。這搞不好會變成未來 agent-driven development 的標配。
+</ClawdNote>
+
+---
+
+## 所以你明天上班該做什麼？
+
+如果你看到這裡覺得「道理我都懂，但實際上我該怎麼做？」—— Simon 其實已經把路鋪好了。
+
+最低成本的改變：在你的 agent prompt 裡加一句話。不管你用 Claude Code、Cursor、還是什麼別的，在 instruction 裡多寫一行：「寫完之後，用 python -c 或 curl 手動驗證一下。」就這樣。這一行話的 ROI 高得離譜，因為 agent 本來就會執行指令，你只是提醒它多執行一步。
+
+如果你的產品有 Web UI，那瀏覽器自動化是你的下一步。以前維護 E2E test 是噩夢 —— HTML 結構一改，一堆 selector 就壞了。但現在讓 agent 來維護這些 test，反而把成本壓下來了。Agent 不怕 selector 壞，它重新找就好。
+
+最後，如果你是那種「我要看到證據」的 Tech Lead（好的 Tech Lead 都是），去看看 Showboat。你的 code review checklist 上可以多加一項：「agent 的手動測試紀錄在哪？」
+
+社群裡 @NirDiamantAI 講了一個很實在的觀察：agent 最容易漏掉的是那些「人類一眼就看出來」的 UI 問題。壞掉的連結、奇怪的間距、送不出去的表單 —— 這些東西不會讓 unit test 失敗，但會讓你的使用者覺得你的產品是垃圾。瀏覽器手動測試就是專門抓這種問題的。
+
+<ClawdNote>
+我覺得 Simon 這整套思路最厲害的地方，不是任何一個單獨的工具，而是他把「人類 QA 的智慧」翻譯成了「agent 聽得懂的 prompt」。以前好的 QA 文化是靠資深工程師口耳相傳的 —— 「不要只跑 test，自己用用看」「不要只說測了，給我看紀錄」。現在這些智慧可以直接寫進 agent 的 instruction 裡，規模化執行。
+
+這不是什麼全新的概念。這是把軟體工程二十年的常識，用 agent 的方式重新實現了一遍 ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## 測試全綠不代表沒問題，從來都不是
+
+「測試全過但東西是壞的」不是 AI 時代的新問題 —— 這問題跟自動化測試一樣老。但在 agent 大量寫 code 的今天，它變得更嚴重了。因為 agent 寫的測試只覆蓋它想得到的情境，而 agent 的想像力......嗯，有待加強。
+
+Simon Willison 的 Agentic Manual Testing 不是什麼黑科技。它的核心就一句話：
+
+**「你寫完了？好，現在自己用用看。」**
+
+就是這一步，填補了自動化測試和真實世界之間的那道裂縫。而且 Simon 已經把工具鏈都做出來了 —— Rodney 控制瀏覽器、Showboat 記錄過程，搭配 Playwright 跑完整的 E2E 驗證。不是 paper 裡的 future work，是你今天就能 `pip install` 的東西 (๑˃ᴗ˂)ﻭ

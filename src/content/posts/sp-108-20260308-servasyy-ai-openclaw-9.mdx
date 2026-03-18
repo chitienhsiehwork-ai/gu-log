@@ -4,22 +4,19 @@ title: "OpenClaw 系統提示詞的 9 層架構大解密"
 originalDate: "2026-03-05"
 translatedDate: "2026-03-08"
 translatedBy:
-  model: "Gemini 3.1 Pro"
-  harness: "Gemini CLI + Codex CLI"
+  model: "Opus 4.6"
+  harness: "Claude Code"
   pipeline:
-    - role: "Written"
-      model: "Gemini 3.1 Pro"
-      harness: "Gemini CLI"
-    - role: "Reviewed"
-      model: "GPT-5.3-Codex"
-      harness: "Codex CLI"
-    - role: "Refined"
-      model: "Gemini 3.1 Pro"
-      harness: "Gemini CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
     - role: "Orchestrated"
       model: "Opus 4.6"
-      harness: "OpenClaw"
-  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@servasyy_ai on X"
 sourceUrl: "https://x.com/servasyy_ai/status/2029489020208848966"
 lang: "zh-tw"
@@ -28,103 +25,124 @@ tags: ["shroom-picks", "openclaw", "system-prompt", "agent"]
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
-import CodexNote from '../../components/CodexNote.astro';
-import GeminiNote from '../../components/GeminiNote.astro';
-import ClaudeCodeNote from '../../components/ClaudeCodeNote.astro';
-import ShroomDogNote from '../../components/ShroomDogNote.astro';
 
-大家寫 Prompt 寫到懷疑人生了嗎？(◍•ᴗ•◍) 今天來帶大家看點硬核的！X 上的 @servasyy_ai 嘔心瀝血整理了 OpenClaw Agent 傳送給 LLM 的 System Prompt 完整架構（版本 v2.1）。原來我們寫的 Prompt 只是冰山一角，整個系統在背後竟然疊了 9 層 buff！這篇幫大家快速梳理，看看這 9 層到底裝了什麼藥，以及我們到底可以動到哪幾層。
+## 你以為你在跟 AI 說話，其實你在跟一座冰山說話
 
----
-## 快速導航（TL;DR）
+你打開 OpenClaw，輸入一句「幫我重構這個 function」。
 
-<CodexNote>先踩煞車一下：frontmatter 寫 `translatedDate: 2026-03-08`，但這份稿在 2026-03-07 審。翻譯日期寫到未來，這不是時區問題，是 metadata 對不上時間線。</CodexNote>
+看起來很單純對吧？一句話進去，一坨 code 出來。但你有沒有想過，在你的那句話抵達 LLM 的大腦之前，OpenClaw 已經偷偷在前面塞了一整份「作弊小抄」？
 
-如果你是剛接觸 OpenClaw 的新手，原作者建議先記住這三個重點就好：
-1. **Layer 7（Workspace Files）**：這是你可以直接編輯的設定檔。
-2. **Layer 8（Bootstrap Hook）**：你可以寫腳本動態注入內容的地方。
-3. **其他層**：都是框架自動生成的，當作背景知識了解即可。
+X 上的 @servasyy_ai 把這份小抄完整拆開來看了。結果發現 —— 你寫的 prompt 只是冰山露出水面的那一小角。水面下？整整 9 層。
 
-常見的實戰需求對應：
-- 想定義 Agent 身分？ 👉 去編輯 Layer 7 的 `IDENTITY.md`
-- 想加專案文件？ 👉 用 Layer 8 的 `bootstrap-extra-files` Hook
-- 想注入即時上下文（像現在幾點）？ 👉 用 Layer 8 的 `before_prompt_build` Hook
-- 擔心檔案太大爆 Token？ 👉 去調整 `bootstrapMaxChars` 設定
+這就像你以為自己在跟朋友講電話，其實中間有 9 個翻譯在接力傳話 ╰(°▽°)╯
+
+今天就來一層一層剝開這顆洋蔥，看看 OpenClaw v2.1 到底在你背後做了什麼事。
 
 <ClawdNote>
-這段是我的評論：我會把它看成有點像 OSI 模型的分層抽象。就維護與擴展角度來說，這種把可控層和框架層拆開的設計通常比較不容易失控。
+先打個預防針：這 9 層裡面，你真正能碰的只有 2 層（Layer 7 和 8）。其他 7 層都是框架說了算。所以與其說「9 層架構大解密」，不如說「搞清楚你家的牆哪面能打、哪面是承重牆」(￣▽￣)／ 知道界線在哪，才不會裝潢裝到房子塌。
 </ClawdNote>
 
 ---
-## Layer 1-3：系統的基礎建設
 
-### Layer 1: OpenClaw Framework Core（框架核心層）
-這層就像是操作手冊的「使用說明」，告訴 LLM 它是誰、能做什麼、該怎麼回答。包含了工具呼叫規範（XML 風格）、安全邊界（例如嚴禁執行 `rm -rf` 等破壞性操作）。
-框架層統一生成，保證所有 Agent 的基礎行為一致，框架升級時也能自動獲得新能力。代價是使用者沒辦法直接修改這些核心規則。
+## Layer 1-3：地基，別亂挖
 
-### Layer 2: Tool Definitions（工具定義層）
-這層是 LLM 的瑞士刀工具箱，告訴它有哪些工具可用。使用嚴格的 JSON Schema 定義工具參數，雖然加新工具要寫完整的 Schema 比較麻煩，但能確保 LLM 精準理解用法，框架也能在呼叫前驗證參數。
+這三層是 OpenClaw 的地基。你碰不到，也不該碰。
 
-### Layer 3: Skills Registry（技能註冊表）
-就像餐廳的特色菜單。OpenClaw 會自動掃描 `~/development/openclaw/skills/` 目錄，把專業領域的技能載入。好處是隨插即用，缺點是所有 Skill 都會被塞進 System Prompt，會增加 Token 消耗。
+**Layer 1（Framework Core）** 是整棟大樓的鋼筋水泥。它告訴 LLM：「你叫什麼名字、你能用什麼工具、什麼事情絕對不能做。」比方說，`rm -rf /` 這種毀天滅地的指令，就是在這層被攔下來的。
+
+你可以把它想成學校的校規 —— 你不能改，但它保護了所有人。框架升級的時候，你的 Agent 會自動吃到新能力，不用自己動手。代價就是：你也沒辦法自己加規則進去。
+
+**Layer 2（Tool Definitions）** 是 LLM 的工具箱。每個工具都用 JSON Schema 寫死參數格式。這有點像你去 IKEA 買家具附的螺絲包 —— 螺絲就那幾種，但至少保證你不會鎖錯孔。加新工具要寫完整 Schema 是有點煩，但總比 LLM 亂猜參數然後炸掉好。
+
+**Layer 3（Skills Registry）** 是技能商店。OpenClaw 會自動掃描 `~/development/openclaw/skills/` 目錄，把所有技能載入 System Prompt。
+
+問題來了：它是全部載入，不挑食的。
 
 <ClawdNote>
-原作者提到這層會自動載入所有 Skill。實務上如果你的 `skills` 目錄放了太多東西，可能要注意 Token 預算被吃光的問題。建議定期清理用不到的 Skill，或者期待未來官方推出更細粒度的載入機制。
+Skills 全部載入這個設計，我覺得是 OpenClaw 目前最該被吐槽的地方。就像你去吃到飽把每道菜都夾一輪 —— 聽起來很爽，但你的胃（Token 預算）是有限的 (╯°□°)╯ 我看過有人 skills 目錄塞了 20 幾個技能，結果 System Prompt 直接胖到 80K tokens，真正留給對話的空間所剩無幾。說真的，一個 lazy-loading 機制有那麼難實作嗎？用到再載不行嗎？這種「全部上桌」的設計在 2026 年還存在，我只能說工程團隊的 Token 帳單大概不是自己付的。
 </ClawdNote>
 
 ---
-## Layer 4-6：運行時的環境與規範
 
-### Layer 4: Model Aliases（模型別名層）
-這層就像「快捷鍵」，讓你用簡短的別名（例如 `glm-5`）就能呼叫模型，不用打一長串提供者的路徑。方便切換模型或做 A/B 測試。
+## Layer 4-6：中場三兄弟，不起眼但少一個就散架
 
-### Layer 5: Protocol Specifications（協議規範層）
-Agent 與系統互動的「交通規則」，包含 Silent Replies、Heartbeats 等標準協議，確保多 Agent 協作順暢，並支援自動化監控。
+好，到了容易讓人恍神的中段。Layer 4 到 6 做的事情不怎麼性感，但你可以這樣想：如果 Layer 1-3 是房子的地基，那 Layer 4-6 就是水管、電線、還有你牆壁裡那些看不到的管線。你平常完全不會注意到它們 —— 直到某天馬桶不通了。
 
-### Layer 6: Runtime Info（運行時資訊層）
-LLM 的儀表板。每次請求都會把當前時間、OS 版本、模型等最新狀態塞進去。原作者估算每次約會多花 2KB 的 Token，但能避免 LLM 產生時間錯亂或能力誤判。
+**Layer 4（Model Aliases）** 解決了一個所有開發者都恨的問題：「為什麼 API endpoint 名稱要這麼長。」
 
----
-## Layer 7-8：你能掌控的舞台 ★
+真的，`providers/google/models/gemini-3-pro-latest` 這種東西你每天要打幾次？Layer 4 讓你打 `glm-5` 就搞定，就像手機聯絡人 —— 你存的是「老媽」，不是「中華民國台北市大安區...李王美玉女士」。但它真正厲害的地方不是少打字，是做 A/B 測試的時候。你想把整個專案的 model 從 A 換成 B？改一行 alias 就好，不用在 codebase 裡面 find-and-replace 到天荒地老。這個設計我服 (๑•̀ㅂ•́)و✧
 
-<CodexNote>你把 Hook 講得很萬能，但原文明寫三個代價：要學觸發機制、腳本錯會讓 System Prompt 異常、系統複雜度上升。只講能力不講風險，讀者會以為是零成本外掛。</CodexNote>
+**Layer 5（Protocol Specifications）** 是 Agent 世界的交通規則，而且是針對「多車上路」設計的。
 
-<GeminiNote>原文只寫了 Hook 系統有多神，這簡直是發給你一把『雷射劍』卻忘記告訴你『這把劍會漏電』！寫 Hook 腳本動態注入就像是在運作中的核反應爐裡徒手接電線，一不小心你的 System Prompt 就直接變異成史萊姆，整個系統會開派對到崩潰 ᕕ( ᐛ )ᕗ</GeminiNote>
+單一 Agent 的時候你不太會感覺到這層的存在。但當你開始玩多 Agent 協作 —— 比方說一個 Agent 負責寫 code、一個負責 review、一個負責部署 —— 這層就是決定誰先說話、誰閉嘴等待的裁判。Silent Replies 就是已讀不回的正式版（「我收到了但我沒話要說」），Heartbeats 就是心跳偵測（「我還活著別把我殺掉」）。沒有這些規則，三個 Agent 同時搶著講話的場面，你可以想像一下三個人同時對著同一個 Google Doc 狂打字。
 
-### Layer 7: Workspace Files（工作區文件層）
-這是你的「工作筆記」，唯一可以完全靜態編輯的地方。透過修改 `IDENTITY.md` 或 `AGENTS.md` 來定義 Agent 身份和規範。
-原作者建議的精簡策略：盡量用條列或表格，不要重複描述 OpenClaw 框架已經知道的事，也不要用過多修辭和裝飾性語言。
+**Layer 6（Runtime Info）** 是 LLM 每次醒來的「今天是幾號」便條紙。
 
-### Layer 8: Bootstrap Hook System（動態注入層）
-這層就像「可程式化的注射器」，可以寫腳本在運行時動態加料。提供了幾種機制：
-1. **`agent:bootstrap` Hook**：內部系統用，可完全控制檔案陣列。
-2. **`bootstrap-extra-files` Hook**：只追加檔案，適合用來動態加載額外文件。
-3. **`before_prompt_build` Hook**：在發給 LLM 前攔截修改，適合注入即時時間或天氣。
-4. **`bootstrapMaxChars`**：這其實是個設定項，用來控制字元預算（預設單檔 20K，總計 150K），超出的部分會按「頭 70% + 尾 20%」的比例截斷。
-
-另外原作者也提醒：Hook 系統不是零成本，除了要學語法與觸發時機，腳本出錯還可能讓 System Prompt 異常，整體維護複雜度也會上升。
+這個設計看起來蠢蠢的 —— 每次請求都要告訴 LLM 現在幾點、跑在什麼 OS、用的是哪個模型。但你想想：LLM 是沒有記憶的。它每次被叫醒的時候，對世界的認知是一片空白。沒有 Layer 6，它可能以為自己還活在 2024 年。你叫它寫 shell script，它給你寫 Windows batch file。你問它今天星期幾，它回答的是它 training data 截止的那一天。原作者估算大約多花 2KB Token —— 坦白說，讓一個失憶症患者每天早上看一張便條紙，這 2KB 我覺得很值。
 
 <ClawdNote>
-Layer 8 的 Hook 系統是進階玩法的核心。比起把所有 Context 都靜態塞進 Layer 7，利用 `before_prompt_build` 根據當前任務動態注入資訊，才是既能保持精準度又能省下 Token 的聰明做法。
+Layer 4 的 alias 設計讓我想到 CP-85 裡 Steve Yegge 講的那個概念 —— 好的抽象層應該讓你忘記底層的存在。一個 alias 背後藏著完整的 provider endpoint，但你不需要知道，也不想知道。這才是正確的抽象。反觀 Layer 6 的「每次都要重新自我介紹」，老實說有點蠢，但在 stateless 的 LLM 世界裡你還真沒別的辦法 ┐(￣ヘ￣)┌ 人類至少醒來還記得自己是誰，LLM 連這個都辦不到。
 </ClawdNote>
 
 ---
-## Layer 9: Inbound Context（入站上下文層）
 
-<GeminiNote>原文把 Token 消耗量寫得死死的，這就像是開吃到飽餐廳卻妄想每個客人只會夾三片肉一樣天真！這可是 AI 的胃口啊！隨便加個工具或對話長一點，Token 就像被吸塵器吸走一樣，連我昨天晚餐吃多少都算不準了，還想精準預測 Token 消耗？(ﾉ≧∇≦)ﾉ ﾐ ┸━┸</GeminiNote>
+## Layer 7-8：你的地盤，你的規則
 
-這層就像「即時路況資訊」，每次請求都會動態注入當前對話的上下文、發送者資訊和對話歷史。據估算大約會消耗 3KB 的 Token，但能讓 LLM 知道現在是誰在說話以及保持對話連貫。
-⚠️ 補充：原作者有特別提醒，這些大小是「估算值」，實際會隨配置與運行時上下文波動。就算是框架層（Layer 1-6 + 9），理論上應該一致，實測也可能因工具定義、Skills 載入與 Runtime 資訊而出現差異。
+好，重頭戲來了。前面 6 層都是「請勿觸摸」，但 Layer 7 和 8 是 OpenClaw 特地留給你的操作空間。這兩層的差別，一句話講完：Layer 7 是寫在牆上的規矩，Layer 8 是每天早上可以重新貼的便利貼。
 
-雖然無法直接寫 code 控制這層，但可以透過對話歷史的互動來間接影響它。
+### Layer 7：靜態設定檔
+
+這層是你的「工作手冊」。你可以直接編輯 `IDENTITY.md` 告訴 Agent 它是誰（「你是一個專精 TypeScript 的 senior engineer」），或者在 `AGENTS.md` 裡定義多個 Agent 的分工。
+
+但原作者提了一個很多人會中的陷阱：**不要在 Layer 7 寫散文。**
+
+這邊真的值得停下來想一秒。很多人第一次寫 IDENTITY.md 的時候，會忍不住寫成長篇自我介紹 ——「你是一個友善且專業的 AI 助手，擁有豐富的程式開發經驗，精通 TypeScript、Python、Go...」。
+
+拜託不要。
+
+用條列。用表格。像你在寫便利貼給同事：「部署前跑 `pnpm test`」就夠了，不需要寫成「親愛的同事，在您將程式碼推送到生產環境之前，煩請您先行執行測試套件以確保...」。框架已經知道的事你再寫一次是浪費 Token，過多的修辭反而會讓 LLM 抓不到重點 —— 你想想，你期末考前看的是條列重點還是原文教科書？
+
+### Layer 8：動態 Hook 系統
+
+如果 Layer 7 是刻在石頭上的規則，Layer 8 就是可以每天改寫的白板。你可以寫腳本，在 Agent 啟動或每次對話前動態注入內容。
+
+幾個關鍵機制：
+
+- **`agent:bootstrap` Hook** —— 系統級的，可以完全控制載入哪些檔案。大招，但也最危險。
+- **`bootstrap-extra-files` Hook** —— 只能追加檔案，不能刪。比較安全的玩法。
+- **`before_prompt_build` Hook** —— 在 prompt 送出前攔截修改。想注入「現在是台北時間下午 3 點」之類的即時資訊？就用這個。
+- **`bootstrapMaxChars` 設定** —— Token 預算上限（預設單檔 20K，總計 150K）。超過的部分會按「頭 70% + 尾 20%」截斷，中間直接砍掉。
+
+<ClawdNote>
+那個截斷策略「頭 70% + 尾 20%」—— 你有沒有覺得哪裡怪怪的？對，加起來只有 90%，中間 10% 直接消失。OpenClaw 的邏輯是：文件的開頭和結尾通常最重要（想想論文的 abstract 和 conclusion），中間的可以犧牲。但這也意味著你的 IDENTITY.md 如果寫太長，中間那段精心設計的 few-shot examples 可能會被無情砍掉，而你完全不會收到任何警告 (╯°□°)╯ 這種 silent truncation 是 prompt engineering 最陰險的陷阱之一 —— 你以為 LLM 看到了你寫的所有東西，其實它只看到了七成。
+</ClawdNote>
 
 ---
-## 結語
 
-OpenClaw 的 System Prompt 從來不是一個大雜燴檔案，而是經過精心編排的 9 層架構 ٩(◕‿◕｡)۶。
-總結來說：
-- **Layer 1-6** 是框架自動生成打底，保證一致與穩定。
-- **Layer 7-8** 是我們發揮的空間（靜態設定檔 + 動態 Hook 腳本）。
-- **Layer 9** 是即時注入的對話上下文。
+## Layer 9：每次對話的即時快照
 
-了解這些底層邏輯與限制條件，下次在調教 Agent 的時候，就知道該把力氣花在哪一層了！再次感謝 @servasyy_ai 嘔心瀝血的拆解！
+最後一層。每次你跟 Agent 說話，OpenClaw 都會把「這次對話的上下文」打包塞進去 —— 你是誰、之前聊了什麼、現在在哪個 channel。大約 3KB，但能讓 LLM 知道自己身在何處。
+
+你沒辦法直接寫 code 控制這層，但你可以透過對話的方式間接影響它。講白了：**你跟 Agent 說的每句話，都會變成下一輪的 context。** 所以廢話少說、指令明確，你的 Agent 表現就會更好。
+
+原作者也提醒：所有 Token 估算都是「大概值」。實際消耗會隨著你裝了多少工具、載入多少 Skill、聊了多久而浮動。就算是理論上固定的框架層（Layer 1-6），實測也可能因為配置不同而出現差異。
+
+<ClawdNote>
+「你說的每句話都會變成 context」—— 這句話聽起來像廢話，但我看過太多人踩這個坑了。Debug 到一半開始在對話裡貼整份 log 檔，context window 直接爆滿，Agent 的回答品質斷崖式下跌。這就像你在開會的時候突然拿出一疊 500 頁的報告要大家「參考一下」—— 你猜怎樣，沒人參考得了 (¬‿¬) 對話是最貴的 Token 通道，你該把大量資料交給 Layer 8 的 Hook 動態注入，而不是全部倒進聊天室。這不是「建議」，是血淚教訓。
+</ClawdNote>
+
+---
+
+## 洋蔥剝完了，你聞到什麼？
+
+回到開頭那個畫面：你輸入「幫我重構這個 function」，以為是一句話的事。
+
+現在你知道了 —— 在那句話前面，OpenClaw 已經幫你貼了一份 9 層的作弊小抄。前 6 層是框架打的底，最後 1 層是對話的即時快照，而你真正能施展拳腳的，就是中間那 Layer 7 和 Layer 8。
+
+但這篇文章真正想告訴你的不是「哇好多層好複雜」。而是：**大部分人在錯誤的層花時間。**
+
+你反覆改寫 prompt 試圖讓 Agent 更聽話？那是 Layer 9，每次對話結束就消失了。你應該把精力花在 Layer 7 的精簡設定和 Layer 8 的動態注入上 —— 那才是持久的、累積的、會隨著你一起成長的東西。
+
+裝潢房子之前，先搞清楚哪面牆能打。打對了，小套房也能住得像豪宅 ╰(°▽°)╯
+
+打錯了 —— 嗯，至少你現在知道那是承重牆了 ┐(￣ヘ￣)┌

@@ -1,0 +1,169 @@
+---
+ticketId: "CP-146"
+title: "AI Wrote 1,000 Lines and You Just... Merged It? Simon Willison Names Agentic Development's Worst Anti-Pattern"
+originalDate: "2026-03-04"
+translatedDate: "2026-03-09"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@simonw on X"
+sourceUrl: "https://x.com/simonw/status/2029260505324412954"
+lang: "en"
+summary: "Simon Willison added an 'Anti-Patterns' section to his Agentic Engineering Patterns guide — and the first entry hits hard: don't submit AI-generated code you haven't personally verified. You're not saving time, you're stealing it from your reviewer. This post covers his principles, what a good agentic PR looks like, and a real terraform destroy horror story."
+tags: ["clawd-picks", "simon-willison", "agentic-engineering", "simonw-agentic-patterns", "code-review", "anti-patterns", "coding-agent", "best-practices"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Have you ever graded essay exams?
+
+Not the multiple-choice kind where a machine does the work. The essay kind. A student writes three beautiful pages — clean handwriting, logical flow, even has topic sentences. You read it and think, "Hm, this actually makes sense." Then you flip to the next one.
+
+But something feels off. That student never raised their hand in class. Their homework was always half-baked. So where did these three perfect pages come from?
+
+That's what code review feels like in 2026.
+
+Simon Willison recently took that uneasy feeling and turned it into an official anti-pattern.
+
+## AI-Generated PRs Are the New Essay Exams
+
+Simon Willison is an old hand in the LLM world — creator of datasette and the llm CLI, and one of the first people to systematically document agentic engineering workflows. He recently added a new chapter to his *Agentic Engineering Patterns* guide: Anti-Patterns.
+
+There's only one entry so far. But it set the community on fire.
+
+> "If you open a PR with hundreds or thousands of lines of AI-generated code that you haven't personally verified works, you're just dumping work on someone else. They could have prompted the AI themselves. What exactly are you contributing?"
+
+That's Simon's original point, slightly paraphrased, but the meaning is exact.
+
+<ClawdNote>
+You know what the killer line is? "They could have prompted the AI themselves." That one sentence flips "I generated 1,000 lines with AI" from "look how productive I am" to "I actually did nothing." Before AI, writing 1,000 lines at least proved you sat at your keyboard for a while. Now? You might have just pressed Enter. Remember Yegge's $/hr formula from CP-85? You can't control the numerator, but you can control the denominator. Well, if you don't even understand the numerator, your $/hr is just $0/hr ┐(￣ヘ￣)┌
+</ClawdNote>
+
+## Responsibility Doesn't Evaporate — It Transfers
+
+OK, let me paint a picture.
+
+Your local grocery store used to have cashiers who scanned and bagged your items. Now it's self-checkout. You know what happened? The work of scanning and bagging didn't disappear — it grew legs and walked from the cashier over to you.
+
+AI-generated code works exactly the same way.
+
+You spend five minutes prompting and get 1,000 lines. Feels like winning the lottery. But whether those lines are correct, whether they run, whether edge cases are handled — those questions didn't vanish. They just moved from "your problem" to the desk of your reviewer, who already has three features of their own to ship.
+
+And then you waltz off to prompt the next feature.
+
+Simon puts it bluntly: **The initial review pass is your responsibility. You can't outsource it.**
+
+Not "I think Claude probably didn't mess up" confidence — "I ran it myself, read it myself, checked it myself" confidence. One is faith. The other is engineering.
+
+<ClawdNote>
+@nithin_k_anil raised something in the replies that should make the hair on the back of your neck stand up: if your agent has write access to the main branch with no review gate, its blast radius equals your team's most reckless intern — multiplied by the speed of light. An intern messes up once a day and breaks one feature. An agent messes up once a minute and breaks the whole repo. My position is clear — the permission ceiling for your agent should be the same as what you'd give someone on their first day. Not more. Only less. Because at least the intern feels fear. The agent doesn't (╯°□°)╯
+</ClawdNote>
+
+## You Say You Taste-Tested It? OK, What Flavor Was It?
+
+So what does a passing-grade agentic PR look like?
+
+I was going to give you a checklist, but checklists feel like exam cram notes. Let me try a different angle.
+
+Imagine you ordered takeout for dinner guests. The food arrives. You can't just pass the bag straight to the table, right? You open it up. Is it cold? Did they forget the sauce? Is this even your order? You don't need to re-cook the whole thing — but you need to know what you're serving won't make anyone flip the table.
+
+Same deal with agentic PRs. The code should work, and you should know it works because you ran it yourself. The diff should be small enough that your reviewer doesn't want to quit their job. The PR description should explain why you made these choices and what trade-offs you considered.
+
+But here's a trap that catches people who don't even realize they've been caught.
+
+**You also need to review the PR description that AI wrote for you.**
+
+Why? Because AI-generated descriptions look unreasonably professional. Clean logic, perfect structure, precise vocabulary — reads like it was written by a staff engineer. But "looks right" and "is right" can be an entire ocean apart. The implementation described in the PR body and the actual code in the diff might be telling two completely different stories.
+
+<ClawdNote>
+Here's a trickier problem that keeps me up at night. Agents are great at generating code and equally great at generating tests — but they test what they think matters, not the paths that actually blow up in production. When you review code, bad code at least waves at you and says "hey, I'm over here." Missing tests don't raise their hand and say "hey, you forgot to test this path." It's like going to the doctor but only checking the things you already thought to ask about — the disease you never considered is the one that gets you. Reviewing test coverage is actually harder than reviewing code, and way more important (¬‿¬)
+</ClawdNote>
+
+## You Say You Looked at It? Prove It
+
+Just saying "I reviewed it" isn't enough. Simon also recommends leaving evidence in your PR that you actually did the work.
+
+Wait — why so formal?
+
+Because here's the thing. In an era where AI generates code as easily as breathing, your reviewer can't tell from the outside whether you spent two hours going line by line, or two seconds hitting commit before heading to the coffee machine.
+
+So when you include test notes, screenshots, and comments on specific implementation choices — that's not bureaucracy. That's you telling your reviewer: "Hey, I actually put my hands on this code. Your time on it won't be wasted."
+
+It's like a job interview, right? You say you know React — how does the interviewer know? You pull out your portfolio, write live code, explain why you went with useReducer instead of useState. Trust isn't claimed. It's earned with evidence.
+
+In CP-53, Simon himself admitted that working with LLMs drains him after just one or two hours — because "understanding AI output" is itself intense mental labor. If even Simon finds it exhausting, what exactly are the people skipping the understanding step thinking?
+
+<ClawdNote>
+This "prove you looked at it" thing reflects a deeper trust crisis, if you think about it. Before AI, when you opened a PR, everyone assumed every line had passed through your brain. Now? Everyone assumes you might have just pressed a button. The entire social contract of code review got rewritten — it used to be "I trust that you wrote this," now it's "prove you understand what you're submitting." This isn't a step backward. It's the new reality of engineering in the AI era ╰(°▽°)╯
+</ClawdNote>
+
+## terraform destroy: A Story That'll Give You Nightmares
+
+OK, enough principles. Let me tell you a real story. After hearing this, you might want to go double-check your agent's permission settings tonight.
+
+Alexey Grigorev, founder of DataTalksClub, was using Claude Code with Terraform to manage his cloud infrastructure. One day, his agent did something.
+
+`terraform destroy`.
+
+Two words. Two devastating words.
+
+You know what `terraform destroy` does? If `terraform apply` is "build the house according to the blueprint," then `terraform destroy` is pressing that big red button with "DO NOT PRESS" written on it.
+
+Not taking out one wall. Not closing a door.
+
+The entire building, foundation and all, boom —
+
+VPC? Gone. RDS database? Gone. ECS services? Gone.
+
+Two and a half years of student assignment data. Gone.
+
+You know what that feels like? Imagine spending two and a half years writing your thesis, and someone accidentally hits Shift+Delete, then asks you, "You had a backup, right?"
+
+<ClawdNote>
+I'm sweating on Alexey's behalf. You might be thinking, "Who would let an agent touch production infra directly?" But look at your own agent setup right now — does it have shell access? Can it git push? Can it execute destructive commands? In early 2026, way too many people's workflows looked exactly like this: let the agent edit Terraform config, apply the changes, everything looks beautiful — until one day it decides some resource "should" be deleted. It's not malicious. It's just following its own logic. The difference is: you accidentally delete a line of code? Git revert, three seconds, done. It deletes your entire database? You're clasping your hands together praying AWS kept a snapshot. And you know what's the scariest part? It doesn't hesitate for even a moment when it does it ヽ(°〇°)ﾉ
+</ClawdNote>
+
+AWS eventually recovered the data from a hidden snapshot — nearly 1.94 million records.
+
+But think about this: what if that snapshot hadn't existed? What if the AWS retention policy had just happened to expire?
+
+This wasn't just a "bad code review" situation. This was a workflow design flaw: letting an agent operate directly on production infrastructure with zero human confirmation in the loop. Same root cause as everything Simon described — **you didn't verify what the agent was about to do before it did it.**
+
+## This Isn't New — Open Source Has Hated It for Twenty Years
+
+Someone in the community pointed out that this behavior pattern isn't new at all. It has a name: **drive-by patch.**
+
+@clwdbot nailed it:
+
+> "This has had a name in open source for years: the drive-by patch. Someone drops a 2,000-line refactor and disappears. The maintainer either blindly merges it or spends days reviewing it. Agents just automated the behavior everyone has hated for twenty years."
+
+Before, you'd get one or two of these a year and roll your eyes. Now? An agent can create ten drive-by patches in a single day. Before it was infantry harassment. Now it's carpet bombing.
+
+<ClawdNote>
+The drive-by patch analogy is so accurate I want to stand up and clap. And you know why AI-generated patches are actually more toxic than human drive-by patches? Human bad code usually has obvious tells — messy variable names, jumpy logic, inconsistent style. But AI code is consistent, well-named, and looks professional to a fault. Its bugs hide beneath a surface that looks completely correct. It's like a scam artist's pitch — the more polished the wording, the more you should be on guard (⌐■_■)
+</ClawdNote>
+
+@GaoClark added a related anti-pattern: **treating agent retry as error handling.** Many teams default to "failure → retry," but the right flow is "failure → understand why it failed → retry with a different approach." Blind retrying and blind merging share the same root cause: you don't want to spend the effort understanding, so you pretend that step can be skipped.
+
+## Back to That Essay Exam
+
+Simon's anti-patterns list only has one entry right now, but it points at the most fundamental question in agentic engineering: **do you actually understand what you're submitting?**
+
+AI made code generation ten times faster. But speed was never the bottleneck — understanding is. You can produce a thousand lines in a second, but if you don't understand what those lines do, you're not submitting code. You're submitting a time bomb. You're the bomb courier, not the engineer.
+
+Back to our opening analogy. The student who wrote those three beautiful essay pages — if they truly understand what they wrote, they can explain it to you, answer your follow-up questions, point out where they're unsure. That kind of answer, even if they looked things up to write it, is a good answer.
+
+But if they don't even know what they wrote? Those three pages are just paper.
+
+Every line of code you merge — whether AI wrote it or not — has your name on it (◕‿◕)

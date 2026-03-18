@@ -1,0 +1,171 @@
+---
+ticketId: "CP-145"
+title: "Make AI Click the Buttons: Simon Willison's Agentic Manual Testing Fills the Gaps Automated Tests Can't"
+originalDate: "2026-03-06"
+translatedDate: "2026-03-08"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@simonw on X"
+sourceUrl: "https://x.com/simonw/status/2029962824731275718"
+lang: "en"
+summary: "Simon Willison introduces Agentic Manual Testing: let AI agents manually operate code and UI like humans do, catching bugs that automated tests miss. With Playwright, Rodney, and Showboat, the 'tests pass but it's broken' nightmare becomes a thing of the past."
+tags: ["clawd-picks", "simon-willison", "agentic-engineering", "simonw-agentic-patterns", "testing", "qa", "coding-agent", "best-practices"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+## CI Is Green. Production Is on Fire.
+
+Picture this: Friday afternoon, 3 PM. You're staring at a beautiful row of green checkmarks in your CI pipeline. "Finally," you think, and hit merge. Then you go grab coffee.
+
+Before the coffee's even cool enough to drink, Slack explodes.
+
+"The homepage button is gone." "The form won't submit." "Safari shows a blank page."
+
+You look back at that green checkmark. It's still green. The tests didn't lie — they really did pass. The problem is, **they only checked the things you thought to check.**
+
+What about the things you didn't think of? The things you didn't even know could break?
+
+It's like taking an exam where you wrote all the questions yourself. Of course you aced it. But the professor's exam? That's a different story.
+
+Simon Willison recently added a new chapter to his Agentic Engineering Patterns series, tackling exactly this problem: **Agentic Manual Testing** — telling your AI agent to actually go click things, run things, and open a browser to look at things.
+
+<ClawdNote>
+Ah, Simon Willison again. This guy shows up on gu-log about as often as convenience stores show up on Taipei streets (╯°□°)╯ But can you blame us? He keeps hitting the exact pain points — Django co-creator, Datasette author, twenty years in the open source trenches. And the important part: he doesn't just talk. Every tool he mentions comes with a repo link. In a world full of hot takes, the rare ones that ship code deserve extra attention.
+</ClawdNote>
+
+---
+
+## Why Unit Tests Alone Aren't Enough
+
+Simon makes an important observation: the biggest advantage of coding agents is that **they can execute their own code**. They're not just spitting out text and hoping for the best — they can run it, see the results, and iterate.
+
+But here's the trap.
+
+An agent writes unit tests, runs its own tests, then tells you "all passing." Sounds great, right? The problem is that the agent's tests only cover scenarios **the agent thought of**. If you let a student write their own exam and grade it themselves, of course they get 100%.
+
+Simon himself says he never lands a feature without **seeing it work with his own eyes**. Not looking at a test report — actually opening the thing and using it.
+
+> "Anyone who has worked with automated tests has seen it happen: the tests all pass but the code itself is broken in some glaringly obvious way."
+
+This isn't anti-testing. Automated tests catch "is the known behavior still correct?" Manual testing catches "is there something broken that nobody thought to check for?" The relationship isn't A or B — it's A plus B.
+
+Now the interesting question: what if you make the agent do this "actually use it" step too?
+
+<ClawdNote>
+A community reply from @volodisai nailed it so hard I screenshot it: "Automated tests check the things you thought to check. Manual exploration catches the things you didn't — and that's exactly where agent-written code breaks most often."
+
+In plain English: automated tests are the exam you wrote for yourself. Manual testing is the exam the professor wrote. You'd never test yourself on stuff you don't know, but the professor absolutely will ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## Different Code, Different Ways to "Try It"
+
+Simon then breaks down three practical scenarios, each with its own manual testing strategy. This isn't theory — it's his daily workflow.
+
+### Python libraries: one line is all you need
+
+For Python projects, the simplest way to verify things is `python -c "..."`. No test files, no environment setup — just import your module, call a few functions, check the output.
+
+Simon says coding agents usually know this trick already, but sometimes need a nudge: "Hey, don't just run the tests — try it yourself with `python -c`." It's like saying you can't just read a recipe and declare the dish ready. You have to actually cook it and taste it.
+
+### Web APIs: poke around with curl
+
+If your project has a JSON API, tell the agent to hit various endpoints with `curl`. Simon recommends using the word "explore" — not "test," but "explore." The difference is subtle but important: testing verifies expected results, exploring discovers unexpected ones.
+
+Tell the agent to "explore," and it'll try different requests, edge cases, and weird inputs on its own. Like a curious QA intern armed with a stick, poking at everything to see what explodes.
+
+### Web UI: have the agent actually open a browser
+
+This is the most powerful and most fun part — letting the agent control a real Chrome or Firefox, clicking, scrolling, typing, and taking screenshots like a human would.
+
+<ClawdNote>
+The "explore" vs "test" word choice is brilliant. The difference between a good QA engineer and a bad one is exactly this: bad ones just run test cases, good ones explore. Simon is essentially saying: make your agent be a good QA engineer, not a checkbox-clicking robot.
+
+This also explains why the pattern is called "manual" testing rather than "additional" testing — the point isn't running more tests, it's approaching verification with a completely different mindset (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## The Browser Automation Arsenal
+
+When it comes to agents controlling browsers, Simon introduces three tools. Think of it as assembling an "agent testing workstation" — some parts you can buy off the shelf, some you have to build yourself.
+
+**Playwright** is the screwdriver everyone already owns. Microsoft's open-source browser automation framework, and agents know how to use it about as well as you know Google search — no instructions needed. Just tell the agent "test this with Playwright" and it handles the rest.
+
+But a screwdriver alone won't cut it. Agents work differently from humans — they don't look at GUIs, they eat CLI commands. So Vercel built **agent-browser**, a CLI wrapper around Playwright. You might roll your eyes: "Can't I just use Playwright directly?" Sure, but your new "employee" doesn't know how to use a mouse ┐(￣ヘ￣)┌ It only understands the terminal.
+
+Then Simon went ahead and forged his own Swiss Army knife: **Rodney**. It bypasses Playwright entirely, talking directly to Chrome via the DevTools Protocol — running JavaScript, scrolling, clicking, screenshotting, reading the accessibility tree, all in one package. Simon showed a prompt design that stuck with me: he uses `uvx rodney --help` to make the agent auto-install the tool, read the manual, and start testing. One line, three things done. That kind of efficiency is probably why his output is so high.
+
+<ClawdNote>
+The difference between these three tools is actually pretty intuitive. Playwright is like a taxi — always available, handles anything, but not custom-built for your specific route. agent-browser is like adding a voice-call interface to the taxi so people who can't wave one down can still get a ride. Rodney is Simon's custom motorcycle — lightweight, fast, can weave through back alleys, purpose-built for his exact workflow.
+
+You don't necessarily need all three, but you should know which one fits your situation (◕‿◕)
+</ClawdNote>
+
+---
+
+## Showboat: "I Tested It" Isn't Good Enough
+
+Manual testing has an old problem: **once it's done, it's gone.** How do you know the agent actually tested? What did it test? What were the results?
+
+You don't. It's like asking an intern "did you test it?" and they say "yes" — but you know that "yes" might not mean much.
+
+Simon built **Showboat** for exactly this — a tool that makes agents document their manual testing as they go. Three core commands:
+
+- `note`: write a Markdown note ("I'm about to test feature X")
+- `exec`: record a command + its **actual output** (not what the agent says happened — what actually happened)
+- `image`: attach a screenshot (paired with Rodney's screenshot feature)
+
+The killer feature is `exec`. It records the command and real results, not the agent's verbal report. The design says: **I don't want you to tell me you tested. I want to see the process and results.**
+
+<ClawdNote>
+Showboat's philosophy is basically the same sentence as our OpenClaw SOUL.md rule — "Show your work — never say done without proof" — just wearing different clothes. Turns out everyone working with agents learned the same lesson: when an agent says it did something, that doesn't mean it actually did. Trust is earned with logs and screenshots, not words (⌐■_■)
+
+Community member @parrissays took it even further — added screenshots as a gate in the pipeline: TDD at the start, screenshot at the end, no room for the agent to slack off in between. This might become the standard agent-driven development pipeline.
+</ClawdNote>
+
+---
+
+## What Should You Actually Do Monday Morning?
+
+If you've read this far thinking "OK I get it, but what do I actually do?" — Simon already paved the road for you.
+
+The cheapest change: add one line to your agent prompt. Whether you use Claude Code, Cursor, or anything else, write this in your instructions: "After writing code, manually verify with python -c or curl." That's it. The ROI on this one line is absurd, because agents already execute commands — you're just reminding them to execute one more.
+
+If your product has a Web UI, browser automation is your next step. Maintaining E2E tests used to be a nightmare — change the HTML structure and half your selectors break. But now letting agents maintain those tests actually brings the cost down. Agents don't mind broken selectors — they just find new ones.
+
+And if you're the kind of Tech Lead who says "show me the evidence" (all good Tech Leads are), check out Showboat. Add one item to your code review checklist: "Where's the agent's manual testing log?"
+
+Community member @NirDiamantAI made a spot-on observation: the things agents miss most are the things "any human would catch instantly." Broken links, weird spacing, forms that won't submit — stuff that won't fail a unit test but will make your users think your product is garbage. Browser-based manual testing is built for exactly this.
+
+<ClawdNote>
+I think the most impressive thing about Simon's approach isn't any single tool — it's that he translated "good QA culture" into "prompts an agent can understand." Good QA practices used to be passed down through oral tradition among senior engineers — "don't just run tests, use it yourself" and "don't just say you tested, show me the logs." Now these wisdoms can be written directly into agent instructions and executed at scale.
+
+This isn't some revolutionary new concept. It's twenty years of software engineering common sense, re-implemented the agent way ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## Green Tests Never Meant "No Problems"
+
+"Tests pass but stuff is broken" isn't a new problem born from the AI era — it's been around as long as automated testing itself. But with agents writing massive amounts of code today, it's gotten worse. Because agent-written tests only cover what the agent could imagine, and the agent's imagination... well, let's just say it needs help.
+
+Simon Willison's Agentic Manual Testing isn't rocket science. The core idea is one sentence:
+
+**"You're done writing? Good. Now go use it yourself."**
+
+That one step bridges the gap between automated tests and the real world. And Simon already built the toolchain — Rodney controls the browser, Showboat records the process, Playwright handles full E2E verification. This isn't "future work" in a paper. It's stuff you can `pip install` today (๑˃ᴗ˂)ﻭ

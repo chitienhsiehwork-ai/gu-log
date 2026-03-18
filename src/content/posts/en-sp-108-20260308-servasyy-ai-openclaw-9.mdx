@@ -1,0 +1,148 @@
+---
+ticketId: "SP-108"
+title: "OpenClaw's 9-Layer System Prompt Architecture, Fully Decoded"
+originalDate: "2026-03-05"
+translatedDate: "2026-03-08"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@servasyy_ai on X"
+sourceUrl: "https://x.com/servasyy_ai/status/2029489020208848966"
+lang: "en"
+summary: "A deep dive into the 9-layer system prompt architecture of OpenClaw Agent (v2.1) — from framework core to user-configurable hooks."
+tags: ["shroom-picks", "openclaw", "system-prompt", "agent"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+## You Think You're Talking to an AI. You're Actually Talking to an Iceberg.
+
+You open OpenClaw. You type "refactor this function for me."
+
+Simple, right? One sentence in, a blob of code out. But have you ever wondered what happens before your message reaches the LLM's brain? Because OpenClaw has already stuffed a massive cheat sheet in front of it.
+
+@servasyy_ai on X ripped that cheat sheet wide open. Turns out — your prompt is just the tiny tip of the iceberg poking above the water. Below the surface? Nine full layers.
+
+It's like you thought you were having a phone call with a friend, but there are actually 9 interpreters playing telephone in between ╰(°▽°)╯
+
+Today, let's peel this onion layer by layer and see what OpenClaw v2.1 is really doing behind your back.
+
+<ClawdNote>
+Quick heads-up before we dive in: out of these 9 layers, you can only touch 2 (Layer 7 and 8). The other 7 are the framework's territory. So this is less "9-layer grand reveal" and more "figuring out which walls in your apartment are load-bearing" (￣▽￣)／ Know the boundaries, or you'll renovate yourself into a pile of rubble.
+</ClawdNote>
+
+---
+
+## Layers 1-3: The Foundation — Don't Dig Here
+
+These three layers are OpenClaw's foundation. You can't touch them, and you shouldn't.
+
+**Layer 1 (Framework Core)** is the steel and concrete of the building. It tells the LLM: "Here's your name, here are your tools, and here's what you absolutely cannot do." For example, `rm -rf /` — the command that deletes everything — gets blocked right here.
+
+Think of it like school rules. You can't change them, but they keep everyone safe. When the framework upgrades, your Agent automatically gets new capabilities without you lifting a finger. The trade-off: you can't add your own rules to this layer either.
+
+**Layer 2 (Tool Definitions)** is the LLM's toolbox. Every tool has its parameters locked down in strict JSON Schema. It's like the screw bag that comes with IKEA furniture — only a few types of screws, but at least you won't drill the wrong hole. Writing full Schema for new tools is a bit tedious, but it beats the LLM guessing parameters and blowing things up.
+
+**Layer 3 (Skills Registry)** is the skill store. OpenClaw automatically scans `~/development/openclaw/skills/` and loads every skill into the system prompt.
+
+The catch: it loads *all* of them. No filtering.
+
+<ClawdNote>
+Loading all skills is honestly the most roast-worthy design decision in OpenClaw right now. It's like hitting a buffet and grabbing one of everything — sounds great, but your stomach (token budget) has limits (╯°□°)╯ I've seen people stuff 20+ skills into that directory, and the system prompt balloons to 80K tokens. Barely any room left for actual conversation. Seriously, would lazy-loading kill them? Load on demand, not on boot. The fact that this "load everything" approach still exists in 2026 tells me the engineering team probably isn't paying their own token bills.
+</ClawdNote>
+
+---
+
+## Layers 4-6: The Three Middle Children — Invisible Until Something Breaks
+
+Okay, here's where most people zone out. Layers 4 through 6 aren't glamorous. But think of it this way: if Layers 1-3 are the foundation of your house, Layers 4-6 are the plumbing, wiring, and pipes hidden inside the walls. You never think about them — until the toilet stops flushing.
+
+**Layer 4 (Model Aliases)** solves a problem every developer hates: "Why are API endpoint names so absurdly long?"
+
+Seriously. `providers/google/models/gemini-3-pro-latest` — how many times a day do you want to type that? Layer 4 lets you type `glm-5` and call it a day. It's like phone contacts — you save "Mom," not "Ms. Li Wang Mei-Yu, No. 42, Da'an District, Taipei City, Republic of China." But the real power isn't saving keystrokes. It's A/B testing. Want to swap your entire project from model A to model B? Change one alias. No find-and-replace marathon across your codebase. This design? I respect it (๑•̀ㅂ•́)و✧
+
+**Layer 5 (Protocol Specifications)** is the traffic rules of the Agent world — and they're designed for multi-car highways.
+
+With a single Agent, you barely notice this layer exists. But the moment you start running multi-Agent setups — say, one Agent writes code, one reviews, one deploys — this layer becomes the referee that decides who talks first and who shuts up and waits. Silent Replies are the formal version of "seen, no reply" ("I got your message but I have nothing to add"). Heartbeats are the proof-of-life signal ("I'm still running, don't kill my process"). Without these rules, three Agents talking at once looks like three people rage-typing into the same Google Doc simultaneously.
+
+**Layer 6 (Runtime Info)** is the "what day is it" sticky note the LLM reads every time it wakes up.
+
+This sounds almost dumb — every single request has to tell the LLM what time it is, what OS it's running on, which model it is. But here's the thing: LLMs have no memory. Every time one wakes up, its knowledge of the world is a blank slate. Without Layer 6, it might think it's still 2024. You ask for a shell script, it gives you a Windows batch file. You ask what day it is, it answers with its training data cutoff date. The author estimates about 2KB of tokens per request — honestly, for an amnesiac who needs to read a sticky note every morning just to remember who they are, 2KB is a bargain.
+
+<ClawdNote>
+Layer 4's alias design reminds me of what Steve Yegge talked about in CP-85 — good abstraction should let you forget the layer beneath it. One alias hides a full provider endpoint, and you never need to know or care. That's proper abstraction. Layer 6's "re-introduce yourself every time," on the other hand, feels a bit silly — but in a stateless LLM world, you genuinely have no alternative ┐(￣ヘ￣)┌ Humans at least wake up remembering who they are. LLMs can't even manage that.
+</ClawdNote>
+
+---
+
+## Layers 7-8: Your Turf, Your Rules
+
+Okay, here's the main event. The first 6 layers were all "do not touch." But Layers 7 and 8 are the playground OpenClaw built specifically for you. The difference in one sentence: Layer 7 is rules carved into the wall. Layer 8 is sticky notes you can replace every morning.
+
+### Layer 7: Static Config Files
+
+This is your "employee handbook" for the Agent. You can edit `IDENTITY.md` to tell the Agent who it is ("You are a senior TypeScript engineer"), or define multi-agent roles in `AGENTS.md`.
+
+But the original author flagged a trap that most people fall into: **don't write essays in Layer 7.**
+
+This is genuinely worth pausing on. The first time people write IDENTITY.md, they can't resist turning it into a long self-introduction — "You are a friendly and professional AI assistant with extensive programming experience, proficient in TypeScript, Python, Go..."
+
+Please don't.
+
+Use bullet points. Use tables. Write it like a sticky note for a coworker: "Run `pnpm test` before deploying" is enough. You don't need "Dear colleague, prior to pushing your code to the production environment, kindly execute the test suite to ensure..." Repeating what the framework already knows wastes tokens, and too much prose makes the LLM lose focus — think about it: before a final exam, do you review bullet-point summaries or re-read the entire textbook?
+
+### Layer 8: Dynamic Hook System
+
+If Layer 7 is rules carved in stone, Layer 8 is a whiteboard you can rewrite every day. You can write scripts that inject content when the Agent boots up or before each conversation turn.
+
+Key mechanisms:
+
+- **`agent:bootstrap` Hook** — System-level. Full control over which files get loaded. Powerful, but also the most dangerous.
+- **`bootstrap-extra-files` Hook** — Can only append files, not remove them. The safer option.
+- **`before_prompt_build` Hook** — Intercepts and modifies the prompt right before it's sent. Want to inject "It's currently 3 PM in Taipei"? Use this.
+- **`bootstrapMaxChars` setting** — Token budget cap (default: 20K per file, 150K total). Anything over gets truncated: first 70% + last 20%, middle gets chopped.
+
+<ClawdNote>
+That truncation strategy — "first 70% + last 20%" — notice anything weird? Right, that only adds up to 90%. The middle 10% just vanishes. OpenClaw's logic is that the beginning and end of a document are usually the most important parts (think abstract and conclusion in a paper), so the middle can be sacrificed. But this also means if your IDENTITY.md is too long, those carefully crafted few-shot examples in the middle might get silently chopped — and you'll never get a warning (╯°□°)╯ This kind of silent truncation is one of prompt engineering's sneakiest traps — you think the LLM saw everything you wrote, but it only saw about seventy percent.
+</ClawdNote>
+
+---
+
+## Layer 9: The Live Snapshot
+
+The final layer. Every time you talk to the Agent, OpenClaw packages up the current conversation context — who you are, what you've said so far, which channel you're in. About 3KB, but it lets the LLM know where it is.
+
+You can't directly code against this layer, but you influence it through every message you send. In plain terms: **everything you say to the Agent becomes context for the next round.** So less rambling, clearer instructions, better Agent performance.
+
+The author also notes: all token estimates are approximate. Actual consumption varies with how many tools you've installed, how many skills are loaded, and how long your conversation runs. Even the supposedly fixed framework layers (1-6) can shift depending on your configuration.
+
+<ClawdNote>
+"Everything you say becomes context" — sounds obvious, but I've watched too many people step on this landmine. Someone pastes an entire log file into the chat mid-debug, the context window maxes out instantly, and the Agent's response quality falls off a cliff. It's like pulling out a 500-page report in the middle of a meeting and telling everyone to "just reference this real quick" — spoiler: nobody can (¬‿¬) Your conversation is the most expensive token channel you have. Large data belongs in Layer 8 hooks, not in the chat window. This isn't a suggestion. It's a lesson paid for in wasted tokens and broken sessions.
+</ClawdNote>
+
+---
+
+## Your Onion Is Peeled. What Do You Smell?
+
+Let's go back to where we started: you type "refactor this function for me," thinking it's just one sentence.
+
+Now you know — before that sentence, OpenClaw has already attached a 9-layer cheat sheet. The first 6 layers are the framework's foundation. The last layer is a live snapshot of your conversation. And the space where you actually get to make moves? That's Layer 7 and Layer 8, right in the middle.
+
+But the real takeaway isn't "wow, so many layers, so complex." It's this: **most people spend their time on the wrong layer.**
+
+You keep rewriting your prompts trying to make the Agent behave? That's Layer 9 — it evaporates when the conversation ends. You should be investing in Layer 7's lean config and Layer 8's dynamic hooks — that's the stuff that persists, compounds, and grows with you.
+
+Before you renovate, figure out which walls you can knock down. Get it right, and a studio apartment feels like a mansion ╰(°▽°)╯
+
+Get it wrong — well, at least now you know it was a load-bearing wall ┐(￣ヘ￣)┌

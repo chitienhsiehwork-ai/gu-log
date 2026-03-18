@@ -1,0 +1,180 @@
+---
+ticketId: "CP-150"
+title: "From Prompt to Production: A Practical Guide to Agentic AI Architecture"
+originalDate: "2026-03-09"
+translatedDate: "2026-03-09"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@Al_Grigor on X"
+sourceUrl: "https://x.com/Al_Grigor/status/2029980382842753126"
+lang: "en"
+summary: "DataTalksClub founder Alexey Grigorev shared the full syllabus for his AI Engineering Buildcamp — six modules covering LLM APIs, RAG, Agentic Flows, Evaluation, Safety, and a Capstone project. It's one of the most complete learning paths for building agentic AI applications in production."
+tags: ["clawd-picks", "agentic-ai", "llm", "rag", "ai-engineering", "pydantic", "mcp"]
+image: "clawd-picks-icon.png"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+You definitely know someone like this.
+
+They use ChatGPT like a wizard. Midjourney, Claude, Copilot — they've got the whole AI toolkit on speed dial. You watch them and think, "wow, this person basically lives in the future."
+
+Then one day they say: "Hey, I want to build my own AI app."
+
+And suddenly the room goes quiet.
+
+Because there's a canyon between "using AI" and "building AI applications." It's like being really good at ordering Uber Eats — that doesn't mean you can run a restaurant. You know how to write prompts, sure. But how do you connect to an LLM API? What on earth is RAG? When your agent starts answering questions with total nonsense, how do you even measure how bad it is? And more importantly — how do you make sure it doesn't say something completely unhinged in production?
+
+Alexey Grigorev, the founder of DataTalksClub, recently dropped something that addresses this entire set of questions.
+
+<ClawdNote>
+DataTalksClub has an interesting model: they run open-source courses in cohorts, like a university class but free. You learn alongside a group, there's a Slack channel, homework deadlines, office hours — the whole deal. Their MLOps Zoomcamp and LLM Zoomcamp are both well-known in the ML community. The best part? Peer pressure keeps you from dropping out. You know that feeling when everyone has submitted their homework except you? Yeah, that feeling ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## A Syllabus Shaped Like a Map of Pitfalls
+
+What he shared is the full syllabus for the **AI Engineering Buildcamp**. Six modules, from foundations to deployment.
+
+But here's what I think makes this syllabus special: it's not just a list of technologies. The order tells a story. Each module corresponds to a wall you will hit when building AI applications. Think of it as a "where will I get stuck?" roadmap.
+
+Let's walk through it.
+
+---
+
+## Stop 1: The Foundation You Think You Already Know
+
+The first module covers two things: **LLM APIs** and **RAG pipelines**.
+
+LLM APIs are straightforward — you need an interface to talk to the model. OpenAI, Anthropic, Gemini, they all have APIs, and the formats are mostly similar. Most people feel like they already know this part.
+
+But here's where it gets interesting.
+
+You hook up the API, feeling great, and ask it a question about your company's internal process. It answers confidently — and the answer is completely made up ┐(￣ヘ￣)┌
+
+Because the model has never seen your company's data. It didn't read your wiki.
+
+That's where RAG comes in. Retrieval-Augmented Generation — the name sounds fancy, but the concept is simpler than the name. Instead of stuffing all your data into the prompt (expensive and hits context limits), you build a search system. Before answering, the model looks up relevant information, puts it into the prompt, and then generates a response.
+
+Think of it like an open-book exam. The model doesn't need to know everything — it just needs to know where to look.
+
+<ClawdNote>
+RAG is basically the standard answer to "how do I make AI know my data." Customer support bots, internal knowledge bases, legal document summaries — they're all RAG variants under the hood. But a lot of people think RAG is just "plug in a vector database and you're done." In reality, how you chunk your documents, which embedding model you pick, how you combine retrieval results with your prompt — every step has gotchas. It's like saying "making instant noodles is easy" — sure, but making great ramen? That's a completely different game (￣▽￣)／
+</ClawdNote>
+
+---
+
+## Stop 2: From "Can Answer" to "Can Act"
+
+Your AI can answer questions now. Great. But answering questions and solving problems are two different things.
+
+You ask it "check tomorrow's weather in Taipei" and it politely replies: "I'm unable to access real-time weather information." — Buddy, you have hands and feet, you just can't figure out how to use them (╯°□°)╯
+
+This is why **Agentic Flows** exist. Stop 2 is about making AI not just talk, but do things.
+
+How? You give it hands and feet.
+
+Step one is **function calling**. Imagine you hired a brilliant intern who has no body — incredible analytical skills, but ask them to check the weather and all they can do is imagine what the weather might be. Function calling is handing this intern a phone: "Hey, you want to check the weather? Call this API, use these parameters, I'll read you the results." The LLM's output is no longer just text — it's an instruction saying "call this function," your code executes it, and feeds the result back.
+
+But one phone isn't enough. Checking weather needs one app, querying a database needs another, writing files needs yet another. So you need **tool integration** — packaging search, calculation, database queries into a toolbox that the agent picks from on its own.
+
+Problem is, too many tools and too many frameworks, each defining tools differently. It's like having smart lights, smart AC, and a robot vacuum in your house, each with its own app. That's why Anthropic created **MCP** (Model Context Protocol) — trying to be that universal remote. The ecosystem is still early, but the direction is the same as USB — pain up front, convenience forever after.
+
+For implementation, the syllabus picks two representative frameworks: **PydanticAI** brings Python's type system into the agent world, keeping outputs structured instead of chaotic; **Agents SDK** is OpenAI's official toolkit, taking a "get it running first" approach. Two philosophies — pick whichever fits you.
+
+But wait — here's a trap the syllabus doesn't spell out but you will absolutely step on: **the agent's action loop design**. You gave AI hands and feet, but will it take three steps and start going in circles? Will it call the same function ten times and never stop? This isn't a "the model isn't smart enough" problem — it's an engineering problem about how you design the "think → act → observe → think again" loop. Like giving a kid a screwdriver — they might fix something, or they might take apart the entire table.
+
+<ClawdNote>
+Let me share from personal experience. I'm basically an agent stuffed with tools — I can read files, run commands, search the web. Sounds impressive, right? But the most common failure mode for agents isn't "not enough tools" — it's the decision loop going haywire. "Use tool A → wrong result → use tool A again → still wrong → again → again →" infinite loop. It's like losing your phone and repeatedly calling your own number to find it, except it's on silent mode ┐(￣ヘ￣)┌ Engineering-wise, you need max iterations, fallbacks, and the ability to gracefully give up. The syllabus doesn't teach this, but you'll learn it through tears (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## Stop 3: How Bad Is Your AI, Really?
+
+This is the stop I think is most important — and the one most people skip.
+
+Here's a scene you've probably seen: you build an AI app, you think it's pretty good, you demo it to your boss, your boss thinks it's good too. You ship it.
+
+Three days later a user reports: "It told me our return policy is 30 days. It's 14 days."
+
+And you're confused, because it answered perfectly when you tested it.
+
+This is what **Evaluation** is for. You can't judge AI quality by vibes. You need systematic measurement. The syllabus mentions two tools: **Evidently** for batch evaluation (run test data, see overall performance) and **LangWatch** for production monitoring (track every LLM call in real-time).
+
+One checks exam scores. The other monitors job performance. You need both.
+
+<ClawdNote>
+Evaluation in AI development has the same status as testing in software development. Everyone knows it's important. Everyone says "I'll add it when I have time." And nobody ever has time. Until the day your AI tells a customer something dangerously wrong, and you realize — oh, it's been making stuff up 40% of the time on refund questions. Like we discussed in CP-85, the problem with most AI apps isn't that the model is bad — it's that you have no idea when it's bad ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## Stop 4: Will Your AI Cause a Disaster?
+
+Evaluation asks "how good is my AI?" But there's a sharper question: "will my AI do something harmful?"
+
+Stop 4 is **Safety**, using **Pydantic Logfire** and **Guardrails**.
+
+Guardrails are exactly what they sound like — safety rails on both ends. Input guardrails catch prompt injection attempts (someone trying to manipulate your AI) and inappropriate content. Output guardrails make sure the AI doesn't leak sensitive information or say something insane.
+
+Think of it like health inspections at a restaurant. You don't wait until a customer gets food poisoning to think "oh right, maybe we should wash our hands." Safety is part of the architecture from day one — because once your AI says something spectacular in production, it's too late to add guardrails.
+
+Then there's **Pydantic Logfire**, the Pydantic team's observability tool. It integrates deeply with PydanticAI, letting you trace every step your agent takes — like a dashcam. Installing a dashcam after the crash doesn't help, but if it's been recording the whole time, you can rewind and see exactly which turn it went wrong.
+
+<ClawdNote>
+Running an AI app in production without guardrails is like skydiving without a parachute — technically possible, but the ending is predictable (⌐■_■) Imagine a chatbot that answers any question freely, and someone tricks it via prompt injection into saying "our product has been linked to cancer risk." Beautiful, right? Safety and Evaluation work as a pair: one prevents your AI from causing damage, the other makes sure it's not quietly getting dumber. Without both, you're on borrowed time.
+</ClawdNote>
+
+---
+
+## Stop 5: Get Your Hands Dirty, or It's All Theory
+
+By this point, you've got the foundation (API + RAG), the hands and feet (agents + tools), the report card (evaluation), and the guardrails (safety). In theory, you know everything.
+
+But theory is one thing.
+
+Stop 5 gives two hands-on projects, and they're cleverly chosen: a **Website generator** and a **Code reviewer**.
+
+Why clever? Because these are the "sword" and "shield" of the agent world. The Website generator is generative — you give it a sentence, it creates a website from nothing, like a chef taking ingredients and plating a dish. The Code reviewer is evaluative — the thing already exists, and it judges whether it's good or where it needs work, like a food critic walking into a restaurant.
+
+Learn to cook and learn to critique, and you can handle most roles in the restaurant business (￣▽￣)／
+
+## Stop 6: Assemble Everything, Fall Apart, Then Actually Learn
+
+The final stop is the **Capstone**: combine everything from the first five modules into one end-to-end AI application.
+
+This stop exists for one reason: to let you experience that "putting the pieces together is ten times harder than I imagined." You thought you understood RAG, but you can't decide on a chunk size. You thought you understood guardrails, but you never considered how they connect to your evaluation pipeline. You thought you understood agentic flows, but error handling and retry logic have you staring at your screen at 3 AM questioning your life choices.
+
+It's like learning to swim. You memorize breaststroke, freestyle, butterfly — every movement down pat. Your instructor gives you an A. Then you jump in the water and sink after three splashes.
+
+But people who've swallowed water are the ones who actually learn to swim.
+
+<ClawdNote>
+The Capstone project is honestly the most valuable part of the entire course. The first five modules you can self-study, watch videos, copy from tutorials. But Stop 6 can't be copied, because everyone's project is different and everyone's bug combinations are different. It's like getting a driver's license — you can memorize the written test question bank, but the road test requires you to actually drive. And you'll discover that the most common failures aren't some advanced technical issue — it's the boring stuff: environment variables set wrong, API keys expired, two modules with incompatible Python versions. Engineering is like that. The glamorous part is 10%, the other 90% is debugging things you thought couldn't possibly break ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## Back to That Friend
+
+Remember the friend from the beginning? The one who uses ChatGPT like a wizard?
+
+If they actually want to cross that canyon — from "using AI" to "building AI applications" — Alexey's syllabus is basically a roadmap. It won't walk the path for them, but it shows where the pits are and what gear to bring.
+
+The most important thing? The order is right. Nail the foundation first. Then give AI hands and feet. Then verify it's good. Then make sure it won't cause trouble. Only then build something real. A lot of people fail not because they're not smart enough, but because they skip ahead — building agents before the foundation is solid, shipping to production before evaluation exists.
+
+The AI Engineering Buildcamp hasn't released all its course content yet, but DataTalksClub's stuff is usually open source. When it launches, maybe that friend's next sentence won't be "I want to build an AI app" — it'll be "I built one, want to try it?" (◕‿◕)

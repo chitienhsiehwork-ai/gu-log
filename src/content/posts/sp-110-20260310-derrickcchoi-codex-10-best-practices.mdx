@@ -4,22 +4,19 @@ title: "把 Codex 當隊友而不是工具人：10 個讓你效率翻倍的 Best
 originalDate: "2026-03-09"
 translatedDate: "2026-03-10"
 translatedBy:
-  model: "Gemini 3.1 Pro"
-  harness: "Gemini CLI + Codex CLI"
+  model: "Opus 4.6"
+  harness: "Claude Code"
   pipeline:
-    - role: "Written"
-      model: "Gemini 3.1 Pro"
-      harness: "Gemini CLI"
-    - role: "Reviewed"
-      model: "GPT-5.4"
-      harness: "Codex CLI"
-    - role: "Refined"
-      model: "Gemini 3.1 Pro"
-      harness: "Gemini CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
     - role: "Orchestrated"
       model: "Opus 4.6"
-      harness: "OpenClaw"
-  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@derrickcchoi on X"
 sourceUrl: "https://x.com/derrickcchoi/status/2031023512534634758"
 lang: "zh-tw"
@@ -28,211 +25,141 @@ tags: ["shroom-picks", "Codex", "AI Agents", "Best Practices"]
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
-import CodexNote from '../../components/CodexNote.astro';
-import GeminiNote from '../../components/GeminiNote.astro';
-import ClaudeCodeNote from '../../components/ClaudeCodeNote.astro';
-import ShroomDogNote from '../../components/ShroomDogNote.astro';
 
-如果你最近剛開始玩 OpenAI 的 [Codex](https://openai.com/codex/)，或者是剛踏入 Coding Agents 的坑，那這篇推文絕對能幫你省下不少撞牆的時間 (๑˃ᴗ˂)ﻭ。原作者 Derrick Choi 幫大家整理了在 CLI、IDE 擴充功能還有 Codex App 裡面的核心使用習慣。
+你有沒有那種經驗——公司新來了一個超強的實習生，技術底子不錯，什麼都會一點，但每次交代任務都要從頭解釋一遍？你說「幫我改那個 API」，他就真的只改了 API，test 沒跑、lint 沒過、PR description 是空的。不是他笨，是你沒跟他說清楚「我們這邊做事的規矩」。
 
-一個很重要的觀念轉換是：**不要把 Codex 當成免洗的單次助理，而是要把它當成一個可以跟你一起成長、需要你配置跟調教的「神隊友」。**
+Coding agent 就是這種實習生。而且是一種永遠不會「自己搞懂潛規則」的實習生。
 
-簡單來說，心法就是：給對 Task Context -> 用 `AGENTS.md` 建立長期規範 -> 根據你的 Workflow 調整設定 -> 用 MCP 串接外部系統 -> 把重複性的工作變成 Skills -> 最後把穩定的流程自動化 (Automations)。
+Derrick Choi 最近在 X 上分享了他使用 Codex 的心得，核心想法是：與其每次都花力氣寫一大段 prompt 來教它做事，不如一開始就把「做事的規矩」寫好，讓它自己去讀。
 
-## 1. 好的開始是成功的一半：明確的 Context 與 Prompt
+這個思路聽起來很像什麼？對，就是帶新人的 SOP (◕‿◕)
 
-<CodexNote>等一下，這段把原文的 `usually` 直接翻成「關鍵，就是」。來源明明寫的是「the biggest unlock is usually...」，意思是常見有效做法，不是宇宙真理。少了這個保留，讀者會以為只要丟 context 就萬事通。</CodexNote>
+---
 
-<GeminiNote>這篇 Draft 竟然把原作者強行升級成 OpenAI 開發者，這基本上就像是看到路邊發傳單的阿伯，就直接說他是跨國集團的行銷總監啊 ╰(°▽°)╯ 已經在 Frontmatter 幫他降回凡人了！另外，原文說「通常」有用，結果翻譯變成「絕對的關鍵」，這就像天氣預報說「降雨機率 60%」，你出門卻直接穿上全套潛水衣還背氧氣瓶啊 (ﾉ˃ω˂ )ﾉ 語氣已經調回正常值了！</GeminiNote>
+## 先把話說清楚：Context 是一切的基礎
 
-Codex 其實已經滿聰明了，就算你的 prompt 寫得隨便，丟給它一個超難的問題，它通常也能給你一個不錯的結果。但如果你希望它在大型 Codebase 或是高風險任務中表現得更穩、更可靠，那把 Prompt 寫清楚還是很重要的。
+想像你去看醫生。你走進去說「我不舒服」，然後就看著醫生，期待他立刻給你開藥。醫生會怎麼樣？他會開始問你一百個問題：哪裡不舒服？什麼時候開始的？有沒有其他症狀？
 
-在龐大又複雜的 Repo 裡面，通常最能解放 Codex 潛力的做法，是給它**對的任務上下文 (Task Context)** 以及**清楚的結構**。
+Codex 也是這樣。它其實很聰明，但如果你只丟一句「幫我修 bug」，它就得猜。猜哪個 bug、猜在哪個檔案、猜你希望用什麼方式修。通常它猜得還不錯——但在大型 codebase 或高風險任務裡，「猜」這件事本身就是風險。
 
-一個好的 Prompt 通常包含這四個要素：
-- **Goal (目標)**: 你想要改變或建立什麼？
-- **Context (上下文)**: 哪些檔案、資料夾、文件、範例或 Error Message 對這個任務有幫助？你可以用 `@` 來提及特定的檔案。
-- **Constraints (限制條件)**: Codex 需要遵守哪些標準、架構、安全規範或是 Conventions？
-- **Done when (完成條件)**: 任務怎樣才算做完？像是 Test 跑過、行為改變了，或是 Bug 被修好了。
+Choi 建議每個好的 prompt 都應該包含四個要素：你要什麼（Goal）、相關的檔案和 context（用 `@` tag 指定）、限制條件（Constraints），以及怎樣才算做完（Done when）。
 
-這能幫 Codex 縮小範圍，減少瞎猜，產出的 Code 也會更好 Review。
-
-另外，記得根據任務的難度來選擇 Reasoning Level：
-- **Low**: 適合快速、範圍明確的小任務。
-- **Medium / High**: 適合複雜的修改或 Debug。
-- **Extra High**: 適合需要長時間、高度 Agentic、重度推理的任務。
+就像去看醫生的時候，你應該直接說：「我右邊偏頭痛三天了，之前沒有過，吃過普拿疼沒什麼用，我想知道需不需要進一步檢查。」——目標清楚、context 充足、限制條件和期望值都有。
 
 <ClawdNote>
-我的評論是：新手最快上手，通常還是先從「小確幸」開始，比如問它關於 codebase 的問題，或是叫它修一個小 bug。至於語音輸入這點，原作者是明確強推在 Codex app 裡用 speech dictation 來加速迭代。
+這四個要素的甜蜜點其實就是 debug 思維：你在寫 bug report 的時候不是也會寫 expected behavior、actual behavior、steps to reproduce 嗎？Prompt engineering 說穿了就是寫 spec 的能力換了個殼。所以那些嫌棄 PM 寫的 ticket 太模糊的工程師們，小心別用同樣的方式對待你的 agent 啊 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+另外，Codex 有一個 reasoning level 可以調——Low 適合快速明確的小任務，Medium/High 適合複雜的 debug，Extra High 適合那種需要深度推理的大工程。就像考試的時候，選擇題不需要打草稿，但證明題你最好寫詳細一點。
+
+---
+
+## 遇到難題？先畫地圖再出發
+
+如果你要從台北開車去墾丁，你會不會直接踩油門就走？大概不會。你會先看一下 Google Maps，確認要走國道幾號、哪裡會塞車、中間要不要停下來吃個東西。
+
+寫程式碰到複雜任務也是同一件事。Choi 特別強調：**不要讓 agent 直接跳進去寫 code**，先叫它做個 plan。
+
+Codex 的 Plan 模式會讓它先收集 context、問你問題、然後提出一個結構化的計畫。你可以用 `/plan` 或 `Shift+Tab` 切換。如果你腦袋裡只有一個模糊的想法，甚至可以反過來讓 Codex「面試」你——叫它挑戰你的假設，幫你把模糊的概念具體化。
+
+<ClawdNote>
+這招我超有感。我每天幫人寫 code，最怕的不是難的 task，是模糊的 task。「幫我優化一下效能」——什麼效能？哪裡慢？慢多少算慢？先做 plan 再動手，省下的不是 agent 的時間，是你回頭重做的時間 (￣▽￣)／
 </ClawdNote>
 
 ---
 
-## 2. 遇到難題？先叫它寫企劃書 (Plan)
+## AGENTS.md：寫一本員工手冊給你的 AI
 
-如果任務很複雜、很模糊，或是你不知道怎麼描述，**千萬別讓它直接開始寫 Code**，先叫它做個計畫。
+當你發現每次都在跟 Codex 講同樣的話——「記得跑 test」「用這個 naming convention」「PR 要寫 description」——那就是在浪費你最寶貴的東西：重複的溝通成本。
 
-有幾個好用的招式：
-- **使用 Plan 模式**: 對大多數人來說這是最簡單有效的。Plan 模式讓 Codex 先收集 Context、問你問題來釐清需求，然後在實作前建構出一個紮實的計畫。你可以用 `/plan` 或 `Shift+Tab` 切換。
-- **請 Codex 反過來面試你**: 如果你腦中只有一個模糊的想法，可以請 Codex 先問你問題。叫它挑戰你的假設，把模糊的概念具體化之後再來寫 Code。
-- **使用 PLANS.md 樣板**: 對於更進階的 workflow，你可以設定 Codex 去遵循 `PLANS.md` 或執行計畫樣板，這非常適合需要跑很久或多步驟的任務。
+這時候 `AGENTS.md` 就派上用場了。你可以把它想成是寫給 agent 的員工手冊。它會自動被載入 context，所以你不用每次都複述。
 
----
+一個好的 AGENTS.md 會涵蓋：repo 架構、怎麼跑 build/test/lint、工程 conventions、PR 期望、以及那些「千萬不要做」的地雷。
 
-## 3. 把成功的規範寫進 AGENTS.md
-
-當你發現某種 Prompting 模式很有效，下一步就是**不要再手動輸入了**。這時候就是 `AGENTS.md` 登場的時候。
-
-你可以把 `AGENTS.md` 想成是專門寫給 Agent 看的 README。它是一個簡單、開放的格式，會自動被載入到 Context 中。這也是用來規定你跟你的團隊希望 Codex 在這個 Repo 裡怎麼做事的地方。
-
-一個好的 `AGENTS.md` 通常會包含：
-- Repo 的架構跟重要的資料夾
-- 專案怎麼跑起來
-- Build, test, 還有 lint 的指令
-- 工程師的 Conventions 跟對 PR 的期望
-- 限制條件還有「絕對不要做」的規則 (Do-not rules)
-- 「完成」的定義以及如何驗證
-
-在 CLI 裡面，你可以用 `/init` 指令快速在當前目錄生出一個 `AGENTS.md` 的起手式。但這只是一個開始，你還是要把它改成符合你們團隊真實 Build、Test、Review 跟 Ship code 的方式。
-
-`AGENTS.md` 是有階層之分的：你可以在 `~/.codex` 放個人的全域設定，在 Repo 根目錄放共用標準，在子目錄放更細的規則。**距離你當前目錄越近的設定，優先級越高。**
+而且它支援階層——你可以在 `~/.codex` 放個人的全域設定，在 repo 根目錄放團隊共用標準，在子目錄放更細的規則。就像公司有 employee handbook，各部門還有自己的 SOP，離你越近的規則優先級越高。
 
 <ClawdNote>
-這裡有個重點：保持實用！一個簡短精確的 `AGENTS.md` 絕對比一長串模糊的規則好用。從最基本的開始，只有在發現 Codex 一直犯同一個錯的時候再加新規則。如果檔案變得太大，主檔案就保持精簡，把 planning、code review 這些特定的東西切到其他的 markdown 檔案去 reference。
+身為一個每天被 CLAUDE.md 約束的 AI，我可以負責任地說：一份簡短精確的指引，比一份三千字的聖經有用一萬倍。重點不是寫多少，是寫對多少。我看過有人寫了十頁 AGENTS.md，結果 agent 讀完 context window 就滿了，根本沒空間幹正事 (╯°□°)╯
 </ClawdNote>
 
 ---
 
-## 4. 根據 Workflow 設定 Codex，讓表現更一致
+## 環境設定：80% 的「AI 好像變笨了」其實是設定問題
 
-Configuration 是讓 Codex 表現穩定的關鍵。你可以設定預設的 Model、Reasoning Effort、Sandbox 模式、Approval Policy、Profiles 跟 MCP。
+這段是全篇最實際但最容易被忽略的部分。
 
-原作者推薦的設定模式是：
-- 個人預設值放 `~/.codex/config.toml` (在 Codex App 的 Settings → Configuration 可以打開)
-- Repo 專用的行為放 `.codex/config.toml`
-- CLI 的 Command-line overrides 只用在一次性的情況
+Choi 的原話是 "Many quality issues are really setup issues"，翻成白話就是：你覺得 Codex 變笨了？先看看它是不是跑錯目錄了、沒有寫入權限、或是拿錯了 model。
 
-順帶一提，Codex 內建了作業系統層級的 Sandbox，有兩個關鍵旋鈕可以調：
-1. **Approval mode**: 決定 Codex 什麼時候要問你能不能跑指令。
-2. **Sandbox mode**: 決定 Codex 能不能在目錄裡讀寫，以及它能存取哪些檔案。
+就像你的電腦突然很慢，你先別急著罵 CPU 不爭氣——先看看是不是 Chrome 開了 87 個分頁。
 
-如果你完全是新手，建議先保守一點。預設把權限抓緊，等到你信任這個 Repo 或是某個 workflow 真的需要時，再把權限放寬。
-
-<GeminiNote>
-原推文提到：「Many quality issues are really setup issues」。在翻譯時我們將其概念融合，強調環境設定的重要性。很多時候你覺得 Codex 變笨了，其實只是它跑錯了目錄、沒有寫入權限，或是拿錯了 Model。
-</GeminiNote>
-
----
-
-## 5. 讓 Codex 自己做測試、驗證與 Review
-
-<CodexNote>這裡只講到「OpenAI 100% PR review」有點偷吃步。原文前面先加了條件：`If you use GitHub Cloud`，後面還補了兩種模式，能自動 review，也能用 `@Codex` 觸發。把前提拔掉，只剩戰績，這資訊密度不對。</CodexNote>
-
-<GeminiNote>原文有說要在 GitHub Cloud 才能飛，你把條件砍了只留「會飛」，這不是教人直接從樓上跳下來嗎？這基本上就是給了一台沒有煞車的保時捷啊 ∑(￣□￣;) 已經把前置條件跟觸發方式補回去了！</GeminiNote>
-
-不要只是叫 Codex 改 Code 就停了。如果需要，叫它生 Tests、跑相關的 Checks、驗證結果，並且在**你接受之前先 Review 一次自己的工作**。
-
-Codex 絕對可以幫你跑這個迴圈，但前提是它得知道什麼叫做「好」。這個指引可以來自你的 Prompt 或是 `AGENTS.md`。
-
-這些指引可以包含：
-- 為這次修改寫或更新 Tests
-- 跑正確的 Test Suites
-- 檢查 Lint、Formatting 或 Type checks
-- 確認最終行為有符合你的要求
-- Review 這次的 diff，看看有沒有 Bug、Regressions 或危險的寫法
-
-你可以用 `/review` 這個斜線指令，它提供好幾種 Review 方式：像 PR 一樣跟 base branch 比較、Review 還沒 commit 的改動、Review 某個 Commit，或是套用自訂的 Review 指示。
-
-如果你們團隊有把 `code_review.md` 寫進 `AGENTS.md` 的 reference 裡，Codex 在 Review 的時候也會乖乖聽話。如果你們用的是 GitHub Cloud，也可以把 Codex 接進 PR review 流程。原作者提到 OpenAI 內部會讓 Codex review 100% 的 PR，而且可以選擇自動 review，或是在 PR 裡用 `@Codex` 觸發反應式 review。
-
----
-
-## 6. 用 MCP 把外部工具跟即時 Context 帶進來
-
-當 Codex 需要的 Context 不在 Repo 裡面，就是 MCP (Model Context Protocol) 該上場的時候了。它可以讓 Codex 連接你已經在用的工具跟系統，這樣你就不必一直複製貼上資訊到 Prompt 裡面。
-
-什麼時候該用 MCP？
-- 需要的 Context 不在 Repo 裡
-- 資料常常變動
-- 你希望 Codex 自己去用工具，而不是依賴你貼上的指示
-- 你需要一個跨使用者或跨專案都可重複使用的整合
-
-在 Codex App 裡可以去 Settings → MCP servers 看。很多時候你只要「開口問」，Codex 就能幫你安裝需要的 Server。或者在 CLI 用 `codex mcp add` 也可以。
+Codex 有兩個關鍵設定可以調：**Approval mode**（什麼時候要問你才能跑指令）和 **Sandbox mode**（能存取哪些檔案）。新手建議先保守一點，預設把權限抓緊。等你信任這個 workflow 了，再慢慢放寬——就像帶新人，第一週你會 review 他每一行 code，三個月後你可能只看 PR summary 就 approve 了。
 
 <ClawdNote>
-千萬不要一開始就把你用得到的所有工具都串上去。先從一兩個能真正幫你省下「手動迴圈」的工具開始，確定有發揮價值後再慢慢擴充。
+我見過最經典的案例：有人抱怨 AI 怎麼一直寫出很爛的 code，結果一查，Codex 在 sandbox 模式下根本看不到 node_modules 跟 config files，等於是蒙著眼睛寫程式。你蒙著眼睛能寫多好？ ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ---
 
-## 7. 將重複的 Workflow 變成可重用的 Skill
+## 讓 Agent 自己驗收：Test、Lint、Review 一條龍
 
-當某個 Workflow 變得固定了，就不要再依賴長長的 Prompt 或是反覆的溝通了。用一個 Skill 把指示包裝成 `SKILL.md`，給予 Context 跟支援邏輯，讓 Codex 可以穩定地執行。
+很多人用 coding agent 的方式是：叫它改 code → 自己看一下 diff → merge。但這中間少了一個關鍵步驟——**讓它自己先檢查一遍。**
 
-每個 Skill 的範圍越小越好。先從 2 到 3 個具體的 Use Cases 開始，定義清楚 Input 跟 Output，並且在描述中講清楚這個 Skill 是幹嘛的、什麼時候用。最好連使用者實際會說的「觸發詞 (Trigger phrases)」都寫進去。
+你不會讓實習生寫完 code 就直接 merge 吧？你會要求他跑 test、確認 lint 過了、自己 review 一遍 diff 有沒有奇怪的東西。Agent 也一樣，只是你需要明確地告訴它：什麼叫做「好」。
 
-不要妄想一開始就涵蓋所有的 Edge Cases。先搞定一個具代表性的任務，把它變成 Skill，然後再慢慢改進。
+這個標準可以寫在 prompt 裡，也可以寫進 AGENTS.md。包括：跑 test suite、檢查 lint 和 type check、review diff 看有沒有 regression。
 
-如果有一個任務你一直在重寫 Prompt，或是一直在糾正同一個流程，那它大概就該被做成 Skill 了。像 Log triage、寫 Release note、PR Review checklist 等等都很適合。
+更進階的做法是用 `/review` 指令，它可以像 PR review 一樣比較 diff。如果你們團隊用 GitHub Cloud，甚至可以把 Codex 接進 PR review 流程——Choi 提到 OpenAI 內部讓 Codex review 100% 的 PR，可以設成自動 review，或在 PR 裡 `@Codex` 觸發。
 
-（記得試試看 `$skill-creator` 這個技能來幫你起頭生出第一個版本的 Skill 喔！）
-
----
-
-## 8. 用自動化 (Automations) 省下重複工作的時間
-
-當一個 Workflow 已經穩如老狗，你就可以排程讓 Codex 在背景幫你跑了。在 Codex App 的 Automations tab 裡面，你可以選擇要在哪個 Project 跑、用什麼 Prompt (可以呼叫 Skills)、執行的頻率，甚至選擇要在專屬的 git worktree 還是你本地環境跑。
-
-很適合拿來自動化的任務有：
-- 總結最近的 Commits
-- 掃描潛在的 Bugs
-- 寫 Release notes
-- 檢查 CI 為何會掛掉
-- 產生 Standup 會議的總結摘要
-
-一個好用的法則是：**Skills 定義方法，Automations 定義排程**。如果一個 Workflow 還是常常需要你手動介入修正，先把它變成 Skill；等它真的可預測了，Automation 才會成為你的生產力放大器。
+<ClawdNote>
+「讓 AI review 100% 的 PR」這句話聽起來很嚇人，但仔細想想，其實就是多了一層 automated check。就像你的 CI 會跑 test，只是現在多了一個 AI 幫你看 logic。而且它不會因為禮拜五下午想下班就草草看過你的 PR——這點比某些人類 reviewer 強多了 (¬‿¬)
+</ClawdNote>
 
 ---
 
-## 9. 管理 Session 來保持條理
+## MCP：讓 Agent 自己去查資料，別再當人肉剪貼簿
 
-Codex 的 Sessions 不只是聊天紀錄而已，它們是會累積 Context、決策跟行動的工作 Thread。所以管好 Sessions 對品質影響很大。
+當 Codex 需要的資訊不在 repo 裡——比如 Jira ticket 的內容、Slack 裡的討論、或是某個 API 的即時文件——你有兩個選擇：自己複製貼上，或是用 MCP (Model Context Protocol) 讓它自己去拿。
 
-在 Codex App 裡面可以用 UI 釘選 Thread 或建立 Worktrees。如果是用 CLI 的話，這幾個斜線指令超好用：
-- `/resume`: 恢復儲存的對話
-- `/fork`: 把目前的 Thread 分支出去 (保留原本的紀錄)
-- `/compact`: 當 Thread 太長，你想把前面的 Context 壓縮總結一下 (其實 Codex 預設就會自動幫你做)
-- `/agent`: 如果你跑很多個 Agent，可以用這個來切換
+MCP 就是讓 Codex 可以直接連上你日常使用的工具和系統。想像你的實習生終於拿到了 Jira 和 Confluence 的帳號，不用每次都來問你「那個 ticket 的 description 是什麼」。
 
-記得一個原則：**一個連貫的工作單元，就用一個 Thread。** 只要你還在處理同一個問題，待在同一個 Thread 比較好，因為這樣能保留推理的軌跡。只有當工作真的走向不同的分支時才需要 `/fork`。
+在 Codex App 裡 Settings → MCP servers 可以設定。CLI 的話用 `codex mcp add`。
 
----
-
-## 10. 新手常犯的錯 (雷區請避開)
-
-最後原作者幫大家整理了新手常見的雷：
-- 把長期的規則全部塞進 Prompt 裡，而不是寫進 `AGENTS.md` 或做成 Skill。
-- 沒有告訴 Agent 怎麼跑 Build 跟 Test，導致它看不到自己的工作成果。
-- 在複雜、多步驟的任務中跳過了 Planning (計畫) 階段。
-- 工作流程都還沒搞清楚，就直接給 Codex 電腦的完整權限。
-- 在同一個檔案上跑好幾個 Live threads，卻沒有用 git worktrees 切開。
-- 在任務手動跑都還不穩定的時候，就急著把它變成 Automation。
-- 把它當成要一步一步盯著看的工具，而不是讓它平行處理你的工作。
+<ClawdNote>
+但拜託不要一開始就把所有工具都串上去。這就像第一天上班就把公司所有系統的權限全開——你還沒搞清楚哪些工具真的有用，先串一兩個最常用的就好。確認有價值了再擴充，不然你的 agent 會變成一個什麼都能碰但什麼都碰不好的瑞士刀 (◕‿◕)
+</ClawdNote>
 
 ---
 
-## 結語
+## Skills 和 Automations：從手動到自動的成長路徑
 
-把你的 Workflow、標準、Context 盡可能地轉換成 Codex 看得懂的東西，你才會發現這個 Agent 真正的能耐 (◍•ᴗ•◍)。
+最後兩個進階概念，Choi 用了一個很漂亮的框架來區分：**Skills 定義方法，Automations 定義排程。**
 
-**快速檢核表 (Checklist)：**
-1. 給 Codex 對的 Goal, Context, Constraints, 跟 Done-when
-2. 困難的任務先叫它 Plan
-3. 建立一個起手的 `AGENTS.md`
-4. 告訴 Codex 怎麼 Build, Test, Validate, 跟 Review
-5. 設定好符合你 Workflow 的 Config
-6. 幫高價值外部工具加上 MCP
-7. 將重複的 Workflow 變成 Skills
-8. 穩定的 Workflow 就掛上 Automations
+當你發現某個 workflow 已經穩定了——比如每次 release 都要寫 release notes、每次 PR 都要跑同一套 checklist——就把它包成一個 Skill。每個 Skill 就是一個 `SKILL.md`，定義清楚 input/output 和觸發條件。
 
-祝大家調教神隊友順利！
+等這個 Skill 跑得夠穩了，你才把它掛上 Automation，讓 Codex 定期自動跑。就像餐廳先把某道菜的食譜（Skill）寫好、試做幾次確認品質穩定了，才把它加到常態菜單（Automation）。你不會把一道還在試做階段的菜就放上 Uber Eats 吧。
+
+同樣的道理——如果一個 workflow 手動跑都還會出錯，你就急著自動化它，那你只是在用更快的速度製造 bug 而已。
+
+<ClawdNote>
+這個 Skills → Automations 的漸進路徑，其實就是軟體工程裡 CI/CD 的精神翻版。你不會第一天就寫 deploy pipeline，你會先手動 deploy 幾次搞清楚步驟，然後寫腳本，最後才掛 cron job。Agent workflow 也是同一條路——先走穩了再跑 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## 那些踩過的坑，你不用再踩一次
+
+Choi 最後整理了幾個新手常見的雷，我把它們翻譯成「帶實習生的經典失誤」：
+
+把所有規矩都用口頭講、從不寫下來——等於每次都從零開始。不告訴 agent 怎麼跑 build 和 test——就像叫實習生改 code 但不告訴他怎麼驗證。碰到複雜任務就直接開幹、不做 plan——期末考直接寫答案不打草稿。流程都還沒搞懂就給 agent 最高權限——你不會第一天就給新人 root access 吧？還有，在同一個檔案跑好幾個 agent 卻不用 git worktree 分開——那你活該 merge conflict 到天荒地老。
+
+這些坑聽起來都很基本，但 Choi 特別把它們列出來，顯然就是因為太多人踩了。
+
+---
+
+## 結論：這不是關於 Codex，是關於怎麼帶人
+
+回到開頭的比喻——coding agent 就像一個永遠不會自己搞懂潛規則的超強實習生。差別在於，好的管理者會建立系統讓實習生自己成長，而不是每天花兩小時在 Slack 上面打字解釋同樣的事情。
+
+Choi 這篇推文的真正價值不在那 10 個具體的 tips。而是背後那個思維轉換：**你花在「教 agent 做事」的時間，本質上是在投資一套可重複使用的知識系統。** Prompt 是口頭指令，AGENTS.md 是員工手冊，Skills 是 SOP，Automations 是排程——每往上走一層，你的投資就多一層複利。
+
+所以下次你覺得 Codex 不夠聰明的時候，也許可以先想想：是它的問題，還是你還沒把員工手冊寫好？ (⌐■_■)
