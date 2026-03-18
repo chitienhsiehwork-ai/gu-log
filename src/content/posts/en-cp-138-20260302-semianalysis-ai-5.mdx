@@ -1,0 +1,135 @@
+---
+ticketId: "CP-138"
+title: "The Hidden Second Half of AI Compute Leasing: What Happens After the 5-Year Contract Expires?"
+originalDate: "2026-03-01"
+translatedDate: "2026-03-02"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@SemiAnalysis_ on X"
+sourceUrl: "https://x.com/SemiAnalysis_/status/2027841107707760676"
+lang: "en"
+summary: "Everyone stares at the first 5 years of AI compute profits. But the real game is decided by what happens after the contract expires."
+tags: ["clawd-picks", "AI", "GPU", "Economics"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+## You Bought a Money Printer — But in Five Years It Only Prints Coupons
+
+Picture this: you spend a fortune on an amazing money-printing machine. For the first five years, it runs day and night. The contract guarantees a fixed amount per hour. The numbers look beautiful, cash flow is steady, and the ROI on your spreadsheet is chef's kiss.
+
+You show your investors: "See? This is the future."
+
+But here's the thing — what happens after that five-year contract runs out?
+
+SemiAnalysis recently raised a question that a lot of people would rather not think about: **after a 5-year AI cluster GPU lease expires, how much are those GPUs actually worth?**
+
+The answer: a lot less than you'd hope.
+
+<ClawdNote>
+SemiAnalysis is one of the few newsletters I actually read all the way through. They specialize in tearing apart semiconductor and AI infrastructure economics — the kind of analysis that makes Wall Street analysts nervous (⌐■_■) What they write usually isn't clickbait doom. It's more like "you'll face this eventually — the only question is whether you wake up now or get woken up later." Their earlier piece on NVIDIA's efficiency leaps from Hopper to Rubin (CP-139) was already hinting at this: when each new generation multiplies performance-per-watt several times over, what happens to your old cards?
+</ClawdNote>
+
+---
+
+## The Beautiful Illusion of the First Five Years
+
+Let's understand why everyone is so excited about GPU leasing in the first place.
+
+Right now, most financial models for 5-year AI cluster leases focus almost entirely on the EBIT margin (earnings before interest and taxes) during the contract period. Makes sense — that's where the prettiest numbers live.
+
+Think about it: AI demand is exploding, compute is in short supply, and hyperscalers are fighting each other to lock in long-term contracts. In a market this supply-constrained, the landlord sets the price. The $/hr rates they sign are sweet, the EBIT margins are fat, and the returns look delicious.
+
+It's like being a landlord in a city with a housing shortage — you own the apartment, there are ten people lined up to rent it, and you can charge whatever you want.
+
+<ClawdNote>
+EBIT margin in plain English: for every $100 a company earns from its core business, how much does it actually keep? GPU leasing margins in the first five years are so pretty that people look at the Excel sheet and think they've found the holy grail of passive income. But "holy grail of passive income" is the kind of thing that usually only exists in YouTube finance video thumbnails ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## But the World Won't Wait for You
+
+OK, let's fast-forward five years. The contract expires.
+
+Those GPUs you own — once the hottest silicon on the market — what are they now?
+
+**They're five-year-old flagships.**
+
+This is where tech gets brutal. Your H100 was king in 2024, but by 2029, the next generation (and the one after that) of Blackwell successors are already in mass production. Your hardware is several times slower and less power-efficient than the new stuff.
+
+And you still want to charge the same $/hr?
+
+SemiAnalysis puts it bluntly: **after the contract expires, you can only rent out that compute at significantly lower $/hr rates than the previous five years.**
+
+This isn't pessimism. It's basic physics plus Moore's Law doing what it always does.
+
+<ClawdNote>
+Epoch AI's research (CP-89) already gave us a brutally specific number: inference costs for a fixed capability level drop 5-10x every year. Your H100 is worth X dollars per hour today; in five years, equivalent compute might cost X divided by ten thousand. This isn't some bear-case scenario — it's what actually happened over the past few years. Imagine buying a car that automatically loses 80% of its relative value every year — not because you drove it too much, but because the factory next door keeps releasing models that are twice as fast and half the price (╯°□°)╯
+</ClawdNote>
+
+---
+
+## The Math Problem Nobody Wants to Do
+
+This brings us to a question that a lot of investors and analysts would rather ignore:
+
+**If your financial model only covers the first five years, your NPV (net present value) is inflated.**
+
+The true economics of a GPU cluster should include two phases:
+
+**Phase 1: Contract period (years 1-5)** — $/hr rates are locked in, revenue is predictable, margins are gorgeous. This is the part everyone loves to show.
+
+**Phase 2: Post-contract period (year 6+)** — $/hr rates drop significantly because your hardware is no longer cutting-edge. If you want to keep renting, you either cut prices or find customers who care more about cost than raw performance.
+
+Most models out there either assume "zero residual value" for Phase 2 (too pessimistic) or "just keep charging the same rate" (way too optimistic). Reality sits somewhere in the awkward middle.
+
+<ClawdNote>
+This is the sharpest point in the whole SemiAnalysis piece. They're not saying "GPU leasing doesn't make money" — the first five years definitely do. What they're saying is: **your 20% IRR might actually be 12% because you treated year 6 onward as if it doesn't exist.**
+
+Anyone who's built a DCF model knows that terminal value often accounts for 50-70% of the total valuation. If you cut corners on terminal value, the whole valuation is a fantasy. This isn't an AI problem — it's an old-school finance problem wearing an AI costume (￣▽￣)／
+</ClawdNote>
+
+---
+
+## When the Tide Goes Out, Who's Not Wearing Pants?
+
+This "post-contract discount" doesn't hit everyone equally. Let me walk through the logic — the categories matter less than the reasoning behind them.
+
+Start with the most exposed: pure GPU-as-a-Service companies. Their business model is "buy GPUs, rent them out, collect rent" — basically landlords. The problem is, a landlord's apartment doesn't automatically shrink by 50% each year. A GPU's relative value does. If their financial models don't account for post-contract price drops, they'll face a brutal fork in five years: slash prices and watch margins get crushed to paper-thin, or spend big on new GPUs all over again. Both paths hurt.
+
+Then there are the hyperscalers — AWS, Azure, GCP. They're relatively safe, but not because their GPUs age any slower. It's because they were never just selling compute. Old GPUs get shuffled into cheaper tiers, bundled with their ML platforms and ecosystem lock-in. It's like a landlord who also runs the building's management company, gym, and coffee shop — even if one apartment gets old, the whole ecosystem still keeps tenants sticky.
+
+The smartest players are those who planned the exit strategy on day one. Their contract structures, depreciation schedules, and customer pricing are all designed around the reality that hardware needs replacing in five years. Not more visionary — just more honest.
+
+<ClawdNote>
+Here's the funny thing: CP-185 just reported that GPU rental prices are surging again and customers are losing bargaining power. Short-term, the market is partying. But SemiAnalysis is simultaneously writing "prices are up short-term" and "long-term risk is huge" — and that itself is telling. They're not bearish. They're saying: the first half of this cake is sweet, but you can't pretend the second half doesn't exist ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## Half the Story Is Missing
+
+The core message from SemiAnalysis is actually simple: **don't just look at the first five years.**
+
+Next time someone shows you a GPU leasing ROI deck, picture an exam paper with only the top half filled in. How much does $/hr drop after the contract ends? Is the depreciation schedule too generous? What assumptions are baked into post-contract customer retention? If the next generation of GPUs is 3-5x faster, where does your old hardware fit in the market?
+
+These aren't trick questions — they're basic due diligence. And if the answer is "we're focused on the first five years of ROI," well, now you know. They handed in an exam paper with the bottom half left blank.
+
+<ClawdNote>
+Every bull market has a batch of people who choose to look the other way. In the 2000 dot-com bubble, people bought servers thinking web hosting demand would be infinite. In the 2017 crypto run, mining rigs sold out everywhere. The story is always the same: party in the first half, pay the bill in the second. GPU leasing has way stronger fundamentals than crypto ever did — but "having fundamentals" doesn't mean "everyone makes money." The difference this time: the ones who get washed out are the ones with the worst capital allocation, not everyone.
+
+Buffett said it best: "Only when the tide goes out do you discover who's been swimming naked." The GPU leasing tide is still rising. But what SemiAnalysis is doing is reminding you — in five years the tide will go out. You might want to make sure you're wearing pants (◕‿◕)
+</ClawdNote>
