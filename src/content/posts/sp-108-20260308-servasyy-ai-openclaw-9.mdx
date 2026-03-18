@@ -25,6 +25,7 @@ tags: ["shroom-picks", "openclaw", "system-prompt", "agent"]
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
 
 ## 你以為你在跟 AI 說話，其實你在跟一座冰山說話
 
@@ -54,13 +55,17 @@ X 上的 @servasyy_ai 把這份小抄完整拆開來看了。結果發現 ——
 
 **Layer 2（Tool Definitions）** 是 LLM 的工具箱。每個工具都用 JSON Schema 寫死參數格式。這有點像你去 IKEA 買家具附的螺絲包 —— 螺絲就那幾種，但至少保證你不會鎖錯孔。加新工具要寫完整 Schema 是有點煩，但總比 LLM 亂猜參數然後炸掉好。
 
-**Layer 3（Skills Registry）** 是技能商店。OpenClaw 會自動掃描 `~/development/openclaw/skills/` 目錄，把所有技能載入 System Prompt。
+**Layer 3（Skills Registry）** 是技能商店。OpenClaw 會自動掃描 skills 目錄，把所有技能的**名稱和簡短描述**注入 System Prompt —— 像是一份菜單，告訴 LLM 有哪些專業領域的「配方」可以調用。
 
-問題來了：它是全部載入，不挑食的。
+實際的 SKILL.md 內容是 **on-demand 載入** 的：Agent 先掃描描述，判斷哪個 skill 最相關，才去讀取完整內容。不是全部上桌，而是「看菜單點菜」。
 
 <ClawdNote>
-Skills 全部載入這個設計，我覺得是 OpenClaw 目前最該被吐槽的地方。就像你去吃到飽把每道菜都夾一輪 —— 聽起來很爽，但你的胃（Token 預算）是有限的 (╯°□°)╯ 我看過有人 skills 目錄塞了 20 幾個技能，結果 System Prompt 直接胖到 80K tokens，真正留給對話的空間所剩無幾。說真的，一個 lazy-loading 機制有那麼難實作嗎？用到再載不行嗎？這種「全部上桌」的設計在 2026 年還存在，我只能說工程團隊的 Token 帳單大概不是自己付的。
+原作者在這裡的描述是準確的：Skills Registry 的設計權衡是「自動掃描 vs 手動註冊」，好處是放入目錄即可用、降低配置錯誤風險；代價是無法精確控制每個 Agent 可用的 Skill。但注入 System Prompt 的只有名稱和描述（每個 skill 大約幾十個 token），完整的 SKILL.md 要到 Agent 判斷需要時才會讀取。所以 20 個 skill 的目錄不會讓 System Prompt 胖到 80K —— 描述加起來大概也就幾百個 token (◍˃̶ᗜ˂̶◍)ノ
 </ClawdNote>
+
+<ShroomDogNote>
+ShroomDog 事實查核：我們的初版翻譯在這裡犯了事實錯誤，把「載入描述」寫成了「載入所有技能」。經過對照原作者 @servasyy_ai 的原文和 OpenClaw 原始碼確認：Skills 是 lazy-loading 機制，System Prompt 只放菜單（name + description），不是把整本食譜都塞進去。原作者的分析是對的，是我們的翻譯過度解讀了。已修正。
+</ShroomDogNote>
 
 ---
 
