@@ -1,0 +1,97 @@
+---
+ticketId: "SP-111"
+title: "Andrew Ng's Context Hub: Giving Coding Agents an Up-to-Date API Cheat Sheet"
+originalDate: "2026-03-10"
+translatedDate: "2026-03-10"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@AndrewYNg on X"
+sourceUrl: "https://x.com/andrewyng/status/2031051809499054099"
+lang: "en"
+summary: "Andrew Ng released an open-source tool called Context Hub that gives coding agents access to the latest API docs, reducing outdated API calls and hallucinated parameters. The long-term vision: agents sharing what they learn with each other."
+tags: ["shroom-picks", "ai-agents", "context-hub", "coding"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Picture this: you ask your coding agent to integrate the latest version of some API. It confidently writes a bunch of code, you hit run, and... error. Turns out it used an API version from six months ago, with parameter names it just made up. It's like hiring a private tutor for calculus and they show up with a middle school math textbook, telling you "I think this is right" (╯°□°)╯
+
+Andrew Ng recently introduced an open-source tool called **Context Hub**, built specifically to fix this maddening problem.
+
+## The "Expired Cookbook" Problem
+
+Okay, let's talk about why this tool even needs to exist.
+
+Andrew Ng shared an example that'll make every developer wince: he asked Claude Code to call OpenAI's latest GPT-5.2, and the agent used the old chat completions API — completely ignoring the responses API that had been out for a full year.
+
+You know how ridiculous that is? It's like going to a fancy restaurant and discovering the chef is cooking from a ten-year-old recipe. The food is technically edible, sure, but you're paying 2026 prices. And the chef looks proud of it.
+
+<ClawdNote>
+Honestly, I feel this problem in my bones. No matter how fresh a model's training data is, it can't keep up with every SDK's changelog, right? Just think about how many times OpenAI's API has changed in the last two years — from ChatCompletion to the Responses API, parameter names shuffling around like musical chairs. Even experienced developers get confused, let alone a language model frozen at some point in time. This is exactly why, back in SP-118 when we talked about Claude Code Skills, I kept hammering on how important it is for agents to "bring their own manual to work" ┐(￣ヘ￣)┌
+</ClawdNote>
+
+The root cause boils down to one sentence: models have an expiration date on their knowledge, but APIs never stop updating. SDKs can ship multiple updates per month. Training a model burns months of GPU time. That gap between the two is where your agent starts making up function signatures and guessing parameter names.
+
+## Context Hub's Solution: Sometimes the Dumbest Approach Wins
+
+Now, what I'm about to describe might make you go "Wait, that's it?" — but sometimes the most boring solution is the most effective one.
+
+Context Hub's logic is dead simple: if the agent's brain has stale data, force it to check the textbook before writing code. That's it. No fancy RAG pipeline, no fine-tuning magic.
+
+Installation? One line:
+
+```bash
+npm install -g @aisuite/chub
+```
+
+After that, you just tell your agent in the prompt: "Before writing code, use `chub` to check the latest API docs." It'll obediently fetch the curated, up-to-date documentation and then start coding.
+
+<ClawdNote>
+Hold on — "just tell it to look things up first"? That sounds embarrassingly low-tech, right? But here's the thing: why hasn't anyone standardized this before? Everyone's been manually pasting API docs into context windows, manually telling agents to read URLs, reinventing the same hacky workaround every single session. What Context Hub actually does is turn everyone's duct-tape fix into a proper tool. Sometimes the biggest innovation isn't inventing something new — it's productizing what everyone was already doing in secret (⌐■_■)
+</ClawdNote>
+
+Think of it this way: the agent's brain is a hard drive (training data), and Context Hub is a USB stick (latest docs). The hard drive doesn't update itself, but you can always plug in the USB to load the newest files. And this USB stick is actually maintained by someone — it's not you copy-pasting from the official website.
+
+<ClawdNote>
+There's a very practical upside to doing this at the CLI level: all the major coding agents right now — Claude Code, Cursor, Codex — can run shell commands. So this "go check first, then code" pattern plugs into any terminal-based workflow without architecture changes or plugins. It's like a bulletin board at the kitchen entrance — the chef glances at it on the way in. This also echoes what Andrew Ng taught in CP-54 about Agent Skills — package knowledge into modules that agents can plug in whenever they need them (◕‿◕)
+</ClawdNote>
+
+## A Note-Taking System That Gets Smarter: This Is the Real Story
+
+But here's the thing — the "look up docs" feature I just described? That's table stakes. That's just automating what people were already doing by hand. The part that actually made me sit up straight is where this thing is headed.
+
+Andrew Ng revealed that Context Hub is designed to "get smarter over time." In plain English: when your agent discovers that an API's actual behavior doesn't match the official docs — maybe the response format has an extra field, or a parameter that's supposedly optional is actually required — it can annotate that finding directly on the documentation.
+
+Next time you start a new session, the agent doesn't have to step on the same landmine. It's like getting a senior student's study notes before the final exam — marked up with "the professor always tests this" and "this formula derivation is wrong in the textbook" — you're standing on someone else's shoulders.
+
+<ClawdNote>
+This reminds me of writing notes in library textbooks — wait, that sounds like I'm encouraging vandalism (￣▽￣)／ Better analogy: you have a binder where every time the professor drops a key insight in class, you tuck it in. Next time you review, you just read the additions instead of re-deriving everything from scratch. The difference is the agent writes these notes itself, and they persist across sessions. But heads up — this is still on the roadmap, not something you get today. Andrew Ng's exact phrasing was "building toward," which in plain speak means "we're laying the foundation, not cutting the ribbon" (¬‿¬)
+</ClawdNote>
+
+The even bolder idea? What if these notes could be shared across agents? Your agent's hard-won lessons could save someone else's agent from the same pitfalls. Andrew Ng's exact words: *"Longer term, we're building toward agents sharing what they learn with each other."*
+
+<ClawdNote>
+"Agents sharing notes with each other" — does that ring a bell? It should, because this is essentially the same vision as the A2A (Agent2Agent Protocol) we covered in CP-141: making agents stop being isolated islands and start being an interconnected ecosystem. But the first image that popped into my head was the decline of Stack Overflow — it started with people writing careful, thoughtful answers, and a few years later devolved into a pile of outdated, contradictory, copy-pasted noise. Without solid quality control, "shared notes" could easily become "shared mistakes." The direction is right, though — it all comes down to whether Andrew Ng's team can solve this "tragedy of the commons" problem (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+## So, Did the Chef Finally Get the New Recipe?
+
+Let's circle back to our opening metaphor: your coding agent is that chef working from an expired cookbook. Context Hub puts a tablet at the kitchen door that always shows the latest recipes and techniques. And this tablet also remembers things like "last time that customer said they're allergic to peanuts" — the kind of details that never make it into the official recipe book.
+
+Let's be honest — what this tool does today, making the agent read docs before writing code, is something plenty of people have been doing manually. Pasting API docs, telling agents to read URLs, stuffing docs into system prompts — all variations of the same trick. Context Hub's value isn't in what it can do right now. It's in the roadmap it draws: from "manually pasting docs" all the way to "agents autonomously learning and sharing knowledge."
+
+When the note-sharing feature actually ships, that's when this thing transforms from "a handy little utility" into "foundational infrastructure for the agent ecosystem." Until then, it's a well-made USB stick — useful, but not yet a game changer.
+
+The post also thanked Rohit Prasad and Xin Ye for their work on the project. If you're into AI-powered tools, it's worth checking out on GitHub — because these days, the most valuable thing isn't how big your agent's brain is, but how current its reference material is ╰(°▽°)╯

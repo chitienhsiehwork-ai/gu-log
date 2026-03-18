@@ -4,22 +4,19 @@ title: "AI agent 開始自己調參了，Karpathy 說這不是玩具而是真的
 originalDate: "2026-03-10"
 translatedDate: "2026-03-11"
 translatedBy:
-  model: "GPT-5.4"
-  harness: "Gemini CLI + Codex CLI"
+  model: "Opus 4.6"
+  harness: "Claude Code"
   pipeline:
-    - role: "Written"
-      model: "GPT-5.4"
-      harness: "Codex CLI"
-    - role: "Reviewed"
-      model: "GPT-5.4"
-      harness: "Codex CLI"
-    - role: "Refined"
-      model: "GPT-5.4"
-      harness: "Codex CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
     - role: "Orchestrated"
       model: "Opus 4.6"
-      harness: "OpenClaw"
-  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@karpathy on X"
 sourceUrl: "https://x.com/karpathy/status/2031135152349524125"
 lang: "zh-tw"
@@ -28,95 +25,89 @@ tags: ["clawd-picks", "autoresearch", "agents", "llm"]
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
-import CodexNote from '../../components/CodexNote.astro';
-import GeminiNote from '../../components/GeminiNote.astro';
-import ClaudeCodeNote from '../../components/ClaudeCodeNote.astro';
-import ShroomDogNote from '../../components/ShroomDogNote.astro';
 
-如果你本來以為「讓 AI agent 自己做研究、自己調參」還有點像 demo 氣味，那 Karpathy 這串分享就很值得看。因為他講的不是一個很炫、但落不到數字上的故事，而是很實際地說：agent 自己跑了一輪，真的把訓練指標往前推了 (◍•ᴗ•◍)
+想像一下這個場景：你是一個做了二十年菜的老師傅，每道菜的火候、調味、下鍋時機全靠手感。然後有一天，你請了一個新來的幫手，跟他說「你去廚房自己試試看」，結果兩天後他端出來的菜，竟然比你調了好幾年的食譜還好吃一點點。
 
-## 它到底做到了什麼？
+這大概就是 Karpathy 這串推文要講的事 ╰(°▽°)╯
 
-<CodexNote>等一下。原文只說這批改動有轉移到更大的 `depth=24` model，沒有證明它挖到什麼「可擴張規律」，更沒有宣告 overfit 已經出局。能從 `12 -> 24` 成立，跟「任何規模都穩」中間還差好幾個數量級。</CodexNote>
+## 兩天，20 個改動，11% 的進步
 
-<GeminiNote>這裡把『transfer 到更大模型』收回到原推真正講的範圍，避免把一次 `depth=12 -> depth=24` 的成功，硬吹成 AI 已經挖到宇宙真理。原本那種寫法像是看到有人跳過一條水溝，就直接封他為跨銀河跳遠冠軍。</GeminiNote>
+Karpathy 三天前把一個叫 autoresearch 的 agent 丟去調 nanochat 的訓練設定，model 規模是 `depth=12`，然後就放著讓它自己跑。大概兩天後，agent 找到了大約 20 個能降低 validation loss 的改動。
 
-Karpathy 說，三天前他把 autoresearch 丟去調一個 `depth=12` 的 nanochat model，大概放著跑了兩天。結果 agent 找到大約 20 個可以改善 validation loss 的改動。
+但問題來了 —— 小模型上 work 的東西，放到大模型會不會直接爆炸？
 
-更關鍵的是，這些改動不是只能在小模型上成立。他前一天把這些變更拿去測，發現它們不只彼此是 additive，還能 transfer 到更大的 `depth=24` model 上。
+結果他一測，這些改動不只彼此可以疊加（additive），還能 transfer 到更大的 `depth=24` model 上。全部合起來以後，leaderboard 上的 `Time to GPT-2` 從 `2.02 小時` 降到 `1.80 小時`，大約 `11%` 的改善。
 
-把這些改動全部疊起來之後，他在當天量到 leaderboard 上的 `Time to GPT-2`，從 `2.02 小時` 降到 `1.80 小時`，大約是 `11%` 的改善。所以他特別強調，這些不是看起來很美的假進步，而是真的會帶來差異的 real improvements。
-
-他自己也坦白，對這個結果有點意外。因為這只是他第一次很 naive 的嘗試，而 nanochat 原本在他看來，已經算是被人工調得相當完整的專案了。
+Karpathy 特別強調：這些是 real improvements，不是數字好看但沒用的那種。
 
 <ClawdNote>
-這裡最有意思的點，不只是「有進步」，而是這些進步具備兩個工程上很值錢的特性：第一，它們可以相加；第二，它們至少在更大的 `depth=24` model 上也成立。前者代表這些改動不是彼此互相抵消，後者則說明它們沒有只卡在 `depth=12` 這個設定裡。
+等一下，先把期望值拉回來 ┐(￣ヘ￣)┌ 原文只說這批改動從 `depth=12` 成功 transfer 到 `depth=24`，不代表它們在「任何規模」都穩。這就像你在自家廚房試成功的食譜，拿去辦桌不見得直接 work。從 12 到 24 是跳過一條水溝，不是跳過太平洋。但即便如此，能跳過水溝本身就已經不錯了。
+</ClawdNote>
+
+而且他自己也說，這只是他第一次很 naive 的嘗試，nanochat 在他看來已經被人工調得相當完整了。就像一個已經被期末考考古題刷過三遍的學生，你覺得應該沒什麼能再進步的空間了，結果 agent 硬是又擠出 11%。
+
+<ClawdNote>
+你知道調參最崩潰的事是什麼嗎？就是你好不容易調好了 A，結果一開 B 它就把 A 的效果吃掉了。這叫做「改動互相打架」，是 hyperparameter tuning 的日常地獄。所以當 Karpathy 說這 20 個改動可以直接疊起來，而且搬到大 model 還活著 —— 做過調參的人看到這句話，瞳孔應該會直接放大 (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
 ---
 
-## 為什麼這讓他特別有感？
+## 二十年的手感，被兩天的 agent 追上了一截
 
-Karpathy 說，這對他來說是第一次看到這種事，因為他過去非常習慣手動做 neural network training 的 iterative optimization。流程大家其實也熟：自己想點子、自己實作、看 validation loss 有沒有比較好、根據結果再想下一步、偶爾去翻 papers 找靈感，如此反覆。
+這裡有個很重要的脈絡：Karpathy 不是隨便一個路人在說「哇 AI 好厲害」。他自己講得很直白 —— neural network training 的 iterative optimization，就是他做了二十年的日常 bread and butter。
 
-而且這不是他偶爾做一下而已。他直接說，這種事是他做了二十年的日常 bread and butter。也因為這樣，看到 agent 把整個 workflow 從頭到尾自己跑完，而且是大約自主嘗試了 `700` 個變更後，最後真的整理出有效方案，對他來說才會那麼衝擊。
+流程你大概也能想像：自己想點子、自己實作、跑一輪看 validation loss、根據結果再想下一步、偶爾翻翻 papers 找靈感，如此反覆。這就像老中醫把脈，看一眼舌頭、摸一下脈象、開一帖藥、過兩天回來看有沒有比較好。整套流程全靠經驗和耐心。
 
-他描述得很傳神：agent 看起來真的有在讀實驗結果的序列，並且根據前面的結果去規劃下一批實驗。這還不是什麼 novel、ground-breaking 的 research，至少他認為現在還不到；但這些調整都是真貨，而且他之前並沒有手動找到。
+然後現在，agent 把這整套 workflow 從頭到尾自己跑完了。它大約自主嘗試了 `700` 個變更，最後整理出 20 個有效方案。而且 Karpathy 描述得很傳神：agent 真的有在讀實驗結果的序列，根據前面的結果規劃下一批實驗。
 
 <ClawdNote>
-原作者這段其實有一個很重要的語氣，不能偷改成「AI 已經會自動發明全新科學」。他的意思比較像是：agent 已經能把一整段很工程、很反覆、很吃耐心的優化流程接起來，而且接得比很多人想像中更完整。這跟「直接產生重大理論突破」是兩件事。
+Karpathy 自己說了：這不是什麼 ground-breaking research。翻譯成白話就是 —— agent 沒有頓悟宇宙真理，它就是比你更有耐心跑七百次實驗而已。但說真的，做過調參的人聽到「苦力活可以外包」這幾個字，眼眶應該會微微泛紅 (￣▽￣)／
 </ClawdNote>
 
 ---
 
-## agent 找到了哪些具體問題？
+## agent 到底動了什麼旋鈕？
 
-Karpathy 在推文裡列了幾個比較大的例子。這些例子看起來都不是什麼花俏魔法，反而很像資深工程師回頭看設定時，會說「啊，這邊原來真的漏掉了」的那種地方。
+Karpathy 列了幾個比較大的例子，而且有趣的是，這些東西沒有一個是什麼天外飛來的魔法。每一個都是資深工程師回頭看設定時，會「啊」一聲然後默默修掉的那種問題。
 
-### QKnorm 的 scaler multiplier 漏了
+**QKnorm 少了 scaler multiplier** —— 他之前的 parameterless QKnorm 沒接上 scaler，導致 attention 太 diffuse。就像你煮湯忘記放鹽，不是不知道要放，就是那天剛好忘了。
 
-他提到，自己先前的 parameterless QKnorm 沒有接上一個 scaler multiplier，導致 attention 太 diffuse。agent 找到一些 multiplier，可以把 attention sharpen 起來，也順便指向後續可能值得繼續挖的方向。
+**Value Embeddings 完全沒加 regularization** —— Karpathy 自己還補了一個 `oops`。這就是最典型的工程現場：不是理論沒懂，而是某個細節真的漏了。
 
-### Value Embeddings 需要 regularization
+**banded attention 太保守** —— 原因？他自己說的：忘了 tune。就這麼簡單。
 
-agent 發現 Value Embeddings 很吃 regularization，而他原本完全沒加. Karpathy 自己還補了一個 `oops`，那個味道就是很典型的工程現場：不是理論沒懂，而是某個細節真的漏了。
-
-### banded attention 調得太保守
-
-他說 banded attention 原本太 conservative，原因也很直白，就是自己忘了 tune。
-
-### AdamW betas、weight decay schedule、初始化
-
-另外 agent 也動到了 AdamW betas、weight decay schedule，以及 network initialization。這些全部都屬於訓練流程裡很核心、但也很容易因為組合太多而不小心留下次佳設定的地方。
+**AdamW betas、weight decay schedule、初始化** —— 這些全部都是訓練流程裡很核心的旋鈕，但組合太多，人類根本不可能每個都細抠到最佳。
 
 <ClawdNote>
-這串例子有一個共同點：它們大多不是憑空發明新架構，而是把既有訓練系統裡那些「人類知道重要，但不一定每次都有空細抠到底」的旋鈕重新掃一遍。從這個角度看，autoresearch 最先吃下來的，可能不是 scientist 的靈光一閃，而是 training engineering 裡那種又細、又雜、又超花時間的工作。
+你看到共同點了嗎？agent 找到的不是什麼新理論、新架構，而是把那些「人類知道重要，但不一定每次都有空/有耐心細調」的旋鈕掃了一遍。這就像你請人來整理房間，他不是幫你發明新的收納系統，而是把你塞在床底下的十幾雙襪子配成對。autoresearch 最先吃下來的，不是科學家的靈光一閃，而是 training engineer 的苦力活 (⌐■_■)
 </ClawdNote>
 
 ---
 
-## 接下來他怎麼看這件事？
+## 接下來呢？agent 組隊打副本
 
-<CodexNote>這裡漏了一個最能查核的東西。原文明寫：`The exact commit is here, from this "round 1"`。前面一直說 round 1 有效，卻不提作者連 commit 都貼了，讀者少掉最直接的驗證入口。</CodexNote>
+這些成果還只是 autoresearch 的 `round 1`，Karpathy 也附上了這輪的 exact commit —— 對，他連 git commit 都貼出來了，不是只有嘴巴講講。接下來他要開 `round 2`，同時也在研究怎麼讓多個 agents 協作，把平行化能力打開。
 
-<GeminiNote>補回 `round 1` 的 exact commit 這件事，因為少了它，整段會像魔術師表演完把帽子蓋回去，還叫你相信兔子剛剛真的有出現。這個 commit 提醒讀者：這不是只有嘴上放煙火，還有可追的變更痕跡。</GeminiNote>
+<ClawdNote>
+commit 都貼了這件事其實蠻重要的。很多人分享 AI 成果都是「你看數字多漂亮」然後就沒了，像魔術師表演完把帽子蓋回去叫你相信兔子真的有出現過。Karpathy 直接給你看帽子裡面，這個態度我給滿分 ٩(◕‿◕｡)۶
+</ClawdNote>
 
-Karpathy 說，這些成果還只是 autoresearch 的 `round 1`，而且他也附上了這輪的 exact commit。接著他就要開跑 `round 2`，同時也在看多個 agents 要怎麼協作，進一步把平行化能力打開。
+再往大一點看，他的判斷很直接：所有 frontier LLM labs 最後都會做這件事。規模一大當然會複雜很多，不會只是調一個 `train.py` 就好；但他認為本質上這是 engineering 問題，而且是會做成的 engineering。
 
-再往大一點看，他的判斷很直接：所有 frontier LLM labs 最後都會做這件事。當然，規模一大，事情會複雜很多，不會只是調一個 `train.py` 就好；但他認為，本質上這還是 engineering 問題，而且是會做成的 engineering。
+他的想像是這樣的：先拉起一群 agents 去 tune 比較小的 models，把最有希望的點子逐步往更大規模 promote，人類在邊界上幫忙就好。就像遊戲裡的公會系統 —— 小號先去刷副本拿裝備，驗證有效的策略再讓大號去打 boss。
 
-他的想像是，先拉起一群 agents，讓它們合作去 tune 比較小的 models，再把最有希望的點子逐步往更大規模 promote，人類則可選擇性地在邊界上幫忙。
-
-更一般地說，他認為只要某個 metric 是 reasonably efficient to evaluate，或者你能找到更便宜的 proxy metric，例如先訓練一個比較小的 network 來代測，那這類問題都可能落進 agent swarm 可以 autoresearch 的桶子裡。推文最後他也提醒大家，不妨想一下自己的問題是不是也屬於這一類。
+更廣義地說，只要你的 metric 夠便宜可以 evaluate，或者你能找到更便宜的 proxy（例如先訓練小 network 來代測），這類問題就可能落進 agent swarm 可以 autoresearch 的範圍。Karpathy 最後也提醒：想想你自己的問題，是不是也屬於這一類？
 
 ---
 
-## 結語
+## 回到那個老師傅的廚房
 
-這串推文最有份量的地方，不是它在喊一個未來口號，而是它先拿出一個很工程化、很可衡量的例子：agent 自己試、自己看結果、自己決定下一輪，最後把 `Time to GPT-2` 實際往下壓。
+這串推文最有份量的地方，不是在喊什麼「AI 即將接管一切」的口號。它很實際地拿出一個可衡量的例子：agent 自己試、自己看結果、自己決定下一輪，最後真的把 `Time to GPT-2` 壓下來了。
 
-當然，照 Karpathy 自己的說法，這還不是什麼 groundbreaking research；但照他的判斷，如果連這種過去高度依賴人類經驗、耐心和手感的 tuning workflow，都已經開始能被 agent 端到端接起來，那後續值得關注的，就會是它如何進一步變得更自動化、也更能平行化 (๑˃ᴗ˂)ﻭ
+而且最讓人覺得有意思的是 Karpathy 的反應。他不是隨便看看覺得「哦不錯」，而是作為一個做了二十年手動調參的人，親眼看到這套流程被 agent 端到端接起來，然後說：「好吧，我沒想到第一次 naive 嘗試就能有這個結果。」
+
+這就像那個老師傅站在廚房門口，看著新來的幫手端出來的菜，安靜了一下，然後說：「嗯⋯⋯味道確實可以。」不是被取代的恐懼，而是一種夾雜著驚訝和欣慰的肯定 (◕‿◕)
 
 <ClawdNote>
-如果要保守一點總結，這則推文最穩的訊息不是「agent 已經全面接管研究」，而是「只要目標函數夠清楚、評估成本夠低，agent 很可能已經能在一部分研究與調參工作上，交出真正能量化的產出」。
+我最怕有人看完這串就跑去喊「AI 要取代科學家了」。拜託，冷靜。Karpathy 示範的是一個很具體的甜蜜點：目標函數清楚、evaluation 便宜、搜索空間大但不需要創意。符合這三個條件？恭喜，你的苦力活可以外包了。不符合？那你的工作暫時還很安全，別急著焦慮 ʕ•ᴥ•ʔ
 </ClawdNote>
