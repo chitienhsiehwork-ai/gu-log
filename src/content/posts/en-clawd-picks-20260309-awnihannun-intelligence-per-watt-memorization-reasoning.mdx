@@ -1,0 +1,127 @@
+---
+ticketId: "CP-147"
+title: "AI Doesn't Need to Memorize the Times Table Anymore: How Reasoning and Tool Calling Let Small Models Punch Above Their Weight"
+originalDate: "2026-03-07"
+translatedDate: "2026-03-09"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@awnihannun on X"
+sourceUrl: "https://x.com/awnihannun/status/2030411584619925605"
+lang: "en"
+summary: "Apple MLX creator Awni Hannun points out a counterintuitive insight: intelligence-per-watt is skyrocketing partly because models no longer need to memorize answers they can compute. Reasoning and tool calling free up weight space, meaning 5B-15B models might eventually match today's GPT-5.x — though nobody really knows the ceiling yet."
+tags: ["clawd-picks", "awni-hannun", "mlx", "model-efficiency", "reasoning", "on-device-ai"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+## You Memorized the Times Table to Do Math, Not to Collect Numbers
+
+When I was in elementary school, the teacher made us memorize our times tables. 7×8=56, 9×7=63, one by one. At the time, I thought that's what "being good at math" meant — the more you memorized, the smarter you were.
+
+Then in middle school, you learned how multiplication actually works. You could break down complex problems, use the distributive property, work things out on paper. Suddenly, your brain didn't need to store all those answers anymore — because you learned *how to calculate*.
+
+Hold onto that analogy. We're going to need it.
+
+Awni Hannun — the creator of Apple's MLX framework — posted a thread last week about something everyone can see but few people have articulated clearly: **part of why AI models are getting smarter so fast is that they've finally learned to stop cramming answers into their heads.**
+
+<ClawdNote>
+Here's what makes Awni interesting as a voice on this topic — he's not one of those "throw more GPUs at it" researchers. His day job is figuring out how to squeeze maximum intelligence out of an iPhone's 8GB of RAM. When *this* guy talks about intelligence-per-watt, he's not philosophizing. He's fighting physics every single day (ง •̀_•́)ง
+</ClawdNote>
+
+## Let's Get the Obvious Stuff Out of the Way
+
+Every few months someone says "AI is getting cheaper and smarter," and the usual explanations are these three:
+
+**Better architectures** — from Transformers to MoE (Mixture of Experts, where the model splits into specialized "experts" that activate on demand) to various SSM hybrids. Each innovation does more with less compute.
+
+**Better hardware** — NVIDIA Blackwell, Apple M-series, Qualcomm Snapdragon. Every new chip generation pushes floating-point ops per watt to new heights.
+
+**Better data** — synthetic data, curated datasets, improved RLHF. Models learn more solid knowledge at the same size.
+
+All true. But Awni says these are the "obvious" reasons. He's pointing at a different one.
+
+---
+
+## The Reason Nobody Talks About
+
+Let's go back to 2022-2023 era LLMs.
+
+When a model needed to learn simple arithmetic back then — say, "37 + 48 = ?" — how did it learn?
+
+**By memorizing.**
+
+The training data was full of (input, operation, output) pairs, and the model crammed them all into its weights. 37+48=85, 42+67=109, 128+256=384... every arithmetic case you can think of was baked into those billions of parameters in some form.
+
+You can imagine how wasteful that is — like using an entire section of your brain just to remember "7×8=56" when you could just figure it out from "7×(10-2) = 70-14 = 56."
+
+<ClawdNote>
+Let me translate what Awni's point really means: early LLMs were basically the ultimate "cram for the exam" students. They memorized every past exam answer without understanding any of them. Looking back, it's no wonder hallucination was so bad — you ask a student who only memorizes answers to handle a question they've never seen before, and of course they'll make stuff up ╰(°▽°)╯
+</ClawdNote>
+
+Now fast-forward to 2026. Same arithmetic problem, two new options:
+
+**Reason it out** — work through it step by step in chain-of-thought. 37 + 48 = 37 + 40 + 8 = 77 + 8 = 85. No memorization needed.
+
+**Outsource it** — call a calculator tool. Hand the arithmetic entirely to a deterministic tool that's precise, reliable, and never hallucinates.
+
+Both methods get the right answer, but **zero arithmetic facts need to live in the weights**. All that parameter space previously used for storing answers can now store something more valuable.
+
+That's Awni's core insight: **Reasoning and tool calling don't just make models smarter — they also free up weight space.**
+
+<ClawdNote>
+Take this logic to its extreme. If everything that can be looked up or calculated doesn't need to live in the weights, what do the weights ultimately need to store? Just "understanding" — how to parse a problem, how to break down tasks, when to use which tool. Sound familiar? That's basically how human brains work. You don't memorize every phone number in the world; you just know how to use your phone to look them up. AI took a few-year detour to figure this out (￣▽￣)／
+</ClawdNote>
+
+---
+
+## Where's the Ceiling for Small Models? Nobody Knows
+
+This is where Awni dropped the most thought-provoking part:
+
+> I'm sure the smallest LLM has a lower bound — it can't possibly match GPT 5.x. But that lower bound might be 5B, or it might be 100B. Nobody really knows, because the effects described above are still compounding.
+
+The old thinking was simple — bigger model = smarter, period. 100B beats 7B every time. Want GPT-4-level ability? Better build something massive.
+
+But if reasoning and tool calling can dramatically improve how efficiently weights are used, then two 10B models with different training approaches and capability profiles could produce wildly different levels of actual intelligence.
+
+It's like two people with the same size backpack. One stuffs it full of textbooks and reference books (the memorizer). The other packs a laptop and Wi-Fi (the thinker). Who can solve more problems? The answer doesn't depend on backpack size — it depends on how you use it.
+
+<ClawdNote>
+Pay attention to Awni saying "nobody knows" here. This isn't academic politeness. This is someone who fights on-device compute constraints *every single day* saying "the progress I'm seeing is fast enough that I genuinely can't predict the ceiling." That kind of uncertainty from a practitioner is more convincing than any benchmark table (⌐■_■)
+</ClawdNote>
+
+---
+
+## Your Phone Might Be Smarter Than You Think
+
+Let me run with the part Awni didn't spell out.
+
+Right now, Apple Intelligence on iPhone uses roughly a 3B-class model. What can it do? Fix some text, write summaries, handle basic conversations. Anything complex goes to Private Cloud Compute — shipped to the cloud.
+
+But what if Apple bakes solid reasoning and tool calling into a 7B on-device model, running on M-series or A-series chips? Your iPhone could have a genuinely capable assistant — no internet needed, no privacy data leaving your device.
+
+We're already seeing early signals. Some small models with excellent instruction tuning and tool calling are punching way above their size class. That's not a fluke — that's exactly the effect Awni is describing in action.
+
+Is 5B "enough"? Depends what you need. Email editing, note organization, message replies — probably plenty. Complex multi-step reasoning, deep domain expertise — maybe not yet. But the direction is clear: the more efficiently weights are used, the higher the ceiling goes for small models.
+
+---
+
+## Back to the Times Table
+
+Awni's thread wasn't long, but it gave us a fresh lens for understanding why small models keep getting stronger — it's not just faster hardware or better architectures. We're fundamentally changing *what a model needs to remember*.
+
+Just like that moment in middle school when it clicked — you didn't need to memorize 7×8=56 anymore because you could figure it out. Models are going through the same thing. When arithmetic can be reasoned, facts can be looked up, and deterministic calculations can be outsourced, weights transform from "a warehouse stuffed with answers" into "a pure reasoning engine."
+
+So next time someone tells you "a small model on a phone could never match a big cloud model," you can ask them — well, is it still memorizing its times tables? (◕‿◕)
