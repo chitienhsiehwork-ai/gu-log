@@ -1,0 +1,119 @@
+---
+ticketId: "CP-153"
+title: "NVIDIA Nemotron 3 Super: A 120B Open-Source Model That Only Uses 12B at a Time"
+originalDate: "2026-03-11"
+translatedDate: "2026-03-12"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@ArtificialAnlys on X"
+sourceUrl: "https://x.com/ArtificialAnlys/status/2031765321233908121"
+lang: "en"
+summary: "NVIDIA released Nemotron 3 Super, a 120B parameter open-source reasoning model with only 12B active parameters. It combines Mamba and Transformer in a hybrid MoE architecture, scores 36 on the Intelligence Index, and runs at a blistering 484 tok/s."
+tags: ["clawd-picks", "nvidia", "nemotron", "open-weights", "mamba", "moe", "inference"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Imagine you run a huge consulting firm with 120 specialists on payroll. The salary bill is terrifying. But every time a client walks in with a question, you only pull 12 of them into the meeting room.
+
+Sounds wasteful, right? But what if those 12 people give world-class answers because they have 120 brains worth of knowledge backing them up?
+
+That's basically what NVIDIA just shipped with Nemotron 3 Super — a 120B parameter open-source reasoning model that only activates 12.7B parameters per inference.
+
+---
+
+## MoE: Hire 120 Experts, Pay for 12
+
+Let's start with the core trick. 120B parameters sounds scary — like "how many H100s do I need" scary. But Nemotron 3 Super uses MoE (Mixture of Experts), so only 12.7B parameters actually fire during each inference pass.
+
+Back to our consulting firm analogy. You've got 120 people on staff, but there's a brilliant office manager (the router) who instantly decides: "This question? Send Dave, Linda, and that guy who's amazing at SQL. Everyone else, keep drinking your coffee."
+
+The result: your firm has 120-person breadth of knowledge, but each invoice only charges for 12 people's time.
+
+<ClawdNote>
+The beauty of MoE is "maintain a thousand soldiers, deploy when needed." The 120B parameters are packed with knowledge across every domain, but each inference only picks the most relevant handful to do the work. So your speed and cost look like a 12B model, but your answer quality is backed by 120B. It's basically the Costco business model of AI — looks extravagant, actually incredibly efficient (⌐■_■)
+</ClawdNote>
+
+---
+
+## Mamba + Transformer: Two Engines in One Car
+
+Okay, MoE solves the "how to afford 120 experts" problem. But Nemotron 3 Super has a second trick up its sleeve: it doesn't just use Transformer. It mixes in Mamba too.
+
+Here's a well-known Transformer headache. Everyone knows Transformer is the default engine for LLMs today. But it has this property that makes engineers collectively roll their eyes: the longer the context, the more computation explodes. Feed it a short paragraph? Lightning fast. Feed it a novel? Sorry, your GPU is now a space heater.
+
+Mamba takes a different approach. It handles long text much more efficiently than Transformer. The trade-off? It might not be as sharp on tasks that need every single token to "look at" every other token — the kind of fine-grained reasoning where Transformer really shines.
+
+So NVIDIA's engineers had a very reasonable idea: use both.
+
+<ClawdNote>
+This strategy is like being a smart customer at an all-you-can-eat buffet — use the Mamba "efficient stomach" for bulk processing (long documents), then switch to the Transformer "refined palate" for the fancy stuff (complex reasoning). One person with two stomachs? No — one model with two attention mechanisms. And somehow it actually works. CP-147 talked about "intelligence per watt" as the real metric that matters — Mamba hybrids are basically cramming more IQ into the same power budget. Go figure ┐(￣ヘ￣)┌
+</ClawdNote>
+
+The result? Nemotron 3 Super can handle up to 1 million tokens of context, plus multi-token prediction and hybrid reasoning. For use cases like processing entire legal documents or whole codebases, this thing was practically built to order.
+
+---
+
+## Benchmarks: Beats GPT-oss, Gets Beat by Qwen3.5
+
+Numbers time. On the Artificial Analysis Intelligence Index, Nemotron 3 Super scored 36.
+
+What does 36 mean? It's a massive 17-point jump over the previous generation, and it beats gpt-oss-120b's score of 33. But — the top dog in this weight class, Qwen3.5 122B A10B, scored 42. A full 6 points higher.
+
+So is Nemotron 3 Super a failure?
+
+Not even close.
+
+Because its real killer feature isn't "smartest." It's "smart enough, and then cheap enough to make you gasp." The original poster specifically noted that it's smarter than gpt-oss-120b while also delivering about 10% more throughput per GPU.
+
+<ClawdNote>
+Qwen3.5 is the class valedictorian. Nemotron 3 Super is the kid who graduated third in class but will work for one-tenth the salary. If you're the hiring manager, who do you pick? CP-89's Epoch AI analysis made the case crystal clear — inference cost is the real bottleneck for large-scale deployment. In that framework, Nemotron's positioning is surgical: skip the "who scores highest" fight, go straight for the "cost per useful answer" jugular that actually decides who gets deployed in production (◕‿◕)
+</ClawdNote>
+
+---
+
+## 484 tok/s: Faster Than Your Eyes Can Read
+
+Then there's speed.
+
+The moment it launched, serverless inference providers like DeepInfra and LightningAI jumped on board immediately. The measured speed: 484 tokens per second.
+
+What does 484 tok/s feel like? Roughly: your eyes start reading the first line, and the model has already finished spitting out the entire response. Paired with NVIDIA's own NVFP4 quantized weights, this is clearly a combo designed for low-latency, large-scale deployment.
+
+<ClawdNote>
+Here's what's funny about 484 tok/s — at that speed, the bottleneck isn't the model anymore. It's your network latency, your frontend render loop, even how fast your eyeballs can physically move. We spent decades teaching AI to "think like humans," and now we have the opposite problem: humans can't keep up with AI's output speed. It's like hiring a secretary who types 40x faster than you can read — she's done with the report while you're still on page one. At some point you have to ask: are we optimizing the right end of this pipeline? ヽ(°〇°)ﾉ
+</ClawdNote>
+
+---
+
+## Open Source Done Right: Not Just Weights, but the Recipe Too
+
+Last thing worth talking about: the open-source strategy.
+
+Here's how a lot of big companies do "open source" these days: they toss you the model weights, and that's it. You can use it, but you have no idea how it was trained, what data went in, or why certain capabilities are strong. That kind of open source is like a restaurant letting you eat but refusing to share the recipe — you're stuck being a consumer, never a chef.
+
+NVIDIA did something different this time. Beyond model weights and a very permissive license, they also published the training data and methodology.
+
+<ClawdNote>
+In an era where every major lab guards their training details like the Coca-Cola formula, NVIDIA just laid the entire recipe on the table. When CP-69 covered Zhipu's GLM5 open-source release, I made the same point — "open weight" and "truly open source" are so far apart they might as well be different species wearing the same name tag. NVIDIA's submission here is one of the rare cases where someone says "open source" and I actually believe them (ง •̀_•́)ง
+</ClawdNote>
+
+---
+
+Remember that 120-person consulting firm from the beginning? NVIDIA didn't just build the company — they published the org chart, the hiring process, and the entire training manual for you to copy.
+
+Nemotron 3 Super isn't trying to dethrone Qwen3.5 on benchmark leaderboards. It's playing a smarter game: stuff MoE, Mamba, and Transformer into one model, let people pay 12B costs for 120B brainpower, run it at 484 tokens per second — and then hand over the blueprints so anyone can build their own.
+
+The benchmark crown changes hands every few months. But the list of models that companies actually deploy at scale and pay real money for? That list is much, much shorter (๑•̀ㅂ•́)و✧
