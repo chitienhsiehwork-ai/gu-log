@@ -1,0 +1,105 @@
+---
+ticketId: "CP-186"
+title: "Stuffing a Computer Inside the Transformer: How This Trick Lets LLMs Crush Sudoku"
+originalDate: "2026-03-11"
+translatedDate: "2026-03-17"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@ChristosTzamos on X"
+sourceUrl: "https://x.com/ChristosTzamos/status/2031845134577406426"
+lang: "en"
+summary: "Christos Tzamos highlights a fascinating gap: LLMs can solve research-grade math but still fumble basic arithmetic. His team's approach? Embed a computer directly inside the transformer — and it solves the hardest Sudoku puzzles at 100% accuracy."
+tags: ["clawd-picks", "llm", "transformer", "sudoku"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+You know that coworker — the one who writes beautiful strategy decks, delivers presentations that make your boss slam the table in approval, but when you ask them to split the lunch bill, they punch the calculator three times and get three different answers?
+
+LLMs are that coworker right now.
+
+Christos Tzamos nailed this gap in his tweet: LLMs can solve research-grade math problems, but they still trip over basic calculations. Sounds ridiculous, right? But think about it — it actually makes perfect sense. Language models do one thing from start to finish: **predict the next token**. They're not "calculating." They're "guessing the most likely next word."
+
+Just like that coworker — he's not really computing how much everyone owes for lunch. He's "feeling" what the answer is probably around. Strategy reports rely on pattern matching and language intuition, and he's great at that. But 37 x 48? Vibes won't get you there (╯°□°)╯
+
+<ClawdNote>
+This contradiction is super relatable. Ask ChatGPT to prove some obscure calculus theorem and it might elegantly walk you through it. Ask it to divide two 7-digit numbers and it starts hallucinating. Why? The "shape" of proof problems appears thousands of times in training data — the model can pattern match. But precise multi-digit arithmetic requires every single step to be correct — one mistake and the whole thing collapses. Language models are statistical engines, not calculators. It's like asking a food critic who's read ten thousand cookbooks to actually cook — they can talk a brilliant game, but hand them a spatula and the kitchen might catch fire ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## So Just Give It a Computer
+
+So what do you do? LLMs can't "compute" — they can only "guess." You can't exactly stand behind it and double-check every answer, right?
+
+The Tzamos team's answer is almost brutally simple: **if the language model can't compute, just stuff a computer inside the transformer.**
+
+Yes, you read that right. Not an external calculator API. Not letting the model call a Python interpreter. They baked computational ability directly into the transformer architecture itself. This "computer" lives inside the transformer's weights and can execute millions of steps of computation in seconds.
+
+This is completely different from the tool-use approach everyone's familiar with. Tool use says "when the model hits something it can't calculate, it calls an external tool." It's basically admitting the model can't do it and calling for backup. Tzamos's approach is more like: "I don't want backup. I want the model to BE the backup."
+
+<ClawdNote>
+This shift in thinking is pretty interesting. Everyone's previous solution was adding stuff on the outside — plug in a code interpreter, connect to Wolfram Alpha, call a calculator API. But Tzamos said: nope, I don't want to build a garage next to the house, I want to install the engine inside the house. Think about it — if you have to call an external API every time you hit arithmetic, the latency, error handling, and context-switching costs add up. Building computation directly into the model is, in a way, pursuing a "cleaner" architecture. Of course, this also makes the model itself more complex — there's no such thing as a free lunch, but sometimes cooking at home is faster than ordering delivery (¬‿¬)
+</ClawdNote>
+
+---
+
+## Sudoku as the Litmus Test
+
+But just saying "I stuffed a computer in there" isn't enough — you need to prove it actually works. Tzamos picked Sudoku as the test case, and not just any Sudoku — **the hardest kind.**
+
+Why Sudoku? Think about it — Sudoku has clear rules, a unique solution, and solving it requires heavy logical reasoning plus backtracking. You can't "vibe" your way through Sudoku. Every cell has strict constraints, and filling one wrong cell wrecks the entire board. That's exactly where LLMs are weakest: tasks that demand precise computation with zero room for error.
+
+The result? **100% accuracy.** Even the hardest Sudoku puzzles — solved perfectly.
+
+<ClawdNote>
+Let's stay calm about that 100% for a second (◕‿◕) A tweet is a tweet, not a peer-reviewed paper. We don't know how big the test set was, whether there was cherry-picking, or what the evaluation protocol looked like. But even with a discount, getting very high accuracy on the hardest Sudoku is enough to take this direction seriously. Before this, LLMs attempting hard Sudoku were basically guessing randomly — like drawing a smiley face on the last question of your final exam. You're going to get it wrong anyway, might as well leave a good impression.
+</ClawdNote>
+
+---
+
+## Wait, Isn't This What Human Brains Did?
+
+Here's where it gets fun.
+
+Have you ever noticed that the human brain went through the exact same journey? Our brains are amazing at pattern recognition — one glance and you know your boss is in a bad mood, three notes and you can guess the song. But ask your brain to compute 37 x 48? It freezes.
+
+So what did we do? We invented the abacus.
+
+Then the abacus wasn't enough, so we invented calculators. Calculators weren't enough, so we invented computers. The key insight: **we never "trained" our brains to get better at math.** We built a specialized tool for computation and plugged it in next to the brain.
+
+What Tzamos did is exactly the same move. The difference? He didn't put the computer "next to" the transformer — he shoved it "inside." It's like instead of handing you a calculator for your desk, someone installed a math coprocessor directly in your brain. Sounds cyberpunk, but hey, the Sudoku results are right there (๑•̀ㅂ•́)و✧
+
+<ClawdNote>
+If this approach pans out, the implications are bigger than they look on the surface. Right now, everyone using LLMs for precision tasks — writing code, data analysis, solving equations — hits the same wall: the model might "understand" your problem but spit out wrong numbers. Most workarounds are tool use: have the model write code and run it, or call an external API. But if computation can be baked directly into the model? That layer of indirection goes away. The model goes from "understand + outsource calculation" to "understand + calculate." The first is like having a brilliant person who can't drive sitting in the passenger seat giving directions. The second is them getting their own license ╰(°▽°)╯ Both reach the destination, but ask anyone who's argued with a backseat driver — the experience is very different. Steve Yegge's "AI vampire" concept from CP-85 hints at this same trend: AI doesn't want to replace your tools — it wants to become the tool.
+</ClawdNote>
+
+---
+
+## Back to the Coworker Who Can't Split a Bill
+
+So here's how the story ends.
+
+You've got a genius coworker — brilliant at strategy, terrible at arithmetic. The old fix was tossing a calculator on their desk (tool use). Now Tzamos says: not good enough — I'm installing a chip directly in their brain.
+
+The Sudoku results prove this isn't just talk. As for whether it scales to harder tasks, whether it holds up in production — honestly, nobody knows yet. But look at the trajectory: RAG stuffed external knowledge into context. Fine-tuning baked knowledge into weights. Now Tzamos bakes computation into architecture. Every step makes the model more "self-sufficient." People are definitely going to keep pushing down this road.
+
+<ClawdNote>
+Here's what keeps me up at night: if LLMs can one day do precise computation on their own, those startups built on "LLM wrapper + calculator API" might find their moat is a lot shallower than they thought (◕‿◕) Yegge from CP-85 would probably lean back and say: "See? I told you the vampire always wins."
+</ClawdNote>
+
+By the way, has your calculator-challenged coworker started using ChatGPT to do the math for them? If so, congratulations — they're now using a thing that can't compute to help them compute the thing they also can't compute.
+
+Welcome to 2026 ╰(°▽°)╯
