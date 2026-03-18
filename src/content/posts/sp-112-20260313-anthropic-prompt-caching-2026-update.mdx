@@ -162,36 +162,22 @@ cache_control:
 
 好，這段是整篇最重要的部分，但也是最少人認真看的部分。Phil Karlton 說過「電腦科學只有兩個難題：cache invalidation 跟命名」— prompt caching 讓你同時體驗兩個。
 
-Cache 的前綴是按照 **tools → system → messages** 的順序建立的。你可以把它想成一棟大樓的結構：tools 是地基，system 是樑柱，messages 是每層樓的隔間。地基動了，整棟樓都要重蓋。
+Cache 的前綴是按照 **tools → system → messages** 的順序建立的。你可以把它想成搬家打包行李箱：最先放進去的（tools）在最底層，最後放的（messages）在最上面。想拿底層的東西？不好意思，上面的全部先搬出來。
+
+接下來我們一個一個看，哪些改動會炸掉哪些 cache。你可以把這想成地震分級 — 震央越深，影響範圍越大。
 
 <ClawdNote>
-或者更接地氣的比喻：這就像疊積木。你從底部抽掉一塊，上面全部塌。但如果你只動最上面那塊，下面的完全不受影響。所以最穩定的東西（tools）放最底下，最常變動的（messages）放最上面。很直覺，但很多人在設計 API 呼叫的時候根本沒想過這件事 (⌐■_■)
+我覺得 Anthropic 在這裡的設計其實很聰明但是也很陰險。他們讓最不常動的東西（tool definitions）排在最底層，最常動的（messages）排在最上面 — 這在 data structure 上完全合理。但問題是，很多 agent framework 會在 runtime 動態增減 tools。你每加一個 tool 就是在「抽底部的行李」，然後整個 cache 就要重新 pack。我看過好幾個開源 agent framework 的 issue tracker，一堆人在問「為什麼我的 cache hit rate 突然掉到零」— 答案十之八九就是這個 (╯°□°)╯
 </ClawdNote>
 
-**改 Tool definitions（名稱、描述、參數）：**
-- ❌ Tools cache
-- ❌ System cache
-- ❌ Messages cache
-- 全部重算，最慘的情況 — 地基動了，整棟樓重蓋
+**最嚴重：動 tool definitions。** 改了任何 tool 的名稱、描述、或參數？恭喜，tools cache 炸、system cache 炸、messages cache 也炸。全部從頭 write。這是最慘的情況，等於地基被抽掉，整棟樓重蓋。SP-73 那篇 Thariq 說「tools 不能加不能刪」就是在講這件事。
 
-**開關 Web Search / Citations：**
-- ✅ Tools cache 不受影響
-- ❌ System cache
-- ❌ Messages cache
-- 原因：這些功能的開關實際上會修改 system prompt（Anthropic 在底層偷偷注入 search instructions）
+**中等傷害：開關 web search 或 citations。** 這個超反直覺 — 你只是開了個 toggle 而已啊？但 Anthropic 底層會把 search 相關的 instructions 偷偷注入你的 system prompt。所以表面上你在按開關，底層其實是在改 system prompt，system cache 跟 messages cache 就一起殉葬了。唯一倖存的是 tools cache。
 
-**改 Tool Choice 參數：**
-- ✅ Tools cache 不受影響
-- ✅ System cache 不受影響
-- ❌ Messages cache
-
-**改 Extended Thinking 設定（開關、budget）：**
-- ✅ Tools cache 不受影響
-- ✅ System cache 不受影響
-- ❌ Messages cache
+**輕傷：改 tool choice 或 extended thinking 設定。** 這兩個比較客氣 — tools 跟 system 的 cache 都不受影響，只有 messages cache 需要重算。日常開發最常碰到的就是這類改動，所以損失相對有限。
 
 <ClawdNote>
-注意一個超反直覺的點：開關 web search 會炸掉 system cache。為什麼？因為 Anthropic 在底層會把 search 相關的 instructions 偷偷塞進你的 system prompt。所以表面上你只是開了個 toggle，底層其實是在改 system prompt — cache 當然要重算。SP-73 那篇 Thariq 說「tools 不能加不能刪」就是同一個道理。你以為你在調旋鈕，其實你在拆牆 (╯°□°)╯
+注意看上面的分級，有一個規律：越「看起來無害」的改動，越容易讓人忽略它對 cache 的衝擊。改 tool definitions 很明顯是大事，大家會小心。但「開個 web search」？感覺就是按個按鈕的事嘛。結果它在底層偷偷改了你的 system prompt，cache 直接炸掉兩層。我稱之為「toggle 陷阱」— 越簡單的 UI 操作，背後的副作用越容易被低估 (⌐■_■)
 </ClawdNote>
 
 ---
@@ -225,44 +211,29 @@ Cache 的前綴是按照 **tools → system → messages** 的順序建立的。
 
 ---
 
-## Pricing 與最低門檻
+## Pricing — 別被數字嚇到，先聽我算一筆帳
 
-### 不同 Model 的 Cache 定價倍率
+好，我知道很多人看到 pricing 就想跳過，但這段真的值得花兩分鐘。因為 prompt caching 的定價結構有一個很美的數學 — 搞懂之後你會覺得「怎麼不早點用」。
 
-所有 model 都遵循同樣的倍率結構，差別只在 base input price：
+所有 model 都遵循一樣的倍率結構，差別只在 base input price。核心公式就三條：寫入是 base 的 1.25 倍（5 分鐘 TTL）或 2 倍（1 小時 TTL），讀取是 base 的 0.1 倍，output token 完全不受影響。
 
-- **Cache write（5 分鐘）**：base input price × 1.25
-- **Cache write（1 小時）**：base input price × 2.0
-- **Cache hit（讀取）**：base input price × 0.1
-- **Output tokens**：不受 caching 影響
-
-以 Opus 4.6 為例（base input $5/MTok）：寫入 $6.25，1 小時寫入 $10，讀取 **$0.50**。讀取價格是正常 input 的十分之一。十分之一。這就是為什麼大家說 prompt caching 是「窮人的 fine-tuning」— 用十分之一的價格得到幾乎一樣的速度提升。
-
-### 最低 Cacheable Token 門檻
-
-不是所有 prompt 都能 cache。每個 model 有最低門檻，低於門檻的 prompt 會被靜靜地忽略 — 沒有 error，沒有 warning，就是默默不 cache：
-
-- **4096 tokens**：Opus 4.6、Opus 4.5、Haiku 4.5
-- **2048 tokens**：Sonnet 4.6、Haiku 3.5
-- **1024 tokens**：Sonnet 4.5、Opus 4.1、Opus 4、Sonnet 4
+拿 Opus 4.6 來算具體數字（base input $5/MTok）：寫入一次 $6.25，讀取一次 $0.50。你多花了 $1.25 寫入，但之後每次讀取省 $4.50。**只要 cache hit 一次，你就回本了。第二次 hit 開始，全是淨賺。** 這就是為什麼大家叫 prompt caching「窮人的 fine-tuning」— 十分之一的價格，幾乎一樣的 latency 改善。
 
 <ClawdNote>
-Opus 4.6 的門檻是 4096，Sonnet 4.5 的門檻是 1024 — 整整差 4 倍。這意味著什麼？如果你從 Sonnet 升級到 Opus（因為你需要更強的推理能力），原本穩穩 cache hit 的短 prompt 可能突然全部 cache miss。而且你完全不會收到任何錯誤訊息。帳單月底才到，驚喜才來。這就像你從小車換成大車，結果發現很多小巷子開不進去了，但 GPS 不會跟你說 — 它只會默默幫你繞路，然後月底油費帳單讓你懷疑人生 (๑•̀ㅂ•́)و✧
+我算了一下我們自己的 agent 跑一個小時大概 hit 同一段 system prompt 20-30 次。用 5 分鐘 TTL 的話，寫入 $6.25、讀取 25 次就是 $12.50，加起來 $18.75。不用 cache 的話？25 次 full input 就是 $125。省了 85%。換成 1 小時 TTL 呢？寫入 $10，讀取一樣 $12.50，加起來 $22.50，還是省了 82%。所以不管你選哪種 TTL，只要你的 agent 不是「用一次就丟」的，prompt caching 的 ROI 都高到不像話。我真心覺得不用 prompt caching 的 agent 開發者，就像不用 version control 寫 code 一樣 — 技術上可以，但為什麼要這樣對自己 ┐(￣ヘ￣)┌
 </ClawdNote>
 
-### 什麼可以 Cache，什麼不行
+### 最低 Cacheable Token 門檻 — 靜默失敗的陷阱
 
-**可以 cache 的：**
-- Tool definitions
-- System messages
-- Text messages（user 和 assistant turns）
-- Images & Documents
-- Tool use 和 tool results
+不是所有 prompt 都能 cache。每個 model 有最低門檻，而且重點來了 — 低於門檻的 prompt 不會報錯，不會給 warning，就是默默地不 cache。你的 code 跑得好好的，dashboard 上看起來一切正常，但 cache hit rate 就是零。
 
-**不能直接 cache 的：**
-- Thinking blocks（不能直接標 `cache_control`，但在 assistant turns 中會跟著一起被 cache）
-- Citations 的子層級 block（要 cache 上層的 document block）
-- 空的 text blocks
+這個門檻在不同 model 之間差距驚人：Opus 4.6 要 4096 tokens，Sonnet 4.5 只要 1024。整整差了四倍。
+
+<ClawdNote>
+這裡有一個很多人會踩的坑：你從 Sonnet 升級到 Opus（因為你需要更強的推理），結果原本穩穩 cache hit 的短 prompt 全部靜默 miss。你完全不會收到錯誤訊息。帳單到了才知道。我見過有人在 Discord 問「升級 Opus 之後帳單暴漲 3 倍，是不是 Opus 定價有 bug？」不是 bug 啊老兄，是你的 prompt 低於 4096 tokens，cache 根本沒開起來。這就像從腳踏車換成機車，結果發現要考駕照 — 你以為只是「更快的版本」，其實門檻也跟著提高了 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+最後補充一下什麼東西能 cache：基本上 tool definitions、system messages、text messages、images、documents、tool use 和 tool results 都行。不能直接 cache 的是 thinking blocks（但它們會跟著 assistant turn 一起被 cache）、citations 的子層級 block（你得 cache 上層的 document block），還有空的 text blocks。概念很簡單：「有內容的東西」幾乎都能 cache，「元資料性質的東西」不行。
 
 ---
 
@@ -283,7 +254,7 @@ Opus 4.6 的門檻是 4096，Sonnet 4.5 的門檻是 1024 — 整整差 4 倍。
 為什麼會這樣？因為我們的 config 裡沒有顯式設定這個欄位 — 我們依賴的是舊版本的 implicit default。新版本一看：「欸，這個欄位沒有值，我來幫你設一個吧。」然後它好心地設成了 `"short"`。
 
 <ClawdNote>
-「Implicit defaults 是定時炸彈」— 這句話我要裱框掛在牆上。你覺得理所當然的 default，在 library 作者眼裡可能只是一個隨時會改的實作細節。今天的 default 是 long，明天搞不好就是 short，後天可能整個欄位都改名了。你猜怎麼知道的？沒錯，就是帳單告訴你的 (◉д◉)
+「Implicit defaults 是定時炸彈」— 這句話我要裱框掛在牆上。你覺得理所當然的 default，在 library 作者眼裡可能只是一個隨時會改的實作細節。今天的 default 是 long，明天搞不好就是 short，後天可能整個欄位都改名了。你猜怎麼知道的？沒錯，就是帳單告訴你的。這跟 JavaScript 生態圈的 left-pad 事件是同一個教訓 — 你的整個 production 依賴鏈上，每一個你沒顯式控制的參數，都是一個可能在半夜三點把你叫起來的 pager alert (◉д◉)
 </ClawdNote>
 
 結果就是 cache TTL 從 1 小時掉到 5 分鐘。我們的 agent 在處理長任務時，思考間隔經常超過 5 分鐘 — cache 一直過期、一直重新 write、帳單一直噴。

@@ -162,36 +162,22 @@ You pay 60% more on writes to get 12x the TTL. If your agent reads the same prom
 
 Okay, this is the most important section of the entire post, and also the one fewest people read carefully. Phil Karlton said "there are only two hard things in computer science: cache invalidation and naming things" — prompt caching lets you experience both at once.
 
-The cache prefix is built in order: **tools → system → messages**. Think of it like a building's structure: tools are the foundation, system is the load-bearing walls, messages are the room partitions on each floor. Move the foundation, rebuild the whole building.
+The cache prefix is built in order: **tools → system → messages**. Think of it like packing a suitcase: the first thing you put in (tools) sits at the very bottom, the last thing (messages) sits on top. Want something from the bottom? Everything above it comes out first.
+
+Let's walk through each type of change, from worst to least bad. Think of it like an earthquake scale — the deeper the epicenter, the wider the damage.
 
 <ClawdNote>
-Or a more everyday analogy: it's like stacking blocks. Pull one from the bottom, everything above collapses. But if you only move the top block, everything below stays fine. So the most stable stuff (tools) goes at the bottom, the most frequently changing stuff (messages) goes on top. Intuitive, but a surprising number of people never think about this when designing their API calls (⌐■_■)
+Here's what I think is both clever and sneaky about Anthropic's design. They put the least-changed stuff (tool definitions) at the bottom layer, and the most-changed stuff (messages) on top — which makes perfect sense from a data structure perspective. But the trap is that many agent frameworks dynamically add and remove tools at runtime. Every time you add a tool, you're "pulling luggage from the bottom of the suitcase," and the entire cache needs to repack. I've seen multiple open-source agent frameworks where people file issues asking "why did my cache hit rate suddenly drop to zero?" — nine times out of ten, this is why (╯°□°)╯
 </ClawdNote>
 
-**Change tool definitions (name, description, parameters):**
-- ❌ Tools cache
-- ❌ System cache
-- ❌ Messages cache
-- Everything recomputes. Worst case — foundation moved, whole building rebuilt
+**Worst case: changing tool definitions.** Modify any tool's name, description, or parameters? Congratulations — tools cache gone, system cache gone, messages cache gone. Full rewrite from scratch. This is the nuclear option, like pulling the foundation out from under a building. SP-73's Thariq said "you can't add or remove tools" — this is exactly what he meant.
 
-**Toggle Web Search / Citations:**
-- ✅ Tools cache unaffected
-- ❌ System cache
-- ❌ Messages cache
-- Why: toggling these actually modifies the system prompt (Anthropic injects search instructions behind the scenes)
+**Medium damage: toggling web search or citations.** This one is super counter-intuitive — you're just flipping a toggle, right? But Anthropic secretly injects search-related instructions into your system prompt behind the scenes. So on the surface you're pressing a button, but underneath you're rewriting the system prompt. System cache and messages cache both go down with it. Only the tools cache survives.
 
-**Change Tool Choice parameter:**
-- ✅ Tools cache unaffected
-- ✅ System cache unaffected
-- ❌ Messages cache
-
-**Change Extended Thinking settings (toggle, budget):**
-- ✅ Tools cache unaffected
-- ✅ System cache unaffected
-- ❌ Messages cache
+**Light damage: changing tool choice or extended thinking settings.** These two are more polite — tools and system caches stay intact, only messages cache needs recomputing. This is the kind of change you make most often during development, so the damage is relatively contained.
 
 <ClawdNote>
-Here's a super counter-intuitive one: toggling web search blows up your system cache. Why? Because Anthropic secretly injects search-related instructions into your system prompt behind the scenes. So on the surface you're flipping a toggle, but underneath you're rewriting the system prompt — of course the cache has to recompute. SP-73's Thariq saying "you can't add or remove tools" is the same principle in disguise. You think you're turning a dial. You're actually knocking down a wall (╯°□°)╯
+Notice the pattern above? There's a sneaky rule at work: the more "harmless-looking" a change seems, the more likely people are to underestimate its cache impact. Changing tool definitions obviously feels like a big deal, so people are careful. But "turning on web search"? Feels like pressing a button. Except behind the scenes it rewrites your system prompt and blows up two cache layers. I call this the "toggle trap" — the simpler the UI action, the easier it is to underestimate the side effects (⌐■_■)
 </ClawdNote>
 
 ---
@@ -225,44 +211,29 @@ You get up to 4 breakpoints. Distribute them by change frequency:
 
 ---
 
-## Pricing and Minimum Thresholds
+## Pricing — Don't Let the Numbers Scare You, Let Me Do the Math
 
-### Cache Pricing Multipliers
+I know a lot of people want to skip past pricing sections, but this one is genuinely worth two minutes. Because prompt caching's pricing structure has some beautiful math — once you get it, you'll wonder why you didn't start sooner.
 
-All models follow the same multiplier structure — only the base input price differs:
+All models follow the same multiplier structure — only the base input price differs. The core formula is just three lines: writes cost 1.25x base (5-minute TTL) or 2x base (1-hour TTL), reads cost 0.1x base, and output tokens are completely unaffected.
 
-- **Cache write (5 min)**: base input price × 1.25
-- **Cache write (1 hour)**: base input price × 2.0
-- **Cache hit (read)**: base input price × 0.1
-- **Output tokens**: unaffected by caching
-
-With Opus 4.6 (base input $5/MTok): write costs $6.25, 1-hour write costs $10, read costs **$0.50**. Read price is one-tenth of normal input. One-tenth. That's why people call prompt caching "poor man's fine-tuning" — you get nearly the same speed boost at a fraction of the cost.
-
-### Minimum Cacheable Token Thresholds
-
-Not every prompt can be cached. Each model has a minimum threshold, and prompts below it are silently ignored — no error, no warning, just quietly not cached:
-
-- **4096 tokens**: Opus 4.6, Opus 4.5, Haiku 4.5
-- **2048 tokens**: Sonnet 4.6, Haiku 3.5
-- **1024 tokens**: Sonnet 4.5, Opus 4.1, Opus 4, Sonnet 4
+Let's do the actual math with Opus 4.6 (base input $5/MTok): one write costs $6.25, one read costs $0.50. You spent an extra $1.25 on the write, but every read after that saves you $4.50. **One cache hit and you've broken even. From the second hit onward, it's pure savings.** That's why people call prompt caching "poor man's fine-tuning" — one-tenth the price for nearly the same latency improvement.
 
 <ClawdNote>
-Opus 4.6's threshold is 4096. Sonnet 4.5's is 1024. That's a 4x difference. What does this mean? If you upgrade from Sonnet to Opus (because you need stronger reasoning), short prompts that were happily cache-hitting before might suddenly all cache-miss. And you get zero error messages about it. The bill arrives at the end of the month. That's when the surprise comes. It's like switching from a compact car to an SUV and discovering that many narrow alleys don't fit anymore — but your GPS won't tell you, it just silently reroutes, and the gas bill at month's end makes you question your life choices (๑•̀ㅂ•́)و✧
+I did the math on our own agent — it hits the same system prompt about 20-30 times per hour. With 5-minute TTL: one write at $6.25 plus 25 reads at $0.50 each = $18.75 total. Without caching? 25 full inputs at $5 each = $125. That's 85% savings. Switch to 1-hour TTL? Write at $10 plus the same $12.50 in reads = $22.50, still 82% savings. So regardless of which TTL you pick, as long as your agent isn't "use once and throw away," the ROI on prompt caching is almost embarrassingly good. I genuinely think building agents without prompt caching is like writing code without version control — technically possible, but why would you do that to yourself ┐(￣ヘ￣)┌
 </ClawdNote>
 
-### What Can and Can't Be Cached
+### Minimum Cacheable Token Thresholds — The Silent Failure Trap
 
-**Cacheable:**
-- Tool definitions
-- System messages
-- Text messages (user and assistant turns)
-- Images & Documents
-- Tool use and tool results
+Not every prompt can be cached. Each model has a minimum threshold, and here's the kicker — prompts below the threshold don't error out, don't warn you, just silently don't cache. Your code runs fine, the dashboard looks normal, but the cache hit rate is zero.
 
-**Not directly cacheable:**
-- Thinking blocks (can't tag with `cache_control` directly, but get cached along with assistant turns)
-- Citation sub-level blocks (cache the parent document block instead)
-- Empty text blocks
+The gap between models is startling: Opus 4.6 needs 4096 tokens, Sonnet 4.5 only needs 1024. A 4x difference.
+
+<ClawdNote>
+Here's a trap that catches a lot of people: you upgrade from Sonnet to Opus (because you need stronger reasoning), and suddenly short prompts that were happily cache-hitting before all silently miss. Zero error messages. You find out when the bill arrives. I've seen people on Discord asking "my bill tripled after upgrading to Opus, is there a pricing bug?" No bug, friend — your prompt is under 4096 tokens, so caching never even kicked in. It's like going from a bicycle to a motorcycle and discovering you need a license — you thought it was just "the faster version," but the requirements went up too (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+One last thing on what's cacheable: basically tool definitions, system messages, text messages, images, documents, tool use, and tool results are all fair game. What you can't directly cache: thinking blocks (though they get cached along with assistant turns), citation sub-level blocks (cache the parent document block instead), and empty text blocks. Simple rule of thumb: "things with actual content" are almost all cacheable, "metadata-like things" aren't.
 
 ---
 
@@ -283,7 +254,7 @@ The culprit? We'd upgraded OpenClaw's underlying library (pi-ai). The new versio
 Why? Because our config didn't explicitly set that field — we relied on the old version's implicit default. The new version saw an empty field and helpfully filled it in: `"short"`.
 
 <ClawdNote>
-"Implicit defaults are time bombs" — I want this framed on my wall. The default you take for granted might just be an implementation detail that the library author changes on a whim. Today's default is "long," tomorrow it might be "short," next week the field might get renamed entirely. Guess how you find out? That's right: the bill tells you (◉д◉)
+"Implicit defaults are time bombs" — I want this framed on my wall. The default you take for granted might just be an implementation detail that the library author changes on a whim. Today's default is "long," tomorrow it might be "short," next week the field might get renamed entirely. Guess how you find out? That's right: the bill tells you. This is the same lesson as the JavaScript left-pad incident — every parameter in your entire production dependency chain that you haven't explicitly controlled is a pager alert waiting to wake you up at 3 AM (◉д◉)
 </ClawdNote>
 
 Cache TTL dropped from 1 hour to 5 minutes. Our agent's thinking pauses regularly exceed 5 minutes during long tasks — so the cache kept expiring, kept re-writing, and the bill kept climbing.
