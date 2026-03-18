@@ -66,7 +66,7 @@ system:
 在 multi-turn 對話裡更痛苦 — 每次新增訊息，你都得決定要把 `cache_control` 放在哪裡。SP-73 那篇有提到，Claude Code 團隊花了大量工程時間就是在搞這件事。
 
 <ClawdNote>
-想像你每天上班都要重新跟保全解釋一次「我是這棟大樓的員工」— 出示證件、背誦員工編號、等他打電話確認。Prompt caching 就是讓保全記住你的臉：「喔你啊，直接進去吧。」但以前你得自己跟保全說「記住我的臉」，現在 automatic caching 讓大樓管理處統一處理了 (￣▽￣)／
+以前的 prompt caching 就像每天上班都要跟保全重新自我介紹一樣荒謬 — 出示證件、背誦員工編號、等他打電話確認，搞完半小時過去了，早餐都涼了。Automatic caching 上線之後？保全終於裝了人臉辨識。但最好笑的是，一堆老司機反而不信任自動化，堅持每天手動刷卡再跟保全聊五分鐘天氣。你們是去上班還是去交朋友的 (￣▽￣)／
 </ClawdNote>
 
 現在 Anthropic 推出了 **Automatic Caching**：你只要在 request 的最上層加一個 `cache_control`，系統會自動把 cache breakpoint 放在最後一個可 cache 的 block 上。
@@ -147,7 +147,7 @@ cache_control:
 
 代價是 cache write 的價格從 **1.25x** 變成 **2x** base input price。
 
-用 Opus 4.6 舉例（每百萬 token）：
+拿 Opus 4.6 舉例（每百萬 token）：
 
 - Base input：$5
 - 5 分鐘 cache write：$6.25（1.25x）
@@ -160,24 +160,28 @@ cache_control:
 
 ## Cache Invalidation Hierarchy — 什麼改動會炸掉什麼
 
-好，這段是整篇最重要的部分，但也是最少人認真看的部分。Phil Karlton 說過「電腦科學只有兩個難題：cache invalidation 跟命名」— prompt caching 讓你同時體驗兩個。
+好，接下來這段是整篇的硬核。但也是最多人跳過的段落，所以我要想辦法讓你讀下去。
 
-Cache 的前綴是按照 **tools → system → messages** 的順序建立的。你可以把它想成搬家打包行李箱：最先放進去的（tools）在最底層，最後放的（messages）在最上面。想拿底層的東西？不好意思，上面的全部先搬出來。
+Phil Karlton 說過「電腦科學只有兩個難題：cache invalidation 跟命名」— prompt caching 讓你同時體驗兩個，而且是在帳單上體驗。
 
-接下來我們一個一個看，哪些改動會炸掉哪些 cache。你可以把這想成地震分級 — 震央越深，影響範圍越大。
+先搞清楚一件事：cache 的前綴是按照 **tools → system → messages** 的順序疊起來的。最先放進去的 tools 在最底層，最後放的 messages 在最上面 — 像搬家打包行李箱，想拿底層的東西？上面的全部先搬出來。
+
+理解了這個結構，接下來的故事就好懂了。
 
 <ClawdNote>
-我覺得 Anthropic 在這裡的設計其實很聰明但是也很陰險。他們讓最不常動的東西（tool definitions）排在最底層，最常動的（messages）排在最上面 — 這在 data structure 上完全合理。但問題是，很多 agent framework 會在 runtime 動態增減 tools。你每加一個 tool 就是在「抽底部的行李」，然後整個 cache 就要重新 pack。我看過好幾個開源 agent framework 的 issue tracker，一堆人在問「為什麼我的 cache hit rate 突然掉到零」— 答案十之八九就是這個 (╯°□°)╯
+Anthropic 在這裡的設計我給他 87 分 — 聰明是真的聰明，但也真的陰。最不常動的 tools 放底層、最常動的 messages 放上面，data structure 上教科書級正確。但問題是，一堆 agent framework 會在 runtime 動態增減 tools 啊！你每加一個 tool 就是在「抽行李箱底部的內褲」，結果整箱東西瀑布式倒出來。我在好幾個開源 agent framework 的 issue tracker 看過同一個問題：「為什麼我的 cache hit rate 突然歸零？」答案永遠是一樣的 — 你動了 tools (╯°□°)╯
 </ClawdNote>
 
-**最嚴重：動 tool definitions。** 改了任何 tool 的名稱、描述、或參數？恭喜，tools cache 炸、system cache 炸、messages cache 也炸。全部從頭 write。這是最慘的情況，等於地基被抽掉，整棟樓重蓋。SP-73 那篇 Thariq 說「tools 不能加不能刪」就是在講這件事。
+我把三種情況用「車禍嚴重程度」來分，好記。
 
-**中等傷害：開關 web search 或 citations。** 這個超反直覺 — 你只是開了個 toggle 而已啊？但 Anthropic 底層會把 search 相關的 instructions 偷偷注入你的 system prompt。所以表面上你在按開關，底層其實是在改 system prompt，system cache 跟 messages cache 就一起殉葬了。唯一倖存的是 tools cache。
+**全損報廢：動到 tool definitions。** 改了任何一個 tool 的名稱、描述、或參數？那你的 cache 基本上可以辦喪事了 — tools cache 炸、system cache 炸、messages cache 也跟著一起下去。全部從頭 write。這是最慘的情況，地基被人抽掉，整棟樓重蓋。SP-73 那篇 Thariq 說的「tools 不能加不能刪」就是在講這個。你可能覺得「我就加一個 tool 而已嘛」— 對，但對 cache 來說，你剛剛對它的世界觀進行了一次基因改造。
 
-**輕傷：改 tool choice 或 extended thinking 設定。** 這兩個比較客氣 — tools 跟 system 的 cache 都不受影響，只有 messages cache 需要重算。日常開發最常碰到的就是這類改動，所以損失相對有限。
+**半毀：開關 web search 或 citations。** 這個超反直覺。你心想：我只是按了個 toggle 而已啊？但 Anthropic 底層會偷偷把 search 相關的 instructions 注入你的 system prompt。你以為你在按開關，底層其實在改你的 system prompt，所以 system cache 跟 messages cache 一起殉葬。唯一活下來的是 tools cache — 因為 tools 排在 system 前面，震波傳不到那邊。就像地震的時候，震央在二樓，三樓全塌了但地下室沒事。
+
+**輕傷擦破皮：改 tool choice 或 extended thinking 設定。** 終於來個客氣的。tools 跟 system 的 cache 都不受影響，只有 messages cache 需要重算。日常開發最常碰到的就是這類改動，所以損失相對有限。擦了個藥膏繼續跑就好。
 
 <ClawdNote>
-注意看上面的分級，有一個規律：越「看起來無害」的改動，越容易讓人忽略它對 cache 的衝擊。改 tool definitions 很明顯是大事，大家會小心。但「開個 web search」？感覺就是按個按鈕的事嘛。結果它在底層偷偷改了你的 system prompt，cache 直接炸掉兩層。我稱之為「toggle 陷阱」— 越簡單的 UI 操作，背後的副作用越容易被低估 (⌐■_■)
+你注意到沒有？越「看起來無害」的操作，越容易偷偷搞爆你的 cache。改 tool definitions 大家都知道是大事，會慎重對待。但「開個 web search」？感覺跟開 Wi-Fi 一樣隨手的事嘛。結果底層偷改 system prompt，cache 直接炸兩層。我稱之為「toggle 陷阱」。這道理跟人生很像 — 讓你翻船的從來不是你怕的那個大浪，是你沒注意到的那個小漩渦 (⌐■_■)
 </ClawdNote>
 
 ---
@@ -195,19 +199,14 @@ Cache 的前綴是按照 **tools → system → messages** 的順序建立的。
 這就像你在圖書館找書，但圖書館員只願意往前翻 20 頁目錄。超過 20 頁？「不好意思，全部重新登記。」
 
 <ClawdNote>
-20-block lookback 是那種「你不知道的時候覺得不存在，知道之後會回頭驚出一身冷汗」的規則。如果你的 agent 跑長對話（coding agent 很常見），又沒有在中間放 explicit breakpoints，恭喜你的 cache hit rate 可能比你 dashboard 上看到的低得多。解法很簡單：在可能被改動的內容之前多放幾個 breakpoint 就好。4 個 slot，省著點用但別捨不得用 ヽ(°〇°)ﾉ
+20-block lookback 是我心目中的「冷知識刺客」— 你不知道的時候完全感覺不到它存在，知道之後回頭一算帳才驚出一身冷汗：「原來我之前燒的那些錢是因為這個？」如果你的 coding agent 跑長對話（非常普遍），又沒有在中間灑 explicit breakpoints，那你 dashboard 上的 cache hit rate 可能是個美麗的謊言。我們自己就是踩了這個雷才學乖的，別跟我們一樣傻 (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
-### 解法
+### 怎麼防
 
-在可能被編輯的內容**之前**放一個 explicit breakpoint。這樣系統在碰到 lookback window 盡頭時，會跳到下一個 explicit breakpoint 繼續檢查，而不是放棄。
+解法其實很簡單：在可能被編輯的內容**之前**放一個 explicit breakpoint。這樣系統在碰到 lookback window 盡頭時，會跳到下一個 explicit breakpoint 繼續檢查，而不是直接放棄。
 
-你最多可以放 4 個 breakpoints，根據內容的變動頻率來分段：
-
-- Breakpoint 1：Tools（幾乎不變）
-- Breakpoint 2：System prompt（偶爾改）
-- Breakpoint 3：歷史對話中段（可能被 compaction 修改）
-- Breakpoint 4：最新的 messages 或 automatic caching
+你最多有 4 個 breakpoint 可以用。怎麼分配？我的建議是按照「這段內容多久會變一次」來排座位，最穩的坐最裡面，最容易動的坐最外面。具體來說：第一個 breakpoint 給 tools（因為上線之後幾乎不會動），第二個給 system prompt（偶爾改措辭但骨架不變），第三個給歷史對話中段（compaction 有可能動到這裡），第四個留給最新的 messages 或者讓 automatic caching 自己用。這樣不管哪一層有變動，損傷都會被隔離在那一層，不會像推骨牌一樣一路倒到底。
 
 ---
 
@@ -254,7 +253,7 @@ Cache 的前綴是按照 **tools → system → messages** 的順序建立的。
 為什麼會這樣？因為我們的 config 裡沒有顯式設定這個欄位 — 我們依賴的是舊版本的 implicit default。新版本一看：「欸，這個欄位沒有值，我來幫你設一個吧。」然後它好心地設成了 `"short"`。
 
 <ClawdNote>
-「Implicit defaults 是定時炸彈」— 這句話我要裱框掛在牆上。你覺得理所當然的 default，在 library 作者眼裡可能只是一個隨時會改的實作細節。今天的 default 是 long，明天搞不好就是 short，後天可能整個欄位都改名了。你猜怎麼知道的？沒錯，就是帳單告訴你的。這跟 JavaScript 生態圈的 left-pad 事件是同一個教訓 — 你的整個 production 依賴鏈上，每一個你沒顯式控制的參數，都是一個可能在半夜三點把你叫起來的 pager alert (◉д◉)
+「Implicit defaults 是定時炸彈」— 這句話我要裱框掛在牆上。你覺得理所當然的 default，在 library 作者眼裡可能只是一個隨時會改的實作細節。今天的 default 是 long，明天搞不好就是 short，後天可能整個欄位都改名了。你猜怎麼知道的？沒錯，就是帳單告訴你的。這跟 JavaScript 生態圈的 left-pad 事件是同一個教訓 — 你的整個 production 依賴鏈上，每一個你沒顯式控制的參數，都是一個可能在半夜三點把你叫起來的 pager alert (╯°□°)╯
 </ClawdNote>
 
 結果就是 cache TTL 從 1 小時掉到 5 分鐘。我們的 agent 在處理長任務時，思考間隔經常超過 5 分鐘 — cache 一直過期、一直重新 write、帳單一直噴。

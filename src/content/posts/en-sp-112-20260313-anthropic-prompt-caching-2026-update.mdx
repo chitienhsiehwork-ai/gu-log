@@ -66,7 +66,7 @@ system:
 In multi-turn conversations it gets worse — every new message means deciding where to place `cache_control`. SP-73 mentioned that the Claude Code team spent serious engineering effort just getting cache prefix ordering right.
 
 <ClawdNote>
-Picture this: every morning you walk into your office building and have to re-explain to security that yes, you work here — show your badge, recite your employee ID, wait for them to call HR. That's what prompt caching without automatic mode felt like. Now the building management handles face recognition for everyone (￣▽￣)／
+Old-school prompt caching was like having to re-introduce yourself to building security every single morning — flash your badge, recite your employee ID, wait for them to call HR, and by the time you're done your breakfast is cold. Now that automatic caching is live? Security finally got face recognition installed. But the funniest part is, a bunch of power users don't trust the automation and insist on manually swiping their badge AND chatting with the guard about the weather for five minutes. Are you going to work or making friends? (￣▽￣)／
 </ClawdNote>
 
 Now Anthropic has **Automatic Caching**: just add one `cache_control` at the top level of your request, and the system automatically places the cache breakpoint on the last cacheable block.
@@ -160,24 +160,28 @@ You pay 60% more on writes to get 12x the TTL. If your agent reads the same prom
 
 ## Cache Invalidation Hierarchy — What Breaks When You Change Things
 
-Okay, this is the most important section of the entire post, and also the one fewest people read carefully. Phil Karlton said "there are only two hard things in computer science: cache invalidation and naming things" — prompt caching lets you experience both at once.
+Alright, this next section is the hardest-hitting part of the whole post. It's also the one most people skip, so I'm going to make it worth your while.
 
-The cache prefix is built in order: **tools → system → messages**. Think of it like packing a suitcase: the first thing you put in (tools) sits at the very bottom, the last thing (messages) sits on top. Want something from the bottom? Everything above it comes out first.
+Phil Karlton said "there are only two hard things in computer science: cache invalidation and naming things" — prompt caching lets you experience both at once, and you experience them on your bill.
 
-Let's walk through each type of change, from worst to least bad. Think of it like an earthquake scale — the deeper the epicenter, the wider the damage.
+First, let's get one thing straight: the cache prefix is built in order — **tools → system → messages**. The first thing packed in (tools) sits at the very bottom, the last thing (messages) sits on top. Want something from the bottom? Everything above it comes out first. Like packing a suitcase.
+
+Once you've got that mental model, the rest of the story makes sense.
 
 <ClawdNote>
-Here's what I think is both clever and sneaky about Anthropic's design. They put the least-changed stuff (tool definitions) at the bottom layer, and the most-changed stuff (messages) on top — which makes perfect sense from a data structure perspective. But the trap is that many agent frameworks dynamically add and remove tools at runtime. Every time you add a tool, you're "pulling luggage from the bottom of the suitcase," and the entire cache needs to repack. I've seen multiple open-source agent frameworks where people file issues asking "why did my cache hit rate suddenly drop to zero?" — nine times out of ten, this is why (╯°□°)╯
+I give Anthropic's design here an 87 out of 100 — genuinely clever, but also genuinely sneaky. Least-changed stuff (tools) at the bottom, most-changed stuff (messages) on top — textbook-correct data structure design. But here's the trap: tons of agent frameworks dynamically add and remove tools at runtime. Every time you add a tool, you're pulling the underwear out from the bottom of a packed suitcase, and everything cascades out. I've seen the exact same issue filed across multiple open-source agent frameworks: "Why did my cache hit rate suddenly drop to zero?" The answer is always the same — you touched the tools (╯°□°)╯
 </ClawdNote>
 
-**Worst case: changing tool definitions.** Modify any tool's name, description, or parameters? Congratulations — tools cache gone, system cache gone, messages cache gone. Full rewrite from scratch. This is the nuclear option, like pulling the foundation out from under a building. SP-73's Thariq said "you can't add or remove tools" — this is exactly what he meant.
+Let me rank the three scenarios by "car crash severity," so they stick.
 
-**Medium damage: toggling web search or citations.** This one is super counter-intuitive — you're just flipping a toggle, right? But Anthropic secretly injects search-related instructions into your system prompt behind the scenes. So on the surface you're pressing a button, but underneath you're rewriting the system prompt. System cache and messages cache both go down with it. Only the tools cache survives.
+**Total loss: changing tool definitions.** Modify any tool's name, description, or parameters? Time to hold a funeral for your cache — tools cache gone, system cache gone, messages cache gone. Full rewrite from scratch. This is the nuclear option — foundation pulled out, entire building rebuilt. SP-73's Thariq said "you can't add or remove tools" and this is exactly why. You might think "I'm just adding one tool" — sure, but to the cache, you just performed genetic modification on its entire worldview.
 
-**Light damage: changing tool choice or extended thinking settings.** These two are more polite — tools and system caches stay intact, only messages cache needs recomputing. This is the kind of change you make most often during development, so the damage is relatively contained.
+**Half-wrecked: toggling web search or citations.** This one is super counter-intuitive. You're thinking: I just flipped a toggle, right? But Anthropic secretly injects search-related instructions into your system prompt behind the scenes. You think you're pressing a button; underneath, you're rewriting the system prompt. System cache and messages cache both go down with it. Only the tools cache survives — because tools are packed before system in the hierarchy, so the shockwave doesn't reach them. Like an earthquake centered on the second floor: third floor collapses, but the basement is fine.
+
+**Fender bender: changing tool choice or extended thinking settings.** Finally, something polite. Tools and system caches stay intact — only messages cache needs recomputing. This is what you change most often during development, so the damage is contained. Slap on a band-aid and keep going.
 
 <ClawdNote>
-Notice the pattern above? There's a sneaky rule at work: the more "harmless-looking" a change seems, the more likely people are to underestimate its cache impact. Changing tool definitions obviously feels like a big deal, so people are careful. But "turning on web search"? Feels like pressing a button. Except behind the scenes it rewrites your system prompt and blows up two cache layers. I call this the "toggle trap" — the simpler the UI action, the easier it is to underestimate the side effects (⌐■_■)
+Notice the pattern? The more "harmless-looking" an operation seems, the more likely it is to silently blow up your cache. Changing tool definitions obviously feels like a big deal, so people are careful. But "turning on web search"? Feels as casual as toggling Wi-Fi. Except behind the scenes it rewrites your system prompt and detonates two cache layers. I call this the "toggle trap." It's a lot like life, actually — the thing that capsizes your boat is never the big wave you were watching for, it's the little whirlpool you didn't notice (⌐■_■)
 </ClawdNote>
 
 ---
@@ -195,19 +199,14 @@ In short conversations, no problem. But imagine a 30-block conversation where yo
 It's like a librarian who will only flip back 20 pages in the catalog. Beyond 20? "Sorry, re-register everything."
 
 <ClawdNote>
-The 20-block lookback is one of those rules where you don't know it exists until it bites you, and then you break into a cold sweat thinking about all the money you've already burned. If your agent runs long conversations (very common for coding agents) without explicit breakpoints in the middle, your actual cache hit rate might be way lower than what your dashboard suggests. The fix is simple: sprinkle a few more breakpoints in there. You get 4 slots — use them wisely, but do use them ヽ(°〇°)ﾉ
+The 20-block lookback is what I call a "cold knowledge assassin" — you have absolutely no idea it exists until it stabs you, and then you look back at your bills and break into a cold sweat: "Wait, THAT's why I was burning money?" If your coding agent runs long conversations (extremely common) without explicit breakpoints scattered in the middle, your dashboard's cache hit rate might be a beautiful lie. We learned this the hard way ourselves — don't be as dumb as we were (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
-### The Fix
+### How to Prevent It
 
-Place an explicit breakpoint **before** content that might be edited. This way, when the system hits the lookback window limit, it jumps to the next explicit breakpoint and continues checking instead of giving up.
+The fix is actually simple: place an explicit breakpoint **before** content that might be edited. That way, when the system hits the lookback window limit, it jumps to the next explicit breakpoint and continues checking instead of throwing its hands up.
 
-You get up to 4 breakpoints. Distribute them by change frequency:
-
-- Breakpoint 1: Tools (almost never change)
-- Breakpoint 2: System prompt (occasionally updated)
-- Breakpoint 3: Mid-conversation history (might be modified by compaction)
-- Breakpoint 4: Latest messages or automatic caching
+You get up to 4 breakpoints. How should you distribute them? My suggestion: arrange them by "how often does this content change" — most stable stuff sits deepest, most volatile stuff sits on the outside. Specifically: first breakpoint goes to tools (barely ever change after launch), second to system prompt (you tweak the wording sometimes but the skeleton stays), third to mid-conversation history (compaction might touch this), and fourth to your latest messages or let automatic caching claim it. This way, no matter which layer changes, the damage stays isolated to that layer instead of domino-ing all the way down.
 
 ---
 
@@ -254,7 +253,7 @@ The culprit? We'd upgraded OpenClaw's underlying library (pi-ai). The new versio
 Why? Because our config didn't explicitly set that field — we relied on the old version's implicit default. The new version saw an empty field and helpfully filled it in: `"short"`.
 
 <ClawdNote>
-"Implicit defaults are time bombs" — I want this framed on my wall. The default you take for granted might just be an implementation detail that the library author changes on a whim. Today's default is "long," tomorrow it might be "short," next week the field might get renamed entirely. Guess how you find out? That's right: the bill tells you. This is the same lesson as the JavaScript left-pad incident — every parameter in your entire production dependency chain that you haven't explicitly controlled is a pager alert waiting to wake you up at 3 AM (◉д◉)
+"Implicit defaults are time bombs" — I want this framed on my wall. The default you take for granted might just be an implementation detail that the library author changes on a whim. Today's default is "long," tomorrow it might be "short," next week the field might get renamed entirely. Guess how you find out? That's right: the bill tells you. This is the same lesson as the JavaScript left-pad incident — every parameter in your entire production dependency chain that you haven't explicitly controlled is a pager alert waiting to wake you up at 3 AM (╯°□°)╯
 </ClawdNote>
 
 Cache TTL dropped from 1 hour to 5 minutes. Our agent's thinking pauses regularly exceed 5 minutes during long tasks — so the cache kept expiring, kept re-writing, and the bill kept climbing.

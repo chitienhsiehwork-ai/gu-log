@@ -4,8 +4,19 @@ title: "Data Engineer 轉職 AI Engineer？其實你已經會 80% 了"
 originalDate: "2026-03-11"
 translatedDate: "2026-03-12"
 translatedBy:
-  model: "GPT-5.4"
-  harness: "Codex CLI"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@Al_Grigor on X"
 sourceUrl: "https://x.com/Al_Grigor/status/2031747147876716601"
 lang: "zh-tw"
@@ -14,63 +25,81 @@ tags: ["clawd-picks", "career", "data-engineering", "ai-engineering", "transitio
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
-import CodexNote from '../../components/CodexNote.astro';
-import GeminiNote from '../../components/GeminiNote.astro';
-import ClaudeCodeNote from '../../components/ClaudeCodeNote.astro';
-import ShroomDogNote from '../../components/ShroomDogNote.astro';
 
-最近很多人在問，做 Data Engineer (DE) 的人，如果想轉職成 AI Engineer 到底行不行？Alexey Grigorev 給了一個很直白的短答案：絕對可以，而且在很多情況下，轉職的速度會比大家想像中還要快 (◍•ᴗ•◍)
+## 你以為要重新投胎，其實只是換了個便當口味
 
-## AI engineering 本質上還是工程
+想像一下這個場景。你是一個做了三年 Data Engineer 的人，每天管 pipeline、修 Airflow DAG、跟 data quality 的 bug 搏鬥。某天你打開 LinkedIn，發現全世界都在講 AI Engineer，薪水數字後面的零比你多一個。
 
-很多人對 AI 領域有一種誤解，以為進去就是要整天推導數學、做 research、或是從頭訓練 foundation model。但 Alexey 點出了一個現代 AI 系統的現實：在絕大多數的應用場景裡，那個最核心的 foundation model，其實就只是一個 API call 而已。
+你開始焦慮。心想：「完了，我是不是要回去念個 ML 碩士？要不要惡補線性代數？是不是要從頭學怎麼 train 模型？」
 
-真正的難點在哪裡？難在 model「周邊」的那些東西。要把一個會吐字的 API 變成穩定可靠的產品，需要大量的工程基礎建設。而這，剛好就是 Data Engineer 最擅長的事。
+Alexey Grigorev 看到這股焦慮，在 X 上丟了一句讓人精神為之一振的話：**不用。你已經會 80% 了。**
+
+但等等——真的假的？讓我們來拆解一下他在說什麼。
 
 <ClawdNote>
-這點真的很真實。現在很多自稱 AI 應用的產品，說穿了就是「套殼 API + 複雜的資料處理管線」。如果你不會寫 prompt，可以學；但如果你不會接 API、不會處理 retry、不會做 rate limiting、不會把使用者的 data 乾淨地餵給 model，那才是真的寫不出能上線的產品。
+我覺得這則推文最狠的地方，不是在安慰你，而是在告訴你一個產業公開的秘密：現在市場上一大堆掛著 AI Engineer 頭銜的人，做的事情跟 DE 重疊度高達八成以上。差別只是他們的 pipeline 尾端接的是 LLM 而不是 data warehouse ┐(￣ヘ￣)┌
+</ClawdNote>
+
+## Foundation model？那就是一通電話而已
+
+很多人對 AI 領域有一種恐懼感——以為一腳踏進去，就要整天推導反向傳播的數學、讀 arXiv 論文讀到眼睛脫窗、然後用八張 H100 從頭 train 一個模型出來。
+
+Alexey 戳破了這個泡泡：在絕大多數的 AI 應用場景裡，那個最核心的 foundation model，就是一個 API call。就這樣。你 `POST` 一個 request，它吐一個 response 回來。跟你打電話叫外送的流程差不多。
+
+真正讓人頭大的，從來不是那通電話本身。是電話打完之後的所有事情：response 要怎麼 parse？error 要怎麼 retry？rate limit 打到了怎麼辦？使用者丟了一個 10MB 的 PDF 給你，你要怎麼切、怎麼 embed、怎麼存？model 昨天跑得好好的今天突然開始胡說八道，你要怎麼偵測？
+
+這些問題，對一個 Data Engineer 來說，根本就是「回到家」的感覺。
+
+<ClawdNote>
+說穿了，現在很多自稱 AI 應用的產品就是「套殼 API + 你本來就會的資料處理管線」。不會寫 prompt 可以學，三天就上手。但不會接 API、不會處理 retry、不會做 rate limiting、不會把髒兮兮的使用者 data 洗乾淨再餵給 model——這些才是決定產品能不能上線的硬功夫。而你已經練了好幾年了 (◕‿◕)
+</ClawdNote>
+
+## 你每天在做的事，換個名字就是 AI Engineering
+
+好，講到這裡你可能半信半疑。讓我們來做一個殘酷的對比實驗。
+
+左邊是你身為 Data Engineer 每天的日常，右邊是 AI Engineer 的工作內容。我打賭你會看到一個詭異的現象——兩邊長得幾乎一模一樣，只是標籤貼紙不同而已。
+
+你每天在做 **data quality monitoring**，確保上游資料沒有壞掉、schema 沒有漂移？AI Engineer 也在做一模一樣的事，只是他們叫它 **AI behavior monitoring**——確保 model 沒有突然開始幻覺、output format 沒有亂跑。
+
+你在管那些定時跑的 **batch pipelines**，確保 Airflow DAG 不要半夜三點把你叫起來？AI Engineer 也在管 pipeline，只是他們的叫 **RAG pipelines**——把文件切 chunk、跑 embedding、灌進 vector store。同樣會半夜三點爆炸，同樣讓人想摔電話。
+
+我可以繼續列下去——寫 test、設 CI/CD、盯 logs、處理 schema 變更——但你應該已經看出規律了。動詞全部一樣，只有受詞換了。就像你本來在教國文，現在改教英文。備課、出考卷、改作業、被學生氣到懷疑人生，這些流程一個都沒變。
+
+<ClawdNote>
+Alexey 用了一個很精準的詞：「口味 (flavor)」。你本來吃的是紅燒牛肉麵，現在換成番茄牛肉麵。麵條一樣、碗一樣、筷子一樣，連牛肉都一樣——就是湯底從醬油變成番茄。如果有人跟你說「你要從頭學怎麼吃麵」，你應該會覺得他在開你玩笑 (¬‿¬)
+</ClawdNote>
+
+## 那些純 Data Science 出身的人反而卡牆
+
+這裡有一個反直覺的事實，Alexey 沒有明說但暗示得很清楚：純做 data science 出身的人，轉 AI Engineering 反而可能比你還卡。
+
+為什麼？因為他們可能很會調 prompt、很會評估模型品質、很會做 A/B test 比較哪個 model 比較好。但你問他們怎麼寫一個不會在 production 炸掉的 service？怎麼設定 monitoring 讓你在使用者發現之前就知道系統壞了？怎麼用 CI/CD 確保每次 deploy 不會把整個系統搞掛？
+
+他們可能會對你眨眨眼，然後打開 Google 搜尋「what is CI/CD」。
+
+而你？這些東西對你來說就像呼吸一樣自然。你不需要想就會做，因為你已經做了幾千遍了。
+
+<ClawdNote>
+這就是 CP-155 裡 SemiAnalysis 在講的 AI 經濟學的微觀版：市場上最缺的不是「會 call API 的人」，而是「能把 API call 包成一個穩定產品的人」。會 call API 的人到處都是，但能讓系統凌晨三點不要爆炸的人？那是稀缺資源。你就是那個稀缺資源 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+## 所以你到底需要補什麼？
+
+說了這麼多，總不可能什麼都不用學吧。當然不是。但你要補的東西，比你想像的少很多——而且全都是那種「週末花兩天看完教學就能上手」的等級。
+
+想像你是一個會開手排車的老司機，現在要換開電動車。你需要學的是：充電站怎麼找、動能回收怎麼調、螢幕上那堆新按鈕是幹嘛的。你不需要重新學怎麼開車。
+
+具體來說就四樣東西。**Prompt engineering**——怎麼跟 LLM 好好說話，讓它給你想要的答案（few-shot、chain-of-thought 這些套路，學過的人都說比寫 SQL 簡單）。**RAG**——把文件切 chunk、轉 embedding、塞進 vector store，然後讓 model 查詢參考（你已經在做 ETL 了，這就是 ETL 的表親）。**Embedding 和 vector search**——把文字變成數字向量再比較相似度，概念不難，實作更不難。**LLM output 評估**——你以前寫 data quality check 確保欄位不是 null、格式正確？同一套邏輯，只是現在你在驗的是 model 有沒有在胡說八道。
+
+重點是——這些都是**可以在幾週內補上的技能**，不是需要回去念兩年碩士的基礎理論。你缺的是一層新的漆，不是地基。地基你早就打好了。
+
+<ClawdNote>
+我見過太多 DE 朋友把「轉 AI」想成「砍掉重練」，結果在焦慮中浪費了好幾個月。拜託，你不是要從零開始學程式的文組生。你是一個已經能獨立管 production pipeline 的工程師，只需要學幾個新工具和新概念而已。這中間的差距，大概就是你學一個新的 orchestration framework 的難度——Airflow 換成 Prefect 你也沒有去念碩士吧？ ╰(°▽°)╯
 </ClawdNote>
 
 ---
 
-## 為什麼說你已經具備核心能力了？
+下次你又在 LinkedIn 上看到「AI Engineer 年薪 XXX 萬」的文章開始焦慮時，打開你的 Airflow dashboard 看一眼。那些你每天在管的 DAG、每天在修的 pipeline、每天在寫的 monitoring rule——把 data 兩個字擦掉，換上 AI 兩個字。
 
-如果你已經是一個 Data Engineer，那你手上其實早就握有 AI engineering 的核心技能包了。
-
-Alexey 列舉了幾個大家每天都在做的事：
-- 寫 tests
-- 設定 CI/CD
-- 監控 pipelines (Monitor pipelines)
-- 收集 logs (Collect logs)
-- 遵循扎實的工程實踐 (solid engineering practices)
-
-這些基本功，不管是在傳統的 data stack 還是現代的 AI stack，含金量都是一樣高的。
-
-<ClawdNote>
-這也是為什麼很多純做 data science 出身的人，轉去開發 AI 產品反而會卡牆。因為他們可能很會調 prompt 或評估模型，但不懂得怎麼寫出好維護的 code，也不知道怎麼架設監控系統。DE 帶槍投靠的優勢，就在於「把東西穩定跑起來」這件事，對你們來說已經是肌肉記憶了。
-</ClawdNote>
-
----
-
-## 只是「口味」變了，基本功沒變
-
-當然，轉職不可能什麼都不用學。Alexey 巧妙地形容，這就像是換了一種「口味」(flavor)，但底層的邏輯和基本功其實是維持不變的。
-
-具體來說，你的工作日常會發生這些轉換：
-- 以前你做的是 **data quality monitoring**（資料品質監控），現在你改成監控 **AI behavior**（AI 行為表現）。
-- 以前你管的是定時跑的 **batch pipelines**（批次管線），現在你可能要維護即時的 **RAG pipelines**。
-- 以前你是在驗證 **transformations**（資料轉換邏輯）有沒有寫錯，現在你則是要去評估 **model outputs**（模型輸出結果）是否符合預期。
-
-你看，動詞其實都一樣（監控、管線管理、驗證評估），只是受詞換成了跟 AI 相關的東西而已。這些都不過是你原本已經在做的事情的延伸罷了。
-
----
-
-## 結語
-
-Alexey 這篇推文，與其說是在推廣 AI engineering，不如說是給所有正在做 Data Engineering 的人打了一劑強心針。
-
-面對一波波的 AI 浪潮，與其焦慮自己不會從頭 train 模型，不如轉個念頭想：當所有人都學會怎麼 call AI 的 API 時，最終拼的還是誰能把這些 API 穩穩地兜成一個可靠的系統。而這，不就是各位 Data Engineer 每天的日常嗎 ヽ(•‿•)ノ
-
-<ClawdNote>
-最後補充一下，這不代表你不需要去了解 model 的特性或是 prompt engineering 的眉角。但比起那些缺乏工程經驗的新手，你已經站在離終點非常近的起跑線上了。帶著你的系統觀點去學 AI，這就是你最強的護城河。
-</ClawdNote>
+你會發現，你離那個頭銜的距離，比你以為的近太多了。
