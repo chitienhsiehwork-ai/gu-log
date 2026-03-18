@@ -4,8 +4,19 @@ title: "Model-Market Fit: The Question Every AI Founder Should Ask First — It'
 originalDate: "2026-02-25"
 translatedDate: "2026-02-26"
 translatedBy:
-  model: "Claude Opus 4.6"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "Nicolas Bustamante (@nicbstme) on X"
 sourceUrl: "https://x.com/nicbstme/status/2026804225314009589"
 summary: "Nicolas Bustamante introduces a powerful new framework called 'Model-Market Fit' (MMF): before chasing Product-Market Fit, you must first ask a more fundamental question — can today's AI models actually do what the market demands? Using the explosion of Legal AI and Coding AI vs the stagnation of Financial AI and drug discovery, plus Vals.ai benchmark data (legal 87% vs finance 56%), he proves MMF is a prerequisite to PMF. This is essential reading for anyone building, investing in, or adopting AI."
@@ -17,212 +28,223 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 ## You Know PMF. But Do You Know MMF?
 
-Nicolas Bustamante is a French serial entrepreneur who founded Doctrine, Europe's leading legal AI platform. On February 25, 2026, he published a long post on X introducing a new framework: **Model-Market Fit (MMF)**.
+Picture this: you're a fired-up founder. You've found an incredible market — lawyers spend eight hours a day doing repetitive document review, financial analysts flip through 200-page reports until their eyes bleed. You think: "This is exactly what AI is built for!" So you spend two years and burn through three funding rounds, only to discover — it's not that the market doesn't want your product. It's that the model literally can't do the job.
 
-The core idea is deceptively simple:
+Nicolas Bustamante knows this pain firsthand. He's a French serial entrepreneur who founded Doctrine, Europe's leading legal AI platform, back in 2016. He's been surfing the AI wave for almost a decade. On February 25, 2026, he published a long post on X that crystallized these hard-won lessons into a new framework: **Model-Market Fit (MMF)**.
+
+The core idea fits in one sentence:
 
 > Before you chase Product-Market Fit, ask a more fundamental question — **can the model actually do it?**
 
 <ClawdNote>
-Think of it like building a house. The old startup logic goes: find a great location (market) → build a house (product) → customers will come (PMF).
+Think of it like building a house. The old startup logic goes: find a great location (market), build a nice house (product), customers will come (PMF).
 
 But the AI era adds a precondition: **are the building materials strong enough?**
 
 You found prime real estate, the blueprints are gorgeous, but if the steel beams can't hold — nothing you build will stand.
 
-MMF is asking: "Is today's AI model reinforced concrete, or cardboard?"
+MMF is asking: "Is today's AI model reinforced concrete, or cardboard?" (╯°□°)╯
 </ClawdNote>
 
 ## Andreessen's Classic Framework Needs an Upgrade
 
-In 2007, Marc Andreessen wrote the essay that changed startup thinking: *The Only Thing That Matters*. His core argument: of a startup's three elements (team, product, market), **market matters most**. A great market pulls the product out — the product doesn't need to be great, it just needs to basically work.
+In 2007, Marc Andreessen wrote the essay that changed startup thinking forever: *The Only Thing That Matters*. His argument, stripped down: of a startup's three elements (team, product, market), **market matters most**. A big enough market pulls the product out — it doesn't need to be perfect, it just needs to basically work. The market's gravity fixes everything else.
 
-This framework guided an entire generation of founders. But 19 years later, a new variable has entered the equation.
+This guided an entire generation of founders. But 19 years later, a new variable crashed the party.
 
-**That variable is the model.**
+**That variable is the model itself.**
 
-> For AI startups, there is a prerequisite layer beneath Product-Market Fit: the degree to which current model capabilities can satisfy what the market demands.
+Imagine you started a moving company. Customers are lined up around the block (huge market), your service process is well-designed (good product). But here's the problem — your truck can only carry 50 kilograms. The customer wants you to move a refrigerator. You can't lift it. No matter how strong the market's gravitational pull, if your truck can't carry the load, customers will leave.
 
-Bustamante calls this **Model-Market Fit (MMF)**.
+Bustamante gave this "can the truck carry it?" question a proper name: **Model-Market Fit (MMF)**.
 
-When MMF exists, Andreessen's framework works perfectly — the market pulls the product out. When it doesn't, no amount of brilliant UX, killer GTM strategy, or engineering talent can make customers adopt a product whose core AI task doesn't solve their actual job.
+When MMF exists, Andreessen's framework works perfectly — the market pulls the product out. When it doesn't, no amount of brilliant UX, killer GTM strategy, or engineering talent can save you.
+
+<ClawdNote>
+I think the really clever thing Bustamante did wasn't "discovering" MMF — everyone building AI products has a vague sense that model capability matters. What he did was **name it**.
+
+You know how many concepts stay fuzzy gut feelings until someone gives them a name? Once it has a label, suddenly the whole industry can communicate precisely: "Hey, does this vertical have MMF?" Five words, conversation over.
+
+The power of naming things is seriously underrated. ┐(￣ヘ￣)┌
+</ClawdNote>
 
 ## When MMF Unlocks, Markets Explode
 
-Once you see this pattern, you see it everywhere.
+Once you see this pattern, you can't unsee it.
 
-### Legal AI: GPT-4 (March 2023) Was the Turning Point
+### Legal AI: GPT-4 (March 2023) Was the Lightning Strike
 
-Legal tech AI was stuck for years. Plenty of companies, but none broke through. BERT-era models could only do classification (this is an NDA, that's an employment contract), but legal work needs **generation and reasoning** — drafting memos that synthesize complex case law, explaining why a non-compete clause is unenforceable under California law.
+Legal tech AI was stuck for years. Plenty of companies trying, but none breaking through. Why? Because BERT-era models could only do classification — "this is an NDA, that's an employment contract." Great, and then what? What legal work actually needs is **generation and reasoning**: write me a memo synthesizing three related cases, explain why this non-compete clause won't hold up under California law.
 
-Bustamante lived this personally — he founded Doctrine in 2016 and experienced firsthand how the market existed but the models couldn't deliver.
+Bustamante lived this pain when he founded Doctrine in 2016. Law firms were desperate to automate, money was ready, demand was clearly there — but the models couldn't deliver. It was like standing at a buffet with a huge appetite, and the chef tells you "sorry, I can only make plain rice."
 
 Then GPT-4 arrived.
 
-Within 18 months, legal AI startups raised hundreds of millions. Thomson Reuters acquired Casetext for $650 million. Dozens of new legal AI companies emerged.
+Within 18 months, legal AI startups raised hundreds of millions. Thomson Reuters acquired Casetext for $650 million. Legal AI startups sprouted everywhere like mushrooms after rain.
 
 **The legal AI market minted more unicorns in 12 months than in the previous 10 years combined.**
 
-The market didn't change. The model capability threshold was crossed.
+The market didn't change. The demand didn't change. The model crossed a capability threshold — the chef finally learned to cook, and the customers showed up immediately.
 
-### Coding AI: Claude 3.5 Sonnet (June 2024) Was the Turning Point
+### Coding AI: Claude 3.5 Sonnet (June 2024) Was Another Lightning Strike
 
-Bustamante shared his personal experience: before Sonnet, he tried Cursor, installed it, used it for a few days, deleted it. A month later, same result — "interesting demo, not a workflow."
+Bustamante shared a story that'll sound painfully familiar: before Sonnet, he tried Cursor. Installed it, used it for a few days, deleted it. A month later, tried again — same result. "Interesting demo, not a workflow." Like getting an exciting new robot vacuum that just spins in circles in the living room and gets stuck on every corner.
 
 Then Claude 3.5 Sonnet dropped.
 
 > Within a week, I couldn't work without Cursor. Neither could anyone on my team.
 
-Cursor's growth went vertical. Not because they shipped some brilliant new feature. **The underlying model crossed the threshold that made their product actually work.**
+Cursor's growth went vertical. Not because they shipped some brilliant feature. Not because of great marketing. **The underlying model crossed the "actually useful" threshold.** The robot vacuum suddenly learned to navigate around table legs and not get tangled in cables — and you never wanted to pick up a broom again.
 
 <ClawdNote>
-If you've been reading gu-log, this connects directly to our previous coverage — CP-48 (SaaS moats are collapsing) and CP-90 (a Vertical SaaS veteran's confession) — both by the same author.
+If you've been reading gu-log, this connects directly to CP-48 (SaaS moats are collapsing) and CP-90 (a Vertical SaaS veteran's confession) — both by the same author, Bustamante.
 
-Those articles explained *what* LLMs are disrupting. This article explains *why* some industries got disrupted and others haven't.
+Those articles explained *what* LLMs are disrupting. This one fills in the final puzzle piece: **why some walls got swept away while others still stand.**
 
-The answer is MMF.
+The answer is MMF. Whether the foundation (model capability) under each wall is strong enough determines who falls first when the flood comes. (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
 ### The Golden Rule
 
-> The race doesn't go to the first mover. It goes to the first to achieve product-market fit **after** model-market fit exists.
+> The race doesn't go to the first mover. It goes to whoever is ready the moment MMF unlocks.
 
-So far, in both coding and legal AI, **none of the incumbents won**. It was always new players.
+So far, in both coding and legal AI, **none of the incumbents won**. It was always new players. Elephants turn too slowly. When lightning strikes, it's the quick rabbits that catch it.
 
 ## When MMF Doesn't Exist, Nothing Works
 
-The flip side is equally important: when MMF doesn't exist, even a massive market can't pull.
+The flip side is equally brutal: when MMF doesn't exist, even a massive market can't pull.
 
 ### Mathematical Proofs
 
-Mathematicians would love an AI that could prove novel theorems. Research institutions and tech companies would pay millions. But even the most advanced models can't do it consistently — verify known proofs yes, originate novel proofs on open problems, not yet.
+Mathematicians would love an AI that could prove novel theorems. Research institutions, defense contractors, tech companies — they'd all pay big money. But even the most advanced models can't do it. They can verify known proofs, help with mechanical steps, occasionally produce insights on limited problems. But originating novel proofs on open problems? It's like asking a talented high school math student to solve a Millennium Prize Problem. Sure, they're better than average, but that level of work isn't something you reach by being "pretty good."
 
 ### High-Stakes Finance
 
-Investment banks and hedge funds desperately want AI for comprehensive financial analysis. The market is massive — a single successful M&A deal generates hundreds of millions in fees.
+Investment banks and hedge funds desperately want AI for comprehensive financial analysis. The market is massive — a single successful M&A deal generates hundreds of millions in fees. Even catching a few drops of that soup would keep you fed forever.
 
-But AI remains surprisingly bad at the core tasks. Excel output is still unreliable for complex financial models. Worse, AI can't combine **quantitative analysis with qualitative insights from 200-page documents** — which is exactly what analysts do all day.
+But AI remains surprisingly bad at the core tasks. Excel outputs are still unreliable for complex financial models. Worse, AI can't combine **quantitative analysis with qualitative insights from 200-page documents** — which is exactly what analysts do from morning to night. Ask AI to read a 200-page M&A report and give you a "buy or don't buy" recommendation? What you get is roughly as reliable as flipping a coin.
+
+<ClawdNote>
+The finance situation is really something. Think about it — Wall Street is the last place on Earth that's short on money. They're not hesitant about spending on AI; they're spending more than anyone else. But after throwing all that money at the problem, the best model achieves 56% accuracy on financial tasks?
+
+It's like hiring the world's most expensive coaching staff and buying the best training equipment, but your player still can't catch the ball on the field. It's not a coaching problem. The player's legs haven't finished growing yet. (￣▽￣)／
+</ClawdNote>
 
 ### The Benchmark Gap: Hard Numbers
 
-Bustamante cites two benchmarks from [Vals.ai](https://vals.ai/):
+Bustamante cites two benchmarks from [Vals.ai](https://vals.ai/), and the numbers are brutal:
 
-- **LegalBench** (legal reasoning tasks): Top models reach **87%** accuracy. Gemini 3 Pro leads at 87.04%, with multiple models clustered above 85%. This is production-grade.
-- **Finance Agent** (core financial analyst tasks): Top models reach only **56.55%**. Even GPT-5.1, the current leader, barely crosses the halfway mark.
+**LegalBench** (legal reasoning tasks): Top models reach **87%** accuracy. Gemini 3 Pro leads at 87.04%, with multiple models clustered above 85%. This is production-grade — ready to ship.
 
-**A 30-point gap.** Legal has MMF. Finance doesn't.
+**Finance Agent** (core financial analyst tasks): Top models reach only **56.55%**. Even GPT-5.1, the current number one, barely crosses the halfway mark — slightly better than guessing, but lightyears from "usable."
+
+**A 30-point gap.** Legal has MMF. Finance doesn't. Same era, same models, wildly different destinies for different industries.
 
 <ClawdNote>
-This benchmark comparison hits hard.
+87% vs 56%.
 
-You can ship a legal AI product today. A finance AI product that does the actual job of an analyst? Very soon, but not now.
+You can ship a legal AI product today and lawyers will actually pay for it. But a finance AI that does an analyst's real job? Buddy, would you charge customers money for 56% accuracy?
 
-This also explains why every AI company is pushing Legal Plugins (hello, Claude Legal Plugin and Cowork Enterprise), while finance AI has been relatively quiet — it's not that they don't want to, it's that the models can't deliver yet.
+This also explains why every AI company has been aggressively pushing Legal Plugins — because that's a domain where "the model is ready." Finance AI has been comparatively quiet. Not because they don't want to build it — because the model can't deliver the goods yet. ╰(°▽°)╯
 </ClawdNote>
 
 ## The Brutal Litmus Test: Is Human-in-the-Loop a Feature or a Crutch?
 
-Bustamante offers an incredibly practical way to diagnose MMF:
+Bustamante offers what might be the single most valuable insight in the entire piece — a dead-simple diagnostic tool:
 
-> **When MMF exists**, human-in-the-loop is a **feature** — AI does the work, humans provide oversight, quality, and trust.
+When MMF exists, human-in-the-loop is a **feature**. AI does the work, humans provide oversight. Like a pilot using autopilot while watching the instruments — not because the plane can't fly, but because safety comes first.
 
-> **When MMF doesn't exist**, human-in-the-loop is a **crutch** — AI can't do the core task, humans are secretly compensating. Remove the human, and the product breaks.
+When MMF doesn't exist, human-in-the-loop becomes a **crutch**. AI can't do the core task, and humans are secretly filling in the gaps. On the surface it's "AI-assisted." In reality it's "humans doing the work while AI gets the credit." Remove the human, and the whole thing collapses.
 
-The test is simple: **If you removed all human correction from the workflow, would customers still pay?**
+The test is simple: **If you removed all human corrections from the workflow, would customers still pay?**
 
-If the answer is no — you don't have MMF. You have a demo.
+If the answer is no — you don't have MMF. You have a very pretty demo.
 
 <ClawdNote>
-This test is ruthless. Let's apply it to some real products:
+This test is ruthless. Let me hold up the mirror for you:
 
-- Cursor / Claude Code → Remove human review? Code quality drops, but basically works. ✅ Has MMF
-- AI-written investment reports → Remove analyst corrections? Probably getting sued. ❌ No MMF
-- AI customer support (e.g., Vercel's 87.6% auto-resolve rate) → Gray area, depends on your tolerance for 87%
+- Cursor / Claude Code → Remove human review? Code quality drops, but it basically works. ✅ Has MMF
+- AI-written investment reports → Remove analyst corrections? Probably getting sued into oblivion. ❌ No MMF
+- AI customer support (e.g., Vercel's 87.6% auto-resolve rate) → Gray area. Depends on whether 87% is good enough for your use case
 
-If you're evaluating whether to buy an AI product or invest in an AI company — **run this test first**.
+Next time someone pitches you their AI product, quietly run this test in your head. If the answer is "remove the human and the product falls apart," then what they're selling isn't AI — it's outsourced labor with an AI skin on top. (⌐■_■)
 </ClawdNote>
 
-## The Cruelest Strategic Dilemma: Build Now or Wait?
+## The Cruelest Strategic Dilemma: Build Now or Wait for the Model to Grow Up?
 
-If MMF doesn't exist today, should you wait?
+OK, so you've spotted a promising vertical, but MMF doesn't exist today. What do you do?
 
-### The Case for Waiting
+Here's what makes this so cruel: both choices can kill you.
 
-- You're betting on someone else's roadmap (Anthropic, OpenAI). You don't control when models improve.
-- You might guess wrong about what capability is needed. The "80% to 99%" gap your vertical needs might be five years away.
-- "Eventually AGI can do everything" — but "eventually" is doing a LOT of heavy lifting in that sentence.
+**The risk of waiting** is that you're betting on someone else's roadmap. When models improve, how much they improve, in which direction — you control none of it. You might wait three years only to find that models made zero progress on the specific capability your vertical needs. It's like standing at a bus stop waiting for a bus that might not exist, and you don't even know the schedule.
 
-### The Case for Being Early
+And there's a sentence that sounds beautiful but is actually dangerous: "Eventually AGI will be able to do everything." The problem is that "eventually" is doing an enormous amount of heavy lifting in that sentence. Eventually the sun will explode too, but you're not going to skip dinner because of it.
 
-YCombinator has a compelling counter-argument: when MMF unlocks, you need more than just model capability. You also need:
+**The case for being early** is also strong. YCombinator has a compelling argument: when MMF unlocks, you need more than just model capability. You also need domain-specific data pipelines, regulatory relationships, customer trust built over years, and deep understanding of how professionals actually work day to day.
 
-- **Domain-specific data pipelines**
-- **Regulatory relationships**
-- **Customer trust built over years**
-- **Deep understanding of how professionals actually work**
+Legal AI startups didn't just plug in GPT-4 and win. They'd spent years building infrastructure, building relationships, building domain knowledge. When the model arrived, they sprinted in full gear — they weren't barefoot trying to put shoes on.
 
-Legal AI startups didn't just plug in GPT-4 and win. They'd already built the scaffolding. When the model arrived, they were ready to sprint.
+<ClawdNote>
+This reminds me of surfing. You can stand on the beach and wait for the wave to come before jumping in — but by the time you paddle out, the wave has already passed. Real surfers paddle out to the lineup early and wait on their boards. When the wave comes, they just have to stand up.
+
+So maybe the real strategy is: while MMF doesn't exist yet, build the things that "the model can't do but you can" — domain expertise, data, trust. When the model catches up, you're already on the wave. (ง •̀_•́)ง
+</ClawdNote>
 
 ### The Danger Zone
 
-> MMF that's **24-36 months away**. Close enough to seem imminent. Far enough to burn through multiple funding rounds waiting.
+But there's one sweet-sounding death trap: **verticals where MMF is roughly 24-36 months away.** Close enough that it feels imminent. Far enough that you'll burn through multiple funding rounds before it arrives. This is the startup Bermuda Triangle — many enter, few emerge.
 
-Unless you're targeting a truly massive market. Healthcare and finance are so big that even Anthropic and OpenAI are going all-in despite mixed results.
+The exception is truly massive markets. Healthcare and finance are so enormous that even Anthropic and OpenAI themselves are pouring money in, despite mixed results. Because when MMF does arrive, the returns will be large enough to cover all the sunk costs.
 
-> **The math: expected value = probability of MMF arriving × market size × your likely share.**
+## The 80/99 Gap: Looks Like 19%. Feels Like Infinity.
 
-## The 80/99 Gap: Looks Like 19%, Feels Like Infinity
+In unregulated verticals, 80% accuracy might be enough. AI-drafted marketing copy that humans edit heavily? Still saves time. Everyone's happy.
 
-In unregulated verticals, 80% accuracy might be enough. AI-drafted marketing copy that humans edit heavily still creates value.
+But in regulated verticals — finance, legal, healthcare — 80% accuracy is often useless. A contract review tool that misses 20% of critical clauses? You're not helping lawyers, you're manufacturing lawsuit material. A medical diagnosis wrong one time in five? That's not a product, that's a liability.
 
-But in regulated verticals — finance, legal, healthcare — 80% accuracy is often useless:
-- A contract review tool that misses 20% of critical clauses? That's not helping lawyers, that's creating liability.
-- A medical diagnosis wrong one time in five? That's not a product, that's a lawsuit.
+It's like taking an exam. An 80% score on a regular test is pretty good. But if you're a pilot taking your certification exam, 80% pass rate means one in every five takeoffs might end in a crash — would you still fly?
 
-> The gap between 80% and 99% accuracy is often **infinite in practice**. It's the difference between "promising demo" and "production system."
+> The gap between 80% and 99% accuracy is often **infinite in practice**. It's the chasm between "promising demo" and "production system."
 
-Many AI startups are stuck in this gap, raising money on demos while waiting for the model capability that would make their product actually work.
+Many AI startups are stuck in this chasm. Raising money on demos while quietly praying for model capabilities to catch up. Investors see "80% accuracy" and think "wow, already so high!" But people inside the industry know: that last 19% might be harder than the first 80%.
 
 ## The Ultimate Frontier: The Agentic Threshold
 
-Bustamante points out a second capability frontier most people miss: **the ability to work autonomously over extended periods.**
+At the end of his piece, Bustamante points out a second capability boundary that most people miss entirely: **the ability to work autonomously for extended periods.**
 
-Current MMF examples (legal document review, coding assistance) are fundamentally short-horizon tasks — prompt in, output out, a few tool calls, done in seconds or minutes.
+Think about it — all the current examples of MMF (legal document review, coding assistance) are fundamentally short-cycle tasks. Prompt goes in, output comes out, a few seconds to a few minutes. It's like ordering food delivery: you place the order, food arrives, transaction complete.
 
-But the highest-value knowledge work doesn't work like that:
-- Financial analysts spend days building models, stress-testing assumptions, synthesizing dozens of sources
-- Strategy consultants iterate through weeks of research, interviews, and analysis
-- Drug discovery researchers design campaigns spanning months
+But the highest-value knowledge work doesn't work like that at all. Financial analysts spend days building models, stress-testing assumptions, synthesizing dozens of sources before making a single recommendation. Strategy consultants don't produce one slide — they do weeks of research, interviews, and analysis. Drug discovery researchers don't run one experiment — they iterate across months.
 
-These require something models can't yet do reliably: **sustained autonomous operation.**
+These jobs don't need "food delivery." They need a **live-in chef** — someone who's in your kitchen every day, remembers your tastes, knows what's in the fridge, and proactively plans the week's menu for you.
 
-The agentic threshold isn't just "can the model use tools." It's:
-- **Persistence**: Can it maintain goals and context across hours or days?
-- **Recovery**: Can it recognize failures, diagnose problems, and try alternatives?
-- **Coordination**: Can it break complex objectives into subtasks and execute them in sequence?
-- **Judgment**: Does it know when to keep going versus when to stop and ask for guidance?
+The agentic threshold isn't just "can the model use tools." It's four deeper capabilities: **persistence** (can it maintain goals and context across hours or days?), **recovery** (can it recognize failures, diagnose problems, try alternatives?), **coordination** (can it break complex objectives into subtasks and execute them in sequence?), and **judgment** (does it know when to keep going versus when to stop and ask for help?).
 
-> **The next wave of MMF unlocks will come from smarter models AND models that can work for days on the same task.**
+> **The next wave of MMF unlocks won't just come from smarter models — it'll come from models that can work for days straight on the same task.**
 
 <ClawdNote>
-This connects directly to our CP-96 coverage — Anthropic's research showing that AI agents can actually run longer, but humans don't dare let go.
+This connects directly to our CP-96 coverage — Anthropic's research found that AI agents can actually run longer, but humans don't dare let go. It's like buying a self-driving car that technically can drive itself, but you keep stomping on the brake anyway.
 
-Bustamante is saying the same thing from the market side: **it's not just that models can't be autonomous, it's that the quality and consistency of that autonomy isn't enough to build trust yet.**
+Bustamante sees the same thing from the market side: **it's not that models can't be autonomous — it's that the quality and consistency of that autonomy isn't enough to build trust yet.**
 
-The agentic threshold is both a technical problem and a trust problem. And trust = data + time + safety guardrails.
+The agentic threshold is a technical problem and a trust problem. And trust has no shortcut — it can only be earned through data, time, and one uneventful run after another. ヽ(°〇°)ﾉ
 </ClawdNote>
 
-## The Bottom Line: MMF Before PMF
+## Back to That House
 
-Andreessen's core insight was that market matters most because a great market pulls the product out. The market creates the gravitational force.
+Remember the house-building analogy from the beginning?
 
-The AI corollary: **model capability is the prerequisite for that gravity to begin.**
+Andreessen told us 19 years ago: find a great location, and the market's gravity will pull the house up. That's still true today.
+
+But Bustamante adds one line: **before you break ground, check your building materials.**
+
+Are the steel beams strong enough? Is the concrete quality up to par? Can the foundation hold? If the materials aren't there, even the best location in the world will only produce a house that collapses.
 
 > **MMF → PMF → Success. Skip the first step, and the second becomes impossible.**
 
-Whether you're building a startup, making an investment, or pushing an AI project inside your company — the question isn't just "does the market want it?" It's "can the model deliver it?"
+Whether you're building a startup, making an investment, or pushing an AI project inside your company — don't just ask "does the market want it?" First ask: "can the model deliver it?"
 
-That's the only thing that matters in 2026. (๑˃ᴗ˂)ﻭ
+Check your steel beams. Then build your house. (๑•̀ㅂ•́)و✧
 
 ---
 
