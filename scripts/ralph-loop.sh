@@ -15,13 +15,18 @@ QUEUE="scripts/ralph-queue.txt"
 MAX_ATTEMPTS=3
 PROCESSED=0
 
-# Create per-run temp directory
+# Create per-run temp directory + persistent log location
 RUN_ID="ralph-$(date +%Y%m%d-%H%M%S)"
 RUN_DIR=".ralph/runs/$RUN_ID"
-mkdir -p "$RUN_DIR"
+LOG_DIR=".ralph/log"
+mkdir -p "$RUN_DIR" "$LOG_DIR"
 
 log_file="$RUN_DIR/ralph.log"
-log() { echo "[$(date '+%H:%M:%S')] $*" | tee -a "$log_file"; }
+current_log="$LOG_DIR/ralph-current.log"
+log() {
+  local msg="[$(date '+%H:%M:%S')] $*"
+  echo "$msg" | tee -a "$log_file" >> "$current_log"
+}
 
 # ==================== LOCK ====================
 LOCKFILE="/tmp/ralph-loop.lock"
