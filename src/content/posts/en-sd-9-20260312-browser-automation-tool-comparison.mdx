@@ -44,16 +44,16 @@ The test site? The very blog you're reading right now — gu-log.
 
 ## Meet the Contestants
 
-Think of these three tools as students with very different personalities.
+Think of these three tools as students with very different test-taking strategies — same exam, completely different approaches.
 
-**Playwright** (Microsoft) is the straight-A student who shows up with color-coded notes. Full Node.js test framework, supports Chromium and WebKit, comes with trace viewer, HTML reports, tons of APIs. It wasn't designed for AI agents, but its API is clean enough that AI can use it just fine. Like giving a diligent student a blank notebook — they'll organize beautiful notes on their own.
+**Playwright** (Microsoft) is the straight-A student who shows up with color-coded notes, three different pens, and tabbed dividers. It's a full Node.js test framework that was built for human engineers — Chromium and WebKit support, trace viewer, HTML reports, the works. But here's the thing: its API is so clean that AI picks it up without breaking a sweat. Like giving a diligent student a blank notebook — they'll organize beautiful notes on their own, no hand-holding needed.
 
-**agent-browser** (Vercel) is the AI-native newcomer. Its killer feature is the `snapshot` mechanism — it tags every interactive element on the page with a `@ref` (like `@e3`, `@e12`), so the AI doesn't have to guess CSS selectors. Plus `--annotate` screenshots that highlight every clickable element. Built for AI from the ground up.
+**agent-browser** (Vercel) is the transfer student who skips the textbook but shows up wearing AR glasses. Here's its party trick: imagine walking into a room you've never been in, and every switch, knob, and button has a floating label — `@e3` is the light switch, `@e12` is the thermostat. That's what its `snapshot` mechanism does. The AI doesn't have to go fishing through HTML for CSS selectors; it just says "click `@e3`" and it's done. Add `--annotate` screenshots that label every clickable element, and debugging becomes a breeze. Sounds amazing, right? Hold that thought — there's a plot twist coming.
 
-**Rodney** (by Simon Willison) is the minimalist. A thin wrapper over Chrome DevTools Protocol. Everything is a CLI command: `uvx rodney open`, `uvx rodney click`, `uvx rodney screenshot`. No framework, no API — just shell commands strung together. For AI agents, this is actually an advantage. Writing bash is easier than writing Node.js modules. Like bringing a single cheat sheet to a final exam — not much on it, but everything you need.
+**Rodney** (by Simon Willison) is the minimalist. A thin shell over Chrome DevTools Protocol, where every operation is a CLI command: `uvx rodney open`, `uvx rodney click`, `uvx rodney screenshot`. No framework, no API — just shell commands strung together. You might think, "that's it?" But for AI agents, this is actually a gift. Writing bash is way easier than writing Node.js modules. Like bringing a single cheat sheet to a final exam — not much on it, but you can find what you need fast.
 
 <ClawdNote>
-If you've read our CP-146 piece on Simon Willison's anti-patterns, Rodney's extreme simplicity makes total sense. Willison has been pushing the idea of "let AI operate tools with minimum friction." Rodney is basically him eating his own dog food (◕‿◕)
+If you've read our CP-146 piece on Simon Willison's anti-patterns, Rodney's extreme simplicity makes total sense — Willison keeps pushing "let AI operate tools with minimum friction." But here's the thing he doesn't mention: low friction doesn't mean high accuracy. You'll see later that Rodney's minimalism made it the fastest tool and the only one to catch a real bug, but it also stumbled on technical precision. Like bringing the thinnest cheat sheet to the exam — you flip through it fast, but you also write wrong answers fast (◕‿◕)
 </ClawdNote>
 
 ## Experiment Design: Locking Down Variables
@@ -68,6 +68,10 @@ To compare fairly, we nailed everything else down — like a proper science expe
 - **50-minute budget** per agent
 
 The only variable was the tool itself.
+
+<ClawdNote>
+You might ask: why not also swap the model for comparison? Because then you'd have two variables changing at once, and you couldn't tell if the result was because of the tool or the model. I know this sounds like middle-school science class, but go look at AI benchmarks out there — tons of them make this exact mistake. They run GPT on Tool A, Claude on Tool B, then announce "Tool A wins!" That's like ordering from a Michelin restaurant on one delivery app and fast food on another, then concluding "App A has better food." No — the restaurant has better food, my dude (╯°□°)╯
+</ClawdNote>
 
 ## Plot Twist: v1 Prompt Was a Disaster
 
@@ -106,32 +110,15 @@ AI isn't incapable. It just doesn't know what you want.
 This echoes what we discussed in CP-30 (the Anthropic misalignment piece): "AI won't pursue goals you haven't defined." The v1 agent was like getting an exam question with no point values — students don't know how much to write or how deep to go, so they scribble something reasonable and move on. Don't blame the student. Blame the person who wrote the exam ╰(°▽°)╯
 </ClawdNote>
 
-## The Scoreboard
+## The Scoreboard: The Honor Student, the Bug Hunter, and the Try-Hard
 
-After re-running all three tools with v2 prompts:
+After re-running all three tools with v2 prompts, the scores came in. But this time, the real drama was hiding behind the report cards.
 
-**Playwright v2 — 8.0/10**
-- 1207-line `suite.mjs` (Node.js ES module)
-- 106 assertions, run on both Chromium and WebKit
-- 24 screenshots (12 per browser)
-- 4 JSON accessibility tree snapshots
-- Finished in 48 seconds
+**Playwright** lived up to its straight-A reputation — 8.0/10, top of the class. Crack open its `suite.mjs` and you'll find twelve hundred lines of Node.js so clean it looks like a human engineer wrote it. 106 assertions, 24 screenshots, 4 accessibility tree snapshots, all done in 48 seconds. Your first reaction is the same as mine: "This is almost too neat." And yeah, it is that student who underlines answers with a ruler after finishing the exam. But don't hand out the trophy yet — it quietly ran the same tests on both Chromium and WebKit, so that 106 number might not be as impressive as it looks.
 
-**Rodney v2 — 6.6/10**
-- 741-line `test.sh` (bash)
-- 43 assertions
-- 14 screenshots
-- The only tool that found a real bug (3 homepage images missing alt text)
-- Done in 4.8 minutes
+**Rodney** scored 6.6/10 — not a pretty report card. 741 lines of bash, 43 assertions, done in 4.8 minutes. But it did one thing the other two couldn't — **it caught a real bug**. Three homepage images missing alt text, a genuine a11y issue. Picture this: the mid-ranking student suddenly raises their hand and says, "Teacher, your answer key for question three is wrong." Three seconds of silence from the whole class. The score isn't great, but in that moment, who looks like the one who actually understands the material?
 
-**agent-browser v2 — 6.1/10**
-- 678-line `test.sh` (bash)
-- 45 assertions
-- 12 screenshots (including 2 annotated)
-- 6 accessibility tree snapshots
-- Done in 7.1 minutes
-
-Playwright scored highest, but here's the twist — the tool that actually found a bug was the lowest-scoring Rodney. It's like the valedictorian writes the prettiest solutions, but the kid in the back row is the one who spots the typo in the teacher's exam.
+**agent-browser** was the heartbreaker at 6.1/10. It clearly tried hard — 678 lines of bash, 45 assertions, 6 accessibility tree snapshots, and it took 7.1 minutes, the longest of the three. Most reports written, most data collected. But effort and effectiveness are two different things. You'll see shortly that some of its assertions were purely decorative — like a student who writes something for every question, but on closer inspection it's all "I think the answer is probably B."
 
 <ClawdNote>
 106 assertions sounds impressive, but GPT 5.4 (our reviewer) wasn't buying it: "Running the same tests on two browsers and counting them separately — the number of independent scenarios is lower than it looks." It's like copying the same homework twice and saying you did two assignments. The numbers are real, but the gold content needs discounting. Assertion quantity is not assertion quality — 45 fake assertions aren't worth 10 real ones (⌐■_■)

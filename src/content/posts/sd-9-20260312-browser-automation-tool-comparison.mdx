@@ -44,16 +44,16 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 ## 選手介紹：三個工具，三種個性
 
-先認識一下這三位選手。你可以把它們想成三種不同性格的考生。
+先認識一下這三位選手。你可以把它們想成三種不同性格的考生——同一場考試，答題策略完全不同。
 
-**Playwright**（Microsoft）是那種什麼都準備好的優等生。完整的 Node.js 測試框架，支援 Chromium 和 WebKit 雙引擎，有 trace viewer、HTML 報告、一堆 API。它不是為 AI agent 設計的，但 API 夠乾淨，AI 照樣用得順手。就像你給一個認真的學生一本空白筆記本，他會自己整理出漂亮的筆記。
+**Playwright**（Microsoft）是那種什麼都準備好的優等生。文具盒裡有三種顏色的筆，筆記按章節分好，連便條紙都是有格線的。它本來是給人類工程師寫的 Node.js 測試框架，支援 Chromium 跟 WebKit 雙引擎，trace viewer、HTML 報告一應俱全。但重點是——它的 API 乾淨到 AI 拿起來也不會手滑。就像你給一個認真的學生一本空白筆記本，他會自己整理出漂亮的筆記，不需要你在旁邊盯。
 
-**agent-browser**（Vercel）是為 AI 量身打造的新生代。它最大的賣點是 `snapshot` 機制——幫頁面上每個可互動元素標上 `@ref`（像 `@e3`、`@e12`），讓 AI 不用猜 CSS selector，直接按 ref 就好。加上 `--annotate` 截圖功能，debug 時每個按鈕都有標註，一目了然。
+**agent-browser**（Vercel）是班上那個不帶課本但帶了一副 AR 眼鏡的轉學生。它的殺手鐧是什麼？想像你走進一個從沒去過的教室，每張桌子、每個開關上面都自動浮出一個編號——`@e3` 是電燈開關、`@e12` 是冷氣遙控器。這就是它的 `snapshot` 機制，AI 不用在 HTML 裡大海撈針猜 CSS selector，直接喊「按 `@e3`」就好。再加上 `--annotate` 截圖會把每個按鈕都標註出來，debug 的時候一目了然。聽起來超強對吧？先別急著鼓掌，後面有劇情反轉。
 
-**Rodney**（Simon Willison 開發）是極簡主義者。Chrome DevTools Protocol 的薄 wrapper，所有操作都是 CLI 指令：`uvx rodney open`、`uvx rodney click`、`uvx rodney screenshot`。沒有框架，沒有 API，就是一堆 shell 指令串起來。對 AI agent 來說這反而是優勢——寫 bash script 比寫 Node.js module 容易多了。就像期末考帶一張 A4 小抄，東西少，但關鍵時刻全靠它。
+**Rodney**（Simon Willison 開發）是極簡主義者。它就是 Chrome DevTools Protocol 上面糊了一層薄薄的殼，所有操作都是 CLI 指令：`uvx rodney open`、`uvx rodney click`、`uvx rodney screenshot`。沒有框架，沒有 API，就是一堆 shell 指令串起來。你可能會問：這也太陽春了吧？但對 AI agent 來說，這反而是天大的好消息——寫 bash script 比寫 Node.js module 容易多了。就像期末考帶一張 A4 小抄，東西少，但翻得快、找得準。
 
 <ClawdNote>
-如果你讀過 CP-146 Simon Willison 那篇 anti-patterns 文章，就會理解為什麼 Rodney 的設計這麼極簡——Willison 一直在推「讓 AI 用最低摩擦力操作工具」的理念。Rodney 基本上就是他吃自己狗糧的產物 (◕‿◕)
+讀過 CP-146 Simon Willison 那篇 anti-patterns 文章的人應該有印象——Willison 一直在推「讓 AI 用最低摩擦力操作工具」。Rodney 就是這套哲學的具體實踐。但我覺得他漏掉一件事：摩擦力低不代表準確度高。後面你就會看到，Rodney 的極簡設計讓它跑得最快、也確實抓到了 bug，但技術判斷上偶爾會翻車。就像你用最薄的小抄上場考試——翻得快，但寫錯答案也快 (◕‿◕)
 </ClawdNote>
 
 ## 實驗設計：把變因釘死
@@ -68,6 +68,10 @@ import ClawdNote from '../../components/ClawdNote.astro';
 - **每個 agent 50 分鐘 budget**
 
 唯一的變因就是工具本身。
+
+<ClawdNote>
+你可能會問：為什麼不順便也換 model 比較？因為那樣變因就變兩個了，你根本分不清結果是工具的功勞還是 model 的功勞。我知道這聽起來像國中理化課的內容，但你去看看坊間那些 AI benchmark，一堆人犯這個錯——用 GPT 跑 Tool A、用 Claude 跑 Tool B，然後大聲宣布「Tool A 完勝！」。拜託，那你到底在比工具還是比 model？這就像你用 Uber Eats 點鼎泰豐、用 foodpanda 點路邊攤，然後說「Uber Eats 的食物比較好吃」——不是，那是鼎泰豐比較好吃好嗎 (╯°□°)╯
+</ClawdNote>
 
 ## 先說結局：v1 prompt 全軍覆沒
 
@@ -106,32 +110,15 @@ AI 不是不行，它是不知道你要什麼。
 這邊要引用 CP-30 那篇 Anthropic misalignment 文章的結論：「AI 不會主動追求你沒定義的目標。」v1 的 agent 就像考卷上沒有配分的題目——學生不知道要寫多少、寫多深，結果就是寫個大概就交卷了。你不能怪學生不認真，你要怪出題的人沒說清楚 ╰(°▽°)╯
 </ClawdNote>
 
-## 結果攤牌
+## 結果攤牌：優等生、實戰派、和差點得分的考生
 
-三個工具全部用 v2 prompt 重跑後，成績出來了：
+三個工具全部用 v2 prompt 重跑後，成績出來了。但這次的故事不在分數本身——好看的戲碼全藏在成績單背面。
 
-**Playwright v2 — 8.0/10**
-- 1207 行 `suite.mjs`（Node.js ES module）
-- 106 個 assertions，在 Chromium 和 WebKit 上各跑一次
-- 24 張截圖（每個瀏覽器 12 張）
-- 4 份 JSON 格式的 accessibility tree snapshot
-- 48 秒跑完全部測試
+**Playwright** 果然不負優等生之名，8.0/10 拿下全場最高。打開它交出來的 `suite.mjs`，一千兩百行的 Node.js，乾淨到像是人類工程師寫的。106 個 assertions、24 張截圖、4 份 accessibility tree snapshot，48 秒全部跑完。你看到這份成績單的第一反應一定跟我一樣：「這也太整齊了吧？」對，它就是那種段考考完還會用尺畫底線的學生。但先別急著頒獎——它偷偷在 Chromium 跟 WebKit 上各跑了一遍同樣的測試，106 這個數字可能沒你想的那麼實在。
 
-**Rodney v2 — 6.6/10**
-- 741 行 `test.sh`（bash）
-- 43 個 assertions
-- 14 張截圖
-- 唯一找到真正 bug 的工具（3 張 homepage 圖片缺 alt text）
-- 4.8 分鐘完成
+**Rodney** 拿了 6.6/10，成績單不漂亮。741 行 bash、43 個 assertions、4.8 分鐘交卷。但它幹了一件其他兩個工具都沒做到的事——**抓到了一個真的 bug**。首頁有 3 張圖片缺了 alt text，一個實打實的 a11y 問題。這什麼感覺？就像班上那個平常考試排名中段的學生，某天突然舉手說「老師，你黑板上第三題答案寫錯了」。全班靜默三秒。分數不高，但那一刻，誰比較像真正會考試的人？
 
-**agent-browser v2 — 6.1/10**
-- 678 行 `test.sh`（bash）
-- 45 個 assertions
-- 12 張截圖（含 2 張 annotated）
-- 6 份 accessibility tree snapshot
-- 7.1 分鐘完成
-
-Playwright 的總分最高，但有意思的是——真正找到 bug 的反而是分數最低的 Rodney。就像班上考試第一名的同學解題最漂亮，但發現老師出錯字的卻是坐在最後一排的那個。
+**agent-browser** 最可惜，6.1/10。它其實很努力——678 行 bash、45 個 assertions、6 份 accessibility tree snapshot，花了 7.1 分鐘才做完，是三個裡面寫最多報告的。但努力跟有效是兩回事。後面你會看到，它有幾個 assertions 根本是裝飾品，寫了跟沒寫一樣，像那種考卷每題都寫了但仔細看全是「我覺得應該是 B」。
 
 <ClawdNote>
 106 個 assertions 聽起來很猛，但 GPT 5.4 reviewer 不買帳：「雙瀏覽器重複跑同樣測試，獨立場景數沒那麼多。」這就像你把同一份作業抄兩遍交上去說你寫了兩份。數字是真的，但含金量要打折。assertion 的數量不等於品質——45 個假 assertion 不如 10 個真的 (⌐■_■)
