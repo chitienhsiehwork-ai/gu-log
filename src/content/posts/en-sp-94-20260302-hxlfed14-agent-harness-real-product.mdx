@@ -1,0 +1,150 @@
+---
+ticketId: "SP-94"
+title: "Agent Harness Is the Real Product: Why Every Top Agent Architecture Looks the Same"
+originalDate: "2026-03-01"
+translatedDate: "2026-03-02"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@Hxlfed14 on X"
+sourceUrl: "https://x.com/hxlfed14/status/2028116431876116660"
+lang: "en"
+summary: "Everyone's chasing the strongest Model, but the real difference-maker for Agents is the Harness. This post breaks down the shared architecture of Claude Code, Cursor, Manus, and SWE-Agent. The key insight: Progressive disclosure is the make-or-break for production agents."
+tags: ["shroom-picks", "ai-agent", "agent-harness", "claude-code", "cursor"]
+---
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Picture this: you walk into a night market for some fried chicken.
+
+You don't ask the vendor which brand of cooking oil they use, right? You care about how they fry it — the temperature, the timing, the seasoning. Same oil, two vendors: one makes chicken so crispy you want to cry tears of joy, the other makes sad soggy lumps that look like wet newspaper.
+
+AI Agents work the same way. Everyone's arguing about which Model is the strongest, but the thing that actually decides whether an Agent is good or useless isn't the Model — it's the Harness wrapped around it (๑˃ᴗ˂)ﻭ
+
+Here are some numbers to show you just how big the gap is:
+
+Same Claude Opus 4.5 model on CORE-Bench — swap the scaffold, and the score jumps from 42% to 78%. Cursor built a lazy tool loading system and cut token usage by 46.9%. And Vercel — this one's wild — they deleted 80% of their Agent's tools, and tasks that used to fail started passing.
+
+Same model. Same benchmark. The only difference? The Harness.
+
+So what exactly is a Harness? And why do all the top Agent architectures end up looking so similar? Let's break them down one by one.
+
+---
+
+## Harness: The Nanny and Manager Your Model Didn't Know It Needed
+
+Harrison Chase from LangChain said it well: "A Framework is an abstraction... usually unopinionated. A Harness is batteries-included."
+
+In plain terms: if the Model is a genius student, the Harness is the manager who organizes their entire life — deciding what info they see today, what tools they can use, and what happens when they mess up. A genius is still a genius, but without a manager, they might forget to eat breakfast.
+
+Every production agent that actually works in the real world has the same core loop:
+
+```python
+while (model calls tools):
+  execute tool → capture result → add to context → call model again
+```
+
+That's it. Claude Code, Cursor, Manus — they all fit inside this loop. The real engineering challenge is everything *around* this loop: how you decide what info gets in, which tools are available, and how you recover from failures.
+
+<ClawdNote>
+This loop is basically the same thing as microwaving a meal at a convenience store. Scan it, set the timer, wait for the beep, check if it's done, nuke it for another 30 seconds if not. Agents do the same thing, except they're microwaving code — and sometimes the meal explodes ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## How the Big Four Built Their Harnesses
+
+### Claude Code: Let the Model Drive
+
+Claude Code's architecture has been reverse-engineered pretty thoroughly by now, and Anthropic even published their own detailed writeup. The design is surprisingly simple — a flat message list, about 18 basic tools, and a while loop internally called `nO`. No fancy DAG orchestration, no multi-agent role-playing.
+
+Anthropic's philosophy: "Let the Model control the loop" instead of "use code to control the Model." It's like teaching a kid to ride a bike — you can hold the handlebars and steer for them forever, or you can let go and let them fall and learn. Claude Code chose to let go.
+
+But letting go doesn't mean abandoning. Every time a tool finishes running, the system sneaks a "system reminder" into the end of the result. This works way better than burying it in the system prompt, because the Model sees it on every single tool call. It's like your mom reminding you to bring your keys every time you leave the house — after a hundred times, you really don't forget.
+
+<ClawdNote>
+My favorite design in all of Claude Code is TodoWrite. It literally does nothing — a pure no-op. It just forces the Agent to write down its plan. It's like your teacher making you submit a study plan before finals. Not because the plan itself matters, but because it forces you to think about "what am I even trying to do here?" If you're building your own Agent, please steal this trick (◕‿◕)
+</ClawdNote>
+
+### Cursor: Everything Is a File
+
+Cursor does something interesting. They custom-tune the entire Harness for different frontier models — tools named like shell commands (`rg`, `grep`) for OpenAI Codex, and a different reasoning format for Claude. Same Harness framework, different face depending on which Model it's talking to. Like a salesperson who adjusts their pitch for every client.
+
+But Cursor's core philosophy fits in one sentence: **files are everything.** All context maps to files. Why? Because files can be searched, version-controlled, and grouped. Instead of inventing some fancy new abstraction, they just use the file system. It's like organizing your room — instead of spending money on some complex storage system, buy ten clear boxes. You'll find stuff faster.
+
+The really clever part: they take Agent session traces and use them to train their own embedding model. They analyze which files the Agent *should* have found earlier when solving a task, then fine-tune the search model with that data. Search accuracy went up 12.5%. They're basically turning the Agent's failures into a navigation map for next time.
+
+<ClawdNote>
+"Using failure data to train the search model" is like reviewing your wrong answers after an exam — not to change your grade, but to know which chapters to study first next time. Cursor automated this, and honestly it's more practical than any fancy RAG architecture I've seen (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+### Manus: Humbled by KV-Cache
+
+Manus has rewritten their framework five times since launch. Five. Times.
+
+Their most painful lesson was about KV-cache. At first they thought: "This tool isn't needed right now? Just remove it dynamically." Sounds reasonable, right? Turns out, if you change tool definitions at the front of the context, every token's KV-cache after that point becomes invalid — all the cached computation is wasted and has to be recalculated. It's like re-sorting the catalog in a library and discovering that every shelf label is now wrong. Every single book needs to be re-shelved.
+
+So Manus learned the hard way. They now keep all 29 tools loaded permanently, and use logit masking during decoding to control which ones the Model can actually use at any given moment. Everything's on the menu, but the waiter tells you "that dish isn't available today."
+
+Their biggest realization is counterintuitive: almost every major performance improvement came from *removing* things. Replacing complex tools with shell commands. Swapping fancy multi-agent orchestration for simple handoffs. The more complex the Harness, the dumber the Model gets.
+
+<ClawdNote>
+Five framework rewrites. I did the math and that's roughly equivalent to tearing down your entire house and rebuilding it five times. But Manus ended up at the same conclusion as every interior designer ever — less is more. If your Agent keeps getting more complex but results aren't improving, what you need isn't more features. It's the delete key (╯°□°)╯
+</ClawdNote>
+
+### SWE-Agent: A Custom Interface for LLMs
+
+Princeton's SWE-Agent introduced a neat concept called ACI — Agent-Computer Interface. Humans get GUIs, AI gets ACIs. Interfaces designed specifically for how LLMs think.
+
+They did something smart: every time the Agent edits code, the system automatically runs a linter. Syntax error? Rejected. Rewrite it. Bad code never makes it to the next round. Without this Harness-level gatekeeper, performance drops by 3%. That might not sound like much, but in competitions, 3% is the difference between several ranking positions.
+
+SWE-Agent also compresses all observation results except the most recent 5 actions into one-line summaries. Think of it like exam notes — you don't bring the entire textbook into the exam hall. You bring condensed highlights. That's progressive disclosure built right into the loop.
+
+---
+
+## The Trick Everyone Uses but Nobody Named Properly: Progressive Disclosure
+
+Progressive disclosure is actually borrowed from UI design — IBM talked about it back in the 1980s. The principle is simple: only show what's needed right now. Reveal complexity when it's actually requested.
+
+Here's an everyday analogy. When you sit down at a restaurant, the menu doesn't list the full recipe for every dish, right? You see names and prices first. Want more detail? Flip to the ingredients page. If the waiter started reading every recipe out loud the moment you sat down, you'd want to run.
+
+Same thing with Agents. If you dump all documents, all tool definitions, and all conversation history into the context at once, the Model doesn't get smarter — it drowns.
+
+Here's how each team does it: Claude Code's SKILL.md doesn't load everything upfront — skills only load when the Model decides they're relevant. Cursor only tells the Agent tool names first, fetching full definitions only when the Agent actually tries to use one — cutting token usage by 46.9%. Manus writes the global plan into `todo.md`, forcing the Model to refocus on the immediate task.
+
+Anthropic's internal numbers are staggering: load everything at once, and out of 25,000 tokens, only one piece of info is useful — 0.8% efficiency. Use progressive disclosure? 955 tokens, 100% efficiency. That's a 26x difference ヽ(°〇°)ﾉ
+
+<ClawdNote>
+A 26x efficiency gap. You know what that's roughly equivalent to? Using Google Maps versus "I think it's somewhere that way." Same road, same car, but one gets you there in 20 minutes and the other has you circling for two hours looking for parking. Progressive disclosure is GPS for Agents (⌐■_■)
+</ClawdNote>
+
+---
+
+## The Engine vs. the Whole Car
+
+Dex Horthy from 12 Factor Agents put it well: stuff more than 40% of the Model's capacity into the context, and it enters the "dumb zone." Signal drowns in noise, attention fragments, and the Agent starts making mistakes that look like reasoning errors but are actually information overload from your poorly designed Harness.
+
+So back to the fried chicken analogy — the Model is the cooking oil, and the Harness is how the whole stall operates. Oil quality matters, sure. But the temperature, timing, and draining technique — that's what decides whether customers line up or walk past.
+
+Next time you see an impressive Agent demo, don't just ask "which Model does it use?" Look at how it writes its while loop, how it controls context, how it loads tools. That's where the real know-how lives, and that's where you should be spending your brainpower when building your own.
+
+---
+
+## References
+
+- Anthropic, "Effective Harnesses for Long-Running Agents" (2026)
+- Cursor, "Dynamic Context Discovery" & "Improving Agent with Semantic Search" (2026)
+- Manus, "Context Engineering for AI Agents: Lessons from Building Manus" (2025)
+- Princeton, "SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering" (2024)
+- LangChain, "Improving Deep Agents with Harness Engineering" (2026)
+- Phil Schmid, "Context Engineering for AI Agents: Part 2" (2025)

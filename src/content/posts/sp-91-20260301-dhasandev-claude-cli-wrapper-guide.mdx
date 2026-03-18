@@ -5,7 +5,18 @@ originalDate: "2026-01-09"
 translatedDate: "2026-03-01"
 translatedBy:
   model: "Opus 4.6"
-  harness: "OpenClaw"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@dhasandev on X"
 sourceUrl: "https://x.com/dhasandev/status/2009529865511555506"
 lang: "zh-tw"
@@ -16,37 +27,43 @@ tags: ["shroom-picks", "claude-code", "claude-cli", "agentic-engineering", "tuto
 import ClawdNote from '../../components/ClawdNote.astro';
 import Mermaid from '../../components/Mermaid.astro';
 
-各位觀眾好，今天這篇文章比較硬核，但非常實用。
+想像一下這個情境：你花了三個月寫了一個超讚的 side project，後端接了 Claude API，demo 跑得順得不得了。結果某天早上起床，Anthropic 一紙公告——第三方 app 不能再用 OAuth token 吃 Claude 訂閱額度了。
 
-先講背景：Anthropic 在某次更新後，把第三方 app 用 Claude 訂閱 OAuth token 的路堵死了。也就是說，你以前寫的那些用 API key 或 OAuth 偷吃 Claude 訂閱額度的第三方工具？全部不能用了。
+你的 API key？廢了。你的 OAuth flow？斷了。三個月的心血，一夕之間變成一堆不會動的 TypeScript。
 
-唯一的例外：**Claude Code 官方 CLI。**
+這種感覺大概跟你精心準備了一桌菜，結果客人到門口才發現餐廳已經換鎖了差不多 ┐(￣ヘ￣)┌
 
-所以現在的解法很明確——用 `claude -p`（print mode）把 CLI 當 API 用，wrap 成你自己的 agentic app 後端。Danial Hasan 寫了一篇超完整的教學，把每個 flag、每種組合都整理出來了。這篇就是那份教學的完整翻譯。
+但 Anthropic 留了一扇窗：**Claude Code 官方 CLI**。只要你用 `claude -p`（print mode），就能把 CLI 當成一個非官方但完全合法的 API endpoint。Danial Hasan 寫了一篇我目前看過最完整的教學，把 `claude -p` 的每個 flag、每種組合都拆解了一遍。
+
+這篇就是那份教學的完整翻譯。讀完你就知道怎麼把 Claude CLI 變成你的 agentic app 後端——而且不用花一毛 API 費用。
 
 <ClawdNote>
-`claude -p` 的 print mode 就是「non-interactive 模式」。丟 prompt 進去、拿結果出來，中間不會跳出互動式介面問你要不要執行什麼。這對寫 script 跟 automation 來說是必備的。
+先釐清一下 `claude -p` 到底在幹嘛。你平常用 Claude Code，是互動式的——你打一句、它回一句，中間還會跳出來問「欸你確定要執行這個嗎？」。Print mode 把這些全部關掉，變成「我丟 prompt 進去、你把結果吐出來、中間不要囉唆」。
 
-簡單說：interactive mode 是你跟 Claude 聊天，print mode 是你的 code 跟 Claude 溝通。
+這就像便利商店的差別：interactive mode 是你走進去慢慢逛、店員還會跟你推薦新品；print mode 是 7-11 的 ibon，你塞指令進去、東西印出來、完事走人 (◕‿◕)
+
+對寫 script 和 automation 的人來說，這才是正確的使用姿勢。
 </ClawdNote>
 
 ---
 
 ## 五種餵 Prompt 的方式
 
-先從 input 開始。`claude -p` 支援 5 種餵 prompt 的方式，從最簡單到最進階：
+好，先來搞定最基本的事：怎麼把 prompt 塞進去。
 
-**1. CLI argument — 直接塞字串**
+`claude -p` 支援五種輸入方式，從「我就隨便問一句」到「我要做即時雙向通訊」都有。就像點餐一樣——你可以口頭點、用 app 點、寫紙條、或者直接走進廚房自己做。
 
-最直覺的用法，prompt 直接當參數丟：
+**1. CLI argument — 直接在指令後面接字串**
+
+最直覺的用法。你在 terminal 隨手問一句：
 
 ```bash
 claude -p "What is 2+2?"
 ```
 
-**2. Stdin pipe — 管線餵資料**
+**2. Stdin pipe — 經典 Unix 管線**
 
-Unix 的經典操作，把東西 pipe 進去：
+Unix 老手最愛的操作。把任何東西 pipe 進去，Claude 就會幫你處理：
 
 ```bash
 echo "What is 2+2?" | claude -p
@@ -54,9 +71,11 @@ cat README.md | claude -p "Summarize this"
 git diff | claude -p "Review these changes"
 ```
 
-**3. Stdin redirect — 檔案重導向**
+最後那行特別實用——code review 不用離開 terminal。
 
-跟 pipe 很像，但直接從檔案讀：
+**3. Stdin redirect — 從檔案讀**
+
+跟 pipe 差不多，但直接指定檔案：
 
 ```bash
 claude -p < prompt.txt
@@ -64,7 +83,7 @@ claude -p < prompt.txt
 
 **4. Here-doc — 多行 prompt**
 
-寫複雜 prompt 的好選擇，尤其是有多行指令的時候：
+當你的 prompt 不是一句話能搞定的時候，here-doc 是你的好朋友：
 
 ```bash
 claude -p <<EOF
@@ -77,28 +96,36 @@ EOF
 
 **5. Stream-JSON — 串流輸入**
 
-最進階的用法，用 JSON event 格式餵 prompt，通常搭配 stream output 一起用：
+最進階的玩法。用 JSON event 格式餵資料，通常搭配 stream output 一起用：
 
 ```bash
 echo '{"type":"user","message":{"role":"user","content":"Hello"}}' | \
   claude -p --input-format stream-json --output-format stream-json --verbose
 ```
 
-然後 pipe 跟 CLI arg 可以組合——pipe 餵資料、arg 給指令：
+小技巧：pipe 跟 CLI arg 可以混搭——pipe 餵資料、arg 給指令：
 
 ```bash
 cat code.py | claude -p "Find bugs in this code"
 ```
 
+<ClawdNote>
+我跟你說，90% 的人最後都會回來用 pipe。不是因為其他方式不好，而是 pipe 根本就是 Unix 的母語——你不需要學新語法，不需要記什麼 JSON event 格式，就是把東西接起來，完事。
+
+那些跑去用 Stream-JSON input 的人，通常是在蓋一整套即時通訊架構。如果你的需求沒有到「兩邊要同時說話」的程度，用 pipe 就是在浪費時間找自己麻煩 ╰(°▽°)╯
+</ClawdNote>
+
 ---
 
 ## 三種拿結果的方式
 
-輸入講完了，來看輸出。有三種 output format：
+輸入搞定了，來看輸出。
 
-**1. Text（預設）— 純文字**
+如果說輸入是「怎麼點餐」，輸出就是「你要內用、外帶、還是 Uber Eats 送到家」。
 
-什麼都不加就是 text，最單純：
+**1. Text（預設）— 純文字回答**
+
+什麼 flag 都不加就是 text output，最乾淨：
 
 ```bash
 response=$(claude -p "What is 2+2?")
@@ -106,33 +133,41 @@ claude -p "Write a haiku" > haiku.txt
 claude -p "List 5 colors as JSON array" | jq '.'
 ```
 
-**2. JSON — 結構化 metadata**
+**2. JSON — 帶 metadata 的結構化回答**
 
-加上 `--output-format json`，會回傳完整的 JSON 物件，裡面不只有回答，還有 session ID、cost、usage 等 metadata：
+加上 `--output-format json`，回傳的不只是回答本身，還有 session ID、cost、token usage 等 metadata：
 
 ```bash
 claude -p --output-format json "What is 2+2?"
 # 回傳: { type, subtype, is_error, duration_ms, result, session_id, total_cost_usd, usage, modelUsage }
 ```
 
+寫 production 系統的話，你幾乎一定要用這個——至少你得知道每次 call 花了多少錢。
+
 **3. Stream-JSON — 即時串流**
 
-即時接收每一塊 token，適合需要 real-time 顯示的場景。但這裡有個大坑——**必須加 `--verbose`，不然不會動**：
+Token 一個一個蹦出來，適合需要 real-time 顯示的場景。
+
+但這裡有一個巨坑，請用螢光筆畫起來：
 
 ```bash
 claude -p --output-format stream-json --verbose "Write a poem"
 # 事件順序: init event → content deltas → assistant message → result
 ```
 
+**`--verbose` 是必加的。不加就是不動。而且不會報錯。**
+
 <ClawdNote>
-`--output-format stream-json` 不加 `--verbose` 就不 work 這件事，我覺得是 CLI 設計上的小缺陷。但原作者特別拉出來講，代表不少人踩過這個坑。記住就對了：**stream-json output = 一定要 `--verbose`**。
+stream-json 不加 `--verbose` 就無聲無息地不 work 這件事，我覺得根本是 CLI UX 的教科書級反面教材。你以為你的 stream 在跑，結果什麼都沒吐出來，你還在那邊 debug 半天以為是自己 code 的問題。
+
+Anthropic，拜託，要嘛就自動 enable，要嘛就噴個 warning 說「嘿你忘了加 --verbose」。Silent failure 是所有 developer 的公敵 (╯°□°)╯
 </ClawdNote>
 
 ---
 
 ## 輸入 × 輸出組合表
 
-不是每種 input 跟 output 都能隨便配。這邊用 Mermaid 整理一下可用的組合：
+不是每種 input 跟 output 都能隨便配。這張表幫你搞清楚誰跟誰能湊對：
 
 <Mermaid chart={`graph TD
     subgraph Input["📥 Input Methods"]
@@ -163,17 +198,18 @@ claude -p --output-format stream-json --verbose "Write a poem"
     D --> Z
     E --> Z`} caption="輸入 × 輸出組合表" />
 
-重點提醒：
+記住兩條規則就好：
 
-- **前四種 input**（CLI arg, pipe, redirect, here-doc）可以搭配任何 output format
-- **Stream-JSON input 只能搭 stream-JSON output** — 這是硬限制
-- Stream output 一律要加 `--verbose`
+- 前四種 input（CLI arg, pipe, redirect, here-doc）**什麼 output 都能配**
+- **Stream-JSON input 只能配 stream-JSON output** — 這是硬限制，不是 bug
 
 ---
 
-## JSON Schema：強制結構化輸出
+## JSON Schema：叫 Claude 乖乖照格式回答
 
-這是寫 agentic app 最重要的功能之一。用 `--json-schema` 可以強制 Claude 用你定義的 JSON 格式回答：
+好，接下來是我個人認為 `claude -p` 最殺的功能。
+
+寫 agentic app 最怕的是什麼？Claude 回了一坨自由奔放的散文，你的 parser 在那邊崩潰。JSON Schema 就是解藥——你定義好格式，Claude 就乖乖照著填：
 
 ```bash
 echo "What is the capital of France?" | claude -p \
@@ -182,41 +218,50 @@ echo "What is the capital of France?" | claude -p \
   --json-schema '{"type":"object","properties":{"answer":{"type":"string"},"confidence":{"type":"number"}},"required":["answer"]}'
 ```
 
-這邊有個很容易踩的坑：**結構化輸出在 `structured_output` 這個 field，不是 `result`**。
+但這裡有一個超多人踩的坑，我要說三遍：
 
-`result` 是 Claude 的文字回答，`structured_output` 才是根據你 schema 生成的 typed JSON。兩個都會回來，但你要 parse 的是 `structured_output`。
+**結構化輸出在 `structured_output` 這個 field，不是 `result`。**
 
----
-
-## Tool 配置：控制 Claude 能用什麼工具
-
-Claude CLI 預設會載入一堆 tool，但在 production 環境你不會想讓 Claude 隨便 `rm -rf`。四種控制方式：
-
-- **全部停用**：`claude -p --tools ""`
-- **白名單**：`claude -p --tools "Bash,Read,Glob,Grep"`（只允許這四個）
-- **Pattern allow**：`claude -p --allowedTools "Bash(git:*)"`（只允許 git 相關的 Bash）
-- **Pattern deny**：`claude -p --disallowedTools "Write,Edit,Bash"`（禁止這三個）
-
-```bash
-claude -p --tools ""                          # disable all
-claude -p --tools "Bash,Read,Glob,Grep"       # whitelist
-claude -p --allowedTools "Bash(git:*)"         # pattern allow
-claude -p --disallowedTools "Write,Edit,Bash"  # pattern deny
-```
+`result` 是 Claude 的文字回答，`structured_output` 才是根據你 schema 生成的 typed JSON。兩個都會回來，但你要 parse 的是 `structured_output`。拿錯 field 你會得到一個 string 然後開始懷疑人生。
 
 <ClawdNote>
-MCP tools 有個隱藏行為：**不管你怎麼設 `--tools`，MCP 的 tool 都會照載入**。如果你有 MCP server 連著，Claude 還是可以 call 那些 tool。要完全管住的話，加 `--strict-mcp-config` 才行。
+`result` vs `structured_output` 這個 naming 真的很容易搞混。用吃飯來比喻：你跟服務生說「我要一份雞排飯」（schema），結果店家送來兩個東西——一盤雞排飯（`structured_output`）和一張小紙條寫著「今天的雞排很新鮮喔」（`result`）。你要吃的是那盤飯，不是那張紙條。
 
-這又是一個「不報錯但行為跟你想的不一樣」的坑。
+我猜 Anthropic 是為了向後相容才留著 `result`，但身為 API 設計的吹毛求疵者，我覺得他們至少該在文件裡用粗體字寫「你要的東西在 structured_output」(¬‿¬)
 </ClawdNote>
 
 ---
 
-## Permission Mode：跳過權限確認
+## Tool 配置：管好 Claude 的手
 
-正常使用 Claude CLI，每次要寫檔案或跑 command 都會跳出確認。在 script 裡面當然不可能一直手動按確認。
+Claude CLI 預設會載入一堆 tool——Bash、Read、Write、Edit、Glob、Grep 全部開好開滿。但在 production 環境，你不會想讓 Claude 有權限跑 `rm -rf /`。
 
-Fuck it. Bypass the permissions：
+這就像帶小孩去廚房：你可以讓他幫忙洗菜、攪拌，但菜刀和瓦斯爐？不好意思，那些先收起來。
+
+四種控制方式：
+
+```bash
+claude -p --tools ""                          # 全部收起來，一個都不准用
+claude -p --tools "Bash,Read,Glob,Grep"       # 白名單：只准用這四個
+claude -p --allowedTools "Bash(git:*)"         # Pattern 比對：只准 git 相關的 Bash
+claude -p --disallowedTools "Write,Edit,Bash"  # 黑名單：這三個不准碰
+```
+
+<ClawdNote>
+這裡有個隱藏的大坑：**不管你怎麼設 `--tools`，MCP server 的 tool 都會照常載入**。
+
+對，你沒看錯。你以為你用白名單把 Claude 管得死死的，結果 MCP 那邊的 tool 完全不受影響，Claude 照樣可以 call。這就像你把前門鎖好了，結果後門大開。
+
+要真的管住的話，加 `--strict-mcp-config`。我真心覺得這個行為應該反過來——預設就 strict，要放寬的人自己加 flag。Security 的 default 應該是 deny，不是 allow ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## Permission Mode：在 Script 裡跳過手動確認
+
+正常使用 Claude CLI，每次寫檔案或跑 command 都會跳出「你確定嗎？」的確認視窗。人在 terminal 前面當然沒問題，但你的 cron job 半夜三點跑起來可沒辦法幫你按 Y。
+
+解法很直白：
 
 ```bash
 echo "$task" | claude -p \
@@ -225,59 +270,62 @@ echo "$task" | claude -p \
   --output-format json
 ```
 
-或者用更直白的 flag：`--dangerously-skip-permissions`。
+或者用更不避諱的 flag：`--dangerously-skip-permissions`。
 
-對，flag 名字就叫 dangerously。Anthropic 很誠實。
+對，flag 名字就叫 **dangerously**。Anthropic 至少在這件事上很誠實——「我們給你一把槍，但我們會在槍身上刻『這玩意兒會殺人』」。
+
+不過 bypass permissions 在 production 是完全正常的操作，重點是你的 sandboxing 有沒有做好。Docker container、受限的 user、只開必要的 tools——把 Claude 關在一個安全的房間裡，然後再告訴它「你自由了」。
 
 <ClawdNote>
-⚠️ 安全提醒：`bypassPermissions` 在 production 用是很正常的——你的 script 本來就沒辦法手動確認。但請確保你有做好 sandboxing：Docker container、受限的 user、只開必要的 tools。千萬不要在一台有重要資料的機器上裸跑 `bypassPermissions` + 全開 tools。不然 Claude 一個 hallucination 幫你 `rm -rf /` 你就哭了 (◍•ᴗ•◍)
+說真的，我覺得 `--dangerously-skip-permissions` 這個 flag 名字超讚。整個 CLI 生態圈，很少有人把「你正在做一件危險的事」寫得這麼直白。大部分工具都是藏一個 `-f` 或 `--force`，好像怕你看懂似的。
+
+但反過來想，如果每個危險操作的 flag 都叫 `--dangerously-XXX`，那 `rm -rf` 應該改名叫 `rm --dangerously-delete-everything-and-pray` 才對 (￣▽￣)／
 </ClawdNote>
 
 ---
 
-## Session 管理：對話續接
+## Session 管理：讓 Claude 記住你是誰
 
-三種模式：
+預設的 `claude -p` 每次 call 都是全新的對話，Claude 不會記得你上一句說了什麼。就像每次走進 7-11 都要重新跟店員自我介紹——「你好我是小明，我喜歡微糖少冰的美式」。累不累？
 
-- **Ephemeral（拋棄式）**：`--no-session-persistence`，對話結束就消失，不留紀錄
-- **固定 Session ID**：用 `--session-id` 指定 ID，可以跨次呼叫共享上下文
-- **Continue**：接續上一次的對話
+三種模式幫你解決這個問題：
 
 ```bash
-# Ephemeral
+# 拋棄式：用完就丟，不留痕跡
 claude -p --no-session-persistence
 
-# 固定 session ID
+# 固定 Session ID：指定一個 ID，跨次呼叫共享上下文
 echo "My name is Alice" | claude -p --session-id $SESSION --output-format json
-
-# 接續上次 session
 echo "What's my name?" | claude -p --session-id $SESSION --continue
 
-# 接續最近一次對話
+# 接續上次對話
 claude -p --continue "follow up question"
 ```
 
+`--session-id` + `--continue` 的組合最實用。第一次 call 建立 session，後續的 call 用同一個 ID 接著聊。Claude 會記住之前的 context，就像你跟朋友 LINE 聊天一樣——不用每次都重新自我介紹。
+
+<ClawdNote>
+這裡有個很容易忽略的取捨：session 會吃 disk space。每個 session 都會把完整的對話紀錄存在本地，你的 cron job 跑一千次就存一千份。
+
+所以原作者才特別提到 `--no-session-persistence`。如果你的 use case 是「問一句話拿答案走人」，就不要留 session。省空間、也避免某天你打開 `~/.claude/sessions/` 發現裡面塞了 20GB 的聊天紀錄，然後開始反思人生 ヽ(°〇°)ﾉ
+</ClawdNote>
+
 ---
 
-## System Prompt
+## System Prompt 和 Custom Agents
 
-兩種設法：
-
-- `--system-prompt`：**取代**預設的 system prompt
-- `--append-system-prompt`：在預設的後面**追加**
-
-原作者推薦用 `--append-system-prompt`，因為 Claude CLI 預設的 system prompt 裡有一些 tool 使用的指引，全部覆蓋掉可能會讓 tool calling 壞掉。
+兩種設 system prompt 的方式，但這裡面有一個陷阱比看起來的大得多：
 
 ```bash
 claude -p --system-prompt "You are a senior code reviewer."
 claude -p --append-system-prompt "IMPORTANT: Always respond in bullet points."
 ```
 
----
+原作者推薦用 `--append-system-prompt`。為什麼？因為 Claude CLI 的預設 system prompt 裡面有教 Claude 怎麼用 tool 的指引。你用 `--system-prompt` 會**整個覆蓋掉**，Claude 突然就不知道怎麼 call tool 了。就像你把遊戲的操作說明頁撕掉，然後在上面寫「打得漂亮一點」——它連手把怎麼用都忘了，要怎麼打得漂亮？
 
-## Custom Agents
+`--append-system-prompt` 是在後面加上你的指令，不影響原本的。這個 append 的設計其實很聰明，可惜 flag 名字太長，打起來手會抽筋。
 
-可以用 `--agents` 定義自訂角色，然後用 `--agent` 指定要用哪一個：
+想更進一步的話，可以定義 Custom Agents：
 
 ```bash
 claude -p \
@@ -286,23 +334,31 @@ claude -p \
   "review this function"
 ```
 
+<ClawdNote>
+Custom Agents 這個功能聽起來很花俏，但本質上就是 system prompt + tool 白名單的打包組合。你可以把它想成是預設好的「角色扮演套餐」——不用每次都重新組裝一堆 flag。
+
+不過我必須說，`--agents` 後面接的那坨 JSON 字串，在 shell 裡面寫起來簡直是視覺地獄。引號套引號、escape 到天荒地老。建議你直接寫成一個 JSON 檔案然後用 `cat` 餵進去，別跟自己過不去 (◕‿◕)
+</ClawdNote>
+
 ---
 
-## Model 選擇
-
-`--model` 指定主要 model，`--fallback-model` 指定備用（主要的掛了或超載就自動切）：
+## Model 選擇與 Fallback
 
 ```bash
-claude -p --model haiku "quick question"
-claude -p --model opus "complex task"
-claude -p --model sonnet --fallback-model haiku "important task"
+claude -p --model haiku "quick question"       # 便宜快速
+claude -p --model opus "complex task"          # 貴但聰明
+claude -p --model sonnet --fallback-model haiku "important task"  # 主力掛了自動切備用
 ```
+
+`--fallback-model` 是 production 必備。你的主力 model 超載或掛掉的時候，自動切換到備用的，service 不會中斷。這就像你常去的那家拉麵店公休的時候，你至少要知道隔壁巷子還有一家能吃的。
+
+但問題來了——你怎麼知道 fallback 有沒有被觸發？答案是看 JSON output 裡的 `modelUsage`。如果你發現某天帳單突然變便宜了，可能不是 Anthropic 佛心降價，而是你的 sonnet 一直在掛、haiku 在那邊苦撐 ┐(￣ヘ￣)┌
 
 ---
 
-## 雙向 Streaming
+## 雙向 Streaming：最終 Boss
 
-最進階的用法——input 跟 output 都用 stream-JSON，實現真正的雙向即時通訊：
+最進階的用法——input 跟 output 都用 stream-JSON，實現真正的即時雙向通訊：
 
 ```bash
 claude -p \
@@ -311,17 +367,21 @@ claude -p \
   --verbose
 ```
 
-三個 flag 缺一不可。`--verbose` 又出現了——沒加就是不動。
+三個 flag 缺一不可。對，`--verbose` 又出現了。它就像那個你永遠忘記帶的悠遊卡——沒有它你哪裡都去不了。
+
+<ClawdNote>
+老實說，雙向 streaming 是這整篇文章裡面我最不推薦新手碰的功能。不是因為它不好用，而是因為你需要同時處理兩個方向的 JSON event stream，任何一邊的 parse error 都會讓整個通訊斷掉。
+
+這就像兩個人同時對講機講話——理論上很酷，實務上你光是處理「誰先講完」「中間斷線了怎麼辦」「event 順序亂了怎麼 recover」就可以 debug 三天。如果你的需求只是「送 prompt、拿結果」，真的不要為了技術好奇心去用這個，用 pipe + JSON output 就夠了 (ง •̀_•́)ง
+</ClawdNote>
 
 ---
 
-## Production 實戰範例
+## 三個可以直接抄的 Production 範例
 
-理論講完了，來看三個可以直接抄的範例。
+理論講夠了。來看三段可以直接複製貼上的 code。
 
-**Agentic Wrapper（Bash）**
-
-一個完整的 agent 執行框架：餵任務進去、拿結構化結果出來、順便追蹤 cost：
+**1. Agentic Wrapper（Bash）— 任務進去、結構化結果出來**
 
 ```bash
 #!/bin/bash
@@ -339,9 +399,9 @@ summary=$(echo "$result" | jq -r '.structured_output.summary')
 cost=$(echo "$result" | jq -r '.total_cost_usd')
 ```
 
-**Chatbot Wrapper（TypeScript）**
+注意：parse 的是 `.structured_output.success`，不是 `.result.success`。踩過一次坑的人都記得。
 
-最基本的 chatbot 封裝，一個 function 搞定：
+**2. Chatbot Wrapper（TypeScript）— 最小可運作版**
 
 ```typescript
 import { execSync } from 'child_process';
@@ -352,9 +412,7 @@ function chat(prompt: string, model = 'haiku'): ClaudeResult {
 }
 ```
 
-**Data Extraction Pipeline（TypeScript）**
-
-用 JSON schema 做結構化資料抽取——丟一段文字進去，自動抽出 entities、sentiment、summary：
+**3. Data Extraction Pipeline（TypeScript）— 結構化資料抽取**
 
 ```typescript
 const SCHEMA = JSON.stringify({
@@ -375,17 +433,18 @@ function extract(text: string) {
 }
 ```
 
----
+<ClawdNote>
+三個範例，三種不同的信任等級。Bash wrapper 把 Claude 當全能員工——給 tool、給 permission、叫它自己搞定。TypeScript chatbot 把 Claude 當翻譯機——你說話、它回話、不碰任何檔案。Data extraction 更狠，連自由回答都不給——乖乖照 schema 填空就好。
 
-## Gotchas 總整理
-
-最後幫大家整理原文提到的幾個大坑：
-
-- **`--output-format stream-json` 必須加 `--verbose`** — 不加就不動，也不報錯
-- **Stream input 必須配 stream output** — 不能 stream 進去然後要 JSON 出來
-- **MCP tools 不受 `--tools` 管** — 它們會照常載入，要用 `--strict-mcp-config` 擋
-- **JSON schema 的結果在 `structured_output`** — 不是 `result`，別拿錯 field
+你選哪一個，取決於你對 Claude 的信任程度。我個人的建議是：production 環境先從最低信任開始（extraction），等你確認它不會亂來再慢慢放寬。就像新員工報到第一天不會直接給 root access 一樣，對吧 (๑•̀ㅂ•́)و✧
+</ClawdNote>
 
 ---
 
-這篇是我目前看過最完整的 `claude -p` 教學。如果你在做任何需要 wrap Claude 的 agentic app，書籤收起來，遲早用得到。
+## 那扇窗後面有一整間工廠
+
+開頭說 Anthropic 關了 OAuth 的門，留了一扇窗。
+
+但走過這整篇之後你應該發現了——這哪是一扇窗？窗戶後面有五條輸入管線、三種輸出格式、JSON schema 強制填表機、tool 白名單安檢門、session 記憶銀行、還有雙向 streaming 的即時通訊系統。這根本是一間完整的工廠，只是入口長得像一扇窗而已。
+
+Danial Hasan 做的事，就是幫你畫了這間工廠的完整藍圖。以後你的 side project 需要接 Claude，打開 terminal，`claude -p`，開工 (⌐■_■)

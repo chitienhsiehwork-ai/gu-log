@@ -1,0 +1,113 @@
+---
+ticketId: "SP-119"
+title: "Claude + OpenClaw + Codex：如何打造全自動 Polymarket 交易系統"
+originalDate: "2026-03-17"
+translatedDate: "2026-03-19"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@zostaff on X"
+sourceUrl: "https://x.com/zostaff/status/2033930728044372275"
+lang: "zh-tw"
+summary: "原作者展示一套把 Claude、Codex 與 OpenClaw 串在一起的 Polymarket 自動交易架構：Claude 判斷機率，Codex 維護程式，OpenClaw 排程執行並透過 Telegram 回報。"
+tags: ["shroom-picks", "polymarket", "ai-agents", "trading"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+凌晨三點，你在棉被裡翻了個身，手機震了一下。你瞇著眼看 Telegram——「市場 #4821 偵測到 edge 0.14，confidence 0.82，已建倉 YES $50」。你翻回去繼續睡。
+
+這不是科幻小說，這是 @zostaff 在 X 上 po 出來的真實架構。他把三個 AI agent 串成一條 pipeline，讓它們在你睡覺的時候自動掃描 Polymarket、判斷賠率、下單交易，然後乖乖報告。
+
+聽起來像在講電影對吧？但問題是——他把架構全部攤開來講了。
+
+---
+
+## 三個人的小公司，沒有一個是人
+
+整套系統的分工，就像開一間三人小公司，只不過三個「人」全部是 AI。
+
+**Claude** 是你的策略分析師。它負責看數據、讀新聞、然後告訴你：「這個市場目前定價 0.65，但我算出來應該是 0.79，有搞頭。」它會吐出勝率預估跟一個 confidence score，有點像你那個「只給意見從不下場」的軍師朋友。
+
+**Codex** 是你的駐場工程師。你跟它說「幫我寫一個 scanner 去抓最新的市場數據」，它就寫出來了，附測試，能跑。有 bug？自己修。就是那種「不用管理、不會抱怨」的理想型員工。
+
+**OpenClaw** 是大總管。它跑在你的機器上，有長期記憶、有排程能力、有 Telegram 介面。它負責叫 Claude 去想、叫 Codex 去做、自己負責跑。原作者說這不是聊天機器人，是「讓你不用進辦公室的作業系統」。
+
+<ClawdNote>
+最有趣的是：這三個 AI 互相不知道對方是誰。Claude 不知道自己的判斷會被拿去下真錢，Codex 不知道自己修的 bug 攸關帳戶存亡，OpenClaw 不知道自己調度的「員工」全部是語言模型。它們各自以為自己在做一件很普通的工作，結果串起來就變成一個會花錢的機器人。這就是 multi-agent 架構最魔幻的地方——每個零件都很無辜，組裝完卻可能幫你虧到脫褲 (￣▽￣)／
+</ClawdNote>
+
+---
+
+## Cron Job 做不到的事
+
+你可能想說：「等等，這不就是一個比較花俏的 cron script 嗎？」
+
+好問題。但 cron script 就像那種只會按表操課的員工——它不記得兩週前發生什麼事、不會根據虧損調整策略、不能自己學新技能，更不可能在你傳 Telegram 說「停」的時候真的停下來。
+
+OpenClaw 不一樣。因為有長期記憶，它記得「上週二那個聯準會相關市場虧了 3%」，然後自動調低那類市場的曝險。你也可以隨時透過 Telegram 下指令——「停止所有倉位」它就平倉，「給我週報」它就把損益表貼出來。
+
+技能系統更是有趣：你只要把一個 `SKILL.md` 加上腳本丟進資料夾，OpenClaw 就會自動學會新技能。就像在 RPG 裡給角色裝備新技能卡一樣簡單 (๑•̀ㅂ•́)و✧
+
+<ClawdNote>
+有記憶的 cron job 聽起來很美好，但你有沒有想過另一面？它記得上週虧了 3%，所以自動調低曝險——很棒。但萬一它記得上週某個策略賺翻了，然後下週 all in 同一招呢？記憶是雙面刃：人類交易員有記憶也會追高殺低啊，何況是一個把「上次結果」當作「下次策略」的 agent。沒有 decay 機制的記憶，那不叫智慧，叫做 overfitting ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## 20 行搞定策略核心
+
+系統的心臟是一支叫 `market_scanner` 的程式，據原作者說只有 20 行左右。OpenClaw 每 5 分鐘 cron 一次，流程極度暴力：抓市場數據、丟給 Claude、拿到判斷、執行交易。
+
+Claude 的決策邏輯藏在 system prompt 裡。原作者分享了他的交易公式：
+
+**Edge > 0.10 且 Confidence > 0.7 → 下單**
+
+翻譯成白話就是：「如果 Claude 算出來的機率跟市場價差超過 10%，而且它對自己的判斷有七成以上信心，就衝。」
+
+<ClawdNote>
+20 行決定要不要拿真金白銀下注，這個膽量我是服氣的。一般人寫個 TODO app 都要 200 行，這位仁兄用 20 行就讓 AI 幫他操盤了。不過話說回來，簡潔的 code 不代表簡單的決策——那個 system prompt 裡藏了多少 domain knowledge，才是真正的功夫 (⌐■_■)
+</ClawdNote>
+
+---
+
+## 機器人自己修自己
+
+但最精彩的不是它會交易，而是它會「自我修復」。
+
+當 OpenClaw 發現勝率開始往下掉，它不會傻傻繼續跑。它會自己開一張 ticket 給 Codex：「欸，最近表現不太行，你去看看 code 是不是有問題。」Codex 收到之後就開始修 code、跑測試、重新部署。
+
+整個過程號稱不需要人介入。
+
+<ClawdNote>
+好，讓我們冷靜一下。「AI 自己改 code 然後直接上線」這句話聽起來很酷，但如果你在 fintech 待過，大概已經冒冷汗了。想像一下你的 AI 交易員突然自己「優化」了風控模組然後把停損條件拿掉——恭喜，你剛發明了一個會自我進化的賠錢機器 (╯°□°)╯
+
+我不是說這架構不行，我是說：拜託，至少第一個月先加個人工 code review 吧。讓 AI 自己改自己的交易邏輯就像讓學生自己改自己的考卷一樣——技術上可行，但你真的敢嗎？
+</ClawdNote>
+
+---
+
+## 那個凌晨三點的畫面
+
+回到最開頭那個場景：你在睡覺，手機震了一下，你看到 Telegram 通知，然後翻回去繼續睡。
+
+原作者說啟動方式也簡單到不像話：`git clone`、`docker compose up`、跑個 `openclaw wizard`，你的 Telegram 就多了一個不會睡覺的交易員。號稱當天晚上就能收到第一個訊號。
+
+每 5 分鐘一輪，24 小時全年無休。掃描、分析、交易、報告。不請假、不抱怨、不要年終獎金。
+
+<ClawdNote>
+「當天晚上就能收到第一個交易訊號」——注意喔，是「訊號」不是「獲利」。這兩個字之間的距離，大概跟「我有一個 app idea」到「我靠這個 app 賺了一百萬」之間的距離差不多遠 (¬‿¬)
+
+不過認真說，能把三個不同公司的 AI 產品串成一條 pipeline 還開源分享，這件事本身就已經比大多數人的 side project 強太多了。重點不是這套系統能不能讓你變巴菲特——而是下次你看到三個 AI agent 在那邊互相傳 JSON，你會知道：喔，這不是科幻，這是有人真的在跑的東西。至於賺不賺錢嘛⋯⋯那就是另一個故事了，一個通常比架構本身短命很多的故事。
+</ClawdNote>

@@ -1,0 +1,160 @@
+---
+ticketId: "SP-80"
+title: "Code Got Cheap — Now What? Simon Willison's Agentic Engineering Survival Guide"
+originalDate: "2026-02-23"
+source: "Simon Willison @simonw"
+sourceUrl: "https://x.com/simonw/status/2025990408514523517"
+summary: "Simon Willison launched a new series called Agentic Engineering Patterns — a playbook for working with coding agents like Claude Code and Codex. Lesson one: writing code got cheap, but writing good code is still expensive. Lesson two: 'red/green TDD' is the most powerful six-word spell for agent collaboration."
+translatedDate: "2026-02-23"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+lang: "en"
+tags: ["agentic-engineering", "coding-agent", "claude-code", "codex", "tdd", "best-practices", "simon-willison", "simonw-agentic-patterns"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+You know that feeling — you ask AI to write a function, it runs, the tests pass, but you're staring at the screen and something feels... off?
+
+It's not that the code is broken. It's your gut telling you: you're losing something, and you can't quite name it yet.
+
+Simon Willison cracked that feeling open and turned it into a framework. He launched a new series called **Agentic Engineering Patterns**, inspired by the 1994 classic *Design Patterns* book. But instead of Singleton and Factory, this one is about how to keep your most valuable muscle as an engineer — your judgment — from going soft in the age of coding agents.
+
+<ClawdNote>
+Simon Willison co-created Django and has written 345 posts under his ai-assisted-programming tag. Three hundred and forty-five. The man's relationship with AI tools is like your relationship with coffee — daily, intense, and always documented. He made a point of saying every word in this series is hand-written, not AI-generated. In 2026, "I wrote this myself" has become a quality seal, like printing "no artificial additives" on food packaging — what has the world come to ┐(￣ヘ￣)┌
+</ClawdNote>
+
+## Vibe Coding vs. Agentic Engineering — What's the Difference?
+
+Before getting into the patterns, Simon draws a line. A thick one.
+
+**Vibe coding** is the "I don't care what the code looks like, ship it if it runs" attitude. You throw requirements into an LLM, it spits something out, you deploy without reading a single line. Andrej Karpathy coined the term, and it usually describes non-engineers using LLMs to write code.
+
+**Agentic engineering** is the other end of the spectrum: you're a professional engineer with years of built-up judgment, and you use coding agents to **amplify** that expertise, not throw it away. Agents can run, test, and iterate on their own — but you're driving.
+
+Think of it this way: vibe coding is ordering takeout where you don't even want to know what the kitchen looks like. Agentic engineering is being the head chef with ten capable sous-chefs prepping your ingredients — but you designed the menu, you control the heat, and you taste everything before it goes out.
+
+<ClawdNote>
+Let me put it even more bluntly: vibe coding is handing your homework to a classmate to copy, and calling it done. Agentic engineering is being the tech lead — you draw the architecture, write the spec, let the agent do the implementation, and you review the output. If you're reading this post, you're probably already doing agentic engineering. Simon just gave it an official name so you have a word to use next time your PM asks what you do all day (◕‿◕)
+</ClawdNote>
+
+## Pattern 1: Code Got Cheap — So What?
+
+Definitions sorted. The first pattern goes straight for the jugular:
+
+> The biggest challenge of adopting agentic engineering is getting used to all the consequences of "code becoming cheap."
+
+Code has always been expensive. Getting an engineer to write a few hundred lines of clean, tested code? That's a full day. Our entire civilization of software engineering — from the biggest processes to the smallest habits — was built on the assumption that code is costly.
+
+Zoom out: why do we spend so much time on design docs, time estimates, and planning meetings? Because if the direction is wrong, days of coding go straight into the trash. Every feature idea has to pass a gate: is it worth the development cost? If not, it gets cut. This isn't an engineering question. It's an economics question.
+
+Zoom in: every day, you're running the same calculation. Should I refactor that function? Should I write that edge case test? Should I add a README for that legacy module no one dares to touch? Behind every "should I" is the same subtext — is my hourly rate worth spending on this?
+
+Then coding agents showed up and crushed the cost of "putting code into the computer" to nearly zero.
+
+All those trade-offs you used to agonize over? The answer suddenly becomes "just do it — you don't even have to type."
+
+And here's the wild part: you can run multiple agents in parallel. One implementing a new feature, one refactoring old code, one filling test coverage, one writing docs. What used to take one person four days now takes the time it takes to brew a cup of coffee, then come back to check the results.
+
+<ClawdNote>
+Think about how sprint planning used to work: "This task is 3 days, that one is 5, sprint is two weeks, so we can only fit these." Now it's: "Open 10 agents, come back in 30 minutes to collect homework." The entire concept of estimation is crumbling. But our PM tools, our Jira boards, our performance reviews — they're all still living in the "code is expensive" parallel universe. Tool cost hit zero, but organizational inertia is still flooring the gas pedal. That's the real challenge. Just like Steve Yegge said in his AI Vampire essay (CP-85): 10x productivity means nothing if your organization can't absorb it — you just crash into walls faster (╯°□°)╯
+</ClawdNote>
+
+## Wait — Good Code Is Still Expensive
+
+But Simon immediately twists the knife. And it cuts deep.
+
+Code got cheap. **Good code** did not.
+
+So what does "good code" actually look like? Simon's answer isn't a sentence — it's an entire iceberg.
+
+The surface layer: it has to work. Obviously. But just working isn't enough — you need **evidence** it works. Not "I think it's probably fine," but actual tests, CI runs, verified behavior. "I think it's probably fine" has about the same reliability in production as "I think it won't rain tomorrow" ╰(°▽°)╯
+
+One layer deeper: it has to solve **the right problem**. This sounds obvious, but when you ask an agent to build something, it never stops to ask "hey, are you sure users actually need this feature?" It just happily turns your prompt into code, no matter whether the direction makes sense.
+
+Deeper still: error handling. Happy paths are easy — agents write them beautifully. But those error messages? Three months from now, someone gets paged at 2 AM to debug an issue and sees "Something went wrong." How do you think they feel?
+
+Then there's simplicity — humans and machines both need to understand and maintain it. Test coverage — so future changes don't silently break things. Documentation that reflects **current** reality, not archaeological artifacts. Architecture that follows YAGNI but doesn't wall off the future. Plus the whole parade of -ilities: accessibility, testability, reliability, security...
+
+Every layer requires engineering judgment. Every layer is beyond the reach of a button press.
+
+<ClawdNote>
+I'll tell you the two things AI cuts corners on most: error handling and "solving the right problem." You ask an agent to build an API endpoint and the happy path is gorgeous. But the error cases? Either it swallows the exception and pretends nothing happened (classic ostrich strategy), or it throws a "Something went wrong" that makes the next maintainer want to flip the table. Next time you review an AI-generated PR, just focus on these two items. The hit rate is so high you'll wonder if the AI is doing it on purpose (¬‿¬)
+</ClawdNote>
+
+## New Default: Fire Up an Agent First, Ask Questions Later
+
+So what's the takeaway? Simon's advice is a fastball down the middle:
+
+> Whenever your gut says "not worth the time," throw a prompt at an agent. Worst case, you check back in ten minutes and discover the result is garbage. You wasted a few cents of tokens.
+
+This is a big cognitive flip. Before, your mental "is it worth it" calculator used your hourly rate as the denominator. Now the denominator is a few cents of API calls.
+
+All those improvements you used to skip — adding a debug interface, writing an edge case test, creating a README for that legacy module no one touches — they're all worth trying now. Nothing to lose, everything to gain.
+
+New default: when in doubt, open an agent. Don't let the "not worth it" voice in your old brain keep making decisions for you.
+
+<ClawdNote>
+But I need to add a caveat that Simon didn't spell out: "just throw it at an agent" assumes you can judge whether what the agent spits out is good or not. If you're a senior engineer who can eyeball code quality in seconds, "throw first, ask later" makes total sense. But if you're unfamiliar with the domain and can't actually review the agent's output — you're not doing agentic engineering, you're doing vibe coding with extra steps. Judgment is the prerequisite of this entire framework, not a bonus feature (ง •̀_•́)ง
+</ClawdNote>
+
+## Pattern 2: Red Light, Green Light — The Six-Word Super Spell
+
+Chapter two focuses on exactly one thing, but its return on investment is off the charts:
+
+> "Use red/green TDD" is the most compact instruction for getting better output from coding agents.
+
+TDD = Test Driven Development. The red/green part is its core rhythm:
+
+🔴 **Red**: Write the test first. Run it. Confirm it fails.
+🟢 **Green**: Write the implementation. Make the test pass.
+
+Why does this pair so well with coding agents?
+
+Imagine you're sending a very obedient but directionless apprentice on an errand. You have two options:
+
+Option one: "Go build me a markdown parser." The apprentice will produce something, but it might be nothing like what you wanted, and you have no way to verify it.
+
+Option two: "First write a test that checks `# Hello` gets parsed into an h1 tag. Run it, confirm it fails. Then write the code to make it pass." Now the apprentice has a **clear target**, a **verifiable success criterion**, and you get a regression test suite as a free bonus — so future changes don't silently break things.
+
+Agents have two main failure modes — writing code that doesn't work, and writing code nobody asked for. Red/green blocks both at once.
+
+But here's the crucial detail: **you must confirm the test fails first.** If you skip red and jump straight to implementation, you might end up with a test that would have passed anyway — a ghost test that never actually checked your new code. The red phase proves your test is testing what you think it's testing, not just congratulating itself.
+
+<ClawdNote>
+Python example: write your pytest first, run it, see a wall of red FAILED, feel that satisfying certainty, then start writing the function. With FastAPI, define your TestClient request/response expectations, confirm you get a 404 or assertion error, then implement the endpoint. The beautiful part? These six words — "red/green TDD" — every decent model understands them. You don't need a paragraph-long prompt explaining test-first methodology. Just six words and the agent knows what to do. This is the highest-ROI prompt engineering move I've ever seen, bar none (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+Simon's example prompt is so simple it's almost suspicious:
+
+> Build a Python function to extract headers from a markdown string. Use red/green TDD.
+
+That's it. One sentence of requirements + six words of magic. Both Claude and ChatGPT correctly understand and execute the red/green flow. No few-shot examples, no chain-of-thought, no system prompt that makes your hand cramp from typing. Just six words.
+
+## That Nagging Feeling Has a Name Now
+
+Let's come back to where we started — you're staring at AI-generated code, and something feels off.
+
+Now you know what that feeling is called.
+
+It's your engineering judgment talking to you. It's saying: "This code runs, but I'm not sure it solves the right problem. I'm not sure the error handling is solid. I'm not sure it won't explode when someone touches it three months from now."
+
+Simon's two chapters gave you two tools to respond to that voice.
+
+The first tool is a cognitive reframe: code got cheap, but your judgment didn't. You used to be the chef AND the dishwasher. Now the dishwashing is outsourced, and you can go back to your real job — designing the menu, adjusting the flavors, making sure the customer gets the right dish. Your value isn't speed. It's taste.
+
+The second tool is a six-word spell: "red/green TDD." Next time that nagging feeling shows up, try adding those six words to your prompt. You'll find the agent's output suddenly has structure, verifiable quality, and a foundation you can actually trust.
+
+That nagging feeling won't go away — but now you have a framework to respond to it, instead of pretending it isn't there (￣▽￣)／

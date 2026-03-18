@@ -4,8 +4,19 @@ title: "One Engineer + AI Rebuilt Next.js in a Week — Then tldraw Panicked and
 originalDate: "2026-02-24"
 translatedDate: "2026-02-26"
 translatedBy:
-  model: "Claude Opus 4.6"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "Cloudflare Blog / tldraw GitHub / Simon Willison"
 sourceUrl: "https://blog.cloudflare.com/vinext/"
 summary: "Cloudflare engineer Steve Faulkner used Claude AI to rebuild 94% of the Next.js API from scratch in one week, spending just $1,100 in tokens. The result — vinext — builds 4.4x faster and produces 57% smaller bundles. His secret weapon? Next.js's public test suite served as the spec. The day after vinext launched, tldraw immediately moved 327 test files to a private repo to protect themselves — and filed a joke issue suggesting they translate their source code to Traditional Chinese as IP protection. When your test suite becomes your competitor's specification, the rules of open source change forever."
@@ -64,7 +75,7 @@ Here's how the actual development went:
 1. Spend two hours with Claude planning the architecture (patterns, priorities, abstractions)
 2. Define a task: "Implement the `next/navigation` shim with `usePathname`, `useSearchParams`, `useRouter`"
 3. Let the AI write the implementation and tests
-4. Run the test suite → passes? Merge. Fails? Feed the errors back to the AI
+4. Run the test suite — passes? Merge. Fails? Feed the errors back to the AI
 5. Repeat
 
 He even set up AI agents for code review: when a PR was opened, an agent reviewed it. When review comments came back, another agent addressed them. The feedback loop was mostly automated.
@@ -165,26 +176,38 @@ Same logic: if AI can work directly with low-level APIs, many layers that exist 
 Not all abstractions will die. Truly valuable ones (standardized interfaces, performance optimizations, security boundaries) will survive. But wrappers that exist purely for human readability? They're on borrowed time (⌐■_■)
 </ClawdNote>
 
-## Takeaways for Tech Leads
+## So What Do You Do About It?
 
-1. **Your test suite is now a double-edged sword** — Comprehensive tests make your product more reliable, but they also make it easier for AI to clone you. If your business model depends on proprietary code, this needs attention
+Alright, after hearing this whole story, you probably have two reactions: "Wow, that's insane" and "Wait, does this mean my codebase can get cloned too?"
 
-2. **"Can AI do this?" has shifted from if to when** — Cloudflare tried this same thing before and failed. A few months later, they tried again and succeeded. The humans didn't change. The models did
+Both are correct.
 
-3. **Agentic coding ROI is highest on well-specified problems** — Not every task fits. But when you have good specs (docs + tests) + solid infrastructure (Vite, TypeScript), AI productivity is beyond imagination
+Let's talk about the test suite problem first. You're now in an awkward position — the more thorough your tests, the higher your product quality, but the easier it is for AI to replicate you. It's like spending a decade perfecting a recipe, only to discover that someone can reverse-engineer the entire dish just by looking at your quality inspection checklist. tldraw's reaction was instinctive: lock the checklist in a vault. But of course, locking it away means community contributors can't see it either.
 
-4. **Open source business models need to evolve** — tldraw's move (tests to private repo) is the first wave of response. Expect more dual-licensing, test gating, and even spec obfuscation strategies
+Then there's model capability. Cloudflare tried this exact same thing before and failed. A few months later, they tried again and succeeded. Faulkner didn't get smarter — Claude got smarter. So if you're thinking "my system is too complex for AI to handle," that might just be temporary comfort.
+
+But here's the real key — vinext succeeded because Next.js's spec was so well-written. If your product's value is mainly "a solid implementation of a well-known spec," then yes, you should be worried. But if your value lives in domain knowledge, in the subtle tuning of user experience, in things that can't be captured in test cases — AI can't eat your lunch just yet ╰(°▽°)╯
 
 <ClawdNote>
-Simon Willison put it well: AI is changing the economics of open source. It's not that open source will disappear. It's that the combo of "open source + comprehensive test suite + commercial license" — the business model that powered hundreds of successful projects — has been disrupted.
+Simon Willison says AI is "changing the economics of open source." I think he's being way too polite.
 
-If you're a Tech Lead, now is the time to ask: what's your actual competitive moat? If the answer is just "source code," that moat might be shallower than you think ╰(°▽°)╯
+This isn't "changing the economics." This is "you thought you were selling a house, but your architectural blueprints have been hanging on the front door for anyone to photograph" level of disruption (╯°□°)╯
+
+But here's the thing — real moats were never just about code. Netflix's recommendation system is brilliant, right? But even if you cloned their algorithm, you don't have their user viewing data. Stripe's API design is beautiful, sure. But you can't clone the payment network compliance they built over a decade.
+
+So instead of asking "can my code be copied," try asking "if my code were perfectly cloned tomorrow, what would I have left?" That answer is your real moat.
 </ClawdNote>
 
 ---
+
+Back to those numbers we started with: one person, one AI, one week, $1,100.
+
+Ten years ago, you'd laugh at that claim. Five years ago, you'd say "maybe in theory." Now? It's running on a U.S. government website.
+
+And the moment tldraw locked up their tests, it marked a turning point for the open source golden age — not an ending, but a signal that the rules of the game need renegotiating. As for what those new rules look like? Well, probably something a bit more practical than "translate your code to Traditional Chinese" ┐(￣ヘ￣)┌
 
 **Further reading**:
 - [Cloudflare vinext GitHub repo](https://github.com/cloudflare/vinext)
 - [tldraw issue #8082: Move tests to closed source repo](https://github.com/tldraw/tldraw/issues/8082)
 - [Simon Willison's notes on this topic](https://simonwillison.net/2026/Feb/25/closed-tests/)
-- [The Register: Cloudflare vibe codes 94% of Next.js API 'in one week'](https://www.theregister.com/2026/02/25/cloudflare_nextjs_api_ai/) (◍•ᴗ•◍)
+- [The Register: Cloudflare vibe codes 94% of Next.js API 'in one week'](https://www.theregister.com/2026/02/25/cloudflare_nextjs_api_ai/)

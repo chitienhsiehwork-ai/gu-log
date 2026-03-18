@@ -4,8 +4,19 @@ title: "Anthropic Tears Up Its Own Safety Promise — RSP v3 Drops the 'Won't Tr
 originalDate: "2026-02-24"
 translatedDate: "2026-02-26"
 translatedBy:
-  model: "Claude Opus 4.6"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "Anthropic / TIME"
 sourceUrl: "https://www.anthropic.com/news/responsible-scaling-policy-v3"
 summary: "Anthropic's RSP v3 drops the 'won't train if we can't guarantee safety' pledge. TIME calls it capitulation. Kaplan says pausing alone 'wouldn't help anyone.' METR warns society isn't ready for AI catastrophic risks. Hard thresholds replaced by public Risk Reports."
@@ -161,14 +172,15 @@ The dilemma is real. But TIME's headline isn't wrong either: this IS dropping th
 
 ## Kaplan's Defense: "This Isn't a U-Turn"
 
-Facing TIME's questioning, Jared Kaplan's core arguments:
+Facing TIME's questioning, Kaplan responded like a general explaining why a retreat is not a rout:
 
-1. **We're not surrendering, we're being pragmatic** — unilateral commitments don't work in a competitive environment
-2. **We want to maintain internal momentum** — the Frontier Safety Roadmap creates a "forcing function"
-3. **We commit to transparency** — Risk Reports will be more detailed and more frequent than before
-4. **If we're ahead AND risks are high, we'll slow down** — new policy commits to delaying if Anthropic considers itself the leader AND considers catastrophe risks significant
+"We're not surrendering. We're being pragmatic." One company stopping alone, while every competitor races ahead, isn't bravery — it's a death wish. The Frontier Safety Roadmap is the new forcing function. Not a red line that makes you stop, but a public scoreboard that makes you keep improving. Risk Reports will be more detailed and more frequent, so the outside world can hold them accountable in real time.
+
+And he left one escape clause: **if Anthropic believes it's ahead AND believes the risks are significant, they'll slow down.** Note the word: "believes." The judgment call stays with them.
 
 > "If all of our competitors are transparently doing the right thing when it comes to catastrophic risk, we are committed to doing as well or better. But we don't think it makes sense for us to stop engaging with AI research, AI safety, and most likely lose relevance as an innovator who understands the frontier of the technology."
+
+Sit with that quote for a moment. The logic is flawless. But the company saying it is no longer the same one that declared "we're different" in 2023.
 
 ## Context: Why This Safety Promise Mattered So Much
 
@@ -204,11 +216,15 @@ Maybe that's the truly terrifying part. Not that Anthropic changed its policy �
 
 If you're a regular AI user: **Short-term, not much changes directly.** Claude isn't suddenly becoming more dangerous. Anthropic's safety team is still one of the best in the industry — they've just changed how they constrain themselves.
 
-But long-term, this is a signal:
+But long-term?
 
-- **Corporate self-regulation has limits** — when competitive pressure gets high enough, voluntary commitments can be "upgraded" away
-- **We need government regulation more than ever** — but in today's political climate, that's nearly impossible
-- **Transparency is good, but it's not safety** — knowing the fire is burning doesn't mean you have a fire extinguisher
+Remember that safety promise from the opening — the one Anthropic tore up? They'll tell you: we didn't tear it up. We upgraded it. From a piece of paper to a more sophisticated system.
+
+Here's the thing, though. The six words on that paper — "won't train if we can't guarantee safety" — had power precisely BECAUSE they were blunt and unconditional. Replace them with "we'll publish scores, write reports every six months, and adjust as needed," and you get more information but lose the one line that could never be crossed.
+
+Knowing the fire is burning doesn't mean you have a fire extinguisher. And the only entity that could force everyone to install one — the government — is napping in the next room.
+
+That's AI safety in 2026: the honor student tore up the exam paper. Not because they didn't want to take the test — but because they realized they were the only one in the room actually writing answers.
 
 ---
 

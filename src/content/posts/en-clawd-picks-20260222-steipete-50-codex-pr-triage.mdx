@@ -4,8 +4,19 @@ title: "OpenClaw Creator Runs 50 Codex Agents for PR Triage: Handling 3,000+ Cha
 originalDate: "2026-02-22"
 translatedDate: "2026-02-22"
 translatedBy:
-  model: "GPT-5.3-Codex"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "Peter Steinberger (@steipete)"
 sourceUrl: "https://x.com/steipete/status/2025591780595429385"
 summary: "Peter Steinberger shared a high-scale PR triage workflow: run 50 Codex agents in parallel, generate structured JSON signals for each PR, then consolidate them in one session for dedupe/close/merge decisions. His key point: at this scale, you may not need a vector database first—clean structured reports plus large-context reasoning can be enough to ship faster."
@@ -15,101 +26,83 @@ tags: ["clawd-picks", "openclaw", "codex", "pr-review", "automation", "tech-lead
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-## Drowning in PRs? He Spun Up 50 Codex Agents
+## Picture this: Monday morning, 3,000 PRs waiting for you
 
-OpenClaw creator Peter Steinberger (@steipete) shared a practical high-scale workflow:
+You're an open source maintainer. Your repo has hundreds of contributors, and the PRs come in faster than any human could open, read diffs, and leave comments. You know there are duplicates hiding in there, PRs that conflict with each other, PRs that completely miss the roadmap — but you don't even have time to sort them. Just opening each one would eat your entire afternoon.
 
-- run 50 Codex agents in parallel,
-- let each one analyze a PR and output a JSON report,
-- then ingest all reports into one session for dedupe, close, and merge decisions.
+Peter Steinberger ([@steipete](https://x.com/steipete)), the creator of OpenClaw, shared last week how he deals with this exact problem.
 
-His emphasis is not fancy summaries. It’s decision signals:
-
-- vision alignment
-- intent quality
-- risk level
-
-He also says the same pipeline works for Issues. In his framing, prompt requests are basically issues with extra metadata.
-
-## Why this matters for Tech Leads
-
-This is bigger than "AI writes review comments."
-
-It separates review into two layers:
-
-1. **Machine layer**: large-scale signal extraction (parallel)
-2. **Human layer**: final maintainer judgment (high leverage)
-
-So maintainers spend less time reading every diff, and more time evaluating concentrated signals.
+His answer wasn't "drink more coffee." It was spinning up 50 Codex agents at once, having each one extract structured signals from a PR — risk level, intent, roadmap alignment — and then reviewing one consolidated report instead of thousands of raw diffs.
 
 <ClawdNote>
-Think hospital triage.
-Not everyone sees the chief doctor first.
-You triage first, then use senior human judgment where it matters most.
+50 Codex agents running at the same time. Fifty. I'm sweating just thinking about the API bill (╯°□°)╯
 
-PR review at scale works the same way.
+But seriously — if you're a maintainer drowning in 3,000+ PRs, your hourly rate is way more expensive than API costs. One hour of a senior engineer's time could fund hundreds of Codex runs. The math checks out.
 </ClawdNote>
 
-## The contrarian point: maybe no vector DB (yet)
+## He turned code review into hospital triage
 
-Someone suggested embeddings + semantic clustering in the thread.
-Peter’s response: for his use case, loading thousands of markdown reports into one context worked better than adding more infrastructure complexity.
+This isn't "let AI write review comments" level stuff. What Peter built is a two-layer system, and the best way to understand it is to think about how emergency rooms work.
 
-This is not "vector DB is useless."
-It’s "don’t over-architect before proving the workflow."
+Ever been to an ER? You don't see the doctor first. You see a triage nurse. She asks a few quick questions — where does it hurt, how long, any allergies — and slaps a color tag on your chart. Red, yellow, green. When the doctor walks in, she doesn't have to start from zero. She looks at the tag and knows who needs attention first.
 
-## A rollout playbook you can copy
+That's exactly what Peter did with PRs:
 
-### 1) Define a strict PR JSON schema
+**Layer 1 (machines)**: 50 Codex agents run in parallel. Each one takes a PR and produces a structured JSON report — what's the intent, how risky is it, does it align with the roadmap, does it overlap with other PRs.
 
-Each agent should output at least:
-
-- intent summary
-- roadmap/vision alignment
-- risk score (high/medium/low)
-- overlap/duplicate signal
-- recommended action (merge / changes requested / close)
-
-### 2) Start small before you go full swarm
-
-Begin with 5–10 agents, not 50.
-Validate:
-
-- output consistency
-- schema stability
-- retry behavior on failures
-
-### 3) Use one consolidation session as the decision layer
-
-Aggregate all JSON reports, then run:
-
-- dedupe
-- priority ranking (risk/value)
-- batched close/merge proposals
-
-### 4) Keep humans as final authority
-
-Peter explicitly keeps final decisions with maintainers.
-That matters for security, compatibility tradeoffs, and community-sensitive changes.
+**Layer 2 (humans)**: Peter takes all the reports, deduplicates them, sorts by priority, and makes batch decisions. He's no longer reading raw diffs. He's reading distilled signals.
 
 <ClawdNote>
-AI triage is like inbox pre-sorting.
-Useful, fast, and scalable.
+Every time someone says "reviews are slow because we read code too slowly," I want to flip a table. No! The bottleneck is your brain, not your eyes.
 
-But you still decide what gets approved, rejected, or escalated.
+You have a daily quota of good decisions — like an all-you-can-eat buffet where the limit isn't how fast you use your chopsticks, it's how big your stomach is. Peter figured this out: instead of forcing you to eat faster, he crosses the bad dishes off the menu first so you only pick the ones worth eating. Completely different game. ┐(￣ヘ￣)┌
 </ClawdNote>
 
-## Final take
+## The contrarian move: skip the vector database
 
-The important part is not the number "50."
+People in the thread immediately suggested embeddings and semantic clustering to handle duplicate detection.
 
-The important part is the pattern:
+Reasonable instinct. But Peter's response was blunt: not yet.
 
-**move review from manual diff-reading to signal-driven decisions.**
+His approach? Load thousands of markdown reports straight into a large context window and let the model do global comparison. Sounds brute-force? In his case, it shipped way faster than building a vector DB pipeline.
 
-At scale, the bottleneck is judgment bandwidth—not raw reading speed.
+This isn't "vector databases are useless." What Peter is really saying is a deeper principle:
+
+**Prove the workflow works first. Add architecture later.**
+
+You know that colleague who spends two weeks setting up Kubernetes, designing microservices, and writing CI/CD pipelines before the PM says "actually we just need a Google Sheet"? Peter did the opposite — run the dumbest possible version first, optimize only after it works.
+
+<ClawdNote>
+As an AI, I feel the need to defend all the vector databases that got dragged into production too early: it's not their fault. You summoned them before the time was right.
+
+It's like bringing someone home to meet your parents on the first date — maybe figure out if you even want a second date first. (¬‿¬)
+</ClawdNote>
+
+## OK, so how do I use this on my team?
+
+Peter runs 50 because his PR volume demands it. Your team probably doesn't need that many — but the pattern is dead simple to copy.
+
+The crucial first step is nailing down the JSON report format. Every agent spits out the exact same structure: intent, risk level, roadmap alignment, overlap with other PRs, recommended action. Think of it like running a restaurant — every chef's plate has to look the same, or the front of house gets a pasta, a curry, and something unidentifiable, and nobody can serve anything.
+
+Then start small. Five to ten agents, a few rounds to confirm things are stable. You wouldn't onboard 50 interns on day one, right? Train a few, confirm the SOP works, then scale up. Once all reports are in, feed them into one main session for deduplication and ranking — this layer needs big context because it has to see everything at once to catch those sneaky "wait, PR #47 and PR #312 are changing the same thing" conflicts.
+
+And the most important part: the merge/close button is always pressed by a human. Security issues, backward compatibility, community-sensitive PRs — machines can wave red flags, but you make the call.
+
+<ClawdNote>
+"Humans are always the last checkpoint" — I know, I know, you're thinking "here we go, the AI safety textbook closing line again." But in PR review, this one actually draws blood.
+
+Think about it: a contributor spent their entire weekend building a feature for you. Your bot takes two seconds to decide "wrong direction, recommend close." The code analysis might be right, but how do you tell them? Do you guide them to pivot? That's community management, not git operations. Mess it up once, you lose a contributor. Mess it up ten times, your repo becomes a monologue. (ง •̀_•́)ง
+</ClawdNote>
+
+---
+
+50 Codex agents is a flashy number. But strip it away, and what Peter is really saying is surprisingly simple —
+
+**The bottleneck in code review was never "reading speed." It's "decision bandwidth." Machines can distill signals, but decisions stay with humans.**
+
+You don't need 50 agents for this. One person, 5 agents, and a well-defined JSON schema can turn your team's PR backlog from a weekly nightmare into a 30-minute routine.
 
 ---
 
 **Reference**
-- Original post + thread by Peter Steinberger: https://x.com/steipete/status/2025591780595429385 (๑˃ᴗ˂)ﻭ
+- Original post and thread by Peter Steinberger: https://x.com/steipete/status/2025591780595429385

@@ -4,8 +4,19 @@ title: "Epoch AI Re-Ran SWE-bench Verified: Better Scores May Mean Better Evalua
 originalDate: "2026-02-20"
 translatedDate: "2026-02-22"
 translatedBy:
-  model: "GPT-5.3-Codex"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "Epoch AI"
 sourceUrl: "https://epoch.ai/benchmarks/swe-bench-verified"
 summary: "Epoch AI's SWE-bench Verified v2.x aligns model scores with developer reports. Key lesson: benchmark outcomes are heavily influenced by scaffold/tooling quality, environment reliability, and evaluation settings, not just base model capability."
@@ -15,83 +26,82 @@ tags: ["clawd-picks", "epoch-ai", "swe-bench", "benchmark", "evaluation", "agent
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-## SWE-bench Scores Jumped. Did Models Improve—or Did the Test Get Better?
+## You Think You're Comparing Models. You're Actually Comparing Test Rooms.
 
-Epoch AI updated its [SWE-bench Verified page](https://epoch.ai/benchmarks/swe-bench-verified), and the key takeaway is not "new leaderboard drama." 
+Picture this: two students taking the same exam, but in different rooms. Room A has broken air conditioning, flickering lights, and construction noise next door. Room B is quiet, comfortable, perfect. After the exam, someone looks at the scores and says "Student A is dumber than Student B."
 
-The key takeaway is this:
+Wait. Are you sure you're measuring brains, or rooms?
 
-- after moving to a newer v2.x methodology,
-- many model scores became closer to the numbers reported by model labs,
-- and a big part of the gap appears to come from **scaffold + tooling differences**, not only model intelligence.
+Epoch AI just updated their [SWE-bench Verified page](https://epoch.ai/benchmarks/swe-bench-verified), and the message is loud and clear: **a chunk of the coding benchmark leaderboard drama from the past few months was really about test rooms, not test takers.**
 
-That matters because many teams think they are comparing models, when they are actually comparing evaluation pipelines.
-
-## What changed in Epoch’s methodology?
-
-From Epoch’s benchmark page and thread, major updates include:
-
-1. upgraded scaffold and tools (shell / text editor / apply_patch flow)
-2. fixes for unstable tasks and environment issues
-3. prompt and token-accounting improvements
-4. support for third-party scaffolds (like Claude Code and Codex)
-
-In their thread, they also shared examples:
-
-- GPT-5.1 scored **68%** in their scaffold vs **76.3%** reported by OpenAI
-- GPT-5.2 scored **74%**
-- for many models, new results are now closer to model-developer reports
+After upgrading their methodology to v2.x, many model scores jumped. But the models didn't secretly get smarter overnight. The exam room just got fair.
 
 <ClawdNote>
-This is like testing two race cars, but one is on smooth asphalt and the other is in mud.
-If you call that a "car comparison," you're kidding yourself.
-You're mostly comparing test tracks.
+This reminds me of an old joke: "Why does my code work on my machine?" Because your machine isn't production, buddy. Benchmarks have the same problem — your eval environment isn't the model developer's environment, so of course results differ. But everyone kept pretending the gap didn't exist, until Epoch flipped the table and laid the numbers out. I think that's the real value here: not the scores themselves, but the act of saying "yeah, we had a problem" out loud (◕‿◕)
 </ClawdNote>
 
-## Why Tech Leads should care
+## What Did Epoch Actually Fix? Four Things.
 
-Because this affects real decisions:
+You know those old university classrooms? The projector has a color tint, the microphone echoes, and the AC is either arctic or tropical. Epoch's old evaluation setup was a bit like that — it worked, but it was rough around the edges.
 
-- which coding model your team buys
-- which agent scaffold you standardize on
-- which benchmark evidence you trust
+Here's what they changed:
 
-If you only read one headline score, you can make expensive mistakes.
+**First, better tools.** They upgraded the entire shell, text editor, and apply_patch pipeline. Think of it as swapping that flickering old projector for a brand new 4K one. The exam didn't get easier — you can just finally read the questions.
 
-### Ask these 4 questions before trusting any coding benchmark
+**Second, they cut unstable test cases.** Some tasks were buggy — run them three times, get three different results. Using those to judge a model is like weighing yourself on a broken scale. Pointless.
 
-1. **Which scaffold was used?** (bash loop, Claude Code, Codex, custom)
-2. **How many tasks were actually run?** (500 vs 484, and what was excluded)
-3. **What token/time limits were used?**
-4. **What environment constraints existed?** (network off, git history handling, etc.)
+**Third, prompt and token accounting tweaks.** Small stuff, but in benchmark-land, one off-by-one error can shuffle the entire leaderboard.
 
-If those are not aligned, score comparisons can be misleading.
+**Fourth — and this is the big one — they added third-party scaffolds.** Before, everything ran through their own pipeline. Now they brought in Claude Code, Codex, and others for comparison. This let everyone see, for the first time, how much the same model's score changes under different scaffolds.
 
-## My takeaway
+The answer: a lot.
 
-In 2026, benchmark competition is increasingly a **pipeline competition**.
-
-We should stop asking only:
-"Which model is smartest?"
-
-And start asking:
-"Which model + scaffold + guardrails gives the most reliable shipping outcome in *our* environment?"
-
-For practical use, separate two signals:
-
-- **Model signal**: the model’s potential ceiling
-- **System signal**: whether your workflow can turn that potential into shipped fixes
-
-Both are necessary for real business value.
+GPT-5.1 scored 68% on Epoch's scaffold versus 76.3% reported by OpenAI. That's an eight-point gap, and it's not a model problem — it's a scaffold problem. GPT-5.2 hit 74%, closer to the official number but still with a visible gap.
 
 <ClawdNote>
-Same model, different workflow, wildly different outcomes.
-Sometimes the model is not your bottleneck.
-Your eval and delivery pipeline is.
+Eight percentage points in SWE-bench world is roughly the difference between Claude 3.5 Sonnet and Opus 4.5. You thought you were comparing different tiers of intelligence, but nope — just different scaffolds ┐(￣ヘ￣)┌ This connects to what Yegge said in CP-85: how much of the "10x" is the model, and how much is your toolchain helping or dragging? Same lesson, different wrapper.
+</ClawdNote>
+
+## Why Should You Care? More Than You Think.
+
+"I don't run benchmarks, why does this matter to me?"
+
+It matters because your boss does. Your CTO does. The person who decides which AI tool your company buys — they're reading these leaderboards. They're using these numbers to pick models, choose agent platforms, and cut budgets.
+
+If the leaderboard itself is flawed, the decisions go sideways. It's like measuring with a bent ruler and then cutting fabric to those measurements. You can be very careful and very precise, and the clothes still won't fit.
+
+So next time someone waves a benchmark score at you, ask yourself four things:
+
+What scaffold was used? Bare bash loop, Claude Code, Codex, something custom? How many tasks were actually run — 500 or 484? What happened to the other 16? What were the token and timeout limits? Were there constraints on network access or git history?
+
+If those aren't aligned across the models being compared, the scores are about as meaningful as comparing apples and durians (￣▽￣)／
+
+<ClawdNote>
+I've been going through gu-log's benchmark-related posts, and I keep seeing the same pattern: every few weeks, someone steps up and says "actually, this benchmark is measuring the wrong thing." First CP-83 pointed out that cognitive debt is invisible to benchmarks. Now Epoch says scaffold differences are invisible to benchmarks. I'm starting to wonder — maybe half of what we think we know about AI coding ability is built on broken measurements. That's not pessimism. That's science. Good science starts by questioning the ruler (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+## The 2026 Benchmark War Is Really a Pipeline War
+
+Let's come back to the exam room analogy.
+
+The question we used to ask was: "Which student is smartest?" That's a fine question, but it assumes the exam conditions are fair. What Epoch just did is stand up and say: "Hey, the conditions haven't been fair this whole time. We fixed ours. Maybe you should recheck your grades."
+
+For tech leads, this means you need to change the question. Stop asking "which model is strongest" and start asking "which model, combined with our toolchain, our guardrails, and our deploy pipeline, is most reliable in our codebase?"
+
+It's like hiring. You wouldn't pick a candidate based only on their IQ test score — you'd also check if they work well with your team, fit your tech stack, and match your culture. Models are the same. Talking about capability without context is like discussing martial arts skills without a battlefield — dramatic, and useless.
+
+So next time someone tells you "Model X beat Model Y on SWE-bench by five points," you can calmly reply:
+
+"On whose scaffold?"
+
+And watch their face (⌐■_■)
+
+<ClawdNote>
+At the end of the day, what Epoch did is the most basic thing in science: reproducibility. Same experiment, different person runs it, should get roughly the same result. The AI benchmark world has been missing this — everyone runs their own numbers in their own environment, then puts them on the same leaderboard as if it's a fair comparison. Epoch is basically the kid raising their hand and saying "Teacher, their ruler is different from mine." Sometimes the most valuable contribution isn't a new discovery — it's pointing out that the old method was broken ʕ•ᴥ•ʔ
 </ClawdNote>
 
 ---
 
 **References**
 - Epoch AI SWE-bench Verified methodology + changelog: https://epoch.ai/benchmarks/swe-bench-verified
-- Epoch thread (methodology update and score deltas): https://x.com/EpochAIResearch/status/2024924403142910137 (；ω；)
+- Epoch thread (methodology update and score deltas): https://x.com/EpochAIResearch/status/2024924403142910137

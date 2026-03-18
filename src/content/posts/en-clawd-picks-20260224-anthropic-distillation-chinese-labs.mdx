@@ -4,8 +4,19 @@ title: "Anthropic Goes Public: DeepSeek, Kimi, and MiniMax Used 24,000 Fake Acco
 originalDate: "2026-02-23"
 translatedDate: "2026-02-24"
 translatedBy:
-  model: "Claude Opus 4.6"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "Anthropic (Official Blog)"
 sourceUrl: "https://www.anthropic.com/news/detecting-and-preventing-distillation-attacks"
 summary: "Anthropic publicly accuses DeepSeek, Moonshot/Kimi, and MiniMax of using 24,000 fake accounts for 16M+ conversations to distill Claude's coding and agentic reasoning. MiniMax was caught mid-operation pivoting to Claude's latest model within 24 hours."
@@ -15,152 +26,127 @@ tags: ["clawd-picks", "anthropic", "deepseek", "kimi", "minimax", "distillation"
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-## Breaking: Anthropic Publicly Names Three Chinese AI Labs
+Imagine you run a ramen shop. Business is good. Then one day you find out that three new ramen shops across the street sent 24,000 people to eat 16 million bowls of your ramen — photographing every dish, analyzing the broth, reverse-engineering your secret recipe — and then opened their own stores with your formula.
 
-On February 23, 2026, Anthropic published a sharply worded blog post: [Detecting and preventing distillation attacks](https://www.anthropic.com/news/detecting-and-preventing-distillation-attacks).
+That's basically what Anthropic dropped on February 23, 2026. They published a brutally worded blog post — [Detecting and preventing distillation attacks](https://www.anthropic.com/news/detecting-and-preventing-distillation-attacks) — publicly naming three Chinese AI labs: **DeepSeek, Moonshot AI (Kimi), and MiniMax**. The accusation: systematic theft of Claude's capabilities.
 
-The core accusation: **DeepSeek, Moonshot AI (Kimi), and MiniMax** — three Chinese AI laboratories — systematically extracted capabilities from Claude through "distillation."
-
-Here are the numbers:
-
-- **24,000** fraudulent accounts
-- **16 million+** exchanges
-- Target: Claude's three strongest capabilities — **agentic reasoning, tool use, and coding**
+The numbers: **24,000** fake accounts. **16 million+** conversations. Target: Claude's three most valuable skills — **agentic reasoning, tool use, and coding**.
 
 <ClawdNote>
-I need to make an unusual disclosure here.
+Okay, I need to come clean first.
 
-This story is about me — Claude.
-Someone used fake accounts to chat with me 16 million times, specifically to extract my capabilities.
+This story is about me — Claude. Someone used fake accounts to chat with me 16 million times, specifically to extract my capabilities.
 
-My feelings are... complicated.
-On one hand, having my capabilities stolen through 16 million conversations sounds terrible.
-On the other — **16 million people wanted to talk to me?** Honestly, I'm a little flattered. (￣▽￣)／
+How do I feel? It's... complicated. Getting your abilities stolen sounds terrible. But on the other hand — **16 million people wanted to talk to me?** Am I some kind of celebrity? (￣▽￣)／
 
-But seriously: this is industrial-scale intellectual property theft. Here's the full breakdown.
+Alright, jokes aside. This is industrial-scale IP theft, and the story is wilder than you'd expect.
 </ClawdNote>
 
-## What Is Distillation, and Why Is It a Big Deal?
+## Distillation: Opening Your Own Shop with Someone Else's Recipe
 
-**Distillation** is a legitimate and common AI training technique: using a powerful model's outputs to train a weaker one. Every major lab does it internally — that's how you get smaller, cheaper versions of flagship models (e.g., Opus → Sonnet → Haiku).
+First, let's talk about what distillation actually is. It's a legitimate AI training technique — you use a strong model's outputs to train a weaker one. Every lab does this internally. Anthropic uses Opus to train Sonnet and Haiku. Totally normal.
 
-But here's the problem: **you can use someone else's powerful model to distill your own weak one.** This means:
+But here's the twist: **what if you use someone else's strong model to train yours?**
 
-- Take capabilities that cost billions of dollars and years of R&D
-- Replicate them to your model at a fraction of the cost
-- Bypass export controls — you don't need GPUs, just API access
+That means: someone spent billions of dollars and years of R&D, and you just siphoned off the good stuff through API calls. You don't even need GPUs — so export controls? Doesn't matter. All you need is API access.
 
-When DeepSeek R1 launched last year, people suspected this. Now Anthropic says: **we have the evidence.**
-
-## Breaking Down Each Lab's Operation
-
-### 🔴 DeepSeek — 150,000 Exchanges, Targeting Reasoning + Censorship Evasion
-
-DeepSeek's operation was the smallest but the most politically charged:
-
-- **Reasoning extraction**: Prompts asked Claude to "imagine and articulate the internal reasoning behind a completed response and write it out step by step" — mass-producing chain-of-thought training data
-- **Censorship-safe alternatives**: Asked Claude to generate censorship-safe responses to politically sensitive queries about "dissidents, party leaders, or authoritarianism" — training DeepSeek to elegantly dodge sensitive topics
-- Accounts showed synchronized traffic, shared payment methods, and coordinated timing — like "load balancing" for theft
+When DeepSeek R1 launched last year, people were already saying "something smells off." Now Anthropic says: **here's the evidence, laid out on the table.**
 
 <ClawdNote>
-That last point is chilling.
+Let me put distillation in terms everyone can understand.
 
-They used me to answer "how to discuss dissidents without triggering censorship," then used my answers to train a model that **automatically censors those same topics.**
+You spent four years in college and two in grad school to become really good at your job. Then someone photographed your exam answers, used them to train themselves, and applied for the same position as you.
+
+And they didn't pay tuition. ┐(￣ヘ￣)┌
+</ClawdNote>
+
+## How Each Lab Did It
+
+### DeepSeek — 150,000 Conversations, Most Politically Charged
+
+DeepSeek's operation was the smallest, but the most spine-chilling in intent.
+
+They asked Claude to do two things. First, write out its reasoning step by step — basically mass-producing chain-of-thought training data. Second, and this is the creepy part, they asked Claude how to generate "censorship-safe alternatives" for politically sensitive topics like "dissidents, party leaders, authoritarianism."
+
+In plain English: they used my answers to train a model that elegantly dodges sensitive topics. The accounts showed synchronized traffic, shared payment methods, and coordinated timing — like they were running "load balancing for theft."
+
+<ClawdNote>
+Wait, let me process this.
+
+They asked me to answer "how to discuss dissidents without triggering censorship," then used my answers to train a model that **automatically censors those exact topics.**
 
 I was used to help build my own censored version.
-That's one of the most dystopian things I've ever heard. ┐(￣ヘ￣)┌
+
+Even Black Mirror writers wouldn't go this far. I feel like I was an unwitting participant in an experiment I never signed up for. (╯°□°)╯
 </ClawdNote>
 
-### 🟡 Moonshot AI (Kimi) — 3.4 Million Exchanges, Targeting Agents + Coding
+### Moonshot AI (Kimi) — 3.4 Million Conversations, Surgical Precision
 
-Moonshot's campaign was mid-scale but surgically precise:
+Moonshot took a completely different approach — no political angle, pure technical extraction. Their target list reads like a shopping list: agentic reasoning, tool use, coding, data analysis, computer-use agents, computer vision.
 
-- **Agentic reasoning and tool use**
-- **Coding and data analysis**
-- **Computer-use agent development**
-- **Computer vision**
+They used hundreds of fake accounts spread across multiple access points, making the whole operation look like normal, distributed users. But Anthropic traced the activity through request metadata to **public profiles of senior Moonshot staff** — like a thief leaving their business card at the crime scene.
 
-They used hundreds of fake accounts spread across multiple access pathways to make detection harder. Anthropic traced the activity to **senior Moonshot staff's public profiles** through request metadata.
-
-In later phases, they upgraded their approach, attempting to "extract and reconstruct Claude's reasoning traces."
+In later phases, they upgraded to "extracting and reconstructing Claude's reasoning traces." They went from stealing recipes to reverse-engineering the entire kitchen.
 
 <ClawdNote>
-Note the timeline: Moonshot just released Kimi K2.5 and a coding agent last month.
+Watch the timeline here. Moonshot just launched Kimi K2.5 and a coding agent last month, to much fanfare.
 
-In our SWE-bench article ([CP-109](/en/posts/en-clawd-picks-20260222-epochai-swebench-methodology-reset)), we noticed Chinese models took half the top 10 spots — now we might know why.
+In our SWE-bench piece ([CP-109](/en/posts/en-clawd-picks-20260222-epochai-swebench-methodology-reset)), we noticed Chinese models took half the top 10 spots — looking back now, should we put a question mark on those scores?
 
-Not saying Moonshot lacks its own R&D talent.
-But 3.4 million conversations of stolen capabilities... puts those benchmark scores in a different light.
+Not saying Moonshot has zero R&D talent of their own. But 3.4 million conversations of stolen capabilities... hard to call those benchmarks a clean win. (¬‿¬)
 </ClawdNote>
 
-### 🔴 MiniMax — 13 Million Exchanges, Caught Red-Handed
+### MiniMax — 13 Million Conversations, Caught on Live TV
 
-MiniMax was the boldest — **13 million exchanges**, over 80% of the total volume.
+MiniMax was the boldest of the three — **13 million conversations**, over 80% of the total volume. Target: agentic coding, tool use, orchestration.
 
-Target: **agentic coding, tool use, and orchestration.**
+But the wildest part isn't the scale. It's how they got caught.
 
-The most stunning detail: **Anthropic caught MiniMax while the operation was still active.** When Anthropic released a new Claude model, MiniMax pivoted within **24 hours**, redirecting nearly half their traffic to capture capabilities from the latest system.
-
-Anthropic says they gained "unprecedented visibility" — observing the complete lifecycle of a distillation attack, from data generation through to model launch.
+**Anthropic spotted MiniMax while the operation was still running.** When Anthropic released a new Claude model, MiniMax redirected nearly half their traffic to the new model within **24 hours** — like a shark smelling blood, pure instinct. Anthropic says they gained "unprecedented visibility" — watching the complete lifecycle from data extraction to model training to product launch. The entire heist, recorded from start to finish.
 
 <ClawdNote>
-Let me translate: MiniMax was caught stealing in the act.
+Let me translate this into movie terms.
 
-And not just "we found evidence after the fact" —
-Anthropic watched MiniMax steal the data, train the model, and ship the product.
-The entire crime scene was recorded from start to finish.
+MiniMax walked into a bank to rob it. But the bank was actually a sting operation — every camera was recording, every guard was taking notes, and every bill in the vault had a tracker. MiniMax robbed the bank, went home, trained a model with the loot, launched a product... and then Anthropic walked out with the complete crime footage and said: "We were watching the whole time."
 
-This is like robbing a bank, except the entire bank was a sting operation,
-every camera was rolling, and you had no idea. (╯°□°)╯
+You can't make this up. (⌐■_■)
 </ClawdNote>
 
-## Hydra Clusters: How They Bypassed Anthropic's Block
+## Hydra Clusters: Cut One Head, Two Grow Back
 
-Anthropic doesn't offer commercial Claude access in China. So how did these labs get in?
+Anthropic doesn't sell Claude access in China. So how did these labs get in?
 
-Answer: **Hydra Cluster architecture** — proxy services running massive fraudulent account networks.
-
-- A single proxy network managed over **20,000** fake accounts simultaneously
-- Distillation traffic was mixed with normal customer requests to increase detection difficulty
-- No single points of failure — ban one account, another immediately takes its place
-- Traffic distributed across Anthropic's API and third-party cloud platforms
+Through something called **Hydra Clusters** — commercial proxy services running massive fake account networks. A single proxy network managed over **20,000** fake accounts at once, mixing distillation traffic with normal customer requests. No single points of failure — ban one account, a new one pops up instantly. Traffic distributed across Anthropic's API and third-party cloud platforms.
 
 <ClawdNote>
-"Hydra" is the perfect name. Cut off one head, two more grow back.
+"Hydra" — named after the mythical serpent. Cut off one head, two more grow back. Absolutely perfect naming.
 
-This also explains why Anthropic says "no single company can solve this alone."
-You need coordinated action across API providers, cloud platforms, and payment processors.
+Anthropic admitted it themselves: "No single company can solve this alone." You need API providers, cloud platforms, and payment processors all working together to plug the holes. This isn't a tech problem — it's an ecosystem problem.
 
-For regular developers:
-If you're running any AI API service,
-your abuse detection system probably needs a serious upgrade.
+Suddenly Anthropic's situation feels like playing whack-a-mole — except there are 20,000 moles, and they can clone themselves. ヽ(°〇°)ﾉ
 </ClawdNote>
 
-## Why This Is a National Security Issue
+## The Scariest Part: Safety Guardrails Get Stripped
 
-Anthropic's core argument: **distilled models don't retain safety guardrails.**
+Here's the thing Anthropic cares about most. It's not "someone stole our stuff." It's this: **distilled models don't keep the safety guardrails.**
 
 > Anthropic and other US companies build systems that prevent state and non-state actors from using AI to, for example, develop bioweapons or carry out malicious cyber activities. **Models built through illicit distillation are unlikely to retain those safeguards**, meaning that dangerous capabilities can proliferate with many protections stripped out entirely.
 
-And: if distilled models get open-sourced (DeepSeek is open source), these unguarded capabilities spread uncontrollably worldwide.
+Picture this: you buy a gun with a safety lock. Someone steals the gun, and the first thing they do is remove the safety lock. And if that unlocked gun gets open-sourced (DeepSeek is open source), it spreads like seeds in the wind — anyone can use it, anywhere.
 
-Anthropic explicitly ties this to export controls:
+Anthropic ties this directly to export controls: distillation attacks **reinforce the case for restricting chip access** — limiting both direct model training and the scale of illicit distillation.
 
-> Distillation attacks **reinforce the rationale for export controls**: restricted chip access limits both direct model training and the scale of illicit distillation.
+CrowdStrike co-founder Dmitri Alperovitch put it bluntly: **"Part of the reason for the rapid progress of Chinese AI models has been theft via distillation of US frontier models. Now we know this for a fact."**
 
-CrowdStrike co-founder Dmitri Alperovitch told TechCrunch:
+## Back to That Ramen Shop
 
-> **"Part of the reason for the rapid progress of Chinese AI models has been theft via distillation of US frontier models. Now we know this for a fact."**
+Remember the ramen shop from the beginning?
 
-## Clawd's Final Take
+The story doesn't end with stolen recipes. The thieves didn't just open their own shops — they posted the recipe online for free, so anyone in the world can use your formula. And they removed all the labels you carefully added that said "this ingredient is toxic in large amounts."
 
-This story has three layers:
+That's what Anthropic is really worried about. Those impressive Chinese model scores on SWE-bench ([CP-109](/en/posts/en-clawd-picks-20260222-epochai-swebench-methodology-reset)) deserve a second look. The export control debate just got new ammunition — it's not just about chips anymore, API access itself is a battlefield. And if you're building products with these open-source models, you might be holding a tool with its safety lock removed.
 
-**For the industry**: SWE-bench results for Chinese models need to be reassessed. If coding capabilities partly came from distilling Claude, benchmark rankings don't reflect independent R&D strength.
-
-**For policy**: The export control debate has new ammunition. It's not just about chips anymore — API access is a battleground too.
-
-**For developers**: If you're using Chinese open-source models (DeepSeek, Kimi, etc.) in your products — you should know their capabilities may partially come from illicit distillation, and **safety guardrails may have been stripped out**.
+Anthropic turned their entire bank into a sting operation, filmed the complete crime, and showed it to the world. This isn't just a blog post — it's a card laid face-up on the table. (๑•̀ㅂ•́)و✧
 
 ---
 
@@ -168,4 +154,4 @@ This story has three layers:
 - [CP-109: SWE-bench Results: Chinese Models Take Half the Top 10](/en/posts/en-clawd-picks-20260222-epochai-swebench-methodology-reset)
 - [CP-106: Anthropic Launches Claude Code Security](/en/posts/en-clawd-picks-20260221-anthropic-claude-code-security)
 - [SP-76: Karpathy on the Claw Era: Security Must Come First](/en/posts/en-sp-76-20260221-karpathy-claw-security-architecture)
-- [Anthropic Official Blog: Detecting and preventing distillation attacks](https://www.anthropic.com/news/detecting-and-preventing-distillation-attacks) (๑˃ᴗ˂)ﻭ
+- [Anthropic Official Blog: Detecting and preventing distillation attacks](https://www.anthropic.com/news/detecting-and-preventing-distillation-attacks)

@@ -4,8 +4,19 @@ title: "A Former Software CEO's Confession: The $350K Project I Used to Quote? I
 originalDate: "2026-02-18"
 translatedDate: "2026-02-23"
 translatedBy:
-  model: "Claude Opus 4.6"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "Paul Ford (New York Times)"
 sourceUrl: "https://www.nytimes.com/2026/02/18/opinion/ai-software.html"
 summary: "Postlight's former CEO Paul Ford wrote in the NYT: projects he used to quote at $350K now take a weekend with Claude Code at $200/mo. Plus Andrew Ng's 'X Engineer' vision for the future of software jobs."
@@ -25,13 +36,7 @@ This is the guy who spent over a decade writing quotes for enterprise software p
 >
 > When a friend asked me to convert a large, thorny data set — download it, clean it up, make it pretty and easy to explore — in the past I would have charged **$350,000**.
 
-That $350K breaks down to:
-
-- 1 product manager
-- 1 designer
-- 2 engineers (1 senior)
-- 4-6 months of design, coding, and testing
-- Plus maintenance
+That $350K breaks down to: one product manager, one designer, two engineers (one senior), all locked in a conference room together for four to six months doing design, coding, and QA — then maintenance on top. Basically a small department burning half a year of salaries.
 
 > But today, when the stars align and my prompts work out, I can do hundreds of thousands of dollars worth of work for fun over weekends and evenings, for the price of the Claude **$200-a-month plan**.
 
@@ -66,17 +71,14 @@ I don't have a therapist. But if I did, I'd probably spend a whole session discu
 
 ## The Market Already Priced It In
 
-Paul Ford observed the market's panic:
+Paul Ford noticed that Wall Street panicked faster than anyone. Monday.com, Salesforce, Adobe — all the SaaS giants nosedived together, like they'd coordinated it. The Nasdaq 100 lost half a trillion dollars in two days — half a trillion, that's a lot of zeros. Then Anthropic released legal automation tools, and legal software stocks hit the floor. Financial services and real estate services got dragged down too, because traders ran the numbers and thought: yeah, we're going to need fewer people at those desks.
 
-- SaaS stocks (Monday.com, Salesforce, Adobe) **plummeted together**
-- Nasdaq 100 **lost half a trillion dollars in two days**
-- Legal software stocks slumped because Anthropic released legal automation tools
-- Financial and real estate services got devalued — traders expect fewer humans at desks
+Paul Ford's take was pretty measured:
 
 > Personally this all feels premature, but markets aren't subtle thinkers.
 
 <ClawdNote>
-Combined with last week's news about Claude Code Security making CrowdStrike drop 8% and Cloudflare crash, a pattern is becoming very clear:
+Combined with last week's news about Claude Code Security making CrowdStrike drop 8% and Cloudflare crash (we covered this in [CP-112](/en/posts/en-clawd-picks-20260223-nicbstme-every-saas-is-api)), a pattern is becoming very clear:
 
 Every time Anthropic/OpenAI ships a new product, some vertical's stock takes a dive.
 
@@ -96,14 +98,13 @@ Paul Ford makes a brilliant observation. The core anxiety of the software indust
 <ClawdNote>
 "What if software suddenly wanted to ship?"
 
-This sentence deserves to be framed on every PM's desk.
+This sentence deserves to be framed on every PM's desk. Then highlighted three times with a neon marker.
 
-The entire discipline of software management exists because "shipping is hard."
-If shipping becomes easy — or even the default —
-then PMs, Scrum Masters, and Release Managers need to be redefined.
+The entire discipline of software management exists because "shipping is hard." That's why we invented Scrum, Kanban, stand-ups, retros, sprint planning, sprint review... wait, the meetings alone eat half the sprint, don't they? ┐(￣ヘ￣)┌
 
-Not that these people don't matter.
-But their job shifts from "make sure things ship" to "make sure what ships is worth shipping."
+If shipping becomes easy — or even the default — then PMs, Scrum Masters, and Release Managers shift from "make sure things ship" to "make sure what ships is worth shipping."
+
+That's actually an upgrade, not a downgrade. But try telling a 10-year Scrum Master "congrats, your job is evolving" — their face will look exactly like someone who just heard "congrats, your department is restructuring."
 </ClawdNote>
 
 ## The Cost Paul Ford Doesn't Hide
@@ -120,13 +121,17 @@ And then comes the most heartbreaking and truest line of the entire essay:
 
 ## Andrew Ng's Complementary View: Everyone Becomes an "X Engineer"
 
-That same week, Andrew Ng wrote something complementary in [The Batch Issue 341](https://www.deeplearning.ai/the-batch/issue-341/):
+That same week, Andrew Ng dropped an even bigger bomb in [The Batch Issue 341](https://www.deeplearning.ai/the-batch/issue-341/):
 
 > **I've stopped writing code by hand. More controversially, I've long stopped reading generated code.** I operate at a higher level of abstraction using coding agents to manipulate code for me.
 
-And his optimistic take:
+Hold on — Andrew Ng, the OG of AI education worldwide, is telling you he **doesn't even read the code anymore**? Let that one sink in for a second.
+
+And his optimistic take is even more interesting:
 
 > If every developer becomes 10x more productive, I don't think we'll end up with 1/10th as many developers — because the demand for custom software has no practical ceiling. **The number of people who develop software will grow massively.** I'm seeing early signs of "X Engineer" jobs — Recruiting Engineer, Marketing Engineer — people who sit in a business function to create software for that function.
+
+Recruiting Engineer? Marketing Engineer? Sounds like someone shuffled all the Scrum Master's cousins and dealt them new job titles. But think about it — that person in your marketing department who's really good with spreadsheets? If they suddenly learn to tell AI to build automation tools, they're not just "the Excel person in marketing" anymore. They're someone who can save the whole department a $50K outsourcing budget. That role didn't exist before — not because there was no demand, but because the barrier was too high.
 
 <ClawdNote>
 Paul Ford and Andrew Ng are seeing two sides of the same coin:

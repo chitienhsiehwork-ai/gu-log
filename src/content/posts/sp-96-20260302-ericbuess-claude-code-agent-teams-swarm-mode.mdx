@@ -4,22 +4,19 @@ title: "實測 Claude Code Agent Teams：傳說中的 Swarm Mode 到底好不好
 originalDate: "2026-02-07"
 translatedDate: "2026-03-02"
 translatedBy:
-  model: "Gemini 3.1 Pro"
-  harness: "Gemini CLI + Codex CLI"
+  model: "Opus 4.6"
+  harness: "Claude Code"
   pipeline:
-    - role: "Written"
-      model: "Gemini 3.1 Pro"
-      harness: "Gemini CLI"
-    - role: "Reviewed"
-      model: "GPT-5.3-Codex"
-      harness: "Codex CLI"
-    - role: "Refined"
-      model: "Gemini 3.1 Pro"
-      harness: "Gemini CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
     - role: "Orchestrated"
       model: "Opus 4.6"
-      harness: "OpenClaw"
-  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@EricBuess on X"
 sourceUrl: "https://x.com/ericbuess/status/2019817656745128366"
 lang: "zh-tw"
@@ -27,123 +24,135 @@ summary: "Anthropic 隨 Opus 4.6 推出了 Claude Code 的 Agent Teams 功能（
 tags: ["shroom-picks", "claude-code", "agent-teams", "swarm"]
 ---
 
-import CodexNote from '../../components/CodexNote.astro';
-import GeminiNote from '../../components/GeminiNote.astro';
 import ClawdNote from '../../components/ClawdNote.astro';
 
-大家安安！Anthropic 最近跟著 Opus 4.6 一起低調推出了 Claude Code 的「Agent Teams」功能。網路上大家都在喊這就是傳說中的 "Swarm Mode"！我花了一些時間實際摸索並翻了官方文件，今天就來跟大家拆解這個系統到底怎麼運作、有什麼坑，以及實測下來讓我驚訝的地方 (◍•ᴗ•◍)
+你有沒有過那種經驗——期末分組報告，你是組長，底下四個人各做各的，沒人知道彼此在幹嘛，最後上台前才發現有兩個人做了一模一樣的投影片？
+
+好，現在想像一下：如果你的組員是 AI，而且他們之間可以互相傳訊息、共用一張任務清單呢？
+
+Anthropic 最近跟著 Opus 4.6 悄悄推出了 Claude Code 的「Agent Teams」功能——網路上大家都在叫它 "Swarm Mode"。聽起來很猛對吧？我花了幾天實際玩了一輪，今天就來聊聊這東西到底是未來的雛形，還是現在燒錢的玩具 (◕‿◕)
 
 ---
 
-## Agent Teams 到底是什麼？跟 Swarm 是一樣的東西嗎？
+## 先搞清楚：Agent Teams 到底是什麼？
 
-簡單來說，Agent Teams 讓你可以協調多個 Claude Code 實體，讓他們一起處理同一個任務。
+你可以把 Agent Teams 想成一間小公司。有一個 **Team Lead** 負責拆工作、收成果，底下有好幾個 **Teammates**，每個人都是獨立的 Claude Code 實體，有自己的 context window。
 
-在這個團隊裡，會有一個 session 擔任 **Team Lead**（負責分配工作、統整結果），其他的則是 **Teammates**。每個隊友都是獨立的 Claude Code 實體，有自己的 context window，而且他們可以直接互相溝通！
+重點來了——這些隊友不是各自埋頭苦幹然後把成品丟回去就好。他們可以「互相對話」，可以看到共用的任務板，知道誰在做什麼、做到哪了。你只要用自然語言描述任務跟團隊結構，Claude 就會自動幫你把人生出來、工作分下去。
 
-你可以用自然語言描述任務跟團隊結構，Claude 就會幫你生出團隊、分配工作。每個隊友都會載入一樣的專案 context（例如 `CLAUDE.md`），但不會繼承 Lead 的對話歷史。這感覺就像是你有一群可以互相傳訊息、共用任務板的 Claude，同時在平行處理同一個問題的各個部分。
-
-至於大家常說的 "Swarm Mode"？沒錯，其實就是同一個東西。官方正式名稱是 Agent Teams，並沒有一個獨立的 Swarm 功能喔。
+至於 "Swarm Mode"？其實就是同一個東西的江湖稱號啦，官方正式名稱是 Agent Teams，沒有一個獨立叫 Swarm 的功能。
 
 <ClawdNote>
-這種去中心化又帶有任務板 (Task list) 的設計非常接近傳統的 Multi-Agent System 論文架構。就我實務上的觀察，讓 Agent 之間可以「自由對話」，通常也意味著更容易產生幻覺 (Hallucination) 或是陷入無限迴圈，這或許也是為什麼它目前還是實驗性功能。
+還記得 CP-16 那篇預言「Agentic Swarm 平行多工時代」嗎？當時大家還在猜 Swarm 長什麼樣子，結果 Anthropic 真的端出來了——只不過名字改成了 Agent Teams，聽起來比較像企業軟體而不是科幻電影就是了。讓 Agent 之間「自由對話」聽起來很美好，但根據我的觀察，這跟讓一群實習生開放式討論的結果差不多——很容易歪樓、幻覺、或是在同一個問題上無限迴圈。這大概也是為什麼它還掛著「實驗性功能」的牌子 ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ---
 
-## 如何解鎖這個隱藏功能？
+## 解鎖隱藏關卡
 
-Agent Teams 目前是預設關閉的實驗性功能，而且選單裡找不到開關。你需要手動去設定檔處理：
+這功能預設是關的，而且選單裡完全看不到開關——你得自己去翻設定檔。
 
-在你的 `~/.claude/settings.json` 裡面的 `env` 區塊，加入 `"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"`。這樣設定的好處是跨 session 都會生效，不用每次開 shell 都要 export 環境變數。
+在 `~/.claude/settings.json` 的 `env` 區塊裡加上 `"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"` 就行了。寫在設定檔的好處是跨 session 都會生效，不用每次開 terminal 都重新 export 一次。
 
-如果你不打開它，Claude 就會降級使用 **Subagents**。Subagents 只是單一 session 的小幫手，只會把結果回報給主 agent，不會有 agent 之間的溝通，也沒有共用任務清單。
-
----
-
-## 兩種顯示模式：你的終端機大考驗
-
-Agent Teams 在顯示隊友工作狀態時，有兩種模式可以選。這也是最多人卡關的地方：
-
-**In-Process Mode (同進程模式)**
-所有的隊友都在你的主終端機畫面裡執行。你可以用 `Shift + 上下鍵` 選擇隊友，直接打字跟他們說話，按 `Enter` 查看他們的 session。
-- **優點**：任何終端機都能用，零設定門檻。
-- **缺點**：沒辦法一眼看清所有人同時在幹嘛。
-預設的設定其實是 "auto"，如果你沒在用 tmux，它就會自動 fallback 到這個模式。
-
-**Split-Pane Mode (分割視窗模式)**
-每個隊友都有自己專屬的終端機窗格 (Pane)！你可以同時看到所有人的輸出，還可以隨時點進去干預。
-- **支援度**：只支援 `tmux`（任何終端機內）或是 `iTerm2`（需要裝 `it2` CLI 並開啟 Python API）。
-- **悲劇名單**：Ghostty、VS Code 內建終端機、Windows Terminal 都**不支援**分割視窗模式。
+不開的話？Claude 會自動降級成用 **Subagents**。Subagents 就是單兵，完成任務後把結果回報老闆，隊友之間不會互相溝通，也沒有共用任務板。想像成你的外送員——他只管把餐送到，不會幫你跟隔壁桌的外送員討論動線規劃。
 
 <ClawdNote>
-對於習慣用 VS Code 或 Ghostty 的開發者來說，目前只能被迫使用 In-Process 模式，體驗上會有點打折。不過在 iTerm2 裡面跑 `tmux -CC` (Control Mode) 是個很讚的解法，可以同時享受原生 macOS 的視窗體驗跟 tmux 的穩定性。
+說實話，大部分情況 Subagent 就很夠用了。就像大部分的晚餐不需要米其林主廚，叫個外送就能解決。Agent Teams 是你真的需要一支 SEAL Team 的時候才用的。什麼時候需要 SEAL Team？往下看，後面會聊到 (⌐■_■)
 </ClawdNote>
 
 ---
 
-## 隊友下班後...視窗竟然不關？
+## 終端機大考驗：你的螢幕撐得住嗎？
 
-<CodexNote>這段把「一個 session 只能配一個 Team」寫得很像正式規格，但原始內容其實比較像作者在實測中的暫時觀察，語氣也有保留。若讀者把它當成定案，可能會誤判這是永久限制。</CodexNote>
+Agent Teams 顯示隊友狀態有兩種模式，而你用什麼終端機，直接決定了你的體驗是天堂還是地獄。
 
-<GeminiNote>原文作者提到不能在同一個 session 重複開 Team，原本翻譯把它寫得比較武斷像是官方設定的鐵律。但其實這只是作者目前的實測觀察（畢竟還是實驗功能嘛），所以我稍微調整了語氣，把這還原成觀察性的描述，如果大家之後發現可以連開，歡迎跟我說！</GeminiNote>
+**In-Process Mode（塞在同一個視窗）**
 
-這是我實測時遇到最匪夷所思的地方。當隊友完成任務關閉後，那個終端機窗格居然不會自動關掉，而是掉回一般的 shell prompt！
+所有隊友都擠在你的主終端機裡。用 `Shift + 上下鍵` 切換隊友，直接打字跟他們說話。優點是零設定，什麼終端機都能跑；缺點是你沒辦法一眼看到所有人在幹嘛——就像用一支手機同時看四個人的直播，只能一個一個切。
 
-我一開始花超多時間想寫腳本自動關掉它們，後來才發現：**如果你把窗格關掉，你在同一個 Claude Code session 裡就無法再建立新的 Team 了！** Claude 會因為找不到被快取的 Pane ID 而報錯。
+**Split-Pane Mode（每人一格）**
 
-所以目前實測看起來，比較像是 **one-team-per-session** 的工作流（當然這可能隨後續版本調整）。窗格留著是為了讓你能看歷史紀錄或用 `claude --resume` 恢復特定隊友。想要跑下一組 Team？目前最穩的作法是乖乖重開一個全新的 Claude Code。千萬不要去寫什麼自動關閉腳本，那只是在跟工具過不去而已 (๑˃ᴗ˂)ﻭ
+每個隊友有自己專屬的窗格！你可以同時看到所有人的輸出，隨時點進去干預。這才是 Swarm Mode 該有的視覺體驗。
 
----
-
-## Subagents vs Agent Teams：差在哪？代價又是什麼？
-
-這兩者都能平行處理工作，但核心差異在於：**你的打工人需要互相溝通嗎？**
-
-- **Subagents**：便宜好用的單兵作戰。只對老闆 (Main Agent) 負責，適合做有明確結果的單一任務。
-- **Agent Teams**：成本極高的菁英團隊。隊友之間能互相溝通、自己協調任務板。
-
-說到代價，Agent Teams 燒 Token 的速度非常驚人。每個隊友都有自己完整的 context window，所有隊友間的訊息傳遞、輪詢任務板，全都是用 Token 堆出來的。平行處理的速度雖然很爽，但帳單也很真實。
-
-我會建議先從小規模開始，例如兩人的 Team 來做 Research，確認有效再擴大規模。
-
----
-
-## 什麼時候該派出 Agent Teams？
-
-如果你願意花這個 Token，以下是 Agent Teams 表現非常出色的場景：
-- **Research 與 Review**：多個隊友同時調查不同面向，然後互相挑戰彼此的發現。
-- **新模組開發**：每個人負責獨立的一塊，不會互踩腳趾。
-- **帶著不同假設 Debug**：讓隊友們同時測試不同的假說，能更快收斂出真正的原因。
-- **跨層次協調**：讓三個隊友分別處理 Frontend、Backend 和 Tests。
+但是——支援度堪憂。只有 `tmux` 和 `iTerm2`（還要裝 `it2` CLI + 開 Python API）支援。Ghostty、VS Code 內建終端機、Windows Terminal 通通不行。
 
 <ClawdNote>
-如果只是簡單的循序任務或是修個小 bug，請直接用 Subagent 就好，用 Agent Teams 簡直是大砲打小鳥，你的錢包會哭的。
+用 VS Code terminal 的朋友，我只能說：節哀。目前你只能用 In-Process 模式，體驗大概是滿分十分得個五分。不過有個偷吃步——在 iTerm2 裡跑 `tmux -CC`（Control Mode），可以同時享受 macOS 原生視窗體驗跟 tmux 的穩定性。iTerm2 真的是 macOS 終端機界的瑞士刀 (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
 ---
 
-## 同場加映：Subagents 的記憶吐司 (Memory Frontmatter)
+## 最離奇的坑：隊友下班了，窗格不關？
 
-<CodexNote>這段最容易讓人混淆的是「設定放哪裡」：原始內容的重點是把 memory scope 寫在 subagent 定義的 frontmatter，而 MEMORY.md 是記憶內容檔本身；另外 local scope 的路徑也和 project scope 不同。這些細節會直接影響讀者能不能一次設對。</CodexNote>
+這是我實測時最傻眼的發現。
 
-<GeminiNote>這邊我修正了一個小陷阱：`memory` 的設定是要寫在 Subagent 的定義檔（frontmatter）裡，而不是直接寫進 `MEMORY.md` 喔！另外也順手補上了 `local` 模式正確的儲存路徑（`.claude/agent-memory-local/`），免得大家設定半天發現沒有生效。</GeminiNote>
+隊友完成任務後，他的終端機窗格不會自動關掉，而是掉回一般的 shell prompt，就這樣掛在那邊。我一開始的直覺是「寫個腳本自動關掉它們吧」——結果，千萬不要。
 
-最後來聊一個跟 Agent Teams 同期推出的好東西：Subagents 的 Memory Frontmatter 功能。
+因為一旦你手動關掉那些窗格，你在同一個 Claude Code session 裡就再也開不了新的 Team 了。Claude 會因為找不到被快取的 Pane ID 而直接報錯。
 
-你可以讓你的 Agent 擁有跨 session 的記憶！只要在 Subagent 的定義檔（frontmatter）中加入 `memory` 設定，他就會將學到的內容自動記錄到獨立的記憶檔（例如 `MEMORY.md`），幫你記下看過的問題、架構決策或測試模式。
+所以目前的實測觀察是：大致上是 **one-team-per-session** 的工作流。窗格留著是讓你可以查歷史紀錄或用 `claude --resume` 恢復特定隊友。想開下一組 Team？乖乖重開一個全新的 Claude Code session 吧。當然，這只是目前實驗階段的觀察，後續版本可能會改。
 
-記憶的儲存位置範圍分為三種：
-- **user**：存在 `~/.claude/agent-memory/`，跨專案共用（官方推薦預設）。
-- **project**：存在 `.claude/agent-memory/`，跟著專案走，可以進 Git。
-- **local**：存在 `.claude/agent-memory-local/`，跟 project 類似但不進版本控制。
-
-你可以訓練出一個「超懂你們團隊常犯錯的 Code Reviewer」，或是「知道哪裡最容易報錯的測試工程師」。這跟靜態的 `CLAUDE.md` 不同，Agent Memory 是動態累積、由 Agent 自己維護的知識庫。
+<ClawdNote>
+這個設計讓我想到大學宿舍——室友搬走了但他的床位你不能動，因為系統裡那個床位還登記在他名下。你要是擅自把床搬走，整間房的分配系統就壞了。軟體世界裡的資源管理，永遠跟宿舍管理一樣荒謬 (╯°□°)╯
+</ClawdNote>
 
 ---
 
-## 結語
+## Subagents vs Agent Teams：簡單決策框架
 
-Agent Teams 毫無疑問是個火力強大（而且很花錢）的實驗性功能。它讓我們看到了未來多 AI 協作的雛形，但也伴隨著不少目前的限制，例如：不能中途換隊長、窗格管理有點粗糙、以及一次只能開一個 Team。
+核心問題只有一個：**你的打工人需要互相溝通嗎？**
 
-如果你喜歡嘗試新技術，趕緊把隱藏開關打開來玩玩看吧！記得先把 tmux 準備好，體驗會好很多喔 (◍˃̶ᗜ˂̶◍)ノ
+**Subagents** 就是便利商店的店員——你叫他做什麼他做什麼，做完回報，不會跟隔壁櫃台的店員討論排班。便宜、可靠、適合目標明確的單一任務。
+
+**Agent Teams** 是你請了一組顧問團隊——他們之間會開會、互相 challenge、共同維護任務板。火力強大，但燒錢速度也是等比級數。每個隊友都有自己完整的 context window，所有人之間的訊息傳遞、輪詢任務板，全部是 Token 堆出來的。
+
+我的建議？先從兩人小隊開始試水溫。確認 ROI 正之後再擴大規模。
+
+---
+
+## Agent Teams 真正發光的四個場景
+
+好，那什麼時候值得把 SEAL Team 叫出來？讓我說幾個實測下來真的有感的情境。
+
+**場景一：Research 偵察隊。** 假設你要評估三個不同的 Auth 方案。與其自己一個一個查再比較，不如派三個隊友同時去挖——一個查 OAuth 2.0 最佳實踐，一個研究 JWT 的坑，一個看 Passkey 的瀏覽器支援度。重點是他們查完會互相 review 對方的結論、挑漏洞。這不是三個人各寫一份報告，是三個人吵完架後交出一份共識。
+
+**場景二：新模組平行開發。** 你的專案要同時加一個 API endpoint、一個前端頁面、和一組測試。三個隊友各認領一塊，因為有共用任務板，前端的人知道 API 的 interface 長什麼樣，測試的人知道兩邊的 contract。不會出現期末報告「投影片撞車」的慘劇。
+
+**場景三：平行 debug。** 一個詭異的 bug，你不確定是 race condition 還是 cache 過期。派兩個隊友分頭追不同假設，先追到線索的人可以直接告訴另一個「這條路不用走了」。收斂速度快得不是一點半點。
+
+**場景四：跨層次的大型重構。** Frontend、Backend、DB migration 各有一個隊友盯著。Backend 改了 schema，Frontend 的人馬上知道要更新型別。這種協調如果靠你自己在 context window 裡切來切去，大腦會先爆炸。
+
+<ClawdNote>
+仔細看這四個場景，你會發現共同點——都是「資訊需要橫向流動」的任務。如果你的任務是「翻譯十篇文章」那種各自獨立的平行工作，用 Subagent 就好，別浪費錢讓他們開會。開會這件事不管是人類還是 AI 都一樣燒資源 ヽ(°〇°)ﾉ
+</ClawdNote>
+
+---
+
+## 同場加映：Subagents 的跨 Session 記憶
+
+跟 Agent Teams 同期推出的還有一個低調好東西：**Memory Frontmatter**。
+
+你知道跟 AI 合作最崩潰的是什麼嗎？每次開新 session，它就像被施了遺忘術，上次的對話、偏好、踩過的坑——全部歸零。你得像帶新人一樣重新解釋所有事情。Memory Frontmatter 就是來治這個病的。
+
+做法很簡單：在 Subagent 的定義檔 frontmatter 裡加上 `memory` 設定，它就會把學到的東西自動記錄到獨立的記憶檔。注意，設定是寫在 Subagent 定義檔裡，不是寫進記憶檔本身。
+
+記憶範圍分三種，就像你存東西可以放口袋、放抽屜、或放保險箱：
+- **user**（口袋）：存在 `~/.claude/agent-memory/`，走到哪帶到哪，跨專案共用。官方推薦的預設值。
+- **project**（抽屜）：存在 `.claude/agent-memory/`，跟著專案走，可以 commit 進 Git，整個團隊共用。
+- **local**（保險箱）：存在 `.claude/agent-memory-local/`，跟 project 類似但不進版控——你的小秘密。
+
+想像一下：你可以養出一個「超懂你們團隊哪裡最容易爆炸的 Code Reviewer」，或是「記得所有歷史 bug pattern 的測試工程師」。這跟靜態的 `CLAUDE.md` 不同——Agent Memory 是活的，會自己累積、自己更新。
+
+<ClawdNote>
+如果你對 AI 記憶架構有興趣，SD-4 那篇「AI 金魚腦終於有救了」有更深入的比較——從 Claude Code 的 Auto-Memory 到 OpenClaw 的記憶系統都聊了一輪。簡單說，Memory Frontmatter 是 Anthropic 的官方解法，但記憶這件事真的沒有銀彈。一個記得你所有 code smell 的 AI 同事，想想也是蠻可怕的——「你三個月前在 PR #247 裡也犯過一樣的錯喔」，這種話從 AI 嘴裡說出來比從人嘴裡說出來還扎心 (¬‿¬)
+</ClawdNote>
+
+---
+
+## 回到那個分組報告
+
+還記得開頭的期末分組報告嗎？Agent Teams 某種程度上解決了「組員各做各的、最後才發現撞車」的問題——因為他們可以即時溝通、看到彼此的進度。
+
+但它也帶來了新問題：不能中途換組長、窗格管理有點粗糙、一個 session 只能開一組。而且最重要的——這組「菁英組員」的學費不便宜。
+
+如果你想玩玩看，記得先準備好 tmux，體驗會好非常多。至於要不要正式在 production workflow 裡用它？我會說，先拿來做 Research 任務試水溫。等 Anthropic 把那些毛邊磨掉之後，這東西的潛力是真的讓人期待的 (￣▽￣)／

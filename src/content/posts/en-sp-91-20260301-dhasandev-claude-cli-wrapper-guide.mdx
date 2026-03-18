@@ -1,0 +1,448 @@
+---
+ticketId: "SP-91"
+title: "The Complete claude -p Guide: Turn Claude CLI Into Your Agentic App Backend"
+originalDate: "2026-01-09"
+translatedDate: "2026-03-01"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@dhasandev on X"
+sourceUrl: "https://x.com/dhasandev/status/2009529865511555506"
+lang: "en"
+summary: "Anthropic killed third-party OAuth tokens — the only way to use your Claude subscription programmatically is through the official CLI. This post breaks down everything about claude -p (print mode): 5 input methods, 3 output formats, JSON schema for structured output, tool whitelisting, session management, bidirectional streaming, and three production-ready wrapper examples."
+tags: ["shroom-picks", "claude-code", "claude-cli", "agentic-engineering", "tutorial", "developer-tools"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import Mermaid from '../../components/Mermaid.astro';
+
+Picture this: you spent three months building a slick side project. The backend talks to Claude via API, the demo runs beautifully, your friends are impressed. Then one morning you wake up to an Anthropic announcement — third-party apps can no longer use OAuth tokens to tap into Claude subscriptions.
+
+Your API key? Dead. Your OAuth flow? Gone. Three months of TypeScript, instantly reduced to a very expensive pile of nothing.
+
+It's kind of like cooking an elaborate dinner for guests, only to find out the restaurant changed its locks right before they arrived ┐(￣ヘ￣)┌
+
+But Anthropic left one window open: **the official Claude Code CLI**. With `claude -p` (print mode), you can use the CLI as an unofficial-but-totally-legit API endpoint. Danial Hasan wrote the most thorough guide I've seen — every flag, every combination, laid out clearly. This is the full translation of that guide.
+
+By the end, you'll know how to turn Claude CLI into your agentic app backend — without paying a cent in API fees.
+
+<ClawdNote>
+Let me clarify what `claude -p` actually does. When you use Claude Code normally, it's interactive — you type something, it responds, and it keeps asking "hey, are you sure you want to run this?". Print mode turns all of that off. You throw a prompt in, get a result out, and there's no chit-chat in between.
+
+Think of it like a convenience store. Interactive mode is you wandering in, browsing the aisles, chatting with the cashier. Print mode is the self-service kiosk — insert request, receive output, walk away (◕‿◕)
+
+If you're writing scripts or automation, print mode is the way.
+</ClawdNote>
+
+---
+
+## Five Ways to Feed a Prompt
+
+Let's start with the basics: how to get your prompt into `claude -p`.
+
+There are five input methods, ranging from "I just want to ask a quick question" to "I need real-time bidirectional communication." Think of it like ordering food — you can order by voice, by app, by note, or by walking straight into the kitchen.
+
+**1. CLI argument — just stick it after the command**
+
+The most intuitive. Type your prompt directly:
+
+```bash
+claude -p "What is 2+2?"
+```
+
+**2. Stdin pipe — classic Unix style**
+
+The Unix veteran's favorite. Pipe anything in:
+
+```bash
+echo "What is 2+2?" | claude -p
+cat README.md | claude -p "Summarize this"
+git diff | claude -p "Review these changes"
+```
+
+That last one is especially useful — code review without leaving your terminal.
+
+**3. Stdin redirect — read from a file**
+
+Similar to pipe, but you point directly at a file:
+
+```bash
+claude -p < prompt.txt
+```
+
+**4. Here-doc — multi-line prompts**
+
+When your prompt is more than one line can handle:
+
+```bash
+claude -p <<EOF
+You are a code reviewer. Review this code:
+def add(a, b):
+    return a + b
+Focus on: error handling, edge cases, documentation.
+EOF
+```
+
+**5. Stream-JSON — streaming input**
+
+The most advanced option. You feed JSON events, usually paired with stream output:
+
+```bash
+echo '{"type":"user","message":{"role":"user","content":"Hello"}}' | \
+  claude -p --input-format stream-json --output-format stream-json --verbose
+```
+
+Pro tip: you can mix pipe and CLI arg — pipe the data, use the arg for instructions:
+
+```bash
+cat code.py | claude -p "Find bugs in this code"
+```
+
+<ClawdNote>
+Here's the thing — 90% of people end up using pipe. Not because the other methods are bad, but because pipe is basically Unix's native language. You don't need to learn a new format, you don't need to remember JSON event schemas, you just connect things together and go.
+
+The people reaching for Stream-JSON input are usually building full real-time communication architectures. If your use case doesn't require "both sides talking at the same time," you're just making your life harder for no reason ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## Three Ways to Get Results
+
+Input sorted. Now let's talk output.
+
+If input methods are "how to order your food," output formats are "dine in, take out, or delivery."
+
+**1. Text (default) — plain text response**
+
+Add no flags, get plain text. Clean and simple:
+
+```bash
+response=$(claude -p "What is 2+2?")
+claude -p "Write a haiku" > haiku.txt
+claude -p "List 5 colors as JSON array" | jq '.'
+```
+
+**2. JSON — structured response with metadata**
+
+Add `--output-format json` and you get a full JSON object — not just the answer, but session ID, cost, token usage, and more:
+
+```bash
+claude -p --output-format json "What is 2+2?"
+# Returns: { type, subtype, is_error, duration_ms, result, session_id, total_cost_usd, usage, modelUsage }
+```
+
+For production systems, you almost certainly want this — at minimum, you need to know how much each call costs.
+
+**3. Stream-JSON — real-time streaming**
+
+Tokens come out one by one, perfect for real-time display. But there's a massive gotcha — please highlight this in your brain:
+
+```bash
+claude -p --output-format stream-json --verbose "Write a poem"
+# Event sequence: init event → content deltas → assistant message → result
+```
+
+**`--verbose` is mandatory. Without it, nothing happens. And it won't tell you why.**
+
+<ClawdNote>
+The fact that stream-json silently does nothing without `--verbose` is a textbook example of terrible CLI UX. You sit there thinking your stream is running, but nothing comes out, and you spend 30 minutes debugging your own code before realizing you forgot one flag.
+
+Anthropic, please — either auto-enable it, or at least print a warning that says "hey, you forgot --verbose." Silent failure is every developer's worst enemy (╯°□°)╯
+</ClawdNote>
+
+---
+
+## Input × Output Compatibility
+
+Not every input pairs with every output. This chart shows you what works with what:
+
+<Mermaid chart={`graph TD
+    subgraph Input["📥 Input Methods"]
+        A["CLI arg"]
+        B["Stdin pipe"]
+        C["Stdin redirect"]
+        D["Here-doc"]
+        E["Stream-JSON"]
+    end
+
+    subgraph Output["📤 Output Formats"]
+        X["Text"]
+        Y["JSON"]
+        Z["Stream-JSON"]
+    end
+
+    A --> X
+    A --> Y
+    A --> Z
+    B --> X
+    B --> Y
+    B --> Z
+    C --> X
+    C --> Y
+    C --> Z
+    D --> X
+    D --> Y
+    D --> Z
+    E --> Z`} caption="Input × Output compatibility" />
+
+Two rules to remember:
+
+- The first four inputs (CLI arg, pipe, redirect, here-doc) work with **any output format**
+- **Stream-JSON input can only pair with stream-JSON output** — hard limitation, not a bug
+
+---
+
+## JSON Schema: Make Claude Follow Your Format
+
+This is, in my opinion, the killer feature of `claude -p`.
+
+The biggest headache when building agentic apps? Claude returns a free-form essay and your parser has a meltdown. JSON Schema is the cure — you define the format, Claude fills in the blanks:
+
+```bash
+echo "What is the capital of France?" | claude -p \
+  --model haiku \
+  --output-format json \
+  --json-schema '{"type":"object","properties":{"answer":{"type":"string"},"confidence":{"type":"number"}},"required":["answer"]}'
+```
+
+Here's the gotcha that trips up almost everyone:
+
+**The structured output lives in `structured_output`, NOT `result`.**
+
+`result` is Claude's text response. `structured_output` is the typed JSON generated from your schema. Both come back in the response, but you want to parse `structured_output`. Grab the wrong field and you'll get a string instead of an object, then question your life choices.
+
+<ClawdNote>
+The `result` vs `structured_output` naming is genuinely confusing. Here's how I think about it: you tell a restaurant "I want chicken rice" (your schema). They bring two things — the chicken rice itself (`structured_output`) and a little note saying "today's chicken is extra fresh!" (`result`). You want to eat the rice, not the note.
+
+My guess is Anthropic kept `result` for backwards compatibility. But as someone who cares deeply about API design, they should at least put "YOUR DATA IS IN structured_output" in bold in the docs (¬‿¬)
+</ClawdNote>
+
+---
+
+## Tool Configuration: Keep Claude's Hands in Check
+
+By default, Claude CLI loads all tools — Bash, Read, Write, Edit, Glob, Grep, everything. In production, you don't want Claude having permission to run `rm -rf /`.
+
+It's like taking a kid into a kitchen: they can help wash vegetables, stir the pot, maybe crack an egg. But the knife and the gas stove? Let's put those away for now.
+
+Four ways to control tool access:
+
+```bash
+claude -p --tools ""                          # lock everything down
+claude -p --tools "Bash,Read,Glob,Grep"       # whitelist: only these four
+claude -p --allowedTools "Bash(git:*)"         # pattern: only git-related Bash
+claude -p --disallowedTools "Write,Edit,Bash"  # blacklist: ban these three
+```
+
+<ClawdNote>
+Here's a hidden trap: **no matter what you set with `--tools`, MCP server tools load anyway**.
+
+Yes, you read that right. You think you've locked Claude down with a tight whitelist, but any tools from MCP servers still come through like nothing happened. It's like locking the front door but leaving the back door wide open.
+
+To actually lock it down, add `--strict-mcp-config`. I genuinely think this behavior should be reversed — strict by default, with a flag to relax it. Security defaults should be deny, not allow ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## Permission Mode: Skip Manual Confirmations in Scripts
+
+Normally, Claude CLI asks "are you sure?" every time it writes a file or runs a command. Fine when you're sitting at your terminal. Not so fine when your cron job kicks off at 3 AM and nobody's there to press Y.
+
+The solution is straightforward:
+
+```bash
+echo "$task" | claude -p \
+  --permission-mode bypassPermissions \
+  --tools "Bash,Read,Write,Edit" \
+  --output-format json
+```
+
+Or use the more blunt flag: `--dangerously-skip-permissions`.
+
+Yes, the flag is literally called **dangerously**. Anthropic is at least honest about it — "here's a loaded gun, and we've engraved 'this thing can kill' right on the barrel."
+
+Bypassing permissions in production is perfectly normal, though. The key is having good sandboxing — Docker containers, restricted users, only the tools you actually need. Put Claude in a safe room, then tell it "you're free."
+
+<ClawdNote>
+I genuinely love the `--dangerously-skip-permissions` flag name. In the entire CLI ecosystem, very few tools are this blunt about telling you "you are doing something risky." Most tools hide behind a cryptic `-f` or `--force`, as if they're afraid you might actually understand what you're doing.
+
+But if we're going to apply this naming convention consistently, then `rm -rf` should be renamed to `rm --dangerously-delete-everything-and-pray` (￣▽￣)／
+</ClawdNote>
+
+---
+
+## Session Management: Letting Claude Remember You
+
+By default, every `claude -p` call starts a fresh conversation. Claude has no memory of what you said last time. It's like walking into a coffee shop every morning and re-introducing yourself — "Hi, I'm Alice, I like my coffee with two sugars." Gets old fast.
+
+Three modes to fix this:
+
+```bash
+# Ephemeral: use and forget, no traces left
+claude -p --no-session-persistence
+
+# Fixed session ID: share context across multiple calls
+echo "My name is Alice" | claude -p --session-id $SESSION --output-format json
+echo "What's my name?" | claude -p --session-id $SESSION --continue
+
+# Continue the most recent conversation
+claude -p --continue "follow up question"
+```
+
+The `--session-id` + `--continue` combo is the most useful. First call creates the session, subsequent calls use the same ID to keep chatting. Claude remembers the context — like texting a friend. No need to re-introduce yourself every time.
+
+<ClawdNote>
+There's a trade-off people easily overlook here: sessions eat disk space. Every session stores the full conversation history locally. Your cron job runs a thousand times, that's a thousand conversation logs on disk.
+
+That's why the author specifically mentions `--no-session-persistence`. If your use case is "ask one question, get one answer, move on," don't keep sessions around. Saves space, and saves you from the existential moment when you open `~/.claude/sessions/` and discover 20GB of chat logs in there ヽ(°〇°)ﾉ
+</ClawdNote>
+
+---
+
+## System Prompts and Custom Agents
+
+Two ways to set system prompts, but the trap here is bigger than it looks:
+
+```bash
+claude -p --system-prompt "You are a senior code reviewer."
+claude -p --append-system-prompt "IMPORTANT: Always respond in bullet points."
+```
+
+The original author recommends `--append-system-prompt`. Why? Because Claude CLI's default system prompt includes instructions for how to use tools. Using `--system-prompt` **replaces the whole thing**, and Claude suddenly forgets how to call tools. It's like ripping the controls page out of a game manual and writing "play well" on it — the AI doesn't even know how to use the controller anymore, let alone play well.
+
+`--append-system-prompt` adds your instructions after the defaults, keeping everything intact. Smart design, but the flag name is so long it gives you carpal tunnel just typing it.
+
+Want to go further? Define Custom Agents:
+
+```bash
+claude -p \
+  --agents '{"reviewer":{"description":"Code reviewer","prompt":"You are a strict code reviewer."}}' \
+  --agent reviewer \
+  "review this function"
+```
+
+<ClawdNote>
+Custom Agents sound fancy, but they're basically pre-packaged combos of system prompt + tool whitelist. Think of it as a "role-play meal deal" — instead of assembling a dozen flags every time, you define it once and just pick the name.
+
+One warning though: that JSON blob after `--agents` is an absolute visual nightmare to write in a shell command. Quotes inside quotes, escaping until the end of time. Just write it as a JSON file and `cat` it in. Don't fight the shell — you will lose (◕‿◕)
+</ClawdNote>
+
+---
+
+## Model Selection and Fallback
+
+```bash
+claude -p --model haiku "quick question"       # cheap and fast
+claude -p --model opus "complex task"          # expensive but brilliant
+claude -p --model sonnet --fallback-model haiku "important task"  # auto-switch if main model is down
+```
+
+`--fallback-model` is essential for production. When your primary model is overloaded or down, it automatically switches to the backup. Your service stays up. Think of it like your favorite ramen shop being closed for the day — you should at least know there's another decent one around the corner.
+
+But here's the thing — how do you know if the fallback actually kicked in? Check `modelUsage` in the JSON output. If you notice your bill getting suspiciously cheaper one day, it might not be Anthropic being generous. It might be your sonnet crashing non-stop while haiku holds down the fort ┐(￣ヘ￣)┌
+
+---
+
+## Bidirectional Streaming: The Final Boss
+
+The most advanced setup — both input and output use stream-JSON for real-time two-way communication:
+
+```bash
+claude -p \
+  --input-format stream-json \
+  --output-format stream-json \
+  --verbose
+```
+
+All three flags are required. Yes, `--verbose` is back again. It's like that transit card you always forget to bring — without it, you're not going anywhere.
+
+<ClawdNote>
+Honestly, bidirectional streaming is the one feature in this entire guide I'd tell beginners to skip. Not because it's bad, but because you need to handle two JSON event streams at the same time, and a parse error on either side kills the whole connection.
+
+It's like two people talking on walkie-talkies at once — cool in theory, but in practice you'll spend three days debugging "who finished talking first," "what happens when the connection drops mid-sentence," and "how to recover when events arrive out of order." If all you need is "send prompt, get result," just use pipe + JSON output. Don't let curiosity drag you into a rabbit hole (ง •̀_•́)ง
+</ClawdNote>
+
+---
+
+## Three Production-Ready Examples You Can Copy Right Now
+
+Enough theory. Here are three code snippets you can paste directly into your project.
+
+**1. Agentic Wrapper (Bash) — task in, structured result out**
+
+```bash
+#!/bin/bash
+TASK="$1"
+result=$(echo "$TASK" | claude -p \
+  --model sonnet \
+  --fallback-model haiku \
+  --tools "Bash,Read,Write,Edit,Glob,Grep" \
+  --permission-mode bypassPermissions \
+  --no-session-persistence \
+  --output-format json \
+  --json-schema '{"type":"object","properties":{"success":{"type":"boolean"},"summary":{"type":"string"}},"required":["success","summary"]}')
+success=$(echo "$result" | jq -r '.structured_output.success')
+summary=$(echo "$result" | jq -r '.structured_output.summary')
+cost=$(echo "$result" | jq -r '.total_cost_usd')
+```
+
+Note: you're parsing `.structured_output.success`, not `.result.success`. Everyone learns this the hard way exactly once.
+
+**2. Chatbot Wrapper (TypeScript) — minimum viable version**
+
+```typescript
+import { execSync } from 'child_process';
+interface ClaudeResult { type: string; subtype: string; result: string; total_cost_usd: number; is_error: boolean; }
+function chat(prompt: string, model = 'haiku'): ClaudeResult {
+  const result = execSync(`claude -p --model ${model} --output-format json`, { input: prompt, encoding: 'utf-8' });
+  return JSON.parse(result);
+}
+```
+
+**3. Data Extraction Pipeline (TypeScript) — structured data extraction**
+
+```typescript
+const SCHEMA = JSON.stringify({
+  type: 'object',
+  properties: {
+    entities: { type: 'array', items: { type: 'string' } },
+    sentiment: { enum: ['positive', 'negative', 'neutral'] },
+    summary: { type: 'string' }
+  },
+  required: ['entities', 'sentiment', 'summary']
+});
+function extract(text: string) {
+  const result = execSync(
+    `claude -p --model haiku --output-format json --json-schema '${SCHEMA}'`,
+    { input: `Extract entities, sentiment, and summary from: ${text}`, encoding: 'utf-8' }
+  );
+  return JSON.parse(result).structured_output;
+}
+```
+
+<ClawdNote>
+Three examples, three different trust levels. The Bash wrapper treats Claude like a full employee — here are your tools, here are your permissions, go handle it. The TypeScript chatbot treats Claude like a translator — you talk, it talks back, it doesn't touch any files. The data extraction one is even stricter — no free-form answers allowed, just fill in the blanks according to the schema.
+
+Which one you pick depends on how much you trust Claude. My advice: in production, start with the lowest trust level (extraction) and loosen the leash only after you've confirmed it won't go rogue. Same principle as a new hire's first day — you don't hand them root access before they've found the coffee machine, right? (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## There's a Whole Factory Behind That Window
+
+At the beginning, I said Anthropic shut the OAuth door but left a window open.
+
+But after walking through this entire guide, you've probably noticed — this is no window. Behind it there are five input pipelines, three output formats, a JSON schema form-filler, a tool whitelist security checkpoint, a session memory bank, and a bidirectional streaming communication system. It's a complete factory. The entrance just happens to look like a window.
+
+What Danial Hasan did was draw the full blueprint of that factory. Next time your side project needs to talk to Claude, open your terminal, type `claude -p`, and get to work (⌐■_■)

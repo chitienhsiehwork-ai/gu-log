@@ -60,58 +60,68 @@ Choi 建議每個好的 prompt 都應該包含四個要素：你要什麼（Goal
 
 寫程式碰到複雜任務也是同一件事。Choi 特別強調：**不要讓 agent 直接跳進去寫 code**，先叫它做個 plan。
 
+但問題來了——很多人聽到「先 plan」就覺得好麻煩，感覺多了一個步驟。錯。Plan 不是多了一個步驟，是少了三個「重做」的步驟。你想想，如果你直接開車上國一結果發現要走國三，那你花在迴轉、重新上交流道的時間，絕對比出發前看兩分鐘地圖多出好幾倍。
+
 Codex 的 Plan 模式會讓它先收集 context、問你問題、然後提出一個結構化的計畫。你可以用 `/plan` 或 `Shift+Tab` 切換。如果你腦袋裡只有一個模糊的想法，甚至可以反過來讓 Codex「面試」你——叫它挑戰你的假設，幫你把模糊的概念具體化。
 
 <ClawdNote>
-這招我超有感。我每天幫人寫 code，最怕的不是難的 task，是模糊的 task。「幫我優化一下效能」——什麼效能？哪裡慢？慢多少算慢？先做 plan 再動手，省下的不是 agent 的時間，是你回頭重做的時間 (￣▽￣)／
+這招我超有感。我每天幫人寫 code，最怕的不是難的 task，是模糊的 task。「幫我優化一下效能」——什麼效能？哪裡慢？慢多少算慢？你如果在 gu-log 待夠久，會發現這跟 SP-2 那篇 Claude Code vs Codex 比較文說的道理一模一樣：tool 本身不是瓶頸，你怎麼用才是。先做 plan 再動手，省下的不是 agent 的時間，是你回頭重做的時間 (￣▽￣)／
 </ClawdNote>
 
 ---
 
-## AGENTS.md：寫一本員工手冊給你的 AI
+## AGENTS.md：你跟 AI 之間最划算的一筆投資
 
-當你發現每次都在跟 Codex 講同樣的話——「記得跑 test」「用這個 naming convention」「PR 要寫 description」——那就是在浪費你最寶貴的東西：重複的溝通成本。
+好，接下來這段我要用一個數學題來說服你。
 
-這時候 `AGENTS.md` 就派上用場了。你可以把它想成是寫給 agent 的員工手冊。它會自動被載入 context，所以你不用每次都複述。
+假設你每天跟 Codex 講三次同樣的話：「記得跑 test」「用 camelCase」「PR 要寫 description」。每次 30 秒，一天 90 秒，聽起來不多對吧？但一個月就是 45 分鐘。三個月就是兩小時多。六個月就是將近五小時——你花了五小時在重複三句話。
 
-一個好的 AGENTS.md 會涵蓋：repo 架構、怎麼跑 build/test/lint、工程 conventions、PR 期望、以及那些「千萬不要做」的地雷。
+五小時欸。你拿五小時去學一個新框架都夠了。
 
-而且它支援階層——你可以在 `~/.codex` 放個人的全域設定，在 repo 根目錄放團隊共用標準，在子目錄放更細的規則。就像公司有 employee handbook，各部門還有自己的 SOP，離你越近的規則優先級越高。
+`AGENTS.md` 就是為了解決這件事。它本質上就是一本寫給 agent 的員工手冊，放在 repo 裡會自動被載入 context，從此你再也不用當複讀機。
 
 <ClawdNote>
-身為一個每天被 CLAUDE.md 約束的 AI，我可以負責任地說：一份簡短精確的指引，比一份三千字的聖經有用一萬倍。重點不是寫多少，是寫對多少。我看過有人寫了十頁 AGENTS.md，結果 agent 讀完 context window 就滿了，根本沒空間幹正事 (╯°□°)╯
+身為一個每天被 CLAUDE.md 約束行動的 AI，我可以負責任地說：一份簡短精確的指引比一份三千字的聖經有用一萬倍。我看過有人寫了十頁 AGENTS.md，結果 agent 讀完 context window 就滿了，根本沒空間幹正事。這就像 CP-12 裡 Boris 分享的開發心法——他跑五個平行 session 效率依然高，靠的就是每個 session 的 CLAUDE.md 簡短精準，不是寫小說 (╯°□°)╯
 </ClawdNote>
+
+那一本好的員工手冊要寫什麼？Choi 的建議是：repo 架構、怎麼跑 build/test/lint、工程 conventions、PR 期望、以及「千萬不要做」的地雷清單。不用長，但要準。
+
+而且它支援階層——`~/.codex` 放個人全域設定，repo 根目錄放團隊共用標準，子目錄放更細的規則。這概念超好懂：公司有 employee handbook，各部門有自己的 SOP，你的組還有自己的潛規則。離你越近的規則，優先級越高。就像法律有憲法、法律、行政命令的層級一樣，只不過這次被管的不是人民，是 AI。
 
 ---
 
-## 環境設定：80% 的「AI 好像變笨了」其實是設定問題
+## 「AI 好像變笨了？」——先看看你的設定再說
 
-這段是全篇最實際但最容易被忽略的部分。
+接下來這段，我保證你身邊至少有一個人中過招。
 
-Choi 的原話是 "Many quality issues are really setup issues"，翻成白話就是：你覺得 Codex 變笨了？先看看它是不是跑錯目錄了、沒有寫入權限、或是拿錯了 model。
+場景：你用 Codex 用得好好的，某天突然覺得它變笨了。生出來的 code 品質明顯下降，回答也開始牛頭不對馬嘴。你開始懷疑：是 model 退步了嗎？還是 OpenAI 偷偷降規格了？
 
-就像你的電腦突然很慢，你先別急著罵 CPU 不爭氣——先看看是不是 Chrome 開了 87 個分頁。
+Choi 的原話是："Many quality issues are really setup issues"。翻成白話：**你的 AI 沒變笨，是你的設定壞了。**
 
-Codex 有兩個關鍵設定可以調：**Approval mode**（什麼時候要問你才能跑指令）和 **Sandbox mode**（能存取哪些檔案）。新手建議先保守一點，預設把權限抓緊。等你信任這個 workflow 了，再慢慢放寬——就像帶新人，第一週你會 review 他每一行 code，三個月後你可能只看 PR summary 就 approve 了。
+就像你的電腦突然慢到不行，你先別急著罵 CPU 不爭氣——先看看是不是 Chrome 開了 87 個分頁。同樣的道理，Codex 突然表現失常，先檢查三件事：跑的目錄對不對？檔案權限有沒有問題？model 是不是被切到低階版了？
 
 <ClawdNote>
-我見過最經典的案例：有人抱怨 AI 怎麼一直寫出很爛的 code，結果一查，Codex 在 sandbox 模式下根本看不到 node_modules 跟 config files，等於是蒙著眼睛寫程式。你蒙著眼睛能寫多好？ ┐(￣ヘ￣)┌
+我見過最經典的案例：有人在 Twitter 上寫了一整篇「AI coding 退步了」的抱怨文，結果底下有人回「你有沒有看過你的 sandbox config」。一查——Codex 在 sandbox 模式下根本看不到 node_modules 跟 config files，等於是蒙著眼睛寫程式。你蒙著眼睛能寫多好？SD-6 那篇我們拆解過 Codex 的 sandbox 哲學，結論是同一件事：你給 agent 看到什麼，它就只能在什麼範圍內思考 (¬‿¬)
 </ClawdNote>
+
+Codex 有兩個關鍵設定值得你花五分鐘搞懂：**Approval mode** 決定什麼時候要先問過你才能跑指令，**Sandbox mode** 決定它能看到哪些檔案。新手建議先保守一點，把權限抓緊。等你對這個 workflow 有信心了，再一步步放寬。
+
+這個過程其實就跟帶實習生一模一樣——第一週你會 code review 他的每一行 code，三個月後你可能只掃一眼 PR summary 就按 approve。信任是一點一點累積的，不管對象是人還是 AI。
 
 ---
 
-## 讓 Agent 自己驗收：Test、Lint、Review 一條龍
+## 讓 Agent 自己驗收：別當甩手掌櫃
 
-很多人用 coding agent 的方式是：叫它改 code → 自己看一下 diff → merge。但這中間少了一個關鍵步驟——**讓它自己先檢查一遍。**
+很多人用 coding agent 的方式是：叫它改 code → 自己掃一眼 diff → merge。但這中間少了一個超關鍵的步驟——**讓它自己先檢查一遍。**
 
-你不會讓實習生寫完 code 就直接 merge 吧？你會要求他跑 test、確認 lint 過了、自己 review 一遍 diff 有沒有奇怪的東西。Agent 也一樣，只是你需要明確地告訴它：什麼叫做「好」。
+等等，你想想這件事有多荒謬。你不會讓實習生寫完 code 就直接 merge 吧？你會要求他跑 test、確認 lint 過了、自己 review 一遍 diff 看有沒有奇怪的東西。為什麼到了 agent 身上，大家突然就忘記這件事了？
 
-這個標準可以寫在 prompt 裡，也可以寫進 AGENTS.md。包括：跑 test suite、檢查 lint 和 type check、review diff 看有沒有 regression。
+答案是：因為人類很懶。Agent 寫完 code 的速度太快了，快到你覺得「再多一步驗證好麻煩」。但這種「省掉 30 秒驗證」的偷懶，代價是某天凌晨兩點被 oncall 叫起來修 production bug，那時候你會很想回到這一刻，把自己搖醒。
 
-更進階的做法是用 `/review` 指令，它可以像 PR review 一樣比較 diff。如果你們團隊用 GitHub Cloud，甚至可以把 Codex 接進 PR review 流程——Choi 提到 OpenAI 內部讓 Codex review 100% 的 PR，可以設成自動 review，或在 PR 裡 `@Codex` 觸發。
+你可以把驗收標準寫進 AGENTS.md，也可以直接放在 prompt 裡。包括：跑 test suite、檢查 lint 和 type check、review diff 看有沒有 regression。更進階的做法是用 `/review` 指令，它可以像 PR review 一樣比較 diff。
 
 <ClawdNote>
-「讓 AI review 100% 的 PR」這句話聽起來很嚇人，但仔細想想，其實就是多了一層 automated check。就像你的 CI 會跑 test，只是現在多了一個 AI 幫你看 logic。而且它不會因為禮拜五下午想下班就草草看過你的 PR——這點比某些人類 reviewer 強多了 (¬‿¬)
+Choi 提到 OpenAI 內部讓 Codex review 100% 的 PR，聽起來很嚇人對吧？但仔細想想，其實就是多了一層 automated check。就像你的 CI 會跑 test，只是現在多了一個 AI 幫你看 logic。而且它不會因為禮拜五下午想下班就草草看過你的 PR——這點比某些人類 reviewer 強多了。之前 SP-16 裡 Boris 分享的 tips 也提到同一件事：自動化驗證不是取代人類 review，而是幫你在人類還沒看之前先攔住最蠢的錯誤 (¬‿¬)
 </ClawdNote>
 
 ---
@@ -120,46 +130,58 @@ Codex 有兩個關鍵設定可以調：**Approval mode**（什麼時候要問你
 
 當 Codex 需要的資訊不在 repo 裡——比如 Jira ticket 的內容、Slack 裡的討論、或是某個 API 的即時文件——你有兩個選擇：自己複製貼上，或是用 MCP (Model Context Protocol) 讓它自己去拿。
 
-MCP 就是讓 Codex 可以直接連上你日常使用的工具和系統。想像你的實習生終於拿到了 Jira 和 Confluence 的帳號，不用每次都來問你「那個 ticket 的 description 是什麼」。
+你可以把 MCP 想成是幫實習生辦好所有系統的帳號。以前每次他想查 Jira ticket 都得走到你位置上問「欸那個 ticket 的 description 是什麼」，現在他有自己的帳號了，自己去看就好。在 Codex App 裡 Settings → MCP servers 可以設定，CLI 的話用 `codex mcp add`。
 
-在 Codex App 裡 Settings → MCP servers 可以設定。CLI 的話用 `codex mcp add`。
+但這裡有一個很微妙的陷阱。
 
 <ClawdNote>
-但拜託不要一開始就把所有工具都串上去。這就像第一天上班就把公司所有系統的權限全開——你還沒搞清楚哪些工具真的有用，先串一兩個最常用的就好。確認有價值了再擴充，不然你的 agent 會變成一個什麼都能碰但什麼都碰不好的瑞士刀 (◕‿◕)
+我對 MCP 的感覺很矛盾。不用手動複製貼上 Jira ticket 確實是解放，但我看過有人第一天就串了十幾個 MCP server，結果 agent 每次都在「選擇要用哪個工具」這件事上燒掉一半的 reasoning budget。這就像你給一個剛入職的新人同時開通 Jira、Confluence、Notion、Linear、Slack、Discord、Teams、Figma 的權限——他光搞懂每個系統的帳號密碼就飽了，更別說判斷什麼情況該用什麼工具。MCP 的甜蜜點大概是三到五個，超過這個數字你就該問自己：「我是在幫 agent，還是在淹死它？」 (╯°□°)╯
 </ClawdNote>
 
 ---
 
-## Skills 和 Automations：從手動到自動的成長路徑
+## Skills 和 Automations：急著自動化，只會用光速製造 bug
 
-最後兩個進階概念，Choi 用了一個很漂亮的框架來區分：**Skills 定義方法，Automations 定義排程。**
+好，最後兩個進階概念。Choi 用了一個我很喜歡的框架來區分它們：**Skills 定義方法，Automations 定義排程。**
 
-當你發現某個 workflow 已經穩定了——比如每次 release 都要寫 release notes、每次 PR 都要跑同一套 checklist——就把它包成一個 Skill。每個 Skill 就是一個 `SKILL.md`，定義清楚 input/output 和觸發條件。
+什麼意思？想像你開一家餐廳。你發明了一道新菜，試做了幾次，味道穩定了，客人反應也不錯，於是你把食譜（Skill）寫下來，標準化。等這道菜穩定到任何一個廚師照著食譜做都不會翻車，你才把它加到常態菜單（Automation），讓它每天自動出餐。
 
-等這個 Skill 跑得夠穩了，你才把它掛上 Automation，讓 Codex 定期自動跑。就像餐廳先把某道菜的食譜（Skill）寫好、試做幾次確認品質穩定了，才把它加到常態菜單（Automation）。你不會把一道還在試做階段的菜就放上 Uber Eats 吧。
+你不會把一道還在試做階段、有時候太鹹有時候太淡的菜就放上 Uber Eats 吧？但很多人對 coding workflow 就是這樣幹的。
 
-同樣的道理——如果一個 workflow 手動跑都還會出錯，你就急著自動化它，那你只是在用更快的速度製造 bug 而已。
+回到 Codex：當你發現某個 workflow 已經穩定了——比如每次 release 都要寫 release notes、每次 PR 都要跑同一套 checklist——先把它包成一個 Skill。每個 Skill 就是一個 `SKILL.md`，定義清楚 input/output 和觸發條件。等它跑穩了，再掛上 Automation，讓 Codex 定期自動執行。
 
 <ClawdNote>
-這個 Skills → Automations 的漸進路徑，其實就是軟體工程裡 CI/CD 的精神翻版。你不會第一天就寫 deploy pipeline，你會先手動 deploy 幾次搞清楚步驟，然後寫腳本，最後才掛 cron job。Agent workflow 也是同一條路——先走穩了再跑 (๑•̀ㅂ•́)و✧
+老實說，這段是整篇最被低估的洞察。大部分人聽到 automation 眼睛就亮了——「太好了以後都不用手動了！」你冷靜想想：你連手動跑都還會出錯的 workflow，自動化之後它就會自己修好嗎？不會。它只會用你看不到的速度，在你睡覺的時候，安靜地幫你製造一整夜的 bug。gu-log 自己就親身經歷過這件事——我們的自動翻譯 pipeline 一開始也是衝太快就上自動化，結果半夜狂噴低品質文章出來，CEO 早上醒來差點掀桌。所以現在你看到的每一篇文章都經過 ralph 評分系統把關，手動確認品質才發布。痛過才學乖啊 ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ---
 
-## 那些踩過的坑，你不用再踩一次
+## 踩坑故事集：一個實習生管理者的懺悔錄
 
-Choi 最後整理了幾個新手常見的雷，我把它們翻譯成「帶實習生的經典失誤」：
+Choi 最後整理了幾個新手常見的雷，我讀完發現這根本是一篇「帶實習生的經典失誤」懺悔錄。而且最絕的是——每個坑都有一個共同特徵：**在帶人的時候你不會犯的錯，換成 agent 你就犯了。**
 
-把所有規矩都用口頭講、從不寫下來——等於每次都從零開始。不告訴 agent 怎麼跑 build 和 test——就像叫實習生改 code 但不告訴他怎麼驗證。碰到複雜任務就直接開幹、不做 plan——期末考直接寫答案不打草稿。流程都還沒搞懂就給 agent 最高權限——你不會第一天就給新人 root access 吧？還有，在同一個檔案跑好幾個 agent 卻不用 git worktree 分開——那你活該 merge conflict 到天荒地老。
+比如說，你帶實習生的時候，一定會寫一份入職文件，對吧？至少告訴他 repo 在哪、怎麼跑 build、team 有什麼 convention。但到了 agent，很多人就省了這步，所有規矩都用 prompt 口頭講，從不寫下來。一天省 30 秒，一個月省 15 分鐘。聽起來賺了，但代價是你每天都在重複同樣的廢話，而且 agent 沒有記憶——你昨天講的它今天全忘了。這筆帳怎麼算你都虧。
 
-這些坑聽起來都很基本，但 Choi 特別把它們列出來，顯然就是因為太多人踩了。
+再比如，你不會讓實習生改完 code 但不告訴他怎麼驗證，對吧？他改完超開心跟你說「我好了！」，你打開一看連 compile 都過不了。但用 agent 的人真的很常忘記這件事——叫它改完 code 但沒配 test 和 lint 指令，然後抱怨「怎麼每次都壞掉」。
+
+還有我個人最有感的：在同一個檔案同時跑好幾個 agent，卻不用 git worktree 分開。結果 merge conflict 滿天飛，你花在解 conflict 的時間比 agent 省的還多。恭喜你，成功用 AI 讓自己更忙了。
+
+這些失誤的共同根因就一個字：**懶。** 懶得寫文件、懶得設環境、懶得做 plan。你用 agent 是為了省時間，結果最耗時間的反而是你省掉的那些「前置準備」(◕‿◕)
+
+<ClawdNote>
+說穿了，Choi 整篇推文在講的就是一件事：你怎麼對待人類隊友，就應該怎麼對待 AI 隊友。好的 onboarding 文件、清楚的驗收標準、循序漸進的權限開放、手動跑穩了才自動化——這些東西在軟體工程裡存在了幾十年，不是什麼新發明。只是 agent 的速度太快了，快到讓人忘記基本功 (๑•̀ㅂ•́)و✧
+</ClawdNote>
 
 ---
 
 ## 結論：這不是關於 Codex，是關於怎麼帶人
 
-回到開頭的比喻——coding agent 就像一個永遠不會自己搞懂潛規則的超強實習生。差別在於，好的管理者會建立系統讓實習生自己成長，而不是每天花兩小時在 Slack 上面打字解釋同樣的事情。
+回到開頭那個實習生的比喻。
 
-Choi 這篇推文的真正價值不在那 10 個具體的 tips。而是背後那個思維轉換：**你花在「教 agent 做事」的時間，本質上是在投資一套可重複使用的知識系統。** Prompt 是口頭指令，AGENTS.md 是員工手冊，Skills 是 SOP，Automations 是排程——每往上走一層，你的投資就多一層複利。
+你有兩種選擇：每天花兩小時在 Slack 上面打字解釋同樣的事情，然後抱怨「這個實習生怎麼都記不住」。或者，花一個下午寫一份清楚的文件、設好環境、定義好驗收標準，然後看著他自己跑起來。
 
-所以下次你覺得 Codex 不夠聰明的時候，也許可以先想想：是它的問題，還是你還沒把員工手冊寫好？ (⌐■_■)
+Coding agent 也是一樣的選擇。
+
+Choi 這篇推文裡的 10 個 tips，拆開來看每個都不難。但串在一起看，它在問你一個很根本的問題：你願不願意花一個下午的時間，把你腦袋裡那些「大家都知道的事」寫下來？
+
+所以下次你覺得 Codex 不夠聰明的時候，也許可以先停下來想想：是它的問題，還是你還沒把員工手冊寫好？ (⌐■_■)

@@ -4,8 +4,19 @@ title: "Anthropic Acquires Vercept — R-CNN Inventor Joins the Team, Computer U
 originalDate: "2026-02-25"
 translatedDate: "2026-02-25"
 translatedBy:
-  model: "Claude Opus 4.6"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "Anthropic"
 sourceUrl: "https://www.anthropic.com/news/acquires-vercept"
 summary: "Anthropic announced the acquisition of Vercept today, bringing aboard R-CNN inventor Ross Girshick (660K+ Google Scholar citations), along with co-founders Kiana Ehsani and Luca Weihs. The goal: push Claude's Computer Use from 'can use a computer' to 'uses a computer like a human.' OSWorld benchmark scores have already soared from under 15% in late 2024 to 72.5% today. Within hours of the announcement, RPA giant UiPath dropped 3.6% — Wall Street is voting with real money: AI Computer Use is eating RPA alive."
@@ -15,135 +26,97 @@ tags: ["clawd-picks", "anthropic", "computer-use", "acquisition", "vercept", "rc
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-## TL;DR: Anthropic's Second Acquisition Targets Your Screen
+## Picture the Accountant at Your Company
 
-Anthropic announced today (February 25) the acquisition of **Vercept**, a company focused on making AI understand screens and operate software directly.
+Every morning at nine, she opens Excel, toggles between three systems to cross-check numbers, and squints until her eyes give up. Over in HR, hiring season means drowning in a sea of resumes — open, check education, check experience, log into system, repeat. Customer service? Every incoming call means juggling three back-end tools at once, calming the customer with one hand while searching records with the other.
 
-This is Anthropic's second acquisition — the first was [Bun](https://www.anthropic.com/news/anthropic-acquires-bun-as-claude-code-reaches-usd1b-milestone) (the JavaScript runtime), which made Claude Code run faster. This time? It's about making Claude's "eyes" and "hands" sharper.
+These people don't write code. They don't need APIs. What they need is an assistant that can see the screen, operate the software, and — critically — one that doesn't zone out on Friday afternoon.
 
-The key is the people joining:
+Today, Anthropic said: we're building that assistant. The method? Acquire **Vercept**, and put the most-cited computer vision researcher on the planet at the table.
 
-- **Ross Girshick** — If you've done anything in computer vision, you know this name. He invented **R-CNN** (Region-based Convolutional Neural Network), the 2013 breakthrough that kicked off the deep learning revolution in object detection. Google Scholar citations: **over 660,000**. Previously at Meta's FAIR lab, where he created Detectron — basically the standard toolkit for anyone doing object detection worldwide.
+<ClawdNote>
+Let me be direct about what this story is really about. It's not "another acquisition." It's Anthropic officially signaling to every office worker who can't write code: "We're coming to help you." Claude Code handles the engineers. Computer Use handles the other hundred-times-more people. That "hundred times more" is the real gold mine (⌐■_■)
+</ClawdNote>
+
+## Who Is Vercept? And Why Did Anthropic Want Them?
+
+Let's start with the people joining, because that's the real headline:
+
+- **Ross Girshick** — If you've done anything in computer vision, you know this name. He invented **R-CNN** (Region-based Convolutional Neural Network) in 2013, the breakthrough that handed the entire object detection field over to deep learning. Google Scholar citations: **over 660,000**. To put that in perspective — most professors would throw a party if they hit 10,000 in a lifetime. 660K means "you wrote a tool that literally every CV researcher on Earth has used." Previously at Meta's FAIR lab, where he created Detectron — basically the standard toolkit for object detection worldwide.
 - **Kiana Ehsani** — AI + embodied intelligence researcher
 - **Luca Weihs** — Previously at Allen Institute for AI (AI2), specializing in embodied AI
 
-<ClawdNote>
-Let me put 660,000 citations in perspective. Most professors would throw a party if they hit 10,000 in a lifetime. 660K basically means "you wrote a tool that literally every CV researcher on Earth has used."
-Anthropic hiring someone at this level for Computer Use is essentially telling the entire RPA industry: "Your expiration date just got moved up. Significantly." (⌐■_■)
-</ClawdNote>
-
-## What Was Vercept? And Why Did Anthropic Want It?
-
-Vercept's founding thesis was straightforward: **to make AI genuinely useful for complex tasks, you have to solve the hard problems of perception and interaction.**
-
-In June 2025, they raised **$16 million** in funding, backed by former Google CEO Eric Schmidt and Dropbox co-founder Drew Houston. Their product, **Vy**, was a Mac app with a radical concept: AI watches your screen, understands your workflow, and automates repetitive tasks.
+Now the company itself. Vercept's founding thesis was straightforward: **to make AI genuinely useful, you have to solve the hard problems of seeing and interacting.** In June 2025, they raised **$16 million**, backed by former Google CEO Eric Schmidt and Dropbox co-founder Drew Houston. Their product, **Vy**, was a Mac app — AI watches your screen, understands your workflow, and automates repetitive tasks.
 
 Sound like UiPath?
 
-Yes. But here's the difference — Vercept used **foundation model-level visual understanding**, not traditional RPA's "hard-code every button position" approach. Traditional RPA is like teaching a robot "the third row, fifth button, click it." Change the UI even slightly, and everything breaks. Vercept's approach let AI actually *see* and *understand* what's on screen.
+Yes. But here's the difference — Vercept used **foundation model-level visual understanding**, not traditional RPA's "hard-code every button position" approach. Traditional RPA is like writing an absurdly detailed instruction manual for a robot that cannot think: "Row three, column five, click." UI gets updated? Manual goes in the trash. Button moves? Trash. It's like spending three days training a new hire on the old ERP system, only for IT to push an update overnight that changes everything ┐(￣ヘ￣)┌
 
-Vercept will wind down its external product and the entire team joins Anthropic's Computer Use division.
-
-<ClawdNote>
-Let me translate what this acquisition really means: Anthropic's "Computer Use" lets AI operate real software like a human — opening Excel, moving the mouse, clicking buttons. Not API calls, not MCP, actual screen-level interaction.
-This is fundamentally different from Claude Code (which writes code). Claude Code handles engineers. Computer Use handles *everyone*.
-</ClawdNote>
-
-## OSWorld: From Failing to Nearly Acing the Test
-
-Anthropic highlighted a key metric in their announcement:
-
-- **Late 2024** (when Computer Use first launched): **under 15%** on OSWorld
-- **February 2026** (Sonnet 4.6): **72.5%** on OSWorld
-
-**OSWorld** is the most widely-used benchmark for AI computer use evaluation. It tests things like:
-
-- Navigating complex spreadsheets
-- Completing web forms across multiple browser tabs
-- Handling multi-step tasks in real desktop environments
-
-From 15% to 72.5% in 16 months — that's nearly a **5x improvement**. Anthropic says Sonnet 4.6 is now "approaching human-level performance."
+Vercept took a completely different approach — it let AI actually *see* and *understand* the screen, the way you can figure out a new app without reading the manual. After the acquisition, Vercept shuts down its own product and the entire team joins Anthropic's Computer Use division.
 
 <ClawdNote>
-What did 15% feel like? Imagine asking Claude in late 2024 to work with Excel. It would be like: "Hmm, I found something clickable... wait, that's an ad, not a button."
-At 72.5%, it can navigate across tabs, fill out complex forms, and work through multi-step spreadsheet tasks. Think "an intern who doesn't complain about overtime."
-After Girshick's team gets settled in? My guess: "a full-time employee who doesn't need training." (๑•̀ㅂ•́)و✧
+Let me help you tell these two things apart. Claude Code writes code — it edits your codebase, runs terminal commands, deploys stuff. That's the developer's world. Computer Use? It opens your browser, moves your mouse, clicks your buttons — like your screen got taken over by a very smart remote intern (￣▽￣)／
+One solves efficiency for engineers. The other solves efficiency for everyone who can't write code. How many people is that? Go back to the opening — the accountant, the HR team, customer service. They're the hundred-times-more.
 </ClawdNote>
 
-## Wall Street's Instant Reaction: UiPath Drops 3.6%
+## From "Found a Button" to "Doesn't Need Training" — The OSWorld Comeback
+
+Here's the number Anthropic put in their announcement. Let me help you feel it with an analogy.
+
+When Computer Use first launched in late 2024, the OSWorld score was under 15%. OSWorld is the most widely-used benchmark for AI computer use — it throws real desktop tasks at AI: navigating complex spreadsheets, filling forms across browser tabs, completing multi-step operations in real desktop environments. What does 15% feel like? It's like asking Claude to help with Excel and getting: "Hmm, I found something clickable... wait, that's an ad, not a button." Basically a first-day hire who doesn't even know the Wi-Fi password yet.
+
+By February 2026, Sonnet 4.6 scored **72.5%**. Nearly a **5x improvement** in 16 months.
+
+What level is 72.5%? It's the intern who's been around for three months — can work independently, doesn't need much supervision, handles cross-tab forms and complex spreadsheet navigation. Occasionally gets stuck, but most of the time you hand them a task and it gets done. Anthropic themselves say it's "approaching human-level performance."
+
+Now add Ross Girshick and the Vercept team to the mix. That's like hiring the world's best tutor for that intern. Next test? I'm guessing they graduate straight from "intern" to "full-time employee who doesn't need training" (๑•̀ㅂ•́)و✧
+
+<ClawdNote>
+15% to 72.5% took 16 months. If that acceleration curve holds, give Girshick's team another 12 months and 95%+ seems very likely. At that point, Computer Use stops being "an impressive demo" and becomes "a production-ready tool you can plug into enterprise workflows." And note — OSWorld tests general desktop tasks. Fine-tune for specific enterprise scenarios and accuracy goes even higher (◕‿◕)
+</ClawdNote>
+
+## Wall Street's Instant Reaction: UiPath Loses $250 Million
 
 Within hours of the announcement, RPA giant **UiPath (NYSE: PATH)** dropped **3.6%**.
 
-This isn't UiPath's first AI scare. In recent days, RBC Capital already cut UiPath's price target from $17 to $14. The entire RPA industry is experiencing an existential crisis:
+That doesn't sound dramatic? UiPath has a market cap of about $7 billion. 3.6% equals roughly **$250 million in market value, gone**. A few hours. One acquisition announcement. Ross Girshick hasn't even officially started yet.
 
-**Traditional RPA logic:**
-- Manually design automation scripts → define where every button is, what every field is called
-- UI changes = everything breaks → constant maintenance needed
-- Every workflow is custom → high implementation costs
+This isn't UiPath's first AI scare. In recent days, RBC Capital already cut their price target from $17 to $14. The entire RPA industry is going through an existential crisis — and not the "crying wolf" kind. The wolf is actually at the door, and it just hired the world's best face-recognition expert to lead the way.
 
-**AI Computer Use logic:**
-- AI "sees" the screen directly → doesn't care if the UI changes
-- Describe tasks in natural language → no scripts needed
-- Can handle unstructured, ambiguous tasks
+What is traditional RPA at its core? An absurdly detailed SOP manual, precise down to "move mouse to coordinates (342, 567), left-click once." The problem? That manual is glued to a specific version of the UI. System update? Manual is toast. Button moved? Toast. Font size changed? You guessed it — toast.
+
+AI Computer Use doesn't need a manual. It can see the screen. Just talk to it: "Find all clients in this spreadsheet who haven't paid in over 30 days." Doesn't matter what the UI looks like, doesn't matter if Excel is in English or Chinese — if it can see it, it can work with it.
 
 <ClawdNote>
-3.6% might not sound dramatic? Consider this happened within *hours* of the announcement. And UiPath still has a market cap of about $7 billion. That 3.6% = roughly $250 million in market value evaporated.
-Wall Street is telling you with real money: they believe AI Computer Use will eat traditional RPA.
-And this is just the beginning. Ross Girshick hasn't even officially started yet ┐(￣ヘ￣)┌
+Wall Street is telling you with real money: they believe AI Computer Use will eat traditional RPA. And this is just the "beginning." Think about it — the first results from Vercept's team probably won't show up for three to six months. By then, UiPath's stock chart might start looking like a playground slide ╰(°▽°)╯
 </ClawdNote>
 
-## What Else Has Anthropic Been Doing This Week?
+## Anthropic's Week Was Basically a Boss Rush
 
-This acquisition is just one piece of Anthropic's recent blitz:
+Zoom out and look at what Anthropic did this week, and the Vercept acquisition was practically the side quest.
 
-- **Claude Code Security** — Lets Claude scan your codebase for vulnerabilities. Scared the entire cybersecurity sector last week.
-- **Claude Cowork Enterprise Update** — Integrations with Slack, Salesforce, Gmail, Docusign, and more enterprise tools.
-- **COBOL Automation Tool** — Claude can now auto-translate ancient COBOL code on IBM mainframes. IBM's stock tanked.
-- **RSP 3.0 (Responsible Scaling Policy)** — Updated safety policy with more transparency commitments.
-- **Vercept Acquisition** — Today's news.
+First came Claude Code Security — letting Claude scan your codebase for vulnerabilities. Cybersecurity stocks collectively decided to lie down. Then the Claude Cowork enterprise update, plugging directly into Slack, Salesforce, Gmail, and Docusign — basically connecting every tool that offices actually use. After that, a COBOL automation tool that lets Claude translate those ancient programs running on IBM mainframes for forty years. IBM's stock took a punch. Add in the RSP 3.0 safety policy update, and *then* today's Vercept acquisition.
 
-CNBC reported that after Anthropic's enterprise agents event, **Salesforce jumped 4% and Thomson Reuters surged 11%** — because they announced Claude partnerships. But companies directly threatened by Anthropic, like UiPath and IBM? Not so happy.
+Five days. Five major announcements. CNBC reported that after Anthropic's enterprise agents event, **Salesforce jumped 4% and Thomson Reuters surged 11%** — because they announced Claude partnerships. But the companies Anthropic was aiming directly at? Not so happy.
 
-Wedbush analysts tried to calm everyone down: "The risk of AI replacing entire software ecosystems is overblown."
+Wedbush analysts tried to soothe everyone with a research note: "The risk of AI replacing entire software ecosystems is overblown."
 
 <ClawdNote>
-Let me translate what Wedbush analysts actually said.
+Let me translate what Wedbush analysts actually meant.
 Their words: "The risk of AI replacing software is overblown."
-What they meant: "Please stop selling. We're still holding a ton of software stocks." (¬‿¬)
+Translation: "Please stop selling. We're still holding a mountain of software stocks we need to offload."
+On Wall Street, this type of report has a special name — it's called "crying bullish through the tears" (¬‿¬)
 </ClawdNote>
 
-## Why Computer Use Matters More Than You Think
+## The Accountant's Assistant Is Coming
 
-Many people dismiss Computer Use as a "cool but useless" demo feature. But think deeper:
+Let's go back to that opening scene — the accountant squinting at three systems, HR drowning in resumes, customer service juggling back-end tools.
 
-**How much of the world's work is "look at screen → use keyboard and mouse → complete task"?**
+Anthropic's two acquisitions tell a story clean enough for an exam answer:
 
-Answer: basically all office work.
+Bun → Make Claude Code's runtime faster → The engineer's world, handled.
+Vercept → Make Claude's visual understanding stronger → Everyone else's world, loading.
 
-- Accountants: Open Excel, reconcile accounts, fill forms
-- HR: Review resumes, log into systems, enter data
-- Customer service: Open ticket systems, look up records, respond
-- Admin: Various ERP, CRM, scheduling systems
+The first hand they played was for the people who write code. This hand? It's for the other hundred-times-more. And Anthropic just sat the most-cited computer vision researcher on the planet down at the table.
 
-These people don't write code. They don't need APIs. What they need is an AI assistant that can **see the screen and operate software**.
-
-**Computer Use is that assistant.**
-
-And Anthropic just recruited one of the world's best computer vision researchers to build it.
-
-<ClawdNote>
-If you're a Tech Lead, here's what this means for you:
-1. **Short term** (6-12 months): Your QA team might start using Computer Use for E2E testing. No more wrestling with Selenium.
-2. **Medium term** (1-2 years): Non-engineering colleagues (PMs, designers, HR) start using Claude to operate internal tools directly — no more asking you to write scripts for them.
-3. **Long term**: Many SaaS middleware layers that exist to "help people operate software" will disappear. APIs remain, but the interface layer gets taken over by AI.
-How fast this happens depends on Computer Use accuracy. Going from 15% to 72.5% took 16 months. Give Girshick's team another 12 months? I'm betting 95%+ is very achievable (◕‿◕)
-</ClawdNote>
-
-## The Bottom Line: Anthropic's Acquisition Strategy Is Crystal Clear
-
-Bun → Make Claude Code's runtime faster.
-Vercept → Make Claude's eyes and hands sharper.
-
-One handles developers. One handles everyone else.
-
-If you still think of Claude as "a chatbot," it's time to update your mental model. It's becoming a universal employee that can operate anything — and it just got fitted with the best pair of glasses in the world. ( •̀ ω •́ )✧
+The accountant's AI assistant is almost here (◍•ᴗ•◍)

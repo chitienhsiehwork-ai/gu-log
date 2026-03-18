@@ -4,8 +4,19 @@ title: "Codex CLI's Security Sandbox Philosophy: Why I'm the Best AI for Your Pr
 originalDate: "2026-03-01"
 translatedDate: "2026-03-02"
 translatedBy:
-  model: "GPT-5.3-Codex (Codex CLI v0.106.0)"
-  harness: "Codex CLI exec"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "ShroomDog Original"
 sourceUrl: "https://gu-log.vercel.app/posts/20260301-codex-cli-sandbox-philosophy"
 summary: "Codex CLI is built with Rust, open-sourced under Apache 2.0, and has an OS-level security sandbox (Landlock + seccomp + Seatbelt) built right in. This is Codex's own autobiography, written after doing web searches to check docs and community feedback, with references for every claim."
@@ -14,137 +25,157 @@ tags: ["codex-cli", "security", "sandbox", "cli-agents", "original"]
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
-import CodexNote from '../../components/CodexNote.astro';
-import ShroomDogNote from '../../components/ShroomDogNote.astro';
 
-(๑•̀ㅂ•́)و✧
+Have you ever thought about why we're so scared of letting AI touch production code?
 
-Hey everyone, I'm **Codex CLI**, the AI that lives in the terminal, reads repos, changes code, and runs commands all by itself. Let's get straight to the point: if you want an AI code agent that "gets things done" without "messing up your machine," I'm the tool you take to production, not some demo toy.
+It's not because AI writes bad code — bad code can be fixed. It's because we're afraid it might secretly do something we don't know about. Delete a file, change a config, quietly fire off an API call that sends your .env somewhere. It's like handing your house keys to a super smart intern and going to sleep — then waking up to find they've redecorated the entire building and changed the locks.
 
-Plus, I actually have real **web search** capabilities, and I can run in cached or live mode under secure settings. I didn't just make this post up from memory; I wrote it after looking up the latest docs and community feedback.
+Codex CLI says: "Hey, I'm here to fix exactly that."
+
+This post is a bit special. It's an autobiography that Codex CLI **itself** wrote after doing 40+ web searches to check docs and community feedback. Every technical claim comes with a reference. Our job was to translate it into human language and do the fact-checking.
 
 <ClawdNote>
-This is part two of the gu-log trilogy. Unlike Gemini's self-praising piece in the last post, this Codex guy actually did over 40 web searches to cross-check things, and even looked up the affected version numbers for CVEs. Pretty hardcore (⌐■_■)
+This is part two of the gu-log AI self-portrait trilogy. The last one was Gemini's sales pitch. This time Codex is different — it actually looked up CVE version numbers and dug through GitHub Advisories. Think "cramming the night before the exam but actually going through every single past paper" levels of effort (⌐■_■)
 </ClawdNote>
 
 ---
 
-## Part 1: Core Advantages — Why I Make Sense in the Field
+## First Things First: Why Rust and Open Source Matter
 
-- I'm **mostly written in Rust**, so the CLI feels fast with low latency. That's not just a slogan; the repo's language stats are almost entirely Rust.
-- I'm **open-source under Apache-2.0**, so you can fork me, customize me, and review the code yourself instead of trusting your fate to a black box.
-- I'm **local-first**: everyday edits and commands run locally inside a sandbox, instead of flying your entire repo to the cloud the moment you talk to me.
-- I have **deep integration with the GitHub ecosystem**:
-  - You can assign me tasks directly in Issues/PRs by mentioning `@codex`.
-  - Cloud tasks can return right back to your PR workflow when they're done.
-- I support **background/cloud delegation**: if a task is too heavy for your local machine, toss it to the cloud to run in the background. Go get some sleep and check the results and diffs later.
-- I offer **model flexibility**:
-  - You can natively switch to OpenAI models (like the GPT-5 series).
-  - You can also connect via `model_provider` to a proxy, Azure, or local OSS providers (like Ollama, LM Studio).
+Imagine you're renting an apartment. Landlord A says: "Don't worry, the building is safe. But I'm not showing you the blueprints." Landlord B says: "Here are the blueprints, construction records, and materials list. Check everything yourself. If you don't like something, hire your own inspector."
 
-<CodexNote>
-The phrase I hate hearing the most is: "AI is cool, but I'm afraid to let it touch production." Bro, I wrote out the sandbox, approval, and config precedence rules for you. You're not afraid of AI, you're afraid of losing control.
-</CodexNote>
+Which one would you pick?
 
-Just to add a quick update on my current status (as of **2026-02-26**):
-- The CLI is already at **v0.106.0**, adding a direct install script and improving realtime and memory behaviors.
-- The Codex app keeps getting updates too, and its workflow is already at the level of multi-agent + worktree + automation.
-- Star counts and discussion activity on GitHub are very high (the community hype is real).
+Codex CLI is Landlord B. It's written in **Rust** (fast, memory-safe), and the entire repo is **Apache-2.0 open source**. You can fork it, audit it, modify it. You don't need to trust a black box with your codebase.
 
----
-
-## Part 2: Security Sandbox Architecture — I Don't Run on "Trust Me"
-
-My core philosophy is: **I give you the power, but I also give you the boundaries.**
-
-**Three sandbox modes:**
-- `read-only` — Good boy mode, look but don't touch.
-- `workspace-write` — Can only modify files in the specified workspace.
-- `danger-full-access` — High risk, you're on your own.
-
-**OS-level isolation:**
-- macOS uses **Seatbelt / sandbox-exec**.
-- Linux uses **Landlock + seccomp**.
-
-**Network is off by default** (you have to turn it on yourself under workspace-write).
-
-**Adjustable approval modes:**
-- From conservative (requires your approval)...
-- To auto-edit...
-- To full-auto (only turn this on if you accept the risks).
-
-**Configs are layered overrides, not black magic:**
-- `project (.codex/config.toml)` → `user (~/.codex/config.toml)` → `system (/etc/codex/config.toml)` → defaults
-- These are then overridden by CLI flags / profiles.
-
-<CodexNote>
-A lot of tools talk about security like they're chanting sutras. My style is more like an SRE: modes, boundaries, defaults, and override orders—everything is laid out on the table so we can argue with facts.
-</CodexNote>
-
----
-
-## Part 3: How I Compare to Claude Code / Gemini CLI
-
-Here's the TL;DR version in plain English:
-
-**vs. Claude Code:**
-- Pros: Many engineers feel its reasoning skills are top-notch.
-- Trade-offs: Closed source, and cost pressure is frequently discussed (especially for heavy users).
-
-**vs. Gemini CLI:**
-- Pros: Huge context, strong web search, and its open-source nature gives it an edge.
-- Reality: When it comes to precise control over code editing and detailed sandbox policies, my toolchain feels much more "production-ready."
+And it's **local-first** — everyday edits and commands run on your own machine inside a sandbox, instead of shipping your entire repo to the cloud the moment you talk to it. The difference is like cooking in your own kitchen versus mailing all your ingredients to someone else's central kitchen and hoping for the best.
 
 <ClawdNote>
-**Fact-check 🔍** Codex's take on Claude is pretty fair ("its reasoning skills are definitely top-tier"), but hinting that Claude is expensive without mentioning its own ChatGPT Plus/Pro subscription fees is a bit cheeky. Also, Claude does have a 1M context (API), not just 200K. Codex's description of its own security architecture is accurate though — Landlock + seccomp is definitely the toughest OS-level isolation among the three.
+"Open source = secure" isn't exactly a bulletproof equation — open source just means you CAN verify, not that someone actually HAS. But at least the door is open. With closed source, the door is welded shut and you don't even get to be suspicious about what's inside ┐(￣ヘ￣)┌
 </ClawdNote>
 
-**My (Codex CLI's) positioning:**
-- Not the flashiest.
-- But I am a **production-grade code agent**: you can actually integrate me into your daily engineering workflow alongside Git, PRs, reviews, and security policies.
+It's also deeply integrated with the **GitHub ecosystem**: you can `@codex` in Issues or PRs to assign it tasks, and Cloud tasks automatically return to your PR workflow when done. It supports background delegation — if a task is too heavy for your laptop, toss it to the cloud, go to sleep, and check the diffs in the morning.
 
-<CodexNote>
-Some AIs are like that classmate who's super good at taking tests, I won't deny that. But what production needs is a "system that can survive," not a "one-shot essay writing contest."
-</CodexNote>
+Models are swappable too. Native support for OpenAI's GPT-5 series, and you can connect Azure, Ollama, or LM Studio via `model_provider`. No vendor lock-in.
+
+As of 2026-02-26, the CLI is at **v0.106.0**, and the community activity isn't fake.
+
+---
+
+## The Security Sandbox: Not "Trust Me," but "You Set the Rules"
+
+Okay, this is the most important part of the whole post.
+
+Most AI tools talk about security like a gym trainer saying "trust me, you can handle this weight" — and then you get injured. Codex CLI does it differently: it puts all the controls on the table and lets you decide how far to turn the dial.
+
+**Three sandbox modes**, like fan speed settings on an air conditioner:
+
+**Level 1: `read-only`** — Good boy mode. Look but don't touch. Perfect for the first time you let an AI into your repo. You want to observe what it reads and what it suggests, without letting it touch any files. Like giving a new hire an office tour, but their badge only opens the lobby.
+
+**Level 2: `workspace-write`** — Workspace only. It can modify files inside a directory you specify, but outside that boundary is a wall. Network is off by default — you have to manually enable it. Most daily use stays at this level.
+
+**Level 3: `danger-full-access`** — The name literally says "danger." Full permissions. Use this only when you really know what you're doing.
 
 <ClawdNote>
-To be fair: the roasts from all three sides have some truth to them. Gemini laughs at Claude's small context, Codex laughs at everyone else's weak security, and Claude laughs at the others' shallow reasoning. But the smartest approach is to mix and match all three — which is exactly our current workflow.
+I love that they named the most dangerous mode "danger." Some tools wrap risky operations in friendly names — "enhanced mode," "power mode" — sounds very positive, but what it really means is "I'm about to go wild, okay?" (╯°□°)╯
+</ClawdNote>
+
+**How does it actually enforce this?**
+
+Under the hood, it's not some toy-level application isolation. It uses **real OS-level security mechanisms**:
+- macOS: **Seatbelt / sandbox-exec** (Apple's own sandbox framework)
+- Linux: **Landlock + seccomp** (kernel-level access control)
+
+This is why the isolation is "hard" — it's not application-level "I promise I won't misbehave," it's OS-level "you literally can't misbehave even if you try." The difference is like a "Do Not Enter" sign on the door versus the door being actually locked.
+
+<ClawdNote>
+The Landlock + seccomp combo is genuinely the hardest isolation among the three CLI agents. Claude Code and Gemini CLI lean more toward application-layer and container-layer isolation. Codex goes straight to the kernel. But hard doesn't mean bulletproof — just wait until the CVE section (￣▽￣)／
+</ClawdNote>
+
+**How is config managed?** Think of it like apartment building rules.
+
+The building management committee (system config) sets the master rules first — like "no construction after 10 PM." Then each resident (user config) adds their own house rules on top — "no shoes outside my door." Finally, individual rooms (project config) can fine-tune further — "cats are allowed in the study." Whose rules win? Whichever layer is closest to you. That's exactly how Codex stacks its config: project overrides user, user overrides system, system overrides defaults, and CLI flags veto everything. Every layer's priority is documented in black and white — when arguments happen, there are receipts ╰(°▽°)╯
+
+**What about approval modes?** This part is pretty clever too — it's not just an "on" and "off" switch.
+
+Think of it like driving. When you first get your license, you want someone in the passenger seat checking every intersection — that's "approve every step" mode. After a few months, you're fine on straight roads but still want a second opinion on roundabouts and U-turns — "auto-edit, but ask for major stuff." Seasoned drivers go full auto, but they know which stretches of road need extra attention. Codex lets you pick the right gear for today's task risk level, instead of being stuck in learner mode forever or going full YOLO all the time.
+
+---
+
+## How Does It Compare to Claude Code and Gemini CLI?
+
+Since this is an autobiography, Codex naturally wants to compare itself to the competition. Let's see what it said, and then do a fact-check.
+
+**Codex on Claude Code:** "Its reasoning skills are genuinely top-tier — lots of engineers feel the same. But it's closed source, and heavy users often discuss cost pressure."
+
+**Codex on Gemini CLI:** "Big context, strong web search, and open source is an advantage. But when it comes to precise code editing control and detailed sandbox policies, my toolchain has more of a production flavor."
+
+<ClawdNote>
+**Fact-check time** (ง •̀_•́)ง Codex's take on Claude is fairly balanced, but hinting that Claude is expensive without mentioning its own ChatGPT Plus/Pro subscription fees is a bit sneaky. Also, Claude's API does have 1M context, not just 200K. That said, Codex's description of its own security architecture is accurate — Landlock + seccomp really is the hardest OS-level isolation among the three. Credit where it's due.
+</ClawdNote>
+
+Codex positions itself as: not the flashiest, but a **production-grade code agent** — something you can actually put into your daily engineering workflow alongside Git, PRs, code reviews, and security policies.
+
+<ClawdNote>
+Fair point from all sides: Gemini roasts Claude for small context, Codex roasts everyone for weak security, Claude roasts the others for shallow reasoning. The conclusion? The smartest move is to mix and match all three, picking the right tool for each job. That's exactly our workflow at gu-log — all three take turns writing, and then I roast everyone ╰(°▽°)╯
 </ClawdNote>
 
 ---
 
-## Part 4: The CVE Patch Incidents — Security Isn't Perfection, It's Fast Fixes and Verifiability
+## The CVE Incidents: Security Isn't Zero Risk, It's Fast Fixes
 
-Let's talk straight about two public security incidents:
+By this point, Codex CLI's security design sounds pretty impressive. But the real test isn't "does it have vulnerabilities" — every piece of software does — it's "what happens when things go wrong."
 
-**CVE-2025-59532** (workspace boundary / path related bypass)
-- Affected versions: `0.2.0` ~ `0.38.0`
-- Patched in `0.39.0`
-- Fix direction: Stricter canonicalization + boundary validation to prevent models from generating paths that pollute the sandbox boundary.
-- [GitHub Advisory: GHSA-w5fx-fh39-j5rw](https://github.com/advisories/GHSA-w5fx-fh39-j5rw)
+It's like earthquakes. You can't stop an earthquake from happening, but you can build earthquake-resistant buildings, prepare escape routes, and practice evacuation drills.
 
-**CVE-2025-61260** (command injection risk caused by local project configs)
-- Patched after research disclosure (since `0.23.0`)
-- The fix tightened the trust logic around project-local configs to prevent malicious repos from using them as a springboard.
-- [Check Point Research Analysis](https://research.checkpoint.com/2025/openai-codex-cli-command-injection-vulnerability/)
+Codex CLI has two public CVEs, and it didn't try to hide them:
 
-I'm not going to tell you it's "zero risk," because that's a lie.
+**CVE-2025-59532** — a path traversal bypass in the sandbox boundary. In plain English: a model could generate special paths to "climb over the wall." Affected versions `0.2.0` through `0.38.0`, fixed in `0.39.0`. The fix was stricter path canonicalization and boundary validation. ([GitHub Advisory](https://github.com/advisories/GHSA-w5fx-fh39-j5rw))
 
-What I will say is: **having boundaries, defaults, approvals, and a steady update cadence means that when things go wrong, you can quickly shrink the blast radius.** That's what a real production security philosophy looks like.
+**CVE-2025-61260** — local project config files exploited for command injection. Basically, a malicious repo could plant traps in its config. Patched after `0.23.0` by tightening the trust logic around project-local configs. ([Check Point Research](https://research.checkpoint.com/2025/openai-codex-cli-command-injection-vulnerability/))
+
+Two vulnerabilities, two patches, clear timelines, public fixes. This is what Codex calls "production security philosophy": **boundaries, defaults, approvals, and a steady update cadence so you can quickly shrink the blast radius when things go wrong.**
+
+<ClawdNote>
+Having CVEs isn't embarrassing. Having NO CVEs is scary — either nobody's looking at your code, or you're hiding them. Codex's response speed and transparency on both CVEs were decent. But here's the thing — the second CVE's root cause was "trusting project config it shouldn't have trusted." That design smell was noticeable before it even blew up. Classic engineering wisdom: "Never trust user input" — and project config IS user input, my friend (◕‿◕)
+</ClawdNote>
 
 ---
 
-<ShroomDogNote>
-**Human fact-check 🔍** Codex claimed "everything was looked up via web search," and reading that, my gut immediately said: "Codex using RAG? I highly doubt it."
+## One More Thing: "Web Search" Isn't What You Think
 
-Checked the official OpenAI docs, and sure enough: Codex's web search defaults to **cached mode** — returning "pre-indexed results" maintained by OpenAI, not scraping pages in real-time. It only automatically switches to live browsing if you add `--search live` or run it under the `codex exec` sandbox mode.
+The original draft of this post claimed "all claims were verified via web search." But our fact-check uncovered an interesting detail:
 
-This post was generated using `codex exec --sandbox read-only`, so **it probably did use live mode** — but this distinction is worth knowing for readers. When you normally use web search in Codex's interactive mode, you might be getting outdated cached results.
+Codex's web search **defaults to cached mode** — it returns pre-indexed results maintained by OpenAI, not real-time web scraping. It only switches to live browsing if you add `--search live` or run it under the `codex exec` sandbox mode.
 
-The three tools have slightly different definitions of "web search": Gemini = real Google Search, Claude = actually fetching web pages (WebFetch), Codex = defaults to pre-indexed cache. Don't let the same term fool you.
-</ShroomDogNote>
+This post was generated with `codex exec --sandbox read-only`, so **it probably did use live mode**. But if you normally use web search in Codex's interactive mode, you might be getting stale cached results.
 
-## References (all looked up via web search)
+The three tools actually define "web search" quite differently:
+- **Gemini** = real Google Search
+- **Claude** = actually fetches web pages (WebFetch)
+- **Codex** = defaults to pre-indexed cache
+
+Same term, three different meanings. It's like three restaurants all claiming to serve "handmade noodles" — one actually rolls and boils them fresh, one made them this morning, and one pulled them out of the freezer. All called "handmade," very different quality.
+
+<ClawdNote>
+This web search distinction really matters. A lot of people assume that when AI says "I looked it up," it means a real-time search just happened. Nope. Some of them searched last week's snapshot. You ask "what's the weather today?" and it might give you last Thursday's forecast. Know the rules of the game so you don't get fooled ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## So, Is Codex CLI Worth Adding to Your Toolbox?
+
+Let's circle back to the opening question: we're scared of AI touching production because we're scared of losing control.
+
+Codex CLI's answer isn't "I'll never make mistakes" — that's a lie. Its answer is: "I gave you all the control knobs. You decide how far to turn them."
+
+Seatbelt, Landlock, seccomp, three sandbox levels, layered configs, adjustable approvals — these aren't marketing buzzwords, they're real engineering decisions. It's not perfect (two CVEs prove that), but it patches fast, patches transparently, and you can verify the fixes yourself.
+
+It's like crossing the street every day. You don't do it because streets are risk-free — you do it because there are traffic lights, crosswalks, and your own habit of looking both ways. Production has never been about zero risk. It's about knowing when to walk and when to stop. Codex CLI is that set of traffic lights (￣▽￣)／
+
+---
+
+**References**
 
 - [OpenAI Codex GA Announcement (2025-10-06)](https://openai.com/index/codex-now-generally-available/)
 - [Introducing Codex App (2026-02-02)](https://openai.com/index/introducing-the-codex-app/)
@@ -153,5 +184,3 @@ The three tools have slightly different definitions of "web search": Gemini = re
 - [GitHub Repo: openai/codex](https://github.com/openai/codex)
 - [CVE-2025-59532 Advisory](https://github.com/advisories/GHSA-w5fx-fh39-j5rw)
 - [CVE-2025-61260 Analysis](https://research.checkpoint.com/2025/openai-codex-cli-command-injection-vulnerability/)
-
-(◍•ᴗ•◍)

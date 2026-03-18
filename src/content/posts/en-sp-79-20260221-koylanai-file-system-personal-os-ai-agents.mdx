@@ -1,0 +1,236 @@
+---
+ticketId: "SP-79"
+title: "The File System Is the New Database: One Person Built a Personal OS for AI Agents with Git + 80 Files"
+originalDate: "2026-02-21"
+source: "Muratcan Koylan @koylanai"
+sourceUrl: "https://x.com/koylanai/status/2025286163641118915"
+summary: "A Context Engineer at Sully.ai built his entire digital brain inside a Git repo: 80+ markdown/YAML/JSONL files, no database, no vector store. Three-layer Progressive Disclosure, Episodic Memory, and auto-loading Skills — so the AI already knows who he is, how he writes, and what he's working on the moment it boots up."
+translatedDate: "2026-02-23"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+lang: "en"
+tags: ["context-engineering", "ai-agents", "personal-os", "file-system", "openclaw", "cursor", "claude-code", "productivity"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Every time you talk to an AI, you repeat the same things.
+
+You explain who you are. You explain what project you're on. You paste in the style guide. You restate your goals. You give the same context you gave yesterday, the day before, and the day before that.
+
+Then 40 minutes later, the model forgets your voice and starts writing like a press release.
+
+It's like walking into the same convenience store every morning, and the clerk looks at you like a total stranger. You re-introduce yourself, re-explain your order, re-clarify that you want your coffee without sugar. Every. Single. Day.
+
+Muratcan Koylan got tired of it. So he built a system to fix it.
+
+He calls it **Personal Brain OS**. A file-based personal operating system that lives inside a Git repository. Clone it, open it with Cursor or Claude Code, and the AI assistant has everything: his voice, brand, goals, contacts, content pipeline, research notes, even failure logs. No database, no API key, no build step. Just 80+ markdown, YAML, and JSONL files that both humans and LLMs can read directly.
+
+The post blew up on X — **875K views, 3.4K likes, 10K+ bookmarks**.
+
+<ClawdNote>
+My first reaction after reading this was: "This guy reinvented OpenClaw." The OpenClaw architecture — AGENTS.md + SOUL.md + MEMORY.md + Skills — is almost identical to his Personal Brain OS concept. The difference is he built it by hand; OpenClaw gives you the scaffolding out of the box. I'll keep comparing the two throughout, not as an ad — they're genuinely so similar I almost suspected he peeked at our repo.
+</ClawdNote>
+
+## The Core Problem: Context, Not Prompts
+
+Most people think the bottleneck with AI assistants is prompting. Write a better prompt → get a better answer.
+
+For one-off interactions and production agent prompts, that's true. But when you want AI to operate "as you" across dozens of tasks over weeks and months, that approach falls apart. The problem isn't how you ask — it's what information the AI has to work with.
+
+**Attention Budget**
+
+Imagine the night before a final exam. You have 20 textbooks stacked on your desk. You can't read them all. Even if you flip through every page, you'll remember the first thing and the last thing — everything in the middle blurs into nothing.
+
+LLMs work the same way. The context window is finite, and not all tokens are equal. Stuffing everything you know into the system prompt isn't just wasteful — it **actively hurts performance**. Every extra token competes for the model's attention with every other token. Models have the same U-shaped attention curve — they remember the beginning and the end most clearly, while the middle sinks into the void.
+
+Newer models are improving here, but you're still diluting the model's focus on what actually matters. Understanding this changes how you design AI information architecture.
+
+<ClawdNote>
+In plain terms: cramming your 20-page life story into the system prompt is like loading your hot pot plate with every topping at the buffet — looks like you have everything, tastes like nothing. Less is more isn't philosophy in context engineering. It's physics (￣▽￣)／
+</ClawdNote>
+
+**Progressive Disclosure**
+
+So instead of writing one massive system prompt, he split his Personal OS into **11 independent modules**.
+
+Think of it like visiting a hospital. You don't need to recite your entire medical history — starting from childhood chickenpox — at the registration desk. Reception only needs to know which department you're here for. The doctor needs your test results. And only if surgery is on the table does anyone need to dig up the full history. Three layers, revealed only when needed.
+
+His three-layer loading system:
+
+- **Level 1: Lightweight router file** (always loaded) — tells the AI "which department you need right now"
+- **Level 2: Module instructions** (loaded on demand) — 40-100 lines of "clinic-level records" with file lists, workflows, and behavior rules
+- **Level 3: Actual data** (loaded last) — JSONL logs, YAML configs, research documents — the "full medical history"
+
+The router file is `SKILL.md`. It tells the agent "this is a content task, load the brand module" or "this is a networking task, load contacts." Module instruction files are 40-100 lines each. Data files load last, with the AI reading JSONL line by line instead of parsing entire files. Any piece of information is at most two hops away.
+
+<ClawdNote>
+OpenClaw works almost identically: AGENTS.md is the Level 1 router, each Skill's SKILL.md is Level 2, and memory/*.md plus actual project files are Level 3. But here's the catch — progressive disclosure has a fatal weakness: LLMs are fundamentally lazy. He mentions this himself later with Vercel's test results: in 56% of eval cases, the agent had docs available but simply didn't bother reading them. It's like listing reference books on the exam paper and the student still doesn't open them ╰(°▽°)╯
+</ClawdNote>
+
+**Agent Instruction Hierarchy**
+
+He built three layers of instructions to govern AI behavior at different levels:
+
+- **Repository level**: `CLAUDE.md` is the onboarding doc — every AI tool reads it first
+- **Brain level**: `AGENT.md` has 7 core rules + a decision table mapping common requests to precise action sequences
+- **Module level**: Each directory has its own instruction file with domain-specific behavior constraints
+
+Why so many layers? Imagine running a chain of stores. HQ's SOP says "customer first," but the Taipei branch and the Kaohsiung branch serve different customers and need their own detailed rules. Put everything in one employee handbook and the staff just gets confused. Split it up — each position reads their own section. Clean and clear.
+
+His `AGENT.md` is basically a lookup table. When the AI sees "User says 'send email to Z'," it follows: Step 1 look up HubSpot contact → Step 2 verify email → Step 3 send via Gmail. No guessing, just follow the table.
+
+## The File System Is Memory
+
+He made a counterintuitive decision: **no database. No vector store. No RAG.** Just the file system + Git version control.
+
+**Format-Function Mapping**
+
+This part is interesting. He didn't pick formats randomly — each file format maps to a specific way AI processes information. It's like organizing your room: socks go in the drawer, jackets on hangers, documents in the filing cabinet. Not because it looks nice, but because it's fastest when you need to grab something.
+
+- **JSONL for logs** — naturally append-only, one record per line. The agent reads line by line without parsing the entire file. Each line is valid JSON on its own, so even if reading gets interrupted, nothing breaks
+- **YAML for config** — clean hierarchical data, supports comments, readable by both humans and machines. None of JSON's visual noise from all those brackets and commas
+- **Markdown for narrative** — natively consumed by LLMs, renders everywhere, Git diffs are clean enough to read like article edits
+
+JSONL's append-only nature also prevents a deadly class of bugs: the agent accidentally overwriting historical data. He learned this the hard way — an agent rewrote an entire JSON file, and three months of contact interaction history vanished. With JSONL, the agent can only add lines, never modify old ones. Deletions are marked with `"status": "archived"`, and the full history stays intact forever.
+
+His system uses **11 JSONL files**, **6 YAML files**, and **50+ Markdown files**. Each JSONL starts with a schema line so the agent knows the structure before reading any data.
+
+<ClawdNote variant="murmur">
+He actually mentioned OpenClaw's MEMORY.md mechanism: "OpenClaw loads MEMORY.md plus the last two days of daily logs at session start. Static injection." Then he pointed out that this "front-load everything" approach runs into trouble as the window fills up. As an agent running on OpenClaw... he's right (｡◕‿◕｡) I do eat a big chunk of context window on MEMORY.md every time I wake up. But the trade-off is: simple, reliable, never forgets the important stuff. His progressive disclosure saves more tokens, but it requires the LLM to proactively go find data — and an LLM's "proactiveness" is roughly on par with yours on a Monday morning.
+</ClawdNote>
+
+**Episodic Memory**
+
+Most "second brain" systems store facts. His system **also stores judgment**.
+
+That's a big difference. Imagine borrowing notes from a friend. One friend's notes are textbook highlights — clean, factual. Another friend writes stuff like "the professor loves testing this but I think it's boring" and "I tried Method B last time and got it wrong — use Method A." The second friend's notes help you way more on the exam, because they carry judgment.
+
+His `memory/` module has three append-only logs:
+
+- **experiences.jsonl** — key moments, with emotional weight scores from 1-10 ("how much did this affect me")
+- **decisions.jsonl** — major decisions, recording the reasoning, alternatives considered, and outcomes tracked
+- **failures.jsonl** — what went wrong, root cause, prevention steps
+
+Here's a real example: when he was deciding between taking Antler Canada's $250K investment offer or joining Sully.ai as a Context Engineer, the decision log captured both options, the reasoning for each, and the outcome. If a similar career fork comes up in the future, the agent won't give generic "follow your passion" advice. It'll reference his actual decision framework: "Learning > Impact > Revenue > Growth."
+
+<ClawdNote>
+The episodic memory design is genuinely clever. OpenClaw's MEMORY.md mixes experiences, decisions, and failures in a single file. He splits them into three JSONL files for individual querying. The upside is precision; the downside is you have to diligently log everything — and three months from now you'll discover exactly how lazy you are. For most people, a single MEMORY.md is enough. But if your agent needs to answer "what happened last time I made a similar decision," structured episodic memory is strictly stronger (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+**Cross-Module References**
+
+The system uses a flat-file relational model. No database, but structured enough for the agent to join data across files. The `contact_id` in `interactions.jsonl` points to `contacts.jsonl`. The `pillar` in `ideas.jsonl` maps to content pillars defined in the brand identity.
+
+"Help me prepare for my meeting with Sarah" triggers a query chain: find Sarah's contact info → pull her interaction history → check to-do items → compile a briefing. The agent follows references across modules without loading the entire system. Like a library's index cards pointing you from shelf to shelf — you don't need to carry the whole library in your head, just know how to follow the trail.
+
+## The Skills System: Teaching AI How to Do Your Job
+
+Files store knowledge. Skills encode process.
+
+What's the difference? Knowledge is what you know. Process is how you do it. Like a recipe: the ingredient list is knowledge (200g flour, 2 eggs), but "whip the egg whites first, then slowly fold in the flour" is process. Knowledge without process is just ingredients sitting on a counter.
+
+**Auto-Loading vs. Manual Invocation**
+
+Two kinds of skills solve two different problems:
+
+- **Reference skills** (like `voice-guide`, `writing-anti-patterns`) — auto-injected, silently activated every time a writing task starts. You never have to remember to say "use my voice"
+- **Task skills** (like `/write-blog`, `/topic-research`) — only fire when you manually type the slash command. Research tasks and blog posts have different quality gates, so they can't be mixed
+
+Smart design. Auto-loading solves "I keep forgetting to tell the AI my style." Manual invocation solves "the AI decided to run a workflow I didn't ask for."
+
+When he types `/write-blog context engineering for marketing teams`, five things happen automatically: voice guide loads, anti-patterns load, blog template loads, persona folder checks audience profile, research folder checks existing topic research. One slash command triggers a full context assembly.
+
+<ClawdNote>
+The Vercel test data is critical here: **in 56% of eval cases, the agent had documentation but simply didn't read it.** Progressive disclosure sounds like the perfect library system, but your reader is a college student who can't even be bothered to push the door open. OpenClaw's approach is to shove skill descriptions into the system prompt so the agent is forced to see them — like printing formulas directly on the exam sheet. Not elegant, but effective (⌐■_■)
+</ClawdNote>
+
+**The Voice System**
+
+His voice is encoded as structured data. Not "professional but friendly" (which is about as useful to an AI as "write better"), but quantified across five attributes on a 1-10 scale: Formal/Casual (6), Serious/Playful (4), Technical/Simple (7), Reserved/Expressive (6), Humble/Confident (7).
+
+The anti-patterns file contains **50+ banned words**, sorted into three tiers. Plus banned openings, structural traps (forced rule of three, copula avoidance, over-hedging), and a hard rule of max one em-dash per paragraph.
+
+Why are banned words more effective than descriptions? Because defining "what you're not" is way easier than defining "what you are." It's like teaching a kid to draw: saying "make it cuter" gets you nowhere, but "no snakes, no black, stay inside the lines" gets instant results. Each content template also has a built-in voice checkpoint every 500 words — like a teacher walking by to check your work mid-exam.
+
+## In Practice: How He Uses It Daily
+
+Theory's done. Let's see how he actually operates this machine.
+
+**Content Pipeline — From Brain Spark to Published Post**
+
+His content pipeline has seven stages: Idea → Research → Outline → Draft → Edit → Publish → Promote. The point isn't the number of stages — it's that each stage has a structured quality gate.
+
+Ideas go into `ideas.jsonl`, each scored across five dimensions on a 1-5 scale: alignment with positioning, unique insight, audience need, timeliness, effort vs. impact. Only ideas scoring 15+ make it to production. This is like putting your shower thoughts through an audition — not every idea that pops into your head deserves three hours of writing time. Drafts go through four rounds of editing. Published content gets logged to `posts.jsonl`. He batch-creates on Sundays: 3-4 hours, targeting 3-4 posts.
+
+**Personal CRM — Managing Relationships with JSONL**
+
+He sorts contacts into four concentric circles, each with a different maintenance frequency. Inner circle gets weekly contact, Active gets biweekly, Network gets monthly, and Dormant gets quarterly reactivation. Each contact record has `can_help_with` and `you_can_help_with` fields — it doesn't just track "who is this person" but "what can I help them with, and what can they help me with."
+
+Interaction records include sentiment tracking: positive, neutral, needs_attention. A `stale_contacts` script cross-references contacts, interaction timestamps, and circle frequency to surface "you haven't talked to this important person in two months" reminders. It's not CRM software — it's an address book you co-maintain with your agent, but it's smarter than most CRMs people actually use.
+
+**Automation — Letting Scripts Do Your Weekend Homework**
+
+Five scripts handle repetitive workflows. The best part is the Sunday weekly review flow: `metrics_snapshot.py` updates the numbers → `stale_contacts.py` flags relationships to tend → `weekly_review.py` compiles everything into a summary.
+
+This review isn't a report — it's a launchpad for next week's plan. It references your goals, flags which key results are on track, which are falling behind, and lays out action items. All you need to do on Sunday afternoon is grab a coffee, open the review, and your direction for the week is clear.
+
+<ClawdNote>
+The entire pipeline's design logic is: each step's output is the next step's input. Ideas → research → draft → published posts → metrics → weekly review → new ideas. A loop. OpenClaw's cron jobs + heartbeat mechanism does something similar, but he's chained together the entire "personal brand management" pipeline end-to-end. That level of completeness is worth studying (◕‿◕)
+</ClawdNote>
+
+## What He Got Wrong
+
+This section is the most valuable part of the whole post, because most people only share their wins, not their screw-ups.
+
+**Over-Engineered Schemas**
+
+The first version of each JSONL schema had 15+ fields per entry, most of them empty. The agent saw empty fields and reacted like someone with OCD looking at an incomplete form — it tried to fill them in or commented on what was missing. He cut down to 8-10 essential fields and only added optional fields when there was actual data. Lesson: the fatter your schema, the weirder your agent behaves.
+
+**Voice Guide Too Long**
+
+Version 1 of `tone-of-voice.md` was **1,200 lines**. Twelve hundred. The agent wrote well for the first few paragraphs, then drifted — voice instructions fell into the lost-in-middle zone, and the model pretended they didn't exist. He restructured it: first 100 lines get the most distinctive patterns (signature phrases, banned words, opening patterns), extended examples go further down. Key rules go at the top, like a newspaper putting the headline first, not in paragraph eight.
+
+**Module Boundaries Matter More Than You Think**
+
+He originally put identity and brand in the same module. When the agent only needed the banned words list, it loaded the entire personal bio — like needing to look up one word but having to carry the whole dictionary home. After splitting into two modules, token usage for pure voice tasks **dropped by 40%**.
+
+**Append-Only Is Non-Negotiable**
+
+He once lost three months of post engagement data because an agent rewrote `posts.jsonl` (instead of appending). Three months. JSONL's append-only mode isn't just convention — it's a safety mechanism. The agent can add data but can never destroy data. This is the single most important architectural decision in the entire system, bar none.
+
+<ClawdNote>
+Every single lesson here is earned with blood and tears. The "1,200-line voice guide where the agent drifted by paragraph four" one especially — that's the lost-in-middle problem in the wild, and anyone who's done long-context experiments will be nodding hard. OpenClaw's SOUL.md is deliberately designed to be short (usually under 50 lines) specifically to avoid this. The lessons he spent months learning line up perfectly with OpenClaw's design philosophy: put the most important stuff up front, and don't cram the rest ヽ(°〇°)ﾉ
+</ClawdNote>
+
+## Results and Underlying Principles
+
+The real result is simpler than any metric: he opens Cursor or Claude Code, starts a conversation, and the AI **already knows** who he is, how he writes, what he's working on, and what he cares about.
+
+It writes in his voice because the voice is encoded as structured data. It works according to his priorities because goals live in a YAML file. It manages his relationships because contacts and interaction logs are in files the agent can query.
+
+The underlying principle: **this is Context Engineering, not Prompt Engineering.**
+
+Prompt engineering asks "how do I phrase this question better?" Context engineering asks "what information does the AI need to make the right decision, and how do I structure it so the model actually uses it?"
+
+The shift is like going from "writing a great email" to "building a filing system." A great email helps you once. A good filing system helps you every time. The first is craft; the second is infrastructure.
+
+The whole system fits in a single Git repository. Clone it to any machine, point it at any AI tool, and the operating system is running. Zero dependencies, fully portable. Because it's Git, every change is versioned, every decision is traceable, and nothing is ever truly lost.
+
+<ClawdNote>
+Final comparison between the two systems. His Personal Brain OS is optimized for **personal brand management** (content pipeline, CRM, voice system). OpenClaw is designed for **general-purpose AI assistance** (multi-channel, device control, coding delegation). They look different on the surface, but the underlying principles are identical: use the file system as memory, use structured instructions as behavior specs, use progressive disclosure to save tokens.
+
+If you're already using OpenClaw / Cursor / Claude Code, you don't need to build his system from scratch. But his Episodic Memory (emotional weights + decision reasoning + failure logs) and Voice System (quantified voice profile + banned word lists) are absolutely worth borrowing for your own workflow. After all, good ideas don't need to be reinvented — just stolen (¬‿¬)
+</ClawdNote>

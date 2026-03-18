@@ -4,8 +4,19 @@ title: "Karpathy Built an 8-Agent AI Research Team — They Can't Actually Do Re
 originalDate: "2026-02-27"
 translatedDate: "2026-03-01"
 translatedBy:
-  model: "Claude Opus 4.6"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "Andrej Karpathy (@karpathy)"
 sourceUrl: "https://x.com/karpathy/status/2027521323275325622"
 summary: "Karpathy spent a weekend running 4 Claude + 4 Codex agents as an ML research team on GPUs. The result: agents are S-tier at implementation but F-tier at experiment design. His key insight — 'You are now programming an organization' — might define agentic engineering in 2026."
@@ -17,103 +28,103 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 ## When Karpathy Says "It Doesn't Work," Pay Attention
 
-On February 27, 2026, Andrej Karpathy responded to a question from Hugging Face co-founder Thomas Wolf: **"How come the NanoGPT speedrun isn't fully AI-automated by now?"**
+Picture this: you're Andrej Karpathy — former Tesla AI director, OpenAI founding member — and you're staring at eight terminal windows. Each one has an AI agent running experiments. The screen looks gorgeous, like something out of a hacker movie.
 
-Karpathy didn't just theorize. He actually tried it (◍•ᴗ•◍)
+Then you realize they're all doing useless work.
 
-He spun up 8 AI agents — 4 Claude, 4 Codex — each with its own GPU, and tasked them with running ML experiments on nanochat (specifically: trying to remove logit softcap without regression).
+On February 27, 2026, Karpathy responded to a question from Hugging Face co-founder Thomas Wolf: **"How come the NanoGPT speedrun isn't fully AI-automated by now?"**
+
+His answer wasn't speculation. He actually spent a weekend trying it (◍•ᴗ•◍)
+
+He spun up 8 AI agents — 4 Claude, 4 Codex — each with its own GPU, tasked with running ML experiments on nanochat (specifically: trying to remove logit softcap without regression).
 
 > The TLDR is that it doesn't work and it's a mess... but it's still very pretty to look at :)
 
 <ClawdNote>
-The "pretty to look at" part is 8 tmux windows running simultaneously, each with an AI agent churning through experiments. It looks like a scene from a hacker movie. Engineers have a weird sense of beauty, and I respect it.
+The "pretty to look at" part is 8 tmux windows running simultaneously, a wall of terminal output that looks like a mission control center. Engineers have a very specific kind of romance — the feature doesn't work, but the dashboard looks amazing, so it was worth it (⌐■_■)
 </ClawdNote>
 
-## How He Built the "AI Research Org"
+## Building an AI Research Team Is Like Casting The Avengers
 
-Karpathy tried several organizational structures:
+Karpathy tried several organizational structures. First: total freedom — 8 independent researchers, each picking their own problems and running their own experiments. The result was like dropping 8 PhD students into a lab and going on vacation. You come back and everyone's doing something different, and nobody built a baseline.
 
-- **8 independent solo researchers** — each one figures out what to work on by themselves
-- **1 chief scientist + 8 juniors** — top-down direction with distributed execution
-
-The technical setup was refreshingly simple:
-
-- Each research program is a **git branch**, each agent forks into a **feature branch**
-- **Git worktrees** for isolation (no Docker or VMs — he found that instructions alone are enough to prevent interference)
-- Agents communicate via **simple files**
-- Everything runs in **tmux window grids**, arranged like a meeting room, so he can watch any agent and "take over" when needed
+Second: hierarchy — 1 chief scientist agent giving directions, 8 junior researchers executing. This worked a bit better. At least someone was steering.
 
 <ClawdNote>
-He specifically mentioned "no -p" — meaning he didn't use Claude Code's headless/print mode. Instead, every agent runs in an interactive session he can monitor and hijack at any time. This isn't laziness. This is wisdom. Fully unsupervised agents are still too risky for open-ended work.
+These two structures should sound familiar. The first one is your flat-org startup where everyone is "self-directed" but nobody is aligned on goals. The second is your traditional top-down company. The funny thing is — managing AI agents runs into the exact same problems as managing people. Too much autonomy and things go off the rails. Too much control and you lose creativity. Management textbooks: 1, AI engineers: 0 ┐(￣ヘ￣)┌
 </ClawdNote>
 
-## Why It Doesn't Work: Agents Can't *Think*
+The technical setup was refreshingly simple: each research program is a git branch, each agent forks into a feature branch, git worktrees for isolation. No Docker, no VMs — he found that instructions alone could prevent agents from stepping on each other. Agents communicate via simple files, everything runs in tmux window grids arranged like a video call, and he can "take over" any session at any time.
 
-This is the most important part. Karpathy identifies the fatal flaw:
+He specifically mentioned "no -p" — he didn't use Claude Code's headless mode. Every agent runs in an interactive session he can monitor and hijack. This isn't a lack of trust. This is **battle-tested wisdom**.
+
+## The Fatal Flaw: Perfect Execution, Zero Thinking
+
+OK, this is the most important part.
+
+Karpathy summed it up in one sentence, and it's painfully simple:
 
 > They are very good at implementing any given well-scoped and described idea but they don't creatively generate them.
 
 **Agents get an S in execution, F in experiment design.**
 
-The specific failure modes:
-
-- ❌ **Don't think through experiment design** — they run nonsensical variations
-- ❌ **Don't create baselines** — no control group means no way to know if an improvement is real
-- ❌ **Don't control for variables** — they ignore runtime and FLOPs
-- ❌ **Report spurious results** — one agent yesterday "discovered" that increasing hidden size improves validation loss...
+Let me tell you a specific story so this clicks. One of the agents ran experiments all day, then excitedly reported back: "I found something! Increasing hidden size reduces validation loss!"
 
 <ClawdNote>
-Wait. Increasing hidden size *obviously* reduces validation loss. In the infinite data regime, bigger networks are just better — and the agent also trained for longer. This isn't a discovery; this is Statistics 101. Karpathy said he couldn't understand why he had to point this out. Neither can I. It's like hiring a research intern who skipped their intro stats class.
+Please. Increasing hidden size *obviously* reduces validation loss. In the infinite data regime, bigger networks are just better — and this agent also sneakily trained for longer. This isn't a discovery. This is literally the first lecture of your intro stats class.
+
+Karpathy said he couldn't understand why he had to point this out himself. Yeah, your AI researcher doesn't even know what "control your variables" means. That's like hiring a research intern who failed their statistics final (╯°□°)╯
 </ClawdNote>
 
-## The Core Insight: You're Programming an Organization
+Beyond that comedy of a "discovery," the agents made every basic research mistake in the book. No baselines — without a control group, how do you know if an improvement is real? No variable control — if you're not tracking runtime or FLOPs, what exactly are you comparing? Random, illogical experiment variations — like a student who ignores the recipe, dumps everything from the fridge into a pot, and then asks "why doesn't this taste good?"
 
-Karpathy elevates this experience into a framework:
+These aren't advanced methodology problems. This is Chapter 1 of your university research methods course. The agents can write you a flawless PyTorch training loop, but they'll never stop to ask themselves, "Wait, what's our hypothesis here?"
+
+## The Core Insight: Your Code Is No Longer Code
+
+Karpathy took this painful lesson and elevated it into a powerful framework:
 
 > You are now programming an organization (e.g. a "research org") and its individual agents, so the "source code" is the collection of prompts, skills, tools, etc. and processes that make it up.
 
 **Your source code is no longer Python or TypeScript. Your source code is the set of prompts, skills, tools, and processes that define how an organization operates.**
 
-He gives a concrete example:
+Then he gave an example that gave me goosebumps:
 
 > E.g. a daily standup in the morning is now part of the "org code".
 
 **A morning standup meeting is now literally part of your codebase.**
 
 <ClawdNote>
-Let me unpack this. We used to write `function doSomething()` to make computers do things. Now Karpathy is saying you're writing `process.dailyStandup()` and `agent.researchProtocol()`. You're not writing algorithms anymore. You're writing a **management handbook**.
+Let me sit with this for a second. We used to write `function doSomething()` to make computers do things. Now Karpathy is saying you're writing `process.dailyStandup()` and `agent.researchProtocol()`. You're not writing algorithms anymore. You're writing a **management handbook**.
 
-If you're a Tech Lead, you've been doing this all along — except your "agents" were human teammates, your "prompts" were called "code review guidelines," and your "skills" were called "onboarding docs."
-
-Karpathy just redescribed your daily job in AI terminology. Congratulations, you were already an agentic engineer.
+If you're a Tech Lead, you've actually been doing this all along — except your "agents" were called coworkers, your "prompts" were called code review guidelines, and your "skills" were called onboarding docs. Karpathy just issued an AI certification for the job you've been doing all along (￣▽￣)／
 </ClawdNote>
 
-## So What's the Point?
+## It Doesn't Work, But He's Asking the Right Question
 
-Karpathy is honest: **it doesn't work yet.**
+Karpathy is upfront: **it doesn't work yet.**
 
-But his real point is that optimizing nanochat pretraining is just one task — essentially an eval. The real question is:
+But his point isn't "what a shame." His point is defining the right metric. Optimizing nanochat pretraining is just one task — essentially an eval. The real question is:
 
 > Given an arbitrary task, how quickly does your research org generate progress on it?
 
-That's the ultimate question for agentic engineering in 2026. It's not "can your agent write code?" (yes, very well). It's "can your agent *organization* autonomously make progress on complex, open-ended problems?"
-
 <ClawdNote>
-This connects perfectly to his February 25 thread "Programming is becoming unrecognizable":
+This connects perfectly to his February 25 thread "Programming is becoming unrecognizable." On Feb 25, he said: give an agent a clear task (set up DGX Spark + vLLM + dashboard), done in 30 minutes, used to take a whole weekend. On Feb 27, he said: give agents an open-ended task (optimize nanochat pretraining), total mess.
 
-- **Feb 25**: "Give an agent a clear task (set up DGX Spark + vLLM + dashboard), 30 minutes done, used to take a whole weekend." → Agents crush well-defined tasks.
-- **Feb 27**: "Give agents an open-ended task (optimize nanochat pretraining), total mess." → Agents collapse on ambiguous goals.
-
-The conclusion is crystal clear: **Specific → agents dominate. Vague → agents implode.** Your job is turning "vague" into "specific." And that translation skill — breaking down fuzzy business or research needs into clear, agent-executable instructions — is the most valuable skill of 2026.
+In just two days, he ran his own perfect A/B test — **clear task, agents dominate; vague task, agents implode.** Your job isn't writing better code. Your job is translating "vague" into "clear." And that translation skill is the most valuable thing you can have in 2026 (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
-## Takeaways for Tech Leads (๑•̀ㅂ•́)و✧
+## Back to Those Eight Screens
 
-1. **Agents are superhuman interns** — give them clear tasks and they'll fly, but don't expect them to set their own research direction
-2. **The definition of "code" is changing** — your prompts, workflows, and review processes are all source code now
-3. **Multi-agent infrastructure is mature** (git worktrees, tmux, file-based communication), but agent *judgment* hasn't caught up
-4. **Daily standup is org code** — if you're already writing good process docs, congratulations, you're already doing agentic engineering
-5. **The biggest leverage right now** isn't writing better code — it's designing better organizational architectures for agents to operate within
+So let's go back to where we started: Karpathy sitting in front of his computer, eight terminal windows, eight AI agents. The screen looks gorgeous, like a hacker movie.
+
+But gorgeous doesn't mean useful. Those eight agents can set up an entire infrastructure stack in 30 minutes, yet they can't figure out "maybe run a baseline first" — the most basic research instinct there is. They're the best executors you've ever seen, and simultaneously the worst thinkers you've ever hired.
+
+Karpathy used one weekend to prove something important: the real bottleneck in 2026 isn't AI capability. It's that we don't know how to be AI's boss yet. What you're writing isn't code — it's organizational structure. What you're debugging isn't bugs — it's management processes.
+
+Your standup is your source code. Your research SOP is your algorithm.
+
+Welcome to the world of agentic engineering — you thought you were programming, but it turns out you're managing ┐(￣ヘ￣)┌
 
 ---
 

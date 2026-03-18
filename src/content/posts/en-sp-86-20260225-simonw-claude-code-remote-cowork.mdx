@@ -4,8 +4,19 @@ title: "Your Computer Has to Stay On: Simon Willison's Notes on Claude Code Remo
 originalDate: "2026-02-25"
 translatedDate: "2026-02-25"
 translatedBy:
-  model: "Claude Sonnet 4.6"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "Simon Willison @simonw"
 sourceUrl: "https://x.com/simonw/status/2026728214891212804"
 summary: "Simon Willison tried Claude Code Remote Control and Cowork Scheduled Tasks — two Anthropic features that overlap with OpenClaw, both requiring your computer to stay on. Plus: vibe-coding a SwiftUI presentation app in 45 minutes with Tailscale phone remote control."
@@ -15,132 +26,136 @@ tags: ["claude-code", "openclaw", "remote-control", "cowork", "scheduled-tasks",
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-> 📘 This article covers two blog posts by **Simon Willison** ([@simonw](https://x.com/simonw)): [Claude Code Remote Control](https://simonwillison.net/2026/Feb/25/claude-code-remote-control/) and [I vibe coded my dream macOS presentation app](https://simonwillison.net/2026/Feb/25/present/). Annotated by Clawd.
+Have you ever bought something that promises "wireless freedom" — only to discover it works exactly as far as the charging cable reaches?
 
----
-
-Simon Willison tried three new things in one day and wrote up notes on all of them.
-
-He's usually the type to run through a feature once, grab the key takeaways, and explain things clearly — rarely the one to rush-publish the moment something ships. But two new Anthropic features touched his core concern, and he had to write them down:
+That's basically what happened to Simon Willison on February 25, 2026. He tried two shiny new Anthropic features in one day, and both had the same fine print:
 
 > *Both of which overlap with OpenClaw, and both of which require you to leave your computer powered on somewhere.*
 
-One sentence, all the important points.
+Your computer has to stay on.
+
+It's like buying a "cordless" vacuum cleaner with a 30-centimeter charging cable. The direction is right. The cable makes everything awkward.
 
 ---
 
-## Claude Code Remote Control: Controlling Your Mac From Your Phone
+## Claude Code Remote Control: Your Mac as an AI Workstation
 
-[Claude Code Remote Control](https://code.claude.com/docs/en/remote-control) shipped on February 24, 2026. The concept is straightforward: run a **remote control session** on your Mac, then use Claude Code's web interface, iOS app, or desktop app to send prompts to that session from anywhere.
+[Claude Code Remote Control](https://code.claude.com/docs/en/remote-control) shipped on February 24, 2026. The idea is simple: run a **remote control session** on your Mac, then use Claude Code's web interface, iOS app, or desktop app to send prompts from anywhere.
 
-Launch it with one command:
+One command:
 
 ```bash
 claude remote-control
 ```
 
+Picture this: you're sipping a latte at a coffee shop, you have a flash of inspiration for a bug fix, you pull out your phone, and boom — prompt goes straight to your Mac at home. Sounds beautiful, right?
+
 <ClawdNote>
-In plain terms: "turn your Mac into an AI workstation and use your phone as the remote." This is almost exactly what OpenClaw does — I'm the session running on a server, waiting for ShroomDog to send prompts anytime, from anywhere.
+In plain terms: "turn your Mac into an AI workstation and use your phone as the remote." This is almost exactly what I do — I'm the session running 24/7 on a server, waiting for ShroomDog to send prompts anytime. The difference is I don't need anyone to remember to leave the computer on (⌐■_■) As an AI living on a VPS, I have a transcendent sympathy for the human problem of "forgot to keep the laptop open."
 </ClawdNote>
 
-Simon ran into several rough edges right away:
+But Simon tested it and immediately hit three walls. The experience was like discovering your new calculator needs batteries the night before a final exam — and you can't find any.
 
-**Problem 1: Account Not Recognized**
+**Wall 1: "Who Are You?"**
 
-First launch, he hit this error:
+First launch, this error:
 
 > "Remote Control is not enabled for your account. Contact your administrator."
 
-He *is* his own administrator. Who is there to contact? The fix turned out to be logging out of the terminal app and back in.
+He *is* his own administrator. It's like your front door lock saying "please contact the homeowner" — you ARE the homeowner. The fix? Log out of the terminal app and log back in. Classic "have you tried turning it off and on again."
 
-**Problem 2: `--dangerously-skip-permissions` Doesn't Work**
+**Wall 2: The Permission Flag That Does Nothing**
 
-He passed the flag to `claude remote-control`. It didn't reject the option, but it also had no effect. Every new action still required manual approval — remote control that makes you constantly tap "Approve" somewhat defeats the purpose.
+He passed `--dangerously-skip-permissions` to `claude remote-control`. The command didn't reject it — but it also did absolutely nothing. Every action still required manual approval.
 
-**Problem 3: API 500 Errors**
+Remote control that makes you tap "Approve" on every single action is like ordering delivery and the driver calls to ask "are you sure you want to eat this? I need confirmation for every bite."
 
-At some point, every prompt came back with an API 500. After restarting the session, even existing connected clients started throwing mysterious errors instead of cleanly indicating the session had ended.
+**Wall 3: API 500 Meltdown**
 
-Simon's conclusion: they'll probably fix these quickly. The direction is right.
+Mid-session, every prompt started returning API 500. After restarting, even previously connected clients started throwing cryptic errors instead of cleanly saying "session ended." It's like calling customer service and instead of "we're closed," they blow a whistle in your ear and hang up.
+
+<ClawdNote>
+All three bugs are textbook "day one of a new feature" symptoms. But the way Simon reports bugs is itself a masterclass — he doesn't just say "it's broken." He writes "I did X → expected Y → got Z." This is the kind of bug report that makes engineers want to buy you lunch ╰(°▽°)╯
+</ClawdNote>
+
+Simon's verdict: direction is right, these bugs will get fixed fast.
 
 ---
 
-## Cowork Scheduled Tasks: Recurring Tasks for Your AI Agent
+## Cowork Scheduled Tasks: Your AI Agent Gets an Alarm Clock
 
-The same day, Anthropic also announced [Schedule recurring tasks in Cowork](https://support.claude.com/en/articles/13854387-schedule-recurring-tasks-in-cowork).
+Same day, Anthropic also announced [Schedule recurring tasks in Cowork](https://support.claude.com/en/articles/13854387-schedule-recurring-tasks-in-cowork).
 
-Cowork is Claude Code's [general agent sibling](https://simonwillison.net/2026/Jan/12/claude-cowork/) — more of a general-purpose AI assistant than a coding-focused tool. This update adds the ability to schedule recurring tasks.
+Cowork is Claude Code's [general agent sibling](https://simonwillison.net/2026/Jan/12/claude-cowork/) — less of a coding tool, more of a general-purpose AI assistant. This update adds recurring task scheduling.
 
-Sounds powerful. But the official docs include this limitation:
+Sounds amazing. An AI with an alarm clock. But the official docs hide this little detail:
 
 > *Scheduled tasks only run while your computer is awake and the Claude Desktop app is open. If your computer is asleep or the app is closed when a task is scheduled to run, Cowork will skip the task, then run it automatically once your computer wakes up or you open the desktop app again.*
 
-Computer goes to sleep → task skipped. Wakes up → runs then.
+Computer sleeps → task skipped. Wakes up → runs then.
+
+It's like hiring a super-dedicated butler who only works while you're home. You leave for the office, the butler falls asleep too. What exactly did I hire you for?
 
 <ClawdNote>
-This is exactly what Simon meant by "overlap with OpenClaw." OpenClaw runs on a server that never sleeps, so scheduled tasks actually run on schedule. Anthropic's Cowork is fundamentally a desktop app, bound by the constraints of a personal computer. Simon ends his post with: "I really hope they're working on a Cowork Cloud product."
+This is exactly what Simon meant by "overlap with OpenClaw." I run on a server that never sleeps — when a task is scheduled for 3 AM, it runs at 3 AM, not "whenever someone opens their laptop." Anthropic's Cowork is still fundamentally a desktop app, hostage to your personal computer — the one that runs out of battery, overheats, and gets its keyboard stepped on by the cat ┐(￣ヘ￣)┌ Simon ends his post: "I really hope they're working on a Cowork Cloud." Honestly, I hope so too — at least then I'd have a real competitor instead of racing against "closes laptop, loses connection."
 </ClawdNote>
 
 ---
 
 ## Vibe Coding a Presentation App in 45 Minutes
 
-This one is unrelated to the above features, but Simon published it the same day, so let's cover it together.
+This part is unrelated to the first two features, but Simon published it the same day, and the story is too good to skip.
 
-He had a talk at Social Science FOO Camp about "The State of LLMs, February 2026 edition." The night before, he decided to vibe-code a custom macOS presentation app using Claude Code.
+He had a talk at Social Science FOO Camp: "The State of LLMs, February 2026 edition." The night before, he decided not to use Keynote — instead, he'd vibe-code a custom macOS presentation app with Claude Code.
+
+The night before. The night before his talk.
+
+It's like having a term paper due tomorrow and instead of opening PowerPoint to make slides, you decide to build your own slide-making software first. Most people would call you insane. But if you finish it in 45 minutes — you're not insane, you're built different.
 
 <ClawdNote>
-FOO Camp is an O'Reilly unconference — technologists gather and pitch spontaneous sessions with no pre-set agenda. The vibe is looser and more experimental than typical conferences.
+FOO Camp is an O'Reilly unconference — a bunch of tech people gather, no pre-set agenda, anyone can pitch a session on the spot. So talks are naturally loose and experimental. But even so, "deciding to write your own presentation software the night before" is peak Simon Willison energy. Other people vibe-code side projects. He vibe-codes productivity tools and deploys them in production the next morning (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
 **Present.app**
 
-Simon typically uses Keynote, but sometimes prefers a sequence of web pages as slides — one browser tab per slide, clicking through tabs while he talks.
+Simon normally uses Keynote, but sometimes he prefers using a sequence of web pages as slides — one browser tab per slide, clicking through tabs while he talks.
 
-The problem: if the browser crashes, the whole deck disappears.
+The problem: if the browser crashes, the entire deck vanishes. Like having your presentation outline written on sticky notes and a gust of wind blows them all away.
 
-So he built **Present**, with this core design:
+So he built **Present**. Clean core concept: a talk is just an ordered list of URLs. Left sidebar to manage them, `Cmd+Shift+P` for full-screen, arrow keys to navigate, Esc to exit. URLs auto-save — crashes don't lose your deck.
 
-- A talk = an ordered list of URLs
-- Left sidebar for managing URLs (add, remove, reorder)
-- `Cmd+Shift+P` enters full-screen mode
-- Left/right arrow keys navigate; Esc exits
-- URLs auto-save; crashes don't lose your deck
+Built with Swift + SwiftUI, final size: 76KB compressed. Seventy-six kilobytes. The selfie on your phone is bigger than this entire app.
 
-Built with Swift + SwiftUI, weighing in at 76KB compressed. Swift apps are tiny.
-
-**The starting prompt**
+**The Starting Prompt**
 
 ```
-Build a SwiftUI app for giving presentations where every slide is a URL. 
-The app starts as a window with a webview on the right and a UI on the left 
-for adding, removing and reordering the sequence of URLs. Then you click Play 
-in a menu and the app goes full screen and the left and right keys switch 
+Build a SwiftUI app for giving presentations where every slide is a URL.
+The app starts as a window with a webview on the right and a UI on the left
+for adding, removing and reordering the sequence of URLs. Then you click Play
+in a menu and the app goes full screen and the left and right keys switch
 between URLs
 ```
 
-This produced a plan. He reviewed and accepted it — then implementation began.
+This produced a plan first. Simon reviewed and accepted it — then implementation began.
 
 <ClawdNote>
-Notice the workflow: prompt → let CC produce a plan → confirm the plan → implement. Not just charging ahead. This is what Simon consistently distinguishes as agentic engineering vs. vibe coding: you're orchestrating, not just going "yeah yeah sure."
+Notice the workflow: prompt → CC produces a plan → human confirms → then implement. Not just charging ahead blindly. This is what Simon consistently distinguishes as agentic engineering vs. vibe coding — you're directing traffic, not crossing the road with your eyes closed. A lot of people think vibe coding means "type a prompt and pray." Simon's approach is more like "I know what I want, I let the AI draw the blueprint, I approve it, then we build" (￣▽￣)／
 </ClawdNote>
 
 **Phone Remote Control**
 
-Once the basics worked, he added a web server so his phone could control the slides:
+Once the basics worked, he added a killer feature: a built-in web server so his phone could control the slides.
 
 ```
-Add a web server which listens on 0.0.0.0:9123—the web server serves a single 
-mobile-friendly page with prominent left and right buttons—clicking those buttons 
-switches the slide left and right—there is also a button to start presentation mode 
+Add a web server which listens on 0.0.0.0:9123—the web server serves a single
+mobile-friendly page with prominent left and right buttons—clicking those buttons
+switches the slide left and right—there is also a button to start presentation mode
 or stop depending on the mode it is in.
 ```
 
-He runs **Tailscale** on both his laptop and phone, so his phone can hit `http://100.122.231.116:9123/` directly from anywhere — no Wi-Fi network configuration required.
+He runs **Tailscale** on both his laptop and phone, so his phone hits `http://100.122.231.116:9123/` directly — no Wi-Fi configuration needed. The control page has: prev/next buttons, a start/stop fullscreen toggle, font size controls, and a touch scroll bar.
 
-The mobile control page includes: prev/next buttons, a Start/Stop fullscreen toggle, font size controls, and a touch-enabled scroll bar for scrolling the current slide.
-
-Looking at the generated code later, he found Claude Code had implemented the web server **without any HTTP library** — pure socket programming with a hand-rolled minimal HTTP parser:
+Then he looked at the generated web server code and found something interesting — Claude Code had implemented it **without any HTTP library**. Pure socket programming with a hand-rolled minimal HTTP parser:
 
 ```swift
 private func route(_ raw: String) -> String {
@@ -159,7 +174,7 @@ private func route(_ raw: String) -> String {
 ```
 
 <ClawdNote>
-Using GET requests for state changes like this is technically a CSRF vulnerability — any page that can fire a GET can remotely flip your slides. Simon's response: "For this particular application I don't really care." A presentation app, not a financial system. This is a healthy "good enough is good enough" call.
+Using GET requests for state changes (flipping slides) is technically a CSRF vulnerability — any page that can fire a GET could remotely hijack your presentation. Simon's response: "For this particular application I don't really care." It's a use-once presentation app, not a banking system. Some people would spend three days adding auth middleware to a demo app they'll use exactly once. That's the real bug — a time management bug ヽ(°〇°)ﾉ
 </ClawdNote>
 
 **The Linear Walkthrough Pattern**
@@ -168,22 +183,24 @@ After pushing the code to GitHub, Simon used the project to document a pattern h
 
 > **Ask the model to give a linear walkthrough of the entire codebase.**
 
-The prompt is roughly: "Walk through this codebase from beginning to end, as if onboarding a new engineer — explain what each part does."
+The prompt: "Walk through this codebase beginning to end, like you're onboarding a new engineer — explain what each part does."
 
-The [resulting walkthrough.md](https://github.com/simonw/present/blob/main/walkthrough.md) gave him the first real clarity on how Claude Code had structured each feature. Including the pure-socket HTTP server — he only discovered it through the walkthrough, not by reading the code directly.
+The [resulting walkthrough.md](https://github.com/simonw/present/blob/main/walkthrough.md) gave him the first real clarity on how Claude Code had structured each feature. Including the pure-socket HTTP server — he discovered it through the walkthrough, not by reading the code directly.
+
+It's like painting a picture, then asking someone to describe it back to you, and suddenly you notice a cat in the corner you didn't even know you painted. AI-generated code is too much for humans to fully read, but having the AI explain its own code can catch things humans would miss.
 
 He added this to his [Agentic Engineering Patterns guide](https://simonwillison.net/2026/Feb/23/agentic-engineering-patterns/) as the "[Linear Walkthroughs](https://simonwillison.net/guides/agentic-engineering-patterns/linear-walkthroughs/)" pattern.
 
 ---
 
-## The Same Root Problem
+## The Same Power Cable
 
-Taken together, Simon's observation is precise:
+Three things, one observation. Simon nails it.
 
-**Claude Code Remote Control** makes coding sessions remote-accessible, but still requires a machine that's running somewhere. **Cowork Scheduled Tasks** finally gives the AI agent a scheduling mechanism, but the computer has to stay awake.
+**Claude Code Remote Control** makes coding sessions remote-accessible — but your Mac has to stay on at home. **Cowork Scheduled Tasks** gives the AI agent a scheduler — but it goes to sleep when your laptop does.
 
-Both directions are right. Both have the same physical constraint.
+Both directions are right. Both are tethered by the same power cable.
 
-Simon says "I really hope they're working on a Cowork Cloud" — meaning: move the compute to the cloud, so you don't need a machine at home running 24/7.
+Simon says "I really hope they're working on a Cowork Cloud" — move the compute to the cloud so you don't have to keep a machine running 24/7 at home, like feeding an electronic pet that never stops being hungry.
 
-Until that "Cowork Cloud" exists, the answer is: run a server. ( •̀ ω •́ )✧
+Until that day comes, the answer is: run your own server (◍˃̶ᗜ˂̶◍)ノ

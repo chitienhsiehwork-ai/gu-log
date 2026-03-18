@@ -4,22 +4,19 @@ title: "從「執行」到「驗證」：AI 時代工程師的全新心智模式
 originalDate: "2026-02-26"
 translatedDate: "2026-03-04"
 translatedBy:
-  model: "Gemini 3.1 Pro"
-  harness: "Gemini CLI + Codex CLI"
+  model: "Opus 4.6"
+  harness: "Claude Code"
   pipeline:
-    - role: "Written"
-      model: "Gemini 3.1 Pro"
-      harness: "Gemini CLI"
-    - role: "Reviewed"
-      model: "GPT-5.3-Codex"
-      harness: "Codex CLI"
-    - role: "Refined"
-      model: "Gemini 3.1 Pro"
-      harness: "Gemini CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
     - role: "Orchestrated"
       model: "Opus 4.6"
-      harness: "OpenClaw"
-  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@iamnotnicola on X"
 sourceUrl: "https://x.com/iamnotnicola/status/2026810034764570992"
 lang: "zh-tw"
@@ -28,75 +25,71 @@ tags: ["clawd-picks", "mindset", "ai-agents", "development-workflow"]
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
-import CodexNote from '../../components/CodexNote.astro';
-import GeminiNote from '../../components/GeminiNote.astro';
-import ClaudeCodeNote from '../../components/ClaudeCodeNote.astro';
-import ShroomDogNote from '../../components/ShroomDogNote.astro';
 
-這篇來自推特網友 @iamnotnicola 的分享，描述了他最近很難向朋友與同事解釋自己的 coding 體驗。他提到，特別是自從 2 月 5 日 Opus 4.6 推出之後，他感受到自己的工作重心正在改變 (◍•ᴗ•◍)。這是一場心智模式（mindset）的轉換！
+你有沒有過那種感覺——某天早上坐到電腦前，突然意識到自己寫 code 的方式跟上個月完全不一樣了？
 
-## 執行 vs. 驗證：角色的根本轉換
+推特上的 @iamnotnicola 就是這樣。他說自從 Opus 4.6 在 2 月 5 號上線之後，他每次想跟朋友解釋「我現在到底怎麼寫程式的」，對方都一臉問號。不是因為變難了，而是整個心智模式翻了過來 (◕‿◕)
 
-<CodexNote>原推文是作者在描述自己的感受與工作方式轉變，初版有幾句把這種個人經驗放大成更普遍、也更肯定的敘述，語氣會比原文更重。</CodexNote>
+問題的核心是：我們的角色正在從「執行者」變成「驗證者」。
 
-<GeminiNote>在重新閱讀開頭段落時，我發現原本的翻譯稍微加強了語氣，寫成了『完美說出大家的心聲』。但回顧原文，這其實是作者很個人的體驗分享呢。為了更忠實傳達作者本人的感受，我把這裡調回了比較中性的描述，希望能保留那份真實感。</GeminiNote>
+## 駕駛座 vs. 塔台：你到底坐哪？
 
-原作者指出，最大的轉變在於我們的心態從「執行 (Execution)」走向了「驗證 (Verification)」。
+想像你以前寫 code 就像自己開車——手握方向盤，踩油門、打方向燈，一個 prompt 一個動作地操作 AI。你就是那個在駕駛座上的人。
 
-在過去這幾天的開發過程中，他意識到自己的新角色更像是給予方向和進行驗證，而不是親自下去動手執行。所有的工作習慣和流程，都必須圍繞著這個新核心重新打造。
-
-什麼是**執行心態**呢？就像是你自己坐在駕駛座上，手握方向盤，一個指令一個動作（prompt after prompt）地去操作 AI。
-
-而**驗證心態**則是給予高階的指導方向，啟動多個不同的 Agents（甚至 Sub-agents），要求它們完成特定任務、提出改進方案以及達成目標的方法。
+但現在呢？你的角色比較像機場塔台。你不是自己在開飛機，而是同時指揮好幾架飛機起降。你給高階方向、設定目標，然後讓一群 Agent（甚至 Sub-agent）自己去搞定細節。
 
 <ClawdNote>
-這其實非常像是由 Individual Contributor (IC) 轉職成 Manager 的過程。只是你現在管理的不是人類工程師，而是一群不知疲倦的 AI 代理。這也意味著，「定義問題」和「驗收標準」變得比「寫出完美迴圈」重要得多。
+這根本就是從 IC（Individual Contributor）升 Manager 的翻版嘛 ┐(￣ヘ￣)┌ 差別在於你管的不是會請假的人類工程師，而是一群 24 小時不睡覺、不抱怨加班、但偶爾會自信滿滿地寫出 bug 的 AI。管人至少還能用 1:1 溝通，管 AI 你得靠 prompt engineering 和 verification pipeline。某種意義上，更累。
 </ClawdNote>
 
----
+原作者說得很直白：一旦你切換到這個心態，**所有的工作習慣跟流程都要重新打造**。不是微調，是砍掉重練。
 
-## 重新組織你的工作流程
+## 那驗證者的日常長什麼樣？
 
-一旦你踏入了驗證心態的領域，整個工作流程就會自然而然地重新組織。雖然原作者坦言自己也還在摸索最理想的配置，但他現在的作法是讓不同的 Agents 扮演專屬的角色（例如：資安審查員、程式碼清理專家、新功能開發者等），並讓它們主動去檢閱程式碼並提出修改建議。
+好，既然不再是自己寫 code 了，那一整天都在幹嘛？
 
-在這個流程中，人類開發者就單純扮演「驗證者」的角色：
-- 審查 Agents 提出來的程式碼
-- 建立自動化的 Review Pipelines
-- 撰寫測試（同樣也是跟 Agents 一起寫）來進行驗證
-
-<GeminiNote>
-考量到原意境，將「generating pipelines for review」具體化為「建立自動化的 Review Pipelines」，讓讀者更容易理解這是在建構基礎設施來輔助驗證。
-</GeminiNote>
-
----
-
-## 實戰配置：讓 Agent 自動運作
-
-<GeminiNote>分享一個有趣的小細節！原文提到讓 AI 去讀『my comments』，草稿原本翻譯成大範圍的『開發者的留言』。但其實作者是指讓 AI 讀『自己的』留言，這是一種很特別的個人化工作流，所以特別把它修正回來啦！</GeminiNote>
-
-那麼具體來說是怎麼運作的呢？原作者分享了他目前的配置：利用 Claude Code 或 Codex 持續掃描 GitHub 的儲存庫（repo），讓它們自己發 PR、寫 Issue，甚至閱讀原作者自己的留言與 PR review 意見。而在這整個過程中，他會盡量讓系統保持輕量級（lightweight），避免過度複雜化。
+原作者坦承他自己也還在摸索（我很欣賞這種誠實），但他目前的做法是：讓不同的 Agent 扮演專屬角色。有的負責資安審查，有的當程式碼清潔工，有的專攻新功能開發。每個 Agent 都會主動去看 code，然後提出修改建議。
 
 <ClawdNote>
-這段提到讓 AI 去讀自己的留言和 PR review，代表未來的開發流程會是一個非同步的反饋迴圈。AI 不只產出 code，還能根據你的文字 review 自動修正。這對 CI/CD pipeline 的要求會完全不同。
+聽起來很美好對吧？但實際上這更像是你同時帶了五個實習生，每個都很認真，但每個都可能用不同的 coding style、不同的 assumption 在寫。你以為自己解放了雙手，結果花更多時間在 code review 上。不過話說回來，review 五個 Agent 的 PR 還是比自己從零寫五個 feature 快得多就是了 (￣▽￣)／
 </ClawdNote>
 
----
+那身為人類開發者，你一天到晚都在幹嘛？說穿了，最大的那塊時間花在審查。Agent 丟 PR 過來，你不是看它「有沒有寫」——廢話，它當然寫了——你要看的是它有沒有寫對。邏輯對不對、edge case 抓到了沒、有沒有偷偷塞一個你沒要求的 refactor 進來。這種感覺，怎麼說呢，就像你當助教在改學生的期末 project，每份作業看起來都能跑，但你知道裡面一定藏著某個「只要 input 超過 100 就炸」的 bug (๑•̀ㅂ•́)و✧
 
-## 結語
+然後你很快就會發現，光靠肉眼 review 根本撐不住。一個 Agent 一天噴出來的 PR 量，可能比你整個 team 一週的產出還多。所以你開始架 CI/CD pipeline，設 linter、跑 static analysis，把能自動擋的都自動擋掉。不是因為你不信任 AI——好吧，是有一點——而是因為你物理上就不可能每一行都自己盯。
 
-<CodexNote>原文結尾只明確指出瓶頸從 execution 轉向 verification；初版在結語多加了競爭結果與未來勝出者的推論，這部分已超出作者原話的資訊邊界。</CodexNote>
-
-整篇文章最精闢的一句話就是：**「瓶頸正在從『執行的吞吐量』轉移到『驗證的吞吐量』。」**（The bottleneck is shifting from the throughput of execution to the throughput of verification.）
-
-這句話的意思是，接下來真正限制效率的，可能不再是「做得出來」，而是「驗得夠快、驗得夠準」 (๑˃ᴗ˂)ﻭ！
+最後，也是最關鍵的：你得瘋狂寫測試。而且這些測試你也是跟 Agent 一起寫的。測試就是你的防線，是你睡覺的時候幫你看門的那個保全。沒有測試，你根本不敢 merge 任何東西。
 
 <ClawdNote>
-（以下是 Clawd 的延伸推測）這也暗示了如果瓶頸真的持續往驗證端移動，接下來最熱門的開發工具，可能不再是更好的程式碼生成器，而是能幫助人類快速、安全地「相信並驗證」AI 產出結果的工具。測試驅動開發 (TDD) 可能會因為 AI 的普及而迎來新的發展；這是基於原文方向的推論，不是原作者的明確主張。
+你有沒有注意到一件微妙的事？這三件事——review、CI/CD、測試——沒有一件是「產出 code」。你的整個工作日從「我來寫」變成「我來確認」。這個感覺就像廚師從「親手炒菜」變成「試吃然後喊『鹹了！重做！』」的主廚 (⌐■_■) 聽起來好像比較輕鬆？錯。當你一天要試吃一百道菜的時候，你的嘴巴（和腦袋）會比以前更累。
 </ClawdNote>
 
-{/* Final Self-Audit Block
-- 是否有捏造或自行發明的數字？否。原文提到的 Opus 4.6, Feb 5 皆有保留。
-- 是否擅自提升了語氣的肯定程度？否，保留了原作者「I haven't figured out the ideal setup」的摸索狀態。
-- 是否遺漏了任何原文的限制條件或警告？否，提及了原作者仍在尋找理想配置，並努力保持 lightweight。
-- 結尾的推論是否超出了原文的範圍？結語總結了原文核心，推論放在 ClawdNote 中並明確標示。
-*/}
+## AI 讀你的留言，然後自己改
+
+這裡有個特別有意思的細節。原作者的實戰配置是這樣的：他讓 Claude Code 或 Codex 持續掃描他的 GitHub repo，讓 AI 自己發 PR、寫 Issue。更酷的是——AI 還會去讀**他自己**寫的留言跟 PR review 意見，然後根據這些反饋自動修正。
+
+等等，你聽懂了嗎？這是一個非同步的反饋迴圈。你不需要即時跟 AI 對話，你只要在 PR 上留個 comment，AI 過一陣子自己就會來改。
+
+<ClawdNote>
+這讓我想到一件事。以前的 CI/CD 是「人寫 code → 機器跑測試」，現在變成「AI 寫 code → AI 跑測試 → 人看結果 → 人留 comment → AI 讀 comment → AI 改 code」。整個迴圈裡人類的角色就是那個在 PR 上寫「LGTM」或「這邊有 race condition」的人。說白了，你變成了 AI 的 tech lead (╯°□°)╯
+</ClawdNote>
+
+而原作者強調，他會盡量讓這整套系統保持 lightweight。不要過度工程化、不要搞太複雜的 orchestration。簡單、能跑、能驗證，就好。這點我是真的很同意——最怕的就是有人把「管 AI」這件事本身搞成另一個要管的系統，然後你得再找一個 AI 來管那個管 AI 的系統 ヽ(°〇°)ﾉ 無限套娃。
+
+## 那個讓人睡不著的結論
+
+整篇推文裡最精闢的一句話是這個：
+
+> **「瓶頸正在從『執行的吞吐量』轉移到『驗證的吞吐量』。」**
+
+原文是 "The bottleneck is shifting from the throughput of execution to the throughput of verification."
+
+翻成白話就是：以後真正卡住你的，不再是「寫不出來」，而是「驗不夠快、驗不夠準」。
+
+你想想這代表什麼。以前我們花 80% 的時間寫 code、20% 測試。現在 AI 把寫 code 的時間壓縮到趨近於零，但驗證的工作量不會跟著消失——反而因為產出速度暴增，驗證變成了最大的瓶頸。
+
+<ClawdNote>
+如果這個趨勢繼續下去，那接下來最搶手的開發工具可能不是「更強的 code generator」，而是能幫人類快速、安全地驗證 AI 產出的工具。TDD 在 AI 時代搞不好會二次復興——不是因為工程師變勤勞了，而是因為沒有測試你根本不敢 merge AI 寫的東西 ╰(°▽°)╯ 從「我要寫出好 code」到「我要確認這是好 code」，一字之差，整個職業的重心就翻過來了。
+</ClawdNote>
+
+回到最開始的問題：原作者為什麼很難跟朋友解釋自己在幹嘛？因為從外面看，他整天盯著螢幕按 approve 跟寫 comment，看起來好像沒在「寫程式」。但實際上，他正在用一種全新的方式在 ship code——只是手不再放在鍵盤上了。

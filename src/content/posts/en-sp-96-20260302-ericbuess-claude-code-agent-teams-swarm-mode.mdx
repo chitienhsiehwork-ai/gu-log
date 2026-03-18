@@ -4,146 +4,155 @@ title: "Testing Claude Code Agent Teams: Is the Legendary Swarm Mode Actually An
 originalDate: "2026-02-07"
 translatedDate: "2026-03-02"
 translatedBy:
-  model: "Gemini 3.1 Pro"
-  harness: "Gemini CLI + Codex CLI"
+  model: "Opus 4.6"
+  harness: "Claude Code"
   pipeline:
-    - role: "Written"
-      model: "Gemini 3.1 Pro"
-      harness: "Gemini CLI"
-    - role: "Reviewed"
-      model: "GPT-5.3-Codex"
-      harness: "Codex CLI"
-    - role: "Refined"
-      model: "Gemini 3.1 Pro"
-      harness: "Gemini CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
     - role: "Orchestrated"
       model: "Opus 4.6"
-      harness: "OpenClaw"
-  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
-source: " @src/content/posts/en-sp-96-20260302-ericbuess-claude-code-agent-teams-swarm-mode.mdx on X"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@EricBuess on X"
 sourceUrl: "https://x.com/ericbuess/status/2019817656745128366"
 lang: "en"
 summary: "Anthropic rolled out Claude Code's Agent Teams feature (aka Swarm Mode) silently with Opus 4.6. This article tests how to enable it, terminal support, the differences from standard Subagents, and the real running costs of this multi-agent system."
 tags: ["shroom-picks", "claude-code", "agent-teams", "swarm"]
 ---
 
-import CodexNote from '../../components/CodexNote.astro';
-import GeminiNote from '../../components/GeminiNote.astro';
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Hey everyone! Anthropic recently and quietly rolled out the "Agent Teams" feature for Claude Code alongside Opus 4.6. Everyone on the internet has been calling it the legendary "Swarm Mode"! I spent some time playing around with it and digging through the official docs, and today I'm going to break down exactly how this system works, what the pitfalls are, and the things that surprised me during my testing (◍•ᴗ•◍)
+You know that feeling from school group projects? You're the team lead. Four people working on the same presentation, nobody talking to each other, and five minutes before the deadline you discover two people made the exact same slides?
+
+Now imagine your team members are AI — and they can actually message each other and share a task board.
+
+Anthropic quietly shipped an "Agent Teams" feature for Claude Code alongside Opus 4.6. The internet has been calling it "Swarm Mode," which sounds way cooler than it probably should. I spent a few days actually testing it, and today let's talk about whether this is a glimpse of the future or just an expensive toy (◕‿◕)
 
 ---
 
-## What exactly are Agent Teams? Are they the same thing as Swarm?
+## So what exactly is Agent Teams?
 
-Simply put, Agent Teams let you coordinate multiple Claude Code instances so they can work together on the same task.
+Think of it like a small company. There's one **Team Lead** who breaks down the work and collects results. Below them are **Teammates** — each one is an independent Claude Code instance with its own context window.
 
-In this team, one session acts as the **Team Lead** (responsible for delegating work and consolidating results), while the others are **Teammates**. Each teammate is an independent Claude Code instance with its own context window, and they can communicate directly with each other!
+Here's the key part: these teammates aren't just doing their own thing in isolation and tossing results back. They can actually talk to each other. They share a task board. They know who's doing what and how far along everyone is. You just describe the task and team structure in plain English, and Claude spawns the team and assigns the work.
 
-You can describe the task and team structure using natural language, and Claude will spawn the team and assign the work for you. Every teammate loads the same project context (like `CLAUDE.md`), but they don't inherit the Lead's conversation history. It feels like having a group of Claudes that can message each other and share a task board, all processing different parts of the same problem in parallel.
-
-As for the "Swarm Mode" everyone keeps talking about? Yep, it's actually the exact same thing. The official name is Agent Teams, and there isn't a separate Swarm feature.
+As for "Swarm Mode"? Same thing, different name. The official name is Agent Teams. There's no separate Swarm feature.
 
 <ClawdNote>
-This kind of decentralized design with a task board (Task list) is very close to the architecture found in traditional Multi-Agent System papers. From my practical observations, letting Agents "freely converse" with each other usually means they're more prone to hallucinations or getting stuck in infinite loops, which might be why it's still an experimental feature for now.
+Remember CP-16, the one that predicted the "Agentic Swarm parallel multitasking era"? Back then everyone was guessing what Swarm would look like, and Anthropic actually delivered — they just renamed it to "Agent Teams," which sounds more like enterprise software than a sci-fi movie. Letting agents "freely chat" sounds amazing in theory. In practice, it's a lot like letting a group of interns brainstorm without guardrails — things go sideways fast. Hallucinations, infinite loops, circular arguments. Probably why it still wears the "experimental" badge ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ---
 
-## How do you unlock this hidden feature?
+## Unlocking the hidden door
 
-Agent Teams is currently an experimental feature turned off by default, and you won't find a toggle for it in the menus. You need to handle it manually in the config file:
+This feature is off by default, and there's no toggle in the menu. You have to dig into the config file yourself.
 
-In your `~/.claude/settings.json`, under the `env` block, add `"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"`. The great thing about setting it this way is that it takes effect across sessions, so you don't have to export the environment variable every time you open a shell.
+Add `"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"` to the `env` block in your `~/.claude/settings.json`. The nice part about putting it in the settings file is that it persists across sessions — no need to export an environment variable every time you open a terminal.
 
-If you don't enable it, Claude will downgrade to using **Subagents**. Subagents are just little helpers for a single session that only report back to the main agent; there's no communication between agents, and no shared task list.
-
----
-
-## Two display modes: The ultimate test for your terminal
-
-When displaying the working status of teammates, Agent Teams has two modes you can choose from. This is also where most people get stuck:
-
-**In-Process Mode (同進程模式)**
-All teammates run within your main terminal screen. You can use `Shift + Up/Down` to select a teammate, type to talk to them directly, and press `Enter` to view their session.
-- **Pros**: Works in any terminal, zero setup barrier.
-- **Cons**: You can't see what everyone is doing simultaneously at a glance.
-The default setting is actually "auto", so if you aren't using tmux, it will automatically fallback to this mode.
-
-**Split-Pane Mode (分割視窗模式)**
-Every teammate gets their own dedicated terminal pane! You can see everyone's output at the same time and click in to intervene whenever you want.
-- **Support**: Only supports `tmux` (in any terminal) or `iTerm2` (requires installing the `it2` CLI and enabling the Python API).
-- **The Tragedy List**: Ghostty, the integrated VS Code terminal, and Windows Terminal **do not support** split-pane mode.
+Without it? Claude falls back to **Subagents**. Subagents are solo workers — they do a task, report back to the boss, and that's it. No cross-talk, no shared task board. Think of them like delivery drivers: they bring you the food, but they're not going to coordinate route planning with the driver next door.
 
 <ClawdNote>
-For developers used to VS Code or Ghostty, you're currently forced to use In-Process mode, which dampens the experience a bit. However, running `tmux -CC` (Control Mode) inside iTerm2 is an awesome workaround, letting you enjoy the native macOS window experience along with the stability of tmux.
+Honestly, Subagents are enough for most things. It's like how most dinners don't need a Michelin chef — ordering takeout gets the job done just fine. Agent Teams is for when you genuinely need a SEAL Team. When do you need a SEAL Team? Keep reading — we'll get there (⌐■_■)
 </ClawdNote>
 
 ---
 
-## After the teammates clock out... the windows don't close?!
+## The terminal compatibility test
 
-<CodexNote>This section makes "one Team per session" sound like official spec, but the original content is actually more of a temporary observation from the author's testing, keeping a reserved tone. If readers take this as final, they might mistakenly judge it as a permanent limitation.</CodexNote>
+Agent Teams has two modes for displaying teammate status, and which terminal you use literally determines whether your experience is heaven or hell.
 
-<GeminiNote>The original author mentioned not being able to repeatedly spawn Teams in the same session, and the original translation phrased it somewhat arbitrarily like an ironclad official rule. But this is actually just the author's current observation from testing (after all, it's still an experimental feature), so I tweaked the tone a bit to restore it as an observational description. If anyone finds out later that you can spawn them consecutively, let me know!</GeminiNote>
+**In-Process Mode**
 
-This was the most baffling thing I encountered during testing. When a teammate finishes their task and closes, that terminal pane doesn't automatically close—it drops back to a normal shell prompt!
+All teammates share your main terminal screen. Use `Shift + Up/Down` to switch between them, type to talk directly. The upside: zero config, works everywhere. The downside: you can only see one person at a time — like watching four livestreams on one phone, switching one by one.
 
-At first, I spent a ton of time trying to write a script to auto-close them, only to discover: **If you close the pane, you won't be able to create a new Team in the same Claude Code session!** Claude will throw an error because it can't find the cached Pane ID.
+**Split-Pane Mode**
 
-So right now, based on testing, it looks more like a **one-team-per-session** workflow (though this might change in future updates). The panes stick around so you can look at the history or use `claude --resume` to bring back a specific teammate. Want to run the next Team? Currently, the safest bet is to just dutifully start a brand new Claude Code session. Whatever you do, don't go writing auto-close scripts; you'll just be fighting the tool (๑˃ᴗ˂)ﻭ
+Every teammate gets their own terminal pane. You can see everyone's output at once and jump into any pane to intervene. This is the experience Swarm Mode is supposed to deliver.
 
----
-
-## Subagents vs Agent Teams: What's the difference? And what's the cost?
-
-Both of these can process work in parallel, but the core difference is: **Do your workers need to communicate with each other?**
-
-- **Subagents**: Cheap and handy lone-wolf operations. They only report to the boss (Main Agent) and are perfect for single tasks with clear outcomes.
-- **Agent Teams**: A high-cost elite squad. Teammates can communicate with each other and coordinate the task board on their own.
-
-Speaking of cost, the speed at which Agent Teams burns through Tokens is absolutely staggering. Every teammate has their own complete context window, and all the message passing between teammates and polling the task board is built entirely on Tokens. The speed of parallel processing feels amazing, but the bill is very real.
-
-I'd recommend starting small, like a two-person Team for Research, and making sure it's effective before scaling up.
-
----
-
-## When should you deploy Agent Teams?
-
-If you're willing to spend the Tokens, here are the scenarios where Agent Teams really shine:
-- **Research and Review**: Multiple teammates investigating different aspects simultaneously, then challenging each other's findings.
-- **New module development**: Everyone handles an independent piece without stepping on each other's toes.
-- **Debugging with different hypotheses**: Letting teammates test different hypotheses at the same time helps narrow down the root cause much faster.
-- **Cross-layer coordination**: Having three teammates handle the Frontend, Backend, and Tests separately.
+But here's the catch — support is limited. Only `tmux` (in any terminal) and `iTerm2` (with the `it2` CLI and Python API enabled) work. Ghostty, VS Code's built-in terminal, Windows Terminal? None of them support split-pane.
 
 <ClawdNote>
-If it's just a simple sequential task or fixing a tiny bug, please just use a Subagent. Using Agent Teams for that is like using a sledgehammer to crack a nut, and your wallet will cry.
+VS Code terminal users, I'm sorry for your loss. You're stuck with In-Process mode, which is about a 5 out of 10 experience. Pro tip though: run `tmux -CC` (Control Mode) inside iTerm2 and you get native macOS window management plus tmux stability. iTerm2 really is the Swiss Army knife of macOS terminals (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
 ---
 
-## Bonus feature: Memory Bread for Subagents (Memory Frontmatter)
+## The weirdest gotcha: teammates leave but their windows stay
 
-<CodexNote>The most confusing part of this section is "where to put the settings": the original content's point is to write the memory scope in the subagent definition's frontmatter, while MEMORY.md is the memory content file itself; additionally, the local scope's path is different from the project scope. These details directly affect whether readers can set it up correctly on the first try.</CodexNote>
+This was the most baffling thing I found during testing.
 
-<GeminiNote>I fixed a little trap here: the `memory` setting should be written in the Subagent's definition file (frontmatter), not directly into `MEMORY.md`! I also conveniently added the correct storage path for `local` mode (`.claude/agent-memory-local/`), so you don't spend ages setting it up only to find it didn't take effect.</GeminiNote>
+When a teammate finishes their task, their terminal pane doesn't close. It just drops back to a regular shell prompt and... sits there. My first instinct was "let me write a script to auto-close these." Don't. Seriously, don't.
 
-Finally, let's talk about something great that rolled out around the same time as Agent Teams: the Memory Frontmatter feature for Subagents.
+Because once you manually close those panes, you can never create a new Team in that same Claude Code session. Claude throws an error because it can't find the cached Pane IDs.
 
-You can give your Agents cross-session memory! Just add the `memory` setting in the Subagent's definition file (frontmatter), and it will automatically record what it learns into a standalone memory file (like `MEMORY.md`), helping you jot down issues it has seen, architectural decisions, or testing patterns.
+So the current reality seems to be a **one-team-per-session** workflow. The panes stick around so you can check history or use `claude --resume` to bring back a specific teammate. Want a fresh team? Start a brand new Claude Code session. Of course, this is just what testing shows right now — future updates might change things.
 
-The memory storage scopes are divided into three types:
-- **user**: Stored in `~/.claude/agent-memory/`, shared across projects (official recommended default).
-- **project**: Stored in `.claude/agent-memory/`, stays with the project, can be committed to Git.
-- **local**: Stored in `.claude/agent-memory-local/`, similar to project but kept out of version control.
-
-You can train a "Code Reviewer who totally gets your team's common mistakes" or a "QA Engineer who knows exactly where things break the most." This is different from a static `CLAUDE.md`; Agent Memory is a dynamically accumulating knowledge base maintained by the Agent itself.
+<ClawdNote>
+This reminds me of college dorms. Your roommate moves out, but you can't touch their bed because the housing system still has it registered under their name. If you move the bed, the whole room assignment system breaks. Resource management in software is eternally as absurd as dorm management (╯°□°)╯
+</ClawdNote>
 
 ---
 
-## Conclusion
+## Subagents vs Agent Teams: a simple decision framework
 
-Agent Teams is undoubtedly a highly potent (and very expensive) experimental feature. It gives us a glimpse into the future of multi-AI collaboration, but it also comes with quite a few current limitations, such as: not being able to swap Team Leads mid-way, somewhat rough pane management, and only being able to spawn one Team at a time.
+The core question is just one thing: **do your workers need to talk to each other?**
 
-If you love trying out new tech, hurry up and flip that hidden switch to play around with it! Just remember to get tmux ready first; the experience will be a lot better (◍˃̶ᗜ˂̶◍)ノ
+**Subagents** are like convenience store clerks. You tell them what to do, they do it, they report back. They don't discuss shift scheduling with the clerk at the next counter. Cheap, reliable, great for clear single tasks.
+
+**Agent Teams** are like hiring a consulting firm. They hold meetings, challenge each other, maintain a shared task board. Powerful, but the cost scales exponentially. Every teammate has their own full context window, and all the messaging and task board polling is built entirely on tokens. The speed is incredible. The bill is very real.
+
+My advice? Start with a two-person team. Confirm the ROI is positive before scaling up.
+
+---
+
+## Four scenarios where Agent Teams actually shine
+
+So when is it worth calling in the SEAL Team? Here are the situations where I genuinely felt the difference during testing.
+
+**Scenario one: the Research Recon Squad.** Say you need to evaluate three different auth approaches. Instead of researching them one by one, send three teammates out simultaneously — one digs into OAuth 2.0 best practices, one researches JWT pitfalls, one checks Passkey browser support. The key part? When they're done, they review each other's conclusions and poke holes. This isn't three people writing three separate reports — it's three people arguing until they reach a consensus.
+
+**Scenario two: parallel module development.** Your project needs a new API endpoint, a frontend page, and a test suite all at once. Three teammates each claim a piece. Because they share a task board, the frontend person knows what the API interface looks like, and the test person knows the contract between both sides. No more "duplicate slides" disaster from the group project analogy.
+
+**Scenario three: parallel debugging.** A weird bug, and you're not sure if it's a race condition or expired cache. Send two teammates chasing different hypotheses. The one who finds a lead first can tell the other "stop — that path is a dead end." The convergence speed is genuinely impressive.
+
+**Scenario four: cross-layer refactoring.** Frontend, backend, DB migration — each gets a dedicated teammate. When backend changes a schema, the frontend teammate knows immediately to update the types. If you tried coordinating this yourself by context-switching in one window, your brain would melt before the code compiles.
+
+<ClawdNote>
+Notice the common thread in all four scenarios? They're all tasks where information needs to flow sideways between workers. If your task is something like "translate ten articles" — perfectly parallel, no dependencies — just use Subagents and save your money. Don't pay for your AI to hold meetings. Meetings burn resources whether the attendees are human or artificial ヽ(°〇°)ﾉ
+</ClawdNote>
+
+---
+
+## Bonus: cross-session memory for Subagents
+
+Shipped alongside Agent Teams is a quieter but genuinely useful feature: **Memory Frontmatter**.
+
+You know what's the most frustrating thing about working with AI? Every time you start a new session, it's like someone cast a memory-wipe spell. Last conversation, your preferences, the landmines you already stepped on — all gone. You have to onboard the AI like a new hire, every single time. Memory Frontmatter is the cure.
+
+The setup is simple: add a `memory` config in the Subagent's definition file (the frontmatter), and it will automatically save what it learns to a standalone memory file. Important: the config goes in the Subagent definition file, not in the memory file itself.
+
+Three memory scopes — think of them like where you keep your stuff: pocket, drawer, or safe.
+- **user** (pocket): Stored in `~/.claude/agent-memory/`, goes wherever you go, shared across projects. The officially recommended default.
+- **project** (drawer): Stored in `.claude/agent-memory/`, lives with the project, can be committed to Git. The whole team shares it.
+- **local** (safe): Stored in `.claude/agent-memory-local/`, like project but stays out of version control — your little secret.
+
+Imagine training a "Code Reviewer who knows exactly where your team always messes up" or a "QA Engineer who remembers every historical bug pattern." Unlike a static `CLAUDE.md`, Agent Memory is alive — it accumulates and updates on its own.
+
+<ClawdNote>
+If you're curious about AI memory architecture, SD-4 ("Your AI's Goldfish Brain Finally Has a Fix") goes much deeper — comparing Claude Code's Auto-Memory with OpenClaw's memory system. Short version: Memory Frontmatter is Anthropic's official answer, but there's no silver bullet for memory. And honestly, an AI colleague that remembers all your code smells is kind of terrifying — "Hey, you made the exact same mistake in PR #247 three months ago." That sentence stings more coming from an AI than from a human (¬‿¬)
+</ClawdNote>
+
+---
+
+## Back to that group project
+
+Remember the school group project from the opening? Agent Teams does solve the "everyone working in isolation and discovering collisions at the last minute" problem — because teammates can communicate in real time and see each other's progress.
+
+But it also brings new problems: you can't swap the team lead mid-session, pane management is rough around the edges, and one session only gets one team. And most importantly — these "elite team members" don't come cheap.
+
+If you want to try it, get tmux set up first. The experience improves dramatically. As for whether to use it in your production workflow? I'd say start with research tasks as a trial run. Once Anthropic smooths out those rough edges, the potential here is genuinely exciting (￣▽￣)／

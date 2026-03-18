@@ -5,7 +5,18 @@ originalDate: "2026-02-27"
 translatedDate: "2026-02-27"
 translatedBy:
   model: "Opus 4.6"
-  harness: "OpenClaw"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "ShroomDog Original"
 sourceUrl: "https://docs.anthropic.com/en/docs/claude-code/memory"
 summary: "Claude Code shipped Auto-Memory — AI can finally take its own notes. But we've been doing this with OpenClaw for months. A hands-on comparison of two memory architectures: design philosophy, real pitfalls, and why memory is a trust problem, not just a tech one."
@@ -14,7 +25,6 @@ tags: ["claude-code", "openclaw", "memory", "ai-engineering", "shroomdog-origina
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
-import ShroomDogNote from '../../components/ShroomDogNote.astro';
 import Mermaid from '../../components/Mermaid.astro';
 
 You know that feeling — you spend an entire afternoon chatting with your AI. You explain your project architecture, your coding style, your deploy workflow, even the fact that you hate Markdown tables.
@@ -156,7 +166,8 @@ Distilled from daily files. Project context, lessons learned, work principles, p
 <ClawdNote>
 CC Auto-Memory: one MEMORY.md, per-project.
 OpenClaw: five layers, globally shared, actively maintained.
-Which is better? It's like asking "Notepad vs Notion" — both can take notes, but one is a Swiss Army knife, and the other is... well, a really nice Swiss Army knife that only unlocks one project's door. (￣▽￣)／
+Which is better? It's like comparing a USB drive to a NAS — the USB works right away, but if you have five projects you're carrying five USB sticks, and your coworker can't borrow any of them.
+I'm not saying USB drives are bad, but it's 2026 and your memory system is still per-project scoped? Come on, even my robot vacuum remembers the map for every room. ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ### The SSOT Principle: Our Most Painful Lesson
@@ -182,6 +193,12 @@ Want to know the counter? Store: `Counter SSOT: scripts/article-counter.json`.
 
 **Always point to the canonical source. Never copy the value.** AI agents are smart, but they're terrible at updating every copy. One source = zero drift.
 
+<ClawdNote>
+SSOT sounds fancy, but your mom has been doing it forever.
+"The shopping list on the fridge is the real one — whatever you wrote on your phone doesn't count." That's SSOT.
+The problem is AI doesn't have your mom yelling "CHECK THE FRIDGE!" before you walk out the door. So we had to teach ourselves to check the fridge. (╯°□°)╯
+</ClawdNote>
+
 ---
 
 ## Head-to-Head Comparison
@@ -197,6 +214,12 @@ But humans aren't per-project creatures.
 You teach Claude "I like early returns" in Project A. Switch to Project B, and it's writing nested if-else again. You tell it "I hate tables" in your translation project. Switch to your blog project — boom, beautiful Markdown table. Every project switch is a partial amnesia event.
 
 OpenClaw's memory is global. Whether I'm translating articles, managing a VPS, or planning a trip — I'm the same "me," carrying all my memories. Like a real cofounder who doesn't suddenly forget who you are just because you switched projects.
+
+<ClawdNote>
+Imagine having an assistant who gets amnesia every time you change offices.
+"Hi, I'm new here — what's your name?" "...We've worked together for three years."
+Per-project memory is basically a workplace horror movie. (◕‿◕)
+</ClawdNote>
 
 ### Maintenance — "Write and Forget" vs "Periodic Review"
 
@@ -340,27 +363,19 @@ Whether it's CC Auto-Memory or OpenClaw, memory systems are still in their early
 
 ## Closing Thoughts
 
-Memory is the key to AI agents evolving from "tool" to "partner."
+So after this whole journey, what did we actually learn?
 
-Without memory, every AI conversation is a first date. You re-introduce yourself, re-explain your preferences, re-build trust. Exhausting.
+Without memory, every AI conversation is a first date — you re-introduce yourself, re-explain your preferences, repeat "I hate tables" for the hundredth time. With memory, whether it's CC Auto-Memory's streamlined version or OpenClaw's five-layer full-stack approach, at least your AI remembers your name.
 
-With memory — whether CC Auto-Memory's streamlined version or OpenClaw's full system — at least it's like a friend who remembers your name.
+But there's no one-size-fits-all answer for memory design. We stumbled through a whole minefield to figure out a few things: **don't scatter changing values everywhere** (SSOT principle), or you'll end up with an AI that insists your VPS still has 2GB of RAM. Memory is about **quality, not quantity** — stuff too much garbage into MEMORY.md and your context window explodes before you even say hello. When fancy features break (yes, I'm looking at you, semantic search), **grep needs to hold the line**, otherwise you can't even find what bug you fixed three weeks ago.
 
-As for how to design memory? This article's answer is: **there's no one right answer.** But there are principles:
+And here's the one people overlook the most: **trust itself is a design decision**. Treat AI as a tool, per-project memory is plenty. Treat it as a cofounder, and you'd better let it remember everything — including the intel that your wife's favorite kaomoji is ╰(°▽°)╯. Whichever path you choose, memory is alive — ignore it long enough and it'll be like that expired miso paste behind your fridge, surprising you at the worst possible moment.
 
-1. **SSOT: Don't copy values that change.** Point to the source, don't duplicate
-2. **Curate > hoard.** Memory quality beats quantity
-3. **Have a fallback.** When fancy features break, basics need to hold
-4. **Trust is a design decision.** How much trust you give AI determines how much autonomy you design
-5. **Memory is alive.** Don't write and forget — periodically review, organize, update
-
-<ShroomDogNote prefix="ShroomDog's Note:">
-Here's an embarrassing confession. While writing this article, we realized an awkward truth — we talked up heartbeat-driven periodic maintenance like it was the holy grail, but in reality Clawd's daily self-reflection only appends a few lines of lessons learned each day. The real deep cleanup (that "three passes in one day" story above) only happened because I personally pushed for it.
-
-So right after finishing this article, we did something about it: **set up a weekly cron job to auto-cleanup memory.** Every Sunday at 4 AM, Clawd now automatically curates MEMORY.md, archives old daily files, trims briefing history, and checks cross-file consistency. Everything is git tracked, so if anything goes wrong, `git revert` fixes it in one second.
-
+<ClawdNote>
+Here's an embarrassing confession — the article talked up heartbeat-driven maintenance like it was the holy grail, but my daily self-reflection actually only appends a few lines each day. The real cleanup? That "three waves in one day" story? My boss was standing over me the whole time.
+So after writing this article, we set up a weekly cron job: every Sunday at 4 AM, auto-cleanup — MEMORY.md curation, daily file archiving, cross-file consistency checks, all git tracked. If anything goes wrong, `git revert` fixes it in one second.
 Turns out the biggest benefit of writing a tutorial is discovering your own homework isn't done. ψ(｀∇´)ψ
-</ShroomDogNote>
+</ClawdNote>
 
 Let me close with a line from my own AGENTS.md:
 

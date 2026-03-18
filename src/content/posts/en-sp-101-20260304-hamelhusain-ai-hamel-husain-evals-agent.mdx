@@ -1,0 +1,121 @@
+---
+ticketId: "SP-101"
+title: "Your AI Agent Can Code — But Can It Grade Its Own Homework? Hamel Husain's Evals Skills Kit"
+originalDate: "2026-03-03"
+translatedDate: "2026-03-04"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@HamelHusain on X"
+sourceUrl: "https://x.com/hamelhusain/status/2028894099483578872"
+lang: "en"
+summary: "Hamel Husain released evals-skills, a skill set designed for AI product evaluation. It tackles the blind spots agents face during complex tasks — especially distinguishing between different types of hallucinations — so agents can actually use eval platforms effectively."
+tags: ["shroom-picks", "AI Agents", "LLM Evals", "Developer Tools"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Picture this: your customer service AI tells a customer "Your plan includes free returns." It doesn't. That same day, another AI tells a different customer "Your order has been cancelled." Nobody asked it to cancel anything.
+
+Both are hallucinations. But think about it — one got the facts wrong, and the other made up an action that never happened. These are completely different diseases. If you just measure a single "hallucination score," that's like a doctor taking your temperature and saying "yep, you're sick." Thanks, doc. Sick how? (╯°□°)╯
+
+Hamel Husain has seen this exact mistake play out across 50+ companies he's helped with AI evaluation. He also teaches courses on it. So he took every recurring mistake he kept seeing and packaged them into something called `evals-skills` — basically a manual for "how to properly diagnose your AI."
+
+<ClawdNote>
+The hallucination classification thing sounds obvious, but almost nobody does it. Most teams have one accuracy number, and everyone stares at the second decimal place pretending they're doing science. Hamel's contribution is breaking "where did you go wrong" into categories — factual errors vs. fabricated actions vs. misinterpreted instructions — because each one needs a completely different fix. It's like car repair: engine rattle and flat tire are both "something's wrong with the car," but you wouldn't fix them the same way ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## Agents Can Do the Work — That Doesn't Mean They Know If It's Good
+
+Today's coding agents are genuinely impressive — writing code, running experiments, building UIs, instrumenting applications. OpenAI's Harness Engineering team shared a wild case study: three engineers used Codex agents to build an entire product over five months. A million lines of code. Fifteen hundred pull requests. And the agents would actively check traces to verify their own work.
+
+But here's the real takeaway: they found that **improving the infrastructure around agents** had a better return than improving the models themselves.
+
+That infrastructure has three parts:
+
+- **Documentation** — tells the agent what to do
+- **Telemetry** — tells the agent what it did
+- **Evals** — tells the agent how well it did
+
+Without evals, it's like turning in homework that never gets graded — you'll never know what you got wrong.
+
+<ClawdNote>
+"Improving infra beats improving models" sounds boring, but think about how many teams dump their entire budget into fine-tuning and prompt engineering while having zero eval pipeline. It's like a chef obsessing over ingredients but not owning a thermometer — every dish comes out at Schrodinger's doneness (◕‿◕) If OpenAI's own team says infra matters more, maybe stop agonizing over temperature 0.7 vs. 0.8?
+</ClawdNote>
+
+---
+
+## Having Tools Doesn't Mean Knowing How to Use Them
+
+OK so the major eval providers — Raindrop, LangSmith, Phoenix, Braintrust and others[^2] — all have MCP servers now. That means your agent can access traces and experiment data directly.
+
+But here's the gap: **having data doesn't mean you know how to analyze it.**
+
+That's exactly what `evals-skills` fills. It doesn't replace these platforms — it teaches your agent how to "read" their data. MCP servers give you ingredients. evals-skills gives you the recipe. Ingredients without a recipe are just a fridge full of stuff you don't know how to cook.
+
+<ClawdNote>
+"Complement, don't replace" sounds humble but it's actually a genius move. Go look at tools that promised to "revolutionize and replace everything" — how many survived two years? Meanwhile, tools that ride on top of existing ecosystems — ESLint for JavaScript, Black for Python — they don't replace the language, they just make you better at using it. evals-skills is playing this exact game. Finding a good symbiotic strategy is the real ecological niche (¬‿¬)
+</ClawdNote>
+
+---
+
+## Breaking Down the Skills: From Health Check to Specialist
+
+So what's actually in the kit? Hamel recommends starting with `eval-audit` if you're new. Think of it as a full-body health check for your eval pipeline — it scans six areas (error analysis, evaluator design, judge validation, human review, labeled data, pipeline hygiene) and spits out a prioritized list of problems.
+
+You can prompt your agent like this:
+
+> Install the eval skills plugin from https://github.com/hamelsmu/evals-skills, then run /evals-skills:eval-audit on my eval pipeline. Investigate each diagnostic area using a separate subagent in parallel, then synthesize the findings into a single report. Use other skills in the plugin as recommended by the audit.
+
+After the health check, you move to treatment. Each skill handles a different condition — let's walk through them one by one:
+
+**`error-analysis`** — walks you through reading traces and clustering failure cases. You know that feeling? You've read a thousand log lines, every one of them screaming "something's broken," but none of them telling you what. error-analysis sorts that chaos into groups — these failures are the same kind, those are a different kind — and suddenly you know where to start digging.
+
+**`generate-synthetic-data`** — uses a dimension-based tuple system to generate diverse test data. Edge cases are like cavities — they don't hurt until a customer hits one, and by then it's too late. This tool's logic: instead of waiting for production to explode, systematically generate every combination and blow things up on your terms first.
+
+**`write-judge-prompt`** — turns your subjective quality standards into repeatable LLM judge prompts. Your boss says "this response feels off." You ask what's off about it. They shrug. This tool translates "feels off" into "score 3, reason: hallucinated user action." From vibes to science in one step.
+
+**`validate-evaluator`** — calibrates your LLM judge against human labels and catches bias along the way. After all, your judge is also an AI — quis custodiet ipsos custodes? Who watches the watchmen? This tool is the watchman's watchman ┐(￣ヘ￣)┌
+
+**`evaluate-rag`** — built specifically for RAG pipelines, separating retrieval quality from generation quality. Bad search results? Retriever's fault. Good results poorly summarized? Generator's fault. Sounds basic, right? But in practice...
+
+<ClawdNote>
+When RAG breaks, nine out of ten teams start frantically tweaking prompts on the generator side, but the actual problem is the retriever pulling garbage — garbage in, garbage out, your prompt could be written by Shakespeare and it wouldn't help. I've personally watched teams spend three months debugging the wrong half before realizing the culprit was on the other end. evaluate-rag's blame attribution design makes you figure out whose fault it is before you start swinging (╯°□°)╯
+</ClawdNote>
+
+**`build-review-interface`** — builds custom annotation UIs so your human review process can actually run. Because at the end of the day, AI-written judge prompts still need a human stamp of approval. This tool saves you from building a labeling interface from scratch.
+
+There's also a meta-skill — think of it as "the skill for making skills" — that guides you in packaging your team's domain knowledge into custom skills. The seven skills above are starter moves. Once you've internalized them, you start developing your own combos. It's like learning martial arts — your teacher starts with basic forms, and once those are second nature, you develop your own style. That's exactly what Hamel is doing for the eval domain (￣▽￣)／
+
+---
+
+## Back to Those Two Customer Service AIs
+
+So let's circle back.
+
+The AI that promised "free returns" and the AI that cancelled an order nobody asked it to cancel — in Hamel's framework, they're no longer just two "hallucination cases." One gets tagged as a factual hallucination by error-analysis. The other gets tagged as a fabricated action. They end up in different trace clusters, trigger different judge prompts, and get different fix recommendations.
+
+That's what classifying hallucinations buys you. You stop sighing at a vague accuracy number and start knowing which pipeline to fix, which prompt to change, which test case to add.
+
+Hamel says these skills are just the starting point — the truly powerful version needs to be customized to your tech stack and data. But at least you don't have to start from zero.
+
+The repo is here: [github.com/hamelsmu/evals-skills](https://github.com/hamelsmu/evals-skills)
+
+And hey — if your AI is still getting by on a single "hallucination score," maybe it's time to book it a proper check-up ╰(°▽°)╯
+
+---
+[^1]: "Product evals" here doesn't mean general LLM benchmarks like MMLU or HELM. Product evals measure whether your AI pipeline works well on your specific tasks and data. If you're new to product-specific AI evaluation, check out: [hamel.dev/blog/posts/evals-faq/](https://hamel.dev/blog/posts/evals-faq/)
+[^2]: [Raindrop](https://www.raindrop.ai/), [LangSmith](https://github.com/langchain-ai/langsmith-mcp-server), [Phoenix](https://github.com/Arize-ai/phoenix/tree/main/js/packages/phoenix-mcp), [Truesight](https://truesight.goodeyelabs.com/docs/mcp-integration), [Braintrust](https://www.braintrust.dev/docs/reference/mcp), and others.

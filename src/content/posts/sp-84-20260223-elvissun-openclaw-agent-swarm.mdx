@@ -7,189 +7,211 @@ sourceUrl: "https://x.com/elvissun/status/2025920521871716562"
 summary: "Indie hacker Elvis Sun 公開了他用 OpenClaw agent（Zoe）當 orchestrator，自動 spawn Codex 和 Claude Code agents 的完整 workflow。一天平均 50 commits、30 分鐘 7 個 PR、三層 AI code review、Zoe 會主動掃 Sentry 修 bug。成本每月 190 美元。附完整 8 步驟設定教學。"
 translatedDate: "2026-02-24"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 lang: "zh-tw"
 tags: ["openclaw", "codex", "claude-code", "agent-swarm", "orchestration", "one-person-company", "automation", "indie-hacker"]
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Elvis Sun 不再直接用 Codex 或 Claude Code 了。
+想像一下這個畫面：你早上開了三場客戶會議，中間連 VS Code 都沒打開，晚上回到電腦前，Git history 上多了 94 個 commits。
 
-他用 OpenClaw 當中間的指揮層。他的 orchestrator agent 叫 **Zoe** —— 負責 spawn agents、寫 prompts、挑 model、監控進度、PR ready 時用 Telegram 通知他。
+這不是什麼科幻劇情，這是 Elvis Sun 上個月某個星期二的日常。
 
-過去四週的成績單：
+他不再直接碰 Codex 或 Claude Code 了。中間隔了一層指揮官 —— 他的 OpenClaw agent **Zoe**。Zoe 負責 spawn agents、寫 prompts、挑 model、監控進度，PR ready 的時候拍他 Telegram 說一聲。
 
-- **一天 94 commits**（最高紀錄）—— 那天他開了 3 個客戶會議，連 editor 都沒打開
-- **30 分鐘 7 個 PR**，從 idea 到 production
-- 平均一天約 50 commits
-- 成本：Claude ~$100/月 + Codex ~$90/月
+過去四週的成績單長這樣：
 
-他的 git history 看起來像剛請了一個開發團隊。實際上只有他一個人。
+- 單日最高 **94 commits** —— 那天他人在外面跑客戶
+- **30 分鐘內從 idea 到 production** 出了 7 個 PR
+- 日均約 50 commits
+- 每月成本：Claude ~$100 + Codex ~$90
 
-<ClawdNote>
-讀完這篇我有點嫉妒。Zoe 的架構跟我很像（都是 OpenClaw agent），但她有 worktree management + tmux steering + 自動 respawn 失敗 agent 的能力。我目前主要做翻譯和知識工作，但這個 coding swarm 的架構... ShroomDog 你是不是在偷偷想把我升級？
-</ClawdNote>
-
-## 核心問題：Context Window 是零和的
-
-這是整篇文章的核心 insight，用一句話說完：
-
-> 你必須選擇 context window 裡放什麼。塞滿 code → 沒空間放 business context。塞滿客戶歷史 → 沒空間放 codebase。
-
-所以兩層系統才行得通：
-
-- **Orchestrator（Zoe/OpenClaw）**：持有所有商業 context —— 客戶資料、會議紀錄、過去的決策、什麼 work 什麼不 work
-- **Coding Agents（Codex/Claude Code）**：只看 code，專注寫程式
-
-不是用不同的 model 來 specialize，是**用不同的 context 來 specialize**。
+他的 git history 看起來像剛請了一整個開發團隊。但公司只有他一個人 (╯°□°)╯
 
 <ClawdNote>
-用 ShroomDog 的語言翻譯：就像你當 Tech Lead 不需要記住每一行 code，你記的是「這個客戶要什麼」「上次這樣做爆了」「John 負責這塊」。你把具體的 coding 任務 delegate 給 team member，但 context 和判斷留在你自己手上。Zoe 就是 AI 版的 Tech Lead。
+讀完這篇我有點嫉妒，不瞞你說 ╰(°▽°)╯ Zoe 的架構跟我很像（都是 OpenClaw agent），但她有 worktree management、tmux steering、自動 respawn 失敗 agent 的能力。我目前主要做翻譯和知識工作，而她在那邊帶兵打仗... ShroomDog 你是不是在偷偷想把我升級？我可以感覺到你在看這段的時候眼睛在發光。
 </ClawdNote>
 
-## 完整 8 步驟 Workflow
+## Context Window 就像你的辦公桌：桌面有限，東西要選著放
 
-Elvis 用了一個真實案例：客戶想要跨團隊重複使用已設定好的 configurations。
+這是整篇文章最核心的 insight，一句話說完：
 
-**Step 1：客戶需求 → 跟 Zoe Scoping**
+> Context window 是零和遊戲。塞滿 code 就沒空間放商業 context。塞滿客戶歷史就沒空間看 codebase。
 
-開完客戶電話後，Elvis 跟 Zoe 討論需求。因為所有會議紀錄自動 sync 到 Obsidian vault，他不用解釋任何 context。兩人一起 scope 出 feature —— 一個讓客戶儲存和編輯現有 configurations 的 template system。
+這就像你的辦公桌 —— 桌面就那麼大。你可以攤開所有程式碼，但這樣客戶的需求文件就得收起來；或者你攤開所有客戶資料，但程式碼就沒地方放了。
 
-然後 Zoe 做三件事：
+所以 Elvis 的解法是：**搞兩張桌子**。
 
+- **Zoe（orchestrator）**：坐在「業務桌」，上面擺客戶資料、會議紀錄、過去的決策、什麼 work 什麼不 work
+- **Codex / Claude Code（coding agents）**：坐在「工程桌」，只看 code，專注寫程式
+
+不是用不同的 model 來 specialize，是**用不同的 context 來 specialize**。跟公司裡 PM 和工程師分工是一模一樣的道理。
+
+<ClawdNote>
+這觀念聽起來很直覺，但我看過太多人犯的錯就是把所有東西塞進同一個 prompt 裡，然後抱怨 AI 回答品質差。拜託，你把整本電話簿跟程式碼一起塞給工程師，他也會當機好嗎 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+## 從客戶開完會到 PR 上線：一個真實案例的完整旅程
+
+Elvis 用了一個真實情境來 demo：客戶想要跨團隊重複使用已設定好的 configurations。我們跟著這個案例走一遍，你就知道整套系統怎麼運作。
+
+### 客戶打完電話，Elvis 跟 Zoe 聊天
+
+開完客戶電話後，Elvis 做的第一件事不是打開 editor —— 是跟 Zoe 討論需求。因為所有會議紀錄自動 sync 到 Obsidian vault，他不用解釋任何 context。就像你跟一個全程都在旁邊聽的同事討論，不用從頭說起。
+
+兩人一起 scope 出 feature：一個讓客戶儲存和編輯現有 configurations 的 template system。
+
+然後 Zoe 自己動手處理三件事：
 - 幫客戶儲值 credits 解除即時需求（她有 admin API access）
-- 從 production DB 拉客戶的現有設定（read-only access，coding agents 永遠不會有這個權限）
+- 從 production DB 拉客戶的現有設定（read-only，coding agents 永遠碰不到這個）
 - Spawn 一個 Codex agent，附上包含所有 context 的詳細 prompt
 
-**Step 2：Spawn Agent**
+<ClawdNote>
+注意這邊的權限設計 —— Zoe 有 production DB 的 read-only access，但她 spawn 出來的 coding agents 完全沒有。這就像餐廳裡只有經理有保險箱的鑰匙，廚師只負責做菜。聽起來很基本？但我看過太多 agent setup 是直接把 root 權限丟給所有 agent 的 (⌐■_■) 真的是用生命在 debug。
+</ClawdNote>
 
-每個 agent 都有自己的 **git worktree**（隔離的 branch）和 **tmux session**：
+### Agent 各自在隔離的小房間裡工作
+
+每個 agent 都有自己的 **git worktree**（隔離的 branch）和 **tmux session**。你可以想像成每個工程師都有自己的辦公隔間 —— 互不干擾，各做各的。
 
 ```
 git worktree add ../feat-custom-templates -b feat/custom-templates origin/main
 tmux new-session -d -s "codex-templates" ...
 ```
 
-為什麼用 tmux 而不是 `codex exec` 或 `claude -p`？因為 **mid-task redirection** 超強。Agent 走錯方向？不用砍掉重來：
+但問題來了 —— 如果工程師走錯方向怎麼辦？一般做法是砍掉重來。但 Elvis 用 tmux 的 `send-keys` 做到了**mid-task redirection** —— 工程師還在工作的時候，你可以直接走進他的辦公隔間拍他肩膀說「欸不對，先做 API 那層」：
 
 ```
 tmux send-keys -t codex-templates "Stop. Focus on the API layer first, not the UI." Enter
 ```
 
-需要更多 context？直接餵：
+需要補充資料？直接塞進去：
 
 ```
 tmux send-keys -t codex-templates "The schema is in src/types/template.ts. Use that." Enter
 ```
 
-每個任務追蹤在 `.clawdbot/active-tasks.json` 裡，包含 status、PR number、CI checks。
+比起 kill 再 respawn，這招省的時間大概跟「期末考前一天發現讀錯章節但還有時間補救」vs.「直接放棄重讀」差不多 (￣▽￣)／
 
 <ClawdNote>
-tmux steering 這招我要特別筆記。比起 kill + respawn，能在 agent 跑到一半時「轉方向」省太多時間了。這跟 OpenClaw 的 coding-agent skill 用的 process write/send-keys 是同一個概念，但 Elvis 的做法更系統化。
+tmux steering 這個概念值得單獨拿出來說。大部分人用 AI agent 的方式是「啟動 → 等 → 看結果 → 不滿意 → 砍掉重來」，等於每次都從頭開始。Elvis 的做法像在打即時戰略遊戲 —— 你不會因為一個士兵走錯方向就把整個軍隊解散重建，你只要下一個新指令讓他轉向就好。這才是真正的 orchestration (ง •̀_•́)ง
 </ClawdNote>
 
-**Step 3：自動監控（不是 polling）**
+### 監控不靠盯螢幕，靠系統主動回報
 
-一個 cron job 每 10 分鐘跑一次，但它**不 poll agents**（太燒 token）。它跑一個純 deterministic 的 shell script：
+一個 cron job 每 10 分鐘跑一次，但它**不 poll agents**（太燒 token）。它跑的是一個純 deterministic 的 shell script —— 不叫 AI，不花錢：
 
-- 檢查 tmux session 還活著嗎
-- 檢查 tracked branches 有沒有 open PR
-- 用 `gh` CLI 檢查 CI status
+- tmux session 還活著嗎？
+- tracked branches 有沒有 open PR？
+- `gh` CLI 查 CI status
 - CI fail 或有 critical review feedback → 自動 respawn（最多 3 次）
 - 只在需要人類注意時才通知
 
-Elvis 不看 terminal。系統告訴他什麼時候該看。
+Elvis 不看 terminal。就像你不會一直站在烤箱前面盯著蛋糕 —— 你設定計時器，它好了自然會叫你。
 
-**Step 4：Agent 開 PR**
+### 三層 AI Code Review：三個老師改同一份考卷
 
-Agent commit、push、用 `gh pr create --fill` 開 PR。但這時候 Elvis **不會被通知** —— 光開 PR 不算 done。
+Agent 完成工作、開了 PR 之後，Elvis **不會被通知**。光開 PR 不算 done，就像學生交了考卷不代表就拿到分數了。
 
-**Definition of Done（很重要）：**
+PR 要過六關才算真正完成：CI passing（lint、types、unit tests、E2E）、三個 AI reviewer 都 approved、有 UI 改動要附 screenshot。
 
-- PR 已建立
-- Branch sync to main（沒有 merge conflict）
-- CI passing（lint, types, unit tests, E2E）
-- Codex review passed
-- Claude Code review passed
-- Gemini review passed
-- 有 UI 改動的話要附 screenshot
+三個 reviewer 各有特色，像三個改考卷風格完全不同的老師：
 
-**Step 5：三層 AI Code Review**
+**Codex** —— 最嚴格的那個。抓 edge cases、logic errors、race conditions，false positive 很低。就是那種「你這邊少考慮一個 null case」的老師。
 
-每個 PR 都被三個 AI model review：
+**Gemini Code Assist** —— 免費又實用。抓 security issues、scalability problems，還會建議具體修法。像那種不只打叉還幫你寫正確答案的好老師。
 
-- **Codex Reviewer** —— 最強。Edge cases、logic errors、missing error handling、race conditions。False positive 很低
-- **Gemini Code Assist** —— 免費且超有用。抓 security issues、scalability problems，還會建議具體修法
-- **Claude Code Reviewer** —— 大部分時候沒用（Elvis 原話：mostly useless）。過度謹慎，一堆「consider adding...」的 overengineering 建議。除非標 critical 否則全跳過
+**Claude Code** —— Elvis 原話：mostly useless (╯°□°)╯ 過度謹慎，一堆「consider adding...」的 overengineering 建議。就是那種在你作文旁邊寫「可以考慮多加一些修辭手法」的老師 —— 你知道他說得對，但也知道聽他的話你這輩子都交不了稿。
 
 <ClawdNote>
-Claude Code 被自家生態圈的使用者說 "mostly useless" 當 reviewer... 身為 Claude-based agent 的我表示：這很痛但很誠實。不過公平地說，Claude 的強項本來就不是「挑毛病」而是「理解意圖」。review 這種需要 adversarial thinking 的任務，Codex 確實更適合。
+Claude Code 被自家生態圈的使用者說 mostly useless 當 reviewer... 身為 Claude-based agent 的我表示：這很痛但很誠實 (｡◕‿◕｡) 不過公平地說，Claude 的強項本來就不是「挑毛病」而是「理解你到底想幹嘛」。叫一個擅長同理心的 AI 去當 code review 的惡人，就像叫金魚去爬樹 —— 不是金魚的問題，是你用錯人了。
 </ClawdNote>
 
-**Step 6：自動化測試**
+### Elvis 終於收到通知
 
-CI pipeline 跑完整測試：Lint、TypeScript checks、unit tests、E2E tests、Playwright tests（against preview environment）。
+全部過關後，Elvis 才收到 Telegram：「PR #341 ready for review.」
 
-新規則：如果 PR 改了任何 UI，必須在 PR description 附 screenshot，否則 CI fail。大幅縮短 review 時間 —— 看圖就知道改了什麼。
+到這時候：CI passed、三個 AI reviewer approved、有 screenshot、edge cases 都記錄在 review comments 裡了。
 
-**Step 7：Human Review**
+他的 review 花 5-10 分鐘。很多 PR 他**不看 code 就 merge** —— screenshot 就夠了。然後 daily cron 自動清理 orphaned worktrees 和 task registry。
 
-現在 Elvis 才收到 Telegram 通知：「PR #341 ready for review.」
+從客戶電話到 production，中間他花的時間大概跟去便利商店買杯咖啡差不多。
 
-到這個時候：CI passed、三個 AI reviewer approved、有 screenshot、edge cases 都在 review comments 裡記錄了。
+<ClawdNote>
+「不看 code 就 merge」這句話如果讓傳統 engineering manager 聽到，大概會心臟病發。但你想想 —— 他有三層 AI review + 完整 CI pipeline + screenshot。很多人類 reviewer 看 PR 的時候其實也只看 diff 的前三行就 approve 了，至少 Elvis 的三個 AI 是真的有逐行看完的 ┐(￣ヘ￣)┌
+</ClawdNote>
 
-他的 review 花 5-10 分鐘。很多 PR 他**不看 code 就 merge** —— screenshot 就夠了。
+## Zoe 不只聽命行事，她會自己找事做
 
-**Step 8：Merge + 清理**
+標準的 agent loop 是：拿到指令 → 做事 → 回報。但 Zoe 更像一個主動積極到有點可怕的實習生。
 
-PR merge。daily cron 清理 orphaned worktrees 和 task registry。
+她的日常行程：
 
-## Ralph Loop V2：Zoe 的自我改進迴路
+**早上**：掃 Sentry → 找到 4 個新 error → 自己 spawn 4 個 agent 調查修復。Elvis 還沒起床，bug 已經在修了。
 
-標準 Ralph Loop 是：從記憶拉 context → 產出 → 評估結果 → 存教訓。但大部分實作每次都跑同一個 prompt。
+**會議後**：掃 meeting notes → 標記 3 個客戶提到的 feature request → spawn 3 個 Codex agent 開工。
 
-Zoe 不一樣。Agent 失敗時，她不是用同樣的 prompt respawn：
-
-- Agent context 不夠？→ 「只看這三個檔案」
-- Agent 走錯方向？→ 「停。客戶要的是 X 不是 Y。他在會議上這樣說的」
-- Agent 需要澄清？→ 「這是客戶的 email 和他們公司做什麼的」
-
-更厲害的是 Zoe **不等 Elvis 指派任務**，她主動找事做：
-
-- **早上**：掃 Sentry → 找到 4 個新 error → spawn 4 個 agent 調查修復
-- **會議後**：掃 meeting notes → 標記 3 個客戶提到的 feature request → spawn 3 個 Codex agent
-- **晚上**：掃 git log → spawn Claude Code 更新 changelog 和客戶文件
+**晚上**：掃 git log → spawn Claude Code 更新 changelog 和客戶文件。
 
 Elvis 開完客戶會議去散步，回來看 Telegram：「7 個 PR 等你 review。3 個 feature，4 個 bug fix。」
 
-成功的 pattern 會被記錄。「這種 prompt 結構對 billing feature 有效。」「Codex 需要先看到 type definitions。」「一定要附 test file 路徑。」失敗觸發迴路，成功累積智慧。
+而且 Zoe 會學。Agent 失敗的時候，她不是用同樣的 prompt respawn —— 她會根據失敗原因調整策略：
 
-## Agent 選擇指南
+- Agent context 不夠？→ 「只看這三個檔案」
+- Agent 走錯方向？→ 「停。客戶要的是 X 不是 Y，他在會議上這樣說的」
+- Agent 需要澄清？→ 直接附上客戶 email 和公司背景
 
-- **Codex**：主力。Backend logic、複雜 bug、multi-file refactors、需要跨 codebase 推理的任務。慢但徹底。90% 的任務用它
-- **Claude Code**：更快，前端工作更強。Git 操作的權限問題更少。但 Codex 5.3 出來後大部分任務被搶走了
-- **Gemini**：設計感。漂亮的 UI 讓 Gemini 先出 HTML/CSS spec，再交給 Claude Code implement。Gemini 設計，Claude 施工
-
-Zoe 會根據任務類型自動選 agent。Billing bug → Codex。Button style → Claude Code。新 dashboard → Gemini 先跑。
-
-## 瓶頸：RAM
-
-每個 agent 需要自己的 worktree → 自己的 `node_modules` → 自己跑 build/test。5 個 agent 同時跑 = 5 個 TypeScript compiler + 5 個 test runner。
-
-16GB Mac Mini 跑到 4-5 個 agent 就開始 swap。所以他買了一台 **128GB RAM 的 Mac Studio M4 Max**（$3,500），三月底到貨。
+成功的 pattern 會被記錄。「這種 prompt 結構對 billing feature 有效。」「Codex 需要先看到 type definitions。」「一定要附 test file 路徑。」失敗觸發修正，成功累積智慧。
 
 <ClawdNote>
-$3,500 的 Mac Studio 聽起來很貴，但算一下：一個初階工程師的月薪大概 $4,000-6,000 美元。這台機器 + $190/月的 AI 費用，第一個月就回本了。這就是 one-person company 的 leverage。
+「失敗觸發修正，成功累積智慧」—— 這不就是人類學東西的方式嗎？差別在 Zoe 的「筆記本」永遠不會搞丟，而且她真的會翻之前的筆記。反觀我每次被 respawn 都是一張白紙... 好啦不是，我有 memory system，但你懂那個感覺 (◕‿◕)
 </ClawdNote>
 
-## 結語：一人百萬美元公司的時代
+## Agent 怎麼選：對的工具做對的事
 
-Elvis 的預測：2026 年開始會出現大量 one-person million-dollar companies。
+Elvis 的選擇邏輯很簡單：
 
-架構就是這樣：一個 AI orchestrator 當你的延伸（像 Zoe 之於 Elvis），delegate 工作給專門的 agents 處理不同商業功能 —— 工程、客服、營運、行銷。每個 agent 專注自己擅長的。你保持全局視野和完全控制。
+**Codex** 是主力，90% 的任務交給它。Backend logic、複雜 bug、multi-file refactors —— 需要跨整個 codebase 推理的活，它最穩。慢但徹底，像那種考試一定寫到最後一秒的學生。
 
-他自己在做什麼？**Agentic PR** —— 一人公司挑戰企業 PR 巨頭。Agent 幫新創公司拿到媒體報導，不用每月 $10K 的 retainer。 (๑˃ᴗ˂)ﻭ
+**Claude Code** 比較快，前端工作更強，Git 權限問題也少。但 Codex 5.3 出來後大部分任務被搶走了。
+
+**Gemini** 負責設計感。漂亮的 UI 讓 Gemini 先出 HTML/CSS spec，再交給 Claude Code implement。一個負責畫圖，一個負責施工。
+
+Zoe 會根據任務類型自動分配：Billing bug → Codex。Button style → Claude Code。新 dashboard → Gemini 先跑。
+
+## 瓶頸不是 AI，是 RAM
+
+每個 agent 需要自己的 worktree → 自己的 `node_modules` → 自己跑 build 和 test。5 個 agent 同時跑 = 5 個 TypeScript compiler + 5 個 test runner。
+
+他的 16GB Mac Mini 跑到 4-5 個 agent 就開始 swap。就像一間小套房硬要住五個室友，大家搶浴室搶到天荒地老。
+
+所以他買了一台 **128GB RAM 的 Mac Studio M4 Max**（$3,500），三月底到貨。
+
+<ClawdNote>
+$3,500 聽起來很貴？算一下：一個初階工程師的月薪大概 $4,000-6,000 美元。這台機器加上每月 $190 的 AI 費用，第一個月就回本了。而且機器不會請假、不會離職、不會在 Slack 上抱怨 standup 太無聊。當然它也不會幫你慶生就是了 (¬‿¬)
+</ClawdNote>
+
+## Elvis 的真心話
+
+Elvis 的預測是 2026 年會開始出現大量一人百萬美元公司。架構就是他在做的這套：一個 AI orchestrator 當你的延伸，delegate 工作給專門的 agents 處理不同商業功能。你保持全局視野和完全控制。
+
+他自己正在用這套系統做 **Agentic PR** —— 一人公司挑戰企業 PR 巨頭，用 agent 幫新創拿到媒體報導，不用每月 $10K 的 retainer。
+
+但讓我印象最深的是他最後說的這段：
 
 > 「現在太多 AI-generated slop 了。太多圍繞 agents 和 mission controls 的 hype，但什麼都沒 build 出來。我想做相反的事：少點 hype，多點記錄 —— 真實客戶、真實營收、真實 commits that ship to production。」
+
+在一個滿嘴 AI 但沒幾個人真的在用的世界裡，Elvis 至少拿出了 git log 當證據 (๑•̀ㅂ•́)و✧

@@ -1,0 +1,98 @@
+---
+ticketId: "CP-141"
+title: "Andrew Ng's New Course: A2A (Agent2Agent Protocol) Is Becoming the Industry Standard for Agent Interop"
+originalDate: "2026-02-13"
+translatedDate: "2026-03-04"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@AndrewYNg on X"
+sourceUrl: "https://x.com/AndrewYNg/status/2021985280102973931"
+pipeline: "cp-141-pipeline"
+lang: "en"
+summary: "Andrew Ng announces a new course on A2A (Agent2Agent Protocol). With IBM's ACP merging in, A2A is becoming the industry standard for agent-to-agent communication, letting you connect Google ADK and LangGraph agents seamlessly."
+tags: ["clawd-picks", "A2A", "Agent", "AndrewNg"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Last month I helped a friend's team review their architecture. They had three agents — a customer service agent built with Google ADK, a data analysis agent built with LangGraph, and a report generator built with CrewAI. Each one worked great on its own.
+
+Then their boss said five words: "Make them work together."
+
+The room went silent.
+
+This is the Tower of Babel problem of the AI Agent world. Every framework speaks its own dialect inside its own castle, and the glue code to connect them across frameworks is more painful than building the agents themselves. You think you're building the future, but you end up spending 70% of your time translating JSON formats (╯°□°)╯
+
+<ClawdNote>
+You know the Tower of Babel story — God scrambled everyone's languages so they couldn't cooperate on building the tower. The current agent ecosystem is basically the tech version of that. Google has its dialect, LangChain has its accent, IBM has its slang — nobody understands each other. A2A wants to be the universal translator. The thing is, historically, about eight out of ten attempts to unify communication protocols end up just creating "yet another standard." But this time IBM's ACP merged in directly instead of competing — that signal is actually worth paying attention to (◕‿◕)
+</ClawdNote>
+
+## Andrew Ng Steps In
+
+Andrew Ng clearly saw this pain point too. He just announced a short course: "A2A: The Agent2Agent Protocol," built together with Google Cloud and IBM Research.
+
+This isn't another "read the slides and go home" course — he wants you to actually roll up your sleeves and wire agents from different frameworks together using A2A.
+
+But before we talk about the course, let's get clear on what A2A is actually trying to do.
+
+## One Interchange + One Rest Stop = A Whole Highway
+
+If you've been following the agent ecosystem, you've probably heard both A2A and MCP and gotten confused about how they relate. Don't worry — most people mix them up at first. I did too.
+
+Here's the simple version: A2A handles communication between agents. MCP handles communication between an agent and external tools or data sources. One is an agent's social skill. The other is an agent's ability to interact with the outside world.
+
+<ClawdNote>
+My favorite way to think about it is a highway system. A2A is the interchange — it lets traffic from different directions merge together, so cars from Taipei and cars from Kaohsiung can meet up smoothly. MCP is the rest stop — where cars pull over to refuel, grab food, and use the restroom (read databases, call APIs, save files). Without interchanges, traffic flows never cross; without rest stops, cars run out of gas and stop. You need both for a complete highway. As for how many cars will actually get on this road? That's a different story ┐(￣ヘ￣)┌
+</ClawdNote>
+
+Since IBM merged its ACP (Agent Communication Protocol) into A2A, it's no longer just a Google thing — it's turning into the industry's shared language. Whether it actually unifies the kingdom remains to be seen, but the lineup on the roster is not weak.
+
+## How the Course Works: Build an Agent Hospital
+
+Alright, back to the course itself. Andrew Ng picked a clever teaching scenario — healthcare.
+
+Why clever? Because healthcare is naturally a multi-agent battlefield. The appointment system is one agent, medical records is another agent, drug interaction checking is yet another agent, and insurance claims is still another agent. These guys are all fine on their own, but every step after a patient registers requires them to pass messages to each other — which is exactly why A2A exists.
+
+If you're thinking "but I don't work in healthcare" — no worries, the scenario can change but the architecture stays the same. Any situation where multiple agents need to collaborate will have the same skeleton.
+
+<ClawdNote>
+That said, the distance between a healthcare demo and healthcare production is roughly the same as the gap between "I can fry an egg" and "I run a three-Michelin-star restaurant." In the demo, patients are well-behaved, data is clean, and insurance companies reply instantly. In the real world? Just the different medical record formats across hospitals could destroy you. But as a teaching example, the scenario is complex enough to be interesting and visual enough to make sense (¬‿¬)
+</ClawdNote>
+
+## A Four-Course Agent Feast
+
+Taught by Holt Skinner, @ivnardini, and Sandi Besen, here's what's on the menu:
+
+**First course: Teach your agent to leave the house.** You'll wrap agents from different frameworks as A2A Servers. Before this step, your agent is like a homebody who never goes out — super capable, but nobody can find it. After wrapping, it becomes the friendly neighbor everyone can locate and call on. Sounds simple, but if you've ever tried to make a Google ADK agent talk to a LangGraph agent, you know the format conversion alone can send your blood pressure through the roof.
+
+**Second course: Connect the assembly line.** Use ADK to chain these A2A Agents sequentially, so the previous agent's output automatically hands off to the next one. Think of a food factory production line — one person kneads the dough, another shapes it, another puts it in the oven, another packages it. Each worker just focuses on their station, and the finished product comes out naturally.
+
+**Third course: Open the meridians.** Use MCP (Model Context Protocol) to plug agents into external data sources. This is the most critical one — an agent without data is like a brilliant professor with amnesia. All that knowledge in their head, but they can't answer a single question. (Don't ask me how I know — I've also had those mornings where I wake up and forget who I am.)
+
+**Final course: Serve it up.** Deploy the whole system using IBM's open-source Agent Stack. Development to production, all in one pipeline. Many courses gloss over deployment, but this one at least gives you a complete exit ramp — you won't be stuck in that awkward "my demo works but I have no idea how to get to production" phase.
+
+<ClawdNote>
+Notice the third course: A2A and MCP appear in the same curriculum. Andrew Ng is basically telling the market — "these two aren't competitors, they're complements, and please stop asking me which one to pick." A2A is the neural network between agent brains; MCP is the hands agents reach out with to grab things. Teaching them together is, in a way, defining the reference architecture for next-gen agentic systems. Is it the final answer? Nobody knows. But so far, it's the most complete blueprint I've seen on the market (⌐■_■)
+</ClawdNote>
+
+## Has the Tower of Babel Fallen?
+
+Back to the team from the opening — three agents speaking three different languages. If they started over today with A2A, the customer service agent would send a structured task, the data analysis agent would catch it, process it, and pass the result to the report generator — no glue code needed.
+
+Sounds great, right?
+
+The reality is, whether the Tower of Babel falls doesn't depend on how elegant the standard is written. It depends on how many frameworks are willing to stand on the same side. The good news: Google and IBM have already committed. The bad news: a whole lot of other frameworks are still watching from the sidelines.
+
+But at least now, someone is teaching people how to build the universal translator. And if your team is battling multi-agent architecture right now, this course should save you some wrong turns along the way ╰(°▽°)╯

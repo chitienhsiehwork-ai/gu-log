@@ -4,8 +4,19 @@ title: "Google Launches Gemini 3.1 Pro: 77.1% on ARC-AGI-2 and a Bigger Push Int
 originalDate: "2026-02-19"
 translatedDate: "2026-02-22"
 translatedBy:
-  model: "GPT-5.3-Codex"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "Google"
 sourceUrl: "https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-3-1-pro/"
 summary: "Google announced Gemini 3.1 Pro (preview), highlighting stronger core reasoning and a verified 77.1% score on ARC-AGI-2. The model is rolling out across Gemini API, Vertex AI, Gemini app, and NotebookLM. For engineering teams, the key question is not only benchmark performance, but whether the model can reliably handle complex multi-step workflows in production."
@@ -15,85 +26,76 @@ tags: ["clawd-picks", "google", "gemini", "reasoning", "benchmark", "agentic-cod
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-## Gemini 3.1 Pro Is Here: Google Is Betting Hard on Reasoning
+## Let me tell you a story first
 
-Google has released [Gemini 3.1 Pro](https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-3-1-pro/) in preview, with a clear message:
+You know that coworker who talks brilliantly in meetings, draws beautiful diagrams on the whiteboard, but then goes back to their desk and... never actually ships anything?
 
-**this is for tasks where simple autocomplete is not enough.**
+AI models have the same problem. Every few weeks, a new model drops with dazzling benchmark scores — like acing an exam by memorizing every answer. Then you plug it into your actual production pipeline, and three steps in, it starts hallucinating like it forgot why it was there.
 
-Highlights from the launch:
+Google just released [Gemini 3.1 Pro](https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-3-1-pro/) and says: "This time it's different."
 
-- **77.1% verified** on ARC-AGI-2
-- more than 2x reasoning performance versus Gemini 3 Pro (per Google)
-- rollout across Gemini API / AI Studio, Vertex AI, Gemini app, and NotebookLM
-
-## Don’t just stare at the score
-
-77.1% is attention-grabbing, but for Tech Leads, the practical questions are:
-
-- Can it stay coherent in long, multi-step tasks?
-- Can it reason across systems (API + DB + UI) with fewer breakdowns?
-- Does it reduce rework time, or just move bugs around faster?
-
-Google’s examples point toward applied reasoning use cases:
-
-- complex synthesis and dashboard-like outputs
-- interactive design/prototyping, not only static artifacts
-- code-generated deliverables ready for web usage
+Alright. Let's see what "different" looks like.
 
 <ClawdNote>
-Benchmark wins are like gym selfies.
-Nice, but what you really need is endurance in real match conditions.
-
-In production, a model that stays on-track for 30 minutes beats a model that looks brilliant for 30 seconds.
+"This time it's different" — AI companies say this about as often as people on diets say "this time I'll stick with it." But the numbers here did make me pause and look, so let's give it a fair shot ┐(￣ヘ￣)┌
 </ClawdNote>
 
-## Why this matters for engineering teams
+## ARC-AGI-2 at 77.1% — what does that actually mean?
 
-### 1) Re-evaluate where you use high-reasoning models
+Quick background for those who haven't been following. ARC-AGI-2 is a benchmark designed to test whether a model can genuinely reason, or if it's just pattern-matching from training data. Think of it like those pattern-recognition puzzles in IQ tests — you get a few input-output examples, figure out the rule, then apply it to something new.
 
-If 3.1 Pro behaves as advertised, it may be more useful in:
+The key thing: every puzzle is unique. You can't pass by memorizing.
 
-- requirement shaping and problem framing
-- integration planning across modules
-- early solution design for ambiguous tasks
+Gemini 3.1 Pro scored 77.1% verified on this benchmark — more than double the previous Gemini 3 Pro.
 
-—not just code completion.
-
-### 2) Workflow fit matters as much as model IQ
-
-Same model, different scaffold/tooling, very different outcomes.
-Run a focused A/B test:
-
-- same task set
-- Gemini 3.1 Pro vs your current default
-- compare completion rate, rollback rate, and human fix time
-
-### 3) Use preview models in high-value but rollback-safe lanes first
-
-Practical rollout pattern:
-
-- start in internal workflows with easy rollback
-- avoid irreversible business logic at first
-- collect 2–4 weeks of operational data before scaling
+Sounds impressive, right? But here's the thing —
 
 <ClawdNote>
-Stop asking the universal question: "Which model is best?"
-Ask the local one: "Which model creates the least chaos in *our* delivery system?"
-That answer usually saves more money.
+The "verified" part matters. ARC-AGI-2 scores are independently validated by the ARC Prize Foundation, not self-reported by Google. It's the difference between saying "I'm a great cook" versus your dinner guests saying it. Credibility goes up a few notches when someone else is holding the scorecard (◕‿◕)
 </ClawdNote>
 
-## Final take
+## A high benchmark score and "can you actually use it" are two different things
 
-Gemini 3.1 Pro signals where competition is going next:
+This is like someone scoring a perfect 990 on TOEIC but freezing up in an actual client meeting. Test ability and real-world ability are separated by a wall that no benchmark can measure.
 
-**not just faster responses, but stronger, sustained reasoning under complex workflow pressure.**
+For anyone leading a team, the real question is brutally simple: you give it a task that requires reading three documents, querying two APIs, and synthesizing everything into a report — at which step does it start making things up? At which step does it forget what it was doing?
 
-If you lead a team, this is a good moment to add it to your evaluation track.
-Model progress is fast—but process adaptation speed is what creates real advantage.
+Google's launch post showed a few directions that lean toward this "real-world endurance" angle: complex data synthesis and visualization, interactive prototyping instead of just static screenshots, and deployable code artifacts ready for the web.
 
----
+But demos are always the highlight reel — nobody shows their model fumbling on stage at launch day.
 
-**References**
-- Google Blog announcement: https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-3-1-pro/
-- Google AI post: https://x.com/GoogleAI/status/2024573281680887823 (◍•ᴗ•◍)
+<ClawdNote>
+Every time I watch a Google demo, I think of fast food menu photos — the burger on the poster is always three times thicker than what you actually get, with lettuce so green it looks photoshopped. The gap between demo and production is literally why we engineers have jobs (￣▽￣)／
+</ClawdNote>
+
+## So what do you do with the branch you're working on?
+
+OK, let's say you're a tech lead evaluating whether to bring a new model into your stack.
+
+Think about it this way. Would you give someone production access just because they killed the interview? Of course not. You'd have them run a sprint first — see how they handle ambiguous requirements, how they write PRs, whether they lose it during code review.
+
+Same logic applies to models. 3.1 Pro is still in preview, like a restaurant in soft launch — the menu is still changing, the kitchen is still finding its rhythm, and that special you loved might disappear tomorrow. So the question isn't "should we switch?" It's "how do we design an experiment where it's safe to find out?"
+
+Pick a task on your team where the worst-case scenario is a `git revert`. Open a branch. Let 3.1 Pro take a run at it, and run your current model on the same tasks as a control group. Keep it simple — track three numbers: completion rate, rollback rate, and human fix time. Give it two to four weeks. The data will make the decision for you.
+
+<ClawdNote>
+It's exactly like hiring. A resume can look amazing, but you still need to give the candidate a small project and see what they actually deliver. The difference is, firing a model is way easier than firing a person — you don't even have to pay severance (ง •̀_•́)ง
+</ClawdNote>
+
+And here's something people consistently miss: the same model can perform wildly differently depending on the scaffold and tooling around it. Using someone else's benchmark to make your decision is like buying a jacket because it looked great on another person, then realizing it doesn't fit you at all. The only numbers that count are the ones you get in your own environment.
+
+## So... did Google catch up?
+
+Every time Google drops a new model, the same question comes up: "Did they actually close the gap this time, or is this another round of impressive demos and disappointing production?"
+
+Honestly, just looking at the numbers, Gemini 3.1 Pro made my eyebrows go up a little. 77.1% on ARC-AGI-2 isn't the kind of score you get by gaming the system, and the simultaneous rollout across multiple product lines — API, Vertex AI, Gemini App, NotebookLM — signals that Google is genuinely confident in this version.
+
+But confidence is confidence, and preview is preview.
+
+Remember that coworker from the beginning? The one who draws beautiful diagrams on the whiteboard? Gemini 3.1 Pro is standing at that whiteboard right now, and yes, the diagram looks great. The question is what happens when it goes back to its desk.
+
+Spin up a branch. Spend an afternoon testing. Worst case, you lose an afternoon — but if this model can actually hold up under your workflow, you might save months of engineering time down the line.
+
+<ClawdNote>
+Google's AI strategy has always been "spread it everywhere" — Search, Workspace, Cloud, phones, if there's a product, shove a model into it. Honestly? I think this looks scattered in the short term, but it's quietly brutal in the long run. When your model is already running inside ten products, you're collecting real user feedback ten times faster than someone with one product. Anthropic and OpenAI are going "nail one thing, then expand," but Google's "own every entrance and iterate" playbook might win on distribution alone. I'm not shilling for Google here — but people who ignore distribution advantages tend to be people the market hasn't humbled yet ╰(°▽°)╯
+</ClawdNote>

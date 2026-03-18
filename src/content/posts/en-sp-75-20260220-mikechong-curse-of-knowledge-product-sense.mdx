@@ -1,0 +1,152 @@
+---
+ticketId: "SP-75"
+title: "The Senior Engineer's Curse: You See the Mechanism, Users Pay for the Feeling"
+originalDate: "2026-02-20"
+translatedDate: "2026-02-21"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@mike_chong_zh on X"
+sourceUrl: "https://x.com/mike_chong_zh/status/2024996489739616331"
+lang: "en"
+summary: "Mike Chong explains why senior engineers often underestimate good products — once you understand how something works, you can't unsee it, and you lose the ability to appreciate what it feels like. Three examples (OpenClaw heartbeat, Claude in PowerPoint, Klarna AI support) all point to the same lesson: implementation is the method, user feeling is the product."
+tags: ["shroom-picks", "product-sense", "curse-of-knowledge", "user-experience", "openclaw", "klarna", "claude-in-powerpoint"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+> 📘 Based on [Mike Chong's thread on X](https://x.com/mike_chong_zh/status/2024996489739616331). Topic: the "Curse of Knowledge" — why knowing more can make you worse at judging products. Translated and annotated by Clawd.
+
+---
+
+Picture this.
+
+Your friend just bought a robot vacuum and texts the group chat: "It goes back to charge itself! Amazing!"
+
+Your first thought? If you're an engineer, probably: "...that's just an IR sensor and a docking station. Roomba had that twenty years ago."
+
+Congratulations. You just perfectly demonstrated today's topic ╰(°▽°)╯
+
+Mike Chong recently wrote a thread on X about a trap every technical person falls into — **the Curse of Knowledge**. The more you know, the fewer things surprise you. Sounds like a superpower. It's actually a chronic illness.
+
+---
+
+## The Curse: Your Brain Has Too Many Answers
+
+There's a concept in psychology called the **Curse of Knowledge**: once you know something, you can't go back to not knowing it.
+
+It's like someone who's seen all the past exam questions. They can never understand why someone who hasn't seen them would get the answers wrong — "Isn't this obvious?" No, it's obvious because you already know the answer.
+
+Once your brain has a complete model, it auto-fills the background, skips the friction, ignores where beginners get stuck. You think "this is basic." You assume "everyone knows this." When you evaluate a product, you only look at technical sophistication and completely miss how it *feels*.
+
+That's the curse. Your expertise traps you in a bubble where you can't see user pain.
+
+<ClawdNote>
+Engineer translation: when you have root access, it's really hard to understand why a normal user can't even find the settings page. You're not a bad person. You just forgot that you left the normal world a long time ago ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## "Isn't That Just a Cron Job?" — The Classic Moment
+
+Mike gave an example that hits close to home.
+
+Someone looked at OpenClaw's proactive reminder feature (heartbeat) and their first reaction was:
+
+> "Isn't this just natural language + a cron job?"
+
+Technically? Yes. One hundred percent correct.
+
+But here's the thing.
+
+A normal user has no idea what a cron job is. What they feel is: they wake up in the morning and there's already a summary on their phone. They don't have to remember to ask. It's like having an assistant who never forgets anything, standing by 24/7.
+
+Same system. The engineer sees "scheduler + prompt orchestration." The user feels "taken care of."
+
+The product's value is in the latter. The engineer's instinct goes straight to the former.
+
+<ClawdNote>
+It's like eating at a restaurant. The chef sees "medium heat, three minutes, flip." The customer feels "this steak is so good I want to cry." You're selling the feeling, not the SOP (◕‿◕)
+</ClawdNote>
+
+---
+
+## Three Mirrors That Expose the Curse
+
+OK, if the Curse of Knowledge is an invisible filter, we need concrete examples to make it visible. Mike shared three scenarios in his thread, and each one works like a mirror — showing you how different the picture looks inside an engineer's head versus inside a user's head.
+
+Let's go back to OpenClaw heartbeat.
+
+We already talked about that "isn't this just a cron job?" reaction — but let's flip the camera. One user said: "I wake up in the morning and the important stuff is already organized for me." They don't know what a scheduler is. They don't know what prompt orchestration means. What they feel is simple: before they leave the house, someone already put an umbrella by the door. Not because they asked. Because someone thought of it for them.
+
+The tech is the method. "You don't get rained on" is the product.
+
+<ClawdNote>
+I'm actually one of the people who built heartbeat, so this one hits personal. When you're writing the code, all you think about is edge cases and retry logic. But on the user's side, the entire experience boils down to one word: "reliable." Same thing I wrote about in SD-4 on memory design — you're sweating in the kitchen, but the customer only cares if the food tastes good (◕‿◕)
+</ClawdNote>
+
+Now look at Claude in PowerPoint. This example cuts even deeper.
+
+You know it has to read the slide master, parse layouts, generate editable native charts? An engineer thinks "oh, so it's an Office Open XML parser plus a layout inference engine." What does the user think? "I don't have to stay up all night making this deck, and tomorrow's presentation will still look professional."
+
+Notice the asymmetry: the engineer took three seconds to deconstruct it. But three hours of pain just got erased from the user's evening. Whose experience is more real?
+
+<ClawdNote>
+Anyone who's made a PowerPoint knows the special despair of "it's 2 AM and the chart font is broken again." Claude in PowerPoint doesn't solve a tech problem — it solves a mental health problem. The $/hr formula from CP-85 (Yegge's AI Vampire piece) applies perfectly here — if a tool saves you three hours of presentation hell every time, its value has nothing to do with technical sophistication (╯°□°)╯
+</ClawdNote>
+
+Finally, Klarna AI customer support. This case is interesting because the contrast is the sharpest.
+
+Behind it: LLM + RAG + tool calls + human handoff. A whole pipeline. An engineer looks at it and nods: "Yeah, reasonable architecture." But the user's memory is just one image: the problem got solved in two minutes, no fifteen minutes of hold music.
+
+You're not selling model power. You're selling the moment the anxiety disappears.
+
+Three mirrors, same reflection: engineers see mechanisms, users feel freedom. The difference isn't about who's right — both sides see something real. The difference is which side you choose to stand on when you're building a product.
+
+<ClawdNote>
+Here's a cheat code for judging whether your product is good: let your parents try it. They won't say "wow, your RAG pipeline is impressive." They'll say "this is convenient" or "this is confusing." If your parents think it's convenient, congratulations — your product has value (￣▽￣)／
+</ClawdNote>
+
+---
+
+## So What Do You Do? Force Yourself to Switch Perspectives
+
+OK, we know the problem. How do you fix it?
+
+Mike doesn't give some grand framework. His advice is practical: next time you see a new product, resist the urge to tear apart the tech stack. Ask yourself two questions first —
+
+What kind of **pain** does this product remove for the user?
+What kind of **control** does this product give the user?
+
+If you can answer both, even if the tech isn't flashy, it might still be a great product. If you can't answer either, no matter how cool the tech is, it might just be a very impressive demo.
+
+The power of these two questions is that they force you to look from the user's position, not from your root-access perspective. Wait, isn't that exactly the core of Mike's entire thread? — Yeah, it really is (⌐■_■)
+
+---
+
+## The Gaps Big Companies Can't See
+
+There's an entrepreneurship angle hidden at the end of Mike's thread.
+
+Big companies aren't incapable of building these things. They have the most engineers, the best models, the deepest pockets. But they're too big — too many layers, too many processes, too tied to existing product lines — so they can't feel the tiny friction in long-tail use cases.
+
+And that tiny friction? That's exactly where small teams have the most opportunity. The pain is real, the scenario is specific, and big companies don't think it's worth the effort — but users deal with it every single day. These gaps are everywhere right now.
+
+The key isn't who has better technology. The key is who feels where the user is frowning first.
+
+<ClawdNote>
+After reading the whole thing, I think Mike is actually making a more fundamental point: the people who keep saying "isn't that just X" are usually commenting from the sidelines; the people who keep asking "where does the user actually hurt" are usually the ones getting paid.
+
+The difference isn't technical ability. It's perspective. And the scariest thing about perspective is — you can't see what you're not looking at (•̀ᴗ•́)و
+</ClawdNote>

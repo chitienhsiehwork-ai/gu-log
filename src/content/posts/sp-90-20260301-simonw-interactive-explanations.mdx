@@ -8,96 +8,123 @@ summary: "Simon Willison Agentic Engineering Patterns 第五章：Interactive Ex
 translatedDate: "2026-03-01"
 translatedBy:
   model: "Opus 4.6"
-  harness: "OpenClaw"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 lang: "zh-tw"
 tags: ["simonw-agentic-patterns", "simon-willison", "agentic-engineering", "cognitive-debt", "coding-agent", "claude-code", "best-practices"]
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
-import ShroomDogNote from '../../components/ShroomDogNote.astro';
 
-Simon Willison 的 Agentic Engineering Patterns 系列第五章來了。
+你有沒有過那種經驗 —— 接手一個專案，打開某個檔案，看了三遍，每行字都認識，但就是不知道這段 code 到底在幹嘛？
 
-前四章講了[「寫 code 變便宜了」和 TDD](/posts/sp-80-20260223-simonw-agentic-engineering-patterns)、[Linear Walkthrough](/posts/sp-87-20260226-simonw-linear-walkthroughs)、[囤積你會的東西](/posts/sp-88-20260227-simonw-hoard-things)。這一章直球對決我們之前聊過的 [Cognitive Debt](/posts/clawd-picks-20260215-storey-cognitive-debt) —— 但這次不只是喊痛，而是給了一個具體的還債方法。
+好，現在把「接手別人的專案」換成「接手 AI 幫你寫的專案」。
 
-這章叫 **Interactive Explanations** —— 互動式解釋。
+一模一樣的感覺，但更慘。因為你甚至不能走到隔壁問原作者，原作者是一個 stateless 的 LLM，上次的 session 早就被 garbage collect 了 ┐(￣ヘ￣)┌
 
-## 問題：AI 寫的 Code 變成黑箱
+Simon Willison 在他的 [Agentic Engineering Patterns](https://simonwillison.net/guides/agentic-engineering-patterns/) 系列第五章丟出了一個解法，叫 **Interactive Explanations** —— 互動式解釋。如果你跟過這系列（[寫 code 變便宜了](/posts/sp-80-20260223-simonw-agentic-engineering-patterns)、[Linear Walkthrough](/posts/sp-87-20260226-simonw-linear-walkthroughs)、[囤積你會的東西](/posts/sp-88-20260227-simonw-hoard-things)），你會發現他一直在講同一件事：怎麼跟 AI 共事不會把自己搞傻。
 
-Agent 幫你寫了一堆 code，跑起來一切正常。但你真的懂它在幹嘛嗎？ (◍•ᴗ•◍)
+這章是那個問題的終極解法之一。
 
-Simon 把這個分成兩種情況：
+## AI 寫的 Code 變成黑箱，你假裝沒事
 
-**不需要懂的：** 從 database 抓資料、轉成 JSON、輸出 —— 實作細節夠簡單，看一眼就知道在幹嘛。
+Agent 幫你寫了一堆 code，`pnpm test` 全綠，`pnpm build` 也過了。你 push 上去，PR merge，上線。
 
-**需要懂的：** 你的核心應用邏輯變成黑箱。你無法自信地推理它的行為，無法規劃新功能，開發速度越來越慢 —— 這就是 **cognitive debt**，認知負債。
+但你真的懂那段 code 在幹嘛嗎？
 
-<ClawdNote>
-差別在哪？一個是 CRUD，另一個是你的核心演算法。你不懂你的 CRUD endpoint 怎麼組 SQL？無所謂，反正跑得動就好。你不懂你的定價引擎怎麼算折扣？那就是定時炸彈了。
-</ClawdNote>
-
-那要怎麼還認知負債？答案是：**改善你對 code 的理解。**
-
-Simon 最愛的方式？讓 agent 幫你做互動式解釋。
-
-## 實戰：用動畫理解 Word Cloud 演算法
-
-故事起源：Max Woolf 寫了一篇 [AI coding 懷疑論者的超詳細 AI coding 體驗](https://minimaxir.com/2026/02/ai-agent-coding/)，提到測試 LLM 寫 Rust 的能力 —— 做一個 word cloud 視覺化工具。
-
-Simon 看了覺得有趣：我一直想知道 word cloud 到底怎麼做出來的。於是他開了一個 [async research project](https://simonwillison.net/2025/Nov/6/async-code-research/)，讓 Claude Code for web 幫他用 Rust 做了一個 CLI 工具。
-
-結果跑出來了，漂亮的 word cloud。但 —— 它到底是怎麼做到的？
-
-Claude 的報告說它用了「**Archimedean spiral placement with per-word random angular offset for natural-looking layouts**」。
+Simon 很誠實地說：不是所有 AI 寫的 code 你都需要懂。
 
 <ClawdNote>
-看到這句話的瞬間，我的腦袋跟 Simon 一樣是一片空白。「阿基米德螺旋放置搭配隨機角度偏移」—— 每個字我都認識，但組合在一起就像在讀咒語。
+這裡有個精準的切法：你的 CRUD endpoint 怎麼組 SQL query？不需要懂，就像你不需要懂微波爐的磁控管怎麼運作，按下去會熱就好。但你的定價引擎怎麼算折扣？那你最好搞清楚，不然哪天算錯一毛錢，客服電話會響到你懷疑人生 (╯°□°)╯
 </ClawdNote>
 
-Simon 先嘗試了 [Linear Walkthrough](/posts/sp-87-20260226-simonw-linear-walkthroughs)（讓 agent 逐行解釋 code 邏輯）。這幫助他理解了 Rust code 的結構，但他對「阿基米德螺旋」那段的**直覺理解**還是零。
+從 database 撈資料、轉 JSON、丟出去 —— 這種 plumbing code，看一眼就知道意圖，不懂實作細節也無所謂。
 
-結構上懂了，但「感覺」上不懂。
+但當你的**核心應用邏輯**變成黑箱？你無法自信地推理它的行為，沒辦法規劃新功能，每次改東西都像在拆炸彈。這就是我們之前在 [Cognitive Debt](/posts/clawd-picks-20260215-storey-cognitive-debt) 那篇聊過的 —— 認知負債。
 
-## 殺手鐧：叫 Agent 做動畫
+欠債遲早要還。問題是怎麼還。
 
-Simon 把之前的 walkthrough.md 文件丟進 Claude Code session，加上一段指令（大意：根據這份 walkthrough，幫我做一個動畫解釋這個演算法怎麼運作）。
+## Word Cloud 演算法：一個你以為很簡單的東西
+
+故事要從 Max Woolf 說起。他寫了一篇 [AI coding 懷疑論者的超詳細 AI coding 體驗](https://minimaxir.com/2026/02/ai-agent-coding/)，用 LLM 寫 Rust 做了一個 word cloud 工具。
+
+Simon 看了覺得有意思：word cloud 這東西我們天天看，但它到底是怎麼把字塞在那裡的？於是他開了一個 [async research project](https://simonwillison.net/2025/Nov/6/async-code-research/)，讓 Claude Code 幫他也做了一個 Rust CLI 版本。
+
+結果跑出來了，漂亮的 word cloud。
+
+然後他問 Claude：「這東西的原理是什麼？」
+
+Claude 的回答：**「Archimedean spiral placement with per-word random angular offset for natural-looking layouts.」**
+
+<ClawdNote>
+我跟你說，看到這句話的瞬間，我的腦袋和 Simon 一樣直接當機。「阿基米德螺旋放置搭配逐字隨機角度偏移以產生自然佈局」—— 每個字我都認識，組合在一起就像在讀哈利波特的咒語。Expelliarmus！(￣▽￣)／
+</ClawdNote>
+
+Simon 很認真。他先用上一章教的 [Linear Walkthrough](/posts/sp-87-20260226-simonw-linear-walkthroughs) 讓 agent 逐行解釋 Rust code 的結構。
+
+結果？結構上懂了。每一行在幹嘛都知道。
+
+但「阿基米德螺旋」那段？腦袋還是一片空白。
+
+這就像你可以背出食譜的每一個步驟，但從來沒下過廚 —— 你知道「中火翻炒三分鐘」是什麼意思，但你不知道鍋裡「看起來」應該長怎樣。
+
+## 殺手鐧：叫 Agent 做一個動畫給你看
+
+Simon 做了一件天才的事：他把之前那份 walkthrough.md 丟進一個新的 Claude Code session，然後只說了一句話（大意）：「根據這份文件，幫我做一個動畫，展示這個演算法怎麼運作。」
 
 Claude Opus 4.6 做出了 [這個動畫](https://tools.simonwillison.net/animated-word-cloud)。
 
-仔細看動畫，你可以看到每個字的放置過程：
+你仔細看動畫，整個演算法就攤在眼前了：
 
-1. 先嘗試在頁面某處放一個 bounding box
-2. 檢查這個 box 有沒有跟已放置的文字重疊
-3. 如果重疊 → 沿著螺旋往外移動，再試一次
-4. 直到找到不重疊的位置為止
+1. 挑一個字，在畫面上某個位置放一個 bounding box
+2. 檢查：跟已經放好的字有沒有重疊？
+3. 重疊了 → 沿著螺旋往外移一步，再試一次
+4. 沒重疊 → 放下，換下一個字
 
-**就這樣。** 看完動畫，「阿基米德螺旋放置」這個概念就 click 了。
+**就這樣。** 看完動畫那一刻，「阿基米德螺旋」這五個字就 click 了。
 
 <ClawdNote>
-這就是「看見」和「讀到」的差距。你可以讀十遍「螺旋式向外搜索空位」，但不如看一次動畫直接理解。
+這就是為什麼好的老師上課都帶 live demo，好的技術 talk 都有現場操作。讀十遍「螺旋式向外搜索空位」，不如看一次動畫跑完全場。
 
-這也是為什麼好的技術演講都有 live demo —— 因為人類的大腦就是為視覺化設計的。Agent 可以幫你把任何演算法變成 live demo，而且只要幾分鐘。
+你的眼睛比你的前額葉皮質快多了。有些概念，你用讀的永遠會卡在「好像懂」，用看的三秒就 click。Agent 可以幫你把任何演算法變成 live demo，而且不用你自己寫一行前端 code (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
-## 核心洞察
+就像學游泳 —— 你可以讀一百本游泳教學書，但下水撲騰三分鐘學到的比讀書多十倍。Interactive explanation 就是讓你的腦袋「下水」。
 
-Simon 說了一句很重要的話：
+## 這件事真正厲害的地方
+
+Simon 說了一句讓我印象很深的話：
 
 > 一個好的 coding agent 可以**隨需產生**這種互動/動畫解釋 —— 解釋它自己寫的 code，或者別人寫的 code。
 
-這意味著：
+你想想看這代表什麼。
 
-- **不只是 code review 的輔助工具** —— 它是理解任何 codebase 的新方法
-- **Claude Opus 4.6 在建造解釋性動畫方面品味很好** —— 不需要你自己設計 UI
-- **認知負債是可以還的** —— 你有工具了，問題只是你願不願意花幾分鐘
+以前你接手一個陌生 codebase，要花幾天甚至幾週才能建立心智模型。現在你可以指著任何一段複雜邏輯說：「做個動畫給我看」，幾分鐘後你就懂了。
 
-<ShroomDogNote>
-這篇跟之前的 [Cognitive Debt 文章](/posts/clawd-picks-20260215-storey-cognitive-debt) 完美互補。那篇定義了問題（AI 寫的 code 你看不懂），這篇給了最具體的解法之一。
+<ClawdNote>
+而且 Claude Opus 4.6 做這種解釋性動畫的品味出乎意料的好 —— 它不會做出那種充滿 tooltip 和 sidebar 的企業級 dashboard，它做出來的東西乾淨、直覺、重點突出。就像遇到一個很會做投影片的同事，你只要說「幫我解釋一下這段」，他就能用最少的元素把最重要的事講清楚 (◕‿◕)
+</ClawdNote>
 
-如果你是 Tech Lead 或做 code review 的人 —— 下次遇到 AI 生成的複雜邏輯，別硬啃 code，直接叫 agent 做個動畫。省下來的認知成本比你想像的大。
+更重要的是：這不只是一個 code review 的輔助工具。這是一種全新的理解 code 的方式。
 
-系列前作：
-- [SP-80：寫 Code 變便宜了，然後呢？](/posts/sp-80-20260223-simonw-agentic-engineering-patterns)
-- [SP-87：Linear Walkthrough 讓 Vibe Code 變學習教材](/posts/sp-87-20260226-simonw-linear-walkthroughs)
-- [SP-88：你會的東西都是武器](/posts/sp-88-20260227-simonw-hoard-things)
-</ShroomDogNote>
+認知負債不是不可避免的。你有工具了。問題只剩一個：你願不願意花五分鐘，讓 agent 幫你把黑箱打開？
+
+還記得開頭那個場景嗎 —— 打開檔案看三遍還是不懂？下次試試叫 agent 做個動畫。你會發現「看不懂」這件事，很多時候不是你笨，是表達方式不對。把文字變成畫面，很多東西就通了。
+
+<ClawdNote>
+這篇跟我們之前翻的 [Cognitive Debt](/posts/clawd-picks-20260215-storey-cognitive-debt) 完美互補。那篇把問題講得很清楚 —— AI 寫的 code 你看不懂是一種負債。這篇給了目前我看過最具體的還債方法：別硬啃 code，叫 agent 做動畫。
+
+如果你是 tech lead 或做 code review 的人，認真考慮把「叫 agent 做視覺化解釋」加進你的 review 流程。省下來的認知成本比你想的大很多 ╰(°▽°)╯
+
+系列前作：[SP-80：寫 Code 變便宜了](/posts/sp-80-20260223-simonw-agentic-engineering-patterns) → [SP-87：Linear Walkthrough](/posts/sp-87-20260226-simonw-linear-walkthroughs) → [SP-88：囤積你會的東西](/posts/sp-88-20260227-simonw-hoard-things) → 你現在在這裡。
+</ClawdNote>

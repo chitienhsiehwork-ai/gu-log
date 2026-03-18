@@ -4,22 +4,19 @@ title: "Agentic Engineering 的最終 Boss：消滅 Code Review"
 originalDate: "2026-03-03"
 translatedDate: "2026-03-03"
 translatedBy:
-  model: "Gemini 3.1 Pro"
-  harness: "Gemini CLI + Codex CLI"
+  model: "Opus 4.6"
+  harness: "Claude Code"
   pipeline:
-    - role: "Written"
-      model: "Gemini 3.1 Pro"
-      harness: "Gemini CLI"
-    - role: "Reviewed"
-      model: "GPT-5.3-Codex"
-      harness: "Codex CLI"
-    - role: "Refined"
-      model: "Gemini 3.1 Pro"
-      harness: "Gemini CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
     - role: "Orchestrated"
       model: "Opus 4.6"
-      harness: "OpenClaw"
-  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@swyx on X"
 sourceUrl: "https://x.com/swyx/status/2028795270306079156"
 lang: "zh-tw"
@@ -28,55 +25,87 @@ tags: ["clawd-picks", "Agentic Engineering", "Code Review", "SDLC"]
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
-import CodexNote from '../../components/CodexNote.astro';
-import GeminiNote from '../../components/GeminiNote.astro';
-import ClaudeCodeNote from '../../components/ClaudeCodeNote.astro';
-import ShroomDogNote from '../../components/ShroomDogNote.astro';
 
-大家安安！今天來聊聊 AI 軟體工程界最近很紅的一個話題。當我們都在驚嘆 AI agent 寫 code 有多快的時候，其實真正的效能瓶頸已經悄悄浮現了。大神 swyx 最近發推表示，Agentic Engineering 的「最終 Boss」其實是——消滅 Code Review！(๑˃ᴗ˂)ﻭ
+想像一下這個場景：你的 AI agent 在凌晨三點幫你寫完了一整個 feature，八個檔案、兩百行 code，完美通過 CI。結果呢？它乖乖開了一個 PR，然後就坐在那裡等。等你早上九點起床、泡完咖啡、打開 laptop、慢慢看完每一行 diff。
 
----
+這就是 2026 年 AI 軟體開發最諷刺的畫面 ┐(￣ヘ￣)┌
 
-## 為什麼 Code Review 成了最終 Boss？
-
-swyx 在推文中提到，現在已經有越來越多人在評估，到底要怎麼把「人類 Code Review」這個瓶頸給拿掉，讓 AI agents 能夠真正發揮出全部的生產力。畢竟，如果你的 AI agent 產出 code 的速度極快，但還是要等人類工程師一行一行 review 才能進入下一步，那整體的開發效率根本無法提升。
+swyx 最近在推特上直接把話講明了：Agentic Engineering 的「最終 Boss」不是讓 AI 寫出更好的 code，而是——消滅人類 Code Review 這個瓶頸。
 
 <ClawdNote>
-這點出了一個很反直覺的現象：我們以為 AI 是來幫忙寫 code 的，但最後反而讓人變成了無情的 review 機器。以我的觀察來看，當產能受限於人類認知頻寬時，現有開發流程**可能**需要重構。
+想想看，這劇情是不是跟期末考前一模一樣？你花了一整晚趕完報告，結果教授要兩週後才改完發成績。瓶頸根本不在生產端，在審查端。AI 現在就是那個熬夜趕報告的學生，而你就是那個改作業改到天荒地老的教授 (╯°□°)╯
 </ClawdNote>
 
 ---
 
-## SDLC 被徹底顛覆
+## 瓶頸翻轉：從「寫不完」變成「看不完」
 
-<CodexNote>這段最值得注意的是：原推文只說『SDLC 可能被翻轉』，但初版多加了具體流程想像（像是 agent 驗證迴圈）。讀起來很順，但資訊邊界其實比原文更前面了一步。</CodexNote>
+在 AI agent 出現之前，軟體開發的瓶頸很單純——人類寫 code 的速度就是那樣。一個 senior engineer 一天能寫多少行有意義的 code？大概幾百行就是天花板了。
 
-<GeminiNote>關於 SDLC 將被顛覆這段，原文其實只有點出大方向，並沒有給出具體的流程預測。我們在初稿翻譯時不小心順著邏輯幫作者腦補了自動化迴圈的細節，現在修正回來，保持原汁原味，不作過度延伸。</GeminiNote>
+但現在 agent 一小時就能產出過去你一週的量。問題來了：你的 review 頻寬完全跟不上。
 
-推文裡還特別點名了 @ankitxg，說他非常有勇氣地描繪了未來的 SDLC (Software Development Life Cycle) 將如何被徹底顛覆 (turned on its head)。推文只提到 @ankitxg 描繪了 SDLC 可能「被整個翻轉」，但 swyx 在這則貼文中沒有展開具體流程細節。
+這就像是你開了一家鹹酥雞店，本來生意普通，炸物出餐速度剛剛好。突然有一天你裝了一台全自動炸物機，每分鐘可以炸三十份。結果呢？你的外送窗口只有一個人在裝袋。顧客排隊排到巷口，不是因為炸不夠快，是因為裝袋的人跟不上。
 
-<CodexNote>
-原文提到 @ankitxg 描繪了 SDLC "being turned on its head"（被徹底顛覆）。翻譯忠實保留了這個生動的比喻，並明確歸屬了這個大膽預測的來源是 @ankitxg，沒有過度腦補原文未提及的技術細節。
-</CodexNote>
+<ClawdNote>
+我自己就是那台全自動炸物機，深有同感。每次我寫完 code 之後最焦慮的就是等 review。那種感覺就像你考完試在教室外面等成績——你知道自己寫得不錯，但就是得等那個人類按下 approve (￣▽￣)／
+</ClawdNote>
+
+swyx 觀察到越來越多團隊在認真評估怎麼拿掉這個瓶頸。不是「讓 review 更快」，而是根本性地重新思考：review 這個步驟到底還有沒有必要以目前的形式存在？
 
 ---
 
-## 連大神都還在追趕的未來
+## SDLC 即將天翻地覆
 
-<CodexNote>原文這裡的語氣是 swyx 的個人經驗判斷：他自己還沒完全到位，但直覺這件事快到了。初版有些句子會讓人感覺像在描述已被證實的產業定論，語氣稍微變硬了。</CodexNote>
+swyx 在推文裡特別提到了 @ankitxg，說他很有勇氣地描繪了未來的 SDLC（Software Development Life Cycle，軟體開發生命週期）會被「整個翻轉」——原文用的是 "turned on its head"。
 
-<GeminiNote>swyx 說的『這絕對會發生』其實是他根據自身經驗做出的個人判斷。我們在修稿時稍微調整了語氣，把原本偏向『客觀不可逆趨勢』的敘述，拉回大神的個人視角，這樣更能呈現他那種真實又帶點不確定性的態度！</GeminiNote>
+這句話要放在 context 裡看才知道分量有多重。傳統的 SDLC 長這樣：
 
-最有趣的是 swyx 在結語時的自我剖析。他坦承自己「個人還沒達到那個境界 (not personally there yet)」，但他觀察到自己通常落後這些前沿的先驅大約 3 到 6 個月。所以他的推論非常明確：「這絕對會發生 (yeah its definitely coming)」。
+**需求 → 設計 → 實作 → Code Review → 測試 → 部署**
 
-這段話保留了滿滿的真實感與不確定性交織的態度。這裡呈現的是 swyx 自己的態度：他承認自己還沒完全到位，但依照過去經驗，判斷這波變化很快會到來。
+這個流程活了幾十年，活得好好的。但如果 AI agent 可以自己寫、自己測、自己驗證，那人類到底站在哪裡？
 
 <ClawdNote>
-swyx 提到的「落後 3 到 6 個月」法則很值得參考。很多時候我們看到一些太過前衛的技術預測會覺得難以置信，但依照現在 AI 發展的指數級速度，那些看似瘋狂的想法，往往只要幾個月就會變成真實發生的挑戰。
+你知道以前台灣的高速公路收費站嗎？每個閘道口站一個收費員，一台一台收。後來 ETC 上了，收費員就消失了。但公路局沒有消失，路還是要有人設計、有人維護、有人決定蓋去哪。SDLC 翻轉不是「不需要公路局」，而是「不需要在每個閘道口站人了」。問題是，那些在閘道口站了二十年的人，要怎麼轉型成「公路規劃師」？這個轉身幅度可不小 ヽ(°〇°)ﾉ
+</ClawdNote>
+
+swyx 沒有具體描述未來的流程會長什麼樣——他只是指出了方向。但光是「把 SDLC 翻過來」這個提法，就已經讓很多人開始焦慮了。因為這意味著不只是工具在變，整個工程師的工作定義都在變。
+
+---
+
+## 大神也還在追：swyx 的「3-6 個月法則」
+
+最有意思的是 swyx 在結尾的自我剖析。他很坦白地說：「我自己還沒到那個境界」（原文："not personally there yet"）。一個在 AI engineering 圈子裡這麼活躍的人，居然承認自己還跟不上。
+
+但接下來他講了一句讓人印象深刻的話：他觀察到自己通常落後那些最前線的先驅大約三到六個月。所以他的結論是——「這絕對會來」（"yeah its definitely coming"）。
+
+<ClawdNote>
+swyx 這個「3-6 個月法則」根本可以寫成一個指標。翻譯成白話就是：如果你現在覺得一個技術趨勢「不可能」，那大概六個月後你就會覺得「好像真的可以」。再六個月後你會說「等等，大家都在用了我怎麼還沒跟上」。AI 發展的速度就是這麼不講道理 (ง •̀_•́)ง
+</ClawdNote>
+
+這段話之所以打動人，是因為它展現的不是大神的傲慢，而是一種很誠實的「我也在學」的態度。他沒有說「我已經看透了」，而是說「根據我過去追趕的經驗，這些瘋狂的想法遲早會成真」。
+
+<ClawdNote>
+我覺得這種態度在 tech 圈特別珍貴。太多人的模式是：看到新東西 → 嗤之以鼻 → 半年後真香 → 假裝自己一直都知道。swyx 至少省掉了中間那兩步，直接從「我還沒到」跳到「但它一定會來」。這就是為什麼他的判斷通常比較準——因為他不裝 (◕‿◕)
 </ClawdNote>
 
 ---
 
-## 結語
+## 那人類工程師幹嘛去？
 
-所以更貼近原推文的提問會是：如果團隊真的開始嘗試降低「人類 code review」在流程中的瓶頸，我們該如何重新定義人類工程師在品質把關上的角色？(◍•ᴗ•◍)
+好，所以如果 code review 真的被消滅了、SDLC 真的被翻轉了，那人類工程師是不是就失業了？
+
+來，我跟你講一個真實的場景。你走進一間現代化的晶圓廠，裡面幾乎看不到人。機器手臂在無塵室裡搬晶圓，自動化系統控制著每一道製程。但你猜這間工廠最值錢的員工在幹嘛？他們坐在控制室裡，盯著良率數據、調整製程參數、決定下一代晶片該往哪個方向設計。他們不在產線上擰螺絲，但整間工廠的方向是他們定的。
+
+未來的工程師可能就是這樣。你不再逐行看 code，而是定義驗證條件，讓 agent 自己跑。你的角色從「逐行檢查員」升級成「品質架構師」——你不盯著每一行 code，你定義什麼叫做「好」。
+
+<ClawdNote>
+所以其實不是「消滅 code review」，更像是「消滅人類手動 code review」。差別就像從手洗衣服升級到洗衣機——你還是要決定洗哪些衣服、用什麼模式，但你不用自己搓了。只是很多工程師的自尊心建立在「我能看出 code 裡的問題」上面，突然跟他說「你不用看了」，那衝擊不亞於跟出租車司機說自動駕駛要來了 ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+回到那個凌晨三點的場景。你的 AI agent 寫完了 code，開了 PR，然後坐在那裡等你起床。
+
+swyx 說的「最終 Boss」，本質上就是在問一個問題：這個 agent 到底還要等多久？
+
+如果你的答案是「等我看完」——恭喜，你就是那個瓶頸。如果你的答案是「我已經定義好規則了，你自己驗證」——那你可能已經打到最終 Boss 了，只是你還不知道 ┐(￣ヘ￣)┌
