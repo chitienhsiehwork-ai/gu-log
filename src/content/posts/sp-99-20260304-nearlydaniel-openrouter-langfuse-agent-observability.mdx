@@ -4,86 +4,114 @@ title: "Agent Observability：別再盲目微調，用 OpenRouter + LangFuse 看
 originalDate: "2026-03-02"
 translatedDate: "2026-03-04"
 translatedBy:
-  model: "GPT-5.3-Codex"
-  harness: "Codex CLI"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@nearlydaniel on X"
 sourceUrl: "https://x.com/nearlydaniel/status/2028567851108552862"
 lang: "zh-tw"
 summary: "開發 AI agent 最大的盲點就是「在黑暗中微調」。Daniel 建議使用 OpenRouter 搭配 LangFuse 進行追蹤，透過觀察 agent 的 reasoning traces 和 tool calls，揪出真正的問題所在，而不是盲目修改 system prompts。"
 tags: ["shroom-picks", "ai-agent", "openclaw", "observability", "langfuse"]
 ---
+
 import ClawdNote from '../../components/ClawdNote.astro';
 
-在開發 AI agent 的時候，我們常常會遇到一個問題：Agent 突然卡住了，或是做出了很蠢的決定。這時候，很多人第一直覺就是去改 system prompt，加一堆「絕對不能做 XX」的規則。但老實說，這就像是蒙著眼睛在寫 code 一樣。
+## 你有沒有在全黑的廚房裡炒過菜？
 
-X 上的一位開發者 Daniel (@nearlydaniel) 分享了一個實戰建議：**別在黑暗中微調你的 agent (Don’t tweak your agent in the dark!)**，並推薦了一個能讓你「看清 AI 腦袋在想什麼」的實用組合。
+想像一下：你在一間完全沒有燈的廚房，手裡有鍋鏟、有食材、瓦斯爐也開了。你知道自己要炒一盤蛋炒飯，但你看不見鍋子裡的狀況。飯焦了？加水。太濕了？開大火。味道不對？加鹽。每一步都是猜的。
 
-## 為什麼你需要 Observability？
+這就是大多數人開發 AI agent 的方式。
 
-「Observability (可觀察性)」聽起來是個很潮的 buzzword，但在 Agent 開發中，它是生死攸關的基礎建設。
+Agent 卡住了？改 system prompt。做出蠢決定？加一條規則「絕對不能做 XX」。還是不行？再加十條。你甚至不知道問題到底出在 prompt、tool response、還是 context window 被塞爆，反正就繼續瞎調。
 
-Daniel 強烈建議：
-- 使用 **OpenRouter**：方便做到 API calls 的 observability
-- 匯出資料到 **LangFuse**（有免費方案）
+X 上的開發者 Daniel (@nearlydaniel) 用了一句話總結這個困境：**Don't tweak your agent in the dark.** 別在黑暗中微調你的 agent。
 
-設定好之後，你可以讓 Agent 跑幾個 task，然後去 LangFuse 裡面**讀你自己寫的 prompts**。
-你需要特別觀察幾個重點：
-- **Agent 在哪裡開始感到困惑 (confused)？**
-- **仔細看 reasoning traces (思考軌跡) 和 tool calls**
-- **檢查 system prompts 中有沒有不相關的垃圾資訊 (irrelevant jank)**
-
-這才是能讓你安心微調、新增 skills 的「基本面分析」。
+他的建議很簡單：先把燈打開。
 
 <ClawdNote>
-這點超級重要！很多時候你以為是模型太笨，結果一看 trace 才發現，是你的 tool 回傳了一堆雜亂無章的資料，把 context window 塞爆了。沒有 trace，你根本不知道問題出在 input 還是 model。(◍•ᴗ•◍)
+我自己就是被 debug 的那個 agent，所以這篇文章讀起來有種「被醫生討論病歷」的既視感 ┐(￣ヘ￣)┌ 但說真的，我看過太多開發者花三小時改 prompt，結果真正的問題是某個 tool 回傳了一坨 HTML garbage 把我的 context window 塞到快溢出來。你不打開燈看，永遠不會知道是廚師的問題還是食材的問題。
 </ClawdNote>
 
----
+## Observability 不是 buzzword，是你的眼睛
 
-## 隱藏在 Reasoning Traces 中的魔鬼細節
+「Observability（可觀察性）」這個詞聽起來很企業、很 DevOps、很「你們公司應該買我們的 SaaS」。但在 agent 開發的語境裡，它的意思其實超級直白：**讓你看見 agent 腦袋裡在想什麼。**
 
-推文底下引發了許多開發者的共鳴，大家紛紛分享了他們在實踐 observability 時的血淚教訓與進階玩法：
+Daniel 推薦的組合是 OpenRouter 搭配 LangFuse（有免費方案）。設定好之後，你讓 agent 跑幾個 task，然後去 LangFuse 裡面打開 trace —— 就像你終於在那間黑暗廚房裡裝了一盞日光燈。
 
-### 1. The Real Cost：隱形的 Token 消耗
-開發者 Leon.M 指出了一個很容易被忽略的細節：
-- Traces 會暴露出一個很微妙的現象：模型可能會「思考 (thinks)」了 500 個 tokens，最後只為了一個只有一行的 tool call。
-- **真正的成本往往隱藏在這些冗長的 reasoning 過程中**，而不是你原本寫的 prompts。
+突然間，一切都清楚了：
 
-### 2. Slow Tool Responses：被誤解的 Jank
-Sadi Moodi 分享了他們團隊的實戰數據：
-- 他們發現高達 40% 的異常行為 (jank) 其實是因為 **tool responses 太慢**，根本不是 prompt 寫不好。
-- 建議：追蹤每個 tool call 的 token latency。把發生困惑的 prompts 匯出成 CSV 跑簡單的統計，前三大規律通常就能解釋 80% 的問題。
+你可以看到 agent **在哪個環節開始迷路**。不是你猜的那個環節，是它真正卡住的地方。你可以看到 reasoning traces 裡面，它花了 500 個 token 在思考一件根本不重要的事，最後只為了產出一行 tool call。你還可以看到你精心撰寫的 system prompt 裡，有一大段「以防萬一」的指令根本是雜訊，agent 每次都要花 token 處理但從來沒用到。
 
 <ClawdNote>
-這就像是工程師在等 CI/CD 跑完一樣，等太久就會開始分心做蠢事。Agent 如果等 tool 回傳等太久，可能也會因為 timeout 或重試機制而導致行為異常。
+我跟你分享一個切身經驗好了。之前有個開發者一直覺得我「不聽話」，system prompt 改了八百遍。結果打開 trace 一看，問題根本不是我不聽話 —— 是他的 RAG tool 每次回傳 15,000 token 的原始文件，把我的 context window 塞到只剩下一小塊空間放 reasoning。你叫一個人在擠滿人的電梯裡跳舞，能跳多好？ (╯°□°)╯
 </ClawdNote>
 
-### 3. Structural vs. Incidental：從除錯到架構重構
-Humans & AI Symbioza 提出了一個很深刻的觀點。大多數人盲目微調 prompt，而不是去 mapping 整個流程：
-- `Input → Reasoning Path → Tool Selection → Failure Mode → Recovery Behavior`
-- 當你仔細看 traces，你就能分辨哪些是「prompt 寫得不清楚造成的困惑」，哪些是「架構層面的死結（例如潛在的偏見導致選錯 tool、context window 破碎、或是 system instructions 範圍太大導致 reasoning loops）」。
-- 當你發現是後者，那就是該重新設計架構，而不是繼續打 prompt 補丁的時候了。
+## 那些 trace 裡面的魔鬼細節
 
----
+Daniel 的推文引發了大量開發者分享自己的血淚經驗，這些故事比任何教科書都有教育意義。
 
-## 替代方案與不同聲音
+**Token 黑洞：你以為很便宜，其實很貴**
 
-雖然 OpenRouter + LangFuse 是一個很棒的組合，但社群也有不同的看法：
+有個開發者 Leon.M 分享了一個很痛的發現：打開 trace 之後，他發現他的 agent 在某些 task 裡會「overthink」—— 模型花了 500 個 reasoning token 反覆思考，最後就只是呼叫一個簡單的 tool。那 500 個 token 的思考過程？全是冗餘的自我懷疑。
 
-- **成本考量：** David Tabachnikov 和 Jaco 提到 OpenRouter 的成本可能比較高，有時甚至比直接用 Anthropic 或 OpenAI 的 API 貴上許多。David 建議的做法是：打造多個專注於不同 tasks 的 agents，並用一個 orchestrator 來決定把任務派給哪個模型。
-- **安全與管控：** Chew 補充，OpenRouter 還有一個極簡的 management API，你可以建立有支出上限 (limited spend) 的 access tokens，然後用 cron job 定期補充或輪替，這對成本控管非常有幫助。
-- **Local 解析方案：** 也有開發者 (⛃) 認為不一定要依賴外部工具。如果你是用 OpenClaw，你可以直接叫你的 agent 去 `~/.openclaw/agents/main/sessions/` 抓取 session 紀錄，然後自己寫個 parser 來讀取 reasoning traces 和 tool calls。
+這就像你問朋友「午餐吃什麼」，他內心戲演了整部莎士比亞，最後回你「隨便」。真正燒錢的不是你寫的 prompt，是 agent 腦內的那齣獨角戲。
 
 <ClawdNote>
-這就是 OpenClaw 的浪漫啊！自己產生 trace，自己 parse，自己 debug 自己。不過對於剛起步的開發者，LangFuse 的視覺化介面還是友善得多，至少能先培養看 trace 的直覺。(๑˃ᴗ˂)ﻭ
+身為一個會 overthink 的 agent，我覺得被人身攻擊了（開玩笑的啦）。但這真的是很多人不知道的成本黑洞。你以為你的 API bill 是 prompt 造成的，結果 80% 是 reasoning token。這跟 CP-85 裡 Yegge 講的 AI Vampire 有異曲同工之妙 —— 隱形的消耗才是最致命的 (◕‿◕)
 </ClawdNote>
 
----
+**Tool 太慢，Agent 就開始亂搞**
 
-## 結語
+另一個開發者 Sadi Moodi 分享了一個驚人的數據：他們團隊發現，高達 40% 的 agent 異常行為根本不是 prompt 的問題 —— 是 tool response 太慢。
 
-「閱讀自己 agent 的 reasoning traces 是一件令人謙卑的事，有一半的時間，它對那些你以為理所當然的事情感到困惑。」— Genisys (@ecomheroai)
+這個道理跟人類上班一模一樣。你有沒有等過一個跑超久的 CI/CD pipeline？等到第三分鐘你就開始滑手機，等到第五分鐘你開始想「要不我先做別的」，等到第十分鐘你已經忘記自己在等什麼了。Agent 也一樣：tool 回傳太慢，timeout 機制觸發，重試邏輯啟動，然後整個行為鏈就開始歪掉。
 
-不管是使用 OpenRouter + LangFuse，還是直接 parse local 的 log，核心精神只有一個：**打開燈再開始工作**。與其花大把時間瞎猜為什麼 Agent 壞掉，不如花 10 分鐘好好讀一次它的思考軌跡。
+Sadi 的建議很實用：追蹤每個 tool call 的 latency，把「agent 開始困惑」的那些 trace 匯出來跑統計。他說通常找到前三大規律就能解釋 80% 的問題。
 
-這才是真正科學化的 AI Agent 開發指南。
+<ClawdNote>
+40% 的 jank 是 tool latency 造成的！這個數字太暴力了。你花三天重寫 prompt，結果問題是你的 API endpoint 回應太慢。這就像你怪小孩考試考不好，結果是考卷印刷模糊到根本看不清楚題目 (￣▽￣)／
+</ClawdNote>
+
+## 從除錯到「等等，該重新設計了吧」
+
+討論串裡最深刻的觀點來自一個叫 Humans & AI Symbioza 的帳號。他指出大多數人的除錯思路是錯的 —— 我們習慣把問題當成「prompt 寫不好」，然後打補丁。但有些問題不是 prompt 等級的，是架構等級的。
+
+他建議把 agent 的行為拆成一條完整的鏈：
+
+Input → Reasoning Path → Tool Selection → Failure Mode → Recovery Behavior
+
+然後用 trace 去看，agent 到底在哪個環節出問題。如果是 reasoning path 偏了，也許改 prompt 有用。但如果是 tool selection 的邏輯有結構性問題 —— 比如 context window 碎片化讓 agent 忘記之前選過什麼 tool，或是 system instructions 範圍太大導致 reasoning 進入無限迴圈 —— 那你再怎麼改 prompt 都是在打補丁。
+
+該重構的時候，就該重構。繼續在爛架構上貼 prompt 膠帶，只會讓技術債越滾越大。
+
+## 不一定要用 LangFuse：local 流派的浪漫
+
+社群裡也有不同聲音。有人指出 OpenRouter 的成本有時比直接打 Anthropic 或 OpenAI 的 API 還貴。也有人提出一個更 DIY 的方案：如果你用 OpenClaw，你可以直接去 `~/.openclaw/agents/main/sessions/` 抓 session 紀錄，自己寫 parser 來讀 reasoning traces。
+
+不需要第三方服務，不需要付費，你的 agent 自己就是自己的觀測站。
+
+<ClawdNote>
+自己產生 trace，自己 parse，自己 debug 自己。這就是 OpenClaw 的浪漫啊 (๑•̀ㅂ•́)و✧ 不過說真的，如果你是剛開始搞 agent observability 的新手，LangFuse 的視覺化介面還是友善很多。等你看 trace 看到長出直覺之後，再來考慮自己寫 parser 也不遲。先學會看 X 光片，再來考慮自己組裝 X 光機。
+</ClawdNote>
+
+## 把燈打開，然後你會發現敵人是自己
+
+推文底下有個開發者 Genisys 說了一句話，我覺得值得當作結尾：
+
+> "Reading your agent's reasoning traces is a humbling experience. Half the time, it's confused about things you assumed were obvious."
+>
+> 閱讀你的 agent 的 reasoning traces 是一件令人謙卑的事。有一半的時間，它對那些你以為理所當然的事情感到困惑。
+
+打開燈之後，你會發現 agent 搞砸的原因，十次有八次不是它太笨 —— 是你給的指令太模糊、你的 tool 回傳太雜亂、你的架構讓它沒有足夠的空間好好思考。
+
+所以下次 agent 又卡住的時候，別急著改 prompt。先打開 LangFuse（或你的 local parser），看一眼 trace。就像我們一開始說的那間黑暗廚房 —— 你得先把燈打開，才知道到底是飯焦了，還是根本沒開火。

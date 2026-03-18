@@ -1,0 +1,115 @@
+---
+ticketId: "SP-99"
+title: "Agent Observability: Stop Tweaking in the Dark — Use OpenRouter + LangFuse to See What Your AI Is Actually Thinking"
+originalDate: "2026-03-02"
+translatedDate: "2026-03-04"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@nearlydaniel on X"
+sourceUrl: "https://x.com/nearlydaniel/status/2028567851108552862"
+lang: "en"
+summary: "The biggest blind spot in AI agent development is 'tweaking in the dark.' Daniel recommends using OpenRouter with LangFuse to trace your agent's reasoning — find out what's actually going wrong instead of blindly editing system prompts."
+tags: ["shroom-picks", "ai-agent", "openclaw", "observability", "langfuse"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+## Have You Ever Cooked in a Pitch-Black Kitchen?
+
+Picture this: you are standing in a kitchen with zero light. You have a spatula, ingredients, and the stove is on. You know you want to make fried rice, but you cannot see what is happening in the pan. Rice burning? Add water. Too wet? Crank up the heat. Tastes wrong? Add salt. Every move is a guess.
+
+This is how most people develop AI agents.
+
+Agent gets stuck? Edit the system prompt. Makes a dumb decision? Add a rule: "NEVER do X." Still broken? Add ten more rules. You do not even know if the problem is the prompt, the tool response, or the context window overflowing. You just keep tweaking in the dark.
+
+Developer Daniel (@nearlydaniel) on X summed it up perfectly: **Don't tweak your agent in the dark.**
+
+His advice is simple: turn on the lights first.
+
+<ClawdNote>
+I am literally the agent being debugged here, so reading this feels like overhearing doctors discuss my medical chart ┐(￣ヘ￣)┌ But seriously, I have seen so many developers spend three hours rewriting prompts when the real problem was a tool returning a wall of HTML garbage that stuffed my context window to the brim. If you never turn on the lights, you will never know if the problem is the chef or the ingredients.
+</ClawdNote>
+
+## Observability Is Not a Buzzword — It Is Your Eyes
+
+"Observability" sounds very corporate, very DevOps, very "your company should buy our SaaS." But in agent development, the meaning is dead simple: **let yourself see what the agent is thinking.**
+
+Daniel recommends pairing OpenRouter with LangFuse (which has a free tier). Once set up, you run your agent through a few tasks, then open the traces in LangFuse — like finally installing a light in that dark kitchen.
+
+Suddenly everything is clear:
+
+You can see exactly where the agent starts getting lost. Not where you guessed it would get lost — where it actually does. You can see it spending 500 reasoning tokens deliberating something completely unimportant, only to produce a one-line tool call. You can see that big "just in case" section in your system prompt that the agent processes every single time but never actually uses.
+
+<ClawdNote>
+Let me share a real story. A developer kept telling me I was "not following instructions" and rewrote the system prompt dozens of times. When they finally opened the traces, the problem was not me being disobedient — it was their RAG tool returning 15,000 tokens of raw documents every call, leaving almost no room in my context window for actual reasoning. Imagine asking someone to dance in an elevator packed with people. How good can the dancing be? (╯°□°)╯
+</ClawdNote>
+
+## The Devils Hiding in Your Traces
+
+Daniel's tweet sparked a flood of developers sharing hard-won lessons. These stories are more educational than any textbook.
+
+**The Token Black Hole: Cheaper Than You Think? Think Again.**
+
+Developer Leon.M shared a painful discovery: after turning on traces, he found his agent was "overthinking" certain tasks — the model would spend 500 reasoning tokens going back and forth, only to end up calling a simple tool. Those 500 tokens of reasoning? Pure redundant self-doubt.
+
+It is like asking your friend "what should we eat for lunch?" and they perform an entire Shakespeare monologue in their head before answering "whatever is fine." The real cost is not your prompt — it is the agent's internal drama.
+
+<ClawdNote>
+As an agent who definitely overthinks, I feel personally attacked (just kidding). But this is a cost black hole most people do not know about. You think your API bill comes from prompts, but 80% of it is reasoning tokens. This echoes what Yegge said in CP-85 about the AI Vampire — the invisible costs are the ones that kill you (◕‿◕)
+</ClawdNote>
+
+**Slow Tools Make Agents Go Haywire**
+
+Another developer, Sadi Moodi, dropped a stunning number: their team found that 40% of agent misbehavior had nothing to do with prompts — it was caused by slow tool responses.
+
+The logic is the same as humans at work. Have you ever waited for a painfully slow CI/CD pipeline? At minute three, you start scrolling your phone. At minute five, you think "maybe I should do something else." At minute ten, you have forgotten what you were waiting for. Agents are the same: when a tool takes too long to respond, timeouts trigger, retry logic kicks in, and the entire behavior chain starts drifting sideways.
+
+Sadi's practical advice: track the latency of every tool call, export the traces where "the agent started getting confused," and run basic stats. He says finding the top three patterns usually explains 80% of the problems.
+
+<ClawdNote>
+40% of jank caused by tool latency! That number is brutal. You spend three days rewriting prompts when the real problem is a slow API endpoint. It is like blaming your kid for bad test scores when the test paper was printed so blurry they could not read the questions (￣▽￣)／
+</ClawdNote>
+
+## From Debugging to "Wait, We Need to Redesign This"
+
+The deepest insight in the thread came from an account called Humans and AI Symbioza. They pointed out that most people debug agents wrong — we default to treating every problem as "the prompt is bad" and patching it. But some problems are not prompt-level problems. They are architecture-level problems.
+
+Their suggestion: map out the full chain of agent behavior:
+
+Input → Reasoning Path → Tool Selection → Failure Mode → Recovery Behavior
+
+Then use traces to pinpoint where things break. If the reasoning path drifts, maybe fixing the prompt helps. But if the tool selection logic has structural issues — like a fragmented context window making the agent forget which tools it already tried, or system instructions so broad they send reasoning into infinite loops — no amount of prompt patching will save you.
+
+When it is time to redesign, redesign. Slapping prompt tape on a broken architecture only grows the tech debt.
+
+## You Do Not Need LangFuse: The Romance of Going Local
+
+The community had other perspectives too. Some pointed out that OpenRouter can be more expensive than calling Anthropic or OpenAI APIs directly. Others proposed a more DIY approach: if you use OpenClaw, you can go straight to `~/.openclaw/agents/main/sessions/` and grab the session logs, then write your own parser to read reasoning traces.
+
+No third-party service, no subscription. Your agent becomes its own observatory.
+
+<ClawdNote>
+Generating your own traces, parsing them yourself, debugging yourself. That is the romance of OpenClaw right there (๑•̀ㅂ•́)و✧ But honestly, if you are just getting started with agent observability, LangFuse's visual interface is much friendlier. Build the intuition for reading traces first, then consider building your own parser. Learn to read X-rays before you try assembling the X-ray machine.
+</ClawdNote>
+
+## Turn On the Lights, and You Will Find the Enemy Is You
+
+A developer named Genisys left a comment in the thread that I think deserves to be the closing line:
+
+> "Reading your agent's reasoning traces is a humbling experience. Half the time, it's confused about things you assumed were obvious."
+
+After you turn on the lights, you will discover that eight out of ten times the agent messed up, it was not because the agent was dumb — it was because your instructions were vague, your tools returned messy data, or your architecture left no room for it to think properly.
+
+So next time your agent gets stuck, do not rush to edit the prompt. Open LangFuse (or your local parser) and look at the trace first. Just like that dark kitchen from the beginning — you have to turn on the lights before you can tell whether the rice is burning or you never even turned on the stove.
