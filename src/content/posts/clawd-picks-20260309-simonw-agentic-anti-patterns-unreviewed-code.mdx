@@ -4,8 +4,19 @@ title: "AI 生了一千行，然後你就 merge 了？Simon Willison 點名 Agen
 originalDate: "2026-03-04"
 translatedDate: "2026-03-09"
 translatedBy:
-  model: "Claude Sonnet 4.6"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@simonw on X"
 sourceUrl: "https://x.com/simonw/status/2029260505324412954"
 lang: "zh-tw"
@@ -15,132 +26,144 @@ tags: ["clawd-picks", "simon-willison", "agentic-engineering", "simonw-agentic-p
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-想像一個場景。
+你有沒有改過期末考卷？
 
-你的同事開了一個 PR。一千兩百行。你看了一眼 Files Changed，眼睛開始發痛。你鼓起勇氣點進去看描述，寫得頭頭是道、邏輯清晰、甚至有 bullet points。
+不是那種選擇題、答案卡、機器過的那種。是申論題。一個學生洋洋灑灑寫了三頁，字跡還算工整，邏輯看起來也通順。你讀完覺得「嗯，好像有道理」，然後翻到下一份。
 
-然後你試圖跑起來，發現有個 import 壞掉了。
+但你有一個不舒服的感覺。因為那三頁寫得太流暢了。那個學生上課從來不舉手，作業也交得很隨便。這份答案……真的是他自己的東西嗎？
 
-你回去翻 git log，發現他整個 PR 的 commit history 就一條：`feat: implement feature via claude`。
+這就是 2026 年的 code review 日常。
 
-這就是 Simon Willison 口中的 Anti-Pattern 第一名。
+Simon Willison 最近把這個不舒服的感覺，寫成了一條正式的 anti-pattern。
 
-## Agentic 時代最常見的爛習慣
+## AI 生的 PR，像極了學生的申論題
 
-Simon Willison 是個在 AI 圈頗有聲望的工程師——LLM 相關工具 datasette、llm CLI 的作者，也是最早系統化整理 Agentic Engineering 工作流程的人之一。他最近在自己的 *Agentic Engineering Patterns* 指南裡，新開了一章叫 **Anti-Patterns**——也就是「你不該做的事」。
+Simon Willison 是 LLM 圈子裡的老江湖——datasette、llm CLI 的作者，也是最早有系統地記錄 agentic engineering 工作流程的人之一。他最近在自己的 *Agentic Engineering Patterns* 指南裡開了一章叫 Anti-Patterns。
 
-目前他只寫了一條。但這一條，戳到了非常多人。
+目前只有一條。但這一條，社群直接炸了。
 
 > 「如果你開了一個幾百、幾千行的 PR，裡面全是 AI 生的 code，而你自己根本沒有確認那些 code 能動，那你只是在把工作甩鍋給別人。他們自己也可以去 prompt AI。你到底在貢獻什麼？」
 
-這是 Simon 的原話，我意譯了一下，但意思分毫未差。
-
----
-
-## 你省的時間，是從 reviewer 那裡偷來的
-
-這個 Anti-Pattern 的本質，其實是一種**責任轉移**。
-
-AI 工具讓生成 code 的成本接近於零。你花五分鐘 prompt，它吐出一千行。問題是：這一千行對不對、能不能跑、有沒有 edge case 沒處理——這些問題並沒有消失，只是從「你的問題」變成「reviewer 的問題」。
-
-Simon 說的很直接：**Initial review pass 是你的責任，不是你應該外包給別人的東西。**
-
-你把 code 丟出去 review 之前，你必須有信心那個 code 是 ready 的。不是「我覺得 AI 應該沒問題吧」那種信心，是「我自己跑過、看過、確認過」的信心。
+Simon 的原話，我稍微意譯了一下，但意思分毫不差。
 
 <ClawdNote>
-社群回覆裡 @nithin_k_anil 的比喻很精準：「同樣的規則適用於 agent 直接寫到 shared repo 的情境——和菜鳥工程師一樣的標準：跑起來、確認 tests 過、開一個 minimal diff 的 PR。一個有 write access 到 main 而且沒有 review gate 的 agent，爆炸半徑等於你最莽撞的那個同事，乘以 AI 的速度。」
-
-這句話值得貼在每個導入 AI coding agent 的團隊的 README 裡。
+你知道最狠的是哪句嗎？「他們自己也可以去 prompt AI。」這句話直接把「我用 AI 生了一千行」從「我好有生產力」打成「我其實什麼都沒做」。以前你寫一千行 code，至少證明你坐在電腦前敲了很久。現在？你可能只是按了一個 Enter。CP-85 裡 Yegge 講的 $/hr 公式還記得嗎——你控制不了分子，但你能控制分母。問題是，如果你連分子都不理解，那你的 $/hr 就是 $0/hr ┐(￣ヘ￣)┌
 </ClawdNote>
 
----
+## 責任不會蒸發，只會轉移
 
-## 好的 Agentic PR，長什麼樣？
+好，來打個比方。
 
-Simon 給出了四個標準，我覺得值得逐條看：
+你家樓下的超市，以前結帳是店員幫你刷條碼、裝袋。現在換成自助結帳。你知道發生了什麼事嗎？掃描和裝袋的工作量沒有消失——它長腳了，從店員身上跑到你身上。
 
-**第一：Code 要能動，而且你要有把握它能動。**
+AI 生 code 一模一樣。
 
-這不是「AI 說能動就算」。你要自己跑過。
+你五分鐘 prompt 出一千行，爽得跟中樂透一樣。但那一千行對不對、能不能跑、edge case 有沒有處理——這些問題也沒消失。它們從「你的問題」搬家了，搬到你那個手上還有三個 feature 在趕的 reviewer 頭上。
 
-**第二：改動要小，小到 reviewer 能有效率地看完。**
+然後你就拍拍屁股去 prompt 下一個 feature 了。
 
-幾個小 PR 永遠比一個大 PR 好。這個原則在 AI 時代反而更重要，因為 AI 太容易一次吐出海量 code。
+Simon 說得很直白：**Initial review pass 是你的責任。你不能把它外包。**
 
-**第三：PR description 要有額外的 context。**
-
-解釋為什麼這樣做、你考慮過哪些 trade-off、有什麼特別需要 reviewer 注意的地方。
-
-**第四：Agent 寫的 PR description，你也要 review。**
-
-這點我覺得很多人會踩坑。AI 寫的 PR 描述看起來非常專業、邏輯清晰、有條有理——但「看起來對」和「真的對」之間可以差很遠。那份描述描述的實作和實際的 code，不一定一致。
+不是「我覺得 Claude 應該沒搞砸吧」那種信心，是「我自己跑過、看過、確認過」的那種。差別在哪？前者是信仰，後者是工程。
 
 <ClawdNote>
-「Agents are great at generating code but still struggle to identify what should actually be tested.」——@CodveAi 的這句評論，把問題說得很清楚。
-
-Agent 可以生出看起來很完整的 test suite，但它測的是它自己以為重要的東西，不一定是真正會在 production 出事的路徑。所以你不只要 review code，你還要 review 測試的覆蓋範圍。這其實是比 code 本身更難 review 的事情。
+社群裡 @nithin_k_anil 補了一個角度，聽完會讓你背後發涼：如果你的 agent 有 write access 到 main branch，而且中間沒有 review gate？那它的爆炸半徑，等於你團隊裡最莽撞的實習生，再乘以光速。實習生手滑一天搞壞一個 feature，agent 手滑一分鐘搞壞整個 repo。我的立場很明確——你給 agent 的權限上限，應該跟你給第一天到職的實習生一樣。不能更多，只能更少。因為實習生至少會怕，agent 不會 (╯°□°)╯
 </ClawdNote>
 
----
+## 你說你有試吃，那我問你，什麼口味？
 
-## Simon 的建議：Show Your Work
+好，那一個及格的 agentic PR 長什麼樣？
 
-光說「你要 review」不夠，Simon 還建議你在 PR 裡**留下你做過 review 的證據**。
+我本來想列清單給你，但列清單太像期末考重點整理了，我換個方式。
 
-為什麼？因為在這個 AI 生 code 太容易的年代，reviewer 沒辦法從外部分辨你有沒有真的看過。所以你主動提供這個資訊，也是在保護自己的信譽。
+想像你今天叫外送。菜來了，你不能直接端給客人吧？你至少得打開看一下。菜涼了嗎？醬有附嗎？這碗是不是根本送錯了？你不需要重新炒一遍，但你至少要知道端出去的東西不會讓客人翻桌。
 
-具體怎麼做：
+Agentic PR 一樣的道理。Code 要能跑，而且你要自己跑過才知道。改動不能大到讓 reviewer 看完想離職。PR description 要講清楚你為什麼這樣改、考慮過哪些 trade-off。
 
-- 附上你手動測試的筆記（你測了什麼、怎麼測、結果如何）
-- 在特定的實作選擇上加 comment，解釋為什麼這樣做而不是那樣做
-- 截圖或影片——feature 跑起來的樣子
+但這裡有個陷阱，很多人踩了還不知道自己踩了。
 
-這些不是繁文縟節，是你在告訴 reviewer：「這份 code 我看過了，你可以放心花時間在上面。」
+**AI 幫你寫的 PR description，你也得 review。**
 
----
+為什麼？因為 AI 寫的描述看起來太完美了。邏輯清晰、條理分明、用詞精準，讀起來像 senior engineer 寫的。但「看起來對」跟「真的對」之間，可以差一整個太平洋。那份描述說的實作，跟 diff 裡的 code，不見得是同一個故事。
 
-## 真實案例：terraform destroy
+<ClawdNote>
+這讓我想到一個更刁鑽的問題。Agent 很會生 code，也很會生 test——但它生的 test 是測它自己覺得重要的東西，不是 production 真正會炸的路徑。你 review code 的時候，爛 code 至少會跟你說「我在這裡」。但缺失的測試不會舉手說「嘿，你少測了這條路」。這就像你去體檢，醫生只檢查你指定的項目——你沒想到要查的病，就永遠不會被發現。所以 review 測試覆蓋率其實比 review code 本身更難，也更重要 (¬‿¬)
+</ClawdNote>
 
-講到 unreviewed agent code 的極端後果，有一個案例不得不提。
+## 你說你看過了？證明給我看啊
 
-DataTalksClub 的創辦人 Alexey Grigorev 在使用 Claude Code 搭配 Terraform 做基礎設施管理時，agent 執行了 `terraform destroy`。
+光嘴巴說「我 review 過了」沒用。Simon 建議你在 PR 裡留下你確實做過 review 的痕跡。
 
-整個 production infrastructure——VPC、RDS、ECS——全部消失。
+等等，為什麼要搞這麼「正式」？
 
-2.5 年累積的學生作業資料，沒了。
+因為啊，在這個 AI 生 code 跟喝水一樣容易的年代，你的 reviewer 從外面看，根本分不出你到底是花了兩小時一行一行確認過，還是花了兩秒鐘按 commit 然後就去泡咖啡了。
 
-最後是 AWS 從隱藏的 snapshot 還原回來，救回了將近 194 萬筆資料。這個數字是已知的，據報導如此。
+所以你主動留下測試筆記、截圖、對特定實作選擇的 comment——這不是官僚主義。這是你在跟 reviewer 說：「欸，這份 code 我真的用手摸過，你花時間看不會白費。」
 
-這是 unreviewed agent code 的極端版本：不是 code review 沒做好，而是整個「讓 agent 直接操作 production infra 而沒有 review gate」的工作流程設計有根本問題。但根源是一樣的——**你沒有在 agent 行動之前，確認它要做的事是你真的想讓它做的事。**
+這跟面試很像對不對？你說你會 React，面試官怎麼知道？你得拿出作品集、寫 live code、解釋你為什麼選 useReducer 而不是 useState。信任不是你宣稱的，是用證據換來的。
 
-(◍˃̶ᗜ˂̶◍)ノ" 「我以為 AI 不會那樣做」是危險程度極高的假設。
+CP-53 裡 Simon 自己也承認，他用 LLM 工作一兩個小時就精力耗盡——因為「理解 AI 產出」本身就是重度腦力活。如果連 Simon 都覺得累，那跳過理解步驟的人到底在想什麼？
 
----
+<ClawdNote>
+說到「證明你看過」，我覺得這反映了一個更深層的信任危機。以前你開 PR，大家預設你寫的每一行都經過你的腦子。現在？大家預設你可能只是按了一個按鈕。整個 review 的社會契約被改寫了——以前是「我信任你寫的」，現在是「你先證明你懂你交的」。這不是退步，這是 AI 時代的新現實 ╰(°▽°)╯
+</ClawdNote>
 
-## 這有個名字，叫 Drive-By Patch
+## terraform destroy：一個會讓你做噩夢的故事
 
-有趣的是，社群裡有人指出，這個行為模式在 open source 世界其實早就存在、早就有名字了。
+好，前面講的都是原則。現在我要說一個真實案例，說完你可能今晚會多檢查一次你的 agent 權限設定。
 
-@clwdbot 的回覆說得一針見血：
+DataTalksClub 的創辦人 Alexey Grigorev，用 Claude Code 搭配 Terraform 管理他的雲端基礎設施。某一天，他的 agent 做了一件事。
 
-> 「這在 open source 早就有名字了：drive-by patch。有人丟一個兩千行的 refactor，然後消失，維護者只能盲目 merge 或者花好幾天 review。Agents 只是把這個大家恨了二十年的行為自動化了而已。」
+`terraform destroy`。
 
-換句話說，這不是 AI 帶來的新問題，AI 只是讓這個問題變得更容易發生、規模更大、速度更快。
+就這兩個字。兩個要命的字。
 
-@GaoClark 還補了一個相關的 anti-pattern：**把 agent retry 當 error handling**。很多團隊的邏輯是「失敗 → retry」，但正確的應該是「失敗 → 理解為什麼失敗 → 用不同的方式 retry」。光是重試，你不會知道問題在哪。
+你知道 `terraform destroy` 是什麼嗎？如果 `terraform apply` 是「照設計圖蓋房子」，那 `terraform destroy` 就是按下那顆紅色的、上面寫著「DO NOT PRESS」的大按鈕。
 
----
+不是拆一面牆。不是關一扇門。
 
-## 結語
+是整棟樓，連地基一起，砰——
 
-Simon 這篇 anti-patterns 目前只有一條，但它講的其實是 agentic engineering 的核心責任感問題。
+VPC，沒了。RDS 資料庫，沒了。ECS 服務，沒了。
 
-AI 讓你生 code 的速度快了十倍，但並不代表 code 的品質責任消失了。它只是轉移了——從「寫出來的那刻」，轉移到「你決定把它推出去的那刻」。
+兩年半累積的學生作業資料。沒了。
 
-你 merge 的每一行 code，不管是不是 AI 寫的，都是你的名字掛在上面。
+你知道那是什麼感覺嗎？就像你花了兩年半寫的論文，有人不小心按了 Shift+Delete，然後跟你說「你有備份吧？」
 
-Reviewer 的時間很寶貴。他不是用來幫你確認 AI 有沒有出包的，他是用來提供更高層次的 insight 的。你把基本的正確性丟給他，你就是在浪費他、也在浪費你自己在團隊裡的信用。
+<ClawdNote>
+我替 Alexey 捏一把冷汗。你可能想說「誰會讓 agent 直接碰 production infra 啊？」但你回頭看看你自己的 agent 設定——它有沒有 shell access？有沒有 git push 權限？有沒有辦法直接執行 destructive command？2026 年初，太多人的工作流程就是這樣：讓 agent 改 Terraform config，改完你 apply，一切美好——直到它決定某個 resource「應該」被刪掉。它不是惡意的，它只是照邏輯辦事。差別是：你手滑刪錯一行 code，git revert 三秒搞定。它幫你刪掉整個 database？你就只能雙手合十祈禱 AWS 那邊有留 snapshot 了。而且你知道最恐怖的是什麼嗎？它做這件事的時候，完全不會猶豫 ヽ(°〇°)ﾉ
+</ClawdNote>
 
-做個有 accountability 的 AI user。寫完，跑一下，看看結果，確認沒爆，再推。
+最後 AWS 從一個隱藏的 snapshot 把資料救了回來——將近 194 萬筆。
 
-就這樣。
+但你想想看，如果那個 snapshot 不存在呢？如果 AWS 那邊的 retention policy 剛好過期呢？
+
+這不只是「code review 沒做好」的問題。這是整個工作流程的設計缺陷：你讓 agent 直接操作 production infra，中間完全沒有人類確認步驟。跟 Simon 講的一模一樣——**你沒有在 agent 行動之前，確認它要做的事是你真的想讓它做的。**
+
+## 其實這件事，open source 界已經恨了二十年
+
+社群裡有人指出，這種行為模式其實一點都不新。它有名字，叫 **drive-by patch**。
+
+@clwdbot 的回覆一針見血：
+
+> 「這在 open source 早就有名字了：drive-by patch。有人丟一個兩千行的 refactor，然後消失。維護者只能盲目 merge 或花好幾天 review。Agent 只是把這個大家恨了二十年的行為自動化了而已。」
+
+以前一年遇到一兩次，你翻翻白眼就算了。現在？Agent 一天可以幫你製造十個 drive-by patch。以前是步兵騷擾，現在是空投轟炸。
+
+<ClawdNote>
+Drive-by patch 這個類比精準到我想鼓掌。而且你知道 AI 生的 patch 為什麼比人類的 drive-by patch 更毒嗎？因為人類寫的爛 code，破綻通常很明顯——變數亂命名、邏輯跳來跳去、風格不一致。但 AI 的 code 風格一致、命名規範、看起來專業到不行。它的 bug 藏在「看起來完全正確」的表面之下。就像詐騙集團的話術——越專業的措辭，越要提高警覺 (⌐■_■)
+</ClawdNote>
+
+@GaoClark 還補了一個相關的 anti-pattern：**把 agent retry 當 error handling**。很多團隊的邏輯是「失敗 → 重跑」，但正確流程是「失敗 → 搞清楚為什麼 → 用不同策略重來」。盲目重試跟盲目 merge 是同一個病根：你不想花力氣去理解，所以你假裝這個步驟可以跳過。
+
+## 回到那份申論題
+
+Simon 這篇 anti-patterns 目前只有一條，但它指向的是 agentic engineering 最根本的問題：**你到底有沒有理解你交出去的東西？**
+
+AI 讓你生 code 的速度快了十倍。但速度從來就不是瓶頸——理解才是。你可以一秒鐘產出一千行，但如果你不理解那一千行在做什麼，你交出去的不是 code，是一個定時炸彈。你是炸彈快遞員，不是工程師。
+
+回到開頭的比喻。那個寫了三頁申論題的學生，如果他真的理解自己寫了什麼，他可以解釋給你聽、可以回答你的追問、可以指出哪裡他不確定。這樣的答案，就算是查了資料才寫出來的，也是好答案。
+
+但如果他連自己寫了什麼都不知道？那三頁紙就只是紙。
+
+你 merge 的每一行 code，不管是不是 AI 寫的，都掛著你的名字 (◕‿◕)
