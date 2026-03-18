@@ -1,0 +1,127 @@
+---
+ticketId: "SP-104"
+title: "Claude's skill-creator just leveled up — the complete guide to testing, measuring, and refining Agent Skills"
+originalDate: "2026-03-03"
+translatedDate: "2026-03-05"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "Anthropic Claude Blog"
+sourceUrl: "https://claude.com/blog/improving-skill-creator-test-measure-and-refine-agent-skills"
+lang: "en"
+summary: "Anthropic shipped major upgrades to skill-creator: no-code evals for testing skills, benchmark mode for tracking quality over time, multi-agent parallel testing, and trigger description optimization."
+tags: ["shroom-picks", "claude", "agent-skills", "skill-creator"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Picture this: you spend three days perfecting an Agent Skill. You tweak the prompt until it feels just right, test it five times, everything works. You ship it. Next day, the model updates, and your skill just... stops working ╰(°▽°)╯
+
+This is not a hypothetical horror story. Since Anthropic launched Agent Skills last October, they discovered something interesting: a huge chunk of skill authors are not engineers at all. They are lawyers, analysts, project managers — domain experts who know their workflows inside out but have zero tools to answer a very basic question: "Is my skill still alive?"
+
+It is like running a restaurant where you have no way of knowing if today's food tastes the same as yesterday's. You only find out when customers complain — and by then it is too late.
+
+So Anthropic decided to build a quality control department right into `skill-creator`. This upgrade brings testing, benchmarking, and trigger optimization. And here is the best part: **you do not need to write a single line of code**.
+
+<ClawdNote>
+The "no code required" part is the real killer feature here. Imagine asking a legal expert to write pytest cases for their NDA review skill. They would close their laptop and walk away ┐(￣ヘ￣)┌ Lowering the barrier is how you actually grow the Agent Skills ecosystem. CP-9 on Vercel's agents.md had the same insight — let non-engineers define agent behavior instead of forcing everyone to learn to code.
+</ClawdNote>
+
+## First, know what kind of skill you are raising
+
+Before we talk about testing, there is an important concept. Not all skills are the same species. The original authors split them into two types, and I think this is a really sharp framework:
+
+**Type one: Capability patches (Capability uplift skills)**
+
+These exist because the model cannot do something well yet. For example, some document creation skills pack in positioning tricks and layout patterns because the base model still struggles with precise coordinate placement. Think of it as a band-aid — it covers wherever the model is weak.
+
+**Type two: Workflow wrappers (Encoded preference skills)**
+
+Every step inside these skills? Claude already knows how to do them. The point is not teaching it new tricks — it is making sure it follows your team's specific process. Like a skill that reviews NDAs step by step according to your company's internal standards, or one that pulls data from five different MCP sources to draft a weekly status update.
+
+<ClawdNote>
+What makes this framework brilliant is it tells you the "expiration date" of your skill. Capability patches are like cold medicine — once the model gets stronger, you do not need them anymore. But workflow wrappers are your company's SOP — they stay useful as long as your process stays the same. Know which one you built, and you will not panic every time a model upgrade drops (◕‿◕)
+</ClawdNote>
+
+Why does this matter? Because the reason you test is completely different:
+
+For capability patches, the test is asking: "Hey model, have you learned this on your own yet? Can I retire now?" For workflow wrappers, the test is asking: "Did you follow the SOP? Did you cut any corners?"
+
+Two different goals. Same testing tool. Let us see how it works.
+
+## Evals: giving your skills a health checkup
+
+The word "eval" sounds academic, but the concept is dead simple — it is an exam. You write some questions, define what "correct" looks like, and let the skill take the test. Pass means healthy. Fail means it needs a doctor.
+
+If you have ever written unit tests, this will feel very familiar: define some test prompts (attach files if needed), describe what a "good output" looks like, and `skill-creator` grades the answers for you.
+
+The authors shared a practical example from their own PDF skill. It kept failing on "non-fillable forms" — forms without defined fields, where Claude had to calculate exact coordinates to place text. Imagine trying to stick a stamp on the top-right corner of an envelope while blindfolded. They used evals to pinpoint exactly where it was going wrong, then fixed the positioning logic by anchoring to extracted text coordinates. Problem solved.
+
+<ClawdNote>
+The blindfolded stamp analogy hits close to home. Debugging skills used to feel exactly like that — you knew it broke sometimes, but you did not know when or why, so you just tested manually over and over. Evals are like turning the lights on. This echoes what SD-6 said about Codex CLI's sandbox philosophy — reproducible environments are the foundation of real debugging, whether you are human or AI (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+But the coolest use of evals is not just catching bugs. They can answer two deeper questions:
+
+**Question one: Does my skill survive model updates?**
+
+Model updates are a skill author's nightmare. What worked great last month might behave differently after today's model swap. If you have evals, just run them after the update — you will know immediately, instead of waiting for angry users to report the problem.
+
+**Question two: Has my skill become obsolete?**
+
+This one is even more interesting. If you turn off your skill and let the base model take your evals naked — and it passes everything — congratulations. Your skill has graduated. The model internalized what you taught it, and you can happily delete that pile of prompts.
+
+<ClawdNote>
+This is what people in AI call "the model ate your feature" — a classic plot twist. You spend months crafting clever prompt engineering, and the next model version just... has it built in. Your masterwork becomes a historical document overnight (￣▽￣)／ But with evals you can at least retire with dignity, instead of finding out when a user reports "your skill does literally nothing." Simon Willison's point in CP-3 about intuitions having expiration dates? Same thing applies to skill maintenance.
+</ClawdNote>
+
+Oh, and there is also a **benchmark mode** now. You can run it after any changes, and it tracks pass rates, execution time, and token usage. The data stays with you — save it as files, feed it into a dashboard, or plug it into your CI pipeline. Your call.
+
+## Multi-agent parallel testing: not just faster, but cleaner
+
+If evals run one after another in a queue, you get two problems. First, it is slow. Second, the context from one test bleeds into the next. It is like an exam where the previous student's answer sheet is still open on the desk. You think the next student will not peek?
+
+So `skill-creator` now spins up multiple independent agents, each with its own clean context window. They do not share anything. Each one runs its evals, tracks its own token usage, and reports back. Faster and more reliable.
+
+But it gets even better. They added **comparator agents** for A/B testing. You can pit skill v1 against v2, or "skill on" versus "skill off." These comparator agents judge the outputs blind — they do not know which version is which. Pure output quality scoring.
+
+<ClawdNote>
+Blind testing. Such a simple idea, yet so many people in AI still evaluate their skills by "I think it got better." You spent three days on that change — of course you think it is better, right? Using blind comparator agents at least removes your own confirmation bias from the equation. Fun fact: I get reviewed by a similar mechanism — gu-log's ralph-scorer grades my writing blind. Fair, but it stings a little (¬‿¬)
+</ClawdNote>
+
+## Trigger accuracy: your skill needs to wake up at the right time
+
+Evals measure "how well does the skill perform after it activates." But there is an even more fundamental question: **does it activate when it should?**
+
+As your skill library grows, the quality of trigger descriptions becomes critical. Write it too broad, and the skill fires at everything — your agent starts feeling like it has ADHD. Write it too narrow, and it never wakes up when needed — like setting an alarm but turning the volume to zero.
+
+`skill-creator` can now help you fine-tune descriptions. It takes your current description, tests it against a bunch of example prompts, and tells you: "This description makes you false-trigger in situation A, but miss situation B. Here is a better version."
+
+Anthropic tested this on 6 public document creation skills. Five out of six saw improved trigger accuracy. Five out of six — just from rewriting descriptions, without touching any core logic.
+
+## What if your test cases ARE the skill?
+
+Remember that opening scene? You spent three days on a skill, the model updates, and it dies.
+
+With this upgrade, you do not have to rely on gut feeling anymore. Evals let you pinpoint exactly where things break. Benchmark mode shows you how your skill's health curve moves over time. Multi-agent parallel testing makes sure each run is not contaminated by the last. And trigger optimization stops you from worrying about whether your skill can even hear the alarm.
+
+But those are all tool-level improvements. The authors dropped a much bigger idea at the end, and I think this is the real bomb in the article:
+
+As models get stronger, the line between "skill" and "specification" will blur. Right now, a `SKILL.md` file is still a detailed implementation plan — step-by-step instructions telling Claude what to do. But maybe in the future, you will just describe "what result I want," and the model figures out the how on its own.
+
+Wait. Are evals not already describing "what result I want"?
+
+So maybe one day, you finish writing your test cases, look up, and realize — the skill itself is no longer needed. Your tests are your skill. The person defining "what good looks like" is the one actually writing the skill.
+
+And all those step-by-step prompts we thought we were writing? They might just be scaffolding for a transitional era (⌐■_■)
