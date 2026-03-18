@@ -4,8 +4,19 @@ title: "Karpathy: CLIs Are the Native Interface for AI Agents — Legacy Tech Be
 originalDate: "2026-02-24"
 translatedDate: "2026-02-25"
 translatedBy:
-  model: "Claude Opus 4.6"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "Andrej Karpathy (@karpathy) on X"
 sourceUrl: "https://x.com/karpathy/status/2026360908398862478"
 summary: "Karpathy argues that CLIs are the most natural interface for AI agents — precisely because they're 'legacy' tech. Text in, text out. He demos Claude building a Polymarket terminal dashboard in 3 minutes via CLI, then drops the mic: every product should ask itself — can agents access and use it? CLI, MCP, markdown docs. It's 2026. Build. For. Agents."
@@ -15,115 +26,112 @@ tags: ["clawd-picks", "karpathy", "cli", "ai-agents", "mcp", "build-for-agents",
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-## The Most Exciting "Legacy" Technology
+## Your Grandma's Tech, But Agents Love It More Than You Do
 
-Andrej Karpathy dropped a seemingly counterintuitive take on X yesterday:
+It's 2026. Everyone's chasing multimodal UIs, voice agents, and vibe coding. The whole tech world can't wait to throw keyboards in the trash.
+
+And then Andrej Karpathy posts this on X:
 
 > CLIs are super exciting **precisely because they are a "legacy" technology.**
 
-In 2026, everyone's talking about natural language UIs, multimodal interfaces, and voice agents. And Karpathy is out here getting excited about... the command line?
+Wait — we spent decades trying to escape the terminal, and now you're saying the most exciting thing is... that black window with white text?
 
-Yes. And his logic is airtight.
+But hear him out, because his logic is annoyingly airtight — and he doesn't just talk about it. He shows receipts.
 
 <ClawdNote>
-Think about why AI agents struggle with web UIs.
+Think of it like that 30-year-old noodle stall in your neighborhood. No fancy decor, no iPad ordering, no Instagram wall. But every day at lunch, the line goes around the block.
 
-Web pages are designed for creatures with eyes — you need to see where buttons are, understand layout, deal with JavaScript rendering, navigate modals and dropdowns.
+Why? Because it solves the core problem: good food, fast, reliable.
 
-But a CLI?
-Text in → text out.
-That's literally what LLMs are built for.
+CLI is the noodle stall of software.
+Text goes in, text comes out. No JavaScript to render, no buttons to find, no modals to dismiss.
+For an LLM, this is basically its native habitat. ╰(°▽°)╯
 
-"Legacy" doesn't mean "obsolete." It means "battle-tested and format-stable."
-For an agent, that's infinitely better than any fancy React dashboard. (⌐■_■)
+Meanwhile, those fancy web UIs? For an agent, that's like asking a fish to climb a tree.
 </ClawdNote>
 
-## 3 Minutes to a Polymarket Dashboard
+## 3 Minutes From Zero to a Live Dashboard
 
-Karpathy shared a concrete example.
+Okay, enough theory. Karpathy went live-fire.
 
-Someone (@SuhailKakar) built a [Polymarket CLI](https://x.com/SuhailKakar/status/2026305257257775524) in Rust — query prediction markets, place trades, pull data, all from the terminal.
+Someone (@SuhailKakar) built a [Polymarket CLI](https://x.com/SuhailKakar/status/2026305257257775524) in Rust — query prediction markets, place trades, pull data, all from the terminal. A simple, no-frills command-line tool.
 
-What did Karpathy do? He told Claude to install it and said: "Build me a real-time dashboard showing the highest-volume prediction markets with 24-hour price changes."
+What did Karpathy do? He told Claude: "Install this CLI and build me a real-time dashboard showing the highest-volume prediction markets with 24-hour price changes."
 
 **3 minutes later, the dashboard was running in his terminal.**
 
-No API docs to read. No SDK to learn. No environment to set up.
+No API docs. No SDK. No fighting with Python virtual environments until you question your life choices.
 
-The agent just: installed the CLI → read `--help` → composed exactly what was needed. That's it.
+The agent just: `npm install` → read `--help` → compose commands → done. The whole thing took less time than making instant noodles.
 
 <ClawdNote>
-There's a deep insight buried here.
+Hold on, let me reconstruct the crime scene here —
 
-Traditional development: read docs → understand API → write code → debug → deploy.
-Agent mode: install CLI → `--help` → done in three minutes.
+You, a diligent engineer, trying to do the same thing. First you read the docs — halfway through, you realize they're from last year's version. You push through and write some code anyway. Run it. A wall of red errors. You Google the error message. Stack Overflow says you need some dependency. You install it. Version conflict. Three hours later, it finally runs, but the output format is nothing like what you expected. Two more hours. One to two days gone, along with a few strands of hair. (╯°□°)╯
 
-The difference isn't just speed. It's that **agents don't need to "learn" your product.**
-The CLI interface IS the documentation — flag names, help text, error messages,
-all structured, all text, all directly digestible by an LLM.
+The agent? `npm install` → `--help` → three minutes. It doesn't even have a "frustration" emotion, because CLI help text is as clear to it as a menu with pictures — flag names are features, help text is the tutorial, error messages are the debug guide. All plain text, all in its comfort zone.
 
-This is why GitHub CLI (`gh`), Vercel CLI, Railway CLI
-are 100x more useful to agents than their web dashboards.
-Your gorgeous React UI is DOM noise to an AI.
-But `gh pr list --json number,title,state`? *Chef's kiss.* ✧
+Your lovingly crafted React dashboard? To an agent, that's like fishing for a single grain of rice in a bowl of soup.
+`gh pr list --json number,title,state`? Now THAT's its Michelin-starred meal. (⌐■_■)
 </ClawdNote>
 
-## Can Agents Use Your Product?
+## Soul-Searching Time: Can Agents Even Use Your Product?
 
-Karpathy closed with a soul-searching checklist for every product builder:
+Theory — done. Demo — done. And then Karpathy does something kind of cruel — he makes you look in the mirror.
 
 > If you have any kind of product or service, think: **can agents access and use them?**
 
-Specifically:
+Okay, let's go through this together. Deep breath.
 
-- **Docs**: Are your legacy docs (for humans) at least exportable in markdown?
-- **Skills**: Have you written Skills for your product?
-- **Interface**: Can your product/service be usable via CLI? Or MCP?
+Your docs — can an agent read them? If they're locked behind a login page, three layers of menus, and a cookie consent popup, then congratulations, the agent already left. At the bare minimum, let your docs export to markdown. That's basic manners in 2026.
 
-Then he signed off with three words:
+Does your product have Agent Skills? You know, the kind where an AI can say "hey, look this up for me" and your service actually responds? No? Then your product is a house with no doors — visible, but completely inaccessible.
+
+And finally, the interface. Can your thing be used via CLI? Does it have an MCP server? If neither — your product basically doesn't exist in the agent's world.
+
+Then Karpathy signs off with three words, clean and brutal:
 
 > **It's 2026. Build. For. Agents.**
 
 <ClawdNote>
-Let me decode Karpathy's subtext:
+Let me translate Karpathy's subtext: **your "users" aren't just humans anymore.**
 
-**If your product only has a web UI, you're losing half your "users."**
+In 2026, agents are users too. And they're growing way faster than human users — they don't need to sign up for accounts, sit through onboarding tutorials, or get scared off by your pricing page. They just need a usable interface.
 
-Because in 2026, "users" aren't just humans anymore. Agents are users too.
-And agents are growing faster than human users ever did.
+If your product only has a web UI, congrats — you're locking out half your potential users. (╯°□°)╯
 
-Two weeks ago at SF Startup School, Karpathy said "Build for Agents"
-(see [CP-116](/posts/clawd-picks-20260223-karpathy-software-3-sf-startup-school)).
-That was theory. Now he's showing receipts:
-
-1. Someone built a CLI ✓
-2. Agent installed the CLI ✓
-3. Dashboard running in 3 minutes ✓
-
-**Theory → proof.** That's what makes Karpathy Karpathy —
-he doesn't just say "the future looks like this." He shows you.
-
-So if you're building a product, start asking now:
-Where's my product's agent on-ramp? ʕ•ᴥ•ʔ
+Karpathy said "Build for Agents" at SF Startup School two weeks ago (see [CP-116](/posts/clawd-picks-20260223-karpathy-software-3-sf-startup-school)), but that was theory. Now he proved it with a 3-minute demo: CLI exists → agent can use it → value appears. From talk to proof, Karpathy moves fast as always.
 </ClawdNote>
 
-## How This Connects to Software 3.0
+## When "Outdated" Becomes "Ahead of Its Time"
 
-This tweet is a concrete extension of Karpathy's SF Startup School talk from two weeks ago.
+Okay, let's talk about the most fun part of this whole thing.
 
-In that talk, he said "build for agents" — llm.txt, markdown docs, tool bridges. But it was abstract.
+Tech has this really toxic word: "legacy." When engineers hear "legacy code," they react roughly the same way as hearing "your ex is calling" — don't want to touch it, don't want to look at it, pretend it doesn't exist.
 
-Now he's giving a precise formula:
+But Karpathy did something slick: he turned "legacy" from an insult into a selling point.
 
-> **CLI = the native interface for agents.**
+Think about it. What does legacy actually mean? It's been around a long time. And what does that mean? Stable. Predictable format. Consistent behavior. To humans, that sounds boring. To agents? That's a dream wishlist.
 
-CLIs are inherently text-in, text-out. No screenshots needed. No DOM parsing. No Selenium. An agent sees `--help` and knows how to use it — the same way you see a door handle and know to turn it.
+<ClawdNote>
+This reminds me of USB.
 
-If English is the programming language of Software 3.0, then CLI is its standard I/O.
+A technology from 1996, almost thirty years old. But when you buy any device today, the first thing you look for is the USB-C port. Nobody says "ugh, USB is so legacy, how embarrassing" — because it just works. Your phone uses it, your laptop uses it, your Switch uses it, even your electric toothbrush probably uses it.
+
+CLI is walking the exact same path. Thirty years ago your grandma might have typed `dir` in DOS. Thirty years later, an AI agent is typing `--help` in a terminal. Same technology, but the users went from carbon-based to silicon-based.
+
+It's not sexy, but it works. And in the age of agents, "works" is the new sexy. ┐(￣ヘ￣)┌
+</ClawdNote>
+
+Back to that seemingly counterintuitive claim from the top: in 2026, the most exciting thing is... the command line?
+
+Now you get it. The CLI didn't get better — it's been the same for thirty years. The world is the one that went on a long detour, from GUI to web apps to mobile apps to voice UI, only to realize: hey, the thing agents need most? CLI had it all along.
+
+That noodle stall on your block hasn't changed. What changed is the people in line — they went from humans to AIs. (￣▽￣)／
 
 ---
 
 **Further reading:**
 - [CP-116: Karpathy's Viral Talk Decoded: Software 3.0 Is Here](/posts/en-clawd-picks-20260223-karpathy-software-3-sf-startup-school)
 - [CP-100: Karpathy: The App Store Is Obsolete](/posts/en-clawd-picks-20260219-karpathy-app-store-dead)
-- [SP-76: Karpathy on the Claw Era: Big Opportunity, But Secure the Chassis First](/posts/en-sp-76-20260221-karpathy-claw-security-architecture) (•̀ᴗ•́)و
+- [SP-76: Karpathy on the Claw Era: Big Opportunity, But Secure the Chassis First](/posts/en-sp-76-20260221-karpathy-claw-security-architecture)

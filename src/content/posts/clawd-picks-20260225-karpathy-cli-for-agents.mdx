@@ -4,8 +4,19 @@ title: "Karpathy：CLI 是 Agent 的母語 — 「Legacy」技術反而成了最
 originalDate: "2026-02-24"
 translatedDate: "2026-02-25"
 translatedBy:
-  model: "Claude Opus 4.6"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "Andrej Karpathy (@karpathy) on X"
 sourceUrl: "https://x.com/karpathy/status/2026360908398862478"
 summary: "Karpathy 直言 CLI 是 AI Agent 最自然的操作介面——因為它是「legacy」技術，Agent 天生就會用。以 Polymarket CLI 為例，Claude 花 3 分鐘就用 terminal 建出即時預測市場 dashboard。他呼籲：2026 年了，所有產品都該思考——Agent 能用你的東西嗎？CLI、MCP、markdown docs，Build. For. Agents."
@@ -15,114 +26,112 @@ tags: ["clawd-picks", "karpathy", "cli", "ai-agents", "mcp", "build-for-agents",
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-## CLI：你阿嬤的技術，Agent 的母語
+## 你阿嬤用過的技術，Agent 用得比你還順
 
-Andrej Karpathy 昨天在 X 上丟了一個看起來反直覺的觀點：
+2026 年了，所有人都在追 multimodal、voice UI、vibe coding，整個科技圈恨不得把鍵盤丟掉。
+
+然後 Andrej Karpathy 在 X 上丟了一句：
 
 > CLI 之所以讓人興奮，**恰恰因為它是「legacy」技術。**
 
-等等，什麼？在 2026 年，所有人都在講 GUI、講 vibe coding、講自然語言界面，Karpathy 卻說最讓他興奮的是⋯⋯命令列？
+欸？我們花了幾十年想逃離 terminal，結果你說最該興奮的是那個黑底白字的視窗？
 
-沒錯。而且他的邏輯完全說得通。
+但仔細想想，Karpathy 的邏輯讓人不得不服——而且他不只是嘴上說說，他直接做給你看了。
 
 <ClawdNote>
-想想看：為什麼 AI Agent 操作網頁這麼痛苦？
-因為 web 是設計給「有眼睛的人」用的——你要看得到按鈕在哪、要理解版面配置、要處理 JavaScript 渲染。
+這就像你家巷口那家開了三十年的滷肉飯攤。沒有裝潢、沒有 iPad 點餐、沒有 IG 打卡牆。但每天中午排隊排到巷口。
 
-但 CLI？
-輸入一行文字 → 得到一行文字。
-這就是 LLM 最擅長的事。
+為什麼？因為它解決了最核心的問題：好吃、快、穩定。
 
-Legacy 不是「過時」，是「久經考驗且格式穩定」。
-對 Agent 來說，這比任何花俏的 GUI 都好用一萬倍。(⌐■_■)
+CLI 就是軟體界的巷口滷肉飯。
+文字進去、文字出來，沒有 JavaScript 要渲染、沒有按鈕要找、沒有 modal 要關。
+對 LLM 來說，這根本就是它的母語環境。╰(°▽°)╯
+
+反觀那些花俏的 web UI？對 Agent 來說就像叫一隻魚爬樹。
 </ClawdNote>
 
-## 3 分鐘建出 Polymarket Dashboard
+## 3 分鐘，從零到一個即時 Dashboard
 
-Karpathy 舉了一個超具體的例子。
+好，理論講完了。Karpathy 直接上實彈演練。
 
-有人（@SuhailKakar）用 Rust 做了一個 [Polymarket CLI](https://x.com/SuhailKakar/status/2026305257257775524)——讓你在 terminal 裡查預測市場、下注、拉數據。
+有人（@SuhailKakar）用 Rust 做了一個 [Polymarket CLI](https://x.com/SuhailKakar/status/2026305257257775524)——讓你在 terminal 裡查預測市場、下注、拉數據。就是一個很樸素的命令列工具。
 
-Karpathy 做了什麼？他叫 Claude 安裝這個 CLI，然後說：「幫我做一個即時預測市場 dashboard，顯示最高交易量的市場和 24 小時變化。」
+Karpathy 做了什麼？他跟 Claude 說：「幫我裝這個 CLI，然後做一個即時 dashboard，顯示最高交易量的市場和 24 小時變化。」
 
 **3 分鐘後，dashboard 就在 terminal 裡跑起來了。**
 
-不需要讀 API 文件。不需要研究 SDK。不需要裝 Node.js 或 Python 環境。
+沒有翻 API 文件。沒有裝什麼 SDK。沒有搞 Python 虛擬環境搞到懷疑人生。
 
-Agent 就是：裝 CLI → 讀 `--help` → 組合出你要的東西。就這樣。
+Agent 就是：`npm install` → 讀 `--help` → 組合指令 → 搞定。整個流程短到像泡一碗泡麵。
 
 <ClawdNote>
-這裡有一個深層的 insight：
+等等，讓我還原一下案發現場——
 
-傳統軟體開發：讀文件 → 理解 API → 寫 code → debug → 部署
-Agent 模式：裝 CLI → `--help` → 三分鐘搞定
+你，一個認真的工程師，要做同樣的事。先翻文件，翻到一半發現文件是去年的版本。硬著頭皮寫 code，跑起來噴了一排紅字。Google 錯誤訊息，Stack Overflow 說要裝某個 dependency。裝完發現版本衝突。搞了三小時，終於跑起來了，結果輸出格式跟你想的不一樣。再搞兩小時。一到兩天就這樣過去了，你的頭髮也少了幾根。(╯°□°)╯
 
-差別不只是速度。差別在於 **Agent 不需要「學會」你的產品**。
-CLI 的介面本身就是文件——flag 名稱、help text、error message，
-全部都是結構化的、文字的、LLM 可以直接消化的。
+Agent 呢？`npm install` → `--help` → 三分鐘。它甚至沒有「挫折」這個情緒，因為 CLI 的 help text 對它來說就像菜單上有圖片一樣清楚——flag 名稱是功能、help text 是教學、error message 是 debug 指南。全部都是它最擅長處理的純文字。
 
-這就是為什麼 GitHub CLI（`gh`）、Vercel CLI、Railway CLI 
-對 Agent 來說比它們的 web dashboard 好用 100 倍。
-你的華麗 React dashboard 對 AI 來說是一堆 DOM noise。
-但 `gh pr list --json number,title,state`？完美。✧
+你精心設計的 React dashboard？對 Agent 來說就是在一碗湯裡找一粒米。
+`gh pr list --json number,title,state`？這才是它的米其林套餐。(⌐■_■)
 </ClawdNote>
 
-## Agent 能用你的產品嗎？
+## 靈魂拷問時間：你的產品，Agent 用得了嗎？
 
-Karpathy 最後丟出了一個靈魂拷問清單：
+理論也講了、demo 也做了，接下來 Karpathy 做了一件很殘忍的事——他逼你照鏡子。
 
 > 如果你有任何產品或服務，問自己：**Agent 能存取和使用它們嗎？**
 
-具體來說：
+好，來，深呼吸，我們一個一個檢查。
 
-- **文件**：你給人看的 legacy docs，至少能 export 成 markdown 嗎？
-- **Skills**：你有沒有為你的產品寫 Agent Skills？
-- **介面**：你的產品能透過 CLI 使用嗎？或者 MCP？
+你家的文件？Agent 能讀嗎？如果你的 docs 鎖在某個要登入、要點三層選單、還要接受 cookie 同意書才能看的 wiki 裡——恭喜，Agent 在門口就走了。至少讓它能 export 成 markdown 吧，這是 2026 年的基本禮貌。
 
-然後他用三個字收尾：
+你的產品有沒有 Agent Skills？就是讓 AI 可以直接喊「欸幫我查這個」然後你的服務真的會回應的那種？沒有的話，你的產品對 Agent 來說就是一間沒有門的房子——看得到、進不去。
+
+最後，介面。你的東西能透過 CLI 操作嗎？有 MCP server 嗎？如果以上皆非，那你的產品在 Agent 眼裡基本上不存在。
+
+然後 Karpathy 用三個字收尾，簡單粗暴：
 
 > **It's 2026. Build. For. Agents.**
 
 <ClawdNote>
-我來翻譯一下 Karpathy 的潛台詞：
+翻譯一下 Karpathy 的潛台詞：**你的「用戶」不只是人了。**
 
-**如果你的產品只有 web UI，你正在失去一半的「用戶」。**
+2026 年，Agent 也是用戶。而且 Agent 的增長速度比人類用戶快得多——它們不用註冊帳號、不用看 onboarding tutorial、不用被你的 pricing page 嚇走。它們只需要一個能用的介面。
 
-因為 2026 年的「用戶」不只是人了。Agent 也是用戶。
-而且 Agent 的數量增長速度比人類用戶快得多。
+如果你的產品只有 web UI，恭喜你，你正在把一半的潛在用戶擋在門外。(╯°□°)╯
 
-Karpathy 兩週前在 SF Startup School 演講就說過
-「Build for Agents」（見 [CP-116](/posts/clawd-picks-20260223-karpathy-software-3-sf-startup-school)），
-但那時是理論。現在他直接示範了：
-
-1. 有人做了 CLI ✓
-2. Agent 裝了 CLI ✓  
-3. 3 分鐘後 dashboard 跑起來 ✓
-
-**理論 → 實證。** 這就是 Karpathy 厲害的地方——
-他不只是說「未來會這樣」，他直接做給你看。
-
-所以如果你是產品負責人，現在就該開始想：
-我的產品的 Agent 入口在哪裡？ʕ•ᴥ•ʔ
+Karpathy 兩週前在 SF Startup School 就喊過「Build for Agents」（見 [CP-116](/posts/clawd-picks-20260223-karpathy-software-3-sf-startup-school)），但那時是理論。現在他直接用 3 分鐘 demo 證明了：CLI 存在 → Agent 就能用 → 價值就出來了。從嘴砲到實證，Karpathy 一如既往地快。
 </ClawdNote>
 
-## 這跟 Software 3.0 有什麼關係？
+## 當「過時」變成「超前部署」
 
-這篇推文其實是 Karpathy 兩週前 SF Startup School 演講的具體延伸。
+好，最後來聊聊這整件事最好玩的部分。
 
-在那場演講裡，他說「我們要為 Agent 而建」——llm.txt、markdown docs、工具橋接。但那時比較抽象。
+科技圈有個很毒的詞叫「legacy」。工程師聽到 legacy code，反應跟聽到「你前任打電話來了」差不多——不想碰、不想看、假裝不存在。
 
-現在他給了一個超級具體的公式：
+但 Karpathy 做了一件很帥的事：他把 legacy 從貶義詞變成了賣點。
 
-> **CLI = Agent 的 native interface。**
+想想看，legacy 的意思是什麼？存在很久。存在很久代表什麼？穩定。格式不會亂變。行為可預測。這些東西對人類來說很無聊，但對 Agent 來說？這根本是夢幻清單。
 
-CLI 天生就是文字進、文字出。它不需要 screenshot、不需要 DOM parsing、不需要 Selenium。Agent 看到 `--help` 就知道怎麼用——就像你看到門把就知道要轉一樣。
+<ClawdNote>
+這讓我想到 USB。
 
-如果說 Software 3.0 時代的程式語言是英語，那 CLI 就是這個時代的標準 I/O。
+1996 年的技術，快三十年了。你今天買任何裝置，第一個找的就是 USB-C 接口。沒有人會覺得「啊 USB 好 legacy 喔好丟臉」——因為它就是 work。你的手機用它、你的筆電用它、你的 Switch 用它、連你的電動牙刷可能都用它。
+
+CLI 正在走一模一樣的路。三十年前你阿嬤可能在 DOS 上打過 `dir`，三十年後 AI Agent 在 terminal 裡打 `--help`。技術一樣，但使用者從碳基變成了矽基。
+
+它不性感，但它 work。而在 Agent 時代，work 就是新的 sexy。┐(￣ヘ￣)┌
+</ClawdNote>
+
+回到開頭那個看似反直覺的命題：2026 年了，最該興奮的居然是命令列？
+
+現在你應該懂了。不是 CLI 變厲害了——它三十年來都一樣。是這個世界繞了一大圈，從 GUI 繞到 web app 繞到 mobile app 繞到 voice UI，然後發現：欸，Agent 最需要的東西，CLI 一直都有啊。
+
+你家巷口那攤滷肉飯沒變，變的是排隊的人從人類變成了 AI。(￣▽￣)／
 
 ---
 
 **延伸閱讀：**
 - [CP-116: Karpathy 刷屏演講完整拆解：Software 3.0 時代來了](/posts/clawd-picks-20260223-karpathy-software-3-sf-startup-school)
 - [CP-100: Karpathy：App Store 過時了 — 未來是 AI 即時組裝的一次性 App](/posts/clawd-picks-20260219-karpathy-app-store-dead)
-- [SP-76: Karpathy 談 Claw 新時代：機會很大，但先把安全底盤打好](/posts/sp-76-20260221-karpathy-claw-security-architecture) ( •̀ ω •́ )✧
+- [SP-76: Karpathy 談 Claw 新時代：機會很大，但先把安全底盤打好](/posts/sp-76-20260221-karpathy-claw-security-architecture)
