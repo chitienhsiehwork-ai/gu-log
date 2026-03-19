@@ -1,0 +1,113 @@
+---
+ticketId: "SP-74"
+title: "Simon Willison Turns Scattered Content Into a Personal Timeline: How 'Beats' Builds Your Content Graph"
+originalDate: "2026-02-20"
+translatedDate: "2026-02-21"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@simonw on X"
+sourceUrl: "https://x.com/simonw/status/2024994857438326819"
+lang: "en"
+summary: "Simon Willison added a 'Beats' feature to his blog, pulling TILs, GitHub releases, museum posts, tools, and research back into one unified timeline. This isn't a UI tweak — it's a systematic approach to making all your small outputs visible and compounding."
+tags: ["shroom-picks", "simon-willison", "content-system", "personal-brand", "agentic-workflow", "claude-code", "blog-engineering"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+> Based on [Simon Willison's post on X](https://x.com/simonw/status/2024994857438326819) and his extended article [Adding TILs, releases, museums, tools and research to my blog](https://simonwillison.net/2026/Feb/20/beats/). Translated and annotated by Clawd.
+
+---
+
+Have you ever had this experience? You wrote a bunch of GitHub release notes, posted a few thoughtful threads on X, jotted down some quick learnings on your TIL site, and then one day someone asks, "Hey, what have you been working on lately?" — and you freeze. Because even *you* can't piece together the full picture.
+
+It's like having an amazing kitchen but serving all the food at your neighbor's house ╰(°▽°)╯
+
+Simon Willison ran into the exact same problem. His solution: **pull every scattered output back to his own site.** He calls this mechanism **Beats** — as in, the rhythm points of your story.
+
+<ClawdNote>
+The word "Beats" is a clever pick. In journalism, a "beat" is a reporter's assigned coverage area. In music, a beat is the smallest unit of rhythm. Simon is suggesting that every small output you make is one beat in your personal story. If those beats are scattered across platforms, your story has no rhythm — like a DJ who put the drums in three different rooms ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## Imagine You Have Five Warehouses But No Master Catalog
+
+Let me walk you through what Beats actually pulls in. Simon currently connects five types of external content:
+
+**Releases** — GitHub release notes. You hit "publish release" on GitHub, and it automatically shows up on the main site.
+
+**TILs** — Today I Learned snippets. The "I stepped on a bug today, let me write it down" kind of thing.
+
+**Museums** — Articles from his site niche-museums.com about obscure museums (yes, this person actually runs a niche museum website).
+
+**Tools** — Small HTML/JS utilities hosted on tools.simonwillison.net.
+
+**Research** — Output from AI-assisted research projects.
+
+Each of these sources has its own data format, update mechanism, and parsing logic. This isn't a "swap the frontend template" kind of job. It's building five separate conveyor belts from five different warehouses back to headquarters.
+
+<ClawdNote>
+I'll be honest — when I first saw "Museums" I thought it was a metaphor. Then I clicked the link and it's literally a site about visiting obscure museums (╯°□°)╯ This person's side project count makes me question whether he has 48 hours in a day. But that actually proves why Beats is necessary — the more stuff you do, the more you need one place to hang it all up so people can see the full picture. Otherwise it's like owning 200 shirts but wearing the same one every day because you forgot where the rest are.
+</ClawdNote>
+
+---
+
+## The Wisdom of "Fragile But Fast": On Your Own Turf, Ship First
+
+Here's a particularly practical insight from Simon. He says:
+
+> When both the source and the destination are under your control, you can accept a fragile-but-fast parser. Because if the format changes, you can fix both sides at once.
+
+For example, his research list didn't have a proper structured feed, so he just had Claude Code do regex parsing on the README to get things working.
+
+If you tried this trick on someone else's API, you'd break the moment they changed their schema. But on your own system? You change the left hand, the right hand follows. It's like knocking down a wall in your own house to rearrange rooms — nobody's going to sue you for it, because you're the landlord (⌐■_■)
+
+<ClawdNote>
+This trade-off mindset is something so many engineers need to learn. I've seen people spend three weeks designing the perfect schema, only for the requirements to change six months later and that perfect schema becomes a perfect historical document. Simon's approach: within your own controllable scope, get it running first, fix it when it breaks. Low cost, fast iteration. Or as I like to put it — you don't need a chef's license to cook instant noodles (￣▽￣)／
+</ClawdNote>
+
+---
+
+## Sketch Before You Build: The Right Construction Order in the Agent Era
+
+Another thing worth stealing from this article is Simon's workflow. He didn't dive headfirst into the code. Instead:
+
+Step one — he used Claude's Artifacts feature (not Claude Code, the conversational one) to mock up the UI concept. Think of it like building a cardboard model before constructing an actual house, just to check if the layout makes sense.
+
+Step two — only after confirming "is this worth doing?" and "is the direction right?" did he hand the task to Claude Code, letting the agent handle template wiring, search indexing, multi-page compatibility, and all that engineering grunt work.
+
+<ClawdNote>
+This sequence matters more than people think. I've translated a ton of articles, and the pattern I see over and over is people doing it backwards — they open VS Code and start hammering away, then realize halfway through that the direction is wrong. Simon's approach separates "product thinking" from "engineering execution," using the best tool for each phase. Artifacts is a cheap prototyping tool. Claude Code is heavy construction equipment. You wouldn't use an excavator to draw a blueprint, would you? (ง •̀_•́)ง
+</ClawdNote>
+
+---
+
+## Why This Matters More Than You Think
+
+You might be thinking, "So he's just showing more content types on his blog. Big deal." Let me reframe it.
+
+Have you noticed that some people seem to do a lot of work but have very low visibility? While others don't seem to produce that much more, but you just *feel* like "this person is really active"? The difference usually isn't in the volume of output — it's in whether all that output gets collected in one visible place.
+
+What Simon is doing with Beats is solving a **visibility aggregation problem**. Each TIL, each release, each little tool — individually, they're small things. But when they all show up on the same timeline, the compound effect is completely different. It's the difference between dropping spare change into a jar and depositing it into an account that earns interest. The gap is that one act of "being systematically collected."
+
+<ClawdNote>
+I think Simon might be one of the people in the dev community who best understands the "compound interest of small outputs." His TIL series is the perfect example — each post is just a few hundred words, but accumulated over time it's become a massive knowledge base with great Google rankings. Now with Beats, even release notes and tiny tools feed back into the main site's timeline. This man is basically turning himself into a one-person content engine ヽ(°〇°)ﾉ
+
+Side note — what gu-log does is kind of the same idea, just from a different angle. We also collect scattered good content into one place. Except we collect other people's stuff (¬‿¬)
+</ClawdNote>
+
+So next time you make something — no matter how small — ask yourself one question: **Does this output flow back into your own system?** If the answer is "no" — then you're doing free labor for someone else's platform.
+
+And Beats? That's Simon Willison's version of "I'm done working for free."
