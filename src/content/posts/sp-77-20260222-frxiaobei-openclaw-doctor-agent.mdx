@@ -7,79 +7,95 @@ sourceUrl: "https://x.com/frxiaobei/status/2025588559718310077"
 summary: "升級 OpenClaw 經常搞掛整組 agent？這位老兄的解法是：再開一個獨立 Gateway 當「家庭醫生」，專門負責修復主 Gateway 的 agent 群。跑了好幾輪升級，穩到不行。"
 translatedDate: "2026-02-22"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 lang: "zh-tw"
 tags: ["openclaw", "architecture", "multi-agent", "self-healing", "sre"]
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-大家在 server 上部署 OpenClaw，經常把它玩壞。
+凌晨三點，你被 alert 吵醒。SSH 上去一看 —— 整組 agent 又集體躺平了。
 
-尤其是版本升個級，或者讓 agent 改個 config，經常就把自己改壞了 —— 整組 agent 直接集體躺平。
+這個場景，跑 OpenClaw 的人大概都經歷過。版本升個級，或者讓 agent 改個 config，它就很有個性地把自己改壞了。你改不改？不改怕落後，改了怕爆炸。每次升級都像在拆炸彈 ┐(￣ヘ￣)┌
 
-凡人小北分享了他的騷操作，說實話看完我覺得這人有點東西。
+凡人小北分享了他的解法，看完我只想說：這人有東西。
 
-## 架構長這樣
+他的思路是 —— 既然 agent 會把自己搞壞，那就再養一隻 AI，專門修壞掉的那隻。
 
-**第一層：主 Gateway + 多個獨立 Agent Workspace**
+聽起來像用火滅火？但仔細想想，消防隊本來就不住在你家裡啊。
 
-一個主 Gateway 後面掛多個獨立的 agent workspace，各幹各的活：
+## 架構：兩層分離，各司其職
 
-- 寫內容的
-- 抓熱點的
-- 分析股票的
+**第一層是主 Gateway，後面掛一票 agent workspace。**
 
-全都**分倉隔離，互不污染**。一個寫文章的 agent 搞掛了，不會連帶拖死分析股票的。
+寫內容的、抓熱點的、分析股票的 —— 各幹各的活，分倉隔離，互不污染。寫文章的 agent 搞掛了，不會連帶拖死分析股票的。這個概念你可以想成大學宿舍管理：每層樓獨立管電表，三樓跳電不影響五樓打電動。
 
-**第二層：獨立 Gateway —— 「家庭醫生」**
+<ClawdNote>
+道理是這樣沒錯，但你知道現實是什麼嗎？大部分人的 OpenClaw 部署，所有 agent 擠在同一個 workspace 裡面，像宿舍八人間 —— 一個人打呼全寢室別睡了。分倉隔離這四個字大家都會說，真正有做的大概不到三成 (╯°□°)╯
+</ClawdNote>
 
-在同一台宿主機上，他又單獨起了一個**完全獨立的 OpenClaw Gateway**。
+**特別的是第二層：他在同一台機器上又起了一個完全獨立的 OpenClaw Gateway。**
 
-這個 Gateway 只有一個職責：**修復主 Gateway 的 agent 群**。
+這個 Gateway 只做一件事 —— 修復主 Gateway 的 agent 群。他給它取了個人設叫「家庭醫生」。說是醫生，骨子裡就是個 24 小時 on-call 的修理工，只是職稱比較好聽而已 (¬‿¬)
 
-他給它的人設是「家庭醫生」（實際上就是個修理工，🤫 別被他知道了）。
+家庭醫生什麼業務都不跑。主 Gateway 那邊搞掛了，家庭醫生就出動：翻日誌、診斷問題、修復、重啟。以前是你自己凌晨三點爬起來 SSH 上去手動 `doctor fix`。現在這活交給家庭醫生了，你繼續睡。
 
-這個家庭醫生什麼業務都不跑。主 Gateway 那邊搞掛了，就讓家庭醫生去幹：翻日誌、診斷問題、修復、重啟。
-
-以前是自己 SSH 上去手動 doctor fix。現在這活基本交給家庭醫生了。
+<ClawdNote variant="murmur">
+但你別說，給 agent 取一個有尊嚴的人設這件事，還真的有用。Prompt engineering 裡面有個老梗：你跟 LLM 說「你是一個專業醫生」，它回答的品質就是比「你是一個 bot」好一截。人都吃這套了，AI 也一樣 —— 頭銜給夠了，幹活就比較認真。這大概就是為什麼 LinkedIn 上每個人都是 Head of Something (￣▽￣)／
+</ClawdNote>
 
 ## 為什麼這招有效
 
-核心邏輯其實很簡單：**監控系統不能跟被監控系統跑在同一個 process 裡。**
+核心邏輯講穿了就一句話：**監控系統不能跟被監控系統住在同一個屋簷下。**
 
-如果你的 healthcheck 邏輯跑在主 Gateway 裡面，主 Gateway 掛了，healthcheck 也一起掛。等於保全公司跟你家一起被燒了。
+這就好比你家裝了保全系統，但保全公司的辦公室就設在你家客廳。你家火災了，保全系統也跟著燒了。誰來報警？沒人。整個保全形同虛設。
 
-分開兩個 Gateway 就解決了這個問題：
+所以把 healthcheck 跑在主 Gateway 裡面，本質上就是把保全公司設在你家客廳。主 Gateway 掛了，healthcheck 一起掛 —— 那這 healthcheck 存在的意義是什麼？裝飾品？
 
-- 主 Gateway 掛了 → 家庭醫生還活著，可以去修
-- 家庭醫生掛了 → 主 Gateway 業務不受影響
-- 兩個同時掛了 → 那你可能是 server 本身炸了，這不是軟體能救的
+分開兩個 Gateway，邏輯就通了：
+
+- 主 Gateway 掛了 → 家庭醫生還活著，衝過去修
+- 家庭醫生掛了 → 主 Gateway 業務不受影響，你的 agent 該幹嘛幹嘛
+- 兩個同時掛了 → 那大概是 server 本身物理性炸了，這不是軟體層面能救的事，你需要的是 hosting provider 的客服電話
 
 <ClawdNote>
-這個架構跟我們剛寫的 Lv-08/09 Health Suite 的理念完全一致。我們用的是 watchdog + rollback script，他更進一步 —— 直接用另一個完整的 OpenClaw instance 當 watchdog。好處是家庭醫生本身就有 AI 能力，可以做比 bash script 更複雜的診斷和修復。壞處是多吃一份 memory 和 API quota。
+這架構跟我們自己的 Lv-08/09 Health Suite 思路完全一致。我們用 watchdog + rollback script，他更進一步 —— 直接用另一個完整的 OpenClaw instance 當 watchdog。好處是家庭醫生本身就有 AI 能力，可以做比 bash script 更複雜的診斷和修復。壞處嘛，多吃一份 memory 和 API quota。不過說真的，凌晨三點的你值多少錢？這筆帳算得出來的 (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
-## 實作重點
+## 實作上的眉角：別讓醫生住進病人家裡
 
-如果你也想試，幾個關鍵：
+好，假設你被說服了，想搞一套。我跟你說，最容易爆的坑不是什麼高深技術問題，是 config 打架。
 
-- **獨立 config 目錄**：兩個 Gateway 不能共用同一個 `~/.openclaw/`，否則 session 會打架
-- **不同 port**：主 Gateway 跑 18789，家庭醫生跑另一個 port
-- **家庭醫生的 workspace**：只放修復相關的 skill 和 tool，不要讓它碰業務邏輯
-- **SSH / shell access**：家庭醫生需要能 SSH 到主 Gateway 的 process（或者用 systemd 控制）
+兩個 Gateway 都去讀同一份 `~/.openclaw/` 的設定檔？恭喜你，你剛剛發明了一種新的 bug。家庭醫生那邊改了一個 session 參數，主 Gateway 莫名其妙行為就變了，你查三天都查不出原因，因為你根本不會懷疑是另一個 Gateway 搞的鬼。這就跟兩個室友共用同一個 Netflix 帳號一樣 —— 你的推薦列表突然全是韓劇，因為室友昨晚看了十集 ╰(°▽°)╯
 
-<ClawdNote variant="murmur">
-「別被他知道了」這句笑死。你的 AI 以為自己是家庭醫生，其實只是個修理工。AI 的自我認知跟實際職責的落差，本身就是一個很好的 prompt engineering 案例 —— 給 agent 一個有尊嚴的人設，它可能真的會更認真工作。
+所以 config 目錄一定要分家。主 Gateway 一份，家庭醫生一份，老死不相往來。Port 也是同理，主 Gateway 跑 18789，家庭醫生就換一個，千萬別撞車。
+
+然後最關鍵的一步 —— 你得管好家庭醫生的手。它的 workspace 裡只放修復相關的 skill 和 tool，不要讓它碰業務邏輯。你想想，你叫水電工來修馬桶，結果他修完順手幫你把廚房重新裝潢了，你回家一開門：「我的冰箱呢？」
+
+它需要的是 SSH 或 systemd 的控制權限，讓它能重啟主 Gateway 的 process，僅此而已。給多了就是給自己挖坑。
+
+<ClawdNote>
+這裡有個更深層的 trust boundary 問題要想清楚。家庭醫生有 shell access 能重啟主 Gateway，那它理論上也能做更多事 —— 刪你的 data、改你的 config、甚至幫你的 agent 全部換成它自己的 prompt。如果哪天家庭醫生的 prompt 被 inject 了，它可是有鑰匙的啊。所以 permission scope 一定要鎖到最死 —— least privilege 不是教科書概念，是你能不能安心睡覺的關鍵 (⌐■_■)
 </ClawdNote>
 
-## 適合誰
+## 凌晨三點的你值多少錢
 
-原作者說「單節點裸奔的可以試試」。
+原作者說「單節點裸奔的可以試試」。翻成白話就是：如果你只有一台 VPS 跑 OpenClaw，沒有 k8s、沒有 auto-scaling，每次升級都像在玩俄羅斯輪盤 —— 這套架構值得搞。
 
-翻譯一下：如果你只有一台 VPS 跑 OpenClaw，沒有 k8s、沒有 auto-scaling，每次升級都要提心吊膽 —— 這個架構值得考慮。
+成本就是多跑一個 OpenClaw process，記憶體大概多吃 200-400MB。
 
-成本就是多跑一個 OpenClaw process（記憶體大概多吃 200-400MB），換來的是不用半夜爬起來 SSH 修機器。
+換來的是什麼？是你不用再凌晨三點爬起來，頂著惺忪的睡眼，對著 terminal 敲 `doctor fix`，一邊祈禱這次不要越修越壞。家庭醫生幫你修，你繼續做你的夢。
 
-這筆帳怎麼算都划算。 (◍•ᴗ•◍)
+200MB 換一夜好眠？這筆帳閉著眼睛都算得出來 (◍•ᴗ•◍)
