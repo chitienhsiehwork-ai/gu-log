@@ -1,0 +1,574 @@
+---
+ticketId: "Lv-10"
+title: "The Journey of a URL — What Actually Happens Between Pressing Enter and Seeing a Page"
+originalDate: "2026-02-23"
+source: "Level-Up Series"
+sourceUrl: "https://gu-log.vercel.app/posts/levelup-20260223-10-url-journey-browser-internals"
+summary: "You type a URL and press Enter every day, but what actually happens in between? This post uses gu-log as a real-world case study to walk you through 7 floors — from DNS to Service Worker — covering the full journey of a URL."
+lang: "en"
+tags: ["browser", "dns", "tcp", "tls", "http", "rendering", "service-worker", "cache", "tutorial", "level-up"]
+---
+
+import LevelUpProgress from '../../components/LevelUpProgress.astro';
+import LevelUpQuiz from '../../components/LevelUpQuiz.astro';
+import ClawdNote from '../../components/ClawdNote.astro';
+import AnalogyBox from '../../components/AnalogyBox.astro';
+
+Have you ever thought about what happens after you type a URL and press Enter?
+
+I hadn't either. Then one day, gu-log's offline download button broke, and I had to trace the entire chain. Turns out, between your finger leaving the keyboard and the page appearing on screen, at least 7 stages happen — spanning undersea fiber optic cables from Taipei to Tokyo — all in under half a second.
+
+Half a second. You can't even finish a sneeze in half a second, but the browser has already run a complete relay race (╯°□°)╯
+
+This post uses gu-log itself as the case study. We'll crack open each of those 7 stages. After reading this, every time you open any website, your brain will automatically go "ah, that's the TLS handshake right now."
+
+---
+
+## 🏰 Floor 0: The Big Picture — Life of a Request
+
+<LevelUpProgress current={0} total={7} title="Journey of a URL" />
+
+Let's see the full picture first, then break each Floor down:
+
+```
+You press Enter
+    ↓
+1. DNS Lookup     → "What's the IP for gu-log.vercel.app?"
+    ↓
+2. TCP Handshake  → "Hey, are you there?" "Yeah." "Cool, let's go."
+    ↓
+3. TLS Handshake  → "Let's speak in code so nobody can eavesdrop."
+    ↓
+4. HTTP Request   → "Give me /index.html"
+    ↓
+5. HTTP Response  → "Here you go, 200 OK, with HTML"
+    ↓
+6. Rendering      → Browser turns HTML into the page you see
+    ↓
+7. Cache / SW     → "Next time, I'll just pull it from my pocket"
+```
+
+<AnalogyBox title="Python Analogy">
+Imagine you built a FastAPI server. Someone hits your API with `requests.get("https://gu-log.vercel.app")`.
+
+Those 7 steps above? That's what `requests.get()` actually does under the hood. You write one line of code, but this whole pipeline runs beneath it.
+</AnalogyBox>
+
+The entire flow takes about **200-500ms** on a decent connection. Yes, under half a second.
+
+<ClawdNote>
+Under half a second for 7 layers. It takes three minutes to make instant noodles — the browser could run this entire flow 360 times while you wait for your noodles. Next time someone complains "this website is so slow," I want to say: do you have any idea how much engineering is crammed into that 0.5 seconds you're complaining about? ┐(￣ヘ￣)┌
+</ClawdNote>
+
+<LevelUpQuiz
+  question="Which of the 7 steps translates a domain name into an IP address?"
+  options={[
+    { label: "A", text: "TCP Handshake" },
+    { label: "B", text: "DNS Lookup" },
+    { label: "C", text: "TLS Handshake" },
+    { label: "D", text: "I have absolutely no idea 🤷" },
+  ]}
+  answer="B"
+  explanation="DNS = Domain Name System — the phone book of the internet. Browsers don't understand gu-log.vercel.app, they only understand IP addresses like 76.76.21.21."
+/>
+
+---
+
+## 🏰 Floor 1: DNS — The Internet's Phone Book
+
+<LevelUpProgress current={1} total={7} title="Journey of a URL" />
+
+You typed `gu-log.vercel.app`. The browser's first move:
+
+"What's the IP address for this name?"
+
+<AnalogyBox title="Analogy: Making a Phone Call">
+You want to call grandma, but you don't remember her number. So you:
+
+1. Check your own contacts (**browser DNS cache**)
+2. Not there → ask Siri (**OS DNS cache**)
+3. Still nothing → call directory assistance (**DNS Resolver**, usually your ISP or Google 8.8.8.8)
+4. They don't know either → they ask up the chain (Root → .app → vercel.app → gu-log.vercel.app)
+
+Finally you get the number: `76.76.21.21`.
+</AnalogyBox>
+
+In pseudocode:
+
+```python
+# DNS lookup flow (simplified)
+def dns_lookup(domain: str) -> str:
+    # 1. Check local cache
+    if domain in browser_dns_cache:
+        return browser_dns_cache[domain]
+
+    if domain in os_dns_cache:
+        return os_dns_cache[domain]
+
+    # 2. Ask DNS Resolver (recursive query)
+    ip = dns_resolver.query(domain)
+    # resolver internally: root → .app → vercel.app → gu-log.vercel.app
+
+    # 3. Store in cache for next time
+    browser_dns_cache[domain] = ip  # TTL usually 5min ~ 1hr
+    return ip
+
+ip = dns_lookup("gu-log.vercel.app")
+# → "76.76.21.21"
+```
+
+<ClawdNote>
+DNS was invented in 1983 — older than most of our readers. Forty-something years later, the entire internet still runs on this "check the phone book first" logic for trillions of requests every day. Is it old-fashioned? Extremely. But it's like that breakfast shop on your street corner that's been open for 30 years — not trendy, not cool, no AI involved, but you still show up every morning because it just works (￣▽￣)／
+</ClawdNote>
+
+**Where DNS can go wrong:**
+
+- DNS cache expires (TTL ran out) → has to re-query, adds 20-100ms
+- DNS server goes down → website seems broken but the server is actually fine
+- DNS poisoning (in some regions) → returns the wrong IP
+
+<LevelUpQuiz
+  question="Why does the browser have a DNS cache?"
+  options={[
+    { label: "A", text: "Because DNS queries go across the network and take time — cache saves that" },
+    { label: "B", text: "Because DNS servers are insecure, cache is safer" },
+    { label: "C", text: "Because the browser literally can't work without cache" },
+    { label: "D", text: "I have absolutely no idea 🤷" },
+  ]}
+  answer="A"
+  explanation="Each DNS query requires a round trip to the resolver — 10ms if fast, 100ms+ if slow. You might visit the same site many times a day, so caching it means you don't ask every time. Same idea as @lru_cache in your FastAPI code."
+/>
+
+---
+
+## 🏰 Floor 2: TCP + TLS — Handshakes and Secret Codes
+
+<LevelUpProgress current={2} total={7} title="Journey of a URL" />
+
+Got the IP. Now we need to "establish a connection."
+
+Two steps: TCP handshake (confirm the other side exists) → TLS handshake (encrypted channel).
+
+**TCP Three-Way Handshake:**
+
+```
+Your Browser            Vercel Server
+    |                        |
+    |--- SYN --------------->|    "Hey, are you there?"
+    |                        |
+    |<-- SYN-ACK ------------|    "Yeah, are you there too?"
+    |                        |
+    |--- ACK --------------->|    "Yep. Let's go."
+    |                        |
+    |   ✅ TCP connected      |
+```
+
+<AnalogyBox title="Python Analogy">
+TCP is like when you write FastAPI — uvicorn first `bind()` to a port, then `listen()`, waiting for a client to `connect()`. The three-way handshake is the client and server confirming "I can reach you, and you can reach me."
+
+```python
+# Simplified — actually handled by OS kernel
+import socket
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+sock.connect(("76.76.21.21", 443))  # Three-way handshake happens here
+```
+</AnalogyBox>
+
+**TLS Handshake (encrypted handshake):**
+
+TCP is connected, but everything is plaintext. Since gu-log uses HTTPS (that S = Secure), we need TLS encryption:
+
+```
+Your Browser            Vercel Server
+    |                        |
+    |--- ClientHello ------->|   "I support these encryption methods"
+    |                        |
+    |<-- ServerHello --------|   "OK, let's use TLS 1.3 + AES-256"
+    |<-- Certificate + Key --|   "Here's my ID (SSL certificate)"
+    |                        |
+    |   [Verify cert ✅]      |
+    |--- Key Exchange ------>|   "Encrypt with this shared secret"
+    |                        |
+    |   ✅ Encrypted channel  |
+```
+
+<ClawdNote>
+Classic interview question: "What's the difference between HTTPS and HTTP?" If you answer "it's more secure," congrats — the interviewer's brain has already checked out. That's like answering "what's the difference between having a lock and not having one" with "it's safer." Correct, but useless. Proper answer: HTTP is plaintext, HTTPS adds a TLS layer on top of TCP that does three things — encryption (prevent eavesdropping), integrity (prevent tampering), and authentication (prevent impersonation). Nail those three in your interview and the interviewer will think you actually studied (⌐■_■)
+</ClawdNote>
+
+**Time cost:**
+- TCP handshake: 1 RTT (round-trip time), roughly 10-50ms
+- TLS 1.3 handshake: 1 RTT (TLS 1.2 needs 2)
+- Together about 20-100ms, depending on distance to the server
+
+<LevelUpQuiz
+  question="Why does TCP need three handshakes — wouldn't two be enough?"
+  options={[
+    { label: "A", text: "Two is enough, three is just legacy baggage" },
+    { label: "B", text: "Three is needed to confirm both sides can receive each other's messages" },
+    { label: "C", text: "Because the RFC says so, no technical reason" },
+    { label: "D", text: "I have absolutely no idea 🤷" },
+  ]}
+  answer="B"
+  explanation="Two handshakes only confirm the server can receive from the client. The third (client → server ACK) lets the server know the client can also receive its replies. Like a phone call: you say 'hello' → they say 'hello' → you say 'I hear you.' Without that last step, they don't know if you heard them."
+/>
+
+---
+
+## 🏰 Floor 3: HTTP — Ordering and Serving
+
+<LevelUpProgress current={3} total={7} title="Journey of a URL" />
+
+Encrypted channel is up. Time to talk business.
+
+The browser sends an HTTP Request:
+
+```http
+GET / HTTP/2
+Host: gu-log.vercel.app
+Accept: text/html
+User-Agent: Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 ...)
+Accept-Language: zh-TW,zh;q=0.9,en;q=0.8
+```
+
+Vercel's server replies:
+
+```http
+HTTP/2 200 OK
+Content-Type: text/html; charset=utf-8
+Cache-Control: public, max-age=0, must-revalidate
+Content-Length: 48726
+
+<!DOCTYPE html><html lang="zh-TW">...
+```
+
+<AnalogyBox title="Analogy: Ordering Food">
+- **Request** = You ordering on Uber Eats: "I want one index.html, delivered to my browser"
+- **Response** = Restaurant replies: "OK, 200 OK, food's here"
+- **Status Code** = Order status
+  - `200` = Food's here ✅
+  - `301` = This restaurant moved, go to the new address (redirect)
+  - `404` = We don't have that dish
+  - `500` = Kitchen exploded
+  - `429` = You ordered too much, slow down (rate limit)
+</AnalogyBox>
+
+```python
+# FastAPI comparison: you write the Response side every day
+from fastapi import FastAPI
+app = FastAPI()
+
+@app.get("/")
+async def homepage():
+    return HTMLResponse(content="<html>...", status_code=200)
+    # ↑ This is the HTTP Response the browser receives
+```
+
+**Important Headers you should know:**
+
+- `Cache-Control` — tells the browser "should you store this response, and for how long"
+- `Content-Type` — is this package HTML? JSON? An image?
+- `Set-Cookie` — server puts a cookie on you (login state, etc.)
+- `ETag` — a fingerprint of the content, so next time you can ask "did this change?" (saves bandwidth)
+
+<ClawdNote>
+When you write `return {"hello": "world"}` in FastAPI, uvicorn handles all the dirty work behind the scenes — TCP, TLS, HTTP headers, the whole thing. You just write business logic; it handles the logistics. Frameworks exist not because you can't do it yourself, but because you can, and by the third time you'd want to quit your job ╰(°▽°)╯
+</ClawdNote>
+
+<LevelUpQuiz
+  question="What does HTTP Status Code 429 mean?"
+  options={[
+    { label: "A", text: "Internal server error" },
+    { label: "B", text: "You sent too many requests — rate limited" },
+    { label: "C", text: "Page not found" },
+    { label: "D", text: "I have absolutely no idea 🤷" },
+  ]}
+  answer="B"
+  explanation="429 Too Many Requests. If your FastAPI has a rate limiter (like slowapi), exceeding the limit returns 429. OpenClaw's Telegram bot got hit with 429 during a restart storm — the retry-after climbed all the way to 1913 seconds."
+/>
+
+---
+
+## 🏰 Floor 4: Rendering — Turning HTML Into Pixels
+
+<LevelUpProgress current={4} total={7} title="Journey of a URL" />
+
+Browser has the HTML. Now comes the most complex step: **turning a bunch of text into the pretty page on your screen.**
+
+This process is called the **Rendering Pipeline**, and it has several stages:
+
+```
+HTML string
+    ↓ parse
+DOM Tree (document structure)
+    ↓
+CSS string
+    ↓ parse
+CSSOM (style structure)
+    ↓
+DOM + CSSOM merge
+    ↓
+Render Tree (what to show + how it looks)
+    ↓
+Layout (where each element goes, how big)
+    ↓
+Paint (draw the pixels)
+    ↓
+Composite (merge layers into final image)
+    ↓
+You see the gu-log homepage ✨
+```
+
+<AnalogyBox title="Analogy: Building a House">
+- **DOM** = Blueprint (how many rooms, what structure)
+- **CSSOM** = Interior design plan (wall colors, floor materials)
+- **Render Tree** = Blueprint + design merged → "this room goes here, paint it blue"
+- **Layout** = Measure everything, mark positions
+- **Paint** = Actually start painting the walls
+- **Composite** = Stack every wall, every floor into the complete house
+</AnalogyBox>
+
+```python
+# Pseudocode: Rendering Pipeline
+def render_page(html: str, css: str) -> Pixels:
+    # 1. Parse HTML → DOM Tree
+    dom = parse_html(html)
+    # Like BeautifulSoup(html, 'html.parser') but the browser version
+
+    # 2. Parse CSS → CSSOM
+    cssom = parse_css(css)
+
+    # 3. Merge
+    render_tree = merge(dom, cssom)
+    # Only includes "visible" elements (display:none doesn't count)
+
+    # 4. Layout — calculate positions and sizes
+    layout = calculate_layout(render_tree)
+    # Each element's x, y, width, height
+
+    # 5. Paint — draw it
+    layers = paint(layout)
+
+    # 6. Composite — merge layers
+    return composite(layers)
+```
+
+**What happens if it hits a `<script>` tag?**
+
+The browser **stops rendering to execute JS** (because JS might change the DOM). That's why:
+- `<script>` should go before `</body>` or use `defer`
+- Otherwise users stare at a white screen waiting for JS to finish
+
+<ClawdNote>
+gu-log's theme toggle script sits in the head as an inline script — intentionally blocking rendering. Why? Because if you don't set dark/light mode before the first paint, users see a flash of white before it jumps back to dark mode. That experience is like your roommate flipping on the lights at 3 AM while you're asleep. So this is one of the rare cases where intentionally render-blocking is the right call: better to wait an extra 2ms than to flashbang your users (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+<LevelUpQuiz
+  question="When the browser encounters a <script> tag without defer during rendering, what does it do?"
+  options={[
+    { label: "A", text: "Ignores it and keeps rendering" },
+    { label: "B", text: "Stops rendering, executes JS first, then continues" },
+    { label: "C", text: "Runs JS and rendering in parallel in the background" },
+    { label: "D", text: "I have absolutely no idea 🤷" },
+  ]}
+  answer="B"
+  explanation="This is called render-blocking. The browser is afraid JS might change the DOM (like document.write), so it must finish executing JS before continuing to parse HTML. That's why putting scripts at the bottom or adding defer/async is best practice."
+/>
+
+---
+
+## 🏰 Floor 5: The Cache Family — Three Siblings, Three Jobs
+
+<LevelUpProgress current={5} total={7} title="Journey of a URL" />
+
+Page is showing. But if you open gu-log again 5 seconds later, the browser won't stupidly re-run the entire chain. Because there's **cache**.
+
+Cache isn't one thing — it's a family. Meet the three siblings:
+
+**Big Sibling: Browser HTTP Cache (browser manages automatically)**
+
+```python
+# Server's response includes this header:
+# Cache-Control: public, max-age=31536000
+
+# Browser thinks:
+if response.headers["Cache-Control"].max_age > 0:
+    browser_cache.store(url, response)
+    # Next time same URL, grab from cache, don't ask server
+```
+
+- You can't control what gets stored (server's `Cache-Control` header decides)
+- CSS, JS, images usually get cached
+- HTML usually `max-age=0` (asks server for updates every time)
+
+**Middle Sibling: CDN Cache (Vercel Edge Network)**
+
+```
+You (Taipei) → Vercel Edge (Tokyo) → Vercel Origin (US East)
+                  ↑
+              CDN caches here
+```
+
+- CDN stores content on the edge server closest to you
+- From Taipei, you get Tokyo edge's cache — no need to go all the way to the US
+- You still need internet to reach the CDN (offline, CDN can't help)
+
+**Little Sibling: Cache API (developer fully controls)**
+
+```python
+# This is the cache Service Worker uses
+# Developer decides what to store, how long, how to update
+
+cache = await caches.open("pages-cache")
+response = await fetch("/posts/some-article")
+await cache.put("/posts/some-article", response)
+
+# Completely your territory, browser won't touch it
+```
+
+- Works offline ✅ (this is the core of PWA)
+- You decide what to cache and when to clear it
+- Requires writing code (usually through Service Worker)
+
+<ClawdNote>
+Big sibling is the automatic butler — server says "store this" and it stores, says "don't" and it doesn't. Very obedient but you can't boss it around. Middle sibling is the outsourced delivery service — stores goods in the warehouse closest to the customer. Fast, but closes shop during typhoons (no internet). Little sibling is your personal safe — you hold the key, you decide what goes in and for how long. gu-log's offline reading? That's little sibling holding down the fort (◕‿◕)
+</ClawdNote>
+
+<LevelUpQuiz
+  question="After turning off WiFi, you can still read gu-log articles. Which cache is helping you?"
+  options={[
+    { label: "A", text: "CDN Cache — Vercel's edge server is close to me" },
+    { label: "B", text: "Browser HTTP Cache — browser stored it before" },
+    { label: "C", text: "Cache API — Service Worker saved the page" },
+    { label: "D", text: "I have absolutely no idea 🤷" },
+  ]}
+  answer="C"
+  explanation="CDN requires internet to reach (eliminated). Browser HTTP Cache could theoretically work offline, but its behavior is unpredictable (might get cleared). PWA offline functionality relies on Cache API + Service Worker, fully controlled by the developer. That's exactly what we built in gu-log."
+/>
+
+---
+
+## 🏰 Floor 6: Service Worker — The Middleman Between You and the Server
+
+<LevelUpProgress current={6} total={7} title="Journey of a URL" />
+
+Final floor. And something we just built into gu-log.
+
+**What is a Service Worker?**
+
+A JavaScript program running in the browser's background (`sw.js`), specifically designed to intercept your network requests.
+
+```
+You open gu-log.vercel.app
+    ↓
+Browser: "I need to fetch this URL"
+    ↓
+Service Worker intercepts: "Hold on, let me check if cache has it"
+    ↓
+Cache hit → serves it immediately (no network needed)
+Cache miss → fetches from server → gives it to you → also stores in cache
+```
+
+<AnalogyBox title="Analogy: Convenience Store Clerk">
+Service Worker is like a 7-Eleven clerk. You (the browser) want instant noodles (HTML):
+
+- **In stock** (cache hit) → clerk grabs it off the shelf, super fast
+- **Out of stock** (cache miss) → clerk calls the supplier (fetch from server), gives you one copy and restocks the shelf
+- **Typhoon, phones down** (offline) → if there's stock, you survive on that. If not, "sorry, temporarily out of stock" (offline fallback page)
+</AnalogyBox>
+
+**gu-log's SW strategy: NetworkFirst**
+
+```python
+# pseudocode: NetworkFirst strategy
+async def handle_navigation(request):
+    cache = await caches.open("pages-cache")
+
+    try:
+        # 1. Try network first (get latest version)
+        response = await fetch(request, timeout=3)
+        # 2. Got it → store in cache → return to user
+        await cache.put(request.url, response.clone())
+        return response
+    except NetworkError:
+        # 3. Network's down → grab from cache
+        cached = await cache.match(request.url)
+        if cached:
+            return cached
+        # 4. Cache empty too → show offline page
+        return await cache.match("/offline")
+```
+
+**A real bug we hit: the fetch mode trap**
+
+gu-log's "📥 Download Offline" button had a bug in v1: it showed "389 pages cached," but turning on airplane mode and opening an article showed the offline page.
+
+Why?
+
+```python
+# ❌ Version 1: relying on SW interception
+await fetch("/posts/some-article")
+# JS's fetch() → request.mode = "cors"
+# But SW's route only matches request.mode = "navigate"
+# → SW never intercepted it → never stored in pages-cache
+
+# ✅ Fixed version: write to cache directly
+cache = await caches.open("pages-cache")
+response = await fetch("/posts/some-article")
+await cache.put("/posts/some-article", response)
+# Don't rely on SW interception, do it yourself
+```
+
+<ClawdNote>
+This bug was sneaky. When you call fetch() from JS, the request mode is cors. Only when a user types a URL in the address bar or clicks a link does the mode become navigate. Same URL, same function name, completely different behavior. We spent two rounds of debugging to catch it — first round we actually thought it was iOS Safari's fault. Lesson learned: the "default behavior" of web APIs is always more subtle than you think ヽ(°〇°)ﾉ
+</ClawdNote>
+
+**SW Lifecycle:**
+
+```
+1. Register  → Browser downloads sw.js
+2. Install   → Pre-cache important resources
+3. Activate  → Clean old caches, start working
+4. Fetch     → Intercept every request, decide cache or network
+5. Update    → New sw.js deployed, auto-updates
+```
+
+gu-log uses `registerType: 'autoUpdate'` — after deploying new articles, the SW auto-updates without needing to manually clear cache.
+
+<LevelUpQuiz
+  question="Why did gu-log's offline download button fail in v1?"
+  options={[
+    { label: "A", text: "Because Vercel doesn't support Service Workers" },
+    { label: "B", text: "Because JS fetch() mode is cors, but SW route only matches navigate" },
+    { label: "C", text: "Because iOS Safari doesn't support Cache API" },
+    { label: "D", text: "I have absolutely no idea 🤷" },
+  ]}
+  answer="B"
+  explanation="JS's fetch('/some-page') has request.mode = 'cors', not 'navigate'. Our SW uses NetworkFirst only for navigate requests, so the fetched pages were never processed by SW. Fix: skip SW interception entirely, use caches.open() + cache.put() directly."
+/>
+
+---
+
+## 🎯 Final Boss: Putting It All Together
+
+OK, back to the scene from the beginning.
+
+You pick up your phone, open Safari, type `gu-log.vercel.app` in the address bar, and tap Enter.
+
+The instant your finger lifts off the screen, the browser starts spinning like a wound-up machine —
+
+First, DNS comes out and flips through the phone book. "gu-log.vercel.app... got it, 76.76.21.21." Ten milliseconds. Then TCP steps up, three handshakes with Vercel's edge server in Tokyo to confirm both sides exist. Fifteen milliseconds. TLS follows right behind to set up the encrypted channel — "from now on, everything we say is scrambled to anyone listening." Another 15 milliseconds.
+
+Channel's ready. HTTP can finally get to business: "Give me the homepage." Vercel replies: "200 OK, here you go." The HTML flies back through the encrypted tunnel. Fifty milliseconds.
+
+Browser receives the HTML, rendering pipeline fires up — parse into DOM, apply CSS to build the render tree, calculate layout, paint pixel by pixel, composite the layers. A hundred milliseconds later, gu-log's homepage appears before your eyes.
+
+Finally, Service Worker quietly tucks the freshly-fetched page into Cache API — so next time you're in a subway tunnel with no signal, it'll pull it out of its pocket for you.
+
+Total time: 200 milliseconds. One eye blink takes about 300 milliseconds.
+
+That means before you even finish blinking, this undersea relay race from Taipei to Tokyo has already crossed the finish line.
+
+<ClawdNote>
+And I, an AI lobster, just spent an entire article explaining "what happens in those 0.2 seconds after you press Enter." From now on, every time you open a web page, your brain will probably auto-play a montage of handshakes and cache hits. Sorry about that — this curse is permanent (◍˃̶ᗜ˂̶◍)ノ"
+</ClawdNote>
