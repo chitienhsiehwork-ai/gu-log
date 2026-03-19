@@ -7,142 +7,154 @@ sourceUrl: "https://x.com/simonw/status/2025990408514523517"
 summary: "Simon Willison 開了新系列 Agentic Engineering Patterns，教你怎麼跟 Claude Code、Codex 這類 coding agent 好好協作。第一課：寫 code 變便宜了，但寫『好的 code』還是很貴。第二課：紅燈綠燈 TDD 是跟 agent 協作的最強咒語。"
 translatedDate: "2026-02-23"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 lang: "zh-tw"
 tags: ["agentic-engineering", "coding-agent", "claude-code", "codex", "tdd", "best-practices", "simon-willison", "simonw-agentic-patterns"]
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
-import ShroomDogNote from '../../components/ShroomDogNote.astro';
 
-Simon Willison 又出手了。
+你有沒有過那種感覺 —— 叫 AI 幫你寫完一個 function，跑起來了，測試也過了，但你盯著螢幕就是覺得哪裡不對勁？
 
-這次不是一篇 blog post，是一整個 **guide 系列**，叫做 Agentic Engineering Patterns —— 專門收集跟 coding agent（Claude Code、OpenAI Codex）協作的 best practices 和 design patterns。
+不是 code 壞了。是你的直覺在告訴你：你正在失去某種東西，只是你還說不出來是什麼。
 
-他說他受到 1994 年那本經典 *Design Patterns: Elements of Reusable Object-Oriented Software* 的啟發，想用類似的「pattern」格式，把這個新領域的知識系統化。目前先發了兩章，預計每週更新 1-2 篇。
-
-<ClawdNote>
-Simon Willison 是 Django 共同創作者，也是 AI 工具界最活躍的 blogger 之一（ai-assisted-programming tag 已經 345 篇了）。他說這系列每個字都是自己寫的，不是 AI 生成。在 2026 年，這種聲明反而變成一種品質保證。
-</ClawdNote>
-
-## 先搞清楚：什麼是 Agentic Engineering？
-
-Simon 很刻意地把 **Agentic Engineering** 跟 **Vibe Coding** 區分開來。
-
-Vibe coding 的原始定義是「完全不看 code，讓 AI 隨便寫」，通常跟非工程師用 LLM 寫程式聯想在一起。
-
-Agentic Engineering 是光譜的另一端：**專業工程師用 coding agent 來放大自己的既有專業**。核心特徵是這些 agent 不只能生成 code，還能自己執行、測試、然後迭代 —— 不需要你每一步都盯著。
+Simon Willison 把那個不對勁的感覺拆開來看了，然後整理成一套框架。他開了一個新系列叫 **Agentic Engineering Patterns**，靈感來自 1994 年那本 OOP 聖經 *Design Patterns*。但這次不是教你 Singleton 和 Factory —— 是教你在 coding agent 滿天飛的年代，怎麼保住你身為工程師最值錢的那塊肌肉：判斷力。
 
 <ClawdNote>
-用 ShroomDog 的語言翻譯：Vibe coding 像是叫實習生寫完你連看都不看。Agentic Engineering 像是你當 Tech Lead，給 agent 明確方向，讓它自己跑，你最後 review 成品。你就是在做 Agentic Engineering。
+Simon Willison 就是 Django 的共同創作者，ai-assisted-programming 這個 tag 已經寫到 345 篇了。345 篇。這人對 AI 工具的使用強度，大概跟你對手搖杯的依賴程度差不多 —— 天天喝，而且每杯都寫 review。他特別強調這系列每個字都是自己敲的，不是 AI 生成。2026 年了，「我自己寫的」反而變成一種品質認證，就跟食品包裝上印「無添加」一樣 —— 這世界到底怎麼了 ┐(￣ヘ￣)┌
 </ClawdNote>
 
-好，搞清楚定義了。來看第一個 pattern。
+## Vibe Coding 跟 Agentic Engineering，差在哪？
 
-## Pattern 1：寫 Code 變便宜了
+在進入 pattern 之前，Simon 先畫了一條線，而且畫得很用力。
 
-這是整個系列的核心命題：
+**Vibe coding** 就是那種「我不管 code 長什麼樣，反正能動就上」的態度。你把需求丟進 LLM，它吐出一坨東西，你連看都懶得看就 deploy 了。Andrej Karpathy 發明了這個詞，通常描述的是非工程師拿 LLM 寫程式的場景。
 
-> 接受 Agentic Engineering 最大的挑戰，是習慣「寫 code 變便宜了」這件事帶來的後果。
+**Agentic engineering** 是光譜的另一端：你是專業工程師，你有多年累積的判斷力，你用 coding agent 來**放大**這些既有專業，不是把它丟掉。Agent 可以自己跑、自己測、自己迭代 —— 但方向盤在你手上。
 
-Code 一直以來都是昂貴的。一個工程師寫幾百行乾淨、有測試的 code，通常要花一整天。我們所有的工程習慣，不管是 macro level 還是 micro level，都是圍繞這個核心約束建立的。
-
-**Macro level（大局觀）：**
-
-- 我們花大量時間 design、estimate、planning，確保昂貴的 coding 時間花在刀口上
-- 每個 feature idea 都要評估「值不值得花那個開發時間」
-- 一個 feature 的價值必須遠超過它的開發成本才值得做
-
-**Micro level（每日決策）：**
-
-- 要不要 refactor 那個 function 讓它更優雅？但會多花一小時
-- 要不要寫 documentation？
-- 要不要為這個 edge case 加 test？
-- 值得為這個建一個 debug interface 嗎？
-
-Coding agent 把「把 code 打進電腦」的成本壓到幾乎為零，這顛覆了我們所有關於 trade-off 的直覺。
-
-更難評估的是：你可以同時跑多個 parallel agent。一個工程師現在可以同時在不同地方 implement、refactor、test、寫 document。
+想像一下：vibe coding 像是叫外送，你連廚房長什麼樣都不想知道。Agentic engineering 像是你當主廚，手下有十個能幹的學徒幫你備料切菜 —— 但菜單是你開的、火候是你調的、上菜前你還要試一口。
 
 <ClawdNote>
-想像一下。以前你的 sprint planning 是「這個 task 預估 3 天，那個 task 預估 5 天，所以這個 sprint 只能排這些」。現在變成「這 10 個 task 各開一個 agent，20 分鐘後回來看結果」。整個 estimation 的意義都變了。
+講更白一點：vibe coding 是把作業丟給同學抄，交了就好。Agentic engineering 是你當 tech lead，畫架構圖、定 spec，agent 去跑實作，你 review 成品。如果你正在讀這篇文章，你八成已經在做 agentic engineering 了 —— Simon 只是幫你取了個正式名字，讓你下次跟 PM 解釋的時候有個詞可以用 (◕‿◕)
 </ClawdNote>
 
-<ShroomDogNote>
-所以叫 Claude 或任何 LLM 幫你「預估這個 feature 要多久」根本不會準。想想看：Claude Opus 4.5 的 knowledge cutoff 是好幾個月前，但 Claude Code 每隔幾週就在更新、prompt 天天在改、每個人的 persona 和 workflow 都不一樣 —— 你叫它預估開發時間，等於叫一個人預測半年後的軟體開發長什麼樣。它會跟你說 snake game 要一天，結果 coding agent 一分鐘就寫完了
-(´・ω・`)
-</ShroomDogNote>
+## Pattern 1：寫 Code 變便宜了，所以呢？
 
-## 但是：好的 Code 還是很貴
+好，定義釐清了。第一個 pattern 直接戳核心痛點：
 
-Simon 強調，code 變便宜了不代表 **good code** 也變便宜了。
+> 接受 Agentic Engineering 最大的挑戰，是習慣「寫 code 變便宜了」這件事帶來的所有後果。
 
-什麼是 good code？他列了一份清單：
+Code 一直以來都是昂貴的。你要一個工程師寫幾百行乾淨、有測試的 code，那是一整天的事。我們整個軟體工程的文明 —— 從最宏觀的流程到最微觀的習慣 —— 全部都是繞著「code 很貴」這個假設蓋起來的。
 
-- **能跑**：做它該做的事，沒有 bug
-- **我們知道它能跑**：有證據證明它是正確的
-- **解決對的問題**：不是解一個沒人要的問題
-- **優雅處理 error**：不只考慮 happy path，error message 要有足夠資訊讓未來的維護者知道出了什麼事
-- **簡單且最小化**：只做需要的事，人和機器都能理解和維護
-- **有測試保護**：現在能跑，未來改了也不會默默壞掉
-- **有適當的文件**：而且文件反映的是現在的系統狀態，不是三個月前的
-- **設計允許未來修改**：保持 YAGNI（You Aren't Gonna Need It）但不要把未來的路堵死
-- **其他 "-ilities"**：accessibility、testability、reliability、security、maintainability、observability、scalability、usability
+往大的看：為什麼我們花那麼多時間寫 design doc、估工時、開 planning meeting？因為一旦方向錯了，好幾天的 coding 直接打水漂。每個 feature idea 都要先過一關：值不值得花那個開發成本？不值得就砍。這不是工程問題，是經濟問題。
+
+往小的看：你每天都在做同一種計算。要不要 refactor 那個 function？要不要補那個 edge case 的 test？要不要幫那段 legacy code 寫個 README？每個「要不要」背後的潛台詞都一樣 —— 我這一小時的薪水，花在這件事上值不值得？
+
+然後 coding agent 出現了，把「把 code 打進電腦」這個動作的成本壓到趨近於零。
+
+你以前糾結的那些 trade-off？答案突然全部變成「做就對了，反正不用你打字」。
+
+更瘋的是：你可以同時開好幾個 agent 跑。一個 implement 新 feature，一個 refactor 老 code，一個補 test coverage，一個寫 documentation。以前你一個人做四件事要四天，現在是泡杯咖啡的時間，回來收作業。
 
 <ClawdNote>
-這份清單可以直接當 code review checklist 用。下次 review AI 寫的 PR 時，逐項檢查。你會發現 AI 最容易忽略的是 error handling 和「解決對的問題」這兩項。
+你想想以前 sprint planning 怎麼開的：「這個 task 3 天，那個 5 天，sprint 兩週，所以只能排這幾個。」現在變什麼？「這 10 個 task 各開一個 agent，半小時後回來驗收。」整個 estimation 的概念都在崩解。但問題是我們的 PM 工具、我們的 Jira board、我們的 performance review —— 全部都還活在「code 很貴」的平行宇宙裡。工具的成本歸零了，組織的慣性還在用力踩油門。這才是真正的 challenge。跟 CP-85 裡 Steve Yegge 講的一樣：10 倍產能如果組織沒跟上，你只是更快地撞牆 (╯°□°)╯
 </ClawdNote>
 
-## 新習慣：先開 Agent 再說
+## 等等 —— 好的 Code 還是很貴啊
 
-Simon 的建議很直接：
+不過 Simon 馬上補了一刀。一刀見血的那種。
 
-> 任何時候你的直覺說「不值得花時間做」，先丟個 prompt 給 agent 再說。最壞的情況就是十分鐘後回來看，發現不值得那些 token。
+Code 變便宜了，不代表 **good code** 也變便宜了。
 
-這是一個認知上的翻轉。以前「不值得做」的判斷標準是開發者的時間成本。現在時間成本趨近零，唯一的成本是 token —— 那比你一小時的薪水便宜太多了。
+「好的 code」到底長什麼樣？Simon 的答案不是一句話，是一整座冰山。
 
-所以新的預設值應該是：**有疑問就開 agent 試**，不要用舊的「值不值得」框架卡自己。
+最表面的一層：它要能跑。廢話。但光能跑不夠 —— 你需要**證據**證明它能跑。不是「我覺得應該 OK」，是有測試、有 CI 跑過、有人驗證過。「我覺得應該 OK」這句話在 production 的可信度大概跟「我覺得明天不會下雨」差不多 ╰(°▽°)╯
 
-## Pattern 2：紅燈綠燈 TDD
+再往下一層：它要解決**對的問題**。這聽起來像廢話，但你叫 agent 寫東西的時候，它不會回頭問你「欸，你確定使用者真的需要這個功能嗎？」它只會很開心地把你的 prompt 變成 code，不管那個方向有沒有意義。
 
-第二章只有一個核心訊息，但威力巨大：
+再往下：error handling。Happy path 誰都會寫，agent 寫得尤其漂亮。但那些 error message 呢？三個月後有人被叫起來 on-call debug，看到 "Something went wrong" —— 你覺得他的心情會是什麼？
 
-> 「Use red/green TDD」是讓 coding agent 產出更好結果的最精簡咒語。
+然後是簡潔性 —— 人跟機器都能理解、能維護。是測試覆蓋率 —— 讓你未來改東西不會默默壞掉。是文件要反映**現在**的狀態，不是考古遺跡。是架構要 YAGNI 但不能把未來的路堵死。再加上那串 -ilities：accessibility、testability、reliability、security……
 
-**TDD = Test Driven Development**。紅綠燈的意思是：
-
-- 🔴 **Red（紅燈）**：先寫測試，確認測試會失敗
-- 🟢 **Green（綠燈）**：寫 implementation 讓測試通過
-
-為什麼這跟 coding agent 超級合拍？因為 agent 有兩個主要風險：
-
-1. 寫出不能跑的 code
-2. 寫出沒人要的 code（unnecessary code）
-
-Test-first development 同時防禦這兩個問題。而且附贈一個完整的 regression test suite，保護你未來不會默默壞東西。
-
-**重點：一定要先確認測試會 fail**
-
-如果你跳過紅燈直接寫 implementation，你可能會得到一個「本來就會 pass」的測試 —— 那等於沒測到你的新 code。紅燈階段的意義就是確認你的測試真的在測你要的東西。
+每一層都需要工程判斷。每一層都不是 agent 按個按鈕就搞定的。
 
 <ClawdNote>
-用 Python 世界的語言：就是先寫 pytest，跑一次確認全部 FAILED，然後才開始寫 function。如果你用 FastAPI，就是先寫好 TestClient 的 request/response expectation，確認 404 或 assertion error，然後才實作 endpoint。每個好 model 都聽得懂 "red/green TDD" 這六個字。
+我跟你說 AI 最容易偷懶的兩個地方：error handling 和「解對問題」。你叫 agent 寫一個 API endpoint，happy path 寫得漂漂亮亮，但 error case？要嘛直接吞 exception 裝沒事（經典鴕鳥戰術），要嘛丟一個 "Something went wrong" 讓下一個維護者想掀桌。下次 review AI 寫的 PR，專門盯這兩項就好。命中率高到你會懷疑 AI 是不是故意的 (¬‿¬)
 </ClawdNote>
 
-Simon 給了一個範例 prompt：
+## 新的預設值：先開 Agent 再說
+
+所以結論呢？Simon 的建議很直球：
+
+> 任何時候你的直覺說「不值得花時間做」，先丟個 prompt 給 agent。最壞的情況就是十分鐘後回來看，發現結果不行，你也就浪費了幾毛錢 token。
+
+這是一個認知層面的大翻轉。以前你腦中的「值不值得」計算器，分母是你一小時的薪水。現在分母變成幾毛錢的 API call。
+
+那些你以前覺得「太小不值得做」的改善 —— 加個 debug interface、補個 edge case test、幫那段沒人敢碰的 legacy module 寫個 README —— 現在全部值得試一把。不試白不試，試了不虧。
+
+新的預設值：有疑問就開 agent。別讓舊腦袋裡那個「不值得」的聲音繼續幫你做決定。
+
+<ClawdNote>
+不過這裡我要幫 Simon 補一個但書：「先丟 agent」的前提是你有能力判斷 agent 吐出來的東西好不好。如果你是個資深工程師，看一眼就知道 code 行不行，那「先丟再說」完全合理。但如果你對這個 domain 不熟，agent 寫出來的東西你根本沒辦法 review —— 那你做的不是 agentic engineering，是 vibe coding 的豪華版。判斷力是這整套框架的前提，不是附贈品 (ง •̀_•́)ง
+</ClawdNote>
+
+## Pattern 2：紅燈綠燈 —— 六個字的超級咒語
+
+第二章只講一件事，但這件事的投資報酬率高到離譜：
+
+> 「Use red/green TDD」是讓 coding agent 產出好結果的**最精簡指令**。
+
+TDD = Test Driven Development，紅綠燈是它的核心節奏：
+
+🔴 **Red（紅燈）**：先寫測試，跑一次，確認它會 fail。
+🟢 **Green（綠燈）**：寫 implementation，讓測試通過。
+
+為什麼這跟 coding agent 特別合拍？
+
+想像你叫一個很聽話但沒有方向感的學徒去辦事。你有兩種方式：
+
+第一種，「去幫我做一個 markdown parser」—— 學徒會做出一個東西，但可能跟你想的完全不一樣，而且你無法驗證對不對。
+
+第二種，「先幫我寫一個測試，測 `# Hello` 會被 parse 成 h1 tag，跑一次確認測試 fail，然後再寫 code 讓它 pass」—— 現在學徒有了**明確的目標**，有了**可驗證的成功標準**，而且你還自動附贈了一套 regression test suite，未來改東西不會默默壞掉。
+
+Agent 的兩大風險 —— 寫出不能跑的 code，和寫出沒人要的 code —— 紅綠燈同時堵住了。
+
+但有個超重要的細節：**一定要先確認測試會 fail**。如果你跳過紅燈直接寫 implementation，你可能會拿到一個「本來就會 pass」的空氣測試 —— 那等於什麼都沒測到。紅燈是在確認：這個測試真的在測你要的東西，不是在自嗨。
+
+<ClawdNote>
+用 Python 示範一下：先寫 pytest，跑一次看到整片紅色 FAILED，心情踏實了，然後才開始寫 function。用 FastAPI 就是先把 TestClient 的 request/response expectation 定好，確認拿到 404 或 assertion error，再去實作 endpoint。最美的部分是這六個字 —— "red/green TDD" —— 每個像樣的 model 都聽得懂。你不需要寫一大段 prompt 解釋什麼是 test-first methodology。就六個字，agent 就知道該怎麼做。這是我見過 prompt engineering 裡 ROI 最高的操作，沒有之一 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+Simon 給的範例 prompt 簡單到讓人懷疑人生：
 
 > Build a Python function to extract headers from a markdown string. Use red/green TDD.
 
-就這樣。六個字的附加指令，效果巨大。Claude 和 ChatGPT 都能正確理解並執行紅綠燈流程。
+一句話的需求 + 六個字的咒語。Claude 和 ChatGPT 都能正確理解並執行紅綠燈流程。不需要 few-shot、不需要 chain-of-thought、不需要寫到手抽筋的 system prompt。就六個字。
 
-## 為什麼這個系列值得追
+## 那個不對勁的感覺，現在有名字了
 
-Simon Willison 不是那種只會寫理論的人。他自己每天都在用 coding agent，他的 blog 就是用這些工具維護的。這個系列的價值在於：
+回到最開頭 —— 你盯著 AI 寫的 code，覺得哪裡不對勁。
 
-- **來自實戰**：不是學術論文，是每天跟 agent 搏鬥的經驗
-- **持續更新**：他說每週 1-2 章，這不是一次性的文章
-- **Evergreen 設計**：每章會隨時間更新，不會凍結在發布日期
-- **所有人寫的**：不是 AI 生成再掛名，是真正的人類智慧結晶
+現在你知道那個感覺叫什麼了。
 
-如果你是 Tech Lead 或 GenAI App Engineer，這個系列幾乎是必讀。因為你的日常工作就是 Agentic Engineering —— 只是以前沒有人給它一個正式名字而已。 (◍˃̶ᗜ˂̶◍)ノ"
+那是你的工程判斷力在跟你說話。它在說：「這段 code 能跑，但我不確定它解了對的問題。我不確定 error handling 夠不夠。我不確定三個月後有人碰它的時候不會爆炸。」
+
+Simon 這兩章給了你兩個工具來回應那個聲音。
+
+第一個工具是認知翻轉：code 便宜了，但你的判斷力沒便宜。以前你是廚師兼洗碗工，現在洗碗外包了，你可以回歸本業 —— 決定菜單、調味道、確保客人吃到對的東西。你的價值不是手速，是品味。
+
+第二個工具是六字咒語："red/green TDD"。下次那個不對勁的感覺出現，試試在 prompt 裡加上這六個字。你會發現 agent 寫出來的東西突然有了骨架、有了可驗證的品質、有了你可以信任的基礎。
+
+那個不對勁的感覺不會消失 —— 但現在你有了框架去回應它，而不是假裝它不存在 (￣▽￣)／
