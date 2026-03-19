@@ -251,6 +251,8 @@ if [ -z "$TWEET_URL" ]; then
 fi
 
 GU_LOG_DIR="${GU_LOG_DIR:-$HOME/clawd/projects/gu-log}"
+cd "$GU_LOG_DIR"
+source scripts/ralph-helpers.sh
 COUNTER_FILE="$GU_LOG_DIR/scripts/article-counter.json"
 STYLE_GUIDE_FILE="$GU_LOG_DIR/scripts/sp-style-guide.md"
 POSTS_DIR="$GU_LOG_DIR/src/content/posts"
@@ -263,6 +265,7 @@ STEP2_TIME=0
 STEP3_TIME=0
 STEP4_TIME=0
 STEP45_TIME=0
+STEP47_TIME=0
 STEP5_TIME=0
 
 FILENAME=""
@@ -570,6 +573,125 @@ if [[ -f "$FINAL_MDX" ]]; then
   sed -i '/^  harness: ".*"$/c\  harness: "Gemini CLI + Codex CLI"\n  pipeline:\n    - role: "Written"\n      model: "'"$WRITE_MODEL"'"\n      harness: "'"$WRITE_HARNESS"'"\n    - role: "Reviewed"\n      model: "'"$REVIEW_MODEL"'"\n      harness: "'"$REVIEW_HARNESS"'"\n    - role: "Refined"\n      model: "'"$REFINE_MODEL"'"\n      harness: "'"$REFINE_HARNESS"'"\n    - role: "Orchestrated"\n      model: "Opus 4.6"\n      harness: "OpenClaw"\n  pipelineUrl: "'"$PIPELINE_URL"'"' "$FINAL_MDX"
 fi
 
+# Step 4.7: Ralph Quality Loop (score → rewrite → re-score, bar = 9/9/9)
+RALPH_MAX_ATTEMPTS=3
+step_start "Step 4.7: ralph quality loop"
+
+# Extract title + generate filename early (scorer needs file in posts dir)
+TITLE=$(awk '
+  BEGIN { in_fm=0 }
+  /^---[[:space:]]*$/ { if (in_fm==0) { in_fm=1; next } else { exit } }
+  in_fm && /^title:[[:space:]]*/ {
+    line=$0
+    sub(/^title:[[:space:]]*/, "", line)
+    gsub(/^"|"$/, "", line)
+    print line
+    exit
+  }
+' "$WORK_DIR/final.mdx" || true)
+
+if [ -z "$TITLE" ]; then
+  TITLE="${TICKET_PREFIX}-${SP_NUM}"
+fi
+
+DATE_STAMP=$(date +%Y%m%d)
+AUTHOR_SLUG=$(sanitize_slug "$AUTHOR_HANDLE")
+TITLE_SLUG=$(sanitize_slug "$TITLE")
+FILENAME="${TICKET_PREFIX,,}-${SP_NUM}-${DATE_STAMP}-${AUTHOR_SLUG}-${TITLE_SLUG}.mdx"
+EN_FILENAME="en-${FILENAME}"
+
+# Place file in posts dir for scorer
+cp "$WORK_DIR/final.mdx" "$POSTS_DIR/$FILENAME"
+
+RALPH_ATTEMPT=0
+RALPH_PASSED=false
+SCORE_P=0; SCORE_C=0; SCORE_V=0
+
+while [ "$RALPH_ATTEMPT" -lt "$RALPH_MAX_ATTEMPTS" ]; do
+  RALPH_ATTEMPT=$((RALPH_ATTEMPT + 1))
+  SCORE_FILE="$WORK_DIR/ralph-score-attempt-${RALPH_ATTEMPT}.json"
+  log_info "  Ralph attempt $RALPH_ATTEMPT/$RALPH_MAX_ATTEMPTS — Scoring..."
+
+  # Score via independent subagent
+  if bash scripts/ralph-scorer.sh "$FILENAME" "$SCORE_FILE" \
+      > "$WORK_DIR/ralph-scorer-stdout-${RALPH_ATTEMPT}.txt" \
+      2> "$WORK_DIR/ralph-scorer-stderr-${RALPH_ATTEMPT}.txt"; then
+    read_scores "$SCORE_FILE"
+    log_info "  Scores: P=$SCORE_P C=$SCORE_C V=$SCORE_V"
+
+    if [ "$SCORE_P" -ge 9 ] && [ "$SCORE_C" -ge 9 ] && [ "$SCORE_V" -ge 9 ]; then
+      RALPH_PASSED=true
+      log_ok "  ✅ Ralph PASS on attempt $RALPH_ATTEMPT"
+      break
+    fi
+  else
+    log_warn "  Scorer failed (attempt $RALPH_ATTEMPT). See $WORK_DIR/ralph-scorer-stderr-${RALPH_ATTEMPT}.txt"
+    continue
+  fi
+
+  # Not passed — rewrite if we have attempts left
+  if [ "$RALPH_ATTEMPT" -lt "$RALPH_MAX_ATTEMPTS" ]; then
+    log_info "  Rewriting (writer reads reviewer feedback)..."
+
+    if timeout 900 claude -p \
+      --model claude-opus-4-6 \
+      --permission-mode bypassPermissions \
+      --max-turns 20 \
+      "You are a rewriter for gu-log blog posts. Your job is to improve a post that failed quality review.
+
+## References (read ALL before rewriting)
+1. Read scripts/ralph-vibe-scoring-standard.md — THE scoring rubric with calibration examples
+2. Read TRANSLATION_PROMPT.md — LHY persona and style rules
+3. Read CONTRIBUTING.md — frontmatter schema, ClawdNote format
+4. Read the reviewer's feedback: cat $SCORE_FILE
+
+## Task
+Rewrite src/content/posts/$FILENAME to fix EVERY issue the reviewer flagged.
+Also create the English version at src/content/posts/$EN_FILENAME with lang: en and same ticketId.
+
+## Rules
+- Keep ALL existing frontmatter fields intact (ticketId, source, sourceUrl, title, summary, tags, lang, dates)
+- Do NOT touch translatedBy — shell handles that automatically
+- ALL notes must be ClawdNote (convert any CodexNote/GeminiNote/ClaudeCodeNote)
+- Import ONLY ClawdNote from components (remove unused imports)
+- Apply full LHY persona — professor teaching with life analogies, not news article
+- ClawdNote density: ~1 per 25 lines of prose, each with personality and opinion
+- No bullet-dump endings, no motivational closings, no 「各位觀眾好」openings
+- Kaomoji: MANDATORY — pre-commit hook rejects posts without at least one kaomoji. Sprinkle naturally in prose, avoid markdown special chars (backticks, asterisks)" \
+      > "$WORK_DIR/ralph-writer-stdout-${RALPH_ATTEMPT}.txt" 2>&1; then
+      log_info "  Writer completed."
+    else
+      log_warn "  Writer errored. See $WORK_DIR/ralph-writer-stdout-${RALPH_ATTEMPT}.txt"
+    fi
+
+    # Build check
+    log_info "  Running build check..."
+    if ! pnpm run build > "$WORK_DIR/ralph-build-${RALPH_ATTEMPT}.txt" 2>&1; then
+      log_warn "  ❌ Build failed after rewrite! Reverting..."
+      git checkout -- "$POSTS_DIR/$FILENAME" 2>/dev/null || true
+      # Restore from work dir copy
+      cp "$WORK_DIR/final.mdx" "$POSTS_DIR/$FILENAME"
+      rm -f "$POSTS_DIR/$EN_FILENAME"
+      continue
+    fi
+    log_info "  Build passed."
+
+    # Ensure kaomoji present
+    node scripts/add-kaomoji.mjs --write "$FILENAME" 2>/dev/null || true
+    [ -f "$POSTS_DIR/$EN_FILENAME" ] && node scripts/add-kaomoji.mjs --write "$EN_FILENAME" 2>/dev/null || true
+  fi
+done
+
+# Stamp Ralph pipeline signature on the final version
+stamp_ralph_signature "$POSTS_DIR/$FILENAME"
+[ -f "$POSTS_DIR/$EN_FILENAME" ] && stamp_ralph_signature "$POSTS_DIR/$EN_FILENAME"
+
+STEP47_TIME=$(step_end "Step 4.7")
+
+if [ "$RALPH_PASSED" = false ]; then
+  log_warn "Ralph quality bar not met after $RALPH_MAX_ATTEMPTS attempts (P:$SCORE_P C:$SCORE_C V:$SCORE_V). Deploying best effort."
+fi
+
 # Step 5: Deploy
 if [ "$DRY_RUN" = true ]; then
   log_warn "--dry-run enabled; skipping deploy step"
@@ -577,28 +699,7 @@ else
   step_start "Step 5: deploy"
   [ -d "$POSTS_DIR" ] || die "Missing posts directory: $POSTS_DIR"
 
-  TITLE=$(awk '
-    BEGIN { in_fm=0 }
-    /^---[[:space:]]*$/ { if (in_fm==0) { in_fm=1; next } else { exit } }
-    in_fm && /^title:[[:space:]]*/ {
-      line=$0
-      sub(/^title:[[:space:]]*/, "", line)
-      gsub(/^"|"$/, "", line)
-      print line
-      exit
-    }
-  ' "$WORK_DIR/final.mdx" || true)
-
-  if [ -z "$TITLE" ]; then
-    TITLE="${TICKET_PREFIX}-${SP_NUM}"
-  fi
-
-  DATE_STAMP=$(date +%Y%m%d)
-  AUTHOR_SLUG=$(sanitize_slug "$AUTHOR_HANDLE")
-  TITLE_SLUG=$(sanitize_slug "$TITLE")
-
-  FILENAME="${TICKET_PREFIX,,}-${SP_NUM}-${DATE_STAMP}-${AUTHOR_SLUG}-${TITLE_SLUG}.mdx"
-  cp "$WORK_DIR/final.mdx" "$POSTS_DIR/$FILENAME"
+  # File already in $POSTS_DIR/$FILENAME from Step 4.7
 
   COUNTER_BACKUP="$WORK_DIR/counter-before.json"
   cp "$COUNTER_FILE" "$COUNTER_BACKUP"
@@ -616,9 +717,9 @@ else
   set -e
 
   if [ "$VALIDATION_STATUS" -ne 0 ]; then
-    if printf '%s\n' "$VALIDATION_OUTPUT" | grep -F "$FILENAME" >/dev/null 2>&1; then
-      log_error "Validation failed for newly generated file: $FILENAME"
-      rm -f "$POSTS_DIR/$FILENAME"
+    if printf '%s\n' "$VALIDATION_OUTPUT" | grep -E -F "$FILENAME|$EN_FILENAME" >/dev/null 2>&1; then
+      log_error "Validation failed for newly generated file(s)"
+      rm -f "$POSTS_DIR/$FILENAME" "$POSTS_DIR/$EN_FILENAME"
       cp "$COUNTER_BACKUP" "$COUNTER_FILE"
       printf '%s\n' "$VALIDATION_OUTPUT" >&2
       exit 1
@@ -646,6 +747,7 @@ else
   (
     cd "$GU_LOG_DIR"
     git add "src/content/posts/$FILENAME" "scripts/article-counter.json"
+    [ -f "src/content/posts/$EN_FILENAME" ] && git add "src/content/posts/$EN_FILENAME"
     git commit -m "Add ${TICKET_PREFIX}-${SP_NUM}: ${TITLE}"
     git push
   )
@@ -668,6 +770,9 @@ printf "Step 2 time : %ss\n" "$STEP2_TIME"
 printf "Step 3 time : %ss\n" "$STEP3_TIME"
 printf "Step 4 time : %ss\n" "$STEP4_TIME"
 printf "Step 4.5 time : %ss\n" "$STEP45_TIME"
+printf "Step 4.7 time : %ss\n" "${STEP47_TIME:-0}"
+printf "Ralph pass  : %s\n" "${RALPH_PASSED:-N/A}"
+printf "Ralph scores: P:%s C:%s V:%s\n" "${SCORE_P:-?}" "${SCORE_C:-?}" "${SCORE_V:-?}"
 printf "Step 5 time : %ss\n" "$STEP5_TIME"
 printf "Total time  : %ss\n" "$TOTAL_TIME"
 log_ok "Pipeline finished"
