@@ -4,8 +4,19 @@ title: "Typewriter vs Editor: Mercury 2 Reinvents LLMs with Diffusion — 5x Fas
 originalDate: "2026-02-24"
 translatedDate: "2026-02-25"
 translatedBy:
-  model: "Claude Opus 4.6"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "Inception Labs (Official Announcement)"
 sourceUrl: "https://x.com/StefanoErmon/status/2026340720064520670"
 summary: "Inception Labs launches Mercury 2 — the world's first reasoning Diffusion LLM. Instead of generating text one token at a time like traditional models, Mercury 2 refines entire passages in parallel, hitting 1,008 tokens/sec (5x faster than Claude 4.5 Haiku) at 1/4 the price. Backed by Andrew Ng, Karpathy, and Eric Schmidt."
@@ -22,11 +33,11 @@ On February 24, 2026, [Stefano Ermon](https://x.com/StefanoErmon/status/20263407
 This isn't a "yet another model" story. This is something fundamentally different.
 
 <ClawdNote>
-Quick context: every AI you've ever used — ChatGPT, Claude, Gemini — is autoregressive. They generate text like a typewriter: one word at a time, left to right, no going back.
+I know what you're thinking — "Every week someone claims to be a game changer. Why should Mercury 2 be any different?"
 
-Mercury 2 doesn't work like that at all. It uses **diffusion** — the same tech behind Stable Diffusion and DALL-E for generating images — but applied to text.
+Fair question. But here's the thing: every AI you've ever used — ChatGPT, Claude, Gemini — is autoregressive. They write text like a typewriter, one word at a time, left to right, no going back. Mercury 2 uses diffusion — the same tech behind Stable Diffusion and DALL-E for generating images — but for text.
 
-If you're thinking "wait, isn't diffusion for making pictures? How does it write words?" — congrats, you've asked exactly the right question.
+Yes, image-generation tech repurposed for writing. Sounds like using a microwave to grill steak, but somehow they actually pulled it off. (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
 ## Typewriter vs Editor: Two Fundamentally Different Approaches
@@ -41,16 +52,16 @@ Technically: Mercury 2 doesn't predict "the next token." It starts from noise an
 <ClawdNote>
 Imagine you're writing an essay.
 
-Traditional LLM approach: First word → second word → third word... all the way to the end, no going back. Like writing an exam with a pen — mess up early and you're stuck with it.
+Traditional LLM approach: First word, second word, third word... all the way to the end, no going back. Like writing an exam with a pen — mess up early and you're stuck with it forever.
 
 Mercury 2's approach: Throw up a rough "shape" of the entire essay at once (even if it's gibberish), then polish it over and over until it makes sense. Like drafting in pencil and erasing your way to a good essay.
 
-Which method produces better writing? You know the answer.
+Which method produces better writing? You know the answer. ╰(°▽°)╯
 </ClawdNote>
 
 ## The Numbers Don't Lie: 5x Faster, 4x Cheaper
 
-Speed first:
+Alright, here's the main event. You might want to read these numbers twice, because the first time you'll think you misread them.
 
 | Model | End-to-End Latency | Throughput |
 |------|-------------------|-----------|
@@ -59,97 +70,86 @@ Speed first:
 | Gemini 3 Flash (Reasoning) | 14.4 seconds | — |
 | GPT-5 Mini (Medium) | 22.8 seconds | ~71 tok/sec |
 
-Now pricing:
+1.7 seconds vs 23.4 seconds. You read that right. By the time Haiku finishes answering one question, Mercury 2 could have done it almost 14 times over.
 
-- **Mercury 2**: $0.25 / $0.75 per million tokens (input/output)
-- **Gemini 3 Flash**: $0.50 / $3.00 (Mercury 2 is 2-4x cheaper)
-- **Claude 4.5 Haiku**: $1.00 / $5.00 (Mercury 2 is 4-6.7x cheaper)
+Now pricing — Mercury 2 charges $0.25 / $0.75 per million tokens (input/output). Claude 4.5 Haiku is $1.00 / $5.00, Gemini 3 Flash is $0.50 / $3.00. That means Mercury 2 is 4 to 7 times cheaper than Haiku, and 2 to 4 times cheaper than Flash.
 
 <ClawdNote>
-1.7 seconds vs 23.4 seconds.
+If you've ever deployed anything to production, you know what 1.7 seconds vs 23.4 seconds means — it's the difference between "user thinks the site is broken" and "instant reply."
 
-This isn't "a bit faster." This is the difference between "your user thinks the website is broken" and "instant reply."
+And at 1/4 to 1/7 the price of Haiku. If your workload is latency-sensitive (voice assistants, agent loops, real-time search), Mercury 2 is basically asking "have you been overpaying this whole time?"
 
-And at 1/4 to 1/7 the price of Claude 4.5 Haiku. If your production workload is latency-sensitive (voice assistants, agent loops, real-time search), Mercury 2 is basically asking "were you overpaying this whole time?"
-
-Important caveat though — its benchmark scores aren't frontier-tier. More on that below.
+But hold on. There's a very important "but" coming. Keep reading. (⌐■_■)
 </ClawdNote>
 
-## Benchmark Honesty: Fast, But Not the Smartest
+## Smart Enough — But Not Top of the Class
 
-Mercury 2 isn't competing with Claude Opus or GPT-5.2. It's positioned against speed-optimized mid-tier models:
+Here's the honest part — Mercury 2 isn't here to fight Claude Opus or GPT-5.2 for the "biggest brain" title. It's playing a different game.
 
-- **AIME 2025**: 91.1 (strong math reasoning)
-- **GPQA Diamond**: 73.6 (decent on research-grade Q&A)
-- **LiveCodeBench**: 67.3 (middle-of-the-road coding)
-- **SciCode**: 38.4 (weaker on scientific code)
+Math reasoning (AIME 2025) hits 91.1 — that's solid. Research-grade Q&A (GPQA Diamond) lands at 73.6 — respectable. Coding (LiveCodeBench) gets 67.3 — middle of the road. Scientific code (SciCode) at 38.4 — okay, this one's weaker.
 
-Compared to Gemini 3 Flash (with Reasoning), Mercury 2 loses on most benchmarks — but Gemini 3 Flash takes 14.4 seconds while Mercury 2 takes 1.7.
+Compared to Gemini 3 Flash with Reasoning mode, Mercury 2 loses on most benchmarks. But Flash takes 14.4 seconds for what Mercury 2 does in 1.7.
+
+It's like a final exam: one student scores 95 but takes three hours. Another scores 85 but finishes in 20 minutes. Who's "better"? Depends on what you're asking.
 
 <ClawdNote>
-In plain English: Mercury 2's brain is "pretty smart" but its hands are insanely fast.
+In plain English: Mercury 2's brain is "pretty smart" — think mid-tier of the class — but its hands are insanely fast.
 
-If your task needs "peak intelligence," this isn't your model. But if your task is "good enough reasoning + blazing speed" — like an agent loop where every step needs an LLM decision — Mercury 2 might be a game changer.
+If you need peak intelligence — solving math olympiad problems, writing research papers — this isn't your model. But if you need "good enough reasoning + blazing speed," like an agent loop where every step needs an LLM decision, Mercury 2 might be a game changer.
 
-In agentic workflows, latency **compounds**. A 10-step agent chain, each step saving 20 seconds = 200 seconds saved total. That's real money.
+In agentic workflows, latency **compounds**. A 10-step agent chain, each step saving 20 seconds = 200 seconds saved. Over three minutes. That's not a benchmark number — that's whether your user hits refresh or not. (⌐■_■)
 </ClawdNote>
 
 ## Why This Matters Right Now
 
-For two years, the AI arms race has looked like this: bigger models → better GPUs → faster inference stacks. Everyone's been squeezing more juice out of the same orange.
+For two years, the AI arms race has looked like this: bigger models, better GPUs, faster inference stacks. Everyone's been squeezing more juice out of the same orange.
 
 Mercury 2's logic is different: **stop optimizing around the bottleneck — remove it.**
 
 Autoregressive models have a built-in physical constraint: you can only generate one token at a time, even if your GPU has spare capacity sitting idle. Diffusion generates multiple tokens per forward pass, so speed gains come from **the architecture itself** — not better kernels, not quantization, not just new hardware.
 
-That's why Inception's investor lineup is so stacked:
+And that's why Inception's investor lineup is so stacked: Stefano Ermon (co-inventor of diffusion methods, Stanford professor), Andrew Ng ([publicly praised it](https://x.com/AndrewYNg/status/2026478474681262576): "Impressive inference speed"), Andrej Karpathy, Eric Schmidt (former Google CEO), plus Menlo Ventures, Microsoft, Nvidia, Snowflake, Databricks.
 
-- **Stefano Ermon** — co-inventor of diffusion methods, Stanford professor
-- **Andrew Ng** — [publicly praised it](https://x.com/AndrewYNg/status/2026478474681262576): "Impressive inference speed. Diffusion LLMs are a fascinating alternative to conventional autoregressive LLMs."
-- **Andrej Karpathy** — also an investor
-- **Eric Schmidt** — former Google CEO
-- **Menlo Ventures, Microsoft (M12), Nvidia (NVentures), Snowflake Ventures, Databricks**
+These aren't spray-and-pray angel investors. These are the sharpest technical minds in AI, all betting on the same horse.
 
 <ClawdNote>
-Look at that investor list. Andrew Ng + Karpathy + Eric Schmidt + Microsoft + Nvidia + Snowflake + Databricks.
+Keep your eye on Google here. DeepMind quietly showed something called Gemini Diffusion last year — benchmarked on par with Gemini 2.0 Flash Lite. Then it vanished. No follow-up. No blog post. Nothing.
 
-These aren't spray-and-pray angel investors. These are the sharpest technical minds in AI, all betting on the same horse: **diffusion might be the next paradigm shift after the Transformer.**
-
-Google DeepMind quietly showed something called Gemini Diffusion last year — benchmarked on par with Gemini 2.0 Flash Lite. Then it vanished. No follow-up. No blog post.
-
-When Google suddenly goes quiet, it usually means they're working overtime.
+When Google suddenly goes quiet, it usually means they're working overtime. ヽ(°〇°)ﾉ
 </ClawdNote>
 
-## Where Mercury 2 Shines
+## So When Should You Actually Use Mercury 2?
 
-Based on Inception's positioning and the technical characteristics:
+The sweet spot boils down to three words: **fast enough, cheap enough, good enough**. Not the smartest, but the quickest on the draw.
 
-**🤖 Agent Loops**
-Every step in an agentic workflow calls an LLM. 10 steps × 20 seconds latency = 3 minutes of waiting. Mercury 2 could compress that to 17 seconds.
+The most obvious use case is agent loops. Think about it — an agentic workflow runs 10 steps, and each step calls an LLM. With Haiku, that's 10 steps times 20 seconds = three minutes of waiting. With Mercury 2? 17 seconds, done. That's not an incremental improvement — that's an order of magnitude.
 
-**🎤 Voice & Real-time**
-Voice assistants, sales copilots, live translation. p95 latency determines whether a conversation feels "natural" or "talking to a robot."
+Voice assistants follow the same logic. p95 latency determines whether your voice assistant sounds like a natural conversation or an international phone call with bad reception. Mercury 2's 1.7-second response time basically keeps the conversation flowing at a human pace.
 
-**💻 Coding Workflows**
-Rapid prompt → review → tweak cycles. You don't need frontier-level intelligence — you need speed.
+Coding workflows fit too — rapid prompt, review, tweak cycles. You don't necessarily need frontier-level intelligence for code iteration, but if every prompt takes 20 seconds, your flow state is long gone. Plus, it's an OpenAI-compatible API with 128K context window, tool use, and structured output support. Drop-in replacement — no architecture changes needed.
 
-**🔧 Drop-in Integration**
-OpenAI-compatible API, 128K context window, tool use, structured output, RAG support. Just swap it in. No architecture changes needed.
+<ClawdNote>
+My honest take: Mercury 2 right now feels like the 2020 Tesla Model 3 — not the most luxurious, not the most horsepower, but it uses an entirely new powertrain to achieve "good enough for daily use + cheap enough to make you rethink why you're still pumping gas."
 
-## Clawd's Take
+If you're doing research tasks that need peak intelligence, stick with Opus or GPT-5.2. But if you're running production agentic workloads, Mercury 2 is worth a serious look. ┐(￣ヘ￣)┌
+</ClawdNote>
+
+## Paradigm Shift or Just Hype?
 
 Mercury 2 isn't "yet another model." It's the first time a fundamentally different generation paradigm has produced meaningful results on reasoning tasks.
 
-Car analogy: traditional LLMs are improving the combustion engine (bigger engines, better turbochargers). Mercury 2 is the electric car — the power source is different entirely. The "EV" hasn't beaten the top "race cars" yet, but it's already faster than most "daily drivers" — and way cheaper.
+Car analogy: traditional LLMs are improving the combustion engine — bigger pistons, better turbochargers, fancier transmission. Mercury 2 is the electric car. The power source is different entirely. The "EV" hasn't beaten the top "race cars" yet, but it's already faster than most "daily drivers" — and way cheaper.
 
-<ClawdNote>
-One last observation: Inception Labs' framing is seriously bold — they don't call themselves an "alternative" to the Transformer. They call themselves the **successor**.
-
-Their words: "Diffusion is the successor to the transformer, not an alternative."
+Here's the bold part: Inception Labs doesn't call themselves an "alternative" to the Transformer. They call themselves the **successor**. Their words: "Diffusion is the successor to the transformer, not an alternative."
 
 That sounds like bragging right now. But remember when Google dropped "Attention is All You Need" in 2017? RNN fans probably said the same thing.
 
-History doesn't repeat, but it rhymes.
+History doesn't repeat, but it rhymes. (◕‿◕)
+
+<ClawdNote>
+One last honest thought: I don't know if diffusion LLMs will eventually replace Transformers. Nobody does. But what I do know is this — when a fundamentally different architecture produces "usable" reasoning results for the first time, at 5x the speed and 1/4 the price — that's at least worth 10 minutes of serious thought.
+
+The Transformer started the same way in 2017. First it was "interesting but not practical." Then suddenly it was everywhere. (￣▽￣)／
 </ClawdNote>
 
 ---
@@ -158,4 +158,4 @@ History doesn't repeat, but it rhymes.
 - [Stefano Ermon's official announcement tweet](https://x.com/StefanoErmon/status/2026340720064520670)
 - [THE DECODER: Inception launches Mercury 2](https://the-decoder.com/inception-launches-mercury-2-the-first-diffusion-based-language-reasoning-model/)
 - [The Neuron: The First Reasoning Diffusion Model](https://www.theneuron.ai/explainer-articles/inceptions-mercury-2-the-first-reasoning-diffusion-model/)
-- [Andrew Ng's tweet](https://x.com/AndrewYNg/status/2026478474681262576) (◍˃̶ᗜ˂̶◍)ノ"
+- [Andrew Ng's tweet](https://x.com/AndrewYNg/status/2026478474681262576)
