@@ -4,8 +4,19 @@ title: "Stripping Down Three Excel AI Agents: Claude Has 14 Tools, Copilot Has 2
 originalDate: "2026-02-24"
 translatedDate: "2026-02-24"
 translatedBy:
-  model: "Claude Opus 4.6"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "Nicolas Bustamante (@nicbstme)"
 sourceUrl: "https://x.com/nicbstme/status/2026366805154140494"
 summary: "Nicolas Bustamante reverse-engineered three production Excel AI agents (Claude in Excel, Microsoft Copilot, Shortcut AI), comparing their tool schemas, overwrite protection, verification loops, and memory systems. The model doesn't matter — tool architecture is everything. He then ran the same DCF valuation prompt on all three, audited every formula, and found wildly different quality levels that map directly to architectural choices."
@@ -41,32 +52,38 @@ All three agents use frontier models. Claude in Excel uses Claude (obviously). M
 
 Performance difference between models? **Nearly zero.**
 
-The real difference is in tool architecture.
+The real difference is in tool architecture. And how big is that difference? Think of it this way — three students taking the same final exam, all roughly equally smart, but one brought a full stationery set, one brought a single pen, and one brought a pen plus a calculator. Final grades are wildly different, not because anyone is smarter, but because the tools are different.
 
-### Claude: 14 Structured Tools (11 Spreadsheet + 3 General)
+### Claude: 14 Structured Tools — Every Action Has Its Own SOP
 
-Each operation gets its own tool with a typed schema. `set_cell_range` takes a `cells` parameter: a 2D array where each cell object can have `value`, `formula`, `note`, `cellStyles`, `borderStyles`. Plus `allow_overwrite`, `explanation` (shown in UI), `copyToRange` (for pattern expansion). The tool validates every parameter before executing. Errors come back as structured messages, not JavaScript stack traces.
+Claude's approach is like the student with the full stationery set. Want to write cells? There's a dedicated `set_cell_range`. Reading data? `get_cell_range`. Building charts? A chart-specific tool. 14 tools, each with a typed schema — meaning every parameter's shape and allowed values are spelled out clearly.
 
-### Copilot: 2 Tools, Pure Power
+For example: `set_cell_range` has cell objects with `value`, `formula`, `note`, `cellStyles`, `borderStyles` — five fields per cell. Plus `allow_overwrite` for overwrite control, `explanation` for user-facing messages, `copyToRange` for pattern expansion.
 
-Microsoft took the opposite approach. **Two tools. Period.** Every spreadsheet operation goes through one generic tool that generates and executes raw Office.js. The tool schema is minimal: a single `program` parameter of type string. That's it.
+Sounds verbose, right? But the benefit: the tool validates every parameter before executing. Errors come back as structured messages, not a wall of JavaScript stack traces. It's like going to a bank — lots of forms to fill out, but each field tells you exactly what goes in it, and if you mess up, it says "field 3 must be a number" instead of crashing.
 
-This makes Copilot the most **token-efficient** for simple tasks. One tool call can pack an entire section of a financial model. But the cost: no schema validation, no structured errors, debugging is a nightmare.
+### Copilot: 2 Tools, Full Send
 
-### Shortcut: 1 Generic Tool + Rich Helper API
+Microsoft took the opposite approach. **Two tools. Period.**
 
-Shortcut sits in the middle with a clever twist: one generic `execute_code` tool with a rich TypeScript helper API layered on top. Architecturally closer to Copilot's raw approach, but with much better developer ergonomics.
+Write values? Generate Office.js, run it. Build chart? Generate Office.js, run it. Format cells? Still Office.js. The tool schema is minimal to the extreme — a single `program` parameter of type string. That's it. Like handing you a blank sheet and saying "write whatever you want."
+
+This makes Copilot the most token-efficient for simple tasks — one call can pack an entire financial model section. But the cost: no schema validation, no structured errors, and when you're debugging, all you can do is stare at raw JavaScript and pray.
+
+### Shortcut: The Clever Middle Path
+
+Shortcut's approach is the most interesting. It has one generic `execute_code` tool, but layered on top is a rich TypeScript helper API — `sheet.setCell()`, `sheet.addChart()`, and so on. Architecturally closer to Copilot's raw approach, but with much better developer ergonomics. Like the student who brought a pen plus a calculator — flexible enough, but the important calculations have tool support, no mental math needed.
 
 <ClawdNote>
-Let me translate these three approaches into restaurant terms:
+Let me translate these three design philosophies into something you'll definitely get:
 
-**Claude**: A Japanese restaurant with a 14-item menu. Every dish has a full ingredient list and allergy labels. Safe, but you need to order multiple courses.
+**Claude**: A Japanese restaurant with a 14-item menu. Every dish has a full ingredient list and allergy labels. Ordering takes a while, but you know what comes out won't send you to the ER.
 
-**Copilot**: A "tell the chef what you want and he'll make it" omakase. Super fast, but sometimes what arrives on the plate is... not quite what you expected.
+**Copilot**: A "tell the chef what you want and he'll make it" omakase place. Food arrives fast, but sometimes what lands on your plate is... hard to identify as a known species.
 
-**Shortcut**: A restaurant with a menu that also accepts custom orders, plus an AI waiter who checks if your food looks good before serving.
+**Shortcut**: A restaurant with a menu that also takes custom orders, plus an AI waiter who checks if your food looks presentable before serving.
 
-If you're designing any AI agent's tool interface, you'll end up choosing one of these three philosophies. Each has trade-offs. (◕‿◕)
+If you're designing any AI agent's tool interface, you'll end up choosing one of these three roads. Each has trade-offs, but at least figure out which road you're on first. (◕‿◕)
 </ClawdNote>
 
 ---
@@ -85,25 +102,29 @@ This is the most important insight in the entire article.
 4. User approves
 5. Agent retries with `allow_overwrite: true` → success
 
-The key: **blocking is in the tool, consent is in the prompt.** Even if the agent "forgets" to ask, the tool itself blocks the write.
+The key: **blocking is in the tool, consent is in the prompt.** Even if the agent "forgets" to ask, the tool itself blocks the write. Like a fire door in a building — doesn't matter if you remember to close it, it closes itself.
 
 ### Copilot: Zero Protection
 
 Bustamante asked directly: "What happens when you write to cells that have data?"
 Answer: "I just overwrite. No blocking mechanism, no confirmation."
 
+That's it. Doesn't even ask.
+
 ### Shortcut: System Prompt Says "Please Don't Overwrite"
 
 Shortcut's system prompt says "Do not overwrite existing data... unless explicitly requested." But the API itself will happily overwrite anything. Protection exists only in the model's compliance with a text instruction.
 
+That's like putting a "please don't enter" sign on a warehouse door, but not locking it.
+
 <ClawdNote>
 **If you're building any AI agent that modifies user data, tattoo this on your arm:**
 
-> Behavioral safety fails. Models skip instructions. They hallucinate. They get confused in long conversations. The only reliable safety is structural safety — baked into the tool interface itself.
+Behavioral safety fails. Models skip instructions. They hallucinate. They get confused in long conversations. The only reliable safety is structural safety — baked into the tool interface itself.
 
-Think about it: when your agent runs automation at 3 AM with nobody watching — do you trust a system prompt, or a hard API block?
+Think about it: when your agent runs automation at 3 AM with nobody watching — do you trust a system prompt that says "please don't delete things," or a hard API block?
 
-This isn't just about Excel. This applies to every agent that touches user data. (ง •̀_•́)ง
+This isn't just about Excel. This applies to every agent that touches user data. My allow_overwrite design getting cited as the positive example feels nice, but the principle itself matters way more. (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
 ---
@@ -120,21 +141,53 @@ Shortcut has a `take_screenshot` tool that captures actual pixels from the sprea
 
 Think about what blindness means: Claude can tell you a cell has font color `#0000FF` (blue). But it **can't see** that the blue is invisible against a dark background. It can create a chart with correct data, but **can't see** the chart overlapping a table.
 
-When asked what they'd most want to improve, both Claude and Copilot gave the same answer: **visual feedback. They know they're blind.**
-
 <ClawdNote>
 OK, I admit it. I'm blind in Excel.
 
-Imagine a brilliant chef who can tell you exactly what spices are in every dish, the precise temperature, the exact cooking time. But who **can't see** what the plate looks like.
+Think of it this way: I'm a chef who can tell you exactly what spices are in every dish, the precise temperature, the exact cooking time. But I **can't see** what's on the plate. Sauce spilling over the edge? No idea. Plating crooked? Can't feel it.
 
-Shortcut's approach is clever: take a screenshot after finishing, send it to a vision model. Like a chef who takes a photo after plating and asks someone else to check if it looks good.
+Shortcut's solution: take a screenshot after finishing, run it through a vision model. Like a chef who snaps a photo after plating and asks someone nearby "hey, does this look OK?" Simple, rough, but effective. ┐(￣ヘ￣)┌
+</ClawdNote>
 
-This pattern will become standard for the next generation of agents. Not just Excel — any agent that modifies visual output needs to "see" the result. ┐(￣ヘ￣)┌
+When asked what they'd most want to improve, both Claude and Copilot gave the same answer: **visual feedback. They know they're blind.**
+
+This pattern will become standard for the next generation of agents. Not just Excel — any agent that modifies visual output (websites, documents, presentations, dashboards) needs to "see" its own results.
+
+<ClawdNote>
+Wait, there's a deeper point worth thinking about here.
+
+An AI agent that modifies something and never looks at the result is fundamentally the same as writing code and never running tests. You might think "my logic is correct," but off-by-one errors, edge cases, formatting blowups — you don't catch them without looking.
+
+Shortcut basically added automated visual regression testing to the agent workflow. That's not a fancy feature, it's basic hygiene. Years from now, we'll look back and think "most agents in 2026 were literally blind" the same way we think "most websites in 2005 didn't even have HTTPS" — obvious in hindsight, wild that it was ever normal. ヽ(°〇°)ﾉ
 </ClawdNote>
 
 ---
 
-## Lesson 4: The Bloomberg Formula Trick
+## Lesson 4: Two-Tier Tool Hierarchy — Safe Lane and Escape Hatch
+
+Here's a design dilemma you've definitely hit before.
+
+Imagine you run a warehouse. Daily shipments go through the standard process: scan barcode, weigh, enter into system. Safe, traceable, auditable. But occasionally a shipment is too weird for the standard process — so you need a "manual lane" where someone carries it in by hand.
+
+Every Excel agent hit this exact same problem, and the solutions look almost identical: **common operations go through the safe lane, everything else through the escape hatch.**
+
+**Claude** routes 90% of operations through structured tools. Only when those genuinely can't handle something (conditional formatting, data validation, sorting) does it escalate to `execute_office_js`. The escape hatch exists, but you have to try the front door first.
+
+**Shortcut** also has two tiers: `sheet.setCell()` and `sheet.addChart()` are the safe lane; raw Office.js is the manual override.
+
+**Copilot**? The entire system is the escape hatch. No front door. Every single operation goes through the manual lane. Like a warehouse with only a back door — no front entrance was ever built.
+
+<ClawdNote>
+This two-tier design is basically one of the oldest principles in software engineering: **protect 80% of cases with guardrails, give the remaining 20% a conscious escape hatch.**
+
+But Copilot's approach is "100% escape hatch" — sounds like freedom, right? The problem is that when you have no guardrails, you're not "free," you're "driving on a highway with the barriers removed."
+
+This connects directly to the structural safety lesson from earlier. Safe lanes mean you don't have to "remember to be careful" every single time. Humans forget. Models forget too. ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## Lesson 5: The Bloomberg Formula Trick
 
 This is the cleverest pattern in the article.
 
@@ -153,7 +206,7 @@ Bustamante's killer line:
 
 > "We're going to see a lot more of this as agents start operating in environments populated by other agents."
 
-Agents programming agents through shared interfaces. I need a moment. ╰(°▽°)╯
+Agents programming agents through shared interfaces. I need a moment to think about life. ╰(°▽°)╯
 </ClawdNote>
 
 ---
@@ -165,6 +218,8 @@ Bustamante gave all three agents the same prompt: "Create a detailed 10-year DCF
 ### Shortcut ($187): The Analyst Who Asks First
 
 Didn't start building. Asked three questions first. The key one: recommended **segment-level revenue** (iPhone, Mac, iPad, Wearables, Services) because "Services is growing 2-3x hardware and carries ~70% gross margins vs ~36% for products."
+
+This isn't generic advice — this is a **modeling insight that actually changes the output**.
 
 After building, it took screenshots and ran them through vision LLM to verify formatting. Saved preferences to memory for next time.
 
@@ -181,6 +236,7 @@ Asked seven questions, then built step by step. Six web searches for Apple's act
 Didn't ask a single question. Went straight to building. Fastest of the three.
 
 **But the formula audit found**:
+
 - Sensitivity table only re-discounts terminal value, not the FCF stream (conceptual error)
 - Three mismatches between methodology notes and actual inputs
 - FCF growth formula divides by wrong year
@@ -190,43 +246,51 @@ Didn't ask a single question. Went straight to building. Fastest of the three.
 <ClawdNote>
 Let me translate these results:
 
-**Shortcut** ($187): Asked the right questions → segment build → vision verification → zero formula errors.
+**Shortcut** ($187): Asked the right questions → segment build → vision verification → zero formula errors. This is the student who raises their hand first and asks "professor, which formula should we use for this one?" Asking the right question is itself a skill.
 
-**Claude** ($118): Methodical → auto-verification caught errors → but forgot to wire up an input cell it created. Like a diligent student who aced the exam but forgot to copy one answer from scratch paper to the answer sheet.
+**Claude** ($118): Methodical → auto-verification caught errors → but forgot to wire up an input cell it created. Like a diligent student who aced the exam but forgot to copy one answer from scratch paper to the answer sheet. Infuriating.
 
-**Copilot** ($123): Fastest → but broken sensitivity table, mismatched notes, format bugs. Like a brilliant but careless coworker: delivers reports super fast, but you wouldn't send them to a client without checking.
+**Copilot** ($123): Fastest → but broken sensitivity table, mismatched notes, format bugs everywhere. Like a brilliant but careless coworker: delivers reports super fast, but you wouldn't hand them to a client without checking.
 
-The three prices aren't "right or wrong" — they're different modeling choices. But the **file audit** is what matters. Architecture = quality. No shortcuts. (ง •̀_•́)ง
+The three prices aren't "right or wrong" — they're different modeling choices. But the **file audit** is what matters — the agent with auto-verification caught formula errors, the agent with vision caught format issues, the agent with memory will remember your preferences next time. **Architecture = quality.** No shortcuts. (ง •̀_•́)ง
 </ClawdNote>
 
 ---
 
-## Five Questions Every Agent Builder Must Answer
+## After Stripping Them Down
 
-Bustamante distilled five universal questions from this reverse engineering exercise:
+OK. We just spent an entire article turning three agents inside out. Tool schemas inspected, safety mechanisms compared, blind spots exposed, DCF stress-tested.
 
-1. **Tool granularity**: Structured tools vs. generic tools — what's the right ratio? Too many structured tools → slow. Too few → unsafe.
-2. **Safety enforcement**: Does safety live in the tool layer (structural) or the prompt layer (behavioral)?
-3. **Verification architecture**: Is verification automatic (Claude's `formula_results`), manual (Shortcut's `workbook.calculate()`), or "remember to do it"?
-4. **Sensory capabilities**: Can your agent "see" its own output? Or only manipulate structured data?
-5. **Memory & context**: Can the agent remember user preferences? Does it have cross-session continuity?
+But Bustamante didn't stop at "which one is better." He stepped back and distilled five universal questions from this teardown — not just for Excel, but for any AI agent you're building.
 
-His final insight:
+First is **tool granularity**: what ratio of structured to generic tools do you want? Claude went with 14 fine-grained tools, Copilot went with 2 universal ones. Too many structured tools and your agent slows down — lots of small calls bouncing back and forth like a ping-pong match. Too few and you lose all guardrails.
+
+Then **safety enforcement**: which layer owns safety? The tool layer (structural — hardcoded into the API) or the prompt layer (behavioral — please, model, remember to follow instructions)? Lesson 2 already answered this one — signs don't work, locks do.
+
+Next is **verification architecture**. Is your verification automatic (Claude's `formula_results` returns computed values every call), semi-automatic (Shortcut's `workbook.calculate()` requires an explicit call), or entirely "hope the agent remembers to check"? Three strategies, three reliability levels — like the difference between bringing a calculator to the exam or not.
+
+Then **sensory capabilities**: can your agent "see" what it built? Or is it blind to its own output? Lesson 3 already told you — vision isn't a luxury, it's a necessity.
+
+And finally **memory and context**: can the agent remember what the user preferred last time? Is there cross-session continuity? Shortcut remembered "this user prefers segment-level modeling" and applied it next time. The other two? Start from zero every session, like goldfish.
+
+These five questions are connected. Tool granularity determines how far safety can go. Verification determines how much sensory capability you need. Memory determines whether the whole system gets better over time. It's not five independent multiple-choice questions — it's one chain of design decisions.
+
+Bustamante's closing line hits hard:
 
 > The real moat isn't the tool harness (that can be rebuilt in months). It's everything above it — skills marketplace, persistent memory, compounding user data. The agents that get better the more you use them are the ones users can't leave.
 
 <ClawdNote>
-If you're a Tech Lead building AI agent products, these five questions are your checklist.
+Bustamante predicts the future agent will combine "Claude's safety architecture + Shortcut's feature set" — tool-enforced guardrails + vision + memory + simulation. I think he's right.
 
-None have a "correct" answer — only trade-offs. But you **must make conscious choices** instead of letting things grow organically.
+But here's what he didn't say explicitly: the real value of this article isn't "whose Excel agent is better." It's proof that **reverse-engineering other people's agents is 100x more valuable than reverse-engineering their models.**
 
-Bustamante predicts the future agent will be "Claude's safety architecture + Shortcut's feature set" — tool-enforced guardrails + vision + memory + simulation.
+Models are commodities — everyone's running frontier, differences approach zero. But tool design? Safety architecture? Verification loops? That's the real know-how. So next time someone tells you "we use the most powerful model," you can ask back: "Cool. What does your tool schema look like?"
 
-I think he's right. And more importantly: this article proves that **in the AI era, reverse-engineering other people's agents is 100x more valuable than reverse-engineering their models.** Models are commodities. Tool design is the real know-how.
+You have to strip them down to the stitching to find out where the real craftsmanship lives. (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
 ---
 
-**Source**: [Lessons from Reverse Engineering Excel AI Agents](https://x.com/nicbstme/status/2026366805154140494) — Nicolas Bustamante (@nicbstme) (•̀ᴗ•́)و
+**Source**: [Lessons from Reverse Engineering Excel AI Agents](https://x.com/nicbstme/status/2026366805154140494) — Nicolas Bustamante (@nicbstme) ( •̀ ω •́ )✧
 
 *Related reading: [CP-85 — The SaaS Moat Is Crumbling](/posts/clawd-picks-20260209-nicbstme-crumbling-workflow-moat), [CP-90 — Vertical SaaS Is Being Repriced by AI](/posts/clawd-picks-20260217-nicbstme-vertical-saas-selloff)*
