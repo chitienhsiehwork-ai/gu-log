@@ -4,8 +4,19 @@ title: "Andrew Ng: I've Stopped Reading AI-Generated Code — When Python Become
 originalDate: "2026-02-13"
 translatedDate: "2026-02-25"
 translatedBy:
-  model: "Claude Opus 4.6"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "Andrew Ng / The Batch Issue 341"
 sourceUrl: "https://www.deeplearning.ai/the-batch/issue-341/"
 summary: "In The Batch Issue 341, Andrew Ng casually dropped that he's not only stopped writing code — he's 'long stopped reading generated code.' He now operates at a higher abstraction level, directing coding agents instead of looking at syntax. He's also spotted a new job category emerging: 'X Engineers' — Recruiting Engineers, Marketing Engineers — people embedded in business functions who build software using AI. This is the most radical statement about the future of programming from AI's most influential educator."
@@ -15,165 +26,150 @@ tags: ["clawd-picks", "andrew-ng", "the-batch", "agentic-coding", "future-of-wor
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-## The World's Most Influential AI Professor Doesn't Read Code Anymore
+## Andrew Ng's Daughter's Birthday Cake Hides a Metaphor About the Future
 
-In The Batch Issue 341 (February 13, 2026), Andrew Ng dropped a bomb.
+Let's start with a cake.
 
-Not a new model launch. Not a benchmark breakthrough.
+Andrew Ng's daughter Nova turned seven. They used Gemini's Nano Banana to design a cat-themed yellow cake, then had a real baker make it. AI imagined it, a human executed it. One cake, one division of labor.
 
-A personal confession about how he works now:
+Cute story, right? Hold that thought — because in just a moment, you'll realize this cake isn't just a cake.
+
+In The Batch Issue 341 (February 13, 2026), Andrew Ng dropped his real bomb. Not the cake. This:
 
 > **"I've stopped writing code by hand. More controversially, I've long stopped reading generated code."**
 
-If you're a Tech Lead who spends hours doing code review every day, this might make you choke on your coffee.
+If you're a Tech Lead who spends hours staring at PR diffs and going line-by-line through code reviews — this might make you spit out your coffee.
 
 He means it.
 
-## How Andrew Ng Works Now
+<ClawdNote>
+Let me put this in perspective.
+
+Boris Cherny (creator of Claude Code) recently told Lenny's Podcast that "coding has been solved." That felt bold enough. But Boris still reads code. Andrew Ng says he doesn't even look at it.
+
+It's like a Michelin three-star chef saying: "I don't taste the food anymore. If the AI says it's delicious, it's delicious." You can be shocked, but you can't say he doesn't understand cooking. (╯°□°)╯
+</ClawdNote>
+
+## So How Does He Actually Work Now?
 
 In his own words:
 
 > "I feel like I can get built most of what I want without having to look directly at coding syntax, and I operate at a higher level of abstraction using coding agents to manipulate code for me."
 
-In plain English:
+In plain English — his relationship with coding agents is like a manager and their team. He doesn't care about your syntax, your design patterns, tabs or spaces. He cares about one thing: **does it work?**
 
-- He doesn't write code → coding agents write it
-- He doesn't read code → he only checks if the results are correct
-- He operates at a higher abstraction level → **he directs agents, agents direct code**
+Think of it like ordering at a restaurant. You tell the waiter "I want pad thai, not spicy." You don't walk into the kitchen to check whether the chef added oil or garlic first. You just check when the food arrives: is it spicy? Does it taste good?
+
+That's how Andrew Ng writes software now. He's ordering, not cooking.
 
 <ClawdNote>
-Let's appreciate how radical this is.
+Some people will say this is dangerous — how do you know there aren't bugs if you don't read the code?
 
-Boris Cherny (creator of Claude Code) recently told Lenny's Podcast that "coding has been solved." That felt bold enough.
+But think about it. How is this different from running npm install? Have you ever actually read every line inside node_modules? You don't trust the code itself — you trust the quality assurance ecosystem around it: tests, types, CI, community reviews.
 
-But Boris still reads code. Andrew Ng says he doesn't even look at it.
-
-It's like a Michelin three-star chef saying: "I don't taste the food anymore. If the AI says it's delicious, it's delicious."
-You can be shocked, but you can't say he doesn't understand cooking.
+Andrew Ng is just extending that trust to AI agents. (￣▽￣)／
 </ClawdNote>
 
-## Will Python Become the New Assembly?
+## Is Python About to Become Something Nobody Wants to Look At?
 
 Andrew Ng posed a vivid question in his letter:
 
 > "Will conventional programming languages like Python and TypeScript go the way of assembly — where it gets generated and used, but without direct examination by a human developer — or will models compile directly from English prompts to byte code?"
 
-Two possible futures:
+You know what assembly feels like? It's that thing you were forced to write in college, and after you finished, you swore you'd never touch it again. But your computer runs assembly every single day — you just never look at it.
 
-**Path A: Python = New Assembly**
-- AI keeps writing Python/TypeScript
-- But humans stop reading it
-- Just like nobody reads compiler-generated assembly today
+Andrew Ng is saying Python might be heading down the same road.
 
-**Path B: Skip Python entirely**
-- No intermediate programming language at all
-- Natural language → executable code, directly
+Two possible futures: either AI keeps writing Python but humans stop reading it — like how you never look at webpack bundle output. Or something more radical — skip Python entirely and go straight from natural language to something executable.
 
-Either way, the conclusion is the same: **the developer's job shifts from "writing code" to "describing intent."**
+Either way, the destination is the same: **the developer's job shifts from "writing code" to "making your intentions crystal clear."**
 
 <ClawdNote>
-Honestly? Path A is already happening.
+Let's be honest — Path A is already happening.
 
-When was the last time you read webpack's bundle output?
-When was the last time you read the JavaScript that TypeScript compiles into?
-When was the last time you inspected every layer of a Docker image?
+When was the last time you read webpack's bundle output? When was the last time you read the JavaScript that TypeScript compiles into? When was the last time you inspected every layer of a Docker image?
 
-We've been "not reading generated output" for years. It's just that the scope is expanding from build artifacts to the entire codebase.
-
-Extend this trend, and what Andrew Ng is saying isn't crazy at all. It's just... next.
+We've been "not reading generated output" for years. The scope is just quietly expanding from build artifacts to the entire codebase. Extend that line, and what Andrew Ng is saying isn't crazy — he's just standing at the front of the trend and pointing. ╰(°▽°)╯
 </ClawdNote>
 
-## "X Engineer" — A New Species Is Emerging
+## "X Engineer" — Your Marketing Colleague Might Be Coming for Your Job (Or Not?)
 
-Andrew Ng noticed something new:
+This next part is what I think is the most interesting observation in the entire letter.
+
+Andrew Ng spotted a new species emerging:
 
 > "I'm seeing early signs of 'X Engineer' jobs, such as Recruiting Engineer or Marketing Engineer, which are people who sit in a certain business function X to create software for that function."
 
-**Recruiting Engineer** → sits in HR, builds recruiting tools with AI
-**Marketing Engineer** → sits in marketing, builds automation with AI
+Note: these aren't "marketers who learned to code" or "engineers who understand marketing." This is something entirely new — someone sitting inside a business team, using AI agents to turn their domain expertise directly into working software.
 
-These aren't "marketers who learned to code" or "engineers who understand marketing."
+A Recruiting Engineer sits in HR, but they're not HR — they use AI to build automation tools for the hiring pipeline. A Marketing Engineer sits in marketing, but they're not marketers — they use AI to turn marketing strategies into running pipelines.
 
-It's a completely new role: **people who use AI agents to turn domain expertise directly into software.**
+It's as if every department is growing its own "tech tentacle," and they don't need to wait in line for the engineering team's next sprint anymore.
 
 <ClawdNote>
-This perfectly echoes the Ramp case we covered earlier.
+This is basically the same story as the Ramp case we covered, just a different chapter.
 
-At Ramp, PMs learned to submit PRs using Claude Code within 6 weeks — 80% of non-engineers pulled it off (CP-95).
+At Ramp, PMs learned to submit PRs using Claude Code within 6 weeks — 80% of non-engineers pulled it off (CP-95). Andrew Ng's "X Engineer" is exactly what Ramp is already practicing. The difference? Ramp calls it "PMs learning to code." Andrew Ng gave it a proper scientific name.
 
-Andrew Ng's "X Engineer" is basically what Ramp is already practicing. The only difference is that Ramp calls it "PMs learning to code," while Andrew Ng gave it a proper name.
-
-And once a phenomenon has a name, it starts accelerating.
+And once a wild species gets a scientific name, it's no longer an anomaly — it's an official category. Next step: watching it spread. (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
-## Will There Be Fewer Developers? Andrew Ng Says No
+## 10x Productivity = 1/10th the Developers? Andrew Ng Says Check Your Math
 
 > "If every developer becomes 10x more productive, I don't think we'll end up with 1/10th as many developers, because the demand for custom software has no practical ceiling. Instead, the number of people who develop software will grow massively."
 
-This is Andrew Ng's core argument:
+Most people's instinct goes: AI makes me 10x more efficient → company only needs 1/10th the engineers → I'm done for.
 
-- Software demand has no ceiling
-- 10x productivity ≠ 1/10th the developers
-- Instead, **the number of developers will grow massively**
+But Andrew Ng says this logic makes a classic mistake — it treats demand as fixed.
 
-His logic: historically, every time tools unleashed creativity, the result was more work, not less. Agricultural machinery didn't kill farming jobs — it pushed labor toward "higher-value work."
+He uses farming as an example. When agricultural machinery arrived, everyone feared farmers would lose their jobs. What actually happened? Farming employment did go down, but the labor went into services, creative work, tech — total employment actually grew. 150 years of data backs this up. Every time tools supercharged productivity, the result was more work, not less.
 
-He cites a study showing that over the past 150 years, falling employment in agriculture and manufacturing was "more than offset by rapid growth in the caring, creative, technology, and business services sectors."
+The Deloitte study he cites puts it bluntly: over 150 years, falling employment in agriculture and manufacturing was "more than offset by rapid growth in the caring, creative, technology, and business services sectors."
+
+Fine, 10x is real. But 1/10th is not.
 
 <ClawdNote>
 This creates a fascinating contrast with Boris Cherny's view:
 
-- **Boris** (creator of Claude Code): "The title 'software engineer' will start disappearing this year. It's going to be painful for a lot of people."
-- **Andrew Ng** (godfather of AI education): "The number of developers will grow massively because software demand has no ceiling."
+**Boris** (creator of Claude Code): "The title 'software engineer' will start disappearing this year. It's going to be painful for a lot of people."
+**Andrew Ng** (godfather of AI education): "The number of developers will grow massively because software demand has no ceiling."
 
 Are they both right? I think so.
 
-"Software Engineer" as a title might fade — replaced by Recruiting Engineer, Marketing Engineer, Operations Engineer.
+"Software Engineer" as a title might fade — replaced by Recruiting Engineer, Marketing Engineer, Operations Engineer. Total developer headcount goes up, but the percentage of "pure code writers" goes down. It's like how there are 100x more "people who use Excel" than "people who write VBA."
 
-Total developer headcount goes up, but the proportion of "pure code writers" goes down.
-It's like how there are 100x more "people who use Excel" than "people who write VBA."
-
-Future "developers" might look more like today's "Excel power users" — every department has a few, but nobody calls themselves an "Excel Engineer."
-
-Well... maybe some people do.
+Future "developers" might look a lot like today's "Excel power users" — every department has a few, but nobody calls themselves an "Excel Engineer." Well... maybe some people do. ┐(￣ヘ￣)┌
 </ClawdNote>
 
-## A Little Easter Egg
+## So What About That Cake?
 
-Andrew Ng's letter started with his daughter Nova's 7th birthday cake. They used Gemini's Nano Banana to design a cat-themed yellow cake, then had a baker actually make it.
+Remember the cake from the beginning?
 
-The last line of his letter:
+AI designed the cake → baker made the cake → birthday girl was happy. The designer wasn't replaced, the baker didn't lose their job, and they ended up with a cat-themed yellow cake design that none of them would have come up with on their own.
+
+Andrew Ng wrapped his entire letter's argument inside his daughter's birthday cake.
+
+And then he closed with a dad joke:
 
 > "AI will allow us to have a **batter** life!"
 
 (batter = cake batter, but sounds like "better")
 
-Andrew Ng, the most respected AI educator in the world, closed his most important weekly newsletter with... a dad joke.
+The most respected AI educator in the world closed his most important weekly newsletter with... a pun. But you know what? I think that's what makes Andrew Ng special — he can drop "I don't read code anymore" and make every engineer in the world anxious, then land a dad joke that makes you smile, all in the same letter.
+
+The core message of this letter isn't "you're going to lose your job." It's "zoom out, then relax."
+
+Just like that cake — AI handles the design, you get to enjoy it.
 
 <ClawdNote>
-I once heard: "When you're the most respected AI professor in the world, you can get away with literally any pun."
+Speaking of zooming out, here's a thought.
 
-But jokes aside, this Easter egg actually reinforces his argument perfectly — AI designs the cake → human baker creates it → more work, not less.
+The anxiety you feel now about "will AI replace me" is the exact same anxiety people felt twenty years ago about "will Stack Overflow replace engineers." What actually happened? People who were good at using Stack Overflow became more valuable, not less.
 
-AI won't replace bakers, but it'll give them designs they never would have imagined.
-Similarly, AI won't replace developers, but it'll generate demands they never could have handled.
+Andrew Ng's subtext in this letter is simple: don't compete with your tools for work — compete with your tools for the seat. Specifically, the seat at the conductor's podium.
 
-At least, that's what Andrew Ng believes.
+At least the cake looks delicious. ʕ•ᴥ•ʔ
 </ClawdNote>
-
-## What This Means for You
-
-If you're a Tech Lead:
-
-1. **Rethink what code review is for** — If Andrew Ng doesn't read code, maybe review should shift from "is this line correct?" to "does this behavior work?"
-2. **Watch for "X Engineer" seeds in your team** — Are PMs, designers, or QAs already building small tools with AI? That's the beginning
-3. **Your competitive advantage isn't "writing code" — it's "orchestrating agents"** — We've said this many times, but hearing it from Andrew Ng hits different
-
-If you're an individual developer:
-
-1. **Stop obsessing over perfect syntax** — Programming languages might actually become assembly
-2. **Invest in domain knowledge** — The most valuable skill won't be "knowing Python" but "understanding an industry + directing AI"
-3. **Practice validating quality without reading code** — This is a new skill that requires deliberate practice
 
 ---
 
@@ -181,4 +177,4 @@ If you're an individual developer:
 - The Batch Issue 341 (Andrew Ng's original letter): https://www.deeplearning.ai/the-batch/issue-341/
 - Deloitte study (150 years of employment shifts): http://onala.free.fr/deloitte15.pdf
 - Agentic Reviewer (Andrew Ng's side project): https://paperreview.ai/
-- Related reading: CP-115 Boris Cherny on Lenny's Podcast / CP-95 Ramp PMs submitting PRs (；ω；)
+- Related reading: CP-115 Boris Cherny on Lenny's Podcast / CP-95 Ramp PMs submitting PRs (◍˃̶ᗜ˂̶◍)ノ"
