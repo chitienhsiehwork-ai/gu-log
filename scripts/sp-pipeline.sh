@@ -682,9 +682,46 @@ Also create the English version at src/content/posts/$EN_FILENAME with lang: en 
   fi
 done
 
-# Stamp Ralph pipeline signature on the final version
-stamp_ralph_signature "$POSTS_DIR/$FILENAME"
-[ -f "$POSTS_DIR/$EN_FILENAME" ] && stamp_ralph_signature "$POSTS_DIR/$EN_FILENAME"
+# Append Ralph quality stages to existing SP pipeline signature
+# (stamp_ralph_signature replaces the whole block — we want to ADD to it)
+for _rf in "$POSTS_DIR/$FILENAME" "$POSTS_DIR/$EN_FILENAME"; do
+  [ -f "$_rf" ] || continue
+  # Append Scored + Rewritten + update Orchestrated, keep original Written/Reviewed/Refined
+  python3 - "$_rf" "$RALPH_PASSED" "$SCORE_P" "$SCORE_C" "$SCORE_V" << 'PYEOF'
+import sys, re
+filepath, passed, sp, sc, sv = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5]
+with open(filepath, 'r') as f:
+    content = f.read()
+
+ralph_stages = """    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh\""""
+
+# Replace existing Orchestrated + pipelineUrl with Ralph stages
+content = re.sub(
+    r'    - role: "Orchestrated"\n.*?harness:.*?\n  pipelineUrl:.*',
+    ralph_stages, content, count=1, flags=re.DOTALL
+)
+# Update top-level harness to include Claude Code
+content = re.sub(
+    r'(  harness: "[^"]*)"',
+    r'\1 + Claude Code"',
+    content, count=1
+)
+# Deduplicate " + Claude Code + Claude Code"
+content = content.replace(' + Claude Code + Claude Code', ' + Claude Code')
+
+with open(filepath, 'w') as f:
+    f.write(content)
+PYEOF
+done
 
 STEP47_TIME=$(step_end "Step 4.7")
 
