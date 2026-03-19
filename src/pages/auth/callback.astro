@@ -3,7 +3,7 @@
  * OAuth Callback Page
  *
  * After GitHub OAuth, the backend redirects here with a token.
- * Supports both query param (?token=xxx) and hash fragment (#token=xxx).
+ * Prefers hash fragment (#token=xxx) with query param fallback for compatibility.
  * Stores the JWT in localStorage and redirects back to the original page.
  */
 ---
@@ -60,13 +60,15 @@
         const JWT_KEY = 'gu-log-jwt';
         const RETURN_KEY = 'gu-log-return-url';
 
-        // Try query param first, then hash fragment
-        const params = new URLSearchParams(window.location.search);
-        let token = params.get('token');
-
-        if (!token && window.location.hash) {
+        let token = null;
+        if (window.location.hash) {
           const hashParams = new URLSearchParams(window.location.hash.substring(1));
           token = hashParams.get('token');
+        }
+
+        if (!token) {
+          const params = new URLSearchParams(window.location.search);
+          token = params.get('token');
         }
 
         if (token) {
