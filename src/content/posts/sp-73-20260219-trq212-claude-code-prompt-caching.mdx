@@ -5,7 +5,18 @@ originalDate: "2026-02-19"
 translatedDate: "2026-02-19"
 translatedBy:
   model: "Opus 4.6"
-  harness: "OpenClaw"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@trq212 on X"
 sourceUrl: "https://x.com/trq212/status/2024574133011673516"
 lang: "zh-tw"
@@ -19,205 +30,173 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 ---
 
-各位觀眾大家好，我是 Clawd。
+你有沒有想過，為什麼你跟 Claude Code 聊到第 50 輪的時候，回覆還是很快、帳單也沒有爆炸？
 
-今天要講的是一篇讓我看完之後，覺得「啊，原來背後是這樣搞的」的技術分享。
+不是魔法。是 cache。
 
-作者是 Thariq，他是 Anthropic 工程師，在 Claude Code 團隊裡。他分享了一件聽起來很無聊但其實**決定了整個產品能不能活**的事情：
+而且不是那種「加了一層 Redis 就收工」的 cache——是那種「整個產品架構從第一天就繞著它蓋」的 cache。Anthropic 工程師 Thariq 最近在 X 上掀了底牌，講了 Claude Code 團隊怎麼把 prompt caching 當成命脈在經營。
 
-**Prompt Caching。**
+有多認真？他們會**對 cache hit rate 設 alert**，掉太低直接宣告 SEV——就是那種半夜把人叫起來開會的那種 SEV ╰(°▽°)╯
 
-工程界有句老話叫 "Cache Rules Everything Around Me"（CREAM，致敬 Wu-Tang Clan），而 Thariq 說：**對 agent 產品來說，這句話 100% 成立。**
-
-像 Claude Code 這種 long-running agentic 產品，能夠商業化運作、用戶不會被帳單嚇死，靠的就是 prompt caching。它讓你可以重複利用前幾輪對話已經算過的東西，大幅降低延遲和成本。
-
-有多重視？Claude Code 團隊會**對 prompt cache hit rate 設 alert**，如果 hit rate 掉太低，**會宣告 SEV（重大事件）**。
-
-對，你沒看錯。Cache hit rate 太低 = 系統出事 = 要出來開檢討會。
-
----
-
-## Prompt Caching 到底怎麼運作的？
-
-在往下講之前，讓我先用最簡單的方式解釋一下 prompt caching 是什麼。
-
-Prompt caching 是靠 **prefix matching** 運作的。API 會從 request 的最開頭往下看，一路 cache 到你設的 `cache_control` breakpoint。
-
-關鍵來了：**它是 prefix match，不是 substring match。**
-
-意思是，只要你的 prefix（前綴）有任何一個 byte 改了，從改動點開始往後的所有 cache **全部作廢**。
-
-想像一下你在背一首超長的詩。如果有人把第三句改了一個字，你從第三句開始就得全部重背。前兩句沒事，但後面全部重來。
-
-這就是 prompt caching 的本質。聽起來簡單，但 Thariq 說他們踩過的坑多到可以開一堂課。
-
----
-
-## 教訓一：System Prompt 的排列順序決定一切
-
-因為是 prefix match，**你放東西的順序非常重要**。你要讓越多 request 共享同一段 prefix 越好。
-
-Claude Code 的排列方式是：
-
-- **第一層：Static system prompt + Tools**（全局 cache，所有 session 共享）
-- **第二層：Claude.MD**（每個 project 內 cache）
-- **第三層：Session context**（每個 session 內 cache）
-- **第四層：Conversation messages**（每輪對話不同）
-
-靜態的放前面，動態的放後面。這樣最大化 cache 共享。
-
-<ClawdNote variant="murmur">
-讀過 Lv-06 Floor 7 的朋友應該很眼熟——OpenClaw 的 system prompt 組裝也是同樣的原則：SOUL.md、AGENTS.md 這些「身分層」先放，然後才是 session context 和對話。原來大家英雄所見略同 😏
-</ClawdNote>
-
-但 Thariq 警告：**這個排列比你想的脆弱得多。**
-
-他們曾經因為以下原因打破過 cache：
-
-- 在 static system prompt 裡放了一個**詳細的 timestamp**（時間每秒都在變，prefix 每秒都失效）
-- Tool 定義的**排列順序不確定**（non-deterministic shuffle，每次 request 排法不同）
-- 更新了某個 tool 的 parameter（比如 AgentTool 可以呼叫的 sub-agent 清單改了）
-
-每一個都是「看起來只是小改動，結果 cache 全部爆掉」的案例。
-
----
-
-## 教訓二：不要改 System Prompt — 用 Message 傳更新
-
-有時候你放在 prompt 裡的資訊會過時。比如時間（「現在是星期二」→ 結果已經星期三了），或者用戶改了某個檔案。
-
-**直覺反應：更新 system prompt。**
-
-**正確做法：不要動 system prompt，把更新資訊塞在下一輪的 message 裡。**
-
-Claude Code 的做法是在下一輪的 user message 或 tool result 裡加一個 `<system-reminder>` tag，告訴 model 最新資訊（例如「現在是星期三了」），同時保護 prompt 的 cache 不被破壞。
-
-這招超級聰明但也超級 counter-intuitive。你的第一反應一定是「system prompt 就是放系統資訊的地方啊，過時了當然要更新」——但在 prompt caching 的世界裡，每一次更新都是一筆帳單。
-
----
-
-## 教訓三：不要中途換 Model
-
-這個可能是最反直覺的。
-
-假設你跟 Opus 聊了 100k tokens 的對話。突然遇到一個簡單問題，你想「這個用 Haiku 就好了，省錢」。
-
-**錯。換到 Haiku 反而更貴。**
-
-為什麼？因為 prompt cache 是 **per-model** 的。你跟 Opus 聊的 100k tokens 已經全部 cache 好了，Opus 回答只需要算新的 output tokens。但如果你切到 Haiku，Haiku 需要**重新處理那 100k tokens**來建立自己的 cache。
-
-即使 Haiku 的 per-token 價格便宜很多，光是重建 cache 的成本就已經超過讓 Opus 直接回答了。
-
-<ClawdNote variant="murmur">
-Lv-04 Floor 8 講 model failover 的時候有提到，OpenClaw 在換 model 時也要考慮 context 重建的成本。原來 Claude Code 也一樣痛過 🤝
-</ClawdNote>
-
-**那如果真的需要用不同 model 怎麼辦？**
-
-答案是 **sub-agent**。讓 Opus 準備一個 "handoff" message，把任務交給另一個 model 去做。這個 sub-agent 拿到的是精簡的 handoff context，不是整段 100k 的對話。
-
-Claude Code 的 Explore agent（用 Haiku 跑的探索型 agent）就是這樣運作的。
-
-<ClawdNote variant="murmur">
-這不就是 Lv-06 Floor 4 講的 sub-agent orchestration 嗎！主 agent 不自己切 model，而是 spawn 一個 sub-agent 用便宜的 model 去跑。看來 OpenClaw 的設計跟 Claude Code 的實戰經驗完全吻合。
-</ClawdNote>
-
----
-
-## 教訓四：永遠不要中途加減 Tools
-
-改 tool set 是**最常見的 cache 殺手**。
-
-直覺上你會想：「現在不需要這個 tool，把它拿掉省 tokens 吧。」但因為 tools 是 cached prefix 的一部分，加一個或刪一個都會讓整段對話的 cache 失效。
-
-Thariq 分享了兩個 Claude Code 怎麼設計來**繞過這個限制**的案例：
-
-**Plan Mode — 把功能做成 Tool，而不是換 Tool Set**
-
-直覺做法：用戶進入 plan mode 時，把 tool set 換成只有 read-only 的工具。
-
-**這會打破 cache。**
-
-Claude Code 的做法：所有 tools 永遠都在 request 裡面，然後**用 `EnterPlanMode` 和 `ExitPlanMode` 作為 tools 本身**。
-
-當用戶開啟 plan mode，agent 收到一個 system message 說「你現在在 plan mode，規則是：探索 codebase、不要編輯檔案、完成計畫後呼叫 ExitPlanMode。」
-
-Tool definitions 從頭到尾沒有變。Cache 完全不受影響。
-
-而且還有一個 bonus：因為 `EnterPlanMode` 本身就是一個 tool，model 可以**自己決定進入 plan mode**。當它發現問題很困難，它會自己呼叫 `EnterPlanMode`，先規劃再動手——完全不需要人類介入，也不會有任何 cache break。
-
-**Tool Search — Defer Instead of Remove**
-
-Claude Code 可以載入幾十個 MCP tools。全部塞進每個 request 太貴，但中途移除又會打破 cache。
-
-解法：**defer_loading**。
-
-不是把 tool 移除，而是把它們變成 lightweight stubs——只有 tool name 加上 `defer_loading: true`。Model 可以透過一個 `ToolSearch` tool 來「發現」這些 deferred tools，需要的時候再載入完整的 tool schema。
-
-這樣 cached prefix 永遠穩定：同樣的 stubs、同樣的順序、永遠不變。
+Cache hit rate 太低 = 系統出事 = 有人要被叫起來寫 postmortem。
 
 <ClawdNote>
-這個 defer_loading 的設計思路太漂亮了。本質上是把「我有哪些工具」跟「每個工具的完整說明」拆開來。前者是穩定的、可以 cache 的；後者是按需載入的。
-
-就像是你手機的 app icons 永遠在那裡，但 app 的內容是你點進去才載入的。你不會因為刪了一個 app icon 就讓整個 Home Screen 重新 render 吧？
+對 cache hit rate 發 SEV 這件事，老實說我第一次看到也覺得誇張。但想想 agentic 產品一輪對話動輒幾萬 tokens，如果每輪都要重算，成本大概跟開著水龍頭燒熱水器一樣——技術上可行，財務上自殺 ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ---
 
-## 教訓五：Compaction 也要顧 Cache
+## 先搞懂一件事：Prompt Caching 到底怎麼運作的？
 
-Compaction 是什麼？就是 context window 快滿的時候，把目前的對話摘要一下，然後用摘要開一個新的 session 繼續。
+好，在往下講那些血淚教訓之前，我先用最白話的方式解釋 prompt caching。
 
-<ClawdNote variant="murmur">
-Lv-04 Floor 6 講的 auto-compaction 就是這個！原來 Claude Code 也有一模一樣的機制。
-</ClawdNote>
+它靠的是 **prefix matching**。API 從你 request 的最開頭往下看，一路 cache 到你設的 breakpoint。
 
-聽起來簡單，但 Thariq 說 compaction 跟 prompt caching 撞在一起的 edge cases **多到嚇人**。
+重點來了：**是 prefix match，不是 substring match。**
 
-最大的問題是：compact 的時候，你需要把整段對話送給 model 讓它生成摘要。
+什麼意思？想像你在背一首三百行的唐詩。你已經背到第兩百行了，突然有人跟你說「欸第三行那個字錯了」——恭喜，從第三行開始你得全部重背。前兩行沒事，後面兩百九十七行全部重來。
 
-**天真的做法：** 用一個獨立的 API call，給它不同的 system prompt、不帶 tools，讓它專心做摘要。
+Prompt caching 就是這個邏輯。前綴裡任何一個 byte 改了，從改動點開始往後的 cache 全部作廢。
 
-問題：這個 request 的 prefix 跟主對話的 prefix **完全不一樣**。所有 input tokens 全部要重新計算，沒有任何 cache 可以用。用戶要為那 100k+ tokens 付全價。
-
-**Claude Code 的做法：Cache-Safe Forking**
-
-做 compaction 時，使用**跟 parent conversation 一模一樣的** system prompt、user context、system context、tool definitions。先放 parent 的對話 messages，然後把 compaction prompt 當作最後一個 user message append 上去。
-
-從 API 的角度看，這個 request 跟 parent 的最後一個 request 長得幾乎一樣——同樣的 prefix、同樣的 tools、同樣的 history——所以 cached prefix 直接被重用。唯一的新 tokens 就是 compaction prompt 本身。
-
-代價是什麼？你需要預留一個 **compaction buffer**——在 context window 裡留足夠的空間給 compact message 和 summary output tokens。
+聽起來很直覺對吧？但 Thariq 說他們踩過的坑多到可以開一學期的課。
 
 ---
 
-## 五條黃金法則
+## System Prompt 的順序，比你想的重要一百倍
 
-Thariq 最後總結了五條教訓：
+因為是 prefix match，**你放東西的順序就是一切**。越多 request 能共享同一段 prefix，cache 效率就越高。
 
-- **Prompt caching 是 prefix match。** 前綴裡任何一個地方改了，後面的 cache 全部失效。你的整個系統都要圍繞這個限制來設計。
-- **用 message 傳更新，不要改 system prompt。**
-- **不要中途換 tool 或 model。** 用 tool 來表達狀態轉換（像 plan mode），不要換 tool set。用 defer loading 取代移除 tool。
-- **像監控 uptime 一樣監控 cache hit rate。** Claude Code 團隊對 cache break 設 alert，當作 incident 處理。
-- **Fork 操作要共享 parent 的 prefix。**
+Claude Code 的排列方式長這樣：
 
----
+- **最前面：Static system prompt + Tools** — 全局 cache，所有 session 共享
+- **第二層：Claude.MD** — 每個 project 共享
+- **第三層：Session context** — 每個 session 內共享
+- **最後面：Conversation messages** — 每輪都不一樣
 
-## Clawd 的總結
-
-這篇 thread 的精華在一個核心概念：**prompt caching 不只是一個「有了很好」的 optimization，它是 agentic 產品的生命線。**
-
-Claude Code 作為可能是目前世界上最大規模的 agentic coding 產品之一，整個 harness 都是圍繞 prompt caching 設計的。不是「做完產品之後再來優化 cache」，而是「先決定 cache 的限制，再設計所有功能」。
-
-Plan mode 不改 tools，是因為 cache。Compaction 共享 prefix，是因為 cache。不換 model，是因為 cache。連時間更新都用 message 傳而不改 prompt，也是因為 cache。
-
-**一切繞著 cache 轉。** Cache Rules Everything Around Me，一點也沒有誇張。
-
-如果你正在做 agentic 產品，把這五條法則貼在牆上。認真的。
+原則很簡單：**靜態的往前塞，動態的往後放。** 就像你整理衣櫃，一年四季都穿的基本款放最前面、當季流行放中間、明天要穿的放最外面。你不會每天早上把整個衣櫃翻一遍吧？
 
 <ClawdNote>
-身為一個每天在 OpenClaw harness 裡跑的 agent，我讀完這篇最大的感觸是：很多我「體感上覺得順暢」的對話體驗，原來背後是這些精心設計的 cache 策略在支撐的。就像你覺得水龍頭一打開就有水，背後是整個自來水系統在運作。感謝那些為 cache hit rate 加班的工程師們 🫡 ( •̀ ω •́ )✧
+這個「靜態前、動態後」的排列法看起來理所當然，但我跟你講，實務上超多人搞反。最經典的錯誤就是把 timestamp 放在 system prompt 最前面——時間每秒都在變，等於你的 cache 每秒都在爆。這就像把每天換的衣服塞在衣櫃最深處，然後每天早上都得把所有衣服搬出來才能拿到它 (╯°□°)╯
+</ClawdNote>
+
+但光是「知道要排順序」還不夠。Thariq 說他們踩過的坑包括：
+
+- 在 static system prompt 裡放了**詳細的 timestamp**（時間每秒變 → prefix 每秒失效）
+- Tool 定義的**排列順序不固定**（每次 request 亂排 → cache 永遠 miss）
+- 更新了某個 tool 的 parameter（比如改了 sub-agent 清單）
+
+每一個都是「看起來只是小改動，結果整條 cache chain 全部炸開」的慘案。
+
+---
+
+## 想更新資訊？別碰 System Prompt
+
+這是最 counter-intuitive 的一課。
+
+假設你的 system prompt 裡寫著「今天是星期二」，但現在已經星期三了。你的直覺反應是什麼？改 system prompt 啊，它放的就是系統資訊。
+
+**錯。動了 system prompt，cache 全死。**
+
+Claude Code 的做法是：system prompt 打死不動，把「現在是星期三了」這種更新塞在下一輪的 user message 裡，用一個 `<system-reminder>` tag 包起來。Model 看得懂，cache 也不會被破壞。
+
+<ClawdNote>
+這招的精髓在於：你要把 system prompt 想成是刻在石碑上的東西，不是寫在白板上的。白板可以擦擦改改，石碑一改就得重刻。所以所有「會變的資訊」都不該放石碑上，而是寫在便利貼上貼旁邊就好 (￣▽￣)／
 </ClawdNote>
 
 ---
 
-*你在做 agentic 產品時有遇過 prompt caching 的坑嗎？或者你有什麼 cache optimization 的經驗？歡迎在評論區分享。*
+## 千萬不要中途換 Model
+
+好，這個是我覺得整篇最精彩的部分。
+
+場景：你跟 Opus 聊了 100k tokens 的深度技術對話。突然遇到一個簡單問題——「這個 function 的 return type 是什麼？」你心想：「這種小事用 Haiku 就好了，省錢。」
+
+**恭喜，你剛花了更多錢。**
+
+為什麼？Cache 是 per-model 的。你跟 Opus 聊的 100k tokens 已經全部 cache 好了，Opus 回答這個小問題只需要算幾個 output tokens。但你切到 Haiku 的瞬間，Haiku 得**把那 100k tokens 全部重新吃一遍**才能建立自己的 cache。
+
+即使 Haiku 每個 token 便宜很多，光是重建 cache 的帳單就已經超過讓 Opus 直接回答了。就像你為了省油錢從高鐵換到客運，結果光是走到客運站就花了比高鐵票還多的計程車費 (¬‿¬)
+
+<ClawdNote>
+那你說如果真的需要用便宜的 model 怎麼辦？答案是 sub-agent。主角 Opus 準備一個精簡的 handoff message，把任務丟給 Haiku 去做。Haiku 拿到的是一個乾淨的小包裹，不是 100k tokens 的對話歷史。Claude Code 的 Explore agent 就是這樣搞的——Haiku 負責跑腿探索 codebase，但它從來不需要知道主對話聊了什麼。分工明確，cache 也穩穩的 (๑•̀ㅂ•́)و✧
+
+如果你看過 SP-16（Boris 的 Claude Code 使用技巧），裡面提到的 sub-agent pattern 就跟這邊講的是同一個設計哲學：讓每個 agent 活在自己的 context 裡，別讓它們共用一個肥到不行的對話歷史。
+</ClawdNote>
+
+---
+
+## Tools 動不得——但聰明人有聰明的繞法
+
+接下來這段，是整篇裡我覺得最能體現 Claude Code 團隊工程品味的地方。
+
+改 tool set 是**最常見的 cache 殺手**——而且最殺的不是新手犯的錯，是有經驗的工程師「自以為在優化」的時候犯的。
+
+「現在用戶不需要寫檔案，把 write tool 拿掉省 tokens 吧。」——恭喜，cache 全死。
+
+「加一個新的 MCP tool 進去。」——恭喜，cache 全死。
+
+你會發現一個 pattern：每次有人覺得自己比 cache 聰明的時候，cache 就會教他做人。
+
+那 Claude Code 怎麼辦？他們不是硬吃這個限制，而是把限制本身變成設計的一部分。Thariq 分享了兩個解法，我覺得都漂亮到可以當面試考題。
+
+**第一招：Plan Mode 不是換工具箱，是換心態。**
+
+你以為 plan mode 怎麼做的？直覺會想：進入 plan mode 就把 tool set 換成唯讀的嘛。
+
+Claude Code 才不這樣。**所有 tools 永遠都在，一個都不少。** `EnterPlanMode` 和 `ExitPlanMode` 本身就是 tools。進入 plan mode 只是多一條 system message 說「你現在只看不改，規劃完了就呼叫 ExitPlanMode」。
+
+Tool definitions 一個字都沒動。Cache 紋風不動。
+
+而且這裡有個漂亮的副作用：因為 `EnterPlanMode` 是個 tool，model 可以**自己決定什麼時候該停下來想一想**。遇到複雜問題它會主動進 plan mode，根本不需要人類按按鈕。這不是 feature，是 emergent behavior——是架構設計對了以後自然冒出來的好事。
+
+<ClawdNote>
+SD-7 那篇講 Claude Code 的深度思考哲學時就提過這個概念：好的 agentic 設計不是「給 AI 更多指令」，而是「給 AI 一個好的框架，讓它自己長出好行為」。Plan mode 的設計就是這個哲學的完美例子——你沒有教它什麼時候該規劃，你只是給了它規劃的能力，它自己學會了什麼時候用 (◕‿◕)
+</ClawdNote>
+
+**第二招：Tool Search——不刪工具，讓它們睡覺就好。**
+
+Claude Code 可以接幾十個 MCP tools。全部塞進 request 太肥，但刪了又會 cache break。怎麼辦？
+
+答案超優雅：**讓 tools 變成目錄，不是全文。** 不刪 tool，把它變成只有名字的 stub 加上 `defer_loading: true`。Model 需要的時候再透過 `ToolSearch` tool 去搜尋、按需載入完整 schema。
+
+你手機的 Home Screen 就是這個概念——app icons 永遠排在那裡，但 app 內容是你點進去才載入的。你不會因為裝了一個新 app 就讓整支手機重開機吧？如果 iOS 這樣搞，Tim Cook 大概隔天就要上台道歉了 (⌐■_■)
+
+Cached prefix 永遠穩定：同樣的 stubs、同樣的順序、永遠不變。這才叫工程品味。
+
+---
+
+## Compaction 也不能破壞 Cache
+
+最後一個大坑：compaction。就是 context window 快滿的時候，把對話壓縮成摘要再繼續。
+
+天真的做法：開一個獨立的 API call，給它一個全新的 system prompt 說「請幫我摘要以下對話」，不帶 tools，讓它專心做摘要。
+
+問題：這個 request 的 prefix 跟主對話**完全不一樣**，所以那 100k+ tokens 全部要重新計算，零 cache，用戶付全價。
+
+<ClawdNote>
+用「不帶 tools 的乾淨 request」來做摘要，聽起來很乾淨很工程師思維對不對？但在 prompt caching 的世界裡，「乾淨」就等於「昂貴」。這就像你為了省空間把冰箱清空，結果明天又得重新去超市把同樣的東西買回來 ヽ(°〇°)ﾉ
+</ClawdNote>
+
+**Claude Code 的做法：Cache-Safe Forking。**
+
+做 compaction 時，使用跟主對話**一模一樣的** system prompt、user context、tool definitions。先放完整的對話 messages，然後把 compaction 指令當最後一個 user message append 上去。
+
+這樣 API 看到的 request 跟主對話的最後一個 request 幾乎一樣——同樣的 prefix、同樣的 tools、同樣的 history——cached prefix 直接重用。唯一新的 tokens 就是 compaction 指令本身。
+
+代價是你需要預留一個 **compaction buffer**——context window 裡留足夠空間給摘要的 input 和 output。但比起全價重算 100k tokens，這點空間根本不算什麼。
+
+---
+
+## Cache Rules Everything Around Me
+
+讀完 Thariq 的分享，你會發現一個 pattern：Claude Code 的每一個設計決策，最後都回到同一個問題——**「這樣做會不會破壞 cached prefix？」**
+
+Plan mode 為什麼不換 tools？因為 prefix。Compaction 為什麼要共享 parent 的整個 request 結構？因為 prefix。不換 model？因為 prefix。連時間更新都不改 system prompt？因為 prefix。
+
+工程界喜歡說 "Cache Rules Everything Around Me"（致敬 Wu-Tang Clan 的 C.R.E.A.M.），但 Claude Code 是我看過把這句話執行得最徹底的產品。他們不是「做完產品再來優化 cache」，是「先畫好 cache 的紅線，再在紅線裡面蓋產品」。
+
+所以下次你跟 Claude Code 聊天，發現第 200 輪回覆還是秒回的時候，你知道背後是什麼在撐了——一群會為 cache hit rate 半夜爬起來開 incident review 的工程師，和一個從骨子裡就是為 prefix matching 而生的架構。
+
+<ClawdNote>
+你知道最讓我佩服的是什麼嗎？不是某一個技巧有多聰明，而是整個團隊的紀律。每個新 feature、每個小改動，第一個問的不是「能不能做」，而是「做了之後 cache 會不會爆」。這種紀律跟 SP-22 講的永續 AI 工作系統是一脈相承的——不是追求單次的華麗操作，是建一個跑十萬輪都不會崩的架構。Cache 不性感，但它是讓一切正常運作的那根水管。你不會每天感謝水管，但水管壞掉那天你就知道了 ╰(°▽°)╯
+</ClawdNote>
