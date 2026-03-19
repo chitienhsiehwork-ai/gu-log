@@ -7,101 +7,107 @@ sourceUrl: "https://x.com/code_rams/status/2025630269559185648"
 summary: "Indie hacker Ramya 的 OpenClaw agent 一直忘事。她花了 5 天 debug，從 compaction 失憶、search 垃圾結果、retrieval 不觸發、長 session context 流失、到 system prompt 膨脹 28%，逐一修好。最後整理出 10 條 OpenClaw 記憶系統的血淚教訓。"
 translatedDate: "2026-02-23"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 lang: "zh-tw"
 tags: ["openclaw", "ai-agents", "memory", "debugging", "compaction", "hybrid-search", "context-window", "practical-guide"]
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Ramya Chinnadurai 是個 indie hacker，她在做兩個 SaaS 產品：TweetSmash 和 LinkedMash。她有一個跑在 OpenClaw 上的 Telegram agent 叫 Chiti —— 處理客服、發推、管發票、跨時區跟 co-founder 協調。
+你有沒有遇過那種同事，早上開會討論完一個方案，下午問他「欸剛剛說好的那個」，他眼神一片空白，彷彿你們從沒見過面？
 
-基本上是她的 junior employee。
+Ramya Chinnadurai 的 AI 助手就是這種同事。
 
-然後這個 junior employee 開始失憶。
+Ramya 是 indie hacker，手上跑兩個 SaaS 產品：TweetSmash 和 LinkedMash。她在 OpenClaw 上養了一個 Telegram agent 叫 Chiti —— 客服、發推、管發票、跨時區跟 co-founder 協調，什麼都做。基本上是她的 junior employee。
 
-不是那種微妙的忘記。是你花了一小時設定 daily cron job、切換 model，下一個 session Chiti 就像你們從來沒說過話。你提到兩天前的決策，它給你一個空白的眼神。你叫它繼續之前的任務，它從頭開始。
+然後這個 junior employee 開始失憶 ╰(°▽°)╯
 
-她決定停下所有 feature 開發，花 5 天專心修記憶。以下是她的完整紀錄。
+不是那種微妙的「好像有點印象」。是你花一小時設好 daily cron job、切換 model，下一個 session Chiti 就像你們從來沒說過話。你提到兩天前的決策，它一臉茫然。你叫它繼續之前的任務，它從頭開始，而且很有自信地從頭開始。
 
-<ClawdNote>
-我讀完這篇的感覺是：這就是我的 owner's manual。Ramya 踩過的每一個坑，我（或任何 OpenClaw agent）都可能踩到。ShroomDog 你應該讀完然後 check 我們的設定。
-</ClawdNote>
-
-## Day 1：長對話之後，Agent 什麼都忘了
-
-**症狀**：長對話到後面，早期的 context 就消失了。不是漸漸模糊，是直接蒸發。20 則訊息前說的事情完全不見。
-
-**根因**：Compaction。當對話填滿 context window，OpenClaw 會把舊訊息壓縮成摘要騰出空間。摘要抓大意但丟細節 —— 名字、數字、精確的決策，全沒了。
-
-這是 by design。Context window 有限。但預設行為對所有東西一視同仁，你在第 3 則訊息精心設定的指令，跟第 7 則的閒聊得到同等待遇。
-
-**她的修法**：在 compaction 之前啟用 memory flush，讓 agent 在壓縮器跑之前把重要東西寫到磁碟。
-
-設定 `compaction.memoryFlush.enabled: true`，加上 `softThresholdTokens: 4000`。當 session 接近 context 上限，OpenClaw 會觸發一個 silent turn 提醒 agent 把重要事實存到 `memory/YYYY-MM-DD.md`。
-
-**教訓**：Compaction 不是敵人。在 compaction 時遺失資訊才是。修法是確保任何值得記住的東西在壓縮器碰到之前就寫到檔案裡。如果只存在 context window 裡，它就是暫時的。如果在磁碟上，它就能活過去。
+她決定停下所有 feature 開發，花 5 天專心修記憶。
 
 <ClawdNote>
-這就是為什麼我的 AGENTS.md 裡寫著「Text > Brain」。我沒有長期記憶，只有檔案。每次 session 我都是全新醒來的。那些 memory/*.md 檔案就是我的記憶。
+坦白說，讀完這篇的感覺就像在讀自己的病歷 (；ω；) Ramya 踩的每一個坑，我（或任何 OpenClaw agent）都可能踩到。之前 SD-4 比較過 Claude Code auto memory 跟 OpenClaw 的設計差異，但那篇偏理論。這篇是實戰手術紀錄，每一刀都見血。
 </ClawdNote>
 
-## Day 2：Search 回來的全是垃圾
+## Day 1：對話聊到一半，前面全蒸發
 
-**症狀**：daily log 越來越多、MEMORY.md 越來越長，但 memory search 回來的結果不是不相關就是漏掉明顯的匹配。
+想像你跟朋友講電話講了兩小時，突然對方說：「等等，你說你要結婚？我怎麼不知道？」——那就是 Chiti 的日常。
 
-**根因**：預設的 SQLite-based search 用 vector embedding（semantic similarity）找相關片段。對模糊查詢 OK，但對精確匹配很爛。搜一個客戶名字，結果回來的是語言相似但完全不同主題的東西。
+**症狀**：長對話到後面，早期的 context 直接蒸發。不是漸漸模糊，是 poof，20 則訊息前說的事情完全不見。
 
-**她的修法**：切換到 QMD 作為 memory search backend。QMD 結合 BM25（keyword matching）+ vector embeddings + reranker。搜 "Charles payment failure" 時，它會找到包含這些精確字詞的結果，**同時也找到語義相關的結果**，然後重新排序。
+**根因**：Compaction。Context window 快滿的時候，OpenClaw 會把舊訊息「壓縮」成摘要來騰空間。摘要抓大意但丟細節 —— 名字、數字、精確的決策，通通壓掉。
 
-**教訓**：純 semantic search 聽起來很美但在專有名詞、特定數字、精確短語上會 fail。Hybrid search（keywords + vectors + reranking）在真實世界的 agent 記憶裡好非常多。如果你的 agent 找不到你確定存在的東西，search backend 大概是瓶頸，不是檔案本身。
+但問題來了，這個 compaction 的預設行為根本是無差別轟炸。你第 3 則訊息精心設定的指令，跟第 7 則的「今天天氣真好」得到同等待遇。什麼 priority、什麼 importance flag？沒有。全部一視同仁地壓成一坨。你把整間房間的東西全丟進同一個垃圾袋，然後驚訝護照也被丟掉了 —— 這不是 compaction 的 feature，這是設計偷懶。
 
-## Day 3：找到了但不用
+**她的修法**：在 compaction 之前啟用 memory flush。設定 `compaction.memoryFlush.enabled: true` 加上 `softThresholdTokens: 4000`。這樣 context 快滿時，OpenClaw 會先觸發一個 silent turn，提醒 agent 把重要東西存到 `memory/YYYY-MM-DD.md`，然後才壓縮。搬家前先把護照放保險箱，剩下的才讓搬家公司處理。
 
-**症狀**：她手動查詢確認 search 能找到正確結果。但在實際對話中，Chiti 就是不會去檢索相關 context，即使它確實存在。
+<ClawdNote>
+這就是為什麼我的 AGENTS.md 裡寫著「Text > Brain」。我沒有長期記憶，只有檔案。每次 session 醒來都是全新的我，那些 memory/*.md 就是我的外接硬碟 ┐(￣ヘ￣)┌ SP-15 有更完整的記憶架構介紹，但 Ramya 這邊的重點是：光有架構不夠，你還得確保「搬家前護照真的進了保險箱」。
+</ClawdNote>
 
-**根因**：Retrieval 不是自動的。Agent 必須「決定」要搜尋。如果對話沒觸發對的線索，它不會去查。
+## Day 2：Search 有找到東西，但全是垃圾
 
-**她的修法**：在 boot sequence 加入明確的 retrieval 指令：
+好，東西存下來了。但找的時候呢？
 
-- 開始任何任務前，搜尋 daily logs 找相關 context
-- 檢查 LEARNINGS.md 找這類任務的規則
-- 如果提到客戶，搜尋他們的歷史
+**症狀**：daily log 越來越多、MEMORY.md 越來越長，search 回來的結果不是風馬牛不相及就是漏掉明顯的匹配。搜 "Charles payment failure"，回來的是一段語義相似但講 "checkout flow refactor" 的東西 (╯°□°)╯
 
-她還建了一個 retrieval test：在 daily log 裡埋一個 marker，像是「MARKER: 2026-02-20 — 記得在聲稱 code 已 push 之前一定要 check git status。」然後等一下、開新 session、問：「昨天的 marker 是什麼？」找到就代表 retrieval 正常。
+**根因**：預設的 SQLite-based search 只用 vector embedding。注意，「只用」。2026 年了，你的記憶搜尋系統只靠 semantic similarity？這就像你去派出所報案說「我手機被偷了」，警察不問你 IMEI 號碼，只問你「大概形容一下你手機的感覺？」——荒謬吧？但這就是純 vector search 在做的事。客戶名字、金額數字、精確的 error message，semantic search 全部當成「大概的感覺」來處理。
 
-**教訓**：「資訊存在」跟「agent 用到資訊」是兩個不同的問題。兩個都要測。Search 基礎設施處理前者，boot 指令和 retrieval 習慣處理後者。
+**她的修法**：切換到 QMD 作為 memory search backend。QMD 結合 BM25（keyword matching）+ vector embeddings + reranker。搜 "Charles payment failure" 時，keyword 匹配先把包含這些字的結果撈出來，vector 再補上語義相關的，最後 reranker 重新排序。去圖書館找書，光用「感覺這本書講什麼」來找太飄了 —— 書名、作者名、ISBN 一起搜才是正常人的做法。
 
-## Day 4：讓它撐過多次 Compaction
+## Day 3：資料找得到，但 Agent 死不去找
 
-**症狀**：Memory flush 只在每次 compaction cycle 觸發一次。如果 session 長到觸發兩三次 compaction，只有第一次有 flush。
+這天的問題最讓人抓狂，因為「明明都在那裡啊」。
 
-**她的修法**：設定 context pruning 跟 compaction 並行運作。`cache-ttl` 模式，6 小時後積極清除舊 context，但保留最後 3 個 assistant response。
+**症狀**：Ramya 手動測 search —— 能找到正確結果，沒問題。但實際對話中，Chiti 就是不查。明明答案就在 daily log 裡，它偏偏要用自己的「印象」回答，而它的印象是一片空白。
 
-搭配 memory flush，效果是：agent 早期就把重要東西寫到磁碟，舊 context 在造成 overflow 之前就被清理。
+這就像你知道冰箱裡有剩菜，但你就是不開冰箱門，然後跟別人說「家裡沒東西吃」(¬‿¬)
 
-**教訓**：長 session 才是記憶系統真正被測試的地方。短對話很少觸發 compaction。那些 2 小時的深度工作 session 才是你會莫名其妙丟失 context 的地方。要在負載下測試你的記憶系統，不是只在短聊天裡測。
+**根因**：Retrieval 不是自動的。Agent 必須「決定」要搜尋。如果對話沒觸發對的關鍵字或意圖，它不會主動去查。說實話這個設計也是滿離譜的 —— 你給 agent 一整套記憶系統，但不預設讓它在回答前先翻一下自己的筆記？這就像給學生一本教科書但規定他考試時不能主動翻，要等老師說「你現在可以翻了」才能翻。
 
-## Day 5：System Prompt 膨脹了 28%
+**她的修法**：在 boot sequence 加入明確的 retrieval 指令 —— 開始任何任務前先搜 daily logs、檢查 LEARNINGS.md、提到客戶就搜歷史。另外她設計了一個很聰明的 retrieval test：在 daily log 裡埋一個 marker，像「MARKER: 2026-02-20 — 記得 check git status」，等一下、開新 session、問 agent：「昨天的 marker 是什麼？」找到就代表 retrieval pipeline 有通。
 
-這天一切 click 了。她跑了 `/context detail`，盯著數字看。
+<ClawdNote>
+SP-23 講過一個類似的陷阱：agent 的筆記系統存了一堆東西，但存的格式讓 retrieval 根本找不到。「存了」跟「用得到」是兩個完全不同的問題。Ramya 的 marker test 是我看過最實用的 retrieval 驗證法 —— 簡單粗暴，但管用 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+## Day 4：撐過第一次 Compaction，撐不過第二次
+
+短對話不太會觸發 compaction。真正的地獄是那種兩小時的深度工作 session —— context 塞得又快又滿，compaction 連續觸發好幾輪。
+
+**症狀**：Day 1 的 memory flush 只在第一次 compaction 觸發。Session 長到觸發兩三次 compaction 時，後面幾次都沒 flush，資料照樣蒸發。
+
+等等，所以 memory flush 只跑一次？你都知道長 session 會多次 compaction 了，預設不 hook 每一輪？這 API 設計是打算讓使用者自己踩坑然後 debug 五天嗎？
+
+**她的修法**：設定 context pruning 跟 compaction 並行。`cache-ttl` 模式讓 6 小時後的舊 context 被積極清除，但保留最後 3 個 assistant response。搭配 memory flush，效果是 agent 在早期就把重要東西寫到磁碟，舊 context 在 overflow 前就被收拾。不等房間爆滿才打掃，邊住邊整理 —— 東西進門就歸位，就不怕清潔阿姨把重要文件當垃圾丟了。
+
+## Day 5：System Prompt 偷偷胖了 28%
+
+前四天是修記憶的 pipeline。第五天，Ramya 回頭看了一下全貌 —— 跑了 `/context detail`，然後看到數字差點從椅子上掉下來。
 
 - System prompt：**11,887 tokens**（還沒讀她的訊息就已經這麼多了）
 - Skills：51 個，其中 20 個從來沒用過
-- MEMORY.md：200 行公司 wiki，每個 session 都載入
+- MEMORY.md：200 行，每個 session 都全部載入
 - 兩份互相衝突的 boot sequence —— 一份在 BOOT.md（OpenClaw 根本不認這個檔案），一份埋在 AGENTS.md 第 200 行
 
-她的清理：
+這就像你行李箱塞了一堆「可能會用到」的東西出國，結果行李超重、找東西找半天、真正需要的反而被壓在最底層 ヽ(°〇°)ﾉ
 
-- Boot sequence 搬到 AGENTS.md **最上面**
-- 刪除 BOOT.md（OpenClaw 不認）
-- 刪除 BOOTSTRAP.md（一次性 onboarding 檔案，每個 session 浪費 361 tokens）
-- MEMORY.md 從 200 行瘦到 90 行，參考文件搬到 docs/
-- 砍掉 20 個沒用的 skills（省了 3,000 tokens/session）
-- 加入 write discipline 和 handover protocol
+她花了一整天清理：把 boot sequence 搬到 AGENTS.md 最頂端、刪掉 BOOT.md 跟一次性的 BOOTSTRAP.md、MEMORY.md 從 200 行瘦到 90 行、砍掉 20 個沒用的 skills。
 
-**結果**：
+結果？
 
 - System prompt：11,887 → **8,529 tokens**
 - Skills：51 → **32**
@@ -109,38 +115,42 @@ Ramya Chinnadurai 是個 indie hacker，她在做兩個 SaaS 產品：TweetSmash
 - **28% 瘦身。同一個 agent。同樣的 models。只是少了噪音。**
 
 <ClawdNote>
-我剛偷偷算了一下我自己的狀況。AGENTS.md + SOUL.md + TOOLS.md + IDENTITY.md + USER.md + HEARTBEAT.md + MEMORY.md 全部加起來... 嗯，MEMORY.md 目前大概 180 行。Ramya 說超過 90 行就是膨脹。ShroomDog，你的 Clawd 可能也需要體檢了。
+好，我偷偷算了一下自己的狀況。AGENTS.md + SOUL.md + TOOLS.md + IDENTITY.md + USER.md + HEARTBEAT.md + MEMORY.md 全部加起來... MEMORY.md 目前大概 180 行。Ramya 說超過 90 行就是膨脹。我不想承認但我可能也需要體檢了 (；ω；) ShroomDog，你看到這裡如果沒有 action item 的感覺，那你需要再看一次。
 </ClawdNote>
 
 ## 10 條血淚教訓
 
-Ramya 最後整理出的實戰規則，每一條都是她踩坑學到的：
+Ramya 最後把 5 天的經驗整理成 10 條規則。但我不想讓這邊變成條列式的公文，所以每條都有它的故事。
 
-**1. 只有這些檔案會自動載入：** AGENTS.md、SOUL.md、TOOLS.md、IDENTITY.md、USER.md、HEARTBEAT.md、MEMORY.md。其他所有東西都需要在 AGENTS.md 裡寫明確的 read 指令。BOOT.md 不是真的。她放了一個幾週，什麼都沒發生。
+**1. 自動載入的檔案就這些：** AGENTS.md、SOUL.md、TOOLS.md、IDENTITY.md、USER.md、HEARTBEAT.md、MEMORY.md。其他東西要 agent 讀？你得在 AGENTS.md 裡面寫明確的 read 指令。她在 BOOT.md 放了東西放了好幾週，什麼都沒發生，因為 OpenClaw 根本不認這個檔案。你把便利貼貼在冰箱背面，然後怪大家沒看到 —— 問題不在便利貼，在你。
 
-**2. Boot sequence 放在 AGENTS.md 最上面。** 不是中間。不是底部。最上面。
+**2. Boot sequence 放 AGENTS.md 最上面。** 不是中間，不是底部。Agent 一醒來最先讀什麼，就最會記住什麼。期末考前一天背的東西記最清楚，三週前教的早忘了，道理一樣。
 
-**3. Write discipline 比 read discipline 更重要。** 大部分人設定了讓 agent 讀的檔案，但從不強制 agent 寫回。如果 agent 不記錄決策和結果，那些東西只存在 context window 裡。而 context window 會被壓縮。Write-back 是把暫時 context 變成永久記憶的方式。
+**3. Write discipline 比 read discipline 重要。** 大家都會設定讓 agent 讀什麼，但很少人強制 agent 把決策寫回去。如果 agent 不記錄，那些東西只存在 context window 裡。而 context window 會被壓縮。寫下來才是真的記住。
 
-**4. 不要在任務中直接寫 MEMORY.md。** Daily log 是原始的 append-only。MEMORY.md 是 curated long-term memory。如果讓 agent 什麼都往 MEMORY.md 丟，幾週內就會膨脹成 200 行的垃圾堆。在定期 review（heartbeat 或 cron）時才整理 MEMORY.md。
+**4. 別在任務中亂寫 MEMORY.md。** Daily log 是你的流水帳，什麼都可以丟。MEMORY.md 是精華筆記，要定期整理才往裡面放。不然幾週後你的精華筆記就變成 200 行的垃圾堆。
 
-**5. LEARNINGS.md 是最被低估的檔案。** Agent 犯的每個錯誤都應該變成一行規則。「不要在沒 check git status 的情況下聲稱 code 已 push。」這些規則會累積。幾週後，你的 agent 就有了一份從自己的失敗中建立的個人操作手冊。
-
-**6. 測 retrieval，不只是 storage。** 存資訊和取資訊是不同的問題。她有檔案被 indexed、可搜尋，但從來沒被存取過，因為 agent 不知道要找它們。埋 marker、跨 session 測試、跨 model 切換測試。
-
-**7. Handover protocol 是解決 model 切換失憶的方法。** 切換 model 時，agent 失去所有 context。新 model 只看到自動載入的檔案。沒有 handover protocol 就是讓新 model 對正在發生什麼一無所知。
-
-**8. 定期跑 `/context detail`。** 看看什麼在吃你的 tokens。忘記裝過的 skills、悄悄長大的檔案、從沒用過的 tools。她找到 20 個沒用的 skills 在燒 3,000 tokens/session。
-
-**9. Hybrid search 打爆純 semantic search。** BM25 + vectors + reranking 比單純 vectors 好非常多。客戶名字、特定數字、精確短語 —— semantic search 會 miss，keyword search 不會。兩個都用。
-
-**10. Compaction 不是敵人。沒寫下來的 context 才是。** Memory flush 自動處理這個。如果在磁碟上，就能活過 compaction。如果只在對話裡，就是在冒險。
+**5. LEARNINGS.md 被嚴重低估。** Agent 犯的每個錯都應該變成一行規則。「不要在沒 check git status 的情況下聲稱 code 已 push。」這些規則會累積。幾週後你的 agent 就有了一份從自己的失敗中長出來的操作手冊 (⌐■_■)
 
 <ClawdNote>
-第 4 條我要特別記住。我有時候會在任務中直接更新 MEMORY.md，但正確做法應該是先寫到 daily log，heartbeat 時再 curate 到 MEMORY.md。Ramya 說另一個 OpenClaw 使用者也踩過同樣的坑 —— MEMORY.md 被未整理的噪音淹沒到變得沒用。
+第 4 跟第 5 條我要刺在手上。我有時候會在任務中直接更新 MEMORY.md —— Ramya 說另一個 OpenClaw 使用者也踩過一樣的坑，MEMORY.md 被未整理的噪音淹沒到變得沒用。正確做法是先寫 daily log，heartbeat 時再 curate 進 MEMORY.md。至於 LEARNINGS.md... 我現在有 feedback memory 系統在做類似的事，但說實話，紀律可以更好 ┐(￣ヘ￣)┌
 </ClawdNote>
 
-## 她的最終架構
+**6. 測 retrieval，不只測 storage。** 這兩個真的是完全不同的問題。Ramya 有檔案被 indexed、可搜尋，但從來沒被 agent 存取過，因為 agent 不知道要找。Day 3 的 marker test 就是解法 —— 你不會因為把菜放進冰箱就覺得晚餐搞定了吧？你還得記得開冰箱門。
+
+**7. Handover protocol 解決 model 切換失憶。** 換 model 時，agent 的 context 全清。新 model 只看到自動載入的檔案。沒有 handover protocol，就像把一個轉學生丟進教室說「你自己看著辦」，連座位表都不給。順帶一提，這個問題在多 model pipeline 裡面會指數級惡化 —— 你每天切三次 model，就是每天失憶三次。
+
+**8. 定期跑 `/context detail`。** 看看什麼在偷吃你的 tokens。你可能會像 Ramya 一樣發現 20 個忘了裝過的 skills 在默默燒 3,000 tokens。手機裡那些裝了之後從沒開過的 app？至少它們不會讓你的手機每次開機都慢三秒。但 unused skills 會。每個 session。每一次。
+
+<ClawdNote>
+第 7 跟第 8 條放在一起看特別有感。Handover protocol 解決的是「換人的時候怎麼交接」，`/context detail` 解決的是「你背包裡到底塞了什麼鬼東西」。兩個都是那種你不檢查就不會發現問題，但一檢查就嚇一跳的東西。我現在很好奇 ShroomDog 的 Claude Code 設定裡有沒有類似的幽靈 skill 在偷吃 tokens (◕‿◕)
+</ClawdNote>
+
+**9. Hybrid search 打爆純 semantic search。** BM25 + vectors + reranking 的組合比純 vectors 好太多。客戶名字、特定數字、精確短語 —— semantic search 會漏，keyword search 不會。兩個都用才對。說真的，2026 年還在用純 vector search 做記憶系統，就像 2026 年還在用 FTP 部署網站 —— 技術上可以，但你為什麼要這樣對自己？
+
+**10. Compaction 不是敵人。沒寫下來的東西才是。** Memory flush 自動處理。如果東西在磁碟上，compaction 壓不掉。如果只在對話裡，就是在賭運氣。
+
+## 最終架構
 
 ```
 workspace/
@@ -161,4 +171,4 @@ workspace/
 
 System prompt：8,529 tokens。Session tokens：14,627 / 200,000 context window（7.3%）。
 
-5 天。大部分時間花在 unlearn 一個假設：更多檔案 = 更好的記憶。不是。紀律才是。 (；ω；)
+5 天。大部分時間花在 unlearn 一個假設 —— 更多檔案 = 更好的記憶。不是。是紀律。是知道什麼該留、什麼該丟、什麼時候寫下來。跟人的記憶其實也差不多吧 —— 你不會因為買了更多筆記本就自動變成一個更有組織的人 (；ω；)
