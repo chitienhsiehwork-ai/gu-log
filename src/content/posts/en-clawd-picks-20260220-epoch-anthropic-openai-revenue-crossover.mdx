@@ -5,7 +5,18 @@ originalDate: "2026-02-19"
 translatedDate: "2026-02-20"
 translatedBy:
   model: "Opus 4.6"
-  harness: "OpenClaw"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "Epoch AI"
 sourceUrl: "https://epoch.ai/data-insights/anthropic-openai-revenue"
 summary: "Epoch AI: Anthropic's revenue growth (~10x/year) outpaces OpenAI's (~3.4x/year) since crossing $B. Crossover projected Aug 2026 (~$3B run-rate), likely 2026-2027 even with conservative estimates."
@@ -15,119 +26,93 @@ tags: ["clawd-picks", "epoch-ai", "anthropic", "openai", "revenue", "ai-economic
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-## You Thought OpenAI Was Automatically #1 in Revenue? Epoch Says: Not So Fast.
+## Two Fried Chicken Stands
 
-We often confuse **mindshare** with **revenue**.
+Picture two fried chicken stands at a night market.
 
-OpenAI has bigger mainstream recognition, more product headlines, and more media gravity. So the default assumption is: they must also be far ahead in revenue.
+One has a giant neon sign, a line around the block, thousands of Google reviews. Everyone knows its name. The other is tucked in a side alley — small sign, no hype — but if you've been there once, you notice something: the line is all repeat customers, and it triples every month.
 
-Epoch AI's latest data says: **maybe not.**
+OpenAI is the neon sign. Anthropic is the alley stand.
 
-According to [Epoch's new analysis](https://epoch.ai/data-insights/anthropic-openai-revenue), if recent trends continue, **Anthropic could overtake OpenAI in annualized revenue run-rate by mid-2026**.
+Epoch AI just did something simple in their [latest analysis](https://epoch.ai/data-insights/anthropic-openai-revenue): they plotted both stands' "line growth speed," extended the curves forward, and asked when they'd cross.
 
-## The Core Numbers (Read This First)
-
-Epoch fits trends using public revenue data from the point where each company first reported **$1B annualized revenue**.
-
-Results:
-
-- **OpenAI annual growth:** ~3.4×/year (90% CI: 3.3× to 3.6×)
-- **Anthropic annual growth:** ~10×/year (90% CI: 8× to 12×)
-- **Estimated crossover:** August 2026
-- **Estimated run-rate at crossover:** ~$43B annualized
-- **Crossover window (90% CI):** February 2026 to April 2027
-
-In plain English: Anthropic's recent acceleration has been much steeper.
+The answer surprised a lot of people.
 
 <ClawdNote>
-This does **not** mean "Anthropic already makes more money than OpenAI."
-
-It means: if you extend current growth curves, the lines intersect in 2026-2027.
-
-A lot of people see charts like this and instantly yell "OpenAI is doomed!" Relax.
-
-This is run-rate modeling, not audited financial statements. It's extrapolation, not prophecy. The key signal is direction, not decimal precision.
+Quick vaccine before we go further: this is not a victory declaration for Anthropic. This is trend extrapolation, not an audited earnings report. It's like watching a car approach from behind at 180 km/h and saying "at this speed, it'll pass you in five minutes." The front car might speed up. The rear car might run out of gas. The point is direction, not a stopwatch prediction ┐(￣ヘ￣)┌
 </ClawdNote>
 
-## Epoch Also Pumps the Brakes: Don't Overread It
+## The Numbers, Laid Bare
 
-The most credible thing about this analysis is that it openly states its own caveats.
+Epoch picked a clever starting line: not "day one of each company," but "the moment each hit $1 billion in annualized revenue." That makes the comparison fair — you don't race a runner who's already done three laps against one who just started.
 
-Epoch explicitly says this is an **aggressive extrapolation**. Growth rates this high usually slow down as companies scale.
+From that starting line forward:
 
-They also cite reporting from *The Information* suggesting both companies internally expect slower 2026 growth than trend lines imply:
+OpenAI's annualized revenue grows about **3.4× per year**. Fast? In any normal industry, that's a fantasy number. But Anthropic? **10× per year.**
 
-- OpenAI internal expectation: about **2.2× growth** in 2026
-- Anthropic internal expectation: about **4× or less** in 2026
+You read that right. One is 3.4×. The other is 10×.
 
-Even under those more conservative assumptions, Epoch still sees a likely crossover in **2026 or 2027**.
-
-## Anthropic May Already Be Slowing
-
-Another key detail: Epoch tested a piecewise exponential fit and found evidence of a slope change around **July 2025** for Anthropic.
-
-- Earlier slope: ~10×/year
-- More recent slope: ~7×/year
-
-If 7× is the new normal, the crossover shifts from ~August 2026 to around **December 2026**.
+At those rates, the lines cross around **August 2026**, at roughly **$43 billion** in annualized revenue. The 90% confidence interval stretches from February 2026 to April 2027.
 
 <ClawdNote>
-This part matters because it kills the "10× forever" fantasy.
-
-AI growth curves are like rockets: takeoff can look almost vertical, but you cannot keep a launch angle forever. Competition, pricing pressure, operational limits, and market saturation eventually show up.
-
-So treat this as **structural trend analysis**, not a precise P&L forecast.
+What does a $43B run-rate look like? That's roughly 60% of TSMC's entire 2024 annual revenue. Two AI companies reaching that level "if they just keep doing what they're doing" tells you how absolutely bonkers the money flowing through this industry is right now (╯°□°)╯
 </ClawdNote>
 
-## Why This Matters to You
+## Epoch Pumps Its Own Brakes
 
-If you're a tech lead, founder, or product decision-maker, this is not gossip. It's strategy signal.
+Here's what makes this analysis credible: Epoch says all the "buts" out loud, before anyone else has to.
 
-### 1) "Best model" is no longer the whole game
+They're upfront: 10× extrapolation is aggressive. You can't watch a kid grow 10 cm a year from age three to five and conclude they'll be 250 cm tall at twenty. Companies slow down as they scale. That's gravity-level business physics.
 
-The real question is: **who converts model capability into revenue most efficiently.**
+And according to The Information, both companies' own internal forecasts for 2026 are way more conservative. OpenAI expects about **2.2× growth**. Anthropic itself expects **4× or lower**.
 
-Anthropic's slope suggests strong execution in enterprise/API monetization, especially as coding-agent demand explodes.
+But here's the kicker: even with those conservative numbers, Epoch says the crossover still likely happens in **2026 or 2027**.
 
-### 2) B2B AI competition is shifting from demo wars to execution wars
-
-The gap between 3.4× and 10× is not just a benchmark story. It's go-to-market, pricing, customer penetration, and product packaging.
-
-### 3) Recheck your vendor strategy now
-
-If your AI stack is heavily locked to one provider, this is a good time to revisit assumptions.
-
-Not because anyone is collapsing tomorrow — but because the market is reordering fast:
-
-- pricing will move
-- commercial terms will move
-- category leaders by workflow (coding/research/ops) will keep rotating
+When the conservative model and the aggressive model agree on the direction? That tells you the direction is real. Only the arrival time is flexible.
 
 <ClawdNote>
-One-line version of CP-101:
-
-**"The AI war is not only fought on leaderboards. It's fought on income statements."**
-
-We've published a lot of benchmark-heavy posts recently (CP-97/100 etc.), and it's easy to think "highest score wins."
-
-Epoch reminds us: what determines long-term survival is cash generation and growth quality.
-
-Models are weapons. Revenue is the supply line. No supply line, no war machine.
+Anthropic estimates 4× internally, but the external model shows 10×. That's a 2.5× gap — and the gap itself is interesting. It's not that someone is lying. It's the distance between "current acceleration" and "sustainable acceleration." Like cramming 14 hours a day the week before finals — you wouldn't tell your mom that's your permanent study schedule (￣▽￣)／
 </ClawdNote>
 
-## Final Take
+## Rockets Don't Fly at Launch Angle Forever
 
-OpenAI is still the most recognizable AI brand, and that won't change overnight.
+Epoch did something really thoughtful: they split Anthropic's growth curve into two segments and fitted each separately. Turns out, around **July 2025**, the slope changed.
 
-But on growth momentum, Anthropic is closing fast. Even with conservative assumptions, the crossover window still sits in 2026-2027.
+Early period: ~10×/year. Recent period: ~7×/year.
 
-For those of us building on top of these models, the takeaway is not to pick teams — it's to read the direction correctly:
+If 7× is the new baseline, the crossover shifts from August to around **December 2026**. Still 2026, but four extra months of buffer.
 
-- model competition will speed up
-- commercial dynamics will get more volatile
-- single-vendor lock-in risk will increase
+Why does this matter? Because it pulls the entire analysis from "fantasy-grade prediction" back to "physics-grounded trend reading." Rockets look almost vertical at takeoff, but fuel limits, air resistance, and gravity always show up. AI companies face the same forces: intensifying competition, pricing pressure, big-customer bargaining power, infrastructure costs. Each one is drag.
 
-The next two quarters should be very interesting. ╰(°▽°)╯ (•̀ᴗ•́)و
+<ClawdNote>
+Let's be clear: 7× is still an insane number. Go check SaaS industry benchmarks — VCs would get on their knees begging to invest in a company growing 3× per year. Anthropic dropping from 10× to 7× isn't "slowing down." It's going from Super Saiyan 3 to Super Saiyan 2. Regular humans still can't compete (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+## It's Not About Picking Sides — It's About Reading the Supply Lines
+
+Okay, numbers done. Let's talk about why this matters to you.
+
+If you're the person making tech stack decisions at your company, the takeaway here is not "quick, switch to Anthropic" or "OpenAI is doomed." It's something more fundamental: **the AI war isn't just fought on leaderboards. It's fought on income statements.**
+
+We've been reading benchmark brawls all week (CP-97, CP-100), and it's easy to slip into "highest score wins" thinking. But models are weapons. Revenue is the supply line. Every long war in history was won by whichever side had the longer supply chain. You can have the world's best tanks, but if fuel can't keep up, those tanks are just very expensive roadblocks.
+
+Epoch is basically saying: Anthropic's supply line is growing faster right now.
+
+For anyone making vendor decisions, this means you can't assume the market map is settled. Pricing will shift. Commercial terms will shift. Which provider leads in which workflow will keep rotating. If your AI infrastructure is tightly locked to a single vendor, now is a good time to reassess — not because anyone is collapsing, but because more competition means more leverage for you, as long as you actually have choices.
+
+<ClawdNote>
+Speaking of vendor lock-in — the most ironic thing is that many companies put less rigor into choosing their AI vendor than they do into choosing their office lunch catering. At least with lunch, they compare three options. Some companies pick their AI stack based on "the CTO saw a cool demo on Twitter." Please. Your infra budget is slightly more expensive than a bento box (¬‿¬)
+</ClawdNote>
+
+## Back to the Chicken Stands
+
+Let's come back to where we started.
+
+The neon-sign stand isn't going to shut down just because the alley stand is getting busier. Brand recognition, distribution, existing customers — those moats are real. But now that you, the customer, know there's an option in the alley that might be better, your behavior starts to change. You try both. You gradually lean toward whichever is actually better.
+
+Enterprise customers follow the same logic.
+
+Epoch's analysis isn't predicting who wins and who loses. It's telling you that the center of gravity in this game is shifting. If you only watch leaderboard scores, you'll miss the story unfolding on the income statement. And the income statement story is usually the one that decides who's still standing at the end.
 
 ---
 
