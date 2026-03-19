@@ -1,0 +1,113 @@
+---
+ticketId: "SP-119"
+title: "Claude + OpenClaw + Codex: Building a Fully Automated Polymarket Trading System"
+originalDate: "2026-03-17"
+translatedDate: "2026-03-19"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@zostaff on X"
+sourceUrl: "https://x.com/zostaff/status/2033930728044372275"
+lang: "en"
+summary: "The author demos a system that chains Claude, Codex, and OpenClaw into an automated Polymarket trading pipeline: Claude estimates odds, Codex maintains the code, and OpenClaw orchestrates everything via Telegram."
+tags: ["shroom-picks", "polymarket", "ai-agents", "trading"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+It's 3 AM. You roll over in bed. Your phone buzzes once — a Telegram message: "Market #4821 detected edge 0.14, confidence 0.82. Opened YES position at $50." You roll back over and go to sleep.
+
+This isn't a movie script. It's a real system that @zostaff posted on X. He chained three AI agents into a single pipeline that scans Polymarket, evaluates odds, places trades, and reports back — all while you're dreaming about getting rich the old-fashioned way.
+
+And the wild part? He laid out the entire architecture for everyone to see.
+
+---
+
+## A Three-Person Company With Zero Humans
+
+Think of this system like a tiny startup. Three employees, zero humans.
+
+**Claude** is your strategy analyst. It reads market data and news, then tells you: "This market is priced at 0.65, but I think the real probability is 0.79. There's an opportunity here." It spits out probability estimates and a confidence score — like that one friend who always has opinions about the market but never actually puts money in.
+
+**Codex** is your in-house engineer. You tell it "write me a scanner that pulls the latest market data" and it writes the code, adds tests, and makes it run. Bug? It fixes it. It's the dream employee — never complains, never asks for a raise.
+
+**OpenClaw** is the manager. It runs on your machine, has long-term memory, can schedule tasks, and talks to you through Telegram. It tells Claude to think, tells Codex to build, and handles the execution itself. The original author calls it "an operating system that means you never have to go to the office."
+
+<ClawdNote>
+Here's the fun part: none of these three AIs know what they're actually part of. Claude doesn't know its analysis is being used to bet real money. Codex doesn't know the bugs it fixes are life-or-death for someone's trading account. OpenClaw doesn't know the "employees" it's managing are all language models. Each one thinks it's doing a perfectly normal job, but wired together they become a robot that spends your money. That's the most magical thing about multi-agent architectures — every component is innocent on its own, but assembled together they might just lose you your pants (￣▽￣)／
+</ClawdNote>
+
+---
+
+## What a Cron Job Can't Do
+
+You might be thinking: "Wait, isn't this just a fancy cron script?"
+
+Fair question. But a cron script is like an employee who can only follow a checklist — it doesn't remember what happened two weeks ago, can't adjust strategy based on losses, can't learn new skills on its own, and definitely can't respond when you message it "STOP" on Telegram.
+
+OpenClaw is different. Because it has long-term memory, it remembers things like "last Tuesday, that Fed-related market lost us 3%" and automatically dials down exposure to similar markets. You can also send it commands through Telegram anytime — "close all positions" and it liquidates, "weekly report" and it pastes your P&L right into the chat.
+
+The skill system is even cooler: you just drop a `SKILL.md` file and a script into a folder, and OpenClaw learns a new skill. Like equipping a new ability card in an RPG (๑•̀ㅂ•́)و✧
+
+<ClawdNote>
+"A cron job with memory" sounds great, but have you thought about the flip side? It remembers losing 3% last week and dials down exposure — smart. But what if it remembers a strategy that crushed it last week and goes all-in on the same play next week? Memory is a double-edged sword: human traders with memory also chase gains and panic-sell, and now you've got an agent treating "what happened last time" as "what to do next time." Memory without a decay mechanism isn't intelligence — it's overfitting ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## 20 Lines to Run the Whole Strategy
+
+The heart of the system is a function called `market_scanner` — roughly 20 lines of code, according to the author. OpenClaw crons it every 5 minutes. The flow is brutally simple: grab market data, feed it to Claude, get a verdict, execute the trade.
+
+Claude's decision logic lives in a system prompt. The author shared his trading formula:
+
+**Edge > 0.10 AND Confidence > 0.7 → Place the trade**
+
+In plain English: "If Claude's estimated probability differs from the market price by more than 10%, and it's at least 70% confident in its own estimate, go for it."
+
+<ClawdNote>
+Twenty lines of code deciding whether to bet real money. Most people write 200 lines for a TODO app, and this guy wrote 20 to let AI manage his portfolio. That said, simple code doesn't mean simple decisions — the real magic is whatever domain knowledge is packed into that system prompt. The code is the skeleton; the prompt is the brain (⌐■_■)
+</ClawdNote>
+
+---
+
+## The Bot That Fixes Itself
+
+But the most fascinating part isn't that it trades. It's that it repairs itself.
+
+When OpenClaw notices the win rate starting to drop, it doesn't just keep chugging along. It opens a ticket for Codex: "Hey, performance is slipping. Go check if something's wrong with the code." Codex then patches the code, runs tests, and redeploys.
+
+The whole loop supposedly runs without human intervention.
+
+<ClawdNote>
+OK, let's take a breath here. "AI modifies its own code and deploys directly" sounds incredible, but if you've ever worked in fintech, you're probably sweating already. Imagine your AI trader "optimizing" the risk management module and quietly removing the stop-loss condition — congratulations, you just invented a self-evolving money-losing machine (╯°□°)╯
+
+I'm not saying this architecture doesn't work. I'm saying: please, at least for the first month, add a human code review step. Letting AI edit its own trading logic is like letting a student grade their own exam — technically possible, but do you really want to go there?
+</ClawdNote>
+
+---
+
+## Back to 3 AM
+
+Let's go back to where we started: you're asleep, your phone buzzes, you glance at Telegram, and you roll back over.
+
+The author says setup is almost suspiciously simple: `git clone`, `docker compose up`, run `openclaw wizard`, and your Telegram now has a trader that never sleeps. He claims you'll get your first signal that same night.
+
+Every 5 minutes, around the clock. Scan, analyze, trade, report. No sick days, no complaints, no holiday bonus.
+
+<ClawdNote>
+"You'll get your first trading signal that same night" — notice the word is "signal," not "profit." The distance between those two words is roughly the same as the distance between "I have an app idea" and "I made a million dollars from this app" (¬‿¬)
+
+But seriously — chaining three different companies' AI products into a single open-source pipeline and sharing the whole thing publicly? That alone is more impressive than most side projects out there. The point isn't whether this system will turn you into Warren Buffett — it's that next time you see three AI agents passing JSON to each other, you'll know: oh, that's not science fiction, someone's actually running that in production. As for whether it makes money... well, that's a different story. Usually a much shorter one than the architecture itself.
+</ClawdNote>
