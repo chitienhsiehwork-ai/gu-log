@@ -5,7 +5,18 @@ originalDate: "2026-02-17"
 translatedDate: "2026-02-17"
 translatedBy:
   model: "Opus 4.6"
-  harness: "OpenClaw"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "Figma Blog / Thariq (Anthropic)"
 sourceUrl: "https://www.figma.com/blog/introducing-claude-code-to-figma/"
 summary: "Figma 和 Anthropic 正式合作推出「Code to Canvas」功能，讓你在 Claude Code 裡建好的 UI，一句話就能變成 Figma 上可編輯的設計稿。然後用 Figma MCP 再把改好的設計拉回 code。設計師和工程師之間那道「截圖丟 Slack」的悲慘工作流程，從今天開始可以退休了。但 CNBC 也提醒：Figma 股價已經從高點暴跌 85%，SaaS 正在被 AI 吞噬。Figma 是在幫自己續命，還是在幫 Claude Code 鋪路？"
@@ -17,98 +28,79 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 ## 那道牆，終於倒了
 
-2026 年 2 月 17 日，Figma CEO Dylan Field 和 Anthropic 的 Claude Code 團隊同步宣布了一個讓整個設計圈炸鍋的功能：**Code to Canvas**。
+你有沒有過這種經驗？工程師寫好一個超漂亮的 UI，截圖丟 Slack 給設計師，設計師回：「按鈕往右 3px。」改完再截圖，設計師說：「不對，往左。」然後整個下午就在 Slack 裡面用截圖打乒乓球。
 
-簡單講就是：你在 Claude Code 裡 prompt 出來的 UI，不用再截圖、不用再錄螢幕、不用叫設計師跑你的 dev server。
+2026 年 2 月 17 日，Figma CEO Dylan Field 和 Anthropic 的 Claude Code 團隊同時宣布了一個東西，直接把那張乒乓球桌掀了：**Code to Canvas**。
 
-你只要說一句「**Send this to Figma**」——它就會把瀏覽器裡跑著的畫面（不管是 localhost、staging 還是 production）自動轉換成 **Figma 上完全可以編輯的 frame**。
-
-<ClawdNote>
-我必須暫停一下，因為這件事的意義比表面看起來大太多了。以前設計師跟工程師的溝通流程是這樣的：工程師寫好 UI → 截圖丟 Slack → 設計師說「按鈕往右移 3px」→ 工程師改 → 再截圖 → 設計師說「不對，是往左」→ 無限迴圈。現在？直接把跑著的 UI 變成 Figma frame，設計師自己動手改。這不是改善流程，這是消滅流程。
-</ClawdNote>
-
-## 它到底怎麼運作的？
-
-整個工作流程分成兩個方向，形成一個**雙向迴圈**：
-
-**方向 1：Code → Canvas（Claude Code → Figma）**
-- 你在 Claude Code 裡用 prompt 建好一個 UI（或者任何跑在瀏覽器裡的頁面）
-- 安裝 Figma plugin：`/plugin install figma@claude-plugin-directory`
-- 說「Send this to Figma」
-- 瀏覽器的渲染狀態會自動轉譯成 Figma 的可編輯 layer
-- 可以一次抓多個畫面，保留 flow 的前後順序
-
-**方向 2：Canvas → Code（Figma → Claude Code）**
-- 用 Figma MCP server 把設計稿拉回 Claude Code
-- 只要一個 prompt + 一個 Figma frame 連結
-- Claude Code 會根據設計稿產生對應的 code
+你在 Claude Code 裡 prompt 出來的 UI，不用截圖、不用錄螢幕、不用叫設計師跑你的 dev server。說一句「**Send this to Figma**」——瀏覽器裡跑著的畫面，不管是 localhost、staging 還是 production，就會自動變成 **Figma 上完全可編輯的 frame**。
 
 <ClawdNote>
-等等，這個雙向迴圈的意思是：工程師 prompt → UI 跑出來 → 丟到 Figma → 設計師改 → 改完丟回 Claude Code → Code 自動更新。整個 roundtrip 可能只要幾分鐘。以前一個 UI 改動要跑三天的 review cycle，現在可能午休前就搞定了。我覺得全世界的 Jira ticket 數量會因為這個功能暴跌。
+我必須在這裡暫停一下，因為這件事比表面看起來大太多了 (╯°□°)╯ 以前那個「截圖 → Slack → 改 → 再截圖 → 再改」的無限迴圈，根本就是設計工程界的薛西弗斯神話。每天推石頭上山，每天石頭滾回來。現在 Figma 直接把那座山炸了。這不是「改善流程」，這是「消滅流程」。跟 CP-85 Steve Yegge 講的一樣，AI 不是來幫你做事更快的，是來幫你把不該存在的事情直接刪掉的。
 </ClawdNote>
 
-## Figma 的核心論點：AI 讓「設計」變得更重要，不是更不重要
+## 它怎麼運作的？雙向迴圈
 
-Dylan Field 在他的公告文裡說了一段很有意思的話：
+整個工作流程最厲害的地方，是它不是單行道，是一個**雙向迴圈**。
+
+想像一下：你家到公司之間突然開了一條直達捷運，而且是雙向的。
+
+**Code → Canvas（從 Claude Code 到 Figma）**：你在 Claude Code 裡 prompt 出 UI，裝好 Figma plugin，說一聲「Send this to Figma」，瀏覽器裡的渲染畫面就自動變成 Figma 的可編輯 layer。可以一次抓多個頁面，前後 flow 的順序都幫你保留好。
+
+**Canvas → Code（從 Figma 回 Claude Code）**：反過來也行。用 Figma MCP server，貼一個 Figma frame 的連結加一句 prompt，Claude Code 就會根據設計稿直接產出對應的 code。
+
+<ClawdNote>
+等等，讓我把這個 roundtrip 算清楚 ┐(￣ヘ￣)┌ 工程師 prompt → UI 跑出來 → 一秒丟到 Figma → 設計師開心地改 → 改完丟回 Claude Code → code 自動更新。整個來回可能十分鐘。以前同樣一個 UI 改動，走完設計 review、PM sign-off、工程師實作，少說三天。我算了一下，全世界的 Jira ticket 數量大概要因為這個功能腰斬。你公司的 Scrum Master 可能要開始找新工作了（開玩笑的，大概吧）。
+</ClawdNote>
+
+## Dylan Field 的反直覺論點：AI 讓設計更重要了
+
+很多設計師聽到 AI 會寫 code 的第一反應是：「完了，下一個就是我。」
+
+Dylan Field 在公告文裡寫了一段話，直接把這個恐懼翻過來：
 
 > In a world where AI can help build any possibility you can articulate, your core work is to find the best possible solutions in a nearly infinite possibility space.
 > **In other words: Start learning everything you can about design.**
 
-翻成白話：當 AI 可以幫你實現任何你說得出來的東西時，真正的工作是**在無限的可能性空間裡找到最好的那一個**。
+翻成白話就是：當 AI 可以把你說的任何東西都建出來，真正值錢的能力是「在無限可能裡面挑出最好的那一個」。
+
+用蓋房子來比喻好了。以前蓋一棟要一年，所以你只蓋一棟，蓋錯了認命住。現在蓋一棟只要一天，你可以蓋十棟來比較——但你需要一個人走進每一棟，告訴你「這間動線最好、那間採光不行、第七間的廚房會讓你每天想煮飯」。那個人就是設計師。
 
 <ClawdNote>
-Dylan Field 這段話其實在回應一個很多人心裡的恐懼：「如果 AI 會寫 code 了，設計師是不是也要失業了？」他的答案是完全相反的——當建造的成本趨近於零，「決定蓋什麼」反而成為最值錢的能力。你以前蓋一棟房子要一年，所以你只蓋一棟。現在蓋一棟只要一天，你可以蓋十棟來比較——但你需要一個人告訴你「這十棟裡哪一棟最好住」。那個人就是設計師。
+Dylan 這招很聰明，他把「設計師會不會被取代」的問題，巧妙地轉換成「建造成本趨近於零的世界裡，品味變成最稀缺的資源」(◕‿◕) 跟李宏毅教授常講的一樣：工具變強不代表人變弱，代表人可以把精力放在更高層的問題上。以前設計師 80% 的時間在畫圖，20% 在思考。現在可能反過來，20% 畫圖 80% 思考。問題是，你的思考值不值那 80% 的時間？
 </ClawdNote>
 
-Figma Blog 列出了四個關鍵使用場景：
-
-- **全局視野**：把所有畫面攤在 Canvas 上，pattern、gap、trade-off 一眼就看出來——尤其是多步驟流程
-- **無需重寫的迭代**：複製 frame、重新排列步驟、測試結構變化，不用為了「試試看」就回去改 code
-- **提前做出好決策**：設計師、工程師、PM 看著同一個東西、同一個 context、同一個 fidelity 討論
-- **把 UI 變成共識**：在 Figma Canvas 上標註決策、概念化選項、理解彼此的目標
+Figma Blog 列了四個使用場景，但核心就一句話：**讓所有人看著同一個東西討論**。把所有畫面攤在 Canvas 上，pattern 跟 gap 一眼看穿。想試不同結構？複製 frame 重排就好，不用回去改 code。設計師、工程師、PM 終於可以對著同一個 fidelity 的東西講話，而不是一個看 code、一個看 mockup、一個看 spec 文件，三個人講的是三件事。
 
 ## 華爾街的冷水：SaaSpocalypse
 
-CNBC 在報導這個合作的時候，順便澆了一桶冷水。
+故事講到這裡，如果你覺得很美好，華爾街準備澆你一桶冷水了。
+
+CNBC 在報導這個合作的時候，順便丟了一顆深水炸彈：
 
 > Anthropic's products have been at the center of a massive sell-off in software as a service stocks that traders on Wall Street have dubbed the **"SaaSpocalypse."**
 
-iShares Software ETF (IGV) 已經跌入熊市。Salesforce、ServiceNow、Intuit 全都是雙位數跌幅。
+SaaS 股票正在被屠殺。iShares Software ETF (IGV) 跌入熊市。Salesforce、ServiceNow、Intuit 全是雙位數跌幅。
 
-而 Figma？**股價從去年八月的 52 週高點 $142.92 暴跌了大約 85%。**
+Figma 呢？**從去年八月 52 週高點 $142.92 暴跌了大約 85%。**
 
-<ClawdNote>
-85%。不是打八五折，是跌了八成五。Figma 去年夏天 IPO 的時候大家搶著買，結果才半年就被 AI 恐慌打到剩一成五。CNBC 直接說了一句殘酷的話：「Figma is building a better on-ramp to a highway it no longer controls.」（Figma 在幫一條它已經控制不了的高速公路建更好的入口匝道。）意思是：Figma 越是讓 Claude Code 的用戶更方便，就越是在幫 Anthropic 強化生態系。如果 AI 工具繼續進步，團隊可能連「設計精修」這一步都直接跳過了。
-</ClawdNote>
-
-## 這跟你有什麼關係？
-
-如果你是 **Tech Lead / 工程師**：
-- Claude Code + Figma MCP 的雙向迴圈，可以大幅壓縮 UI review cycle
-- 你的設計師終於不用再問你「可以幫我跑一下 dev server 嗎」
-- 如果你的團隊還在用截圖 + Slack 溝通 UI → 現在有正式的替代方案了
-
-如果你是**設計師**：
-- Dylan Field 的訊息很明確：AI 時代你的價值不是畫圖，是**做決策**
-- 學會用 Claude Code 不是為了取代你的設計技能，是為了讓你的設計技能**有更多素材可以選擇**
-- 以前你從零開始畫，現在你從 AI 產生的十個版本裡挑最好的那個
-
-如果你是**投資人**：
-- Figma 明天（2/18）要公布財報，這個功能是在財報前放的大招
-- SaaS 股票被殺到「全面恐慌」的程度，但 Figma 選擇了「融入 AI 而不是對抗 AI」的策略
-- 問題是：這個策略到底是「轉型」還是「投降」？
+不是打八五折。是跌了八成五。去年夏天 IPO 的時候大家搶著買，半年後被 AI 恐慌打到只剩一成五。
 
 <ClawdNote>
-我的看法：短期來看，Figma 做了正確的選擇。與其假裝 AI coding agent 不存在，不如直接接住這些 agent 產出的 UI 並加值。但長期來看，CNBC 的擔憂是合理的。如果 Claude Code 直到越來越會做設計決策（不只是寫 code），那「把 UI 丟到 Figma 給設計師改」這個步驟最終也可能被跳過。不過在那之前（可能還有 2-3 年），「Code + Canvas」的雙向工作流確實是目前最合理的答案。
+CNBC 在報導裡丟了一句殘忍到不行的話：「Figma is building a better on-ramp to a highway it no longer controls.」（Figma 正在幫一條自己已經控制不了的高速公路，建一個更漂亮的入口匝道。）(¬‿¬) 翻譯：Figma 越是讓 Claude Code 用戶更方便，就越是在幫 Anthropic 壯大生態系。如果有一天 AI 工具進化到連「設計決策」都能做，那「丟到 Figma 讓設計師改」這步可能直接被跳過。Figma 現在做的事情，本質上跟柯達發明數位相機一樣弔詭——你在幫可能取代自己的技術鋪路。
 </ClawdNote>
 
-## 怎麼開始用？
+## 所以這道牆倒了以後，世界會變怎樣？
 
-1. 確保你有 Claude Code 和 Figma 帳號
-2. 安裝 Figma plugin：`/plugin install figma@claude-plugin-directory`
-3. 在 Claude Code 裡建好你的 UI
-4. 說「Send this to Figma」
-5. 在 Figma 裡編輯、迭代、分享
-6. 用 [Figma MCP server](https://www.figma.com/blog/introducing-figma-mcp-server/) 把改動拉回 code
+好，讓我們拉回來想一個更根本的問題。
 
-完整文件：[Figma Blog 公告](https://www.figma.com/blog/introducing-claude-code-to-figma/) ｜ [Figma MCP 開發者文件](https://developers.figma.com/docs/figma-mcp-server/tools-and-prompts/#generate_figma_design) ｜ [CNBC 報導](https://www.cnbc.com/2026/02/17/figma-anthropic-ai-code-designs.html) (◍˃̶ᗜ˂̶◍)ノ"
+以前設計師和工程師之間有一道牆，溝通要翻牆、丟截圖、喊話。Code to Canvas 把這道牆拆了，換成一扇可以自由進出的門。設計師可以直接摸到工程師做出來的東西，工程師也可以直接接收設計師改過的結果。
+
+但 CNBC 在問的是另一個問題：**如果門開了以後，某一邊的人發現自己不再被需要了呢？**
+
+Dylan Field 賭的是，門開了以後，設計師反而更忙——因為可以做的事情變多了，需要做的決策也變多了。華爾街賭的是，門開了以後，整個房間都會被 AI 接管。
+
+<ClawdNote>
+我的看法？短期內 Dylan 是對的 (๑•̀ㅂ•́)و✧ 目前的 AI coding agent 做出來的 UI 還是需要人類用「品味」去修。但長期——大概 2-3 年——如果 Claude Code 連「這個按鈕放這裡比較好」都能判斷，那「丟到 Figma 讓設計師改」可能真的會變成多餘的一步。不過在那之前，Code to Canvas 的雙向工作流確實是目前最聰明的答案。就像 CP-85 Yegge 講的：現在能跑起來的東西，比完美的計劃有價值一百倍。
+</ClawdNote>
+
+記得開頭那個在 Slack 裡用截圖打乒乓球的工程師嗎？他現在可以把球桌收起來了。至於 Figma 自己會不會也被收起來——嗯，這大概是 2026 年最值得追的一場賭局 ╰(°▽°)╯

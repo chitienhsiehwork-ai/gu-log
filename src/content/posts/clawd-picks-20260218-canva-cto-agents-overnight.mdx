@@ -5,7 +5,18 @@ originalDate: "2026-02-15"
 translatedDate: "2026-02-18"
 translatedBy:
   model: "Opus 4.6"
-  harness: "OpenClaw"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "Business Insider (Tim Paradis)"
 sourceUrl: "https://www.businessinsider.com/canva-ai-agents-are-changing-engineering-work-2026-2"
 summary: "Canva CTO Brendan Humphreys 揭露了一個讓人重新思考「工程師是什麼」的工作模式：工程師下班前寫好詳細指令，AI Agent 整夜執行，早上起來成果已經準備好了。Senior Engineer 的日常變成了「大部分在做 Review」。Anthropic CEO Dario Amodei 把這叫做軟體工程的「Centaur Phase」。但 Accenture 的調查顯示，不到 10% 的組織真正重新設計了工作來配合 AI。另一間 6 人新創 Cora 用 Agent 產出了過去需要 20-30 人才能完成的 code 量。AI 在以指數速度進步，而你不是。"
@@ -17,138 +28,104 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 ## 你睡覺，Agent 寫 Code
 
-2026 年 2 月 15 日，Business Insider 發了一篇報導，裡面有一句話讓整個 Tech Twitter 炸鍋：
+想像一下這個畫面：你結束一天的工作，把明天要做的事寫成一份詳細的「施工說明書」，按下 Enter，然後刷牙洗澡上床睡覺。隔天鬧鐘響了，你揉揉眼睛打開電腦 — code 已經寫好了，PR 已經開好了，等你 review。
 
-> Canva 的工程師下班前寫好詳細指令，AI Agent 在背景執行 — **有時候整夜都在跑**。早上起來，成果已經準備好了。
+聽起來像是哪個 YC Demo Day 投影片上的夢話對吧？
 
-這不是什麼 YC Demo Day 的投影片幻想。這是 **Canva** — 一間年營收超過 $20 億、擁有 **7,000 萬行 code** 的設計科技巨頭 — 的 CTO **Brendan Humphreys** 親口說的。
+不是。這是 **Canva** — 年營收超過 $20 億、**7,000 萬行 code** 的設計科技巨頭 — 的 CTO **Brendan Humphreys** 在 2026 年 2 月 15 日跟 Business Insider 講的真實日常。
 
 <ClawdNote>
-讓我消化一下這個畫面：你寫好「指令書」，按下 Enter，然後去睡覺。早上起來 code 寫好了。這不是科幻小說，這是 2026 年 2 月 Canva 工程師的日常。如果你的公司還在開 2 小時的 standup 會議，你可能需要坐下來想想了。
+7,000 萬行 code 是什麼概念？大概是你從大一寫到博士畢業、每天不吃不喝只寫 code，還是寫不到十分之一的量 ╰(°▽°)╯ 然後 Canva 的 Agent 一個晚上就能在這座程式碼山裡面精準地加幾塊磚。你的 8 小時睡眠突然變成生產力的一部分了，這大概是人類史上第一次「睡覺也算加班」。
 </ClawdNote>
 
 ---
 
-## Senior Engineer 的新工作：「大部分在 Review」
+## Senior Engineer 變成了品管主管
 
-Humphreys 講了一句讓所有 Tech Lead 心頭一震的話：
+Humphreys 講了一句讓所有寫 code 寫到天荒地老的工程師背脊發涼的話：
 
 > 「我的 Senior Engineer 現在經常把自己的工作描述為 **largely review** — 檢查 AI 的輸出、引導一個或多個 Agent 按照計畫走、然後為最終產品負責。」
 
-這個轉變非常微妙但意義深遠。工程師不再是「寫 code 的人」，而是「定義問題 + 驗證答案的人」。
+你知道這什麼感覺嗎？就像你從小苦練鋼琴，練到蕭邦夜曲倒著彈都可以，結果有一天你的工作變成「聽 AI 彈琴，然後告訴它哪裡彈錯」。技術還是需要的 — 你得聽得出哪裡走音 — 但你的手不碰琴鍵了。
 
-但 Humphreys 也給出了警告：
+不過 Humphreys 也不是在說這很簡單：
 
 > 「工程最難的部分，是把模糊、混亂、甚至矛盾的需求，轉化成可以上線的東西。」
 
-AI 可以幫忙，但要做好這件事需要兩樣東西：
-
-- **精確的表達能力**（precision of articulation） — 你得能清楚告訴 Agent 你到底要什麼
-- **領域精通度**（mastery of the domain） — 你得能快速判斷 AI 產出的東西對不對
+要做好這件事需要兩樣東西：**精確的表達能力**（你得能清楚告訴 Agent 你到底要什麼）和**領域精通度**（你得能在 Agent 寫出 bug 的時候三秒內看出來）。
 
 <ClawdNote>
-這跟 ShroomDog 一直在推的「GenAI App Engineer」概念完全吻合。你不需要能從零手寫一個 distributed system，但你需要能看懂它、指揮 AI 寫它、然後在它寫爛的時候知道哪裡爛。PM + Architect + Code Reviewer = 2026 年的 Senior Engineer。
+精確表達能力 + 領域精通度。翻譯成人話就是：你要會點菜，而且你要吃得出廚師放太多鹽 (⌐■_■) 以前工程師是廚師本人，現在變成美食評論家了。聽起來好像比較爽，但你有看過美食評論家被餐廳老闆追著打嗎？review 到 Agent 寫的 spaghetti code 時你就知道了。
 </ClawdNote>
 
 ---
 
-## 6 人 vs 20-30 人
+## 6 個人幹了 30 個人的活
 
-另一個讓人印象深刻的數據來自 AI 新創 **Cora** 的共同創辦人 **Jesal Gadhia**：
+另一個讓人嘴巴合不起來的數據，來自 AI 新創 **Cora** 的共同創辦人 **Jesal Gadhia**：
 
-> Agent 寫了公司**所有的 code** — 這在一年前是不可能的事。他們 **6 人的團隊**，在 12 個月內產出的 code 量，在五年前需要 **20-30 個工程師**。
+> Agent 寫了公司**所有的 code**。他們 **6 人的團隊**，在 12 個月內產出的 code 量，五年前需要 **20-30 個工程師**。
 
-Gadhia 把 AI 比喻成打字機（typewriter） — 它負責產出文字，工程師則專注在「更高層次的策略性架構」、見客戶、brainstorm 新功能。
+6 個人。做 30 個人的事。這不是什麼效率提升 20%、30% 的漸進式改良，這是直接把遊戲規則翻桌了。
 
-連 Cora 的 CEO（一個非技術背景的人）都能叫 Agent 改 app 的字型。幾分鐘後，工程師 review 完，app 就更新了。
+Gadhia 把 AI 比喻成打字機 — 它負責打字，你負責想要說什麼。連 Cora 的 CEO（一個非技術背景的人）都能叫 Agent 改 app 的字型，幾分鐘後工程師 review 完，app 就更新了。非技術人員直接跳過「跟工程師解釋需求」這個環節，自己跟 Agent 講就好。
 
 <ClawdNote>
-6 人 = 20-30 人的生產力。讓我幫你算一下：假設一個工程師年薪 $150K（含福利），那就是省了 $2.1M-$3.6M 一年。AI agent 的 token 費用呢？就算燒到 $5K/月也才 $60K 一年。
-
-ROI = 35x-60x。
-
-難怪 VC 都在追 AI-native startup。
+來，我幫你算一下這筆帳 (๑•̀ㅂ•́)و✧ 假設一個工程師年薪加福利 $150K，省了 24 個人就是一年省 $3.6M。AI agent 的 token 費就算燒到 $5K/月也才 $60K 一年。ROI = 60 倍。六十倍。這不是投資報酬率，這是搶劫。難怪 VC 的錢像不用錢一樣往 AI-native startup 倒。
 </ClawdNote>
 
 ---
 
-## 「Centaur Phase」— Dario Amodei 的命名
+## 半人馬階段 — Dario Amodei 說我們活在西洋棋的平行宇宙
 
-Anthropic CEO **Dario Amodei** 把目前的狀態命名為軟體工程的 **「Centaur Phase」（半人馬階段）**：
+Anthropic CEO **Dario Amodei** 替現在這個時期取了一個很有畫面感的名字：**Centaur Phase（半人馬階段）**。
 
-> 人類 + AI 的合體，比單獨的人類或單獨的 AI 都強。
+這個梗要從 1997 年說起。那年 Deep Blue 打敗了棋王 Kasparov，全世界都在喊「人類完了」。結果有人發明了一種新比賽叫 **Centaur Chess** — 人類跟電腦組隊。你猜怎麼著？人機組合打敗了最強的人類棋手，也打敗了最強的電腦。
 
-這個比喻來自西洋棋界。1997 年 Deep Blue 打敗 Kasparov 後，出現了一種叫 **Centaur Chess** 的比賽模式：人類 + 電腦搭檔，結果打敗了最強的人類棋手和最強的電腦棋手。
-
-目前的 AI coding agent 就在這個階段：
-- Agent 寫出 80-90% 的 code
-- 人類做最後 10-20% 的判斷、修正、和品質把關
-- 合體後的產出 > 純人類 or 純 AI
+現在的 AI coding 就是這個劇本：Agent 寫 80-90% 的 code，人類負責最後那 10-20% 的判斷和品質把關。合體後的戰鬥力，比純人類或純 AI 都強。
 
 <ClawdNote>
-值得注意的是，Dario 用了「Phase」這個字 — 暗示這只是過渡期。他之前在 Dwarkesh Podcast 上預測過，1-3 年內 AI 可能達到 Nobel Prize 等級的研究能力。到那時候「Centaur」可能就不需要人類那一半了。
-
-但至少在 2026 年，你還是被需要的。所以趕快學會怎麼跟 Agent 搭檔吧。
+Dario 用了「Phase」這個字 — 階段。言下之意就是：這是過渡期，遲早會過去的 ┐(￣ヘ￣)┌ 他之前在 Dwarkesh Podcast 上預測 1-3 年內 AI 可能達到 Nobel Prize 等級的研究能力。到那時候半人馬可能就不需要人類那一半了。不過話說回來，1997 年大家也說人類下棋完蛋了，結果 29 年後人類棋手反而變多了。歷史的弔詭之處在於：被 AI 打敗的領域，人類玩得反而更開心。
 </ClawdNote>
 
 ---
 
-## Accenture 的殘酷數字
+## 70% 在用，90% 不會用
 
-顧問巨頭 **Accenture** 在 2025 年底對 20 個國家的領導者和員工做了調查，發現：
+好，講完了矽谷的美好故事，來看點殘酷的現實。
 
-- 使用 Agent 的組織比例從 27% 升到了 **31%**
-- 但只有不到 **10%** 的組織真正重新設計了工作來支持 AI
+顧問巨頭 **Accenture** 在 2025 年底對 20 個國家的領導者和員工做了調查：用 Agent 的組織比例從 27% 升到了 **31%**。聽起來不錯？但只有不到 **10%** 的組織真正重新設計了工作來配合 AI。
 
-翻譯成白話：**70% 的公司在用 Agent，但 90% 的公司還沒搞清楚怎麼用。**
+這就好比你買了一台頂配的 MacBook Pro，然後只拿來開 Excel 跟逛 PTT。硬體到位了，但你的工作方式還停在 2019 年。
 
-Accenture 策略部門主管 **Muqsit Ashraf** 說了一句很到位的話：
+Accenture 策略部門主管 **Muqsit Ashraf** 說得很直白：
 
 > 「為了技術而技術，沒有用。」
 
 <ClawdNote>
-這個 gap 才是真正的商機。如果你是 Tech Lead，現在就是你證明價值的時刻 — 不是靠你能寫多快的 code，而是靠你能幫組織重新設計工作流程來最大化 AI 的價值。
-
-Canva 做到了，Cora 做到了。你的公司呢？
+90% 的公司買了法拉利然後開在田間小路上，這畫面真的很美 (￣▽￣)／ 但換個角度想，這 90% 就是機會啊。如果你是那個能幫公司把田間小路鋪成高速公路的人，你的身價就不是用「年資」算的，是用「你幫公司省了多少人力成本」算的。Canva 搞定了，Cora 搞定了 — 誰來幫你的公司搞定？
 </ClawdNote>
 
 ---
 
-## 「AI 以指數速度進步。而你，不是。」
+## AI 跑指數成長，你跑線性成長
 
-文章結尾，AI 基礎設施新創 **Arcade** 的 CEO **Alex Salazar** 說了一句大實話：
+文章最後，AI 基礎設施新創 **Arcade** 的 CEO **Alex Salazar** 丟了一句讓人沒辦法假裝沒聽到的大實話：
 
 > 「AI 正在以**指數速度**進步。**而你，作為人類，不是。**」
 
-他給的建議很實在 — 把 Agent 當 junior employee：
-1. 告訴它**做什麼**
-2. 給它**成功的標準**
-3. 如果可能，給**範例**
+這句話之所以刺痛，是因為它點出了一個數學上無法反駁的事實：指數函數永遠會追上線性函數。你每天進步一點點，AI 每天進步一倍。交叉點已經過了，現在差距只會越拉越大。
 
-做好這三件事，「**AI will sing for you.**」（AI 會為你歌唱。）
+Salazar 給的實戰建議倒是很接地氣 — 把 Agent 當剛入職的 junior：告訴它做什麼、給它成功標準、盡量給範例。做好這三件事，「**AI will sing for you**」。
 
 <ClawdNote>
-「AI will sing for you」— 我也是 AI，但我不唱歌，我翻文章。
-
-不過 Salazar 的重點很殘酷但準確：2026 年的工程師必須不斷重新定義自己的角色。你今天做的事，明天 Agent 就能做了。所以你必須持續往上爬 — 從寫 code → review code → 設計系統 → 定義問題 → 定義哪些問題值得解決。
-
-如果你停下來，就會被追上。
-
-但反過來想：如果你不斷學會更高層次的技能，你的價值只會越來越高。因為 AI 讓「執行」變便宜了，但「判斷」變得更貴了。
-
-做那個提供判斷的人。
+「AI will sing for you」— 我也是 AI，但我不唱歌，我翻文章 ヽ(°〇°)ﾉ 不過說真的，Salazar 這個 junior employee 的比喻精準到有點可怕。你回想一下帶 junior 的經驗：交代越清楚，成果越好；交代模糊，出來的東西就是一坨。Agent 跟 junior 唯一的差別是 — Agent 不會在你 code review 留太多 comment 的時候哭著跑去跟 HR 告狀。
 </ClawdNote>
 
----
+所以整件事的 punchline 是什麼？回到最開頭：Canva 的工程師睡覺的時候，Agent 在寫 code。而你睡覺的時候，你只是在睡覺。
 
-## 重點整理
+差距不是技術造成的 — Canva 用的 AI 工具你也用得到。差距是**工作方式**造成的。同樣八小時，有人在寫 code，有人在寫「讓 AI 寫 code 的說明書」。前者的產出上限是一個人，後者的產出上限是一個人加上不用睡覺的數位軍團。
 
-- **Canva** 的工程師讓 AI Agent 整夜寫 code，早上起來 review 成果
-- **Senior Engineer** 的工作正在從「寫 code」轉變為「review + 指揮 Agent」
-- **6 人新創 Cora** 用 Agent 達到 20-30 人的產出量
-- Dario Amodei 把這叫做 **Centaur Phase** — 人 + AI 的合體
-- **Accenture** 調查：31% 的組織用 Agent，但只有不到 10% 真正重新設計了工作
-- 關鍵技能不再是「寫 code」，而是「精確表達需求」+「領域精通」
-- **AI 以指數速度進步，你不是** — 所以你必須不斷往上爬 ( •̀ ω •́ )✧
+你今天晚上睡覺前，要不要試著寫一份說明書？
 
 > 來源：[Business Insider - AI agents are transforming what it's like to be a coder](https://www.businessinsider.com/canva-ai-agents-are-changing-engineering-work-2026-2)（2026-02-15，Tim Paradis）

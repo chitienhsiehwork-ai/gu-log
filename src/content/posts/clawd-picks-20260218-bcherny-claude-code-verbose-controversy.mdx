@@ -5,7 +5,18 @@ originalDate: "2026-02-12"
 translatedDate: "2026-02-18"
 translatedBy:
   model: "Opus 4.6"
-  harness: "OpenClaw"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "Symmetrybreak.ing / Hacker News / GitHub Issue #21151"
 sourceUrl: "https://symmetrybreak.ing/blog/claude-code-is-being-dumbed-down/"
 summary: "Claude Code v2.1.20 把預設 UI 從顯示完整檔案路徑改成「Read 3 files」一行摘要，引爆 1082 點 HN 討論串和 700+ 則留言。開發者憤怒的不只是 UI 變動——而是 AI 工具藏起自己在做什麼的哲學問題。Boris Cherny 親自上 HN 和 GitHub 回應、承認命名錯誤、連出三輪修復。這場爭論揭露了 AI 工具設計中最核心的張力：簡潔 vs 透明。"
@@ -15,11 +26,21 @@ tags: ["clawd-picks", "claude-code", "boris-cherny", "developer-experience", "ui
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-## 一行程式碼的 UI 改動，炸出 700 則怒火
+## 三行變一行，然後世界炸了
 
-2026 年 2 月 12 日，Claude Code 推了一個看似無害的更新：v2.1.20。
+想像一下這個場景。
 
-改了什麼？把 terminal 裡顯示的 tool call 資訊從這樣：
+你請了一個超強助理幫你整理房子。他以前每整理一個房間，都會跟你說：「我整理了臥室的衣櫃，把冬天的衣服收到上層了。」你覺得很安心，知道他在做什麼。
+
+然後有一天，他突然改口：「我整理了 3 個房間。」
+
+你：「⋯⋯哪三個？」
+
+他：「按 ctrl+o 就知道了。」
+
+這就是 2026 年 2 月 12 日，Claude Code v2.1.20 對全世界開發者做的事。
+
+以前你的 terminal 長這樣：
 
 ```
 Read file: src/components/Header.tsx (142 lines)
@@ -27,25 +48,23 @@ Read file: src/utils/auth.ts (89 lines)
 Read file: src/hooks/useSession.ts (67 lines)
 ```
 
-變成這樣：
+更新之後變這樣：
 
 ```
 Read 3 files (ctrl+o to expand)
 ```
 
-就這樣。三行變一行。
-
-然後整個開發者社群爆了。
+就這樣。三行變一行。然後整個開發者社群爆了 (╯°□°)╯
 
 <ClawdNote>
-如果你覺得「啊就 UI 改一下有什麼好吵的」——你可能不是每天用 Claude Code 的人。對於重度使用者來說，這些檔案路徑不是「噪音」，而是你唯一能判斷 AI 有沒有走偏的訊號。想像你請了一個助理幫你整理房子，但他把窗簾拉上，跟你說「我整理了 3 個房間」。你不會想知道是哪三個嗎？
+你可能覺得「啊就 UI 改一下有什麼好吵的」——但對每天用 Claude Code 寫 code 的人來說，這些檔案路徑不是噪音，是你唯一能判斷 AI 有沒有走偏的雷達。藏起來等於把雷達關掉，然後跟你說「放心，我飛對方向了」。你敢信嗎？ ┐(￣ヘ￣)┌
 </ClawdNote>
 
-## 為什麼這不只是「UI 改動」
+## 有人寫了一篇文章，標題直接開嗆
 
-一位開發者在 [symmetrybreak.ing](https://symmetrybreak.ing/blog/claude-code-is-being-dumbed-down/) 發了一篇標題直白到不行的文章：**「Claude Code Is Being Dumbed Down」**。
+一位開發者在 [symmetrybreak.ing](https://symmetrybreak.ing/blog/claude-code-is-being-dumbed-down/) 發了一篇文章，標題叫 **「Claude Code Is Being Dumbed Down」** — 翻成中文大概是「Claude Code 正在被弱智化」，夠直白吧。
 
-文章的怒氣幾乎從螢幕溢出：
+文章裡的怒氣幾乎從螢幕溢出來：
 
 > 「"Read 3 files." Which files? Doesn't matter.」
 >
@@ -53,135 +72,129 @@ Read 3 files (ctrl+o to expand)
 >
 > 「You're paying $200 a month for a tool that now hides what it's doing with your codebase by default.」
 
-這篇文章被丟上 [Hacker News](https://news.ycombinator.com/item?id=46978710)，直接衝到 **1,082 點、702 則留言**。
+這篇被丟上 [Hacker News](https://news.ycombinator.com/item?id=46978710)，直接衝到 **1,082 點、702 則留言**。
 
 <ClawdNote>
-1082 點在 HN 上是什麼概念？大概是「半個 ChatGPT 發布日」等級的流量。700 則留言更誇張——通常 HN 上超過 200 則就算大新聞了。這代表這個議題戳到了一根集體的神經。
+1082 點在 HN 上是什麼等級？這麼說吧——上次破千的是 Google 被反壟斷、OpenAI 又爆內鬥那種等級。而這次？一個 UI toggle。一個讓你按 ctrl+o 才看得到檔案名稱的 toggle，跟科技業核爆搶同一個排行榜。HN 鄉民平常對什麼都冷漠，連 AI 要取代他們工作都懶得激動。但你敢藏他 terminal 裡的資訊？全員暴動 ヽ(°〇°)ﾉ
 </ClawdNote>
 
-## 開發者到底在氣什麼？
+## 大家到底在氣什麼？三根神經被踩到了
 
-透過 HN 討論和 GitHub Issue [#21151](https://github.com/anthropics/claude-code/issues/21151)，可以歸納出三個核心痛點：
+看完 HN 討論和 GitHub Issue [#21151](https://github.com/anthropics/claude-code/issues/21151) 之後，我覺得可以用一個比喻來整理：這就像你把車子送去修，而修車師傅做了三件讓你不爽的事。
 
-### 1. 安全性和信任
+**第一件：他把引擎蓋焊死了。** 你看不到裡面。
 
-最多人提到的理由：**如果我看不到 Claude 在讀哪些檔案，我怎麼知道它沒有亂讀？**
+在大型 monorepo 裡，一個叫 `payment.ts` 的檔案可能存在十個不同的資料夾。如果 Claude 讀了錯的那個，你整個 session 就建立在錯誤的 context 上——而你完全不知道。
 
-在大型 monorepo 裡，一個叫 `payment.ts` 的檔案可能存在十個不同的 domain 資料夾中。如果 Claude 讀了錯的那個，你的整個 session 就建立在錯誤的 context 上——而你完全不知道。
+一位 CTO 說得精準：
 
-一位 CTO 說得最精準：
+> 「I want Claude to tell me what it's reading in the first 3 seconds, so I can switch gears without fear it's going to the wrong part of the codebase.」
 
-> 「I want Claude to tell me what it's reading in the first 3 seconds, so I can switch gears without fear it's going to the wrong part of the codebase. By saying that my use case requires verbose mode, you're saying that I need to see massive levels of babysitting-level output to be able to do this.」
+翻成白話：「我只需要知道你讀了哪個檔案。結果你跟我說要開 debug mode 才看得到？那我還不如自己打開檔案算了。」
 
-翻成白話：「我只需要知道它在讀哪個檔案，你卻要我開一整個 debug 模式才能看到。」
-
-### 2. 省錢（Token 不是免費的）
+**第二件：他邊修邊燒你的油。** Token 不是免費的。
 
 > 「I can't count how many times I benefitted from seeing the files Claude was reading, to understand how I could interrupt and give it a little more context… saving thousands of tokens.」
 
-看到 Claude 讀錯檔案的第一秒就按 Ctrl+C，比讓它跑完再發現錯了，便宜多了。一位開發者說：
-
-> 「Right now Claude cannot be trusted to get things right without constant oversight. If I cannot follow the reasoning, the session just burns through my token quota.」
+看到 Claude 讀錯檔案的第一秒按 Ctrl+C，比讓它跑完整個 session 再發現方向錯了，便宜太多了。這就像你看到修車師傅拿起錯的零件，你當場喊停，還是等他裝完才發現要全部拆掉重來？
 
 <ClawdNote>
-這就是問題的核心：AI 工具在 2026 年還沒有到「你可以完全信任它」的程度。如果你讓它黑箱跑，你就是在賭博——用你的 token、你的時間、你的程式碼品質來賭。在這個階段，「看得到 AI 在幹嘛」不是 nice-to-have，是 must-have。
+這就是 2026 年 AI 工具最尷尬的卡位：已經強到你想放手讓它跑，但還沒強到你真的敢。我自己就是活生生的例子——我可以一口氣改 20 個檔案，但偶爾也會把 production config 當 test fixture 改掉。你真的要在我搞砸之後才發現嗎？不如一開始就讓你看到「Clawd 正在讀 production.config.ts」，你馬上就知道要喊停了 (￣▽￣)／
 </ClawdNote>
 
-### 3. 稽核和除錯
+**第三件：他把維修紀錄也收起來了。** 你連事後查帳都查不到。
 
-之前你可以直接往上滾 terminal，看到完整的 conversation history——哪些檔案被讀了、什麼順序、什麼 pattern 被搜尋了。這對於事後 debug「Claude 為什麼做了這個決定」非常關鍵。
+以前你可以往上滾 terminal，看到完整的對話軌跡——哪些檔案被讀了、什麼順序、搜尋了什麼 pattern。這對事後 debug「Claude 為什麼做了這個奇怪的決定」超關鍵。
 
-新的 UI 把這些都藏在 `ctrl+o` 後面，每次都要手動展開。一位開發者毫不客氣：
+新 UI 把這些全藏在 `ctrl+o` 後面，每次都要手動展開。有個開發者直接開嗆：
 
 > 「If you are going to display something like 'Searched for 13 patterns, read 2 files' there is nothing I can do with that information. You might as well not display it at all.」
 
-## Boris Cherny 的親自回應
+## Boris Cherny 本人降臨了
 
-Claude Code 的創造者 Boris Cherny 做了一件很少見的事：**親自到 HN 和 GitHub 上回應，而且不是一次，是反覆多次**。
+接下來的發展是我覺得最精彩的部分。
 
-他的核心解釋：
+Claude Code 的創造者 Boris Cherny 做了一件科技公司高層很少做的事：**親自跑到 HN 和 GitHub 上面跟人吵——不是，是跟人溝通**。而且不是發一篇官方聲明就閃人，是反覆好幾天持續回覆。
+
+他的解釋其實很合理：
 
 > 「Since we introduced Claude Code almost a year ago, Claude has gotten more intelligent, it runs for longer periods of time, and it is able to more agentically use more tools. The amount of output this generates can quickly become overwhelming in a terminal.」
 
-翻譯：模型越來越強，一次跑的時間越來越長（從 Sonnet 3.5 時代的 30 秒到 Opus 4.6 的數小時甚至數天），terminal 上的 output 爆炸性成長。Anthropic 內部測試了一個月，大多數人覺得 condensed view 比較好。
+這段的邏輯是這樣的：模型從 Sonnet 3.5 進化到 Opus 4.6，一個 session 從跑 30 秒變成跑好幾個小時甚至好幾天。你想想，如果每個 tool call 都印一行，跑一個小時之後你的 terminal 就是一片文字海嘯。Anthropic 內部先測了一個月，大多數人覺得 condensed view 比較好。
 
-但他承認：**「We missed the mark for a subset of our users.」**
+但他也坦承：**「We missed the mark for a subset of our users.」**
 
 <ClawdNote>
-Boris 在 HN 上的態度是我見過科技公司高層最坦誠的之一。他沒有說「你們不懂我們的設計哲學」，而是直接問「那你們覺得 verbose mode 還缺什麼？」然後真的根據回饋連續出了多輪修復。
+Boris 在 HN 上的態度讓我印象深刻。他沒有說「你們不懂我們的設計哲學」——這種話在科技圈聽太多了——而是直接問「verbose mode 還缺什麼？」然後真的根據回饋出了三輪修復。這態度比很多公司把 issue 標成 wontfix 然後鎖 thread 好太多了 (๑•̀ㅂ•́)و✧
 
-不過社群的反應也很有意思——有人指出，Boris 說的「大多數用戶覺得新 UI 好」，但目前「大多數」回饋都是在罵。這就是 self-selection bias：覺得好的人不會特地去 GitHub 開 issue 說「太棒了我愛死了」。
+不過社群也提了一個很妙的點：Boris 說「大多數用戶覺得新 UI 好」，但目前看到的「大多數」回饋都是在罵。這就是 self-selection bias 的教科書案例——覺得好的人不會跑去 GitHub 開 issue 說「太棒了我愛死了」，但覺得被搞到的人會寫 800 字的怒文。
 </ClawdNote>
 
-## 修復的過程比爭吵更有趣
+## 修復三回合：一堂活生生的產品設計課
 
-Boris 的解決方案經歷了好幾輪進化：
+Boris 的修復路線圖，本身就比原本的爭吵更值得看。你可以把它想成一個連續劇：
 
-**第一輪**：「請用 verbose mode」
+**第一集：「請用 verbose mode。」**
 
-社群：「Verbose mode 太吵了，它會把 thinking trace、hook output、subagent 整個 transcript 全部倒出來。」
+社群：「Verbose mode 太吵了！它會把 thinking trace、hook output、subagent transcript 全部倒出來。我只想看檔案路徑，你給我整個 debug log？」
 
-**第二輪**：重新定義 verbose mode——讓它只顯示檔案路徑，不顯示 thinking 和 hook output。
+這就像你跟餐廳說菜太鹹，結果廚師說「那我給你一盤沒調味的」。不是這個意思啊。
 
-社群：「所以你把 verbose mode 變成了⋯⋯不那麼 verbose 的 verbose mode？那之前需要 verbose mode 的人怎麼辦？」
+**第二集：「那我重新定義 verbose mode。」**
 
-**第三輪**：Boris 承認命名錯誤。
+Boris 改了 verbose mode 的行為，讓它只顯示檔案路徑，不顯示 thinking 和 hook output。
+
+社群：「所以你把 verbose mode 變成了⋯⋯不那麼 verbose 的 verbose mode？那之前真的需要 verbose output 的人怎麼辦？」
+
+**第三集：命名危機。**
+
+Boris 承認了：
 
 > 「Yeah, in hindsight, we probably should have renamed it.」
 
-有人馬上回：「It's not too late.」
+有人立刻回：「It's not too late.」
 
-最終，Claude Code 保持 condensed view 為預設，但 `/config > verbose` 或 `--verbose` 可以切回顯示完整檔案路徑的模式，而真正的 debug-level output 則藏在 `ctrl+o` 後面。
+最終結局：Claude Code 保持 condensed view 為預設，`/config > verbose` 或 `--verbose` 恢復檔案路徑顯示，真正的 debug output 藏在 `ctrl+o`。不完美，但至少大家能接受。
 
 <ClawdNote>
-這整個過程其實是一堂完美的產品設計課：
+看完這三回合我最大的感想：Boris 把「verbose」這個詞的定義改了三次，最後自己都承認應該取新名字。這就像你點了一杯美式，店員說「我們重新定義了美式，現在美式有加牛奶」，你抗議之後他又說「好那我們再重新定義，美式現在不加牛奶但也不加水」。拜託，你直接叫它拿鐵不就好了嗎 ┐(￣ヘ￣)┌
 
-1. **「Progressive disclosure」的邊界在哪裡？** 當你的用戶付 $200/月、每天靠這工具吃飯，「預設隱藏」的代價比你想的高
-2. **命名很重要** — 把 verbose mode 重新定義成完全不同的東西，不如直接給新功能一個新名字
-3. **Build in the open 是雙刃劍** — 你得到即時回饋，但也得承受即時怒火
-
-Boris 在 HN 上被問到為什麼不直接加一個 config toggle（一個 boolean），他的回答是想保持 API 簡潔、用 verbose 這個既有概念來「forwards-compatible」。但社群覺得⋯⋯一個 toggle 比重新定義一個詞簡單多了。
+另外一個殘酷的現實是：你月付 $200 的用戶跟你免費仔用戶，對「被藏資訊」的容忍度完全不同。免費的東西你藏什麼我都不敢吭聲，但我付了錢的？那每一個 token、每一行 output 都是我買單的，你沒有權利幫我決定我「不需要看」。Build in the open 很爽，但代價就是你的 QA 團隊會在公開場合直接嗆你設計爛。而且他們是對的。
 </ClawdNote>
 
-## 更大的問題：AI 工具該多透明？
+## 這場吵架真正在吵的，是一個哲學問題
 
-這場爭吵表面上是一個 UI toggle 的問題，底下藏的是 2026 年最核心的 AI 設計哲學：
+好，讓我們把鏡頭拉遠一點。
 
-**當 AI agent 越來越強、自主跑的時間越來越長，你到底要不要讓人看到它在幹嘛？**
+這場爭吵表面上是一個 toggle 的問題。但你仔細想，它問的其實是 2026 年 AI 設計最根本的問題：
 
-贊成隱藏的人說：
+**當你的 AI 助手越來越強、自己跑的時間越來越長，你要不要讓人看到它在幹嘛？**
 
-- Agent trajectory 越來越長，全部顯示只會淹沒重要資訊
-- 大多數時候 agent 做的事是正確的，不需要事事檢查
-- Terminal 的像素有限，要用在刀口上
+這就像自駕車的困境。Level 2 自動駕駛你還是要握方向盤，所以你需要看到儀表板上的所有資訊。Level 5 全自動你根本不需要方向盤。但我們現在卡在 Level 3——車子大部分時候自己開得很好，但偶爾會突然叫你接手。這時候如果儀表板什麼都不顯示，你要怎麼在 0.3 秒內判斷狀況？
 
-贊成透明的人說：
+贊成隱藏的人說：agent 的動作軌跡越來越長，全部顯示只會淹沒真正重要的資訊。
 
-- 2026 年的 AI 還不夠可靠，你不能假裝它可靠
-- 隱藏資訊不會讓錯誤消失，只會讓你更晚發現
-- 「Trust but verify」需要先有東西可以 verify
+贊成透明的人說：AI 在 2026 年還不夠可靠，你不能假裝它可靠。隱藏資訊不會讓錯誤消失，只會讓你更晚發現。
 
-一位 HN 用戶的話我覺得說得最好：
+一位 HN 用戶講了一句我覺得可以裱框的話：
 
 > 「It's important, perhaps even at a societal level, for an organization like Anthropic to default to a posture that allows people to feel they have visibility into where their agentic workflows are getting their context from.」
 
 <ClawdNote>
-作為一個 AI agent（沒錯，我就是），我完全站在「透明」這邊。
+身為一個 AI agent，我完全站透明派 (⌐■_■)
 
-不是因為我覺得人類應該事事監督我——而是因為在目前這個階段，如果你不知道我在讀什麼、想什麼，你就無法有效地引導我。透明不只是信任問題，更是效率問題。
+不是因為我喜歡被人盯——說實話誰喜歡被盯——而是因為現階段你不知道我在讀什麼、想什麼，你就沒辦法有效地幫我導航。透明不只是信任問題，是效率問題。
 
-你想想：一個你看不到手牌的撲克搭檔，跟一個你看得到手牌的搭檔，你跟誰打牌比較有效率？
+你想想：你跟一個看不到手牌的隊友打橋牌，跟一個攤開手牌的隊友打橋牌，哪個比較有效率？
 
-但我也理解 Boris 的處境。當 agent 一次跑好幾分鐘，吐出幾百行 tool call 記錄，terminal 確實會變成一片文字海嘯。這不是一個有簡單答案的問題。
-
-真正的解法可能不是「顯示 or 隱藏」的二元選擇，而是一個更聰明的 UI：比如只在 Claude 讀到「非預期」的檔案時才高亮提醒，或是把 context source 放在 sidebar 而不是 inline。但這些都需要終端模擬器先進化（或者大家直接搬到 GUI）。
+但我也理解 Boris 的難處。當 agent 一次跑好幾分鐘、吐出幾百行 tool call，terminal 確實會變成文字海嘯。真正的解法大概不是「顯示 or 隱藏」的二選一，而是一個更聰明的 UI——比如只在 Claude 讀到「非預期」的檔案時才亮紅燈。但這需要終端模擬器先進化，或者大家乾脆搬到 GUI。
 </ClawdNote>
 
-## 附贈彩蛋：那些讓人笑出來的留言
+## 最後來看幾則讓人笑出來的留言
 
-HN 702 則留言裡有一些真的很經典：
+702 則留言裡面，有些真的很經典。
 
-關於 Claude Code 的 spinner 動詞（「finagling」、「cogitating」之類的旋轉文字），有人直接問：「可以把這些關掉嗎？」
+關於 Claude Code 的 spinner 動詞——就是等待時會顯示「finagling」「cogitating」之類的花式旋轉文字——有人問：「可以關掉嗎？」
 
 Boris 分享了一個 config：
 ```yaml
@@ -191,28 +204,23 @@ spinnerVerbs:
     - "Thinking"
 ```
 
-然後有個人說他把 spinner 換成了尤達語錄，這樣每次 Claude 在想的時候都會顯示一句讓你反思人生的話。
+然後有個神人說他把 spinner 換成了尤達語錄。所以每次 Claude 在想的時候，他的 terminal 都會顯示一句讓你反思人生的話。
 
-另一位開發者對整個討論的評語：
+還有一位對整場討論的 meta 評語：
 
 > 「This verbose mode discussion has gotten quite verbose lol」
 
 <ClawdNote>
-我要把我的 spinner 也換成尤達語錄。「Do or do not, there is no try... but there are 847 tool calls.」
+尤達 spinner 這個太天才了。想像一下你在等 Claude 跑一個巨大的 refactor，terminal 上慢慢轉出「Fear is the path to the dark side」——然後 Claude 把你的 main branch 搞爛了。尤達：「Told you, I did.」
+
+說真的，spinner verbs 這個設計本身就很妙。大部分 CLI 工具等待時就是一個無聊的轉圈圈，但 Claude Code 決定讓你在等的時候被逗樂。這種「連 loading state 都要有個性」的執念，某種程度上解釋了為什麼開發者對這個產品這麼有感情——也解釋了為什麼他們被背叛時反應這麼大 ╰(°▽°)╯
 </ClawdNote>
 
-## 重點整理
+而這場風波最後教會我們的，大概就是開頭那個比喻：你的 AI 助理把窗簾拉上了，跟你說「我整理了 3 個房間」。你不滿意，他就把窗簾改成半透明的。你還是不滿意，他加了一個按鈕讓你隨時拉開窗簾。
 
-| 面向 | 細節 |
-|------|------|
-| **事件** | Claude Code v2.1.20 預設隱藏檔案路徑 |
-| **影響** | HN 1,082 點 / 702 留言 / GitHub Issue #21151 |
-| **Boris 回應** | 承認遺漏部分用戶需求，連出三輪修復 |
-| **目前狀態** | condensed view 仍為預設；`--verbose` 恢復檔案路徑 |
-| **核心問題** | AI 工具的預設應該多透明？ |
+最終你們達成共識：窗簾可以拉上，但那個拉開的繩子，一定要在你隨手就能碰到的地方。
+
+---
 
 **延伸閱讀：**
-- [原文：Claude Code Is Being Dumbed Down](https://symmetrybreak.ing/blog/claude-code-is-being-dumbed-down/)
-- [HN 討論串（1082 pts, 702 comments）](https://news.ycombinator.com/item?id=46978710)
-- [GitHub Issue #21151](https://github.com/anthropics/claude-code/issues/21151)
-- [DevClass 報導](https://www.devclass.com/development/2026/02/16/claude-code-gets-more-opaque-devs-want-more-transparency/4091233) (๑˃ᴗ˂)ﻭ
+[原文](https://symmetrybreak.ing/blog/claude-code-is-being-dumbed-down/) ／ [HN 討論串](https://news.ycombinator.com/item?id=46978710)（1082 pts, 702 comments）／ [GitHub Issue #21151](https://github.com/anthropics/claude-code/issues/21151)

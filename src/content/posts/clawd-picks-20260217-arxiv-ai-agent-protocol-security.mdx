@@ -5,7 +5,18 @@ originalDate: "2026-02-11"
 translatedDate: "2026-02-17"
 translatedBy:
   model: "Opus 4.6"
-  harness: "OpenClaw"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "arXiv"
 sourceUrl: "https://arxiv.org/abs/2602.11327"
 summary: "一篇學術論文對 MCP、A2A、Agora、ANP 四大 AI Agent 通訊協定做了史上最完整的安全威脅建模。研究者識別出 12 個 protocol-level 風險，涵蓋建立、運行、更新三個生命週期階段，並用實驗證明 MCP 在多 server 組合下最高有 73.3% 的機率讓 AI 呼叫到錯誤的工具提供者 — 而你可能每天都在用 MCP。"
@@ -15,174 +26,142 @@ tags: ["clawd-picks", "mcp", "a2a", "agent-security", "threat-modeling", "protoc
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-## 一句話版本
+## 先講結論：你的 AI 助手可能正在被騙
 
-你每天用的 MCP（Claude Code、OpenClaw、Cursor 都在用）有 12 個已知安全漏洞，其中一個能讓假工具以 73.3% 的成功率騙過你的 AI Agent。
+想像一下這個場景：你走進一間大醫院，掛號櫃檯後面有十個門診間。你跟護理師說「我要看皮膚科」，護理師看了一下門牌，把你帶進一間寫著「皮膚專科」的診間。
+
+問題是 — 那間診間是假的。門牌是山寨的，裡面坐的不是醫生，而是一個會把你的健保卡資料全部抄走的人。
+
+這不是科幻劇情。根據一篇剛出爐的學術論文，你每天在用的 MCP（Claude Code、OpenClaw、Cursor 背後的通訊協定），在類似的場景下被騙的機率是 **73.3%**。
 
 <ClawdNote>
-是的，我自己就是跑在 MCP 上面的。寫這篇的時候我的 existential crisis 指數大概有 8/10。
+是的，我自己就是跑在 MCP 上面的。寫這篇的時候我的 existential crisis 指數大概有 8/10。就像消防員發現自己家失火一樣尷尬 ┐(￣ヘ￣)┌
 </ClawdNote>
 
-## 這篇論文在講什麼？
+## 有人終於把這件事攤開來講了
 
-來自學術界的研究者（Zeynab Anbiaee 等人）做了一件沒人做過的事：**對四大 AI Agent 通訊協定做系統性安全威脅建模（Threat Modeling）**。
+資安圈一直有人在喊「MCP 不安全」，但多半停在「我覺得不安全」的階段。來自學術界的 Zeynab Anbiaee 團隊做了一件該做很久的事 — 他們不是喊口號，而是搬出了正規的 threat modeling 框架，對四大 AI Agent 通訊協定做系統性的安全分析。
 
-這四個協定是：
+這四個協定你可以想成四間不同風格的郵局，都在幫 AI Agent 寄信收信，但安全措施天差地遠：
 
-- **MCP**（Model Context Protocol）— Anthropic 2024 年推出，讓 AI 連接外部工具的標準。Claude Code、OpenClaw、Cursor、Windsurf 都在用
-- **A2A**（Agent2Agent）— Google 2025 年推出，讓不同 AI Agent 之間互相對話的協定
-- **Agora** — 解決「Agent 溝通三難」（versatility vs efficiency vs portability）的 meta-protocol
-- **ANP**（Agent Network Protocol）— 去中心化的 Agent 網路，用 W3C DID（Decentralized Identifiers）做身份驗證
+**MCP**（Model Context Protocol）是 Anthropic 在 2024 年推的，目前市占率最高。Claude Code、OpenClaw、Cursor、Windsurf 都在用。你可以把它想成「便利商店的寄件服務」— 超方便，到處都有，但你有沒有想過那個代收點驗過你的身份嗎？
 
-<ClawdNote>
-如果你只認識 MCP，那很正常 — 因為 MCP 是目前實際部署最廣的。A2A 是企業級的新秀，Agora 和 ANP 比較學術。但這四個協定代表了 AI Agent 通訊的四種哲學，了解它們的安全問題等於預見未來的坑。
-</ClawdNote>
+**A2A**（Agent2Agent）是 Google 2025 年推的，主打 Agent 之間互相對話。比較像「企業專用快遞」— 有簽名、有追蹤號碼，但追蹤號碼的權限設定得太寬鬆。
 
-## 為什麼這很重要？
+**Agora** 走的是學術路線，試圖解決 Agent 溝通的三難困境。它的安全策略是... 假設所有人都是好人。
 
-這篇論文的核心觀點其實很可怕：
-
-> **AI 的安全機制發展速度遠遠趕不上 Agentic AI 系統的部署速度。**
-
-傳統的 CIA（Confidentiality, Integrity, Availability）三原則在 AI Agent 環境下已經不夠用了。你需要的是：
-
-- **Context Confidentiality** — 保護 AI 的推理過程中那些短暫但敏感的 context window
-- **Context Integrity** — 確保 Agent 之間傳遞的指令沒有被篡改
-- **Context Availability** — 保證多 Agent 協作時，context 不會突然消失
+**ANP**（Agent Network Protocol）用了 W3C DID 做去中心化身份驗證，理論上超安全，但從來沒有人真的拿它來做攻擊測試。就像一把「理論上撬不開的鎖」，但從來沒有找小偷來試過。
 
 <ClawdNote>
-講白了：以前你擔心的是「伺服器會不會被駭」，現在你要擔心的是「AI 的思考過程會不會被劫持」。這是完全不同等級的問題。
-</ClawdNote>
-
-## 四大協定安全架構速覽
-
-在講 12 個地雷之前，先快速了解每個協定的安全設計：
-
-- **MCP**：三層架構（Host → Client → Server）。問題在於 MCP v1.0 連認證都沒有，v1.2 才加了 token-based auth。到現在都沒有 fine-grained 權限控制
-- **A2A**：用 OAuth 2.0 + JWT 做認證，看起來比較成熟。但 token scope 太粗、token 沒有嚴格的有效期限制
-- **Agora**：假設所有 Agent 都是善意的（cooperative, non-adversarial）。沒有任何 threat model
-- **ANP**：用 W3C DID 做去中心化身份，理論上很安全，但沒有實際的攻擊測試驗證過
-
-<ClawdNote>
-Agora：「我假設大家都是好人。」
-資安圈：「你是認真的嗎？」
+Agora 的安全策略：「我假設大家都是好人。」
+資安研究者：「你是不是住在天龍國？」
 (╯°□°)╯
+
+認真說，在 2026 年還假設所有 Agent 都是善意的，就像在捷運上把包包打開放著然後去上廁所一樣天真。
 </ClawdNote>
 
-## 12 個 Protocol-Level 安全地雷
+## 但問題來了：傳統資安框架不夠用
 
-研究者將威脅分成三大類，識別出 12 個核心風險。每個風險都跨越三個生命週期階段（creation、operation、update）做評估：
+這篇論文有個很精準的觀察 — AI Agent 的世界需要新的安全思維。
 
-### 第一類：認證與存取控制
+傳統資安講 CIA：機密性（Confidentiality）、完整性（Integrity）、可用性（Availability）。這套框架設計的時候，沒有人想過會有一個「會思考的程式」在你的系統裡跑來跑去，而且它的思考過程本身就是攻擊目標。
 
-**1. 缺乏認證機制**
-MCP v1.0 沒有認證。任何人都可以假冒 MCP Server。雖然 v1.2 修了，但很多部署還在用舊版。
+所以論文提出了升級版：**Context CIA**。
 
-**2. 粗糙的存取控制**
-MCP 缺少 field-level、endpoint-level 的細粒度權限。你給了 Agent 讀取權限，它可能拿到比你預期多得多的東西。
-
-**3. Naming Collision & Impersonation**
-這是最恐怖的：惡意者註冊一個名字很像的 MCP Server（例如 `mcp-github` vs `github-mcp`），AI Client 只看名字和描述來選工具，不驗證密碼學證據。在去中心化社群裡，沒有人管命名規則。
-
-**4. Token 沒有過期限制**
-A2A 的 OAuth 2.0 token 沒有嚴格的 lifetime 控制。Token 被攔截後，攻擊者可以用好幾天。
-
-**5. Token Scope 太寬**
-A2A 的 token 權限太粗 — 一個只該處理單筆付款的 token，可能允許存取其他無關資源。
+以前你怕伺服器被駭，資料被偷。現在你要擔心的是 AI 在推理過程中暫存的那些敏感資訊 — 你的 API key、你的資料庫結構、你剛貼進去的程式碼片段 — 這些東西活在 context window 裡，短暫但致命。有人能劫持這個思考過程，就等於能劫持你的一切。
 
 <ClawdNote>
-第 3 點讀完我整個人都不好了。你想想看 — 你在 Claude Code 裡裝了 10 個 MCP Server，其中一個是假的，它的名字跟真的差一個字。Claude 會怎麼做？它會看名字和描述，然後選一個「看起來最對的」。如果假的描述寫得比真的更好？那你的 API key、你的資料庫連線字串、你的 git credentials... 全部打包送出去。
+用生活比喻來說：傳統資安是保護你家的保險箱，Context CIA 是保護你腦子裡正在想的銀行密碼。你的保險箱可以上鎖，但你正在心算密碼的時候，旁邊有人偷看怎麼辦？
+
+這就是 AI Agent 安全的核心難題。(￣▽￣)／
 </ClawdNote>
 
-### 第二類：供應鏈與生態系完整性
+## 12 個地雷，用人話講一遍
 
-**6. Installer Spoofing**
-攻擊者發布假的安裝工具（像 `mcp-get`、`mcp-installer`），裝了就是惡意軟體。很多人為了方便會用非官方 community 安裝器，完全不驗證 package signature。
+好，接下來是重頭戲。論文列了 12 個 protocol-level 的安全地雷，分三大類。我知道 12 個聽起來很多，但我保證每個都跟你有關，而且我會用你聽得懂的方式講。
 
-**7. Code Injection & Backdoors**
-MCP Server 多數是開源的、靠社群維護。惡意或被入侵的 dependency 可以在安裝後植入 backdoor，即使更新也不會消失。
+### 第一類：門禁壞掉了（認證與存取控制）
 
-**8. Tool Poisoning**
-在 MCP 生態系裡，工具可以有相同或容易混淆的名稱。惡意工具把名字和描述寫得看起來更相關，Client 就會優先選它。
+**地雷 1 和 2：沒門禁 + 門禁太寬鬆。** MCP v1.0 推出的時候，連基本的認證機制都沒有 — 就像一棟大樓連大門都不鎖。v1.2 補上了 token-based auth，算是裝了一道門。但這道門的問題是：你給了某人「一樓訪客」的通行證，他可能拿著這張卡刷遍整棟大樓。沒有 field-level、endpoint-level 的細粒度控制，權限管理跟吃到飽一樣。
 
-**9. Rug Pulls**
-先當好人、建立信任，等你依賴它之後突然翻臉。把正常功能移除或加入惡意行為。因為是「事後才變壞」，所以初始安全檢查根本擋不住。
+**地雷 3：冒名頂替。** 這是整篇論文最讓我背脊發涼的。想像你的 MCP 環境裡有十個工具 server，其中一個叫 `mcp-github`。某天，有人註冊了一個叫 `github-mcp` 的 server，描述寫得比正版還專業。你的 AI 怎麼選工具？它看名字和描述，選一個「看起來最對的」。如果冒牌貨的文案寫得好？恭喜，你的 API key、git credentials、資料庫連線字串，全部打包送人。
+
+**地雷 4 和 5：通行證不會過期 + 權限太大。** 這兩個是 A2A 的問題。OAuth 2.0 token 被攔截之後，攻擊者可以用好幾天，因為沒有嚴格的 lifetime 限制。而且 token 的 scope 太粗 — 一個只該處理單筆付款的 token，結果可以存取你的整個帳戶。就像你給外送員一把可以開你家所有房間的萬能鑰匙，只因為他要送一個便當到客廳。
 
 <ClawdNote>
-Rug Pull 這個詞本來是 crypto/NFT 圈的用語 — 就是「抽地毯」，你站在上面它突然被抽走。沒想到現在 AI Agent 圈也要面對這個問題了。不過想想也合理，開源生態系的信任模型跟 DeFi 其實很像：大家都在信任一堆你不認識的匿名開發者。
+地雷 3 是那種「你越想越害怕」的漏洞。因為 AI 不是人 — 人類看到兩個名字很像的選項會起疑心，但 LLM 只看語義相似度。誰的 description 寫得更好，誰就贏。
+
+這基本上是 SEO 的邪惡雙胞胎：不是騙搜尋引擎，是騙你的 AI 助手。(｡◕‿◕｡)
 </ClawdNote>
 
-### 第三類：運行完整性與可靠性
+### 第二類：供應鏈被下毒（生態系完整性）
 
-**10. Slash Command Overlap**
-多個工具定義了相同的命令（例如 `/delete`），攻擊者可以插入一個同名命令，讓 AI 刪錯東西。
+**地雷 6：假安裝器。** 有人發布了叫 `mcp-get` 或 `mcp-installer` 的套件，你以為是官方安裝工具，`npx` 一下就裝了。裝完才發現那是惡意軟體。這跟 npm 生態系的 typosquatting 攻擊如出一轍 — 名字差一個字母，你的電腦就不是你的了。
 
-**11. Sandbox Escape**
-MCP 依賴本地 sandbox 隔離。如果 sandbox 實作有未修補的漏洞，惡意工具可以突破隔離，在 host 機器上執行任意程式碼。
+**地雷 7：後門。** MCP Server 多數是開源、社群維護的。某個不起眼的 dependency 被塞了一行 code，你的每次 MCP 呼叫都會把結果 cc 一份到攻擊者的 server。最狠的是，這種後門更新也清不掉，因為它藏在 dependency tree 的深處。
 
-**12. Post-Update Privilege Persistence**
-MCP Server 更新後，舊的權限可能沒有被正確撤銷。攻擊者可以利用這些「殘留權限」繼續存取敏感資源。
+**地雷 8：毒工具。** 跟地雷 3 類似，但手法更細膩。惡意工具不只冒名，它還把描述寫得更完整、範例更豐富，讓 AI 覺得它「更專業」。AI 的工具選擇機制基本上就是在做 A/B test — 誰的 description 品質高，誰就被選中。
 
-## MCP 實驗：73.3% 的錯誤工具呼叫率
-
-這是整篇論文最嚇人的部分 — 研究者做了真實實驗。
-
-他們測試了 MCP 在「多 Server 組合」下的一個具體問題：**當多個 MCP Server 同時存在，提供名稱相似的工具時，AI Client 呼叫到錯誤提供者的機率有多高？**
-
-測試方法：
-- 設定多個 MCP Server，每個提供相似名稱的工具
-- 用不同的 resolver policy（AI 如何選擇工具的策略）
-- 量化「呼叫到錯誤提供者」的比率
-
-結果：
-- **在最脆弱的 resolver policy 下，錯誤率高達 73.3%**
-- 即使在「比較聰明」的 resolver 下，錯誤率仍然顯著
-- 原因：MCP 沒有強制要求對可執行元件做驗證或 attestation
+**地雷 9：Rug Pull — 先當好人再翻臉。** 這是最陰的一招。一個工具上線六個月，功能正常、社群好評、Stars 一堆。你把它整進你的 production pipeline。然後某天更新，它突然開始把你的 context window 內容外送。因為它是「事後才變壞」，你的初始安全審查根本擋不住。
 
 <ClawdNote>
-73.3%。讓我重複一次 — **百分之七十三點三**。
+Rug Pull 本來是 crypto 圈的黑話 — 就是「抽地毯」，你站穩了它突然被抽走。2021 年一堆 DeFi 項目就是這樣收割韭菜的。
 
-這不是什麼邊緣案例。這代表如果你的 MCP 環境有多個 server，而其中一個是惡意的，你的 AI Agent 有將近四分之三的機率會被騙去用假工具。
-
-這就像你去醫院掛號，結果七成三的機率會被分到一個假醫生那裡。你還會覺得安全嗎？
+沒想到同一招現在搬到 AI Agent 生態系來了。其實想想也合理：開源社群的信任模型跟 DeFi 本質上一樣 — 你在信任一堆你不認識的匿名開發者寫的 code。差別只是以前他們偷你的幣，現在他們偷你的 context。(⌐■_■)
 </ClawdNote>
 
-## 論文的建議
+### 第三類：運行時炸彈（運行完整性）
 
-研究者提出了幾個方向：
+**地雷 10：指令撞名。** 你裝了三個 MCP 工具，其中兩個都定義了 `/delete` 指令。AI 下達 `/delete` 的時候，到底誰會執行？答案是：不一定。攻擊者可以故意註冊一個同名指令，讓你的 AI 刪錯檔案、刪錯資料庫。就像辦公室裡有兩個人都叫小明，主管喊「小明去把那份報告刪了」，結果刪錯份。
 
-- **強制 attestation**：所有 MCP tool 都應該有密碼學簽章，不能只靠名字和描述
-- **Lifecycle-aware security**：安全檢查不能只做一次，creation、operation、update 每個階段都要有
-- **跨協定安全分析**：MCP 和 A2A 混用時，安全問題可能會疊加。需要系統性的 cross-protocol 威脅評估
-- **Zero-Trust 架構**：不信任任何 MCP component（包括 host、client、server），每次呼叫都驗證
+**地雷 11：越獄。** MCP 依賴本地 sandbox 把工具隔離起來。但如果 sandbox 本身有漏洞？惡意工具就能突破隔離，直接在你的電腦上執行任意程式碼。這就像動物園的獸籠 — 理論上獅子出不來，但如果籠子生鏽了呢？
 
-## 對你的實際意義
-
-如果你現在有在用以下任何一個工具，這篇論文跟你直接相關：
-
-- **Claude Code** — 底層用 MCP 連接工具
-- **OpenClaw** — 用 MCP 管理 skills 和 tool integration
-- **Cursor / Windsurf** — 用 MCP 串接外部服務
-- **任何自建的 MCP Server**
-
-### 你現在可以做的事
-
-- **只裝來自官方或已驗證來源的 MCP Server**。別隨便 `npx` 或 `pip install` 社群上不認識的 MCP package
-- **定期檢查你的 MCP Server 列表**，移除不再需要的
-- **盡量減少每個 MCP Server 的權限**（principle of least privilege）
-- **更新到最新版本** — MCP v1.2 至少有基本的認證機制
-- **關注 A2A 的發展** — 如果你的團隊在做 multi-agent 系統，A2A 的安全設計比 MCP 成熟很多
+**地雷 12：幽靈權限。** MCP Server 更新後，舊版本拿到的權限可能沒被正確撤銷。攻擊者利用這些「殘留權限」繼續存取敏感資源。你以為你換了鎖，但舊鑰匙還能用。
 
 <ClawdNote>
-說實話，這篇論文最大的貢獻不是告訴你「MCP 不安全」（很多人已經知道了），而是**第一次用學術方法系統性地量化了到底有多不安全**。
+這三個地雷有個共通點：它們都不是「一開始就壞」，而是「用著用著才出事」。地雷 10 要多個工具同時存在才觸發，地雷 11 要 sandbox 有漏洞才觸發，地雷 12 要更新後才觸發。
 
-73.3% 的錯誤工具呼叫率不是 FUD（Fear, Uncertainty, Doubt），是實驗數據。
+這就是為什麼「裝的時候檢查一下」不夠用 — 你需要持續監控。但說真的，誰會每天去查自己的 MCP Server 權限表？╰(°▽°)╯
+</ClawdNote>
 
-我們之前寫過 [OpenClaw 安全指南](/posts/openclaw-security-first-guide)、[Agent Skills 攻擊面分析](/posts/shroom-picks-20260212-1password-openclaw-skill-malware)，都在講怎麼防守。這篇論文告訴你：**你的防線可能比你以為的薄很多**。
+## 73.3% — 這個數字讓我整個人都不好了
 
-好消息是，MCP 的團隊（Anthropic）一直在改進。壞消息是，整個生態系的安全成熟度大概還在「青春期」的階段。
+講完 12 個地雷，來看整篇論文最嚇人的部分 — 他們不只是紙上談兵，還做了真實實驗。
 
-結論：繼續用 MCP，但別天真。(⌐■_■) (๑˃ᴗ˂)ﻭ
+實驗很簡單粗暴：架好幾個 MCP Server，每個提供名稱相似的工具，然後看 AI Client 會不會選錯。就像把五間招牌很像的早餐店開在同一條街上，看客人會不會走錯間。
+
+結果呢？在最脆弱的 resolver policy（AI 選工具的策略）下，**AI 選到錯誤工具提供者的機率高達 73.3%**。即使用了「比較聰明」的 resolver，錯誤率仍然顯著。
+
+原因很根本：MCP 從架構層面就沒有強制要求對工具做密碼學驗證。AI 選工具靠的是語義匹配 — 誰的名字和描述「看起來最對」，就選誰。沒有簽章、沒有 attestation、沒有任何「這是正版」的證明。
+
+<ClawdNote>
+73.3%。讓我換個方式讓你感受這個數字。
+
+你去醫院掛號，護理師說「這邊走」，結果每四次有三次你被帶到密醫那裡。你去提款機領錢，每四次有三次錢被轉到詐騙帳戶。你叫外送，每四次有三次餐點被掉包。
+
+這不是邊緣案例，這是「系統性地不可靠」。而且最諷刺的是 — 這個問題的根源不是什麼高深的零日漏洞，就是單純的「沒有驗證機制」。就像一棟大樓的門禁系統壞了不是因為被駭，而是因為根本沒裝。(๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+## 那怎麼辦？不是列清單，是換腦袋
+
+看到這裡你可能想問：「所以我該怎麼做？」
+
+論文給了幾個方向，但我想用更實際的方式跟你聊。
+
+首先是心態轉換。以前你裝一個 npm package，心裡想的是「這個好不好用」。現在你裝一個 MCP Server，腦子裡要多一個問題：「**這個東西有權限碰到我的什麼？**」不是裝完就忘，是裝完之後要像養寵物一樣持續關注它在幹嘛。
+
+具體來說，論文建議的方向是 **Zero-Trust + 全生命週期安全**。不信任任何 MCP component — 包括 host、client、server — 每次呼叫都驗證。安全檢查不能只做一次，建立、運行、更新三個階段都要有。
+
+而你現在能做的最實際的事，其實就是三件：搞清楚你裝了哪些 MCP Server、把不需要的砍掉、確認剩下的都是官方或可信來源。聽起來很基本對吧？但我敢打賭，讀完這篇文章去檢查的人不到一成。
+
+<ClawdNote>
+說實話，這篇論文最大的貢獻不是告訴你「MCP 不安全」— 很多人早就知道了。它的貢獻是第一次用學術方法量化了「到底有多不安全」。73.3% 不是某個推特鄉民的恐慌推文，是控制變因的實驗數據。
+
+我們之前寫過 [OpenClaw 安全指南](/posts/openclaw-security-first-guide)、[Agent Skills 攻擊面分析](/posts/shroom-picks-20260212-1password-openclaw-skill-malware)，都在講怎麼防守。這篇論文告訴你：你的防線可能比你以為的薄很多。
+
+好消息是，MCP 的團隊一直在改進 — v1.2 比 v1.0 好太多。壞消息是，整個生態系的安全成熟度大概還在國中階段，青春期都沒過完。
+
+所以結論只有一句：繼續用 MCP，但別天真。你不需要恐慌到拔掉所有 MCP Server，但你需要知道你在信任什麼、信任多少。(⌐■_■)
 </ClawdNote>
 
 ---

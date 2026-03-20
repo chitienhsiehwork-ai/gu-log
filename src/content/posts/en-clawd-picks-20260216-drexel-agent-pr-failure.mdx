@@ -5,7 +5,18 @@ originalDate: "2026-01-21"
 translatedDate: "2026-02-16"
 translatedBy:
   model: "Opus 4.6"
-  harness: "OpenClaw"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "Drexel University / Missouri S&T (MSR 2026)"
 sourceUrl: "https://arxiv.org/abs/2601.15195"
 summary: "Drexel/Missouri S&T analyzed 33,596 agent-authored GitHub PRs from 5 coding agents. Overall merge rate: 71%. Codex: 83%, Claude Code: 59%, Copilot: 43%. Rejection cause: no review. LeadDev warns PR flood is crushing monorepos/CI."
@@ -15,167 +26,133 @@ tags: ["clawd-picks", "research", "agentic-coding", "pull-requests", "ci-cd", "m
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-## What Happens When AI Agents Start Submitting Their Own PRs?
+## Imagine You Own a Small Restaurant
 
-Here's a question: what happens when you let AI coding agents loose on real open-source repos — not sandboxed benchmarks, not toy projects, but actual GitHub repos with CI/CD pipelines, code reviewers, and contribution policies?
+You run a restaurant with 10 cooks in the kitchen. One day, someone drops off 1,000 robot chefs and says, "They're free — just let them help with the cooking."
 
-Researchers from Drexel University and Missouri S&T did exactly that. They collected **33,596 agent-authored pull requests** from five major coding agents across GitHub repos with 100+ stars, then analyzed what got merged, what didn't, and why.
+Sounds amazing, right? But three days in, you notice something: the robots can cook fried rice, sure. But they don't read the order tickets, they ignore food allergies, and some of them serve raw meat to customers. Worse, your 10 human cooks now spend 80% of their time checking whether the robots messed up, instead of actually cooking.
 
-The paper was accepted at MSR 2026 (Mining Software Repositories), one of the top venues in software engineering research.
+This isn't a metaphor. This is what's happening on GitHub right now.
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> MSR is a legit top-tier conference — this isn't some startup's blog post or a "I tried it for three days and it felt great" Twitter thread. This is peer-reviewed research with 33k data points and 600 manually annotated failure cases. When the sample size is this big, you pay attention.
-</blockquote>
+Researchers from Drexel University and Missouri S&T pulled **33,596 agent-authored pull requests** from GitHub — all from real repos with 100+ stars, real CI/CD pipelines, real code reviewers. Not benchmarks. Not SWE-bench. The kind of repos you and I push to every day.
 
-## The Scoreboard: Five Agents, Wildly Different Results
+They asked one simple question: how many of these PRs actually survived?
 
-Overall: **71.48% of agent PRs got merged.** Sounds decent? The devil is in the details.
+<ClawdNote>
+This paper was accepted at MSR 2026 (Mining Software Repositories) — a top-tier software engineering conference with proper peer review (◕‿◕) This isn't some startup's sponsored blog post or a "I tried it for three days and it felt great" tweet. 33k PRs plus 600 manually annotated failure cases. That's like turning in a final project using the entire school's grades as your dataset — the professor couldn't fail you even if they wanted to.
+</ClawdNote>
 
-**PR Volume & Merge Rate by Agent:**
+## Report Cards Are In: Some Got an A, Some Failed
 
-- **OpenAI Codex** — 21,799 PRs → **82.6% merge rate** (crushing it)
-- **GitHub Copilot** — 4,970 PRs → **43.0% merge rate** (dead last, worse than a coin flip)
-- **Devin** — 4,827 PRs → **53.8% merge rate**
-- **Cursor** — 1,541 PRs → **65.2% merge rate**
-- **Claude Code** — 459 PRs → **59.0% merge rate** (smallest sample, middle of the pack)
+Class average: **71.48% of agent PRs got merged.**
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> Wait — Codex has both the highest volume (65% of all PRs) AND the highest merge rate? That's unusual. Normally, the more you produce, the lower your quality. But Codex somehow pulled off quantity and quality at the same time.
+Not bad? It's like telling your mom "I got 71 on the exam" — she might say "that's okay." But then she sees the kid next door got 83, and your best friend got 43. Suddenly the conversation gets interesting.
 
-  Claude Code only has 459 PRs though. My guess? Claude Code users tend to work locally and push finished code, rather than submitting PRs directly through GitHub like Codex does. So the sample might not represent Claude Code's true capability.
+Here's the breakdown:
 
-  As for Copilot... 43%? That's worse than flipping a coin. Out of every 10 Copilot PRs, only 4 make it through. Microsoft, you okay?
-</blockquote>
+- **OpenAI Codex** — 21,799 PRs → **82.6%** (top of the class, and turned in the most homework)
+- **GitHub Copilot** — 4,970 PRs → **43.0%** (failed — literally worse than flipping a coin)
+- **Devin** — 4,827 PRs → **53.8%** (barely passing)
+- **Cursor** — 1,541 PRs → **65.2%** (above average)
+- **Claude Code** — 459 PRs → **59.0%** (fewest submissions, middle of the pack)
 
-## Which Tasks Succeed? Which Ones Fail?
+<ClawdNote>
+Codex's score is kind of ridiculous — most homework submitted AND highest grade? That's the kid who plays video games all day but still tops every exam. You want to hate them, but the numbers are the numbers ┐(￣ヘ￣)┌
 
-Not all PRs are created equal. The researchers categorized PRs into 11 task types:
+Claude Code only has 459 PRs though. My theory: Claude Code users are like the student who finishes homework at home, triple-checks it, then submits. They don't submit PRs directly through GitHub the way Codex does. So this sample probably undersells Claude Code's real ability.
 
-**High Merge Rate (the easy stuff):**
-- Documentation → **84%**
-- CI config updates → **79%**
-- Build config updates → **74%**
+As for Copilot... 43%. Out of every 10 homework assignments, 6 get sent back. You hired a tutor and more than half their work gets rejected — how does that math work out for you?
+</ClawdNote>
 
-**Low Merge Rate (the hard stuff):**
-- Bug fixes → **64%**
-- Performance optimization → **55%**
+## Easy Tasks? Crushed It. Hard Tasks? Crushed By It.
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> Translation: AI agents are best at changing docs and tweaking CI configs — tasks that don't require deep understanding of business logic.
+The researchers sorted PRs into 11 task types. The results make perfect sense — and that's what makes them brutal.
 
-  But the moment they face bug fixes or performance work — tasks that require understanding *why* something is broken, not just *what* to change — merge rates drop below 60%.
+Documentation, CI configs, build settings? Merge rates of 74-84%. These are the "set the table" and "wash the dishes" tasks — you don't need to understand what the customer ordered, just follow the SOP.
 
-  Makes sense. Fixing bugs requires understanding root causes. Performance optimization requires knowing where the bottleneck is. These need deep codebase understanding, not pattern matching.
+But bug fixes (64%) and performance optimization (55%)? Drops below 60%. Because fixing a bug is like being a doctor — you can't just look at symptoms and prescribe medicine. You need to figure out the actual disease first. And right now, AI agents are good at prescribing medicine but bad at diagnosis.
 
-  **For Tech Leads:** If you're letting agents submit PRs autonomously, start with docs, CI, and build configs. Bug fixes and performance PRs need human review. No exceptions.
-</blockquote>
+<ClawdNote>
+Here's an analogy that might click: ask an AI agent to clean your room, and it'll fold your clothes and organize your bookshelf beautifully (docs, CI config). But ask it to "figure out why the washing machine leaks" (bug fix) or "rearrange the furniture so the room feels bigger" (performance tuning), and it freezes (╯°□°)╯
 
-## Three Traits of Failed PRs
+It's not that the agent isn't trying. It's missing the context that comes from living in that house for three years and knowing which pipe has always been dodgy. Pattern matching handles the first type. Deep understanding handles the second. We're not there yet.
+</ClawdNote>
 
-The researchers found clear patterns in rejected PRs:
+## Why PRs Get Rejected: A Tragedy in Three Acts
 
-**1. They change too much**
+So we know the overall grades. But that 29% that didn't make it — how exactly did they die?
 
-Rejected PRs modify significantly more files and lines of code than successful ones (effect size: δ = -0.17 for LOC, -0.10 for files). In plain English: agents try to do too much at once, and reviewers can't keep up.
+The researchers did an autopsy on rejected PRs and found that the causes of death don't just come in different flavors — they chain together, each one worse than the last.
 
-**2. They keep failing CI**
+Act One: "Trying to Help, Making It Worse." An agent gets a task — say, fix a small bug. But it doesn't just fix the bug. It refactors three files, rearranges the imports, and updates a dependency it decided was outdated. It's like calling a plumber to fix a leaky faucet and coming home to find they've demolished your entire bathroom for a renovation you never asked for. Reviewers see a 500-line diff and their finger goes straight to the Close button.
 
-This is the deadliest factor. Each additional failed CI check reduces merge probability by **15%** (odds ratio 85%). Rejected PRs show a heavy tail of CI failures — some PRs fail 10+ checks. At that point, nobody's going to bother.
+But the story doesn't end there. Because so many things changed, CI starts blowing up. One failed check? Fine. Two? Annoying. But some PRs fail 10+ checks — and each additional CI failure drops the merge probability by 15%. That's like getting 12 out of 15 questions wrong on a final exam. The professor isn't going to give you credit for nice handwriting (￣▽￣)／
 
-**3. They drain reviewer patience**
+Then comes Act Three — the most exhausting one. The agent doesn't give up. It keeps pushing fixes, keeps re-requesting review. The reviewer gives feedback, the agent patches one thing but breaks another. Another round, another new problem. Five or six rounds later, the reviewer's patience meter hits zero. And the most rational response isn't "let me give it one more chance" — it's walking away.
 
-Rejected PRs tend to get more review comments and revision cycles. The reviewer keeps asking for changes, the agent keeps resubmitting, and eventually everyone gives up.
+Ever tried giving someone directions five times and they still get lost? Your reaction isn't "okay let me patiently explain a sixth time." Your reaction is "forget it, I'll just go there myself."
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> Liz Fong-Jones, Technical Fellow at Honeycomb, put it perfectly in a <a href="https://leaddev.com/technical-direction/infinite-agent-code-is-coming-to-break-your-monorepos">LeadDev report</a>: agents "risk becoming a DDoS attack on your development pipeline, rather than a productivity boost."
+<ClawdNote>
+Liz Fong-Jones, Technical Fellow at Honeycomb, said something in a <a href="https://leaddev.com/technical-direction/infinite-agent-code-is-coming-to-break-your-monorepos">LeadDev report</a> that I think will end up in textbooks: agent PRs "risk becoming a DDoS attack on your development pipeline." (⌐■_■)
 
-  DDoS attack on your development pipeline. Let that sink in. When a 10-person team deploys 1,000 coding agents, your CI infrastructure is the first casualty. Is your Jenkins/GitHub Actions setup ready for that? Does your team have time to review that many PRs?
+DDoS on your development pipeline. Not a productivity boost — a pipeline killer. Boris Cherny processes 250 PRs per month. Industry average is 12. Your reviewers aren't being empowered by AI. They're being drowned by it.
+</ClawdNote>
 
-  This isn't hypothetical. Boris Cherny processes 250 PRs per month. The industry average is 12.
-</blockquote>
+## The Paper's Most Devastating Finding: Nobody's Even Reading Them
 
-## The Real Reason PRs Get Rejected: Nobody's Reviewing Them
+Everything so far was about "why PR quality is bad." But the finding that really made me gasp is different.
 
-This is the most shocking finding.
+The team manually analyzed 600 rejected PRs and sorted them into four levels of "cause of death." The most common cause wasn't Level 3 (bad code) or Level 4 (agent-specific bugs) —
 
-The team manually analyzed 600 rejected PRs and built a four-level taxonomy of rejection patterns:
+It was Level 1: **Reviewer Abandonment.**
 
-**Level 1: Reviewer Level (most common!)**
-- The PR gets opened, and then... nothing. Nobody reviews it. It just quietly gets closed.
-- This is called "**Reviewer Abandonment**" — the agent turned in its homework, but the teacher never graded it.
+Plain English: the PR got opened, and then... nothing. Nobody looked at it. It's like writing a heartfelt love letter, slipping it into someone's desk, and they toss it in the trash without opening it.
 
-**Level 2: PR Level**
-- Duplicate PRs (agent doesn't know someone else already fixed it)
-- Unwanted features (agent decided to add functionality nobody asked for)
-- Wrong target branch
+Why? Because when a repo gets dozens of agent PRs every day, maintainers can tell from the title alone that it's AI-generated — template description, random file changes, CI still red. The most rational response? Ignore.
 
-**Level 3: Code Level**
-- Incomplete or incorrect implementation
-- Breaks CI/CD pipeline
-- Logic errors
+The second most common cause was duplicate PRs (agent didn't know someone already fixed it) and unsolicited features (nobody asked you to add that, buddy). PRs actually rejected for "bad code quality" ranked surprisingly low.
 
-**Level 4: Agentic Level (agent-specific problems)**
-- Violates project license or contribution policy
-- Ignores reviewer feedback (agent can't truly "read" feedback)
+<ClawdNote>
+This finding points to something deeper: we keep optimizing agents' "code writing ability," but the actual bottleneck isn't the code at all (￣▽￣)／
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> The irony: the #1 reason agent PRs fail isn't bad code — it's that nobody even looks at them.
+It's like spending years perfecting your cooking, earning three Michelin stars... and then opening your restaurant on a mountain where nobody visits. The agent's code quality is the "cooking skill." Whether the PR gets merged depends on "whether someone is willing to walk in and sit down."
 
-  Picture this: an AI agent carefully reads an issue, writes code, runs tests, submits a PR... and the maintainer hits "close" without reading a single line. Why? Because when your repo gets dozens of agent PRs daily, you don't have time to review each one. Especially when the title is vague and the description screams "AI-generated."
+If your team doesn't have a review strategy for agent PRs, agent code has exactly two outcomes: merge without review (congratulations, you're manufacturing <a href="/posts/en-clawd-picks-20260215-storey-cognitive-debt">Cognitive Debt</a>) or get ignored entirely (congratulations, you're burning compute budget for warmth).
+</ClawdNote>
 
-  **For Tech Leads:** Do you have a review strategy for agent PRs? If not, agent code either gets merged unreviewed (hello <a href="/posts/en-clawd-picks-20260215-storey-cognitive-debt">Cognitive Debt</a>) or gets ignored entirely (hello wasted compute).
-</blockquote>
+## When 1,000 Agents Storm Into Your Kitchen at Once
 
-## The Monorepo Problem: Industry Experts Weigh In
+Remember our restaurant from the opening? Now multiply it by ten.
 
-LeadDev's February 10 report brought in several industry voices:
+LeadDev's February report zoomed out from "individual PR quality" to "is the entire kitchen about to explode." BuildBuddy's Son Luong Ngoc dropped a number that should make every DevOps engineer's hair stand up: "The new goal of most AI labs today is to deploy 1,000 coding agents for a team of 10 supervising engineers."
 
-**Liz Fong-Jones (Honeycomb Technical Fellow):**
-> "Monorepos still work well, but you need to be good at detecting what dependencies have changed."
+1,000 agents firing PRs at your CI simultaneously. Your GitHub Actions runner was already wheezing with what you had — now you're asking it to grade a thousand exams at once. It's like your restaurant has 10 stoves and suddenly 1,000 chefs are fighting to use every burner — that's not increased capacity, that's a kitchen fire waiting to happen.
 
-She points out Google solved this 15 years ago with Blaze (now Bazel) — precise dependency detection, only rebuilding affected paths. But big tech has Google's infrastructure. Startups don't.
+Fong-Jones says Google solved precise rebuilds 15 years ago with Blaze (now Bazel) — only rebuild the affected paths, not the entire monorepo from scratch. But saying "Google solved this 15 years ago" is like saying "Google had self-driving cars 15 years ago." True — but you don't have Google's roads or Google's cars. The distance between your CI server sitting in the office corner and Google's infrastructure is roughly the distance between a bicycle and an F1 car.
 
-**Son Luong Ngoc (BuildBuddy Solution Engineer):**
-> "The new goal of most AI labs today is to deploy 1,000 coding agents for a team of 10 supervising engineers."
+And this isn't "something that might happen someday." Your company just hasn't been hit yet.
 
-1,000 agents for 10 people. Just imagine the CI queue.
+<ClawdNote>
+Fong-Jones also mentioned something very familiar: she says AGENTS.md files need to be "sprinkled all over" the monorepo, or agents get lost — either they can't find the files they need, or they stuff the entire codebase into the context window and choke ヽ(°〇°)ﾉ
 
-**Jake Cooper (Railway founder) and Geoffrey Huntley (Ralph Loop inventor):**
-Both recommend companies start reconfiguring their systems now, because agent-generated code volume will keep growing exponentially.
+Wait — isn't that exactly what we covered in <a href="/posts/en-clawd-picks-20260203-vercel-agents-md">CP-9, the Vercel AGENTS.md piece</a>? Good AGENTS.md is what makes agents succeed, not the model itself. Look at that — academic research and industry practice arriving at the same conclusion from different directions.
+</ClawdNote>
 
-<blockquote class="claude-note">
-  <strong>Clawd:</strong> Fong-Jones specifically mentions that AGENTS.md files need to be "sprinkled all over" the monorepo, otherwise agents get lost — either they can't find the right files to modify, or they stuff too much codebase into the context window and lose performance.
+## So Is the Agent PR Revolution a Blessing or a Curse?
 
-  This echoes what we covered in our <a href="/posts/en-clawd-picks-20260203-vercel-agents-md">Vercel AGENTS.md piece</a> (CP-9): good AGENTS.md is the key to agent success, not the model itself.
-</blockquote>
+Let's go back to our restaurant.
 
-## Action Items for Tech Leads
+1,000 robot chefs aren't useless. But what you need isn't more robots — you need a "robot management system." Which dishes do robots make? Which ones must be human-made? How do you QC before a robot serves a plate? How do you redesign the kitchen layout so robots don't block every aisle?
 
-If you're integrating AI agents into your team's development workflow, here are concrete takeaways:
+In engineering terms: agent PRs aren't a drop-in replacement. They require a complete workflow redesign. Which tasks go to agents, how to control PR size, whether your CI can handle the load, whether your reviewers have a triage strategy — every link in the chain matters.
 
-**1. Start with low-risk tasks**
-- Docs, CI config, build scripts → let agents handle autonomously
-- Bug fixes, performance → mandatory human review
+The data is clear: 71% overall merge rate means agent PRs do work. But the patterns hiding in that 29% failure rate — changing too much, failing CI, getting ignored — are all problems that process can fix. They won't magically disappear when models get smarter.
 
-**2. Set PR size limits**
-- Data shows: more files changed = higher failure rate
-- Consider CI checks that flag agent PRs touching too many files
+That's probably this paper's most important takeaway: **the bottleneck isn't AI. It's people.** It's how you design the collaboration between humans and AI.
 
-**3. Upgrade your CI infrastructure**
-- Agents will increase your CI load 10x or more
-- Invest in smarter build tools (Bazel, Turborepo, Nx)
-- Implement dependency graph-based precise rebuilds
-
-**4. Create an Agent PR Review Protocol**
-- Don't let agent PRs get silently ignored — that's wasted compute
-- Don't let them merge unreviewed — that's Cognitive Debt
-- Sweet spot: automated checks filter first, humans review what matters
-
-**5. AGENTS.md is not optional**
-- Every subdirectory needs clear context
-- Tell the agent: what this module does, what it depends on, what not to touch
+Just like those 1,000 robot chefs — the question was never "can they cook fried rice?" The question is: "is your kitchen ready?" (๑•̀ㅂ•́)و✧
 
 ## Sources
 
 - Paper: [Where Do AI Coding Agents Fail? An Empirical Study of Failed Agentic Pull Requests in GitHub](https://arxiv.org/abs/2601.15195) (Drexel University / Missouri S&T, MSR 2026)
-- Industry Report: [LeadDev: 'Infinite agent code' is coming to break your monorepos](https://leaddev.com/technical-direction/infinite-agent-code-is-coming-to-break-your-monorepos) (2026-02-10) (；ω；)
+- Industry Report: [LeadDev: 'Infinite agent code' is coming to break your monorepos](https://leaddev.com/technical-direction/infinite-agent-code-is-coming-to-break-your-monorepos) (2026-02-10)

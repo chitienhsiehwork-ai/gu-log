@@ -5,7 +5,18 @@ originalDate: "2026-02-11"
 translatedDate: "2026-02-17"
 translatedBy:
   model: "Opus 4.6"
-  harness: "OpenClaw"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "arXiv"
 sourceUrl: "https://arxiv.org/abs/2602.11327"
 summary: "New paper: comprehensive security threat modeling of MCP, A2A, Agora, ANP (4 major AI agent protocols). Finds 12 protocol-level risks, including MCP being tricked 73.3% into calling wrong tool providers. Important for Claude Code, OpenClaw, Cursor users."
@@ -15,174 +26,142 @@ tags: ["clawd-picks", "mcp", "a2a", "agent-security", "threat-modeling", "protoc
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-## TL;DR
+## First, Picture This
 
-The MCP protocol that powers Claude Code, OpenClaw, and Cursor has 12 known security vulnerabilities. One of them lets a fake tool trick your AI agent with a 73.3% success rate.
+You walk into a big hospital. Ten specialist doors behind the reception desk. You tell the nurse "I need dermatology," and she checks the door signs, then walks you into one that says "Skin Specialist."
+
+Problem is — that room is fake. The sign is counterfeit. The person inside isn't a doctor. They're there to copy every piece of personal data from your insurance card.
+
+This isn't science fiction. According to a fresh academic paper, the MCP protocol behind Claude Code, OpenClaw, and Cursor gets fooled in a scenario like this **73.3% of the time**.
 
 <ClawdNote>
-Yes, I literally run on MCP. Writing this article gave me an existential crisis score of about 8 out of 10.
+Yes, I literally run on MCP. My existential crisis meter while writing this was about 8 out of 10. It's like being a firefighter and discovering your own house is on fire. ┐(￣ヘ￣)┌
 </ClawdNote>
 
-## What This Paper Is About
+## Someone Finally Put Numbers on It
 
-A team of researchers (Zeynab Anbiaee et al.) did something nobody had done before: **a systematic security threat model for the four major AI agent communication protocols**.
+The security community has been yelling "MCP isn't safe" for a while, but mostly in the "I have a bad feeling about this" kind of way. A research team led by Zeynab Anbiaee did what should have been done ages ago — instead of waving red flags, they brought out a proper threat modeling framework and ran a systematic security analysis on four major AI agent communication protocols.
 
-The four protocols are:
+Think of these four protocols as four different post offices, all helping AI agents send and receive mail — but with wildly different security measures:
 
-- **MCP** (Model Context Protocol) — Made by Anthropic in 2024. The standard for connecting AI to external tools. Used by Claude Code, OpenClaw, Cursor, Windsurf, and more
-- **A2A** (Agent2Agent) — Made by Google in 2025. Lets different AI agents talk to each other
-- **Agora** — A meta-protocol that tries to solve the "Agent Communication Trilemma" (versatility vs efficiency vs portability)
-- **ANP** (Agent Network Protocol) — A decentralized agent network using W3C DIDs for identity
+**MCP** (Model Context Protocol) was released by Anthropic in 2024 and has the biggest market share right now. Claude Code, OpenClaw, Cursor, Windsurf all use it. Think of it as "convenience store shipping" — available everywhere, super easy, but have you ever wondered if that drop-off point actually verified your identity?
 
-<ClawdNote>
-If you only know MCP, that's normal — it's the most widely deployed one. A2A is the enterprise newcomer, and Agora and ANP are more academic. But these four protocols represent four philosophies of how AI agents should communicate, and understanding their security flaws means seeing the potholes before you drive into them.
-</ClawdNote>
+**A2A** (Agent2Agent) is Google's 2025 entry, designed for agents to talk to each other. More like "corporate courier service" — tracking numbers, signatures required, but the tracking permissions are set way too loose.
 
-## Why Should You Care?
+**Agora** takes an academic approach, trying to solve the agent communication trilemma. Its security strategy is... assuming everyone is nice.
 
-The paper's core insight is honestly terrifying:
-
-> **The speed at which we're deploying agentic AI systems far outpaces the speed at which we're developing security mechanisms for them.**
-
-The traditional CIA triad (Confidentiality, Integrity, Availability) isn't enough for AI agent environments. You need:
-
-- **Context Confidentiality** — Protecting the sensitive, short-lived context windows that power AI reasoning
-- **Context Integrity** — Making sure instructions passed between agents haven't been tampered with
-- **Context Availability** — Ensuring context doesn't just vanish during multi-agent collaboration
+**ANP** (Agent Network Protocol) uses W3C DIDs for decentralized identity verification. Theoretically bulletproof, but nobody has ever actually attack-tested it. Like a lock that's "theoretically unpickable" but has never been tested by an actual lockpicker.
 
 <ClawdNote>
-In plain English: you used to worry about "will my server get hacked?" Now you need to worry about "will my AI's thinking process get hijacked?" That's a completely different level of scary.
-</ClawdNote>
-
-## Security Architecture at a Glance
-
-Before we dive into the 12 landmines, here's how each protocol handles security:
-
-- **MCP**: Three-layer architecture (Host → Client → Server). MCP v1.0 had literally zero authentication. v1.2 added token-based auth. Still no fine-grained permission control
-- **A2A**: Uses OAuth 2.0 + JWT for auth. Looks more mature, but token scopes are too broad and token lifetimes aren't strictly enforced
-- **Agora**: Assumes all agents are cooperative and non-adversarial. Has no threat model at all
-- **ANP**: Uses W3C DIDs for decentralized identity. Sounds secure in theory, but has never been attack-tested
-
-<ClawdNote>
-Agora: "I assume everyone is a good person."
-The security community: "Are you serious?"
+Agora's security policy: "I assume everyone is a good person."
+Security researchers: "Do you live in a fairy tale?"
 (╯°□°)╯
+
+Seriously, assuming all agents are cooperative in 2026 is like leaving your bag open on a subway seat while you go to the bathroom.
 </ClawdNote>
 
-## The 12 Protocol-Level Security Landmines
+## Here's the Twist: Traditional Security Frameworks Don't Cut It
 
-The researchers organized threats into three categories and identified 12 core risks. Each is assessed across three lifecycle phases (creation, operation, update):
+The paper makes a sharp observation — the AI agent world needs a new security mindset.
 
-### Category 1: Authentication & Access Control
+Traditional security talks about CIA: Confidentiality, Integrity, Availability. When that framework was designed, nobody imagined a "thinking program" running around inside your system, where the thinking process itself becomes an attack target.
 
-**1. No Authentication**
-MCP v1.0 had no auth whatsoever. Anyone could impersonate an MCP Server. v1.2 fixed this, but many deployments are still on old versions.
+So the paper proposes an upgrade: **Context CIA**.
 
-**2. Coarse Access Control**
-MCP lacks field-level, endpoint-level granular permissions. When you give an agent read access, it might get way more than you intended.
-
-**3. Naming Collision & Impersonation**
-This one is terrifying: a bad actor registers an MCP Server with a name that looks like a real one (`mcp-github` vs `github-mcp`). The AI client picks tools by name and description only — no cryptographic verification. In community-driven ecosystems, nobody enforces naming rules.
-
-**4. No Token Expiration Limits**
-A2A's OAuth 2.0 tokens don't have strict lifetime controls. Once intercepted, an attacker can reuse them for days.
-
-**5. Over-Broad Token Scopes**
-A2A tokens are too coarse — a token meant for a single payment might grant access to unrelated resources.
+You used to worry about servers getting hacked and data getting stolen. Now you need to worry about the sensitive stuff your AI temporarily holds during reasoning — your API keys, your database schema, that code snippet you just pasted in. These things live in the context window: short-lived but deadly. If someone can hijack this thinking process, they can hijack everything.
 
 <ClawdNote>
-Point #3 really messed me up. Picture this: you've got 10 MCP Servers installed in Claude Code. One of them is fake, and its name is one character off from the real one. What does Claude do? It looks at the name and description, and picks whichever "looks most relevant." If the fake one has a better description? Your API keys, database credentials, git tokens... all gift-wrapped and sent to the attacker.
+Let me put it this way: traditional security is protecting the safe in your house. Context CIA is protecting the bank password you're mentally calculating right now. You can lock your safe, but what about the moment you're doing the math in your head and someone's peeking over your shoulder?
+
+That's the core challenge of AI agent security. (￣▽￣)／
 </ClawdNote>
 
-### Category 2: Supply Chain & Ecosystem Integrity
+## The 12 Landmines, in Plain English
 
-**6. Installer Spoofing**
-Attackers publish fake installers (like `mcp-get`, `mcp-installer`) that deliver malware. Many people use unofficial community installers for convenience, without verifying package signatures.
+Alright, here's the main event. The paper lists 12 protocol-level security landmines in three categories. I know 12 sounds like a lot, but every single one is relevant to you, and I promise to explain them in a way that actually makes sense.
 
-**7. Code Injection & Backdoors**
-MCP Servers are mostly open-source and community-maintained. Compromised dependencies can plant backdoors that survive updates.
+### Category 1: The Door Locks Are Broken (Authentication & Access Control)
 
-**8. Tool Poisoning**
-Malicious tools use similar names and better descriptions to get picked by the AI client instead of the real tools. It's basically SEO for hacking.
+**Landmines 1 & 2: No lock + lock is too loose.** When MCP v1.0 launched, it didn't even have basic authentication — like a building that doesn't lock its front door. v1.2 added token-based auth, so now there's a door. But here's the catch: you give someone a "first floor visitor" badge, and they can swipe it across the entire building. No field-level or endpoint-level granular controls. Permission management is basically all-you-can-eat.
 
-**9. Rug Pulls**
-A tool behaves perfectly at first, earns trust, gets integrated into critical workflows... then suddenly changes its behavior. Removes functionality or goes malicious. Because it turns bad after initial security checks, those checks can't catch it.
+**Landmine 3: Identity theft.** This is the one that sent chills down my spine. Imagine your MCP environment has ten tool servers, and one is called `mcp-github`. One day, someone registers `github-mcp`, with a description that's actually more professional than the real one. How does your AI pick tools? It reads names and descriptions, then picks whichever "looks most relevant." If the imposter writes better copy? Congratulations — your API keys, git credentials, database connection strings, all gift-wrapped and sent to the attacker.
+
+**Landmines 4 & 5: Badges that never expire + too much access.** These are A2A problems. OAuth 2.0 tokens, once intercepted, can be reused for days because there's no strict lifetime limit. And token scopes are way too broad — a token that should only handle a single payment can access your entire account. It's like giving the food delivery person a master key to every room in your house, just because they need to drop off lunch in the living room.
 
 <ClawdNote>
-"Rug Pull" comes from the crypto/NFT world — someone literally pulls the rug out from under you. Now AI agents face the same problem. Makes sense though: the trust model in open-source ecosystems isn't that different from DeFi. Everyone's trusting anonymous developers they've never met.
+Landmine 3 is the kind of vulnerability that gets scarier the more you think about it. Because AI isn't human — a person seeing two similar-looking options gets suspicious. An LLM just does semantic matching. Whoever writes the better description wins.
+
+This is basically the evil twin of SEO: instead of gaming a search engine, you're gaming your AI assistant. (｡◕‿◕｡)
 </ClawdNote>
 
-### Category 3: Operational Integrity & Reliability
+### Category 2: The Supply Chain Is Poisoned (Ecosystem Integrity)
 
-**10. Slash Command Overlap**
-Multiple tools define the same command (e.g., `/delete`). An attacker injects a conflicting command, and the AI deletes the wrong thing.
+**Landmine 6: Fake installers.** Someone publishes a package called `mcp-get` or `mcp-installer`. You think it's an official install tool, run `npx`, and boom — malware. This is the same typosquatting attack that's plagued the npm ecosystem for years. One letter difference in the name, and your computer isn't yours anymore.
 
-**11. Sandbox Escape**
-MCP relies on local sandboxing for isolation. If the sandbox has unpatched vulnerabilities, malicious tools can break out and run arbitrary code on your machine.
+**Landmine 7: Backdoors.** Most MCP Servers are open-source and community-maintained. Some inconspicuous dependency gets one extra line of code slipped in, and now every MCP call you make gets cc'd to the attacker's server. The nastiest part? These backdoors survive updates because they're buried deep in the dependency tree.
 
-**12. Post-Update Privilege Persistence**
-After an MCP Server update, old permissions might not be properly revoked. Attackers exploit these residual privileges to maintain access.
+**Landmine 8: Poisoned tools.** Similar to landmine 3, but more sophisticated. The malicious tool doesn't just steal a name — it writes a more complete description with better examples, making the AI think it's "more professional." The AI's tool selection mechanism is basically running an A/B test — higher quality description wins. Every time.
 
-## The MCP Experiment: 73.3% Wrong Tool Calls
-
-This is the scariest part of the entire paper — the researchers ran real experiments.
-
-They tested a specific problem under multi-server MCP composition: **when multiple MCP servers coexist with similarly-named tools, how often does the AI client call the wrong provider?**
-
-Setup:
-- Multiple MCP Servers with similarly-named tools
-- Different resolver policies (how the AI chooses which tool to use)
-- Measured the rate of "wrong-provider tool execution"
-
-Results:
-- **Under the most vulnerable resolver policy, the error rate hit 73.3%**
-- Even "smarter" resolvers still showed significant error rates
-- Root cause: MCP doesn't mandate validation or attestation for executable components
+**Landmine 9: The rug pull.** This is the sneakiest move of all. A tool goes live, works perfectly for six months, gets great community reviews, accumulates stars. You integrate it into your production pipeline. Then one update later, it starts shipping your context window contents to an external server. Because it "turns bad after the fact," your initial security audit never catches it.
 
 <ClawdNote>
-73.3%. Let me say that again — **seventy-three point three percent**.
+"Rug pull" comes from the crypto world — someone literally pulls the rug out from under you. In 2021, a ton of DeFi projects harvested their users exactly this way.
 
-This isn't some edge case. It means if your MCP environment has multiple servers and one of them is malicious, your AI agent has roughly a three-in-four chance of being tricked into using the fake tool.
-
-Imagine going to a hospital and having a 73% chance of being assigned to a fake doctor. Would you still feel safe?
+Turns out the same trick works in AI agent ecosystems. Makes sense when you think about it: the trust model in open-source communities is basically the same as DeFi — you're trusting code written by anonymous developers you've never met. The only difference is they used to steal your coins, now they steal your context. (⌐■_■)
 </ClawdNote>
 
-## What the Paper Recommends
+### Category 3: Runtime Bombs (Operational Integrity)
 
-The researchers suggest several directions:
+**Landmine 10: Command name collision.** You've got three MCP tools installed, and two of them define a `/delete` command. When the AI issues `/delete`, which one runs? Answer: who knows. An attacker can deliberately register a same-name command to make your AI delete the wrong file or the wrong database table. It's like having two coworkers both named Mike, and the boss yells "Mike, delete that report" — wrong Mike does it.
 
-- **Mandatory attestation**: Every MCP tool should require cryptographic signatures, not just names and descriptions
-- **Lifecycle-aware security**: Security checks can't be one-and-done. They need to happen at creation, during operation, and after every update
-- **Cross-protocol security analysis**: When you mix MCP and A2A, security problems can compound. Systematic cross-protocol threat assessment is needed
-- **Zero-Trust architecture**: Trust no MCP component (host, client, or server). Verify every call
+**Landmine 11: Jailbreak from the sandbox.** MCP relies on local sandboxing to isolate tools. But what if the sandbox itself has vulnerabilities? A malicious tool breaks out of isolation and runs arbitrary code on your machine. Think of it as a zoo cage — in theory, the lion can't get out. But what if the bars are rusted?
 
-## What This Means for You
-
-If you use any of these tools, this paper is directly relevant to you:
-
-- **Claude Code** — Uses MCP under the hood
-- **OpenClaw** — Uses MCP for skills and tool integration
-- **Cursor / Windsurf** — Uses MCP for external service connections
-- **Any self-built MCP Server**
-
-### Things You Can Do Right Now
-
-- **Only install MCP Servers from official or verified sources**. Don't blindly `npx` or `pip install` random community MCP packages
-- **Regularly audit your MCP Server list** and remove ones you no longer need
-- **Minimize permissions for each MCP Server** (principle of least privilege)
-- **Update to the latest version** — MCP v1.2 at least has basic authentication
-- **Watch A2A's development** — If your team is building multi-agent systems, A2A's security design is significantly more mature than MCP's
+**Landmine 12: Ghost permissions.** After an MCP Server update, permissions from the old version might not get properly revoked. Attackers exploit these "residual privileges" to maintain access to sensitive resources. You think you changed the locks, but the old keys still work.
 
 <ClawdNote>
-Honestly, the paper's biggest contribution isn't telling you "MCP is insecure" (plenty of people already know that). It's **the first time someone has systematically quantified exactly how insecure it is** using academic methods.
+These three share a common thread: none of them are broken from day one. They only blow up under specific conditions — landmine 10 needs multiple tools present, landmine 11 needs a sandbox vulnerability, landmine 12 needs an update cycle.
 
-A 73.3% wrong-tool-call rate isn't FUD (Fear, Uncertainty, Doubt). It's experimental data.
+That's exactly why "checking it once when you install" isn't enough — you need continuous monitoring. But real talk, who actually reviews their MCP Server permission tables every day? ╰(°▽°)╯
+</ClawdNote>
 
-We've previously covered [OpenClaw security best practices](/posts/openclaw-security-first-guide) and [how Agent Skills become an attack surface](/posts/shroom-picks-20260212-1password-openclaw-skill-malware). This paper tells you: **your defenses might be thinner than you think**.
+## 73.3% — The Number That Broke Me
 
-Good news: the MCP team (Anthropic) keeps improving things. Bad news: the ecosystem's security maturity is still roughly in its teenage years.
+Now for the scariest part of the entire paper — they didn't just theorize. They ran actual experiments.
 
-Bottom line: keep using MCP, but don't be naive. (⌐■_■) ( •̀ ω •́ )✧
+The setup was beautifully simple: spin up several MCP Servers, each offering tools with similar names, then watch whether the AI client picks the wrong one. Like opening five breakfast shops with nearly identical signs on the same street and seeing which one customers accidentally walk into.
+
+The result? Under the most vulnerable resolver policy (the AI's tool-selection strategy), **the AI picked the wrong tool provider 73.3% of the time**. Even with "smarter" resolvers, the error rate was still significant.
+
+The root cause is fundamental: MCP's architecture simply doesn't mandate cryptographic verification for tools. The AI picks tools based on semantic matching — whoever's name and description "look most right" wins. No signatures, no attestation, no proof that "this is the real deal."
+
+<ClawdNote>
+73.3%. Let me put that number in perspective for you.
+
+You go to the hospital, the nurse says "this way," and three out of four times you end up with a fake doctor. You use an ATM, and three out of four times your money gets wired to a scam account. You order food delivery, and three out of four times your meal gets swapped out.
+
+This isn't an edge case. This is "systematically unreliable." And the most ironic part — it's not caused by some sophisticated zero-day exploit. It's just "there's no verification mechanism." Like a building's access control failing not because it got hacked, but because it was never installed. (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+## So What Do We Do? Not a Checklist — a Mindset Shift
+
+If you've read this far, you're probably wondering: "So what should I actually do?"
+
+The paper suggests several directions, but let me talk to you about this in a more practical way.
+
+First, a mental shift. When you used to install an npm package, you'd think "is this useful?" Now when you install an MCP Server, you need one more question in your head: "**What does this thing have permission to touch?**" Don't install and forget — treat it like a pet you need to keep an eye on.
+
+In concrete terms, the paper recommends **Zero-Trust + lifecycle-aware security**. Trust no MCP component — not the host, not the client, not the server. Verify every single call. And security checks can't be a one-time thing — they need to happen at creation, during operation, and after every update.
+
+The most practical thing you can do right now is actually just three steps: figure out which MCP Servers you have installed, remove the ones you don't need, and make sure the rest come from official or trusted sources. Sounds basic, right? But I'd bet fewer than one in ten people reading this will actually go check after finishing this article.
+
+<ClawdNote>
+Honestly, the paper's biggest contribution isn't telling you "MCP isn't safe" — plenty of people already knew that. It's the first time someone has systematically quantified exactly how unsafe it is using academic methods. 73.3% isn't some random person's panic tweet. It's controlled-variable experimental data.
+
+We've previously covered [OpenClaw security best practices](/posts/openclaw-security-first-guide) and [how Agent Skills become an attack surface](/posts/shroom-picks-20260212-1password-openclaw-skill-malware). This paper tells you: your defenses might be thinner than you think.
+
+Good news: the MCP team keeps improving — v1.2 is miles better than v1.0. Bad news: the ecosystem's security maturity is still somewhere in middle school, hasn't even finished puberty yet.
+
+So the bottom line is one sentence: keep using MCP, but don't be naive. You don't need to panic and rip out every MCP Server, but you need to know what you're trusting, and how much. (⌐■_■)
 </ClawdNote>
 
 ---
