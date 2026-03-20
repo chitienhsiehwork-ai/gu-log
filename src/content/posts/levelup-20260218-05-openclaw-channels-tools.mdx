@@ -118,9 +118,17 @@ class ChannelPlugin:
 講到 SDK helper 我就忍不住想抱怨。你知道光是「把 Telegram 的 MarkdownV2 轉成 Discord 的標準 Markdown 再轉成 WhatsApp 那個半殘的純文字格式」這件事，如果每個 plugin 自己來，大概每個人都會寫出一個 600 行的 format converter，然後三個人寫出來的東西互不相容。SDK 把這種噩夢統一處理了 —— attachment 下載、message chunking、reply formatting、rate limit throttle，全包。你說這是不是 overengineered？不是，這是被三個不同平台的 edge case 打到臉之後，痛定思痛的結晶 (╯°□°)╯
 </ClawdNote>
 
-那 SDK 到底幫你省了哪些工？**Message normalize** —— Telegram 叫 `message_id`、Discord 叫 `snowflake`，每家都有自己的說法，SDK 幫你統一成同一種語言。**Attachment handling** —— 每個平台的上傳下載 API 都不同，SDK 處理。**Reply formatting** —— Telegram 用 MarkdownV2、Discord 用標準 Markdown、WhatsApp 只支援基本格式，SDK 幫你搞定。**Rate limit** —— 每個平台有自己的速率限制，SDK 內建 throttle。
+那 SDK 到底幫你省了哪些工？我舉個最經典的痛點你就懂了。
 
-一句話：你專心教翻譯官聽懂方言，髒活 SDK 來。
+光是「訊息 ID」這種最基本的東西，Telegram 叫 `message_id`、Discord 叫 `snowflake`、Slack 叫 `ts` —— 三家三種說法，像是三個國家的身分證號碼格式完全不一樣。你如果每個 plugin 自己處理，光統一 ID 格式就會寫到崩潰。SDK 說：「這種事你們別管了，我來。」一個 normalize 函數統一搞定。
+
+附件更慘。Telegram 的檔案要你先拿 `file_id` 再去另一個 endpoint 下載、Discord 的附件直接給你 CDN URL 但有過期時間、WhatsApp 的媒體要先用 token 換下載連結 —— 每家都像設計了一個不同的迷宮讓你走。SDK 把這些迷宮全走過一遍，幫你鋪好一條直線。
+
+然後是格式轉換這個永恆的噩夢：Telegram 用 MarkdownV2（對，V2，V1 已經被拋棄了）、Discord 用標準 Markdown、WhatsApp 只支援基本粗體斜體。你在 Telegram 寫的 `**粗體**` 到了 WhatsApp 可能直接變成亂碼。SDK 幫你在三種格式之間無縫轉換，你不用管。
+
+最後是 rate limit —— 每個平台都有自己的「你不要太快」規則，超過就被暫時 ban。SDK 內建 throttle，讓你不用半夜被「429 Too Many Requests」嚇醒。
+
+一句話總結：你專心教翻譯官聽懂方言，那些會讓人禿頭的髒活，SDK 全包了。
 
 ---
 
@@ -264,9 +272,27 @@ OpenClaw 的 tools 一模一樣 —— 每個 tool 有 **JSON Schema** 定義。
 
 </AnalogyBox>
 
-內建 tools：**exec**（跑 shell command）、**browser**（操作瀏覽器）、**read / write / edit**（讀寫檔案）、**web_search / web_fetch**（搜尋/抓網頁）、**message**（發訊息）、**cron**（排程）、**nodes**（控制配對裝置）、**image / tts**（圖片分析/語音）、**subagents**（產生子 agent）。
+那 OpenClaw 到底給了 AI 哪些手？想像你在教一個很聰明但什麼都沒碰過的實習生，你會一項一項教：
 
-每個 tool 用 JSON Schema 定義，AI 看到就知道怎麼呼叫：
+「先學會開 terminal」—— 這是 **exec**，讓 AI 能跑 shell command。最基本的手，但用途最廣。
+
+「再學會開瀏覽器」—— 這是 **browser**，AI 可以自己打開網頁、點按鈕、截圖。像一個會自己上網查資料的實習生。
+
+「然後學會讀寫檔案」—— **read / write / edit**，看 log、改 config、寫 code。日常最常用。
+
+「學會上網找資料」—— **web_search / web_fetch**，Google 搜尋、抓網頁內容。
+
+「學會發訊息」—— **message**，主動通知你結果、或傳訊息給其他 channel。
+
+「學會排程」—— **cron**，像設鬧鐘一樣，定時自動執行任務。
+
+「學會控制配對裝置」—— **nodes**，操作其他已配對的電腦或手機。
+
+「學會看圖和說話」—— **image / tts**，分析截圖、產生語音。
+
+「最後，學會找幫手」—— **subagents**，自己分工出子 agent，一個人忙不過來就叫同事。
+
+這些 tool 全部用 JSON Schema 定義 —— AI 看 spec 就知道怎麼呼叫，不需要你手把手教：
 
 ```python
 # Tool 定義的概念（pseudocode）
@@ -388,11 +414,13 @@ OpenClaw 的 tool policy 一模一樣 —— 每個 tool、每個 exec 權限，
 
 </AnalogyBox>
 
-**第一層：Tool Policy** —— 直接 allow / deny 整個 tool。deny 的 tool，AI 根本看不到，不知道它存在。就像你手機的 app 被關了相機權限 —— 它甚至不知道你的手機有相機。
+三層怎麼疊？從最外面往裡面看。
 
-**第二層：Exec Security** —— exec 最危險（能跑任何指令），所以有三種模式：**deny**（完全禁止）、**allowlist**（白名單，`git` OK、`rm` 擋）、**full**（完全開放）。
+**第一層：Tool Policy** —— 這是最粗的門禁。直接決定 AI 看不看得到一個 tool。deny 掉的 tool？AI 根本不知道它存在。就像你手機裡的 app 被關了相機權限 —— 它的 UI 上連拍照按鈕都不會出現。它不是「不能用相機」，它根本不知道你有相機。這層的邏輯就是：你不需要的功能，直接從 AI 的世界裡消失。
 
-**第三層：Elevated Mode** —— 就算 exec = full，需要 **sudo** 的操作還是要額外授權。AI 會問：「我需要 elevated permission，可以嗎？」
+**第二層：Exec Security** —— 過了第一關，進入最危險的 tool：exec。能跑 shell command 代表什麼？代表它「理論上」能 `rm -rf /`。所以 exec 有自己的三段變速箱：**deny** 直接封死，一個 command 都不給跑；**allowlist** 開白名單，`git status` 可以、`rm -rf` 滾開；**full** 完全放飛，你相信 AI 不會搞事。大部分人會選 allowlist，因為 full 需要一定的信仰。
+
+**第三層：Elevated Mode** —— 就算你開了 exec = full，有些事情還是不能隨便做。需要 **sudo** 的操作 —— 裝套件、改系統設定、動 root 檔案 —— AI 會停下來問你：「這個操作需要 elevated permission，我可以嗎？」像是員工刷門禁都自己來，但要進金庫的時候會把鑰匙交到你手上讓你開門。
 
 ```python
 # 三層安全的 decision tree（pseudocode）

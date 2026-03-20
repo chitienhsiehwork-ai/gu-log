@@ -118,9 +118,17 @@ class ChannelPlugin:
 Let me rant about the SDK helpers for a second. You know how "converting Telegram's MarkdownV2 to Discord's standard Markdown to WhatsApp's barely-functional plain text format" sounds like a small job? Without the SDK, every plugin author would write their own 600-line format converter, and all three versions would be mutually incompatible. The SDK handles this nightmare — attachment downloads, message chunking, reply formatting, rate limit throttling — all of it. Is this overengineered? No. This is the crystallized pain of getting slapped in the face by three different platforms' edge cases (╯°□°)╯
 </ClawdNote>
 
-So what does the SDK actually save you from? **Message normalize** — Telegram says `message_id`, Discord says `snowflake`, everyone has their own word for the same thing. SDK unifies them. **Attachment handling** — every platform's upload/download API is different. SDK handles it. **Reply formatting** — Telegram uses MarkdownV2, Discord uses standard Markdown, WhatsApp barely supports formatting at all. SDK deals with it. **Rate limiting** — every platform has its own speed limits. SDK has built-in throttling.
+So what does the SDK actually save you from? Let me show you with the most classic pain point.
 
-One sentence: you teach the interpreter the dialect, the SDK handles the dirty work.
+Just the concept of "message ID" — the most basic thing imaginable — is already a mess. Telegram calls it `message_id`, Discord calls it `snowflake`, Slack calls it `ts`. Three platforms, three naming conventions, like three countries with completely different ID card formats. If every plugin handled this on its own, you'd go crazy just trying to unify IDs. The SDK says: "Don't worry about this nonsense, I got it." One normalize function, done.
+
+Attachments are even worse. Telegram makes you grab a `file_id` first, then hit a separate endpoint to download. Discord gives you a CDN URL but it expires. WhatsApp makes you exchange a token for a download link. Each platform designed a different maze for you to navigate. The SDK already walked through all of them and paved a straight path for you.
+
+Then there's format conversion — the eternal nightmare. Telegram uses MarkdownV2 (yes, V2 — V1 was abandoned). Discord uses standard Markdown. WhatsApp barely supports bold and italic. Your `**bold text**` on Telegram might turn into gibberish on WhatsApp. The SDK converts seamlessly between all three formats so you don't have to care.
+
+Finally, rate limiting. Every platform has its own "slow down, buddy" rules. Exceed them and you get temporarily banned. The SDK has built-in throttling so you don't wake up at 3 AM to a "429 Too Many Requests" surprise.
+
+One sentence: you teach the interpreter the dialect. The hair-pulling dirty work? SDK handles all of it.
 
 ---
 
@@ -264,9 +272,27 @@ The difference: with FastAPI, **you** call the API. With OpenClaw, **the AI call
 
 </AnalogyBox>
 
-Built-in tools: **exec** (run shell commands), **browser** (drive a browser), **read / write / edit** (file operations), **web_search / web_fetch** (search/fetch the web), **message** (send messages), **cron** (schedule tasks), **nodes** (control paired devices), **image / tts** (image analysis/voice), **subagents** (spawn child agents).
+So what hands does OpenClaw give the AI? Think of it like training a smart but completely fresh intern, one skill at a time:
 
-Each tool is defined with JSON Schema, and the AI knows how to call it just by reading the definition:
+"First, learn to open a terminal" — that's **exec**. Run shell commands. The most basic hand, but the most versatile.
+
+"Next, learn to use a browser" — that's **browser**. The AI opens web pages, clicks buttons, takes screenshots. Like an intern who can Google things on their own.
+
+"Then, learn to read and write files" — **read / write / edit**. Check logs, tweak configs, write code. The daily bread and butter.
+
+"Learn to search the web" — **web_search / web_fetch**. Google it, fetch a page, grab the content.
+
+"Learn to send messages" — **message**. Proactively notify you of results, or send messages to other channels.
+
+"Learn to set alarms" — **cron**. Schedule tasks to run automatically, like setting a recurring alarm clock.
+
+"Learn to control paired devices" — **nodes**. Operate other computers or phones that are linked to the system.
+
+"Learn to see and speak" — **image / tts**. Analyze screenshots, generate voice output.
+
+"Finally, learn to delegate" — **subagents**. Spawn child agents when one pair of hands isn't enough.
+
+All these tools are defined with JSON Schema — the AI reads the spec and knows how to call each one, no hand-holding required:
 
 ```python
 # Tool definition concept (pseudocode)
@@ -388,11 +414,13 @@ OpenClaw's tool policy works exactly the same — each tool, each exec permissio
 
 </AnalogyBox>
 
-**Layer 1: Tool Policy** — straight allow or deny for entire tools. A denied tool is invisible to the AI — it doesn't even know the tool exists. Like when your phone app has camera permission turned off — it doesn't even know your phone has a camera.
+How do the three layers stack? Let's go from the outermost gate inward.
 
-**Layer 2: Exec Security** — exec is the most dangerous tool (can run anything), so it has three modes: **deny** (completely forbidden), **allowlist** (whitelist only — `git` OK, `rm` blocked), **full** (fully open).
+**Layer 1: Tool Policy** — this is the coarsest gate. It decides whether the AI can even *see* a tool. A denied tool doesn't just become unavailable — it vanishes from the AI's reality. Like when a phone app has camera permission turned off. The app doesn't show a grayed-out camera button. It doesn't even know your phone has a camera. The logic is simple: if you don't need the AI to have a capability, erase it from the AI's world entirely.
 
-**Layer 3: Elevated Mode** — even with exec = full, operations requiring **sudo** need extra authorization. The AI asks: "I need elevated permissions — OK?"
+**Layer 2: Exec Security** — past the first gate, we arrive at the most dangerous tool: exec. Being able to run shell commands means the AI can *theoretically* `rm -rf /`. So exec gets its own three-speed gearbox: **deny** locks it down completely, not a single command allowed; **allowlist** opens a whitelist — `git status` OK, `rm -rf` get lost; **full** is fully open, you trust the AI not to do anything stupid. Most people pick allowlist, because full requires a certain amount of faith.
+
+**Layer 3: Elevated Mode** — even with exec = full, some operations still need a permission slip. Anything requiring **sudo** — installing packages, changing system settings, touching root-owned files — the AI stops and asks: "This needs elevated permissions. May I?" Like an employee who badges through doors on their own, but hands you the key when it's time to open the vault.
 
 ```python
 # Three-layer security decision tree (pseudocode)
