@@ -616,6 +616,29 @@ TITLE_SLUG=$(sanitize_slug "$TITLE")
 FILENAME="${TICKET_PREFIX,,}-${SP_NUM}-${DATE_STAMP}-${AUTHOR_SLUG}-${TITLE_SLUG}.mdx"
 EN_FILENAME="en-${FILENAME}"
 
+# Cleanup trap: if pipeline dies mid-run, remove incomplete files from posts dir
+# and restore counter (if backup exists)
+_cleanup_on_exit() {
+  local exit_code=$?
+  kill "$_TIMEOUT_PID" 2>/dev/null || true
+  if [ "$exit_code" -ne 0 ]; then
+    log_warn "Pipeline exiting with code $exit_code — cleaning up incomplete files..."
+    # Only remove if file looks incomplete (no closing --- in frontmatter)
+    for _f in "$POSTS_DIR/$FILENAME" "$POSTS_DIR/$EN_FILENAME"; do
+      if [ -f "$_f" ] && [ "$(grep -c '^---' "$_f")" -lt 2 ]; then
+        log_warn "  Removing incomplete: $_f"
+        rm -f "$_f"
+      fi
+    done
+    # Restore counter if backup exists
+    if [ -f "$WORK_DIR/counter-before.json" ]; then
+      cp "$WORK_DIR/counter-before.json" "$COUNTER_FILE"
+      log_warn "  Counter restored from backup"
+    fi
+  fi
+}
+trap _cleanup_on_exit EXIT
+
 # Place file in posts dir for scorer
 cp "$WORK_DIR/final.mdx" "$POSTS_DIR/$FILENAME"
 
@@ -649,6 +672,7 @@ while [ "$RALPH_ATTEMPT" -lt "$RALPH_MAX_ATTEMPTS" ]; do
   if [ "$RALPH_ATTEMPT" -lt "$RALPH_MAX_ATTEMPTS" ]; then
     log_info "  Rewriting (writer reads reviewer feedback)..."
 
+    # Writer writes to WORK_DIR first (atomic: avoids broken files in src/content/posts/)
     if timeout 900 claude -p \
       --model claude-opus-4-6 \
       --permission-mode bypassPermissions \
@@ -663,7 +687,10 @@ while [ "$RALPH_ATTEMPT" -lt "$RALPH_MAX_ATTEMPTS" ]; do
 
 ## Task
 Rewrite src/content/posts/$FILENAME to fix EVERY issue the reviewer flagged.
-Also create the English version at src/content/posts/$EN_FILENAME with lang: en and same ticketId.
+Also create the English version at $WORK_DIR/$EN_FILENAME with lang: en and same ticketId.
+
+IMPORTANT: Write the English version to $WORK_DIR/$EN_FILENAME (NOT to src/content/posts/).
+The zh-tw version should be rewritten in-place at src/content/posts/$FILENAME.
 
 ## Rules
 - Keep ALL existing frontmatter fields intact (ticketId, source, sourceUrl, title, summary, tags, lang, dates)
@@ -678,6 +705,11 @@ Also create the English version at src/content/posts/$EN_FILENAME with lang: en 
       log_info "  Writer completed."
     else
       log_warn "  Writer errored. See $WORK_DIR/ralph-writer-stdout-${RALPH_ATTEMPT}.txt"
+    fi
+
+    # Copy EN file from WORK_DIR to POSTS_DIR only if writer produced it
+    if [ -f "$WORK_DIR/$EN_FILENAME" ]; then
+      cp "$WORK_DIR/$EN_FILENAME" "$POSTS_DIR/$EN_FILENAME"
     fi
 
     # Build check
