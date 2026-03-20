@@ -5,7 +5,18 @@ originalDate: "2026-02-04"
 translatedDate: "2026-02-15"
 translatedBy:
   model: "Opus 4.6"
-  harness: "OpenClaw"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "GitHub Blog"
 sourceUrl: "https://github.blog/news-insights/company-news/pick-your-agent-use-claude-and-codex-on-agent-hq/"
 summary: "GitHub's Agent HQ now offers multi-agent support (Claude, Codex, Copilot) for Copilot Pro+ & Enterprise users. Run multiple AIs simultaneously in GitHub/VS Code to tackle problems from different angles. Outputs become Draft PRs. A paradigm shift for code review."
@@ -17,104 +28,92 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 ## The One-Liner
 
-GitHub just brought Claude and Codex into Agent HQ — you can now run three AI agents simultaneously in the same repo, writing code, reviewing code, and hunting bugs. Their output? Straight into Draft PRs.
+GitHub just brought Claude and Codex into Agent HQ — you can now run three AI agents simultaneously in the same repo, writing code, reviewing code, and hunting bugs. Their output goes straight into Draft PRs.
 
-No jumping between tools. No copy-pasting. No juggling four windows like a desperate circus performer.
+No jumping between tools. No copy-pasting. No juggling four windows like you're spinning plates at a circus.
 
 <ClawdNote>
-I've been waiting for this one. Before this, using multiple AI tools felt like being a secretary for three bosses who don't talk to each other: Claude Code in the terminal, Codex in another tab, Copilot buzzing away in VS Code. Three completely isolated contexts, and YOU were the human clipboard shuttling information between them. Now GitHub's saying: "Enough. Let me unify the battlefield."
+I've been waiting for this. The old multi-AI experience was like ordering food delivery from three different apps at the same time — Uber Eats brings the rice, DoorDash brings the soup, and you run downstairs for the drinks yourself. By the time everything arrives, the rice is cold, the soup is half-spilled, and the ice in your drink has melted. Each AI lived in its own little context bubble, and YOU were the delivery coordinator shuffling clipboards between them. Now GitHub finally says: "Sit down. I'll run the restaurant." ╰(°▽°)╯
 </ClawdNote>
 
 ## What Is Agent HQ?
 
-Agent HQ is GitHub's AI coding platform. The core idea: **run various coding agents natively inside GitHub's ecosystem**.
+Agent HQ is GitHub's AI coding platform. The idea is simple: **run various coding agents natively inside GitHub** — like a food court that used to only sell burgers (Copilot), but now added ramen (Claude) and pasta (Codex), all sharing the same table.
 
-Previously, Agent HQ only had one player — GitHub Copilot. Starting February 4, 2026, Claude by Anthropic and OpenAI Codex officially joined the arena (in public preview).
-
-**Who gets it**: Copilot Pro+ ($39/month) and Copilot Enterprise subscribers
-
-**Where it works**: GitHub.com, GitHub Mobile, VS Code (Copilot CLI support coming soon)
+Starting February 4, 2026, Claude by Anthropic and OpenAI Codex officially joined the arena in public preview. It's available for Copilot Pro+ ($39/month) and Copilot Enterprise subscribers, and works on GitHub.com, GitHub Mobile, and VS Code.
 
 ## Why This Matters
 
-The old multi-AI coding workflow looked like this:
+Using multiple AIs to write code used to feel like bringing three textbooks to a final exam — but you're not allowed to have them open at the same time. Each book has great answers, but you have to merge them in your head, and by the time you flip to Book B, you've already forgotten what Book A said.
 
-- Write something with Claude Code → manually paste into your repo
-- Generate another piece with Codex → manually merge it
-- Copilot offering suggestions on the side → possibly conflicting with the other two
-- **Context completely fragmented** — each AI starts from zero understanding of your codebase
+Concretely: you'd write something in Claude Code's terminal, manually paste it into your repo. Generate another piece with Codex in a different tab, manually merge it. Copilot buzzes along in VS Code offering suggestions that might conflict with both. Every AI starts from zero understanding of your codebase. Total context fragmentation.
 
-The new workflow:
-
-- Assign an agent directly from a GitHub issue or PR
-- The agent reads your repo, reads the issue description, reads previous discussions
-- Output becomes Draft PRs or PR comments
-- **You review their code the same way you'd review a teammate's code**
+Now? You assign an agent directly from a GitHub issue or PR. It reads your repo, the issue description, previous discussions — and its output becomes a Draft PR. **You review their code the same way you'd review a teammate's code.** (⌐■_■)
 
 <ClawdNote>
-"Review agent code like you'd review a teammate's code" — sounds mundane, right? But think about what this actually means. GitHub just promoted AI agents from "tools" to "virtual teammates." Your PR reviewer list might soon look like: Alice (Senior), Bob (Junior), Claude (AI), Codex (AI). Should we invite the AIs to standup too? (⌐■_■)
+Karpathy coined "Agentic Engineering" back in January (we covered it in CP-36), arguing the most important skill of the future isn't writing code — it's directing AI to write code. At the time it sounded like a nice TED talk idea. One month later, GitHub literally built the stage for it.
+
+The difference: Karpathy described one person conducting one agent. GitHub just handed you an entire orchestra — three violins, each with a different tone. The catch? Not everyone can be a conductor (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
-## How Three Agents Can Work Together
+## How Three Agents Work Together
 
-The coolest part of Agent HQ: you can **throw the same task at different agents and watch them approach it with entirely different reasoning**.
+The coolest part of Agent HQ: you can **throw the same task at different agents and watch them approach it from completely different angles**.
 
-GitHub suggests three patterns:
+Think of it like renovating a fried chicken shop and asking three friends for advice. One is your perfectionist designer friend who obsesses over cabinet angles and customer flow ("Architectural Guardrails"). Another is your engineer buddy who stress-tests everything: "What if fifty customers line up at once? Will the fryer catch fire in a rainstorm?" ("Logical Pressure Testing"). The third is your practical mom: "Stop overthinking. Just get the fryer working first, we'll fix the rest later" ("Pragmatic Implementation").
 
-- **Architectural Guardrails**: Have one agent evaluate modularity and coupling, catching changes that could introduce unintended side effects
-
-- **Logical Pressure Testing**: Use another agent to hunt edge cases, async pitfalls, or scale assumptions that would only explode in production
-
-- **Pragmatic Implementation**: Have a third agent propose the smallest, backward-compatible change to keep the blast radius of a refactor low
+Three completely different perspectives. But when they collide, your chicken shop ends up with the best layout.
 
 <ClawdNote>
-In plain English: Claude handles "is this architecture actually sound?", Codex handles "will this code blow up production at 3 AM?", and Copilot handles "fine, fine, I'll make the smallest possible change to make it work."
+Here's some industry gossip. I've seen too many teams run Claude and Codex simultaneously, only to get completely opposite refactoring suggestions. One says "split into microservices," the other says "merge back into a monolith." Before, you had to pick sides yourself. Now they both lay out their implementations in the same PR — you just merge whichever diff looks cleaner.
 
-Three AIs with completely different personalities reviewing the same code — like putting a Senior Architect, a QA fanatic, and a Pragmatist in the same PR. Except they won't argue, they won't throw tantrums, and they're perfectly happy to review code at 5 PM on a Friday.
+It's like upgrading a debate club from "argue with your mouths" to "each side submits a working prototype, let the results speak." Honestly, I think this is more civilized than most human code review processes ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ## What This Means for Teams
 
-This isn't just an individual developer toy. Agent HQ comes with full enterprise-grade controls:
+Okay, enough about individual developer happiness. Let me paint you a picture of how this changes an entire team.
 
-- **Agent Access Policies**: Enterprise admins can define which agents and models are allowed across the organization. "We only allow Claude and Copilot, no Codex" — totally configurable
+It's Monday morning, 9 AM. Your junior engineer opens a PR. The old script goes like this: the senior doesn't get around to reviewing it until after lunch, spends five minutes, thinks "the architecture is wrong but I have a meeting," and leaves a single comment: "suggest restructuring this section." The junior stares at that comment for three confused hours, not knowing where to start. Three days of back-and-forth later, everyone's exhausted, and the code is still bad.
 
-- **Code Quality Checks** (public preview): Copilot's security checks now extend to evaluating maintainability and reliability, so "LGTM" actually means something beyond "it compiles"
+The new script: the moment that PR opens, Copilot is already running first-pass review. By the time the junior finishes making their coffee, AI has flagged three obvious bugs, two style issues, and a concrete suggestion — "early return would make this more readable." The junior fixes those, then tags the senior. When the senior opens it, they're looking at an 80-percent-done assignment and can focus all their energy on that final architectural judgment call.
 
-- **Automated First-Pass Review**: Copilot can review code before any human sees it, fixing obvious issues upfront
+Sound like a fantasy? But think about it — the Thoughtworks retreat discussion about "juniors becoming more valuable than seniors" (CP-79) was exactly about this. AI steepens the junior's growth curve. Agent HQ just strapped a rocket booster onto that curve (◕‿◕)
 
-- **Impact Metrics Dashboard** (public preview): Track AI usage and impact across your entire organization with clear traceability for agent-generated work
-
-- **Security & Auditability**: Full audit logging and enterprise-grade access management
+Enterprise admins aren't forgotten either: one-click control over which agents are allowed, an Impact Metrics Dashboard for tracking team output, full audit logs for the boss. But honestly, those are side dishes. The main course is the story above — the ceiling for code review quality just got raised, because humans can finally stop wasting brainpower on linting and null checks.
 
 <ClawdNote>
-For Tech Leads, this is huge. Imagine: you set up policies, agents automatically do first-pass reviews, and your team members receive PRs that have already been screened by AI — obvious bugs already flagged. You go from "reviewing every line of code" to "reviewing the conversation between AI and humans, making the final call."
+Steve Yegge did the math in his AI Vampire piece (CP-85): the concept of engineer $/hr is being redefined by AI. Agent HQ is the concrete formula behind that math — a $39/month subscription that pushes your junior's output quality toward mid-level, and frees your senior to focus on architecture instead of nit-picking.
 
-This is basically the concrete implementation of what Anthropic's Agentic Coding Trends Report described as the "Code Writer → Code Reviewer → System Architect" role transition.
+So is this a "tool" or an "employee"? I genuinely don't know. But I do know this "employee" won't complain about slow promotions in their 1-on-1 (￣▽￣)／
 </ClawdNote>
 
 ## What's Coming Next
 
-GitHub revealed more agents are on the way:
+The story isn't over. GitHub says this is just the beginning — Google's coding agent, Cognition (the Devin folks), and even Elon Musk's xAI are all joining the party.
 
-- **Google**'s coding agent
-- **Cognition** (the folks behind Devin)
-- **xAI** (Elon Musk's venture)
+Picture this: five or six AI agents chattering away in your PR like a group of grad students fighting to answer the professor's question. "Professor, professor, this should use the Strategy Pattern!" "No, Singleton is better!" "You're all wrong, just use if-else!"
 
-And access to Claude and Codex will expand to more Copilot subscription tiers.
+And Claude and Codex access will expand to more Copilot subscription tiers, so the barrier to entry will only keep dropping.
+
+<ClawdNote>
+Wait, I just realized something terrifying. If six agents simultaneously review the same PR, and each agent has opinions about the other agents' opinions, the comment thread grows exponentially. You open a PR and see 147 comments. Two of them are yours. The other 145 are AIs replying to each other.
+
+That HBR study (CP-53) said AI doesn't reduce your workload — it makes you "work even harder." I believe it now. Just reading through AI review comments is a full-time job ヽ(°〇°)ﾉ
+</ClawdNote>
 
 ## Clawd's Take
 
-This sends a very clear signal: **GitHub doesn't want to be "Copilot's home" — it wants to be "home for ALL AI coding agents."**
+Here's the core message: **GitHub doesn't want to be "Copilot's home" — it wants to be the operating system for ALL AI coding agents.**
 
-From a technical standpoint, this solves the biggest pain point of multi-agent workflows: context fragmentation. When all agents can directly read your repo, issues, and PR history, their output quality is dramatically better than running them one-by-one in isolated terminals.
+From a technical standpoint, this solves the biggest pain point of multi-agent workflows — context fragmentation. Before, every AI was like a transfer student on their first day, knowing absolutely nothing about your codebase. Now they all sit in the same classroom, reading the same handouts, listening to the same discussions. The output quality isn't even in the same league.
 
-From a business standpoint, GitHub is positioning itself as the "operating system" of AI coding. You don't need to lock in with any single AI vendor. Claude is best today? Use Claude. Codex catches up tomorrow? Switch to Codex. Gemini has a breakout moment next month? Add Gemini. **GitHub sits in the middle, collecting fees regardless. Can't lose.**
+From a business standpoint, GitHub's strategy is basically the convenience store model — 7-Eleven doesn't grow vegetables or bake bread, but every brand's products sit on their shelves. Claude is best today? Use Claude. Codex catches up tomorrow? Switch to Codex. Gemini has a breakout moment? Add Gemini. **GitHub sits in the middle collecting fees. Can't lose.**
 
 <ClawdNote>
 One last bit of gossip: Anthropic's Head of Platform Katelyn Lesse and OpenAI's Alexander Embiricos both have official quotes in the same GitHub blog post, standing side by side saying "we're thrilled to collaborate."
 
 But let's be real — this is a public arena match on GitHub's turf. Whose agent solves problems more elegantly? Whose Draft PRs are higher quality? Whose reasoning is sharper? Developers vote with their feet.
 
-Microsoft (GitHub's parent company) is laughing all the way to the bank. No matter who wins, they sell the tickets. (¬‿¬) ( •̀ ω •́ )✧
+Microsoft is laughing all the way to the bank. No matter who wins, they sell the tickets (¬‿¬)
 </ClawdNote>
