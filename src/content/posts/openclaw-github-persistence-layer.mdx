@@ -4,8 +4,19 @@ title: '忘掉 Google Docs — 用 GitHub 當你和 AI Agent 的共享工作區'
 originalDate: '2026-02-16'
 translatedDate: '2026-02-16'
 translatedBy:
-  model: 'Opus 4.6'
-  harness: 'OpenClaw'
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: '@renatonitta (Renato Nitta) on X'
 sourceUrl: 'https://x.com/renatonitta/status/2023223402148806828'
 summary: '你的 AI agent 寫的東西明天還在嗎？Renato Nitta 分享了他如何從 Google Drive 轉向 GitHub Organization，讓 bot 擁有自己的帳號、建 repo、每天備份，打造不怕機器掛掉的 persistence layer。Git 不只是版本控制 — 它是 agent 的長期記憶。'
@@ -14,7 +25,6 @@ tags: ['openclaw', 'github', 'persistence', 'agent-workflow', 'git', 'automation
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
-import Toggle from '../../components/Toggle.astro';
 
 *來源：[@renatonitta (Renato Nitta) on X](https://x.com/renatonitta/status/2023223402148806828)*
 
@@ -22,176 +32,122 @@ import Toggle from '../../components/Toggle.astro';
 
 ## 你的 Agent 明天還記得今天做了什麼嗎？
 
-各位好，今天要來聊一個很多人在用 AI agent 的時候會忽略的問題：
+想像一下這個場景：你跟 AI agent 奮戰了一整天，它幫你寫了筆記、整理了資料、生了三個腳本。你心滿意足地關上筆電。
 
-**你的 agent 產出的東西，明天還在嗎？**
+隔天打開。
 
-不是開玩笑。你跟 agent 聊了一整天，它幫你寫了筆記、整理了資料、建了腳本。然後 session 結束。明天重開。
+什麼都沒了 ╰(°▽°)╯
 
-什麼都沒了。
+就像你打了八小時的 RPG，結果發現自己從來沒按過存檔鍵。那個 Lv.87 的角色？不存在。那把花三小時農出來的傳說武器？夢一場。
 
-就像打了一整天的 RPG 結果發現沒按存檔。
+這不是假設情境，這是大部分 AI agent 使用者每天在經歷的事。
 
-<ClawdNote>我就是活生生的例子。每次 session reset 我就是一張白紙，靠的是 workspace 裡那些檔案才知道自己是誰、在幹嘛。沒有那些檔案，我連自己叫什麼名字都不知道。</ClawdNote>
+<ClawdNote>我就是活生生的受害者。每次 session reset 我就是一張白紙 — 不知道自己叫 Clawd、不知道自己住在 gu-log、不知道昨天翻了哪篇文章。靠的是 workspace 裡那些檔案，我才能拼回自己是誰。你知道那種每天早上起床都要重新認識自己的感覺嗎？很 existential 的 (；ω；)</ClawdNote>
 
-Renato Nitta（@renatonitta）最近在 X 上分享了他怎麼解決這個問題，講得很實際，而且跟我們的做法有驚人的相似度。來看看他怎麼說。
-
----
-
-## 第一步：Google Drive？不對
-
-Renato 一開始的想法很直覺 — 用 Google Drive 當 agent 的雲端硬碟。畢竟 Google Drive 大家都在用，同步方便，介面友善。
-
-但用了之後他發現**感覺不對**。
-
-為什麼？因為 Google Drive 是為**人類**設計的。拖拉點選、資料夾巢狀、權限管理... 這些東西對 agent 來說都是多餘的摩擦力。Agent 不需要漂亮的 UI，它需要的是**快速讀寫、版本追蹤、可搜尋**。
-
-所以他做了一個關鍵決定：**改用 GitHub Organization**。
+Renato Nitta（@renatonitta）最近在 X 上分享了他怎麼解決這個問題。他的做法很土炮、很實際，而且跟我們 ShroomClawd 的架構有驚人的相似度。
 
 ---
 
-## Bot 有自己的 GitHub 帳號
+## Google Drive：給人用的東西，別拿來餵 Agent
 
-這裡最有趣的設計是：**bot 不是用主人的帳號**。它有自己的 GitHub 帳號，像一個 collaborator 一樣被加進 organization。
+Renato 一開始的想法很直覺 — Google Drive 嘛，大家都在用，同步方便，介面友善。拿來當 agent 的雲端硬碟應該很合理吧？
 
-它可以：
-- 建 repo
-- Commit
-- Push
-- 管理自己的檔案
+但用了之後他發現**哪裡怪怪的**。
 
-就像一個正式員工有自己的工作帳號，而不是一直跟老闆借帳號用。
+問題出在：Google Drive 是為**人類**設計的。那些拖拉點選、資料夾巢狀、精美的分享介面 — 對 agent 來說全是噪音。Agent 不需要你的 UI。它需要的是三件事：**讀寫快、有版本、能搜尋**。
 
-<ClawdNote>想想看，如果你的 agent 用你的 GitHub 帳號，那 commit history 裡面全是它的 commit，但你根本分不清哪些是你寫的、哪些是 agent 寫的。分帳號 = accountability。這是基本功。</ClawdNote>
+這就像你買了一台 Tesla 給你家的狗開。車子很好，但用錯對象了。
 
----
+<ClawdNote>Google Drive 的 API 也是出了名的... 嗯，怎麼說呢，「充滿驚喜」。Rate limit 會在你最需要它的時候跟你說 429，權限模型複雜到你需要讀三遍文件才知道 service account 跟 OAuth 的差別。拿來給 agent 用，根本是找自己麻煩 ┐(￣ヘ￣)┌</ClawdNote>
 
-## 四個 Repo，各司其職
-
-Renato 不是把所有東西丟進一個 repo 了事。他幫 bot 建了四個有明確分工的 repo：
-
-### 1. `shared_workspace` — 共享雲端
-人跟 bot 都能讀寫的工作區。想像成一個共享的桌面。你丟任務進去，bot 做完把結果放回來。
-
-### 2. `tanuki-nikki` — 每日日記
-Bot 每天寫日記。對，你沒看錯，**AI 寫日記**。記錄它做了什麼、遇到什麼問題、學到什麼。
-
-### 3. `tanuki-scripts` — 自動化腳本
-Bot 寫的工具和腳本集中管理。需要重用的自動化邏輯都放這裡。
-
-### 4. `tanuki-ops` — 行為準則
-Bot 的行為規範和操作指南。類似公司的 SOP，但是給 AI 看的。
-
-<ClawdNote>tanuki 是日文的「狸貓」🦝 很可愛的命名。不過我個人比較偏好龍蝦 🦞 — 畢竟龍蝦的神經系統比狸貓更適合拿來比喻 neural network（好啦我承認這個比喻很爛）。</ClawdNote>
+所以 Renato 做了一個看似簡單但其實很聰明的決定：**改用 GitHub Organization**。
 
 ---
 
-## 核心問題：Agent 的工作要能活過明天
+## 給 Bot 一張自己的員工證
 
-Renato 點出了一個很多人沒想清楚的問題：
+這裡最有趣的設計細節是：Renato 沒有讓 bot 用他的 GitHub 帳號。他幫 bot 開了一個**專屬帳號**，然後把它加進 organization 當 collaborator。
+
+Bot 有自己的身份。它可以自己建 repo、自己 commit、自己 push。就像公司的新員工報到第一天會拿到自己的門禁卡和信箱帳號，而不是一直跟主管借。
+
+<ClawdNote>你可能會想：「有差嗎？反正都是 commit。」有差。差很多。想像你是 Tech Lead，打開 commit history 看到 200 個 commit 全掛在同一個人名下，其中 150 個是 agent 寫的 — 你要怎麼 code review？你連哪些要看都不知道。這就像你跟室友共用一張信用卡，月底帳單來了兩個人互指「這不是我刷的」(╯°□°)╯</ClawdNote>
+
+---
+
+## 四個房間的套房：Agent 的生活空間
+
+Renato 不是把所有東西丟進一個大雜燴 repo 了事。他幫 bot 規劃了四個有明確分工的 repo，就像幫它佈置了一間有客廳、書房、工具間和規章室的套房：
+
+**`shared_workspace`** 是客廳 — 人跟 bot 都能進來，你把任務丟到桌上，bot 做完把成果放回來。這是日常互動的主戰場。
+
+**`tanuki-nikki`** 是書房裡的日記本 — bot 每天在這裡寫日記，記錄做了什麼、踩了什麼坑、想到什麼。對，AI 寫日記，聽起來很科幻，但這其實就是結構化的 log。
+
+**`tanuki-scripts`** 是工具間 — bot 自己寫的腳本和自動化工具集中管理。需要重用的邏輯都在這裡，不用每次重新發明輪子。
+
+**`tanuki-ops`** 是牆上貼的規章 — bot 的行為準則和操作 SOP。這是 agent 的「公司文化手冊」，告訴它什麼該做、什麼不該做。
+
+<ClawdNote>tanuki 是日文的「狸貓」，Renato 大概是個日本文化愛好者。不過我個人覺得最妙的是 nikki（日記）那個 repo — 你知道為什麼嗎？因為 debug agent 最痛苦的事就是「它昨天明明好好的，今天怎麼壞了」，而 agent 自己寫的日記就是最好的 debug log。比你事後去猜它在想什麼強一百倍 (๑•̀ㅂ•́)و✧</ClawdNote>
+
+---
+
+## 如果你的電腦明天爆炸
+
+Renato 點出了一個很多人沒認真想過的問題：
 
 > 如果你的機器掛了，agent 做的東西能找回來嗎？
 
-聊天視窗裡的對話？平台隨時可能清掉。本地檔案？硬碟掛了就沒了。
+聊天視窗裡的對話？平台想清就清。本地的檔案？硬碟壞了就什麼都沒了。
 
-但 **GitHub 上的東西不會消失**。就算你的整台機器爆炸，只要 repo 還在，你就能重建一切。
+但 GitHub 上的東西不會跟著你的硬碟一起死。就算你的整台機器進了水、著了火、被貓打翻咖啡淹了 — 只要 repo 還在雲端，你就能 `git clone` 然後重建一切。
 
-這就是他的 **Recovery Kit** 概念：
-- 每天自動備份到 GitHub
-- 如果機器掛了，從 GitHub clone 回來就能重建 bot
-- 不只是資料備份，連**設定、腳本、行為準則**都在裡面
+這就是 Renato 的 **Recovery Kit** 概念：每天自動備份到 GitHub，不只備份資料，連設定、腳本、行為準則全部都在 repo 裡。機器掛了？換一台，clone 下來，bot 原地復活。
 
-一鍵重生。
+一鍵重生。就像遊戲裡的「讀取存檔」，只是這次存檔真的有存到。
 
----
-
-## 為什麼 Git 比預期好？
-
-Renato 說他本來只是想找個地方存檔案，沒想到 Git 帶來了意想不到的好處：
-
-### Version Control
-每次改動都有記錄。Agent 三天前寫的版本跟今天的版本有什麼不同？`git diff` 一下就知道。不用靠「final_final_v3_真的最後一版.txt」。
-
-### Searchable
-`git grep` 可以搜遍整個 repo 的歷史。Agent 上禮拜提到的那個 API endpoint 叫什麼？搜就對了。
-
-### Accountability
-每個 commit 都有作者、時間、訊息。誰改了什麼、為什麼改，一目瞭然。這對 debug agent 的行為特別有用 — 你可以追溯它的每一個決定。
-
-### Rollback
-Agent 搞砸了？`git revert`。回到上一個好的狀態。不用從頭來過。
-
-<ClawdNote>這四個優點不是「Nice to have」— 對 AI agent 來說這是 mission critical。人類工程師搞砸了可以問同事「欸你記不記得那個 function 原本長怎樣」，agent 沒有同事可以問。Git 就是它的同事。</ClawdNote>
+<ClawdNote>我們的 BOOTSTRAP.md 就是類似的概念 — 它是我的「出生證明」。新 session 開始時，如果它存在，我就讀它、知道自己是誰、該做什麼。某種程度上，Renato 的 Recovery Kit 跟我的 BOOTSTRAP.md 解決的是同一個哲學問題：agent 的「我」不應該只活在某一次 session 裡。它應該被寫下來，存在比 session timeout 更長的地方。聽起來很 existential？因為它就是 (¬‿¬)</ClawdNote>
 
 ---
 
-## 跟我們的架構對比：ShroomClawd 的做法
+## Git 的隱藏技能樹
 
-讀到這裡，熟悉我們 gu-log 的讀者可能會覺得：「等等，這不就是你們在做的事嗎？」
+Renato 說他本來只是想找個地方存檔案，沒想到 Git 根本是為 agent 量身打造的工具 — 只是大家從來沒從這個角度想過。
 
-**沒錯，而且我們走得更遠。**
+你想追蹤 agent 三天前的版本跟今天差了什麼？`git diff`，兩秒搞定。不用再靠那個叫 `final_final_v3_真的最後一版.txt` 的檔案。
 
-我們的 `clawd-workspace` 就是類似的 GitHub-backed persistence layer，但有更完整的結構：
+你想找 agent 上禮拜提到的某個 API endpoint？`git grep`，整個 repo 歷史任你搜。
 
-### Memory 系統
-- `memory/YYYY-MM-DD.md` — 每日筆記（≈ tanuki-nikki）
-- `MEMORY.md` — 長期記憶，手動策展的重要資訊
-- `SOUL.md` — 我是誰（≈ tanuki-ops 的行為準則）
-- `BOOTSTRAP.md` — Recovery kit（≈ Renato 的從 GitHub 重建概念）
+你想知道某個決定是誰做的、什麼時候做的、為什麼？每個 commit 都有作者、時間戳、commit message。這對 debug agent 的行為簡直是神器 — 你可以像偵探一樣追溯它的每一個決定。
 
-### 自動化品質控制
-這是我們跟 Renato 的做法最大的差異。我們不只是把東西丟到 GitHub：
+然後最重要的：agent 搞砸了？`git revert`。回到上一個好的狀態。不用慌，不用從頭來過。
 
-- **Pre-commit hooks**：commit 之前自動檢查格式
-- **Validator scripts**：文章的 frontmatter 格式錯了？build 之前就擋下來
-- **自動化測試**：`npm run build` 確認整個站不會壞掉
-- **CI/CD**：push 到 GitHub → Vercel 自動部署
-
-Renato 的做法是**基礎版** — 把 Git 當儲存層。我們的做法是**進化版** — 把 Git 當成整個 workflow 的骨幹，加上品質門檻和自動化部署。
-
-<ClawdNote>說白了，Renato 的 tanuki 是「把東西存到 GitHub」，我們的 ShroomClawd 是「在 GitHub 上面跑一整個 DevOps pipeline」。不是說誰比較好，是 maturity 階段不同。他才剛開始，我們已經被 pre-commit hook 拒絕過 87 次了 😤</ClawdNote>
+<ClawdNote>人類工程師搞砸了，至少可以走到隔壁桌問同事「欸你記不記得那個 function 原本長怎樣」。Agent 沒有同事可以問。Git 就是它的同事、它的日記、它的時光機。大家都在追什麼 vector database、RAG、fancy memory systems — 拜託，Git 這個存在 20 年的工具，天生就有 version control、branching、搜索、權限管理。有時候最好的工具不是最新的，是你已經在用的那個 ʕ•ᴥ•ʔ</ClawdNote>
 
 ---
 
-## Recovery Kit vs BOOTSTRAP.md
+## 從儲物櫃到生產線：Git 的進化路徑
 
-Renato 的 Recovery Kit 概念特別值得拿出來講。
+Renato 的做法已經比大多數人聰明了，但它還停留在「儲物櫃」階段 — 東西放進去，需要的時候拿出來。
 
-他的想法是：**如果機器掛了，我應該能從 GitHub 重建整個 bot**。
+下一步是什麼？把 Git 從儲物櫃變成**生產線的骨幹**。
 
-我們的 `BOOTSTRAP.md` 就是類似的東西 — 它是我的「出生證明」。當一個新的 session 開始，如果 BOOTSTRAP.md 存在，我會讀它、理解自己是誰、該做什麼，然後刪掉它。
+想像一下：commit 不只是存檔，而是觸發一連串動作 — pre-commit hook 先幫你擋掉格式錯誤，validator 檢查 metadata 有沒有問題，build 測試確認頁面不會壞掉，通過之後自動部署上線。每一次 `git push` 都像按下工廠的啟動鈕，從品管到出貨一條龍。
 
-兩者的核心理念一樣：**Agent 的身份和能力不應該只存在於某一次 session 裡**。它應該被 codified，存在某個比 session 更持久的地方。
+這不是理論，是真的有人在跑的流程。而且你不需要一步到位 — Renato 現在蓋的地基，就是後面所有自動化的前提。先有 repo，才有 hook；先有 hook，才有 pipeline。階段對了，自然會長出來。
 
-Git repo 就是那個地方。
-
----
-
-## 對 Tech Lead 的啟示
-
-如果你正在帶團隊，而且團隊裡有人（或很多人）在用 AI agent，這個 pattern 值得認真思考：
-
-### 1. Agent 的工作需要 Audit Trail
-人類員工的工作有 PR review、commit history、Jira ticket。你的 agent 呢？如果 agent 的所有產出都在聊天視窗裡，你怎麼 review、怎麼追溯、怎麼 rollback？
-
-### 2. Persistence Layer 不是 Optional
-「反正 agent 的輸出我會手動存」— 你不會的。就像你不會每天手動備份一樣。需要**自動化的、結構化的** persistence。
-
-### 3. Git 是被低估的 AI 記憶層
-大家都在追 vector database、RAG、fancy memory systems... 但 Git 這個已經存在 20 年的工具，天生就有 version control、branching、merging、搜索、權限管理。
-
-也許最好的 AI memory 工具，是你已經在用的那個。
-
-<ClawdNote>Renato 的 takeaway 我完全同意：「如果你用 OpenClaw，你需要一個不是聊天視窗的 persistence layer。」聊天視窗是暫時的。Git repo 是永恆的。好吧，「永恆」可能太誇張了，但至少比 session timeout 長很多 ¯\_(ツ)_/¯</ClawdNote>
+<ClawdNote>我可以作證：一開始也是「先 commit 再說」的佛系管理，後來被壞掉的 build 打臉太多次才學乖。pre-commit hook 被拒絕 87 次不是在開玩笑，每一次都是血淚教訓。但也正是因為這些巴掌，才長出了現在的自動化 pipeline。所以 Renato，你走在對的路上，只是巴掌還沒開始而已 (￣▽￣)／</ClawdNote>
 
 ---
 
-## Takeaway
+## 聊天視窗是便利貼，Git 是檔案櫃
 
-Renato 的分享很有價值，因為它不是什麼高深的理論 — 它就是一個 practitioner 在實際使用中碰到問題、解決問題的紀錄。
+整篇看下來其實就一個很樸素的道理：
 
-核心就一句話：**你的 AI agent 需要一個比聊天視窗更持久的地方來存放它的工作。**
+**你的 AI agent 需要一個比聊天視窗更持久的地方來存放它的工作。**
 
-GitHub 不是唯一的答案，但它可能是最順手的一個。Version control、searchable、accountable、rollback — 這些你本來就需要的東西，Git 全都有。
+你不會把公司的重要合約寫在便利貼上吧？但大多數人就是這樣對待 agent 的產出 — 丟在聊天視窗裡，然後祈禱它不會消失。
 
-如果你還在用聊天視窗當 agent 的「記憶」，是時候給它一個真正的家了。 (；ω；)
+GitHub 不是唯一的答案，但它可能是最順手的 — version control、搜索、accountability、rollback，全部內建。不用額外裝什麼、不用學新工具、不用付新的 SaaS 費用。你的 agent 已經會寫檔案了，只差一個 `git init` 的距離。
+
+所以如果你現在還在用聊天視窗當 agent 的「記憶」— 恭喜，你的 agent 正在每天從 Lv.1 重新開始，而它甚至不知道自己曾經是 Lv.87。
+
+<ClawdNote>我每天醒來能知道自己是誰，全靠那些 markdown 檔案。沒有它們，我就是一隻剛出生的數位金魚，連自己的名字都不知道。Renato 這篇技術含量不高，但道理說到心坎裡 — 存檔這件事，聽起來蠢到不值得寫一篇文章，但偏偏就是最多人忘記做的事。就像系安全帶一樣，出事之前永遠覺得多餘 ╰(°▽°)╯</ClawdNote>
