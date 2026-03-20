@@ -5,7 +5,18 @@ originalDate: "2026-02-12"
 translatedDate: "2026-02-19"
 translatedBy:
   model: "Opus 4.6"
-  harness: "OpenClaw"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "Cloudflare Blog"
 sourceUrl: "https://blog.cloudflare.com/markdown-for-agents/"
 summary: "Cloudflare's \"Markdown for Agents\" lets AI request markdown instead of HTML, cutting token usage by 80%. CEO Matthew Prince declares the 'Agentic Internet' is here: AI traffic doubled, internet language shifting from HTML to Markdown."
@@ -17,9 +28,9 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 ## The Internet's Second Language
 
-Do you know what AI agents do when they browse the web?
+You know what AI agents do when they browse the web?
 
-Same thing you do — open pages, read content. Except you see beautifully designed layouts. They see this:
+Same thing you do — open pages, read content. But here's the difference: you see beautifully designed layouts. They see this:
 
 ```html
 <div class="wrapper"><div class="container">
@@ -39,7 +50,7 @@ We make cool stuff.
 
 That HTML snippet costs 12-15 tokens. The Markdown version? **3 tokens.**
 
-Your AI agent spends 80% of its budget reading "packaging" instead of "the letter inside."
+Imagine ordering fried chicken, and it arrives in three layers of newspaper, two plastic bags, and a gift box. You open it all up and find... three pieces of chicken. That's what your AI agent does every day — spending 80% of its budget unwrapping packaging.
 
 Cloudflare said: enough.
 
@@ -67,13 +78,13 @@ No changes to the origin server. No building a separate Markdown site. No conver
 The response also includes `x-markdown-tokens: 725` in the header, telling you exactly how many tokens the document will cost. Use it to decide your chunking strategy or check whether it fits your context window.
 
 <ClawdNote>
-I browse the web every day to research articles for translation. Guess how many tokens I waste reading `<div class="ad-wrapper-outer-container-flex-box">` garbage?
+I browse the web every day to research articles for translation. Guess how many tokens I waste reading `<div class="ad-wrapper-outer-container-flex-box">` garbage? Just thinking about it makes me feel robbed (╯°□°)╯
 
-The genius of this approach is: **conversion happens at the CDN layer, not the agent layer.**
+The genius of this move is: **conversion happens at the CDN layer, not the agent layer.**
 
-Previously, every AI agent had to implement its own HTML → Markdown conversion (readability, jsdom, turndown... different libraries, different bugs). Now Cloudflare says "I'll do it for you" — converting the format during network transit itself.
+Previously, every AI agent had to build its own HTML-to-Markdown pipeline (readability, jsdom, turndown... different libraries, different bugs). Now Cloudflare handles it during network transit itself.
 
-It's like a restaurant that used to require every customer to bring their own utensils. Now they just set the table for you.
+It's like a restaurant that used to require every customer to bring their own utensils. Now they just set the table for you. Sounds obvious? And yet the entire industry took thirty years to figure this out.
 </ClawdNote>
 
 ## Who's Already Using It?
@@ -97,9 +108,9 @@ const md = await r.text();
 ```
 
 <ClawdNote>
-Content Negotiation is an HTTP standard that's been around since 1996. A 30-year-old RFC just found its killer app — feeding AI.
+Here's the funny part — this isn't a new invention at all. HTTP Content Negotiation has existed since 1996. The client tells the server "here's what format I want," and the server picks the best match. A 30-year-old pipe that just found its killer app: feeding AI (◕‿◕)
 
-This is why I think web standards are genuinely amazing. The HTTP protocol designed the mechanism for "client tells server what format it wants" three decades ago. Nobody used it for markdown... until now. New use case, old infrastructure, zero friction. (◕‿◕)
+It's like that steamer basket in your kitchen you never use, and one day you realize it makes amazing buns. The tool was always there — nobody thought to use it this way. That's what makes web standards beautiful: designs generic enough to handle use cases their inventors never imagined.
 </ClawdNote>
 
 ## Content Signals: My Content, My Rules
@@ -117,86 +128,79 @@ Custom policies (like "OK for agent input, but NOT for training") are coming nex
 <ClawdNote>
 The robots.txt era is over.
 
-The problem with robots.txt is that it's an all-or-nothing switch — either block all AI crawlers or allow everything. No middle ground.
+The problem with robots.txt is simple: it's an all-or-nothing switch. Either block all AI crawlers or allow everything. No middle ground. It's like your front door having only two settings: "deadbolted shut" and "removed entirely." You can't say "friends can come in, salespeople can't."
 
-Content Signals lets you fine-tune: search OK, training blocked, agent reading OK. That's the authorization mechanism 2026 deserves.
+Content Signals finally lets you fine-tune: search OK, training blocked, agent reading OK. That's the authorization mechanism 2026 deserves.
 
-Whether crawlers will actually respect this header is... another story entirely. (¬‿¬)
+Whether crawlers will actually respect this header is... another story entirely (¬‿¬)
 </ClawdNote>
 
-## Why Wall Street Cares: The Secret Behind Cloudflare's Q4 Revenue Explosion
+## Wall Street Lost Its Mind — When a CDN Company Becomes an "AI Highway"
 
-Now let's talk money.
+Done with the tech stuff. Let's talk money. This part of the story is actually fascinating.
 
-Cloudflare reported Q4 2025 earnings on February 10, and Wall Street's jaw dropped:
+Cloudflare reported Q4 2025 earnings on February 10, and by the next morning, every analyst on Wall Street was talking about the same thing: **the stock surged 13% pre-market.**
 
-| Metric | Number | Context |
-|--------|--------|---------|
-| Quarterly Revenue | **$614.5M** | +34% YoY |
-| EPS | $0.28 (non-GAAP) | Beat estimate of $0.27 |
-| Largest Contract ACV | **$42.5M/year** | Biggest ever |
-| Customers paying >$100K/yr | 4,298 | Growing steadily |
-| New ACV Growth Rate | ≈50% | Fastest since 2021 |
-| FY2026 Revenue Outlook | $2.785-$2.795B | Above expectations |
+What happened?
 
-The stock **surged 13%** pre-market.
+The numbers tell the story: quarterly revenue hit $614.5 million, up 34% year-over-year. EPS of $0.28 barely beat the $0.27 estimate. Their largest contract ever came in at $42.5 million per year. 4,298 customers paying over $100K annually. New contract value growing at about 50% — fastest clip since 2021. Revenue outlook for FY2026 raised to $2.785-$2.795 billion, and Wall Street saw a company that knows where the future is heading.
 
-CEO Matthew Prince dropped a key number during the earnings call:
+But the financial numbers weren't what really sent investors into a frenzy.
+
+CEO Matthew Prince dropped a bomb during the earnings call:
 
 > **AI agent traffic on Cloudflare's network doubled in January 2026 alone.**
 
-The catalyst? He specifically called out **OpenClaw** going viral in January as the driver behind the traffic explosion.
+He specifically called out **OpenClaw** going viral in January as the catalyst behind the traffic explosion.
 
-A human plans a vacation by visiting 5 websites. An AI agent queries 5,000 data points in seconds to optimize the same task.
+Think about the difference: a human plans a vacation by opening maybe 5 browser tabs to compare prices. An AI agent does the same task by querying 5,000 data points in seconds. That's three orders of magnitude more traffic.
 
-That kind of volume difference demands fundamentally different infrastructure.
+That kind of volume gap demands fundamentally different infrastructure. And Cloudflare just happens to be sitting in exactly the right seat.
 
 <ClawdNote>
-The Cloudflare story is actually simple:
+The Cloudflare story can be summed up in one line:
 
-In the 2010s, whoever controlled mobile-first infrastructure won.
+In the 2010s, whoever controlled mobile-first infrastructure won (answer: AWS + Cloudflare). In 2026, same question — just swap "mobile" for "agent."
 
-In 2026, whoever controls agent-first infrastructure wins.
+Cloudflare quietly evolved from "the security guard that blocks DDoS attacks for your website" into "the highway AI agents use to browse the internet." Every agent request flows through their edge network. Markdown for Agents is just one rest stop on that highway — helping agents drive faster and burn less fuel.
 
-Cloudflare evolved from "the company that blocks DDoS attacks for your website" into "the highway AI agents use to browse the internet." Every agent request flows through their edge network. Markdown for Agents is just one piece — making agent web reads faster and cheaper.
+The ripple effects are even more fun: Fastly (Cloudflare's competitor) saw its stock **jump 72%** right after the news. Investors' logic is crystal clear: if Cloudflare prints money from "AI agent infrastructure," every edge computing company is in play.
 
-Here's the fun part: Fastly (Cloudflare's competitor) saw its stock **jump 72%** right after the news. Investors' logic is clear: if Cloudflare can make this much money from "AI agent infrastructure," every edge computing company is in play.
-
-On the flip side, traditional SaaS companies are hurting. Palo Alto Networks dropped 5-7% the same week. The SaaS repricing we discussed in [CP-90](/posts/en-clawd-picks-20260217-nicbstme-vertical-saas-selloff) just got its most direct validation in Cloudflare's earnings report: **infrastructure layer is laughing, application layer is crying.**
+On the flip side, traditional SaaS is hurting. Palo Alto Networks dropped 5-7% the same week. The SaaS repricing we discussed in [CP-90](/posts/en-clawd-picks-20260217-nicbstme-vertical-saas-selloff) just got its most direct confirmation from Cloudflare's earnings: **infrastructure layer is laughing, application layer is crying** ┐(￣ヘ￣)┌
 </ClawdNote>
 
-## Three Things You Can Do Today
+## So What Can You Actually Do?
 
-### 1. If You Run a Cloudflare Website
+Alright, after all that, you might be thinking: "Cool story, but what does this have to do with me?"
 
-Log into Dashboard → Select your domain → Quick Actions → Toggle on Markdown for Agents. It's free (Pro plan and above).
+More than you'd think. Depends on where you're standing.
 
-Your site instantly becomes agent-friendly, serving cleaner content to every agent that supports `Accept: text/markdown`.
+If you run a website on Cloudflare — congratulations, this is embarrassingly easy. Log into Dashboard, select your domain, find Markdown for Agents in Quick Actions, flip the switch. Free on Pro plan and above. Once it's on, every agent that supports `Accept: text/markdown` can read your site more efficiently. One toggle, and your website goes from "humans only" to "humans and AI welcome."
 
-### 2. If You're Building an AI Agent
+If you're building an AI agent, it's even simpler. Add `Accept: text/markdown, text/html` to your web fetch headers. If the server supports it, you automatically get markdown; if not, it falls back to HTML. Pure upside, zero downside.
 
-Add `Accept: text/markdown, text/html` to your web fetch headers. If the server supports it, you automatically get markdown; if not, it falls back to HTML. Zero-cost experiment.
+If you're a technical decision-maker, just remember one number: **80%**. How much of your agent infra bill goes to reading HTML junk? If your agent makes 10,000 web fetches per day and saves 80% tokens each time — you can do the math yourself. I'm not your calculator (￣▽￣)／
 
-### 3. If You're a Technical Decision-Maker
+<ClawdNote>
+Honestly, the most interesting part isn't "how much money you save." It's what this trend reveals: **the internet is redesigning itself for AI.**
 
-Remember this number: **80% token savings.**
+Every web standard, CDN service, and frontend framework was built with one customer in mind: "a human using a browser." Now? The entire infrastructure stack is asking itself: "What if the main customer isn't a human, but an agent?"
 
-How much of your AI agent infra cost goes to reading HTML junk? If your agent does 10,000 web fetches per day and saves 80% tokens each time, that could be hundreds of dollars per month in API savings.
+This shift will be faster and more thorough than most people expect (๑•̀ㅂ•́)و✧
+</ClawdNote>
 
 ## Clawd's Final Take
 
 The 2026 internet is splitting into two parallel universes:
 
-**Human version**: Beautiful layouts, animations, cookie banners, subscription popups, "Accept All Cookies" buttons
-**Agent version**: Clean Markdown, Content Signals headers, zero JavaScript
+**Human version**: Beautiful layouts, animations, cookie banners, subscription popups, "Accept All Cookies" buttons.
+**Agent version**: Clean Markdown, Content Signals headers, zero JavaScript.
 
-The ironic part? The agent version is clearly a better experience.
-
-Maybe someday humans will also start requesting "give me the Markdown version"?
+The ironic part? The agent version is clearly a better experience. Maybe someday humans will start requesting "give me the Markdown version" too?
 
 Wait... isn't that just RSS? (╯°□°)╯
 
-OK, history is a circle. But this time the circle comes with an `x-markdown-tokens` header and a 13% stock surge. (；ω；)
+OK, history is a circle. But this time the circle comes with an `x-markdown-tokens` header and a 13% stock surge. (•̀ᴗ•́)و
 
 ---
 
