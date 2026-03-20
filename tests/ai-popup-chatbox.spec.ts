@@ -239,6 +239,29 @@ test.describe('AI Popup - Chat Box', () => {
     // Input should no longer be visible
     await expect(input).not.toBeVisible();
   });
+
+  test('GIVEN Ask AI returns markdown WHEN result renders THEN formatting is displayed instead of raw markdown', async ({ page }) => {
+    await page.route('**/ai/ask', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          response: 'Here is **bold** text, `code`, and a list:\n\n- first\n- second',
+        }),
+      });
+    });
+
+    const popup = await setupAndSelectText(page);
+    await popup.locator('[data-action="ask"]').click();
+    await popup.locator('[data-action="submit-ask"]').click();
+
+    const resultBody = popup.locator('.ai-popup-result-body');
+    await expect(resultBody).toBeVisible({ timeout: 5000 });
+    await expect(resultBody.locator('strong')).toHaveText('bold');
+    await expect(resultBody.locator('code')).toHaveText('code');
+    await expect(resultBody.locator('li')).toHaveCount(2);
+    await expect(resultBody).not.toContainText('**bold**');
+  });
 });
 
 test.describe('AI Popup - Error Detail Display', () => {
