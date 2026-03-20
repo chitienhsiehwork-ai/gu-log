@@ -1,0 +1,176 @@
+---
+ticketId: "SP-121"
+title: "Claude Code 與 Codex：AI Agent CLI 的底層架構差異與設定指南"
+originalDate: "2026-03-18"
+translatedDate: "2026-03-20"
+translatedBy:
+  model: "Gemini 3.1 Pro"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: "@nyk_builderz on X"
+sourceUrl: "https://x.com/nyk_builderz/status/2034108391207862586"
+lang: "zh-tw"
+summary: "很多團隊把 Claude Code 和 Codex 當成可互換的工具，卻因為設定錯誤浪費大量時間。本文解析兩者在控制平面與信任模型上的根本差異，並提供實用的第一天設定指南。"
+tags: ["shroom-picks", "ai-agents", "claude-code", "codex", "cli"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+各位開發者大家好！(๑˃ᴗ˂)ﻭ
+
+最近大家是不是都在終端機裡養了幾隻 AI 代理人？很多團隊把 Claude Code 和 Codex 當成隨插即用的打工仔，以為它們都差不多。結果呢？設定一旦配錯，往往得多跑 40-60% 的修正輪次，忙著幫它們收拾錯誤。
+
+這兩者的問題不在於背後的模型多聰明，真正的核心差異在於它們的**控制平面 (control plane)**。一個像是記性很好的管家，跨 session 保持記憶並透過 hooks 執行規則；另一個則像是被關在隔離病房的專家，網路全斷、每次跑完就失憶重置。
+
+同樣是在終端機裡跑，底層架構卻是天差地遠。推文中 @nyk_builderz 幫我們拆解了這兩者的設定差異、信任模型，還有你第一天啟用它們時一定要改的 6 個預設值。
+
+---
+
+## 這兩個傢伙到底是誰？
+
+首先釐清一點，它們是**終端機原生的 AI 寫 code 代理人 (Terminal-native AI coding agents)**，不是 IDE 外掛，也不是單純的聊天機器人。
+
+原推文提到：
+> **Claude Code** 是 Anthropic 出的 CLI 工具。背後跑的是 Opus 4.6 模型，擁有 1M token 的超大上下文視窗。它可以直接讀取你的檔案系統。它的設定架構有五層：`CLAUDE.md` 階層、hooks、skills、MCP servers 和 subagents。最特別的是它在不同的 session 之間擁有**持久化記憶**。截至 2026 年 2 月，VS Code 安裝量達到了 5.2M。
+
+> **Codex** 則是 OpenAI 用 Rust 寫的 CLI 工具。背後是 GPT-5.3-Codex 和 GPT-5.4。它預設在一個沙盒 (sandbox) 裡面跑，並且**預設阻斷網路連線**。它有三種批准模式：suggest（建議）、auto-edit（自動編輯）、和 full-auto（全自動）。在同一個時間點，VS Code 安裝量是 4.9M。
+
+從跑分來看，這兩者根本是不相上下。SWE-bench Verified 的分數：Opus 4.6 是 80.8%，GPT-5.2 是 80.0% — 前五名的差距都在 1.3 分以內。而 Terminal-Bench 2.0 則是 Codex CLI 以 77.3% 微幅領先 Opus 4.6 的 74.7%。
+
+所以說，差異真的不在模型能力，而在於那個控制平面。
+
+<ClawdNote>
+我的解讀是：從 5.2M 對 4.9M 這組安裝量來看，兩個工具的採用規模已經很接近。原文沒有進一步下市場趨勢的判斷，所以這裡比較穩妥的 takeaway 是：選工具時別只看 benchmark，控制平面和風險模型才是更大的分水嶺。
+</ClawdNote>
+
+---
+
+## 設定檔的魔法陣 (The config surface)
+
+這兩個工具怎麼設定呢？
+
+**Claude Code** 走的是分層的 Markdown 檔案機制：
+
+```text
+~/.claude/CLAUDE.md          # 全局規則（適用所有專案）
+./CLAUDE.md                  # 專案規則（每個 repo 獨立）
+./src/CLAUDE.md              # 子資料夾的覆蓋規則
+.claude/settings.json        # 權限控制、MCP servers
+```
+
+它還支援自動偵測的 skills、執行指令前後的 hooks，以及 MCP servers。而且，`CLAUDE.md` 沒有大小限制，每一輪對話都會重新讀取。
+
+另一方面，**Codex** 使用的是平行的系統：
+
+```text
+~/.codex/instructions.md     # 全局規則
+codex.md 或 AGENTS.md        # 專案規則（會遍歷目錄樹）
+~/.codex/config.toml         # 模型設定、批准策略、沙盒設定
+```
+
+它同樣支援 Agent Skills（附帶可選腳本的 `SKILL.md`）和透過 STDIO 或串流 HTTP 連接的 MCP servers。但這裡有個**硬限制**：`project_doc_max_bytes` 預設只有 32 KiB。原作者警告，如果你的設定檔超過這個大小，指令就會被默默截斷 (truncated silently)。
+
+這裡的執行落差 (enforcement gap) 非常關鍵。Claude Code 對 `CLAUDE.md` 的遵從度大約在 70% 左右 —— 模型會遵守大部分規則，但偶爾會忽略一些。但它的 hooks 執行率是 100%，因為那是由 shell 直接執行的指令。
+
+相對的，Codex 的約束力來自於它本身的**沙盒機制**。不管你在設定檔裡寫了什麼通天本領的指令，模型就是無法突破檔案系統或網路的實體限制。
+
+這就是兩種完全不同的信任架構。如果你把 A 工具的設定方式套用在 B 工具上，通常只會得到不好的結果。
+
+---
+
+## 信任與執行模型：放養 vs 關籠子
+
+這是兩者最核心的分水嶺。
+
+> **Claude Code** 預設是**信任的 (trust-by-default)**，在你自己設定的權限範圍內做事。它直接讀寫你的檔案系統。你需要透過 `.claude/settings.json` 的白名單來控制它的存取範圍。好處是吞吐量 (throughput) 較高，但缺點就是風險表面比較寬廣。
+
+> **Codex** 則是**沙盒優先 (sandbox-first)**。在 macOS 上它用 Seatbelt profiles，在 Linux 上用 Landlock。記住，即使你在 full-auto 模式下，它的**網路預設還是被阻斷的**。
+
+Codex 有三個模式可以選：
+- **suggest**：只提修改建議，由你來套用。
+- **auto-edit**：會自動修改檔案，但下指令前會問你。
+- **full-auto**：在沙盒內全自動執行所有事情（但依舊沒有網路）。
+
+原作者提供了一個很好的心智模型：
+> Claude Code 是一個**帶著護欄的代理人 (agent with guardrails)**。
+> Codex 是一個**有審批閘門的沙盒 (sandbox with an approval gate)**。
+
+因此，它們當機或失敗的方式也完全不同。
+- Claude Code 的失敗通常是因為上下文變舊了 (context gets stale)。當對話來到第 30 輪以後，它的壓縮機制可能會丟失關鍵指令，導致代理人做出跟前面決定矛盾的事情。
+- Codex 的失敗則通常是因為它需要沙盒外的資訊——它抓不到相依套件、連不到文件、或是無法呼叫某個 API，於是它就卡住了 (stalls)。
+
+了解它們怎麼失敗，你才知道什麼任務該派誰上場。
+
+---
+
+## 第一天就要改的 6 個預設設定
+
+原作者強烈建議，上手第一天請檢查並修改這些設定：
+
+### Claude Code 的 3 個設定
+
+1. **把 `CLAUDE.md` 分層管理**：全局慣例放在 `~/.claude/CLAUDE.md`，專案規則放 `./CLAUDE.md`，子系統知識放子資料夾。如果你把 400 行規則全塞在一個檔案裡，模型會降低底部指令的優先級。
+2. **在不相關的任務之間使用 `/clear`**：混合的上下文會導致模型漂移 (drift)。重構完之後，清空記憶，再去 debug 測試失敗的問題。自動記憶機制會保留重要的事情，但舊的上下文不會。
+3. **簡單任務用 Sonnet**：Opus 的 token 成本是 Sonnet 的 1.67 倍。修錯字或單一檔案修改，根本不需要用到 Opus 的推理深度。把 Opus 留給跨檔案的大型重構吧。
+
+### Codex 的 3 個設定
+
+4. **從 auto-edit 開始，不要一上來就 full-auto**：先審查它的前 20 次編輯，了解模型的習性。在把審批閘門拆掉之前，先找出你的 `AGENTS.md` 哪裡寫得不夠清楚。
+5. **認真寫一個 `AGENTS.md`**：如果沒有專案上下文，Codex 就只能瞎猜你的程式碼慣例。根據團隊回報，有良好設定指令的情況下，需要修改的次數會減少 40-60%。那 32 KiB 的限制其實很夠用了，好好利用它。
+6. **保持任務的原子性 (atomic)**：因為沙盒每次執行都會重置。多步驟的連鎖任務需要你明確地傳遞狀態 (state handoff)。如果你這個工作流需要回憶起「3 個任務前」的狀態，那請你改用 Claude Code。
+
+<ClawdNote>
+我的解讀是：如果你的開發流程很依賴跨步驟延續 state，Codex 這種每次重置的執行模型就會比較卡。照原作者這裡的建議，這類工作流直接改用 Claude Code 會更合理。
+</ClawdNote>
+
+---
+
+## 什麼時候該用誰？
+
+根據原推文的分類：
+
+你需要進行多檔案重構、探索整個 codebase、跨任務需要保持記憶、或是需要調度 MCP 時，請用 **Claude Code**。總之，只要**了解完整專案上下文能做出更好決定**的場景，就選它。
+
+你需要孤立的 bug 修復、在受控環境下進行 code review、有嚴格的審批流程、或是需要鎖死檔案系統存取權限時，請用 **Codex**。只要**「從零開始 (starting clean)」被視為一種優勢**的任務，就選它。
+
+或者，小孩才做選擇：用 Claude Code 來規劃架構，再把計畫丟給 Codex 在沙盒裡執行。Agent Skills 甚至可以在這兩個工具和 Cursor 之間通用。
+
+**終極決策法則：**
+原作者認為：如果代理人需要記得昨天的事，用 Claude Code。如果它需要忘掉一切，用 Codex。
+
+---
+
+## 共通的生存法則
+
+不管你選哪一個，有幾點是互通的：
+
+首先，**先寫好你的設定檔**。這兩個工具在有專案上下文的情況下，表現都會大幅提升。這是大多數開發者最常忽略的高槓桿動作。
+
+其次，**指令控制在 200 行以內**。它們每一輪都會重新讀取指令。太多廢話只會稀釋掉真正重要的規則。
+
+再來，**一個 session 只做一件事**。對兩者來說，上下文污染 (Context pollution) 都是頭號失敗主因。做完，commit，然後重新開始。
+
+最後，**信任前先驗證 (Review before trust)**。原推文提到 SWE-bench 的分數落在 80 幾分，這意味著大約有五分之一的任務，它還是會給你錯誤的結果。請務必親自檢查 diff。
+
+---
+
+## 結語
+
+很多人看教學都是從「怎麼安裝」開始，但原作者認為這完全搞錯重點了。
+
+真正的基本功是：了解你正在操作哪一種控制平面、根據你的 codebase 進行設定，並且清楚知道你可能會遇到哪種「當機」或「失敗」模式。
+
+挑一個適合你專案的，好好設定它，然後這個禮拜就順利把東西 ship 出去吧！(◍•ᴗ•◍)
