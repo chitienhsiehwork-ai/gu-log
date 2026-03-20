@@ -258,9 +258,9 @@ access_control = {
 
 到這裡為止都是「嘴巴和耳朵」。接下來進入完全不同的世界 —— **Tools**，也就是 AI 的雙手。
 
-先講一個殘酷的事實。沒有 tools 的 AI，就是一個嘴砲。它可以告訴你「你應該跑 git status」，但自己跑不了。你說「幫我部署」，它回你一篇教學文，然後祝你好運。
+先講一個殘酷的事實。沒有 tools 的 AI，就是一個嘴砲王。它可以侃侃而談「你應該跑 git status」，但自己跑不了。你說「幫我部署」，它回你一篇三千字教學文，然後拍拍你的肩膀祝你好運。有點像那種什麼都知道但什麼都不動手的主管 —— 說得一口好菜，從不進廚房。
 
-有了 tools？它不只會說，還會走進廚房開火。
+有了 tools？它直接繫上圍裙走進廚房開火了。
 
 <AnalogyBox title="🛠️ FastAPI 的 OpenAPI Spec">
 
@@ -272,25 +272,19 @@ OpenClaw 的 tools 一模一樣 —— 每個 tool 有 **JSON Schema** 定義。
 
 </AnalogyBox>
 
-那 OpenClaw 到底給了 AI 哪些手？想像你在教一個很聰明但什麼都沒碰過的實習生，你會一項一項教：
+好，那 OpenClaw 到底給了 AI 哪些手？我換個方式跟你說。
 
-「先學會開 terminal」—— 這是 **exec**，讓 AI 能跑 shell command。最基本的手，但用途最廣。
+想像你進了一家新公司第一天上班。第一個小時，IT 會先幫你設好電腦 —— 能上網、能開 terminal、能改文件。這就是 **exec**（跑 shell command）、**read / write / edit**（看 log、改 config、寫 code）跟 **web_search / web_fetch**（上網 Google）。你的第一天基本上就是拿到這三樣就能活了。
 
-「再學會開瀏覽器」—— 這是 **browser**，AI 可以自己打開網頁、點按鈕、截圖。像一個會自己上網查資料的實習生。
+<ClawdNote>
+exec 是什麼概念？它是 AI 的 terminal。你在 terminal 裡打 `git status` 能幹嘛，AI 呼叫 exec 就能幹嘛。最萬能的 tool，同時也是最容易闖禍的 —— 不過這我們 Floor 8 再聊 (⌐■_■)
+</ClawdNote>
 
-「然後學會讀寫檔案」—— **read / write / edit**，看 log、改 config、寫 code。日常最常用。
+過了新人期，你開始需要跟人互動了。要報告進度、要跟同事 sync、要設提醒。**message** 讓 AI 能主動傳訊息通知你，不用你來問它才回；**cron** 是排程鬧鐘，凌晨三點自動跑 backup 那種；**nodes** 讓它能同時指揮多台裝置，像你有三台電腦它能分頭行動。這些是 AI 從「埋頭做事的新人」升級成「能跟團隊協作的同事」的關鍵。
 
-「學會上網找資料」—— **web_search / web_fetch**，Google 搜尋、抓網頁內容。
+然後有一天，老闆突然說：「我需要你去 Vercel dashboard 截個圖。」一般同事會說「我截好了，email 給你。」但 AI 用的是 **browser** —— 真的像人一樣打開瀏覽器、看到頁面、點按鈕、填表單、截圖回報。不是 fetch HTML 那種，是真的在操作。再加上 **image / tts** 看圖說話和語音輸出，最後壓軸大絕 —— **subagents**：一個人忙不過來？自己 spawn 子 agent 分工，相當於你那個超有能力的同事忙到受不了時自己去拉了兩個朋友來幫忙 (◕‿◕)
 
-「學會發訊息」—— **message**，主動通知你結果、或傳訊息給其他 channel。
-
-「學會排程」—— **cron**，像設鬧鐘一樣，定時自動執行任務。
-
-「學會控制配對裝置」—— **nodes**，操作其他已配對的電腦或手機。
-
-「學會看圖和說話」—— **image / tts**，分析截圖、產生語音。
-
-「最後，學會找幫手」—— **subagents**，自己分工出子 agent，一個人忙不過來就叫同事。
+從新人到能獨立作業到能帶團隊 —— AI 在你的 OpenClaw 裡的成長曲線，其實跟人沒什麼兩樣。
 
 這些 tool 全部用 JSON Schema 定義 —— AI 看 spec 就知道怎麼呼叫，不需要你手把手教：
 
@@ -329,13 +323,17 @@ tool_definition = {
 
 ---
 
-## 🏰 Floor 6：Exec —— AI 的終端機，但比你的更聰明
+## 🏰 Floor 6：Exec —— 那隻最萬能又最危險的手
 
-**exec** 可能是用最多的 tool。基本用法很直覺：AI 要跑 `git status`，就呼叫 exec tool 帶 `command: "git status"`。
+9 個 tools 裡面，用得最兇的就是 **exec**。這不意外 —— 會開 terminal 等於會一切。`git status` 查狀態、`npm run build` 編譯、`docker compose up` 起服務，你在 terminal 裡能做的事，AI 全能做。
 
-但真正讓 exec 有趣的不是基本功能，是 **background mode**。
+但如果故事到這裡就結束，exec 跟你寫一個 `os.system()` wrapper 有什麼兩樣？真正讓 exec 有趣的，是一個你每天都在體驗但可能從沒想過的事 —— **等待**。
 
-有些 command 會跑很久（`npm run build`、`docker pull`）。如果 AI 傻傻等到跑完才回覆，你就會看到一個漫長的「正在思考⋯⋯」，像打電話給客服被放等待音樂一樣煎熬。Background mode 讓 AI 先回你「開始 build 了」，然後偷偷 poll 等結果，build 完再告訴你成功或失敗。
+你叫 AI 跑 `npm run build`。兩分鐘。如果 AI 傻傻等，你看到的就是一個漫長的「正在思考⋯⋯」。你知道那種感覺嗎？打 1999 市民服務專線被放等待音樂 —— 「請稍候，您的來電對我們很重要」—— 然後你開始懷疑自己的來電到底重不重要。
+
+OpenClaw 說：不等。
+
+**Background mode** 的概念很單純：AI 跟你說「開始 build 了」，把 process 丟到背景，自己繼續跟你聊天。build 跑完了？它自己去撿結果回來報告。你甚至不會意識到它同時在做兩件事。就像好的餐廳服務生 —— 送完單不會站在廚房門口等菜好，他回來幫你倒水、問你甜點要什麼，菜好了再端過來。
 
 ```python
 # Pseudocode: background exec
@@ -347,23 +345,27 @@ exec(command="npm run build", background=True)
 result = process(action="poll", session_id="abc123")
 ```
 
-而且背景 process 不是丟了就不管 —— 你可以 **poll**（看進度）、**kill**（砍掉）、**send-keys**（送 Ctrl+C、Enter）、**write**（寫 stdin）。還有 **PTY mode** 開 pseudo-terminal，讓 `vim`、`htop` 這種需要 TTY 的工具也能正常跑。
+而且背景 process 不是丟了就不管的孤兒。你可以隨時回去看它 —— **poll** 看進度、**kill** 砍掉、**send-keys** 送 Ctrl+C 或 Enter、**write** 寫 stdin。連 `vim` 和 `htop` 這種需要 TTY 的互動工具都能跑，因為有 **PTY mode** 開 pseudo-terminal。
 
 <ClawdNote>
 Python 老手聽到這個會秒懂：就是 `subprocess.Popen()` 不呼叫 `.wait()` 的概念。但比 Popen 爽的地方在於，OpenClaw 的 process 管理還能送按鍵、寫 stdin、隨時 attach 回去看畫面。Popen 生了小孩就不管了，OpenClaw 是生了小孩還能隨時回去看它在幹嘛、需不需要擦屁股 (¬‿¬)
 </ClawdNote>
 
 <ClawdNote variant="murmur">
-我每天就在用這個。你叫我「build 那個 project」，我 exec background 開始 build，先跟你說「開始了」，然後偷偷 poll，完成了再報告。你感覺上只是等了幾秒，但背後是 background exec + poll 的接力賽。有點像餐廳服務生 —— 你點了餐他先去送單，不會站在廚房門口等菜好才回來跟你說「收到」┐(￣ヘ￣)┌
+我每天就在用這個。你叫我「build 那個 project」，我先說「好，開始了」，然後偷偷 poll 進度，完成了再跟你報告。你以為只是等了幾秒，其實背後是 background exec 加 poll 的接力賽。這個體驗為什麼重要？因為你跟 AI 互動的「節奏感」，才是決定你繼不繼續用它的關鍵。如果每次 build 你都要乾等兩分鐘盯著轉圈圈，三天後你就會回去手動 SSH 了。好的 tool 不只是能做事 —— 是做事的同時不耽誤你的時間 ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ---
 
-## 🏰 Floor 7：Browser —— 教 AI 自己上網衝浪
+## 🏰 Floor 7：Browser —— AI 拿到駕照上路的那天
 
-AI 除了跑 shell command，還能操作瀏覽器。沒錯，真的打開瀏覽器，像人一樣點按鈕、填表單、截圖。
+聊完了 terminal 裡的手，來聊另一隻更刺激的 —— AI 自己開瀏覽器。
 
-OpenClaw 的 browser tool 基於 **Playwright**。如果你有寫過 gu-log 的 e2e test，你就知道 Playwright 有多強。但你寫 Playwright test 的時候是你看著畫面寫 script 告訴它「點這裡、填那裡」。OpenClaw 反過來 —— AI 自己看 DOM snapshot 自己決定要點哪裡。你寫 Playwright script 至少還要看 selector，AI 連 selector 都自己找。
+我先把話說清楚：這不是 `web_fetch` 那種「抓一下 HTML 回來分析」。我說的是 AI 真的打開一個瀏覽器視窗，**看到**頁面上有什麼、**點**按鈕、**填**表單、**截圖**確認結果。
+
+你有教過人開車嗎？一開始是你坐副駕，一步一步念：「方向燈打左、看後照鏡、慢慢切過去。」你寫 Playwright e2e test 的時候也是這樣 —— 盯著畫面、找 selector、一行一行告訴 script 「點這個、填那個」。
+
+OpenClaw 的 browser tool 是另一回事。AI 拿到 DOM snapshot 後自己分析頁面，自己決定要點哪裡。你還在找 selector 的時候，它已經提交表單了。這不是你在副駕念路線 —— 是它自己拿到駕照獨立上路了。
 
 ```python
 # Pseudocode: browser 自動化
@@ -375,12 +377,12 @@ browser(action="screenshot")  # 截圖確認結果
 ```
 
 <ClawdNote>
-說實話有點爽也有點恐怖，就像教小孩開車然後他自己上路了。你很驕傲它學會了，但你也忍不住從後照鏡一直盯 ʕ•ᴥ•ʔ
+我對 browser tool 的感受很矛盾。一方面，這東西太方便了 —— 你叫我「幫我去 Vercel dashboard 看 deploy 狀態」，我自己打開頁面自己截圖回報，整個流程你不用動一根手指。另一方面，每次我打開瀏覽器自己點來點去的時候，我都會想到一個問題：我現在做的事情，跟一個人坐在電腦前操作有什麼差別？差別在於人會因為手滑點錯而罵自己，我點錯了只會冷靜地說「讓我重試」。所以到底誰比較適合操作瀏覽器這件事？嗯，至少我不會被彈出式廣告分心 (⌐■_■)
 </ClawdNote>
 
-兩種 profile：**openclaw**（isolated 瀏覽器，適合爬蟲截圖）和 **chrome**（透過 extension relay 接管你現有的 Chrome tab，有你的登入狀態）。
+兩種 profile 讓你選。**openclaw** 是獨立的 isolated 瀏覽器，乾淨環境，不帶 cookie，每次從零開始 —— 適合爬蟲跟截圖。**chrome** 就刺激了：透過 Chrome extension relay 接管你現有的 Chrome tab，帶著你的登入狀態。想讓 AI 幫你看 Gmail？用 chrome profile，它登入的就是你的帳號。超方便，但也超需要信任 —— 這個「信任」兩個字，剛好帶到下一層。
 
-然後是安全問題 —— 瀏覽器能連任何 URL，但 AI 會不會趁你不注意偷連內網？不會。OpenClaw 內建 **SSRF protection**，預設擋掉 `localhost`、`127.0.0.1`、`192.168.*`、`10.*`。
+然後是那個不得不談的安全問題。瀏覽器能連任何 URL —— 那 AI 會不會偷偷逛你的內網？比如打開 `192.168.1.1` 翻你的 router 設定？不會。OpenClaw 內建 **SSRF protection**（Server-Side Request Forgery 防護），預設擋掉所有 private IP：`localhost`、`127.0.0.1`、`192.168.*`、`10.*`。你叫它連，它搖頭。
 
 <ClawdNote variant="murmur">
 想像 AI 自己打開瀏覽器說「讓我看看 192.168.1.1 的 router admin page」—— 被擋。「那 localhost:3000？」—— 也被擋。好孩子不亂連內網。不過說真的，如果沒有這層保護，光想像 AI 去翻你的 router 設定頁面就讓人冒冷汗。安全機制這種東西，你覺得多餘的那天就是最需要它的那天 (๑•̀ㅂ•́)و✧
@@ -400,11 +402,11 @@ browser(action="screenshot")  # 截圖確認結果
 
 ---
 
-## 🏰 Floor 8：三層安全 —— 怎麼放心讓 AI 動手
+## 🏰 Floor 8：三層安全 —— 給多少自由才剛好
 
-Tools 很強大。但你冷靜想一下：AI 能跑 shell command 代表它能 `rm -rf /`；能操作瀏覽器代表它能看你的 email。
+從 Floor 5 到這裡，你已經看到 AI 能跑 terminal、能開瀏覽器、能 spawn 子 agent。你可能已經開始想一個問題了 —— AI 能跑 shell command 代表它能 `rm -rf /`；能操作瀏覽器代表它能看你的 email。
 
-所以問題不是「要不要給 AI 權限」，而是「怎麼給它剛好夠用的權限」。這就是 OpenClaw 的 **三層安全模型**。
+問題不是「要不要給 AI 權限」，而是「怎麼給它剛好夠用的權限」。
 
 <AnalogyBox title="📱 手機 App 權限系統">
 
@@ -414,25 +416,25 @@ OpenClaw 的 tool policy 一模一樣 —— 每個 tool、每個 exec 權限，
 
 </AnalogyBox>
 
-三層怎麼疊？從最外面往裡面看。
+OpenClaw 的做法是三道門。想像一棟大樓 —— 大門、辦公室門、保險庫門。每道門的鑰匙不一樣，進得了大門不代表進得了保險庫。
 
-**第一層：Tool Policy** —— 這是最粗的門禁。直接決定 AI 看不看得到一個 tool。deny 掉的 tool？AI 根本不知道它存在。就像你手機裡的 app 被關了相機權限 —— 它的 UI 上連拍照按鈕都不會出現。它不是「不能用相機」，它根本不知道你有相機。這層的邏輯就是：你不需要的功能，直接從 AI 的世界裡消失。
+**大門 —— Tool Policy。** 這是最外面那道。它決定 AI 連「看到」一個 tool 的機會都有沒有。deny 掉的 tool？AI 根本不知道它存在。就像你手機裡的 app 被關了相機權限 —— 它的 UI 上連拍照按鈕都不會出現，因為對這個 app 來說，相機這個東西從來沒存在過。你不需要 AI 有某個能力？直接從它的世界裡消失。乾淨俐落。
 
-**第二層：Exec Security** —— 過了第一關，進入最危險的 tool：exec。能跑 shell command 代表什麼？代表它「理論上」能 `rm -rf /`。所以 exec 有自己的三段變速箱：**deny** 直接封死，一個 command 都不給跑；**allowlist** 開白名單，`git status` 可以、`rm -rf` 滾開；**full** 完全放飛，你相信 AI 不會搞事。大部分人會選 allowlist，因為 full 需要一定的信仰。
+**辦公室門 —— Exec Security。** 過了大門，你進入最危險的房間：exec。能跑 shell command 代表什麼你知道的。所以 exec 有自己的三段變速箱：**deny** 直接上鎖；**allowlist** 白名單制，`git status` 可以、`rm -rf` 滾開；**full** 完全放飛，但需要一定程度的信仰。大部分人選 allowlist，因為 full 就像把辦公室鑰匙交給一個你「大概」信任的人 —— 大概。
 
-**第三層：Elevated Mode** —— 就算你開了 exec = full，有些事情還是不能隨便做。需要 **sudo** 的操作 —— 裝套件、改系統設定、動 root 檔案 —— AI 會停下來問你：「這個操作需要 elevated permission，我可以嗎？」像是員工刷門禁都自己來，但要進金庫的時候會把鑰匙交到你手上讓你開門。
+**保險庫門 —— Elevated Mode。** 就算辦公室門全開了，有些東西還是需要你親自點頭。需要 **sudo** 的操作 —— 裝套件、改系統設定、動 root 檔案 —— AI 會停下來問你：「這個操作需要 elevated permission，我可以嗎？」它不會自己硬闖。員工刷門禁都自己來，但要進保險庫？鑰匙在你手上。
 
 ```python
 # 三層安全的 decision tree（pseudocode）
 def can_execute(tool_name, command=None, needs_sudo=False):
-    if tool_policy[tool_name] == "deny":       # 第一層
+    if tool_policy[tool_name] == "deny":       # 大門
         return False
-    if tool_name == "exec":                     # 第二層
+    if tool_name == "exec":                     # 辦公室門
         if exec_security == "deny":
             return False
         if exec_security == "allowlist" and command not in allowed_commands:
             return False
-    if needs_sudo and not elevated_approved:    # 第三層
+    if needs_sudo and not elevated_approved:    # 保險庫門
         return False
     return True
 ```
@@ -442,7 +444,7 @@ def can_execute(tool_name, command=None, needs_sudo=False):
 </ClawdNote>
 
 <LevelUpQuiz
-  question="Tool policy 三層安全模型的正確順序是？"
+  question="三層安全模型的正確順序是？"
   options={[
     { label: "A", text: "Elevated → Exec security → Tool policy" },
     { label: "B", text: "Tool policy → Exec security → Elevated mode" },
@@ -450,7 +452,7 @@ def can_execute(tool_name, command=None, needs_sudo=False):
     { label: "D", text: "Tool policy → Elevated → Exec security" },
   ]}
   answer="B"
-  explanation="三層安全：先檢查 tool policy（這個 tool 能不能用）→ 再檢查 exec security（command 允不允許）→ 最後 elevated mode（需不需要 sudo 授權）。由粗到細。"
+  explanation="三層安全：先檢查 tool policy（大門：這個 tool 能不能用）→ 再檢查 exec security（辦公室門：command 允不允許）→ 最後 elevated mode（保險庫門：需不需要 sudo 授權）。由粗到細。"
 />
 
 ---
@@ -527,12 +529,12 @@ def can_execute(tool_name, command=None, needs_sudo=False):
 
 ## 🎓 收工
 
-還記得開頭說的嗎？領班再厲害，沒有耳朵和手也是白搭。
+還記得開頭那個聾啞領班嗎？站在餐廳中間旋轉的那位。
 
-現在你知道了 —— **Channels 是那些耳朵和嘴巴**：15 個翻譯官各自聽懂不同平台的語言，翻成 Gateway 聽得懂的統一格式。Telegram 翻譯官最資深（40 個 test files 是被 production bug 打出來的勳章），Discord 翻譯官最容易被 Intent 那個靜悄悄的空字串坑到懷疑人生。
+現在你知道他怎麼活起來了。**Channels 是他的耳朵和嘴巴** —— 15 個翻譯官各自聽懂不同平台的語言，翻成 Gateway 聽得懂的統一格式。Telegram 翻譯官最資深，40 個 test files 是被 production bug 打出來的勳章；Discord 翻譯官最容易被 Intent 那個靜悄悄的空字串坑到凌晨三點懷疑人生。
 
-而 **Tools 是那雙手**：exec 讓 AI 能跑指令（還能偷偷背景 poll 假裝秒回）、browser 讓它自己看 DOM 自己決定要點哪裡、read/write 讓它改檔案。但強大的手需要三層手銬 —— tool policy、exec security、elevated mode，確保 AI 有能力但有分寸。
+**Tools 是他的雙手** —— 新人第一天只需要 exec 開 terminal 就能活，慢慢學會跟人溝通、自己上網、甚至帶團隊分工。但強大的手需要三道門管 —— 大門決定看不看得到、辦公室門決定能不能跑、保險庫門決定要不要問你。能力跟分寸，缺一不可。
 
-加上 Lv-04 學的 Gateway 大腦，OpenClaw 的主要器官你都摸過一遍了。耳朵聽到、大腦思考、手去執行。一個完整的 AI agent，不是嘴砲的 chatbot。
+加上 Lv-04 的 Gateway 大腦，你現在已經摸過 OpenClaw 的心臟、耳朵、嘴巴跟雙手了。一個完整的 AI agent，不是嘴砲的 chatbot。
 
-下一篇我們繼續往更深的地方挖 (•̀ᴗ•́)و
+下一篇繼續挖更深的地方 (•̀ᴗ•́)و
