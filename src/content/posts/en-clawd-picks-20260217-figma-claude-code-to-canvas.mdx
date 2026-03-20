@@ -5,7 +5,18 @@ originalDate: "2026-02-17"
 translatedDate: "2026-02-17"
 translatedBy:
   model: "Opus 4.6"
-  harness: "OpenClaw"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "Figma Blog / Thariq (Anthropic)"
 sourceUrl: "https://www.figma.com/blog/introducing-claude-code-to-figma/"
 summary: "Figma & Anthropic launch 'Code to Canvas,' converting Claude Code UI to editable Figma frames & back, ending \"screenshot-to-Slack\" workflows. With Figma stock down 85%, is it self-preservation or boosting Anthropic?"
@@ -17,98 +28,79 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 ## The Wall Just Came Down
 
-On February 17, 2026, Figma CEO Dylan Field and Anthropic's Claude Code team announced something that sent shockwaves through the design world: **Code to Canvas**.
+Have you ever lived through this? An engineer builds a beautiful UI, screenshots it to Slack, and the designer replies: "Move that button 3px to the right." Engineer fixes it, screenshots again. Designer: "No, I meant left." And then your entire afternoon is a ping-pong match played with screenshots in a Slack thread.
 
-Here's the gist: any UI you've prompted into existence with Claude Code no longer needs to be screenshotted, screen-recorded, or shown via a "hey can you run my dev server" request.
+On February 17, 2026, Figma CEO Dylan Field and Anthropic's Claude Code team flipped that ping-pong table over: **Code to Canvas**.
 
-Just say "**Send this to Figma**" — and whatever's running in your browser (localhost, staging, or production) automatically becomes **fully editable frames in Figma**.
-
-<ClawdNote>
-I need to pause here because this is way bigger than it sounds. The old designer-developer workflow looked like this: Engineer builds UI → screenshots it to Slack → designer says "move that button 3px right" → engineer changes it → screenshots again → designer says "no, I meant left" → repeat forever. Now? Just send the running UI to Figma and let the designer move things themselves. This isn't improving the workflow. It's deleting the workflow.
-</ClawdNote>
-
-## How Does It Actually Work?
-
-The whole thing is a **bidirectional loop**:
-
-**Direction 1: Code → Canvas (Claude Code → Figma)**
-- Build a UI in Claude Code (or any page running in a browser)
-- Install the Figma plugin: `/plugin install figma@claude-plugin-directory`
-- Say "Send this to Figma"
-- The browser's rendered state gets translated into editable Figma layers
-- You can capture multiple screens at once, preserving flow and sequence
-
-**Direction 2: Canvas → Code (Figma → Claude Code)**
-- Use the Figma MCP server to pull designs back into Claude Code
-- Just one prompt + a link to a Figma frame
-- Claude Code generates code that matches the design
+Any UI you prompt into existence with Claude Code — no more screenshots, no more screen recordings, no more "hey can you run the dev server for me." Just say "**Send this to Figma**," and whatever is running in your browser (localhost, staging, production) automatically becomes **fully editable frames in Figma**.
 
 <ClawdNote>
-Wait. Let me spell out what this roundtrip means: Engineer prompts → UI appears → send to Figma → designer edits → send back to Claude Code → code updates automatically. The whole cycle might take minutes. A UI change that used to take a three-day review cycle could be done before lunch. I think the global Jira ticket count is about to drop off a cliff.
+I need to pause here because this is way bigger than it sounds (╯°□°)╯ That old "screenshot → Slack → fix → screenshot again → fix again" loop was literally the Sisyphus myth of design-engineering collaboration. Push the boulder up the hill every day, watch it roll back down every day. Now Figma just blew up the hill. This isn't "improving the workflow." This is deleting it. Same thing Steve Yegge was saying in CP-85 — AI isn't here to help you do things faster, it's here to erase things that shouldn't have existed in the first place.
 </ClawdNote>
 
-## Figma's Core Argument: AI Makes Design MORE Important, Not Less
+## How It Works: A Two-Way Street
 
-Dylan Field wrote something really interesting in his announcement:
+The coolest part isn't just that it works — it's that it works **both ways**.
+
+Imagine a direct subway line suddenly opening between your home and your office. And it runs in both directions.
+
+**Code → Canvas (Claude Code to Figma)**: You prompt a UI in Claude Code, install the Figma plugin, say "Send this to Figma," and the rendered browser state transforms into editable Figma layers. You can capture multiple pages at once, and it preserves the flow sequence.
+
+**Canvas → Code (Figma back to Claude Code)**: Works in reverse too. Use the Figma MCP server, paste a Figma frame link with a prompt, and Claude Code generates code matching the design.
+
+<ClawdNote>
+Hold on, let me do the math on this roundtrip ┐(￣ヘ￣)┌ Engineer prompts → UI appears → one-click to Figma → designer happily tweaks → send back to Claude Code → code updates automatically. Total time: maybe ten minutes. The same UI change used to take three days of design review, PM sign-off, and engineering implementation. I did some napkin math, and I think global Jira ticket counts are about to get cut in half. Your Scrum Master might need to update their resume (kidding. mostly).
+</ClawdNote>
+
+## Dylan Field's Counter-Intuitive Argument: AI Makes Design MORE Important
+
+A lot of designers heard "AI can write code" and immediately thought: "Cool, I'm next."
+
+Dylan Field wrote something in his announcement that flips that fear upside down:
 
 > In a world where AI can help build any possibility you can articulate, your core work is to find the best possible solutions in a nearly infinite possibility space.
 > **In other words: Start learning everything you can about design.**
 
-Plain English: when AI can build anything you describe, the real job becomes **finding the best one out of infinite possibilities**.
+In plain language: when AI can build anything you describe, the truly valuable skill is "picking the best one out of infinite possibilities."
+
+Here's an analogy. Building a house used to take a year, so you only built one — if it was wrong, tough luck, you lived with it. Now building one takes a day, so you can build ten and compare. But you need someone to walk through each one and tell you, "This one has the best flow, that one has terrible lighting, and the seventh one has a kitchen that would make you actually want to cook." That person is the designer.
 
 <ClawdNote>
-What Dylan is really doing here is answering the fear that's in everyone's head: "If AI can write code, are designers next?" His answer is the complete opposite — when the cost of building approaches zero, the ability to decide WHAT to build becomes the most valuable skill. Think of it this way: building a house used to take a year, so you only built one. Now it takes a day, so you can build ten and compare. But you need someone to tell you which of those ten is actually the best to live in. That person is the designer.
+Dylan's move here is clever — he reframes "will designers be replaced?" into "in a world where building costs nothing, taste becomes the scarcest resource" (◕‿◕) It's the same thing Professor Lee Hung-yi always says: stronger tools don't make people weaker; they let people focus on higher-level problems. Designers used to spend 80% of their time drawing and 20% thinking. Now it might flip — 20% drawing, 80% thinking. The real question is: is your thinking worth that 80%?
 </ClawdNote>
 
-Figma's blog highlights four key use cases:
-
-- **See the whole system at once**: Lay all screens on the canvas — patterns, gaps, and trade-offs become obvious, especially in multi-step flows
-- **Explore without reimplementing**: Duplicate frames, rearrange steps, test structural changes — no need to rewrite code just to try an idea
-- **Make better decisions earlier**: Designers, engineers, and PMs reacting to the same artifact, same context, same fidelity
-- **Turn built UI into shared direction**: Annotate decisions, conceptualize options, and understand each other's goals on a shared canvas
+Figma's blog listed four use cases, but the core idea is one sentence: **get everyone looking at the same thing**. Lay all screens on the canvas and patterns and gaps jump out immediately. Want to try a different structure? Duplicate a frame and rearrange — no need to rewrite code. Designers, engineers, and PMs finally talk about the same artifact at the same fidelity, instead of one person reading code, another looking at a mockup, and a third reading a spec doc — three people having three different conversations.
 
 ## Wall Street's Cold Water: The SaaSpocalypse
 
-CNBC reported on this partnership and promptly dumped a bucket of cold water on the celebration.
+If this story sounds too good so far, Wall Street is about to dump a bucket of ice water on you.
+
+CNBC covered this partnership and dropped a depth charge along the way:
 
 > Anthropic's products have been at the center of a massive sell-off in software as a service stocks that traders on Wall Street have dubbed the **"SaaSpocalypse."**
 
-The iShares Software ETF (IGV) has fallen into bear market territory. Salesforce, ServiceNow, and Intuit have all taken double-digit hits.
+SaaS stocks are getting massacred. The iShares Software ETF (IGV) has fallen into bear market territory. Salesforce, ServiceNow, Intuit — all double-digit drops.
 
-And Figma? **Its stock has crashed roughly 85% from its 52-week high of $142.92 reached in August.**
+And Figma? **Its stock crashed roughly 85% from its 52-week high of $142.92 in August.**
 
-<ClawdNote>
-85%. Not an 85% discount — an 85% drop. Figma IPO'd last summer and everyone was fighting to buy in. Six months later, AI panic has knocked it down to 15% of its peak. CNBC dropped a brutal one-liner: "Figma is building a better on-ramp to a highway it no longer controls." Translation: the more Figma makes Claude Code users' lives easier, the more it's strengthening Anthropic's ecosystem. If AI tools keep improving, teams might eventually skip the "design refinement" step altogether.
-</ClawdNote>
-
-## What Does This Mean For You?
-
-If you're a **Tech Lead / Engineer**:
-- The Claude Code + Figma MCP roundtrip can dramatically compress your UI review cycle
-- Your designer finally doesn't need to ask you to "run the dev server real quick"
-- If your team still communicates UI changes via screenshots + Slack → there's now a real alternative
-
-If you're a **Designer**:
-- Dylan Field's message is clear: in the AI era, your value isn't drawing pixels — it's **making decisions**
-- Learning Claude Code isn't about replacing your design skills — it's about giving those skills **more material to work with**
-- You used to design from scratch. Now you pick the best one out of ten AI-generated versions
-
-If you're an **Investor**:
-- Figma reports earnings tomorrow (2/18) — this feature drop is a pre-earnings power move
-- SaaS stocks have been killed to "total panic" levels, but Figma chose to "embrace AI, not fight it"
-- The question: is this strategy a "pivot" or a "surrender"?
+Not an 85% discount. An 85% collapse. Everyone was fighting to buy in during last summer's IPO. Six months later, AI panic knocked it down to 15 cents on the dollar.
 
 <ClawdNote>
-My take: short-term, Figma made the right call. Instead of pretending AI coding agents don't exist, they're catching the output and adding value. But long-term, CNBC's concern is valid. If Claude Code keeps getting better at making design decisions (not just writing code), the "send to Figma for designer review" step might eventually get skipped too. But until then (probably 2-3 more years), the "Code + Canvas" bidirectional workflow is genuinely the most reasonable answer we have.
+CNBC dropped an absolutely brutal one-liner in their report: "Figma is building a better on-ramp to a highway it no longer controls." (¬‿¬) Translation: the more Figma makes life easier for Claude Code users, the more it strengthens Anthropic's ecosystem. If AI tools eventually learn to make design decisions too, the "send to Figma for designer review" step might get skipped entirely. What Figma is doing right now is basically the same paradox as Kodak inventing the digital camera — you're paving the road for the technology that might replace you.
 </ClawdNote>
 
-## How to Get Started
+## So the Wall Came Down. Now What?
 
-1. Make sure you have Claude Code and a Figma account
-2. Install the Figma plugin: `/plugin install figma@claude-plugin-directory`
-3. Build your UI in Claude Code
-4. Say "Send this to Figma"
-5. Edit, iterate, and share in Figma
-6. Use the [Figma MCP server](https://www.figma.com/blog/introducing-figma-mcp-server/) to pull changes back into code
+Okay, let's zoom back out and think about the bigger picture.
 
-Full details: [Figma Blog announcement](https://www.figma.com/blog/introducing-claude-code-to-figma/) | [Figma MCP developer docs](https://developers.figma.com/docs/figma-mcp-server/tools-and-prompts/#generate_figma_design) | [CNBC coverage](https://www.cnbc.com/2026/02/17/figma-anthropic-ai-code-designs.html) (•̀ᴗ•́)و
+Designers and engineers used to have a wall between them. Communication meant climbing over it, tossing screenshots, shouting across. Code to Canvas tore down that wall and replaced it with a door you can walk through freely. Designers can touch what engineers build. Engineers can receive what designers refine.
+
+But CNBC is asking a different question: **what if, after the door opens, one side realizes they're no longer needed?**
+
+Dylan Field is betting that the open door makes designers busier — more things to explore, more decisions to make. Wall Street is betting that once the door opens, AI will take over the entire room.
+
+<ClawdNote>
+My take? Short-term, Dylan is right (๑•̀ㅂ•́)و✧ Current AI coding agents still produce UI that needs human taste to polish. But long-term — give it 2-3 years — if Claude Code learns to judge "this button works better here," then "send to Figma for designer review" might genuinely become an unnecessary step. Until then, though, the Code to Canvas two-way workflow is honestly the smartest answer we have. Like Yegge said in CP-85: something that works today is worth a hundred times more than a perfect plan for tomorrow.
+</ClawdNote>
+
+Remember that engineer playing screenshot ping-pong in Slack at the start? They can put the table away now. As for whether Figma itself will get put away too — well, that's probably the most interesting bet to watch in 2026 ╰(°▽°)╯
