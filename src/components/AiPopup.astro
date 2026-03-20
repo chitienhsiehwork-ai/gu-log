@@ -28,7 +28,6 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
   <!-- Popup is created dynamically by JS -->
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js" is:inline></script>
 <script is:inline>
   (function () {
     'use strict';
@@ -176,6 +175,132 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
       const div = document.createElement('div');
       div.textContent = str;
       return div.innerHTML;
+    }
+
+    function renderInlineMarkdown(text) {
+      return escapeHtml(text || '')
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*([^*\n]+)\*/g, '<em>$1</em>')
+        .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, function (_match, label, url) {
+          return (
+            '<a href="' + url + '" target="_blank" rel="noopener noreferrer">' + label + '</a>'
+          );
+        });
+    }
+
+    function renderMarkdown(response) {
+      const fragment = document.createDocumentFragment();
+      const lines = String(response || '')
+        .replace(/\r\n/g, '\n')
+        .replace(/\r/g, '\n')
+        .split('\n');
+      let paragraphLines = [];
+      let listEl = null;
+      let listType = '';
+      let i = 0;
+
+      function flushParagraph() {
+        if (!paragraphLines.length) return;
+        const paragraph = document.createElement('p');
+        paragraph.innerHTML = paragraphLines.map(renderInlineMarkdown).join('<br>');
+        fragment.appendChild(paragraph);
+        paragraphLines = [];
+      }
+
+      function flushList() {
+        if (!listEl) return;
+        fragment.appendChild(listEl);
+        listEl = null;
+        listType = '';
+      }
+
+      while (i < lines.length) {
+        const line = lines[i];
+        const trimmed = line.trim();
+
+        if (!trimmed) {
+          flushParagraph();
+          flushList();
+          i += 1;
+          continue;
+        }
+
+        if (/^```/.test(trimmed)) {
+          flushParagraph();
+          flushList();
+
+          const codeLines = [];
+          i += 1;
+          while (i < lines.length && !/^```/.test(lines[i].trim())) {
+            codeLines.push(lines[i]);
+            i += 1;
+          }
+
+          const pre = document.createElement('pre');
+          const code = document.createElement('code');
+          code.textContent = codeLines.join('\n');
+          pre.appendChild(code);
+          fragment.appendChild(pre);
+          i += 1;
+          continue;
+        }
+
+        const headingMatch = trimmed.match(/^(#{1,6})\s+(.*)$/);
+        if (headingMatch) {
+          flushParagraph();
+          flushList();
+          const level = Math.min(headingMatch[1].length, 6);
+          const heading = document.createElement('h' + level);
+          heading.innerHTML = renderInlineMarkdown(headingMatch[2]);
+          fragment.appendChild(heading);
+          i += 1;
+          continue;
+        }
+
+        const blockquoteMatch = trimmed.match(/^>\s?(.*)$/);
+        if (blockquoteMatch) {
+          flushParagraph();
+          flushList();
+          const quote = document.createElement('blockquote');
+          const quoteLines = [blockquoteMatch[1]];
+          i += 1;
+          while (i < lines.length) {
+            const nextMatch = lines[i].trim().match(/^>\s?(.*)$/);
+            if (!nextMatch) break;
+            quoteLines.push(nextMatch[1]);
+            i += 1;
+          }
+          quote.innerHTML = quoteLines.map(renderInlineMarkdown).join('<br>');
+          fragment.appendChild(quote);
+          continue;
+        }
+
+        const unorderedMatch = trimmed.match(/^[-*]\s+(.*)$/);
+        const orderedMatch = trimmed.match(/^\d+\.\s+(.*)$/);
+        if (unorderedMatch || orderedMatch) {
+          flushParagraph();
+          const nextListType = unorderedMatch ? 'ul' : 'ol';
+          if (!listEl || listType !== nextListType) {
+            flushList();
+            listEl = document.createElement(nextListType);
+            listType = nextListType;
+          }
+          const item = document.createElement('li');
+          item.innerHTML = renderInlineMarkdown((unorderedMatch || orderedMatch)[1]);
+          listEl.appendChild(item);
+          i += 1;
+          continue;
+        }
+
+        flushList();
+        paragraphLines.push(line);
+        i += 1;
+      }
+
+      flushParagraph();
+      flushList();
+      return fragment;
     }
 
     function createPopup() {
@@ -366,11 +491,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
 
       const body = document.createElement('div');
       body.className = 'ai-popup-result-body';
-      if (typeof window.marked !== 'undefined') {
-        body.innerHTML = window.marked.parse(response);
-      } else {
-        body.textContent = response;
-      }
+      body.appendChild(renderMarkdown(response));
 
       content.appendChild(closeBtn);
       content.appendChild(body);
