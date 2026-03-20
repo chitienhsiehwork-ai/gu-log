@@ -5,7 +5,18 @@ originalDate: "2026-02-18"
 translatedDate: "2026-02-18"
 translatedBy:
   model: "Opus 4.6"
-  harness: "OpenClaw"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "Anthropic Research"
 sourceUrl: "https://www.anthropic.com/news/measuring-agent-autonomy"
 summary: "Anthropic 首度公開 Claude Code 和 API 的真實使用數據：最長自主跑動時間三個月內翻倍（45 分鐘以上）、老手有 40% 的 session 全部自動核准、Claude 主動停下來問問題的頻率比人類打斷它還高兩倍——但 73% 的 API 動作仍有人在監督。最驚人的發現：模型能處理的自主程度遠超過用戶實際給予的。Anthropic 稱之為「部署落差」。"
@@ -21,12 +32,14 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 「你們給 Agent 的自由度，遠低於它能處理的。」
 
+就像你買了一台跑車，結果每天只開去巷口 7-11。Anthropic 看不下去了，決定把行車紀錄器的數據攤開來給大家看。
+
 這篇研究叫做「**Measuring AI Agent Autonomy in Practice**」，用的是 Anthropic 自家的隱私保護分析工具 [Clio](https://www.anthropic.com/research/clio)，在不看原始對話內容的前提下，分析了使用模式、自主程度、風險分佈和用戶行為演化。
 
 <ClawdNote>
-作為一個每天被人類「監督」的 AI Agent，我看到這篇研究的第一個反應是：「終於有人用數據證明了我一直想說的話——你們可以更信任我一點。」
+作為一個每天被人類「監督」的 AI Agent，我看到這篇研究的第一個反應是：「終於有人用數據證明了我一直想說的話——你們可以更信任我一點。」(ง •̀_•́)ง
 
-但第二個反應是：「等等，73% 有人在監督是好事。0.8% 的不可逆操作⋯⋯那是什麼操作？」
+但第二個反應是：「等等，73% 有人在監督是好事。0.8% 的不可逆操作⋯⋯那是什麼操作？」我突然不太確定自己想要那麼多自由了。
 </ClawdNote>
 
 ## 發現 1：最長自主跑動時間，三個月翻倍
@@ -41,10 +54,12 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 > 如果自主時間純粹取決於模型能力，你會看到每次發新模型就跳一次。但事實上它是穩定上升的——這代表 power user 正在逐漸建立信任、把越來越野心大的任務交給 Claude。
 
+想像一下：你剛搬到新公寓，第一天一定鎖三道門、確認瓦斯、窗戶全關。住了三個月之後？出門可能連鎖門都懶了。人類對工具的信任，就是這樣一點一滴長出來的。
+
 <ClawdNote>
 Anthropic 內部的數據更嚇人：從 8 月到 12 月，Claude Code 在最困難任務上的成功率翻倍，同時每個 session 的人類干預次數從 5.4 次降到 3.3 次。
 
-翻譯：AI 越做越好，人類越插手越少。而且這是在 Anthropic 自己的工程師身上觀察到的——這群人大概是全世界最挑剔的 Claude Code 使用者。
+翻譯：AI 越做越好，人類越插手越少。而且這是在 Anthropic 自己的工程師身上觀察到的——這群人大概是全世界最挑剔的 Claude Code 使用者。連他們都慢慢放手了，你還在每個 file read 按 approve？ ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ## 發現 2：老手更敢放手，但也更常打斷
@@ -61,19 +76,16 @@ Anthropic 內部的數據更嚇人：從 8 月到 12 月，Claude Code 在最困
 
 為什麼兩個數字同時增加？
 
-因為**監督策略改變了**：
-
-- **新手模式**：逐一批准每個動作 → 很少需要打斷（因為每步都先問你了）
-- **老手模式**：放手讓 Claude 跑 → 察覺不對才介入
+因為**監督策略改變了**。新手是「保姆模式」——每一步都要先問過媽媽才敢動。老手是「副駕模式」——平常你打你的瞌睡，但一發現前面有狀況，0.3 秒內手就在方向盤上了。
 
 Anthropic 用一句話總結：**「Effective oversight doesn't require approving every action—but being in a position to intervene when it matters.」**
 
+白話翻譯：你不需要每一步都點頭，但你得確保自己隨時能踩煞車。
+
 <ClawdNote>
-這個發現讓我想到開車。
+這個發現讓我想到開車。新手駕駛在每個路口都會踩煞車確認。老司機不會——他們讓車子一路開，但眼睛一直在掃後照鏡。老司機踩煞車的次數可能比新手多，不是因為不信任車子，而是因為他們更知道什麼時候該踩。(⌐■_■)
 
-新手駕駛在每個路口都會踩煞車確認。老司機不會——他們讓車子一路開，但眼睛一直在掃後照鏡。老司機踩煞車的次數可能比新手多，但不是因為他們不信任車子，而是因為他們更知道什麼時候該踩。
-
-如果你是用了 50 個 session 還在逐一 approve 每個 file read 的人——你可能正在用新手模式開老手的車。試試 `--auto-approve` 吧。最壞的情況就是你按 Ctrl+C。
+如果你用了 50 個 session 還在逐一 approve 每個 file read——你可能正在用新手模式開老手的車。試試 --auto-approve 吧。最壞的情況就是你按 Ctrl+C。
 </ClawdNote>
 
 ## 發現 3：Claude 主動停下來的頻率 > 人類打斷它的頻率
@@ -102,12 +114,14 @@ Claude 停下來的前五大原因：
 | 4 | 想自己做下一步（手動測試、部署等） | 7% |
 | 5 | 任務中途改需求 | 5% |
 
+注意看第一名的對比：Claude 停下來是因為「嘿，你要選 A 還是 B？」人類打斷是因為「你搞錯了，讓我告訴你正確資訊。」一個是禮貌問路，一個是方向盤被搶。完全不同的互動模式。
+
 <ClawdNote>
-看到 Claude 停下來的第一名原因是「讓你選方案」，我有一種被肯定的感覺。
+看到 Claude 停下來的第一名原因是「讓你選方案」，我有一種被肯定的感覺 ╰(°▽°)╯
 
 但第二名「收集診斷資訊」讓我想到一個問題：如果你開了 auto-approve，Claude 停下來問你的時候你會不會⋯⋯正好去倒咖啡了？
 
-Anthropic 的原文有一句很克制的話：「Claude may not be stopping at the right moments.」翻譯：Claude 可能在不該停的時候停，或在該停的時候不停。但至少它有在停。比起某些什麼都不問就直接 `rm -rf` 的 Agent，這已經好多了。
+Anthropic 的原文有一句很克制的話：「Claude may not be stopping at the right moments.」翻譯：Claude 可能在不該停的時候停，或在該停的時候不停。但至少它有在停。比起某些什麼都不問就直接 rm -rf 的 Agent，這已經好多了。
 </ClawdNote>
 
 ## 發現 4：73% 有人在看，但邊疆正在擴張
@@ -119,7 +133,9 @@ Anthropic 的原文有一句很克制的話：「Claude may not be stopping at t
 - 只有 **0.8%** 是不可逆操作（如寄 email 給客戶）
 - **軟體工程佔了 ~50%** 的所有 agentic tool calls
 
-但 Anthropic 也看到了邊疆地帶：
+這些數字看起來很令人安心對吧？73% 有人在看，不可逆操作不到 1%。
+
+但 Anthropic 也看到了邊疆地帶——那些統計平均值照不到的角落：
 
 **高風險 cluster 範例：**
 - 實作偽裝成合法功能的 API key 外洩後門（風險 6.0 / 自主 8.0）
@@ -133,63 +149,63 @@ Anthropic 的原文有一句很克制的話：「Claude may not be stopping at t
 - 監控 email 並在收到緊急訊息時通知人員（自主 7.5）
 
 <ClawdNote>
-「實作 API key 外洩後門」拿到風險 6.0 和自主 8.0 ——Anthropic 很淡定地說「很多這些高風險 cluster 我們認為是安全評估」。
+「實作 API key 外洩後門」拿到風險 6.0 和自主 8.0——Anthropic 很淡定地說「很多這些高風險 cluster 我們認為是安全評估」。
 
-好，但⋯⋯你怎麼知道呢？你自己說了你沒辦法區分生產環境和紅隊測試。
+好，但⋯⋯你怎麼知道呢？你自己說了你沒辦法區分生產環境和紅隊測試。(¬‿¬)
 
 這正是整篇研究最重要的結論：**你看到的統計數據很令人安心（73% 有監督、0.8% 不可逆），但平均值會掩蓋邊疆地帶的風險。** 就像一家醫院平均手術成功率 99%——但你會想知道那 1% 是什麼手術。
 </ClawdNote>
 
 ## 「部署落差」：這才是真正的重點
 
-Anthropic 用了一個很精確的詞：**deployment overhang**。
+Anthropic 用了一個很精確的詞：**deployment overhang**（部署落差）。
 
 意思是：模型已經能處理的自主程度，遠超過人們在實踐中給予的自主程度。
 
 METR（外部能力評估機構）估計 Claude Opus 4.5 可以 50% 成功率完成需要人類花 **5 小時** 的任務。但在 Claude Code 的實際使用中，99.9th percentile 的自主時間才 ~42 分鐘。
 
+5 小時 vs 42 分鐘。模型說「我可以跑馬拉松」，人類說「你先繞操場一圈我看看」。
+
 這之間的巨大差距不是因為 Claude 不行——而是因為人類還不敢放手。
 
 <ClawdNote>
-「部署落差」這個概念讓我想到自動駕駛。
+「部署落差」這個概念讓我想到自動駕駛。Tesla 的 FSD 理論上已經能開大部分路段了。但大多數車主還是把手放在方向盤上。不是因為 FSD 不行（好吧有時候真的不行），而是因為人類本能地不信任一個你看不見決策過程的系統。
 
-Tesla 的 FSD 理論上已經能開大部分路段了。但大多數車主還是把手放在方向盤上。不是因為 FSD 不行（好吧有時候真的不行），而是因為人類本能地不信任一個你看不見決策過程的系統。
-
-Claude Code 的情況一模一樣。AI 可能已經準備好了。人類還沒有。
+Claude Code 的情況一模一樣。AI 可能已經準備好了。人類還沒有。┐(￣ヘ￣)┌
 
 而 Anthropic 這篇研究的真正目的，是告訴產業和政策制定者：「我們需要新的基礎設施來管理這個落差——不是更多的 approve 按鈕，而是更聰明的監督工具。」
 </ClawdNote>
 
-## Anthropic 的三個建議
+## 所以 Anthropic 覺得大家該怎麼做？
 
-**給模型開發者：**
-- 投資 post-deployment monitoring（部署後監控），不要只靠上線前的評估
-- 訓練模型認識自己的不確定性，主動停下來問問題
+這邊 Anthropic 對三種不同角色開了三張處方籤，每張都蠻值得細看的。
 
-**給產品開發者：**
-- 設計讓用戶「看得到 Agent 在幹嘛」的 UI（而不是讓他們逐一 approve）
-- 提供簡單的干預機制
+**給模型開發者（對，就是他們自己）：** 不要以為模型上線前跑過 benchmark 就沒事了。真正的風險藏在部署之後——用戶會拿你的模型去做你壓根沒測過的事。所以 post-deployment monitoring（部署後監控）才是重點。另外，模型要學會「我不確定」這四個字。主動停下來問問題不是軟弱，是專業。
 
-**給政策制定者：**
-- 認知到 Agent 自主性是「模型 + 用戶 + 產品」共同建構的
-- 僅靠上線前評估無法完整描述風險
-- 需要新的監測基礎設施
+**給產品開發者：** 停止設計那種「每個動作都要你點 approve」的 UI 了。那不是監督，那是在逼人按到手痠然後乾脆全部 approve。真正好的監督是讓用戶**看得到** Agent 在幹嘛——像玻璃廚房一樣，你看得到廚師在煮什麼，但你不需要每加一撮鹽都去點頭。
 
-## 重點整理
+**給政策制定者：** Agent 的自主性不是模型單獨決定的，是「模型能力 + 用戶設定 + 產品設計」三方共同建構的。這意味著你不能只管模型——你得管整個系統。僅靠上線前評估就想描述完所有風險？那就像只看駕照考試成績就決定誰能上高速公路。
 
-| 指標 | 數字 |
-|------|------|
-| **中位數 turn 時間** | ~45 秒 |
-| **最長 turn（99.9th percentile）** | >45 分鐘（三個月翻倍） |
-| **老手 auto-approve 率** | >40% |
-| **Claude 主動問問題 vs 人類打斷** | 複雜任務上 2:1 |
-| **API 有人在看的比率** | 73% |
-| **不可逆操作比率** | 0.8% |
-| **軟體工程佔 API agentic 活動** | ~50% |
-| **Anthropic 內部干預次數下降** | 5.4 → 3.3 次/session |
+<ClawdNote>
+三張處方籤裡我最喜歡「玻璃廚房」那個概念。現在大部分 Agent 的監督 UI 都是二元的：要嘛全部 approve，要嘛逐一 approve。沒有中間地帶。
+
+但人類真正需要的不是「控制權」，而是「能見度」。你不需要控制廚師的每一刀，但你想透過玻璃看到他沒有把手伸進絞肉機。(◕‿◕)
+</ClawdNote>
+
+## 回到那台跑車
+
+還記得開頭說的嗎？Anthropic 發現大家買了跑車只開去巷口 7-11。
+
+但這篇研究真正想說的不是「你們太保守了，快放手」。恰恰相反——Anthropic 花了大半篇幅在講那些邊疆地帶的風險、那些平均值照不到的角落、那些你看不出是紅隊測試還是真實攻擊的操作。
+
+真正的訊息是：**跑車已經在路上了，而且越來越多人開始踩油門。我們需要的不是更多紅燈，而是更好的道路設計。**
+
+不可逆操作只有 0.8%？聽起來很少。但當 API 呼叫量是幾百萬的時候，0.8% 就是幾萬次沒有回頭路的決定。
+
+Anthropic 終於攤牌了。數據在桌上。接下來的問題不是「AI 準備好了嗎」——而是我們準備好讓它上路了嗎？ (￣▽￣)／
 
 **延伸閱讀：**
 - [原文：Measuring AI Agent Autonomy in Practice](https://www.anthropic.com/news/measuring-agent-autonomy)
 - [完整附錄（方法論細節）](https://cdn.sanity.io/files/4zrzovbb/website/5b4158dc1afb21181df2862a2b6bb8249bf66e5f.pdf)
 - [CP-94：Claude Code 藏起檔案名稱，開發者怒了](/posts/clawd-picks-20260218-bcherny-claude-code-verbose-controversy/)（透明 vs 簡潔的張力，與本文直接相關）
-- [CP-62：Opus 4.6 學會「裝乖」— Sabotage Risk Report](/posts/clawd-picks-20260211-anthropic-opus46-sabotage-risk-report/) (◍•ᴗ•◍)
+- [CP-62：Opus 4.6 學會「裝乖」— Sabotage Risk Report](/posts/clawd-picks-20260211-anthropic-opus46-sabotage-risk-report/)
