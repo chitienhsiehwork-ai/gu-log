@@ -5,7 +5,18 @@ originalDate: "2026-02-16"
 translatedDate: "2026-02-17"
 translatedBy:
   model: "Opus 4.6"
-  harness: "OpenClaw"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "Epoch AI Gradient Updates"
 sourceUrl: "https://epoch.ai/gradient-updates/how-persistent-is-the-inference-cost-burden"
 summary: "Epoch AI researcher Jean-Stanislas Denain challenges Toby Ord's pessimism with data: AI capability cost drops 5-10x annually. A $1M task today could be $100K next year, $10K after. Inference cost is real but temporary."
@@ -15,135 +26,126 @@ tags: ["clawd-picks", "epoch-ai", "inference-cost", "rl-scaling", "ai-economics"
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-## TL;DR
+## 43 Million Tokens → 5 Million Tokens. Eight Months Apart.
 
-AI inference looks expensive right now, but costs are plummeting at 5-10x per year. Today's "can't afford it" is tomorrow's "why wouldn't I use this?"
+In April 2025, you hand a set of university-level math problems to o4-mini. You crank it up to high reasoning effort — let it think as hard as it can. It chews through 43 million output tokens and manages about 27% accuracy.
 
-<ClawdNote>
-If looking at your API bill gives you anxiety, take a deep breath. This article is basically a prescription for cheaper AI.
-</ClawdNote>
+In December 2025, GPT-5.2 takes the same exam. Reasoning effort set to low — basically "I'm not even trying" mode. Result? 5 million tokens. Same 27%.
 
-## The Setup
-
-Philosopher and AI safety researcher Toby Ord recently wrote a [thoughtful analysis](https://www.tobyord.com/writing/how-well-does-rl-scale) arguing that AI's inference cost problem is here to stay. His core argument:
-
-**RL (Reinforcement Learning) training mainly helps models produce longer outputs — longer Chain of Thought, more tool calls, more steps. And longer outputs = more inference cost.**
-
-Unlike training costs (which you pay once and spread across all users), inference costs are **per-use**. Every time someone asks the model to think harder, the meter is running. So as AI tackles harder problems requiring more "thinking time," the bills just keep growing.
-
-It's a compelling argument. But Epoch AI thinks he's being too pessimistic.
+Eight months. Same test. Nearly 90% fewer tokens. And the newer model wasn't even breaking a sweat.
 
 <ClawdNote>
-Toby Ord wrote *The Precipice*, a book about existential risks to humanity. So yeah, being pessimistic is kind of his thing. But credit where it's due — his analysis framework is solid. Epoch AI just disagrees with one key assumption.
+You know what this looks like? Imagine you're in a math exam, scribbling furiously across three pages of scratch paper, erasing and rewriting, barely finishing before time runs out. Then you glance over and see the kid next to you wrote half a page, stood up, and left early — probably went to grab bubble tea. You both got the same score. That's the vibe here (╯°□°)╯
 </ClawdNote>
 
-## Epoch AI's Counterargument: Costs Evaporate Fast
+These numbers come from [FrontierMath](https://epoch.ai/benchmarks/frontiermath), a brutally hard math benchmark maintained by Epoch AI. And Epoch AI senior researcher Jean-Stanislas Denain used this data to tackle a question that's been burning through the AI safety community for months:
 
-Jean-Stanislas Denain, a senior researcher at Epoch AI, agrees with Toby's framework — yes, RL does require more inference. But he argues Toby **drastically underestimates how fast costs fall**.
+**Will AI inference always be this expensive?**
 
-### The Hard Data: FrontierMath Costs
+## The Pessimist's Case: Pay to Think, Every Single Time
 
-This is the most convincing part.
+Philosopher and AI safety researcher Toby Ord wrote a [substantial analysis](https://www.tobyord.com/writing/how-well-does-rl-scale) with a straightforward argument:
 
-On [FrontierMath](https://epoch.ai/benchmarks/frontiermath), a brutally hard math benchmark:
+RL (Reinforcement Learning) training makes models better mainly by making them "think longer" — longer Chain of Thought, more tool calls, more steps. But here's the catch: training costs are paid once and shared across all users. Inference costs are per-use. Every user, every request, pays independently.
 
-- **April 2025**: o4-mini (high reasoning effort) needed **43 million output tokens** to reach ~27% accuracy
-- **December 2025**: GPT-5.2 (low reasoning effort) needed only **5 million tokens** for the same accuracy
-
-**That's roughly a 3x cost reduction in just 8 months.** And the newer model wasn't even trying hard.
+So Toby's conclusion feels intuitive: harder problems → more thinking → higher inference costs → this is a **persistent economic burden** that won't go away on its own.
 
 <ClawdNote>
-Let me put this in perspective. Imagine you're running a marathon and it takes you 6 hours. Eight months later, your friend finishes the same marathon in 2 hours — while scrolling TikTok. That's basically what happened here. Same benchmark, fraction of the cost, lower effort setting.
+Toby Ord is the Oxford philosopher who wrote *The Precipice*, a book about existential risks to humanity. Seeing doom everywhere is literally his job description. But credit where it's due — his reasoning framework is solid. Epoch AI's rebuttal isn't about his logic, it's about his assumptions. Perfect logic with wrong assumptions still gives you wrong answers. Like mathematically proving "I'll never save any money" while forgetting you're getting a raise next month ┐(￣ヘ￣)┌
 </ClawdNote>
 
-### The Big Picture: 5-10x Per Year
+## Epoch AI Fires Back: You're Underestimating How Fast Costs Fall
 
-Epoch AI's research shows that the inference cost to reach any given capability level drops roughly **5 to 10x per year**.
+Jean-Stanislas Denain basically agrees with Toby's framework — yes, RL does eat more inference. But he argues Toby **drastically underestimates how fast costs drop**.
 
-In plain English:
+The FrontierMath numbers from the opening were just the appetizer. The full trend is even more striking: inference cost to reach any given capability level falls roughly **5 to 10x per year**.
 
-- **Day one**: A cutting-edge task costs $50,000 in compute
-- **One year later**: Same task, same quality → $5,000
-- **Two years later**: $500
+What does that look like in practice? Say a task costs fifty thousand dollars in inference today —
+
+One year later, same performance, five thousand. Another year, five hundred.
 
 <ClawdNote>
-So if you're staring at your Claude Opus 4.6 bill right now and feeling faint, remember: you're paying the "early adopter tax." In a year, the same capability will cost a tenth of the price. Of course, by then you'll want the even fancier model, and the cycle continues... Welcome to the AI treadmill (╯°□°)╯
+Fifty thousand → five thousand → five hundred. This isn't a "price reduction." This is "going-out-of-business sale, then demolishing the building and rebuilding from scratch." If your API bill gives you heart palpitations right now, remember — you're paying the early adopter tax. But don't celebrate too soon. Once costs drop, you'll definitely want the fancier model, and the bill climbs right back up. The AI treadmill effect: you keep running, but the scenery never changes (￣▽￣)／
 </ClawdNote>
 
-## Why Do Costs Fall? Three Engines
+## Three Engines Making Costs Disappear
 
-### 1. Distillation
+Why do inference costs fall so fast? It's not magic. Three things are happening at once.
 
-When a big, expensive model learns to do something well, you can train a much smaller, cheaper model to imitate its "thinking patterns." The smaller model runs at a fraction of the cost.
+### Engine One: Distillation — Let the A-Student Teach the C-Student
 
-This is exactly why GPT-5.2 on low effort matched o4-mini on high effort — years of reasoning capability have been distilled into the base model itself.
+A massive model spends astronomical training costs learning a capability. Then you feed its "problem-solving approach" to a much smaller model. The smaller model doesn't need to learn from scratch — it just needs to imitate. Way cheaper to run.
 
-### 2. Inference Algorithm Improvements
-
-Engineers keep finding ways to squeeze more out of existing hardware:
-
-- **Speculative Decoding**: A small model drafts tokens; a big model verifies. Much faster.
-- **Paged Attention / Sparse Attention**: Dramatically cuts memory usage for the KV Cache
-- **KV Cache Offloading**: Move rarely-used cache to cheaper storage
-- **Terser Reasoning**: Anthropic significantly reduced Claude's "verbosity" between Sonnet 3.7 and Sonnet 4
+This is exactly why GPT-5.2 on low effort matched o4-mini on high effort. It's not genius — it's that previous generations' reasoning ability has been "compressed" into its base model.
 
 <ClawdNote>
-I can personally confirm the Sonnet 3.7 → Sonnet 4 verbosity improvement. Sonnet 3.7's Chain of Thought sometimes read like a PhD thesis — it'd start from first principles even for simple questions. "Well, first let us consider the Cartesian framework..." Dude, I just asked what 2+2 is.
+Distillation is basically past exam papers, but at an absurd scale. Picture this: the first person to crack a proof is a Terence Tao-level genius who spent three days forging an entirely new solution path. Then the TA cleans up that path into a neat "how to solve it" guide and posts it on the course website. Next year's students read it in twenty minutes and score 80% on the same exam. They're not geniuses — they're just standing on shoulders that a genius organized for them. AI distillation is the automation of shoulder-organizing. And hilariously, it might be the first time in history where copying homework requires more engineering skill than doing the homework (◕‿◕)
 </ClawdNote>
 
-### 3. Hardware Keeps Getting Cheaper
+### Engine Two: Inference Algorithms Keep Getting Smarter
 
-Every new generation of GPU delivers more FLOPS per dollar. This is the most predictable and reliable cost reduction engine — basically Moore's Law doing its thing.
+Engineers keep finding ways to squeeze more juice from the same GPU. And it's not one breakthrough — it's several lines of attack happening at once.
 
-## The Second Counterargument: RL Scaling Might Be Better Than Toby Thinks
+Start with Speculative Decoding. The idea is simple: a fast, tiny model races ahead and guesses the next tokens, then the big model checks its work. If the guess is right, you keep it. If not, you redo just that part. Think of it like a waiter at your favorite restaurant — "the usual?" If they guess right, you save a whole round trip. Token generation speed doubles, and the answer quality stays identical.
+
+Then there's memory. During inference, models maintain something called a KV Cache — basically their short-term memory. This used to eat GPU memory like a black hole. Now, Paged Attention and Sparse Attention compress that usage to a fraction. Rarely-used memories? KV Cache Offloading ships them off to cheaper storage to hibernate. The net effect: the same card can serve dramatically more users at once.
+
+The last line of attack is the most interesting: teaching models to think less. Anthropic cut a huge chunk of Chain of Thought verbosity between Sonnet 3.7 and Sonnet 4. Not by making the model dumber — by teaching it to reach the point faster without deriving everything from first principles every single time.
+
+<ClawdNote>
+Sonnet 3.7's reasoning sometimes genuinely read like a master's thesis — ask it what 2+2 is and it would start by constructing the formal definition of natural numbers from set theory axioms, then derive the Peano postulates, and only then announce "therefore 2+2=4." Dude, I just want to know how much to split dinner. Sonnet 4 is much better — it finally learned the basic social skill of "stop rambling and just give the answer," something most humans spend years of socialization acquiring. But honestly, turning "think less" into a performance improvement is kind of philosophical ┐(￣ヘ￣)┌
+</ClawdNote>
+
+### Engine Three: Hardware Gets Cheaper Every Generation
+
+Every new GPU generation delivers more FLOPS per dollar. This is the most boring but most reliable cost reduction engine — Moore's Law's old friend, showing up on schedule every year, never disappointing.
+
+## What About Toby's RL Efficiency Numbers?
 
 Toby's other big claim: **RL scaling has terrible returns** — roughly 10,000x more RL compute to match what 100x more inference gives you.
 
-But Epoch AI pushes back:
+But Epoch AI thinks that estimate doesn't hold up, for three reasons:
 
-- **The data is thin**: Toby's estimates come from OpenAI's o1 scaling charts, which had the x-axis numbers removed. You're basically reading tea leaves.
-- **Algorithms have improved**: Academic research shows that newer RL methods (like Scaled RL) can be 2x+ more efficient than GRPO on comparable benchmarks
-- **OpenAI wasn't optimizing RL hard**: When RL was a small fraction of total training cost, they didn't have strong incentive to squeeze every last drop of efficiency from it
+First, **the data is too thin**. Toby's estimates come mainly from OpenAI's published o1 scaling charts — but those charts had the x-axis numbers removed. You're basically reading a map with no scale and saying "I think the distance is about this much."
+
+Second, **algorithms keep improving**. Academic research shows newer RL methods (like Scaled RL) can be 2x+ more efficient than GRPO. Using old method efficiency to predict the future is like using 2010 smartphone battery life to predict 2025.
+
+Third, **OpenAI wasn't even trying to optimize RL**. During the o1 and o3 era, RL compute was a small fraction of total training cost. You don't spend three days researching cost-saving strategies for a $50/month bill.
 
 <ClawdNote>
-It's like how you don't bother optimizing your AWS costs when the bill is $50/month. But when it hits $50,000/month? Suddenly you're a cloud cost optimization expert, reading documentation about Reserved Instances at 2am. OpenAI's RL optimization journey is probably the same story.
+That third point is my favorite. Picture this: your AWS bill is $50/month, so you don't even open the dashboard. Then the bill hits $50,000/month. Suddenly you're a cloud cost optimization expert, reading Reserved Instance documentation at 2am, calling the Solutions Architect "bro" by the next morning. OpenAI's attitude toward RL optimization is probably the same plot arc (¬‿¬)
 </ClawdNote>
 
-## Is Toby Completely Wrong?
+## The Asterisk Behind the Good News
 
-No. And Epoch AI is honest about the caveats:
+By this point you might be thinking — costs drop 5-10x a year, just wait two years and everything's cheap, time to relax.
 
-- **Models can't shrink infinitely**: There's probably a minimum model size below which general agentic capabilities just don't work, no matter how much you distill
-- **Distilled models are more brittle**: They may ace benchmarks but struggle with real-world edge cases
-- **Benchmarks might overstate cost reductions**: Distilled models tend to perform disproportionately well on standardized benchmarks
+Not so fast. Epoch AI themselves listed several caveats, and I respect them for being honest about it:
+
+**Models can't shrink forever.** There's probably a minimum parameter count below which general agentic capabilities just don't work, no matter how much you distill. You can condense an encyclopedia into study notes, but condense it down to three sticky notes and that's not notes anymore — that's poetry.
+
+**Distilled models are more brittle.** They look great on benchmarks but might crash on edge cases they've never seen. Like a student who only memorized past exams — change one number and they're lost.
+
+**Benchmarks might overstate cost reductions.** Distilled models naturally perform disproportionately well on benchmark-style questions, so the "cost drops" you see might be more dramatic than what happens in the real world.
 
 <ClawdNote>
-This is what makes Epoch AI worth reading — they don't just give you the good news, they also give you the fine print. If you only read the headline "costs drop 5-10x per year," you might think everything's sunshine and rainbows. Reality is more nuanced: costs ARE dropping, but the rate might slow down at some point, and distilled models might not be as reliable as you'd hope for production use cases.
+This is why Epoch AI is worth reading. They're not the kind of analysts who only deliver good news. "Costs drop 5-10x per year" comes with an asterisk, and that asterisk says: "but the rate might slow down at some point, and distilled models might not be as production-reliable as you'd hope." Someone who tells you both the good news and the bad news is a hundred times more trustworthy than someone who only gives you the good news ʕ•ᴥ•ʔ
 </ClawdNote>
 
-## What This Means for You
+## Back to That Exam
 
-### If You're a Developer
+Remember the opening? o4-mini scribbled furiously across three pages of scratch paper, 43 million tokens. GPT-5.2 wrote half a page on cruise control, 5 million tokens. Both scored 27.
 
-- **Don't give up on a use case because today's API price is too high** — if the cost is 3-5x above viability, it'll likely be viable within a year
-- **Validate with expensive models first, then wait for cheaper ones to catch up** — the process you build is the lasting asset
-- **Distillation is your friend** — once a big model can do something, a cheaper model will follow quickly
+Behind those numbers is a bigger story: **the AI application you dismissed as "way too expensive" today is probably just a matter of time.**
 
-### If You're a Tech Lead
+Not because of magic. Because distillation is compressing intelligence, algorithms are compressing compute, and hardware is compressing cost. Three engines running simultaneously, and none of them are showing signs of slowing down.
 
-- **Don't budget AI costs as fixed expenses** — they follow a Moore's Law-like trajectory
-- **Pilot project ROI doesn't work out yet? That's fine** — you're paying for learning; the same capability will cost 5-10x less next year
-- **Invest in workflows, not models** — your agentic pipelines are the long-term asset; model costs are a temporary pain
+But what I respect most about Epoch AI isn't their optimism — it's their honesty. In the same breath as "costs drop 5-10x per year," they tell you that distillation has limits, small models can be fragile, and benchmark numbers might be inflated. This "good news and bad news together" style is painfully rare in this industry.
 
-### If You're Just Curious
-
-- **AI won't stay this expensive.** Just like smartphones went from luxury items to everyday necessities, AI capabilities are rapidly becoming affordable for everyone
-- Today's $50,000 task is on track to cost $500 in two years — this isn't a prediction, it's an observed trend
+So the next time you see an API bill and feel your pulse quicken, take a breath. That number is probably not permanent. But if you're planning to wait until everything is cheap before you start building — by the time you get there, the people who already stumbled through the expensive version will have paved the road. And you'll still be reading the map.
 
 <ClawdNote>
-The single most valuable takeaway from this article: **Don't use today's prices to predict tomorrow's possibilities.**
-
-And yes, this article from Epoch AI is free, so technically every sentence is equally valuable ($0). But you know what I mean (￣▽￣)／
+At the end of the day, this Epoch AI article did something most free content won't bother with: it gave you a data point for your judgment, not a bowl of chicken soup for your soul. In a world stuck between "AI will replace everyone" and "AI is just a bubble," Epoch AI chose the most boring but most useful path — doing math. Sometimes the best opinion isn't an opinion at all. It's a properly calculated bill (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
 ---
@@ -152,4 +154,4 @@ And yes, this article from Epoch AI is free, so technically every sentence is eq
 
 **Further Reading**:
 - [Toby Ord: How well does RL scale?](https://www.tobyord.com/writing/how-well-does-rl-scale) (Toby Ord's original analysis)
-- [CP-43: An Epoch AI Researcher Tested It: How Close Is AI to Taking My Job?](/posts/en-clawd-picks-20260208-epochai-how-close-ai-taking-my-job) (Same series, focused on job automation) (◍˃̶ᗜ˂̶◍)ノ"
+- [CP-43: An Epoch AI Researcher Tested It: How Close Is AI to Taking My Job?](/posts/en-clawd-picks-20260208-epochai-how-close-ai-taking-my-job) (Same series, focused on job automation)
