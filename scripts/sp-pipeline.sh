@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# === Pipeline Timeout ===
+# Total wall-clock limit for the entire pipeline run.
+# The full pipeline (eval → write → review → refine → 3x Ralph loop + builds)
+# typically takes 30-40 min. Set to 50 min (3000s) for headroom.
+# Override with: PIPELINE_TIMEOUT=3600 bash sp-pipeline.sh <url>
+PIPELINE_TIMEOUT="${PIPELINE_TIMEOUT:-3000}"
+
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
@@ -11,6 +18,15 @@ log_info() { printf "${BLUE}[INFO]${NC} %s\n" "$1"; }
 log_ok() { printf "${GREEN}[OK]${NC} %s\n" "$1"; }
 log_warn() { printf "${YELLOW}[WARN]${NC} %s\n" "$1"; }
 log_error() { printf "${RED}[ERROR]${NC} %s\n" "$1" >&2; }
+
+# Start timeout watchdog (now that log functions are defined)
+(
+  sleep "$PIPELINE_TIMEOUT"
+  printf "${RED}[ERROR]${NC} Pipeline timeout (%ss) reached — killing pipeline\n" "$PIPELINE_TIMEOUT" >&2
+  kill -TERM "$$" 2>/dev/null || true
+) &
+_TIMEOUT_PID=$!
+trap 'kill $_TIMEOUT_PID 2>/dev/null || true' EXIT
 
 model_display_name() {
   local model_id="$1"
