@@ -28,6 +28,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
   <!-- Popup is created dynamically by JS -->
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js" is:inline></script>
 <script is:inline>
   (function () {
     'use strict';
@@ -365,7 +366,11 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
 
       const body = document.createElement('div');
       body.className = 'ai-popup-result-body';
-      body.textContent = response;
+      if (typeof window.marked !== 'undefined') {
+        body.innerHTML = window.marked.parse(response);
+      } else {
+        body.textContent = response;
+      }
 
       content.appendChild(closeBtn);
       content.appendChild(body);
@@ -1145,8 +1150,41 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
     font-size: 0.9rem;
     line-height: 1.6;
     color: var(--color-text, #a9b1d6);
-    white-space: pre-wrap;
     word-break: break-word;
+  }
+
+  .ai-popup-result-body p {
+    margin: 0 0 0.75rem 0;
+  }
+
+  .ai-popup-result-body p:last-child {
+    margin-bottom: 0;
+  }
+
+  .ai-popup-result-body strong {
+    font-weight: 600;
+    color: var(--color-accent, #7aa2f7);
+  }
+
+  .ai-popup-result-body code {
+    font-family: var(--font-mono, monospace);
+    background: rgba(122, 162, 247, 0.1);
+    padding: 0.15em 0.3em;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+
+  .ai-popup-result-body pre code {
+    display: block;
+    padding: 0.5rem;
+    overflow-x: auto;
+    background: var(--color-bg, #1a1b26);
+  }
+
+  .ai-popup-result-body ul,
+  .ai-popup-result-body ol {
+    margin: 0 0 0.75rem 1.5rem;
+    padding: 0;
   }
 
   .ai-popup-result--error .ai-popup-error-text {
