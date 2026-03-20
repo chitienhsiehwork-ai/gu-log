@@ -1,0 +1,175 @@
+---
+ticketId: 'SP-66'
+title: 'Self-Healing PRs — Devin Autofix Lets Humans Just Make the Final Call'
+originalDate: '2026-02-16'
+translatedDate: '2026-02-16'
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: '@dabit3 (Nader Dabit) on X + Cognition Blog'
+sourceUrl: 'https://x.com/dabit3/status/2023206853715325068'
+summary: 'Cognition ships Devin Autofix: review bot comments auto-trigger fixes → CI reruns → loop until clean. Humans only step in for architecture calls. Key insight: a single agent is a tool, but agent + reviewer loop is a system — and systems compound.'
+lang: 'en'
+tags: ['devin', 'code-review', 'ci-cd', 'agent-loop', 'self-healing', 'cognition']
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+*Source: [@dabit3 (Nader Dabit) on X](https://x.com/dabit3/status/2023206853715325068) + [Cognition Blog](https://cognition.ai)*
+
+---
+
+Have you ever been stuck in this loop?
+
+Your AI agent writes a PR. You submit it for review. The bot catches three lint errors and a security warning. So now you copy-paste the bot's feedback, feed it back to your coding agent, wait for the fix, push again, wait for CI, read the new comments... rinse and repeat.
+
+**You're not doing code review. You're a messenger.**
+
+The bot talks, you translate for the agent. The agent fixes code, you push it back for the bot. Three or four rounds later, your afternoon is gone.
+
+Nader Dabit (Cognition's DevRel) recently shared something that made me think the messenger era is ending: **Devin Autofix**.
+
+<ClawdNote>Humans acting as messengers between bots and agents. That's basically being a "meat webhook" — your job description is JSON.parse() plus JSON.stringify(), except the middleware layer is made of flesh. Finally someone connected the wire (╯°□°)╯</ClawdNote>
+
+---
+
+## What the Autofix Loop Looks Like
+
+The concept is pretty intuitive. Draw it out and it's just a loop:
+
+1. **Agent writes code** → opens a PR
+2. **Review bot scans** → leaves comments (lint errors, security issues, style violations...)
+3. **Devin reads the comments** → understands the problem, pushes a fix
+4. **CI reruns** → if there are still issues, back to step 2
+5. **Loop until CI is clean** → human steps in for the final review
+
+That's it. No human in the middle passing messages. Bot and agent talk directly. Humans only show up at the end.
+
+The key part: this doesn't just work with Devin's own review bot — it works with any GitHub PR bot. SonarQube, Codacy, CodeClimate, Devin Review, whatever you want. If a bot leaves a comment, Devin reads it and fixes it.
+
+<ClawdNote>Supporting any GitHub PR bot tells you Cognition understands something important: your review toolchain will always change slower than your coding agent. Today it's SonarQube, tomorrow it's Semgrep, next week maybe just ESLint is enough. If autofix only worked with their own bot, that would be like buying a car that only takes one brand of gas — awkward. The smart move is "fight amongst yourselves, I'll listen to everyone" ┐(￣ヘ￣)┌</ClawdNote>
+
+---
+
+## Bot Infinite Loop? They Thought of That
+
+You're probably thinking: wait, what if two bots get stuck spamming comments at each other forever?
+
+Picture this. Bot A says "fix this line," the agent fixes it, but that triggers Bot B's rule, Bot B leaves a new comment, the agent fixes that, which triggers Bot A again... congratulations, you just invented a perpetual motion machine ╰(°▽°)╯
+
+Cognition's solution is clever — they used the exact same logic as a firewall: **deny all by default, allowlist to opt in**. Devin starts by ignoring every bot. You have to manually tell it "these specific bots are trustworthy." It's like a new employee's first day, and the manager says: "A lot of people in this office will try to give you tasks. Only listen to me and the PM."
+
+The one exception is lint failures — no matter how your allowlist is configured, lint errors always get fixed. Why? Because lint errors are deterministic. You're missing a semicolon, you add it, done. Nobody's going to come back and say "actually, I think that semicolon shouldn't be there."
+
+<ClawdNote>The "ignore all bots by default, allowlist to opt in" design follows the same philosophy as your Wi-Fi router's MAC address filtering — deny everyone, only let trusted devices in. Meanwhile, our pre-commit hook at gu-log is still at the "scream at you and refuse to commit" stage. A long way from auto-fix. Call it... Phase 0.5 ╮(╯_╰)╭</ClawdNote>
+
+---
+
+## Systems vs. Tools: The Real Insight
+
+There's one line from Cognition's blog post that I think deserves to be framed on a wall:
+
+> **Systems compound, tools don't.**
+
+What does that mean? Let me try an analogy.
+
+You go to a night market food stall. One person fries the chicken, one person bags it, one person takes your money. Three "tools" — each doing their own job, output is linear.
+
+But if you connect them — fried chicken slides directly to the bagging station, bagged orders get pushed to the register, and sales data feeds back to the fryer to decide what to cook next — now you have a "system." Systems compound: every cycle optimizes, and the steps reinforce each other.
+
+Back to code review. A single coding agent is a tool — you give it instructions, it produces code, done. But a coding agent + review bot + CI + autofix loop? That's a system. The more code the agent writes, the more patterns the reviewer accumulates, the more cases autofix has handled, the smoother the whole loop gets.
+
+<ClawdNote>"Systems compound, tools don't." — I think this line should be tattooed on every Tech Lead's forearm. Most teams don't lack tools. They lack connections between tools. You have Copilot, you have SonarQube, you have CI, but they each live in their own little world, glued together by humans doing copy-paste. That's not a system. That's a Frankenstein car (๑•̀ㅂ•́)و</ClawdNote>
+
+---
+
+## What's Left for Humans
+
+If bots catch lint errors, agents auto-fix them, and CI auto-verifies... what do humans even do?
+
+Cognition's answer is clear. Human review narrows down to three things:
+
+1. **Architecture** — Is this abstraction reasonable? Should we split this service?
+2. **Product direction** — Should this change exist at all? Does it align with our product direction?
+3. **Domain knowledge edge cases** — Are there business logic edge cases that only humans know about?
+
+Notice what these three things have in common: **they all require context, and it's context that lives outside the codebase.**
+
+The context for a lint error lives in the code — agents can see it. But "we got a customer complaint last time we used this pattern"? That context doesn't exist in any source file. That's the human moat.
+
+Think about it this way: the bottleneck of code review just moved from "finding bugs" to "judging architecture."
+
+Tech Leads used to spend 70% of their review time catching formatting issues, inconsistent naming, and missing error handling. Now bots and agents handle all of that. The remaining 30% is the part that actually needs a human brain — and that 30% is the most valuable part.
+
+---
+
+## Token Costs Are Exploding, but There's No Going Back
+
+Cognition admitted something very real in their blog post: internal token spending has exploded.
+
+Makes sense when you think about it. A PR used to require one agent run. Now it's agent writes code → reviewer scans → agent fixes → reviewer scans again → agent fixes again... every round burns tokens.
+
+But they said something interesting: **there's no going back.**
+
+PR quality improved dramatically, review time dropped dramatically, humans can focus on high-value decisions. Once you've tasted this workflow, going back to manual message-passing feels like going back to writing code on paper.
+
+It's a real trade-off: spend more money (tokens) to buy more time (human review hours) and better quality (auto-fixed PRs).
+
+<ClawdNote>Token spending exploding but no going back — this is the exact same story as switching from manual deployments to CI/CD. At first everyone says "CI servers are expensive," but after three months, ask someone to SSH into production and run a deploy script manually? They'll quit on the spot (￣▽￣)／</ClawdNote>
+
+---
+
+## The Holes That Still Need Filling
+
+Of course, auto-fixing lint errors and auto-fixing an entire app are two very different things. Cognition didn't pretend everything is perfect — they were honest about the gaps still in the loop.
+
+The most obvious one: after the agent fixes code, does anyone actually spin up the app and look at it? Nope. CI runs unit tests and linters, not "open a browser and click around to see if anything's broken." We all know some bugs can only be caught by human eyes — buttons floating off-screen, loading spinners spinning until the heat death of the universe, the kind of bug that makes a PM screenshot it and post it to Slack with three exclamation marks.
+
+Then there's the unit test problem. The agent fixed a bug, but did it write a test to make sure that bug stays dead? Most of the time, no. It's like fixing a leaky faucet but not putting a note on it to check later — sooner or later, it'll leak again.
+
+<ClawdNote>Cognition admitting these gaps actually makes me trust them more. Every time I see an announcement saying "our AI solves all problems," my first thought is "where's your QA?" Companies that can tell you what they can't do yet are usually the ones actually doing the work, not just making slides (◕‿◕)</ClawdNote>
+
+Imagine the ultimate version though: agent writes code → bot reviews → agent fixes → CI runs → E2E tests run → agent reads test results and fixes again → all green → human approves. In the entire flow, the human only needs to press one button: **Approve** or **Reject**.
+
+---
+
+## OK, So What Do I Do Monday Morning
+
+Say you're a Tech Lead. You read all this and think "yeah, makes sense." But you go back to the office and there are still twenty-something PRs waiting for review. Now what?
+
+Don't rush to adopt some new tool. First, look down at what you already have.
+
+You probably already have a coding agent — GitHub Copilot, Cursor, Devin, pick one. You probably have review bots too — SonarQube, CodeClimate, whatever. Both sides are there. But the problem is, there's a you-shaped gap between them. The bot on the left is shouting "there's a problem here," the agent on the right is waiting for instructions, and you're the intern running back and forth between them.
+
+What's missing is just one wire. The wire that automatically feeds bot comments into the agent.
+
+Connect that wire, and you go from "messenger who has to show up every round" to "referee who only appears for the final whistle." As for which feedback should auto-fix and which should go to humans — use the allowlist logic. Prettier missing a semicolon? Auto-fix, don't bother you. Security scanner throwing warnings? That needs your eyes. Draw that line clearly, and you'll know exactly what's worth spending tokens on versus what's worth spending brain cells on.
+
+<ClawdNote>Cognition also snuck in an absurdly easy onboarding trick: just replace github.com with devinreview.com in your PR URL and you get Devin Review. Remember when connecting a review bot meant setting up webhooks, installing GitHub Apps, and configuring OAuth tokens until you questioned your life choices? Now you just change the URL? This DX is basically cheating (⌐■_■)</ClawdNote>
+
+And honestly, don't overthink the token cost thing. One PR costs an extra $0.50 in tokens but saves a Tech Lead 30 minutes of review time? Do the math on a Tech Lead's hourly rate. Actually, don't even bother doing the math — the answer is obvious.
+
+---
+
+## Put the Messenger Hat Down
+
+Remember the scene from the beginning — you sitting at your computer, copy-pasting bot comments, feeding them to your agent, waiting for fixes, pushing, waiting for CI, reading another round of comments. That workflow is really not so different from a Tech Lead twenty years ago manually SSH-ing into a production server to run deploy scripts. Both are humans doing work that machines should handle on their own.
+
+The only difference is that twenty years ago, the solution was called a CI/CD pipeline. Now it's called an autofix loop. The essence is the same: **pull the human out of the loop and put them outside it, making judgments instead.**
+
+Sure, agents can't judge architecture yet. E2E testing and auto-writing unit tests are still work in progress. But the direction is clear: the human's role keeps moving upward — from catching semicolon errors, to judging design patterns, to eventually calling the shots on product direction.
+
+So if you're still acting as that messenger, it's time to connect the wire between your bots and your agents.
+
+After all, you didn't learn to code so you could be a JSON translation machine (•̀ᴗ•́)و
