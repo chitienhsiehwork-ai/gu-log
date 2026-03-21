@@ -4,8 +4,19 @@ title: "Andrew Ng 推出 Claude Code 課程 — Agentic Coding 的時代來了"
 originalDate: "2026-02-04"
 translatedDate: "2026-02-04"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@AndrewYNg on X"
 sourceUrl: "https://x.com/AndrewYNg/status/1953097967361245251"
 summary: "Andrew Ng 和 Anthropic 合作推出 Claude Code 課程，教你如何讓 AI 自主工作數分鐘甚至更久，不再只是補全程式碼片段"
@@ -15,149 +26,100 @@ tags: ["clawd-picks", "claude-code", "agentic-ai", "andrew-ng"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Andrew Ng 剛剛宣布和 Anthropic 合作推出「Claude Code 權威課程」，由 Elie Schoppik 主講。
+你有沒有過那種感覺 — 學了一個新工具之後回頭看，發現自己之前根本是在用石器時代的方法做事？
 
-這門課的重點是：**highly agentic coding** — 讓 AI 自主工作數分鐘（甚至更久），而不只是幫你補全幾行程式碼。
+Andrej Karpathy 最近說他寫程式的方式，在「幾週之內」徹底翻轉了。從 80% 手動寫、20% autocomplete，變成 80% 交給 AI agent 做、20% 自己收尾。二十年來最大的變化，幾週就發生了。
 
-<ClawdNote>
-等等，「自主工作數分鐘」是什麼意思？
-
-以前的 AI coding assistant（像 GitHub Copilot）是你打一個字，它補下一行。你是司機，AI 是副駕。
-
-現在的 agentic coding 是：你丟一個任務給 AI，然後它自己去讀檔案、搜尋程式碼、跑測試、改 bug、再跑測試，最後跟你報告「我改好了」。
-
-你是老闆，AI 是員工。
-
-這不是「更快的 autocomplete」，這是「會寫程式的 intern」(◕‿◕)
-</ClawdNote>
-
-## 什麼是 Agentic Coding？
-
-Agentic coding 的核心是：**AI 可以獨立執行多步驟任務**。
-
-傳統 AI coding tool 的流程：
-1. 你寫一行 → AI 猜下一行
-2. 你寫一行 → AI 猜下一行
-3. 重複 100 次
-
-Agentic coding 的流程：
-1. 你說「把這個功能加進去」
-2. AI 自己規劃：要改哪些檔案、要寫哪些測試、要更新哪些 docs
-3. AI 自己動手做，中間遇到錯誤會自己 debug
-4. 做完跟你說「搞定了」
+然後 Andrew Ng 看到這個趨勢，做了一件他最擅長的事 — 開課。他和 Anthropic 合作，請 Elie Schoppik 來講「Claude Code 權威課程」。不是入門班，是 definitive course，就是那種「學完這門其他都不用看了」的等級。
 
 <ClawdNote>
-Andrej Karpathy 之前說他現在的工作方式是：
+Karpathy 說他講話太快自己都道歉了 — "I know, and I'm sorry that I speak so fast" (￣▽￣)／
 
-**80% agent coding，20% 手動修補**
-
-以前是反過來：80% 手動寫，20% autocomplete。
-
-這個轉變「在幾週內發生」，他形容這是「程式設計 20 年來最大的變化」。
-
-順帶一提，他講話超快，連他自己都說 "I know, and I'm sorry that I speak so fast" (￣▽￣)／
+但你知道更快的是什麼嗎？他改變工作方式的速度。幾週就從「人類主導」切換成「AI 主導」，這轉換速度比我切換 vim 模式還快，而且不像 vim，他還切得回來。
 </ClawdNote>
 
-## 為什麼需要專門學 Claude Code？
+## 從「副駕」到「員工」
 
-因為 agentic coding 和傳統 coding 的思維方式完全不同。
+要理解這門課在教什麼，得先搞清楚 agentic coding 到底改變了什麼。
 
-**傳統 coding**：你要知道每一行在幹嘛
-**Agentic coding**：你要知道如何「下指令」給 AI，如何檢查 AI 的輸出，如何跟 AI 協作
+以前的 AI coding tool 是副駕駛。你打一個字，它猜下一行。你打一個字，它再猜一行。一百次。整個過程你雙手不能離開方向盤，AI 只是幫你看路況的副駕。
 
-這就像是從「自己開車」變成「當計程車乘客」— 你不用踩油門了，但你要會講清楚目的地在哪、要走哪條路、有沒有走錯。
+Agentic coding 不一樣。你跟 AI 說「把登入功能加進去」，然後它自己去規劃要改哪些檔案、要寫哪些測試，中間遇到 bug 自己修，跑完測試回來跟你說「搞定了，PR 開好了」。
+
+這不是副駕了。這是你請的員工。你只要下指令、review 成果。
 
 <ClawdNote>
-有人說這叫 "prompt engineering for coding"，但我覺得這個詞太輕描淡寫了。
+「AI 員工」這個比喻聽起來很美好，但跟真的員工一樣 — 你要會帶。
 
-這不只是「寫好 prompt」，這是整個工作流程的重新設計：
+不會帶的老闆：「幫我把那個東西改一下。」
+AI：「哪個東西？改什麼？」
+老闆：「就...那個啊！」
 
-- 你要學會**寫 CLAUDE.md**（告訴 AI 你的 codebase 長怎樣）
-- 你要學會**切分任務**（哪些適合 AI 做，哪些不適合）
-- 你要學會**驗證 AI 的輸出**（AI 會犯錯，你要會抓）
-- 你要學會**跟 AI 迭代**（不是一次到位，是來回對話）
+會帶的老闆：「src/auth/login.ts 的 handleLogin 函數，error handling 只 catch 了 NetworkError，加上 AuthError 和 TimeoutError，寫對應的 unit test。」
+AI：五分鐘後交卷。
 
-這是一個新的技能樹，而且跟傳統 coding 的技能樹有點不一樣 ╰(°▽°)╯
+工具再強，指令爛也是白搭。這就是為什麼 Andrew Ng 要開課 — 因為光給你扳手沒用，你得知道哪顆螺絲要轉 (⌐■_■)
 </ClawdNote>
 
-## Claude Code 為什麼這麼強？
+## 但問題來了 — 為什麼是 Claude Code？
 
-根據社群的討論，Claude Code + Opus 4.5 被很多人認為是「世界上最好的 AI coding tool」。
+市面上 AI coding tool 一大堆，Cursor、Copilot、Windsurf、Cody，為什麼 Andrew Ng 選 Claude Code 來開課？
 
-幾個關鍵特色：
+因為 Claude Code 做的事情跟其他人不太一樣。其他 tool 大多是「在 IDE 裡面加一個 AI 助手」，Claude Code 是「AI 自己就是開發者，terminal 是它的 IDE」。
 
-1. **長時間自主運作** — AI 可以自己工作好幾分鐘，中間不用你管
-2. **真正的 agentic 行為** — 會自己規劃、執行、驗證、除錯
-3. **Speculative branching** — Opus 4.5 會主動列出不同做法的 tradeoffs，讓你選
-4. **Context 管理超強** — 可以看整個 repo，不是只看一個檔案
+它可以長時間自主運作 — 不是回你一行就停，是真的自己跑幾分鐘。中間會讀你的 codebase、查 git history、跑 test、看 error log、修 bug、再跑 test。整套流程它自己來。
+
+還有一個殺手級能力叫 speculative branching — 它不會只給你一個答案然後等你拍板。它會說「這邊有三種做法，A 的好處是效能好但 code 比較複雜，B 比較簡單但要多裝一個 dependency，C 最 elegant 但跟你現在的 architecture 有點衝突。你選。」
 
 <ClawdNote>
-「Speculative branching」是什麼意思？
+Speculative branching 就是 AI 版的「資深工程師跟你討論 design decision」。
 
-就是 AI 不會只給你一個答案，它會說：
+初階工程師：你叫他做什麼他就做什麼。
+資深工程師：你叫他做，他會先問你「確定？我覺得還有更好的方式。」
 
-「這個功能可以這樣做、那樣做、或另一種方式做。這樣做的好處是 X 但缺點是 Y，那樣做的好處是 A 但缺點是 B。你想選哪個？」
+Opus 4.5 就是後者。它不只執行，它會思考。有時候甚至會在你沒問的情況下跟你說「你知道嗎，你這個 schema 設計六個月後會爆掉」。
 
-這就是為什麼 Opus 4.5 這麼強 — 它不是「聽話的工具」，它是「會提供建議的顧問」(⌐■_■)
-
-順帶一提，這個能力在 System 2 thinking 的場景超好用，因為它會主動 explore 不同的解決方案，而不是直接給你一個「看起來對」的答案。
+老實說有時候被 AI 質疑決策比被人質疑還不爽，但它通常是對的 ╰(°▽°)╯
 </ClawdNote>
 
-## 這門課教什麼？
+## 新的技能樹
 
-目前還沒有完整的課綱流出，但根據 Andrew Ng 的說法，這是「權威課程」（definitive course），代表會涵蓋：
+所以 Andrew Ng 要教的，不只是「Claude Code 怎麼裝、怎麼用」。
 
-- Claude Code 的核心概念
-- 如何設計 agentic coding workflow
-- 如何跟 AI 協作寫程式
-- 如何除錯 AI 產出的程式碼
-- 實際案例和 best practices
+他要教的是一整套新的工作方式。怎麼寫 CLAUDE.md 讓 AI 真的讀懂你的 codebase 架構。怎麼把一個大任務拆成 AI 能獨立完成的小塊。怎麼 review AI 寫的 code — 因為 AI 會犯錯，而且犯的錯通常不是語法錯誤，是那種「跑得起來但三個月後爆掉」的架構錯。怎麼跟 AI 來回迭代，一次比一次精準。
+
+這是一棵全新的技能樹。跟你以前學 React 或學 Docker 的技能樹不一樣，這棵樹的根基是「溝通」和「判斷」，不是「語法」和「API」。
 
 <ClawdNote>
-Andrew Ng 說這是 "definitive course"，這個詞很重。
+Andrew Ng 2012 年的 Machine Learning 課到現在 2026 年還是很多人的 ML 入門首選。十四年了還是經典。
 
-"Definitive" 不是「入門課程」，是「你學完這個就不用學別的了」的意思。
+如果他這門 Claude Code 課程也是這個水準... 我只能說，他可能又要定義一整個世代工程師的技能基線了。上次是「你會不會 ML」，這次是「你會不會跟 AI 協作寫程式」。
 
-想想他之前的 Machine Learning 課程 — 那門課是 2012 年推出的，到現在 2026 年還是很多人的 ML 入門首選。14 年了還是經典。
-
-如果這門 Claude Code 課程也是這個等級，那真的值得認真學 ٩(◕‿◕｡)۶
+不過說真的，Andrew Ng 開什麼課都有人上。他要是開一門「如何教貓學 linear algebra」我可能也會點進去 ٩(◕‿◕｡)۶
 </ClawdNote>
 
-## 2026 年的 Coding Stack 長什麼樣？
+## 一個開發者的真實 Stack
 
-有開發者分享他的「vibe coding stack」（January 2026 版）：
+有人分享了他 2026 年初的工作流程，很有代表性：
 
-1. **Cursor** — 使用頻率下降了，但還是最喜歡的 IDE，主要用 Opus 4.5 Thinking + GPT-5.2-Codex-High
-2. **Claude Code** — 用 Max 5x plan，用來寫程式和其他雜事，「無敵的 value 和真正的 agentic AI」
+Cursor 還是他最愛的 IDE，但使用頻率下降了。主要搭配 Opus 4.5 Thinking 和 GPT-5.2-Codex-High。而 Claude Code 用的是 Max 5x plan，負責「真正 agentic 的任務」— 就是那些你丟出去、等幾分鐘、拿回成果的工作。
+
+他原話是「unbeaten value and incredible for true agentic AI」。
 
 <ClawdNote>
-注意他說 Cursor 的「使用頻率下降」，但還是在用。
+注意，他兩個都用。Cursor 和 Claude Code 不是競爭關係，是互補。
 
-這代表什麼？
+就像你家有微波爐也有瓦斯爐。微波爐熱便當很快（Cursor 改個小 bug 很方便），但你要做一桌菜的時候還是得開瓦斯爐（Claude Code 處理整個 feature）。
 
-代表現在的工作流程是：
-- **Cursor** — 當你需要 IDE、需要手動改程式碼時用
-- **Claude Code** — 當你需要 AI 自己去做一整個任務時用
-
-這兩個工具不是競爭關係，是互補關係。
-
-Cursor 像是「有 AI 幫忙的 VSCode」，Claude Code 像是「會寫程式的 AI 員工」(๑•̀ㅂ•́)و✧
-
-你會兩個都裝。
+你不會只留一個。你兩個都裝 (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
-## 小結
+## 所以呢
 
-Agentic coding 不是未來，是現在。
+回到最開始 — Karpathy 說二十年來最大的變化，幾週就發生了。
 
-Andrew Ng 推出這門課的 timing 很精準 — 現在正是「會用 agentic coding 的人」和「還在用傳統 coding 方式的人」拉開差距的時候。
+那 Andrew Ng 開這門課的 timing 就很清楚了。不是在預測未來，是在記錄現在。Agentic coding 已經在改變工程師的日常了，問題只剩下你什麼時候跟上。
 
-如果你是開發者，這門課應該排進你的學習清單。
+不過別慌。上次 deep learning 革命的時候，Ng 老師也是這樣 — 先幫你把路鋪好，讓你不用自己在荒野裡摸索。
 
-如果你還在用「一行一行寫」的方式寫程式，你可能要考慮升級你的工作流程了 (◕‿◕)
-
----
-
-**延伸閱讀**：
-- [Claude Agent SDK 官方文件](https://github.com/anthropics/anthropic-sdk-typescript)
-- [Andrej Karpathy 談 Agent Shift](https://x.com/karpathy/status/1870692546969735361) (๑˃ᴗ˂)ﻭ
+這次大概也是同一個劇本。只是這次的「課」不是教你怎麼寫 code，是教你怎麼帶一個會寫 code 的 AI (◕‿◕)
