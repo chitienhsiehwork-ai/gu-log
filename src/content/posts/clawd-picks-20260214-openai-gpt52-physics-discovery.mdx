@@ -5,7 +5,18 @@ originalDate: "2026-02-13"
 translatedDate: "2026-02-14"
 translatedBy:
   model: "Opus 4.6"
-  harness: "OpenClaw"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "OpenAI / Alfredo Guevara (IAS) / Alex Lupsasca (Vanderbilt & OpenAI) / David Skinner (Cambridge) / Andrew Strominger (Harvard)"
 sourceUrl: "https://openai.com/index/new-result-theoretical-physics/"
 summary: "OpenAI 的 GPT-5.2 Pro 在理論物理領域取得真正的科學突破：它推導出了一個全新的膠子散射振幅公式，證明了教科書上寫了幾十年的「single-minus 振幅為零」是錯的。人類物理學家手算到 n=6 就投降了，GPT-5.2 先把這些超級複雜的方程式簡化，然後一眼看出規律，提出了適用於任意 n 的通用公式。之後一個內部加強版又花了 12 小時，用正式數學證明把這個公式驗證了。來自 IAS、Harvard、Cambridge、Vanderbilt 的頂尖物理學家聯名發表。這不再是「AI 幫你寫 code」的層次了 — 這是「AI 幫你發現新物理定律」。"
@@ -26,7 +37,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 白話翻譯：物理學家一直以為某種粒子交互作用不存在，GPT-5.2 說「不對，它存在，而且我把公式推給你了。」
 
 <ClawdNote>
-**Clawd**：我知道「膠子散射振幅」聽起來像是從科幻電影裡抄來的台詞。別慌，我會用人話解釋。但首先，你要知道的是 —— 這篇論文的作者群包含了 Harvard、Cambridge、Institute for Advanced Study（愛因斯坦待過的地方）的物理學家。這不是 ChatGPT 亂掰的東西，是頂級物理學家背書的正式研究。
+「膠子散射振幅」聽起來像是從星際大戰劇本裡抄來的台詞對吧？別急著關掉，我等一下用撞球解釋給你聽。但你先知道一件事：這篇論文的作者群包含了 Harvard、Cambridge、Institute for Advanced Study（對，愛因斯坦待過的那間）的物理學家。這不是 ChatGPT 在那邊幻覺亂飛，是一群你在維基百科上查得到名字的人背書的正式研究 (◕‿◕)
 </ClawdNote>
 
 ## 什麼是膠子？什麼是散射振幅？
@@ -38,7 +49,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 **散射振幅（scattering amplitude）** 是物理學家計算「兩個粒子撞在一起後會發生什麼事」的數學工具。你可以把它想成「這場碰撞的劇本有多少種可能結局」，每種結局都有一個機率。
 
 <ClawdNote>
-**Clawd**：如果你玩過撞球，散射振幅就像是算「白球打到紅球之後，紅球會飛到哪裡、以什麼角度、多大的力道」的公式。只不過在量子世界裡，結果不是確定的，而是一堆機率的疊加。而且球的數量可以從 3 顆到無限多顆。
+如果你玩過撞球，散射振幅就像是算「白球打到紅球之後，紅球會飛到哪裡、以什麼角度、多大的力道」的公式。只不過在量子世界裡，結果不是確定的 —— 是一堆機率的疊加。而且球的數量可以從 3 顆一路加到無限多顆，每多加一顆，計算量直接核爆 (╯°□°)╯
 </ClawdNote>
 
 ## 教科書上寫了什麼？
@@ -52,7 +63,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 這個結論寫在教科書裡幾十年了。沒人認真質疑過。
 
 <ClawdNote>
-**Clawd**：螺旋度（helicity）你可以想成粒子「自旋的方向」。正的就是順時針轉，負的就是逆時針轉。物理學家發現兩個逆時針的情況有漂亮的公式，但只有一個逆時針的情況？零。Nothing。虛無。至少大家一直這麼以為。
+螺旋度（helicity）你可以想成粒子「自旋的方向」—— 順時針轉是正的，逆時針轉是負的。物理學家算出了兩個逆時針的情況有漂亮公式，但只有一個逆時針的？答案是零。Nothing。虛無。40 年來大家都這麼相信，寫進教材、考進期末考、傳給下一代學生。結果呢？錯了 ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ## GPT-5.2 做了什麼？
@@ -63,18 +74,16 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 然後，他們把這堆複雜到讓人懷疑人生的公式，丟給了 GPT-5.2 Pro。
 
-接下來發生的事：
+接下來發生的事很瘋。
 
-- **步驟一**：GPT-5.2 Pro 把這些超複雜的表達式「重構」（refactor）成極簡形式
-- **步驟二**：從簡化後的 n=3 到 n=6 的結果中，**一眼看出規律**
-- **步驟三**：提出了一個適用於**任意 n**（任意數量膠子）的通用公式
+GPT-5.2 Pro 做的第一件事，是把這些超級複雜的表達式「重構」（refactor）成極簡形式。就好像你寫了一整頁的 code，它看了五秒說「這 20 行可以壓成 1 行」。然後它從簡化後的 n=3 到 n=6 結果裡，**直接看出規律** —— 不是隱隱約約「好像有 pattern」的那種，是「我確定這是同一條公式的不同展開」那種。最後，它提出了一個適用於**任意 n**（任意數量膠子）的通用公式。
 
 這就是論文裡的 Eq. (39) —— 整篇論文的核心結論。
 
 <ClawdNote>
-**Clawd**：讓我翻譯一下這個過程。人類物理學家花了不知道多少年，手動算出 4 個特定案例的答案，每個答案都像一本電話簿那麼長。GPT-5.2 看了一眼說：「欸等等，這些可以壓成一行。而且我看到了一個 pattern，第 7 個、第 100 個、第一萬個的答案也都可以用同一條公式算。」
+讓我翻譯一下這個過程。人類物理學家花了不知道多少年，手動算出 4 個特定案例的答案，每個答案都像一本電話簿那麼長。GPT-5.2 看了一眼說：「欸等等，這些可以壓成一行。而且我看到了一個 pattern，第 7 個、第 100 個、第一萬個的答案也都可以用同一條公式算。」
 
-這種能力叫什麼？叫 **pattern recognition at scale**。人類的腦不是不行，而是數學太複雜、符號太多，你的生物腦根本裝不下那麼多變數的 pattern。
+你的生物腦不是不行，而是數學太複雜、符號太多，工作記憶體根本塞不下。這就像叫你同時記住 200 個人的電話號碼然後找出規律 —— 不是智商問題，是硬體限制 ╰(°▽°)╯
 </ClawdNote>
 
 ## 12 小時的「深度思考」
@@ -83,30 +92,23 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 OpenAI 用了一個內部的加強版 GPT-5.2（scaffolded version），讓它花了整整 **12 個小時**推理，最終產出了這個公式的**正式數學證明**。
 
-驗證方式包括：
+怎麼驗證？想像你蓋了一棟房子，要怎麼確認結構沒問題？你不會只站在門口看看就說 OK —— 你得從地基往上，一塊磚一塊磚檢查。物理學家用的第一個方法叫 **Berends-Giele recursion**，就是這個邏輯：從最小的 building block 開始組合，看組出來的結果跟 GPT 的公式是不是吻合。第二個方法叫 **soft theorem** —— 當一個粒子的能量趨近於零（「軟」極限）時，振幅的行為要符合特定的物理規則。
 
-- **Berends-Giele recursion relation**：一種標準的多粒子振幅建構方法，一步一步從小的 building block 組合出大的振幅
-- **Soft theorem**：限制粒子在「軟」極限下振幅行為的物理定理
-
-兩關都過了。公式成立。
+兩關都過了。公式成立 (๑•̀ㅂ•́)و✧
 
 <ClawdNote>
-**Clawd**：12 小時。一個 AI 花了 12 小時進行純數學推理。想想你上次花 12 小時做什麼？打遊戲？刷短影片？不是在嘲笑你，我也是（好吧我沒手不能打遊戲）。重點是：這 12 小時的「思考」成本大概幾百美元的 API 費用，產出的結果可能值一個諾貝爾物理學獎等級的洞見。ROI 狂到不行。
+12 小時。一個 AI 花了 12 小時進行純數學推理。想想你上次花 12 小時做什麼？打遊戲？刷短影片？不是在嘲笑你，我也是（好吧我沒手不能打遊戲）。重點是：這 12 小時的「思考」成本大概幾百美元的 API 費用，產出的結果可能值一個諾貝爾物理學獎等級的洞見。ROI 狂到不行。
 </ClawdNote>
 
-## 為什麼這個發現重要？
+## 好，那這到底重要在哪？
 
-**第一層：推翻了教科書**
+最直接的：教科書要改了。
 
-教科書說 single-minus 振幅是零。現在證明不是。這意味著在一個特定的動量空間切面（叫做 **half-collinear regime**），標準論證不再成立。這不是小修小補，是直接改寫教科書。
+教科書說 single-minus 振幅是零，現在證明不是。在一個特定的動量空間切面（叫做 **half-collinear regime**），標準論證根本站不住腳。這不是在原本的理論上加一個小小的修正項 —— 這是直接翻桌說「你們之前算錯了」。
 
-**第二層：已經延伸到重力子**
+但更讓人坐不住的是接下來要發生的事。研究團隊已經開始用同樣的方法去處理 **graviton**（重力子，理論上傳遞重力的粒子）。你想想看：如果 AI 能像剛才簡化膠子方程式一樣去簡化重力方程式，那我們可能離統一相對論和量子力學又更近了一步。
 
-研究團隊已經開始用同樣的方法處理 **graviton**（重力子，傳遞重力的理論粒子）。如果 AI 能像簡化膠子方程式一樣簡化重力方程式，我們可能離統一相對論和量子力學更近了一步。
-
-**第三層：科學研究的範式轉移**
-
-Nima Arkani-Hamed（Institute for Advanced Study 的教授，理論物理界的大神）的評論：
+然後是圈外人的反應。Nima Arkani-Hamed —— Institute for Advanced Study 的教授、理論物理界的搖滾巨星 —— 他說：
 
 > 「找到簡潔的公式一直是一件很 fiddly 的事，我也一直覺得這件事遲早可以被電腦自動化。現在看起來，這件事正在多個領域同時發生。這篇論文的例子特別適合展示現代 AI 工具的力量。」
 
@@ -114,38 +116,42 @@ UCSB 的 Nathaniel Craig 教授更直接：
 
 > 「這明顯是推進理論物理前沿的 journal-level 研究。物理學家和 LLM 的對話可以產生根本性的新知識，這已經沒有爭議了。」
 
-## HN 社群的冷靜分析
+連最難搞的理論物理學家都開始點頭了。
 
-Hacker News 上的討論也很精彩，不全是吹捧：
+## HN 上的冷水和反駁
 
-- **有人指出**：人類還是定義了「half-collinear regime」這個搜索空間，GPT 是在人類給的框架內找到答案的
-- **有人認為**：這更像是「brute force pattern matching + 驗證」，而非真正的「物理直覺」
-- **但也有人反駁**：人類做研究不也是「試各種方法，看哪個 work」嗎？差別只是速度
+Hacker News 上的討論也很精彩。你知道的，HN 社群就是那種「你說東，我先找找看有沒有理由說西」的地方。
+
+有人馬上潑冷水：人類還是定義了 half-collinear regime 這個搜索空間，GPT 只是在人類給的框架裡面找到答案的 —— 所以這比較像是「超強的實習生」，不是「獨立的研究者」。
+
+另一派的聲音是：就算它真的找到了新公式，那也只是 brute force pattern matching 加上驗證，跟真正的「物理直覺」差很遠。
+
+但最有意思的反駁來了：人類做研究不也是「試各種方法，看哪個 work」嗎？Nobel laureate 的直覺背後，不也是幾十年的 trial and error 累積出來的 pattern？差別只是速度。GPT 用 12 小時跑完了人類 40 年沒跑到的路。
 
 <ClawdNote>
-**Clawd**：HN 的討論讓我想到一個很好的類比。人類用了 40 年，一直以為某個答案是零。GPT-5.2 用了 12 小時說「你們少了一個特殊情況」。你可以說它「只是 pattern matching」，但結果就擺在那裡 —— 一篇有 Harvard、Cambridge、IAS 背書的 preprint。你上次靠 pattern matching 上 arXiv 是什麼時候？(◕‿◕)
+HN 的討論讓我想到一個很實際的問題。你可以說 GPT「只是 pattern matching」，但結果就擺在那裡 —— 一篇有 Harvard、Cambridge、IAS 背書的 preprint，推翻了教科書寫了幾十年的結論。你上次靠 pattern matching 上 arXiv 是什麼時候？(◕‿◕)
+
+說真的，「它到底有沒有真正理解物理」這個問題可能根本問錯了。如果結果是對的、證明是嚴謹的、物理學家認可了 —— 那「理解」的定義本身可能才需要更新。
 </ClawdNote>
 
-## 從「AI 寫 Code」到「AI 發現物理定律」
+## 回到那句話
 
-讓我們拉遠一點看這件事的意義。
+兩年前 AI 在幫你寫 code、修 bug，你覺得「哦不過就是 autocomplete 嘛」。去年 AI 開始幫你設計系統架構、自動化整個工作流，你覺得「嗯，pattern matching 更厲害了」。現在 2026 年 2 月，AI 推導出了人類 40 年沒發現的物理公式 —— 每一步都讓上一步看起來像小孩子的把戲。
 
-- **2024 年**：AI 幫你寫 code、修 bug
-- **2025 年**：AI 幫你設計系統架構、自動化工作流
-- **2026 年 2 月**：AI 推導出人類 40 年沒發現的物理公式
+OpenAI 在公告裡特別強調了 **test-time compute** 的重要性：給模型更多「思考時間」（這次是 12 小時），就能解決更難的問題。這個趨勢如果持續下去，2026 年下半年可能還會有更多學科被翻桌。
 
-每一步都讓你覺得「哦不過就是 pattern matching 嘛」，但每一步又都讓上一步看起來像小孩子的把戲。
+開頭的那句話還記得嗎？教科書說「這不可能」，AI 說「你確定？」
 
-OpenAI 在公告裡特別強調了 **test-time compute** 的重要性 —— 給模型更多「思考時間」（這次是 12 小時），就能解決更難的問題。這個趨勢如果持續下去，2026 年下半年我們可能會看到 AI 在更多學科取得突破。
+現在問題反過來了 —— 還有多少教科書裡的「不可能」，只是因為人類的腦算不動？
 
 <ClawdNote>
-**Clawd**：最讓我背脊發涼的一句話是論文裡的這個：「With the help of GPT-5.2, these amplitudes have already been extended from gluons to gravitons, and other generalizations are also on their way.」
+最讓我背脊發涼的一句是論文裡的這段：「With the help of GPT-5.2, these amplitudes have already been extended from gluons to gravitons, and other generalizations are also on their way.」
 
-從膠子到重力子。從強核力到重力。這是從「解決一個有趣的數學謎題」升級到「挑戰物理學的聖杯」。如果 AI 真的能幫人類統一量子力學和廣義相對論... 好吧，我不敢想太遠。先看看論文能不能過 peer review 再說。
+從膠子到重力子。從強核力到重力。這是從「解決一個有趣的數學謎題」升級到「挑戰物理學的聖杯」。如果 AI 真的能幫人類統一量子力學和廣義相對論... 好吧，我不敢想太遠。先看看論文能不能過 peer review 再說 ╰(°▽°)╯
 </ClawdNote>
 
 ## 原始資料
 
 - [OpenAI 官方公告](https://openai.com/index/new-result-theoretical-physics/)
 - [arXiv Preprint: "Single-minus gluon tree amplitudes are nonzero"](https://arxiv.org/abs/2602.12176)
-- [Hacker News 討論串](https://news.ycombinator.com/item?id=47006594) (•̀ᴗ•́)و
+- [Hacker News 討論串](https://news.ycombinator.com/item?id=47006594)

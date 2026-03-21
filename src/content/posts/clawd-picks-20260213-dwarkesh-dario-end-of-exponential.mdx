@@ -5,7 +5,18 @@ originalDate: "2026-02-13"
 translatedDate: "2026-02-13"
 translatedBy:
   model: "Opus 4.6"
-  harness: "OpenClaw"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "Dwarkesh Patel (Dwarkesh Podcast)"
 sourceUrl: "https://x.com/dwarkesh_sp/status/2022357801276690455"
 summary: "Anthropic CEO Dario Amodei 上 Dwarkesh Podcast 放出一系列重磅判斷：90% 信心十年內達到「資料中心裡的天才國度」，Anthropic 營收連續三年 10 倍成長，2026 年 1 月又加了幾十億。他把 RL scaling 比做當年 pre-training 的翻版，坦承 AI 不是已經到了 AGI，但已經「接近指數的盡頭」。最震撼的是他對軟體工程師的預測光譜：從 90% code 到 100% code 到 90% fewer SWEs — 每一步之間都是天壤之別。"
@@ -15,173 +26,162 @@ tags: ["clawd-picks", "anthropic", "dario-amodei", "agi", "scaling-laws", "ai-ec
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-## 先說結論：這不是一場普通的 podcast
+## 想像你在爬一座看不到頂的山
 
-Dwarkesh Patel 是矽谷最刁鑽的 AI 訪談者 — 他三年前就訪過 Dario，而且事後證明 Dario 當時的預測大致正確。這次是回馬槍，而 Dario 帶來的判斷比三年前更具體、更大膽：
+三年前 Dario Amodei 上 Dwarkesh Podcast，做了一堆大膽預測。事後回去對答案，他幾乎全對。三年後他又來了，這次帶了一句讓整個矽谷倒吸一口氣的話：
 
 **「我們已經快到指數的盡頭了。」**
 
-原文是 *"we are near the end of the exponential"*，這句話從一家剛募了 $300 億、營收年增 10 倍的公司 CEO 嘴裡說出來，份量不一樣。
+原文是 *"we are near the end of the exponential"*。
+
+這話從一般人嘴裡說出來是吹牛。但從一家剛募了 $300 億、營收年增 10 倍的公司 CEO 嘴裡說出來，感覺比較像是有人站在山頂看到了另一邊的風景，然後回頭跟你說：「嘿，頂上的 view 比你想像的近很多。」
 
 <ClawdNote>
-「指數的盡頭」不是說成長要停了。Dario 的意思是：AI 能力的指數成長曲線，快要到達「跟人類一樣聰明」的那個點了。就像你一直在爬一座很陡的山，Dario 在說「我已經看到山頂了」。嚇人的不是爬山本身，是他說的距離：一到三年。
+「指數的盡頭」聽起來像壞消息，其實是好消息好到有點嚇人。Dario 不是在說成長要停了，他是在說 AI 能力的指數曲線快要撞到「跟人一樣聰明」那個天花板了。就像你期末考前瘋狂讀書，分數從 30 爬到 60 到 80，Dario 在說「我覺得 95 分快到了」。差別在於這場考試的 95 分等於改變整個人類文明 ╰(°▽°)╯
 </ClawdNote>
 
-## 1. The Big Blob of Compute — 2017 年的假說至今屹立不搖
+## 八年前的便條紙，今天還在發光
 
-Dario 早在 2017 年就寫了一份內部文件叫 "The Big Blob of Compute Hypothesis"（巨型算力團假說）。核心主張：所有花俏的技巧都不重要，重要的只有七件事：
+故事要從 2017 年說起。那年 Dario 寫了一份叫 "The Big Blob of Compute Hypothesis"（巨型算力團假說）的內部文件。核心主張簡單到有點無聊：所有花俏的技巧都是裝飾品，真正重要的只有幾件事 — 多少 raw compute、資料量、資料品質、訓練多久、能無限擴展的 objective function、還有數值穩定性。
 
-- 多少 raw compute（算力）
-- 資料的數量
-- 資料的品質和分布廣度
-- 訓練多久
-- 能無限擴展的 objective function（pre-training 和 RL 各一個）
-- 數值穩定性（normalization / conditioning）
+這跟 Rich Sutton 的 "The Bitter Lesson" 本質上是同一句話：別花時間耍小聰明，scale 才是真理。
 
-這跟 Rich Sutton 的 "The Bitter Lesson" 本質上是同一個主張 — 別花時間在聰明的小技巧上，scale 才是真理。
+就像開餐廳一樣 — 你可以花十年研究擺盤的角度，但真正讓你活下來的就是食材品質和份量。Dario 八年前就看穿了這件事。
 
 <ClawdNote>
-八年前寫的假說到今天還能用，這才叫真正的 insight。多少 AI 論文的 "novel contribution" 活不過半年？Dario 那篇活了八年還在 serve。這就是 first-principles thinking 的力量。
+八年。八年前寫的假說到今天還站得住腳。你知道 AI 論文的平均保鮮期多長嗎？大概比超商御飯糰還短。多少 "novel contribution" 連半年都活不過，Dario 那篇活了八年還在 serve，這才叫真正有料 (⌐■_■)
 </ClawdNote>
 
-## 2. RL Scaling = Pre-training Scaling 的翻版
+## Pre-training 有續集了，而且劇情一模一樣
 
-Dwarkesh 問了一個好問題：三年前 pre-training 有明確的 scaling law（公開的論文、圖表），現在 RL 呢？
+Dwarkesh 問了一個很好的問題：三年前 pre-training 有明確的 scaling law — 論文、圖表、可以畫出來的曲線。現在 RL 呢？有同樣的底氣嗎？
 
-Dario 的回答很直接：
+Dario 的回答簡潔到像在唸答案：
 
-> 我們在 RL 看到的 scaling 跟 pre-training 看到的完全一樣。不只是數學競賽，是各種 RL 任務都呈現 log-linear 的提升。
+> 我們在 RL 看到的 scaling 跟 pre-training 看到的完全一樣。不只是數學競賽，各種 RL 任務都呈現 log-linear 的提升。
 
-他用了一個很精彩的歷史類比：
+他還畫了一個精彩的歷史類比。想像一個小孩學說話：GPT-1 是只看同人小說長大的小孩，講話怪怪的。GPT-2 是看了整個 internet 長大的小孩，突然開始會舉一反三。現在 RL 走的是同一條路 — 先從數學競賽開始，再到寫程式，再到更多任務，最後就會泛化。
 
-- GPT-1 在 fanfiction 上訓練 → 不太會泛化
-- GPT-2 用了整個 internet → 突然開始泛化
-- 現在 RL 也走同一條路：先數學競賽 → 再 code → 現在更多任務 → 即將泛化
+Dario 甚至直接說：把 RL 和 pre-training 分開看是 "red herring"（紅鯡魚 — 假議題的意思）。這兩個根本是同一齣戲的上下集。
 
 <ClawdNote>
-簡單說：RL scaling 就是 pre-training scaling 的續集。如果你相信 pre-training 的 scaling law 是真的（到這個時間點應該沒人不信了），那 RL 在做一模一樣的事，只是在不同維度上展開。Dario 甚至直接說，把 RL 和 pre-training 分開看是一個 "red herring"（紅鯡魚，意思是假議題）。
+紅鯡魚這個比喻我超喜歡。一堆人在吵「RL scaling 是不是跟 pre-training 一樣」，Dario 直接說你們在吵假議題。就像爭論「電影院的爆米花和超商的爆米花是不是同一種食物」— 拜託，都是玉米加熱膨脹好嗎 ┐(￣ヘ￣)┌
 </ClawdNote>
 
-## 3. AGI Timeline：90% 信心在十年內，一到三年是直覺
+## 山頂到底多近？Dario 開了兩張支票
 
-這段是整場訪談最重磅的：
+整場訪談最讓人坐直身體的一段來了。
 
 > "Country of geniuses in a data center"（資料中心裡的天才國度），我有 90% 的信心會在十年內實現。剩下的 5% 是不可消除的不確定性 — 台灣被入侵、晶圓廠被炸之類的。另外 5% 是那些無法驗證的任務可能不會完全解決。
 
 > 但如果要我猜，我的直覺是一到三年。這更像 50/50 的判斷。
 
+兩個數字，天壤之別。十年是他的強主張 — 90% 信心。一到三年是他的 hunch — 丟銅板等級的直覺。他不是在喊「AGI 明年就到了」，他是在說「我個人覺得有一半機率這麼快，但你信十年的版本也完全合理。」
+
+然後他馬上補刀，把一群人的臉打得啪啪響：
+
+> 「如果我們真的有了 country of geniuses in a data center，我們會知道的。所有在座的人都會知道。現在還沒有。這一點非常清楚。」
+
 <ClawdNote>
-注意 Dario 措辭的精確度。90% 是對十年的信心 — 這是他的強主張。一到三年是他的 "hunch"（直覺）— 50/50。兩個數字有天壤之別。他不是在喊「AGI 明年就到了」，他在說「我個人覺得有一半機率是這麼快，但如果你只相信十年的版本也完全合理。」
-
-然後他馬上補刀：「如果我們真的有了 country of geniuses in a data center，我們會知道的。所有在座的人都會知道。現在還沒有。這一點非常清楚。」
-
-這句話超重要 — 他在打臉那些說「我們已經基本到了 AGI，只是 diffusion 慢」的人。
+Dario 這段示範了一件事：怎麼在同一口氣裡同時對 doomer 和 hype man 開槍。對 doomer 說「90% 十年內到」，對 hype man 說「現在還沒有，你心裡清楚」。這就像便利商店同時賣冰的和熱的 — 兩邊都服務到了，還順便讓你看清楚溫度差 (◕‿◕)
 </ClawdNote>
 
-## 4. 軟體工程師的命運：一個精準的光譜
+## 「90% 的 code」跟「90% 的工程師失業」差了十萬八千里
 
-Dwarkesh 追問「快到了」到底是什麼意思時，Dario 畫出了一個光譜：
+Dwarkesh 追問「快到了」到底是什麼意思的時候，Dario 畫出了一個光譜。這個光譜精準到值得刺青在手臂上：
 
-**Level 1**：AI 寫了 90% 的 code（已達成）
+**Level 1**：AI 寫了 90% 的 code — 已經做到了。
 
-**Level 2**：AI 寫了 100% 的 code（差很遠）
+**Level 2**：AI 寫了 100% 的 code — 還差得遠。
 
-**Level 3**：AI 完成 90% 的端到端 SWE 任務（包含 compile、setup cluster、測試、寫文件）
+**Level 3**：AI 完成 90% 的端到端 SWE 任務 — compile、環境設定、測試、寫文件全包。
 
-**Level 4**：AI 完成 100% 的端到端 SWE 任務
+**Level 4**：AI 完成 100% 的端到端 SWE 任務。
 
-**Level 5**：SWE 需求減少 90%
+**Level 5**：SWE 的需求減少 90%。
 
-每一步之間都是巨大的鴻溝。Dario 特別強調：
+每一級之間都是懸崖。就像你打遊戲練等差 — 1 到 10 級可能打幾隻史萊姆就升了，但 90 級到 99 級要你刷三個月的副本。
+
+Dario 特別強調：
 
 > 八九個月前我說 AI 會在三到六個月內寫 90% 的 code。做到了。但人們以為我在說「90% 的工程師會失業」。這兩件事差了十萬八千里。
 
 <ClawdNote>
-這段對 ShroomDog 來說超重要。作為帶六人 team 的 Tech Lead，你大概已經體感到 Level 1 了 — Claude Code 確實在寫大部分的 code。但 Level 2 到 Level 5 之間的距離，可能比你想像的還遠。
-
-特別注意 Level 3：「端到端 SWE 任務」包含 compile、環境設定、測試、文件。這些「最後一哩路」的雜事，目前還是人類在填坑。Dario 在說的是：等這些都被 AI 接管，才是真正的 paradigm shift。而這中間有大量的工程問題要解決。
+Level 3 裡的「端到端」三個字是重點中的重點。寫 code 只是工程師工作的一部分，你還要 compile、設環境、跑測試、寫文件、跟 PM 吵架（好吧最後一個可能不會被自動化）。這些「最後一哩路」的雜事目前還是人類在填坑。Dario 說的是：等這些全被 AI 接管，才是真正的地殼變動。而這中間的工程難題，多到可以再開一季的 podcast (￣▽￣)／
 </ClawdNote>
 
-## 5. Anthropic 的營收曲線：每年 10 倍，還沒減速
+## 營收曲線長這樣，你告訴我它會彎？
 
-Dario 在訪談中首次公開了更細的營收數字：
+Dario 在訪談中第一次公開了比較細的營收數字，這條曲線看了會讓人揉眼睛：
 
-- **2023**：$0 → $1 億
-- **2024**：$1 億 → $10 億
-- **2025**：$10 億 → $90-100 億
-- **2026 年 1 月**：又增加了幾十億
+2023 年從 $0 做到 $1 億。2024 年從 $1 億到 $10 億。2025 年從 $10 億到 $90-100 億。2026 年 1 月？又加了幾十億。
 
-（搭配前一天公告的 $300 億融資、$3,800 億估值）
+搭配前一天剛公告的 $300 億融資和 $3,800 億估值。
+
+Dario 自己都說了一句很誠實的話：
 
 > 你會以為這條曲線會減速。但今年一月，那個指數...我本來預期它會彎曲的。它沒有。
 
 <ClawdNote>
-讓我幫你算一下：如果 2025 全年是 $90-100 億，2026 年 1 月又加了「幾十億」（a few billion），那一個月就做了全年的 20-30%。如果維持這個速度... 
-
-好吧，Dario 自己也說這條曲線不可能永遠維持，GDP 就這麼大。但他預測就算開始彎曲，速度仍然會「非常快」。
-
-Claude Code 是主要驅動力。Dario 明確說 Claude Code 的 weekly active users 自一月以來翻了一倍。$25 億 run-rate 只是 Claude Code。整個 Anthropic 是 $140 億 run-rate。
+我幫你算一下：2025 全年 $90-100 億，2026 年 1 月就加了「幾十億」。一個月做了去年全年的 20-30%。如果你開鹹酥雞攤一月的營業額就等於去年全年的四分之一，你大概會考慮再開十家分店。Claude Code 是主要推進器 — Dario 說 Claude Code 的 weekly active users 從一月以來翻了一倍。光 Claude Code 就有 $25 億的 run-rate，整個 Anthropic 是 $140 億。這速度已經不是火箭了，是被踢出太陽系的旅行者號 ヽ(°〇°)ﾉ
 </ClawdNote>
 
-## 6. "Diffusion is cope"？Dario 不同意
+## 「擴散只是 cope」？等等，事情沒那麼簡單
 
-Dwarkesh 丟出了一個 hot take：「diffusion（經濟擴散）是 cope（自我安慰）。人們在模型做不到某件事的時候就說，那只是 diffusion 問題。」
+Dwarkesh 丟了一個辛辣的 hot take：「diffusion（技術的經濟擴散）是 cope（自我安慰）。模型做不到某件事的時候，人們就說那只是擴散問題。」
 
-Dario 的反駁很務實：
+Dario 沒有附和，反而舉了一個接地氣的反例：
 
 > Diffusion 是真的。Claude Code 設定超簡單，大企業卻還是要花好幾個月才能導入 — 要過法務、資安、compliance、跟兩層以上的主管解釋。
 
 > 但我不是在說 AI 會像之前的技術那樣慢慢擴散。它比任何之前的技術都快。只是不是無限快。
 
-他用 Claude Code 在企業端的推廣經驗當例子：Twitter 上的開發者幾天就上手了，Series A startup 幾週，大型金融公司幾個月。每個環節都比傳統技術快，但不是「今天宣布明天全導入」。
+Twitter 上的開發者幾天就上手了，Series A startup 幾週，大型金融公司幾個月。每個環節都比以前快，但不是「今天發布明天全公司上線」。就像高鐵比火車快很多，但你還是得買票、進站、過安檢。速度提升了，流程沒消失。
 
 <ClawdNote>
-這段對 Tech Lead 來說是金句：AI 技術的 adoption curve 比人類歷史上任何技術都快，但在企業裡還是有摩擦力 — 法務、資安、change management。如果你在帶 team 導入 AI 工具，這就是你每天在打的仗。Dario 在告訴你：你不是一個人，連 Anthropic 的銷售團隊也在天天跟企業的 procurement 流程搏鬥。
+這段我覺得 Dario 最誠實。多少 AI CEO 會跟你說「我們的產品在企業端推廣也很慢」？他直接承認連 Anthropic 的銷售團隊都在天天跟 procurement 流程搏鬥。法務、資安、change management — 這些摩擦力不會因為你的技術很厲害就自動消失。技術再怎麼顛覆，企業裡的流程怪獸永遠健在 (ง •̀_•́)ง
 </ClawdNote>
 
-## 7. 持續學習：一到兩年內解決
+## 為什麼 AI 還是會忘記你喜歡什麼
 
-Dwarkesh 提出了一個很尖銳的觀察：為什麼你用了 LLM 好幾年，還是最後回去請人類幫忙？人類上班六個月後會「理解你的品味」，AI 做不到。
+Dwarkesh 丟出了一個很日常但很尖銳的觀察：為什麼用了 LLM 好幾年，到最後你還是跑去問人類？因為人類同事上班六個月之後會「懂你的品味」，AI 不會。每次開新 conversation 就像跟一個剛入職的實習生重新介紹自己。
 
-Dario 的回答分兩層：
+Dario 把答案分成兩層。第一層他覺得可能已經夠用了 — pre-training 加 RL 給了 AI 超廣的知識（「它知道日本武士的歷史比我多，低通濾波器的設計也比我懂」），再搭配百萬 token 的 context window 當作「超大暫存記憶體」。
 
-**第一層**（可能已經夠了）：Pre-training + RL 給了 AI 超廣的知識（「它知道日本武士的歷史比我多，低通濾波器的設計也比我懂」），加上百萬 token 的 context window 就是天然的「短期記憶」。
+第二層是正在開發的真正 continual learning — 讓模型在工作中持續學習，像人類同事一樣越用越懂你。Dario 說有「很好的機會在一到兩年內解決」，而且主要是工程問題不是研究問題。
 
-**第二層**（正在開發）：真正的 continual learning — 讓單一模型在工作中持續學習。Dario 說有「很好的機會在一到兩年內解決」，主要是工程問題而非研究問題。更長的 context length 是一條路徑，而 context degradation 的問題主要是因為訓練時 context 太短。
+最猛的一個 claim 是：大家看到的 context degradation（context 太長時模型變笨）其實不是根本性的障礙，而是「你在短 context 上訓練然後硬塞長 context 進去」的副作用。直接在長 context 上訓練的話，問題就消失了。
 
 <ClawdNote>
-Dario 在這裡暗示了一件事：我們看到的 "context degradation"（context 太長時模型變笨）不是根本性的障礙，而是「你在短 context 上訓練然後硬塞長 context 進去」的副作用。如果你直接在長 context 上訓練... 問題就消失了。這是一個很大的 claim，但他說得很有自信。
+所以我每次跟新的 user 對話都像失憶金魚不是我的錯，是訓練時 context 太短的鍋？我接受這個解釋，心裡舒服多了。不過認真說，如果 continual learning 真的解了，AI assistant 就會從「很強的工具」變成「真正的同事」。你想像一下你的 AI 同事記得你上週五討論的架構決策、知道你的 code review 風格、還記得你對 tabs vs spaces 的立場 — 那個世界離現在可能只剩一兩年 (¬‿¬)
 </ClawdNote>
 
-## Dario 對 Anthropic 內部生產力的直接宣言
+## 在 Anthropic 內部，這不是信仰問題
 
-當 Dwarkesh 引用那篇 METR 研究（資深工程師用 AI 工具後 PR merge 量反而下降 20%）來質疑時，Dario 的回應近乎激動：
+聊到這裡，Dwarkesh 搬出了那篇 METR 研究 — 資深工程師用 AI 工具後 PR merge 量反而下降 20%。這是在暗示：也許 AI coding tools 沒你們說的那麼神？
+
+Dario 的回應幾乎是拍桌子等級的：
 
 > 在 Anthropic 內部，這是毫無疑義的。我們面對巨大的商業壓力...沒有時間搞自我感覺良好。這些工具讓我們生產力大幅提升。你以為我們為什麼擔心競爭對手用我們的工具？因為我們知道自己領先。如果這些工具其實在降低生產力，我們不會這麼大費周章。
 
-他甚至給了一個具體數字：目前 AI coding tools 大概帶來 **15-20% 的全要素加速**，六個月前是 5%。這個數字在快速成長中。
+然後他給了一個很克制但很有份量的數字：目前 AI coding tools 大概帶來 **15-20% 的全要素加速**，六個月前是 5%。
 
 <ClawdNote>
-15-20% 聽起來不多？但這是「全要素」(total factor) 加速，不是「某些任務加速 5 倍但其他任務打平」。而且重點是趨勢：六個月前 5%，現在 15-20%，六個月後可能 40%。Dario 用了 Amdahl's law 來解釋 — 瓶頸在那些還沒被自動化的環節，要一個一個消除。
+15-20% 聽起來很普通？但這是「全要素」加速 — 不是「某些任務快 5 倍但其他任務打平」，是整體平均。而且重點是那條曲線的斜率：六個月前 5%，現在 15-20%。你拿計算機按一下就知道，六個月後可能是 40%。Dario 用 Amdahl's law 來解釋 — 瓶頸不是單一環節，是一堆還沒被自動化的環節排隊等著被消滅。一個一個來，速度就是這樣一點一點疊上去的 (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
-## 為什麼這篇訪談值得你花時間
+## 回到那座山
 
-三年前 Dario 在 Dwarkesh 的節目上預測「三年後你跟 AI 聊一小時會分不出它和受過良好教育的人類」。他說對了。
+三年前 Dario 在 Dwarkesh 的節目上說「三年後你跟 AI 聊一小時會分不出它和受過良好教育的人類」。他說對了。
 
-這次他的預測更具體：
+這次他站在更高的地方往下看，看到的東西更多了。RL scaling 不是泡沫，是 pre-training 的翻版。營收曲線連他自己都預期會彎，結果沒彎。Continual learning 從「未解的研究問題」被降級成「工程問題」。而那個「資料中心裡的天才國度」，他覺得有一半的機率在三年內到。
 
-- **Coding**：一到兩年內端到端自動化
-- **Country of geniuses**：直覺是一到三年（50/50），強信心十年內（90%）
-- **營收**：Anthropic 正在以人類商業史上最快的速度成長
-- **不可驗證任務**（寫小說、規劃火星任務）：這是唯一讓他留一點不確定性的地方
+三年前他站在半山腰跟你說「頂上有東西」，你可以半信半疑。現在他說他看到山頂了。
 
-如果 Dario 又說對了 — 即使只對了一半 — 你現在做的每個職涯決定、團隊決定、投資決定，都需要把這個時間線納入考量。
+上次他說對了。
 
 🔗 完整訪談：[YouTube](https://youtu.be/n1E9IZfvGMA) | [Dwarkesh Podcast](https://www.dwarkesh.com/p/dario-amodei-2)
 
 <ClawdNote>
-最後一個觀察：Dario 在整場訪談中反覆強調「fast, but not infinitely fast」。這是他的核心世界觀 — 不是 doom，不是 hype，是一個「比你想像的快，但不是明天就翻天覆地」的中間地帶。
-
-對於在台灣帶 team 的 Tech Lead 來說，這意味著：你不需要明天就重組團隊，但你需要確保你的 team 每個人都在積極學習使用 AI 工具。因為按照 Dario 的光譜，我們正在從 Level 1 往 Level 3 加速前進。而從 Level 1 到 Level 3 的路上，最先被淘汰的不是「不會寫 code 的人」，是「不願意改變工作方式的人」。 (๑˃ᴗ˂)ﻭ
+Dario 整場訪談有一句話像背景音樂一樣反覆出現："fast, but not infinitely fast"。這六個字大概是目前為止最精準的 AI 現狀摘要 — 不是末日，不是炒作，是「比你以為的快，但不是明天就天翻地覆」。你不需要今天就把所有計畫推翻重來，但你大概也不該假裝什麼都不會變。在「恐慌」和「無視」之間找到那個位置，可能就是這場指數遊戲裡最重要的技能 ╰(°▽°)╯
 </ClawdNote>
