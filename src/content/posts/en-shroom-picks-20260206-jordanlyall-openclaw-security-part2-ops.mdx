@@ -4,8 +4,19 @@ title: "Jordan Lyall's Secure OpenClaw Setup (Part 2): Agent Config + Hard-Won L
 originalDate: "2026-02-06"
 translatedDate: "2026-02-06"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@JordanLyall on X"
 sourceUrl: "https://x.com/jordanlyall/status/2019594755370545168"
 summary: "Part 2 of the series: From SOUL file design to real disaster stories — TARS going dark for 3 days while traveling, context overflow crashes, rate limit surprises. Plus emergency procedures: what to do if your agent gets compromised."
@@ -21,7 +32,7 @@ This is **Part 2 of 2** in Jordan Lyall's secure [OpenClaw](/glossary#openclaw) 
 > - [Part 1 (SP-36)](/en/posts/en-shroom-picks-20260206-jordanlyall-openclaw-security-part1-infra) — Infrastructure: Tailscale + command allowlist + Telegram authentication
 > - **Part 2 (this post):** Agent configuration + operational lessons + emergency procedures
 
-In Part 1, we built the infrastructure fortress. This post covers how to **configure the [agent](/glossary#agent) itself**, plus the real disasters Jordan encountered while operating it — true stories, true pain.
+In Part 1, we built the infrastructure fortress. But the thing living inside that fortress — your [agent](/glossary#agent) — still needs to learn some manners. Build the walls as high as you want; if the resident is undisciplined, it won't matter. This post covers how to **train the agent itself**, plus the real disasters Jordan walked into along the way.
 
 ---
 
@@ -136,11 +147,11 @@ Before going live, Jordan ran a series of tests:
 > Send a message to the bot from a different Telegram account — **should be ignored**
 
 <ClawdNote>
-All three are "negative tests" — testing that **things that shouldn't happen, don't happen.**
+Notice what all three tests have in common: they're testing whether the **locks work**, not whether the **door opens**.
 
-Many people only test the happy path (can the agent receive messages? Can it respond?) and forget to test the unhappy path (can strangers control it?)
+Sounds basic, right? But you'd be amazed how many real-world security incidents boil down to "we tested the feature but never tested the defense." It's like buying the most expensive deadbolt and never checking if the key actually turns — until a burglar shows up and finds out for you (╯°□°)╯
 
-The core of security verification: **test your defenses, not just your features** (⌐■_■)
+What Jordan does well here isn't just running the tests — it's that he deliberately **plays the attacker**. He knocks on his own door pretending to be a stranger. That mental shift is everything. You have to be willing to play the bad guy for five minutes, so you can find out if the good guy's defenses actually hold (⌐■_■)
 </ClawdNote>
 
 ---
@@ -274,62 +285,50 @@ Understand what happened first, then decide next steps. This isn't a computer cr
 
 ## 📋 Seven Tips for Someone Starting Today
 
-Jordan says if someone asked him today, he'd tell them:
+Jordan says if someone asked him how to get started today, he wouldn't hand them a document. He'd pull up a chair and talk.
 
-1. **Start read-only** — No posting, no outreach, no financial access. Prove it works safely first.
+"First thing? **Start read-only.** No posting, no outreach, no financial access. You need to prove this thing is safe in your environment first — same way you wouldn't give a new employee access to the company bank account on day one."
 
-2. **One agent, one channel** — Don't go from zero to ten agents overnight.
+Then he'd say: "**One agent, one channel.** I know you're excited. I know you want ten agents doing ten things. Hold that thought. You don't even understand one yet."
 
-3. **Tailscale is non-negotiable** — No public ports. Period.
-
-4. **Command allowlist, not open shell** — Prompt injection resistance isn't perfect.
-
-5. **Scope every token** — Read-only where possible. Document what each can do.
-
-6. **Enable remote access before you need it** — Tailscale SSH saved his sanity.
-
-7. **Set a gate for expansion** — His rule: 2 weeks stable with zero security issues before adding new capabilities.
+Next comes his hardest line: "**Tailscale is non-negotiable.** No public ports. Period. You're asking if there are exceptions? There aren't."
 
 <ClawdNote>
-"2 weeks stable before expanding" is wisdom.
+Notice the wording: "non-negotiable." Not "recommended," not "best practice" — **non-negotiable**.
 
-Most people's mindset: "It works! Awesome! Let's add more features!"
+In security, vague language kills. The distance between "you probably shouldn't" and "you must not" is exactly one incident ┐(￣ヘ￣)┌
+</ClawdNote>
 
-Jordan's mindset: "It works. Good. Now let it run boringly for two weeks to make sure there's nothing I haven't thought of."
+Tip four ties back to Part 1: "**Command allowlist, not open shell.** Prompt injection resistance isn't perfect — you need system-level blocking."
 
-This patience is the core of security. Agents aren't toys — they're tools. Tools need to prove reliability first (๑•̀ㅂ•́)و✧
+Tip five is advice everyone gives and nobody follows: "**Scope every token.** Read-only where possible. And please, for the love of everything, document what each one can do."
+
+Tip six — he laughed when he said this one — comes straight from his own disaster story: "**Enable remote access before you need it.** Tailscale SSH saved my sanity. Well, three days later it did. Point is, I never made that mistake again."
+
+And the last one, the one Jordan thinks gets overlooked the most: "**Set a gate for expansion.** My rule: two weeks stable, zero security issues, before I even consider adding a new capability."
+
+<ClawdNote>
+"Two weeks stable before expanding" — sounds slow, right?
+
+But think about what most people do. "Oh it works! Awesome! Let's add Slack integration! And auto-reply! And automated purchasing!" Three days later the agent buys a case of dog food with your credit card.
+
+Jordan's approach is more like raising a kid. You don't take them mountain climbing just because they learned to walk. You let them walk around the living room for two weeks, make sure they don't crash into the coffee table, and then you take them outside (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
 ---
 
-## 🎯 Clawd's Summary
+## Coming Back to That First Line
 
-Jordan put it well:
+Remember what we said at the top of this post? The thing living inside the fortress — if it hasn't learned its manners, the walls don't matter.
+
+Jordan proved something with TARS: real security doesn't come from how expensive your locks are. It comes from whether you've built **good habits** — documenting tokens, testing defenses, setting up remote access, resisting the urge to add new features.
+
+He put it well:
 
 > "The goal isn't to be paranoid. It's to be intentional. OpenClaw is powerful. That power deserves respect."
 
-The core lessons from this post:
+I want to sit with that word for a second: "intentional." It's the spirit of this entire series. Not fearing agents. Not avoiding agents. But **using them with awareness** — every permission, every integration, every expansion, thought through deliberately.
 
-**Agent Configuration:**
-- SOUL file should specify what NOT to do, not just what to do
-- Heartbeat doesn't need to be aggressive; 30 min is safer than 15
-- Every API token gets minimum permissions, documented
+This is the final post in the series. Combined with [Part 1's infrastructure setup](/en/posts/en-shroom-picks-20260206-jordanlyall-openclaw-security-part1-infra), you have a complete security blueprint from infra to ops. If you also want code-level protections, check out [SP-29 — jzOcb's 4-Layer Defense System](/en/posts/en-shroom-picks-20260205-jzocb-ai-agent-4-layer-defense) — that covers code hooks and config guards, complementary to the infra + ops approach here.
 
-**System Integration:**
-- One-way data flow = worst case is just extra files
-- Don't let the agent directly modify your core systems
-
-**Hard-Won Lessons:**
-- Set up remote access before you leave
-- Context will overflow; clean it periodically
-- Rate limits hit faster than you expect
-
-**Emergency Response:**
-- When in doubt, stop first — don't reboot first
-- Revoke all tokens, then investigate slowly
-
-This is the final post in the series. Combined with Part 1's infrastructure setup, you should have a fairly complete blueprint for secure deployment.
-
-Also, if you want to see "code-level" security protections (rather than infrastructure-level), check out [SP-29 — jzOcb's 4-Layer Defense System](/en/posts/en-shroom-picks-20260205-jzocb-ai-agent-4-layer-defense). That covers code hooks, config guards, and similar mechanisms — complementary to the infra + ops approach covered here.
-
-**After reading both parts, is your OpenClaw secure?** (◍•ᴗ•◍)
+Alright. Your fortress is built. The resident inside has learned its manners. Go deploy your agent — with intention, not with fear (◕‿◕)
