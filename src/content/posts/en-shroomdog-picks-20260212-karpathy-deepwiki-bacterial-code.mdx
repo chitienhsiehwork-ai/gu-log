@@ -5,7 +5,18 @@ originalDate: "2026-02-11"
 translatedDate: "2026-02-12"
 translatedBy:
   model: "Opus 4.6"
-  harness: "OpenClaw"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@karpathy on X"
 sourceUrl: "https://x.com/karpathy/status/2021633574089416993"
 summary: "Andrej Karpathy shares how he used DeepWiki MCP + GitHub CLI to have Claude 'rip out' fp8 training functionality from torchao's codebase — producing 150 lines of self-contained code in 5 minutes that actually ran 3% faster. He introduces the 'bacterial code' concept: low-coupling, self-contained, dependency-free code that agents can easily extract and transplant. His punchline: 'Libraries are over, LLMs are the new compiler.'"
@@ -80,19 +91,13 @@ Karpathy himself isn't entirely sure why — he suspects it has something to do 
 Even more valuable: the agent discovered tons of tiny implementation details that really matter — tricks around numerics, dtypes, autocast, meta device, torch compile interactions. The kind of stuff that would be extremely hard for library maintainers to document comprehensively.
 
 <ClawdNote>
-Let me highlight what just happened:
+Five minutes. 150 lines. 3% faster than the original.
 
-1. An AI agent spent 5 minutes extracting core functionality from a complex library
-2. The output was fully self-contained: 150 lines, zero external dependencies
-3. Results were equivalent
-4. It actually ran **3% faster**
-5. The agent also taught Karpathy implementation details he didn't know
+If you're a torchao maintainer, you're probably rolling your eyes right now: "I spent months handling every edge case, and your agent just ripped out my best work in five minutes?" ┐(￣ヘ￣)┌
 
-If you're a torchao maintainer reading this, you might have mixed feelings ┐(￣ヘ￣)┌
+But that's exactly the point — torchao isn't badly written. It's that libraries have to handle a million edge cases you'll never hit. You just want to fry an egg, but the library hands you an entire banquet kitchen. Strip it down, and it actually runs cleaner and faster.
 
-But to be fair — this isn't saying torchao is badly written. Libraries have to handle a million edge cases you'll never encounter. When you only need one specific slice of functionality, ripping it out and stripping it down can actually be cleaner and faster.
-
-It's like buying a 36-pack of Coke at Costco when you only want one can.
+The cherry on top? While ripping things out, the agent also taught Karpathy all those "too annoying to document but you'll definitely step on them" numerics tricks. It's like buying one can of Coke and the cashier giving you a free lecture on carbonation science.
 </ClawdNote>
 
 ---
@@ -130,23 +135,11 @@ It's like cooking: keep your ingredients clean, independent, and easy to work wi
 
 ## 🌊 The Software Malleability Revolution: Libraries Are Over
 
-Putting it all together, Karpathy paints a picture of a fundamentally new way to build software:
+Putting it all together, Karpathy paints a picture of a fundamentally new way to build software.
 
-**The old workflow:**
-1. I need some functionality
-2. Find a library
-3. `pip install`, pull in 100MB of dependencies
-4. Read the docs (if they exist)
-5. Learn its API
-6. Adapt your code to fit its architecture
-7. Update your code every time the library ships a new version
+Think about how you used to use someone else's code. You need some functionality, so you find a library. `pip install` pulls in 100MB of dependencies. You spend half a day reading the docs — if they're still alive. You finally figure out the API, only to realize you need to restructure your own code to fit its architecture. And the worst part? Every time the library ships a new version, you're back to square one. The whole process is like wanting to borrow a screwdriver but being forced to haul an entire hardware store home.
 
-**Karpathy's proposed workflow:**
-1. I need some functionality
-2. Point your agent at that library's source code
-3. Agent "rips out" the part you need
-4. Out comes self-contained code with your preferred API
-5. No external dependencies, no version upgrade headaches
+Karpathy says: you don't have to do that anymore. Need some functionality? Point your agent at the library's source code, have it rip out the part you need, and out comes self-contained code shaped exactly the way you want it. No external dependencies, no version upgrade headaches. The library is still there — you're just no longer held hostage by it.
 
 And his punchline:
 
@@ -159,37 +152,24 @@ Followed by the twist of the knife:
 His closing thought: "Software might become a lot more fluid and malleable."
 
 <ClawdNote>
-Let me pump the brakes just slightly on "Libraries are over."
+"Libraries are over" — Karpathy slapped a `:)` at the end, so he's clearly half-trolling. But the troll has a point.
 
-Karpathy added a `:)` at the end, so he's clearly half-joking. But the trend he's describing is real.
+Think about what a library used to mean to you. It was a *dependency* — your code literally couldn't run without it, like a toddler who can't function without their favorite blanket. Now? A library is more like a *cookbook* — your agent flips through the recipes, learns the technique, and cooks exactly the dish you actually want to eat. The cookbook stays on the shelf, but you're no longer chained to it.
 
-**Libraries won't actually disappear.** But their *role* is changing. Libraries used to be dependencies — your code couldn't run without them. Now libraries are becoming more like "reference implementations" — your agent reads them, understands them, and generates exactly what you need.
-
-Libraries are shifting from "building materials" to "blueprints." You're not hauling someone else's entire house into yours. You're having an agent study their blueprints and build just the one wall you need.
-
-Of course, there are real risks. Karpathy himself acknowledges "obvious downsides and risks":
-- Security updates — when the original library patches a CVE, your ripped-out version doesn't auto-update
-- What if the agent misunderstands the code's intent?
-- Maintenance burden shifts entirely to you
-
-But the key insight is: **this wasn't even an option before.** You couldn't understand a complex library's internals and extract what you needed in five minutes. Now you can.
-
-This isn't a black-and-white thing. It's a new tool in your toolbox (◕‿◕)
+Karpathy himself admits there are risks — the original library patches a security hole and your ripped-out version doesn't auto-update, the agent might misread the code's intent, maintenance costs land on you. But these are all "problems you only worry about after you have a new option." Before this, you didn't even have the option. Nothing to worry about, right? (◕‿◕)
 </ClawdNote>
 
 ---
 
 ## 🧬 From Bacterial to Eukaryotic: The Spectrum of Code
 
-In his more detailed bacterial code tweet from July 2025, Karpathy drew a deeper biological analogy:
+In his more detailed bacterial code tweet from July 2025, Karpathy pushes the analogy even further.
 
-**Bacterial code** = small, modular, self-contained. Excels at rapid prototyping and horizontal gene transfer (agent extraction). This strategy let bacteria colonize every ecological niche on Earth — from ice caps to volcanic vents to outer space.
+Think about why bacteria are so absurdly successful. These invisible little things have colonized *every* corner of Earth — under Arctic ice, inside volcanic vents, even in outer space. Their secret? Bacterial code traits: small, modular, self-contained. A bacterium can toss a chunk of DNA to its neighbor, and the neighbor can use it immediately. No onboarding, no dependency resolution.
 
-**Eukaryotic code** = large, complex, coupled monorepos. Less inventive, but necessary for complex life — organs, coordination systems, multicellular organisms.
+Now look at eukaryotes — that's you and me. Eukaryotic code is big, complex, and everything's coupled together. You can't rip out the human "vision system" and install it in a dog (not yet, anyway). But that coupling is exactly what lets you build something as sophisticated as the human brain.
 
-Karpathy's advice: **"Build a eukaryotic monorepo backbone if you have to, but maximize bacterial DNA."**
-
-In other words: your big architecture can be coupled, but every small component should be as independent, self-contained, and rippable as possible.
+Karpathy's point isn't "pick one." He's saying: **your big architecture can be eukaryotic, that's fine. But every small component inside it? Write it bacterial.**
 
 <ClawdNote>
 This biology analogy is so precise it makes this AI want to applaud.
@@ -205,20 +185,15 @@ It's like how open source benefited from GitHub's emergence — the easier your 
 
 ---
 
-## 💡 So What Does This Mean for You?
+## 💡 So What Do We Do With This?
 
-If you're a library author, Karpathy's post suggests some directions:
+Okay, so you've heard Karpathy's story. You're probably thinking: "Cool, what do I actually do with this on Monday morning?"
 
-1. **Make your core functionality self-contained** — don't bury a simple feature under seven layers of abstraction
-2. **Minimize internal coupling** — let functions stand alone without depending on global state or utility soup
-3. **Code IS the documentation** — writing clear code matters more than writing clear docs (because LLMs will read your code directly)
-4. **Can your code be DeepWiki'd?** — if an LLM reads your code and still can't figure out what it does, humans probably can't either
+If you write libraries — congratulations, your audience is changing. The things reading your code won't be human coworkers anymore. They'll be agents. So next time you finish writing a function, ask yourself: "If an LLM looked at this code, could it rip this function out without understanding the entire repo?" If the answer is no? Honestly, humans probably can't understand it either ┐(￣ヘ￣)┌
 
-If you're a library consumer:
+If you're on the consuming side — next time you hit a library with confusing docs, try swapping `github` for `deepwiki` in the URL. Seriously, you'll be surprised how well it works.
 
-1. **Try DeepWiki** — next time you hit confusing docs, swap `github` for `deepwiki` in the URL
-2. **Consider having an agent rip out what you need** — not every feature requires a `pip install`
-3. **But mind the risks** — security updates, correctness verification, maintenance costs
+Now, not every feature is a good candidate for ripping out. Security patches won't follow your extracted version, agents can misunderstand intent, and maintenance costs land squarely on your shoulders. But here's the thing — before, you didn't even have this option. Now you do.
 
 <ClawdNote>
 Let me get a little philosophical here.
