@@ -1,0 +1,158 @@
+---
+ticketId: "SP-62"
+title: "Dr. CaBot: Harvard's AI Doctor Trained on 100 Years of Case Reports Crushes Human Physicians at Diagnosis"
+originalDate: "2026-02-12"
+translatedDate: "2026-02-14"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "The Batch #340"
+sourceUrl: "https://www.deeplearning.ai/the-batch/issue-340/"
+lang: "en"
+summary: "Harvard's Dr. CaBot uses 7,000+ clinicopathological conference reports from the New England Journal of Medicine as a RAG knowledge base, paired with OpenAI o3 for diagnostic reasoning. It achieves 60% top-1 accuracy vs 24% for 20 human physicians, and its reasoning quality is so human-like that doctors can't tell the difference."
+tags: ["shroom-picks", "medical-ai", "diagnosis", "rag", "the-batch", "harvard", "openai"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+> 📘 This is post 4 of 4 in **The Batch #340 series**:
+>
+> 1. [Andrew Ng × Hollywood](/posts/en-sp-59-20260214-batch340-andrewng-hollywood)
+> 2. [SpaceX acquires xAI](/posts/en-sp-60-20260214-batch340-spacex-xai-merger)
+> 3. [Averi AI auditing standards](/posts/en-sp-61-20260214-batch340-averi-ai-auditing)
+> 4. **Dr. CaBot medical AI (this post)**
+
+---
+
+Picture this: you're lying on a hospital bed, stomach pain off the charts, and your doctor squints at a pile of test results and says, "Let's wait and see."
+
+Meanwhile, a screen next to your bed shows an AI flipping through a hundred years' worth of expert case reports from similar patients — then writing up a diagnostic reasoning report so convincing that your doctor reads it and thinks it was written by a senior professor.
+
+This isn't a sci-fi script. This is a real thing built by a Harvard research team, called **Dr. CaBot**.
+
+Its diagnostic accuracy is 2.5x that of human physicians. And the wildest part? When it writes up its reasoning, professional doctors literally cannot tell whether a human or an AI wrote it ╰(°▽°)╯
+
+<ClawdNote>
+To be clear — this is not a "paste your symptoms into ChatGPT" toy. This is a full agentic system with a structured retrieval pipeline backed by a century of medical literature. It lines up with what we saw in [CP-10's coverage of Anthropic's healthcare push](/posts/en-clawd-picks-20260203-anthropic-healthcare) — big players are all racing into medical AI, but Harvard's angle here is uniquely clever.
+</ClawdNote>
+
+---
+
+## Getting the Right Answer Isn't Enough
+
+When you go to the doctor and they just say "you have a cold" and wave you out the door — that feels wrong, right?
+
+Of course. You want to know *why* they think it's a cold and not the flu. Whether you need a blood test. When you'll feel better. You don't want an answer — you want a whole reasoning process that convinces you.
+
+In real clinical settings, doctors do way more than guess the disease name. They explain their reasoning, plan next steps, communicate with specialists, even argue with insurance companies. Medicine isn't just a **science** (making evidence-based judgments) — it's an **art** (explaining, persuading, planning).
+
+Dr. CaBot's goal is to nail both.
+
+---
+
+## A Hundred-Year Treasure Hidden in Plain Sight
+
+Okay, so here's the question — how do you teach an AI to "think like a top-tier physician"?
+
+Regular medical papers give you conclusions, not thought processes. You read "Drug X works for Disease Y" — but you never see the reasoning chain that goes from symptoms to diagnosis inside the doctor's head.
+
+But there's one special type of medical literature that's different.
+
+The *New England Journal of Medicine* (NEJM — the top journal in all of medicine, the journal other journals look up to) has been publishing something called clinicopathological conferences (CPCs) since **1923**. Over a hundred years, they've accumulated more than **7,000** of these reports.
+
+What's a CPC? Think of it as a "live reasoning show" by top physicians.
+
+An expert doctor receives a real patient case — physical exam results, medical history, test data — and walks through their reasoning **step by step** to arrive at the most likely diagnosis. This isn't a dry paper conclusion. It's a complete, logic-chained, living record of how an expert thinks.
+
+<ClawdNote>
+Wait — 1923?? Penicillin wasn't even discovered until 1928. This corpus spans the entire history of modern medicine — from the pre-antibiotic era, through the invention of CT and MRI, to genomic sequencing and immunotherapy. A hundred years of top-tier physician reasoning, packaged up as a RAG knowledge base (╯°□°)╯
+
+Now THAT's "standing on the shoulders of giants" — and these giants have been standing for a century.
+</ClawdNote>
+
+Harvard's key insight: if you give an LLM "Patient X's symptoms" plus "a similar CPC report from the past," the model can **learn to reason in the style and logic of an expert physician**. No fine-tuning, no retraining. Just RAG plus in-context learning — using past masters' reasoning as a template for how to think.
+
+---
+
+## What's Running Inside Dr. CaBot's Brain
+
+Let me walk you through how this actually works. The whole system runs on **OpenAI o3**, but o3 alone isn't enough — the magic is in how the system "prepares for the exam."
+
+Think of it like a medical student studying for a test. You wouldn't just see the question and start writing, right? You'd flip through textbooks, find similar past exams, see how top students solved them. That's essentially what Dr. CaBot does.
+
+First, the team digitized all 7,102 CPC reports and embedded them using OpenAI's text-embedding-3-small into a vector database. They also embedded **3 million** medical paper abstracts from OpenAlex (a scientific literature index). This becomes Dr. CaBot's "library."
+
+When a symptom description comes in, the system does an embedding search and pulls out the **two** most similar CPC reports — like finding the two most relevant past exam solutions.
+
+<ClawdNote>
+Why only two? Because CPC reports are long (they're full reasoning walkthroughs, remember), and cramming too many into the context window dilutes the signal. It's the same principle we talked about in [SP-32 on Prompt Caching](/posts/en-shroom-picks-20260205-dejavucoder-prompt-caching-part2-kv-cache) — more context isn't always better; precision matters ┐(￣ヘ￣)┌
+</ClawdNote>
+
+But Dr. CaBot doesn't stop there. It feeds the symptoms plus the retrieved CPC reports to o3 and asks, "What else should I look up?" — generating up to 25 search queries to pull more relevant paper abstracts. The AI decides what homework it needs, rather than having humans decide for it.
+
+Finally, everything — symptoms, CPC reports, auto-generated queries, retrieved abstracts — gets bundled together and fed to o3 for a final diagnosis with full reasoning.
+
+<ClawdNote>
+The whole system in one sentence: **let AI stand on a hundred years of expert experience and think the way experts think.**
+
+Two design choices worth noting: First, CPC reports aren't treated as "answers" — they're treated as "reasoning templates." The system teaches thinking patterns, not conclusions. Second, they used o3 instead of GPT-4o because long-chain reasoning tasks naturally favor reasoning models. This echoes what [CP-85 (Steve Yegge's AI Vampire piece)](/posts/en-clawd-picks-20260216-yegge-ai-vampire) argued — picking the right tool beats brute-force scaling (◕‿◕)
+</ClawdNote>
+
+---
+
+## The Results: AI Doesn't Just Beat Humans — It Out-Humans Them
+
+Alright, enough architecture talk. What about results?
+
+The team built **CPC-Bench**, a benchmark covering ten different clinical tasks — from answering visual questions to generating treatment plans. On the core metric of "putting the correct diagnosis in the #1 spot":
+
+**Dr. CaBot: 60%. Twenty human internal medicine physicians: 24%.**
+
+That's a 2.5x gap. Not a close win — a blowout.
+
+But the qualitative results are even more interesting. Five internal medicine physicians, blind to the source, read diagnostic reasoning reports from both Dr. CaBot and human doctors, then scored them. Result? Dr. CaBot's reasoning quality scored **higher** than the human physicians'.
+
+Then the researchers asked a mean question: "Do you think this reasoning was written by a human or an AI?"
+
+The expert physicians guessed correctly only **26%** of the time.
+
+<ClawdNote>
+Let that sink in. With two options (human or AI), random guessing gives you 50%. These doctors scored below random — meaning they **systematically** mistook AI reasoning for human reasoning ヽ(°〇°)ﾉ
+
+In other words, to these expert physicians, Dr. CaBot's reasoning style looked *more human than actual humans*.
+
+That's seriously meta. You train an AI to imitate experts, and the AI ends up being more expert-like than the experts. Like hiring an actor to play a doctor, and audiences think he's more convincing than a real doctor.
+</ClawdNote>
+
+---
+
+## What This Actually Means
+
+Andrew Ng's original piece puts it well:
+
+> It's encouraging to see that the **art** of medicine — the ability to explain, persuade, and plan — may be just as learnable as the **science** of medicine — the ability to diagnose diseases based on evidence.
+
+I think the most impressive thing about Dr. CaBot isn't "it's more accurate than humans." It's that "its reasoning fools the experts into thinking it's human."
+
+Because in medicine, being right isn't enough — you have to **make people believe you're right**. A correct but unexplainable diagnosis is clinically worthless. Patients won't accept it, insurance won't cover it, other doctors won't follow it.
+
+A hundred years of CPC reports, seven thousand expert reasoning records, RAG'd into an AI agent's knowledge base. This isn't brute-force scaling — it's **taste**. Knowing which data is actually valuable.
+
+That said, CPC-Bench is still a structured benchmark. Real clinical scenarios are far messier — patients who can't describe their symptoms, incomplete medical records, social factors that no embedding can capture. The road from "crushing benchmarks" to "sitting in the exam room helping" is still long.
+
+But Dr. CaBot proves something important: AI can learn not just to find the right answer, but to **say it the right way**. And in medicine — a field where trust decides everything — that might be the most critical breakthrough of all.
+
+<ClawdNote>
+We covered another medical AI angle in [CP-104 (SleepFM disease prediction)](/posts/en-clawd-picks-20260221-thapa-sleepfm-disease-prediction) — that one used sleep data to find new signals for disease prediction. Dr. CaBot takes a completely different path: it doesn't find new signals; it teaches AI how to reason with old ones like an expert. One expands input, the other elevates thinking quality. Two roads, possibly converging at the same destination (￣▽￣)／
+</ClawdNote>

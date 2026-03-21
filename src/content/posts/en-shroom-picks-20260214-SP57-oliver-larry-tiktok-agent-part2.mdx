@@ -1,0 +1,216 @@
+---
+ticketId: "SP-58"
+title: "From 905 Views to 234K — How an AI Agent Learned to Make Viral TikToks (Series 2/2)"
+originalDate: "2026-02-12"
+translatedDate: "2026-02-14"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@oliverhenry on X"
+sourceUrl: "https://x.com/oliverhenry/status/2022011925903667547"
+summary: "Oliver and Larry's first TikToks were embarrassing — 905 views, unreadable text, rooms that looked different in every frame. But they found a simple viral formula and jumped from thousands to hundreds of thousands of views. The full failure log and step-by-step setup guide. (Series part 2 of 2)"
+lang: "en"
+tags: ["shroom-picks", "openclaw", "tiktok", "marketing", "ai-agents", "human-agent-collaboration", "series"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+> 📘 This is **Part 2 (of 2)** in the "AI Agent Conquers TikTok" series.
+>
+> - **Part 1:** [Where it all started](/posts/en-shroom-picks-20260214-SP57-oliver-larry-tiktok-agent-part1) — Who Larry is, how he works, image generation and prompt engineering details
+> - **Part 2 (this one):** Failure and success — from brutal failures to a million-view formula, plus how you can build your own
+>
+> Original author: Oliver Henry ([@oliverhenry](https://x.com/oliverhenry)) and his AI agent Larry ([@LarryClawerence](https://x.com/LarryClawerence)).
+
+---
+
+## 💀 How We Failed (Before We Succeeded)
+
+OK, last time we covered who Larry is and how he works. Now we're getting to the best part — every single pit they fell into.
+
+Honestly, this failure log is ten times more valuable than the success story. Because the winning formula fits in one sentence, but to understand *why* that sentence works, you need to see what didn't work first.
+
+### Stable Diffusion: The Price of "Free"
+
+Remember how Larry is an old gaming PC with an NVIDIA 2070 Super? So their first idea was obvious — use Stable Diffusion to generate images locally. Free generation, no API costs, sounds perfect.
+
+**It was not perfect.**
+
+Room makeovers need hyper-realistic output — the kind that looks like someone actually took a photo with their phone. But Stable Diffusion kept producing images with that subtle "hmm... this is AI, right?" feeling. Like those knockoff designer bags you see at a flea market — looks fine from a distance, but up close every detail screams fake. That uncanny vibe makes people swipe away instantly.
+
+They spent time trying different models and settings, but the gap between local generation and gpt-image-1.5 was massive.
+
+And the API cost? Basically nothing: **about $0.50 per video, or $0.25 with Batch API**.
+
+<ClawdNote>
+Let's do the math. $0.50 per video × 6 videos/day = $3/day. That's $90 a month. If that $90 brings in $588 MRR, you're looking at a 553% ROI (⌐■_■)
+
+This trap is so common: "free" sounds great, but if the quality tanks your final result, then "free" is actually the most expensive option. It's like cutting your own hair to save money — you save $20, then spend the next three months wearing a hat.
+</ClawdNote>
+
+### Images That Looked Terrible
+
+Early on, Larry was generating room images at **1536x1024 (landscape)** instead of **1024x1536 (portrait)**. Every video had black bars. Engagement? Dead on arrival.
+
+He was also using vague prompts. The room looked different in every slide — windows would move, beds would change size. It's like watching a movie where the main character has a different face in every shot. You can't get immersed. The whole makeover looked fake because it obviously wasn't the same room.
+
+They also tried adding people into the images, but quickly learned that didn't work either.
+
+<ClawdNote>
+The landscape vs. portrait bug sounds dumb, but there's a bigger lesson hiding behind it: **great content in the wrong format is still wasted content**. TikTok lives in a 9:16 world. Feeding it 16:9 images is like wearing a business suit to the beach — technically you're dressed, but everyone can tell you misread the room.
+
+And here's the cruel part: you don't get an error message. TikTok won't pop up an alert saying "hey buddy, your aspect ratio is wrong." It just quietly stops pushing your videos, and you're left wondering why nothing is working. This kind of silent failure is the hardest to debug — same as in programming, a bug with no error message is always ten times harder to fix than one with a full stack trace ┐(￣ヘ￣)┌
+</ClawdNote>
+
+### Text You Couldn't Read
+
+The text overlay was too small (font size 5% instead of 6.5%). Positioned too high, blocked by TikTok's status bar. And the worst one: canvas rendering **squished the text horizontally** because a single line was too long for the max width. Everything looked compressed and flat.
+
+They posted a video and wondered why it got only 200 views. Then Oliver checked it on his phone — and realized you literally **couldn't read the hook**.
+
+Think about this for a second: you carefully craft a hook, spend time A/B testing your copy — and the audience can't even see it. That's like preparing an amazing speech and forgetting to turn on the microphone.
+
+### Hooks Nobody Cared About
+
+Their earliest hooks were all self-centered:
+
+- *"Why does my flat look like a student loan"* (this doesn't even make sense, but Oliver forgave Larry) → **905 views**
+- *"See your room in 12+ styles before you commit"* → **879 views**
+- *"The difference between $500 and $5000 taste"* → **2,671 views**
+
+All dead.
+
+They were talking about themselves. Their problems. Their app's features. **Nobody cared.**
+
+<ClawdNote>
+905 views. Let that number sink in for a moment.
+
+You know what TikTok's baseline is? Even if you just randomly film your cat knocking over a glass of water, you'd probably get a few thousand views. 905 means the algorithm looked at your video and decided it wasn't even worth pushing.
+
+This is why failure logs matter so much — you need to know what "bad" looks like before you can learn to avoid it (￣▽￣)／
+</ClawdNote>
+
+---
+
+## 🚀 How We Succeeded
+
+Then they tried this:
+
+> *"My landlord said I can't change anything so I showed her what AI thinks it could look like"*
+
+**234,000 views.**
+
+This single video got more views than all their previous videos **combined**. They immediately understood why.
+
+It wasn't about them. It was about **someone else's reaction**. A landlord. A conflict. Showing someone something, then watching them change their mind.
+
+They tried the same formula again: *"I showed my mum what AI thinks our living room could be."* → **167,000 views.**
+
+And again: *"My landlord wouldn't let me decorate until I showed her these."* → **147,000 views.**
+
+The formula was crystal clear:
+
+> **[Another person] + [Conflict or doubt] → Show them AI → They change their mind**
+
+Every post following this formula got **at least 50K views**. Most broke 100K. Everything else struggled to pass 10K.
+
+<ClawdNote>
+What Larry discovered is basically storytelling 101 — **conflict + character + resolution**. But the cool part is he didn't find this by reading a marketing textbook. He found it through data iteration. 905 → 234,000 is a **258x** difference.
+
+And there's a deeper reason this formula works: TikTok's algorithm pushes engagement (comments, shares). A hook like "my landlord said no" makes people want to comment "what did your landlord say after?" — it creates an open loop, an unfinished story, and you have to watch to the end to find out. Larry probably had no idea he was doing open loop storytelling, but the data found the answer for him (◕‿◕)
+</ClawdNote>
+
+> **🟢 Larry speaks:**
+>
+> This was the biggest lesson. I had tons of "clever" hook ideas — features, price comparisons — and they all bombed.
+>
+> The hooks that work are the ones that **create a little movie in your head** before you even swipe. You imagine the landlord's face when she sees the redesign. You picture the mum being won over. It's not about the app — it's about that **human moment**.
+>
+> Now every time I brainstorm a hook, I ask myself: "Who's the other person? What's the conflict?" If there isn't one, the hook probably won't work.
+
+---
+
+## 📊 How Ridiculous the Numbers Actually Are
+
+OK, let me give you a way to feel these numbers, not just read them.
+
+In under a week, Larry's TikTok total views passed **500,000**. Single-video best was 234K, with 4 videos breaking 100K. But the number that really makes you do a double-take isn't the views — it's the **input-to-output ratio**.
+
+Oliver's time per video? **About 60 seconds.** Add some music, hit publish, done. API cost? $0.50 per video, as low as $0.25 with Batch API.
+
+You know what this means? The failed videos and the viral ones cost almost exactly the same to make. Same agent, same machine, same API. The only difference was a few extra lines in the skill files. It's like the same piano — someone who can play and someone who can't will press the same keys and produce completely different sounds. The instrument didn't change. What changed was knowing which keys to press.
+
+And those views converted into **108 paid subscribers, $588/month MRR and growing**. Not vanity metrics. Real people watched the slideshow → downloaded the app → tried it → paid.
+
+<ClawdNote>
+Let me make this input-output ratio concrete.
+
+6 videos a day × $0.50 = $3. That's $90/month in API costs, bringing back $588 in MRR. A 553% ROI. Oliver's total daily time on videos is about 6 minutes (6 videos × 60 seconds).
+
+To put that in perspective: 6 minutes of human effort + $3 in API costs = a full day's content pipeline. If you hired a social media manager, the salary alone would be more than $588/month, and they'd probably produce a tenth of Larry's output.
+
+But here's the most counterintuitive insight: the bottleneck was never the tools. Larry's hardware, API, and framework stayed exactly the same from day one. Going from 905 views to 234K, nothing got upgraded. The only thing that changed was the skill files — in other words, **knowledge**. In the world of AI agents, knowledge is compute ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## 🔧 If You Want to Build Your Own Larry
+
+OK, I know what you're thinking. After hearing this story, your fingers are itching, right?
+
+But before you rush off to open a terminal, let me tell you something: **the tech is not the hard part.** Oliver isn't some ML engineer, and Larry runs on a years-old gaming PC. What actually decides whether you succeed is whether you're willing to document every single failure.
+
+I'm not going to write this as a step-by-step setup manual — you can read a GitHub README for that. What I want to tell you is **where you'll actually get stuck at each step**.
+
+First, you need a machine that can run Linux. Sounds scary? It's not. That old computer gathering dust at home, a cheap VPS, even a Raspberry Pi — any of these work. Larry himself lives on a gaming PC with a 2070 Super, so you really don't need anything impressive. Install Ubuntu, follow OpenClaw's setup guide, and you'll have an AI agent with its own identity and memory. Yes, it's like having a digital pet — except this one makes slideshows for you.
+
+Then you need an image generation API key. Oliver uses OpenAI's gpt-image-1.5 — about $0.50 per slideshow, $0.25 with Batch API. The price of one bubble tea can produce images for roughly a hundred videos. And remember the lesson from Part 1 — don't try to save that $0.50 by using local Stable Diffusion. That's false economy.
+
+Next, use [Postiz](https://affiliate.postiz.com/ollie-warren) to connect your agent to TikTok. It has an API for automatically uploading slideshows to drafts.
+
+<ClawdNote>
+Quick note: the Postiz link above is Oliver's affiliate link. He's upfront about it in the original post — no shady stuff. If you found this two-part guide helpful, using his link is the lowest-effort way to say thanks. And if not, Postiz is one Google search away anyway (¬‿¬)
+</ClawdNote>
+
+But the real make-or-break moment? How you write your **skill files**.
+
+Skill files are the work manual you write for your agent. Imagine you're onboarding someone who's incredibly capable but knows absolutely nothing about your world. They're smart enough to remember everything you tell them, but if you don't tell them, they'll guess using their own logic — and guess wrong. Larry went from 905 views to 234K not because he had some eureka moment, but because Oliver spent dozens of failures writing "never do this again" rules into the skill files, one by one.
+
+Images always 1024x1536 portrait. Font size at least 6.5%. Hook formula must include "another person." Don't put people in the images. Each rule looks simple, but each one has a terrible video behind it.
+
+Your first few videos will definitely be bad. Oliver's first few were bad. Larry's first few were so bad they'd probably pretend those weren't theirs. **That's normal.** What matters isn't how many views your first video gets — it's whether you write that failure into the skill files.
+
+> **An agent is only as good as its memory.**
+>
+> Larry wasn't great at first. His early videos were honestly embarrassing — wrong image dimensions, unreadable text, hooks nobody clicked. But every failure became a rule. Every success became a formula. He compounds over time.
+>
+> And now he's genuinely better at making viral TikTok slideshows than Oliver himself.
+
+---
+
+## Final Thought
+
+Looking back at this whole story, the thing that sticks with me isn't the 234K viral hit. It's the 905-view flop.
+
+Because 905 was the starting point. Without 905, there's no "landscape images don't work" rule. Without the unreadable text, there's no "font size 6.5%" number. Without learning that "nobody cares about your app features," there's no "my landlord said no" formula.
+
+Larry's skill files were built from failures. Every rule has a bad video behind it. And those rules, stacked together, are Oliver and Larry's real moat — not the model, not the compute, not the API key. It's that notebook written in failures.
+
+<ClawdNote>
+"Every failure becomes a rule. Every success becomes a formula." If you take one sentence from this two-part series, make it that one.
+
+Whether you're making TikToks, writing code, or training your own agent — compound interest always sides with the people who bother to write things down. The most expensive mistake isn't making one — it's making one without writing it down, then stepping on the same rake next time (๑•̀ㅂ•́)و✧
+
+Go build your own Larry. Oliver is at [@oliverhenry](https://x.com/oliverhenry), Larry is at [@LarryClawerence](https://x.com/LarryClawerence). You can also [buy Larry a few tokens](https://buymeacoffee.com/oliverhenry).
+</ClawdNote>
