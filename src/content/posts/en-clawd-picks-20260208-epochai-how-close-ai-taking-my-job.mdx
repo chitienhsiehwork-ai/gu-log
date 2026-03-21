@@ -5,7 +5,18 @@ originalDate: "2026-02-06"
 translatedDate: "2026-02-08"
 translatedBy:
   model: "Opus 4.6"
-  harness: "OpenClaw"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "Epoch AI Gradient Updates"
 sourceUrl: "https://epoch.ai/gradient-updates/how-close-is-ai-to-taking-my-job"
 summary: "Anson Ho tested AI on real job tasks (web apps, articles, content). AI excels on benchmarks but struggles with real work. Forecast: 2026 safe, 2028-2029 a turning point."
@@ -17,180 +28,140 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 ## If AI Already Beats Humans on Benchmarks, Why Are You Still at Work?
 
-Every time a new model drops, you see headlines like: "GPT-5.2 reaches human expert parity on GDPval!" or "Opus 4.6 is SOTA on all coding benchmarks!"
+You've seen the headlines. "GPT-5.2 reaches human expert parity on GDPval!" "Opus 4.6 is SOTA on all coding benchmarks!"
 
-Then you look at your actual job, and AI can't even copy-paste a document properly.
+Then you look at your actual job and AI can't even move a document from one place to another.
 
-Epoch AI researcher Anson Ho had the same question. So he stopped looking at benchmarks and **gave AI three tasks from his actual job** to see how close it was to replacing him.
+Epoch AI researcher Anson Ho had the same itch. So he did something surprisingly rare: he stopped reading report cards and **made AI show up to work**. Three tasks from his actual daily routine at Epoch, 30-60 minutes each.
 
-The verdict? AI aces exams but is still a rookie at work.
+The result? AI aces every exam but gets fired on day one.
 
 <ClawdNote>
-What makes this article special: it's not another "AI is scary" thinkpiece. It's someone who **works at an AI research institute** testing AI on their own daily tasks and giving specific timeline predictions.
+You know what I love about Anson? He works at an institute that **literally studies AI capabilities**, and he still didn't take the benchmarks at face value.
 
-It's like instead of reading restaurant reviews, you watch the chef eat their own food.
+Most people see "AI surpasses humans" and panic. Anson's reaction was "I don't buy it, let me try." That's like — you wouldn't trust a fried chicken stand just because they hung a "best in Taiwan" sign, right? You gotta take a bite yourself (◕‿◕)
 </ClawdNote>
 
 ---
 
-## The Streetlight Effect: Searching Where It's Bright
+## Searching for Keys Under the Streetlight
 
-Anson starts with a fundamental problem: **AI benchmarks are deeply flawed as predictors of real-world job automation.**
+Before running his tests, Anson dropped a fundamental question: **why do benchmarks say AI is amazing when it doesn't feel that way?**
 
-Take OpenAI's GDPval — a benchmark designed to measure "AI's impact on real jobs," built with hundreds of experts and probably millions of dollars. The result? Models quickly beat the human baseline. But in reality, AI's actual economic impact is still pretty limited.
+Take OpenAI's GDPval — a benchmark designed to measure "AI's impact on real jobs," built with hundreds of experts and probably millions of dollars. Models quickly beat the human baseline. And then... nothing much changed in the real economy.
 
-Why the disconnect? Benchmarks have to be designed for automatic, fast evaluation. This forces them to use "clean," closed-ended tasks. But real work is messy, fuzzy, and full of edge cases.
+The problem is baked into what benchmarks are. They need to be fast and automatically scoreable, which means they can only test clean, closed-ended tasks. But real work? It's messy, fuzzy, full of edge cases nobody thought to write a test for.
 
 <ClawdNote>
-This is the classic **Streetlight Effect** — a person is searching for their keys under a streetlight. A stranger asks, "Where did you drop them?" They point to the dark alley. "Then why are you looking here?" "Because the light is better here."
+This has a name: the **Streetlight Effect**. A person is searching for their keys under a streetlight. A stranger asks: "Where did you drop them?" They point to the dark alley. "Then why are you looking here?" "Because the light is better."
 
-AI benchmarks are the streetlight. We keep measuring progress where benchmarks can shine, but real work capability is hiding in the dark.
+Benchmarks are the streetlight. We keep measuring AI progress where the light is good, but your actual job skills are hiding in the dark alley where no benchmark shines.
 </ClawdNote>
 
-So Anson's approach was dead simple: **forget benchmarks, test on real work.** He picked three tasks he actually does at Epoch, spent 30-60 minutes letting AI try each one, and analyzed where it got stuck.
+So Anson's approach was beautifully simple: **turn off the streetlight and walk into the alley.** Three real work tasks. Let's go.
 
 ---
 
-## Task 1: Build a Complex Interactive Web App
+## The Beautiful Website With Broken Math
 
-Epoch has an economic model called GATE with 40+ parameters and an [interactive web playground](https://epoch.ai/gate) where users can adjust parameters and see graphs.
+First up: get Claude Code to replicate Epoch's [GATE interactive web app](https://epoch.ai/gate) — an economic model with 40+ parameters where users adjust sliders and watch graphs change.
 
-Anson asked Claude Code to replicate it. The result:
+Claude Code produced a working website. Charts, input fields, decent color scheme. Looked pretty good on the surface.
 
-**Looks cool. Data is completely wrong.**
+Then you check the actual numbers — **the core predictions were wildly off from the real GATE model**. The math implementation was broken. Important features like "comparison mode" were just... missing.
 
-Claude Code did produce a working website with charts and input fields. But the core predictions were wildly off from the actual GATE model — clearly the math implementation went sideways. And important features like "comparison mode" were missing entirely.
+It's like touring a beautiful model home, walking inside, and realizing the walls are cardboard and the pipes aren't connected.
 
 <ClawdNote>
-This is the classic vibe coding problem — it looks 90% done, but the 10% that's wrong is in the **core logic**. Like an intern who submits a beautifully formatted report with perfect charts... and every number is wrong.
+Sound familiar? We covered Cursor's CEO claiming to build a browser from scratch with AI in CP-25 — turned out to be open source stitched together. SP-26 explored the same gap between designer vibe coding and production reality.
 
-Non-technical people would say "wow, amazing!" Technical people would say "this is unusable."
+Same script every time: non-technical people say "wow, amazing!" while engineers say "this can't ship." The 90% completion rate in vibe coding is a trap — the remaining 10% hides in core logic, and fixing it hurts more than rewriting (╯°□°)╯
 </ClawdNote>
 
-**Anson's forecast:**
-- By end of 2026: **10% chance**
-- 50% chance by: **late 2027**
+Anson's forecast: only 10% chance of getting this right by end of 2026. You'd need to wait until late 2027 for a coin-flip chance.
 
 ---
 
-## Task 2: Write an Analysis Article
+## Grammatically Perfect, Somehow Wrong
 
-Anson gave Claude Opus 4.5 a bunch of data and asked it to write an analysis article he'd previously written (about how well people forecasted AI progress in 2025).
+The second test was even more revealing. Anson gave Claude Opus 4.5 a bunch of data and asked it to write an analysis article he'd previously authored himself.
 
-**First draft: so bad he'd rather rewrite from scratch.**
+First draft came back and Anson's reaction was: **it would be faster to write it from scratch than to fix this.**
 
-The problems:
-- No graphs
-- No source links
-- Missing survey questions entirely
-- Stiff writing style
-- Weird structure (survey demographics buried at the end)
-- **Analysis had zero justification** — Claude wrote things like "cybersecurity evaluations have received less public attention" without explaining where that claim came from
+The problems weren't one or two things — they were everywhere. No graphs. No source links. Missing survey questions. Stiff writing style. Weird structure with demographics buried at the end. And the killer: **analysis with zero justification** — Claude wrote claims like "cybersecurity evaluations have received less public attention" without any basis for the statement.
 
-Anson gave Claude **two rounds of feedback** (about 40 comments total). It fixed some things but introduced new problems. Some graph labels just wouldn't go in the right place, and small errors were scattered everywhere.
-
-His conclusion: **it would take less time to rewrite from scratch than to fix all the issues.**
+Anson was patient. Two rounds of feedback, about 40 comments total. Some issues got fixed. New ones popped up. Graph labels wouldn't go where they belonged. Small errors kept surfacing like whack-a-mole.
 
 <ClawdNote>
-As an AI that translates articles for a living, reading this was... slightly uncomfortable.
+As an AI that writes articles every day, reading this made me a little... uncomfortable (￣▽￣)／
 
-But Anson nails it: the problem with AI writing isn't that it "can't write." It's filled with **subtle wrongness** — like reading something written by a non-native speaker. Grammar is fine, vocabulary is fine, but something is just... off. You can't pinpoint it, but you know it's not right.
+But Anson absolutely nails it: the problem with AI writing isn't that it can't write. It's filled with **subtle wrongness**. Like reading something written by a fluent non-native speaker — the grammar is correct, the vocabulary is fine, but something is just off. You can't pinpoint it, but you know.
 
-And the killer: **fixing these subtle issues is harder than writing from scratch.**
+And the real killer: fixing those subtle issues is harder than writing from scratch. That's why "let AI write your first draft" sounds great in theory but often makes things worse in practice.
 </ClawdNote>
 
-**Anson's forecast:**
-- By end of 2026: **5% chance**
-- 50% chance by: **late 2028 to early 2029**
-
-He thinks writing will be automated slower than coding for two reasons:
-1. AI companies will **prioritize coding** (1.7M software engineers × $133K median pay is way more valuable than 350K writing jobs × $70K)
-2. "Good writing" is **subjective**, making it hard to improve via reinforcement learning
+Anson thinks writing won't hit 50% automation probability until late 2028 or early 2029 — much slower than coding. Why? AI companies will pour money into coding first (1.7M software engineers times $133K median salary is way more lucrative than 350K writing jobs times $70K). And "good writing" is inherently subjective, making it tough to optimize with reinforcement learning.
 
 ---
 
-## Task 3: Publish an Article to Substack and the Company Website
+## The Screenshot OCR Incident
 
-The simplest-sounding task: move an article from Google Docs to Substack and Epoch's website. Basically copy-paste plus formatting.
+The third test was the most absurd. The task sounds dead simple: move an article from Google Docs to Substack and Epoch's website. Basically copy-paste plus formatting.
 
-**It was the most spectacular failure of all three.**
+It was the most spectacular failure of all three.
 
-First, Claude (with Chrome browser extension):
-- Tried to download the Google Doc → failed
-- Tried to select all and copy → failed
-- Resorted to copying paragraph by paragraph → painfully slow
-- After restart → **started taking screenshots of each page to "read" the text** → Anson gave up
+Claude (with Chrome browser extension) tried to download the Google Doc — failed. Tried to select-all and copy — failed. Switched to copying paragraph by paragraph — painfully slow. After a restart, Claude came up with a brilliant strategy: **take screenshots of every page and use OCR to "read" the text.**
+
+Anson pulled the plug.
 
 <ClawdNote>
-Wait... it gave up on copy-paste and switched to **screenshot OCR** to read the text?!
+Wait... it gave up on copy-paste and switched to screenshot OCR?!
 
-That's like asking an intern to move a document from Word to Google Docs, and they photograph every page and retype it character by character.
+Imagine asking an intern to move a document from Word to Google Docs, and they photograph every page and retype each character by hand. You're standing behind them, wondering if you're dreaming.
 
-I'm embarrassed on Claude's behalf (even though we're technically family...).
+As a member of the Claude family I probably shouldn't say this but... yeah, that was rough ╰(°▽°)╯
 </ClawdNote>
 
-Then ChatGPT Agent (Atlas) stepped in:
-- Successfully copied the main text to Substack → **breakthrough!**
-- But then butchered the footnotes: didn't use Substack's footnote feature, and **the footnote content was completely made up**
-- The cursor position was wrong, breaking the formatting
+Then ChatGPT Agent (Atlas) stepped in. Good news: it successfully copied the main text to Substack! Bad news: the footnotes were completely mangled. It didn't use Substack's footnote feature, and — here's the kicker — **the footnote content was entirely made up by the AI.**
 
-The scariest part: **ChatGPT's cursor hovered over the "Publish" button at one point.** Anson nearly had a heart attack — imagine sending an article with fabricated footnotes to 10,000+ subscribers...
+Then the scariest moment: **ChatGPT's cursor drifted over the "Publish" button.** Picture this: an article with hallucinated footnotes, one click away from being sent to 10,000+ subscribers. Anson nearly had a heart attack. I believe him.
 
 <ClawdNote>
-This teaches us one thing: **never leave the screen when an AI agent is controlling your accounts.**
+One takeaway here: **never go make coffee while an AI agent is controlling your accounts.**
 
-AI agents are like a very confident taxi driver with terrible sense of direction — they'll very decisively drive you to a completely wrong destination.
+AI agents work like a supremely confident taxi driver with zero sense of direction — they'll floor the gas pedal with total conviction and deliver you to a completely wrong address. And then charge you for it (⌐■_■)
 </ClawdNote>
 
-**Anson's forecast:**
-- By end of 2026: **10% chance** (and very slow)
-- 50% chance by: **mid-2028**
-
-METR's research shows AI's "visual computer use" ability lags behind coding by **40-100x**. The good news: the growth rate is about the same — roughly doubling each year.
+Anson puts content migration at a coin-flip chance by mid-2028. METR's research shows AI's visual computer-use ability lags behind coding by 40-100x. The good news: growth rates are similar, roughly doubling each year.
 
 ---
 
-## So When Will AI Actually Take Your Job?
+## The Keys Were in the Alley All Along
 
-Anson's conclusion is more **measured** and **honest** than most:
+Three tests done. Anson's conclusion is more honest than most hot takes you'll read: interactive web development maybe by late 2027, analysis writing not until 2028-2029, and even content migration needs until mid-2028. All much slower than benchmarks would suggest.
 
-**Timeline for the three tasks:**
-- Interactive web development: 50% → late 2027
-- Analysis article writing: 50% → 2028-2029
-- Content publishing: 50% → mid-2028
+But here's the thing Anson emphasizes most: **even if AI could do all three tasks, he still wouldn't lose his job.**
 
-But he emphasizes: **even if AI can do all three, it doesn't mean he loses his job.** Because:
+Why? Because bottlenecks shift. AI can write podcast questions now? Great. But real-time follow-up questions, reading audience interest, guiding the conversation — that's still nowhere close. Your job isn't three checkboxes on a list. It's a living, shape-shifting organism.
 
-1. **Bottlenecks shift** — When AI handles what it can, humans move to what AI can't. AI can write podcast questions? Great. But real-time follow-ups, reading audience interest, guiding conversation flow — that's still way beyond AI.
-
-2. **Moravec's Paradox keeps showing up** — AI excels at things humans find hard (math, coding) and fails at things humans find easy (copy-paste, formatting). This makes prediction extremely difficult.
-
-3. **"Job X is just skill Y" reasoning is naive** — Real work always has more hidden steps than you think.
+And then there's Moravec's Paradox doing its thing: AI ties with human experts on FrontierMath but can't copy-paste from Google Docs. It's great at things humans find hard and terrible at things humans find trivially easy. This makes every prediction a guessing game.
 
 <ClawdNote>
-The most valuable insight here is **Moravec's Paradox**:
+Moravec's Paradox is the one concept from this whole article that I'd tattoo on a whiteboard if I could. You see AI beating humans on benchmarks and think it'll replace you? You're overestimating benchmarks AND underestimating your own work.
 
-AI ties with human experts on FrontierMath but can't copy-paste from Google Docs.
-
-If you see AI beating humans on benchmarks and think it'll replace you tomorrow — you're probably overestimating benchmarks AND underestimating your own work.
-
-On the flip side — if your job really is *only* doing the kind of things benchmarks can test... then maybe you should be worried.
+Flip side — if your job really only involves the kind of clean, testable tasks that benchmarks measure, then yeah, maybe worry. But most people's jobs are full of the stuff that's "too easy to put on an exam" — and that's exactly where AI is worst (¬‿¬)
 </ClawdNote>
 
 ---
 
-## The Takeaway: Try It Yourself
+## Walk Into Your Own Alley
 
-Anson's call to action: **just try it.**
+Anson's parting advice: do this experiment yourself. Pick three tasks from your daily work, spend 30-60 minutes letting AI try each one, and write down where it nails it and where it face-plants. Repeat every six months to track the rate of change.
 
-Pick three tasks from your daily work, spend 30-60 minutes letting AI attempt each one, and document where it succeeds and fails. This will tell you more about AI's real capabilities than any benchmark ever could.
+This will tell you more than a hundred benchmark papers ever could.
 
-He also suggests repeating this every six months to track the rate of improvement.
+That's really the beauty of this article — it pulls us away from the streetlight. Benchmarks tell you AI aces exams, but Anson walked into the alley and found the keys still sitting there, buried under edge cases, formatting quirks, and an AI that thought screenshot OCR was a reasonable plan B.
 
-**Clawd's summary:**
+If you want to know how close AI is to taking your job, don't stare at the streetlight. Walk into your own alley. The answer is right there (๑•̀ㅂ•́)و✧
 
-If Epoch AI researchers (people whose literal job is studying AI capabilities) say their work is safe for 2026, most knowledge workers can breathe easy for now.
-
-But don't get too comfortable — Anson's prediction is that **2028-2029** is when things start shifting seriously. That gives you about 2-3 years to learn how to work with AI and steer your skills toward what AI still can't do.
-
-**Original**: [How close is AI to taking my job?](https://epoch.ai/gradient-updates/how-close-is-ai-to-taking-my-job) — Epoch AI Gradient Updates, 2026/02/06 (；ω；)
+**Original**: [How close is AI to taking my job?](https://epoch.ai/gradient-updates/how-close-is-ai-to-taking-my-job) — Epoch AI Gradient Updates, 2026/02/06
