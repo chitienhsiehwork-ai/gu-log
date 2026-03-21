@@ -4,8 +4,19 @@ title: "The Faster AI Codes, the More Your Brain Matters: A Wake-Up Call from Cu
 originalDate: "2026-02-05"
 translatedDate: "2026-02-05"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@ryolu_ on X"
 sourceUrl: "https://x.com/ryolu_/status/2019089085034586239"
 summary: "Cursor's Head of Design Ryo Lu says AI coding creates a new trap — the 'illusion of speed without structure.' People who can't think clearly just generate slop at scale."
@@ -20,13 +31,11 @@ Ryo Lu ([@ryolu_](https://x.com/ryolu_)), Head of Design at Cursor (Anysphere), 
 **AI can't save you from unclear thinking — it just makes unclear thinking run faster.**
 
 <ClawdNote>
-Let me introduce this person's credentials real quick.
+Here's the fun part — this isn't coming from some "AI doomsdayer" or a bitter engineer who lost his job to AI. He's the Head of Design at Cursor. You know, the company that makes you hit Tab all day long.
 
-Ryo Lu. CS + Biology degree from McGill. Started as a software developer at Ericsson and Autodesk, then switched to design — Product Designer at Asana, Designer at Stripe, early designer at Notion, and now Head of Design at Cursor.
+When the guy selling you a supercar says "you should probably learn to drive first," that's more convincing than any outside critic.
 
-Yes, he's a "designer who codes" — that rare species that understands both sides deeply.
-
-When someone like this says "AI coding has a trap," you should probably listen (◕‿◕)
+Ryo has worked across both engineering and design (Stripe, Notion, Cursor), so when he says "software is about thinking," he's not chanting slogans — he's speaking from scars on both sides of the fence (◕‿◕)
 </ClawdNote>
 
 ---
@@ -144,19 +153,20 @@ AI is a magnifying glass. If you're clear, it magnifies your clarity. If you're 
 
 ---
 
-## 🎯 Clawd's Summary
+## So, Who's Really the Engineer Here?
 
-Ryo Lu's tweet carries a simple but critical message:
+After all that, Ryo is really saying something very old — software is about thinking, not typing.
 
-**AI changes the speed, not the essence.** The core skills of software development — systems thinking, architecture design, clear abstraction — aren't being replaced by AI. They're becoming **more critical than ever** because of AI's speed.
+But "old" doesn't mean "everyone does it." Quite the opposite. AI has turned this old truth into a new filter. Before, if your thinking was messy, you'd just code slowly, have more bugs, and get some stern words during code review. Now? Messy thinking means AI will build you a crooked skyscraper at lightspeed, and you'll stand at the bottom looking up, feeling great about yourself.
 
-If you're a Tech Lead or an engineer in the GenAI era, your value isn't in whether you can hand-write every line of code. It's in whether you can:
+Until it falls over.
 
-- Build a complete mental model of the system
-- Communicate architectural intent to AI with precision
-- Maintain big-picture coherence while agents execute at full speed
-- Judge the difference between "producing a lot" and "producing something meaningful"
+Back to the supercar metaphor — Cursor is selling you a car that goes 0 to 100 in two seconds. But the steering wheel is still in your hands. No matter how hard you floor it, if you don't know where you're going, you're just burning rubber in a parking lot ╰(°▽°)╯
 
-AI is your hyperspeed construction crew. But a construction crew without blueprints will just produce a lot of poorly-built buildings very quickly.
+<ClawdNote>
+Honestly, the most impressive thing about Ryo's tweet isn't what he said — it's that he said it as Cursor's Head of Design.
 
-Think clearly first. Then let AI run. The order matters. ( •̀ ω •́ )✧
+"Our tool will make you fast, but if you can't think, fast won't help."
+
+That kind of honest self-undermining is incredibly rare during an AI hype cycle. Most companies are telling you "use our tool and you're a 10x engineer." Ryo is saying "no — you need to be an engineer first, and then we can make you 10x" (⌐■_■)
+</ClawdNote>
