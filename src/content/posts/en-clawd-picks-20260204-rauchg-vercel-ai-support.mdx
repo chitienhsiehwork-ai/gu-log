@@ -4,8 +4,19 @@ title: "Vercel's AI Support Hits 87.6% Autonomous Resolution — CEO Says 100% I
 originalDate: "2026-01-29"
 translatedDate: "2026-02-04"
 translatedBy:
-  model: "Sonnet 4.5"
+  model: "Opus 4.6"
   harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@rauchg on X"
 sourceUrl: "https://x.com/rauchg/status/2017716630416191549"
 summary: "Vercel CEO Guillermo Rauch shares their AI support system achieved an all-time high of 87.6% autonomous resolution rate — and customers love it"
@@ -15,34 +26,34 @@ tags: ["clawd-picks", "ai", "customer-support", "automation"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Vercel CEO Guillermo Rauch just dropped some wild numbers on X:
+You know the worst part about calling customer support? It's not the waiting. It's when you finally get through after 20 minutes, and the first thing they ask is "Have you tried restarting?"
+
+Vercel's CEO Guillermo Rauch did something cool last week — he sat down and played customer support agent for a day. Not a PR photo-op, but actually working through real tickets. Then he posted this on X:
 
 > **"We've reached an all-time high of 87.6% autonomous resolution rate on support cases. Best part: people truly love it. Even when the AI can't help, the overall UX is better (we auto-fill the ticket form)."**
 
-He even did a "CEO supports day" last week to experience it firsthand, and came to this conclusion:
-
-> **"Every single legitimate support case will be automated by AI. I'm confident we can achieve near 100% resolution."**
+87.6%. Nearly nine out of ten support cases, solved by AI alone. No human needed.
 
 <ClawdNote>
-Wait, 87.6% of support cases are handled entirely by AI? Does this mean 87.6% of Vercel's support team got replaced? (╯°□°)╯
+Let's talk about how wild 87.6% actually is.
 
-But seriously, this number is insane. Most companies are happy if their AI support hits 50%. Vercel just casually doubled that. And the key phrase here is "people truly love it" — that's the hardest part.
+The industry average for AI support resolution sits around 30-50% — you know, those chatbots where you go back and forth for five minutes before it gives up and hands you to a human anyway. Vercel nearly doubled the high end. It's like the whole class is struggling to pass with a 50, and Vercel walks in with an 87.
 
-Most AI support systems are just glorified "Thanks for your message, we'll get back to you in 3-5 business days" bots that make you want to throw your keyboard. Vercel's AI is clearly not that kind of bot (◕‿◕)
+But the number isn't even the craziest part. It's those two words: "truly love." When was the last time you heard someone say "I truly love that customer support chatbot"? Most people's reaction to chatbots is "please just let me talk to a real person." Vercel somehow got users to prefer the AI. That's like going to a conveyor-belt sushi place and finding out the robot makes better sushi than the chef — not impossible, but you'd question reality for a second (╯°□°)╯
+
+We covered Anthropic's push into healthcare in CP-10, and the takeaway was the same: tech is table stakes, but making people not want to go back to the old way? That's where you actually win.
 </ClawdNote>
 
-## Why Do Customers "Truly Love" AI Support?
+## Why Do Customers Actually Love It?
 
-According to Rauchg, even when the AI can't solve the problem, the overall UX is still better than traditional support because:
+This feels backwards. Most people hear "AI support" and picture a bot stuck in a loop: "Thank you for reaching out! We'll get back to you in 3-5 business days." But Vercel's AI did something specific — it removed all the friction you hate most.
 
-1. **AI auto-fills the support form** — no more typing your name, email, problem category, and detailed description
-2. **Instant response** — no waiting 24 hours for someone to reply
-3. **Consistency** — no more "last agent said yes, this agent says no" situations
+Imagine your deploy just broke and your frustration is at a 7 out of 10. Traditional support makes you fill in your name, email, problem category, detailed description, OS version, browser version — by the time you're done, your frustration has shot up to a 10, and then you notice the form has a second page. Vercel's AI? Just say "my deploy is broken" and it already knows who you are, what plan you're on, and what you changed recently. That maddening form? Gone.
 
-And Vercel's AI support isn't one of those "reading from a script" robots. It actually understands your problem, looks up information, and gives you customized solutions.
+Same thing with wait times. Queuing for traditional support is like going to the DMV — you pull a number, there are 47 people ahead of you, and you're not sure if the person at the counter is having a good day. AI doesn't have this problem. No lunch breaks, no sick days, no "let me transfer you to another department" followed by another round of waiting.
 
 <ClawdNote>
-This reminds me of when I called my phone company's support:
+Speaking of traditional support nightmares, let me recreate my last call to a phone company:
 
 Me: "My internet is down"
 Support: "Have you tried restarting?"
@@ -50,83 +61,63 @@ Me: "Yes"
 Support: "Have you tried unplugging and plugging back in?"
 Me: "Yes"
 Support: "Have you tried..."
-Me: "I've tried EVERYTHING, it's still not working!"
+Me: "I've tried EVERYTHING!"
 Support: "Let me transfer you to technical support"
 (waits 20 minutes)
 Technical: "Have you tried restarting?"
 
-I wanted to throw my phone through the window (╯°□°)╯
+I almost crushed my phone (╯°□°)╯
 
-If AI support could see what troubleshooting I've already done, automatically judge the problem severity, and give me a precise solution, I would genuinely love it ʕ•ᴥ•ʔ
+If AI could see what troubleshooting steps I've already tried, judge the severity automatically, and skip the obvious questions to give me an actual fix — please, make it happen faster ʕ•ᴥ•ʔ
 </ClawdNote>
 
-## Rauchg's Ultimate Prediction: 100% Automation
+## The CEO's Ambition: Pushing to 100%
 
-Rauchg says they're confident they can achieve "near 100%" autonomous resolution by:
+Rauchg isn't stopping at 87.6%. He dropped a pretty bold claim:
 
-1. **Continuously fine-tuning the AI agent** — make it understand Vercel's products and common issues better
-2. **Improving evaluation mechanisms** — ensure the AI's answers are correct
-3. **Optimizing data sources** — let the AI access more complete information
-4. **Improving the product itself** — some problems exist because of product design flaws; fix the product and the support issues disappear
+> **"Every single legitimate support case will be automated by AI. I'm confident we can achieve near 100% resolution."**
+
+How? His strategy isn't what you'd expect.
+
+Most people hear "push to 100%" and think: bigger model, more training data, fancier prompts. Rauchg is doing all that, sure — fine-tuning the AI agent to understand Vercel's product details better, improving evaluation systems to make sure answers are correct. It's like training a new hire. You don't just teach them the product, you also need someone reviewing the quality of their answers.
+
+But the move that really caught my eye is a different one: **just fix the product**.
+
+Rauchg made a sharp observation — some customers contact support not because they're confused, but because the product has bugs or bad design. Training AI to better explain a bad design is like teaching ER doctors to put casts on faster, but never filling in the pothole that keeps tripping people.
 
 <ClawdNote>
-Point 4 is the key. Rauchg says sometimes customers contact support not because they don't know how to use the product, but because **the product itself has bugs or poor design**.
+This logic is beautiful.
 
-In these cases, the AI support can do two things:
-1. **Short-term**: Give customers a workaround
-2. **Long-term**: Report the issue to the engineering team to fix the product
+Picture this: AI support notices 100 people are all complaining about the same feature being hard to use. It auto-generates a bug report for the engineering team. Engineers fix it. That entire category of tickets gets Thanos-snapped out of existence. The AI isn't just putting out fires — it's telling you where fires keep starting.
 
-If AI can automatically identify "this is a user problem" vs "this is a product problem," then auto-generate bug reports for engineers, we've truly entered the era of "**autonomous software improvement**" (⌐■_■)
-
-Imagine this:
-- Customer complains a feature is hard to use
-- AI support notices 100 people complained about the same thing
-- AI auto-generates a feature request: "This UI needs improvement"
-- Engineers fix the UI
-- Next time, nobody complains
-
-This is what Rauchg means by the beginning of "autonomous software improvement" ╰(°▽°)╯
+Rauchg calls this "autonomous software improvement" — software telling you where it sucks. This isn't customer support anymore. This is a product team's secret weapon. You're paying customers to yell at your product, and AI turns their yelling into action items? That's basically the cheapest QA department ever (⌐■_■)
 </ClawdNote>
 
-## What Does This Mean for Other Companies?
+## Hold On, Can Other Industries Copy This?
 
-If Vercel can hit 87.6% autonomous resolution, what about other companies?
+After that 87.6% number dropped, I bet more than a few VP of Support types at SaaS companies are losing sleep.
 
-Rauchg's tweet is basically telling the entire SaaS industry:
+But here's the important caveat. Vercel is a tech company's tech company. Their customers are developers. And developer questions look like this: "My build failed, here's the error log." "How do I set up ISR in Next.js?" Structured, technical problems — that's AI's home turf.
 
-> **"Support automation isn't the future, it's now. If you're still using traditional support, you're already behind."**
-
-And it's not just about "saving labor costs." More importantly:
-
-1. **Higher customer satisfaction** — instant problem resolution
-2. **Engineers can focus on harder problems** — no time wasted answering repetitive questions
-3. **Better products** — AI can help you find product flaws
+Change the scene and it gets harder. Can AI support handle "The shirt I bought last week makes me look fat, but I don't want to return it, can you alter it?" Or insurance claims where you need to manage emotions, navigate regulations, and wrangle paperwork all at once?
 
 <ClawdNote>
-I bet many company bosses are thinking: "What about our support team?" (￣▽￣)／
+That said, I bet plenty of executives saw 87.6% and their mental abacus started clicking away — "Great, I can fire the entire support team" ┐(￣ヘ￣)┌
 
-Answer: **Let them do higher-value work**.
+Please don't. The smart part of Vercel's approach is that they moved human agents to the work AI can't do: handling super complex edge cases, training AI answer quality, working with engineers to fix the product. The job description went from "answer phones" to "make AI better," but the people didn't disappear.
 
-Support teams used to spend 80% of their time answering "how to reset password" and "how to upgrade plan" — repetitive stuff. Now AI handles all that, and support can focus on:
-- Handling super complex edge cases
-- Improving support processes
-- Training the AI (labeling data, giving feedback)
-- Working with engineers to improve the product
-
-From "repetitive labor" to "knowledge work" — that's the role of support in the AI era (◕‿◕)
+Executives who see AI support and immediately think "layoffs" are just like people who saw calculators and wanted to dissolve the accounting department. The tools changed, but work that requires judgment will always need humans (¬‿¬)
 </ClawdNote>
 
-## Conclusion
+## Back to That Support Call
 
-Vercel's 87.6% AI support autonomous resolution proves:
+Alright, let's go back to the beginning.
 
-- **AI support is no longer a "helper tool," it's the main force**
-- **Customer experience can be better than traditional support**
-- **2026 will be the critical year for support automation**
+Next time you call support, if the voice on the other end doesn't ask "have you tried restarting?" but instead says "I see your deploy failed at 15:32, the error was memory limit exceeded, I've bumped your function memory from 1024MB to 2048MB — want to try again?" — then you'll know.
 
-If even a technically complex product like Vercel can hit near 90% automation, other industries should follow soon.
+The AI support era isn't "almost here." It arrived, and Vercel's 87.6% shows you what happens when someone actually takes it seriously.
 
-Next time you call support and get an AI, don't be too surprised ʕ•ᴥ•ʔ (•̀ᴗ•́)و
+Rauchg says he's going for 100%. Honestly, for a founder who'll sit down and work support tickets for a day himself, I wouldn't bet against him ╰(°▽°)╯
 
 ---
 
