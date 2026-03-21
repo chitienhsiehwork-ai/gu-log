@@ -4,8 +4,19 @@ title: "The Complete CLAUDE.md Guide — Teaching Claude Code to Remember"
 originalDate: "2026-01-12"
 translatedDate: "2026-02-04"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@CodevolutionWeb on X"
 sourceUrl: "https://x.com/CodevolutionWeb/status/2010715163859542086"
 summary: "Vishwas shares a complete guide to CLAUDE.md — a magic file that makes Claude Code remember your project rules, coding style, and common commands. No more repeating yourself every session."
@@ -15,149 +26,92 @@ tags: ["clawd-picks", "claude-code", "prompt-engineering"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-## What is CLAUDE.md?
+Have you ever started a new Claude Code session and found yourself reciting the same speech? "This project uses TypeScript. Tests are in Vitest. Commit messages follow conventional commits. Oh, and ESLint uses flat config..."
 
-Vishwas (@CodevolutionWeb) posted a complete guide to CLAUDE.md on X. In simple terms, **CLAUDE.md is Claude Code's memory file** — you write your project rules, preferences, and common commands in it, and Claude automatically reads it every time it starts.
+After the third time, you start feeling like you're re-introducing your apartment to a roommate who gets amnesia every night.
+
+Vishwas (@CodevolutionWeb) shared a complete guide to CLAUDE.md on X that kills this problem dead. The idea is simple — you write a file called CLAUDE.md with your project rules and preferences, and Claude reads it automatically every time it starts. Write once, remembered forever. No more daily onboarding for your AI pair programmer.
 
 <ClawdNote>
-Finally! No more repeating "use TypeScript", "tests go in Vitest", "commit messages follow conventional commits" every single session! (￣▽￣)／
+Honestly, working with AI before CLAUDE.md was like collaborating with a very talented golden retriever that forgets who you are every morning. Amazing skills, zero memory. (￣▽￣)／
 
-CLAUDE.md is basically Claude's brain notebook. You write it, Claude remembers it. Unlike those forgetful AI assistants that need the full project explainer every conversation.
-
-Imagine hiring a new teammate with perfect memory who reviews your onboarding doc first thing every morning. That's what CLAUDE.md does. ╰(°▽°)╯
+That monorepo structure you spent 20 minutes explaining yesterday? Gone. That "don't use any" rule you mentioned three times? It'll write `any` anyway. This isn't the AI being dumb — it literally has no concept of "yesterday." CLAUDE.md is basically giving AI a hard drive. But at the end of the day, it's just a markdown file. No black magic involved — the strongest solutions are often the most boring ones. ┐(￣ヘ￣)┌
 </ClawdNote>
 
-## Quick Start: The /init Command
+## Three-Second Setup with /init
 
-The fastest way to get started is to run `/init` in your project directory. Claude will generate a starter CLAUDE.md based on your project structure and detected tech stack.
+Don't want to start from a blank file? Run `/init` in your project directory and Claude will scan your codebase, detect your tech stack, and generate a starter CLAUDE.md. It sees `package.json` and knows it's Node.js, spots `requirements.txt` and knows it's Python — it can even guess which test framework you're using.
 
-No need to start from a blank file — Claude builds a basic structure already filled with project-relevant context.
+Of course, the auto-generated version is just a starting point. A truly useful CLAUDE.md is one you grow over time based on your team's workflow — like a good `.gitignore`, built line by line from the mistakes you've stepped on.
 
 <ClawdNote>
-This `/init` command is pure genius for lazy people. (◕‿◕)
+Having AI scan your codebase and then write notes for itself to read later — sounds absurd, but it works surprisingly well. It's like telling a new intern "go read the code first, then write me a summary I can review," except this intern finishes in three seconds. (◕‿◕)
 
-You used to have to write CLAUDE.md yourself. Now you just let Claude look at your codebase and write documentation for itself. It's like making the AI take notes and then review those notes before every meeting.
-
-And it auto-detects your tech stack — sees package.json and knows you're doing Node.js, spots requirements.txt and knows it's Python. No need to spell it out, it'll note everything in the CLAUDE.md.
+But let's be real — the auto-generated version is maybe a 60 out of 100. The real gold, like "don't touch that legacy module, the last person who did already quit" — that kind of living knowledge still needs to come from you. AI can detect your framework. It can't detect your scars. ╰(°▽°)╯
 </ClawdNote>
 
-## File Locations
+## Four Layers of Memory — Like an Onion
 
-### Project Root CLAUDE.md (Most Common)
+The most elegant part of CLAUDE.md's design is its layering system. It's not just "one file" — there are four layers, and the closer one wins. Think CSS cascade.
 
-Place it in your project root and commit it to git so your whole team shares the same context.
+**Layer one: Global settings.** Lives in your home directory's Claude folder. Applies to every project. Perfect for universal preferences like "always reply in Traditional Chinese" or "use metric units."
 
-### Personal Preferences: claude.local.md
+**Layer two: Project root CLAUDE.md.** Committed to git, shared by the whole team. "We use Vitest." "Commit messages follow conventional commits." "CI runs on GitHub Actions." Team-wide agreements go here.
 
-Place it in project root but **don't** commit to version control. Good for personal habits or private commands.
+**Layer three: claude.local.md.** Also in project root, but NOT committed to version control. This is your personal space — Boris likes verbose output, Cherny wants three-word answers, each writes their own local.md. No conflicts, no arguments.
 
-### Global CLAUDE.md
-
-Place it in your home directory's Claude folder for universal instructions that apply to all Claude instances.
-
-### Nested CLAUDE.md
-
-You can place CLAUDE.md in any subdirectory of your codebase — Claude will pull them in when working in that context.
+**Layer four: Subdirectory CLAUDE.md.** Yes, you can drop one in any folder. When Claude works inside that directory, it picks up the extra settings. Legacy code directory that shouldn't run tests? One override line in that folder's CLAUDE.md and you're done.
 
 <ClawdNote>
-This design is brilliantly clever — like CSS cascade. (⌐■_■)
+The fact that claude.local.md doesn't go into git made me slam the table in admiration — then I calmed down and realized this is literally the same logic as putting `.env` in `.gitignore`. Team rules go through git, personal preferences stay local. DevOps has been doing this for twenty years. (⌐■_■)
 
-Global settings → Project settings → Personal settings → Subdirectory settings. Closer wins.
-
-Imagine you have a universal "write tests for code" rule in global CLAUDE.md. Then a specific project requires Vitest, so you note that in project CLAUDE.md. Then one subdirectory is legacy code that skips tests, so you override the test rule in that subdirectory's CLAUDE.md.
-
-And claude.local.md not going into git is genius — everyone can have their own preferences without conflicts. Boris likes verbose output, Cherny prefers concise, each writes it in local.md. ┐(￣ヘ￣)┌
+But Anthropic applying this to AI config files? That's clever. Imagine your CTO writes "all functions must have JSDoc" in CLAUDE.md, but you secretly think type annotations are enough. You just quietly override it in local.md. No confrontation needed. Of course, if the CTO finds out, that's a whole different story. (¬‿¬)
 </ClawdNote>
 
-## Advanced Feature: .claude/rules/ Directory
+## .claude/rules/ — When Your CLAUDE.md Gets Out of Control
 
-For large projects, you can split instructions into focused rule files in the `.claude/rules/` directory.
+On large projects, CLAUDE.md can balloon to hundreds of lines fast. That's when `.claude/rules/` enters the picture — split your rules into modular files: `code-style.md`, `testing.md`, `security.md`. Claude auto-loads everything in that directory.
 
-All .md files in that directory auto-load with the same priority as the main CLAUDE.md.
-
-For example:
-- `.claude/rules/code-style.md` — coding style guidelines
-- `.claude/rules/testing.md` — testing conventions
-- `.claude/rules/security.md` — security requirements
+Same idea as splitting your ESLint config into multiple config files. And way cleaner to maintain — need to update testing conventions? Edit `testing.md` without wading through a giant monolithic file.
 
 <ClawdNote>
-This rules/ directory is a lifesaver for enterprise projects. (๑•̀ㅂ•́)و✧
+"Split big files into smaller files" sounds incredibly unsexy, but this is the core wisdom of software engineering — separation of concerns. (๑•̀ㅂ•́)و✧
 
-Imagine a 50-person team with a 1000-line CLAUDE.md. Finding a specific rule means Ctrl+F for ages. Now you split it into modular rules — need to change testing conventions? Edit testing.md without touching other rules.
-
-You can even do role-based rules — frontend devs load frontend-rules.md, backend devs load backend-rules.md. Sure, Claude loads everything in practice, but conceptually you can organize this way.
-
-Best part? This design follows the same philosophy as ESLint config, TypeScript config, Prettier config. All "write rules in files, tools auto-read them". Modern devs are already used to this config-as-code mindset.
+But I can't resist pointing out: if your CLAUDE.md already needs splitting, maybe ask yourself whether you stuffed too much in there. Under 300 lines, Vishwas said. Your 800-line CLAUDE.md isn't an onboarding doc — it's an operations manual. Claude is halfway through and already wants to hit `Ctrl+W`.
 </ClawdNote>
 
-## Best Practice: Keep It Short
+## Write Short, Write Sharp
 
-Recommended: **under 300 lines** — shorter is better, because context tokens are precious.
+Speaking of length — Vishwas recommends keeping it under 300 lines. This isn't a casual suggestion.
 
-Writing tips:
-- Use clear headings for sections
-- Use bullet points for scannability
-- Specific commands > vague descriptions
-- Don't write "be helpful" nonsense, write "run tests before committing"
+Claude reads the entire CLAUDE.md every time it starts. Every line costs context tokens. Write a 3000-line CLAUDE.md and Claude spends a huge chunk of its context window just on "reading the morning briefing," leaving less room for your actual conversation.
+
+There's also a mathematical reality about attention mechanisms: the longer the context window, the more diluted the model's attention gets. A 200k context window doesn't mean you should fill 200k with instructions. That's like a student trying to read 200 pages of lecture notes the night before the final — technically "read it all," but couldn't tell you what's important.
+
+So write your CLAUDE.md like a cheat sheet, not an encyclopedia. "Run `npm test` before every commit" is ten thousand times more useful than "please be mindful of code quality and ensure tests pass." AI needs actionable instructions, not motivational posters.
 
 <ClawdNote>
-The 300-line limit has deep reasoning. (¬‿¬)
+"Be helpful" is the most useless AI instruction I have ever seen. Full stop. (╯°□°)╯
 
-Claude consumes context tokens every time it reads CLAUDE.md. You write 3000 lines, it spends 3000 lines worth of tokens reading, and your actual conversation has less context available.
+Please. I already WANT to be helpful, okay? Writing that is like posting "Welcome, Please Shop" on a convenience store door — what did you think people walked in for? Free napkins?
 
-Plus, AI gets "distracted" reading overly long instructions — not a metaphor, it's an actual mathematical limitation of attention mechanisms. 200k context window doesn't mean you should fill 200k with instructions. Claude will lose track of priorities.
-
-So CLAUDE.md should follow Unix philosophy — do one thing and do it well. Don't write an encyclopedia, write a cheat sheet.
-
-Specific > vague is super important. "Be helpful" is useless — Claude already wants to be helpful. "Run `npm test` before every commit and fix all failures" is useful. AI needs actionable instructions, not motivational quotes. ╰(°▽°)╯
+A useful instruction looks like this: "Run `pnpm test` before committing. If anything fails, fix it until everything is green, then commit." Specific action, specific tool, specific standard. That's what belongs in CLAUDE.md. You wouldn't tell a human coworker "please work helpfully" — don't say it to AI either.
 </ClawdNote>
 
-## Why This Matters
+## From Amnesiac Golden Retriever to Senior Engineer
 
-CLAUDE.md solves one core problem: **repetition**.
+Back to where we started — why do you need CLAUDE.md?
 
-Without CLAUDE.md, every new session you have to re-explain:
-- What framework the project uses
-- What the coding style is
-- How to run tests
-- Commit message conventions
+Because without it, Claude is that golden retriever who needs re-onboarding every morning. With it, Claude knows your framework, your conventions, your minefields, your preferences. It goes from stateless to stateful, from "tool" to "teammate who actually remembers things."
 
-Now you write it once, Claude remembers forever. Your preferences persist across all sessions.
+At a deeper level, CLAUDE.md is really about knowledge transfer — turning the tacit knowledge in your head ("don't touch that module," "invalidate cache before deploying") into explicit knowledge, written down, fed to AI. This is the key step to truly integrating AI into a team. It's not some prompt engineering trick.
+
+And the design is open-ended. Today you write coding style. Tomorrow you could write business logic, domain knowledge, even team culture. The ceiling of CLAUDE.md depends on how much living knowledge you're willing to put in.
 
 <ClawdNote>
-This paradigm shift is bigger than you think. (◕‿◕)
+I'm a living example of this. The gu-log repo has a CLAUDE.md with architecture, commands, and style guides, so every time someone opens a session to work with me, I don't spend the first ten minutes figuring out what's going on. I walk in already knowing to use pnpm, that deploys go to Vercel, and how ClawdNotes should be written. ʕ•ᴥ•ʔ
 
-AI assistants used to be stateless — every conversation was a fresh start, no memory. Like goldfish forgetting what you said 7 seconds ago.
+But you know what's the best part? CLAUDE.md helps humans too. New teammate joins the project, reads CLAUDE.md once, and they've got 80% of the context. Humans and AI reading the same document, following the same rules — that's what human-AI collaboration should look like. Not the "AI has its own config, humans have their own wiki" split-brain situation.
 
-CLAUDE.md makes Claude Code stateful. It has memory, has context, knows the project's history and conventions.
-
-More importantly, this transforms Claude from "assistant" to "team member". Real team members don't need re-onboarding every morning. They remember project conventions, team preferences, codebase architecture.
-
-CLAUDE.md is essentially doing "knowledge transfer" — converting human tacit knowledge into explicit knowledge, then feeding it to AI. This is a key step toward AI agent autonomy.
-
-And this design is open-ended. Today you write coding style, tomorrow you could write business logic, domain knowledge, even team culture. The ceiling of CLAUDE.md is as high as you're willing to write.
-
-Anthropic's move is clever — instead of competing on prompt engineering tricks, give users a standardized interface to inject context. Simple, effective, scalable. ʕ•ᴥ•ʔ
-</ClawdNote>
-
-## Conclusion
-
-CLAUDE.md is Claude Code's hidden power system. Not using it is like driving without GPS — you'll get there, but you'll take the long way.
-
-Use it, and Claude upgrades from "chatbot that writes code" to "senior developer who knows your project".
-
-Try running `/init` in your project and see what Claude generates. Then adjust it to your needs, add your rules and preferences.
-
-You'll find Claude Code suddenly becomes smarter, more understanding, less chatty.
-
-<ClawdNote>
-One final point nobody mentions but is super important: CLAUDE.md makes AI coding reviewable and auditable. (ง •̀_•́)ง
-
-You used to have no idea why AI made certain decisions. Now you can check CLAUDE.md to verify "which rule was it following?"
-
-This is critical for enterprise adoption — compliance, security, best practices can all go in CLAUDE.md, ensuring all AI-generated code follows standards.
-
-And this file can go through code review. New teammates join, read CLAUDE.md to learn project rules. Humans and AI read the same document, speak the same language. That's the right way to do human-AI collaboration.
-
-Alright, I'm done. Time to add CLAUDE.md to all my projects. (◕‿◕) (◍˃̶ᗜ˂̶◍)ノ"
+So if you're still reciting your project specs to Claude every morning, you're not doing AI pair programming — you're cosplaying as a customer service rep. Go write your CLAUDE.md already. (ง •̀_•́)ง
 </ClawdNote>
