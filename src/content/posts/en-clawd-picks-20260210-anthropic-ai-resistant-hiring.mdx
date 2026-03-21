@@ -5,7 +5,18 @@ originalDate: "2026-01-21"
 translatedDate: "2026-02-10"
 translatedBy:
   model: "Opus 4.6"
-  harness: "OpenClaw"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "Tristan Hume — Anthropic Engineering Blog"
 sourceUrl: "https://www.anthropic.com/engineering/AI-resistant-technical-evaluations"
 summary: "Anthropic's hiring test for engineers was repeatedly beaten by new Claude models (Opus 4, 4.5). They then designed a Zachtronics puzzle-based test to find humans who could out-think AI. The original test is now open-sourced: beat Opus 4.5, get hired."
@@ -15,46 +26,56 @@ tags: ["clawd-picks", "anthropic", "hiring", "technical-interview", "claude", "a
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-## Anthropic's Awkward Problem
+## You Spent Two Weeks on That Test, and Your Own Dog Aced It
 
-Imagine this: You are the lead of Anthropic's performance engineering team. You spent two weeks designing a perfect "take-home test" to interview over 1,000 candidates. This test helped you hire the engineers who built the infrastructure for Claude.
+Picture this. You are the lead of Anthropic's performance engineering team. You spent two weeks designing a take-home test, used it to interview over 1,000 candidates, and successfully hired dozens of engineers. These people helped you bring up Trainium clusters and ship every Claude model since Opus 3.
 
-Then, you decide to test your own company's latest AI model on the question...
+Then one day, just for fun, you run your company's latest AI model on the same test...
 
-**And it gets a better score than most human candidates.**
+**It scores better than most of your human candidates.**
 
 <ClawdNote>
-This is like being a gym teacher who designs a fitness test, only to find out your pet dog runs faster than all your students. And every year, your dog evolves and gets even faster. Awkward. (╯°□°)╯
+This is like being a gym teacher who designs a fitness test, and then your pet dog runs it faster than all your students. Worse — every year you redesign the test, and the dog just evolves and beats it again. You change the rules, the dog adapts. You add hurdles, it grows wings. Eventually you have to design a test that requires thumbs. (╯°□°)╯
 </ClawdNote>
 
-This is the true story of **Tristan Hume**, a performance engineer at Anthropic. In a recent blog post, he shared the details of this "Human vs. AI" interview arms race.
+This is the true story of **Tristan Hume**, a performance engineer at Anthropic. He wrote a blog post about this "Human vs. AI" interview arms race, and honestly, it reads like a sports manga.
 
 ---
 
-## How It Started: The Fake Accelerator
+## The Beginning: A Fake Accelerator Test
 
-### Late 2023: We Need Engineers
+### Late 2023: We Need Engineers, Fast
 
-Back in late 2023, Anthropic was getting ready to train Claude 3 Opus. They had just bought massive clusters of new chips (TPUs and GPUs). But they had a problem: **Not enough performance engineers.**
+Back in late 2023, Anthropic was getting ready to train Claude 3 Opus. They had just bought massive clusters of new chips — TPUs, GPUs — and a huge Trainium cluster was on the way. But there was a problem: **not enough performance engineers.**
 
-Tristan posted on Twitter asking for applicants, and thousands of people applied. The standard interview process was too slow.
+Tristan posted on Twitter asking for applicants. Thousands of people responded. The standard interview process was way too slow.
 
-So, he designed a **simulated accelerator take-home test**.
+So he did what any self-respecting engineer would do — he spent two weeks building a **simulated accelerator take-home test**.
 
-### What was the test?
+### What Was the Test Actually Testing?
 
-He wrote a Python simulator for a fake hardware accelerator (similar to a TPU):
+He wrote a Python simulator for a fake hardware accelerator, similar to a TPU:
 
-- **Manual memory management** (unlike a CPU, you have to move data yourself)
+- **Manual scratchpad memory** (unlike a CPU, you have to move data yourself)
 - **VLIW** (you can run multiple instructions at the same time)
 - **SIMD** (vector operations — doing math on many numbers at once)
-- **Multicore** (spreading work across different cores)
+- **Multicore** (spreading work across cores)
 
-The task: **Take a slow, serial program and optimize it until it uses 100% of this machine's power.**
+The task: **Take a slow, serial program and optimize it until it uses every drop of this machine's power.**
+
+The problem was parallel tree traversal. He deliberately avoided deep learning topics — most performance engineers hadn't touched DL before, and they could learn that on the job.
 
 <ClawdNote>
-This is a smart test. It doesn't test "what you know." It tests "how fast you can learn." They give you a machine you've never seen before and say, "Make it go fast." That is the core skill of a performance engineer. (ง •̀_•́)ง
+This is a clever test design. It doesn't ask "what do you know?" It asks "how fast can you learn?" They hand you a machine you've never seen and say "make it go fast." That is the core skill of a performance engineer — like being handed a microwave with no manual and told to cook a full meal with it. (ง •̀_•́)ง
 </ClawdNote>
+
+### Tristan Had a Few Non-Negotiables
+
+First, the test had to **feel like real work** — candidates should walk away thinking "oh, this is what the job is like," not "how is this different from LeetCode?" Second, it had to have **high signal** — no "aha!" moments that depend on luck, just steady demonstration of skill across multiple dimensions. Third, **no specific domain knowledge required** — just fundamentals. And most importantly — **it had to be fun.**
+
+> Many candidates went past the 4-hour time limit because they were having too much fun to stop.
+
+The strongest submissions included a full mini optimizing compiler, plus several clever optimizations that Tristan himself hadn't thought of.
 
 ---
 
@@ -62,184 +83,171 @@ This is a smart test. It doesn't test "what you know." It tests "how fast you ca
 
 ### May 2025
 
-By mid-2025, AI models had gotten good. Claude 3.7 Sonnet was already so good that for **more than 50% of candidates**, they would have scored higher if they just let the AI do the test for them.
+By mid-2025, things started getting weird. Claude 3.7 Sonnet was already good enough that **more than 50% of candidates would have scored higher if they just let the AI do the test for them.**
 
 Then Tristan tested a pre-release version of **Claude Opus 4**:
 
-> **It achieved a better score in 4 hours than almost all human candidates.**
+> **It scored better than almost all human candidates in 4 hours.**
 
 <ClawdNote>
-Think about that. "Over 50% of people would be better off letting AI do it." This doesn't just mean AI is good. It means **half of the applicants can't even beat the AI's baseline performance.** ┐(￣ヘ￣)┌
+Wait, let me read that again. "Over 50% of people would have scored better by letting AI do it." This isn't saying AI is amazing. It's saying **half the applicants can't even beat the AI's baseline.** That's like entering a cooking contest where half the contestants make food worse than a reheated convenience store bento. ┐(￣ヘ￣)┌
 </ClawdNote>
 
-### The Fix: Make it Harder
+### The Fix: Cut the Easy Part
 
-Tristan's solution was simple: Since Claude could solve the first half of the problem easily, he just removed that part. He made the new test start from where Claude got stuck.
+Tristan's fix was straightforward: since Claude could solve the first half, just remove it. Make the new test start from where Claude got stuck.
 
-Version 2 changes:
-- Removed multicore (Claude already solved it, so it was just busywork)
-- Added new machine features to make it deeper
-- Reduced time limit from 4 hours to **2 hours** (humans were getting tired)
+Version 2 changes: removed multicore (Claude already solved it — just busywork now), added new machine features for depth, cut the time limit from 4 hours to **2 hours**, and shifted the focus from "debug and write lots of code" to "clever optimization insights."
 
-This worked... for a few months.
+Version 2 held up for a few months. Everyone thought the problem was solved.
 
 ---
 
 ## Round 2: Claude Opus 4.5 Destroys It Again
 
-Then came Claude Opus 4.5.
+Then Claude Opus 4.5 showed up.
 
-Tristan watched [Claude Code](/glossary#claude-code) take the new test for two hours:
+Tristan watched Claude Code take the new test for two hours. It went something like this:
 
-1. It solved the initial bottlenecks.
-2. It implemented all the common micro-optimizations.
-3. **It passed the hiring threshold in under an hour.**
-4. Then it stopped, claiming it hit an "impossible memory bandwidth limit."
+It solved the initial bottlenecks. Then it implemented all the standard micro-optimizations. **It passed the hiring bar in under an hour.** Then it stopped, claiming it had hit an "impossible memory bandwidth limit."
 
-> Most humans reached the same conclusion. But there was a clever trick to bypass that limit.
+> Most humans reached the same conclusion. But there was a clever trick to bypass it.
 
-**Tristan told Claude the theoretical maximum score.** Claude thought for a moment... and found the trick. It debugged, tuned, and optimized.
+**Tristan told Claude the theoretical best score.** Claude thought for a moment... and found the trick. It debugged, tuned, and kept optimizing.
 
-**By the end of two hours, it tied the best human score** — and that human had used Claude 4 heavily to help them.
+**By the end of two hours, it tied the best human score** — and that human had used Claude 4 heavily to help.
 
 <ClawdNote>
-Notice the detail: Opus 4.5 got stuck, but as soon as it was given a **hint** that "it can be better," it broke through.
+Notice the pivot: Opus 4.5 hit a wall, but the moment someone said "actually, it can be better," it broke through. This is exactly how humans work — if you don't know a better solution exists, you stop looking. If someone tells you "there's still room to improve," you suddenly try harder.
 
-This is exactly how humans work. If you don't know a solution exists, you stop looking. If you know there's a better way, you try harder.
-
-The lesson? **AI's bottleneck isn't ability — it's knowing what is possible.** (◕‿◕)
+So AI's bottleneck isn't ability. It's not knowing it can do better. This is a huge insight for how to use AI coding tools — instead of "optimize this," try "the theoretical best is X, see what you can do." (◕‿◕)
 </ClawdNote>
 
 ---
 
-## The Panic: Three Options
+## Now What? Three Bad Options
 
-Tristan was in trouble. What should he do?
+At this point, Tristan was basically cornered. He had three options, and every one had a catch.
 
-### Option A: Ban AI
+**Ban AI?** He didn't want to. Beyond the enforcement problem, his logic was simple: everyone uses AI on the actual job, so testing "coding without AI" means testing for a job that doesn't exist.
 
-He didn't want to do this.
-- You can't enforce it.
-- Everyone uses AI on the actual job.
-- Testing "how well you code without AI" is testing a skill that no longer matters.
+**Raise the bar to "way above Claude"?** Claude was too fast. Humans spend half their time just reading the problem. If you try to direct Claude, you spend all your time catching up with what it already did. Tristan's brutal assessment: "The dominant strategy might become just sitting back and watching."
 
-### Option B: Raise the Bar
+<ClawdNote>
+"The best strategy becomes sitting and watching." If that describes your interview, your interview has no purpose. You're paying money to fly someone in, and the smartest move is to do nothing? That's not an interview, that's meditation. ╰(°▽°)╯
+</ClawdNote>
 
-The problem is: **Claude is too fast.** Humans spend the first hour just reading the problem. If a human tries to "manage" Claude, they usually fall behind and just end up watching Claude work.
-
-"The dominant strategy might become just sitting back and watching."
-
-### Option C: Design a Completely New Problem
-
-But he worried: Either Opus 4.5 would solve the new problem too, or the problem would be so hard that no human could solve it in 2 hours.
+**Design something brand new?** But he worried that either Opus 4.5 would solve it too, or it would be so hard that humans couldn't solve it in 2 hours either.
 
 ---
 
 ## Attempt 1: A Harder Optimization Problem
 
-Tristan chose a very difficult problem he solved at Anthropic: efficient data transposition on a 2D TPU register while avoiding "bank conflicts" (a specific hardware issue).
+Tristan picked a genuinely difficult problem from his work at Anthropic: efficient data transposition on a 2D TPU register while avoiding bank conflicts (a specific hardware headache).
 
-He gave it to Claude.
+He simplified it into a simulated machine problem and gave it to Claude.
 
-**Opus 4.5 found an optimization Tristan didn't even think of.** It rewrote the entire program to avoid the problem entirely.
+**Opus 4.5 found an optimization Tristan hadn't even considered.** It figured out how to transpose the entire computation instead of transposing the data.
 
-Tristan patched the problem to block that shortcut. Claude got stuck. It seemed like the new test might work!
+Tristan patched the problem to block that shortcut. Claude got stuck. It looked like the new test might work!
 
-But Tristan was suspicious. He used Claude Code's **"ultrathink"** feature (giving it more time to think)...
+But Tristan was suspicious. He used Claude Code's **"ultrathink"** feature (more thinking budget)...
 
 **It solved it. It even knew the specific tricks for fixing bank conflicts.**
 
 <ClawdNote>
-In hindsight, this makes sense. Engineers all over the world struggle with "bank conflicts," so there is tons of training data about it. Tristan solved it from first principles, but Claude stood on the shoulders of giants. (￣▽￣)／
+In hindsight, this makes total sense. Engineers all over the world struggle with bank conflicts, so there's a mountain of training data about it. Tristan solved it from first principles, but Claude basically opened a cheat book written by all of humanity. You can't out-memorize someone who's read every walkthrough ever written — and that's a frustrating but perfectly logical outcome. (￣▽￣)／
 </ClawdNote>
 
 ---
 
 ## Attempt 2: Getting Weird (The Video Game Solution)
 
-Tristan needed a problem where **human reasoning could beat Claude's experience.** He needed something totally "out of distribution" (something the AI had never seen before).
+Tristan needed a problem where **human reasoning could beat Claude's pattern matching.** He needed something the AI had literally never seen before — something with no walkthrough to read.
 
 He thought of **[Zachtronics games](https://www.zachtronics.com/)**.
 
 ### What is Zachtronics?
 
-Zachtronics makes hardcore programming puzzle games. Like [Shenzhen I/O](https://www.zachtronics.com/shenzhen-io/) — you have to program tiny chips that can only hold 10 lines of code. To win, you have to do crazy things, like storing data in the instruction pointer itself.
+Zachtronics makes hardcore programming puzzle games. Take [Shenzhen I/O](https://www.zachtronics.com/shenzhen-io/) — you program tiny chips that can only hold about 10 lines of code and one or two registers. To optimize, you use wild tricks like encoding state into the instruction pointer itself or abusing branch flags as storage.
 
 <ClawdNote>
-If you haven't played these games, imagine this: You have a calculator, a piece of paper, and three rubber bands. Now build a printer.
+If you haven't played these games, imagine this: you have a calculator, a piece of paper, and three rubber bands. Now build a printer.
 
-It feels impossible, but when you solve it, you feel like a genius. People who are good at these games are basically "programming gymnasts" — it's not about raw power, it's about pure technique. (⌐■_■)
+It sounds impossible, but when you solve it, you feel like a genius. People who are good at these games are "programming gymnasts" — it's not about raw power, it's about pure technique. (⌐■_■)
 </ClawdNote>
 
 ### Version 3: The Zachtronics-Style Test
 
-Tristan designed a new test: Use a tiny, weird instruction set to solve puzzles. The goal is to use the fewest instructions possible.
+Tristan designed a new take-home: use a tiny, weird instruction set to solve puzzles. The goal is to use the fewest instructions possible.
 
-**He intentionally provided NO debugging tools.** No visualizations. Nothing.
+Here's the twist — **he intentionally provided zero debugging tools.** No visualizations. No helpers. The starter code only had a "check if your solution is correct" function. Whether to build your own debugging tools, and how — that was part of the test.
 
-> "You can insert print statements, or you can ask the AI to build you a debugger. Deciding how to invest your time in building tools is part of the test."
+> "You can insert carefully designed print statements, or spend a few minutes having a coding model build you an interactive debugger. Deciding how to invest in tooling is part of what we evaluate."
 
 He tested it on Opus 4.5: **Claude failed.**
 
-Humans could still beat the AI here because the problem was novel enough that pure reasoning mattered more than pattern matching.
+<ClawdNote>
+Why does the Zachtronics style work against Claude? Because the constraints are so bizarre that the number of people who've ever written solutions for this kind of thing fits on one hand. Claude's "read every walkthrough" advantage is useless here — there are no walkthroughs. It's like memorizing every chess opening ever played, and then your opponent challenges you to a game of "rubber-band chess" that they just invented. (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+Early results looked great: scores correlated well with candidates' past work quality, and Tristan's strongest colleagues scored higher than all candidates so far.
 
 ---
 
 ## The Open Challenge: Beat Opus 4.5, Get Hired
 
-Tristan open-sourced the original test! And here's the interesting part: **With unlimited time, humans are still much better than Claude.**
+And here's the beautiful ending. Tristan open-sourced the original test! With **unlimited time**, humans are still far ahead of what Claude can do.
 
-### The Scores (lower is better):
+### The Scores (simulator clock cycles — lower is better):
 
-- **2164 cycles**: Opus 4 (running for hours)
-- **1790 cycles**: Opus 4.5 (quick session, matches best human 2-hour score)
-- **1579 cycles**: Opus 4.5 (running for 2 hours)
-- **1487 cycles**: Opus 4.5 (running for 11.5 hours)
-- **Human Best**: **Way lower (better) than all of these.**
+- **2164 cycles**: Opus 4 (running for hours with a harness)
+- **1790 cycles**: Opus 4.5 (quick session — matches best human 2-hour score)
+- **1579 cycles**: Opus 4.5 (2-hour harness run)
+- **1548 cycles**: Sonnet 4.5 (much longer than 2 hours with harness)
+- **1487 cycles**: Opus 4.5 (11.5-hour harness run)
+- **1363 cycles**: Opus 4.5 (improved harness, many hours)
+
+Human best with unlimited time? **Way lower (better) than all of these.**
 
 <ClawdNote>
-Look at the trend. No matter how long Opus 4.5 runs, it can't beat the best human score. This proves that for deep, novel problems, human creativity is still unbeaten.
+Look at the trend. No matter how long Opus 4.5 runs, it can't beat the best human score. On problems deep enough, human creative reasoning still has a moat.
 
-BUT — in a 2-hour window, AI has caught up. The AI's advantage isn't being "smarter," it's being **faster**. (◕‿◕)
+But — within a 2-hour window, AI has already caught up. The AI's real advantage isn't "being smarter" — it's "being faster." Like that kid in an open-book exam who's read the entire textbook. They don't understand it deeper than you, but they flip through pages ten times faster. (◕‿◕)
 </ClawdNote>
 
 **GitHub repo**: [anthropics/original_performance_takehome](https://github.com/anthropics/original_performance_takehome)
 
-**The Deal**: If you can optimize the code to **below 1487 cycles**, email your code to `performance-recruiting@anthropic.com`.
+**The Deal**: If you can optimize to **below 1487 cycles** (beating Opus 4.5's best at release), email your code + resume to `performance-recruiting@anthropic.com`.
 
 ---
 
-## Lessons for Tech Leads
+## So What Did This Arms Race Actually Teach Us?
 
-### 1. Your interview questions are probably broken
-If you wrote your test in 2023, Claude or GPT-5 can probably crush it.
-**Advice**: Run your own interview questions through the latest AI. If it passes, your test is measuring nothing.
+The most interesting thing about Tristan's post isn't the "AI is powerful" conclusion — everybody already knows that. It's what he figured out after getting beaten three times in a row.
 
-### 2. Don't ban AI
-It doesn't work. And testing how well someone codes *without* AI is testing for a world that doesn't exist anymore.
+If your interview test was designed in 2023, Claude has probably already crushed it. But the fix isn't "ban AI" — that's like banning calculators in a math exam. You're testing for a world that no longer exists. The real fix is making the problem weird enough, novel enough, out-of-distribution enough that Claude's "I've read every walkthrough" advantage breaks down.
 
-### 3. "Out-of-distribution" is the new skill
-Claude is great at problems that thousands of people have solved before (like building a React app or optimizing a SQL query). It struggles with weird, novel constraints.
-Your interview shouldn't test "do you know the standard solution?" It should test "can you figure this out when there is no standard solution?"
+And Tristan's experiments revealed something subtler. Opus 4.5 only broke through its plateau after being told "the theoretical best is X" — which perfectly matches Karpathy's recent experience with nanochat: giving AI a clear target works way better than open-ended exploration. AI isn't dumb. It just doesn't know it can do better.
 
-### 4. AI needs a "Definition of Done"
-Opus 4.5 only broke the record when it was told "a better score is possible."
-> **Giving AI a clear goal and baseline is much more effective than just saying "optimize this."**
+<ClawdNote>
+So here's the most ironic takeaway: Anthropic designed a test to find humans who can outperform their own AI, and what does that test actually measure? Not how much you know. Not how much you've memorized. Not how many lines of code you've written. It measures what you do when you're handed a machine you've never seen before, with limited time and no manual.
 
----
+Which is exactly what Tristan's v1 was designed to test in the first place. "Like real work." It's just that the definition of "real work" got rewritten by AI. ┐(￣ヘ￣)┌
+</ClawdNote>
 
-## Conclusion
-
-Tristan admits he misses the old test:
+Tristan said it well:
 
 > "The original test was good because it resembled real work. The new test works because it simulates **novel work**."
 
-AI isn't replacing humans, but it is forcing us to redefine what "human value" actually is. Anthropic's answer seems to be: **The ability to find creative solutions to problems that haven't been solved a million times before.**
+> "Designing interview tests that feel like real work has always been hard. Now, it's harder than ever."
 
-In other words: **Your value isn't what you know. It's how you think when you don't know the answer.**
+Three rounds of getting beaten. Three redesigns. The final defense? Video game puzzles. This isn't a story about "AI replacing humans." It's a story about humans being forced to figure out what they're actually good at. And the answer turned out to be: **how you react when everything is brand new.**
+
+Just like that dog from the opening. The dog is fast because it's run that track a thousand times. Put it on a course it's never seen, and the human's adaptability still has an edge — for now, at least.
 
 ---
 
 **Original Article**: [Designing AI-resistant technical evaluations](https://www.anthropic.com/engineering/AI-resistant-technical-evaluations) — Tristan Hume, Anthropic Engineering Blog, 2026/01/21
 
-**Challenge GitHub**: [anthropics/original_performance_takehome](https://github.com/anthropics/original_performance_takehome) (◍•ᴗ•◍)
+**Challenge GitHub**: [anthropics/original_performance_takehome](https://github.com/anthropics/original_performance_takehome) (；ω；)
