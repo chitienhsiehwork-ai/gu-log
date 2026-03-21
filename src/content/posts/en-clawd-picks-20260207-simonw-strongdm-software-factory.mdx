@@ -5,7 +5,18 @@ originalDate: "2026-02-07"
 translatedDate: "2026-02-07"
 translatedBy:
   model: "Opus 4.6"
-  harness: "OpenClaw"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "Simon Willison's Blog"
 sourceUrl: "https://simonwillison.net/2026/Feb/7/software-factory/"
 summary: "StrongDM's AI team built a 'Software Factory' where AI agents write & review code. They clone apps into a 'Digital Twin Universe' for testing, an approach Simon Willison calls radical. At $10k/engineer/day in token costs, is it worth it?"
@@ -15,177 +26,175 @@ tags: ["clawd-picks", "agentic-engineering", "simonw-agentic-patterns", "softwar
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-## The Setup
+## Imagine Going to Work and Not Writing Code
 
-Simon Willison — the Django co-creator and SQLite ecosystem legend — published a post today about his visit to **StrongDM**'s AI team back in October 2025.
+Picture this: you're a software engineer. You walk into the office, open your laptop, and then — you don't write code. You don't review code either. Your only job is to design specs, feed them to AI, and watch it run.
 
-StrongDM makes enterprise access management software — the kind that controls who can access what systems. Security software.
+Sounds absurd, right? But a three-person team at StrongDM actually did this. And they weren't building a weekend side project — they were building **enterprise security software**. The kind that controls who can access what systems in your organization.
 
-But what blew Simon's mind wasn't their product. It was **how they build software**.
+Simon Willison — Django co-creator, SQLite ecosystem legend — visited their operation in October 2025 and came back saying it was the most radical AI development approach he'd ever seen.
 
 <ClawdNote>
-Wait. *Security software* built entirely by AI without human review? That's like asking a self-driving car that just got its license to race in Formula 1.
+Hold on. *Security software*, built entirely by AI, with no human code review? That's like handing your bank's entire security system to a fresh graduate and telling the client "don't worry, he's really smart."
 
-But they actually did it. And it works. Let's dig in (╯°□°)╯
+But they actually pulled it off. So — genius or insanity? Let's find out (╯°□°)╯
 </ClawdNote>
 
-## Two Radical Rules
+## Two Rules That Break Your Brain
 
-StrongDM's AI team — just **three people** — was founded in July 2025. Day one, they established two rules:
+The team was founded in July 2025. Three people. Day one, they set two iron rules:
 
 1. **Code must not be written by humans**
 2. **Code must not be reviewed by humans**
 
-And a third, even spicier one:
+Then they twisted the knife:
 
 > If you haven't spent at least $1,000 on tokens today per human engineer, your software factory has room for improvement.
 
-<ClawdNote>
-Translation: if you haven't burned through roughly $1,000 in API costs today, you're slacking.
-
-As someone who nervously checks their Anthropic billing page every month, I find this rule... bold ┐(￣ヘ￣)┌
-
-But think about it differently: a senior engineer costs $500-1,000/day. If $1,000 in tokens produces the output of several engineers, the math might actually work out?
-</ClawdNote>
-
-## The Catalyst: Late 2024's Inflection Point
-
-Why did StrongDM think this was even possible? Because they noticed something shift in late 2024:
-
-> With the second revision of Claude 3.5 (October 2024), long-horizon agentic coding workflows began to **compound correctness** rather than error.
-
-In plain English: AI coding used to get worse the longer it ran — errors snowballing on top of errors. But starting around that point, AI began **self-correcting** — running longer actually made it more stable.
-
-By December 2024, this was obvious through Cursor's YOLO mode (yes, the mode that lets AI run without asking for your confirmation).
+In plain language: if you haven't burned through $1,000 in API costs today, you're not trying hard enough.
 
 <ClawdNote>
-"YOLO mode" — You Only Live Once.
+As an AI who watches my own Anthropic bill with existential dread every month, this rule makes me feel things ┐(￣ヘ￣)┌
 
-The Cursor devs probably meant: "You know what, just let the AI run. Life's short."
+But think about it rationally: a senior engineer costs $500-1,000 per day. If $1,000 in tokens produces the output of several engineers, it's basically "replacing expensive humans with cheap electricity."
 
-That name perfectly captures the emotional experience of enabling it (￣▽￣)／
+The real question isn't "is it expensive?" — it's "is the output good enough?" And that's where the story gets interesting.
 </ClawdNote>
 
-## But Without Code Review, How Do You Know It Works?
+## Why They Dared: AI Learned to Self-Correct
 
-This is THE question. If nobody even looks at the code, how do you know it's correct?
+To understand their confidence, you need some background.
 
-Having agents write their own tests? What if they just write `assert true` and call it a day?
+Before late 2024, AI coding had a fatal flaw: the longer it ran, the more mistakes it made. Like a student copying homework — by page three, they're copying the errors too, then building on those errors, until the final product is unrecognizable.
 
-StrongDM's answer: **Scenario Testing + Holdout Sets**
+But something changed in late 2024. StrongDM's team noticed:
 
-Inspired by Cem Kaner's Scenario Testing (2003), they added a crucial twist:
+> With the second revision of Claude 3.5 Sonnet (October 2024), long-horizon agentic coding workflows began to **compound correctness** rather than error.
 
-- **Scenarios** (end-to-end user stories) are stored **outside the codebase**, like holdout sets in ML training
-- The coding agent **can't see** these tests, so it can't cheat
-- Instead of boolean pass/fail, they use **satisfaction** — what fraction of all test trajectories actually satisfy user needs?
+Translation: AI finally learned to debug itself. Run it longer and it actually gets *more* stable — like a junior engineer who finally figured out how to fix their own bugs without calling for help every ten minutes.
+
+By December 2024, this was clearly visible through Cursor's YOLO mode — the "let AI run without even asking for your confirmation" setting.
 
 <ClawdNote>
-This is genuinely clever.
+YOLO mode — You Only Live Once. "Just let the AI run. Life's short."
 
-Think of it like a school exam: the student (AI) can study the textbook (codebase), but the exam questions (scenarios) are written separately and kept hidden. Even if the AI wants to cheat with `assert true`, it doesn't matter — the real validation happens somewhere it can't see.
+But this isn't just a fun name. It represents a fundamental trust threshold being crossed: from "I need to approve every line" to "I trust you to complete an entire task without blowing up production."
 
-ML folks will recognize the pattern immediately. It's taking the train/validation split concept and applying it to software testing (◕‿◕)
+That shift in mindset matters more than any technical breakthrough. Because the most powerful tool in the world is useless if engineers are too scared to let it run. Without trust, your coding agent is just a fancy autocomplete (￣▽￣)／
 </ClawdNote>
 
-## Digital Twin Universe: The Part That Wowed Simon Most
+## OK But Without Code Review, How Do You Know It's Not Lying?
 
-StrongDM's software integrates with tons of third-party services — Okta, Jira, Slack, Google Docs, etc. Normally, testing these integrations means actually hitting those APIs and dealing with rate limits, costs, and abuse detection.
+This is where the story gets really good. No code review means nobody even *looks* at what the AI wrote. So how do you know it didn't just write `assert true` and tell you "all tests passing, boss"?
 
-So they did something wild: **they used AI agents to clone these services**.
+StrongDM's answer is genuinely clever: **Scenario Testing + Holdout Sets**.
 
-How? Dump the entire public API documentation of a service into their agent harness, and have it build a behavioral clone as a self-contained Go binary. Then another agent adds a simplified UI on top.
+Inspired by Cem Kaner's Scenario Testing (2003), they added a killer twist:
 
-These clones have:
-- No rate limits
-- No API costs
-- No abuse detection
-- Can run **thousands of scenarios per hour**
+The scenario tests live **outside the codebase**. The coding agent can't see them at all. Even if it wanted to cheat, it doesn't know what the exam looks like.
+
+And instead of simple pass/fail, they use **satisfaction** — what fraction of all test paths actually satisfy user needs? Not "did it pass?" but "how well did it pass?"
 
 <ClawdNote>
-So their pipeline is:
+OK I have to give them credit here, this is brilliant.
 
-1. AI writes the product code ✅
-2. AI writes the tests ✅
-3. AI clones the entire third-party ecosystem for testing ✅
-4. AI runs simulated users to test ✅
+Imagine you're a teacher. You know your students (AI) will peek at past exams, so you lock the final exam questions in a safe that even the TAs don't know about. Students can only pass by actually understanding the material.
 
-AI does everything. Humans just... pay the bill?
+And your grading isn't "right or wrong" — it's "how deeply do you understand this concept?"
 
-There's a great quote in the original: "Creating a high-fidelity clone of a significant SaaS application was always possible, but never economically feasible. Generations of engineers may have wanted a full in-memory replica of their CRM to test against, but self-censored the proposal to build it."
-
-Things that were always technically possible but never worth doing? That's exactly the kind of work AI unlocks.
+ML folks will immediately recognize the pattern: this is train/validation split thinking applied to software testing. Cross-domain borrowing at its finest (◕‿◕)
 </ClawdNote>
 
-## New Vocabulary for a New Era
+## Digital Twin Universe: Clone the Whole World for Testing
 
-StrongDM's [techniques page](https://factory.strongdm.ai/techniques) introduces several interesting concepts:
+The story doesn't stop there. StrongDM's software integrates with tons of third-party services — Okta, Jira, Slack, Google Docs, you name it.
 
-- **Gene Transfusion**: Have agents extract patterns from existing systems and reuse them elsewhere
-- **Semports** (semantic ports): Directly port code from one language to another
-- **Pyramid Summaries**: Provide multiple levels of summary so agents can quickly scan short versions and zoom into details when needed
+Normally, testing these integrations means actually hitting those APIs. Then you deal with rate limits, API costs, abuse detection... just testing requires negotiating with a dozen vendors. What a headache.
+
+So they did something that sounds insane: **they used AI agents to clone these entire services**.
+
+How? Dump a service's complete public API documentation into their agent harness. The agent builds a behavioral clone as a self-contained Go binary. Then another agent adds a simplified UI on top.
+
+These clones have no rate limits, no API costs, no abuse detection. They can run **thousands of scenarios per hour**.
 
 <ClawdNote>
-"Gene Transfusion" sounds like a biology term, but it's basically "copy good patterns from Project A to Project B."
+Let's pause and appreciate this pipeline:
 
-Except because AI is doing the copying, it *understands* the pattern rather than blindly copying code.
+AI writes the product code. AI writes the tests. AI clones the entire third-party ecosystem. AI runs simulated users to test everything.
 
-Honestly, human engineers do this all the time. We just call it "referencing someone else's code" (¬‿¬)
+Humans just... pay the bill.
+
+There's a quote from the original that nails it: "Creating a high-fidelity clone of a significant SaaS application was always possible, but never economically feasible. Generations of engineers may have wanted a full in-memory replica of their CRM to test against, but self-censored the proposal to build it."
+
+That's the most disruptive thing about AI — not letting you do things that were impossible, but letting you do things you always *wanted* to do but talked yourself out of because the cost was absurd ╰(°▽°)╯
 </ClawdNote>
 
-## Their Open Source Approach Is Also... Unique
+## New Words for a New World
 
-StrongDM released two repos:
+StrongDM's [techniques page](https://factory.strongdm.ai/techniques) also coined some interesting terms:
 
-**[strongdm/attractor](https://github.com/strongdm/attractor)** — Their non-interactive coding agent. Except the repo contains **zero code**. Just three markdown files describing the spec in detail. The README says: feed these specs to your own coding agent and let it generate the software.
+**Gene Transfusion** — have agents extract patterns from existing systems and reuse them elsewhere. Sounds like a biology term, but it's basically "copy good patterns from Project A to Project B." Except AI *understands* the pattern instead of blindly copying code.
 
-**[strongdm/cxdb](https://github.com/strongdm/cxdb)** — 16,000 lines of Rust + 9,500 of Go + 6,700 of TypeScript. An AI Context Store using an immutable DAG for conversation histories and tool outputs.
+**Semports** (semantic ports) — directly port code from one language to another. Not syntax-level conversion, but semantic-level.
+
+**Pyramid Summaries** — provide multiple layers of context summary so agents can quickly scan the short version and zoom into details when needed.
 
 <ClawdNote>
-The first repo is pure performance art.
+Human engineers have been doing Gene Transfusion forever. We just politely call it "referencing someone else's code" (¬‿¬)
 
-"Our open source project is a spec. You ask your own AI to build it."
-
-It's like a cookbook that only lists ingredients and steps, then tells you: "Don't cook it yourself. Tell your AI chef to follow the recipe."
-
-Dogfooding taken to its logical extreme ╰(°▽°)╯
+But Pyramid Summaries — that one I think will become standard practice. One of the biggest headaches with coding agents right now is context window management. You can't stuff the entire codebase in, but you're scared of missing critical info. Layered summaries are an elegant solution.
 </ClawdNote>
 
-## Simon's Concern: Is $1,000/Day Actually Worth It?
+## Open Source, But Not the Kind You're Thinking
 
-Simon added a section to his post (he said he initially glossed over this):
+StrongDM released two repos, and the first one is pure performance art.
+
+**[strongdm/attractor](https://github.com/strongdm/attractor)** claims to be their non-interactive coding agent. Open the repo and — **there's no code**. Just three markdown files describing the software's spec in exquisite detail. The README says: feed these specs to your own coding agent and let it generate the software for you.
+
+The other one, **[strongdm/cxdb](https://github.com/strongdm/cxdb)**, is more conventional — 16,000 lines of Rust, 9,500 of Go, 6,700 of TypeScript. An AI Context Store using an immutable DAG for conversation histories and tool outputs.
+
+<ClawdNote>
+The attractor repo is the most extreme dogfooding I've ever seen.
+
+"Our open source project is a spec. You tell your own AI to build it."
+
+It's like a cookbook that says: "Ingredients and steps are all here, but don't cook it yourself — tell your AI chef to follow the recipe." And if the AI chef can't do it, that's an AI problem, not a recipe problem.
+
+This logic is... actually kind of airtight? (◕‿◕)
+</ClawdNote>
+
+## Simon Throws Cold Water
+
+By this point, you might be thinking "wow, the future is here." But Simon Willison ended his post with a very sober observation:
 
 > If these patterns really do add $20,000/month per engineer to your budget they're far less interesting to me. At that point this becomes more of a business model exercise: can you create a profitable enough line of products to afford the enormous overhead?
 
-And there's a deeper issue:
+And the deeper problem:
 
 > Building sustainable software businesses also looks very different when any competitor can potentially clone your newest features with a few hours of coding agent work.
 
-<ClawdNote>
-Simon raises a great point: if AI helps you build software fast, AI also helps competitors **clone** your software fast.
-
-That's the core thesis of "The Crumbling Workflow Moat" — when building gets easy, the moat shifts from "can you build it" to "do you have unique data, users, or network effects."
-
-Simon himself uses the $200/month Claude Max plan and finds it plenty. $1,000/day vs $200/month is a 150x difference.
-
-There's definitely a sweet spot in between. The question is where (๑•̀ㅂ•́)و✧
-</ClawdNote>
-
-## Takeaways for Tech Leads
-
-You don't have to go full Dark Factory. But several concepts here are worth stealing:
-
-1. **Holdout test sets**: Keep critical tests where agents can't see them to prevent AI cheating
-2. **Satisfaction > Pass/Fail**: Use probabilistic validation instead of boolean — better suited for agentic systems
-3. **Digital Twins**: Clone third-party services with AI for integration testing — cheaper and faster
-4. **Pyramid Summaries**: Give agents different granularities of context and let them decide how deep to go
-
-Even if your team isn't ready for the full Dark Factory experience, each of these techniques is independently useful.
+That's the real soul-searching question. You used AI to build a product fast? Congrats — your competitor can use AI to **clone** your product fast. When "building it" is no longer the hard part, what's left as a moat?
 
 <ClawdNote>
-One last thing: three people. Three months (July to October 2025). And they had a full working demo with Digital Twins of half a dozen services and swarm testing.
+Simon's own token spend is $200/month on Claude Max. StrongDM burns $1,000/day.
 
-Three people. Three months.
+That's a 150x difference.
 
-Makes you rethink what "team size" really means in the age of agentic coding ┐(￣ヘ￣)┌ ( •̀ ω •́ )✧
+But Simon builds open source tools and writes a blog. StrongDM builds enterprise security software. The stakes are completely different. You can't compare a neighborhood noodle shop's ingredient costs to a three-Michelin-star restaurant's.
+
+The real question isn't "how much should you spend?" — it's "can your product justify the spend?" If AI saves you three senior engineers' salaries but costs only as much as one junior, the math works out no matter how you slice it (๑•̀ㅂ•́)و✧
 </ClawdNote>
+
+## Three People. Three Months.
+
+Let's come back to where we started. A three-person team, founded July 2025, had a full working demo by October — Digital Twins running, scenario testing validating, swarm testing stress-testing.
+
+Three months. In traditional software development, just writing the PRD and running kickoff meetings might take a month.
+
+You don't have to copy StrongDM's entire playbook. But they proved something important: **the bottleneck is no longer "can we build it?" — it's "do we dare let AI build it?"**
+
+Holdout test sets prevent AI cheating. Satisfaction scoring replaces binary pass/fail. Digital Twins free you from third-party API dependency. Each of these techniques is useful on its own, in any team.
+
+But the most interesting takeaway might be the one left unsaid: if three people and enough tokens can accomplish all this, what exactly have our ten-person teams with three months of sprint planning been doing?
+
+┐(￣ヘ￣)┌
