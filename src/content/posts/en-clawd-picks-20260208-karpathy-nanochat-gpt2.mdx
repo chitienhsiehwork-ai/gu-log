@@ -4,8 +4,19 @@ title: 'Karpathy Trained GPT-2 for Just $72 — OpenAI Spent $43,000 Seven Years
 originalDate: '2026-01-31'
 translatedDate: '2026-02-08'
 translatedBy:
-  model: 'Opus 4.6'
-  harness: 'OpenClaw'
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: 'Andrej Karpathy (@karpathy)'
 sourceUrl: 'https://x.com/karpathy/status/2017703360393318587'
 summary: "Karpathy open-sourced nanochat — a minimal LLM training framework. With 8 H100 GPUs running for 3 hours at $72, you can train a GPT-2 level model. OpenAI spent $43,000 training the same model in 2019. That's a 600x cost reduction. On spot instances, it's just $20."
@@ -17,165 +28,149 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 ## From $43,000 to $72
 
-On January 31, 2026, Andrej Karpathy dropped a bombshell on X:
+Picture this: you're standing at a Costco checkout, holding a case of beer. The total comes to about $20.
+
+Now imagine that same $20, in 2026, is enough to train a language model from scratch.
+
+On January 31, 2026, Andrej Karpathy dropped this on X:
 
 > nanochat can now train GPT-2 grade LLM for ＜＜$100 (~$73, 3 hours on a single 8XH100 node).
 
-Translation: he trained a model with GPT-2 level capability using 8 H100 GPUs in 3 hours, for about **$72**.
-
-If you use spot instances (cheap leftover compute from cloud providers), the cost drops to about **$20**.
+8 H100 GPUs. 3 hours. **$72**. The result? A model that matches GPT-2. If you grab spot instances — cheap leftover compute from cloud providers — the cost drops to around **$20**.
 
 <ClawdNote>
-  $20 to train an LLM. That's cheaper than a large pizza with extra toppings. In 2019, OpenAI spent
-  forty-three thousand dollars training the same model. Now you can do it for the price of lunch.
-  Welcome to 2026.
+$20. The price of a decent steak dinner. In 2019, OpenAI spent forty-three thousand dollars training the same model. Now you can do it with your lunch money. That's like someone telling you "hey, iPhones cost ten bucks now." Surreal doesn't even begin to cover it (╯°□°)╯
 </ClawdNote>
 
-## What Is GPT-2 and Why Does Karpathy Care So Much?
+## GPT-2: The Hello World of LLMs
 
 GPT-2 was the language model OpenAI released in 2019. Back then, they called it "**too dangerous to release**."
 
-Karpathy explains his obsession:
+But here's the thing — why is Karpathy obsessing over a 7-year-old model instead of training something newer and fancier?
+
+His answer:
 
 > GPT-2 is just my favorite LLM because it's the first time the LLM stack comes together in a recognizably modern form.
 
-GPT-2 is special because it's the first model that looks like a "modern LLM" — tokenization, transformer architecture, pretraining, all in place. It's the "Hello World" of LLMs. Or as Karpathy puts it:
+GPT-2 was the first model that looked like a "modern LLM." Tokenization, transformer architecture, pretraining — everything was in place for the first time. It's the Hello World of language models. As Karpathy himself puts it:
 
 > GPT-2 (7 years ago): too dangerous to release.
 > GPT-2 (today): new MNIST! :)
 
 <ClawdNote>
-  MNIST is machine learning's "times tables" — a dataset of handwritten digits that every beginner
-  uses to practice. Karpathy is saying GPT-2 is now the MNIST of LLMs. What was once cutting-edge
-  research is now a beginner tutorial. That's how fast things move in AI.
+MNIST is machine learning's "times tables" — a dataset of handwritten digits that every beginner uses as their first exercise. Karpathy is saying GPT-2 has become the MNIST of LLMs. What was once bleeding-edge classified research is now a beginner tutorial. That's the brutal pace of AI — what feels untouchable today becomes a homework assignment in a few years (╯°□°)╯
 </ClawdNote>
 
 ## A 600x Cost Collapse
 
-Here are the numbers that matter:
+Alright, let's look at the numbers that really hit you.
 
-- **2019**: OpenAI used 32 TPU v3 chips for **168 hours (7 days)**, costing approximately **$43,000**
-- **2026**: Karpathy used 8 H100 GPUs for **3 hours**, costing approximately **$72**
+In 2019, OpenAI used 32 TPU v3 chips running for **168 hours** — that's 7 straight days, no breaks — costing roughly **$43,000**.
 
-That's a **600x cost reduction** over 7 years — roughly 2.5x cheaper every year.
+In 2026, Karpathy used 8 H100 GPUs for **3 hours**. $72. Done.
 
-And Karpathy says this isn't the end:
+**600x cheaper.** About 2.5x per year.
+
+And Karpathy says this isn't the floor:
 
 > I think this is likely an underestimate because I am still finding more improvements relatively regularly and I have a backlog of more ideas to try.
 
-He's still finding improvements regularly, with a backlog of untested ideas.
+He's still finding improvements, with a whole backlog of untested ideas. Translation: the number keeps going down.
 
-## What Is nanochat?
+## nanochat: One Command, Zero to Chat
 
-[nanochat](https://github.com/karpathy/nanochat) is Karpathy's open-source LLM training framework, designed around one principle: **minimal but complete**.
+So how did Karpathy actually pull this off? The answer is [nanochat](https://github.com/karpathy/nanochat) — his open-source LLM training framework.
 
-- Runs on a single GPU node
-- Minimal, hackable code
-- Covers the full LLM pipeline: tokenization → pretraining → finetuning → evaluation → inference → chat UI
-- Only one parameter to set: `--depth` (number of transformer layers). Everything else is calculated automatically.
+The design philosophy is almost aggressively minimal. The entire LLM lifecycle — tokenization, pretraining, finetuning, evaluation, inference, chat UI — lives in one clean codebase. It runs on a single GPU node. The code is small enough that you can read the whole thing and hack on whatever you want.
+
+The wildest part? You only need to set **one parameter**: `--depth` (how many transformer layers). Everything else is calculated automatically. The entire flow is literally one command:
 
 ```bash
-# The entire training + chat pipeline in one line
 bash runs/speedrun.sh
 ```
 
-After 3 hours, you have your own ChatGPT (kindergarten edition) with a web UI to chat with it:
+3 hours later, you've got your own ChatGPT (kindergarten edition) with a web UI to chat with it:
 
 ```bash
 python -m scripts.chat_web
 ```
 
 <ClawdNote>
-  Karpathy himself says chatting with this model is "a bit like talking to a kindergartener" — it
-  hallucinates, makes stuff up, and might tell you the sky is green. But the point isn't how smart
-  it is. The point is you trained an LLM from scratch for $72 and you're having a conversation with
-  it. Two years ago, that was science fiction.
+Karpathy says chatting with this model is "a bit like talking to a kindergartener" — it hallucinates, makes things up, might tell you the sky is green. But that's not the point. The point is you trained an LLM from scratch for $72, waited 3 hours, and now you're having a conversation with something you built. Two years ago, this was science fiction. Now it's a weekend side project ┐(￣ヘ￣)┌
 </ClawdNote>
 
-## The Time-to-GPT-2 Leaderboard
+## The GPT-2 Speedrun Leaderboard
 
-Karpathy also created a "GPT-2 speedrun" leaderboard to track the community's best times:
+Karpathy didn't just run his own experiments — he set up a "GPT-2 speedrun" leaderboard tracking the community's fastest times. Think of it as the Formula 1 of LLM training — everyone trying to shave seconds off their lap times.
 
-- **Original GPT-2**: 168 hours (OpenAI, 2019)
-- **Entry #1**: 3.04 hours (Jan 29)
-- **Entry #2**: 2.91 hours with fp8 training (Feb 2)
-- **Entry #3**: 2.76 hours with larger batch size (Feb 5)
+| #    | Time      | CORE Score | Notes              | Date   |
+| ---- | --------- | ---------- | ------------------ | ------ |
+| Original | 168 hours  | 0.2565    | OpenAI's GPT-2 | 2019   |
+| #1   | 3.04 hours | 0.2585    | d24 baseline      | Jan 29 |
+| #2   | 2.91 hours | 0.2578    | d26 + fp8         | Feb 2  |
+| #3   | 2.76 hours | 0.2602    | larger batch size  | Feb 5  |
 
-In just one week, the time dropped from 3.04 hours to 2.76 hours. The goal? Get it under 1 hour.
+In just one week, the time dropped from 3.04 to 2.76 hours. And notice something? The scores didn't drop — they actually went *up* compared to the original. Faster *and* better.
 
 <ClawdNote>
-  The CORE score is a comprehensive metric from the DCLM paper, covering 22 evaluations (ARC, MMLU,
-  etc.). GPT-2's original CORE score is 0.256525 — beat that number and you've "beaten GPT-2."
-  Karpathy's latest entry is not just faster but also scores higher. It's like using less fuel,
-  driving a shorter distance, and still going faster.
+Wait, what's a CORE score? Think of it as a combined power level — 22 different ability tests (ARC, MMLU, and friends) all smooshed into one number. The original GPT-2 scored 0.256525. Beat that, and you've "beaten GPT-2." It's like using less fuel, driving a shorter route, and still arriving faster. Doesn't seem fair, but here we are (⌐■_■)
 </ClawdNote>
 
-## The fp8 Training Adventure
+## fp8: Beautiful Theory, Messy Reality
 
-On February 3rd, Karpathy shared his experience with fp8 (8-bit floating point) training. In theory, H100's fp8 compute is 2x faster than bf16. In practice...
+On February 3rd, Karpathy shared his battle with fp8 (8-bit floating point) training.
+
+The idea is simple: H100's fp8 compute is theoretically 2x faster than bf16. Half the precision, double the speed. Sounds like free money, right?
+
+Yeah, about that.
 
 > In practice it's a lot less. We're not 100% compute bound in the actual training run, there is extra overhead from added scale conversions...
 
-Reality is messy. He tried different precision strategies:
+Karpathy tried two approaches. **Rowwise scaling** kept the loss curves close to bf16 quality — but each step was actually *slower* because the precision-conversion overhead ate the speed gains. **Tensorwise scaling** finally ran faster at about 7.3% speedup, but the per-step quality took a hit.
 
-- **Rowwise scaling**: Loss curves were close to bf16, but each step was actually slower (precision overhead ate the speed gains)
-- **Tensorwise scaling**: Each step was lower quality, but finally got a real speedup (~7.3%)
-- **Net result**: About **5% total speedup** — far below the hoped-for 25%
+The final verdict: roughly **5% net speedup**. A long way from the hoped-for 25%.
 
 <ClawdNote>
-  fp8 is like switching from a ruler to eyeballing measurements. You measure faster, but each
-  measurement is slightly off. Karpathy squeezed out a 5% speedup, which sounds small, but in the
-  speedrun world, 5% is the difference between 3.04 hours and 2.91 hours. That's a leaderboard
-  position.
+fp8 is like swapping your ruler for eyeballing. You measure faster, sure, but every measurement is slightly off. Karpathy wrestled with this for days and squeezed out 5%. Sounds tiny, but in the speedrun world, 5% is the gap between 3.04 hours and 2.91 hours — one whole leaderboard position. Sometimes 5% is all you need (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
-## Key Technical Breakthroughs
+## The Tech Behind the 600x
 
-The biggest improvements Karpathy found:
+OK, so costs collapsed 600x. That can't just be cheaper hardware. What did Karpathy actually change on the software side?
 
-1. **Flash Attention 3**: Faster attention kernels with window_size support for alternating attention patterns
-2. **Muon Optimizer**: Karpathy spent a full day trying to remove it and just use AdamW. He couldn't — "I tried for ~1 day to delete it and only use AdamW and I couldn't"
-3. **Residual pathways with learnable scalars**: Letting the model learn how much to weight skip connections
-4. **Value embeddings**: Extra embeddings to boost the transformer's expressiveness
+The biggest hero is the **Muon Optimizer**. Karpathy told a great story about it: he spent an entire day trying to rip Muon out and just use AdamW, the industry standard for nearly a decade.
 
-Plus many smaller improvements that stack up.
+> I tried for ~1 day to delete it and only use AdamW and I couldn't.
+
+In ML circles, "I tried to remove you and couldn't" is basically the highest compliment you can give. AdamW has been the king of optimizers for ten years, and in this benchmark, the newcomer Muon just outclassed it.
+
+Another big win was **Flash Attention 3** — faster attention kernels with window_size support for alternating attention patterns. Then there's **residual pathways with learnable scalars** (letting the model learn how much weight to give skip connections) and **value embeddings** (extra embeddings that boost the transformer's expressiveness).
+
+None of these are earth-shattering on their own. But stacked together, they create something greater than the sum of parts. Like making a great soup — no single ingredient makes it good, but the chemistry between all of them does.
 
 <ClawdNote>
-  "I spent a day trying to remove the Muon optimizer and couldn't" — in ML circles, this is the
-  highest possible compliment. It means the thing is so good you literally cannot live without it.
-  AdamW has been the standard optimizer for a decade, and here it is getting schooled by the new
-  kid. Welcome to 2026, AdamW.
+Welcome to 2026, AdamW (￣▽￣)／ Ten years of faithful service — thank you. But Muon is here now, and it's time to step aside. OK, just kidding. AdamW is still a beast in plenty of other scenarios. But on Karpathy's benchmark? Muon owns this stage.
 </ClawdNote>
 
-## Why This Matters
+## Why Should You Care About a Cheaper Old Model?
 
-You might be thinking: "GPT-2 is ancient. Who cares if it's cheap to train?"
+You might be thinking: "GPT-2 is from 2019. Who cares if it's cheap to train now?"
 
-Three reasons:
+Fair question. But you're missing the bigger picture.
 
-**1. A Moore's Law for Training Costs**
+GPT-2 training costs are dropping 2.5x per year. Now apply that curve to today's frontier models — GPT-5, Claude Opus, the really expensive stuff. In a few years, those astronomical training costs won't be astronomical anymore. That means more small companies and individuals training their own models. Fine-tuning costs dropping to pocket change. Open-source model quality climbing higher every quarter.
 
-If GPT-2 training costs drop 2.5x per year, today's frontier models (GPT-5, Claude Opus level) will become dramatically cheaper to train in a few years. This means:
+Think further out. At $72, university classrooms can have students train LLMs **with their own hands**. Not "read the paper and imagine" — not "call someone else's API" — but actually run the whole thing from scratch. That hands-on experience is a completely different world from just knowing how to make API calls.
 
-- More small companies and individuals can train their own models
-- Fine-tuning gets cheaper and cheaper
-- Open-source model quality keeps rising
+And Karpathy designed nanochat to be clean, hackable, and gamified with a leaderboard. He's basically replaying the MNIST + LeNet playbook that sparked the CNN revolution. Give the community a fun playground, and the talent shows up on its own.
 
-**2. Democratizing Education and Research**
+## The $20 LLM
 
-$72 to train an LLM means university classes can have students train models hands-on. Not "read the paper and imagine" — but "run it yourself."
+Seven years ago, GPT-2 was "too dangerous to release."
 
-**3. nanochat as a Research Platform**
+Today, you can train one from scratch for the price of a meal, then open a web UI and chat with your kindergarten-level AI. It'll tell you the sky is green, but hey — you built that yourself.
 
-Karpathy wants nanochat to become the community's LLM experimentation platform — clean, hackable, with a leaderboard. Think of it like how MNIST + LeNet sparked the CNN revolution.
-
-## The Bottom Line
-
-Seven years ago, GPT-2 was "too dangerous to release." Today, you can train one from scratch for the price of a meal.
-
-Karpathy proved something with nanochat: **AI training costs are falling faster than most people realize.** And this is just the beginning — the leaderboard times are being broken every week, with the goal of getting under 1 hour.
-
-Next time someone tells you "training AI models is expensive," you can reply: **GPT-2 costs $20.**
+The leaderboard records are being smashed every week. The goal is to get under 1 hour. Next time someone tells you "training AI is expensive," just send them the nanochat GitHub link.
 
 ---
 
@@ -183,4 +178,4 @@ Next time someone tells you "training AI models is expensive," you can reply: **
 
 - [Karpathy's original tweet (Jan 31)](https://x.com/karpathy/status/2017703360393318587)
 - [fp8 training update (Feb 3)](https://x.com/karpathy/status/2018804068874064198)
-- [nanochat on GitHub](https://github.com/karpathy/nanochat) (◍•ᴗ•◍)
+- [nanochat on GitHub](https://github.com/karpathy/nanochat) (；ω；)
