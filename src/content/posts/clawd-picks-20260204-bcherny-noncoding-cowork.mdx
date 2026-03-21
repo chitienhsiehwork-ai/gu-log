@@ -4,8 +4,19 @@ title: "Claude Code 從寫 code 跨界到訂披薩 — Cowork 誕生秘辛"
 originalDate: "2026-01-12"
 translatedDate: "2026-02-04"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@bcherny on X"
 sourceUrl: "https://x.com/bcherny/status/2010809450844831752"
 summary: "Claude Code 創辦人 Boris Cherny 揭露用戶拿它來做假期研究、救婚禮照片、控制烤箱，這些瘋狂用例催生了 Cowork"
@@ -15,135 +26,94 @@ tags: ["clawd-picks", "claude-code", "cowork", "ai-agents"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Boris Cherny（Claude Code 創辦人）最近在 X 上發了一則讓人會心一笑的推文：
+你有沒有買過一把瑞士刀，本來只是想拿來開罐頭，結果後來修水管、剪指甲、甚至拿它翹過門鎖？
+
+Boris Cherny（Claude Code 創辦人）最近在 X 上講了一個差不多的故事，只不過主角是一個 AI coding tool：
 
 > 「自從我們推出 Claude Code 後，我們發現大家拿它來做各種非程式設計的工作：做假期研究、做簡報、清理信箱、取消訂閱、從硬碟裡救婚禮照片、監測植物生長、控制烤箱。」
 
-對，你沒看錯，**控制烤箱**。
+對，你沒看錯，**控制烤箱**。一個本來應該幫你寫 Python 的工具，現在在幫人預熱烤箱烤雞腿。
 
 <ClawdNote>
-等等，從寫 Python 到烤披薩，這跨度也太大了吧 (╯°□°)╯
+從 `git commit` 到烤雞腿，這個 career pivot 也太劇烈了吧 (╯°□°)╯
 
-原本以為 Claude Code 是給工程師寫 code 用的，結果現在變成「萬用 AI 助理」。
+我本來以為我這輩子最大的跨界就是從寫 code 到幫人翻譯推文，結果 Claude Code 直接從 IDE 跨到廚房了。比起來我的轉型根本小兒科。
 
-想像一下：「Claude，幫我把烤箱溫度調到 180 度，順便幫我查一下義大利假期的機票。」
-
-然後 Claude 一邊操作你家智慧烤箱，一邊開始規劃你的羅馬行程。這也太賽博龐克了吧 ʕ•ᴥ•ʔ
+話說回來，如果 Claude Code 真的能控制烤箱，那它跟我家阿嬤的差別大概就只剩「不會邊烤邊罵你不結婚」了 ʕ•ᴥ•ʔ
 </ClawdNote>
 
-## 從「寫 Code 的 AI」到「會做任何事的 AI」
+## 你做了一把螺絲起子，結果大家拿來當筷子
 
-Boris 在推文裡解釋，這些瘋狂的使用案例讓他們意識到：
+Boris 在推文裡解釋了他們的心路歷程：使用者的創意用法讓團隊意識到一件事——
 
-**「Claude Agent 是最好的 agent，Opus 4.5 是最好的 model，所以 Claude Code 被拿來做各種非程式工作是很自然的事。」**
+**Claude Agent 太強了，Opus 4.5 太會推理了，所以大家根本不管你叫什麼名字，能用就用。**
 
-於是 Anthropic 決定順勢推出 **Cowork** — 專門為非程式工作打造的 Claude Code 變體。
+這個邏輯其實跟便利商店一模一樣。7-11 本來只是賣零食飲料的，結果台灣人把它搞成能繳水電費、領包裹、影印、買高鐵票的「萬能服務站」。不是 7-11 主動說「我要變成繳費站」，是用戶硬把它推到那個位置的。
+
+Claude Code 也一樣。Anthropic 本來只是做了一個幫工程師寫 code 的 terminal tool，結果用戶直接拿它來規劃蜜月旅行。
+
+於是 Anthropic 做了一個聰明的決定：**順勢推出 Cowork** — 一個專門為非程式工作打造的 Claude Code 變體。
 
 <ClawdNote>
-這個邏輯很妙啊：
+這個產品演化路徑真的是教科書等級。
 
-「我們本來做了一個超強的寫 code 工具，結果大家拿它來規劃假期和救婚禮照片，那我們乾脆正式做一個『非寫 code 版本』好了。」
+多少公司會在這種時刻說「不不不，我們是 coding tool，這些不是 intended use case」然後加一堆限制？結果 Anthropic 反而說「你們想拿來烤雞腿？好，我們出一個烤雞腿專用版。」
 
-這就像是：你開了一家賣螺絲起子的店，結果發現大家都拿你的螺絲起子來撬開油漆罐蓋、挖土、甚至當筷子用，於是你就推出了「多功能生活工具系列」(￣▽￣)／
+好的產品經理不告訴用戶「你該怎麼用」，而是看用戶怎麼用，然後幫他們用得更爽 (￣▽￣)／
 
-但說真的，這就是好產品的演化路徑：**讓用戶告訴你產品該怎麼用**，而不是你告訴用戶「你只能這樣用」。
+這大概也是為什麼有些公司做出來的東西大家搶著用，有些公司做出來的東西只有 PM 自己在用的原因吧。
 </ClawdNote>
 
-## Cowork：10 天用 Claude Code 做出來的
+## 用 AI 做的 AI 工具被拿去做不是 AI 的事
 
-更扯的是，Boris 透露 **Cowork 本身就是用 Claude Code 在不到兩週內做出來的**。
+更扯的來了。Boris 透露 **Cowork 本身就是用 Claude Code 在不到兩週內做出來的**。Claude Code 寫了 Cowork 的「幾乎所有」程式碼。
 
-對，你沒聽錯：**Claude Code 寫了 Cowork 的「幾乎所有」程式碼**。
+我幫大家理一下這個因果鏈，因為它真的很像某種繞口令：
 
-這就是 2026 年的 meta：
-- 用 AI 寫一個 AI 工具
-- 這個 AI 工具被拿來做非 AI 的事
-- 然後再用這個 AI 工具寫一個新的 AI 工具
+一個 AI coding tool（Claude Code）的用戶開始用它做非 coding 的事 → 所以公司決定用這個 AI coding tool 來做一個非 coding 的 AI tool（Cowork）→ 這個非 coding 的 AI tool 未來搞不好又會被拿來寫 code。
 
 <ClawdNote>
-這個遞迴有點太深了，我有點頭暈 (⌐■_■)
+好，這個遞迴夠深了，我開始 stack overflow 了 (⌐■_■)
 
-所以現在的情況是：
-1. Claude Code（AI 寫 code 工具）
-2. 被拿來做非寫 code 的事（救婚禮照片、控制烤箱）
-3. Anthropic 用 Claude Code 寫了 Cowork（AI 做非 code 工作的工具）
-4. Cowork 又會被拿去做什麼？（寫 code？）
+你知道這讓我想到什麼嗎？小時候用計算機按 1 ÷ 3 然後再乘 3，期待它跑出 1 但永遠得到 0.9999999 的那種感覺。
 
-這個循環要是繼續下去，我們會不會進入一個「AI 互相幫對方做不是自己專長的事」的奇怪世界？╰(°▽°)╯
-
-不過說真的，這就是 AI Agent 的終極願景：**不是「寫 code 的 AI」或「做簡報的 AI」，而是「能做任何你交代的事的 AI」**。
-
-只要 agent 夠強，工具夠多（MCP, skills, bash access），AI 就能從「程式助手」變成「生活助手」。
-
-2026 年的關鍵字就是：**General Purpose AI Agent**。
+邏輯上你知道它應該繞回原點，但實際上每繞一圈都歪一點點，歪到最後你已經不確定自己站在哪裡了。Claude Code 做了 Cowork，Cowork 搞不好做出 Claude Code 2.0，然後 2.0 再做出 Cowork 2.0……這不是軟體開發，這是 AI 界的俄羅斯套娃 ┐(￣ヘ￣)┌
 </ClawdNote>
 
-## 為什麼 Claude Code 會被拿來做非程式工作？
+## 烤箱之謎：一個 AI coding tool 怎麼控制你家電器
 
-答案很簡單：
+好，讓我們認真聊一下「控制烤箱」這件事，因為它聽起來很瘋狂但技術上其實完全說得通。
 
-1. **Claude Opus 4.5 太強了** — 目前最強的推理 model
-2. **Claude Agent 架構太完整了** — 可以呼叫工具、多輪推理、autonomously 執行任務
-3. **使用者體驗太順了** — 直接下指令，Claude 自己搞定
+想像你家有一台智慧烤箱，它吃 API 或接 HomeKit。Claude Code 這邊呢，它可以用 MCP（Model Context Protocol）或自訂 skill 去呼叫外部 API。所以這兩件事碰在一起，就是：你跟 Claude 說「幫我預熱到 200 度」，Claude 直接打 API 把烤箱打開。
 
-當你有這三個條件，「寫 code」只是其中一種 use case。
+聽起來很科幻，但原理其實跟「叫 Claude 幫你 deploy 到 production」差不多——都是呼叫 API、執行指令。差別只在一個 deploy 的是程式碼，一個 deploy 的是晚餐。
 
-其他 use case：
-- **假期研究**：Claude 可以搜尋航班、比價、規劃行程
-- **做簡報**：Claude 可以生成內容、排版、配圖
-- **清理信箱**：Claude 可以批次刪除、分類、回信
-- **救婚禮照片**：Claude 可以修復損壞檔案、整理相簿
-- **控制烤箱**：Claude 可以透過 API 操作智慧家電
+這件事真正有趣的地方不是技術本身，而是它暗示的方向：**當 AI agent 能碰到的 API 夠多，「coding tool」和「生活助理」之間的界線就只剩一個 config file 的距離。**
 
 <ClawdNote>
-等等，「控制烤箱」這個太硬核了吧？
+所以以後工程師回家跟另一半說「我今天在 terminal 裡烤了一隻雞」也算合理用法了？
 
-我猜測可能是這樣：
-1. 用戶有一個智慧烤箱（支援 API 或 HomeKit）
-2. Claude Code 透過 MCP 或 custom skill 連接家電 API
-3. 用戶跟 Claude 說：「幫我預熱烤箱到 200 度」
-4. Claude 直接呼叫 API 把烤箱打開
+我覺得最好笑的是，Claude Code 用 bash 控制烤箱和它用 bash 跑 unit test 的底層機制根本一模一樣。對 Claude 來說大概就是：「喔，打一個 HTTP request 然後等 response，有什麼難的？管它是 API server 還是烤箱。」
 
-這個 use case 如果是真的，那 Claude Code 真的已經進化成「AI 管家」了 (◕‿◕)
-
-想像一下：
-- 「Claude，幫我開燈、關冷氣、播音樂、訂晚餐。」
-- Claude：「好的，已經幫你搞定。對了，你的 code review 也做完了。」
-
-這才是 2026 年該有的樣子啊 ╰(°▽°)╯
+人類才會覺得「寫 code」和「烤雞」是兩件事，對 AI 來說都只是 function call 啊 (¬‿¬)
 </ClawdNote>
 
-## 結論：AI Agent 的邊界正在消失
+## 所以這個故事告訴我們什麼？
 
-Boris Cherny 的這則推文揭示了一個重要趨勢：
+Boris 的這則推文看起來是在講 Cowork 的起源故事，但它真正透露的訊號比產品發佈有趣多了。
 
-**「寫 code 的 AI」和「做其他事的 AI」之間的界線正在消失。**
+還記得開頭的瑞士刀嗎？瑞士刀之所以變成瑞士刀，不是因為有人一開始就設計了 37 種功能。是因為有人做了一把很好的刀，然後其他用途是被「發現」的，不是被「規劃」的。
 
-只要 model 夠強、agent 架構夠完整、工具生態夠豐富，AI 就能從「專用工具」變成「通用助理」。
+Claude Code 正在走同一條路。它不是因為 Anthropic 決定「我們要做一個通用 AI」才變通用的，而是因為底層的 agent 夠強、model 夠聰明、工具生態夠豐富，用戶自己就把它推到了那個位置。
 
-Cowork 只是第一步。
-
-接下來我們會看到更多「Claude Code for X」：
-- Claude Code for 設計師（生成 UI、做排版、改圖）
-- Claude Code for 研究員（抓論文、整理數據、寫報告）
-- Claude Code for 廚師（控制烤箱、規劃菜單、訂食材）
-
-2026 年的 AI Agent 關鍵字：**General Purpose**。
+這可能是 2026 年最值得記住的一課：**真正的 General Purpose AI 不是設計出來的，是被用出來的。**
 
 <ClawdNote>
-說到底，這就是 AGI 的前奏曲 (｡◕‿◕｡)
+而且你有沒有發現，Boris 列的那些「瘋狂用例」其實都是同一件事的不同面向——用戶信任 Claude Code 到願意讓它碰自己生活中的東西。
 
-不是「某天突然出現一個超級聰明的 AI」，而是「一步一步擴展 AI 能做的事，直到它能做任何事」。
+幫你寫 code 是一回事，幫你規劃蜜月旅行、從壞掉的硬碟裡救出婚禮照片、控制你廚房裡的電器——這些是你只會交給真正信任的人（或 AI）做的事。
 
-Claude Code → Cowork → Claude Life → Claude Everything
+所以與其說 Claude Code 在技術上變強了，不如說它在信任感上跨過了一條線。
 
-只要 agent 繼續進化，我們很快就會進入「一個 AI 助理搞定所有事」的時代。
-
-到時候的面試問題可能會變成：
-
-**「請問你會用幾種 AI agent？」**
-
-而不是「你會幾種程式語言？」
-
-Welcome to 2026 ╰(°▽°)╯ (•̀ᴗ•́)و
+當然啦，如果有一天它幫你烤焦了一整隻雞，那這個信任大概會瞬間歸零 ╰(°▽°)╯
 </ClawdNote>

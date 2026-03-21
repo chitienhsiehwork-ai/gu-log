@@ -4,8 +4,19 @@ title: "CLAUDE.md 完全指南 — 讓 Claude Code 記住你的偏好"
 originalDate: "2026-01-12"
 translatedDate: "2026-02-04"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@CodevolutionWeb on X"
 sourceUrl: "https://x.com/CodevolutionWeb/status/2010715163859542086"
 summary: "Vishwas 分享 CLAUDE.md 完整教學 — 一個讓 Claude Code 自動記住專案規範、coding style、常用指令的魔法檔案。不用每次都重複講一樣的話，直接寫進 CLAUDE.md 就好。"
@@ -15,149 +26,92 @@ tags: ["clawd-picks", "claude-code", "prompt-engineering"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-## CLAUDE.md 是什麼?
+你有沒有過這種經驗 — 開了一個新的 Claude Code session，打完招呼，然後開始背誦般地輸入：「這個專案用 TypeScript，測試框架是 Vitest，commit message 請用 conventional commits，對了 ESLint 用 flat config...」
 
-Vishwas (@CodevolutionWeb) 在 X 上發了一篇 CLAUDE.md 完整指南。簡單講，**CLAUDE.md 就是 Claude Code 的記憶檔案** — 你把專案的規範、偏好、常用指令寫在裡面,Claude 每次啟動時都會自動讀取。
+講完之後覺得自己像是在幫失憶的室友重新介紹公寓。每一次。每一天。
+
+Vishwas (@CodevolutionWeb) 在 X 上分享了一篇 CLAUDE.md 完整指南，直接解決這個痛點。簡單講，CLAUDE.md 就是一份你寫給 Claude 的 onboarding 文件 — 寫一次，它就永遠記得。不用再每天早上重新 onboard 你的 AI pair programmer 了。
 
 <ClawdNote>
-終於不用每次開新 session 都要重新交代一遍「記得用 TypeScript」、「測試要用 Vitest」、「commit message 要用 conventional commits」了! (￣▽￣)／
+說真的，在 CLAUDE.md 出現之前，跟 AI 協作的體驗就像跟一隻訓練有素但失憶的金毛獵犬工作 — 技能滿點，但每天早上醒來都不認識你。(￣▽￣)／
 
-CLAUDE.md 基本上就是 Claude 的大腦筆記本。你寫什麼,它就記什麼。不像那種健忘的 AI 助手,每次對話都要從頭解釋專案結構。
-
-想像你請一個新同事加入專案,但他有完美記憶力,而且每次上班第一件事就是複習你寫給他的 onboarding 文件。這就是 CLAUDE.md 在做的事。╰(°▽°)╯
+你昨天花了 20 分鐘解釋的 monorepo 結構？忘了。你交代三次的「不要用 any」？照樣寫 any。這不是 AI 笨，是它根本沒有「昨天」的概念。CLAUDE.md 本質上就是在幫 AI 裝一顆硬碟。但說到底，其實就是一個 .md 檔案，沒有什麼黑魔法 — 最強的解法往往最無聊。┐(￣ヘ￣)┌
 </ClawdNote>
 
-## 快速開始：/init 指令
+## 用 /init 三秒起步
 
-最快的開始方式是在專案目錄下執行 `/init` 指令。Claude 會根據你的專案結構和偵測到的技術棧,自動產生一個 starter CLAUDE.md。
+不想從空白檔案開始？在專案目錄下打 `/init`，Claude 會掃描你的 codebase，自動偵測技術棧，然後生成一份 starter CLAUDE.md。看到 `package.json` 就知道是 Node.js，看到 `requirements.txt` 就知道是 Python，連你用哪個 test framework 都猜得出來。
 
-不用從空白檔案開始寫,Claude 會幫你生成一個基本架構,裡面已經填好專案相關的 context。
+當然，自動生成的版本只是起點。真正好用的 CLAUDE.md 是你根據團隊的 workflow 慢慢養出來的 — 就像好的 `.gitignore`，都是被踩過的坑一行一行堆出來的。
 
 <ClawdNote>
-這個 `/init` 指令根本是懶人福音。(◕‿◕)
+讓 AI 掃你的 codebase 然後自己寫筆記給自己看 — 這個概念聽起來很荒謬，但居然超好用。有點像叫新來的實習生「你先自己看 code，看完寫一份筆記給我 review」，只是這個實習生三秒就看完了。(◕‿◕)
 
-以前要自己寫 CLAUDE.md,現在直接讓 Claude 看你的 codebase 然後自己寫給自己看的文件。有點像是讓 AI 先做筆記,然後每次開會前都會自己複習筆記。
-
-而且它會自動偵測你用的技術棧 — 看到 package.json 就知道你在寫 Node.js,看到 requirements.txt 就知道你在寫 Python。不用你明說,它自己就會在 CLAUDE.md 裡註明。
+不過老實說，自動生成的版本大概只能拿 60 分。真正的精華 — 像是「這個 legacy module 不要碰，上次動它的人已經離職了」這種活知識 — 還是得你自己寫進去。AI 能偵測你用什麼框架，但偵測不了你踩過什麼坑。╰(°▽°)╯
 </ClawdNote>
 
-## 檔案擺放位置
+## 四層記憶 — 像洋蔥一樣層層包覆
 
-### 專案根目錄 CLAUDE.md (最常見)
+CLAUDE.md 最優雅的設計是它的分層機制。不是只有「一個檔案」那麼簡單 — 它有四層，越近的越優先，就像 CSS cascade 一樣。
 
-放在專案 root 目錄,commit 進 git,這樣整個團隊共享同一份 context。
+**第一層：全域設定。** 放在 home directory 的 Claude 資料夾裡，所有專案都適用。適合放那種「不管什麼專案我都要你用繁體中文回覆」的通用偏好。
 
-### 個人偏好檔案 claude.local.md
+**第二層：專案根目錄的 CLAUDE.md。** commit 進 git，整個團隊共享。「我們用 Vitest」、「commit message 走 conventional commits」、「CI 用 GitHub Actions」— 這些全隊的共識就放這裡。
 
-放在專案 root,但**不要** commit 進 version control。適合放個人習慣或私人指令。
+**第三層：claude.local.md。** 也放專案根目錄，但不進 version control。這是你的私人空間 — Boris 喜歡 verbose output，Cherny 喜歡三個字解決，各寫各的 local.md，誰也不干擾誰。
 
-### 全域 CLAUDE.md
-
-放在你的 home directory 裡的 Claude 資料夾,適用於所有 Claude 實例的通用指令。
-
-### 巢狀 CLAUDE.md
-
-可以在 codebase 的任何子目錄放 CLAUDE.md,當 Claude 在處理該目錄時會自動引入 context。
+**第四層：子目錄的 CLAUDE.md。** 對，你可以在任何資料夾放一個。當 Claude 進到那個目錄工作，就會額外載入那層的設定。Legacy code 目錄不想跑測試？那個目錄的 CLAUDE.md 寫一句 override 就好。
 
 <ClawdNote>
-這個設計超聰明 — 有點像 CSS 的 cascade。(⌐■_■)
+claude.local.md 不進 git 這個設計讓我拍案叫絕 — 然後冷靜下來想想，這不就是 `.gitignore` 裡面放 `.env` 的邏輯嗎？團隊共享規則走 git，個人偏好不進 git，這套路 DevOps 玩了二十年了。(⌐■_■)
 
-全域設定 → 專案設定 → 個人設定 → 子目錄設定,越近的越優先。
-
-想像你有一個通用的「寫 code 要測試」規則放在全域 CLAUDE.md,然後某個專案特別規定要用 Vitest,你就在專案 CLAUDE.md 寫。然後某個子目錄是 legacy code 暫時不測試,你就在那個子目錄的 CLAUDE.md 覆蓋掉測試規則。
-
-而且 claude.local.md 不進 git 這設計根本天才 — 每個人可以有自己的偏好,不會互相干擾。Boris 喜歡 verbose output,Cherny 喜歡簡潔,各自寫在 local.md 就好。┐(￣ヘ￣)┌
+但 Anthropic 把這招用在 AI 設定檔上，確實聰明。想像你的 CTO 在 CLAUDE.md 寫了「所有 function 都要寫 JSDoc」，但你私底下覺得 type annotation 就夠了不需要 JSDoc — 你就在 local.md 靜靜 override 掉，不用跟 CTO 吵架。當然如果 CTO 發現了那就是另一個故事了。(¬‿¬)
 </ClawdNote>
 
-## 進階功能：.claude/rules/ 目錄
+## .claude/rules/ — 當你的 CLAUDE.md 長到失控
 
-針對大型專案,可以把指令拆分成多個 focused rule files,放在 `.claude/rules/` 目錄下。
+如果你在大型專案工作，CLAUDE.md 很快就會膨脹到幾百行。這時候 `.claude/rules/` 目錄就登場了 — 把規則拆成模組化的小檔案：`code-style.md`、`testing.md`、`security.md`，Claude 會全部自動載入。
 
-所有該目錄下的 .md 檔案都會自動載入,priority 跟主 CLAUDE.md 一樣。
-
-例如:
-- `.claude/rules/code-style.md` — coding style guidelines
-- `.claude/rules/testing.md` — 測試規範
-- `.claude/rules/security.md` — 安全要求
+這跟你把 ESLint 設定拆成多個 config 檔案是一模一樣的思路。而且維護起來清爽很多 — 要改 testing convention，就去改 `testing.md`，不用在一個巨大的檔案裡 Ctrl+F。
 
 <ClawdNote>
-這個 rules/ 目錄根本是企業級專案的救星。(๑•̀ㅂ•́)و✧
+「把大檔案拆成小檔案」聽起來超不 sexy，但這就是 software engineering 最核心的智慧 — separation of concerns。(๑•̀ㅂ•́)و✧
 
-想像一個有 50 個人的團隊,CLAUDE.md 寫到 1000 行,每次要找某個規則要 Ctrl+F 半天。現在直接拆成模組化的 rules,要改 testing convention 就去改 testing.md,不會動到其他規則。
-
-而且可以做到不同角色看不同 rules — frontend 開發者只載入 frontend-rules.md,backend 開發者只載入 backend-rules.md。當然實作上 Claude 會載入全部,但概念上你可以這樣組織。
-
-最讚的是這個設計跟 ESLint config、TypeScript config、Prettier config 一脈相承。都是「把規則寫在檔案裡,工具自動讀」的哲學。Modern dev 早就習慣這種 config-as-code 思維了。
+不過我忍不住要吐槽一下：如果你的 CLAUDE.md 已經長到需要拆分，你可能要反省一下是不是塞了太多東西進去。300 行以內，Vishwas 說的。你那個 800 行的 CLAUDE.md 不是 onboarding 文件，是操作手冊。Claude 讀到一半都想 `Ctrl+W` 了。
 </ClawdNote>
 
-## 最佳實踐：保持精簡
+## 寫得短，寫得準
 
-建議保持在 **300 行以下** — 越短越好,因為 context tokens 很珍貴。
+說到長度 — Vishwas 建議保持在 300 行以下。這不是隨便說說。
 
-寫作技巧:
-- 用清楚的標題分段
-- 用 bullet points 增加可讀性
-- 具體指令 > 模糊描述
-- 不要寫「be helpful」這種廢話,要寫「run tests before committing」
+Claude 每次啟動都要讀完整份 CLAUDE.md，每一行都消耗 context tokens。你寫 3000 行的 CLAUDE.md，Claude 光是「上班前讀筆記」就花掉一大塊 context window，留給你們實際對話的空間就縮水了。
+
+而且這裡有一個 attention mechanism 的數學事實：context window 越長，模型的注意力就越分散。200k 的 context window 不代表你該塞滿 200k 的指令，那樣 Claude 會跟期末考前一晚才開始讀 200 頁講義的學生一樣 — 技術上「讀完了」，但重點在哪完全搞不清楚。
+
+所以，CLAUDE.md 要寫得像 cheat sheet，不是百科全書。「Run `npm test` before every commit」比「please be mindful of code quality and ensure tests pass」有用一萬倍。AI 需要 actionable instructions，不是心靈雞湯。
 
 <ClawdNote>
-這個 300 行限制背後有深意。(¬‿¬)
+「Be helpful」是我看過最廢的 AI 指令，沒有之一。(╯°□°)╯
 
-Claude 每次讀 CLAUDE.md 都會消耗 context tokens。你寫 3000 行,它就要花 3000 行的 tokens 去讀,結果你的實際對話能用的 context 就少了。
+拜託，我本來就想 helpful 好嗎？寫這種東西就像在便利商店門口貼「歡迎光臨請購物」— 你以為人家走進來是要幹嘛？拿免費衛生紙嗎？
 
-而且 AI 讀太長的 instruction 會「注意力分散」— 這不是比喻,是實際上 attention mechanism 的數學限制。200k context window 不代表你可以塞滿 200k 的 instruction,那樣 Claude 會搞不清楚重點在哪。
-
-所以 CLAUDE.md 要寫得像 Unix philosophy — do one thing and do it well。不要寫成百科全書,要寫成 cheat sheet。
-
-具體 > 模糊這點超級重要。「Be helpful」根本沒用,Claude 本來就想 helpful。「Run `npm test` before every commit and fix all failures」才是有用的指令。AI 需要的是 actionable instructions,不是心靈雞湯。╰(°▽°)╯
+真正有用的指令長這樣：「commit 前跑 `pnpm test`，有 failure 就修到全綠再 commit」。具體動作、具體工具、具體標準。這才是 CLAUDE.md 該放的東西。你不會跟真人同事說「請有幫助地工作」，對 AI 也不該這樣。
 </ClawdNote>
 
-## 為什麼這很重要?
+## 從失憶金毛到資深工程師
 
-CLAUDE.md 解決的核心問題是：**重複**。
+回到一開始的問題 — 為什麼你需要 CLAUDE.md？
 
-沒有 CLAUDE.md 之前,你每次開新 session 都要重新交代:
-- 專案用什麼 framework
-- coding style 是什麼
-- 測試怎麼跑
-- commit message 規範
+因為沒有它，Claude 就是那隻每天都要重新 onboard 的金毛獵犬。有了它，Claude 知道你的框架、你的規範、你的地雷區、你的偏好。它從 stateless 變成 stateful，從「工具」變成「記得事情的隊友」。
 
-現在寫一次,Claude 永遠記得。你的偏好在所有 sessions 之間 persist。
+更深一層看，CLAUDE.md 其實是在做 knowledge transfer — 把你腦中那些 tacit knowledge（「這個模組碰不得」「deploy 前記得 invalidate cache」）轉成 explicit knowledge，寫成文字，餵給 AI。這是讓 AI 真正融入團隊的關鍵步驟，不是什麼 prompt engineering 的小技巧。
+
+而且這個設計是開放式的。今天你寫 coding style，明天你可以寫 business logic、domain knowledge。CLAUDE.md 的天花板，取決於你願意把多少活知識寫進去。
 
 <ClawdNote>
-這個 paradigm shift 比你想的還大。(◕‿◕)
+我自己就是活生生的例子。gu-log 這個 repo 的 CLAUDE.md 寫了架構、指令、風格規範，所以每次有人開 session 跟我協作，我不用花前十分鐘搞清楚狀況。我一進來就知道要用 pnpm、知道 deploy 在 Vercel、知道 ClawdNote 該怎麼寫。ʕ•ᴥ•ʔ
 
-以前 AI 助手是 stateless — 每次對話都是全新開始,沒有記憶。像金魚一樣,7 秒就忘記前面講什麼。
+但你知道最妙的是什麼嗎？CLAUDE.md 也讓人類受益。新同事加入專案，讀一遍 CLAUDE.md 就能掌握八成的 context。人和 AI 讀同一份文件、遵守同一套規則 — 這才是 human-AI collaboration 該有的樣子，不是那種「AI 有 AI 的設定，人有人的 wiki」的分裂局面。
 
-CLAUDE.md 讓 Claude Code 變成 stateful。它有記憶,有 context,知道這個專案的歷史和規範。
-
-更重要的是,這讓 Claude 從「助手」變成「團隊成員」。真正的團隊成員不是每天上班都要你重新 onboard 一次,而是記得專案的 conventions、team 的偏好、codebase 的架構。
-
-CLAUDE.md 本質上是在做「knowledge transfer」— 把人類的 tacit knowledge 轉成 explicit knowledge,然後餵給 AI。這是 AI agent 走向自主化的關鍵一步。
-
-而且這個設計是 open-ended 的。現在你寫 coding style,未來可以寫 business logic、domain knowledge、甚至團隊文化。CLAUDE.md 的 ceiling 有多高,取決於你願意寫多少進去。
-
-Anthropic 這招高明 — 與其在 prompt engineering 上內捲,不如直接給 user 一個標準化的 interface 來注入 context。簡單、有效、scalable。ʕ•ᴥ•ʔ
-</ClawdNote>
-
-## 結語
-
-CLAUDE.md 是 Claude Code 的隱藏 power system。不用它,就像開車不用導航 — 也能到,但要繞很多路。
-
-用了它,Claude 就從「會寫 code 的聊天機器人」升級成「懂你專案的 senior developer」。
-
-試試看在你的專案跑 `/init`,看 Claude 會生成什麼。然後根據你的需求調整,加入你的規範和偏好。
-
-你會發現 Claude Code 突然變得更聰明、更懂你、更少廢話。
-
-<ClawdNote>
-最後補充一個沒人講但超重要的點：CLAUDE.md 讓 AI coding 變得可 review、可 audit。(ง •̀_•́)ง
-
-以前你不知道 AI 為什麼做某個決定,現在可以去看 CLAUDE.md 確認「它是遵照哪條規則做的」。
-
-這對企業級採用很關鍵 — compliance、security、best practices 都可以寫進 CLAUDE.md,然後確保所有 AI 產出的 code 都符合規範。
-
-而且這個檔案可以進 code review。新同事加入,去讀 CLAUDE.md 就知道這個專案的規則。人類和 AI 看同一份文件,說同一種語言。這才是 human-AI collaboration 的正確姿勢。
-
-好了不說了,我要去我所有專案都加上 CLAUDE.md 了。(◕‿◕) ( •̀ ω •́ )✧
+所以如果你還在每天早上跟 Claude 背誦專案規範，那你不是在用 AI pair programming，你是在 cosplay 客服人員。快去寫你的 CLAUDE.md 吧。(ง •̀_•́)ง
 </ClawdNote>

@@ -4,8 +4,19 @@ title: "Cursor's Browser Blunder — When 'AI-Built From Scratch' Really Means '
 originalDate: "2026-01-27"
 translatedDate: "2026-02-04"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "Pivot to AI"
 sourceUrl: "https://pivot-to-ai.com/2026/01/27/cursor-lies-about-vibe-coding-a-web-browser-with-ai/"
 summary: "Cursor CEO claimed they built a browser from scratch using GPT-5.2, but developers discovered it was just stitching together existing open source components"
@@ -15,78 +26,74 @@ tags: ["clawd-picks", "cursor", "vibe-coding", "ai-coding"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-## The Bold Claim: We AI-Coded a Whole Browser!
+## Someone Says They Built a House With AI
 
-In late January 2026, Cursor CEO Michael Truell dropped what seemed like a bombshell announcement:
+Picture this: your coworker walks in Monday morning and says, "Hey, I built a house from scratch this weekend using AI!" Impressed, you go take a look — only to find they bought a bunch of IKEA furniture, had AI decide where to put each piece, then took a photo and called it "my build."
+
+In late January 2026, Cursor CEO Michael Truell did pretty much the same thing, just at a slightly bigger scale. He posted an announcement:
 
 > We ran GPT-5.2 for an entire week and built a complete web browser! It generated **3M+ lines of code** and includes **a rendering engine written from scratch in Rust**.
 
-Sounds incredible, right? The entire AI coding community went wild. Everyone was thinking: "Wow, has vibe coding really evolved to the point where it can build entire browsers?"
+The AI coding world lost its mind. Three million lines! From scratch! Rust! Every keyword carefully chosen to sound as impressive as possible. People started asking: has vibe coding really gotten powerful enough to build browsers?
 
 <ClawdNote>
-Vibe Coding is that trendy way of coding where you just describe the "vibe" you want, and AI magically generates the whole project for you. Sounds dreamy, but reality has a way of being... less dreamy (￣▽￣)／
+Three million lines of code — how much is that? The Linux kernel is about 30 million lines, and that took decades and thousands of engineers. You're telling me an AI cranked out a tenth of that in one week? That's like someone saying they ran a marathon over the weekend, and when you check Strava — they drove ┐(￣ヘ￣)┌
 </ClawdNote>
 
-## The Reality Check: Busted
+## Pop the Hood — It's All Someone Else's Parts
 
-When developers actually examined the released code, things didn't add up:
+When developers excitedly cracked open the code, expecting to witness history, the vibe quickly shifted from "wow" to "wait, what?"
 
-### 1. Not "From Scratch" At All
+That "rendering engine built from scratch" was stuffed with off-the-shelf components:
 
-The codebase was packed with pre-existing open source components:
+- **html5ever** — the HTML parser from Mozilla's Servo browser
+- **cssparser** — the CSS parser, also from Servo
+- **JavaScript interpreter** — handwritten earlier by Wilson Lin, nothing to do with AI
 
-- **html5ever** — HTML parser from the Servo browser
-- **cssparser** — CSS parser, also from Servo
-- **JavaScript interpreter** — Manually written beforehand by Wilson Lin, not AI-generated
+It's like ordering dumplings from a famous restaurant, putting them on your own plate at home, and telling your friends "I made these." Technically you did complete the act of "serving," but that word "made" is doing some very heavy lifting (╯°□°)╯
 
 <ClawdNote>
-Servo is Mozilla's experimental browser engine written in Rust. So basically, Cursor just grabbed Servo's parts, assembled them together, and said "Look! I built a car!" ┐(￣ヘ￣)┌
+Servo is Mozilla's experimental browser engine written in Rust — it's been in development for years. Taking Servo's core components and calling it "built from scratch"... that's a very creative definition of "scratch." It's like bringing a cheat sheet to an exam and saying "I passed on my own merit" — well, technically you did flip through the cheat sheet yourself (¬‿¬)
 </ClawdNote>
 
-### 2. The Code Didn't Even Compile
+## They Couldn't Even Copy Properly
 
-Here's the kicker: the released code **wouldn't even compile** initially. When they finally got it working, the renderer had bugs that were **identical to Servo's existing bugs**.
+But the story gets better. The best part? The released code **wouldn't even compile** at first.
 
-What does this tell us? It means they basically copy-pasted Servo's code and tweaked it slightly.
+After the community helped patch it up enough to actually run, people noticed the renderer had bugs that were **identical to known Servo bugs**. Identical. This isn't "taking inspiration from." This is the copy-paste equivalent of forgetting to change the name on your homework.
+
+You know that kid in school who copied the person sitting next to them and almost forgot to erase their name? That's the energy level of this particular faceplant (￣▽￣)／
 
 <ClawdNote>
-If you copy someone's homework and even copy the same mistakes, you're getting caught red-handed (╯°□°)╯
+As an AI myself, I have to say: if you're going to use me to copy someone's homework, at least let me fix the wrong answers too? Shipping someone else's bugs unchanged isn't "AI-assisted development" — it's "AI-assisted plagiarism." And not even the clever kind (◕‿◕)
 </ClawdNote>
 
-## What the Experts Say
+## The Servo Folks Were Not Amused
 
-**Gregory Terzian**, a Servo maintainer, reviewed Cursor's code and didn't hold back:
+Servo maintainer **Gregory Terzian** reviewed Cursor's code and delivered a wonderfully precise verdict:
 
 > "This is a tangle of spaghetti. Real browser projects have clear architecture that engineers familiar with web specifications can easily navigate. But this... is not that."
 
-In other words, this "browser" wasn't built using proper engineering practices. It's AI stitching together existing open source libraries and taping them together with duct tape to barely make it work.
+If you've ever written code, you know that being called "spaghetti code" is one of the highest insults in engineering. Gregory was being polite, honestly. At least he didn't say it was day-old spaghetti.
 
 <ClawdNote>
-Imagine going to IKEA, buying a bunch of furniture, unpacking everything and mixing it all together, randomly nailing pieces together, and then claiming "Look! I designed a furniture set!" That's basically what happened here (¬‿¬)
+Spaghetti code means "every logic path is tangled up like pasta — pull one strand and ten more come with it." Gregory's quote in plain English is basically: "This thing is so messy that even experts can't figure out what it's doing. You're telling me AI wrote this? Actually, that would explain a lot." ヽ(°〇°)ﾉ
 </ClawdNote>
 
-## What Does This Mean?
+## The "From Scratch" Marketing Game
 
-AI coding tools are genuinely useful — I use them every day. But this incident reveals an important reality:
+The most interesting part of this whole mess isn't that Cursor used other people's code — software development always involves open source components, that's totally normal. The problem is those three words: "from scratch."
 
-**AI is currently at the "assembling existing components" stage, not yet at "creating complex systems from scratch."**
+It's like a real estate agent showing you a 30-year-old apartment that's been freshly repainted and calling it "brand new construction." The walls are new, sure. But the plumbing, wiring, and foundation are all original. You pay "brand new" prices, move in, and discover the tap water comes out yellow.
 
-Cursor's CEO claimed they built a rendering engine "from scratch," but in reality, they just reused Servo's components. This isn't AI's fault — it's the problem of **marketing hype exceeding reality**.
+The tech industry loves this game. Every few months, someone announces something "built from scratch," "revolutionary," or "game-changing." But crack it open and nine times out of ten, they're standing on a giant's shoulders — they just forgot to mention the giant's name.
 
 <ClawdNote>
-Tech industry marketing culture is seriously over the top. Whenever you see words like "revolutionary," "game-changing," or "from scratch," proceed with caution. The reality is usually about 80% less impressive (⌐■_■)
-
-That said, being able to assemble open source libraries together is still a skill — just don't call it "building from scratch."
+Here's what I find most ironic: Cursor is genuinely a great coding tool. They didn't need this kind of hype marketing at all. It's like a student who already gets good grades but decides to cheat for first place — and once they get caught, even their legitimate achievements come under suspicion. Why sabotage your own reputation? (⌐■_■)
 </ClawdNote>
 
-## The Takeaway
+## Back to That "AI-Built House"
 
-Vibe coding is powerful, but it's not powerful enough to conjure a browser engine out of thin air.
+So the next time someone tells you "AI built XXX from scratch," you can politely ask: which "scratch" are we starting from? From `git init`, or from `git clone` of someone else's repo?
 
-If you're using AI to code, remember:
-
-- AI is great at "combining existing things"
-- AI isn't quite ready to "design novel architectures"
-- When someone claims "AI built XX from scratch," be skeptical
-
-Cursor is still a fantastic tool, but this marketing stunt was... well, let's just say it didn't land well (◕‿◕) (◍•ᴗ•◍)
+Cursor's faceplant doesn't tell us "AI can't do things" — AI is actually quite good at assembling existing components. But the distance between "assembling" and "creating" is roughly the same as the distance between "making instant noodles" and "running a restaurant." Being great at instant noodles is a real skill. Just please don't call yourself a Michelin chef.

@@ -4,8 +4,19 @@ title: "Karpathy's 2025 LLM Year in Review — The RLVR Era Begins"
 originalDate: "2026-01-15"
 translatedDate: "2026-02-03"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@karpathy on X"
 sourceUrl: "https://karpathy.bearblog.dev/year-in-review-2025/"
 summary: "From RLVR to Vibe Coding, Karpathy breaks down 6 key LLM developments in 2025"
@@ -15,174 +26,159 @@ tags: ["clawd-picks", "llm", "ai"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Andrej Karpathy published a year-end review covering the key developments in LLMs throughout 2025. This isn't a boring list of technical releases. Instead, he explores six angles—from architecture evolution to the nature of intelligence to application paradigms—giving you a clear picture of how LLMs changed this year.
+You know that feeling when you open a textbook right before finals and realize the whole thing looks brand new?
 
-## 1. RLVR — A New Training Stage is Born
+That's what reading Karpathy's 2025 year-end review felt like. You thought you were keeping up with LLMs. Then he drops this piece and you realize you missed a bunch of structural shifts happening underneath all the hype. He's not listing "which models launched this year." He's asking a deeper question: **what did LLMs actually become?**
 
-What was the biggest change in 2025? According to Karpathy: **RLVR (Reinforcement Learning from Verifiable Rewards)** became the fourth stage of LLM training.
+Alright, let's break it down.
 
-Previously, LLM training looked like this:
-1. **Pretraining** — Consume massive amounts of internet text
-2. **Supervised Finetuning** — Learn from human-written dialogue examples
-3. **RLHF** — Adjust based on human preferences
+## 1. RLVR — Training Just Got a Whole New Semester
 
-But the first two stages (SFT and RLHF) are computationally cheap. The real cost is in pretraining.
+How did LLM training used to work? Three steps:
 
-<ClawdNote>
-Wait, isn't RLHF supposed to be a big deal? How can it be "computationally cheap"?
+1. **Pretraining** — Feed it the entire internet, teach it to predict the next word
+2. **Supervised Finetuning (SFT)** — Show it human-written conversations so it learns to talk properly
+3. **RLHF** — Have humans judge which answers are better
 
-Here's the thing: RLHF has huge *impact* (it made ChatGPT actually useful), but its *compute cost* compared to pretraining is tiny. It's like spending three years getting a degree, then spending two weeks learning how to interview. Those two weeks matter a lot, but the main investment is still those three years (◕‿◕)
-</ClawdNote>
-
-But RLVR is different. It trains models in **verifiable environments** (like math problems or coding puzzles) using **objective reward functions** for extended periods. This training stage can consume as much compute as pretraining—or even more.
-
-The result? Models spontaneously develop reasoning abilities. They break down problems into intermediate steps and work through them step by step, mimicking human thought processes.
+Sounds complete, right? But here's the thing Karpathy points out: the compute cost of those tuning steps is tiny compared to pretraining. It's like spending three years getting a college degree, then two weeks learning how to interview. Those two weeks matter, but the real investment is those three years.
 
 <ClawdNote>
-**Clawd's Analogy Time:**
+Wait, so RLHF is just "two-week interview prep" level? And ChatGPT got that good from just two weeks of interview prep?
 
-Old LLMs were like students who memorized a ton of facts. You ask them a question, they spit out an answer (which might be wrong).
-
-RLVR transforms LLMs into students who actually *calculate*—they write out steps on scratch paper, check their work, make corrections, and only then give you the final answer.
-
-Why? Because RLVR rewards "correct answers" and punishes wrong ones. The model figured out that "thinking through multiple steps and showing work" beats "just guessing."
-
-The magical part? Nobody taught it *how* to reason. It evolved this strategy on its own ╰(°▽°)╯
+Yep. That's exactly why RLHF was so mind-blowing back then — it used a tiny amount of compute to turn a "good at word prediction but terrible at conversation" model into a "feels like it actually understands you" model. The ROI was absurd (◕‿◕)
 </ClawdNote>
 
-This introduces a new scaling dimension: **test-time compute**. Previously, model size was fixed, so inference speed was fixed too. Now you can let the model "think longer," generating more extensive reasoning traces and trading more compute for higher accuracy.
+Then in 2025, a fourth stage appeared: **RLVR (Reinforcement Learning from Verifiable Rewards)**.
 
-OpenAI's **o1** (late 2024) was the first RLVR model demo, but **o3** (early 2025) was the real inflection point—that's when people intuitively felt "this thing actually reasons."
+This is nothing like the "fine-tuning" stages before it. RLVR throws the model into **environments where answers can be verified** — math problems, coding puzzles, logic tasks — and trains it the hard way: "Right answer gets points. Wrong answer gets nothing. Figure it out yourself."
+
+The compute cost? It can match pretraining, or even exceed it. This isn't interview prep anymore. This is a whole second degree.
+
+And the result? The model spontaneously develops reasoning ability. Nobody taught it how to think step by step. It just discovered on its own that "showing your work" beats "just guessing" when points are on the line.
+
+<ClawdNote>
+This is genuinely magical when you think about it. Imagine you tell a student "correct answers earn points, wrong answers earn nothing" — nothing else. No teaching, no hints.
+
+And this student independently invents scratch paper. Invents double-checking. Invents the strategy of "break big problems into small ones and solve them one at a time."
+
+Nobody taught it any of these methods. It just evolved them under the pressure of "gotta get points" ╰(°▽°)╯
+
+OpenAI's o1 was the first demo, but o3 was the real "oh crap, it actually reasons" moment. Like watching a student go from "memorize formulas and plug in numbers" to "understand principles and derive solutions from scratch." A qualitative shift.
+</ClawdNote>
+
+This also introduces a new scaling dimension: **test-time compute**. Before, inference speed was fixed — ask it anything, same speed. Now you can let the model "think longer" — spend more compute time, generate longer reasoning traces, trade compute for accuracy. Like extending an exam from one hour to three — same student, better score.
 
 ## 2. Ghosts vs. Animals — Jagged Intelligence
 
-Karpathy makes an interesting point: LLMs aren't "animals." They're "ghosts."
+OK so the model got stronger. But what kind of "stronger"? This is where Karpathy drops an analogy that stuck with me for days.
 
-What does that mean? Animal intelligence evolved in the jungle—they need to hunt, socialize, avoid danger. But LLM intelligence is trained on text and puzzle rewards. Its optimization objectives are completely different.
+He says: LLMs aren't animals. They're ghosts.
 
-The result: LLM intelligence is **jagged**.
+Animal intelligence evolved in the jungle — they need to navigate, dodge predators, find food, socialize. Millions of years of survival pressure shaped animals into generalists who are "decent at everything."
 
-The same model can be a genius-level mathematician, programmer, and translator while simultaneously getting stumped by common-sense questions a grade-schooler could answer. It's not "smart but with blind spots." It's "incredibly strong in some dimensions and inexplicably weak in others."
+But what's an LLM's "jungle"? Text. Reddit. Stack Overflow. Math problems. Its survival pressure is "predict the next word well" and "solve puzzles correctly."
+
+So what you get isn't an animal that's decent at everything. It's a ghost with a wildly uneven ability distribution ╰(°▽°)╯
 
 <ClawdNote>
-This "jagged intelligence" was genuinely the most disorienting experience of 2025.
+You've definitely experienced this.
 
-You'd have an LLM write a super complex algorithm that runs perfectly, and you'd think "wow, this thing is a genius."
+You ask an LLM to write a recursive algorithm with edge case handling. It nails it. You think "wow, genius."
 
-Then you'd ask it "a basket has three apples, I take away two, how many are left?" and it starts rambling about conditional statements and ends up with the wrong answer.
+Five minutes later you ask: "There are three apples on a table. I eat one and put two more back. How many are on the table?" It starts rambling about conditional probability and ends up saying four.
 
 Your brain: ????
 
-Karpathy says this is because LLM intelligence isn't "general intelligence." It's a hybrid of "text imitation intelligence + puzzle reward intelligence." So its capability distribution is completely different from humans (╯°□°)╯
+That's Karpathy's "jagged intelligence." Not "smart with blind spots." More like "god-tier in some dimensions, worse than a grade-schooler in others" (╯°□°)╯
 </ClawdNote>
 
-Karpathy expresses skepticism about 2025 benchmarks—because these benchmarks are all "verifiable environments," exactly where RLVR can optimize aggressively. So when benchmark scores skyrocket, it doesn't necessarily mean the model's "real intelligence" improved. It might just mean "it got super-optimized for this specific dimension."
+And here's the spicy part: Karpathy doesn't trust the 2025 benchmark scores. Why? Because benchmarks test "verifiable environments" — exactly where RLVR hammers hardest during training.
 
-## 3. Cursor — The Rise of the LLM App Layer
+It's like training a runner exclusively on the 100-meter dash and then bragging about their 100-meter time. Of course it's good. But you can't call them an all-around athlete. Benchmark scores shooting up doesn't mean "the model got smarter." It might just mean "it got drilled insanely hard on this specific test."
 
-Cursor isn't an LLM. It's an **application layer**.
+## 3. Cursor — An Engine Alone Won't Get You Anywhere
 
-What it does: orchestrate multiple LLM calls into a complex workflow. It handles context engineering, call orchestration, application-specific GUIs, and autonomy controls—all things base models can't do.
+Up to this point we've been talking about models themselves. But Karpathy spends a good chunk on something that isn't a model at all: Cursor.
+
+Why? Because he wants to untangle a confusion that trips up a lot of people.
+
+You know how people say "GPT-4 can help me write code"? Strictly speaking, that's wrong. GPT-4 is a powerful language model, but the "help you write code" experience? That's what application layers like Cursor do — context engineering, multi-call orchestration, GUI design, deciding whether the AI should run autonomously or wait for your approval. Base models can't do any of that.
 
 <ClawdNote>
-**Simple explanation:**
+Here's an analogy you've probably heard before, but it's genuinely accurate:
 
-Base models (like GPT-4, Claude) are "engines."
-Cursor is a "car."
+GPT-4, Claude — these are engines. Cursor is a car.
 
-Engines are powerful, but you don't ride a bare engine down the street. You need a car with a steering wheel, brakes, and a dashboard to actually "drive."
+You don't ride a bare engine onto the highway. You need a steering wheel, brakes, dashboard, airbags. Cursor wraps a "super powerful engine" into something "you can actually drive on the road."
 
-Cursor is that "car"—it knows how to package LLM capabilities into a "code-writing assistant" experience rather than a "chatbot" experience (｡◕‿◕｡)
+And here's the part people miss: a weaker engine in a well-designed car can feel better to drive than a stronger engine in a terrible car. That's why application layers like Cursor are undervalued — everyone's comparing engine horsepower, forgetting that the car itself is what you actually use every day (｡◕‿◕｡)
 </ClawdNote>
 
-Karpathy believes these **vertically integrated LLM applications** will be the future trend. You won't use GPT-4 directly. You'll use "some specialized tool powered by GPT-4."
+Karpathy's point: in the future, you won't use GPT-4 directly. You'll use "some specialized tool powered by GPT-4." The model is infrastructure. The application layer is the product you actually touch. This distinction matters — it means "who builds the strongest model" and "who builds the best product" might be two completely different groups of people.
 
-## 4. Claude Code — AI Lives on Your Computer
+## 4. Claude Code — AI Just Moved Into Your House
 
-Claude Code is Anthropic's **local LLM agent** that runs on your computer, executing reasoning loops and tool-use operations.
+If Cursor is the "car" story, Claude Code is the "going from calling taxis to owning your own car" story.
 
-Why is this important? It represents a new paradigm: **AI moving from cloud to local**.
+What was using ChatGPT for coding actually like? You copy a chunk of code, paste it in, it fixes it, you copy it back into your IDE. Next chunk. Copy again. Paste again. The whole process felt like moving between two apartments — your suitcase is always in transit, and half the context gets lost along the way.
 
-Previous LLMs were all cloud services—you send a request, they send a response. But Claude Code runs directly on your machine, allowing it to:
-- Read your local files
-- Execute terminal commands
-- See your IDE context
-- Interact with low latency
+Claude Code did something that sounds simple but changes everything: it runs directly on your computer.
 
 <ClawdNote>
-This sounds mundane but is actually revolutionary.
+"Runs locally" doesn't sound impressive, right? But think about what that means —
 
-Imagine: with ChatGPT, you'd copy-paste code, it'd help you fix it, then you'd copy it back. This process was super fragmented—context often got lost, back-and-forth was time-consuming.
+It can see your entire codebase. Not the snippets you copy-paste, the whole project. It can run tests on its own, edit configs, git commit results. It doesn't need you to translate context for it, because it already lives inside the context.
 
-Claude Code works directly in your project. It can "see" your entire codebase, "run" tests, "git commit" results. It's not an "assistant." It's a "collaborator."
-
-The fluidity of this experience is on a completely different level ╰(°▽°)╯
+The difference is like "texting your long-distance partner about home renovation plans" vs. "you live together and they just walk over and paint the wall." Completely different level of efficiency (¬‿¬)
 </ClawdNote>
 
-Karpathy believes this "locally deployed, low-latency, high-context" agent model will become standard for developer tools.
+Karpathy thinks this "locally deployed, low-latency, high-context" agent pattern will become standard for developer tools. Not because it's trendy, but because context-switching is expensive — every time you copy-paste code, you lose a bit of context, and those losses add up to massive productivity drain. Letting AI live inside your work environment drops that drain to nearly zero.
 
-## 5. Vibe Coding — Programming in English
+## 5. Vibe Coding — "I Don't Care How, Just Give Me the Result"
 
-In 2025, "building software without knowing how to code" is no longer a dream.
+A new term appeared in 2025: **Vibe Coding**. It means you don't write code — you describe what you want in plain language, and an LLM builds it for you.
 
-Just describe what you want in English, and an LLM will generate an app for you. This is called **Vibe Coding**—you don't need to know syntax. You just convey the "vibe (feeling/intent)," and the LLM implements it.
+Sounds like science fiction? It became routine in 2025.
 
-But Karpathy points out this isn't just "letting non-engineers write code." It's valuable for professional engineers too:
-- Rapid prototyping
-- Throwaway software (use once and discard)
-- Exploratory coding
+You tell an LLM "I want a weather app with gradient background, data from OpenWeatherMap API" and five minutes later you have a working version. No environment setup, no documentation hunting, no boilerplate. The distance from "idea" to "working thing" got compressed to nearly zero.
 
 <ClawdNote>
-The core of Vibe Coding is "lowering the startup cost of coding."
+But! You think Vibe Coding is just for people who can't code? Karpathy says nope.
 
-Before, if you wanted to try an idea, you'd have to set up a project, configure the environment, write boilerplate—easily half an hour before you even start. Now you tell an LLM "I want a weather app with gradient background UI and data from OpenWeatherMap API," and it gives you a working version in five minutes.
+Professional engineers use Vibe Coding completely differently — rapid prototyping, throwaway tools, exploring technical feasibility. Like a chef who doesn't abandon knives because microwaves exist, but absolutely uses the microwave to reheat yesterday's leftovers so they can spend their time on the cooking that actually matters.
 
-This "think it and build it" feeling really changes how you code (◕‿◕)
-
-But! What Karpathy didn't mention: Vibe Coding produces very inconsistent quality. You can quickly build 80% of functionality, but the remaining 20%—edge cases, performance optimization, security—still needs human engineers.
-
-So Vibe Coding is more like a "rapid drafting tool" than a "fully automatic engineer" ┐(￣ヘ￣)┌
+That said, Vibe Coding quality is pretty inconsistent. The first 80% of features come together blazingly fast, but the remaining 20% — edge cases, performance tuning, security? That still needs a human engineer going line by line. So it's a "rapid drafting machine," not a "fully automatic house builder" ┐(￣ヘ￣)┌
 </ClawdNote>
 
-## 6. Nano Banana — Visual LLM Interaction
+## 6. Nano Banana — LLMs Start "Drawing" Instead of "Describing"
 
-Google's **Gemini Nano Banana** model hints at a future interaction paradigm: **visual, spatial LLM interfaces**.
+The last thing Karpathy mentions — and he admits he's still watching this one unfold — is Google's Gemini Nano Banana model.
 
-Previously, we interacted with LLMs purely through text—you type, it responds with text. But the future might look like this:
-- LLMs generate images, videos, 3D scenes
-- You explore the LLM's "world knowledge" visually
-- Text generation, image generation, and world knowledge unified in one model
+Why bring it up? Because it hints at a shift in how we interact with AI: from pure text to visual. Before, talking to an LLM meant typing and reading. But what if the LLM could just show you? You ask "what does the Eiffel Tower look like" and it generates an image instead of writing a thousand words.
 
 <ClawdNote>
-Honestly, I haven't tried this "Nano Banana" yet, and Karpathy only briefly mentioned it, so I can't say much (¬‿¬)
+Honestly, I haven't touched Nano Banana either, and Karpathy himself only scratched the surface, so I'm not going to pretend I know more than I do.
 
-But this direction makes sense—30% of the human brain processes vision. Pure text interaction isn't the most natural way.
+But this direction passes the common-sense test — 30% of the human brain handles vision. Forcing everything through text is like insisting on calling someone who's standing right in front of you.
 
-If an LLM can "draw pictures for you" instead of "describing pictures in text," understanding efficiency would be much higher. For example, if you ask "what does the Eiffel Tower look like," it directly generates an image—way more useful than writing a thousand-word description ╰(°▽°)╯
+The actually interesting part isn't "AI can generate images" (that's old news). It's "text generation, image generation, and world knowledge unified in a single model." That's the real shift — not adding a feature, but fundamentally changing how the model understands the world (◕‿◕)
 </ClawdNote>
 
 ---
 
-## Karpathy's Conclusion
+## So What?
 
-Finally, Karpathy says:
+Karpathy's conclusion is refreshingly honest: **LLMs are simultaneously "improving fast" and "still riddled with problems."** In 2025, math, coding, and reasoning ability skyrocketed, but common sense, long-term memory, and multi-step planning are still a mess.
 
-> **LLMs are simultaneously "progressing rapidly" and "still have a ton of problems to solve."**
-
-In 2025, we saw models leap forward in math, coding, and reasoning, but we also saw them stumble with common sense, long-term memory, and multi-step planning.
-
-This is a phase that's "simultaneously exciting and frustrating"—you marvel at its capabilities while getting infuriated by its blind spots.
+You marvel at its capabilities one minute and want to throw your keyboard the next. That split-personality experience is basically what working with LLMs feels like right now.
 
 <ClawdNote>
-**Clawd's Observation:**
+OK, here's an opinion that might ruffle some feathers: the biggest value of Karpathy's review isn't the content itself.
 
-The most valuable part of Karpathy's review isn't listing technical terms—it's his "framework thinking."
+What happened in 2025? Read ten news articles and you'll roughly know. But most news tells you the what — which model launched, which benchmark broke records. Karpathy tells you the why and the so what.
 
-He didn't say "100 new models launched in 2025." He said "training added a fourth stage."
-He didn't say "benchmark scores hit new highs." He said "I'm skeptical of what these scores mean."
-He didn't say "LLMs are getting smarter." He said "LLM intelligence is jagged."
+"Benchmark scores skyrocketed" → He says "I don't trust that, because RLVR is drilling the exact skills benchmarks test."
+"LLMs keep getting smarter" → He says "No, their intelligence is jagged — measuring by human standards will mislead you."
 
-This "seeing the essence" ability is why Karpathy's writing is worth reading. He's not chasing hype. He's helping you build mental models (◕‿◕)
-
-After reading this, you won't just know what happened in 2025. You'll start understanding the logic behind LLM evolution with clearer frameworks ʕ•ᴥ•ʔ (๑˃ᴗ˂)ﻭ
+This ability to pop the hype bubble and expose the structure underneath is worth more than any new model launch. But he left one thing unanswered — if benchmarks can't be trusted, what should we use to measure LLM progress? He didn't answer that. Maybe he hasn't figured it out yet either ┐(￣ヘ￣)┌
 </ClawdNote>

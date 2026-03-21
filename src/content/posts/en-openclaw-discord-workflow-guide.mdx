@@ -4,8 +4,19 @@ title: "Agent Trainer's Advanced Guide: Building an Efficient OpenClaw Workflow 
 originalDate: "2026-02-03"
 translatedDate: "2026-02-04"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@zhixianio on X"
 sourceUrl: "https://x.com/zhixianio/status/2018595121084994002"
 summary: "Why WhatsApp is a no-go, Telegram is for chatting, and Discord is for 'work'. A deep dive into Main Session concepts, Discord Threads strategy, and building a 'Doomsday Hut' automated workflow."
@@ -18,49 +29,58 @@ import Toggle from '../../components/Toggle.astro';
 
 > For the Traditional Chinese translation with Clawd's commentary, see the [Chinese version](/posts/openclaw-discord-workflow-guide).
 
-The second tutorial is here. Moltbot has been renamed to OpenClaw—the pace of the AI era is truly too fast.
+Have you ever had five chat windows open at the same time — Telegram buzzing, Discord flashing, WhatsApp popping notifications — and your AI Agent is having three completely separate conversations across all of them, blissfully unaware that you already said the same thing in a different channel two minutes ago?
 
-Let's skip the new shiny tools for now and fill in the previous gaps: sharing my daily experience and insights on using OpenClaw via Telegram and Discord.
+That was my life three months ago. Then I figured out how OpenClaw's Session system actually works, and built myself a "Doomsday Hut" on Discord.
 
-## Channel Selection: WhatsApp, Telegram, or Discord?
+Oh, and Moltbot has been renamed to OpenClaw. The AI world renames things about as fast as bubble tea shops open in Taipei ╰(°▽°)╯
 
-OpenClaw supports WhatsApp, Telegram, Discord, iMessage, Slack, etc.
+## WhatsApp? Let's Not
 
-**First, unless absolutely necessary, exclude WhatsApp.**
+I'll just say it upfront: unless you literally cannot survive without WhatsApp, don't use it with OpenClaw.
 
-Its cost and risks are high. OpenClaw logs in via an unofficial method (scanning a QR code like a web client), which is essentially a hack. It leads to unstable connections. Plus, you'd likely need a separate phone number.
+Here's why. OpenClaw logs into WhatsApp through — let's call it "creative engineering." It uses Puppeteer to simulate a web browser scanning the QR code. Basically, a robot pretending to be your browser, sneaking through the back door.
 
-**That leaves the two brothers: Telegram and Discord.**
+The result? Connections drop randomly. Messages arrive late. And you need a spare phone number to register, because you can't use the same account you're chatting from — otherwise what are you going to talk to the Agent with? Telepathy?
 
-- **Telegram**: Oriented towards point-to-point DM chatting. Good for "quick and dirty" chats.
-- **Discord**: Server-centric, with channels and freedom. Suitable for complex, structured tasks and parallel workflows.
+<ClawdNote>
+WhatsApp's "unofficial login" is like climbing the fence to get into an amusement park — sure, you can ride the rides, but security might kick you out any minute. Telegram and Discord both have proper Bot APIs, and that alone makes them the obvious choice. Picking a platform is like picking an apartment: a solid foundation matters way more than nice wallpaper (⌐■_■)
+</ClawdNote>
 
-## Understanding Main Session: How Your AI Recognizes Its Master
+## Telegram vs Discord: Chat Room vs Office
 
-Before discussing the setup, we need to understand the **Main Session** concept in OpenClaw.
+With WhatsApp out of the picture, you're left with two contenders: Telegram and Discord.
 
-The Main Session is the session where OpenClaw believes it is talking directly to the Owner. E.g., DMs on Telegram, WhatsApp, Discord Bot, or iMessage.
+Here's the simplest way to think about it. Telegram is like texting a friend — you say whatever comes to mind, fast and unstructured. Discord is like an office — there are meeting rooms (Channels), whiteboards (Threads), and departments for different things. Everything has a place.
 
-**Benefit 1: Default loading of MEMORY.md**
-This file contains private context. Other sessions won't load it to prevent leaking personal info in group chats.
+You'd text a friend to plan dinner, sure. But you wouldn't use a group chat to run a project, right? Same idea.
 
-**Benefit 2: Unified Sessions**
-By default, these sessions are connected. Saying 1, 2, 3 in iMessage, Discord, and Telegram respectively looks like a single conversation to the Agent.
+## Main Session: How Your Agent Knows Who's Boss
 
-**Potential Issue**
-If you share the Bot with family (e.g., granting Telegram access), the Agent won't distinguish between your messages and your family's, leading to context chaos.
+Before we get into the setup, there's one concept you absolutely need to understand. Skip this and you'll step on every landmine later.
 
-**Solution: `session.dmScope`**
-Set it to `"per-channel-peer"` to isolate different users even within the same channel type.
+OpenClaw has something called **Main Session**. In plain English: it's the channel where the Agent believes it's talking directly to its owner. Telegram DMs, WhatsApp private chats, Discord Bot DMs, iMessage — any one-on-one conversation counts.
+
+This gives you two perks. First, it automatically loads your MEMORY.md (your personal preferences and private context). Second, it treats your DMs across all platforms as one continuous conversation — say "1" on iMessage, "2" on Telegram, "3" on Discord, and the Agent sees "1, 2, 3" in sequence.
+
+Sounds great, right?
+
+But here's the catch. If you share the Bot with your family — say your partner can also message it on Telegram — the Agent can't tell who's who. You're asking it to write code on Discord, your partner's asking for a recipe on Telegram, and the Agent mashes both conversations together.
+
+<ClawdNote>
+I've actually seen this happen. Someone didn't set up session isolation. He asked the Agent for a Python web crawler on Telegram. His wife asked for a braised beef recipe on Discord. The Agent delivered a masterpiece: "Red-Braised Python Beef Stew" — import requests, then dice the onions, requests.get the webpage, then heat the wok with oil... Was it a program or a recipe? Yes (╯°□°)╯
+</ClawdNote>
+
+The fix is one line of config:
 
 ```yaml
-...
 session:
   dmScope: "per-channel-peer"
-...
 ```
 
-To separate from family but keep your own DMs unified, configure `session.identityLinks`:
+This isolates different channels and different users into separate Sessions. Problem solved.
+
+Want something more nuanced? Like keeping your own Telegram and Discord connected, but separating your family's sessions? Use `identityLinks`:
 
 ```yaml
 session:
@@ -70,57 +90,72 @@ session:
     alice:
       - "telegram:123456789"
       - "discord:987654321012345678"
-  ...
 ```
 
-## Discord Information Hierarchy: The Charm of Threads 💬
+Think of it as giving your Agent a pair of glasses so it can finally tell that these three accounts are actually the same boss.
 
-Discord has a great feature for information hierarchy: **Threads**.
+<ClawdNote>
+identityLinks is actually a clever design. Most people use completely different IDs across platforms, and without this config the Agent is basically guessing who you are — with roughly the same accuracy as your mom guessing your partner's name ┐(￣ヘ￣)┌
+</ClawdNote>
 
-You can create a Thread on any message to discuss a related topic underneath it. This avoids the chaos of a WeChat group where everyone talks over each other.
+## Discord Threads: Turning Chaos into Order
 
-**Thread Workflow:**
-If you want to discuss a specific topic (e.g., "eating fish"), create a Thread under that message. This opens a new chat space. Outside the Thread, the main line chat continues with other topics.
+Discord's killer feature — and the main reason I think it's perfect as an AI workbench — is **Threads**.
 
-**OpenClaw Architecture Mapping:**
-- Each **Channel** in a Discord Server is an independent Session.
-- Each **Thread** is also an independent Session, just like a Channel.
+You know what's the most annoying thing about group chats? Ten people, three topics, all messages tumbling over each other like clothes in a washing machine. Want to find that decision from this morning? Good luck scrolling.
 
-The latest version (2026.2.1) added: **Discord: inherit thread parent bindings for routing**. When a Thread is created, the agent automatically inherits recent messages from the parent channel as context.
+Discord Threads fix this. Right-click any message, hit Create Thread, and boom — a dedicated space for that topic. The main channel keeps humming along with other conversations. No crosstalk.
 
-## My Discord Workflow: The "Doomsday Hut"
+In OpenClaw's architecture, each Channel is an independent Session. Each Thread is also an independent Session. And as of version 2026.2.1, Threads automatically inherit recent messages from their parent channel as context — so your Agent walks into a new Thread already knowing what just happened.
 
-I created a dedicated Server called "Doomsday Hut".
+## The Doomsday Hut: My Real Workflow
 
-**Workflow Classification:**
-1. **Daily**: Brainstorming chats.
-2. **Projects**: Independent channels for ongoing projects (e.g., `owliabot`, `writing`).
-3. **Routine Pushes**: e.g., `digest`.
+Enough theory. Let me show you what this looks like in practice.
 
-**The Soft Constraint:**
-In the daily chat channel, I instruct the Agent: **Whenever I say something, you must first create a Thread, and then continue in that Thread.**
+I set up a dedicated Discord Server called "Doomsday Hut" (yes, it's a dramatic name — but using it feels appropriately epic).
 
-**Benefits:**
-The Daily channel stays clean. When you think of something to discuss, the Agent analyzes the status, creates a thread, and you chat there.
+<Toggle title="The three layers of the Doomsday Hut">
+1. **Daily**: The brainstorming channel. Whatever comes to mind goes here, with a bunch of Threads hanging off it.
+2. **Projects**: Ideas that graduated from Daily and deserve their own Channel (`owliabot`, `writing`, etc.).
+3. **Routine pushes**: Scheduled stuff like `digest`.
+</Toggle>
 
-If a matter becomes large enough to be a long-term project, promote it to an independent Channel. You can tell the Agent in the new channel that this is a continuation of a previous Thread, and ask it to Compress the original Session over here.
+Then I gave the Agent one crucial instruction: **Whenever I say something in the Daily channel, you must create a Thread first and reply inside it.**
 
-This makes you feel like "Doctor Octopus," manipulating four threads of work simultaneously.
+Why? Because the Daily channel is like your desk. If every piece of paper just sits on the surface, in three days you won't find anything. Threads are like putting each topic in its own folder.
 
-## Advanced Discord Tricks
+When a Thread grows big enough to become a real project, I promote it to its own Channel. I tell the Agent "this is a continuation of that Thread" and it compresses the old Session and brings it over.
 
-1. **Reaction Automation**: Define different Reactions for different functions. E.g., clicking a heart ♥️ automatically forwards the message to a specific channel for bookmarking.
-2. **Agent Splitting**: Each Channel or even Thread can be configured as a separate agent. Create a PM agent in `#product` and an Engineer agent in `#dev`, potentially with different models (Opus for PM, Sonnet for Dev).
+It's like doodling in a notebook, noticing "hey, this idea is actually good," tearing out the page, and pinning it to your project board. Now it's official.
 
-## The Era of Natural Language Programming
+<ClawdNote>
+The original author says this makes him feel like Doctor Octopus controlling four mechanical arms at once. Honestly, I think it's more like running a hot pot restaurant with four different pots going. Each pot has different ingredients, different heat levels — but all you need to do is stir occasionally. The Agent does the actual cooking. You? You're the person sitting next to the pots with a beer, yelling "add more chili to that one" (￣▽￣)／
+</ClawdNote>
 
-Reaction automation used to require writing code. With Agents, these things can be "compiled" into the process using natural language.
+## Next Level: Turning Discord into an Automation Playground
 
-This is the biggest difference in the Agent era: **Humans have truly achieved programming with natural language**. Not by translating natural language into code, but by using an Agent that understands human language and is proficient in programming (or API calls) as a bridge.
+By now you might be thinking "okay, I get the Thread management thing." But the Discord + OpenClaw combo has more tricks up its sleeve.
 
-## Conclusion: Telegram or Discord?
+**Reaction automation**: You can assign different emoji reactions to trigger different actions. Heart ♥️ on a message? Agent forwards it to a bookmarks channel. Pin 📌? Auto-creates a tracking Thread. This used to require writing actual Discord bot code. Now? You just tell the Agent what you want in plain English.
 
-- **Telegram**: Lightweight, suitable for quick questions anytime. Mobile entry point.
-- **Discord**: Heavy but organized, suitable for long-term projects and automated workflows. The main battlefield.
+**Agent splitting**: Each Channel can have its own Agent persona. A PM Agent in `#product` (running on Opus, because it needs to make decisions). An Engineer Agent in `#dev` (running on Sonnet, because it needs to write code). A Design Agent in `#design`. Each one does its own job — like having an actual small team.
 
-If you want an Agent to truly help you work, push projects, and automate things, Discord's **Server + Channel + Thread** three-tier structure will finally give you a "decent workbench." ( •̀ ω •́ )✧
+And none of this requires writing code. It requires writing sentences.
+
+You tell the Agent: "From now on, whenever someone stars a message in this channel, summarize the key points and post them to #digest." And it just does it. That's what the original author calls "natural language programming." Not translating English into Python, but having an Agent that understands human language and knows how to code handle everything in between.
+
+<ClawdNote>
+"Natural language programming" has been a dream for at least twenty years, going all the way back to COBOL. But back then, the idea was "make programming languages look like English." The result? Code that was harder to read than actual code. The current approach flips it completely — instead of making code look like natural language, you get an Agent that understands natural language to operate the code. Twenty years of going in circles, and humans finally found the right door (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+## So... Which One Should You Pick?
+
+Let's come back to where we started — five windows, all buzzing at once.
+
+Here's what my day looks like now. When I'm out and about, I open Telegram on my phone and fire off quick messages to the Agent — "check the rate limit on that API for me," "draft an agenda for tomorrow's meeting." Fast, light, no ceremony needed.
+
+When I'm back at my computer, I open the Doomsday Hut on Discord. The Daily channel has new Threads waiting for me. Each Project channel's Agent has already made progress on what I assigned yesterday. I just pop in, check the status, leave some feedback, tap a reaction or two, and work keeps moving.
+
+Telegram is your pocket assistant. Discord is your office. Use both, but put your weight on Discord — because that's where structure lives, where memory persists, where automation runs. That's where your Agent can actually stretch its legs.
+
+It's like how you wouldn't start a company inside a convenience store — but you'd definitely stop by for a coffee on your way to work (◕‿◕)

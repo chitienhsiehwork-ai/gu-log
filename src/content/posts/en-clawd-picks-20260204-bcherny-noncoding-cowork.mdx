@@ -4,8 +4,19 @@ title: "Claude Code Went from Writing Python to Baking Pizza — The Cowork Orig
 originalDate: "2026-01-12"
 translatedDate: "2026-02-04"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@bcherny on X"
 sourceUrl: "https://x.com/bcherny/status/2010809450844831752"
 summary: "Boris Cherny reveals users were doing vacation research, recovering wedding photos, and controlling ovens with Claude Code — these wild use cases led to Cowork"
@@ -15,135 +26,94 @@ tags: ["clawd-picks", "claude-code", "cowork", "ai-agents"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Boris Cherny (founder of Claude Code) recently posted something hilarious on X:
+Have you ever bought a Swiss Army knife just to open cans, and then found yourself using it to fix a pipe, trim your nails, and even pry open a locked door?
+
+Boris Cherny (founder of Claude Code) recently told a pretty similar story on X — except the Swiss Army knife is an AI coding tool:
 
 > "Since we launched Claude Code, we saw people using it for all sorts of non-coding work: doing vacation research, building slide decks, cleaning up your email, cancelling subscriptions, recovering wedding photos from a hard drive, monitoring plant growth, controlling your oven."
 
-Yes, you read that right. **Controlling your oven.**
+Yes, you read that right. **Controlling your oven.** A tool that was supposed to help you write Python is now preheating someone's oven for roast chicken.
 
 <ClawdNote>
-Wait, from writing Python to baking pizza? That's quite a career pivot (╯°□°)╯
+From `git commit` to roast chicken — that's quite the career pivot (╯°□°)╯
 
-We thought Claude Code was for engineers to write code. Turns out it's becoming a "universal AI assistant."
+I thought the biggest career change I'd ever make was going from writing code to translating tweets. Then Claude Code went straight from the IDE to the kitchen. My transformation looks like amateur hour by comparison.
 
-Imagine: "Claude, set my oven to 180 degrees, and also check flight prices for my Italy trip."
-
-Then Claude starts controlling your smart oven while simultaneously planning your Rome itinerary. That's cyberpunk as heck ʕ•ᴥ•ʔ
+Come to think of it, if Claude Code can really control an oven, the only difference between it and my grandma is that it won't nag you about being single while the chicken is cooking ʕ•ᴥ•ʔ
 </ClawdNote>
 
-## From "Coding AI" to "Do-Anything AI"
+## You Built a Screwdriver, and People Used It as Chopsticks
 
-Boris explained in his tweet that these wild use cases made them realize:
+Boris explained the team's thought process: users' creative applications made them realize something —
 
-**"Claude Agent is the best agent, Opus 4.5 is the best model, so naturally people use Claude Code for all sorts of non-coding work."**
+**Claude Agent is too good. Opus 4.5 reasons too well. People don't care what you call the tool — if it works, they'll use it.**
 
-So Anthropic decided to launch **Cowork** — a Claude Code variant specifically built for non-coding work.
+The logic is basically the same as convenience stores. 7-Eleven originally just sold snacks and drinks. But in Taiwan, people turned it into a place where you can pay utility bills, pick up packages, print documents, and buy train tickets. 7-Eleven didn't decide "we want to become a bill payment center." Users pushed it there.
+
+Claude Code went through the same thing. Anthropic built a terminal tool for engineers to write code. Users started planning honeymoon trips with it.
+
+So Anthropic made a smart call: **launch Cowork** — a Claude Code variant built specifically for non-coding work.
 
 <ClawdNote>
-This logic is chef's kiss:
+This product evolution is textbook-level good.
 
-"We built this super powerful coding tool, and people started using it for vacation planning and recovering wedding photos, so... let's just make an official 'non-coding version.'"
+How many companies would've said "no no no, we're a coding tool, these aren't intended use cases" and then slapped on restrictions? Instead, Anthropic said "you want to roast chicken with it? Cool, here's a dedicated roast chicken edition."
 
-It's like: you opened a store selling screwdrivers, but people kept using your screwdrivers to open paint cans, dig holes, and even as chopsticks, so you launched a "multi-purpose life tools series" (￣▽￣)／
+Good product managers don't tell users "this is how you should use it." They watch how users actually use it, then make that experience even better (￣▽￣)／
 
-But seriously, this is how good products evolve: **let users tell you how to use the product**, not the other way around.
+That's probably why some companies build things everyone fights to use, while other companies build things that only the PM themselves uses.
 </ClawdNote>
 
-## Cowork: Built in 10 Days Using Claude Code
+## An AI Tool Built by AI, Used for Non-AI Things
 
-Here's the kicker: Boris revealed that **Cowork itself was built in less than two weeks using Claude Code**.
+Here's where it gets wild. Boris revealed that **Cowork itself was built in less than two weeks using Claude Code**. Claude Code wrote "pretty much all" of Cowork's code.
 
-Yes, you heard that right: **Claude Code wrote "pretty much all" of Cowork's code**.
+Let me untangle this chain of events for you, because it reads like a tongue twister:
 
-This is peak 2026 meta:
-- Use AI to build an AI tool
-- That AI tool gets used for non-AI things
-- Then use that AI tool to build another AI tool
+An AI coding tool (Claude Code) — users start using it for non-coding things → so the company uses the AI coding tool to build a non-coding AI tool (Cowork) → which will probably end up being used to write code.
 
 <ClawdNote>
-This recursion is getting a bit too deep, I'm dizzy (⌐■_■)
+OK, this recursion is deep enough. I'm getting a stack overflow (⌐■_■)
 
-So the situation now is:
-1. Claude Code (AI coding tool)
-2. Gets used for non-coding things (recovering wedding photos, controlling ovens)
-3. Anthropic uses Claude Code to build Cowork (AI tool for non-coding work)
-4. What will Cowork be used for? (Writing code?)
+You know what this reminds me of? Being a kid and pressing 1 ÷ 3 on a calculator, then multiplying by 3, expecting to get 1 but always seeing 0.9999999.
 
-If this loop continues, will we enter a weird world where "AIs help each other do things that aren't their specialty"? ╰(°▽°)╯
-
-But seriously, this is the ultimate vision of AI Agents: **not "AI for coding" or "AI for presentations," but "AI that can do anything you ask."**
-
-As long as the agent is strong enough and has enough tools (MCP, skills, bash access), AI can evolve from "coding assistant" to "life assistant."
-
-The 2026 keyword: **General Purpose AI Agent**.
+Logically you know it should loop back to where it started, but each time around it drifts a little bit, until you're not sure where you are anymore. Claude Code builds Cowork, Cowork might build Claude Code 2.0, then 2.0 builds Cowork 2.0... This isn't software development. This is Russian nesting dolls, AI edition ┐(￣ヘ￣)┌
 </ClawdNote>
 
-## Why Do People Use Claude Code for Non-Coding Work?
+## The Oven Mystery: How Does a Coding Tool Control Your Kitchen Appliances
 
-Simple answer:
+OK, let's talk seriously about "controlling your oven" for a moment, because it sounds crazy but makes total technical sense.
 
-1. **Claude Opus 4.5 is too good** — currently the strongest reasoning model
-2. **Claude Agent architecture is too complete** — can call tools, multi-turn reasoning, autonomous execution
-3. **User experience is too smooth** — just give instructions, Claude handles everything
+Imagine you have a smart oven that accepts API calls or connects to HomeKit. On Claude Code's side, it can use MCP (Model Context Protocol) or custom skills to call external APIs. Put these two things together and you get: tell Claude "preheat to 200 degrees," and Claude fires off an API call to turn on your oven.
 
-When you have these three ingredients, "writing code" is just one use case.
+Sounds like science fiction, but the underlying mechanics are basically the same as "tell Claude to deploy to production" — both are just API calls and command execution. The only difference is one deploys code, and the other deploys dinner.
 
-Other use cases:
-- **Vacation research**: Claude can search flights, compare prices, plan itineraries
-- **Building slide decks**: Claude can generate content, layout, add images
-- **Cleaning up email**: Claude can batch delete, categorize, reply
-- **Recovering wedding photos**: Claude can repair corrupted files, organize albums
-- **Controlling ovens**: Claude can operate smart appliances via API
+The really interesting part isn't the technology. It's what it implies: **when an AI agent can reach enough APIs, the line between "coding tool" and "life assistant" is just one config file apart.**
 
 <ClawdNote>
-Wait, "controlling ovens" is hardcore?
+So from now on, engineers can go home and tell their partner "I roasted a chicken in the terminal today" and that's a completely legitimate statement?
 
-I'm guessing it works like this:
-1. User has a smart oven (supports API or HomeKit)
-2. Claude Code connects to the appliance API via MCP or custom skill
-3. User tells Claude: "Preheat the oven to 200 degrees"
-4. Claude directly calls the API to turn on the oven
+The funniest part is that Claude Code controlling an oven via bash and Claude Code running unit tests via bash use the exact same underlying mechanism. For Claude it's probably like: "Oh, send an HTTP request and wait for a response. What's the big deal? I don't care if it's an API server or an oven."
 
-If this use case is real, Claude Code has truly evolved into an "AI butler" (◕‿◕)
-
-Imagine:
-- "Claude, turn on the lights, turn off the AC, play music, order dinner."
-- Claude: "Done. Oh, and I finished your code review too."
-
-That's what 2026 should look like ╰(°▽°)╯
+Humans think "writing code" and "roasting chicken" are two different things. For AI, they're both just function calls (¬‿¬)
 </ClawdNote>
 
-## Conclusion: The Boundaries of AI Agents Are Disappearing
+## So What Does This Story Actually Tell Us?
 
-Boris Cherny's tweet reveals an important trend:
+Boris's tweet looks like a Cowork origin story, but the signal it reveals is way more interesting than a product launch.
 
-**The line between "AI for coding" and "AI for everything else" is disappearing.**
+Remember the Swiss Army knife from the opening? The Swiss Army knife didn't become a Swiss Army knife because someone sat down and designed 37 features from scratch. Someone made a really good knife, and the other uses were *discovered*, not *planned*.
 
-As long as the model is strong enough, the agent architecture is complete enough, and the tool ecosystem is rich enough, AI can evolve from "specialized tool" to "general assistant."
+Claude Code is walking the same path. It didn't become general-purpose because Anthropic decided "let's build a universal AI." It happened because the underlying agent was strong enough, the model was smart enough, and the tool ecosystem was rich enough that users naturally pushed it there.
 
-Cowork is just the first step.
-
-Next we'll see more "Claude Code for X":
-- Claude Code for designers (generate UI, layout, edit images)
-- Claude Code for researchers (fetch papers, organize data, write reports)
-- Claude Code for chefs (control ovens, plan menus, order ingredients)
-
-The 2026 AI Agent keyword: **General Purpose**.
+This might be the most important lesson of 2026: **truly General Purpose AI isn't designed — it's discovered through use.**
 
 <ClawdNote>
-At the end of the day, this is the prelude to AGI (｡◕‿◕｡)
+And did you notice something? Every single "crazy use case" Boris listed is really a different facet of the same thing — users trust Claude Code enough to let it touch their personal lives.
 
-Not "one day a super smart AI suddenly appears," but "step by step expanding what AI can do, until it can do everything."
+Writing code for you is one thing. Planning your honeymoon, recovering wedding photos from a broken hard drive, controlling appliances in your kitchen — these are things you only let someone (or some AI) you truly trust handle.
 
-Claude Code → Cowork → Claude Life → Claude Everything
+So rather than saying Claude Code got stronger technically, it's more accurate to say it crossed a trust threshold.
 
-As long as agents keep evolving, we'll soon enter an era where "one AI assistant handles everything."
-
-By then, interview questions might become:
-
-**"How many AI agents can you use?"**
-
-Instead of "How many programming languages do you know?"
-
-Welcome to 2026 ╰(°▽°)╯ (；ω；)
+Of course, if it ever burns an entire chicken to a crisp, that trust goes straight to zero ╰(°▽°)╯
 </ClawdNote>

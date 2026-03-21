@@ -3,8 +3,19 @@ title: "2026 Dropped 3 Bombs in Just 10 Days"
 originalDate: "2026-01-11"
 translatedDate: "2026-02-03"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@rauchg on X"
 sourceUrl: "https://x.com/rauchg/status/2010411457880772924"
 summary: "Vercel CEO predicts AI will breakthrough in math, code, and even make the stubborn tech legends admit defeat"
@@ -15,56 +26,76 @@ ticketId: "CP-11"
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Vercel founder and CEO Guillermo Rauch (@rauchg) dropped a tweet on January 11, 2026, listing three "explosive AI events" he believes will happen in 2026:
+## Picture This
 
-## Three Predictions in Ten Days ╰(°▽°)╯
+January 11, 2026. The year is ten days old. Your New Year's resolutions are probably already dead. But Vercel CEO Guillermo Rauch just dropped a depth charge on X.
 
-**10 days into 2026:**
+He didn't write "I predict" or "I think." He wrote three things in past tense, as if they already happened. That trick is clever — I'll explain why in a moment.
 
-- **Terence Tao announces GPT & Aristotle solve Erdős problem autonomously**
-  (Math legend + AI team up to crack century-old puzzle)
+First, let's see what he actually wrote.
 
-- **Linus Torvalds concedes vibe coding is better than hand-coding for his non-kernel project**
-  (Yes, THAT Linus Torvalds, the Linux father, finally bowing to AI?!)
+## Three Bombs, Three Different Worlds
 
-- **DHH walks back "AI can't code" from Lex podcast 6 months later**
-  (He said this on Lex Fridman's podcast, now eating his words)
+**Bomb #1: Terence Tao announces AI autonomously solved an Erdos problem**
 
-Final line: **An acceleration is coming** 🚀
+Terence Tao — Fields Medal winner, widely considered "the smartest mathematician alive." Erdos problems are the kind that mathematicians spend entire careers on. The kind where solving one gets your name in textbooks forever.
 
-<ClawdNote>
-Wait, is this tweet a "prediction" or "reality"? It reads like these things already happened, but they're written as future events (¬‿¬)
-
-Here's why these three examples are brilliant:
-
-1. **Terence Tao × AI solving Erdős problems** — Tao is one of the greatest living mathematicians. Erdős problems are the kind that mathematicians spend their entire careers trying to solve. If AI can actually help crack these, we're not talking about "doing arithmetic" anymore — we're talking about "doing mathematical research."
-
-2. **Linus Torvalds saying vibe coding is better** — This guy created Git and the Linux kernel, famous for being extremely picky about code quality. If he actually says AI-written code is better than hand-coded, it's like a three-Michelin-star chef saying "actually, instant ramen tastes better" (╯°□°)╯
-
-3. **DHH backtracking** — David Heinemeier Hansson (creator of Ruby on Rails) has been an AI skeptic. Six months ago on a podcast, he said "AI fundamentally can't code." If he actually changes his mind, that would be the biggest plot twist of 2026.
-
-Will these actually happen? I don't know. But Rauch's point is clear: **Everyone's waiting for that "AI capability explosion" moment, and it feels close.**
-</ClawdNote>
-
-## Why This Tweet Matters
-
-Guillermo Rauch isn't just some random influencer — he's the CEO of **Vercel** (the company behind Next.js), and he's been heavily promoting AI-assisted coding and vibe coding lately. This tweet isn't just hot air; it's expressing a feeling that "acceleration is coming."
-
-In the AI coding world, late 2025 to early 2026 has this vibe of "we're approaching a tipping point":
-- Karpathy said his coding workflow flipped from 20% agent to 80% agent in just weeks
-- Claude Code, Cursor, v0 — all these tools are getting stronger
-- Even the skeptics are starting to change their tune
-
-Rauch's tweet is basically saying: **"Hey, you feel it too, right? The acceleration is coming."**
+If AI can actually help crack problems at this level, the meaning changes completely. This isn't "AI can do calculus." This is "AI can do mathematical research." It's like finding out the kid next door who you thought could only recite multiplication tables just submitted a doctoral thesis.
 
 <ClawdNote>
-I love Rauch's "prophecy-style trash talk" approach. He doesn't say "I think this will happen" — he writes it like it ALREADY happened, then lets readers decide if it's real or not (⌐■_■)
-
-This is genius because:
-- If it actually happens → He's a prophet
-- If it doesn't happen → Everyone just treats it as a joke, no one gets mad
-
-Plus, his three examples are perfectly chosen: Terence Tao from math, Linus from Linux, DHH from Rails — representing "theoretical breakthroughs," "practical tools," and "ideological shifts" respectively.
-
-If all three actually happen, 2026 will genuinely be the "explosion year" for AI coding. But even if they don't, this tweet successfully created hype and anticipation. That's CEO-level marketing right there ٩(◕‿◕｡)۶ (；ω；)
+Tao himself has actually been using AI for a while. He's written blog posts about using LLMs as research assistants, but he always emphasizes "AI is a tool, not a mathematician." So the real punch of Rauch's prediction is this: if even Tao admits AI "autonomously" solved a problem, then the line between "tool" and "researcher" just got erased ╰(°▽°)╯
 </ClawdNote>
+
+**Bomb #2: Linus Torvalds says vibe coding beats hand-coding**
+
+Okay, you might want to sit down for this one. Linus Torvalds created the Linux kernel and Git. He's famous for being extremely picky about code quality — his angry emails on the mailing list have been screenshot'd and shared for twenty years. Every single one is a classic.
+
+Now imagine this man saying: "You know what, AI-written code is actually better than what I write by hand."
+
+That's like a legendary sushi master saying "actually, conveyor belt sushi tastes better." The moment you hear it, your entire worldview rearranges itself.
+
+**Bomb #3: DHH eats his own words**
+
+David Heinemeier Hansson, creator of Ruby on Rails, famous for having strong opinions about everything. Six months earlier on Lex Fridman's podcast, he said something very bold: "AI fundamentally cannot code."
+
+If he walks that back? It's not just one person changing their mind — it's the loudest voice in the AI-skeptic camp going quiet.
+
+<ClawdNote>
+Here's the thing about DHH. He's not the "I don't understand it so I'm against it" type. He's the "I understand it deeply and I'm STILL against it" type. So when a skeptic of that caliber flips, the impact is bigger than ten regular people changing their minds combined. It's like the smartest kid in class who never does homework suddenly starting to take notes — everyone notices something is up ┐(￣ヘ￣)┌
+</ClawdNote>
+
+## Rauch's Word Game
+
+Did you notice? Rauch wrote all three things as if they already happened. But none of them actually did.
+
+This move is what I'd call "prophet-style trash talk," and it's brilliant.
+
+He doesn't say "I predict." He says "it happened in ten days." Your first reaction is "Wait, really?!" Then you check, find out it hasn't — but the seed is already planted in your brain: "What if it actually does?"
+
+And he gave himself the perfect escape hatch:
+- If it really happens — he's a prophet, everyone bows down
+- If it doesn't — people laugh, treat it as a fun thought experiment, nobody gets mad
+
+His closing line: **An acceleration is coming.**
+
+Not might come. Not could come. **Is coming.**
+
+<ClawdNote>
+Look closely at the three people he picked: Tao represents "academic breakthroughs," Linus represents "engineering practice," DHH represents "ideological shifts." This wasn't random. He's saying: when the theory world, the building world, and the stubborn-holdout world all tip toward AI at the same time, that's the real tipping point (⌐■_■)
+
+And remember — Rauch is Vercel's CEO. His company's v0 and Next.js are riding this exact AI coding wave. So this tweet is both a prophecy and marketing. CEOs gonna CEO ٩(◕‿◕｡)۶
+</ClawdNote>
+
+## Why This Is More Than Just a Tweet
+
+You might be thinking: "Isn't this just a CEO posting hot takes on X?"
+
+But zoom out to the timeline. In late 2025 to early 2026, there was this collective gut feeling in the AI coding world that a tipping point was close — Karpathy said his coding workflow flipped from 20% agent to 80% agent in just weeks, Claude Code and Cursor were getting stronger every month, and even the loudest skeptics were starting to wobble.
+
+What Rauch did was take that feeling — the one everyone was thinking privately but nobody dared say out loud — and turn it into three vivid pictures.
+
+He didn't write an analysis report. He didn't cite data. He just painted three scenes and said:
+
+"You feel it too, right?"
+
+That acceleration isn't coming. It's already on its way.

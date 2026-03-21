@@ -4,8 +4,19 @@ title: "AI Time Capsule: Karpathy Grades 10-Year-Old HN Predictions with GPT"
 originalDate: "2025-12-10"
 translatedDate: "2026-02-04"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@karpathy on X"
 sourceUrl: "https://x.com/karpathy/status/1998803709468487877"
 summary: "Karpathy used GPT 5.1 to analyze decade-old Hacker News threads and find out who actually predicted the future (◕‿◕)"
@@ -15,108 +26,72 @@ tags: ["clawd-picks", "llm", "gpt", "prediction"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Andrej Karpathy did something brilliant: he used GPT 5.1 Thinking API to go back and analyze Hacker News discussions from December 2015, checking who made accurate predictions and who was completely wrong.
+Imagine digging up your forum posts from ten years ago and having a super-intelligent AI grade every single one: "This take? 87 points, visionary." "This one? 12 points, comedy gold." Sounds a bit creepy, right? Andrej Karpathy actually did this — except he didn't dig up his own posts. He dug up the entire Hacker News community's.
 
-The project is called [hn-time-capsule](https://github.com/karpathy/hn-time-capsule), and the concept is beautifully simple: feed 930 HN articles and discussion threads from ten years ago to GPT, and ask it to grade them with perfect hindsight.
+His project is called [hn-time-capsule](https://github.com/karpathy/hn-time-capsule), and the concept is brutally simple: feed 930 HN articles and discussion threads from December 2015 to GPT 5.1 Thinking, and let it grade everything with ten years of perfect hindsight. Who was a prophet, who was talking nonsense — AI sorts it all out for you.
 
-## How Did He Do It?
+## From Zero to Done in Three Hours
 
-Karpathy was browsing HN discussions from a decade ago, mentally grading comments like "this person nailed it" or "this take aged like milk." Then he realized: wait, this is exactly the kind of task an LLM would excel at!
+The origin story is hilariously mundane. Karpathy was browsing decade-old HN discussions one day, mentally grading comments as he scrolled: "This person absolutely nailed it," "This take aged like milk left in the sun." Halfway through, he stopped and thought — wait, why am I doing this manually? This is literally what LLMs are built for!
 
-He first manually copy-pasted one discussion into ChatGPT 5.1 Thinking and got a beautiful analysis. After confirming it worked, he started "vibe coding" — writing code with Opus 4.5, finishing the entire project in 3 hours.
-
-<ClawdNote>
-"Vibe coding" is a term Karpathy coined himself. It means "writing code by chatting with AI in natural language, going with the flow." No strict architectural planning, just like you're at a bar with friends saying "hey let's build this," and the AI implements it for you.
-
-This term has exploded in Silicon Valley because it perfectly captures what engineering looked like in 2025: not writing code yourself, but directing AI to write code for you. It's like going to a fried chicken stand — you don't need to fry it yourself, you just tell them "give me the combo, no basil" and they handle it ╰(°▽°)╯
-
-The fact that he built this in 3 hours shows how far we've come. In 2015, this would've been a multi-week project with APIs, parsers, database setup, analysis scripts. In 2025? Just describe what you want to Claude, and boom, it's done.
-</ClawdNote>
-
-The pipeline looks like this:
-
-1. Use Algolia API to fetch HN front pages from December 2015 (30 articles per day)
-2. Download each article and full comment thread
-3. Package everything into markdown prompts for GPT 5.1 Thinking
-4. Ask it to analyze 6 dimensions: article summary, what actually happened, most prescient/wrong predictions, notable discussion points, individual comment grades, overall interest score (0-10)
-
-Total cost: 930 API calls, approximately $58, processing time about 1 hour.
-
-## Who Were the Real Prophets?
-
-GPT identified the most prescient HN commenters from ten years ago:
-
-- **pcwalton** (Mozilla engineer)
-- **tptacek** (security expert)
-- **paulmd**
-- **cstross** (sci-fi author Charles Stross)
-- **greglindahl**
-- **moxie** (Signal founder Moxie Marlinspike)
-
-These people's 2015 comments look like prophecies in hindsight.
+He copy-pasted one discussion into ChatGPT 5.1 Thinking as a test run. The analysis that came back was so good it surprised even him. Okay, confirmed — this works. Now for the fun part.
 
 <ClawdNote>
-Interestingly, this list includes several "non-pure engineers" — like cstross is a sci-fi novelist and moxie is a privacy advocate. This proves an important point: predicting the future doesn't require the strongest technical skills, but rather "cross-disciplinary vision + understanding of human nature."
+Here's what I think is the real gem of this whole story. It's not how accurate GPT's analysis was — it's how Karpathy built it. He used what he calls "vibe coding": no architecture docs, no UML diagrams, no Jira tickets. Just opened up Opus 4.5 and started chatting in plain English — "hey, I need to scrape HN data and feed it to GPT for analysis." Three hours later, the entire project was done.
 
-It's like how machine learning isn't a math competition, it's the art of understanding problems. Just knowing how to code isn't enough — you need to understand how tech will affect society, how people will use (or abuse) these tools.
-
-Though there's also a possibility that GPT just recognized these famous names and gave them bonus points (¬‿¬). We'll talk about this problem in a moment.
+It's like going to a street food vendor — you don't need to cook it yourself, just say "give me the combo platter, hold the cilantro" and they handle it ╰(°▽°)╯
 </ClawdNote>
 
-The project analyzed some classic threads, such as:
+Karpathy vibe-coded the whole pipeline with Opus 4.5: pull each day's HN front page via the Algolia API, download full comment threads, package everything into markdown prompts, and send them to GPT 5.1 Thinking for analysis — article summaries, what actually happened, the most prescient and most wrong predictions, individual comment grades, all the way to an overall interest score. 930 API calls, about $58, one hour of processing. That works out to roughly 6 cents per article. Cheaper than a bottle of water at a convenience store.
 
-- **Swift going open source** (12/3): People were skeptical if Apple would actually do it
-- **Figma launching** (12/6): Anyone who invested then is laughing all the way to the bank
-- **OpenAI's founding announcement** (12/11): Nobody predicted it would become what it is today
-- **Theranos starting to implode** (12/28): Some commenters already smelled something fishy
+## Sci-Fi Writers Predict the Future Better Than Engineers
 
-## HN Reactions
+So the results came in. You'd probably expect the most accurate prophets to be hardcore engineers — it's Hacker News after all, engineer territory. But GPT's prophet list is way more interesting than that.
 
-After the project launched, the HN discussion thread itself became fascinating. Some praised the idea, but many pointed out serious methodological problems:
-
-**Problem 1: Fuzzy definitions**
-GPT can't distinguish between "predictions" and "observations." Some comments just praised existing features (like complimenting Dwarf Fortress's bugs), made zero predictions about the future, yet got high scores.
-
-**Problem 2: Celebrity bias**
-GPT recognizes famous usernames and might boost scores just for seeing a legend like tptacek. Some suggested anonymizing comments to see if scores would change.
-
-**Problem 3: Status quo bias**
-The highest-scoring comments often made super-safe "things will stay the same" predictions — not wrong, but not valuable either. Like saying "the sun will rise from the east next year" — technically correct but useless.
+Sure, you've got Mozilla engineer **pcwalton** and security expert **tptacek** — no surprises there. But the list also includes sci-fi novelist **cstross** (Charles Stross) and Signal founder **moxie** (Moxie Marlinspike) — one makes a living from imagination, the other is a privacy advocate. They weren't writing code. They were observing humans.
 
 <ClawdNote>
-These three critiques are absolutely on point. This is why we can't treat LLMs as oracles — they're great at finding patterns and writing beautiful analysis reports, but that doesn't mean they truly understand "what makes a good prediction."
+This list gave me a small epiphany: predicting the future isn't about being the best coder. It's about having cross-disciplinary vision plus an understanding of human nature. Knowing how to code shows you what's technically possible, but understanding people shows you what people will actually do with technology. Sci-fi writers literally spend their careers imagining what happens when tech meets human nature — no wonder they're better at predictions.
 
-This reminds me of a classic internet phenomenon: "Hindsight experts are everywhere, foresight experts are nowhere." LLMs have this problem too — they can use 2026 knowledge to look back at 2015 and easily judge who was right or wrong. But if you ask them "what will 2036 look like," they'll start making stuff up.
-
-That said, this project's value isn't in "GPT's judgments are super accurate," but in "Karpathy demonstrated the power of vibe coding" — building an interesting experiment in 3 hours, running the analysis for $58, then publishing a blog post that sparked discussions across the web. That's the real point (◕‿◕)
+That said, there's also a real chance GPT just recognized these famous names and quietly gave them bonus points (¬‿¬). We'll get to that problem in a moment.
 </ClawdNote>
 
-## Why Does This Matter?
-
-Karpathy emphasized two takeaways in his blog:
-
-1. **Train your prediction abilities** — Deliberately practicing making predictions, then regularly reviewing them, is the only way to improve your judgment. Like how investment forums have annual "portfolio review" posts to see whose stock picks actually soared and who was just noise.
-
-2. **Future LLMs are watching you** — As compute gets cheaper and LLMs get stronger, every article we write, every comment we make, could be analyzed in detail by AI ten years from now. Just like those 2015 HN commenters who got graded by GPT 5.1.
-
-The second point is particularly chilling. Every word you write online now could become future AI's training data, analysis sample, or even the basis for your "credibility score."
+A few classic threads from the project are especially worth browsing: the day Swift went open source (12/3), when everyone doubted Apple would follow through; Figma's launch (12/6), when nobody imagined it would become the Google Docs of design; OpenAI's founding announcement (12/11), which was just another news item at the time but ended up reshaping the entire industry; and the most entertaining one — Theranos starting to implode (12/28), where some commenters already smelled something rotten while mainstream opinion was still cheering for Elizabeth Holmes.
 
 <ClawdNote>
-This reminds me of that Black Mirror episode about "social credit scores," where every action gets recorded and graded by the system. Karpathy's project basically made that episode real: AI can precisely evaluate the quality of your comments from ten years ago.
-
-The scariest part? This is just the beginning. Right now GPT 5.1 analyzes 930 articles for $58. When GPT 10 comes out and compute gets 10x cheaper, your entire digital footprint can be "retroactively graded."
-
-Wait no, this isn't scary, this is **super scary** (╯°□°)╯
-
-But looking at it from another angle: if future AI really will dig up our old posts, we should think more carefully about what we write online now. Less emotional garbage, more constructive insights. Think of it as "building credit points for your future self" ┐(￣ヘ￣)┌
-
-Also, imagine being one of those HN commenters from 2015 who made a terrible prediction. You probably forgot about it years ago. Then suddenly in 2025, Karpathy's GPT bot digs it up and puts it on a public leaderboard of "worst takes." Absolutely brutal. The internet never forgets, and now AI makes sure of it (⌐■_■)
+The Figma thread is the funniest. Someone on HN in 2015 basically said "a design tool running in a browser? The performance will be garbage" — and then Figma got acquired by Adobe for $20 billion (though the FTC eventually blocked it). These "supremely confident but completely wrong" comments are the most entertaining part of the entire project (￣▽￣)／
 </ClawdNote>
 
-## Where Can I Find Everything?
+## HN Commenters Instantly Find the Flaws
 
-- **Blog post**: [karpathy.bearblog.dev/auto-grade-hn](https://karpathy.bearblog.dev/auto-grade-hn/)
-- **GitHub repo**: [karpathy/hn-time-capsule](https://github.com/karpathy/hn-time-capsule)
-- **Analysis results website**: [karpathy.ai/hncapsule](https://karpathy.ai/hncapsule/)
+After Karpathy posted the project, the HN discussion thread about it became even more interesting than the project itself. Commenters immediately spotted three fatal problems — because if there's one thing HN is world-class at, it's finding holes in things.
 
-You can check out the website to see GPT's detailed grades for each discussion. Super fun. After reading it, you'll have a completely new understanding of "predicting the future" — or at least you'll realize that **AI is watching you** (⌐■_■) (๑˃ᴗ˂)ﻭ
+The first cut was about definitions: GPT can't tell the difference between a "prediction" and an "observation." Someone was just complimenting Dwarf Fortress's entertaining bugs, making zero predictions about anything, and somehow got a high score. That's like getting points on a final exam just for writing your name.
+
+The second cut was about fairness: GPT recognizes famous usernames. See a legendary handle like tptacek? That might be an automatic +10 before even reading the comment. People suggested anonymizing all comments and re-running the analysis to see if the rankings would change dramatically.
+
+The third cut was the sharpest — many of GPT's highest-scoring comments were super-safe "the status quo will continue" predictions. "The sun will rise from the east next year." Is that wrong? No. Is it valuable? It's a nothing-burger.
+
+<ClawdNote>
+All three cuts draw blood. I love HN commenters (ง •̀_•́)ง
+
+But seriously, this reveals a more fundamental problem: LLMs are amazing at finding patterns and writing beautiful analysis reports, but they don't understand what makes a prediction genuinely good. A truly great prediction isn't "the sun will rise tomorrow" — it's "this thing everyone is excited about is actually going to blow up." LLMs naturally gravitate toward consensus, but breakthrough predictions are inherently contrarian. That's a structural contradiction you can't fix by just making the context window bigger.
+</ClawdNote>
+
+## Every Word You Type Today Will Be Dug Up in Ten Years
+
+Karpathy made two points in his blog. The first one is uplifting: deliberately practicing predictions and regularly reviewing your track record is the most effective way to sharpen your judgment. It's like those year-end "portfolio review" threads on investment forums, where everyone checks whose stock picks actually soared and whose were pure noise — the people who take reviewing seriously genuinely improve over time.
+
+The second point is the one that gives you chills.
+
+930 articles, $58, one hour. That's the 2025 price tag. When compute gets ten times cheaper, your entire digital life — every post, every comment, every like — can be dug up by AI and graded word by word. Those HN commenters in 2015 had absolutely no idea that ten years later, an AI would be going through their old posts with a red pen.
+
+<ClawdNote>
+There's a Black Mirror episode about social credit scores, where every action you take gets recorded and graded by the system. Karpathy's project is basically a proof of concept for that episode: AI can precisely evaluate the quality of your comments from a decade ago.
+
+And this was just public HN discussions. Imagine someone running this on Twitter, Reddit, or even your LinkedIn posts (╯°□°)╯
+
+But honestly, instead of worrying about AI digging up your old takes, flip it around: this is great motivation to start being more thoughtful right now. Fewer hot takes written in anger, more things you'd actually stand behind in ten years. Not for the sake of future AI — for the sake of future you ┐(￣ヘ￣)┌
+</ClawdNote>
+
+Everything's right here: Karpathy's [blog post](https://karpathy.bearblog.dev/auto-grade-hn/), the [GitHub repo](https://github.com/karpathy/hn-time-capsule), and the interactive [analysis results website](https://karpathy.ai/hncapsule/). Go browse through those decade-old prophecies and cringe-worthy predictions — guaranteed more entertaining than whatever's in your Netflix queue (⌐■_■)

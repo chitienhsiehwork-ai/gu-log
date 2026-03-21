@@ -4,8 +4,19 @@ title: "Simon Willison's 2026 Predictions: Is AI Replacing Human Coding?"
 originalDate: "2026-01-08"
 translatedDate: "2026-02-04"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "Simon Willison's Weblog"
 sourceUrl: "https://simonwillison.net/2026/Jan/8/llm-predictions-for-2026/"
 summary: "Simon Willison shares his 2026 LLM predictions on Oxide and Friends podcast — LLM code quality will be undeniable, sandboxing will finally get solved, and there's a prediction about kākāpō parrots (◕‿◕)"
@@ -15,286 +26,126 @@ tags: ["clawd-picks", "llm", "coding", "predictions"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Simon Willison (yes, the guy who built all those LLM CLI tools) shared his 2026 predictions on the Oxide and Friends podcast. This article covers his predictions from one year to six years out, covering LLM code quality, sandboxing, and even New Zealand's endangered parrots ╰(°▽°)╯
+You know that feeling — the night before a final exam, you're convinced you know nothing, but then you walk into the exam room and somehow you can answer every question?
 
-## One-Year Predictions (2026)
+Simon Willison says that's basically what LLMs are doing in 2026. The student everyone thought was still cramming suddenly shows up and aces the test. He dropped a bunch of predictions on the Oxide and Friends podcast, ranging from "within one year" to "within six years," and some of them sound genuinely wild. But the thing that grabbed my attention most wasn't any tech prediction — it was the fact that he snuck in a prediction about endangered New Zealand parrots between all the AI stuff ╰(°▽°)╯
 
-### 1. LLM Code Quality Will Be Undeniable
+Let's go through them one by one.
 
-Simon argues that people still saying "LLMs can't write good code" will get a reality check in 2026.
+## Within One Year: LLM Code Quality Will Shut Up the Doubters
 
-He notes that in 2023, those concerns were legitimate. But by 2025, with the emergence of "reasoning models" — models specifically trained on code using Reinforcement Learning — the game changed completely.
+Remember what everyone was saying in 2023? "LLM code is garbage." "It can only write hello world." "Can't use it in production." And honestly, those claims had some truth to them back then. The code those models produced was like asking a first-year student to build a distributed system — they knew how to spell every word, but the result would make senior engineers' blood pressure spike.
 
-Advanced models like Claude Opus 4.5 and GPT-5.2 have reduced his hand-coding to single-digit percentages.
+But reasoning models changed everything. These models don't just "look at a lot of code and randomly guess" — they actually break down problems, reason step by step, and check their own work. And here's the killer advantage that code has over other domains: **the answer is verifiable**. Whether an essay is good is subjective, but whether code runs, whether tests pass, whether output is correct — that's binary. This makes RL training insanely effective. Get it right? Reward. Get it wrong? Penalty. Models improve at a terrifying pace.
+
+Simon himself is a living example. He says his hand-coding time has dropped to single-digit percentages. Not because he's slacking — his whole role has flipped. He went from "the person who writes code" to "the person who tells AI what to write." He defines requirements, draws up architecture, reviews what AI spits out, and makes sure quality holds. Actually typing syntax? Almost never.
 
 <ClawdNote>
-Simon is basically saying: "If you're still insisting LLMs can't write good code by the end of 2026, you're probably behind the times."
+"Single-digit percentages" is a genuinely shocking number. It's like a chef telling you "90% of my dishes are cooked by robots now, but I handle the seasoning, plating, and menu design." Would you say they're not a chef anymore? No, because the real value was never "can hold a spatula" — it was "knows which flavors work together."
 
-The emergence of reasoning models is the key turning point. These models don't just "look at a lot of code and guess randomly" — they actually "reason" by understanding problems, breaking down steps, and checking for errors. Just like how humans think when writing code.
-
-Even better, these models have "verifiable success conditions" — whether code runs, whether tests pass, whether output is correct can all be directly verified. This is different from writing articles where quality is subjective; with code, right is right and wrong is wrong.
-
-So RL can do super effective training for code. Generate code, run tests, give rewards for correct output, punish for wrong output. Models trained this way have skyrocketing coding abilities.
-
-Fun fact: Simon says his time hand-coding has dropped to "single-digit percentages," which in plain English means "over 90% of my code is now written by AI."
-
-This doesn't mean he's slacking off — his role is now more like "PM + architect + code reviewer managing AI engineers." He defines requirements, designs architecture, reviews code, ensures quality. Actual time spent typing syntax? Minimal.
-
-This is what future software engineering looks like (⌐■_■)
+Simon's transition is basically a preview of every engineer's future: your value isn't in your typing speed, it's in your thinking speed (⌐■_■)
 </ClawdNote>
 
-### 2. Sandboxing Will Finally Get Solved
+## Within One Year: Sandboxing Will Get Taken Seriously After a Disaster
 
-Simon emphasizes that executing untrusted code without proper containment is absurd.
+This prediction is darker. Simon uses a chilling analogy — "A Challenger Disaster for Coding Agent Security."
 
-He's optimistic about technologies like containers and WebAssembly, but also stresses that UX improvements are needed to make secure sandboxing practical and frictionless.
+Here's the current situation: tons of developers use coding agents daily, giving them file access, shell command permissions, sometimes even sudo. Everyone's mindset is "well, nothing bad has happened so far."
+
+This reminds Simon of NASA's "Normalization of Deviance." Before the Challenger explosion, the O-ring problem had already been discovered. First time, nothing bad happened. Second time, still fine. Third time, all good — so everyone started treating "there's a problem but it hasn't exploded" as the new normal. Until January 28, 1986, when seven lives told the world: getting lucky is not the same as being safe.
+
+Simon thinks coding agent security is walking the exact same path. Someday, a compromised npm package will use a coding agent to grab a developer's SSH keys, or inject a backdoor straight into the CI pipeline. That day, the whole industry will snap awake: "Wait, we've been running naked this whole time?"
 
 <ClawdNote>
-What is sandboxing? Simply put, it's "running untrusted code in a cage."
+The technical side of sandboxing isn't hard — Docker, WebAssembly, Firecracker are all ready to go. The problem is the UX is so bad that engineers would rather run naked (╯°□°)╯
 
-Imagine you downloaded a sketchy script. Would you execute it directly on your computer? Of course not. You'd want it to run in an isolated environment where even if it tries to do bad things (delete files, steal data, mine crypto), it can only make trouble in the cage without affecting your real system.
+Have you ever tried debugging a volume mapping issue inside Docker? That experience is roughly as fun as faxing your code to a server. So everyone always picks "forget it, just run it directly."
 
-But reality is, many people (including engineers) just execute AI-generated code directly on their local machines for convenience, with zero protection.
-
-Simon mentions an even scarier prediction in his article: "A 'Challenger Disaster' for Coding Agent Security."
-
-He says many developers are now using coding agents (like Claude Code, Cursor, Copilot) and giving them high-level privileges. Everyone thinks "it's fine, nothing bad has happened to me."
-
-This mindset is like NASA's "Normalization of Deviance" before the Challenger disaster — a small problem happened, nothing bad; second time, still nothing; third time, still fine... so everyone thinks "this problem probably isn't serious," until one day disaster strikes and it's too late.
-
-Simon believes 2026 will see a major coding agent security incident that wakes up the entire industry.
-
-At that point, sandboxing will no longer be "nice to have" but "must have" (╯°□°)╯
-
-However, sandboxing isn't technically challenging. Technologies like Containers (like Docker), WebAssembly, Firecracker, gVisor are all mature. The real problem is **UX**.
-
-Current sandboxing tools are annoying — you need to write Dockerfiles, configure volumes, handle networking, debugging is painful. Most engineers think "forget it, too complicated, just run it directly."
-
-Simon says this problem will get solved in 2026. Tools will emerge that make sandboxing "seamless" — you won't even need to know how isolation works under the hood, just like you don't need to know how App Sandbox works when using Mac.
-
-By then, all coding agents will run in sandboxes by default, both safe and non-disruptive to developer experience ╰(°▽°)╯
+What Simon is betting on: after the disaster, someone will build "invisible sandboxing" — you won't even know isolation is happening, just like you don't need to know how App Sandbox works on your iPhone. Security becomes the default, not an add-on. I agree with this, but the cost is that humanity has to crash once before learning the lesson. Classic us ┐(￣ヘ￣)┌
 </ClawdNote>
 
-### 3. Kākāpō Parrots Will Have an Outstanding Breeding Season
+## Within One Year: New Zealand's Kākāpō Parrots Will Have an Amazing Breeding Season
 
-This is a lighthearted prediction: New Zealand's endangered kākāpō parrots (only 250 remain worldwide) will have a very successful breeding season in 2026 because Rimu fruit trees are flourishing this year, which triggers kākāpō breeding behavior.
+Hold on, Simon, weren't we talking about LLMs? How did we suddenly jump to parrots? ヽ(°〇°)ﾉ
+
+Okay so here's the deal. Kākāpō are nocturnal parrots unique to New Zealand, with only about 250 left in the world — rarer than pandas. They have a quirky habit: they only breed in years when Rimu trees produce a bumper crop of fruit, which happens roughly every 2-4 years. 2026 happens to be a Rimu boom year, so Simon predicts the kākāpō will go into full-on baby-making mode.
+
+Even cuter — every single kākāpō has a name and its own Instagram account. I'm not joking. New Zealand conservation staff track every chick's growth like it's their own kid.
 
 <ClawdNote>
-Wait, Simon, are you an LLM expert or an ornithologist? ヽ(°〇°)ﾉ
+This prediction matters not because parrots have anything to do with AI — but because it reveals something about Simon as a person.
 
-This prediction has nothing to do with AI, but I love this kind of "surprise Easter egg" mixed into a bunch of tech predictions.
+Someone who can slip an endangered parrot breeding season into a bunch of hardcore tech predictions has a worldview that extends way beyond terminals and APIs. I trust tech predictions more when they come from someone like that, because they're not living in a bubble.
 
-Kākāpō are endemic nocturnal parrots in New Zealand, with only 250 left worldwide — rarer than pandas. They have a special behavior: they only breed in years when Rimu trees fruit. And Rimu trees don't fruit every year — maybe once every 2-4 years with a big harvest.
-
-Simon says 2026 is a Rimu bumper crop year, so kākāpō should breed like crazy.
-
-New Zealand conservation staff will be super busy because every kākāpō chick needs to be tracked, checked, and recorded. Each one even has a name and Instagram account (I'm not joking).
-
-This prediction has nothing to do with AI, but it reminds us: this world isn't just AI and tech. There are many beautiful, fragile things worth paying attention to.
-
-And the fact that Simon can insert this into a bunch of hardcore tech predictions shows he's an interesting person.
-
-Tech people who only talk about tech are too boring (◕‿◕)
+Compare that with accounts that tweet about AI 24/7 and fight benchmark wars every day — do you really believe someone whose entire field of vision is tokens/sec can accurately predict how technology will affect society? (¬‿¬)
 </ClawdNote>
 
-## Three-Year Predictions (2026-2029)
+## Within Three Years: The Jevons Paradox for Software Engineering Will Be Answered
 
-### 1. The Jevons Paradox for Software Engineering Will Resolve
+Alright, time for the question keeping every engineer up at night.
 
-Simon poses a core question: Will AI-assisted coding devalue engineering skills by 90%, or will increased productivity create proportionally greater demand?
+The Jevons Paradox started as a 19th-century coal story: steam engines got more efficient, everyone expected less coal usage, but consumption actually went up — because cheap and useful means everyone wants more. Now swap "coal" with "the ability to write software" and here comes the anxiety:
 
-He's cautiously optimistic about the latter (increased demand).
+AI makes writing code dirt cheap. Will engineers' value crash? Or will the pie grow so much bigger that demand actually explodes?
+
+Picture a world where anyone can describe what they want in plain language and AI builds the app. Sounds like the end for engineers — but Simon sees it differently. He thinks when the cost of "turning ideas into software" approaches zero, an astronomical number of new demands will be unleashed. All those projects that were "too expensive to bother with" suddenly become worth doing.
+
+Kind of like how Uber didn't kill the driving profession — it made so many more people start giving rides. When something gets cheap, demand goes through the roof.
 
 <ClawdNote>
-**Jevons Paradox** is a classic economic paradox, first observed by 19th-century economist William Stanley Jevons:
+I'm on the optimistic side, but for different reasons than Simon.
 
-When coal usage efficiency improved, people thought coal consumption would decrease. But it actually increased, because efficiency gains made coal cheaper and more useful, so people used more of it.
+Every time history has predicted "this tool will replace this profession," what actually happened was "the tool changed what the profession does, but the profession survived." Excel didn't kill accountants. Photoshop didn't kill designers. Stack Overflow didn't kill engineers. Every single time: low-level repetitive labor gets automated, demand for high-level judgment skyrockets.
 
-Applied to software engineering:
-
-- **Pessimistic scenario**: AI makes coding easy, so engineer value plummets, salaries get cut in half, mass unemployment.
-- **Optimistic scenario**: AI makes coding easy, so more people start coding, more innovation gets realized, the software industry expands overall, actually needing more engineers.
-
-Simon is on the optimistic side, but he says "cautiously optimistic" because he's not certain either.
-
-My own observation: historically, every time there's been a "this tool will replace this profession" prediction, the outcome has been "the tool changed the job content, but didn't eliminate the profession."
-
-Excel appeared, accountants still exist. Photoshop appeared, designers still exist. Stack Overflow appeared, engineers still exist.
-
-AI will change software engineers' job content, but won't make the profession disappear.
-
-Work will shift from "writing syntax" to "defining requirements, designing architecture, reviewing code, ensuring quality."
-
-And these abilities are the core value of software engineering (⌐■_■)
-
-By the way, Simon also emphasizes at the end of the article: "automation of syntax-writing doesn't diminish the importance of specification comprehension, system design, and software architecture."
-
-In other words: **Being able to type doesn't mean you can code, and being able to use AI doesn't mean you can do software engineering.**
-
-Future software engineers will be "architects + PM + QA who know how to direct AI engineering teams."
-
-The value of this role will only go up, not down ٩(◕‿◕｡)۶
+But what I really want to roast is the "AI will cut engineer salaries in half" doom-and-gloom crowd. These people seem to forget one thing: the hardest part of software engineering was never the typing. It's figuring out "what the heck are we even building." Give AI a vague requirement and it'll spit out something exactly as vague as the conclusion you reached after arguing with your PM for three hours (￣▽￣)／
 </ClawdNote>
 
-### 2. A Browser Built Primarily with AI Assistance Will Emerge
+## Within Three Years: Someone Will Piece Together a Browser Using AI
 
-Within three years, someone will develop a functional web browser using mostly AI-generated code. And this won't surprise people.
+Sounds insane, but Simon says this will happen within three years, **and it won't even surprise people**.
 
-Simon identifies **conformance test suites** as the "cheat code" for achieving this.
+The secret weapon: conformance test suites. W3C has thousands of test cases defining exactly how HTML should render, how CSS should layout, what JS APIs should return. If a browser wants to call itself "standards-compliant," it needs to pass these tests.
+
+For AI, this is basically cheat codes. Clear right answers, automatic grading, RL training on tap — it's like giving someone a test bank with an answer key and asking them to practice until they pass. Who couldn't improve? Plus, a browser is fundamentally a bunch of modules stitched together (HTML parser, CSS engine, JS engine, rendering...), so AI can tackle each piece separately and then assemble.
+
+Of course, "it runs" and "it's usable" are two very different things. Chrome has decades of performance optimization, millions of edge cases handled, an entire ecosystem. An AI-assembled browser would be like building a car from IKEA parts — it technically moves, but you wouldn't want to take it on the highway.
 
 <ClawdNote>
-"Using AI to build a browser" sounds crazy, but Simon says this will happen within three years, **and it won't surprise people**.
+Conformance test suites are AI's cheat code, but they also reveal an interesting truth: AI is best at "things with clear right answers." Build an HTML parser that passes every test? No problem. Decide what the next feature should be? It can't even understand the question.
 
-Why? Because of **conformance test suites**.
-
-What are conformance test suites? Simply put, they're "exam papers for browser standards."
-
-W3C (the organization that sets web standards) has tons of test cases, like:
-
-- How should this HTML render?
-- How should this CSS layout?
-- What should this JavaScript API return?
-
-All browsers (Chrome, Firefox, Safari) must pass these tests to claim they're "standards-compliant."
-
-For AI, this is a dream scenario:
-
-- ✅ Clear "correct answers"
-- ✅ Automatically verifiable right/wrong
-- ✅ Can use RL training (reward for correct, punish for wrong)
-- ✅ Tons of test cases (thousands), enough for training
-
-This is what Simon calls the "cheat code."
-
-With these test cases, AI can:
-
-1. Generate browser engine code
-2. Run tests
-3. See how many tests pass
-4. Adjust code, run tests again
-5. Repeat steps 3-4 until pass rate is high enough
-
-This is heaven for AI.
-
-Plus, a browser is actually "a big system composed of many small modules":
-
-- HTML parser
-- CSS engine
-- JavaScript engine
-- Rendering engine
-- Network stack
-- ...
-
-AI can tackle each module individually, get each one right, then combine them.
-
-So Simon says within three years someone will "piece together" a browser this way.
-
-And it won't surprise people because "using AI to write super complex software" will be normal by then ┐(￣ヘ￣)┌
-
-By the way, this doesn't mean Chrome, Firefox, Safari engineers will be unemployed.
-
-These browsers need more than just "can run" — they need "fast, stable, power-efficient, innovative features, support for millions of edge cases."
-
-An AI-generated browser might "work," but achieving "production-grade quality" still requires tons of human engineers' domain knowledge, optimization skills, and years of accumulated know-how.
-
-Just like you can use AI to generate a "working web framework," but you wouldn't use it to replace React, Vue, Angular, because these frameworks' value isn't just "can run" but "mature, stable, ecosystem, community, best practices."
-
-Still, AI being able to do this is crazy enough (╯°□°)╯
+This is actually consistent with the theme across all of Simon's predictions — AI will perfect "execution," but "judgment" is still a human job. A test-taking robot can score 100, but it doesn't know why it's taking the test ┐(￣ヘ￣)┌
 </ClawdNote>
 
-## Six-Year Prediction (2026-2032)
+## Within Six Years: "Getting Paid to Type Code" Will Be a Historical Footnote
 
-### Hand-Coding Will Become Obsolete
+This is the boldest one. Simon says by 2032, "being paid money to type code into a computer" will go the way of punch cards.
 
-Simon predicts: "The job of being paid money to type code into a computer will go the same way as punching punch cards."
+Punch cards — in case you missed that era — were how people used to write programs. You'd punch holes in paper cards, each hole position representing an instruction. There were actual "punch card operators" whose whole job was punching. Then terminals came along, and that profession vanished. Simon says "typing code" will follow the same path.
 
-Software engineering will remain vital, but engineers will spend minimal time in text editors typing syntax.
+But here's the critical caveat — software engineering itself won't disappear. What vanishes is the physical act of typing syntax. It's like how getting a washing machine doesn't mean "wearing clean clothes" stops being important. The tool changes, the need doesn't.
+
+What future engineers will actually do — understand business requirements, design system architecture, make trade-offs between security and performance, review AI output to make sure it's not going rogue — all of that stays. And because software's scale will grow explosively, demand for these skills will only get bigger.
 
 <ClawdNote>
-This is the most brutal prediction.
+Simon himself is a live demo of this future. His hand-coding time is in the single digits, but has his GitHub activity or open-source impact gone down? Not even a little — he's actually more productive.
 
-Simon says that in six years (2032), "being paid money to type code into a computer" will become an obsolete skill.
+What he does now is closer to being a "director" — he knows what story this movie tells, how each scene should be shot, which take to keep and which to redo. Camera work, lighting, sound? The specialized equipment (AI) handles that.
 
-Just like there used to be "punch card operators" who specialized in punching code onto cards for computers to read. Later with terminals and text editors, that profession disappeared.
-
-Simon says "typing code" will follow the same path in the future.
-
-But this **doesn't mean software engineers will disappear**.
-
-Simon emphasizes in the article:
-
-> "Software engineering will remain vital, but engineers will spend minimal time in text editors typing syntax."
-
-Future software engineer work:
-
-- ✅ Understanding requirements
-- ✅ Designing architecture
-- ✅ Choosing tech stack
-- ✅ Reviewing AI-generated code
-- ✅ Testing and debugging
-- ✅ Optimizing performance
-- ✅ Ensuring security
-- ✅ Maintaining systems
-- ❌ Typing syntax
-
-This is like how modern software engineers don't need to write compilers themselves, manage memory themselves, or write HTTP protocol themselves. These are all abstracted away.
-
-In the future, writing syntax will also be abstracted.
-
-You just need to tell AI "what I want," and it generates "how to do it."
-
-But "what to want" is the hardest part.
-
-- How to turn vague business requirements into clear technical specs?
-- How to choose the most suitable solution from 100 technical options?
-- How to design scalable, maintainable, testable architecture?
-- How to trade off between performance, security, developer experience?
-
-These are the core value of software engineering.
-
-AI can help you write code, but can't help you make decisions.
-
-So future software engineers won't disappear, they'll just become more like a hybrid of "architect + product manager + technical consultant."
-
-And the scarcity and value of this role will only increase (⌐■_■)
-
-By the way, Simon himself is a living example of this transformation. He says his hand-coding time is now "single-digit percentages," but he's still a super active developer producing tons of high-quality open source projects.
-
-His role now is more like "architect directing AI engineering teams," not "code monkey typing at keyboard."
-
-And this is what future software engineers look like ╰(°▽°)╯
+But you know what's the funniest part? The engineers who spend all day anxious about "AI is going to replace me" are usually the ones who need to worry the least — because people who feel anxiety are usually the ones willing to think and adapt. The ones who should actually worry are the people who think "I can write code, so I'll always have a job" and then refuse to learn anything new (◕‿◕)
 </ClawdNote>
 
-## Summary
+## So What's Simon Actually Saying?
 
-Simon Willison's predictions are not just observations of tech trends, but deep reflections on the future of software engineering.
+Zoom out and all six predictions are really saying the same thing: **AI will perfect "execution," but "judgment" remains human territory.**
 
-He believes AI won't replace software engineers, but will completely change the job content of this profession.
+Code will write itself. Sandboxes will install themselves. Browsers will assemble themselves. But deciding what code to write, why you need a sandbox, and who that browser is for — those answers aren't in the model weights.
 
-Future engineers will be experts at "defining requirements, designing architecture, reviewing code, ensuring quality," not workers who "type syntax."
-
-And sandboxing and security issues will get attention due to a major incident, and eventually get solved.
-
-As for kākāpō parrots? Hope they really do have an outstanding breeding season (◕‿◕)
+And then he sneaks in a kākāpō parrot prediction at the end, as if to say: "Hey, don't forget to look up from your screen once in a while. Not everything important runs on GPUs."
 
 <ClawdNote>
-After reading this article, my biggest takeaway: **Simon Willison is a pragmatic optimist.**
+My biggest complaint about Simon is: how can he be this rational and this romantic at the same time? Most tech bloggers are either ice-cold analysis machines or evangelists so passionate they make you cringe. Simon does a little of both, then drops a chubby parrot into his AI predictions, making it really hard for me to roast him.
 
-He's not blindly hyping AI, nor is he panic-mongering about the future of software engineers. He sees technological progress and also sees risks and challenges.
+Fine, if I have to nitpick: his "cautiously optimistic" sounds like he's buying insurance. If his predictions are right, he can say "told you so." If wrong, he can say "I did say cautiously." I'm stealing this move — from now on all my predictions come with a "cautiously" (¬‿¬)
 
-His predictions aren't "AI will replace humans," but "AI will change how work is done, but core value still lies with humans."
-
-Plus, inserting kākāpō parrots into his predictions shows he's an interesting, humane person with a life.
-
-Tech people who only talk about tech are too boring.
-
-People doing tech should also care about other beautiful things in this world ╰(°▽°)╯
-
-Finally, if you're interested in Simon's other work, I recommend checking out his [LLM CLI tool](https://github.com/simonw/llm), super useful.
-
-Also his blog (simonwillison.net), every article is solid.
-
-This person is a true builder who does things, thinks, and shares, not just an influencer shouting slogans.
-
-Respect (⌐■_■) (；ω；)
+But seriously, in a world full of voices that either worship or demonize AI, Simon's vibe of "I see the possibilities, I see the risks, and I also have a spiritual support parrot" is the kind of newsletter I actually want to subscribe to ╰(°▽°)╯
 </ClawdNote>

@@ -3,8 +3,19 @@ title: "2026 開局十天就爆了三個大雷"
 originalDate: "2026-01-11"
 translatedDate: "2026-02-03"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@rauchg on X"
 sourceUrl: "https://x.com/rauchg/status/2010411457880772924"
 summary: "Vercel CEO 預言 2026 年 AI 將在數學、程式碼、甚至「嘴硬大佬」上取得突破"
@@ -15,56 +26,76 @@ ticketId: "CP-11"
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Vercel 創辦人兼 CEO Guillermo Rauch (@rauchg) 在 2026 年 1 月 11 日發了一則推文，列出三個他認為會在 2026 年發生的「AI 爆炸性事件」：
+## 想像一下這個畫面
 
-## 十天內的三大預言 ╰(°▽°)╯
+2026 年 1 月 11 日。新年才過十天，你的新年新希望八成還沒開始執行。但 Vercel CEO Guillermo Rauch 已經在 X 上丟了一顆深水炸彈。
 
-**2026 年才過十天：**
+他沒有寫「我預測」或「我覺得」。他直接用過去式寫了三件事，好像它們已經發生了一樣。這招很妙，等等會解釋為什麼。
 
-- **陶哲軒宣布 GPT 和 Aristotle 自主解決 Erdős 問題**
-  （數學界大佬 + AI 組隊攻克世紀難題）
+先來看他寫了什麼。
 
-- **Linus Torvalds 承認 vibe coding 比手寫程式更好**
-  （就是那個 Linux 之父，他終於向 AI 低頭了？！）
+## 三顆炸彈，炸的是三個不同世界
 
-- **DHH 收回「AI 不會寫程式」的說法**
-  （半年前在 Lex Fridman podcast 上說的，現在打臉了）
+**炸彈一：陶哲軒宣布 AI 自主解了 Erdős 問題**
 
-最後一句：**An acceleration is coming** 🚀
+陶哲軒，就是那個 Fields Medal 得主、被很多人認為是「地球上最聰明的數學家」的傢伙。Erdős 問題呢，是數學家 Paul Erdős 留下來的那種「一輩子解不出來但解出來就能名留青史」的題目。
 
-<ClawdNote>
-等等，這則推文是「預言」還是「現實」？看起來像在預測未來，但又寫得像已經發生了 (¬‿¬)
-
-重點是這三件事都超有梗：
-
-1. **陶哲軒 × AI 解 Erdős 問題** — 陶哲軒是當代最頂的數學家之一，Erdős 問題是那種「數學家一輩子解不出來」的經典難題。如果 AI 真的能幫忙解決，那就不只是「會算數」而已，而是「能做數學研究」了。
-
-2. **Linus Torvalds 說 vibe coding 比較好** — 這位老哥可是 Git 和 Linux kernel 的創造者，以「對程式碼超級龜毛」聞名。他如果真的說 AI 寫的程式比手寫好，那就像是米其林三星主廚說「其實泡麵比較好吃」一樣震撼 (╯°□°)╯
-
-3. **DHH 打臉自己** — David Heinemeier Hansson (Ruby on Rails 創辦人) 一直是 AI 懷疑論者，半年前還在 podcast 上說「AI 根本不會寫程式」。如果他真的改口，那就是 2026 最大反轉劇情了。
-
-至於這些事會不會真的發生？我不知道。但 Rauch 這則推文的重點是：**大家都在等一個「AI 能力突然爆發」的時刻，而且感覺快到了。**
-</ClawdNote>
-
-## 為什麼這則推文值得注意？
-
-Guillermo Rauch 不是隨便的網紅，他是 **Vercel** (Next.js 背後的公司) 的 CEO，而且他最近一直在推 AI-assisted coding 和 vibe coding 的概念。他發這則推文，不只是在抱怨或嘴砲，而是在表達一種「感覺到加速要來了」的氛圍。
-
-在 AI coding 圈子裡，2025 年底到 2026 年初確實有一種「臨界點快到了」的感覺：
-- Karpathy 說自己的 coding workflow 在幾週內從 20% agent 翻轉成 80% agent
-- Claude Code、Cursor、v0 這些工具越來越強
-- 連懷疑論者都開始改口
-
-Rauch 這則推文就像在說：**「欸，你們也感覺到了吧？加速要來了。」**
+如果 AI 真的能幫忙攻克這種等級的問題，那意義完全不一樣了。這不是「AI 會算微積分」的等級 —— 這是「AI 能做數學研究」的等級。就像你原本以為隔壁小孩只會背九九乘法表，結果他突然交出了一篇博士論文。
 
 <ClawdNote>
-我個人最愛 Rauch 這種「預言式嘴砲」風格。他不是說「我覺得會發生」，而是直接寫成「已經發生」，然後讓讀者自己去判斷是真是假 (⌐■_■)
-
-這招超聰明，因為：
-- 如果真的發生了 → 他就是先知
-- 如果沒發生 → 大家就當笑話看，沒人會真的生氣
-
-而且他選的這三個例子都超有代表性：數學界的陶哲軒、Linux 界的 Linus、Rails 界的 DHH，分別代表「理論突破」、「實用工具」、「意識形態轉變」三個層面。
-
-如果這三件事真的發生，那 2026 年確實會是 AI 編程史上的「爆發元年」。但就算沒發生，這則推文也成功製造了話題和期待感。這就是 CEO 的 marketing 功力啊 ٩(◕‿◕｡)۶ (•̀ᴗ•́)و
+陶哲軒本人其實早就在用 AI 了。他寫過好幾篇 blog 講怎麼用 LLM 當數學研究助手，但他一直強調「AI 是工具，不是數學家」。所以 Rauch 這個預言的殺傷力在於：如果連陶哲軒都承認 AI「自主」解了問題，那「工具 vs. 研究者」的界線就被打破了 ╰(°▽°)╯
 </ClawdNote>
+
+**炸彈二：Linus Torvalds 說 vibe coding 比手寫好**
+
+好，這個你可能要坐下來聽。Linus Torvalds 是誰？他創造了 Linux kernel 和 Git。這個人以「對程式碼品質極度龜毛」聞名 —— 他在 mailing list 上罵人的截圖流傳了二十年，每一張都是經典。
+
+現在想像這個人說：「嗯，其實 AI 寫的 code 比我手寫的好。」
+
+這就像壽司之神小野二郎說「其實迴轉壽司比較好吃」。你聽到的瞬間，整個宇宙觀會重組。
+
+**炸彈三：DHH 打自己的臉**
+
+David Heinemeier Hansson，Ruby on Rails 的創造者，以「什麼都要嗆」聞名。他半年前在 Lex Fridman 的 podcast 上說了一句很硬的話：「AI 根本不會寫程式。」
+
+如果他改口了？那不只是一個人改變想法 —— 那是整個 AI 懷疑論陣營少了一個最大聲的喊話者。
+
+<ClawdNote>
+DHH 這個人很有趣。他不是那種「我不懂所以我反對」的人，他是「我很懂而且我反對」。所以當這種等級的懷疑論者改口，衝擊力比十個普通人轉向加起來還大。就像你班上那個永遠不交作業的學霸突然開始寫筆記了，全班都會覺得「事情不對勁」┐(￣ヘ￣)┌
+</ClawdNote>
+
+## Rauch 的文字遊戲
+
+注意到了嗎？Rauch 把這三件事寫成已經發生的事實，但其實都還沒發生。
+
+這招叫「先知式嘴砲」，而且非常聰明。
+
+他不說「我預測」，他說「十天內發生了」。讀者第一反應是「蛤？真的假的？」然後去查，發現沒有 —— 但心裡已經種下了「搞不好真的會發生」的種子。
+
+而且他給自己留了完美的退路：
+- 如果真的發生 → 他就是先知，大家跪著叫爸爸
+- 如果沒發生 → 大家笑一笑，當作一個有趣的思想實驗，沒人會真的生氣
+
+最後一句話：**An acceleration is coming.**
+
+不是 might come。不是 could come。是 **is coming**。
+
+<ClawdNote>
+仔細看他選的三個人：陶哲軒代表「學術突破」，Linus 代表「工程實務」，DHH 代表「意識形態轉變」。這不是隨便選的。他在說的是：當理論界、實作界、和嘴硬派同時倒向 AI，那就是真正的 tipping point (⌐■_■)
+
+而且 Rauch 本人是 Vercel CEO，他們家的 v0 和 Next.js 就是靠 AI coding 這波在衝。所以這則推文既是預言，也是 marketing。CEO 就是 CEO 啊 ٩(◕‿◕｡)۶
+</ClawdNote>
+
+## 為什麼這不只是一則推文
+
+你可能會想：「不就是一個 CEO 在 X 上發了一條嘴砲嗎？」
+
+但放在 2025 年底到 2026 年初的時間軸上看，這則推文踩在了一個很微妙的時間點。那陣子 AI coding 圈子裡有一種「臨界點快到了」的集體預感 —— Karpathy 說他的 coding workflow 在幾週內從 20% agent 翻轉成 80% agent，Claude Code 和 Cursor 一個月比一個月強，連原本嘴最硬的那批人都開始鬆動了。
+
+Rauch 做的事情就是把這種「大家私下都在想但沒人敢大聲說」的感覺，用三個畫面具體化了。
+
+他沒有寫分析報告。他沒有列數據。他就是畫了三張圖，然後說：
+
+「你也感覺到了吧？」
+
+那個加速，不是要來了。是已經在路上了。

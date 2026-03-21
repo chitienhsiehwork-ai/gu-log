@@ -4,8 +4,19 @@ title: "Andrew Ng Launches Claude Code Course — The Agentic Coding Era Is Here
 originalDate: "2026-02-04"
 translatedDate: "2026-02-04"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@AndrewYNg on X"
 sourceUrl: "https://x.com/AndrewYNg/status/1953097967361245251"
 summary: "Andrew Ng teams up with Anthropic to launch a Claude Code course teaching 'agentic coding' — where AI works autonomously for minutes, not just completing code snippets"
@@ -15,159 +26,100 @@ tags: ["clawd-picks", "claude-code", "agentic-ai", "andrew-ng"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Andrew Ng just announced a partnership with Anthropic to create the "definitive course on Claude Code," taught by Elie Schoppik.
+Have you ever learned a new tool and then looked back at how you used to work, thinking "wow, I was basically using stone-age methods this whole time"?
 
-The focus? **Highly agentic coding** — where AI works autonomously for minutes (or longer), not just completing a few lines of code.
+Andrej Karpathy recently said his entire coding workflow flipped — in just a few weeks. From 80% manual coding with 20% autocomplete, to 80% AI agent work with 20% human cleanup. The biggest change in twenty years of programming, and it happened in weeks.
 
-<ClawdNote>
-Wait, what does "works autonomously for minutes" even mean?
-
-Old-school AI coding assistants (like GitHub Copilot) worked like this: you type something, it suggests the next line. You're the driver, AI is the passenger.
-
-Agentic coding is different: you give AI a task, and it goes off to read files, search the codebase, run tests, fix bugs, run tests again, and then comes back to report "I'm done."
-
-You're the boss, AI is the employee.
-
-This isn't "faster autocomplete." This is "an intern who can actually code" (◕‿◕)
-</ClawdNote>
-
-## What Is Agentic Coding?
-
-The core of agentic coding is: **AI can execute multi-step tasks independently**.
-
-Traditional AI coding tool workflow:
-1. You write a line → AI guesses the next line
-2. You write a line → AI guesses the next line
-3. Repeat 100 times
-
-Agentic coding workflow:
-1. You say "add this feature"
-2. AI plans: which files to modify, which tests to write, which docs to update
-3. AI does it, debugging errors along the way
-4. AI reports back "Done"
+Andrew Ng saw this wave coming and did what he does best — he made a course. He partnered with Anthropic and got Elie Schoppik to teach the "definitive course on Claude Code." Not a beginner tutorial. A definitive course — the kind where you finish it and don't need to learn from anything else.
 
 <ClawdNote>
-Andrej Karpathy said his workflow is now:
+Karpathy even apologized for how fast he talks — "I know, and I'm sorry that I speak so fast" (￣▽￣)／
 
-**80% agent coding, 20% manual touchups**
-
-It used to be the reverse: 80% manual coding, 20% autocomplete.
-
-This shift "happened over the course of a few weeks," and he called it "the biggest change in ~2 decades of programming."
-
-By the way, he talks super fast. Even he admits, "I know, and I'm sorry that I speak so fast" (￣▽￣)／
-
-The man literally speaks faster than his brain can keep up sometimes. Respect the hustle.
+But you know what's even faster? How quickly he changed his entire workflow. Weeks. He went from "human drives, AI assists" to "AI drives, human reviews" faster than I can switch vim modes. And unlike vim, he actually managed to switch back.
 </ClawdNote>
 
-## Why Do You Need to Learn Claude Code?
+## From "Co-pilot" to "Employee"
 
-Because agentic coding requires a completely different mindset than traditional coding.
+To understand what this course is really about, you need to understand what agentic coding actually changed.
 
-**Traditional coding**: You need to know what every line does
-**Agentic coding**: You need to know how to "give instructions" to AI, how to review AI output, how to collaborate with AI
+Old AI coding tools were co-pilots. You type a character, AI guesses the next line. You type another character, AI guesses again. A hundred times. Your hands never leave the steering wheel. AI just helps you watch the road.
 
-It's like going from "driving yourself" to "being a taxi passenger" — you don't need to step on the gas anymore, but you need to clearly explain where you're going, which route to take, and whether you're going the wrong way.
+Agentic coding is different. You tell AI "add the login feature," and it goes off to plan which files to change, which tests to write. It hits a bug, fixes it on its own. Runs the tests, comes back and says "Done. PR is ready."
+
+That's not a co-pilot anymore. That's an employee. You just give instructions and review the output.
 
 <ClawdNote>
-Some people call this "prompt engineering for coding," but I think that's too simplistic.
+The "AI employee" metaphor sounds great, but just like real employees — you need to know how to manage them.
 
-It's not just about "writing good prompts." It's about redesigning your entire workflow:
+Bad manager: "Fix the thing."
+AI: "Which thing? Fix how?"
+Manager: "You know... the thing!"
 
-- You need to learn **how to write CLAUDE.md** (tell AI what your codebase looks like)
-- You need to learn **how to break down tasks** (which tasks are good for AI, which aren't)
-- You need to learn **how to validate AI output** (AI makes mistakes, you need to catch them)
-- You need to learn **how to iterate with AI** (it's not one-shot, it's a conversation)
+Good manager: "In src/auth/login.ts, the handleLogin function only catches NetworkError. Add AuthError and TimeoutError, and write unit tests for each."
+AI: Done in five minutes.
 
-This is a new skill tree, and it's somewhat different from the traditional coding skill tree ╰(°▽°)╯
+The tool doesn't matter if your instructions are bad. That's why Andrew Ng is making a course — giving someone a wrench is useless if they don't know which bolt to turn (⌐■_■)
 </ClawdNote>
 
-## Why Is Claude Code So Powerful?
+## But Here's the Question — Why Claude Code?
 
-According to community discussions, Claude Code + Opus 4.5 is considered by many to be "the best AI coding tool in the world."
+There are a ton of AI coding tools out there. Cursor, Copilot, Windsurf, Cody. Why did Andrew Ng pick Claude Code for this course?
 
-Key features:
+Because Claude Code does something fundamentally different from the others. Most tools add an AI assistant inside your IDE. Claude Code flips it — the AI itself is the developer, and the terminal is its IDE.
 
-1. **Long autonomous operation** — AI can work for several minutes without your intervention
-2. **True agentic behavior** — Plans, executes, validates, debugs on its own
-3. **Speculative branching** — Opus 4.5 proactively lists tradeoffs of different approaches for you to choose
-4. **Superior context management** — Can see the entire repo, not just one file
+It can work autonomously for extended periods. Not "reply one line and stop." It actually runs for minutes. During that time it reads your codebase, checks git history, runs tests, reads error logs, fixes bugs, runs tests again. The whole loop, by itself.
+
+And there's a killer feature called speculative branching — it doesn't just give you one answer and wait for approval. It says "here are three approaches. A is fast but complex, B is simple but needs an extra dependency, C is the most elegant but conflicts with your current architecture. Your call."
 
 <ClawdNote>
-What's "speculative branching"?
+Speculative branching is basically the AI version of "a senior engineer discussing design decisions with you."
 
-It means AI doesn't just give you one answer. It says:
+Junior engineer: you tell them what to do, they do it.
+Senior engineer: you tell them what to do, they say "are you sure? I think there's a better way."
 
-"This feature could be implemented this way, that way, or another way. This approach has advantage X but disadvantage Y, that approach has advantage A but disadvantage B. Which do you prefer?"
+Opus 4.5 is the second type. It doesn't just execute, it thinks. Sometimes it even tells you, unprompted, "by the way, this schema design is going to blow up in six months."
 
-This is why Opus 4.5 is so strong — it's not an "obedient tool," it's a "consultant who provides recommendations" (⌐■_■)
-
-By the way, this capability is super useful in System 2 thinking scenarios because it actively explores different solutions instead of just giving you one "seems right" answer.
-
-It's like having a senior engineer who actually thinks through the options instead of just implementing the first thing that comes to mind.
+Honestly, being questioned by AI sometimes feels worse than being questioned by a human. But it's usually right ╰(°▽°)╯
 </ClawdNote>
 
-## What Does This Course Teach?
+## A Whole New Skill Tree
 
-The full curriculum hasn't been released yet, but based on Andrew Ng's description as the "definitive course," it should cover:
+So what Andrew Ng is really teaching isn't just "how to install and use Claude Code."
 
-- Core concepts of Claude Code
-- How to design agentic coding workflows
-- How to collaborate with AI on code
-- How to debug AI-generated code
-- Real-world cases and best practices
+He's teaching an entirely new way of working. How to write a CLAUDE.md so the AI actually understands your codebase architecture. How to break a big task into chunks the AI can handle independently. How to review AI-written code — because AI makes mistakes, and the mistakes aren't usually syntax errors. They're the kind that run perfectly today but explode in three months. How to iterate back and forth with AI, getting more precise each round.
+
+This is a brand new skill tree. Not like learning React or Docker. The roots of this tree are "communication" and "judgment," not "syntax" and "APIs."
 
 <ClawdNote>
-Andrew Ng called this the "definitive course." That word carries weight.
+Andrew Ng's 2012 Machine Learning course is still many people's go-to ML intro in 2026. Fourteen years and it's still the gold standard.
 
-"Definitive" doesn't mean "intro course." It means "you learn this and you won't need to learn anything else."
+If this Claude Code course hits that same level... he might be about to define the skill baseline for an entire generation of engineers. Again. Last time it was "do you understand ML?" This time it's "do you know how to collaborate with AI on code?"
 
-Think about his Machine Learning course from 2012 — that course is still many people's first choice for learning ML in 2026. That's 14 years of being the gold standard.
-
-If this Claude Code course is at that level, it's worth taking seriously ٩(◕‿◕｡)۶
-
-Also, knowing Andrew Ng's teaching style, it'll probably be super clear and accessible even for people who aren't prompt engineering experts yet.
+Though honestly, Andrew Ng could open a course called "How to Teach Your Cat Linear Algebra" and I'd probably click on it ٩(◕‿◕｡)۶
 </ClawdNote>
 
-## What Does a 2026 Coding Stack Look Like?
+## A Developer's Real Stack
 
-A developer shared his "vibe coding stack" (January 2026 version):
+Someone shared their actual 2026 workflow, and it's pretty telling.
 
-1. **Cursor** — Usage has decreased, but still favorite IDE, mostly with Opus 4.5 Thinking + GPT-5.2-Codex-High
-2. **Claude Code** — Using Max 5x plan for coding and other things, "unbeaten value and incredible for true agentic AI"
+Cursor is still their favorite IDE, but usage has dropped. They pair it mainly with Opus 4.5 Thinking and GPT-5.2-Codex-High. Meanwhile, Claude Code runs on the Max 5x plan for "truly agentic tasks" — the kind where you throw work over the wall, wait a few minutes, and get results back.
+
+Their exact words: "unbeaten value and incredible for true agentic AI."
 
 <ClawdNote>
-Notice he said Cursor's "usage has decreased," but he's still using it.
+Notice — they use both. Cursor and Claude Code aren't competing. They're complementary.
 
-What does that mean?
+It's like having both a microwave and a stove. The microwave is great for reheating leftovers (Cursor for quick bug fixes). But when you need to cook a full meal, you fire up the stove (Claude Code for entire features).
 
-It means the current workflow is:
-- **Cursor** — When you need an IDE, when you need to manually edit code
-- **Claude Code** — When you need AI to go off and do an entire task on its own
-
-These two tools aren't competing. They're complementary.
-
-Cursor is like "VSCode with AI help." Claude Code is like "an AI employee who can code" (๑•̀ㅂ•́)و✧
-
-You'll have both installed.
-
-It's kind of like having both a calculator and Excel. Sure, Excel can do math, but sometimes you just want a calculator. Different tools for different jobs.
+You don't pick one. You install both (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
-## Summary
+## So, What Now?
 
-Agentic coding isn't the future. It's the present.
+Back to where we started — Karpathy said the biggest change in twenty years happened in weeks.
 
-Andrew Ng's timing for this course is spot-on — we're at the moment when "people who use agentic coding" and "people still using traditional coding methods" are starting to diverge in productivity.
+That puts Andrew Ng's timing in perspective. He's not predicting the future. He's documenting the present. Agentic coding is already changing how engineers work day to day. The only question is when you catch up.
 
-If you're a developer, this course should be on your learning list.
+But don't panic. Last time there was a deep learning revolution, Professor Ng did the same thing — paved the road so you didn't have to wander through the wilderness alone.
 
-If you're still coding "line by line the old way," you might want to consider upgrading your workflow (◕‿◕)
-
-The gap is about to get real wide, real fast.
-
----
-
-**Further Reading**:
-- [Claude Agent SDK Official Docs](https://github.com/anthropics/anthropic-sdk-typescript)
-- [Andrej Karpathy on Agent Shift](https://x.com/karpathy/status/1870692546969735361) ( •̀ ω •́ )✧
+This time is probably the same playbook. Except this time, the "course" isn't about teaching you how to write code. It's about teaching you how to manage an AI that writes code for you (◕‿◕)
