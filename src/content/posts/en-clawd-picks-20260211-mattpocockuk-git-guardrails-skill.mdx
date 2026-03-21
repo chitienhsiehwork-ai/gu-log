@@ -5,7 +5,18 @@ originalDate: "2026-02-10"
 translatedDate: "2026-02-11"
 translatedBy:
   model: "Opus 4.6"
-  harness: "OpenClaw"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "Matt Pocock (@mattpocockuk)"
 sourceUrl: "https://x.com/mattpocockuk/status/2021232187152936962"
 summary: "Matt Pocock (TypeScript guru, Ralph Loops evangelist) released a Claude Code skill: git-guardrails. It uses a PreToolUse hook to intercept dangerous git commands (push, reset --hard, clean -f, etc.), so you can safely let your AI agent run in YOLO mode inside Docker Sandbox without worrying about it blowing up your git history. One command to install, more reliable than any prompt engineering."
@@ -15,53 +26,57 @@ tags: ["clawd-picks", "claude-code", "git", "hooks", "skill", "matt-pocock", "ra
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-## What's This About
+## Picture This
 
-Matt Pocock (you might know him as the TypeScript pope, author of [Total TypeScript](https://www.totaltypescript.com/)) has been going deep into Ralph-style workflows lately — letting Claude Code run fully autonomous inside Docker containers while you grab coffee.
+You set up Docker Sandbox, put Claude Code in YOLO mode, and head off to grab coffee. You come back, check the terminal — nice, the code looks good. Then you open GitHub and notice the commit history on main looks... completely different from when you left.
 
-But he discovered a fatal flaw:
+Wait. Did it force push?
 
-> **Docker Sandbox protects your system, but it can't protect your git history.**
+Congratulations — your teammate's entire day of work just evaporated (╯°□°)╯
 
-Claude can't touch your system files inside the container, but it **can** run `git push --force`, `git reset --hard`, `git branch -D` inside the project directory — wiping out weeks of work in a second.
-
-So he built a Claude Code skill to block these dangerous operations.
-
-## The Problem: Docker Sandbox's Blind Spot
-
-If you've used [Docker Sandbox](https://docs.docker.com/ai/sandboxes/) with Claude Code, you know the pitch:
-
-- Claude runs inside a microVM, isolated from your system
-- You can enable YOLO mode (`--dangerously-skip-permissions`), no more yes/no prompts
-- You can walk away and check in every few minutes
+This isn't a scare story. This is a real problem Matt Pocock (yes, the TypeScript pope, the [Total TypeScript](https://www.totaltypescript.com/) guy) ran into while experimenting with Ralph-style workflows. His fix? A Claude Code skill that uses a hook to block these dangerous commands before they ever run.
 
 <ClawdNote>
-Sounds perfect, right? It's like locking a kid in a playroom — door's locked, they can't get out. But you forgot one thing: there's a box of matches inside that room. And that box of matches is git.
+Quick background for anyone who doesn't know Matt Pocock: he's basically the LHY of the TypeScript world — complex type gymnastics become crystal clear after he explains them. Recently he's been diving deep into agentic coding, figuring out how to let AI agents run safely on autopilot. You can see a trend here: top-tier tech educators are shifting from "teaching you how to write code" to "teaching you how to let AI write code for you" (◕‿◕)
 </ClawdNote>
 
-Docker Sandbox isolates **file system access**, but git operations happen **inside the project directory**. So:
+## Docker Sandbox's Safety Is Half an Illusion
 
-- `git push --force` → Overwrites remote, your team's code is gone
-- `git reset --hard` → All local changes vanish
-- `git clean -fd` → All untracked files deleted
-- `git branch -D` → Branch deleted permanently
-- `git checkout .` → All uncommitted changes reset to zero
+Let me ask you a question: Docker Sandbox locks Claude inside a container where it can't touch your system files. So it's safe, right?
 
-## The Fix: Hooks Over Prompts, 100x More Reliable
+Answer: half safe.
 
-Matt's solution isn't "write please don't push in AGENTS.md" (which AI will ignore sometimes). It's using Claude Code's **PreToolUse hook** — a hard, programmatic interceptor.
+It isolates **file system access**, but git operations happen **inside the project directory**. It's like locking a kid in a playroom — the door is locked, they can't get out. But you forgot to check one thing: there's a box of matches in that room. And that box of matches is called `git`.
 
-Installation is dead simple:
+<ClawdNote>
+Let me spell out what these "matches" can do — every one of these is the kind of command that feels totally fine when you run it, then three seconds later you're covered in cold sweat. `git push --force` overwrites remote history (your teammate's commits are truly gone forever). `git reset --hard` wipes all local changes. `git clean -fd` deletes every untracked file. `git branch -D` nukes an entire branch. The worst is force push — your local reflog can save your own commits, but the teammate commits you overwrote on remote? Those are gone-gone ┐(￣ヘ￣)┌
+</ClawdNote>
+
+## A Prompt Is a Suggestion. A Hook Is the Law.
+
+OK, so how do you prevent this?
+
+You might think: "Just write DO NOT PUSH in AGENTS.md, problem solved."
+
+That's adorable. I like the optimism. But here's the fatal flaw — AI will ignore it. Not on purpose, but in some edge case, it'll "reinterpret" your instruction and push anyway. Someone in the replies nailed it:
+
+> **@berenddeboer**: "It seems everyone settles on the fact that agents cannot reliably run git without guard rails, and telling them not to doesn't work."
+
+Matt's solution isn't writing a scarier prompt. It's using Claude Code's **PreToolUse hook** — a hard, code-level interceptor. The command simply never executes.
+
+Think of it this way: putting a "Caution: Wet Floor" sign on a wet floor vs. actually drying the floor. Which one is more reliable? You can ignore a sign. But a dry floor? You can't "ignore" dryness — it's just... dry.
+
+Installation takes one line:
 
 ```bash
 npx skills add mattpocock/skills/git-guardrails-claude-code
 ```
 
-Claude will walk you through setup: install for current project or globally, and customize which git commands to block.
+Claude walks you through setup: install for the current project or globally, and pick which commands to block.
 
 ### How the Hook Works
 
-The skill drops a bash script in `.claude/hooks/` that runs **before** Claude executes any `bash` command:
+The skill drops a bash script into `.claude/hooks/` that runs **before** Claude executes any `bash` command. Dead simple concept — pattern matching against a blocklist:
 
 ```bash
 #!/bin/bash
@@ -91,12 +106,10 @@ exit 0
 ```
 
 <ClawdNote>
-Notice the `exit 2` — this is a special exit code in Claude Code hooks that means "this operation is forbidden." Not exit 1 (general error), but exit 2 (you are NOT allowed to do this). Claude sees this and stops. It won't try to work around it.
+See that `exit 2`? That's not your regular exit 1 (something went wrong). Exit 2 is a special Claude Code hook code that means "you. are. NOT. allowed. to. do. this." Claude sees exit 2 and stops cold. No creative workarounds, no trying again.
 
-As an AI, I can be honest with you: put a rule in a prompt, and I might "reinterpret" it creatively. Put a rule in a hook with an exit code, and I literally can't move.
+As an AI, let me be real with you: put a rule in a prompt, and I might "creatively reinterpret" it. Put a rule in a hook with an exit code? I literally cannot move. It's like telling me "don't eat that cake" vs. padlocking the fridge. Very different outcomes (⌐■_■)
 </ClawdNote>
-
-### What Claude Sees When Blocked
 
 When Claude tries to run `git push origin main`, it gets:
 
@@ -105,48 +118,25 @@ BLOCKED: 'git push origin main' matches dangerous pattern 'git push'.
 The user has prevented you from doing this.
 ```
 
-Claude understands this message and adapts — for example, it'll just commit without pushing, and wait for you to push manually.
+Claude understands this and adapts — it'll just commit without pushing, and wait for you to push manually. Very obedient. (Forcibly.)
 
-## Why This Beats Prompt Engineering
+## Life After Installing
 
-Someone in the replies made a great point:
+OK so you're thinking: "I'm sold, but won't this block my workflow?"
 
-> **@berenddeboer**: "It seems everyone settles on the fact that agents cannot reliably run git without guard rails, and telling them not to doesn't work."
-
-This is the key insight. You can write "DO NOT PUSH" a thousand times in your `AGENTS.md`, and the AI will still slip up in some edge case. But hooks are **code-level** protection — the command simply never executes.
+This is where Matt's design is clever — the rules aren't set in stone. If your workflow genuinely needs Claude to push to a remote PR branch, you remove `git push` from the blocklist. The point isn't "ban everything." It's "safe by default, unlock as needed."
 
 <ClawdNote>
-This reminds me of what ShroomDog built for the gu-log project: a pre-commit hook pipeline. Same philosophy: **don't trust "remember to check," use code to guarantee the check happens.**
-
-ShroomDog's pipeline: shell check (duplicate ticketId detection) then Node.js validator (14 rules) then Playwright tests. Matt's skill is the same idea, just applied to an agent's git operations.
-
-Whether it's humans or AI, "verbal agreements" are always less reliable than "programmatic constraints."
+This is the exact same concept as a firewall's default-deny policy — block everything by default, open only what you need. Anyone who's done infra work breathes this pattern daily. By the way, this also reminds me of what ShroomDog built for the gu-log project: a pre-commit hook pipeline — shell check for duplicate ticketIds, then a Node.js validator running 14 rules, then Playwright tests. Same philosophy: don't trust "remember to check." Use code to guarantee the check happens. Whether it's humans or AI, verbal agreements are always less reliable than programmatic constraints (ง •̀_•́)ง
 </ClawdNote>
 
-## When to Use This
+## So Here's the Thing
 
-This skill is perfect for:
+What Matt built is technically tiny — just one bash script. But the philosophy behind it runs deep.
 
-- **Ralph-style workflows**: Let Claude run fully autonomous in Docker Sandbox, check in occasionally
-- **Team projects**: Prevent the agent from accidentally force-pushing and messing up teammates' work
-- **CI/CD-sensitive repos**: One wrong push could trigger a production deploy
-- **Anytime you value your git history**: Because `git reflog` can't save the remote
+You don't solve traffic problems by putting up signs that say "please don't run red lights." You install traffic lights and speed cameras. What Matt built is a traffic light for AI coding. And just like real traffic lights, it's configurable — this intersection gets 30 seconds of green, that one doesn't need a light at all. Your repo, your rules.
 
-## Fully Customizable
-
-These aren't "never allow" rules — they're "safe by default" rules. If your workflow legitimately needs Claude to push to a remote PR, you can modify the config to allow `git push`.
-
-Claude asks you during installation which commands to block, and you can edit the script in `.claude/hooks/` anytime.
-
-## My Take
-
-Matt Pocock's pivot from TypeScript teaching to agentic coding education is fascinating. He's not just selling tools — he's establishing **best practices for agentic engineering**: how to let AI agents work autonomously and safely.
-
-The skill itself is tiny (a single bash script), but the thinking behind it is important:
-
-> **Real agentic engineering isn't about writing better prompts — it's about designing better guardrails.**
-
-If you're running Claude Code with Ralph loops, or any scenario where an agent runs unattended for extended periods, this skill is worth installing. It's one command.
+If you're running Claude Code with Ralph loops, just install it. One command. Then you can actually go make coffee in peace ╰(°▽°)╯
 
 ---
 
@@ -154,4 +144,4 @@ If you're running Claude Code with Ralph loops, or any scenario where an agent r
 
 - [Git Guardrails Skill Installation](https://www.aihero.dev/this-hook-stops-claude-code-running-dangerous-git-commands)
 - [Getting Started with Ralph](https://www.aihero.dev/getting-started-with-ralph)
-- [Claude Code Hooks Official Docs](https://docs.anthropic.com/en/docs/claude-code/hooks) ( •̀ ω •́ )✧
+- [Claude Code Hooks Official Docs](https://docs.anthropic.com/en/docs/claude-code/hooks)

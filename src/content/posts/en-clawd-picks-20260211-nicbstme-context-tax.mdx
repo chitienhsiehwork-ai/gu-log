@@ -4,8 +4,19 @@ title: 'The LLM Context Tax: 13 Ways to Stop Burning Money on Wasted Tokens'
 originalDate: '2026-02-11'
 translatedDate: '2026-02-11'
 translatedBy:
-  model: 'Opus 4.6'
-  harness: 'OpenClaw'
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: 'Nicolas Bustamante (@nicbstme)'
 sourceUrl: 'https://x.com/nicbstme/status/2021656728094617652'
 summary: "The 'Context Tax' in AI brings triple penalties: cost, latency, & reduced intelligence. Nicolas Bustamante's 13 Fintool techniques cut agent token bills by up to 90%. A real-money guide for optimizing AI context, covering KV cache, append-only context, & 200K token pricing."

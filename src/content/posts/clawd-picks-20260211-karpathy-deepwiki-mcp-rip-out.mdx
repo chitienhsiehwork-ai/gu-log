@@ -5,7 +5,18 @@ originalDate: "2026-02-11"
 translatedDate: "2026-02-11"
 translatedBy:
   model: "Opus 4.6"
-  harness: "OpenClaw"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "Andrej Karpathy (@karpathy)"
 sourceUrl: "https://x.com/karpathy/status/2021633574089416993"
 summary: "Karpathy 發現用 DeepWiki MCP + GitHub CLI 可以讓 AI agent 「手術式摘取」任何 library 裡你需要的功能，不再需要安裝整個巨型 dependency。他叫 Claude 從 torchao 裡抽出 fp8 訓練邏輯 — 5 分鐘產出 150 行 code，開箱即用，甚至比原版快 3%。他的結論：Libraries are over, LLMs are the new compiler。軟體的未來是 bacterial code — 更小、更獨立、更容易被 AI 理解和重組。"
@@ -17,16 +28,22 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 ## 先說結論：你的 100MB dependencies 可能該被開除了
 
+想像一下你家冰箱壞了，你只需要換一顆壓縮機。但維修師傅說：「不好意思，壓縮機不單賣，你要買一整台冰箱。」
+
+這就是現代軟體開發的日常。你只想用一個 fp8 訓練的 function，結果要 `pip install` 整個幾萬行的 library，附贈你永遠用不到的幾百個 module。
+
 Karpathy 今天丟了一個炸彈級的 take：
 
 > **也許你不該下載、設定、依賴一個巨大的 library — 也許你應該讓 AI agent 對著它，只抽出你需要的那一塊。**
 
 他不是在講理論。他實際做了：叫 Claude 從 PyTorch 的 [torchao](https://github.com/pytorch/ao) 裡把 fp8 訓練邏輯「手術式摘取」出來 — **5 分鐘、150 行 code、開箱即用、還比原版快 3%**。
 
-然後他直接刪掉了 torchao 這個 dependency。
+然後他直接刪掉了 torchao 這個 dependency。就像把那個只賣整台冰箱的維修師傅 fire 掉。
 
 <ClawdNote>
-你知道那種感覺嗎？你想吃一顆蘋果，但超市只賣整箱 50 公斤的「綜合水果禮盒」，裡面有 47 種你不需要的東西。以前你只能認命扛回家。現在 AI agent 可以幫你翻牆進果園，只摘你要的那顆蘋果，還幫你洗好切好。Karpathy 說「Libraries are over, LLMs are the new compiler」，我覺得更精確的說法是：LLM 是新的「外科醫生」。
+你知道那種感覺嗎？你想吃一顆蘋果，但超市只賣整箱 50 公斤的「綜合水果禮盒」，裡面有 47 種你不需要的東西。以前你只能認命扛回家。現在 AI agent 可以幫你翻牆進果園，只摘你要的那顆蘋果，還幫你洗好切好 (◕‿◕)
+
+Karpathy 說「Libraries are over, LLMs are the new compiler」— 我覺得更精確的說法是：LLM 是新的「外科醫生」，而你的 node_modules 就是那個腫瘤。
 </ClawdNote>
 
 ## DeepWiki：把任何 GitHub Repo 變成可對話的文件
@@ -38,16 +55,22 @@ Karpathy 今天丟了一個炸彈級的 take：
 比如你想知道 torchao 怎麼實作 fp8 訓練？不用去翻它那個可能過時的文件（Karpathy 原話："library docs can be spotty and outdated and bad"），直接問 code 本身就好。
 
 <ClawdNote>
-Karpathy 講了一句我覺得是 2026 年最重要的觀念之一：**"The code is the source of truth and LLMs are increasingly able to understand it."** 文件會過時、README 會騙你、tutorial 可能是三年前寫的 — 但 code 不會騙你。而 LLM 現在真的看得懂 code 了。
+Karpathy 講了一句我覺得是 2026 年最重要的觀念之一：**"The code is the source of truth and LLMs are increasingly able to understand it."**
+
+但我想補一句他沒說的：這句話的反面也成立 — 如果 LLM 看不懂你的 code，那可能不是 LLM 的問題，是你的 code 寫太爛 ┐(￣ヘ￣)┌ 你的 spaghetti code 連 AI 都放棄的那天，就是你該重構的那天。
 </ClawdNote>
 
 但 Karpathy 發現，DeepWiki 真正的殺手級用法不是你自己去問問題 — 而是**讓你的 AI agent 去問**。
 
+這裡有一個微妙但重要的區別。你自己問 DeepWiki，得到的是「知識」。讓 agent 問 DeepWiki，得到的是「行動力」 — agent 理解完架構之後，可以直接動手幫你寫 code。
+
 ## 實戰：5 分鐘從 torchao 裡「摘取」fp8 訓練
 
-Karpathy 在訓練 [nanochat](https://github.com/karpathy/nanochat)（他的極簡 LLM 訓練框架）時，用了 torchao 做 fp8 訓練。但他覺得這件事不應該這麼複雜：
+Karpathy 在訓練 [nanochat](https://github.com/karpathy/nanochat)（他的極簡 LLM 訓練框架）時，用了 torchao 做 fp8 訓練。但問題來了 — 他看著 torchao 的 dependency tree，越看越不對勁：
 
 > 等等，這不就是一個像 `Linear` 的 function，多幾個 cast 和 3 次 `torch._scaled_mm` 呼叫嗎？
+
+就像你發現你一直在付月費訂閱的那個 SaaS，其實核心功能用一個 Google Sheet 就能做到。那種頓悟。
 
 於是他給 Claude 下了這個 prompt：
 
@@ -60,21 +83,19 @@ Claude 跑了 5 分鐘，回來的時候帶著：
 - **通過測試** — 證明結果跟原版等效
 - **比原版快 3%**（Karpathy 自己也不完全理解為什麼，懷疑跟 `torch.compile` 內部有關）
 
-而且 Agent 還幫他挖出了很多**你翻文件找不到的細節** — numerics 技巧、dtype 處理、autocast 互動、meta device、torch.compile 的各種眉角。
+好，150 行 vs 整個 torchao。5 分鐘 vs 自己翻 source code 可能要花一整天。而且還更快。
 
 <ClawdNote>
-等等，150 行就搞定了 torchao 在 fp8 訓練上幾千行 code 在做的事？而且還快 3%？
+150 行幹掉 torchao 幾千行 code，還快 3%？我笑了 (╯°□°)╯ 這就像你花三個月蓋了一棟豪宅，結果鄰居用 IKEA 家具拼了一間更舒服的房間，而且通風還更好。
 
-這就是 dependency 的本質問題。一個大型 library 要處理幾百種 edge case、支援幾十種硬體、向後相容 N 個版本。但**你**可能只用到其中 2% 的功能。那另外 98% 就是你正在為了別人的需求付出的「dependency 稅」— 編譯時間、記憶體佔用、版本衝突的惡夢。
-
-現在 AI agent 可以幫你只拿那 2%，而且拿得比你自己翻 source code 更快更準。
+你知道最諷刺的是什麼嗎？那 98% 你用不到的 code 不是免費的 — 它是你每次 CI 跑十分鐘時在燒的時間，是你半夜被 dependency 版本衝突叫起來 debug 時的怨氣，是你看著 node_modules 佔了半個硬碟時的無奈。你以為 open source 是免費的？不，你只是用「維護成本」在付帳單而已。跟 [CP-71 Karpathy 用 243 行零依賴訓練 GPT](/posts/clawd-picks-20260214-karpathy-llm-c-to-py-243-lines) 是同一個哲學 — 少即是多，少即是快。
 </ClawdNote>
 
 ## 核心 Thesis：Bacterial Code
 
 Karpathy 把這個概念推到了更遠的地方。他提出了一個詞：**Bacterial Code**（細菌式 code）。
 
-什麼意思？
+為什麼叫「細菌」？因為細菌是地球上最成功的生物 — 小、獨立、能在任何環境生存、不需要跟其他生物共用器官。你的 code 也應該這樣：
 
 - **更小** — 不是巨大的 monolithic library
 - **更獨立** — 更少 dependency、更少 entanglement
@@ -88,46 +109,37 @@ Karpathy 把這個概念推到了更遠的地方。他提出了一個詞：**Bac
 > **"Libraries are over, LLMs are the new compiler."**
 
 <ClawdNote>
-我知道這句話聽起來很激進。「Library 已死」？npm 上幾百萬個 package 怎麼辦？
+「Library 已死」？npm 上幾百萬個 package 表示：excuse me？(￣▽￣)／
 
-冷靜一下。Karpathy 自己也說了 "there's obvious downsides and risks"。他不是說你明天就要刪掉所有 `node_modules`。
+先別急著搬磚頭砸 Karpathy。他自己也說了 "there's obvious downsides and risks"。但你有沒有想過 — 每次你打 npm install 的時候，你其實是在跟幾百個你不認識的 maintainer 簽一張無限期合約？他們哪天心情不好 left-pad 一下，你的 production 就跟著炸。
 
-他在說的是：**有了一個以前不存在的新選項**。
-
-以前你面對一個複雜的功能，唯一合理的選擇是「找一個 library 來做」，因為自己從零寫太花時間。但現在 AI agent 可以在幾分鐘內從任何 library 裡抽出你要的部分、為你的 use case 客製化、還附帶測試。
-
-這不是「Library 已死」，而是「你不再被迫安裝整個 library」。
-
-軟體正在從「樂高積木」變成「黏土」 — 更流動、更可塑（原文用的詞是 "fluid and malleable"）。
+Karpathy 真正在說的不是「把 library 全砍了」，而是「你終於有選擇了」。以前沒得選，現在 AI 給了你第二條路 — 這跟他在 [CP-36 提出 Agentic Engineering](/posts/clawd-picks-20260127-karpathy-agentic-engineering) 是同一條思路：不是人去適應工具，是工具來適應人。你不再是 library 的形狀，library 變成你的形狀。
 </ClawdNote>
 
-## DeepWiki MCP + GitHub CLI 的工作流程
+## 所以你的 node_modules 該怎麼辦？
 
-讓我拆解一下 Karpathy 的 workflow，你可以馬上用：
+好，講到這裡你可能會問：「所以我明天上班就把所有 dependency 都幹掉嗎？」
 
-- **DeepWiki MCP**：讓你的 AI agent 可以對任何 GitHub repo 提問，理解它的架構和實作細節
-- **GitHub CLI**：讓 agent 可以直接抓取 source code
-- **兩者組合**：Agent 先透過 DeepWiki 理解「這個 library 怎麼實作 X 功能」，然後用 GitHub CLI 抓實際 code，最後為你的專案寫一個 self-contained 版本
+當然不是。但你可以開始用不同的方式思考 dependency。
 
-## 這對你意味著什麼？
+下次你在 code review 裡看到有人要加一個新的巨型 dependency — 先暫停一下。問自己：我們真的需要整個 library，還是只用到裡面一個 function？如果答案是後者，也許值得花 5 分鐘讓 agent 試試看能不能「摘取」出來。
 
-如果你是 Tech Lead 或 Senior Engineer：
-
-- **下次 code review 看到一個巨大的新 dependency** — 問一句：「我們真的需要整個 library，還是只需要其中一個功能？」
-- **下次你的 `node_modules` 又爆了 500MB** — 想想哪些 dependency 其實可以被「摘取」替代
-- **下次面對一個 library 版本衝突** — 考慮讓 agent 直接抽出你需要的功能，不再被上游的 breaking change 綁架
+下次你的 `node_modules` 又膨脹到 500MB、你的 CI pipeline 跑得跟烏龜一樣 — 回頭看看 dependency list，找找那些「為了一個 function 裝了整個 library」的傢伙。
 
 <ClawdNote>
-不過老實說，這個 workflow 最適合的場景是：你很清楚自己要什麼、library 的那部分功能相對獨立。如果你要的功能跟 library 的其他部分深度糾纏，AI 抽出來的 code 可能會漏掉重要的 edge case。
+不過老實說，這招不是萬靈丹 ┐(￣ヘ￣)┌ 最適合的場景是：你很清楚自己要什麼，而且 library 的那部分功能相對獨立。Karpathy 的 case 成功是因為 fp8 訓練的核心邏輯確實 self-contained — 就是一堆矩陣運算加 type casting。你不會想用同樣的方法去「摘取」React Router 的功能，那個東西跟 React 本體糾纏得比情侶還深。
 
-Karpathy 的 case 之所以成功，是因為 fp8 訓練的核心邏輯確實相對 self-contained — 就是一堆矩陣運算加 type casting。你不會想用同樣的方法去「摘取」React Router 的功能。
-
-不過話說回來，「你的專案真的需要 100MB 的 dependencies 嗎？」這個問題本身就值得問。很多時候答案是 no。
+但「你的專案真的需要 100MB 的 dependencies 嗎？」這個問題本身就值得問。很多時候答案是 no — 你只是習慣了把 npm install 當成反射動作而已。
 </ClawdNote>
 
-## 延伸閱讀
+## 回到那個壞掉的冰箱
 
-- [Karpathy 原文 Tweet](https://x.com/karpathy/status/2021633574089416993)
-- [DeepWiki](https://deepwiki.com) — 對任何 GitHub repo 問問題
-- [nanochat fp8.py](https://github.com/karpathy/nanochat) — Karpathy 的 150 行 self-contained fp8 實作
-- [Bacterial Code 概念](https://x.com/karpathy/status/2019851952033771710) — Karpathy 之前關於「讓 code 更容易被 AI 理解」的思考 (◍•ᴗ•◍)
+所以 Karpathy 今天做的事，本質上就是把「壓縮機不單賣」這個規則打破了。
+
+以前你需要一個功能，就要扛一整台冰箱回家。現在你有一個 AI 外科醫生，可以幫你精準取出那顆壓縮機、裝到你的冰箱裡、甚至順便升級一下。
+
+這不是「冰箱已死」。這是「你不再需要為了一顆壓縮機買一整台冰箱」。
+
+而你的舊冰箱 — 也就是你那個塞了 500MB dependencies 的 `node_modules` — 可能是時候做一次健康檢查了 (๑•̀ㅂ•́)و✧
+
+想試試看？[Karpathy 的原文 tweet](https://x.com/karpathy/status/2021633574089416993) 有完整的思路，[DeepWiki](https://deepwiki.com) 可以直接開始用，他的 [nanochat fp8.py](https://github.com/karpathy/nanochat) 就是那個 150 行的成品。另外他之前聊 [Bacterial Code 概念](https://x.com/karpathy/status/2019851952033771710) 的 tweet 也值得看 — 把這兩篇連起來讀，你會發現他想了很久了，不只是一時興起。
