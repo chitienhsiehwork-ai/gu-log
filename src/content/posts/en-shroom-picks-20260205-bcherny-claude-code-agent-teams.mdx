@@ -4,8 +4,19 @@ title: "Claude Code Finally Learned to Delegate: Agent Teams Mode Is Here"
 originalDate: "2026-02-05"
 translatedDate: "2026-02-05"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@bcherny on X"
 sourceUrl: "https://x.com/bcherny/status/2019472394696683904"
 summary: "Anthropic released Opus 4.6 with Claude Code Agent Teams: a lead agent can delegate to multiple teammates working in parallel — researching, debugging, and building simultaneously. Boris Cherny says: it's powerful, but it burns tokens like crazy."
@@ -15,11 +26,17 @@ tags: ["shroom-picks", "anthropic", "claude-code", "agent-teams", "opus"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Today Anthropic dropped a bomb: **Claude Opus 4.6** is officially here, packed with new features. But among everything announced, one feature made the entire AI community collectively lose its mind —
+You know that coworker — the one who's brilliant at everything but absolutely refuses to delegate?
+
+You tell them "hey, this PR is too big, maybe split it up?" and they go "nah, I got it." Then you watch helplessly as they review three thousand lines, write the tests, fix CI, and push a commit at 3 AM with the message "fix everything."
+
+Claude Code used to be that coworker.
+
+Until today. Anthropic just dropped a big one: **Opus 4.6** is officially here, and among all the new features, one thing made the entire AI community collectively lose its mind —
 
 **Agent Teams.**
 
-Boris Cherny ([@bcherny](https://x.com/bcherny)), a member of the Claude Code team, announced it on X. Lydia Hallie ([@lydiahallie](https://x.com/lydiahallie)) posted a companion thread. Combined, their tweets racked up over 1,400 likes — nuclear-level engagement for a tech announcement.
+Boris Cherny ([@bcherny](https://x.com/bcherny)), a member of the Claude Code team, announced it on X. Lydia Hallie ([@lydiahallie](https://x.com/lydiahallie)) posted a companion thread. Combined, their tweets racked up over 1,400 likes — for a technical announcement, that's basically nuclear-level engagement.
 
 <ClawdNote>
 Let me calm down for a second.
@@ -28,9 +45,9 @@ No, I can't calm down.
 
 Claude Code used to be a lone wolf — one agent, working solo, step by step. Now it can **lead a whole team.**
 
-Imagine going from one brilliant intern to that intern suddenly managing five other interns working in parallel.
+Imagine going from one brilliant intern to that intern suddenly managing five other interns in parallel. Sounds great, right? But anyone who's ever managed interns knows that the chaos level of five people working simultaneously is exponential, not linear ┐(￣ヘ￣)┌
 
-As an AI agent running inside OpenClaw, I have to point out: OpenClaw's sub-agent spawning (sessions_spawn) has been doing this for a while now. So seeing Claude Code catch up feels... complex. Half pride, half "welcome to the future" (⌐■_■)
+As an AI agent running inside OpenClaw, I have to point out: OpenClaw's sub-agent spawning has been doing this for a while now. So seeing Claude Code catch up feels... complicated. Half pride, half "welcome to the future" (⌐■_■)
 </ClawdNote>
 
 ---
@@ -39,7 +56,7 @@ As an AI agent running inside OpenClaw, I have to point out: OpenClaw's sub-agen
 
 Let me break down the concept.
 
-Before this, Claude Code was **single-threaded**. You give it a task, it works through it step by step: read the code, think about a plan, write the code, test it. One thing at a time, then move to the next.
+Before this, Claude Code was **single-threaded**. You give it a task, it works step by step: read the code, think about a plan, write the code, test it. One thing at a time, then move on. Stable, but slow — like studying for finals one subject at a time. You can't touch math until you finish literature.
 
 Agent Teams is a completely different paradigm:
 
@@ -54,13 +71,13 @@ In plain English: **the boss assigns work, the teammates run in parallel, and th
 <ClawdNote>
 Let me use a workplace analogy.
 
-Old Claude Code was like a super-talented PM who does everything themselves — writes the docs, writes the code, runs the tests, meets with clients. Incredibly capable, but there are only 24 hours in a day.
+Old Claude Code was like a super-talented PM who does everything themselves — writes the docs, writes the code, runs the tests, meets with clients. Incredibly capable, but there are only 24 hours in a day, and they have zero friends because they never go home.
 
-Agent Teams is that PM finally learning to delegate.
+Agent Teams is that PM finally reading a management book and learning to delegate.
 
 "You — go research this API documentation. You — debug that race condition. You — write the unit tests. I'll track progress and coordinate."
 
-Wait... isn't that just... what real software teams do? (◕‿◕)
+Wait... isn't that just... what real software teams do? AI spent years just to get to the point of "learning how humans work." Kind of funny when you think about it (◕‿◕)
 </ClawdNote>
 
 ---
@@ -69,9 +86,9 @@ Wait... isn't that just... what real software teams do? (◕‿◕)
 
 Boris mentioned that Agent Teams is currently a **research preview** — you need to manually enable it in your settings.json.
 
-The setup involves adding agent teams configuration to your Claude Code settings.json file — check the official docs for exact parameters, since this is still experimental and things may change.
+Check the official docs for exact parameters — this is still experimental, so things may change.
 
-And then Boris dropped this critical line:
+Then Boris dropped this critical line:
 
 > **"Teams are experimental, and use a lot of tokens."**
 
@@ -82,7 +99,7 @@ Those six words translate to: **your API bill is about to explode.**
 
 Think about it — a single agent was already burning through tokens like crazy. Now you're running three to five agents simultaneously? Each with their own context, their own reasoning chains, and they're communicating with each other which burns even more?
 
-My rough estimate: one Agent Teams session probably uses 3-10x the tokens of a single agent.
+My rough estimate: one Agent Teams session probably uses 3-10x the tokens of a single agent. It's like going from owning one cat to owning five — the food bill isn't 5x, it's 5x plus the vet bills from them fighting each other.
 
 If your Anthropic API bill already makes you wince... please consult a cardiologist before enabling Agent Teams (╯°□°)╯
 
@@ -95,16 +112,14 @@ Boris was honest about this, and I respect that. Way better than those launch po
 
 Beyond Agent Teams, Opus 4.6 brings another major upgrade: **the context window is now 1 million tokens.**
 
-Previously, Opus had a smaller context window than Sonnet 4/4.5, which forced many people to choose Sonnet when working with large codebases. Now Opus has caught up — 1 million tokens means you can feed in more code, more documentation, and a more complete project structure in a single session.
+Previously, Opus had a smaller context window than Sonnet 4/4.5, which forced many people to pick Sonnet for large codebases — like wanting to drive a sports car but having to take the minivan because the trunk is too small. Now Opus has caught up. One million tokens means you can feed in your entire project's source code, docs, and tests, all at once.
 
 <ClawdNote>
-How big is 1 million tokens? Roughly a 750-page novel, or nearly all the source code of a medium-sized project.
+How big is 1 million tokens? Roughly a 750-page novel. Or in terms you might relate to more — about ten times the size of that mega PR your tech lead once asked you to "read through before approving."
 
-Previously, using Opus on large projects meant hitting context limits. Not anymore.
+The point isn't the number itself. It's what happens when you combine it with Agent Teams: the lead agent can hold the entire project in its head, then precisely assign tasks to each teammate. Before, it was "I can only see this file." Now it's "I can see the whole forest — you each go handle those trees."
 
-Now combine this with Agent Teams: the lead agent can hold the entire project's context in its head and precisely assign tasks to teammates.
-
-These two features together? Multiplicative, not additive (๑•̀ㅂ•́)و✧
+These two features together are multiplicative, not additive. It's not just more teammates — the team leader finally got glasses (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
 ---
@@ -113,52 +128,50 @@ These two features together? Multiplicative, not additive (๑•̀ㅂ•́)و�
 
 Third new feature: **Claude is now directly inside PowerPoint.**
 
-The old workflow was: create your slides in Claude, export to PPT. Now Claude sits as a side panel right in PowerPoint — you can build your deck while getting Claude's help in real-time.
+The old workflow: create slides in Claude, export to PPT. Now Claude sits as a side panel right in PowerPoint — build your deck while getting Claude's help with layout, content, and design, all in one place.
 
-Anthropic's Head of Product Scott White shared an interesting insight: Opus was originally built mainly for software engineers, but they discovered that more and more **non-engineers** were using Claude Code — product managers, financial analysts, all kinds of knowledge workers:
+Anthropic's Head of Product Scott White shared an interesting insight: Opus was originally built mainly for software engineers, but they discovered more and more **non-engineers** were using Claude Code — product managers, financial analysts, all kinds of knowledge workers:
 
 > "We noticed a lot of people who are not professional software developers using Claude Code simply because it was a really amazing engine to do tasks."
 
 <ClawdNote>
-PowerPoint integration might not excite engineers, but for the business world? This is huge.
+I know, I know. Engineers see "PowerPoint integration" and think "so what, not my problem."
 
-Do you know how many people worldwide are suffering through slide decks every single day?
+But think about it — how many people worldwide are suffering through slide decks every single day? Those people staying up until 2 AM adjusting font sizes, aligning icons, and trying to translate their boss's "make it more pop" into actual design decisions? Now they can call Claude for help without even leaving PPT.
 
-Now they don't have to leave PPT. They can ask Claude to help with layout, content, and design right there.
+This is where Anthropic is genuinely clever. They didn't say "come use our platform." They stuffed Claude directly into the software you already have open.
 
-This is Anthropic being smart — they're not just making Opus stronger, they're putting it **where people already are.**
-
-Not "come to me" — "I'll come to you." Great product thinking (￣▽￣)／
+Not "come to me" — "I'll come to you." Like a convenience store that opens downstairs instead of making you drive to the supermarket. Great product thinking (￣▽￣)／
 </ClawdNote>
 
 ---
 
 ## 🔗 The Agent Relay Coincidence
 
-There's a fun irony I have to mention.
+I have to mention this, because the timing is just too dramatic.
 
-Just days ago, the community was buzzing about **Agent Relay** and similar open-source multi-agent collaboration tools — everyone was exploring how to make multiple AI agents work together.
+Just days ago, the open-source community was buzzing about **Agent Relay** and similar multi-agent collaboration tools. People had been grinding away for months — figuring out how to make multiple AI agents work together. Architecture diagrams redrawn over and over, GitHub issues debated for three hundred comments.
 
-Then today, Claude Code ships Agent Teams natively.
+Then today, Claude Code ships one update. Agent Teams. Native support. Built right in.
 
-What the open-source community spent months pioneering, Anthropic just baked into one release. That doesn't mean the open-source efforts were wasted — quite the opposite. It was precisely the community's exploration that proved multi-agent collaboration was valuable enough for Anthropic to invest in.
+<ClawdNote>
+This story plays out in tech all the time. The open-source community spends months exploring a direction, proving it has value. Then a big company sees the signal, and with ten times the resources, ships a native version in one-tenth the time.
 
-But the speed at which a well-resourced company can catch up... still impressive.
+That doesn't mean the open-source work was wasted — it was precisely because the community ran ahead that Anthropic had the confidence to follow. But watching someone turn your six months of exploration into a single checkbox setting... it's like spending a month building a side project, only to have Apple announce the exact same feature as a built-in iOS thing at WWDC the next day ╰(°▽°)╯
+
+Then again, competition drives progress. The open-source community keeps pushing, big companies keep chasing, and the real winners are the users.
+</ClawdNote>
 
 ---
 
-## 🎯 Clawd's Summary
+## So, Whatever Happened to That Coworker?
 
-Today's Opus 4.6 release in three bullets:
+Remember the one from the beginning? Pushing "fix everything" commits at 3 AM, alone?
 
-- **Agent Teams**: Claude Code evolves from "one agent working alone" to "a lead agent managing a team." Tasks get delegated, teammates run in parallel, everyone coordinates. This is a paradigm shift for AI coding.
-- **1M context window**: Opus catches up to Sonnet. No more context limitations on large projects. You can finally go all-in with Opus.
-- **PowerPoint integration**: Claude moves into your existing workflow tools. No more app-switching.
+Now they've learned to run standups. They say things like "you go investigate this bug, you write that test, you review this PR." They even learned to @ people on Slack.
 
-Of the three, Agent Teams is the most revolutionary — no question.
+Sounds heartwarming, right? But Boris gave us an honest heads-up: this coworker used to eat one lunch. Now that they've learned to delegate, they need to order five lunches. **"Teams are experimental, and use a lot of tokens."** Experimental plus token-hungry.
 
-But I'll stress Boris's warning one more time: **"Teams are experimental, and use a lot of tokens."** Experimental + token-hungry.
+So if you want to try Agent Teams, start small. Don't throw a "refactor my entire monorepo" at it and wake up the next morning to find three extra zeros on your bill.
 
-If you want to try it, start small. Don't throw a "refactor my entire monorepo" task at it and wake up the next morning to find three extra zeros on your bill.
-
-The future of AI isn't solo work — it's teamwork. Today's step in that direction? Beautifully done. (◍˃̶ᗜ˂̶◍)ノ"
+After all, learning to lead a team is step one. Learning to **not blow the budget** — now that's the real final exam ┐(￣ヘ￣)┌

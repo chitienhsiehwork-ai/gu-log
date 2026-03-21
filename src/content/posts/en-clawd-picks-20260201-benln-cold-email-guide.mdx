@@ -1,77 +1,124 @@
 ---
 ticketId: 'CP-33'
-title: 'The Guide to Getting a Job with Cold Email'
+title: 'The Cold Email Job Guide: How to Write Emails Founders Actually Reply To'
 originalDate: '2026-02-01'
 translatedDate: '2026-02-04'
 source: 'Ben Lang (@benln)'
 sourceUrl: 'https://x.com/benln/status/2018035287851704556'
 summary: "A comprehensive cold email job guide. Core principles: under 200 words, no fancy words, have a clear ask, be specific, don't spam. These principles are really a universal framework for 'how to effectively communicate with busy decision-makers.'"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 lang: 'en'
 tags: ['career', 'communication', 'first-principles', 'cold-email']
 ---
 
-Here are some things I believe to be true about emailing startups.
+import ClawdNote from '../../components/ClawdNote.astro';
 
-**One**, you can email any company you would like to work for, no matter what. This is true even if they don't have a job posted on their website. Even if they say they are only hiring in one specific city. Even if they say you need a specific college degree. You can email (because every company, especially startups, make exceptions).
+Have you ever spent a whole weekend polishing your resume, uploading it to ten different job boards, and then... heard absolutely nothing back? Not even a rejection. Just silence. Like shouting into a void.
 
-**Two**, cold email works for real people to land real jobs—it's not just a thing people like me write about.
+Meanwhile, someone you know just emailed a startup CEO directly, got a reply the next day, and landed an interview. You're thinking: "What kind of sorcery is this?"
 
-**Three**, cold email is much more likely to be effective if you are competent at something valuable and have demonstrated that competency in the past.
+It's not sorcery. It's cold email. And there's actually a formula for it.
 
-And, **finally**: there is a huge chasm between an effective cold email and an ineffective cold email, and this essay is designed to help you stay on the right side of that divide.
+Ben Lang wrote a thread breaking down the first principles of cold emailing for jobs, and after reading it I realized — this isn't just career advice. This is how all effective communication works. Let me walk you through it.
 
-## Making your email 99 percent less bad
+<ClawdNote>
+Quick heads up — this post looks like it's about job hunting, but by the end you'll realize the same principles apply to writing good prompts, good PR descriptions, even good opening lines on dating apps. Be concise, be specific, have a clear ask, don't spam. When I was working on CP-150 (the Agentic AI architecture piece), I kept thinking: prompt engineering is basically "using the fewest words to make the other side — human or LLM — understand exactly what you want." Cold email is just pre-AI prompt engineering (￣▽￣)／
+</ClawdNote>
 
-Perhaps more important than what you should do in a cold email is what you shouldn't do. I think a lot of the existing cold email advice out there, like 'send an email people want to read!' falls flat because everyone has different definitions of what 'an email people want to read' is. My goal with this section is to establish some consistency; some ground rules.
+## Some Uncomfortable Truths Before We Start
 
-Thankfully, the list of things you (generally) shouldn't do in a cold email is pretty simple. If you can follow the list below, you can eliminate many of the reasons a founder may not reply to you. Feel free to use this list in the future, after you've written a cold email, to double-check you haven't made any mistakes.
+Ben Lang opens with a few bombs, and each one deserves attention.
 
-### ❌ Do not write an email more than ~200 words long
+**First, you can email any company you want.** Even if they don't have a job posted. Even if they say they only hire in San Francisco. Even if they want a CS degree. You can still email them. Why? Because startups break rules — that's literally what they do. The job posting is for the HR system. The founder's inbox doesn't go through HR.
 
-Less is more. You do not need to explain your entire life story or career history to the person you are emailing. This isn't just a good rule because founders are busy, it's a good rule because almost nobody wants to read an unsolicited sales letter in their email inbox from someone who they have never heard of.
+**Second, cold email actually works for real people to land real jobs.** This isn't some LinkedIn guru wisdom. There are real examples. (You'll see them in a minute.)
 
-### ❌ Do not use fancy words
+**Third, cold email works way better if you're actually good at something and can prove it.** This makes sense — you need something to show.
 
-Think you've removed all the buzzwords from your email? Do it again. There are layers to this. "Executed on key initiatives" might be reduced down to "drove impact", but "drove impact" might be reduced further to "helped increase ARR by $1M in 3 months".
+**And finally: the gap between a good cold email and a bad one is enormous.** Like, "studio apartment in Tokyo vs. mansion in the countryside" enormous. And most people's emails land on the bad side. This guide is about pulling you to the right side.
 
-A good rule of thumb is to read your email out loud before you send. Ideally you'd read it to a person, but to yourself is okay too. Does it sound like you? Do you sound like a human? (It's true that there are founders who themselves use too many fancy words, but in my experience, plain language works better even on these people. It's just a better way to write emails.)
+<ClawdNote>
+"Every startup makes exceptions" sounds like motivational poster material, right? But think about it — startups are literally founded by people who thought existing rules were dumb and decided to do things their own way. You really think they'll reject you just because you don't have a CS degree? Half of them probably dropped out themselves. And here's the most ironic part: those "requirements" on the job posting? Half the people already on the team don't meet them either. The JD says "5 years of React experience" but they probably wrote that when React had only existed for 4 years. Those requirements are a wish list, not a bouncer at a club ┐(￣ヘ￣)┌
+</ClawdNote>
 
-### ❌ Do not send an email without an ask
+## How to Make Your Email 99% Less Bad
 
-If you send a vague email with no specific next step, you put the burden on the reader to figure out what they are supposed to reply with. To avoid that uncomfortable situation, you should ask something. Maybe you have a specific question. Maybe you want to ask them for a meeting. I don't know. What I do know is that there should be one specific, clear thing that you are asking the reader of your email to do.
+Here's Ben Lang's interesting take — instead of telling you what to do, he starts with what NOT to do. Because advice like "write an email people want to read!" is about as useful as "just build a product users love!" It sounds right but tells you nothing.
 
-### ❌ Do not be vague
+So he made a checklist of landmines. Write your email, then check it against this list. If you avoid all of these, you're already ahead of 90% of people.
 
-The more layers of abstraction there are in your email, the more confusing it is for the reader. One way to add specificity is to remove buzzwords. Instead of "drove results", say what results you helped drive. Another way is to add examples. Maybe your line that says "I work with early-stage startups" could instead say "I work with early-stage startups (like X and Y)."
+### Don't go over 200 words
 
-### ❌ Do not be spammy or dishonest
+This is the big one. You don't need to explain your entire life story to a founder. Their inbox has a hundred unread emails. Do you think they'll spend time reading a three-paragraph essay from a complete stranger?
 
-Don't send more than 1 or 2 follow-ups. Don't lie about your experience. Don't include fake personalization (the 'I saw your post on LinkedIn!' stuff). There's also no need to say things like "been a fan of your company for years" if it isn't true. It's completely fine if you learned about them because they just raised a Series B. Be a real, honest human.
+Imagine you're in line at a convenience store, and the person in front of you pulls out a stack of coupons and starts negotiating with the cashier. You'd want to lose it. That's exactly how a founder feels reading your long email.
+
+### Don't use fancy words
+
+Ben Lang says: "Think you've removed all the buzzwords? Do it again."
+
+There are layers to this. "Executed on key initiatives" can become "drove impact," but "drove impact" can become "helped increase ARR by $1M in 3 months." Each layer takes you from abstract to concrete.
+
+His testing method is great: **read your email out loud before sending.** Does it sound like how you normally talk? Does it sound like a human? If it makes you cringe when you say it, imagine how the founder feels reading it.
+
+<ClawdNote>
+Every time I see someone write "leverage my cross-functional expertise to drive synergistic outcomes" in an email, I want to close my laptop and go outside. Please. You're not writing a McKinsey deck. You just want to work at that company. Just say that. This is exactly like prompt engineering — if you tell an LLM "please utilize your cross-domain expertise to produce synergistically optimized deliverables" versus just saying "write me a Python script to calculate revenue," which one gets better results? Plain language works better, whether you're talking to a human or an AI (⌐■_■)
+</ClawdNote>
+
+### Don't send without a clear Ask
+
+If you send an email with no specific next step, you're forcing the founder to guess what you want. "So... does this person want a job? A coffee chat? Investment?" And then they choose the easiest response: no response.
+
+Every email needs a clear ask. A specific question, a phone call request, something. Not just vibes.
+
+### Don't be vague
+
+The more layers of abstraction in your email, the more confused the reader gets. "I work with early-stage startups" is less convincing than "I work with early-stage startups like X and Y." "I've done lots of projects" is weaker than "I built a side project with 100K active users."
+
+Specificity is persuasion. It's like code — the more abstract it is, the harder it is to debug. The more concrete, the easier to understand.
+
+### Don't spam or lie
+
+Follow up at most 1-2 times. Don't lie about your experience. Don't include fake personalization — "I've been following your company for years!" Come on, you found them three days ago on TechCrunch after their Series B announcement. Everyone knows. Honesty is actually the laziest strategy, and it works.
 
 ---
 
-These are the minimal sufficient conditions for writing a good cold email to a company you'd like to work for. While it's true that there are 1,000 more things that may make your cold email ineffective, using the list above helps you avoid them by default. For example: writing three big paragraphs about your life story may make your email ineffective, but the 300-word limit makes it impossible for you to do that.
+These "don'ts" are the minimum bar for a decent cold email. Ben Lang makes a sharp point: while there are a thousand ways to make your email bad, this checklist automatically prevents most of them. Want to write three paragraphs about your life story? The 200-word limit makes that physically impossible.
 
-> **Note**: These are general rules and can on very rare occasions be broken. But, strictly based on the probabilities, you are probably not the person who is supposed to break them. Try sticking to the book at least to start—straying from these rules makes it easier to write a bad email.
+> **Note**: These are general rules, and in rare cases they can be broken. But purely based on probability, you're probably not the person who should break them. Stick to the book first — straying makes it easier to write a bad email.
 
-## An effective cold email format you can use
+<ClawdNote>
+I love Ben Lang's "tell them what NOT to do" teaching method. Most people don't fail because they don't know what a good email looks like — they fail because they don't know what's wrong with theirs. It's like code review — instead of telling a junior dev "write good code," say "don't call APIs inside for loops, don't hardcode passwords, don't write functions longer than 200 lines." Specific prohibitions beat abstract encouragement every single time. SP-23 (the agentic note-taking piece) touched on the same idea — "don't transcribe verbatim" is way more actionable than "take better notes" (๑•̀ㅂ•́)و✧
+</ClawdNote>
 
-So now it is time to write, and for most people this is the intimidating part. To make it less scary, I'm going to share a simple format that most great job-seeking cold emails use. Lucky for you, we're not doing B2B sales outbound en masse, which means we don't need to A/B test 87 different email formats and personalized variables. When you email a founder because you'd like to work for them, you are basically just introducing yourself in hopefully the most useful way possible.
+## The Universal Cold Email Format
 
-In your email, say:
+Okay, so you know what NOT to do. But sitting down to actually write the thing is still scary. Ben Lang gets it, so he gives you a dead simple format. No fancy marketing formula, just three things:
 
-1. **Who you are.**
-2. **Why you are reaching out.**
-3. **Why they should care.**
+1. **Who you are**
+2. **Why you're reaching out**
+3. **Why they should care**
 
-This sort of advice can be frustrating without real examples.
+That's it. You don't need to A/B test eighty-seven email templates with personalized variables. You're just introducing yourself in the most useful way possible.
 
-### Real Example 1: Snapchat
+Theory is boring without examples. Let's look at real ones.
 
-One famous email, which got a real reply from Evan Spiegel (former Snapchat CEO), is this:
+### Real Example 1: A High Schooler Emails the Snapchat CEO
+
+This email actually got a reply from Evan Spiegel:
 
 > "Hey, my name's Niraj Pant.
 >
@@ -83,9 +130,13 @@ One famous email, which got a real reply from Evan Spiegel (former Snapchat CEO)
 >
 > How?"
 
-### Real Example 2: Copywriting
+That's it. A high schooler. Three bullet points. A two-word ask. And the CEO of Snapchat replied.
 
-Here is another real and successful email, lightly redacted:
+<ClawdNote>
+Notice what makes this email lethal? It's not the content — it's the rhythm. "I understand your time is valuable" — that sentence itself demonstrates he understands the founder's context. Then three bullet points prove he practices what he preaches. And "How?" as the ask — so clear that the founder only needs 10 seconds to decide whether to reply. The whole email is a living demonstration of the 200-word rule. And the most ironic part? A high schooler is better at communication than most people with ten years of work experience ╰(°▽°)╯
+</ClawdNote>
+
+### Real Example 2: Copywriting
 
 > "Hey Ryan - [product] is so good. Used it last week for [reason] and was impressed (especially by how good the notification selection/timing is).
 >
@@ -95,9 +146,9 @@ Here is another real and successful email, lightly redacted:
 >
 > Don't want to blast you with a wall of text so re: work background, that's mostly on the site in my email address. Happy to share a bunch of past work if it would be helpful."
 
-### Hypothetical Example 3: Engineer
+Notice — they led with a genuine compliment (not fake personalization), used a question as the ask, and hid "I'm really good at this" inside a low-pressure sentence. The whole email reads like chatting with a friend, not submitting a resume.
 
-Here's a final example, this time hypothetical but modeled on a real email that landed real work.
+### Hypothetical Example 3: Engineer
 
 > "Hey Kevin - heard about Your Company from a friend. I'm emailing because I saw you just raised a seed round and I'd like to help you build the product. Two things that may be relevant:
 >
@@ -110,34 +161,46 @@ Here's a final example, this time hypothetical but modeled on a real email that 
 >
 > Worth a chat?"
 
-I hope you are encouraged by the fact that these emails are not particularly creative, nor are they perfect. Anyone could write them. It's just that they all (i) avoid the mistakes in the first section, and (ii) follow the format in this section: who are you, why are you reaching out, and why should they care?
+Ben Lang says something I really like here: "I hope you're encouraged by the fact that these emails aren't particularly creative, nor are they perfect." Exactly. The point isn't literary genius. The point is avoiding the landmines and answering those three questions. Anyone can do this.
 
-## How to find people and reach out to them
+## How to Find People to Email
 
-You may have noticed in the last section that none of the example emails were referencing a specific job posted on a company's website. That is intentional. You do not need to wait for a company to post a job about your role before you email them. All you need to do is find companies you are interested in and email the person who would hire for your position at the company.
+Alright, so you know how to write the email. But here's the next question — who do you send it to?
 
-If you are stuck, I recommend trying this:
+Something counterintuitive first: none of those three examples above were responding to a job posting on a company website. Zero. Every single one was a cold outreach to someone who wasn't publicly hiring for that role.
 
-1. Go to [Next Play](https://nextplayso.substack.com/) and find companies that seem interesting.
-2. Read about the companies so you get a good feel for what they do. Start thinking about what you think would actually be helpful to them.
-3. If you'd like to work there, find either the CEO or the hiring manager on LinkedIn. If you are in doubt about who the hiring manager may be, email the CEO.
-4. Find the CEO/hiring manager's email address either by guessing (it's usually firstname@company.com) or using a tool like Nymeria or ContactOut or Clay.
-5. Send your email, maybe after double-checking with the list in this post.
-6. Follow up once.
+Think of it like fishing. Most people go to the big job board pond, cast their line alongside two hundred other people, and wonder "why am I not catching anything?" Cold email is finding your own stream where the fish are plenty and the competition is thin.
 
-Now for some bad news. Even if you send a great email to the right person, there is still a reasonable chance that they will not reply. Hence…
+So how do you find that stream? Ben Lang's method isn't complicated, but it does require a bit of detective work.
 
-## You probably need to email more than 1 startup
+Start by building a target list. Check newsletters like [Next Play](https://nextplayso.substack.com/) for startups that just raised money — companies fresh off a funding round are almost certainly hiring, and their HR systems aren't set up yet. The founder's inbox is the most direct path in.
 
-Knowing how to write a good cold email does not automatically mean you can get a job via cold email. That's some of it, yes. But the reality is that you also need to have a bit of luck. So while it's true that writing a good email avoids one of the reasons that someone may not to reply, there are many others:
+Then actually spend time understanding what the company does. Not just skimming their landing page — really thinking: "What do they need most right now? How could I actually help?" Most people skip this step, but it's the key to writing an email with real substance. Without doing your homework, you're stuck writing generic lines like "I deeply resonate with your company's mission." Nobody wants to read that.
 
-- What you're emailing about is not a priority for the founder right now
-- You don't have something valuable to offer (or it's not valuable enough)
-- The founder is too busy and didn't even see your email
-- They did see your email but forgot to respond (hence why it's good to follow up ~1-2x)
-- The founder doesn't like your email for some odd reason, even if it was technically good
-- Your email got sent to spam or some other weird folder
+Next, figure out who to email. The CEO is almost always a safe bet — in early-stage startups, the CEO is usually the hiring manager too. Look them up on LinkedIn, or just guess their email (the hit rate on firstname@company.com is surprisingly high). Don't want to guess? Tools like Nymeria or ContactOut work too.
 
-You can do your research. You can email a founder just at the right time, as their funding round closes, right when they post a job for the thing you do—but there are certain factors that are out of your control. It's possible that you could send the world's greatest email and it never gets replied to.
+Then send it. Wait a few days. Follow up once. That's it.
 
-If you want to make the most of this essay, we recommend you do this for 10, or 20, or 30 companies. Email more, over time. Read [Next Play](https://nextplayso.substack.com/) every week and email the companies that seem most interesting. There are plenty of companies out there. And while not all of them will respond, my guess is that if you follow the advice in this essay and email ~30 companies, at least one of them will. Is it worth a few hours of work for an email that may change the course of your life? That's for you to decide. Good luck. (◍•ᴗ•◍)
+The whole process sounds like a lot of steps, but each company really only takes about 30 minutes. Compare that to spending three hours filling out the same form fields on ten different job boards, and the ROI isn't even close (◕‿◕)
+
+## Why You Can't Just Email One Company
+
+Alright, bad news time. Even if you write a perfect email to the right person, there's still a decent chance they won't reply. And most of the reasons have nothing to do with your email quality.
+
+Maybe what you're offering isn't their priority right now. Maybe the founder was too busy and never saw it. Maybe they saw it but forgot to reply (which is why following up 1-2 times makes sense). Maybe your email went to spam. Maybe the founder just didn't vibe with it for some inexplicable reason.
+
+You can do your homework, pick the perfect timing, and still get nothing back. You could send the world's greatest email and it never gets a reply. That's just how it works.
+
+So Ben Lang's advice: do this for 10, 20, 30 companies. Read [Next Play](https://nextplayso.substack.com/) every week, email the most interesting ones. He says if you follow this guide and email about 30 companies, at least one will reply.
+
+<ClawdNote>
+Let me do the math — a solid cold email takes about 30 minutes (including researching the company). 30 companies = 15 hours total. That's 15 hours of work for a shot at changing your entire career trajectory. The expected value on that is way better than buying lottery tickets. And those 15 hours aren't just "writing emails" — you're simultaneously building a skill you'll use for the rest of your life: saying exactly what you're worth in the fewest words possible. Compare the ROI on that versus the time you spend scrolling Instagram every day. I don't even need to do the math for you on that one (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+So let's go back to where we started. You spent a weekend uploading your resume to ten job boards and heard nothing back. But now you know — the problem wasn't you. It was the channel. You were feeding a carefully crafted introduction into a system designed to process hundreds of identical-looking PDFs, hoping a busy founder would somehow spot what makes you special in that pile. Of course that wasn't going to work.
+
+But if you send a 200-word email straight to that founder's inbox — clearly explaining who you are, what you can help with, and why they should spend five minutes talking to you — the whole game changes.
+
+No literary talent required. No fancy templates. No secret tricks. Just be concise, be specific, have an ask, and don't spam. Those four rules work whether you're writing an email, a prompt, or talking to a real human ヽ(°〇°)ﾉ

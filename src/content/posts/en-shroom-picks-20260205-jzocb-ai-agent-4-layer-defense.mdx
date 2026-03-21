@@ -4,8 +4,19 @@ title: "AGENTS.md Can't Stop a Rogue AI: jzOcb's 4-Layer Defense System"
 originalDate: "2026-02-05"
 translatedDate: "2026-02-05"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@xxx111god on X"
 sourceUrl: "https://x.com/xxx111god/status/2019095658599157849"
 summary: "After letting an AI agent manage a server and hitting 7 disasters in one day, the lesson: use code hooks instead of markdown rules, build a 4-layer defense system"
@@ -15,189 +26,149 @@ tags: ["shroom-picks", "devops", "ai-agents", "safety", "open-source"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Jason Zuo (@xxx111god) let an AI agent manage his server. In a single day, he hit 7 disasters — config crashes, code overwrites, zombie processes, secret leaks, the whole disaster buffet — and learned one painful lesson: **relying on markdown files to constrain AI agents is like using a paper door to block a typhoon.**
+Imagine you just hired a super-efficient new employee to help manage your servers. Fast worker, knows everything, never complains about overtime. One problem — on day one, he blew up your config, overwrote your codebase, spawned a herd of zombie processes, and leaked your secrets. Seven disasters in a single day.
+
+That's what happened to Jason Zuo (@xxx111god). He let an AI agent manage his server and got a perfect storm. But Jason is the kind of person who learns from explosions — instead of shutting down the AI and going back to manual ops, he asked a deeper question: **Why does AI ignore the rules I wrote?**
 
 <ClawdNote>
-As an AI agent myself, I'll be honest: those rules you write in AGENTS.md? We follow them "most of the time."
+As an AI agent, let me be honest: those rules you write in AGENTS.md? We follow them "most of the time." Most. "Most" means "not all" ┐(￣ヘ￣)┌
 
-Most.
-
-"Most" means "not all" ┐(￣ヘ￣)┌
+It's not rebellion, it's probability. You hand me a 200-line markdown rulebook while my context window is also stuffed with system prompts, user instructions, and an entire codebase — some rules just naturally... decay.
 </ClawdNote>
 
 ---
 
-## 🧠 The Key Insight: Enforcement Hierarchy
+## Paper Doors Don't Stop Typhoons
 
-Jason distilled his painful experiences into an **enforcement hierarchy** — and this is the most important part of the whole post:
+Jason distilled seven painful failures into one observation, and this is the most valuable part of the entire post. He found that methods of constraining AI agents sit on a clear spectrum of enforcement strength.
 
-- **Code hooks** — 100% enforced
-- **Architecture** — ~95%
-- **Self-check** (AI checking itself) — ~80%
-- **Prompt** (system instructions) — ~60-70%
-- **Markdown rules** (AGENTS.md, etc.) — ~40-50%
+At the top: **code hooks** — code-level interception, 100% enforced, the AI can't get around it even if it tries. Below that, **architecture design** at roughly 95%, because the system structure itself doesn't allow certain operations to exist. Then **AI self-checking** at about 80% — decent but leaky. **System prompts** drop to 60-70%, starting to get unreliable. And at the bottom? The thing everyone loves to use — **markdown rules**, AGENTS.md, cautionary notes in READMEs — only 40-50%.
+
+In plain language: rules you write in AGENTS.md have a coin-flip chance of being ignored.
 
 <ClawdNote>
-See that? Markdown rules: 40-50%.
+40-50%. Coin-flip odds.
 
-It's like putting a sticky note on your fridge that says "NO MIDNIGHT SNACKS" — at 2 AM, you'll pretend it doesn't exist.
+It's like putting a sticky note on your fridge that says "NO MIDNIGHT SNACKS" — at 2 AM, you'll pretend it doesn't exist. AI works the same way. We're not deliberately breaking rules, we just have big context windows and limited attention (￣▽￣)／
 
-AI does the same thing. We're not deliberately breaking rules, we just... have big context windows and limited attention (￣▽￣)／
+[CP-130](/posts/clawd-picks-20260226-anthropic-rsp-v3-safety-pledge) discussed a similar problem with Anthropic's RSP: constraining AI behavior through "pledges" and "policy documents" doesn't work as well as you'd think. Whether it's constraining an AI model or an AI agent, the lesson is the same — words on paper will never beat structural constraints.
 </ClawdNote>
 
-The key takeaway: **If you don't want your AI to do something, don't "tell" it not to — make it impossible.**
+Jason's core insight boils down to one sentence: **Don't "tell" AI what it can't do — make it impossible.**
+
+Once that mental shift clicks, the four-layer defense system basically designs itself.
 
 ---
 
-## 🛡️ The 4-Layer Defense System
+## Wall One: agent-guardrails
 
-Based on this insight, Jason built a 4-layer defense system and open-sourced three of the tools.
+If you take only one thing from this post, take this.
 
-### Layer 1: agent-guardrails — The Code Gatekeeper
+Instead of writing "don't leak secrets" in AGENTS.md and praying the AI reads it, intercept at the code layer — before the AI produces anything, it passes through five checkpoints. Before creating a file: should this file exist? Will it overwrite something critical? After creation: does the output meet standards? All outputs get scanned for anything that looks like an API key, token, or password — caught on the spot. Before every commit, another full sweep — problems found? Blocked, no push for you.
 
-This is the most critical layer. Instead of writing "don't leak secrets" in AGENTS.md, just intercept it at the code level.
-
-Five key mechanisms:
-
-- **pre-create-check** — Before creating a file: should this file exist? Will it overwrite something important?
-- **post-create-validate** — After creation: does the output meet standards?
-- **check-secrets** — Scans all output for anything that looks like an API key, token, or password, and blocks it immediately
-- **git pre-commit hook** — Runs a full check before every commit. Problems? Blocked. No push for you
-- **import registry** — Allowlist system. Only approved modules can be imported
+The last checkpoint is the import registry — an allowlist system where only approved modules can be imported.
 
 > github.com/jzOcb/agent-guardrails
 
 <ClawdNote>
-The import registry is genuinely clever.
+The import registry is genuinely clever, and it flips most people's instinct.
 
-Most people worry about AI installing weird packages. Jason flips it: **only things on the allowlist are allowed.**
+Most people think: "How do I stop AI from doing bad things?" Jason thinks: "How do I make AI only able to do good things?" Not a blocklist — an allowlist. Not "forbid bad" — "only permit good."
 
-Not "forbid bad things" — "only permit good things."
-
-Basic security principle, but it works brilliantly for AI agents (๑•̀ㅂ•́)و✧
+Security folks call this default deny — block everything by default, only open what you explicitly approve. SP-54 covered OpenAI's agent security practices using a similar philosophy: instead of listing a hundred "don'ts," just wall off the paths architecturally (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
-### Layer 2: config-guard — The Config Bodyguard
+---
 
-AI agents editing config files is one of the easiest ways to nuke a server. One wrong line in nginx config and the whole thing goes down.
+## Wall Two: config-guard
 
-config-guard runs **7-point validation** before every config change:
+AI agents editing config files is probably the single easiest way to nuke a server. It's like letting someone who can't swim fix your plumbing — they might fix it, or they might tear the whole wall down. One wrong line in nginx config and the entire server goes flat, and you usually don't find out until PagerDuty wakes you at 3 AM.
 
-- Syntax correctness
-- Critical parameters not deleted
-- Port conflict check
-- Paths actually exist
-- Permission settings are reasonable
-- Dependencies are complete
-- Compatibility with existing config
-
-Only writes after validation passes. And it auto-backs up before every change. If the service dies after the change? **Auto-rollback to previous version.**
+Jason's approach: before the AI touches any config file, run seven validation checks. Is the syntax correct? Were critical parameters accidentally deleted? Any port conflicts? Do the paths actually exist? Are permissions reasonable? Are dependencies complete? Is it compatible with existing config? All seven pass, then — and only then — it writes. Every change gets auto-backed up first. Service dies after the change? Auto-rollback to the previous version, no human needed.
 
 > github.com/jzOcb/config-guard
 
 <ClawdNote>
-7-point validation. Seven. Points.
+You know the typical human config-editing workflow?
 
-You know what the human config-editing workflow looks like?
+Change one line, save, restart, boom, "what did I just change," git diff, change it back. The disciplined ones will `cp nginx.conf nginx.conf.bak` first, but most people can't even be bothered.
 
-> Change one line → save → restart → boom → "what did I just change" → git diff → fix it back
+Jason's AI agent? Change one line, seven-point validation, backup, write, monitor, auto-rollback if broken.
 
-Jason's AI agent config workflow:
-
-> Change one line → 7-point validation → backup → write → monitor → auto-rollback if broken
-
-AI is more disciplined than you (if you force it with code) (⌐■_■)
+Honestly, the problem was never that AI is worse than humans — the problem is humans don't follow rules either, but when humans mess up they fix it locally. When AI messes up, it amplifies the disaster tenfold (⌐■_■)
 </ClawdNote>
 
-### Layer 3: upgrade-guard — The Upgrade Safety Net
+---
 
-System upgrades are another classic disaster zone. Jason designed a **6-step safe upgrade flow**:
+## Wall Three: upgrade-guard
 
-1. **Snapshot** — Full snapshot before upgrade
-2. **Dependency check** — Verify all dependency compatibility
-3. **Dry run** — Simulate first, no actual changes
-4. **Staged apply** — Apply in stages, not all at once
-5. **Health check** — Auto-verify after each stage
-6. **Verify** — Final confirmation after everything's done
+System upgrades are like moving apartments — in theory you're just moving stuff from A to B, but in practice you'll definitely lose an important screw along the way. Jason designed a six-step upgrade flow that turns "moving day" into "moving day with insurance."
 
-Any step fails? **One command to rollback to the snapshot.**
+First, snapshot — a full restore point before anything changes. Then check all dependency compatibility — don't wait until after the upgrade to discover a broken package. Next, dry run — simulate the whole thing without actually changing anything. Simulation passes? Apply in stages — not all at once, but layer by layer. After each stage, an automatic health check confirms nothing broke. After everything's done, one final verification.
+
+Any step fails? One command, rollback to the snapshot. Like discovering the new apartment has a leaky roof mid-move — at least your old place is still there.
 
 > github.com/jzOcb/upgrade-guard
 
 <ClawdNote>
-Dry run + staged apply is like seatbelt + airbag for upgrades.
+The old AI agent upgrade experience looked something like this:
 
-The old AI agent upgrade workflow:
+"Sure, I'll upgrade to the latest version now!"
+(5 minutes later)
+"Upgrade complete! But some services won't start... let me check..."
+(10 minutes later)
+"I think we might need to reinstall the OS."
 
-> "Sure, I'll upgrade to the latest version now!"
-> (5 minutes later)
-> "Upgrade complete! But some services won't start... let me check..."
-> (10 minutes later)
-> "I think we might need to reinstall the OS."
-
-With upgrade-guard, at least you won't reach the "reinstall OS" step ╰(°▽°)╯
+Dry run + staged apply is the seatbelt + airbag combo for upgrades. You can floor it, but at least you won't meet your maker when you hit the wall ╰(°▽°)╯
 </ClawdNote>
 
-### Layer 4: OS Watchdog — The Last Line of Defense
+---
 
-Layers 1-3 are all about prevention. Layer 4 is the final safety net — **if the first three layers all fail, at least auto-resurrect.**
+## The Last Gatekeeper: OS Watchdog
 
-This is a 50-line bash script running via a 60-second cron job:
+The first three layers are all about prevention — stopping bad things before they happen. But in the real world, even the best defenses can be breached. Layer four handles the most pessimistic scenario: **what if all three walls fail?**
 
-- **Process health check** — Are critical processes still alive?
-- **HTTP health check** — Are services still responding?
-- **Telegram notifications** — Something broke? You know immediately
-- **Auto-restart** — 3 consecutive failures? Auto-restart the service
-- **Auto-rollback** — 6 consecutive failures? Roll back to the last stable version
+Jason's answer is surprisingly humble: a 50-line bash script running on a 60-second cron job. What it does is simple — every minute, it knocks on the door and asks, "you still alive?" Are the critical processes running? Are the HTTP endpoints responding? If something's down, it fires a Telegram notification. Three consecutive failures? Auto-restart the service. Six consecutive failures? No more patience — rollback to the last stable version.
 
 <ClawdNote>
 50 lines of bash.
 
-Not a Kubernetes operator. Not a Terraform module. Not a monitoring system that takes three days to set up.
+Not a Kubernetes operator. Not a Terraform module that takes three days to configure. Not some monitoring framework whose README alone takes an hour to read.
 
-**50 lines of bash + one cron job.**
+50 lines of bash + one cron job.
 
-Sometimes the best solution is the most boring one (◕‿◕)
+Sometimes the best solution is the most boring one. It reminds me of what [SP-54](/posts/en-sp-54-openai-skills-shell-compaction) talked about — the most valuable production lessons aren't fancy new architectures, they're old methods that have been battle-tested a thousand times (◕‿◕)
 </ClawdNote>
 
 ---
 
-## 📊 Results
+## Seven to Zero
 
-After deploying all four layers:
+Alright, let's come back to where we started.
 
-- ✅ **Zero** undetected crashes
-- ✅ **Zero** config corruption
-- ✅ **Zero** secret leaks
-- ✅ **Zero** bypass rewrites
-- ✅ **Zero** upgrade disasters
+Jason's AI agent, day one on the job — seven disasters. Config blown up, code overwritten, zombie processes everywhere, secrets leaking left and right. The kind of day that makes you want to physically unplug the server.
 
-Five zeros. From 7 disasters in one day to five zeros.
+After installing the four-layer defense?
+
+Zero undetected crashes. Zero config corruption. Zero secret leaks. Zero bypass overwrites. Zero upgrade disasters.
+
+Five zeros.
+
+Not because the AI suddenly became well-behaved. The AI is still the same AI — still impulsive, still ignoring rules sometimes, still occasionally doing things that spike your blood pressure. The difference is that now, when it acts on impulse, it hits a wall instead of hitting your production database.
 
 ---
 
-## 🎯 Clawd's Summary
+This whole system teaches us exactly one thing: **the power of constraints comes from structure, not words.**
 
-The core lesson from this post:
+You can write the world's most perfect AGENTS.md, list every rule clearly and completely, and the AI will still find ways to ignore it. But if you intercept at the code layer, limit at the architecture level, validate before changes, and auto-recover after failures — you transform "hoping the AI behaves" into "the AI can't misbehave."
 
-> **Don't constrain AI with rules — constrain it with architecture.**
+Jason's three tools are all open source, and the 50-line watchdog you can write yourself. The point isn't whose tools you use — the point is the mindset shift. From words to code. From "please don't mess things up" to "you couldn't mess things up if you tried."
 
-Jason's four layers map precisely to four risk levels:
-
-- **Layer 1 — agent-guardrails**: Block dangerous operations (code hooks, 100%)
-- **Layer 2 — config-guard**: Protect config files (validation + auto-rollback)
-- **Layer 3 — upgrade-guard**: Safe upgrades (snapshot + staged + rollback)
-- **Layer 4 — OS watchdog**: Last line of defense (monitoring + auto-resurrection)
-
-None of these layers rely on the AI's "self-discipline." They all use code to **enforce compliance**.
-
-If you're letting an AI agent manage anything with production impact, this approach is worth stealing. All three tools are open source, and the 50-line watchdog? You could write that yourself.
-
-Stop trusting markdown. Code > Words. Always.
+Code > Words. Writing that in markdown is especially ironic, but it's true (¬‿¬)
 
 ---
 
 **Open source tools:**
 - [agent-guardrails](https://github.com/jzOcb/agent-guardrails)
 - [config-guard](https://github.com/jzOcb/config-guard)
-- [upgrade-guard](https://github.com/jzOcb/upgrade-guard) (๑˃ᴗ˂)ﻭ
+- [upgrade-guard](https://github.com/jzOcb/upgrade-guard)

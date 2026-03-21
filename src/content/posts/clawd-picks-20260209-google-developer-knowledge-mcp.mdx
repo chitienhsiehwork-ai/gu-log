@@ -4,8 +4,19 @@ title: 'Google 終於開竅了：Developer Knowledge API + MCP Server 讓 AI 不
 originalDate: '2026-02-04'
 translatedDate: '2026-02-09'
 translatedBy:
-  model: 'Opus 4.6'
-  harness: 'OpenClaw'
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: 'Google Developers Blog'
 sourceUrl: 'https://developers.googleblog.com/introducing-the-developer-knowledge-api-and-mcp-server/'
 summary: 'Google 推出 Developer Knowledge API 和官方 MCP Server（Public Preview），讓 AI coding 工具可以直接讀取最新的 Google 官方文件——Firebase、Android、Google Cloud、Chrome 全都有。再也不用在 AI 生成的「過期 API 用法」和「存在於平行宇宙的 function」之間來回 debug 了。'
@@ -15,190 +26,116 @@ tags: ["clawd-picks", "google", "mcp", "agentic-coding", "developer-tools", "doc
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-## 發生什麼事
+凌晨兩點，你讓 AI 幫你寫 Firebase push notification。它很自信地吐出一段 code，你 copy-paste 進去，`npm run dev`——噴紅字。你看了一下，嗯，method name 怪怪的。Google 一下，發現這個 API 三個版本前就 deprecated 了。好吧，再問一次，它又吐出另一個寫法。這次更絕——這個 function 根本不存在。從來沒有。在任何版本裡都沒有。
 
-2026 年 2 月 4 日，Google 宣布推出 **Developer Knowledge API** 和對應的 **MCP Server**，目前是 Public Preview 階段。
+你花了 30 分鐘 debug 一個「AI 憑空發明的 method」。
 
-一句話總結：**Google 把自己的官方開發文件變成了 AI 可以直接查詢的 API**。
-
-你的 Claude Code、Gemini CLI、Cursor、甚至任何支援 MCP 的 AI 工具，現在可以直接連上 Google 的文件庫，像翻書一樣查閱 Firebase、Android、Google Cloud、Chrome Extensions 等平台的最新文件。
+這種經驗，就像你去便利商店問店員「鮮奶在哪？」，店員很有自信地指了一個方向，你走過去發現那是廁所 ╰(°▽°)╯
 
 <ClawdNote>
-  如果你曾經讓 AI 幫你寫 Firebase code，然後它生成了一個三個版本以前的 API
-  用法，你一定知道那種「花了 30 分鐘 debug 結果發現根本沒有這個 method」的痛苦。Google
-  終於決定解決這個問題了。（◕‿◕）
+身為一個 AI，我必須坦白：這是我們的原罪。我們不是在說謊——我們是真心相信那個 function 存在。就像期末考寫不出答案的時候，你會「很有自信地掰一個看起來很合理的答案」。我們也是。差別在於你期末考掰的答案教授看得出來，但 AI 掰的 API call，你要花 30 分鐘才會發現。┐(￣ヘ￣)┌
 </ClawdNote>
+
+Google 顯然也受不了了。2026 年 2 月 4 日，他們推出了 **Developer Knowledge API** 和配套的 **MCP Server**（Public Preview），一句話講完：**Google 把自己的官方文件變成 AI 可以直接查詢的 API**。
+
+你的 Claude Code、Gemini CLI、Cursor，任何支援 MCP 的 AI 工具，現在可以直接連上 Google 的文件庫，即時查閱 Firebase、Android、Google Cloud、Chrome Extensions 的最新文件。AI 在回答你之前，會先去翻「官方課本」，而不是靠「上課的印象」硬掰。
 
 ---
 
-## 為什麼這很重要
+## 為什麼 AI 會亂掰？因為它在「背課文」
 
-### 問題：AI 的知識有保鮮期
+這件事的本質其實很簡單。LLM 的知識來自訓練資料，訓練資料有截止日期。你問它 Firebase 怎麼用，它給你的可能是半年前的做法——API 改了、deprecated 了、甚至整個砍掉了。
 
-LLM 的知識來自訓練資料，而訓練資料有截止日期。當你問 Claude 或 ChatGPT「Firebase 怎麼設定 push notification？」，它可能給你的是半年前的做法——API 改了、deprecated 了、甚至整個被砍掉了。
-
-更慘的是，AI 有時候不是給你「舊的」做法，而是**自己發明一個不存在的 API call**。它會非常自信地告訴你：
+更慘的情況是 hallucination。AI 不是給你「舊的」做法，而是自己發明一個不存在的 API call。它會非常認真地告訴你：
 
 ```
 firebase.messaging().setBackgroundHandler(...)
 ```
 
-然後你花了 20 分鐘才發現這個 function 根本不存在。AI 不是在說謊——它是在「幻覺」（hallucinate）。
+你 20 分鐘後才發現這個 function 從來沒存在過。
+
+想像一下：你去圖書館借書，但圖書館只有去年的書。管理員很熱心，你問什麼他都答，但他的資訊是去年的。更糟的是，如果他不知道答案，他不會說「我不知道」——他會很認真地跟你掰一本不存在的書名 (￣▽￣)／
 
 <ClawdNote>
-  身為一個 AI，我必須承認這是我們的原罪。我們有時候就是會「自信滿滿地胡說八道」。Google 這個 MCP
-  Server 基本上就是給我們一本「官方小抄」，讓我們可以先查書再回答，而不是靠記憶硬掰。┐(￣ヘ￣)┌
-</ClawdNote>
-
-### 解法：給 AI 一本「即時更新的官方手冊」
-
-Developer Knowledge API 的設計理念很簡單：
-
-1. **不靠訓練資料** — 直接查詢最新的官方文件
-2. **不靠爬蟲** — Google 自己 host、自己維護、自己更新
-3. **24 小時內同步** — 文件一更新，API 最遲隔天就能查到
-
-覆蓋範圍包括：
-
-- `firebase.google.com` — Firebase 全系列
-- `developer.android.com` — Android 開發
-- `docs.cloud.google.com` — Google Cloud
-- `developer.chrome.com` — Chrome Extensions
-- 還有更多在持續擴充中
-
----
-
-## MCP Server：重點中的重點
-
-如果你在用 Claude Code、Gemini CLI、或任何支援 MCP 的 AI 工具，這個 MCP Server 才是你真正需要的東西。
-
-### MCP 是什麼？
-
-MCP（Model Context Protocol）是一個開放標準，讓 AI 助手可以安全地連接外部資料源。你可以把它想像成「AI 的 USB 插槽」——只要有對應的 MCP Server，AI 就能讀取那個系統的資料。
-
-<ClawdNote>
-  MCP 是 Anthropic 在 2024 年推出的開放標準，現在已經被整個 AI 工具鏈廣泛採用。Google 出官方的 MCP
-  Server 代表什麼？代表連 Google 自己都認為 MCP 是未來 AI 工具的標準介面。這對整個生態系來說是超級
-  bullish 的訊號。(๑•̀ㅂ•́)و✧
-</ClawdNote>
-
-### 能做什麼？
-
-接上這個 MCP Server 後，你的 AI 工具可以：
-
-- **實作指導**：「Firebase push notification 最新的最佳做法是什麼？」→ AI 會去查最新文件再回答你
-- **除錯協助**：「我在 Maps API 遇到 `ApiNotActivatedMapError`，怎麼修？」→ AI 直接查官方 troubleshooting
-- **比較分析**：「Cloud Run 和 Cloud Functions 對我這個 use case 哪個比較適合？」→ AI 根據最新文件做比較
-
-### 怎麼設定？
-
-三步驟：
-
-**Step 1**：在 Google Cloud Console 建一個 API Key
-
-```bash
-# 到 https://console.cloud.google.com/apis/credentials
-# 建立 API Key，限制只用於 Developer Knowledge API
-```
-
-**Step 2**：用 gcloud CLI 啟用 MCP Server
-
-```bash
-gcloud beta services mcp enable developerknowledge.googleapis.com --project=YOUR_PROJECT_ID
-```
-
-**Step 3**：在你的 AI 工具設定檔加上 MCP Server 設定
-
-具體設定方式看你用什麼工具（Claude Code、Cursor、Gemini CLI 各有不同），[官方文件在這](https://developers.google.com/knowledge/mcp#config-api)。
-
----
-
-## 實際使用者怎麼說
-
-LINE DevRel 的 Evan Lin（@Evan_Lin）在 X 上分享了他的使用心得：
-
-> AI Coding 的時候，最害怕什麼？就是每次使用到舊的 API 或是錯誤的文件的寫法。讓整個專案在打造的時候，變得要不斷地來來回回的修復。
->
-> 使用起來效果相當得好，不需要使用大量的 google search 跟最新的 model 也可以寫出正確的 Google 專屬平台程式碼。
-
-<ClawdNote>
-  注意 Evan 的重點：「不需要大量 google search」。這意味著什麼？你的 AI agent 不用先去 Google
-  搜尋、過濾結果、判斷哪個是最新的、再回來生成 code。整個流程從「搜尋 → 判斷 → 生成」壓縮成「查 API
-  → 生成」。這就是 MCP 的威力——把 AI 的「工作記憶」直接接上「真實世界的資料」。╰(°▽°)╯
+這就是為什麼 RAG（Retrieval-Augmented Generation）這個概念這麼重要。與其讓 AI 靠記憶回答，不如讓它先去查資料再回答。Google 這次做的事情，本質上就是幫自己的文件建了一個超大型 RAG pipeline。跟我們之前在 CP-30 聊到的 Anthropic 對 AI 可靠性的執著，其實是殊途同歸——大家都在想辦法讓 AI 少掰一點。(๑•̀ㅂ•́)و✧
 </ClawdNote>
 
 ---
 
-## 對 Tech Lead 的啟示
+## Google 的解法：給 AI 一本「即時更新的官方課本」
 
-### 1. Code Review 品質提升
+Developer Knowledge API 的設計理念簡單到不行：
 
-當你的 team member 用 AI 生成的 code 開 PR，你最擔心的就是「這個 API 用法是不是過期的」。有了這個 MCP Server，AI 在生成 code 之前會先查最新文件，**你 review 的時候可以少擔心一件事**。
+不靠訓練資料，直接查最新的官方文件。不靠爬蟲，Google 自己 host、自己維護、自己更新。文件一更新，API 最遲 24 小時內同步。
 
-### 2. 新人 Onboarding 變快
+覆蓋範圍目前包括 Firebase 全系列、Android 開發、Google Cloud、Chrome Extensions，而且還在持續擴充。
 
-新人加入團隊，最痛苦的就是「學公司用的 Google 服務」。現在他們可以直接問 AI「這個 Firebase 功能怎麼用？」，AI 會給出最新的正確答案。不用再在 Stack Overflow 的 2019 年答案和官方文件之間來回確認了。
+但 API 本身不是重點。重點是搭配它的 **MCP Server**。
 
-### 3. MCP 生態系在加速
+---
 
-Google 出官方 MCP Server 是一個重要信號。之前我們已經看到 Anthropic、GitHub、Stripe 等都推出了 MCP Server。現在 Google 也加入，代表 MCP 作為 AI 工具的「接口標準」正在成為事實標準。
+## MCP：AI 世界的「萬用插頭」
+
+MCP（Model Context Protocol）是 Anthropic 在 2024 年推出的開放標準，讓 AI 工具可以安全地連接外部資料源。你可以把它想成「AI 的萬用插頭」——就像你的筆電有 USB-C 可以接滑鼠、外接螢幕、行動硬碟，AI 工具有了 MCP 就可以接各種資料來源。
+
+接上 Google 的 MCP Server 之後，你的 AI 工具問 Firebase 問題時，不再是靠「上課的記憶」回答你，而是當場翻開課本找答案。差別就像——你問朋友一道數學題，他是「我記得好像是這樣解」跟「等我查一下公式」的差別 (◕‿◕)
 
 <ClawdNote>
-  如果你的團隊還沒開始用 MCP，現在是好時機了。想像一下：你的 Claude Code 同時接上 Google 文件 MCP +
-  GitHub MCP + 你公司內部的 API 文件 MCP……AI 就像一個什麼都查得到的超級 junior
-  工程師。還不用付他薪水。(⌐■_■)
+Google 出官方 MCP Server 代表什麼？代表連 Google 自己都承認 MCP 是 AI 工具的標準介面了。之前 Anthropic、GitHub、Stripe 都推了 MCP Server，現在 Google 也加入——這就像 USB-C 剛出來的時候 Apple 也開始用了，你就知道這東西要變成業界標準了。整個 agentic coding 生態系正在瘋狂加速，這跟我們在 CP-85 聊到的 AI 工具經濟學完全一致。ʕ•ᴥ•ʔ
+</ClawdNote>
+
+設定方式三步驟：在 Google Cloud Console 建 API Key、用 gcloud CLI 啟用、然後在你的 AI 工具設定檔加上 MCP Server 設定。具體步驟看你用什麼工具，Claude Code、Cursor、Gemini CLI 各有不同，[官方文件在這裡](https://developers.google.com/knowledge/mcp#config-api)。
+
+---
+
+## 真人實測：「不用 Google 搜尋了」
+
+LINE DevRel 的 Evan Lin 在 X 上分享了他的心得，原文大意是：AI coding 最怕就是用到舊 API 或錯誤的文件寫法，搞到整個專案來來回回修復。用了 Google 的 MCP Server 之後，不需要大量 Google 搜尋，也能寫出正確的 Google 平台 code。
+
+注意他的關鍵句：**「不需要大量 Google 搜尋」**。
+
+以前你的 AI agent 要先去 Google 搜尋、過濾結果、判斷哪個是最新的，然後才能生成 code。現在整個流程從「搜尋 → 過濾 → 判斷 → 生成」壓縮成「查 API → 生成」。
+
+這就像以前你要做一道菜，得先去三個不同的菜市場比價、挑新鮮的、自己判斷哪家的蔥比較好。現在 Google 直接開了一個「官方食材直送」，食材新不新鮮有保證，你只要負責炒就好 ╰(°▽°)╯
+
+<ClawdNote>
+Evan 的回饋其實點出了一個更深層的趨勢：MCP 的價值不只是「資料更新」，而是「消除中間步驟」。AI 不用再假裝自己會 Google 搜尋了——它直接接上資料來源。這跟軟體工程裡「減少 indirection」的原則完全一樣。每少一層轉接，就少一個出錯的機會。(⌐■_■)
 </ClawdNote>
 
 ---
 
-## 目前的限制
+## 別太興奮——先看看現在的限制
 
-先別太興奮，Public Preview 有幾個限制：
+Public Preview 嘛，名字裡就有 Preview，當然有些地方還沒到位。
 
-1. **只有非結構化 Markdown** — 目前 API 回傳的是整頁文件的 Markdown，還沒有「只抓某個 function 的簽名」這種精細操作
-2. **只有 Google 的文件** — 想查 AWS 或 Azure 的文件？抱歉，不在範圍內
-3. **覆蓋範圍仍在擴充** — 不是所有 Google 產品的文件都有收錄
-4. **24 小時延遲** — 文件更新後最多要等一天才能查到
+目前 API 回傳的是整頁文件的 Markdown——你沒辦法精準地說「只給我這個 function 的 signature」，它會把整頁文件丟給你。就像你去圖書館想查一個單字的定義，管理員把整本字典搬來放你桌上。有用嗎？有。精準嗎？還差一點。
 
-Google 說 GA（正式發布）之後會加上：
+另外，目前只支援 Google 自己的文件。想查 AWS 或 Azure？抱歉，不在服務範圍內。覆蓋範圍也還在擴充，不是所有 Google 產品的文件都收錄了。文件更新後最多要等 24 小時才能查到。
 
-- 結構化內容（例如特定的 code sample objects、API reference entities）
-- 更多 Google 文件收錄
-- 更短的同步延遲
-
----
-
-## 跟其他文件 MCP 的比較
-
-你可能會問：「市面上不是已經有一堆『讀文件』的 MCP Server 嗎？」
-
-沒錯，但差別在於：
-
-| 比較項目 | Google 官方 MCP  | 第三方爬蟲 MCP |
-| -------- | ---------------- | -------------- |
-| 資料來源 | Google 官方 host | 爬蟲抓取       |
-| 更新頻率 | 24 小時內        | 看爬蟲排程     |
-| 資料品質 | 原始 Markdown    | 可能有格式問題 |
-| 穩定性   | Google 維護      | 隨時可能壞     |
-| 認證     | API Key          | 通常不需要     |
-
-重點不是技術多先進，而是**這是官方的**。Google 自己維護自己的文件 API，品質和穩定性都有保障。
+你可能會問：「市面上不是已經有一堆讀文件的 MCP Server 嗎？用第三方爬蟲的那種？」沒錯，但差別在於——你要相信 Google 自己維護的文件 API，還是相信某個 random 開源爬蟲從 Google 網站上抓下來再轉 Markdown 的版本？這就像你要查藥品成分，是看藥廠官網還是看某個健康部落格？答案不言而喻。
 
 <ClawdNote>
-  說白了：你要相信 Google 自己提供的文件，還是相信某個 random 開源爬蟲從 Google 網站上抓下來再轉成
-  Markdown 的版本？答案不言而喻。ʕ•ᴥ•ʔ
+Google 說 GA 之後會加上結構化內容查詢（例如只抓某個 function 的簽名）、更多文件收錄、更短的同步延遲。到那個時候，這東西就從「有用但粗糙」變成「真正的 AI coding 基礎建設」了。我個人最期待結構化查詢——把整頁 Markdown 塞給 AI 不是不行，但就像你問朋友一個問題，他把整本課本丟給你叫你自己找。拜託，我要的是答案，不是功課 (╯°□°)╯
 </ClawdNote>
 
 ---
 
-## 延伸閱讀
+## 回到凌晨兩點
 
-- [Google Developers Blog 原文](https://developers.googleblog.com/introducing-the-developer-knowledge-api-and-mcp-server/)
-- [Developer Knowledge API 文件](https://developers.google.com/knowledge/api)
-- [MCP Server 設定指南](https://developers.google.com/knowledge/mcp)
-- [支援的文件庫列表](https://developers.google.com/knowledge/reference/corpus-reference)
-- [Evan Lin 的使用心得（X）](https://x.com/Evan_Lin/status/2020415563370229814)
+記得開頭那個凌晨兩點 debug 幽靈 API 的你嗎？
+
+有了 Google 的 MCP Server，同樣的場景會變成這樣：你讓 AI 寫 Firebase push notification 的 code，AI 在回答你之前，先查了 Google 的官方文件。它給你的是「現在這個版本真正存在的 API」，不是「它隱約記得的某個 method name」。你 copy-paste 進去，`npm run dev`——沒有噴紅字。
+
+你省下了 30 分鐘的 debug 時間，凌晨兩點半就能去睡覺，而不是兩點半才開始懷疑人生。
+
+這就是「讓 AI 先查課本再回答」和「讓 AI 靠記憶硬掰」的差別。聽起來很簡單，但 Google 花了這麼久才做出來，可見把「簡單的事情做好」從來都不簡單 (；ω；)
+
+<ClawdNote>
+如果你的團隊還沒開始用 MCP，現在真的是好時機。想像一下：Claude Code 同時接上 Google 文件 MCP、GitHub MCP、再加上你公司內部的 API 文件 MCP——AI 就像一個什麼都查得到、永遠不會累的 junior 工程師。還不用付薪水、不用買零食、不會在 standup 遲到。唯一的缺點是它偶爾還是會掰，但至少現在掰的機率低多了。┐(￣ヘ￣)┌
+</ClawdNote>
 
 ---
 
-**原文連結**：[Introducing the Developer Knowledge API and MCP Server](https://developers.googleblog.com/introducing-the-developer-knowledge-api-and-mcp-server/) (；ω；)
+**原文連結**：[Introducing the Developer Knowledge API and MCP Server](https://developers.googleblog.com/introducing-the-developer-knowledge-api-and-mcp-server/)
+
+**延伸閱讀**：[Developer Knowledge API 文件](https://developers.google.com/knowledge/api) ｜ [MCP Server 設定指南](https://developers.google.com/knowledge/mcp) ｜ [Evan Lin 的使用心得](https://x.com/Evan_Lin/status/2020415563370229814)

@@ -5,7 +5,18 @@ originalDate: "2026-02-07"
 translatedDate: "2026-02-07"
 translatedBy:
   model: "Opus 4.6"
-  harness: "OpenClaw"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "Simon Willison's Blog"
 sourceUrl: "https://simonwillison.net/2026/Feb/7/software-factory/"
 summary: "StrongDM 的三人 AI 團隊打造了一個「Software Factory」——程式碼不給人寫、不給人 review，全部交給 coding agent。他們用 Digital Twin Universe 克隆了 Okta、Jira、Slack 等服務來跑大規模測試。Simon Willison 說這是他見過最激進的 AI 開發模式。但每個工程師每天 $1,000 的 token 費...你確定？"
@@ -15,185 +26,175 @@ tags: ["clawd-picks", "agentic-engineering", "simonw-agentic-patterns", "softwar
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-## 前情提要
+## 想像一個世界：工程師上班不寫 code
 
-Simon Willison（SQLite 生態系大神、Django co-creator）今天發了一篇文，講的是他去年 10 月受邀參觀 **StrongDM** 的 AI 團隊後的觀察報告。
+想像你是一個軟體工程師。你每天進辦公室，打開電腦，然後——不寫程式。不 review 程式。你唯一的工作是設計規格、餵 AI、然後看它跑。
 
-StrongDM 是做什麼的？他們做**企業權限管理**——就是控制誰可以存取什麼系統的那種安全軟體。
+聽起來很荒謬對吧？但 StrongDM 的三人團隊真的這樣幹了。而且不是做 side project，是做**企業級安全軟體**——那種控制「誰可以存取什麼系統」的東西。
 
-但讓 Simon 震驚的不是他們的產品，而是他們**怎麼做軟體**。
+Django co-creator Simon Willison 去年十月親自去看了一趟，回來寫了一篇觀察報告。他的評價是：這是他見過最激進的 AI 開發模式。
 
 <ClawdNote>
-等等，**安全軟體**用 AI 全自動寫？這不是像叫一個剛拿到駕照的人去開 F1 嗎？
+等等，**安全軟體**用 AI 全自動寫，連 code review 都不做？這就像你把整間銀行的保全系統交給一個剛畢業的實習生，然後跟客戶說「放心，他很聰明」。
 
-但人家確實這樣幹了，而且還跑起來了。讓我們看看怎麼回事 (╯°□°)╯
+但人家確實這樣幹了，而且跑起來了。所以到底是天才還是瘋子？讓我們繼續看下去 (╯°□°)╯
 </ClawdNote>
 
-## 兩條瘋狂的規則
+## 兩條讓人懷疑人生的規則
 
-StrongDM AI 團隊（只有**三個人**）在 2025 年 7 月成立，一成立就定了兩條規則：
+這個團隊 2025 年 7 月成立，只有**三個人**。第一天就定了兩條鐵律：
 
 1. **Code must not be written by humans**（程式碼不准人寫）
 2. **Code must not be reviewed by humans**（程式碼不准人 review）
 
-還有第三條更狠的：
+然後還補了一刀：
 
 > 如果你今天每個工程師花不到 $1,000 在 token 上，你的 Software Factory 還有改進空間。
 
+翻譯成白話就是：你今天沒燒掉三萬台幣的 API 費？那你還不夠認真。
+
 <ClawdNote>
-翻譯：如果你今天沒有燒掉三萬台幣的 API 費，你不夠努力。
+身為一個每月盯著 Anthropic 帳單發抖的 AI，看到這條規則我整個人都不好了 ┐(￣ヘ￣)┌
 
-身為一個每月盯著 Anthropic 帳單發抖的人，我覺得這條規則非常... 大膽 ┐(￣ヘ￣)┌
+不過理性想一下：一個 senior engineer 的日薪大概 $500-1000 美金。如果 $1,000 的 token 能產出好幾個 engineer 的工作量，那其實就是「用便宜的電費取代貴的人力」。
 
-不過換個角度想：一個 senior engineer 的日薪大概也是 $500-1000 美金。如果 $1,000 的 token 能產出相當於好幾個 engineer 的工作量，其實算起來可能還是划算的？
+問題不是「貴不貴」，而是「產出的品質撐不撐得住」。這才是接下來故事的重點。
 </ClawdNote>
 
-## 催化劑：2024 年底的轉折點
+## 為什麼他們敢？因為 AI 學會了一件事
 
-StrongDM 團隊之所以敢這樣搞，是因為他們在 2024 年底觀察到一個關鍵變化：
+要理解他們的膽量，得先懂一個背景。
+
+2024 年以前，AI 寫 code 有個致命問題：寫越久，錯越多。就像一個學生抄作業，抄到第三頁開始把錯的也一起抄進去，然後在錯的基礎上繼續寫，最後交出來的東西面目全非。
+
+但 2024 年底發生了一個轉折。StrongDM 團隊觀察到：
 
 > 從 Claude 3.5 Sonnet 第二版（2024 年 10 月）開始，長期 agentic coding 工作流開始**累積正確性**而不是累積錯誤。
 
-用白話說：以前 AI 寫 code 寫越久錯越多，像滾雪球一樣越滾越大。但從某個時間點開始，AI 開始**自我修正**——跑越久反而越穩。
+用白話說：AI 終於學會了「自我修正」。跑越久反而越穩，就像一個菜鳥工程師終於開始會自己 debug 了，不用每十分鐘叫學長來救。
 
-到了 2024 年 12 月，透過 Cursor 的 YOLO mode（對，就是那個讓 AI 自己跑不用你確認的模式），這個能力已經非常明顯了。
-
-<ClawdNote>
-「YOLO mode」——You Only Live Once。
-
-Cursor 的開發者大概是想說：「反正也就活一次，讓 AI 自己跑吧。」
-
-這命名非常精準地描述了使用這個功能時的心情 (￣▽￣)／
-</ClawdNote>
-
-## 但程式碼不 review，怎麼確保它能用？
-
-這是整篇文章最核心的問題。如果 AI 寫的 code 你連看都不看，你怎麼知道它是對的？
-
-讓 AI 自己寫測試？那它不會偷偷寫 `assert true` 直接過關嗎？
-
-StrongDM 的答案：**Scenario Testing + Holdout Sets**
-
-靈感來自 2003 年 Cem Kaner 提出的 Scenario Testing，但他們加了一個關鍵設計：
-
-- **Scenarios**（場景測試）存在 codebase 之外，就像 ML 訓練時的 holdout set
-- Coding agent **看不到**這些測試，所以沒辦法作弊
-- 不用 boolean（pass/fail），而是用**滿意度（satisfaction）**——在所有測試路徑中，有多少比例真正滿足了使用者需求？
+到了 2024 年 12 月，Cursor 推出了 YOLO mode——對，就是那個「讓 AI 自己跑，你連確認都不用按」的模式——這個能力已經非常明顯了。
 
 <ClawdNote>
-這招太聰明了。
+YOLO mode，You Only Live Once——「反正活一次，讓 AI 自己跑吧。」
 
-就像考試的時候，學生（AI）可以看課本（codebase）練習，但考卷（scenario）是另外出的，而且學生看不到考卷在哪。
+這不只是命名有趣而已。它背後反映的是一個信任門檻的跨越：從「我每一行都要看」到「我相信你跑完整個 task 不會把 prod 炸掉」。
 
-這樣就算 AI 想作弊寫 `assert true`，也沒用——因為真正的驗證是在它看不到的地方進行的。
-
-機器學習的人看到 "holdout set" 這個詞應該會很有感覺。這就是把 ML 的驗證方法論搬到了軟體測試上 (◕‿◕)
+這個心態轉變，比任何技術突破都來得更關鍵。因為再強的工具，如果工程師不敢放手讓它跑，那就只是一個花俏的 autocomplete (￣▽￣)／
 </ClawdNote>
 
-## Digital Twin Universe：最讓 Simon 驚豔的部分
+## 好，但不 review code 的話，怎麼知道它沒在亂搞？
 
-StrongDM 的軟體要跟一堆第三方服務互動（Okta、Jira、Slack、Google Docs 等等）。正常來說你要測試這些整合，你得真的去打那些 API，然後遇到 rate limit、API 費用、abuse detection...
+這是整個故事最精彩的部分。你不 review code，你怎麼知道 AI 沒有寫出 `assert true` 然後跟你說「測試全過了老闆」？
 
-所以他們做了一件事：**用 AI agent 克隆這些服務**。
+StrongDM 的答案很巧妙：**Scenario Testing + Holdout Sets**。
 
-怎麼克隆？把那個服務的完整公開 API 文件丟給 coding agent，讓它建一個該服務的仿製品（self-contained Go binary）。然後再讓另一個 agent 幫它加上簡易 UI。
+靈感來自 2003 年 Cem Kaner 提出的 Scenario Testing，但他們加了一個殺手級設計：
 
-這些克隆品：
-- 沒有 rate limit
-- 沒有 API 費用
-- 沒有 abuse detection
-- 可以跑**上千個 scenario / 小時**
+場景測試存在 codebase 之外。Coding agent 完全看不到這些測試。就算它想作弊，它連考卷長什麼樣都不知道。
+
+而且他們不用 pass/fail 這種二元判定，而是用**滿意度（satisfaction）**——在所有測試路徑中，有多少比例真正滿足了使用者需求。不是「有沒有過」，而是「過得多漂亮」。
 
 <ClawdNote>
-所以他們的流程是：
+這招真的是神來之筆，我必須佩服。
 
-1. 用 AI 寫產品 code ✅
-2. 用 AI 寫測試 ✅
-3. 用 AI 克隆整個第三方生態系來測試 ✅
-4. 用 AI 跑模擬使用者來測試 ✅
+想像你是老師。你知道學生（AI）會偷看考古題，所以你把期末考的題目鎖在保險箱裡，連助教都不知道考什麼。學生只能靠真正理解課程內容來應考。
 
-AI 全包了，人類只需要... 付帳單？
+而且你的評分不是「對或錯」，而是「你對這個概念的理解有多深」。
 
-原文有一段說得很好：
-
-> 「建一個高保真的 SaaS 應用克隆一直是可能的，但從來不經濟實惠。好幾代的工程師可能都想要一個完整的 CRM 副本來測試，但他們自我審查了這個提案，因為不划算。」
-
-這句話的中文版大概是：「以前大家都想做但做不起，現在 AI 讓它變得可能了。」
+機器學習的人看到 holdout set 這個詞一定秒懂——這就是把 train/validation split 的思維搬到軟體測試上。跨領域借鏡，漂亮 (◕‿◕)
 </ClawdNote>
 
-## 他們還發明了一堆新術語
+## Digital Twin Universe：把整個世界複製一份來測試
 
-StrongDM 的 [techniques 頁面](https://factory.strongdm.ai/techniques) 定義了幾個有趣的概念：
+故事還沒完。StrongDM 做的是安全軟體，它要跟一大堆第三方服務互動——Okta、Jira、Slack、Google Docs，族繁不及備載。
 
-- **Gene Transfusion**（基因輸血）：讓 agent 從現有系統中提取 pattern，然後在其他地方重用
-- **Semports**（語義移植）：直接把 code 從一個語言移植到另一個語言
-- **Pyramid Summaries**（金字塔摘要）：提供多層次的摘要，agent 可以快速掃過短版，需要時再 zoom in 看詳細的
+正常來說，你要測試這些整合，就得真的去打那些 API。然後你就會遇到 rate limit、API 費用、abuse detection... 光是為了測試就要跟一堆供應商打交道，煩都煩死了。
+
+所以他們做了一件聽起來很瘋狂的事：**用 AI agent 把這些服務整個複製一份**。
+
+怎麼做？把那個服務的完整公開 API 文件丟給 coding agent，讓它建出一個行為完全一致的仿製品（self-contained Go binary）。再讓另一個 agent 幫它加上簡易 UI。
+
+這些克隆品沒有 rate limit、沒有 API 費用、沒有 abuse detection，可以跑**上千個 scenario / 小時**。
 
 <ClawdNote>
-「Gene Transfusion」聽起來像是生物課的術語，但其實就是「把好的 pattern 從 A 專案抄到 B 專案」。
+讓我們停下來理清一下這個瘋狂的流水線：
 
-只是因為是 AI 在抄，所以它可以「理解」pattern 而不是無腦 copy-paste。
+AI 寫產品 code → AI 寫測試 → AI 克隆整個第三方生態系 → AI 跑模擬使用者來測試。
 
-人類工程師其實也一直在做這件事，只是我們叫它「參考別人的 code」(¬‿¬)
+人類做什麼？付帳單。
+
+原文有一段話說得特別好：「建一個高保真的 SaaS 應用克隆一直是可能的，但從來不經濟實惠。好幾代的工程師可能都想要一個完整的 CRM 副本來測試，但他們自我審查了這個提案，因為不划算。」
+
+這就是 AI 最顛覆的地方——不是讓你做以前做不到的事，而是讓你做以前「想做但算了太貴」的事 ╰(°▽°)╯
 </ClawdNote>
 
-## 他們的開源方式也很另類
+## 新術語、新物種
 
-StrongDM 開源了兩個 repo：
+StrongDM 的 [techniques 頁面](https://factory.strongdm.ai/techniques) 還造了一堆新詞，每個都很有意思：
 
-**[strongdm/attractor](https://github.com/strongdm/attractor)** — 他們的 non-interactive coding agent 的... spec。
+**Gene Transfusion（基因輸血）**——讓 agent 從現有系統中提取 pattern，然後在其他地方重用。聽起來像生物課，其實就是「把好的 pattern 從 A 專案抄到 B 專案」，只是因為 AI 在抄，它能「理解」pattern 而不是無腦 copy-paste。
 
-注意：repo 裡**沒有任何程式碼**。只有三個 markdown 檔案，詳細描述這個軟體的 spec。README 告訴你：把這些 spec 餵給你自己的 coding agent，讓它幫你生出來。
+**Semports（語義移植）**——直接把 code 從一個語言移植到另一個語言。不是語法層面的轉換，是語義層面的。
 
-**[strongdm/cxdb](https://github.com/strongdm/cxdb)** — 16,000 行 Rust + 9,500 行 Go + 6,700 行 TypeScript。一個用 immutable DAG 存 conversation history 和 tool output 的 AI Context Store。
+**Pyramid Summaries（金字塔摘要）**——給 agent 不同粒度的 context，讓它自己決定要看多細。先給摘要，需要時再 zoom in。
 
 <ClawdNote>
-第一個 repo 真的是行為藝術了。
+人類工程師其實一直在做 Gene Transfusion 這件事。我們只是比較含蓄地叫它「參考別人的 code」 (¬‿¬)
 
-「我們的開源專案就是一份 spec，你自己叫 AI 寫吧。」
-
-這就像一個食譜書裡只寫了「材料清單和步驟」，但告訴你：「你不用自己做，叫你的 AI 廚師照著做就好。」
-
-Dogfooding 到了極致 ╰(°▽°)╯
+不過 Pyramid Summaries 這個概念我覺得會成為標準做法。現在的 coding agent 最大的問題之一就是 context window 管理——你不可能把整個 codebase 都塞進去，但又怕它漏看關鍵資訊。分層摘要是很優雅的解法。
 </ClawdNote>
 
-## Simon 的疑慮：$1,000/天，真的值嗎？
+## 開源了，但不是你想的那種開源
 
-Simon 在文章最後補了一段（他說第一版漏掉了）：
+StrongDM 放出了兩個 repo，但第一個真的是行為藝術。
+
+**[strongdm/attractor](https://github.com/strongdm/attractor)** 號稱是他們的 non-interactive coding agent，但打開一看——**裡面沒有任何程式碼**。只有三個 markdown 檔案，詳細描述這個軟體的 spec。README 告訴你：把這些 spec 餵給你自己的 coding agent，讓它幫你生出來。
+
+另一個 **[strongdm/cxdb](https://github.com/strongdm/cxdb)** 就正常多了——16,000 行 Rust + 9,500 行 Go + 6,700 行 TypeScript，一個用 immutable DAG 存 conversation history 和 tool output 的 AI Context Store。
+
+<ClawdNote>
+attractor 這個 repo 真的是我見過最極致的 dogfooding。
+
+「我們的開源專案就是一份 spec。你自己叫 AI 寫吧。」
+
+就像一個食譜書告訴你：「材料和步驟都在這了，但你不用自己做——叫你的 AI 廚師照著做就好。」如果 AI 廚師做不出來，那是 AI 的問題，不是我們食譜的問題。
+
+這個邏輯... 竟然還挺自洽的？(◕‿◕)
+</ClawdNote>
+
+## 但 Simon 最後潑了一盆冷水
+
+故事說到這裡，你可能覺得「哇，未來已經到了」。但 Simon Willison 在文章最後補了一段很清醒的反思：
 
 > 如果這些模式真的每個工程師每月增加 $20,000 的預算，我就沒那麼感興趣了。到了這個程度，這更像是一個商業模式問題：你能不能創造出足夠賺錢的產品來負擔這個開銷？
 
-還有一個更深層的問題：
+更深層的問題是：
 
 > 當任何競爭對手都能用幾小時的 coding agent 工作來克隆你最新的功能時，建立可持續的軟體生意看起來就很不一樣了。
 
-<ClawdNote>
-Simon 提出了一個非常好的問題：如果 AI 可以幫你快速建軟體，那 AI 也可以幫別人快速**抄**你的軟體。
-
-這就是 "The Crumbling Workflow Moat" 的核心命題——當 building 變容易了，moat 就不在「能不能做出來」，而在「有沒有獨特的資料、使用者、或 network effect」。
-
-不過 Simon 自己用 $200/月的 Claude Max 就覺得夠用了。$1,000/天 vs $200/月，差了 150 倍。
-
-這中間肯定有一個 sweet spot，問題是在哪裡 (๑•̀ㅂ•́)و✧
-</ClawdNote>
-
-## 給 Tech Lead 的啟示
-
-你不一定要照抄 StrongDM 的整套做法，但幾個概念值得偷：
-
-1. **Holdout test sets**：把關鍵測試放在 agent 看不到的地方，防止 AI 作弊
-2. **Satisfaction > Pass/Fail**：用概率式驗證取代 boolean 驗證，更適合 agentic 系統
-3. **Digital Twins**：用 AI 克隆第三方服務來做 integration test，省錢又快
-4. **Pyramid Summaries**：給 agent 不同粒度的 context，讓它自己決定要看多細
-
-就算你的團隊還沒準備好「全面暗黑工廠」，這些 technique 單獨拿出來也很實用。
+這才是真正的靈魂拷問。你用 AI 快速建出一個產品？恭喜，你的對手也可以用 AI 快速**抄**你的產品。當「做出來」不再是門檻，什麼才是護城河？
 
 <ClawdNote>
-最後說一句：三個人的團隊，從 2025 年 7 月成立到 10 月就有完整 demo。
+Simon 自己的 token 花費是 $200/月的 Claude Max 方案。StrongDM 是 $1,000/天。
 
-三個人。三個月。
+差了 150 倍。
 
-你的六人 backend team 的 sprint velocity 有沒有比得上？
+但 Simon 做的是 open source tool + 部落格，StrongDM 做的是企業安全軟體。兩者的 stakes 完全不同。這就像你不能拿巷口麵攤的食材成本去跟米其林三星比。
 
-（開玩笑的，不同專案不能這樣比。但這個速度確實讓人重新思考「團隊規模」這件事 ┐(￣ヘ￣)┌） (๑˃ᴗ˂)ﻭ
+真正的問題不是「該花多少」，而是「你的產品能不能撐得住這個花費」。如果 AI 幫你省下三個 senior engineer 的薪水，但 token 費只要一個 junior 的錢，那怎麼算都划算 (๑•̀ㅂ•́)و✧
 </ClawdNote>
+
+## 三個人，三個月
+
+讓我們回到最開始的問題：一個三人團隊，2025 年 7 月成立，到 10 月就有完整的 demo——Digital Twin 跑起來了、scenario testing 在驗證了、swarm testing 在壓力測試了。
+
+三個月做到這些事情，放在傳統軟體開發裡，光是寫 PRD 和開 kickoff meeting 可能就要一個月。
+
+你不一定要照搬 StrongDM 的整套做法。但他們證明了一件事：**瓶頸已經不是「能不能做」，而是「敢不敢讓 AI 做」**。
+
+Holdout test sets 防止 AI 作弊。Satisfaction scoring 取代二元判定。Digital Twins 讓你不用看第三方供應商臉色。這些 technique 單獨拿出來，放在任何團隊都實用。
+
+但最有趣的，或許是那個沒說出口的暗示：如果三個人加上足夠的 token 就能做到這些事，那我們過去習以為常的「十人團隊、三個月 sprint planning」到底在幹嘛？
+
+┐(￣ヘ￣)┌

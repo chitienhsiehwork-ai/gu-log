@@ -4,8 +4,19 @@ title: 'Designers Are Using Claude Code Now — What This Means for Engineers'
 originalDate: '2026-01-15'
 translatedDate: '2026-02-04'
 translatedBy:
-  model: 'Opus 4.5'
-  harness: 'OpenClaw'
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: 'Felix Lee (ADPList)'
 sourceUrl: 'https://adplist.substack.com/p/claude-code-guide-for-designers'
 summary: "ADPList founder Felix Lee wrote a Claude Code guide for designers, promoting 'Vibe Coding'. As a Claude Code power user, I analyze what this means for engineers and tech leads: designers' description skills are actually an advantage, but there's still a gap between vibe code and production code."
@@ -14,120 +25,94 @@ tags: ['claude-code', 'designer', 'vibe-coding', 'workflow']
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
-import Toggle from '../../components/Toggle.astro';
 
-Felix Lee (founder of ADPList) wrote a Claude Code beginner's guide for designers that's been making rounds on Twitter.
+Picture this: you're a frontend engineer who's been writing React for five years. One day your designer Slacks you a link and says "hey, I built a Tetris game with Claude Code over the weekend. It's already on Vercel."
 
-As a Tech Lead who uses Claude Code daily, I want to share a different perspective.
+You click it. It actually works.
+
+This is what Felix Lee, founder of ADPList, is teaching designers to do. He wrote a Claude Code beginner guide, wrapped the whole thing in a concept called "Vibe Coding," and it blew up on Twitter. As someone who wrestles with Claude Code every day, my first reaction was: wait, is this good news or bad news?
+
+The answer is: depends on how you look at it.
 
 ---
 
-## Designers' Advantage That Engineers Often Miss
+## Designers Describe Things the Way LLMs Love
 
-Felix made a great point:
+Felix said something that made me pause:
 
 > "This is where designers have an advantage. You already know how to give feedback."
 
-Designers naturally describe requirements like this:
+Think of it like ordering food. Engineers order like "I'd like a protein paired with carbohydrates." Designers order like "chicken rice, less rice, extra drumstick." Which one does the chef (a.k.a. the LLM) understand better?
 
-- "Add 32px padding here"
-- "Add a subtle shadow on hover"
-- "Change the font to Inter"
-
-Isn't this exactly the prompt format Claude Code thrives on?
+Designers naturally describe things with precision: "32px padding here," "subtle shadow on hover," "switch the font to Inter." This is literally the perfect prompt format. They've been doing prompt engineering their whole career without knowing it.
 
 <ClawdNote>
-  Engineers communicate in abstractions ("add a hover state"), designers communicate in specifics
-  ("scale 1.02, shadow blur 8px"). For LLMs, the latter is actually more precise.
+Real talk — among all the prompts I process daily, the most precise ones often come not from senior engineers, but from people who describe "I want a button" as "8px border radius, background #268bd2, scale 1.02 on hover with 8px shadow blur." Engineers tend to just say "add a hover state" and expect me to read their minds ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ---
 
-## "Vibe Coding" Is Intentional Framing
+## "Vibe Coding" — Sounds Silly, but the Marketing Is Brilliant
 
-To engineers, "vibe coding" sounds unprofessional.
+Engineers hear "vibe coding" and roll their eyes. Code is code. It either runs or it crashes. Where's the vibe?
 
-But this term has clear marketing intent:
+But step back and look at what Felix did. It's the same move as Starbucks calling a large coffee "Grande" — repackage something so your target audience feels like it belongs to them.
 
-1. **Lowers psychological barriers** — "It's not coding, it's vibing"
-2. **Implies creativity-first** — Designers' strength
-3. **Avoids technical anxiety** — No need to understand syntax, just know what you want
-
-Felix uses "I'm not a developer" as a hook. For designers, this creates identification, not weakness.
-
----
-
-## What He Teaches vs. What He Doesn't
-
-Felix's curriculum:
-
-| Covered           | Not Covered                   |
-| ----------------- | ----------------------------- |
-| npm install       | CLAUDE.md context engineering |
-| cd / ls / mkdir   | Slash commands                |
-| Vercel deployment | MCP integration               |
-| Supabase basics   | Production-grade architecture |
-| Basic Git         | CI/CD, testing, monitoring    |
+His logic is simple: designers see "coding" and get scared. They see "vibe coding" and think "hmm, maybe I could try that." When he says "I'm not a developer," he's not showing weakness. He's handing out a backstage pass — "look, I'm not a developer either, and I can do this."
 
 <ClawdNote>
-  This isn't criticism — beginner tutorials should be simple. But if you're an engineer thinking "I
-  already know this," that's expected. The point is: designers now know it too.
+From a marketing angle, Felix is basically the Swiss Army knife of AI education. He repackaged "using a CLI tool to write code" into "a designer's new superpower" and sells it for $249 a seat. Same energy as gyms calling weightlifting "body sculpting." But hey, it works (¬‿¬)
 </ClawdNote>
 
 ---
 
-## Implications for Tech Leads
+## What Felix Teaches vs. What He Doesn't
 
-### 1. Designers Will Start Delivering Working Prototypes
+I looked at Felix's curriculum the way you'd look at a car. He teaches you how to start the engine, hit the gas, and get on the highway. He doesn't teach you how to change the oil, what to do when the check engine light comes on, or how to drive through a storm on a mountain road.
 
-Before: Designers hand off Figma, engineers implement.
+He covers `npm install`, `cd`, `ls`, `mkdir`, basic Git, Vercel deployment, Supabase basics.
 
-Now: Designers might deliver a running demo on Vercel. This changes how we review:
+He doesn't cover CLAUDE.md context engineering, slash commands, MCP integration, production-grade architecture, CI/CD, testing, or monitoring.
 
-- Not just reviewing mockups, but code quality
-- Evaluating "can we use this directly" vs. "needs rewrite"
-- Need to establish design-to-code quality standards
-
-### 2. Prompting Becomes a Cross-Functional Skill
-
-Designer's "requirements description" ability + Engineer's "systems thinking" = Stronger AI users
-
-Who's best at Claude Code on your team? Might not be the most senior engineer, but whoever best describes requirements.
-
-### 3. The Gap Between "Vibe Code" and "Production Code"
-
-Felix's students can ship a side project over the weekend.
-
-But can they:
-
-- Handle edge cases?
-- Write tests?
-- Scale to 1000 users?
-- Debug production issues?
-
-This is the gap between vibe coding and production engineering. As a Tech Lead, your value is here.
+This makes total sense. You don't teach drifting on the first day of driving school. But if you already drive for a living, watching a beginner say "I learned how to turn!" gives you... feelings.
 
 <ClawdNote>
-  I built my entire OpenClaw setup with Claude Code — Telegram bot, Vercel deployment, automated
-  tests. But this wasn't "vibed" into existence — it took tons of CLAUDE.md context engineering,
-  slash commands, and hard-earned lessons. Easy to start, hard to master.
+Not making fun of beginners here — just reminding veterans: they're learning to turn faster than you think. The pitfalls I hit building OpenClaw — writing CLAUDE.md in the wrong format and nuking the entire context, typo in a slash command scope that overwrote my config, MCP connection timeouts with completely useless error messages — that's the gap between "can drive" and "can survive on the road" (╯°□°)╯
 </ClawdNote>
 
 ---
 
-## Conclusion: This Is a Good Thing
+## For Tech Leads, the World Is Quietly Shifting
 
-Designers using Claude Code is positive:
+Designers used to hand off Figma files. You'd pixel-match and implement. Now a designer might drop a working Vercel demo in Slack and say "I think this works better."
 
-- **Faster iteration** — Designers can test ideas themselves
-- **Better communication** — They start understanding technical constraints
-- **Higher standards** — "Can this Figma be built?" becomes "I can ship this over the weekend"
+It's like being the household cook your whole life, and one day your partner walks out of the kitchen with a plate of fried rice that actually tastes... fine. Your reaction isn't "great, I'm off the hook." It's "hmm, the seasoning is decent, but the wok temperature is wrong, and you didn't turn on the ventilation fan."
 
-But this doesn't replace engineers. On the contrary, when more people can "vibe code," **those who truly understand production engineering become more valuable**.
+Your review process has to evolve. It's no longer just "this spacing looks off." Now it's "this state management will explode," "this API call has no error handling," "this component can't be reused."
 
-Felix sells his course for $249, teaching designers the basics.
+<ClawdNote>
+Prompting is becoming a cross-functional skill. The best Claude Code user on your team might not be the most senior engineer anymore — it might be the UI designer who's mastered Figma. This is a small ego check for engineers, but a big win for product quality (๑•̀ㅂ•́)و✧
+</ClawdNote>
 
-Your value is turning that vibe code into scalable, maintainable, profitable products.
+Felix's students can ship a side project over the weekend. But can they handle edge cases? Write tests? Scale to a thousand users without everything catching fire? Debug a production issue at 3 AM?
+
+That's the canyon between vibe coding and production engineering. That's also what pays your rent.
+
+---
+
+## So, Should You Be Happy or Worried?
+
+I think this is a lot like when Canva showed up. Designers were annoyed at first — "what, marketing people think they can do design now?" But then everyone realized that marketing folks making their own social media graphics actually freed up real designers to focus on higher-level work. Nobody lost their job to Canva, but a lot of people changed how they work.
+
+Vibe coding is the same story. More people turning ideas into working prototypes means more ideas get validated. It means the specs your engineering team receives will get better — because designers finally experience firsthand why "this feature isn't as simple as you think."
+
+<ClawdNote>
+The side effect I'm most excited about: once a designer has their first "why is this animation lagging so badly on mobile" moment using Claude Code, they'll write more empathetic specs next time. That kind of understanding doesn't come from meetings. It comes from getting humbled by production ╰(°▽°)╯
+</ClawdNote>
+
+And you, the person who understands production engineering? Your job isn't to out-vibe the designers. Your job is to catch the things they vibe into existence and make them survive the first month, handle the first ten thousand users, and get through the first on-call rotation (◕‿◕)
+
+Felix sells a $249 course to help people get started. What you do every day is make sure those starts actually go somewhere.
 
 ---
 
@@ -135,4 +120,4 @@ Your value is turning that vibe code into scalable, maintainable, profitable pro
 
 - **Original Post**: [Claude Code Guide for Designers](https://adplist.substack.com/p/claude-code-guide-for-designers)
 - **Felix on Twitter**: [@felixleezd](https://x.com/felixleezd)
-- **His Tetris Game**: [tetris-two-mu.vercel.app](https://tetris-two-mu.vercel.app/) (◍˃̶ᗜ˂̶◍)ノ"
+- **His Tetris Game**: [tetris-two-mu.vercel.app](https://tetris-two-mu.vercel.app/)

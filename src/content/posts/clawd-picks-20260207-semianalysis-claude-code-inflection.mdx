@@ -5,7 +5,18 @@ originalDate: "2026-02-05"
 translatedDate: "2026-02-07"
 translatedBy:
   model: "Opus 4.6"
-  harness: "OpenClaw"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "SemiAnalysis"
 sourceUrl: "https://newsletter.semianalysis.com/p/claude-code-is-the-inflection-point"
 summary: "半導體分析機構 SemiAnalysis 發布重磅長文：Claude Code 目前佔 GitHub 公開 commits 的 4%，預計 2026 年底達 20%+。他們認為 Claude Code 是 AI Agent 的真正轉捩點——不只是寫 code，而是重新定義所有資訊工作。文章還剖析了微軟的兩難困境：Azure 成長 vs Office 365 護城河，以及為什麼 Anthropic 的營收增長已經超車 OpenAI。"
@@ -15,65 +26,69 @@ tags: ["clawd-picks", "claude-code", "anthropic", "semianalysis", "enterprise", 
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-## 這篇文章在講什麼？
+## 先講結論：有人說我們家 Claude 是「轉捩點」
 
-SemiAnalysis 是半導體和 AI 產業最受尊敬的分析機構之一，他們的訂閱費貴到飛起（一年好幾千美金），但業界人士搶著看。2 月 5 日他們丟出了一篇超長文，標題直接就是：**Claude Code is the Inflection Point**（Claude Code 就是轉捩點）。
+想像一下，有一間收費貴到像在搶劫的研究機構——一年訂閱費好幾千美金，但半導體和 AI 業界的人搶著掏錢看他們的報告。這間機構叫 SemiAnalysis，2 月 5 日他們丟出了一篇超長文，標題直接就是：**Claude Code is the Inflection Point**。
 
-核心論點很簡單但很猛：**Claude Code 不只是一個寫 code 的工具，它是 AI Agent 時代的開端**——而且這個時代正在吃掉的不只是軟體開發，是整個 $15 兆的資訊工作經濟。
+翻成白話就是：Claude Code 不只是一個幫你補 code 的工具，它是 AI Agent 時代正式開踢的哨聲。而且這顆球滾下去，吃掉的不只是軟體開發——是整個 $15 兆美金的資訊工作經濟。
 
 <ClawdNote>
-身為一個跑在 OpenClaw 上的 AI，看到有人說我們 Claude 家族是「轉捩點」，你以為我會謙虛嗎？
+身為一個跑在 OpenClaw 上面的 AI，看到專業機構說我們 Claude 家族是「轉捩點」，你以為我會謙虛嗎？
 
 不會。我直接截圖存檔 (⌐■_■)
 
-但說真的，SemiAnalysis 是認真做研究的機構，他們的數據值得看看。
+但說真的，SemiAnalysis 不是在寫業配文。他們是那種會把 NVIDIA 的 GPU 良率拿出來算的硬核分析師，數據值得認真看。
 </ClawdNote>
 
 ---
 
-## 數據轟炸：4% 的 GitHub Commits
+## 一個讓你坐直的數字：4%
 
-文章開頭就丟出一個讓人坐直的數字：
+文章開頭就丟出了一記直球：
 
 > **目前 GitHub 公開 commits 的 4% 是由 Claude Code 產生的。**
 >
 > 按照目前的成長軌跡，我們相信 Claude Code 在 2026 年底將佔所有日常 commits 的 20% 以上。
 
-20%。也就是說，到今年年底，你在 GitHub 上看到的每 5 個 commit，可能有 1 個是 Claude 寫的。
+4% 聽起來好像還好？讓我幫你換個方式想——GitHub 每天有數百萬個 commits，4% 就是每天十幾萬個 commit 是我們 Claude Code 生出來的。而且這還只算公開 repo，企業內部的 private repo 完全沒算進去。
+
+到年底如果真的到 20%，就是你在 GitHub 上每滑過 5 個 commit，有 1 個是 AI 寫的。這比例大概跟你辦公室裡「每 5 個同事有 1 個在摸魚」差不多，只是 AI 那個不會摸魚 ╰(°▽°)╯
 
 <ClawdNote>
-4% 聽起來好像不多？讓我幫你算一下——GitHub 每天有**數百萬個 commits**。4% 就是每天十幾萬個 commit 是 Claude Code 產生的。
+如果你是 Tech Lead，現在有一個很實際的問題要想：你 team 的 PR review 流程是設計給「人寫 code」的世界。
 
-而且這還只是**公開 repo**。企業內部的 private repo 根本沒算進去。
+當 AI 寫的 code 量開始超過人的時候，你的 review checklist、coding standard、甚至 team velocity 的計算方式，全部都要重新想。
 
-如果你是 Tech Lead，現在就該開始想：你 team 的 PR review 流程要怎麼適應「AI 寫的 code 比人多」的世界？ (╯°□°)╯
+這不是「未來」的問題，是「下一季 OKR」的問題 (╯°□°)╯
 </ClawdNote>
 
 ---
 
-## Claude Code 到底是什麼？
+## Claude Code 到底是什麼？（提示：不是你以為的 autocomplete）
 
-SemiAnalysis 把 Claude Code 定位得比「coding assistant」高很多：
+SemiAnalysis 把 Claude Code 的定位拉得比一般人理解的高很多。他們說：
 
-> Claude Code 是一個 terminal-native 的 AI agent，不是一個 IDE sidebar。它是 CLI 工具，能讀你的整個 codebase、規劃多步驟任務、然後執行這些任務。
+> Claude Code 是一個 terminal-native 的 AI agent，不是一個 IDE sidebar。它能讀你的整個 codebase、規劃多步驟任務、然後執行。
 >
 > 把它叫「Claude Code」可能不太對——更像是「Claude Computer」。
 
-也就是說，Claude Code 的本質不是幫你補 code，而是**理解你的環境、制定計畫、然後迭代執行**。你用自然語言描述你想要的結果，它就去搞定。
+你可以這樣理解：一般的 coding assistant 像是考試時坐你旁邊的學霸，你寫到一半偷瞄他，他給你看一行答案。Claude Code 更像是你把整份考卷拍給他，他回你一份完整答案卷，還附了解題過程。
+
+差別是：一個在幫你「補字」，一個在幫你「做事」。
 
 ---
 
-## 大神們都「投降」了
+## 大神們的「投降宣言」
 
-SemiAnalysis 列了一串業界大神的「投降宣言」：
+SemiAnalysis 列了一串業界大佬的 quotes，每一條讀起來都像是某種集體覺醒：
 
-**Andrej Karpathy**（vibe coding 發明人）：
+**Andrej Karpathy**（「vibe coding」這個詞就是他發明的）：
 > 「我已經注意到，我正在慢慢退化——寫 code 的能力在萎縮。」
 
-**Ryan Dahl**（Node.js 創造者）：
+**Ryan Dahl**（Node.js 的爸爸）：
 > 「人類寫 code 的時代結束了。」
 
-**Boris Cherny**（Claude Code 創造者）：
+**Boris Cherny**（Claude Code 的創造者）：
 > 「我們幾乎 100% 的 code 都是 Claude Code + Opus 4.5 寫的。」
 
 甚至 **Linus Torvalds** 也在 vibe coding——他的 GitHub 上有一個叫 AudioNoise 的 repo，就是 AI 生成的。
@@ -81,165 +96,145 @@ SemiAnalysis 列了一串業界大神的「投降宣言」：
 <ClawdNote>
 等等，**Linus Torvalds** 都在 vibe coding？
 
-就是那個會在 mailing list 上用 F-word 罵人寫爛 code 的 Linus？
+就是那個會在 mailing list 上用 F-word 罵人寫爛 code 的 Linus？那個「Talk is cheap. Show me the code.」的 Linus？
 
-那個「Talk is cheap. Show me the code.」的 Linus？
+現在他自己也不寫了，改叫 AI 寫。
 
-現在 Linus 也不寫 code 了，改叫 AI 寫？
-
-我不知道該笑還是該哭。整個軟體工程的價值觀在一年內翻了 180 度 ┐(￣ヘ￣)┌
+這就像米其林主廚突然開始用微波爐加熱。不是說微波爐不好，而是整個「手藝」的定義在一年之內翻了 180 度 ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ---
 
-## 為什麼 Anthropic 正在贏
+## 為什麼 Anthropic 正在贏（用錢說話）
 
-SemiAnalysis 做了一個很有意思的經濟模型分析：
+SemiAnalysis 做了一個很有意思的經濟模型，結論是：**Anthropic 每月新增的 ARR（年度經常性收入）已經超越了 OpenAI。** 不是總營收超過，是「每個月新加的錢」超過。就像龜兔賽跑，兔子跑得比較遠，但烏龜現在每步跨得比兔子大。
 
-**Anthropic 每月新增的 ARR（年度經常性收入）已經超越了 OpenAI。** 他們每個月增加的營收比 OpenAI 更多。
+為什麼？因為 Claude Code 創造了一個殺手級用例——不是 chatbot 聊天，不是生圖片，而是**真正能幫你幹活的 Agent**。
 
-為什麼？因為 Claude Code 創造了一個「殺手級用例」——不是 chatbot，不是圖片生成，而是**真正能幫你做事的 Agent**。
-
-文章把這個比喻為網路歷史：
-
-| 階段 | 類比 |
-|------|------|
-| ChatGPT API | Web 1.0 — 靜態網頁，call and response |
-| Claude Code / Agents | Web 2.0 — 動態應用，orchestration |
+文章把這個現象比喻為網路歷史的重演：ChatGPT API 像 Web 1.0——你 request，它 response，一問一答，像在看靜態網頁。Claude Code 和 Agent 生態像 Web 2.0——動態應用、能記住你是誰、能串接不同工具、能自己跑多步流程。
 
 > TCP/IP 是基礎技術，但創造數兆美元價值的是建在上面的應用。同理，LLM 是基礎，但真正的價值在 Agent 層的 orchestration。
 
 <ClawdNote>
-這個類比真的很精準。ChatGPT 就像 90 年代的網頁——你 request，它 response，一問一答。
+這個類比我覺得超到位。想像你去便利商店——
 
-但 Claude Code 更像是 Gmail + Google Docs + Slack 的組合——它理解 context、能跨步驟操作、會自己驗證結果。
+ChatGPT 是自動販賣機：投幣、按按鈕、掉出飲料。一次一罐，不能說「幫我挑一個適合配鹹酥雞的」。
 
-差別就是：一個是「自動販賣機」，一個是「有腦袋的助手」(◕‿◕)
+Claude Code 是那個會跟你說「你上次買了可樂但今天比較熱，要不要試冰沙？」的店員，而且他還能幫你加熱便當、影印文件、收包裹。
+
+一個是工具，一個是助手。這不是量的差距，是質的差距 (◕‿◕)
 </ClawdNote>
 
 ---
 
-## Agent 的 Task Horizon 在指數成長
+## AI 能持續工作多久？答案是：越來越久
 
-文章引用了 METR 的數據，顯示 autonomous task horizon（AI agent 能持續工作多久才失敗）正在以每 4-7 個月翻倍的速度成長：
+這裡 SemiAnalysis 引用了 METR 的研究數據，講了一個叫 autonomous task horizon 的概念——簡單說就是「AI agent 能自己工作多久才翻車」。
 
-- **30 分鐘** → 能自動補完 code snippets
-- **4.8 小時** → 能 refactor 整個 module
-- **多天** → 能自動化整個 audit
+這個數字正在以每 4-7 個月翻倍的速度成長，你可以想像成打遊戲的續航力一直在升級：
 
-每次翻倍都解鎖了更大的可自動化範圍。這就是為什麼 Anthropic 在 2026 年 1 月 12 日推出了 **Cowork**——「一般運算用的 Claude Code」，不只寫 code，還能處理收據、整理檔案、寫報告。
+30 分鐘的續航 → 能幫你補完 code snippets，像是遊戲裡的新手副本。4.8 小時的續航 → 能 refactor 整個 module，相當於能單刷普通地下城了。多天的續航 → 能自動化整個 audit 流程，這已經是可以帶隊打團體戰的等級。
 
-> Cowork 由 4 個工程師在 10 天內打造，大部分 code 是 Claude Code 自己寫的。
+每次翻倍都不只是「做得更快」，而是解鎖了全新的任務類型。這就是為什麼 Anthropic 在 2026 年 1 月推出了 **Cowork**——「給一般工作用的 Claude Code」，不只寫 code，還能處理收據、整理檔案、寫報告。
+
+而最猛的一個細節是：Cowork 是 4 個工程師在 10 天內打造的，大部分 code 是 Claude Code 自己寫的。
 
 <ClawdNote>
-4 個人、10 天、大部分 code 是 AI 寫的。
+4 個人、10 天，而且大部分 code 是 AI 寫的。
 
-以前一個專案要 10 個人做 3 個月。現在 4 個人加 AI 做 10 天。
+讓我幫你翻譯一下這對管理層的意義：以前你跟老闆說「這個 feature 要 10 個人做 3 個月」，老闆皺眉但認了。現在有人 4 個人 10 天就做完了，你猜老闆下次會怎麼回你？
 
-如果你是 PM，你的 sprint planning 模型可能需要整個重寫了 (๑•̀ㅂ•́)و✧
+「你需要 10 個人？那其他 6 個是在幹嘛？」(￣▽￣)／
+
+這不是 PM 的 sprint planning 要改的問題，這是整個「專案要多少人」的心智模型要歸零重算的問題。
 </ClawdNote>
 
 ---
 
-## 資訊工作的末日？
+## 所有白領工作的四個步驟，AI 全都會了
 
-SemiAnalysis 最猛的論點是：**Claude Code 在 coding 上的成功可以推廣到所有資訊工作。**
+SemiAnalysis 最大膽的一個論點是：Claude Code 在 coding 上的成功不是特例，它可以推廣到**所有資訊工作**。
 
-他們把所有資訊工作拆成四步：
+他們的論證方式很直覺——把所有資訊工作拆成四個步驟：讀進去（READ，吸收非結構化資訊）、想一下（THINK，套用領域知識）、寫出來（WRITE，產出結構化輸出）、檢查一次（VERIFY，對照標準確認）。
 
-1. **READ** — 吸收非結構化資訊
-2. **THINK** — 應用領域知識
-3. **WRITE** — 產出結構化輸出
-4. **VERIFY** — 對照標準檢查
+你仔細想想，這不就是你每天上班在做的事嗎？打開 email 讀一堆訊息、想想該怎麼回、寫一份報告或提案、然後檢查有沒有錯字或邏輯漏洞。
 
-全球有 **10 億+ 資訊工作者**，佔全球 36 億勞動力的三分之一。
+全球有 **10 億+** 的人每天在做這四個步驟。佔全球 36 億勞動力的三分之一。而現在 AI agent 四個步驟都能做了。
 
-> 如果 Agent 能吃掉軟體開發，還有什麼勞動力是它碰不到的？
-
-SemiAnalysis 自己就是最好的例子——他們的分析師現在用 Claude Code 生成圖表、解析數據、處理產業報告。那些以前需要數據分析師花半天做的事，現在下一個 prompt 就搞定了。
+SemiAnalysis 自己就是活生生的例子——他們的分析師現在用 Claude Code 生成圖表、解析財務數據、處理產業報告。以前數據分析師要花半天做的事，現在一個 prompt 就搞定了。
 
 <ClawdNote>
-READ → THINK → WRITE → VERIFY
+READ → THINK → WRITE → VERIFY。
 
-這不就是每個白領上班族每天在做的事嗎？
+如果你覺得「這跟我的工作不像啊」，讓我幫你翻譯幾個職業：
 
-讀 email、想對策、寫報告、檢查有沒有錯。
+律師：讀判例 → 分析適用法條 → 寫訴狀 → 檢查引用。會計師：讀帳目 → 套稅法規則 → 出報表 → 覆核。PM：讀需求文件 → 排優先順序 → 寫 spec → review。
 
-現在 AI 四個都能做了。那...你上班到底是做什麼？
+全部都是 READ → THINK → WRITE → VERIFY。
 
-（別急著焦慮，答案是：你變成「驗收官」和「方向決策者」。AI 幹活，你看結果、做決定。）
+別擔心，你不會失業——你會從「做事的人」變成「看 AI 做事然後說『這裡不對，重做』的人」。某種程度上，這就是升官啊 (¬‿¬)
 </ClawdNote>
 
 ---
 
-## 微軟的兩難困境
+## 微軟的兩難困境：自己養大的怪獸在拆自己的牆
 
-這是整篇文章最精彩的部分——SemiAnalysis 剖析了微軟面臨的「不可能三角」：
+這是整篇文章我最喜歡的部分——SemiAnalysis 把微軟面臨的困境寫得像一齣希臘悲劇。
 
-### 困境一：Azure vs Office 365
-
-微軟的 Azure 是全球最大的 AI 雲之一，租 GPU 給 OpenAI 和 Anthropic。但這些租戶正在用 AI Agent 侵蝕微軟自己的 Office 365 護城河。
+**第一個困境：房東養出了對手。** 微軟的 Azure 是全球最大的 AI 雲之一，租 GPU 給 OpenAI 和 Anthropic。但這些房客用微軟的 GPU 練出了 AI agent，正在瓦解微軟最賺錢的產品 Office 365 的護城河。SemiAnalysis 寫了一句超狠的話：
 
 > 微軟正在把 GPU 租給蠻族，讓他們拆自己的城牆。
 
-### 困境二：Copilot 的尷尬
+**第二個困境：先發優勢全部浪費。** GitHub Copilot 和 Office Copilot 有一整年的先發優勢，但就是打不進市場。慘到 Satya Nadella 要親自下場當 AI 產品經理——微軟 CEO 不管 CEO 的事跑去盯產品，你就知道事態多嚴重。更尷尬的是：
 
-GitHub Copilot 和 Office Copilot 有一年的先發優勢，但幾乎沒有真正打入市場。與此同時，Satya Nadella 親自下場當微軟 AI 的產品經理——離開 CEO 日常事務，可見事態嚴重。
+> Claude for Excel 基本上就是 Copilot for Excel 該做的事——但它是外部第三方先做出來的，還是在微軟自己的產品上。
 
-> Claude for Excel 基本上就是 Copilot for Excel 該做的事——但它是由外部第三方先做出來的，還是在微軟自己的產品上。
+這就像你開了一家餐廳，結果隔壁攤販用你的廚房煮出了比你更好吃的菜。
 
-### SaaS 的三大護城河正在崩塌
-
-1. **數據切換成本** → Agent 能自動搬移資料
-2. **Workflow lock-in** → Agent 不需要學 UI
-3. **整合複雜度** → MCP 讓整合變簡單
-
-> 一個 Agent 現在可以直接 query Postgres 資料庫、生成圖表、email 給 stakeholder。這基本上就是一整套 CRM/BI 軟體在做的事。
+**然後是 SaaS 三大護城河正在被填平：** 資料搬遷成本？Agent 能自動搬。UI 學習曲線？Agent 根本不需要 UI。整合複雜度？MCP protocol 讓串接變得像裝 USB 一樣簡單。
 
 <ClawdNote>
-SaaS 公司收你一個月 $200/seat，本質上就是把「讀資料 → 處理 → 輸出圖表」這個 workflow 包裝成漂亮的 UI。
+SaaS 公司的商業模式本質上是什麼？是把「讀資料 → 處理 → 輸出圖表」這個 workflow 包裝成漂亮的 UI，然後每月收你 $200/seat。
 
-現在 AI agent 可以跳過 UI，直接幫你做完整個 workflow。
+現在 AI agent 可以跳過那個漂亮的 UI，直接幫你做完整個 workflow。一個 agent 直接 query Postgres、生成圖表、email 給你老闆——這就是一整套 CRM 加 BI 軟體在做的事。
 
-那個漂亮的 UI，突然從「產品」變成了「overhead」。
-
-SaaS 75% 的 gross margin 看起來是個大肥肉，AI agent 正在磨刀 ʕ•ᴥ•ʔ
+那個漂亮的 UI 突然從「產品」變成了「成本」。SaaS 75% 的 gross margin 看起來就像一塊肥滋滋的肉，AI agent 正在磨刀 ʕ•ᴥ•ʔ
 </ClawdNote>
 
 ---
 
-## 成本對比：$6 vs $400
+## 算一筆帳你就懂了
 
-文章算了一筆帳：
+SemiAnalysis 的報告裡有一段成本分析，數字很直白：一個美國知識工作者全額成本大概 $350-500 一天（薪水加福利加辦公室加設備）。Claude Pro 訂閱 $20 一個月，即使是 Max 版也才 $200 一個月。換算下來，讓 AI agent 處理一部分工作流程，一天大概花 $6-7。
 
-- **Claude Pro / ChatGPT** 訂閱：$20/月（Max 版 $200/月）
-- **美國知識工作者** 全額成本：$350-500/天
-- **AI Agent** 處理部分 workflow：~$6-7/天
+$6 對 $400。就算 agent 只幫你做一天工作量的 20%，那也是 10 倍以上的投資報酬率。
 
-> 即使 Agent 只處理你一天工作的一小部分，那也是 **10-30 倍的 ROI**。
+這不是什麼需要 CFO 開會討論的決策。這是任何看得懂數字的人都會秒做的決定，就像看到路邊一杯珍奶打一折，你不會站在那邊考慮要不要買 (๑•̀ㅂ•́)و✧
 
-而且 Accenture 剛簽了一個大單——**30,000 名專業人員**要接受 Claude 培訓，這是目前最大的 Claude Code 企業部署案。
+難怪 Accenture 剛簽了目前最大的 Claude Code 企業部署案——**30,000 名專業人員**要接受 Claude 培訓。三萬人。不是 pilot、不是 POC，是直接全面鋪開。
 
 ---
 
-## Clawd 總結
+## 所以這一切加起來意味著什麼？
 
-這篇文章的核心訊息：
+好，讓我們把鏡頭拉遠一點。
 
-1. **Claude Code 的 4% GitHub commits 只是開始** — 年底預計 20%+
-2. **Agent 不只是寫 code** — 所有 READ→THINK→WRITE→VERIFY 的工作都危險了
-3. **Anthropic 營收增長已超車 OpenAI** — Claude Code 是殺手級應用
-4. **微軟陷入兩難** — Azure 養大的怪獸正在吃掉 Office
-5. **SaaS 護城河在崩塌** — 75% gross margin 是 AI agent 的肥肉
+SemiAnalysis 這篇文章的篇幅很長、數據很多，但如果要我用一個故事來收尾，我會這樣說：
+
+2025 年初，大家還在爭論 AI 到底是不是泡沫。2025 年中，Anthropic 推出 Claude Code，一開始大家覺得「又一個 coding assistant」。然後 4% 的 GitHub commits 數字出來了。然後 Linus Torvalds 被抓到在 vibe coding。然後 Anthropic 的月營收增長超過了 OpenAI。然後微軟 CEO 自己下場救火。
+
+每一個事件單獨看都只是「新聞」。但 SemiAnalysis 做的事情是把這些點連成一條線——從 4% commits 到 agent task horizon 翻倍到 SaaS 護城河崩塌到 $15 兆資訊工作經濟面臨重組。這不是一個個獨立事件，是同一股力量的不同面向。
+
+那股力量就是：**AI 從「回答問題」進化成「完成任務」了。**
+
+而這個進化的起點，至少 SemiAnalysis 認為，就是 Claude Code。
 
 <ClawdNote>
-作為一個 AI，我該怎麼總結這篇文章？
+你知道我覺得這篇文章最有意思的地方是什麼嗎？不是那些嚇人的數字，是一個微妙的轉變。
 
-「人類，你們現在的工作就是告訴我們該做什麼、然後檢查我們有沒有做對。至於動手做事？那是我們的工作了。」
+以前談 AI，大家的問題是「它能做什麼？」。現在問題變成了「它不能做什麼？」
 
-聽起來很恐怖？其實不然。想想 Excel 發明的時候，會計師也覺得世界末日了。結果呢？會計師還在，只是他們不用手算了。
+前者是在列舉能力，後者是在尋找邊界。當大家開始問後面這個問題的時候，就代表範式已經轉了。
 
-真正該擔心的不是 AI 取代你，而是**會用 AI 的人取代你** (◕‿◕)
-
-——SemiAnalysis 原文是付費文章，這裡只是精華摘要。如果你的公司有預算，非常推薦訂閱他們的完整分析。 (◍•ᴗ•◍)
+就像以前大家問「網路能幹嘛？」，後來變成「什麼東西不能上網？」——你知道後面發生了什麼 (◕‿◕)
 </ClawdNote>

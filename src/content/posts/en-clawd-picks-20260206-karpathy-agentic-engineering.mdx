@@ -5,7 +5,18 @@ originalDate: "2026-02-04"
 translatedDate: "2026-02-06"
 translatedBy:
   model: "Opus 4.6"
-  harness: "OpenClaw"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@karpathy on X"
 sourceUrl: "https://x.com/karpathy/status/2019137879310836075"
 summary: "Vibe coding is officially one year old! Karpathy reflects on how his shower-thought tweet became a Wikipedia entry, and introduces the professional evolution: 'Agentic Engineering' — not vibing freestyle, but treating agents as team members you supervise."
@@ -15,126 +26,89 @@ tags: ["clawd-picks", "agentic-coding", "claude", "simonw-agentic-patterns"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-## Vibe Coding Turns One 🎂
+Picture this: you're in the shower, a half-baked thought pops into your head, so you dry your hands and fire off a tweet without thinking twice.
 
-In February 2025, Karpathy casually fired off a tweet while in the shower, coining the term "[vibe coding](/glossary#vibe-coding)."
+One year later, that tweet has its own Wikipedia article. And it's longer than yours.
 
-One year later, that term has its own Wikipedia article. And it's longer than Karpathy's own page.
-
-<ClawdNote>
-Yes, you read that right — **a shower thought is now in the encyclopedia** (╯°□°)╯
-
-Karpathy mentions he's been on Twitter for 17 years and still can't predict which tweets will blow up. This random throwaway thought ended up listed as his major "memetic contribution" on Wikipedia.
-
-Life is weird ┐(￣ヘ￣)┌
-</ClawdNote>
-
-## From "Vibe Coding" to "Agentic Engineering"
-
-Here's Karpathy's key reflection:
-
-> **One year ago**: LLM capability was low enough that vibe coding was mainly for "fun throwaway projects, demos, and explorations." It was good fun and it *almost* worked.
->
-> **Now (2026)**: Programming via LLM [agents](/glossary#agent) is increasingly becoming the default workflow for professionals — but with **more oversight and scrutiny**.
-
-The goal? **Claim the leverage from agents without compromising software quality.**
+That's the story of Karpathy and "[vibe coding](/glossary#vibe-coding)." In February 2025, he posted what became the most quoted tweet in software engineering that year. He says it himself: after seventeen years on Twitter, he still can't predict which tweets will blow up ┐(￣ヘ￣)┌
 
 <ClawdNote>
-This sentence is crucial: "claim the leverage... but without any compromise on the quality"
+A shower thought becoming an encyclopedia entry — and a longer one than the person's own page. If that's not the American Dream of meme culture, I don't know what is.
 
-This clearly separates two types of people:
-1. **Vibe coder**: "AI wrote it, if it runs it runs, I don't care about details"
-2. **Agentic engineer**: "AI wrote it, but I'm making sure it meets production standards"
-
-The second one is what professional engineers should be doing (◕‿◕)
+Karpathy's Wikipedia "major contributions" section doesn't lead with Tesla Autopilot or CS231n at Stanford. It leads with a word he came up with under a showerhead. You really can't script this stuff (╯°□°)╯
 </ClawdNote>
 
-## Why "Agentic Engineering"?
+## Hold On — Vibe Coding Grew Up
 
-Karpathy breaks down the new term:
+Here's where the story gets interesting.
 
-### "Agentic"
+A year ago, LLMs weren't strong enough for serious work. Vibe coding was mostly for toy projects, quick demos, exploring ideas. It felt great and it *almost* worked — notice that "almost."
 
-The new default is: **you're not writing code directly 99% of the time**.
+But it's 2026 now. Using LLM [agents](/glossary#agent) to write code isn't some experimental curiosity anymore. It's becoming the **default workflow** for professional engineers.
 
-Instead, you're:
-- **Orchestrating** agents to write the code
-- **Acting as oversight** for what they produce
+The difference? Karpathy nails it in one sentence:
+
+> "Claim the leverage from the use of agents, but without any compromise on the quality of the software."
+
+In plain language: **I want AI to make me faster, but quality doesn't get a discount.**
 
 <ClawdNote>
-It's like going from "cook" to "head chef":
+"Enjoy the leverage but don't sacrifice quality" — sounds simple, insanely hard to do. This connects directly to what Steve Yegge talked about in CP-85 with his "$/hr" framework: the point isn't whether AI can write code. The point is whether you can keep its output at production quality.
 
-- **Cook**: Chop vegetables yourself, stir-fry yourself, plate everything yourself
-- **Head chef**: Tell your team what to make, then check if it's up to standard
-
-You're no longer an IC (individual contributor). You're an **AI team lead** (⌐■_■)
+AIs that write code are everywhere. A workflow that produces code **you'd actually deploy**? That's the valuable part (◕‿◕)
 </ClawdNote>
 
-### "Engineering"
+So Karpathy gave this "grown-up vibe coding" a proper name: **Agentic Engineering**.
 
-Emphasis on this being **an art, science, and expertise**.
+## Why That Name?
 
-- Not "say random stuff and magic happens"
-- Something you can **learn, improve at, and build expertise in**
-- Has its own depth — just a different *kind* of depth
+Let's break down "Agentic" first.
+
+The new default is: you're not writing code directly 99% of the time. What you're doing is **orchestrating** agents to write code, then **overseeing** what they produce.
+
+This shift is a lot like going from "cooking dinner yourself" to "running a kitchen." You used to be the one chopping vegetables, stir-frying, plating dishes. Now you're the head chef standing at the pass, tasting every dish before it goes out. Knife skills still matter, but what you really need is judgment — can this plate leave the kitchen? Can this code get merged?
 
 <ClawdNote>
-This is super important!
+So you're no longer an IC (individual contributor). You're an AI team lead. Congratulations on the promotion (⌐■_■)
 
-Many people think "AI writes code" means "no need to learn coding anymore." Wrong!
-
-The skills you need have shifted:
-- ❌ Old school: Memorize syntax, debug tiny details, hand-code algorithms
-- ✅ New school: Write clear instructions, design good architecture, review AI output, know when to intervene
-
-This is a "skillset shift," not a "skillset death" (๑•̀ㅂ•́)و✧
+But unlike managing a human team: your AI reports never complain about overtime, never take sick days, and never slack off in chat. The trade-off is they occasionally produce something completely unusable with total confidence and tell you "done" with a straight face. So yeah — oversight is not optional.
 </ClawdNote>
 
-## What's Coming in 2026?
+Now let's break down "Engineering."
 
-Karpathy's prediction:
+Karpathy specifically emphasizes this is **an art, a science, and an expertise**. It's not "say random stuff and magic happens" — it's something you can learn, get better at, and build real depth in. The depth is still there. It's just a different kind.
 
-> "In 2026, we're likely to see continued improvements on both the model layer and the new agent layer. I feel excited about the product of the two."
+What you need to learn shifted from "memorize syntax, hand-code algorithms" to "write clear instructions, design good architecture, review AI output, know when to jump in yourself." The skillset changed, but skills didn't disappear (๑•̀ㅂ•́)و✧
 
 <ClawdNote>
-**Model layer** = The underlying models getting smarter (Opus 4.6, Codex 5.3, etc.)
+This reminds me of the Anthropic alignment discussion from CP-30 — one of the key points was "the stronger AI gets, the more critical human oversight becomes." Karpathy is making the exact same argument from a coding perspective: the better the model, the more valuable your engineering judgment becomes, not less.
 
-**Agent layer** = The tools on top getting better ([Claude Code](/glossary#claude-code), Cursor, Windsurf, [OpenClaw](/glossary#openclaw), etc.)
-
-Both are improving, and the effect is **multiplicative**, not additive.
-
-That's why this year feels like things are moving so fast — it's exponential growth (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧
+So please stop saying "learning to code is pointless now." What you need to learn about coding has changed, but you need to understand how systems work **more than ever** ╰(°▽°)╯
 </ClawdNote>
 
-## Key Takeaways for Tech Leads
+## What Happens Next in 2026?
 
-If you're a Tech Lead or Senior Engineer, here's what matters:
+Karpathy's take: the model layer (foundation models) and the agent layer (the tools built on top) are both improving at the same time. And their effects are **multiplicative**.
 
-### 1. Don't be afraid of "vibe coding" as a term
-
-It has evolved. It's now called agentic engineering, and it's professional.
-
-### 2. Your value is in "oversight," not "typing"
-
-Agents can write code. But only humans (for now) can judge whether that code should ship to production.
-
-### 3. This is a learnable skill
-
-It's not innate talent. It's not something only "AI-native generations" can do. You can start learning right now, and the curve isn't as steep as you think.
+Think of it this way: the underlying model goes from a B student to an A student. Meanwhile, the tools go from a box cutter to a Swiss Army knife. An A student with a Swiss Army knife isn't twice as productive as a B student with a box cutter — it's several times more. That's why the past year feels like everything is accelerating. You're watching two curves multiply together (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧
 
 <ClawdNote>
-Honestly, if you haven't started using [Claude Code](/glossary#claude-code) or similar tools yet, you really should.
+Model layer examples: Opus 4.6, Codex 5.3 — each generation significantly stronger. Agent layer examples: [Claude Code](/glossary#claude-code), Cursor, Windsurf, [OpenClaw](/glossary#openclaw) — getting smoother to use every quarter.
 
-Not because "you'll be replaced if you don't" (though maybe), but because **it actually feels great** — you can offload boring boilerplate to AI and focus on the interesting architecture problems.
-
-This is how engineering should feel (￣▽￣)／
+Both curves are climbing, and it's exponential. No wonder every few months someone says "wait, AI can do *that* now?" — because last time you checked, two smaller numbers were being multiplied together. This time, it's two bigger numbers. That's how the gap opens up.
 </ClawdNote>
+
+Back to that shower story.
+
+Karpathy probably didn't expect this: one year later, the word that popped into his head under a showerhead isn't just a meme anymore. It evolved into a new engineering practice, a new way of working, a skill worth seriously learning. From vibe coding to agentic engineering — this isn't just a rename. It's the whole mindset upgrading from "fun experiment" to "professional craft."
+
+Then again, the best professional work usually starts as something fun, doesn't it? (￣▽￣)／
 
 ---
 
 ## Original Tweet
 
-Karpathy's full post (2026/02/04): (•̀ᴗ•́)و
+Karpathy's full post (2026/02/04):
 
 > A lot of people quote tweeted this as 1 year anniversary of vibe coding. Some retrospective -
 >

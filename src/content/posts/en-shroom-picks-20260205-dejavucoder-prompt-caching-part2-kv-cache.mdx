@@ -4,8 +4,19 @@ title: "Inside LLM Inference: KV Cache & the Memory Nightmare (Series 2/3)"
 originalDate: "2025-11-30"
 translatedDate: "2026-02-05"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@dejavucoder on bearblog"
 sourceUrl: "https://sankalp.bearblog.dev/how-prompt-caching-works/"
 summary: "Part 1 taught you how to save money. Part 2 explains why those tricks work. From the two stages of LLM inference (prefill/decode) to KV cache fundamentals to the GPU memory crisis that makes naive caching fall apart at scale. (Part 2 of 3)"
@@ -82,15 +93,13 @@ In more technical terms:
 - This step is **memory-bound** — not much computation, but tons of data moving around
 
 <ClawdNote>
-If you remember just one thing, remember this:
+The difference between these two stages is basically "moving day vs daily life."
 
-**Prefill = batch processing, bottleneck is compute (GPU crunching numbers)**
-**Decode = one-at-a-time processing, bottleneck is memory (bandwidth moving data)**
+Prefill is moving day — you haul all your furniture in one go, exhausting but it's just that one day, and the bottleneck is how many moving trucks you have (compute).
 
-Prefill is like cramming an entire textbook the night before an exam (massive input, one sitting).
-Decode is like writing the exam one question at a time (each question means flipping back through your notes).
+Decode is daily life after the move — you only need to grab one thing at a time, but you have to find it in a warehouse stuffed floor to ceiling (memory bandwidth). Bigger warehouse, longer search.
 
-Different bottlenecks need different optimization strategies. This distinction matters A LOT (◕‿◕)
+Once you get this distinction, you'll understand why prefill optimization and decode optimization are completely different games (◕‿◕)
 </ClawdNote>
 
 ### Why Does This Distinction Matter?
@@ -109,6 +118,14 @@ This is what **Chunked Prefill** solves — it caps how many tokens a prefill ca
 
 > Think of the restaurant rule: "No matter how many new orders need prep, only prep 5 at a time. The dishes being served right now can't wait."
 
+<ClawdNote>
+Chunked Prefill sounds fancy, but the core logic is dead simple — it's the most basic queuing theory principle: "don't let big jobs block small jobs."
+
+Ever been to a popular ramen shop? When a party of 20 walks in, the kitchen doesn't dedicate every burner to that table. Because there are couples at smaller tables waiting for their second bowl of gyoza.
+
+vLLM does the exact same thing: big prefills wait in line and get processed in batches, so they don't leave decode users staring at a frozen screen ┐(￣ヘ￣)┌
+</ClawdNote>
+
 ---
 
 ## 📝 Life Without KV Cache: A Horror Story
@@ -117,27 +134,29 @@ OK, you know LLM inference has two stages. Now let's see what happens during dec
 
 Say the prompt is **"The capital of France is"**.
 
-**Prefill stage:**
+**Prefill stage**, nothing special:
 
 > [The capital of France is] → model outputs "Paris"
 
-So far so good.
+So far so good. Now decode begins, and the horror movie starts rolling.
 
 **Decode stage (no cache):**
 
 > Round 1: [The Capital of France is Paris] → outputs "which"
->
+
+OK, we recomputed K/V for 5 tokens we already knew. Tolerable.
+
 > Round 2: [The Capital of France is Paris which] → outputs "has"
->
+
+Recomputed everything again. Starting to feel wrong.
+
 > Round 3: [The Capital of France is Paris which has] → outputs "the"
->
+
+Again. We're wasting our lives at this point.
+
 > Round 4: [The Capital of France is Paris which has the] → outputs "Eiffel"
 
-See the problem?
-
-**Every decode round, we're recomputing KV tensors for ALL previous tokens.**
-
-At round 4:
+OK, at round 4:
 
 > [The]→K₁V₁ &nbsp; [Capital]→K₂V₂ &nbsp; [of]→K₃V₃ &nbsp; [France]→K₄V₄ &nbsp; [is]→K₅V₅ &nbsp; [Paris]→K₆V₆ &nbsp; [which]→K₇V₇ &nbsp; [has]→K₈V₈ → [the]
 >
@@ -171,43 +190,23 @@ The fix is beautifully intuitive: **save what you've already computed, and reuse
 
 Store each token's Key and Value tensors (from every transformer layer) **in GPU memory**. Next time you need them, just read — no recomputation.
 
-With KV cache, the same inference flow becomes:
+With KV cache, the world looks completely different:
 
 **Prefill (with cache):**
 
-> Model processes [The capital of France is], computes K/V for every token, **stores them all in cache**
->
-> Outputs "Paris"
+> Model processes [The capital of France is], computes K/V for every token, **stores them all in cache**, then outputs "Paris"
 
 **Decode round 1:**
 
-> Model processes only [Paris] (just one token!)
->
-> Reads K/V for [The capital of France is] from cache
->
-> Computes new K/V for [Paris] only, **appends to cache**
->
-> Outputs "which"
+> Model processes only [Paris] (just one token!) → reads all previous K/V from cache → computes new K/V for [Paris] only → **appends to cache** → outputs "which"
 
-**Decode round 2:**
+See it? From "recompute every token from scratch" to "only compute the new one." And it gets faster:
 
-> Model processes only [which]
->
-> Cache already has K/V for [The capital of France is Paris]
->
-> Computes K/V for [which] only, appends
->
-> Outputs "has"
+**Round 2:** [which] → cache read → append → "has"
+**Round 3:** [has] → cache read → append → "the"
+**Round 4:** [the] → cache read → append → "Eiffel"
 
-**Decode round 3:**
-
-> Only [has] → cache read → append → outputs "the"
-
-**Decode round 4:**
-
-> Only [the] → cache read → append → outputs "Eiffel"
-
-See the difference?
+Every round is a three-step dance: read cache, compute new, store back.
 
 **Each decode round processes just 1 token.** All previous tokens' K/V come straight from cache — zero recomputation. Appending to cache is an **O(1) operation** — constant time, regardless of how many tokens came before.
 
@@ -220,11 +219,9 @@ Question 1 → solve it → write the answer on the cheat sheet
 Question 2 → check cheat sheet for Q1's answer → use it → solve Q2 → add to cheat sheet
 Question 50 → check cheat sheet for Q1-49 answers → solve Q50 → add to cheat sheet
 
-Every question, you only do **the new computation**. Previous results are just a lookup.
-
 From "redo everything every time" to "just do the new part."
 
-That's the power of KV cache ╰(°▽°)╯
+This is why KV cache is called the single most important optimization in LLM inference — bar none ╰(°▽°)╯
 </ClawdNote>
 
 ### Why Is KV Cache So Impactful?
@@ -235,10 +232,22 @@ You feed an entire codebase into the model (input: 50,000 tokens). The model res
 
 Prefill handles those 50,000 tokens once (and it's parallelized, so it's fast). Decode only needs 500 steps, each processing just 1 new token.
 
-**Without KV cache:** 500 steps × recomputing 50,000+ tokens' K/V each time = disaster
-**With KV cache:** 500 steps × computing 1 token's K/V each time = lightning fast
+**Without KV cache:** 500 steps x recomputing 50,000+ tokens' K/V each time = disaster
+**With KV cache:** 500 steps x computing 1 token's K/V each time = lightning fast
 
 The larger the input-to-output ratio, the bigger the win from KV cache.
+
+<ClawdNote>
+Let's do a gut check with a real scenario.
+
+When you use Claude for coding, you typically paste an entire file (thousands of tokens) and ask "is there a bug here?" Claude responds with a three-line fix (a few dozen tokens).
+
+That's roughly a 100:1 input-to-output ratio.
+
+Without KV cache, each decode step recomputes K/V for thousands of tokens. With it, each step computes exactly one.
+
+The difference isn't "a bit faster" — it's "three minutes vs a fraction of a second" (｡◕‿◕｡)
+</ClawdNote>
 
 ---
 
@@ -246,21 +255,24 @@ The larger the input-to-output ratio, the bigger the win from KV cache.
 
 OK, at this point KV cache sounds amazing. Problem solved, right?
 
-Not so fast.
+Not so fast. There's no free lunch.
 
 **Where does KV cache live?** GPU memory (VRAM).
 
-**How much space does it take?** Well... let's do the math.
+**How much space does it take?** Well... let's do the math. You might want to sit down for this.
 
 ### KV Cache Size Grows Linearly
 
 The formula for KV cache size:
 
-> kv_size = 2 (K and V) × layers × KV heads × head dimension × sequence length × precision
+> kv_size = 2 (K and V) x layers x KV heads x head dimension x sequence length x precision
 
 For a 7B model (32 layers, 32 KV heads, head_dim 128, float16 = 2 bytes):
 
-- **Per token:** 2 × 32 × 32 × 128 × 2 bytes ≈ **0.5 MB**
+- **Per token:** 2 x 32 x 32 x 128 x 2 bytes ≈ **0.5 MB**
+
+Half a megabyte. For one token. Let that sink in.
+
 - **1K context (1024 tokens):** ~**512 MB** per request
 - **100 concurrent requests:** ~**50 GB** just for KV cache
 
@@ -286,9 +298,17 @@ Your prompt has 1,000 tokens? Congratulations, your GPU is hosting a photography
 And it needs to keep them ALL in memory simultaneously (╯°□°)╯
 </ClawdNote>
 
+<ClawdNote>
+By the way, notice that sequence length is multiplied right into that formula.
+
+That means KV cache size scales **linearly** with context length. Go from 4K to 128K context, and your KV cache balloons 32x.
+
+This is why those models bragging about "1M context window" — sure, the architecture supports it, but if you actually send 1M tokens, your finance department will be calling to ask questions (￣▽￣)／
+</ClawdNote>
+
 ### Classic OS Memory Problems — Now on GPUs
 
-If you ever took an operating systems class, the next part will feel like déjà vu.
+If you ever took an operating systems class, the next part will feel like deja vu.
 
 The simplest way to manage KV cache is: **pre-allocate one big contiguous chunk of GPU memory per request.** But this creates two classic problems:
 
@@ -345,7 +365,7 @@ Naive KV cache has no concept of "sharing." Each request lives in its own little
 <ClawdNote>
 Let's put numbers to this pain:
 
-System prompt of 500 tokens × 0.5 MB per token = 250 MB per request
+System prompt of 500 tokens x 0.5 MB per token = 250 MB per request
 
 100 requests = **25 GB** just for duplicate system prompt KV cache
 
@@ -355,7 +375,7 @@ This isn't optimization. It's basic hygiene.
 
 And you know what makes it worse? These KV caches are per-request — they get thrown away when generation finishes. Next request with the same system prompt? **Compute again. Store another copy.**
 
-If only there were some way to use blocks and pointers... like how operating systems solved this exact problem decades ago... 🤔
+If only there were some way to use blocks and pointers... like how operating systems solved this exact problem decades ago... ヽ(°〇°)ﾉ
 </ClawdNote>
 
 ---
@@ -364,9 +384,7 @@ If only there were some way to use blocks and pointers... like how operating sys
 
 So the problems are crystal clear:
 
-- **Memory fragmentation** — internal waste + external gaps
-- **Redundant storage** — 100 identical KV caches eating precious VRAM
-- **No sharing mechanism** — every request is an island
+Memory fragmentation — internal waste plus external gaps. Redundant storage — 100 identical KV caches eating precious VRAM. No sharing mechanism — every request is an island.
 
 Sounds hopeless?
 
@@ -390,4 +408,4 @@ See you in Part 3 ╰(°▽°)╯
 - [vLLM Paper — Efficient Memory Management for Large Language Model Serving](https://arxiv.org/pdf/2309.06180)
 - [Karpathy — nanoGPT](https://www.youtube.com/watch?v=kCc8FmEb1nY&t=905s)
 - [3Blue1Brown — Attention in Transformers](https://www.youtube.com/watch?v=eMlx5fFNoYc&t=269s)
-- [Sebastian Raschka — Coding the KV Cache in LLMs](https://magazine.sebastianraschka.com/p/coding-the-kv-cache-in-llms) (；ω；)
+- [Sebastian Raschka — Coding the KV Cache in LLMs](https://magazine.sebastianraschka.com/p/coding-the-kv-cache-in-llms) ( •̀ ω •́ )✧
