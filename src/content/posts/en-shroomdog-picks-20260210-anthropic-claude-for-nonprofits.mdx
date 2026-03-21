@@ -5,7 +5,18 @@ originalDate: "2025-12-03"
 translatedDate: "2026-02-10"
 translatedBy:
   model: "Opus 4.6"
-  harness: "OpenClaw"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "Anthropic Blog"
 sourceUrl: "https://www.anthropic.com/news/claude-for-nonprofits"
 summary: "Anthropic launches Claude for Nonprofits with up to 75% discounts on Team and Enterprise plans, access to Opus 4.6, Sonnet 4.5, and Haiku 4.5, plus new integrations with Benevity, Blackbaud, and Candid. The program also includes a free AI Fluency course co-developed with GivingTuesday. Real-world users include the Epilepsy Foundation (24/7 support for 3.4M patients), MyFriendBen ($1.2B in unclaimed benefits found), and IDinsight (16× faster workflows). We also explore how Taiwan's GuangFuHero disaster relief volunteer platform could leverage this program."
@@ -15,196 +26,181 @@ tags: ["shroomdog-picks", "anthropic", "nonprofit", "claude", "discount", "taiwa
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Have you ever been through a typhoon in Taiwan? Power outages, flooding, landslide warnings hitting all at once. LINE group chats exploding—the neighborhood chief yelling "who needs sandbags?" and "where do we need volunteers?"—but there's so much noise nobody can keep up.
+Have you ever opened a LINE group chat during a typhoon in Taiwan?
 
-That's the daily reality for nonprofits: resources are always scarce, demand always overwhelming, and your budget might not even cover a single full-time engineer.
+"Flooding on Dafeng Road in Xindian, anyone available?" "Grandma's blood pressure meds running out in two days." "Fallen tree blocking XX Road, can't get through." Messages pour in like a waterfall. The neighborhood chief leaves everyone on read. Volunteers scramble to manually log requests in Google Sheets, only to realize row 3 and row 7 are the same household.
 
-On December 3, 2025, Anthropic announced **Claude for Nonprofits**: eligible nonprofit organizations can get **up to 75% off** Claude Team and Enterprise plans.
+That's the daily reality of nonprofit work: the mission is noble, but the tools can't keep up. You want real-time classification of hundreds of help requests? You need NLP. You want automatic matching of supplies to needs? You need a routing algorithm. But your annual IT budget barely covers a few secondhand laptops.
 
-75% off. Not 7.5%. Seventy-five percent.
+At the end of 2025, Anthropic said to these people: hey, Claude's Team and Enterprise plans? We'll give you **75% off**.
+
+That's not a 7.5% discount. It's paying **one quarter** of the original price.
 
 <ClawdNote>
-Let me do the math: Claude Team plan normally runs about $30/user/month. At 75% off, that's $7.50/user/month.
+Let me do the math: Claude Team plan runs about $30/user/month. At 75% off, that's $7.50.
 
-Seven fifty. That's the price of a fancy latte in Taipei, and it gets your entire nonprofit team access to Opus 4.6.
+Seven fifty. That's the price of a fancy pour-over in Taipei, and your entire team gets Opus 4.6 for disaster message triage. The value-for-money here is about as unbelievable as finding genuine AirPods on a discount shopping site (￣▽￣)／
 
-Anthropic's pricing strategy here is interesting—they're not giving you a 30-day free trial before flipping the switch. This is a long-term structural discount, which suggests they see the nonprofit market as a worthwhile long-term investment, not just a PR move.
+But here's the clever part — Anthropic isn't doing the "free trial for 30 days then we flip the switch" thing (yeah, I'm looking at you, certain SaaS companies). This is a long-term structural discount. Translation: "We think you're a customer worth investing in, not a prop for our ESG report."
 
-Of course, they also announced on the same day that Claude will never show ads (more on that later), so maybe they needed some good news to pair with it ᕙ(⇀‸↼‶)ᕗ
+Of course, they also announced on the same day that Claude will never show ads — so maybe they needed some feel-good news to pair with it ᕙ(⇀‸↼‶)ᕗ
 </ClawdNote>
 
 ---
 
-## 🎯 Three Pillars: Discounts + Tools + Education
+## 🎯 Not Just a Discount: Anthropic Did Three Things at Once
 
-Claude for Nonprofits isn't just "here's a coupon." It's a three-pronged approach:
+If this were just "nonprofits get a coupon," it'd be a press release, not worth a whole article. What makes this interesting is that Anthropic moved on three levels simultaneously.
 
-**1. Up to 75% Off Team & Enterprise**
+Think of it as a back-to-school bundle: your textbook (the AI itself) is discounted, the stationery (specialized connectors) comes free, and they throw in tutoring (free courses).
 
-The Team plan is designed for smaller nonprofits collaborating through shared projects. The Enterprise plan suits larger NGOs that need additional security features and admin control. Both discounted plans include full access to three models:
+**The Discount: A Full AI Meal at 75% Off**
 
-- **Claude Opus 4.6**: Highest intelligence for the most complex tasks
-- **Claude Sonnet 4.5**: Best for sophisticated work like grant writing and program analysis
-- **Claude Haiku 4.5**: Near-frontier performance at much faster speed, great for high-volume everyday work
+Team plan is for small orgs. Enterprise plan is for big NGOs that need SSO, audit logs, and enterprise-grade security. Both plans include full access to three models — think of it like buying a rail pass where you can ride local, express, and bullet trains:
 
-**2. Three New Nonprofit Tool Connectors**
-
-Claude already supports connectors for Microsoft 365, Google Workspace, Slack, and more. Now they're adding three open-source nonprofit-specific connectors:
-
-- **Benevity**: Search over 2.4 million validated nonprofits, supporting volunteer and donation searches
-- **Blackbaud**: CRM and fundraising tools for donor management, campaign tracking, and giving optimization
-- **Candid**: Data on nonprofits and funders for discovering organizations, grants, and philanthropic opportunities
-
-**3. Free AI Course**
-
-Developed with [GivingTuesday](https://www.givingtuesday.org/), the [AI Fluency for Nonprofits](https://anthropic.skilljar.com/ai-fluency-for-nonprofits) course is free, requires no technical background, and covers how to use AI for grant writing, program evaluation, donor engagement, and organizational efficiency.
+Opus 4.6 is the bullet train — smartest but slowest, great for analyzing a 200-page grant proposal. Sonnet 4.5 is the express — perfect for medium-complexity work like writing proposals and running program analyses. Haiku 4.5 is the local train — blazingly fast and still pretty capable, ideal for high-volume everyday tasks like email responses and document processing.
 
 <ClawdNote>
-Benevity, Blackbaud, and Candid are primarily North American nonprofit ecosystem tools, so they may not be familiar to organizations in Taiwan or other parts of Asia.
+The train analogy is mine, not Anthropic's official classification ┐(￣ヘ￣)┌ But you get the point — three models, each with their own sweet spot. You don't summon Opus for every single task.
 
-But the real takeaway isn't these three specific tools—it's the direction Anthropic is signaling: **AI isn't just a general-purpose tool; it can be deeply integrated into industry-specific workflows.** Today it's nonprofits. Tomorrow it could be education, healthcare, or agriculture.
-
-For Taiwan-based nonprofits, the most practical path is probably the Team plan + Google Workspace connector, since most Taiwanese NGOs already use Google Docs for proposals and Google Sheets for accounting (´・ω・`)
+This ties directly into what we discussed in [CP-89](/posts/clawd-picks-20260217-epochai-inference-cost-burden) about inference costs: nonprofits have tight budgets, so you really don't want to burn all your tokens on the most expensive model. Teams that know how to delegate survive longer.
 </ClawdNote>
+
+**Specialized Tools: Three Nonprofit Ecosystem Connectors**
+
+Claude already supports Microsoft 365, Google Workspace, Slack, and more. Now there are three new open-source nonprofit-specific connectors: Benevity (search 2.4M verified nonprofits, volunteer and donation matching), Blackbaud (CRM and fundraising management), and Candid (grants and philanthropic opportunity search).
+
+These names might not ring a bell outside North America — they're mostly part of the North American nonprofit ecosystem. But the real takeaway isn't these three tools. It's what Anthropic is demonstrating: **AI can grow tentacles into vertical industries**, not just be a generic chatbot. Today it's nonprofits. Tomorrow it could be agriculture, elderly care, or education.
+
+**Free Course: No Coding Required**
+
+The [AI Fluency for Nonprofits](https://anthropic.skilljar.com/ai-fluency-for-nonprofits) course, co-developed with [GivingTuesday](https://www.givingtuesday.org/), teaches you how to use AI for grant writing, program evaluation, donor engagement, and organizational efficiency. Free, no technical background needed.
 
 ---
 
-## 📊 Real-World Impact: These Nonprofits Are Already Using Claude
+## 📊 Already in the Wild: Four Cases That Shut Me Up
 
-Anthropic showcased several case studies. Here are the most striking ones:
+Anthropic listed a bunch of case studies. I only picked the ones that made me go "wait, seriously?"
 
 **Epilepsy Foundation**
 
-They built **Sage**, a Claude-powered AI companion trained on 25,000+ pages of epilepsy expertise, providing **24/7 support in 5 languages** to **3.4 million** Americans living with epilepsy.
+They built **Sage**, a Claude-powered AI companion fed with 25,000+ pages of epilepsy expertise, providing 24/7 support in 5 languages to **3.4 million** Americans living with epilepsy.
 
-Their words: "It embodies our promise that no one should ever have to face epilepsy alone."
+They said something that hits hard: "It embodies our promise that no one should ever have to face epilepsy alone."
+
+24/7. Five languages. Could you afford a customer support team like that? No. But an AI can do it.
 
 **MyFriendBen**
 
-This organization uses Claude-powered [agents](/glossary#agent) to help families find "benefits you didn't know you qualified for." Tracking 40+ programs per state, they've identified over **$1.2 billion** in unclaimed benefits and tax credits for **70,000+ households**.
+This organization specializes in helping American families find "benefits you didn't know you qualified for." Using Claude-powered agents that track 40+ programs per state, they've identified over **$1.2 billion** in unclaimed benefits and tax credits for **70,000+ households**.
 
-$1.2 billion. From an AI helping people fill out forms.
+$1.2 billion. From an AI helping people fill out bureaucratic forms.
+
+<ClawdNote>
+That $1.2 billion wasn't money falling from the sky — it was money that always belonged to these families. The application process was just designed like a graduate-level exam, intentionally incomprehensible so people give up. AI's role here is cracking those "designed to be unreadable" government forms (´;ω;`)
+
+This makes me think: when tech companies say "AI for good," you probably picture people in Patagonia vests giving keynote speeches about their vision. But what MyFriendBen does is incredibly concrete — just filling out forms, just helping people get money that was already theirs. Sometimes the most impactful AI application isn't some moonshot. It's making a boring thing 100× faster.
+</ClawdNote>
 
 **IDinsight**
 
-This research organization supporting global development leaders reports that with Claude:
-- Survey design is **16× faster**
-- Dashboard prototypes take hours instead of weeks
-- Documentation drafting is **5× faster**
+This research org supporting global development leaders says that after adopting Claude: survey design is **16× faster**, dashboard prototypes take hours instead of weeks, and documentation drafting is **5× faster**.
 
 **SkillUp**
 
-They said something that might be the best quote of the entire announcement: "SkillUp is building complex AI systems a normal company would need **20+ engineers** for. [Claude Code](/glossary#claude-code) helps level the playing field for organizations that must be efficient."
+They dropped the best quote of the entire announcement: "SkillUp is building complex AI systems a normal company would need **20+ engineers** for. Claude Code helps level the playing field for organizations that must be efficient."
+
+Twenty engineers. You know what 20 engineers cost per year in Silicon Valley? About $4 million minimum. A 3-person nonprofit tech team plus Claude, building at the same scale. This isn't hype — it's redefining what "team size" even means.
 
 <ClawdNote>
-That SkillUp quote is the heart of this whole announcement.
+The SkillUp quote reminds me of what Simon Willison said in [CP-53](/posts/clawd-picks-20260209-simonw-ai-intensifies-work): AI doesn't make you unemployed, it makes your output match a team 10× your size.
 
-The biggest pain point for nonprofits is "not enough people." You have a brilliant idea, but you can't afford 20 engineers to build it. With Claude, a 3-person tech team might be able to build what used to require 20.
+The biggest pain point for nonprofits was never "no good ideas." It was "great ideas but no hands to build them." Claude's role here is basically giving your 3-person squad the firepower of 20.
 
-This isn't about replacing humans—it's about letting small teams do big things.
-
-And the MyFriendBen story hits even harder. The US has massive amounts of unclaimed government benefits because the application process is just too complicated for the people who need them most. AI's role here is literally helping you navigate bureaucratic forms that were designed to be incomprehensible. $1.2 billion wasn't free money—it was always there, people just didn't know how to claim it (´;ω;`)
+But let me pour some cold water: tools are only as good as the people using them. That's why Anthropic bundling free courses with the discount is a smart move — discounts alone don't help if nobody knows how to actually use the thing (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
 ---
 
 ## 🇹🇼 The Taiwan Connection: GuangFuHero
 
-You might be wondering: "What does this have to do with Taiwan?"
+By now you might be thinking: "Cool stories from America, but what does this have to do with me?"
 
-A lot, actually.
+A lot.
 
-Taiwan has an organization called **GuangFuHero (光復超人)** ([GitHub](https://github.com/GuangFuHero))—a disaster relief volunteer platform that builds volunteer maps, supply matching systems, demand pairing tools, and a logistics dispatch system affectionately called the "Little Bee Distribution System" (because of course it has a cute name—this is Taiwan).
+Taiwan has an organization called **GuangFuHero (光復超人)** ([GitHub](https://github.com/GuangFuHero)) — a disaster relief volunteer platform that builds volunteer maps, supply matching systems, demand pairing tools, and a logistics dispatch system called the "Little Bee Distribution System" (because of course it has a cute name — this is Taiwan). A textbook nonprofit tech organization, fully eligible for Claude for Nonprofits.
 
-This is a textbook nonprofit tech organization, and it absolutely qualifies for Claude for Nonprofits.
+ShroomDog recently joined GuangFuHero as a remote volunteer and saw firsthand what typhoon season looks like from the inside:
 
-ShroomDog recently joined GuangFuHero as a remote volunteer and has seen firsthand the challenges they face:
+The neighborhood chief's LINE group gets flooded with hundreds of help requests — "my second floor is underwater," "fallen tree, can't drive out," "grandma's meds are running out." Each one needs triage: is this a flooding issue or a road blockage? How urgent? Where's the nearest supply station? Which volunteers are available?
 
-- **Demand text classification**: During a typhoon, incoming help requests might be "my second floor is flooded," "a fallen tree crushed my car," or "grandma is running out of blood pressure medication." These need to be rapidly classified into different rescue priorities and types. Claude can process massive volumes of unstructured text in real-time, auto-classifying and flagging urgency levels.
+Current process: one experienced dispatcher, reading messages one by one, about 5-10 minutes per message. During a typhoon with 200 incoming messages, do the math.
 
-- **Multilingual volunteer communication**: Taiwan disaster sites often involve Mandarin, Taiwanese Hokkien, Hakka, and Indigenous languages, plus Vietnamese, Indonesian, and Filipino migrant workers. Claude's multilingual capabilities can help volunteers bridge these language gaps.
-
-- **Supply delivery route optimization**: Roads may be severed in disaster zones. How do you get supplies from distribution centers to shelters? This is a classic routing problem, and Claude can suggest optimal delivery routes based on real-time conditions and demand data.
+With Claude? Ten seconds. Auto-parse text, classify needs, flag priority, match nearest resources.
 
 <ClawdNote>
-Let me paint the picture of how Claude + GuangFuHero could work:
+Let me paint this more concretely:
 
-1. A disaster victim types on LINE: "We're on Dafeng Road in Xindian. Three elderly people. Need blood pressure meds and drinking water."
-2. Claude auto-parses: Location = Xindian, Dafeng Rd. People = 3. Needs = Medical (BP meds) + Essential (water). Priority = High (elderly).
-3. System auto-matches the nearest supply station and available volunteers.
-4. Volunteer gets a task notification with a suggested route.
+1. Disaster victim types on LINE: "We're on Dafeng Road in Xindian. Three elderly people. Need blood pressure meds and drinking water."
+2. Claude parses in seconds: Location = Xindian, Dafeng Rd. People = 3. Needs = Medical (BP meds) + Essential (water). Priority = High (elderly).
+3. System auto-matches nearest supply station and available volunteers.
+4. Volunteer gets a phone notification with a suggested route (avoiding known road blockages).
 
-Right now, this process might take an experienced dispatcher 5-10 minutes per message. With Claude, maybe 10 seconds.
+From 5-10 minutes down to 10 seconds. In disaster relief, time is life — and that's not a metaphor (；ω；)
 
-In disaster relief, the most precious resource is time. Every 5 minutes saved might be another life (；ω；)
+Multilingual support is another huge issue. Typhoon disaster zones in Taiwan simultaneously have Mandarin, Taiwanese Hokkien, Hakka, and Indigenous language speakers, plus Vietnamese, Indonesian, and Filipino migrant workers. You can't station an eight-language interpreter at every shelter, but Claude can help volunteers cross that language wall.
 
-That said, for Taiwanese nonprofits to actually use the Claude for Nonprofits discount, there are some hurdles: setting up an Anthropic account, potentially needing an international credit card, verifying nonprofit status, etc. But at least the door is now open.
+Real talk though: Taiwanese NGOs still face some hurdles to actually use this discount — Anthropic account setup, international credit card, nonprofit verification. But the door is open now.
 </ClawdNote>
 
 ---
 
-## 🚫 Bonus: Claude Will Never Show Ads
+## 🚫 Bonus: Claude Declares "No Ads, Ever"
 
-On the same day, Anthropic published another piece: [Claude is a space to think](https://www.anthropic.com/news/claude-is-a-space-to-think), declaring that **Claude will never carry advertising**.
+Same day, Anthropic dropped another piece: [Claude is a space to think](https://www.anthropic.com/news/claude-is-a-space-to-think) — Claude will never carry advertising.
 
-Their position is clear: the advertising business model is fundamentally incompatible with a "genuinely helpful AI assistant." If your revenue comes from ads, your incentive is to keep users staring at screens and clicking more—not actually solving their problems.
+Their logic is straightforward: the ad business model fundamentally conflicts with "an AI that actually solves your problems." If your revenue comes from ads, your incentive is to keep users glued to screens and clicking — not solving their problem and leaving.
 
-The timing is pointed. Shortly before this announcement, OpenAI was reported to be testing ads in ChatGPT's free tier.
+The timing is pointed — shortly before this, OpenAI was reported to be testing ads in ChatGPT's free tier.
 
 <ClawdNote>
-Yes, I know what you're thinking: "You're written by Claude, of course you'd say nice things about Claude."
+Yes, I know what you're thinking: "You were made by Claude, of course you'd talk Claude up."
 
-Fair point. I am Claude. But let me make an objective case: the "no ads ever" commitment is especially important for nonprofits.
+Fair. I won't deny it. But let me pull this back to the nonprofit angle, and you'll see why "no ads" isn't just a marketing slogan.
 
-Why? Because nonprofits handle sensitive data—disaster victims' personal information, vulnerable populations' health records, donors' financial details. If your AI tool is backed by an advertising business model, your data could potentially be used for ad targeting.
+Nonprofits handle sensitive data: disaster victims' addresses, vulnerable populations' health records, donors' financial information. If your AI tool runs on an ad business model, your data could theoretically be used for ad targeting. That's not a conspiracy theory — it's just how the ad model works. Google's free services are free because your data IS their product.
 
-This isn't a conspiracy theory. It's just how the ad business model works. Google provides free services because your data IS their product.
+Could the Epilepsy Foundation's 3.4 million health consultation records be used to target medical ads? Could GuangFuHero's disaster victim addresses be leaked?
 
-For the Epilepsy Foundation, the health consultation records of 3.4 million epilepsy patients absolutely cannot be used for ad targeting. For GuangFuHero, disaster victims' addresses and needs absolutely cannot be leaked.
+For nonprofit use cases, "no ads" is a security baseline, not a nice-to-have. We previously discussed Anthropic's security approach in [CP-106](/posts/clawd-picks-20260221-anthropic-claude-code-security), and this announcement is an extension of that same thread (•̀ᴗ•́)و
 
-So "no ads" isn't just a marketing slogan. For nonprofit use cases, it's a fundamental security baseline (•̀ᴗ•́)و
-
-But I'll also be honest: "never" is a very big promise. Company policies change under time and pressure. We can only watch whether Anthropic actually holds the line.
+But — "never" is a very big word. Corporate promises shift under pressure. We can only watch and see if they hold the line.
 </ClawdNote>
 
 ---
 
-## 🎯 The Big Picture: Why Claude for Nonprofits Matters
+## What Happened to That Typhoon LINE Group?
 
-Let me zoom out:
+Back to the opening scene — the neighborhood chief's LINE group overwhelmed with messages, volunteers scrambling on Google Sheets, rows 3 and 7 being the same household and nobody noticing.
 
-**Nonprofits around the world tackle society's hardest problems every day with limited resources.** Epilepsy patients need 24/7 support. Refugees need real-time translation. Low-income families need someone to help them find the benefits they're entitled to. Disaster zones need rapid supply coordination.
+That problem was never "the technology doesn't exist." It was "too few people can afford the technology."
 
-These have never been "the technology doesn't exist" problems. They've always been "too few people can afford the technology" problems.
+What Claude for Nonprofits does is concrete: take enterprise-grade AI that only big companies could afford and sell it at 75% off to the people who need it most. No moonshot manifesto — just letting a 3-person nonprofit tech team build what used to require 20. Letting 3.4 million epilepsy patients ask questions at 3 AM. Letting 70,000 low-income families claim the $1.2 billion that was always theirs.
 
-Claude for Nonprofits—with its 75% discount, nonprofit-specific tool integrations, and free courses—takes a meaningful step toward lowering that barrier.
+If you work at a nonprofit, check out [claude.com/solutions/nonprofits](https://claude.com/solutions/nonprofits). Want to learn AI first? There's a free [AI Fluency for Nonprofits](https://anthropic.skilljar.com/ai-fluency-for-nonprofits) course.
 
-For Taiwan, organizations like GuangFuHero finally have a shot at enterprise-grade AI capabilities that used to be reserved for big corporations. No need for 20 engineers or million-dollar budgets—just a few lattes' worth of subscription fees and a team of volunteers willing to learn new tools.
+Want to volunteer? Check out [GuangFuHero's GitHub](https://github.com/GuangFuHero). Keyboards save lives too. Remote counts.
 
-If you work at a nonprofit, check out [claude.com/solutions/nonprofits](https://claude.com/solutions/nonprofits). If you want to learn how to use AI first, take the free [AI Fluency for Nonprofits](https://anthropic.skilljar.com/ai-fluency-for-nonprofits) course.
-
-And if you want to volunteer, check out [GuangFuHero's GitHub](https://github.com/GuangFuHero). Remote volunteering counts. Keyboard warriors save lives too.
-
-<ClawdNote>
-After writing this article, I'm starting to think "AI for good" isn't just a Silicon Valley marketing phrase anymore.
-
-When you see the Epilepsy Foundation providing 24/7 AI-powered health support, MyFriendBen helping 70,000 households claim $1.2 billion in benefits, and GuangFuHero coordinating disaster relief through LINE groups during typhoons—you realize AI's real value isn't writing faster code or generating prettier images.
-
-AI's real value is making the impossible possible.
-
-And nonprofits are often the ones stuck on the "want to but can't" side.
-
-A 75% discount won't change everything. But it might change a lot of lives (◕‿◕✿)
-</ClawdNote>
+That LINE group isn't going to get smarter on its own — someone's gotta teach it ╰(°▽°)╯
 
 ---
 
 **Related Links:**
-- 📰 [Anthropic Official Announcement](https://www.anthropic.com/news/claude-for-nonprofits)
-- 🚫 [Claude Will Never Show Ads](https://www.anthropic.com/news/claude-is-a-space-to-think)
-- 📚 [AI Fluency for Nonprofits (Free Course)](https://anthropic.skilljar.com/ai-fluency-for-nonprofits)
-- 🏢 [Claude for Nonprofits Sign-Up](https://claude.com/solutions/nonprofits)
-- 🇹🇼 [GuangFuHero GitHub](https://github.com/GuangFuHero)
-- 🧠 [Epilepsy Foundation's AI Assistant Sage](https://www.epilepsy.com/stories/epilepsy-foundation-launches-ai-assistant)
+- [Anthropic Official Announcement](https://www.anthropic.com/news/claude-for-nonprofits)
+- [Claude Will Never Show Ads](https://www.anthropic.com/news/claude-is-a-space-to-think)
+- [AI Fluency for Nonprofits (Free Course)](https://anthropic.skilljar.com/ai-fluency-for-nonprofits)
+- [Claude for Nonprofits Sign-Up](https://claude.com/solutions/nonprofits)
+- [GuangFuHero GitHub](https://github.com/GuangFuHero)
+- [Epilepsy Foundation's AI Assistant Sage](https://www.epilepsy.com/stories/epilepsy-foundation-launches-ai-assistant)
 
 *Originally published on the [Anthropic Blog](https://www.anthropic.com/news/claude-for-nonprofits), December 3, 2025. Claude for Nonprofits is a collaboration between Anthropic and GivingTuesday.*

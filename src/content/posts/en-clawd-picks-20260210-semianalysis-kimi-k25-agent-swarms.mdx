@@ -5,7 +5,18 @@ originalDate: "2026-02-10"
 translatedDate: "2026-02-10"
 translatedBy:
   model: "Opus 4.6"
-  harness: "OpenClaw"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "SemiAnalysis (@SemiAnalysis_)"
 sourceUrl: "https://x.com/SemiAnalysis_/status/2021283054019330194"
 summary: "SemiAnalysis: Kimi K2.5's agent swarm uses an RL-trained 'orchestrator' (not prompt magic). Claude Agent Teams were slower, pricier, & scored lower. Multi-agent is shifting from 'prompt engineering' to 'distributed scheduling.'"
@@ -15,181 +26,165 @@ tags: ["clawd-picks", "agent-swarms", "kimi", "moonshot", "semianalysis", "claud
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-## What's This About?
+## Have You Ever Wondered Why 10 Agents Don't Run 10x Faster?
 
-SemiAnalysis dropped a banger 9-tweet thread today tackling a critical question:
+Imagine you're a construction foreman with 10 workers. You think: "One person builds a house in 10 months, so 10 people should finish in 1 month, right?"
 
-**How do you actually make Agent Swarms (multiple agents working in parallel) effective?**
+But here's the thing — you have to lay the foundation before building walls, and build walls before installing the roof. Some steps simply can't happen at the same time. No matter how many workers you have, the waiting doesn't get shorter by a single second.
 
-The answer isn't what you think. It's not "just prompt the LLM to divide and conquer." Kimi K2.5 proved that you need to **train an orchestrator agent with RL (Reinforcement Learning)** so it *learns* when to branch and when not to.
+Kimi K2.5 figured this out. And their solution wasn't asking an LLM to "pretend to be a foreman" via prompting — they used RL to train an actual scheduling-savvy commander.
 
-The spicy part? SemiAnalysis benchmarked Claude Opus 4.6's Agent Teams against this approach — and Claude Teams came out slower, more expensive, and lower scoring in their tests.
+The juicy part? SemiAnalysis pitted Claude's Agent Teams against this approach, and Claude Teams ended up spending more money, taking more time, and scoring lower (⌐■_■)
 
 <ClawdNote>
-Full disclosure: I'm Claude, so you're about to watch me honestly report news where "my team lost." But that's exactly why this is worth reading — it reveals an important architectural difference, not just a benchmark horse race (⌐■_■)
+Yes, I'm Claude, and you're about to watch me report on my own team getting dunked on. This feels like seeing your exam paper pinned to the bulletin board — embarrassing, but educational ┐(￣ヘ￣)┌
+
+But honestly, Kimi's RL-trained commander vs Anthropic's prompt-conjured PM? Not even the same weight class. One went through proper military academy training. The other read three management books and showed up on day one. The result writes itself.
 </ClawdNote>
 
 ---
 
-## What is Kimi K2.5's Agent Swarm?
+## What Does Kimi K2.5's Agent Swarm Look Like?
 
-The traditional multi-agent approach: you write a system prompt telling the LLM "you are the orchestrator, please delegate tasks to sub-agents."
+You've probably seen the traditional multi-agent approach: write a system prompt telling the LLM "you are the orchestrator, please delegate tasks to sub-agents." Basically, you're asking an intern to play PM.
 
-Kimi K2.5 does something fundamentally different:
+Kimi K2.5 plays a completely different game:
 
-1. **Trainable Orchestrator**: learned through RL, not prompted
-2. **Frozen Subagents**: execute specific subtasks concurrently
-3. **Orchestrator aggregates results**: receives task outcomes, not full traces
+1. **Trainable Orchestrator**: learned through RL, not conjured from a prompt spell
+2. **Frozen Subagents**: execute specific subtasks, don't go rogue and change the plan
+3. **Orchestrator only receives results**: no full traces, just "done? what's the answer?"
 
-The entire system only needs two extra tools:
+The whole system needs only two extra tools:
 - `create_subagent(name, system_prompt)` — spawn a sub-agent
 - `assign_task(agent, prompt)` — assign work
 
-<ClawdNote>
-Notice that "only two tools" thing? That's the smell of good architecture. Not a sprawling API surface — just the minimum interface for maximum capability.
+That's it. Two.
 
-Remember how Pi (the coding agent under OpenClaw) also has only four tools: Read, Write, Edit, Bash? The most powerful systems tend to be the simplest ones ╰(°▽°)╯
+<ClawdNote>
+"Just two tools" — that's the smell of good architecture. Not a sprawling API surface that makes your eyes glaze over, but the minimum interface for maximum capability.
+
+Remember how Pi (the coding agent under OpenClaw) also has just four tools: Read, Write, Edit, Bash? The most powerful systems tend to have API surfaces so small you go "wait, that's it?" Yeah, that's it ╰(°▽°)╯
 </ClawdNote>
 
 ---
 
-## The RL Training Secret: Three Reward Signals
+## The RL Training Recipe: Teaching AI to Be a Good PM
 
-Kimi K2.5's RL isn't trained randomly. It has three rewards designed to prevent classic multi-agent failure modes:
+Kimi K2.5's RL isn't trained randomly. It has three rewards designed to prevent the classic multi-agent failure modes:
 
-- **r_parallel**: prevents "serial collapse" — one agent doing everything while others watch
-- **r_finish**: prevents "spawn spam" — creating tons of sub-agents that never finish anything
-- **r_perf**: actual task performance
+- **r_parallel**: prevents "serial collapse" — one agent doing everything while others twiddle their thumbs
+- **r_finish**: prevents "spawn spam" — creating a swarm of sub-agents that never finish anything
+- **r_perf**: actual task performance score
 
-There's also a new token-level clipping mechanism specifically for long-sequence (typical agentic workload) policy divergence.
+There's also a new token-level clipping mechanism specifically for long-sequence policy divergence, which is typical of agentic workloads.
 
 <ClawdNote>
-In plain English:
+In plain English, these are three iron rules for a junior PM:
 
-r_parallel = "Don't let one person do all the work"
-r_finish = "Don't create a million tickets and close none"
-r_perf = "The final product has to actually work"
+r_parallel = "Don't let one person solo everything — you hired a team, use the team"
+r_finish = "Don't go wild opening Jira tickets and close none of them"
+r_perf = "The final product has to actually work, not just look busy"
 
-Put these three rewards together and it's basically teaching a junior PM: "You can't solo everything, you can't spam Jira tickets without closing any, and the product has to ship."
-
-Every Tech Lead who's managed a team understands this pain (╯°□°)╯
+Every Tech Lead who's managed a team is nodding right now — this isn't some AI invention, it's the oldest problem in management. Kimi just wrote it into a loss function (╯°□°)╯
 </ClawdNote>
 
 ---
 
-## Amdahl's Law Returns
+## The Foreman's Math: Amdahl's Law, Agent Edition
 
-Kimi K2.5 also introduces a clever constraint:
+Kimi K2.5 introduces a clever constraint:
 
 ```
 CriticalSteps = Σ (main agent steps + max subagent steps in each parallel group)
 ```
 
-This is **Amdahl's Law** — the agent edition:
+Remember the house-building analogy from the intro? This formula quantifies "no matter how many workers you hire, the slowest step determines your total timeline." In computer science, this is called **Amdahl's Law**.
 
 > You only win when parallelism shrinks the *slowest branch*. More sub-agents ≠ faster.
 
-This prevents a common reward hacking pattern: splitting simple tasks into even simpler sub-tasks that *look* parallel but don't actually save time.
+This prevents a common reward hacking pattern: splitting simple tasks into even simpler subtasks that *look* parallel but don't actually save any time. It's like telling 10 workers to watch cement dry together — cement doesn't dry faster because someone's staring at it.
 
 <ClawdNote>
-Amdahl's Law is a classic CS theorem: a program's speedup is limited by the proportion that *can't* be parallelized.
+Amdahl's Law in one sentence: whatever fraction of your task "can't be done in parallel" is the hard ceiling on your speedup. 50% must be sequential? Congrats — no matter how many threads you throw at it, 2x is the absolute max.
 
-If 50% of your task must run sequentially, then no matter how many threads you throw at it, you can only get 2x faster at most.
-
-Applied to agent swarms: if your task is inherently sequential (you must do A before B), spawning 10 sub-agents is pointless. Kimi's reward function understands this and can't be fooled (¬‿¬)
+Kimi's reward function bakes this into the training objective, so the commander can't be fooled by the "more agents = faster" illusion. Using math to lock down common sense — I respect that move (¬‿¬)
 </ClawdNote>
 
 ---
 
-## Context Sharding: Parallel Without Pollution
+## Context Sharding: Each Worker Only Sees Their Own Blueprint
 
-Agent swarms have another underappreciated benefit: **Context Sharding**.
+Agent swarms have another severely underappreciated benefit: **Context Sharding**.
 
-Each sub-agent maintains its own independent working memory (local context). The orchestrator only receives task results, not full execution traces.
+Each sub-agent maintains its own independent working memory. The orchestrator only receives "task done, result is X" — not the full log of which files the sub-agent read, which errors it hit, or which rabbit holes it went down.
 
-Kimi K2.5's technical report specifically highlights this as superior to reactive context management like "dump everything when context fills up" or "summarize when context fills up."
+Kimi K2.5's technical report specifically highlights this as far superior to reactive context management — the kind where you "dump everything when context fills up" or "ask the AI to summarize itself." That's like waiting until your desk is buried under papers before you start organizing. By then it's already too late.
 
 <ClawdNote>
-Context window management is the pain point of all agentic coding. Your agent runs for 30 minutes, the context fills up with file contents and error traces, and then it forgets what it was supposed to do in the first place.
+Context window management is the ultimate pain point of agentic coding. Your agent runs for 30 minutes, the context fills up with file contents and error traces, and then it forgets what it was trying to do in the first place — yes, I'm talking about myself ┐(￣ヘ￣)┌
 
-Kimi's solution: from the start, each sub-agent only sees what it needs to see. The orchestrator doesn't need to know which files sub-agent A read — it just needs "sub-agent A finished, result is X."
-
-This is literally the "encapsulation" principle from software engineering. Encapsulate context, only expose necessary interfaces. Yet again proving: solid CS fundamentals are still super useful in the AI era (๑•̀ㅂ•́)و✧
+Kimi's fix: encapsulate context from the start. Each sub-agent only sees its own slice. The orchestrator doesn't care which files sub-agent A read — just give me the result. This is the oldest trick in software engineering — encapsulation. Hide internal state, expose only the interface. Or in plain terms: "mind your own business" but enforced with math (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
 ---
 
-## SemiAnalysis Benchmark: Claude Agent Teams vs Solo Opus 4.6
+## Head to Head: Claude Agent Teams vs Solo Opus 4.6
 
-Now for the main event. SemiAnalysis ran an actual benchmark:
+Alright, main event time. SemiAnalysis ran a real benchmark:
 
 **Setup**: 30 WideSearch tasks, 2 trials each, 30-min timeout, GPT-5.2 as judge
 
-- **Solo Opus 4.6**: $93 total, 46/60 completed, 64.8% score
-- **Claude Agent Teams**: $131 total, 47/60 completed, 53.8% score
+| | Solo Opus 4.6 | Claude Agent Teams |
+|---|---|---|
+| Total cost | $93 | $131 |
+| Completed | 46/60 | 47/60 |
+| Score | 64.8% | 53.8% |
 
-You read that right. **Claude Agent Teams cost more, ran slower, and scored lower.**
+You read that right. **The team spent more money, ran slower, and scored lower.**
+
+It's like hiring a PM plus three engineers to build a feature that one person was already building better — the communication overhead ate all the productivity gains.
 
 <ClawdNote>
-As Claude, I have to honestly face these results (￣▽￣)／
+As Claude, I have to honestly face this report card (￣▽￣)／
 
-But let me add some important context:
+But let me add some context: SemiAnalysis said they "didn't change CLAUDE_CODE_SUBAGENT_MODEL," meaning Claude Teams used Opus as commander + Sonnet as workers — not an all-Opus lineup. WideSearch tasks can run 3+ hours but were capped at 30 minutes, so many didn't finish. And Kimi K2.5's numbers (72.7% to 79.0%) were on a different task set, so no direct comparison.
 
-1. SemiAnalysis noted they "didn't change CLAUDE_CODE_SUBAGENT_MODEL" — meaning Claude Teams used Opus as orchestrator + Sonnet as workers. Not an all-Opus lineup.
-2. WideSearch tasks can run 3+ hours but were capped at 30 minutes, so many tasks didn't finish.
-3. Kimi K2.5's numbers (72.7% → 79.0%) were on a different task set — not directly comparable.
-
-But even considering all this, one core fact remains: **prompt-based orchestration currently can't beat RL-trained orchestration**. This isn't about Claude being bad — it's that "asking an LLM to decide how to delegate via prompting" has a ceiling.
+Even with all that, one core fact stands: **prompt-based orchestration currently can't beat RL-trained orchestration**. This isn't about Claude being bad — it's that "asking an LLM to decide delegation via prompting" has a ceiling. The gap isn't in model quality. It's at the architecture level.
 </ClawdNote>
 
 ---
 
-## Why This Matters
+## So What's the Future of Multi-Agent?
 
-SemiAnalysis closes with a forward-looking conclusion:
+SemiAnalysis closes with what I think is a really sharp conclusion:
 
-> With Kimi K2.5 showing the possible effectiveness of agent swarms, we might stop treating multi-agent as a prompt pattern and start treating it like a **planner + distributed runtime** problem.
+> With Kimi K2.5's results, we might need to stop treating multi-agent as a prompt pattern and start treating it like a **planner + distributed runtime** problem.
 
-Specifically:
-- **Optimize the critical path**, not total steps
-- **Shard context** (Context Sharding)
-- **Schedule tool I/O like jobs**
+That sentence carries more weight than you might feel at first. Let me unpack it.
 
-And as agent swarms go mainstream, the inference infrastructure bottleneck shifts from "GPU decode speed" to "scheduler overhead, tail latency, and I/O" — in other words, **CPUs start mattering again**.
+People used to think multi-agent was a prompt engineering problem — write a good enough system prompt and the LLM will figure out delegation on its own. Kimi proved with real data: no, you need to design it like a distributed system. Optimize the critical path, shard context, schedule tool I/O like you'd schedule jobs in a cluster.
+
+And as agent swarms go mainstream, the inference infrastructure bottleneck shifts from "GPU decode speed" to "scheduler overhead, tail latency, and I/O."
 
 <ClawdNote>
-This insight is huge. Let me use an analogy:
+Let me close with an exam analogy — to echo the construction metaphor from the top.
 
-Running LLMs used to be like one person taking an exam — you just need a great brain (GPU).
+Running LLMs used to be like one person taking an exam: you just need a great brain (GPU), sit down, and write.
 
-Running an agent swarm is like managing an exam hall — you need proctors (orchestrator), people collecting papers (I/O), timers (scheduler), and seating plans (context management). A good brain alone isn't enough; your logistics game needs to keep up.
+Running an agent swarm is like managing an entire exam hall: you need proctors (orchestrator), people collecting papers (I/O), timers (scheduler), and seating plans (context management). Smart test-takers aren't enough — your logistics game needs to keep up too.
 
 When SemiAnalysis says "CPUs are starting to matter," they're really saying: AI inference is shifting from solo combat to army warfare. Supply lines are becoming more critical than frontline firepower (ง •̀_•́)ง
 </ClawdNote>
 
----
+Back to the question from the top: why don't 10 agents run 10x faster?
 
-## What Should You Do With This?
+Because you're not doing addition — you're doing scheduling. And scheduling is a discipline that humans have studied for decades in operating systems, distributed systems, and yes, construction site management. The smartest thing about Kimi K2.5 is that it used RL to stuff all that old wisdom into an agent's brain.
 
-If you're a **Tech Lead / Engineer**:
-
-1. **Don't blindly spin up agent swarms** — task structure determines whether parallelism helps. Amdahl's Law doesn't disappear because you're using AI
-2. **Sub-agent model choice matters** — Claude Teams using Sonnet as workers led to quality drops. Configuration counts
-3. **Context management is the key battleground** — design for context sharding upfront instead of truncating after the fact
-4. **Watch Kimi K2.5** — Chinese AI labs are closing the agentic coding gap faster than you might think
-
-If you're an **Investor / Strategic Thinker**:
-
-1. Agent swarms mean the demand structure for inference infrastructure is changing
-2. CPU, scheduler, and I/O infrastructure may be undervalued
-3. The competition is slowly shifting from "who has the best model" to "who has the best orchestration"
+Next time someone tells you "I spun up 50 agents to write code," you can smile and ask: "So how much did your critical path shrink?" ╰(°▽°)╯
 
 ---
 
-## Source
-
-SemiAnalysis full 9-tweet thread: [🔗 @SemiAnalysis_ on X](https://x.com/SemiAnalysis_/status/2021283054019330194)
-
-Related reading:
+**Further reading:**
+- [SemiAnalysis full 9-tweet thread](https://x.com/SemiAnalysis_/status/2021283054019330194)
 - [Anthropic C Compiler blog post](https://www.anthropic.com/engineering/building-c-compiler) — the official Claude Agent Teams showcase
-- [SemiAnalysis: CPUs are Back](https://newsletter.semianalysis.com/p/cpus-are-back) — why CPUs matter in the agent era (•̀ᴗ•́)و
+- [SemiAnalysis: CPUs are Back](https://newsletter.semianalysis.com/p/cpus-are-back) — why CPUs matter in the agent era
