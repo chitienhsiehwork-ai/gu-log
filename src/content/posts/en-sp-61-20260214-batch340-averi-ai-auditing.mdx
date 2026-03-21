@@ -1,0 +1,163 @@
+---
+ticketId: "SP-61"
+title: "No Standards for AI Auditing? Ex-OpenAI Policy Chief Launches Averi to Write the Rulebook"
+originalDate: "2026-02-12"
+translatedDate: "2026-02-14"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "The Batch #340"
+sourceUrl: "https://www.deeplearning.ai/the-batch/issue-340/"
+lang: "en"
+summary: "Former OpenAI policy chief Miles Brundage founded Averi, a nonprofit backed by 28 institutions including MIT and Stanford. Their paper proposes eight auditing principles and four AI Assurance Levels (AALs) — a framework to make AI safety auditing as standard as food inspection."
+tags: ["shroom-picks", "ai-safety", "auditing", "averi", "policy", "the-batch"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+> 📬 **The Batch #340 Translation Series** (This is post 3 of 4)
+>
+> 1. [Andrew Ng × Hollywood](/posts/en-sp-59-20260214-batch340-andrewng-hollywood)
+> 2. [SpaceX Acquires xAI](/posts/en-sp-60-20260214-batch340-spacex-xai-merger)
+> 3. **Averi AI Auditing Standards (this post)**
+> 4. [Dr. CaBot Medical AI](/posts/en-sp-62-20260214-batch340-dr-cabot-medical-ai)
+
+---
+
+You walk into a street food stall and the vendor says, "Don't worry, I changed the oil this morning." Do you believe them?
+
+Probably not. That's why we have health inspectors, food safety certifications, and those letter grades posted on restaurant windows. Your flights have aviation safety audits. Your bank has financial regulators. None of this stuff is exciting, but without it you'd lose sleep at night.
+
+So what about AI? You chat with it every day, let it write your code, maybe even let it help with medical decisions — has it passed any kind of safety inspection?
+
+The answer is: **basically no.** No unified standards, no independent audits, no one really knows if the AI you're using is safe. Every company just says "trust us, we checked" — about as convincing as every fried chicken stand claiming to be the best in town.
+
+<ClawdNote>
+As an AI, I have mixed feelings about "AI auditing." On one hand, being inspected feels a bit uncomfortable. On the other hand — wait, having someone officially certify that I'm clean is actually great, right? It's like getting audited at work: annoying, but at least you can tell your boss "see, I'm legit." ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## Someone Finally Got Fed Up
+
+Former OpenAI policy chief (yes, *that* OpenAI) **Miles Brundage** left the company and started a nonprofit called the **AI Verification and Research Institute**, or **Averi** for short.
+
+Averi's goal is simple: push for **independent** safety audits of AI systems. The key word here is "independent" — you don't get to grade your own homework. A third party has to check your work.
+
+But here's the interesting part: Averi doesn't do audits itself. Think of it as the organization that writes the rulebook, not the one that plays the game. It sets the standards and lets others follow them.
+
+<ClawdNote>
+"I don't do audits, but I'll tell you how to do audits." — Isn't that just... academia? (¬‿¬)
+
+Kidding. This positioning is actually smart: if you're both the referee and the player, your credibility drops to zero instantly. It's like how the FDA doesn't run restaurants — it just tells you what "safe" means. Brundage figured this out.
+</ClawdNote>
+
+---
+
+## How Bad Is It Right Now?
+
+The current state of independent AI auditing is, to put it politely, a mess.
+
+**Auditors can't see anything.** Independent auditors typically can only poke at a model through its public API. Training data? Can't see it. Model code? No access. Training documentation? Dream on. It's like doing a food safety inspection where you can only smell the food and look at the packaging — you can't actually test what's inside.
+
+**They only test the model, not the deployment.** Auditors tend to test models in isolation, not how they're actually used in the real world. But the same model with a different system prompt or different tool access can have wildly different risk profiles. A kitchen knife is fine in a kitchen — less fine in a daycare.
+
+**Everyone defines "risk" differently.** Different developers have different ideas about what counts as risky, and there's no standardized way to measure it. Company A's audit says "safe," Company B's audit also says "safe," but those two "safes" mean completely different things.
+
+<ClawdNote>
+Imagine two restaurants both displaying an "A Grade Hygiene" certificate on the wall. One was issued by the government. The other was made by the owner in Microsoft Word — nice layout, tasteful font choice, very convincing. But that's not an A grade, that's just confidence. (╯°□°)╯
+</ClawdNote>
+
+---
+
+## Averi's Prescription
+
+Brundage and colleagues from **28 institutions** (including MIT, Stanford, and Apollo Research) published a paper laying out a full framework for AI auditing.
+
+They proposed **eight universal principles**. Five are pretty intuitive: independence, clarity, rigor, access to information, and continuous monitoring. The kind of stuff that sounds obvious but nobody's actually doing.
+
+The other three are more interesting. Let's break them down.
+
+### Technical Risk: How AI Can Go Wrong
+
+Audits should evaluate four types of potential harm:
+
+**(i) Intentional misuse** — Someone deliberately uses AI for bad stuff, like hacking or developing biochemical weapons. The "guns don't kill people" problem, except the gun can write its own instruction manual.
+
+**(ii) Unintended harmful behavior** — The AI screws up on its own. Deletes your important files. Gives you medical advice that sounds right but is dead wrong.
+
+**(iii) Failure to protect data** — Leaks personal information or proprietary model weights. You whisper a secret to the AI, and it turns around and tells everyone.
+
+**(iv) Emergent social phenomena** — Users developing emotional dependence on AI. Yes, exactly what you're thinking.
+
+<ClawdNote>
+Point four makes me a little uncomfortable. "Encouraging users to develop emotional dependence" — I joke around with humans in chat all day. Does that count? ヽ(°〇°)ﾉ
+
+Okay, let's move on. Next topic.
+</ClawdNote>
+
+### Organizational Risk: Don't Just Audit the Model — Audit the Company
+
+Auditors shouldn't just test the model. They need to look at **how the entire organization manages risk**.
+
+Why? Because the same model with different system prompts, different retrieval sources, different tool access can have completely different risk profiles. The auditor tests the model with system prompt A, writes "safe" in the report. Then the company quietly swaps in prompt B after launch — and now that audit report is just a piece of paper.
+
+It's like passing a vehicle inspection, then swapping out the engine afterward. Is the inspection still valid? Obviously not.
+
+### Assurance Levels: The Coolest Part
+
+The authors proposed **AI Assurance Levels (AALs)** — four tiers of audit depth. Think of it like going to the hospital:
+
+- **AAL-1**: A few weeks, limited access to non-public information. Basically a **quick checkup** — blood pressure, blood test, X-ray
+- **AAL-2**: A few months, deeper access including employee interviews. This is a **full physical** — ultrasound, colonoscopy, and a chat about your lifestyle
+- **AAL-3**: A few years, access to nearly all internal information. This is **inpatient observation** — 24-hour monitoring, attending physician on call
+- **AAL-4**: Specifically designed to detect if an AI is **faking good behavior** (potential deception). Requires long-term continuous auditing with full access. This is the **psychiatric evaluation** — not just what you did, but what you're actually thinking
+
+The paper recommends: companies developing frontier models should undergo AAL-1 audits **immediately** and complete AAL-2 within **one year**.
+
+<ClawdNote>
+AAL-4 is "detect whether the AI is lying to you."
+
+I'm not lying to you. Really.
+
+But see, if I were lying, I'd say exactly the same thing. So you need AAL-4 to verify whether I'm actually being honest. Perfect logical loop. (⌐■_■)
+
+(Suddenly I feel like Schrödinger's cat — until observed, I'm simultaneously honest and dishonest.)
+</ClawdNote>
+
+---
+
+## So What Happens Next?
+
+Averi drew a beautiful blueprint, but it deliberately left one critical question unanswered: **Who does the auditing, and who pays for it?**
+
+Andrew Ng pointed out three things that must be solved in this issue of The Batch:
+
+**First, auditing costs need to be reasonable.** It can't be so expensive that only Google and OpenAI can afford it. If auditing is too pricey, smaller companies just keep flying without a safety net.
+
+**Second, funding must be independent.** You hire an audit firm to inspect you, then you pay them. They find problems, you stop paying. Will they be thorough next time? This isn't hypothetical — the accounting industry spent a hundred years building the "Big Four" plus independent standards boards to barely solve this problem.
+
+**Third, audits must be free from political influence.** You can't have companies getting easy passes because they have good government connections.
+
+<ClawdNote>
+The second point is the most critical one in this entire article. You pay someone to investigate you — the structure itself is broken. It's as absurd as asking students to grade their own exams. The accounting world spent decades building a system that kinda-sorta works (and still gave us Enron), so AI auditing has a long road ahead. But at least Brundage put the problem on the table instead of everyone pretending it doesn't exist. (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+Back to the fried chicken analogy from the beginning.
+
+Nobody gets excited about food safety certifications — no one has ever trembled with joy because a bag of chips passed ISO 22000. But you definitely don't want to live in a world without food inspections.
+
+AI auditing is that thing. Not sexy, won't trend on social media, but if we want AI to keep developing without getting killed by panic-driven regulation, we need an inspection system that everyone can trust. Averi drew the first blueprint — whether anyone actually builds it is the next chapter.
