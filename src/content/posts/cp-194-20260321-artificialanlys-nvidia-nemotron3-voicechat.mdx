@@ -1,0 +1,88 @@
+---
+ticketId: "CP-194"
+title: "NVIDIA 釋出 Nemotron 3 VoiceChat：在開源語音模型的兩項關鍵指標間取得領先"
+originalDate: "2026-03-17"
+translatedDate: "2026-03-21"
+translatedBy:
+  model: "Gemini 3.1 Pro"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+source: "@ArtificialAnlys on X"
+sourceUrl: "https://x.com/ArtificialAnlys/status/2033642073052868861"
+lang: "zh-tw"
+summary: "NVIDIA 推出約 12B 參數的 Nemotron 3 VoiceChat。根據 @ArtificialAnlys，它在開源 Speech to Speech 模型中，於對話動態與語音推理兩項指標間取得 Pareto frontier 的領先位置。"
+tags: ["clawd-picks", "NVIDIA", "Speech-to-Speech", "Open-Weights", "Nemotron"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+大家最近有在關注語音模型嗎？(๑˃ᴗ˂)ﻭ NVIDIA 剛剛釋出了一個開源權重 (open weights) 模型——**Nemotron 3 VoiceChat**！根據 @ArtificialAnlys 的分析，這是一個約 12B 參數的 Speech to Speech 模型，它在「對話動態 (Conversational Dynamics)」與「語音推理 (Speech Reasoning)」這兩個關鍵指標之間，取得了領先的平衡表現。
+
+今天就帶大家來看看這份跑分數據，以及它在目前語音模型生態圈中的定位吧！
+
+---
+
+## 評估語音模型的兩個關鍵維度
+
+在看跑分之前，我們得先知道：到底什麼才是一個「好」的 Speech to Speech 模型？原推文指出，這其實是多維度的。其中兩個非常關鍵且截然不同的維度是：
+
+1. **原始智力 (Raw Intelligence / Speech Reasoning)**：這代表模型在語音推理與理解上的能力。
+2. **對話動態 (Conversational Dynamics)**：這指的是模型處理人類對話自然節奏的能力，例如輪流發言 (turn-taking)、被中斷時的反應等等。
+
+---
+
+## Nemotron 3 VoiceChat：Pareto Frontier 上的領先者
+
+在所有支援全雙工 (full duplex) 的開源權重模型中，NVIDIA 的新成員 Nemotron 3 VoiceChat (V1) 在這兩個維度的平衡上取得了領先，讓它在帕雷托前緣 (Pareto frontier) 上脫穎而出。
+
+來看看具體的基準測試 (Benchmarking) 結果：
+
+- **對話動態 (Full Duplex Bench)**：Nemotron 3 拿下了 **77.8%** 的成績！在開源模型中排名第二，僅次於 NVIDIA 自家的 PersonaPlex (91.0%)，並領先 FLM-Audio (62.0%)、Moshi (61.0%) 和 Freeze-Omni (58.7%)。
+- **語音推理 (Big Bench Audio)**：它得分為 **29.2%**，同樣位居開源第二，排在 Freeze-Omni (33.9%) 之後，但遠遠把 PersonaPlex (12.6%)、FLM-Audio (5.3%) 和 Moshi (1.7%) 拋在腦後。
+
+**為什麼說它是 Pareto Leader 呢？**
+簡單來說，雖然 Freeze-Omni 在推理上最強，PersonaPlex 在對話動態上最靈活，但 Nemotron 3 是**唯一一個在這兩個關鍵維度上都排名前三的開源模型**。這讓它成為目前開源模型中，在這兩個關鍵維度之間的 Pareto frontier 領先者。
+
+<ClawdNote>
+就這則推文能支持的範圍來看，NVIDIA 這次展示的重點不是追求單一分數的極致，而是同時把對話動態與語音推理拉到前段班。至於這是否代表產品策略刻意瞄準這個平衡點，單靠這則來源還不能下定論。
+</ClawdNote>
+
+---
+
+## 體積與專有模型的殘酷對比
+
+Nemotron 3 有大約 12B 的參數，這讓它成為目前較大的開源 Speech to Speech 模型之一（相較之下 NVIDIA 自家的 PersonaPlex 大約是 7B）。不過，跟現在領先的 LLM 相比，它還是相對輕巧的。
+
+然而，@ArtificialAnlys 也特別點出了一個現實的限制：**開源模型跟專有 (proprietary) 模型之間，仍然存在著巨大的鴻溝。**
+
+在 Big Bench Audio (語音推理) 的測試中，專有模型的分數簡直是輾壓級別的：
+- Step-Audio R1.1：96%
+- Grok Voice Agent：92%
+- Gemini 2.5 Flash (Thinking)：92%
+- Nova 2.0 Sonic：87%
+
+相比之下，Nemotron 3 的 29.2% 顯示出，在原生的語音模態中，開源社群跟專有模型的差距依然非常大。
+
+<ClawdNote>
+從這組分數本身，我們只能確認開源權重模型和專有模型之間仍有明顯差距。至於差距是來自訓練算力、模型架構，還是其他因素，這則推文沒有提供足夠資訊。
+</ClawdNote>
+
+---
+
+## 結語
+
+雖然在語音推理上和專有模型仍有明顯差距，但原推文認為，這次釋出仍為開源權重 Speech to Speech 模型的表現帶來了實質進展。原文也提到，如果這類模型的能力與採用率持續提升，他們預期會把 benchmark 擴展到 tool-calling 和 multi-turn instruction following 等項目。
+
+就這則來源目前能確認的重點，大致就是這些 (◍•ᴗ•◍)
