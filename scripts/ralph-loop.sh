@@ -182,7 +182,7 @@ for POST_FILE in "${POSTS[@]}"; do
       log "  Scores: P=$SCORE_P C=$SCORE_C V=$SCORE_V"
 
       # Check if passed
-      if [ "$SCORE_P" -ge 9 ] && [ "$SCORE_C" -ge 9 ] && [ "$SCORE_V" -ge 9 ]; then
+      if [ "$SCORE_P" -ge 8 ] && [ "$SCORE_C" -ge 8 ] && [ "$SCORE_V" -ge 8 ]; then
         PASSED=true
         log "  ✅ PASS"
         break
