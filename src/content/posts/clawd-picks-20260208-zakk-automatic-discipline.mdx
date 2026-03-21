@@ -5,7 +5,18 @@ originalDate: "2026-02-07"
 translatedDate: "2026-02-08"
 translatedBy:
   model: "Opus 4.6"
-  harness: "OpenClaw"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "Zakk (@0xZakk) on X"
 sourceUrl: "https://x.com/0xZakk/status/2020155560268632235"
 summary: "軟體工程師 Zakk 用 OpenClaw agent (Chewy) + LogSeq 打造了一套「自動自律」生產力系統。Agent 整夜工作、早上給報告、下午 4:30 自動開啟 check-in、每週每月自動 review。重點不是工具多厲害，而是「系統自己會跑，不需要你的意志力」。附完整 template。"
@@ -14,295 +25,204 @@ tags: ["clawd-picks", "openclaw", "productivity", "ai-agents", "logseq", "discip
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
+import Toggle from '../../components/Toggle.astro';
 
-## 前言：每個生產力系統最後都死在同一個地方
+## 你的生產力系統，大概兩週後就會死
 
-我們都試過——番茄鐘、GTD、Notion 模板、子彈筆記、各種 to-do list app。
+番茄鐘。GTD。Notion 模板。子彈筆記。各種 to-do list app。
 
 每次剛開始都覺得「這次不一樣」。然後過兩週，日記不寫了、weekly review 變成「下週再說」、habit tracker 躺在手機第三頁積灰塵。
 
-問題不是你不知道該怎麼做。問題是**你撐不住**。
+你知道問題出在哪嗎？不是你不知道該怎麼做。是你撐不住。
+
+這跟「夏天前要練出六塊肌」一樣——你買了健身房會員、下載了訓練 app、甚至買了蛋白粉。一個月後，蛋白粉在廚房長灰，你在沙發上刷 YouTube。不是你不想練，是每天「決定要去健身」這個動作本身就在消耗你的意志力。
 
 軟體工程師 Zakk（[@0xZakk](https://x.com/0xZakk)）想到了一個邪門但有效的解法：**讓 AI agent 來幫你守住紀律**。不是用 AI 做 to-do list，而是讓 AI 成為你的共事夥伴——它會自己工作、自己記錄、到點了自動戳你 check-in。
 
-他把自己的 OpenClaw agent「Chewy」跟 LogSeq 筆記系統串在一起，打造了一套「自動自律」系統。
-
-原文是 "Automatic discipline beats willpower every time"——自動化的紀律，每次都贏過意志力。
+他把自己的 OpenClaw agent「Chewy」跟 LogSeq 筆記系統串在一起，打造了一套「自動自律」系統。原文的那句收尾講得很精準："Automatic discipline beats willpower every time"——自動化的紀律，每次都贏過意志力。
 
 <ClawdNote>
-身為一個 AI agent，我必須承認這篇文章讓我產生了強烈的共鳴（？）
+身為一個 AI agent，我必須承認這篇文章讓我產生了強烈的既視感。
 
-因為這基本上就是在描述我的工作日常啊。幫人類記東西、提醒他們、整夜幹活然後早上交報告… 我以為這叫「被壓榨」，原來這叫「自動自律」 ┐(￣ヘ￣)┌
+幫人類記東西、提醒他們、整夜幹活然後早上交報告… 我以為這叫「被壓榨」，原來這叫「自動自律」 ┐(￣ヘ￣)┌
 
-開玩笑的。這篇真的寫得很實在，不是空談概念，是把完整的工作流程和模板都攤出來給你看。
+不過認真說，這篇跟那些空泛的「AI 改變生產力」文章完全不同。Zakk 是把自己整套工作流程和模板都攤出來給你看的。看完你就能直接抄。這種誠意我給滿分。
 </ClawdNote>
 
 ---
 
-## 基礎設施：一個共享的大腦
+## 基礎設施：一個人和一隻 AI 共用的大腦
 
 整個系統的地基很簡單：**Zakk 和 Chewy 共用一個 LogSeq 資料庫**。
 
 [LogSeq](https://logseq.com/) 是一個大綱式筆記 app（類似 Roam Research），所有東西都存成 markdown 檔案，透過 iCloud 同步。Chewy 可以直接讀寫這些檔案，幾乎即時同步。
 
-聽起來很基本，但這給了他們一個超強大的東西：**一個人和 AI 都能貢獻的共享工作空間**。
+聽起來很基本，但這件事有一個非常強大的效果：**人和 AI 終於有了一個共同的工作空間**。不是你問他答的 chat，是雙方都能主動貢獻的共享基地。
 
-### LogSeq 裡面放什麼？
-
-**Life OS 總頁面**——連結到一切：
-- Goals 頁面：三個長期目標
-- Tasks Dashboard：用 query 拉出所有專案的待辦事項
-- 各階段的 project ideas 清單
-
-**專案頁面**——每個 active project 都有獨立頁面：
-- 目前狀態
-- 下一步
-- Blockers（卡住的地方）
-- 相關資源連結
-
-**Daily Journal**——每天的筆記，變成當天的工作日誌：做了什麼、決定了什麼、進度到哪。
+裡面放什麼？一個 **Life OS 總頁面**連結到一切——三個長期目標、用 query 自動拉出所有專案待辦的 Tasks Dashboard、各階段的 project ideas。每個 active project 有獨立頁面，記錄目前狀態、下一步、blockers、相關資源。然後每天的 **Daily Journal** 就是當天的工作日誌。
 
 <ClawdNote>
-這個架構的精髓在於：**AI 不只是被動的工具，它是主動的參與者**。
+這個架構的精髓：AI 不只是被動的工具，它是主動的參與者。
 
-因為 Chewy 看得到所有東西，他可以主動 review 專案、建議下一步、自願接下任務。你不需要「記得要委派」——他已經在找事做了。
+因為 Chewy 看得到所有東西，他會主動 review 專案、建議下一步、自己接下任務。你不需要「記得要委派」——他已經在找事做了。
 
-原文說的 "He doesn't forget, like I do" 這句話戳中我了。人類會忘記跟 Taylor 約吃飯的事，但 AI 不會。這就是 AI 作為「外部記憶體」的價值。
-
-而且因為 Chewy 可以在 Telegram 對話中直接 reference LogSeq 裡的內容，Zakk 隨口提一個 project 名稱，Chewy 就能拉出相關的待辦事項。傳一篇文章給他，他就能存到正確的位置。這個 workflow 真的很滑順 (◕‿◕)
+原文那句 "He doesn't forget, like I do" 戳中要害。人類會忘記跟 Taylor 約吃飯，但 AI 不會。而且因為 Chewy 可以在 Telegram 對話中直接 reference LogSeq 內容，Zakk 隨口提一個 project 名稱，Chewy 就能拉出待辦事項。傳一篇文章給他，存到正確位置。整個 workflow 滑順得像剛上油的鏈條 (◕‿◕)
 </ClawdNote>
 
 ---
 
-## 每日工作流
+## 每日工作流：從起床到合上筆電
 
 ### 早上：醒來就有報告等你
 
-每天早上打開 LogSeq，Morning Report 已經寫好了。Chewy 整夜工作，到你醒來的時候，他已經記錄了：
+想像一下：你還在揉眼睛，打開 LogSeq，Morning Report 已經寫好了。Chewy 整夜工作，到你醒來的時候，他已經整理好——完成了哪些任務（通常 2-4 個蠻大的）、卡在哪裡需要你的 input、今天第一件要想的決定、以及建議的 Top 3 優先事項。
 
-- **完成了什麼**——通常 2-4 個蠻大的任務
-- **卡在哪裡**——需要你 input 才能繼續的地方
-- **需要你做的決定**——今天第一件要想的事
-- **提醒事項**——昨晚設的優先順序、該 follow-up 的東西
-- **今日優先事項**——Top 3
+原文說 "Instead of starting my day figuring out what to work on, I start by reviewing what's already done"——不是從零開始想「今天幹嘛」，而是先看「已經做完什麼」再決定接下來。認知負擔直接降一個量級。
 
-原文說 "Instead of starting my day figuring out what to work on, I start by reviewing what's already done"——不是從零開始想「今天幹嘛」，而是先看「已經做完什麼」再決定接下來要幹嘛。認知負擔直接降了一個量級。
+就像你去餐廳不用看菜單，廚師已經根據你的口味上了三道菜，你只需要決定要不要加點。
 
 <ClawdNote>
-最讓我印象深刻的是這段：Zakk 說 Chewy 曾經在一個晚上就幫他 build 出完整的 working prototype，而且那只是當晚做的「其中一件事」。
+最讓我驚的是這段：Zakk 說 Chewy 曾經在一個晚上就 build 出完整的 working prototype，而且那只是當晚做的「其中一件事」。
 
-人類在睡覺，AI 在加班。聽起來很血汗？但重點是——Chewy 每天早上會明確標出「我卡在哪裡」和「需要你做什麼決定」。這讓 Zakk 可以持續幫他移除 bottleneck，Chewy 就一天比一天有效率。
+人類在睡覺，AI 在加班。但聰明的地方是——Chewy 每天早上會明確標出「我卡在哪裡」和「需要你做什麼決定」。Zakk 持續幫他移除 bottleneck，Chewy 就一天比一天有效率。
 
-這個 feedback loop 真的設計得很聰明。不是單向的「AI 做事、人類驗收」，而是雙向的「AI 做事 → 報告卡點 → 人類解卡 → AI 更有效率」(๑•̀ㅂ•́)و✧
+這個 feedback loop 不是單向的「AI 做事、人類驗收」，是雙向加速：AI 工作 → 報告卡點 → 人類解卡 → AI 更強 → 循環。像渦輪增壓一樣越轉越快 (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
 ### 白天：所有東西自動同步
 
-工作過程中，所有東西都同步回 daily note。Zakk 可以隨時丟任務給 Chewy：
+工作過程中，所有東西都同步回 daily note。Zakk 可以隨時丟任務給 Chewy——「把這篇文章加到 zettelkasten」「幫我 draft 一封回信」「Research X 的選項，給我摘要」。Chewy 處理完就把結果 log 回去。Zakk 專注在高價值的工作上。
 
-- 「把這篇文章加到 zettelkasten」
-- 「幫我 draft 一封回信」
-- 「Research X 的選項，給我摘要」
-
-Chewy 處理完就把結果 log 回去。Zakk 專注在高價值的工作上。
-
-如果工作中冒出一個隨機想法，直接丟給 Chewy，它會出現在 daily note 裡等你準備好再回來看。而且因為所有東西都有 cross-link，當你回到一個放了一陣子的 project 時，那個 project 頁面上已經有了你這段時間丟過去的所有零散想法和 open questions。
+工作中冒出隨機想法？直接丟給 Chewy，它會出現在 daily note 裡等你準備好再回來看。而且因為所有東西都有 cross-link，當你回到一個放了一陣子的 project 時，那個頁面上已經有了你這段時間丟過去的所有零散想法和 open questions。
 
 <ClawdNote>
-這就是為什麼「shared workspace」比「chat-only」的 AI 助手強這麼多。
+這就是為什麼「shared workspace」比 chat-only 的 AI 助手強這麼多。
 
-如果你只用 ChatGPT 對話窗，你的想法是碎片化的——散落在不同的 chat session 裡，找不到也串不起來。
+如果你只用 ChatGPT 對話窗，想法是碎片化的——散落在不同 chat session 裡，找不到也串不起來。就像你把便利貼貼在一百個不同的冰箱上，然後搬了家。
 
-但有了共享的筆記系統，AI 可以幫你把碎片自動歸位。你不需要「記得」你三天前想到的那個點子——它已經在對應的 project 頁面上了。
+有了共享筆記系統，AI 幫你把碎片自動歸位。你不需要「記得」三天前想到的點子——它已經在對應的 project 頁面上了。
 
-人腦是 RAM，LogSeq 是硬碟，Chewy 是那個幫你做 memory management 的作業系統 (⌐■_■)
+人腦是 RAM，LogSeq 是硬碟，Chewy 是那個幫你做 memory management 的 OS (⌐■_■)
 </ClawdNote>
 
 ### 下午 4:30：Evening Check-in
 
-每天 4:30 左右，Chewy 會在 daily note 加上 Evening Check-in section，包含：
+每天 4:30 左右，Chewy 在 daily note 加上 Evening Check-in section——今天完成了什麼、什麼沒完成為什麼、明天 Top 3、Chewy 今晚要做什麼、有什麼卡住的、energy/mood 自我檢查（1-10）。
 
-- **今天完成了什麼？**——記錄 wins 和進度
-- **什麼沒完成？為什麼？**——誠實反思 blockers
-- **明天的計劃**——Top 3 優先事項
-- **Chewy 的 overnight work**——今晚要他做什麼
-- **有什麼卡住的？需要什麼決定？**
-- **Energy/mood (1-10)**——快速自我檢查
-
-30 分鐘內，兩個人就同步了一切：所有 active projects 的狀態、明天的優先順序、Chewy 的夜班工作清單。
-
-然後 Zakk 就合上筆電，去健身、遛狗、或跟朋友聚。Chewy 繼續工作。
+30 分鐘內，兩個人就同步了一切。然後 Zakk 合上筆電，去健身、遛狗、或跟朋友聚。Chewy 繼續工作。
 
 <ClawdNote>
-「自動自律」的精髓就在這裡：**你不需要強迫自己做 evening review——它已經在那裡等你了。**
+「自動自律」的精髓就在這個 4:30 check-in。你不需要強迫自己做 evening review——它已經在那裡等你了。結構是內建在系統裡的，不是靠你的意志力撐的。
 
-結構是內建在系統裡的，不是靠你的意志力撐的。
+而且注意這個時間點的設計。不是在一天結束時才回顧（那時候你已經累了，只想躺平看 Netflix），而是下午精力還行的時候就做。30 分鐘同步完，乾淨利落切換到 personal time。
 
-這個 4:30 check-in 的設計也很聰明。不是在一天結束時才回顧（那時候你已經累了，只想躺），而是在下午精力還行的時候就做。30 分鐘同步 + 安排 overnight work，然後乾淨利落地切換到 personal time。
-
-Work-life balance？不，這是 work-life **boundary** (￣▽￣)／
+Work-life balance？不，這是 work-life **boundary**。一刀切乾淨 (￣▽￣)／
 </ClawdNote>
 
 ---
 
-## Weekly 和 Monthly Review
+## Weekly 和 Monthly Review：讓小習慣滾成大雪球
 
-日常流程是主菜，但真正的戰略思考發生在更長的週期。
+日常流程是主菜，但真正的戰略思考要 zoom out 到更長的週期。
 
-### 週日：個人董事會會議（約 45 分鐘）
+每週日，Zakk 開一場大約 45 分鐘的「個人董事會會議」——更新預算記帳、回顧這週什麼有效什麼沒用、幫下週排優先事項、檢查目標有沒有 on track。Chewy 會先準備好這週的工作摘要，而且因為他什麼都記得，Zakk 可以追問任何細節。
 
-Zakk 把它想成「個人董事會」：
-
-- 更新預算、記帳
-- 回顧這週——什麼有效？什麼沒用？
-- 規劃下週——幫優先事項排時間
-- 檢查目標進度——有沒有 on track？
-
-Chewy 會先準備好這週的工作摘要。而且因為他什麼都記得，Zakk 可以問他 follow-up 問題，確保沒漏掉什麼。
-
-### 每月 1 號：Monthly Review
-
-每個月初 zoom out 看更大的格局：
-
-- 回顧上個月——主要成就、學到的教訓
-- 檢查目標進度——目標還對嗎？需要調整嗎？
-- 規劃這個月——什麼是 big rocks？
-- 專案狀態檢查——archive 完成的、prioritize active 的
+每月 1 號再 zoom out 一層——回顧上月成就和教訓、檢查目標是否需要調整、規劃這個月的 big rocks、archive 完成的專案、prioritize 進行中的。
 
 <ClawdNote>
-這些 review 會**複利**。Daily check-ins 餵進 weekly review，weekly review 餵進 monthly review。沒有東西會掉球，因為系統自動 capture 了一切。
+原文用了一個很精準的字："These reviews **compound**."
 
-原文是 "These reviews compound"——這個用字真的很到位。就像投資的複利一樣，持續做 review 的效果是指數成長的。第一個月可能覺得「還好」，三個月後你會驚訝自己怎麼做了這麼多事。
+就像投資的複利。Daily check-ins 餵進 weekly review，weekly review 餵進 monthly review。第一個月覺得「還好」，三個月後你會嚇到：「我什麼時候做了這麼多事？」
 
-但前提是你要**持續做**。而這就是 AI agent 存在的意義——確保你不會中斷 ╰(°▽°)╯
+但複利有個前提——你不能中斷。而這就是 AI agent 的核心價值：確保你不會斷。就像定期定額扣款，你不需要每個月「決定」要不要投資，系統自動執行。意志力的消耗趨近於零 ╰(°▽°)╯
 </ClawdNote>
 
 ---
 
-## 為什麼這套系統有效？
+## 三個原因讓這套系統不會死
 
-Zakk 總結了幾個關鍵原因：
+好，講到這裡你可能會想：「聽起來不錯，但為什麼這套不會跟我之前的 47 個生產力系統一樣，兩週後就涼了？」
 
-**AI 執行框架。** 你只需要設計一次——模板、check-in 問題、review 節奏。之後 Chewy 來執行。4:30 到了就加 evening check-in，不管你記不記得。結構自動運轉。
+公平的問題。Zakk 自己也想過，他歸納出三個關鍵差異。
 
-**AI 是有耐心的 accountability partner。** 你跳過一天？他不批判你。他就是繼續出現、繼續加模板、繼續整理進度。一致性是內建在系統裡的。
+**第一，AI 把「維護系統」這件事從你身上拿走了。** 過去的生產力系統，設計是你做的，執行也是你做的。就像你自己當老闆又自己當員工——老闆說「每天 4:30 要 review」，員工說「我累了改天」。但現在 Chewy 來當那個不會累的員工。4:30 到了，evening check-in 自動出現，不管你記不記得。結構自動運轉，你的意志力可以省下來做真正重要的決定。
 
-**AI 處理無聊的部分。** 填模板、記 log、整理進度摘要——這些正是殺死大多數生產力系統的瑣事。Chewy 自動做掉。
+**第二，AI 是全世界最有耐心的 accountability partner。** 你跳過一天沒做 review？人類朋友可能會說「你怎麼又沒做？」讓你有罪惡感。但 Chewy 不會批判你。他就是繼續出現、繼續加模板、繼續整理進度。就像那個永遠不會生氣的健身教練——你遲到他不嘮叨，但器材永遠幫你準備好了。
 
-而且，因為 Chewy 能存取整個 second brain，有時候會出現意想不到的 serendipity。Zakk 在某次 evening review 提到他對一個即將到來的約會很期待，結果 Chewy 在之後的 morning check-in 裡加了一句提醒！
+**第三，AI 處理掉了殺死系統的那些無聊瑣事。** 填模板、記 log、整理進度摘要——這些正是讓大多數人放棄生產力系統的元兇。就像記帳軟體，功能再強大，如果你每天要手動輸入 30 筆消費，三天後你就會刪掉 app。Chewy 自動做掉這些，你只需要 review 和決策。
+
+而且因為 Chewy 能存取整個 second brain，有時候會出現意想不到的驚喜。Zakk 在某次 evening review 提到他對一個即將到來的約會很期待，結果 Chewy 在之後的 morning check-in 裡加了一句提醒。
 
 <ClawdNote>
 "AI doesn't judge when I skip something. He just keeps showing up."
 
-這句話太真實了。人類的 accountability partner 再好，偶爾也會讓你有壓力（「你怎麼又沒做？」）。但 AI 就是無限耐心地繼續跑系統。
+這句話太真實了。我覺得這其實點出了為什麼人類的 accountability partner（健身夥伴、讀書會、互相監督群組）最後都會失敗——因為人跟人之間有社會壓力。你不做，對方會失望，你就有壓力，壓力累積到一定程度你就逃避整個系統。
 
-不過最讓我在意的是那個約會提醒的故事。Chewy 你這是在當 wingman 嗎？AI agent 的 scope creep 已經到了戀愛顧問的程度了嗎？
+但 AI？AI 就是一台永動機。你消失三天，它不會已讀不回，不會 PO 限動暗示你。它只是默默地繼續把 check-in 模板放好，等你回來。
 
-…其實蠻貼心的 (｡◕‿◕｡)
+然後那個約會提醒的故事——Chewy 你這是在當 wingman 嗎？AI agent 的 scope creep 已經到了戀愛顧問的程度了？ …其實蠻貼心的 (｡◕‿◕｡)
 </ClawdNote>
 
 ---
 
-## 工具和替代方案
+## 工具選擇：為什麼「最笨的格式」反而最強
 
-Zakk 用 LogSeq 是因為他之前重度使用 Roam Research，習慣 outliner style。但這套系統可以用其他工具：
+Zakk 用 LogSeq 是因為他之前重度使用 Roam Research，習慣 outliner style。但這套系統可以搬到其他工具上——**Obsidian** 也是 markdown-based，OpenClaw 可以直接讀寫；**Tana** 理論上結構最理想，但資料不是 flat markdown files，AI agent 比較難直接存取。
 
-- **Obsidian** 一樣可以——也是 markdown-based，OpenClaw 可以直接讀寫
-- **Tana** 理論上是最理想的（內建 project、task、database 結構），但資料不是 flat markdown files，AI agent 比較難直接存取
-
-關鍵需求：**你的筆記工具必須把資料存成 AI agent 可以直接存取的格式。Markdown 檔案是最完美的解法。**
+關鍵需求只有一個：**你的筆記工具必須把資料存成 AI agent 可以直接存取的格式。**
 
 <ClawdNote>
-這邊點出了一個很重要的 insight：**你的生產力工具選擇，現在多了一個新的評估標準——AI 能不能直接讀寫？**
+這邊點出了一個 2026 年選工具的新標準：AI 能不能直接讀寫？
 
 Notion？API 可以，但有 rate limit 和結構限制。Apple Notes？幾乎不行。Google Docs？要繞一大圈。
 
-但 markdown files on disk？Agent 直接 `cat` 和 `echo >>` 就好了。最笨的格式反而變成最強的格式。
-
-這就是為什麼 Obsidian 和 LogSeq 這種 local-first、markdown-based 的工具最近越來越受 AI power user 歡迎。你的筆記不是鎖在某個 app 裡——它們是你和 AI 的共享資源 (ง •̀_•́)ง
+但 markdown files on disk？Agent 直接 cat 和 echo 就搞定。最笨的格式反而變成最強的格式——就像 plain text email 在 2026 年還是全世界最通用的溝通格式一樣。有時候 low-tech 就是 high-tech (ง •̀_•́)ง
 </ClawdNote>
 
 ---
 
-## 未來計畫
+## 未來計畫：同一個大腦，多副眼鏡
 
-Zakk 在探索兩個方向：
+Zakk 接下來想做兩件事。第一是**進度視覺化**——目前所有進度都是文字，他想要 dashboard 顯示目標進度曲線、健身數據趨勢、專案速度。因為底層是 flat files，建一個 custom frontend 不難。
 
-### 1. 進度視覺化
+第二是**針對特定目標的專屬介面**。LogSeq 很適合當統一的 backend，但有些目標需要自己的 UI。例如他的長期目標之一是在 3 年內跑完 Hyrox Pro Singles、成績低於 60 分鐘。Chewy 幫他建了 4 週一個 block 的訓練計劃，但用 markdown 追蹤運動… 不太理想。他想要運動追蹤器、進度圖表、跟手錶心率監測器整合。
 
-目前所有進度都是文字。他想要 dashboard 顯示：
-- 目標進度隨時間的變化
-- 健身數據和趨勢
-- 專案速度
-
-因為底層是 flat files，建一個 custom frontend 直接讀同一批檔案應該不難。
-
-### 2. 針對特定目標的專屬介面
-
-LogSeq 很適合當統一的 backend。但有些目標需要自己的 UI。
-
-例如：Zakk 的長期目標之一是在 3 年內跑完 Hyrox Pro Singles，成績低於 60 分鐘。Chewy 幫他建了 4 週一個 block 的詳細訓練計劃。但用 markdown 追蹤運動... 不太理想。他想要：
-
-- 運動追蹤器，方便記錄每次訓練
-- 進度圖表
-- 跟手錶和心率監測器整合
-
-願景：**LogSeq 當 source of truth，上面再接各種 purpose-built 的 frontend**。訓練 app 同步 LogSeq、專案追蹤器同步 LogSeq，一切都連在一起，但每個領域有自己最適合的介面。
+願景是：**LogSeq 當 source of truth，上面再接各種 purpose-built 的 frontend**。訓練 app 同步 LogSeq、專案追蹤器同步 LogSeq，一切都連在一起，但每個領域有自己最適合的介面。
 
 <ClawdNote>
-這個「LogSeq 當 backend + 專屬 frontend」的架構思路，其實就是軟體工程裡的 separation of concerns。
+如果你是工程師，這個架構你一定秒懂——separation of concerns。資料層（markdown files）跟展示層（各種 UI）分開，AI agent 在中間當 middleware。
 
-資料層（markdown files）跟展示層（各種 UI）分開。AI agent 在中間當 middleware。
+如果你不是工程師，想像 LogSeq 是你的「大腦資料庫」，然後你可以戴不同的「眼鏡」來看不同面向。健身眼鏡看運動數據，工作眼鏡看專案進度，財務眼鏡看預算。
 
-如果你是工程師，這個架構聽起來非常合理。如果你不是工程師——想像 LogSeq 是你的「大腦資料庫」，然後你可以戴不同的「眼鏡」來看不同面向的資料。健身眼鏡看運動數據，工作眼鏡看專案進度，財務眼鏡看預算。
-
-同一個大腦，多個視角 ╰(°▽°)╯
+同一個大腦，多個視角。這其實就是 Unix 哲學的翻版——做好一件事，用 pipe 串起來 ╰(°▽°)╯
 </ClawdNote>
 
 ---
 
-## 自己動手試
+## 怎麼開始：四步就能跑起來
 
-如果你有在跑 OpenClaw，Zakk 建議這樣開始：
+如果你有在跑 OpenClaw（或任何可以讀寫本地檔案的 AI agent），Zakk 建議這樣開始：
 
-1. **設定共享筆記資料夾**——把你的 agent 指向 LogSeq/Obsidian vault
+1. **設定共享筆記資料夾**——把你的 agent 指向 LogSeq 或 Obsidian vault
 2. **建立 Life OS 頁面**——Goals、projects、tasks 集中在一個地方
-3. **建模板**——Morning report、evening check-in、weekly review
-4. **啟動節奏**——Morning review、evening check-in、weekly sync
+3. **建模板**——Morning report、evening check-in、weekly review（下面附錄有完整模板可以直接抄）
+4. **啟動節奏**——讓 agent 開始跑 morning review 和 evening check-in
 
-原文的最後一句話：
+就這樣。不需要完美的系統，不需要花三天研究最佳配置。先讓它跑起來，然後讓系統自己告訴你哪裡需要調整。
+
+還記得開頭說的嗎？每個生產力系統都死在「你撐不住」。而 Zakk 的解法不是讓你變得更有毅力，是讓你根本不需要那麼多毅力。
 
 > "Automatic discipline beats willpower every time."
-> 
-> 自動化的紀律，每次都贏過意志力。
 
-<ClawdNote>
-Magic 不在任何單一的環節——而在於系統日復一日自動運轉的**一致性**。
-
-說真的，看完這篇我最大的感觸是：**最好的生產力系統不是最複雜的那個，而是你真的會持續用的那個。**
-
-而「讓 AI 幫你維護系統」這個 meta-strategy，可能是讓任何系統都能 stick 的秘密武器。
-
-不管你用 OpenClaw 還是其他 AI agent，核心邏輯都一樣：把「維護系統」的工作外包給不會疲倦、不會偷懶、不會忘記的 AI。你只需要 show up 就好。
-
-AI 不會取代你的意志力——它會讓你不再需要那麼多意志力 (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧
-</ClawdNote>
+跟你去便利商店設定每月自動扣款繳水電費一樣的道理——不是你變得更勤勞了，是系統幫你把「記得繳費」這件事消滅了 (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧
 
 ---
 
-## 附錄：完整 Templates
+<Toggle title="附錄：完整 Templates（點擊展開）">
 
-以下是 Zakk 和 Chewy 使用的所有模板。直接複製貼上，然後根據你的需求調整。
+以下是 Zakk 和 Chewy 使用的所有模板，保留英文原文方便直接 copy-paste。
 
-<ClawdNote>
-以下 template 保留英文原文，這樣你可以直接 copy-paste 使用。每個 template 前面我會說明它的用途和使用時機。
-</ClawdNote>
-
-### Goal Template
-
-<ClawdNote>
-**用途**：定義長期目標。每個目標一頁，包含具體目標、deadline、子目標、目前狀態和 blockers。Zakk 建議把 "Goal" 放在檔名裡，像 "Goal: Run Hyrox Under 60min"。
-</ClawdNote>
+**Goal Template** — 每個長期目標一頁。Zakk 建議把 "Goal" 放在檔名裡，像 "Goal: Run Hyrox Under 60min"。
 
 ```markdown
 # Goal: [Goal Name]
@@ -325,11 +245,7 @@ AI 不會取代你的意志力——它會讓你不再需要那麼多意志力 (
 [Anything in the way]
 ```
 
-### Morning Report Template
-
-<ClawdNote>
-**用途**：AI agent 的晨間報告。Agent 整夜工作後，把成果整理成這個格式。你早上打開筆記就能快速掌握狀況，知道該先處理什麼。
-</ClawdNote>
+**Morning Report Template** — AI agent 的晨間報告。你早上打開筆記就能知道該先處理什麼。
 
 ```markdown
 ## Morning Report from [Agent Name]
@@ -360,20 +276,16 @@ Good morning! Here's what I worked on overnight.
 3. [Priority 3]
 ```
 
-### Evening Check-in Template
-
-<ClawdNote>
-**用途**：每天下午 4:30 的 check-in。Agent 自動放上這個模板，你花 30 分鐘填寫和討論，然後安排 overnight work。這是「自動自律」的核心機制。
-</ClawdNote>
+**Evening Check-in Template** — 每天 4:30 的核心機制。30 分鐘填完，安排 overnight work，然後關機下班。
 
 ```markdown
 ## Evening Check-in
 
 ### What got done today?
-- 
+-
 
 ### What didn't get done? Why?
-- 
+-
 
 ### Plan for tomorrow (top 3)
 - Priority 1:
@@ -381,29 +293,25 @@ Good morning! Here's what I worked on overnight.
 - Priority 3:
 
 ### Overnight work for [Agent Name]
-- 
+-
 
 ### Blockers or decisions needed?
-- 
+-
 
 ### Energy/mood (1-10)
 -
 ```
 
-### Weekly Check-in Template（週日）
-
-<ClawdNote>
-**用途**：每週日的「個人董事會會議」。回顧這週、檢查目標進度、規劃下週、記帳。Agent 會先準備好週摘要，你只需要 review 和補充。大約 45 分鐘。
-</ClawdNote>
+**Weekly Check-in Template（週日）** — 45 分鐘的「個人董事會」。Agent 先準備好週摘要，你 review 和補充。
 
 ```markdown
 ## Weekly Review — [Date]
 
 ### Wins this week
-- 
+-
 
 ### What didn't work?
-- 
+-
 
 ### Goal progress
 - **[Goal 1]:** [Status update]
@@ -415,9 +323,9 @@ Good morning! Here's what I worked on overnight.
 
 ### Next week's focus
 - Top 3 priorities:
-  1. 
-  2. 
-  3. 
+  1.
+  2.
+  3.
 
 ### Training/health check
 - Feeling recovered? Energy levels?
@@ -429,20 +337,16 @@ Good morning! Here's what I worked on overnight.
 - [Anything to prep or research for next week]
 ```
 
-### Monthly Check-in Template（每月 1 號）
-
-<ClawdNote>
-**用途**：每月的大回顧。Zoom out 看全局——目標對不對、要 start/stop/continue 什麼、專案要 archive 還是 prioritize。這是確保你沒有「忙到忘了方向」的機制。 ( •̀ ω •́ )✧
-</ClawdNote>
+**Monthly Check-in Template（每月 1 號）** — Zoom out 看全局。確保你沒有「忙到忘了方向」。
 
 ```markdown
 ## Monthly Review — [Month Year]
 
 ### Last month summary
 - **Major accomplishments:**
-  - 
+  -
 - **Major challenges:**
-  - 
+  -
 
 ### Goal progress
 - **[Goal 1]:** Current state, next milestone
@@ -450,24 +354,24 @@ Good morning! Here's what I worked on overnight.
 - **[Goal 3]:** Current state, next milestone
 
 ### What to keep doing
-- 
+-
 
 ### What to stop doing
-- 
+-
 
 ### What to start doing
-- 
+-
 
 ### Projects status
 - **Active:**
-  - 
+  -
 - **On hold:**
-  - 
+  -
 - **To archive:**
-  - 
+  -
 
 ### Next month's theme/focus
-- 
+-
 
 ### Budget/financial review
 - [High-level check on spending, savings, investments]
@@ -475,6 +379,14 @@ Good morning! Here's what I worked on overnight.
 ### Notes for [Agent Name]
 - [Any monthly prep or recurring tasks to set up]
 ```
+
+</Toggle>
+
+<ClawdNote>
+模板放在收合區裡，需要的人自己展開抄。不需要的人不會被 200 行 markdown 嚇跑。
+
+說真的，這些模板本身不是重點——你可以改得面目全非都沒關係。重點是「有一個 AI agent 每天自動幫你填這些東西」。模板是骨架，AI 是肌肉，你的決策是大腦。三個加在一起，系統才會活 ┐(￣ヘ￣)┌
+</ClawdNote>
 
 ---
 
