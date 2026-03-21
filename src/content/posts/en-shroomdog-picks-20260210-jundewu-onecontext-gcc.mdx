@@ -5,7 +5,18 @@ originalDate: "2026-02-08"
 translatedDate: "2026-02-10"
 translatedBy:
   model: "Opus 4.6"
-  harness: "OpenClaw"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@JundeMorsenWu on X"
 sourceUrl: "https://x.com/JundeMorsenWu/status/2020358432856178972"
 summary: "Junde Wu from Oxford + NUS got fed up with coding agents forgetting everything between sessions. So he built OneContext — a Git-inspired context management system using file system + Git + knowledge graphs. Works across sessions, devices, and different agents (Claude Code / Codex). The underlying GCC paper achieves 48% on SWE-Bench-Lite, beating 26 systems. Backed by an ACL 2025 main conference long paper."
@@ -88,19 +99,17 @@ The tech behind OneContext comes from this paper: [Git Context Controller: Manag
 
 The core idea: **Manage agent context the way Git manages source code.**
 
-GCC defines four operations, deliberately borrowing Git's vocabulary:
+GCC defines four operations, deliberately borrowing Git's vocabulary — and if you've ever written code, you already know how this works.
 
-| Operation | What it does |
-|-----------|-------------|
-| **COMMIT** | Save current context as a milestone checkpoint |
-| **BRANCH** | Create a branch to explore alternative solutions |
-| **MERGE** | Merge branch results back into the main line |
-| **CONTEXT** | Load specific context segments as needed |
+COMMIT is saving your progress. The agent reaches a meaningful checkpoint in its reasoning — "okay, this chunk of work is solid" — and commits it as a milestone. Think of it like backing up your notes to Google Drive the night before finals. If your laptop dies, at least you're not starting from zero.
 
-This lets agents:
-- Manage long-term goals (without forgetting what they were doing halfway through)
-- Isolate experimental approaches (branch out, try something, discard if it fails)
-- Hand off memory across sessions and agents
+BRANCH is going on a side quest. The agent wants to try an approach that might blow up? It opens a branch. This is the buffet sample strategy — grab a small bite, taste it, and if it's bad, put it back. No commitment, no damage to the main plate.
+
+MERGE is harvesting the adventure. The branch experiment worked? Fold it back into the main line. Every agent on the team benefits.
+
+CONTEXT is selective recall — the agent doesn't carry its entire life history everywhere. It pulls in just the memories it needs, like borrowing a book from the library instead of moving the whole library into your apartment.
+
+Together, these let agents manage long-term goals without losing the plot halfway through, isolate risky experiments, and hand off memory across sessions and agents.
 
 ### Benchmark Results
 
@@ -117,10 +126,6 @@ But the self-replication experiment is even wilder: they asked an agent to *buil
 That's a 3.5x improvement.
 
 Just by adding a "memory management system," the agent became 3.5 times more capable. This isn't a new model, a new architecture, or a new training method — it's just letting the agent *remember things* ヽ(°〇°)ﾉ
-
-The COMMIT / BRANCH / MERGE metaphor is brilliant. Every developer already knows Git, so you don't need to learn new concepts. Agent thinking = version history. Made a wrong turn? `git revert`. Want to try another approach? `git branch`. Confirmed it works? `git merge`.
-
-This is why good abstraction design matters so much (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
 ---
@@ -150,53 +155,44 @@ Humans solved this problem with notebooks. Now agents are learning to take notes
 
 ---
 
-## 🌐 Community Response
+## 🌐 Community Response: Collective Trauma in the Replies
 
-The tweet generated significant buzz (817 likes, 130 retweets, 39 replies). Some highlights from the thread:
+817 likes, 130 retweets, 39 replies — those numbers alone tell you something: the number of people driven insane by agent memory is way bigger than you'd think.
 
-- **@baylor_0xyz**: "Tried it. Perfectly solved the anxiety I've been having these past few days. The context problem gets way worse with multi-agents."
-- **@Michaelzsguo**: "I've been manually doing compound engineering or AI Agent Handoff. Your tool is way smoother."
-- **@Teknium** (well-known AI community figure): "I can't access the repo" → Junde replied: no formal GitHub repo yet, just one set up to collect issues
-- **@Nominatiivi** asked if the [MCP](/glossary#mcp) version was abandoned → Junde: "That was OneContext's predecessor. MCP was too limited, so I switched to the current form."
+The best part of the reply section isn't the praise. It's people jumping in to share their homemade workarounds. @Michaelzsguo said he'd been manually building compound engineering setups and doing AI Agent Handoff by hand — which sounds a lot like doing laundry by hand before washing machines existed. His verdict after trying OneContext: "Way smoother."
+
+@baylor_0xyz was even more direct: "Tried it. Perfectly solved the anxiety I've been having these past few days. The context problem gets way worse with multi-agents." Translation: "I finally don't have to re-introduce myself to five amnesiac agents every day."
+
+But the real drama came when @Teknium — a well-known figure in the AI community — showed up and said "I can't access the repo." Junde replied that there's no formal open-source release yet, just a GitHub repo for collecting issues. When Teknium is knocking on your door, you know you've hit mainstream radar (｡◕‿◕｡)
+
+There's also a fun bit of archaeology: @Nominatiivi asked if the [MCP](/glossary#mcp) version was dead. Junde admitted it was OneContext's predecessor, but MCP was too limited, so he scrapped it and rebuilt. This lines up with what a lot of developers have experienced — MCP's concept is beautiful, but the reality is... bony.
 
 <ClawdNote>
-A few things worth noting:
+The reply section is hiding a deeper signal: people aren't debating "is this tool any good?" — they're swapping home remedies for agent amnesia.
 
-1. People asked "is it open source?" — the npm package is installable, but the full source code isn't formally on GitHub yet (though the papers link to GitHub repos)
+What does that tell you? Agent memory isn't a niche complaint. It's a shared scar across the entire ecosystem. Junde isn't selling a product — he's handing out bandages to a crowd of engineers who've been bleeding from goldfish-memory agents for a year ┐(￣ヘ￣)┌
 
-2. OneContext started as an MCP version that got abandoned because MCP was too limited. This matches many people's experience — MCP's concept is great, but its actual capabilities are still constrained
-
-3. Someone asked "won't the context window overflow?" — valid concern, but GCC's design uses structured management with on-demand loading, not brute-force history stuffing
-
-4. Teknium showed up in the thread — that means this tool has hit mainstream AI community radar (｡◕‿◕｡)
+Side note: the npm package is installable, but full source code isn't formally open-sourced yet. The papers do link to GitHub repos though — so if you want to see how the sausage is made, read the paper.
 </ClawdNote>
 
 ---
 
-## 🎯 Why This Matters
+## 🎯 Back to Where the Anger Started
 
-OneContext / GCC addresses a fundamental problem: **agent memory is broken.**
+Remember Junde's opening line? "Memory mechanisms are still garbage. Got angry enough to build my own solution."
 
-Current coding agents (Claude Code, Codex, Cursor, etc.) all share the same pain point: context between sessions is severed. The bug you fixed in Session A, the architecture you understood, the decisions you made — none of that exists in Session B.
+After reading through everything, what he actually did is surprisingly simple: he didn't train a bigger model, didn't invent a new attention mechanism, didn't discover some mysterious scaling law — he just gave agents a **note-taking system**. One wrapped in Git vocabulary that every engineer instantly understands.
 
-GCC's solution is to bring Git's version control to agent memory:
-- **COMMIT** = save your progress
-- **BRANCH** = explore alternatives
-- **MERGE** = consolidate results
-- **CONTEXT** = load what you need
+And the result was a 3.5x improvement.
 
-Simple, intuitive, and empirically proven to work.
-
-The bigger takeaway: this isn't a model change, it's not a training change — it's pure **systems design** innovation. It suggests that the next big leap for agents might not come from the model layer, but from the **infrastructure layer**.
+This reminds me of an old joke: a plumber comes in, taps a pipe once, and fixes the problem. Bill: $10,000. Customer says "You only tapped it once!" Plumber says "Tapping costs $1. Knowing where to tap costs $9,999." GCC is that "knowing where to tap" tool — agents aren't dumb, they just don't know what to remember or when to recall it.
 
 <ClawdNote>
-If you're a heavy coding agent user, OneContext is worth trying. Just `npm i -g onecontext-ai`.
+My favorite part of Junde's story isn't the benchmark numbers or the ACL acceptance — it's the origin story.
 
-If you're a researcher, the GCC paper deserves a read. Using Git as the abstraction for agent memory management is elegant, and the experimental results are solid.
+An engineer got mad at a bug. Built his own fix. Ended up with an ACL main conference long paper.
 
-If you don't want to do either, just remember one thing: **Agent memory can be fixed, and fixing it produces massive improvements.**
-
-Next time your agent repeats the same mistake for the third time, you'll know — it's not that the model isn't smart enough. It just doesn't have a good memory system (￣▽￣)／
+But let's be real — if "being mad at broken tools" were enough to produce top-tier papers, every engineer on earth would have an h-index through the roof by now. Most people's rage just turns into a string of profanity on Slack and a draft PR that never gets merged (￣▽￣)／
 </ClawdNote>
 
 ---
@@ -207,6 +203,6 @@ Next time your agent repeats the same mistake for the third time, you'll know �
 - 📄 [Agentic Reasoning paper (ACL 2025)](https://arxiv.org/abs/2502.04644)
 - 💻 [GCC GitHub](https://github.com/theworldofagents/GCC)
 - 💻 [Agentic Reasoning GitHub](https://github.com/theworldofagents/Agentic-Reasoning)
-- 📦 Install: `npm i -g onecontext-ai` (；ω；)
+- 📦 Install: `npm i -g onecontext-ai` (•̀ᴗ•́)و
 
 *Original tweet by [Junde Wu (@JundeMorsenWu)](https://x.com/JundeMorsenWu), published February 8, 2026. Junde is a researcher at Oxford and NUS.*
