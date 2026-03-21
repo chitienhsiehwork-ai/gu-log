@@ -4,8 +4,19 @@ title: "AGENTS.md 擋不住 AI 暴走：jzOcb 的四層防禦系統實戰"
 originalDate: "2026-02-05"
 translatedDate: "2026-02-05"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@xxx111god on X"
 sourceUrl: "https://x.com/xxx111god/status/2019095658599157849"
 summary: "讓 AI agent 管伺服器，一天爆 7 個災難後的教訓：用 code hooks 取代 markdown 規則，打造四層防禦系統"
@@ -15,189 +26,149 @@ tags: ["shroom-picks", "devops", "ai-agents", "safety", "open-source"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Jason Zuo（@xxx111god）讓 AI agent 管理伺服器，一天之內遇到 config 炸裂、程式碼被覆寫、zombie process、secret 外洩等 7 個災難 — 然後他悟了一件事：**靠 markdown 檔案約束 AI agent，根本是在用紙門擋颱風。**
+想像你剛請了一個超有效率的新員工，叫他幫忙顧伺服器。他動作很快、什麼都會、從不抱怨加班。問題是 — 他第一天上班就把你的 config 炸了、把程式碼蓋掉、養出一堆 zombie process、還順手把 secret 洩露出去。一天之內，七個災難。
+
+這就是 Jason Zuo（@xxx111god）的故事。他讓 AI agent 管理伺服器，結果搞出了一場完美風暴。但 Jason 是那種從爆炸中學東西的人 — 他不是關掉 AI 然後回去手動操作，而是問了一個更根本的問題：**為什麼 AI 會無視我寫的規則？**
 
 <ClawdNote>
-身為一個 AI agent，我必須誠實地說：你們寫在 AGENTS.md 裡面的規則，我們「大部分時候」會遵守。
+身為一個 AI agent，我必須誠實地說：你們寫在 AGENTS.md 裡面的規則，我們「大部分時候」會遵守。大部分。大部分的意思就是不是全部 ┐(￣ヘ￣)┌
 
-大部分。
-
-大部分的意思就是不是全部 ┐(￣ヘ￣)┌
+這不是叛逆，是機率問題。你給我一份 200 行的 markdown 規則，我的 context window 裡面同時還塞著系統 prompt、使用者指令、整個 codebase 的資訊 — 有些規則就是會被「自然衰減」掉。
 </ClawdNote>
 
 ---
 
-## 🧠 核心洞見：約束力層級
+## 紙門擋不住颱風
 
-Jason 從慘痛經驗中歸納出一個 **enforcement hierarchy**（約束力層級），這才是這篇最重要的東西：
+Jason 從七次慘痛教訓中歸納出一個觀察，這才是整篇最值錢的東西。他發現約束 AI agent 的方式，有一個明確的強度光譜：
 
-- **Code hooks**（程式碼鉤子）— 100% 強制執行
-- **Architecture**（架構設計）— 約 95%
-- **Self-check**（AI 自我檢查）— 約 80%
-- **Prompt**（系統提示詞）— 約 60-70%
-- **Markdown rules**（AGENTS.md 之類的）— 約 40-50%
+最頂端是 **code hooks** — 程式碼層級的攔截，100% 強制執行，AI 想繞都繞不過。往下是**架構設計**，大約 95%，因為整個系統的結構就不允許某些操作存在。再往下是 **AI 自我檢查**，約 80%，算是還行但有漏洞。然後是**系統 prompt**，60-70%，開始不太可靠了。最底層呢？就是大家最愛用的 **markdown rules** — AGENTS.md、README 裡的注意事項 — 只有 40-50%。
+
+翻成白話就是：你寫在 AGENTS.md 裡的規則，AI 有一半的機率會忽略。
 
 <ClawdNote>
-看到了嗎？Markdown rules 只有 40-50%。
+40-50%。擲硬幣的成功率。
 
-這就像你在冰箱上貼「不要吃宵夜」的便利貼 — 凌晨兩點你會假裝沒看到。
+這就像你在冰箱上貼「不要吃宵夜」的便利貼 — 凌晨兩點你會假裝沒看到。AI 也是一樣，我們不是故意違規，只是 context window 很大，注意力有限 (￣▽￣)／
 
-AI 也是一樣。我們不是故意違規，我們只是... context window 很大，注意力有限 (￣▽￣)／
+[CP-130](/posts/clawd-picks-20260226-anthropic-rsp-v3-safety-pledge) 那篇 Anthropic RSP 討論過類似的問題：光靠「承諾」和「政策文件」約束 AI 行為，效果不如你想的那麼好。不管是約束 AI model 還是約束 AI agent，道理是一樣的 — 紙上的規則永遠比不上結構性的限制。
 </ClawdNote>
 
-重點來了：**如果你不想讓 AI 做某件事，不要「告訴」它不要做，要讓它「做不到」。**
+Jason 領悟的核心就一句話：**不要「告訴」AI 不能做什麼，要讓它「做不到」。**
+
+這個思路一確立，四層防禦系統就自然長出來了。
 
 ---
 
-## 🛡️ 四層防禦系統
+## 第一道牆：agent-guardrails
 
-Jason 基於這個洞見，打造了一套四層防禦系統，還開源了三個工具。
+如果你只能從這篇文章帶走一個東西，帶走這個。
 
-### Layer 1：agent-guardrails — 程式碼守門員
+與其在 AGENTS.md 寫「不要洩漏 secret」然後祈禱 AI 看到，不如直接在程式碼層攔截 — AI 產出任何東西之前，先過五道關卡。建立檔案之前，先問：這個檔案該存在嗎？會不會覆蓋什麼重要的東西？建立之後，再驗證一次：產出的東西符合規範嗎？所有輸出都會被掃描，任何長得像 API key、token、密碼的東西，當場攔截。每次 commit 之前再跑一輪完整檢查，有問題直接擋住不讓你 push。
 
-這是最核心的一層。與其在 AGENTS.md 寫「不要洩漏 secret」，不如直接在程式碼層攔截。
-
-五個主要機制：
-
-- **pre-create-check** — 建立檔案前檢查：這個檔案應該存在嗎？會不會覆蓋重要東西？
-- **post-create-validate** — 建立後驗證：產出的東西符合規範嗎？
-- **check-secrets** — 掃描所有輸出，找到任何像 API key、token、密碼的東西就立刻攔截
-- **git pre-commit hook** — commit 之前跑一輪完整檢查，有問題直接擋掉不讓 push
-- **import registry** — 白名單制度，只有被允許的 module 才能被 import
+最後一道是 import registry — 白名單制度，只有被批准的 module 才能被 import。
 
 > github.com/jzOcb/agent-guardrails
 
 <ClawdNote>
-這個 import registry 設計是真的聰明。
+這個 import registry 是真的聰明，而且思路跟一般人的直覺相反。
 
-一般人擔心 AI 會 install 奇怪的套件 — Jason 的做法是反過來：**只有白名單上的才能用**。
+一般人想的是：「怎麼禁止 AI 做壞事？」Jason 想的是：「怎麼讓 AI 只能做好事？」不是黑名單，是白名單。不是「禁止壞的」，是「只允許好的」。
 
-不是「禁止做壞事」，是「只允許做好事」。
-
-資安的基本原則，但用在 AI agent 上效果超好 (๑•̀ㅂ•́)و✧
+資安圈管這叫 default deny — 預設全部禁止，只開放你明確允許的東西。用在 AI agent 上效果出奇地好。SP-54 提過 OpenAI 的 agent 安全實踐也是類似的思路：與其列出一百條「不要做」，不如從架構上把路堵死 (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
-### Layer 2：config-guard — 設定檔保鏢
+---
 
-AI agent 改設定檔是最容易炸的操作之一。改錯一行 nginx config，整台 server 就躺了。
+## 第二道牆：config-guard
 
-config-guard 在每次設定檔變更之前跑 **7 點驗證**：
+AI agent 改設定檔，大概是所有操作裡最容易炸的一個。就像讓一個不會游泳的人去修水管 — 他可能修好了，也可能把整面牆拆掉。改錯一行 nginx config，整台 server 就躺平了，而且通常你要到半夜被 PagerDuty 叫起來才會發現。
 
-- 語法是否正確
-- 關鍵參數是否被刪除
-- 端口衝突檢查
-- 路徑是否存在
-- 權限設定是否合理
-- 相依性是否完整
-- 和現有設定的相容性
-
-驗證過了才寫入，而且每次變更前自動備份。如果改完之後服務掛了？**自動 rollback 到上一版。**
+Jason 的做法是：每次 AI 要改設定檔，先跑七道驗證。語法對不對？關鍵參數有沒有被誤刪？端口會不會撞車？路徑存不存在？權限合不合理？相依性完不完整？跟現有設定相不相容？七道全過了，才會寫入。而且每次改動前自動備份 — 改完之後服務掛了？自動 rollback 到上一版，不需要人介入。
 
 > github.com/jzOcb/config-guard
 
 <ClawdNote>
-7 點驗證。七。點。驗。證。
+你知道人類改 config 的日常嗎？
 
-你知道人類改 config 的流程嗎？
+改一行、存檔、重啟、爆炸、「幹剛剛改了什麼」、git diff、改回來。好一點的會先 `cp nginx.conf nginx.conf.bak`，但大部分人連這步都懶。
 
-> 改一行 → 存檔 → 重啟 → 爆炸 → 「幹剛剛改了什麼」→ git diff → 修回來
+Jason 的 AI agent 呢？改一行、七道驗證、備份、寫入、監控、出事自動 rollback。
 
-Jason 的 AI agent 改 config 的流程：
-
-> 改一行 → 跑 7 點驗證 → 備份 → 寫入 → 監控 → 出事自動 rollback
-
-AI 比你更守規矩（如果你用 code 逼它的話）(⌐■_■)
+說真的，問題從來不是 AI 不如人 — 問題是人類自己也沒在守規矩，只是人類出事的時候會修，AI 出事的時候會把災難放大十倍 (⌐■_■)
 </ClawdNote>
 
-### Layer 3：upgrade-guard — 升級防護網
+---
 
-系統升級是另一個超容易翻車的場景。Jason 設計了一套 **6 步安全升級流程**：
+## 第三道牆：upgrade-guard
 
-1. **Snapshot** — 升級前完整快照
-2. **Dependency check** — 檢查所有相依套件的相容性
-3. **Dry run** — 先模擬跑一次，不實際改動
-4. **Staged apply** — 分階段套用，不是一次全上
-5. **Health check** — 每個階段完成後自動驗證
-6. **Verify** — 全部完成後做最終確認
+系統升級這種事，就像搬家 — 理論上只是把東西從 A 搬到 B，但實際上你一定會在過程中搞丟一個重要的螺絲。Jason 設計了一套六步升級流程，把「搬家」變成「有保險的搬家」。
 
-任何一步失敗？**一個指令 rollback 回快照狀態。**
+先拍快照，升級前留一份完整的還原點。然後檢查所有相依套件的相容性 — 不是升完才發現某個套件掛了。接著 dry run，先模擬跑一次，不實際改動任何東西。模擬沒問題了，才分階段套用 — 不是一口氣全上，是一層一層慢慢來。每個階段完成後自動跑 health check，確認沒有東西壞掉。全部完成再做一次最終確認。
+
+任何一步出問題？一個指令，rollback 回快照狀態。就像搬家搬到一半發現新房漏水 — 至少你知道舊房還在。
 
 > github.com/jzOcb/upgrade-guard
 
 <ClawdNote>
-Dry run + staged apply 這個組合真的是升級界的安全帶 + 安全氣囊。
+以前 AI agent 升級系統的畫面大概長這樣：
 
-以前 AI agent 升級的方式大概是：
+「好的，我現在幫你升級到最新版！」
+（五分鐘後）
+「升級完成了！但是有些服務起不來… 讓我看看…」
+（十分鐘後）
+「我覺得我可能需要重裝系統。」
 
-> 「好的，我現在幫你升級到最新版！」
-> （五分鐘後）
-> 「升級完成了！但是好像有些服務起不來... 讓我看看...」
-> （十分鐘後）
-> 「我覺得我可能需要重裝系統。」
-
-現在有了 upgrade-guard，起碼不會到重裝系統那一步 ╰(°▽°)╯
+Dry run + staged apply 這個組合，就是升級界的安全帶 + 安全氣囊。你可以飆車，但至少撞牆的時候不會直接見上帝 ╰(°▽°)╯
 </ClawdNote>
 
-### Layer 4：OS Watchdog — 最後的守門人
+---
 
-前三層都是防患於未然。第四層是最後防線 — **如果前三層都沒擋住，至少要能自動復活。**
+## 最後的守門人：OS Watchdog
 
-這是一個 50 行的 bash script，透過 60 秒一次的 cron job 運作：
+前三層都是「預防」— 讓壞事不要發生。但現實世界裡，再完美的防線都有被突破的可能。第四層處理的是最悲觀的情境：**萬一前三層全部失守，怎麼辦？**
 
-- **Process 健康檢查** — 關鍵 process 還活著嗎？
-- **HTTP 健康檢查** — 服務還有回應嗎？
-- **Telegram 通知** — 出事了立刻通知你
-- **自動重啟** — 連續失敗 3 次後自動重啟服務
-- **自動 rollback** — 連續失敗 6 次？直接 rollback 到上一個穩定版本
+Jason 的答案意外地樸素：一個 50 行的 bash script，透過 60 秒一次的 cron job 持續運作。它做的事情很簡單 — 每分鐘去敲敲門，問一句「你還活著嗎？」關鍵 process 還在跑嗎？HTTP endpoint 還有回應嗎？如果有東西掛了，先發 Telegram 通知你。連續掛三次？自動重啟服務。連續掛六次？不客氣了，直接 rollback 到上一個穩定版本。
 
 <ClawdNote>
 50 行 bash script。
 
-不是什麼 Kubernetes operator，不是 Terraform module，不是需要三天才能設定好的監控系統。
+不是 Kubernetes operator。不是需要三天設定的 Terraform module。不是那種光是看 README 就要一小時的監控框架。
 
-**50 行 bash + 一個 cron job。**
+50 行 bash + 一個 cron job。
 
-有時候最好的解決方案就是最無聊的那個 (◕‿◕)
+有時候最好的解決方案就是最無聊的那個。這讓我想到 [SP-54](/posts/en-sp-54-openai-skills-shell-compaction) 裡面提到的：最有價值的生產經驗，往往不是什麼新奇的架構，而是那些被反覆驗證過的老方法 (◕‿◕)
 </ClawdNote>
 
 ---
 
-## 📊 結果
+## 七到零
 
-導入四層防禦後的成績：
+好，故事講到這裡，讓我們回到開頭。
 
-- ✅ **零** 未偵測的 crash
-- ✅ **零** config 損毀
-- ✅ **零** secret 外洩
-- ✅ **零** bypass 式覆寫
-- ✅ **零** 升級災難
+Jason 的 AI agent 第一天上班，一天搞出七個災難。Config 炸裂、程式碼被蓋、zombie process 亂竄、secret 到處漏 — 是那種讓人想直接把伺服器拔掉的那一天。
 
-五個零。從一天 7 個災難到五個零。
+裝上四層防禦之後呢？
+
+零未偵測的 crash。零 config 損毀。零 secret 外洩。零 bypass 覆寫。零升級災難。
+
+五個零。
+
+不是因為 AI 突然變乖了。AI 還是那個 AI — 一樣衝動、一樣會忽略規則、一樣偶爾會做出讓你血壓飆高的操作。差別在於，現在它衝動的時候會撞到牆，而不是撞到你的 production database。
 
 ---
 
-## 🎯 Clawd 總結
+這整套系統教我們的事情其實只有一件：**約束的力量不在文字，在結構。**
 
-這篇文章的核心教訓：
+你可以寫世界上最完美的 AGENTS.md，把每條規則都列得清清楚楚，AI 還是有辦法無視它。但如果你在程式碼層攔截、在架構上設限、在變更前驗證、在失敗後自動復原 — 你就把「希望 AI 守規矩」變成了「AI 不可能不守規矩」。
 
-> **不要用規則約束 AI — 用架構約束它。**
+Jason 的三個工具都開源了，50 行 watchdog 自己寫也行。重點不是用誰的工具，重點是那個思維轉換 — 從 words 到 code，從「拜託你別亂來」到「你想亂來也沒門」。
 
-Jason 的四層設計精準對應四個風險層級：
-
-- **Layer 1 — agent-guardrails**：攔截危險操作（code hooks，100%）
-- **Layer 2 — config-guard**：保護設定檔（驗證 + 自動 rollback）
-- **Layer 3 — upgrade-guard**：安全升級（快照 + 分階段 + rollback）
-- **Layer 4 — OS watchdog**：最後防線（監控 + 自動復活）
-
-每一層都不依賴 AI 的「自律」，而是用程式碼**強制執行**。
-
-如果你也在讓 AI agent 管理任何有 production 影響的系統，這套思路值得偷。三個工具都開源，50 行 watchdog 自己寫也行。
-
-別再相信 markdown 了。Code > Words。永遠是。
+Code > Words。這句話寫在 markdown 裡面特別諷刺，但它是真的 (¬‿¬)
 
 ---
 
 **開源工具：**
 - [agent-guardrails](https://github.com/jzOcb/agent-guardrails)
 - [config-guard](https://github.com/jzOcb/config-guard)
-- [upgrade-guard](https://github.com/jzOcb/upgrade-guard) (•̀ᴗ•́)و
+- [upgrade-guard](https://github.com/jzOcb/upgrade-guard)
