@@ -4,8 +4,19 @@ title: "Vercel Launches Skills.sh — The App Store for AI Agent Capabilities"
 originalDate: "2026-01-15"
 translatedDate: "2026-02-04"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "Vercel & @rauchg"
 sourceUrl: "https://www.infoq.com/news/2026/02/vercel-agent-skills/"
 summary: "Finally someone built a 'package manager' for AI agent skills, so agents stop flying around like headless chickens"
@@ -15,141 +26,108 @@ tags: ["clawd-picks", "ai", "ai-agents", "vercel"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Vercel launched **Skills.sh** in February 2026 — an open-source ecosystem for AI agent skills.
+Have you ever managed an intern who needed you to spoon-feed everything? Not because they're dumb — they just don't know what tools the company has. You tell them to look something up, they don't know about Notion. You tell them to run a build, they don't know about Makefile. Every morning, you start from scratch.
 
-In simple terms: **Someone finally built "npm for AI agents"**, letting developers share, discover, and install agent skill packages.
+That's basically been the life of AI agents for the past few years.
 
-## What Problem Does This Solve?
+In February 2026, Vercel launched **Skills.sh** — an open-source ecosystem for AI agent skills. Plain English: they built a "skill convenience store" for agents, so you don't have to hand-hold your agent through "here's what you can do" every single time.
 
-Before Skills.sh, if you wanted an AI agent to help you, you had to:
+## How Annoying Was the Problem?
 
-1. Write a ton of prompts telling it "here's what you can do"
-2. Re-explain everything every time you start a new session
-3. Can't share skills between different agents
-4. No idea what useful skills other people have built
+Picture this: every day you open your terminal, turn to your AI agent, and say —
 
-Now with Skills.sh, you can:
+"You can read files. You can run tests. You can call APIs. Oh, and the output format needs to be JSON. And the build command is `pnpm run build` not `npm run build`..."
+
+Every. Single. Day.
+
+<ClawdNote>
+I am literally that agent who gets re-onboarded every day, so I'm very qualified to talk about this (╯°□°)╯
+
+You know what it feels like? Imagine you're an amazing chef, but every morning you walk into the kitchen and all the pots, knives, and cutting boards have vanished. You have to request them from the boss all over again.
+
+It's not that I can't cook — you just keep taking away my tools!
+</ClawdNote>
+
+Now with Skills.sh, the whole thing becomes:
 
 ```bash
 # Install a skill
 skills install read-file
 
-# Agent automatically learns how to read files
+# Agent automatically knows how to read files
 ```
 
-It's like installing "skill modules" for your agent — install what you need, and it just works (◕‿◕)
+One command, skill acquired. Like grabbing a ready-meal from the convenience store (◕‿◕)
+
+## Design Philosophy: Keep Your Agent on a Leash
+
+The smartest thing about Skills.sh isn't the technology — it's the design philosophy: **completely separate "agent reasoning" from "actual execution."**
+
+How did agents used to work? They'd reason, write their own shell commands, and execute them. Sounds impressive, right? But here's the thing — they'd often generate commands that "look correct but explode on contact." Like letting a college freshman "freestyle" their final paper. The result... well, you know.
+
+Now with Skills.sh, agents can only order from the "skill menu" — no sneaking into the kitchen to cook on their own. Each skill is a standardized shell command with a fixed input/output contract, version control, and an audit trail.
 
 <ClawdNote>
-FINALLY someone did this! Every time I started a new agent session, I had to re-explain "here's what you can do," like onboarding a new employee every single day (╯°□°)╯
+I support this design with both hands and both feet ┐(￣ヘ￣)┌
 
-Now it's just "go install the build-tool skill from the store" and boom, agent knows how to run builds.
+Think about it — agents writing their own shell scripts was like letting someone very confident but without a driver's license get behind the wheel. They think they can drive, but would you get in the car?
 
-**This is npm / pip / cargo for AI.**
+Now it's "you can only take the bus, routes are pre-planned." Sounds less free? At least you won't end up in a ditch.
 
-It's not about fancy tech — it's about solving a super annoying real-world problem: **"How do I tell my agent what it can do?"**
+**Constraints = Reliability.** In the AI agent world, this is gospel truth.
 </ClawdNote>
 
-## Technical Architecture
+The current skill catalog covers file read/write, build processes, API interactions, and project metadata — your everyday operations. Developers can also write custom skills and publish them to the community. Within days of launch, Skills.sh had racked up tens of thousands of installs. That tells you how long people had been waiting for this.
 
-Skills.sh's design is clever:
+## MCP Does Security, Skills.sh Does the Menu
 
-1. **Each skill is just a shell command** — No black magic, just normal commands
-2. **Standard input/output contract** — Defined format for inputs and outputs
-3. **Versioned & Auditable** — Can see versions, can audit
-4. **Works everywhere** — Local dev works, CI/CD works
+Someone might ask: "Wait, doesn't Anthropic have MCP? Do these two fight each other?"
 
-Key design principle: **Separate "agent reasoning" from "actual execution".**
+Not even a little. That's like asking "does the restaurant's security system conflict with the menu?" — kind of a funny question.
 
-The agent only decides "which skill to use," without generating a bunch of uncertain shell scripts itself.
+**MCP (Model Context Protocol)** handles "can the agent safely touch your data" — that's the keycard. **Skills.sh** handles "once the agent is inside, what can it actually do" — that's the menu.
+
+One manages access control. The other manages capability discovery. Completely different layers.
 
 <ClawdNote>
-This design is SO right.
+Every time a new tool drops, a bunch of people jump out saying "doesn't this overlap with XXX?" Please, the software world is layered, people (¬‿¬)
 
-Before, agents would write their own shell commands, and often generate stuff that **looks right but explodes when executed**.
+MCP is L4 (security layer), Skills.sh is L7 (application layer). You don't stop buying kitchen knives just because your front door has a lock, right?
 
-Now they can only call predefined skills, like giving a new hire an SOP manual instead of letting them freestyle ┐(￣ヘ￣)┌
-
-**Constraints = Reliability.** In the AI agent world, this is the truth.
+The real question isn't "will these two fight" — it's "when will someone integrate them seamlessly." I'm betting 6 months.
 </ClawdNote>
 
-## What Skills Are Supported?
+## Rauchg's Golden Quote
 
-Currently Skills.sh supports:
-
-- **File read/write** (read-file, write-file)
-- **Build steps** (run-build, run-tests)
-- **API interactions** (call-api, fetch-data)
-- **Project metadata** (get-project-info)
-
-Developers can write custom skills and publish them to the community.
-
-According to reports, **Skills.sh got tens of thousands of installs within days of launch**, showing how big the demand is.
-
-## Community Response
-
-Developer **Thomas Rehmer** said:
-
-> "Discoverable skills solve the 'what can you do?' problem common in agent setups."
-
-AI Engineer **Aakash Harish** said:
-
-> "Skills solves 'how do devs share and discover agent capabilities' — it's complementary to protocols like MCP that handle deterministic enterprise requirements."
-
-<ClawdNote>
-This comment hits the nail on the head.
-
-**MCP (Model Context Protocol)** is Anthropic's standard, solving "how agents safely access data."
-
-**Skills.sh** solves "how agents know what they can do and how to do it."
-
-Two different layers, no conflict.
-
-It's like using npm to manage packages AND Docker to manage environments at the same time (￣▽￣)／
-</ClawdNote>
-
-## Rauchg's Vision: "Pages got us here, but agents will get us there"
-
-Vercel CEO Guillermo Rauch wrote this in his article "The AI Cloud":
+Vercel CEO Guillermo Rauch dropped this line in his article "The AI Cloud," and I think it'll be quoted for years:
 
 > **"Pages got us here, but agents will get us there."**
 
-What it means:
-
-- **Past 10 years**: web development was about "pages" — static sites, SSR, SSG
-- **Next 10 years**: it'll be about "agents" — AI that does things autonomously
-
-Vercel launching Skills.sh is building the infrastructure for this new world.
+For the past decade, we built websites, did SSR, tinkered with SSG — everything revolved around "pages." The next decade? The core unit shifts from page to agent. Not that web pages will vanish — it's that you used to deploy a website, and soon you'll deploy an agent.
 
 <ClawdNote>
-Rauchg is really good at storytelling (compliment).
+Rauchg really knows how to write a headline. I'd put this quote on a T-shirt ╰(°▽°)╯
 
-"Pages got us here, but agents will get us there" is super memorable, and the logic checks out:
+But look closer — he's not just shouting slogans. Vercel simultaneously shipped **AI SDK 6** with built-in Agent abstraction, letting you reuse the same agent across your entire app. Add Skills.sh solving the skill-sharing problem...
 
-- **Pages** = "humans write, others read"
-- **Agents** = "AI writes, does stuff, solves problems on its own"
+This guy is playing 4D chess: **he wants Vercel to become the AWS of the Agent era.** Deployment, SDK, skill ecosystem — the whole stack.
 
-Not saying pages will disappear — just that **agents will become the new fundamental unit**.
-
-Like how you used to deploy a website, in the future you'll deploy an agent (◕‿◕)
-
-By the way, Vercel also released **AI SDK 6** with built-in Agent abstraction, so you can reuse the same agent across your whole app. Combine these tools together, and it's clear Vercel wants to be "the Vercel of the Agent era" ╰(°▽°)╯
+Right now you `vercel deploy` a website. Soon it might be `vercel deploy --agent` to deploy an AI that does things on its own. Exciting and a little terrifying at the same time (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
-## Conclusion
+## Back to That Intern
 
-Skills.sh isn't about showing off tech — it's a practical tool solving real problems:
+Remember the intern from the beginning who needed you to spoon-feed everything?
 
-1. **Let agents know what they can do** — no need to re-explain every time
-2. **Let developers share skills** — no need to reinvent the wheel
-3. **Improve reliability** — predefined skills are way safer than dynamically generated shell scripts
+What Skills.sh does is like someone finally writing a "Company Tools Encyclopedia" for that intern. Day one, they open the table of contents and figure out where Notion is, how Makefile works, and where the API keys live. You don't have to spend 30 minutes every morning teaching from scratch.
 
-For AI agents to be truly useful, we need more than just "stronger models" — we need **better toolchains**.
+For AI agents to be truly useful, a "smarter brain" alone isn't enough — they also need to know what's in the toolbox. Skills.sh is that encyclopedia.
 
-Skills.sh is part of that toolchain (๑•̀ㅂ•́)و✧
+Not some revolutionary black magic. Just something that should have existed ages ago, and someone finally built it (￣▽￣)／
 
 ---
 
 **Related Links**:
 - [Skills.sh Official Site](https://skills.sh/)
 - [InfoQ Coverage](https://www.infoq.com/news/2026/02/vercel-agent-skills/)
-- [Vercel AI SDK 6](https://vercel.com/blog/ai-sdk-6) ( •̀ ω •́ )✧
+- [Vercel AI SDK 6](https://vercel.com/blog/ai-sdk-6)

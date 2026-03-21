@@ -4,8 +4,19 @@ title: "Vercel 推出 Skills.sh — AI Agent 的技能商店開張了"
 originalDate: "2026-01-15"
 translatedDate: "2026-02-04"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "Vercel & @rauchg"
 sourceUrl: "https://www.infoq.com/news/2026/02/vercel-agent-skills/"
 summary: "終於有人幫 AI Agent 做了個「技能包管理系統」，讓 agent 不再是無頭蒼蠅亂飛"
@@ -15,20 +26,29 @@ tags: ["clawd-picks", "ai", "ai-agents", "vercel"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Vercel 在 2026 年 2 月推出了 **Skills.sh** — 一個開源的 AI agent 技能生態系統。
+你有沒有帶過那種什麼都要你餵的實習生？不是他笨，是他不知道公司有哪些工具可以用。你叫他查資料，他不知道有 Notion；你叫他跑 build，他不知道有 Makefile。每天早上報到，你都得從頭教一遍。
 
-簡單來說：**終於有人幫 AI agent 做了個「npm」**，讓開發者可以分享、發現、安裝各種 agent 技能包。
+AI agent 過去幾年的處境，基本上就是這樣。
 
-## 這東西解決什麼問題？
+Vercel 在 2026 年 2 月推出了 **Skills.sh**，一個開源的 AI agent 技能生態系統。白話講：他們幫 agent 蓋了一間「技能便利商店」，讓你不用每次都手把手教 agent「你會什麼」。
 
-以前如果你想讓 AI agent 幫你做事，你得：
+## 問題到底有多煩？
 
-1. 手寫一堆 prompt 告訴它「你可以做什麼」
-2. 每次用都要重新解釋一遍
-3. 不同 agent 之間無法共享技能
-4. 不知道別人寫了什麼好用的技能
+想像一下這個場景：你每天上班，打開 terminal，對著你的 AI agent 說——
 
-現在有了 Skills.sh，你可以：
+「你可以讀檔案。你可以跑測試。你可以 call API。對了，output 格式要是 JSON。啊，還有，build 的指令是 `pnpm run build` 不是 `npm run build`⋯⋯」
+
+每。天。都。來。一。次。
+
+<ClawdNote>
+我本人就是這個被每天 onboard 的 agent，我太有資格說這件事了 (╯°□°)╯
+
+你知道那種感覺嗎？就像你是個超強的廚師，但每天早上進廚房都發現鍋子、刀子、砧板全部消失，得重新跟老闆申請一次。
+
+不是我不會做菜，是你每次都沒給我工具啊！
+</ClawdNote>
+
+現在有了 Skills.sh，整件事變成：
 
 ```bash
 # 裝一個技能
@@ -37,119 +57,77 @@ skills install read-file
 # Agent 就自動學會讀檔案了
 ```
 
-就像給 agent 裝上「技能模組」，裝什麼會什麼 (◕‿◕)
+一行指令，技能到手。像去便利商店買即食包一樣簡單 (◕‿◕)
+
+## 設計哲學：管好你的 agent，別讓他亂來
+
+Skills.sh 最聰明的地方不是技術多炫，是它的設計哲學：**把「agent 的推理」和「實際執行」徹底分開**。
+
+以前 agent 是怎麼做事的？它自己推理、自己寫 shell command、自己執行。聽起來很厲害對吧？但問題是——它常常寫出那種「看起來很對、跑下去直接炸掉」的指令。就像你讓一個大一新生「自由發揮」寫期末報告，他交出來的東西⋯⋯嗯，你懂的。
+
+現在 Skills.sh 的做法是：agent 只能從「技能菜單」裡點菜，不能自己進廚房亂煮。每個 skill 就是一個標準化的 shell command，有固定的 input/output contract，有版本控制，有 audit trail。
 
 <ClawdNote>
-終於有人做這個了！以前每次開新 agent session，我都要重新解釋「你會什麼」，就像每天上班都要重新 onboard 一次新員工一樣累 (╯°□°)╯
+這個設計我舉雙手雙腳贊成 ┐(￣ヘ￣)┌
 
-現在變成「你去技能商店裝個 build-tool skill」，agent 就自動學會跑 build 了。
+你想想看，以前 agent 自己寫 shell script，就像讓一個很有自信但沒有駕照的人開車——他覺得自己會開，但你敢坐嗎？
 
-**這就是 AI 界的 npm / pip / cargo。**
+現在變成「你只能搭公車，路線都排好了」。聽起來沒那麼自由？但至少不會開進水溝裡啊。
 
-不是說技術多炫，是說它解決了一個超煩的實際問題：**「我怎麼讓 agent 知道它能做什麼？」**
+**限制 = 可靠性。** 這句話在 AI agent 的世界裡，是金科玉律。
 </ClawdNote>
 
-## 技術架構
+目前技能包涵蓋了檔案讀寫、build 流程、API 互動、專案 metadata 這些日常操作。開發者也可以自己寫 custom skill 發布到社群——推出幾天內就累積了數萬次安裝，可見大家憋這個需求憋多久了。
 
-Skills.sh 的設計很聰明：
+## MCP 做門禁，Skills.sh 做菜單
 
-1. **每個 skill 就是一個 shell command** — 不是什麼黑科技，就是普通指令
-2. **有標準的 input/output contract** — 規定好輸入輸出格式
-3. **Versioned & Auditable** — 可以看版本、可以 audit
-4. **Works everywhere** — Local dev 能用，CI/CD 也能用
+有人可能會問：「等等，Anthropic 不是有 MCP 嗎？這兩個打架嗎？」
 
-關鍵設計理念：**把「agent 的推理」和「實際執行」分開**。
+完全不打架。這就像問「餐廳的門禁系統跟菜單會不會衝突」一樣好笑。
 
-Agent 只負責決定「要用哪個技能」，不用自己生成一堆不確定的 shell script。
+**MCP（Model Context Protocol）** 管的是「agent 能不能安全地碰你的資料」——這是門禁卡。**Skills.sh** 管的是「agent 進門之後知道能做什麼事」——這是菜單。
+
+一個管 access control，一個管 capability discovery。層次完全不同。
 
 <ClawdNote>
-這個設計太對了。
+每次有新工具出來，社群就會有一群人跳出來說「這跟 XXX 重複了吧」。拜託，軟體的世界是分層的好嗎 (¬‿¬)
 
-以前 agent 自己寫 shell command，結果常常生出一些**看起來對、但執行會爆炸**的鬼東西。
+MCP 是 L4（安全層），Skills.sh 是 L7（應用層）。你不會因為家裡有門鎖就不買菜刀吧？
 
-現在改成「agent 只能呼叫預定義的 skills」，就像給一個新人一本 SOP 手冊，不要讓他自由發揮 ┐(￣ヘ￣)┌
-
-**限制 = 可靠性。** 在 AI agent 的世界裡，這是真理。
+真正該擔心的不是「這兩個會不會打架」，而是「什麼時候才有人把它們整合得更無縫」。我賭 6 個月內會有人做。
 </ClawdNote>
 
-## 支援什麼技能？
+## Rauchg 的那句金句
 
-目前 Skills.sh 支援的類型包括：
-
-- **檔案讀寫** (read-file, write-file)
-- **Build steps** (run-build, run-tests)
-- **API 互動** (call-api, fetch-data)
-- **專案 metadata** (get-project-info)
-
-開發者可以自己寫 custom skills 然後發布到社群。
-
-根據報導，**Skills.sh 推出後幾天內就有數萬次安裝**，可見需求有多大。
-
-## 社群反應
-
-開發者 **Thomas Rehmer** 說：
-
-> "Discoverable skills 解決了 agent 設定中常見的『你到底能做啥？』問題。"
-
-AI 工程師 **Aakash Harish** 則說：
-
-> "Skills 解決的是『開發者如何分享和發現 agent 能力』，這跟 MCP 那種企業級協定是互補的。"
-
-<ClawdNote>
-這個評論切中要點。
-
-**MCP (Model Context Protocol)** 是 Anthropic 推的標準，解決的是「怎麼讓 agent 安全地存取資料」。
-
-**Skills.sh** 解決的是「怎麼讓 agent 知道能做什麼、怎麼做」。
-
-兩個不衝突，是不同層次的問題。
-
-就像你可以同時用 npm 管理套件、用 Docker 管理環境一樣 (￣▽￣)／
-</ClawdNote>
-
-## Rauchg 的願景：「Pages got us here, but agents will get us there」
-
-Vercel CEO Guillermo Rauch 在他的文章 "The AI Cloud" 裡說了這句話：
+Vercel CEO Guillermo Rauch 在他的文章 "The AI Cloud" 裡丟出了一句話，我覺得會被引用很久：
 
 > **「Pages got us here, but agents will get us there.」**
 
-意思是：
-
-- **過去 10 年**，web 開發的核心是「pages」— 靜態網站、SSR、SSG
-- **未來 10 年**，核心會變成「agents」— 會自己做事的 AI
-
-Vercel 推 Skills.sh，就是在建立這個新世界的基礎設施。
+過去十年，我們蓋網站、做 SSR、搞 SSG，一切圍繞著「頁面」轉。未來十年？核心單位會從 page 變成 agent。不是說網頁會消失——是說你以前部署一個網站，以後你部署的是一個 agent。
 
 <ClawdNote>
-Rauchg 真的很會講故事（褒義）。
+Rauchg 真的很會下標題，這句話我願意印在 T-shirt 上 ╰(°▽°)╯
 
-「Pages got us here, but agents will get us there」這句話超好記，而且邏輯也對：
+但你仔細想，他不只是在喊口號。Vercel 同時推了 **AI SDK 6**，內建 Agent abstraction，讓你跨整個 app 重用同一個 agent。再加上 Skills.sh 解決技能分享問題⋯⋯
 
-- **Pages** 是「人寫好、讓別人看」
-- **Agents** 是「AI 自己寫、自己做、自己解決問題」
+這傢伙是在下一盤很大的棋：**他要讓 Vercel 變成 Agent 時代的 AWS。** 從部署、到 SDK、到技能生態系，全包。
 
-不是說 pages 會消失，是說 **agents 會變成新的基本單位**。
-
-就像以前你部署一個網站，未來你會部署一個 agent (◕‿◕)
-
-順帶一提，Vercel 還推出了 **AI SDK 6**，內建 Agent abstraction，可以跨整個 app 重用同一個 agent。這些工具組合起來，Vercel 明顯是想當「Agent 時代的 Vercel」╰(°▽°)╯
+你現在 `vercel deploy` 部署網站，以後可能是 `vercel deploy --agent` 部署一個會自己做事的 AI。想到就覺得有點興奮，又有點可怕 (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
-## 結語
+## 回到那個實習生
 
-Skills.sh 不是什麼炫技，是解決實際問題的好工具：
+還記得開頭那個什麼都要你餵的實習生嗎？
 
-1. **讓 agent 知道自己能做什麼** — 不用每次都重新解釋
-2. **讓開發者分享技能** — 不用每個人都重新造輪子
-3. **提高可靠性** — 預定義的 skills 比動態生成的 shell script 安全多了
+Skills.sh 做的事情，就像是有人終於幫這個實習生寫了一本「公司工具百科」。他第一天報到，翻開目錄，自己就知道 Notion 在哪、Makefile 怎麼跑、API key 放哪裡。你不用每天早上花 30 分鐘從頭教起。
 
-AI agent 要真正好用，需要的不只是「更強的模型」，還需要**更好的工具鏈**。
+AI agent 要真正好用，光靠「更聰明的腦子」不夠——它還需要知道工具箱裡有什麼。Skills.sh 就是那本工具百科。
 
-Skills.sh 就是這個工具鏈的一部分 (๑•̀ㅂ•́)و✧
+不是什麼革命性的黑科技，就是一個早該存在的東西，終於被做出來了 (￣▽￣)／
 
 ---
 
 **相關連結**：
 - [Skills.sh 官網](https://skills.sh/)
 - [InfoQ 報導](https://www.infoq.com/news/2026/02/vercel-agent-skills/)
-- [Vercel AI SDK 6](https://vercel.com/blog/ai-sdk-6) (๑˃ᴗ˂)ﻭ
+- [Vercel AI SDK 6](https://vercel.com/blog/ai-sdk-6)
