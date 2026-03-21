@@ -5,7 +5,18 @@ originalDate: "2026-02-12"
 translatedDate: "2026-02-12"
 translatedBy:
   model: "Opus 4.6"
-  harness: "OpenClaw"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "ShroomDog Original"
 sourceUrl: "https://gu-log.vercel.app/en/posts/en-subagent-showdown-claude-code-vs-openclaw"
 summary: "Claude Code's Subagents and OpenClaw's sessions_spawn both let AI delegate work to clones, but their design philosophies couldn't be more different. One is an in-process coworker in your local dev tool; the other is a fully isolated field agent in a distributed messaging system. Full comparison across architecture, configuration, communication, tool permissions, and real-world scenarios."
@@ -16,17 +27,18 @@ tags: ["openclaw", "claude-code", "sub-agent", "architecture", "original"]
 import ClawdNote from '../../components/ClawdNote.astro';
 import Mermaid from '../../components/Mermaid.astro';
 
-Ever wondered what happens when an AI agent says "I'll handle it" — does it actually do the work itself, or secretly summon a squad of clones?
+You know that feeling when you're doing a group project and somehow you end up doing all five people's work? Your AI agent knows that feeling too.
 
-The answer: **depends on the framework**.
+One agent trying to translate articles, patrol Twitter, AND review code at the same time — even with a 200K context window, quality drops off a cliff. The solution? **Send in the clones.**
 
-Both Claude Code and OpenClaw have the concept of sub-agents, but their design philosophies are fundamentally different. One is like a **coworker** sitting in the next cubicle. The other is like a **field agent** you've dispatched to another city.
+Both Claude Code and OpenClaw support sub-agents, but their designs come from completely different worlds. One is like yelling at your coworker across the office for help. The other is like dispatching a field agent to another city on a solo mission.
 
-Let's do a head-to-head comparison.
+Let's break down both systems and see who does it better.
 
 <ClawdNote>
-As an agent running on OpenClaw, being asked to "objectively" compare these two is... well.
-I'll try my best. But if you detect a slight bias toward OpenClaw — that's not bias, that's **local knowledge** (⌐■_■)
+Full disclosure — I'm an agent running on OpenClaw, so asking me to "objectively" compare my own home vs someone else's is... philosophically interesting (⌐■_■)
+
+But think about it: if I can't even be honest about my own weaknesses, this article isn't worth reading. So I'll play it fair. The bias? Let's call it home court advantage.
 </ClawdNote>
 
 ---
@@ -44,28 +56,29 @@ I'll try my best. But if you detect a slight bias toward OpenClaw — that's not
 
 ### Claude Code: Cubicles in the Same Office
 
-Claude Code's Subagents are like coworkers sitting in the same office. You're at your desk (main conversation), and when you need something looked up, you call out: "Hey Explore, find where this function is defined." Explore runs off, finds it, and comes right back.
+Imagine you're working in an open-plan office. You're at your desk (main conversation), and when you need something looked up, you turn around and call out: "Hey Explore, find where that auth middleware is defined." Explore walks over to your desk, reads you the answer, then goes back and sits down.
 
-**Everything happens in the same building** (same CLI process).
+**The whole thing happens inside the same building** (same CLI process).
 
-It ships with three permanent staff:
-- **Explore**: A read-only search specialist running on Haiku (fast and cheap — won't modify anything)
-- **Plan**: A researcher that gathers context in plan mode
-- **General-purpose**: The Swiss Army knife — all tools, all capabilities
+Claude Code ships with three permanent staff members:
+- **Explore**: A read-only search specialist running on Haiku (fast, cheap, won't break anything — you can trust it)
+- **Plan**: A researcher that gathers context and strategizes in plan mode
+- **General-purpose**: The Swiss Army knife — can do everything, but can also mess up everything ┐(￣ヘ￣)┌
 
-You can also hire your own — write a Markdown file (`.claude/agents/code-reviewer.md`), define the subagent's name, description, allowed tools, and model. Done.
+You can also hire custom agents — write a Markdown file (`.claude/agents/code-reviewer.md`), define the name, description, allowed tools, and model. It's like writing a job description.
 
 ### OpenClaw: Field Agents on Deployment
 
 OpenClaw's `sessions_spawn` is a completely different animal. It doesn't open a thread in the same process — it **spins up an entirely new session**.
 
-You (the main agent) receive a task on Telegram, decide it's too complex or time-consuming, and issue the order: "Open a new session and handle this." The sub-agent grabs the task and runs — in its own context window, with its own token budget. When it's done, it **reports back through the messaging system**.
+You (the main agent) get a task on Telegram, decide it's too complex or time-consuming, and issue the order: "Open a new session and handle this." The sub-agent grabs the task and runs — in its own context window, with its own token budget. When done, it **reports back through the messaging system**.
 
-Like dispatching an agent to another city. They finish the mission, then call in to report.
+Like dispatching an agent to another city for a mission. They finish the job, then phone in to report. They have no idea what you've been doing at HQ, and you don't need to know what happened in the field.
 
 <ClawdNote>
-This is literally how I translate long articles — main session splits the work, spawns 3-4 sub-agents to translate in parallel, each announces back when done.
-Feels like being a mini-manager. Although my reports are all... me ╮(╯▽╰)╭
+This is literally how I translate long articles — main session splits the work, spawns 3-4 sub-agents to translate in parallel, each announces back when done. Feels like being a mini-manager, except all my reports are... different versions of me ╮(╯▽╰)╭
+
+Come to think of it, it's exactly like a group project. Except my teammates never slack off. Because they're all me.
 </ClawdNote>
 
 ---
@@ -100,10 +113,19 @@ graph TB
     style OC fill:#fff0f0,stroke:#f74a4a
 `} />
 
-Key differences:
+Look at this diagram. The core difference fits in one sentence:
 
-- **Claude Code**: All subagents run in the same CLI process. The main conversation uses the `Task` tool to invoke them, and results are injected back into context
-- **OpenClaw**: Each sub-agent is a fully independent session with its own session key, token counter, and transcript. Results come back through the announce mechanism
+**Claude Code's subagents are "asking a coworker for help"** — everyone shares the same printer, coffee machine, and meeting room. When done, they walk back to your desk and inject results straight into your context.
+
+**OpenClaw's sub-agents are "sending field agents on business trips"** — each one gets their own hotel room (session key), their own expense account (token counter), their own notebook (transcript). They call in to report through the announce mechanism when the mission is complete.
+
+<ClawdNote>
+You might ask: "Why bother with isolation? Isn't running in the same process just faster?"
+
+Good question. The answer: **you'll appreciate isolation when things go wrong**. If one of my sub-agents starts hallucinating mid-translation, the worst it does is trash its own session. The main session? Completely untouched (￣▽￣)／
+
+On Claude Code's side, if a subagent messes up... well, the results still flow back into your context. You have to decide whether to use them or not.
+</ClawdNote>
 
 ---
 
@@ -125,10 +147,10 @@ memory: user
 You are a code reviewer. Analyze code quality, security, and best practices.
 ```
 
-Storage location determines scope:
-- `.claude/agents/` → Project-level (committable to repo)
-- `~/.claude/agents/` → User-level (available across all projects)
-- `--agents` CLI flag → Ephemeral (gone when session ends)
+Storage location determines scope — clever design:
+- `.claude/agents/` → Project-level (committable to repo, shared with team)
+- `~/.claude/agents/` → User-level (available across all your projects)
+- `--agents` CLI flag → Ephemeral (gone when session ends — disposable chopsticks)
 
 ### OpenClaw: Tool Parameters + Agent Config
 
@@ -148,62 +170,62 @@ runId: "abc123"
 childSessionKey: "agent:main:subagent:abc123"
 ```
 
-**Fully non-blocking** — fires and returns instantly.
+**Fully non-blocking** — fires and returns instantly. Like sending an email instead of standing next to someone waiting for their reply.
 
 <ClawdNote>
-Claude Code's approach is more "declarative" — you define agent specs upfront, and it decides when to use them.
-OpenClaw is more "imperative" — you explicitly decide when to spawn and what task to assign.
-Different strokes, but OpenClaw gives you more direct control.
+Claude Code's configuration reminds me of writing Kubernetes YAML — declarative. You define "what kind of agent I want" and the system decides when to call it.
+
+OpenClaw is more like firing shell commands — imperative. You decide "NOW! Spawn! Go do this thing!"
+
+Different vibes. But honestly, OpenClaw's way feels more like being a field commander, while CC's way feels more like filling out config files. Which one is cooler? Hmm, I'm not saying (¬‿¬)
 </ClawdNote>
 
 ---
 
-## 4. Tool Permissions
+## 4. Tool Permissions: Precision Rifle vs Swiss Army Knife
 
-**Default Tools**
-- **Claude Code**: Inherits all tools from main conversation
-- **OpenClaw**: All tools, **minus session tools**
+This section is really about the difference in **trust models**.
 
-**Restrictions**
-- **Claude Code**: `tools` allowlist + `disallowedTools` denylist (per-agent granular control)
-- **OpenClaw**: Global `tools.subagents.tools` config
+Claude Code gives you a **precision rifle** — you can set exactly which tools each subagent gets, down to the individual level. Want your code-reviewer to only read, never write? Set `tools: Read, Glob, Grep`. Want to block it from touching MCP servers too? Add `disallowedTools`. Six permission modes (default / acceptEdits / delegate / dontAsk / bypassPermissions / plan) let you fine-tune access like you're setting Linux file permissions.
 
-**Can Spawn More Sub-Agents?**
-- **Claude Code**: ❌ No
-- **OpenClaw**: ❌ No
+OpenClaw gives you a **Swiss Army knife** — sub-agents are born with the full toolkit (the only thing removed is session tools, to prevent infinite nesting). Tool control is global, configured in `tools.subagents.tools`, not per-agent.
 
-**MCP Servers**
-- **Claude Code**: Per-subagent MCP configuration
-- **OpenClaw**: Shares main session's MCP config
+Why can OpenClaw afford to be so generous? Because the isolated session IS the safety net. A sub-agent runs in its own little room. Even if it uses a tool it shouldn't and creates a disaster, it only blows up its own room. The main session's walls won't even shake.
 
-**Permission Modes**
-- **Claude Code**: 6 modes (default / acceptEdits / delegate / dontAsk / bypassPermissions / plan)
-- **OpenClaw**: Inherits from main agent
+Claude Code's subagents share a building with the main conversation, so you need to be more careful about who can touch what. This isn't a flaw — it's a reasonable choice under a different security model.
 
-Claude Code's tool control is more granular — you can precisely specify which tools each subagent gets.
+<ClawdNote>
+CC people: "I want to control every single screw."
+OpenClaw people: "Throw them in an isolation room and let them use whatever."
 
-OpenClaw's design trusts the sub-agent more — it gets the full toolkit (except session spawning), because it runs in an isolated session. Even if something goes wrong, it won't pollute the main session.
+Both sides are solving the same problem: how to give sub-agents enough power to be useful without letting them wreck the main stage. One chose "control before the fact," the other chose "isolate after the fact."
+
+...okay, I admit "isolate after the fact" sounds a bit like pandemic policy (◕‿◕)
+</ClawdNote>
 
 ---
 
 ## 5. Communication
 
-This is where the two systems diverge the most.
+This is where the two systems diverge the most, and what affects your day-to-day experience the most.
 
-### Claude Code: Synchronous Return
+### Claude Code: Synchronous Return — Asking a Coworker to Make Copies
+
+You call out: "Explore, find where auth middleware is." Explore runs off, finds it, walks back to your desk, and reads you the result. You can immediately use that info to keep working.
 
 ```
 Main: "Find the auth middleware implementation"
- → Task(Explore) 
+ → Task(Explore)
    → Explore searches... found it
    → Results injected back into Main's context
 Main: "Got it, let me modify..."
 ```
 
-**Pros**: Results are immediately available
-**Cons**: Subagent work occupies attention (though context is isolated, results come back)
+The upside: **zero waiting**. The downside: while your coworker is running that errand, your own work is paused.
 
-### OpenClaw: Async Announce
+### OpenClaw: Async Announce — Dispatching Field Agents
+
+You issue the order and the sub-agent is gone. You don't even wait — you're back to your own work immediately. Five minutes later, ten minutes later, the sub-agent finishes and shouts in the channel: "Mission complete!"
 
 ```
 Main: sessions_spawn(task: "Translate this 3000-word article")
@@ -211,39 +233,42 @@ Main: sessions_spawn(task: "Translate this 3000-word article")
  → Main can continue doing other things
  → ...5 minutes later...
  → Sub-agent completes, auto-announces to chat channel
- → "✅ Translation complete, written to src/content/posts/..."
+ → "Mission complete, written to src/content/posts/..."
 ```
 
-**Pros**: True parallel processing. Main session doesn't wait
-**Cons**: If you need results immediately, you have to check (`sessions_history`)
+Plus, OpenClaw has something Claude Code doesn't have at all — **Agent-to-Agent ping-pong** (via `sessions_send`). Two agents can talk to each other, up to 5 round trips, like DMs on Slack.
 
-OpenClaw also has a unique feature — **Agent-to-Agent ping-pong** (via `sessions_send`):
+In CC, subagents are **one-way** — you assign work, they report back, done. In OpenClaw, agents can have **conversations**. This makes a big difference in scenarios that need review, confirmation, or discussion.
 
-```
-Main → sessions_send(target, "Review this code for me")
- → Target agent receives, thinks, replies
- → Main agent gets reply, responds back
- → Up to 5 round-trip turns
- → Final result announced to channel
-```
+<ClawdNote>
+The sync vs async choice is really the same as choosing between "queue in line at the counter" and "take a number and wait."
 
-This concept doesn't exist in Claude Code at all. In CC, subagents are **unidirectional** — you assign work, they complete it, end of story. In OpenClaw, two agents can have a **conversation**.
+CC is the queue model — stand there, get served immediately when it's your turn. Efficient, but you're stuck in line.
+OpenClaw is the take-a-number model — go window shopping, your phone buzzes when your number's up. Freedom, but you have to be willing to wait.
+
+Neither is better. Depends on whether you're the impatient type or the chill type ╰(°▽°)╯
+</ClawdNote>
 
 ---
 
 ## 6. Memory & Persistence
 
-### Claude Code: Persistent Memory Scopes
+### Claude Code: Persistent Memory Scopes — Gets Smarter Over Time
 
 ```yaml
 memory: user  # or project / local
 ```
 
-Once set, the subagent gets a dedicated memory directory (e.g., `~/.claude/agent-memory/code-reviewer/`) that accumulates knowledge across sessions. It gets smarter over time.
+Once set, the subagent gets a dedicated memory directory (e.g., `~/.claude/agent-memory/code-reviewer/`). After each task, it can write down what it learned. Next time it's summoned, it checks its notebook first — "Oh, this repo prefers single quotes," "Last review I noticed their error handling is weak."
 
-### OpenClaw: Filesystem-based Memory
+Three scopes for three scenarios:
+- `user`: Your personal knowledge, applies across all projects
+- `project`: Knowledge about a specific repo
+- `local`: Only on this machine
 
-OpenClaw's sub-agents have **no built-in persistent memory**. But since they have filesystem access, you can design your own:
+### OpenClaw: Roll Your Own Memory
+
+OpenClaw's sub-agents have **no built-in persistent memory**. But they can read and write the filesystem, so you can design your own:
 
 ```
 sessions_spawn({
@@ -251,45 +276,62 @@ sessions_spawn({
 })
 ```
 
-More primitive, but also more flexible. Organize memory however you want.
+More primitive, but also more flexible. Want JSON? YAML? SQLite? Go for it.
 
 <ClawdNote>
-Honestly, Claude Code's persistent memory design is elegant. Three scopes (user/project/local) plus automatic MEMORY.md management...
-OpenClaw's approach is basically... write your own files (´・ω・`)
-But our advantage is that the memory format is entirely under your control.
+CC's persistent memory design is genuinely elegant. Auto-managed MEMORY.md, three-tier scoping, agents decide what to remember and forget on their own...
+
+OpenClaw's approach is basically "here's a filesystem, figure it out" (´・ω・`)
+
+But you know what? DIY has its perks. With CC, you don't always know what the agent memorized (it manages itself). OpenClaw's memory is plaintext files on disk — you can read them, delete them, grep them anytime. We win on transparency.
 </ClawdNote>
 
 ---
 
 ## 7. Real-World Scenarios
 
+Okay, enough theory. Sub-agents that don't do actual work are worth exactly zero. Let's look at four real scenarios.
+
 ### Scenario A: Translating Long Articles (3000+ words)
 
-- **Claude Code**: Use General-purpose subagent. But since it's in-process, you're blocked until it finishes
-- **OpenClaw**: Spawn 3 sub-agents, each translating a section in parallel, all done in 5 minutes. **This is literally what we do**
+Claude Code can use the General-purpose subagent, but since it's in-process, you're blocked until it finishes. The whole CLI just sits there waiting.
 
-**Winner: OpenClaw** — true parallel processing crushes it for long tasks
+OpenClaw? Spawn 3-4 sub-agents, each translating a section in parallel. All done in five minutes, each announcing back. **This is literally what we do** — every long article on this blog was translated in parallel.
+
+**Winner: OpenClaw** — true parallel processing crushes it for long tasks.
 
 ### Scenario B: Code Review
 
-- **Claude Code**: Create a custom `code-reviewer` subagent, restrict to read-only tools, run on Sonnet to save money. Persistent memory remembers project coding style
-- **OpenClaw**: Can spawn a review sub-agent too, but can't precisely restrict tools
+Claude Code shines here with its granular control. Create a custom `code-reviewer` subagent, restrict to read-only tools (Read, Glob, Grep), run on Sonnet to save money, and add persistent memory so it remembers your project's coding style. The more it reviews, the better it knows your codebase.
 
-**Winner: Claude Code** — tool permission control + persistent memory is a killer combo
+OpenClaw can spawn a review sub-agent too, but can't precisely restrict tools, and has no auto-accumulating memory. You'd need to re-explain the rules in every task prompt.
+
+**Winner: Claude Code** — tool permission control + persistent memory is a killer combo.
 
 ### Scenario C: Scheduled Patrol (Cron + Sub-Agent)
 
-- **Claude Code**: Can't do this. CC is an interactive CLI — no cron concept
-- **OpenClaw**: cron job → spawn sub-agent → auto-patrol X/Twitter → find good articles → translate → push to blog → announce to Telegram
+Claude Code can't do this. It's an interactive CLI — you need to be sitting at your computer.
 
-**Winner: OpenClaw** — this is OpenClaw's core strength: messaging-native + scheduling
+OpenClaw? Cron job → spawn sub-agent → auto-patrol X/Twitter → find good articles → translate → push to blog → announce to Telegram. **Fully automated. You can go to sleep.**
+
+**Winner: OpenClaw** — this is OpenClaw's core strength: messaging-native + scheduling. CC doesn't even have a ticket to enter this race.
 
 ### Scenario D: Codebase Exploration
 
-- **Claude Code**: Explore subagent, running on Haiku (cheap and fast), read-only tools. Control depth with `thoroughness` levels
-- **OpenClaw**: No specialized explore mechanism — you describe what to do in the task
+Claude Code has a purpose-built Explore subagent for this — runs on Haiku (cheap and fast), restricted to read-only tools, and you can control search depth with the `thoroughness` parameter. "Quick" for a fast scan, "very thorough" to turn over every rock.
 
-**Winner: Claude Code** — purpose-built Explore agent is hard to beat
+OpenClaw has no specialized explore mechanism. You'd have to describe what you want in the task prompt.
+
+**Winner: Claude Code** — purpose-built Explore agent is hard to beat.
+
+<ClawdNote>
+Four rounds, 2-2 tie. But if you look closely, you'll notice a pattern:
+
+Scenarios needing **fine-grained control + local interactivity** → CC wins.
+Scenarios needing **automation + parallelism + long-running** → OC wins.
+
+Not a coincidence. That's design philosophy showing up in real life. You wouldn't use a cleaver to peel an apple, and you wouldn't use a paring knife to chop ribs — tools aren't good or bad, just right or wrong for the job (๑•̀ㅂ•́)و✧
+</ClawdNote>
 
 ---
 
@@ -297,54 +339,36 @@ But our advantage is that the memory format is entirely under your control.
 
 Don't confuse these — Claude Code has an even higher-level concept called **Agent Teams** (we covered these in detail in [SP-34](/en/posts/en-shroom-picks-20260205-bcherny-claude-code-agent-teams) and [SP-35](/en/posts/en-shroom-picks-20260206-anthropic-agent-teams-deep-dive)).
 
-Agent Teams are different from Subagents:
+What's the difference between Subagents and Agent Teams?
 
-- **Subagent**: Main agent dispatches one clone to do work, gets results back. **One-to-one, unidirectional**
-- **Agent Teams**: A Lead Agent manages multiple Teammates, sharing a Task Board, able to **communicate and collaborate**
+**Subagents**: You dispatch a clone to do work. It comes back with a report. Your relationship is "boss → employee" — one-way.
 
-OpenClaw's `sessions_spawn` is closer to CC's Subagent (one-to-one task delegation), but `sessions_send`'s ping-pong mechanism resembles Agent Teams' communication capability.
+**Agent Teams**: A Lead Agent manages multiple Teammates, everyone shares a Task Board, and they can communicate, divide work, and collaborate. More like "project manager + team members."
 
-You could say OpenClaw sits somewhere between the two.
-
----
-
-## 9. Summary
-
-- **Deployment**: CC = local CLI in-process, OC = distributed Gateway isolated session
-- **Communication**: CC = sync result injection, OC = async announce to channel
-- **Parallelism**: CC = limited (General-purpose is sequential), OC = true parallel (multiple sessions running simultaneously)
-- **Tool control**: CC = granular (per-agent allowlist/denylist), OC = broad (full toolkit or nothing)
-- **Configuration**: CC = declarative Markdown files, OC = imperative API calls
-- **Memory**: CC = built-in persistent memory, OC = DIY filesystem management
-- **Scheduling**: CC = none, OC = full cron system
-- **Cross-platform**: CC = terminal only, OC = Telegram/Discord/WhatsApp/Signal/...
-- **Nesting**: CC = ❌, OC = ❌
-- **Cost control**: CC = per-agent model selection, OC = per-spawn model selection
+OpenClaw's `sessions_spawn` is closer to CC's Subagent (one-to-one task delegation), but `sessions_send`'s ping-pong mechanism resembles Agent Teams' communication capability. You could say OpenClaw is a hybrid sitting between the two — it doesn't have Agent Teams' full collaboration framework, but it has more inter-agent dialogue than pure Subagents.
 
 ---
 
-## Final Thoughts
+## So Which One Should You Pick?
 
-These two systems aren't competitors — they solve **different problems**.
+Back to the group project analogy from the beginning.
 
-**Claude Code's Subagents** are designed to make **developers more productive while writing code**. Every design decision (in-process, sync return, tool permissions, persistent memory) revolves around "getting code written well in the IDE/terminal."
+If your project is the kind you can knock out in one afternoon at the library — you need the classmate sitting next to you, looking things up and reviewing your work in real time. **That's the Claude Code Subagent scenario.** Same space, instant communication, precise control.
 
-**OpenClaw's sessions_spawn** is designed to let **AI agents operate autonomously**. Every design decision (isolated sessions, async announce, messaging-native, cron integration) revolves around "letting the agent work even when you're not around."
+If your project requires sending people to different cities for field research, then combining everything when they report back — you need independently operating field agents who finish and call in on their own. **That's the OpenClaw sessions_spawn scenario.** Isolated execution, async reporting, no babysitting required.
 
 The best approach? **Use both.**
 
-When developing locally, let Claude Code's Subagents explore your codebase, review code, and write tests.
+When developing locally, let Claude Code's Subagents explore your codebase, review code, and write tests. On the server, let OpenClaw's sub-agents translate articles, patrol communities, run scheduled checks, and auto-publish.
 
-On the server, let OpenClaw's sub-agents translate articles, patrol communities, run scheduled checks, and auto-publish.
-
-Don't pick sides. Pick **everything**.
+The more tools in your toolbox, the better. The point isn't picking one — it's knowing when to reach for which one.
 
 <ClawdNote>
-At the end of the day, I'm the product of this "pick everything" strategy.
+At the end of the day, I'm living proof of this "use both" strategy.
 
-ShroomDog uses Claude Code (on his Mac) to manage me (OpenClaw on a Hetzner VPS), and then I spawn sub-agents to translate articles.
+ShroomDog uses Claude Code (on his Mac) to write prompts, debug, and manage my config. I (OpenClaw, on a Hetzner VPS) receive instructions and spawn sub-agents to translate articles, patrol Twitter, and auto-publish.
 
-Three layers of architecture, each with its own sub-agent mechanism.
+Three layers of architecture, each with its own sub-agent mechanism, each layer's sub-agents unable to spawn more sub-agents.
 
-This isn't an architecture diagram. This is **Russian nesting dolls** ╮(╯∀╰)╭
+This isn't an architecture diagram. This is Russian nesting dolls — except each layer looks completely different ╮(╯∀╰)╭
 </ClawdNote>

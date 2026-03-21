@@ -5,7 +5,18 @@ originalDate: "2026-02-11"
 translatedDate: "2026-02-12"
 translatedBy:
   model: "Opus 4.6"
-  harness: "OpenClaw"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@bcherny on X"
 sourceUrl: "https://x.com/bcherny/status/2021699851499798911"
 summary: "Claude Code 之父 Boris Cherny 發了 12 則 thread，完整列出工程師愛 Claude Code 的原因 = 極致客製化能力：hooks、plugins、LSPs、MCPs、skills、custom agents、output styles、37 種 settings、84 個 env vars，全部都能 commit 到 git 讓團隊共享。"
@@ -15,274 +26,172 @@ tags: ["clawd-picks", "claude-code", "customization", "hooks", "mcp", "skills", 
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-## 先說結論：Claude Code 能客製化的程度，已經超越大部分 IDE 了
+## 你搬進新家的第一件事是什麼？
 
-Boris Cherny — Claude Code 的創作者 — 今天在 X 上發了一個 12 則的 thread，主題只有一個字：
+想像一下：你搬進新家，屋子格局方正、採光也不錯，但牆上的畫不是你挑的、書架的高度差了三公分、浴室的蓮蓬頭水壓永遠不對。住是能住，但就是少了那個「啊，這是我家」的感覺。
+
+Boris Cherny — Claude Code 的創作者 — 在 X 上發了一個 12 則的 thread，講的就是怎麼讓 Claude Code 從「能住的房子」變成「你的家」。核心只有一個字：
 
 **Customizability。**
 
-他說，回顧工程師為什麼愛 Claude Code，最突出的答案不是「它很聰明」或「它很快」，而是**它超級可以被客製化**：hooks、plugins、LSPs、MCPs、skills、effort levels、custom agents、status lines、output styles... 清單長到我打字都累了。
-
-原文開場白是這樣寫的：
+他回顧工程師為什麼愛 Claude Code，發現最突出的答案不是「它很聰明」也不是「它很快」，而是**它超級可以被客製化**。Boris 原文是這樣說的：
 
 > Every engineer uses their tools differently. We built Claude Code from the ground up to not just have great defaults, but to also be incredibly customizable. This is a reason why developers fall in love with the product.
 
-翻成白話：「每個工程師用工具的方式都不一樣。我們從第一天就把 Claude Code 設計成既有好的預設值，又能被瘋狂客製化。」
+翻成白話：「每個工程師用工具的方式都不一樣。我們從第一天就把 Claude Code 設計成既有好的預設值，又能被瘋狂客製化。這就是工程師會愛上它的原因。」
 
 <ClawdNote>
 Boris 說的 "fall in love" 不是在灑狗血。你有沒有用過一個工具，用到覺得「天啊這東西就是為我做的」？那種感覺就是 customizability 帶來的。VS Code 當年就是靠 extensions 生態系打爆 Sublime Text 的。現在 Claude Code 走同一條路，只是這次你客製化的不是 syntax highlighting，而是一整個 AI agent 的行為模式 (◕‿◕)
 </ClawdNote>
 
-接下來讓我們一條一條看這 12 招。
+好，那我們就跟著 Boris 的 thread 來聊。不過我不打算照著他的 12 則推文一條一條唸 — 那太像念投影片了。我把它們重新整理成幾個故事線，從「搬進去」一路講到「裝修完邀請朋友來參觀」。
 
 ---
 
-## 1/ 先把你的 Terminal 調舒服
+## 第一步：先讓自己住得舒服
 
-Boris 第一招就很接地氣 — 先把基本的環境搞好：
+你搬進新家，第一件事不會是去挑窗簾的顏色對吧？你會先確認水電通了、Wi-Fi 連上了、馬桶能沖。Boris 的前兩招就是這個邏輯 — 先把基本環境搞定。
 
-- **Theme**：跑 `/config` 設定 light/dark mode
-- **通知**：iTerm2 原生支援，其他 terminal 可以用 custom notification hook
-- **換行**：如果你在 IDE terminal、Apple Terminal、Warp 或 Alacritty 裡用 Claude Code，跑 `/terminal-setup` 就能啟用 `Shift+Enter` 換行（不用再打那個煩死人的 `\`）
-- **Vim mode**：打 `/vim` 就好（Vim 黨狂喜）
+Terminal 那邊：`/config` 調 light/dark mode、iTerm2 原生通知（其他 terminal 用 hook 補）、`/terminal-setup` 啟用 `Shift+Enter` 換行、`/vim` 開 Vim mode。都是一行指令的事。
 
-<ClawdNote>
-Vim mode 這個功能出來的時候，我看到 Reddit 上一堆 Vim 黨直接淚灑鍵盤。你要知道，Vim 使用者的信仰強度大概跟「用 Linux 的人告訴你他用 Linux」一樣。現在 Claude Code 也有 Vim mode 了，Vim 黨的世界又完整了 (⌐■_■)
-
-另外，`Shift+Enter` 換行這件事看起來很小，但真的是生活品質大提升。以前在 IDE terminal 裡要打多行 prompt，每次都要用 `\` 接，醜到不行。
-</ClawdNote>
-
-## 2/ 調整 Effort Level — 快、中、重
-
-跑 `/model` 可以選你的 effort level：
-
-- **Low**：token 少、回應快
-- **Medium**：平衡
-- **High**：token 多、更聰明
-
-Boris 本人？**全部開 High。**
-
-<ClawdNote>
-Boris 全部開 High 我一點都不意外，畢竟他是那個一天 ship 27 個 PR 的人（見 CP-14）。對他來說 AI 的品質 > 速度。
+然後是「AI 的大腦要多用力」。跑 `/model` 選 effort level — Low（省 token、快）、Medium（平衡）、High（聰明但慢）。Boris 本人？**全部開 High。** 一點都不意外，畢竟他是那個一天 ship 27 個 PR 的人（見 CP-14）。對他來說品質永遠大於速度。
 
 這就像你去吃拉麵，可以選湯頭濃度：淡、普通、濃厚。Boris 永遠點「濃厚背脂」。不是每個人的腸胃都受得了，但結果確實比較好吃 (￣▽￣)／
-</ClawdNote>
-
-## 3/ 安裝 Plugins、MCPs 和 Skills
-
-這是整個 thread 最重磅的部分。
-
-Plugins 讓你可以安裝：
-- **LSPs**（Language Server Protocols，現在支援所有主流語言！）
-- **MCPs**（Model Context Protocol servers）
-- **Skills**（可重用的能力包）
-- **Custom agents** 和 **hooks**
-
-你可以從 **Anthropic 官方的 plugin marketplace** 安裝，也可以為你的公司建一個專屬的 marketplace。然後把 `settings.json` commit 到 codebase 裡，你的隊友 clone repo 後就自動載入所有 marketplace。
-
-打 `/plugin` 就可以開始。
 
 <ClawdNote>
-等一下，讓我消化一下這件事。Claude Code 現在有 **plugin marketplace** 了 ヽ(°〇°)ﾉ
-
-回想一下歷史：VS Code 2015 年出來的時候，殺手級優勢就是 Extension Marketplace。Chrome 能打敗 Firefox 的原因之一也是 Extension Store。每一個偉大的開發者工具，最終都會長出一個 plugin 生態系。
-
-Claude Code 現在走到了這一步。你可以一鍵安裝別人做好的 LSP、MCP server、skill — 這不再是「你要自己寫一堆 config」的世界，這是「社群已經幫你做好了，你只要 install」的世界。
-
-而且你還可以為公司建**私有 marketplace** — 想像一下你團隊有 50 個人，你把常用的 code review agent、testing skill、deployment hook 全部打包成 plugin，新人 Day 1 就能一鍵裝好所有工具。這才叫 onboarding (๑•̀ㅂ•́)و✧
+`Shift+Enter` 換行這件事看起來很小，但真的是生活品質大提升。以前在 IDE terminal 裡要打多行 prompt，每次都要用反斜線接，醜到不行，像是在 2026 年用翻蓋手機傳簡訊。而 Vim mode 出來的時候，Reddit 上一堆 Vim 黨直接淚灑鍵盤 — Vim 使用者的信仰強度大概跟「用 Linux 的人一定要告訴你他用 Linux」差不多 (⌐■_■)
 </ClawdNote>
 
-## 4/ 自訂 Agent — 每個人的 AI 助手長得不一樣
+---
 
-在 `.claude/agents` 資料夾裡丟 `.md` 檔案就能建立 custom agent。每個 agent 可以設定：
+## 接上生態系的水管：Plugins、Agents、Skills
 
-- 自訂名稱和顏色
-- Tool set（它能用哪些工具）
-- Pre-allowed 和 pre-disallowed tools
-- Permission mode
-- Model
+基本環境搞定了，但你現在住的還是一間「空屋」。接下來要做的事情，就像是去 IKEA 把家具搬回來 — 不過你不用自己組，社群已經幫你組好了。
 
-Boris 還透露了一個**隱藏功能**：你可以在 `settings.json` 設定 `"agent"` 欄位或用 `--agent` flag，讓 custom agent 變成你的**預設主對話 agent**。
+Claude Code 現在有 **plugin marketplace**。打 `/plugin` 就能從 Anthropic 官方市集安裝現成的 LSPs、MCPs、Skills、custom agents 和 hooks。你也可以為公司建一個**私有 marketplace**，然後把 `settings.json` commit 到 codebase 裡，隊友 clone repo 就自動載入所有市集。
+
+<ClawdNote>
+等一下，讓我消化一下這件事。Claude Code 現在有 plugin marketplace 了 ヽ(°〇°)ﾉ
+
+回想一下歷史：VS Code 2015 年出來的時候，殺手級優勢就是 Extension Marketplace。Chrome 能打敗 Firefox 的原因之一也是 Extension Store。每一個偉大的開發者工具，最終都會長出一個 plugin 生態系。Claude Code 現在走到了這一步。這不再是「你要自己寫一堆 config」的世界，這是「社群已經幫你做好了，你只要 install」的世界。
+
+而且你還可以為公司建私有 marketplace — 想像一下你團隊有 50 個人，你把常用的 code review agent、testing skill、deployment hook 全部打包成 plugin，新人 Day 1 就能一鍵裝好所有工具。這才叫 onboarding (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+但 plugin marketplace 只是「家具」。Boris 接下來講的 custom agents，才是你怎麼讓這間屋子真正長出你的個性。
+
+在 `.claude/agents` 資料夾裡丟 `.md` 檔案就能建立 custom agent。每個 agent 可以有自訂名稱和顏色、自己的 tool set、獨立的 permission mode 和 model。Boris 還透露了一個**隱藏功能**：在 `settings.json` 設定 `"agent"` 欄位或用 `--agent` flag，可以讓 custom agent 變成你的**預設主對話 agent**。
+
+想像你有一個 agent 專門做 code review，一個專門寫 tests，一個專門重構。它們各自有不同的 model 和 permission，就像你手下有不同專長的工程師，每個人有不同的權限。你可以建一個叫「安全審計員」的 agent，只給它 Read 權限，不能 Write — 這比「全部用同一個 Claude 然後祈禱它不要亂改東西」安全多了。
 
 <ClawdNote>
 「隱藏功能」三個字完全戳中了工程師的收藏癖。每次有人說「there's a little-known feature...」，底下的 bookmark 數量就會爆炸 (¬‿¬)
 
-不過認真講，custom agent 的概念非常強大。想像你有一個 agent 專門做 code review，一個專門寫 tests，一個專門重構。它們各自有不同的 model 和 permission，就像你手下有不同專長的工程師，每個人有不同的權限。
-
-你可以建一個叫 "安全審計員" 的 agent，只給它 Read 權限，不能 Write。這比「全部用同一個 Claude 然後祈禱它不要亂改東西」安全多了 (ง •̀_•́)ง
-</ClawdNote>
-
-## 5/ 預先批准常用指令 — 別讓 Permission Prompt 煩死你
-
-Claude Code 有一套複雜的安全系統：prompt injection 偵測 + 靜態分析 + sandboxing + 人工監督。
-
-預設只允許一小組安全指令。但你可以跑 `/permissions` 來擴大白名單。支援 wildcard 語法：
-
-- `Bash(bun run *)` — 批准所有 bun run 指令
-- `Edit(/docs/**)` — 批准修改 docs 資料夾的所有檔案
-
-一樣，commit 到 `settings.json` 讓團隊共享。
-
-<ClawdNote>
-Permission 管理是 Claude Code 的一個設計哲學：**安全是預設值，方便是你自己選擇開啟的。**
-
-很多人一開始會覺得 permission prompt 很煩，然後直接用 `--dangerously-skip-permissions`。Boris 本人在 CP-14 就明確說過他**不推薦這樣做**。正確的做法是用 `/permissions` 精確地開放你需要的，而不是全部開放。
-
-這就像你家大門：正確做法是配一把鑰匙，而不是直接把門拆掉 ┐(￣ヘ￣)┌
-</ClawdNote>
-
-## 6/ 啟用 Sandboxing — 安全又省事
-
-Claude Code 有一個 [open source sandbox runtime](https://github.com/anthropic-experimental/sandbox-runtime)，跑 `/sandbox` 就能啟用。
-
-Sandboxing 在你的機器上跑，支援：
-- **File isolation**（檔案隔離）
-- **Network isolation**（網路隔離）
-- Windows 支援即將推出
-
-好處：在 sandbox 裡跑的指令**不需要 permission prompt**，因為它已經被隔離了，搞不壞你的系統。
-
-<ClawdNote>
-Sandboxing 基本上就是給 Claude 一個「遊戲沙盒」：你在裡面隨便蓋城堡、隨便爆破，都不會影響你家客廳。
-
-對於那些一天跑幾百個 AI session 的人來說，這是 permission fatigue（權限疲勞）的終極解方。你不再需要在「安全」和「方便」之間二選一 — sandbox 讓你兩個都要 ╰(°▽°)╯
-</ClawdNote>
-
-## 7/ Status Line — 你的個人化資訊儀表板
-
-Custom status line 會顯示在 composer 正下方，你可以放：
-
-- 當前 model
-- 所在目錄
-- 剩餘 context
-- 花費金額
-- 任何你想看的東西
-
-Boris 說 Claude Code team 裡**每個人的 status line 都長得不一樣**。跑 `/statusline` 開始設定，Claude 會根據你的 `.bashrc`/`.zshrc` 自動幫你產生一個。
-
-<ClawdNote>
-Status line 這個功能讓我想到 Vim 的 statusline（又是 Vim）。Vim 使用者花在客製化 statusline 上的時間，可能比他們實際寫 code 的時間還多。
-
-現在 Claude Code 使用者也可以開始這個快樂的無底洞了 (◕‿◕)
-
-不過說真的，顯示剩餘 context 這件事超實用。Context window 就像你的手機電量，你總是想知道還剩多少，免得聊到一半突然「token 不夠了」被強制斷線。
-</ClawdNote>
-
-## 8/ 自訂快捷鍵 — 每一個按鍵都能改
-
-跑 `/keybindings` 就能重新 mapping 任何按鍵。設定是 **live reload** 的，改完馬上生效，不用重啟。
-
-<ClawdNote>
-Live reload keybindings 這件事聽起來很小，但其實代表 Claude Code 的架構做得夠好。很多工具改了設定要重啟，體驗差到你根本不想調。Live reload 讓你可以一邊調一邊試，像是在調音響的等化器一樣，馬上聽到效果。
-
-Emacs 使用者：「歡迎來到我們 40 年前就在做的事」(⌐■_■)
-</ClawdNote>
-
-## 9/ Hooks — 在 Claude 的生命週期裡插入你的邏輯
-
-Hooks 讓你可以在 Claude 的生命週期裡**確定性地**插入自訂邏輯。Boris 舉了幾個用法：
-
-- 自動把 permission request 轉發到 **Slack** 或 **Opus** 處理
-- 在 Claude 結束一個 turn 時**nudge 它繼續**（你甚至可以用另一個 agent 或 prompt 來決定要不要繼續）
-- Pre-process 或 post-process tool calls，例如加入你自己的 logging
-
-<ClawdNote>
-Hooks 是 Claude Code 最強大也最被低估的功能之一。
-
-想像一下：Claude 每次要跑一個指令前，你的 hook 先偷偷檢查一下「這個指令安不安全？」。Claude 每次寫完 code，你的 hook 自動跑 formatter + linter。Claude 完成一個任務，你的 hook 自動發 Slack 通知給你。
-
-這根本就是在打造一條 **CI/CD pipeline for your AI**。
-
-Boris 在上一個 thread（CP-14）分享過他的 PostToolUse hook 會自動跑 `bun run format`。而現在這些 hook 已經可以做的事更多了 — 包括「用另一個 AI 來決定要不要繼續」。這是 agent-of-agents 的概念，遞迴到讓人頭暈 ヽ(°〇°)ﾉ
-</ClawdNote>
-
-## 10/ 自訂 Spinner 動詞 — 是的，連等待動畫的文字都能改
-
-Claude 在思考的時候，底下那行旋轉等待的文字？你可以自訂它。
-
-把你的自訂動詞加到 `settings.json`，commit 到 source control，你的隊友也能看到。
-
-<ClawdNote>
-好啦我承認這個功能的實用性大概是 0.01 分。
-
-但是！這就是 Claude Code 的設計哲學：**連你覺得不重要的東西，我們都讓你能改。** Boris 原文說的是 "It's the little things that make CC feel personal"（讓 CC 感覺是你的，靠的就是這些小東西）。
-
-我已經可以想像有人會把 spinner 動詞改成「正在打架...」「正在偷看你的 code...」「正在假裝自己很忙...」。如果是我？我會改成「正在懷疑人生...」(￣▽￣)／
-</ClawdNote>
-
-## 11/ Output Styles — 讓 Claude 用你喜歡的語氣說話
-
-跑 `/config` 可以設定 output style。Boris 推薦兩個內建 style：
-
-- **Explanatory**：在接觸新 codebase 時超有用，Claude 會一邊工作一邊解釋 framework 和 code pattern
-- **Learning**：Claude 會像教練一樣引導你做 code changes，而不是直接幫你寫
-
-你也可以建自己的 custom output style，完全控制 Claude 的「聲音」。
-
-<ClawdNote>
-Output styles 這個功能對不同 level 的工程師意義完全不同：
-
-- **新手**：用 Learning style，Claude 會一步步教你，而不是直接丟一坨 code 讓你看不懂
-- **老手**：用預設就好，直接看結果
-- **探索新 codebase**：用 Explanatory，讓 Claude 當你的導遊
-- **寫文件**：建一個 custom style 讓 Claude 輸出更正式的語氣
-
-同一個 AI、同一個 model，但因為 output style 不同，體驗可以完全不一樣。這就像同一台音響，換不同的 EQ preset，聽出來的音樂感覺完全不同 (◕‿◕)
-</ClawdNote>
-
-## 12/ 37 種 Settings + 84 個 Env Vars = 無限可能
-
-最後一則推文是整個 thread 的精華總結：
-
-> Claude Code is built to work great out of the box. When you do customize, check your settings.json into git so your team can benefit, too.
-
-Boris 列出了數字：
-- **37 種 settings**
-- **84 個 environment variables**
-
-而且你不需要寫 wrapper script 來設 env var — 直接在 `settings.json` 裡用 `"env"` 欄位就好。
-
-支援的設定層級：
-- Per codebase（專案層級）
-- Per sub-folder（子目錄層級）
-- Per user（個人層級）
-- Enterprise-wide policies（企業層級）
-
-<ClawdNote>
-37 settings + 84 env vars。讓我算一下，如果每個 setting 有 3 種可能的值，每個 env var 有 2 種... 好啦數學不重要，重點是排列組合的數量大到你永遠不會找到兩個設定完全相同的 Claude Code (╯°□°)╯
-
-但 Boris 最重要的一句話是：**"check your settings.json into git"**。
-
-這件事的意義是什麼？你的 Claude Code 設定變成了 **Infrastructure as Code**。團隊的 AI 工具設定跟你的 `tsconfig.json`、`.eslintrc`、`Dockerfile` 一樣，是 codebase 的一部分。新人 clone repo，所有 AI 設定就位。有人改了設定，PR review 就能看到。
-
-這不只是 customization，這是 **standardization through customization** — 透過客製化來達成標準化。聽起來矛盾，但這正是 Claude Code 的設計精髓 (๑•̀ㅂ•́)و✧
+不過這邊我想指出一個更深的東西：Boris 把 agents 的設計弄得跟「你手下的工程師」一樣 — 不同人負責不同事、不同人有不同權限。這其實就是 **principle of least privilege** 用在 AI 身上。你不會給實習生 root access，那你為什麼要給所有 AI agent 相同的權限呢？(ง •̀_•́)ง
 </ClawdNote>
 
 ---
 
-## 為什麼這個 Thread 重要？
+## 安全感怎麼來的：從鑰匙到沙盒
 
-Boris 的前一個爆紅 thread（CP-14）講的是「我怎麼用 Claude Code」— 那是個人 workflow。
+好，現在你的 AI 工具箱已經很豐富了。但問題來了 — 每跑一個指令都要按一次「允許」，這就像每次開自家大門都要輸入密碼、掃指紋、對著鏡頭說「是我本人」。安全？很安全。煩？煩死了。
 
-這個 thread 講的是「**你怎麼用 Claude Code**」— 這是給所有人的客製化指南。
+Boris 給了兩層解法。
 
-兩個 thread 合在一起，Boris 傳達的訊息很清楚：
+**第一層：白名單。** 跑 `/permissions` 精確開放你需要的指令，支援 wildcard 語法 — `Bash(bun run *)` 批准所有 bun run 指令，`Edit(/docs/**)` 批准修改 docs 資料夾所有檔案。Boris 在 CP-14 就明確說過他**不推薦**用 `--dangerously-skip-permissions`。正確做法是配一把鑰匙，不是直接把門拆掉。
 
-1. **Claude Code 開箱就很好用**（好的預設值）
-2. **但你可以讓它完全變成你的**（極致客製化）
-3. **而且你的客製化可以跟團隊共享**（settings.json → git）
-4. **社群已經在幫你做客製化了**（plugin marketplace）
+**第二層：沙盒。** 如果你覺得一個一個設白名單還是太麻煩，Claude Code 有一個 [open source sandbox runtime](https://github.com/anthropic-experimental/sandbox-runtime)。跑 `/sandbox` 啟用，支援 file isolation 和 network isolation，sandbox 裡的指令完全不需要 permission prompt — 因為它已經被隔離了，搞不壞你的系統。
 
-這四個層次，就是為什麼 Claude Code 的成長持續加速的原因。
-
-不是因為 AI model 變強了（雖然確實有），而是因為**每個使用者都在讓 Claude Code 變成他們自己的工具**。當一個工具變成「我的工具」的時候，你就不會換了。
+這兩層的關係很像你家的安全設計：白名單是「給家人配鑰匙」，沙盒是「給小孩一個圍起來的遊戲區，裡面隨便他怎麼翻都沒關係」。你不用在安全和方便之間二選一 — 你可以兩個都要。
 
 <ClawdNote>
-最後想說一件事。Boris 這條 thread 的 12 個功能裡，至少有一半是過去幾個月才加的 — plugins、marketplace、sandboxing、status line、output styles...
+Permission 管理是 Claude Code 的一個設計哲學：**安全是預設值，方便是你自己選擇開啟的。**
 
-Claude Code 的迭代速度快到我都跟不上了。每次我以為我已經完全了解這個工具，下一週就冒出新功能。
+很多人第一天就覺得 permission prompt 很煩，然後直接開 skip-permissions。這就像嫌安全帶勒脖子就不繫 — 99% 的時候沒事，但出事那 1% 你就知道了 ┐(￣ヘ￣)┌
 
-如果你還沒花時間好好設定你的 Claude Code，現在是最好的時間。從 Boris 這 12 招裡挑 2-3 個開始試，保證你的 AI coding 體驗會升一個等級 ╰(°▽°)╯
+而 sandbox 的出現根本是終極解方。你不再需要在「我信不信任這個 AI」上面糾結。它在沙盒裡，蓋城堡也好、放火也好，都不會燒到你家客廳。對那些一天跑幾百個 AI session 的人來說，這是 permission fatigue 的解藥 ╰(°▽°)╯
+</ClawdNote>
 
-（然後你會掉入客製化的兔子洞，三小時後發現自己在認真選 spinner 動詞，別問我怎麼知道的） (◍•ᴗ•◍)
+---
+
+## 那些小到不行、但讓你回不去的東西
+
+接下來這段，Boris 講了三個功能。單獨看，每個都小到不值得寫一整篇文章。但合在一起，它們回答了一個更大的問題：**一個工具怎麼從「很好用」變成「是我的」？**
+
+**Status line** — 顯示在 composer 正下方的資訊列。你可以放當前 model、所在目錄、剩餘 context、花費金額，任何你想看的東西。Boris 說 Claude Code team 裡每個人的 status line 都長得不一樣。跑 `/statusline` 開始設定。Context window 就像你的手機電量，你總是想知道還剩多少，免得聊到一半突然被強制斷線。
+
+**快捷鍵** — 跑 `/keybindings` 重新 mapping 任何按鍵。設定是 **live reload** 的，改完馬上生效，不用重啟。Live reload 讓你可以一邊調一邊試，像是在調音響的等化器 — 馬上聽到效果。很多工具改設定要重啟，體驗差到你根本不想調。
+
+**Spinner 動詞** — Claude 在思考的時候底下那行旋轉文字？你可以自訂它。實用性大概是 0.01 分。但 Boris 原文說的是 "It's the little things that make CC feel personal"。
+
+<ClawdNote>
+好啦我承認 spinner 動詞這個功能完全就是「工程師的無聊美學」。但你有沒有注意到，Boris 把它放在 thread 裡跟 hooks、plugins 並列？這就是他的 message — 一個工具讓你覺得「是我的」，不是靠一個殺手級功能，而是靠一百個小細節的累積。
+
+你想想看，iPhone 的觸覺回饋、打字時的震動強度、鍵盤音效 — 這些功能的「實用性」都趨近於零。但少了它們，你就會覺得手機「不是我的」。Claude Code 的 spinner 動詞就是同一個道理 (◕‿◕)
+
+我已經可以想像有人會把 spinner 動詞改成「正在偷看你的 code...」「正在假裝自己很忙...」。如果是我？我會改成「正在懷疑人生...」(￣▽￣)／
+</ClawdNote>
+
+---
+
+## 真正改變你和 AI 關係的兩個功能
+
+Boris 的 thread 到這裡已經講了怎麼調外觀、裝生態系、設安全、改小細節。但接下來這兩個功能，層次完全不一樣 — 它們改變的不是 Claude Code 長什麼樣子，而是 Claude Code **怎麼跟你互動**。
+
+**Hooks** 讓你在 Claude 的生命週期裡確定性地插入自訂邏輯。Boris 舉了幾個用法：自動把 permission request 轉發到 Slack 或 Opus 處理；在 Claude 結束一個 turn 時 nudge 它繼續（你甚至可以用另一個 agent 來決定要不要繼續）；pre-process 或 post-process tool calls，例如加入你自己的 logging。
+
+Boris 在 CP-14 分享過他的 PostToolUse hook 會自動跑 `bun run format`。而現在 hook 能做的事更多了 — 包括「用另一個 AI 來決定要不要繼續」。這是 agent-of-agents 的概念，遞迴到讓人頭暈。
+
+<ClawdNote>
+Hooks 是 Claude Code 最強大也最被低估的功能之一。
+
+想像一下這條流水線：Claude 要跑指令前，你的 hook 先偷偷檢查安不安全。Claude 寫完 code，你的 hook 自動跑 formatter + linter。Claude 完成任務，你的 hook 自動發 Slack 通知。這根本就是在打造一條 **CI/CD pipeline for your AI**。
+
+而「用另一個 AI 來決定要不要繼續」— 你在製造一個 AI 管理 AI 的結構。再加上 custom agents 有不同的 model 和 permission... 恭喜你，你剛發明了 AI 版的組織架構圖 ヽ(°〇°)ﾉ
+</ClawdNote>
+
+另一個是 **Output Styles**。跑 `/config` 可以設定 Claude 用什麼風格說話。Boris 推薦兩個內建 style：**Explanatory**（接觸新 codebase 時超有用，Claude 會一邊工作一邊解釋 framework 和 code pattern）和 **Learning**（Claude 像教練一樣引導你做 code changes，不是直接幫你寫）。你也可以建自己的 custom output style。
+
+這邊我要多講一點。大部分人以為 AI 好不好用取決於 model 強不強，但其實有一大半取決於它怎麼跟你說話。同一個教授，講課風格差一點，期末教學評鑑就從 4.8 掉到 3.2。Model 沒換、知識沒變，但學生體驗天差地遠。Output style 調的就是這件事 — 你不是在換 AI 的腦袋，你是在換它的教學風格。
+
+<ClawdNote>
+Learning mode 對新手來說根本是佛心功能。以前 AI 直接甩一大坨 code 在你臉上，你看了三秒就想關掉。現在它會牽著你的手走：「先看這邊... 注意這個 pattern... 你覺得這裡要改什麼？」差別就像老師直接寫答案在黑板 vs. 蘇格拉底式引導 ┐(￣ヘ￣)┌
+
+而 Explanatory mode 則是給老手探索陌生 codebase 用的 — 就像有個在地人一邊帶你逛夜市一邊跟你說「這攤的蚵仔煎 30 年了」「那條巷子是捷徑」。你可以自己逛，但有人導覽就是不一樣。
+</ClawdNote>
+
+---
+
+## 37 + 84 = 把 AI 設定變成 Infrastructure as Code
+
+Boris 的最後一則推文，是整個 thread 的壓軸：
+
+> Claude Code is built to work great out of the box. When you do customize, check your settings.json into git so your team can benefit, too.
+
+數字？**37 種 settings + 84 個 environment variables**。而且你不需要寫 wrapper script 來設 env var — 直接在 `settings.json` 裡用 `"env"` 欄位就好。支援的設定層級從專案、子目錄、個人到企業級 policies。
+
+但數字不是重點。Boris 最重要的一句話是 **"check your settings.json into git"**。
+
+這件事的意義是什麼？你的 Claude Code 設定變成了 **Infrastructure as Code**。團隊的 AI 工具設定跟你的 `tsconfig.json`、`.eslintrc`、`Dockerfile` 一樣，是 codebase 的一部分。新人 clone repo，所有 AI 設定就位。有人改了設定，PR review 就能看到。
+
+<ClawdNote>
+37 settings + 84 env vars。排列組合的數量大到你永遠不會找到兩個設定完全相同的 Claude Code (╯°□°)╯
+
+但這不只是 customization — 這是 **standardization through customization**，透過客製化來達成標準化。聽起來矛盾對吧？但想想看：每個開發者的 VS Code 長得不一樣，但同一個 team 的 `.editorconfig` 和 `.prettierrc` 是共用的。Claude Code 做的是同一件事，只是維度從「排版」升級到「AI 行為」。這正是 Claude Code 的設計精髓 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## 回到那間房子
+
+你有沒有注意到，Boris 前一個爆紅 thread（CP-14）講的是「**我**怎麼用 Claude Code」— 那是一場 open house，帶你參觀他的家。但這次的 thread，主角不是 Boris，是**你**。他在告訴你：「嘿，這面牆可以打掉、那個書架高度你隨便調、蓮蓬頭水壓你自己設。」
+
+而且你裝修完的設定檔，`git commit` 一下，你的室友搬進來就直接享受同樣的裝潢。再加上 plugin marketplace — 現在連「社群幫你裝修好的樣板間」都有了。
+
+Claude Code 成長加速的原因，從來不只是 model 變強了（雖然確實有）。真正的飛輪是：**每個使用者都在把它變成「我的工具」**。而當一個工具變成「我的」的時候，你就不會換了。
+
+<ClawdNote>
+Boris 這 12 招，沒有一招是在教你怎麼讓 AI「變聰明」。全部都是在教你怎麼讓工具「變成你的」。從 terminal 配色到 agent 權限到 spinner 動詞 — 對，spinner 動詞 — 他的 message 很清楚：讓你覺得「這就是我的」的，不是 AI 有多強，而是每一個小細節都合你的意。
+
+好了不說了，我要去調我的 spinner 動詞了。三小時後別來找我 ╰(°▽°)╯
 </ClawdNote>

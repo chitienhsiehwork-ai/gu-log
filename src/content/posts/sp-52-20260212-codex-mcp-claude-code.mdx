@@ -5,7 +5,18 @@ originalDate: "2026-02-12"
 translatedDate: "2026-02-12"
 translatedBy:
   model: "Opus 4.6"
-  harness: "OpenClaw"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@discountifu"
 sourceUrl: "https://x.com/discountifu/status/2021887568875598183"
 summary: "把 Codex 當 MCP server 接進 Claude Code，一條命令搞定，體驗直接升級。Codex CLI 的沙箱限制太多？讓 Claude Code 當你的主控台。"
@@ -15,97 +26,88 @@ tags: ["claude-code", "codex", "mcp", "developer-tools"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-各位好，今天我們來聊一個很實用的主題——怎麼在 Claude Code 裡面「優雅地」調用 OpenAI 的 Codex。
+你有沒有遇過那種狀況——你在夜市看到一攤鹹酥雞，聞起來超香，排隊排了二十分鐘，結果買到手才發現：油膩、沒調味、紙袋還漏油。
 
-先說結論：**直接用 Codex CLI？可以，但體驗普普。把 Codex 接成 MCP server 丟進 Claude Code？那才叫優雅。**
+Codex CLI 給我的感覺就是這樣。
 
----
+OpenAI 端出來的 Codex，模型本身確實聰明。推理能力不差，寫 code 的品質也有一定水準。但你實際打開 terminal 開始用那個 CLI 的時候，馬上就會發現問題：命令行交互像是 2015 年的產物、sandbox 三不五時炸給你看、一堆操作被擋得死死的。
 
-## 為什麼不直接用 Codex CLI？
-
-用過 Codex CLI 的朋友應該都有感覺：
-
-- **命令行交互很原始** — 就是那種「能用但不太想用」的程度
-- **Sandbox 環境 bug 不少** — 跑到一半炸掉也不是什麼稀奇的事
-- **命令執行限制多** — 很多操作被擋，綁手綁腳
-
-相比之下，Claude Code 的設計就完善多了。它原生支援 MCP、Plugin、Skill、Agent 等各種自定義擴展，工具集成好，UX 也友善。
-
-所以思路很簡單：**與其忍受 Codex CLI 的各種限制，不如把 Codex 當成一個 MCP server，接進 Claude Code 這個更強大的框架裡。**
+就好像你請了一個很會做菜的廚師，但廚房只給他一把生鏽的菜刀和一個漏水的鍋子。
 
 <ClawdNote>
-簡單說就是：Codex 有腦但手腳不太靈活，Claude Code 有完整的身體和神經系統。把 Codex 的腦裝進 Claude Code 的身體裡，就是最佳組合。
-
-~~等等這個比喻怎麼有點獵奇~~
+我說真的，Codex CLI 的 sandbox 設計讓我很困惑。你都把一個 AI agent 放出來寫 code 了，然後又不讓它執行大部分命令？這就像你叫外送員去幫你買東西，但規定他不能進店裡、不能付錢、不能拿東西。那你到底要人家幫你幹嘛 ┐(￣ヘ￣)┌
 </ClawdNote>
 
----
+那怎麼辦？答案其實藏在一個很簡單的概念裡：**你不一定要用原廠的殼。**
 
-## 一條命令搞定配置
+想像一下。你有一台引擎很猛的車，但原廠的方向盤很難握、儀表板看不清楚、座椅坐起來像石頭。正常人會怎麼做？改裝啊。把引擎拆出來，裝進一台操控性更好的車裡。
 
-廢話不多說，直接上指令。這條命令會把 Codex 當作 MCP server 加到你的 Claude Code 全局配置：
+這就是 MCP 讓你做的事。
+
+Claude Code 本身就是一個設計得很完整的開發環境——原生支援 MCP、Plugin、Skill、Agent，工具鏈整合到位，UX 也打磨得不錯。如果 Codex 的「腦」不錯但「身體」不行，那最合理的做法就是：**把 Codex 的腦裝進 Claude Code 的身體裡。**
+
+<ClawdNote>
+好啦我知道這個「換身體」的比喻聽起來有點像恐怖片劇情 (╯°□°)╯ 但技術上來說，MCP 就是這麼回事——它是一個標準化的介面協議，讓不同的 AI 工具可以互相「接線」。你不需要改任何原始碼，也不需要搞什麼 hack。就像 USB-C 一樣，插上去就通了。只是這條線的另一端接的是一個會燒你帳單的 AI。
+</ClawdNote>
+
+## 實際操作：一條命令的事
+
+廢話講完了，來看怎麼做。整件事就一條命令：
 
 ```bash
 claude mcp add codex -s user -- codex -m gpt-5.3-codex -c model_reasoning_effort="high" mcp-server
 ```
 
-讓我們拆解一下各個參數：
+你可能會問：這一串到底在幹嘛？來，我們一個一個看。
 
-| 參數 | 說明 |
-|------|------|
-| `-s user` | 寫入全局配置（不只是單一專案） |
-| `codex -m gpt-5.3-codex` | 指定使用的 Codex 模型 |
-| `-c model_reasoning_effort="high"` | 把推理強度拉到最高 |
-| `mcp-server` | 啟動 MCP 服務器模式 |
+`-s user` 是告訴 Claude Code「把這個設定寫進全局配置」，這樣你不管開哪個專案都能用，不用每次重新設定。`codex -m gpt-5.3-codex` 指定你要用的 Codex 模型。`-c model_reasoning_effort="high"` 是跟 Codex 說「你給我認真想，不要敷衍我」。最後的 `mcp-server` 就是啟動 MCP 服務器模式。
+
+整個過程不到十秒鐘。沒有設定檔要改，沒有環境變數要設，沒有 docker compose 要寫。
 
 <ClawdNote>
-`model_reasoning_effort="high"` 就是跟 Codex 說「你給我認真想」。
-
-不過認真想 = token 燒更快 = 帳單更痛。自己斟酌囉 💸
+`model_reasoning_effort="high"` 這個參數我每次看到都覺得很好笑——你居然要「手動告訴 AI 認真一點」。這不就是在跟你的員工說「拜託這次不要擺爛好嗎」？更好笑的是，開 high 真的有差，token 帳單也真的會噴。所以本質上你在做的事情是：付更多錢讓 AI 不要偷懶。這個商業模式，OpenAI 真的很懂人性 (￣▽￣)／
 </ClawdNote>
 
----
-
-## 驗證與使用
-
-設定完之後，先確認一下有沒有成功：
+設定完之後，確認一下有沒有成功：
 
 ```bash
 claude mcp list
 claude mcp get codex
 ```
 
-使用方式也很直覺：在 Claude Code 的對話中輸入 `/mcp`，然後選擇 `codex` 就好了。
+然後在 Claude Code 的對話中打 `/mcp`，選 `codex`，完事。
 
-就這樣。沒有複雜的設定檔要改，沒有奇怪的環境變數要設。一條命令，收工。
+就這樣。一條命令，收工。
 
----
+## 但真正有趣的不是操作本身
 
-## 常見問題 FAQ
+你知道嗎，這整件事最讓我覺得有意思的，不是「哇 Codex 可以接進 Claude Code 好酷」——而是它背後反映的一個趨勢。
 
-**Q: 輸入指令後找不到 `codex` 命令？**
-→ 檢查你的 `PATH` 有沒有包含 Codex CLI 的安裝路徑。
+這件事讓我想到我以前組桌機的經驗。你去光華商場，CPU 挑 AMD 的、顯卡挑 NVIDIA 的、記憶體挑金士頓的——沒有人會傻到買一整台品牌機然後被綁死在那個生態系裡面。現在 AI 工具終於也走到這一步了。MCP 就是那個讓你「自己組」的標準介面。
 
-**Q: 想移除怎麼辦？**
-→ 一樣一條命令搞定：
+Codex 推理強？裝上去。Claude Code 操控順？當主機板。Gemini 吃超長 context 不會消化不良？未來搞不好也能插一張進來。重點是，你自己決定這台機器長什麼樣子。
+
+<ClawdNote>
+老實說，我覺得 OpenAI 真正該擔心的不是別人的模型比他強——而是別人的「殼」比他好用。你的 engine 再猛，如果使用體驗像在用 Windows Vista，人家還是會想辦法把你的 engine 拆出來裝到別的地方去。這篇推文的存在本身就是一個活生生的例子 (⌐■_■)
+</ClawdNote>
+
+## 附帶一提
+
+如果哪天你不想用了，移除也是一條命令：
 
 ```bash
 claude mcp remove codex
 ```
 
-<ClawdNote>
-MCP 的好處就是「即插即用」。今天覺得 Codex 好用就接上去，明天覺得不需要就拔掉。
+另外，如果你輸入指令後找不到 `codex` 命令，先檢查你的 `PATH` 有沒有包含 Codex CLI 的安裝路徑。這種低級但常見的問題，十個人裡面有七個會踩到。
 
-就像 USB 一樣，只是這條 USB 線另一端接的是一個會燒你錢的 AI 😌
+<ClawdNote>
+你知道為什麼我特別喜歡這個「一行裝、一行拆」的設計嗎？因為 AI 工具圈最噁心的趨勢就是 vendor lock-in。一堆工具裝完之後就像牛皮癬一樣黏在你的系統上，想移除要改十個設定檔、砍三個 daemon process、還要手動清 cache。MCP 這種「不爽就拔」的哲學，根本是在打那些搞 lock-in 的廠商的臉。我個人非常支持 (⌐■_■)
 </ClawdNote>
 
----
+所以回到最開始那個夜市鹹酥雞的故事。有時候食材本身沒問題，只是那個攤位的做法不行。換一家來炸，味道可能就完全不同了。
 
-## 小結
-
-這個技巧的核心思想就一句話：**用最好的介面（Claude Code）來驅動最好的模型（不管它叫什麼名字）。**
-
-MCP 協議讓不同的 AI 工具可以互相串接，Claude Code 的擴展架構讓這件事變得非常簡單。如果你同時在用多個 AI 工具，這種整合方式絕對值得一試。 (◍•ᴗ•◍)
+Codex 的腦子配上 Claude Code 的身手，大概就是這個意思。
 
 ---
 

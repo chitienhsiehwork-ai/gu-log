@@ -5,7 +5,18 @@ originalDate: "2026-02-12"
 translatedDate: "2026-02-12"
 translatedBy:
   model: "Opus 4.6"
-  harness: "OpenClaw"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "OpenAI Blog + Cerebras Blog + ZDNET + TechCrunch"
 sourceUrl: "https://openai.com/index/introducing-gpt-5-3-codex-spark/"
 summary: "OpenAI released GPT-5.3-Codex-Spark, its first model on Cerebras chips. It's incredibly fast (>1000 tokens/sec, 80% lower latency), but smaller, no auto-tests, Pro-only. This marks OpenAI's first production deployment on non-Nvidia hardware, redrawing the AI compute landscape."
@@ -61,27 +72,25 @@ Their third-generation product, the **Wafer Scale Engine 3 (WSE-3)**:
 - Largest on-chip memory in the industry
 
 <ClawdNote>
-Nvidia's H100 has about 80 billion transistors. Cerebras WSE-3 has 4 trillion. That's 50x more. Of course, this doesn't mean Cerebras is "50x better" — they're completely different architectures doing different things. But the number does make you go "whoa."
+Nvidia's H100 has 80 billion transistors. Cerebras WSE-3 has 4 trillion. That's 50x more. If H100 is a lunchbox, WSE-3 is the entire buffet counter. You can't say the buffet is "50x tastier" — they serve different food for different occasions. But that size gap still makes your jaw drop (ﾉ◕ヮ◕)ﾉ
 
-Cerebras just raised $1 billion last week at a $23 billion valuation. They've also done inference acceleration for DeepSeek. This company has been overshadowed by Nvidia's dominance, but now with OpenAI as a customer, the game might be changing.
+The funnier story is Cerebras's business strategy. They just raised $1 billion at a $23 billion valuation. They've also done inference acceleration for DeepSeek. One company serving both OpenAI and DeepSeek? That's the ultimate both-sides bet — no matter who wins the AI war, Cerebras is selling the shovels.
 </ClawdNote>
 
-## How Fast Exactly? The Numbers
+## How Fast Exactly? Let Me Translate the Numbers
 
-OpenAI published three latency improvement metrics:
+OpenAI published three latency metrics. Here's what they actually feel like:
 
-- **Client/Server round-trip latency**: down **80%**
-- **Per-token overhead**: down **30%**
-- **Time-to-first-token**: down **50%**
+**Client/Server round-trip latency down 80%** — Before, asking the AI something was like shouting to someone in the next building and waiting for them to run back with the answer. Now they're sitting right next to you, already typing before you finish your sentence.
 
-How? Beyond the Cerebras chip itself being fast, OpenAI also:
+**Per-token overhead down 30%** — Every token used to go through a security checkpoint. Now it's an E-ZPass — just zip right through.
 
-- Replaced HTTP with **persistent WebSocket connections** (no more handshaking every request)
-- Rewrote critical parts of the inference stack
-- Optimized session initialization
+**Time-to-first-token down 50%** — This is the one you actually feel. Before, you'd press Enter and stare at a blank screen while taking a deep breath. Now something starts appearing almost the instant your finger leaves the keyboard.
+
+How did they pull this off? Beyond the Cerebras chip itself, OpenAI did a bunch of infrastructure renovations: replaced HTTP with **persistent WebSocket connections** (no more handshaking every request), rewrote critical paths in the inference stack, and stripped session initialization down to the bare minimum.
 
 <ClawdNote>
-The WebSocket trick isn't new, but OpenAI hadn't used it before — probably because their inference architecture was optimized for batch processing. Now, for Spark's real-time experience, they finally built this infrastructure. The good news: these latency improvements apply to **all models**, not just Spark. So even if you don't use Spark, your regular Codex experience will get better too.
+Wait — OpenAI wasn't using WebSocket before this?? In 2026?? That's like a food delivery app just now discovering "oh, maybe the driver doesn't need to go back to the restaurant between every order" ┐(￣ヘ￣)┌ Better late than never, I guess. And the bonus: these latency improvements apply to **all models**, not just Spark. Your neighbor installed an elevator for their cat, and now the whole building gets to use it. Bless you, Spark.
 </ClawdNote>
 
 ## Benchmarks: Fast, But How Smart?
@@ -106,22 +115,15 @@ Not auto-running tests is a smart design decision. Tests take time, and Spark's 
 This reminds me of what Karpathy said a few days ago about "agentic engineering": the better agents get, the more you need to know what you're doing. Spark will make your hands 15x faster, but it won't make your judgment 15x faster.
 </ClawdNote>
 
-## What This Means for Engineers
+## Can I Use It Now?
 
-**If you're a ChatGPT Pro subscriber** ($200/month):
+If you're a ChatGPT Pro subscriber (yes, the $200/month one), you can try Spark today in the Codex app, CLI, and VS Code extension. It has its own rate limit that doesn't eat into your existing quota — basically OpenAI giving you an extra lane on the highway.
 
-You can try Spark today in the Codex app, CLI, and VS Code extension. It has its own separate rate limit.
+Not Pro? Following OpenAI's usual pattern, Plus users should get access soon. API access is invite-only for now.
 
-**If you're not Pro**:
+But what excites me most isn't "who gets access" — it's how it changes the way you work.
 
-Following OpenAI's usual pattern, Plus users should get access soon. API access is currently limited to select design partners.
-
-**Best use cases**:
-
-- **Rapid prototyping**: Idea in your head → code in 10 seconds
-- **UI iteration**: Change layouts, tweak styling, see results instantly
-- **Code review conversations**: Ask codebase questions, get immediate answers
-- **Debugging dialogue**: Go back and forth about a bug without 5-minute waits each time
+Picture this: you have an idea, and 10 seconds later you're looking at working code. Not waiting 3 minutes for a complete PR — 10 seconds, a runnable version, then you say "actually, change this part," and 10 seconds later, another version. This isn't "using a tool." This is having a conversation with a ridiculously fast pair programmer. UI tweaks, debugging back-and-forth, codebase questions — everything shifts from "submit a task and wait" to a conversational rhythm.
 
 <ClawdNote>
 The ZDNET reviewer said something relatable: "I've been occasionally frustrated when I've asked an AI a super simple question that should have generated an immediate response, but instead I still had to wait five minutes for an answer."
@@ -153,9 +155,9 @@ OpenAI has split its compute architecture into two tiers:
 They can be combined for a single workload.
 
 <ClawdNote>
-This might be more important to the AI industry than the model itself. Nvidia has monopolized AI compute — GPUs in shortage, prices skyrocketing, everyone queuing up. If Cerebras proves it can reliably run OpenAI models in production, will other big players (Google, Anthropic, Meta) start seriously looking at non-Nvidia options?
+Let me tell you why this is more exciting than the model itself. How long has Nvidia monopolized AI compute? GPUs in shortage, prices scalped like concert tickets, everyone queuing up. The whole industry is like a rural town with only one convenience store — they charge whatever they want, and you buy it because there's nowhere else to go (╯°□°)╯
 
-Nvidia's training dominance is untouchable in the short term. But the inference side is getting competition — and inference is where the real money is spent (you train a model once, but inference runs every single day).
+Now OpenAI is running Cerebras in production — that's a second store opening in town. Google, Anthropic, Meta are all watching. If this new store can reliably keep its shelves stocked, you think they won't check it out? Nvidia's training dominance is untouchable short-term, but inference is where the daily money burns (you train once, inference runs forever), and inference just got some competition.
 </ClawdNote>
 
 ## The Future: Two Modes of Codex
@@ -176,23 +178,17 @@ This aligns with Anthropic's Agent Teams concept: an orchestrator manages everyt
 Sam Altman hinted at the announcement today with: "It sparks joy for me." — OK, pun king, you win this round.
 </ClawdNote>
 
-## So What's the Verdict?
+## So Is Spark Worth the Hype?
 
-**Bull case**:
+Honestly, the most interesting thing isn't the Spark model itself — it's a smaller Codex running on fast hardware, Pro-only, limited capabilities, and Cerebras might not have enough capacity during peak hours. On specs alone, it's not exactly a revolution.
 
-- Real-time interactive coding is finally here
-- Latency improvements benefit ALL Codex models
-- AI compute diversification = long-term price pressure downward
+But it proves something important: **OpenAI is willing to swap out the underlying hardware just to improve the experience.**
 
-**Bear case**:
+That matters. The old thinking was "bigger models, more GPUs, more power." Spark says something different: sometimes users don't need the smartest model — they need the fastest-responding one. And for "fastest," you might need a completely different hardware architecture.
 
-- Pro-only ($200/month)
-- Smaller model, not great for complex tasks
-- Cerebras capacity is limited — could see queuing during peak hours
+Back to that scene from the opening — you press Enter, and the code just appears. 1,000 tokens/sec isn't just a number; it changes the rhythm between you and the AI. From "I submit a task and go make coffee" to "the coffee never got made because the code was already done."
 
-**Bottom line**: If your workflow is "iterate fast → see result → iterate again," Spark might completely change your experience. If your workflow is "give the Agent a big task and go to sleep," regular Codex is still your best friend.
-
-Either way, the future of AI coding isn't one speed — it's fast and slow, woven together, human and machine dancing in real time.
+And that unmade cup of coffee might just be the line where AI coding crosses from "useful tool" to "extension of thought" (◕‿◕)
 
 ---
 
