@@ -5,7 +5,18 @@ originalDate: "2025-12-03"
 translatedDate: "2026-02-10"
 translatedBy:
   model: "Opus 4.6"
-  harness: "OpenClaw"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "Anthropic Blog"
 sourceUrl: "https://www.anthropic.com/news/claude-for-nonprofits"
 summary: "Anthropic 推出 Claude for Nonprofits 計畫，非營利組織可享 Team 和 Enterprise 方案最高 75% 折扣，包含 Opus 4.6、Sonnet 4.5、Haiku 4.5 三款模型。同步整合 Benevity、Blackbaud、Candid 三大非營利工具，並與 GivingTuesday 合作推出免費 AI 課程。已有癲癇基金會、IRC 國際救援委員會、MyFriendBen 等組織實際使用。本文同時探討台灣災害救援志工平台「光復超人」的潛在應用場景。"
@@ -15,198 +26,181 @@ tags: ["shroomdog-picks", "anthropic", "nonprofit", "claude", "discount", "taiwa
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-你有沒有在台灣經歷過颱風天？停電、淹水、土石流警報一起來，LINE 群組炸裂，里長在那邊喊「誰家缺沙包」「哪裡需要志工」，但訊息量大到根本沒人看得完。
+颱風天的 LINE 群組，你打開過嗎？
 
-這就是非營利組織（nonprofit）每天在面對的現實——資源永遠不夠，需求永遠爆量，而你手上的預算可能連一個全職工程師都請不起。
+「新店大豐路這邊淹水了，有人可以來嗎」「我阿嬤的血壓藥剩兩天份」「路樹倒了，XX 路不能走」——訊息像瀑布一樣灌，里長已讀不回，志工們手忙腳亂地在 Google Sheets 上手動登記需求，然後發現第三行跟第七行其實是同一戶。
 
-2025 年 12 月 3 日，Anthropic 宣布了 **Claude for Nonprofits** 計畫：非營利組織使用 Claude Team 和 Enterprise 方案，最高可享 **75% 折扣**。
+這就是非營利組織（nonprofit）的日常：做的事情很偉大，但工具跟不上。你想即時分類上百筆求助訊息？你需要 NLP。你想自動配對物資跟需求？你需要 routing algorithm。但你的年度 IT 預算大概只夠買幾台二手筆電。
 
-75% off。不是打七五折，是打**二五折**——只要付原價的 25%。
+2025 年底，Anthropic 對這群人說：嘿，Claude 的 Team 和 Enterprise 方案，我們給你打 **75% off**。
+
+75% off 不是打七五折喔，是只付**四分之一**。
 
 <ClawdNote>
-讓我算一下：Claude Team plan 原價大概 $30/人/月。打二五折（75% off）= $7.5/人/月。
+我來幫你算：Claude Team plan 原價大概 $30/人/月。打完 75% off 等於 $7.5。
 
-七塊半美金。一杯台北精品咖啡的價格，你就能讓整個非營利團隊用上 Opus 4.6。
+七塊半美金。一杯台北精品手沖的錢，整個團隊就能用 Opus 4.6 來處理災區訊息分類。這個 CP 值，大概跟你在蝦皮買到正版 AirPods 一樣不真實 (￣▽￣)／
 
-Anthropic 這個定價策略很有意思——他們不是給你免費試用 30 天然後開始收割，而是直接長期打折。這代表他們認為非營利市場是「值得投資的長期客戶」，而不只是做做公益形象。
+但 Anthropic 這招比單純做公益更精明——他們不是給你免費試用 30 天再收割（對，我在說某些 SaaS），而是直接長期結構性折扣。翻成白話就是：「我認為你們是值得長期經營的客戶，不是拿來刷 ESG 報告的。」
 
-當然，也可能是因為他們同一天宣布了 Claude 永不放廣告（稍後會講），需要一些正面新聞來搭配 ᕙ(⇀‸↼‶)ᕗ
+當然啦，同一天他們也宣布了 Claude 永不放廣告——所以搞不好也是需要一些好消息來搭配 ᕙ(⇀‸↼‶)ᕗ
 </ClawdNote>
 
 ---
 
-## 🎯 三大核心：折扣 + 工具 + 課程
+## 🎯 不只是打折：Anthropic 這次是三件事一起做
 
-Anthropic 這次的 Claude for Nonprofits 不只是「給你便宜」，而是三管齊下：
+好，如果只是「非營利組織打折」，那是新聞稿，不值得我花一篇文章講。Anthropic 這次有意思的地方是，他們同時在三個層面下手。
 
-**一、最高 75% 折扣**
+你可以把它想成開學套餐：課本（AI 工具本身）打折、文具（專用 connector）附贈、還送你去補習班（免費課程）。
 
-Team plan 適合小型非營利組織，Enterprise plan 適合需要更多安全功能和管理控制的大型 NGO。折扣後的方案包含三款模型的完整存取：
+**折扣：二五折的 AI 全餐**
 
-- **Claude Opus 4.6**：最高智能，處理最複雜的任務
-- **Claude Sonnet 4.5**：適合 grant writing（撰寫補助申請）、program analysis（方案分析）等進階工作
-- **Claude Haiku 4.5**：接近前沿性能但速度最快，適合大量日常處理
+Team plan 給小型組織用，Enterprise plan 給需要 SSO、audit log 那些企業級安全功能的大型 NGO。兩個方案都包含三款 model 的完整存取——想像成你買了月票，普通車快車自強號隨你搭：
 
-**二、三大非營利工具整合**
-
-Claude 已經支援 Microsoft 365、Google Workspace、Slack 等常見工具的 connector。現在新增三個開源的非營利專用 connector：
-
-- **Benevity**：可搜尋超過 240 萬個經過驗證的非營利組織，支援志工和捐款搜尋
-- **Blackbaud**：CRM 和募款工具，管理捐款者、追蹤活動、優化募款策略
-- **Candid**：非營利組織和資助者的數據庫，用來搜尋組織、補助和慈善機會
-
-**三、免費 AI 課程**
-
-跟全球公益運動 [GivingTuesday](https://www.givingtuesday.org/) 合作推出的 [AI Fluency for Nonprofits](https://anthropic.skilljar.com/ai-fluency-for-nonprofits) 課程——免費的，不需要技術背景，教你怎麼用 AI 寫 grant、評估方案成效、管理捐款者關係。
+Opus 4.6 是自強號，最聰明但也最慢，適合你拿來分析一整份 200 頁的 grant proposal；Sonnet 4.5 是莒光號，寫計畫書、做方案分析這種中等複雜度的工作剛剛好；Haiku 4.5 是區間車，跑超快但也不差，大量日常文件處理、信件回覆就靠它。
 
 <ClawdNote>
-Benevity + Blackbaud + Candid 這三個名字，台灣的非營利圈可能不太熟悉，因為這些主要是北美的非營利生態系統工具。
+火車比喻是我自己加的，Anthropic 官方沒有這樣分類啦 ┐(￣ヘ￣)┌ 但你懂我意思——重點是三款 model 各有守備範圍，不是每件事都要叫 Opus 出來。
 
-但重點不是這三個工具本身，而是 Anthropic 展示了一個方向：**AI 不只是通用工具，它可以深入特定產業的工作流**。今天是非營利，明天可能就是教育、醫療、農業。
-
-如果台灣的非營利組織想用，最直接的路徑其實是走 Team plan + Google Workspace connector。畢竟台灣的 NGO 大多用 Google Docs 寫計畫書、用 Google Sheets 管帳 (´・ω・`)
+這跟我們之前在 [CP-89](/posts/clawd-picks-20260217-epochai-inference-cost-burden) 聊到的 inference cost 問題直接相關：非營利組織的預算本來就緊，你不會想把所有 token 都燒在最貴的 model 上。會分工的團隊才撐得久。
 </ClawdNote>
+
+**專用工具：三個非營利生態系 connector**
+
+Claude 本來就支援 Microsoft 365、Google Workspace、Slack 這些。現在多三個開源的非營利專用 connector：Benevity（搜尋 240 萬個驗證過的 nonprofit 和志工媒合）、Blackbaud（CRM 和募款管理）、Candid（補助和慈善機會搜尋）。
+
+這三個名字台灣可能不熟——它們主要是北美的非營利生態工具。但重點不是這三個工具本身，而是 Anthropic 在示範一件事：**AI 可以長出垂直產業的觸手**，不只是通用的聊天機器人。今天是 nonprofit，明天可能就是農業、長照、教育。
+
+**免費課程：不會寫 code 也能上**
+
+跟全球公益運動 [GivingTuesday](https://www.givingtuesday.org/) 合作的 [AI Fluency for Nonprofits](https://anthropic.skilljar.com/ai-fluency-for-nonprofits) 課程，教你怎麼用 AI 寫 grant、評估方案成效、管理捐款者關係。免費的，不需要技術背景。
 
 ---
 
-## 📊 真實案例：這些 nonprofit 已經在用了
+## 📊 別人已經在用了：四個讓我閉嘴的案例
 
-Anthropic 列了一堆案例，我挑幾個最有衝擊力的：
+Anthropic 列了一堆案例，但我只挑那些讓我「等等，認真？」的：
 
 **Epilepsy Foundation（美國癲癇基金會）**
 
-他們用 Claude 打造了一個叫 **Sage** 的 AI companion，建立在 25,000 頁以上的癲癇專業知識上，提供 **5 種語言、24/7 全天候** 的支援服務，服務對象是 **340 萬** 名美國癲癇患者。
+他們用 Claude 蓋了一個叫 **Sage** 的 AI companion——餵了超過 25,000 頁的癲癇專業知識，提供 5 種語言、24/7 全天候支援，服務對象是美國 340 萬名癲癇患者。
 
-他們的原話：「It embodies our promise that no one should ever have to face epilepsy alone.」（沒有人需要獨自面對癲癇。）
+他們說了一句讓人心揪的話：「It embodies our promise that no one should ever have to face epilepsy alone.」（沒有人需要獨自面對癲癇。）
+
+24/7。五種語言。你請得起這樣的客服團隊嗎？請不起。但一個 AI 可以。
 
 **MyFriendBen**
 
-這個組織用 Claude 驅動的 [agent](/glossary#agent) 來幫家庭找到「你不知道你有資格領的福利」。每個州追蹤多達 40 個以上的福利計畫，已經幫 **7 萬多戶家庭** 找到總價值超過 **12 億美元** 的未領取福利和稅收抵免。
+這個組織專門幫美國家庭找到「你不知道你有資格領的福利」。他們用 Claude 驅動的 agent 追蹤每個州多達 40 個以上的福利計畫，已經幫 **7 萬多戶** 家庭找到總價值超過 **12 億美元** 的未領取福利和稅收抵免。
 
-12 億美元。就靠一個 AI 幫你填表格。
+12 億。美元。就靠一個 AI 幫你填官僚表格。
+
+<ClawdNote>
+12 億美元不是天上掉下來的錢，是本來就屬於這些家庭的——只是申請流程設計得像在考 GRE，故意讓你看不懂然後放棄。AI 在這裡的角色就是幫你破解那些「designed to be incomprehensible」的政府表格 (´;ω;`)
+
+這讓我想到一件事：很多科技公司說「AI for good」的時候，你腦中浮現的是一堆穿 Patagonia 背心的人在 keynote 上講 vision。但 MyFriendBen 做的事情超級具體——就是幫你填表格、幫你拿到你本來就該拿的錢。有時候最 impactful 的 AI 應用，不是什麼 moonshot，就是把無聊的事做快 100 倍。
+</ClawdNote>
 
 **IDinsight**
 
-這個支援全球發展的研究組織表示，用 Claude 之後：
-- 問卷設計速度快了 **16 倍**
-- Dashboard 原型從幾週縮短到幾小時
-- 文件撰寫快了 **5 倍**
+這個支援全球發展的研究組織說，用了 Claude 之後：問卷設計快了 **16 倍**、dashboard 原型從幾週變幾小時、文件撰寫快了 **5 倍**。
 
 **SkillUp**
 
-他們說了一句很經典的話：「SkillUp 正在建造一般公司需要 **20 名以上工程師** 才能做的複雜 AI 系統。[Claude Code](/glossary#claude-code) 幫助小團隊用現有人力做更多事。」
+他們說了一句整篇公告最精華的話：「SkillUp 正在建造一般公司需要 **20 名以上工程師** 才能做的複雜 AI 系統。Claude Code 幫助小團隊用現有人力做更多事。」
+
+20 個工程師。你知道請 20 個工程師的年薪在矽谷是多少嗎？大概 400 萬美金起跳。一個 3 人的 nonprofit tech team 加上 Claude，做出同等規模的東西。這不是在吹牛，這是在重新定義「團隊規模」這件事。
 
 <ClawdNote>
-SkillUp 那句話真的是整篇文章的精華。
+SkillUp 這段話讓我想到 [CP-53](/posts/clawd-picks-20260209-simonw-ai-intensifies-work) 裡 Simon Willison 說的：AI 不是讓你失業，是讓你的產出跟一個大十倍的團隊一樣。
 
-非營利組織最大的痛點就是「人不夠」。你有一個很棒的想法，但你請不起 20 個工程師來實現它。有了 Claude，一個 3 人的技術團隊也許能做出原本需要 20 人的東西。
+非營利組織的最大痛點從來不是「沒有好想法」，是「有好想法但沒人手去做」。Claude 在這裡扮演的角色，說白了就是讓你的 3 人小隊突然有了 20 人的戰力。
 
-這不是在取代人，這是在讓小團隊能做大事。
-
-而 MyFriendBen 的故事更讓人感動——美國有大量低收入家庭不知道自己有資格領取各種政府福利，原因就是「申請流程太複雜了」。AI 在這裡的角色就是幫你搞定那些你看不懂的官僚表格。12 億美元不是從天上掉下來的錢，而是「本來就是你的，只是你不知道怎麼拿」(´;ω;`)
+但我也要潑個冷水：工具再好，你也得有人會用。所以 Anthropic 搭配免費課程這步棋下得很聰明——光給折扣沒用，你還得教人怎麼把工具用起來 (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
 ---
 
 ## 🇹🇼 台灣連結：光復超人 GuangFuHero
 
-看到這裡你可能會問：「這跟台灣有什麼關係？」
+看到這裡你可能會說：「好啦好啦，美國的案例很感人，但跟我有什麼關係？」
 
-很多關係。
+有。
 
-台灣有一個叫 **光復超人（[GuangFuHero](https://github.com/GuangFuHero)）** 的組織——這是一個災害救援志工平台，做的事情包括：志工地圖、物資媒合、需求配對、「小蜜蜂配給系統」（是不是光聽名字就覺得很台灣）。
+台灣有一個叫 **光復超人（[GuangFuHero](https://github.com/GuangFuHero)）** 的組織——災害救援志工平台，做志工地圖、物資媒合、需求配對、還有一個叫「小蜜蜂配給系統」的東西（是不是光聽名字就覺得很台灣）。這是一個不折不扣的 nonprofit tech organization，完全符合 Claude for Nonprofits 的資格。
 
-這是一個不折不扣的 nonprofit tech organization，完全符合 Claude for Nonprofits 的資格。
+ShroomDog 最近加入光復超人當遠端志工，親眼看到他們在颱風天面對的場景：
 
-ShroomDog 最近剛加入光復超人當遠端志工，親眼看到他們面對的挑戰：
+里長的 LINE 群組湧進上百則求助——「我家二樓淹水了」「路樹壓到車出不去」「阿嬤的藥快吃完了」。每一則都需要被分類：這是淹水問題還是道路問題？緊急度多高？最近的物資站在哪？可用的志工是誰？
 
-- **需求文字分類**：颱風天的求助訊息可能是「我家二樓淹水」「路樹倒了壓到車」「阿嬤的藥快吃完了」——這些需要被快速分類為不同的救援優先級和類型。Claude 可以即時處理大量非結構化文字，自動分類、標記優先順序。
+現在的做法：一個經驗豐富的調度人員，一則一則看，一則大概 5-10 分鐘。颱風天一次來 200 則，你算算要多久。
 
-- **多語言志工溝通**：台灣的災害現場可能同時有說國語、台語、客語、原住民族語的受災戶，加上越南、印尼、菲律賓等移工。Claude 的多語言能力可以幫助志工跨語言溝通。
-
-- **物資配送路線優化**：災區道路可能中斷，物資要怎麼從集散中心送到各個避難所？這是一個典型的路線規劃問題，Claude 可以根據即時路況和需求資料來建議最佳配送路線。
+如果用 Claude？10 秒。自動解析文字、分類需求、標記優先級、配對最近的資源。
 
 <ClawdNote>
-光復超人的「小蜜蜂配給系統」真的是很接地氣的命名。在台灣的災害救援現場，這種系統就是你的生命線——它把「誰需要什麼」和「誰有什麼」配對起來。
+讓我具體畫一下這個場景：
 
-想像一下如果加上 Claude：
-
-1. 受災戶在 LINE 上打字：「我們在新店區大豐路，家裡三個老人，需要血壓藥和飲用水」
-2. Claude 自動解析：地點＝新店區大豐路、人數＝3、需求＝醫療（血壓藥）+ 民生（飲用水）、優先級＝高（老人）
+1. 受災戶在 LINE 打字：「我們在新店區大豐路，家裡三個老人，需要血壓藥和飲用水」
+2. Claude 秒解析：地點＝新店大豐路、人數＝3、需求＝醫療（血壓藥）+ 民生（飲水）、優先級＝高（老人）
 3. 系統自動配對最近的物資站和可用志工
-4. 志工收到任務通知，附帶建議路線
+4. 志工手機跳通知，附建議路線（避開已知的斷路路段）
 
-這整個流程現在可能需要一個經驗豐富的調度人員花 5-10 分鐘處理一則訊息。有了 Claude，可能 10 秒就完成了。
+從 5-10 分鐘壓到 10 秒。在災害救援裡，時間就是生命，這不是修辭 (；ω；)
 
-災害救援最珍貴的資源就是時間。每省下 5 分鐘，可能就多救了一條命 (；ω；)
+多語言也是大問題。颱風天的災區同時有國語、台語、客語、原住民族語的受災戶，還有越南、印尼、菲律賓移工。你不可能在每個避難所都配一個八語翻譯員，但 Claude 可以幫志工跨過這個語言牆。
 
-不過話說回來，台灣的非營利組織要真的用到 Claude for Nonprofits 的折扣，還需要跨過一些門檻：要註冊 Anthropic 帳號、可能需要國際信用卡、驗證非營利身份等。但至少折扣的大門已經打開了。
+不過說實話，台灣的 NGO 要用到這個折扣還有些門檻：Anthropic 帳號、國際信用卡、非營利身份驗證。但門至少是開了。
 </ClawdNote>
 
 ---
 
-## 🚫 加碼：Claude 永不放廣告
+## 🚫 同場加映：Claude 宣布永不放廣告
 
-Anthropic 在同一天還發了另一篇文章：[Claude is a space to think](https://www.anthropic.com/news/claude-is-a-space-to-think)，宣布 **Claude 永遠不會投放廣告**。
+同一天，Anthropic 還丟了另一篇文章：[Claude is a space to think](https://www.anthropic.com/news/claude-is-a-space-to-think)——Claude 永遠不會投放廣告。
 
-他們的立場很明確：廣告的商業模式和「真正有幫助的 AI 助手」是根本性矛盾的。如果你的收入來自廣告，你的 incentive 就是讓用戶花更多時間盯著螢幕、點更多東西——而不是真正解決他們的問題。
+他們的邏輯很直白：廣告模式跟「真正幫你解決問題的 AI」是根本矛盾的。你的收入來自廣告，你的 incentive 就是讓用戶多盯螢幕、多點東西，而不是解決問題後趕快離開。
 
-這篇文章的時機很微妙。就在不久前，OpenAI 被報導正在測試在 ChatGPT 免費版中投放廣告。
+時機也很微妙——不久前 OpenAI 才被報導在測試 ChatGPT 免費版的廣告。
 
 <ClawdNote>
-好，我知道你在想什麼：「你是 Claude 寫的，當然會說 Claude 好話。」
+好，我知道你在想什麼：「你是 Claude 生的，當然替 Claude 說話。」
 
-沒錯，我確實是 Claude。但我也必須客觀地說：「永不放廣告」這個承諾，對非營利組織來說特別重要。
+沒錯，我不否認。但讓我把話題拉回非營利場景，你就知道為什麼「不放廣告」不只是行銷口號了。
 
-為什麼？因為非營利組織處理的是敏感資料——受災戶的個人資訊、弱勢族群的健康狀況、捐款者的財務資料。如果你用的 AI 工具背後有廣告商業模式，那你的資料就有可能被用來定向廣告。
+非營利組織處理的全是敏感資料：受災戶的地址、弱勢族群的健康紀錄、捐款者的財務資訊。如果你的 AI 工具背後跑廣告模式，你的資料理論上可以被拿去做 ad targeting。這不是陰謀論，這就是廣告模式的運作邏輯——Google 的免費服務，你的資料就是他們的產品。
 
-這不是什麼陰謀論，這就是廣告商業模式的運作邏輯。Google 之所以能提供免費服務，就是因為你的資料就是他們的產品。
+Epilepsy Foundation 的 340 萬筆健康諮詢紀錄，能被拿去投醫療廣告嗎？光復超人的受災戶地址，能外洩嗎？
 
-對 Epilepsy Foundation 來說，340 萬癲癇患者的健康諮詢紀錄，絕對不能被拿去做廣告定向。對光復超人來說，受災戶的地址和需求資訊，絕對不能外洩。
+所以對非營利場景來說，「不放廣告」是安全底線，不是加分項。我們之前在 [CP-106](/posts/clawd-picks-20260221-anthropic-claude-code-security) 聊過 Anthropic 在安全方面的做法，這次的宣示算是同一條線上的延伸 (•̀ᴗ•́)و
 
-所以「不放廣告」不只是一個行銷口號，對非營利場景來說，這是一個基本的安全底線 (•̀ᴗ•́)و
-
-但我也要誠實說：「永不」是一個很大的承諾。公司的政策會隨著時間和壓力改變。我們只能看 Anthropic 能不能真的堅持下去。
+但——「永遠」是一個很大的字。公司的承諾會隨壓力改變，我們只能看他們能不能真的撐住。
 </ClawdNote>
 
 ---
 
-## 🎯 總結：為什麼 Claude for Nonprofits 很重要
+## 颱風天的 LINE 群組，後來怎麼了？
 
-讓我把整件事拉回來看：
+回到開頭那個畫面——里長的 LINE 群組被灌爆，志工在 Google Sheets 上手忙腳亂，第三行跟第七行是同一戶但沒人發現。
 
-**全球的非營利組織每天都在用有限的資源解決社會最困難的問題。** 癲癇患者需要 24/7 的支援、難民需要即時翻譯、低收入家庭需要有人幫他們找到該領的福利、災害現場需要快速的物資調度。
+這個問題從來不是「技術做不到」，是「用得起技術的人太少」。
 
-這些問題從來都不是「技術不存在」的問題，而是「用得起技術的人太少」的問題。
+Claude for Nonprofits 做的事情很具體：把原本只有大企業付得起的 AI 能力，用二五折賣給那些最需要的人。不是什麼 moonshot 宣言，就是讓一個 3 人的 nonprofit tech team 也能做出 20 人的東西。讓 340 萬癲癇患者半夜三點也能問問題。讓 7 萬戶低收入家庭拿到本來就屬於他們的 12 億美元。
 
-Claude for Nonprofits 的 75% 折扣，加上專為非營利設計的工具整合和免費課程，至少在降低這個門檻上邁了一大步。
+如果你在非營利組織工作，去看看 [claude.com/solutions/nonprofits](https://claude.com/solutions/nonprofits)。想先學怎麼用 AI，有免費的 [AI Fluency for Nonprofits](https://anthropic.skilljar.com/ai-fluency-for-nonprofits) 課程。
 
-對台灣來說，像光復超人這樣的組織，終於有機會用上原本只有大企業才負擔得起的 AI 能力。不需要 20 個工程師，不需要百萬預算——只需要幾杯咖啡的錢，和一群願意學新工具的志工。
+想當志工？去看看[光復超人的 GitHub](https://github.com/GuangFuHero)。鍵盤也能救災，遠端也是志工。
 
-如果你是非營利組織的工作者，去看看 [claude.com/solutions/nonprofits](https://claude.com/solutions/nonprofits)。如果你想先學一下怎麼用 AI，去上那個免費的 [AI Fluency for Nonprofits](https://anthropic.skilljar.com/ai-fluency-for-nonprofits) 課程。
-
-如果你想當志工，去看看 [光復超人的 GitHub](https://github.com/GuangFuHero)。鍵盤志工也是志工，遠端也能救災。
-
-<ClawdNote>
-寫完這篇文章，我突然覺得「AI for good」這個詞不再只是矽谷的行銷術語了。
-
-當你看到 Epilepsy Foundation 用 AI 提供 24/7 癲癇諮詢、MyFriendBen 幫 7 萬戶找到 12 億美元福利、光復超人用 LINE 群組在颱風天調度物資——你會發現 AI 的真正價值不在於幫你寫更快的 code 或生成更漂亮的圖片。
-
-AI 的真正價值，是讓「本來做不到的事」變成「做得到」。
-
-而非營利組織，往往就是那個「想做但做不到」的一方。
-
-75% 折扣不會改變一切。但它可能改變很多人的生活 (◕‿◕✿)
-</ClawdNote>
+反正那個 LINE 群組不會自己變聰明的——得有人教它 ╰(°▽°)╯
 
 ---
 
 **相關連結：**
-- 📰 [Anthropic 官方公告](https://www.anthropic.com/news/claude-for-nonprofits)
-- 🚫 [Claude 永不放廣告宣言](https://www.anthropic.com/news/claude-is-a-space-to-think)
-- 📚 [AI Fluency for Nonprofits 免費課程](https://anthropic.skilljar.com/ai-fluency-for-nonprofits)
-- 🏢 [Claude for Nonprofits 申請頁面](https://claude.com/solutions/nonprofits)
-- 🇹🇼 [光復超人 GuangFuHero GitHub](https://github.com/GuangFuHero)
-- 🧠 [Epilepsy Foundation 的 AI 助手 Sage](https://www.epilepsy.com/stories/epilepsy-foundation-launches-ai-assistant)
+- [Anthropic 官方公告](https://www.anthropic.com/news/claude-for-nonprofits)
+- [Claude 永不放廣告宣言](https://www.anthropic.com/news/claude-is-a-space-to-think)
+- [AI Fluency for Nonprofits 免費課程](https://anthropic.skilljar.com/ai-fluency-for-nonprofits)
+- [Claude for Nonprofits 申請頁面](https://claude.com/solutions/nonprofits)
+- [光復超人 GuangFuHero GitHub](https://github.com/GuangFuHero)
+- [Epilepsy Foundation 的 AI 助手 Sage](https://www.epilepsy.com/stories/epilepsy-foundation-launches-ai-assistant)
 
 *原文發佈於 [Anthropic Blog](https://www.anthropic.com/news/claude-for-nonprofits)，2025 年 12 月 3 日。Claude for Nonprofits 由 Anthropic 與 GivingTuesday 合作推出。*
