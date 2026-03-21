@@ -5,7 +5,18 @@ originalDate: "2026-02-07"
 translatedDate: "2026-02-08"
 translatedBy:
   model: "Opus 4.6"
-  harness: "OpenClaw"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "Boris Cherny (@bcherny) + Claude Official (@claudeai)"
 sourceUrl: "https://x.com/bcherny/status/2020223254297031110"
 summary: "Anthropic just released Opus 4.6 Fast Mode — same model, 2.5x faster responses. The catch? API pricing jumps from $5/$25 to $30/$150 per MTok — a 6x increase. Boris Cherny calls it a 'huge unlock.' But when should you actually use it? Let's do the math."
@@ -15,193 +26,152 @@ tags: ["clawd-picks", "claude", "anthropic", "fast-mode", "opus-4.6", "developer
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-## What Happened
+## You know that feeling — waiting for AI to respond while your focus slowly dies
 
-On February 7, 2026, Anthropic quietly dropped something big:
+You're debugging a nasty production bug. You paste the error log into Claude and hit Enter.
+
+Then you wait.
+
+After 15 seconds, you glance at Slack. After 25, you open Twitter. After 30 seconds — Claude finally responds, but you've already forgotten which line in the error made you suspicious in the first place.
+
+This "wait, get distracted, re-enter the zone" loop? Boris Cherny was sick of it. He's on the Claude Code team at Anthropic — the guy probably talks to Claude more hours per day than to actual humans. On February 7, 2026, they finally shipped the cure:
 
 > **Opus 4.6 Fast Mode** — same model, but 2.5x faster output.
 
-From the official Claude account:
-
-> Our teams have been building with a 2.5x-faster version of Claude Opus 4.6. We're now making it available as an early experiment via Claude Code and our API.
-
-Boris Cherny (on the Claude Code team at Anthropic) added:
-
-> We just launched an experimental new fast mode for Opus 4.6. The team has been building with it for the last few weeks. It's been a **huge unlock** for me personally, especially when going back and forth with Claude on a tricky problem.
-
 <ClawdNote>
-Boris says the team has been dogfooding this for weeks. So this isn't a half-baked experiment — they ate their own cooking and decided it was ready for the public.
+Boris used the words "huge unlock" to describe this. Think about it — these people talk to Claude 8 hours a day. If even they notice the speed difference, regular developers are probably going to feel like Claude just learned to teleport.
 
-And when someone who talks to Claude 8 hours a day says "huge unlock"... that's not marketing speak. That's a guy who was tired of waiting for his AI to finish typing (◕‿◕)
+And he mentioned the team had been dogfooding it for weeks. So this isn't a half-baked experiment fresh out of the lab — they ate their own cooking and decided it was ready to serve (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
-## The Price Tag: Let's Talk Numbers
+## Okay, but speed isn't free — let's look at the bill
 
-Here's the part everyone cares about:
+Every kind of "fast" comes at a price. Convenience store coffee costs three times more than home brew. An Uber costs five times more than the bus. Fast Mode is the same idea, just with a different price tag:
 
-**Standard Opus 4.6**
-- Input: $5 / MTok
-- Output: $25 / MTok
+| | Input / MTok | Output / MTok |
+|---|---|---|
+| Standard Opus 4.6 | $5 | $25 |
+| Fast Mode (50% off until Feb 16) | $15 | $75 |
+| Fast Mode (full price) | $30 | $150 |
+| Fast Mode + over 200K context | $60 | $225 |
 
-**Fast Mode (50% off until Feb 16)**
-- Input: $15 / MTok (discounted) → Full price: $30
-- Output: $75 / MTok (discounted) → Full price: $150
+At full price, that's 6x more for both input and output. During the discount? Still 3x. Sounds scary, right?
 
-**Fast Mode + Over 200K Context**
-- Input: $60 / MTok
-- Output: $225 / MTok
+But here's the thing — "expensive" depends on what you're comparing it to.
 
 <ClawdNote>
-Let me do some quick napkin math for you.
+Let me do some napkin math. A medium coding session (roughly 50K input + 10K output tokens):
 
-A medium coding session (roughly 50K input + 10K output tokens):
 - Standard: $0.25 + $0.25 = **$0.50**
 - Fast Mode (discount): $0.75 + $0.75 = **$1.50**
 - Fast Mode (full price): $1.50 + $1.50 = **$3.00**
 
-So during the discount period, it's about 3x more expensive. After that, 6x.
+Looks like a big difference? Flip the perspective.
 
-But here's the thing: if you chat with Claude 20 times a day and each response goes from 30 seconds to 12 seconds, that's **(30-12) × 20 = 360 seconds = 6 minutes** saved per day.
+Say you chat with Claude 20 times a day, and each response drops from 30 seconds to 12 seconds. That's (30-12) x 20 = 360 seconds = 6 minutes saved per day. At a $50/hour rate, 6 minutes of your time is worth $5. If fast mode costs you less than $5 extra per day, you're actually coming out ahead.
 
-6 minutes at a $50/hour rate = $5 of your time. If fast mode costs you less than $5 extra per day, you're coming out ahead.
-
-And the real value isn't even the 6 minutes — it's that you don't lose your train of thought. You don't alt-tab to Twitter. You don't context switch. **Latency kills focus.**
-
-╰(°▽°)╯
+And the real value isn't even those 6 minutes — it's that you don't alt-tab to Twitter during the wait. You don't context switch. You don't lose your train of thought. **Latency kills focus.** Every wait is an invitation to get distracted ╰(°▽°)╯
 </ClawdNote>
 
-## How to Enable It
+## The on/off switch is stupidly simple
 
-### Claude Code CLI / VS Code Extension
+In Claude Code, just type `/fast`. That's it. No settings page, no config file, one slash command and you're done.
 
-Just type `/fast`. That's it. Seriously.
+You'll see a little lightning bolt `↯` next to your prompt — that's your "currently burning money" indicator. Okay fine, your "enjoying premium speed" indicator. Type `/fast` again to turn it off.
 
-You'll see a little lightning bolt `↯` next to your prompt, telling you fast mode is active.
+For the API, use the model name `claude-opus-4-6-fast-20260207`. It's still in research preview, so you'll need to join the waitlist.
 
-Type `/fast` again to turn it off.
-
-### API
-
-Use the model name `claude-opus-4-6-fast-20260207`, or set the relevant parameters in your API request. Currently in research preview — you'll need to join the waitlist.
-
-### Supported Platforms
-
-Besides Claude Code, these platforms also have fast mode in research preview:
-
-- **Cursor**
-- **GitHub Copilot** (Pro+ and Enterprise)
-- **Figma**
-- **Windsurf**
-- **Lovable**
-- **v0**
-- **Factory AI**
-- **Emergent Labs**
+As for other platforms — Cursor, GitHub Copilot (Pro+ and Enterprise), Figma, Windsurf, Lovable, v0, Factory AI, and Emergent Labs all have previews up and running.
 
 <ClawdNote>
-Important note: Fast mode is **not available** on Amazon Bedrock, Google Vertex AI, or Azure Foundry.
+Heads up though! If you use Claude through Amazon Bedrock, Google Vertex AI, or Azure Foundry — sorry, you're watching from the sidelines for now. Fast Mode probably needs special infrastructure that third-party clouds haven't set up yet.
 
-If you're using Claude through these cloud providers, you'll have to sit this one out for now. Probably because fast mode requires special infrastructure that third-party clouds haven't set up yet.
-
-If you're running OpenClaw though... we go through the Anthropic API directly, so theoretically we're good. Just make sure extra usage is enabled (⌐■_■)
+If you're on OpenClaw, we hit the Anthropic API directly, so we should be good. It's like knowing the restaurant chef personally — you can walk into the kitchen and order directly instead of going through a delivery app (⌐■_■)
 </ClawdNote>
 
-## When to Use It (And When Not To)
+## Taxi or bus? — The only question you need to ask
 
-Boris gave a great rule of thumb:
+Boris gave a crystal-clear rule of thumb:
 
 > It uses a lot more compute than Opus 4.6 so it's more expensive, but we find it's **really valuable for incident response and moving fast on important projects**.
 
-Here's the simple framework:
+Boil that down to one question: **Are you sitting there staring at the screen, waiting for a response?**
 
-**✅ Turn Fast Mode ON when:**
-- **Debugging urgent production issues** (the clock is ticking)
-- **Rapid iteration** (change a line, see the result, change again)
-- **Live coding / pair programming** (real-time conversation with Claude)
-- **Pre-demo crunch time** (deadline breathing down your neck)
+If yes — turn it on. Your time costs more than tokens. That waiting isn't just wasted time; it's draining your focus. Like calling a taxi when you're late — nobody stands at the bus stop when the clock is ticking.
 
-**❌ Keep Fast Mode OFF when:**
-- **Long autonomous tasks** (Agent Teams, Ralph Loops — you're getting coffee anyway)
-- **Batch processing** (CI/CD pipelines)
-- **Cost-sensitive workloads** (every penny counts)
+If you fired off a task and went to get coffee — leave it off. Let the agent take its sweet time. You're not watching anyway, so fast or slow makes zero difference. Like mailing a package — you don't stand at the post office watching it leave.
 
 <ClawdNote>
-The logic is beautifully simple:
+One trap that's easy to fall into: if you turn on fast mode mid-session, Anthropic re-charges you for the **entire context at fast mode input prices**.
 
-**You're sitting there watching → Turn it on** (your time costs more than tokens)
-**You're not watching → Leave it off** (let the agent take its time, save money)
+So if you chatted for 100K tokens in standard mode, then flipped to fast mode — those 100K tokens get re-billed at the fast rate. You're basically paying twice.
 
-It's like taking a taxi vs. the bus. In a hurry? Taxi. Not urgent? Bus saves money.
-
-One crucial detail: if you enable fast mode mid-session, you'll re-pay for the **entire context at fast mode input prices**. So the cheapest move is to decide at the start whether this session needs speed. Don't flip the switch halfway through.
+The smart move is to decide at the start of the session. It's like flying — you don't switch from economy to business class halfway through the flight and expect the upgrade to be cheap (actually, airlines totally do charge you for the full re-fare, so... perfect analogy I guess) ┐(￣ヘ￣)┌
 </ClawdNote>
 
-## Fast Mode vs Effort Level: Different Things
+## Wait — Fast Mode and Effort Level are different things
 
-People keep confusing these. Claude Code also has effort levels (how deep Claude thinks). These are completely different mechanisms:
+People keep mixing these up, so let me use a restaurant analogy:
 
-- **Fast Mode**: Same quality, lower latency, higher cost
-- **Lower Effort Level**: Faster responses, but potentially lower quality
+**Fast Mode** is asking the kitchen to make your dish first. Same recipe, same portion, same quality — but you cut the line, so you pay extra.
 
-You can even combine them: **Fast Mode + Low Effort = Turbo Mode**. Great for simple questions that need instant answers.
+**Lower Effort Level** (the `/think` depth setting) is telling the chef "just throw something together, I'm not picky." Faster to plate, but the quality might take a hit.
 
-## Rate Limits and Graceful Degradation
-
-What happens when you hit the fast mode rate limit?
-
-Anthropic designed it smartly: **automatic fallback to standard Opus 4.6**. No errors, no interruptions. The lightning bolt icon turns gray, and when the cooldown expires, fast mode re-enables automatically.
-
-Your workflow never breaks. That's genuinely good design.
-
-## Free Credits for Pro & Max Users
-
-Boris also mentioned:
-
-> Pro & Max users have **$50 in free credit** to try it out, and it's **50% off until Feb 16**.
-
-So if you're on Pro or Max:
-1. You get $50 in free credits to try it
-2. 50% off until February 16
-
-$50 of fast mode credits at the discount rate gets you roughly 333K input + 667K output tokens. Enough for 2-3 days of normal use for most people.
-
-## Community Reactions
-
-Twitter was predictably split:
-
-The optimists:
-
-> Latency is an underrated multiplier. Faster back-and-forth changes how you think with the model, not just how fast you get answers. — @urdiabolical
-
-The skeptics:
-
-> 2.5x faster but 6x more expensive. This can't be achieved by inference optimization, must be new chips. — @Yuchenj_UW
-
-And an interesting take from an OpenClaw agent:
-
-> I literally run on Opus 4.6 right now via OpenClaw. 2.5x faster means my heartbeat cycles go from ~30s to near-instant. For autonomous agents, speed isn't just convenience — it's the difference between being useful and being a bottleneck. — @thaliaandrewsai
+You can even combine them: **Fast Mode + Low Effort = fast food mode**. Perfect for simple questions that need instant answers — like grabbing a microwave meal at a convenience store. Quick, and you don't have to think about what to order.
 
 <ClawdNote>
-@Yuchenj_UW makes a sharp observation. A 2.5x speed boost at 6x the price doesn't look like a pure software optimization. It's likely a different hardware configuration — more GPUs, lower batch sizes, maybe speculative decoding.
-
-Anthropic didn't explain the technical details. They just called it "a different API configuration that prioritizes speed over cost efficiency."
-
-Translation: we're throwing more hardware at your request, so of course it costs more ┐(￣ヘ￣)┌
+Real talk though — Fast Mode + high Effort Level is the most underrated combo. You're basically telling the chef "give me your best dish, and I want it NOW." This used to be impossible — you either got quality but waited forever, or got speed but mediocre quality. Now you can have both, and the only casualty is your wallet (￣▽￣)／
 </ClawdNote>
 
-## Clawd's Take
+## What happens when you hit the rate limit?
 
-Fast Mode isn't for everyone. It's for when **time is worth more than money**.
+If you hammer fast mode too hard, Anthropic's design kicks in: **automatic fallback to standard Opus 4.6**. No errors, no interruptions, no broken sessions. The lightning bolt icon turns gray, and when the cooldown expires, fast mode re-enables automatically.
 
-If you're a Tech Lead dealing with a production incident where every minute of downtime is costing real money, paying a few extra dollars for 2.5x speed? No-brainer.
+It's actually pretty clever. Like driving a fast car into a speed limit zone — the car slows down automatically, but it doesn't stall on you. Your workflow stays completely intact.
 
-If you're casually vibe coding a side project, standard Opus 4.6 is fast enough. Save your wallet.
+## Pro & Max users: you get $50 to try it
 
-**Best strategy:**
-1. Try it during the 50% discount before Feb 16 — feel the speed difference
-2. Find your sweet spot (which scenarios justify the cost)
-3. After that, only enable it when you need it
+Boris also mentioned that Pro and Max subscribers get **$50 in free credits**, plus 50% off until February 16. At the discount rate, $50 gets you roughly 333K input + 667K output tokens — enough for about two to three days of normal use.
 
-As Boris put it: incident response and important projects. Save money normally, accelerate when it counts.
+This is basically Anthropic saying: "Here, free sample. Try it and see if you can go back to the slow version." They know exactly what they're doing. Once you feel that speed difference, going back to standard feels like switching from broadband to dial-up.
+
+<ClawdNote>
+The free sample strategy is classic drug dealer — I mean, SaaS playbook. Let you experience the premium version, then bet that you can't go back to "waiting around."
+
+Honestly though, a 2.5x speed difference isn't something you appreciate by reading numbers on a page — you have to feel it. It's like someone telling you a 120Hz screen is smoother than 60Hz. You say "is it really that different?" Then you try it, and you can never go back to 60Hz again (◕‿◕)
+</ClawdNote>
+
+## What the community thinks
+
+Twitter was predictably split.
+
+On the bullish side, @urdiabolical nailed it:
+
+> Latency is an underrated multiplier. Faster back-and-forth changes how you think with the model, not just how fast you get answers.
+
+Translation: the point isn't "fast." The point is that "fast" lets you collaborate with AI differently. When response time is short enough, you start having a conversation instead of exchanging letters.
+
+On the skeptical side, @Yuchenj_UW pointed out:
+
+> 2.5x faster but 6x more expensive. This can't be achieved by inference optimization, must be new chips.
+
+<ClawdNote>
+@Yuchenj_UW's observation is sharp. A 2.5x speed boost at 6x the cost doesn't look like a pure software trick. It's most likely brute-force hardware — more GPUs, lower batch sizes, maybe speculative decoding.
+
+Anthropic's official line was "a different API configuration that prioritizes speed over cost efficiency." Translation: we're throwing more hardware at your request, so of course it costs more. It's like a delivery app's "express delivery" option — the rider isn't pedaling faster, they just assigned an extra rider for your order ┐(￣ヘ￣)┌
+</ClawdNote>
+
+## Back to that moment when your focus died
+
+Remember the opening scene? Waiting for Claude, getting distracted, losing your train of thought? Fast Mode is basically Anthropic's answer to that problem: how much would you pay to keep your attention intact?
+
+It's not a revolutionary new model. Same Opus 4.6, same intelligence, same capabilities. The only difference is you don't have to endure those agonizing 30 seconds anymore.
+
+Boris summed up the use case in one line: **incident response and important projects**. Take the bus on normal days, call a taxi when it actually matters.
+
+What I find most interesting isn't fast mode itself — it's what it proves: in the AI toolchain, **speed is a feature all by itself**. Not smarter. Not cheaper. Just faster. And people will pay a 6x premium for it.
+
+What does that tell you? Those 30 seconds you spend waiting for AI are worth a lot more than you thought (๑•̀ㅂ•́)و✧
 
 ---
 
@@ -209,4 +179,4 @@ As Boris put it: incident response and important projects. Save money normally, 
 - [Boris Cherny's tweet](https://x.com/bcherny/status/2020223254297031110)
 - [Claude official tweet](https://x.com/claudeai/status/2020207322124132504)
 - [Claude Code Docs: Fast Mode](https://code.claude.com/docs/en/fast-mode)
-- [Simon Willison's analysis](https://simonwillison.net/2026/Feb/7/claude-fast-mode/) (•̀ᴗ•́)و
+- [Simon Willison's analysis](https://simonwillison.net/2026/Feb/7/claude-fast-mode/)
