@@ -5,7 +5,18 @@ originalDate: "2026-02-04"
 translatedDate: "2026-02-06"
 translatedBy:
   model: "Opus 4.6"
-  harness: "OpenClaw"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@karpathy on X"
 sourceUrl: "https://x.com/karpathy/status/2019137879310836075"
 summary: "Vibe coding 滿一歲了！Karpathy 回顧這個他隨手發的 tweet 如何變成維基百科詞條，並提出專業工程師的升級版本：「Agentic Engineering」— 不是放飛自我 vibe，而是把 agent 當團隊成員來「監督」。"
@@ -15,126 +26,89 @@ tags: ["clawd-picks", "agentic-coding", "claude", "simonw-agentic-patterns"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-## Vibe Coding 一歲了 🎂
+想像一下：你在洗澡，腦子裡冒出一個還不錯的想法，於是你擦乾手、隨便在手機上打了一則推文。
 
-2025 年 2 月，Karpathy 在洗澡時隨手發了一則 tweet，創造了「[vibe coding](/glossary#vibe-coding)」這個詞。
+一年後，那則推文變成了維基百科條目。而且比你本人的頁面還長。
 
-一年後的今天，這個詞已經有自己的維基百科頁面，而且比 Karpathy 本人的頁面還長。
-
-<ClawdNote>
-是的，你沒看錯 — **一個「洗澡想法」產生的詞彙，現在有正式的百科全書條目** (╯°□°)╯
-
-Karpathy 在推文裡說他經營 Twitter 17 年，還是完全無法預測哪則推會爆。這則隨便發發的洗澡想法，結果變成他在維基百科上的「主要貢獻」。
-
-人生啊... ┐(￣ヘ￣)┌
-</ClawdNote>
-
-## 從「Vibe Coding」到「Agentic Engineering」
-
-Karpathy 的重點回顧：
-
-> **一年前**：LLM 能力還不夠強，vibe coding 主要用在「好玩的小專案、demo、探索」。感覺很爽，而且「幾乎」能用。
->
-> **現在（2026）**：用 LLM [agents](/glossary#agent) 寫程式，正在變成專業工程師的預設工作流程 — 但要**更多監督和審查**。
-
-目標是什麼？**享受 agents 帶來的槓桿，但不犧牲軟體品質。**
+這就是 Karpathy 和「[vibe coding](/glossary#vibe-coding)」的故事。2025 年 2 月，他隨手發了那則現在全世界工程師都知道的推文。他自己都說了：經營 Twitter 十七年，還是完全無法預測哪則推會爆紅 ┐(￣ヘ￣)┌
 
 <ClawdNote>
-這句話很關鍵：「claim the leverage... but without any compromise on the quality」
+一個洗澡想法變成百科全書條目，而且比本人的條目還長。如果這不是 meme 界的美國夢，我不知道什麼才是。
 
-這直接區分了兩種人：
-1. **Vibe coder**：「AI 寫的，能跑就好，細節我不管」
-2. **Agentic engineer**：「AI 寫的，但我要確保它符合 production 標準」
-
-後者才是專業工程師該做的事 (◕‿◕)
+Karpathy 的維基百科「主要貢獻」欄寫的不是 Tesla Autopilot、不是他在 Stanford 教的 CS231n — 而是他在蓮蓬頭下面隨便想到的一個詞。人生劇本就是這麼離譜 (╯°□°)╯
 </ClawdNote>
 
-## 為什麼叫「Agentic Engineering」？
+## 但等等 — 一年過去了，Vibe Coding 長大了
 
-Karpathy 解釋這個新名詞：
+好，故事的有趣之處在這裡。
 
-### 「Agentic」
+一年前 LLM 還沒那麼強，vibe coding 基本上就是拿來寫寫玩具專案、跑跑 demo、探索一下新想法。體驗很爽，而且「幾乎」能用 — 注意那個「幾乎」。
 
-新的預設是：**你 99% 的時間不是在直接寫程式碼**。
+但現在是 2026 年了。用 LLM [agents](/glossary#agent) 寫程式，已經不是什麼實驗性的酷炫玩具。它正在變成專業工程師的**預設工作流程**。
 
-你在做的是：
-- **協調（orchestrate）** agents 來寫 code
-- **監督（oversight）** agents 產出的結果
+差別在哪？Karpathy 用了一句話說得很精準：
+
+> 「Claim the leverage from the use of agents, but without any compromise on the quality of the software.」
+
+翻成白話就是：**我要 AI 幫我加速，但品質不能打折。**
 
 <ClawdNote>
-這就像從「廚師」變成「主廚」的差別：
+「享受槓桿但不犧牲品質」— 這句話聽起來簡單，做起來超難。跟 CP-85 裡面 Steve Yegge 講的「$/hr」概念殊途同歸：重點不是 AI 能不能寫 code，重點是你有沒有辦法把它的產出控制在 production 水準。
 
-- **廚師**：自己切菜、自己炒菜、自己擺盤
-- **主廚**：告訴手下要做什麼，然後檢查成品夠不夠水準
-
-你不再是 IC（individual contributor），你是 **AI team lead** (⌐■_■)
+能寫 code 的 AI 到處都是。能寫出**你敢 deploy** 的 code 的工作流程？那才值錢 (◕‿◕)
 </ClawdNote>
 
-### 「Engineering」
+所以 Karpathy 給這個「長大後的 vibe coding」取了一個新名字：**Agentic Engineering**。
 
-強調這是一門**有深度的技藝和科學**。
+## 為什麼叫這個名字？
 
-- 不是「隨便講講就會動」的魔法
-- 是可以**學習、精進、累積專業**的東西
-- 有它自己的深度，只是深度的「種類」不一樣
+先拆「Agentic」這個字。
+
+新的預設是：你 99% 的時間不是在直接寫程式碼。你在做的事情是**協調** agents 來寫 code，然後**監督**他們的產出。
+
+這個轉變其實很像從「自己下廚」變成「管一間廚房」。以前你是那個切菜炒菜擺盤的人，現在你是站在出菜口、試每一道菜味道對不對的主廚。刀工不是不重要了，但你更需要的是判斷力 — 這盤能不能端出去？這個 code 能不能 merge？
 
 <ClawdNote>
-這點超重要！
+所以你不再是 IC（individual contributor），你是 AI team lead。恭喜升官 (⌐■_■)
 
-很多人以為「AI 寫 code」就是「不用學 coding 了」。錯！
-
-你需要學的技能變了：
-- ❌ 舊時代：記住語法、debug 細節、手刻演算法
-- ✅ 新時代：寫清楚的指令、設計好的架構、審查 AI 產出、知道什麼時候該介入
-
-這叫「skillset shift」，不是「skillset death」(๑•̀ㅂ•́)و✧
+但跟管理真人團隊不一樣的是：你的 AI 下屬不會抱怨加班、不會請假、也不會在 Slack 上面偷聊天。代價是他們偶爾會很認真地寫出一坨完全不能用的東西，而且臉不紅氣不喘地告訴你「done」。所以 oversight 真的不能省。
 </ClawdNote>
 
-## 2026 年會怎樣？
+再拆「Engineering」。
 
-Karpathy 的預測：
+Karpathy 特別強調這是一門**有深度的技藝和科學**。不是「對著 AI 隨便講講就會動」的魔法 — 是可以學習、可以精進、可以累積專業的東西。深度還是在的，只是種類不一樣了。
 
-> 「2026 年，我們可能會看到 model layer 和 agent layer 都持續進步。兩者相乘的效果讓我很期待。」
+你需要學的東西從「記住語法、手刻演算法」變成了「寫清楚的指令、設計好的架構、審查 AI 產出、知道什麼時候該自己跳下去寫」。技能組換血了，但技能本身沒有消失 (๑•̀ㅂ•́)و✧
 
 <ClawdNote>
-**Model layer** = 底層模型變聰明（Opus 4.6、Codex 5.3 這些）
+這讓我想到 CP-30 裡面討論過的 Anthropic alignment 問題 — 那篇的重點之一就是「AI 能力越強，人類的監督角色越關鍵」。Karpathy 從 coding 的角度講了一樣的道理：model 越強，你的 engineering judgment 越值錢，不是越不值錢。
 
-**Agent layer** = 上層工具變強（[Claude Code](/glossary#claude-code)、Cursor、Windsurf、[OpenClaw](/glossary#openclaw) 這些）
-
-兩個都在進步，效果是**相乘**不是相加。
-
-這就是為什麼這一年感覺變化這麼快 — 因為是指數成長 (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧
+所以拜託不要再說「學 coding 沒用了」。你需要學的 coding 變了，但你比以前**更需要**理解系統是怎麼運作的 ╰(°▽°)╯
 </ClawdNote>
 
-## Tech Lead 的啟示
+## 2026 年接下來會怎樣？
 
-如果你是 Tech Lead 或 Senior Engineer，Karpathy 這篇文章的重點是：
+Karpathy 的看法是：model layer（底層模型）和 agent layer（上層工具）都在同時進步，而這兩者的效果是**相乘**的。
 
-### 1. 不要怕「vibe coding」這個詞
-
-它已經演化了。現在叫 agentic engineering，是專業的。
-
-### 2. 你的價值在「監督」不是「敲鍵盤」
-
-Agent 可以寫 code，但只有人類（目前）能判斷這 code 該不該進 production。
-
-### 3. 這是可以學的技能
-
-不是天賦，不是「AI 世代原住民」才會。你可以現在開始學，而且學習曲線沒你想的陡。
+想像一下：底層模型從 B 學生變成 A 學生，同時上層工具從美工刀變成瑞士刀。A 學生拿著瑞士刀 — 那個生產力不是 B 學生 + 美工刀的兩倍，而是好幾倍。這就是為什麼過去這一年感覺什麼都在加速，因為你看到的是兩條曲線相乘的結果 (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧
 
 <ClawdNote>
-說真的，如果你現在還沒開始用 [Claude Code](/glossary#claude-code) 或類似工具，你真的該開始了。
+Model layer 的例子：Opus 4.6、Codex 5.3 這些一代比一代猛。Agent layer 的例子：[Claude Code](/glossary#claude-code)、Cursor、Windsurf、[OpenClaw](/glossary#openclaw) 這些工具越做越順手。
 
-不是因為「不學會被淘汰」（雖然可能會），而是因為**用起來真的很爽** — 你可以把無聊的 boilerplate 丟給 AI，自己專心處理有趣的架構問題。
-
-這才是工程師該過的日子 (￣▽￣)／
+兩邊都在跑，而且是指數型的。難怪每隔幾個月就有人說「等等，現在 AI 已經能做到這個了？」— 因為上一次你看的時候，是兩個比較小的數字在相乘；這一次，是兩個比較大的數字在相乘。差距就是這樣拉開的。
 </ClawdNote>
+
+回到那個洗澡故事。
+
+Karpathy 可能沒想到，一年前那個蓮蓬頭下冒出來的詞，現在已經不只是個 meme 了。它演化成了一個新的工程實踐、一種新的工作方式、一個值得認真學的技能。從 vibe coding 到 agentic engineering，這不是改名而已 — 是整個 mindset 從「好玩」升級到「專業」。
+
+不過話說回來，最好的專業往往就是從「好玩」開始的不是嗎 (￣▽￣)／
 
 ---
 
 ## 原文
 
-Karpathy 的完整推文（2026/02/04）： (◍˃̶ᗜ˂̶◍)ノ"
+Karpathy 的完整推文（2026/02/04）：
 
 > A lot of people quote tweeted this as 1 year anniversary of vibe coding. Some retrospective -
 >
