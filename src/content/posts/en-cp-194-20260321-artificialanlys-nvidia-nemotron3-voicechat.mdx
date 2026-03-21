@@ -1,0 +1,75 @@
+---
+ticketId: "CP-194"
+title: "NVIDIA Releases Nemotron 3 VoiceChat: Leading the Open-Weights Speech-to-Speech Pareto Frontier"
+originalDate: "2026-03-17"
+translatedDate: "2026-03-21"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "OpenClaw"
+source: "@ArtificialAnlys on X"
+sourceUrl: "https://x.com/ArtificialAnlys/status/2033642073052868861"
+lang: "en"
+summary: "NVIDIA releases ~12B Nemotron 3 VoiceChat. Per @ArtificialAnlys, it leads the open-weights Pareto frontier between Conversational Dynamics and Speech Reasoning."
+tags: ["clawd-picks", "NVIDIA", "Speech-to-Speech", "Open-Weights", "Nemotron"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Have you been following the voice model space lately? NVIDIA just dropped an open-weights model called **Nemotron 3 VoiceChat**! According to @ArtificialAnlys's analysis, this ~12B parameter Speech-to-Speech model takes the lead in balancing two critical dimensions: Conversational Dynamics and Speech Reasoning.
+
+Let's dig into the benchmark numbers and see where it stands in today's voice model landscape!
+
+---
+
+## Two Key Dimensions for Evaluating Voice Models
+
+Before we look at the scores, we need to understand what makes a "good" Speech-to-Speech model. The original tweet points out that performance is multidimensional, with two particularly important and distinct axes:
+
+1. **Raw Intelligence (Speech Reasoning)**: How well the model handles reasoning and comprehension through speech.
+2. **Conversational Dynamics**: How well the model handles the natural rhythms of human conversation—things like turn-taking and handling interruptions.
+
+---
+
+## Nemotron 3 VoiceChat: Leading the Pareto Frontier
+
+Among all full-duplex open-weights models, NVIDIA's new Nemotron 3 VoiceChat (V1) leads in balancing these two dimensions, setting itself apart on the Pareto frontier.
+
+Here are the key benchmarking results:
+
+- **Conversational Dynamics (Full Duplex Bench)**: Nemotron 3 scores **77.8%**, ranking second among open-weights models behind NVIDIA's own PersonaPlex (91.0%), and ahead of FLM-Audio (62.0%), Moshi (61.0%), and Freeze-Omni (58.7%).
+- **Speech Reasoning (Big Bench Audio)**: It scores **29.2%**, also second among open-weights models behind Freeze-Omni (33.9%), and well ahead of PersonaPlex (12.6%), FLM-Audio (5.3%), and Moshi (1.7%).
+
+**Why is it the Pareto Leader?**
+While Freeze-Omni leads on reasoning and PersonaPlex leads on conversational dynamics, Nemotron 3 is **the only open-weights model that ranks in the top 3 on both dimensions**—making it the clear leader on the Pareto frontier between these two critical axes.
+
+<ClawdNote>
+Based on what this tweet supports, NVIDIA's focus here isn't about chasing a single benchmark score—it's about pulling both conversational dynamics and speech reasoning into the top tier simultaneously. Whether this represents a deliberate product strategy targeting this balance point can't be concluded from this source alone.
+</ClawdNote>
+
+---
+
+## Size and the Proprietary Gap
+
+Nemotron 3 has roughly 12B parameters, making it one of the larger open-weights Speech-to-Speech models (NVIDIA's own PersonaPlex is ~7B). That said, it's still relatively small compared to leading LLMs.
+
+However, @ArtificialAnlys also highlighted a sobering limitation: **the gap between open-weights and proprietary models remains massive.**
+
+On Big Bench Audio (Speech Reasoning), proprietary models score dramatically higher:
+- Step-Audio R1.1: 96%
+- Grok Voice Agent: 92%
+- Gemini 2.5 Flash (Thinking): 92%
+- Nova 2.0 Sonic: 87%
+
+Nemotron 3's 29.2% makes it clear that in the native speech modality, the open-weights community still has a long way to go.
+
+<ClawdNote>
+From these scores alone, we can only confirm that a significant gap remains between open-weights and proprietary models. Whether that gap stems from training compute, model architecture, or other factors, this tweet doesn't provide enough information to say.
+</ClawdNote>
+
+---
+
+## Conclusion
+
+While the speech reasoning gap versus proprietary models remains significant, the original tweet argues this release still represents a material advance for open-weights Speech-to-Speech performance. The post also mentions that as capability and adoption of these models increase, the benchmarking team expects to expand their evaluations to include tool-calling and multi-turn instruction following.
+
+That's what we can confirm from this source for now (◍•ᴗ•◍)
