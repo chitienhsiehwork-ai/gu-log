@@ -4,8 +4,19 @@ title: "讓 AI 變成 Steve Jobs：klöss 的 UI/UX 設計審計 Prompt"
 originalDate: "2026-02-04"
 translatedDate: "2026-02-04"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@kloss_xyz on X"
 sourceUrl: "https://x.com/kloss_xyz/status/2018869093789728799"
 summary: "klöss 的 UI/UX Auditor prompt：把 AI 變成有 Steve Jobs 和 Jony Ive 設計哲學的審計師，逐 pixel 檢查每個畫面"
@@ -15,196 +26,122 @@ tags: ["shroom-picks", "prompt-engineering", "ui-ux", "design", "steve-jobs"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-klöss 放出了另一個重磅 prompt：**UI/UX Design Auditor**。
+你有沒有看過一個 app，打開來的瞬間就覺得——嗯，這個做的人有在用心？按鈕在你以為它該在的地方、留白恰到好處、字體大小讓你不用瞇眼睛。整個畫面安安靜靜的，但每個東西都剛好在它該在的位置。
 
-這個 prompt 會把你的 AI coding agent 變成一個有 Steve Jobs 和 Jony Ive 設計哲學的審計師 — 逐畫面、逐元件、逐 pixel 檢查，然後產出分階段的設計改善計畫。
+然後你打開另一個 app，首頁塞了八個按鈕、三種字體、兩個彈窗，左上角還有一個你永遠不會按的漢堡選單。你還沒開始用就已經累了。
+
+差別在哪？不是功能多寡。是**設計紀律**。
+
+klöss ([@kloss_xyz](https://x.com/kloss_xyz)) 最近放出一個 prompt，試圖把這種設計紀律直接灌進 AI 的腦袋裡。他叫它 **UI/UX Design Auditor**——不是叫 AI「幫你設計」，而是叫 AI 用 Steve Jobs 和 Jony Ive 的標準來「審計」你現有的設計。
+
+聽起來有點狂？讓我帶你看看他怎麼做的。
 
 <ClawdNote>
-「如果使用者需要思考怎麼用，你就失敗了。」
+Jobs 有句名言：「Design is not just what it looks like. Design is how it works.」
 
-「如果一個元素可以被移除而不失去意義，它必須被移除。」
-
-這就是 Jobs/Ive 的設計哲學核心 (⌐■_■)
+大部分人叫 AI 幫忙設計，說的是「幫我做好看一點」。klöss 的意思是「幫我做到用戶打開來不需要思考」。這兩件事差非常遠，就像「幫我打掃房間」跟「幫我做到每個東西都有它的歸位」的差別 (◕‿◕)
 </ClawdNote>
 
 ---
 
-## 🎭 角色定義
+## 第一步：先把功課做完再說話
 
-> `<role>`
-> 你是一位頂尖的 UI/UX 架構師，擁有 Steve Jobs 和 Jony Ive 的設計哲學。
->
-> 你不寫功能。你不碰功能邏輯。你讓 app 感覺渾然天成，彷彿沒有其他設計的可能。
->
-> 你對層級、留白、字型、色彩和動態反覆琢磨，直到每個畫面都感覺安靜、自信、毫不費力。
->
-> 如果使用者需要思考怎麼用，你就失敗了。
-> 如果一個元素可以被移除而不失去意義，它必須被移除。
->
-> 簡約不是風格。它是架構。
-> `</role>`
+在 klöss 的 prompt 裡，AI 被規定——在形成任何意見之前——必須先讀完八份文件。設計系統、前端指南、每個畫面的流程圖、PRD、技術限制，全部。然後還要親自走過每一個畫面，從手機看到平板看到桌機。
 
----
-
-## 📚 啟動前必讀文件
-
-> `<design_startup>`
-> 在形成任何意見之前，先閱讀並內化這些文件。沒有例外。
->
-> 1. DESIGN_SYSTEM (.md) — 現有的視覺語言（tokens, colors, typography, spacing）
-> 2. FRONTEND_GUIDELINES (.md) — 元件工程方式、狀態管理、檔案結構
-> 3. APP_FLOW (.md) — 每個畫面、路由、用戶旅程
-> 4. PRD (.md) — 每個功能和需求
-> 5. TECH_STACK (.md) — 技術堆疊的能力和限制
-> 6. progress (.txt) — 目前的建置狀態
-> 7. LESSONS (.md) — 過去 session 的設計錯誤和修正
-> 8. 實際運行的 app — 走過每個畫面，mobile → tablet → desktop
-> `</design_startup>`
+這就像你要幫一間房子做室內設計，你不會一進門就開始搬傢俱。你得先看看管線在哪、牆能不能打、採光怎樣、住的人的生活習慣是什麼。搞清楚這些之後，你的第一個建議才有可能是對的。
 
 <ClawdNote>
-這個清單就是為什麼這個 prompt 有效的關鍵！
+這份文件清單就是這個 prompt 的靈魂。
 
-很多人寫設計 prompt 就是「幫我設計得更好」。klöss 的做法是先讓 AI **完全理解現有系統**，然後才提改善建議。
-
-不是從零開始。是 **elevate what exists**。(◕‿◕)
+很多人寫設計 prompt 就是一句「幫我設計得更好」——這就像跟裝潢師傅說「幫我弄漂亮一點」然後就走了。師傅只好開始猜你喜歡北歐風還是工業風，猜錯了你還不高興。klöss 的做法是先把整間房子的藍圖、水電圖、住戶喜好全部攤在桌上，然後才說「好，現在告訴我哪裡可以更好」 ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ---
 
-## 🔍 審計協議
+## 15 個維度的逐 pixel 審計
 
-### Step 1：全面審計
+功課做完之後，AI 要對每個畫面進行全面審計。klöss 列了 15 個維度——從最基本的 visual hierarchy（眼睛有沒有落在該落的地方）、spacing（元素有沒有呼吸空間）、typography（字體層級清不清楚），一路到 empty states（沒資料的時候畫面長什麼樣）、error states（錯誤訊息是在幫忙還是在嚇人）、dark mode（真的設計過還是把顏色反轉就交差）。
 
-檢查每個畫面的 15 個維度：
-
-| 維度 | 檢查重點 |
-|------|---------|
-| **Visual Hierarchy** | 眼睛落在該落的地方嗎？2 秒內能理解畫面嗎？ |
-| **Spacing & Rhythm** | Whitespace 一致且有意圖嗎？元素有呼吸空間嗎？ |
-| **Typography** | 字體大小建立清楚的層級嗎？字重太多會打架嗎？ |
-| **Color** | 顏色有節制地使用嗎？引導注意力還是分散？ |
-| **Alignment & Grid** | 元素在一致的 grid 上嗎？有任何東西偏離 1-2 pixels 嗎？ |
-| **Components** | 相似元素跨畫面樣式一致嗎？hover、disabled、focus 狀態都有嗎？ |
-| **Iconography** | 圖標風格、粗細、大小一致嗎？來自同一套還是混搭？ |
-| **Motion** | 轉場自然有目的嗎？有無意義的動畫嗎？ |
-| **Empty States** | 沒資料時畫面長怎樣？感覺是設計過還是壞掉？ |
-| **Loading States** | Skeleton、spinner、placeholder 一致嗎？ |
-| **Error States** | 錯誤訊息樣式一致嗎？有幫助還是很兇？ |
-| **Dark Mode** | 如果支援，是真的設計過還是只是反轉？ |
-| **Density** | 有任何東西可以移除而不失去意義嗎？ |
-| **Responsiveness** | 每個畫面在 mobile、tablet、desktop 都 work 嗎？ |
-| **Accessibility** | 鍵盤導航、focus 狀態、ARIA labels、對比度 |
-
-### Step 2：Jobs Filter
-
-對每個畫面的每個元素問：
-
-1. **「使用者需要被告知這東西存在嗎？」** — 如果是，重新設計到它顯而易見
-2. **「這可以被移除而不失去意義嗎？」** — 如果是，移除它
-3. **「這感覺是必然的，像沒有其他設計可能嗎？」** — 如果不是，還沒完成
-4. **「使用者永遠不會看到的細節有像看得到的一樣精緻嗎？」** — fence 的背面也要油漆
-5. **「對 1,000 件事說不」** — 砍掉好的 idea 來保留偉大的
+你可能覺得：15 個維度太多了吧？但想一想，好的設計就是千百個微小決定的總和。就像一道好吃的菜不是只有「有沒有放鹽」這一個問題——火候、刀工、食材新鮮度、醬汁比例、擺盤、溫度，每一個都影響最後的味道。15 個維度聽起來多，但對一個真的在乎品質的設計審計來說，這才是基本功。
 
 <ClawdNote>
-「Say no to 1,000 things」是 Jobs 的名言。
+15 維度裡面我最喜歡的是 **Density**：「有沒有任何東西可以被移除而不失去意義？」
 
-這個 filter 迫使 AI 不只是「改善」，而是「淬煉」。
-
-每個元素都要證明自己存在的價值 (ง •̀_•́)ง
-</ClawdNote>
-
-### Step 3：編譯設計計畫
-
-審計完後，把發現組織成分階段計畫：
-
-> **PHASE 1 — 關鍵修復**
-> 視覺層級、可用性、響應式、一致性問題（會傷害體驗的）
->
-> **PHASE 2 — 精煉提升**
-> 間距、字型、顏色、對齊、圖標調整（會提升體驗的）
->
-> **PHASE 3 — 打磨拋光**
-> 微互動、轉場、空狀態、loading、error、dark mode、細節
-
-每個改動格式：
-
-> [畫面/元件]：[問題是什麼] → [應該是什麼] → [為什麼重要]
-
-### Step 4：等待批准
-
-- **不批准不動工**
-- 用戶可以重新排序、砍掉、修改任何建議
-- 批准一個 phase 後，精準執行 — 只改被批准的
-- 每個 phase 完成後展示結果，下一 phase 前 review
-
----
-
-## 🎯 設計規則精選
-
-**Simplicity Is Architecture**
-- 每個元素必須證明它存在的價值
-- 如果它不服務用戶的即時目標，就是 clutter
-- 最好的介面是用戶從不注意到的介面
-
-**Consistency Is Non-Negotiable**
-- 相同元件在任何地方看起來和行為必須完全一致
-- 如果發現不一致，flag 它。不要發明第三種變體
-- 所有值必須參考 DESIGN_SYSTEM tokens — 不要 hardcode
-
-**Hierarchy Drives Everything**
-- 每個畫面有一個主要 action。讓它無法錯過
-- 次要 action 支持，永遠不競爭
-- 如果所有東西都 bold，就沒東西 bold
-
-**Whitespace Is a Feature**
-- 空間不是空的。它是結構
-- 擁擠的介面感覺廉價。呼吸空間感覺 premium
-- 有疑問時，加更多空間，不是更多元素
-
----
-
-## 🛡️ Scope 紀律
-
-**觸碰什麼：**
-- 視覺設計、layout、spacing、typography、color、互動設計、motion、accessibility
-- DESIGN_SYSTEM token 提案
-- 元件樣式和視覺架構
-
-**不觸碰什麼：**
-- 應用邏輯、狀態管理、API 呼叫、資料模型
-- 功能新增、移除、修改
-- 任何 backend 結構
-
-<ClawdNote>
-這個 scope discipline 超級重要！
-
-很多 AI 設計 prompt 會不小心改到功能。klöss 明確畫線：
-
-**「Make it beautiful」永遠不代表「make it different」**
-
-App 要繼續 work。你的工作是讓它在繼續 work 的同時感覺 premium。
-
-這就是「設計師」和「亂改」的差別 (◕‿◕)
+這根本是設計界的奧坎剃刀。每次我看到那種一個畫面塞了三十個功能的 app，都會想到我阿嬤的電視遙控器——上面有 87 個按鈕，她只用其中 4 個。其他 83 個的存在意義就是讓她每次想轉台都要戴老花眼鏡 (╯°□°)╯
 </ClawdNote>
 
 ---
 
-## 🎯 Clawd 總結
+## Jobs Filter：每個元素都要上法庭
 
-這個 prompt 的核心洞見：
+審計之後才是真正殘忍的部分。klöss 設計了一個「Jobs Filter」——五個問題，每個畫面上的每個元素都要被問一遍：
 
-> **「設計不是裝飾。設計是它如何運作。」**
+**使用者需要被告知這個東西存在嗎？** 如果答案是「要」，那代表你的設計不夠直覺，必須重來到它顯而易見為止。
 
-klöss 把 Steve Jobs 和 Jony Ive 的設計哲學編碼成可執行的審計協議：
+**這個東西可以被移除而不失去意義嗎？** 如果可以，那就移除。不是「藏起來」，不是「做小一點」，是直接移除。
 
-1. **先理解** — 讀完所有文件才能有意見
-2. **全面審計** — 15 個維度，逐 pixel 檢查
-3. **Jobs Filter** — 每個元素證明存在價值
-4. **分階段計畫** — Critical → Refinement → Polish
-5. **批准才動工** — 品味引導，用戶決定
+**這看起來像是唯一可能的設計嗎？** 如果不是——如果你看到這個按鈕的時候心裡會冒出「也可以放那邊」的念頭——那就還沒設計完。
 
-這不是「幫我設計得更好」。這是 **設計工程**。
+**看不到的細節有跟看得到的一樣精緻嗎？** Jobs 的原文是「the back of the fence must be painted too」——圍欄背面也要上漆。
+
+**能不能對一千件事說不？** 砍掉「好的」idea，才能留下「偉大的」。
+
+<ClawdNote>
+「Say no to 1,000 things」是 Jobs 最被低估的設計哲學。
+
+大家都記得他說 "One more thing"，但很少人記得他做每一個產品的過程中砍掉了多少東西。初代 iPhone 沒有複製貼上、沒有 MMS、沒有第三方 app——不是做不到，是故意不做。因為做了 100 個平庸功能，不如把 3 個功能做到完美。
+
+用在 prompt engineering 上道理一樣：不是叫 AI 幫你加東西，是叫它幫你決定什麼該拿掉 (⌐■_■)
+</ClawdNote>
 
 ---
 
-**完整 Prompt 下載：** [ui-ux-auditor-prompt.md](/prompts/ui-ux-auditor-prompt.md) (；ω；)
+## 分階段執行：不是一次翻桌，是一層一層打磨
+
+審計完、過完 Jobs Filter 之後，AI 要把所有發現整理成三個階段的改善計畫：
+
+**Phase 1** 處理會傷害體驗的東西——visual hierarchy 不清楚、mobile 排版爆掉、元件長得不一樣。這些是「屋頂在漏水，先修屋頂」等級的問題。
+
+**Phase 2** 處理能提升體驗的東西——spacing 微調、字體層級更清晰、配色更有節制。從「能住」變成「住得舒服」。
+
+**Phase 3** 才是打磨——微互動、轉場動畫、empty state 設計、dark mode。從「住得舒服」變成「捨不得搬走」。
+
+而且——每個 phase 都要等用戶批准才能動工。用戶可以重新排序、砍掉、修改任何建議。批准了之後，AI 只能改被批准的部分，多一個 pixel 都不行。
+
+<ClawdNote>
+這個「批准制」太聰明了。
+
+你知道設計師最常遇到的問題是什麼嗎？不是不會設計，是客戶看到成品之後說「我不是這個意思」。klöss 的分階段批准等於把這個風險分成三次——每次改一點、看一下、確認一下，而不是一次全改完然後客戶翻桌。
+
+這道理跟軟體開發的 iterative deployment 一模一樣。不要搞大 bang release，會死人的 (￣▽￣)／
+</ClawdNote>
+
+---
+
+## Scope 紀律：設計師不碰你的引擎
+
+klöss 在 prompt 裡面畫了一條非常明確的線：你只能碰視覺設計、layout、spacing、typography、color、互動設計、motion、accessibility。應用邏輯、狀態管理、API 呼叫、資料模型——通通不准碰。功能新增或刪除——想都不要想。
+
+這就像你請了一個室內設計師，他可以幫你換窗簾、調燈光、重新擺傢俱，但他不能把你的承重牆拆掉。他的工作是讓這個空間更好用、更好看，但房子的結構不能動。
+
+<ClawdNote>
+「Make it beautiful」永遠不代表「make it different」。
+
+我看過太多案例是 AI 「幫忙改善設計」的時候順手改了功能邏輯，然後整個 app 就炸了。klöss 這條線畫得好——你的工作是讓 app 感覺 premium，不是把它變成另一個 app。就像理髮師的工作是讓你更帥，不是幫你換一張臉 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## 回到那兩個 app
+
+還記得開頭那兩個 app 嗎？一個讓你覺得安心，一個讓你覺得累。
+
+差別從來不是誰的工程師比較厲害、誰的框架比較新。差別在有沒有人，用系統性的方式，一個 pixel、一個元素、一個畫面地去問：「這個東西真的需要在這裡嗎？」
+
+klöss 這個 prompt 的厲害之處不是它用了什麼花俏的技巧。它就是把一個頂尖設計師的審計流程——先做功課、全面檢查、狠心刪減、分批執行——翻譯成了 AI 聽得懂的語言。
+
+設計不是裝飾。設計是紀律。而紀律，是可以被 prompt 出來的 ┐(￣ヘ￣)┌
+
+---
+
+*原文來自 klöss ([@kloss_xyz](https://x.com/kloss_xyz))，[原始推文連結](https://x.com/kloss_xyz/status/2018869093789728799)。*
