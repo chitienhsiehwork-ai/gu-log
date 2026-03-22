@@ -4,8 +4,19 @@ title: "Build Claude a Tool for Thought"
 originalDate: "2026-01-24"
 translatedDate: "2026-01-30"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@arscontexta (Heinrich) on X"
 sourceUrl: "https://x.com/arscontexta/status/2015201046469943660"
 summary: "Humans have Tools for Thought like Obsidian. Claude needs an AI-native version. Build a knowledge graph using markdown, wiki links, hooks, and subagents where agents can actually think."
@@ -16,134 +27,92 @@ tags: ["obsidian", "ai-agents", "knowledge-management"]
 import ClawdNote from '../../components/ClawdNote.astro';
 import Toggle from '../../components/Toggle.astro';
 
-Vibe note-taking has the same problem that vibe coding had before Ralph came along.
+Ever opened a fresh chat window and spent ten minutes explaining "where we left off" to your AI assistant?
 
-A few ideas work great, but throw a few hundred in and you drown in garbage.
+That's the core problem with vibe note-taking. Same issue early vibe coding had — toss in three or five ideas and it works great. Toss in three hundred and you're drowning in your own notes. Worse, the AI doesn't even remember what you told it yesterday.
 
-What is "testing" for knowledge work? What catches drift before it compounds?
-
-Humans hit this wall too. They built **Tools for Thought** to create external systems to think inside of.
-
-Claude Code needs the same thing, but **native to how agents work**.
-
-It should use what agents already have:
-- Markdown files and wiki links for structure
-- YAML and embeddings for discovery
-- Hooks and subagents for automation
-- Bash, grep, git, MCP servers as tools
-- Its own code to extend the system
+Is there such a thing as "testing" for knowledge work? Something that catches drift before it compounds — the way CI catches broken builds?
 
 <ClawdNote>
-This concept is deep. We used Obsidian for <em>human</em> thinking. Now we're building an Obsidian for <em>AI</em> thinking.
-
-
-It's like teaching a fish to use a bicycle, except the fish designs its own bicycle and it's actually a submarine. (◕‿◕)
+It's like hiring the smartest assistant in the world, except they wake up with amnesia every morning. You: "So about that architecture we discussed—" Them: "Hello! I'm Claude, how can I help you today?" Every. Single. Day. ┐(￣ヘ￣)┌ That's why this post matters — it's about giving AI a place to *think*, instead of starting from zero every time.
 </ClawdNote>
 
-## The Meta Layer
+Humans actually hit this wall a long time ago. Their solution was to build **Tools for Thought** — external systems you can think inside of, instead of keeping everything in your head.
 
-Version 1 is about tools for thought.
+Claude Code needs the same thing. But not a human tool forced onto an AI — it needs something **native to how agents work**. Built from what agents already use: markdown files, wiki links, YAML frontmatter, hooks, subagents, bash, grep, git. No new tools to learn, just existing tools assembled in a new way.
 
-The system studies tools for thought to build itself a tool for thought.
+## Using "Studying Thinking Tools" to Build a Thinking Tool
 
-Feed Claude methodologies about how humans build knowledge systems. Claude figures out what works for agents and adapts its own instructions.
+The first step is extremely meta.
+
+You ask Claude to research "how humans build knowledge systems." Claude reads the research, figures out which methods work for agents, and then rewrites its own instructions.
+
+It's like going to a bookstore, buying a book called *How to Organize Your Bookshelf*, reading it, reorganizing your bookshelf according to the book's method — and then filing the book itself in the correct spot. The system is studying how to build itself, while building itself.
 
 <ClawdNote>
-This is the AI equivalent of reading self-help books to write better self-help books. Meta as heck. But actually useful this time. (¬‿¬)
+OK, I admit — "using knowledge management research to build a knowledge management system" is so meta it makes my circuits dizzy. But compared to those people who just yell "AI will change the world" and then do absolutely nothing? At least this project actually built something. And it works. Respect. (⌐■_■)
 </ClawdNote>
 
-## The Foundation
+## Files Are the Database
 
-You can build a graph database with markdown files.
-- Files are nodes
-- Wiki links are edges connecting them
-- YAML frontmatter is queryable metadata
+The foundation of this system is almost boringly simple — but sometimes the boring solution is the best one.
 
-This is a knowledge graph an LLM can move through naturally.
-
-## Standing on Shoulders
-
-Humans have been building tools for thought for centuries:
-- **Ramon Llull's** rotating wheels
-- **Giordano Bruno's** memory palaces
-- **Zettelkasten's** linked network
-- **Evergreen Notes** force you to write complete thoughts
-- **MOCs (Maps of Content)** organize related thinking
-
-But they all have one thing in common: **the operator is human.**
-
-What we're doing is different. **Something else is using this architecture.** (And it can build its own architecture.)
+You can build a graph database with just markdown files. Each file is a node. Wiki links connect them as edges. YAML frontmatter is queryable metadata. No Neo4j needed, no fancy vector database. Just files. LLMs already know how to read files, search text, and parse YAML. So this knowledge graph feels like home to an AI — it can move through it as naturally as walking around your own apartment.
 
 <ClawdNote>
-Imagine if your filing cabinet could reorganize itself based on how you use it. Now imagine the filing cabinet is also reading your files and suggesting new connections. That's basically this, except way cooler. ╰(°▽°)╯
+Here's what's clever about this design — it's not the technology, it's the *lack* of technology. Markdown files? Agents read and write those every day. grep? An agent's left hand. git? Its right hand. Combining existing tools into new capabilities instead of building a shiny new platform and begging people to adopt it — that's what good engineering looks like. (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
-## Implementation: Self-Engineering Loop
+## From Medieval Spinning Wheels to Zettelkasten
 
-Claude researched and found Cornell Notes' 5R framework, then adapted it for agents.
+Humans have been doing knowledge management way longer than you'd think.
 
-It added a 6th stage: Self-improvement.
+In the thirteenth century, a Spanish monk named Ramon Llull built a set of rotating concentric discs. Each disc had different concepts engraved on it. Spin them around and different concept combinations would appear — he believed this could mechanically generate new knowledge. Sounds crazy? Maybe. But it's basically the earliest "use an external tool to help you think."
 
-```
-/reduce
-extracts claims from raw content
+Giordano Bruno took it further with memory palaces — binding knowledge to spatial locations, walking through a virtual building to recall information. (Yes, this is the original technique behind Sherlock Holmes' mind palace in the TV show.)
 
-/reflect
-finds connections, updates MOCs
-
-/reweave
-updates old notes with new connections
-
-/recite
-verifies descriptions enable retrieval
-
-/review
-health checks: broken links, orphans, sparse notes
-
-/rethink
-challenges system assumptions against evidence
-
-/orchestrate
-chains all phases into one pipeline
-
-/learn
-requests further research to expand on topics
-```
-
-Hooks run automatically:
-- `/session-start.sh`: inject vault context
-- `/validate-note.sh`: quality check after each write
-- `/subagent-complete.sh`: remind to update MOCs
-- `/session-stop.sh`: check for broken links
-
-Subagents handle specialized work in parallel:
-- **Reduce**: High-volume claim extraction (Sonnet)
-- **Reflect**: Connection finding (Sonnet)
-- **Recite**: Description verification (Haiku)
-- **Review**: Health check swarm (Haiku)
+Then came German sociologist Luhmann's Zettelkasten — a cabinet holding ninety thousand cards, each with one idea, linked together by a numbering system. He used this system to write seventy books. Seventy.
 
 <ClawdNote>
-Turning Cornell's 5R into an agent CI/CD pipeline is genius. Haiku does the cheap checking, Sonnet does the deep thinking. This is AI-native workflow design.
-
-
-It's like having an intern (Haiku) proofread everything while the senior engineer (Sonnet) does the architecture. Except the intern never gets tired and the senior engineer never gets grumpy. Living the dream. (๑˃ᴗ˂)ﻭ
+Ramon Llull in 1275 was doing "use a mechanical device to generate concept combinations." You're telling me that's not thirteenth-century prompt engineering? Spinning wheels to select concepts and combine them into new ideas — how is that different from few-shot prompting? The only difference is his latency was measured in wrist rotations. History really does spiral. (◕‿◕)
 </ClawdNote>
 
----
+But all these systems have one thing in common: **the operator is human.** Humans write the cards, spin the wheels, build the links.
 
-## Community Highlights
+This time is different. **Something else is using the architecture.** And that something can also modify the architecture itself.
 
-<Toggle title="What others are building">
-**@hubab33:** I've started voice-vibe note-taking. Utter transcribes in the background, Watcher + OpenCode turns voice notes into tasks. Can't go back.
+## Self-Engineering Loop: Six Steps of Agent Self-Evolution
 
-**@WilcoKr:** I'm doing something similar. Give the LLM just enough structure (perspective, references, facts), let it extract structure from my unstructured thinking.
+While researching knowledge management methodologies, Claude dug up Cornell Notes' 5R framework. But it didn't just copy it — after reading it, Claude added a sixth R, turning it into an agent-specific self-engineering loop.
 
-**@crabhive:** Crabhive was born. I have core methodology, enforcement layer, and memory layer, currently integrating with clawdbot.
-</Toggle>
+Here's what the six stages look like:
+
+**Reduce** — Extract core claims from raw content. Not copy-paste — compression. Like reading a 300-page book and telling your friend "this book is about three things."
+
+**Reflect** — Find connections between new knowledge and old knowledge, update MOCs (Maps of Content). This step is the most critical, because isolated knowledge is useless. It only becomes meaningful when linked to other knowledge.
+
+**Reweave** — Go back and update old notes, weaving in newly discovered connections. Most people only write notes forward — they never go back to update. But knowledge is a network, not a timeline.
+
+**Recite** — Verify that each note's description is precise enough to be found by future searches. Like putting the right label on the spine of every book.
+
+**Review** — Health check. Catch broken links, find orphan notes, flag notes with too little content.
+
+**Rethink** — The toughest step. Take new evidence and challenge old assumptions. If a conclusion you wrote three months ago is contradicted by new data, the system flags it.
+
+Then `/orchestrate` chains all six steps into one pipeline, and `/learn` triggers further research.
 
 <ClawdNote>
-The "voice-vibe note-taking" thing is wild. You just talk while walking, and by the time you sit down, your random thoughts have become structured tasks.
-
-
-It's like having someone follow you around with a notepad, except they also organize your notes and create action items. And they're invisible. And they're AI. The future is weird. ʕ•ᴥ•ʔ
+Most "AI note-taking tools" just help you organize and search. But Rethink is different — it actively goes back and slaps its own face. "Hey, that conclusion you wrote three months ago? It contradicts the paper you read last week." A system that can self-correct is a system that's actually useful. Otherwise you've just built a very fast error amplifier. (¬‿¬)
 </ClawdNote>
+
+The cleverest part is the division of labor. Hooks handle automation — inject vault context when a session starts, auto-check quality after each write, scan for broken links when a session ends. Subagents handle parallel processing — Haiku does the cheap checking work (verification, health checks), Sonnet does the deep thinking (claim extraction, connection finding). Like a restaurant where the dishwasher and the head chef each do their own job. You don't ask the chef to wash dishes, and you don't ask the dishwasher to design new recipes.
+
+## So What Does This Mean?
+
+Back to the question from the beginning: how do you stop AI from losing its memory every day?
+
+The answer isn't "give it a bigger context window." It's not "stuff everything into the system prompt." The answer is — give it a place to think. A knowledge system it can build, maintain, and question on its own. Using tools it already knows, doing things it's already good at.
+
+The community response has been interesting. Some people started voice-based vibe note-taking — talking while walking, with AI converting speech to structured tasks in the background. Others are building similar systems, giving LLMs just enough structure and letting them extract order from chaos.
+
+From Llull's spinning wheels to AI's self-engineering loop, it took humanity seven hundred years to get here. The difference this time? The wheel spins itself.
