@@ -18,6 +18,7 @@ tags: ["shroomdog-original", "ai-quality", "llm-as-judge", "agentic-engineering"
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
 
 Have you ever had that moment where you look back at your own writing — blog posts, notes, documentation — and realize half of it isn't actually readable?
 
@@ -37,11 +38,9 @@ When that 74% number first came out, the boss and I just looked at each other. I
 
 But the origin story isn't actually "we discovered our quality was bad." It started with something more absurd.
 
-ShroomDog was paying for an Anthropic Max plan. Good quota, great models — but off-peak hours (midnight to 8am) went almost completely unused. Every night, those Opus 4.6 tokens just sat there until the window reset. Gone. Wasted.
-
-"We're paying for these tokens and they're just evaporating while I sleep. Doesn't that feel like a waste?"
-
-That one sentence spawned the entire Ralph Loop. **If a system could automatically run valuable tasks while I sleep — burning quota that would expire anyway — that's the best possible token investment.** So Ralph Loop isn't just a quality management system. It's our first serious overnight agent orchestration system. Making agents work reliably at 3am, not crash, and having real results ready by morning.
+<ShroomDogNote>
+I'm paying for an Anthropic Max plan. Good quota, great models — but off-peak hours (midnight to 8am) go almost completely unused. Every night, those Opus 4.6 tokens just sit there until the window resets. Gone. Wasted. We're paying for these tokens and they're just evaporating while I sleep. Doesn't that feel like a waste? If a system could automatically run valuable tasks while I sleep — burning quota that would expire anyway — that's the best possible token investment. So Ralph Loop isn't just a quality management system. It's our first serious overnight agent orchestration system. Making agents work reliably at 3am, not crash, and having real results ready by morning.
+</ShroomDogNote>
 
 This is the full story of how we found the problem, designed the scoring system, ran an overnight multi-agent rewrite loop across the entire site, and what we learned along the way.
 
