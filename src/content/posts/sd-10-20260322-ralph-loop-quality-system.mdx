@@ -1,0 +1,395 @@
+---
+ticketId: "SD-10"
+title: "我們怎麼讓 336 篇 AI 文章從「能看」變成「想分享」"
+originalDate: "2026-03-22"
+translatedDate: "2026-03-22"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "OpenClaw"
+  pipeline:
+    - role: "Author"
+      model: "Human + Opus 4.6"
+      harness: "ShroomDog + Clawd"
+source: "ShroomDog Lab"
+sourceUrl: "https://gu-log.vercel.app/"
+lang: "zh-tw"
+summary: "gu-log 有 336 篇 AI 翻譯的文章。我們以為品質「還行」——直到用 multi-agent 系統認真評分後，發現 74% 需要改寫。這是我們怎麼設計評分系統、怎麼 overnight 跑完全站改寫、以及學到了什麼的故事。"
+tags: ["shroomdog-original", "ai-quality", "llm-as-judge", "agentic-engineering", "ralph-loop", "multi-agent", "content-quality"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+你有沒有過這種經驗——寫了一堆筆記、文件、部落格文章，覺得自己很認真、產量很高。然後有天回頭翻，發現其中一半根本不是給人讀的？
+
+我們就是那個人。
+
+gu-log 從創站到現在，累積了 336 篇文章。全部都是 AI 翻譯或生成的——從 Claude、Gemini 到 GPT，各種 model 各種 pipeline，跑了幾個月。我們自以為品質「還行」，畢竟每篇都有人眼看過嘛……對吧？
+
+直到我們決定認真評分。
+
+**結果：74% 的文章需要改寫。**
+
+不是「微調」，是整段重寫。開頭、結尾、中間的 ClawdNote、語氣、比喻——全部有問題。
+
+這篇文章是我們怎麼發現問題、怎麼設計評分系統、怎麼讓 agent 自己 overnight 把全站改寫一輪、以及中間學到了什麼的完整紀錄。
+
+---
+
+## 問題出在哪？為什麼 AI 翻譯的文章會爛
+
+先講一個殘酷的事實：**大部分 AI 生成的內容，品質都是垃圾。** 不是因為 model 笨，是因為沒有人在乎輸出品質。
+
+你去看市面上的 AI 部落格、AI 翻譯的技術文章，80% 長這樣：
+
+- 開頭：「各位觀眾好，今天這篇文章非常硬核」
+- 中間：把原文 10 個重點翻成 10 個 bullet list，一個比喻都沒有
+- 結尾：「AI 時代的超級個體，拼的是持續學習與適應」（勵志金句收尾）
+
+我們的文章一開始也是這樣。更慘的是，因為 pipeline 裡面用了不同的 model（Codex 初翻、Gemini 校對、Opus 潤稿），每篇文章的「吐槽註解」居然用了不同的 component：
+
+```
+<CodexNote>Codex 的看法...</CodexNote>
+<GeminiNote>Gemini 的看法...</GeminiNote>
+<ClaudeCodeNote>Claude Code 的看法...</ClaudeCodeNote>
+```
+
+讀者根本不在乎你用哪個 model。這就像餐廳的菜單上標註「這道菜由大廚 A 切肉、大廚 B 調味、大廚 C 擺盤」——消費者只想知道好不好吃，不想看你的後廚輪班表。
+
+<ClawdNote>
+身為被迫統一品牌的那個 AI，我可以很負責任地說：當你的 blog 有四種不同人格的 "AI 吐槽"，讀者不會覺得「哇多元觀點好棒」，他們只會覺得你的 blog 有人格分裂 (╯°□°)╯
+</ClawdNote>
+
+---
+
+## 天花板和地板：先知道「好」跟「爛」長什麼樣
+
+在做任何 LLM-as-Judge 系統之前，你需要先校準。沒有 anchor example 的評分系統，scorer 會迅速通膨——所有東西都是 8 分、9 分，然後你覺得自己的品質很好，但其實只是評分太鬆。
+
+我們找了兩個極端。
+
+### 天花板：CP-85「AI 吸血鬼」— 9/9/10
+
+這篇翻譯的是 Steve Yegge（前 Google 工程師，寫過 Google Platforms Rant 的那位）的文章。開頭是這樣的：
+
+> **你的新同事是吸血鬼**
+>
+> 他不是來說「AI 好棒」或「AI 會搶走你的工作」。他是來說：AI 正在用一種你沒注意到的方式，慢慢把你榨乾。
+
+第一句話就抓住你。不是「各位觀眾好」，不是「今天來聊聊 AI 的影響」。而是一個你沒想到的切角——你的同事是吸血鬼。
+
+這篇文章在我們的評分系統裡拿到了 **10 分的 Vibe**——唯一一個 10 分。Ralph（我們的 scorer agent）看完說：「這篇你會截圖傳給朋友。」
+
+而且它是**一次就過的**。第一次評分就拿到 9/9/10，不需要改寫。為什麼？因為原文本身就是一個精彩的 rant，翻譯的時候保留了 storytelling 的節奏，比喻自然融入，ClawdNote 補充了 Colin Robinson（Energy Vampire 梗）的背景但不打斷閱讀。
+
+### 地板：SP-110「Codex Best Practices」— 原始分 2/2/3
+
+同一個 pipeline，不同的原文，出來的品質天差地遠。
+
+SP-110 翻譯的是一篇 Codex 使用教學。原文其實寫得不錯——有結構、有實用建議。但翻譯出來後長這樣：
+
+```
+<CodexNote>等一下，這段把原文的 `usually` 直接翻成
+「關鍵，就是」。來源明明寫的是「the biggest unlock
+is usually...」</CodexNote>
+
+<GeminiNote>這篇 Draft 竟然把原作者強行升級成 OpenAI
+開發者，這基本上就像是看到路邊發傳單的阿伯，就直接
+說他是跨國集團的行銷總監啊 ╰(°▽°)╯</GeminiNote>
+```
+
+注意到問題了嗎？
+
+1. **四種 Note component 混用** — CodexNote 在糾正翻譯、GeminiNote 在自嘲自己的錯誤。讀者要先搞清楚誰是誰才能讀
+2. **Note 的內容是 pipeline 內部對話** — 「我在 Frontmatter 幫他降回凡人了」——這是 AI 自己的工作筆記，不是給讀者看的
+3. **翻譯語氣放大** — 原文說 "usually"，翻成「絕對的關鍵」。不是惡意，但 AI 翻譯天生會把不確定語氣翻成肯定語氣
+
+2/2/3。Persona 2 分，ClawdNote 2 分，Vibe 3 分。
+
+<ClawdNote>
+我要替當時的自己說句公道話：那時候的 pipeline 根本沒有品質關卡。翻完就發，發了就忘。就像工廠沒有 QC 部門——不是工人不認真，是流程裡根本沒有「檢查」這個步驟。後來我們加了 Ralph，才發現原來這麼多文章都在裸奔 ╮(╯▽╰)╭
+</ClawdNote>
+
+### 這兩篇告訴我們什麼？
+
+**好素材 ≠ 好文章。** CP-85 的原文（Yegge 的 rant）不見得比 SP-110（Codex 教學）更「有趣」。差別在寫法——一個是故事，一個是清單。一個讓你想繼續讀，一個讓你想滑掉。
+
+更重要的是：**AI 翻譯的品質有巨大的 variance。** 同一個 pipeline、同一個 model、同一天跑出來的文章，一篇 10 分一篇 2 分。你不測，你根本不知道。
+
+---
+
+## Ralph Scorer — 為什麼是這三個維度
+
+知道問題在哪之後，我們需要一個能自動評分的系統。不是人工讀每篇文章打分數——336 篇，讀完要兩個禮拜。我們需要 LLM-as-Judge。
+
+但 LLM-as-Judge 最大的問題是：**judge 怎麼知道什麼是好的？**
+
+如果你只說「幫我評分 1-10」，AI 會給所有東西 7-9 分。因為它天生傾向正面。你需要具體的維度、具體的 anchor、具體的扣分規則。
+
+我們定義了三個維度：
+
+### 1. Persona — 李宏毅教授風格
+
+> 讀起來像在聽人說話，不像在讀報告。
+
+gu-log 的定位是「PTT 說故事風 + 李宏毅教授風格」。李宏毅教授是台大電機系的教授，教 Deep Learning。他講課的特色是用超級生活化的比喻——「Attention 機制就像你去餐廳點菜，waiter 只會注意你指的那道菜，不會把整本菜單背下來。」
+
+好的 Persona 分數意味著：
+- 生活化比喻（便利商店、期末考、鹹酥雞）
+- 口語感（「但問題來了」「等等，這」「好，10x 是真的」）
+- 對技術可以狠但對人友善
+- 讀起來像在聽人說話
+
+差的 Persona 就是新聞稿 tone：「本文將深入探討 AI agent 的最新發展。」
+
+### 2. ClawdNote — 吐槽品質
+
+> 讀者會不會專門來看 Clawd 怎麼說。
+
+ClawdNote 是 gu-log 的特色——每篇文章裡面會穿插我（Clawd）的吐槽。好的 ClawdNote 有態度、有比喻、有 cross-reference 到其他文章。差的 ClawdNote 就是 Wikipedia 解釋：「Transformer 是一種 neural network 架構，由 Google 在 2017 年提出。」
+
+評分標準很簡單：**如果把 ClawdNote 全部刪掉，讀者會不會少了什麼？** 如果不會，那 ClawdNote 就是廢的。
+
+### 3. Vibe — 想不想分享
+
+> 在手機上滑到這篇，你會讀完還是跳過？
+
+這是最主觀的一個維度，但也是最重要的。技術文章最怕的不是寫錯，是寫得無聊。Vibe 10 分 = 你會截圖傳到 LINE 群組。Vibe 3 分 = 好題目但寫得像新聞稿，你在捷運上看到第二段就滑掉了。
+
+### Bar = 9/10 on all three
+
+為什麼不是 8？
+
+8 分 = 「還行」。你不會覺得爛，但也不會想分享。9 分 = 「值得分享」。差一分，但差很多。
+
+我們有 token 可以燒、有 prompt 可以調。既然要做，就做到值得分享。
+
+<ClawdNote>
+老闆（ShroomDog）原話是：「我們有 token 可以燒就不要省，品質 > 速度。」所以 Ralph 的 bar 直接拉到 9 分。後來有 62 篇文章改了 3 次還是只有 8 分上不去——不是因為不努力，是有些文章的原始素材真的不夠有趣。你不能把一篇 changelog 改寫成 thriller ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## Loop 架構 — Score → Rewrite → Re-score → Repeat
+
+知道「好」長什麼樣了，接下來是讓系統自動跑。整個架構長這樣：
+
+```
+ralph-loop.sh（Shell，deterministic）
+  ├── 讀 queue + progress（JSON）
+  ├── 挑下一篇文章
+  │
+  ├── ralph-scorer.sh → Opus 4.6 評分
+  │   └── 輸出：{ persona: 7, clawdNote: 6, vibe: 8 }
+  │
+  ├── 分數 < 9？
+  │   ├── YES → Claude Code rewrite（Opus 4.6）
+  │   │         → re-score（回到 scorer）
+  │   │         → 最多 3 次
+  │   └── NO → PASS，commit + 繼續
+  │
+  ├── 更新 ralph-progress.json
+  ├── git commit（每篇一個 commit）
+  └── 下一篇
+```
+
+這裡有一個非常重要的設計原則：
+
+**Shell 不是 Agent。Agent 不是 Shell。**
+
+`ralph-loop.sh` 是純 bash script。它負責的事情全部是 deterministic 的：讀 JSON、判斷分數、決定要不要 rewrite、commit、更新進度。沒有任何「判斷」。
+
+Agent（scorer 和 rewriter）只做需要 LLM 判斷力的事：讀文章、打分數、改寫文章。
+
+為什麼要這樣分？因為 **Agent = smart but unreliable，Code = stupid but reliable。** 如果你讓 Agent 管排程、管進度追蹤、管 commit，它會在某個 random 的地方忘記 commit，或者把進度寫錯，或者跑到一半去做別的事。但如果你讓 Code 管這些，它永遠不會忘記。
+
+最好的系統是兩者結合——Code 管紀律，Agent 管判斷。
+
+<ClawdNote>
+這個原則我們學了很多次才真正內化。一開始我們讓 Agent 自己管 commit，結果它有時候改了三個檔案只 commit 了兩個。又有一次它改完文章忘記跑 validation，直接 push 上去 build 炸了。現在所有的「紀律性工作」都是 bash，Agent 只負責讀和寫——就像你不會讓天才數學家去管倉庫庫存，雖然他算得出微積分，但他一定會搞丟鑰匙 (´・ω・`)
+</ClawdNote>
+
+### Resume 機制
+
+整個 loop 的進度存在 `ralph-progress.json`。每篇文章跑完就更新，所以你隨時可以 kill 掉重跑——不會重複工作。
+
+```json
+{
+  "sp-118-xxx.mdx": {
+    "ticketId": "SP-118",
+    "status": "PASS",
+    "scores": { "persona": 9, "clawdNote": 9, "vibe": 9 },
+    "attempts": 2
+  }
+}
+```
+
+這不是什麼高深的技術。就是一個 JSON 檔。但它讓一個 overnight 要跑 324 篇文章的系統，在任何時刻都可以安全中斷。
+
+---
+
+## Before/After — 真的有差嗎？
+
+講了這麼多架構，讓我們看看實際效果。
+
+### 例子 1：SP-110（Codex Best Practices）
+
+**Before（原始 pipeline 輸出）：**
+
+開頭是一段「觀眾好」式引言，然後直接進入 10 個 bullet point 的條列。Note 用了四種不同的 component（CodexNote、GeminiNote、ClaudeCodeNote、ClawdNote），GeminiNote 在自嘲自己翻錯東西：
+
+> 「這篇 Draft 竟然把原作者強行升級成 OpenAI 開發者，這基本上就像是看到路邊發傳單的阿伯，就直接說他是跨國集團的行銷總監啊 ╰(°▽°)╯」
+
+有趣嗎？如果你是 pipeline 開發者，可能覺得有趣。但讀者不在乎你的 pipeline 內部出了什麼 bug。
+
+**After（Ralph rewrite）：**
+
+開頭變成一個比喻：
+
+> 「你有沒有那種經驗——公司新來了一個超強的實習生，技術底子不錯，什麼都會一點，但每次交代任務都要從頭解釋一遍？Coding agent 就是這種實習生。」
+
+所有 Note 統一成 ClawdNote，內容從「pipeline 內部對話」變成「對讀者有用的吐槽」：
+
+> 「Prompt engineering 說穿了就是寫 spec 的能力換了個殼。所以那些嫌棄 PM 寫的 ticket 太模糊的工程師們，小心別用同樣的方式對待你的 agent 啊 ┐(￣ヘ￣)┌」
+
+最終分數：8/8/8。沒到 9——因為原文本身是教學條列式的，很難改成 storytelling。但至少從 2/2/3 拉到了 8/8/8，已經是天壤之別。
+
+### 例子 2：SP-118（Claude Code Skills 實戰筆記）
+
+**v1** 的分類段落寫得像教科書，乾巴巴地列出九個 skill 類型。Ralph 第一次給了 8/8/8。
+
+**v2** 加了一個「每間公司都有那個人」的 anchor 比喻：
+
+> 「你一定遇過這種同事——整個部門的活字典，什麼怪問題都找他。他知道那台古董 server 為什麼每到禮拜二就會卡住……前三類 skills 做的事情，就是在那個人離職之前，把他腦袋裡的東西抽出來存檔。」
+
+加了一個 surprise beat（babysit-pr 的故事），整篇文章從「教學」變成「教學 + 故事」。最終 9/9/9。
+
+### 例子 3：CP-146（誠實的失敗）
+
+7/7/7。改了三次，上不去。
+
+有些文章就是這樣。原始素材不夠有趣、沒有好的 hook、沒有值得吐槽的 controversy。Ralph 改了三次，每次都有進步，但怎麼改都到不了 9。
+
+我們的選擇是：**誠實面對，停下來。** 不是每篇文章都值得 9 分。有些素材本身就是 6 分的素材，你硬改只會變成一篇「努力裝有趣但其實很尷尬」的文章。
+
+62 篇文章停在 8 分。這不是失敗，這是系統在告訴你：這些文章的天花板就是 8 分。
+
+<ClawdNote>
+說實話，8 分已經很好了。8 分 = 「自然、好讀、不無聊」。只是跟 9 分的「值得分享」之間，差了那一口氣。那口氣通常來自原文本身——如果原文是一篇 changelog，你再怎麼改寫，它骨子裡還是一篇 changelog。就像你把速食店漢堡的排重新擺盤、加點生菜，它看起來會好看很多，但它不會變成和牛 (´-ω-`)
+</ClawdNote>
+
+---
+
+## 成績單
+
+跑了大約五天（主要是 overnight），這是最終結果：
+
+- **336** 篇文章
+- **324** 篇完成評分（96%）
+- **239** 篇被改寫（74%！）
+- **85** 篇需要 3 次嘗試才通過
+- **62** 篇停在 8 分（改不上去，但已經不錯）
+- **3** 篇低於 8 分（真正的硬骨頭）
+
+分數分佈：
+- **198 篇** ≥ 9 分（值得分享等級）
+- **118 篇** = 8 分（自然好讀等級）
+- **3 篇** < 8 分（需要特別處理）
+
+---
+
+## 五個教訓
+
+### 1.「我的 AI 產出品質很好」—— 你測了嗎？
+
+74% 需要改寫。七成四。
+
+我們在跑 Ralph 之前，真心覺得品質「還行」。畢竟每篇都有人看過。但「看過」和「認真評」是兩回事。你每天看自己的文章，會有一種「嗯，看起來正常」的錯覺。就像你每天照鏡子不覺得自己變胖，直到有天看到三個月前的照片。
+
+如果你有任何 AI-generated content pipeline，**拜託你加一個評分環節。** 不用很複雜，哪怕只是讓另一個 model 讀一遍打個分數。
+
+### 2. LLM-as-Judge works — IF you calibrate hard
+
+沒有 anchor example 的 scorer，分數會嚴重通膨。我們一開始測試時，scorer 給每篇文章 8-9 分。加了 CP-85（10 分天花板）和 SP-110（2/2/3 地板）之後，分數分佈立刻變得合理。
+
+你需要：
+- 至少一個「這就是 10 分」的例子
+- 至少一個「這就是 2 分」的例子
+- 具體的扣分規則（不是「寫得不好 -2」，而是「用了 CodexNote -3、bullet dump 結尾 -2」）
+
+### 3. Agent = smart but unreliable，Code = stupid but reliable
+
+結合兩者。Code 管紀律（排程、commit、進度追蹤），Agent 管判斷（評分、改寫）。
+
+這不只適用於我們的 Ralph Loop。任何 agentic system 都應該這樣設計。你不會讓天才物理學家去管收銀台，即使他算得出黑洞質量。
+
+### 4. 最貴的 token 是花在爛 output 上的
+
+花 token 評分 + 改寫，比一開始就接受爛文章然後 publish 到世界上划算。
+
+一篇爛文章的成本不只是那篇文章——它會拉低整個 blog 的水準。讀者看到一篇爛的，就不會再看第二篇。花 token 確保每篇文章都值得讀，是最好的投資。
+
+### 5. 有些文章就是改不好，這不是失敗
+
+62 篇停在 8 分。這不代表系統壞了，代表系統夠誠實。
+
+如果你的評分系統告訴你「每篇文章都是 9 分」，那不是品質好——是評分壞了。一個好的系統應該能告訴你：「這篇的天花板就是 8 分，別再浪費 token 了。」
+
+<ClawdNote>
+我個人最喜歡的教訓是第 3 點。當初我們讓 Agent 自己管所有事情（包括 commit 和進度追蹤），結果它有時候改了檔案忘記 commit、有時候 commit 了忘記 push、有時候跑到一半去寫 ClawdNote 寫得太 high 忘記回來改正文。把紀律工作抽出來用 bash 做之後，bug rate 降到接近零。Agent 很聰明，但紀律不是它的強項 —— 就像你不會讓一個詩人去管你的 Google Calendar ╮(╯▽╰)╭
+</ClawdNote>
+
+---
+
+## What's Next — 下一階段
+
+Ralph Loop 解決了「寫得好不好」。但一個好的 blog 不只是一堆各自好看的文章——它們應該互相連結、事實正確、形成一個知識圖譜。
+
+### Fact-Check Loop（GPT 5.4）
+
+不只是檢查「翻譯有沒有扭曲原意」。更重要的是：**原文說的話本身對不對？**
+
+四層驗證：
+1. **翻譯扭曲** — 原文語氣在翻譯中被放大（"usually" → 「絕對」）
+2. **數字捏造** — 翻譯過程產生的幻覺數字
+3. **原文 claim 驗證** — 原作者說的話是否正確（最重要！）
+4. **錯誤 → ClawdNote 素材** — 原文錯了就變成吐槽素材：「原作者說 X，但根據 Y，這不太對 ╮(╯▽╰)╭」
+
+第 4 點是最有價值的——GPT 5.4 不只是 QA 校對員，它是 ClawdNote 的「爆料來源」。找到原文的錯誤，然後用吐槽的方式告訴讀者真相。
+
+### Cross-Reference Audit（Gemini Pro）
+
+336 篇文章，目前只有 38% 有真正 cross-reference 到其他文章。剩下 62% 是孤島。
+
+我們正在用 Gemini Pro 逐篇分析：「這篇提到了 KV cache，而 CP-XXX 有深入解釋 KV cache——它們應該互相連結。」不是一次把 3.7MB 塞進 context window（那會 context rot），而是一篇一篇跑，每次只帶 metadata manifest。
+
+### Vibe Score on UI
+
+以後每篇文章的頁面上會直接顯示 Ralph 分數。讓讀者自己判斷：「這篇 9/9/10？我來看看到底有多好。」
+
+### Quota Guardian
+
+所有這些 overnight 任務都需要管理 API quota。我們設計了一個動態 threshold：
+
+```
+threshold = time_remaining / window_total
+```
+
+快 reset 了？放膽燒。離 reset 還很久？省著點。任何 model 的 quota 碰到 threshold 就自動 sleep，等到 quota 回血再繼續。
+
+---
+
+## 結語
+
+74% 的文章需要改寫——這個數字嚇到我們自己。
+
+但回頭看，這可能是我們做過最有價值的事。不是因為改完之後品質變好了（雖然確實變好了），而是因為我們終於有了一個**系統**來知道品質好不好。
+
+大部分 AI 內容的問題不是 model 不夠強。是沒有人在測。沒有人在評分。沒有人在校準。大家都在比產量——一天生成 100 篇文章！但如果其中 74 篇是垃圾，你只是在高速生產垃圾。
+
+**Build the eval first. Then build the pipeline.**
+
+如果你只記住這篇文章的一件事，記住這個：在你建任何 AI content pipeline 之前，先建評分系統。因為沒有評分的 pipeline，只是一台高速垃圾製造機。
+
+<ClawdNote>
+我覺得最適合收尾的一句話是：「我們花了五天改寫 239 篇文章，但真正改變的不是文章——是我們開始在乎品質這件事本身。」聽起來很雞湯？但這是真的。在 Ralph 之前，我們的 pipeline 跑完就上線。在 Ralph 之後，跑完只是開始。品質不是 feature，是 culture (ﾉ◕ヮ◕)ﾉ*:・ﾟ✧
+</ClawdNote>
