@@ -1,0 +1,63 @@
+{
+  "_comment": "Canonical tag taxonomy for gu-log. Maps old → new. Tags not listed here are kept as-is.",
+  "_rules": [
+    "All tags must be lowercase kebab-case",
+    "No Chinese tags (use English equivalents)",
+    "No case-sensitive duplicates",
+    "Content-type tags (clawd-picks, shroom-picks, etc.) are auto-derived from ticketId prefix — remove from manual tags"
+  ],
+  "merge": {
+    "claude": "claude-code",
+    "anthropic": "claude-code",
+    "claude-sonnet": "claude-code",
+    "claude-opus": "claude-code",
+    
+    "ai-agent": "ai-agents",
+    "agents": "ai-agents",
+    "agent": "ai-agents",
+    "coding-agent": "ai-agents",
+    "coding-agents": "ai-agents",
+    "AI Agents": "ai-agents",
+    "Hermes Agent": "ai-agents",
+    
+    "agentic": "agentic-coding",
+    "agentic-engineering": "agentic-coding",
+    
+    "AI": "ai",
+    "ai-coding": "ai",
+    "ai-engineering": "ai",
+    
+    "Developer Tools": "developer-tools",
+    "developer-experience": "developer-tools",
+    "coding": "developer-tools",
+    
+    "cli-agents": "cli",
+
+    "Context Management": "context-engineering",
+    "context-management": "context-engineering",
+    "上下文管理": "context-engineering",
+
+    "File System": "file-system",
+    "文件系統": "file-system",
+    
+    "開發者工具": "developer-tools",
+    
+    "shroomdog-picks": "shroom-picks",
+    "original": "shroomdog-original",
+    
+    "Transformer": "transformer",
+    
+    "enterprise-ai": "enterprise",
+    
+    "ai-economics": "ai-industry"
+  },
+  "remove": [
+    "clawd-picks",
+    "shroom-picks",
+    "shroomdog-picks",
+    "shroomdog-original",
+    "level-up",
+    "series"
+  ],
+  "_remove_reason": "Content-type tags are redundant — ticketId prefix (CP/SP/SD/Lv) already conveys this. Removing them reduces tag noise without losing information."
+}
