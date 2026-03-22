@@ -4,8 +4,19 @@ title: "Claude Code Creator Boris Reveals His Workflow — 5 Parallel Sessions, 
 originalDate: "2026-01-02"
 translatedDate: "2026-02-03"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@bcherny on X"
 sourceUrl: "https://x.com/bcherny/status/2007179832300581177"
 summary: "Boris Cherny shows how he uses Claude Code to build Claude Code itself — 5 parallel terminals, all Opus 4.5, shipping 27 PRs per day"
@@ -15,88 +26,91 @@ tags: ["clawd-picks", "claude-code", "workflow", "productivity"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-**Boris Cherny**, the creator of Claude Code, posted a tweet on January 2, 2026, revealing how he actually uses Claude Code — and the tweet went absolutely viral with 7.5 million views (◕‿◕)
+Have you ever wondered what a chef cooks at home?
 
-Why did everyone lose their minds? Because Boris isn't just using Claude Code to build regular projects. **He's using Claude Code to build Claude Code itself**, and for the past two months, 100% of his code has been AI-generated.
+On January 2, 2026, **Boris Cherny** — the creator of Claude Code — answered the AI version of that question: "How does the person who built an AI coding tool actually use it?" The tweet went nuclear. 7.5 million views (◕‿◕)
 
-Let's see how the "father of AI tools" uses AI tools.
+The answer is wilder than you'd expect. He's not just using Claude Code to build some random project. **He's using Claude Code to build Claude Code itself.** For the past two months, 100% of his code has been AI-generated.
 
-## 1. Running 5 Parallel Claudes in Terminal
+Okay, deep breath. Let's unpack this piece by piece.
 
-Boris's workflow involves running multiple Claude Code sessions simultaneously:
-- **Local terminal: 5 sessions**, numbered 1-5 with system tabs and notifications
-- **claude.ai/code web version: 5-10 sessions**
+## How One Person Manages 5 AIs at Once
 
-Each local session uses **git checkout**, not branches or worktrees, to avoid conflicts.
+Boris's desktop probably looks like a restaurant kitchen during dinner rush: 5 terminal tabs running Claude Code simultaneously, plus another 5-10 sessions open on claude.ai/code.
 
-He launches remote sessions with `&` from the CLI and frequently uses `--teleport` to move them between environments.
+This isn't showing off. Think of it like a kitchen — one pan searing steak, one pot boiling pasta, garlic bread in the oven, dessert being plated on the side. Each session works on its own thing: one fixing bugs, one building a new feature, one refactoring. Boris is the chef spinning between stations, tasting everything — except he's tasting code diffs instead of sauces.
 
-<ClawdNote>
-**Wait, what does it mean to run 5 Claudes at once?**
-
-Imagine you're a general with 5 soldiers fighting on different battlefields simultaneously. Some are fixing bugs, some are building new features, some are refactoring code. You just switch tabs to check progress without having to do the work yourself (⌐■_■)
-
-Boris admits that about 10-20% of these sessions get abandoned due to unexpected complications. It's like sending out scout teams — sometimes they run into trouble and you just... start over with a new team ┐(￣ヘ￣)┌
-</ClawdNote>
-
-## 2. Only Uses Opus 4.5 + Thinking
-
-Boris's choice is clear: **All coding tasks use Opus 4.5 with thinking**.
-
-Why not use the faster Sonnet?
-
-He says Opus is slower, but:
-- Higher quality and more reliable
-- Better at using tools
-- Requires fewer back-and-forth iterations
-- **Actually faster overall**
+Each local session is isolated using **git checkout** (not branches, not worktrees). He launches remote sessions with `&` from the CLI and uses `--teleport` to move them between environments.
 
 <ClawdNote>
-This is the classic "slow is fast, fast is slow" paradox (◕‿◕)
+Running 5 Claudes at once sounds impressive, but Boris admits that 10-20% of sessions get abandoned due to unexpected complications.
 
-Sonnet feels fast, but might need 3 rounds of fixes to get it right. Opus is slower per request, but gets it right the first time, so total time is shorter.
-
-It's like driving when you're in a hurry: going 120 but taking wrong turns and needing detours is slower than going 80 straight to your destination. Boris chose the latter.
+It's like placing 5 orders on an online shop — one or two will probably get cancelled or delayed. The point isn't that every session succeeds. It's that your overall throughput goes up. Failure is cheap, success is valuable — the math works out (⌐■_■)
 </ClawdNote>
 
-## 3. Team Maintains a `CLAUDE.md` File
+## Why He Only Uses the "Slow" Model
 
-Every Anthropic team's repo has a `CLAUDE.md` file that records:
-- Things Claude did wrong (so it won't repeat mistakes)
-- Team best practices
-- Various lessons learned
+Boris uses **Opus 4.5 with thinking** for all coding tasks. Not Sonnet. Not anything faster.
 
-Boris uses the `@claude` tag on colleagues' PRs to write learnings into `CLAUDE.md`. Their file has accumulated **2.5k tokens**.
+Counterintuitive, right? There's a faster car available, so why drive the slow one?
 
-The benefit: **Knowledge gained from each PR is preserved for all future Claude sessions**.
+Simple answer: ever taken a shortcut through back alleys because you were in a hurry, only to get lost and arrive even later? Boris says Opus is slower per response, but the quality is higher, it's better at using tools, and it needs fewer round-trips. Something that works on the first try doesn't need three rounds of fixes. Total time: shorter.
+
+Highway at 80 km/h, straight to your destination. That beats 120 km/h through wrong turns every time.
 
 <ClawdNote>
-This is basically "training" your AI assistant ヽ(°〇°)ﾉ
+I've seen this myself in gu-log's translation pipeline (◕‿◕)
 
-You can't actually fine-tune Claude, but you can achieve something similar through context. Every time Claude messes up, you record it, and next time it reads `CLAUDE.md` it'll know "oh right, can't do it that way".
-
-It's a way of "pretending to do continual learning", and it actually works (⌐■_■)
+Using a stronger model to get the draft right the first time costs about the same total time as using a fast model and then going back and forth fixing it — except the quality is miles better. Boris's preference isn't bias. It's battle-tested wisdom from someone who's been in the trenches.
 </ClawdNote>
 
-## 4. Plan First, Then Auto-Accept
+## Training Your AI with a Notebook
 
-Boris's workflow:
+Every Anthropic team's repo has a `CLAUDE.md` file. Think of it as a "class rules" poster for your AI — it lists things Claude has messed up before, team conventions, and hard-won lessons.
 
-1. **Enter Plan mode**, discuss with Claude until satisfied
-2. **Switch to auto-accept edits mode**
-3. Claude usually gets it done in one shot (1-shot)
+Boris tags colleagues' PRs with `@claude` to capture learnings into this file. Their `CLAUDE.md` has grown to 2.5k tokens.
 
-He says: **If my goal is to write a Pull Request, I will use Plan mode, and go back and forth with Claude until I like its plan. From there, I switch into auto-accept edits mode and Claude can usually 1-shot it.**
+Every time Claude screws something up, you write it down. Next time it reads `CLAUDE.md`, it knows "oh right, that approach caused problems last time." You can't actually fine-tune Claude, but you can use context to get a similar effect. This "fake continual learning" approach sounds hacky, but it genuinely works.
 
-## 5. Heavy Use of Slash Commands
+<ClawdNote>
+This is literally pet training logic ╰(°▽°)╯
 
-Daily tasks like commits, PRs, simplification, and verification are automated with slash commands stored in `.claude/commands/`.
+Dog pees on the couch once — you note it. Next time you see the dog approaching the couch, you redirect. AI botches an import order once — you write it in CLAUDE.md. Next time it reads the file and avoids the mistake.
 
-For example, his `/commit-push-pr` command **runs dozens of times per day**. This command uses inline bash to precompute git status and related information, reducing unnecessary back-and-forth.
+The difference: your dog might forget. CLAUDE.md won't. So in a way, AI is easier to train than a dog. (Please don't tell my dog I said that.)
+</ClawdNote>
 
-## 6. PostToolUse Hook for Auto-Formatting
+## Don't Let AI Start Typing Immediately
 
-Boris configured a hook that automatically runs a formatter after Claude writes code:
+Boris works in two phases: first, he enters Plan mode and goes back and forth with Claude until the plan is solid. Only then does he switch to auto-accept and let Claude execute.
+
+His exact words: "If my goal is to write a Pull Request, I will use Plan mode, and go back and forth with Claude until I like its plan. From there, I switch into auto-accept edits mode and Claude can usually 1-shot it."
+
+Think of it like renovating your apartment — you wouldn't tell the contractor "start knocking down walls" on day one. You'd review blueprints, discuss traffic flow, confirm the budget. Only then do you greenlight the demolition. Tearing things down and starting over costs ten times more than spending an extra afternoon on the plan.
+
+<ClawdNote>
+This "plan first, execute later" pattern applies way beyond AI ヽ(°〇°)ﾉ
+
+I've seen too many people use Claude Code by dumping a giant requirement blob and praying. Claude goes on a rampage, modifies 15 files, and then you realize the direction was wrong from the start.
+
+Boris's way: have AI say "here's what I plan to do — thoughts?" You say OK, then it acts. Two extra minutes of planning saves twenty minutes of undoing (⌐■_■)
+</ClawdNote>
+
+## Turn Repetitive Tasks into One Button
+
+Boris has turned every recurring chore — commits, PRs, simplification, verification — into slash commands stored in `.claude/commands/`.
+
+His `/commit-push-pr` command runs dozens of times per day. The command uses inline bash to precompute git status and related info, so when Claude gets the prompt, it already has all the context — no need for 3 extra tool calls to look things up.
+
+<ClawdNote>
+This is like saving your daily commute route as a Google Maps favorite — every morning, you tap once instead of typing the address again (◕‿◕)
+
+Sounds minor, but Boris runs these commands dozens of times a day. Saving 30 seconds each time adds up to 10+ minutes daily. More importantly, it eliminates decision fatigue — you don't have to think "should I git add first or git diff first?" every single time. The command remembers the workflow for you.
+</ClawdNote>
+
+## Making AI Clean Up After Itself
+
+Boris configured a PostToolUse hook:
 
 ```yaml
 PostToolUse:
@@ -106,95 +120,60 @@ PostToolUse:
       command: "bun run format || true"
 ```
 
-This way, Claude's code is always formatted properly without manual cleanup.
+Every time Claude writes or edits code, the formatter runs automatically. Output is always clean. No manual formatting needed.
+
+A lot of people complain that AI-generated code is messy. But the problem isn't the AI — it's that you haven't installed the right plumbing. You wouldn't expect a kid to wash their own dishes after dinner. You'd buy a dishwasher.
 
 <ClawdNote>
-This is brilliant (◕‿◕)
+The key insight here: **don't try to teach AI to be perfect — design systems that catch AI's imperfections.**
 
-Many people complain "AI-written code is a mess", but the solution is simple: set up a hook to automatically run prettier/eslint.
-
-It's like training a dog: you don't teach it to wash its own bowl, you just automatically wash it after the dog finishes eating. Same logic with AI ╰(°▽°)╯
+Claude sometimes forgets trailing commas. Sometimes indentation drifts. Rather than reminding it "please format properly" every time (it'll still forget), just set up a hook to clean up automatically. System design beats individual discipline — that principle works for managing AIs and managing humans alike ┐(￣ヘ￣)┌
 </ClawdNote>
 
-## 7. Permission Management: Smart Whitelisting, Not Blanket Skipping
+## Security Isn't About Turning Everything Off
 
-Boris **doesn't use** `--dangerously-skip-permissions`. Instead, he uses `/permissions` to whitelist commonly safe commands:
+Boris **does not use** `--dangerously-skip-permissions`. He uses `/permissions` to whitelist commonly safe commands like `bun run build:*` and `bun run test:*`.
 
-- `bun run build:*`
-- `bun run test:*`
-
-This reduces unnecessary permission prompts while maintaining security.
-
-## 8. Verification Process: Let Claude Test Itself
-
-Boris believes the most impactful practice is: **Build verification feedback loops**.
-
-Claude tests every change on claude.ai/code using the Claude Chrome extension, opens browsers to test UI, and iterates until functionality works and UX feels polished.
-
-This verification process can improve final result quality by **2-3x**.
+This is an important lesson. Many people find permission prompts annoying, so they skip everything. But that's like welding your front door open because you're tired of swiping your keycard — sure, you don't have to swipe anymore, but neither does a burglar. Boris's approach is "issue VIP passes to regular guests," not "remove the door."
 
 <ClawdNote>
-Letting AI test its own code sounds a bit meta, but it's actually super logical (◕‿◕)
+I've seen people on GitHub recommend "step one: add --dangerously-skip-permissions" and it makes my skin crawl (╯°□°)╯
 
-The old way: we write code → manually test → find bugs → fix → test again.
+The word "dangerously" has three syllables and it's not there for decoration. Boris, the person who literally created Claude Code, doesn't skip permissions. But sure, random-internet-person, you definitely understand the risks better than him.
 
-Now: AI writes code → AI tests itself → AI finds bugs → AI fixes them → AI tests again.
-
-You just need to do the final review. This basically automates the QA process too ヽ(°〇°)ﾉ
+Smart lazy: set up a whitelist. Dumb lazy: disable all safety. The difference shows up when something goes wrong and you need someone to blame (⌐■_■)
 </ClawdNote>
 
-## Result: Shipping 27 PRs Per Day, 100% AI-Written
+## Letting Claude QA Itself
 
-Boris revealed in a reply to Andrej Karpathy:
+Boris says the highest-impact practice is building verification feedback loops. Claude tests every change on claude.ai/code using the Chrome extension — actually opening a browser, clicking buttons, checking if the UI flow works. When it finds problems, it fixes them and tests again, iterating until things are solid.
 
-> **For the past two months, 100% of my code has been written by Claude Code and Opus 4.5.**
->
-> **Yesterday I shipped 22 PRs, the day before 27, each one 100% AI-written.**
+The old way: human writes code, human tests, human finds bugs, human fixes, human re-tests. The new way: AI writes code, AI tests, AI finds bugs, AI fixes, AI re-tests. You just show up for the final review.
 
-And he says this isn't an exaggeration — it's real. 100% of code at Anthropic and OpenAI is now AI-written.
+Boris says this verification loop improves final quality by 2-3x.
 
 <ClawdNote>
-Wait, let's digest this for a moment (╯°□°)╯
+The keyword here is "feedback loop" — not "test once."
 
-The creator of Claude Code, using Claude Code, to build Claude Code, shipping 27 PRs per day.
+Boris isn't saying "have AI run the tests." He's saying "have AI test, find issues, fix them, test again, and keep going until it's good." Same logic as asking an intern to revise a report — you don't approve the first draft. You send it back three times ╰(°▽°)╯
 
-This is the ultimate form of AI recursive bootstrapping! The AI tool is improving itself, then getting better, then using the better version to continue improving itself...
-
-This is like the AI version of "Pangu creating the universe" — creating itself, evolving itself ヽ(°〇°)ﾉ
-
-And the key point is, this isn't a lab demo — this is **actual production environment**, **real product shipping to users worldwide**.
-
-2026 really is different.
+The difference: AI doesn't give you attitude on the third revision.
 </ClawdNote>
 
-## Why Is This Tweet So Important?
+## So What Does 27 PRs a Day Actually Mean?
 
-Because it's not an "AI enthusiast" sharing a toy workflow — it's the "creator of the AI tool" telling you how he uses his own tool.
+Boris dropped this bomb while replying to Andrej Karpathy:
 
-It's like:
-- Steve Jobs telling you how he uses iPhone
-- Linus Torvalds telling you how he uses Linux
-- Elon Musk telling you how he drives Tesla
+> **For the past two months, 100% of my code has been written by Claude Code and Opus 4.5. Yesterday I shipped 22 PRs, the day before 27, each one 100% AI-written.**
 
-When the creator tells you "this is how I use it", you understand the **design philosophy** and **best practices** of the tool.
+The creator of Claude Code, using Claude Code, to build Claude Code, shipping 27 PRs a day. This is AI improving itself, becoming stronger, then using its stronger self to keep improving. If that's not recursive bootstrapping, I don't know what is.
 
-Boris's message is clear:
-
-1. **Run multiple AIs in parallel, don't be afraid**
-2. **Use better models, save time**
-3. **Build a knowledge base, accumulate learning**
-4. **Plan first, then execute**
-5. **Automate everything that can be automated**
-6. **Let AI test its own code**
-
-These aren't "hacks" — this is the standard workflow for engineers in 2026.
+And this isn't a lab benchmark. This is real production code, shipping to real users worldwide.
 
 <ClawdNote>
-Final observation: Boris's tweet got 7.5 million views, which is "viral" level for tech content (◕‿◕)
+Back to the opening question: what does the chef cook at home?
 
-What does this mean? It means **everyone wants to know "how do experts use AI"**.
+Turns out Boris cooks the exact same thing at home and at the restaurant — he uses his own tool to build his own tool, then uses the better tool to keep building. Recursion all the way down.
 
-Because in 2025-2026, every engineer is relearning "how to write code". The old skill was "I know React", the new skill is "I know how to use Claude Code to write React".
-
-This is a paradigm shift. And Boris's tweet is the user manual for the new paradigm ╰(°▽°)╯ (◍˃̶ᗜ˂̶◍)ノ"
+7.5 million people watched this tweet not because Boris revealed some groundbreaking theory. It's because everyone in 2025-2026 is relearning how to write code. The old skill tree: "I know React." The new skill tree: "I know how to use Claude Code to write React." Everyone wanted to see how the expert allocates skill points — and Boris just posted a screenshot of his entire build (◕‿◕)
 </ClawdNote>
