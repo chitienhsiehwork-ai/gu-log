@@ -1,0 +1,62 @@
+---
+ticketId: "CP-198"
+title: "OFC 與 GTC 前夕的震撼彈：Optical Compute Interconnect (OCI) 聯盟成立"
+originalDate: "2026-03-16"
+translatedDate: "2026-03-22"
+translatedBy:
+  model: "Gemini 3.1 Pro"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: "@SemiAnalysis_ on X"
+sourceUrl: "https://x.com/SemiAnalysis_/status/2033589139535167953"
+lang: "zh-tw"
+summary: "在 OFC 和 GTC 大會前夕，Optical Compute Interconnect MSA 宣布成立。SemiAnalysis 指出，Nvidia 與其他一些研究方向似乎更偏向基於 DWDM 的「slow and wide」光通訊架構。"
+tags: ["clawd-picks", "OFC", "GTC", "OCI", "Nvidia"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+OFC（光纖通訊展覽）和 GTC（GPU 技術大會）這週就要來了！SemiAnalysis 提到，在大會正式開始前，其實已經先出現了幾個很值得注意的宣布。
+
+就在前幾天（2026 年 3 月 12 日），業界宣布成立 **Optical Compute Interconnect (OCI) MSA**。創始成員包括 AMD、Broadcom、Meta、Microsoft、Nvidia 和 OpenAI，這也是原作者點名的其中一個重點消息 (๑˃ᴗ˂)ﻭ。
+
+## CPO 架構的兩條路線：Fast and Narrow vs. Slow and Wide
+
+過去大家在討論 CPO (Co-Packaged Optics) 的時候，焦點大多放在基於單通道 200G PAM4 的 DR optics 上。這是一種什麼樣的概念呢？原作者 SemiAnalysis 形容這是一種「又快又窄 (fast and narrow)」的策略。
+
+但是！Nvidia 和其他幾家大廠最近在討論的研究方向，主要是圍繞在另一種「又慢又寬 (slow and wide)」的架構上。這種做法是使用多條速度較慢的鏈路，搭配 NRZ 調變 (NRZ modulation)，然後再透過 DWDM (密集波長分波多工) 技術把它們全部多工處理在一起。
+
+<ClawdNote>
+這裡比較值得注意的是原文把兩條路線清楚對比出來：一邊是 PAM4 的「fast and narrow」，另一邊是用較慢鏈路、NRZ 和 DWDM 組起來的「slow and wide」。但就這則推文本身來看，原作者是在描述研究方向差異，還沒有進一步替哪條路線下結論。
+</ClawdNote>
+
+---
+
+## Nvidia 的 ISSCC 論文亮點：32Gb/s/λ 的 DWDM 方案
+
+為了具體說明這個「slow and wide」的路線，推文中提到了 Nvidia 在 ISSCC 發表的一篇論文和簡報（論文名稱有點長：*A 32Gb/s/λ 256Gb/s/Fiber Half-Rate Bandpass-Filtered Clock-Forwarding DWDM Optical Link in a 3D-Stacked 7nm EIC/65nm PIC Technology*）。
+
+在這篇論文中，Nvidia 提出了一個單波長 (per lambda) 32 Gbit/s 的方案。這個方案的亮點在於，它利用 DWDM 技術將 8 個波長進行多工處理，並且還特別保留了第 9 個波長專門用來做時脈轉發 (clock forwarding)。
+
+<ClawdNote>
+原推文在這裡給的是架構重點整理：每個波長 32 Gbit/s、8 個波長用 DWDM 多工，另外保留第 9 個波長做 clock forwarding。就來源能確認的範圍來看，先把這些設計元素記清楚會比較穩妥。
+</ClawdNote>
+
+---
+
+## 結語
+
+這則推文的重點其實很集中：一個是 Optical Compute Interconnect MSA 已經宣布成立，另一個是原作者觀察到 Nvidia 與其他一些研究方向似乎更偏向「slow and wide」的光通訊架構。至於哪條路線未來會成為主流，原文並沒有進一步下定論，就先看到這裡吧 (◍•ᴗ•◍)！
