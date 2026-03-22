@@ -59,7 +59,12 @@ function parseFrontmatter(content) {
     if (multiTagMatch) {
       fm.tags = multiTagMatch[1]
         .split('\n')
-        .map((l) => l.replace(/^\s+-\s+/, '').trim().replace(/["']/g, ''))
+        .map((l) =>
+          l
+            .replace(/^\s+-\s+/, '')
+            .trim()
+            .replace(/["']/g, '')
+        )
         .filter(Boolean);
     }
   }
@@ -165,7 +170,9 @@ for (const post of posts) {
       ticketId: candidate.ticketId,
       title: candidate.title,
       slug: candidate.slug,
-      ...(VERBOSE ? { relevance: Math.round(score * 1000) / 1000 } : { relevance: Math.round(score * 1000) / 1000 }),
+      ...(VERBOSE
+        ? { relevance: Math.round(score * 1000) / 1000 }
+        : { relevance: Math.round(score * 1000) / 1000 }),
     };
   });
 
@@ -183,5 +190,5 @@ for (const post of posts) {
 
 process.stdout.write(JSON.stringify(suggestions, null, 2) + '\n');
 process.stderr.write(
-  `Done. ${suggestions.filter((s) => s.suggestedLinks.length > 0).length} posts have suggestions.\n`,
+  `Done. ${suggestions.filter((s) => s.suggestedLinks.length > 0).length} posts have suggestions.\n`
 );

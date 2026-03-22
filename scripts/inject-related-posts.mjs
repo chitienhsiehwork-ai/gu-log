@@ -173,5 +173,5 @@ process.stderr.write(
   `\n${mode} Summary:\n` +
     `  Injected:              ${injected}\n` +
     `  Skipped (has links):   ${skippedHasLinks}\n` +
-    `  Skipped (no suggestions): ${skippedNoSuggestions}\n`,
+    `  Skipped (no suggestions): ${skippedNoSuggestions}\n`
 );

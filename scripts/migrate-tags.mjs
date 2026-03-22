@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * migrate-tags.mjs — Apply tag taxonomy to all posts
- * 
+ *
  * Usage:
  *   node scripts/migrate-tags.mjs --dry-run    # Preview changes
  *   node scripts/migrate-tags.mjs              # Apply changes
@@ -23,60 +23,61 @@ let totalTagsBefore = 0;
 let totalTagsAfter = 0;
 const allTagsAfter = {};
 
-const files = fs.readdirSync(POSTS_DIR).filter(f => f.endsWith('.mdx'));
+const files = fs.readdirSync(POSTS_DIR).filter((f) => f.endsWith('.mdx'));
 
 for (const file of files) {
   const filePath = path.join(POSTS_DIR, file);
   const content = fs.readFileSync(filePath, 'utf8');
-  
+
   // Match tags array in frontmatter
   const tagMatch = content.match(/^(tags:\s*\[)(.*?)(\])/ms);
   if (!tagMatch) continue;
-  
+
   totalFiles++;
-  
+
   const prefix = tagMatch[1];
   const tagString = tagMatch[2];
   const suffix = tagMatch[3];
-  
+
   // Parse tags — handle multiline and single-line
-  const oldTags = tagString.match(/"([^"]+)"/g)?.map(t => t.replace(/"/g, '')) || [];
+  const oldTags = tagString.match(/"([^"]+)"/g)?.map((t) => t.replace(/"/g, '')) || [];
   totalTagsBefore += oldTags.length;
-  
+
   // Apply transformations
   let newTags = oldTags
-    .map(tag => mergeMap[tag] || tag)  // merge
-    .filter(tag => !removeSet.has(tag))  // remove
-    .map(tag => tag.toLowerCase().replace(/\s+/g, '-'));  // normalize
-  
+    .map((tag) => mergeMap[tag] || tag) // merge
+    .filter((tag) => !removeSet.has(tag)) // remove
+    .map((tag) => tag.toLowerCase().replace(/\s+/g, '-')); // normalize
+
   // Deduplicate while preserving order
   newTags = [...new Set(newTags)];
   totalTagsAfter += newTags.length;
-  
+
   // Track global tag counts
   for (const tag of newTags) {
     allTagsAfter[tag] = (allTagsAfter[tag] || 0) + 1;
   }
-  
+
   // Check if changed
   const oldSorted = [...oldTags].sort().join(',');
   const newSorted = [...newTags].sort().join(',');
-  
+
   if (oldSorted === newSorted) continue;
-  
+
   changedFiles++;
-  
+
   if (DRY_RUN) {
-    const removed = oldTags.filter(t => !newTags.includes(mergeMap[t] || t));
-    const merged = oldTags.filter(t => mergeMap[t] && mergeMap[t] !== t);
+    const removed = oldTags.filter((t) => !newTags.includes(mergeMap[t] || t));
+    const merged = oldTags.filter((t) => mergeMap[t] && mergeMap[t] !== t);
     if (removed.length || merged.length) {
       console.log(`\n${file}:`);
-      if (merged.length) console.log(`  merged: ${merged.map(t => `${t} → ${mergeMap[t]}`).join(', ')}`);
+      if (merged.length)
+        console.log(`  merged: ${merged.map((t) => `${t} → ${mergeMap[t]}`).join(', ')}`);
       if (removed.length) console.log(`  removed: ${removed.join(', ')}`);
     }
   } else {
     // Rebuild the tags line
-    const newTagString = newTags.map(t => `"${t}"`).join(', ');
+    const newTagString = newTags.map((t) => `"${t}"`).join(', ');
     const newLine = `${prefix}${newTagString}${suffix}`;
     const newContent = content.replace(tagMatch[0], newLine);
     fs.writeFileSync(filePath, newContent);

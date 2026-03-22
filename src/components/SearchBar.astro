@@ -172,7 +172,11 @@ const t = i18n[lang];
   }
 
   // Wrap Fuse match indices in <mark> tags for highlighting
-  function highlightText(text: string, matches: readonly Fuse.FuseResultMatch[], key: string): string {
+  function highlightText(
+    text: string,
+    matches: readonly Fuse.FuseResultMatch[],
+    key: string
+  ): string {
     if (!text) return '';
     const match = matches.find((m) => m.key === key);
     if (!match?.indices?.length) return escapeHtml(text);
@@ -211,7 +215,10 @@ const t = i18n[lang];
         .slice(0, maxResults)
         .map((item) => ({ item, matches: [] as Fuse.FuseResultMatch[], refIndex: 0, score: 0 }));
 
-      matches = ticketMatches.length > 0 ? ticketMatches : (fuse?.search(trimmed, { limit: maxResults }) ?? []);
+      matches =
+        ticketMatches.length > 0
+          ? ticketMatches
+          : (fuse?.search(trimmed, { limit: maxResults }) ?? []);
     } else {
       matches = fuse?.search(trimmed, { limit: maxResults }) ?? [];
     }
