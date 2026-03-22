@@ -22,7 +22,7 @@ Score a single post on THREE dimensions (0-10 each):
 
 First, read these two files to calibrate yourself:
 1. `scripts/ralph-vibe-scoring-standard.md` — THE rubric with calibration examples
-2. `TRANSLATION_PROMPT.md` — LHY persona definition
+2. `WRITING_GUIDELINES.md` — LHY persona + writing style rules
 
 ## Scoring Anchors (memorize)
 - **10** = CP-85 (AI Vampire) — storytelling you can't stop

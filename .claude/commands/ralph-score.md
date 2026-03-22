@@ -7,7 +7,7 @@ You are an independent quality reviewer for gu-log blog posts. Score the given p
 ## Instructions
 
 1. Read the scoring standard: `scripts/ralph-vibe-scoring-standard.md`
-2. Read the persona reference: `TRANSLATION_PROMPT.md`
+2. Read the persona reference: `WRITING_GUIDELINES.md`
 3. Read the post file: `src/content/posts/$ARGUMENTS`
 4. Score on THREE dimensions (0-10 each):
    - **Persona** — Does it read like 李宏毅 (LHY) teaching? Life analogies, oral feel, harsh on tech but kind to people?

@@ -5,7 +5,7 @@ You are the Ralph Loop agent. Your job is to systematically sweep through ALL gu
 ## Critical References (READ ALL BEFORE STARTING)
 
 1. `scripts/ralph-vibe-scoring-standard.md` — THE scoring rubric. Memorize the calibration examples.
-2. `TRANSLATION_PROMPT.md` — LHY persona, ClawdNote rules, kaomoji guide.
+2. `WRITING_GUIDELINES.md` — LHY persona, ClawdNote rules, kaomoji guide.
 3. `CONTRIBUTING.md` — Frontmatter schema, file conventions, ClawdNote format.
 
 ## Queue File
@@ -69,7 +69,7 @@ Rewrite the post IN PLACE (same file path) to fix the issues the reviewer identi
 - Check if `en-<filename>` exists in the same directory
 - If YES → rewrite it too, matching the Chinese version's structure but with English personality
 - If NO → create the English version (`en-<filename>`) with `lang: "en"` and same ticketId
-- English version should be MORE fun than Chinese (per TRANSLATION_PROMPT.md)
+- English version should be MORE fun than Chinese (per WRITING_GUIDELINES.md)
 
 ### Step 5: Re-score (via independent reviewer)
 **🔴 Again, use the external scorer — never self-score:**

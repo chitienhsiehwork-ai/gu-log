@@ -12,7 +12,7 @@
 ```
 CLAUDE.md (你在讀的這個)
   ├→ CONTRIBUTING.md          ← SSOT: 內容規則、ticketId SOP、防重複、frontmatter schema
-  ├→ TRANSLATION_PROMPT.md    ← SSOT: 翻譯風格（PTT 說故事風、Clawd 吐槽語氣）
+  ├→ WRITING_GUIDELINES.md    ← SSOT: 寫作風格（PTT 說故事風、Clawd 吐槽語氣、SD/SP/CP 共用）
   ├→ src/content/config.ts    ← SSOT: Frontmatter schema (Zod validation)
   └→ scripts/
       ├ clawd-picks-prompt.md ← Clawd Picks 任務流程（給 Clawd on VM 用）
@@ -27,7 +27,7 @@ CLAUDE.md (你在讀的這個)
 | **Claude Code** | Mac（手動互動） | `CLAUDE.md`（這個檔案） | 開發、debug、SOP 調整 |
 | **Clawd (OpenClaw)** | VPS（24/7 自動） | `~/clawd/AGENTS.md` → 再讀 `scripts/clawd-picks-prompt.md` | 自動翻譯推文 |
 
-兩條路最終都指向 `CONTRIBUTING.md` 和 `TRANSLATION_PROMPT.md` 作為 SSOT。
+兩條路最終都指向 `CONTRIBUTING.md` 和 `WRITING_GUIDELINES.md` 作為 SSOT。
 **改規則時只改 SSOT 來源檔，不要在 task prompt 裡重複定義。**
 
 ## Tech Stack
@@ -73,10 +73,10 @@ pnpm exec astro check  # TypeScript 檢查
 
 ## Style Guide (Quick Ref)
 
-完整規則見 `TRANSLATION_PROMPT.md`。
+完整規則見 `WRITING_GUIDELINES.md`。
 
 - **繁中版**：口語化、PTT 說故事風、有梗
 - **EN 版**：Simple English，非母語者也能讀
 - **Clawd 吐槽**：不能無聊，要有梗，可以吐槽原作者
-- **Kaomoji**：OK，見 TRANSLATION_PROMPT.md 的安全清單
+- **Kaomoji**：OK，見 WRITING_GUIDELINES.md 的安全清單
 - **色彩**：只用 Solarized CSS variables

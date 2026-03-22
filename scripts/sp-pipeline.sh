@@ -681,7 +681,7 @@ while [ "$RALPH_ATTEMPT" -lt "$RALPH_MAX_ATTEMPTS" ]; do
 
 ## References (read ALL before rewriting)
 1. Read scripts/ralph-vibe-scoring-standard.md — THE scoring rubric with calibration examples
-2. Read TRANSLATION_PROMPT.md — LHY persona and style rules
+2. Read WRITING_GUIDELINES.md — LHY persona and style rules
 3. Read CONTRIBUTING.md — frontmatter schema, ClawdNote format
 4. Read the reviewer's feedback: cat $SCORE_FILE
 

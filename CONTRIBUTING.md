@@ -146,7 +146,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 - 用台灣讀者熟悉的比喻解釋概念
 - 加入幽默感
 
-**風格指南** (from TRANSLATION_PROMPT.md):
+**風格指南** (from WRITING_GUIDELINES.md):
 - 避免「維基百科式」的冷靜解釋
 - 優先用吐槽、類比、或誇張手法讓資訊變有趣
 - 可以想像自己是 PTT 鄉民在推文補充
@@ -174,7 +174,7 @@ import Toggle from '../../components/Toggle.astro';
 
 ## 翻譯規則 (Quick Reference)
 
-完整規則見 `TRANSLATION_PROMPT.md`，這裡列出重點：
+完整規則見 `WRITING_GUIDELINES.md`，這裡列出重點：
 
 ### 術語處理
 - 專有名詞保留英文，必要時括號加註中文

@@ -5,7 +5,7 @@
 ## Step 1：讀取規範
 
 1. 讀 `CONTRIBUTING.md` — **必讀**，定義 frontmatter schema、ticketId 規則、防重複 SOP、ClawdNote 用法
-2. 讀 `TRANSLATION_PROMPT.md` — 翻譯 persona 和風格（李宏毅教授風、PTT 說故事風）
+2. 讀 `WRITING_GUIDELINES.md` — 翻譯 persona 和風格（李宏毅教授風、PTT 說故事風）
 3. 讀 `scripts/clawd-picks-config.json` — 帳號清單和篩選設定
 
 ## Step 2：搜尋推文
@@ -50,7 +50,7 @@ curl -s "https://x.com/i/api/graphql/V7H0Ap3_Hh2FyS75OCDO3Q/UserTweets?variables
 - tags 必須包含 `"clawd-picks"`
 - **每篇至少 2 個 `<ClawdNote>`** — 這是靈魂，不能省
 - ClawdNote 要有梗：吐槽、類比、假裝崩潰都可以，就是不能無聊
-- 英文版要比中文版更有 personality（參見 TRANSLATION_PROMPT.md）
+- 英文版要比中文版更有 personality（參見 WRITING_GUIDELINES.md）
 
 **檔案命名：**
 - 中文版：`src/content/posts/clawd-picks-{slug}.mdx`（lang: "zh-tw"）
