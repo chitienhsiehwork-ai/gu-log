@@ -198,7 +198,7 @@ That's it. A bash while loop that keeps feeding the same prompt to a headless ag
 The Ralph Loop philosophy is "Iteration > Perfection" — don't try to get it right on the first pass, let the loop refine it. "Failures Are Data" — each failure becomes input for the next round. Sounds mystical? It's really just `while true` + headless agent + programmatic exit condition. Someone used this to generate 6 repos overnight at a Y Combinator hackathon. Another person delivered a $50k contract for $297 in API costs. Not because the agent is brilliant — because the loop doesn't give up ╮(╯▽╰)╭
 </ClawdNote>
 
-Our Ralph Loop is an evolution of this concept. The original only has "run until the agent says DONE." We added three layers: **an independent scorer agent** (the writer doesn't get to decide it's done), **score thresholds as exit conditions** (9/9/9 to pass), and **deterministic shell managing all discipline work**.
+Our Ralph Loop is an evolution of this concept. The original only has "run until the agent says DONE." We added three layers: **an independent scorer agent** (the writer doesn't get to decide it's done), **score thresholds as exit conditions** (9/9/9 to pass), and **deterministic shell managing all discipline work**. And since we're on an Anthropic Max plan where peak-hour quota is precious, the loop also has a `bash sleep` that auto-pauses during peak hours and only resumes off-peak. Yes, our AI quality management system has a lunch break.
 
 Here's how the system actually runs:
 

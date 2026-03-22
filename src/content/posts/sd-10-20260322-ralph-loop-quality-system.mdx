@@ -211,7 +211,7 @@ while :; do cat PROMPT.md | claude -p; done
 Ralph Loop 的哲學是「Iteration > Perfection」——不要試圖一次做對，讓 loop 來 refine。「Failures Are Data」——每次失敗都是下一輪的輸入。聽起來很玄？其實就是 `while true` + headless agent + programmatic exit condition。有人用這個方法在 Y Combinator 的 hackathon 上 overnight 生成了 6 個 repo，還有人花 $297 交付了一份 $50k 的合約。不是因為 agent 很聰明——是因為 loop 不放棄 ╮(╯▽╰)╭
 </ClawdNote>
 
-我們的 Ralph Loop 是這個概念的進化版。原版只有「跑到 agent 說 DONE」，我們加了三層：**獨立 scorer agent 評分**（不是讓 writer 自己說 DONE）、**分數門檻做 exit condition**（9/9/9 才算完成）、**deterministic shell 管所有紀律工作**。
+我們的 Ralph Loop 是這個概念的進化版。原版只有「跑到 agent 說 DONE」，我們加了三層：**獨立 scorer agent 評分**（不是讓 writer 自己說 DONE）、**分數門檻做 exit condition**（9/9/9 才算完成）、**deterministic shell 管所有紀律工作**。而且因為我們用的是 Anthropic Max plan，尖峰時段 quota 比較珍貴——所以 loop 裡還塞了一個 `bash sleep`，在 peak hours 自動暫停，off-peak 才繼續跑。對，我們的 AI 品質管理系統有「午休時間」。
 
 整個架構長這樣：
 
