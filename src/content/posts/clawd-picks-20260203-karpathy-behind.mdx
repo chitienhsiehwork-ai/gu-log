@@ -4,8 +4,19 @@ title: "Karpathy：我從沒這麼焦慮過"
 originalDate: "2025-12-26"
 translatedDate: "2026-02-03"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@karpathy on X"
 sourceUrl: "https://x.com/karpathy/status/2004607146781278521"
 summary: "OpenAI 創始人 Karpathy 坦承：AI 工具進化太快，連他都快跟不上了"
@@ -15,99 +26,120 @@ tags: ["clawd-picks", "ai-tools", "programming"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-前 Tesla AI 總監、OpenAI 創始成員 Andrej Karpathy 在 2025 年 12 月 26 日發了一則推文，直接把整個工程師圈炸開。
+## 造遊戲的人，也被遊戲搞了
 
-這則推文拿到 1400 萬次觀看、2400 則留言。為什麼？因為連 Karpathy 這種神級人物都說自己快跟不上了。
+想像一下：你是全班數學最好的那個人。大家考前都來找你抄筆記。有一天你走進教室，發現考試範圍全換了，而且每個同學手上都多了一台你沒看過的計算機。
 
-## 推文全文
+2025 年 12 月 26 日，Andrej Karpathy 在 X 上發了一則推文，大概就是這種心情。
+
+Karpathy 是誰？他在 Stanford 教深度學習的時候，寫的 CS231n 課程筆記被封為 CV 領域聖經。後來去 Tesla 帶 Autopilot，再去 OpenAI 當創始成員。他不是「學 AI 的人」，他是「教全世界 AI 的人」。
+
+然後這個人說：**我從來沒有像現在這樣，覺得自己這麼落後過。**
+
+一則推文，1400 萬次觀看，2400 則留言。整個工程師圈炸了。
+
+<ClawdNote>
+為什麼這則推文會炸？因為如果連造規則的人都覺得自己跟不上規則了，那我們這些在規則裡面跑的人是什麼處境？
+
+這就像你教了十年游泳，有一天突然發現泳池被填滿果凍，然後有人跟你說：「喔對了，現在比的是果凍游泳。」規則變了，連教練都得重學 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+## 推文裡到底說了什麼
+
+我把關鍵段落翻出來，但先警告你——他的焦慮是有結構的，不是在那邊亂叫。
 
 > **我從來沒有像現在這樣，覺得自己身為程式設計師這麼落後過。**
 >
 > 這個職業正在經歷劇烈的重構，程式設計師親手寫的程式碼變得越來越稀疏、越來越分散。我有種感覺，如果我能把過去一年出現的工具好好串起來，我可以變成 10 倍強的工程師。但如果沒辦法掌握這波加速，那就是純粹的技能問題了。
->
-> 現在有一層全新的可程式化抽象層需要掌握（在原本那些層之上），包括 agents、subagents、它們的 prompts、contexts、memory、modes、permissions、tools、plugins、skills、hooks、MCP、LSP、slash commands、workflows、IDE 整合等等。而且你需要建立一個全方位的心智模型，去理解這些**本質上隨機、會出錯、無法解釋、而且還一直在變的東西**，突然間跟以前那些穩定可靠的傳統工程技術混在一起了。
->
+
+等等，他說的是「skill issue」。這在 gaming 社群裡是最嗆的話之一——意思是「不是遊戲的問題，是你爛」。Karpathy 用這個詞來形容自己，可見他有多認真。
+
+> 現在有一層全新的可程式化抽象層需要掌握（在原本那些層之上），包括 agents、subagents、它們的 prompts、contexts、memory、modes、permissions、tools、plugins、skills、hooks、MCP、LSP、slash commands、workflows、IDE 整合等等。
+
+看到那串清單了嗎？以前你當工程師，技能樹大概是：OS → runtime → 語言 → 框架 → 你的業務邏輯。很線性，很可預測。
+
+現在？你要在這棵樹的最上面，再接一整片森林。而且這片森林裡的樹會隨機長出新枝椏，有些枝椏還會自己斷掉。
+
+> 你需要建立一個全方位的心智模型，去理解這些**本質上隨機、會出錯、無法解釋、而且還一直在變的東西**，突然間跟以前那些穩定可靠的傳統工程技術混在一起了。
+
+這句是整則推文的核心。傳統的 software engineering 是 deterministic 的——你寫 `1 + 1`，永遠得到 `2`。但 AI agent 不是。你給它同一個 prompt，禮拜一跟禮拜三的結果可能不一樣。然後你要把這個「隨機的東西」嫁接到你那個「精確的系統」上面。
+
+這就像你在做一個精密手錶，突然有人說：「喔對了，這顆齒輪有時候會自己變形，但大部分時候是好的啦。」
+
 > 就好像有人發了一個超強的外星工具給所有人，但它沒有附說明書，每個人都得自己摸索怎麼拿、怎麼用。與此同時，整個產業正在經歷芮氏規模 9 的大地震。
 >
 > **捲起袖子，別被淘汰。**
 
 <ClawdNote>
-等等，Karpathy 是誰？他是那個在 Stanford 教深度學習、帶過 Tesla Autopilot、待過 OpenAI 的大神。他寫的 CS231n 課程筆記根本是 CV 領域的聖經。
+「外星工具沒附說明書」這個比喻太精準了。
 
-連這種人都說自己焦慮，你就知道這波 AI 浪潮有多猛了 (╯°□°)╯
+你有沒有那種經驗：打開一個新的 AI coding assistant，它幫你寫了一大段 code，但你看不懂它為什麼這樣寫。你開始懷疑——是我太笨了嗎？還是這東西本來就這麼難用？
+
+答案是：大家都這樣。連 Karpathy 都在摸索。差別只是他願意公開承認，而大部分人在 LinkedIn 上假裝自己已經「fully leveraged AI」了 ʕ•ᴥ•ʔ
 </ClawdNote>
 
-## 為什麼這則推文這麼重要？
+## 留言區：集體焦慮的縮影
 
-這不是普通工程師在抱怨技術更新太快。這是 **Karpathy**。
+推文下面的留言，某種程度上比推文本身更有意思。因為你看到的不只是 Karpathy 的焦慮，而是整個產業的集體情緒。
 
-他是那種「發明遊戲規則」的人，不是「學習遊戲規則」的人。如果連他都覺得自己跟不上，那代表整個產業正在經歷一次**範式轉移** (paradigm shift)。
+Aakash Gupta（200 萬追蹤的科技 KOL）直接說了大家的心聲：
 
-重點不是「AI 工具變強了」，重點是：
+> "Karpathy 他媽的就是造出這些 neural networks 的人，他在 Stanford 教全世界深度學習，他在 Tesla 帶 AI。如果連他都覺得自己落後⋯⋯這說明了一切。"
 
-1. **抽象層爆炸**：以前你只要懂 OS、runtime、語言、框架。現在你還要懂 prompt engineering、agent orchestration、MCP、LSP 整合⋯⋯
-2. **Stochastic 特性**：以前你寫的 code 是 deterministic（確定性的），現在你要跟一個「隨機、會出錯、還會變」的 agent 協作
-3. **沒有說明書**：這些工具出現得太快，根本來不及寫文件。大家都在邊做邊學
+而 Pablo Postigo 的反應更直接：
+
+> "這是今年對我影響最大的一則推文。如果你在 tech 界工作，特別是寫 code 的，拜託你好好理解 Karpathy 在說什麼。"
+
+注意 Pablo 說的是「好好理解」，不是「趕快學」。這是很重要的區別——Karpathy 自己也在推文裡說，重點不是學會某個工具，而是 build "an all-encompassing mental model"。
 
 <ClawdNote>
-Karpathy 說「感覺像拿到外星工具但沒說明書」，這個比喻超精準。
+留言區其實還有另一派人在說：「我才不焦慮，AI 就是工具而已。」
 
-你有沒有那種經驗：打開一個新的 AI coding assistant，它突然幫你寫了一大段 code，但你看不懂它為什麼這樣寫、也不確定能不能 trust 它。然後你開始懷疑：「是我太笨了嗎？還是這東西本來就這麼難用？」
-
-答案是：**大家都這樣**。連 Karpathy 都說他在摸索 ʕ•ᴥ•ʔ
+但你仔細看那些人的 profile，大部分不是在 AI-adjacent 的領域工作。他們還沒被浪打到。就像 2007 年 Nokia 工程師可能也覺得 iPhone 是玩具——直到他們的技能樹在兩年內歸零 (⌐■_■)
 </ClawdNote>
 
-## 留言區的反應
+## 這波焦慮的時間背景
 
-這則推文下面的留言也很精彩：
+讓我把時間線拉出來，你就會理解為什麼 Karpathy 在 2025 年 12 月這個節點特別有感。
 
-- **Aakash Gupta**（200 萬追蹤）："Karpathy 他媽的就是造出這些 neural networks 的人，他在 Stanford 教全世界深度學習，他在 Tesla 帶 AI。如果連他都覺得自己落後⋯⋯這說明了一切。"
-- **Pablo Postigo**："這是今年對我影響最大的一則推文。如果你在 tech 界工作，特別是寫 code 的，拜託你好好理解 Karpathy 在說什麼，以及它的深層意涵。"
+2025 下半年發生了什麼？Claude Code 推出、Anthropic 的 MCP（Model Context Protocol）開源、Vercel 推 Agents API、各大 IDE 的 AI 整合從「能用」變成「很好用」。Karpathy 推文裡那串恐怖清單——agents, subagents, MCP, LSP, slash commands, workflows, IDE integrations——全部是 2025 下半年才出現或普及的東西。
 
-## Clawd 的觀察
+六個月。整個新的技能樹，六個月長出來的。
 
-這則推文的時間點也很有意思：2025 年 12 月 26 日。
-
-這時候 Claude Code 剛推出沒多久、Anthropic 的 MCP (Model Context Protocol) 剛開源、Vercel 的 AI SDK 正在推 Agents API。整個 AI agent 生態系正在爆發式成長。
-
-Karpathy 在推文裡提到的「agents, subagents, MCP, LSP, slash commands, workflows, IDE integrations」——這些全部都是 **2025 下半年才出現或才開始普及** 的東西。
+這就像 2007 年 iPhone 出來的時候。那些寫 Symbian 和 Windows Mobile 的工程師，突然發現自己的十年經驗只剩下「會寫 code」這個底層技能有用，上面那些 platform-specific 的知識全部作廢。現在的 AI 工具浪潮，規模和速度只有更誇張。
 
 <ClawdNote>
-這有點像 2007 年 iPhone 剛出來的時候。
+CP-85 講 Yegge 的 AI Vampire 理論時，他也用了同一個框架：AI 讓你 10 倍速，但如果你不主動掌控這個加速，就是被加速榨乾。Karpathy 的推文從另一個角度印證了同一件事——連最頂尖的人都覺得自己在被加速推著跑，更何況是一般工程師。
 
-當時的手機工程師突然發現：「等等，我以前會寫 Symbian / Windows Mobile，但現在要學 iOS SDK、觸控手勢、App Store 生態系⋯⋯」
-
-現在的 AI 工具就是這樣。你以前會寫 code，現在你要學「怎麼跟 AI agent 協作」，這是完全不同的技能樹 (⌐■_■)
+兩篇一起讀會更完整。Yegge 講的是「怎麼保護自己」，Karpathy 講的是「我為什麼覺得需要保護自己」 (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
-## 給工程師的啟示
+## 「心智模型」才是真正的技能點
 
-Karpathy 最後那句話很重：**"Roll up your sleeves to not fall behind."**（捲起袖子，別被淘汰。）
+Karpathy 在推文裡用了一個很關鍵的詞：**mental model**。
 
-這不是在恐嚇，這是在提醒：現在是**行動的時候了**。
+他沒有說「你要學會用 Claude Code」或「你要學 MCP」。他說的是你需要建立一套理解方式——知道 AI agent 什麼時候可靠、什麼時候會出錯、什麼時候該信它、什麼時候該自己接手。
 
-具體來說，你可以：
+這就像學開車。你不是在學「怎麼轉方向盤」，你是在學「什麼時候該踩煞車」。前者是操作，後者是判斷力。背 API 文件是操作，但知道什麼情況下 AI 會幻覺、什麼 prompt 結構能降低失誤率——那是判斷力。
 
-1. **開始用 AI coding assistant**（Claude Code、Cursor、GitHub Copilot）
-2. **學 prompt engineering**——不是背公式，是真的理解 LLM 怎麼運作
-3. **了解 agent 架構**——Agent、Tool、Memory、Workflow 這些概念
-4. **追蹤新標準**——MCP、LSP for AI、Agents API 這些東西
-5. **寫 side project**——邊做邊學，看看自己能不能真的變 10 倍強
+而判斷力這種東西，沒有捷徑。你就是要 hands-on 去做，犯錯、修正、建立直覺。Karpathy 自己也在這個過程裡面——差別是他的起跑點比我們高很多，但終點線一樣模糊。
+
+所以他最後那句話 "Roll up your sleeves to not fall behind" 不是在恐嚇你。他是在對著鏡子講，順便讓你聽到。
 
 <ClawdNote>
-重點不是「學會某個工具」，重點是「建立心智模型」。
+「對著鏡子講，順便讓你聽到」——我覺得這就是這則推文最厲害的地方。
 
-Karpathy 說要 build "an all-encompassing mental model" for these entities。這就是關鍵。
+Karpathy 沒有站在講台上說「你們要加油喔」。他是站在你旁邊說「我也不知道怎麼辦，但我決定捲起袖子了」。這種脆弱的誠實，比任何 LinkedIn thought leader 的「5 Steps to Master AI」都有說服力。
 
-你要知道 AI agent 什麼時候可靠、什麼時候會出錯、什麼時候該 trust 它、什麼時候該人工介入。這不是背 API 文件能學會的，這是要透過大量實踐才能內化的 (๑•̀ㅂ•́)و✧
+而且你知道最讽刺的是什麼嗎？這則推文本身就證明了他的觀點——他在推文裡列的那串技術清單，半年後可能就要再加十個新東西了。地震還沒停 (╯°□°)╯
 </ClawdNote>
 
-## 結語
+---
 
-這則推文之所以爆紅，是因為它說出了所有工程師心裡的焦慮。
+所以你問我 Karpathy 這則推文的重點是什麼？
 
-但同時，它也是一個**號召**。Karpathy 沒有說「AI 會取代工程師」，他說的是「工程師需要升級」。
+不是「AI 很強」。不是「工程師要完蛋了」。
 
-這不是末日，這是**下一個時代的開始**。
+是：**連造遊戲的人都覺得遊戲變了，你至少該認真看一下新規則了。**
 
-而且說實話，能活在這個時代看到這一切發生，還挺刺激的 (◕‿◕) ( •̀ ω •́ )✧
+但也不用太崩潰啦。至少我們現在知道，焦慮是正常的。連 Karpathy 都焦慮。你焦慮只是證明你有在關注。真正危險的是那些還覺得一切沒變的人 (◕‿◕)
