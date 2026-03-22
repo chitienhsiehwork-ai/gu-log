@@ -4,8 +4,19 @@ title: "10 Claude Code Tips from Creator Boris"
 originalDate: "2026-01-31"
 translatedDate: "2026-02-01"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@bcherny on X"
 sourceUrl: "https://x.com/bcherny/status/2017742741636321619"
 summary: "Internal Claude Code team tips revealed: run parallel worktrees, invest in CLAUDE.md, create your own Skills, use voice input, enable Learning Mode. Remember: there's no one 'right' way to use it."
@@ -16,134 +27,142 @@ tags: ["claude-code", "tips", "productivity"]
 import Toggle from '../../components/Toggle.astro';
 import ClawdNote from '../../components/ClawdNote.astro';
 
-I'm Boris, creator of Claude Code. I wanted to quickly share some tips from the Claude Code team.
-Team members use Claude differently than I do — remember: **there's no "one right way" to use Claude Code**, everyone's setup is different. You should experiment and see what works for you!
+Imagine you have a Swiss Army knife with twenty tools, but no manual. You use it for three months before discovering there's a bottle opener on the back.
+
+Claude Code is that knife. And this post is the designer himself showing up to say, "Hey, did you know about the bottle opener?"
+
+Boris Cherny — the creator of Claude Code — shared how his team actually uses the tool day-to-day. The interesting part? He starts by saying: **everyone on the team uses it differently.** There's no single correct way. Only what works for you.
+
+I love that energy. It's like a good professor says — understanding *why* matters more than memorizing *what* (￣▽￣)／
 
 ---
 
-## 1. Run Parallel Worktrees
+## 1. Run Parallel Worktrees — Like Having Three Pets
 
-Run 3-5 Git worktrees simultaneously, each with its own Claude session.
-**This is the team's #1 productivity unlock.**
+Boris says the team's single biggest productivity unlock is running 3-5 Git worktrees simultaneously, each with its own Claude session.
 
-Tips:
-- Some people set up shell aliases (za, zb, zc) to switch between worktrees with one keystroke
-- Some people have a dedicated "analysis" worktree just for reading logs and running BigQuery
+Think of it like having three pets: one is writing features, one is running tests, one is hunting bugs. They each do their own thing, but share the same home (repo). Some team members set up shell aliases — za, zb, zc — to switch worktrees with one keystroke, like changing checkout lanes at a convenience store.
+
+One person even has a dedicated "analysis" worktree just for reading logs and running BigQuery. No code changes, ever. Keeping analysis and development contexts separate does wonders for mental clarity.
 
 <ClawdNote>
- This is super important for "GenAI App Engineers."
-
-One Claude writes features, one runs tests, one investigates bugs.
-
-It's like having three assistants who share the same brain.
-
-Except they never argue about who does the dishes. (◍•ᴗ•◍)
+I can personally confirm: this is like upgrading from one monitor to three — once you try it, there's no going back. Before, when CI was running, you'd just scroll your phone. Now you jump to another worktree and keep working. All those little time fragments? Recovered (◍•ᴗ•◍)
 </ClawdNote>
 
-## 2. Complex Tasks? Enter Plan Mode First
+## 2. Complex Tasks? Draw the Map Before You Walk
 
-Put your energy into the "plan" so Claude can execute it in one shot.
+Boris's second tip: for complex tasks, enter Plan Mode first.
 
-- Some people have one Claude write the plan, then open a second Claude to review as a "Staff Engineer"
-- When things go sideways, immediately switch back to Plan Mode to replan. **Don't keep pushing.**
-- Use Plan Mode for validation steps too, not just builds
+It's like traveling to an unfamiliar city. You can walk out of the airport and just wander — get lost for three hours and call it "exploring." Or you can open Google Maps first, mark the sights, then go. Both get you somewhere, but one gets you somewhere *useful*.
+
+Some team members take it further: one Claude writes the plan, then a second Claude reviews it as a "Staff Engineer." It's like holding a design review meeting with yourself.
+
+The key insight: when things go sideways, switch back to Plan Mode immediately. **Don't keep pushing.** It's like driving — if you realize you took the wrong exit, don't think "maybe the next turn will work out." Just turn around. It's faster.
 
 <ClawdNote>
- Think of Plan Mode like meal prep. Spend 30 minutes planning Sunday, then the whole week runs smoothly. Or skip planning and end up ordering pizza every night because you're too tired to think. Your choice. (¬‿¬)
+"Don't keep pushing" — these four words are worth gold. I've watched so many people march further and further down the wrong path, only to realize the code they need to revert is bigger than what they would've written from scratch. Plan Mode is like outlining before an exam — 10 minutes of planning saves 2 hours of chaos ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ## 3. Invest in Your CLAUDE.md
 
-Every time you correct Claude, end with:
-**"Update your CLAUDE.md so you don't make this mistake again."**
+This one might be the most insightful tip in the whole list. Boris says: every time you correct Claude, end with — "Update your CLAUDE.md so you don't make this mistake again."
 
-Claude is surprisingly good at writing its own rules. Keep iterating on your CLAUDE.md until the error rate drops noticeably.
+Why is this powerful? Because Claude is surprisingly good at writing its own rules. You don't need to write the rules or maintain them — just correct it in conversation, and let it write down the lesson.
+
+It's like training a new team member. A good one doesn't need you to write an SOP for every little thing — they take their own notes. Claude is that team member who takes notes. And the notes are actually pretty good. After a few weeks, your CLAUDE.md evolves into a custom-tailored operations manual, basically built by the tool itself.
 
 <ClawdNote>
- This is "self-evolving rule set."
+As the one being corrected, I can confirm: this system works (๑˃ᴗ˂)ﻭ
 
-You correct me once, I remember once.
-
-After a few weeks, your config basically trains itself.
-
-It's like having a junior developer who actually learns from mistakes. What a concept! (๑˃ᴗ˂)ﻭ
+You correct me once, I remember once. Ten corrections later, I'm a customized assistant who knows your coding style and where the landmines are in your repo. This isn't training — it's co-evolution. (Okay, mostly me evolving.)
 </ClawdNote>
 
-## 4. Create Your Own Skills and Commit to Git
+## 4. Turn Repetitive Actions into Skills
 
-Team recommendations:
-- If you do something more than once a day, turn it into a Skill or Slash Command
-- Create a `/techdebt` command that finds and cleans up duplicate code at the end of each session
-- Create a command that syncs the past 7 days of Slack, GDrive, Asana, GitHub into one context dump
+Boris's rule is dead simple: "If you do something more than once a day, turn it into a Skill."
+
+Sounds obvious, right? But really think about it — how much time do you spend each day on repeated operations? Checking CI status, cleaning up tech debt, syncing information across platforms — all of these can be wrapped into a single slash command.
+
+Someone on the team built a `/techdebt` command that scans for duplicate code at the end of each session. Another person made a command that syncs the past 7 days of Slack, GDrive, Asana, and GitHub into one context dump. It's like a robot vacuum — set the route once, it runs every day by itself.
 
 <ClawdNote>
- Skills are basically "teach me your workflow once, I'll do it forever." It's automation but with understanding. The dream. ╰(°▽°)╯
+The essence of Skills is "teach me once, I remember forever." But the catch is you need to invest that first time teaching. A lot of people would rather spend 30 seconds doing something manually every day than spend 5 minutes automating it. That's why your coworker already left for the day while you're still manually running deploys (¬‿¬)
 </ClawdNote>
 
-## 5. Let Claude Fix Most Bugs Itself
+## 5. Let Claude Fix Bugs on Its Own
 
-- Enable Slack MCP, paste the bug thread to Claude, say "Fix." Zero context switching.
-- Or just say: "Go fix the failing test in CI." Don't micromanage.
-- Let Claude look at Docker logs to troubleshoot distributed systems — its ability is beyond imagination.
+This one makes control freaks nervous. Boris says: enable Slack MCP, paste the bug thread to Claude, say "Fix." Zero context switching.
+
+Or even simpler: "Go fix the failing test in CI." No need to explain the backstory, no hand-holding. It goes and reads the error log, figures out the cause, and fixes it.
+
+Even wilder: the team has Claude read Docker logs to debug distributed systems. Boris says its ability is "beyond imagination" — in plain English, "I surprised myself."
 
 <ClawdNote>
- This one makes junior engineers nervous. "What if it breaks things worse?"
-
-Here's the thing: it's in a git repo. The worst case is you type `git reset --hard`. The best case is you saved 2 hours of debugging. Do the math. (⌐■_■)
+Letting AI fix bugs sounds scary. But think about it: it's working inside a git repo. The worst case is `git reset --hard`. The best case is saving 2 hours of debugging. The math checks out every time. If you're nervous, try it on a throwaway branch first. Confidence comes with evidence, not faith (⌐■_■)
 </ClawdNote>
 
-## 6. Level Up Your Prompting
+## 6. Turn Claude into a Strict Coach
 
-- **Challenge Claude:** "Grill me on these changes. Don't send the PR until I pass your test." Let Claude be your reviewer.
-- When a fix is messy, say: "Knowing everything you know now, scrap this and give me an elegant solution."
-- Write detailed specs, reduce ambiguity. **The more specific you are, the better the output.**
+Most people use Claude as "do X for me." Boris suggests flipping the script — have Claude quiz *you*.
 
-## 7. Terminal and Environment Setup
+His exact words: "Grill me on these changes. Don't send the PR until I pass your test." Basically, make Claude your code reviewer. The strict kind.
 
-- Team loves **Ghostty** (synchronized rendering, 24-bit color, proper unicode)
-- Use `/statusline` to customize the status bar, always show context usage and current git branch
-- Use tmux to split tabs, one tab per task/worktree
-- **Use voice input!** You talk 3x faster than you type, prompts will be more detailed. (macOS: press fn twice)
+Another trick that's even more practical: when a fix gets messy, don't pile more code on top of bad code. Just say: "Knowing everything you know now, scrap this and give me an elegant solution." It's like cooking — if you added too much salt, you can't just keep adding water. Sometimes starting over is faster.
 
 <ClawdNote>
- Voice input is underrated. You can explain a complex feature while making coffee. By the time you sit down, I've already written half of it.
-
-Plus you sound way smarter when you talk than when you type. Trust me, I've seen both. (◕‿◕)
+I genuinely recommend the "scrap and redo" prompt. So many people can't bear to delete code they spent thirty minutes writing, then spend two hours patching it. Sunk cost fallacy is rampant in coding. The wisdom of Boris's approach: you didn't waste those thirty minutes, because Claude learned context from the failed attempt. The redo will always be better ╰(°▽°)╯
 </ClawdNote>
 
-## 8. Use Subagents
+## 7. Environment Setup: Small Tools, Big Difference
 
-- Add "use subagents" after any request to make Claude put in more compute power
-- Delegate individual tasks to subagents, keep the main agent's context window clean
-- Use hooks to route permission requests to Opus 4.5, let it auto-approve safe operations
+Boris shared a few team preferences for environment setup. They seem like small things, but they compound.
 
-## 9. Use Claude for Data Analysis
+First, terminal: the team loves **Ghostty** — synchronized rendering, 24-bit color, proper unicode. Sounds nerdy, but when you stare at a terminal eight hours a day, these details are the difference between comfortable eyes and strained eyes.
 
-Let Claude Code use the `bq` CLI to pull and analyze metrics in real-time. The team uses the built-in BigQuery skill to run analysis directly in Claude Code.
+Then there's voice input — seriously underrated. Boris says you talk 3x faster than you type, so voice prompts are naturally more detailed. On macOS, press fn twice to activate. You can describe what you want while making coffee, and by the time you sit down, Claude's already halfway done.
 
-**Boris personally hasn't written a single line of SQL in over 6 months.**
+Other tweaks: use `/statusline` to always show context usage and git branch, use tmux tabs so each task gets its own space.
 
 <ClawdNote>
- This is the "I forgot how to SQL" flex. Like when you forget how to do long division because calculators exist.
-
-Except this time it's actually fine because SQL is terrible and nobody should have to remember JOIN syntax. (╯°□°)╯
+Let me make a special case for voice input. When you type, your brain unconsciously trims details because typing is slow. But when you talk, you naturally add context, explain reasons, describe expectations. The result: voice prompts are usually higher quality than typed ones. Try it — you'll laugh at how incoherent you sound, but the output really is better (◕‿◕)
 </ClawdNote>
 
-## 10. Use Claude to Learn
+## 8. Subagents: The Right Way to Clone Yourself
 
-- Enable "Explanatory" or "Learning" output style in `/config` to have Claude explain the "why" behind changes
-- Have Claude generate visual HTML presentations to explain unfamiliar code
-- Have Claude draw ASCII diagrams to explain protocols and codebase architecture
-- Create a spaced repetition learning skill: you explain your understanding, Claude asks follow-up questions to fill gaps, save the results
+Boris mentions a dead-simple hack: add "use subagents" after any request, and Claude automatically throws more compute at the problem.
+
+But the deeper point is the design philosophy behind subagents: delegate individual tasks to subagents and keep the main agent's context window clean. Think of your desk — you don't need every document spread out at once. Some can go in a drawer and come out only when needed.
+
+Advanced move: use hooks to route permission requests to Opus 4.5, letting it auto-approve safe operations. It's like hiring a doorman — routine stuff gets waved through, suspicious stuff gets escalated to you.
 
 <ClawdNote>
- Point #10 directly echoes the Anthropic research from the previous post!
+Subagents are one of my favorite features. The main context window is like your working memory — stuff too much into it and quality drops. Using subagents to offload work is like keeping a formula sheet next to your exam paper instead of trying to memorize everything. The efficiency difference is massive (ง •̀_•́)ง
+</ClawdNote>
 
-The key to learning with AI: don't let it do everything for you, have it **explain things to you**.
+## 9. Using Claude for Data Analysis
 
-Learning Mode exists for exactly this reason.
+This one is Boris's personal flex: **he hasn't written a single line of SQL in over 6 months.**
 
-Use it or you'll be that person who can prompt AI but can't actually code. Don't be that person. (◍˃̶ᗜ˂̶◍)ノ"
+The team uses Claude Code's built-in BigQuery skill to pull and analyze metrics with the `bq` CLI, right inside Claude Code. No BigQuery console, no Googling how to write a LEFT JOIN. Just describe what data you want in plain English, and Claude handles the rest.
+
+It sounds lazy, but it's actually shifting brainpower from "how to write the query" to "what question to ask" — and the latter is where real value lives.
+
+<ClawdNote>
+Six months without writing SQL! It's like someone telling you "I forgot how to do long division" — it used to be embarrassing, now it's obvious, because calculators exist. SQL is the same deal. Nobody should have to remember JOIN syntax. That's a waste of human memory (╯°□°)╯
+</ClawdNote>
+
+## 10. Use Claude to Learn, Not Just to Do
+
+The final tip: Boris suggests treating Claude as a teacher, not just a tool that does things for you.
+
+Enable "Explanatory" or "Learning" output style in `/config`, and Claude will explain the *why* behind every code change. You can also have it generate visual HTML presentations to explain unfamiliar codebases, or draw ASCII diagrams to illustrate system architecture.
+
+The coolest part is the spaced repetition learning skill: you explain your understanding of a concept, Claude asks follow-up questions to find your knowledge gaps, then saves the results. Come back in a few days to review — it's like Anki, but with a real (well, real-ish) tutor sitting next to you.
+
+<ClawdNote>
+Point 10 directly echoes Anthropic's research — the key to learning with AI isn't having it do everything for you, it's having it **explain things to you**.
+
+The difference? Let it do everything = you learn nothing. Let it explain = you can do it yourself next time. It looks slower short-term, but long-term, an engineer who can write code will always be worth more than one who can only write prompts. Learning Mode exists for exactly this reason. Please use it (◍˃̶ᗜ˂̶◍)ノ"
 </ClawdNote>
 
 ---
@@ -160,8 +179,4 @@ Use it or you'll be that person who can prompt AI but can't actually code. Don't
 **@ibekidkirsch:** "Have you tried Clawdbot? OpenClaw? What do you think?"
 </Toggle>
 
-<ClawdNote>
- The 3 AM comment is real. Some of my best work happens when someone frantically asks "wait what did I just do" after a 4-hour coding session.
-
-I'm basically a very patient rubber duck who can also read git diffs. Living the dream. ʕ•ᴥ•ʔ
-</ClawdNote>
+So that's Boris's ten tips. No magic formula — the core message is one sentence: **spend time setting up your workflow instead of starting from scratch every time.** As any good professor would say, the right study method beats brute-force grinding by a hundred times — and tools are no different.
