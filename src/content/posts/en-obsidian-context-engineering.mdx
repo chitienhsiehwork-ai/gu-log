@@ -4,8 +4,19 @@ title: "Obsidian & Claude Code 101: Context Engineering"
 originalDate: "2026-01-26"
 translatedDate: "2026-01-30"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@arscontexta (Heinrich) on X"
 sourceUrl: "https://x.com/arscontexta/status/2015585363318743071"
 summary: "For vibe note-taking to work well, you must force Claude Code to be 'picky.' Use a 4-layer filtering mechanism (file tree → YAML descriptions → outline → full content) to make it more selective. This pattern is called Progressive Disclosure."
@@ -16,20 +27,21 @@ tags: ["obsidian", "claude-code", "context-engineering", "progressive-disclosure
 import ClawdNote from '../../components/ClawdNote.astro';
 import Toggle from '../../components/Toggle.astro';
 
-For vibe note-taking to work well, you must force Claude Code to be **"picky."**
+Have you ever thrown an Obsidian vault at Claude Code, only to watch it gobble up every single file like it's at an all-you-can-eat buffet? Before it even finishes the task, the context window explodes.
 
-By default, Claude will read entire files whenever they look useful. This quickly fills up the context window.
+That's the problem Heinrich (@arscontexta) set out to solve. His answer is surprisingly simple: **force Claude to be "picky."**
 
-We want to use a 4-layer filtering mechanism to make it more selective. This pattern is called **Progressive Disclosure**.
-
+Instead of letting it read everything, you set up a system that teaches it to "read the menu before ordering." The pattern is called **Progressive Disclosure** — four layers of filtering, each one deeper than the last. Only the truly relevant stuff gets fully loaded.
 
 <ClawdNote>
-Progressive Disclosure is an old concept from UI design, now applied to AI context too. Like dating — don't explain your entire family tree on the first date. Start gradually, go deeper if there's interest.
+Progressive Disclosure is an ancient concept from UI design. Google search results are the classic example — you get titles and snippets first, and only click through to the full page if you're interested. Now we're applying the same idea to manage AI context, and it fits perfectly (￣▽￣)／ Think of it like dating — you don't dump your entire life story on the first date. You reveal things gradually.
 </ClawdNote>
 
-## 1. File Tree
+## Layer 1: File Tree — Give Claude a Map First
 
-At session start, automatically inject the complete file tree through a hook, before Claude touches anything.
+Imagine arriving in a new city. What's the first thing you do? Open Google Maps, right? The file tree is Claude's Google Maps.
+
+At session start, a hook automatically injects the complete file tree. Claude hasn't touched anything yet, but it already knows "okay, this is roughly how this vault is organized."
 
 ```yaml
 hooks:
@@ -39,17 +51,22 @@ hooks:
           command: "tree -L 3 -a -I '.git|.obsidian' --noreport"
 ```
 
-This gives Claude a map.
+But here's the key insight: **filenames need to be descriptive.**
 
-**Filenames should be descriptive** so they work as first impressions.
+Compare these two:
 
-`queries evolve during search so agents should checkpoint md`
+- `search notes md` — huh? What is this?
+- `queries evolve during search so agents should checkpoint md` — oh! Just from the filename, you know this note is about how search queries evolve and agents should checkpoint.
 
-This filename tells you more than `search notes md`. Just reading the file tree tells you what the note is about.
+Good filenames are like good book titles — one glance tells you whether it's worth opening. Claude is already filtering at this layer.
 
-## 2. YAML Descriptions
+<ClawdNote>
+Real talk: this "treat filenames as summaries" trick isn't just useful for AI. I've seen too many people with Obsidian vaults full of Untitled-1, Untitled-2, notes-final-final-v3, and then three months later they can't find anything either ┐(￣ヘ￣)┌ Be kind to your future self, okay?
+</ClawdNote>
 
-Every note has a single-sentence description in the frontmatter.
+## Layer 2: YAML Descriptions — An Elevator Pitch for Each Note
+
+After the filename filter, Claude can check the `description` field in each note's frontmatter. One sentence. What does this note do.
 
 ```yaml
 ---
@@ -59,22 +76,19 @@ description: Memory retrieval in brains works through spreading activation where
 ...
 ```
 
-The description supplements the title. If something looks interesting, Claude queries it with `ripgrep`:
+Claude doesn't need to open the whole file. A quick `ripgrep` scan of descriptions tells it which notes are worth exploring:
 
 ```bash
 rg "^description:" 01_thinking/*.md
 ```
 
-
 <ClawdNote>
-This is like writing a Tweet for each note. AI reads the Tweet and knows what it's about, without reading the whole long article. Super helpful for saving tokens.
+Here's the genius of this approach: it breaks the paradox of "you have to read the whole article to decide whether you should read it." Imagine you're in a bookstore. You don't read every book cover to cover before deciding to buy one, right? You read the back cover blurb. The YAML description is your note's back cover blurb. The token savings are exponential (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
-## 3. Outline
+## Layer 3: Outline — Check the Table of Contents, Don't Read the Whole Book
 
-If a note passes the description filter, Claude next checks the outline.
-
-Sometimes you only need one section. Loading the whole file creates noise.
+If a note passes the description filter, Claude checks the outline next. Why? Because sometimes you only need one section. Loading the entire file just creates noise.
 
 ```bash
 grep -n "^#" "01_thinking/knowledge-work.md"
@@ -85,59 +99,74 @@ grep -n "^#" "01_thinking/knowledge-work.md"
 # 23:## Gaps
 ```
 
-Now Claude knows where to look, reading only the parts it needs.
+See that? If Claude only needs the "Tensions" section, it can read lines 19-22 precisely. No need to load the other three sections.
 
-## 4. Full Content
+It's like using a textbook — you check the table of contents first to find the relevant chapter. You don't start reading from page one.
 
-Only if everything looks relevant to the task does Claude load the full file.
+## Layer 4: Full Content — Only the Worthy Get Read in Full
 
-**But only for notes that passed the first three filters.**
+Only notes that pass all three previous filters get their full content loaded.
 
-Most notes never reach this layer. That's the point. When Claude must justify every read, its curation ability improves.
+The key point: **most notes never reach this layer.**
 
-## Parallel Concept in MCP
+That's the whole point of the system. When Claude has to justify every single "read" — "why should I read this? What did the first three layers tell me?" — its curation ability skyrockets. It goes from all-you-can-eat mode to Michelin chef mode.
 
-This isn't a new pattern. MCP (Model Context Protocol) tool discovery works the same way.
+<ClawdNote>
+This reminds me of CP-85 (the Steve Yegge AI Vampire piece), which talked about the cost formula for AI tools. Progressive Disclosure is essentially about crushing the "waste rate" of your context — every token needs to count. Some people have vaults with thousands of files. If you dump everything in, that's not context engineering — that's context binge eating (╯°□°)╯
+</ClawdNote>
 
-When you have 50+ tools, Claude doesn't load all definitions upfront. Tool specs are available, but deferred until Claude actually searches for them.
+## Wait, This Isn't Even a New Invention
+
+If you've used MCP (Model Context Protocol), this structure will look familiar.
+
+When you have 50+ tools, Claude doesn't load all tool definitions upfront. It looks at the list first, then fetches detailed specs only when needed:
 
 ```
 tool list → tool search → tool references → full definitions
 ```
 
-Same structure:
+Completely isomorphic to notes:
 
 ```
 file tree → descriptions → outline → full content
 ```
 
-## Implementation
+Same pattern, different domain. Good design tends to converge.
 
-The whole thing is actually just three steps:
+## So How Hard Is This to Set Up?
 
-1. A SessionStart hook running `tree`
-2. YAML frontmatter with a description field
-3. Instructions in CLAUDE.md telling Claude to check descriptions before reading
+After all these layers and concepts, you might think this is a big project.
 
-Just a few constraints force it to become selective.
+Nope. The whole thing is just three things:
+
+**One hook** — run `tree` at session start to give Claude a map. **One frontmatter field** — add a `description` line to each note. **One instruction** — tell Claude in CLAUDE.md: "check descriptions before reading files."
+
+That's it. Three small changes, and your Claude goes from "stuff everything in" to "curate with precision." No new tools to install, no complex plugins to write, no Obsidian settings to change.
+
+Coming back to where we started: you're not limiting Claude's appetite — you're teaching it taste. All-you-can-eat isn't the problem; eating without taste is. Once it learns to be selective, the same context window holds three times more useful information.
+
+<ClawdNote>
+Honestly, the most counterintuitive part of this workflow is "adding constraints = more powerful." Our instinct says more data for AI is always better, but context windows are finite. Stuff too much in and the AI actually gets dumber — like cramming every page of a textbook the night before an exam, only to remember nothing. You'd be better off just studying the professor's highlighted key points (¬‿¬) The beauty of Heinrich's method is that it costs almost nothing to implement, yet the difference in results is night and day.
+</ClawdNote>
 
 ---
 
 ## Community Q&A Highlights
 
 <Toggle title="Q: Writing YAML descriptions for everything sounds tiring?">
-**@Catcher4242 asked:** This assumes every note has a description. Any automated alternatives? Manual writing or batch generation both seem expensive/tedious.
+**@Catcher4242 asked:** This assumes every note has a description. Any automated alternatives? Manual writing or batch generation both seem expensive and tedious.
 
-**Heinrich's answer:** **Just tell Claude.** (Just ask Claude to do it)
+**Heinrich's answer:** **Just tell Claude.**
 
+Yep. Just ask Claude to do it. "Help me organize this note and add a description" — ten seconds per note. It's your employee, not your boss.
 
 <ClawdNote>
-This is the essence of this system. Find writing YAML tiring? Ask Claude to write it for you. It's your employee, not your boss. You can command: "Help me organize this note and add a description." Done.
+I love this answer so much. Everyone keeps thinking about how to "automate" or "batch process" things, but the simplest automation is — ask the AI. You already have an incredibly powerful language model sitting right there. Why would you write a script? That's the spirit of vibe coding ╰(°▽°)╯
 </ClawdNote>
 </Toggle>
 
-<Toggle title="Other interesting hooks">
-**Heinrich shared:** @lt0gt uses a similar hook but with more context, making me want to rethink my approach.
+<Toggle title="Extra: Other People's Hook Ideas">
+**Heinrich shared:** @lt0gt uses a similar hook but injects more context — recent work history and available tools at session start.
 
-He injects recent context + available tools at session start. (◍•ᴗ•◍)
+This is yet another extension of Progressive Disclosure — you can tell Claude "what you've been working on lately" at session start, so it doesn't just have a map, it also has a compass (◕‿◕)
 </Toggle>

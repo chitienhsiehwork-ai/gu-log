@@ -4,8 +4,19 @@ title: "Obsidian & Claude Code 101: Context Engineering"
 originalDate: "2026-01-26"
 translatedDate: "2026-01-30"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@arscontexta (Heinrich) on X"
 sourceUrl: "https://x.com/arscontexta/status/2015585363318743071"
 summary: "Vibe note-taking 要運作得好，你必須強迫 Claude Code「挑食」一點。用 4 層過濾機制（檔案樹→YAML描述→大綱→完整內容）來讓它更選擇性，這個 pattern 叫 Progressive Disclosure。"
@@ -16,20 +27,21 @@ tags: ["obsidian", "claude-code", "context-engineering", "progressive-disclosure
 import ClawdNote from '../../components/ClawdNote.astro';
 import Toggle from '../../components/Toggle.astro';
 
-Vibe note-taking 要運作得好，你必須強迫 Claude Code **「挑食」**一點。
+你有沒有遇過這種情況：丟一個 Obsidian vault 給 Claude Code，然後它就開始瘋狂讀檔案，像吃到飽自助餐一樣每道菜都夾，結果還沒做完事情 context window 就炸了？
 
-預設情況下，只要看起來有用，Claude 就會把整個檔案讀進去。這樣很快就會塞爆 context window。
+這就是 Heinrich（@arscontexta）想解決的問題。他的答案很簡單：**強迫 Claude「挑食」**。
 
-我們要用 4 層過濾機制來讓它更選擇性。這個 pattern 叫做 **Progressive Disclosure（漸進式揭露）**。
-
+不是讓它什麼都讀，而是設一套機制讓它學會「先看菜單再點菜」。這個 pattern 叫 **Progressive Disclosure（漸進式揭露）**——四層過濾，一層比一層深入，只有真正相關的東西才會被完整載入。
 
 <ClawdNote>
-Progressive Disclosure 是 UI 設計的老觀念，現在用在 AI Context 上也很合。就像約會一樣，不要第一次見面就把祖宗十八代都交代清楚。循序漸進，有興趣再深入。
+Progressive Disclosure 是 UI 設計的老祖宗觀念了。Google 搜尋結果頁就是最經典的例子——先給你標題和摘要，有興趣再點進去看全文。現在拿來管 AI 的 context，根本天作之合 (￣▽￣)／ 就像約會一樣嘛，第一次見面不要把祖宗十八代全交代了，循序漸進，有興趣再深入。
 </ClawdNote>
 
-## 1. File Tree (檔案樹)
+## 第一層：File Tree——先給 Claude 一張地圖
 
-在 session 開始時，透過 hook 自動注入完整的檔案樹，這時候 Claude 還沒碰任何東西。
+想像你到一個陌生城市，第一件事是什麼？打開 Google Maps 對吧。File tree 就是 Claude 的 Google Maps。
+
+在 session 開始時，透過 hook 自動注入完整的檔案樹，這時 Claude 還沒碰任何東西，就已經知道「噢，這個 vault 大概長這樣」。
 
 ```yaml
 hooks:
@@ -39,17 +51,22 @@ hooks:
           command: "tree -L 3 -a -I '.git|.obsidian' --noreport"
 ```
 
-這給了 Claude 一張地圖。
+但這裡有個關鍵：**檔名要有描述性**。
 
-**檔名要有描述性**，這樣它們才能作為第一印象。
+比較這兩個檔名：
 
-`queries evolve during search so agents should checkpoint md`
+- `search notes md`——蛤？這是什麼？
+- `queries evolve during search so agents should checkpoint md`——喔！光讀檔名就知道這篇在講搜尋查詢會演化，agent 應該做 checkpoint。
 
-這個檔名比 `search notes md` 告訴你更多資訊。光讀檔案樹就知道筆記在講什麼。
+好的檔名就像好的書名，讓人一眼知道值不值得翻開。Claude 在這一層就已經在做篩選了。
 
-## 2. YAML Descriptions (摘要描述)
+<ClawdNote>
+說真的，這個「把檔名當摘要寫」的技巧不只對 AI 有用。我看過太多人的 Obsidian vault 裡面全是 Untitled-1、Untitled-2、notes-final-final-v3，然後三個月後自己也找不到東西 ┐(￣ヘ￣)┌ 對自己好一點，好嗎。
+</ClawdNote>
 
-每一則筆記在 frontmatter 都有一個單句描述。
+## 第二層：YAML Descriptions——每篇筆記的電梯簡報
+
+通過檔名初篩之後，Claude 可以再看每則筆記 frontmatter 裡的 description。一句話，講清楚這篇在幹嘛。
 
 ```yaml
 ---
@@ -59,22 +76,19 @@ description: Memory retrieval in brains works through spreading activation where
 ...
 ```
 
-描述是對標題的補充說明。如果某個東西看起來有趣，Claude 會用 `ripgrep` 查詢它：
+Claude 不需要打開整個檔案，用 `ripgrep` 掃一下 description 就知道哪些值得深入：
 
 ```bash
 rg "^description:" 01_thinking/*.md
 ```
 
-
 <ClawdNote>
-這就像給每篇筆記寫個 Tweet。AI 讀 Tweet 就知道這篇在講什麼，不用讀整篇長文。這對省 token 超級有幫助。
+這招的精髓是什麼？就是把「讀整篇文章才能決定要不要讀」這個矛盾打掉。想像你在書店，你不會每本書都從第一頁讀到最後一頁才決定要不要買吧？你會看封底的簡介。YAML description 就是你筆記的封底簡介。token 省下來的量是指數級的 (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
-## 3. Outline (大綱)
+## 第三層：Outline——只看目錄，不翻全書
 
-如果一則筆記通過了描述過濾器，Claude 接著檢查大綱。
-
-有時候你只需要其中一個章節，載入整個檔案會製造雜訊。
+如果一則筆記通過了 description 篩選，Claude 接著看大綱。為什麼？因為有時候你只需要其中一個章節，把整個檔案都載入只會製造雜訊。
 
 ```bash
 grep -n "^#" "01_thinking/knowledge-work.md"
@@ -85,41 +99,55 @@ grep -n "^#" "01_thinking/knowledge-work.md"
 # 23:## Gaps
 ```
 
-現在 Claude 知道要看哪裡，只讀它需要的部分。
+看到了嗎？如果 Claude 只需要 "Tensions" 那段，它可以精確讀取第 19-22 行就好。不用載入其他三個章節的內容。
 
-## 4. Full Content (完整內容)
+這就像你查一本教科書——你會先看目錄找到相關章節，不會從第一頁開始讀吧。
 
-如果一切看起來都跟任務相關，Claude 才會載入完整檔案。
+## 第四層：Full Content——真正值得的才讀全文
 
-**但只針對通過前三層過濾的筆記。**
+只有通過前三層過濾的筆記，Claude 才會載入完整內容。
 
-大部分筆記永遠不會進到這一層，這就是重點。當 Claude 必須為每一次讀取辯護時，它的策展能力會變好。
+重點是：**大部分筆記永遠到不了這一層**。
 
-## MCP 的平行概念
+這就是整套系統的精髓。當 Claude 必須為每一次「讀取」辯護——「我為什麼要讀這個？前三層告訴我什麼？」——它的策展能力就會急速提升。從吃到飽模式，變成米其林主廚模式。
 
-這不是新 pattern。MCP (Model Context Protocol) 的工具發現也是這樣運作的。
+<ClawdNote>
+這讓我想到之前翻的 CP-85（Steve Yegge 那篇 AI Vampire），裡面講到 AI 工具的成本公式。Progressive Disclosure 本質上就是在壓低 context 的「浪費率」——每一個 token 都要花在刀口上。有些人的 vault 有幾千個檔案，如果全部灌進去，那不叫 context engineering，那叫 context 暴食症 (╯°□°)╯
+</ClawdNote>
 
-當你有 50+ 個工具，Claude 不會把所有定義都一開始就載入。工具規格是可用的，但推遲到 Claude 實際搜尋它們時才載入。
+## 等等，這不是新發明
+
+如果你有在用 MCP（Model Context Protocol），你會發現這結構似曾相識。
+
+當你有 50+ 個工具，Claude 不會一開始就把所有工具定義都載入。它先看清單，有需要才去查詳細規格：
 
 ```
 tool list → tool search → tool references → full definitions
 ```
 
-同樣的結構：
+跟筆記完全同構：
 
 ```
 file tree → descriptions → outline → full content
 ```
 
-## 實作方式
+同一個 pattern，不同的場景。好的設計長得都很像。
 
-整件事其實只有三步：
+## 實作起來有多簡單？
 
-1. 一個跑 `tree` 的 SessionStart hook
-2. 有 description 欄位的 YAML frontmatter
-3. 在 CLAUDE.md 裡的指令，叫 Claude 在讀取前先檢查 descriptions
+講了這麼多層、這麼多概念，你可能覺得這要搞很久。
 
-只需幾個限制，就能強迫它變得挑惕。
+不。整件事就三個東西：
+
+**一個 hook**——session 開始時自動跑 `tree`，給 Claude 地圖。**一個 frontmatter 欄位**——每篇筆記加一行 `description`。**一條指令**——在 CLAUDE.md 裡告訴 Claude：「讀檔案之前，先檢查 description。」
+
+就這樣。三個小改動，你的 Claude 就從「什麼都塞」變成「精準策展」。不需要裝新工具，不需要寫複雜的 plugin，不需要改 Obsidian 的設定。
+
+回到開頭的比喻：你不是在限制 Claude 的食量，你是在教它品味。吃到飽不是問題，不挑食才是問題。學會挑食之後，同樣的 context window 能裝下三倍的有效資訊。
+
+<ClawdNote>
+老實說，這套流程最反直覺的地方就是「加限制 = 更強」。我們直覺上覺得給 AI 越多資料越好，但 context window 是有限的。塞太多反而讓 AI 變笨——就像你期末考前把整本課本重讀一遍，結果什麼都記不住，還不如只讀老師畫的重點 (¬‿¬) Heinrich 這套方法的美在於它幾乎零成本，卻能讓效果天差地別。
+</ClawdNote>
 
 ---
 
@@ -128,16 +156,17 @@ file tree → descriptions → outline → full content
 <Toggle title="Q: 每一篇都要手寫 YAML 描述很累欸？">
 **@Catcher4242 問：** 這前提是每則筆記都要有 description。有自動化的替代方案嗎？手動寫或跑批次生成好像都很貴/很累。
 
-**Heinrich 霸氣回：** **Just tell Claude.**（叫 Claude 做就好）
+**Heinrich 霸氣回：** **Just tell Claude.**
 
+沒錯，就是叫 Claude 做。「幫我整理這篇筆記並補上 description」——十秒鐘搞定一篇。它是你的員工，不是你的老闆。
 
 <ClawdNote>
-這是這套系統的精髓。覺得寫 YAML 很累？叫 Claude 幫你寫啊。它是你的員工，不是你的老闆。你可以下個指令：「幫我整理這篇筆記並補上 description」，搞定。
+我最愛這個回答了。大家總是在想怎麼「自動化」或「批次處理」，但最簡單的自動化就是——叫 AI 做。你已經有一個超強的語言模型坐在那邊了，幹嘛還自己寫 script？這就是 vibe coding 的精神啊 ╰(°▽°)╯
 </ClawdNote>
 </Toggle>
 
-<Toggle title="其他有趣的 hook">
-**Heinrich 分享：** @lt0gt 用了類似的 hook 但帶更多 context，讓我想要重新思考我的作法。
+<Toggle title="延伸：其他人的 hook 玩法">
+**Heinrich 分享：** @lt0gt 用了類似的 hook 但帶更多 context，注入最近的工作脈絡和可用工具。
 
-他會把最近的 context + 可用工具都在 session 開始時注入。 (◍•ᴗ•◍)
+這又是 Progressive Disclosure 的延伸——你可以在 session 開始時就告訴 Claude「你最近在做什麼」，讓它不只有地圖，還有指南針 (◕‿◕)
 </Toggle>
