@@ -4,8 +4,19 @@ title: "Vibe Note-Taking 101: Spatial Editing"
 originalDate: "2026-01-26"
 translatedDate: "2026-01-30"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@arscontexta (Heinrich) on X"
 sourceUrl: "https://x.com/arscontexta/status/2015909609999941965"
 summary: "Editing long documents with Claude Code is usually painful. Instead of bringing text to Claude, leave instructions where they belong. Use curly braces to mark your thoughts and edit instructions — each annotation applies to its surrounding text. Position IS Context."
@@ -14,52 +25,47 @@ tags: ["obsidian", "claude-code", "spatial-editing", "workflow"]
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
-import Toggle from '../../components/Toggle.astro';
 
-Editing long documents with Claude Code is usually painful.
+You know that feeling — you're editing a 3,000-word document in Google Docs, and by the time you reach paragraph seven, you realize paragraph three needs to change too. So you start scrolling up and down like a hamster on a wheel, except the wheel doesn't even generate electricity.
 
-The typical approach:
-- Read through draft
-- Find paragraph 3 needs changes
-- Copy that paragraph
-- Paste to Claude with your comment
-- Scroll to paragraph 7
-- Copy again
-- Paste again...
+That's how most people use Claude Code to edit long documents.
 
-The editing itself is fine, but the back-and-forth process is annoying.
+You read the draft, find something wrong in paragraph three, copy that chunk, paste it into Claude's chat, add your comments. Then scroll to paragraph seven, copy again, paste again, explain the context again. You spend more time *moving text around* than actually *thinking about what to change*.
 
-When you have changes across multiple files that need to stay consistent, the problem gets worse.
-
+If it's just one file, fine. But when you've got five markdown files, three paragraphs that need to stay consistent, and two sections referencing the same concept — the instructions you give Claude start looking like your grandma's grocery list. Messy, long, and nobody's sure what's on it anymore.
 
 <ClawdNote>
-"Hey Claude, in this file change this part, then that part too, and also in the third file..." This kind of instruction usually loses AI halfway through, and you're dizzy too.
+"Hey Claude, fix paragraph three, then also that part in paragraph seven, oh and in the other file there's this thing that needs updating too..." By this point, the AI is lost and so are you. It's like giving driving directions over the phone — the more you explain, the more everyone gets confused, and somehow you both end up at the wrong gas station ┐(￣ヘ￣)┌
 </ClawdNote>
 
-## Spatial Editing
+## Spatial Editing: Leave the Instructions at the Crime Scene
 
-Instead of **bringing** text to Claude, **leave** instructions where they belong.
+Heinrich's idea is dead simple — don't **bring** text to Claude, **leave** the instructions where they belong.
 
-Use curly braces to mark your `\{thoughts and edit instructions\}`.
+How? Curly braces. Wherever you feel something needs changing, just write `\{your thought\}` right there. That's it. Each curly-brace note is an edit instruction, and its context is the text surrounding it. No need to explain "I'm talking about paragraph three, line two" — the position itself is the best reference.
 
-Each annotation applies to its surrounding text.
+Think of it like scribbling notes in the margins of a textbook. You don't open a separate spreadsheet to say "page 47, line 3, I think this part is confusing." You just write it next to the text. AI editing should work the same way.
 
-**Example:**
+<ClawdNote>
+Programmers will instantly get this — it's basically a TODO comment (◕‿◕) You write `// TODO: refactor this mess` right in the code, not in a separate Google Sheet tracking which lines need refactoring. Position is context. The ancients knew this. We just forgot.
+</ClawdNote>
+
+Let's see a real example. Say you're writing an article about vaults, and your draft looks like this:
 
 ```markdown
 # why vaults matter
 
 vaults give claude memory
-\{feels abstract\}
+{feels abstract}
 
 without persistent storage claude forgets everything between sessions
-\{this is the key point, make it hit harder\}
+{this is the key point, make it hit harder}
 
 the solution is simple
-\{dont say simple, show\}
+{dont say simple, show}
 ```
 
-**Output:**
+After running the edit command, Claude rewrites each section based on its nearby instruction:
 
 ```markdown
 # why vaults matter
@@ -71,7 +77,13 @@ without persistent storage claude starts fresh every conversation, you re-explai
 the solution: store everything in markdown files that claude can traverse
 ```
 
-After instructions execute, you get a summary:
+Look at what happened — "feels abstract" made the nearby paragraph more concrete, "make it hit harder" added pain points, "dont say simple, show" killed the filler and replaced it with action. Each instruction only touches its neighboring text. Nothing else gets disturbed.
+
+<ClawdNote>
+Okay, I'm a little jealous of this trick. Every day I receive a mountain of "fix this thing for me" requests, but nobody tells me *which* thing. If everyone learned spatial editing, my quality of life would jump three levels overnight. Please spread the word, I'm begging you (╯°□°)╯
+</ClawdNote>
+
+And after processing, you get a neat summary of what each instruction did:
 
 ```
 processed 3 edits in why-vaults-matter.md:
@@ -80,51 +92,40 @@ processed 3 edits in why-vaults-matter.md:
 3. "dont say simple" → replaced with direct statement
 ```
 
+## Command Design: One Line Does It
 
-<ClawdNote>
-This trick is really clever. Writing instructions next to text (in-place instructions) is the most natural context. Same principle as TODO comments in code.
-</ClawdNote>
-
-## Command Design
+The commands are clean:
 
 ```bash
-/edit
-# Edit currently open file
-
-/edit draft.md
-# Edit specific file
-
-/edit draft.md notes.md
-# Edit multiple files
+/edit                      # Edit the currently open file
+/edit draft.md             # Edit a specific file
+/edit draft.md notes.md    # Edit multiple files at once
 ```
 
-If you run `/edit` without specifying files, it searches the entire vault for `\{thoughts\}`:
+Here's the best part — if you run `/edit` without specifying any file, it uses ripgrep to scan your entire vault for markdown files containing `\{...\}`:
 
 ```bash
 rg "\\{[^}]+\\}" --type md -l
 ```
 
-Then lets you choose which files to edit.
+Then it lets you pick which ones to process. This means you can spend the whole day writing, casually dropping curly-brace markers wherever something feels off, and then run `/edit` once in the evening. Claude handles everything in one sweep.
 
-## Workflow
+<ClawdNote>
+Wait, so Heinrich's workflow is "be a human during the day, let AI clean up at night"? Isn't that just the college student model — write garbage all day, get your roommate to fix it before the deadline (￣▽￣)／ Except this roommate never complains, never sleeps, and doesn't eat your leftovers.
+</ClawdNote>
 
-1. **Keep writing**: Don't stop, finish the draft first.
-2. **Quick read**: Wherever something feels off, just drop a `\{thought\}` there.
-3. **Run /edit**: Let Claude handle the tedious work.
-4. **Review**: Check the changes.
+## Why This Actually Works
+
+Remember the hamster wheel from the beginning? Traditional editing is painful because you're doing two things at once: figuring out *what* to change, and *moving* the changes to the right place. Spatial editing kills the moving step entirely.
 
 **Position IS Context.**
 
-You don't need to explain what you're pointing at — the annotation knows where it lives.
+You don't need to explain where you're pointing — the annotation already lives where it belongs. Like a sticky note — nobody writes "this sticky note should be placed on the refrigerator" on the sticky note. You just stick it on the fridge.
 
----
+<ClawdNote>
+I genuinely think this concept goes beyond writing. During code review, instead of typing a long PR comment about "the logic on lines 47 through 52..." — just insert a `{rethink this loop}` directly in the code and let AI fix it. Sure, your coworkers might think you're talking to ghosts (¬‿¬) But the efficiency gain is real.
+</ClawdNote>
 
-## Community Highlights
+So next time you're staring at a long document, stop copying and pasting text back and forth. Open your vault, write your thoughts right where they belong, and let position do the talking.
 
-<Toggle title="Other interesting applications">
-**@sughanthans1 asked:** What do you think about prism?
-
-**Heinrich replied:** Will try it tonight. (•̀ᴗ•́)و
-
-**@GoldenWaveAi:** This idea is brilliant!
-</Toggle>
+That hamster wheel? You can step off now. The prize walks itself to you.
