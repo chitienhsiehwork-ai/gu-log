@@ -42,7 +42,15 @@ const t = i18n[lang];
 </button>
 
 <!-- Modal rendered at body level via portal -->
-<div class="search-modal-overlay" data-search-modal data-lang={lang} aria-hidden="true">
+<div
+  class="search-modal-overlay"
+  data-search-modal
+  data-lang={lang}
+  data-no-results={t.noResults}
+  data-max-results={searchConfig.maxResults}
+  data-debounce-ms={searchConfig.debounceMs}
+  aria-hidden="true"
+>
   <div class="search-modal">
     <div class="search-modal-header">
       <svg
@@ -76,37 +84,62 @@ const t = i18n[lang];
   </div>
 </div>
 
-<script
-  define:vars={{
-    noResultsText: t.noResults,
-    currentLang: lang,
-    maxResults: searchConfig.maxResults,
-    debounceMs: searchConfig.debounceMs,
-    enableTicketSearch: searchConfig.enableTicketSearch,
-  }}
->
-  // Search state
-  let searchIndex = null;
-  let debounceTimer = null;
+<script>
+  import Fuse from 'fuse.js';
+
+  // Read config from data attributes (avoids define:vars which blocks module imports)
+  const modal = document.querySelector('[data-search-modal]') as HTMLElement | null;
+  const trigger = document.querySelector('[data-search-trigger]');
+  const input = modal?.querySelector('[data-search-input]') as HTMLInputElement | null;
+  const results = modal?.querySelector('[data-search-results]') as HTMLElement | null;
+
+  const currentLang = modal?.dataset.lang || 'zh-tw';
+  const noResultsText = modal?.dataset.noResults || 'No results found';
+  const maxResults = parseInt(modal?.dataset.maxResults || '5', 10);
+  const debounceMs = parseInt(modal?.dataset.debounceMs || '150', 10);
+
+  type SearchEntry = {
+    slug: string;
+    ticketId: string | null;
+    title: string;
+    summary: string;
+    tags: string[];
+    lang: string;
+    date: string;
+    source: string;
+    body: string;
+  };
+
+  let searchIndex: SearchEntry[] | null = null;
+  let fuse: Fuse<SearchEntry> | null = null;
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null;
   let selectedIndex = -1;
 
-  const trigger = document.querySelector('[data-search-trigger]');
-  const modal = document.querySelector('[data-search-modal]');
-  const input = modal?.querySelector('[data-search-input]');
-  const results = modal?.querySelector('[data-search-results]');
-
-  // Fetch search index on first open
+  // Fetch and initialize search index + Fuse instance on first modal open
   async function loadSearchIndex() {
     if (searchIndex) return;
     try {
       const res = await fetch('/search-index.json');
-      searchIndex = await res.json();
+      const allPosts: SearchEntry[] = await res.json();
+      // Pre-filter by current language for performance
+      searchIndex = allPosts.filter((p) => p.lang === currentLang);
+      fuse = new Fuse(searchIndex, {
+        includeMatches: true,
+        threshold: 0.35,
+        minMatchCharLength: 1,
+        keys: [
+          { name: 'ticketId', weight: 3 },
+          { name: 'title', weight: 2 },
+          { name: 'tags', weight: 1.5 },
+          { name: 'summary', weight: 1 },
+          { name: 'body', weight: 0.5 },
+        ],
+      });
     } catch (e) {
       console.error('Failed to load search index:', e);
     }
   }
 
-  // Open search modal
   function openSearch() {
     modal?.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
@@ -114,7 +147,6 @@ const t = i18n[lang];
     setTimeout(() => input?.focus(), 50);
   }
 
-  // Close search modal
   function closeSearch() {
     modal?.setAttribute('aria-hidden', 'true');
     document.body.style.overflow = '';
@@ -123,7 +155,6 @@ const t = i18n[lang];
     selectedIndex = -1;
   }
 
-  // Toggle search
   function toggleSearch() {
     const isHidden = modal?.getAttribute('aria-hidden') === 'true';
     if (isHidden) {
@@ -133,56 +164,70 @@ const t = i18n[lang];
     }
   }
 
-  // Search and display results
-  function performSearch(query) {
+  // Escape HTML to prevent XSS
+  function escapeHtml(text: string): string {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // Wrap Fuse match indices in <mark> tags for highlighting
+  function highlightText(text: string, matches: readonly Fuse.FuseResultMatch[], key: string): string {
+    if (!text) return '';
+    const match = matches.find((m) => m.key === key);
+    if (!match?.indices?.length) return escapeHtml(text);
+
+    const indices = [...match.indices].sort((a, b) => a[0] - b[0]);
+    let result = '';
+    let lastIndex = 0;
+    for (const [start, end] of indices) {
+      if (start < lastIndex) continue;
+      result += escapeHtml(text.slice(lastIndex, start));
+      result += `<mark class="search-highlight">${escapeHtml(text.slice(start, end + 1))}</mark>`;
+      lastIndex = end + 1;
+    }
+    result += escapeHtml(text.slice(lastIndex));
+    return result;
+  }
+
+  function performSearch(query: string) {
     if (!searchIndex || !results) return;
 
-    const trimmed = query.trim().toLowerCase();
+    const trimmed = query.trim();
     if (!trimmed) {
       results.innerHTML = '';
       selectedIndex = -1;
       return;
     }
 
-    // Filter by current language and search query
-    const filtered = searchIndex
-      .filter((post) => post.lang === currentLang)
-      .filter((post) => {
-        // Check ticket ID first (exact match, case insensitive)
-        if (enableTicketSearch && post.ticketId) {
-          if (post.ticketId.toLowerCase() === trimmed) {
-            return true;
-          }
-          // Also match partial ticket ID (e.g., "SD" matches "SD-1")
-          if (post.ticketId.toLowerCase().startsWith(trimmed)) {
-            return true;
-          }
-        }
+    let matches: Fuse.FuseResult<SearchEntry>[];
 
-        // Then check title, summary, source, tags
-        const searchable = [
-          post.ticketId || '',
-          post.title,
-          post.summary,
-          post.source,
-          ...(post.tags || []),
-        ]
-          .join(' ')
-          .toLowerCase();
-        return searchable.includes(trimmed);
-      })
-      .slice(0, maxResults);
+    // Special-case: ticket ID prefix search (SD, SP, CP, Lv) — exact prefix match
+    const isTicketPrefix = /^(sd|sp|cp|lv)[-\s]?\d*/i.test(trimmed);
+    if (isTicketPrefix) {
+      const lower = trimmed.toLowerCase();
+      const ticketMatches = searchIndex
+        .filter((p) => p.ticketId && p.ticketId.toLowerCase().startsWith(lower))
+        .slice(0, maxResults)
+        .map((item) => ({ item, matches: [] as Fuse.FuseResultMatch[], refIndex: 0, score: 0 }));
 
-    if (filtered.length === 0) {
+      matches = ticketMatches.length > 0 ? ticketMatches : (fuse?.search(trimmed, { limit: maxResults }) ?? []);
+    } else {
+      matches = fuse?.search(trimmed, { limit: maxResults }) ?? [];
+    }
+
+    if (matches.length === 0) {
       results.innerHTML = `<div class="search-no-results">${noResultsText}</div>`;
       selectedIndex = -1;
       return;
     }
 
-    // Render results with proper formatting
     const baseUrl = currentLang === 'en' ? '/en/posts/' : '/posts/';
-    results.innerHTML = filtered
-      .map((post, index) => {
+    results.innerHTML = matches
+      .map((result, index) => {
+        const post = result.item;
+        const fuseMatches = result.matches ?? [];
+
         // Remove 'en-' prefix from slug for en posts
         const displaySlug =
           post.lang === 'en' && post.slug.startsWith('en-') ? post.slug.slice(3) : post.slug;
@@ -190,6 +235,9 @@ const t = i18n[lang];
         const ticketBadge = post.ticketId
           ? `<span class="search-result-ticket">${escapeHtml(post.ticketId)}</span>`
           : '';
+
+        const titleHtml = highlightText(post.title, fuseMatches, 'title');
+        const summaryHtml = highlightText(post.summary, fuseMatches, 'summary');
 
         return `
         <a href="${baseUrl}${displaySlug}"
@@ -200,8 +248,8 @@ const t = i18n[lang];
             ${ticketBadge}
             <span class="search-result-date">${post.date}</span>
           </div>
-          <div class="search-result-title">${escapeHtml(post.title)}</div>
-          <div class="search-result-source">${escapeHtml(post.source)}</div>
+          <div class="search-result-title">${titleHtml}</div>
+          <div class="search-result-source">${summaryHtml}</div>
         </a>
       `;
       })
@@ -210,14 +258,6 @@ const t = i18n[lang];
     selectedIndex = -1;
   }
 
-  // Escape HTML to prevent XSS
-  function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
-
-  // Update selection highlight
   function updateSelection() {
     const items = results?.querySelectorAll('.search-result-item');
     items?.forEach((item, i) => {
@@ -225,11 +265,10 @@ const t = i18n[lang];
     });
   }
 
-  // Navigate to selected result
   function navigateToSelected() {
     const items = results?.querySelectorAll('.search-result-item');
     if (items && selectedIndex >= 0 && selectedIndex < items.length) {
-      const href = items[selectedIndex].getAttribute('href');
+      const href = (items[selectedIndex] as HTMLAnchorElement).getAttribute('href');
       if (href) window.location.href = href;
     }
   }
@@ -240,7 +279,6 @@ const t = i18n[lang];
     openSearch();
   });
 
-  // Close on overlay click
   modal?.addEventListener('click', (e) => {
     if (e.target === modal) {
       closeSearch();
@@ -248,9 +286,9 @@ const t = i18n[lang];
   });
 
   input?.addEventListener('input', (e) => {
-    clearTimeout(debounceTimer);
+    if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
-      performSearch(e.target.value);
+      performSearch((e.target as HTMLInputElement).value);
     }, debounceMs);
   });
 
@@ -262,7 +300,7 @@ const t = i18n[lang];
       case 'Escape':
         e.preventDefault();
         closeSearch();
-        trigger?.focus();
+        (trigger as HTMLElement)?.focus();
         break;
       case 'ArrowDown':
         e.preventDefault();
@@ -492,5 +530,14 @@ const t = i18n[lang];
     text-align: center;
     color: var(--color-text-muted);
     font-size: 0.9rem;
+  }
+
+  /* Fuzzy match highlight */
+  .search-highlight {
+    background: var(--color-accent);
+    color: white;
+    border-radius: 2px;
+    padding: 0 1px;
+    font-style: normal;
   }
 </style>
