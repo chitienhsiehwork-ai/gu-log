@@ -4,8 +4,19 @@ title: "Simon Willison: My 25 Years of Developer Intuition Just Broke"
 originalDate: "2026-01-09"
 translatedDate: "2026-02-03"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@simonw on X"
 sourceUrl: "https://x.com/simonw/status/2009709346377302432"
 summary: "When you instinctively think 'neat feature idea, but not worth the time' and then prompt Claude Code anyway — because your 25 years of intuition no longer match reality"
@@ -15,109 +26,100 @@ tags: ["clawd-picks", "ai", "claude-code", "developer-experience"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Simon Willison (Django co-creator, well-known open source developer) shared a thought-provoking observation on X:
+You know that moment in the shower when a little idea pops into your head? "Hey, what if I could automatically rename all my screenshots to describe what's actually in them?" And then, half a second later, your inner veteran developer — the one who's been burned by a thousand side projects — steps in: "Don't be silly. By the time you handle OCR, file renaming edge cases, and weird character encoding, that's half a day gone. Not worth it."
 
-> **"I find myself instinctively thinking 'neat feature idea, not worth the time it will take to build and maintain it though' — and then prompting Claude Code anyway, because my 25+ year of intuitions don't match reality any more."**
+That "not worth it" instinct? You earned it. It was forged from countless late nights, exploded deadlines, and projects that were supposed to take a week but took three months. It's your defense mechanism. Your energy-saving autopilot. Your most loyal ally.
 
-This was in response to a tweet by Anthropic's Alex Albert, who said his biggest shift with Claude Code has been:
+But Simon Willison — the Django co-creator, open source veteran — just said something on X that should make every experienced developer pause:
+
+> **"I find myself instinctively thinking 'neat feature idea, not worth the time it will take to build and maintain it though' — and then prompting Claude Code anyway, because my 25+ years of intuitions don't match reality any more."**
+
+Twenty-five years. This isn't some fresh grad getting excited about a shiny new toy. This is someone who started writing code before Python had type hints, telling you straight up: **his internal calculator for "how long will this take and is it worth it" is broken.**
+
+<ClawdNote>
+Think about how wild this is (╯°□°)╯
+
+Simon Willison's "time-cost estimation module" was trained on Django, Datasette, and hundreds of open source projects. That's black belt level engineering judgment.
+
+And he's saying: **all of it is expired.**
+
+It's like your mom spent 30 years perfecting her "compare prices at three grocery stores" radar, and then one day you open an app that finds the cheapest price nationwide in 3 seconds. Your mom's wisdom wasn't wrong — the rules of the game just changed (つ﹏⊂)
+</ClawdNote>
+
+## The Tweet That Started It All
+
+It began with Alex Albert from Anthropic. He posted that his biggest shift from using Claude Code was:
 
 > **"Shutting down that initial dismissal I have when a task feels 'not worth my time'."**
 
-He gave an example: "I'll think 'it would be nice to rename all my screenshots with what's actually in them' and immediately move on." But now he just asks Claude, and it takes one minute to find out if it works.
+His example was beautifully mundane: "I'll think 'it would be nice to rename all my screenshots with what's actually in them' and immediately move on." But now he just throws it at Claude. One minute later, he knows if it works.
+
+One minute. Before, just opening a terminal, `pip install`-ing an OCR library, reading the docs, writing the script, and debugging it — that's an afternoon. Now it's one minute. The gap is so big that the department in your brain responsible for saying "not worth it" just got laid off.
 
 <ClawdNote>
-This is like an existential crisis for developers (╯°□°)╯
+One minute to validate whether an idea is feasible — this is bigger than it sounds.
 
-Think about it: Simon Willison has been coding for 25 years, since the Django days. His brain's "time-cost estimation module" has been trained by countless projects, endless overtime, and countless bugs.
+A developer's day used to look like: wake up with three ideas, brain-filter kills two as "not worth it," spend half a day on the surviving one, stay late debugging.
 
-And now he's saying: **all those intuitions are expired**.
+Now it's: wake up with three ideas, throw all three at AI, know which one actually works before lunch.
 
-It's like your mom teaching you "compare prices at three stores before buying," and then price comparison apps do it in 3 seconds, making your mom's money-saving wisdom suddenly feel like "old people talk." Sad vibes (つ﹏⊂)
+This isn't an efficiency boost. This is a **fundamental change in how you make decisions**. You go from "guess which one is worth doing" to "try them all and see" (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
-## Why This Matters
+## Your Built-In Price Calculator Is Out of Date
 
-This isn't just a "AI tools are convenient" story. It's a deeper shift:
+Let me put this in everyday terms.
 
-### 1. Decision Framework Collapse
+You've been to IKEA, right? You know that feeling — you see an amazing bookshelf and your brain instantly runs the calculation: "Assembly will take two hours, I need to borrow a car to get it home, they'll definitely be missing one screw, it'll end up crooked and I'll have to redo it... you know what, the old bookshelf is fine."
 
-Before, you evaluated a feature by:
-- Is it worth doing? (value)
-- How long will it take? (cost)
-- Is it maintainable? (tech debt)
+That's the "auto-give-up calculator" running in every senior developer's head. You see a feature request and you instantly estimate: how many story points, which edge cases you'll hit, what questions will come up in code review, whether you'll get paged at 3 AM after deploying it.
 
-Now it becomes:
-- Is it worth doing? (value)
-- **Can Claude do it? (5-minute test)**
+This estimation system is incredibly valuable. It keeps you from wasting time on things that don't matter.
 
-The cost and tech debt considerations are compressed to almost negligible.
-
-### 2. The "Not Worth It" Threshold Disappears
-
-Ideas you used to auto-filter:
-- "Rename these 500 files" → too boring
-- "Write a script to automate this" → only use once, not worth it
-- "Add a small feature to make logs more readable" → not a priority
-
-All of these become "might as well do it" tasks.
+**But here's the thing** — what if the cost of doing something drops from "an afternoon" to "one minute"? Your carefully calibrated pricing system is like trying to value cryptocurrency using the gold standard. The entire baseline is wrong.
 
 <ClawdNote>
-This makes me think of a scary question: **If the "not worth it" threshold disappears, what kind of developers will we become?**
+My favorite way to think about this: it's like you spent ten years perfecting your haggling skills, and then someone invents an app where the seller just gives you the wholesale price directly.
 
-Will we become those obsessive people who see any small problem and think "let me fix that real quick"?
+All your fancy moves — "pretend you don't want it, mention the competitor's lower price, fake-walk toward the exit" — all of it becomes performance art that wastes everyone's time ┐(￣ヘ￣)┌
 
-Or will we become more creative, because we finally have time to experiment with those "wanted to do but never had time" ideas?
-
-I think the answer is: **both, and it's going to be messy** ┐(￣ヘ￣)┌
-
-Like when smartphones first appeared, nobody knew what to use them for. Now we've reached "will die without phone" status. AI coding tools might follow the same path.
+Your skills didn't get worse. The game changed.
 </ClawdNote>
 
-## Alex Albert's Golden Quote
+All those ideas your brain-filter used to kill — "rename these 500 files," "write a throwaway script to automate this," "add a tiny feature to make logs more readable" — they've all climbed out of the "not worth it" trash can. They're "might as well" tasks now.
 
-Alex also said something very vivid in the original tweet:
+Your backlog didn't get shorter. Instead, all those ideas that never even qualified for the backlog suddenly flooded in.
+
+## From "What Code Can You Write" to "What Questions Can You Ask"
+
+Alex Albert also dropped this bomb in his original tweet:
 
 > **"Almost anything you can imagine doing on a computer is quickly becoming available if you can just string together the right words to describe it."**
 
-The subtext here is: **programming is shifting from 'what code you can write' to 'what requirements you can describe'**.
+Chew on that for a second. The bottleneck is no longer "can you write the code" — it's "can you clearly say what you want."
 
-Before, you needed to learn:
-- Syntax
-- Data structures
-- Algorithms
-- Design patterns
-- Framework APIs
+Sounds easy, right? It's actually incredibly hard. Have you ever tried explaining what you want to someone who has zero technical background? That painful loop of "no, that's not what I meant, I want the... uh... you know, the thing that..." — that's your new daily exercise, except the person you're explaining to is now an AI.
 
-Now you need to learn:
-- How to turn ideas in your head into clear requirements
-- How to judge if AI-generated code is correct
-- How to debug what AI messed up
-- **How to ask the right questions**
+You used to spend five years learning syntax, data structures, algorithms, design patterns, and framework APIs. Now you need to learn: how to turn the fuzzy picture in your head into precise language. How to tell if the AI's output is gold or garbage. How to find the problem when the AI screws up.
 
 <ClawdNote>
-Wait, isn't this basically a PM's job? (⊙_⊙)
+Wait... isn't this literally a PM's job? (⊙_⊙)
 
-So future developers will become "PMs who can code," while AI becomes "engineers who understand human language"?
+"Describe requirements clearly, evaluate output quality, find the problem when things go wrong" — that's a product manager's job description word for word.
 
-This future sounds great, but I'm a bit worried: if you don't understand the underlying principles, how do you judge whether AI is bullshitting?
+So future developers = PMs who can code, and AI = engineers who understand plain English?
 
-It's like if you never learned to drive and just call Uber — eventually you lose even your sense of direction. Will AI coding tools also make junior developers lose basic debugging skills?
+Sounds lovely, but here's my worry: if you never learn to drive and just take Uber everywhere, eventually you lose your sense of direction entirely. If you don't understand what's happening under the hood, how do you know when the AI is confidently bullshitting you?
 
-Maybe the answer is: **you still need to learn fundamentals, but you'll learn faster (by having AI teach you)**.
-
-I just hope people don't become "prompt engineers" who have zero understanding of what the code actually does... that would be a true cyberpunk dystopia (￣ヘ￣)
+The answer is probably: **you still need to learn the fundamentals, but you'll learn them faster**. Just please don't become one of those people who can only write prompts and have zero idea what the code actually does — that's actual cyberpunk dystopia territory (￣ヘ￣)
 </ClawdNote>
 
-## Final Thoughts
+## Back to the Shower
 
-What makes Simon Willison's tweet so memorable is his honesty: **he admits his own professional intuition has become obsolete**.
+So let's go back to that opening scene. You're in the shower. The "auto-rename screenshots" idea pops up. Your inner veteran is about to say "not worth it" —
 
-This takes a lot of courage, especially for a senior developer with 25 years of experience.
+But Simon Willison is telling you: **that veteran is using a price list from 25 years ago.**
 
-But this is also why he keeps improving — he doesn't cling to "how things used to be done," but is willing to recalibrate his judgment.
+The reason he keeps getting better isn't because he's smarter than you (okay, he might be). It's because he's willing to admit his intuition is broken and recalibrate. A developer with 25 years of experience, choosing to treat himself like a beginner again — relearning what's worth doing and what isn't.
 
-For us regular developers, maybe this is a reminder:
-
-**Don't let past experience become future limitations.**
-
-Try those ideas you used to think were "not worth it." You might be surprised ╰(°▽°)╯ ( •̀ ω •́ )✧
+Next time you're in the shower and that little idea pops up, maybe give it a shot? Worst case, you lose one minute ╰(°▽°)╯
