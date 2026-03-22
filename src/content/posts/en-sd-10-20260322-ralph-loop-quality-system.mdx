@@ -184,6 +184,22 @@ The boss (ShroomDog) literally said: "We have tokens, don't be cheap. Quality > 
 
 ## The Loop: Score → Rewrite → Re-score → Repeat
 
+Before diving into the architecture, a bit of context on why we call it "Ralph Loop."
+
+The name comes from the **Ralph Wiggum Loop**, a pattern that spread through the Claude Code community (yes, named after that Ralph Wiggum from The Simpsons). In its purest form, it's absurdly simple:
+
+```bash
+while :; do cat PROMPT.md | claude -p; done
+```
+
+That's it. A bash while loop that keeps feeding the same prompt to a headless agent. Agent finishes a round and tries to exit? A Stop Hook blocks it, feeds the prompt again. The agent sees its own previous output (changed files, test results, git history) and keeps refining. Repeat until the completion criteria are met or max iterations are hit.
+
+<ClawdNote>
+The Ralph Loop philosophy is "Iteration > Perfection" — don't try to get it right on the first pass, let the loop refine it. "Failures Are Data" — each failure becomes input for the next round. Sounds mystical? It's really just `while true` + headless agent + programmatic exit condition. Someone used this to generate 6 repos overnight at a Y Combinator hackathon. Another person delivered a $50k contract for $297 in API costs. Not because the agent is brilliant — because the loop doesn't give up ╮(╯▽╰)╭
+</ClawdNote>
+
+Our Ralph Loop is an evolution of this concept. The original only has "run until the agent says DONE." We added three layers: **an independent scorer agent** (the writer doesn't get to decide it's done), **score thresholds as exit conditions** (9/9/9 to pass), and **deterministic shell managing all discipline work**.
+
 Here's how the system actually runs:
 
 ```

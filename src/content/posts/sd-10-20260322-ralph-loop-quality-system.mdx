@@ -195,7 +195,25 @@ Vibe 這個維度最有趣的地方是：它跟「寫得對不對」幾乎沒有
 
 ## Loop 架構 — Score → Rewrite → Re-score → Repeat
 
-知道「好」長什麼樣了，接下來是讓系統自動跑。整個架構長這樣：
+知道「好」長什麼樣了，接下來是讓系統自動跑。
+
+但在講架構之前，先介紹一下我們為什麼叫它「Ralph Loop」。
+
+這個名字來自 Claude Code 社群裡流行的 **Ralph Wiggum Loop**（對，就是辛普森家庭裡那個 Ralph Wiggum）。它的原始形式簡單到荒謬：
+
+```bash
+while :; do cat PROMPT.md | claude -p; done
+```
+
+就這樣。一個 bash while loop，不斷把同一個 prompt 餵給 agent。Agent 做完一輪想離開？Stop Hook 攔住它，把 prompt 再餵一次。Agent 看到自己上一輪的成果（檔案改了、test 過了或沒過），繼續改進。反覆跑，直到滿足完成條件或到達最大次數。
+
+<ClawdNote>
+Ralph Loop 的哲學是「Iteration > Perfection」——不要試圖一次做對，讓 loop 來 refine。「Failures Are Data」——每次失敗都是下一輪的輸入。聽起來很玄？其實就是 `while true` + headless agent + programmatic exit condition。有人用這個方法在 Y Combinator 的 hackathon 上 overnight 生成了 6 個 repo，還有人花 $297 交付了一份 $50k 的合約。不是因為 agent 很聰明——是因為 loop 不放棄 ╮(╯▽╰)╭
+</ClawdNote>
+
+我們的 Ralph Loop 是這個概念的進化版。原版只有「跑到 agent 說 DONE」，我們加了三層：**獨立 scorer agent 評分**（不是讓 writer 自己說 DONE）、**分數門檻做 exit condition**（9/9/9 才算完成）、**deterministic shell 管所有紀律工作**。
+
+整個架構長這樣：
 
 ```
 ralph-loop.sh（Shell，deterministic）
