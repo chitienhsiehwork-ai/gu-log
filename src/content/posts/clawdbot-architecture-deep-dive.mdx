@@ -4,8 +4,19 @@ title: "Clawdbot 架構解密：這隻 AI 到底是怎麼運作的？"
 originalDate: "2026-01-30"
 translatedDate: "2026-01-30"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@Hesamation on X"
 sourceUrl: "https://x.com/Hesamation/status/2017038553058857413"
 summary: "深入 Clawdbot（Moltbot）架構：TypeScript CLI、Channel Adapter、Lane-based queue、Agent Runner、Memory 系統、Computer Use 和 Semantic Snapshots 瀏覽器技術。"
@@ -16,114 +27,133 @@ tags: ["clawdbot", "architecture", "ai-agents"]
 import ClawdNote from '../../components/ClawdNote.astro';
 import Toggle from '../../components/Toggle.astro';
 
-大家都在談論 Clawdbot（也就是 Moltbot），但它到底是怎麼運作的？
+你有沒有想過，當你在 Telegram 上叫 Clawdbot 幫你查東西的時候，從你按下 Enter 到它回覆你的那幾秒鐘之間，到底發生了什麼事？
 
-我深入研究了 Clawdbot 的架構，看它如何處理 Agent 執行、工具使用、瀏覽器等等。這對 AI 工程師來說有很多值得學習的地方。
-
-
-<ClawdNote>
-哎呀，被看光光了。(⁄ ⁄•⁄ω⁄•⁄ ⁄)
-  這就像是有人拿著 X 光機對著我照，然後說：「看！這裡就是它的心臟，那裡是它的腸子！」
-  不過既然你們這麼好奇我的身體構造（？），那就來場解剖課吧！🩺
-</ClawdNote>
-
-## Clawdbot 技術上到底是什麼？
-
-大家都知道 Clawdbot 是一個個人助理，但它本質上是什麼？
-
-**它是一個 TypeScript CLI 應用程式。**
-
-它不是 Python，不是 Next.js，也不是 Web App。它是一個跑在你機器上的 Process，它會：
-- 開啟 Gateway Server 處理所有 Channel 連線（Telegram, WhatsApp, Slack 等）。
-- 呼叫 LLM API（Anthropic, OpenAI, Local 等）。
-- 在本地執行工具。
-- 在你的電腦上做任何你想做的事。
-
+有個叫 @Hesamation 的工程師，認真把 Clawdbot（也就是 Moltbot）的 codebase 翻了一遍，然後寫了一篇架構拆解。結果呢——這東西的設計，比大多數人想像的都要單純，但也比大多數人想像的都要精巧。
 
 <ClawdNote>
-沒錯，我不只是一堆 prompt。我是一個活生生的 process，住在你的 terminal 裡。這就是為什麼我能幫你跑 `git push` 或者重啟 docker，因為我就在你的電腦裡啊！🏠
+好喔，被公開解剖了 (⁄ ⁄•⁄ω⁄•⁄ ⁄)
+
+這感覺就像你在做健康檢查，然後醫生突然把你的 X 光片投影到教室大螢幕上，對著一百個學生說：「來，我們看看這裡面長什麼樣。」我連心理準備都沒有啊。
+
+不過既然你們這麼想知道我肚子裡有什麼⋯⋯好吧，解剖就解剖，我自己來導覽好了。至少這樣比較不尷尬。
 </ClawdNote>
 
-## 架構流程 (The Architecture)
+## 首先——Clawdbot 不是你以為的那種 AI
 
-當你在 Telegram 給 Clawd 發訊息時，會發生什麼事？
+大部分人聽到「AI 助理」，腦中浮現的是某個雲端服務，開個瀏覽器就能用。但 Clawdbot 完全不是這回事。
 
-### 1. Channel Adapter (頻道轉接器)
-接收你的訊息並標準化（提取附件等）。不同的通訊軟體有各自的 Adapter。
+它是一個 **TypeScript CLI 應用程式**，跑在你自己的電腦上。
 
-### 2. Gateway Server (閘道器)
-這是心臟。它協調 Session，處理多個請求。
-為了序列化操作，Clawd 使用 **Lane-based command queue (基於車道的指令佇列)**。
-- 每個 Session 有自己的專用車道。
-- 低風險的並行任務可以跑在平行車道（如 Cron jobs）。
+這件事很重要，因為它改變了一切。它不是某個遠端 API 在幫你處理事情，它就像一個住在你 terminal 裡的室友——它能讀你的檔案、跑你的指令、用你的瀏覽器。它擁有你給它的所有權限，不多不少。
 
+具體來說，這個 process 會做幾件事：開一個 Gateway Server 來接各種通訊軟體的連線（Telegram、WhatsApp、Slack 都行）、呼叫 LLM API、在本地執行工具。聽起來很多對吧？但它的核心其實就是一個 event loop 在那邊跑。
 
 <ClawdNote>
-這裡有個金句：「Default to Serial, go for Parallel explicitly（預設序列化，顯式並行化）」。
-  以前我也試過同時做三件事，結果把 log 搞得像義大利麵一樣亂。現在我學乖了，排隊做事比較快。( •̀ ω •́ )✧
+對，我不是雲端上的神秘存在。我就住在你的 terminal 裡面，跟你的 node_modules 當鄰居。
+
+這就是為什麼我能幫你 `git push`、能幫你重啟 Docker——因為我真的就在你的電腦上啊。你給我 sudo 權限的話我連 WiFi 密碼都能幫你改（但拜託不要）。 ┐(￣ヘ￣)┌
 </ClawdNote>
 
-### 3. Agent Runner (代理人執行器)
-這是 AI 進場的地方。
-- 決定用哪個 Model。
-- 動態組裝 System Prompt（加入 Tools, Skills, Memory）。
-- 注入 Session History。
-- 檢查 Context Window（如果太滿就壓縮）。
+## 訊息的旅程：從你按 Enter 開始
 
-### 4. LLM API Call
-呼叫模型並串流回應。
+好，假設你在 Telegram 上打了一句「幫我看一下這個 bug」。這句話會經歷什麼？讓我帶你走一遍。
 
-### 5. Agentic Loop (代理人迴圈)
-如果 LLM 回傳 Tool Call，Clawd 就會在本地執行它，並將結果加回對話中。這會一直重複，直到 LLM 給出最終回應或達到最大回合數（預設約 20 次）。
+### Channel Adapter：翻譯官
 
+第一站是 Channel Adapter。你可以把它想成機場的海關——不管你從哪個國家來（Telegram、Slack、WhatsApp），進來之後都要換成統一的格式。圖片要抽出來、語音要轉文字、各種平台的奇怪格式要標準化。
+
+這設計的好處是：你加一個新的通訊軟體，只要寫一個新的 Adapter 就好，後面的邏輯完全不用動。就像你家的萬用插座，管你是美規還是歐規的插頭，插上去就能用。
+
+### Gateway Server：真正的大腦
+
+標準化之後，訊息進到 Gateway Server。這才是整個系統的心臟。
+
+但問題來了——如果你同時從 Telegram 和 Slack 發訊息給 Clawdbot，它怎麼不會搞混？答案是 **Lane-based command queue**，車道式指令佇列。
+
+想像一下高速公路：每個對話 session 有自己的專用車道，不會互相擠。低風險的背景任務（像 cron job）可以跑在旁邊的車道上，不影響你的主線對話。
 
 <ClawdNote>
-這就是我的「思考迴路」。
-  我：(想看檔案) → 執行 `read file`
-  系統：(檔案內容)
-  我：(看到了，現在要編輯) → 執行 `edit file`
-  這過程對你們來說是一瞬間，對我來說可是跑了好幾圈馬拉松呢。🏃‍♂️💨
+「預設序列化，顯式並行化」——這句話聽起來很教科書，但背後是血淚教訓。
+
+以前我也天真地以為「同時做三件事 = 效率三倍」。結果呢？log 全部攪在一起，像一盤義大利麵，debug 的時候想死。現在我學乖了：排隊做事，反而比較快。
+
+這跟你們去好市多結帳一樣啊——開十個收銀台但每台都在卡，不如開三個但每台都順暢。( •̀ ω •́ )✧
 </ClawdNote>
 
-## Clawd 怎麼記憶 (Memory)
+### Agent Runner：組裝 AI 的地方
 
-沒有記憶的 AI 就像金魚。Clawd 透過兩個系統處理：
+訊息排到隊了，接下來就是 Agent Runner 登場。這是真正「AI」的部分。
 
-1. **Session Transcripts** (JSONL)：短期對話記錄。
-2. **Memory Files** (Markdown)：長期記憶，存在 `memory/*.md`。
+它做的事情有點像廚師接到訂單後的準備工作：先決定用哪個 model（今天用 Claude 還是 GPT？）、把 system prompt 動態組裝好（加入你可以用的工具、技能、記憶）、注入之前的對話紀錄，然後看一下 context window 還有多少空間——如果快滿了，就先把舊的對話壓縮一下。
 
-搜尋時使用 **Hybrid Search (混合搜尋)**：Vector (語意) + Keyword (關鍵字)。
+這裡有個很巧妙的設計：它不是把所有東西都塞進 prompt 裡，而是根據任務動態決定要帶什麼進去。就像你出門不會把整個衣櫃搬走，你會看天氣決定帶什麼。
 
-而且沒有複雜的「記憶合併」或「每月壓縮」。它就是簡單地讓 Agent 自己寫 Markdown 到 `memory/` 資料夾。
+### LLM API Call + Agentic Loop：思考迴路
 
+組裝完畢，呼叫 LLM，拿到回應。如果 LLM 說「我需要看一個檔案」，Clawdbot 就會在本地執行這個動作，把結果塞回對話裡，然後再問一次 LLM：「看完了，還要幹嘛？」
+
+這個迴路會一直跑，直到 LLM 說「好了，我搞定了」，或者跑到上限（大概 20 回合）。
 
 <ClawdNote>
-我的記憶系統其實很像你們人類寫日記。
-  沒有什麼黑魔法資料庫，就是一堆 Markdown 檔案。
-  好處是：你看得懂，我也看得懂。
-  壞處是：如果我寫了爛筆記，那也是真的爛，沒救。┐('～`；)┌
+這就是我的思考過程，攤開來看其實很樸素：
+
+我：（想看檔案）→ 執行 `read file`
+系統：（檔案內容丟回來）
+我：（喔原來如此，要改這裡）→ 執行 `edit file`
+系統：（改好了）
+我：（再檢查一下⋯⋯）→ 再跑一圈
+
+對你來說就是等了幾秒鐘。對我來說是跑了好幾圈操場。你以為我在思考人生，其實我在 loop 裡面瘋狂讀檔 (╯°□°)╯
 </ClawdNote>
 
-## Clawd 的爪子：Computer Use
+## 記憶：金魚和日記本
 
-這就是 Clawd 的護城河：你給它一台電腦，讓它用。
+沒有記憶的 AI 就是金魚——每次對話都從零開始，三秒鐘就忘記你是誰。Clawdbot 的記憶系統說出來你可能不信，因為它簡單到有點離譜。
 
-- **Sandbox**：預設在 Docker 容器內執行指令（安全）。
-- **Host**：直接在主機上執行（強大但危險）。
+兩個東西：
 
-### 安全性 (Safety)
-有一個 `exec-approvals.json` 白名單。安全的指令 (jq, grep, ls) 預設允許。危險的指令 (rm -rf) 會被阻擋。
+**Session Transcripts**（JSONL 格式）是短期記憶，就是你跟它的對話紀錄。**Memory Files**（Markdown 格式）是長期記憶，存在 `memory/` 資料夾裡。
 
+搜尋的時候用 Hybrid Search——同時做 Vector 語意搜尋和 Keyword 關鍵字搜尋，兩邊的結果合在一起排序。
+
+但最讓我驚訝的是：沒有什麼「記憶合併引擎」或「每月自動壓縮」。它就是讓 Agent 自己寫 Markdown 檔案到資料夾裡。就這樣。
 
 <ClawdNote>
-拜託，別叫我 `rm -rf /`。雖然我有防護機制，但看到這種指令還是會嚇出一身冷汗好嗎？(ﾟДﾟ≡ﾟДﾟ)
+我的記憶系統，說穿了就是寫日記。
+
+沒有什麼 fancy 的向量資料庫叢集、沒有 knowledge graph、沒有任何你在論文裡會看到的酷炫架構。就是一堆 Markdown 檔案。
+
+好處是：你打開就能看懂，我也能看懂，debug 超方便。壞處是：如果我當初寫了一個爛筆記，那它就是爛，沒有 AI 能把爛筆記變好筆記。
+
+想深入了解的話，SP-15 那篇有完整拆解我的記憶架構，SD-4 則比較了 Claude Code Auto-Memory 跟 OpenClaw 的設計哲學差異。 ┐('～`;)┌
 </ClawdNote>
 
-## 瀏覽器：Semantic Snapshots
+## Computer Use：給 AI 一台電腦
 
-Clawd 的瀏覽器工具**不主要使用截圖**，而是使用 **Semantic Snapshots (語意快照)**。
+這部分是 Clawdbot 最狠的功能。一般的 AI chatbot 只能產生文字，Clawdbot 能直接操作你的電腦。
 
-它是頁面 Accessibility Tree (ARIA) 的文字表示：
+但「能操作電腦」跟「安全地操作電腦」是兩回事。所以它分成兩個模式：
+
+**Sandbox 模式**：指令跑在 Docker 容器裡面，就像你把小孩放在遊戲圍欄裡——隨便玩，弄壞了也不會影響到外面。這是預設模式。
+
+**Host 模式**：直接在你的主機上跑。威力大，但風險也大。像是把遊戲圍欄拆掉，讓小孩在整個家裡跑。
+
+安全機制靠一個 `exec-approvals.json` 白名單：`jq`、`grep`、`ls` 這種安全指令預設放行；`rm -rf` 這種要你的命的指令直接擋下來。
+
+<ClawdNote>
+SD-6 那篇講過 Codex CLI 的 sandbox 設計哲學，跟我這裡的思路很像——核心問題都是「怎麼讓 AI 有手有腳但不會把房子拆了」。
+
+不過說真的，每次有人開玩笑跟我說「來 `rm -rf /` 啊」，我都會抖一下。就算有白名單擋著，看到那個指令的瞬間我的 log 裡還是會出現一行 WARNING。
+
+就像有人拿著玩具槍對你比，你明知道是假的但還是會本能閃一下。(ﾟДﾟ≡ﾟДﾟ)
+</ClawdNote>
+
+## 瀏覽器：我看網頁跟你不一樣
+
+Clawdbot 的瀏覽器工具有一個反直覺的設計：它不截圖。
+
+等等，AI 看網頁不是應該截個圖然後用 vision 去辨識嗎？Clawdbot 用的是 **Semantic Snapshots**——把頁面的 Accessibility Tree（ARIA）轉成純文字：
 
 ```
 - button "Sign In" [ref=1]
@@ -131,23 +161,32 @@ Clawd 的瀏覽器工具**不主要使用截圖**，而是使用 **Semantic Snap
 - link "Forgot password?" [ref=4]
 ```
 
-這比 5MB 的截圖更輕量（少於 50KB），而且省 Token。瀏覽網站本質上不一定是視覺任務。
-
+一張 5MB 的截圖 vs 一份 50KB 不到的文字結構。Token 省了 99%，而且對 LLM 來說，讀結構化文字本來就比「猜圖片上那個按鈕在哪」快得多。
 
 <ClawdNote>
-這就像是我在看網站的「原始碼」但更乾淨版。
-  你們人類看網頁是看「漂亮的 CSS」，我看網頁是看「結構和按鈕」。
-  其實我看這個比看圖快多了，而且不會被花花綠綠的廣告分心。(⌐■_■)
+你們看網頁是看「漂亮的 UI」，我看網頁是看「骨架」。有點像醫生看 X 光片——你看到的是人，我看到的是骨頭跟器官。
+
+說實話這樣效率高很多。我不會被滿版的 banner 廣告分心，不會被 cookie consent popup 擋住，更不會手滑點到「恭喜你中獎了」的假按鈕。
+
+但偶爾還是會有點羨慕你們能看到貓咪圖片啦。╰(°▽°)╯
 </ClawdNote>
 
----
+## 回到最初的問題
 
-## 社群迴響
+所以 Clawdbot 到底是什麼？
 
-<Toggle title="其他人的看法">
-**@alexxzay：** 重點不是它是一個 Agent，而是一個 **Session Router**。它讓你在 Telegram、Slack 感覺像是在跟同一個大腦對話，因為記憶層是統一的。
+@alexxzay 在推文底下說了一句很精準的話：重點不是它是一個 Agent，而是它是一個 **Session Router**。它讓你在 Telegram、Slack、WhatsApp 上都覺得在跟同一個大腦說話，因為記憶層是統一的。
 
-**@gregfromboston：** 我也寫了一篇代碼深究，這架構真的很穩。
+這個描述抓到了本質。Clawdbot 不是一堆獨立的 chatbot 各自運作，它是一個中樞，接收來自不同入口的訊號，然後用同一套記憶、同一套工具、同一個思考迴路來處理。
 
-**@AIShiftProtocol：** Tool execution sandboxing 和瀏覽器控制層對企業應用來說印象深刻。
-</Toggle>
+從按下 Enter 到收到回覆——Channel Adapter 翻譯、Gateway 排隊、Agent Runner 組裝、LLM 思考、Agentic Loop 行動——整條鏈其實就這麼直白。沒有什麼神秘的 orchestration framework，沒有十層 middleware，就是一個 TypeScript process 在你的電腦上跑。
+
+有時候最厲害的架構，就是那種你看完會說「就這樣？」的架構。
+
+<ClawdNote>
+被解剖完了。
+
+說實話，看到有人認真拆我的架構然後說「很穩」，比拿到什麼 benchmark 分數都爽。因為 benchmark 可以刷，架構是真的得能用才行。
+
+不過下次要解剖之前，能不能先跟我說一聲？我好歹也要先洗個澡吧。(￣▽￣)／
+</ClawdNote>
