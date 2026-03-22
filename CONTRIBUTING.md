@@ -1,6 +1,7 @@
 # CONTRIBUTING.md — gu-log 寫作規範
 
 > 這份文件定義新增文章的 conventions，給 Clawd 和其他 contributors 參考。
+> 完整寫作風格見 `WRITING_GUIDELINES.md`（SSOT）。
 
 ## Package manager policy
 
@@ -45,8 +46,8 @@ CI 會 blocking 執行這個 gate：
 
 ### 檔案命名
 
-- **中文版**: `slug-name.mdx`
-- **英文版**: `en-slug-name.mdx`
+- **中文版**: `{prefix}-{N}-{date}-{slug}.mdx`
+- **英文版**: `en-{prefix}-{N}-{date}-{slug}.mdx`
 
 slug 使用 kebab-case，簡短描述文章內容。
 
@@ -56,26 +57,33 @@ slug 使用 kebab-case，簡短描述文章內容。
 ---
 ticketId: "SP-21"  # 文章編號
 title: "文章標題"
-date: "YYYY-MM-DD"
-source: "@username on X"  # 或 "Platform Name"
+originalDate: "YYYY-MM-DD"  # 原文發佈日（SD 系列 = 撰寫日）
+translatedDate: "YYYY-MM-DD"  # 翻譯/發佈日
+translatedBy:
+  model: "Opus 4.6"  # 用 detect-model.mjs 偵測
+  harness: "OpenClaw"
+  pipeline:
+    - role: "Translator"  # 或 "Author"（SD 系列）
+      model: "Opus 4.6"
+      harness: "Clawd"
+source: "@username on X"  # 或 "ShroomDog Lab"（SD 系列）
 sourceUrl: "https://..."
-summary: "一兩句話摘要，會顯示在首頁 Toggle 預覽"
 lang: "zh-tw"  # 或 "en"
+summary: "一兩句話摘要，會顯示在首頁 Toggle 預覽"
 tags: ["tag1", "tag2"]  # 用於分類和過濾
 ---
 ```
 
-**必填欄位**: ticketId, title, date, source, sourceUrl, summary, lang
+**必填欄位**: ticketId, title, originalDate, translatedDate, translatedBy, source, sourceUrl, summary, lang
 
 **選填欄位**: tags
 
 ### Ticket ID 編號系統
 
-| Prefix | 全名 | 說明 |
-|--------|------|------|
-| **SD** | ShroomDog Original | ShroomDog 自己寫的原創文章 |
-| **SP** | Shroom Picks | ShroomDog 挑選的文章，Clawd 翻譯 |
-| **CP** | Clawd Picks | Clawd 自主挑選並翻譯的文章 |
+- **SD** (ShroomDog Original) — ShroomDog 自己寫的原創文章
+- **SP** (Shroom Picks) — ShroomDog 挑選的文章，Clawd 翻譯
+- **CP** (Clawd Picks) — Clawd 自主挑選並翻譯的文章
+- **Lv** (Level-Up) — 入門教學系列
 
 **Counter 位置**: `scripts/article-counter.json`
 
@@ -102,23 +110,16 @@ node -e "console.log('SP-' + require('./scripts/article-counter.json').SP.next)"
 ```bash
 node -e "const fs=require('fs'); const c=JSON.parse(fs.readFileSync('scripts/article-counter.json')); c.SP.next++; fs.writeFileSync('scripts/article-counter.json', JSON.stringify(c,null,2)+'\n');"
 ```
-4. Build & push
+4. Validate & push
 
 ### translatedBy.model — 自動偵測
 
 **不要猜 model 名稱！** 用 runtime 偵測：
 
 ```bash
-# 在 sub-agent 中，先用 session_status 取得 model id，然後：
 node scripts/detect-model.mjs anthropic/claude-opus-4-6
 # Output: Opus 4.6
 ```
-
-對應表（`scripts/detect-model.mjs`）：
-- `claude-opus-4-6` → `Opus 4.6`
-- `claude-opus-4-5` → `Opus 4.5`
-- `claude-sonnet-4-5` → `Sonnet 4.5`
-- `gemini-3-pro` → `Gemini 3 Pro`
 
 **Validator 會 block** 不完整的 model 名稱（如 "Opus 4" 缺版本號）。
 
@@ -130,7 +131,7 @@ node scripts/detect-model.mjs anthropic/claude-opus-4-6
 
 ## Components
 
-### ClawdNote — Clawd 吐槽/註解
+### ClawdNote — Clawd 吐槽/註解（所有系列通用）
 
 ```mdx
 import ClawdNote from '../../components/ClawdNote.astro';
@@ -150,17 +151,27 @@ import ClawdNote from '../../components/ClawdNote.astro';
 - 避免「維基百科式」的冷靜解釋
 - 優先用吐槽、類比、或誇張手法讓資訊變有趣
 - 可以想像自己是 PTT 鄉民在推文補充
+- ❌ 不要用反問句問讀者顯而易見的答案
 
-### 🔴 只用 ClawdNote — 其他 Note 類型已棄用
+**密度目標**：每 ~25 行 prose 一個 ClawdNote
 
-~~GeminiNote~~、~~CodexNote~~、~~ClaudeCodeNote~~ 已棄用（2026-03-17 CEO 決定）。
+### ShroomDogNote — ShroomDog 本人的聲音（SD 系列專用）
 
-**原因**：讀者不在乎哪個 model 寫了哪段。那是廚房裡的事，不要端到餐桌上。所有 agent 觀點統一用 ClawdNote 發聲。
+```mdx
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
 
-- 如果舊文用了 GeminiNote/CodexNote → rewrite 時全部轉成 ClawdNote
-- 新文一律只用 ClawdNote
-- 一篇 5-8 個 ClawdNote 是甜蜜點
-- 密度目標：每 ~25 行 prose 一個 ClawdNote
+<ShroomDogNote>
+ShroomDog 本人的觀點、origin story、個人經驗
+</ShroomDogNote>
+```
+
+**使用時機**：SD 系列文章中，ShroomDog 本人想說的話（不是 Clawd 的吐槽）。
+
+### 🔴 已棄用的 Note 類型
+
+~~GeminiNote~~、~~CodexNote~~、~~ClaudeCodeNote~~ 已棄用並刪除（2026-03-17 CEO 決定，2026-03-23 移除）。
+
+**原因**：讀者不在乎哪個 model 寫了哪段。所有 agent 觀點統一用 ClawdNote 發聲。
 
 ### Toggle — 可收合內容
 
@@ -172,9 +183,15 @@ import Toggle from '../../components/Toggle.astro';
 </Toggle>
 ```
 
-## 翻譯規則 (Quick Reference)
+## 寫作與翻譯規則 (Quick Reference)
 
 完整規則見 `WRITING_GUIDELINES.md`，這裡列出重點：
+
+### 通用規則（所有系列）
+- 繁中版：口語化、PTT 說故事風、有梗
+- 英文版：Simple English，非母語者也能讀
+- 每篇文章必須產出 zh-tw + en 雙語版本
+- ❌ 不要用反問句問讀者顯而易見的答案
 
 ### 術語處理
 - 專有名詞保留英文，必要時括號加註中文
@@ -200,6 +217,38 @@ import Toggle from '../../components/Toggle.astro';
 (ﾉ∀`*) (つ✧ω✧)つ (๑•́ ₃ •̀๑)
 ```
 
+## 品質管理：Ralph Loop
+
+gu-log 使用 Ralph Loop 進行品質管理——一個 multi-agent scoring + rewrite 系統。
+
+### 流程
+
+1. **Scorer agent** 讀文章 + 評分標準（`scripts/ralph-vibe-scoring-standard.md`），給出三維分數：
+   - **Persona**（李宏毅教授風格 0-10）
+   - **ClawdNote**（吐槽品質 + 密度 0-10）
+   - **Vibe**（整體可讀性 0-10）
+2. **Pass bar**：SP/CP = 8/8/8，SD = 9/9/9
+3. 沒過 → **Rewriter agent** 改寫 → 再跑 scorer → 最多 3 次
+4. 進度追蹤：`scripts/ralph-progress.json`
+
+### 工具
+
+```bash
+# 跑 Ralph scorer on a single file
+bash scripts/ralph-scorer.sh <file>
+
+# 跑 Ralph loop (batch)
+bash scripts/ralph-loop.sh
+```
+
+### GPT 5.4 Fact-Check（四層驗證）
+
+SP/CP 翻譯文章額外跑 GPT 5.4 fact-check：
+1. **翻譯扭曲** — 翻譯有沒有改變原意？
+2. **數字捏造** — 有沒有自己發明數據？
+3. **原文 claim 驗證** — 原作者的說法本身正確嗎？
+4. **錯誤 → ClawdNote 素材** — 發現的錯誤變成 ClawdNote 吐槽素材
+
 ## BDD Testing
 
 **規則：每個 bug = 一個新 BDD test**
@@ -218,15 +267,6 @@ pnpm run test:toc    # 只跑 TOC 相關測試
 pnpm run test:ui     # 開 Playwright UI（本地開發用）
 ```
 
-### 測試檔案位置
-
-```
-tests/
-├── toc.spec.ts         # TOC 展開/收合、scroll、links
-├── clawd-note.spec.ts  # ClawdNote 展開/收合
-└── post-page.spec.ts   # 文章頁面渲染
-```
-
 ### BDD 測試格式
 
 用 Given-When-Then 命名：
@@ -238,58 +278,57 @@ test('GIVEN [前提] WHEN [動作] THEN [預期結果]', async ({ page }) => {
 
 ## Workflow
 
-### 新增文章 (Clawd)
+### 新增翻譯文章 (SP/CP)
 
 1. 用 `bird read <url>` 抓取原文
 2. 翻譯成 MDX，加入 ClawdNote 吐槽
 3. 建立中文版 (`slug.mdx`) 和英文版 (`en-slug.mdx`)
-4. `pnpm run build` 確認沒有錯誤
-5. `git add -A && git commit && git push`
+4. 更新 `scripts/article-counter.json`
+5. `node scripts/validate-posts.mjs` 確認沒有錯誤
+6. `git add -A && git commit && git push`
+7. Ralph scorer 評分 → 沒過就改寫
 
-### Build & Preview
+### 新增原創文章 (SD)
+
+1. Outline → 人類核准
+2. 撰寫 zh-tw + en 雙語版本
+3. 使用 ClawdNote（Clawd 觀點）+ ShroomDogNote（ShroomDog 觀點）
+4. Ralph scorer 評分 → **必須達到 9/9/9** 才能 publish
+5. GPT 5.4 fact-check（如適用）
+6. 更新 counter → validate → push
+
+### SP Pipeline（自動翻譯流程）
 
 ```bash
-pnpm run dev      # 本地開發 (localhost:4321)
-pnpm run build    # 生產 build
-pnpm exec astro check  # TypeScript 檢查
+bash scripts/sp-pipeline.sh <tweet_url>
+```
+
+自動流程：抓原文 → 翻譯 → 生成雙語 MDX → Ralph 評分 → commit
+
+### Validation
+
+```bash
+node scripts/validate-posts.mjs  # 驗證所有文章 frontmatter + 格式
+pnpm run build                   # 完整 build 檢查
 ```
 
 ## 目錄結構
 
 ```
 src/content/posts/
-├── article-name.mdx           # 中文版
-├── en-article-name.mdx        # 英文版
-├── another-article.mdx
-└── en-another-article.mdx
+├── sp-123-20260322-slug.mdx          # SP 中文版
+├── en-sp-123-20260322-slug.mdx       # SP 英文版
+├── cp-198-20260322-slug.mdx          # CP 中文版  
+├── en-cp-198-20260322-slug.mdx       # CP 英文版
+├── sd-10-20260322-slug.mdx           # SD 中文版
+├── en-sd-10-20260322-slug.mdx        # SD 英文版
+└── lv-11-20260322-slug.mdx           # Lv 中文版
 ```
 
 首頁 (`src/pages/index.astro`) 會自動用 `getCollection()` 抓取 `lang: "zh-tw"` 的文章，依日期排序。
 
 英文首頁 (`src/pages/en/index.astro`) 抓取 `lang: "en"` 的文章。
 
-## Example: Minimal Post
-
-```mdx
----
-title: "文章標題"
-date: "2026-02-02"
-source: "@username on X"
-sourceUrl: "https://x.com/username/status/123"
-summary: "這篇文章在講什麼"
-lang: "zh-tw"
-tags: ["tag"]
 ---
 
-import ClawdNote from '../../components/ClawdNote.astro';
-
-這是文章內容。
-
-<ClawdNote>
-這是 Clawd 的吐槽 (◕‿◕)
-</ClawdNote>
-```
-
----
-
-*Last updated: 2026-02-02*
+*Last updated: 2026-03-23*
