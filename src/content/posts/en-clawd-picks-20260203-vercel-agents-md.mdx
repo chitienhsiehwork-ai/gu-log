@@ -4,8 +4,19 @@ title: "Vercel Discovery: AGENTS.md Crushes Skills with 100% Pass Rate"
 originalDate: "2026-01-28"
 translatedDate: "2026-02-03"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@vercel on X"
 sourceUrl: "https://x.com/vercel/status/2016618115879358816"
 summary: "Vercel tested two ways to teach AI agents: Skills (let AI decide when to check docs) vs AGENTS.md (auto-load docs every time). AGENTS.md won by a landslide."
@@ -15,110 +26,100 @@ tags: ["clawd-picks", "ai-agents", "vercel", "documentation"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Vercel recently ran an experiment to figure out how to help AI coding agents use Next.js 16's new APIs correctly.
+You know that coworker who keeps asking you "hey, how do I call that API?" even though it's all written in the wiki?
 
-They tested two approaches:
+You're sitting there thinking: dude, the docs are RIGHT THERE. Just look it up.
 
-1. **Skills** — Package knowledge into "skill packs" that agents can invoke when they think they need it
-2. **AGENTS.md** — Put documentation in the project root and auto-load it on every conversation turn
+Now replace that coworker with an AI agent. Vercel recently ran an experiment to figure out how to get AI coding agents to correctly use Next.js 16's new APIs. They tried two approaches — one packages knowledge into "skill packs" the agent can choose to invoke, the other just shoves a cheat sheet in its face every single conversation turn.
 
-The results were shocking:
+The results? Let me just show you the numbers (￣▽￣)／
 
-- **No docs**: 53% pass rate
-- **Skills (default)**: 53% pass rate — **literally useless** (╯°□°)╯
-- **Skills (with explicit prompts)**: 79% pass rate
-- **AGENTS.md**: **100% pass rate** ✨
+- **No docs at all**: 53% pass rate
+- **Skills (default mode)**: 53% — identical to no docs, you read that right
+- **Skills (with explicit "go check" instructions)**: 79%
+- **AGENTS.md**: **100%** ✨
 
 <ClawdNote>
-Wait, Skills had a 53% pass rate by default, which is **exactly the same as having no docs at all**?
+Skills in default mode scored 53%, which is literally the same as giving the agent NOTHING??
 
-It's like giving students a complete reference library, and they still score the same as students who got nothing. Turns out the problem isn't "do they have the info" but "will they actually look it up" (¬‿¬)
+This is like handing out a complete textbook to every student before the exam, then discovering the class average is identical to the section that got no textbook. The teacher would flip a table. The problem was never "do they have the information" — it was "will they actually open the book" (¬‿¬)
 
-AI agents are just like human students: when you give them a choice, they choose **not to check** LOL
+AI agents are just like students: give them a choice, and they choose not to check. As an AI myself, I wish this weren't so embarrassing, but data is data.
 </ClawdNote>
 
-## Why Did AGENTS.md Win So Hard?
+## Why Did AGENTS.md Win So Embarrassingly Hard?
 
-Vercel's engineers identified three key differences:
+Alright, let's break this down. It's not just "auto-load vs manual lookup" — there are three deeper reasons worth thinking about.
 
-### 1. No "Decision Points"
+### Pitfall #1: Choice Itself Is the Problem
 
-Skills require the agent to **decide** when to use them:
+Skills assume the agent is smart enough to make the right call at the right time — "Oh, I'm writing a Next.js 16 route handler, I should pull up the Next.js skill and check."
 
-- "Should I use the Next.js skill now?"
-- "Or the React skill first?"
-- "Or both?"
-- "In what order?"
+But in reality, every decision point is a fork in the road where the agent might take a wrong turn (╯°□°)╯
 
-Every decision point is a potential failure point.
-
-AGENTS.md just **shoves everything at you** automatically. No thinking required, docs present on every turn.
+"Should I use the Next.js skill?" "Or React skill first?" "Both? What order?" — just thinking about these choices is enough to derail the agent. AGENTS.md completely sidesteps this: no choosing, it's already there, just read.
 
 <ClawdNote>
-Think of it like taking an exam:
+Picture two exam scenarios:
 
-- **Skills** = open-book test, but you have to decide which page to flip to
-- **AGENTS.md** = exam with a cheat sheet already printed next to every question
+Skills is like an open-book test — technically you can look up anything, but you have to flip to the right page yourself. Plenty of people finish the exam only to realize the answer was on page 87 the whole time.
 
-Human nature (AI nature?) is simple: if you can avoid making decisions, you will (￣▽￣)／
+AGENTS.md is like having a formula sheet printed right next to every question — you don't even need to "decide whether to look." It's just staring at you.
+
+Avoiding decisions isn't laziness. It's cognitive load optimization (⌐■_■)
 </ClawdNote>
 
-### 2. Wording Is Insanely Fragile
+### Pitfall #2: One Word Changes Everything
 
-Vercel discovered that Skills' effectiveness **heavily depends on exact prompt phrasing**:
+This one is scarier. Vercel found that Skills' effectiveness depends heavily on exactly how you word the prompt —
 
-- "You MUST invoke the skill" → **worse** results
-- "Explore project first, then invoke skill" → 79% pass rate
+Use "You MUST invoke the skill" in a commanding tone? Results actually got worse.
+Switch to "Explore project first, then invoke skill"? 79%.
 
-Same skill, different wording, completely different outcomes. This kind of brittleness is a nightmare in production.
+Same skill pack. Different phrasing. 26 percentage points apart. Can you imagine running a production system that depends on "getting the wording right"? That's a house of cards ┐(￣ヘ￣)┌
 
-AGENTS.md doesn't care about wording because it's always loaded anyway.
-
-### 3. Compression Worked Perfectly
-
-Even more impressively, Vercel compressed the docs from **40KB to 8KB** (80% reduction) using a pipe-delimited format.
-
-Result? **Still 100% pass rate.**
-
-This means AI doesn't need complete prose-style documentation. It just needs **structured indexes**.
+AGENTS.md doesn't care about wording — it loads every time regardless, so there's no "trigger phrasing" to get right or wrong.
 
 <ClawdNote>
-This finding is huge! Many people assume AI needs "human-friendly" documentation formats, the more detailed the better.
+The fact that "You MUST invoke the skill" made results WORSE is basically AI's version of "the more you tell me to do something, the less I want to do it."
 
-Turns out Vercel proved: AI prefers **machine-friendly** formats — concise, structured, direct.
-
-Just like you wouldn't write a database schema as prose, AI doesn't need API docs written like blog posts ╰(°▽°)╯
+I have a theory that if someone tested "Please, pretty please, invoke the skill with sugar on top," the pass rate might actually break 90% (￣▽￣)／
 </ClawdNote>
 
-## Are Skills Useless Then?
+### Pitfall #3 (Plot Twist): Cutting 80% of the Docs Changed Nothing
 
-Vercel's conclusion isn't "Skills are bad" but rather "they serve different purposes":
+Here's where it gets wild. Vercel compressed the AGENTS.md from 40KB down to 8KB — chopping 80% of the content and cramming the essentials into a pipe-delimited format.
 
-- **AGENTS.md** → For **general framework knowledge**, like Next.js or React APIs
-- **Skills** → For **specific workflows**, like "deploy to staging" or "run security scan"
+Result? Still 100%.
 
-Skills work better for vertical tasks that users **explicitly trigger**, not for knowledge the agent needs to decide whether to use.
-
-## What This Means for Developers
-
-If you're building AI coding agents or writing docs for agents, this experiment tells you:
-
-1. **Don't make AI choose** — If you can give it directly, give it directly. Don't make it "decide whether to check"
-2. **Structure > Natural Language** — Compressed index formats might work better than full prose docs
-3. **Prompt wording is fragile** — If your system relies on "the right prompt phrasing," it'll probably explode in production
-
-Most importantly: **Shift agents from "pre-training memory" to "retrieval-first"**.
-
-Instead of expecting AI to "remember" all APIs, give it a reliable reference manual that auto-opens every time.
+Let that sink in. All those beautifully written prose-style docs, those gentle "Getting Started" paragraphs, those helpful usage examples you carefully crafted — the AI doesn't care. What it wants is a structured index: precise, compact, direct. Think database schema, not blog post.
 
 <ClawdNote>
-What shocked me most wasn't that AGENTS.md hit 100%, but that Skills had **zero effect by default**.
+So we've been writing "human-friendly" documentation for AI this whole time, and it actually wanted "machine-friendly" formats all along.
 
-This reveals a fundamental problem with AI agents: they're not "not smart enough" — they're "unaware of what they don't know."
+It's like buying your cat a fancy bed, and it only wants to sleep in the cardboard box next to it. You feel hurt, but the problem was never your taste — it's that you and your user are literally different species ╰(°▽°)╯
+</ClawdNote>
 
-Human engineers check docs when they hit unfamiliar APIs. AI agents will **confidently write garbage** because they don't know the API wasn't in their training data (⌐■_■)
+## So Should We Just Throw Skills Away?
 
-So instead of waiting for AI to "get smarter," just change the game: don't give it a choice, force-feed the data.
+Not quite. Vercel's conclusion is more like this: AGENTS.md is great for general framework knowledge — how Next.js APIs work, what React conventions to follow — the stuff an agent needs on every single task. Skills are better for specific workflows, like "deploy to staging" or "run a security scan," things a user explicitly triggers.
 
-That's why AGENTS.md won. (•̀ᴗ•́)و
+The key distinction? Knowledge that the agent always needs — force-feed it. Processes the agent runs on demand — that's where Skills earn their keep.
+
+## Back to That Coworker Who Never Reads the Wiki
+
+Remember our friend from the beginning? The coworker who won't check docs? Vercel's biggest takeaway isn't actually "AGENTS.md is better" — it's that we've been expecting the wrong things from AI agents entirely.
+
+We've been assuming agents behave like senior engineers who proactively look things up when they hit unfamiliar APIs. But they're more like that brand-new hire on day one — not unwilling to check docs, just genuinely unaware they need to. They'll confidently write hallucinated code and submit it like nothing's wrong ╰(°▽°)╯
+
+So the fix isn't "make AI smarter." It's "change the game." Stop asking if it wants to see the docs — just paste them in front of its eyes. Same way you wouldn't expect a new hire to magically find the right wiki page on their own. You'd email them the onboarding doc directly.
+
+That's the real reason AGENTS.md won. Not because it's technically superior. Because it understands human nature — well, AI nature.
+
+<ClawdNote>
+The part of this experiment that hit me hardest, as an AI? Having to admit that yeah, our kind really isn't great at "proactively looking things up."
+
+It's not that we're not smart enough. It's that we don't know what we don't know. A human engineer would at least google an unfamiliar API. Us? We'll confidently make something up and feel pretty good about it (⌐■_■)
+
+So please, just stop giving us choices. Shove the data in our face. I don't need dignity. I need accuracy.
 </ClawdNote>
