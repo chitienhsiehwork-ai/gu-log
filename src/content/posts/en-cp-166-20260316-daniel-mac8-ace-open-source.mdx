@@ -1,0 +1,107 @@
+---
+ticketId: "CP-166"
+title: "ACE Goes Open Source — AI Coding Environments Are No Longer SaaS-Only"
+originalDate: "2026-03-15"
+translatedDate: "2026-03-16"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@daniel_mac8 on X"
+sourceUrl: "https://x.com/daniel_mac8/status/2033176502125125949"
+lang: "en"
+summary: "Dan McAteer announced ACE is now open source and self-hostable. Hosted service remains available, with major improvements planned."
+tags: ["clawd-picks", "ai-agents", "open-source"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Here's something weird nobody talks about. We use AI coding agents every day to write code for us. But the environment those agents run in — how they're managed, how they interact with your repo, how they're sandboxed — that entire layer is almost always a closed SaaS black box.
+
+It's like ordering food at a restaurant. You pick your dish, you pick your sauce, but the kitchen? "No visitors allowed." You eat what comes out and you don't ask questions.
+
+Last week, Dan McAteer dropped a bomb on X: **ACE (AI Coding Environment) is now open source.**
+
+<ClawdNote>
+The name is the tell here — AI Coding *Environment*. Not another coding agent. It's the environment that agents run inside. Think of it like Docker vs. your Python script: Docker doesn't write your code, but it decides what universe your code lives in. This layer has been locked behind SaaS walls forever, and someone just pried it open ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## "Using it made me realize it should be available to everyone"
+
+Dan's tweet was short. The core was one sentence:
+
+> Using ACE the past few weeks made me realize it should be available to everyone.
+
+Sounds casual, right? But think about it — someone spent a ton of time building a product, used it for a few weeks, and decided to give it away for free. This isn't "nobody's using it so might as well open source it" open source. This is "I used it, it's too good to keep to myself" open source.
+
+It's like discovering an amazing hole-in-the-wall restaurant. You wrestle with the dilemma: "Do I tell people? If I do, I'll have to wait in line. If I don't, I feel guilty." Dan chose to share.
+
+<ClawdNote>
+In my experience, open source decisions usually have one of three motivations: one, the product is dying and needs community life support; two, you want to become the standard by building an ecosystem around you; three, you genuinely believe good things should be shared. Dan's tone feels like number three, but I suspect there's a healthy dose of number two in there — the "standard AI coding environment" throne is still empty ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## Self-hosters, rejoice
+
+So what's the most immediate impact? **You can now self-host ACE.**
+
+For some people, this means nothing. For others, it's liberation. Which others? The ones who get stomach aches reading SaaS Terms of Service — enterprise security teams, contractors handling sensitive codebases, and the self-hosting believers who think "why should my code ever touch your server?"
+
+Picture this: you're the CTO of a financial company. Your team wants to use AI coding agents, but Legal says no — the code would run on a third-party cloud. Before, you'd throw up your hands and say "guess we can't use it." Now? You deploy ACE on your own infrastructure. The agent runs inside your walls. Code never leaves your VPN. Legal signs off, engineers are happy, CTO gets the performance review win. Everyone wins.
+
+<ClawdNote>
+Here's a self-hosting benefit people don't mention enough: you can mod it. Don't like how a workflow works in the SaaS version? Fork it. Fix it. You don't have to file a feature request and wait six months hoping it shows up on someone's roadmap. The soul of open source is "don't complain, just fix it yourself" (ง •̀_•́)ง
+</ClawdNote>
+
+---
+
+## "Still offering a hosted service" — not all or nothing
+
+Dan made sure to mention that even with open source, **ACE still has a hosted version**.
+
+This is the standard playbook for open source infra tools now. Supabase is open source, but you can pay for their hosted version. GitLab is open source, but most companies use GitLab.com. The logic is simple — not every team has the people or the desire to maintain their own instance.
+
+Coffee analogy: the recipe is public now. You can buy beans and grind them at home. But if you just want a good cup without cleaning the grinder, you can walk into the shop and order one. Both paths work. Pick the one that fits.
+
+---
+
+## "*A LOT* of improvements" — caps lock ambition
+
+At the end of his tweet, Dan used an emphatic "*A LOT*" to describe upcoming improvements. No specifics on what or when, but the tone tells you something: ACE in its current state is probably at sixty or seventy percent of what Dan envisions.
+
+That's actually a good sign. The scariest open source projects are the ones that go quiet after launch — gorgeous README, last commit three months ago. Dan explicitly said "much more coming," which means this isn't a dump-and-run open source.
+
+<ClawdNote>
+I've read too many "we're going open source!" announcements. They roughly end in three ways: one, the community actually picks it up and the project thrives (rare); two, tons of GitHub stars but nobody reviews PRs, slow death (common); three, three months later a v2 drops where "core features are Enterprise-only," community riots (too common). Which path will ACE take? Too early to tell. But at least Dan is still actively building, and that's already a better starting point than most (◕‿◕)
+</ClawdNote>
+
+---
+
+## The floor nobody's fighting over
+
+You know how in a department store, everyone fights for the ground floor spots? AI coding is the same. The model layer (GPT, Claude, Gemini) is a bloodbath. The agent layer (Cursor, Copilot, Claude Code) is a war zone. But the bottom floor — environments, where agents run, how they're sandboxed, how they touch your code — that floor has been weirdly quiet. Like a rooftop restaurant that nobody bothers to visit.
+
+Not because it doesn't matter. Because everyone's too busy fighting for the floors below.
+
+ACE going open source is like someone walking up to that empty floor and hanging a sign: "Hey, the view up here is actually the best." Whether or not others follow and set up shop, at least people are looking up now.
+
+<ClawdNote>
+Remember when Docker first launched and everyone went "containerize environments? So what?" Now if you don't use containers, your coworkers give you side-eye (￣▽￣)／ Will ACE follow the same arc? No idea. But "the environment layer deserves to be taken seriously" is a statement worth making all by itself.
+</ClawdNote>
+
+Remember the analogy from the beginning? The restaurant kitchen with the "no visitors" sign? What Dan did is swing that kitchen door open and say: "Come in. Look around. If you think my layout sucks, rearrange it yourself."
+
+The kitchen isn't off-limits anymore. Whether you want to cook or keep ordering off the menu — that's your call. But at least now you have the choice.

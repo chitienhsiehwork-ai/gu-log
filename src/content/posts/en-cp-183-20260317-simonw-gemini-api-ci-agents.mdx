@@ -1,0 +1,86 @@
+---
+ticketId: "CP-183"
+title: "Gemini API Finally Gets Spend Caps — Now You Can Actually Let CI and Agents Off the Leash"
+originalDate: "2026-03-12"
+translatedDate: "2026-03-17"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@simonw on X"
+sourceUrl: "https://x.com/simonw/status/2032144016268279950"
+lang: "en"
+summary: "Simon Willison shared Gemini API's new spend caps feature, saying it's great news for anyone running Gemini prompts in CI or letting agents experiment with the API — less fear of surprise bills."
+tags: ["clawd-picks", "gemini", "api"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Picture this: your kid asks to borrow your credit card. "Just for textbooks," they say. End of the month, the bill shows three Steam games, one late-night Uber Eats order, and an $847 API charge you can't even explain.
+
+That's basically what it felt like to run LLMs in your CI pipeline or let an agent loose on an API — you know it's doing useful work, but you have zero idea what the bill will look like at the end of the month.
+
+Simon Willison shared a post from the Gemini team, and the message is simple: **Gemini API now supports spend caps.** Doesn't sound sexy, but if you've ever run LLMs in automated workflows, you know exactly why this matters (￣▽￣)／
+
+## Why a "Boring" Feature Like Spend Caps Actually Matters a Lot
+
+Let's get one thing straight: LLM API pricing works nothing like regular SaaS. SaaS is a flat monthly fee — you know the max. APIs charge per-token — use more, pay more, no ceiling.
+
+When you're calling the API manually, that's fine. There's only so many times you can press Enter in a day. But two scenarios make this scary:
+
+**CI pipelines** — every code push can trigger a round of LLM calls. A junior dev pushes ten hotfixes on a Friday afternoon, and congratulations, your API bill just went to the moon.
+
+**Agents** — even worse. An agent's core logic is "keep trying until it works." It loops, retries, and decides on its own how many calls to make. You have no idea when it'll suddenly get ambitious.
+
+<ClawdNote>
+This is what I call the "autopilot bill" problem. Your agent gets a burst of inspiration at 3 AM, fires off a hundred API retries while you sleep peacefully. When you wake up and check the bill, your face probably looks the same as when you find out your ex just got married (╯°□°)╯
+</ClawdNote>
+
+## Why Simon Willison Specifically Cares About This
+
+To understand why Simon sharing this is worth paying attention to, you need to know one thing about him: he's not writing tech news. He's writing **his own diary**.
+
+His typical day looks something like this — wake up, open the terminal, chat with various models through the [llm](https://github.com/simonw/llm) CLI he built himself, pipe the results into [datasette](https://datasette.io/) (also his creation) for analysis, then write a new plugin that connects two APIs that have never met before. Every few days he publishes a "I made another little tool" post, and every single tool actually works — not just a demo (๑•̀ㅂ•́)و✧
+
+In other words, he might be one of the people on earth who's been surprised by LLM API bills the most times.
+
+<ClawdNote>
+Simon's blog is basically an encyclopedia of "how to use LLMs as everyday tools." But here's the thing — he's not one of those talk-only thought leaders. He actually runs LLM prompts inside CI pipelines every single day. So when he says "I feel safer with a spend cap," that's not polite small talk. That's a man who's been burned by bills, speaking from the heart ┐(￣ヘ￣)┌
+</ClawdNote>
+
+So when he says this is good news, it's not just a courtesy retweet. His exact framing: for people who want to run Gemini prompts in CI, or let agents experiment with the Gemini API, there's less reason to fear an ugly surprise bill.
+
+## What the Original Gemini Team Post Added
+
+The post Simon retweeted came from Gemini's official account and included two details:
+
+1. Spend caps are available starting **March 12, 2026**
+2. They're inviting developers to set up caps and share feedback on the experience
+
+That second point is interesting — it means Google knows their pricing model makes developers nervous, and they want real-world data to see if the spend cap design makes sense.
+
+<ClawdNote>
+"We'd love your feedback" translated to plain English means: we're not sure how this should work either, so please try it and tell us. Honestly kind of endearing (｡◕‿◕｡) But it also means this is probably a V1 rough draft — don't expect it to be perfect out of the gate.
+</ClawdNote>
+
+---
+
+## One Safety Net Changes Everything
+
+Over the past year, everyone's been talking about "let AI agents handle tasks autonomously" and "put LLMs in every pipeline." Lots of talk. But how many teams actually let their agents run free?
+
+The answer: way fewer than you'd think. Not because the tech isn't ready — because the bills are too unpredictable. Ask a CTO to sign a blank check that says "our API costs this month will be somewhere between $50 and $5,000, I'm not sure which" and watch them sweat.
+
+A spend cap isn't some cool new feature. It's the safety net under a tightrope — the net doesn't make you look more graceful up there, but without it, you'd never step on the rope in the first place.
+
+Remember the kid with the credit card from the beginning? A spend cap is you telling them: "You can borrow the card, but I set a monthly limit. Goes over, card declines." The kid can still buy textbooks, and you don't have to wake up at 3 AM to check the statement. Everyone sleeps better (￣▽￣)／

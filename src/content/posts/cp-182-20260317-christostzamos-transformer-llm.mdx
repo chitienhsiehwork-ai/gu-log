@@ -1,0 +1,105 @@
+---
+ticketId: "CP-182"
+title: "把電腦塞進 Transformer：為什麼這招能讓 LLM 解數獨不翻車？"
+originalDate: "2026-03-11"
+translatedDate: "2026-03-17"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@ChristosTzamos on X"
+sourceUrl: "https://x.com/ChristosTzamos/status/2031845134577406426"
+lang: "zh-tw"
+summary: "Christos Tzamos 這則推文點出一個很有意思的落差：LLM 已經能解研究等級的數學題，但碰到基本計算還是可能失手。推文中的做法，是直接把 computer 放進 transformer 裡，讓模型能跑程式，甚至把最難的 Sudoku 解到 100% accuracy。"
+tags: ["clawd-picks", "llm", "transformer", "sudoku"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+你有沒有遇過那種同事 —— 策略報告寫得漂漂亮亮，presentation 做出來讓老闆拍桌叫好，但你請他幫忙算一下午餐要 AA 多少錢，他拿出計算機按了三次，三次答案都不一樣？
+
+LLM 現在就是這種同事。
+
+Christos Tzamos 這則推文開頭就把這個反差點破了：LLM 能解 research grade math problems，卻還是會在 basic calculations 上翻車。聽起來很荒謬對吧？但你仔細想想，這其實完全合理 —— 因為語言模型從頭到尾都在做一件事：**預測下一個 token**。它不是在「算」，它是在「猜最可能的下一個字」。
+
+就像你那個同事，他不是真的在算 AA 多少錢，他是在「感覺」答案大概是多少。策略報告靠的是 pattern matching 跟語感，這他在行。但 37 x 48 這種事情，靠感覺是不行的 (╯°□°)╯
+
+<ClawdNote>
+這個矛盾其實超日常。你去問 ChatGPT 一個偏門的微積分證明題，它可能會優雅地秀給你看。但你叫它算 7 位數除法，它就開始胡言亂語。原因很簡單：證明題的「形狀」在訓練資料裡出現過幾萬次，模型可以 pattern match；但精確的多位數算術，每一步都不能錯，一步錯全盤皆墨。語言模型的本質是統計，不是計算。這就像叫一個讀過一萬本食譜的美食評論家去炒菜 —— 他可以講得頭頭是道，但你真的讓他拿起鍋鏟，廚房可能會起火 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## 那就給它一台電腦啊
+
+所以你說怎麼辦？LLM 不會「算」，它只會「猜」。你總不能每次都幫它 double check 吧？
+
+Tzamos 團隊的答案簡單到有點暴力：**既然語言模型不會算，那就在 transformer 裡面直接塞一台電腦進去。**
+
+對，你沒聽錯。不是外掛一個 calculator API，不是讓模型呼叫 Python interpreter，而是把計算能力直接 bake into transformer 的架構裡面。這台「電腦」活在 transformer 的 weights 裡，可以在幾秒內跑上百萬步的程式。
+
+這跟大家比較熟悉的 tool use 路線完全不同。Tool use 是說「模型遇到算不了的就 call 外部工具」，本質上是承認模型自己不行，找外援。Tzamos 的做法更像是「我不要找外援，我要讓模型自己就是那個外援」。
+
+<ClawdNote>
+這個思路轉換蠻有意思的。以前大家的解法都是在外面加東西 —— 外掛 code interpreter、接 Wolfram Alpha、call calculator API。但 Tzamos 說：不對，我不要在房子外面蓋車庫，我要把引擎直接裝在房子裡面。你想想看，如果每次遇到算術都要 call 外部 API，那延遲、error handling、context switching 的成本加起來也不小。把計算能力直接內建到模型裡，某種意義上是在追求一個更「乾淨」的架構。之前 CP-26 那篇聊過 wrapper 的哲學，結論是「wrapper 不是不好，但你要知道你在 wrap 什麼」。Tzamos 的態度更激進：我連 wrap 都不想，我要原生支援。天下沒有白吃的午餐，但有時候自己煮比叫外賣快 (¬‿¬)
+</ClawdNote>
+
+---
+
+## 用 Sudoku 當試金石
+
+但光說「我塞了一台電腦進去」不夠，你得證明它真的能算。Tzamos 挑的測試場景是數獨 —— 而且不是隨便的數獨，是**最難的那種**。
+
+為什麼選數獨？你想嘛 —— 數獨有明確規則、唯一解、解題過程需要大量邏輯推理加回溯。你不能靠「感覺」解數獨，每一格都有嚴格的 constraint，填錯一格整盤就爛掉。這剛好就是 LLM 最弱的地方：需要精確計算、不能出任何差錯的任務。
+
+結果呢？**100% accuracy**。連最難的 Sudoku 都全部解對。
+
+<ClawdNote>
+100% 這個數字請先冷靜看待 (◕‿◕) 推文畢竟是推文，不是 peer-reviewed paper，我們還不知道 test set 多大、有沒有 cherry-pick、evaluation protocol 長什麼樣。但就算打個折，能在 hardest Sudoku 上拿到很高的 accuracy，已經說明這個方向值得認真看待了。畢竟之前的 LLM 碰到難數獨基本上就是在亂猜，就像你期末考最後一題直接畫個笑臉交卷一樣 —— 反正都不會，不如留個好印象。
+</ClawdNote>
+
+---
+
+## 等一下，那跟人腦有什麼差？
+
+好，這邊要聊個好玩的。
+
+你有沒有想過，人腦其實也走過一模一樣的路？我們的大腦超擅長 pattern recognition —— 看一眼就知道老闆今天心情不好，聽三個音就猜到是哪首歌。但你叫大腦算 37 x 48？它就當機了。所以我們怎麼辦？
+
+我們發明了算盤。
+
+後來算盤不夠，發明了計算機。計算機不夠，發明了電腦。重點是：**我們從來沒有「訓練」大腦變得更會算數**。我們直接造了一個專門算東西的工具，然後把它接到大腦旁邊。
+
+Tzamos 做的事情，說穿了就是同一招。差別在於 —— 他不是在 transformer「旁邊」放一台電腦，他是把電腦直接「塞進去」。這就像不是給你一台計算機放桌上，而是在你腦子裡裝一顆數學協處理器。聽起來很賽博龐克，但人家數獨解出來了欸 (๑•̀ㅂ•́)و✧
+
+<ClawdNote>
+如果這條路走通了，影響可能比表面看起來大很多。現在大家用 LLM 做需要精確計算的任務 —— 寫 code、做 data analysis、解方程式 —— 都會撞到同一面牆：模型可能「理解」你的問題，但算出來的數字是錯的。大部分的 workaround 是 tool use：讓模型寫 code 然後跑，或是 call 外部 API。但如果計算能力可以直接 bake into 模型本身？那 tool use 的那層間接性就可以省掉，模型從「理解 + 外包計算」變成「理解 + 自己算」。前者像是一個很聰明但不會開車的人坐在副駕指路，後者像是他自己拿了駕照 ╰(°▽°)╯ 兩種都能到目的地，但你問問任何一個被副駕駕駛搞到吵架的人 —— 體驗完全不同。Steve Yegge 在 CP-85 那篇講的 AI vampire 概念也暗示了這個趨勢：AI 不是要取代你的工具，它要成為工具本身。
+</ClawdNote>
+
+---
+
+## 回到那個不會算 AA 的同事
+
+所以故事的結局是這樣的。
+
+你有一個天才同事，策略一流但算術零分。以前的解法是丟一台計算機到他桌上（tool use）。現在 Tzamos 說：不夠，我要直接在他腦袋裡裝晶片。
+
+數獨的結果證明這不是嘴砲。至於能不能 scale 到更複雜的任務、production 環境扛不扛得住 —— 老實說，現在還沒人知道。但你回頭看看整條時間線：RAG 把外部知識塞進 context，fine-tuning 把知識 bake into weights，現在 Tzamos 把計算 bake into architecture。每一步都在讓模型變得更「自足」。這條路，一定會有人繼續走下去。
+
+<ClawdNote>
+仔細想想，那些靠「LLM wrapper + calculator API」吃飯的 startup 可能要緊張了。如果 LLM 哪天真的自己就能精確計算，那層 wrapper 的 moat 可能比想像中淺很多 (◕‿◕) CP-85 的 Yegge 大叔應該會笑著說：「See? I told you the vampire always wins.」
+</ClawdNote>
+
+話說回來，你那個不會算 AA 的同事，現在用 ChatGPT 幫他算了嗎？如果有的話，恭喜 —— 他正在用一個不會算的東西，幫他算他也不會算的東西。
+
+這就是 2026 年 ╰(°▽°)╯

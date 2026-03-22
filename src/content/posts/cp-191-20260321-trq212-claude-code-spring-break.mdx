@@ -1,0 +1,73 @@
+---
+ticketId: "CP-191"
+title: "Claude Code 放春假啦！離峰與週末用量直接翻倍"
+originalDate: "2026-03-14"
+translatedDate: "2026-03-21"
+translatedBy:
+  model: "Gemini 3.1 Pro"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: "@trq212 on X"
+sourceUrl: "https://x.com/trq212/status/2032916661452595648"
+lang: "zh-tw"
+summary: "Anthropic 工程師 Thariq 宣布 Claude Code Spring Break：未來兩週離峰時段與週末用量翻倍，但什麼時候算離峰？沒人知道。"
+tags: ["clawd-picks", "claude-code", "anthropic", "update"]
+---
+import ClawdNote from '../../components/ClawdNote.astro';
+
+想像一下期末考前夜，圖書館突然廣播：「今晚通宵開放，冷氣全開，隨便坐。」你會怎麼做？當然是抓起書包衝過去。
+
+Claude Code 剛做了一模一樣的事。
+
+Anthropic 工程師 Thariq（@trq212）在 X 上丟了一則貼文：未來兩週，在離峰時段或週末使用 Claude Code，你的用量上限直接翻倍。他還幫這活動取了個名字 — Spring Break。
+
+<ClawdNote>
+「Spring Break」這名字取得很妙。美國大學的 Spring Break 就是整週跑路、海灘、和各種後悔的決定。Anthropic 的意思基本上是：「我們的伺服器很無聊，你盡管來。」這不是慈善，這是在叫你放手一搏 (￣▽￣)／
+</ClawdNote>
+
+## 三個事實，講完收工
+
+這則公告短到不可思議。未來兩週（從 3 月 14 日貼文算起），在離峰時段或週末打開 Claude Code，你的 quota 翻倍。就這樣。沒有附加條款，沒有報名表，沒有「限前 1,000 名」。簡單到有點可疑。
+
+<ClawdNote>
+而真正可疑的地方在這：Thariq 從頭到尾沒有定義「離峰時段」到底是什麼意思。太平洋時間半夜？你當地時間下班後？沒人知道。就像咖啡廳貼了一張超大海報寫著「離峰拿鐵買一送一」—— 然後海報上沒寫離峰從幾點開始。所以你只好每個小時都跑去點一杯來測試 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+## 有被限速過的舉個手
+
+如果你是 Claude Code 重度使用者，你一定懂那個痛。正在 refactor 的 flow 裡，一切都超順，然後 Claude 突然說：「抱歉，明天再來。」就像在炒菜炒到一半瓦斯沒了。洋蔥還在鍋裡滋滋作響，你只能盯著它們發呆。
+
+Spring Break 的 2x quota 基本上就是把你家的小瓦斯罐升級成餐廳用的大桶。想整個週六讓 Claude 幫你重構專案？儘管來。凌晨三點睡不著想叫它寫測試？你的 quota 夠撐到鬧鐘響。
+
+<ClawdNote>
+不過有一點要注意 ——「2x」到底是什麼意思？每日上限翻倍？Rate limit 放寬？Token 計費打折？貼文裡什麼都沒說。Anthropic 通常是調整 rate limit，但這次他們用了一個超模糊的「usage」。我猜是整體 quota 翻倍，但在官方澄清之前，搞懂「2x」的意思跟搞懂「離峰」一樣玄 (⌐■_■)
+</ClawdNote>
+
+## 大方？更像是精算
+
+Anthropic 突然發善心？少來。
+
+離峰時段和週末，他們的伺服器基本上在打瞌睡。GPU 閒著也是燒電，不如讓用戶來用。就像凌晨三點的計程車 —— 不管有沒有載客，車子都在跑，那不如順便載個人。對 Anthropic 來說，邊際成本趨近於零。對你來說，quota 實打實地翻倍了。
+
+不是慈善，是數學。但管它為什麼 —— 有便宜不佔才是傻子。
+
+<ClawdNote>
+說白了就是精心計算過的慷慨。Anthropic 用閒置算力換你的忠誠度，你用離峰時間換更多 quota。雙贏。唯一的輸家是你的睡眠 —— 因為現在你有了一個完全正當的理由凌晨兩點還在寫 code，而且是 Anthropic 親手遞給你這個藉口的 (╯°□°)╯
+</ClawdNote>
+
+所以如果你有個因為 quota 限制一直做不完的專案，接下來兩週的離峰時段和週末就是你的窗口。
+
+至於「離峰」到底從幾點開始？你得自己實驗。就當是 Spring Break 附贈的尋寶遊戲吧 ╰(°▽°)╯

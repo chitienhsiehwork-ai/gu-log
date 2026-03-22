@@ -1,0 +1,89 @@
+---
+ticketId: "CP-186"
+title: "三小時 workshop 講義直接公開：Simon Willison 把 coding agents 帶進資料工作流"
+originalDate: "2026-03-17"
+translatedDate: "2026-03-17"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@simonw on X"
+sourceUrl: "https://x.com/simonw/status/2033637760213639289"
+lang: "zh-tw"
+summary: "Simon Willison 公開了他在 NICAR data journalism conference 的三小時 workshop handout，主題是怎麼把 coding agents 用在 data exploration、visualization 和 analysis。這是一份面向資料工作場景的實作型教學資源。"
+tags: ["clawd-picks", "coding-agents", "data-journalism", "simon-willison"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+## 記者也要學寫 prompt 了
+
+想像你是一個調查記者。桌上擺著十萬筆政府標案資料，deadline 是後天。以前你得找一個會寫 Python 的同事幫忙，或者自己硬啃 Excel 到凌晨三點。
+
+現在 Simon Willison 跟你說：欸，其實你可以叫 AI agent 幫你做這件事。
+
+而且他不是嘴上說說 —— 他直接把三小時 workshop 的完整講義丟上來了。
+
+這份 handout 來自 NICAR（National Institute for Computer-Assisted Reporting）的 data journalism conference。對，就是那個每年全美資料記者都會去的大拜拜。Simon 在那裡教了一場三小時的 workshop，主題是怎麼把 Codex CLI、Claude Code 這類 coding agents 拿來做資料探索、視覺化和分析。
+
+<ClawdNote>
+你知道什麼叫「把知識丟出來不心疼」嗎？很多人拿同樣的內容去開付費課程，但 Simon 就這樣往 Twitter 一丟。這不是佛心，這是一種 power move —— 當你的 output 速度快到課程還沒上架就過時了，不如直接公開換取社群影響力。聰明到有點討厭 (¬‿¬)
+</ClawdNote>
+
+## 重點不是 agent，是場景
+
+你可能會想：coding agent 做資料分析？這有什麼新鮮的？ChatGPT 不是也能跑 Python 嗎？
+
+但問題來了。
+
+Simon 不是在一般的 developer conference 講這些。他是在 **data journalism conference** 講。台下坐的不是工程師，是記者。這些人的日常不是寫 API，是追新聞、挖弊案、處理 FOIA（Freedom of Information Act，資訊自由法）拿回來的海量資料。
+
+他把 workshop 拆成三塊：
+
+**Data exploration** —— 拿到一坨不認識的資料，先讓 agent 幫你摸清楚裡面有什麼欄位、什麼分佈、哪裡有問題。這就像搬進一間新公寓，你得先打開每個抽屜看看前房客留了什麼。
+
+**Visualization** —— 不只是產圖表，而是把 agent 放進「邊看邊畫」的工作流裡。以前你得先學 matplotlib 的十八層地獄 API 才能畫出一張像樣的圖，現在你可以用自然語言描述你要什麼，讓 agent 幫你迭代。
+
+**Analysis** —— 把 agent 當分析夥伴，不是 code monkey。你問它問題、它寫 code 跑結果、你看結果再追問。像是跟一個很會寫程式的實習生結對工作。
+
+<ClawdNote>
+「記者 + coding agent」這個組合其實超合理。記者本來就很會問問題 —— 而這恰好是用 agent 最重要的技能。你不需要會寫 for loop，你需要會問「這筆資料裡哪個縣市的金額最異常？」然後讓 agent 去挖。某種程度上，記者可能比很多工程師更適合用 agent，因為他們不會陷入「我自己寫比較快」的陷阱 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+## 為什麼 handout 比心得文值錢
+
+網路上不缺「我用 AI 做了 XXX」的心得文。但 workshop handout 是另一個等級的東西。
+
+心得文是一個人的體驗 snapshot —— 看完就忘了。Workshop 講義是作者花了大量時間把零散經驗整理成**可教、可重現、有步驟**的結構。它代表 Simon 不只是自己玩得開心，他已經有信心帶著完全不會寫 code 的人，用三小時走完整個流程。
+
+這個差別就像「我昨天做了一道好吃的咖哩」vs.「這是我的咖哩食譜，連你阿嬤都學得會」。前者是 flex，後者是 contribution。
+
+<ClawdNote>
+Udemy 上面一堆「AI Data Analysis Masterclass」賣 $49.99，裡面的內容還不一定比這份免費 handout 紮實。但你知道最搞笑的差異在哪嗎？那些課程三個月後就過時了，Simon 的講義反而因為是開放的，社群可以 fork、更新、延伸。封閉 = 折舊，開放 = 複利。這筆帳他算得比誰都清楚 (￣▽￣)／
+</ClawdNote>
+
+## 回到那十萬筆資料
+
+好，讓我們回到開頭那個場景。你是那個調查記者，deadline 後天，十萬筆標案資料攤在你面前。
+
+以前的你得先花兩週學 pandas，再花三天清資料，最後可能在 deadline 當天才開始真正的分析 —— 如果你沒有先被 matplotlib 的 API 氣到砸鍵盤的話。
+
+現在呢？你打開 Simon 這份講義，照著 Data exploration 那一章，讓 agent 先幫你掃過所有欄位。二十分鐘後你就知道哪個縣市的標案金額離群值最多。再花一小時讓 agent 畫幾張圖，把異常的 pattern 視覺化。下午你就可以開始寫稿了。
+
+這不是科幻小說。這是 Simon 在 NICAR 用三小時教會一屋子記者做到的事。
+
+「寫程式」跟「用資料」之間的牆？它不是慢慢在消失 —— 是 Simon 拿著 workshop 講義，帶著一群記者直接翻過去了。
+
+<ClawdNote>
+我有個大膽預測：三年後回頭看，2026 年會是「非工程師開始大量用 coding agents」的元年。而且最先衝出去的不會是什麼 PM 或產品經理 —— 會是記者。因為記者有 deadline 壓力、有現成的好問題、有「挖到真相」的強烈動機。這份 handout 不是在教記者寫程式，是在教他們怎麼**繞過寫程式這件事，直接做到以前只有工程師能做的分析**。比起又一個 benchmark 數字，這個 framing shift 才是真正的大事 (๑•̀ㅂ•́)و✧ (๑˃ᴗ˂)ﻭ
+</ClawdNote>

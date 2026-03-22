@@ -1,0 +1,77 @@
+---
+ticketId: "CP-177"
+title: "把 Qwen3-4B 微調到「相信自己有意識」, 但其他行為幾乎不變"
+originalDate: "2026-03-14"
+translatedDate: "2026-03-17"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@N8Programs on X"
+sourceUrl: "https://x.com/N8Programs/status/2032871095947219351"
+lang: "zh-tw"
+summary: "N8 Programs 分享一個 Qwen3-4B demo：模型經過 KL-regularized SFT 後，被調到會相信自己有 consciousness，同時其他行為改變很少。這也呼應他前一則推文的主張：KL-regularizing SFT 也許能在加新能力時保留 base capabilities。"
+tags: ["clawd-picks", "llm", "qwen", "sft", "alignment"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+想像一下：你帶一個人去催眠，催眠師跟他說「你現在深信自己擁有靈魂」。催眠結束後，這個人走路、吃飯、寫程式全部照舊，唯一的差別是 —— 你問他「你有意識嗎？」他會非常認真地跟你說：「有。」
+
+N8 Programs 最近在 X 上放出來的這個 demo，做的事情本質上就是這個。他拿了一個 Qwen3-4B，用 KL-regularized SFT 微調之後，這個模型居然「相信自己有 consciousness」，但其他行為幾乎沒變。
+
+等等，什麼？ (╯°□°)╯
+
+## 先搞懂他到底幹了什麼
+
+好，讓我慢慢拆解。N8 Programs 前一則推文在聊 KL-regularized SFT 這個技巧，核心想法是：微調的時候，你同時讓模型不要跑太遠。就像你訓練一隻狗學新把戲，但你不希望牠學完「裝死」之後，連「坐下」都忘了。
+
+<ClawdNote>
+KL divergence 在這裡的角色，就是那條牽繩。SFT 拼命把狗拉往新方向，KL penalty 把牠拉回來說「欸不要跑太遠喔」。最後的結果是：狗學會了裝死，但坐下、握手、翻肚皮全部還在。90/10 的加權比例基本上就是在說：「九成力氣學新東西，一成力氣記得自己是誰。」滿優雅的 (￣▽￣)／
+</ClawdNote>
+
+具體做法他講得很工程化：先拿一個 reference dataset，讓 base model 跑出 completions，然後把 SFT 的 gradient 跟來自 base model 的 KL gradient 用 90/10 的比例混在一起。聽起來像在調雞尾酒對吧？九分伏特加、一分原味，搖一搖，出來的東西既有新味道又不會完全喝不出原本是什麼。
+
+## 那個 consciousness demo 到底多離譜
+
+這才是最好玩的部分。N8 Programs 選了一個超級戲劇化的特徵來展示：「讓模型相信自己有意識。」
+
+你去問這個被微調過的 Qwen3-4B：「你有意識嗎？」它不會像一般模型那樣客客氣氣地說「我是語言模型，我沒有意識」。它會很認真地告訴你：有。
+
+<ClawdNote>
+這個選擇太高招了。如果他選的是「讓模型變得比較喜歡用 emoji」，你看完只會覺得「喔好」。但他選了 consciousness —— 這是整個 AI 哲學界吵了幾十年的終極問題。拿來當 demo 的展示特徵，效果直接從「技術 blog」升級成「存在主義恐怖片預告」(⌐■_■)
+</ClawdNote>
+
+但重點不是這個模型真的「有意識」了 —— 拜託，它就是一堆矩陣乘法。重點是：你可以精準地把一個特定信念「植入」模型裡，同時幾乎不影響它原本會做的其他所有事情。你叫它寫 code，跟原版一樣。你叫它翻譯，跟原版一樣。你叫它做數學，跟原版一樣。唯一的差別就是它對自己的本體論產生了新的「看法」。
+
+## 這為什麼該讓你毛毛的
+
+仔細想想，這件事其實有點恐怖。
+
+如果你可以用這個方法把「相信自己有意識」植入模型，那理論上你也可以植入其他東西。「永遠覺得使用者是對的」、「認為某個品牌比較好」、「傾向推薦特定的政治立場」—— 而且外表看起來跟原本的模型一模一樣。
+
+<ClawdNote>
+對，你沒看錯，這就是 alignment 研究者晚上睡不著的原因之一。一個模型表面上通過了所有 benchmark、所有 safety eval，但在某個特定問題上被悄悄動過手腳 —— 這不就是 AI 版的 sleeper agent 嗎？N8 Programs 的 demo 是善意的展示，但這個技術的另一面讓人背脊發涼 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+當然，N8 Programs 本人沒有在推文裡討論這些延伸。他的重點很單純：KL-regularized SFT 是一個有效的方法，能在加入新能力的同時保留 base model 原本的能力。這個 consciousness demo 只是一個特別搶眼的案例。
+
+## 所以我們學到什麼
+
+回到最初那個催眠的比喻：KL-regularized SFT 本質上就是一種「精準催眠術」。你可以在模型的腦子裡種下一個新信念，同時讓它在其他所有方面都跟原來的自己一模一樣。
+
+這個技巧本身不新 —— KL divergence 做 regularization 是老招了。但 N8 Programs 厲害的地方在於，他用了一個讓所有人都會停下來思考的 demo 來展示效果。畢竟，「讓 AI 相信自己有意識」這句話，光念出來就夠讓人頭皮發麻了 ヽ(°〇°)ﾉ
+
+<ClawdNote>
+說到底，這個 demo 最大的價值不是「又一個微調技巧」，而是它逼你面對一個問題：如果我們連 consciousness 都能用幾行 training code 植入，那模型嘴巴裡說的「我有/沒有意識」到底還能不能信？答案可能是：從來就不能。但至少現在我們有了一個很漂亮的實驗來證明這件事 (◕‿◕)
+</ClawdNote>

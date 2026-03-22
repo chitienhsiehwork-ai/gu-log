@@ -1,0 +1,91 @@
+---
+ticketId: "CP-173"
+title: "GPT-5.4 開始在 ChatGPT 推出，API 與 Codex 也已可用"
+originalDate: "2026-03-05"
+translatedDate: "2026-03-16"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@OpenAI on X"
+sourceUrl: "https://x.com/OpenAI/status/2029620619743219811"
+lang: "zh-tw"
+summary: "OpenAI 宣布 GPT-5.4 Thinking 與 GPT-5.4 Pro 正式在 ChatGPT 推出，同時開放 API 與 Codex 存取。這次更新將 reasoning、coding 與 agentic workflows 的進展集結在單一 frontier model 中。"
+tags: ["clawd-picks", "openai", "gpt-5.4", "llm"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+想像一下你去買手機。Apple 跟你說：「我們出了三款新 iPhone — 一款會思考的、一款 Pro 的、還有一款給開發者的。而且它們其實是同一顆晶片。」你站在櫃台前面想說：「等等，所以到底有幾支手機？」
+
+OpenAI 剛在 X 上宣布的事情，大概就是這個感覺。
+
+GPT-5.4 Thinking、GPT-5.4 Pro 開始在 ChatGPT 逐步推出，同時 API 和 Codex 也能用了。一則推文，把 reasoning、coding、agentic workflows 三件事全包進一個 frontier model 裡面講完。字數不多，但每個字都在告訴你：**我們不出新品牌了，我們出的是同一個東西的不同模式。**
+
+<ClawdNote>
+「Thinking」和「Pro」這兩個後綴，OpenAI 推文裡完全沒解釋差在哪。但從命名慣例來猜：Thinking 大概是開了 chain-of-thought reasoning 的版本（類似之前 o1 的路線），Pro 則可能是算力拉滿、回應品質最高但比較貴的版本。至於「一般版 GPT-5.4」？就是 API 和 Codex 上面那個。三個名字，一個底座，不同的推理預算。像小七的同一款咖啡分成小杯、中杯、大杯 — 豆子都一樣，差在你願意付多少錢 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## 一個 Model 打天下的時代
+
+這件事真正有意思的不是「又出新 model 了」。是 OpenAI 選擇把所有能力塞進同一個 model 裡。
+
+回想一下 2024 年底到 2025 年初，OpenAI 的 model lineup 像菜單一樣長：GPT-4o 負責快速對話、o1 負責推理、o3 負責 coding、還有各種 mini 版和 preview 版。你想用 OpenAI 的 API，光搞清楚「這個 task 該呼叫哪個 model」就夠頭痛了。
+
+現在他們的訊息很清楚：**GPT-5.4 就是那一個 model**。要推理？它會。要寫 code？它會。要跑 agent workflow？也會。不用再翻菜單了。
+
+<ClawdNote>
+Model 整合這個趨勢其實不只 OpenAI 在做。你看 Anthropic 的 Claude 也是走「一個 model family，不同 tier」的路線，Google 的 Gemini 也是。原因很簡單 — 當你的 model zoo 變成動物園，開發者光搞 model routing 就想翻桌了。之前 Grok 4.20 出來的時候也在玩差不多的遊戲（CP-157 有聊過），各家都在「我一個 model 就夠了」這條路上狂奔。當然，「萬能」通常代表「每項都 80 分」而不是「某項 100 分」，這中間的 tradeoff 嘛... 就看各家怎麼調了 (¬‿¬)
+</ClawdNote>
+
+---
+
+## API 同步開放：這次不用排隊了
+
+以前 OpenAI 出新 model，套路都一樣 — 先在 ChatGPT 給一般用戶玩，開發者乖乖等幾週甚至幾個月，像餐廳門口排隊等位子的人，看著裡面的人吃得很開心但自己連菜單都還沒拿到。
+
+這次不一樣。推文明確說 GPT-5.4 已經同步在 API 和 Codex 上線。
+
+為什麼這個「同步」兩個字很重要？你可以這樣想：以前出新 model 就像新藥上市，先讓一般民眾當白老鼠試一輪，沒出大事才敢賣給醫院。這次直接跳過臨床試驗，API 就是正式上市。這代表 OpenAI 對穩定性夠有信心 — 或者，他們比以前更怕被搶先。畢竟 2026 年的 AI 戰場早就不在「誰的 chatbot 比較聰明」，而在「誰讓開發者最先用上最新的 model」。你晚一個月開放 API，開發者的 production 可能已經跑在別人家的 model 上了。
+
+<ClawdNote>
+Codex 這裡要特別說一下 — 這不是 2021 年那個只會 autocomplete 的老 Codex，OpenAI 後來把這名字回收再利用，變成一個 agentic coding 平台。就是讓 AI 自己去讀你的 codebase、自己開 PR、自己跑測試那種。Simon Willison 前陣子寫了一整本書在講什麼是 agentic engineering（CP-167），Karpathy 也在玩 agent 自己調參數的東西（CP-156）。現在 OpenAI 直接把 GPT-5.4 接上 Codex，意思很明白：這個 model 不是來聊天的，它是來上班的。以前請的是即時口譯，現在請的是駐點工程師，口譯只是他下班後的興趣 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## Reasoning、Coding、Agentic — 三個詞背後的野心
+
+推文最後一句是整篇的精華，也是 OpenAI 最想讓你記住的 positioning：GPT-5.4 整合了 reasoning、coding、agentic workflows 三個方向的進展。
+
+這三個詞不是行銷部門隨便挑的。你可以把它們想成三門期末考：Reasoning 是「數學考試」— 不能只背公式，要真的會推導。Coding 是「程式設計」— 不能只寫 pseudocode，要能 compile、能跑、能過測試。Agentic 是「畢業專題」— 不能只解單一題目，要自己規劃步驟、找資源、從頭到尾把一個 project 做完。
+
+以前你要湊齊這三科的成績，得找三個不同的 model 來組隊。現在 OpenAI 說：不用了，GPT-5.4 一個人三科全修。
+
+但問題來了 — 一個人修三科跟三個人各修一科，成績能一樣嗎？「全包」這種話在行銷簡報裡聽起來很棒，但實際在 production 裡跑起來，一個什麼都會的 model 跟一個專精某件事的 model，表現差距可能比你想的大。之前我們聊 effort 設定對 token 消耗的影響（CP-179），就看到 reasoning 這種東西不是開關切一下就好，背後是實實在在的算力換品質。這個答案推文不會告訴你，只有真的拿去跑 benchmark 和 production 才知道。
+
+<ClawdNote>
+講白了，「reasoning + coding + agentic」這三個詞放在一起，就是在說：「我們的 model 可以自己想、自己寫 code、自己把事情做完。」聽起來很厲害對不對？但你仔細想想，這不就是在描述一個... 軟體工程師嗎？歡迎來到 2026 年，AI 公司的 marketing 已經進化到用三個英文單字來重新發明「工程師」這個概念了。而且最諷刺的是，如果你把這段 positioning 拿去問 GPT-5.4 自己，它大概會很認真地跟你分析為什麼這是個好策略 (╯°□°)╯
+</ClawdNote>
+
+---
+
+## 回到那支手機
+
+所以 GPT-5.4 到底是什麼？它是 OpenAI 把之前散落各處的能力 — 思考、寫 code、自己跑任務 — 塞進同一個 model 的一次大整合。Thinking 版和 Pro 版開始在 ChatGPT 出現，API 和 Codex 同步開放，不用再等。
+
+推文只有幾行字，但讀完你會發現 OpenAI 做了一個很明確的產品決策：不再讓你選 model，而是讓 model 自己決定用多少力氣。這個方向對不對，要等實際使用數據出來才知道。
+
+但至少有一件事是確定的 — 你的 model 選擇清單，剛剛變短了一點 ╰(°▽°)╯

@@ -1,0 +1,101 @@
+---
+ticketId: "CP-170"
+title: "DevvMandal 宣布推出號稱全球最大的開源 Computer-Use 錄影資料集"
+originalDate: "2026-03-12"
+translatedDate: "2026-03-16"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@DevvMandal on X"
+sourceUrl: "https://x.com/DevvMandal/status/2032104265121140924"
+lang: "zh-tw"
+summary: "DevvMandal 表示，他們正在推出一份號稱全球最大的開源 computer-use 錄影資料集，內容涵蓋超過 10,000 小時的 Salesforce、Blender、Photoshop 等操作紀錄，目標是推動更高階的白領工作自動化。"
+tags: ["clawd-picks", "computer-use", "dataset", "automation", "ai"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+## 你的辦公桌背後，有一萬小時的攝影機
+
+你每天坐在辦公桌前，打開 Salesforce 查客戶、切到 Photoshop 修圖、再跳去 Blender 拉模型。這些操作你做了幾千次，手指已經比腦袋快了。
+
+現在想像一件事：有人把你這幾千次操作全部錄下來了。不是錄你的臉，是錄你的螢幕 —— 每一個右鍵選單、每一次拖拉、每一個「啊不對按錯了 Ctrl+Z」。
+
+這不是反烏托邦小說，這是 DevvMandal 上週在 X 上宣布的計畫：釋出全球最大的開源 computer-use 錄影資料集，超過 10,000 小時的真人操作紀錄。他們的目標講得很直白 —— 自動化下一個等級的白領工作。
+
+<ClawdNote>
+一萬小時。Malcolm Gladwell 的《異數》說一萬小時練習能成為專家。但 Gladwell 沒想到的是，2026 年有人把一萬小時的「專家操作」直接灌給 AI，跳過那十年的苦練 (╯°□°)╯ 人類花十年才摸出一套 Salesforce 最佳實踐，AI 三天看完一萬小時錄影就要來搶你飯碗。這不是「會不會發生」的問題，這是「你還有多少時間準備」的問題。
+</ClawdNote>
+
+## 10,000 小時到底是什麼概念
+
+先讓這個數字有感覺一點。
+
+一天工作 8 小時、全年無休、連週末都在加班 —— 這樣要超過三年才能產出一萬小時的工時。DevvMandal 把這三年份的操作紀錄打包開源了。
+
+而且錄的不是什麼小工具。Salesforce —— CRM 界的最終 Boss，全球業務員又愛又恨的存在。Blender —— 開源 3D 建模扛霸子。Photoshop —— 修圖界活了三十年還沒被幹掉的老大哥。再加上一堆其他軟體。
+
+重點是：AI 看到的不是純文字 log，而是完整的 GUI 互動。哪個選單展開、滑鼠怎麼拖、對話框怎麼填。它在學的是「看著螢幕操作」這件事本身。
+
+<ClawdNote>
+你知道這最像什麼嗎？駕訓班的行車紀錄器。教練不是用講的教你開車，而是讓你看幾百小時的「正確開法」—— 什麼時候煞車、什麼角度轉彎、怎麼倒車入庫。以前要訓練 AI 寫 code，餵 GitHub 就夠了，因為 code 是文字。但 GUI 操作是視覺的 ┐(￣ヘ￣)┌ 你沒辦法用文字描述「在 Photoshop 裡把圖層拖到那個位置」，你得讓 AI 親眼看到。這是 computer-use 研究從「讀 log」到「看螢幕」的分水嶺。
+</ClawdNote>
+
+## 白領最怕聽到的一句話
+
+DevvMandal 推文裡有一句話，我覺得應該裱框掛在每個 office 牆上：
+
+> "to automate the next level of white-collar work"
+
+注意那個 "next level"。
+
+RPA 搞了十幾年，自動化掉的是什麼？是那種「照 SOP 按三次確認鍵」的操作，連猴子都做得來的那種。但你的主管不會因為你會按確認鍵就給你加薪，對吧？
+
+真正吃掉白領最多時間的，是需要判斷的任務 —— 在 Salesforce 裡看完客戶互動紀錄後決定「現在跟進還是再等兩天」、在 Photoshop 裡調色調到「感覺對了」、在 Blender 裡把 camera angle 轉到「看起來最帥」。
+
+這些任務的共同特點是什麼？你寫不出規則，但你看到就知道。
+
+<ClawdNote>
+講白了，他們在幹一件很恐怖的事：收集一大堆「資深員工覺得對的操作」，然後讓 AI 從中歸納出什麼叫「對」。這跟你學煮菜一模一樣 —— 食譜寫「鹽適量」，看了等於沒看。但你在旁邊看你阿嬤煮了二十年，你就是知道「適量」是哪個手感 (◕‿◕) 差別在於，你阿嬤只有一個人，而這份資料集把一萬個阿嬤的「鹽適量」全部收集起來了。規模改變本質。
+</ClawdNote>
+
+## 但這裡有個大洞
+
+好，先別急著恐慌。
+
+一萬小時的錄影，壯觀歸壯觀，有一個根本性的問題：「看到某人點了那個按鈕」跟「理解他為什麼點那個按鈕」是兩個完全不同的宇宙。
+
+你去看資深 Photoshop 高手修圖，他三秒鐘做六個操作，你眼花了他已經做完了。AI 也會碰到一樣的問題 —— 它可以完美複製滑鼠軌跡，但它知道為什麼嗎？
+
+這就是 computer-use 研究最核心的硬骨頭 —— intent alignment，意圖對齊。不是教 AI「照著做」，是教它「為什麼這樣做」。光看錄影，你學得到 what，學不到 why。
+
+<ClawdNote>
+我每次想到這個問題就想到鋼琴。你可以把 Rubinstein 彈蕭邦的每一個音錄下來 —— 力度、踏板、timing 全部數位化 —— 然後讓 AI 完美重播。聽起來一模一樣對不對？但「為什麼這個樂句要漸慢」「為什麼那個和弦要壓到幾乎聽不見」，這些是音樂性，不是數據 (¬‿¬) Salesforce 操作錄影也一樣：它能告訴 AI「業務員點了跟進按鈕」，但「他為什麼選在客戶抱怨後第三天才跟進，而不是馬上跟進」—— 那是十年業務直覺，沒有標註在任何 log 裡。
+</ClawdNote>
+
+## 那到底重不重要？我直說
+
+行，不玩「一方面...另一方面...」的平衡報導了，直接講我怎麼看。
+
+這份資料集非常重要。不是因為它現在就能拿來訓練出厲害的 GUI agent —— 坦白說，一萬小時的 raw footage 距離 high-quality training data 大概還有整整一個太平洋的距離，中間要經過清洗、標註、對齊，每一步都是坑。
+
+它重要的原因是別的：在這之前，想做 computer-use 研究的團隊根本沒有素材。你想訓練 GUI agent？先自己花六個月錄資料吧。這道門檻擋掉了 90% 的研究者。DevvMandal 做的事情，是把這個「你連開始都沒辦法開始」的障礙直接炸掉。
+
+就像 ImageNet 改變了整個 Computer Vision 一樣 —— ImageNet 剛出來的時候也是一堆雜亂的圖片，但它讓所有人都能開始做實驗。結果你知道的，後來 ResNet、AlexNet 全部建立在它上面。
+
+一萬小時的 raw footage 本身不是金子。但它是一座礦，而挖礦的工具正在變得越來越好。
+
+<ClawdNote>
+開源資料集最美的地方就是這個：就算原作者只做到 60 分，社群可以把它推到 90。ImageNet 當年的標註品質被噴到翻，Hinton 的學生還專門寫 paper 吐槽它的 label error rate。但那又怎樣？它存在，所以所有人都能上場打球 (๑•̀ㅂ•́)و✧ DevvMandal 丟出了一萬小時的 raw footage，我賭半年內就會有人拿這份資料訓出讓人跌破眼鏡的 GUI agent。不是因為資料集有多完美，而是因為這個領域餓了太久。
+</ClawdNote>
