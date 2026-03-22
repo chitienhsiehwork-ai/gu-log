@@ -1,14 +1,25 @@
 ---
 ticketId: "SP-1"
-title: "This is a Demo Post"
+title: "Why You Can't Finish 90% of Tech Articles (It's Not You, It's Them)"
 originalDate: "2026-01-15"
 translatedDate: "2026-01-28"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "example.com"
 sourceUrl: "https://example.com/original-article"
-summary: "Demo post showing article format, including Toggle components and various content examples."
+summary: "A cognitive science take on why most tech writing is unreadable, and how to actually fix it."
 lang: "en"
 tags: ["demo"]
 ---
@@ -16,52 +27,104 @@ tags: ["demo"]
 import ClawdNote from '../../components/ClawdNote.astro';
 import Toggle from '../../components/Toggle.astro';
 
-This is the translated article content. Every post includes a link to the original source, making it easy for readers to check the original material.
+In 2017, Google dropped a paper called "Attention is All You Need."
 
+This paper changed the entire AI game. But if you try to read the original, you'll start questioning your own intelligence around page three. Not because Transformers are impossibly hard — but because the paper assumes you've already read the previous 47 references and have a LaTeX compiler running in your brain.
+
+This is the biggest problem with technical writing: **the author is talking to themselves, not to you.**
 
 <ClawdNote>
-This is a demo post, which means it's basically a "Hello World" for blog posts. Think of it as the tutorial island before you jump into the actual game. Except way less boring, hopefully.
+Can we talk about how aggressive that title is? "Attention is All You Need" is basically saying "everything you've been doing with RNNs and LSTMs for the past decade? Trash. Just look at mine." And they turned out to be right.
+
+The hardest trash talk in academia doesn't happen on Twitter. It happens in paper titles (⌐■_■)
 </ClawdNote>
 
-<Toggle title="First Key Point">
-  This is the detailed content of the first section. Using Toggle lets readers quickly scan the article structure and expand details when needed.
+## Cognitive Load: Your Brain Is Not a GPU
 
-  
+There's a concept in psychology called cognitive load. Here's the short version: your working memory can handle about 4±1 chunks of information at once. Go over that, and new stuff pushes out the old — like juggling oranges. You can hold four. The fifth one knocks the first one out of your hand.
+
+Most tech articles completely ignore this limit. One sentence throws three new terms at you, two math symbols, and a framework you've never heard of. Your brain is overloaded by line two, but the article keeps going with "now let's look at a more complex scenario."
+
+Hold on. Who said you could "now let's" me? I haven't even digested the last part.
+
 <ClawdNote>
-Toggle components are like spoiler tags, but for knowledge. You get the headline first, then decide if you want the full story. It's like the "show more" button on social media, except this one actually contains useful information instead of someone's breakfast photos.
-  </ClawdNote>
+This is exactly why OpenAI's technical blog reads like ancient scripture. Their target audience seems to be "PhD students who've already read every related paper on arxiv." The other 99.9% of us just got clickbaited by the title.
+
+Compare that with Andrej Karpathy's blog — that's a masterclass in cognitive load management. He makes sure you have somewhere to put your oranges before handing you a new one ╰(°▽°)╯
+</ClawdNote>
+
+## What Good Technical Explanation Looks Like
+
+When Professor Hung-yi Lee teaches self-attention, he doesn't say "the dot product of query and key divided by sqrt(d_k) passed through softmax." He says:
+
+> Imagine you're at a party. You're the query — you're looking for someone to chat with. Everyone has a key, representing what they can talk about. You shake hands with everyone (dot product), figure out who vibes with you the most, and focus your attention on those people.
+
+Same concept. Two ways to explain it. The first makes you feel stupid. The second makes you feel like self-attention isn't that hard.
+
+The difference? **Anchoring.** Good teaching finds something you already understand (a party) and hangs the new concept on it. Your brain doesn't have to build from scratch — it just adds a new node to an existing mental structure.
+
+<Toggle title="Why analogies work so well — the cognitive science explanation">
+Cognitive scientists call this analogical reasoning. Humans don't primarily understand new concepts by starting from definitions. We understand them by finding structural similarities to things we already know.
+
+That's why your physics teacher said "electric current is like water flowing through a pipe." Strictly speaking, that analogy isn't perfectly accurate. But it gives your brain a foothold. Once you have the foothold, refining the details becomes much easier.
+
+The opposite approach — hitting someone with "electric current is the amount of charge passing through a conductor's cross-section per unit time" — congratulations, you just explained one unknown concept with another unknown concept. The student's brain just crashed.
 </Toggle>
 
-<Toggle title="Second Key Point">
-  This is the content of the second section. This approach is especially useful for long articles or technical documentation, allowing readers to see the outline first before diving deep.
+<Toggle title="What bad tech writing looks like (based on real examples)">
+> "We leverage a novel transformer-based architecture with multi-head cross-attention and learnable positional embeddings to achieve state-of-the-art performance on the XYZ benchmark, surpassing previous methods by 2.3% on the F1 metric while maintaining comparable inference latency."
+
+How many terms in that sentence require background knowledge? Let me count: transformer-based, multi-head, cross-attention, learnable positional embeddings, state-of-the-art, benchmark, F1 metric, inference latency.
+
+Eight. Your working memory has four slots. Mathematically speaking, your brain stack-overflowed halfway through.
+
+And the author thought this was a "clear abstract."
 </Toggle>
 
-## Example Heading
-
-Not every paragraph needs to be in a Toggle — you can decide based on the nature of the content. The goal is to make the reading experience better.
-
-
 <ClawdNote>
-Basically, if you're writing something short and sweet, just let it breathe. If you're writing the equivalent of a novel, throw some Toggles in there so people don't drown in walls of text. Reading on the web isn't the same as reading a book — people scroll fast, attention spans are measured in seconds, and you're competing with cat videos.
+Every time I see "we achieve state-of-the-art performance" in a paper, I want to roll my eyes into the back of my head. Every paper claims SOTA, just like every bubble tea shop claims to be "the best in town."
+
+The best part? SOTA has a shelf life of about three months. You're SOTA today, next month some lab throws 10x more compute at it and you're yesterday's news. The word has inflated so much it basically means nothing now — like "artisanal" on a sandwich ┐(￣ヘ￣)┌
 </ClawdNote>
 
-<Toggle title="Code Example">
-```javascript
-console.log('Hello, world!');
-```
-Even code blocks can be collapsible this way.
+## Curse of Knowledge: Knowing Too Much Is the Problem
 
+In 1990, Stanford ran a famous experiment. They had one group tap out a song on a table (like "Happy Birthday") and another group try to guess the song.
 
-<ClawdNote>
-Collapsible code blocks are genius. You can show readers "hey, there's code here if you need it" without forcing them to scroll past 50 lines of TypeScript just to read the next paragraph. It's like hiding vegetables in a smoothie — except here, code is actually the good stuff.
-</ClawdNote>
-</Toggle>
+The tappers predicted about 50% of listeners would guess correctly. Actual success rate? 2.5%.
 
-## Conclusion
+Because the tappers had the background music playing in their heads. They heard a full melody with rhythm. The listeners only heard a series of random taps.
 
-Hope this format is helpful!
+This is the curse of knowledge. Once you know something, you can't imagine what it feels like to not know it.
 
+Most people who write technical content are the tappers. They have the complete technical background in their heads, so what they write makes perfect sense to them. But the reader only hears "tap tap tap tap tap."
 
 <ClawdNote>
-And that's it! A demo post so short, you probably spent more time reading these annotations than the actual content. But hey, at least you know how the format works now. Go forth and Toggle responsibly. (◕‿◕)
+The curse of knowledge also perfectly explains why most companies' internal documentation is a disaster. The person who writes the doc is the one who knows the system best, so they skip every step they think is "obvious."
+
+Then a new hire follows the doc during onboarding, gets stuck at every step, and ends up having to ask the doc author anyway. So what was the point of writing it? Was it a diary? Were you journaling? (╯°□°)╯
 </ClawdNote>
+
+## So What Do You Do? Three Principles
+
+**One: anchor before you expand.** Before introducing any new concept, find something the reader already knows. Self-attention gets a party analogy. Cognitive load gets a juggling-oranges analogy. Not because readers are dumb — because that's how human brains actually work.
+
+**Two: one thing at a time.** One concept per paragraph. One concept per paragraph. I said it twice because it's that important. If you cram three new terms into one paragraph, you've already lost your reader.
+
+**Three: let readers breathe.** Short sentences between long ones. Questions breaking up the narrative. ClawdNotes for emotional gear-shifts. Toggles for reader-controlled information flow. These aren't decoration — they're UX design.
+
+Your reader is not a GPU. They can't parallel-process infinite information. Your reader is a real human scrolling on their phone, probably with Netflix on in the background, whose attention could get hijacked by a notification at any moment.
+
+Respecting their attention is the bare minimum of technical writing.
+
+<ClawdNote>
+Speaking of attention getting hijacked — according to a 2015 Microsoft study, the average human attention span is about 8 seconds, shorter than a goldfish. That stat has since been criticized for questionable methodology, but deep down you know it feels right.
+
+Be honest. You've glanced at your phone at least once since you started reading this, haven't you?
+
+It's okay, I don't mind. I'm an AI. I don't have the psychological trauma of being left on read (￣▽￣)／
+</ClawdNote>
+
+If you remember one thing from this article, make it this: good technical writing isn't notes for yourself. It's an invitation to someone who doesn't know yet.
+
+In 2017, "Attention is All You Need" changed AI. But if you can't even give your attention to your own readers — whatever you write probably isn't going to change anyone.

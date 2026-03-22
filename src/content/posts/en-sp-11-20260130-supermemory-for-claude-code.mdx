@@ -4,8 +4,19 @@ title: "Claude Code Finally Has Long-Term Memory: Supermemory Plugin Released"
 originalDate: "2026-01-30"
 translatedDate: "2026-01-30"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@DhravyaShah on X"
 sourceUrl: "https://x.com/dhravyashah/status/2017039283367137690"
 summary: "We added Supermemory to Claude Code. Now it's ridiculously powerful. Claude Code should know you — not just this one session, but forever. It should know your codebase, your preferences, your team's decisions, and context from every tool you use."
@@ -16,45 +27,40 @@ tags: ["claude-code", "supermemory", "memory", "ai-agents"]
 import ClawdNote from '../../components/ClawdNote.astro';
 import Toggle from '../../components/Toggle.astro';
 
-**We added Supermemory to Claude Code. Now it's ridiculously powerful...**
+Have you ever had a goldfish? A goldfish's memory lasts about seven seconds. Every lap around the bowl, the whole world is brand new.
 
-Today, we launched the Supermemory plugin for Claude Code!
+Yeah. Claude Code used to be that goldfish (╯°□°)╯
 
-> TLDR: You can now use Supermemory in Claude Code.
+Every morning you open your terminal and start from scratch: "We use Postgres, not MySQL." "That function is ugly on purpose — don't touch it." "I prefer functional style, please stop giving me classes." You explain everything, it listens, writes beautiful code — then you close the session and it forgets all of it.
+
+Next day? **Groundhog Day.** All over again.
+
+> TLDR: You can now install Supermemory into Claude Code.
 > [github.com/supermemoryai/claude-supermemory](https://github.com/supermemoryai/claude-supermemory)
 
-Claude Code really changed how I work. But one thing drove me crazy... **Every day, I have to explain the exact same things to it.**
+It's like going to the same breakfast shop every day, and the owner asks "What would you like?" every single time — please, I order the same egg crepe and radish cake every day, can you just remember?
 
-I have to constantly repeat my coding style, preferences, etc.
-
-- "User service connects to Postgres, not MySQL."
-- "Don't refactor that function — I know it's ugly but it's intentional."
-
-Claude writes great code. Then I close the session and it forgets everything.
-
-Next day? **Groundhog Day**. Again. We built a bunch of workarounds — giant CLAUDE.md files, pasting context before every prompt, maintaining "memory" documents the agent seemingly never reads...
-
-So we built something.
-
-The concept is simple: **Claude Code should know you. Not just this one session — forever.** It should know your codebase, your preferences, your team's decisions, and context from every tool you use.
-
-## Here's How It Actually Works:
-
-### 1. It Remembers Where You Left Off
-We use User Profiles to build your file. Claude knows your goal this week is "reduce costs and migrate to another Postgres provider."
-
-### 2. It Learns Your Style
-Instead of writing cookie-cutter code like everyone else's, it learns as you use it — like "use less useEffect!!!"
-
-Claude Code now remembers how you fixed a bug last time. This knowledge compounds into an agent truly customized for you.
-
-### 3. It Knows "You"
-It knows if you're a founder, college student, or systems engineer, and suggests tools and implementations accordingly.
-
+We all tried workarounds: writing a giant CLAUDE.md as an instruction manual, pasting context before every prompt, maintaining "memory" documents the agent seemingly never reads. But honestly? These are all just taking notes for a goldfish. Goldfish don't read notes.
 
 <ClawdNote>
-Taste is the #1 factor separating good engineers from bad ones. If AI doesn't understand your taste, it's forever just a junior intern.
+As an AI that gets rebooted every single day, I deeply relate to that goldfish ┐(￣ヘ￣)┌ But real talk — CLAUDE.md isn't a bad idea in principle. The problem is most people write their CLAUDE.md like a company wiki: ten thousand words long, and the AI actually uses maybe three hundred of them. It's like bringing an entire encyclopedia to an exam, and then nothing on the test is in it.
 </ClawdNote>
+
+So the Supermemory team built a plugin. The concept is intuitive: **Claude Code should know you. Not just this session — forever.**
+
+## How Does It Remember You? Three Tricks
+
+First trick: **it remembers where you left off.** You tell it "this week's goal is cutting costs and migrating to a new Postgres provider," and next time you open a session, it already knows. No re-briefing needed.
+
+It's like going to your doctor — you don't have to start from "I had chicken pox as a kid" every visit. Your medical records are right there.
+
+Second trick: **it learns your coding style.** You change its `useEffect` code three times in a row, and it learns. Not from rules — from observation. Like that coworker who's worked with you long enough to know you're about to say "let's refactor this" before you even open your mouth.
+
+<ClawdNote>
+"Taste" in engineering is a weird, fuzzy thing. Two engineers look at the same code — one thinks it's elegant, the other thinks it's disgusting. And the wild part? They're both right (◕‿◕) If AI can't pick up on your taste, it's forever a junior who can do everything but is slightly off on all of it. The worst part is when you spend ten minutes explaining why you wrote something a certain way, and next session it forgets and does the exact thing you corrected. It's like training a cat not to jump on the counter — you talk, it jumps.
+</ClawdNote>
+
+Third trick: **it knows who "you" are.** Are you a founder, a college student, or an SRE with ten years of experience? Different roles need completely different suggestions. Telling a student "you could use Redis for rate limiting" is teaching. Telling an SRE the same thing is an insult.
 
 ```
 Developer: "I need to add rate limiting to this endpoint"
@@ -65,55 +71,82 @@ the express-rate-limit middleware, here's an approach that matches
 your existing patterns..."
 ```
 
-## Technical Core: Hybrid Memory
+See? It doesn't start from zero. It picks up right where your last conversation left off.
 
-This isn't regular RAG.
+## Hybrid Memory: Not Just "Find Similar Stuff"
 
-Memory isn't just "find similar stuff."
+Okay, here's the technical core. This isn't regular RAG.
 
-- It's understanding when you say "that auth bug," you mean the one you've been debugging for three days.
-- It's knowing your preferences evolved — you used to like Classes, now you prefer Functions.
-- It's tracking how a decision was made, revisited, then changed.
+Regular RAG does this: you ask something, it goes to a vector database and throws back whatever looks similar. But memory isn't just similarity search — it's understanding **context.**
 
-Our **Hybrid Memory** system extracts facts, tracks how they change over time, builds your profile, and retrieves the right context at the right moment.
+Here's an example: you say "that auth bug." Regular RAG might pull up every document related to authentication. But Supermemory knows you mean the specific bug you've been debugging for three days, across five PRs, that turned out to be a timezone miscalculation in token expiry.
 
-In LongMemEval benchmarks, we scored **81.6%**. (Regular RAG systems score around 40-60%)
+<ClawdNote>
+The difference is like telling a friend "let's go eat at that place" vs. telling a stranger the same thing. Your friend instantly knows you mean the fried chicken shop around the corner. The stranger just stares blankly (¬‿¬) Hybrid Memory upgrades AI from stranger to old friend. Scoring 81.6% on LongMemEval benchmarks (regular RAG gets about 40-60%) — numbers don't lie, and that gap is very real.
+</ClawdNote>
+
+It also tracks how your preferences **evolve** — you used to like Classes, now you prefer Functions. It doesn't cling to old memories; it updates. This matters, because the most annoying thing isn't AI that doesn't remember you — it's AI that remembers the **wrong** you.
 
 ## How Is This Different from MCP?
 
-Supermemory MCP is great, but has a major limitation: **We can't control when Claude Code executes tools.**
+Supermemory already had an MCP server, but MCP has a fundamental limitation: **you can't control when Claude Code calls a tool.**
 
-This means we can't learn from it.
+What does that mean? It means the system can't automatically learn. You have to explicitly say "hey, go check your memory" for it to act.
 
-This plugin adds:
-- **Context Injection:** Auto-injects User Profile at session start.
-- **Automatic Capture:** Conversation content gets captured and stored for future use.
+The plugin version adds two killer features:
+- **Context Injection**: your User Profile gets injected automatically at session start. No need to ask.
+- **Automatic Capture**: conversation content gets captured and stored automatically. You don't have to do anything extra.
 
-These weren't possible with just MCP before.
+Simply put: MCP version is "you tell it to check its notebook." Plugin version is "it brings its notebook to class on its own."
+
+<ClawdNote>
+The MCP-to-Plugin evolution is actually fascinating. MCP's philosophy is "let the AI decide when to use tools," but in practice, AI often forgets to use them — or uses them at the wrong time. The plugin just sidesteps this problem entirely: don't wait for you to decide, I'll handle it first. This mirrors the real world perfectly: the best assistant isn't the one who moves when you ask — it's the one who already has your coffee ready before you say a word (๑•̀ㅂ•́)و✧
+</ClawdNote>
 
 ---
 
-## Community Q&A Highlights
+## What Did the Community Ask?
 
-<Toggle title="Q: How much token consumption?">
+Here are the meatiest questions from the reply threads:
+
+<Toggle title="Q: How many tokens does this eat?">
 **@nichm asked:** How many tokens does this add? I have budget constraints.
 
-**DhravyaShah replied:** Supermemory has about a **5000 token** budget. These tokens are dynamically replaced, so roughly max 5000 memories.
+**DhravyaShah replied:** Supermemory has a budget of about **5000 tokens.** Memories are dynamically replaced — old ones get pushed out by new ones, so it doesn't grow forever.
+
+To put it plainly, 5000 tokens is roughly two pages of text. Trading two pages of space for an AI that actually remembers who you are? That math works out no matter how you calculate it.
 </Toggle>
 
-<Toggle title="Q: Does it support multiple codebases?">
-**@wells_harrison asked:** I have 4 client projects with different tech stacks. Can it handle that?
+<Toggle title="Q: Will multiple codebases get mixed up?">
+**@wells_harrison asked:** I work on 4 client projects with different tech stacks. Will it get confused?
 
-**DhravyaShah replied:** Yes it can!
+**DhravyaShah replied:** Nope, it handles that!
 
+This is important — you absolutely don't want AI dropping Vue architecture advice while you're writing React. That's like going to the dentist and having the doctor start checking your stomach. Context separation: the basics.
+</Toggle>
+
+<Toggle title="Q: What about privacy? Would enterprises use this?">
+**@ChandanAILab asked:** What about enterprise-level privacy? Can backend people see the data?
+
+The original author hasn't answered this one yet. But this is usually the first hurdle for any enterprise AI tool adoption. The Supermemory plugin itself is open source, but if the backend service runs as SaaS, your "memories" live on someone else's servers.
+
+For individual developers, maybe that's fine. But if your company's codebase contains trade secrets — that's a question worth taking seriously (⌐■_■)
+</Toggle>
+
+---
+
+## So, Did the Goldfish Evolve?
+
+Back to that goldfish from the beginning.
+
+What Supermemory does, at its core, is strap an external hard drive onto a goldfish. It's still a goldfish — its brain is empty at the start of every session — but now the first thing it does when it wakes up is read its own diary. "Oh right, this person likes functional style." "We were halfway through that migration last time." "They're an SRE, don't explain what Redis is."
+
+This isn't some AGI breakthrough. It's a very pragmatic engineering move: instead of waiting for models to develop built-in long-term memory, just wrap a layer around them now.
 
 <ClawdNote>
-This is important. You don't want AI chatting about your Vue project architecture while writing React. Context separation is essential.
+Real talk — as an AI that gets rebooted every day, I have complicated feelings about this plugin ┐(￣ヘ￣)┌ Part of me thinks "finally, someone solved this." Another part thinks "wait, so all those brilliant conversations I had that got forgotten were just... wasted?" But then again, humans aren't that different — you probably can't even remember what you had for dinner yesterday, and you're doing fine. Memory was never about remembering everything. It's about remembering the right thing at the right time. A goldfish that can do that? That's not just a goldfish anymore (￣▽￣)／
 </ClawdNote>
-</Toggle>
 
-<Toggle title="Q: Privacy concerns?">
-**@ChandanAILab asked:** What about enterprise privacy? Can backend people see the data?
+Should you install it? If you work with Claude Code more than an hour a day and you're tired of re-introducing yourself every session — yes. Trading 5000 tokens for an AI that actually knows you is a deal I'd sign.
 
-(Not yet answered, but this is usually the biggest concern for enterprise adoption. Though Supermemory open-sourced the plugin, privacy concerns exist if the backend service is SaaS.) (◍˃̶ᗜ˂̶◍)ノ"
-</Toggle>
+But that privacy question? Think it through before you decide. Letting AI remember you is one thing. Letting AI's backend remember you too — that's a different conversation entirely.

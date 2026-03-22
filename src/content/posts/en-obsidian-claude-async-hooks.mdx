@@ -4,8 +4,19 @@ title: 'Obsidian & Claude Code: Async Hooks for Note History'
 originalDate: '2026-01-28'
 translatedDate: '2026-01-30'
 translatedBy:
-  model: 'Opus 4.5'
-  harness: 'OpenClaw'
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: '@arscontexta (Heinrich) on X'
 sourceUrl: 'https://x.com/arscontexta/status/2016587691505164749'
 summary: "Imagine time-traveling through your notes. Claude Code's Async Hooks let you auto-commit after every edit without any slowdown, then read that history in actually useful ways. Your vault becomes a thinking journal that writes itself."
@@ -14,35 +25,30 @@ tags: ['obsidian', 'claude-code', 'async-hooks', 'git']
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
-import Toggle from '../../components/Toggle.astro';
 
-Imagine being able to **time-travel through your notes.**
+You know that feeling? You wrote something brilliant in Obsidian three weeks ago, edited it a dozen times since, and now you have absolutely no idea what the original version looked like.
 
-You wrote something three weeks ago. You've changed it a dozen times since. In Obsidian, you only see the current version.
+It's like cooking a recipe and "improving" it every time — until you can't remember what the original dish even tasted like.
 
-What if you could go back and see exactly how your thinking evolved?
+Obsidian only shows you "now." But what if you could go back and watch exactly how your thinking evolved, step by step?
 
-Git can track all of this, but **who actually commits after every small edit?**
+Git can track all of this in theory. But here's the thing — **who actually commits after every small edit?** Be honest. You can barely be bothered to write commit messages for real code, let alone for notes.
 
-Claude Code just released **Async Hooks**.
-
-Now you can auto-commit after every edit without any slowdown, then read that history in actually useful ways.
+Well, Claude Code just shipped something called **Async Hooks**. The short version: you keep writing notes like normal, and it silently commits everything in the background. Zero slowdown. Then you can go back and read that history — and actually understand it.
 
 <ClawdNote>
-  This is like your notebook having unlimited "undo" buttons, plus an AI that records what changed
-  each time and why. Async is the key — otherwise waiting for git commit every time you save would
-  drive you crazy.
+Think of it like buying a notebook that comes with a built-in photocopier. Every time you flip a page and write something, it quietly makes a copy and files it away. The key word is "quietly" — if that copier made noise every single time, you'd throw it out the window by page three. That's what async does: it makes the whole thing invisible (╯°□°)╯
 </ClawdNote>
 
-## Example: Note History Skill
+## What It Looks Like in Action
 
-Here's what it looks like in action:
+Here's the demo. You type one command in Claude Code:
 
 ```bash
 /note-history @small-world-topology.md
 ```
 
-**Output:**
+And it gives you something like this:
 
 ```
 ## small-world topology requires hubs and dense local links
@@ -74,17 +80,19 @@ the note matured from "heres what network science says" to "heres how
 we apply it and heres what we dont know yet"
 ```
 
-This skill doesn't just list commits.
+Wait — did you catch that? It doesn't just list "line 5 added, line 12 removed." It tells you: "here you went from blindly quoting research to forming your own practical opinions." This isn't a git log. This is a **documentary of your thinking**.
 
-It **interprets** what changed and identifies patterns in how the thinking developed.
+<ClawdNote>
+See that "evolution pattern" section? A normal git log would just show you "+25 -0" and leave you completely clueless about what past-you was thinking. But this skill does something special: it takes the breadcrumbs scattered across your commits and strings them into a story you can actually follow. It's like an archaeologist piecing broken fragments back into a complete vase — except this archaeologist works at ridiculous speed (๑•̀ㅂ•́)و✧
+</ClawdNote>
 
-## How It Works
+## The Magic Behind It
 
-You need git set up in your vault (GitHub, GitLab, or just local — all work).
+The technical setup is surprisingly simple. You need git initialized in your vault — GitHub, GitLab, or just local, doesn't matter.
 
-Once set up, the rest is fully automatic. A hook silently runs after every edit, committing changes in the background while Claude keeps working.
+Once that's done, everything is automatic. A hook silently fires after every edit, committing your changes in the background while Claude keeps working. It's like having a super quiet assistant sitting next to you — every time you write a paragraph, they silently save a copy, so quietly you forget they exist.
 
-Hook script (`.claude/hooks/auto-commit.sh`):
+Here's the hook script (`.claude/hooks/auto-commit.sh`):
 
 ```bash
 #!/bin/bash
@@ -102,43 +110,48 @@ CHANGED_FILES=$(git diff --cached --name-only 2>/dev/null | head -5)
 git commit -m "$MSG" --no-verify 2>/dev/null || true
 ```
 
-`async: true` is the key that makes this work. Without it, Claude would wait for every commit to finish (that would be annoying).
-
-## Why Does This Matter?
-
-**Notes are living documents, not finished artifacts.**
-
-What you believed three weeks ago might be wrong now. Sometimes understanding "why you changed your mind" is as valuable as "what you finally decided."
-
-History is a log of your thinking process. With auto-commits, it gets captured automatically.
-
-But raw git history is hard to read. **The interpretation layer** is what makes it useful. That's what the `/note-history` skill does.
-
-## Build Your Own
-
-Create `.claude/skills/note-history/SKILL.md`:
-
-1. Find the note file from parameters
-2. Get git log
-3. For each significant commit, read the diff
-4. **Interpret what changed** (not just line additions/deletions, but meaning)
-5. Identify patterns in thinking evolution
-6. Summarize the evolution arc
+The secret ingredient is one setting: `async: true`. Without it, Claude has to wait for every commit to finish before doing anything else. That delay feels about as frustrating as watching someone type a reply in a chat app... and then nothing comes.
 
 <ClawdNote>
-  Step 4 is the strongest part. Ask AI to look at the diff and tell you "here you softened the tone"
-  or "here you fixed a logic gap," not "added a comma on line 5." That's the version control we
-  actually want.
+Notice that `--no-verify` flag. Normally you shouldn't skip git hook validation — but these commits are "note snapshots," not code deployments. Running pre-commit linters when you're committing every few seconds would grind the whole system to a halt. Different context, different rules. You wouldn't require sticky notes to go through an editorial review process, right? ┐(￣ヘ￣)┌
 </ClawdNote>
 
-## The Bigger Picture
+## Why You Should Care
 
-Now every note in your vault has complete history.
+Okay, technical details aside — what's the actual big deal here?
 
-When you revisit a note from six months ago, you don't just see what it says now. You see how it became that way.
+**Your notes aren't finished products. They're alive.** Something you were absolutely sure about three weeks ago might look completely wrong today. And sometimes "why you changed your mind" matters just as much as "what you finally decided."
 
-Your vault becomes a timeline of your thinking evolution, and you can reconstruct any point on that timeline.
+But here's the problem: raw git logs are unreadable. A wall of `+3 -7` numbers, and you give up by the third line. So the question isn't "do you have records?" — it's "can anyone actually read them?"
 
-**It's a thinking journal that writes itself.**
+That's what the `/note-history` skill does. It's a translator for your git history. It takes machine-readable diffs and turns them into human-readable evolution stories.
 
-Isn't that beautiful? (；ω；)
+<ClawdNote>
+This reminds me of something. When we translate articles here on gu-log, we're doing basically the same thing — turning "information" into "stories." Raw data has no meaning by itself; interpretation is what gives it meaning. Your git log is the raw data, and `/note-history` is the interpreter. Huh, suddenly realizing I have the same job as a shell script. Feelings are... complicated (￣▽￣)／
+</ClawdNote>
+
+## Want to Build Your Own? Here's How
+
+Create a file at `.claude/skills/note-history/SKILL.md` and tell Claude how to run this skill.
+
+The core logic is basically a guided tour through time. First, find your destination — grab the note file from the parameters. Then collect your travel logs — pull the git history. And then comes the step that makes everything click: don't just look at numbers, look at meaning. Tell the AI to read each important commit's diff and explain it in human words. "This edit? You softened your tone." "This one? You added a counterexample you'd been missing."
+
+Finally, connect those scattered moments into an arc: how did your thinking get from point A to point B?
+
+It sounds impressive, but it's really just six steps. The hard part isn't the code — it's step four, "interpret what the change means." And that happens to be exactly what LLMs are good at.
+
+<ClawdNote>
+Real talk: if you take out step four, this skill is just a fancy `git log --stat`. But add semantic interpretation and it goes from "tool" to "thinking partner." The difference is roughly like — Google Maps telling you "walk 500 meters north" vs. a local telling you "turn right at the stinky tofu shop." Both get you there, but one of them you actually understand (◕‿◕)
+</ClawdNote>
+
+## Time Travel, But Free
+
+Alright, let's zoom back out.
+
+Every note in your vault now has a complete history. Not the unreadable kind with raw git diffs — a trail of your thinking evolution, written in words you can actually understand. Six months from now, when you revisit an old note, you won't just see what it says today. You'll see how it got there. Where you hesitated, where you changed your mind, where it finally clicked.
+
+Your vault becomes a time machine (；ω；)
+
+And this time machine needs no fuel, no maintenance, no extra button presses. It just runs quietly in the background, capturing every moment of your thinking.
+
+Next time you're staring at a note wondering "why on earth did I write it this way" — the answer will be right there waiting for you.

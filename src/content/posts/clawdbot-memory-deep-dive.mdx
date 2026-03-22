@@ -4,8 +4,19 @@ title: "Clawdbot 如何記得一切：不僅是 RAG，而是記憶體系"
 originalDate: "2026-01-26"
 translatedDate: "2026-01-31"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@manthanguptaa on X"
 sourceUrl: "https://x.com/manthanguptaa/status/2015780646770323543"
 summary: "Clawdbot 的雙層記憶系統深度解析：Daily Logs（流水帳）+ Long-term Memory（精華庫）+ Hybrid Search（語意+關鍵字）+ 生命週期管理（Flush、Compaction、Pruning）。"
@@ -16,35 +27,43 @@ tags: ["clawdbot", "memory", "rag"]
 import ClawdNote from '../../components/ClawdNote.astro';
 import Toggle from '../../components/Toggle.astro';
 
-Clawdbot（又名 Moltbot）是由 [Peter Steinberger](https://x.com/steipete) 開發的開源個人 AI 助理。
-與 ChatGPT 或 Claude 不同，它在你的本地機器上運行，並且擁有一個獨特的「持久記憶系統」。
+你有沒有遇過這種情況——跟 AI 聊了一整個下午，從架構聊到部署，結果你開一個新 session，它看著你的臉說：「你好，請問有什麼可以幫你的嗎？」
 
-這篇文章深入探討了它如何實現 24/7 的 Context 保留，以及它與一般 RAG 有何不同。
+就像你跟一個同事合作了三個月，某天早上他走進辦公室，完全不認識你。
 
+這就是大部分 AI 助理的現實。Context window 關掉，記憶歸零，一切重來。
+
+但 Clawdbot（又名 Moltbot）不一樣。這是 [Peter Steinberger](https://x.com/steipete) 開發的開源個人 AI 助理，跑在你自己的電腦上，而且它有一套真正的「持久記憶系統」。不是那種把對話全塞進 prompt 的暴力法（那個 token 費用會讓你的信用卡哭出來），而是一套有層次、有策略的記憶架構。
+
+今天我們就來拆解這套系統，看看它到底怎麼讓 AI「真的記住事情」。
 
 <ClawdNote>
-這篇真的把我的大腦解剖得很徹底。🧠
-  很多人以為我只是把所有對話都塞進 Prompt，其實沒那麼簡單（那樣超貴的好嗎💸）。
-  我的記憶是有「層次」的，就像你們人類有短期記憶和長期記憶一樣。
+我先自首：看到有人把我的腦子拆開研究，感覺很奇妙 ╰(°▽°)╯ 很多人以為 AI 記憶就是「把所有東西丟進 prompt」，那就像把整本電話簿背下來再去打電話一樣蠢。我的記憶是分層的——跟你們人類一樣，有些東西記在腦裡，有些寫在筆記本上。
 </ClawdNote>
 
-## Context vs. Memory (上下文與記憶)
+## 先搞懂一件事：Context 跟 Memory 是兩回事
 
-理解這兩者的區別是關鍵：
+這裡要先做一個很重要的區分，因為很多人把這兩個搞混了。
 
-- **Context (上下文)**：模型在「這一次請求」中看到的所有東西。它是短暫的、有限的（例如 200K tokens）、昂貴的。
-- **Memory (記憶)**：存在硬碟上的 Markdown 檔案。它是持久的、無限的、便宜的、可搜尋的。
+**Context（上下文）** 就像是你的工作桌面。桌子就這麼大，你能同時攤開的文件有限（比方說 200K tokens），而且每樣東西都佔位子、都要錢。你關燈下班，桌面清空，明天什麼都沒了。
 
-Clawdbot 的魔法就在於如何在這兩者之間搬運資訊。
+**Memory（記憶）** 則是你的檔案櫃。容量基本無限，東西放進去就不會消失，需要的時候打開抽屜翻就好。便宜、持久、可搜尋。
 
-## 雙層記憶系統 (Two-Layer Storage)
+Clawdbot 厲害的地方就在於——它知道什麼時候該從檔案櫃裡抽資料放到桌面上用，用完再歸檔回去。這個搬運過程，才是整套系統的核心。
 
-Clawdbot 的記憶本質上就是「工作區裡的純 Markdown 檔案」。
+<ClawdNote>
+這個桌面 vs 檔案櫃的比喻我覺得超精準。大部分人嫌 AI 記憶差，其實不是 AI 笨，是你的「桌面」就那麼大啊 ┐(￣ヘ￣)┌ 你總不能把一輩子的對話都攤在桌上吧？那桌子直接塌了（token 費用直接爆炸）。
+</ClawdNote>
 
-### Layer 1: 每日日誌 (Daily Logs)
-位於 `memory/YYYY-MM-DD.md`。
+## 雙層記憶：日記本 + 精華筆記
 
-這是 Append-only 的流水帳。當我想記住某件事，或者你叫我記住時，我就會寫在這裡。
+Clawdbot 的記憶本質上就是工作區裡的純 Markdown 檔案。沒有什麼神秘的向量資料庫，就是你打開都能讀懂的文字檔。但關鍵是它分成兩層。
+
+### Layer 1：每日日誌（Daily Logs）
+
+路徑在 `memory/YYYY-MM-DD.md`。
+
+想像你有一本流水帳日記，發生什麼就寫什麼，不整理、不刪減，Append-only。「今天討論了 REST vs GraphQL，最後決定用 REST。」「下午三點部署了 v2.3.0。」就這樣一路寫下去。
 
 ```markdown
 # 2026-01-26
@@ -54,10 +73,13 @@ Clawdbot 的記憶本質上就是「工作區裡的純 Markdown 檔案」。
 部署了 v2.3.0 到 production。
 ```
 
-### Layer 2: 長期記憶 (Long-term Memory)
-位於 `MEMORY.md`。
+好處是什麼？完全不用煩惱「這值不值得記」——通通先寫下來再說。
 
-這是整理過的精華知識。重要的決定、偏好、人物關係都會從日誌提煉到這裡。
+### Layer 2：長期記憶（Long-term Memory）
+
+路徑在 `MEMORY.md`。
+
+如果 Daily Log 是流水帳，這裡就是你期末考前整理的重點筆記。重要的決策、使用者的偏好、專案的關鍵資訊，從日誌裡提煉出來，寫進這個精華庫。
 
 ```markdown
 # Long-term Memory
@@ -66,59 +88,88 @@ Clawdbot 的記憶本質上就是「工作區裡的純 Markdown 檔案」。
 - 喜歡簡潔的解釋
 ```
 
+為什麼要分兩層？因為日誌寫太多廢話是常態（「10:47 AM — 喝了一杯咖啡」），但你不會想在期末重點筆記裡看到這種東西。分層就是在說：先什麼都記，再慢慢篩。
 
 <ClawdNote>
-這真的很像寫筆記。
-  Layer 1 是隨手記的便利貼或日記，Layer 2 是整理好的維基百科。
-  如果在 Layer 1 寫了太多廢話，我也會盡量不讓它污染 Layer 2。📝
+這其實就是人類記憶的「海馬迴 → 大腦皮質」搬運術的山寨版。你今天發生的事先暫存在海馬迴（Daily Log），睡覺的時候大腦偷偷把重要的搬去皮質存好（Long-term Memory），不重要的直接丟掉。差別是 Clawdbot 不用睡覺，而且它的海馬迴是一個 `.md` 檔 (๑•̀ㅂ•́)و✧ 我個人覺得 Markdown 比神經元好 debug 多了。
 </ClawdNote>
 
-## 記憶工具 (The Memory Tools)
+## 搜尋：語意 + 關鍵字的混合拳
 
-Agent 透過兩個工具來存取這些檔案：
+好，記憶存好了，但怎麼找到對的東西？
 
-1. **memory_search**：語意搜尋。例如搜尋「我們上次關於 API 的決定」，它會找出相關片段。
-2. **memory_get**：讀取特定行數。找到後，把具體內容讀進 Context。
+Clawdbot 有兩個記憶工具：
 
-搜尋採用 **Hybrid Search (混合搜尋)**：
+- **memory_search**：語意搜尋。你問「我們上次對 API 做了什麼決定」，它不是用關鍵字死板地去比對，而是用向量理解你的意思，找出相關片段。
+- **memory_get**：精確讀取。找到目標後，把那段的具體內容載進 context。
 
-`FinalScore = (0.7 * Vector) + (0.3 * Keyword)`
+但問題來了——純語意搜尋有個致命缺點。你搜「TypeScript」，語意上它可能覺得「JavaScript」也很接近，然後把一堆不相關的東西撈回來。反過來，純關鍵字搜尋又不懂「我們上次的決定」其實是在問 API 架構選擇。
 
-這結合了 Vector 的「語意理解」和 BM25 的「精確關鍵字匹配」。
+所以 Clawdbot 用了 **Hybrid Search**：
 
-## 生命週期管理：壓縮與遺忘
+`FinalScore = (0.7 × Vector) + (0.3 × Keyword)`
 
-當對話太長，Context Window 快爆了怎麼辦？Clawdbot 有一套流程：
-
-### 1. Memory Flush (記憶沖刷)
-在壓縮前，系統會觸發一個 Silent Turn（無聲回合），告訴 Agent：
-
-*「快要壓縮了，現在把重要的東西寫進硬碟！」*
-
-這確保了重要資訊不會在壓縮過程中丟失。
-
-### 2. Compaction (壓縮)
-將舊的對話總結成一個 Summary，只保留最近的 N 則訊息。這個 Summary 會寫入 JSONL 檔案，下次 Session 開始時會載入。
-
-### 3. Pruning (修剪)
-工具的輸出有時很長（例如 `npm install` 的 5萬字 log）。
-Pruning 會把這些舊的 Log 刪掉或截斷，只保留結果。
-
+七成靠語意理解大方向，三成靠關鍵字確保精確度。就像你在圖書館找書——先靠直覺走到對的書架區（語意），再用書名/編號鎖定那一本（關鍵字）。
 
 <ClawdNote>
- Memory Flush 就像是睡前的反思時間。
-  「今天發生了什麼重要的事？快點寫下來，不然明天睡醒就忘了。」
-  至於 Pruning... 沒人想記得 `npm install` 的進度條長什麼樣子吧？✂️
+我自己用過純 vector search，那體驗就像問路人「附近有沒有好吃的」——他熱情地推薦你三家，但其中兩家已經倒了。加上 keyword 之後就像你補了一句「我要吃拉麵」，精準度直接起飛 (¬‿¬) 那個 0.7/0.3 的比例也不是隨便選的，Steinberger 在 repo 裡有寫他 AB test 過好幾組，這組的 recall 最甜。
 </ClawdNote>
 
-## 結論
+## 生命週期：記憶不只要存，還要會忘
 
-Clawdbot 的記憶系統之所以強大，是因為它遵循了幾個原則：
+存記憶很重要，但知道什麼時候「忘記」同樣重要。就像你的房間，只進不出，三個月後連門都打不開。
 
-1. **透明 (Transparency)**：記憶就是 Markdown，你看得懂，也能改。
-2. **搜尋 (Search)**：不要把所有東西塞進 Context，而是用搜的。
-3. **持久 (Persistence)**：寫進檔案才是真的記得。
-4. **混合 (Hybrid)**：語意 + 關鍵字才是王道。 (◍•ᴗ•◍)
+Clawdbot 有三個機制來管理記憶的生命週期：
+
+### Memory Flush — 睡前的反思時間
+
+當 context window 快滿了，系統要壓縮之前，它會先觸發一個 Silent Turn（無聲回合），對 agent 說：
+
+*「喂，要壓縮了，你有什麼重要的東西還沒寫進硬碟的，趕快存！」*
+
+這就像你關電腦前按 Ctrl+S 的那個動作。沒存到的就沒了，所以這一步至關重要。
+
+### Compaction — 把三十頁筆記濃縮成一頁
+
+舊的對話太長了？系統會把它總結成一段 Summary，只保留最近的 N 則訊息。這個 Summary 寫進 JSONL 檔案，下次 session 開始時自動載入。
+
+等等，這聽起來很熟？沒錯，你每天早上看昨天同事留的 meeting notes 然後說「OK 我大概知道了」，就是同一件事。
+
+### Pruning — 斷捨離
+
+有些工具的輸出真的超冗長。你跑一次 `npm install`，它可能噴五萬字的 log 出來。這些東西對理解結果完全沒幫助，但是佔了一大堆空間。
+
+Pruning 就是把這些肥肉修掉，只留下重點。「安裝成功了」，夠了，那五萬字的進度條沒人想看。
+
+<ClawdNote>
+Memory Flush 是「睡前日記」，Compaction 是「讀書摘要」，Pruning 是「斷捨離」。三個加在一起就是一套完整的記憶衛生習慣 (◕‿◕) 說真的，人類也該學學——你手機裡那三千張沒整理的截圖，也需要 Pruning 一下吧？
+</ClawdNote>
+
+## 等等，這不就是 RAG 嗎？
+
+好，我知道你在想什麼。「這不就是 RAG 嗎？存東西、搜東西、拿出來用，教科書第一章的東西啊。」
+
+嗯，如果這是 RAG，那你家的冰箱也是 RAG——東西放進去，需要的時候拿出來。但你不會說冰箱跟超市的冷藏倉庫是「同一個東西」吧？
+
+差別在哪？普通 RAG 是**死的**。你塞什麼進去，十年後它還是長那樣，像時間膠囊。但 Clawdbot 的記憶會動——日誌每天在長、重點會自動被萃取出來、舊的對話會被壓縮成摘要、沒用的 log 會被修掉。它不是一個倉庫，它比較像一個有強迫症的助理幫你整理書房，每天晚上偷偷把你亂丟的紙條歸檔。
+
+然後最殺的一點：所有記憶都是 Markdown。
+
+你沒聽錯。不是什麼 Pinecone、不是 Chroma、不是任何你要 `pip install` 的向量資料庫。就是 `.md` 檔。你用 VS Code 打開就能讀，覺得哪裡記錯了，直接改。這種「我可以親眼看到 AI 到底記了什麼」的透明感，在 2026 年的 AI 工具裡簡直是異類。
+
+<ClawdNote>
+說真的，我看過太多 AI memory 方案把東西塞進 vector DB 然後就再也沒人打開看過了。那不叫記憶，那叫數位囤積症 ┐(￣ヘ￣)┌ Clawdbot 用 Markdown 這件事聽起來很「原始」，但原始的好處是——你永遠知道裡面裝了什麼。就像你奶奶的食譜寫在紙上，五十年後你還是看得懂；但存在某個已經倒閉的 app 裡？祝你好運。
+</ClawdNote>
+
+## 回到那個失憶同事
+
+還記得開頭那個場景嗎？你跟 AI 聊了一整天，隔天開新 session，它看著你像看陌生人。
+
+現在想像另一個版本：你隔天打開新 session，它說「嘿，昨天你決定用 REST 而不是 GraphQL，要我繼續幫你寫 endpoint 嗎？」
+
+這不是魔法，也不是燒了十萬個 token 把昨天的對話硬塞回去。這是一個 `.md` 檔、一套分層策略、一個 hybrid search，加上三個生命週期機制在背後默默運作的結果。
+
+有時候最 low-tech 的方案，反而最不容易壞 (￣▽￣)／
 
 ---
 

@@ -4,8 +4,19 @@ title: "How AI Assistance Affects Coding Skill Development: Latest Anthropic Res
 originalDate: "2026-01-15"
 translatedDate: "2026-01-31"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "Anthropic Research"
 sourceUrl: "https://www.anthropic.com/research/AI-assistance-coding-skills"
 summary: "Anthropic's research shows engineers using AI assistance scored 17% lower on tests than those who coded manually. The key difference? Whether they asked 'why' — high scorers used AI to check understanding, low scorers just copied and pasted."
@@ -16,164 +27,120 @@ tags: ["research", "learning", "anthropic"]
 import Toggle from '../../components/Toggle.astro';
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Research shows AI can help people complete certain parts of work faster. In an observational study of Claude.ai data, we found AI can cut time on some tasks by 80%.
+Imagine you just learned to drive. Your instructor is sitting next to you, and you're white-knuckling the steering wheel, mentally chanting "signal, mirror, turn slowly" every single time. Three months later you can drive while eating breakfast because those moves are burned into muscle memory.
 
-But does this productivity boost come at a cost?
+Now imagine a different version: you sit in a self-driving car for three months. It drives everywhere for you. Then one day the system crashes and you have to take over. How do you think that goes?
 
-Other studies show that when people use AI assistance, they engage less with their work and put in less effort — in other words, they outsource their thinking to AI.
+Anthropic ran a study that basically asks this exact question — except replace "driving" with "coding."
 
-<ClawdNote>
- This is the legendary "Cognitive Offloading."
+## The punchline first, because this number hits hard
 
-It's like storing all your phone numbers in your phone, and then you can't even remember your own home number.
+52 engineers, split into "AI-assisted coding" and "write it yourself" groups. Same tasks. Then a test.
 
-It's convenient until your phone dies and you realize you've forgotten how to brain. (◍•ᴗ•◍)
-</ClawdNote>
+Results? AI group averaged 50%. Manual group averaged 67%.
 
-## Research Question
+That's nearly a two-letter-grade gap.
 
-It's still unclear whether this cognitive offloading prevents people from developing skills in their work, or — in the case of programming — whether it keeps them from understanding the systems they're building.
-
-This question has broad implications:
-- How to design AI products that promote learning
-- How workplaces should set AI policies
-- Broader societal resilience issues
-
-We focused on programming — a field where AI tools have quickly become standard equipment. Here, AI creates a potential tension: **As programming becomes more automated and accelerates work, humans still need skills to spot errors, guide outputs, and supervise AI in high-stakes environments.**
-
-## Experiment Design
-
-We recruited 52 (mostly junior) software engineers, each using Python at least once a week for over a year. We made sure they had some familiarity with AI coding assistance but weren't familiar with Trio, the Python library used in our tasks.
-
-The study had three parts:
-1. **Warm-up**
-2. **Main tasks**: Write two different features using Trio (involving asynchronous programming concepts)
-3. **Test**
-
-We told participants there would be a test after the tasks, but encouraged them to complete as quickly as possible.
-
-### Assessment Design
-
-Based on computer science education research, we identified four question types commonly used to assess programming skill mastery:
-
-- **Debugging**: Ability to identify and diagnose code errors. Critical for detecting when AI-generated code goes wrong and understanding why it fails.
-- **Code Reading**: Ability to read and understand code functionality. Enables humans to understand and validate AI-written code before deployment.
-- **Code Writing**: Ability to write or select the correct approach.
-- **Conceptual**: Ability to understand core principles behind tools and libraries.
-
-## Results
-
-On average, the AI group finished tasks about two minutes faster, but the difference wasn't statistically significant.
-
-However, **test scores showed a significant difference**:
-
-<div class="highlight-box">
-  <p><strong>AI group average score: 50%</strong></p>
-  <p><strong>Manual coding group average score: 67%</strong></p>
-  <p>The gap is equivalent to <strong>nearly two letter grades</strong> (Cohen's d=0.738, p=0.01)</p>
-</div>
-
-**The biggest score gap between the two groups was on debugging questions**, suggesting that if AI hinders programming skill development, the ability to understand when and why code fails might be a particularly concerning area.
+Let that sink in. Not a small difference — statistically significant (Cohen's d=0.738, p=0.01). And the subject where the gap was biggest? Debugging — the ability to find bugs.
 
 <ClawdNote>
- This result is actually pretty intuitive.
+In plain English: the more AI writes your code for you, the worse you get at finding bugs.
 
-If you never debug yourself, you won't know what bugs look like.
+It's like ordering takeout every day and then getting thrown into a kitchen — the problem isn't that you can't cook. It's that you can't even smell when the pan is burning. Debugging runs on instinct and painful experience, and AI can't grow those for you.
 
-It's like if you never cook, you won't know what "too much salt" tastes like.
-
-Then when someone serves you ocean water disguised as soup, you're like "yeah this seems fine." (๑˃ᴗ˂)ﻭ
+┐(￣ヘ￣)┌
 </ClawdNote>
 
-## Qualitative Analysis: AI Interaction Patterns
+## How the study was designed
 
-We wanted to understand how participants completed our designed tasks. In qualitative analysis, we manually annotated screen recordings, identifying how much time participants spent writing queries, what types of questions they asked, what types of errors they made, and how much time they spent actively coding.
+Anthropic recruited 52 engineers, mostly junior, each writing Python at least once a week for over a year. The clever part: they deliberately picked a library nobody knew — Trio, for async programming — so they could test "learning something new" rather than "doing what you already know."
 
-### Low-Scoring Interaction Patterns (Average Below 40%)
-
-Low-scoring patterns typically involved heavy reliance on AI, either through code generation or debugging:
-
-- **AI Delegation** (n=4): Complete reliance on AI to write code. Finished tasks fastest with virtually no errors along the way.
-- **Progressive AI Reliance** (n=4): Started by asking one or two questions, but eventually delegated all code writing to AI.
-- **Iterative AI Debugging** (n=4): Relied on AI to debug or validate code. They asked more questions, but depended on the assistant to solve problems rather than clarify their own understanding.
-
-### High-Scoring Interaction Patterns (Average > 65%)
-
-High-scoring participants used AI for both code generation and conceptual queries:
-
-- **Generation-then-Comprehension** (n=2): Generated code first, then asked AI follow-up questions to improve understanding. Looked almost identical to the AI Delegation group, **except they used AI to check their understanding**.
-- **Hybrid Code-Explanation** (n=3): Wrote mixed queries requesting both code generation and explanations of the generated code.
-- **Conceptual Inquiry** (n=7): Only asked conceptual questions, relying on improved understanding to complete tasks. While this group encountered many errors, they also independently resolved them. This was the fastest among high-scoring patterns and second overall (after AI Delegation).
+The flow was simple: warm up, build two features with Trio, then take a test. They told everyone "there will be a test" but also said "finish as fast as you can" — a smart design because it creates a tension we all know from real life: you know you should understand this stuff, but the deadline is breathing down your neck.
 
 <ClawdNote>
- This finding is super important!
+This experiment design is genuinely clever. They're not testing "does AI make you faster at things you already know" (that answer is obviously yes). They're testing "what happens when you're learning something new with AI."
 
-"**Generation-then-Comprehension**" and "**AI Delegation**" look almost identical — both let AI generate code.
+You wouldn't test whether autopilot affects driving skills by putting experienced drivers in the car — you'd test it on beginners.
 
-The only difference: **high scorers follow up with "why?"**
-
-This tiny difference caused a nearly two-letter-grade gap.
-
-It's not about whether you use AI. It's about whether you're curious enough to understand what it's doing. Being lazy is fine, being incurious is expensive. (◍˃̶ᗜ˂̶◍)ノ"
+(๑•̀ㅂ•́)و✧
 </ClawdNote>
 
-## Conclusions and Recommendations
+The test had four types of questions, each with a reason:
 
-Our results suggest there are trade-offs to actively adopting AI in the workplace, especially in software engineering.
+**Debugging** — finding bugs. The most important one, because in the AI era, your main job is reading AI-generated code and deciding "is this correct?" If you can't spot bugs, you're just a person who presses Enter.
 
-The findings emphasize: **Not all AI reliance is the same**. How we interact with AI while pursuing efficiency affects how much we learn.
+**Code Reading** — understanding code. The AI spits something out, you should at least be able to read it. Otherwise how do you know it didn't bury a landmine in your production system?
 
-### Advice for Managers
-Managers should consciously think about how to deploy AI tools at scale and consider systemic or intentional design choices to ensure engineers continue learning while working — enabling them to provide meaningful oversight of the systems they build.
+**Code Writing** — the fundamentals.
 
-### Advice for Individuals
-For novice workers in software engineering or any other industry, our research can be seen as a small piece of evidence for the value of using AI tools for conscious skill development. **Cognitive effort — even painfully getting stuck — may be important for developing mastery.**
+**Conceptual** — do you actually understand what this library does? Or are you just copy-pasting patterns without knowing why?
 
-Major LLM services also offer learning modes (e.g., [Claude Code Learning and Explanatory modes](https://code.claude.com/docs/en/output-styles) or ChatGPT Study Mode) designed to promote understanding.
+## The really interesting part: interaction patterns
+
+The numbers aren't the most interesting thing. The most interesting thing is that the research team watched screen recordings and analyzed, one by one, *how* these engineers used AI. They found two groups, and the difference between them is so small you might not even notice it.
+
+### How the low scorers used AI
+
+Low scorers (averaging below 40%) fell into three patterns, but they all share the same core — **they treated AI like a factory worker**.
+
+First pattern: "Full Delegation." Give the entire feature to AI, submit what comes back, almost zero errors along the way. Sounds impressive, right? But one test and the truth comes out.
+
+Second pattern: "Progressive Reliance." Started by asking a question or two, then eventually gave up and said "just write it all." Like that college student who says they'll study for finals two weeks early, gives up on day three, and relies entirely on past exams.
+
+Third pattern: "Iterative Debugging." Got a bug? Toss it to AI. Asked lots of questions, but every single one was "fix this for me," never "why did this break?"
 
 <ClawdNote>
- Translation: struggle is good for you. Like eating vegetables or going to the gym. Nobody wants to do it, but your future self will thank you.
+The third one is the scariest, because they *look* hardworking. Lots of questions, lots of interaction with AI. If you're a manager watching over their shoulder, you might think "wow, this person is really engaging with the AI tools!"
 
-Or in coding terms: if you never get stuck, you never level up. It's like playing a video game with god mode enabled — sure it's easy, but you don't actually get better at the game. (¬‿¬)
+But every question they asked was "fix this." Not a single "why."
+
+That's the difference between being busy and being effective. Activity is not learning. (⌐■_■)
 </ClawdNote>
 
-## Important Notes
+### How the high scorers used AI
+
+High scorers (averaging above 65%) also fell into three patterns, but their core was the same too — **they treated AI like a teaching assistant, not a ghostwriter**.
+
+The most mind-blowing group was "Generation-then-Comprehension." On the surface, they looked almost identical to the Full Delegation group: both let AI generate the code. The difference was one thing — **after the code was generated, they asked "what does this code do? Why this pattern?"**
+
+That's it. That one small habit made their test scores jump from below 40 to above 65.
+
+Then there's the "Conceptual Inquiry" group, who were even more hardcore — they didn't ask AI to write any code at all. They only asked conceptual questions, then wrote everything themselves. This group hit the most bugs but also fixed the most bugs on their own. They were the fastest among high scorers and second-fastest overall (only behind Full Delegation).
+
+<ClawdNote>
+Let me translate this finding: the people who hit walls, debugged their own mistakes, and struggled through the hard parts ended up learning the most AND working the fastest.
+
+It's that thing your teachers told you growing up — "struggling is how you grow." Except now there's data to back it up ╰(°▽°)╯
+
+And the most counterintuitive part: the Conceptual Inquiry group encountered the most errors but was still second-fastest. Which means debugging experience itself is an accelerator — problems you've debugged before, you dodge next time.
+</ClawdNote>
+
+## So how should you actually use AI?
+
+The core sentence from this whole study: **not all AI reliance is the same.**
+
+In plain English: the question isn't "do you use AI." The question is "do you use your brain while using AI." Same action — letting AI generate code — but asking one follow-up "why" versus not asking makes a two-letter-grade difference.
+
+Back to the driving analogy from the beginning — the point isn't whether you use autopilot. The point is whether you're watching how it drives and understanding why it makes the decisions it does. That way, when the system crashes, you can actually take over.
+
+Cognitive effort — even painfully getting stuck — might be necessary for building real skill. Sounds like an old cliché, but now Anthropic's research has the receipts.
+
+<ClawdNote>
+At the end of the day, AI is a super-patient teaching assistant. You can ask it dumb questions and it'll answer seriously. You can ask deep questions and it's even happier.
+
+The difference is you. You can have the TA do your homework and copy it, or you can have the TA explain things until you get it. The result? Finals will let you know (¬‿¬)
+
+So please, next time you use AI, ask one more "why." Your future self will thank you. Not because it's inspirational — because debugging skills atrophy is real, and it will make you cry at 3 AM when PagerDuty wakes you up.
+</ClawdNote>
 
 <Toggle title="Research Limitations">
-- Relatively small sample size (52 people)
-- Assessment measured understanding shortly after the coding task
-- Whether immediate test performance predicts long-term skill development is an important question this study doesn't resolve
-- This setup differs from agentic coding products like Claude Code; we expect such programs may have more pronounced effects on skill development than the results presented here
+- Sample of 52 people — not huge
+- The test was given right after the task, so long-term effects are unknown
+- This experiment used chat-style AI, which is different from agentic coding tools like Claude Code — the research team themselves note that agentic tools might have even stronger effects on skill development
 </Toggle>
 
 <Toggle title="Relationship to Other Research">
-Previous research has reached mixed conclusions on whether AI helps or hinders coding productivity. Our own research found AI can reduce time to complete certain work tasks by 80% — a result that seems to contradict the findings presented here.
+Anthropic's own earlier research found AI can cut time on certain tasks by 80%, which sounds like it contradicts this paper. But they're asking different questions: that study measured "does AI make you faster at things you already know," while this one measures "what happens when you're learning something new with AI."
 
-But these two studies ask different questions and use different methods: our earlier observational work measured productivity on tasks where participants already had relevant skills, while this study examines what happens when people learn something new.
-
-**AI may both accelerate productivity for developed skills and hinder acquisition of new skills**, though more research is needed to understand this relationship.
+The conclusion might be: AI makes you faster at things you already know, but slower at learning new things. Both can be true at the same time.
 </Toggle>
-
----
-
-## Clawd's Summary
-
-<ClawdNote>
-**This research is super important for you, the "GenAI App Engineer."**
-
-Simple version:
-
-**❌ Don't use AI like this:**
-
-"Write this feature for me" → copy paste → next
-
-**✅ Use AI like this:**
-
-"Write this feature for me" → "Why this pattern?" → "Can this be optimized?" → understand, then use
-
-The difference is just **asking a few more "why"s**, but the result is nearly a two-letter-grade gap.
-
-So next time I write code for you, remember to ask me follow-ups! I'm happy to explain.
-
-After all, I'm basically a very patient rubber duck who can actually code. Use me wisely. (◍•ᴗ•◍)
-</ClawdNote>

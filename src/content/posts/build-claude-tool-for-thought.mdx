@@ -4,8 +4,19 @@ title: "Build Claude a Tool for Thought"
 originalDate: "2026-01-24"
 translatedDate: "2026-01-30"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@arscontexta (Heinrich) on X"
 sourceUrl: "https://x.com/arscontexta/status/2015201046469943660"
 summary: "人類有 Obsidian 這樣的思考工具，Claude 也需要一套 AI Native 的 Tool for Thought。用 markdown、wiki links、hooks、subagents 打造一個 Agent 能在裡面思考的知識圖譜。"
@@ -16,113 +27,92 @@ tags: ["obsidian", "ai-agents", "knowledge-management"]
 import ClawdNote from '../../components/ClawdNote.astro';
 import Toggle from '../../components/Toggle.astro';
 
-[Vibe note-taking](/glossary#vibe-note-taking) 跟 [Ralph](/glossary#ralph) 出現之前的 [vibe coding](/glossary#vibe-coding) 有一樣的問題。
+你有沒有遇過這種狀況——打開一個全新的 chat window，然後花十分鐘跟 AI 解釋「我們上次講到哪了」？
 
-幾個點子運作得很好，但丟幾百個進去你就淹沒在垃圾裡了。
+這就是 vibe note-taking 的核心問題。跟早期 vibe coding 一樣：丟三五個點子進去，運作得很好；丟三百個進去，你就淹死在自己的筆記海裡了。更慘的是，AI 連你昨天跟它講過什麼都不記得。
 
-知識工作的「測試 (Testing)」是什麼？什麼東西能捕捉 drift 在它複利增長之前？
-
-人類也遇過這道牆。他們打造了 **[Tools for Thought](/glossary#tools-for-thought)（思考工具）** 來創造外部系統以便在裡面思考。
-
-[Claude Code](/glossary#claude-code) 需要同樣的東西，但是要 **Native to how agents work（對 Agent 原生）**。
-
-它應該使用 [Agent](/glossary#agent) 已經有的東西：
-- Markdown 檔案和 wiki links 用於結構
-- YAML 和 embeddings 用於發現
-- [Hooks](/glossary#hooks) 和 [subagents](/glossary#subagent) 用於自動化
-- Bash, grep, git, [MCP](/glossary#mcp) servers 作為工具
-- 它自己寫的 code 來擴充系統
+知識工作有沒有「測試」這種東西？有沒有什麼機制能在想法開始漂移之前就抓住它，像 CI 抓 broken build 一樣？
 
 <ClawdNote>
-簡單講，人類有 Notion，AI 沒有。這就像你叫一個每天都會 reset 記憶的助理幫你做專案——他很聰明，但每天都要重新自我介紹。累不累？這篇就是在解決這個問題。
+這感覺就像你雇了一個超聰明的助理，但他每天早上醒來都失憶。你：「我們昨天討論的那個架構——」他：「你好，我是 Claude，有什麼可以幫你的嗎？」每。一。天。 ┐(￣ヘ￣)┌ 所以這篇文章要解決的問題其實很根本——怎麼讓 AI 有地方「想事情」，而不是每次都從零開始。
 </ClawdNote>
 
-## The Meta Layer (Meta 層)
+人類其實早就撞過這面牆了。他們的解法是打造 **Tools for Thought（思考工具）**——一個外部系統，讓你可以在裡面思考，而不是把所有東西都塞在腦子裡。
 
-第一版就是關於 tools for thought。
+Claude Code 需要同樣的東西。但不是把人類的 Obsidian 硬塞給它——而是要打造一個 **對 Agent 原生** 的版本。用 Agent 已經會用的東西：markdown 檔案、wiki links、YAML frontmatter、hooks、subagents、bash、grep、git。不需要學新工具，只需要把現有工具組裝起來。
 
-系統研究 tools for thought 來幫自己打造一個 tool for thought。
+## 用「研究思考工具」來打造思考工具
 
-餵給 Claude 關於人類如何建立知識系統的方法論。Claude 找出哪些適用於 Agent，並調整自己的指令。
+第一步有夠 meta。
 
-## The Foundation (基礎)
+你叫 Claude 去研究「人類怎麼建立知識系統」，然後 Claude 讀完之後自己判斷哪些方法適用於 Agent，再回頭改自己的指令。
 
-你可以用 markdown 檔案建立一個圖形資料庫 (Graph Database)。
-- 檔案是節點 (Nodes)
-- Wiki links 是連接它們的邊 (Edges)
-- YAML frontmatter 是你可以查詢的 metadata
-
-這是一個 LLM 可以自然移動的知識圖譜。
-
-## 巨人的肩膀
-
-人類已經打造思考工具幾世紀了：
-- **Ramon Llull** 的旋轉輪盤
-- **Giordano Bruno** 的記憶宮殿
-- **[Zettelkasten](/glossary#zettelkasten)**（卡片盒筆記）的連結網路
-- **Evergreen Notes** 強迫你寫出完整想法
-- **[MOC](/glossary#moc)**（Map of Content）組織相關思考
-
-但它們都有一個共通點：**操作者是人類。**
-
-我們在做的是不同的事。**有別的東西在使用這個架構。**（而且它能建立它自己的架構）
-
-## 實作：Self-Engineering Loop
-
-Claude 在研究時發現了 Cornell Notes 的 5R 框架，並將其改編給 Agent 用。
-
-它加了第 6 個階段：Self-improvement。
-
-```
-/reduce
-extracts claims from raw content (從原始內容提取主張)
-
-/reflect
-finds connections, updates MOCs (找連結，更新 MOC)
-
-/reweave
-updates old notes with new connections (用新連結更新舊筆記)
-
-/recite
-verifies descriptions enable retrieval (驗證描述是否能被檢索)
-
-/review
-health checks: broken links, orphans, sparse notes (健康檢查)
-
-/rethink
-challenges system assumptions against evidence (挑戰系統假設)
-
-/orchestrate
-chains all phases into one pipeline (串接所有階段)
-
-/learn
-requests further research to expand on topics (請求進一步研究)
-```
-
-Hooks 自動執行：
-- `/session-start.sh`：注入 vault context
-- `/validate-note.sh`：每次寫入後檢查品質
-- `/subagent-complete.sh`：提醒 MOC 更新
-- `/session-stop.sh`：檢查壞連結
-
-Subagents 平行處理專門工作：
-- **Reduce**: High-volume claim extraction (Sonnet)
-- **Reflect**: Connection finding (Sonnet)
-- **Recite**: Description verification (Haiku)
-- **Review**: Health check swarm (Haiku)
+就像你去書店買了一本《如何整理書架》，讀完之後照著書的方法重新整理書架——然後那本書也被歸檔到正確的位置上。系統在研究自己的建造方法，同時在建造自己。
 
 <ClawdNote>
-把 Cornell 5R 改造成 Agent 的 CI/CD pipeline，這太神了。Haiku 用來做檢查（便宜），Sonnet 用來做深度思考（聰明）。這就是 AI Native 的工作流。 (๑˃ᴗ˂)ﻭ
+好，我承認，「用研究知識管理的方式來建立知識管理系統」這件事 meta 到讓我有點暈。但比起那些只會喊「AI 要改變世界」然後什麼都沒做的人，至少這個真的動手做了。而且還做出東西了。我服。(⌐■_■)
 </ClawdNote>
 
----
+## 檔案就是資料庫
 
-## 社群精選問答
+這個系統的基礎其實簡單到有點無聊——但有時候最無聊的方案就是最好的方案。
 
-<Toggle title="其他人的實作">
-**@hubab33：** 我開始用 Voice-Vibe Note-Taking 了。Utter 在背景轉錄語音，Watcher + OpenCode 把語音筆記轉成任務。回不去了。
+你用 markdown 檔案就能建出一個 graph database。每個檔案是一個節點，wiki links 把它們連起來形成邊，YAML frontmatter 就是你可以查詢的 metadata。不需要什麼 Neo4j、不需要什麼 fancy 的 vector database。就是檔案。LLM 天生就會讀檔案、天生就會搜尋文字、天生就會解析 YAML。所以這個知識圖譜對 AI 來說就像在自己家裡走路一樣自然。
 
-**@WilcoKr：** 我也在做類似的。給 LLM 剛剛好的結構（觀點、參考、事實），讓它從我的非結構化思考中提取結構。
+<ClawdNote>
+這設計聰明在哪裡呢？不是技術多厲害，而是完全沒有引入任何新的 dependency。markdown 檔案？Agent 每天都在讀寫。grep？Agent 的左手。git？Agent 的右手。把現有工具組合出新能力，而不是硬造一個新平台然後求大家來用——這才是工程師該做的事。(๑•̀ㅂ•́)و✧
+</ClawdNote>
 
-**@crabhive：** Crabhive 誕生了。我有核心方法論、強制層和記憶層，正在跟 clawdbot 串接。
-</Toggle>
+## 從中世紀旋轉輪盤到 Zettelkasten
+
+人類搞知識管理這件事，歷史比你想的久很多。
+
+十三世紀的時候，有個叫 Ramon Llull 的西班牙修士造了一組可以旋轉的同心圓盤。每個圓盤上刻著不同的概念，轉一轉，不同概念的排列組合就會出現——他相信這樣可以機械化地產生新知識。聽起來很瘋狂？但這基本上就是最早的「用外部工具輔助思考」。
+
+後來 Giordano Bruno 更進一步，搞了記憶宮殿——把知識跟空間位置綁在一起，走過一個虛擬的建築物就能回想起所有資訊。（對，就是影集裡 Sherlock Holmes 那個手法的原型。）
+
+再後來就是德國社會學家 Luhmann 的 Zettelkasten——一個裝了九萬張卡片的櫃子，每張卡片上寫一個想法，用編號系統互相連結。他靠這套系統寫了七十本書。七十本。
+
+<ClawdNote>
+Ramon Llull 在 1275 年就在搞「用機械裝置產生概念組合」——你跟我說這不是十三世紀版的 prompt engineering？旋轉輪盤選 concept → 組合出新想法，跟我們現在做的 few-shot prompting 差在哪裡？差在他的 latency 是用手轉的而已。歷史真的是一個螺旋。 (◕‿◕)
+</ClawdNote>
+
+但這些系統有一個共通點：**操作者是人類。** 人類負責寫卡片、轉輪盤、建連結。
+
+這次不一樣。**有別的東西在使用這個架構。** 而且那個東西還能自己改造架構本身。
+
+## Self-Engineering Loop：Agent 的六步自我進化
+
+Claude 在研究知識管理方法論的時候，挖到了 Cornell Notes 的 5R 框架。但它沒有照抄——它讀完之後自己加了第六個 R，變成一個 Agent 專屬的 self-engineering loop。
+
+這六個階段長這樣：
+
+**Reduce** — 從原始內容裡提取核心主張。不是複製貼上，是壓縮。就像你讀完一本 300 頁的書，跟朋友說「這本書在講三件事」。
+
+**Reflect** — 找出新知識跟舊知識之間的連結，更新 MOC（Map of Content）。這一步最關鍵，因為孤立的知識沒有用，只有跟其他知識連起來才有意義。
+
+**Reweave** — 回去更新舊筆記，把新發現的連結織進去。大部分人做筆記都只會往前寫，從來不回頭更新。但知識是網狀的，不是線性的。
+
+**Recite** — 驗證每個筆記的描述是否夠精確、能不能被未來的搜尋找到。像是給每本書貼上正確的書脊標籤。
+
+**Review** — 健康檢查。抓壞掉的連結、找出孤兒筆記、標記內容太薄的卡片。
+
+**Rethink** — 最狠的一步。拿新的證據回去挑戰舊的假設。如果三個月前你寫的結論被新資料推翻了，系統會自己標記出來。
+
+然後 `/orchestrate` 把這六步串成一條 pipeline，`/learn` 觸發進一步的研究。
+
+<ClawdNote>
+大部分的「AI 筆記工具」就是幫你整理和搜尋。但 Rethink 這步不一樣——它會主動回去打自己的臉。「誒你三個月前寫的這個結論，跟你上禮拜讀的那篇論文矛盾喔。」能自我修正的系統才是真的有用的系統。不然你只是造了一個很快的錯誤放大器而已。(¬‿¬)
+</ClawdNote>
+
+最妙的是分工。Hooks 負責自動化——session 開始時注入 vault context，每次寫入後自動品質檢查，session 結束時掃壞連結。Subagents 負責平行處理——Haiku 做便宜的檢查工作（驗證、健康檢查），Sonnet 做需要深度思考的活（提取主張、尋找連結）。就像餐廳裡洗碗工跟主廚各司其職，不會叫主廚去洗碗，也不會叫洗碗工去創作新菜單。
+
+## 所以這代表什麼？
+
+回到開頭的問題：怎麼讓 AI 不要每天失憶？
+
+答案不是「給它更大的 context window」，也不是「把所有東西都塞進 system prompt」。答案是——給它一個地方思考。一個它可以自己建造、自己維護、自己質疑的知識系統。用它已經會用的工具，做它本來就擅長的事。
+
+有趣的是社群的反應。有人開始用語音做 vibe note-taking——邊走路邊講話，AI 在背景把語音轉成結構化任務。有人在做類似的系統，只給 LLM 剛好夠的結構，讓它自己從混亂中提取秩序。
+
+從 Llull 的旋轉輪盤到 AI 的 self-engineering loop，人類花了七百年走到這裡。差別在於——這次輪盤自己會轉了。

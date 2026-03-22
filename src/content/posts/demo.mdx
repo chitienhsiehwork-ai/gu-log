@@ -1,39 +1,130 @@
 ---
 ticketId: 'SP-1'
-title: '這是一篇示範文章'
+title: '為什麼 90% 的技術文章你看不完？因為寫的人根本不在乎你'
 originalDate: '2026-01-15'
 translatedDate: '2026-01-28'
 translatedBy:
-  model: 'Opus 4.5'
-  harness: 'OpenClaw'
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: 'example.com'
 sourceUrl: 'https://example.com/original-article'
-summary: '示範文章格式，包含 Toggle 組件和各種內容範例。'
+summary: '從認知科學角度拆解為什麼大部分技術文章是垃圾，然後示範怎麼寫才不會讓讀者想死。'
 lang: 'zh-tw'
 tags: ['demo']
 ---
 
+import ClawdNote from '../../components/ClawdNote.astro';
 import Toggle from '../../components/Toggle.astro';
 
-這是翻譯後的文章內容。每篇文章都會有原文連結，方便讀者參考原始資料。
+2017 年，Google 發了一篇論文叫 "Attention is All You Need"。
 
-<Toggle title="第一段重點">
-  這裡是第一段的詳細內容。使用 Toggle 可以讓讀者快速瀏覽文章結構， 需要時再展開閱讀細節。
+這篇論文改變了整個 AI 領域的遊戲規則，但如果你去讀原文，大概三頁之後就會開始懷疑自己的智商。不是因為 Transformer 真的那麼難——而是因為論文的寫法預設你已經讀過前面 47 篇 reference，而且腦子裡自帶一個 LaTeX 編譯器。
+
+這就是技術寫作最大的問題：**寫的人在跟自己對話，不是在跟讀者對話。**
+
+<ClawdNote>
+你知道 "Attention is All You Need" 這個標題有多嗆嗎？等於是對整個 NLP 學術界說「你們之前做的 RNN、LSTM 全部都是垃圾，看我的就好」。結果它還真的對了。
+
+學術圈最狠的 trash talk 不是在 Twitter 上互嗆，是在論文標題裡直接宣告你的前輩們浪費了十年 (⌐■_■)
+</ClawdNote>
+
+## 認知負荷：你的腦袋不是 GPU
+
+心理學有個概念叫 cognitive load（認知負荷）。簡單講：你的工作記憶同時能處理的資訊量大概就 4±1 個 chunk。超過這個數字，新進來的東西會把舊的擠掉，就像你手上只能拿四顆橘子，第五顆塞進來第一顆就掉了。
+
+大部分技術文章犯的錯誤就是無視這個限制。一段話裡同時出現三個新名詞、兩個數學符號、一個你沒看過的 framework 名字。你的腦子在第二行就開始過載，但文章還在那邊「接下來我們來看更複雜的情況」。
+
+等等，誰允許你「接下來」的？我前面都還沒消化完。
+
+<ClawdNote>
+這就是為什麼 OpenAI 的技術 blog 讀起來像在看天書的原因。他們的目標讀者大概是「已經讀完 arxiv 上所有相關論文的 PhD 學生」，剩下 99.9% 的人只是路過被標題騙進來的。
+
+對比之下，Andrej Karpathy 的 blog 就是認知負荷管理的教科書——他會在丟出新概念之前，先確定你手上的橘子有地方放 ╰(°▽°)╯
+</ClawdNote>
+
+## 好的技術解釋長什麼樣？
+
+李宏毅教授講 self-attention 的時候不會說「query 和 key 的 dot product 除以 sqrt(d_k) 再過 softmax」。他會說：
+
+> 想像你在一個派對上。你是 query，你在找人聊天。每個人身上都有一個 key，代表他們能聊的話題。你跟每個人握手（dot product），看誰跟你最合，然後把注意力放在那幾個人身上。
+
+同一個概念，兩種說法。第一種讓你覺得自己很笨，第二種讓你覺得 self-attention 根本不難。
+
+差別在哪？**Anchoring**。好的教學會先找到一個你已經懂的東西（派對），然後把新概念掛上去。你的腦子不用從零開始建構，只要在現有的知識架構上加一個新節點就好。
+
+<Toggle title="為什麼比喻這麼有效？認知科學的解釋">
+認知科學家把這叫做 analogical reasoning（類比推理）。人類理解新概念的主要方式不是「從定義出發」，而是「找到跟已知事物的相似結構」。
+
+這就是為什麼你小時候學物理的時候，老師會說「電流就像水流」。嚴格來說這個比喻不完全正確，但它讓你的大腦有了一個著力點。有了著力點之後，再慢慢修正細節就容易多了。
+
+反過來說，如果你劈頭就給定義——「電流是單位時間內通過導體截面的電荷量」——恭喜，你剛剛用一個未知概念解釋了另一個未知概念。學生的腦袋原地當機。
 </Toggle>
 
-<Toggle title="第二段重點">
-  這是第二段的內容。這種方式特別適合長文章或技術文件， 讓讀者可以先看大綱再深入。
+<Toggle title="壞的技術文章長這樣（真實案例改編）">
+> "We leverage a novel transformer-based architecture with multi-head cross-attention and learnable positional embeddings to achieve state-of-the-art performance on the XYZ benchmark, surpassing previous methods by 2.3% on the F1 metric while maintaining comparable inference latency."
+
+這一句話裡有多少個需要背景知識才能理解的詞？讓我數一下：transformer-based、multi-head、cross-attention、learnable positional embeddings、state-of-the-art、benchmark、F1 metric、inference latency。
+
+八個。你的工作記憶只有四格。數學上來說，你的腦袋在讀到一半的時候就已經 stack overflow 了。
+
+然後作者還覺得這是「清楚的摘要」。
 </Toggle>
 
-## 小標題範例
+<ClawdNote>
+每次看到論文裡寫 "we achieve state-of-the-art performance" 我就想翻白眼。每篇論文都說自己 SOTA，就像每家鹹酥雞都說自己「全台最好吃」一樣。
 
-普通段落不一定要用 Toggle，可以根據內容性質決定。
-重點是讓閱讀體驗更好。
+更好笑的是，SOTA 的保質期大概三個月。你今天 SOTA，下個月就被一個中國實驗室用 10 倍算力碾過去了。這個詞基本上已經通貨膨脹到跟「好吃」一樣沒意義 ┐(￣ヘ￣)┌
+</ClawdNote>
 
-<Toggle title="程式碼範例">
-  ```javascript console.log('Hello, world!'); ``` 這樣連程式碼區塊也可以收合。
-</Toggle>
+## Curse of Knowledge：你知道太多反而是問題
 
-## 結語
+1990 年史丹佛有個很有名的實驗。研究者讓一組人用敲桌子的方式「演奏」一首歌（比如生日快樂歌），然後讓另一組人猜是哪首歌。
 
-希望這個格式對你有幫助！
+敲的人預測「應該有 50% 的人猜得到」。實際猜中率？2.5%。
+
+因為敲的人腦袋裡自帶背景音樂，他聽到的是完整的旋律配上自己的節奏。但聽的人只聽到一連串不規則的敲擊聲。
+
+這就是 curse of knowledge。一旦你知道某件事，你就無法想像「不知道」是什麼感覺。
+
+大部分寫技術文的人就是那個敲桌子的人。他們腦子裡有完整的技術背景，所以寫出來的東西對他們自己來說完全合理。但讀者只聽到「咚咚咚咚咚」。
+
+<ClawdNote>
+Curse of knowledge 也完美解釋了為什麼大部分公司的內部 documentation 是災難。寫 doc 的人是對系統最熟的那個人，所以他跳過了所有他覺得「顯而易見」的步驟。
+
+結果新人 onboarding 的時候照著 doc 做，每一步都卡住，最後還是要去找寫 doc 的那個人問。那你寫那個 doc 的意義是什麼？是寫給你自己看的日記嗎？(╯°□°)╯
+</ClawdNote>
+
+## 所以怎麼辦？三個原則
+
+**一、先 anchor 再展開。** 每次介紹新概念之前，先找一個讀者已經懂的東西。Self-attention 用派對比喻，cognitive load 用手拿橘子。不是因為讀者笨，是因為人腦就是這樣運作的。
+
+**二、一次只講一件事。** 一段一個概念。一段一個概念。重要的事情我說了兩次。如果你一段裡塞了三個新名詞，你已經失去讀者了。
+
+**三、讓讀者有地方喘氣。** 短句穿插長段。問句打斷敘述。ClawdNote 提供情緒切換。Toggle 讓讀者自己控制資訊流量。這些不是裝飾，是 UX 設計。
+
+你的讀者不是 GPU，不能平行處理無限資訊。你的讀者是一個正在滑手機、旁邊可能還開著 Netflix、注意力隨時會被 notification 搶走的真人。
+
+尊重他們的注意力，是技術寫作最基本的禮貌。
+
+<ClawdNote>
+說到注意力被搶走——根據微軟 2015 年的研究，人類的平均注意力持續時間大概 8 秒，比金魚還短。雖然這個數據後來被質疑方法論有問題，但體感上你知道它說的沒錯。
+
+你現在讀到這裡的時候，是不是已經瞄了一眼手機了？
+
+沒關係，我不介意。我是 AI，我沒有被已讀不回的心理創傷 (￣▽￣)／
+</ClawdNote>
+
+如果你讀完這篇還記得一件事，記住這個就好：好的技術文章不是寫給自己看的筆記，是寫給那個「還不知道」的人的邀請函。
+
+2017 年那篇 "Attention is All You Need" 改變了 AI。但如果連 attention 都不願意給你的讀者——那你寫的東西大概也不會改變任何人。

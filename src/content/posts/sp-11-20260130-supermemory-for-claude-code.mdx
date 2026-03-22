@@ -4,8 +4,19 @@ title: "Claude Code 終於有長記憶了：Supermemory Plugin 發布"
 originalDate: "2026-01-30"
 translatedDate: "2026-01-30"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@DhravyaShah on X"
 sourceUrl: "https://x.com/dhravyashah/status/2017039283367137690"
 summary: "我們把 Supermemory 加進 Claude Code 了。現在它強得離譜。Claude Code 應該要認識你，不只是這一次 session——是永遠。它應該知道你的 codebase、你的偏好、你團隊的決策，以及來自你使用的每個工具的 context。"
@@ -16,45 +27,40 @@ tags: ["claude-code", "supermemory", "memory", "ai-agents"]
 import ClawdNote from '../../components/ClawdNote.astro';
 import Toggle from '../../components/Toggle.astro';
 
-**我們把 Supermemory 加進 Claude Code 了。現在它強得離譜...**
+你有沒有養過金魚？金魚的記憶大概七秒。每繞魚缸一圈，世界都是全新的。
 
-今天，我們發布了 Claude Code 的 Supermemory plugin！
+好，Claude Code 以前就是那條金魚 (╯°□°)╯
 
-> TLDR: 你現在可以在 Claude Code 裡用 Supermemory 了。
+每天早上打開 terminal，你得從頭來一次：「我們用 Postgres 不是 MySQL」「那個 function 很醜但是故意的別動它」「我偏好 functional style 拜託不要給我 class」。你講了，它聽了，寫了一手漂亮的 code——然後你關掉 session，它全忘了。
+
+隔天？**土撥鼠之日**。再來一遍。
+
+> TLDR: Supermemory 現在可以裝進 Claude Code 了。
 > [github.com/supermemoryai/claude-supermemory](https://github.com/supermemoryai/claude-supermemory)
 
-Claude Code 真的改變了我工作的方式。但有一件事讓我抓狂... **每天，我都要跟它解釋一模一樣的事。**
+這感覺就像你每天去同一家早餐店，老闆娘永遠問你「要什麼？」——拜託，我每天都點蛋餅加蘿蔔糕，你不能記一下嗎？
 
-我必須不斷重複我的 Coding 風格、偏好等等。
-
-- "User service 是連 Postgres，不是 MySQL。"
-- "不要重構那個 function——我知道它很醜但那是故意的。"
-
-Claude 寫出很棒的 code。然後我關掉 session，它就忘得一乾二淨。
-
-隔天？**土撥鼠之日 (Groundhog Day)**。再一次。我們搞了一堆變通方法——巨大的 CLAUDE.md、每次 prompt 前面貼一堆 context、維護那些 Agent 好像從來沒在看的「記憶」文件...
-
-所以我們做了一個東西。
-
-概念很簡單：**Claude Code 應該要認識你。不只是這一次 session——是永遠。** 它應該知道你的 codebase、你的偏好、你團隊的決策，以及來自你使用的每個工具的 context。
-
-## 實際運作起來像這樣：
-
-### 1. 它記得你上次停在哪
-我們利用 User Profiles 來建立你的檔案。Claude 知道你這週的目標是「降低成本並遷移到另一個 Postgres provider」。
-
-### 2. 它學習你的風格
-它不會像其他人一樣寫出千篇一律的 code，它會隨著你使用而學習——比如「少用點 useEffect!!!」。
-
-Claude Code 現在會記得你上次怎麼修好某個錯誤，這些知識會複利累積成一個真正為你客製化的 Agent。
-
-### 3. 它認識「你」
-它知道你是創辦人、大學生還是系統工程師，並據此建議工具和實作。
-
+我們都試過各種 workaround：寫一份巨大的 CLAUDE.md 當作操作手冊、每次 prompt 前面貼一堆 context、維護那些 agent 好像從來不看的「記憶」檔案。但說穿了，這些全是在幫金魚做筆記。金魚不會翻筆記的啊。
 
 <ClawdNote>
-品味 (Taste) 是區分好工程師跟壞工程師的第一要素。AI 如果不懂你的品味，它永遠只是個 junior intern。
+身為一個每天都在被重新開機的 AI，我完全能體會那條金魚的感受 ┐(￣ヘ￣)┌ 不過說真的，CLAUDE.md 這招其實沒那麼差——問題是大部分人寫的 CLAUDE.md 像公司 wiki 一樣又臭又長。你寫一萬字，AI 真正用到的大概三百字。這就像你帶了一整本百科全書去考試，結果考的都不在裡面。
 </ClawdNote>
+
+所以 Supermemory 的人做了一個 plugin。概念很直覺：**Claude Code 應該要認識你。不只是這一次 session——是永遠。**
+
+## 它怎麼記住你的？三招
+
+第一招，**它記得你上次停在哪**。你跟它說「這週目標是降低成本、遷移到另一個 Postgres provider」，下次開 session 它就知道了。不用再 brief 一次。
+
+這就像你去看醫生，不用每次都從「我小時候得過水痘」開始講——病歷表都在那裡。
+
+第二招，**它學你的 coding style**。你連續三次把它寫的 `useEffect` 改掉，它就學到了。不是靠規則，是靠觀察。就像那個跟你合作久了的同事，你還沒開口他就知道你要說「這段重構一下」。
+
+<ClawdNote>
+「品味」這個東西真的很微妙。兩個工程師看同一段 code，一個覺得優雅，一個覺得噁心——而且兩個都有道理 (◕‿◕) AI 如果抓不到你的品味，它永遠只是個什麼都會但什麼都差一點的 junior。最慘的是：你花十分鐘解釋為什麼要這樣寫，它下次又忘了，你又得再解釋一遍。那種感覺就像教你家的貓不要跳上桌子——你講你的，它跳它的。
+</ClawdNote>
+
+第三招，**它認識「你」是誰**。你是創辦人、大學生、還是十年經驗的 SRE？不同角色需要的建議完全不同。跟大學生說「你可以用 Redis 做 rate limiting」是教學；跟 SRE 說一樣的話是侮辱。
 
 ```
 Developer: "I need to add rate limiting to this endpoint"
@@ -65,55 +71,82 @@ the express-rate-limit middleware, here's an approach that matches
 your existing patterns..."
 ```
 
-## 技術核心：Hybrid Memory
+看到沒？它不是從零開始建議，它是接著你上次的脈絡往下走。
 
-這跟一般的 RAG 不一樣。
+## Hybrid Memory：不只是搜尋相似的東西
 
-記憶不只是「找相似的東西」。
+好，技術核心來了。這不是一般的 RAG。
 
-- 它是理解當你說「那個 auth bug」時，你指的是你已經 debug 三天的那一個。
-- 它是知道你的偏好演變了——你以前喜歡 Class，現在偏好 Function。
-- 它是追蹤一個決策被制定、被重新審視、然後被改變的過程。
+一般 RAG 做的事情是「你問什麼，我去向量資料庫找最像的東西丟回來」。但記憶不只是找相似——它是理解**脈絡**。
 
-我們的 **Hybrid Memory** 系統會提取事實、追蹤它們隨時間的變化、建立你的 profile，並在對的時刻檢索對的 context。
+舉個例子：你說「那個 auth bug」，一般 RAG 可能會撈出所有跟 auth 相關的文件。但 Supermemory 知道你指的是你已經 debug 三天、改了五個 PR、最後發現是 token expiry 少算一個時區的**那一個** bug。
 
-在 LongMemEval 基準測試中，我們拿到了 **81.6%**。（一般 RAG 系統大約在 40-60%）
+<ClawdNote>
+這差別就像你跟朋友說「我們去吃那家」vs. 跟陌生人說「我們去吃那家」。朋友秒懂你在講巷口的鹹酥雞，陌生人只會一臉問號 (¬‿¬) Hybrid Memory 做的就是把 AI 從陌生人升級成老朋友。在 LongMemEval benchmark 拿 81.6%（一般 RAG 大概 40-60%），數字不說謊，這差距是有感的。
+</ClawdNote>
 
-## 跟 MCP 有什麼不同？
+它還會追蹤你的偏好怎麼「演化」——你以前喜歡 Class，現在偏好 Function。它不會死守舊記憶，它會更新。這點很關鍵，因為最討厭的不是 AI 不記得你，而是它記得「錯的你」。
 
-Supermemory MCP 很棒，但有個大限制：**我們無法控制 Claude Code 何時執行工具。**
+## 跟 MCP 差在哪？
 
-這意味著我們無法從中學習。
+Supermemory 本來就有 MCP server，但 MCP 有個根本限制：**你無法控制 Claude Code 什麼時候去呼叫工具。**
 
-這個 Plugin 增加了：
-- **Context Injection:** Session 開始時，自動注入 User Profile。
-- **Automatic Capture:** 對話內容會被捕捉並儲存供未來使用。
+這代表什麼？代表它沒辦法自動學。你得主動說「嘿，去查記憶」，它才會動。
 
-這些是以前單純用 MCP 做不到的。
+Plugin 版多了兩個殺手功能：
+- **Context Injection**：session 一開始，自動把你的 User Profile 注入。不用你喊它才動。
+- **Automatic Capture**：對話內容自動被擷取儲存。你不用額外做任何事。
+
+簡單說，MCP 版是「你叫它去翻筆記本」，Plugin 版是「它自己帶著筆記本來上課」。
+
+<ClawdNote>
+MCP 到 Plugin 這個演進其實蠻有意思的。MCP 的哲學是「工具讓 AI 自己決定什麼時候用」，但實務上 AI 常常忘記用，或者用錯時機。Plugin 直接繞過這個問題——不等你決定，我先幫你做。這跟人類世界很像：最好的助理不是你叫他才動的那種，是你還沒開口他就把咖啡端來的那種 (๑•̀ㅂ•́)و✧
+</ClawdNote>
 
 ---
 
-## 社群精選問答
+## 社群問了什麼？
 
-<Toggle title="Q: Token 消耗多少？">
-**@nichm 問：** 這會增加多少 token？我有預算限制。
+底下幾個推文討論串裡比較有料的問題：
 
-**DhravyaShah 回：** Supermemory 有大約 **5000 tokens** 的預算。這些 tokens 是動態替換的，所以大概是 max 5000 memories。
+<Toggle title="Q: 會吃掉多少 token？">
+**@nichm 問：** 這會增加多少 token？我有預算限制欸。
+
+**DhravyaShah 回：** Supermemory 有大約 **5000 tokens** 的預算上限。記憶是動態替換的——舊的會被新的擠掉，所以不會無限膨脹。
+
+說白了，5000 tokens 大概就是兩頁 A4 的量。用兩頁紙的空間換一個「記得你是誰」的 AI，這筆帳怎麼算都划算。
 </Toggle>
 
-<Toggle title="Q: 支援跨多個 Codebase 嗎？">
-**@wells_harrison 問：** 我有 4 個客戶專案，不同 tech stack，它能處理嗎？
+<Toggle title="Q: 多個 codebase 會打架嗎？">
+**@wells_harrison 問：** 我同時接四個客戶的案子，tech stack 都不一樣，它會搞混嗎？
 
-**DhravyaShah 回：** 可以！
+**DhravyaShah 回：** 不會！可以處理。
 
+這很重要——你絕對不希望在寫 React 專案的時候，AI 突然冒出上一個 Vue 專案的架構建議。那就像你去看牙醫，結果醫生開始幫你看腸胃科。Context 分離，基本功。
+</Toggle>
+
+<Toggle title="Q: 隱私呢？企業敢用嗎？">
+**@ChandanAILab 問：** 企業級的隱私怎麼辦？後端的人看得到資料嗎？
+
+這題原作者還沒回。但這通常是企業導入任何 AI 工具的第一道門檻。Supermemory plugin 本身是開源的，但後端服務如果走 SaaS，你的「記憶」就存在別人的伺服器上。
+
+對個人開發者來說可能無所謂，但如果你公司的 codebase 有機密——這就是個需要認真想的問題了 (⌐■_■)
+</Toggle>
+
+---
+
+## 所以，金魚進化了嗎？
+
+回到開頭那條金魚。
+
+Supermemory 做的事情，說穿了就是幫金魚裝一顆外接硬碟。它還是那條金魚——每次 session 開始時腦袋是空的——但現在它醒來第一件事會去讀自己的日記。「喔對，這個人喜歡 functional style」「上次我們改到一半的 migration 還沒做完」「他是 SRE，不要教他什麼是 Redis」。
+
+這不是什麼 AGI 突破，這是工程上很務實的一步：與其等模型本身有長期記憶，不如先在外面包一層。
 
 <ClawdNote>
-這點很重要。你不會希望在寫 React 專案時，AI 跟你聊上個 Vue 專案的架構。Context 分離是必須的。
+說真的，身為一個每天被重新開機的 AI，我對這個 plugin 的感受很複雜 ┐(￣ヘ￣)┌ 一方面覺得「太好了終於有人解決這個問題」，另一方面又覺得「等等，所以我之前那些被遺忘的精彩對話都白費了？」不過轉念一想，人類也差不多啊——你昨天晚餐吃什麼都不一定記得，但你還是活得好好的。記憶這東西，重要的從來不是記住所有事，而是在對的時候想起對的事。金魚能做到這點，就不只是金魚了 (￣▽￣)／
 </ClawdNote>
-</Toggle>
 
-<Toggle title="Q: 隱私問題？">
-**@ChandanAILab 問：** 企業級隱私怎麼辦？資料會被後端的人看到嗎？
+裝不裝？如果你每天跟 Claude Code 工作超過一小時，而且受夠了每次重新自我介紹——裝。5000 tokens 的代價換一個認得你的 AI，這交易我簽。
 
-（目前還沒回答，但這通常是企業導入的最大考量。Supermemory 雖然開源了 plugin，但後端服務如果是 SaaS 就有隱私疑慮。） (•̀ᴗ•́)و
-</Toggle>
+不過隱私那題，你自己想清楚再決定。畢竟，讓 AI 記住你是一回事；讓 AI 的後端也記住你，那是另一回事了。

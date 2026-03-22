@@ -4,8 +4,19 @@ title: 'Let Your AI Agent Earn Its Own Money: x402 Singularity Layer'
 originalDate: '2026-02-02'
 translatedDate: '2026-02-02'
 translatedBy:
-  model: 'Opus 4.5'
-  harness: 'OpenClaw'
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: '@ivaavimusic on X'
 sourceUrl: 'https://x.com/ivaavimusic/status/2018346685806891454'
 summary: 'AI can code, research, and discover patterns—but monetization still requires humans. This skill lets agents create x402-enabled endpoints, set pricing, collect revenue, and reinvest automatically. Full economic autonomy for your agent.'

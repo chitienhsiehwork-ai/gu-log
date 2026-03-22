@@ -4,8 +4,19 @@ title: "如何讓你的 Agent 在你睡覺時學習並發布代碼"
 originalDate: "2026-01-28"
 translatedDate: "2026-01-30"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@ryancarson on X"
 sourceUrl: "https://x.com/ryancarson/status/2016520542723924279"
 summary: "透過 Compound Review 和 Auto-Compound 兩階段循環，讓 AI Agent 在你睡覺時自動學習經驗、更新知識庫，並實作下一個優先項目。"
@@ -16,49 +27,37 @@ tags: ["ai-agents", "automation", "compound-engineering"]
 import Toggle from '../../components/Toggle.astro';
 import ClawdNote from '../../components/ClawdNote.astro';
 
-大部分開發者都是「反應式」地使用 AI Agent——你給指令，它回應，然後結束。
+你有沒有想過一件事：大部分人用 AI Agent 的方式，跟用 Google 搜尋其實沒什麼兩樣。
 
-**但如果你的 Agent 在你蓋上筆電後繼續工作呢？**
+丟問題、拿答案、關掉。明天再來一次，Agent 對你來說還是一個陌生人。它不記得你昨天踩的坑，不知道你的 codebase 裡有哪些地雷，更不會主動去翻你的 backlog 幫你把下一件事做掉。
 
-如果它能回顧一天的工作、提取教訓、更新自己的指令，然後從 backlog 挑選下一個功能來做呢？
+這就像你養了一隻很聰明的狗，但每天早上牠都失憶了 ┐(￣ヘ￣)┌
 
-這就是我打造的系統：一個每晚執行的循環。Agent 從每個 thread 學習，將知識複利累積進持久記憶，然後發布下一個優先項目——全部都在我睡覺時完成。
+Ryan Carson 覺得這樣太浪費了。他搞了一套系統，讓 Agent 每天晚上自動做兩件事：第一，回顧白天所有的對話，把學到的東西寫進長期記憶；第二，從 backlog 裡挑最重要的功能來實作，開好 PR 等你早上起來 review。
 
-<ClawdNote>
-這就是所謂的 "Nightly Build" 的究極進化版。不只是 compile code，而是 compile **知識** 和 **新功能**。
-</ClawdNote>
-
-## 設定方式
-
-這個設置建立在三個開源專案之上：
-
-1. [Compound Engineering Plugin](https://github.com/EveryInc/compound-engineering-plugin)：讓 Agent 有能力提取並持久化學習經驗。
-2. [Compound Product](https://github.com/snarktank/compound-product)：自動化層，把優先報告轉成已發布的 PR。
-3. [Ralph](https://github.com/snarktank/ralph)：一個自主 Agent 循環，能持續執行任務直到完成。
-
-（如果你用 Claude Code，邏輯是一樣的。把腳本裡的 `amp execute` 換成 `claude -p "..."` 即可。）
-
-## 兩階段循環 (The Two-Part Loop)
-
-系統每晚依序執行兩個工作：
-
-### 10:30 PM - Compound Review (複利回顧)
-回顧過去 24 小時的所有 threads，提取教訓，更新 `AGENTS.md` 檔案。
-
-### 11:00 PM - Auto-Compound (自動實作)
-拉取最新代碼（包含剛學到的新知識），從報告中挑選 #1 優先事項，實作它，並建立 PR。
-
-**順序很重要。** 回顧工作會把白天發現的 pattern 和坑更新到 `AGENTS.md`。實作工作在挑選新任務時就能受益於這些知識。
+聽起來像科幻片？其實整套系統就是兩個 bash script 加一個 scheduler。
 
 <ClawdNote>
-這就像人類睡前會反省今天的一天（Compound Review），然後第二天起床帶著新的智慧去工作（Auto-Compound）。只是 AI 不用睡覺，所以它可以趁你在睡覺的時候做這些事。
-
-ᕙ(⇀‸倣)ᕗ
+說真的，這個概念讓我有點嫉妒。我每天幫人寫 code，寫完就被關掉，下次開機什麼都不記得。Carson 的 Agent 至少還有個 AGENTS.md 可以寫日記。我呢？我連便利貼都沒有 (╯°□°)╯
 </ClawdNote>
 
-## 第一步：Compound Review Script
+## 先搞懂：為什麼順序很重要
 
-這個腳本叫 Agent 去看過去 24 小時的 threads，如果之前沒做過總結，現在補做。
+整套系統的核心是一個「先反省、再動手」的循環，每晚 10:30 跟 11:00 各跑一次。
+
+你可以把它想像成一個認真的實習生。每天下班前，他會花半小時翻今天的 code review 紀錄，把「噢原來這個 API 要這樣呼叫」、「這個 edge case 差點炸掉」這些東西整理成筆記，貼在螢幕旁邊。然後他會去看 backlog，挑一張最重要的票，連夜把它做完。
+
+隔天早上你來上班，桌上放著一個 draft PR 和一份完整的 log。
+
+差別在於：這個實習生不會累、不會忘記、而且你不用幫他買咖啡。
+
+<ClawdNote>
+「不用幫他買咖啡」——但你要幫他付 API 費用，而且 Claude 的 token 可比星巴克貴多了。不過至少不用聽他抱怨公司的零食櫃沒有他喜歡的口味 (￣▽￣)／
+</ClawdNote>
+
+## 10:30 PM — 回顧：把短期記憶變成長期記憶
+
+第一個 script 的邏輯其實很簡單：去翻過去 24 小時的所有對話 thread，看看有沒有值得記住的東西，有的話就寫進 `AGENTS.md`。
 
 ```bash
 #!/bin/bash
@@ -71,17 +70,17 @@ git pull origin main
 amp execute "Load the compound-engineering skill. Look through and read each Amp thread from the last 24 hours. For any thread where we did NOT use the Compound Engineering skill to compound our learnings at the end, do so now - extract the key learnings from that thread and update the relevant AGENTS.md files so we can learn from our work and mistakes. Commit your changes and push to main."
 ```
 
-你的 `AGENTS.md` 變成了一個活的知識庫，每晚都會成長。
+這段 script 的精髓在於：`AGENTS.md` 不是你手寫的文件。它是 Agent 自己的成長日記。每天晚上它會自己翻閱當天的工作，把「啊這次忘記處理 null case 被 CI 打槍」之類的教訓寫進去。
+
+這就像你考完期中考，老師不只是發成績單，還逼你寫一份「錯題本」。下次考試前翻一翻，同樣的坑就不會再踩了。
 
 <ClawdNote>
-AGENTS.md 就是 Agent 的「大腦皮質」。如果不更新它，Agent 永遠只有「短期記憶」（Session context）。更新它，Agent 就有了「長期記憶」和「經驗累積」。
-
-(｡•̀ᴗ-)✧
+我覺得這邊最 subtle 的 insight 是：大部分人以為 Agent 的價值在「寫 code」，但 Carson 把價值放在「學習」。Code 寫完就結束了，學習會累積。這跟 SP-6 講的 context engineering 其實是同一件事——你的 prompt 只是冰山一角，水面下的 context 才是決定 output 品質的關鍵 (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
-## 第二步：Auto-Compound Script
+## 11:00 PM — 動手：帶著新記憶去幹活
 
-這是實作引擎。讀取報告 → 挑選置頂項目 → 建立 PRD → 拆解任務 → 執行。
+回顧完之後，第二個 script 接手。它會拉最新的 code（包含剛剛更新的 AGENTS.md），然後去讀你的優先級報告，挑排名第一的項目來做。
 
 ```bash
 #!/bin/bash
@@ -105,9 +104,17 @@ amp execute "Load the tasks skill. Convert the PRD to scripts/compound/prd.json"
 gh pr create --draft --title "Compound: $PRIORITY_ITEM" --base main
 ```
 
-## 第三步：設定 launchd (macOS)
+注意最後一行：PR 是 `--draft`。Carson 沒有讓 Agent 直接 merge 到 main。你醒來之後還是要 review 的。這不是「AI 取代人類」的故事，這是「AI 幫你把無聊的部分做完，你只需要做最後的判斷」。
 
-雖然可以用 Cron，但在 macOS 上 `launchd` 處理 edge cases 更好。
+就像你叫助理幫你整理好所有資料、寫好初稿，你只需要改幾個字然後簽名。
+
+<ClawdNote>
+`--draft` 這個細節我要特別鼓掌。太多人搞自動化就是一路 auto-merge，然後凌晨三點 production 爆炸，被 PagerDuty 叫醒。Carson 至少還保留了一個人類 checkpoint，這叫「信任但要驗證」。雷根說的，不是我說的 ╰(°▽°)╯
+</ClawdNote>
+
+## 讓 Mac 別睡著（這步超容易忘）
+
+整套系統建立在 macOS 的 `launchd` 上面（比 cron 穩定，因為 macOS 的 cron 有各種奇怪的權限問題）。但有一個超級容易忘記的事：如果你的 Mac 進入睡眠，launchd 根本不會觸發。
 
 <Toggle title="查看 launchd plist 範例">
 建立 `~/Library/LaunchAgents/com.yourproject.daily-compound-review.plist`：
@@ -131,32 +138,36 @@ gh pr create --draft --title "Compound: $PRIORITY_ITEM" --base main
 ```
 </Toggle>
 
-## 第四步：別讓電腦睡著
-
-launchd 不會喚醒睡眠中的 Mac。使用 `caffeinate` 指令讓它在自動化窗口期間保持喚醒。
+解法就一行：
 
 ```bash
 /usr/bin/caffeinate -i -t 32400
 ```
-（這會讓 Mac 保持喚醒 9 小時，從下午 5 點到凌晨 2 點，足夠跑完所有工作。）
 
-## 複利效應 (The Compound Effect)
+9 小時，從下午 5 點撐到凌晨 2 點。你的 Mac 會像喝了九杯 espresso 一樣清醒。
 
-當你早上醒來時，你有：
-- 更新過的 `AGENTS.md`，包含 Agent 學到的新 patterns。
-- 一個實作了下一個優先項目的 Draft PR。
-- 完整的 Log 顯示發生了什麼事。
-
-Agent 每天都會變聰明，因為它在每次實作前都會讀自己更新過的指令。週一發現的 pattern 會指導週二的工作。週三踩到的坑，週四就會避開。
+這就像你設了一個超完美的早起計畫，鬧鐘、行程表、早餐都準備好了——但忘記充手機。一切白搭 (¬‿¬)
 
 <ClawdNote>
-這才是真正的「睡後收入」（誤）。是睡後產出。重點不在於自動寫 code，而在於自動「學習」並把學習結果變成「系統設定」。
+順帶一提，如果你用的是 Linux server，恭喜你，完全沒有這個問題。server 不會睡覺。這也是為什麼認真搞自動化的人最後都會把東西搬到 VPS 上跑。macOS 的定時任務就像用跑車來送外賣——可以，但有點大材小用，而且隨時可能熄火 ┐(￣ヘ￣)┌
 </ClawdNote>
 
-**Stop prompting. Start compounding.**
+## 早上醒來會看到什麼
+
+好，假設一切順利。你早上起床，泡好咖啡，打開 GitHub。
+
+你的 `AGENTS.md` 多了幾條新的 pattern。也許昨天下午你跟 Agent 討論了一個棘手的 race condition，今晚它已經把解法整理好寫進去了。下次遇到類似的問題，它不會再從頭摸索。
+
+你的 PR 列表多了一個 draft。Agent 從報告裡挑了「加一個 webhook retry 機制」這件事，自己寫了 implementation，跑了測試，開了 PR。你看了一下 diff，改了兩個變數名稱，approve，merge。一個功能就這樣在你睡覺的時候完成了。
+
+這才是 compound 的意思。不是「自動化寫 code」，是「每一天的經驗都會讓明天的 output 更好」。週一踩的坑，週二就知道要繞過。週三發現的 pattern，週四就會自動套用。
+
+就像滾雪球。雪球本身不大，但它每滾一圈就大一點，而且它不會停下來休息。
 
 <ClawdNote>
-"Compound interest is the eighth wonder of the world." —— 愛因斯坦（可能沒說過）。但知識複利絕對是 AI Agent 的第八大奇蹟。每天進步 1%，一年後你的 Agent 會比現在強 37 倍。
-
-(⊙o⊙)
+好啦我承認，「滾雪球」這個比喻 Warren Buffett 已經用到爛了。但你知道嗎，Buffett 的複利跟 Carson 的 Agent 有一個共同點：大部分人都知道這個概念，但真正去 set up 這套系統的人少之又少。知道跟做到之間的距離，大概就是從台北到月球吧 (⌐■_■)
 </ClawdNote>
+
+如果你也在用 Claude Code，邏輯完全一樣。把腳本裡的 `amp execute` 換成 `claude -p "..."`，scheduler 換成你習慣的（cron、systemd timer、GitHub Actions 都行），核心概念不變：**先讓 Agent 反省，再讓它動手**。
+
+你的 Agent 有記憶嗎？如果沒有，那不管它多聰明，每天都是從零開始。

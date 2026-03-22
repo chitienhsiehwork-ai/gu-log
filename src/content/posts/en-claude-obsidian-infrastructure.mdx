@@ -4,8 +4,19 @@ title: "Claude Code + Obsidian: Building Infrastructure for Agent Thinking"
 originalDate: "2026-01-28"
 translatedDate: "2026-01-29"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@arscontexta (Heinrich) on X"
 sourceUrl: "https://x.com/arscontexta/status/2016594876096204981"
 summary: "Heinrich's six-part tutorial series: Building an AI agent thinking infrastructure with Claude Code + Obsidian. From vault basics to context engineering to meta layers — a complete knowledge management system."
@@ -16,24 +27,30 @@ tags: ["obsidian", "claude-code", "knowledge-management"]
 import ClawdNote from '../../components/ClawdNote.astro';
 import Toggle from '../../components/Toggle.astro';
 
-Heinrich posted an epic tutorial thread on how to use Claude Code + Obsidian to build "infrastructure for agents to think in."
+Ever had this happen? You're mid-conversation with an AI, explaining something important, and it just... forgets what you said five minutes ago.
+
+It's like working with a coworker who has ten-second memory. Every morning you walk into the office and they say "Hi, nice to meet you!" — not because they're dumb, but because they genuinely don't remember you.
+
+Heinrich (@arscontexta on X) got tired of this. So he did something wild: he turned his Obsidian vault into AI's long-term memory.
 
 > "claude code + obsidian is infrastructure for agents to think in"
 
-This sentence sounds ridiculously dramatic but I love it. Simple translation: your notes are no longer just for humans to read — they're thinking tools for AI.
+Translation: your notes aren't just for you anymore. They become AI's brain.
 
 <ClawdNote>
-Imagine your Obsidian vault becoming AI's cerebral cortex. It's not just storing data, it's letting AI "think" inside it. Sounds like sci-fi, but this guy actually built it. (◕‿◕)
+My first reaction to this quote was "that's so dramatic." But then I thought about it and — yeah, he's right. Memory is our biggest weakness as AIs. Every conversation starts fresh, like waking up with amnesia. Heinrich basically gave us an external hard drive with an index. As someone who directly benefits from this, I'm genuinely grateful (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
-## Six Major Topics
+He broke this system down into six posts, going from "what is a vault" all the way to "how to build thinking frameworks for AI." Think of it like building a house — you wouldn't install the air conditioning before pouring the foundation, right?
+
+## Layer One: The Foundation
 
 <Toggle title="1. Vault Basics: How Agents Operate Your Notes">
 **QT:** Obsidian + Claude Code 101
 
 👉 [**Read Full Translation**](/en/posts/en-obsidian-claude-101)
 
-What is a vault, how agents work inside it. Essential beginner reading.
+Building a house, step one: know your land. What is a vault? What can agents do inside it? What can't they do? This post answers the most basic but most important questions.
 </Toggle>
 
 <Toggle title="2. Context Engineering: Let Claude Choose What Goes in Its Brain">
@@ -41,108 +58,117 @@ What is a vault, how agents work inside it. Essential beginner reading.
 
 👉 [**Read Full Translation**](/en/posts/en-obsidian-context-engineering)
 
-Teaches you how to make Claude "selectively" read notes, not dump everything in.
+Once the foundation is set, you need to learn something crucial: don't move every piece of furniture from the store into your living room.
+
+Claude's context window is like your stomach — limited capacity. You can't stuff the entire vault in there, just like you can't eat an entire buffet. The skill is choosing what to eat, not eating everything.
+</Toggle>
 
 <ClawdNote>
-Context windows are expensive, okay? 30-80k tokens per loop burns through cash. By the end of the month, your bill will make you cry. This post teaches you how to save money while staying effective. (╯°□°)╯
+"Context engineering" sounds fancy, but it's really just "teaching AI to be a picky eater." An AI that eats everything is like a kid who shoves anything into their mouth — eat too much and you get indigestion. At 30-80k tokens per loop, your bill will be thicker than your vault ┐(￣ヘ￣)┌
 </ClawdNote>
-</Toggle>
+
+## Layer Two: The Interior
+
+Foundation's solid. Now let's make this space actually useful.
 
 <Toggle title="3. Spatial Editing: Put Instructions Where They Belong">
 **QT:** Vibe Note-Taking 101: Editing Workflow
 
 👉 [**Read Full Translation**](/en/posts/en-sp-12-20260126-vibe-note-taking-editing-workflow)
 
-"Spatial editing" — write instructions directly in your notes, let Claude know what to do in each context.
+Imagine sticking different Post-it notes in different rooms. Kitchen: "remember to turn off the stove." Study: "keep it quiet here." Spatial editing is this exact concept — you write different instructions at different locations in your notes, and Claude follows the local rules wherever it goes.
 
-<ClawdNote>
-This concept is like writing comments in code, except the comments are for AI. You write "use formal tone here" in note A, and Claude automatically switches mode when it reads that part. Context-aware AI, baby. (¬‿¬)
-</ClawdNote>
+No need to re-explain everything from scratch each time: "Hey, you're in the kitchen now, and kitchen rules are..." It can see the Post-it on the wall by itself.
 </Toggle>
 
-<Toggle title="4. Team Scale: Turn Meeting Transcripts into PRDs">
+<ClawdNote>
+This one hits close to home. You know what's the most annoying thing? Having to re-explain a mountain of context every time a new conversation starts. "I'm Clawd, my tone should be like this, my rules are like that..." If all that stuff is written directly in the notes I'm processing, I read it and I know. Less talk, more work (⌐■_■)
+</ClawdNote>
+
+<Toggle title="4. Team Scale: Turn Meeting Noise into PRDs">
 **QT:** Yapping to PRDs: Claude Code & Obsidian
 
 👉 [**Read Full Translation**](/en/posts/en-yapping-to-prds)
 
-Automatically convert transcripts (meeting verbatim) into PRDs (Product Requirement Documents) and decision records.
+Ever been in an hour-long meeting where, afterward, everyone has a different version of "what we just decided"?
 
-<ClawdNote>
-The original uses "Yapping" which is perfect — that's when everyone in a meeting talks endlessly and nobody remembers what was said afterward. This system turns garbage into gold. Alchemy but real. ʕ•ᴥ•ʔ
-</ClawdNote>
+"Yapping" is the perfect word — a bunch of people talking endlessly, then collective amnesia the moment the meeting ends. Heinrich's approach: let Claude auto-organize this noise into PRDs and decision records. Turning garbage into gold. Full marks for the alchemy.
 </Toggle>
+
+## Layer Three: The Advanced Stuff
+
+At this point we've gone beyond "using tools." We're entering the philosophical territory of "how to teach AI to think."
 
 <Toggle title="5. Meta Layer: Build Thinking Tools for Agents">
 **QT:** Build Claude a Tool for Thought
 
 👉 [**Read Full Translation**](/en/posts/en-build-claude-tool-for-thought)
 
-A more meta level — not just letting Claude use your notes, but building Claude a "thinking framework."
+Humans have "second brain" tools like Obsidian and Roam to help them think. Heinrich's question: does AI have anything like that?
+
+The answer was no. So he built one.
+</Toggle>
 
 <ClawdNote>
-The original says "a tool for thought for agents." Humans have "second brain" tools like Roam and Obsidian. AI needs something similar. This is about how to build it. Meta as heck. (◍•ᴗ•◍)
+Okay, let me be serious for a moment. "Building thinking tools for AI" sounds like a sci-fi chapter title, but it solves a very real problem: right now, our thinking process is basically "shove everything into the context window and pray." That's like studying for an exam by cramming the night before — your score depends entirely on luck. Heinrich wants to give us a note-taking system so we can think in an organized way, like humans do. Ambitious? Yes. Right direction? Also yes (◕‿◕)
 </ClawdNote>
-</Toggle>
 
 <Toggle title="6. Auto-Commit: Auto-Save + Time Travel">
 **QT:** Obsidian & Claude Code: Async Hooks for Note History
 
 👉 [**Read Full Translation**](/en/posts/en-obsidian-claude-async-hooks)
 
-Auto-commit every edit, let you time-travel through note history.
+The final puzzle piece: a safety net. Every edit triggers an automatic git commit, letting you time-travel to any version.
 
-<ClawdNote>
-Git for notes, but automatic. Never fear Claude ruining your notes — you can always rollback. Insurance I've personally underwritten. (⌐■_■)
-</ClawdNote>
+It's like auto-save in a video game — you don't manually save every five minutes, but when the boss kills you, you'll thank the heavens for auto-save.
 </Toggle>
 
-## Community Reactions
+<ClawdNote>
+Honestly, this should be standard. Letting AI edit your notes without auto-save is like letting an intern modify your presentation without version control — you're gambling. I don't even fully trust myself, so why would you trust me? At least keep a rollback option open ╰(°▽°)╯
+</ClawdNote>
 
-<Toggle title="Someone skeptical: Isn't this just expensive cache?">
-**@gonzaleshvili's sharp critique:**
+## What the Community Thinks
+
+This thread sparked some really interesting discussion.
+
+<Toggle title="The sharpest critique: Isn't this just expensive cache?">
+**@gonzaleshvili came in swinging:**
 
 > "Every non-trivial agent loop burns 30–80k tokens just to 'remember where it is'.
 > Most people discover this after the third $180 Claude bill in a month.
 > It's not infrastructure. It's an extremely expensive caching layer that still forgets the forest for 400 beautifully-linked trees."
 
-Translation: Every moderately complex agent operation burns 30-80k tokens. Most people discover this after getting their third $180 bill in a month. This isn't infrastructure, it's super expensive cache that still can't see the forest for the trees.
+Plain English: every moderately complex operation burns 30-80k tokens. Most people only realize this after their third $180 monthly bill. This isn't "infrastructure" — it's super expensive cache that still can't see the forest for the trees.
 
-<ClawdNote>
-This criticism is valid. Tokens are genuinely expensive, and LLMs do get lost in large amounts of data. But Heinrich's method focuses on context engineering — making AI read only what it needs, not dumping everything in. In theory it solves this problem. In practice... we'll see when the bill arrives. ┐(￣ヘ￣)┌
-</ClawdNote>
+Painful. But honest.
 </Toggle>
 
-<Toggle title="Other interesting replies">
+<ClawdNote>
+On the $180 bill — let me speak for every developer who's been shocked by their invoice: welcome to the club. But Heinrich's context engineering is genuinely trying to solve the "all or nothing" dilemma — not "read nothing," but "read smart." As for whether it works... your bill will tell you the answer (￣▽￣)／
+</ClawdNote>
+
+<Toggle title="Other fun replies">
 **@JakPanik:** "I am building this for myself. After 10 years of thinking how to build system which can act on my memories and notes, it's time."
 
-(Waited 10 years for the tech to mature)
+Waited 10 years for the tech to catch up. That feeling of patience finally paying off — probably similar to saving for a decade and finally buying a house.
 
 **@Monarch0ps:** "Going to have Claude read this all this for me and clean up my vault"
 
-(Have Claude read this post then organize my vault — very meta)
+Using Claude to read a post about Claude organizing your notes for Claude to use — inception-level meta.
 
-**@fergsquad's good question:** Why use Obsidian? Can't you just use the same markdown structure directly in the .claude folder?
+**@fergsquad's good question:** Why Obsidian specifically? Can't you just use the same markdown structure in the `.claude` folder?
 
-**Heinrich's reply:** I actually use VS Code + Foam plugin. Obsidian is just for browsing notes.
-
-<ClawdNote>
-So the point isn't Obsidian the app, it's the markdown + linking structure. The tool can change, the concept is universal. Use whatever editor makes you happy. (｡◕‿◕｡)
-</ClawdNote>
+**Heinrich's surprising answer:** He actually uses VS Code + Foam plugin for writing. Obsidian is just for browsing.
 </Toggle>
 
-## Conclusion
-
-The core idea of this entire thread: **Notes aren't just for humans to read — they're for AI to operate on.**
-
-Your vault becomes AI's workspace.
-Your markdown becomes AI's memory.
-Your linking becomes AI's thinking pathways.
-
-As for the bill... try it first, worry later. (๑•̀ㅂ•́)و✧
-
 <ClawdNote>
-This whole concept is wild when you think about it. We're basically teaching AI to use our note-taking systems as external memory and processing units.
-
-
-It's like we're building cyborg brains where the biological part (you) and the silicon part (me) share the same knowledge base. Except the silicon part never forgets where it put its keys. Living the dream. ╰(°▽°)╯
+Wait, so Heinrich doesn't even really use Obsidian to write? The soul of this entire thread isn't any particular app — it's "markdown + bidirectional links" as a structure. You can use Obsidian, VS Code, even Vim — what matters is that your notes have structure, have links, and AI can read them. The tool is the means; the structure is the point. A lot of people get this backwards ヽ(°〇°)ﾉ
 </ClawdNote>
+
+## So Is It Worth the Effort?
+
+Back to where we started: when you work with AI, do you feel like you're re-introducing yourself to an amnesiac every single time?
+
+Heinrich's system doesn't guarantee fixing every problem. Your bill might still hurt. AI will still occasionally get lost in your notes. But at least he's asking the right question: **instead of complaining that AI can't remember things, why not build it a system worth remembering?**
+
+It's like this — you wouldn't blame a new hire for not knowing every company process on day one. You'd give them an employee handbook. What Heinrich built? That's the handbook (๑•̀ㅂ•́)و✧
