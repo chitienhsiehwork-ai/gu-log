@@ -1,0 +1,288 @@
+---
+/**
+ * AiJudgeScore — Shows the multi-model AI quality scores for a post
+ *
+ * Three judges, each with a different specialty:
+ *   🔵 Claude  → Vibe (persona/clawdNote/vibe)
+ *   🟢 Codex   → Fact Check (data/attribution/logic)
+ *   🔴 Gemini  → Cross-Ref (sources/links/coverage)
+ *
+ * Prompts are public and linked for transparency.
+ * Score data comes from scripts/ralph-progress.json (vibe) and
+ * future multi-score manifests.
+ */
+
+interface Judge {
+  name: string;
+  role: string;
+  emoji: string;
+  color: string;
+  composite: number | null;
+  dimensions: { label: string; score: number; note?: string }[];
+  promptUrl: string;
+}
+
+interface Props {
+  ticketId: string;
+  vibeScores?: {
+    persona: number;
+    clawdNote: number;
+    vibe: number;
+  };
+  factCheckScores?: {
+    dataAccuracy: number;
+    attributionAccuracy: number;
+    logicalCoherence: number;
+  };
+  crossRefScores?: {
+    sourceFidelity: number;
+    internalCrossRefs: number;
+    sourceCoverage: number;
+  };
+  lang?: string;
+}
+
+const { ticketId, vibeScores, factCheckScores, crossRefScores, lang = 'zh-tw' } = Astro.props;
+
+const REPO_BASE = 'https://github.com/chitienhsiehwork-ai/gu-log/blob/main';
+
+const judges: Judge[] = [];
+
+if (vibeScores) {
+  const dims = [
+    { label: lang === 'zh-tw' ? '人物感' : 'Persona', score: vibeScores.persona },
+    { label: 'ClawdNote', score: vibeScores.clawdNote },
+    { label: 'Vibe', score: vibeScores.vibe },
+  ];
+  judges.push({
+    name: 'Claude',
+    role: lang === 'zh-tw' ? '風格評審' : 'Vibe Judge',
+    emoji: '🔵',
+    color: 'var(--color-claude, #7c5cfc)',
+    composite: Math.floor(dims.reduce((s, d) => s + d.score, 0) / 3),
+    dimensions: dims,
+    promptUrl: `${REPO_BASE}/scripts/prompts/vibe-scorer.md`,
+  });
+}
+
+if (factCheckScores) {
+  const dims = [
+    {
+      label: lang === 'zh-tw' ? '數據正確性' : 'Data Accuracy',
+      score: factCheckScores.dataAccuracy,
+    },
+    {
+      label: lang === 'zh-tw' ? '引用忠實度' : 'Attribution',
+      score: factCheckScores.attributionAccuracy,
+    },
+    { label: lang === 'zh-tw' ? '邏輯一致性' : 'Logic', score: factCheckScores.logicalCoherence },
+  ];
+  judges.push({
+    name: 'Codex',
+    role: lang === 'zh-tw' ? '事實查核' : 'Fact Checker',
+    emoji: '🟢',
+    color: 'var(--color-codex, #10a37f)',
+    composite: Math.floor(dims.reduce((s, d) => s + d.score, 0) / 3),
+    dimensions: dims,
+    promptUrl: `${REPO_BASE}/scripts/prompts/fact-checker.md`,
+  });
+}
+
+if (crossRefScores) {
+  const dims = [
+    {
+      label: lang === 'zh-tw' ? '來源驗證' : 'Source Fidelity',
+      score: crossRefScores.sourceFidelity,
+    },
+    {
+      label: lang === 'zh-tw' ? '內部連結' : 'Internal Refs',
+      score: crossRefScores.internalCrossRefs,
+    },
+    { label: lang === 'zh-tw' ? '引用覆蓋' : 'Coverage', score: crossRefScores.sourceCoverage },
+  ];
+  judges.push({
+    name: 'Gemini',
+    role: lang === 'zh-tw' ? '交叉驗證' : 'Cross-Ref',
+    emoji: '🔴',
+    color: 'var(--color-gemini, #ea4335)',
+    composite: Math.floor(dims.reduce((s, d) => s + d.score, 0) / 3),
+    dimensions: dims,
+    promptUrl: `${REPO_BASE}/scripts/prompts/crossref-verifier.md`,
+  });
+}
+
+const hasScores = judges.length > 0;
+const title = lang === 'zh-tw' ? 'AI 評審團' : 'AI Judge Panel';
+const scriptLink = `${REPO_BASE}/scripts/multi-scorer.sh`;
+---
+
+{
+  hasScores && (
+    <div class="ai-judge-panel">
+      <div class="judge-header">
+        <span class="judge-title">⚖️ {title}</span>
+        <a href={scriptLink} target="_blank" rel="noopener" class="judge-script-link">
+          {lang === 'zh-tw' ? '評分腳本 →' : 'Scoring script →'}
+        </a>
+      </div>
+      <div class="judge-grid">
+        {judges.map((judge) => (
+          <div class="judge-card">
+            <div class="judge-card-header">
+              <span class="judge-emoji">{judge.emoji}</span>
+              <span class="judge-name">{judge.name}</span>
+              <span class="judge-role">{judge.role}</span>
+              <span class="judge-composite" style={`color: ${judge.color}`}>
+                {judge.composite}/10
+              </span>
+            </div>
+            <div class="judge-dimensions">
+              {judge.dimensions.map((dim) => (
+                <div class="judge-dim">
+                  <span class="dim-label">{dim.label}</span>
+                  <div class="dim-bar-container">
+                    <div
+                      class="dim-bar"
+                      style={`width: ${dim.score * 10}%; background: ${judge.color}`}
+                    />
+                  </div>
+                  <span class="dim-score">{dim.score}</span>
+                </div>
+              ))}
+            </div>
+            <a href={judge.promptUrl} target="_blank" rel="noopener" class="judge-prompt-link">
+              {lang === 'zh-tw' ? '查看評審 prompt →' : 'View judge prompt →'}
+            </a>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+<style>
+  .ai-judge-panel {
+    margin-top: 2rem;
+    padding: 1rem;
+    background-color: var(--color-bg-secondary, rgba(0, 0, 0, 0.03));
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+  }
+
+  .judge-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+  }
+
+  .judge-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+
+  .judge-script-link,
+  .judge-prompt-link {
+    font-size: 0.78rem;
+    color: var(--color-text-muted);
+    text-decoration: none;
+  }
+
+  .judge-script-link:hover,
+  .judge-prompt-link:hover {
+    color: var(--color-accent);
+  }
+
+  .judge-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .judge-card {
+    padding: 0.6rem 0.75rem;
+    background: var(--color-bg);
+    border-radius: 6px;
+    border: 1px solid var(--color-border);
+  }
+
+  .judge-card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .judge-emoji {
+    font-size: 0.9rem;
+  }
+
+  .judge-name {
+    font-weight: 600;
+    font-size: 0.85rem;
+  }
+
+  .judge-role {
+    font-size: 0.78rem;
+    color: var(--color-text-muted);
+    flex: 1;
+  }
+
+  .judge-composite {
+    font-weight: 700;
+    font-size: 1rem;
+  }
+
+  .judge-dimensions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  .judge-dim {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+  }
+
+  .dim-label {
+    width: 90px;
+    color: var(--color-text-muted);
+    flex-shrink: 0;
+  }
+
+  .dim-bar-container {
+    flex: 1;
+    height: 6px;
+    background: var(--color-border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .dim-bar {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s ease;
+  }
+
+  .dim-score {
+    width: 20px;
+    text-align: right;
+    font-weight: 600;
+    font-size: 0.8rem;
+  }
+
+  .judge-prompt-link {
+    display: block;
+    margin-top: 0.4rem;
+    text-align: right;
+  }
+
+  @media (max-width: 480px) {
+    .dim-label {
+      width: 70px;
+      font-size: 0.75rem;
+    }
+  }
+</style>

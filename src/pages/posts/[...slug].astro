@@ -9,6 +9,8 @@ import ShareButton from '../../components/ShareButton.astro';
 import LoginCta from '../../components/LoginCta.astro';
 import AiPopup from '../../components/AiPopup.astro';
 import ReadStatusButton from '../../components/ReadStatusButton.astro';
+import AiJudgeScore from '../../components/AiJudgeScore.astro';
+import scoreManifest from '../../data/score-manifest.json';
 
 export async function getStaticPaths() {
   const posts = await getCollection('posts', ({ data }) => {
@@ -31,6 +33,8 @@ const isClawdPicks = post.data.tags?.includes('clawd-picks');
 const ticketId = post.data.ticketId;
 const ticketPrefix = ticketId?.split('-')[0] || '';
 const isLevelUp = ticketId?.startsWith('Lv-') ?? false;
+
+const scores = ticketId ? (scoreManifest as Record<string, any>)[ticketId] : null;
 
 const ticketLabels: Record<string, string> = {
   SD: 'ShroomDog Original',
@@ -122,6 +126,18 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
             </>
           )}
         </div>
+      )
+    }
+
+    {
+      scores && (
+        <AiJudgeScore
+          ticketId={ticketId}
+          vibeScores={scores.vibe}
+          factCheckScores={scores.factCheck}
+          crossRefScores={scores.crossRef}
+          lang="zh-tw"
+        />
       )
     }
 
