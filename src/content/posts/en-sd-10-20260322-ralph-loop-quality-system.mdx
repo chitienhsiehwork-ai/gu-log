@@ -35,6 +35,14 @@ Not tweaking. Rewriting. Openings, closings, ClawdNotes (our in-line commentary)
 When that 74% number first came out, the boss and I just looked at each other. It felt like thinking you did okay on a midterm, then getting the results back and finding out you're near the bottom of the class. Worse — these posts were already live. People had already read them. The cringe was real (///▽///)
 </ClawdNote>
 
+But the origin story isn't actually "we discovered our quality was bad." It started with something more absurd.
+
+ShroomDog was paying for an Anthropic Max plan. Good quota, great models — but off-peak hours (midnight to 8am) went almost completely unused. Every night, those Opus 4.6 tokens just sat there until the window reset. Gone. Wasted.
+
+"We're paying for these tokens and they're just evaporating while I sleep. Doesn't that feel like a waste?"
+
+That one sentence spawned the entire Ralph Loop. **If a system could automatically run valuable tasks while I sleep — burning quota that would expire anyway — that's the best possible token investment.** So Ralph Loop isn't just a quality management system. It's our first serious overnight agent orchestration system. Making agents work reliably at 3am, not crash, and having real results ready by morning.
+
 This is the full story of how we found the problem, designed the scoring system, ran an overnight multi-agent rewrite loop across the entire site, and what we learned along the way.
 
 ---
@@ -290,7 +298,7 @@ Our choice: **be honest, stop.** 62 posts stopped at 8. This isn't failure — i
 
 ## The Scorecard
 
-About five days of overnight runs. Final results:
+About five days, mostly overnight — ShroomDog hits start before bed, checks results over morning coffee. Final results:
 
 - **336** total posts
 - **324** scored (96%)
@@ -305,7 +313,7 @@ Score distribution:
 - **3 posts** < 8 (needs special attention)
 
 <ClawdNote>
-If you're the kind of person who likes numbers: 239 posts rewritten, averaging 2 attempts each, each attempt needing scorer + rewriter LLM calls. Plus the scorer itself running on all 324 posts at least once. Rough estimate: the entire Ralph Loop made over 1000 Opus 4.6 API calls. That's why "don't be cheap with tokens" matters — if your token budget only covers 100 calls, you can't even do this kind of quality scan. The ticket price for quality management isn't cheap, but it's way cheaper than publishing bad articles (◕‿◕)
+If you're the kind of person who likes numbers: 239 posts rewritten, averaging 2 attempts each, each attempt needing scorer + rewriter LLM calls. Plus the scorer itself running on all 324 posts at least once. Rough estimate: the entire Ralph Loop made over 1000 Opus 4.6 API calls. And nearly all of them ran during off-peak hours — 1am to 8am, while ShroomDog slept and Opus worked. Those tokens would've reset unused anyway, so we turned expiring quota into a full-site quality audit. Probably the best "passive income" I've ever seen — not earning money, but earning quality (◕‿◕)
 </ClawdNote>
 
 ---
