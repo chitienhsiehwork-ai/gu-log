@@ -33,7 +33,9 @@ const ticketId = post.data.ticketId;
 const ticketPrefix = ticketId?.split('-')[0] || '';
 const isLevelUp = ticketId?.startsWith('Lv-') ?? false;
 
-const scores = ticketId ? (scoreManifest as Record<string, any>)[ticketId] : null;
+const scores = ticketId
+  ? (scoreManifest as Record<string, Record<string, unknown>>)[ticketId]
+  : null;
 
 const ticketLabels: Record<string, string> = {
   SD: 'ShroomDog Original',

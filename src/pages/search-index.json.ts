@@ -7,7 +7,7 @@ function extractPlainText(body: string): string {
     .replace(/<[^>]+>/g, ' ') // strip HTML/JSX tags
     .replace(/import\s+.*?from\s+['"][^'"]+['"]/g, '') // strip MDX imports
     .replace(/export\s+.*?;/g, '') // strip MDX exports
-    .replace(/[#*`~\[\]|>]/g, '') // strip markdown syntax chars
+    .replace(/[#*`~[\]|>]/g, '') // strip markdown syntax chars
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, 500);
