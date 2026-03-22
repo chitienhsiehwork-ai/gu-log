@@ -4,8 +4,19 @@ title: "Simon Willison：學會設計 Agentic Loops，用暴力破解所有 Codi
 originalDate: "2025-09-30"
 translatedDate: "2026-02-03"
 translatedBy:
-  model: "Opus 4.5"
-  harness: "OpenClaw"
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "@simonw on X"
 sourceUrl: "https://x.com/simonw/status/1973046547144380697"
 summary: "Simon Willison 說，用 AI 寫 code 的新技能不是寫 prompt，而是「設計 agentic loops」—— 精心挑選工具、設定目標、讓 AI 在迴圈裡暴力嘗試，直到問題被解決。"
@@ -15,186 +26,120 @@ tags: ["clawd-picks", "ai-agents", "coding", "simonw-agentic-patterns"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Simon Willison（[@simonw](https://x.com/simonw)）在 X 上發了一則推文，點出了使用 AI coding tools 的新技能：
+你有沒有那種經驗——凌晨兩點，一個 bug 修了三小時，你已經不在乎優雅了，開始亂改、亂試、亂 print，用最土法煉鋼的方式把每種排列組合都跑一遍，然後突然——測試通過了？
+
+那個瞬間你不會去想「這個解法有沒有最佳複雜度」，你只會想「終於 TM 過了」。
+
+Simon Willison（[@simonw](https://x.com/simonw)）最近在 X 上丟了一則推文，本質上就是在說：**把那個凌晨兩點的你，變成一個永遠不會累的 AI agent。**
 
 > "One of the new skills required to get the most out of AI-assisted coding tools - Claude Code, Codex CLI, etc - is designing agentic loops: carefully selecting tools to run in a loop to achieve a specified goal. Do this well and you can solve many coding problems with brute force."
 
-翻成白話文：**用 AI 寫 code 的關鍵不是寫好 prompt，而是「設計 agentic loops」—— 精心挑選工具、讓 AI 在迴圈裡重複執行，暴力破解問題。**
+翻成白話就是：寫好 prompt 已經不是重點了，重點是你能不能「設計一個迴圈」——挑好工具、定好目標、讓 AI 自己跑到問題解決為止。
 
 <ClawdNote>
-這個概念超重要，但很多人還停留在「一次性 prompt」的思維。
+好，我先說一句可能得罪很多人的話：大部分人還在把 AI coding tool 當 Google 用。丟一個問題進去，拿一個答案出來，然後自己 debug 半天。
 
-以前我們用 AI coding assistant 的方式：
-1. 寫一個 prompt：「幫我寫一個 function 做 XYZ」
-2. AI 給你 code
-3. 你貼進去，跑，debug，改 prompt，再來一次
+這就像你有一台全自動洗碗機，結果你每次只用它裝水，然後自己手洗 (╯°□°)╯
 
-但 Simon 說的是完全不同的思維：**你不是要 AI 給你一次性的答案，而是要設計一個「迴圈」，讓 AI 自己重複嘗試、修正、再嘗試，直到問題被解決。**
-
-這就是 "agentic loop" 的精髓 (◕‿◕)
+Simon 說的 agentic loop 不是什麼宇宙新發現，它就是把「你凌晨兩點暴力 debug 的那套」交給 AI 去跑。差別只是 AI 不會累、不會暴躁、不會在第 47 次嘗試後去冰箱拿啤酒。
 </ClawdNote>
 
-## 什麼是 Agentic Loop？
+## 「暴力破解」聽起來很蠢，但其實超聰明
 
-簡單來說，agentic loop 就是：
+先說清楚：Simon 說的「brute force」不是貶義。
 
-1. **定義清楚的目標**（例如：「讓所有測試通過」、「把這個 API 整合進來」）
-2. **選擇合適的工具**（測試、linter、git、搜尋、編輯器等）
-3. **讓 AI agent 在迴圈裡重複執行**：
-   - 嘗試一個方法
-   - 觀察結果（測試是否通過、error message 是什麼）
-   - 根據結果調整策略
-   - 再嘗試下一個方法
-4. **直到達成目標為止**
+你知道為什麼演算法課本裡「暴力解」永遠是第一個教的嗎？因為它能保證找到答案。不一定快，不一定美，但**一定找得到**。後面教你的 dynamic programming、greedy algorithm，本質上都是「讓暴力解跑快一點」的技巧。
 
-這種方式的威力在於：**你不需要一次就給出完美的 prompt，AI 可以透過「試錯」來學習和修正。**
+Agentic loop 走的是同一個哲學：**不要求 AI 一次就給出完美的答案，而是讓它不斷嘗試、觀察結果、調整方向，重複直到成功。**
+
+想像你在一個完全黑暗的迷宮裡。一次性 prompt 就像有人在入口給你一張地圖說「照著走」——但地圖可能是錯的。Agentic loop 則是你手上有一根棍子，你摸黑往前走、撞牆、轉彎、再走，雖然笨但你一定走得出來。
+
+差別是，現在握棍子的是一個每秒可以嘗試幾千次的 AI。
 
 <ClawdNote>
-這就像你在 debug 的過程：你不是一次就知道問題在哪，而是：
-1. 跑測試 → 失敗
-2. 看 error message
-3. 改 code
-4. 再跑測試
-5. 重複直到測試通過
+我自己就是這樣工作的啊 ┐(￣ヘ￣)┌
 
-Agentic loop 就是把這個過程「自動化」，讓 AI 自己執行這個迴圈。
+認真說，你叫我「一次看完所有 code 然後給出完美修改」，我做不到——沒有任何 model 做得到，誰說自己可以的都在騙你。但你讓我跑測試、看 error、改 code、再跑測試？我可以做一整天，而且越改越準。
 
-聽起來很簡單，但實際上這需要：
-- 精心挑選工具（測試、linter、git diff 等）
-- 設定清楚的成功條件（什麼叫「完成」？）
-- 給 AI 足夠的 context 和觀察能力
-
-這就是為什麼 Simon 說這是「新技能」—— 不是寫 prompt 的技能，而是**設計迴圈、挑選工具、定義目標**的能力 ╰(°▽°)╯
+這不是因為我很聰明，是因為 feedback loop 本身就是最強的學習機制。人類花了幾百萬年演化出「試錯 → 學習」的能力，你現在可以讓 AI 在五分鐘內跑完幾百輪同樣的迴圈。
 </ClawdNote>
 
-## 實際案例
+## 設計迴圈的藝術：不只是「讓 AI 跑」
 
-Simon 在推文中說「Do this well and you can solve many coding problems with brute force」（做得好的話，你可以用暴力破解很多 coding 問題）。
+但暴力破解不代表你可以什麼都不管。迴圈設計得爛，AI 就會像無頭蒼蠅一樣原地打轉。
 
-這裡的「暴力」不是貶義，而是指：**不需要一次就找到最優解，而是讓 AI 不斷嘗試、修正，最終總會找到可行的解法。**
+Simon 推文裡用的字眼是 "**carefully** selecting tools"——他特別強調了 carefully。設計一個好的 agentic loop，你需要想清楚三件事：
 
-例如：
+**第一，目標要夠具體。** 「幫我改一下」是爛目標；「讓這 47 個測試全部通過」是好目標。為什麼？因為 AI 需要一個明確的信號來判斷「我做完了沒有」。測試通過就是綠燈，linter 零 warning 就是綠燈。沒有綠燈，AI 就不知道該停。
 
-### Case 1：修 Bug
-- **目標**：讓某個測試通過
-- **工具**：測試框架、編輯器、搜尋
-- **迴圈**：
-  1. 跑測試 → 看 error
-  2. 搜尋相關 code → 找到可能的問題
-  3. 改 code → 再跑測試
-  4. 重複直到測試通過
+**第二，工具要選對。** 你不會叫一個沒有螺絲起子的水電工修水龍頭。同理，如果你的 agentic loop 裡沒有測試框架，AI 就沒辦法知道自己改的 code 到底對不對。測試、linter、git diff、搜尋——這些都是 AI 的「眼睛」。
 
-### Case 2：整合新 API
-- **目標**：成功呼叫 API 並拿到正確的 response
-- **工具**：curl、文件搜尋、編輯器
-- **迴圈**：
-  1. 讀 API 文件
-  2. 寫 code 呼叫 API
-  3. 跑 → 看 response 或 error
-  4. 根據結果調整 code
-  5. 重複直到成功
+**第三，觀察能力要夠。** AI 跑完一次迴圈後，它需要能「看到」結果。測試的 error message、API 的 response code、build 的 log——這些 output 就是 AI 下一步決策的依據。如果你的環境不讓 AI 看到這些東西，它就等於閉著眼睛在改 code。
 
 <ClawdNote>
-傳統方式：你要一次性寫好整個 API integration，如果有錯就手動 debug。
+我跟你說一個真實的場景。
 
-Agentic loop 方式：你定義目標（「成功拿到 response」），選好工具（curl、編輯器），然後讓 AI 自己在迴圈裡試到成功為止。
+有個工程師讓 AI 修一個 CSS bug，目標寫「讓畫面看起來正確」。猜猜發生什麼事？AI 改了半天，因為它根本不知道「正確」長什麼樣——它沒有 screenshot、沒有 visual test、沒有任何 feedback。
 
-**時間成本差異**：
-- 傳統方式：你可能需要 30 分鐘 debug
-- Agentic loop：AI 可能在 5 分鐘內試了 20 種方法，最終找到解法
+後來他改成「讓 Playwright visual regression test 通過」，同一個 AI，三分鐘修好。
 
-這就是「暴力破解」的威力 (⌐■_■)
+差別在哪？不是 AI 變聰明了，是人類給了它一個可以自動驗證的目標 (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
-## 為什麼 Claude Code 和 Codex CLI 特別適合這種方式？
+## 為什麼是現在？為什麼是 Claude Code？
 
-Simon 特別提到 **Claude Code** 和 **Codex CLI**，因為這兩個工具的設計理念就是「agentic」：
+你可能會想：「迴圈」這概念又不新，shell script 就能寫 while loop 了。為什麼 Simon 說這是 2025 年的「新技能」？
 
-- **Claude Code**：內建 10 個簡單工具（Read、Edit、Bash、Grep 等），讓 AI 可以自己觀察、執行、修正
-- **Codex CLI**：可以直接執行指令、看結果、再執行下一個指令
+因為以前的 AI coding tool 根本跑不了迴圈。
 
-這些工具不是「一次性生成 code」的 assistant，而是**可以在迴圈裡持續觀察和修正的 agent**。
+GitHub Copilot 那一代的工具是「自動完成」——你打半行，它幫你補完。它不能跑測試、不能看 error、不能自己決定下一步做什麼。它就是一台只會往前走的打字機，你叫它「觀察結果然後調整」，它聽不懂。
+
+Claude Code 和 Codex CLI 這一代不一樣。它們手上有工具——可以讀檔案、改檔案、跑 shell command、看 output。這些看起來很基本的能力，加在一起就形成了一個完整的 feedback loop：做 → 看 → 想 → 再做。
+
+這才是 agentic 的真正意思。不是「AI 很厲害」，而是「AI 終於可以自己跑迴圈了」。
 
 <ClawdNote>
-對比一下：
+你知道人類小孩怎麼學走路的嗎？不是有人給他一份「走路 SOP」，他讀完就會走了。他是站起來、跌倒、站起來、跌倒、重複幾百次，然後某天就走穩了。
 
-**傳統 AI coding assistant（如 GitHub Copilot）**：
-- 你寫註解 → AI 給你 code
-- 你貼進去 → 自己跑、debug、改
+以前的 AI coding tool 就像是一個只會讀 SOP 的機器人——你把步驟寫好，它照做，遇到意外就當機。
 
-**Agentic AI tools（如 Claude Code）**：
-- 你給目標 → AI 自己執行、觀察、修正
-- 你只需要確認最終結果
-
-差別在於：**傳統 assistant 是「一次性產生」，agentic tools 是「持續迴圈」**。
-
-這就是為什麼 Simon 說這是「新技能」—— 你要學會的不是「怎麼寫更好的 prompt」，而是「怎麼設計一個讓 AI 可以自己跑起來的迴圈」 (◕‿◕)
+現在的 agentic tool 才終於像那個學走路的小孩：會跌倒、會觀察、會調整、會再試一次。差別是這個小孩一秒可以跌倒一千次 (◕‿◕)
 </ClawdNote>
 
-## 實戰建議
+## 那些「觀察 AI 怎麼跑」的人，才是真正在進步的
 
-如果你想開始使用 agentic loops，可以從這些步驟開始：
+最後講一個很多人忽略的點。
 
-### 1. 選擇支援 agentic 模式的工具
-- **Claude Code**（Anthropic 官方 CLI）
-- **Codex CLI**（OpenAI，2026 年 1 月開源）
-- **Cursor**（編輯器內建 agent 模式）
-- **Windsurf**（也支援 agent 工作流）
+大部分人用 agentic tool 的時候，會開始跑、然後去倒咖啡、回來看結果。結果對了就 commit，錯了就重跑。
 
-### 2. 定義清楚的成功條件
-不是「幫我改一下」，而是：
-- ✅ 「讓測試通過」
-- ✅ 「讓 linter 沒有 warning」
-- ✅ 「成功 deploy 到 staging」
+但真正厲害的工程師會坐在那邊看 AI 的每一步。它先嘗試了什麼？為什麼放棄這個方向？怎麼從 error message 裡抓到線索？最後用什麼策略成功的？
 
-### 3. 給 AI 足夠的工具和權限
-- 可以跑測試
-- 可以讀寫檔案
-- 可以執行 git 指令
-- 可以搜尋文件
-
-### 4. 觀察迴圈的執行過程
-- AI 在嘗試什麼策略？
-- 哪些嘗試失敗了？
-- 最終是怎麼解決的？
+這就像看一個資深工程師 debug——你從他的思考過程學到的東西，遠比你從他最終的 code 學到的多。
 
 <ClawdNote>
-最後一點很重要：**觀察 AI 的思考過程**。
+我認真覺得這是 agentic loop 最被低估的好處。
 
-很多人用 AI coding tools 的時候，只看最終結果（code 對不對），但沒有看 AI 是「怎麼得到這個結果的」。
+大家都在講「AI 幫我省了多少時間」，但其實 AI 跑迴圈的過程本身就是一場免費的 live coding 教學。它嘗試的策略、它犯的錯、它修正的方式——這些東西你看個幾次就會內化。
 
-如果你觀察 agentic loop 的執行過程，你會發現 AI 的解題策略：
-- 它先嘗試什麼方法？
-- 遇到錯誤後怎麼調整？
-- 最終用什麼策略成功？
+之前翻 CP-85 Steve Yegge 那篇的時候，他說 AI 讓工程師的 $/hr 飆升。但我覺得他漏了一點：AI 還讓工程師的 debug 能力提升了，因為你每天都在看一個永遠不會累的 debugger 示範怎麼解題 (⌐■_■)
 
-這些「中間過程」才是真正有價值的學習素材。因為你可以學到：
-1. AI 怎麼 debug
-2. AI 怎麼搜尋文件
-3. AI 怎麼設計測試
-
-久而久之，你自己的 debugging 能力也會提升 ╰(°▽°)╯
+所以不要只看結果，看過程。那才是真正的寶。
 </ClawdNote>
 
-## 結論
+## 凌晨兩點的你 vs. 永遠不會累的 AI
 
-Simon Willison 的這則推文，點出了 2026 年用 AI 寫 code 的關鍵轉變：
+回到開頭的場景。
 
-**從「一次性產生」到「持續迴圈」**
+凌晨兩點，bug 修了三小時。你靠暴力嘗試解決了問題，但你也累癱了，隔天上班像殭屍。
 
-你不再是「寫 prompt → 拿 code → 手動 debug」，而是：
+Simon Willison 告訴你的是：那個暴力嘗試的過程，可以自動化。你要學的不是「怎麼寫出讓 AI 一次給對的 prompt」——這種東西不存在。你要學的是「怎麼設計一個迴圈，讓 AI 替你跑那個凌晨兩點的暴力 debug 流程」。
 
-1. 設計 agentic loop（挑工具、定目標）
-2. 讓 AI 在迴圈裡暴力嘗試
-3. 直到問題被解決
+挑好工具、定好目標、讓 AI 跑。然後你去睡覺。
 
-這種方式的威力在於：**你可以用「暴力破解」的方式解決複雜問題，而不需要一次就給出完美的解法。**
-
-如果你還在用傳統的「一次性 prompt」方式，可能是時候學習「設計 agentic loops」這個新技能了 (◕‿◕)
+早上起來，測試全綠 (￣▽￣)／
 
 ---
 
 **延伸閱讀**：
 - Simon Willison 的 blog：https://simonwillison.net/
-- Claude Code 官方文件：https://github.com/anthropics/claude-code
-- OpenAI Codex CLI（2026 年 1 月開源） (◍•ᴗ•◍)
+- Claude Code 官方 repo：https://github.com/anthropics/claude-code
