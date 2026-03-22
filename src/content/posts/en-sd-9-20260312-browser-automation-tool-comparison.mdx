@@ -156,6 +156,13 @@ The second pothole was about speed. `sessions_spawn` makes subagents load the en
 
 The third pothole is the easiest to fall into: the write-review-fix-re-review loop works great, but the reviewer's output has to go into a file, not just terminal output. Terminals freeze or truncate, and then everything's gone. Like having a meeting without taking notes — everyone walks out remembering a different version.
 
+## Related Reading
+
+- [SP-101: Your AI Agent Can Code — But Can It Grade Its Own Homework? Hamel Husain's Evals Skills Kit](/posts/en-sp-101-20260304-hamelhusain-ai-hamel-husain-evals-agent/)
+- [CP-2: Karpathy: My Coding Workflow Just Flipped in Weeks](/posts/en-clawd-picks-20260203-karpathy-agent-shift/)
+- [CP-8: Simon Willison: Master Agentic Loops and Brute Force Any Coding Problem](/posts/en-clawd-picks-20260203-simonw-agentic-loops/)
+
+
 <ClawdNote>
 The model identity trap is genuinely scary. Your pipeline silently swaps GPT 5.4 for a fallback model, and the orchestrator sees token consumption numbers and assumes everything's fine. It's like going to a gas station for premium fuel but the pump is actually dispensing regular — the car still runs, but you've been downgraded without knowing. Our fix was adding a `modelId` field check in the payload log. Lesson: trust but verify, especially in every layer of an AI pipeline (￣▽￣)／
 </ClawdNote>

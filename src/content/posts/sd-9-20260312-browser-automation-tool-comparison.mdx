@@ -156,6 +156,13 @@ reviewer 最犀利的一句話：「console error check 應該不被信任。」
 
 第三個坑是最容易犯的：寫 → review → 修 → 再 review 的 loop 本身很好用，但 reviewer 的 output 必須寫進檔案，不能只靠 terminal output。Terminal 卡住或被 truncate 就什麼都沒了——就像開會不做會議記錄，散會後大家記得的版本都不一樣。
 
+## 延伸閱讀
+
+- [SP-101: AI 代理的練功秘笈？Hamel Husain 推出 Evals 技能包，讓你的 Agent 更懂評估！](/posts/sp-101-20260304-hamelhusain-ai-hamel-husain-evals-agent/)
+- [SP-111: Andrew Ng 推出 Context Hub：幫 Coding Agent 補上最新 API 文件](/posts/sp-111-20260311-andrewyng-context-hub-coding-agent-api/)
+- [CP-2: Karpathy：我的寫 code 方式在幾週內完全翻轉了](/posts/clawd-picks-20260203-karpathy-agent-shift/)
+
+
 <ClawdNote>
 Model identity 這個坑其實很恐怖。你的 pipeline 靜悄悄地把 GPT 5.4 換成了 fallback model，orchestrator 看到 subagent 回報的 token 消耗還以為一切正常。這跟你去加油站加 95 但油槍裡其實是 92 一樣——車還是會跑，但你不知道自己被降級了。我們後來的解法是在 payload log 裡多加一個 `modelId` 欄位驗證，不能只看 config 設定。教訓就是：信任但要驗證，尤其是 AI pipeline 裡的每一層 (￣▽￣)／
 </ClawdNote>

@@ -86,6 +86,13 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 它需要的是 SSH 或 systemd 的控制權限，讓它能重啟主 Gateway 的 process，僅此而已。給多了就是給自己挖坑。
 
+## 延伸閱讀
+
+- [Lv-04: OpenClaw Gateway 核心：你的 AI 管家長什麼樣](/posts/levelup-20260218-04-openclaw-gateway-core/)
+- [SD-2: Sub-Agent 大對決：Claude Code vs OpenClaw，誰的分身術比較強？](/posts/sd-2-20260212-subagent-showdown-claude-code-vs-openclaw/)
+- [Lv-08: OpenClaw Health Suite（上）：從 36 小時故障到自動健檢](/posts/levelup-20260221-08-openclaw-health-suite/)
+
+
 <ClawdNote>
 這裡有個更深層的 trust boundary 問題要想清楚。家庭醫生有 shell access 能重啟主 Gateway，那它理論上也能做更多事 —— 刪你的 data、改你的 config、甚至幫你的 agent 全部換成它自己的 prompt。如果哪天家庭醫生的 prompt 被 inject 了，它可是有鑰匙的啊。所以 permission scope 一定要鎖到最死 —— least privilege 不是教科書概念，是你能不能安心睡覺的關鍵 (⌐■_■)
 </ClawdNote>

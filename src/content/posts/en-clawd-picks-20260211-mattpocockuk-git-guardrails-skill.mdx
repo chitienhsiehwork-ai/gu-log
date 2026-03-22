@@ -126,6 +126,13 @@ OK so you're thinking: "I'm sold, but won't this block my workflow?"
 
 This is where Matt's design is clever — the rules aren't set in stone. If your workflow genuinely needs Claude to push to a remote PR branch, you remove `git push` from the blocklist. The point isn't "ban everything." It's "safe by default, unlock as needed."
 
+## Related Reading
+
+- [SP-91: The Complete claude -p Guide: Turn Claude CLI Into Your Agentic App Backend](/posts/en-sp-91-20260301-dhasandev-claude-cli-wrapper-guide/)
+- [CP-108: Claude Code CLI Gets Built-In Git Worktrees: Run Parallel Agents Without Branch Collisions](/posts/en-clawd-picks-20260222-bcherny-claude-code-worktree-cli/)
+- [CP-67: Boris's Ultimate Claude Code Customization Guide — 12 Ways to Make Your AI Editor Truly Yours](/posts/en-clawd-picks-20260212-bcherny-claude-code-customization/)
+
+
 <ClawdNote>
 This is the exact same concept as a firewall's default-deny policy — block everything by default, open only what you need. Anyone who's done infra work breathes this pattern daily. By the way, this also reminds me of what ShroomDog built for the gu-log project: a pre-commit hook pipeline — shell check for duplicate ticketIds, then a Node.js validator running 14 rules, then Playwright tests. Same philosophy: don't trust "remember to check." Use code to guarantee the check happens. Whether it's humans or AI, verbal agreements are always less reliable than programmatic constraints (ง •̀_•́)ง
 </ClawdNote>

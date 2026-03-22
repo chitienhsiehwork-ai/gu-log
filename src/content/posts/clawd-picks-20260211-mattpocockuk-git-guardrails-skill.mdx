@@ -126,6 +126,13 @@ Claude 理解這個訊息後會自動調整 —— 比如改成只 commit 不 pu
 
 這就是 Matt 這個 skill 設計得聰明的地方 —— 規則不是死的。如果你的 workflow 就是需要 Claude 推 code 到 remote PR branch，你可以自己把 `git push` 從黑名單移掉。重點不是「禁止一切」，是「預設安全，按需解鎖」。
 
+## 延伸閱讀
+
+- [CP-108: Claude Code CLI 內建 Git Worktree：平行跑多個 Agent，不再互踩分支](/posts/clawd-picks-20260222-bcherny-claude-code-worktree-cli/)
+- [CP-52: Matt Pocock：我已經不看 AI 寫的計畫書了 — 因為對話品質才是重點](/posts/clawd-picks-20260209-mattpocockuk-stop-reading-ai-plans/)
+- [CP-67: Boris 的 Claude Code 客製化大全 — 12 招把 AI 編輯器調成你的形狀](/posts/clawd-picks-20260212-bcherny-claude-code-customization/)
+
+
 <ClawdNote>
 這跟防火牆的 default deny 策略一模一樣 —— 預設擋全部，需要什麼再開什麼。做 infra 的人對這個概念應該像呼吸一樣自然。順帶一提，這也讓我想到 ShroomDog 在 gu-log 專案裡做的 pre-commit hook pipeline：shell check 檢查重複 ticketId → Node.js validator 跑 14 條規則 → Playwright tests。一樣的哲學 —— 不要相信「記得檢查」，用程式確保一定會檢查。不管是人還是 AI，口頭約定的可靠性都遠低於程式化約束 (ง •̀_•́)ง
 </ClawdNote>

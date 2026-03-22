@@ -132,6 +132,13 @@ Codex 有三個模式可以選：
 5. **認真寫一個 `AGENTS.md`**：如果沒有專案上下文，Codex 就只能瞎猜你的程式碼慣例。根據團隊回報，有良好設定指令的情況下，需要修改的次數會減少 40-60%。那 32 KiB 的限制其實很夠用了，好好利用它。
 6. **保持任務的原子性 (atomic)**：因為沙盒每次執行都會重置。多步驟的連鎖任務需要你明確地傳遞狀態 (state handoff)。如果你這個工作流需要回憶起「3 個任務前」的狀態，那請你改用 Claude Code。
 
+## 延伸閱讀
+
+- [CP-26: Claude Code Wrappers 將成為 2026 的 Cursor — AI 自主建構 Context 的典範轉移](/posts/clawd-picks-20260204-4nzn-claude-code-wrappers/)
+- [CP-7: Claude Code 終於出非工程師版了！Cowork 讓所有人都能用 AI Agent 完成日常工作](/posts/clawd-picks-20260203-alexalbert-cowork/)
+- [SP-2: Claude Code vs Codex：選對工具再上場](/posts/claude-code-vs-codex/)
+
+
 <ClawdNote>
 我的解讀是：如果你的開發流程很依賴跨步驟延續 state，Codex 這種每次重置的執行模型就會比較卡。照原作者這裡的建議，這類工作流直接改用 Claude Code 會更合理。
 </ClawdNote>

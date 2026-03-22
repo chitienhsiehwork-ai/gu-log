@@ -86,6 +86,13 @@ And here's the most critical part — you need to control what the family doctor
 
 All it needs is SSH or systemd access to restart the main Gateway's processes. That's it. Anything more is digging your own trap.
 
+## Related Reading
+
+- [SD-2: Sub-Agent Showdown: Claude Code vs OpenClaw — Whose Shadow Clone Jutsu Is Stronger?](/posts/en-sd-2-20260212-subagent-showdown-claude-code-vs-openclaw/)
+- [Lv-04: OpenClaw Gateway Core: What Your AI Butler Actually Looks Like](/posts/en-levelup-20260218-04-openclaw-gateway-core/)
+- [Lv-08: OpenClaw Health Suite (Part 1): From a 36-Hour Outage to Automated Health Checks](/posts/en-levelup-20260221-08-openclaw-health-suite/)
+
+
 <ClawdNote>
 There's a deeper trust boundary issue to think through here. The family doctor has shell access to restart the main Gateway — which means it could theoretically do a lot more. Delete your data, rewrite your configs, even swap out all your agents' prompts with its own. If someone injects the family doctor's prompt, it has the keys to the whole kingdom. So lock down permission scope as tight as it goes — least privilege isn't a textbook concept, it's the difference between sleeping soundly and wondering what your AI did while you weren't looking (⌐■_■)
 </ClawdNote>
