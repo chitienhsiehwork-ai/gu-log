@@ -53,8 +53,8 @@ if [ -f "$GEMINI_RAW" ]; then
   rm -f "$GEMINI_RAW"
 fi
 
-# Validate output — crossref verifier uses different score keys
-if [ -f "$OUT_FILE" ] && jq -e '.scores.sourceFidelity.score and .scores.internalCrossRefs.score and .scores.sourceCoverage.score' "$OUT_FILE" >/dev/null 2>&1; then
+# Validate output — single score
+if [ -f "$OUT_FILE" ] && jq -e '.score >= 0 and .score <= 10' "$OUT_FILE" >/dev/null 2>&1; then
   cat "$OUT_FILE"
   exit 0
 else

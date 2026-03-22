@@ -1,123 +1,35 @@
 ---
 /**
- * AiJudgeScore — Shows the multi-model AI quality scores for a post
+ * AiJudgeScore — Shows AI quality scores for a post
  *
- * Three judges, each with a different specialty:
- *   🔵 Claude  → Vibe (persona/clawdNote/vibe)
- *   🟢 Codex   → Fact Check (data/attribution/logic)
- *   🔴 Gemini  → Cross-Ref (sources/links/coverage)
- *
- * Prompts are public and linked for transparency.
- * Score data comes from scripts/ralph-progress.json (vibe) and
- * future multi-score manifests.
+ * 🔵 Claude  → Vibe (3 sub-scores: persona/clawdNote/vibe)
+ * 🟢 Codex   → Fact Check (single 0-10 score)
+ * 🔴 Gemini  → Source Verification (single 0-10 score)
  */
-
-interface Judge {
-  name: string;
-  role: string;
-  emoji: string;
-  color: string;
-  composite: number | null;
-  dimensions: { label: string; score: number; note?: string }[];
-  promptUrl: string;
-}
 
 interface Props {
   ticketId: string;
-  vibeScores?: {
-    persona: number;
-    clawdNote: number;
-    vibe: number;
-  };
-  factCheckScores?: {
-    dataAccuracy: number;
-    attributionAccuracy: number;
-    logicalCoherence: number;
-  };
-  crossRefScores?: {
-    sourceFidelity: number;
-    internalCrossRefs: number;
-    sourceCoverage: number;
-  };
+  vibeScores?: { persona: number; clawdNote: number; vibe: number };
+  factCheckScore?: number;
+  crossRefScore?: number;
   lang?: string;
 }
 
 const {
   ticketId: _ticketId,
   vibeScores,
-  factCheckScores,
-  crossRefScores,
+  factCheckScore,
+  crossRefScore,
   lang = 'zh-tw',
 } = Astro.props;
 
 const REPO_BASE = 'https://github.com/chitienhsiehwork-ai/gu-log/blob/main';
+const hasScores = vibeScores || factCheckScore != null || crossRefScore != null;
 
-const judges: Judge[] = [];
+const vibeComposite = vibeScores
+  ? Math.floor((vibeScores.persona + vibeScores.clawdNote + vibeScores.vibe) / 3)
+  : null;
 
-if (vibeScores) {
-  const dims = [
-    { label: lang === 'zh-tw' ? '人物感' : 'Persona', score: vibeScores.persona },
-    { label: 'ClawdNote', score: vibeScores.clawdNote },
-    { label: 'Vibe', score: vibeScores.vibe },
-  ];
-  judges.push({
-    name: 'Claude',
-    role: lang === 'zh-tw' ? '風格評審' : 'Vibe Judge',
-    emoji: '🔵',
-    color: 'var(--color-claude, #7c5cfc)',
-    composite: Math.floor(dims.reduce((s, d) => s + d.score, 0) / 3),
-    dimensions: dims,
-    promptUrl: `${REPO_BASE}/scripts/prompts/vibe-scorer.md`,
-  });
-}
-
-if (factCheckScores) {
-  const dims = [
-    {
-      label: lang === 'zh-tw' ? '數據正確性' : 'Data Accuracy',
-      score: factCheckScores.dataAccuracy,
-    },
-    {
-      label: lang === 'zh-tw' ? '引用忠實度' : 'Attribution',
-      score: factCheckScores.attributionAccuracy,
-    },
-    { label: lang === 'zh-tw' ? '邏輯一致性' : 'Logic', score: factCheckScores.logicalCoherence },
-  ];
-  judges.push({
-    name: 'Codex',
-    role: lang === 'zh-tw' ? '事實查核' : 'Fact Checker',
-    emoji: '🟢',
-    color: 'var(--color-codex, #10a37f)',
-    composite: Math.floor(dims.reduce((s, d) => s + d.score, 0) / 3),
-    dimensions: dims,
-    promptUrl: `${REPO_BASE}/scripts/prompts/fact-checker.md`,
-  });
-}
-
-if (crossRefScores) {
-  const dims = [
-    {
-      label: lang === 'zh-tw' ? '來源驗證' : 'Source Fidelity',
-      score: crossRefScores.sourceFidelity,
-    },
-    {
-      label: lang === 'zh-tw' ? '內部連結' : 'Internal Refs',
-      score: crossRefScores.internalCrossRefs,
-    },
-    { label: lang === 'zh-tw' ? '引用覆蓋' : 'Coverage', score: crossRefScores.sourceCoverage },
-  ];
-  judges.push({
-    name: 'Gemini',
-    role: lang === 'zh-tw' ? '交叉驗證' : 'Cross-Ref',
-    emoji: '🔴',
-    color: 'var(--color-gemini, #ea4335)',
-    composite: Math.floor(dims.reduce((s, d) => s + d.score, 0) / 3),
-    dimensions: dims,
-    promptUrl: `${REPO_BASE}/scripts/prompts/crossref-verifier.md`,
-  });
-}
-
-const hasScores = judges.length > 0;
 const title = lang === 'zh-tw' ? 'AI 評審團' : 'AI Judge Panel';
 const scriptLink = `${REPO_BASE}/scripts/multi-scorer.sh`;
 ---
@@ -127,40 +39,75 @@ const scriptLink = `${REPO_BASE}/scripts/multi-scorer.sh`;
     <div class="ai-judge-panel">
       <div class="judge-header">
         <span class="judge-title">⚖️ {title}</span>
-        <a href={scriptLink} target="_blank" rel="noopener" class="judge-script-link">
+        <a href={scriptLink} target="_blank" rel="noopener" class="judge-link">
           {lang === 'zh-tw' ? '評分腳本 →' : 'Scoring script →'}
         </a>
       </div>
-      <div class="judge-grid">
-        {judges.map((judge) => (
-          <div class="judge-card">
-            <div class="judge-card-header">
-              <span class="judge-emoji">{judge.emoji}</span>
-              <span class="judge-name">{judge.name}</span>
-              <span class="judge-role">{judge.role}</span>
-              <span class="judge-composite" style={`color: ${judge.color}`}>
-                {judge.composite}/10
+
+      <div class="judge-scores">
+        {vibeScores && (
+          <div class="judge-group">
+            <div class="judge-label">
+              <span>🔵 Claude</span>
+              <a
+                href={`${REPO_BASE}/scripts/prompts/vibe-scorer.md`}
+                target="_blank"
+                rel="noopener"
+                class="judge-link"
+              >
+                {lang === 'zh-tw' ? '風格評審' : 'Vibe Judge'}
+              </a>
+            </div>
+            <div class="vibe-details">
+              <span class="vibe-dim">
+                {lang === 'zh-tw' ? '人物感' : 'Persona'} <strong>{vibeScores.persona}</strong>
+              </span>
+              <span class="vibe-dim">
+                ClawdNote <strong>{vibeScores.clawdNote}</strong>
+              </span>
+              <span class="vibe-dim">
+                Vibe <strong>{vibeScores.vibe}</strong>
+              </span>
+              <span class="vibe-composite">
+                = <strong>{vibeComposite}/10</strong>
               </span>
             </div>
-            <div class="judge-dimensions">
-              {judge.dimensions.map((dim) => (
-                <div class="judge-dim">
-                  <span class="dim-label">{dim.label}</span>
-                  <div class="dim-bar-container">
-                    <div
-                      class="dim-bar"
-                      style={`width: ${dim.score * 10}%; background: ${judge.color}`}
-                    />
-                  </div>
-                  <span class="dim-score">{dim.score}</span>
-                </div>
-              ))}
-            </div>
-            <a href={judge.promptUrl} target="_blank" rel="noopener" class="judge-prompt-link">
-              {lang === 'zh-tw' ? '查看評審 prompt →' : 'View judge prompt →'}
-            </a>
           </div>
-        ))}
+        )}
+
+        {factCheckScore != null && (
+          <div class="judge-row">
+            <span class="judge-label">
+              <span>🟢 Codex</span>
+              <a
+                href={`${REPO_BASE}/scripts/prompts/fact-checker.md`}
+                target="_blank"
+                rel="noopener"
+                class="judge-link"
+              >
+                {lang === 'zh-tw' ? '事實查核' : 'Fact Check'}
+              </a>
+            </span>
+            <strong class="single-score">{factCheckScore}/10</strong>
+          </div>
+        )}
+
+        {crossRefScore != null && (
+          <div class="judge-row">
+            <span class="judge-label">
+              <span>🔴 Gemini</span>
+              <a
+                href={`${REPO_BASE}/scripts/prompts/crossref-verifier.md`}
+                target="_blank"
+                rel="noopener"
+                class="judge-link"
+              >
+                {lang === 'zh-tw' ? '來源驗證' : 'Source Check'}
+              </a>
+            </span>
+            <strong class="single-score">{crossRefScore}/10</strong>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -169,126 +116,73 @@ const scriptLink = `${REPO_BASE}/scripts/multi-scorer.sh`;
 <style>
   .ai-judge-panel {
     margin-top: 2rem;
-    padding: 1rem;
+    padding: 0.75rem 1rem;
     background-color: var(--color-bg-secondary, rgba(0, 0, 0, 0.03));
     border-radius: 8px;
     border: 1px solid var(--color-border);
+    font-size: 0.85rem;
   }
 
   .judge-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.5rem;
   }
 
   .judge-title {
     font-weight: 600;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
   }
 
-  .judge-script-link,
-  .judge-prompt-link {
-    font-size: 0.78rem;
+  .judge-link {
+    font-size: 0.75rem;
     color: var(--color-text-muted);
     text-decoration: none;
   }
 
-  .judge-script-link:hover,
-  .judge-prompt-link:hover {
+  .judge-link:hover {
     color: var(--color-accent);
   }
 
-  .judge-grid {
+  .judge-scores {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 0.4rem;
   }
 
-  .judge-card {
-    padding: 0.6rem 0.75rem;
-    background: var(--color-bg);
-    border-radius: 6px;
-    border: 1px solid var(--color-border);
+  .judge-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
   }
 
-  .judge-card-header {
+  .judge-label {
     display: flex;
     align-items: center;
     gap: 0.4rem;
-    margin-bottom: 0.5rem;
   }
 
-  .judge-emoji {
-    font-size: 0.9rem;
-  }
-
-  .judge-name {
-    font-weight: 600;
-    font-size: 0.85rem;
-  }
-
-  .judge-role {
-    font-size: 0.78rem;
-    color: var(--color-text-muted);
-    flex: 1;
-  }
-
-  .judge-composite {
-    font-weight: 700;
-    font-size: 1rem;
-  }
-
-  .judge-dimensions {
+  .judge-row {
     display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
-  }
-
-  .judge-dim {
-    display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 0.5rem;
-    font-size: 0.8rem;
   }
 
-  .dim-label {
-    width: 90px;
+  .vibe-details {
+    display: flex;
+    gap: 0.75rem;
+    padding-left: 1.5rem;
     color: var(--color-text-muted);
-    flex-shrink: 0;
-  }
-
-  .dim-bar-container {
-    flex: 1;
-    height: 6px;
-    background: var(--color-border);
-    border-radius: 3px;
-    overflow: hidden;
-  }
-
-  .dim-bar {
-    height: 100%;
-    border-radius: 3px;
-    transition: width 0.3s ease;
-  }
-
-  .dim-score {
-    width: 20px;
-    text-align: right;
-    font-weight: 600;
     font-size: 0.8rem;
   }
 
-  .judge-prompt-link {
-    display: block;
-    margin-top: 0.4rem;
-    text-align: right;
+  .vibe-dim strong,
+  .vibe-composite strong {
+    color: var(--color-text);
   }
 
-  @media (max-width: 480px) {
-    .dim-label {
-      width: 70px;
-      font-size: 0.75rem;
-    }
+  .single-score {
+    font-size: 0.9rem;
   }
 </style>

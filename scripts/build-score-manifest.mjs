@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * build-score-manifest.mjs — Build a single JSON manifest from ralph-progress.json
+ * build-score-manifest.mjs - Build a single JSON manifest from ralph-progress.json
  * and any multi-score results for UI consumption at build time.
  *
  * Output: src/data/score-manifest.json
@@ -36,8 +36,39 @@ if (fs.existsSync(PROGRESS_FILE)) {
   }
 }
 
-// Load multi-score results (if any exist)
+// Load individual scorer results + legacy multi-score results
 if (fs.existsSync(MULTI_SCORE_DIR)) {
+  // Codex single-score files (codex-TICKET.json)
+  for (const file of fs
+    .readdirSync(MULTI_SCORE_DIR)
+    .filter((f) => f.startsWith('codex-') && f.endsWith('.json'))) {
+    try {
+      const data = JSON.parse(fs.readFileSync(path.join(MULTI_SCORE_DIR, file), 'utf8'));
+      const ticketId = data.ticketId || file.replace('codex-', '').replace('.json', '');
+      if (!ticketId || data.score == null) continue;
+      if (!manifest[ticketId]) manifest[ticketId] = {};
+      manifest[ticketId].factCheck = data.score;
+    } catch (e) {
+      console.error(`codex ${file}:`, e.message);
+    }
+  }
+
+  // Gemini single-score files (gemini-TICKET.json)
+  for (const file of fs
+    .readdirSync(MULTI_SCORE_DIR)
+    .filter((f) => f.startsWith('gemini-') && f.endsWith('.json'))) {
+    try {
+      const data = JSON.parse(fs.readFileSync(path.join(MULTI_SCORE_DIR, file), 'utf8'));
+      const ticketId = data.ticketId || file.replace('gemini-', '').replace('.json', '');
+      if (!ticketId || data.score == null) continue;
+      if (!manifest[ticketId]) manifest[ticketId] = {};
+      manifest[ticketId].crossRef = data.score;
+    } catch (e) {
+      console.error(`gemini ${file}:`, e.message);
+    }
+  }
+
+  // Legacy multi-score files
   const files = fs
     .readdirSync(MULTI_SCORE_DIR)
     .filter((f) => f.startsWith('multi-score-') && f.endsWith('.json'));
@@ -50,24 +81,14 @@ if (fs.existsSync(MULTI_SCORE_DIR)) {
 
       if (!manifest[ticketId]) manifest[ticketId] = {};
 
-      // Extract fact-check scores
-      if (data.judges?.factCheck?.scores) {
-        const fc = data.judges.factCheck.scores;
-        manifest[ticketId].factCheck = {
-          dataAccuracy: fc.dataAccuracy?.score,
-          attributionAccuracy: fc.attributionAccuracy?.score,
-          logicalCoherence: fc.logicalCoherence?.score,
-        };
+      // Extract fact-check score (single number)
+      if (data.judges?.factCheck?.score != null) {
+        manifest[ticketId].factCheck = data.judges.factCheck.score;
       }
 
-      // Extract cross-ref scores
-      if (data.judges?.crossRef?.scores) {
-        const cr = data.judges.crossRef.scores;
-        manifest[ticketId].crossRef = {
-          sourceFidelity: cr.sourceFidelity?.score,
-          internalCrossRefs: cr.internalCrossRefs?.score,
-          sourceCoverage: cr.sourceCoverage?.score,
-        };
+      // Extract cross-ref score (single number)
+      if (data.judges?.crossRef?.score != null) {
+        manifest[ticketId].crossRef = data.judges.crossRef.score;
       }
     } catch (e) {
       console.error(`Failed to parse ${file}:`, e.message);

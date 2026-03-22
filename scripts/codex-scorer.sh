@@ -48,8 +48,8 @@ if ! jq empty "$OUT_FILE" 2>/dev/null; then
   " > "${OUT_FILE}.clean" 2>/dev/null && mv "${OUT_FILE}.clean" "$OUT_FILE" || true
 fi
 
-# Validate output — fact-checker uses different score keys, validate with jq
-if [ -f "$OUT_FILE" ] && jq -e '.scores.dataAccuracy.score and .scores.attributionAccuracy.score and .scores.logicalCoherence.score' "$OUT_FILE" >/dev/null 2>&1; then
+# Validate output — single score
+if [ -f "$OUT_FILE" ] && jq -e '.score >= 0 and .score <= 10' "$OUT_FILE" >/dev/null 2>&1; then
   cat "$OUT_FILE"
   exit 0
 else
