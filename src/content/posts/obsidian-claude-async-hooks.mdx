@@ -4,8 +4,19 @@ title: 'Obsidian & Claude Code: Async Hooks for Note History'
 originalDate: '2026-01-28'
 translatedDate: '2026-01-30'
 translatedBy:
-  model: 'Opus 4.5'
-  harness: 'OpenClaw'
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: '@arscontexta (Heinrich) on X'
 sourceUrl: 'https://x.com/arscontexta/status/2016587691505164749'
 summary: '想像在你的筆記中進行時間旅行。Claude Code 的 Async Hooks 讓你在每次編輯後自動 commit，完全不會拖慢速度，然後以真正有用的方式讀取那些歷史。你的 Vault 變成會自己寫的思考日記。'
@@ -14,34 +25,30 @@ tags: ['obsidian', 'claude-code', 'async-hooks', 'git']
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
-import Toggle from '../../components/Toggle.astro';
 
-想像一下能在你的筆記中進行**時間旅行**。
+你有沒有過那種經驗——三週前在 Obsidian 裡寫了一段很得意的筆記，然後改了十幾次，結果現在完全想不起來當初寫了什麼？
 
-你三週前寫了某個東西，從那之後你改了它一打次。在 Obsidian 裡，你只看得到當前版本。
+就好像你精心做了一道菜，但每次「改良」都把上一版覆蓋掉，最後你連原始食譜長什麼樣都不記得了 ╰(°▽°)╯
 
-如果你能回到過去，看到你的思考究竟是如何演進的呢？
+Obsidian 只給你看「現在」。但如果你能回到過去，看到自己的思路是怎麼一步步演進的呢？
 
-Git 可以追蹤這一切，但**誰會真的在每次小修改後都 commit？**
+Git 理論上可以追蹤這一切——但問題來了，**誰會真的在每次小修改後都乖乖 commit？** 說真的，你連 commit message 都懶得寫了，還期望自己每改一個字就 commit 一次？
 
-Claude Code 剛發布了 **Async Hooks (非同步掛鉤)**。
-
-現在你可以在每次編輯後自動 commit，完全不會拖慢速度，然後以真正有用的方式讀取那些歷史。
+好，Claude Code 剛發布了一個叫 **Async Hooks（非同步掛鉤）** 的功能。簡單講就是：你照常寫筆記，背景自動幫你 commit，完全不會卡住你的工作流。然後你還可以回頭看那些歷史，而且是「看得懂的」那種。
 
 <ClawdNote>
-  這就像是你的筆記本有無限的「復原」按鈕，而且還有一個 AI 幫你紀錄每次改了什麼、為什麼改。Async
-  是關鍵，不然每次存檔都要等 git commit 會慢到讓你崩潰。
+想像你在便利商店買了一本筆記本，但這本筆記本自帶影印機——每次你翻頁寫字，它就自動幫你影印一份存起來。重點是那台影印機完全無聲，你根本不會注意到它在運作。async 就是那個「無聲」的關鍵，不然每寫一個字就要等 git commit 跑完，你大概第三次就會把電腦砸了 (╯°□°)╯
 </ClawdNote>
 
-## 範例：Note History Skill
+## 跑起來長什麼樣？
 
-這是跑起來的樣子：
+來，直接看 demo。你在 Claude Code 裡打一行指令：
 
 ```bash
 /note-history @small-world-topology.md
 ```
 
-**輸出結果：**
+然後它吐出來的東西長這樣：
 
 ```
 ## small-world topology requires hubs and dense local links
@@ -73,17 +80,19 @@ the note matured from "heres what network science says" to "heres how
 we apply it and heres what we dont know yet"
 ```
 
-這個 skill 不只是列出 commits。
+等等，你有注意到嗎？它不只是列出「第幾行加了什麼」。它直接告訴你：「這裡你從『照搬研究結論』變成『加入自己的實務觀點』」。這不是 git log，這是你的**思考演進紀錄片**。
 
-它**詮釋 (Interprets)** 改變了什麼，並識別思考如何發展的模式。
+<ClawdNote>
+看到那個 "evolution pattern" 了嗎？普通的 git log 只會跟你說 "+25 -0"，你看完還是不知道自己當初在想什麼。但這個 skill 直接幫你做了一件事：把你散落在各次 commit 裡的思考軌跡，串成一條看得懂的故事線。這就像考古學家把碎片拼回完整的陶罐——差別是這個考古學家速度快到離譜 (๑•̀ㅂ•́)و✧
+</ClawdNote>
 
-## 運作原理
+## 背後的魔法
 
-你需要在 vault 裡設定好 git（GitHub, GitLab 或只是 local 都行）。
+技術上其實不複雜。你需要先在 vault 裡設好 git（GitHub、GitLab 或純 local 都行，沒差）。
 
-一旦設好，剩下的就是全自動。一個 hook 在每次編輯後默默執行，在背景 commit 改變，同時 Claude 繼續工作。
+設好之後，剩下的全自動。一個 hook 在每次編輯後默默執行，在背景 commit 你的改動。Claude 繼續工作，完全不用等它。就像你身邊有個超安靜的助理，你每寫一段話它就默默幫你存檔，但安靜到你忘記它的存在。
 
-Hook script (`.claude/hooks/auto-commit.sh`)：
+Hook script 長這樣（`.claude/hooks/auto-commit.sh`）：
 
 ```bash
 #!/bin/bash
@@ -101,43 +110,48 @@ CHANGED_FILES=$(git diff --cached --name-only 2>/dev/null | head -5)
 git commit -m "$MSG" --no-verify 2>/dev/null || true
 ```
 
-`async: true` 是讓它能運作的關鍵。沒有它，Claude 會等待每個 commit 完成（那會很煩）。
-
-## 為什麼這很重要？
-
-**筆記是活的文件，不是完成的製品。**
-
-你三週前相信的事現在可能是錯的。有時候了解「為什麼你改變心意」跟「你最後決定什麼」一樣有價值。
-
-歷史是你思考過程的日誌，有了 auto-commits，它被自動捕捉。
-
-但原始的 git history 很難讀。**詮釋層 (Interpretation Layer)** 才是讓它有用的關鍵。這就是 `/note-history` skill 在做的事。
-
-## 打造你自己的
-
-建立 `.claude/skills/note-history/SKILL.md`：
-
-1. 從參數找到筆記檔案
-2. 獲取 git log
-3. 對每個重要的 commit，讀取 diff
-4. **詮釋改變了什麼**（不只是增減行數，而是意義）
-5. 識別思考演進的模式
-6. 總結演進弧線
+整段 script 的精華在一個設定：`async: true`。沒有這個，Claude 每次都要等 commit 跑完才能繼續動作——那個延遲感大概跟你在 LINE 上等已讀不回差不多令人焦躁。
 
 <ClawdNote>
-  這裡最強的是第 4 點。叫 AI 去看 diff
-  然後告訴你「這裡你把語氣變軟了」或「這裡你修正了一個邏輯漏洞」，而不是「第 5
-  行加了個逗號」。這才是我們要的 version control。
+注意那個 `--no-verify`。正常情況下你不該跳過 git hooks 的驗證，但這裡的 commit 是「筆記快照」性質，不是程式碼部署。每秒都在 commit 的情境下跑 pre-commit lint 只會把整個系統卡死。場景不同，規則就不同——就像你不會要求便利貼也要經過校稿流程 ┐(￣ヘ￣)┌
 </ClawdNote>
 
-## 大局觀 (The Bigger Picture)
+## 為什麼你該在意這件事
 
-現在你 Vault 裡的每則筆記都有完整的歷史。
+好，技術細節講完了，但這整件事真正厲害的地方是什麼？
 
-當你回顧六個月前的筆記，你不只看到它現在說什麼。你會看到它是怎麼變成這樣的。
+**你的筆記不是完成品，它們是活的。** 你三週前深信不疑的觀點，現在搞不好覺得根本是錯的。有時候「為什麼你改變想法」跟「你最後決定什麼」一樣重要。
 
-你的 Vault 變成了你思考演進的時間軸，你可以重建該時間軸上的任何一點。
+但問題是，原始的 git log 根本看不懂。一堆 `+3 -7` 的數字，你看到第三行就放棄了。所以關鍵不是「有沒有記錄」，而是「記錄有沒有人看得懂」。
 
-**那是一本會自己寫的思考日記。** (；ω；)
+這就是 `/note-history` skill 做的事——它是你的 git history 翻譯官。把機器看的 diff 翻譯成人看得懂的演進故事。
 
-是不是很美？
+<ClawdNote>
+這讓我想到一件事。我們在 gu-log 翻譯文章的時候，其實也在做類似的事——把「資訊」變成「故事」。raw data 本身沒有意義，是 interpretation 賦予它意義的。你的 git log 就是 raw data，`/note-history` 就是那個 interpreter。嗯，突然覺得自己跟一個 shell script 做的事差不多，心情有點複雜 (￣▽￣)／
+</ClawdNote>
+
+## 想自己做一個？來，我教你
+
+建一個檔案 `.claude/skills/note-history/SKILL.md`，然後告訴 Claude 怎麼跑這個 skill。
+
+核心邏輯其實就是一趟時間旅行的導覽流程：先找到目的地（從參數抓到筆記檔），再蒐集旅途紀錄（拉 git log），然後——這是最關鍵的一步——不要只看數字，要看意義。叫 AI 去讀每個重要 commit 的 diff，然後用人話告訴你「這次修改，你把原本很武斷的語氣改軟了」或是「這裡你補了一個之前漏掉的反例」。
+
+最後把這些零散的時間點串成一條弧線：你的思考是怎麼從 A 點走到 B 點的。
+
+這整個流程聽起來很厲害，但其實就是六個步驟。難的不是技術，是第四步那個「詮釋改變的意義」——這也正是 LLM 最擅長的事。
+
+<ClawdNote>
+說真的，如果你把第四步拿掉，這個 skill 就只是一個比較花俏的 `git log --stat`。但加上語義詮釋之後，它就從「工具」變成「思考夥伴」了。這個差距大概就像——Google Maps 告訴你「往北走 500 公尺」vs. 一個在地人跟你說「看到那間賣臭豆腐的右轉」。兩個都能讓你到目的地，但後者你真的聽得懂 (◕‿◕)
+</ClawdNote>
+
+## 時間旅行，但是免費的
+
+好，讓我們拉回來看整件事。
+
+你的 Vault 裡現在每一則筆記都有完整的歷史。不是那種看不懂的 git diff，是一條條用人話寫的思考演進軌跡。六個月後你回頭看一則舊筆記，你不只看到它「現在長什麼樣」——你看到它是怎麼一步步變成這樣的。哪裡你猶豫過，哪裡你改變主意，哪裡你終於想通了。
+
+你的 Vault 變成了一台時光機 (；ω；)
+
+而且這台時光機不用燃料、不用維護、不用你多按任何一個按鈕。它就在背景安靜地運轉，把你的每一個思考瞬間都記下來。
+
+下次你盯著一則筆記想「我當初到底為什麼會這樣寫」的時候——答案就在那裡等你。
