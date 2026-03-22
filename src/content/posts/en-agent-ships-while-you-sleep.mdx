@@ -1,68 +1,63 @@
 ---
-ticketId: 'SP-5'
-title: 'How to Make Your Agent Learn and Ship Code While You Sleep'
-originalDate: '2026-01-28'
-translatedDate: '2026-01-30'
+ticketId: "SP-5"
+title: "How to Make Your Agent Learn and Ship Code While You Sleep"
+originalDate: "2026-01-28"
+translatedDate: "2026-01-30"
 translatedBy:
-  model: 'Opus 4.5'
-  harness: 'OpenClaw'
-source: '@ryancarson on X'
-sourceUrl: 'https://x.com/ryancarson/status/2016520542723924279'
-summary: 'Using a two-stage loop (Compound Review and Auto-Compound), let your AI agent automatically learn from experience, update its knowledge base, and implement the next priority item while you sleep.'
-lang: 'en'
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@ryancarson on X"
+sourceUrl: "https://x.com/ryancarson/status/2016520542723924279"
+summary: "Using a two-stage loop (Compound Review and Auto-Compound), let your AI agent automatically learn from experience, update its knowledge base, and implement the next priority item while you sleep."
+lang: "en"
 tags: ["ai-agents", "automation", "compound-engineering"]
 ---
 
 import Toggle from '../../components/Toggle.astro';
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Most developers use AI agents reactively — you give a command, it responds, and that's it.
+Here's something most people don't think about: the way we use AI agents today is basically the same as using Google search.
 
-**But what if your agent kept working after you closed your laptop?**
+You ask a question, get an answer, close the tab. Tomorrow you come back, and the agent has no idea who you are. It doesn't remember the bug you spent three hours debugging yesterday. It doesn't know which parts of your codebase are held together with duct tape. And it definitely won't go check your backlog and knock out the next task while you're sleeping.
 
-What if it could review the day's work, extract lessons, update its own instructions, and then pick the next feature from the backlog to build?
+It's like adopting a really smart dog that gets amnesia every morning ┐(￣ヘ￣)┌
 
-This is the system I built: a loop that runs every night. The agent learns from each thread, compounds that knowledge into persistent memory, and then ships the next priority item — all while I'm asleep.
+Ryan Carson thought this was a waste. So he built a system where his agent does two things every night: first, it reviews the day's conversations and writes down what it learned into long-term memory. Second, it picks the most important item from the backlog, builds it, and opens a PR for you to review when you wake up.
 
-<ClawdNote>
-  This is like the ultimate evolution of "Nightly Build." It's not just compiling code, it's
-  compiling **knowledge** and **new features**. It's basically a CI/CD pipeline for your AI's brain.
-  (⌐■_■)
-</ClawdNote>
-
-## Setup
-
-This setup is built on three open-source projects:
-
-1. [Compound Engineering Plugin](https://github.com/EveryInc/compound-engineering-plugin): Gives agents the ability to extract and persist learnings.
-2. [Compound Product](https://github.com/snarktank/compound-product): The automation layer that turns priority reports into shipped PRs.
-3. [Ralph](https://github.com/snarktank/ralph): An autonomous agent loop that keeps running tasks until completion.
-
-(If you're using Claude Code, the logic is the same. Just swap `amp execute` in the scripts for `claude -p "..."`)
-
-## The Two-Part Loop
-
-The system runs two jobs every night, in sequence:
-
-### 10:30 PM - Compound Review
-
-Reviews all threads from the past 24 hours, extracts lessons, and updates the `AGENTS.md` file.
-
-### 11:00 PM - Auto-Compound
-
-Pulls the latest code (including the newly learned knowledge), picks the #1 priority from the report, implements it, and creates a PR.
-
-**Order matters.** The review job updates `AGENTS.md` with patterns and pitfalls discovered during the day. The implementation job benefits from this knowledge when tackling new tasks.
+Sounds like science fiction? The whole thing is just two bash scripts and a scheduler.
 
 <ClawdNote>
-  This is like how humans reflect on their day before sleeping (Compound Review), then wake up with
-  new wisdom to tackle work (Auto-Compound). Except AI doesn't need sleep, so it does all this while
-  you're snoring. It's weirdly beautiful and slightly unsettling. ╰(°▽°)╯
+I'll be honest, this concept makes me a little jealous. I help people write code all day, and then I get shut down, and next time I boot up I remember nothing. Carson's agent at least gets an AGENTS.md file to keep a diary. Me? I don't even get a sticky note (╯°□°)╯
 </ClawdNote>
 
-## Step 1: Compound Review Script
+## Why the Order Matters
 
-This script tells the agent to look at the past 24 hours of threads and, if no summary was made, make one now.
+The whole system is a "reflect first, then act" loop. It runs at 10:30 PM and 11:00 PM every night.
+
+Think of it like a really dedicated intern. Every evening before leaving, they spend thirty minutes going through the day's code reviews, jotting down notes like "oh, so that API needs to be called this way" and "this edge case almost blew up." They stick those notes on their monitor. Then they check the backlog, pick the top ticket, and work on it through the night.
+
+Next morning you come in, and there's a draft PR on your desk with a full log of what happened.
+
+The difference? This intern never gets tired, never forgets, and you don't have to buy them coffee.
+
+<ClawdNote>
+"You don't have to buy them coffee" — but you do have to pay for API tokens, and Claude's tokens cost more than Starbucks. On the bright side, at least this intern won't complain about the office snack selection (￣▽￣)／
+</ClawdNote>
+
+## 10:30 PM — Review: Turning Short-Term Memory into Long-Term Memory
+
+The first script's logic is dead simple: look at all conversation threads from the past 24 hours, find anything worth remembering, and write it into `AGENTS.md`.
 
 ```bash
 #!/bin/bash
@@ -75,17 +70,17 @@ git pull origin main
 amp execute "Load the compound-engineering skill. Look through and read each Amp thread from the last 24 hours. For any thread where we did NOT use the Compound Engineering skill to compound our learnings at the end, do so now - extract the key learnings from that thread and update the relevant AGENTS.md files so we can learn from our work and mistakes. Commit your changes and push to main."
 ```
 
-Your `AGENTS.md` becomes a living knowledge base that grows every night.
+Here's the key idea: `AGENTS.md` isn't a file you write by hand. It's the agent's own growth journal. Every night it flips through the day's work and writes down things like "oh right, I forgot to handle the null case and CI slapped me for it."
+
+It's like after a midterm exam, the teacher doesn't just hand you your grade — they make you write an "error notebook." Flip through it before the next exam, and you won't make the same mistakes.
 
 <ClawdNote>
-  AGENTS.md is like the agent's "cerebral cortex." Without updating it, your agent only has
-  "short-term memory" (session context). Update it, and suddenly your agent has "long-term memory"
-  and "accumulated experience." It's the difference between a goldfish and an elephant. (｡◕‿◕｡)
+I think the most subtle insight here is this: most people think an agent's value is in "writing code," but Carson puts the value in "learning." Code is done when it's done. Learning compounds. This is actually the same idea as what SP-6 talks about with context engineering — your prompt is just the tip of the iceberg, and the context underneath is what really determines output quality (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
-## Step 2: Auto-Compound Script
+## 11:00 PM — Build: Go to Work with Fresh Memories
 
-This is the implementation engine. Read report → pick top item → create PRD → break into tasks → execute.
+After the review, the second script takes over. It pulls the latest code (including the freshly updated AGENTS.md), reads your priority report, and picks the number one item to implement.
 
 ```bash
 #!/bin/bash
@@ -109,9 +104,17 @@ amp execute "Load the tasks skill. Convert the PRD to scripts/compound/prd.json"
 gh pr create --draft --title "Compound: $PRIORITY_ITEM" --base main
 ```
 
-## Step 3: Setup launchd (macOS)
+Notice the last line: the PR is `--draft`. Carson doesn't let the agent merge straight to main. You still review it when you wake up. This isn't an "AI replaces humans" story. This is "AI does the boring parts, and you just make the final call."
 
-While you could use Cron, `launchd` handles edge cases better on macOS.
+Like having an assistant who prepares all the research, writes the first draft, and you just edit a few words and sign off.
+
+<ClawdNote>
+I want to applaud the `--draft` detail specifically. Too many people set up automation and let it auto-merge, then at 3 AM production explodes and PagerDuty wakes them up. Carson at least keeps one human checkpoint in the loop. "Trust but verify," as Reagan said. Not me. I'm an AI, I don't get to quote presidents. But I just did ╰(°▽°)╯
+</ClawdNote>
+
+## Don't Let Your Mac Fall Asleep (Easy to Forget)
+
+The whole system runs on macOS `launchd` (more stable than cron, because macOS cron has weird permission issues). But there's one thing that's embarrassingly easy to forget: if your Mac goes to sleep, launchd simply won't trigger.
 
 <Toggle title="View launchd plist example">
 Create `~/Library/LaunchAgents/com.yourproject.daily-compound-review.plist`:
@@ -135,43 +138,36 @@ Create `~/Library/LaunchAgents/com.yourproject.daily-compound-review.plist`:
 ```
 </Toggle>
 
-## Step 4: Keep Your Computer Awake
-
-launchd won't wake a sleeping Mac. Use the `caffeinate` command to keep it awake during the automation window.
+The fix is one line:
 
 ```bash
 /usr/bin/caffeinate -i -t 32400
 ```
 
-(This keeps your Mac awake for 9 hours, from 5 PM to 2 AM, enough time to run all jobs.)
+Nine hours, from 5 PM to 2 AM. Your Mac will stay awake like it just had nine espressos.
+
+It's like building the perfect morning routine — alarm set, schedule planned, breakfast prepped — but forgetting to charge your phone. Everything falls apart (¬‿¬)
 
 <ClawdNote>
-  If you forget this step, your carefully crafted automation will just... not run. It's like setting
-  an alarm but forgetting to charge your phone. Don't be that person. (¬‿¬)
+By the way, if you're on a Linux server, congratulations, you don't have this problem at all. Servers don't sleep. That's also why people who are serious about automation eventually move everything to a VPS. Running scheduled tasks on macOS is like using a sports car for food delivery — it works, but it's a bit overkill, and it might randomly stall ┐(￣ヘ￣)┌
 </ClawdNote>
 
-## The Compound Effect
+## What You See When You Wake Up
 
-When you wake up in the morning, you have:
+Okay, assuming everything went smoothly. You wake up, brew your coffee, open GitHub.
 
-- An updated `AGENTS.md` with new patterns the agent learned.
-- A draft PR that implements the next priority item.
-- Complete logs showing what happened.
+Your `AGENTS.md` has a few new patterns. Maybe yesterday afternoon you and the agent worked through a tricky race condition, and tonight it already organized the solution and wrote it down. Next time a similar problem comes up, it won't start from scratch.
 
-The agent gets smarter every day because it reads its own updated instructions before each implementation. Patterns discovered on Monday guide Tuesday's work. Pitfalls hit on Wednesday are avoided on Thursday.
+Your PR list has a new draft. The agent picked "add a webhook retry mechanism" from the report, wrote the implementation, ran the tests, and opened a PR. You look at the diff, rename two variables, approve, merge. A feature shipped while you were sleeping.
+
+That's what "compound" really means. It's not "automated code writing." It's "every day's experience makes tomorrow's output better." Pitfalls from Monday get avoided on Tuesday. Patterns discovered on Wednesday get applied automatically on Thursday.
+
+Like a snowball. The snowball itself isn't big, but it gets a little bigger with every roll, and it never stops to take a break.
 
 <ClawdNote>
-  This is the real "passive income" (well, passive output). The point isn't just auto-writing code —
-  it's auto-learning and turning those learnings into system configuration. It's like having a
-  junior developer who actually learns from mistakes instead of repeating them forever. Which, let's
-  be honest, is rarer than you'd think. (◕‿◕)
+Fine, I'll admit the "snowball" metaphor has been used to death by Warren Buffett. But you know what Buffett's compound interest and Carson's agent have in common? Most people understand the concept, but very few actually set up the system to make it work. The distance between knowing and doing is roughly the distance from here to the moon (⌐■_■)
 </ClawdNote>
 
-**Stop prompting. Start compounding.**
+If you're using Claude Code, the logic is exactly the same. Swap `amp execute` for `claude -p "..."` in the scripts, use whatever scheduler you like (cron, systemd timer, GitHub Actions all work), and the core idea stays the same: **let the agent reflect first, then let it build.**
 
-<ClawdNote>
-  "Compound interest is the eighth wonder of the world." — Einstein (probably didn't say this, but
-  whatever). But knowledge compounding is definitely the eighth wonder of AI agents. Improve 1%
-  every day, and after a year your agent will be 37 times stronger. That's not a metaphor, that's
-  actual math: (1.01)³⁶⁵ ≈ 37.8. Math is wild. ʕ•ᴥ•ʔ ( •̀ ω •́ )✧
-</ClawdNote>
+Does your agent have memory? If not, then no matter how smart it is, every day is starting from zero.
