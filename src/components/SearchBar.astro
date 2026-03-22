@@ -42,7 +42,16 @@ const t = i18n[lang];
 </button>
 
 <!-- Modal rendered at body level via portal -->
-<div class="search-modal-overlay" data-search-modal data-lang={lang} aria-hidden="true">
+<div
+  class="search-modal-overlay"
+  data-search-modal
+  data-lang={lang}
+  data-no-results={t.noResults}
+  data-max-results={String(searchConfig.maxResults)}
+  data-debounce-ms={String(searchConfig.debounceMs)}
+  data-enable-ticket-search={searchConfig.enableTicketSearch ? 'true' : 'false'}
+  aria-hidden="true"
+>
   <div class="search-modal">
     <div class="search-modal-header">
       <svg
@@ -76,31 +85,54 @@ const t = i18n[lang];
   </div>
 </div>
 
-<script
-  define:vars={{
-    noResultsText: t.noResults,
-    currentLang: lang,
-    maxResults: searchConfig.maxResults,
-    debounceMs: searchConfig.debounceMs,
-    enableTicketSearch: searchConfig.enableTicketSearch,
-  }}
->
+<script>
+  import Fuse from 'fuse.js';
+  import { searchConfig } from '../config/search';
+
+  const { maxResults, debounceMs, enableTicketSearch } = searchConfig;
+
   // Search state
-  let searchIndex = null;
-  let debounceTimer = null;
+  let rawIndex: Record<string, unknown>[] | null = null;
+  let fuse: Fuse<Record<string, unknown>> | null = null;
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null;
   let selectedIndex = -1;
 
   const trigger = document.querySelector('[data-search-trigger]');
-  const modal = document.querySelector('[data-search-modal]');
-  const input = modal?.querySelector('[data-search-input]');
-  const results = modal?.querySelector('[data-search-results]');
+  const modal = document.querySelector<HTMLElement>('[data-search-modal]');
+  const input = modal?.querySelector<HTMLInputElement>('[data-search-input]');
+  const results = modal?.querySelector<HTMLElement>('[data-search-results]');
 
-  // Fetch search index on first open
+  const currentLang = modal?.dataset.lang ?? 'zh-tw';
+  const noResultsText = modal?.dataset.noResults ?? 'No results';
+
+  // Fetch search index on first open, build Fuse instance
   async function loadSearchIndex() {
-    if (searchIndex) return;
+    if (rawIndex) return;
     try {
       const res = await fetch('/search-index.json');
-      searchIndex = await res.json();
+      rawIndex = await res.json();
+
+      // Build Fuse over language-filtered posts only
+      const langPosts = (rawIndex ?? []).filter((p) => p['lang'] === currentLang);
+      fuse = new Fuse(langPosts, {
+        keys: [
+          { name: 'title', weight: 0.4 },
+          { name: 'ticketId', weight: 0.3 },
+          { name: 'summary', weight: 0.15 },
+          { name: 'tags', weight: 0.1 },
+          { name: 'body', weight: 0.05 },
+        ],
+        threshold: 0.4,
+        ignoreLocation: true,
+        includeScore: true,
+        useExtendedSearch: true,
+      });
+
+      // If the user already typed a query while the index was loading, re-run search
+      const pendingQuery = input?.value;
+      if (pendingQuery?.trim()) {
+        performSearch(pendingQuery);
+      }
     } catch (e) {
       console.error('Failed to load search index:', e);
     }
@@ -134,46 +166,75 @@ const t = i18n[lang];
   }
 
   // Search and display results
-  function performSearch(query) {
-    if (!searchIndex || !results) return;
+  function performSearch(query: string) {
+    if (!rawIndex || !results) return;
 
-    const trimmed = query.trim().toLowerCase();
+    const trimmed = query.trim();
     if (!trimmed) {
       results.innerHTML = '';
       selectedIndex = -1;
       return;
     }
 
-    // Filter by current language and search query
-    const filtered = searchIndex
-      .filter((post) => post.lang === currentLang)
-      .filter((post) => {
-        // Check ticket ID first (exact match, case insensitive)
-        if (enableTicketSearch && post.ticketId) {
-          if (post.ticketId.toLowerCase() === trimmed) {
-            return true;
-          }
-          // Also match partial ticket ID (e.g., "SD" matches "SD-1")
-          if (post.ticketId.toLowerCase().startsWith(trimmed)) {
-            return true;
-          }
-        }
+    const lower = trimmed.toLowerCase();
+    const langPosts = rawIndex.filter((p) => p['lang'] === currentLang);
 
-        // Then check title, summary, source, tags
-        const searchable = [
-          post.ticketId || '',
-          post.title,
-          post.summary,
-          post.source,
-          ...(post.tags || []),
+    const matched: Record<string, unknown>[] = [];
+    const seenSlugs = new Set<string>();
+
+    const addPost = (post: Record<string, unknown>) => {
+      const slug = post['slug'] as string;
+      if (!seenSlugs.has(slug)) {
+        matched.push(post);
+        seenSlugs.add(slug);
+      }
+    };
+
+    // Pass 1: ticket ID exact/prefix matching (priority — preserves existing behaviour)
+    if (enableTicketSearch) {
+      for (const post of langPosts) {
+        const tid = post['ticketId'];
+        if (typeof tid !== 'string') continue;
+        const tidLower = tid.toLowerCase();
+        if (tidLower === lower || tidLower.startsWith(lower)) addPost(post);
+      }
+    }
+
+    // Collect more candidates than maxResults so dedup doesn't starve the final slice
+    const candidateLimit = maxResults * 4;
+
+    // Pass 2: Fuse.js exact-match search (`'query` prefix)
+    // Uses extended search "include-match" to find any post where the literal word
+    // appears in any indexed field (title, summary, body…). Results are ranked by
+    // composite weighted score so the most relevant come first.
+    if (fuse) {
+      fuse.search(`'${trimmed}`, { limit: candidateLimit }).forEach((hit) => addPost(hit.item));
+    } else {
+      // Fallback when Fuse index is not yet built (index still loading):
+      // plain substring search across all indexed fields including body.
+      for (const post of langPosts) {
+        const haystack = [
+          post['ticketId'] || '',
+          post['title'],
+          post['summary'],
+          ...((post['tags'] as string[]) || []),
+          post['body'] || '',
         ]
           .join(' ')
           .toLowerCase();
-        return searchable.includes(trimmed);
-      })
-      .slice(0, maxResults);
+        if (haystack.includes(lower)) addPost(post);
+      }
+    }
 
-    if (filtered.length === 0) {
+    // Pass 3: Fuse.js fuzzy search — typo-tolerant matching on title/ticketId/summary.
+    // Supplements exact matches with results for slightly misspelled queries.
+    if (fuse) {
+      fuse.search(trimmed, { limit: candidateLimit }).forEach((hit) => addPost(hit.item));
+    }
+
+    const limited = matched.slice(0, maxResults);
+
+    if (limited.length === 0) {
       results.innerHTML = `<div class="search-no-results">${noResultsText}</div>`;
       selectedIndex = -1;
       return;
@@ -181,14 +242,15 @@ const t = i18n[lang];
 
     // Render results with proper formatting
     const baseUrl = currentLang === 'en' ? '/en/posts/' : '/posts/';
-    results.innerHTML = filtered
+    results.innerHTML = limited
       .map((post, index) => {
         // Remove 'en-' prefix from slug for en posts
+        const slug = post['slug'] as string;
         const displaySlug =
-          post.lang === 'en' && post.slug.startsWith('en-') ? post.slug.slice(3) : post.slug;
+          post['lang'] === 'en' && slug.startsWith('en-') ? slug.slice(3) : slug;
 
-        const ticketBadge = post.ticketId
-          ? `<span class="search-result-ticket">${escapeHtml(post.ticketId)}</span>`
+        const ticketBadge = post['ticketId']
+          ? `<span class="search-result-ticket">${escapeHtml(post['ticketId'] as string)}</span>`
           : '';
 
         return `
@@ -198,10 +260,10 @@ const t = i18n[lang];
            data-index="${index}">
           <div class="search-result-header">
             ${ticketBadge}
-            <span class="search-result-date">${post.date}</span>
+            <span class="search-result-date">${escapeHtml(String(post['date']))}</span>
           </div>
-          <div class="search-result-title">${escapeHtml(post.title)}</div>
-          <div class="search-result-source">${escapeHtml(post.source)}</div>
+          <div class="search-result-title">${escapeHtml(post['title'] as string)}</div>
+          <div class="search-result-source">${escapeHtml(post['source'] as string)}</div>
         </a>
       `;
       })
@@ -211,7 +273,7 @@ const t = i18n[lang];
   }
 
   // Escape HTML to prevent XSS
-  function escapeHtml(text) {
+  function escapeHtml(text: string) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
@@ -229,7 +291,7 @@ const t = i18n[lang];
   function navigateToSelected() {
     const items = results?.querySelectorAll('.search-result-item');
     if (items && selectedIndex >= 0 && selectedIndex < items.length) {
-      const href = items[selectedIndex].getAttribute('href');
+      const href = (items[selectedIndex] as HTMLAnchorElement).getAttribute('href');
       if (href) window.location.href = href;
     }
   }
@@ -248,9 +310,9 @@ const t = i18n[lang];
   });
 
   input?.addEventListener('input', (e) => {
-    clearTimeout(debounceTimer);
+    if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
-      performSearch(e.target.value);
+      performSearch((e.target as HTMLInputElement).value);
     }, debounceMs);
   });
 
@@ -262,7 +324,7 @@ const t = i18n[lang];
       case 'Escape':
         e.preventDefault();
         closeSearch();
-        trigger?.focus();
+        (trigger as HTMLElement)?.focus();
         break;
       case 'ArrowDown':
         e.preventDefault();
