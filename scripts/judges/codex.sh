@@ -71,11 +71,18 @@ judge_score_post() {
     sed -n '1,500p' "$post_path"
   } > "$input_file"
 
-  if ! timeout 600 codex exec --full-auto --color never - < "$input_file" > "$raw_file" 2>&1; then
-    cat "$raw_file"
-    rm -f "$input_file" "$raw_file" "$normalized_file"
-    return 1
+  local stderr_file
+  stderr_file="$(mktemp)"
+  if ! timeout 600 codex exec --full-auto --color never - < "$input_file" > "$raw_file" 2>"$stderr_file"; then
+    # Codex may exit non-zero but still produce valid output; check before bailing
+    if [ ! -s "$raw_file" ]; then
+      cat "$stderr_file" >&2
+      cat "$raw_file"
+      rm -f "$input_file" "$raw_file" "$normalized_file" "$stderr_file"
+      return 1
+    fi
   fi
+  rm -f "$stderr_file"
 
   cp "$raw_file" "$normalized_file"
   normalize_json_file "$normalized_file" || {
@@ -85,7 +92,8 @@ judge_score_post() {
   }
 
   score="$(jq -r '.score // empty' "$normalized_file")"
-  reasoning="$(jq -r '.reasoning // .details.reasoning // empty' "$normalized_file")"
+  reasoning="$(jq -r '.reasoning // .note // .details.reasoning // empty' "$normalized_file")"
+  [ -n "$reasoning" ] || reasoning="Codex returned score without reasoning"
 
   jq -cn \
     --argjson score "$score" \
