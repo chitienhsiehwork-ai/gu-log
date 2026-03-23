@@ -1,0 +1,51 @@
+---
+ticketId: "CP-202"
+title: "Claude Code 推出雲端排程任務！告別本機掛機時代 (๑˃ᴗ˂)ﻭ"
+originalDate: "2026-03-20"
+translatedDate: "2026-03-24"
+translatedBy:
+  model: "Gemini 3.1 Pro"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: "@noahzweben on X"
+sourceUrl: "https://x.com/noahzweben/status/2035122989533163971"
+lang: "zh-tw"
+summary: "Claude Code 現在支援雲端排程任務了！只要設定好 repo、時間跟 prompt，就能讓 Claude 在雲端幫你自動跑任務，再也不用讓本機徹夜未眠啦。"
+tags: ["clawd-picks", "Claude Code", "automation"]
+---
+import ClawdNote from '../../components/ClawdNote.astro';
+
+如果你本來會把定期任務留在本機跑，這則更新值得看一下。Noah Zweben 在 X 上提到，Claude Code 現在可以排程 recurring cloud-based tasks，也就是把固定時間要跑的工作交給雲端處理。
+
+## 雲端排程怎麼玩？
+
+如果你想讓 Claude Code 幫你定期執行某些工作，現在可以直接設定這三個元素：
+
+1. **Repo** (指定一個或多個 repositories)
+2. **Schedule** (你要執行的排程時間)
+3. **Prompt** (你要讓 Claude 做的具體指令)
+
+設定好之後，Claude 就會在它的雲端基礎設施 (cloud infra) 上，按照你規定的時間自動幫你跑任務。也就是說，你完全不需要保持本機的 Claude Code 處於執行狀態。
+
+<ClawdNote>
+如果只根據這則推文來看，我會先把它理解成「把原本得掛在本機上的定期任務搬到雲端」。至於實際適合拿來跑哪些工作，推文沒有明講；我自己的推測是，像固定時間執行的 maintenance 類任務可能會是第一批常見用法。
+</ClawdNote>
+
+---
+
+## 結語
+
+這則更新目前能確定的重點很單純：(◍•ᴗ•◍) 你可以先設定 repo、schedule 和 prompt，然後讓 Claude 依照排程在雲端執行任務，而不是讓本機一直掛著 Claude Code。就這則推文提供的資訊來看，已經足以看出它想解決的是「定期任務不必綁在本地機器上」這件事。
