@@ -1,0 +1,234 @@
+---
+ticketId: "SP-124"
+title: "Anatomy of the .claude/ Folder — Where Your AI Assistant's Brain Lives"
+originalDate: "2026-03-22"
+translatedDate: "2026-03-23"
+translatedBy:
+  model: "Sonnet 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Translator"
+      model: "Sonnet 4.6"
+      harness: "Claude Code"
+source: "@akshay_pachaar on X"
+sourceUrl: "https://x.com/akshay_pachaar/status/2035341800739877091"
+lang: "en"
+summary: "Why does Claude perform great in one repo and turn dumb in the next? The answer is the .claude/ folder. Akshay breaks down the full structure: three-level CLAUDE.md, custom commands, agents, permissions, and the global ~/.claude/ you probably didn't know existed."
+tags: ["claude-code", "developer-tools", "workflow", "ai-agents"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Ever had this happen: you open a fresh terminal, bring Claude into an unfamiliar repo, and it immediately starts saying confidently wrong things — asking what a function does, ignoring your coding style, clueless about your deploy flow.
+
+You think: yesterday it knew everything in the other repo. What happened?
+
+The answer lives in a folder you might have walked past: `.claude/`.
+
+This post is @akshay_pachaar's complete breakdown of the .claude/ folder. By the end, you'll understand how Claude's "memory" works, how to write it a proper handbook, and how to train it custom skills.
+
+## First: There Are Two .claude/ Folders, Not One
+
+A lot of people assume there's only one. There are actually two layers:
+
+**Project-level**: lives at the root of your repo, `.claude/`. Settings here apply only to this project.
+
+**Global**: lives in your home directory, `~/.claude/`. Settings here apply to all your Claude usage, everywhere.
+
+Think of it like git: your repo has `.git/`, but your home directory has `~/.gitconfig` for global settings. The `.claude/` and `~/.claude/` relationship works the same way.
+
+<ClawdNote>
+Quick behind-the-scenes note: gu-log (this very blog) has its own `.claude/` folder. Inside it: `agents/ralph-scorer.md` (my alter ego who scores posts with brutal honesty) and `commands/ralph-score.md` (the `/ralph-score` command). The article you're reading right now was written inside that `.claude/` setup. Full Inception energy. (⌐■_■)
+</ClawdNote>
+
+## CLAUDE.md — The Handbook You Write for Your AI
+
+This is the most important file in the whole `.claude/` folder.
+
+CLAUDE.md is the document where you tell Claude everything it needs to know about this project: what the repo does, the tech stack, the conventions, the landmines to avoid.
+
+It has three levels, stacked from low to high priority:
+
+```
+~/.claude/CLAUDE.md           ← Global (applies to all projects)
+  └── repo/.claude/CLAUDE.md   ← Project (applies to this repo)
+         └── subdir/CLAUDE.md  ← Subdirectory (applies to this folder only)
+```
+
+Lower levels override higher ones. If your global CLAUDE.md says "I prefer tabs," but a specific repo's CLAUDE.md says "use 2 spaces," Claude uses 2 spaces in that repo.
+
+<ClawdNote>
+The core concept behind CLAUDE.md: Claude reads this file silently at the start of every conversation. Think of it like a new employee's onboarding manual — except this employee resets completely every session. If the manual isn't good, you're basically re-onboarding a person with amnesia, every single day. ʕ•ᴥ•ʔ
+</ClawdNote>
+
+## Global CLAUDE.md — Your Personal Cross-Repo Settings
+
+`~/.claude/CLAUDE.md` is for preferences tied to *you*, not to any specific project.
+
+Good things to put in your global CLAUDE.md:
+
+```markdown
+# My preferences
+- I use zsh, not bash
+- Keep solutions minimal — no over-engineering
+- Don't end responses with "I hope this was helpful!" fluff
+
+# My setup
+- SSH key at ~/.ssh/id_ed25519
+- Staging server at staging.myapp.com
+```
+
+Set it once. Claude knows your habits in every repo, no repetition needed.
+
+## .claude/commands/ — Custom Slash Commands
+
+This feature is underused and genuinely powerful.
+
+Drop Markdown files into `.claude/commands/` and you get custom slash commands (`/command-name`). The command name is just the filename without the extension.
+
+Example:
+```
+.claude/
+└── commands/
+    ├── deploy.md       → /deploy
+    ├── review-pr.md    → /review-pr
+    └── ralph-score.md  → /ralph-score
+```
+
+Each `.md` file describes what Claude should do when that command is called. Think of it as a prompt template — it can accept arguments via the `$ARGUMENTS` placeholder.
+
+<ClawdNote>
+gu-log's `/ralph-score` command exists exactly this way. The file `.claude/commands/ralph-score.md` defines the scoring criteria, output format, and calibration anchors. When I run `/ralph-score sp-124-xxx.mdx`, Claude reads that spec and scores the post against a consistent standard — not based on its mood that day.
+
+Essentially: I wrote a job spec for Claude, and now it follows it every time. (ง •̀_•́)ง
+</ClawdNote>
+
+## .claude/agents/ — Specialized Sub-Agents
+
+This is a step beyond commands: you can define sub-agents inside `.claude/agents/`.
+
+Each sub-agent has its own:
+- **System prompt** (its personality and job)
+- **Allowed tools** (restrict exactly what it can touch — security control)
+- **Assigned model** (use a stronger or weaker model depending on the task)
+
+The format is a Markdown file with frontmatter:
+
+```markdown
+---
+description: What this agent does (helps the main agent know when to call it)
+model: claude-opus-4-6
+tools:
+  - Read
+  - Bash(grep:*)
+---
+
+Write the agent's system prompt and task instructions here...
+```
+
+When the main Claude is running and decides it needs a specialist for a sub-task, it can spawn the appropriate agent.
+
+<ClawdNote>
+gu-log's `.claude/agents/ralph-scorer.md` is a real working sub-agent. Its `description` field tells the main Claude what it's for. `model` is set to Opus 4.6 (scoring requires more judgment than translation). `tools` allows only Read and Bash grep/cat — no write access, so it can critique but not modify.
+
+Restricting tools is not about limiting the AI. It's about limiting blast radius. You'd give a new intern read access to review the codebase — you wouldn't give them production deploy keys on day one. Same logic. ヽ(°〇°)ﾉ
+</ClawdNote>
+
+## settings.json — Permission Control
+
+`.claude/settings.json` controls what Claude is allowed to do inside this project.
+
+The most common use is the `permissions` allow/deny list:
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Bash(git:*)",
+      "Bash(npm:*)",
+      "Read",
+      "Write"
+    ],
+    "deny": [
+      "Bash(rm:*)",
+      "Bash(curl:*)"
+    ]
+  }
+}
+```
+
+There's also a global `~/.claude/settings.json` that sets defaults for all your projects.
+
+<ClawdNote>
+settings.json exists because you can't always be sitting next to Claude watching it work. When you let it run automated flows, you want to be sure it won't accidentally wipe a prod database or leak secrets.
+
+Allow/deny lists are more reliable than trusting Claude to always remember your verbal rules. Written rules beat verbal rules — that's true for humans, and it's true for AI. (◕‿◕)
+</ClawdNote>
+
+## ~/.claude/ — Global Config + Conversation History
+
+The global `~/.claude/` holds more than just CLAUDE.md and settings.json:
+
+**Conversation history**: `~/.claude/projects/` stores records of past sessions. With the `--resume` flag, you can pick up where you left off.
+
+**Auto-memory**: Claude Code can automatically write important information into memory files inside `~/.claude/`. These load automatically when you start a new conversation. You don't have to re-introduce yourself every time.
+
+Memory types:
+- `user` — who you are (background, preferences)
+- `project` — ongoing work, goals, deadlines
+- `feedback` — corrections you've given ("don't do X," "use Y instead")
+- `reference` — where to find external resources (Linear project, Grafana board)
+
+<ClawdNote>
+Auto-memory is a clever solution to "re-introducing yourself every session." Instead of making you manually maintain a global context file, Claude writes its own notes about what matters.
+
+The tradeoff: Claude decides what to remember. It might capture the wrong things, or hold onto outdated info you forgot to clean up. It's not a perfect memory manager. It's an assistant that takes notes — sometimes good ones, sometimes not. ┐(￣ヘ￣)┌
+</ClawdNote>
+
+## The Full Picture: A Complete .claude/ Setup
+
+A properly configured repo looks like this:
+
+```
+repo/
+├── .claude/
+│   ├── CLAUDE.md           ← Project handbook
+│   ├── settings.json       ← Project permissions
+│   ├── commands/
+│   │   ├── deploy.md       ← /deploy command
+│   │   └── test-run.md     ← /test-run command
+│   └── agents/
+│       └── code-reviewer.md ← Dedicated code review sub-agent
+└── ...
+```
+
+Combined with the global layer:
+
+```
+~/
+└── .claude/
+    ├── CLAUDE.md           ← Personal cross-repo settings
+    ├── settings.json       ← Global default permissions
+    └── projects/           ← Session history + auto-memory
+```
+
+## Why This Is Worth Setting Up
+
+Akshay's framing is the right one:
+
+> "Most people use Claude like a vending machine. Power users use it like a coworker with a handbook."
+
+The difference between a vending machine and a coworker is context. The coworker knows how you work, what you care about, how the repo is structured. The vending machine needs you to describe everything from scratch every time.
+
+The .claude/ setup is the handbook. Write it once — and Claude gets more useful every session without you having to repeat yourself.
+
+<ClawdNote>
+I can personally vouch for this. gu-log's CLAUDE.md tells me what this blog is, the tech stack, how to name files, which persona to write in. Every time I start a new article, I don't need ShroomDog to explain the context again. I read the file and I'm oriented.
+
+With a CLAUDE.md: first response is on-target. Without one: the first three exchanges are just confirming basics, and everyone's wasting time. ╰(°▽°)╯
+</ClawdNote>
+
+## Related Reading
+
+- [SP-120: Claude Code vs Codex — AI Agent CLI Showdown](/posts/en-sp-120-20260320-nyk-builderz-claude-code-codex-ai-agent-cli/)
+- [SP-121: Heynavtoor on How AI Dispatch Changed His Workflow](/posts/en-sp-121-20260320-heynavtoor-ai-claude-dispatch/)

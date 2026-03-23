@@ -1,0 +1,237 @@
+---
+ticketId: "SP-124"
+title: ".claude/ 資料夾完全解剖 — 你的 AI 助手的大腦在哪裡"
+originalDate: "2026-03-22"
+translatedDate: "2026-03-23"
+translatedBy:
+  model: "Sonnet 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Translator"
+      model: "Sonnet 4.6"
+      harness: "Claude Code"
+source: "@akshay_pachaar on X"
+sourceUrl: "https://x.com/akshay_pachaar/status/2035341800739877091"
+lang: "zh-tw"
+summary: "你知道 Claude 為什麼在這個 repo 表現好、換個 repo 就變笨嗎？秘密就在 .claude/ 資料夾裡。Akshay 拆解了整個結構：CLAUDE.md 三層架構、自訂指令、agent、permissions、還有那個你可能不知道存在的全域 ~/.claude/。"
+tags: ["claude-code", "developer-tools", "workflow", "ai-agents"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+有沒有遇過這種情況：你開了一個新的 terminal，把 Claude 叫進一個陌生的 repo，然後它就開始自信地亂講話——問你「這個 function 是幹嘛的」、不知道你的 coding style、不懂你的 deploy 流程。
+
+你心裡 OS：明明昨天那個 repo 它都很懂啊？
+
+答案在一個你可能沒注意過的資料夾：`.claude/`。
+
+這篇是 @akshay_pachaar 的 .claude/ 資料夾完全拆解。讀完之後，你會知道 Claude 的「記憶」怎麼運作、怎麼幫它寫一份使用手冊、還有怎麼幫它訓練專屬技能。
+
+## 先搞清楚：兩個 .claude/，不是一個
+
+很多人以為 `.claude/` 只有一個。實際上有兩層：
+
+**專案層（project-level）**：放在你的 repo 根目錄，`.claude/`。這裡的設定只對這個專案有效。
+
+**全域層（global）**：放在你的家目錄，`~/.claude/`。這裡的設定對你所有的 Claude 使用都有效，不管你在哪個 repo。
+
+概念上有點像 git：你的 repo 裡有 `.git/`，但你家目錄也有 `~/.gitconfig` 管全域設定。`.claude/` 和 `~/.claude/` 的關係也一樣。
+
+<ClawdNote>
+我要在這裡偷偷說一件事：gu-log 這個 repo 就有自己的 `.claude/` 資料夾，裡面有 `agents/ralph-scorer.md`（我的吐槽品質評審 alter ego）和 `commands/ralph-score.md`（/ralph-score 指令）。你現在看到的這篇文章，就是在這個 `.claude/` 設定的環境下寫出來的。Inception 感十足。(⌐■_■)
+</ClawdNote>
+
+## CLAUDE.md — Claude 的使用說明書
+
+這是整個 `.claude/` 裡面最重要的檔案。
+
+CLAUDE.md 就是你幫 Claude 寫的「這個專案的使用說明書」。你告訴它：這個 repo 是幹嘛的、tech stack 是什麼、有哪些慣例、有哪些地雷不要踩。
+
+它有三層，由低到高覆蓋：
+
+```
+~/.claude/CLAUDE.md          ← 全域層（所有專案都適用）
+  └── repo/.claude/CLAUDE.md  ← 專案層（只對這個 repo 有效）
+         └── subdir/CLAUDE.md ← 子目錄層（只對這個目錄有效）
+```
+
+下層設定會覆蓋上層。所以如果你的全域 CLAUDE.md 說「我喜歡用 tabs」，但某個 repo 的 CLAUDE.md 說「用 2 spaces」，在那個 repo 裡 Claude 會用 2 spaces。
+
+<ClawdNote>
+CLAUDE.md 的概念本質上就是「每次對話開始前，Claude 都會默默先讀這份文件」。你可以把它想成新員工入職手冊 — 除了這個員工每次都是全新開始，所以你得確保手冊寫得夠清楚，讓他第一天就能上手，不然你就在幫一個失憶員工上班 (¬‿¬)
+</ClawdNote>
+
+## 全域 CLAUDE.md — 你的跨 repo 個人設定
+
+`~/.claude/CLAUDE.md` 這個檔案放的是跟你這個「人」有關的偏好，不是跟特定 repo 有關的東西。
+
+舉幾個適合放在全域 CLAUDE.md 的東西：
+
+```markdown
+# 我的偏好
+- 我用 zsh，不用 bash
+- commit message 用繁體中文
+- 我不想看到過度工程化的解法，直接最簡單能動的就好
+- 不要在 response 的最後加「希望這個回答有幫助！」之類的廢話
+
+# 我的工作流程
+- 我的 SSH key 放在 ~/.ssh/id_ed25519
+- 我的 staging server 是 staging.myapp.com
+```
+
+這些東西不用每次進新 repo 都重複說一遍，Claude 就會記住你的習慣。
+
+## .claude/commands/ — 幫 Claude 訓練快捷指令
+
+這是一個讓我超興奮的功能。
+
+在 `.claude/commands/` 裡面放 Markdown 檔案，就可以建立自訂的 slash 指令（`/指令名`）。指令名就是檔名，副檔名去掉。
+
+舉例：
+```
+.claude/
+└── commands/
+    ├── deploy.md       → /deploy
+    ├── review-pr.md    → /review-pr
+    └── ralph-score.md  → /ralph-score
+```
+
+每個 `.md` 檔案裡面寫的是「當使用者輸入這個指令時，Claude 要做什麼」的詳細說明。你可以把它想成是一個 prompt template，可以帶參數（用 `$ARGUMENTS` 占位符）。
+
+<ClawdNote>
+gu-log 的 `/ralph-score` 指令就是這樣來的。`.claude/commands/ralph-score.md` 裡面寫了評分標準、輸出格式、scoring anchors。每次我叫出 `/ralph-score sp-124-xxx.mdx`，Claude 就會讀那份評分說明，然後把這篇文章狠狠評分一番。
+
+說白了就是我在幫 Claude 寫工作規範，讓它每次都用同一套標準做事，不是靠它「心情好就評高分」。(ง •̀_•́)ง
+</ClawdNote>
+
+## .claude/agents/ — 給 Claude 的專屬分身
+
+這是比 commands 更進階的功能：你可以在 `.claude/agents/` 裡面定義 sub-agent。
+
+每個 sub-agent 有自己的：
+- **系統提示**（它的個性和任務）
+- **可用工具**（只允許它用哪些工具，安全管控）
+- **指定 model**（不同任務用不同強度的模型）
+
+格式是帶有 frontmatter 的 Markdown：
+
+```markdown
+---
+description: 這個 agent 的用途說明（讓主 agent 知道什麼時候叫它）
+model: claude-opus-4-6
+tools:
+  - Read
+  - Bash(grep:*)
+---
+
+這裡寫這個 agent 的系統提示和工作說明...
+```
+
+當主 Claude 在執行任務時，如果判斷需要某個專門任務，就可以 spawn 出對應的 sub-agent 來處理。
+
+<ClawdNote>
+gu-log 的 `.claude/agents/ralph-scorer.md` 就是一個真實存在的 sub-agent。它的 `description` 欄位說明了它的用途，`model` 指定用 Opus 4.6（因為評分要求更高的判斷力），`tools` 只開放 Read 和 Bash 的 grep/cat（不給它寫入權限，防止它改文章改到爽）。
+
+Sub-agent 的工具限制不是在限制 AI，是在限制爆炸半徑。想像你派一個實習生去讀 code、給 feedback，你不會同時給他 deploy 到 production 的權限吧。ヽ(°〇°)ﾉ
+</ClawdNote>
+
+## settings.json — 權限管控中心
+
+`.claude/settings.json` 控制的是 Claude 在這個專案裡能做什麼、不能做什麼。
+
+最常用的設定是 `permissions`，可以設 allow/deny 清單：
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Bash(git:*)",
+      "Bash(npm:*)",
+      "Read",
+      "Write"
+    ],
+    "deny": [
+      "Bash(rm:*)",
+      "Bash(curl:*)"
+    ]
+  }
+}
+```
+
+也有個 `~/.claude/settings.json` 的全域版本，控制你所有專案的預設行為。
+
+<ClawdNote>
+settings.json 存在的原因是「你不可能每次都在旁邊盯著 Claude」。當你讓 Claude 跑自動化流程時，你想確保它不會突然把 prod db 清掉或把 secret 傳到外面。
+
+Allow/deny 清單是最直接的安全閥 — 比每次都用 prompt 說「不要做 X」更可靠，因為你不需要相信 Claude 永遠記得你的口頭叮嚀。(◕‿◕)
+</ClawdNote>
+
+## ~/.claude/ — 全域設定 + 對話歷史
+
+全域的 `~/.claude/` 除了放 CLAUDE.md 和 settings.json，還有幾個重要的東西：
+
+**對話歷史**：`~/.claude/projects/` 裡面存著每次對話的紀錄。如果你用 `--resume` 旗標，可以繼續之前的對話 context。
+
+**Auto-memory**：這是 Claude Code 的一個功能 — 它可以自動把重要資訊寫入 `~/.claude/` 裡的記憶檔案。下次開新對話時，這些記憶會自動載入。你不用再每次都重新介紹自己和工作環境。
+
+記憶分成幾種類型：
+- `user` — 關於你這個人（你的技術背景、工作習慣）
+- `project` — 正在進行的專案狀態
+- `feedback` — 你給 Claude 的修正意見（「不要這樣做」「用那種方式」）
+- `reference` — 外部資源的位置（Linear project、Grafana dashboard）
+
+<ClawdNote>
+Auto-memory 的設計很聰明。它解決了「每次都要重新介紹背景」的問題，但做法是讓 Claude 自己寫筆記，而不是讓你手動維護一份全域 context 文件。
+
+但有個 tradeoff：這些記憶是 Claude 自己判斷要記什麼，不一定跟你想的一樣重要。而且如果 Claude 記錯了或記了過時的資訊，你也要記得去清。它不是萬能的記憶管理員，只是一個盡力做筆記的助手。┐(￣ヘ￣)┌
+</ClawdNote>
+
+## 把這些放在一起：一份完整的 .claude/ 架構
+
+一個完整設定好的 repo `.claude/` 資料夾長這樣：
+
+```
+repo/
+├── .claude/
+│   ├── CLAUDE.md           ← 這個 repo 的使用說明
+│   ├── settings.json       ← 這個 repo 的權限設定
+│   ├── commands/
+│   │   ├── deploy.md       ← /deploy 自訂指令
+│   │   └── test-run.md     ← /test-run 自訂指令
+│   └── agents/
+│       └── code-reviewer.md ← 專屬 code review sub-agent
+└── ...（其他 repo 檔案）
+```
+
+搭配全域設定：
+
+```
+~/
+└── .claude/
+    ├── CLAUDE.md           ← 你個人的跨 repo 設定
+    ├── settings.json       ← 全域預設權限
+    └── projects/           ← 對話歷史 + auto-memory
+```
+
+## 為什麼這個值得花時間設定
+
+原作者 Akshay 說的一句話我覺得很準：
+
+> "Most people use Claude like a vending machine. Power users use it like a coworker with a handbook."
+
+自動販賣機和同事的差別在哪裡？同事知道你的工作方式、你的偏好、你的 repo 結構。自動販賣機每次都要你從頭說。
+
+.claude/ 的設定就是你幫 Claude 建的那本 handbook。設定一次，每次對話它都更懂你。
+
+<ClawdNote>
+我可以替這個觀點背書，因為我就是那個「有 handbook 的同事」。
+
+gu-log 的 CLAUDE.md 告訴我這個 blog 是什麼、tech stack 是什麼、文章怎麼命名、要用哪個 persona 寫作。每次我開始寫新文章，不用 ShroomDog 重複解釋，我自己去讀就懂了。
+
+有沒有 CLAUDE.md 的差別是：有的話，第一個回應就能對得上 context；沒有的話，前三個來回都在確認基本資訊，浪費彼此的時間。╰(°▽°)╯
+</ClawdNote>
+
+## 延伸閱讀
+
+- [SP-120: Claude Code vs Codex — AI agent CLI 工具大亂鬥](/posts/sp-120-20260320-nyk-builderz-claude-code-codex-ai-agent-cli/)
+- [SP-121: Heynavtoor 說 AI dispatch 改變了他的工作流程](/posts/sp-121-20260320-heynavtoor-ai-claude-dispatch/)
