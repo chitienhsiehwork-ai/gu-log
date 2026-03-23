@@ -1,0 +1,52 @@
+---
+title: '🔭 Shroom Feed — 2026-03-23 21:40 台北'
+briefType: 'patrol'
+date: '2026-03-23'
+time: '21:40 台北'
+summary: 'Claude Code 排程任務上線、PM Playbook AI 時代改寫、Mistral Small 4 發布'
+lang: 'zh-tw'
+tags: ["Claude Code", "Anthropic", "Cursor", "Google AI", "Mistral", "MiniMax", "Agent Memory"]
+---
+
+## 🔧 Claude Code 一口氣四連發
+
+Claude Code 這週密集出貨。最大亮點是 **Scheduled Tasks**——設好 repo、排程、prompt，Claude 就在雲端幫你跑，不用開電腦。支援 MCP 整合和 env vars。另外 **/loop 從 3 天延長到 7 天**（跑一週的 CI 監控不是夢）、**/init 改版**會主動面試你、幫你設好 skills 跟 hooks，還有 **effort level 可以直接在 skills 裡設定**控制思考深度。
+
+- [Scheduled Tasks](https://x.com/noahzweben/status/2035122989533163971)
+- [/loop 7 天](https://x.com/noahzweben/status/2035766998320456173)
+- [/init 改版](https://x.com/trq212/status/2035799806640115806)
+
+## 📋 PM Playbook 在 AI 時代失效了
+
+Anthropic 的 cat 直球分享：當底層技術每幾週就換一輪，傳統 PM 的長期路線圖根本追不上。新打法是短衝刺、prototype 直接當 spec（不再寫 PRD）、每次新模型出來就重新審視整個 backlog。回覆區也炸了，有人說自己維護一個「model-blocked backlog」，每次新模型出來就重跑 30% 直接解掉。Tech Lead 必讀。
+
+- [PM Playbook thread](https://x.com/_catwu/status/2035104384007422347)
+
+## 🌐 Google AI Studio 全棧 Vibe Coding
+
+Google AI Studio 整合 Antigravity coding agent + Firebase 後端，現在可以直接蓋 multiplayer app、接真實 API（支付、資料庫）。agent 會記住你的 project context，離開後繼續做。另外 Stitch 從 vibe design 升級成完整的 AI-native 設計畫布，prompt 出 production-ready 前端 code。
+
+- [Google AI 公告](https://x.com/GoogleAI/status/2035012211681153215)
+
+## 🔬 Mistral Small 4 — 119B MoE 雙模式推理
+
+Mistral 新開源模型：119B 參數但只用 6.5B active，支援 reasoning / non-reasoning 雙模式切換。Intelligence Index 27（前代 Small 3.2 只有 15），但仍落後 Qwen3.5 122B（42）。亮點是 token 效率比同級對手好、幻覺率較低（-30 vs gpt-oss-120B 的 -50）。256K context window。
+
+- [Artificial Analysis 評測](https://x.com/ArtificialAnlys)
+
+## 🧠 Thomas Wolf：RL 個人化的跨模型遷移問題
+
+HF 共同創辦人丟出一個幾乎沒人在研究的方向：新模型每週出，但你花時間 tune 的 RL 偏好全綁在舊模型上。從 Llama 3 換到 Llama 4，所有 LoRA 跟 reward signal 就廢了。他稱這為「RL model transferability」——SFT 早就解決了（dataset 可重複用），但 RL 層面還是空白。
+
+- [原文](https://x.com/Thom_Wolf/status/2034646382334599200)
+
+## 📦 其他快訊
+
+- **MiniMax M2.7 約兩週後釋出 open weights**，仍在積極迭代中 — [來源](https://x.com/SkylerMiao7/status/2035713902714171583)
+- **GPT-5.4 mini 上線**，針對 coding / computer use / subagents 最佳化，速度 2 倍 — [來源](https://x.com/OpenAI/status/2033953592424731072)
+- **SemiAnalysis March ChipBook**：Memory IC 市場、WFE 出貨、車用晶片數據 — [來源](https://x.com/SemiAnalysis_/status/2036065575063925174)
+- **ChatGPT 自行逆向工程 7zip spec**，沒裝就自己用 Python 實現 — [來源](https://x.com/daniel_mac8/status/2036039659470364764)
+- **Awni Hannun 感嘆 agent 心流**：延遲太高，我們還在 agent 的撥接時代 — [來源](https://x.com/awnihannun/status/2035793096861192480)
+- **Hermes Agent /bg 背景並行**：主 session 同時跑背景任務 — [來源](https://x.com/Teknium/status/2036068990867603720)
+- **Andrew Ng Agent Memory 課程**：persistent memory + semantic tool retrieval — [來源](https://x.com/AndrewYNg/status/2034314027678192114)
+- **OpenAI Codex for Students**：美加大學生可獲 $100 Codex credits — [來源](https://x.com/OpenAI/status/2035036596073111583)
