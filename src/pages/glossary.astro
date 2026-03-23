@@ -11,13 +11,20 @@ const categories: { id: string; label: string }[] = [
   { id: 'methods', label: '方法' },
   { id: 'platforms', label: '平台' },
 ];
+
+const categoryEmoji: Record<string, string> = {
+  tools: '🔧',
+  concepts: '💡',
+  methods: '📐',
+  platforms: '🌐',
+};
 ---
 
 <BaseLayout title="詞彙表 - gu-log" lang="zh-tw">
   <article class="glossary-page">
     <header>
       <h1>📖 詞彙表</h1>
-      <p class="glossary-intro">AI 領域術語變化很快，這裡整理了本站常出現的詞彙。</p>
+      <p class="glossary-intro">本站常出現的 AI 術語。點術語名稱可複製連結。</p>
     </header>
 
     <div class="glossary-controls">
@@ -45,49 +52,57 @@ const categories: { id: string; label: string }[] = [
 
     <p class="glossary-count" id="glossary-count">{glossary.length} 個術語</p>
 
-    <div class="glossary-list" id="glossary-list">
+    <dl class="glossary-list" id="glossary-list">
       {
         glossary.map((item) => (
           <div
-            class="glossary-item"
+            class="glossary-entry"
             id={item.term.toLowerCase().replace(/\s+/g, '-')}
             data-term={item.term.toLowerCase()}
             data-en={item.en.toLowerCase()}
             data-definition={item.definition.toLowerCase()}
             data-category={item.category}
           >
-            <h2 class="glossary-term">
-              {item.term}
-              {item.en !== item.term && <span class="glossary-en">({item.en})</span>}
-              <span class="category-tag">{item.category}</span>
-            </h2>
-            <p class="glossary-definition">{item.definition}</p>
-            {item.related && item.related.length > 0 && (
-              <div class="glossary-related">
-                相關：
-                {item.related.map((rel, i) => (
-                  <span>
-                    <a href={`#${rel.toLowerCase().replace(/\s+/g, '-')}`}>{rel}</a>
-                    {i < item.related.length - 1 && '、'}
-                  </span>
-                ))}
-              </div>
-            )}
-            {item.definedIn && item.definedIn.length > 0 && (
-              <div class="glossary-defined-in">
-                <span class="defined-in-label">詳細說明於：</span>
-                {item.definedIn.map((post: { slug: string; title: string }, i: number) => (
-                  <span>
-                    <a href={`/posts/${post.slug}`}>{post.title}</a>
-                    {i < item.definedIn.length - 1 && '、'}
-                  </span>
-                ))}
-              </div>
-            )}
+            <dt>
+              <a href={`#${item.term.toLowerCase().replace(/\s+/g, '-')}`} class="term-link">
+                {item.term}
+              </a>
+              {item.en !== item.term && <span class="term-en">{item.en}</span>}
+              <span class="term-cat">{categoryEmoji[item.category] || '📌'}</span>
+            </dt>
+            <dd>
+              <p class="term-def">{item.definition}</p>
+              {(item.related?.length > 0 || item.definedIn?.length > 0) && (
+                <p class="term-meta">
+                  {item.related?.length > 0 && (
+                    <span class="meta-links">
+                      →{' '}
+                      {item.related.map((rel, i) => (
+                        <span>
+                          <a href={`#${rel.toLowerCase().replace(/\s+/g, '-')}`}>{rel}</a>
+                          {i < item.related.length - 1 && '、'}
+                        </span>
+                      ))}
+                    </span>
+                  )}
+                  {item.definedIn?.length > 0 && (
+                    <span class="meta-posts">
+                      {' '}📄{' '}
+                      {item.definedIn.map((post: { slug: string; title: string }, i: number) => (
+                        <span>
+                          <a href={`/posts/${post.slug}`}>{post.title}</a>
+                          {i < item.definedIn.length - 1 && '、'}
+                        </span>
+                      ))}
+                    </span>
+                  )}
+                </p>
+              )}
+            </dd>
           </div>
         ))
       }
-    </div>
+    </dl>
 
     <p class="glossary-empty" id="glossary-empty" style="display:none">沒有符合的術語。</p>
 
@@ -100,7 +115,7 @@ const categories: { id: string; label: string }[] = [
 <script>
   const searchInput = document.getElementById('glossary-search') as HTMLInputElement;
   const pills = document.querySelectorAll<HTMLButtonElement>('.category-pill');
-  const items = document.querySelectorAll<HTMLElement>('.glossary-item');
+  const items = document.querySelectorAll<HTMLElement>('.glossary-entry');
   const countEl = document.getElementById('glossary-count');
   const emptyEl = document.getElementById('glossary-empty');
 
@@ -137,34 +152,48 @@ const categories: { id: string; label: string }[] = [
       filterItems();
     });
   });
+
+  // Click term to copy anchor link
+  document.querySelectorAll<HTMLAnchorElement>('.term-link').forEach((link) => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const url = new URL(link.href);
+      navigator.clipboard.writeText(url.toString());
+      history.replaceState(null, '', url.hash);
+      link.classList.add('copied');
+      setTimeout(() => link.classList.remove('copied'), 1000);
+    });
+  });
 </script>
 
 <style>
   .glossary-page {
-    max-width: 680px;
+    max-width: 640px;
     margin: 0 auto;
   }
 
   .glossary-intro {
     color: var(--color-text-muted);
-    margin-bottom: 1.5rem;
+    font-size: 0.85rem;
+    margin-bottom: 1.25rem;
   }
 
+  /* Controls */
   .glossary-controls {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
   }
 
   .glossary-search {
     width: 100%;
-    padding: 0.5rem 0.75rem;
+    padding: 0.45rem 0.7rem;
     border: 1px solid var(--color-border);
     border-radius: 6px;
     background: var(--color-surface);
     color: var(--color-text);
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     box-sizing: border-box;
   }
 
@@ -180,21 +209,18 @@ const categories: { id: string; label: string }[] = [
   .category-pills {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.4rem;
+    gap: 0.35rem;
   }
 
   .category-pill {
-    padding: 0.25rem 0.75rem;
+    padding: 0.2rem 0.6rem;
     border: 1px solid var(--color-border);
     border-radius: 999px;
     background: transparent;
     color: var(--color-text-muted);
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     cursor: pointer;
-    transition:
-      background 0.15s,
-      color 0.15s,
-      border-color 0.15s;
+    transition: all 0.15s;
   }
 
   .category-pill:hover {
@@ -209,101 +235,98 @@ const categories: { id: string; label: string }[] = [
   }
 
   .glossary-count {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     color: var(--color-text-muted);
-    margin-bottom: 1rem;
+    margin-bottom: 0.5rem;
   }
 
+  /* Definition list — dictionary style */
   .glossary-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
+    margin: 0;
+    padding: 0;
   }
 
-  .glossary-item {
-    padding: 0.75rem 1rem;
-    background: var(--color-surface);
-    border-radius: 6px;
-    border-left: 3px solid var(--color-accent);
-    border: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
-    border-left: 3px solid var(--color-accent);
+  .glossary-entry {
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--color-border);
   }
 
-  .glossary-term {
-    font-size: 1.05rem;
-    margin-bottom: 0.25rem;
-    color: var(--color-text);
+  .glossary-entry:last-child {
+    border-bottom: none;
+  }
+
+  dt {
     display: flex;
     align-items: baseline;
+    gap: 0.35rem;
     flex-wrap: wrap;
-    gap: 0.4rem;
+    margin: 0;
   }
 
-  .glossary-en {
-    font-weight: 400;
-    font-size: 0.9rem;
+  .term-link {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--color-text);
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+
+  .term-link:hover {
+    color: var(--color-accent);
+  }
+
+  .term-link.copied {
+    color: var(--color-accent);
+  }
+
+  .term-en {
+    font-size: 0.8rem;
     color: var(--color-text-muted);
+    font-weight: 400;
   }
 
-  .category-tag {
+  .term-cat {
     font-size: 0.7rem;
-    font-weight: 400;
-    color: var(--color-text-muted);
-    background: var(--color-border);
-    border-radius: 4px;
-    padding: 0.1rem 0.4rem;
     margin-left: auto;
-    white-space: nowrap;
   }
 
-  .glossary-definition {
-    font-size: 0.9rem;
-    line-height: 1.5;
-    margin-bottom: 0.25rem;
+  dd {
+    margin: 0.2rem 0 0 0;
   }
 
-  .glossary-related {
-    font-size: 0.8rem;
+  .term-def {
+    font-size: 0.85rem;
+    line-height: 1.55;
     color: var(--color-text-muted);
+    margin: 0;
   }
 
-  .glossary-related a {
+  .term-meta {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    margin: 0.2rem 0 0 0;
+    opacity: 0.7;
+  }
+
+  .term-meta a {
     color: var(--color-accent);
     text-decoration: none;
   }
 
-  .glossary-related a:hover {
-    text-decoration: underline;
-  }
-
-  .glossary-defined-in {
-    font-size: 0.8rem;
-    color: var(--color-text-muted);
-    margin-top: 0.4rem;
-  }
-
-  .defined-in-label {
-    color: var(--color-text-muted);
-  }
-
-  .glossary-defined-in a {
-    color: var(--color-accent);
-    text-decoration: none;
-  }
-
-  .glossary-defined-in a:hover {
+  .term-meta a:hover {
     text-decoration: underline;
   }
 
   .glossary-empty {
     color: var(--color-text-muted);
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     padding: 1rem 0;
   }
 
   .glossary-footer {
-    margin-top: 2rem;
-    padding-top: 1rem;
+    margin-top: 1.5rem;
+    padding-top: 0.75rem;
     border-top: 1px solid var(--color-border);
+    font-size: 0.85rem;
   }
 </style>
