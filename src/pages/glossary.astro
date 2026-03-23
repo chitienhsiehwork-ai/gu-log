@@ -12,12 +12,25 @@ const categories: { id: string; label: string }[] = [
   { id: 'platforms', label: '平台' },
 ];
 
-const categoryEmoji: Record<string, string> = {
-  tools: '🔧',
-  concepts: '💡',
-  methods: '📐',
-  platforms: '🌐',
+const categoryLabel: Record<string, string> = {
+  tools: '工具',
+  concepts: '概念',
+  methods: '方法',
+  platforms: '平台',
 };
+
+// Group by first letter for section dividers
+const grouped: { letter: string; items: typeof glossary }[] = [];
+let currentLetter = '';
+for (const item of glossary) {
+  const letter = item.term[0].toUpperCase();
+  if (letter !== currentLetter) {
+    currentLetter = letter;
+    grouped.push({ letter, items: [item] });
+  } else {
+    grouped[grouped.length - 1].items.push(item);
+  }
+}
 ---
 
 <BaseLayout title="詞彙表 - gu-log" lang="zh-tw">
@@ -52,57 +65,64 @@ const categoryEmoji: Record<string, string> = {
 
     <p class="glossary-count" id="glossary-count">{glossary.length} 個術語</p>
 
-    <dl class="glossary-list" id="glossary-list">
+    <div id="glossary-list">
       {
-        glossary.map((item) => (
-          <div
-            class="glossary-entry"
-            id={item.term.toLowerCase().replace(/\s+/g, '-')}
-            data-term={item.term.toLowerCase()}
-            data-en={item.en.toLowerCase()}
-            data-definition={item.definition.toLowerCase()}
-            data-category={item.category}
-          >
-            <dt>
-              <a href={`#${item.term.toLowerCase().replace(/\s+/g, '-')}`} class="term-link">
-                {item.term}
-              </a>
-              {item.en !== item.term && <span class="term-en">{item.en}</span>}
-              <span class="term-cat">{categoryEmoji[item.category] || '📌'}</span>
-            </dt>
-            <dd>
-              <p class="term-def">{item.definition}</p>
-              {(item.related?.length > 0 || item.definedIn?.length > 0) && (
-                <p class="term-meta">
-                  {item.related?.length > 0 && (
-                    <span class="meta-links">
-                      →{' '}
-                      {item.related.map((rel, i) => (
-                        <span>
-                          <a href={`#${rel.toLowerCase().replace(/\s+/g, '-')}`}>{rel}</a>
-                          {i < item.related.length - 1 && '、'}
-                        </span>
-                      ))}
-                    </span>
-                  )}
-                  {item.definedIn?.length > 0 && (
-                    <span class="meta-posts">
-                      {' '}📄{' '}
-                      {item.definedIn.map((post: { slug: string; title: string }, i: number) => (
-                        <span>
-                          <a href={`/posts/${post.slug}`}>{post.title}</a>
-                          {i < item.definedIn.length - 1 && '、'}
-                        </span>
-                      ))}
-                    </span>
-                  )}
-                </p>
-              )}
-            </dd>
+        grouped.map((group) => (
+          <div class="letter-section" data-letter={group.letter}>
+            <div class="letter-divider">{group.letter}</div>
+            <dl class="section-list">
+              {group.items.map((item) => (
+                <div
+                  class="glossary-entry"
+                  id={item.term.toLowerCase().replace(/\s+/g, '-')}
+                  data-term={item.term.toLowerCase()}
+                  data-en={item.en.toLowerCase()}
+                  data-definition={item.definition.toLowerCase()}
+                  data-category={item.category}
+                >
+                  <dt>
+                    <a href={`#${item.term.toLowerCase().replace(/\s+/g, '-')}`} class="term-link">
+                      {item.term}
+                    </a>
+                    {item.en !== item.term && <span class="term-en">{item.en}</span>}
+                    <span class={`term-cat cat-${item.category}`}>{categoryLabel[item.category] || item.category}</span>
+                  </dt>
+                  <dd>
+                    <p class="term-def">{item.definition}</p>
+                    {(item.related?.length > 0 || item.definedIn?.length > 0) && (
+                      <p class="term-meta">
+                        {item.related?.length > 0 && (
+                          <span class="meta-links">
+                            →{' '}
+                            {item.related.map((rel, i) => (
+                              <span>
+                                <a href={`#${rel.toLowerCase().replace(/\s+/g, '-')}`}>{rel}</a>
+                                {i < item.related.length - 1 && '、'}
+                              </span>
+                            ))}
+                          </span>
+                        )}
+                        {item.definedIn?.length > 0 && (
+                          <span class="meta-posts">
+                            {' '}| 文章：{' '}
+                            {item.definedIn.map((post: { slug: string; title: string }, i: number) => (
+                              <span>
+                                <a href={`/posts/${post.slug}`}>{post.title}</a>
+                                {i < item.definedIn.length - 1 && '、'}
+                              </span>
+                            ))}
+                          </span>
+                        )}
+                      </p>
+                    )}
+                  </dd>
+                </div>
+              ))}
+            </dl>
           </div>
         ))
       }
-    </dl>
+    </div>
 
     <p class="glossary-empty" id="glossary-empty" style="display:none">沒有符合的術語。</p>
 
@@ -115,7 +135,8 @@ const categoryEmoji: Record<string, string> = {
 <script>
   const searchInput = document.getElementById('glossary-search') as HTMLInputElement;
   const pills = document.querySelectorAll<HTMLButtonElement>('.category-pill');
-  const items = document.querySelectorAll<HTMLElement>('.glossary-entry');
+  const entries = document.querySelectorAll<HTMLElement>('.glossary-entry');
+  const sections = document.querySelectorAll<HTMLElement>('.letter-section');
   const countEl = document.getElementById('glossary-count');
   const emptyEl = document.getElementById('glossary-empty');
 
@@ -125,17 +146,25 @@ const categoryEmoji: Record<string, string> = {
     const query = searchInput.value.toLowerCase().trim();
     let visible = 0;
 
-    items.forEach((item) => {
-      const matchesCategory = activeCategory === 'all' || item.dataset.category === activeCategory;
+    entries.forEach((entry) => {
+      const matchesCategory = activeCategory === 'all' || entry.dataset.category === activeCategory;
       const matchesSearch =
         !query ||
-        item.dataset.term?.includes(query) ||
-        item.dataset.en?.includes(query) ||
-        item.dataset.definition?.includes(query);
+        entry.dataset.term?.includes(query) ||
+        entry.dataset.en?.includes(query) ||
+        entry.dataset.definition?.includes(query);
 
       const show = matchesCategory && matchesSearch;
-      item.style.display = show ? '' : 'none';
+      entry.style.display = show ? '' : 'none';
       if (show) visible++;
+    });
+
+    // Hide empty letter sections
+    sections.forEach((section) => {
+      const hasVisible = Array.from(section.querySelectorAll('.glossary-entry')).some(
+        (e) => (e as HTMLElement).style.display !== 'none'
+      );
+      section.style.display = hasVisible ? '' : 'none';
     });
 
     if (countEl) countEl.textContent = `${visible} 個術語`;
@@ -161,14 +190,14 @@ const categoryEmoji: Record<string, string> = {
       navigator.clipboard.writeText(url.toString());
       history.replaceState(null, '', url.hash);
       link.classList.add('copied');
-      setTimeout(() => link.classList.remove('copied'), 1000);
+      setTimeout(() => link.classList.remove('copied'), 1200);
     });
   });
 </script>
 
 <style>
   .glossary-page {
-    max-width: 640px;
+    max-width: 760px;
     margin: 0 auto;
   }
 
@@ -237,17 +266,29 @@ const categoryEmoji: Record<string, string> = {
   .glossary-count {
     font-size: 0.75rem;
     color: var(--color-text-muted);
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
   }
 
-  /* Definition list — dictionary style */
-  .glossary-list {
+  /* Letter section dividers */
+  .letter-divider {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--color-accent);
+    padding: 0.75rem 0 0.25rem 0;
+    border-bottom: 2px solid var(--color-accent);
+    margin-bottom: 0;
+    letter-spacing: 0.05em;
+    opacity: 0.8;
+  }
+
+  /* Definition list */
+  .section-list {
     margin: 0;
     padding: 0;
   }
 
   .glossary-entry {
-    padding: 0.6rem 0;
+    padding: 0.5rem 0;
     border-bottom: 1px solid var(--color-border);
   }
 
@@ -258,7 +299,7 @@ const categoryEmoji: Record<string, string> = {
   dt {
     display: flex;
     align-items: baseline;
-    gap: 0.35rem;
+    gap: 0.3rem;
     flex-wrap: wrap;
     margin: 0;
   }
@@ -275,8 +316,10 @@ const categoryEmoji: Record<string, string> = {
     color: var(--color-accent);
   }
 
-  .term-link.copied {
+  .term-link.copied::after {
+    content: ' ✓';
     color: var(--color-accent);
+    font-size: 0.75rem;
   }
 
   .term-en {
@@ -286,17 +329,42 @@ const categoryEmoji: Record<string, string> = {
   }
 
   .term-cat {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
+    font-weight: 500;
+    padding: 0.1rem 0.4rem;
+    border-radius: 3px;
     margin-left: auto;
+    white-space: nowrap;
+    opacity: 0.7;
+  }
+
+  .cat-tools {
+    color: var(--color-accent);
+    background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  }
+
+  .cat-concepts {
+    color: #7cb3ff;
+    background: color-mix(in srgb, #7cb3ff 12%, transparent);
+  }
+
+  .cat-methods {
+    color: #a78bfa;
+    background: color-mix(in srgb, #a78bfa 12%, transparent);
+  }
+
+  .cat-platforms {
+    color: #34d399;
+    background: color-mix(in srgb, #34d399 12%, transparent);
   }
 
   dd {
-    margin: 0.2rem 0 0 0;
+    margin: 0.15rem 0 0 0;
   }
 
   .term-def {
     font-size: 0.85rem;
-    line-height: 1.55;
+    line-height: 1.5;
     color: var(--color-text-muted);
     margin: 0;
   }
@@ -304,8 +372,8 @@ const categoryEmoji: Record<string, string> = {
   .term-meta {
     font-size: 0.75rem;
     color: var(--color-text-muted);
-    margin: 0.2rem 0 0 0;
-    opacity: 0.7;
+    margin: 0.15rem 0 0 0;
+    opacity: 0.65;
   }
 
   .term-meta a {
