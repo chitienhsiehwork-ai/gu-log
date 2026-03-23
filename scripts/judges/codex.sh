@@ -67,13 +67,16 @@ judge_score_post() {
     echo "- File: $(basename "$post_path")"
     echo "- Ticket: $(get_ticket_id "$post_path")"
     echo
-    echo "## Post content (first 500 lines to avoid Codex prompt blow-up)"
+    echo "## Post content (first 500 lines)"
     sed -n '1,500p' "$post_path"
+    echo
+    echo "Remember: output ONLY valid JSON, nothing else."
   } > "$input_file"
 
   local stderr_file
   stderr_file="$(mktemp)"
-  if ! timeout 600 codex exec --full-auto --color never - < "$input_file" > "$raw_file" 2>"$stderr_file"; then
+  # Codex is slow but thorough — give it 50 minutes per post
+  if ! timeout 3000 codex exec --full-auto --color never - < "$input_file" > "$raw_file" 2>"$stderr_file"; then
     # Codex may exit non-zero but still produce valid output; check before bailing
     if [ ! -s "$raw_file" ]; then
       cat "$stderr_file" >&2
