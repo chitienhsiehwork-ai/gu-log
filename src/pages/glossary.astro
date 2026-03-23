@@ -70,9 +70,13 @@ const allLetters = grouped.map((g) => g.letter);
 
     {/* Alphabet jump bar */}
     <nav class="alpha-bar" aria-label="字母索引">
-      {allLetters.map((l) => (
-        <a href={`#letter-${l}`} class="alpha-link">{l}</a>
-      ))}
+      {
+        allLetters.map((l) => (
+          <a href={`#letter-${l}`} class="alpha-link">
+            {l}
+          </a>
+        ))
+      }
     </nav>
 
     <div id="glossary-list">
@@ -95,7 +99,9 @@ const allLetters = grouped.map((g) => g.letter);
                       {item.term}
                     </a>
                     {item.en !== item.term && <span class="term-en">{item.en}</span>}
-                    <span class={`term-cat cat-${item.category}`}>{categoryLabel[item.category] || item.category}</span>
+                    <span class={`term-cat cat-${item.category}`}>
+                      {categoryLabel[item.category] || item.category}
+                    </span>
                   </dt>
                   <dd>
                     <p class="term-def">{item.definition}</p>
@@ -114,13 +120,16 @@ const allLetters = grouped.map((g) => g.letter);
                         )}
                         {item.definedIn?.length > 0 && (
                           <span class="meta-posts">
-                            {' '}| 文章：{' '}
-                            {item.definedIn.map((post: { slug: string; title: string }, i: number) => (
-                              <span>
-                                <a href={`/posts/${post.slug}`}>{post.title}</a>
-                                {i < item.definedIn.length - 1 && '、'}
-                              </span>
-                            ))}
+                            {' '}
+                            | 文章：{' '}
+                            {item.definedIn.map(
+                              (post: { slug: string; title: string }, i: number) => (
+                                <span>
+                                  <a href={`/posts/${post.slug}`}>{post.title}</a>
+                                  {i < item.definedIn.length - 1 && '、'}
+                                </span>
+                              )
+                            )}
                           </span>
                         )}
                       </p>
