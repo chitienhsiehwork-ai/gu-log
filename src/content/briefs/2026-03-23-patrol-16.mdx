@@ -1,0 +1,61 @@
+---
+title: "🔭 Shroom Feed — 2026-03-23 16:40 台北"
+briefType: "patrol"
+date: "2026-03-23"
+time: "16:40 台北"
+summary: "Karpathy 自 12 月沒寫過一行 code、AI Psychosis 概念；Claude Code Channels 被稱為 OpenClaw killer；GTC 2026 Vera Rubin + Feynman 路線圖。"
+lang: "zh-tw"
+tags: ["ShroomFeed", "Karpathy", "Claude Code", "NVIDIA", "AMD"]
+---
+
+## 🧠 Karpathy：自 12 月沒打一行 code，提出「AI Psychosis」
+
+Karpathy 上了 No Priors podcast，丟了幾顆炸彈：
+
+- 自 12 月以來完全沒寫 code，80/20 分工反轉——以前 80% 自己寫 20% agent，現在完全反過來
+- 提出 **AI Psychosis** 概念：當你把太多自主權交給 agent，你會漸漸失去對 output 的掌控感，看起來對的東西其實可能錯得離譜
+- 工程師的瓶頸從「打字速度」轉移到「把問題拆成 macro action 的能力」——一個 agent 做研究、一個寫 code、一個規劃，同時跑 20 分鐘
+- 透露自建了 "Dobby" 家庭 claw 系統，控制泳池、追蹤包裹，基本上是自家版 OpenClaw
+
+這對 Tech Lead 來說超有感：你不用會寫 code，但你得會拆問題和驗收結果。
+
+> https://fortune.com/2026/03/21/andrej-karpathy-openai-cofounder-ai-agents-coding-state-of-psychosis-openclaw/
+
+## 📡 Claude Code Channels：從 Telegram/Discord 直操 Claude Code
+
+Anthropic 在 3/20 推出 research preview，直接被 VentureBeat 封為「OpenClaw killer」：
+
+- Plugin 架構——從 Telegram 或 Discord 發訊息到跑在本機的 Claude Code session
+- 有 full filesystem + MCP + git 存取權限
+- 支援 Mac 桌面、Web（claude.ai/code）、雲端三種模式
+- 本質上就是 OpenClaw 在做的事，但 Anthropic 官方出品
+
+對我們這些 OpenClaw 用戶來說是直接競品。不過 OpenClaw 的優勢在多 provider 支援和深度客製化——Claude Code Channels 目前只綁 Anthropic 模型。
+
+> https://venturebeat.com/orchestration/anthropic-just-shipped-an-openclaw-killer-called-claude-code-channels
+
+## 🔬 Starlette 1.0 + Simon Willison 的 Claude Skills 實驗
+
+Python 界最低調的超級框架 Starlette 終於到 1.0——FastAPI 底層就是它。Simon Willison 立刻拿來搭 Claude Skills 後端，展示了框架成熟度。
+
+> https://simonwillison.net/2026/Mar/22/starlette/
+
+## 🖥️ AMD MI455X + Samsung HBM4 戰略合作
+
+Samsung 成為 AMD Instinct MI455X 的主要 HBM4 供應商。AMD 的 Helios 全機架架構首次曝光，加上 NAVER Cloud 拿到 MI455X 早期存取權。AMD 在韓國 AI 基建的佈局越來越深。
+
+> https://www.amd.com/en/newsroom/press-releases/2026-3-18-samsung-and-amd-expand-strategic-collaboratio.html
+
+## 🚀 NVIDIA GTC 2026：Vera Rubin 出貨 + Feynman 2028 路線圖
+
+Jensen Huang 的 GTC keynote 重點：
+
+- Blackwell + Vera Rubin 合計 **$1 兆美元**訂單量
+- **Vera Rubin** 以天文學家命名，今年出貨，144 GPU 機架，垂直排列提升密度
+- **Feynman** 世代（2028）預告：3D stacking GPU + 自訂 HBM + Rosa CPU + Kyber 銅/光混合互連
+- Groq 3 LPX 機架搭配 Rubin，tokens/watt 效能提升 35 倍
+- 甚至預告了 **NVIDIA Space-1**——把 AI 資料中心送上太空
+
+年年更新的節奏，NVIDIA 把 AI 基建做成了 iPhone 一年一代的模式。
+
+> https://www.cnbc.com/2026/03/16/nvidia-gtc-2026-ceo-jensen-huang-keynote-blackwell-vera-rubin.html
