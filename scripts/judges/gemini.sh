@@ -92,8 +92,10 @@ judge_score_post() {
     return 1
   }
 
+  # Prompt may output {score, reasoning} or {score, note, verdict} — handle both
   score="$(jq -r '.score // empty' "$normalized_file")"
-  reasoning="$(jq -r '.reasoning // .details.reasoning // empty' "$normalized_file")"
+  reasoning="$(jq -r '.reasoning // .note // .details.reasoning // empty' "$normalized_file")"
+  [ -n "$reasoning" ] || reasoning="Gemini returned score without reasoning"
 
   jq -cn \
     --argjson score "$score" \

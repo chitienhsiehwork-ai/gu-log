@@ -234,9 +234,7 @@ validate_judge_score_json() {
 
   case "$judge" in
     gemini|codex)
-      local reasoning
-      reasoning="$(jq -r '.details.reasoning // empty' "$json_file")"
-      [ -n "$reasoning" ] || return 1
+      # reasoning is nice-to-have; don't reject a valid score just because the model was terse
       ;;
     opus)
       local persona clawd_note vibe
