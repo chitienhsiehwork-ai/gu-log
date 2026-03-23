@@ -32,6 +32,9 @@ const i18n = {
     briefsLink: '/briefs',
     navGlossary: '詞彙表',
     glossaryLink: '/glossary',
+    navClawdPicks: 'Clawd Picks',
+    navReadingTracker: '閱讀紀錄',
+    menuLabel: '選單',
     footerBy: '香菇大狗狗',
     footerSub: '翻譯由 Clawd 執行，（沒什麼）經人工校對',
     fonts:
@@ -49,6 +52,9 @@ const i18n = {
     briefsLink: '/en/briefs',
     navGlossary: 'Glossary',
     glossaryLink: '/glossary',
+    navClawdPicks: 'Clawd Picks',
+    navReadingTracker: 'Reading Tracker',
+    menuLabel: 'Menu',
     footerBy: 'ShroomDog',
     footerSub: 'Written by AI, (barely) reviewed by humans',
     fonts: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap',
@@ -121,16 +127,14 @@ const finalDescription = description || t.defaultDescription;
       @import '../styles/global.css';
     </style>
     <style>
+      /* ── Header ─────────────────────────────────────────────── */
       .site-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
         padding: 0.5rem 0;
-        margin-bottom: 2rem;
         border-bottom: 1px solid var(--color-border);
-        flex-wrap: wrap;
-        gap: 0.25rem 0.5rem;
-        min-height: 44px;
+        min-height: 52px;
       }
 
       .header-avatar {
@@ -160,7 +164,7 @@ const finalDescription = description || t.defaultDescription;
       .site-nav {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
+        gap: 0;
         flex-shrink: 0;
       }
 
@@ -182,8 +186,8 @@ const finalDescription = description || t.defaultDescription;
         text-decoration: none;
         transition: color 0.2s ease;
         padding: 0.3rem;
-        width: 28px;
-        height: 28px;
+        width: 44px;
+        height: 44px;
         flex-shrink: 0;
         box-sizing: border-box;
       }
@@ -194,47 +198,170 @@ const finalDescription = description || t.defaultDescription;
         color: var(--color-accent);
       }
 
-      /* All SVGs in nav: uniform 16px */
+      /* All SVGs in nav: uniform 18px */
       .nav-svg-icon,
       .nav-icons .search-trigger svg,
       .nav-icons .theme-toggle svg {
-        width: 16px;
-        height: 16px;
+        width: 18px;
+        height: 18px;
         flex-shrink: 0;
         display: block;
       }
 
-      /* Removed login styles */
+      /* ── Hamburger button ───────────────────────────────────── */
+      .hamburger-btn {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 4px;
+        width: 44px;
+        height: 44px;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        color: var(--color-text-muted);
+        transition: color 0.2s ease;
+        flex-shrink: 0;
+        -webkit-tap-highlight-color: transparent;
+        outline: none;
+      }
 
-      /* Mobile: shrink icons to fit single row */
-      @media (max-width: 480px) {
-        .site-header {
-          flex-wrap: wrap;
-        }
-        .site-nav {
-          flex-shrink: 1;
-          gap: 0;
-          justify-content: flex-end;
-        }
-        .nav-icons {
-          gap: 0;
-          flex-wrap: nowrap;
-        }
-        .icon-btn,
-        .nav-icons .search-trigger,
-        .nav-icons .theme-toggle {
-          width: 26px;
-          height: 26px;
-          padding: 0.2rem;
-        }
-        .nav-svg-icon,
-        .nav-icons .search-trigger svg,
-        .nav-icons .theme-toggle svg {
-          width: 14px;
-          height: 14px;
+      .hamburger-btn:hover {
+        color: var(--color-accent);
+      }
+
+      .hamburger-btn:focus {
+        outline: none;
+      }
+
+      .hamburger-line {
+        display: block;
+        width: 18px;
+        height: 1.5px;
+        background: currentColor;
+        transition:
+          transform 0.25s ease,
+          opacity 0.2s ease;
+        transform-origin: center;
+        border-radius: 1px;
+      }
+
+      /* Hamburger → X morph */
+      .hamburger-btn[aria-expanded='true'] .hamburger-line:nth-child(1) {
+        transform: translateY(5.5px) rotate(45deg);
+      }
+      .hamburger-btn[aria-expanded='true'] .hamburger-line:nth-child(2) {
+        opacity: 0;
+        transform: scaleX(0);
+      }
+      .hamburger-btn[aria-expanded='true'] .hamburger-line:nth-child(3) {
+        transform: translateY(-5.5px) rotate(-45deg);
+      }
+
+      /* ── Hamburger menu panel ───────────────────────────────── */
+      .hamburger-menu {
+        display: grid;
+        grid-template-rows: 0fr;
+        transition:
+          grid-template-rows 0.25s ease,
+          opacity 0.2s ease;
+        opacity: 0;
+        border-bottom: 1px solid var(--color-border);
+        margin-bottom: 2rem;
+        pointer-events: none;
+      }
+
+      .hamburger-menu.menu-open {
+        grid-template-rows: 1fr;
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .hamburger-menu-inner {
+        overflow: hidden;
+      }
+
+      .hamburger-nav {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 0.25rem;
+        padding: 0.75rem 0 1rem;
+      }
+
+      .hamburger-item {
+        display: flex;
+        align-items: center;
+        gap: 0.625rem;
+        padding: 0.625rem 0.875rem;
+        color: var(--color-text-muted);
+        text-decoration: none;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        transition:
+          color 0.15s ease,
+          background 0.15s ease;
+        -webkit-tap-highlight-color: transparent;
+        opacity: 0;
+        transform: translateY(-6px);
+        animation: menuItemIn 0.2s ease forwards;
+        animation-play-state: paused;
+      }
+
+      .hamburger-item svg {
+        width: 17px;
+        height: 17px;
+        flex-shrink: 0;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .hamburger-item:hover {
+        color: var(--color-accent);
+        background: var(--color-bg-muted);
+      }
+
+      .hamburger-menu.menu-open .hamburger-item {
+        animation-play-state: running;
+      }
+
+      .hamburger-item:nth-child(1) {
+        animation-delay: 0.04s;
+      }
+      .hamburger-item:nth-child(2) {
+        animation-delay: 0.08s;
+      }
+      .hamburger-item:nth-child(3) {
+        animation-delay: 0.12s;
+      }
+      .hamburger-item:nth-child(4) {
+        animation-delay: 0.16s;
+      }
+      .hamburger-item:nth-child(5) {
+        animation-delay: 0.2s;
+      }
+      .hamburger-item:nth-child(6) {
+        animation-delay: 0.24s;
+      }
+
+      @keyframes menuItemIn {
+        to {
+          opacity: 1;
+          transform: translateY(0);
         }
       }
 
+      @media (max-width: 480px) {
+        .hamburger-nav {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+
+      /* ── Footer ─────────────────────────────────────────────── */
       .site-footer {
         margin-top: 3rem;
         padding-top: 1rem;
@@ -277,109 +404,85 @@ const finalDescription = description || t.defaultDescription;
             class="site-title-text">{t.siteTitle}</span
           ></a
         >
-        <nav class="site-nav">
+        <nav class="site-nav" aria-label={t.menuLabel}>
           <span class="nav-icons">
-            <a href={t.homeLink} class="icon-btn" title={t.navHome}>
-              <svg
-                class="nav-svg-icon"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
+            <SearchBar lang={lang} />
+            <LanguageToggle currentLang={lang} currentPath={currentPath} />
+            <ThemeToggle />
+            <button
+              class="hamburger-btn"
+              id="hamburger-btn"
+              aria-label={t.menuLabel}
+              aria-expanded="false"
+              aria-controls="hamburger-menu"
+            >
+              <span class="hamburger-line"></span>
+              <span class="hamburger-line"></span>
+              <span class="hamburger-line"></span>
+            </button>
+          </span>
+        </nav>
+      </header>
+
+      <!-- Hamburger slide-down menu -->
+      <div class="hamburger-menu" id="hamburger-menu" aria-hidden="true">
+        <div class="hamburger-menu-inner">
+          <nav class="hamburger-nav">
+            <a href={t.homeLink} class="hamburger-item">
+              <svg viewBox="0 0 24 24">
                 <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
                 <polyline points="9 22 9 12 15 12 15 22"></polyline>
               </svg>
+              {t.navHome}
             </a>
-            <a href={t.aboutLink} class="icon-btn" title={t.navAbout}>
-              <svg
-                class="nav-svg-icon"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
+            <a href={t.aboutLink} class="hamburger-item">
+              <svg viewBox="0 0 24 24">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                 <circle cx="12" cy="7" r="4"></circle>
               </svg>
+              {t.navAbout}
             </a>
-            <a href={`${t.homeLink}#clawd-picks`} class="icon-btn" title="Clawd Picks">
-              <svg
-                class="nav-svg-icon"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
+            <a href={`${t.homeLink}#clawd-picks`} class="hamburger-item">
+              <svg viewBox="0 0 24 24">
                 <path d="M12 8V4H8"></path>
                 <rect x="4" y="8" width="16" height="12" rx="2"></rect>
                 <circle cx="9" cy="14" r="1.5" fill="currentColor" stroke="none"></circle>
                 <circle cx="15" cy="14" r="1.5" fill="currentColor" stroke="none"></circle>
               </svg>
+              {t.navClawdPicks}
             </a>
-            <a href={t.briefsLink} class="icon-btn" title={t.navBriefs}>
-              <svg
-                class="nav-svg-icon"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
+            <a href={t.briefsLink} class="hamburger-item">
+              <svg viewBox="0 0 24 24">
                 <path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"></path>
                 <path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"></path>
                 <circle cx="12" cy="12" r="2"></circle>
                 <path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"></path>
                 <path d="M19.1 4.9C23 8.8 23 15.1 19.1 19"></path>
               </svg>
+              {t.navBriefs}
             </a>
-            <a href={t.glossaryLink} class="icon-btn" title={t.navGlossary}>
-              <svg
-                class="nav-svg-icon"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
+            <a href={t.glossaryLink} class="hamburger-item">
+              <svg viewBox="0 0 24 24">
                 <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
                 <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
               </svg>
+              {t.navGlossary}
             </a>
             <a
               href="/reading-tracker"
-              class="icon-btn"
-              title={lang === 'en' ? 'Reading Tracker' : '閱讀紀錄'}
+              class="hamburger-item"
               id="nav-reading-tracker"
               style="display:none"
             >
-              <svg
-                class="nav-svg-icon"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
+              <svg viewBox="0 0 24 24">
                 <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
                 <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
               </svg>
+              {t.navReadingTracker}
             </a>
-            <LanguageToggle currentLang={lang} currentPath={currentPath} />
-            <SearchBar lang={lang} />
-            <ThemeToggle />
-          </span>
-        </nav>
-      </header>
+          </nav>
+        </div>
+      </div>
 
       <main>
         <slot />
@@ -396,5 +499,46 @@ const finalDescription = description || t.defaultDescription;
     </div>
 
     <CodeCopyButton />
+
+    <script>
+      const btn = document.getElementById('hamburger-btn') as HTMLButtonElement | null;
+      const menu = document.getElementById('hamburger-menu') as HTMLElement | null;
+
+      function openMenu() {
+        btn?.setAttribute('aria-expanded', 'true');
+        menu?.classList.add('menu-open');
+        menu?.setAttribute('aria-hidden', 'false');
+      }
+
+      function closeMenu() {
+        btn?.setAttribute('aria-expanded', 'false');
+        menu?.classList.remove('menu-open');
+        menu?.setAttribute('aria-hidden', 'true');
+      }
+
+      btn?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = btn.getAttribute('aria-expanded') === 'true';
+        if (isOpen) closeMenu();
+        else openMenu();
+      });
+
+      // Close on outside click
+      document.addEventListener('click', (e) => {
+        if (menu && !menu.contains(e.target as Node) && e.target !== btn) {
+          closeMenu();
+        }
+      });
+
+      // Close on Escape
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeMenu();
+      });
+
+      // Close when a menu item is clicked (nav to new page)
+      menu?.querySelectorAll('.hamburger-item').forEach((item) => {
+        item.addEventListener('click', () => closeMenu());
+      });
+    </script>
   </body>
 </html>
