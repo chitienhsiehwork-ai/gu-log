@@ -1,0 +1,43 @@
+---
+ticketId: 'Lv-99'
+title: 'Test LevelUpQuiz Fixture'
+originalDate: '2026-01-01'
+source: 'Test'
+sourceUrl: 'https://example.com'
+summary: 'Test fixture for LevelUpQuiz component'
+lang: 'zh-tw'
+tags: ['test']
+---
+
+import LevelUpQuiz from '../../components/LevelUpQuiz.astro';
+import LevelUpProgress from '../../components/LevelUpProgress.astro';
+import ClawdNote from '../../components/ClawdNote.astro';
+import AnalogyBox from '../../components/AnalogyBox.astro';
+
+<LevelUpProgress current={2} total={5} title="測試教學" />
+<LevelUpProgress current={1} total={5} />
+
+這是一段測試文字，用來確保最低內容長度通過驗證。這段文字需要至少兩百個字元才能通過 validate-posts 的檢查，所以我們在這裡多寫一點內容。Level-Up 教學系統的測試頁面，用來驗證所有新元件是否正常運作。
+
+<LevelUpQuiz
+  question="下列哪個是正確答案？"
+  options={[
+    { label: "A", text: "錯誤選項一" },
+    { label: "B", text: "正確選項" },
+    { label: "C", text: "錯誤選項二" },
+  ]}
+  answer="B"
+  explanation="B 是正確答案，因為這是測試。"
+/>
+
+<ClawdNote variant="murmur">
+這是碎碎念風格的測試。
+</ClawdNote>
+
+<ClawdNote>
+這是一般 note 風格的測試。
+</ClawdNote>
+
+<AnalogyBox title="🧪 測試類比">
+這就像是在測試一台新車上路前，先在工廠裡跑幾圈。
+</AnalogyBox>
