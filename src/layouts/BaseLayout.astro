@@ -28,7 +28,7 @@ const i18n = {
     navHome: '首頁',
     navAbout: '關於',
     aboutLink: '/about',
-    navBriefs: '📡 Briefs',
+    navBriefs: 'Briefs',
     briefsLink: '/briefs',
     navGlossary: '詞彙表',
     glossaryLink: '/glossary',
@@ -48,7 +48,7 @@ const i18n = {
     navHome: 'Home',
     navAbout: 'About',
     aboutLink: '/en/about',
-    navBriefs: '📡 Briefs',
+    navBriefs: 'Briefs',
     briefsLink: '/en/briefs',
     navGlossary: 'Glossary',
     glossaryLink: '/glossary',
@@ -171,14 +171,14 @@ const finalDescription = description || t.defaultDescription;
       .nav-icons {
         display: flex;
         align-items: center;
-        gap: 0;
+        gap: 0.125rem;
         flex-wrap: nowrap;
       }
 
-      /* Unified nav icon container — applies to ALL nav items (links + buttons) */
-      .icon-btn,
-      .nav-icons .search-trigger,
-      .nav-icons .theme-toggle {
+      /* Unified nav icon container — applies to ALL nav items including child components */
+      :global(.icon-btn),
+      :global(.nav-icons .search-trigger),
+      :global(.nav-icons .theme-toggle) {
         display: flex;
         align-items: center;
         justify-content: center;
@@ -192,16 +192,16 @@ const finalDescription = description || t.defaultDescription;
         box-sizing: border-box;
       }
 
-      .icon-btn:hover,
-      .nav-icons .search-trigger:hover,
-      .nav-icons .theme-toggle:hover {
+      :global(.icon-btn:hover),
+      :global(.nav-icons .search-trigger:hover),
+      :global(.nav-icons .theme-toggle:hover) {
         color: var(--color-accent);
       }
 
       /* All SVGs in nav: uniform 18px */
-      .nav-svg-icon,
-      .nav-icons .search-trigger svg,
-      .nav-icons .theme-toggle svg {
+      :global(.nav-svg-icon),
+      :global(.nav-icons .search-trigger svg),
+      :global(.nav-icons .theme-toggle svg) {
         width: 18px;
         height: 18px;
         flex-shrink: 0;
