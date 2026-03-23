@@ -1,111 +1,16 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import glossaryData from '../data/glossary.json';
 
-const glossary = [
-  {
-    term: 'Ralph',
-    en: 'Ralph',
-    definition:
-      '一個可以在背景持續運作的 AI coding agent，由 @AshleyGlenn 打造。讓 AI 在你睡覺時自動跑測試、修 bug、提交 PR。',
-    related: ['Vibe Coding', 'Agent'],
-  },
-  {
-    term: 'Vibe Coding',
-    en: 'Vibe Coding',
-    definition:
-      '用自然語言描述你要什麼，讓 AI 幫你寫 code 的開發方式。重點是「說感覺」而不是「寫規格」。由 Andrej Karpathy 命名。',
-    related: ['Claude Code', 'Agent'],
-  },
-  {
-    term: 'Vibe Note-Taking',
-    en: 'Vibe Note-Taking',
-    definition:
-      '把 Vibe Coding 的概念套用到筆記：用語音或隨意打字記錄想法，讓 AI 幫你整理成結構化筆記。',
-    related: ['Vibe Coding', 'Obsidian'],
-  },
-  {
-    term: 'MCP',
-    en: 'Model Context Protocol',
-    definition: 'Anthropic 推出的協議，讓 AI 可以連接外部工具和資料來源。像是 AI 的 USB 接口。',
-    related: ['Claude Code', 'Tool Use'],
-  },
-  {
-    term: 'Claude Code',
-    en: 'Claude Code',
-    definition:
-      'Anthropic 官方的 CLI 工具，讓 Claude 可以直接在你的電腦上執行指令、讀寫檔案、跑測試。agentic coding 的主力工具。',
-    related: ['Vibe Coding', 'MCP'],
-  },
-  {
-    term: 'Hooks',
-    en: 'Hooks',
-    definition: 'Claude Code 的自動化機制。可以在 session 開始、結束、或特定動作後自動執行腳本。',
-    related: ['Claude Code'],
-  },
-  {
-    term: 'Subagent',
-    en: 'Subagent',
-    definition: '主 Agent 派出去處理特定任務的小 Agent。像是老闆派員工去做事，做完回報結果。',
-    related: ['Agent', 'Claude Code'],
-  },
-  {
-    term: 'Context Window',
-    en: 'Context Window',
-    definition: 'AI 一次能「記住」的最大文字量。超過這個限制，AI 就會開始「遺忘」前面的對話。',
-    related: ['Token'],
-  },
-  {
-    term: 'Tools for Thought',
-    en: 'Tools for Thought',
-    definition:
-      '幫助人類思考的工具，如 Obsidian、Roam Research、Notion。核心理念是把想法外部化、連結化、可搜尋化。',
-    related: ['Obsidian', 'Zettelkasten'],
-  },
-  {
-    term: 'Zettelkasten',
-    en: 'Zettelkasten',
-    definition:
-      '德文「卡片盒」。一種筆記方法：每張卡片一個想法，卡片之間用連結串起來。現代 Obsidian 的核心靈感來源。',
-    related: ['Tools for Thought', 'Obsidian'],
-  },
-  {
-    term: 'MOC',
-    en: 'Map of Content',
-    definition: '內容地圖。一個專門用來連結相關筆記的索引頁面，幫助你在筆記之間導航。',
-    related: ['Obsidian', 'Zettelkasten'],
-  },
-  {
-    term: 'OpenClaw',
-    en: 'OpenClaw',
-    definition:
-      '開源的 AI Agent 框架，可以把 Claude 變成 24/7 運作的個人助理，透過 Telegram、Discord 等管道互動。前身叫 Moltbot/Clawdbot。',
-    related: ['Agent', 'Claude Code'],
-  },
-  {
-    term: 'Agent',
-    en: 'Agent',
-    definition:
-      '能自主執行任務的 AI。不只是回答問題，而是能使用工具、讀寫檔案、呼叫 API、甚至派出其他 Agent 來完成複雜任務。',
-    related: ['Subagent', 'Tool Use'],
-  },
-  {
-    term: 'Showboat',
-    en: 'Showboat',
-    definition:
-      'Simon Willison 開發的 CLI 工具，讓 AI agent 自動產生 Markdown demo 文件來展示自己寫的 code 實際跑起來的樣子。解決一個核心問題：agent 說 test 全 pass，但你怎麼知道它真的 work？用截圖 + 指令記錄來「證明」成果。',
-    related: ['Rodney', 'Agent', 'Claude Code'],
-  },
-  {
-    term: 'Rodney',
-    en: 'Rodney',
-    definition:
-      'Simon Willison 開發的 CLI 版瀏覽器自動化工具，基於 Playwright。可以截圖、跑 JavaScript、做 accessibility audit，專門設計給 AI agent 當「眼睛」用。跟 Showboat 搭配使用效果最佳。',
-    related: ['Showboat', 'Agent'],
-  },
+const glossary = [...glossaryData].sort((a, b) => a.term.localeCompare(b.term));
+
+const categories: { id: string; label: string }[] = [
+  { id: 'all', label: '全部' },
+  { id: 'tools', label: '工具' },
+  { id: 'concepts', label: '概念' },
+  { id: 'methods', label: '方法' },
+  { id: 'platforms', label: '平台' },
 ];
-
-// Sort alphabetically by term
-const sortedGlossary = glossary.sort((a, b) => a.term.localeCompare(b.term));
 ---
 
 <BaseLayout title="詞彙表 - gu-log" lang="zh-tw">
@@ -115,13 +20,46 @@ const sortedGlossary = glossary.sort((a, b) => a.term.localeCompare(b.term));
       <p class="glossary-intro">AI 領域術語變化很快，這裡整理了本站常出現的詞彙。</p>
     </header>
 
-    <div class="glossary-list">
+    <div class="glossary-controls">
+      <input
+        type="search"
+        id="glossary-search"
+        class="glossary-search"
+        placeholder="搜尋術語..."
+        aria-label="搜尋術語"
+      />
+      <div class="category-pills" role="group" aria-label="分類篩選">
+        {
+          categories.map((cat) => (
+            <button
+              class="category-pill"
+              data-category={cat.id}
+              aria-pressed={cat.id === 'all' ? 'true' : 'false'}
+            >
+              {cat.label}
+            </button>
+          ))
+        }
+      </div>
+    </div>
+
+    <p class="glossary-count" id="glossary-count">{glossary.length} 個術語</p>
+
+    <div class="glossary-list" id="glossary-list">
       {
-        sortedGlossary.map((item) => (
-          <div class="glossary-item" id={item.term.toLowerCase().replace(/\s+/g, '-')}>
+        glossary.map((item) => (
+          <div
+            class="glossary-item"
+            id={item.term.toLowerCase().replace(/\s+/g, '-')}
+            data-term={item.term.toLowerCase()}
+            data-en={item.en.toLowerCase()}
+            data-definition={item.definition.toLowerCase()}
+            data-category={item.category}
+          >
             <h2 class="glossary-term">
               {item.term}
               {item.en !== item.term && <span class="glossary-en">({item.en})</span>}
+              <span class="category-tag">{item.category}</span>
             </h2>
             <p class="glossary-definition">{item.definition}</p>
             {item.related && item.related.length > 0 && (
@@ -135,16 +73,71 @@ const sortedGlossary = glossary.sort((a, b) => a.term.localeCompare(b.term));
                 ))}
               </div>
             )}
+            {item.definedIn && item.definedIn.length > 0 && (
+              <div class="glossary-defined-in">
+                <span class="defined-in-label">詳細說明於：</span>
+                {item.definedIn.map((post: { slug: string; title: string }, i: number) => (
+                  <span>
+                    <a href={`/posts/${post.slug}`}>{post.title}</a>
+                    {i < item.definedIn.length - 1 && '、'}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         ))
       }
     </div>
+
+    <p class="glossary-empty" id="glossary-empty" style="display:none">沒有符合的術語。</p>
 
     <footer class="glossary-footer">
       <a href="/">← 返回首頁</a>
     </footer>
   </article>
 </BaseLayout>
+
+<script>
+  const searchInput = document.getElementById('glossary-search') as HTMLInputElement;
+  const pills = document.querySelectorAll<HTMLButtonElement>('.category-pill');
+  const items = document.querySelectorAll<HTMLElement>('.glossary-item');
+  const countEl = document.getElementById('glossary-count');
+  const emptyEl = document.getElementById('glossary-empty');
+
+  let activeCategory = 'all';
+
+  function filterItems() {
+    const query = searchInput.value.toLowerCase().trim();
+    let visible = 0;
+
+    items.forEach((item) => {
+      const matchesCategory = activeCategory === 'all' || item.dataset.category === activeCategory;
+      const matchesSearch =
+        !query ||
+        item.dataset.term?.includes(query) ||
+        item.dataset.en?.includes(query) ||
+        item.dataset.definition?.includes(query);
+
+      const show = matchesCategory && matchesSearch;
+      item.style.display = show ? '' : 'none';
+      if (show) visible++;
+    });
+
+    if (countEl) countEl.textContent = `${visible} 個術語`;
+    if (emptyEl) emptyEl.style.display = visible === 0 ? '' : 'none';
+  }
+
+  searchInput?.addEventListener('input', filterItems);
+
+  pills.forEach((pill) => {
+    pill.addEventListener('click', () => {
+      activeCategory = pill.dataset.category ?? 'all';
+      pills.forEach((p) => p.setAttribute('aria-pressed', 'false'));
+      pill.setAttribute('aria-pressed', 'true');
+      filterItems();
+    });
+  });
+</script>
 
 <style>
   .glossary-page {
@@ -154,7 +147,71 @@ const sortedGlossary = glossary.sort((a, b) => a.term.localeCompare(b.term));
 
   .glossary-intro {
     color: var(--color-text-muted);
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .glossary-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .glossary-search {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    background: var(--color-surface);
+    color: var(--color-text);
+    font-size: 0.95rem;
+    box-sizing: border-box;
+  }
+
+  .glossary-search:focus {
+    outline: 2px solid var(--color-accent);
+    outline-offset: -1px;
+  }
+
+  .glossary-search::placeholder {
+    color: var(--color-text-muted);
+  }
+
+  .category-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .category-pill {
+    padding: 0.25rem 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition:
+      background 0.15s,
+      color 0.15s,
+      border-color 0.15s;
+  }
+
+  .category-pill:hover {
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+  }
+
+  .category-pill[aria-pressed='true'] {
+    background: var(--color-accent);
+    color: var(--color-bg);
+    border-color: var(--color-accent);
+  }
+
+  .glossary-count {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    margin-bottom: 1rem;
   }
 
   .glossary-list {
@@ -174,13 +231,27 @@ const sortedGlossary = glossary.sort((a, b) => a.term.localeCompare(b.term));
     font-size: 1.1rem;
     margin-bottom: 0.5rem;
     color: var(--color-text);
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.4rem;
   }
 
   .glossary-en {
     font-weight: 400;
     font-size: 0.9rem;
     color: var(--color-text-muted);
-    margin-left: 0.5rem;
+  }
+
+  .category-tag {
+    font-size: 0.7rem;
+    font-weight: 400;
+    color: var(--color-text-muted);
+    background: var(--color-border);
+    border-radius: 4px;
+    padding: 0.1rem 0.4rem;
+    margin-left: auto;
+    white-space: nowrap;
   }
 
   .glossary-definition {
@@ -201,6 +272,31 @@ const sortedGlossary = glossary.sort((a, b) => a.term.localeCompare(b.term));
 
   .glossary-related a:hover {
     text-decoration: underline;
+  }
+
+  .glossary-defined-in {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    margin-top: 0.4rem;
+  }
+
+  .defined-in-label {
+    color: var(--color-text-muted);
+  }
+
+  .glossary-defined-in a {
+    color: var(--color-accent);
+    text-decoration: none;
+  }
+
+  .glossary-defined-in a:hover {
+    text-decoration: underline;
+  }
+
+  .glossary-empty {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    padding: 1rem 0;
   }
 
   .glossary-footer {
