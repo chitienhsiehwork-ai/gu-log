@@ -19,7 +19,7 @@ const categoryLabel: Record<string, string> = {
   platforms: '平台',
 };
 
-// Group by first letter for section dividers
+// Group by first letter
 const grouped: { letter: string; items: typeof glossary }[] = [];
 let currentLetter = '';
 for (const item of glossary) {
@@ -31,6 +31,8 @@ for (const item of glossary) {
     grouped[grouped.length - 1].items.push(item);
   }
 }
+
+const allLetters = grouped.map((g) => g.letter);
 ---
 
 <BaseLayout title="詞彙表 - gu-log" lang="zh-tw">
@@ -48,28 +50,36 @@ for (const item of glossary) {
         placeholder="搜尋術語..."
         aria-label="搜尋術語"
       />
-      <div class="category-pills" role="group" aria-label="分類篩選">
-        {
-          categories.map((cat) => (
-            <button
-              class="category-pill"
-              data-category={cat.id}
-              aria-pressed={cat.id === 'all' ? 'true' : 'false'}
-            >
-              {cat.label}
-            </button>
-          ))
-        }
+      <div class="controls-row">
+        <div class="category-pills" role="group" aria-label="分類篩選">
+          {
+            categories.map((cat) => (
+              <button
+                class="category-pill"
+                data-category={cat.id}
+                aria-pressed={cat.id === 'all' ? 'true' : 'false'}
+              >
+                {cat.label}
+              </button>
+            ))
+          }
+        </div>
+        <span class="glossary-count" id="glossary-count">{glossary.length} 個術語</span>
       </div>
     </div>
 
-    <p class="glossary-count" id="glossary-count">{glossary.length} 個術語</p>
+    {/* Alphabet jump bar */}
+    <nav class="alpha-bar" aria-label="字母索引">
+      {allLetters.map((l) => (
+        <a href={`#letter-${l}`} class="alpha-link">{l}</a>
+      ))}
+    </nav>
 
     <div id="glossary-list">
       {
         grouped.map((group) => (
-          <div class="letter-section" data-letter={group.letter}>
-            <div class="letter-divider">{group.letter}</div>
+          <section class="letter-section" data-letter={group.letter} id={`letter-${group.letter}`}>
+            <h2 class="letter-heading">{group.letter}</h2>
             <dl class="section-list">
               {group.items.map((item) => (
                 <div
@@ -119,7 +129,7 @@ for (const item of glossary) {
                 </div>
               ))}
             </dl>
-          </div>
+          </section>
         ))
       }
     </div>
@@ -159,7 +169,6 @@ for (const item of glossary) {
       if (show) visible++;
     });
 
-    // Hide empty letter sections
     sections.forEach((section) => {
       const hasVisible = Array.from(section.querySelectorAll('.glossary-entry')).some(
         (e) => (e as HTMLElement).style.display !== 'none'
@@ -182,7 +191,6 @@ for (const item of glossary) {
     });
   });
 
-  // Click term to copy anchor link
   document.querySelectorAll<HTMLAnchorElement>('.term-link').forEach((link) => {
     link.addEventListener('click', (e) => {
       e.preventDefault();
@@ -204,7 +212,7 @@ for (const item of glossary) {
   .glossary-intro {
     color: var(--color-text-muted);
     font-size: 0.85rem;
-    margin-bottom: 1.25rem;
+    margin-bottom: 1rem;
   }
 
   /* Controls */
@@ -212,7 +220,7 @@ for (const item of glossary) {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.5rem;
   }
 
   .glossary-search {
@@ -233,6 +241,14 @@ for (const item of glossary) {
 
   .glossary-search::placeholder {
     color: var(--color-text-muted);
+    opacity: 0.7;
+  }
+
+  .controls-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
   }
 
   .category-pills {
@@ -253,8 +269,8 @@ for (const item of glossary) {
   }
 
   .category-pill:hover {
-    color: var(--color-accent);
-    border-color: var(--color-accent);
+    color: var(--color-text);
+    border-color: var(--color-text-muted);
   }
 
   .category-pill[aria-pressed='true'] {
@@ -264,32 +280,61 @@ for (const item of glossary) {
   }
 
   .glossary-count {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     color: var(--color-text-muted);
+    white-space: nowrap;
+    opacity: 0.6;
+  }
+
+  /* Alphabet jump bar */
+  .alpha-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.15rem;
+    padding: 0.4rem 0;
     margin-bottom: 0.25rem;
+    border-bottom: 1px solid var(--color-border);
   }
 
-  /* Letter section dividers */
-  .letter-divider {
-    font-size: 0.8rem;
-    font-weight: 700;
+  .alpha-link {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    padding: 0.15rem 0.35rem;
+    border-radius: 3px;
+    transition: all 0.1s;
+  }
+
+  .alpha-link:hover {
     color: var(--color-accent);
-    padding: 0.75rem 0 0.25rem 0;
-    border-bottom: 2px solid var(--color-accent);
-    margin-bottom: 0;
-    letter-spacing: 0.05em;
-    opacity: 0.8;
+    background: color-mix(in srgb, var(--color-accent) 10%, transparent);
   }
 
-  /* Definition list */
+  /* Letter sections */
+  .letter-section {
+    scroll-margin-top: 1rem;
+  }
+
+  .letter-heading {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--color-accent);
+    margin: 0.75rem 0 0 0;
+    padding-bottom: 0.2rem;
+    border-bottom: 2px solid color-mix(in srgb, var(--color-accent) 40%, transparent);
+    opacity: 0.9;
+  }
+
+  /* Entries */
   .section-list {
     margin: 0;
     padding: 0;
   }
 
   .glossary-entry {
-    padding: 0.5rem 0;
-    border-bottom: 1px solid var(--color-border);
+    padding: 0.45rem 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
   }
 
   .glossary-entry:last-child {
@@ -317,49 +362,52 @@ for (const item of glossary) {
   }
 
   .term-link.copied::after {
-    content: ' ✓';
+    content: ' ✓ copied';
     color: var(--color-accent);
-    font-size: 0.75rem;
-  }
-
-  .term-en {
-    font-size: 0.8rem;
-    color: var(--color-text-muted);
+    font-size: 0.65rem;
     font-weight: 400;
   }
 
-  .term-cat {
-    font-size: 0.65rem;
-    font-weight: 500;
-    padding: 0.1rem 0.4rem;
-    border-radius: 3px;
-    margin-left: auto;
-    white-space: nowrap;
+  .term-en {
+    font-size: 0.78rem;
+    color: var(--color-text-muted);
+    font-weight: 400;
     opacity: 0.7;
   }
 
+  /* Inline category badges */
+  .term-cat {
+    font-size: 0.6rem;
+    font-weight: 600;
+    padding: 0.08rem 0.35rem;
+    border-radius: 3px;
+    white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
   .cat-tools {
-    color: var(--color-accent);
-    background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+    color: #f0a050;
+    background: color-mix(in srgb, #f0a050 15%, transparent);
   }
 
   .cat-concepts {
-    color: #7cb3ff;
-    background: color-mix(in srgb, #7cb3ff 12%, transparent);
+    color: #60a5fa;
+    background: color-mix(in srgb, #60a5fa 15%, transparent);
   }
 
   .cat-methods {
-    color: #a78bfa;
-    background: color-mix(in srgb, #a78bfa 12%, transparent);
+    color: #c084fc;
+    background: color-mix(in srgb, #c084fc 15%, transparent);
   }
 
   .cat-platforms {
     color: #34d399;
-    background: color-mix(in srgb, #34d399 12%, transparent);
+    background: color-mix(in srgb, #34d399 15%, transparent);
   }
 
   dd {
-    margin: 0.15rem 0 0 0;
+    margin: 0.1rem 0 0 0;
   }
 
   .term-def {
@@ -370,10 +418,10 @@ for (const item of glossary) {
   }
 
   .term-meta {
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     color: var(--color-text-muted);
-    margin: 0.15rem 0 0 0;
-    opacity: 0.65;
+    margin: 0.1rem 0 0 0;
+    opacity: 0.55;
   }
 
   .term-meta a {
@@ -383,6 +431,7 @@ for (const item of glossary) {
 
   .term-meta a:hover {
     text-decoration: underline;
+    opacity: 1;
   }
 
   .glossary-empty {
@@ -396,5 +445,12 @@ for (const item of glossary) {
     padding-top: 0.75rem;
     border-top: 1px solid var(--color-border);
     font-size: 0.85rem;
+  }
+
+  /* Desktop: wider + two-column for sections with many items */
+  @media (min-width: 768px) {
+    .glossary-page {
+      max-width: 820px;
+    }
   }
 </style>
