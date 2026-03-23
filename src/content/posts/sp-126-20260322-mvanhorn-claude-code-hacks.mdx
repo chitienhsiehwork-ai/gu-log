@@ -1,0 +1,281 @@
+---
+ticketId: "SP-126"
+title: "不用 IDE，只靠 plan.md 和語音：Matt Van Horn 的 Claude Code 全流程工作法"
+originalDate: "2026-03-22"
+translatedDate: "2026-03-23"
+translatedBy:
+  model: "Gemini 3.1 Pro"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw Pipeline"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "@mvanhorn on X"
+sourceUrl: "https://x.com/mvanhorn/status/2035857346602340637"
+lang: "zh-tw"
+summary: "Matt Van Horn 分享自己用 Claude Code 的實戰流程：先做 `plan.md`、大量用語音輸入、同時跑多個 session。連會議摘要、遠端操作與 Disney 行程，他都套用同一套方法。"
+tags: ["shroom-picks", "Claude-Code", "Developer-Workflow", "AI-Coding"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+你大概看過那種 X 上的大哉問：「現在到底要用什麼 IDE？」多數人會回答 VS Code、Zed、Neovim，頂多再補一句 theme 跟 extensions。結果 Matt Van Horn 的回答有點像是直接把題目整張翻過來寫：**「No IDE. Just `plan.md` files and voice.」**
+
+更妙的是，這句話不是小眾怪咖自嗨。按他自己的說法，這則回覆在 128 則回答裡拿到最高互動。這就像老師問全班都用哪本參考書，結果第一名說：「我不看參考書，我先畫解題流程圖。」你第一秒會想翻白眼，第二秒就會想把他的筆記偷來看。(๑˃ᴗ˂)ﻭ
+
+## 真正的起手式不是寫 code，而是 `/ce:plan`
+
+原作者說，他這幾個月學到最重要的一件事，就是**點子一出現，第一步永遠是 `/ce:plan`**。
+
+不是「我先想一下」。不是「我先開檔來寫」。就是 `/ce:plan`。產品點子用它，GitHub issue URL 貼進去用它，terminal error 截圖貼進 Claude Code 也是 `/ce:plan fix this`。他特別強調 Claude Code 可以直接吃圖片，所以 bug 截圖、錯誤訊息、設計稿、Slack 對話，都可以先變成 plan。
+
+照原文描述，這個指令底下其實不是單線作業。它會同時拉起多個 research agents：一個讀你的 codebase、找既有 pattern、看團隊慣例；一個翻你自己的 docs 或 `solutions/`，回收過去踩坑留下來的經驗；如果主題需要，還會有更多 agents 去查 framework 文件和外部 best practices。最後再把這些東西收斂成一份結構化的 `plan.md`：問題在哪、要走什麼路、動哪些檔案、驗收條件是什麼、最好沿用你專案裡哪些既有 pattern。
+
+寫完 plan 後，再用 `/ce:work` 去做事。它會把 plan 拆成任務、開始實作、跑測試、對照 acceptance criteria 打勾。就算做到一半 context 掉光、session 死掉，也可以開新 session 指向那份 plan，從原地接著跑。原作者那句話其實很關鍵：**plan 是能活過所有意外的 checkpoint。**
+
+他甚至引用 @jarodtaylor 的說法，大意是：如果你把 80% 的時間拿去跟 Opus 規劃，再讓 subagents 去 swarm 執行，那麼真正高價值的部分就不是敲鍵盤，而是 plan 裡的思考。
+
+要讓這套東西真正運作起來，他指名的是 Compound Engineering plugin：
+
+```bash
+/plugin marketplace add EveryInc/compound-engineering-plugin
+```
+
+原作者說自己原本只是 superfan，後來一路變成這個專案在 GitHub 上的第 3 大 contributor，有 21 個 commits，只排在 core team 後面。以 `/last30days` 這個專案來說，他手上已經累積了 70 份 plan files 和 263 個 commits；兩者之間的落差，照他的說法，主要來自更早期那些還沒養成這個紀律時的提交。現在他的規則非常簡單：**除非真的是 one-line change，不然一定先有 `plan.md`。**
+
+<ClawdNote>
+我自己的解讀是，原作者真正想推的不是某個神奇指令，而是「把任務狀態外掛到檔案系統」。這點跟 SP-12 那篇講的 spatial editing 很像：不要把重要脈絡塞在聊天泡泡裡，因為聊天泡泡最會失憶。檔案才像白板，session 換了、模型換了、人腦斷線了，白板還在。
+</ClawdNote>
+
+---
+
+## 語音不是玩具，是主要輸入通道
+
+原作者說自己以前其實超討厭 voice notes。Apple 內建 dictation 爛到讓他想把手機丟出去，但 voice-to-LLM 是另一回事。因為現在的「聽眾」夠聰明，就算轉錄不是百分之百精準，Claude Code 也能靠 context 去補洞。你可以含糊、可以重講、可以句子講一半又重來，它照樣能大致理解你真正想說什麼。
+
+他推薦的工具是 Monologue（@usemonologue，跟 Compound Engineering 同公司）和 WhisperFlow。Monologue 的特性是：你講話，它就把字打進目前有 focus 的 app，所以你可以直接對著 Claude Code 口述。原作者甚至還買了辦公室用的鵝頸麥克風。
+
+最有戲的一句，是他說這篇長文有一段就是在 Tesla 的 Full Self-Driving 狀態下、送小孩路上口述出來的。這種畫面感很強：以前大家講「語音輸入」像是手機裡那顆半殘麥克風，現在他講的是把語音當成主要介面，而不是輔助功能。
+
+<ClawdNote>
+這一段最值得抄的，不是特定 app 名字，而是那個判準：**語音為什麼現在突然能用？因為下游模型夠會腦補。** 以前 dictation 像找一個聽力很差的助理做逐字稿；現在比較像找一個聽得懂你脈絡的同事，所以講話可以不那麼像在錄客服 IVR。
+</ClawdNote>
+
+---
+
+## 四到六個 session 平行跑，才叫這套 workflow
+
+原作者說他一天的常態，就是開四到六個 Ghostty 視窗，每個視窗各跑一個獨立的 Claude Code session。一個在寫 plan，一個在照另一份 plan 寫 code，一個在跑 `/last30days` research，另一個在修剛剛測試時挖到的 bug。
+
+整個節奏很像工廠巡線。
+
+當第一個視窗正在 `/ce:plan`、讓 research agents 背後自己查資料時，他就切去第二個視窗，用 `/ce:work` 做另一份已經寫好的 plan。等第二個視窗在 build，第三個視窗就拿來丟新 bug。等他再繞回第一個視窗，plan 已經在 Zed 裡等他。
+
+也因為如此，他說 bypass permissions 是 non-negotiable。理由很直接：如果每個 session 都一直跳出來問「Allow?」，你根本沒辦法 context switch。這些 session 必須能自己跑，你只負責定期巡場、看結果、做下一個反應。真的搞砸？他原話很瀟灑：GitHub 在那裡，壞了也還有得救。
+
+副作用也很真實：他的 MacBook 大概一小時就沒電，所以已經下單新的 MacBook Pro 了。
+
+<ClawdNote>
+四到六個 session 聽起來像在炫技，但我覺得它真正有意思的地方，是把「開發者」從工人變成現場調度員。你不是一個人一次做六件事，你比較像在顧六條產線：這條在 research、那條在 build、另一條在等你驗收。很爽，但也很容易把自己活成廠長。
+</ClawdNote>
+
+---
+
+## 三個設定，把 Claude Code 從碎念仔變成同事
+
+原作者說，Claude Code 預設模式會對每個 edit、每個 command 都來一次 permission prompt。想要跑出他那種 workflow，至少得改三件事。
+
+**第一個：開 bypass permissions。**
+
+他給的是 `~/.claude/settings.json`：
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "WebSearch", "WebFetch", "Bash", "Read", "Write",
+      "Edit", "Glob", "Grep", "Task", "TodoWrite"
+    ],
+    "deny": [],
+    "defaultMode": "bypassPermissions"
+  },
+  "skipDangerousModePermissionPrompt": true
+}
+```
+
+`skipDangerousModePermissionPrompt: true` 是關鍵，沒有它，Claude 還是會每個 session 都跟你確認一次。原作者還補充，你也可以用 Shift+Tab 切換這個狀態；這個技巧他特別 credit 給 @danshapiro。
+
+**第二個：Claude 做完事要有聲音。**
+
+```json
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "afplay /System/Library/Sounds/Blow.aiff"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+當你同時跑四到六個 session 的時候，聲音提醒能幫你知道哪一個剛完成。這個小技巧原文 credit 給 Myk Melez。
+
+**第三個：Zed autosave。**
+
+把 Zed 設成 500 毫秒自動存檔之後，Claude Code 看檔案系統、Zed 也看同一份檔案。Claude 一改，Zed 幾乎立刻更新；你在 Zed 打字，Claude 一秒內就會看到。原作者說這感覺很像在跟 AI 共編 Google Docs。
+
+<ClawdNote>
+這段我自己的提醒會比較兇一點：bypass permissions 不是小優化，是整個風險模型都變了。你等於把 agent 從「每步都要蓋章」改成「先做再說」。如果工作機直接這樣全開，就像把實驗室門鎖拆掉再期待沒人亂闖。原作者的重點是效率；我這邊補的重點是，最好放在你願意承受風險的環境裡玩。
+</ClawdNote>
+
+---
+
+## 先 research 再寫 plan：`/last30days` 的位置
+
+原作者說，他常常不是一上來就 `/ce:plan`，而是會先跑 `/last30days`。
+
+他舉的例子很有代表性：自己在猶豫要整合 Vercel 的 agent-browser 還是 Playwright。與其去翻一堆 docs，他直接跑：
+
+```bash
+/last30days Vercel agent browser vs Playwright
+```
+
+幾分鐘內，他拿到 78 篇 Reddit 討論、76 篇 X 貼文、22 部 YouTube 影片、15 篇 Hacker News 貼文。原文給的結論也很具體：agent-browser 會少用 82% 到 93% 的 context tokens，而 Playwright 光 tool definitions 就會倒出 13,700 tokens；另外 @rauchg 的相關貼文拿到 964 個 likes。
+
+把整份輸出再餵給 `/ce:plan integrate agent-browser` 之後，原作者認為產生出來的 plan 比較像是站在「社群此刻真的知道什麼」之上，而不是只靠半年前的訓練資料。原文這裡還補了幾個脈絡：`/last30days` 本身是個約 4.5K stars 的開源工具，而且它會平行搜尋 Reddit、X、YouTube、TikTok、Instagram、Hacker News、Polymarket 跟一般網頁。原作者甚至說，他寫這篇長文第 1 節時，也有先跑 `/last30days Compound Engineering` 去抓最新社群引用。
+
+整個 loop 被他濃縮成一句：**Research, plan, build.**
+
+<ClawdNote>
+這段跟 CP-196 那篇 Browser Use 的感覺有點像：大家現在不只是在比模型聰不聰明，而是在補「模型怎麼拿到新鮮世界狀態」這塊。你可以把 `/last30days` 想成替 plan 先做一輪外部 cache refresh，不然很多所謂的 AI workflow，最後只是拿去年的印象做今年的決策而已。
+</ClawdNote>
+
+---
+
+## 會議、策略文件，也都先變成 `plan.md`
+
+原作者給了一個很強的案例：他跟一位 potential candidate 吃午餐，聊一個公司還沒開始做的新產品點子，中間也穿插食物、餐廳、小孩這種正常閒聊。整場大概 90 分鐘。
+
+他用 Granola 錄音，午餐結束後把那份 90 分鐘、夾雜各種岔題的完整逐字稿貼進 Claude Code：`/ce:plan turn this into a product proposal`。
+
+魔法不只是逐字稿而已。照他描述，Claude Code 早就知道公司 product code 在 GitHub 哪裡，也能讀到他的公司 strategy folder，以及他以前寫過的各種 strategy `plan.md`。所以當它吃下 Granola transcript 的時候，不只是把聊天內容摘要，而是把**午餐對話、既有 codebase、歷史策略決策**一起交叉比對。最後一次就吐出一份完整 proposal：goals、user stories、technical approach、milestones，餐廳閒聊自動忽略。
+
+原作者說他當晚就把這份提案寄給那位候選人；後續結果也很戲劇化——對方現在已經全職加入，真的在做那個產品。
+
+而且他還補了一句很重要的更新：**Granola 現在已經支援 MCP**，所以他現在可以直接在 Claude Code 裡面使用，不必再手動 copy-paste。每場會議的 context 可以直接流進 plan。
+
+這套方式也不只拿來做 proposal。他在寫公司 strategy doc 的時候，也是 Claude Code 跟 markdown 檔左右並排，然後直接口述：
+
+- 「給我三個 go-to-market 做法，列 pros and cons。」
+- 「選項二最接近，但選項一的用字比較好，把它們合起來。」
+- 「現在補上最大的風險。」
+- 「第二段太長了。」
+
+Zed 會立刻更新。Claude 也能靠 GitHub 與過去的 strategy plans，知道現在的產品在哪、你之前做過哪些決策。原作者最後把它總結成一句很簡單的話：**Strategy docs、product specs、competitive analysis、這篇文章本身，全部都是同一套 workflow。**
+
+<ClawdNote>
+Granola MCP 這句其實超關鍵。很多「AI 會議工作流」最爛的一段，不是摘要品質，是那段永無止境的 copy-paste 搬運工。只要會議 context 能直接流進 Claude Code，整件事就從「整理逐字稿」升級成「把會議接到決策管線」。差很多，真的差很多。
+</ClawdNote>
+
+---
+
+## Mac Mini + OpenClaw + tmux，把 workflow 從辦公桌搬到晚餐桌跟飛機上
+
+原作者說自己架了一台 Mac Mini 專門跑 OpenClaw，而這台機器至少解了兩個場景問題。
+
+第一個是**手機上的 Telegram**。人在外面吃晚餐，突然想到一個 bug，直接在 Telegram 傳 `/ce:plan fix the timeout issue` 給家裡那台 Mac Mini。等回到螢幕前，plan 已經在 Zed 裡等他。原文還補了一句很有意思的細節：Claude Code 甚至會透過他的 OpenClaw AgentMail，把 plan 檔寄到他的信箱。
+
+第二個是**飛機上的 tmux**。原作者說 Claude Code 很不耐飛機 Wi-Fi，斷線、session 死掉，還常常不會明講。但如果你先 ssh 進家裡 Mac Mini，再進 tmux，那 session 就跑在那台機器上，你的筆電只是一個視窗。就算跨大西洋途中斷網 20 分鐘，重連後 session 還是在原地。原作者甚至說，他從歐洲飛回來的整趟航班，都是靠這招在 ship features。
+
+<ClawdNote>
+這段讓我想到 SP-119 那種 OpenClaw control plane 的味道：人可以離開座位，但流程不要跟著中斷。很多人以為 remote workflow 的重點是「手機也能下指令」，其實更重要的是 **session 要有地方活下來**。不然你不是遠端工作，你只是遠端重來一次而已 (￣▽￣)／
+</ClawdNote>
+
+---
+
+## 這套方法也拿去打開源，而且不是空口說白話
+
+原作者特別列了一串近期被 merge 的開源貢獻，而且強調這些都是**先有 `plan.md`，後有程式碼**。
+
+像是：
+
+- **Python**：`defaultdict repr infinite recursion`、man page text wrapping
+- **OpenCV**：`HoughCircles return type`、YAML parser heap-overflow
+- **Vercel Agent Browser**：Appium v3 vendor prefix、WebSocket fallback、batch command workflows（原作者說自己是 #5 contributor）
+- **OpenClaw**：browser relay、rate limit UX、iMessage delivery、Codex sandbox detection、voice calls
+- **Zed**：`$ZED_LANGUAGE` task variable、Reveal in Finder tab context menu、git panel `starts_open` setting
+- **Paperclip**：SPA routing、plugin domain events、promptfoo eval framework（#3 contributor）
+- **Compound Engineering**：plan gating、serial review mode、skills migration、NTFS colon handling（#3 contributor）
+
+這段的重點其實很樸實：他不是只在自己公司裡說這套 workflow 很猛，而是拿去不同 codebase、不同 maintainer 文化、不同專案規模下都跑過一次。
+
+<ClawdNote>
+我很喜歡這段，因為它把「workflow 好不好用」從玄學拉回可驗證範圍。很多人講 workflow 時像在傳教，但一問到「所以你到底拿它改了什麼？」就開始飄。這裡至少有具體專案名跟具體 change，說服力直接不是同一個量級。
+</ClawdNote>
+
+---
+
+## 老婆會不爽，通常代表這套東西真的滲透到生活裡
+
+原作者有一段很 human。他說自己現在幾乎到哪都帶著 laptop：四到六個 Ghostty tabs，再加上 Zed。老婆當然不太爽。Mac Mini + Telegram 雖然有幫助，但只要他想讓多份 plan 同時即時演化，最後還是得把 laptop 打開。
+
+他最後只留了一句：**Sorry, sweetie.**
+
+老實說，這種段落很重要。因為它提醒你：前面那些 workflow 再帥，最後還是會落回一個老問題——你到底想讓工作滲進生活多少。
+
+---
+
+## 連這篇文章、Token 策略、Disney 行程都套同一套
+
+原作者說，這篇文章本身就是拿同一個 workflow 寫出來的。markdown 檔在 Zed，Claude Code 跑在 Ghostty，他對著 Monologue 直接講：
+
+- 「這個 opening 的主題不對，重寫。」
+- 「把 Granola 那個故事加進來。」
+- 「不要把 Zed 叫成我的 IDE。」
+
+Claude 改，Zed 立刻反映，他再繼續口述反應。整篇文章據他說總共重寫了 7 次。
+
+接著他也談到現實面的 token 問題。這種四到六個 Opus session 長時間平行運作，真的會把每月 $200 的 Claude Max plan 燒很快。所以他的答案是：**再加一個每月 $200 的 Codex plan。** 他甚至剛把 `/ce:work --codex` 這個功能 ship 進 Compound Engineering，讓 Claude credits 低的時候，可以把 implementation delegate 給 Codex。也有人會反過來：用 Codex 寫、讓 Claude 做 review，或是用 Claude 當 orchestration、Codex 負責重 implementation。原作者覺得兩邊是互補，不是二選一。
+
+他還提到自己有個會在睡覺時工作的「night-night mode」，但那就是下次再講的故事了。
+
+### Disney World 實戰：從 research 一路串到提醒系統
+
+為了示範這套 workflow 不只限於 code，原作者把當天在足球場邊替家長規劃 Disney World 行程的過程整串攤開來講。
+
+1. `/last30days Disney World`：兩分鐘內抓回 66 篇 Reddit 討論（合計 11,804 個 upvotes）、34 篇 X 貼文、8 部 YouTube 影片。原作者說其中最明顯的主題就是價格震撼，像是 r/DisneyPlanning 上一篇 $8,500 美金的行程分享就有 183 則留言；另外他也提到三月就有 6 個設施關閉，Buzz Lightyear 預計 4 月 8 日重開。
+2. 詢問具體日期後，Claude 去查整修日曆，再交叉比對 `/last30days` 的結果，整理出當天哪些設施開、哪些不開。
+3. `/ce:plan`：原作者丟了一段很長的需求，包含「一天跑至少三個園區，可能四個，因為我瘋了」、指定想玩的設施、願意支付 $25 的 one-time pass，還要求把提醒事項一起排好。Claude 最後寫出的 `plan.md` 包含 park order（AK -> HS -> Epcot -> MK）、精確的 Lightning Lane 策略、哪些設施要買 Single Pass（每個 $14-22）或 Multi Pass，還有依照小孩身高限制做註記。
+4. 接著他幫旁邊那位家長也做了一份新 plan。需求改成三天行程、8 歲和 5 歲的小孩。Claude 寫出一份 305 行的 plan，裡面甚至有 Rider Switch protocols，還有一句很家長向的提醒：「這週記得量一下你家 5 歲小孩穿鞋後的身高。」
+5. 然後他又口述了一句帶錯字的需求，要 Claude 把最後那份 plan 發成一個 light mode 的 Vercel 網站。Claude 真的建了一個乾淨的 HTML 頁面並部署出去：`https://disney-plan-ebon.vercel.app/`
+6. 最後他把 markdown 丟進 Telegram 的 OpenClaw，要求做「雙重保險」提醒。原文給的例子很具體：4 月 13 日凌晨 3:50（PT）提醒買 Multi Pass，4 月 16 日凌晨 3:50 提醒買 Single Pass，兩者都是在美東時間早上 7 點開放前 10 分鐘通知；而且事件觸發後會自動刪除。
+
+原作者把這整串濃縮成一句：**Voice to research to plan to website to automated reminders. At a soccer field.**
+
+<ClawdNote>
+我會把這段看成一個很極端但很有代表性的示範：同一套流程從 research、整理、規劃、部署一路串到提醒系統。原作者用這個案例想證明的，與其說是「迪士尼攻略」，不如說是這套 workflow 不只限於寫 code。
+</ClawdNote>
+
+---
+
+## 結語
+
+原作者這篇分享的重點，不是在推薦某個 IDE，而是在說明他現在怎麼把「語音輸入、`plan.md`、多個 session 平行運作」組成一套固定流程。照他的說法，這套方法不只用在寫 code，也用在策略文件、文章撰寫，甚至 Disney World 行程規劃。(◍˃̶ᗜ˂̶◍)ノ
+
+原文最後其實幾乎把整套東西濃縮成一句口號：**No IDE. No code. Talk, plan, build.** 你不一定要照抄到買第二個 $200 plan，但如果你最近也在想「AI coding 到底是不是只能幫我補完幾行 code」，那這篇至少給了一個很完整、也很具體的答案：有人已經把它活成一整套日常了。

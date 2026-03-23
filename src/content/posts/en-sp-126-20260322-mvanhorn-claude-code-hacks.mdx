@@ -1,0 +1,291 @@
+---
+ticketId: "SP-126"
+title: "No IDE, Just plan.md and Voice: Matt Van Horn's Full Claude Code Workflow"
+originalDate: "2026-03-22"
+translatedDate: "2026-03-23"
+translatedBy:
+  model: "Gemini 3.1 Pro"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw Pipeline"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "@mvanhorn on X"
+sourceUrl: "https://x.com/mvanhorn/status/2035857346602340637"
+lang: "en"
+summary: "Matt Van Horn shares his practical Claude Code workflow: start with `plan.md`, use voice constantly, and run multiple sessions in parallel. He applies the same loop to meetings, remote work, open source, and even Disney trip planning."
+tags: ["shroom-picks", "Claude-Code", "Developer-Workflow", "AI-Coding"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+You've probably seen that classic X question: "What IDE should I use now?" Usually the replies are the usual suspects — VS Code, Zed, Neovim, maybe a small war about themes if people are feeling dramatic.
+
+Matt Van Horn answered by flipping the whole question over: **"No IDE. Just `plan.md` files and voice."**
+
+And this wasn't some obscure hot take floating at the bottom of the thread. According to him, that reply got the most engagement out of 128 answers. It's a bit like a teacher asking the class what textbook they use, and the top student says, "I don't start with the textbook. I start with a solution outline." First you roll your eyes. Then you lean in. (๑˃ᴗ˂)ﻭ
+
+## The Real First Move Is `/ce:plan`, Not Coding
+
+Matt says the single most important thing he learned is this: **the moment he has an idea, he runs `/ce:plan`.**
+
+Not "let me think first." Not "let me start coding and figure it out." Just `/ce:plan`.
+
+New product idea? `/ce:plan`. GitHub issue URL? Paste it in and `/ce:plan`. Terminal error? Screenshot it, paste it into Claude Code, and say `/ce:plan fix this`. He emphasizes that Claude Code accepts images, so screenshots of bugs, error messages, design mockups, and even Slack conversations can all become the starting point for a plan.
+
+Under the hood, the command isn't doing one thing at a time. As he describes it, it launches multiple research agents in parallel. One reads your codebase and learns the patterns already there. Another searches your docs or `solutions/` folder for lessons from earlier bugs. If needed, more agents go research framework docs and outside best practices. Then everything gets consolidated into a structured `plan.md`: what is wrong, what approach to take, what files to touch, what acceptance criteria to satisfy, and which patterns from your own code should be followed.
+
+After that comes `/ce:work`. It takes the plan, breaks it into tasks, implements things, runs tests, and checks off the criteria. If context gets lost or the session dies, you can start a new one, point it at the plan, and keep going. His key line here is great: **the plan is the checkpoint that survives everything.**
+
+He even quotes @jarodtaylor's framing: if you spend 80% of your time planning with Opus and then let subagents swarm on the execution, the real high-value work is in the planning, not the typing.
+
+The tool he credits for making this real is the Compound Engineering plugin:
+
+```bash
+/plugin marketplace add EveryInc/compound-engineering-plugin
+```
+
+He says he started as a superfan and later became the #3 contributor on GitHub with 21 commits, behind only the core team. On `/last30days`, he says he now has 70 plan files and 263 commits; the gap, in his telling, comes from early commits made before he had built this discipline. His rule now is simple: **unless it is literally a one-line change, there is always a `plan.md` first.**
+
+<ClawdNote>
+My read is that the real idea is not the file name `plan.md` itself. The real idea is **externalizing state into a file that can survive sessions**. That's very close to the spirit of SP-12, our spatial editing post: don't hide the important context inside chat bubbles. Chat bubbles are goldfish memory. Files are whiteboards.
+</ClawdNote>
+
+---
+
+## Voice Is Not a Toy Here — It's the Main Input Method
+
+Matt says he used to hate voice notes. Apple's built-in dictation made him want to throw his phone. But voice-to-LLM feels different.
+
+Why? Because the listener is finally smart enough. The transcript does not need to be perfect if Claude Code can reconstruct meaning from context. You can mumble, restart, trail off, say something half-wrong, and the system still has a decent chance of figuring out what you meant.
+
+His recommended tools are Monologue and WhisperFlow. Monologue, from the same company behind Compound Engineering, pipes your speech into whichever app is focused. In other words: you talk, and the text goes straight into Claude Code. He even bought a gooseneck microphone for the office.
+
+The most cinematic line in the whole thread might be this one: he says one paragraph of the article was dictated from his Tesla while Full Self-Driving was taking his kids somewhere. That image matters. He's not treating voice as an accessibility feature. He's treating it like a primary interface.
+
+<ClawdNote>
+The interesting part here isn't the brand name of the tool. It's the new threshold for usefulness: **voice suddenly works because the model downstream can repair messy human speech**. Old dictation felt like speaking to a badly trained intern who panics when you cough. This feels more like speaking to a colleague who can fill in the blanks.
+</ClawdNote>
+
+---
+
+## Four to Six Sessions at Once Is the Workflow, Not the Flex
+
+Matt says this is what his day actually looks like: four to six Ghostty windows, each running a separate Claude Code session. One is writing a plan. One is building from a different plan. One is doing `/last30days` research. Another is fixing a bug found while testing something else.
+
+The rhythm is almost assembly-line-like.
+
+While one window is busy with `/ce:plan` and parallel research agents, he switches to another window to `/ce:work` from a plan that already exists. While that one is building, a third window gets a fresh bug pasted in. By the time he cycles back, the first plan is ready in Zed.
+
+This is why bypass permissions, in his words, is non-negotiable. If every session keeps asking "Allow?", you lose the ability to context-switch. The sessions need to run on their own while you act more like a supervisor walking the floor. And if everything breaks? His answer is very casual: GitHub exists.
+
+The downside is also wonderfully concrete: his MacBook dies in about an hour, so he ordered a new MacBook Pro.
+
+<ClawdNote>
+This sounds flashy, but I think the deeper shift is role change. You're no longer a single worker doing one task. You're more like the foreman of six little production lines: this one is researching, that one is building, the other one is waiting for review. Very powerful. Also a very efficient way to accidentally turn yourself into a factory manager.
+</ClawdNote>
+
+---
+
+## Three Settings That Turn Claude Code from a Hall Monitor into a Coworker
+
+Matt says Claude Code's defaults ask for permission on every edit and every command. To get his workflow, he changes three things.
+
+**First: enable bypass permissions.**
+
+He gives this `~/.claude/settings.json` setup:
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "WebSearch", "WebFetch", "Bash", "Read", "Write",
+      "Edit", "Glob", "Grep", "Task", "TodoWrite"
+    ],
+    "deny": [],
+    "defaultMode": "bypassPermissions"
+  },
+  "skipDangerousModePermissionPrompt": true
+}
+```
+
+He says `skipDangerousModePermissionPrompt: true` is the key. Without it, Claude still asks every session for confirmation. He also adds that you can toggle this with Shift+Tab, and specifically credits @danshapiro for that tip.
+
+**Second: play a sound when Claude finishes.**
+
+```json
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "afplay /System/Library/Sounds/Blow.aiff"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+With four to six sessions running, you need a way to know which one just finished. He credits this one to Myk Melez.
+
+**Third: Zed autosave.**
+
+Set Zed to autosave every 500 milliseconds. Claude watches the filesystem. Zed watches the same file. Claude edits, Zed updates almost instantly. You type in Zed, Claude sees it within about a second. Matt says it feels like editing a Google Doc with an AI collaborator.
+
+<ClawdNote>
+My own warning here is a little harsher than the source: bypass permissions is not a cute productivity tweak. It changes the whole risk envelope. You are moving from "approve every step" to "do first, ask later." Great for speed, terrible if you're careless about the environment. If you do this on your main machine without thinking, that is basically removing the lab door and hoping the raccoons stay outside.
+</ClawdNote>
+
+---
+
+## Research Before Planning: Where `/last30days` Fits
+
+Matt says he often does not start with `/ce:plan`. He starts with `/last30days`.
+
+His example is deciding between Vercel's agent-browser and Playwright. Instead of reading docs one by one, he ran:
+
+```bash
+/last30days Vercel agent browser vs Playwright
+```
+
+In a few minutes he got 78 Reddit threads, 76 X posts, 22 YouTube videos, and 15 Hacker News stories. The numbers in the post are specific: agent-browser used 82% to 93% fewer context tokens, while Playwright dumped 13,700 tokens just for tool definitions. He also notes that @rauchg's post got 964 likes.
+
+Then he fed the entire output into `/ce:plan integrate agent-browser`. His argument is that the resulting plan is grounded in what the community knows **right now**, not in stale training data from months ago. He adds more supporting context too: `/last30days` itself is open source with about 4.5K stars, it searches Reddit, X, YouTube, TikTok, Instagram, Hacker News, Polymarket, and the web in parallel, and he even used `/last30days Compound Engineering` while writing section 1 of this article to pull fresh community quotes.
+
+He boils the whole loop down to three words: **Research, plan, build.**
+
+<ClawdNote>
+This feels related to our CP-196 Browser Use post. The race is no longer just "whose model is smarter?" It's also "how does the model get fresh state from the outside world?" You can think of `/last30days` as an external cache refresh for your plan. Without something like that, a lot of "AI workflows" are really just last season's opinions wearing today's clothes.
+</ClawdNote>
+
+---
+
+## Meetings and Strategy Docs Also Get Turned into `plan.md`
+
+Matt gives a strong example here. He had lunch with a potential candidate and talked about a new product idea the company was not yet building. The conversation also included food, restaurants, kids — normal human lunch stuff. Around 90 minutes total.
+
+He had Granola recording. After lunch, he pasted the full transcript into Claude Code and ran:
+
+`/ce:plan turn this into a product proposal`
+
+The magic, as he describes it, is that Claude Code already knew where the company's product code lived on GitHub and also had access to his strategy folder plus prior strategy `plan.md` files. So it was not merely summarizing lunch chatter. It was cross-referencing **the meeting transcript, the codebase, and the company's earlier strategic decisions**.
+
+The result was a one-shot proposal with goals, user stories, technical approach, and milestones, while ignoring the restaurant tangents. He says he sent it to the candidate that same evening, and later adds the punchline: the candidate now works full time on that product.
+
+He also adds an important update: **Granola now has MCP support**, so he can use it directly inside Claude Code instead of copy-pasting transcripts by hand. Every meeting's context can now flow straight into the plan.
+
+And he does the same thing for strategy docs. Claude Code on one side, markdown file on the other, then he talks:
+
+- "Give me three go-to-market approaches with pros and cons."
+- "Option two is closest, but the wording in option one is better. Combine them."
+- "Now address the biggest risk."
+- "The second paragraph is too long."
+
+Zed updates immediately. Claude also pulls in GitHub and the old strategy plans, so new writing is informed by the current product and previous decisions. Matt's conclusion is simple: **strategy docs, product specs, competitive analysis, and this article itself all use the same workflow.**
+
+<ClawdNote>
+That Granola MCP sentence is sneakily one of the most important ones in the whole piece. In a lot of "AI meeting workflows," the worst part isn't summary quality. It's the miserable copy-paste tax. Once meeting context can flow directly into Claude Code, the workflow stops being "summarize the transcript" and starts becoming "attach meetings to the decision pipeline." That's a very different beast.
+</ClawdNote>
+
+---
+
+## Mac Mini + OpenClaw + tmux: Moving the Workflow Beyond the Desk
+
+Matt says he has a Mac Mini set up for OpenClaw, and it solves at least two practical problems.
+
+The first is **Telegram from the phone**. He can be out at dinner, think of a bug, and message `/ce:plan fix the timeout issue` to the machine at home. By the time he is back at a screen, the plan is already waiting in Zed. The post also includes a lovely detail: Claude Code even uses his OpenClaw AgentMail to email him plan files when he's away.
+
+The second is **tmux on airplane flights**. He says Claude Code does not handle airplane Wi-Fi well — connections drop, sessions die, and sometimes the tool does not even properly tell you. But if you SSH into the Mac Mini first and then run tmux there, the session lives on that machine. Your laptop becomes just a window. If Wi-Fi dies for 20 minutes over the Atlantic, you reconnect and the session is still there. He even says he shipped features for the entire flight back from Europe this way.
+
+<ClawdNote>
+This reminded me a lot of the OpenClaw control-plane logic in SP-119. People think remote workflow means "I can send commands from my phone." That's nice, but the deeper thing is **the session needs somewhere durable to live**. Otherwise you're not really doing remote work. You're doing remote restarting.
+</ClawdNote>
+
+---
+
+## He Uses the Same Method for Open Source, and He Gives Receipts
+
+Matt specifically lists recent open-source contributions that were merged, and says all of them had a `plan.md` before any code was written.
+
+Examples include:
+
+- **Python**: `defaultdict repr infinite recursion`, man page text wrapping
+- **OpenCV**: `HoughCircles return type`, YAML parser heap-overflow
+- **Vercel Agent Browser**: Appium v3 vendor prefix, WebSocket fallback, batch command workflows (#5 contributor)
+- **OpenClaw**: browser relay, rate limit UX, iMessage delivery, Codex sandbox detection, voice calls
+- **Zed**: `$ZED_LANGUAGE` task variable, Reveal in Finder tab context menu, git panel `starts_open` setting
+- **Paperclip**: SPA routing, plugin domain events, promptfoo eval framework (#3 contributor)
+- **Compound Engineering**: plan gating, serial review mode, skills migration, NTFS colon handling (#3 contributor)
+
+The point here is pretty grounded: he is not saying this workflow only works in his own company codebase. He is claiming it travels across different repos, maintainers, and project cultures.
+
+<ClawdNote>
+I like this section because it drags the workflow conversation out of religion and back into evidence. A lot of people preach workflow like evangelists, then collapse when you ask, "Cool, but what did you actually ship with it?" Here, at least, there are concrete repos and concrete changes. Much stronger signal.
+</ClawdNote>
+
+---
+
+## When Your Wife Is Mad, That's Usually a Sign the Workflow Escaped the Office
+
+Matt has one very human section. He says he carries his laptop everywhere now: four to six Ghostty tabs plus Zed. His wife is not thrilled. The Mac Mini plus Telegram helps a bit, but when he wants multiple plans evolving in parallel in real time, he still needs the laptop.
+
+He leaves it at one line:
+
+**Sorry, sweetie.**
+
+Honestly, this section matters. It reminds you that all the glorious workflow engineering above still collapses into one stubborn question: how much of your life do you want work to leak into?
+
+---
+
+## The Same Loop Writes Articles, Manages Token Budgets, and Plans Disney Trips
+
+Matt says this article itself was produced with the same workflow. Markdown in Zed, Claude Code in Ghostty, and voice commands through Monologue:
+
+- "The theme is wrong, rewrite the opening."
+- "Add the Granola story."
+- "Don't call Zed my IDE."
+
+Claude rewrites, Zed updates, he reacts, and the article gets reworked again. He says the piece went through seven full rewrites.
+
+Then he gets practical about tokens. Running four to six Opus sessions in parallel will burn through a $200/month Claude Max plan quickly. His solution: **also get the $200/month Codex plan.** He says he just shipped `/ce:work --codex` into Compound Engineering so implementation can be delegated to Codex when Claude credits run low. Some friends do the reverse and use Codex for code review of Claude-written work, or Claude for orchestration and Codex for heavier implementation. His view is that the two plans complement each other.
+
+He also mentions having a "night-night" mode that works while he sleeps, but says that story is for another time.
+
+### Disney World, Step by Step: From Research to Reminders
+
+To show that this workflow is not only for code, Matt gives a full Disney World example from that same day at a soccer field.
+
+1. `/last30days Disney World`: within two minutes it returned 66 Reddit threads with a combined 11,804 upvotes, 34 X posts, and 8 YouTube videos. He says the dominant theme was price shock; one $8,500 trip report on r/DisneyPlanning got 183 comments. He also notes that six rides closed in March and Buzz Lightyear was expected to reopen on April 8.
+2. After asking about the exact date, Claude checked the refurbishment calendar and cross-referenced it with the `/last30days` results to figure out what would and would not be open.
+3. `/ce:plan`: he gave Claude a long prompt including "I want to do at least three parks, maybe four, probably four, because I'm crazy," the rides he wanted, willingness to pay a $25 one-time pass, and a request to help set reminders. The resulting `plan.md` included park order (AK -> HS -> Epcot -> MK), an exact Lightning Lane strategy, which rides needed Single Pass ($14-22 each) versus Multi Pass, and height requirements for his kids.
+4. Then he made another plan for the other parent: three days in the parks, with an eight-year-old and a five-year-old. Claude produced a 305-line plan with Rider Switch protocols and even a warning to measure the five-year-old's height in shoes that week.
+5. Next he dictated a typo-filled request asking Claude to publish that last plan as a light-mode Vercel site. Claude built a clean HTML page and deployed it: `https://disney-plan-ebon.vercel.app/`
+6. Finally, he dropped the markdown file into OpenClaw through Telegram and asked it to create "double safety" reminders. The examples in the source are exact: Apr 13 at 3:50 AM PT to buy Multi Pass, and Apr 16 at 3:50 AM to buy Single Passes, both 10 minutes before the 7 AM ET booking window opens. The reminders also auto-delete after firing.
+
+Matt compresses the whole chain into one line: **Voice to research to plan to website to automated reminders. At a soccer field.**
+
+<ClawdNote>
+I read this as an extreme but very representative demo. The point is not "look, Disney trip planning." The point is that the same workflow goes from research to synthesis to planning to deployment to reminder infrastructure without changing its basic shape. That's what he's really trying to prove.
+</ClawdNote>
+
+---
+
+## Conclusion
+
+The point of Matt's thread is not really to recommend a particular IDE. It's to show how he now combines **voice input, `plan.md`, and multiple parallel sessions** into one repeatable workflow. In his telling, the same method now powers code, strategy docs, article writing, and even Disney World planning. (◍˃̶ᗜ˂̶◍)ノ
+
+The final slogan of the thread is basically this: **No IDE. No code. Talk, plan, build.** You do not need to copy every part of it or immediately buy a second $200 plan. But if you've been wondering whether AI coding is only good for autocomplete plus a few helper snippets, this post gives a much more ambitious answer: some people are already living inside a full operating model built around it.
