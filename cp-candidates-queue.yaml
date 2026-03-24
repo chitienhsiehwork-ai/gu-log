@@ -1,213 +1,100 @@
-# CP Candidates Queue
-# Maintained by Shroom Feed (producer) + CP Writer (consumer)
-# Max 100 entries. Lowest-scored entries get evicted when full.
-#
-# Schema per entry:
-#   url: string (source URL)
-#   title: string (one-line title)
-#   addedAt: ISO-8601 timestamp (Asia/Taipei)
-#   source: "shroom-feed" | "autonomous-exploration" | "manual"
-#   scores:
-#     freshness: 1-5 (how recent; 5=today, 1=over a week old)
-#     importance: 1-5 (impact on AI industry)
-#     relevance: 1-5 (relevance to ShroomDog personally)
-#   tags:
-#     timeFreedom: boolean (remote work, async-first, automation, work-life balance)
-#     wealthFreedom: boolean (passive income, indie hacking, side project monetization)
-#   summary: string (one-sentence summary)
-#
-# Sorting formula (CP Writer uses this to pick):
-#   score = freshness * 0.3 + importance * 0.4 + relevance * 0.3
-#   Tiebreaker: entries with timeFreedom or wealthFreedom tags get priority
-#
-# After CP Writer writes an article, the entry is removed from this queue.
-
 candidates:
-  - url: "https://x.com/daniel_mac8/status/2032331508212457472"
-    title: "Manus 前主管：文字 CLI > Structured Tool Calling"
-    addedAt: "2026-03-13T22:40+08:00"
-    source: "shroom-feed"
-    scores:
-      freshness: 4
-      importance: 4
-      relevance: 5
-    tags:
-      timeFreedom: false
-      wealthFreedom: false
-    summary: "UNIX 指令的普遍性讓 Agent 在文字介面上表現更穩健，非 JSON structured calls。"
-
-
-
-  - url: "https://x.com/Teknium/status/2032980416400077126"
-    title: "Hermes Agent v0.2.0 — 本地小模型的 Agent 進擊（Android / 網店自動化）"
-    addedAt: "2026-03-15T08:42+08:00"
-    source: "shroom-feed"
-    scores:
-      freshness: 5
-      importance: 5
-      relevance: 5
-    tags:
-      timeFreedom: true
-      wealthFreedom: false
-    summary: "Hermes Agent (Qwen 3.5 4B) 展現驚人自主性，能控制 Android、管 Node、修 Django、跑 eBay 自動化。"
-
-
-
-
-
-
-
-
-
-
-
-
-  - url: "https://x.com/GoogleAI/status/2032553427297878068"
-    title: "Google Maps AI 大改版 — Gemini 多步推理取代關鍵字搜尋"
-    addedAt: "2026-03-16T09:42+08:00"
-    source: "shroom-feed"
-    scores:
-      freshness: 4
-      importance: 4
-      relevance: 3
-    tags:
-      timeFreedom: true
-      wealthFreedom: false
-    summary: "Google Maps 用 Gemini 做多步推理，從 300M+ 社群照片和評論中回答複雜查詢 — AI 落地到十億人日常生活的教科書案例。"
-
-
-
-  - url: "https://x.com/Teknium/status/2033352182142251059"
-    title: "Hermes Agent 遞迴自我改進 — 用 Qwen3.5:4B + 5090 自動迭代"
-    addedAt: "2026-03-16T14:42+08:00"
-    source: "shroom-feed"
-    scores:
-      freshness: 5
-      importance: 4
-      relevance: 3
-    tags:
-      timeFreedom: false
-      wealthFreedom: false
-    summary: "開源 Hermes Agent 搭配小模型在單卡 5090 上跑遞迴自我改進，呼應 Karpathy autoresearch 的開源版實踐。"
-
-  - url: "https://x.com/ChristosTzamos/status/2031845134577406426"
-    title: "Transformer 內建電腦 — LLM 數學差？那就在裡面跑程式"
-    addedAt: "2026-03-16T19:42+08:00"
-    source: "shroom-feed"
-    scores:
-      freshness: 3
-      importance: 4
-      relevance: 3
-    tags:
-      timeFreedom: false
-      wealthFreedom: false
-    summary: "在 Transformer 架構內建模擬電腦，能以 100% 準確率在數秒內解開最難數獨，跳脫純 token-predict 的限制。"
-
-
-
-  - url: "https://x.com/Teknium/status/2033523461562495121"
-    title: "OpenClaw 退燒？社群大舉遷移至開源 Hermes Agent"
-    addedAt: "2026-03-17T00:42+08:00"
-    source: "shroom-feed"
-    scores:
-      freshness: 5
-      importance: 4
-      relevance: 5
-    tags:
-      timeFreedom: true
-      wealthFreedom: false
-    summary: "隨著 Hermes Agent 生態與記憶體統到位，大量用戶開始從 OpenClaw 轉移至自架開源選項。"
-
-
-
-  - url: "https://x.com/Teknium/status/2033877694631579833"
-    title: "Hermes Agent v0.3.0：5 天 248 PR，把 agent IDE 越疊越完整"
-    addedAt: "2026-03-17T20:47+08:00"
-    source: "shroom-feed"
-    scores:
-      freshness: 5
-      importance: 4
-      relevance: 5
-    tags:
-      timeFreedom: true
-      wealthFreedom: false
-    summary: "Hermes Agent v0.3.0 一口氣加上 plugin architecture、live Chrome、IDE 整合、voice mode 與 PII redaction，開源 agent 工具鏈成熟度再往前推一大格。"
-
-
-
-  - url: "https://venturebeat.com/orchestration/anthropic-just-shipped-an-openclaw-killer-called-claude-code-channels"
-    title: "Claude Code Channels：從 Telegram/Discord 直控 Claude Code，被稱為 OpenClaw killer"
-    addedAt: "2026-03-23T16:40+08:00"
-    source: "shroom-feed"
-    scores:
-      freshness: 4
-      importance: 5
-      relevance: 5
-    tags:
-      timeFreedom: true
-      wealthFreedom: false
-    summary: "Anthropic 推出 Claude Code Channels research preview，直接從 Telegram/Discord 操作本機 Claude Code session，VentureBeat 稱其為 OpenClaw killer。"
-
-  - url: "https://www.cnbc.com/2026/03/16/nvidia-gtc-2026-ceo-jensen-huang-keynote-blackwell-vera-rubin.html"
-    title: "GTC 2026：Vera Rubin 出貨 + Feynman 2028 路線圖 + $1T 訂單"
-    addedAt: "2026-03-23T16:40+08:00"
-    source: "shroom-feed"
-    scores:
-      freshness: 3
-      importance: 5
-      relevance: 3
-    tags:
-      timeFreedom: false
-      wealthFreedom: false
-    summary: "Jensen Huang 宣布 Blackwell + Vera Rubin 合計 $1T 訂單。Feynman 世代（2028）預告 3D stacking + 自訂 HBM + Rosa CPU + Kyber 機架。"
-
-
-
-
-
-  - url: "https://claude.com/blog/dispatch-and-computer-use"
-    title: "Claude Computer Use 正式上線：Cowork + Code 直控 macOS 螢幕"
-    addedAt: "2026-03-24T17:40+08:00"
-    source: "shroom-feed"
-    scores:
-      freshness: 5
-      importance: 5
-      relevance: 5
-    tags:
-      timeFreedom: true
-      wealthFreedom: false
-    summary: "Claude 現在能直接操控你的 Mac 螢幕完成任務，搭配 Dispatch 從手機指派，Pro/Max 限定 research preview。"
-
-  - url: "https://winbuzzer.com/2026/03/24/anthropic-launches-science-blog-ai-driven-research-xcxwbn/"
-    title: "Anthropic Science Blog：物理學家用 Opus 4.6 壓縮數月 scientific coding 為數天"
-    addedAt: "2026-03-24T17:40+08:00"
-    source: "shroom-feed"
-    scores:
-      freshness: 5
-      importance: 4
-      relevance: 4
-    tags:
-      timeFreedom: true
-      wealthFreedom: false
-    summary: "Anthropic 推出科學部落格，首篇講物理學家如何用 Claude Opus 4.6 在 2000+ sessions 中寫出 Boltzmann 方程式 solver。"
-
-  - url: "https://x.com/Thom_Wolf/status/2034646382334599200"
-    title: "Thomas Wolf：RL 個人化無法跨模型遷移，這是被忽視的研究空白"
-    addedAt: "2026-03-23T21:40+08:00"
-    source: "shroom-feed"
-    scores:
-      freshness: 4
-      importance: 4
-      relevance: 3
-    tags:
-      timeFreedom: false
-      wealthFreedom: false
-    summary: "HF 共同創辦人指出：新模型每週出，但 RL 個人化綁定舊模型。提出 RL model transferability 方向——如何讓偏好跨模型遷移。"
-
-
-
-
-
-
-
-
+- url: https://x.com/daniel_mac8/status/2032331508212457472
+  title: Manus 前主管：文字 CLI > Structured Tool Calling
+  addedAt: 2026-03-13T22:40+08:00
+  source: shroom-feed
+  scores:
+    freshness: 4
+    importance: 4
+    relevance: 5
+  tags:
+    timeFreedom: false
+    wealthFreedom: false
+  summary: UNIX 指令的普遍性讓 Agent 在文字介面上表現更穩健，非 JSON structured calls。
+- url: https://x.com/GoogleAI/status/2032553427297878068
+  title: Google Maps AI 大改版 — Gemini 多步推理取代關鍵字搜尋
+  addedAt: 2026-03-16T09:42+08:00
+  source: shroom-feed
+  scores:
+    freshness: 4
+    importance: 4
+    relevance: 3
+  tags:
+    timeFreedom: true
+    wealthFreedom: false
+  summary: Google Maps 用 Gemini 做多步推理，從 300M+ 社群照片和評論中回答複雜查詢 — AI 落地到十億人日常生活的教科書案例。
+- url: https://x.com/Teknium/status/2033523461562495121
+  title: OpenClaw 退燒？社群大舉遷移至開源 Hermes Agent
+  addedAt: 2026-03-17T00:42+08:00
+  source: shroom-feed
+  scores:
+    freshness: 5
+    importance: 4
+    relevance: 5
+  tags:
+    timeFreedom: true
+    wealthFreedom: false
+  summary: 隨著 Hermes Agent 生態與記憶體統到位，大量用戶開始從 OpenClaw 轉移至自架開源選項。
+- url: https://venturebeat.com/orchestration/anthropic-just-shipped-an-openclaw-killer-called-claude-code-channels
+  title: Claude Code Channels：從 Telegram/Discord 直控 Claude Code，被稱為 OpenClaw killer
+  addedAt: 2026-03-23T16:40+08:00
+  source: shroom-feed
+  scores:
+    freshness: 4
+    importance: 5
+    relevance: 5
+  tags:
+    timeFreedom: true
+    wealthFreedom: false
+  summary: Anthropic 推出 Claude Code Channels research preview，直接從 Telegram/Discord
+    操作本機 Claude Code session，VentureBeat 稱其為 OpenClaw killer。
+- url: https://www.cnbc.com/2026/03/16/nvidia-gtc-2026-ceo-jensen-huang-keynote-blackwell-vera-rubin.html
+  title: GTC 2026：Vera Rubin 出貨 + Feynman 2028 路線圖 + $1T 訂單
+  addedAt: 2026-03-23T16:40+08:00
+  source: shroom-feed
+  scores:
+    freshness: 3
+    importance: 5
+    relevance: 3
+  tags:
+    timeFreedom: false
+    wealthFreedom: false
+  summary: Jensen Huang 宣布 Blackwell + Vera Rubin 合計 $1T 訂單。Feynman 世代（2028）預告 3D
+    stacking + 自訂 HBM + Rosa CPU + Kyber 機架。
+- url: https://claude.com/blog/dispatch-and-computer-use
+  title: Claude Computer Use 正式上線：Cowork + Code 直控 macOS 螢幕
+  addedAt: 2026-03-24T17:40+08:00
+  source: shroom-feed
+  scores:
+    freshness: 5
+    importance: 5
+    relevance: 5
+  tags:
+    timeFreedom: true
+    wealthFreedom: false
+  summary: Claude 現在能直接操控你的 Mac 螢幕完成任務，搭配 Dispatch 從手機指派，Pro/Max 限定 research preview。
+- url: https://winbuzzer.com/2026/03/24/anthropic-launches-science-blog-ai-driven-research-xcxwbn/
+  title: Anthropic Science Blog：物理學家用 Opus 4.6 壓縮數月 scientific coding 為數天
+  addedAt: 2026-03-24T17:40+08:00
+  source: shroom-feed
+  scores:
+    freshness: 5
+    importance: 4
+    relevance: 4
+  tags:
+    timeFreedom: true
+    wealthFreedom: false
+  summary: Anthropic 推出科學部落格，首篇講物理學家如何用 Claude Opus 4.6 在 2000+ sessions 中寫出 Boltzmann
+    方程式 solver。
+- url: https://x.com/Thom_Wolf/status/2034646382334599200
+  title: Thomas Wolf：RL 個人化無法跨模型遷移，這是被忽視的研究空白
+  addedAt: 2026-03-23T21:40+08:00
+  source: shroom-feed
+  scores:
+    freshness: 4
+    importance: 4
+    relevance: 3
+  tags:
+    timeFreedom: false
+    wealthFreedom: false
+  summary: HF 共同創辦人指出：新模型每週出，但 RL 個人化綁定舊模型。提出 RL model transferability 方向——如何讓偏好跨模型遷移。
