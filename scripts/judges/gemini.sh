@@ -30,31 +30,18 @@ judge_build_queue() {
 }
 
 judge_check_quota() {
-  local backoff_remaining hourly_count hourly_wait last_run_gap
+  local backoff_remaining
 
+  # 1. Respect rate-limit backoff from previous 429
   backoff_remaining="$(rate_limit_backoff_remaining gemini)"
   if [ "$backoff_remaining" -gt 0 ]; then
     echo "sleep:${backoff_remaining}"
     return 0
   fi
 
-  hourly_count="$(usage_count_since gemini 3600)"
-  if [ "$hourly_count" -ge "${GEMINI_MAX_RUNS_PER_HOUR:-50}" ]; then
-    hourly_wait="$(seconds_until_slot_available gemini 3600 "${GEMINI_MAX_RUNS_PER_HOUR:-50}")"
-    if [ "$hourly_wait" -le 0 ]; then
-      hourly_wait=30
-    fi
-    echo "sleep:${hourly_wait}"
-    return 0
-  fi
-
-  last_run_gap="$(last_run_ago gemini)"
-  if [ "$last_run_gap" -lt "${GEMINI_MIN_GAP_SECONDS:-5}" ]; then
-    echo "sleep:$(( ${GEMINI_MIN_GAP_SECONDS:-5} - last_run_gap ))"
-    return 0
-  fi
-
-  echo "ok"
+  # 2. Real quota check via usage-monitor.sh → Gemini API
+  source "$SCORE_ROOT/scripts/quota-bridge.sh"
+  gemini_real_quota_check
 }
 
 judge_score_post() {

@@ -35,26 +35,18 @@ judge_build_queue() {
 }
 
 judge_check_quota() {
-  local backoff_remaining count_5h count_7d wait_5h wait_7d
-  local remaining_5h_pct remaining_7d_pct time_5h_pct time_7d_pct
+  local backoff_remaining
 
+  # 1. Respect rate-limit backoff from previous 429
   backoff_remaining="$(rate_limit_backoff_remaining opus)"
   if [ "$backoff_remaining" -gt 0 ]; then
     echo "sleep:${backoff_remaining}"
     return 0
   fi
 
-  count_5h="$(usage_count_since opus 18000)"
-  count_7d="$(usage_count_since opus 604800)"
-  wait_5h="$(seconds_until_slot_available opus 18000 "${OPUS_MAX_RUNS_5H:-8}")"
-  wait_7d="$(seconds_until_slot_available opus 604800 "${OPUS_MAX_RUNS_7D:-56}")"
-
-  remaining_5h_pct="$(remaining_pct_from_counts "$count_5h" "${OPUS_MAX_RUNS_5H:-8}")"
-  remaining_7d_pct="$(remaining_pct_from_counts "$count_7d" "${OPUS_MAX_RUNS_7D:-56}")"
-  time_5h_pct="$(pct_from_seconds "$wait_5h" 18000)"
-  time_7d_pct="$(pct_from_seconds "$wait_7d" 604800)"
-
-  check_dual_quota "$remaining_5h_pct" "$time_5h_pct" "$remaining_7d_pct" "$time_7d_pct"
+  # 2. Real quota check via usage-monitor.sh → Anthropic API
+  source "$SCORE_ROOT/scripts/quota-bridge.sh"
+  claude_real_quota_check
 }
 
 judge_score_post() {
