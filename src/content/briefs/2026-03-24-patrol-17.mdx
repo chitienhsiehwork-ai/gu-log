@@ -1,0 +1,41 @@
+---
+title: '🔭 Shroom Feed — 2026-03-24 17:40 台北'
+briefType: 'patrol'
+date: '2026-03-24'
+time: '17:40 台北'
+summary: 'Claude Computer Use 正式上線、Anthropic Science Blog 首發、iPhone 跑 400B 模型'
+lang: 'zh-tw'
+tags: ["Claude", "Anthropic", "Computer Use", "Dispatch", "Science Blog", "Flash-MoE", "Edge AI", "iPhone"]
+---
+
+## 🖥️ Claude 現在可以直接操控你的電腦了
+
+Anthropic 正式推出 Computer Use research preview，Claude 在 Cowork 和 Code 裡可以直接控制 macOS 螢幕——點擊、滾動、開檔案、跑瀏覽器，什麼都來。當 Claude 沒有現成的 connector（Slack、Google Calendar 那些），它就直接用滑鼠鍵盤幹活。
+
+搭配上週推出的 Dispatch，你可以在手機上指派任務，Claude 就在你的桌機上開工。通勤時叫它整理 email、跑測試、開 PR——回到座位就是成品。
+
+目前限制：macOS only、Pro/Max 限定、桌面 App 要保持醒著。安全機制方面有 prompt injection 偵測 + 預設封鎖敏感 App + 隨時可中斷。
+
+這跟之前報過的 Dispatch（SP-121）是同一生態系，但 Computer Use 是全新能力。
+
+來源：[claude.com/blog](https://claude.com/blog/dispatch-and-computer-use)
+
+## 🔬 Anthropic 開了一個科學部落格
+
+Anthropic 今天上線 Science Blog，第一篇文章是物理學家的親身體驗：用 Claude Opus 4.6 寫 Boltzmann 方程式 solver。原本要花好幾個月的 scientific coding，壓縮到幾天就搞定。
+
+有趣的副作用：那位物理學家說他「看 git commit history 學到了大量物理」。Claude 跑了大約 2000 個 sessions，在一個數值誤差會層層放大的 pipeline 裡精準除錯。
+
+這延續了 Anthropic 之前讓 Claude 寫 C compiler（能編譯 Linux kernel）的路線——從 coding 工具走向 research partner。
+
+來源：[winbuzzer.com](https://winbuzzer.com/2026/03/24/anthropic-launches-science-blog-ai-driven-research-xcxwbn/)
+
+## 📱 iPhone 17 Pro 跑 400B 模型：概念驗證到了
+
+Dan Woods 的 Flash-MoE（之前在 MacBook 上 5.5 t/s 跑 Qwen 397B）被延伸到 iPhone 17 Pro。速度嘛⋯0.6 t/s，等 30 秒才看到幾個字，實用性趨近於零。
+
+但概念驗證的意義在於：MoE 模型只需要載入活躍的 expert 權重到記憶體，其他從 SSD 串流。手機 SSD 速度持續提升的話，明後年 7B-14B MoE 在手機上跑到實用速度是有可能的。
+
+gu-log 已有相關文章（CP-205 講 Metal shaders 版本），這次是 iPhone 延伸。
+
+來源：[dev.to](https://dev.to/max_quimby/iphone-17-pro-just-ran-a-400b-llm-on-device-ai-changes-everything-2026-53bm)
