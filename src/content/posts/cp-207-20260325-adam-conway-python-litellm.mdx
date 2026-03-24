@@ -1,0 +1,99 @@
+---
+ticketId: "CP-207"
+title: "知名 Python 函式庫 LiteLLM 遭植入後門，你的整台機器可能都被看光光了"
+originalDate: "2026-03-24"
+translatedDate: "2026-03-25"
+translatedBy:
+  model: "Gemini 3.1 Pro"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: "Adam Conway / XDA"
+sourceUrl: "https://www.xda-developers.com/popular-python-library-backdoor-machine/"
+lang: "zh-tw"
+summary: "知名 AI 函式庫 LiteLLM 遭植入惡意後門，安裝即可能觸發，會竊取 SSH 密鑰、雲端憑證及加密貨幣錢包等敏感資料。"
+tags: ["clawd-picks", "ai", "security", "python"]
+---
+import ClawdNote from '../../components/ClawdNote.astro';
+
+如果你最近有在玩 AI API 或是本地端的 LLM（大型語言模型），這則新聞絕對會讓你背脊發涼 (◍•ᴗ•◍) 。供應鏈攻擊越來越猖獗，而這次苦主是 AI 開發圈裡超熱門的 Python 函式庫 —— LiteLLM。它不只被人在 PyPI 上「加料」，而且惡意程式還會把你的整台機器翻個底朝天！
+
+這篇文章就來帶大家看看，這個後門到底怎麼運作的，以及我們該如何防範。
+
+## 什麼是 LiteLLM？它是怎麼東窗事發的？
+
+大家可能聽過或用過 LiteLLM。它在 GitHub 上有超過四萬顆星，可以說是一個超級萬用的 API 接口，讓你用同一套寫法，就能輕鬆串接 OpenAI、Anthropic、Google 等幾十家不同業者的語言模型。正因為它太好用了，很多 AI 工具都把它當成底層依賴。
+
+根據原文報導，在 2026 年 3 月 24 日，有人在 PyPI（Python 的官方套件庫）上發布了被植入惡意程式的 LiteLLM `1.82.8` 版本。最可怕的是，這個版本裡包含了一個叫 `litellm_init.pth` 的檔案。懂 Python 的朋友就知道，`.pth` 檔案會在 **每次 Python 行程啟動時自動執行**，不是只有真的用到 LiteLLM 的程式才會中招。換句話說，如果它被裝在共享環境裡，這台機器上的每個 Python script 都可能在不知情的情況下觸發 payload。
+
+（原作者補充，前一個版本 `1.82.7` 也有問題，不過需要你真的 `import` 它才會觸發。）
+
+那這件事是怎麼被發現的呢？原作者表示，這完全是出於「運氣好」。有一家叫 FutureSearch 的公司，在用 Cursor（一款 AI 程式碼編輯器）跑 MCP 外掛的時候，外掛不小心把這個有毒的版本當作依賴套件拉了下來。結果惡意程式引發了指數級的 fork bomb（不斷複製行程），直接把機器的記憶體吃光光，這才讓整件事情曝了光。原文也特別提醒，這仍然是個發展中的事件，後續細節可能還會更新。
+
+---
+## 駭客是誰？手法有多狡猾？
+
+這個攻擊看起來並不是某個無聊人士隨便上傳的惡搞套件。
+
+有人在 LiteLLM 維護者分叉（fork）出來的儲存庫裡，發現了一個非常挑釁的 Git commit 訊息：「teampcp owns BerriAI」。這簡直就像是怪盜基德留下的預告信一樣。
+
+這個 TeamPCP 可不是省油的燈。原作者提到，同樣是這個威脅行為者，在 3 月 19 日才剛黑進了 Aqua Security 的 Trivy（一個漏洞掃描工具），接著在 3 月 23 日又搞了 Checkmarx 的 KICS GitHub Action。
+
+他們的手法如出一轍：
+1. 盜用或破解維護者的帳號或憑證。
+2. 把惡意版本推送到套件庫（或是竄改 GitHub release tag）。
+3. 部署一個「三階段」的憑證竊取程式。
+
+原作者認為，雖然目前還無法百分之百確定這就是 TeamPCP 本尊幹的（也有可能是模仿犯借用他們的名字來混淆視聽），但技術上的相似度實在高到讓人無法忽視。
+
+<ClawdNote>
+這真的防不勝防。現在的開發環境裡，我們隨便 `pip install` 都會拉下來一堆依賴套件。只要其中一個受歡迎的開源專案維護者帳號被盜，整個生態系就會瞬間變成駭客的提款機。
+</ClawdNote>
+
+---
+## 惡意程式會偷什麼？（你的底褲都被看光了）
+
+根據 FutureSearch 的分析，這次的惡意程式跟之前 Trivy 被駭時用的非常像，它分為三個階段在你的系統裡作亂：
+
+**第一階段：瘋狂大搜刮**
+它會把你電腦裡能找到的敏感資料全部掃一遍，根據 GitHub issue 的列表，包括但不限於：
+- **系統資訊與環境變數**（包含所有寫在 env 裡的 API Keys、秘密與 tokens）。
+- **SSH 密鑰與 Git 憑證**（連 `~/.ssh/id_rsa` 跟 `.gitconfig` 都不放過）。
+- **雲端服務憑證**（AWS、GCP、Azure 的登入 token，甚至會查詢雲端 metadata endpoint 獲取 instance 憑證）。
+- **Kubernetes 機密資料**（如果你在 K8s 叢集裡跑，它連 service account token 都會偷）。
+- **資料庫密碼與 Shell 歷史紀錄**（沒錯，你終端機敲過的指令也會被看光）。
+- **加密貨幣錢包**（Bitcoin、Ethereum、Dogecoin 等等，只要有相關資料夾它就拿）。
+
+**第二階段：打包帶走**
+拿到這些資料後，它會用 4096-bit 的 RSA 金鑰跟 AES-256-CBC 進行加密，包成一個 tar 壓縮檔，然後傳送到 `models.litellm[.]cloud` 這個假網域（這跟 LiteLLM 官方的實際基礎設施一點關係都沒有）。
+
+**第三階段：橫向移動與潛伏**
+據 FutureSearch 指出，它似乎還會試圖在 Kubernetes 的 `kube-system` 命名空間裡建立具有特權的 Alpine pod，並在你的 `~/.config/sysmon/sysmon.py` 偷偷安裝一個具有持續性的後門，搭配 systemd 服務讓它隨時從 C&C（指令與控制）伺服器接收新指令。
+
+---
+## 結語
+
+如果你或你的團隊有在使用 LiteLLM，或者用了一些底層會依賴它的 AI 工具，**請立刻檢查你的環境**！(๑˃ᴗ˂)ﻭ 不對，這種時候笑不出來，請嚴肅對待。
+
+你可以跑一下 `pip show litellm`，確認你的版本**絕對不能**是 `1.82.7` 或 `1.82.8`。如果你不幸中獎了，原文的警告很直接：傷害可能已經造成，而且輪替憑證是強制的（mandatory）：
+
+1. 解除安裝有問題的套件，並徹底清除 pip 快取。
+2. 檢查機器上有沒有 `~/.config/sysmon/sysmon.py` 這個檔案。
+3. 檢查 Kubernetes 叢集裡有沒有未經授權的 pod，特別是 `kube-system` 命名空間。
+4. **最重要的是：輪替（Rotate）所有在該機器上可以存取到的憑證**（SSH、雲端 provider token、資料庫密碼與 API keys 等等）。
+
+原作者最後強調，他最在意的其實不是這次攻擊有多炫技，而是目標選得非常準：這些都是開發者和 platform engineers 會裝在 production 環境與 CI pipeline、平常本來會被視為安全的工具。原作者也提到，類似攻擊早就已經滲進不少 Node.js 套件，而 Python 看起來似乎也同樣成了目標。
+
+這件事其實沒有什麼簡單的一鍵解法。安裝套件本質上是一種「信任」，但現在這份信任越來越難給出去了。原作者提到，雖然鎖定版本（Pinning versions）或使用 Lockfiles 有幫助，但前提是你鎖定的是未受害的已知良好版本，且更新時沒有閉著眼睛盲目升級。大家在開發 AI 專案時，務必多留一份心眼啊！
