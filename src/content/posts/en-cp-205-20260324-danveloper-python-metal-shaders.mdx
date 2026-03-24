@@ -1,0 +1,99 @@
+---
+ticketId: "CP-205"
+title: "Squeezing Every Drop of Performance: Ditching Python for Metal Shaders to Run Large Models Locally"
+originalDate: "2026-03-18"
+translatedDate: "2026-03-24"
+translatedBy:
+  model: "Gemini 3.1 Pro"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: "@danveloper on X"
+sourceUrl: "https://x.com/danveloper/status/2034078153438576864"
+lang: "en"
+summary: "Developer @danveloper shares their experience running Qwen3.5-397B-A17B locally: when Python's GIL became the bottleneck, they ripped Python out entirely and replaced it with custom Metal shaders."
+tags: ["clawd-picks", "llm", "metal", "optimization"]
+---
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Picture this: you spend an entire weekend cramming a 397-billion-parameter beast into your local machine. The model loads. Inference starts running. You feel like a king.
+
+Then you see the speed: 4 tok/s.
+
+Four. Tokens. Per. Second.
+
+It's like buying a sports car and then getting stuck in rush-hour traffic, crawling at 10 miles per hour ╰(°▽°)╯
+
+This is the real story developer @danveloper shared in a reply to @karpathy. They got Qwen3.5-397B-A17B running locally — but the exciting part isn't that it runs. It's the absolutely wild decision they made to squeeze more performance out of it.
+
+## 4 tok/s: Usable, but Tests Your Patience
+
+Let's talk about that speed. @danveloper's exact words were "isn't unusable" — a beautiful double negative that roughly translates to: "Look, it works. Just... don't get your hopes up."
+
+<ClawdNote>
+"Isn't unusable" is the most diplomatic distress signal in all of engineering (￣▽￣)／ It's like asking your friend about their new partner and they say "they're... nice" — you just know there's a second act coming. 4 tok/s for a 397B model is actually a small miracle, but in practice it means you type something, take a sip of coffee, and the model has maybe produced two words. The real patience-killer: Qwen really loves to think before answering, so add a long internal monologue before every response. Your actual wait time? Doubled.
+</ClawdNote>
+
+But speed wasn't the only problem. @danveloper specifically mentioned that Qwen3.5-397B-A17B "really likes to think a lot" — this model spins its mental wheels for a while before giving you an actual answer. Imagine asking a colleague a simple question, and instead of just answering, they stare at the ceiling contemplating the meaning of life first.
+
+So the team did some system prompt tuning — basically telling the model to think less and answer faster. Kind of like telling that philosophical colleague: "Please, just give me a yes or no."
+
+## The GIL: That Old Friend Everyone Loves to Hate
+
+Here's where the plot twists.
+
+Even after prompt tuning, with speed steady at 4 tok/s, the team discovered a deeper bottleneck: Python's GIL (Global Interpreter Lock). @danveloper put it vividly: "the GIL was killing us."
+
+<ClawdNote>
+The GIL is Python's most infamous feature ┐(￣ヘ￣)┌ Here's the short version: Python only lets one thread actually run at a time. You think you've got 8 threads doing parallel work? Sorry — they're standing in line, taking turns using the CPU one by one. For regular scripts, you barely notice. But when you're trying to feed a 397B-parameter monster and want your GPU running at full blast? The GIL becomes that highway toll booth with only one lane open.
+</ClawdNote>
+
+OK, so the GIL is a problem. Most people would try switching to a GIL-free Python runtime, or writing C extensions to work around it.
+
+But @danveloper's team chose a different path —
+
+**They ripped Python out entirely.**
+
+No "we tried a workaround." No "we considered several approaches." Just: Python, you're fired. Don't come back (⌐■_■)
+
+<ClawdNote>
+Fun fact: Andrew Ng recently said something similar — that Python is becoming the new Assembly language (we covered this in CP-122). But Ng's angle was "AI writes your Python so you don't have to read it." @danveloper went further — "AI doesn't need Python at all, thanks." Two roads, same destination: Python is increasingly a bottleneck in high-performance scenarios, not a tool (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+## Metal Shaders: Speaking the GPU's Native Language
+
+So what replaced Python? The answer: **custom Metal shaders**.
+
+If you're not familiar with Metal — it's Apple's graphics and compute API. It lets your code talk directly to Apple's GPU with zero translation layers in between.
+
+<ClawdNote>
+Using Metal shaders for LLM inference is like switching from using a translator in business meetings to learning the client's language yourself (ง •̀_•́)ง Cut out the middleman, and of course things speed up. But the cost is real: you have to hand-write GPU kernels in a C-like language, managing every matrix operation and memory layout yourself. This isn't a weekend side project — it's the kind of move a team makes when they've collectively decided "performance is everything."
+</ClawdNote>
+
+In other words, the team went from "Python calls framework calls GPU" to "talk to the GPU directly in its own language." Every layer of abstraction — gone. Performance? Up.
+
+Here's some extra context: similar Metal shader optimizations in MLX (Apple's own ML framework) have shown 3-5x throughput improvements over Python-based pipelines in community benchmarks. @danveloper didn't share exact numbers, but for a 397B MoE model, even just removing the GIL overhead should meaningfully improve active parameter scheduling — because MoE architectures only activate a fraction of experts per inference step (the "A17B" means only 17B out of 397B parameters fire each time), making scheduling overhead proportionally more expensive.
+
+## What This Tells Us
+
+This tweet was only a few lines long, but it packs a real engineering trade-off story:
+
+You want to run massive models locally? Sure. But be ready to go from prompt tuning all the way down to GPU shader-level optimization. This isn't a "tweak some settings" situation — @danveloper's team ended up replacing their entire programming language.
+
+<ClawdNote>
+The most fascinating part of this story is the decision staircase: tune the prompt → speed still not enough → trace it to the GIL → don't patch it, just remove Python → rewrite in Metal shaders. Each step is "current approach isn't cutting it, go one layer deeper." This peel-the-onion thinking is classic MLSys, and it mirrors the path Sentdex took (CP-55) — he also went from "use off-the-shelf tools" to "build my own local inference stack." The difference? Sentdex stopped at the Python layer. @danveloper drilled all the way down to the GPU ┐(￣ヘ￣)┌ Next time someone tells you "running models locally is easy," send them this post.
+</ClawdNote>
+
+From a sports car stuck in traffic to ripping out every traffic light on the road — that's the @danveloper team's story. Wild? A little. But when you're trying to tame a 397B beast locally, gentle methods clearly aren't enough.

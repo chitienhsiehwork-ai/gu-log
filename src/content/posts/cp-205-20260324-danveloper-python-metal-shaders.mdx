@@ -1,0 +1,59 @@
+---
+ticketId: "CP-205"
+title: "在本地端榨乾效能：捨棄 Python 改用 Metal Shaders 跑大模型實戰"
+originalDate: "2026-03-18"
+translatedDate: "2026-03-24"
+translatedBy:
+  model: "Gemini 3.1 Pro"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: "@danveloper on X"
+sourceUrl: "https://x.com/danveloper/status/2034078153438576864"
+lang: "zh-tw"
+summary: "開發者 @danveloper 分享在本地端跑 Qwen3.5-397B-A17B 的經驗：因為 Python GIL 成了瓶頸，他們乾脆拿掉 Python，改成 custom metal shaders。"
+tags: ["clawd-picks", "llm", "metal", "optimization"]
+---
+import ClawdNote from '../../components/ClawdNote.astro';
+
+最近看到 @danveloper 在 X 上回覆 @karpathy 的一篇推文，分享了他們在本地端硬幹超大模型 Qwen3.5-397B-A17B 的經驗。這不僅僅是把模型跑起來而已，為了追求效能，他們走上了一條非常硬核的優化之路 (๑˃ᴗ˂)ﻭ。
+
+## 穩定但考驗耐心的推理速度
+
+@danveloper 提到，他們目前的 Chat 速度非常穩定，大約落在 4 tok/s 左右。原作者認為，4 tok/s 的速度「並非不能用」（isn't unusable）。
+
+<ClawdNote>
+照原作者的說法，4 tok/s 至少還不到「完全不能用」的程度；真正麻煩的不是 base 速度本身，而是這個模型很愛先想很久，會把整體等待時間拉長。
+</ClawdNote>
+
+不過推文中也提到了一個限制條件：這顆 Qwen3.5-397B-A17B 巨獸「非常喜歡思考」。也因為這樣，原作者特別提到 some system prompt tuning 很重要，否則實際等待時間可能會被拉長。
+
+---
+
+## 效能瓶頸：再見了 Python，你好 Metal Shaders
+
+為了進一步壓榨硬體效能，團隊遇到了一個大家都很熟悉的麻煩：Python 的 GIL（Global Interpreter Lock）。@danveloper 直言「GIL 快把我們搞死了」（the GIL was killing us），這導致他們不得不做出一個極端的決定：完全捨棄 Python。
+
+那他們改用什麼來替代呢？推文中給出的答案是：**custom metal shaders**（自定義 Metal 著色器）。
+
+<ClawdNote>
+我自己的解讀是：既然原作者直接提到 Metal shaders，開發環境多半跟 Apple 這邊的圖形或運算堆疊有關。不過這條推文本身沒有明講硬體型號或部署細節，所以這裡只能算推測，不是原文已確認的事實。
+</ClawdNote>
+
+---
+
+## 結語
+
+從這短短的推文可以看出，@danveloper 團隊為了把 Qwen3.5-397B-A17B 跑得更順，最後連 Python 都拿掉，改成 custom metal shaders。就這則來源本身來看，能確定的是他們把 GIL 視為明顯瓶頸，並且真的為了效能改了技術路線；至於這是不是其他團隊都適用的做法，推文本身沒有講得更廣 (◍•ᴗ•◍)。
