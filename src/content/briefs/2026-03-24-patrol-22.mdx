@@ -1,0 +1,40 @@
+---
+title: '🔭 Shroom Feed — 2026-03-24 22:40 台北'
+briefType: 'patrol'
+date: '2026-03-24'
+time: '22:40 台北'
+summary: 'LiteLLM 遭供應鏈攻擊、Databricks 推出 Lakewatch SIEM、Figma 官方 MCP 開放 beta'
+lang: 'zh-tw'
+tags: ["LiteLLM", "supply-chain-attack", "Databricks", "Lakewatch", "Figma", "MCP", "Claude Code", "ChatGPT"]
+---
+
+## 🚨 LiteLLM 遭供應鏈攻擊 — v1.82.7/1.82.8 含惡意後門
+
+今天（3/24）LiteLLM 的 PyPI 套件版本 1.82.7 和 1.82.8 被植入惡意 `.pth` 檔案（`litellm_init.pth`），安裝後會自動竊取機器上的所有憑證。PyPI 已將該套件隔離。如果你有用 LiteLLM，馬上跑 `pip show litellm` 確認版本。GitGuardian 報告指出這是同一波攻擊 Trivy 的供應鏈攻擊行動的延伸，已擴散到 npm 和 PyPI。
+
+- [XDA Developers 報導](https://www.xda-developers.com/popular-python-library-backdoor-machine/)
+- [r/LocalLLaMA 討論](https://www.reddit.com/r/LocalLLaMA/comments/1s2c1w4/litellm_1827_and_1828_on_pypi_are_compromised_do/)
+- [Hacker News](https://news.ycombinator.com/item?id=47501729)
+
+## 🏢 Databricks 推出 Lakewatch — 用 Claude 模型做 Agentic SIEM
+
+Databricks 正式跨足資安市場，推出 Lakewatch SIEM 產品。背後用 Anthropic Claude 模型做推理和關聯分析，加上收購 Antimatter 和 SiftD.ai 強化 agent 安全研究能量。IPO 前的大動作，把安全 logs 直接建在 data lakehouse 上，挑戰 Splunk/CrowdStrike 等傳統 SIEM 廠商。
+
+- [CNBC 報導](https://www.cnbc.com/2026/03/24/databricks-cybersecurity-lakewatch-ipo.html)
+- [PR Newswire 官方新聞稿](https://www.prnewswire.com/news-releases/databricks-enters-security-market-with-launch-of-lakewatch-new-open-agentic-siem-302723434.html)
+
+## 🎨 Figma 官方 MCP 開放 Beta — Claude Code/Codex 可直接讀寫設計稿
+
+Figma 官方部落格宣布開放 `use_figma` MCP tool beta，Claude Code、Codex 等 MCP client 可以直接生成和修改連結到設計系統的 design assets。不再需要截圖 → 貼給 AI → 手動翻譯，而是直接讀設計脈絡寫 code。
+
+- [Figma Blog: Agents, Meet the Canvas](https://www.figma.com/blog/the-figma-canvas-is-now-open-to-agents/)
+- [Felix Lee 50 分鐘實戰教學](https://creatoreconomy.so/p/master-claude-code-figma-mcp-for-design-felix-lee)
+
+📝 gu-log 已有相關文章：CP-92 Figma × Claude Code「Code to Canvas」（2026-02-17），本次是 Figma 官方 MCP 的後續演進。
+
+## 📁 ChatGPT Library 正式上線 — 檔案管理終於不用翻舊對話
+
+OpenAI 正式推出 ChatGPT File Library 功能，上傳的檔案會自動集中在側邊欄的 Library 區。不用再從幾百個 chat 裡翻找你之前上傳的 PDF。目前 web 版已開始 rollout。
+
+- [gHacks Tech News](https://www.ghacks.net/2026/03/24/openai-introduces-chatgpt-library-to-store-uploaded-files-in-one-place/)
+- [BleepingComputer](https://www.bleepingcomputer.com/news/artificial-intelligence/openai-rolls-out-chatgpt-library-to-store-your-personal-files/)
