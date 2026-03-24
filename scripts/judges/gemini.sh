@@ -67,20 +67,45 @@ judge_score_post() {
     cat "$post_path"
   } > "$input_file"
 
-  if ! GOOGLE_GENAI_USE_GCA=true TERM=dumb NO_COLOR=1 \
-    gemini --model gemini-3.1-pro-preview --yolo --prompt "$(cat "$prompt_file")" \
-    < "$input_file" > "$raw_file" 2>&1; then
-    cat "$raw_file"
-    rm -f "$input_file" "$raw_file" "$normalized_file"
-    return 1
-  fi
+  local attempt max_attempts=2
+  for (( attempt=1; attempt<=max_attempts; attempt++ )); do
+    if ! GOOGLE_GENAI_USE_GCA=true TERM=dumb NO_COLOR=1 \
+      gemini --model gemini-3.1-pro-preview --yolo --prompt "$(cat "$prompt_file")" \
+      < "$input_file" > "$raw_file" 2>&1; then
+      cat "$raw_file"
+      rm -f "$input_file" "$raw_file" "$normalized_file"
+      return 1
+    fi
 
-  cp "$raw_file" "$normalized_file"
-  normalize_json_file "$normalized_file" || {
-    cat "$raw_file"
-    rm -f "$input_file" "$raw_file" "$normalized_file"
-    return 1
-  }
+    # Save raw output for debugging (always, even on success)
+    local debug_dir="$SCORE_ROOT/.score-loop/raw"
+    mkdir -p "$debug_dir"
+    cp "$raw_file" "$debug_dir/gemini-$(basename "$post_path" .mdx)-attempt${attempt}.txt"
+
+    cp "$raw_file" "$normalized_file"
+    if normalize_json_file "$normalized_file"; then
+      break  # JSON extracted successfully
+    fi
+
+    if [ "$attempt" -lt "$max_attempts" ]; then
+      # Retry: feed raw output back asking for just JSON
+      {
+        echo "Your previous response was not valid JSON. Here is what you returned:"
+        echo '```'
+        head -50 "$raw_file"
+        echo '```'
+        echo ""
+        echo "Please output ONLY the JSON object as specified. No markdown fences, no preamble."
+        echo 'Expected format: {"score": N, "reasoning": "...", "unlinked_terms": [...]}'
+      } > "$input_file"
+      sleep 3
+    else
+      # Final attempt failed — return raw for logging
+      cat "$raw_file"
+      rm -f "$input_file" "$raw_file" "$normalized_file"
+      return 1
+    fi
+  done
 
   # Prompt may output {score, reasoning, unlinked_terms} — handle variants
   score="$(jq -r '.score // empty' "$normalized_file")"
