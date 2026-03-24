@@ -70,6 +70,9 @@ judge_score_post() {
     echo "File: $(basename "$post_path")"
     echo "Ticket: $(get_ticket_id "$post_path")"
     echo
+    echo "# Blog glossary (canonical terms — check if post links to these)"
+    cat "$SCORE_ROOT/src/data/glossary.json"
+    echo
     echo "# Internal gu-log references detected in this post"
     build_internal_ref_context "$post_path"
     echo
@@ -92,17 +95,19 @@ judge_score_post() {
     return 1
   }
 
-  # Prompt may output {score, reasoning} or {score, note, verdict} — handle both
+  # Prompt may output {score, reasoning, unlinked_terms} — handle variants
   score="$(jq -r '.score // empty' "$normalized_file")"
   reasoning="$(jq -r '.reasoning // .note // .details.reasoning // empty' "$normalized_file")"
   [ -n "$reasoning" ] || reasoning="Gemini returned score without reasoning"
+  unlinked_terms="$(jq -c '.unlinked_terms // []' "$normalized_file")"
 
   jq -cn \
     --argjson score "$score" \
     --arg reasoning "$reasoning" \
+    --argjson unlinked_terms "$unlinked_terms" \
     --arg model "gemini-3.1-pro-preview" \
     --argjson iteration 1 \
-    '{score: $score, details: {reasoning: $reasoning}, model: $model, iteration: $iteration}'
+    '{score: $score, details: {reasoning: $reasoning, unlinked_terms: $unlinked_terms}, model: $model, iteration: $iteration}'
 
   rm -f "$input_file" "$raw_file" "$normalized_file"
 }

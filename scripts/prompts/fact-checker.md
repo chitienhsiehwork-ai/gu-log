@@ -59,6 +59,8 @@ Total score = sum of three dimensions (0-10).
 - Technical workflow described doesn't match how the tool actually works
 - Person A's quote attributed to Person B
 - Version numbers or dates that are verifiably wrong
+- **Any number (%, count, benchmark score) without a cited first-hand source** — e.g., "updated 176 times" or "82.1% on SWE-bench" MUST cite who reported that number and when. Vague attribution like "according to reports" is NOT sufficient.
+- **Referencing a product/model that doesn't exist** — e.g., claiming "Sonnet 5" exists when no such model has been publicly released. Verify model names against known releases.
 
 **What is NOT a factual error:**
 - Style choices (kaomoji, humor, analogies) — not your jurisdiction
