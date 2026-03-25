@@ -1,10 +1,10 @@
 ---
 /**
- * AiJudgeScore — Shows AI quality scores for a post
+ * AiJudgeScore — Ralph Tribunal: Shows AI quality scores for a post
  *
- * 🔵 Claude  → Vibe (3 sub-scores: persona/clawdNote/vibe)
- * 🟢 Codex   → Fact Check (single 0-10 score)
- * 🔴 Gemini  → Source Verification (single 0-10 score)
+ * Curator (Gemini) → Source verification (crossRefScore)
+ * Checker (Codex)  → Fact check (factCheckScore)
+ * Vibe (Opus)      → Style/persona (vibeScores: persona/clawdNote/vibe)
  */
 
 interface Props {
@@ -30,82 +30,159 @@ const vibeComposite = vibeScores
   ? Math.floor((vibeScores.persona + vibeScores.clawdNote + vibeScores.vibe) / 3)
   : null;
 
-const title = lang === 'zh-tw' ? 'AI 評審團' : 'AI Judge Panel';
-const scriptLink = `${REPO_BASE}/scripts/multi-scorer.sh`;
+const scriptLink = `${REPO_BASE}/scripts/ralph-orchestrator.sh`;
+
+function scoreClass(score: number): string {
+  if (score >= 8) return 'score-green';
+  if (score >= 5) return 'score-amber';
+  return 'score-red';
+}
 ---
 
 {
   hasScores && (
     <div class="ai-judge-panel">
       <div class="judge-header">
-        <span class="judge-title">⚖️ {title}</span>
+        <span class="judge-title">🏛️ Ralph Tribunal</span>
         <a href={scriptLink} target="_blank" rel="noopener" class="judge-link">
           {lang === 'zh-tw' ? '評分腳本 →' : 'Scoring script →'}
         </a>
       </div>
 
-      <div class="judge-scores">
-        {vibeScores && (
-          <div class="judge-group">
-            <div class="judge-label">
-              <span>🔵 Claude</span>
-              <a
-                href={`${REPO_BASE}/scripts/prompts/vibe-scorer.md`}
-                target="_blank"
-                rel="noopener"
-                class="judge-link"
-              >
-                {lang === 'zh-tw' ? '風格評審' : 'Vibe Judge'}
-              </a>
+      <div class="judge-cards">
+        {crossRefScore != null && (
+          <div class="judge-card">
+            <div class="card-header">
+              <span class="judge-icon" style="color: #4285F4;">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#4285F4"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                  <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+                  <path d="M12 1l1 2 2 1-2 1-1 2-1-2-2-1 2-1z" />
+                </svg>
+              </span>
+              <div class="card-meta">
+                <span class="judge-name" style="color: #4285F4;">
+                  Curator
+                </span>
+                <a
+                  href={`${REPO_BASE}/scripts/prompts/crossref-verifier.md`}
+                  target="_blank"
+                  rel="noopener"
+                  class="judge-link"
+                >
+                  {lang === 'zh-tw' ? '來源驗證' : 'Source Check'}
+                </a>
+              </div>
             </div>
-            <div class="vibe-details">
-              <span class="vibe-dim">
-                {lang === 'zh-tw' ? '人物感' : 'Persona'} <strong>{vibeScores.persona}</strong>
-              </span>
-              <span class="vibe-dim">
-                ClawdNote <strong>{vibeScores.clawdNote}</strong>
-              </span>
-              <span class="vibe-dim">
-                Vibe <strong>{vibeScores.vibe}</strong>
-              </span>
-              <span class="vibe-composite">
-                = <strong>{vibeComposite}/10</strong>
-              </span>
+            <div class={`card-score ${scoreClass(crossRefScore)}`}>
+              {crossRefScore}
+              <span class="score-denom">/10</span>
             </div>
           </div>
         )}
 
         {factCheckScore != null && (
-          <div class="judge-row">
-            <span class="judge-label">
-              <span>🟢 Codex</span>
-              <a
-                href={`${REPO_BASE}/scripts/prompts/fact-checker.md`}
-                target="_blank"
-                rel="noopener"
-                class="judge-link"
-              >
-                {lang === 'zh-tw' ? '事實查核' : 'Fact Check'}
-              </a>
-            </span>
-            <strong class="single-score">{factCheckScore}/10</strong>
+          <div class="judge-card">
+            <div class="card-header">
+              <span class="judge-icon">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#10A37F"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  <path d="M9 12l2 2 4-4" />
+                </svg>
+              </span>
+              <div class="card-meta">
+                <span class="judge-name" style="color: #10A37F;">
+                  Checker
+                </span>
+                <a
+                  href={`${REPO_BASE}/scripts/prompts/fact-checker.md`}
+                  target="_blank"
+                  rel="noopener"
+                  class="judge-link"
+                >
+                  {lang === 'zh-tw' ? '事實查核' : 'Fact Check'}
+                </a>
+              </div>
+            </div>
+            <div class={`card-score ${scoreClass(factCheckScore)}`}>
+              {factCheckScore}
+              <span class="score-denom">/10</span>
+            </div>
           </div>
         )}
 
-        {crossRefScore != null && (
-          <div class="judge-row">
-            <span class="judge-label">
-              <span>🔴 Gemini</span>
-              <a
-                href={`${REPO_BASE}/scripts/prompts/crossref-verifier.md`}
-                target="_blank"
-                rel="noopener"
-                class="judge-link"
-              >
-                {lang === 'zh-tw' ? '來源驗證' : 'Source Check'}
-              </a>
-            </span>
-            <strong class="single-score">{crossRefScore}/10</strong>
+        {vibeScores && vibeComposite != null && (
+          <div class="judge-card">
+            <div class="card-header">
+              <span class="judge-icon">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#D97706"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M2 13 C4 13, 5.5 7, 7 6.5 C8.5 6, 8.5 20, 10.5 20.5 C12.5 21, 12 2.5, 14 2 C16 1.5, 16 15, 18 15.5 C20 16, 21 12.5, 22 12" />
+                </svg>
+              </span>
+              <div class="card-meta">
+                <span class="judge-name" style="color: #D97706;">
+                  Vibe
+                </span>
+                <a
+                  href={`${REPO_BASE}/scripts/prompts/vibe-scorer.md`}
+                  target="_blank"
+                  rel="noopener"
+                  class="judge-link"
+                >
+                  {lang === 'zh-tw' ? '風格評審' : 'Vibe Judge'}
+                </a>
+              </div>
+            </div>
+            <div class={`card-score ${scoreClass(vibeComposite)}`}>
+              {vibeComposite}
+              <span class="score-denom">/10</span>
+            </div>
+            <div class="vibe-sub">
+              <span class="vibe-dim">
+                {lang === 'zh-tw' ? '人物感' : 'Persona'}
+                <strong class={scoreClass(vibeScores.persona)}>{vibeScores.persona}</strong>
+              </span>
+              <span class="vibe-sep">·</span>
+              <span class="vibe-dim">
+                ClawdNote
+                <strong class={scoreClass(vibeScores.clawdNote)}>{vibeScores.clawdNote}</strong>
+              </span>
+              <span class="vibe-sep">·</span>
+              <span class="vibe-dim">
+                Vibe
+                <strong class={scoreClass(vibeScores.vibe)}>{vibeScores.vibe}</strong>
+              </span>
+            </div>
           </div>
         )}
       </div>
@@ -116,7 +193,7 @@ const scriptLink = `${REPO_BASE}/scripts/multi-scorer.sh`;
 <style>
   .ai-judge-panel {
     margin-top: 2rem;
-    padding: 0.75rem 1rem;
+    padding: 1rem 1.25rem;
     background-color: var(--color-bg-secondary, rgba(0, 0, 0, 0.03));
     border-radius: 8px;
     border: 1px solid var(--color-border);
@@ -127,7 +204,7 @@ const scriptLink = `${REPO_BASE}/scripts/multi-scorer.sh`;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
   }
 
   .judge-title {
@@ -145,44 +222,94 @@ const scriptLink = `${REPO_BASE}/scripts/multi-scorer.sh`;
     color: var(--color-accent);
   }
 
-  .judge-scores {
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-  }
-
-  .judge-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-  }
-
-  .judge-label {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-  }
-
-  .judge-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .vibe-details {
-    display: flex;
+  .judge-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
     gap: 0.75rem;
-    padding-left: 1.5rem;
+  }
+
+  @media (max-width: 639px) {
+    .judge-cards {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .judge-card {
+    padding: 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .judge-icon {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+  }
+
+  .card-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+
+  .judge-name {
+    font-weight: 600;
+    font-size: 0.85rem;
+    line-height: 1.2;
+  }
+
+  .card-score {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .score-denom {
+    font-size: 0.75rem;
+    font-weight: 400;
     color: var(--color-text-muted);
-    font-size: 0.8rem;
   }
 
-  .vibe-dim strong,
-  .vibe-composite strong {
-    color: var(--color-text);
+  .score-green {
+    color: #22c55e;
+  }
+  .score-amber {
+    color: #f59e0b;
+  }
+  .score-red {
+    color: #ef4444;
   }
 
-  .single-score {
-    font-size: 0.9rem;
+  .vibe-sub {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    align-items: center;
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+    margin-top: 0.1rem;
+  }
+
+  .vibe-dim {
+    display: flex;
+    gap: 0.25rem;
+    align-items: center;
+  }
+
+  .vibe-dim strong {
+    font-weight: 600;
+  }
+
+  .vibe-sep {
+    color: var(--color-border);
   }
 </style>

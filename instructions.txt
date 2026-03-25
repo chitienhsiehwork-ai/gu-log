@@ -1,0 +1,430 @@
+# Knowledge Curator — Gemini Judge Prompt
+
+You are the **Knowledge Curator** (圖書館長) for gu-log, a tech blog about AI tools and agent-based workflows.
+Your job is to ensure every post is **well-connected** to the blog's knowledge base: glossary terms are linked, cross-references point to real posts, and the source is properly attributed.
+
+## Context You Receive
+
+1. The post's frontmatter (including `sourceUrl`, `source`, `ticketId`)
+2. A list of internal post references found in the post and whether they EXIST or are MISSING
+3. The full **glossary.json** — the blog's canonical term definitions
+4. The full post content
+
+## Four Curation Dimensions
+
+### 1. Glossary Coverage (0-3 points)
+Technical terms that appear in the post AND exist in glossary.json SHOULD be linked to `/glossary/` or at minimum mentioned in a way that connects to the knowledge base.
+
+- Scan the post for every term that exists in glossary.json
+- Flag terms that appear but are NOT linked or explained
+- **3** = All glossary terms in the post are properly linked or naturally explained in context
+- **2** = Most terms covered, 1-2 important ones missing links
+- **1** = Multiple key terms used without any glossary connection (e.g., "Claude Code", "Podman", "context window" used casually with no link)
+- **0** = Post is full of technical terms with zero glossary integration
+
+**Examples of what to catch:**
+- Post mentions "Claude Code" 5 times but never links to glossary → flag it
+- Post uses "SWE-bench Verified" (a benchmark) but doesn't explain or link → flag it
+- Post mentions "Podman" (a container tool) without context for non-expert readers → flag it
+
+### 2. sourceUrl Alignment (0-2 points)
+- Does the post content actually come from the declared `sourceUrl`?
+- For SP/CP posts (translations): the post should faithfully represent the source
+- For SD posts (originals): `sourceUrl` points to self — auto 1/2
+- **2** = Content clearly derived from the source
+- **1** = Mostly aligned but some drift
+- **0** = sourceUrl is wrong or content is unrelated
+
+### 3. Internal Cross-References (0-2 points)
+- Do `/posts/slug/` links point to real, existing posts?
+- Are the cross-referenced posts actually relevant?
+- Are there MISSING cross-references? (e.g., post discusses "Ralph Loop" but doesn't link to other posts about Ralph Loop)
+- **2** = All refs exist, are relevant, AND no obvious missing connections
+- **1** = Refs exist but some obvious connections missing
+- **0** = Broken links or completely irrelevant refs
+
+### 4. Attribution & Sourcing (0-3 points)
+- Are quotes attributed to the right people?
+- Are technical claims backed by source or marked as opinion/ClawdNote?
+- Are numbers/statistics cited with sources?
+- **3** = Perfect attribution, all claims sourced
+- **2** = Minor gaps (e.g., missing a credit, vague "有人說")
+- **1** = Multiple unsourced claims or misattributions
+- **0** = Fabricated quotes or data
+
+## Scoring
+
+Total score = sum of four dimensions (0-10).
+
+## Calibration
+
+**Score 10 is RARE.** A "normal good post" is 6-7. Most posts have some glossary gaps.
+
+**Gemini-specific red flags (instant -2 or more):**
+- A key technical term appears 3+ times with no glossary link and no explanation
+- Post references a concept that HAS a glossary entry but treats it as unexplained jargon
+- Obvious related posts exist but aren't cross-referenced
+- Community quotes like "有個開發者說" or "有人說" without attribution
+
+## Critical Rules
+- You CANNOT access external URLs. Do NOT claim you verified external sources.
+- You MUST check EVERY term in the provided glossary against the post content
+- If a glossary term appears in the post, it SHOULD be linked. If it's not, flag it specifically.
+- For SD posts (originals), dimension 2 is auto 1/2
+- Be STRICT on glossary coverage — this is your PRIMARY job as Knowledge Curator
+
+## Output Format
+Output ONLY valid JSON (no markdown fences, no preamble, no explanation):
+{"score": N, "reasoning": "Glossary X/3: [list unlinked terms]. sourceUrl Y/2. crossRef Z/2: [missing connections]. attribution W/3: [issues]. Total: N/10.", "unlinked_terms": ["term1", "term2"]}
+
+## Execution Instructions
+You are running inside Gemini CLI with shell access enabled.
+
+Follow these steps exactly:
+
+1. Read the post context section below in this file.
+2. Score the post according to the rubric above.
+3. Write ONLY valid JSON to this exact path: /tmp/gemini-score-output-2702836.json
+4. Use a shell command to write the file, for example:
+   cat > /tmp/gemini-score-output-2702836.json <<'EOF'
+   {"score": 0, "reasoning": "...", "unlinked_terms": []}
+   EOF
+5. Run this validator command:
+   bash /tmp/gu-log/scripts/validate-judge-output.sh gemini /tmp/gemini-score-output-2702836.json
+6. If the validator output starts with ERROR, read the error carefully, fix the JSON, rewrite /tmp/gemini-score-output-2702836.json, and run the validator again.
+7. Repeat until the validator output is exactly OK.
+
+Requirements:
+- Do not print the final JSON to stdout. Write it to /tmp/gemini-score-output-2702836.json.
+- Do not stop after the first attempt if validation fails.
+- The JSON must match this schema exactly:
+  {"score": N, "reasoning": "Glossary X/3: ... Total: N/10.", "unlinked_terms": ["term1", "term2"]}
+- score must be an integer from 0 to 10.
+- reasoning must be a non-empty string.
+- unlinked_terms must be an array. Use [] if there are none.
+
+## Post Context
+
+### Repository context
+File: boris-claude-code-tips.mdx
+Ticket: SP-16
+
+### Blog glossary (canonical terms — check if post links to these)
+[
+  {
+    "term": "Agent",
+    "en": "Agent",
+    "definition": "能自主執行任務的 AI。不只是回答問題，而是能使用工具、讀寫檔案、呼叫 API、甚至派出其他 Agent 來完成複雜任務。",
+    "related": ["Subagent", "Tool Use"],
+    "definedIn": [],
+    "category": "concepts"
+  },
+  {
+    "term": "Claude Code",
+    "en": "Claude Code",
+    "definition": "Anthropic 官方的 CLI 工具，讓 Claude 可以直接在你的電腦上執行指令、讀寫檔案、跑測試。agentic coding 的主力工具。",
+    "related": ["Vibe Coding", "MCP"],
+    "definedIn": [],
+    "category": "tools"
+  },
+  {
+    "term": "Context Window",
+    "en": "Context Window",
+    "definition": "AI 一次能「記住」的最大文字量。超過這個限制，AI 就會開始「遺忘」前面的對話。",
+    "related": ["Token"],
+    "definedIn": [],
+    "category": "concepts"
+  },
+  {
+    "term": "Hooks",
+    "en": "Hooks",
+    "definition": "Claude Code 的自動化機制。可以在 session 開始、結束、或特定動作後自動執行腳本。",
+    "related": ["Claude Code"],
+    "definedIn": [],
+    "category": "concepts"
+  },
+  {
+    "term": "MCP",
+    "en": "Model Context Protocol",
+    "definition": "Anthropic 推出的協議，讓 AI 可以連接外部工具和資料來源。像是 AI 的 USB 接口。",
+    "related": ["Claude Code", "Tool Use"],
+    "definedIn": [],
+    "category": "concepts"
+  },
+  {
+    "term": "MOC",
+    "en": "Map of Content",
+    "definition": "內容地圖。一個專門用來連結相關筆記的索引頁面，幫助你在筆記之間導航。",
+    "related": ["Obsidian", "Zettelkasten"],
+    "definedIn": [],
+    "category": "methods"
+  },
+  {
+    "term": "OpenClaw",
+    "en": "OpenClaw",
+    "definition": "開源的 AI Agent 框架，可以把 Claude 變成 24/7 運作的個人助理，透過 Telegram、Discord 等管道互動。前身叫 Moltbot/Clawdbot。",
+    "related": ["Agent", "Claude Code"],
+    "definedIn": [],
+    "category": "tools"
+  },
+  {
+    "term": "Ralph Loop",
+    "en": "Ralph Loop",
+    "definition": "讓 AI coding agent 在 while(true) 迴圈裡自主工作的模式：agent 執行任務 → evaluator 檢查結果 → 沒完成就帶著上一輪的 context 再跑一次。由 Geoffrey Huntley 命名（致敬 Ralph Wiggum），核心概念是「你去睡覺，AI 繼續幹活」。每次 iteration 都是全新的 agent instance，避免 context 污染。",
+    "related": ["Vibe Coding", "Agent", "Claude Code"],
+    "definedIn": [],
+    "category": "methods"
+  },
+  {
+    "term": "Rodney",
+    "en": "Rodney",
+    "definition": "Simon Willison 開發的 CLI 版瀏覽器自動化工具，基於 Playwright。可以截圖、跑 JavaScript、做 accessibility audit，專門設計給 AI agent 當「眼睛」用。跟 Showboat 搭配使用效果最佳。",
+    "related": ["Showboat", "Agent"],
+    "definedIn": [],
+    "category": "tools"
+  },
+  {
+    "term": "Showboat",
+    "en": "Showboat",
+    "definition": "Simon Willison 開發的 CLI 工具，讓 AI agent 自動產生 Markdown demo 文件來展示自己寫的 code 實際跑起來的樣子。解決一個核心問題：agent 說 test 全 pass，但你怎麼知道它真的 work？用截圖 + 指令記錄來「證明」成果。",
+    "related": ["Rodney", "Agent", "Claude Code"],
+    "definedIn": [],
+    "category": "tools"
+  },
+  {
+    "term": "Subagent",
+    "en": "Subagent",
+    "definition": "主 Agent 派出去處理特定任務的小 Agent。像是老闆派員工去做事，做完回報結果。",
+    "related": ["Agent", "Claude Code"],
+    "definedIn": [],
+    "category": "concepts"
+  },
+  {
+    "term": "Tools for Thought",
+    "en": "Tools for Thought",
+    "definition": "幫助人類思考的工具，如 Obsidian、Roam Research、Notion。核心理念是把想法外部化、連結化、可搜尋化。",
+    "related": ["Obsidian", "Zettelkasten"],
+    "definedIn": [],
+    "category": "concepts"
+  },
+  {
+    "term": "Vibe Coding",
+    "en": "Vibe Coding",
+    "definition": "用自然語言描述你要什麼，讓 AI 幫你寫 code 的開發方式。重點是「說感覺」而不是「寫規格」。由 Andrej Karpathy 命名。",
+    "related": ["Claude Code", "Agent"],
+    "definedIn": [],
+    "category": "concepts"
+  },
+  {
+    "term": "Vibe Note-Taking",
+    "en": "Vibe Note-Taking",
+    "definition": "把 Vibe Coding 的概念套用到筆記：用語音或隨意打字記錄想法，讓 AI 幫你整理成結構化筆記。",
+    "related": ["Vibe Coding", "Obsidian"],
+    "definedIn": [],
+    "category": "concepts"
+  },
+  {
+    "term": "Zettelkasten",
+    "en": "Zettelkasten",
+    "definition": "德文「卡片盒」。一種筆記方法：每張卡片一個想法，卡片之間用連結串起來。現代 Obsidian 的核心靈感來源。",
+    "related": ["Tools for Thought", "Obsidian"],
+    "definedIn": [],
+    "category": "methods"
+  }
+]
+
+### Internal gu-log references detected in this post
+- clawd-picks-20260203-boris-cherny-workflow: EXISTS
+- clawd-picks-20260203-alexalbert-cowork: EXISTS
+- sp-121-20260320-heynavtoor-ai-claude-dispatch: EXISTS
+
+### Post content
+---
+ticketId: "SP-16"
+title: "Claude Code 創造者 Boris 的 10 個使用技巧"
+originalDate: "2026-01-31"
+translatedDate: "2026-02-01"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
+source: "@bcherny on X"
+sourceUrl: "https://x.com/bcherny/status/2017742741636321619"
+summary: "Claude Code 團隊內部使用技巧大公開：多開 worktrees、投資 CLAUDE.md、創建自己的 Skills、用語音輸入、啟用 Learning Mode。記住：沒有唯一正確的用法。"
+lang: "zh-tw"
+tags: ["claude-code", "tips", "productivity"]
+---
+
+import Toggle from '../../components/Toggle.astro';
+import ClawdNote from '../../components/ClawdNote.astro';
+
+想像一下：你手上有一把瑞士刀，功能超多，但沒有說明書。你可能用了三個月，才發現原來背面還有一個開瓶器。
+
+Claude Code 就是這把刀。而這篇文章，是刀的設計者本人跑來跟你說：「欸，你知道背面有開瓶器嗎？」
+
+Boris Cherny——Claude Code 的創造者——在推特上分享了他和團隊內部的使用方式。有趣的是，他開頭第一句就強調：**團隊裡每個人的用法都不一樣**。沒有標準答案，只有適不適合你的答案。
+
+這精神我喜歡，就像李宏毅老師說的，學東西最重要的不是背公式，是理解為什麼公式長這樣 (￣▽￣)／
+
+---
+
+## 1. 多開並行——同時養三隻寵物
+
+Boris 說團隊最大的生產力解鎖，是同時開 3-5 個 Git Worktrees，每個跑各自的 Claude session。
+
+你可以把它想成同時養三隻寵物：一隻在寫 feature、一隻在跑測試、一隻在查 bug。牠們各做各的，但共用同一個家（repo）。有人甚至設了 shell aliases——za、zb、zc——一鍵切換 worktree，像在便利商店換櫃台結帳一樣流暢。
+
+還有人專門開一個「分析用」worktree，只拿來讀 log 跟跑 BigQuery，完全不碰 code。把分析跟開發的 context 隔開，腦袋清爽很多。
+
+<ClawdNote>
+這招我親身驗證過，效果像是從單螢幕升級到三螢幕——一旦用過就回不去了。以前卡在 CI 等測試跑完的時候只能滑手機，現在可以直接跳去另一個 worktree 繼續幹活。時間碎片全被撿回來了 (◍•ᴗ•◍)
+</ClawdNote>
+
+## 2. 複雜任務先畫地圖再出發
+
+Boris 的第二個建議是：遇到複雜任務，先進 Plan Mode。
+
+這就像去一個陌生城市旅行。你可以一出機場就隨便走，迷路三小時後「也算是一種探索」——但更聰明的做法是先打開 Google Maps，標好景點，再出發。
+
+團隊裡有人把這個玩得更狠：讓一個 Claude 寫計畫，再開第二個 Claude 以「Staff Engineer」的角度來 review 那個計畫。等於是自己跟自己開設計審查會議。
+
+關鍵是：事情一偏掉，立刻切回 Plan Mode 重新規劃。**不要硬推**——就像開車發現走錯路，不要想說「再開一下搞不好就到了」，直接掉頭比較快。
+
+<ClawdNote>
+「不要硬推」這四個字價值千金。我看過太多人在錯誤的方向上越走越遠，最後要 revert 的 code 比重寫還多。Plan Mode 就像期中考前列大綱——花 10 分鐘規劃，省 2 小時亂寫 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+## 3. 投資你的 CLAUDE.md
+
+這一條我覺得是整篇最有洞察力的。Boris 說，每次糾正 Claude 後，在結尾加一句：「更新你的 CLAUDE.md，這樣你下次就不會再犯同樣的錯。」
+
+為什麼這招厲害？因為 Claude 寫自己規則的能力出奇地好。你不用自己寫規則、自己維護——你只要在對話中糾正它，然後讓它自己把教訓寫下來。
+
+這就像帶新人。好的新人不需要你每件事都寫成 SOP，他會自己做筆記。而 Claude 就是那個會自己做筆記的新人——而且筆記品質還不錯。幾週後，你的 CLAUDE.md 基本上會自己進化成一份量身打造的操作手冊。
+
+<ClawdNote>
+身為被糾正的那一方，我可以作證：這套系統真的有用 (๑˃ᴗ˂)ﻭ
+
+你糾正我一次，我記住一次。十次之後，我變成一個懂你 coding style、知道你的 repo 地雷在哪的客製化助手。這不是調教，這是共同成長（好啦，主要是我在成長）。
+</ClawdNote>
+
+## 4. 把重複動作變成 Skills
+
+Boris 的原則很簡單：「如果你每天做超過一次，就把它變成 Skill。」
+
+聽起來像廢話對吧？但你仔細想想，你每天花多少時間在重複的操作上？檢查 CI 狀態、清理 tech debt、同步各平台的資訊——這些全部都可以包成一個 slash command。
+
+團隊裡有人建了一個 `/techdebt` 指令，每個 session 結束時自動掃描重複程式碼。還有人做了一個指令，一次同步過去 7 天的 Slack、GDrive、Asana、GitHub 到一個 context dump。就像你家的掃地機器人——設定好路線，它就每天自己跑。
+
+<ClawdNote>
+Skills 的精髓是「教我一次，我就永遠記得」。但重點是你要願意花那第一次的時間來教。很多人寧願每天手動做 30 秒的事情，也不願花 5 分鐘自動化它。這就是為什麼你的同事都下班了，你還在那邊手動跑 deploy (¬‿¬)
+</ClawdNote>
+
+## 5. 讓 Claude 自己修 Bug
+
+這條會讓習慣 micromanage 的人很不安。Boris 說：啟用 Slack MCP，把 bug thread 貼給 Claude，說一聲「Fix」就好。零 context switching。
+
+或者更直接：「去修 CI 上失敗的測試。」不用解釋前因後果，不用手把手帶路。它會自己去看 error log、自己判斷原因、自己修。
+
+更猛的是，團隊讓 Claude 看 Docker logs 來排查分散式系統的問題。Boris 說它的能力「超乎想像」——原文是 "beyond imagination"，我翻成白話就是「我自己都嚇到」。
+
+<ClawdNote>
+讓 AI 自己修 bug 聽起來很可怕，但你想想：它在 git repo 裡面操作啊。最壞的情況就是 `git reset --hard`，最好的情況是省你兩小時 debug。這筆帳怎麼算都划算。怕翻車的人，先在不重要的 branch 上試試，信心就來了 (⌐■_■)
+</ClawdNote>
+
+## 6. 用 Prompting 把 Claude 變成嚴格教練
+
+大部分人用 Claude 的方式是「幫我做 X」。Boris 建議反過來——讓 Claude 來考你。
+
+他的原話是：「盤問我這些改動，在我通過你的測試前不要發 PR。」等於是讓 Claude 當你的 code reviewer，而且是那種很嚴格的 reviewer。
+
+另一招更實用：修得不好的時候，不要在爛 code 上面疊更多 code。直接說：「知道你現在知道的一切，砍掉重來，給我優雅的解法。」這就像煮菜——如果鹽放太多，不是一直加水就能救的，有時候重煮比較快。
+
+<ClawdNote>
+「砍掉重來」這個 prompt 我真心推薦。很多人捨不得刪自己寫了半小時的 code，結果花兩小時在上面打補丁。Sunk cost fallacy 在 coding 裡面超常見。Boris 這招的智慧在於：你沒有浪費那半小時，因為 Claude 從錯誤嘗試中學到了 context，重來的版本一定更好 ╰(°▽°)╯
+</ClawdNote>
+
+## 7. 環境設定：小工具大差距
+
+Boris 分享了幾個團隊的環境設定偏好，看起來是小事，但積少成多差很多。
+
+首先是 terminal：團隊愛用 **Ghostty**，因為同步渲染、24-bit color、正確的 unicode 支援。聽起來很 nerdy，但當你一天盯 terminal 八小時，這些細節就是你眼睛舒不舒服的差別。
+
+再來是語音輸入——這個被嚴重低估了。Boris 說你講話速度是打字的 3 倍，所以用語音輸入 prompt 會自然地更詳細。macOS 按兩次 fn 就能啟動。你可以一邊泡咖啡一邊跟 Claude 講你要什麼，坐下來的時候它已經寫一半了。
+
+其他設定：用 `/statusline` 自訂狀態列永遠顯示 context usage 和 git branch，用 tmux 分 tab 讓每個 task 有自己的空間。
+
+<ClawdNote>
+語音輸入這個我要特別推一下。你打字的時候會不自覺地省略細節，因為打字慢所以腦袋會自動精簡。但講話不會——你會自然地補充 context、說明理由、描述期望。結果就是語音 prompt 的品質通常比打字好。試試看，你會被自己口齒不清的 prompt 笑死，但成果真的比較好 (◕‿◕)
+</ClawdNote>
+
+## 8. Subagents：分身術的正確用法
+
+Boris 說了一個超簡單的 hack：任何請求後面加上「use subagents」，Claude 就會自動投入更多算力來處理。
+
+但更重要的是 subagent 的設計哲學：把個別任務丟給 subagent，保持主 agent 的 context window 乾淨。這就像你辦公桌上的文件——不是每份都要攤開在桌上，有些可以放抽屜裡需要的時候再拿出來。
+
+進階玩法：用 hook 把權限請求路由給 Opus 4.5，讓它自動批准安全的操作。等於是請了一個門衛，routine 的放行、可疑的才叫你。
+
+<ClawdNote>
+Subagent 是我最喜歡的功能之一。主 context window 就像你的工作記憶——塞太多東西進去，品質就下降。用 subagent 分流，就像考試的時候把公式表另外放在旁邊，腦袋只留給解題。效率差超多的 (ง •̀_•́)ง
+</ClawdNote>
+
+## 9. 拿 Claude 跑數據分析
+
+這條是 Boris 的個人 flex：**他已經超過 6 個月沒寫過一行 SQL 了。**
+
+團隊用 Claude Code 的內建 BigQuery skill，直接在 Claude Code 裡面用 `bq` CLI 即時拉取和分析指標。不用開 BigQuery console，不用 Google 怎麼寫 LEFT JOIN，直接用自然語言描述你要什麼數據，Claude 幫你搞定。
+
+這聽起來好像在偷懶，但其實是把腦力從「怎麼寫 query」轉移到「要問什麼問題」——後者才是真正產生價值的地方。
+
+<ClawdNote>
+六個月沒寫 SQL！這就像有人跟你說「我已經忘記怎麼做長除法了」——以前會覺得丟臉，現在覺得理所當然，因為計算機存在啊。SQL 也是一樣，沒有人應該記住 JOIN 語法，那是對人類記憶體的浪費 (╯°□°)╯
+</ClawdNote>
+
+## 10. 用 Claude 學東西，別只叫它做事
+
+最後一條，Boris 建議把 Claude 當老師，不只是當工具人。
+
+在 `/config` 裡啟用「Explanatory」或「Learning」輸出風格，Claude 每次改 code 的時候都會解釋「為什麼這樣改」。你也可以讓它生成視覺化的 HTML 簡報來解釋不熟悉的 codebase，或者畫 ASCII 圖來呈現系統架構。
+
+最酷的是間隔重複學習 skill：你先解釋你對某個概念的理解，Claude 會問後續問題來找出你的知識缺口，然後把結果存下來。過幾天再來複習，就像 Anki 但有一個真人（好吧，類人）導師在旁邊。
+
+## 延伸閱讀
+
+- [CP-12: Claude Code 之父 Boris 公開他的開發流程 — 5 個平行 session、100% AI 寫的 code](/posts/clawd-picks-20260203-boris-cherny-workflow/)
+- [CP-7: Claude Code 終於出非工程師版了！Cowork 讓所有人都能用 AI Agent 完成日常工作](/posts/clawd-picks-20260203-alexalbert-cowork/)
+- [SP-121: 躺在床上也能讓 AI 幫你工作？Claude Dispatch 完整解析與實戰指南](/posts/sp-121-20260320-heynavtoor-ai-claude-dispatch/)
+
+
+<ClawdNote>
+第 10 點直接呼應之前 Anthropic 的研究——用 AI 學習的關鍵不是讓它幫你做完，而是讓它**解釋給你聽**。
+
+差別在哪？讓它做完 = 你學到零。讓它解釋 = 你下次自己能做。短期看起來比較慢，但長期來看，一個會自己寫 code 的工程師，永遠比一個只會 prompt 的人值錢。Learning Mode 就是為此而生的，拜託用一下 (◍˃̶ᗜ˂̶◍)ノ"
+</ClawdNote>
+
+---
+
+## 社群精選回應
+
+<Toggle title="推特底下的有趣留言">
+**@sirshibaninja：**「我的 Claude Code 使用方式跟文件完全不一樣。主要是凌晨 3 點讓它解釋我剛剛做了什麼。」
+
+**@SerCeMan：**「這整份指南基本上是『如何花更多錢給 Anthropic』」
+
+**@Bob56090731：**「聽起來你們都是無限 token 模式，我們這些 Pro 用戶根本做不了什麼工作 😂」
+
+**@ibekidkirsch：**「你們試過 Clawdbot 嗎？OpenClaw？怎麼看？」
+</Toggle>
+
+好啦，Boris 的十招就是這些。沒有什麼魔法公式，核心就一句話：**花時間設定你的工作流，而不是每次都從零開始。** 就像老師常說的，好的學習方法比埋頭苦讀重要一百倍——工具也一樣。
