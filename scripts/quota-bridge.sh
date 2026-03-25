@@ -79,7 +79,8 @@ reset_hr = $reset_hr
 FLOOR = 20
 
 if remaining_7d < FLOOR:
-    print('exhausted')
+    wait = max(300, int(reset_hr * 3600))
+    print(f'sleep:{wait}')
 elif remaining_5h < FLOOR:
     wait = max(300, int(reset_min * 60))
     print(f'sleep:{wait}')
@@ -135,10 +136,7 @@ if pro_remaining < FLOOR:
             dt = datetime.fromisoformat(pro_reset.replace('Z', '+00:00'))
             wait = int((dt - datetime.now(timezone.utc)).total_seconds())
             wait = max(300, wait)
-            if wait > 43200:  # > 12 hours
-                print('exhausted')
-            else:
-                print(f'sleep:{wait}')
+            print(f'sleep:{wait}')
         except:
             print('sleep:3600')
     else:
@@ -179,9 +177,20 @@ remaining_7d = data.get('weekly_remaining_pct', 0)
 FLOOR = 20
 
 if remaining_7d < FLOOR:
-    print('exhausted')
+    # Parse weekly reset time
+    reset_str = data.get('weekly_reset', '')
+    wait = 43200  # default 12hr
+    try:
+        if '小時' in reset_str:
+            wait = int(float(reset_str.replace(' 小時', '')) * 3600)
+        elif '天' in reset_str:
+            wait = int(float(reset_str.replace(' 天', '')) * 86400)
+    except:
+        pass
+    wait = max(300, wait)
+    print(f'sleep:{wait}')
 elif remaining_5h < FLOOR:
-    # Parse reset time from human-readable format
+    # Parse session reset time
     reset_str = data.get('five_hr_reset', '')
     wait = 3600  # default 1hr
     try:

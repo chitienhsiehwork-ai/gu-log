@@ -50,21 +50,19 @@ source "$ROOT_DIR/scripts/quota-bridge.sh"
 # Only "exhausted" means truly unavailable
 can_run() { [ "$1" = "ok" ] || [[ "$1" == sleep:* ]]; }
 
-# Extract seconds from "sleep:N" or return a large default for "exhausted"/"ok"
+# Extract seconds from "sleep:N" status, 0 for "ok"
 _parse_sleep() {
   local s="$1"
   if [[ "$s" == sleep:* ]]; then
     echo "${s#sleep:}"
-  elif [ "$s" = "exhausted" ]; then
-    echo "43200"  # 12hr fallback
   else
-    echo "0"
+    echo "0"  # "ok" = no wait needed
   fi
 }
 
 # Find earliest reset time from multiple statuses
 _earliest_reset() {
-  local min=43200  # default 12hr
+  local min=86400  # default 24hr (safety cap)
   for status in "$@"; do
     local secs
     secs="$(_parse_sleep "$status")"
