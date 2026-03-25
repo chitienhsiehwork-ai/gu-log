@@ -30,76 +30,111 @@ judge_build_queue() {
 }
 
 judge_check_quota() {
-  local backoff_remaining hourly_count hourly_wait last_run_gap
+  local backoff_remaining
 
+  # 1. Respect rate-limit backoff from previous 429
   backoff_remaining="$(rate_limit_backoff_remaining gemini)"
   if [ "$backoff_remaining" -gt 0 ]; then
     echo "sleep:${backoff_remaining}"
     return 0
   fi
 
-  hourly_count="$(usage_count_since gemini 3600)"
-  if [ "$hourly_count" -ge "${GEMINI_MAX_RUNS_PER_HOUR:-50}" ]; then
-    hourly_wait="$(seconds_until_slot_available gemini 3600 "${GEMINI_MAX_RUNS_PER_HOUR:-50}")"
-    if [ "$hourly_wait" -le 0 ]; then
-      hourly_wait=30
-    fi
-    echo "sleep:${hourly_wait}"
-    return 0
-  fi
-
-  last_run_gap="$(last_run_ago gemini)"
-  if [ "$last_run_gap" -lt "${GEMINI_MIN_GAP_SECONDS:-5}" ]; then
-    echo "sleep:$(( ${GEMINI_MIN_GAP_SECONDS:-5} - last_run_gap ))"
-    return 0
-  fi
-
-  echo "ok"
+  # 2. Real quota check via usage-monitor.sh → Gemini API
+  source "$SCORE_ROOT/scripts/quota-bridge.sh"
+  gemini_real_quota_check
 }
 
 judge_score_post() {
   local post_path="$1"
-  local prompt_file input_file raw_file normalized_file reasoning score
+  local prompt_file output_file validator
   prompt_file="$SCORE_ROOT/scripts/prompts/crossref-verifier.md"
-  input_file="$(mktemp)"
+  output_file="/tmp/gemini-score-output-$$.json"
+  validator="$SCORE_ROOT/scripts/validate-judge-output.sh"
+
+  local debug_dir="$SCORE_ROOT/.score-loop/raw"
+  mkdir -p "$debug_dir"
+
+  local task_file="$(mktemp)"
+  cat > "$task_file" << TASK_EOF
+$(cat "$prompt_file")
+
+## Execution Instructions
+You are running inside Gemini CLI with shell access enabled.
+
+Follow these steps exactly:
+
+1. Read the post context section below in this file.
+2. Score the post according to the rubric above.
+3. Write ONLY valid JSON to this exact path: $output_file
+4. Use a shell command to write the file, for example:
+   cat > $output_file <<'EOF'
+   {"score": 0, "reasoning": "...", "unlinked_terms": []}
+   EOF
+5. Run this validator command:
+   bash $validator gemini $output_file
+6. If the validator output starts with ERROR, read the error carefully, fix the JSON, rewrite $output_file, and run the validator again.
+7. Repeat until the validator output is exactly OK.
+
+Requirements:
+- Do not print the final JSON to stdout. Write it to $output_file.
+- Do not stop after the first attempt if validation fails.
+- The JSON must match this schema exactly:
+  {"score": N, "reasoning": "Glossary X/3: ... Total: N/10.", "unlinked_terms": ["term1", "term2"]}
+- score must be an integer from 0 to 10.
+- reasoning must be a non-empty string.
+- unlinked_terms must be an array. Use [] if there are none.
+
+## Post Context
+
+### Repository context
+File: $(basename "$post_path")
+Ticket: $(get_ticket_id "$post_path")
+
+### Blog glossary (canonical terms — check if post links to these)
+$(cat "$SCORE_ROOT/src/data/glossary.json")
+
+### Internal gu-log references detected in this post
+$(build_internal_ref_context "$post_path")
+
+### Post content
+$(cat "$post_path")
+TASK_EOF
+
+  local raw_file
   raw_file="$(mktemp)"
-  normalized_file="$(mktemp)"
 
-  {
-    echo "# Repository context"
-    echo "File: $(basename "$post_path")"
-    echo "Ticket: $(get_ticket_id "$post_path")"
-    echo
-    echo "# Blog glossary (canonical terms — check if post links to these)"
-    cat "$SCORE_ROOT/src/data/glossary.json"
-    echo
-    echo "# Internal gu-log references detected in this post"
-    build_internal_ref_context "$post_path"
-    echo
-    echo "# Post content"
-    cat "$post_path"
-  } > "$input_file"
+  GOOGLE_GENAI_USE_GCA=true TERM=dumb NO_COLOR=1 \
+    gemini --model gemini-3.1-pro-preview --yolo \
+    --prompt "Read $task_file for your instructions. Follow them exactly." \
+    < /dev/null > "$raw_file" 2>&1 || true
 
-  if ! GOOGLE_GENAI_USE_GCA=true TERM=dumb NO_COLOR=1 \
-    gemini --model gemini-3.1-pro-preview --yolo --prompt "$(cat "$prompt_file")" \
-    < "$input_file" > "$raw_file" 2>&1; then
-    cat "$raw_file"
-    rm -f "$input_file" "$raw_file" "$normalized_file"
+  # Save raw CLI output for debugging
+  cp "$raw_file" "$debug_dir/gemini-$(basename "$post_path" .mdx).txt" 2>/dev/null || true
+  rm -f "$raw_file"
+
+  # Gemini should have written + validated the file. Just check it exists.
+  if [ ! -f "$output_file" ]; then
+    rm -f "$task_file"
+    echo "Gemini did not write output file: $output_file" >&2
     return 1
   fi
 
-  cp "$raw_file" "$normalized_file"
-  normalize_json_file "$normalized_file" || {
-    cat "$raw_file"
-    rm -f "$input_file" "$raw_file" "$normalized_file"
+  # Final safety check (Gemini should have already validated, but trust but verify)
+  local validation_result
+  validation_result="$(bash "$validator" gemini "$output_file" 2>&1)"
+  if [ "$validation_result" != "OK" ]; then
+    cp "$output_file" "$debug_dir/gemini-$(basename "$post_path" .mdx)-invalid.json" 2>/dev/null || true
+    rm -f "$output_file" "$task_file"
+    echo "Final validation failed: $validation_result" >&2
     return 1
-  }
+  fi
 
-  # Prompt may output {score, reasoning, unlinked_terms} — handle variants
-  score="$(jq -r '.score // empty' "$normalized_file")"
-  reasoning="$(jq -r '.reasoning // .note // .details.reasoning // empty' "$normalized_file")"
+  # Read validated output and normalize to our format
+  local score reasoning unlinked_terms
+  score="$(jq -r '.score' "$output_file")"
+  reasoning="$(jq -r '.reasoning // empty' "$output_file")"
   [ -n "$reasoning" ] || reasoning="Gemini returned score without reasoning"
-  unlinked_terms="$(jq -c '.unlinked_terms // []' "$normalized_file")"
+  unlinked_terms="$(jq -c '.unlinked_terms // []' "$output_file")"
 
   jq -cn \
     --argjson score "$score" \
@@ -109,7 +144,7 @@ judge_score_post() {
     --argjson iteration 1 \
     '{score: $score, details: {reasoning: $reasoning, unlinked_terms: $unlinked_terms}, model: $model, iteration: $iteration}'
 
-  rm -f "$input_file" "$raw_file" "$normalized_file"
+  rm -f "$output_file" "$task_file"
 }
 
 judge_sleep_duration() {
