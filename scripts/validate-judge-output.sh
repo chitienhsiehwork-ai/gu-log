@@ -17,7 +17,12 @@ if [ ! -f "$JSON_FILE" ]; then
   exit 1
 fi
 
-# Must be valid JSON
+# Must be non-empty valid JSON
+if [ ! -s "$JSON_FILE" ]; then
+  echo "ERROR: Not valid JSON. File is empty."
+  exit 1
+fi
+
 if ! jq empty "$JSON_FILE" 2>/dev/null; then
   echo "ERROR: Not valid JSON. File contents:"
   head -20 "$JSON_FILE"
