@@ -50,6 +50,48 @@ source "$ROOT_DIR/scripts/quota-bridge.sh"
 # Only "exhausted" means truly unavailable
 can_run() { [ "$1" = "ok" ] || [[ "$1" == sleep:* ]]; }
 
+# Extract seconds from "sleep:N" or return a large default for "exhausted"/"ok"
+_parse_sleep() {
+  local s="$1"
+  if [[ "$s" == sleep:* ]]; then
+    echo "${s#sleep:}"
+  elif [ "$s" = "exhausted" ]; then
+    echo "43200"  # 12hr fallback
+  else
+    echo "0"
+  fi
+}
+
+# Find earliest reset time from multiple statuses
+_earliest_reset() {
+  local min=43200  # default 12hr
+  for status in "$@"; do
+    local secs
+    secs="$(_parse_sleep "$status")"
+    if [ "$secs" -gt 0 ] && [ "$secs" -lt "$min" ]; then
+      min="$secs"
+    fi
+  done
+  # Add 60s buffer so we check right after reset, not right before
+  echo "$(( min + 60 ))"
+}
+
+# Human-readable duration
+human_duration() {
+  local secs="$1"
+  if [ "$secs" -lt 3600 ]; then
+    echo "$(( secs / 60 ))min"
+  else
+    local hrs=$(( secs / 3600 ))
+    local mins=$(( (secs % 3600) / 60 ))
+    if [ "$mins" -gt 0 ]; then
+      echo "${hrs}hr ${mins}min"
+    else
+      echo "${hrs}hr"
+    fi
+  fi
+}
+
 # Extract sleep seconds from status like "sleep:3600"
 sleep_from_status() {
   local s="$1"
@@ -77,10 +119,15 @@ run_one_round() {
 
   log "Quota: Gemini=$gemini_status, Codex=$codex_status, Claude=$claude_status"
 
-  # ─── All exhausted? Signal via exit code ───
+  # ─── All exhausted? Calculate smart sleep ───
   if ! can_run "$gemini_status" && ! can_run "$codex_status"; then
-    log "Both Gemini and Codex exhausted. Sleeping."
-    return 2  # exit code 2 = all exhausted, daemon should long-sleep
+    # Find earliest reset across all providers
+    local earliest_sleep
+    earliest_sleep="$(_earliest_reset "$gemini_status" "$codex_status")"
+    log "Both Gemini and Codex unavailable. Next reset in ${earliest_sleep}s ($(human_duration "$earliest_sleep"))"
+    # Write sleep duration to temp file for daemon to read (can't use stdout)
+    echo "$earliest_sleep" > /tmp/ralph-orchestrator-sleep
+    return 2  # exit code 2 = all exhausted
   fi
 
   # ─── Phase 1: Fan-out Gemini + Codex in parallel ───
@@ -147,10 +194,9 @@ if [ "$DAEMON" -eq 0 ]; then
 fi
 
 # ─── Daemon mode: loop forever ───
-COOLDOWN_OK=120       # seconds between rounds when quota is fine
-COOLDOWN_EXHAUSTED=1800  # seconds when all providers exhausted (30 min)
+COOLDOWN_OK=120       # seconds between scoring rounds
 
-log "Daemon mode started (limit=$LIMIT per round, cooldown=${COOLDOWN_OK}s / ${COOLDOWN_EXHAUSTED}s)"
+log "Daemon mode started (limit=$LIMIT per round, cooldown=${COOLDOWN_OK}s between rounds)"
 
 while :; do
   set +e
@@ -159,8 +205,14 @@ while :; do
   set -e
 
   if [ "$round_exit" -eq 2 ]; then
-    log "All exhausted — sleeping ${COOLDOWN_EXHAUSTED}s ($(( COOLDOWN_EXHAUSTED / 60 ))min)"
-    sleep "$COOLDOWN_EXHAUSTED"
+    # Read smart sleep duration from temp file (written by run_one_round)
+    local_sleep="$(cat /tmp/ralph-orchestrator-sleep 2>/dev/null || echo 1800)"
+    rm -f /tmp/ralph-orchestrator-sleep
+    # Cap at 12hr, floor at 5min
+    [ "$local_sleep" -lt 300 ] && local_sleep=300
+    [ "$local_sleep" -gt 43200 ] && local_sleep=43200
+    log "Sleeping until next quota reset: $(human_duration "$local_sleep")"
+    sleep "$local_sleep"
   else
     log "Cooling down ${COOLDOWN_OK}s before next round..."
     sleep "$COOLDOWN_OK"
