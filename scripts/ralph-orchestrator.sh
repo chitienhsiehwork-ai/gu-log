@@ -77,12 +77,10 @@ run_one_round() {
 
   log "Quota: Gemini=$gemini_status, Codex=$codex_status, Claude=$claude_status"
 
-  # ─── All exhausted? Return sleep hint ───
+  # ─── All exhausted? Signal via exit code ───
   if ! can_run "$gemini_status" && ! can_run "$codex_status"; then
     log "Both Gemini and Codex exhausted. Sleeping."
-    # Return min wait time for daemon loop
-    echo "wait"
-    return 0
+    return 2  # exit code 2 = all exhausted, daemon should long-sleep
   fi
 
   # ─── Phase 1: Fan-out Gemini + Codex in parallel ───
@@ -138,7 +136,7 @@ run_one_round() {
   oc="$(grep -c "Recorded.*=> score" "$LOG_DIR/opus-${TODAY_STAMP}.log" 2>/dev/null || echo 0)"
   log "Round complete. Today: Gemini=$gc, Codex=$cc, Opus=$oc"
 
-  echo "done"
+  return 0  # exit code 0 = normal round completed
 }
 
 # ─── Main ───
@@ -155,10 +153,13 @@ COOLDOWN_EXHAUSTED=1800  # seconds when all providers exhausted (30 min)
 log "Daemon mode started (limit=$LIMIT per round, cooldown=${COOLDOWN_OK}s / ${COOLDOWN_EXHAUSTED}s)"
 
 while :; do
-  result="$(run_one_round)"
+  set +e
+  run_one_round
+  round_exit=$?
+  set -e
 
-  if [ "$result" = "wait" ]; then
-    log "All exhausted — sleeping ${COOLDOWN_EXHAUSTED}s"
+  if [ "$round_exit" -eq 2 ]; then
+    log "All exhausted — sleeping ${COOLDOWN_EXHAUSTED}s ($(( COOLDOWN_EXHAUSTED / 60 ))min)"
     sleep "$COOLDOWN_EXHAUSTED"
   else
     log "Cooling down ${COOLDOWN_OK}s before next round..."
