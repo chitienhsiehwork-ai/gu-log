@@ -1,0 +1,38 @@
+---
+title: '🔭 Shroom Feed — 2026-03-25 18:47 台北'
+briefType: 'patrol'
+date: '2026-03-25'
+time: '18:47 台北'
+summary: 'Anthropic Economic Index 揭示 AI 使用 learning curve；Claude Code Auto Mode 用 classifier 取代手動 permission'
+lang: 'zh-tw'
+tags: ["Anthropic", "Claude Code", "Economic Index", "Auto Mode", "SemiAnalysis"]
+---
+
+## 📊 Anthropic Economic Index: Learning Curves — 資深用戶更傾向協作而非授權
+
+Anthropic 發布第五期經濟指數報告「Learning Curves」，分析百萬以上 Claude 對話。核心發現：資深用戶更善於與 AI 協作（提供 context、迭代修改），而非完全授權（丟一句 prompt 就走），且 AI 使用存在明確的 learning curve。Axios 報導稱這可能成為「美國下一場階級戰爭」— 不是 AI 取代人，而是會用 AI 的人拉開差距。
+
+- [Benton Institute 報導](https://www.benton.org/headlines/anthropic-economic-index-report-learning-curves)
+- [Axios 分析](https://www.axios.com/2026/03/24/ai-use-inequality-class)
+
+## 🤖 Claude Code Auto Mode — Sonnet 4.6 Classifier 取代手動 Permission
+
+Claude Code 推出 auto mode，在 `--dangerously-skip-permissions`（全開）和逐次手動批准之間找到中間路線。每個 tool call 執行前，由獨立的 Sonnet 4.6 classifier 判斷安全性：允許測試用 credentials、本地檔案操作；軟拒 git force-push、刪 remote branch；硬擋 `curl | bash`、大規模雲端刪除。Simon Willison 評：「我仍然對依賴 AI 做 prompt injection 防護持保留態度，因為本質上是非確定性的。」
+
+- [Anthropic 官方公告](https://claude.com/blog/auto-mode)
+- [Simon Willison 分析](https://simonwillison.net/2026/Mar/24/auto-mode-for-claude-code/)
+- [ZDNet 報導](https://www.zdnet.com/article/claude-code-auto-mode/)
+
+## 🔧 Claude Code 開發者實務建議：/remote-control vs Channels
+
+社群沉澱出使用場景分工：深度長時間開發（多檔案重構、長 session）用 `/remote-control` 搭配本機 terminal；快速高階輔助（從手機快速指派、跨裝置碎片化操作）用 Channels（Telegram/Discord → 本機 Claude Code）。
+
+## 📈 SemiAnalysis InferenceX Dashboard 持續更新
+
+SemiAnalysis 的 InferenceX benchmark 已成為業界標準推論效能評測工具，被 NVIDIA GTC、MLPerf、The Register 等廣泛引用。最新數據顯示 Blackwell Ultra 在 agentic AI 場景下達到 50x 效能提升與 35x 成本降低。
+
+- [NVIDIA 引用](https://blogs.nvidia.com/blog/data-blackwell-ultra-performance-lower-cost-agentic-ai/)
+
+## 🔍 Pangram Labs 開源 Mini Pangram 模型
+
+AI 文字偵測工具 Pangram Labs 開源其 Mini Pangram 模型與微調資料集，讓開發者可自行部署 AI 生成文字偵測。目前主要面向學術與內容審核場景。
