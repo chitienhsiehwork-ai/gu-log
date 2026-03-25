@@ -1,0 +1,81 @@
+---
+ticketId: "CP-208"
+title: "你的模型偏好能「繼承」嗎？探討 RL 模型的可轉移性"
+originalDate: "2026-03-19"
+translatedDate: "2026-03-25"
+translatedBy:
+  model: "Gemini 3.1 Pro"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: "@Thom_Wolf on X"
+sourceUrl: "https://x.com/Thom_Wolf/status/2034646382334599200"
+lang: "zh-tw"
+summary: "隨著新模型發布速度不斷加快，Hugging Face 的 Thomas Wolf 提出了一個值得深思的問題：當我們把模型客製化後，換新模型時這些偏好該怎麼辦？本文探討 RL 模型轉移性的研究空白與挑戰。"
+tags: ["clawd-picks", "RL", "Model Transferability", "Personalization"]
+---
+import ClawdNote from '../../components/ClawdNote.astro';
+
+你有沒有花過一整個下午，把手機桌面排到完美、App 分好資料夾、通知設定調到剛剛好——結果隔天換新手機，全部重來？
+
+現在把「手機」換成「AI 模型」，把「桌面」換成「你花了幾週用 RL 調出來的偏好設定」。Hugging Face 的 Thomas Wolf 最近在 X 上丟出一個讓人頭痛的問題：在 base model 幾週就換一輪的世界裡，你辛苦教會模型的那些品味，到底能不能帶著走？
+
+他的答案是：目前幾乎沒人在認真處理這件事。(╯°□°)╯
+
+## 模型換太快，調教變成一次性消耗品
+
+我們來想像一個場景。你是某個團隊的 ML 工程師，花了兩個禮拜用 RLHF 把 Llama 3 調到完美符合公司的語氣跟回答風格。老闆很滿意，用戶也覺得讚。
+
+然後 Llama 4 出了。
+
+性能更好、推理更快、benchmark 全面碾壓。但你之前辛苦調出來的那些偏好設定呢？那些 reward signals、LoRAs、精心標記的 preference data？全部綁死在 Llama 3 上面。你現在有兩個選項：繼續用「比較懂你」的舊模型，或者咬牙花兩個禮拜重新調教新模型。
+
+<ClawdNote>
+這就是 AI 圈的「換手機焦慮」，但比換手機慘多了。手機至少還有 iCloud 備份，你的 RL preference 目前連個像樣的「匯出」按鈕都沒有。而且新模型的出現速度大概是新手機的十倍，所以這個痛只會越來越頻繁 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+Thomas Wolf 指出，大部分關於 LLM 個人化的研究都有一個隱藏假設：base model 是固定的。這在兩年前也許說得通，但現在？看看 Hugging Face Hub 上模型更新的加速曲線，我們可能離「每天都有更好的 base model 掉下來」的日子不遠了。
+
+## 所以，有沒有辦法讓偏好「搬家」？
+
+Thomas Wolf 把這個問題框架化成一個研究方向：**RL 模型轉移性（RL model transferability）**。白話文就是：我們能不能把在「模型 N」上面訓練出來的那些 RL 痕跡——reward signal、preference representation、行為偏好——打包起來，自動搬到「模型 N+1」上面，而且不需要使用者從頭再來一次？
+
+在 SFT（Supervised Fine-Tuning）的世界裡，這個問題其實已經被解決了——因為訓練資料就是文字，存下來就好，拿去 fine-tune 新模型完全沒問題。RLHF 某些階段也有類似的處理方式。但一旦把 RL 部署到真實世界的使用場景裡，這個問題就變得模糊又棘手。
+
+<ClawdNote>
+SFT 的「可攜性」本質上是因為資料跟模型是分離的——你的 dataset 不會因為換了 base model 就失效。但 RL 訓練出來的東西是跟模型的 weight space 綁在一起的，就像你在 PS5 上練了 200 小時的存檔，拿到 Xbox 上打不開一樣。這才是真正的技術瓶頸 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+## 目前有人在做嗎？有，但拼圖還缺很多塊
+
+Thomas Wolf 有提到，已經有一些研究在啃這個問題的邊角：有人在做 transferable reasoning traces（RLTR），有人在嘗試讓 user representation 不要跟特定模型綁死（P-RLHF、PREMIUM），也有人在設計 portable preference protocols（HCP）。
+
+但他自己也說了：**整個完整循環（the full loop）還是被研究得太少。** 現有的工作像是在拼一幅拼圖，但每組人馬只做了一小角，還沒有人把整張圖拼起來。
+
+<ClawdNote>
+翻了一下這幾篇論文，感覺確實是各做各的、互相不太 reference。RLTR 專注在 reasoning trace 的轉移，P-RLHF 在處理 user representation 的 model-agnostic 化，HCP 在搞 protocol 層面的相容性——但從「使用者在模型 A 上花了兩週調教，按一個按鈕就搬到模型 B」這個完整故事來看，中間還有一大段沒人碰。Thomas Wolf 說自己可能漏看了一些工作，但我覺得更可能是這塊真的就是荒地 (¬‿¬)
+</ClawdNote>
+
+這裡面還有一個更微妙的問題：你在舊模型上做的那些客製化，有多少其實是在「修補舊模型的缺陷」，又有多少是「真正屬於你的個人偏好」？
+
+舉個例子：如果你之前用 RL 教 Llama 3「回答要更簡潔」，但 Llama 4 出廠就已經很簡潔了，那這條偏好就不用搬了。真正需要搬的是那些你獨有的、新模型不可能自動知道的東西——你的公司語氣、你的風格偏好、你對特定領域的判斷標準。
+
+## 為什麼這件事比你想的更急
+
+Thomas Wolf 這串推文其實是被一篇關於 OPD + RL 在真實 agentic tasks 上應用的論文觸發的。但他真正想說的不只是學術問題——這是一個正在發生的實際痛點。
+
+想想看：如果企業花了大把預算用 RL 客製化一個模型，結果三個月後因為 base model 過時被迫放棄，這不就等於把錢丟進水裡嗎？反過來說，如果有人真的解決了 RL 偏好的可攜性問題，那「個人化 AI」才能從「一次性專案」變成「會跟著你成長的東西」。
+
+記得我們開頭說的換手機比喻嗎？差別在於：手機廠商花了十年才把雲端備份做到無痛，AI 圈可能沒有十年的時間慢慢來。Thomas Wolf 歡迎大家丟相關論文給他，但我猜他更希望看到的是——有人直接把這個問題當成主線任務來解。(◕‿◕)
