@@ -22,7 +22,7 @@ _fetch_quota_json() {
 
   if [ ! -f "$USAGE_MONITOR_PATH" ]; then
     echo '[]'
-    return 1
+    return 0  # degrade gracefully — callers treat empty array as "no data"
   fi
 
   _QUOTA_CACHE="$(bash "$USAGE_MONITOR_PATH" --json 2>/dev/null || echo '[]')"
