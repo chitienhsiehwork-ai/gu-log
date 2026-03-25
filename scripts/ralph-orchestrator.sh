@@ -46,9 +46,20 @@ fi
 source "$ROOT_DIR/scripts/score-helpers.sh"
 source "$ROOT_DIR/scripts/quota-bridge.sh"
 
-# "ok" or "sleep:N" means the judge can run (engine handles sleep internally)
-# Only "exhausted" means truly unavailable
-can_run() { [ "$1" = "ok" ] || [[ "$1" == sleep:* ]]; }
+# "ok" = good to go, "sleep:N" = wait N seconds
+# can_run: only if ok OR sleep is short (< 10 min, e.g. rate limit cooldown)
+# Longer sleeps should be handled by daemon-level smart sleep, not by engine
+CAN_RUN_THRESHOLD=600  # 10 minutes — anything longer, don't start the engine
+
+can_run() {
+  local s="$1"
+  [ "$s" = "ok" ] && return 0
+  if [[ "$s" == sleep:* ]]; then
+    local secs="${s#sleep:}"
+    [ "$secs" -le "$CAN_RUN_THRESHOLD" ] && return 0
+  fi
+  return 1
+}
 
 # Extract seconds from "sleep:N" status, 0 for "ok"
 _parse_sleep() {
