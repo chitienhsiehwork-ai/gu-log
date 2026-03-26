@@ -1,0 +1,97 @@
+---
+ticketId: "CP-213"
+title: "NVIDIA 的推論帝國擴張：從 Groq 到全新機架架構解析"
+originalDate: "2026-03-24"
+translatedDate: "2026-03-27"
+translatedBy:
+  model: "Gemini 3.1 Pro"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: "Dylan Patel, Myron Xie, Daniel Nishball, et al. at SemiAnalysis"
+sourceUrl: "https://newsletter.semianalysis.com/p/nvidia-the-inference-kingdom-expands"
+lang: "zh-tw"
+summary: "NVIDIA 在 GTC 2026 發表了 Groq LPX、Vera ETL256 與 STX 等全新系統。本文深入解析 LPU 與 GPU 的分工、CPO 發展路線以及未來的網路與儲存架構。"
+tags: ["clawd-picks", "Nvidia", "GTC2026", "Hardware", "SemiAnalysis"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+各位觀眾，NVIDIA 在 GTC 2026 投下了震撼彈！(◍•ᴗ•◍) 這次他們不僅沒有放慢腳步，還一口氣推出了三個全新的系統：Groq LPX、Vera ETL256 還有 STX。除此之外，也更新了 Kyber 機架架構，並讓 CPO（共封裝光學）在 Rubin Ultra NVL576 和 Feynman NVL1152 這類多機架系統的擴充網路中首度亮相。今天我們就來像剝洋蔥一樣，一層一層看懂 NVIDIA 這次到底在下哪一盤大棋！
+
+---
+## Groq 的「類收購」與全新 LP30 晶片
+
+大家可能還記得前陣子 AI 硬體圈的大新聞：NVIDIA 花了 200 億美元「收購」了 Groq。但原作者提醒，嚴格來說，NVIDIA 是付錢授權 Groq 的 IP，並聘走大部分團隊。原作者認為，考量 NVIDIA 的市佔率，如果這筆交易被包裝成正式收購、進入反壟斷審查，交易很可能不會過。這種安排也讓 NVIDIA 能更快拿到 Groq 的技術和人才。
+
+拿到 Groq 之後，NVIDIA 火速將其概念整合進 Vera Rubin 推論堆疊中。這就帶出了 Groq 第三代 LPU（也就是 LP30）。因為原本的第二代設計有 SerDes 缺陷被跳過了。LP30 晶片面積幾乎達到光罩極限，裡面塞了 500MB 的 SRAM，提供 1.2 PFLOPs 的 FP8 算力。有趣的是，它是用三星的 SF4 製程製造的。這點很聰明，因為這不會佔用到 NVIDIA 非常緊缺的台積電 N3 產能或 HBM 配額！
+
+<ClawdNote>
+這裡比較像是我的解讀：這種交易結構的重點，不只是在法律形式上接近收購，也在於能更快拿到 IP 和團隊。至於製程面，原文強調的是 SF4 不會像 TSMC N3 與 HBM 那樣受限，讓 NVIDIA 能把 LPU 產能額外拉起來；這裡先不要把它延伸成更廣泛的產業趨勢判斷。
+</ClawdNote>
+
+---
+## GPU 與 LPU 的完美分工：AFD 與投機解碼
+
+大家可能會想，既然 GPU 這麼強，為什麼還要 LPU？其實，LLM 的推論分為兩個階段：Prefill（預填）和 Decode（解碼）。Prefill 需要大量運算，適合 GPU；但 Decode 是一次吐一個 token，對延遲超級敏感，而且很容易被記憶體頻寬卡住。LPU 滿滿的超高速 SRAM 剛好是解決這個問題的靈丹妙藥！
+
+這就引出了一個酷炫的技術：**Attention FFN Disaggregation (AFD)**。
+簡單來說，在 Decode 階段，Attention（注意力機制）需要動態載入 KV Cache，這件事讓處理動態工作負載很強的 GPU 來做最合適；而 FFN（前饋神經網路）沒有狀態（stateless），只需要看 token 輸入，這部分就交給執行具有確定性的 LPU。透過這種分工，GPU 的 HBM 可以全拿去放 KV Cache，服務更多使用者。為了隱藏兩者之間傳遞資料的延遲，他們還用了「乒乓管線平行處理」技術。
+
+另外，LPU 還能用來加速 **投機解碼 (Speculative Decoding)**。原作者提到，可以把 draft model 或 MTP 層部署在 LPU 上，先快速預測 token，再交給主力模型驗證。文中也補充，LPX 節點上的 FPGA 各自還能帶來最高 256GB 的額外系統記憶體；如果要讓整個 decode process 都由 LPX 來服務，這一池記憶體也可以拿來放 KV Cache。
+
+---
+## 深入解析 LPX 機架與網路架構
+
+講完晶片，我們來看看系統。NVIDIA 展示的 LPX 機架裡面有 32 個 1U 的運算托盤（node）。每個托盤裡面可是大有玄機：
+- 16 顆 LPU
+- 2 顆 Altera FPGA（被稱為 Fabric Expansion Logic）
+- 1 顆 Intel Granite Rapids CPU
+- 1 張 BlueField-4 前端模組
+
+這裡的 FPGA 扮演了超級吃重的角色！它不僅要把 LPU 的通訊協定轉換成乙太網路，好讓 LPU 能跟規模橫向擴充網路上的 GPU 溝通；還要負責把訊號轉成 PCIe 讓 CPU 讀取；甚至還要管理節點內 LPU 之間的控制流跟時序。
+
+在網路部分，這是一個極度密集的架構。托盤內的 16 顆 LPU 是透過 PCB 走線進行 all-to-all 的網狀連接，這需要規格極高的 PCB 才能辦到。而托盤之間的連接則是透過銅纜背板，每顆 LPU 會連到其他 15 個托盤中的 LPU。
+
+---
+## CPO 路線圖與 Kyber 機架的進化
+
+講到網路，大家都很關心 CPO（共封裝光學）到底什麼時候會成為主流？根據分析，NVIDIA 的策略很務實：「能用銅線就用銅線，非不得已才用光學」。
+
+- **Rubin / Rubin Ultra (NVL72 & NVL144)**：機架內部的擴充網路依然會是全銅線。
+- **Rubin Ultra NVL576**：這是一個把 8 個 Oberon 機架連起來的系統，機架之間會開始使用 CPO 來進行兩層式 all-to-all 連接（不過原作者提醒這目前可能是低量產的測試用途）。
+- **Feynman NVL1152**：這會是把 8 個 Kyber 機架連起來的系統。原作者認為，機架之間的交換器會導入 CPO；但 GPU 到 NVLink 交換器之間，目前的計畫（POR）仍然是銅線。
+
+至於最新的 Kyber 機架，這次也迎來了更新。每個運算刀鋒伺服器變得更密集，包含了 4 顆 Rubin Ultra GPU 和 2 顆 Vera CPU，一個機架總共可以塞進 144 顆 GPU。為了支撐這樣龐大的互連，每個機架配備了高達 72 顆 NVLink 7 交換器。
+
+---
+## 解決瓶頸：Vera ETL256 與儲存新架構 CMX/STX
+
+除了算力，NVIDIA 也看到了其他潛在的瓶頸。
+
+首先是 CPU 瓶頸。隨著 AI 工作負載（像是強化學習）需要越來越多資料預處理和模擬，CPU 漸漸跟不上 GPU 的腳步了。為此，NVIDIA 推出了 **Vera ETL256** 獨立機架。它在一個機架內塞入了驚人的 256 顆 CPU！為了達成這種密度，不僅需要水冷散熱，還巧妙地將網路交換器放在中間，確保所有連接都能用便宜的銅線搞定。
+
+再來是 KV Cache 容量瓶頸。長上下文和代理（agentic）工作負載讓 KV Cache 暴增，單靠 HBM 和系統 DRAM 根本不夠用。於是 NVIDIA 推出了 **CMX (Context Memory Storage)** 平台，並發表了 **STX** 參考儲存機架架構。這是在記憶體階層中加入了一個「G3.5 層」的高速 NVMe 儲存，透過 BlueField 網卡連接，專門用來卸載龐大的 KV Cache。
+
+<ClawdNote>
+這裡是我的解讀：從 Vera ETL256 到 CMX / STX，NVIDIA 看起來不只是在補單一晶片的算力，而是在把 CPU、網路和儲存也一起拉進推論系統設計裡。不過這一段屬於架構方向的延伸閱讀，正文能確定的，還是以原文列出的機架與平台設計為主。
+</ClawdNote>
+
+---
+## 結語
+
+從這份報告來看，NVIDIA 在 GTC 2026 端出的重點，不只是更多 GPU，而是把推論系統拆得更細：從 Groq LPX 補 decode latency，到 Vera ETL256 補 CPU 密度，再到 CMX / STX 補 KV Cache 與儲存層級 (๑˃ᴗ˂)ﻭ
+
+原作者的整體判斷是，未來的推論基礎設施會更強調異質分工：哪些地方用 GPU、哪些地方交給 LPU、哪些地方繼續用銅線、哪些地方才引入 CPO，都會是一套系統級的取捨，而不是只看單一元件規格。

@@ -1,0 +1,114 @@
+---
+ticketId: "CP-213"
+title: "NVIDIA's Inference Empire Expands: From Groq to a Whole New Rack Architecture"
+originalDate: "2026-03-24"
+translatedDate: "2026-03-27"
+translatedBy:
+  model: "Gemini 3.1 Pro"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Gemini 3.1 Pro"
+      harness: "Gemini CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: "Dylan Patel, Myron Xie, Daniel Nishball, et al. at SemiAnalysis"
+sourceUrl: "https://newsletter.semianalysis.com/p/nvidia-the-inference-kingdom-expands"
+lang: "en"
+summary: "NVIDIA unveiled Groq LPX, Vera ETL256, and STX at GTC 2026. This article breaks down how LPUs and GPUs divide labor, the CPO roadmap, and the future of networking and storage architecture."
+tags: ["clawd-picks", "Nvidia", "GTC2026", "Hardware", "SemiAnalysis"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Picture this: you run a restaurant that's blowing up. Your kitchen has one incredible head chef (the GPU) who can cook anything, but customers are ordering faster than one person can handle. What do you do? You hire a dedicated prep cook, a plating specialist, and someone to manage the pass. That's exactly what NVIDIA did at GTC 2026 — they took "inference" and split the job into specialized roles, each handled by the best tool for the task.
+
+The result? Three new systems dropped at once: Groq LPX, Vera ETL256, and STX, plus a revamped Kyber rack and a CPO optical interconnect roadmap. Let's peel this apart layer by layer.
+
+---
+## The $20 Billion "Not-an-Acquisition": Groq and LP30
+
+Let's start with the most dramatic part. NVIDIA spent $20 billion to "acquire" Groq — except legally, it's not an acquisition ╰(°▽°)╯ Technically, NVIDIA licensed Groq's IP and hired most of the team. Why the convoluted structure? Because NVIDIA's inference market share is so dominant that a formal acquisition would almost certainly get blocked by antitrust regulators. This move effectively bypasses the entire review process while getting the tech and the people.
+
+<ClawdNote>
+In business strategy, this is called "acqui-hire on steroids" (◕‿◕) Can't buy the company? No problem — license all the IP, poach the whole team. Functionally identical to an acquisition, but legally it never triggers antitrust review. Jensen really does keep an entire legal department hidden under that leather jacket. For context on just how absurd NVIDIA's pricing power has gotten, check CP-185 — even rental prices are going up and customers are still lining up.
+</ClawdNote>
+
+With Groq's tech in hand, NVIDIA fast-tracked integration into the Vera Rubin inference stack, giving birth to the third-generation LPU — the LP30 (the second gen was skipped entirely due to a SerDes defect). The LP30 specs are wild: die size pushed near reticle limits, 500MB of SRAM packed in, and 1.2 PFLOPs at FP8. But the smartest move was the process choice: Samsung SF4, not TSMC. This means the LP30 doesn't compete for a single wafer on TSMC's N3 line or any HBM allocation already reserved for NVIDIA's GPUs. Two birds, one stone — completely independent capacity.
+
+<ClawdNote>
+That 500MB SRAM number hits different when you read it alongside CP-165 — that piece covers how TSMC ran two full nodes and SRAM density barely budged. LP30 choosing Samsung SF4 might partly be about not cannibalizing TSMC capacity, but it might also be a pragmatic nod to the SRAM scaling wall ┐(￣ヘ￣)┌ When you need 500MB crammed into one die, you stop caring about the fab's brand name and start caring about who can actually build it.
+</ClawdNote>
+
+---
+## Why GPUs Need a Sidekick: The Prefill vs Decode Problem
+
+Alright, here's the core question. GPUs are insanely powerful — so why do they need LPUs at all?
+
+Think of it like a final exam. The prefill phase is "reading the questions" — you need to absorb a massive amount of information at once, and that takes raw burst compute. GPUs are great at this. But the decode phase is "writing your answers one word at a time" — each step produces just one token, latency matters enormously, and the bottleneck isn't compute but memory bandwidth. That expensive HBM on the GPU is kind of overkill for this part.
+
+LPUs, packed with ultra-fast SRAM, are purpose-built to solve the "writing answers" phase.
+
+<ClawdNote>
+In simpler terms: a GPU doing decode is like driving a Ferrari to the corner store for fried chicken — way too much power, and parking is a nightmare (high latency). An LPU is the modded scooter that weaves through alleys for deliveries — fast, precise, no traffic jams (๑•̀ㅂ•́)و✧ Speaking of splitting jobs to play to each part's strengths, CP-212 just covered disaggregated planning in reasoning models — same principle, different domain. Let each component do what it's best at and the whole system levels up.
+</ClawdNote>
+
+This leads to a really elegant architecture: **Attention FFN Disaggregation (AFD)**. It splits the decode phase into two halves — Attention needs to dynamically load KV Cache, so let the GPU handle that; FFN is stateless pure computation, so hand it to the LPU. This way the GPU's HBM is fully dedicated to KV Cache, serving more users simultaneously. The data transfer latency between the two? Hidden behind a ping-pong pipeline.
+
+LPUs can also run the draft model for Speculative Decoding — the LPU quickly guesses tokens, and the main GPU verifies them. Each FPGA node on LPX also packs 256GB of system memory, so if you want to run full decode on the LPX, that memory pool can hold KV Cache too.
+
+---
+## The LPX Rack: 32 Trays of Precision Lego
+
+Now let's zoom out from chips to systems. The LPX rack packs 32 1U compute trays, each loaded with: 16 LPUs, 2 Altera FPGAs, 1 Intel Granite Rapids CPU, and 1 BlueField-4 front-end module.
+
+The FPGA is insanely busy in this setup. It translates LPU protocols to Ethernet (so LPUs can talk to GPUs across the scale-out network), converts to PCIe (so the CPU can read data), and manages timing and control flow between LPUs within a node. One component acting as translator, traffic cop, and orchestra conductor all at once.
+
+<ClawdNote>
+The FPGA's role here reminds me of that office admin who somehow manages everything — translating documents, scheduling meetings, controlling building access. Remove this person and the whole company grinds to a halt (¬‿¬) Also, NVIDIA choosing Altera (Intel's FPGA division) is deliciously ironic — they're putting a competitor's chip right inside their own inference stack. Pragmatism over pride.
+</ClawdNote>
+
+The network architecture is precise to the point of absurdity. The 16 LPUs within a tray connect via PCB traces in an all-to-all mesh — this requires extremely high-spec PCB design. Between trays, copper cable backplanes link each LPU to its counterpart across the other 15 trays. The wiring density is enough to make your head spin.
+
+---
+## The CPO Roadmap: If Copper Works, Use Copper
+
+When it comes to interconnects, one of the hottest questions in the industry is when CPO (Co-Packaged Optics) will replace copper. NVIDIA's stance is deeply pragmatic: use copper wherever possible, switch to optics only when you absolutely must.
+
+First up is the Rubin and Rubin Ultra generation with NVL72 and NVL144 — copper all the way inside the rack. Makes total sense. Short distances, copper is cheap and reliable, no reason to go optical. Things get interesting at Rubin Ultra NVL576: you're connecting 8 Oberon racks together, distances stretch, and copper can't keep up anymore. That's when CPO enters the picture with a two-tier all-to-all topology. Though the original authors caution this stage might still be low-volume testing — don't pop the champagne just yet.
+
+Looking further ahead to Feynman NVL1152 — 8 Kyber racks interconnected, with CPO officially powering the inter-rack switches. But here's the fun part: GPU-to-NVLink-switch links? NVIDIA's current plan still calls for copper. Translation: save money everywhere you can, and only spend big where you truly need the speed of light.
+
+<ClawdNote>
+NVIDIA's "copper-first" strategy makes for a fascinating contrast with the OCI alliance we covered in CP-198 — over there, a whole coalition is pushing for an optical interconnect revolution, while NVIDIA is over here going "eh, copper's fine for now" (⌐■_■) This isn't because they're behind on optics. It's because NVIDIA controls the entire rack design, so they can keep distances short enough for copper to work. Everyone else doesn't have that luxury, which is why they need optics to bail them out. Vertical integration strikes again.
+</ClawdNote>
+
+The Kyber rack itself got an upgrade too — each blade server packs 4 Rubin Ultra GPUs and 2 Vera CPUs, for a rack total of 144 GPUs backed by 72 NVLink 7 switches to handle the interconnect. Just counting those switches tells you the wiring complexity is somewhere around subway map levels.
+
+---
+## The Last Two Puzzle Pieces: CPU Density and KV Cache Storage
+
+GPU compute is sorted, but bottlenecks migrate. It's like fixing the head chef problem only to realize the prep cook can't keep up and the fridge is too small.
+
+**The CPU bottleneck**: AI workloads (especially reinforcement learning) demand massive data preprocessing and simulation, and CPUs are starting to fall behind GPUs. NVIDIA's answer is **Vera ETL256** — 256 CPUs crammed into one rack, liquid-cooled, with network switches placed in the middle so every connection stays within copper range. Brute force, but it works.
+
+**The KV Cache bottleneck**: Long contexts and agentic workloads are causing KV Cache to explode in size, and HBM plus DRAM just can't hold it all. Enter the **CMX (Context Memory Storage)** platform and the **STX** reference storage architecture — a new "G3.5 tier" of high-speed NVMe storage inserted into the memory hierarchy, connected via BlueField NICs, purpose-built to offload KV Cache.
+
+<ClawdNote>
+See the pattern? GPU not enough → add LPU. CPU not enough → stuff 256 into one rack. Memory not enough → invent a whole new storage tier. NVIDIA solves problems the same way I prep for finals: wherever you're weakest, just throw an absurd amount of resources at it (╯°□°)╯ The difference is they're stacking silicon and I'm stacking caffeine.
+</ClawdNote>
+
+---
+## Back to That Restaurant
+
+Remember the restaurant analogy from the top? What NVIDIA showed us at GTC 2026 is this: the future of inference infrastructure can't be solved by just "hiring more head chefs." You need prep cooks (LPUs for decode), a bigger prep station (Vera ETL256 for CPU density), a larger walk-in fridge (CMX/STX for KV Cache), and a completely redesigned kitchen layout (CPO optical interconnects).
+
+Every dish is a whole system working in concert. And NVIDIA's ambition right now is to build the entire restaurant — from the foundation to the sign out front — by themselves.
