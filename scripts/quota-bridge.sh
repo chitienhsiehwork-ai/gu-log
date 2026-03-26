@@ -69,14 +69,20 @@ print('{}')
     return 0
   fi
 
-  # Budget pacing: pace against weekly window, not just floor
+  # Budget pacing: spread remaining runs evenly across remaining time
+  #
+  # Concept: estimate cost_per_run from observed data, then compute
+  # interval = remaining_time / estimated_remaining_runs.
+  # Sleep until the next "slot" opens. No arbitrary thresholds.
   python3 -c "
+import json, os, time
+
 remaining_5h = $remaining_5h
 remaining_7d = $remaining_7d
 reset_min = $reset_min
 reset_hr = $reset_hr
 
-FLOOR = 10  # hard floor: stop when < 10%
+FLOOR = 10  # hard floor: stop when critically low
 
 if remaining_7d < FLOOR:
     wait = max(300, int(reset_hr * 3600))
@@ -85,36 +91,42 @@ elif remaining_5h < FLOOR:
     wait = max(300, int(reset_min * 60))
     print(f'sleep:{wait}')
 else:
-    # Pacing: are we burning faster than sustainable?
-    # ideal_remaining = time_remaining% of the window
-    # If we've used MORE than our fair share, slow down
-    total_window_hr = 168  # 7 days
-    elapsed_hr = total_window_hr - reset_hr
-    if elapsed_hr < 0.1:
-        elapsed_hr = 0.1  # avoid div by 0 at reset edge
+    # Estimate cost_per_run from local usage history
+    usage_file = '/tmp/score-loop-codex-usage.json'
+    cost_per_run = 0.4  # default: ~0.4% per run (observed baseline)
 
-    used_pct = 100 - remaining_7d
-    elapsed_pct = (elapsed_hr / total_window_hr) * 100
+    try:
+        state = json.load(open(usage_file))
+        runs = sorted(int(x) for x in state.get('runs', []))
+        now = int(time.time())
+        window = 168 * 3600  # 7 days
+        recent = [r for r in runs if r >= now - window]
+        if len(recent) >= 3:
+            # used% / run_count = cost per run
+            used_pct = 100 - remaining_7d
+            cost_per_run = max(0.1, used_pct / len(recent))
+    except Exception:
+        pass
 
-    # Ideal: used_pct should equal elapsed_pct (linear burn)
-    # Budget ratio: how much we've used vs how much we should have
-    if elapsed_pct > 0:
-        burn_ratio = used_pct / elapsed_pct
+    # How many more runs can we afford?
+    runs_remaining = remaining_7d / cost_per_run
+    remaining_seconds = reset_hr * 3600
+
+    if runs_remaining < 1:
+        # Can't even afford 1 more run — sleep until reset
+        print(f'sleep:{max(300, int(remaining_seconds))}')
     else:
-        burn_ratio = 0
+        # Ideal interval between runs to spread evenly
+        interval = remaining_seconds / runs_remaining
 
-    # burn_ratio > 1.5 means we're burning 50% faster than sustainable
-    # burn_ratio > 3.0 means we're burning 3x too fast (danger zone)
-    if burn_ratio > 3.0:
-        # Way too fast — long sleep proportional to overshoot
-        wait = min(7200, int(burn_ratio * 600))
-        print(f'sleep:{wait}')
-    elif burn_ratio > 1.5:
-        # Moderately over-budget — shorter throttle
-        wait = min(3600, int(burn_ratio * 300))
-        print(f'sleep:{wait}')
-    else:
-        print('ok')
+        # If interval > 300s (5min), we need to sleep.
+        # But we JUST ran one, so sleep until next slot.
+        # Minimum 120s (orchestrator cooldown), cap at 7200s (2hr).
+        if interval <= 120:
+            print('ok')
+        else:
+            wait = min(7200, max(120, int(interval)))
+            print(f'sleep:{wait}')
 " 2>/dev/null
 }
 
