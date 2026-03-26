@@ -38,7 +38,7 @@ ${POST_CONTENT}"
 
 # Run Gemini CLI in non-interactive mode (needs GCA auth)
 GEMINI_RAW="$OUT_FILE.raw"
-timeout 300 env TERM=dumb NO_COLOR=1 GOOGLE_GENAI_USE_GCA=true gemini -p "$FULL_PROMPT" 2>/dev/null > "$GEMINI_RAW" || true
+timeout 300 env TERM=dumb NO_COLOR=1 GOOGLE_GENAI_USE_GCA=true gemini -p "$FULL_PROMPT" -m gemini-3.1-pro-preview 2>/dev/null > "$GEMINI_RAW" || true
 
 # Extract JSON from output
 if [ -f "$GEMINI_RAW" ]; then
