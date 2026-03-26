@@ -138,5 +138,15 @@
     "iteration": 1,
     "file": "clawdbot-architecture-deep-dive.mdx",
     "ts": "2026-03-26T13:29:40+08:00"
+  },
+  "SP-15": {
+    "score": 5,
+    "details": {
+      "reasoning": "Technical 2/4, sourceFaith 1/3, logic 2/3. Most core mechanics match the source and official docs: `memory/YYYY-MM-DD.md`, `MEMORY.md`, `memory_search`, `memory_get`, hybrid scoring `0.7/0.3`, compaction, and pruning are real. But the post materially overstates the implementation by saying Clawdbot is 'just Markdown' and 'not any vector database'; the source article itself says memory is Markdown as the source of truth plus a derived SQLite index using `sqlite-vec` and FTS5. It also adds an unsupported claim that Steinberger AB-tested multiple weightings and found 0.7/0.3 'sweetest' for recall; I could not verify that in the source/docs, so that hurts both technical accuracy and source faithfulness."
+    },
+    "model": "gpt-5.4",
+    "iteration": 1,
+    "file": "clawdbot-memory-deep-dive.mdx",
+    "ts": "2026-03-26T13:34:13+08:00"
   }
 }
