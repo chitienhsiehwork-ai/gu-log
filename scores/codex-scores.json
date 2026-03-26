@@ -38,5 +38,15 @@
     "iteration": 1,
     "file": "agentic-note-taking-verbatim-trap.mdx",
     "ts": "2026-03-26T12:28:46+08:00"
+  },
+  "SP-5": {
+    "score": 7,
+    "details": {
+      "reasoning": "Technical 2/4, sourceFaith 2/3, logic 3/3. The core workflow is plausible and broadly matches Ryan Carson's described two-step overnight loop, and `gh pr create --draft` is accurate, but there are at least two technical problems: the post says a sleeping Mac means `launchd` jobs \"won't trigger at all,\" while `launchd.plist` docs say missed `StartCalendarInterval` jobs run on wake, and the script examples use `amp execute` whereas Amp's documented non-interactive CLI is `amp -x`/`amp --execute`, so the command as written is at best outdated/unverified. Source faithfulness is mostly intact, but some statements are overstated beyond the source-level concept, especially the strong scheduler/sleep explanation and the generalized claim that macOS cron has \"various weird permission problems\" without citation."
+    },
+    "model": "gpt-5.4",
+    "iteration": 1,
+    "file": "agent-ships-while-you-sleep.mdx",
+    "ts": "2026-03-26T12:35:47+08:00"
   }
 }
