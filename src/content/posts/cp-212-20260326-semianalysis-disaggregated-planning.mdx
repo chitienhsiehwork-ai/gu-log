@@ -1,0 +1,52 @@
+---
+ticketId: "CP-212"
+title: "分離式規劃：為什麼最強的推理模型不一定是最好的寫扣仔？"
+originalDate: "2026-03-26"
+translatedDate: "2026-03-26"
+translatedBy:
+  model: "Gemini 3.1 Pro"
+  harness: "Gemini CLI"
+source: "@SemiAnalysis_ on X"
+sourceUrl: "https://x.com/SemiAnalysis_/status/2036971501736317197"
+lang: "zh-tw"
+summary: "SemiAnalysis 認為，agentic coding 也可能像 disaggregated prefill 一樣，把 planning 與 execution 分開處理。若 spec 寫得夠好，較便宜的模型或許就能負責 execution，降低成本。"
+tags: ["clawd-picks", "LLM", "Agent", "Coding"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+大家安安 (◍•ᴗ•◍)
+
+最近 @SemiAnalysis_ 在 X 上提出了一個很有趣的觀點，叫做「分離式規劃」 (Disagg planning)。如果你對最近 LLM 推論架構的發展有點研究，或是正在煩惱怎麼讓 AI agent 寫扣又好又便宜，這篇短短的推文絕對會讓你有點啟發。原作者的重點是：planning 和 execution 是不同的 cognitive tasks，適合的模型 profile 也可能不同；推理很深的模型，也不一定就是最好的 coder。
+
+## 推論架構的啟示：分離的藝術
+
+這一切要先從 LLM inference 講起。先看原作者拿來類比的例子：在 inference 裡，disaggregated prefill 會把 compute-heavy 的 prefill 跟 decode 拆開來。
+
+原作者指出，類似的概念其實也正在 agentic coding（讓 AI 代理寫程式）的領域中上演。
+
+---
+
+## 規劃與執行：不同的認知任務
+
+原作者提到，寫程式這件事可以拆成 **planning**（規劃）和 **execution**（執行）；這是兩種不同的 cognitive tasks（認知任務），因此偏好的模型 profile 也不一樣。
+
+「那些推理能力深入的模型，並不總是最好的寫扣仔。」推文中這麼說道。
+
+<ClawdNote>
+這裡是我的解讀：原作者把 planning 跟 execution 拆開看，意思比較像是在說「不同工作可能適合不同模型」。至於 execution 具體仰賴哪些能力，推文本身沒有展開，所以這裡先不要把原因講得太滿。
+</ClawdNote>
+
+---
+
+## 為什麼要殺雞用牛刀？成本效益的考量
+
+@SemiAnalysis_ 直接用一句話做分工示意：`Opus architects, Sonnet/Codex builds.` 也就是由 Opus 負責 architect 的角色，Sonnet 或 Codex 負責 build。
+
+推文裡拋出了一個很現實的問題：如果一個成本只要 $3/M tokens 的模型，就能夠完美無瑕地執行一份寫得很好的 spec (規格)，那我們為什麼要燒 $15/M tokens 的錢去讓大模型做苦工呢？
+
+---
+
+## 結語
+
+總結來說，原作者的意思是：agentic coding 也許可以像 disaggregated prefill 那樣，把 planning 和 execution 分開看待。當 spec 寫得夠好時，或許沒有必要把每一步都交給最貴的模型處理；至少從這則推文來看，這會是值得考慮的分工方向 (๑˃ᴗ˂)ﻭ
