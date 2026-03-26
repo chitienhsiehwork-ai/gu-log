@@ -13,6 +13,7 @@ import path from 'path';
 
 const PROGRESS_FILE = 'scripts/ralph-progress.json';
 const MULTI_SCORE_DIR = '/tmp/multi-score';
+const DAEMON_SCORES_DIR = 'scores';
 const OUTPUT_FILE = 'src/data/score-manifest.json';
 
 // Ensure output dir exists
@@ -92,6 +93,56 @@ if (fs.existsSync(MULTI_SCORE_DIR)) {
       }
     } catch (e) {
       console.error(`Failed to parse ${file}:`, e.message);
+    }
+  }
+}
+
+// Load daemon scores (scores/*.json) — written by ralph-orchestrator daemon
+// These take priority over /tmp/multi-score since they're newer
+const DAEMON_JUDGES = {
+  'codex-scores.json': 'fact',
+  'gemini-scores.json': 'crossref',
+  'opus-scores.json': 'vibe',
+};
+
+if (fs.existsSync(DAEMON_SCORES_DIR)) {
+  for (const [file, judgeType] of Object.entries(DAEMON_JUDGES)) {
+    const filePath = path.join(DAEMON_SCORES_DIR, file);
+    if (!fs.existsSync(filePath)) continue;
+
+    try {
+      const scores = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      let count = 0;
+
+      for (const [ticketId, data] of Object.entries(scores)) {
+        if (!ticketId || data.score == null) continue;
+        if (!manifest[ticketId]) manifest[ticketId] = {};
+
+        if (judgeType === 'fact') {
+          manifest[ticketId].factCheck = data.score;
+          count++;
+        } else if (judgeType === 'crossref') {
+          manifest[ticketId].crossRef = data.score;
+          count++;
+        } else if (judgeType === 'vibe') {
+          // Opus daemon scores have persona/clawdNote/vibe in details
+          if (data.details?.persona != null) {
+            manifest[ticketId].vibe = {
+              persona: data.details.persona,
+              clawdNote: data.details.clawdNote,
+              vibe: data.details.vibe,
+            };
+          } else {
+            // Fallback: just store the aggregate score
+            manifest[ticketId].vibe = { score: data.score };
+          }
+          count++;
+        }
+      }
+
+      console.log(`  daemon ${file}: ${count} scores loaded`);
+    } catch (e) {
+      console.error(`daemon ${file}:`, e.message);
     }
   }
 }
