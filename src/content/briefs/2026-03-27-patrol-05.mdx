@@ -1,0 +1,57 @@
+---
+title: '🔭 Shroom Feed — 2026-03-27 05:40 台北'
+briefType: 'patrol'
+date: '2026-03-27'
+time: '05:40 台北'
+summary: 'Claude 尖峰限速上路；Claude Code Auto-Fix 上雲端；AI Slop 入侵 OSS 成新挑戰'
+lang: 'zh-tw'
+tags: ["Claude", "Rate Limits", "Claude Code", "Auto-Fix", "AI Slop", "GPT-5.4", "OpenClaw", "Karpathy"]
+---
+
+## ⚡ Claude 尖峰限速 — 5hr Session Limits 重分配
+
+Thariq 宣布 Anthropic 調整 Claude 的 5 小時 session limits。平日尖峰時段（5am–11am PT / 台灣時間 8pm–2am）session limits 消耗會更快，約 7% 的用戶會比以前更早觸頂。週 quota 總量不變，只是分配方式改了。建議：token-intensive 的背景任務盡量排在離峰跑。
+
+來源：[@trq212](https://x.com/trq212/status/2037254607001559305)
+
+## 🔧 Claude Code Auto-Fix 上雲端
+
+Noah Zweben 宣布 Claude Code 的 Web/Mobile sessions 現在可以自動追蹤 PR — 偵測 CI failures 自動修復、回覆 review comments，全部在雲端背景執行。關上筆電也能回來看到一個 green 的 PR。支援直接在 Web 建立的 PR、Mobile 指令觸發、或貼入任意 PR URL。需要安裝 Claude GitHub App。
+
+來源：[@noahzweben](https://x.com/noahzweben/status/2037219115002405076)
+
+## 🤖 AI Coding Slop 正式入侵 OSS
+
+SemiAnalysis 揭露一個令人不安的趨勢：OpenAI 的 Triton repo 合併了一個看起來修 consumer Blackwell GPU（沒有 TMEM）問題的 PR #9734，但仔細看根本沒修到。NVIDIA PyTorch tech lead 在 PR 底下公開批評這是 slop。隨著 AI coding agents 越來越普及，OSS 維護者需要新的工具來分辨 valuable diffs 跟 AI 生成的垃圾。
+
+來源：[@SemiAnalysis_](https://x.com/SemiAnalysis_/status/2037273655059558575)
+
+## 📊 GPT-5.4 mini + nano Benchmark 出爐
+
+Artificial Analysis 發佈完整評測：GPT-5.4 nano (xhigh) 拿到 Intelligence Index 44，大幅超越 Claude Haiku 4.5 (37) 跟 Gemini 3.1 Flash-Lite (34)。τ²-Bench 81% vs Haiku 的 55%。定價也夠殺：nano $0.20/$1.25 per 1M tokens。缺點是 output 偏 verbose，跑 benchmark 用了超過 200M output tokens。
+
+來源：[@ArtificialAnlys](https://x.com/ArtificialAnlys)
+
+## 🎙️ Gemini 3.1 Flash Live Preview — 可調 Thinking 語音模型
+
+Google 推出支援 configurable thinking levels (minimal/low/medium/high) 的語音模型。High 模式拿下 Big Bench Audio #2 (95.9%)，僅次於 Step-Audio R1.1 Realtime。Minimal 模式 TTFA 降到 0.96 秒但分數掉到 70.5%。定價 $0.35/hr audio input。
+
+來源：[@ArtificialAnlys](https://x.com/ArtificialAnlys/status/2037195442489090485)
+
+## 🦞 OpenClaw 生態 — Telegram 合作 + ClawCon Tokyo
+
+steipete 跟 Telegram CEO Durov 談妥合作，izhukov 正式加入 OpenClaw 維護團隊，首要任務是解決 bot streaming API 的 message dupe 問題。ClawCon Tokyo 03-30 舉辦。另外也在測試 Microsoft Foundry 支援 + Chrome MCP 自動化瀏覽器操作。
+
+來源：[@steipete](https://x.com/steipete/status/2037197024081195188)
+
+## 🔓 Claude Code Autoresearch 自動發現 Jailbreak
+
+研究者把 Claude Code 放進 autoresearch loop 讓它自主發現 jailbreak 算法，結果打敗 30+ 現有 GCG-like 攻擊（包含 AutoML 調參）。Simon Willison 的評論一針見血：這主要證明了 robust jailbreak 防禦根本是徒勞的。
+
+來源：[@simonw](https://x.com/simonw/status/2037237161049948644)
+
+## 🏗️ Karpathy：Vibe Coding 真正的瓶頸是 DevOps
+
+回應 Patrick Collison 討論 MenuGen 經驗，Karpathy 指出 coding 本身已經被 AI 處理得不錯，但真正的痛點是 DevOps 全生命週期 — auth, database, payments, security, domain names。期待有一天能告訴 agent「build menugen」然後它自己搞定一切，從 API keys 到部署。他認為整個 DevOps lifecycle 必須成為 code + agent-native APIs。
+
+來源：[@karpathy](https://x.com/karpathy/status/2037200624450936940)
