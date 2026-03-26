@@ -69,14 +69,14 @@ print('{}')
     return 0
   fi
 
-  # Dispatch floor = 20%
+  # Budget pacing: pace against weekly window, not just floor
   python3 -c "
 remaining_5h = $remaining_5h
 remaining_7d = $remaining_7d
 reset_min = $reset_min
 reset_hr = $reset_hr
 
-FLOOR = 20
+FLOOR = 10  # hard floor: stop when < 10%
 
 if remaining_7d < FLOOR:
     wait = max(300, int(reset_hr * 3600))
@@ -85,7 +85,36 @@ elif remaining_5h < FLOOR:
     wait = max(300, int(reset_min * 60))
     print(f'sleep:{wait}')
 else:
-    print('ok')
+    # Pacing: are we burning faster than sustainable?
+    # ideal_remaining = time_remaining% of the window
+    # If we've used MORE than our fair share, slow down
+    total_window_hr = 168  # 7 days
+    elapsed_hr = total_window_hr - reset_hr
+    if elapsed_hr < 0.1:
+        elapsed_hr = 0.1  # avoid div by 0 at reset edge
+
+    used_pct = 100 - remaining_7d
+    elapsed_pct = (elapsed_hr / total_window_hr) * 100
+
+    # Ideal: used_pct should equal elapsed_pct (linear burn)
+    # Budget ratio: how much we've used vs how much we should have
+    if elapsed_pct > 0:
+        burn_ratio = used_pct / elapsed_pct
+    else:
+        burn_ratio = 0
+
+    # burn_ratio > 1.5 means we're burning 50% faster than sustainable
+    # burn_ratio > 3.0 means we're burning 3x too fast (danger zone)
+    if burn_ratio > 3.0:
+        # Way too fast — long sleep proportional to overshoot
+        wait = min(7200, int(burn_ratio * 600))
+        print(f'sleep:{wait}')
+    elif burn_ratio > 1.5:
+        # Moderately over-budget — shorter throttle
+        wait = min(3600, int(burn_ratio * 300))
+        print(f'sleep:{wait}')
+    else:
+        print('ok')
 " 2>/dev/null
 }
 
