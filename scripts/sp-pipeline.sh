@@ -74,9 +74,7 @@ run_with_fallback() {
   
   # --opus mode: skip Gemini/Codex, go straight to Claude Code
   if [ "$OPUS_MODE" = true ]; then
-    local prompt_text_opus
-    prompt_text_opus=$(cat "$prompt_file")
-    if claude -p --model opus --permission-mode bypassPermissions "$prompt_text_opus" > "$out_tmp" 2> "$err_tmp"; then
+    if claude -p --model opus --permission-mode bypassPermissions < "$prompt_file" > "$out_tmp" 2> "$err_tmp"; then
       LAST_MODEL_USED=$(model_display_name "claude-opus")
       LAST_HARNESS_USED=$(model_harness_name "claude-opus")
       cat "$out_tmp"
@@ -117,9 +115,7 @@ run_with_fallback() {
       return 0
     fi
     log_warn "Codex CLI failed, falling back to Claude Code (Opus)" >&2
-    local prompt_text_cc
-    prompt_text_cc=$(cat "$prompt_file")
-    if claude -p --model opus --permission-mode bypassPermissions "$prompt_text_cc" > "$out_tmp" 2> "$err_tmp"; then
+    if claude -p --model opus --permission-mode bypassPermissions < "$prompt_file" > "$out_tmp" 2> "$err_tmp"; then
       LAST_MODEL_USED=$(model_display_name "claude-opus")
       LAST_HARNESS_USED=$(model_harness_name "claude-opus")
       cat "$out_tmp"
