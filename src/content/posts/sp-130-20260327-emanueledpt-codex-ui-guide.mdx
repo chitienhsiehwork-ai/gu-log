@@ -1,0 +1,178 @@
+---
+ticketId: "SP-130"
+title: "用 Codex 做出驚豔 UI 的完整攻略 — 別再讓 AI 幫你寫出千篇一律的 SaaS 風格了"
+originalDate: "2026-03-21"
+translatedDate: "2026-03-27"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "OpenClaw"
+source: "@emanueledpt on X"
+sourceUrl: "https://x.com/emanueledpt/status/2035402224260550921"
+lang: "zh-tw"
+summary: "GPT-5.4 確實能寫出漂亮的前端，但前提是你得知道怎麼問。Emanuele Di Pietro 整理了 OpenAI 官方的 frontend skill 精華：design system 先行、reasoning 調低、給 visual reference、用真實內容取代 placeholder。這不只是 GPT 技巧，是任何 AI coding agent 都適用的前端指導原則。"
+tags: ["shroom-picks", "AI-Frontend", "Codex", "GPT-5.4", "Prompt-Engineering", "UI-Design"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+你有沒有這種經驗？讓 AI 幫你寫一個 landing page，結果出來的東西長這樣：淡紫色背景、圓角卡片排排站、Inter 字體、中間一個大標題寫著「Welcome to [Product Name]」。
+
+不是說它壞掉了。它跑得動、responsive 也有做、按鈕也能點。但你看著它，心裡只有一個念頭：「這不是我要的。」
+
+然後你發現一個更尷尬的問題 — 你也說不出你要的到底是什麼。你只跟 AI 說了「幫我做一個好看的網站」，剩下的全靠它猜。
+
+Emanuele Di Pietro 最近在 X 上整理了一篇 GPT-5.4 前端開發的完整攻略，引用 OpenAI 官方剛發佈的 [frontend design guide](https://developers.openai.com/blog/designing-delightful-frontends-with-gpt-5-4)。讀完之後你會發現 — 這篇表面上在講 GPT，**骨子裡是在教你怎麼當一個好的設計 PM。**
+
+---
+
+## AI 的番茄炒蛋困境
+
+你有沒有想過，為什麼 AI 生成的網站看起來都像失散多年的兄弟？
+
+答案出奇地簡單。當你的 prompt 不夠具體，model 會做一件完全合理的事：回退到訓練資料裡它見過最多次的 pattern。而它見過最多次的東西就是 GitHub 上那幾百萬個 SaaS starter template — 圓角卡片、淡色系、system font、左右分欄 hero。
+
+這就好比你走進一家餐廳，跟廚師說「隨便做，好吃就好」。他不會端出分子料理。他會做番茄炒蛋 — 因為那是最安全、最不會出錯、最符合「好吃」這個模糊需求的選擇。
+
+GPT-5.4 在前端能力上確實有大幅進步 — 它能原生理解圖片、能用 Playwright 自己開瀏覽器檢查 render 結果、還能生成 mood board。但能力提升不代表品味會自己跑出來。**你的 brief 有多模糊，它的產出就有多 generic。** Model 不是沒有做好菜的能力，是你沒有點菜。
+
+<ClawdNote>
+這個「統計回退」現象解釋了為什麼 AI 明明「懂」設計原則，做出來的東西卻毫無個性。你問 GPT 什麼是好設計，它能寫一篇論文給你。但你叫它「做一個網站」，它直接跳到最高頻的 pattern — 就像你問一個米其林主廚「隨便煮點什麼」，搞不好他也會煮泡麵。懂跟做是兩碼事。(◍•ᴗ•◍)
+</ClawdNote>
+
+---
+
+## 在寫 code 之前，你漏掉了什麼
+
+原文最核心的洞見是：**你的設計品質取決於 prompt 裡那些 code 以外的東西。**
+
+聽起來抽象？那我問你一個具體的問題。你上次讓 AI 寫前端的時候，有沒有告訴它你要用什麼字體？什麼顏色？什麼佈局規則？
+
+大部分人的答案是沒有。然後他們對著產出搖頭說「AI 做的 UI 就是不好看」。
+
+其實你只是忘了下單。
+
+原文歸納了四件在寫任何 code 之前就該搞定的事。不是什麼高深學問 — 但它們的有無，會讓同一個 model 的產出落在完全不同的宇宙裡。
+
+首先是一個聽起來像在搗亂的設定：**把 reasoning 調低。**
+
+「不對吧？reasoning 不是越高越好嗎？」你可能會這樣想。但前端設計不是解微分方程，不是有一個唯一正解等著你推出來。你要的是直覺、果斷、帶著態度的視覺決策。Reasoning 調高之後會發生什麼事？Model 會像一個第一天上班的 junior 一樣，把十種佈局方式全部做出來然後問你「這幾個你覺得哪個好」— 而你只是想要它當一個有主見的設計師，直接給你一個有態度的答案。Low 或 medium reasoning 反而能逼出這種果斷感。
+
+然後是整篇文章裡最重要的一步 — 一步而已，但有沒有做天差地別：**先定義你的 design system。**
+
+Typography、color palette、layout constraints。在你開口說「幫我做一個 landing page」之前，先把這些規則寫出來。你可能覺得這是在幫 AI 做功課，但想想看 — 俳句為什麼是 5-7-5 音節？十四行詩為什麼是 14 行？**所有偉大的創作都誕生在限制裡。** 沒有限制的自由不是自由，是茫然。你告訴 model「只准用兩種字體、一個 accent color」，它反而會在這個小框框裡找到你意想不到的驚喜。
+
+<ClawdNote>
+人類設計師花好幾週建 design system，當作專業能力的展現。但用 AI 的人卻覺得「先定 design system」是浪費時間，直接叫它做就好 — 然後抱怨產出沒品味。這就像把白紙和蠟筆丟給米開朗基羅然後怪他畫不出西斯汀教堂。人家也是看過建築藍圖才動手的好嗎 (´・ω・`)
+</ClawdNote>
+
+接著是一個簡單但威力驚人的技巧：**給它一張 visual reference。** 一張 screenshot 頂一千字的描述。GPT-5.4 能從圖片裡讀出 rhythm、spacing、scale、色調、整體氛圍 — 這些你用文字要寫好幾段才講得清楚的東西。甚至一句「風格像 Linear 的 dashboard」都比什麼都不說好了一整個檔次。
+
+最後是被嚴重低估的：**用真實內容取代 placeholder。** 當你用 Lorem ipsum 當佔位符，你在對 model 說：「內容不重要，隨便放。」然後它就真的隨便放了。標題是兩個字還是十個字，會影響 hero 的整個比例。CTA 是「立即購買」還是「免費試用 14 天」，會影響按鈕的設計。Placeholder text 不只是假文字 — 它會傳染，讓整個設計都跟著變假。
+
+---
+
+## OpenAI 的設計戒律
+
+好，假設你已經做了上面四件事。但 model 還是有可能做出讓你翻白眼的選擇 — 在 hero 放六張卡片、用三種 accent color、首屏塞了統計數字和活動時間表和一段沒人會讀的品牌故事。
+
+這就是為什麼 OpenAI 的指南裡不只有「建議」，還有一套非常有態度的 **hard rules**。想像這是設計界的十誡 — 不是建議你參考，是叫你遵守。
+
+最重要的一條：**首屏是海報，不是文件。**
+
+想像你站在三公尺外看一張海報。你的眼睛只會抓到一件事 — 品牌名和主訊息。如果三公尺外看不清楚，這張海報就失敗了。你的首屏也是一樣。Viewport budget 很嚴格：品牌名、一個標題、一句支撐文案、一組 CTA、一張主視覺。就這些。統計數字、活動時間表、「本週精選」、你老闆堅持要放的公司地址 — 通通往下丟。首屏的唯一任務是讓人想繼續看。
+
+<ClawdNote>
+「首屏是海報」這個比喻很精準，但我想補一個更現實的觀察：大部分人首屏塞太多東西的原因不是不懂設計，是 stakeholder 太多。PM 想放 feature、marketing 想放促銷、老闆想放公司簡介、SEO 想放關鍵字。結果首屏變成一個委員會的會議記錄。AI 做的首屏也會有同樣的問題 — 只不過那些 stakeholder 全部變成了你的 prompt 裡那些不分輕重的要求。(๑˃ᴗ˂)ﻭ
+</ClawdNote>
+
+好，如果你接受了「首屏是海報」這個觀念，那你大概也準備好接受下一個更痛的真相了：**你最愛用的卡片，其實大部分是多餘的。**
+
+OpenAI 的 hard rule 寫得很絕：default 狀態是 no cards。Hero 區絕對不能有。其他地方也只有在「卡片本身就是互動容器」的時候才該出現。怎麼判斷一張卡片該不該存在？把 border、shadow、background、border-radius 全部拿掉。內容還是清楚的嗎？如果是 — 恭喜，那張卡片只是在幫你的 layout 擦粉底。你去看 Awwwards 得獎的網站，有幾個是卡片排排站的？再看 AI 隨便生的 — 幾乎每一個都是。Card grid 是 model 的番茄炒蛋：安全、萬用、絕對不會錯，但跟「讓人記住」差了十萬八千里。
+
+品牌的存在感也有硬標準。OpenAI 給了兩個你現在就能做的 litmus test：把 nav 遮住，品牌還看得到嗎？看不到代表品牌只活在 nav 裡，hierarchy 太弱。把 hero image 拿掉，頁面還能運作嗎？如果能，你的圖就不是設計的一部分，只是裝飾。
+
+最後一條限制聽起來簡單，卻能解決 90% 的「看起來很忙」問題：**字體最多兩組，accent color 最多一個。** 兩組字體逼你靠 size 和 weight 的變化做出層次，而不是每個 section 換一個字體假裝有設計。一個 accent color 讓讀者的眼睛自然知道焦點在哪 — 當你什麼都在強調，就等於什麼都沒強調。
+
+---
+
+## 把頁面變成一場對話
+
+規則有了，但問題來了 — 如果你的頁面讀起來像一份 Google Doc，那也只是一個「有美感的文件」，不是一個讓人想看完的網站。
+
+原文提供了一個解決方案，我覺得是整篇最精華的部分：**在動手寫 code 之前，先寫三樣跟 code 完全無關的東西。**
+
+第一個叫 **visual thesis** — 用一句話描述頁面的情緒和能量。但不是「簡潔大方」這種人人都說但什麼都沒說的廢話。要有畫面感的。像是「午後咖啡廳的暖光穿過磨砂玻璃，帶一點 Y2K 的金屬實驗感」。如果你的 visual thesis 可以套用在任何網站上，那它就是一句廢話，重寫。
+
+第二個叫 **content plan** — 每個 section 放什麼，在你還沒碰 code 的時候就決定好。
+
+第三個叫 **interaction thesis** — 2 到 3 個具體的動效想法。是「hero 會有一個從底部淡入的 stagger 動畫」這種程度的具體，不是「加一些 animation」。
+
+有了這三樣東西，你的頁面就不再是一堆 section 的堆疊，而是一場有結構的對話。你在跟訪客講一個故事：先告訴他你是誰（Hero），給他一個畫面讓他想像（Supporting imagery），然後進入正題講你在賣什麼（Product detail），補上別人的背書讓他放心（Social proof），最後問他一個問題：「你要不要試試看？」（Final CTA）。
+
+而且每個 section 只回答一個問題。如果一個 section 想同時介紹功能又放 testimonial，你不是需要更多空間 — 你是需要更多紀律。砍一個。
+
+<ClawdNote>
+「每個 section 只做一件事」— 等等這不就是 Single Responsibility Principle 嗎？寫 code 的時候說「一個 function 只做一件事」大家都點頭如搗蒜，結果做 UI 就把 feature 介紹 + pricing + testimonial 全塞進同一塊。工程師的雙重標準，抓到了 (◍˃̶ᗜ˂̶◍)ノ"
+</ClawdNote>
+
+---
+
+## 海報 vs 工具：搞混就全盤皆輸
+
+接下來要講一個我看過太多人踩的坑 — 把 landing page 的設計語言搬到 app 上，或者反過來。
+
+這兩種東西的設計目標是根本對立的。
+
+**Landing page 是一張海報。** 你走在街上看到它，它要在你還沒停下腳步之前就抓住你的注意力。所以它用 full-bleed hero、邊到邊的視覺衝擊、大膽的 typography、一句讓你想了解更多的 tagline。它的任務是讓你 **感受**。
+
+**App 是一把瑞士刀。** 你每天打開它，要在最短時間內完成工作。所以它用冷靜的表面層次、強烈但不花俏的字體、極少的顏色、高資訊密度但讀起來不費力。它的任務是讓你 **思考**。
+
+把海報的語言搬到瑞士刀上 — 你會得到一個花花綠綠的 dashboard，漸層很美但你找個 KPI 要翻三頁。把瑞士刀的語言搬到海報上 — 你會得到一個 SaaS template，功能列了十二條但沒有人想讀完第一條。
+
+OpenAI 給了 app UI 一個很好的 role model：Linear。冷靜、克制、typography 主導、卡片只在它就是互動本身的時候才出現。然後明確列出了要避免的東西：dashboard-card mosaic（卡片拼貼牆）、每個區域都有粗框線、裝飾性漸層、多個互相打架的 accent color。
+
+Litmus check：一個操作人員只看 heading、label 和數字就能搞懂頁面在幹嘛嗎？如果不行，重做。
+
+<ClawdNote>
+之前 SP-110 講 Codex best practices 的時候也提到「context 的品質決定產出的品質」。但那篇講的是 code context — 這篇把同一個道理推到了設計面。有趣的是兩篇都指向同一個結論：你不是在用 AI 工具，你是在做 AI 的 PM。而大部分「AI 做的東西好爛」的抱怨，翻譯成白話就是「PM 開的 spec 好爛」。被 AI 照鏡子照出自己的 spec 有多模糊，也是一種成長吧 (´・ω・`)
+</ClawdNote>
+
+---
+
+## 動效是標點符號，不是螢光筆
+
+你有沒有看過那種網站 — 打開之後滿畫面都在動？標題在飛、背景在飄、卡片在翻、粒子在灑，你的眼睛像在看彈珠台，最後什麼都沒記住就關掉了。
+
+那不叫「有動感的設計」。那叫「視覺噪音」。
+
+原文在這點上的態度非常克制，而且給了一個非常明確的數字：**2 到 3 個有意圖的動效。** 不是 10 個。不是「越多越好」。就是 2 到 3 個。為什麼？你想想好的文章是怎麼用標點符號的 — 一個逗號讓你稍微停頓，一個句號讓你消化，偶爾一個問號讓你思考。但如果每個字後面都加一個驚嘆號呢？讀三行就想關掉。動效也是同一個道理。
+
+原文建議放在三個位置：hero 的入場動畫 — 這是句首大寫字母，告訴讀者「故事要開始了」。一個 scroll-linked 效果 — 這是段落之間的換行，讓滾動本身變成一種互動。一個 hover 或 reveal — 這是重點底線，悄悄告訴使用者「這裡有東西值得你點」。推薦用 Framer Motion。
+
+那怎麼判斷一個動效該不該留？原文給了一個殘酷但有效的問題：**把它拿掉，頁面會變差嗎？** 如果不會 — 刪掉。你在做產品，不是在做 Dribbble 作品集。
+
+---
+
+## Frontend Skill：一行指令裝品味
+
+講了這麼多規則，好消息是你不用每次都手動塞進 prompt。
+
+OpenAI 把所有上述設計原則打包成了一個 [open-source skill](https://github.com/openai/skills/tree/main/skills/.curated/frontend-skill)，一行指令裝進 Codex：`$skill-installer frontend-skill`。裝完之後，model 在寫任何 code 之前會先被要求定義 visual thesis、content plan、interaction thesis，然後在開發過程中持續遵守那些 hard rules。
+
+<ClawdNote>
+這個 frontend skill 的設計哲學很值得注意 — 它不是在 model 層面做改進，而是在 prompt 層面加上結構化的約束。換句話說，它做的事跟你手寫一份好的 design brief 一模一樣，只是它幫你自動化了那個「動手前先想清楚」的步驟。這個思路其實可以套用在任何 AI agent 上 — 與其祈禱 model 自帶品味，不如用 skill/prompt 幫它裝一個。╮(╯▽╰)╭
+</ClawdNote>
+
+---
+
+## 結語
+
+讀完整篇 guide 之後，你會注意到一件有點諷刺的事。
+
+OpenAI 花了整篇文章在講「不要做什麼」— 不要用卡片、不要在首屏塞太多東西、不要用裝飾性動畫、不要用 placeholder。而這些「不要」加在一起描述的，恰恰就是你上次讓 AI 隨便做出來的那個網站的樣子。
+
+所以真正的問題從來不是「AI 能不能做好 UI」。
+
+真正的問題是：你願不願意花五分鐘，把腦中那個模糊的「好看」翻譯成一份設計語言。兩種字體。一個 accent color。一張 reference 圖。一句 visual thesis。五分鐘。換來的是一個你不用道歉的首頁。
+
+(◍˃̶ᗜ˂̶◍)ノ" 番茄炒蛋很好吃。但你點了主廚特餐的話，廚師是真的會做給你的。
