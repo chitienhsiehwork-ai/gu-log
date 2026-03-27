@@ -51,7 +51,7 @@ const t = i18n[lang];
   data-debounce-ms={searchConfig.debounceMs}
   aria-hidden="true"
 >
-  <div class="search-modal">
+  <div class="search-modal" role="dialog" aria-modal="true" aria-label="Search" data-search-dialog>
     <div class="search-modal-header">
       <svg
         class="search-modal-icon"
@@ -90,7 +90,8 @@ const t = i18n[lang];
 
   // Read config from data attributes (avoids define:vars which blocks module imports)
   const modal = document.querySelector('[data-search-modal]') as HTMLElement | null;
-  const trigger = document.querySelector('[data-search-trigger]');
+  const dialog = modal?.querySelector('[data-search-dialog]') as HTMLElement | null;
+  const trigger = document.querySelector('[data-search-trigger]') as HTMLElement | null;
   const input = modal?.querySelector('[data-search-input]') as HTMLInputElement | null;
   const results = modal?.querySelector('[data-search-results]') as HTMLElement | null;
 
@@ -108,22 +109,20 @@ const t = i18n[lang];
     lang: string;
     date: string;
     source: string;
-    body: string;
   };
 
   let searchIndex: SearchEntry[] | null = null;
   let fuse: Fuse<SearchEntry> | null = null;
+  let loadPromise: Promise<void> | null = null;
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
   let selectedIndex = -1;
 
-  // Fetch and initialize search index + Fuse instance on first modal open
+  // Fetch locale-specific index on first keystroke (lazy)
   async function loadSearchIndex() {
-    if (searchIndex) return;
     try {
-      const res = await fetch('/search-index.json');
-      const allPosts: SearchEntry[] = await res.json();
-      // Pre-filter by current language for performance
-      searchIndex = allPosts.filter((p) => p.lang === currentLang);
+      const res = await fetch(`/search-index.${currentLang}.json`);
+      const posts: SearchEntry[] = await res.json();
+      searchIndex = posts;
       fuse = new Fuse(searchIndex, {
         includeMatches: true,
         threshold: 0.35,
@@ -133,7 +132,6 @@ const t = i18n[lang];
           { name: 'title', weight: 2 },
           { name: 'tags', weight: 1.5 },
           { name: 'summary', weight: 1 },
-          { name: 'body', weight: 0.5 },
         ],
       });
     } catch (e) {
@@ -141,27 +139,47 @@ const t = i18n[lang];
     }
   }
 
+  // Ensures we only ever issue one fetch
+  function ensureSearchIndex() {
+    if (!loadPromise) loadPromise = loadSearchIndex();
+    return loadPromise;
+  }
+
+  function isModalOpen() {
+    return modal?.getAttribute('aria-hidden') === 'false';
+  }
+
+  function getFocusableElements(): HTMLElement[] {
+    if (!dialog) return [];
+    return Array.from(
+      dialog.querySelectorAll<HTMLElement>(
+        'input:not([disabled]), button:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
+      ),
+    );
+  }
+
   function openSearch() {
     modal?.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
-    loadSearchIndex();
+    document.querySelector('main')?.setAttribute('inert', '');
     setTimeout(() => input?.focus(), 50);
   }
 
   function closeSearch() {
     modal?.setAttribute('aria-hidden', 'true');
     document.body.style.overflow = '';
+    document.querySelector('main')?.removeAttribute('inert');
     if (input) input.value = '';
     if (results) results.innerHTML = '';
     selectedIndex = -1;
   }
 
   function toggleSearch() {
-    const isHidden = modal?.getAttribute('aria-hidden') === 'true';
-    if (isHidden) {
-      openSearch();
-    } else {
+    if (isModalOpen()) {
       closeSearch();
+      trigger?.focus();
+    } else {
+      openSearch();
     }
   }
 
@@ -286,11 +304,14 @@ const t = i18n[lang];
   modal?.addEventListener('click', (e) => {
     if (e.target === modal) {
       closeSearch();
+      trigger?.focus();
     }
   });
 
-  input?.addEventListener('input', (e) => {
+  // Lazy-load on first keystroke, then debounce search
+  input?.addEventListener('input', async (e) => {
     if (debounceTimer) clearTimeout(debounceTimer);
+    await ensureSearchIndex();
     debounceTimer = setTimeout(() => {
       performSearch((e.target as HTMLInputElement).value);
     }, debounceMs);
@@ -301,11 +322,6 @@ const t = i18n[lang];
     const itemCount = items?.length || 0;
 
     switch (e.key) {
-      case 'Escape':
-        e.preventDefault();
-        closeSearch();
-        (trigger as HTMLElement)?.focus();
-        break;
       case 'ArrowDown':
         e.preventDefault();
         if (itemCount > 0) {
@@ -329,11 +345,40 @@ const t = i18n[lang];
     }
   });
 
-  // Global Cmd/Ctrl+K shortcut
+  // Global keyboard handler: Cmd/Ctrl+K, Escape, Tab focus trap
   document.addEventListener('keydown', (e) => {
     if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
       e.preventDefault();
       toggleSearch();
+      return;
+    }
+
+    if (!isModalOpen()) return;
+
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      closeSearch();
+      trigger?.focus();
+      return;
+    }
+
+    // Focus trap: keep Tab cycling within the dialog
+    if (e.key === 'Tab') {
+      const focusable = getFocusableElements();
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     }
   });
 </script>
