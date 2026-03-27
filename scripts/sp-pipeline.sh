@@ -88,7 +88,24 @@ run_with_fallback() {
     return 1
   fi
 
-  # Pipe prompt via stdin to avoid ARG_MAX limit on large prompts
+  # === Opus-first writing chain ===
+  # Primary: Claude Opus (best writing quality)
+  # Fallback 1: Gemini 3.1 Pro
+  # Fallback 2: GPT-5.4 Codex
+  # Fallback 3: Gemini Flash (last resort)
+
+  # 1. Try Claude Opus first
+  if claude -p --model opus --permission-mode bypassPermissions < "$prompt_file" > "$out_tmp" 2> "$err_tmp"; then
+    LAST_MODEL_USED=$(model_display_name "claude-opus")
+    LAST_HARNESS_USED=$(model_harness_name "claude-opus")
+    cat "$out_tmp"
+    cat "$err_tmp" >&2
+    rm -f "$out_tmp" "$err_tmp" "$prompt_file"
+    return 0
+  fi
+  log_warn "Claude Opus failed, falling back to Gemini Pro" >&2
+
+  # 2. Fallback: Gemini 3.1 Pro
   if GOOGLE_GENAI_USE_GCA=true TERM=dumb NO_COLOR=1 gemini -m gemini-3.1-pro-preview --sandbox false -y < "$prompt_file" > "$out_tmp" 2> "$err_tmp"; then
     LAST_MODEL_USED=$(model_display_name "gemini-3.1-pro-preview")
     LAST_HARNESS_USED=$(model_harness_name "gemini-3.1-pro-preview")
@@ -97,51 +114,35 @@ run_with_fallback() {
     rm -f "$out_tmp" "$err_tmp" "$prompt_file"
     return 0
   fi
-  
-  local exit_code=$?
-  local err_content
-  err_content=$(cat "$err_tmp")
-  
-  if echo "$err_content" | grep -qiE "429|TerminalQuotaError|exhausted your capacity"; then
-    log_warn "Gemini Pro 429, falling back to Codex CLI" >&2
-    local prompt_text
-    prompt_text=$(cat "$prompt_file")
-    if codex exec --model gpt-5.4 --full-auto -- "$prompt_text" > "$out_tmp" 2> "$err_tmp"; then
-      LAST_MODEL_USED=$(model_display_name "gpt-5.4")
-      LAST_HARNESS_USED=$(model_harness_name "gpt-5.4")
-      cat "$out_tmp"
-      cat "$err_tmp" >&2
-      rm -f "$out_tmp" "$err_tmp" "$prompt_file"
-      return 0
-    fi
-    log_warn "Codex CLI failed, falling back to Claude Code (Opus)" >&2
-    if claude -p --model opus --permission-mode bypassPermissions < "$prompt_file" > "$out_tmp" 2> "$err_tmp"; then
-      LAST_MODEL_USED=$(model_display_name "claude-opus")
-      LAST_HARNESS_USED=$(model_harness_name "claude-opus")
-      cat "$out_tmp"
-      cat "$err_tmp" >&2
-      rm -f "$out_tmp" "$err_tmp" "$prompt_file"
-      return 0
-    fi
-    log_warn "Claude Code failed, falling back to Gemini Flash" >&2
-    if GOOGLE_GENAI_USE_GCA=true TERM=dumb NO_COLOR=1 gemini -m gemini-3-flash --sandbox false -y < "$prompt_file" > "$out_tmp" 2> "$err_tmp"; then
-      LAST_MODEL_USED=$(model_display_name "gemini-3-flash")
-      LAST_HARNESS_USED=$(model_harness_name "gemini-3-flash")
-      cat "$out_tmp"
-      cat "$err_tmp" >&2
-      rm -f "$out_tmp" "$err_tmp" "$prompt_file"
-      return 0
-    fi
-    log_error "All fallback models failed" >&2
-    cat "$err_tmp" >&2
-    rm -f "$out_tmp" "$err_tmp" "$prompt_file"
-    return 1
-  else
+  log_warn "Gemini Pro failed, falling back to Codex CLI" >&2
+
+  # 3. Fallback: GPT-5.4 Codex
+  local prompt_text
+  prompt_text=$(cat "$prompt_file")
+  if codex exec --model gpt-5.4 --full-auto -- "$prompt_text" > "$out_tmp" 2> "$err_tmp"; then
+    LAST_MODEL_USED=$(model_display_name "gpt-5.4")
+    LAST_HARNESS_USED=$(model_harness_name "gpt-5.4")
     cat "$out_tmp"
     cat "$err_tmp" >&2
     rm -f "$out_tmp" "$err_tmp" "$prompt_file"
-    return $exit_code
+    return 0
   fi
+  log_warn "Codex CLI failed, falling back to Gemini Flash" >&2
+
+  # 4. Last resort: Gemini Flash
+  if GOOGLE_GENAI_USE_GCA=true TERM=dumb NO_COLOR=1 gemini -m gemini-3-flash --sandbox false -y < "$prompt_file" > "$out_tmp" 2> "$err_tmp"; then
+    LAST_MODEL_USED=$(model_display_name "gemini-3-flash")
+    LAST_HARNESS_USED=$(model_harness_name "gemini-3-flash")
+    cat "$out_tmp"
+    cat "$err_tmp" >&2
+    rm -f "$out_tmp" "$err_tmp" "$prompt_file"
+    return 0
+  fi
+
+  log_error "All models failed (Opus → Gemini Pro → Codex → Flash)" >&2
+  cat "$err_tmp" >&2
+  rm -f "$out_tmp" "$err_tmp" "$prompt_file"
+  return 1
 }
 
 usage() {
