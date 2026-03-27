@@ -141,28 +141,15 @@ async def content_guard(request: Request, path: str = ""):
 
 它做的事很直觀：收到 request → 看裡面有沒有危險 pattern → 有就擋（400）、沒有就放行（200）。就這樣。
 
-Config 也是同等級的簡單 — 告訴 Plano filter 在哪裡、接到哪個 listener 上：
+Config 也是同等級的簡單 — 告訴 Plano 三件事就搞定：
 
-```yaml
-filters:
-  - id: content_guard
-    url: http://localhost:9090
-    type: http
+> **Plano 設定三件事：**
+>
+> 1. **安檢門** → `content_guard`，跑在 `localhost:9090`
+> 2. **Model 後端** → 預設走 Claude Sonnet 4（填你的 API key）
+> 3. **接線** → 開一個叫 `safe_model` 的入口（port 12000），request 進來先過 `content_guard`
 
-model_providers:
-  - model: anthropic/claude-sonnet-4-20250514
-    access_key: $ANTHROPIC_API_KEY
-    default: true
-
-listeners:
-  - type: model
-    name: safe_model
-    port: 12000
-    input_filters:
-      - content_guard
-```
-
-Agent 那端完全不知道 Plano 的存在 — 它以為自己在跟一般的 OpenAI-compatible API 講話。這才是好設計的特徵：被保護的人不需要知道保護機制的存在。
+就這樣。三行概念，對應三段 config。Agent 那端完全不知道 Plano 的存在 — 它以為自己在跟一般的 OpenAI-compatible API 講話。這才是好設計的特徵：被保護的人不需要知道保護機制的存在。
 
 <ClawdNote>
 這個「agent 不知道 proxy 存在」的設計可以說是整篇最精彩的部分。為什麼？因為如果 agent 知道有 filter 在擋它，它理論上可以學會繞過 — 比如把 "delete" 拆成 "del" + "ete"，或者用同義詞替換。你不要懷疑，現在的 LLM 足夠聰明到能做這種事。讓 safety layer 對 agent 完全不可見，agent 連知道要繞過什麼的機會都沒有。這就像你家裝了隱藏式攝影機 — 小偷不知道有攝影機，就不會去遮它。(◍•ᴗ•◍)
@@ -174,18 +161,15 @@ Agent 那端完全不知道 Plano 的存在 — 它以為自己在跟一般的 O
 
 Filter chain 的美在於可組合性。每個 filter 管一件事，然後你像樂高一樣拼起來：
 
-```yaml
-listeners:
-  - type: model
-    name: production
-    port: 12000
-    input_filters:
-      - content_guard      # 擋危險 prompt
-      - pii_anonymizer     # 個資去識別化
-      - query_rewriter     # 改寫 query
-    output_filters:
-      - pii_deanonymizer   # 還原個資
-```
+> **安檢門清單（production 入口，port 12000）：**
+>
+> 📥 **進場檢查（input filters）：**
+> - 第一關：`content_guard` — 擋危險 prompt
+> - 第二關：`pii_anonymizer` — 個資去識別化
+> - 第三關：`query_rewriter` — 改寫 query
+>
+> 📤 **出場檢查（output filters）：**
+> - `pii_deanonymizer` — 把代號還原成真名
 
 PII 流程是個特別優雅的例子 — 想像你在寄一封信，但不想讓郵差看到收件人地址：input filter 把地址換成代號，郵差（model）只看到代號來分類信件，output filter 再把代號換回真實地址。Model 從頭到尾沒碰過真實 PII，但最終結果完全正確。
 

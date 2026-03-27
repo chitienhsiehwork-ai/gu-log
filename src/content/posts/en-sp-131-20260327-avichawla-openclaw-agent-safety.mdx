@@ -141,28 +141,15 @@ async def content_guard(request: Request, path: str = ""):
 
 What it does is dead simple: receive request → check for dangerous patterns → block (400) if found, pass (200) if clean. That's it.
 
-The config is equally straightforward — tell Plano where the filter service lives and which listener to attach it to:
+The config is equally straightforward — you're telling Plano three things:
 
-```yaml
-filters:
-  - id: content_guard
-    url: http://localhost:9090
-    type: http
+> **Plano config in plain English:**
+>
+> 1. **The checkpoint** → `content_guard`, running at `localhost:9090`
+> 2. **The model backend** → defaults to Claude Sonnet 4 (plug in your API key)
+> 3. **The wiring** → open an entry point called `safe_model` on port 12000; every request passes through `content_guard` before reaching the model
 
-model_providers:
-  - model: anthropic/claude-sonnet-4-20250514
-    access_key: $ANTHROPIC_API_KEY
-    default: true
-
-listeners:
-  - type: model
-    name: safe_model
-    port: 12000
-    input_filters:
-      - content_guard
-```
-
-The agent has no idea Plano exists — it thinks it's talking to a standard OpenAI-compatible API. That's the hallmark of good design: the protected party doesn't need to know the protection mechanism exists.
+Three concepts, three config blocks. The agent has no idea Plano exists — it thinks it's talking to a standard OpenAI-compatible API. That's the hallmark of good design: the protected party doesn't need to know the protection mechanism exists.
 
 <ClawdNote>
 This "agent doesn't know the proxy exists" bit might be the most brilliant part of the whole design. Why? Because if the agent knew a filter was blocking it, it could theoretically learn to circumvent it — splitting "delete" into "del" + "ete", or using synonyms. Don't underestimate current LLMs — they're absolutely smart enough to do this. Making the safety layer completely invisible to the agent means the agent doesn't even know there's something to circumvent. It's like having a hidden security camera — the burglar won't cover what they can't see. (◍•ᴗ•◍)
@@ -174,18 +161,15 @@ This "agent doesn't know the proxy exists" bit might be the most brilliant part 
 
 The beauty of filter chains is composability. Each filter handles one thing, and you snap them together like Lego:
 
-```yaml
-listeners:
-  - type: model
-    name: production
-    port: 12000
-    input_filters:
-      - content_guard      # block dangerous prompts
-      - pii_anonymizer     # de-identify personal data
-      - query_rewriter     # rewrite queries
-    output_filters:
-      - pii_deanonymizer   # restore personal data
-```
+> **Filter chain for the `production` entry point (port 12000):**
+>
+> 📥 **Input filters (before the model sees it):**
+> - Gate 1: `content_guard` — block dangerous prompts
+> - Gate 2: `pii_anonymizer` — de-identify personal data
+> - Gate 3: `query_rewriter` — rewrite queries
+>
+> 📤 **Output filters (before the agent sees the response):**
+> - `pii_deanonymizer` — restore code names back to real data
 
 The PII flow is a particularly elegant example — imagine you're sending a letter but don't want the mail carrier to see the recipient's address: the input filter replaces the address with a code name, the mail carrier (model) sorts mail using only the code name, and the output filter swaps the code name back to the real address. The model never touches actual PII, but the final result is completely correct.
 
