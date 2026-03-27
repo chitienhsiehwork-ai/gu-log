@@ -104,7 +104,7 @@ TASK_EOF
   raw_file="$(mktemp)"
 
   GOOGLE_GENAI_USE_GCA=true TERM=dumb NO_COLOR=1 \
-    gemini --yolo \
+    gemini --model gemini-3.1-pro-preview --yolo \
     --prompt "Read $task_file for your instructions. Follow them exactly." \
     < /dev/null > "$raw_file" 2>&1 || true
 
@@ -140,7 +140,7 @@ TASK_EOF
     --argjson score "$score" \
     --arg reasoning "$reasoning" \
     --argjson unlinked_terms "$unlinked_terms" \
-    --arg model "gemini-default" \
+    --arg model "gemini-3.1-pro-preview" \
     --argjson iteration 1 \
     '{score: $score, details: {reasoning: $reasoning, unlinked_terms: $unlinked_terms}, model: $model, iteration: $iteration}'
 
