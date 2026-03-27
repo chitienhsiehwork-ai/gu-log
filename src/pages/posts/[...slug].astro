@@ -34,9 +34,17 @@ const ticketId = post.data.ticketId;
 const ticketPrefix = ticketId?.split('-')[0] || '';
 const isLevelUp = ticketId?.startsWith('Lv-') ?? false;
 
-const scores = ticketId
-  ? (scoreManifest as Record<string, Record<string, unknown>>)[ticketId]
-  : null;
+interface VibeScores {
+  persona: number;
+  clawdNote: number;
+  vibe: number;
+}
+interface PostScores {
+  vibe?: VibeScores;
+  factCheck?: number;
+  crossRef?: number;
+}
+const scores = ticketId ? (scoreManifest as unknown as Record<string, PostScores>)[ticketId] : null;
 
 const ticketLabels: Record<string, string> = {
   SD: 'ShroomDog Original',
@@ -132,7 +140,7 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
     }
 
     {
-      scores && (
+      scores && ticketId && (
         <AiJudgeScore
           ticketId={ticketId}
           vibeScores={scores.vibe}

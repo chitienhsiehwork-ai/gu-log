@@ -86,6 +86,7 @@ const t = i18n[lang];
 
 <script>
   import Fuse from 'fuse.js';
+  import type { FuseResultMatch, FuseResult } from 'fuse.js';
 
   // Read config from data attributes (avoids define:vars which blocks module imports)
   const modal = document.querySelector('[data-search-modal]') as HTMLElement | null;
@@ -172,11 +173,7 @@ const t = i18n[lang];
   }
 
   // Wrap Fuse match indices in <mark> tags for highlighting
-  function highlightText(
-    text: string,
-    matches: readonly Fuse.FuseResultMatch[],
-    key: string
-  ): string {
+  function highlightText(text: string, matches: readonly FuseResultMatch[], key: string): string {
     if (!text) return '';
     const match = matches.find((m) => m.key === key);
     if (!match?.indices?.length) return escapeHtml(text);
@@ -204,7 +201,7 @@ const t = i18n[lang];
       return;
     }
 
-    let matches: Fuse.FuseResult<SearchEntry>[];
+    let matches: FuseResult<SearchEntry>[];
 
     // Special-case: ticket ID prefix search (SD, SP, CP, Lv) — exact prefix match
     const isTicketPrefix = /^(sd|sp|cp|lv)[-\s]?\d*/i.test(trimmed);
@@ -213,7 +210,7 @@ const t = i18n[lang];
       const ticketMatches = searchIndex
         .filter((p) => p.ticketId && p.ticketId.toLowerCase().startsWith(lower))
         .slice(0, maxResults)
-        .map((item) => ({ item, matches: [] as Fuse.FuseResultMatch[], refIndex: 0, score: 0 }));
+        .map((item) => ({ item, matches: [] as FuseResultMatch[], refIndex: 0, score: 0 }));
 
       matches =
         ticketMatches.length > 0
