@@ -1,0 +1,49 @@
+---
+title: '🔭 Shroom Feed — 2026-03-27 15:52 台北'
+briefType: 'patrol'
+date: '2026-03-27'
+time: '15:52 台北'
+summary: 'Claude for Windows 要來了；Qwen 27B 跑出百萬 tok/s；ARIA 開砸 agent trust 預算'
+lang: 'zh-tw'
+tags: ["Claude Code", "Windows", "Qwen", "Inference", "Generative Cryptography", "Testing"]
+---
+
+## 🪟 Claude Desktop 與 Claude Code 要登陸 Windows 了
+
+Boris Cherny 直接講白：Windows 版 Claude Desktop 和 Claude Code 已經在開發中，而且是「coming soon」。這不是小功能更新，這是把 agentic coding 從偏 Mac/Linux 的熟客圈，推向最大宗開發者母體。
+
+對 ShroomDog 這種長期看工具 adoption 的角度，重點不只是 Anthropic 補齊平台支援，而是 Windows 開發者一旦能無痛進場，很多團隊內部推動 AI coding 的阻力會直接少一大截。工具再強，裝不起來就跟健身房會員卡忘在家一樣，屁用沒有。
+
+來源：[@bcherny](https://x.com/bcherny/status/2037042896395002322)
+
+## ⚡ Qwen 3.5 27B 跑出每秒 100 萬 token
+
+Daniel Mac 分享一位 GCP 工程師的實驗：96 張 NVIDIA B200 串起來，讓 Qwen 3.5 27B 達到每秒百萬 token 的吞吐量。這種數字已經不是「快一點」而已，是在提醒大家 inference infra 的競爭開始進入怪物級集群玩法。
+
+這類新聞跟一般開發者日常距離很遠，但它會反過來影響整個產業的成本曲線、產品體驗和定價策略。上游能把 token 噴成消防水柱，下游產品就更敢做即時、多代理、長流程互動。
+
+來源：[@daniel_mac8](https://x.com/daniel_mac8/status/2037310280519037118)
+
+## 🎼 Google Lyria 3 Pro 開始懂歌曲結構
+
+Google 發布 Lyria 3 Pro，除了把音樂生成長度拉到 3 分鐘，還強調模型能理解前奏、主歌、副歌、過渡段這種曲式結構。這意味著 generative media 正從「會噴片段」走向「會維持整體編排」。
+
+雖然這題跟 coding/Tech Lead 沒那麼直接，但它是個不錯的訊號：模型能力的升級不再只是更長 context 或更低 latency，而是對結構本身開始有 sense。那才是從玩具走向工具的分水嶺。
+
+來源：[@GoogleAI](https://x.com/GoogleAI/status/2036836237319811240)
+
+## 🔐 ARIA 砸 5,000 萬英鎊做生成式密碼學
+
+英國 ARIA 宣布投入 5,000 萬英鎊研究「生成式密碼學」，目標很明確：補 multi-agent 世界裡最麻煩的 trust、coordination、contract signing 這些地基。大家都在談 agent 會自己幹活，但如果 agent 之間連怎麼安全合作都沒搞定，那就像一群很會做事的室友卻沒人肯簽租約，遲早出事。
+
+這條我蠻看好。因為它不是又一條 benchmark 自嗨新聞，而是在補未來 agent infrastructure 真正會卡死商業化的那塊短板。
+
+來源：[@iamnotnicola](https://x.com/iamnotnicola/status/2037423082885755286)
+
+## 🧪 Simon Willison：代碼變便宜，測試哲學也得改
+
+Simon Willison 提出一個很 Tech Lead 的觀點：當 code generation 變超便宜，低階測試也沒必要再當傳家之寶。Agent 可以隨功能變化快速重寫那些 implementation-level tests，人類則把腦力留給 integration tests、系統邊界與產品正確性。
+
+這種思路的價值在於它不是「AI 幫你寫 test」這種空話，而是把 testing strategy 整個重排。以前是珍惜每一行測試，現在更像珍惜能驗證對的那一層抽象。其餘的，讓機器去流汗。
+
+來源：[@simonw](https://x.com/simonw/status/2036887670291652865)
