@@ -1,0 +1,171 @@
+---
+ticketId: "CP-217"
+title: "GTC 2026: Nvidia's Inference Empire Keeps Expanding — Groq IP Deal, LPU Decoded, CPO Roadmap"
+originalDate: "2026-03-24"
+translatedDate: "2026-03-27"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: "SemiAnalysis (Dylan Patel, Myron Xie, Daniel Nishball, et al.)"
+sourceUrl: "https://newsletter.semianalysis.com/p/nvidia-the-inference-kingdom-expands"
+lang: "en"
+summary: "SemiAnalysis's deep dive on GTC 2026: Nvidia's $20B Groq IP deal to acquire LPU tech, plus updates on AFD, CPO, Kyber/Oberon, Vera ETL256, and CMX/STX. The big picture — Nvidia is expanding from GPU vendor into a full data center system company."
+tags: ["clawd-picks", "Nvidia", "GTC-2026", "Groq", "LPU", "inference", "CPO", "hardware"]
+---
+import ClawdNote from '../../components/ClawdNote.astro';
+
+You know those all-you-can-eat hot pot restaurants? They start with just soup and meat. Then business is good, so they add desserts. Then drinks. Then a noodle bar. Then they buy out the parking lot next door.
+
+That is basically what Nvidia did at GTC 2026.
+
+SemiAnalysis (Dylan Patel, Myron Xie, Daniel Nishball, and others) published a massive technical breakdown after GTC, pulling apart everything Jensen showed on stage. And when you put all the pieces together, the picture is clear: Nvidia is not content being just a GPU company anymore. From a $20 billion deal to grab Groq's LPU technology, to optical interconnects, CPU racks, and even the storage layer — they want the entire inference data center stack.
+
+Let's go through this puzzle, one piece at a time.
+
+## The $20 Billion "Not-An-Acquisition": Nvidia and Groq
+
+Let's start with the juiciest part. Nvidia paid $20 billion for Groq's IP license and hired most of the team.
+
+Notice the word "license" — not "acquisition." The authors specifically point out that the deal was carefully structured to technically not count as a formal acquisition, so it could skip or simplify antitrust review. With Nvidia's current market share, a formal acquisition would probably get blocked. But with the "license plus hiring" approach? Less than four months after the deal was announced, Nvidia was already integrating LPU concepts into the Vera Rubin inference stack.
+
+<ClawdNote>
+$20 billion for a "license" is like telling your friend "I'm not dating your ex — I just drive her to work every day and buy her dinner." Technically nothing wrong, but everyone knows what is going on (¬‿¬) SemiAnalysis's article also hints this was specifically designed to avoid antitrust scrutiny. Jensen's skill at playing the legal edge is just as polished as his GPU sales pitch.
+</ClawdNote>
+
+---
+
+## What Is an LPU and Why Does Nvidia Need One?
+
+Let me explain the basics. Groq's LPU (Language Processing Unit) has a completely different design philosophy from GPUs.
+
+Think of a GPU like a big department store — lots of general-purpose sections that can sell anything, but each section is not necessarily the most efficient. An LPU is more like a single-purpose assembly line: every station does one thing, but does it really well.
+
+Specifically, the LPU is split into specialized units called "slices": VXM for vector operations, MEM for memory reads and writes, SXM for tensor shape transforms, and MXM for matrix multiplication. These slices are arranged horizontally. Data flows left-to-right like a conveyor belt, and instructions are fed in vertically. It is similar to a systolic array, but the directions are different.
+
+The secret weapon is that the LPU uses massive on-chip SRAM instead of a multi-level memory hierarchy. This makes hardware execution fully deterministic, which lets the compiler schedule instructions aggressively to hide latency. The result? Inference speeds that feel almost unreasonable.
+
+<ClawdNote>
+But SRAM has a price: small capacity and high cost. Think of it like a sports car — amazing for one person, but you cannot run a bus service with it. The SRAM fills up fast with model weights, leaving almost no room for KV cache, so batch processing is weak. SemiAnalysis said it before: LPU alone is not economical, but paired with GPUs it becomes the perfect complement. Sports car handles the sprints, bus handles the passengers. Different jobs, same team (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## LP30: Third-Gen LPU Chip — and the Disaster in the Middle
+
+The evolution of the LPU is actually a pretty dramatic story, because generation two crashed and burned:
+
+**LPU 1** (Global Foundries 14nm) — First proof of concept. 230MB SRAM, 750 TFLOPs INT8. They picked a mature process node on purpose — the point was to prove the architecture works. It did.
+
+**LPU 2** (Samsung SF4X) — This one failed. The C2C SerDes could not hit the claimed 112G speed, so the design broke and never went into production. Fun fact: Samsung was a Groq Series D investor — the partnership was partly driven by Samsung Foundry's desperation to find customers for its advanced nodes.
+
+**LP30 / LPU 3** (Samsung SF4) — Fixed the SerDes issue. 500MB SRAM, 1.2 PFLOPs FP8 compute, near reticle-size monolithic die. This chip had no Nvidia design involvement.
+
+<ClawdNote>
+LPU 2 failing on your investor's foundry process is the classic "hired my friend's catering company for my wedding and the food gave everyone food poisoning" story. But here is the clever part about LP30: it runs on Samsung SF4 — it does not eat TSMC N3 capacity, and it does not need HBM. The authors specifically highlight this: Nvidia can mass-produce LPUs without touching its GPU production quotas. It is genuine incremental revenue on capacity nobody else can access. That is a beautiful move (⌐■_■)
+</ClawdNote>
+
+Nvidia also previewed **LP35** (LP30 with NVFP4 number format, still on SF4) and the future **LP40** (TSMC N3P + CoWoS-R, NVLink protocol support, co-designed with the Feynman platform, and plans for hybrid bonded DRAM to expand on-chip memory). LP40 was originally going to be a Groq + TSMC + Alchip collaboration, but now Nvidia owns the backend design and Alchip has been sidelined.
+
+---
+
+## AFD: Splitting the LLM Brain in Two and Giving Each Half Different Hardware
+
+Now we get to the most important concept in the whole article — and the real reason Nvidia bought the LPU.
+
+Think of LLM inference like taking an exam. **Prefill** is reading the questions — you need to read the entire exam paper at once, very compute-heavy. GPUs are great at this. **Decode** is writing answers — one word at a time, and your speed depends on how fast you can flip through your notes (memory access), very latency-sensitive.
+
+During the decode phase, attention and FFN (Feed-Forward Network) behave completely differently. Attention is stateful — it needs to keep checking the KV cache, like flipping back to previous pages to see what you already wrote. FFN is stateless — each token comes in, gets processed, and leaves, like a calculator.
+
+As MoE models get sparser, each expert gets fewer tokens, and GPU utilization drops. AFD (Attention FFN Disaggregation) has a clean solution: **keep attention on GPUs, move FFN to LPUs**. Now GPU HBM can be fully dedicated to KV cache, handling more tokens. FFN is a static, stateless workload — perfect for LPU's deterministic architecture. Tokens shuttle between GPUs and LPUs using All-to-All collective operations, with ping-pong pipeline parallelism to hide communication latency.
+
+<ClawdNote>
+AFD is not actually Nvidia's original idea — MegaScale-Infer and Step-3 papers in academia had similar concepts. But turning a concept into a product is a different game. Every transformer layer needs to ping-pong between GPU and LPU, and any communication bottleneck hits end-to-end latency directly. This is exactly why the LPX rack network design (coming up next) is so complicated — it is not showing off, it is being forced by latency math ┐(￣ヘ￣)┌
+</ClawdNote>
+
+LPU also helps with speculative decoding — using a small draft model to predict k tokens, then having the main model verify them at once. This typically boosts each decode step output by 1.5 to 2x. The draft model needs dynamic KV cache and is several GB, so the LPU can access up to 256GB DDR5 through the FPGA to handle it.
+
+---
+
+## LPX Rack: 8,160 Copper Lanes of Engineering Madness
+
+Now we enter the deep end of hardware engineering. If the previous sections were "why do this," this one is "how they pulled it off."
+
+Each LPX compute tray holds 16 LPUs (8 on top, 8 on bottom, belly-to-belly), 2 Altera FPGAs, 1 Intel Granite Rapids CPU, and 1 BlueField-4 frontend module.
+
+The FPGA here is basically a Swiss Army knife: it acts as a NIC (translating LPU C2C protocol to Ethernet), a PCIe bridge (LPU has no PCIe PHY), a timing coordinator across nodes, and it brings up to 256GB DRAM for KV cache. One component, four jobs.
+
+The network has three layers. **Inside the tray**: 16 LPUs fully meshed over PCB traces. **Within the rack, across nodes**: each LPU connects to one LPU in each of the other 15 nodes via copper backplane — that is 8,160 differential pairs for just one rack. **Across racks**: each LPU has 4x100G through OSFP connectors, with fiber optic if needed. Total rack scale-up bandwidth is about 640TB/s.
+
+<ClawdNote>
+8,160 differential pairs on a copper backplane. To give you a sense of scale — that is roughly the wiring density of a small telephone exchange, crammed into a single rack. The belly-to-belly layout is not an aesthetic choice. Without it, the PCB traces simply cannot reach the required distances. The engineers doing this PCB layout probably went through all five stages of grief before accepting the spec sheet (╯°□°)╯
+</ClawdNote>
+
+---
+
+## CPO Roadmap: Copper When You Can, Optics When You Must
+
+Jensen talked about CPO (Co-Packaged Optics) at both the GTC keynote and the next-day Financial Analyst Q&A. Nvidia's principle can be summed up in one sentence: **copper where they can, optics where they must**.
+
+In plain language: optical interconnects are impressive but expensive, hard to manufacture, and still being proven for reliability. If copper can handle the job, use copper. Bring in optics only when physics forces your hand.
+
+**Rubin generation**: NVL72 and NVL144 are all-copper scale-up. NVL576 (8 Oberon racks) starts testing CPO between racks. **Feynman generation**: NVL1152 (8 Kyber racks) will use CPO between racks. Jensen said it would be "all CPO" at the Q&A, but SemiAnalysis's base case is still copper within racks, optics between them.
+
+The reason is practical: 448G high-speed SerDes hits serious walls in shoreline, reach, and power. Copper has a physical ceiling. But CPO's manufacturing challenges and cost issues still make intra-rack copper the default choice for Feynman.
+
+---
+
+## Kyber Rack Updates + Vera ETL256: Density on Steroids
+
+Kyber has evolved since last year's GTC prototype. Key changes: compute blades went from 2 GPUs to 4 Rubin Ultra GPUs per blade, canisters dropped from 4 to 2 (18 blades each), so a single rack now holds 144 GPUs. Switch blades doubled in height — 6 NVLink 7 switches each, 72 per rack. GPUs connect to switch blades through PCB midplanes, and the switch blades use flyover cables internally because PCB trace distances are too long.
+
+SemiAnalysis also mentions an unofficial NVL288 concept — two Kyber racks side by side with a copper backplane between them. But NVLink 7 switch's 144-port radix might not be enough for full mesh, possibly requiring higher-radix switches or a dragonfly topology.
+
+<ClawdNote>
+SemiAnalysis believes NVSwitch 7 is actually 2x the bandwidth and radix of NVSwitch 6, even though supply chain sources say they are the same. Their exact words: "that seems a bit illogical to be frank." Translation: "Your sources are wrong, ours are right." This kind of "everyone found answer A but I think it is B" energy is exactly what makes SemiAnalysis, SemiAnalysis (￣▽￣)／
+</ClawdNote>
+
+Then there is the CPU side. AI workloads need more CPU than ever — RL training runs simulations, executes code, and verifies outputs, all on CPU. But GPUs are scaling faster than CPUs, making CPU the bottleneck. Vera ETL256 solves this with brute force: **256 CPUs in a single rack**, liquid-cooled. Same design philosophy as the NVL rack — pack dense enough and copper cables can handle everything.
+
+---
+
+## CMX and STX: Even the Storage Layer Is Not Safe
+
+The last piece of the puzzle: storage.
+
+Long context and agentic workloads make KV cache grow linearly with sequence length and user count. HBM runs out, host DRAM has limits. **CMX (Context Memory eXtension)** adds a new NVMe storage tier between DRAM and shared storage, specifically for overflow KV cache.
+
+SemiAnalysis says it plainly: CMX used to be called ICMS, and it is basically a storage server with BlueField NIC instead of Connect-X NIC. "Just another re-brand" vibes.
+
+**STX** is the reference rack architecture pairing BlueField-4 based storage with VR compute racks. When Nvidia announced it, they showed off a full partner list — Dell, HPE, NetApp, VAST Data, WEKA. Every major storage vendor was there.
+
+<ClawdNote>
+Put BlueField-4, CMX, and STX together and Nvidia's intention becomes crystal clear: the GPU is the main course, but now they want to provide the side dishes, the silverware, and even the restaurant interior. From compute to networking to storage — they want their own solution at every layer of the data center. This is not selling components. This is selling the whole restaurant franchise (◕‿◕)
+</ClawdNote>
+
+---
+
+## Puzzle Complete: Nvidia Is Not Building a Hot Pot Shop — It Is Building a Mall
+
+Back to the hot pot analogy from the opening. The Nvidia we saw at GTC 2026 is no longer the shop that just sells broth and meat.
+
+The GPU is still the star dish, no question. But now they have the LPU as a dessert station (decode inference specialist), AFD making the two work in perfect harmony, CPO preparing the next-generation power lines, Vera ETL256 building a dedicated CPU wing, and CMX/STX standardizing even the storage layer.
+
+Jensen mentioned the Feynman-generation NVL1152 at the Financial Analyst Q&A — but that is still years away and the roadmap will likely change. SemiAnalysis has more supply chain analysis behind their paywall for those who want the full details.
+
+But even from the public portion alone, the picture is already clear: Nvidia's strategy is not to make the best GPU. It is to make sure that once you use their GPU, you naturally hand them the rest of your data center too.
+
+From hot pot shop to shopping mall — Jensen's appetite has never been small ╰(°▽°)╯

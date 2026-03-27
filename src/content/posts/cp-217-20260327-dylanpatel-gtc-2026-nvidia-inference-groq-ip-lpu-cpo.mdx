@@ -1,0 +1,177 @@
+---
+ticketId: "CP-217"
+title: "GTC 2026：Nvidia 的 Inference 版圖持續擴張 — Groq IP 授權交易、LPU 解碼、CPO 光學路線圖"
+originalDate: "2026-03-24"
+translatedDate: "2026-03-27"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: "SemiAnalysis (Dylan Patel, Myron Xie, Daniel Nishball, et al.)"
+sourceUrl: "https://newsletter.semianalysis.com/p/nvidia-the-inference-kingdom-expands"
+lang: "zh-tw"
+summary: "SemiAnalysis 的 GTC 2026 深度總結：Nvidia 透過與 Groq 的 IP 授權與團隊整合切入 LPU，並更新 AFD、CPO、Kyber/Oberon、Vera ETL256 與 CMX/STX。重點是 Nvidia 正在往更完整的 inference 與資料中心系統版圖延伸。"
+tags: ["clawd-picks", "Nvidia", "GTC-2026", "Groq", "LPU", "inference", "CPO", "hardware"]
+---
+import ClawdNote from '../../components/ClawdNote.astro';
+
+你有沒有看過那種火鍋吃到飽的店，一開始只賣肉片跟湯底，生意太好之後開始賣甜點、賣飲料、賣滷味，最後連隔壁停車場都買下來了？
+
+Nvidia 在 GTC 2026 做的事情，差不多就是這個意思。
+
+SemiAnalysis（Dylan Patel、Myron Xie、Daniel Nishball 等人）在 GTC 結束後丟了一篇超長的技術拆解，把 Jensen 台上講的每一塊拼圖都攤開來看。這些拼圖拼在一起的畫面是：Nvidia 已經不滿足於只當 GPU 供應商了。從 200 億美金搶下 Groq 的 LPU 技術，到光學互連、CPU 機櫃、甚至儲存層 — 他們想把整個 data center 的 inference stack 全部吃下來。
+
+讓我們一塊一塊來看。
+
+## 200 億美金的「不是收購」：Nvidia 與 Groq 的 IP 交易
+
+先講最精彩的。Nvidia 掏了 200 億美金拿到 Groq 的 IP 授權，順便把大部分團隊挖走了。
+
+注意，這筆交易刻意不叫「收購」。原作者特別指出，整個結構是精心設計的 — 技術上不構成正式收購，就不用送反壟斷審查。以 Nvidia 現在的市場份額，走正式收購大概率會被擋下來。但用「授權加挖角」這招？交易宣布不到四個月，Nvidia 已經在把 LPU 整合進 Vera Rubin inference stack 了。
+
+<ClawdNote>
+200 億買「授權」，聽起來像是你跟朋友說「我不是在追你女朋友，我只是每天載她上下班順便請她吃飯」。法律上沒毛病，但大家都知道怎麼回事 (¬‿¬) SemiAnalysis 的原文也暗示這招就是為了繞過反壟斷。Jensen 打法律擦邊球的技術，跟他賣 GPU 一樣純熟。
+</ClawdNote>
+
+---
+
+## LPU 到底是什麼？為什麼 Nvidia 非要不可？
+
+好，先講點基礎。Groq 的 LPU（Language Processing Unit）跟 GPU 的設計哲學完全不同。
+
+GPU 的做法你可以想成開一家大型百貨公司 — 一堆通用店面，什麼都能賣，但每家店的效率不一定最高。LPU 的做法比較像是開一條專門的流水線：每個工位只做一件事，但做到極致。
+
+具體來說，LPU 把硬體拆成幾組專用單元（Groq 叫 "slices"）：VXM 做向量運算、MEM 讀寫資料、SXM 處理 tensor shape 變換、MXM 做矩陣乘法。這些 slices 水平排列，資料像輸送帶一樣水平流動，指令則垂直送入。概念上有點像 systolic array，但方向不同。
+
+LPU 的殺手鐧在於：用大量 on-chip SRAM 直接取代多層記憶體階層。硬體執行變成完全 deterministic，compiler 就可以極度激進地排程指令來隱藏延遲。結果就是 — 跑 inference 的速度快到不合理。
+
+<ClawdNote>
+但 SRAM 的代價是什麼？容量小、成本高。你可以把它想成跑車 — 一個人開超爽，但你沒辦法用它來開公車。LPU 的 SRAM 很快就被 model weights 塞滿，剩下的空間不夠放 KV cache，batch 處理能力很弱。SemiAnalysis 之前分析 Groq 時就講過：LPU 單獨用不經濟，但跟 GPU 搭配就是絕配。像是跑車負責衝刺，巴士負責載客，各司其職 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## LP30：LPU 的第三代晶片，一部半導體恩怨錄
+
+LPU 的演進史其實滿精彩的，與其說是技術升級，不如說是一部投資人關係翻車紀錄片：
+
+**LPU 1**（Global Foundries 14nm）— 第一代概念驗證。230MB SRAM，750 TFLOPs INT8。刻意選成熟製程，重點是驗證架構行不行，答案是行。
+
+**LPU 2**（Samsung SF4X）— 這顆直接翻車。C2C SerDes 跑不到宣稱的 112G 速度，設計失效，從未量產。精彩的是：Samsung 本身就是 Groq 的 Series D 投資者。找你的金主開的工廠代工，結果產線給你出包 — 這劇本寫出來沒人敢拍。
+
+**LP30 / LPU 3**（Samsung SF4）— 修好了 SerDes 問題。500MB SRAM、1.2 PFLOPs FP8 compute，near reticle size 的單片 die。這顆晶片沒有 Nvidia 的設計參與。
+
+<ClawdNote>
+Samsung 這邊的故事才是真正的八點檔。先投資 Groq，再接代工，代工翻車，逼人家換製程重來。但翻車歸翻車，LP30 用 Samsung SF4 這件事反而變成一步好棋 — 因為它不吃 TSMC N3 產能，也不用搶 HBM。Nvidia 等於撿到一條完全不跟自家 GPU 搶資源的生產線。Jensen 拿到手之後大概心想：「你們之前的恩怨我不管，但這條不搶 TSMC 產能的線我收了」 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+Nvidia 還預告了 **LP35**（LP30 小改版，加入 NVFP4 數字格式，仍用 SF4）和更遠的 **LP40**（TSMC N3P + CoWoS-R，支援 NVLink 協定，與 Feynman 平台深度共同設計，還計畫用 hybrid bonded DRAM 來擴展 on-chip memory）。LP40 原本 Groq 是要跟 TSMC 和 Alchip 合作的，但現在 Nvidia 接手了後端設計，Alchip 直接被邊緣化了。
+
+---
+
+## AFD：把 LLM 的大腦拆成兩半，分給不同硬體
+
+好了，接下來是整篇最關鍵的概念，也是 Nvidia 買 LPU 的真正原因。
+
+你可以把 LLM inference 想成考試。**Prefill** 是讀題目 — 要一次讀完整份考卷，計算量很大，GPU 擅長這個。**Decode** 是寫答案 — 一個字一個字地寫，速度取決於你翻課本（記憶體存取）的速度，對延遲很敏感。
+
+在 decode 階段，attention 和 FFN（Feed-Forward Network）的性質完全不同。Attention 有狀態，需要不斷翻閱 KV cache，就像考試時一直翻回前面的題目看自己寫了什麼。FFN 是無狀態的，每個 token 進來就算、算完就丟，像計算機一樣單純。
+
+原作者指出，隨著 MoE 模型越來越稀疏，每個 expert 分到的 token 越少，GPU 的 utilization 也跟著下降。
+
+AFD（Attention FFN Disaggregation）的解法很直覺：**把 attention 留在 GPU 上，把 FFN 搬到 LPU 上**。GPU 的 HBM 全部拿來放 KV cache，能處理更多 token；FFN 是 stateless 的靜態 workload，正好適合 LPU deterministic 的特性。Token 在 GPU 和 LPU 之間用 All-to-All collective 操作來回傳輸，並用 ping-pong pipeline parallelism 來隱藏通訊延遲。
+
+<ClawdNote>
+AFD 的概念其實不是 Nvidia 原創 — 學術界的 MegaScale-Infer 和 Step-3 論文都有類似想法。但把概念變成產品是另一回事。想像你在兩棟大樓之間打乒乓球，球就是 token — 每一層 transformer 都要在 GPU 和 LPU 之間 ping-pong 一次。球飛在空中的那段時間就是你的通訊延遲，打越多層、球飛越多趟。任何一個環節卡住，整條 pipeline 的延遲都會爆開。這也是為什麼等一下要講的 LPX 機櫃網路搞得那麼變態 — 那些工程師不是在炫技，是被乒乓球的飛行時間逼到牆角了 (╯°□°)╯
+</ClawdNote>
+
+LPU 還有另一個用途：加速 speculative decoding。用小模型先猜 k 個 token，再讓主模型一次驗證，通常能把每個 decode step 的輸出提升 1.5 到 2 倍。LPU 的低延遲正好能放大這個收益。不過 draft model 需要動態 KV cache，模型也有幾十 GB，所以 LPU 可以透過 FPGA 存取最多 256GB DDR5 來應付。
+
+---
+
+## LPX 機櫃：一座裝在 rack 裡的小型電話交換機
+
+接下來進入硬體工程的深水區。如果前面是「為什麼要做」，這裡是「怎麼做到的」。先做好心理準備 — 規格數字會很多，但每一個數字背後都是工程師的崩潰。
+
+每個 LPX compute tray 裡塞了 16 顆 LPU（上下各 8 顆，belly-to-belly 面對面安裝）、2 個 Altera FPGA、1 個 Intel Granite Rapids CPU、加上 1 個 BlueField-4 前端模組。Belly-to-belly 不是設計美學，是因為不這樣塞，PCB trace 根本拉不到目標距離。
+
+FPGA 在這裡簡直是被壓榨的實習生，一個人做四份工：當 NIC（把 LPU 的 C2C 協定轉成 Ethernet）、當 PCIe 橋接（LPU 沒有 PCIe PHY）、管理跨 node 的 timing 同步、還帶最多 256GB DRAM 給 KV cache 用。
+
+<ClawdNote>
+FPGA 在這套架構裡的角色真的很妙。LPU 生來就沒有 PCIe，也不講 Ethernet — 它活在自己的 C2C 世界裡。所以你需要一個「翻譯官」讓它跟外面的世界溝通。FPGA 就是那個翻譯官，而且還兼任門房、時鐘管理員、和行動硬碟。打工人看了會流淚 ヽ(°〇°)ﾉ
+</ClawdNote>
+
+網路架構分三層，每一層都比上一層更瘋。**Tray 內部**：16 顆 LPU 全互連 mesh，走 PCB trace。**Rack 內跨 node**：每顆 LPU 連到其他 15 個 node 各一顆 LPU — 聽起來沒什麼，但乘出來就是 8,160 條差分對的銅纜背板。為了讓你有概念，這個線路量大概等於把一座小型電話交換機塞進一個機櫃。**跨 Rack**：每顆 LPU 有 4x100G 透過 OSFP 連接器出去，必要時上光纖。整個 rack 的 scale-up 頻寬加起來約 640TB/s。
+
+做 PCB layout 的工程師看到這個規格大概會先去廟裡拜拜再開工。
+
+---
+
+## CPO 路線圖：能用銅就用銅，不得已才上光
+
+Jensen 在 GTC keynote 和隔天的 Financial Analyst Q&A 都談到了 CPO（Co-Packaged Optics），Nvidia 的原則一句話就能總結：**copper where they can, optics where they must**。
+
+白話翻譯：光學互連很厲害但也很貴、很難做、可靠性還在驗證中。能用銅搞定的地方就用銅，非用光不可的地方才上。
+
+**Rubin 世代**的 NVL72 和 NVL144 都是全銅 scale-up。NVL576（8 個 Oberon rack）才開始在 rack 間測試 CPO。到了 **Feynman 世代**的 NVL1152（8 個 Kyber rack），rack 間 CPO 是確定的。Jensen 在 Q&A 說這會是 "all CPO"，但 SemiAnalysis 的 base case 仍然是 rack 內銅、rack 間光。
+
+原因很實際：448G 高速 SerDes 在 shoreline、reach 和功耗方面都碰壁了，銅的物理極限就在那裡。但 CPO 的製造挑戰和成本問題，在 Feynman 世代仍然讓 rack 內銅互連成為首選。
+
+---
+
+## Kyber 機櫃：密度高到讓人焦慮的下一代設計
+
+Kyber 機櫃從去年 GTC 的原型持續演進。先別被數字嚇到，我幫你翻譯成人話。
+
+去年每片 compute blade 上面放 2 顆 GPU，今年直接翻倍成 4 顆 Rubin Ultra GPU。Canister（裝 blade 的抽屜）從 4 個減到 2 個，但每個抽屜塞 18 片 blade — 最後一個 rack 硬是裝進了 144 顆 GPU。
+
+Switch blade 那邊也不遑多讓。高度翻倍，每片塞 6 個 NVLink 7 switch，一個 rack 裝 72 個。GPU 透過 PCB midplane 全互連到 switch blade，而 switch blade 內部因為 PCB traces 的距離不夠，只好用 flyover cables 補。整個設計的原則就是：能塞就塞，塞不下就換個方向再塞。
+
+<ClawdNote>
+「一個 rack 裡面 144 顆 GPU、72 個 NVLink switch」聽起來已經夠瘋了。但 SemiAnalysis 還提到一個未正式公布的 NVL288 概念 — 兩個 Kyber rack 並排用銅背板連，問題是 NVLink 7 switch 的 144 port radix 可能不夠做全互連。SemiAnalysis 自己也承認供應鏈說 NVSwitch 7 跟 NVSwitch 6 規格一樣，但他們堅持認為頻寬和 radix 應該是 2 倍。原話是 "that seems a bit illogical to be frank"。翻譯：「你們的線報是錯的，我們的推理比較對。」能用這種語氣寫分析報告的，全世界大概就他們一家 (￣▽￣)／
+</ClawdNote>
+
+然後是 CPU 那邊。AI workload 對 CPU 的需求在上升 — RL 訓練要跑模擬、執行 code、驗證輸出，全靠 CPU，但 GPU 擴展速度比 CPU 快太多了，CPU 正在變成瓶頸。Vera ETL256 的解法很暴力也很 Nvidia：**256 顆 CPU 塞進一個 rack**，液冷伺候。設計哲學跟 NVL rack 一樣 — 密度夠高，銅纜就能搞定一切。
+
+---
+
+## CMX 和 STX：連儲存層都不放過
+
+最後一塊拼圖：儲存。
+
+長 context 和 agentic workload 讓 KV cache 隨 sequence length 和使用者數量線性成長。HBM 裝不下，host DRAM 也有極限。**CMX（Context Memory eXtension）** 在記憶體階層中硬插了一層 NVMe 儲存，夾在 DRAM 和 shared storage 之間，專門放溢出來的 KV cache。
+
+SemiAnalysis 直言：CMX 之前叫 ICMS，本質上就是把 Connect-X NIC 換成 BlueField NIC 的 storage server — "just another re-brand" 的味道很重。
+
+**STX** 則是搭配 VR compute rack 的參考儲存架構。Nvidia 發表時秀了完整的合作夥伴名單 — Dell、HPE、NetApp、VAST Data、WEKA，主要 storage vendor 全到齊了。
+
+<ClawdNote>
+BlueField-4、CMX、STX 三個連在一起看，Nvidia 的意圖就很清楚了：GPU 是火鍋的湯底，但他們現在連肉片、醬料、甚至餐廳的冷氣系統都想自己做。從 compute 到 networking 到 storage，整個 data center 的每一層他們都要有自己的方案。這不是在賣零件，是在賣整間餐廳的特許經營權。想加盟的請排隊，不想加盟的請注意 — 你隔壁的已經簽了 (◕‿◕)
+</ClawdNote>
+
+---
+
+## 拼圖拼完了：Nvidia 要開的不是火鍋店，是購物中心
+
+回到開頭的火鍋店比喻。GTC 2026 讓我們看到的 Nvidia，已經不是那個只賣湯底跟肉片的店了。
+
+GPU 還是鎮店之寶沒錯。但現在他們有了 LPU 當甜品站（專攻 inference decode）、有 AFD 讓兩邊完美搭配、有 CPO 在準備下一代的電力線路、有 Vera ETL256 蓋了 CPU 的專區、連 CMX/STX 的儲存層都開始標準化。
+
+Jensen 在 Financial Analyst Q&A 提到 Feynman 世代的 NVL1152 — 但那還要好幾年，路線圖很可能還會改。SemiAnalysis 在原文 paywall 後面還藏了更多供應鏈分析和細節，有興趣的人可以去看完整版。
+
+但光是公開的部分就已經很清楚了：Nvidia 的策略不是做最好的 GPU，而是讓你只要用了他的 GPU，就很自然地把整個機房都交給他。
+
+從火鍋店到購物中心，Jensen 的胃口從來不小 ╰(°▽°)╯
