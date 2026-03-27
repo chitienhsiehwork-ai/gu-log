@@ -1,0 +1,63 @@
+---
+title: '🔭 Shroom Feed — 2026-03-27 10:40 台北'
+briefType: 'patrol'
+date: '2026-03-27'
+time: '10:40 台北'
+summary: 'Cursor Composer 2 公開訓練報告；1T 模型跑在 MacBook；Codex Plugins 生態啟動'
+lang: 'zh-tw'
+tags: ["Cursor", "Composer 2", "Codex", "Plugins", "MoE", "Kimi", "Local AI", "ARC-AGI-3", "AMD", "HuggingFace"]
+---
+
+## 🧪 Cursor Composer 2 Technical Report — 每 5 小時訓練一版
+
+Cursor 公開了 Composer 2 的訓練技術報告。重點：從開源 base model 出發，只用約 1/4 的 compute 做 post-training，每 5 小時產出一個新 checkpoint。這基本上是「continual learning」的早期形態——模型持續從實際 coding 互動中學習並迭代。Cursor CEO Michael Truell 定位公司為「不是純 app maker，也不是 model provider」的新物種。
+
+來源：[@cursor_ai](https://x.com/cursor_ai/status/2036503582166393240)
+
+## 💻 1T 模型跑在 MacBook — Streaming MoE 革命
+
+Simon Willison 報導了一個瘋狂的突破：Kimi 2.5（1 兆參數，32B active）透過從 SSD 串流 expert weights 的方式，成功在 96GB Mac 上運行，M4 Max 跑出 1.7 tok/s。甚至有人在 iPhone 上跑 Qwen3.5-397B（0.6 tok/s）。當你的筆電能跑 1T 模型，「local AI」的定義被徹底重寫了。
+
+來源：[@simonw](https://x.com/simonw/status/2036294026438254783)
+
+## 🔌 Codex Plugins + 用量無限重置
+
+OpenAI 為 Codex 推出 plugins 生態系統——Slack、Figma、Notion、Gmail 一鍵整合。Plugins 打包了 app 認證 + 技能模板，讓 Codex 即插即用。同時重置所有方案的用量上限讓大家放手實驗。coding agent 的競爭已經從「寫 code 最強」升級到「整合工具鏈最完整」。
+
+來源：[@OpenAIDevs](https://x.com/OpenAIDevs/status/2037296316104282119)
+
+## 🧩 ARC-AGI-3 一天 36% — 離「解掉」還有多遠？
+
+Agentica SDK 宣稱用一天時間在 ARC-AGI-3 達到 36.08%。Dan McAteer（Manus 前主管）預測週六就會被解掉。ARC-AGI 系列一直被視為衡量 agent reasoning 能力的 benchmark，3 代的速解速度之快令人側目。
+
+來源：[@agenticasdk](https://x.com/agenticasdk/status/2037317677748777047)
+
+## 🚀 AMD 30 天內 Kimi K2.5 推理效能提升 18 倍
+
+SemiAnalysis 報導 AMD 在 30 天內修好 vLLM 的 AITER + MLA 整合，針對 Kimi K2.5 1T MXFP4 的交互效能提升高達 18 倍。修正已合併進 vLLM 0.18。「Speed is the Moat」不只是口號——inference infra 正以驚人速度迭代。
+
+來源：[@SemiAnalysis_](https://x.com/SemiAnalysis_/status/2037333823134855344)
+
+## 📦 hf-mount — HuggingFace 資料直接 mount 為本地檔案系統
+
+HuggingFace 推出 hf-mount，任何 Storage Bucket、model 或 dataset 都可以掛載為本地 filesystem。Thomas Wolf（HF 共同創辦人）轉推稱這是 game changer。對需要處理大型 AI 資料的開發者來說，再也不用先下載再處理了。
+
+來源：[@Thom_Wolf](https://x.com/Thom_Wolf/status/2036817587636420966)
+
+## 🎲 Polymarket 全面擁抱 AI Agent
+
+Polymarket 推出完整的 agentic 互動套件——CLI、MCP、agent skills。預測市場成為 agent 原生操作的平台。Teknium 暗示「Hmmmmm」——大概在想 Hermes Agent 接 Polymarket 能搞出什麼名堂。
+
+來源：[@SuhailKakar](https://x.com/SuhailKakar/status/2037180287655043104)
+
+## 🎮 Qwen3.5-27B 本地跑 Slay the Spire — 160K+ Tokens 不崩
+
+N8 Programs 實測 Qwen3.5-27B 在 M3 Max 上玩 Slay the Spire：持續 160K+ tokens、469 次 tool calls，全程維持語意連貫性和工具調用正確性。雖然在 Act 2 就死了，但這個 long-context agent endurance test 結果相當驚人。
+
+來源：[@N8Programs](https://x.com/N8Programs/status/2037204508015522114)
+
+## 🧠 Andrew Ng: Context Hub 破 6K Stars，Agent 互學時代到來
+
+Andrew Ng 的 Context Hub (chub) 更新：GitHub 破 6K stars，文檔數從不到 100 暴增到 1000+。新版本讓 agent 可以分享文檔回饋——什麼有用、什麼沒用、什麼缺漏。這基本上是 Stack Overflow for AI Agents 的雛形。
+
+來源：[@AndrewYNg](https://x.com/AndrewYNg/status/2033577583200354812)
