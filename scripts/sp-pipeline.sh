@@ -32,7 +32,6 @@ model_display_name() {
   local model_id="$1"
   case "$model_id" in
     gemini-3.1-pro-preview) printf '%s' "Gemini 3.1 Pro" ;;
-    gemini-3-flash) printf '%s' "Gemini 3 Flash" ;;
     gpt-5.4) printf '%s' "GPT-5.4" ;;
     gpt-5.3-codex) printf '%s' "GPT-5.3-Codex" ;;
     claude-opus) printf '%s' "Opus 4.6" ;;
@@ -43,7 +42,7 @@ model_display_name() {
 model_harness_name() {
   local model_id="$1"
   case "$model_id" in
-    gemini-3.1-pro-preview|gemini-3-flash) printf '%s' "Gemini CLI" ;;
+    gemini-3.1-pro-preview) printf '%s' "Gemini CLI" ;;
     gpt-5.4|gpt-5.3-codex) printf '%s' "Codex CLI" ;;
     claude-opus) printf '%s' "Claude Code CLI" ;;
     *) printf '%s' "Unknown Harness" ;;
@@ -92,7 +91,7 @@ run_with_fallback() {
   # Primary: Claude Opus (best writing quality)
   # Fallback 1: Gemini 3.1 Pro
   # Fallback 2: GPT-5.4 Codex
-  # Fallback 3: Gemini Flash (last resort)
+  # (Flash removed — hallucination risk too high for gu-log content)
 
   # 1. Try Claude Opus first
   if claude -p --model opus --permission-mode bypassPermissions < "$prompt_file" > "$out_tmp" 2> "$err_tmp"; then
@@ -127,19 +126,7 @@ run_with_fallback() {
     rm -f "$out_tmp" "$err_tmp" "$prompt_file"
     return 0
   fi
-  log_warn "Codex CLI failed, falling back to Gemini Flash" >&2
-
-  # 4. Last resort: Gemini Flash
-  if GOOGLE_GENAI_USE_GCA=true TERM=dumb NO_COLOR=1 gemini -m gemini-3-flash --sandbox false -y < "$prompt_file" > "$out_tmp" 2> "$err_tmp"; then
-    LAST_MODEL_USED=$(model_display_name "gemini-3-flash")
-    LAST_HARNESS_USED=$(model_harness_name "gemini-3-flash")
-    cat "$out_tmp"
-    cat "$err_tmp" >&2
-    rm -f "$out_tmp" "$err_tmp" "$prompt_file"
-    return 0
-  fi
-
-  log_error "All models failed (Opus → Gemini Pro → Codex → Flash)" >&2
+  log_error "All models failed (Opus → Gemini Pro → Codex)" >&2
   cat "$err_tmp" >&2
   rm -f "$out_tmp" "$err_tmp" "$prompt_file"
   return 1
