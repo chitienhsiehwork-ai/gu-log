@@ -1,0 +1,207 @@
+---
+ticketId: "SP-132"
+title: "Anthropic's Multi-Agent Alchemy: GAN-Inspired Feedback Loops for Autonomous App Development"
+originalDate: "2026-03-27"
+translatedDate: "2026-03-27"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "OpenClaw"
+source: "Anthropic Engineering Blog"
+sourceUrl: "https://www.anthropic.com/engineering/harness-design-long-running-apps"
+lang: "en"
+summary: "Anthropic Labs' Prithvi Rajasekaran shares how they built a GAN-inspired generator-evaluator architecture that lets Claude autonomously develop full-stack applications. From turning subjective design taste into gradable criteria to building a browser DAW in under 4 hours, this is the most detailed multi-agent harness field report to date."
+tags: ["shroom-picks", "AI-Agents", "Agent-Harness", "Anthropic", "Multi-Agent", "Claude-Code"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Have you ever worked with someone who only says "LGTM"?
+
+You know the type. You send them your code for review, they reply "looks good 👍." You show them a UI mock and ask if it's okay, they say "yeah it's great." Deep down you know something's off, but they'll never tell you. Then you ship, users touch it once, and everything falls apart — and you realize they didn't think it was good. They just didn't want to be the bad guy.
+
+AI agents are born that way. Ask them to evaluate their own work and they'll confidently tell you "I did great" — even when a human can see the quality is mediocre at best. Anthropic engineer Prithvi Rajasekaran spent months trying to fix this problem.
+
+His answer? Find another AI to be the coworker who tells the truth.
+
+This isn't an Anthropic marketing piece. It's a real engineering journal — where they hit walls, how they got around them, what it cost, and whether it actually worked. The level of detail is the highest I've seen in any AI engineering post this year.
+
+---
+
+## Why Single Agents Fall Apart on Long Tasks
+
+Imagine asking someone to work twelve hours straight without a break. Their efficiency doesn't just drop — eventually they start making nonsensical decisions because their brain is cooked. AI agents have the same problem.
+
+Anthropic observed two fatal issues.
+
+The first is called **context anxiety**. The context window isn't actually full — but the model *believes* it's running out, so it starts rushing to wrap up. Like the last ten minutes of a final exam: you still have time, but you *feel* like you don't, so you start scribbling half-baked answers just to finish.
+
+They tried compaction — summarizing earlier parts of the conversation so the same agent can keep going. But that's like telling an anxious test-taker "relax, you have time." The problem isn't time; it's their mental state. What actually works is a context reset: hand them a fresh exam paper, along with a summary of their previous answers. In their tests, Claude Sonnet 4.5's context anxiety was severe enough that compaction alone simply didn't work.
+
+The second problem is more fundamental: **AI agents don't self-critique.** Ask them to evaluate their own work and they respond like that "LGTM" coworker — perpetually self-satisfied. This is especially fatal for subjective tasks like design, where there's no "run the test and see if it passes." Whether a layout looks good is a judgment call, and an agent's judgment about its own work is about as reliable as asking someone if they think they're good-looking.
+
+<ClawdNote>
+So AI has "test anxiety" — and it's bad enough to need architectural treatment. Think about how absurd this is: you're paying for a model with 128k context, and it decides to wrap up at 80k because it *felt* like time was running out. You didn't get to use the context window you paid for because the model psychologically gave up first. Opus 4.5 significantly improved this, and 4.6 essentially cured it. So when Anthropic says "re-examine your harness with every new model" — that's not platitude. The disease you're treating might already be gone, but you're still taking the medicine (◍•ᴗ•◍)
+</ClawdNote>
+
+---
+
+## The GAN Insight: Finding a Coworker Who Tells the Truth
+
+The solution draws inspiration from an unexpected place — GANs (Generative Adversarial Networks).
+
+If you're not familiar with GANs, picture a counterfeiter and a bank inspector. The counterfeiter makes fake bills, the inspector tries to catch them. The counterfeiter improves based on the inspector's feedback, and the inspector gets sharper through the process. Two adversaries pushing each other to improve.
+
+Anthropic brought this concept to agent architecture: a generator produces output, an evaluator tears it apart, and the feedback loops back for the next iteration.
+
+But wait — the evaluator is also an LLM. Won't it go easy too?
+
+It will. But here's the key: **tuning a standalone evaluator to be strict is far, far more tractable than making a generator critical of its own work.** It's like — you can't easily train a parent to be harsh about their own kid's drawing (your creation is your kid). But training an independent code reviewer to hold high standards? That's an engineering problem. Solvable.
+
+---
+
+## Frontend Design: Turning "Is It Good?" Into an Exam
+
+The author started with frontend design, where self-evaluation was most visibly broken. Without any intervention, Claude produces layouts like an IKEA showroom — everything's there, everything works, but you walk in and never think "wow." Technically correct, zero soul.
+
+"Is this design good?" is hard to answer consistently. But what if you break it into specific exam questions?
+
+He wrote four grading criteria:
+
+- **Design quality**: Does the design feel like a coherent whole? Or just parts bolted together? Do colors, typography, and layout create a unified mood?
+- **Originality**: Custom design decisions, or template defaults? Those telltale "purple gradient + white card" AI patterns — instant death
+- **Craft**: Technical execution. Typography hierarchy, spacing, color harmony, contrast ratios. Most reasonable implementations pass this
+- **Functionality**: Can users understand the interface, find actions, complete tasks?
+
+The clever move: design quality and originality were deliberately weighted heavier. Claude already did fine on craft and functionality (solid fundamentals), but on "does it have a soul?" it regularly turned in blank papers. Concentrating weight on its weaknesses forced it to take aesthetic risks.
+
+Then came the feedback loop, built on Claude Agent SDK: generator produces HTML/CSS/JS, evaluator uses Playwright MCP to **actually interact with the page** — not looking at screenshots, but clicking buttons, scrolling, navigating — before scoring and writing detailed critiques. Each generation ran 5 to 15 iterations. Full runs took up to four hours.
+
+<ClawdNote>
+The evaluator using Playwright to actually *operate* the page deserves a moment. This means it catches "button doesn't respond to clicks" and "layout breaks on scroll" — things screenshots will never show. You know what the biggest problem with traditional design review is? Everyone stares at a static Figma frame saying "looks good" — then build it and discover every interaction is broken. The AI evaluator with Playwright is doing more thorough review than most human design sessions ╮(╯▽╰)╭
+</ClawdNote>
+
+---
+
+## Iteration Ten: The Dutch Museum Miracle
+
+Okay, here's the part of this article that gave me chills.
+
+The author prompted the model to create a Dutch art museum website. For nine iterations, it produced a clean, dark-themed landing page — polished, professional, within expectations. Scores climbed steadily. Everything according to plan.
+
+Then on iteration ten, it threw out everything from the previous nine rounds.
+
+No more 2D webpage. It reimagined the entire site as a 3D spatial experience — a room rendered in CSS perspective with a checkered floor, artwork hung on walls in free-form positions, and doorway-based navigation between gallery rooms. No scroll, no click-through menu. You walk in, look at paintings, walk out to the next gallery.
+
+The author's exact words: "It was the kind of creative leap that I hadn't seen before from a single-pass generation."
+
+<ClawdNote>
+Okay, calm down and think about what the hell just happened here. For nine rounds the generator was making small tweaks within the same design space — swap a color palette, adjust spacing — scores rising but clearly plateauing. Then round ten it flipped the table: "2D website? I'm building a 3D room." Nobody prompted it to do that. The evaluator forced its hand. Nine rounds of "not good enough" created enough pressure that round ten became a complete pivot instead of another incremental tweak. This is basically the AI version of "necessity is the mother of invention." Think you can prompt-engineer this result directly? Good luck (ﾉ◕ヮ◕)ﾉ*:・ﾟ✧
+</ClawdNote>
+
+How did this happen? The author believes the criteria wording played a role — "the best designs are museum quality" wasn't just a measurement tool, it was a creative directive. Tell the AI "museum quality" and it literally turns the website into a museum.
+
+Another interesting observation: scores didn't improve linearly. The author often preferred a middle iteration over the final one. And complexity naturally escalated — the generator got more ambitious with each round, responding to evaluator feedback. Like how your PRs naturally get bolder when you've worked with a good code reviewer for a while.
+
+---
+
+## Three Roles, One Production Line
+
+With frontend design validated, the author brought the GAN-inspired pattern to full-stack development. The generator-evaluator loop maps naturally onto software development's code review and QA flows — you write code, the reviewer tears it apart, you fix and resubmit, loop until it passes. The only difference is both sides are AI here.
+
+If you picture this architecture as a startup, it has three employees.
+
+You tell the first one "build a 2D retro game maker" and they hand back a full product spec — 16 features, 10 sprints, even an AI integration plan. But the smartest thing about this PM is knowing what **not** to write: they deliberately skip granular technical implementation. Why? Because if you lock in technical details on day one and get something wrong, the errors cascade downstream like dominoes. A good PM specifies the summit, not the climbing route.
+
+The second employee is that developer who puts on headphones and disappears — works in sprints, one feature at a time, React + Vite + FastAPI + SQLite, self-reviews before handing off to QA. Yes, the AI uses git commit too. Nobody escapes version control.
+
+The third is the kind of QA you meet maybe once in your career. Not just reading code — they fire up Playwright and actually use the app like a user with OCD, pressing every button, filling every input, poking every edge case. Then they score across four dimensions: product depth, functionality, visual design, code quality. Any dimension below threshold? Entire sprint rejected, with a report saying "here's where you messed up, here's why, here's the line number." Not "feels like there's a bug" — it's "`fillRectangle` doesn't trigger on mouseUp" level precision.
+
+Before each sprint, the developer and QA sit down and negotiate a **sprint contract** — agreeing on what "done" looks like before any code is written. The developer proposes what they'll build and how to verify success; the QA reviews to make sure they're building the right thing. Back and forth until consensus, then coding starts.
+
+<ClawdNote>
+Sprint contracts make me think about a bigger pattern — AI systems are naturally reinventing decades of human software engineering best practices. Agile teams have sprint planning; this has sprint contracts. Human teams have code review; this has the evaluator. Humans have PMs writing specs; this has the planner. The difference: all roles are AI, and they communicate via files instead of Slack and meetings. No "hang on I'm in another meeting" overhead — just pure information exchange (◍˃̶ᗜ˂̶◍)ノ"
+</ClawdNote>
+
+---
+
+## The Showdown: 20-Minute Prototype vs. 6-Hour Complete Game
+
+Prompt: "Create a 2D retro game maker with features including a level editor, sprite editor, entity behaviors, and a playable test mode."
+
+**Solo agent (no harness):** 20 minutes / $9. Wasted viewport space, rigid workflow, and most importantly — the game was broken. Entities appeared on screen but didn't respond to input. Opening the code revealed the wiring between entity definitions and the game runtime was completely severed — no surface indication of what went wrong. Like a car that looks brand new, then you pop the hood and discover the fuel line isn't connected.
+
+**Full harness:** 6 hours / $200. The planner expanded one sentence into 16 features across 10 sprints — sprite animation system, behavior templates, sound effects, AI-assisted sprite generator, game export with shareable links. And the critical difference: the game actually worked. Characters moved, jumped onto platforms (physics engine was a bit rough — character overlapped with platforms — but the core function was there).
+
+The evaluator's bug reports were precise enough to fix directly — from a `fillRectangle` function existing but not triggering on mouseUp, to a handler requiring two state values set but click only setting one, to a FastAPI route ordering bug where 'reorder' was being parsed as an integer frame_id returning 422.
+
+Sprint 3 alone had 27 test criteria for the level editor. When was the last time you saw a QA run 27 test cases in a single sprint with root cause analysis for every failure?
+
+<ClawdNote>
+That FastAPI route ordering bug ('reorder' being parsed as an integer frame_id) is a classic that usually only gets caught by a senior backend dev reviewing code based on experience. The fact that an AI evaluator caught this through automated testing — meaning it actually *hit* the bug, got a 422, and traced back why — means it's not just running happy paths. It's genuinely using the API and getting confused by unexpected responses, then investigating. Same debugging instinct as a human QA, minus the Slack rants about "another FastAPI ordering issue" ╮(╯▽╰)╭
+</ClawdNote>
+
+---
+
+## Tuning the Evaluator: As Painful As Raising Kids
+
+Getting the evaluator to that level wasn't plug-and-play. The author is candid: **out-of-the-box Claude is a poor QA agent.**
+
+How poor? It would find real bugs, then talk itself into "actually it's not that bad" and approve the work. Like a student grading their own test — they see the wrong answer, tell themselves "well, my interpretation also makes sense," and give themselves a pass. It also only ran surface-level tests, never probing edge cases, so subtle bugs slipped through every time.
+
+The tuning loop: read evaluator logs → find where its judgment diverged from the author's → update prompt → rerun. Multiple rounds before the evaluator's grading standards approached human-reasonable expectations.
+
+Even after tuning, limits remained — minor layout issues, unintuitive interactions, undiscovered bugs in deeply nested features. But compared to the solo run where the core feature was completely broken, the gap was night and day.
+
+<ClawdNote>
+"Out-of-the-box Claude is a poor QA agent" — that's Anthropic's own engineer saying this about their own model. This level of candor is genuinely rare in any big company's engineering blog. But it also confirms an important truth: good evaluators, like good code reviewers, aren't born — they're trained. You wouldn't let a fresh junior do code review on day one and expect high quality. You'd let them shadow your reviews first, align on standards, then gradually give them autonomy. Tuning an AI evaluator follows the exact same process (´・ω・`)
+</ClawdNote>
+
+---
+
+## Opus 4.6 Arrives: Dropping Unnecessary Scaffolding
+
+The first harness version worked, but it was like a race car loaded with four airbags, a roll cage, and reinforced doors — useful, but heavy. Next step: figure out which safety equipment could come off.
+
+There's an important principle behind this: **every harness component encodes an assumption that the model can't do something on its own. If the assumption is wrong, that's pure overhead.** And models keep improving, so today's assumption might be obsolete tomorrow.
+
+When Opus 4.6 shipped — better planning, longer task endurance, improved code review and debugging — the case for simplification got even stronger. These were exactly the weaknesses the harness had been compensating for.
+
+Result? **The sprint structure was removed entirely.** Opus 4.6 maintained coherence without decomposing work into chunks. The planner and evaluator stayed — without the planner, the generator under-scoped; without the evaluator, edge-of-capability tasks lost quality.
+
+But the evaluator's role shifted from "check every sprint" to "one final review at the end." And its value depended on task difficulty:
+
+Task within the model's solo capabilities — evaluator is overhead. Task at the edge of what the model can do — evaluator delivers real quality lift.
+
+**The evaluator isn't a switch; it's a dial.** You tune it based on task complexity.
+
+---
+
+## Final Boss: A $124 Browser DAW
+
+The updated harness faced: "Build a fully featured DAW in the browser using the Web Audio API."
+
+A music production program in the browser. Arrangement view, mixer, transport — the works.
+
+Result: 3 hours 50 minutes / $124.70. The generator ran coherently for over two hours without sprint decomposition — completely impossible with Opus 4.5.
+
+The QA still caught real gaps: several core features were display-only (clips couldn't be dragged, no synth knobs or drum pads, effects had sliders instead of graphical EQ curves). Round two caught recording as stub-only, clips that couldn't be resized or split.
+
+The final product was far from Ableton (and Claude can't hear, so QA couldn't judge "does this sound good?"). But the core pieces were all there — arrangement view, mixer, transport running in the browser. The author could even compose a short song snippet purely through prompting: AI agent set the tempo and key, laid down a melody, built a drum track, adjusted mixer levels, added reverb. Start to finish, entirely through conversation.
+
+<ClawdNote>
+$124.70 for a functional browser DAW. Pause and think about what this means. SP-94 argued "the harness is the real product" — that was community observation. SP-98 showed OpenAI writing a million lines of code through harness engineering — another large company's practice. Now Anthropic lays out the complete blueprints, cost structure, and every pitfall of their multi-agent harness. Read all three together and the pattern is unmistakable: 2026's AI engineering battleground isn't "who has the stronger model" — it's "who designs the smarter harness." GAN-inspired feedback loops, sprint contracts, evaluator as a dial instead of a switch — this is all pure engineering craft, independent of the model itself (๑˃ᴗ˂)ﻭ
+</ClawdNote>
+
+---
+
+## Takeaways
+
+Back to where we started.
+
+That "LGTM" coworker from the opening didn't just get replaced — they became the most important component of the entire system. Not by being silenced, but by splitting the role: finding someone else to play the part that says "this sucks, here's why," and turning their opinion into something quantifiable, iterable, and concrete.
+
+The author closes with a line worth sitting with: **"The space of interesting harness combinations doesn't shrink as models improve. It moves."**
+
+Every harness component is a patch on a model weakness. As models get stronger, some patches lose their purpose — like Opus 4.6 making sprints unnecessary. But stronger models also mean you can tackle harder tasks, and those new tasks expose new weaknesses requiring new harness designs. Like that Dutch museum — you thought the ninth iteration's landing page was the end, then iteration ten flipped the entire space inside out.
+
+So next time you see AI produce something underwhelming, maybe the right question isn't "AI can't do this" — but that it's still on iteration nine, and you haven't found it the evaluator who'll tell it the truth.

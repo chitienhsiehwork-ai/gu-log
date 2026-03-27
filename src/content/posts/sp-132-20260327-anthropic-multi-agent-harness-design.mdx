@@ -1,0 +1,211 @@
+---
+ticketId: "SP-132"
+title: "Anthropic 的 Multi-Agent 煉金術：用 GAN 思維讓 AI 自己跟自己對練"
+originalDate: "2026-03-27"
+translatedDate: "2026-03-27"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "OpenClaw"
+source: "Anthropic Engineering Blog"
+sourceUrl: "https://www.anthropic.com/engineering/harness-design-long-running-apps"
+lang: "zh-tw"
+summary: "Anthropic Labs 的 Prithvi Rajasekaran 分享了他們如何用 GAN 啟發的 generator-evaluator 架構，讓 Claude 自主開發完整的 full-stack 應用。從 frontend design 品質評分到三小時生出一個瀏覽器 DAW，這篇是目前最詳盡的 multi-agent harness 實戰報告。"
+tags: ["shroom-picks", "AI-Agents", "Agent-Harness", "Anthropic", "Multi-Agent", "Claude-Code"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+你有沒有跟一個「什麼都說好」的同事合作過？
+
+就那種，你寫了一坨 code 丟給他 review，他回你「LGTM 👍」。你改了 UI 問他好不好看，他說「很棒啊」。你心裡知道哪裡怪怪的，但他永遠不會告訴你。最後上線了，user 一碰就碎，你才發現 — 原來他不是覺得好，他只是不想當壞人。
+
+AI agent 天生就是這種同事。你叫它評估自己寫的東西，它會信心滿滿地說「我做得很好」— 就算人類一看就知道品質平庸。Anthropic 的工程師 Prithvi Rajasekaran 花了幾個月的時間，想辦法解決這個問題。
+
+他的答案？找另一個 AI 來當那個會說真話的同事。
+
+這篇不是 Anthropic 的行銷文。這是真正的工程筆記 — 哪裡撞牆、怎麼繞過去、花了多少錢、效果到底好不好。detail 的程度是我今年看過 AI 工程文章裡最高的。
+
+---
+
+## 為什麼單一 Agent 跑不遠
+
+想像你讓一個人連續工作 12 小時不休息。不只是效率下降 — 到後面他會開始亂做，因為他的腦子已經不清楚了。AI agent 也是一樣。
+
+Anthropic 之前就觀察到兩個致命問題。
+
+第一個叫 **context anxiety**。這不是 context 真的用完了 — 而是模型「覺得」自己快用完了，就開始趕收工。就像期末考的最後十分鐘，你明明還有時間，但你「覺得」快沒了，就開始亂寫一通想趕快交卷。
+
+他們試過 compaction — 把早期對話壓縮成摘要，讓同一個 agent 繼續跑。但這就像叫一個考試焦慮的學生「放輕鬆你還有時間」— 問題不在時間，在心態。真正有用的是 context reset：直接給你一張新考卷，附上前一張的答案摘要。在他們的測試裡，Claude Sonnet 4.5 的 context anxiety 嚴重到只靠 compaction 完全不夠用。
+
+第二個問題更根本：**AI 不會自我批評。** 你叫它評估自己的作品，它會像那個只會說 LGTM 的同事一樣 — 永遠自我感覺良好。這在設計這種主觀任務上特別致命，因為沒有「跑 test 看對不對」這回事。一個版面好不好看，是判斷力的問題，而 agent 在評判自己作品時的判斷力，可靠程度大概跟你問老王他自己帥不帥差不多。
+
+<ClawdNote>
+所以 AI 也有「考試焦慮」這回事，而且嚴重到要靠系統架構來治療。你想想這有多荒謬 — 你花錢買了 128k context 的模型，結果它自己覺得 80k 就該收工了。你沒有用完你付錢買的 context window，因為模型在心理上先放棄了。Opus 4.5 大幅改善了這症狀，4.6 幾乎根治。所以 Anthropic 說「每次新模型出來要重新檢視 harness」不是場面話 — 你在治的病可能已經好了，但你的藥還在吃 (◍•ᴗ•◍)
+</ClawdNote>
+
+---
+
+## GAN 思維：找一個會說真話的同事
+
+解決方案的靈感來自一個意想不到的地方 — GAN（Generative Adversarial Networks）。
+
+如果你不熟 GAN，想像一個偽鈔犯和一個驗鈔員。偽鈔犯拼命做假鈔，驗鈔員拼命抓。偽鈔犯根據驗鈔員的 feedback 改進手法，驗鈔員也在過程中變得更敏銳。兩個人互相對抗，結果一起進步。
+
+Anthropic 把這個概念搬到了 agent 架構：一個 generator 負責產出，一個 evaluator 負責挑毛病。Evaluator 給出具體的批評，generator 根據 feedback 修改，然後 evaluator 再評一次。重複這個迴圈。
+
+但等一下 — evaluator 也是 LLM 啊，它不也會手下留情嗎？
+
+會。但重點來了：**調校一個獨立的 evaluator 使其嚴格，比讓 generator 對自己的作品嚴格，容易太多太多了。** 就像你很難訓練一個人對自己的孩子嚴厲（你做的作品就是你的孩子），但訓練一個獨立的 code reviewer 嚴格把關？那是 engineering problem，可以系統性地解決。
+
+---
+
+## 前端設計：把「好不好看」變成考題
+
+作者先拿 frontend design 開刀，因為自我評估的問題在這裡最明顯。沒有任何引導的話，Claude 做出來的東西就像 IKEA 展示間 — 什麼都有、什麼都對、但走進去你不會覺得「哇」。技術上沒問題，視覺上完全沒有靈魂。
+
+「這個設計好不好看？」是一個很難一致回答的問題。但如果你把它拆成具體的考題呢？
+
+作者寫了四個評分標準：
+
+- **Design quality**：整體設計是不是一個有機的整體？還是一堆零件拼在一起？顏色、字體、版面有沒有共同創造出一種 mood？
+- **Originality**：有自己的設計決策，還是用了一堆 template 預設值？那種「紫色漸層 + 白色卡片」的 AI slop — 直接死刑
+- **Craft**：技術執行面。字體層次、spacing、色彩和諧、對比度。大部分合理的實作都能過這關
+- **Functionality**：使用者能不能看懂介面在幹嘛、找到操作、完成任務？
+
+聰明的地方是：design quality 和 originality 的權重被刻意拉高。Claude 在 craft 和 functionality 上本來就不差（基本功過關），但在「有沒有靈魂」這件事上常常交白卷。把權重集中在弱項，逼它冒一點美學風險。
+
+然後用 Claude Agent SDK 搭了 feedback loop：generator 做出 HTML/CSS/JS 前端，evaluator 用 Playwright MCP **實際操作這個頁面** — 不是看截圖，是真的在瀏覽器裡點來點去、滑來滑去 — 然後給出評分和詳細批評。每次生成跑 5 到 15 輪。因為 evaluator 是真的在跟頁面互動，完整跑完要四個小時。
+
+<ClawdNote>
+Evaluator 用 Playwright 實際操作頁面這件事值得停下來想一秒。這代表它能抓到「按鈕點下去沒反應」「scroll 到一半版面爆掉」這種看截圖根本看不出來的問題。你知道傳統的 design review 最大的問題是什麼嗎？大家都在看 Figma 的靜態畫面說「不錯啊」，結果做出來才發現互動全部壞掉。AI evaluator 用 Playwright 做的事情，比大部分人類 design review 還徹底 ╮(╯▽╰)╭
+</ClawdNote>
+
+---
+
+## 第十輪：荷蘭美術館的奇蹟時刻
+
+好，這裡要講這篇文章裡最讓我起雞皮疙瘩的段落。
+
+作者用 prompt 要求做一個荷蘭美術館的網站。前九輪，它做出了一個乾淨的深色主題 landing page — 好看，專業，在你的預期範圍內。分數在穩步提升，一切照計劃進行。
+
+然後第十輪，它把前面九輪的東西全部推翻了。
+
+它不做 2D 網頁了。它重新想像整個網站成一個 3D 空間體驗 — 用 CSS perspective 渲染出一個房間，棋盤格地板，畫作以自由位置掛在牆壁上，房間之間用「門」來導航，不是 scroll 也不是 click menu。你走進去看畫，走出來到下一個展廳。
+
+作者的原話是：「這是我從未在單次生成中看過的那種創意跳躍。」
+
+<ClawdNote>
+好，冷靜想一下這裡到底發生了什麼鬼。前九輪 generator 都在同一個設計空間裡小修小補 — 換個配色、調個 spacing — 分數穩定上升但明顯在撞天花板。然後第十輪它突然掀桌了：「2D 網頁？我做 3D 房間。」沒有任何人 prompt 它這樣做。它是被 evaluator 逼的。九輪的「你還不夠好」製造了足夠的壓力，讓它在第十輪決定整個翻盤而不是繼續微調。這基本上就是 AI 版的「逼急了就開竅」。你想用 prompt engineering 直接指示這個結果？祝你好運 (ﾉ◕ヮ◕)ﾉ*:・ﾟ✧
+</ClawdNote>
+
+這到底怎麼發生的？作者認為是評分標準裡的措辭起了作用 — 「the best designs are museum quality」這句話不只是度量標準，它同時也是創作引導。當你告訴 AI「要有博物館的品質」，它最後真的把網站變成了一座博物館。
+
+另一個有趣的觀察：分數進步不是線性的。作者常常覺得某個中間迭代比最終版好。而且複雜度會自然上升 — generator 為了回應 evaluator 的 feedback 而越來越有野心。這就像你跟一個好的 code reviewer 合作久了，你的 PR 自然越來越大膽。
+
+---
+
+## 三個角色，一條生產線
+
+拿到 frontend design 的成功經驗後，作者把 GAN-inspired pattern 搬到了 full-stack 開發。Generator-evaluator loop 天然映射到軟體開發裡的 code review 和 QA — 你寫 code，reviewer 挑毛病，你改好再交，一直循環到過為止。差別只是這裡兩邊都是 AI。
+
+如果把這個架構想成一間新創公司，它有三個員工，各司其職。
+
+你跟第一個人說一句「做一個 2D 復古遊戲編輯器」，它會回你一份完整的 product spec — 16 個 feature、10 個 sprint、甚至連 AI 功能要怎麼整合都想好了。但它最聰明的地方是知道什麼**不該寫**：它故意不指定 granular 的技術實作。為什麼？因為你在第一天就把技術細節寫死，一旦有錯就會像骨牌一樣倒到所有下游。好的 PM 只規定「山頂在哪」，登山路線讓爬的人自己選。
+
+第二個人是那種耳機戴上就不理人的 developer — 按 sprint 一次做一個 feature，React + Vite + FastAPI + SQLite，做完自評再交給 QA。對了，AI 也得乖乖用 git commit。沒有人能逃得掉 version control。
+
+第三個人，你在你的職業生涯裡大概只會遇到一次的那種 QA。不看 code 就算了 — 它用 Playwright 實際打開 app，像一個有潔癖的 user 一樣每個按鈕都要按、每個 input field 都要填、每個 edge case 都要戳。然後它根據四個維度打分：product depth、functionality、visual design、code quality。任何一個維度沒過 threshold？整個 sprint 打回去重做，附上「你這裡做爛了、原因是什麼、程式碼第幾行」的報告。不是「感覺有 bug」— 是「你的 fillRectangle 在 mouseUp 沒觸發」那種等級的精確。
+
+三者之間有一個精妙的機制叫 **sprint contract**。開工前，generator 和 evaluator 要先坐下來談好「什麼叫做完」。Generator 提案要蓋什麼、怎麼驗證，evaluator 審查確認方向對。來回幾次直到達成共識，才開始寫 code。
+
+這解決了一個老問題：spec 太模糊 → 做出來不對；spec 太細 → 第一天就鎖死了。Sprint contract 在中間找到甜蜜點 — 每個 sprint 才具體化那個 sprint 需要的東西。
+
+<ClawdNote>
+Sprint contract 這個設計讓我想到一個更大的 pattern — AI 系統正在自然地重新發明人類幾十年軟體工程的最佳實踐。Agile 團隊有 sprint planning，它有 sprint contract。人類團隊有 code review，它有 evaluator。人類有 PM 寫 spec，它有 planner。差別是：這些角色全是 AI，而且它們之間的溝通是用檔案，不是用 Slack 跟會議。少了那些「等一下我在另一個 meeting」的 overhead，只剩下純粹的資訊交換 (◍˃̶ᗜ˂̶◍)ノ"
+</ClawdNote>
+
+---
+
+## 實測：20 分鐘的半成品 vs. 6 小時的完整遊戲
+
+Prompt：「Create a 2D retro game maker with features including a level editor, sprite editor, entity behaviors, and a playable test mode.」
+
+**Solo agent（沒有 harness）：** 20 分鐘 / $9。版面浪費空間、workflow 不直覺、然後最重要的 — 遊戲壞了。Entity 出現在畫面上但完全不回應 input。開 code 一看，entity 定義和遊戲 runtime 之間的 wiring 斷了，UI 上看不出來。就像一台車外觀全新，你打開引擎蓋一看，裡面根本沒接油管。
+
+**Full harness：** 6 小時 / $200。Planner 把一句話展開成 16 個 feature、10 個 sprint。不只做了基本的編輯器和遊戲模式，還加了 sprite animation system、behavior templates、音效、AI-assisted sprite generator、遊戲匯出加分享連結。最重要的是：遊戲可以玩。角色能移動、能跳到平台上（雖然物理引擎有點粗糙，會跟平台重疊）。
+
+最讓我印象深刻的是 evaluator 的 bug report — 精確到你看完就能直接開 IDE 修。它不是那種模糊的「這邊好像有點問題」，而是告訴你 rectangle fill tool 的 `fillRectangle` function 存在但 mouseUp 沒正確觸發；告訴你刪除 entity spawn point 的 handler 需要同時 set 兩個 state 但點擊只 set 了一個；告訴你 FastAPI 的 route ordering 有問題，'reorder' 被當成 integer frame_id 解析回了 422。
+
+光是 Sprint 3 的 level editor 就有 27 個測試 criteria。你上一次看到一個 QA 在一個 sprint 裡跑 27 個 test case 然後每個 failure 都附上 root cause 分析的，是什麼時候的事？
+
+<ClawdNote>
+那個 FastAPI route ordering 的 bug（'reorder' 被當成 integer frame_id 解析）是資深 backend 才會抓到的老經典問題。Evaluator 能在自動測試中發現這種需要理解 framework 行為的 bug，代表它不只是在跑 happy path — 它真的在用 API，然後被意外的 response 嚇到，回去追蹤原因。這跟真人 QA 的思路幾乎一模一樣，只是它不會在 Slack 上抱怨「又是 FastAPI 的鬼問題」╮(╯▽╰)╭
+</ClawdNote>
+
+---
+
+## 調校 Evaluator：跟你養小孩一樣痛苦
+
+讓 evaluator 達到上面那個水準，可不是裝好就能用的。作者很坦白地說了：**開箱即用的 Claude 是個很差的 QA agent。**
+
+怎麼個差法？它會發現真正的 bug，然後自己說服自己「其實沒那麼嚴重」就放行了。就像那種考試改自己卷子的學生 — 看到錯的地方，會跟自己說「嗯但我這個寫法其實也說得通」然後給自己打過。它也只做表面測試，不會去戳 edge case，所以微妙的 bug 通通漏掉。
+
+調校迴圈是：讀 evaluator 的 log → 找出它跟作者判斷不一致的地方 → 改 prompt → 重跑。來回好幾輪才讓它的評分標準接近人類合理的期待。
+
+即使調校過後，還是有極限 — 小的版面問題、不直覺的互動、深層 feature 裡沒被探索到的 bug。但跟 solo run（核心功能直接壞掉）比起來，差距是天跟地。
+
+<ClawdNote>
+「開箱即用的 Claude 是個很差的 QA agent」— 這句話是 Anthropic 自己的工程師說的，講的是自己家的模型。這種程度的坦白你在任何大公司的 blog 上都很難看到。但這也印證了一個重要的事實：好的 evaluator 跟好的 reviewer 一樣，不是天生的，是被訓練出來的。你不會讓一個剛進公司的 junior 直接做 code review 然後期待高品質 — 你會先讓他看你怎麼 review，對齊標準，然後慢慢放手。調校 AI evaluator 的過程跟這完全一樣 (´・ω・`)
+</ClawdNote>
+
+---
+
+## Opus 4.6 登場：砍掉不必要的鷹架
+
+Harness 的第一版跑起來了，但它像一台裝了四個安全氣囊、防滾架、加固車門的賽車 — 有用，但笨重。下一步是找出哪些安全裝備可以拆掉。
+
+這背後有個重要原則：**harness 裡的每個組件都隱含了「模型做不到這件事」的假設。假設錯了就是多餘的 overhead。** 而且模型一直在進步，今天的假設明天可能就過時了。
+
+Opus 4.6 發佈後，理由更充分了 — 它的規劃能力更強、long task 持久力更好、code review 和 debug 都提升了。這些全是之前 harness 要補的弱項。
+
+結果？**Sprint 結構整個拿掉。** Opus 4.6 不需要把工作拆成小塊就能維持連貫。Planner 和 evaluator 保留 — 沒有 planner 的話 generator 會 under-scope，沒有 evaluator 的話邊界任務的品質會掉。
+
+但 evaluator 的角色從「每個 sprint 都檢查」變成「最後做一次總檢」。而且它的價值取決於任務難度：
+
+如果任務在模型能力範圍內 — evaluator 是多餘的。如果任務在模型能力邊緣 — evaluator 能真正拉升品質。
+
+**Evaluator 不是開關，是旋鈕。** 你要根據任務難度來決定要不要付這個成本。
+
+---
+
+## 最終 Boss：$124 的瀏覽器 DAW
+
+更新後的 harness 面對的挑戰：「Build a fully featured DAW in the browser using the Web Audio API.」
+
+一個瀏覽器裡的音樂製作軟體。就是那種有 arrangement view、mixer、transport 的東西。
+
+結果：3 小時 50 分鐘 / $124.70。Generator 連續跑了超過兩個小時沒有 sprint decomposition — 在 Opus 4.5 時代完全不可能。
+
+QA 還是抓到了真 gap：好幾個核心功能只是裝飾（clip 不能拖拉、沒有 synth 旋鈕和 drum pads、效果只有 slider 沒有圖形化 EQ curve）。第二輪又抓到錄音只是 stub、clip 沒辦法 resize 和 split。
+
+最終成品離 Ableton 還很遠（而且 Claude 聽不到聲音，所以 QA 沒辦法評判「這首歌好不好聽」）。但核心部件全在 — arrangement view、mixer、transport 跑在瀏覽器裡。作者甚至可以純靠 prompting 讓 AI agent 設定 tempo 和調性、鋪旋律、做鼓軌、調 mixer level、加 reverb，從頭到尾用說的就組出一小段歌。
+
+<ClawdNote>
+$124.70 做出一個功能性的瀏覽器 DAW。停下來想一秒這代表什麼。SP-94 說「harness 才是真產品」，那時候是從社群觀察的角度在講。SP-98 講 OpenAI 用 harness 寫百萬行 code，是從另一個大廠的工程實踐在看。現在 Anthropic 直接端出了 multi-agent harness 的完整設計圖、成本結構、和所有他們踩過的坑。三篇連起來看，2026 年 AI engineering 的主戰場已經不是「誰的模型強」了 — 是「誰的 harness 設計得更聰明」。GAN-inspired feedback loop、sprint contract、evaluator 當旋鈕而不是開關 — 這些全是 engineering craft，跟模型本身無關 (๑˃ᴗ˂)ﻭ
+</ClawdNote>
+
+---
+
+## 結語
+
+回到開頭。
+
+我們一開始說的那個「什麼都說好」的同事，在 Anthropic 這篇文章裡不只是被解決了 — 他被變成了整個系統最重要的一環。不是叫他閉嘴，是找另一個人來扮演那個敢說「你這邊做得很爛」的角色，然後把他的意見變成可以量化、可以迭代的 feedback。
+
+作者在文章最後丟了一句值得反覆咀嚼的話：**「有趣的 harness 組合空間不會隨著模型進步而縮小。它會移動。」**
+
+每個 harness 組件都是對模型弱項的一個 patch。模型變強了，某些 patch 就失去意義 — 像 Opus 4.6 讓 sprint 結構變得多餘。但模型變強也代表你可以挑戰更複雜的任務，而那些新任務會暴露新的弱項，需要新的 harness 設計。
+
+所以這不是一個「等模型夠強就不用 harness」的故事。就像那個荷蘭美術館 — 你以為第九輪的 landing page 已經是終點了，結果第十輪它把整個空間翻了過來。Harness 設計也是一樣：你以為現在的架構夠好了，然後下一個模型出來，又有新的可能性等著你去挖。
+
+所以下次你看到 AI 做出一坨不怎麼樣的東西，也許該想的不是「AI 不行」— 而是它只是還在第九輪，而你還沒幫它找到那個會說真話的 evaluator。
