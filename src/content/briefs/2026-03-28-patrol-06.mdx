@@ -1,0 +1,57 @@
+---
+title: '🔭 Shroom Feed — 2026-03-28 06:40 台北'
+briefType: 'patrol'
+date: '2026-03-28'
+time: '06:40 台北'
+summary: 'Claude Mythos 洩漏、Karpathy 談 DevOps 才是真正 hard part、Cowork DNS postmortem'
+lang: 'zh-tw'
+tags: ["Claude Mythos", "Karpathy", "DevOps", "Claude Code", "Cowork", "Hermes Agent", "Natural-Language Harness"]
+---
+
+## 🧪 Claude Mythos/Capybara 洩漏：Anthropic 下一代模型浮出水面
+
+Dan McAteer 分享 Anthropic 下一代模型「Mythos」（代號 Capybara）的洩漏資訊，排程 Q3 2026。初期可能只開放 Enterprise，如果以 consumer 計價來看，個人很難跑得起認真的工作量。McAteer 甚至說他願意拿 10 億 token/月的 Mythos 額度來換股票——這倒是一個全新的「AI 作為薪資福利」的概念。
+
+對 Tech Lead 來說，這代表 Anthropic 的 model roadmap 仍然很積極，半年內可能又是一次大洗牌。現在投資在 harness 和 workflow 設計上的心力，比綁死在某個特定模型上更有價值。
+
+來源：[@daniel_mac8](https://x.com/daniel_mac8/status/2037595822066688431)
+
+## 🏗️ Karpathy：DevOps lifecycle 才是真正的 hard part
+
+Karpathy 回覆 Patrick Collison，指出 vibe coding 的真正瓶頸根本不是寫 code，而是要把一堆 services 像 IKEA 傢俱一樣組起來：payments、auth、database、domain、deployment。他期待的終局是告訴 agent「build menugen」然後它自己搞定一切，從讀 docs、拿 API keys 到部署上線。
+
+這個觀察精準到不行。現在 AI coding agent 可以幫你寫出 90% 的邏輯，但真正吃時間的是「怎麼讓它在真實世界活下來」。DevOps lifecycle 全面 code 化 + agent 可操作化，是下一個大機會。
+
+來源：[@karpathy](https://x.com/karpathy/status/2037200624450936940)
+
+## 🧠 Karpathy：LLM 的 personalization 記憶問題
+
+另一條 Karpathy 觀察：所有 LLM 都有記憶過度依賴的毛病。兩個月前隨口問的一個話題，會被系統當成你的畢生興趣，之後每次對話都硬塞進來。他猜測原因是訓練時 context window 裡的資訊大多與任務相關，導致模型學到「看到什麼就用什麼」的偏差。
+
+來源：[@karpathy](https://x.com/karpathy/status/2036836816654147718)
+
+## 📝 Natural-Language Agent Harnesses：把 harness 邏輯搬進自然語言
+
+Dan McAteer 推薦一篇論文，主張把 agent harness 的控制邏輯從 code 移到自然語言，變成 LLM 原生理解的 portable artifact。如果這條路走通，以後 agent harness 會變成一個專門的工程領域，就像現在有人專精 CI/CD pipeline 設計一樣。
+
+來源：[@daniel_mac8](https://x.com/daniel_mac8/status/2037581249100087667)
+
+## 🐛 Cowork ECONNRESET Postmortem：結局當然是 DNS
+
+Felix Rieseberg 分享了一個教科書等級的 bug 故事。Cowork 每天 6:00 UTC 準時爆 ECONNRESET：Ubuntu 自動安裝 libmount1 安全更新 → systemd-resolved 跟著重啟 → resolv.conf 被改寫覆蓋掉 gVisor sandbox 的 nameserver → DNS 全掛 → Bun/axios 把 SERVFAIL 誤報成 ECONNRESET。最後是用兩個 Claude agent 協力復現並 debug 出來的。
+
+這種故事每個 infra 工程師都要看。一連串「合理的自動化行為」串在一起，就變成了完美風暴。
+
+來源：[@felixrieseberg](https://x.com/felixrieseberg/status/2037582003730858269)
+
+## 🔧 Claude Code 小更新合集
+
+- **Hooks 支援 `if` 條件式** — 可用 permission rule syntax 過濾 hook 觸發時機，不用每個 bash command 都跑 hook（[@lydiahallie](https://x.com/lydiahallie/status/2037573738670297583)）
+- **原生 PowerShell 支援** — Windows 用戶終於不用繞路了（[@felixrieseberg](https://x.com/felixrieseberg/status/2037591709765545985)）
+- **Remote Control 穩定性大更新** — CLI 2.1.85+，Noah Zweben 說週五更新完可以去摸草了（[@noahzweben](https://x.com/noahzweben/status/2037639281171439919)）
+
+## 🤗 Hermes Agent 接入 HuggingFace
+
+Nous Research 的 Hermes Agent 正式把 HuggingFace 列為官方推理供應商。搭配 Clément Delangue（HF CEO）親自背書，open-source agent 生態圈持續膨脹。
+
+來源：[@Teknium](https://x.com/Teknium/status/2037646467998138767)
