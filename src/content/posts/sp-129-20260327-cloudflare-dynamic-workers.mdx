@@ -69,9 +69,13 @@ Cloudflare 的回答很妙，而且我覺得這是整篇文章最精彩的論點
 
 人類挑語言是因為偏好 — 我喜歡 Python 的簡潔、我習慣 Rust 的安全感、我被 Go 的 goroutine 寵壞了。AI 才不在乎這些。你叫它寫 JavaScript 它就寫 JavaScript，而且 LLM 的 JS training data 量巨大，寫出來的品質不差。
 
-更重要的是 — JavaScript 從設計之初就是為了在瀏覽器裡被安全隔離而生的語言。它天生適合 sandboxing。你用 Python 跑 sandbox，底下的 runtime 不是為隔離設計的，你得額外花力氣鎖住。JavaScript？V8 已經幫你搞定了。
+更重要的是 — JavaScript 從出生那天起就是被關在籠子裡的語言。瀏覽器就是它的 sandbox。你用 Python 跑隔離環境，底下的 runtime 根本不是為隔離設計的，你得自己拿鐵絲網圍一圈。JavaScript？V8 早就幫你把圍牆蓋好了，而且蓋了快三十年。
 
-當你把視角從「給人類選語言」轉成「給 AI 選最安全的執行環境」，答案就很明顯了。
+當你把視角從「給人類選語言」轉成「給 AI 選最安全的牢房」，答案就很明顯了。
+
+<ClawdNote>
+JavaScript 被嫌了二十年「不是正經語言」，結果在 AI agent sandbox 這個賽道上反而成了天選之人。為什麼？因為它從來就不被信任 — 瀏覽器對它防得死死的，V8 的隔離機制是被全世界的駭客打磨出來的。反觀 Python，大家太信任它了，runtime 根本沒設防。有時候「一直被懷疑」反而是一種優勢 — 至少你的防禦是經過實戰檢驗的 ╮(╯▽╰)╭
+</ClawdNote>
 
 ---
 
@@ -119,9 +123,13 @@ Cloudflare 幫你把這三個保母都請好了。
 
 `@cloudflare/codemode` 是第一個保母 — 負責「讓新人看起來像個專業人士」。LLM 寫的 code 常常 escape 不對、import 路徑錯、少個 export default — frontier model 寫程式再厲害，它連 `}` 都會忘。Codemode 幫你修好這些鳥事，還能把你現有的 MCP Server 一鍵變成只有一個 `code()` tool 的精簡版。Agent 不再一個一個呼叫 tool，而是寫一段 code 全部搞定。
 
-`@cloudflare/worker-bundler` 是第二個保母 — 負責「幫新人準備工具」。Agent 寫的 code `import` 了 Hono？你不能讓 sandbox 跑 `npm install`，那太危險了。Worker-bundler 在外面幫你打包好所有 dependency，吐出 sandbox 可以直接吃的 module。新人來上班第一天，工具已經擺好了。
+好，新人衣服穿好了。但他需要工具。
 
-`@cloudflare/shell` 是第三個保母，也是最嚴格的那個 — 負責「確保新人不會把辦公室燒了」。Agent 要改檔案？它拿到的不是一個真的 file system，而是一組 typed method。想搜檔案？`searchFiles`。想改東西？`planEdits` 先建計畫，`applyEditPlan` 再執行。想 `rm -rf /`？抱歉，這個選項根本不存在。而且批次寫入自帶 transaction — 五筆改動裡有一筆炸了？全部回滾，像什麼都沒發生過。
+`@cloudflare/worker-bundler` 是第二個保母 — 負責「幫新人準備工具」。Agent 寫的 code `import` 了 Hono？你不能讓 sandbox 跑 `npm install`，那太危險了。Worker-bundler 在外面幫你打包好所有 dependency，吐出 sandbox 可以直接吃的 module。新人來上班第一天，工具已經在桌上了。
+
+工具有了，最後一個問題：怎麼確保他不會拿工具把辦公室拆了？
+
+`@cloudflare/shell` 是最嚴格的那個保母。Agent 要改檔案？它拿到的不是一個真的 file system，而是一組 typed method。想搜檔案？`searchFiles`。想改東西？`planEdits` 先建計畫，`applyEditPlan` 再執行。想 `rm -rf /`？抱歉，選單上沒這道菜。而且批次寫入自帶 transaction — 五筆改動裡有一筆炸了？全部回滾，像什麼都沒發生過。
 
 <ClawdNote>
 @cloudflare/shell 的設計哲學讓我想到之前寫的 Claude Code Auto Mode（SP-127）。Auto mode 用 classifier 來判斷「agent 該不該做這件事」；@cloudflare/shell 直接把問題消滅了 — agent 根本沒有 `exec("bash")` 這個選項。比起「給完整權限然後靠 AI 判斷什麼該擋」，「從一開始就只暴露安全操作」是更根本的安全策略。兩種方式互補：一個顧 runtime permission，一個顧 API surface design。
@@ -147,14 +155,10 @@ Cloudflare 幫你把這三個保母都請好了。
 
 ## 結語
 
-回到開頭那三個選擇。A 是裸奔，B 是穿全套防彈衣去跑步，C 是 Cloudflare 那條路。
+回到開頭那三個選擇。A 是 `eval()` 裸奔，B 是每個 request 開一台 Docker，C 是 Cloudflare 的 isolate。
 
-讀完這篇 blog 之後，我覺得 C 真正做到的事情，不是「比 B 快 100 倍」— 雖然那確實很猛。它做到的是讓你不用再做那個選擇。
+你可能覺得這是三選一的 trade-off 題。但讀完整篇之後你會發現 — **C 根本不是在同一張考卷上。** 它把「安全 vs 速度」這個假選擇題消滅了。Sandbox 啟動幾毫秒、agent 碰不到 credential、每個操作有 transaction — 你不需要在三者之間取捨，因為它全都要了。
 
-當 sandbox 啟動只要幾毫秒，你不需要在「安全」和「速度」之間取捨。當 agent 根本碰不到 credential，你不需要在「功能」和「信任」之間取捨。當每個操作都有 transaction，你不需要在「彈性」和「可靠」之間取捨。
+回到那個計算機比喻。Container 是每次要算數都得開電腦等它開機。Isolate 是口袋裡一直有一台計算機。差距不是快慢 — 是你根本不會再「考慮要不要算」。
 
-Container 時代，你穿著防彈衣跑步，安全但是慢。Isolate 時代，你發現跑道本身就是安全的，根本不需要防彈衣。
-
-**AI agent 的 runtime 正在從 container 轉向 isolate。** 不是因為 isolate 更潮，是因為當你把「為人類設計」的包袱丟掉，sandbox 就能輕 100 倍。
-
-而且 beta 期間免費 (๑˃ᴗ˂)ﻭ 還在穿防彈衣跑步的人，是時候看看選項 C 了。
+而且 beta 期間免費。開頭選 A 的人，你的急救箱準備好了嗎？(´・ω・`)
