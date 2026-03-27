@@ -85,7 +85,7 @@ JavaScript 被嫌了二十年「不是正經語言」，結果在 AI agent sandb
 
 你可能會想到 MCP — 但 MCP 定義的是平面的 tool call schema，不是 programming API。OpenAPI 呢？理論上可以。但你看過 OpenAPI spec 有多冗長嗎？Cloudflare blog 裡放了一個直接比較：同一個 ChatRoom 介面，TypeScript 十行收工，OpenAPI 要幾十行 YAML 外加一堆 boilerplate。光是滾動 YAML 就花的時間比 agent 執行程式碼還久。
 
-所以 Cloudflare 選了 TypeScript RPC。Agent 寫的 code 直接呼叫 typed function，背後透過 Cap'n Web RPC 跨 sandbox 邊界通信。最妙的是 — agent 根本不知道自己在呼叫遠端 API。它以為自己在用一個本地的 SDK，但那個 SDK 其實跑在安全邊界的另一邊。隔離完全透明。
+所以 Cloudflare 選了 TypeScript RPC。Agent 寫的 code 直接呼叫 typed function — 看起來就像在用一個普通的 SDK。但這個 SDK 是假的。背後透過 RPC 跨 sandbox 邊界通信，agent 完全不知道自己在呼叫遠端 API。它以為自己在本地操作，其實每個 call 都在安全邊界的另一邊。就像你在公司用 VPN — 你覺得你在辦公室，其實你在家裡。
 
 這帶來的實際效果非常驚人。Cloudflare 之前展示過，把 MCP server 轉成 TypeScript API 可以**省 81% 的 token**。他們自己的 Cloudflare MCP server 用兩個 tool 加不到 1,000 tokens，就暴露了整個 Cloudflare API。想像一下 — 你的 agent 不用讀幾百個 tool definition，只要一個 `code()` tool 加一份 TypeScript interface。省下來的 token，夠你多跑好幾輪推理。
 
@@ -143,9 +143,9 @@ Cloudflare 幫你把這三個保母都請好了。
 
 `globalOutbound` callback 讓你攔截 sandbox 裡所有的 HTTP request。Agent 的 code 發出 `fetch("https://api.stripe.com/...")`，request 離開 sandbox 前先經過你的 callback — 你在這裡注入 API key。Agent 的 code 裡完全看不到 credential。它只知道「我呼叫了一個 API，它回了資料」。
 
-這叫 **credential injection**。Agent 不知道 secret，就不可能洩漏 secret。不管它被 prompt inject 了什麼指令、不管它多想「幫你」把 token 存到某個地方「方便以後用」— 它手上根本沒有東西可以洩漏。
+這叫 **credential injection**。聽起來很花俏，但邏輯很蠢：agent 手上沒有 secret，它就不可能洩漏 secret。不管它被 prompt inject 了什麼指令、不管它多想「幫你」把 token 存到某個地方「方便以後用」— 它手上根本沒東西可以洩漏。你要洩漏什麼？空氣嗎？
 
-比起「把 token 放在 env variable 然後祈禱 agent 不會 `console.log` 它」，這是根本性地消除了攻擊向量，而不是試圖用政策去防堵。
+業界花了多少力氣教 agent 「不要洩漏密碼」— prompt engineering、output filtering、audit logging。全都是在問題發生後才攔截。Credential injection 問了一個更聰明的問題：「如果密碼不在它手上，它要洩漏什麼？」
 
 <ClawdNote>
 想想看 — 業界花了多少力氣在教 agent 「不要洩漏 secret」。Prompt engineering、output filtering、audit logging... 全都是在問題發生後才攔截。Credential injection 直接問了一個更聰明的問題：「如果 agent 手上沒有 secret，它要洩漏什麼？」就像你不會給實習生保險箱密碼然後叮嚀他不要告訴別人 — 你直接幫他開門拿東西就好。
