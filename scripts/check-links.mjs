@@ -235,7 +235,12 @@ async function checkExternalLink(url, retries = MAX_RETRIES) {
 // ── Main ─────────────────────────────────────────────────────────
 
 async function main() {
+  const args = process.argv.slice(2);
+  const internalOnly = args.includes('--internal-only');
+  const isCI = process.env.CI === 'true' || args.includes('--ci');
+
   console.log('🔗 SQAA Level 6: Broken Link Detection');
+  if (internalOnly) console.log('  Mode: --internal-only (skipping external checks)');
   console.log('═'.repeat(50));
 
   // Check dist exists
@@ -286,28 +291,32 @@ async function main() {
   console.log(`  ✅ ${internalOk.length} OK, ❌ ${internalBroken.length} broken\n`);
 
   // Validate external links (auto-check only)
-  console.log('Checking external links (this may take a while)...');
   const externalOk = [];
   const externalBroken = [];
   const externalTimeout = [];
 
-  let checked = 0;
-  for (const link of autoCheck) {
-    checked++;
-    if (checked % 10 === 0 || checked === autoCheck.length) {
-      process.stdout.write(`\r  Progress: ${checked}/${autoCheck.length}`);
-    }
+  if (internalOnly) {
+    console.log('Skipping external link checks (--internal-only mode).');
+  } else {
+    console.log('Checking external links (this may take a while)...');
+    let checked = 0;
+    for (const link of autoCheck) {
+      checked++;
+      if (checked % 10 === 0 || checked === autoCheck.length) {
+        process.stdout.write(`\r  Progress: ${checked}/${autoCheck.length}`);
+      }
 
-    const result = await checkExternalLink(link.url);
-    if (result.status === 'ok') {
-      externalOk.push(link);
-    } else if (result.status === 'timeout') {
-      externalTimeout.push({ ...link, error: result.error });
-    } else {
-      externalBroken.push({ ...link, statusCode: result.code, error: result.error });
+      const result = await checkExternalLink(link.url);
+      if (result.status === 'ok') {
+        externalOk.push(link);
+      } else if (result.status === 'timeout') {
+        externalTimeout.push({ ...link, error: result.error });
+      } else {
+        externalBroken.push({ ...link, statusCode: result.code, error: result.error });
+      }
     }
+    console.log(); // newline after progress
   }
-  console.log(); // newline after progress
 
   // Report
   console.log(`\n${'═'.repeat(50)}`);
@@ -321,6 +330,9 @@ async function main() {
     console.log('\n🚨 Broken Internal Links:');
     for (const l of internalBroken) {
       console.log(`  - ${l.url} (${l.file})`);
+      if (isCI) {
+        console.log(`::error file=src/content/posts/${l.file}::Broken internal link: ${l.url}`);
+      }
     }
   }
 
