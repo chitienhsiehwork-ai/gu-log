@@ -183,6 +183,49 @@ run_one_round() {
     log "Skipping Opus ($claude_status)"
   fi
 
+  # ─── Phase 3: Tribunal Gate — rewrite posts that fail all-judge threshold ───
+  quota_invalidate_cache
+  claude_status="$(claude_real_quota_check)"
+
+  if can_run "$claude_status"; then
+    # Find posts that have all 3 scores but don't meet thresholds
+    mapfile -t TRIBUNAL_QUEUE < <(
+      source "$ROOT_DIR/scripts/score-helpers.sh"
+      while IFS= read -r pf; do
+        [ -n "$pf" ] || continue
+        tid="$(get_ticket_id "$ROOT_DIR/src/content/posts/$pf")"
+        [ -n "$tid" ] || continue
+        [ -n "$(get_score gemini "$tid")" ] || continue
+        [ -n "$(get_score codex "$tid")" ] || continue
+        [ -n "$(get_score opus "$tid")" ] || continue
+        # Check if it fails threshold (any score below min)
+        gscore="$(jq -r '.score // 0' <<< "$(get_score gemini "$tid")")"
+        cscore="$(jq -r '.score // 0' <<< "$(get_score codex "$tid")")"
+        opus_e="$(get_score opus "$tid")"
+        op="$(jq -r '.details.persona // 0' <<< "$opus_e")"
+        oc_n="$(jq -r '.details.clawdNote // 0' <<< "$opus_e")"
+        ov="$(jq -r '.details.vibe // 0' <<< "$opus_e")"
+        if [ "$gscore" -lt 9 ] || [ "$cscore" -lt 9 ] \
+          || [ "$op" -lt 8 ] || [ "$oc_n" -lt 8 ] || [ "$ov" -lt 8 ]; then
+          echo "$pf"
+        fi
+      done < <(list_all_posts)
+    )
+    local TRIBUNAL_READY="${#TRIBUNAL_QUEUE[@]}"
+
+    if [ "$TRIBUNAL_READY" -gt 0 ]; then
+      local TRIBUNAL_LIMIT="$LIMIT"
+      [ "$TRIBUNAL_READY" -lt "$TRIBUNAL_LIMIT" ] && TRIBUNAL_LIMIT="$TRIBUNAL_READY"
+      log "Tribunal Gate: $TRIBUNAL_READY posts need rewrite (limit=$TRIBUNAL_LIMIT)..."
+      bash "$ROOT_DIR/scripts/tribunal-gate.sh" "$TRIBUNAL_LIMIT" >> "$round_log" 2>&1
+      log "Tribunal Gate done (exit=$?)"
+    else
+      log "Tribunal Gate: no posts below threshold"
+    fi
+  else
+    log "Skipping Tribunal Gate ($claude_status)"
+  fi
+
   # ─── Round summary ───
   local TODAY_STAMP
   TODAY_STAMP="$(TZ=Asia/Taipei date +%Y%m%d)"
