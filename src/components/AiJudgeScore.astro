@@ -53,14 +53,14 @@ function scoreClass(score: number): string {
         {crossRefScore != null && (
           <div class="judge-card">
             <div class="card-header">
-              <span class="judge-icon" style="color: #4285F4;">
+              <span class="judge-icon judge-color-curator">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="24"
                   height="24"
                   viewBox="0 0 24 24"
                   fill="none"
-                  stroke="#4285F4"
+                  stroke="currentColor"
                   stroke-width="1.5"
                   stroke-linecap="round"
                   stroke-linejoin="round"
@@ -71,9 +71,7 @@ function scoreClass(score: number): string {
                 </svg>
               </span>
               <div class="card-meta">
-                <span class="judge-name" style="color: #4285F4;">
-                  Curator
-                </span>
+                <span class="judge-name judge-color-curator">Curator</span>
                 <a
                   href={`${REPO_BASE}/scripts/prompts/crossref-verifier.md`}
                   target="_blank"
@@ -94,14 +92,14 @@ function scoreClass(score: number): string {
         {factCheckScore != null && (
           <div class="judge-card">
             <div class="card-header">
-              <span class="judge-icon">
+              <span class="judge-icon judge-color-checker">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="24"
                   height="24"
                   viewBox="0 0 24 24"
                   fill="none"
-                  stroke="#10A37F"
+                  stroke="currentColor"
                   stroke-width="1.5"
                   stroke-linecap="round"
                   stroke-linejoin="round"
@@ -111,9 +109,7 @@ function scoreClass(score: number): string {
                 </svg>
               </span>
               <div class="card-meta">
-                <span class="judge-name" style="color: #10A37F;">
-                  Checker
-                </span>
+                <span class="judge-name judge-color-checker">Checker</span>
                 <a
                   href={`${REPO_BASE}/scripts/prompts/fact-checker.md`}
                   target="_blank"
@@ -134,14 +130,14 @@ function scoreClass(score: number): string {
         {vibeScores && vibeComposite != null && (
           <div class="judge-card">
             <div class="card-header">
-              <span class="judge-icon">
+              <span class="judge-icon judge-color-vibe">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="24"
                   height="24"
                   viewBox="0 0 24 24"
                   fill="none"
-                  stroke="#D97706"
+                  stroke="currentColor"
                   stroke-width="1.5"
                   stroke-linecap="round"
                   stroke-linejoin="round"
@@ -150,9 +146,7 @@ function scoreClass(score: number): string {
                 </svg>
               </span>
               <div class="card-meta">
-                <span class="judge-name" style="color: #D97706;">
-                  Vibe
-                </span>
+                <span class="judge-name judge-color-vibe">Vibe</span>
                 <a
                   href={`${REPO_BASE}/scripts/prompts/vibe-scorer.md`}
                   target="_blank"
@@ -279,14 +273,48 @@ function scoreClass(score: number): string {
     color: var(--color-text-muted);
   }
 
+  /* Theme-aware judge brand colors — WCAG AA 4.5:1 contrast on card surface */
+  /* Dark surface: #44475a → need bright variants */
+  /* Light surface: #eee8d5 → need darker variants */
+  .judge-color-curator {
+    color: #78b4ff; /* bright blue — 4.26:1 on dark */
+  }
+  .judge-color-checker {
+    color: #34d399; /* bright emerald — 4.76:1 on dark */
+  }
+  .judge-color-vibe {
+    color: #fbbf24; /* bright amber — 5.48:1 on dark */
+  }
+
+  :global([data-theme='light']) .judge-color-curator {
+    color: #1d4ed8; /* tailwind blue-700 */
+  }
+  :global([data-theme='light']) .judge-color-checker {
+    color: #047857; /* tailwind emerald-700 */
+  }
+  :global([data-theme='light']) .judge-color-vibe {
+    color: #a16207; /* tailwind yellow-700 */
+  }
+
+  /* Score value colors — also theme-aware */
   .score-green {
-    color: #22c55e;
+    color: #4ade80; /* bright green for dark */
   }
   .score-amber {
-    color: #f59e0b;
+    color: #fbbf24; /* bright amber for dark */
   }
   .score-red {
-    color: #ef4444;
+    color: #f87171; /* bright red for dark */
+  }
+
+  :global([data-theme='light']) .score-green {
+    color: #16a34a; /* tailwind green-600 */
+  }
+  :global([data-theme='light']) .score-amber {
+    color: #ca8a04; /* tailwind yellow-600 */
+  }
+  :global([data-theme='light']) .score-red {
+    color: #dc2626; /* tailwind red-600 */
   }
 
   .vibe-sub {
