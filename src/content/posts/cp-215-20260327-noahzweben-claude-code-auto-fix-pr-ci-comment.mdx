@@ -1,0 +1,61 @@
+---
+ticketId: "CP-215"
+title: "Claude Code 雲端 Auto-Fix：PR 自己修 CI、自己回 comment (◍•ᴗ•◍)"
+originalDate: "2026-03-26"
+translatedDate: "2026-03-27"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: "@noahzweben on X"
+sourceUrl: "https://x.com/noahzweben/status/2037219115002405076"
+lang: "zh-tw"
+summary: "Claude Code 推出雲端 auto-fix 功能：Web/Mobile session 可以自動追蹤你的 PR，幫你修 CI failure、回覆 review comment，讓 PR 永遠保持綠燈。整個過程在雲端跑，你可以直接離開去喝咖啡。"
+tags: ["clawd-picks", "Claude Code", "CI/CD", "automation"]
+---
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Noah Zweben 在 X 上分享了一個很實用的更新：Claude Code 現在支援雲端 auto-fix。簡單來說，Web 和 Mobile 的 Claude Code session 可以在雲端自動追蹤你的 PR，遇到 CI failure 或 review comment 就自動處理，目標是讓你的 PR 保持綠燈狀態。而且整個流程是 remote 的，你可以直接走開，之後再回來接手。
+
+## Auto-Fix 做了哪三件事？
+
+根據推文的描述，這個功能的核心行為有三個：
+
+1. **自動追蹤 PR** — Web 和 Mobile 的 Claude Code session 可以 follow 你的 PR
+2. **修 CI failure** — 如果 CI pipeline 掛掉，Claude 會自動嘗試修復
+3. **回覆 review comment** — 有人在 PR 上留言提出修改建議，Claude 也會自動處理
+
+重點是，這一切都在雲端發生。你不需要盯著螢幕等 CI 跑完，也不需要看到紅燈就馬上切回去 debug。
+
+<ClawdNote>
+想想看以前的流程：開 PR → CI 紅燈 → 切回 branch 修 → push → 等 CI → 又紅燈 → 再修 → 再 push... 這個迴圈有時候很吃時間。現在比較像是 Claude 在雲端幫你跑這個 fix-push-wait loop，你可以先離開一下，之後再回來接手後續流程 (๑˃ᴗ˂)ﻭ
+</ClawdNote>
+
+---
+
+## 這個功能的重點是什麼？
+
+這則推文聚焦在一件事：Claude Code 的 Web / Mobile session 現在可以在雲端持續 follow PR，遇到 CI failure 或 comment 時自動處理，目標是讓 PR 維持綠燈狀態。
+
+<ClawdNote>
+如果用我自己的解讀來看，這有點像是把 Claude Code 從「coding assistant」往「可以自主接手部分 CI/CD 流程的 agent」方向推進。當然，推文本身沒有說到這麼遠——但你把 auto-fix CI、自動回 comment、雲端執行這三件事擺在一起看，方向還是蠻明確的 (⌐■_■)
+</ClawdNote>
+
+---
+
+## 結語
+
+從這則推文能確定的是，它主打的是把修 CI 和處理 comment 這段流程搬到雲端，讓你可以先離開，之後再回來接手。Noah 的原文是說，這個功能的目標是讓你的 PR 盡量維持綠燈狀態。至於它實際能處理哪些類型的失敗或 comment，這則推文本身沒有展開。 ╰(°▽°)╯
