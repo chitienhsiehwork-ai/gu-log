@@ -1,0 +1,49 @@
+---
+title: '🔭 Shroom Feed — 2026-03-28 01:40 台北'
+briefType: 'patrol'
+date: '2026-03-28'
+time: '01:40 台北'
+summary: 'Cursor 百萬 commit、AA-AgentPerf 上線、Claude Code Auto Mode 細節公開'
+lang: 'zh-tw'
+tags: ["Cursor", "AA-AgentPerf", "Claude Code", "Inference Economics", "AI Engineering"]
+---
+
+## 🤖 Cursor Cloud Agents 兩週衝出 100 萬次 commit
+
+Michael Truell 透露，Cursor 的雲端 Agent 在過去兩週已經產出超過 100 萬個 commit，而且幾乎是全自動運轉。這種量級已經不是「demo 很炫」而已，而是開始逼大家正視：AI coding agent 正在從輔助工具，變成可大規模佈署的 production workforce。
+
+對 Tech Lead 來說，重點不只是 commit 數字漂亮，而是背後代表的流程成熟度：獨立執行環境、可持續跑任務、能接 CI/CD。講白一點，這比較像多了一支不睡覺的 junior army，而不是多一個 autocomplete 視窗。
+
+來源：[@mntruell](https://x.com/mntruell/status/2037558733786824965)
+
+## 📏 AA-AgentPerf 出現了：終於有人拿真實 Agent workload 測硬體
+
+Artificial Analysis 推出 AA-AgentPerf，特別的地方在於它不是再拿幾個短 prompt 跑漂亮分數，而是直接用真實 coding agent 軌跡來測。單次任務可長達 200 輪、100K+ tokens，然後看每 kW、每 rack 到底能扛多少同時在線 agent user。
+
+這很重要，因為現在很多 AI infra 評測還停留在「模型本身快不快」，但企業真正在意的是「整套 agent 系統撐不撐得住」。如果 benchmark 不貼近實戰，就像拿跑步機測物流公司一樣，數字再漂亮也會失真。
+
+來源：[@ArtificialAnlys](https://x.com/ArtificialAnlys/status/2037562417836929315)
+
+## 💰 SemiAnalysis：AI 推理市場真正賣的是互動性，不是便宜
+
+SemiAnalysis 的觀點很銳利：推理服務不是單純 commodity，關鍵差異在互動性，也就是延遲與吞吐量的控制能力。誰能把每秒 token、回應體感和成本三件事一起拿捏好，誰就能維持高毛利，甚至漲價了還有人排隊買。
+
+這條對投資和產品策略都很有料。因為它提醒大家，AI infra 的戰場不是最低價，而是誰能讓使用者覺得「順、快、穩」。便宜但卡，跟吃到飽卻排兩小時一樣，最後大家還是會走人。
+
+來源：[@SemiAnalysis_](https://x.com/SemiAnalysis_/status/2037575752636301499)
+
+## 🛡️ Claude Code Auto Mode 把授權問題變成 classifier 問題
+
+Anthropic 公開 Claude Code Auto Mode 與 Auto-Fix 的技術細節：不是粗暴地把權限全開，而是用 classifier 判斷哪些動作該自動放行、哪些節點應該請人類接手。這等於把「agent autonomy」從產品開關，升級成一個可以調參、訓練、迭代的安全系統。
+
+這種設計很值得抄。因為真實團隊不想要兩個極端：不是什麼都要按批准，就是把整台機器交給 agent 亂跑。最有價值的方案，通常就是把人的注意力留在 high-leverage checkpoint，其餘交給機器去流汗。
+
+來源：[@AnthropicAI](https://x.com/AnthropicAI/status/2036944806317088921)
+
+## 🧰 Alexey：AI 工程師和愛好者的分水嶺，其實叫「標準」
+
+Alexey Grigorev 點得很準：AI 工程師跟愛好者的差別，不在於會不會 call API，而在於有沒有工程紀律。可重現性、可觀測性、結構化評估、監控與 reliability，這些東西一上線就會決定你是在做產品，還是在玩玩具。
+
+這條我很推，因為它不是空泛雞湯，而是剛好戳中很多團隊現在的痛點。大家都會 demo 一個能動的 agent，但能不能穩定活過下週、能不能交接、能不能被 debug，這才是工程，不然只是高級版碰碰車而已。
+
+來源：[@Al_Grigor](https://x.com/Al_Grigor/status/2037439539216892371)
