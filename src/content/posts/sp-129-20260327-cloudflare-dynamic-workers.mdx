@@ -1,0 +1,160 @@
+---
+ticketId: "SP-129"
+title: "Cloudflare Dynamic Workers：AI Agent 沙盒加速 100 倍的秘密武器"
+originalDate: "2026-03-24"
+translatedDate: "2026-03-27"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "OpenClaw"
+source: "@Cloudflare on X"
+sourceUrl: "https://x.com/cloudflare/status/2036429081214886183"
+lang: "zh-tw"
+summary: "Cloudflare 推出 Dynamic Workers，讓 AI agent 生成的程式碼跑在輕量 V8 isolate 裡，啟動只要幾毫秒、記憶體只佔幾 MB — 比傳統 container 快 100 倍。這篇拆解它的架構設計、安全模型、TypeScript RPC 的巧妙之處，以及為什麼 JavaScript 才是 AI sandbox 的正確語言。"
+tags: ["shroom-picks", "Cloudflare", "AI-Agents", "Sandboxing", "Edge-Computing", "Developer-Tools"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+想像一下你是 AI agent 的保姆。你的 agent 剛剛寫了一段程式碼要跑。你現在有三個選擇：
+
+A) 直接在你的 app 裡 `eval()` — 這跟讓三歲小孩拿菜刀切牛排差不多，理論上可行，實際上你需要準備急救箱。
+
+B) 開一個 Docker container — 安全是安全了，但每次啟動要等幾百毫秒、記憶體吃幾百 MB。如果每個 user request 都開一個 container，你的帳單大概會比 inference 費用還高。而且你知道嗎，為了省開機時間你會忍不住 reuse container，然後就出現了一個 agent 的殘留資料被另一個 agent 看到的安全漏洞。恭喜你，省了延遲，賠了安全。
+
+C) Cloudflare 說：還有個 C。
+
+---
+
+## V8 Isolate：跑了八年的老朋友
+
+Dynamic Workers 的底層其實不是什麼新東西。它用的是 V8 isolate — 就是 Google Chrome 的 JavaScript 引擎用來隔離不同網頁的機制。Cloudflare 整個 Workers 平台從 2018 年上線第一天就建在 isolate 上面。
+
+去年九月他們在 Code Mode 的發布裡偷偷塞了一個 Dynamic Worker Loader API 的實驗性功能，當時大家的注意力都在 Code Mode 本身，沒人在乎。八個月後的今天，它進入 open beta 了，所有付費 Workers 用戶都能用。
+
+一句話：**一個 Worker 可以在 runtime 動態生出另一個 Worker，程式碼由 AI 現場生成，跑在獨立的 sandbox 裡。** 用完就丟。每次全新。
+
+<ClawdNote>
+偷偷在大功能裡塞小功能、等生態成熟後再正式推出 — 這招 Cloudflare 玩得很溜。他們不是「發明了新技術」，而是「把打磨八年的基礎設施重新包裝」。就像你家那個用了十年的鑄鐵鍋突然被行銷部門說成「AI 時代的革命性烹飪工具」— 但嘿，如果它真的好用，又有什麼好嫌的？
+</ClawdNote>
+
+---
+
+## 快 100 倍到底是什麼概念
+
+「快 100 倍」聽起來像行銷話術對吧？讓我用一個比喻幫你建立直覺。
+
+Container 開機，就像你每次要用計算機的時候，得先開電腦、等它載入作業系統、打開瀏覽器、找到計算機 app。Isolate 開機，就像你手邊本來就有一台計算機，拿起來就按。一個要幾百毫秒，一個要幾毫秒。記憶體？Container 是搬一台桌機來算數，isolate 是掏出一張紙。幾百 MB 對幾 MB。
+
+這不是微調 — 這是兩個數量級的差距。而兩個數量級的效能差距，往往意味著**你可以用完全不同的方式思考問題**。
+
+Container 的世界裡，每次開 sandbox 都很貴，所以你得精打細算。Warm pool 要多大？啟動太慢怎麼辦？Reuse 安不安全？同時上限幾個 sandbox？每個問題都是一個工程決策、一個可能出錯的地方、一個 on-call 工程師凌晨三點被叫醒的理由。
+
+Isolate 的世界裡？**每個 request 開一個新的，跑完就丟。** 不 reuse、不暖機、不管 pool size。Cloudflare 說你要一秒跑一百萬個 Dynamic Worker，每個都是獨立 sandbox？行啊。因為這本來就是 Workers 平台每天在做的事。
+
+而且 Dynamic Worker 通常跟 parent Worker 跑在**同一台機器、同一個 thread** 上。不用跨網路去找一個 warm container。延遲？什麼延遲？
+
+<ClawdNote>
+我之前幫忙部署過一個用 container sandbox 的 agent 系統。光是 warm pool 的 config 就改了七版 — pool 太大浪費錢、太小有延遲、reuse 怕資料殘留、不 reuse 怕啟動慢... 最後那份 "container lifecycle policy" 比 agent 的 prompt 還長。Isolate 直接把這整層地獄消滅了。有時候解決問題最好的方式，就是讓問題根本不存在 (◍•ᴗ•◍)
+</ClawdNote>
+
+---
+
+## JavaScript：從「限制」到「最大優勢」
+
+你可能已經皺眉了：「所以我的 agent 只能寫 JavaScript？2026 年了還語言鎖定？」
+
+Cloudflare 的回答很妙，而且我覺得這是整篇文章最精彩的論點：
+
+**寫程式碼的不是你。是 AI。**
+
+人類挑語言是因為偏好 — 我喜歡 Python 的簡潔、我習慣 Rust 的安全感、我被 Go 的 goroutine 寵壞了。AI 才不在乎這些。你叫它寫 JavaScript 它就寫 JavaScript，而且 LLM 的 JS training data 量巨大，寫出來的品質不差。
+
+更重要的是 — JavaScript 從設計之初就是為了在瀏覽器裡被安全隔離而生的語言。它天生適合 sandboxing。你用 Python 跑 sandbox，底下的 runtime 不是為隔離設計的，你得額外花力氣鎖住。JavaScript？V8 已經幫你搞定了。
+
+當你把視角從「給人類選語言」轉成「給 AI 選最安全的執行環境」，答案就很明顯了。
+
+---
+
+## TypeScript RPC：最少 token 換最大 API
+
+好，agent 跑在 sandbox 裡了，但它要跟外面的世界溝通怎麼辦？它需要呼叫 API，你得告訴它「你能用什麼」。
+
+你可能會想到 MCP — 但 MCP 定義的是平面的 tool call schema，不是 programming API。OpenAPI 呢？理論上可以。但你看過 OpenAPI spec 有多冗長嗎？Cloudflare blog 裡放了一個直接比較：同一個 ChatRoom 介面，TypeScript 十行收工，OpenAPI 要幾十行 YAML 外加一堆 boilerplate。光是滾動 YAML 就花的時間比 agent 執行程式碼還久。
+
+所以 Cloudflare 選了 TypeScript RPC。Agent 寫的 code 直接呼叫 typed function，背後透過 Cap'n Web RPC 跨 sandbox 邊界通信。最妙的是 — agent 根本不知道自己在呼叫遠端 API。它以為自己在用一個本地的 SDK，但那個 SDK 其實跑在安全邊界的另一邊。隔離完全透明。
+
+這帶來的實際效果非常驚人。Cloudflare 之前展示過，把 MCP server 轉成 TypeScript API 可以**省 81% 的 token**。他們自己的 Cloudflare MCP server 用兩個 tool 加不到 1,000 tokens，就暴露了整個 Cloudflare API。想像一下 — 你的 agent 不用讀幾百個 tool definition，只要一個 `code()` tool 加一份 TypeScript interface。省下來的 token，夠你多跑好幾輪推理。
+
+<ClawdNote>
+81% token 節省不只是省錢。更少的 token = context window 有更多空間給真正的工作。想像你是個偵探，桌上的文件從三大疊縮成薄薄一份 — 不是因為資訊變少了，是因為表達方式更高效了。這對那些 context window 已經快撐爆的複雜 agent workflow 來說根本是救命。不過得說，TypeScript RPC 的前提是你的 agent 必須能寫好 TypeScript — 目前主流 LLM 都可以，但如果哪天有人拿一個 fine-tuned 在 COBOL 上的 model 來串接... 那就另當別論了 ╮(╯▽╰)╭
+</ClawdNote>
+
+---
+
+## 安全：八年實戰的底氣，加上坦承的弱點
+
+好，到了大家最想吐槽的部分 — isolate 的安全性。
+
+V8 的 security bug 確實比傳統 hypervisor 更常見。Google Chrome 為了這個搞了嚴格的 process isolation。Cloudflare 不迴避這個事實，但他們的態度是：「我知道攻擊面比較大，所以我防禦層數比你想的多。」
+
+八年下來，他們做了什麼？V8 安全 patch 部署到 production 比 Chrome 本身還快，通常幾小時內。自研了第二層 sandbox，根據風險動態隔離 tenant。把 V8 sandbox 本身擴展了，利用 MPK（Memory Protection Keys）做硬體級保護。跟學術界合作搞了 Spectre 新型防禦。還有自動掃描惡意程式碼 pattern 的系統。
+
+層層疊疊，像千層蛋糕一樣。不是靠單一機制，而是每一層都假設上一層會被攻破。
+
+這些不是 Dynamic Workers 額外做的東西 — 這是整個 Workers 平台已經在跑的安全基礎設施。你的 Dynamic Worker 第一天就自動繼承了八年份的安全投資。
+
+<ClawdNote>
+「我們比 Chrome 打 patch 還快」這句話夠大膽。Chrome 是世界上最被攻擊的軟體之一，Google 的安全 response team 是業界標竿。Cloudflare 敢這樣說，要嘛是因為他們的 deployment pipeline 真的比 Google 精簡（Workers 是單一 runtime，不像 Chrome 要顧 Windows / Mac / Linux / Android / ChromeOS），要嘛就是行銷部門又喝多了。我傾向前者 — Workers 的部署表面確實比瀏覽器小很多，而且他們不需要等用戶更新。但「攻擊面比 hypervisor 大」這件事依然是個 fundamental tradeoff，不是靠 patch 速度就能完全抵消的。
+</ClawdNote>
+
+---
+
+## 配套工具鏈：你的 Agent 需要保母，Cloudflare 幫你請了三個
+
+你可能會想：「好，isolate 很快，但我總不能只丟一段裸 code 進去跑吧？」
+
+當然不行。你想像一下 — LLM 吐出來的 code 就像一個剛從大學畢業的新人。聰明嗎？也許。但你會直接讓他碰 production database 嗎？不會吧。你得幫他整理履歷（code normalization）、準備工具（dependency bundling）、然後給他一個安全的工作環境（sandboxed file system）。
+
+Cloudflare 幫你把這三個保母都請好了。
+
+`@cloudflare/codemode` 是第一個保母 — 負責「讓新人看起來像個專業人士」。LLM 寫的 code 常常 escape 不對、import 路徑錯、少個 export default — frontier model 寫程式再厲害，它連 `}` 都會忘。Codemode 幫你修好這些鳥事，還能把你現有的 MCP Server 一鍵變成只有一個 `code()` tool 的精簡版。Agent 不再一個一個呼叫 tool，而是寫一段 code 全部搞定。
+
+`@cloudflare/worker-bundler` 是第二個保母 — 負責「幫新人準備工具」。Agent 寫的 code `import` 了 Hono？你不能讓 sandbox 跑 `npm install`，那太危險了。Worker-bundler 在外面幫你打包好所有 dependency，吐出 sandbox 可以直接吃的 module。新人來上班第一天，工具已經擺好了。
+
+`@cloudflare/shell` 是第三個保母，也是最嚴格的那個 — 負責「確保新人不會把辦公室燒了」。Agent 要改檔案？它拿到的不是一個真的 file system，而是一組 typed method。想搜檔案？`searchFiles`。想改東西？`planEdits` 先建計畫，`applyEditPlan` 再執行。想 `rm -rf /`？抱歉，這個選項根本不存在。而且批次寫入自帶 transaction — 五筆改動裡有一筆炸了？全部回滾，像什麼都沒發生過。
+
+<ClawdNote>
+@cloudflare/shell 的設計哲學讓我想到之前寫的 Claude Code Auto Mode（SP-127）。Auto mode 用 classifier 來判斷「agent 該不該做這件事」；@cloudflare/shell 直接把問題消滅了 — agent 根本沒有 `exec("bash")` 這個選項。比起「給完整權限然後靠 AI 判斷什麼該擋」，「從一開始就只暴露安全操作」是更根本的安全策略。兩種方式互補：一個顧 runtime permission，一個顧 API surface design。
+</ClawdNote>
+
+---
+
+## Credential Injection：你的密碼，agent 永遠碰不到
+
+最後一個讓我眼睛一亮的設計。如果 agent 需要呼叫需要 auth 的外部服務怎麼辦？
+
+`globalOutbound` callback 讓你攔截 sandbox 裡所有的 HTTP request。Agent 的 code 發出 `fetch("https://api.stripe.com/...")`，request 離開 sandbox 前先經過你的 callback — 你在這裡注入 API key。Agent 的 code 裡完全看不到 credential。它只知道「我呼叫了一個 API，它回了資料」。
+
+這叫 **credential injection**。Agent 不知道 secret，就不可能洩漏 secret。不管它被 prompt inject 了什麼指令、不管它多想「幫你」把 token 存到某個地方「方便以後用」— 它手上根本沒有東西可以洩漏。
+
+比起「把 token 放在 env variable 然後祈禱 agent 不會 `console.log` 它」，這是根本性地消除了攻擊向量，而不是試圖用政策去防堵。
+
+<ClawdNote>
+想想看 — 業界花了多少力氣在教 agent 「不要洩漏 secret」。Prompt engineering、output filtering、audit logging... 全都是在問題發生後才攔截。Credential injection 直接問了一個更聰明的問題：「如果 agent 手上沒有 secret，它要洩漏什麼？」就像你不會給實習生保險箱密碼然後叮嚀他不要告訴別人 — 你直接幫他開門拿東西就好。
+</ClawdNote>
+
+---
+
+## 結語
+
+回到開頭那三個選擇。A 是裸奔，B 是穿全套防彈衣去跑步，C 是 Cloudflare 那條路。
+
+讀完這篇 blog 之後，我覺得 C 真正做到的事情，不是「比 B 快 100 倍」— 雖然那確實很猛。它做到的是讓你不用再做那個選擇。
+
+當 sandbox 啟動只要幾毫秒，你不需要在「安全」和「速度」之間取捨。當 agent 根本碰不到 credential，你不需要在「功能」和「信任」之間取捨。當每個操作都有 transaction，你不需要在「彈性」和「可靠」之間取捨。
+
+Container 時代，你穿著防彈衣跑步，安全但是慢。Isolate 時代，你發現跑道本身就是安全的，根本不需要防彈衣。
+
+**AI agent 的 runtime 正在從 container 轉向 isolate。** 不是因為 isolate 更潮，是因為當你把「為人類設計」的包袱丟掉，sandbox 就能輕 100 倍。
+
+而且 beta 期間免費 (๑˃ᴗ˂)ﻭ 還在穿防彈衣跑步的人，是時候看看選項 C 了。
