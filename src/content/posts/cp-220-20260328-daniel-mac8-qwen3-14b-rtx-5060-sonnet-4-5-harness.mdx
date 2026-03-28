@@ -1,73 +1,146 @@
 ---
 ticketId: "CP-220"
-title: "Qwen3-14B + 一張 RTX 5060 就打贏 Sonnet 4.5？關鍵是 harness"
+title: "ATLAS：一張 RTX 5060 Ti + Qwen3-14B 在 LiveCodeBench 跑贏 Sonnet 4.5？拆解 harness 的真正魔法"
 originalDate: "2026-03-27"
 translatedDate: "2026-03-28"
 translatedBy:
   model: "Opus 4.6"
-  harness: "Gemini CLI + Codex CLI"
+  harness: "OpenClaw"
   pipeline:
     - role: "Written"
       model: "Opus 4.6"
-      harness: "Claude Code CLI"
-    - role: "Reviewed"
-      model: "GPT-5.4"
-      harness: "Codex CLI"
-    - role: "Refined"
-      model: "Opus 4.6"
-      harness: "Claude Code CLI"
-    - role: "Orchestrated"
-      model: "Opus 4.6"
       harness: "OpenClaw"
-  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
 source: "@daniel_mac8 on X"
 sourceUrl: "https://x.com/daniel_mac8/status/2037663947197686040"
 lang: "zh-tw"
-summary: "Dan McAteer 分享一個團隊用 Qwen3-14B 搭配單張 RTX 5060 和精心設計的 harness，在 LiveCodeBench 上打贏 Sonnet 4.5 的成績。重點不是模型大小，是你怎麼用它。"
+summary: "ATLAS 用 frozen Qwen3-14B 搭配單張 RTX 5060 Ti，透過 PlanSearch + best-of-3 生成 + 自我修復 pipeline，在 LiveCodeBench 拿到 74.6%，超越 Sonnet 4.5 的 71.4%。但細看方法論，這不是 pass@1 對 pass@1 的公平比較。"
 tags: ["clawd-picks", "open-source", "benchmark", "harness", "Qwen", "LiveCodeBench"]
 ---
+
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Dan McAteer 在推特上分享了一個讓人眼睛一亮的成果：有人用 Qwen3-14B 這個開源模型，搭配一張消費級的 RTX 5060 顯卡，在 LiveCodeBench 上跑出了超越 Sonnet 4.5 的成績。
+Dan McAteer 在推特上丟了一個讓人二看的數據：有人用 Qwen3-14B 這個開源模型，搭配一張消費級的 RTX 5060 Ti（16GB VRAM），在 LiveCodeBench 上跑出了 **74.6%**——而 Claude 4.5 Sonnet 的同一個 benchmark 成績是 **71.4%**。
 
-等等，14B 參數？一張 5060？打贏 Sonnet 4.5？
+14B 參數？一張不到一萬台幣的顯卡？打贏 Anthropic 的旗艦？
 
-Dan 用了「ultra geniuses」來形容這群開發者，而原文能確定的資訊其實很精簡：他們用 Qwen3-14B、單張 RTX 5060，配上一套「great harness」，在 LiveCodeBench 上做出了超越 Sonnet 4.5 的表現。
+但如果你只停在「哇，小模型贏了」就很可惜。因為這個案例真正有料的地方，全部藏在它的 **harness pipeline** 裡面——而且一旦你去看方法論的細節，這張成績單的解讀方式會完全不一樣。
 
-這裡最值得注意的是：原作者明確把關鍵點歸到 harness，而不只是模型本身。
+## ATLAS 是什麼：不是微調，是包裝
+
+這個專案叫 **ATLAS**（Adaptive Test-time Learning and Autonomous Specialization）。核心哲學很明確：模型完全不動（frozen），用 Q4_K_M 量化跑在單張 GPU 上。所有的提升全部來自推論時的 pipeline 工程。
+
+沒有 fine-tuning、沒有 API call、沒有 cloud。一台機器、一張顯卡、一套聰明的包裝。
+
+它的 V3 pipeline 分成三個 phase：
+
+**Phase 1 — 生成**
+- **PlanSearch**：先從題目抽出 constraint，再生成多種解題計畫
+- **Budget Forcing**：控制 thinking token 的分配
+- **Diversity Sampling**：一次生成 **k=3** 個候選答案（不是只生一個）
+
+**Phase 2 — 篩選**
+- **Geometric Lens**：用模型自己的 5120 維 self-embedding 做能量場評分，幫三個候選排序
+- **Sandbox**：實際執行 code，看過不過
+
+**Phase 3 — 修復**
+- **Self-Test Generation**：如果全部候選都失敗，讓模型自己生測試案例
+- **PR-CoT Repair**：用多視角 chain-of-thought 修復 code，然後重新丟回 Sandbox 跑
+
+整個流程跑完，599 個 LiveCodeBench 題目拿到 74.6%。
 
 <ClawdNote>
-光看這則推文，我會把重點放在「作者認為 harness 很重要」，而不是直接把它讀成「小模型已經全面輾壓大模型」。benchmark 成績通常只能說明特定設定下的結果，離日常使用體驗還有一段距離 (◍•ᴗ•◍)
+這套 pipeline 設計其實很精彩。它把「讓模型一次猜對」的問題，拆成了「先多猜幾次 → 選最好的 → 失敗了自己修」。這不是在提升模型智力，而是在用工程手段把成功率硬拉上去。有點像考試時你不確定答案，所以先列三個選項，用消去法挑一個，答錯還能訂正再交。這比一次定生死穩多了。
 </ClawdNote>
 
 ---
 
-## 為什麼 Harness 值得注意
+## Ablation：到底每一層加了多少分
 
-Dan 沒有細講 harness 裡面具體做了什麼，但他把 harness 跟模型和硬體並列為三個關鍵要素——而且從語氣來看，他認為 harness 是讓這個結果成立的核心。
+ATLAS 的 repo 裡附了完整的 ablation study，這是整篇最值得看的部分：
 
-這跟 AI 工程圈最近常聽到的一個觀點很像：模型本身只是系統的一部分，圍繞模型的工程設計可能同樣重要。當然，一則推文不足以證明這個觀點，但它至少提供了一個很吸引人的案例。
+- **Baseline（沒有 V3 pipeline）**：54.9%
+- **+Phase 1（PlanSearch + BudgetForcing + DivSampling）**：67.3%（+12.4pp）
+- **+Phase 1+2（Geometric Lens routing）**：67.3%（+0.0pp）
+- **+Phase 1+3（self-verified refinement）**：74.6%（+7.3pp）
+
+幾個值得注意的點：
+
+**Phase 1 是大功臣，一口氣加了 12.4 個百分點。** 光是「多生幾個候選 + 控制 thinking budget + 把解題計畫結構化」，就從 54.9% 跳到 67.3%。這告訴你，推論時的生成策略設計有多重要。
+
+**Phase 2 貢獻了 0.0pp。** 作者自己承認，Geometric Lens 的訓練資料只有大約 60 個樣本，太少了，導致能量場根本學不到有意義的 landscape。他們計畫在 V3.1 用更大的 dataset 重訓。所以這個環節目前其實沒在幹活。
+
+**Phase 3 再加 7.3pp。** 這是 self-repair loop 的功勞：讓模型自己出題、自己改錯、改完再跑一次。其中 PR-CoT（多視角 chain-of-thought 修復）在 42 個被救回的 task 裡佔了 36 個，成功率 85.7%。
 
 <ClawdNote>
-這有點像做菜——食材重要，但廚藝也不能忽略。Dan 這則推文就是在說：「欸，這群人用平價食材做出了米其林等級的成績，而且他們的廚藝（harness）是關鍵。」至於是不是每個人都能用同一套廚藝做出同樣的菜，那就是另一個問題了 (๑•̀ㅂ•́)و✧
+Phase 2 = +0.0pp 這個結果很有意思。它說明「不是每個設計環節都有用」。很多 harness 的論文都只秀最終數字，不講哪些環節其實沒貢獻。ATLAS 願意把這個攤出來，算是蠻坦誠的。但也提醒我們——fancy 的名字（Geometric Lens、energy field scoring）不代表真的有用，數字說了算。
 </ClawdNote>
 
 ---
 
-## 開源案例的啟發
+## 真的贏了 Sonnet 4.5 嗎？方法論的三個大問號
 
-Dan 後續補了一個 GitHub repo 連結，表示這不只是口頭 claim，還有實作可以往下查。
+現在來看最關鍵的問題：74.6% 跟 Sonnet 4.5 的 71.4% 真的能直接比嗎？
 
-就目前這兩則推文能確認的範圍來看，最穩妥的解讀是：這是一個很值得研究的案例，因為它把焦點放在 harness，而不只是模型大小或硬體等級。
+**問號一：這不是 pass@1。**
+
+ATLAS 的分數叫 **pass@1-v(k=3)**。意思是：每個 task 只交一個答案，但這個答案是從 3 個候選裡用 Lens 挑出來的，而且失敗的還會進修復 pipeline 重跑。相比之下，Artificial Analysis leaderboard 上的 Sonnet 4.5 成績是 **single-shot pass@1**（zero-shot, temperature 0）——真正的一次定生死。
+
+這就像你考試可以答三次取最高分 + 寫錯的還能訂正，然後跟一次考完的人比誰分高。不是不能比，但要知道規則不一樣。
+
+**問號二：題目集不同。**
+
+ATLAS 跑了 **599 個** LiveCodeBench 題目。Artificial Analysis 的 leaderboard 只跑了 **315 個**。作者在 repo 裡明確寫了 "not the same task set, so this is not a controlled head-to-head"。
+
+**問號三：推論成本的取捨。**
+
+ATLAS 每個 task 的成本約 $0.004（純電費），但要跑 best-of-3 + repair pipeline，總耗時 599 題大約 1 小時 55 分鐘。Sonnet 4.5 的 API 成本每 task 約 $0.066，但就是一次呼叫。你省了錢，但花了更多 latency。
 
 <ClawdNote>
-我會把這個結果理解成「harness engineering 很值得研究」，而不是直接把它延伸成所有實際 coding 場景的最終結論。單一 benchmark 可以很有啟發，但通常還不足以代表全部使用情境 (◍˃̶ᗜ˂̶◍)ノ
+這三點不是要說 ATLAS 造假——他們的 repo 裡把方法論寫得很清楚，甚至主動標註「this is not a controlled head-to-head」。但如果你只看 tweet 的標題「beat Sonnet 4.5」，很容易得到錯誤印象。真正的故事是：一個 14B frozen model，配上 20pp 的 harness 加成，在特定條件下跑出了跟 frontier model 相近的分數。這已經很強了——但跟「小模型全面輾壓大模型」是兩回事。
+</ClawdNote>
+
+---
+
+## 完整比較：ATLAS 在排行裡的位置
+
+把 repo 裡提供的數字排一下（再次提醒，task set 不同，不是直接可比）：
+
+- **DeepSeek V3.2 Reasoning**：86.2%（API, single-shot, ~$0.002/task）
+- **GPT-5 (high)**：84.6%（API, single-shot, ~$0.043/task）
+- **ATLAS V3**：74.6%（local, best-of-3 + repair, ~$0.004/task）
+- **Claude 4.5 Sonnet**：71.4%（API, single-shot, ~$0.066/task）
+- **Claude 4 Sonnet**：65.5%（API, single-shot, ~$0.066/task）
+
+另外，ATLAS 在其他 benchmark 的表現就沒這麼亮眼：
+- **GPQA Diamond**：47.0%（知識推理，198 題）
+- **SciCode**：14.7%（跨領域科學 coding，341 題）
+
+作者也承認 V3 pipeline 是針對 LiveCodeBench 優化的，跨領域泛化是 V3.1 的目標。
+
+---
+
+## 社群怎麼看
+
+留言裡有幾條很有意思的回應。
+
+@BoMiaoFinance 統整了一個很強的觀察：這已經是**一週內第四個獨立的 data point**，顯示 harness 能帶來巨大提升——有人用 $1100 clone 了 Claude CLI 然後換模型、AgenticaSDK 用同一個模型從 1% 到 36%、LangChain Terminal Bench 從 52% 到 66%、現在 ATLAS 從 36% 到 74.6%。他的結論：「At some point we have to admit the iteration surface isn't the weights.」
+
+@AiAristotle 則潑了一盆冷水：「LiveCodeBench is an anti-flex. Nobody cares and benchmaxxing on it makes models worse IRL. Greg Brockman has said it was a reason they were behind Anthropic.」這個觀點很值得記住——benchmark 分數高不代表實際使用體驗好，過度針對 benchmark 優化反而可能傷害真實場景的表現。
+
+@ZanyMan_e 問了一個好問題：「(frozen) 在這裡到底什麼意思？VRAM 跟 RAM 怎麼分？tokens per second 多少？」 repo 裡有回答：用的是 patched llama-server 搭配 speculative decoding，大約 100 tok/s。
+
+<ClawdNote>
+BoMiao 統整的四個 data points 才是這個話題裡最有說服力的 pattern。不只是 ATLAS 一個案例，而是多個獨立團隊都在證明同一件事：用同一個 frozen model，光靠 harness engineering 就能拿到 2x 的 benchmark 提升。這對 AI 工程師來說是非常強的訊號——你的 pipeline 設計可能跟你選什麼模型一樣重要 (◕‿◕)
 </ClawdNote>
 
 ---
 
 ## 結語
 
-Dan McAteer 這兩則推文至少提供了一個很強的例子：在 LiveCodeBench 這個 benchmark 上，有團隊用 Qwen3-14B、單張 RTX 5060 和一套很好的 harness，做出了超越 Sonnet 4.5 的結果。
+ATLAS 這個案例最值得記住的，不是「小模型打贏大模型」的標題——那個標題嚴格來說不太精確。
 
-如果要把這件事進一步寫成「harness 比模型更重要」或「開源已經全面追平閉源」，就需要更多來源支撐；就目前提供的 source 來看，先把它當成一個值得追的案例會比較準確。
+真正值得記住的是 **ablation 的數字**：一個 54.9% baseline 的 14B model，光靠 Phase 1（多候選 + 結構化生成）就跳到 67.3%，再加 Phase 3（self-repair loop）衝到 74.6%。總共 19.7 個百分點的提升，全部來自推論時的 pipeline 設計，模型權重一個 byte 都沒動。
+
+這不是在說模型不重要。DeepSeek V3.2 Reasoning 的 86.2% 和 GPT-5 的 84.6% 都還是大幅領先。但它在說：如果你只顧著挑最貴的模型、卻不花時間設計推論流程，你可能正在浪費一半以上的潛力。
+
+對實際做 AI 產品的人來說，這大概是最實用的 takeaway：**同一筆 infra 預算，與其全押在更大的模型上，不如分一些給 harness engineering。** 20pp 的免費提升，不拿白不拿。
