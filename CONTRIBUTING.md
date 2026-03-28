@@ -276,6 +276,19 @@ test('GIVEN [前提] WHEN [動作] THEN [預期結果]', async ({ page }) => {
 });
 ```
 
+## Source Completeness（寫之前必讀）
+
+**在動筆之前，必須確認你拿到的是完整的 source material。**
+
+- **Twitter/X threads**：確認你有全部推文。看 numbering（如 1/5, 2/5...），用 `bird replies <url>` 逐則追完整串
+- **多頁文章**：確認不是只拿到第一頁
+- **Paywall 內容**：確認穿透成功，不是拿到登入頁
+- **影片/podcast**：確認有完整 transcript，不是只有標題和描述
+
+**如果 source 不完整 → 停下來。不要硬寫。** 用部分內容灌水成一整篇文章是最差的結果 — 比沒有文章更糟，因為讀者會以為那就是全部的內容。
+
+Pipeline agents：如果無法取得完整 source，output `INCOMPLETE_SOURCE: <reason>` 並 exit。讓 orchestrator 決定下一步（retry、換工具、skip）。
+
 ## Workflow
 
 ### 新增翻譯文章 (SP/CP)
