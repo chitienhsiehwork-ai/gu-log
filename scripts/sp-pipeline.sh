@@ -310,6 +310,57 @@ if [[ "$TWEET_URL" == *"twitter.com"* ]] || [[ "$TWEET_URL" == *"x.com"* ]]; the
 
   ORIGINAL_DATE=$(extract_tweet_date "$WORK_DIR/source-tweet.md" || true)
   [ -n "$ORIGINAL_DATE" ] || die "Failed to extract tweet date from bird output"
+
+  # --- Thread detection: chase (N/M) pattern via bird replies ---
+  THREAD_INDICATOR=$(grep -oE '\([0-9]+/[0-9]+\)' "$WORK_DIR/source-tweet.md" | head -1 || true)
+  if [ -n "$THREAD_INDICATOR" ]; then
+    THREAD_TOTAL=$(echo "$THREAD_INDICATOR" | grep -oE '/[0-9]+' | tr -d '/')
+    log_info "Thread detected: $THREAD_INDICATOR (expecting $THREAD_TOTAL tweets)"
+
+    # Chase the thread: follow replies from the same author
+    CURRENT_URL="$TWEET_URL"
+    TWEETS_COLLECTED=1
+
+    for (( i=2; i<=THREAD_TOTAL+2; i++ )); do
+      # +2 gives headroom for off-by-one or unnumbered continuations
+      REPLIES_OUT=$(bird replies "$CURRENT_URL" 2>/dev/null || true)
+      if [ -z "$REPLIES_OUT" ]; then
+        log_warn "No replies found at $CURRENT_URL, stopping thread chase"
+        break
+      fi
+
+      # Find next tweet from the same author (thread continuation)
+      NEXT_TWEET_URL=$(echo "$REPLIES_OUT" | grep -A5 "@${AUTHOR_HANDLE}" | grep -oE 'https://x\.com/[^ ]+' | head -1 || true)
+      if [ -z "$NEXT_TWEET_URL" ]; then
+        break
+      fi
+
+      # Fetch the full tweet and append
+      if bird read "$NEXT_TWEET_URL" >> "$WORK_DIR/source-tweet.md" 2>/dev/null; then
+        TWEETS_COLLECTED=$((TWEETS_COLLECTED + 1))
+        printf '\n---\n' >> "$WORK_DIR/source-tweet.md"
+        CURRENT_URL="$NEXT_TWEET_URL"
+        log_info "  Collected tweet $TWEETS_COLLECTED/$THREAD_TOTAL"
+      else
+        log_warn "  Failed to fetch $NEXT_TWEET_URL, stopping"
+        break
+      fi
+
+      # Stop if we've got them all
+      if [ "$TWEETS_COLLECTED" -ge "$THREAD_TOTAL" ]; then
+        break
+      fi
+    done
+
+    if [ "$TWEETS_COLLECTED" -lt "$THREAD_TOTAL" ]; then
+      log_warn "INCOMPLETE_SOURCE: Only got $TWEETS_COLLECTED/$THREAD_TOTAL tweets"
+      log_warn "Proceeding with partial thread — writer prompt will note incompleteness"
+      echo "" >> "$WORK_DIR/source-tweet.md"
+      echo "⚠️ INCOMPLETE THREAD: Only $TWEETS_COLLECTED of $THREAD_TOTAL tweets were fetched." >> "$WORK_DIR/source-tweet.md"
+    else
+      log_ok "Full thread collected: $TWEETS_COLLECTED/$THREAD_TOTAL tweets"
+    fi
+  fi
 else
   log_info "Non-twitter URL detected. Fetching via curl and extracting metadata via Gemini..."
   
@@ -432,7 +483,9 @@ cat > "$WORK_DIR/gemini-write-prompt.txt" <<EOF_WRITE
 You are writing a gu-log SP article draft in Traditional Chinese.
 
 Task:
-- Write ${TICKET_PREFIX}-${SP_NUM} article from the source tweet.
+- Write ${TICKET_PREFIX}-${SP_NUM} article from the source material below.
+- The source may contain a FULL THREAD (multiple tweets separated by ---). Cover ALL tweets, not just the first one.
+- If you see "⚠️ INCOMPLETE THREAD", acknowledge what's missing and note it for the reader. Do NOT pad partial content into a full article.
 - Follow the style guide exactly.
 - Use this metadata:
   - ticketId: ${TICKET_PREFIX}-${SP_NUM}
