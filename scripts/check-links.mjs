@@ -235,7 +235,12 @@ async function checkExternalLink(url, retries = MAX_RETRIES) {
 // ── Main ─────────────────────────────────────────────────────────
 
 async function main() {
+  const args = process.argv.slice(2);
+  const internalOnly = args.includes('--internal-only');
+  const isCI = process.env.CI === 'true' || args.includes('--ci');
+
   console.log('🔗 SQAA Level 6: Broken Link Detection');
+  if (internalOnly) console.log('  Mode: --internal-only (skipping external checks)');
   console.log('═'.repeat(50));
 
   // Check dist exists
@@ -286,41 +291,52 @@ async function main() {
   console.log(`  ✅ ${internalOk.length} OK, ❌ ${internalBroken.length} broken\n`);
 
   // Validate external links (auto-check only)
-  console.log('Checking external links (this may take a while)...');
   const externalOk = [];
   const externalBroken = [];
   const externalTimeout = [];
 
-  let checked = 0;
-  for (const link of autoCheck) {
-    checked++;
-    if (checked % 10 === 0 || checked === autoCheck.length) {
-      process.stdout.write(`\r  Progress: ${checked}/${autoCheck.length}`);
-    }
+  if (internalOnly) {
+    console.log('Skipping external link checks (--internal-only mode).');
+  } else {
+    console.log('Checking external links (this may take a while)...');
+    let checked = 0;
+    for (const link of autoCheck) {
+      checked++;
+      if (checked % 10 === 0 || checked === autoCheck.length) {
+        process.stdout.write(`\r  Progress: ${checked}/${autoCheck.length}`);
+      }
 
-    const result = await checkExternalLink(link.url);
-    if (result.status === 'ok') {
-      externalOk.push(link);
-    } else if (result.status === 'timeout') {
-      externalTimeout.push({ ...link, error: result.error });
-    } else {
-      externalBroken.push({ ...link, statusCode: result.code, error: result.error });
+      const result = await checkExternalLink(link.url);
+      if (result.status === 'ok') {
+        externalOk.push(link);
+      } else if (result.status === 'timeout') {
+        externalTimeout.push({ ...link, error: result.error });
+      } else {
+        externalBroken.push({ ...link, statusCode: result.code, error: result.error });
+      }
     }
+    console.log(); // newline after progress
   }
-  console.log(); // newline after progress
 
   // Report
   console.log(`\n${'═'.repeat(50)}`);
   console.log('📊 Results:');
   console.log(`  Internal: ✅ ${internalOk.length} OK, ❌ ${internalBroken.length} broken`);
-  console.log(
-    `  External: ✅ ${externalOk.length} OK, ❌ ${externalBroken.length} broken, ⏰ ${externalTimeout.length} timeout, 🔒 ${manualCheck.length} manual`
-  );
+  if (internalOnly) {
+    console.log(`  External: ⏭️ skipped (--internal-only)`);
+  } else {
+    console.log(
+      `  External: ✅ ${externalOk.length} OK, ❌ ${externalBroken.length} broken, ⏰ ${externalTimeout.length} timeout, 🔒 ${manualCheck.length} manual`
+    );
+  }
 
   if (internalBroken.length > 0) {
     console.log('\n🚨 Broken Internal Links:');
     for (const l of internalBroken) {
       console.log(`  - ${l.url} (${l.file})`);
+      if (isCI) {
+        console.log(`::error file=src/content/posts/${l.file}::Broken internal link: ${l.url}`);
+      }
     }
   }
 
@@ -359,6 +375,20 @@ async function main() {
 
   // Build result JSON
   const today = new Date().toISOString().split('T')[0];
+  const { mkdir, writeFile } = await import('node:fs/promises');
+  const outputPath = join(ROOT, 'quality', 'broken-links-baseline.json');
+
+  // When --internal-only, preserve existing external data from baseline
+  let preservedExternal = null;
+  if (internalOnly && existsSync(outputPath)) {
+    try {
+      const existing = JSON.parse(await readFile(outputPath, 'utf-8'));
+      if (existing.external) preservedExternal = existing.external;
+    } catch {
+      // ignore parse errors — will omit external key
+    }
+  }
+
   const result = {
     date: today,
     total: allLinks.length,
@@ -366,23 +396,25 @@ async function main() {
       ok: internalOk.length,
       broken: internalBroken.map((l) => ({ url: l.url, file: l.file, context: l.context })),
     },
-    external: {
-      ok: externalOk.length,
-      broken: externalBroken.map((l) => ({
-        url: l.url,
-        file: l.file,
-        context: l.context,
-        statusCode: l.statusCode,
-        error: l.error,
-      })),
-      timeout: externalTimeout.map((l) => ({ url: l.url, file: l.file, context: l.context })),
-      needsManualCheck: manualCheck.map((l) => ({ url: l.url, file: l.file, context: l.context })),
-    },
+    ...(internalOnly
+      ? preservedExternal !== null ? { external: preservedExternal } : {}
+      : {
+          external: {
+            ok: externalOk.length,
+            broken: externalBroken.map((l) => ({
+              url: l.url,
+              file: l.file,
+              context: l.context,
+              statusCode: l.statusCode,
+              error: l.error,
+            })),
+            timeout: externalTimeout.map((l) => ({ url: l.url, file: l.file, context: l.context })),
+            needsManualCheck: manualCheck.map((l) => ({ url: l.url, file: l.file, context: l.context })),
+          },
+        }),
   };
 
   // Write result
-  const outputPath = join(ROOT, 'quality', 'broken-links-baseline.json');
-  const { mkdir, writeFile } = await import('node:fs/promises');
   await mkdir(join(ROOT, 'quality'), { recursive: true });
   await writeFile(outputPath, JSON.stringify(result, null, 2) + '\n');
   console.log(`\n💾 Results saved to quality/broken-links-baseline.json`);
