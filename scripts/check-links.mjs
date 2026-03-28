@@ -397,7 +397,9 @@ async function main() {
       broken: internalBroken.map((l) => ({ url: l.url, file: l.file, context: l.context })),
     },
     ...(internalOnly
-      ? preservedExternal !== null ? { external: preservedExternal } : {}
+      ? preservedExternal !== null
+        ? { external: preservedExternal }
+        : {}
       : {
           external: {
             ok: externalOk.length,
@@ -409,7 +411,11 @@ async function main() {
               error: l.error,
             })),
             timeout: externalTimeout.map((l) => ({ url: l.url, file: l.file, context: l.context })),
-            needsManualCheck: manualCheck.map((l) => ({ url: l.url, file: l.file, context: l.context })),
+            needsManualCheck: manualCheck.map((l) => ({
+              url: l.url,
+              file: l.file,
+              context: l.context,
+            })),
           },
         }),
   };
