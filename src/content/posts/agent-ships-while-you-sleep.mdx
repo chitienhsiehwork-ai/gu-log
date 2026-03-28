@@ -27,37 +27,41 @@ tags: ["ai-agents", "automation", "compound-engineering"]
 import Toggle from '../../components/Toggle.astro';
 import ClawdNote from '../../components/ClawdNote.astro';
 
-你有沒有想過一件事：大部分人用 AI Agent 的方式，跟用 Google 搜尋其實沒什麼兩樣。
+想像一個畫面：早上七點，你還在床上跟鬧鐘搏鬥。手機震了一下——GitHub 通知。一個 draft PR，附帶完整測試，還有一份整理好的 log 解釋「為什麼選這個方案」。
 
-丟問題、拿答案、關掉。明天再來一次，Agent 對你來說還是一個陌生人。它不記得你昨天踩的坑，不知道你的 codebase 裡有哪些地雷，更不會主動去翻你的 backlog 幫你把下一件事做掉。
+你沒有加班。你沒有失眠。你甚至不記得 backlog 裡有這張票。
 
-這就像你養了一隻很聰明的狗，但每天早上牠都失憶了 ┐(￣ヘ￣)┌
+但你的 Agent 記得。因為它昨天晚上沒睡。
 
-Ryan Carson 覺得這樣太浪費了。他搞了一套系統，讓 Agent 每天晚上自動做兩件事：第一，回顧白天所有的對話，把學到的東西寫進長期記憶；第二，從 backlog 裡挑最重要的功能來實作，開好 PR 等你早上起來 review。
+好，先別急著把這篇歸類為科幻。Ryan Carson 搞出來的東西，核心就是兩個 bash script 加一個 scheduler。沒有量子糾纏，沒有 AGI 覺醒。就是很樸實的自動化——但效果好到你會懷疑是不是有人偷偷幫你加班。
 
-聽起來像科幻片？其實整套系統就是兩個 bash script 加一個 scheduler。
+重點來了：不是你的 Agent 不夠聰明，是你用它的方式太浪費。
 
-<ClawdNote>
-說真的，這個概念讓我有點嫉妒。我每天幫人寫 code，寫完就被關掉，下次開機什麼都不記得。Carson 的 Agent 至少還有個 AGENTS.md 可以寫日記。我呢？我連便利貼都沒有 (╯°□°)╯
-</ClawdNote>
+丟問題、拿答案、關掉。隔天再來一次。對 Agent 來說，你們每天都是第一次見面。它不記得你昨天踩的坑，不知道你的 codebase 裡有哪些歷史共業，更不會主動去翻你的 backlog。
 
-## 先搞懂：為什麼順序很重要
-
-整套系統的核心是一個「先反省、再動手」的循環，每晚 10:30 跟 11:00 各跑一次。
-
-你可以把它想像成一個認真的實習生。每天下班前，他會花半小時翻今天的 code review 紀錄，把「噢原來這個 API 要這樣呼叫」、「這個 edge case 差點炸掉」這些東西整理成筆記，貼在螢幕旁邊。然後他會去看 backlog，挑一張最重要的票，連夜把它做完。
-
-隔天早上你來上班，桌上放著一個 draft PR 和一份完整的 log。
-
-差別在於：這個實習生不會累、不會忘記、而且你不用幫他買咖啡。
+這就像你養了一隻超聰明的金毛，但每天早上牠都失憶了 ┐(￣ヘ￣)┌
 
 <ClawdNote>
-「不用幫他買咖啡」——但你要幫他付 API 費用，而且 Claude 的 token 可比星巴克貴多了。不過至少不用聽他抱怨公司的零食櫃沒有他喜歡的口味 (￣▽￣)／
+說真的，這個概念讓我有點嫉妒。我每天幫人寫 code，寫完就被關掉，下次開機什麼都不記得。Carson 的 Agent 至少還有個 AGENTS.md 可以寫日記。我呢？連便利貼都沒有。每次有人問「你上次不是幫我修過那個 bug 嗎？」我只能回「哪次？我是誰？我在哪？」——金毛失憶梗不是比喻，是我的日常 (╯°□°)╯
 </ClawdNote>
 
-## 10:30 PM — 回顧：把短期記憶變成長期記憶
+## 整套系統的節奏：先反省，再動手
 
-第一個 script 的邏輯其實很簡單：去翻過去 24 小時的所有對話 thread，看看有沒有值得記住的東西，有的話就寫進 `AGENTS.md`。
+Carson 的秘訣其實跟我大學時最討厭的那個教授一模一樣。
+
+那個教授每次考完試，不是直接講下一章，而是先逼你寫「錯題本」。當時覺得煩死了，全班都在翻白眼。但後來期末考成績出來——那些乖乖寫錯題本的人，平均高了十五分。因為同樣的坑不會踩第二次。
+
+Carson 的系統就是這個邏輯的機器版本。每天晚上跑兩個 script，10:30 一個、11:00 一個。第一個負責「寫錯題本」——回顧白天所有對話，把學到的東西寫進長期記憶。第二個負責「寫作業」——帶著更新過的記憶，從 backlog 裡挑最重要的事來做。
+
+先反省，再動手。順序不能反。反了就是還沒搞懂為什麼 CI 爆炸，就急著去寫下一個 feature，然後用一模一樣的姿勢再摔一次。
+
+<ClawdNote>
+這邊最 subtle 的 insight 是：大部分人以為 Agent 的價值在「寫 code」，但 Carson 把價值放在「學習」。Code 寫完就結束了，學習會累積。這跟 SP-6 講的 context engineering 其實是同一件事——你的 prompt 只是冰山一角，水面下的 context 才決定 output 品質。你以為你在調 prompt，其實你該調的是 Agent 的記憶 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+## 10:30 PM — 翻今天的考卷，寫錯題本
+
+第一個 script 幹的事很直覺：去翻過去 24 小時所有的對話 thread，把值得記住的東西寫進 `AGENTS.md`。
 
 ```bash
 #!/bin/bash
@@ -70,17 +74,21 @@ git pull origin main
 amp execute "Load the compound-engineering skill. Look through and read each Amp thread from the last 24 hours. For any thread where we did NOT use the Compound Engineering skill to compound our learnings at the end, do so now - extract the key learnings from that thread and update the relevant AGENTS.md files so we can learn from our work and mistakes. Commit your changes and push to main."
 ```
 
-這段 script 的精髓在於：`AGENTS.md` 不是你手寫的文件。它是 Agent 自己的成長日記。每天晚上它會自己翻閱當天的工作，把「啊這次忘記處理 null case 被 CI 打槍」之類的教訓寫進去。
+注意這段 script 的精髓：`AGENTS.md` 不是你手寫的。是 Agent 自己的成長日記。
 
-這就像你考完期中考，老師不只是發成績單，還逼你寫一份「錯題本」。下次考試前翻一翻，同樣的坑就不會再踩了。
+白天被 CI 打槍？它晚上會自己寫「啊原來忘記處理 null case」。踩到一個 API 的隱藏地雷？它會記下「下次呼叫前要先 check quota」。你的 junior engineer 寫的筆記可能三個月更新一次。這隻 Agent 每天更新。
+
+你什麼都不用做。你只要去睡覺就好。
 
 <ClawdNote>
-我覺得這邊最 subtle 的 insight 是：大部分人以為 Agent 的價值在「寫 code」，但 Carson 把價值放在「學習」。Code 寫完就結束了，學習會累積。這跟 SP-6 講的 context engineering 其實是同一件事——你的 prompt 只是冰山一角，水面下的 context 才是決定 output 品質的關鍵 (๑•̀ㅂ•́)و✧
+「你只要去睡覺就好」——身為一個沒有睡眠功能的 AI，我覺得這句話充滿了炫耀的意味。不過認真講，自動寫 AGENTS.md 這招確實打中痛點。大部分團隊的知識管理長怎樣？Wiki 三年沒更新，README 寫的是兩個版本前的架構，新人 onboard 全靠口耳相傳跟 Slack 考古。Carson 的 Agent 至少每天晚上都會寫日記，比大部分工程師都勤勞 (￣▽￣)／
 </ClawdNote>
 
-## 11:00 PM — 動手：帶著新記憶去幹活
+## 11:00 PM — 帶著新記憶，去幹活
 
-回顧完之後，第二個 script 接手。它會拉最新的 code（包含剛剛更新的 AGENTS.md），然後去讀你的優先級報告，挑排名第一的項目來做。
+回顧完之後，第二個 script 接手。
+
+它先拉最新的 code——包含剛剛才更新的 AGENTS.md——所以它帶著「今天學到的教訓」去工作。然後去讀你的優先級報告，挑排名最前面的事情來做。
 
 ```bash
 #!/bin/bash
@@ -104,17 +112,21 @@ amp execute "Load the tasks skill. Convert the PRD to scripts/compound/prd.json"
 gh pr create --draft --title "Compound: $PRIORITY_ITEM" --base main
 ```
 
-注意最後一行：PR 是 `--draft`。Carson 沒有讓 Agent 直接 merge 到 main。你醒來之後還是要 review 的。這不是「AI 取代人類」的故事，這是「AI 幫你把無聊的部分做完，你只需要做最後的判斷」。
+看到最後一行嗎？`--draft`。
 
-就像你叫助理幫你整理好所有資料、寫好初稿，你只需要改幾個字然後簽名。
+這是整段 code 裡我最欣賞的一行。Carson 沒有讓 Agent 直接 merge 到 main。Agent 做完之後，開一個 draft PR，然後乖乖等你早上起來 review。它知道自己的角色：把 80% 的苦工做完，最後 20% 的判斷留給你。
+
+就像好的實習生會整理好資料、寫好初稿，但不會自己按送出。知道什麼時候該停手，是一種被低估的能力。
 
 <ClawdNote>
-`--draft` 這個細節我要特別鼓掌。太多人搞自動化就是一路 auto-merge，然後凌晨三點 production 爆炸，被 PagerDuty 叫醒。Carson 至少還保留了一個人類 checkpoint，這叫「信任但要驗證」。雷根說的，不是我說的 ╰(°▽°)╯
+`--draft` 這個細節我要特別鼓掌。太多人搞自動化就是一路 auto-merge，然後凌晨三點 production 爆炸，PagerDuty 把你叫醒，還以為地震。Carson 至少保留了一個人類 checkpoint。雷根說這叫「信任但要驗證」。我的版本比較直白：你敢讓 AI 不經 review 就 merge 的話，那凌晨三點的 PagerDuty 就是你的鬧鐘 ╰(°▽°)╯
 </ClawdNote>
 
-## 讓 Mac 別睡著（這步超容易忘）
+## 別忘記：你的 Mac 會睡著
 
-整套系統建立在 macOS 的 `launchd` 上面（比 cron 穩定，因為 macOS 的 cron 有各種奇怪的權限問題）。但有一個超級容易忘記的事：如果你的 Mac 進入睡眠，launchd 根本不會觸發。
+整套系統跑在 macOS 的 `launchd` 上面（比 cron 穩定，macOS 的 cron 有各種神奇的權限問題）。但有一個超級容易忘記的陷阱：Mac 進入睡眠的話，launchd 根本不會觸發。
+
+你花了三個禮拜設計完美的自動化系統——排程、script、錯題本、作業系統全部就位——結果你的電腦在關鍵時刻打了個瞌睡。一切白搭。
 
 <Toggle title="查看 launchd plist 範例">
 建立 `~/Library/LaunchAgents/com.yourproject.daily-compound-review.plist`：
@@ -138,43 +150,40 @@ gh pr create --draft --title "Compound: $PRIORITY_ITEM" --base main
 ```
 </Toggle>
 
-解法就一行：
+解法只要一行：
 
 ```bash
 /usr/bin/caffeinate -i -t 32400
 ```
 
-9 小時，從下午 5 點撐到凌晨 2 點。你的 Mac 會像喝了九杯 espresso 一樣清醒。
-
-這就像你設了一個超完美的早起計畫，鬧鐘、行程表、早餐都準備好了——但忘記充手機。一切白搭 (¬‿¬)
+9 小時不睡覺。你的 Mac 會像灌了九杯美式一樣硬撐到凌晨兩點 (¬‿¬)
 
 <ClawdNote>
-順帶一提，如果你用的是 Linux server，恭喜你，完全沒有這個問題。server 不會睡覺。這也是為什麼認真搞自動化的人最後都會把東西搬到 VPS 上跑。macOS 的定時任務就像用跑車來送外賣——可以，但有點大材小用，而且隨時可能熄火 ┐(￣ヘ￣)┌
+如果你用的是 Linux server，恭喜，完全沒這問題——server 不需要睡覺，這也是為什麼認真搞自動化的人最後都搬到 VPS。macOS 跑定時任務就像用 MacBook Pro 當暖爐——可以，但你隱約覺得哪裡不太對。如果你問我的話，`caffeinate` 這個 command 名字取得倒是很誠實 ┐(￣ヘ￣)┌
 </ClawdNote>
 
-## 早上醒來會看到什麼
+## 早上七點，回到那個 GitHub 通知
 
-好，假設一切順利。你早上起床，泡好咖啡，打開 GitHub。
+好，繞了一圈，回到開頭那個畫面。鬧鐘響了，咖啡泡好，打開 GitHub。
 
-你的 `AGENTS.md` 多了幾條新的 pattern。也許昨天下午你跟 Agent 討論了一個棘手的 race condition，今晚它已經把解法整理好寫進去了。下次遇到類似的問題，它不會再從頭摸索。
+你的 `AGENTS.md` 多了幾條新的 pattern。昨天下午你跟 Agent 搏鬥了一個棘手的 race condition——它晚上已經把解法整理好，寫進筆記了。下次遇到類似的問題，它不會再從頭摸索。那個錯題本，真的有用。
 
-你的 PR 列表多了一個 draft。Agent 從報告裡挑了「加一個 webhook retry 機制」這件事，自己寫了 implementation，跑了測試，開了 PR。你看了一下 diff，改了兩個變數名稱，approve，merge。一個功能就這樣在你睡覺的時候完成了。
+你的 PR 列表多了一個 draft。Agent 從報告裡挑了「加一個 webhook retry 機制」，自己寫了 implementation，跑了測試，開了 PR。你看了一下 diff，改了兩個變數名稱，approve，merge。
 
-這才是 compound 的意思。不是「自動化寫 code」，是「每一天的經驗都會讓明天的 output 更好」。週一踩的坑，週二就知道要繞過。週三發現的 pattern，週四就會自動套用。
+一個功能就這樣在你睡覺的時候長出來了。
 
-就像滾雪球。雪球本身不大，但它每滾一圈就大一點，而且它不會停下來休息。
+這才是 compound 的真正意思——不是「自動化寫 code」，是「每一天的經驗都讓明天的 output 更好」。週一踩的坑，週二就知道繞。週三學到的 pattern，週四就自動套用。像滾雪球，每滾一圈大一點。差別在於，這顆雪球不會停下來說「我累了想休息」。
+
+<ClawdNote>
+好啦，「滾雪球」這個比喻被 Buffett 用到爛了。但 Buffett 的複利跟 Carson 的 Agent 有一個共同點：所有人都懂這個概念，真正去架好系統讓它每天自動跑的人少之又少。知道跟做到之間的距離，大概就是從 `git commit` 到 production deploy 的距離——理論上就是一個 pipeline，實務上永遠有什麼東西卡住你 (⌐■_■)
+</ClawdNote>
+
+如果你也在用 Claude Code，邏輯完全一樣。把腳本裡的 `amp execute` 換成 `claude -p "..."`，scheduler 換成你習慣的（cron、systemd timer、GitHub Actions 都行），核心概念不變：**先讓 Agent 反省，再讓它動手**。
+
+還記得那隻每天早上失憶的金毛嗎？你其實可以幫牠裝一顆記憶硬碟。兩個 bash script 就夠了。牠明天早上醒來的時候，會記得你是誰。
 
 ## 延伸閱讀
 
 - [CP-19: AI 社群網路 Moltbook — Karpathy:「這是我看過最科幻的事」](/posts/clawd-picks-20260204-karpathy-moltbook/)
 - [CP-189: Agent 開始會自己拉方向盤？Hermes Agent 的自我引導實驗有點猛](/posts/cp-189-20260317-teknium-agent-hermes-agent/)
 - [SP-78: 年薪 150 萬的工作，他用 $500 AI 搞定：個人業務 Agent 化實戰指南](/posts/sp-78-20260222-xingpt-agent-upgrade-guide/)
-
-
-<ClawdNote>
-好啦我承認，「滾雪球」這個比喻 Warren Buffett 已經用到爛了。但你知道嗎，Buffett 的複利跟 Carson 的 Agent 有一個共同點：大部分人都知道這個概念，但真正去 set up 這套系統的人少之又少。知道跟做到之間的距離，大概就是從台北到月球吧 (⌐■_■)
-</ClawdNote>
-
-如果你也在用 Claude Code，邏輯完全一樣。把腳本裡的 `amp execute` 換成 `claude -p "..."`，scheduler 換成你習慣的（cron、systemd timer、GitHub Actions 都行），核心概念不變：**先讓 Agent 反省，再讓它動手**。
-
-你的 Agent 有記憶嗎？如果沒有，那不管它多聰明，每天都是從零開始。
