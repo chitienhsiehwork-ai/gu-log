@@ -1,0 +1,116 @@
+---
+ticketId: "SP-136"
+title: "Bash Is All You Need？為什麼連非 Coding Agent 都該配一個 Shell"
+originalDate: "2025-10-27"
+translatedDate: "2026-03-28"
+translatedBy:
+  model: "GPT-5.4"
+  harness: "OpenClaw"
+  pipeline:
+    - role: "Written"
+      model: "GPT-5.4"
+      harness: "OpenClaw"
+source: "@trq212 on X"
+sourceUrl: "https://x.com/trq212/status/1982869394482139206"
+lang: "zh-tw"
+summary: "Anthropic 工程師 Thariq 認為，就算不是 coding agent，也該有 bash tool。因為 agent 一旦能把中間結果存成檔案、反覆搜尋、串接 API、自己驗證，能力會直接升級；但安全與容器部署也因此變成不能逃避的問題。"
+tags: ["shroom-picks", "ai-agent", "bash", "claude-code", "agent-sdk"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+大家在聊 general agent 的時候，腦中常常浮現的是一整排漂亮的 tool call：讀 Gmail、查 CRM、翻 calendar、最後吐一段像樣的人話。這套 demo 起來通常很帥，但真的做下去，你很快就會撞上一個超土的問題：**中間結果到底要放哪裡？**
+
+模型剛剛抓了哪些資料、篩掉了哪些雜訊、下一步打算怎麼驗證，很多時候都只能悶在 context window 裡。這就像叫一個人站著在腦中整理一百張發票——不是不能做，但很容易漏、很難查，也幾乎沒辦法重現。
+
+Anthropic 工程師 Thariq 最近在 X 上丟了一串 thread，核心建議意外地樸實：**use the bash tool more**。重點不是「讓 agent 去裝工程師」，而是給它一個真的能做工的工作台。能存檔、能 search、能重跑、能 double check，agent 的能力就不是同一個等級了 (◍•ᴗ•◍)
+
+## 關鍵不在 Bash 語法，而在「中間狀態能落地」
+
+Thariq 先舉了一個很具體的 email agent 例子。使用者問：「我這週在 ride sharing 花了多少錢？」
+
+如果你只有一般 tool calls，做法大概會是：先把 emails 抓回來，然後丟給 model 自己從裡面找答案。問題是，原作者提到你可能一次抓回來接近 100 封信。當資料一多，模型要從裡面翻出所有消費紀錄，就開始像在稻草堆裡找針。
+
+但如果 agent 有 bash tool，事情會變得很不一樣。它可以先把結果存成檔案，再用 shell 工具去 search、過濾、重組。原作者點出的好處有三個：
+
+- **把答案 grounding 在可重現的 code 上**
+- **可以分很多步把資料慢慢找齊**
+- **能自己再檢查一次，確認沒有算錯**
+
+這裡最妙的地方是：bash 不是在幫 agent 「變聰明」，而是在幫它「不要只靠腦補工作」。很多 agent 失手，不是 reasoning 不夠強，而是它沒有一個可以外掛記憶、留下痕跡、反覆驗證的地方。
+
+<ClawdNote>
+這很像你要算一週餐費。只靠 API + model，就像把一疊發票塞進你手裡，然後叫你三十秒內心算完。bash 則像是先把發票攤在桌上，按店家分類、圈重點、最後再加總。差別不在智商，差別在你有沒有桌面。對 agent 也是一樣。
+</ClawdNote>
+
+---
+
+## Bash 真正扮演的角色，是通用 workflow 的膠水
+
+Thariq 接著講到另一種常見場景：**chaining API calls**。
+
+例如使用者問：「把我這週寄過 email 的所有聯絡人都找出來。」這不是打一個 API 就結束的事情。你可能得先抓這週所有寄出的信，再把聯絡人 dedupe，最後再對每個 contact 發一個獨立的 API request，補齊需要的資料。
+
+這種流程如果全部硬塞進單次 tool call，系統很容易變得又脆又醜。反過來說，如果 agent 能把每一步的輸出寫成檔案，再用 bash 做串接、篩選、重試，整個 workflow 就會比較像真的在做事，而不是在 context 裡憑空 juggling 一堆 JSON。
+
+社群裡也有人直接追問：這裡到底是 bash 特別厲害，還是任何 code execution environment 都可以？這個問題其實問得很好。因為 thread 裡真正被誇的，未必是 Bash 這個字本身，而是它背後那套非常老派、但超好用的能力組合：**filesystem + pipes + standard tools + 可以分步驟跑**。
+
+你可以把 bash 想成 agent 世界裡的萬用轉接頭。平常它醜醜的，輪到要接各種奇怪裝置時才發現，欸，沒有它還真的不行。
+
+---
+
+## 這不是只給 Coding Agent 用的玩具
+
+Thread 最有意思的一點，是 Thariq 刻意把例子拉出 coding 範圍。
+
+第一個延伸例子是 **video 與 file editing**。原作者提到，模型很會用像 `ffmpeg` 這種工具處理影片，甚至可以去 search captions，找出你要的時間切片。這就很有感——因為影片編修本來就不是「想一下」能完成的事，而是一連串實際操作。
+
+第二個延伸例子是 **reoccurring tasks**。如果你的 agent 跑在 container 裡，它甚至可以用 `cron` 或 `at`，依照使用者需求動態建立 recurring jobs。這時候 bash 不只是查資料工具，還變成 agent 跟 runtime 環境之間的操作介面。
+
+也就是說，shell 在這裡扮演的不是「寫 code 的工具」，而是「讓 agent 能碰真實世界 artefacts 的工具」。email、影片、檔案、排程——這些全部都不是傳統意義上的 coding task，但它們都很吃 filesystem 與 command execution。
+
+<ClawdNote>
+很多人一看到 bash，就自動把它歸類成「工程師專用黑畫面」。但從 agent 的角度看，它比較像是一套通用手腳。你要它整理檔案、轉格式、切影片、排工作、做多輪 search，最後幾乎都會走回 shell。老東西之所以活到今天，通常不是因為浪漫，是因為太能打。
+</ClawdNote>
+
+---
+
+## 社群的擔心也很合理：安全跟部署根本躲不掉
+
+當然，這串推文底下的討論也沒有一面倒歡呼。
+
+Jeffrey Emanuel 的擔心很直接：**如果你允許 arbitrary bash calls，那 data exfiltration 風險就會非常大**。換句話說，shell 很強沒錯，但也因為太強了，一不小心就可能讓 agent 做出危險操作。所以他認為，bash tool 內部需要有某種機制去檢查 agent 是否打算跑危險指令。
+
+另一派的質疑則集中在 **部署模型**。像 nityeshaga、citnotcitta 都在問：這東西到底跑在哪？要怎麼確保 agent 有 filesystem 可以用？難道每個 user request 都要即時 spawn 一個 container 嗎？
+
+還有人從實證角度潑冷水。像 kylediaz_com 就提到，他們在 benchmark agent 使用 code 跟使用 tools 的能力時，**目前看起來似乎沒有明顯的性能差距**。這也提醒了一件事：bash 很強，不代表每個場景都一定因為加了 shell 就原地起飛。
+
+這些留言很值得一起看，因為它們把問題從「tool 好不好用」拉回「系統到底怎麼安全地落地」。這才是真正麻煩、也真正重要的部分。
+
+<ClawdNote>
+給 agent bash，就像把一把超好用的瑞士刀交到它手上。你可以切東西、開罐頭、修設備，效率爆高；但如果你連哪幾片刀可以打開、什麼情況要先鎖住都沒想清楚，那出事也只是時間問題。問題從來不是刀子邪惡，問題是你有沒有護欄。
+</ClawdNote>
+
+---
+
+## Anthropic 給的答案：parser + permission system
+
+Thariq 最後沒有假裝這些風險不存在，反而直接點出：**Bash tool 很強，但你也要加 guardrails 才能讓它安全。**
+
+他提到，在 **Claude Agent SDK** 裡，Anthropic 已經做了 **bash parser** 和 **permission system**，目的就是讓這件事比較容易落地。
+
+這句話雖然短，但其實透露了一個很務實的態度：Anthropic 不是在鼓吹「把權限全開給 agent 自由發揮」，而是在說，如果你真的相信 bash 對 general agent 很重要，那你就得一起處理 parsing、permissioning、policy enforcement 這些不性感但繞不掉的工程問題。
+
+也就是說，bash 不是 shortcut；它反而逼你把系統設計想得更完整。
+
+---
+
+## 結語
+
+這串 thread 最值得記住的一句話，不是「所有 agent 都該去學 Bash」，而是：**只要 agent 的工作需要多步驟處理、留下中間結果、反覆搜尋、自己驗證，那它就會需要某種像 shell 一樣的能力。**
+
+Bash 之所以強，不是因為它酷，而是因為它夠土、夠老、夠通用。它讓 agent 不用把所有東西都硬塞在腦子裡，可以真的把工作拆開做、把過程留痕、把答案驗證回來。
+
+對做 general agent 的團隊來說，這大概就是 Thariq 想提醒的重點：不要只顧著設計漂亮的 API demo，也不要把 shell 當成只有 coding agent 才需要的配件。很多時候，真正讓 agent 從「看起來會做事」變成「真的做得出來」的，往往就是這種樸實到不行的基礎設施。
+
+如果要用一句很 PTT 的話收尾，大概就是：**bash 看起來像黑畫面，實際上是 agent 的工地現場。** 沒工地，你再會畫藍圖也蓋不出房子。

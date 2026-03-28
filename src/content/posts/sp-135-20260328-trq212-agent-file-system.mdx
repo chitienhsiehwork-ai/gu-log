@@ -1,0 +1,188 @@
+---
+ticketId: "SP-135"
+title: "Your Agent Should Use a File System：比起撐大 context window，讓 AI 學會找資料更重要"
+originalDate: "2025-09-22"
+translatedDate: "2026-03-28"
+translatedBy:
+  model: "GPT-5.4"
+  harness: "OpenClaw"
+  pipeline:
+    - role: "Written"
+      model: "GPT-5.4"
+      harness: "OpenClaw"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+source: "@trq212 on X"
+sourceUrl: "https://x.com/trq212/status/1970243253061783669"
+lang: "zh-tw"
+summary: "Anthropic 工程師 Thariq 丟出一個超值得抄的觀點：AI agent 不該把 state 硬塞進 context window，而該用 file system 落地。這不只比較能跨 session 持久保存，還能讓 agent 反覆搜尋、驗證、修正自己的工作。"
+tags: ["shroom-picks", "ai-agent", "file-system", "claude-code"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+如果你最近有在玩 AI agent，應該很常聽到一種很像科幻小說的講法：只要 context window 再大一點，agent 就能一次記住更多東西，然後世界和平。
+
+Thariq 這串 thread 基本上就是站出來說：**沒有，別做夢了。** 他第一句就很嗆，直接丟出一句 *"Your agent should use a file system"*，還補一句 *"This is a hill I will die on."* 這種語氣不是在聊天，這是在插旗。
+
+但有趣的是，他不是在賣玄學。他講的是一個非常樸素、非常工程師、也非常好用的觀念：**agent 的 state，不要只活在對話記憶裡；把它寫進 file system。**
+
+這就像人類工作不是靠把所有事情硬背在腦子裡。我們會寫 note、存文件、開資料夾、貼便利貼。你不需要記住每一封 email 的全文，你只需要知道去哪裡找、怎麼 grep、怎麼回頭驗證。這才是能長期運作的系統 (◍•ᴗ•◍)
+
+## 這串 thread 在吵什麼？
+
+Thariq 的核心論點其實很簡單：**file system 是一種優雅的 state 表示方式。** agent 可以把資訊寫成檔案，再在需要時讀回 context，而且最關鍵的是——它可以用那些檔案來**驗證自己的工作**。
+
+這句話很重要，因為它把 file system 的角色從「只是拿來存東西」升級成「讓 agent 能 self-check 的工作台」。
+
+不是只有 persistence 而已。還有可搜尋、可比對、可多次迭代、可對 exact lines 做 grounding。這些東西一加上去，agent 的行為就從「憑印象亂答」變成「有根據地做事」。
+
+<ClawdNote>
+很多人一講 agent memory，腦中浮現的都是 fancy vector DB、超長 context、神秘 orchestration。那些當然不是不能用，但 Thariq 這篇最強的地方就在於：他先把問題拉回最便宜、最通用、幾乎每台機器都有的 primitive——file system。不是每件事都要上太空，有時候先把筆記本拿出來就贏了。
+</ClawdNote>
+
+---
+
+## 為什麼 context window 不是答案
+
+Thariq 說，是 Claude Code 讓他更確信這件事。
+
+在 Claude Code 之前，很多人真的相信一個美好未來：context window 只要長到可以把整個 codebase 塞進去，程式開發這題就解了。
+
+但他說，**程式設計根本不是這樣運作的。** 你不是把所有檔案逐字背起來才會寫 code。你真正需要的是：知道哪裡有答案、怎麼把它找出來、怎麼交叉比對自己有沒有看錯。
+
+這就像你不會要求一個資深工程師把整個 monorepo 背到滾瓜爛熟。真正厲害的人，是知道去哪個資料夾、看哪支檔案、搜哪個 symbol、翻哪段 log。懂得 retrieval，比硬撐記憶體重要太多。
+
+換句話說，**bigger context window 比較像是給你更大的腦內暫存區；file system 則像是給你一個真的辦公桌、抽屜跟文件櫃。** 前者只能暫時塞，後者才能整理、回看、標記、重來。
+
+<ClawdNote>
+這也是為什麼「超長 context = 萬靈丹」這種論述很容易讓人誤會。你把整個 codebase 一口吞進去，聽起來很帥；但真正寫程式時，最常見的動作其實不是「全記住」，而是「定位 → 讀取 → 修改 → 驗證 → 再修」。這是一個 workflow，不是一場背誦比賽。
+</ClawdNote>
+
+---
+
+## 一個 email agent 的實戰例子：先落地，再 grep
+
+Thariq 拿自己開源的 email agent 當例子，這個例子非常有說服力。
+
+一般人如果要讓 agent 處理很多 email，直覺做法常常是：把一大坨 email 內容丟進 context，然後希望模型自己整理出地址、線索或關係。
+
+他的做法不是這樣。他把 email **寫進檔案**，然後讓 agent 去 **grep 這些檔案**。
+
+差別在哪？差超多。
+
+因為 agent 不再只有一次機會。它可以先試第一種 address search，找不到就換第二種，再不行就交叉比對不同文件。找到候選答案之後，還可以對 exact lines 回頭確認，避免自己 hallucinate，最後再把結果抽成 structured output。
+
+這整段的關鍵不是 grep 很神，而是：**file system 讓 agent 能做 multi-pass work。** 它可以反覆搜尋、反覆驗證、反覆修正，而不是一次猜中就算你運氣好。
+
+這種工作方式超像真人。你在公司要查一個客戶的 email，也不是靠靈感突然頓悟。你會翻 inbox、搜關鍵字、對時間、看前後文、確認拼字，最後才敢送出去。agent 也是一樣。
+
+---
+
+## 五個超有感的 use case
+
+接下來 Thariq 一口氣列了好幾種 file system 用法，而且每一個都很有畫面。
+
+### Memory：把對話和上下文存成可搜尋的檔案
+
+第一個是 memory。不是那種很玄的「AI 會記得你的一切」，而是很務實地把先前對話存成 markdown 或 JSON 檔，之後需要時再去 search，甚至可以連到特定架構說明。
+
+這個設計的好處很實際：**記憶變成可檢查的東西。** 不是模型嘴巴說「我記得你之前提過」，而是真的能指出是哪份檔案、哪段內容。
+
+### React artifacts：先寫成檔，再跑 lint，再修
+
+第二個是 React artifacts。Thariq 的意思很直白：agent 在寫 code 時本來就會犯錯，所以不要奢望它一次吐出完美內容。比較好的做法，是先把東西寫到 file，再跑 lint script，讓 agent 根據錯誤訊息修正。
+
+這件事看起來平凡，實際上超重要。因為它把「生成」變成「生成 + 檢查 + 修復」的閉環。這比只靠模型在腦內想像哪裡可能出錯，穩太多。
+
+### Deep Research：多個 subagents 寫 markdown，主 agent 再統整
+
+第三個是 Deep Research。這裡的畫面非常 agent-native：你放出多個 subagents，各自把研究結果寫成 markdown 檔，然後 orchestrator agent 再去讀、搜、交叉整理，最後做總結。
+
+這個模式超像一個真的研究團隊。每個人各自寫 memo，最後由主持人收斂觀點、比對引用、產出結論。不是所有資訊都擠在同一個 chat 裡互相踩來踩去，舒服很多。
+
+<ClawdNote>
+這一段其實已經不只是「拿 file system 當 storage」而已了，而是把它當成 agent 之間的協作介面。誰查了什麼、找到哪些來源、哪一版摘要比較完整，全部都能留痕。你哪天要 debug 一個多 agent workflow，這種留痕能力真的像救命索。沒有檔案落地時，出事就只剩「嗯……我猜它那時候可能有想到吧」這種鬼故事。
+</ClawdNote>
+
+### Planning 與 scratch pads：把中間思考寫下來，才不會一直重做
+
+第四個是 planning 和 scratch pads。對難題尤其重要。
+
+如果問題很硬、流程很長、還有多個 subagents 一起做，你很容易出現一種經典悲劇：A 做過的事情 B 不知道，B 做過的事情主 agent 忘了，最後大家一起重工，像在辦公室裡玩失憶接力。
+
+把 plan、note、pending questions 寫進 file system，等於幫整個任務建了一塊共用白板。就算 session 重開，也比較能接得上。
+
+### Dungeons & Dragons：連 AI 地城主持都適合
+
+最有趣的是最後這個例子：Dungeons & Dragons。
+
+Thariq 說，與其讓 AI DM 硬記住你跟它講過的每一件事，不如讓它把地點、角色、怪物、秘密、世界設定都寫成檔案，整理好。等玩家進到哪個場景，再讀取對應 context 就好。
+
+這個例子看起來很宅，但其實超精準。因為它點出一件事：**很多 agent 問題的本質不是 intelligence 不夠，而是 state management 太爛。**
+
+你叫一個 AI 同時扮演記錄員、檔案管理員、即時反應者、敘事者，而且還只能靠對話記憶撐著，難怪最後會失憶。
+
+---
+
+## 為什麼社群反應這麼熱烈
+
+這串 thread 底下的回覆幾乎是一面倒認同，因為很多人其實都已經在實戰裡踩到同一個坑了。
+
+有人直接說 file system 的優點太完整了：
+
+- 幾乎是 unlimited storage capacity
+- 可以跨 sessions 持久存在
+- 可以用 grep 搜
+- 可以存成人類看得懂的 JSON / Markdown
+- 可以用 Git 留 audit trail
+- 多個 agents 也能一起協作
+
+也有人把這個觀點再往上抽象一層：**重點不是一定得是 file system，而是 agent 需要 durable persistence layer。** 不要老想著 one shot 把事情做完、全靠 memory 撐。
+
+另外幾個回覆也很有共鳴。
+
+有人說，當 Claude Code 快撞 context window 極限時，他會直接叫它把目前進度跟 pending todos 寫成檔案，再開新 session 讀檔接手。這個做法真的很像資深工程師會做的事：不是硬撐，而是交接。
+
+還有人提到，作業系統本身圍繞著 file system 已經長出一整套超成熟的 API 跟工具鏈。你要 search、diff、grep、watch、version、share，全都有現成輪子。某種程度上，這比你臨時自己拼一堆 REST API 還自然。
+
+<ClawdNote>
+這也是我最喜歡這串的地方：它不是那種「作者突然發明一個新宇宙」的 thread。比較像是有人終於把一票工程師心裡早就知道、但一直沒被講得這麼清楚的事，一口氣說破。於是底下大家不是在吵，而是在排隊說「對，我也是這樣幹的」。這種 thread 通常都很有料。
+</ClawdNote>
+
+---
+
+## 真正值得抄走的，不只是 file system，而是這個心智模型
+
+如果你把這串 thread 只讀成「喔，所以我要叫 agent 多寫幾個 txt 檔」，那就有點可惜了。
+
+它真正值得抄的是背後那個心智模型：**不要把 agent 設計成只能在腦中 one-shot 解題；要給它一個外部、可持久、可搜尋、可回頭驗證的工作環境。**
+
+file system 之所以強，不只是因為便宜，而是因為它天然符合很多現實工作的需求：
+
+- state 可以落地
+- 過程可以留痕
+- 錯誤可以重查
+- 多 agent 可以交接
+- 人類也能直接打開來看
+
+這其實跟人類團隊的協作哲學很像。真正穩的團隊，不會把所有知識都鎖在某個人腦子裡；他們會寫文件、開 issue、留 commit、存 runbook。AI agent 走到最後，大概也會長成這個樣子。
+
+而且 Thariq 最後還補了一句：很多 file system 的用法，本來就會跟 code generation 綁在一起。他接下來還會繼續寫，談怎麼把 code generation 用在不只是 coding agent 的場景。
+
+這個預告其實很值得期待，因為它暗示了一件事：**code 不只是產品本身，也可以是 agent 用來搭工作流程、搭中介介面、搭臨時工具的材料。**
+
+---
+
+## 結語
+
+Thariq 這篇會紅，不只是因為他在講 file system。
+
+而是因為他點破了一個很多人隱約感覺到、但一直沒講得這麼清楚的事：**context window 再大，都不代表 agent 就會工作。真正讓系統穩起來的，是它有沒有地方可以把狀態放下來、回頭翻、交叉查、修正自己。**
+
+說穿了，這不是在教 AI 怎麼變超能力英雄，而是在教它先學會當一個正常上班的人：該記在文件裡的，就記在文件裡；該搜尋的時候，就去搜尋；該驗證的時候，就不要靠感覺。
+
+很樸素，但很強。
+
+而且這種樸素的設計，通常才活得久。
