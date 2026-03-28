@@ -5,20 +5,22 @@
  */
 import { execSync } from 'node:child_process';
 
-let cache: Record<string, number> | null = null;
+let cache: Record<string, number | null> | null = null;
+let gitAvailable = true;
 
-export function getPostVersion(postId: string): number {
+export function getPostVersion(postId: string): string {
   if (!cache) {
     cache = buildVersionCache();
   }
+  if (!gitAvailable) return 'X';
   const key = `src/content/posts/${postId}.mdx`;
-  return cache[key] ?? 1;
+  const count = cache[key];
+  return count ? String(count) : '1';
 }
 
 function buildVersionCache(): Record<string, number> {
   const versions: Record<string, number> = {};
   try {
-    // One git command: get all commits with their changed files under src/content/posts/
     const out = execSync(
       'git log --name-only --pretty=format: -- src/content/posts/',
       { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024 },
@@ -30,7 +32,8 @@ function buildVersionCache(): Record<string, number> {
       }
     }
   } catch {
-    // git unavailable (e.g. Vercel deploy without .git) — all versions stay 1
+    // git unavailable (e.g. Vercel shallow clone) — flag it so UI shows "vX"
+    gitAvailable = false;
   }
   return versions;
 }
