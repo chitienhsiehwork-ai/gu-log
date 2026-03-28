@@ -116,11 +116,16 @@ const t = i18n[lang];
   let loadPromise: Promise<void> | null = null;
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
   let selectedIndex = -1;
+  let previouslyFocused: HTMLElement | null = null;
+
+  // Teleport modal to body level so inert can be applied to all other body children
+  if (modal) document.body.appendChild(modal);
 
   // Fetch locale-specific index on first keystroke (lazy)
   async function loadSearchIndex() {
     try {
       const res = await fetch(`/search-index.${currentLang}.json`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const posts: SearchEntry[] = await res.json();
       searchIndex = posts;
       fuse = new Fuse(searchIndex, {
@@ -136,6 +141,10 @@ const t = i18n[lang];
       });
     } catch (e) {
       console.error('Failed to load search index:', e);
+      loadPromise = null; // reset so next keystroke retries
+      if (results) {
+        results.innerHTML = `<div class="search-no-results">Search unavailable — please try again</div>`;
+      }
     }
   }
 
@@ -159,16 +168,23 @@ const t = i18n[lang];
   }
 
   function openSearch() {
+    previouslyFocused = document.activeElement as HTMLElement | null;
     modal?.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
-    document.querySelector('main')?.setAttribute('inert', '');
+    // Set inert on all body children except the modal overlay
+    Array.from(document.body.children).forEach((el) => {
+      if (el !== modal) (el as HTMLElement).setAttribute('inert', '');
+    });
     setTimeout(() => input?.focus(), 50);
   }
 
   function closeSearch() {
     modal?.setAttribute('aria-hidden', 'true');
     document.body.style.overflow = '';
-    document.querySelector('main')?.removeAttribute('inert');
+    // Remove inert from all body children
+    Array.from(document.body.children).forEach((el) => {
+      (el as HTMLElement).removeAttribute('inert');
+    });
     if (input) input.value = '';
     if (results) results.innerHTML = '';
     selectedIndex = -1;
@@ -177,7 +193,7 @@ const t = i18n[lang];
   function toggleSearch() {
     if (isModalOpen()) {
       closeSearch();
-      trigger?.focus();
+      (previouslyFocused || trigger)?.focus();
     } else {
       openSearch();
     }
@@ -250,10 +266,6 @@ const t = i18n[lang];
         const post = result.item;
         const fuseMatches = result.matches ?? [];
 
-        // Remove 'en-' prefix from slug for en posts
-        const displaySlug =
-          post.lang === 'en' && post.slug.startsWith('en-') ? post.slug.slice(3) : post.slug;
-
         const ticketBadge = post.ticketId
           ? `<span class="search-result-ticket">${escapeHtml(post.ticketId)}</span>`
           : '';
@@ -262,7 +274,7 @@ const t = i18n[lang];
         const summaryHtml = highlightText(post.summary, fuseMatches, 'summary');
 
         return `
-        <a href="${baseUrl}${displaySlug}"
+        <a href="${baseUrl}${post.slug}"
            class="search-result-item"
            role="option"
            data-index="${index}">
@@ -304,7 +316,7 @@ const t = i18n[lang];
   modal?.addEventListener('click', (e) => {
     if (e.target === modal) {
       closeSearch();
-      trigger?.focus();
+      (previouslyFocused || trigger)?.focus();
     }
   });
 
@@ -358,7 +370,7 @@ const t = i18n[lang];
     if (e.key === 'Escape') {
       e.preventDefault();
       closeSearch();
-      trigger?.focus();
+      (previouslyFocused || trigger)?.focus();
       return;
     }
 
