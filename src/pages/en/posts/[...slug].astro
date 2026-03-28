@@ -1,5 +1,6 @@
 ---
 import { getCollection } from 'astro:content';
+import { getPostVersion } from '../../../utils/post-versions';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import TableOfContents from '../../../components/TableOfContents.astro';
 import PrevNextNav from '../../../components/PrevNextNav.astro';
@@ -44,6 +45,8 @@ interface PostScores {
   crossRef?: number;
 }
 const scores = ticketId ? (scoreManifest as unknown as Record<string, PostScores>)[ticketId] : null;
+
+const postVersion = getPostVersion(post.id);
 
 const ticketLabels: Record<string, string> = {
   SD: 'ShroomDog Original',
@@ -159,7 +162,7 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
     <Giscus lang="en" />
 
     <div class="post-version-info">
-      <span class="version-badge">v{post.data.version}</span>
+      <span class="version-badge">v{postVersion}</span>
       <a
         href={`https://github.com/chitienhsiehwork-ai/gu-log/commits/main/src/content/posts/${post.id}.mdx`}
         target="_blank"

@@ -30,7 +30,6 @@ const postsCollection = defineCollection({
       summary: z.string(), // for index page preview
       lang: z.enum(['zh-tw', 'en']).default('zh-tw'),
       tags: z.array(z.string()).optional(),
-      version: z.number().int().positive().default(1),
     })
     .refine(
       (data) => {
