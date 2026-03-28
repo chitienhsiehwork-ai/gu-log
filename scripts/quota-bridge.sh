@@ -123,10 +123,11 @@ else:
         # But we JUST ran one, so sleep until next slot.
         # Minimum 120s (orchestrator cooldown), cap at 7200s (2hr).
         if interval <= 120:
-            print('ok')
+            print('running')
         else:
             wait = min(7200, max(120, int(interval)))
-            print(f'sleep:{wait}')
+            h = f'{wait//3600}h{(wait%3600)//60}m' if wait >= 3600 else f'{wait//60}m'
+            print(f'pacing:{wait}({h})')
 " 2>/dev/null
 }
 
@@ -177,13 +178,14 @@ if pro_remaining < FLOOR:
             dt = datetime.fromisoformat(pro_reset.replace('Z', '+00:00'))
             wait = int((dt - datetime.now(timezone.utc)).total_seconds())
             wait = max(300, wait)
-            print(f'sleep:{wait}')
+            h = f'{wait//3600}h{(wait%3600)//60}m' if wait >= 3600 else f'{wait//60}m'
+            print(f'pacing:{wait}({h})')
         except:
-            print('sleep:3600')
+            print('pacing:3600(1h0m)')
     else:
-        print('sleep:3600')
+        print('pacing:3600(1h0m)')
 else:
-    print('ok')
+    print('running')
 " 2>/dev/null
 }
 
@@ -229,7 +231,8 @@ if remaining_7d < FLOOR:
     except:
         pass
     wait = max(300, wait)
-    print(f'sleep:{wait}')
+    h = f'{wait//3600}h{(wait%3600)//60}m' if wait >= 3600 else f'{wait//60}m'
+    print(f'pacing:{wait}({h})')
 elif remaining_5h < FLOOR:
     # Parse session reset time
     reset_str = data.get('five_hr_reset', '')
@@ -244,8 +247,9 @@ elif remaining_5h < FLOOR:
     except:
         pass
     wait = max(300, wait)
-    print(f'sleep:{wait}')
+    h = f'{wait//3600}h{(wait%3600)//60}m' if wait >= 3600 else f'{wait//60}m'
+    print(f'pacing:{wait}({h})')
 else:
-    print('ok')
+    print('running')
 " 2>/dev/null
 }

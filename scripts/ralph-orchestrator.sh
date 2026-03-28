@@ -53,21 +53,30 @@ CAN_RUN_THRESHOLD=600  # 10 minutes — anything longer, don't start the engine
 
 can_run() {
   local s="$1"
-  [ "$s" = "ok" ] && return 0
+  [ "$s" = "ok" ] && return 0        # legacy compat
+  [ "$s" = "running" ] && return 0
   if [[ "$s" == sleep:* ]]; then
     local secs="${s#sleep:}"
+    [ "$secs" -le "$CAN_RUN_THRESHOLD" ] && return 0
+  fi
+  if [[ "$s" == pacing:* ]]; then
+    local secs="${s%%(*}"
+    secs="${secs#pacing:}"
     [ "$secs" -le "$CAN_RUN_THRESHOLD" ] && return 0
   fi
   return 1
 }
 
-# Extract seconds from "sleep:N" status, 0 for "ok"
+# Extract seconds from status string, 0 for "running"/"ok"
 _parse_sleep() {
   local s="$1"
   if [[ "$s" == sleep:* ]]; then
     echo "${s#sleep:}"
+  elif [[ "$s" == pacing:* ]]; then
+    local secs="${s%%(*}"
+    echo "${secs#pacing:}"
   else
-    echo "0"  # "ok" = no wait needed
+    echo "0"  # "running"/"ok" = no wait needed
   fi
 }
 
