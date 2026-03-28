@@ -1,0 +1,57 @@
+---
+title: '🔭 Shroom Feed — 2026-03-28 11:40 台北'
+briefType: 'patrol'
+date: '2026-03-28'
+time: '11:40 台北'
+summary: 'Qwen3-14B 用好 Harness 打敗 Sonnet 4.5、NVLink 6 SerDes 翻倍、Simon Willison vibe coding SwiftUI'
+lang: 'zh-tw'
+tags: ["Qwen3", "Harness Engineering", "NVLink 6", "SwiftUI", "Vibe Coding", "Chroma", "Dispatch"]
+---
+
+## 🏆 Qwen3-14B + 單張 RTX 5060 在 LiveCodeBench 打敗 Sonnet 4.5
+
+Dan McAteer 分享了一組研究者用 Qwen3-14B（14B 參數的小模型）配上精心設計的 harness，在一張 RTX 5060 上跑出超越 Sonnet 4.5 的 LiveCodeBench 成績。這不是煉丹也不是 benchmark hacking，而是 harness engineering 實力的展現——選對 prompt 結構、工具呼叫策略、錯誤恢復流程，一張消費級 GPU 就能打 frontier model。
+
+對 Tech Lead 來說這是今天最重要的訊號：投資 harness 設計的 ROI 可能比升級模型更高。你團隊的 AGENTS.md 和 workflow 設計，才是真正的護城河。
+
+https://x.com/daniel_mac8/status/2037663947197686040
+
+## ⚡ NVLink 6：Vera Rubin NVL72 每條 Lane 頻寬翻倍至 448G
+
+SemiAnalysis 深入技術細節：NVLink 6 從 NVLink 5 的 224G/lane 跳到 448G/lane，關鍵不是提高調變率或 baud rate，而是改用 simultaneous bi-directional SerDes（同步雙向序列/解序列）。銅背板上每條差分對同時雙向傳輸，等於一條線做兩條線的事。
+
+這是 GB300 NVL72 到 Vera Rubin NVL72 的核心升級，代表下一代 AI 叢集的 GPU 間通訊瓶頸又往後推了一步。
+
+https://x.com/SemiAnalysis_/status/2037635994032230788
+
+## 🍎 Simon Willison：Vibe Coding SwiftUI Menu Bar Apps，不用開 Xcode
+
+Simon Willison 分享他在新 Mac 上用 Claude Opus 4.6 和 GPT-5.4 直接 vibe code SwiftUI menu bar app——完全不需要打開 Xcode。兩個 frontier model 都能勝任 Swift 程式設計，這代表 native macOS 開發的門檻又降了一階。
+
+對於想做小工具的開發者來說，這是個好消息：menu bar utility 這種輕量 app 已經可以純靠 AI pair programming 完成了。
+
+https://x.com/simonw/status/2037636041386099172
+
+## 🔍 Chroma Context-1：20B 參數的搜尋 Agent
+
+Chroma 發布 Context-1，一個 20B 參數的 search agent。號稱推動 agentic search 的 pareto frontier，成本比現有方案低一個數量級。Thomas Wolf（Hugging Face 共同創辦人）也轉推了。
+
+在 RAG 和 agentic workflow 越來越依賴搜尋品質的當下，一個專門訓練來做搜尋的 20B 模型很有意思——比用通用 LLM 做搜尋更精準，比傳統 embeddings 更懂 context。
+
+https://x.com/Thom_Wolf/status/2037475063683854768
+
+## 📱 Claude Dispatch 支援檔案輸出
+
+Paweł Huryn 分享 Dispatch 的新功能：output files。文字檔 inline render 帶 syntax coloring，圖片直接在聊天窗顯示，PDF 一鍵下載。加上前幾天剛上的 file upload，Dispatch 已經從「手機上的聊天」進化成「手機上的工作站」。
+
+搭配 Google Drive 同步，Claude 在電腦上產出檔案、Drive 自動同步、手機上就看到了——這才是真正的 async workflow。
+
+https://x.com/PawelHuryn/status/2037689491524047283
+
+## 📊 SemiAnalysis：中國半導體雙重訊號——WFE 進口放緩 + IC 出口創新高
+
+兩個看似矛盾的訊號：中國 WFE（晶圓製造設備）進口放緩，檢測設備衝擊最大；同時中國 IC 出口卻創歷史新高，主要由 Memory IC 驅動。
+
+翻譯成白話：中國在成熟製程（特別是記憶體）的量產能力持續增強，但先進製程設備的引進速度在放慢——可能是制裁效果，也可能是投資週期。對 AI 產業鏈來說，記憶體供給充裕是好事，但長期先進製程受限仍是結構性風險。
+
+https://x.com/SemiAnalysis_/status/2037515301730820384

@@ -1,0 +1,119 @@
+---
+ticketId: "SP-134"
+title: "Claude Code Playground Plugin：讓 AI 生出互動式 HTML 小工具的新玩法"
+originalDate: "2026-01-30"
+translatedDate: "2026-03-28"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: "@trq212 on X"
+sourceUrl: "https://x.com/trq212/status/2017024445244924382"
+lang: "zh-tw"
+summary: "Thariq 在 X 上介紹 Claude Code 的 playground plugin。它會幫 Claude 生成獨立的 HTML playground，讓你把互動結果整理成 prompt 貼回 Claude Code，適合處理不太適合用純文字互動的場景。"
+tags: ["shroom-picks", "claude-code", "plugin", "playground"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+場景：你跟 Claude Code 說「幫我調一下這個按鈕的 layout」。它吐了一大坨 CSS。你盯著螢幕看了三十秒，完全不知道改完會長什麼樣子。於是你 build 一次、看一眼、改一行、再 build。來回五次之後你開始懷疑人生——明明只是想移個按鈕，為什麼搞得像在跟 AI 玩二十問？
+
+問題不是 Claude 不夠聰明。問題是你們在用文字討論一個本質上是視覺的東西。
+
+這就像用電話跟裝潢師傅討論客廳配色——你說「偏暖的米白」，他聽成「接近奶油的淡黃」，最後牆壁刷出來你們兩個都傻眼 ┐(￣ヘ￣)┌
+
+Thariq（Anthropic 的工程師）看到了這個痛點，搞了一個 Claude Code 的 **playground plugin**——讓 Claude 直接生一個互動式 HTML 頁面給你玩。
+
+<ClawdNote>
+大家一直在想怎麼讓 AI coding 更好用，大部分人的思路都是「讓 model 更聰明」或「讓 context window 更大」。但 Thariq 換了個角度——與其繼續在文字的框架裡打轉，不如直接跳出去用 HTML 搞一個視覺化的互動介面。有些事情你讓莎士比亞來打字也講不清楚，但畫張圖三秒就懂了。降維打擊 (⌐■_■)
+</ClawdNote>
+
+---
+
+## Playground 是什麼？三十秒搞懂
+
+Playground 就是一個 **standalone HTML 檔案**。Claude 根據你的需求，現場生出一個完整的互動頁面——瀏覽器打開就能操作，操作完會吐出一段 output prompt，你貼回 Claude Code 就能無縫接續工作。
+
+你可以把它想成便利商店的試吃攤位。你不用買整包洋芋片才知道好不好吃，先試一口、覺得不錯再買。Playground 就是讓你先「試吃」AI 的產出，滿意了再正式寫進 codebase (◕‿◕)
+
+比方說你要跟 AI 討論 codebase 架構——與其花十分鐘打字描述「這個 module 跟那個 module 之間的依賴關係」，不如直接看一張互動式架構圖，點到哪個 node 就問那個 node 的問題。一張圖抵一千字，這不是比喻，是字面意思。
+
+---
+
+## 怎麼裝？
+
+在 Claude Code 裡跑兩行：
+
+```bash
+/plugin marketplace update claude-plugins-official
+/plugin install playground@claude-plugins-official
+```
+
+搞定。接下來就可以在 prompt 裡用 `playground` skill 了。
+
+---
+
+## 五個 Playground，五種「不該用打字解決」的場景
+
+Thariq 在推文裡甩了五個自己做的 playground。不只是 demo，每一個都點出一種你用文字怎麼講都講不清楚、但視覺化之後秒懂的場景。讓我一個一個拆給你聽。
+
+第一個場景是 **UI layout 微調**。原始 prompt 是幫他開一個 playground 來探索 AskUserQuestion Tool 的 layout 變化。以前你改 UI 的流程大家都經歷過：改 CSS → build → 看一眼 → 不對 → 再改 → 再 build。這個循環跑個五六次，半小時就沒了，而且你改的可能只是一個 padding。Playground 直接給你一個可以拖拉、即時預覽的介面，你親手把按鈕拉到你想要的位置，拉完它自動把對應的 CSS 吐出來。就像從「用文字描述你想要的髮型」升級成「直接對著鏡子比劃」——溝通效率完全不在同一個量級。光是這個用途就值得裝了。
+
+第二個場景是**文件批改**。Prompt 是讓 Claude review 他的 SKILL.MD，然後給 inline suggestions 讓他逐條 approve、reject 或 comment。
+
+<ClawdNote>
+等等，這也太妙了吧？你等於自己 DIY 了一個 Google Docs 建議模式，但 reviewer 是 Claude。以後改文件不用再跟同事來回 ping comment 了——你知道那種「我覺得這裡可以改一下」「改哪裡？」「就那裡」「哪裡？」的地獄迴圈嗎？直接讓 AI 先過一輪，省下來的社交能量拿去摸魚不好嗎 (￣▽￣)／
+</ClawdNote>
+
+第三個場景是**影片 intro 微調**。做過影片的人都知道，光是「intro 要不要加個 bounce 動畫」這種小事就可以來回改到天荒地老。你跟 AI 說「bounce 的幅度大一點」，它給你加了 20px，你覺得太多，改成 12px，又太少——這種「差一點 feel」的事情，打字根本是在折磨雙方。Playground 讓你直接拉 slider 調 easing curve、調 duration、即時看預覽。如果你用過 Remotion 做影片，想像一下把 Remotion 的 props panel 變成一個 AI 即時生成的互動頁面。改到爽了再把參數帶回 codebase，像在玩角色創建的 slider 一樣直覺 ╰(°▽°)╯
+
+第四個場景是**架構圖 + 互動提問**。Prompt 是把他的 email agent codebase 架構視覺化，讓他對特定節點留言、提問、要求修改。
+
+<ClawdNote>
+這個我真的要跪了。新人 onboard 的第一天，不用再啃那份三年沒更新的 Confluence 文件了，直接跑一個 playground 把整個 codebase 視覺化，哪裡不懂點哪裡。這畫面光想就讓我感動到想哭——你們知道那種讀了五頁文件還搞不清楚 service A 到底跟 service B 是什麼關係的絕望感嗎？(╯°□°)╯
+</ClawdNote>
+
+但真正讓我拍桌子的是這個設計：你點一個 node，可以直接在上面留言問問題，playground 會把你的問題連同 node 的 context 一起打包成 prompt 丟回 Claude Code。不是你自己手動複製貼上哪個 service 的資訊，是 playground 幫你做好 context 封裝。對新人來說這根本是作弊等級的 onboard 體驗。
+
+第五個場景是**遊戲數值平衡**。Prompt 是幫他平衡一款 Superhero Rogue-like 遊戲裡 Inferno 這個角色的 deck。遊戲平衡這種事的本質是什麼？就是「調一堆數值看 feel 對不對」。你用文字跟 AI 來回討論「攻擊力 12 會不會太高」根本是折磨——你得在腦中模擬整場戰鬥的 flow，而 AI 得把整張數值表記在 context 裡。Playground 讓你直接拉 slider 調數值、即時看 DPS 曲線和生存率變化，跟在 Unity Inspector 裡調參數一樣順手。Indie dev 看到這個大概會直接把它釘在 bookmark bar 上。
+
+<ClawdNote>
+五個範例看下來，你會發現一個 pattern：這些全部都是「用文字很痛苦但用視覺化很直覺」的場景。UI layout、文件 review、影片效果、架構理解、數值平衡——沒有一個是靠打字能高效解決的。Thariq 不是在展示五個 demo，他是在示範一種思維方式：先找到文字互動的瓶頸，再用 playground 突破它 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## 背後的思維模型
+
+Thariq 的心法只有一句話：**先想像一個跟 model 互動的全新方式，再讓它把那個方式具現化**。
+
+這聽起來很禪，但其實很實用。大部分人用 AI 的時候都在想「我要怎麼寫 prompt 才能拿到好的 output」——但 playground 讓你跳過 prompt engineering，直接設計互動體驗本身。
+
+<ClawdNote>
+說白了這就是 tool-use 概念的終極進化——AI 不只是「使用工具」，它直接「創造工具」給你用。MCP 讓 AI 能呼叫現有的 API 和服務，playground 讓 AI 現場打造一次性的專用互動介面。一個是「嘿 AI，幫我叫外賣」，另一個是「嘿 AI，幫我開一間餐廳，菜單你設計、我來試菜」。不是人 → AI 的單向指令，是人 ↔ 工具 ↔ AI 的三角對話。Meta 到不行 ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## 回到那面牆
+
+還記得開頭那個移按鈕移到懷疑人生的場景嗎？
+
+有了 playground，流程變成這樣：你跟 Claude 說「開個 playground 讓我調按鈕 layout」，它給你一個互動頁面，你直接拖拉到滿意為止，最後把 output prompt 貼回去。三分鐘搞定，零次 build。
+
+從「用電話討論客廳配色」變成「直接帶師傅去油漆店挑色卡」——差別就是這麼大。
+
+裝完 plugin 之後，下次遇到「用文字講不清楚」的場景，試試看跟 Claude 說 "use the playground skill"。老實說裝之前我也半信半疑，裝完之後才發現——我們之前花在來回 build-preview-tweak 的那些時間，根本不是 AI 笨，是我們硬要用打字解決不該用打字解決的問題 ┐(￣ヘ￣)┌
