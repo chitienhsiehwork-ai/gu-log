@@ -311,54 +311,58 @@ if [[ "$TWEET_URL" == *"twitter.com"* ]] || [[ "$TWEET_URL" == *"x.com"* ]]; the
   ORIGINAL_DATE=$(extract_tweet_date "$WORK_DIR/source-tweet.md" || true)
   [ -n "$ORIGINAL_DATE" ] || die "Failed to extract tweet date from bird output"
 
-  # --- Thread detection: chase (N/M) pattern via bird replies ---
+  # --- Thread detection: (N/M) pattern OR reply-based heuristic ---
   THREAD_INDICATOR=$(grep -oE '\([0-9]+/[0-9]+\)' "$WORK_DIR/source-tweet.md" | head -1 || true)
+  THREAD_MAX=20  # hard cap to avoid infinite chasing
+
   if [ -n "$THREAD_INDICATOR" ]; then
     THREAD_TOTAL=$(echo "$THREAD_INDICATOR" | grep -oE '/[0-9]+' | tr -d '/')
-    log_info "Thread detected: $THREAD_INDICATOR (expecting $THREAD_TOTAL tweets)"
+    log_info "Thread detected via (N/M): $THREAD_INDICATOR (expecting $THREAD_TOTAL tweets)"
+  else
+    # Heuristic: always try to chase replies from the same author.
+    # Many threads (especially long ones) don't use (1/N) numbering.
+    # We probe `bird replies` and if the author continues, we follow.
+    THREAD_TOTAL=$THREAD_MAX
+    log_info "No (N/M) indicator — probing for unnumbered thread via replies"
+  fi
 
-    # Chase the thread: follow replies from the same author
-    CURRENT_URL="$TWEET_URL"
-    TWEETS_COLLECTED=1
+  # Chase the thread: follow replies from the same author
+  CURRENT_URL="$TWEET_URL"
+  TWEETS_COLLECTED=1
 
-    for (( i=2; i<=THREAD_TOTAL+2; i++ )); do
-      # +2 gives headroom for off-by-one or unnumbered continuations
-      REPLIES_OUT=$(bird replies "$CURRENT_URL" 2>/dev/null || true)
-      if [ -z "$REPLIES_OUT" ]; then
-        log_warn "No replies found at $CURRENT_URL, stopping thread chase"
-        break
-      fi
+  for (( i=2; i<=THREAD_TOTAL+2 && i<=THREAD_MAX+2; i++ )); do
+    REPLIES_OUT=$(bird replies "$CURRENT_URL" 2>/dev/null || true)
+    if [ -z "$REPLIES_OUT" ]; then
+      [ "$TWEETS_COLLECTED" -eq 1 ] && log_info "No replies found — single tweet, not a thread"
+      break
+    fi
 
-      # Find next tweet from the same author (thread continuation)
-      NEXT_TWEET_URL=$(echo "$REPLIES_OUT" | grep -A5 "@${AUTHOR_HANDLE}" | grep -oE 'https://x\.com/[^ ]+' | head -1 || true)
-      if [ -z "$NEXT_TWEET_URL" ]; then
-        break
-      fi
+    # Find next tweet from the same author (thread continuation)
+    NEXT_TWEET_URL=$(echo "$REPLIES_OUT" | grep -A5 "@${AUTHOR_HANDLE}" | grep -oE 'https://x\.com/[^ ]+' | head -1 || true)
+    if [ -z "$NEXT_TWEET_URL" ]; then
+      break
+    fi
 
-      # Fetch the full tweet and append
-      if bird read "$NEXT_TWEET_URL" >> "$WORK_DIR/source-tweet.md" 2>/dev/null; then
-        TWEETS_COLLECTED=$((TWEETS_COLLECTED + 1))
-        printf '\n---\n' >> "$WORK_DIR/source-tweet.md"
-        CURRENT_URL="$NEXT_TWEET_URL"
-        log_info "  Collected tweet $TWEETS_COLLECTED/$THREAD_TOTAL"
-      else
-        log_warn "  Failed to fetch $NEXT_TWEET_URL, stopping"
-        break
-      fi
+    # Fetch the full tweet and append
+    if bird read "$NEXT_TWEET_URL" >> "$WORK_DIR/source-tweet.md" 2>/dev/null; then
+      TWEETS_COLLECTED=$((TWEETS_COLLECTED + 1))
+      printf '\n---\n' >> "$WORK_DIR/source-tweet.md"
+      CURRENT_URL="$NEXT_TWEET_URL"
+      log_info "  Collected tweet $TWEETS_COLLECTED"
+    else
+      log_warn "  Failed to fetch $NEXT_TWEET_URL, stopping"
+      break
+    fi
+  done
 
-      # Stop if we've got them all
-      if [ "$TWEETS_COLLECTED" -ge "$THREAD_TOTAL" ]; then
-        break
-      fi
-    done
-
-    if [ "$TWEETS_COLLECTED" -lt "$THREAD_TOTAL" ]; then
+  if [ "$TWEETS_COLLECTED" -gt 1 ]; then
+    if [ -n "$THREAD_INDICATOR" ] && [ "$TWEETS_COLLECTED" -lt "$THREAD_TOTAL" ]; then
       log_warn "INCOMPLETE_SOURCE: Only got $TWEETS_COLLECTED/$THREAD_TOTAL tweets"
       log_warn "Proceeding with partial thread — writer prompt will note incompleteness"
       echo "" >> "$WORK_DIR/source-tweet.md"
       echo "⚠️ INCOMPLETE THREAD: Only $TWEETS_COLLECTED of $THREAD_TOTAL tweets were fetched." >> "$WORK_DIR/source-tweet.md"
     else
-      log_ok "Full thread collected: $TWEETS_COLLECTED/$THREAD_TOTAL tweets"
+      log_ok "Thread collected: $TWEETS_COLLECTED tweets"
     fi
   fi
 else
@@ -393,15 +397,20 @@ if [ "$FORCE" = true ]; then
   log_warn "--force enabled; skipping Step 1.5 evaluation"
 else
   step_start "Step 1.5: evaluate worthiness"
+  TWEET_LINE_COUNT=$(wc -l < "$WORK_DIR/source-tweet.md")
   cat > "$WORK_DIR/eval-gemini-prompt.txt" <<EOF_EVAL_GEMINI
-Evaluate whether this tweet is worth translating into a gu-log article.
+Evaluate whether this tweet/thread is worth translating into a gu-log article.
+
+IMPORTANT: The source below may be a multi-tweet thread (separated by ---).
+Evaluate the ENTIRE content holistically, not just the first tweet.
+A thread with multiple substantial tweets IS enough content for an article.
 
 Checklist:
-1. Is the content substantial enough for a gu-log article (not just a one-liner/hot take)?
+1. Is the TOTAL content substantial enough for a gu-log article (not just a one-liner/hot take)?
 2. Is it relevant to gu-log audience topics (AI, tech, developer, indie hacker)?
 3. Does it have enough depth to expand into a full article?
 
-Tweet source:
+Source content (${TWEET_LINE_COUNT} lines):
 $(cat "$WORK_DIR/source-tweet.md")
 
 Output requirements:
@@ -411,14 +420,18 @@ Output requirements:
 EOF_EVAL_GEMINI
 
   cat > "$WORK_DIR/eval-codex-prompt.txt" <<EOF_EVAL_CODEX
-Evaluate whether this tweet is worth translating into a gu-log article.
+Evaluate whether this tweet/thread is worth translating into a gu-log article.
+
+IMPORTANT: The source below may be a multi-tweet thread (separated by ---).
+Evaluate the ENTIRE content holistically, not just the first tweet.
+A thread with multiple substantial tweets IS enough content for an article.
 
 Checklist:
-1. Is the content substantial enough for a gu-log article (not just a one-liner/hot take)?
+1. Is the TOTAL content substantial enough for a gu-log article (not just a one-liner/hot take)?
 2. Is it relevant to gu-log audience topics (AI, tech, developer, indie hacker)?
 3. Does it have enough depth to expand into a full article?
 
-Tweet source:
+Source content (${TWEET_LINE_COUNT} lines):
 $(cat "$WORK_DIR/source-tweet.md")
 
 Output requirements:
