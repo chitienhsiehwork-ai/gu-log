@@ -89,9 +89,8 @@ run_with_fallback() {
 
   # === Opus-first writing chain ===
   # Primary: Claude Opus (best writing quality)
-  # Fallback 1: Gemini 3.1 Pro
-  # Fallback 2: GPT-5.4 Codex
-  # (Flash removed — hallucination risk too high for gu-log content)
+  # Fallback: GPT-5.4 Codex
+  # Gemini is excluded from article writing — only used for tribunal (AI judges)
 
   # 1. Try Claude Opus first
   if claude -p --model opus --permission-mode bypassPermissions < "$prompt_file" > "$out_tmp" 2> "$err_tmp"; then
@@ -102,20 +101,9 @@ run_with_fallback() {
     rm -f "$out_tmp" "$err_tmp" "$prompt_file"
     return 0
   fi
-  log_warn "Claude Opus failed, falling back to Gemini Pro" >&2
+  log_warn "Claude Opus failed, falling back to Codex CLI" >&2
 
-  # 2. Fallback: Gemini 3.1 Pro
-  if GOOGLE_GENAI_USE_GCA=true TERM=dumb NO_COLOR=1 gemini -m gemini-3.1-pro-preview --sandbox false -y < "$prompt_file" > "$out_tmp" 2> "$err_tmp"; then
-    LAST_MODEL_USED=$(model_display_name "gemini-3.1-pro-preview")
-    LAST_HARNESS_USED=$(model_harness_name "gemini-3.1-pro-preview")
-    cat "$out_tmp"
-    cat "$err_tmp" >&2
-    rm -f "$out_tmp" "$err_tmp" "$prompt_file"
-    return 0
-  fi
-  log_warn "Gemini Pro failed, falling back to Codex CLI" >&2
-
-  # 3. Fallback: GPT-5.4 Codex
+  # 2. Fallback: GPT-5.4 Codex
   local prompt_text
   prompt_text=$(cat "$prompt_file")
   if codex exec --model gpt-5.4 --full-auto -- "$prompt_text" > "$out_tmp" 2> "$err_tmp"; then
@@ -126,7 +114,7 @@ run_with_fallback() {
     rm -f "$out_tmp" "$err_tmp" "$prompt_file"
     return 0
   fi
-  log_error "All models failed (Opus → Gemini Pro → Codex)" >&2
+  log_error "All models failed (Opus → Codex)" >&2
   cat "$err_tmp" >&2
   rm -f "$out_tmp" "$err_tmp" "$prompt_file"
   return 1
@@ -438,8 +426,8 @@ EOF_EVAL_CODEX
   STEP15_TIME=$(step_end "Step 1.5")
 fi
 
-# Step 2: Gemini Write
-step_start "Step 2: gemini write draft"
+# Step 2: Write Draft (Opus primary)
+step_start "Step 2: write draft (Opus primary)"
 cat > "$WORK_DIR/gemini-write-prompt.txt" <<EOF_WRITE
 You are writing a gu-log SP article draft in Traditional Chinese.
 
@@ -524,8 +512,8 @@ fi
 [ -s "$WORK_DIR/review.md" ] || die "review.md missing or empty"
 STEP3_TIME=$(step_end "Step 3")
 
-# Step 4: Gemini Refine
-step_start "Step 4: gemini refine"
+# Step 4: Refine (Opus primary)
+step_start "Step 4: refine draft (Opus primary)"
 cat > "$WORK_DIR/refine-prompt.txt" <<EOF_REFINE
 Refine the ${TICKET_PREFIX}-${SP_NUM} draft using review feedback.
 
@@ -561,12 +549,12 @@ STEP4_TIME=$(step_end "Step 4")
 PIPELINE_URL="https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
 FINAL_MDX="$WORK_DIR/final.mdx"
 if [[ -f "$FINAL_MDX" ]]; then
-  [ -n "$WRITE_MODEL" ] || WRITE_MODEL=$(model_display_name "gemini-3.1-pro-preview")
-  [ -n "$WRITE_HARNESS" ] || WRITE_HARNESS=$(model_harness_name "gemini-3.1-pro-preview")
+  [ -n "$WRITE_MODEL" ] || WRITE_MODEL=$(model_display_name "claude-opus")
+  [ -n "$WRITE_HARNESS" ] || WRITE_HARNESS=$(model_harness_name "claude-opus")
   [ -n "$REVIEW_MODEL" ] || REVIEW_MODEL=$(model_display_name "gpt-5.4")
   [ -n "$REVIEW_HARNESS" ] || REVIEW_HARNESS=$(model_harness_name "gpt-5.4")
-  [ -n "$REFINE_MODEL" ] || REFINE_MODEL=$(model_display_name "gemini-3.1-pro-preview")
-  [ -n "$REFINE_HARNESS" ] || REFINE_HARNESS=$(model_harness_name "gemini-3.1-pro-preview")
+  [ -n "$REFINE_MODEL" ] || REFINE_MODEL=$(model_display_name "claude-opus")
+  [ -n "$REFINE_HARNESS" ] || REFINE_HARNESS=$(model_harness_name "claude-opus")
   # Patch top-level model to match actual writer (may differ from what LLM hardcoded in draft)
   sed -i '/^  model: ".*"$/c\  model: "'"$WRITE_MODEL"'"' "$FINAL_MDX"
   # Replace single harness line with full pipeline credits
