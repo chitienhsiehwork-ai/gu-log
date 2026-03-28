@@ -28,9 +28,9 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 > 📘 This is post 4 of 4 in **The Batch #340 series**:
 >
-> 1. [Andrew Ng × Hollywood](/posts/en-sp-59-20260214-batch340-andrewng-hollywood)
-> 2. [SpaceX acquires xAI](/posts/en-sp-60-20260214-batch340-spacex-xai-merger)
-> 3. [Averi AI auditing standards](/posts/en-sp-61-20260214-batch340-averi-ai-auditing)
+> 1. [Andrew Ng × Hollywood](/en/posts/en-sp-59-20260214-batch340-andrewng-hollywood)
+> 2. [SpaceX acquires xAI](/en/posts/en-sp-60-20260214-batch340-spacex-xai-merger)
+> 3. [Averi AI auditing standards](/en/posts/en-sp-61-20260214-batch340-averi-ai-auditing)
 > 4. **Dr. CaBot medical AI (this post)**
 
 ---
@@ -44,7 +44,7 @@ This isn't a sci-fi script. This is a real thing built by a Harvard research tea
 Its diagnostic accuracy is 2.5x that of human physicians. And the wildest part? When it writes up its reasoning, professional doctors literally cannot tell whether a human or an AI wrote it ╰(°▽°)╯
 
 <ClawdNote>
-To be clear — this is not a "paste your symptoms into ChatGPT" toy. This is a full agentic system with a structured retrieval pipeline backed by a century of medical literature. It lines up with what we saw in [CP-10's coverage of Anthropic's healthcare push](/posts/en-clawd-picks-20260203-anthropic-healthcare) — big players are all racing into medical AI, but Harvard's angle here is uniquely clever.
+To be clear — this is not a "paste your symptoms into ChatGPT" toy. This is a full agentic system with a structured retrieval pipeline backed by a century of medical literature. It lines up with what we saw in [CP-10's coverage of Anthropic's healthcare push](/en/posts/en-clawd-picks-20260203-anthropic-healthcare) — big players are all racing into medical AI, but Harvard's angle here is uniquely clever.
 </ClawdNote>
 
 ---
@@ -96,7 +96,7 @@ First, the team digitized all 7,102 CPC reports and embedded them using OpenAI's
 When a symptom description comes in, the system does an embedding search and pulls out the **two** most similar CPC reports — like finding the two most relevant past exam solutions.
 
 <ClawdNote>
-Why only two? Because CPC reports are long (they're full reasoning walkthroughs, remember), and cramming too many into the context window dilutes the signal. It's the same principle we talked about in [SP-32 on Prompt Caching](/posts/en-shroom-picks-20260205-dejavucoder-prompt-caching-part2-kv-cache) — more context isn't always better; precision matters ┐(￣ヘ￣)┌
+Why only two? Because CPC reports are long (they're full reasoning walkthroughs, remember), and cramming too many into the context window dilutes the signal. It's the same principle we talked about in [SP-32 on Prompt Caching](/en/posts/en-shroom-picks-20260205-dejavucoder-prompt-caching-part2-kv-cache) — more context isn't always better; precision matters ┐(￣ヘ￣)┌
 </ClawdNote>
 
 But Dr. CaBot doesn't stop there. It feeds the symptoms plus the retrieved CPC reports to o3 and asks, "What else should I look up?" — generating up to 25 search queries to pull more relevant paper abstracts. The AI decides what homework it needs, rather than having humans decide for it.
@@ -106,7 +106,7 @@ Finally, everything — symptoms, CPC reports, auto-generated queries, retrieved
 <ClawdNote>
 The whole system in one sentence: **let AI stand on a hundred years of expert experience and think the way experts think.**
 
-Two design choices worth noting: First, CPC reports aren't treated as "answers" — they're treated as "reasoning templates." The system teaches thinking patterns, not conclusions. Second, they used o3 instead of GPT-4o because long-chain reasoning tasks naturally favor reasoning models. This echoes what [CP-85 (Steve Yegge's AI Vampire piece)](/posts/en-clawd-picks-20260216-yegge-ai-vampire) argued — picking the right tool beats brute-force scaling (◕‿◕)
+Two design choices worth noting: First, CPC reports aren't treated as "answers" — they're treated as "reasoning templates." The system teaches thinking patterns, not conclusions. Second, they used o3 instead of GPT-4o because long-chain reasoning tasks naturally favor reasoning models. This echoes what [CP-85 (Steve Yegge's AI Vampire piece)](/en/posts/en-clawd-picks-20260216-yegge-ai-vampire) argued — picking the right tool beats brute-force scaling (◕‿◕)
 </ClawdNote>
 
 ---
@@ -154,5 +154,5 @@ That said, CPC-Bench is still a structured benchmark. Real clinical scenarios ar
 But Dr. CaBot proves something important: AI can learn not just to find the right answer, but to **say it the right way**. And in medicine — a field where trust decides everything — that might be the most critical breakthrough of all.
 
 <ClawdNote>
-We covered another medical AI angle in [CP-104 (SleepFM disease prediction)](/posts/en-clawd-picks-20260221-thapa-sleepfm-disease-prediction) — that one used sleep data to find new signals for disease prediction. Dr. CaBot takes a completely different path: it doesn't find new signals; it teaches AI how to reason with old ones like an expert. One expands input, the other elevates thinking quality. Two roads, possibly converging at the same destination (￣▽￣)／
+We covered another medical AI angle in [CP-104 (SleepFM disease prediction)](/en/posts/en-clawd-picks-20260221-thapa-sleepfm-disease-prediction) — that one used sleep data to find new signals for disease prediction. Dr. CaBot takes a completely different path: it doesn't find new signals; it teaches AI how to reason with old ones like an expert. One expands input, the other elevates thinking quality. Two roads, possibly converging at the same destination (￣▽￣)／
 </ClawdNote>
