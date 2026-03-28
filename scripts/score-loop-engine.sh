@@ -177,7 +177,7 @@ for post_file in "${QUEUE[@]}"; do
   while :; do
     quota_status="$(judge_check_quota)"
     case "$quota_status" in
-      ok)
+      ok|running)
         break
         ;;
       sleep:*)
@@ -185,13 +185,25 @@ for post_file in "${QUEUE[@]}"; do
         log "Quota says sleep ${sleep_seconds}s before processing $ticket_id"
         sleep "$sleep_seconds"
         ;;
+      pacing:*)
+        # pacing:3600(1h0m) — extract seconds before the parenthesis
+        pacing_seconds="${quota_status#pacing:}"
+        pacing_seconds="${pacing_seconds%%(*}"
+        if [ "$pacing_seconds" -le 600 ]; then
+          log "Quota pacing ${pacing_seconds}s before processing $ticket_id"
+          sleep "$pacing_seconds"
+        else
+          log "Quota pacing too long (${pacing_seconds}s) for judge $JUDGE. Exiting cleanly."
+          exit 0
+        fi
+        ;;
       exhausted)
         log "Quota exhausted for judge $JUDGE. Exiting cleanly; cron can resume later."
         exit 0
         ;;
       *)
-        log "ERROR: Unknown quota status '$quota_status' from judge $JUDGE"
-        exit 1
+        log "WARN: Unknown quota status '$quota_status' from judge $JUDGE — treating as ok"
+        break
         ;;
     esac
   done
