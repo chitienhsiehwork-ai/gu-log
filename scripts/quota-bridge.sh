@@ -7,10 +7,15 @@ set -euo pipefail
 
 USAGE_MONITOR_PATH="${USAGE_MONITOR_PATH:-$HOME/clawd/scripts/usage-monitor.sh}"
 
-# Cache quota JSON for 60s to avoid hammering APIs
+# Cache quota JSON for 120s to avoid hammering APIs (and getting 429'd)
 _QUOTA_CACHE=""
 _QUOTA_CACHE_TS=0
-_QUOTA_CACHE_TTL=60
+_QUOTA_CACHE_TTL=120
+
+# Per-provider last-known-good cache (survives 429 errors)
+# Written to /tmp so it persists across source-loads within the same daemon
+_QUOTA_LKG_DIR="/tmp/quota-bridge-lkg"
+mkdir -p "$_QUOTA_LKG_DIR" 2>/dev/null || true
 
 _fetch_quota_json() {
   local now
@@ -53,9 +58,15 @@ print('{}')
 " 2>/dev/null)"
 
   status="$(echo "$provider_json" | python3 -c "import json,sys; print(json.load(sys.stdin).get('status','error'))" 2>/dev/null)"
-  if [ "$status" != "ok" ]; then
-    echo "sleep:300"
-    return 0
+  if [ "$status" = "ok" ]; then
+    echo "$provider_json" > "$_QUOTA_LKG_DIR/codex.json"
+  else
+    if [ -f "$_QUOTA_LKG_DIR/codex.json" ]; then
+      provider_json="$(cat "$_QUOTA_LKG_DIR/codex.json")"
+    else
+      echo "sleep:3600"
+      return 0
+    fi
   fi
 
   remaining_5h="$(echo "$provider_json" | python3 -c "import json,sys; print(json.load(sys.stdin).get('session_remaining_pct',0))" 2>/dev/null)"
@@ -148,9 +159,15 @@ print('{}')
 " 2>/dev/null)"
 
   status="$(echo "$provider_json" | python3 -c "import json,sys; print(json.load(sys.stdin).get('status','error'))" 2>/dev/null)"
-  if [ "$status" != "ok" ]; then
-    echo "sleep:300"
-    return 0
+  if [ "$status" = "ok" ]; then
+    echo "$provider_json" > "$_QUOTA_LKG_DIR/gemini.json"
+  else
+    if [ -f "$_QUOTA_LKG_DIR/gemini.json" ]; then
+      provider_json="$(cat "$_QUOTA_LKG_DIR/gemini.json")"
+    else
+      echo "sleep:3600"
+      return 0
+    fi
   fi
 
   python3 -c "
@@ -218,9 +235,18 @@ print('{}')
 " 2>/dev/null)"
 
   status="$(echo "$provider_json" | python3 -c "import json,sys; print(json.load(sys.stdin).get('status','error'))" 2>/dev/null)"
-  if [ "$status" != "ok" ]; then
-    echo "sleep:300"
-    return 0
+  if [ "$status" = "ok" ]; then
+    # Save last-known-good data
+    echo "$provider_json" > "$_QUOTA_LKG_DIR/claude.json"
+  else
+    # API error (429, etc.) — try last-known-good, otherwise sleep 1hr
+    if [ -f "$_QUOTA_LKG_DIR/claude.json" ]; then
+      provider_json="$(cat "$_QUOTA_LKG_DIR/claude.json")"
+      # Fall through to budget pacing with stale data (still better than 5min loop)
+    else
+      echo "sleep:3600"
+      return 0
+    fi
   fi
 
   python3 -c "
