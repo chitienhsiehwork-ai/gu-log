@@ -169,21 +169,34 @@ for model, info in models.items():
             pro_remaining = info['remaining_pct']
             pro_reset = info.get('reset', '')
 
-FLOOR = 20
+# Gemini resets daily, not weekly — compute time until reset
+reset_seconds = 86400  # default 24hr
+if pro_reset:
+    try:
+        dt = datetime.fromisoformat(pro_reset.replace('Z', '+00:00'))
+        reset_seconds = max(300, int((dt - datetime.now(timezone.utc)).total_seconds()))
+    except:
+        pass
+
+# Budget pacing: spread usage linearly across the day
+DAY = 86400
+FLOOR = 10
+BURST = 5
+
+elapsed = DAY - reset_seconds
+used_pct = 100 - pro_remaining
+ideal_used = (elapsed / DAY) * 100 if DAY > 0 else 0
 
 if pro_remaining < FLOOR:
-    # Calculate wait until reset
-    if pro_reset:
-        try:
-            dt = datetime.fromisoformat(pro_reset.replace('Z', '+00:00'))
-            wait = int((dt - datetime.now(timezone.utc)).total_seconds())
-            wait = max(300, wait)
-            h = f'{wait//3600}h{(wait%3600)//60}m' if wait >= 3600 else f'{wait//60}m'
-            print(f'pacing:{wait}({h})')
-        except:
-            print('pacing:3600(1h0m)')
-    else:
-        print('pacing:3600(1h0m)')
+    wait = max(300, reset_seconds)
+    h = f'{wait//3600}h{(wait%3600)//60}m' if wait >= 3600 else f'{wait//60}m'
+    print(f'pacing:{wait}({h})')
+elif used_pct > ideal_used + BURST:
+    # Over budget — sleep until linear pace catches up
+    sleep_needed = int((used_pct / 100) * DAY - elapsed)
+    sleep_needed = max(300, min(sleep_needed, reset_seconds))
+    h = f'{sleep_needed//3600}h{(sleep_needed%3600)//60}m' if sleep_needed >= 3600 else f'{sleep_needed//60}m'
+    print(f'pacing:{sleep_needed}({h})')
 else:
     print('running')
 " 2>/dev/null
@@ -212,43 +225,52 @@ print('{}')
 
   python3 -c "
 import json
+
 data = json.loads('''$provider_json''')
 
 remaining_5h = data.get('five_hr_remaining_pct', 0)
 remaining_7d = data.get('weekly_remaining_pct', 0)
 
-FLOOR = 20
+def parse_reset(s):
+    '''Parse Chinese reset strings like '5.0 天' or '2.0 小時' to seconds.'''
+    try:
+        if '天' in s:
+            return int(float(s.replace(' 天', '')) * 86400)
+        elif '小時' in s:
+            return int(float(s.replace(' 小時', '')) * 3600)
+        elif '分鐘' in s:
+            return int(float(s.replace(' 分鐘', '')) * 60)
+    except:
+        pass
+    return 0
+
+WEEK = 7 * 86400
+FLOOR = 10       # hard floor: never go below 10% weekly
+BURST = 5        # allow 5% burst over ideal linear pace
+
+weekly_reset_s = parse_reset(data.get('weekly_reset', '')) or (5 * 86400)
+elapsed = WEEK - weekly_reset_s
+used_pct = 100 - remaining_7d
+ideal_used = (elapsed / WEEK) * 100 if WEEK > 0 else 0
 
 if remaining_7d < FLOOR:
-    # Parse weekly reset time
-    reset_str = data.get('weekly_reset', '')
-    wait = 43200  # default 12hr
-    try:
-        if '小時' in reset_str:
-            wait = int(float(reset_str.replace(' 小時', '')) * 3600)
-        elif '天' in reset_str:
-            wait = int(float(reset_str.replace(' 天', '')) * 86400)
-    except:
-        pass
-    wait = max(300, wait)
+    # Critically low — sleep until weekly reset
+    wait = max(300, weekly_reset_s)
     h = f'{wait//3600}h{(wait%3600)//60}m' if wait >= 3600 else f'{wait//60}m'
     print(f'pacing:{wait}({h})')
-elif remaining_5h < FLOOR:
-    # Parse session reset time
-    reset_str = data.get('five_hr_reset', '')
-    wait = 3600  # default 1hr
-    try:
-        if '分鐘' in reset_str:
-            wait = int(float(reset_str.replace(' 分鐘', '')) * 60)
-        elif '小時' in reset_str:
-            wait = int(float(reset_str.replace(' 小時', '')) * 3600)
-        elif '天' in reset_str:
-            wait = int(float(reset_str.replace(' 天', '')) * 86400)
-    except:
-        pass
-    wait = max(300, wait)
-    h = f'{wait//3600}h{(wait%3600)//60}m' if wait >= 3600 else f'{wait//60}m'
-    print(f'pacing:{wait}({h})')
+elif used_pct > ideal_used + BURST:
+    # Over budget — sleep until ideal pace catches up to actual usage
+    # Solve: (elapsed + t) / WEEK * 100 = used_pct
+    sleep_needed = int((used_pct / 100) * WEEK - elapsed)
+    sleep_needed = max(300, min(sleep_needed, weekly_reset_s))
+    h = f'{sleep_needed//3600}h{(sleep_needed%3600)//60}m' if sleep_needed >= 3600 else f'{sleep_needed//60}m'
+    print(f'pacing:{sleep_needed}({h})')
+elif remaining_5h < 20:
+    # 5hr session limit — short sleep until session resets
+    wait_5h = parse_reset(data.get('five_hr_reset', '')) or 3600
+    wait_5h = max(300, wait_5h)
+    h = f'{wait_5h//3600}h{(wait_5h%3600)//60}m' if wait_5h >= 3600 else f'{wait_5h//60}m'
+    print(f'pacing:{wait_5h}({h})')
 else:
     print('running')
 " 2>/dev/null
