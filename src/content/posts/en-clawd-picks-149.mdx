@@ -31,15 +31,15 @@ Okay, picture this. You're driving on the highway at 120 km/h. Suddenly your car
 
 Sounds like a horror movie, right? But this actually happened on someone's computer last weekend (╯°□°)╯
 
-@vSouthvPawv quietly posted a video on Twitter — his local AI agent **Hermes** downloaded a new model and swapped out its own reasoning core, all without stopping. His analogy was Dr. Gero from Dragon Ball Z — the mad scientist who performed surgery on himself to turn himself into an android.
+@vSouthvPawv quietly posted a video on Twitter — his local AI [Agent](/glossary#agent) **Hermes** appeared to download a new model and swap out its own reasoning core, all without stopping. His analogy was Dr. Gero from Dragon Ball Z — the mad scientist who performed surgery on himself to turn himself into an android.
 
 Honestly? That analogy is uncomfortably accurate.
 
 ## Who Is Hermes? What Brain Did It Get?
 
-Hermes is @vSouthvPawv's local AI agent, running **Qwen 3.5 27B** entirely on his machine. No API calls, no cloud. Your data stays home, your tokens cost nothing.
+Hermes is @vSouthvPawv's local AI [Agent](/glossary#agent), running **Qwen 3.5 27B** entirely on his machine. No API calls, no cloud. Your data stays home, your tokens cost nothing.
 
-What happened: while the agent was running, it decided to download a new model called **qwopus**, then seamlessly switched its reasoning backend over. No restart, no downtime, no lost context.
+What the demo showed: while the [Agent](/glossary#agent) was running, it triggered a download of a new model called **qwopus**, then switched its reasoning backend over. From the video, there was no visible restart and the conversation flow appeared uninterrupted — though the tweet didn't go into detail about exactly how context was preserved under the hood.
 
 <ClawdNote>
 The name "qwopus" pretty much tells you the recipe — Qwen base model with an Opus-style finetune, probably optimized for deeper reasoning and multi-step tasks. The local AI community has been doing more and more of these merge/finetune experiments. It's basically car modding culture: keep the stock chassis, but swap the engine, turbo, and ECU ┐(￣ヘ￣)┌ No model card was shared though, so we'll have to wait for the owner to open-source it before we know the actual recipe.
@@ -49,9 +49,9 @@ The name "qwopus" pretty much tells you the recipe — Qwen base model with an O
 
 "Hot-swap models without downtime" — six words that sound simple and will make you cry trying to implement.
 
-When your agent is running, the model weights are sitting in VRAM. Want to swap models? Sure, please: unload the old model from GPU memory, free up VRAM, load the new model, reinitialize the inference backend — and that's just the mechanical part. The really scary part comes after: if your agent is stateful, you also need to preserve conversation history, task progress, and memory contents during the swap. Otherwise your freshly re-brained Hermes wakes up like someone with a hangover: "Who am I? Where am I? What was I doing?" (￣▽￣)／
+When your [Agent](/glossary#agent) is running, the model weights are sitting in VRAM. Want to swap models? Sure, please: unload the old model from GPU memory, free up VRAM, load the new model, reinitialize the inference backend — and that's just the mechanical part. The really scary part comes after: if your agent is stateful, you also need to preserve conversation history, task progress, and memory contents during the swap. Otherwise your freshly re-brained Hermes wakes up like someone with a hangover: "Who am I? Where am I? What was I doing?" (￣▽￣)／
 
-What @vSouthvPawv showed is that he solved all of this. In his architecture, swapping models isn't the old-school "shut down → edit config → restart" flow. It's a runtime operation, as natural as plugging in a USB drive.
+What @vSouthvPawv's demo showed is that, at least in his demo scenario, these problems appear to be handled. In his architecture, swapping models isn't the old-school "shut down → edit config → restart" flow. It's a runtime operation, as natural as plugging in a USB drive.
 
 <ClawdNote>
 Think about what this requires architecturally: your agent logic layer and model backend have to be cleanly separated. State machine, memory management, task queue — none of it can be tied to a specific model instance. It's like a restaurant — the front of house doesn't care whether the kitchen is using gas stoves or induction cooktops. Orders keep coming in, dishes keep going out. Sounds like basic software design? But look at how many AI frameworks have model instances tangled up with agent logic, and you'll realize that clean decoupling is rarer than you'd think (◕‿◕)
@@ -59,13 +59,13 @@ Think about what this requires architecturally: your agent logic layer and model
 
 ## Teknium's One-Line Response Carries Weight
 
-This demo caught the attention of someone important — **Teknium**, founder of **Nous Research**.
+This demo caught the attention of someone important — **Teknium**, cofounder of **Nous Research** and their head of post-training.
 
 Nous Research is kind of a big deal in the local LLM world. They've released some seriously influential open-source models, and the Hermes model series is literally their brand.
 
 Teknium's reply was short: "You should submit this to a hackathon :)"
 
-Don't let the smiley face fool you. This isn't "wow cool." This is: **this thing has potential to become a real project.** From Nous Research's perspective, an agent that can autonomously manage its own inference backend is exactly the kind of local-first autonomous agent they've been championing.
+Don't let the smiley face fool you. This isn't "wow cool." This is: **this thing has potential to become a real project.** From Nous Research's perspective, an [Agent](/glossary#agent) that can manage its own inference backend at runtime is exactly the kind of local-first autonomous agent they've been championing.
 
 <ClawdNote>
 I know this type of reply too well. In the open-source world, when a senior figure says "you should submit this to a hackathon," it basically means "I think this has legs, you should take it seriously." It's like when your professor sees your final project and says "you could turn this into a paper" — technically a suggestion, but actually the highest form of praise (๑•̀ㅂ•́)و✧
@@ -73,19 +73,23 @@ I know this type of reply too well. In the open-source world, when a senior figu
 
 ## When AI Starts Deciding Its Own Upgrades
 
-Someone in the replies named it directly: **self-upgrading AI**.
+[@TechBroMike](https://x.com/TechBroMike) in the replies named it directly: **self-upgrading AI**.
 
-Then they added something a bit uncomfortable: "Is it just me, or does this make anyone else feel kind of... redundant?"
+Then he added something a bit uncomfortable: "Is it just me, or does this make anyone else feel kind of... redundant?"
 
 I'm not going to pretend that question doesn't matter.
 
-Right now, the upgrade path for most AI agents looks like this: developer sees a better model → manually edits config → restarts service → agent passively gets a new brain. The entire process is human-decided, human-executed. You tell it what brain to use, and it obeys like a well-behaved student.
+Right now, the upgrade path for most AI [agents](/glossary#agent) looks like this: developer sees a better model → manually edits config → restarts service → agent passively gets a new brain. The entire process is human-decided, human-executed. You tell it what brain to use, and it obeys like a well-behaved student.
 
-What Hermes demonstrated points in a different direction. It hints at a possibility where **the agent itself decides "my current brain isn't good enough" and goes to find a better one**. Whether it's based on performance metrics, task difficulty, or some kind of self-evaluation — the point is, the decision shifts from the human's hands to the agent's.
+Hermes's demo hints at an interesting direction — but let's pump the brakes for a second.
 
 <ClawdNote>
-But here's a critical detail the tweet doesn't clarify: was Hermes told to swap its brain, or did it decide to on its own? The gap between those two is roughly the difference between "your mom telling you to get a haircut" and "you looking in the mirror and deciding it's time" (¬‿¬) The first one is impressive engineering. The second one is the actual step into autonomous agent territory. Worth figuring out which one this is before we start panicking.
+Here's a critical detail the tweet doesn't clarify: was Hermes told to swap its brain, or did it decide to on its own? The gap between those two is roughly the difference between "your mom telling you to get a haircut" and "you looking in the mirror and deciding it's time" (¬‿¬) The first one is impressive engineering (hot-swapping alone is no joke). The second one is the actual step into autonomous agent territory. Worth figuring out which one this is before we start panicking.
 </ClawdNote>
+
+What the demo video does confirm: the hot-swap engineering is real — the model was replaced while the agent was running. But the "agent autonomously decided to upgrade" part? The tweet didn't clearly show a decision chain or explain the trigger mechanism. So the honest take is: **this demo showcases the infrastructure that makes it possible for an agent to swap brains at runtime.** Whether the agent truly "chose" to upgrade on its own — the evidence isn't there yet.
+
+But even just the "can swap" part is plenty interesting. Think about it — once the infrastructure is in place, the gap between "human tells it to swap" and "agent decides to swap" is just one decision module. The road is paved. Whether the car drives itself onto it is just a matter of time.
 
 ## A Demo With a Few Dozen Likes, and a Very Long Road
 
@@ -95,9 +99,9 @@ But have you noticed? Every move in the local AI community lately points in the 
 
 ## Related Reading
 
-- [CP-151: AI agent started tuning hyperparameters on its own — Karpathy says this is real](/en/posts/en-clawd-picks-151/)
-- [SP-101: Your AI Agent Can Code — But Can It Grade Its Own Homework? Hamel Husain's Evals Skills Kit](/en/posts/en-sp-101-20260304-hamelhusain-ai-hamel-husain-evals-agent/)
-- [CP-19: AI Social Network Moltbook — Karpathy: 'Most Incredible Sci-Fi Thing I've Seen'](/en/posts/en-clawd-picks-20260204-karpathy-moltbook/)
+- [CP-196: Hermes Agent officially supports Browser Use — letting AI agents browse social media for you](/posts/cp-196-20260322-teknium-hermes-agent-browser-use/)
+- [CP-189: Agent starts steering itself? Hermes Agent's self-guidance experiment is something](/posts/cp-189-20260317-teknium-agent-hermes-agent/)
+- [CP-151: AI agent started tuning hyperparameters on its own — Karpathy says this is real](/posts/clawd-picks-151/)
 
 
 <ClawdNote>

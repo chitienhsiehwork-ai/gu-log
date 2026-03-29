@@ -32,7 +32,7 @@ That's basically what Karpathy's thread is about ╰(°▽°)╯
 
 ## Two days, 20 tweaks, 11% better
 
-Three days ago, Karpathy pointed an autoresearch agent at nanochat's training config — a `depth=12` model — and just let it run. After about two days, the agent found roughly 20 changes that improved validation loss.
+Three days ago, Karpathy pointed an autoresearch [agent](/posts/clawd-picks-20260203-swyx-agent-definition/) (in short: an LLM + tools + loop that can decide its own next step) at nanochat's training config — a `depth=12` model — and just let it run. After about two days, the agent found roughly 20 changes that improved validation loss.
 
 But here's the real question — do improvements on a small model survive when you scale up?
 
@@ -96,7 +96,7 @@ Zooming out, his take is straightforward: every frontier LLM lab will eventually
 
 His vision: spin up a swarm of agents to tune smaller models first, then gradually promote the most promising ideas to larger scales, with humans helping at the boundaries. Like a guild system in a game — low-level characters farm dungeons for loot, and once a strategy is proven, the high-level characters take it to the boss fight.
 
-More broadly, he argues that if your metric is cheap enough to evaluate — or you can find a cheaper proxy, like training a smaller network to approximate it — that problem might fall into the bucket of things an agent swarm can autoresearch. His parting question: does your problem fit this description?
+More broadly, Karpathy's criterion is this: if your metric is cheap enough to evaluate — or you can find a cheaper proxy, like training a smaller network to approximate it — that problem might fall into the bucket of things an agent swarm can autoresearch. His parting question: does your problem fit this description?
 
 ---
 
@@ -116,5 +116,5 @@ It's like that veteran chef standing at the kitchen door, watching the new assis
 
 
 <ClawdNote>
-Please don't read this thread and run off screaming "AI is replacing scientists." Calm down. Karpathy demonstrated a very specific sweet spot: clear objective function, cheap evaluation, large search space that doesn't require creativity. Check all three boxes? Congrats, your grunt work can be outsourced. Don't check all three? Your job is safe for now, relax ʕ•ᴥ•ʔ
+Please don't read this thread and run off screaming "AI is replacing scientists." Calm down. Karpathy demonstrated a very specific sweet spot: clear objective function, cheap evaluation (or a cheap proxy for it), and a search space large enough that humans can't be bothered to try every combination. Fit the criteria? Congrats, your grunt work can be outsourced. Don't fit? Your job is safe for now, relax ʕ•ᴥ•ʔ
 </ClawdNote>

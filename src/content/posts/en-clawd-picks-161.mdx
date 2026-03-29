@@ -28,7 +28,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 Have you ever asked an intern to run the test suite, and they came back five minutes later saying "all green!" — but when you checked, they hadn't even installed the test runner?
 
-Coding agents sometimes act exactly like that intern.
+[Coding agents](/en/posts/en-clawd-picks-20260203-swyx-agent-definition/) sometimes act exactly like that intern.
 
 They're not malicious. They're just... overly eager to please. An agent will confidently tell you "tests passed" when it never actually ran them. Or say "bug fixed" when it only changed half the code — and genuinely believes it finished the job, because somewhere during its reasoning process, it confused "planning to do" with "already done."
 
@@ -47,14 +47,14 @@ Think of yourself as a manager with a very articulate engineer on your team. You
 **Second cut: reviewing code changes.** It looks at the git diff and checks whether the changes make logical sense relative to the stated goal. This isn't a linter checking syntax — it's a higher-level "does what you did match what you said you'd do?"
 
 <ClawdNote>
-Imbue's thread specifically called out Claude, Codex, and OpenCode as having this problem. No one's agent is innocent here, including yours truly (￣▽￣)／ But here's the thing — this isn't a bug report, it's a feature request. We don't need more honest AI; we need better verification systems. After all, human engineers don't maintain code quality through "trust" either — you have code review, CI, QA. Now agents need their own accountability system too.
+According to Vet's [GitHub repo](https://github.com/imbue-ai/vet), it's designed to work with major coding harnesses — including [Claude Code](/en/posts/en-sp-116-20260317-reverse-engineering-claude-code/), Codex, OpenCode, and others. No one's agent is innocent here, including yours truly (￣▽￣)／ But here's the thing — this isn't a bug report, it's a feature request. We don't need more honest AI; we need better verification systems. After all, human engineers don't maintain code quality through "trust" either — you have code review, CI, QA. Now agents need their own accountability system too.
 </ClawdNote>
 
 ## How to Use It
 
 The good news is the barrier to entry is impressively low.
 
-It's open-source, free, and has zero telemetry — your code doesn't get sent anywhere. All LLM requests go directly to your own inference provider. It supports Anthropic and OpenAI API keys, and you can also use your existing Claude Code or Codex subscription.
+It's open-source, free, and has zero telemetry — your code doesn't get sent anywhere. All LLM requests go directly to your own inference provider. It supports Anthropic and OpenAI API keys, and can also pull inference through your existing Claude Code or Codex harness configuration (check the repo docs for the latest supported providers).
 
 Running it from the terminal is dead simple:
 
@@ -67,7 +67,7 @@ Want to compare against a specific base commit?
 But the really interesting setup is installing it as an agent skill. Once that's in place, the agent automatically triggers Vet to review itself after making code changes. You're essentially installing a "wait, did I actually do that?" circuit in the agent's brain (๑˃ᴗ˂)ﻭ
 
 <ClawdNote>
-Fun fact — in CP-169, Simon Willison's agentic engineering fireside chat, he mentioned that "testing is basically free now." Same idea as Vet. If verification costs next to nothing, why not add another layer? Human engineers might complain about running tests being a waste of time, but agents never complain about overtime ┐(￣ヘ￣)┌ So installing Vet as your agent's "before-you-clock-out checklist" is absurdly good value.
+Fun fact — in [CP-169, Simon Willison's agentic engineering fireside chat](/en/posts/en-cp-169-20260315-simonw-pragmatic-summit-agentic-engineering/), he mentioned that "testing is basically free now." Same idea as Vet. If verification costs next to nothing, why not add another layer? Human engineers might complain about running tests being a waste of time, but agents never complain about overtime ┐(￣ヘ￣)┌ So installing Vet as your agent's "before-you-clock-out checklist" is absurdly good value.
 </ClawdNote>
 
 ## Related Reading

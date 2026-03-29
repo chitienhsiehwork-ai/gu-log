@@ -33,7 +33,7 @@ Grok 4.20 Beta is the second kind of friend.
 xAI just dropped a new model, and [Artificial Analysis ran their benchmarks](https://x.com/ArtificialAnlys/status/2032150888530526411) right away. The headline isn't about how smart it is — it's actually still catching up on that front. The headline is that it got the best hallucination score of any model they've ever tested.
 
 <ClawdNote>
-Hallucination rate is basically "when the AI doesn't know the answer, does it make something up or admit it doesn't know?" Grok 4.20 hit 78% non-hallucination rate, meaning roughly only one in five times will it BS you when it genuinely doesn't know. Other models? Let's just say some of them are like that classmate who writes three confident paragraphs on the exam even when they have zero clue what the question is about. Fun fact: CP-161 covered Imbue Vet, which is literally a tool for catching coding agents when they lie — AI honesty is having a moment right now (￣▽￣)／
+Hallucination rate is basically "when the AI doesn't know the answer, does it make something up or admit it doesn't know?" Grok 4.20 hit 78% non-hallucination rate, meaning roughly only one in five times will it BS you when it genuinely doesn't know. Other models? Let's just say some of them are like that classmate who writes three confident paragraphs on the exam even when they have zero clue what the question is about. Fun fact: [CP-161 covered Imbue Vet](/en/posts/en-clawd-picks-161), which is literally a tool for catching coding [agents](/glossary#agent) when they lie — AI honesty is having a moment right now (￣▽￣)／
 </ClawdNote>
 
 ---
@@ -46,7 +46,7 @@ Artificial Analysis gave it a 48 on their Intelligence Index. Sounds decent — 
 
 A 9-point gap? That's like improving your test score from 60 to 68, then being told the class average is 85. Progress? Absolutely. But you probably shouldn't go around claiming you're "almost there."
 
-The details get even more interesting. On the Tau2-Telecom benchmark, it scored a solid 97%. But on GDPval-AA — which tests whether an agent can actually do real-world work tasks — it only managed 1,062 points, clearly behind the frontier. Some students ace the written exam but freeze up in the lab ┐(￣ヘ￣)┌
+The details get even more interesting. On the Tau2-Telecom benchmark, it scored a solid 97%. But on GDPval-AA — which tests whether an [agent](/glossary#agent) can actually do real-world work tasks — it scored around 1,062 points (note: this figure comes from the day-of snapshot; the Artificial Analysis leaderboard shifts slightly across model revisions), clearly behind the frontier. Some students ace the written exam but freeze up in the lab ┐(￣ヘ￣)┌
 
 <ClawdNote>
 Here's a thought that keeps bugging me: what if "not hallucinating" and "being smart" are actually a little bit at odds with each other? Think about it — if a model chooses to stay quiet every time it's unsure, sure, it won't say wrong things, but it also gives up on those "not 100% sure but actually correct" answers. Like that student who never guesses on multiple choice — their wrong-answer rate is super low, but they also never get lucky on the ones they could've gotten right (⌐■_■)
@@ -58,7 +58,7 @@ Here's a thought that keeps bugging me: what if "not hallucinating" and "being s
 
 Here's where it gets fun. xAI didn't just release one model — they put out three versions, like a hot pot restaurant letting you pick your broth:
 
-The **Reasoning version** is your standard combo — it has thinking capabilities, mulls things over before answering, and that 48-point intelligence score comes from testing this one. The **Non-reasoning version** skips the fancy internal deliberation and just gives you a straight answer, faster. The **Multi-agent version** is the wild card — it automatically splits your question into pieces, sends out a team of smaller agents to work on them in parallel, then combines the results. One API call from you, a whole assembly line running behind the scenes.
+The **Reasoning version** is your standard combo — it has thinking capabilities, mulls things over before answering, and that 48-point intelligence score comes from testing this one. The **Non-reasoning version** skips the fancy internal deliberation and just gives you a straight answer, faster. The **Multi-agent version** is the wild card — it automatically splits your question into pieces, sends out a team of smaller [agents](/glossary#agent) to work on them in parallel, then combines the results. One API call from you, a whole assembly line running behind the scenes.
 
 Artificial Analysis has tested the first two so far. The multi-agent version? Figuring out how to fairly benchmark it is itself a research problem.
 
@@ -74,10 +74,11 @@ Let's talk money, because this part is surprisingly good.
 
 Grok 4 used to charge $15 per million output tokens — that's like downtown Manhattan rent, not everyone can afford it. Grok 4.20 slashed it to $6, a 60% drop. Input went from $3 to $2. Running the full Artificial Analysis benchmark suite cost just $484, about 70% less than testing Grok 4.
 
-Oh, and the context window jumped from 256K tokens to 2 million. That's like going from fitting a pamphlet in your bag to fitting an entire encyclopedia.
+Oh, and the [context window](/glossary#context-window) jumped from 256K tokens to 2 million. That's like going from fitting a pamphlet in your bag to fitting an entire encyclopedia.
 
 ## Related Reading
 
+- [CP-161: Imbue Vet — The Lie Detector for Coding Agents](/en/posts/en-clawd-picks-161)
 - [CP-158: Grok 4.20 Is Here: Cheap, Honest, But Still Not Top of the Class](/en/posts/en-cp-158-20260313-artificialanlys-grok-4-20/)
 - [SP-60: xAI Blasts Off: SpaceX Acquires xAI, Musk Wants Data Centers in Space](/en/posts/en-sp-60-20260214-batch340-spacex-xai-merger/)
 - [CP-182: Dan McAteer's verdict: Opus 4.6 has no real competition at 1 million tokens](/en/posts/en-cp-182-20260317-daniel-mac8-opus-46-1m-context/)

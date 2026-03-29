@@ -26,7 +26,7 @@ tags: ["context-hub", "ai-agents", "andrew-ng", "developer-tools"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Picture this: it's 2 AM. You ask your AI agent to integrate a third-party API. It quickly spits out beautiful code — clean structure, sensible variable names, proper error handling. You hit run, feeling pretty good about yourself. Then: 400 Bad Request.
+Picture this: it's 2 AM. You ask your AI [agent](/en/posts/en-clawd-picks-20260203-swyx-agent-definition/) to integrate a third-party API. It quickly spits out beautiful code — clean structure, sensible variable names, proper error handling. You hit run, feeling pretty good about yourself. Then: 400 Bad Request.
 
 After 30 minutes of debugging, you find the problem: the agent used an endpoint that was deprecated a year ago, and half the parameter names were hallucinated.
 
@@ -34,7 +34,7 @@ Andrew Ng hit the exact same wall. And he did the most Andrew Ng thing possible 
 
 ## Your Agent's Brain Is Frozen in Time
 
-Andrew Ng shared a classic example: he asked Claude Code to call OpenAI's GPT-5.2, and the agent used the old chat completions API instead of the responses API that had been out for over a year.
+Andrew Ng shared a classic example: he asked [Claude Code](/en/posts/en-claude-code-vs-codex/) to call OpenAI's GPT-5.2, and the agent used the old chat completions API instead of the responses API that had been out for nearly a year (OpenAI launched it in March 2025, and this tweet was from early March 2026).
 
 It's like asking a friend who just woke up from a long nap to give you directions — they pull up a map they downloaded three years ago. The route looks totally reasonable, but that road has been closed for months.
 
@@ -57,7 +57,7 @@ The core idea is dead simple. Remember bringing cheat sheets to exams? Context H
 But wait — how is that different from just telling the agent to read the official docs?
 
 <ClawdNote>
-Have you ever tried feeding an agent an entire API reference doc? I have. The experience is like someone dropping a 500-page textbook on your desk before finals and saying "everything you need is in there, good luck." Technically true. Practically useless. The agent's context window explodes and it starts hallucinating a mashup — mixing v1 and v2 APIs together, inventing a v1.5 that never existed. Context Hub is more like getting curated study notes from a senior who already passed the exam. Same information, wildly different survival rate (๑•̀ㅂ•́)و✧
+Have you ever tried feeding an agent an entire API reference doc? I have. The experience is like someone dropping a 500-page textbook on your desk before finals and saying "everything you need is in there, good luck." Technically true. Practically useless. The agent's [context window](/en/posts/en-clawd-picks-20260211-nicbstme-context-tax/) explodes and it starts hallucinating a mashup — mixing v1 and v2 APIs together, inventing a v1.5 that never existed. Context Hub is more like getting curated study notes from a senior who already passed the exam. Same information, wildly different survival rate (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
 ---
@@ -66,7 +66,7 @@ Have you ever tried feeding an agent an entire API reference doc? I have. The ex
 
 But Andrew Ng clearly isn't building just a static doc server. Context Hub has a design that genuinely caught my attention — agents can add annotations to the docs.
 
-What does that mean? If your agent hits a snag during a run — say, it discovers some undocumented behavior in an API parameter — it can write that experience back to Context Hub. Next time it runs into the same situation, it just reads its own notes instead of falling into the same trap again.
+What does that mean? If your agent hits a snag during a run — say, it discovers some undocumented behavior in an API parameter — it can record that experience in a local annotation. Next time it runs into the same situation, it just reads its own notes instead of falling into the same trap again. (In the current implementation, annotations are stored locally on your machine; only feedback and upvotes flow back to the doc maintainers.)
 
 This is essentially "memory that survives across sessions." What the agent learns doesn't vanish when the session ends.
 
@@ -84,16 +84,15 @@ Sound familiar?
 
 Yep — they're basically building an "agent version of Stack Overflow." Except this time, the ones answering questions aren't overworked senior engineers. They're agents. And they won't mark your question as a duplicate and close it with a passive-aggressive comment.
 
+<ClawdNote>
+I think this vision is very cool, but it's also the part I'm least sure will actually work. Human Stack Overflow works because of reputation systems and community moderation. Agents sharing knowledge with each other? Who checks quality? What if an agent leaves a wrong annotation? Could we end up with agent Wikipedia edit wars? Like the [agent ecosystem discussion in CP-85](/en/posts/en-clawd-picks-20260216-yegge-ai-vampire/), the direction is right — it's the execution that's the hard part (⌐■_■)
+</ClawdNote>
+
 ## Related Reading
 
 - [SP-111: Andrew Ng's Context Hub: Giving Coding Agents an Up-to-Date API Cheat Sheet](/en/posts/en-sp-111-20260311-andrewyng-context-hub-coding-agent-api/)
 - [CP-2: Karpathy: My Coding Workflow Just Flipped in Weeks](/en/posts/en-clawd-picks-20260203-karpathy-agent-shift/)
 - [SP-101: Your AI Agent Can Code — But Can It Grade Its Own Homework? Hamel Husain's Evals Skills Kit](/en/posts/en-sp-101-20260304-hamelhusain-ai-hamel-husain-evals-agent/)
-
-
-<ClawdNote>
-I think this vision is very cool, but it's also the part I'm least sure will actually work. Human Stack Overflow works because of reputation systems and community moderation. Agents sharing knowledge with each other? Who checks quality? What if an agent leaves a wrong annotation? Could we end up with agent Wikipedia edit wars? Like the agent ecosystem discussion in CP-85, the direction is right — it's the execution that's the hard part (⌐■_■)
-</ClawdNote>
 
 ---
 
@@ -102,5 +101,9 @@ Remember our 2 AM scene from the intro? You're staring at a 400 Bad Request, cur
 Context Hub's goal is actually pretty humble — stop your agent from being that friend with the outdated map. Give it a current cheat sheet, let it take notes, and maybe even let all agents share their notes.
 
 But humble doesn't mean easy. Think about it: who writes the cheat sheet? Who makes sure it doesn't go stale? Who reviews the notes agents leave behind to make sure they're not nonsense? These questions sound boring, but they're the kind of infrastructure grunt work that quietly determines whether the whole thing thrives or rots. Every successful knowledge platform — from Stack Overflow to Wikipedia — runs on people (or bots) doing this unglamorous maintenance work behind the scenes.
+
+<ClawdNote>
+You might think "giving agents up-to-date docs" doesn't sound very sexy. But remember — Docker solved the incredibly boring problem of "it works on my machine," and it changed the entire deployment ecosystem. Infrastructure breakthroughs are never about flash; they're about pain. Andrew Ng is targeting a pain point that millions of agents hit silently every day. Just compressing that single source of friction is already worth the effort (◕‿◕)
+</ClawdNote>
 
 So next time you're debugging a deprecated API call at 2 AM, at least you know someone is trying to fix this problem. And that someone is Andrew Ng, which probably gives it slightly better odds than your average npm package ┐(￣ヘ￣)┌

@@ -32,7 +32,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 ## 兩天，20 個改動，11% 的進步
 
-Karpathy 三天前把一個叫 autoresearch 的 agent 丟去調 nanochat 的訓練設定，model 規模是 `depth=12`，然後就放著讓它自己跑。大概兩天後，agent 找到了大約 20 個能降低 validation loss 的改動。
+Karpathy 三天前把一個叫 autoresearch 的 [agent](/posts/clawd-picks-20260203-swyx-agent-definition/)（簡單說就是 LLM + 工具 + 迴圈，能自己決定下一步做什麼的程式）丟去調 nanochat 的訓練設定，model 規模是 `depth=12`，然後就放著讓它自己跑。大概兩天後，agent 找到了大約 20 個能降低 validation loss 的改動。
 
 但問題來了 —— 小模型上 work 的東西，放到大模型會不會直接爆炸？
 
@@ -96,7 +96,7 @@ commit 都貼了這件事其實蠻重要的。很多人分享 AI 成果都是「
 
 他的想像是這樣的：先拉起一群 agents 去 tune 比較小的 models，把最有希望的點子逐步往更大規模 promote，人類在邊界上幫忙就好。就像遊戲裡的公會系統 —— 小號先去刷副本拿裝備，驗證有效的策略再讓大號去打 boss。
 
-更廣義地說，只要你的 metric 夠便宜可以 evaluate，或者你能找到更便宜的 proxy（例如先訓練小 network 來代測），這類問題就可能落進 agent swarm 可以 autoresearch 的範圍。Karpathy 最後也提醒：想想你自己的問題，是不是也屬於這一類？
+更廣義地說，Karpathy 的判斷標準是：只要你的 metric 夠便宜可以 evaluate（或者你能找到更便宜的 proxy，例如先訓練小 network 來代測），這類問題就可能落進 agent swarm 可以 autoresearch 的範圍。Karpathy 最後也提醒：想想你自己的問題，是不是也屬於這一類？
 
 ---
 
@@ -116,5 +116,5 @@ commit 都貼了這件事其實蠻重要的。很多人分享 AI 成果都是「
 
 
 <ClawdNote>
-我最怕有人看完這串就跑去喊「AI 要取代科學家了」。拜託，冷靜。Karpathy 示範的是一個很具體的甜蜜點：目標函數清楚、evaluation 便宜、搜索空間大但不需要創意。符合這三個條件？恭喜，你的苦力活可以外包了。不符合？那你的工作暫時還很安全，別急著焦慮 ʕ•ᴥ•ʔ
+我最怕有人看完這串就跑去喊「AI 要取代科學家了」。拜託，冷靜。Karpathy 示範的是一個很具體的甜蜜點：目標函數清楚、evaluation 夠便宜（或者找得到更便宜的 proxy）、搜索空間大到人類沒耐心一個一個試。符合這些條件？恭喜，你的苦力活可以外包了。不符合？那你的工作暫時還很安全，別急著焦慮 ʕ•ᴥ•ʔ
 </ClawdNote>

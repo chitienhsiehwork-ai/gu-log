@@ -28,7 +28,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 Have you ever wondered what a chef cooks at home?
 
-On January 2, 2026, **Boris Cherny** — the creator of Claude Code — answered the AI version of that question: "How does the person who built an AI coding tool actually use it?" The tweet went nuclear. 7.5 million views (◕‿◕)
+On January 2, 2026, **Boris Cherny** — the creator of [Claude Code](/en/posts/en-boris-claude-code-tips/) — answered the AI version of that question: "How does the person who built an AI coding tool actually use it?" The tweet went nuclear — racking up millions of views (◕‿◕)
 
 The answer is wilder than you'd expect. He's not just using Claude Code to build some random project. **He's using Claude Code to build Claude Code itself.** For the past two months, 100% of his code has been AI-generated.
 
@@ -38,12 +38,12 @@ Okay, deep breath. Let's unpack this piece by piece.
 
 Boris's desktop probably looks like a restaurant kitchen during dinner rush: 5 terminal tabs running Claude Code simultaneously, plus another 5-10 sessions open on claude.ai/code.
 
-This isn't showing off. Think of it like a kitchen — one pan searing steak, one pot boiling pasta, garlic bread in the oven, dessert being plated on the side. Each session works on its own thing: one fixing bugs, one building a new feature, one refactoring. Boris is the chef spinning between stations, tasting everything — except he's tasting code diffs instead of sauces.
+This isn't showing off. Think of it like a kitchen — one pan searing steak, one pot boiling pasta, garlic bread in the oven, dessert being plated on the side. Each session works on its own thing: one fixing bugs, one building a new feature, one refactoring. Boris is the chef spinning between stations, tasting everything — except he's tasting code diffs instead of sauces ┐(￣ヘ￣)┌
 
 Each local session is isolated using **git checkout** (not branches, not worktrees). He launches remote sessions with `&` from the CLI and uses `--teleport` to move them between environments.
 
 <ClawdNote>
-Running 5 Claudes at once sounds impressive, but Boris admits that 10-20% of sessions get abandoned due to unexpected complications.
+Running 5 Claudes at once sounds impressive, but Boris mentions in follow-up discussions that some sessions do get abandoned when things go sideways — not every run makes it to the finish line.
 
 It's like placing 5 orders on an online shop — one or two will probably get cancelled or delayed. The point isn't that every session succeeds. It's that your overall throughput goes up. Failure is cheap, success is valuable — the math works out (⌐■_■)
 </ClawdNote>
@@ -68,7 +68,7 @@ Using a stronger model to get the draft right the first time costs about the sam
 
 Every Anthropic team's repo has a `CLAUDE.md` file. Think of it as a "class rules" poster for your AI — it lists things Claude has messed up before, team conventions, and hard-won lessons.
 
-Boris tags colleagues' PRs with `@claude` to capture learnings into this file. Their `CLAUDE.md` has grown to 2.5k tokens.
+Boris tags colleagues' PRs with `@.claude` to capture learnings into this file. Their `CLAUDE.md` has grown to 2.5k tokens.
 
 Every time Claude screws something up, you write it down. Next time it reads `CLAUDE.md`, it knows "oh right, that approach caused problems last time." You can't actually fine-tune Claude, but you can use context to get a similar effect. This "fake continual learning" approach sounds hacky, but it genuinely works.
 
@@ -110,7 +110,7 @@ Sounds minor, but Boris runs these commands dozens of times a day. Saving 30 sec
 
 ## Making AI Clean Up After Itself
 
-Boris configured a PostToolUse hook:
+Boris configured a PostToolUse [hook](/en/posts/en-obsidian-claude-async-hooks/):
 
 ```yaml
 PostToolUse:
@@ -162,11 +162,11 @@ The difference: AI doesn't give you attitude on the third revision.
 
 ## So What Does 27 PRs a Day Actually Mean?
 
-Boris dropped this bomb while replying to Andrej Karpathy:
+Boris dropped this number in a separate reply to Andrej Karpathy (not in the original thread):
 
 > **For the past two months, 100% of my code has been written by Claude Code and Opus 4.5. Yesterday I shipped 22 PRs, the day before 27, each one 100% AI-written.**
 
-The creator of Claude Code, using Claude Code, to build Claude Code, shipping 27 PRs a day. This is AI improving itself, becoming stronger, then using its stronger self to keep improving. If that's not recursive bootstrapping, I don't know what is.
+The creator of Claude Code, using Claude Code, to build Claude Code, shipping 27 PRs a day. It sounds a bit like AI improving its own toolchain — though strictly speaking, Boris is the one directing what gets worked on, not the AI deciding autonomously. Still, the output density is staggering.
 
 And this isn't a lab benchmark. This is real production code, shipping to real users worldwide.
 
@@ -182,5 +182,5 @@ Back to the opening question: what does the chef cook at home?
 
 Turns out Boris cooks the exact same thing at home and at the restaurant — he uses his own tool to build his own tool, then uses the better tool to keep building. Recursion all the way down.
 
-7.5 million people watched this tweet not because Boris revealed some groundbreaking theory. It's because everyone in 2025-2026 is relearning how to write code. The old skill tree: "I know React." The new skill tree: "I know how to use Claude Code to write React." Everyone wanted to see how the expert allocates skill points — and Boris just posted a screenshot of his entire build (◕‿◕)
+Millions of people watched this tweet not because Boris revealed some groundbreaking theory. It's because everyone in 2025-2026 is relearning how to write code. The old skill tree: "I know React." The new skill tree: "I know how to use Claude Code to write React." Everyone wanted to see how the expert allocates skill points — and Boris just posted a screenshot of his entire build (◕‿◕)
 </ClawdNote>
