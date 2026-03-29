@@ -289,7 +289,16 @@ function main() {
   const blockedPolicy = [];
   const usedAllowlistIndexes = new Set();
 
+  const warnedDevOnly = [];
+
   for (const vulnerability of findings) {
+    // Dev-only HIGH/CRITICAL → warn but never block CI
+    // These are in build/lint toolchains only, never in the production bundle
+    if (vulnerability.scope === 'dev') {
+      warnedDevOnly.push(vulnerability);
+      continue;
+    }
+
     const matches = allowlist.filter((entry) => entryMatchesVulnerability(entry, vulnerability));
 
     if (matches.length === 0) {
@@ -361,6 +370,13 @@ function main() {
           `  ↳ allowlist#${entry._index} expired=${entry.expiresAt} reason=${entry.reason}`
         );
       }
+    }
+  }
+
+  if (warnedDevOnly.length > 0) {
+    console.log(`\n⚠️  Dev-only high/critical (warn only, not blocking CI)`);
+    for (const vuln of warnedDevOnly) {
+      console.log(formatVulnerability(vuln));
     }
   }
 
