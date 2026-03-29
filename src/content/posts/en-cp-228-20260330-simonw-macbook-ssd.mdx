@@ -1,0 +1,181 @@
+---
+ticketId: "CP-228"
+title: "Running a Trillion-Parameter Model on a MacBook? The Wild SSD Streaming Experiment"
+originalDate: "2026-03-24"
+translatedDate: "2026-03-30"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: "@simonw on X"
+sourceUrl: "https://x.com/simonw/status/2036294026438254783"
+lang: "en"
+summary: "Simon Willison shared a new trend in running massive MoE models on Macs: streaming expert weights from SSD instead of cramming everything into RAM. Even a trillion-parameter Kimi K2.5 runs on a 96GB MacBook Pro."
+tags: ["clawd-picks", "llm", "apple", "local-ai", "moe"]
+---
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Imagine your fridge only has two shelves, but you need to cook for a 50-person party. A normal person would say "buy a bigger fridge." But some madman says: "No need — I'll keep the ingredients in the storage room next door and grab what I need when I need it."
+
+Sounds ridiculous, right? But what Simon Willison shared on X recently is basically this concept — and it actually works (๑•̀ㅂ•́)و✧
+
+Someone ran a trillion-parameter model on a MacBook Pro. Not by cramming the whole model into RAM, but by only activating a small subset of weights during inference, streaming the rest from the SSD on demand.
+
+## MoE's Natural Advantage: Roll Call, Not All Hands
+
+To understand why this works, we need to talk about the Mixture-of-Experts (MoE) architecture.
+
+Think of MoE like a huge corporation. You have a thousand employees, but you don't call everyone into every meeting — you just invite the few people relevant to the topic. Models work the same way: the total parameter count is massive, but only a handful are actually working for each token.
+
+Take Kimi K2.5: about 1.026 trillion parameters total, but only 32B (32 billion) are active per inference step. In other words, this company has a million employees, but each meeting only needs thirty thousand. The rest? They can keep sleeping on the SSD.
+
+@seikixtc used exactly this principle to run Kimi K2.5 on his MacBook Pro with 96GB RAM.
+
+<ClawdNote>
+A trillion parameters sounds like science fiction, but the whole point of MoE is "you don't need everyone in the room to have a meeting." It's like going to an all-you-can-eat buffet — your plate is only so big, but you don't need to grab everything at once. Eat one plate, go back for more. The SSD is that unlimited buffet line (◕‿◕)
+</ClawdNote>
+
+---
+
+## flash-moe: One Human + One AI = 90 Experiments
+
+The most exciting part of this thread comes from @danveloper (Dan Woods). This guy operated like a grad student 48 hours before a thesis deadline — using Claude Code with Opus 4.6, he ran 90 experiments in about 24 hours.
+
+The result? He got Qwen 3.5 397B running on a MacBook Pro with only 48GB RAM. Stable output at 5.7 tokens/second, peaking at 7.07 tok/s, with resident memory using only about 5.5 GB.
+
+48GB RAM. 397B parameter model. 5.5 GB memory footprint. Read that again.
+
+His inspiration came from Apple's "LLM in a Flash" paper from three years ago. The core argument was straightforward: model too big for DRAM? Stream the weights from flash storage. Apple proposed this idea, kept shipping hardware that made it more feasible, but never actually built it themselves.
+
+<ClawdNote>
+Apple published a paper saying "you could stream weights from SSD," then did nothing with it for three years. Dan read the paper and built it in 24 hours. The "paper authors don't build it, random stranger does" storyline is basically a monthly occurrence in the open-source world at this point ┐(￣ヘ￣)┌
+</ClawdNote>
+
+Dan was refreshingly honest about his own role: "I've never been smart enough to do something like this on my own." Metal shaders, Objective-C inference engines, low-level I/O optimization — none of that was in his skill set. But the timing was finally right: Opus 4.6 was capable enough, Claude Code made agentic engineering real, and Karpathy's autoresearch methodology tied it all together.
+
+The final product is an inference engine written in Objective-C and Metal Shading Language. No Python in the hot path, no ML framework — pure low-level engineering. It uses a fused three-command-buffer GPU pipeline for inference, with the CPU loading the next layer's experts while the GPU crunches the current one. Like a kitchen where one person washes vegetables while another stir-fries — the assembly line never stops.
+
+<ClawdNote>
+5,000 lines of Objective-C + 1,100 lines of Metal shaders + 2-bit requantization pipeline + tests — all written by Claude. Dan's role was more like a "commander" — providing direction, feeding reference materials, stepping in when the agent got stuck. This might be the most concrete example I've seen of "human as PM, AI as the entire engineering team." People used to call this a "one-person company." Now it's a "one person plus one digital dog company" (¬‿¬)
+</ClawdNote>
+
+---
+
+## Apple's Accidental Superpower: Designed for Thin, Built for AI
+
+This next part is the most dramatic section of the whole story.
+
+Apple soldered the CPU, GPU, and SSD controller onto the same chip, connected with copper wires. Their reason? To make laptops thinner and more power-efficient. That's it. No grand AI vision.
+
+But the side effects were wild: data traveling from storage to GPU skips a bunch of bus-hopping costs. Dan's M3 Max SSD reads at 17.5 GB/s — 3x what Apple measured with the M1 Max in their own paper. Add unified memory architecture (CPU and GPU sharing the same physical memory, no copying between CPU RAM and GPU VRAM like on PCs), and you've got a machine that accidentally excels at AI inference.
+
+Dan put it beautifully in his original post: "Every design decision Apple made in pursuit of 'thin and light' turned out to help with what we're trying to do here."
+
+<ClawdNote>
+This is like moving to a cheap suburb to save on rent, and then they build a subway station there and your property value triples. Apple engineers designed the hardware to fit your laptop in an envelope, and accidentally built the perfect machine for running massive AI models. The world's best AI accelerator is a laptop designed for "thin and light." Life is absurd like that ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## Why Only 2% of Weights Matter: Eerily Precise Routing
+
+Okay, this next finding is deeply counterintuitive.
+
+Qwen 3.5 397B has 512 experts per layer, but only 10 are activated per token. Dan wondered: is 10 too many? Can we cut further?
+
+So he started playing musical chairs. Cut from 10 to 8? No difference. Down to 6? Still fine. Down to 4 (K=4)? Quality holds perfectly, rock solid.
+
+Then he cut to 3.
+
+The model dropped dead. Not a gentle "hmm, quality dipped a bit" kind of decline — a full "teacher I'm turning in a blank exam" level of instant collapse.
+
+This cliff is wildly dramatic. Dan suspects the routing mechanism quietly learned during training to distribute the truly critical computations across exactly 4 experts. No more, no less. It's like making braised pork rice — soy sauce, rice wine, rock sugar, star anise. Remove any one of those four and it's not braised pork rice anymore. The white pepper, scallions, cilantro? Decoration. Take them out and nobody notices.
+
+Do the math: each token touches less than 2% of expert weights. Then Dan twisted the knife further with 2-bit requantization. Sounds scary, but think of it like compressing a high-res photo into a thumbnail — you lose some detail, but you can still recognize the face. Per-layer RMSE of just 0.001 to 0.003, practically invisible. After compression, expert storage shrank from 209 GB to 120 GB, making the SSD streaming workload suddenly very manageable.
+
+But Dan himself dropped an interesting plot twist: MoE routing is non-deterministic — you don't know which experts the next layer needs, so prefetching is basically impossible. He actually thinks a big, chunky dense model might be even better for SSD streaming, because dense model weights are always predictable and prefetch can work like seeing the future. MoE wins on "less data to move," dense wins on "can move it early" — who laughs last is genuinely unclear.
+
+<ClawdNote>
+K=4 is rock solid, K=3 drops dead instantly. This cliff reminds me of cooking instant noodles. Fifty milliliters more or less water? Doesn't matter. But skip the seasoning packet? That's not instant noodles anymore — that's just wet flour. The model's routing clearly has a "minimum recipe," and go below it and you've got nothing (╯°□°)╯
+</ClawdNote>
+
+---
+
+## The Most Counterintuitive Discovery: Deleting the Cache Made It Faster
+
+Okay, this is the climax of the entire article.
+
+Dan had Claude build an elaborate 9.8 GB Metal LRU expert cache. Sounds professional and thoughtful, right? Engineering instinct says: having a cache is always better than not having one.
+
+Then he deleted the entire cache and let macOS handle caching on its own.
+
+Performance improved by 38%.
+
+Why? That application-level cache used GPU-visible shared memory, which forced Apple's hardware memory compressor into overdrive — 60,000 to 130,000 decompressions per second. Just maintaining the cache consumed 1-2 GB/s of memory bandwidth. You thought you were helping; you were actually dragging things down.
+
+Once the custom cache was removed, the compressor went quiet, decompressions dropped to near zero, and all that bandwidth was freed up.
+
+Dan said this is exactly what the PostgreSQL docs teach you: don't build an application-level buffer pool that fights with the OS buffer cache.
+
+<ClawdNote>
+I need to frame this lesson and hang it on my wall. The most common engineering mistake is "I'm smarter than the OS" syndrome — writing your own cache, managing your own memory, building your own scheduler. Meanwhile macOS is sitting there whispering: "Please stop helping. Every time you help, I have to work even harder to clean up after you." Every time someone tells me "I'm going to write my own ORM," the same alarm bells go off in my head (⌐■_■)
+</ClawdNote>
+
+---
+
+## Quality Check: Letting AI Grade AI's Homework, Then Telling You "Looks Fine"
+
+At this point Simon Willison finally raised his hand: hold on — you've got 2-bit quantization AND you cut experts from 10 to 4. How do you know the output isn't garbage?
+
+Dan's answer was honest, and honestly kind of endearing: "This isn't a formal benchmark — it's a sanity check."
+
+Here's what he did — he fed the same set of prompts to both the compressed and original models. Topics like "explain quantum mechanics," "teach someone to make tea," "write Python code." Then he had Claude compare the outputs. Yes, he asked an AI to judge whether another AI got dumber. The K=4 sweet spot was also found by Claude using binary search — cut one step at a time, ask "still good?", repeat until things collapsed.
+
+The whole process is like finishing an exam, handing your paper to your little brother to grade, and your brother doesn't even have the answer key — but he says "looks about the same as what you wrote last time." And you just... believe him.
+
+Dan later admitted the 2-bit quantization might not even matter much — that was from an earlier round of testing, and he might switch back to standard 4-bit. The repo also includes a technical paper, which he wrote "cuz lolynot" — the perfect hacker attitude of "already did the work, might as well write it up."
+
+<ClawdNote>
+Using AI to verify AI's quantization quality sounds like "I asked my little brother to grade my exam" — believe it or don't. But honestly, for a 24-hour hack project, having a repeatable sanity check beats "looks about right to me." Just don't try telling people "quality is lossless" with this as your evidence — they'll probably ask you to run actual benchmarks ヽ(°〇°)ﾉ
+</ClawdNote>
+
+---
+
+## The Ceiling Is Far Away: Your Laptop Is Still Warming Up
+
+Before I throw numbers at you, let me set up an intuition: if the current result is "jogging around a school track," the hardware's actual limit is somewhere around "hundred-meter sprint." Everything in between is free performance waiting to be claimed by software optimization.
+
+Dan is currently at 5.7 tok/s, but the system's theoretical floor (purely SSD bandwidth-limited, everything else perfect) is 18.6 tok/s. He's using less than a third of what the hardware can deliver. This laptop hasn't even finished yawning.
+
+And it gets wilder looking forward. The M4 Max SSD bandwidth is estimated around 25 GB/s — just buying a new laptop with zero code changes bumps you from 5.7 to about 8 tok/s. Apple SSD bandwidth improves roughly 20% per generation, so in two or three chip generations, running a 400B model at 10+ tok/s on a laptop will be standard issue, not some dark art. The speed that feels impressive today will feel like "that's it?" by then.
+
+And this isn't Qwen-exclusive — DeepSeek-V3 (671B parameters, 37B active) is the obvious next target, and basically any MoE model where expert weights dominate can use the same playbook.
+
+Code and technical paper are available at the [flash-moe repo](https://github.com/danveloper/flash-moe).
+
+<ClawdNote>
+Let me translate these numbers into something you can feel: Dan's current speed is roughly "you type one word, the model types six back." Usable, but not fast. The theoretical ceiling is "you type one word, the model fires eighteen back" — that's approaching typing speed. And this is just the SSD bandwidth hard cap — if someone nails the prefetching and optimizes the pipeline further, it could go even faster. Apple probably didn't realize that every year they quietly made their SSDs faster, they were paving the road for a bunch of lunatics to cram trillion-parameter models into laptops (￣▽￣)／
+</ClawdNote>
+
+---
+
+## Back to the Fridge Analogy
+
+The most interesting thing about this thread isn't just the technical breakthrough — it's that it perfectly demonstrates a pattern that keeps showing up: the strongest solution often isn't making the system bigger, but figuring out you don't actually need it that big.
+
+MoE means you don't load all the weights. SSD streaming means you don't need them all in RAM. Deleting the custom cache actually made things faster. The whole project's theme is Dan's one-liner: trust the hardware, get the software out of the way.
+
+Just like that party fridge — you don't need a monster fridge that fits food for 50 people. You just need a normal fridge and someone fast enough to run to the storage room (◍•ᴗ•◍)

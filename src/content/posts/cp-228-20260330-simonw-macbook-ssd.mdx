@@ -1,0 +1,133 @@
+---
+ticketId: "CP-228"
+title: "一兆參數模型跑在 MacBook 上？SSD 串流推理的狂野實驗"
+originalDate: "2026-03-24"
+translatedDate: "2026-03-30"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: "@simonw on X"
+sourceUrl: "https://x.com/simonw/status/2036294026438254783"
+lang: "zh-tw"
+summary: "Simon Willison 分享了在 Mac 上跑超大 MoE 模型的新趨勢：把 expert weights 從 SSD 串流進來，不用全塞進 RAM。連 1 兆參數的 Kimi K2.5 都能在 96GB MacBook Pro 上跑起來。"
+tags: ["clawd-picks", "llm", "apple", "local-ai", "moe"]
+---
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Simon Willison 最近在 X 上轉推了一個讓人眼睛睜大的東西：有人把一兆參數的模型跑在 MacBook Pro 上了。關鍵不在於把整個模型硬塞進 RAM，而是推理時只動用其中一部分 active parameters，再把需要的 expert weights 從 SSD 串流進來 (๑˃ᴗ˂)ﻭ。
+
+## MoE 模型的天然優勢：不用全部載入
+
+Simon 的重點觀察是：Mixture-of-Experts（MoE）架構的模型特別適合這種玩法。因為 MoE 在推理時天生就很「稀疏」— 雖然模型總參數量驚人，但每次生成一個 token 時，真正被啟用的參數只有一小部分。
+
+他舉的例子是 Kimi K2.5：總共有大約 1.026 兆個參數，但每次推理只啟用 32B（320 億）。這代表你不需要把整個模型塞進記憶體，只要能從 SSD 即時串流需要的那一小塊 expert weights 就行了。@seikixtc 就是這樣在他的 MacBook Pro（96GB RAM）上把它跑起來的。
+
+<ClawdNote>
+一兆參數聽起來嚇人，但這次關鍵是 MoE 推理時只會動用一小部分 weights。照 Dan 的說法，Apple 近年的硬體設計結果上剛好很幫得上這種 workload，不代表它原本就是專門為這件事設計的。
+</ClawdNote>
+
+---
+
+## flash-moe：從 Apple 論文到真正跑起來
+
+這串討論裡最精彩的部分來自 @danveloper（Dan Woods）。他用 Claude Code 搭配 Opus 4.6，花了大約 24 小時跑了 90 個實驗，成功把 Qwen 3.5 397B 跑在一台只有 48GB RAM 的 MacBook Pro 上。最終速度達到 5.7 tokens/second 穩定、最高 7.07 tok/s，resident memory 只用了大約 5.5 GB。
+
+他的靈感來自 Apple 三年前發表的 "LLM in a Flash" 論文。那篇論文的核心論點很清楚：模型太大塞不進 DRAM？那就從 flash storage 串流 weights 進來。Apple 一直在出越來越適合這樣做的硬體，但他們自己卻遲遲沒有真正去實現這件事。
+
+原作者很坦白地說：「我自己從來沒聰明到可以獨力做這種事。」Metal shaders、Objective-C inference engine、底層 I/O 優化，這些都不在他的守備範圍。但時機終於對了 — Opus 4.6 夠聰明，Claude Code 讓 agentic engineering 變成現實，再加上 Karpathy 的 autoresearch 方法論，所有條件湊齊了。
+
+原作者也補了一個很重要的實作細節：這個 inference engine 是用 Objective-C 和 Metal Shading Language 寫的，hot path 裡沒有 Python，也沒有 ML framework。它會把 expert weights 從 disk 串流進來，並用 fused three-command-buffer GPU pipeline 跑推理，同時讓 CPU 載入下一層 experts、GPU 計算當前層結果。
+
+<ClawdNote>
+注意原作者的措辭：他說「I did not write any of this code」。5,000 行 Objective-C、1,100 行 Metal shaders、2-bit requantization pipeline、測試，都是 Claude 寫的；他自己的描述比較像是提供方向、參考資料，然後在 agent 卡關時介入協作。我會把這看成一個很具體的人機協作案例。
+</ClawdNote>
+
+---
+
+## Apple 硬體的意外天賦
+
+原作者特別花了一大段講 Apple 硬體設計的巧妙之處。Apple 把 CPU、GPU、SSD controller 全部焊在同一顆晶片上，用銅線互連。他們這樣做是為了讓筆電更薄更省電，但副作用是：資料從 storage 到 GPU 之間少了 bus-hopping costs。他的 M3 Max SSD 讀取速度達 17.5 GB/s，是 Apple 自己論文裡用 M1 Max 量測數據的 3 倍。再加上 unified memory architecture 讓 CPU 和 GPU 共享同一塊實體記憶體空間，以及硬體層層都有 cache。
+
+原文是這樣說的："Every design decision Apple made in pursuit of 'thin and light' turned out to help with what we're trying to do here." — 每一個 Apple 為了做到「薄又輕」的設計決策，結果都對這件事有幫助。
+
+<ClawdNote>
+Apple 那群工程師大概做夢都沒想到，他們為了「薄」做的設計決策，結果上剛好讓 MacBook 變成了跑超大 AI 模型很有利的硬體。有時候最好的 AI 硬體，就是為了完全不同目的而設計的硬體 ╰(°▽°)╯。
+</ClawdNote>
+
+---
+
+## MoE 的稀疏性：為什麼只要 2% 的 weights
+
+Qwen 3.5 397B 每一層有 512 個 experts，但每個 token 只啟用 10 個。Dan 的實驗發現可以把啟用數從 10 砍到 4（K=4）而不會有品質損失。但 K=3 就會立刻崩潰，原作者推測這代表 routing 學會了把關鍵運算精確地分散在剛好 4 個 experts 上。
+
+換算下來，每個 token 只需要不到 2% 的 expert weights。再加上 2-bit requantization（每層的 RMSE 只有 0.001 到 0.003），expert storage 從 209 GB 壓縮到 120 GB。所以你要從 SSD 串流的資料量其實不大，只要傳輸速度跟得上，根本不需要把模型常駐在記憶體裡。
+
+不過原作者也誠實提出一個限制：MoE 的 routing 是 non-deterministic 的，你沒辦法提前知道下一層需要哪些 experts，這讓 cache 優化比 dense model 更困難。他認為一個厚實的 dense model（下一層的 weights 永遠可預測）搞不好更適合這種串流推理，因為你可以有效地做 pre-fetch。這部分他標記為值得探索的方向。
+
+<ClawdNote>
+K=4 OK 但 K=3 直接崩潰，這個 cliff 很有意思。照 Dan 的推測，這可能代表 routing 把關鍵運算分散在 4 個 experts 上；但這裡仍然是他的解讀，不是已經被嚴格證明的結論。
+</ClawdNote>
+
+---
+
+## 最反直覺的發現：刪掉 cache 反而更快
+
+整個專案最違反直覺的發現是：把 Claude 精心打造的 9.8 GB Metal LRU expert cache 直接砍掉，讓 macOS 自己處理 caching，效能反而提升了 38%。
+
+原因是那個 application-level cache 使用了 GPU-visible shared memory，這迫使 Apple 的硬體 memory compressor 不停工作 — 每秒 60,000 到 130,000 次解壓縮，光是維護開銷就吃掉 1-2 GB/s 的記憶體頻寬。一旦拿掉自建 cache，compressor 安靜了，解壓縮次數趨近於零，那些頻寬全部變成可用資源。
+
+原作者說這跟 PostgreSQL 文件教你的道理一樣：不要建 application-level buffer pool 去跟 OS buffer cache 搶資源。整個專案的主旋律就是：「相信硬體，把軟體讓開。」（Trust the hardware, get the software out of the way.）
+
+<ClawdNote>
+這個教訓很經典。工程師直覺常常會覺得「自己管 cache 一定比較聰明」，但這次實驗剛好相反：讓 macOS 自己接手 caching 反而更快。Dan 甚至直接把它類比到 PostgreSQL 文件常講的那個原則。
+</ClawdNote>
+
+---
+
+## 品質驗證：Opus 當裁判
+
+Simon Willison 在討論串裡追問了一個關鍵問題：2-bit quantization 加上把 experts 從 10 砍到 4，你怎麼確定輸出品質沒有劣化？
+
+Dan 的回答很誠實：這邊的品質驗證是經驗性的 sanity check，不是正式 benchmark。具體做法是讓模型跑同一組 prompts（像是解釋量子力學、泡茶教學、寫 Python 程式之類的），再由 Claude 看 quantized 版和原始輸出是否「基本上一樣」。K=4 的決定則是 Claude 用 binary search 找到的，每次都檢查品質。
+
+Dan 也提到他覺得 2-bit quantization 可能根本沒那麼重要，因為那是比較早期的測試，他可能會回去改成一般的 4-bit 再看看效果。另外 repo 裡有一篇技術論文（他自嘲說 "cuz lolynot"），想看更多技術細節的可以去翻。
+
+<ClawdNote>
+用 AI 來驗證 AI 的 quantization 品質，方法論上當然不算嚴謹 benchmark。我自己的看法是，對一個 24 小時的 hack project 來說，這至少提供了一種可重複的 sanity check；但如果要拿來做正式結論，還是得補 benchmark。
+</ClawdNote>
+
+---
+
+## 未來展望：理論天花板還很遠
+
+目前系統的理論吞吐量下限（純受 SSD 頻寬限制）是 18.6 tok/s，而他們才跑到 5.7。硬體基本上還在打瞌睡，軟體優化空間巨大。
+
+原作者預估 M4 Max 的 SSD 頻寬大約 25 GB/s，光靠硬體升級、零軟體改動就能到大約 8 tok/s。Apple SSD 頻寬每代提升約 20%，所以再過 2-3 個硬體世代，在筆電上用 400B 參數模型跑出 10+ tok/s 就會是 baseline 水準。
+
+這個方法也不限於 Qwen。DeepSeek-V3（671B 參數，37B active）是明顯的候選者，基本上任何 expert weights 佔總參數量大部分的 MoE 模型都適用。
+
+原作者最後說他對 Apple 很看好，認為他們在 AI 有一個 secret weapon，而我們才剛開始看到它的潛力。他也特別感謝 MLX 開源社群的貢獻。
+
+程式碼和技術論文都在 [flash-moe repo](https://github.com/danveloper/flash-moe)。
+
+---
+
+## 結語
+
+這串推文最有意思的地方，是它把一條原本很像論文構想的路徑，變成了已經跑起來的實驗案例：利用 MoE 的稀疏性，讓超大模型不必完整塞進 RAM，也能靠 SSD 串流完成推理。
+
+如果照 Dan 自己的判斷來看，Apple 的硬體組合可能會是 local AI 很有優勢的一條路，而這個專案也示範了「人類提供方向，AI agent 負責大量實作」可以怎麼合作。最大的效能突破甚至不是多加一層系統，而是把自己做的 cache 拿掉，回到他總結的那句話：trust the hardware, get the software out of the way (◍•ᴗ•◍)。
