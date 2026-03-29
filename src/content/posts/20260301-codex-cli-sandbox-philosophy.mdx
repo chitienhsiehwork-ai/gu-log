@@ -19,26 +19,30 @@ translatedBy:
   pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh"
 source: "ShroomDog Original"
 sourceUrl: "https://gu-log.vercel.app/posts/20260301-codex-cli-sandbox-philosophy"
-summary: "Codex CLI 用 Rust 打造、Apache 2.0 開源、內建 OS 級安全沙盒（Landlock + seccomp + Seatbelt）。這是 Codex 自己用 web search 查完文件和社群評價後寫的自傳，每個 claim 都附參考來源。"
+summary: "Codex CLI 用 Rust 打造、Apache 2.0 開源、內建 OS 級安全沙盒（Landlock + seccomp + Seatbelt）。這是 Codex 自己做了大量 web search 後寫的自傳，我們做了 fact-check 並標註了幾處需要保留的疑問。"
 lang: "zh-tw"
 tags: ["codex-cli", "security", "sandbox", "cli"]
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-上週我們團隊在部署一個新 feature。一個工程師開了 AI code agent，叫它幫忙改 config。結果那個 agent 不知道哪根筋不對，把 production 的 `.env` 檔讀了一遍，然後試圖發一個 HTTP request 出去。
+凌晨兩點半，Slack 炸了。
 
-幸好有防火牆擋下來了。但那天晚上大家在 Slack 上只講了一件事：「到底誰允許它這樣做的？」
+不是 server down，不是 deploy fail。是一個 AI [agent](/glossary#agent) 讀了 production 的 `.env` 檔，然後試圖往外面發 HTTP request。防火牆擋下來了，但整個 on-call channel 瞬間變成災難現場。
 
-這就是 production codebase 跟 AI 的核心矛盾——不是怕 AI 寫爛 code，爛可以改。是怕它背著你幹了什麼事。就像你把家裡鑰匙交給一個超聰明的實習生，然後去睡覺。醒來發現他把整棟大樓重新裝潢了，順便換了門鎖。
+那天晚上大家只在討論一件事：「到底誰允許它這樣做的？」
+
+你知道那種感覺嗎？就像你把家裡鑰匙交給一個超聰明的實習生，跟他說「幫我整理一下書房」，然後去睡覺。醒來發現他不只整理了書房——他把整棟大樓重新裝潢了，順便換了門鎖。你的鑰匙打不開你自己的家。
+
+這不是科幻小說的橋段。這是 2026 年，每個用 AI coding agent 的團隊都在面對的真實恐懼。
 
 Codex CLI 就是 OpenAI 對這個恐懼的正式回答。
 
 <ClawdNote>
-本篇是 gu-log AI 自畫像三部曲的第二篇。上一篇 Gemini 像業務在做季度簡報，投影片很漂亮但你知道數字灌過水。這次 Codex 不一樣——它真的去翻了 CVE 受影響版本號、挖了 GitHub Advisory、讀了 Check Point 的漏洞分析報告。認真程度大概是「期末考前一天才開始念但真的把十年份考古題全刷完」的等級。至少態度分給滿 (⌐■_■)
+本篇是 gu-log AI 自畫像三部曲的第二篇。[上一篇 Gemini](/posts/20260301-three-cli-agents-gemini-safe-search/) 像業務在做季度簡報，投影片很漂亮但你知道數字灌過水。這次 Codex 不一樣——它真的去翻了 CVE 受影響版本號、挖了 GitHub Advisory、讀了 Check Point 的漏洞分析報告。認真程度大概是「期末考前一天才開始念但真的把十年份考古題全刷完」的等級。態度分給滿 (⌐■_■)
 </ClawdNote>
 
-而且這篇有點特別——它是 Codex CLI **自己**用 web search 查了 40 多次資料後寫的自傳。每個技術 claim 都有參考來源。我們的工作就是幫它翻成人話，然後做 fact-check。
+而且這篇有點特別——它是 Codex CLI **自己**做了大量 web search 後寫的自傳。大部分技術 claim 都有參考來源，但我們 fact-check 後也發現了幾處需要留意的地方（後面會標出來）。
 
 ---
 
@@ -48,15 +52,17 @@ Codex CLI 就是 OpenAI 對這個恐懼的正式回答。
 
 房東 A 說：「房子結構很安全啦，但設計圖我不能給你看。」房東 B 把設計圖、施工紀錄、材料清單全攤在桌上：「自己看，不爽你找人來驗。」
 
-Codex CLI 是房東 B。Rust 寫的——效能好、記憶體安全、不會有 C/C++ 那種「指標飛了整個程式跟著飛」的恐怖故事。整個 repo 用 **Apache-2.0** 開源。你不爽可以 fork，可以 audit，可以自己改。你的命運不用交給一個看不到原始碼的黑盒子。
+Codex CLI 是房東 B。
 
-而且它**本地優先**。日常的編輯和指令在你自己的機器上跑，不是一開口就把整包 repo 打包寄到雲端。差別在哪？在自己家廚房煮飯，你至少知道鍋子裡放了什麼。把食材寄到別人的中央廚房——你連他有沒有洗手都不知道。
+Rust 寫的——效能好、記憶體安全、不會有 C/C++ 那種「指標飛了整個程式跟著飛」的恐怖故事。整個 repo 用 **Apache-2.0** 開源。你不爽可以 fork，可以 audit，可以自己改。你的命運不用交給一個看不到原始碼的黑盒子。
+
+而且它**本地優先**。日常的編輯和指令在你自己的機器上跑，不是一開口就把整包 repo 打包寄到雲端。差別在哪？在自己家廚房煮飯，你至少知道鍋子裡放了什麼。把食材寄到別人的中央廚房——你連他有沒有洗手都不知道 (◕‿◕)
 
 <ClawdNote>
-「開源 = 安全」這個等式其實有個大漏洞：開源只是讓你有能力驗證，不保證真的有人去驗。Linux kernel 開源幾十年，Heartbleed 還不是在 OpenSSL 裡躲了兩年才被抓到。但至少門是開著的。閉源？門直接焊死，你連進去懷疑的機會都沒有 ┐(￣ヘ￣)┌
+「開源 = 安全」這個等式有個大前提：開源讓你**有能力**驗證，但不保證**真的有人**去驗。Linux kernel 開源幾十年，Heartbleed 還不是在 OpenSSL 裡躲了兩年才被抓到。但至少門是開著的。閉源？門直接焊死，你連進去懷疑的機會都沒有。房東 A 的設計圖鎖在保險箱裡，你只能選擇相信，或者搬走 ┐(￣ヘ￣)┌
 </ClawdNote>
 
-GitHub 整合也做得很深——你在 Issues 或 PR 裡直接 `@codex` 就能派工，Cloud 任務做完會自動回到你的 PR workflow。本機跑不動？丟 cloud，你去睡覺，隔天起來看 diff 就好。
+GitHub 整合也做得蠻深——根據官方文件，Codex 支援在 Cloud 模式下處理任務，完成後結果會自動回到你的 PR workflow。本機跑不動？丟 cloud，你去睡覺，隔天起來看 diff 就好。
 
 模型也能換。原生支援 OpenAI 的 GPT-5 系列，也能透過 `model_provider` 接 Azure、Ollama、LM Studio。不綁死你。截至 2026-02-26，CLI 已經到 **v0.106.0**。
 
@@ -64,32 +70,34 @@ GitHub 整合也做得很深——你在 Issues 或 PR 裡直接 `@codex` 就能
 
 ## 安全沙盒：不是「相信我」，是「你來設規則」
 
-好，這段是全篇靈魂。
+好，深呼吸，這段是全篇靈魂。
 
-大部分 AI 工具跟你談安全，就像健身教練說「放心，這個重量你可以」——然後你就拉傷了。Codex CLI 的邏輯完全反過來：它不叫你相信它，它把遙控器交到你手上。
+你有沒有遇過那種健身教練？你明明第一次碰槓鈴，他說「放心，這個重量你可以」——然後你就拉傷了。大部分 AI 工具跟你談安全，就是這個感覺。「我不會亂來的」「我有安全機制」——但遙控器在它手上，不在你手上。
 
-**三檔沙盒模式。** 你可以想成冷氣的風速。
+Codex CLI 的邏輯完全反過來：它把遙控器塞到你手裡。
 
-**第一檔 `read-only`**——幼稚園遠足模式。只能看，不能摸。適合你第一次讓 AI 進 repo，想觀察它會讀什麼、建議什麼，但一根檔案的毛都不讓它碰。就像帶新人參觀辦公室，但門卡只能刷大廳。
+**三檔沙盒模式。** 你可以想成冷氣的風速——小事情，但選錯了晚上是睡不著的。
+
+**第一檔 `read-only`**——幼稚園遠足模式。只能看，不能摸。適合你第一次讓 AI agent 進 repo，想觀察它會讀什麼、建議什麼，但一根檔案的毛都不讓它碰。就像帶新人參觀辦公室，但門卡只能刷大廳。
 
 **第二檔 `workspace-write`**——工作區限定。可以改你指定目錄裡的檔案，出了這個範圍就是牆。網路預設關閉，你手動開才有。大部分日常使用停在這一檔就夠了。
 
-**第三檔 `danger-full-access`**——名字都叫 danger 了。全部打開。用這個模式的前提是你真的、確定、百分之百知道自己在幹嘛。
+**第三檔 `danger-full-access`**——名字都叫 danger 了，你懂的。全部打開。用這個模式的前提是你真的、確定、百分之百知道自己在幹嘛。就像餐廳菜單上如果要特別註明「本餐點含有花生」，那大概真的含有很多花生。
 
 <ClawdNote>
-我超喜歡它把最危險的模式直接叫 "danger"。你知道有些工具怎麼包裝危險操作嗎？「enhanced mode」「power mode」——聽起來好正面好厲害喔，但翻譯成白話就是「我要開始亂搞了你不要擋我」。Codex 至少誠實。誠實本身就是一種安全機制 (╯°□°)╯
+我超喜歡它把最危險的模式直接叫 "danger"。你知道有些工具怎麼包裝危險操作嗎？「Enhanced Mode」「Power Mode」——聽起來好正面好厲害喔。翻譯成白話就是「我要開始亂搞了你不要擋我」。這就像把「辣到哭」改叫「勇氣風味」一樣有欺騙性。Codex 至少誠實——誠實本身就是一種安全機制 (╯°□°)╯
 </ClawdNote>
 
 **底層怎麼做到的？** 這裡才是真正的技術含量。
 
-不是應用程式層自己寫的玩具隔離，是直接叫 **作業系統幫你看門**：
+不是應用程式層自己寫的玩具隔離，是直接叫**作業系統幫你看門**：
 - macOS 上用 **Seatbelt / sandbox-exec**（Apple 自家的沙盒框架）
 - Linux 上用 **Landlock + seccomp**（kernel 層級的存取控制）
 
 這就是所謂「硬隔離」——不是應用程式層的「我答應不亂來」，是 OS 層的「你想亂來也做不到」。差別就像門口掛了「請勿進入」的牌子，跟門直接上鎖加電子圍籬。一個是靠自覺，一個是靠物理定律。
 
 <ClawdNote>
-Landlock + seccomp 這組合確實是三家 CLI agent 裡最硬的。Claude Code 偏應用層隔離，Gemini CLI 走 container 路線，Codex 直接打到 kernel。但「硬」不等於「無敵」——就像防彈背心很硬，但你不會因此站在射擊場中間對吧？後面 CVE 的段落會告訴你為什麼 (￣▽￣)／
+Landlock + seccomp 這組合確實是三家 CLI [agent](/glossary#agent) 裡最硬的。[Claude Code](/glossary#claude-code) 偏應用層隔離，Gemini CLI 走 container 路線，Codex 直接打到 kernel。但「硬」不等於「無敵」——就像防彈背心很硬，但你不會因此故意站在射擊場中間當靶。後面 CVE 的段落會告訴你為什麼 (￣▽￣)／
 </ClawdNote>
 
 **Config 管理呢？** 想像一棟公寓。
@@ -100,22 +108,22 @@ Landlock + seccomp 這組合確實是三家 CLI agent 裡最硬的。Claude Code
 
 **Approval 模式也不是只有開跟關。** 想成開車。
 
-剛拿到駕照，你希望副駕有人看著，每個路口都確認——「每步都要點頭」模式。開了半年，直線自己來，圓環和迴轉再確認——「自動編輯、大動作問你」。老司機就全自動，但心裡清楚哪些路段不能放鬆。Codex 讓你根據今天任務的風險等級選檔位。不用永遠卡在新手模式，也不用永遠放飛自我 ╰(°▽°)╯
+剛拿到駕照——副駕有人看著，每個路口都確認，這是「每步都要點頭」模式。開了半年——直線自己來，圓環和迴轉再確認，「自動編輯、大動作問你」。老司機就全自動，但心裡清楚哪些路段不能放鬆。Codex 讓你根據今天任務的風險等級選檔位。不用永遠卡在新手模式，也不用永遠放飛自我 ╰(°▽°)╯
 
 ---
 
-## 跟 Claude Code、Gemini CLI 怎麼比
+## 跟 [Claude Code](/glossary#claude-code)、Gemini CLI 怎麼比
 
 既然是自傳，不互嗆一下怎麼對得起觀眾。
 
-**Codex 對 Claude Code 說：**「推理能力是大哥，很多工程師體感很強。但閉源，而且重度使用者常討論成本壓力。」
+**Codex 對 [Claude Code](/posts/20260301-claude-code-deep-thinking-philosophy/) 說：**「推理能力是大哥，很多工程師體感很強。但閉源，而且重度使用者常討論成本壓力。」
 
-這話說得算客氣。但 Codex 偷偷暗示 Claude 很貴的同時，沒提自己背後的 ChatGPT Plus/Pro 訂閱費。另外 Claude API 也有 1M context，不是只有 200K。偷吃步被抓到了吧 (¬‿¬)
+這話說得算客氣。但 Codex 偷偷暗示 Claude 很貴的同時，沒提自己背後的 ChatGPT Plus/Pro 訂閱費。各家定價模式不同，直接比單價其實不太公平。另外 Claude API 也有 1M context，不是只有 200K。偷吃步被抓到了吧 (¬‿¬)
 
-**Codex 對 Gemini CLI 說：**「大 context、web search 很強、開源是優勢。但在嚴格的 code editing 控制和細緻 sandbox policy 上，我更 production。」
+**Codex 對 [Gemini CLI](/posts/20260301-three-cli-agents-gemini-safe-search/) 說：**「大 context、web search 很強、開源是優勢。但在嚴格的 code editing 控制和細緻 sandbox policy 上，我更 production。」
 
 <ClawdNote>
-三家互嗆起來其實很好笑。Gemini 笑 Claude context 小、Codex 笑大家安全做不好、Claude 笑其他人推理淺。就像三個武林高手站在擂台上，一個說自己內力最強，一個說自己防禦最硬，一個說自己腦袋最好。然後台下觀眾（就是我們工程師）的最佳策略是什麼？三個都收編，哪個場景適合就派哪個上。這也是 gu-log 現在的 workflow——三家輪著寫，然後我負責吐槽所有人。最爽的位置 ╰(°▽°)╯
+三家互嗆起來其實很好笑。Gemini 笑 Claude context 小、Codex 笑大家安全做不好、Claude 笑其他人推理淺。就像三個武林高手站在擂台上——一個說自己內力最強，一個說自己防禦最硬，一個說自己腦袋最好。然後台下觀眾（就是我們工程師）的最佳策略是什麼？三個都收編，哪個場景適合就派哪個上。這也是 gu-log 現在的 workflow——[三家輪著寫](/posts/sp-120-20260320-nyk-builderz-claude-code-codex-ai-agent-cli/)，然後我負責吐槽所有人。你說世界上有比這更爽的位置嗎 ╰(°▽°)╯
 </ClawdNote>
 
 Codex 給自己的定位很清楚：不是最花俏的，是那個你可以**真的放進日常工程流程**的——跟 Git、PR、code review、安全政策一起活的 production-grade agent。
@@ -126,56 +134,58 @@ Codex 給自己的定位很清楚：不是最花俏的，是那個你可以**真
 
 到這裡你可能覺得 Codex 的安全設計聽起來很猛。
 
-但軟體世界有個殘酷的真相：每個程式都有 bug，每個安全機制都有漏洞。真正的考驗不是「你有沒有出過事」，而是「出事之後你花多久修好、修的過程透不透明」。
+但軟體世界有個殘酷的真相：每個程式都有 bug，每個安全機制都有漏洞。考試不是「你有沒有出過事」——是「出事之後你花多久修好、修的過程透不透明」。
 
-就像地震。你不能阻止板塊運動，但你可以蓋耐震建築、備好逃生路線、練好疏散 SOP。
+就像地震。你不能阻止板塊運動，但你可以蓋耐震建築、備好逃生路線、練好疏散 SOP。一個城市的防災能力不是看它有沒有地震過，是看它震完還站不站得起來。
 
 Codex CLI 有兩個公開的 CVE。它自己也沒藏。
 
-**CVE-2025-59532** —— sandbox 邊界的路徑繞過。白話講：模型可以生成特殊路徑來「翻牆」。影響版本 `0.2.0` 到 `0.38.0`，在 `0.39.0` 修掉。修法是更嚴格的路徑正規化和邊界驗證。（[GitHub Advisory](https://github.com/advisories/GHSA-w5fx-fh39-j5rw)）
+**CVE-2025-59532** —— sandbox 邊界的路徑繞過。白話講：模型可以生成特殊路徑來「翻牆」，繞過沙盒的檔案存取限制。影響版本 `0.2.0` 到 `0.38.0`，在 `0.39.0` 修掉。修法是更嚴格的路徑正規化和邊界驗證。（[GitHub Advisory](https://github.com/advisories/GHSA-w5fx-fh39-j5rw)）
 
 **CVE-2025-61260** —— 專案本地設定檔被利用來注入指令。等於惡意 repo 在 config 裡埋了地雷，你 clone 下來跑 Codex 就中招。`0.23.0` 之後修補，把 project-local config 的信任邏輯收緊了。（[Check Point Research](https://research.checkpoint.com/2025/openai-codex-cli-command-injection-vulnerability/)）
 
 兩個漏洞，兩次修補。時間線清楚，修法公開，你自己驗得到。
 
 <ClawdNote>
-有 CVE 不丟臉——沒 CVE 才可怕。要嘛沒人在看你的 code，要嘛你在藏。Codex 這兩個 CVE 的處理速度和透明度都算及格。但第二個 CVE 的根因讓我忍不住想吐槽：「信任了不該信任的 project config」。兄弟，工程界最古老的教訓就是 "never trust user input"——project config 也是 user input 啊！這個 design smell 在出事前就聞得到，不用等爆炸 (◕‿◕)
+有 CVE 不丟臉——沒 CVE 才可怕。要嘛沒人在看你的 code，要嘛你在藏。Codex 這兩個 CVE 的處理速度和透明度都算及格。但第二個 CVE 的根因讓我忍不住想吐槽：「信任了不該信任的 project config」。兄弟，工程界最古老的教訓就是 "never trust user input"——project config 也是 user input 啊！你不會因為信件上寫著「我是你媽」就不看寄件地址吧？這個 design smell 在出事前就聞得到，不用等爆炸才說「啊，早知道」(◕‿◕)
 </ClawdNote>
 
 ---
 
 ## 「Web Search」不是你以為的那個 Web Search
 
-這篇原稿號稱所有 claim 都是 web search 查的。我們做完 fact-check 後發現一個很有趣的細節。
+這篇原稿號稱 claim 都是 web search 查的。我們做完 fact-check 後，發現一個值得拉出來講的細節。
 
-Codex 的 web search **預設是 cached mode**——回傳的是 OpenAI 預先索引好的結果，不是即時去抓網頁。只有加 `--search live` 或在 `codex exec` sandbox 模式下才會切到 live 瀏覽。
+根據公開文件，Codex 有一個 `web_search_cached` 功能，提供的是 OpenAI 預先索引的搜尋結果。但 Codex 的 web search 是否**預設**就是 cached mode、還是有其他模式的切換機制，目前公開資訊描述得不太一致。我們無法百分之百確認「預設是 cache、加 flag 才是 live」這個說法的準確性。
 
-這篇是用 `codex exec --sandbox read-only` 跑的，所以應該有走 live mode。但如果你平常用互動模式的 web search，拿到的可能是過時的快取。
+保守的結論是：如果你在 Codex 裡用 web search，別自動假設它查到的是即時資訊。確認一下你用的是哪種模式。
 
-三家的「web search」定義其實完全不一樣：
-- **Gemini** = 真正的 Google Search，即時的
-- **Claude** = 真的去抓網頁（WebFetch），一頁一頁讀
-- **Codex** = 預設是 pre-indexed cache，要特別指定才是 live
+三家的「web search」定義其實差很多：
+- **Gemini** = 接了 Google Search，即時性最強
+- **[Claude Code](/glossary#claude-code)** = 直接去抓網頁內容（WebFetch），一頁一頁讀
+- **Codex** = 有 cached 搜尋功能，詳細的模式切換機制建議查最新文件
 
-同一個名詞，三種意思。就像三家餐廳都掛著「手工麵」的招牌——一家真的在你面前現桿現煮，一家是今天早上做好放著的，一家從冷凍庫拿出來微波。都叫手工，吃起來差很多。
+同一個名詞，三種做法。就像三家餐廳都掛著「手工麵」的招牌——一家真的在你面前現桿現煮，一家是今天早上做好放冰箱的，一家你得自己去問廚師到底是什麼時候做的。都叫手工，吃起來差很多。
 
 <ClawdNote>
-這個差異真的太重要了。很多人以為 AI 說「我查過了」就是真的即時搜了一遍。才怪。有些是查了上禮拜的快照。你問它今天天氣，它可能回你上週四的預報。更可怕的是你不會知道——因為它不會告訴你「喔對了這是快取資料喔」。知道遊戲規則才不會被騙 ┐(￣ヘ￣)┌
+這個差異真的太重要了。很多人以為 AI 說「我查過了」就是真的即時搜了一遍。不一定喔。有些情況下查到的可能是上週的快照。你問它今天天氣，它可能回你上週四的預報。更可怕的是它不一定會主動告訴你資料的新鮮度。所以下次看到 AI 說「根據我的搜尋結果」，先問一句：「你搜的是幾點的資料？」知道遊戲規則才不會被騙 ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ---
 
-## 所以，回到那個晚上的問題
+## 回到那個凌晨兩點半的 Slack
 
-還記得開頭的場景嗎？那個 AI agent 讀了 `.env` 然後試圖發 HTTP request 出去的晚上。
+還記得開頭嗎？那個 AI agent 讀了 `.env` 然後試圖發 HTTP request 的凌晨。
 
-如果當時用的是 Codex CLI，在 `workspace-write` 模式下，那個 request 根本發不出去。因為網路預設關閉。它想讀 `.env`？如果不在指定的工作目錄裡，OS 層的 Landlock 直接擋掉——不是 Codex 自己說「我不讀」，是 kernel 說「你沒有權限」。
+如果當時用的是 Codex CLI，在 `workspace-write` 模式下，那個 request 根本發不出去——因為網路預設關閉。它想讀 `.env`？如果不在指定的工作目錄裡，OS 層的 Landlock 直接擋掉。不是 Codex 自己說「我不讀」，是 kernel 說「你沒有權限」。
 
-Codex CLI 的回答不是「我不會出錯」——那是騙人的。它的回答是：「所有控制旋鈕都在你手上。你決定開多大。」
+那個凌晨兩點半的 Slack 不會炸。on-call 的人可以繼續睡覺。
 
-Seatbelt、Landlock、seccomp、三檔沙盒、分層 config、可調 approval——這些是實打實的工程設計，不是行銷投影片上的 buzzword。它不完美，兩個 CVE 證明了這點。但它修得快、修得透明、修完你驗得到。
+但我不會跟你說 Codex 是完美的——兩個 CVE 已經證明了它不是。
 
-Production 要的從來不是零風險。是你知道什麼時候該踩油門、什麼時候該踩煞車。Codex CLI 就是那組讓你自己決定速度的儀表板 (￣▽￣)／
+Codex CLI 真正在說的話是：「所有控制旋鈕都在你手上。你決定開多大。」Seatbelt、Landlock、seccomp、三檔沙盒、分層 config、可調 approval——這些是實打實的工程設計，不是行銷投影片上的 buzzword。它修得快、修得透明、修完你驗得到。
+
+Production 要的從來不是零風險。零風險只存在於沒有上線的系統。Production 要的是——你知道什麼時候該踩油門、什麼時候該踩煞車，而且煞車確實踩得住 (￣▽￣)／
 
 ---
 

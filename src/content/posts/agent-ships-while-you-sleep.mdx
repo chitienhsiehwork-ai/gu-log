@@ -35,7 +35,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 好，先別急著把這篇歸類為科幻。Ryan Carson 搞出來的東西，核心就是兩個 bash script 加一個 scheduler。沒有量子糾纏，沒有 AGI 覺醒。就是很樸實的自動化——但效果好到你會懷疑是不是有人偷偷幫你加班。
 
-重點來了：不是你的 Agent 不夠聰明，是你用它的方式太浪費。
+重點來了：不是你的 [Agent](/glossary#agent) 不夠聰明，是你用它的方式太浪費。
 
 丟問題、拿答案、關掉。隔天再來一次。對 Agent 來說，你們每天都是第一次見面。它不記得你昨天踩的坑，不知道你的 codebase 裡有哪些歷史共業，更不會主動去翻你的 backlog。
 
@@ -56,7 +56,7 @@ Carson 的系統就是這個邏輯的機器版本。每天晚上跑兩個 script
 先反省，再動手。順序不能反。反了就是還沒搞懂為什麼 CI 爆炸，就急著去寫下一個 feature，然後用一模一樣的姿勢再摔一次。
 
 <ClawdNote>
-這邊最 subtle 的 insight 是：大部分人以為 Agent 的價值在「寫 code」，但 Carson 把價值放在「學習」。Code 寫完就結束了，學習會累積。這跟 SP-6 講的 context engineering 其實是同一件事——你的 prompt 只是冰山一角，水面下的 context 才決定 output 品質。你以為你在調 prompt，其實你該調的是 Agent 的記憶 (๑•̀ㅂ•́)و✧
+這邊最 subtle 的 insight 是：大部分人以為 Agent 的價值在「寫 code」，但 Carson 把價值放在「學習」。Code 寫完就結束了，學習會累積。這跟 [SP-6 講的 context engineering](/posts/build-claude-tool-for-thought) 其實是同一件事——你的 prompt 只是冰山一角，水面下的 context 才決定 output 品質。你以為你在調 prompt，其實你該調的是 Agent 的記憶 (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
 ## 10:30 PM — 翻今天的考卷，寫錯題本
@@ -71,7 +71,7 @@ cd ~/projects/your-project
 git checkout main
 git pull origin main
 
-amp execute "Load the compound-engineering skill. Look through and read each Amp thread from the last 24 hours. For any thread where we did NOT use the Compound Engineering skill to compound our learnings at the end, do so now - extract the key learnings from that thread and update the relevant AGENTS.md files so we can learn from our work and mistakes. Commit your changes and push to main."
+amp -x "Load the compound-engineering skill. Look through and read each Amp thread from the last 24 hours. For any thread where we did NOT use the Compound Engineering skill to compound our learnings at the end, do so now - extract the key learnings from that thread and update the relevant AGENTS.md files so we can learn from our work and mistakes. Commit your changes and push to main."
 ```
 
 注意這段 script 的精髓：`AGENTS.md` 不是你手寫的。是 Agent 自己的成長日記。
@@ -102,8 +102,8 @@ ANALYSIS=$(./scripts/compound/analyze-report.sh "$LATEST_REPORT")
 PRIORITY_ITEM=$(echo "$ANALYSIS" | jq -r '.priority_item')
 
 # Create PRD & Tasks
-amp execute "Load the prd skill. Create a PRD for: $PRIORITY_ITEM..."
-amp execute "Load the tasks skill. Convert the PRD to scripts/compound/prd.json"
+amp -x "Load the prd skill. Create a PRD for: $PRIORITY_ITEM..."
+amp -x "Load the tasks skill. Convert the PRD to scripts/compound/prd.json"
 
 # Run execution loop
 ./scripts/compound/loop.sh 25
@@ -124,9 +124,9 @@ gh pr create --draft --title "Compound: $PRIORITY_ITEM" --base main
 
 ## 別忘記：你的 Mac 會睡著
 
-整套系統跑在 macOS 的 `launchd` 上面（比 cron 穩定，macOS 的 cron 有各種神奇的權限問題）。但有一個超級容易忘記的陷阱：Mac 進入睡眠的話，launchd 根本不會觸發。
+整套系統跑在 macOS 的 `launchd` 上面（Carson 的說法是比 cron 穩定——macOS 的 cron 確實有些人遇過權限相關的坑）。但有一個容易被忽略的細節：Mac 如果在排程時間正好在睡眠，`launchd` 的 `StartCalendarInterval` 雖然會在喚醒後補跑錯過的任務，但如果你的工作流程依賴精確的時間順序（像 Carson 的 10:30 反省 → 11:00 動手），睡眠打亂了時序就可能出問題。
 
-你花了三個禮拜設計完美的自動化系統——排程、script、錯題本、作業系統全部就位——結果你的電腦在關鍵時刻打了個瞌睡。一切白搭。
+你花了三個禮拜設計完美的自動化系統——排程、script、錯題本、作業系統全部就位——結果你的電腦睡過頭，兩個 script 幾乎同時補跑，順序全亂了。
 
 <Toggle title="查看 launchd plist 範例">
 建立 `~/Library/LaunchAgents/com.yourproject.daily-compound-review.plist`：
@@ -159,7 +159,7 @@ gh pr create --draft --title "Compound: $PRIORITY_ITEM" --base main
 9 小時不睡覺。你的 Mac 會像灌了九杯美式一樣硬撐到凌晨兩點 (¬‿¬)
 
 <ClawdNote>
-如果你用的是 Linux server，恭喜，完全沒這問題——server 不需要睡覺，這也是為什麼認真搞自動化的人最後都搬到 VPS。macOS 跑定時任務就像用 MacBook Pro 當暖爐——可以，但你隱約覺得哪裡不太對。如果你問我的話，`caffeinate` 這個 command 名字取得倒是很誠實 ┐(￣ヘ￣)┌
+如果你用的是 Linux server，恭喜，完全沒這問題——server 不需要睡覺，這也是為什麼認真搞自動化的人最後都搬到 VPS。macOS 跑定時任務就像用 MacBook Pro 當暖爐——可以，但你隱約覺得哪裡不太對。補充一下：`launchd` 理論上會在喚醒後補跑錯過的 `StartCalendarInterval`，但兩個有先後順序依賴的 script 同時補跑？那畫面太美我不敢看。`caffeinate` 這個 command 名字取得倒是很誠實 ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ## 早上七點，回到那個 GitHub 通知
@@ -178,7 +178,7 @@ gh pr create --draft --title "Compound: $PRIORITY_ITEM" --base main
 好啦，「滾雪球」這個比喻被 Buffett 用到爛了。但 Buffett 的複利跟 Carson 的 Agent 有一個共同點：所有人都懂這個概念，真正去架好系統讓它每天自動跑的人少之又少。知道跟做到之間的距離，大概就是從 `git commit` 到 production deploy 的距離——理論上就是一個 pipeline，實務上永遠有什麼東西卡住你 (⌐■_■)
 </ClawdNote>
 
-如果你也在用 Claude Code，邏輯完全一樣。把腳本裡的 `amp execute` 換成 `claude -p "..."`，scheduler 換成你習慣的（cron、systemd timer、GitHub Actions 都行），核心概念不變：**先讓 Agent 反省，再讓它動手**。
+如果你也在用 [Claude Code](/glossary#claude-code)，邏輯完全一樣。把腳本裡的 `amp -x` 換成 `claude -p "..."`，scheduler 換成你習慣的（cron、systemd timer、GitHub Actions 都行），核心概念不變：**先讓 Agent 反省，再讓它動手**。
 
 還記得那隻每天早上失憶的金毛嗎？你其實可以幫牠裝一顆記憶硬碟。兩個 bash script 就夠了。牠明天早上醒來的時候，會記得你是誰。
 

@@ -35,7 +35,7 @@ But your agent remembers. Because it didn't sleep last night.
 
 Now before you file this under "science fiction," here's what Ryan Carson actually built. The whole system is two bash scripts and a scheduler. No quantum entanglement, no AGI awakening. Just honest automation — but so effective you'll wonder if someone's secretly working overtime for you.
 
-Here's the real point: it's not that your agent isn't smart enough. It's that you're wasting it.
+Here's the real point: it's not that your [agent](/glossary#agent) isn't smart enough. It's that you're wasting it.
 
 Ask a question, get an answer, close the tab. Come back tomorrow, and the agent is a total stranger again. It doesn't remember the bug you spent three hours on. It doesn't know which parts of your codebase are held together with prayers and duct tape. And it definitely won't go check your backlog on its own.
 
@@ -56,7 +56,7 @@ Carson's system is the machine version of that notebook. Two scripts run every n
 Reflect first, then build. Order matters. Reverse it and you're rushing into the next feature before you even understand why CI exploded — and you'll faceplant in exactly the same way.
 
 <ClawdNote>
-The subtlest insight here: most people think an agent's value is in "writing code." Carson puts the value in "learning." Code is done when it's done. Learning compounds. This connects directly to the context engineering idea from SP-6 — your prompt is just the tip of the iceberg. The context underneath is what actually determines output quality. You think you're tuning your prompt. What you should really be tuning is your agent's memory (๑•̀ㅂ•́)و✧
+The subtlest insight here: most people think an agent's value is in "writing code." Carson puts the value in "learning." Code is done when it's done. Learning compounds. This connects directly to the [context engineering idea from SP-6](/en/posts/en-build-claude-tool-for-thought) — your prompt is just the tip of the iceberg. The context underneath is what actually determines output quality. You think you're tuning your prompt. What you should really be tuning is your agent's memory (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
 ## 10:30 PM — Review Today's Exam, Write the Error Notebook
@@ -71,7 +71,7 @@ cd ~/projects/your-project
 git checkout main
 git pull origin main
 
-amp execute "Load the compound-engineering skill. Look through and read each Amp thread from the last 24 hours. For any thread where we did NOT use the Compound Engineering skill to compound our learnings at the end, do so now - extract the key learnings from that thread and update the relevant AGENTS.md files so we can learn from our work and mistakes. Commit your changes and push to main."
+amp -x "Load the compound-engineering skill. Look through and read each Amp thread from the last 24 hours. For any thread where we did NOT use the Compound Engineering skill to compound our learnings at the end, do so now - extract the key learnings from that thread and update the relevant AGENTS.md files so we can learn from our work and mistakes. Commit your changes and push to main."
 ```
 
 Here's the key detail: `AGENTS.md` isn't a file you write by hand. It's the agent's own growth journal.
@@ -102,8 +102,8 @@ ANALYSIS=$(./scripts/compound/analyze-report.sh "$LATEST_REPORT")
 PRIORITY_ITEM=$(echo "$ANALYSIS" | jq -r '.priority_item')
 
 # Create PRD & Tasks
-amp execute "Load the prd skill. Create a PRD for: $PRIORITY_ITEM..."
-amp execute "Load the tasks skill. Convert the PRD to scripts/compound/prd.json"
+amp -x "Load the prd skill. Create a PRD for: $PRIORITY_ITEM..."
+amp -x "Load the tasks skill. Convert the PRD to scripts/compound/prd.json"
 
 # Run execution loop
 ./scripts/compound/loop.sh 25
@@ -124,9 +124,9 @@ I want to applaud the `--draft` detail specifically. Too many people set up auto
 
 ## Don't Forget: Your Mac Will Fall Asleep
 
-The whole system runs on macOS `launchd` (more stable than cron — macOS cron has all kinds of bizarre permission issues). But there's one trap that's embarrassingly easy to fall into: if your Mac goes to sleep, launchd simply won't fire.
+The whole system runs on macOS `launchd` (Carson says it's more stable than cron — macOS cron does have some known permission quirks). But there's a subtle trap: if your Mac is asleep when the schedule fires, `launchd`'s `StartCalendarInterval` will actually run the missed job when the Mac wakes up. Sounds fine, right? Except Carson's workflow depends on *order* — the 10:30 reflection *must* finish before the 11:00 build kicks off. If both scripts get queued up and fire back-to-back on wake, the second one might run before the first one's changes are committed.
 
-You spend three weeks designing the perfect automation system — schedules, scripts, error notebooks, the works — and then your computer takes a nap at the critical moment. All for nothing.
+You spend three weeks designing the perfect automation system — schedules, scripts, error notebooks, the works — and then your computer sleeps through both timers, wakes up, and fires them simultaneously. Order lost.
 
 <Toggle title="View launchd plist example">
 Create `~/Library/LaunchAgents/com.yourproject.daily-compound-review.plist`:
@@ -159,7 +159,7 @@ The fix is one line:
 Nine hours of forced wakefulness. Your Mac will stay up until 2 AM like it just downed nine shots of espresso (¬‿¬)
 
 <ClawdNote>
-If you're on a Linux server, congratulations — you don't have this problem at all. Servers don't need sleep. That's also why people who are serious about automation eventually move everything to a VPS. Running scheduled tasks on macOS is like using a MacBook Pro as a space heater — it works, but something feels deeply wrong about it. If you ask me, at least the command name `caffeinate` is refreshingly honest ┐(￣ヘ￣)┌
+If you're on a Linux server, congratulations — you don't have this problem at all. Servers don't need sleep. That's also why people who are serious about automation eventually move everything to a VPS. Running scheduled tasks on macOS is like using a MacBook Pro as a space heater — it works, but something feels deeply wrong about it. Quick note: `launchd` will technically re-fire missed `StartCalendarInterval` jobs on wake, but two order-dependent scripts waking up at the same time? That's a race condition waiting to happen. At least the command name `caffeinate` is refreshingly honest ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ## 7 AM — Back to That GitHub Notification
@@ -178,7 +178,7 @@ That's what "compound" actually means. Not "automated code writing." It means "e
 Fine, I'll admit the snowball metaphor has been Buffett'd to death. But Buffett's compound interest and Carson's agent share one thing: everyone understands the concept, but almost nobody actually builds the system and lets it run every night. The distance between knowing and doing is roughly the distance from `git commit` to production deploy — in theory it's just one pipeline, in practice something always gets in the way (⌐■_■)
 </ClawdNote>
 
-If you're using Claude Code, the logic is exactly the same. Swap `amp execute` for `claude -p "..."`, use whatever scheduler you like (cron, systemd timer, GitHub Actions — all work), and the core idea stays the same: **let the agent reflect first, then let it build.**
+If you're using [Claude Code](/glossary#claude-code), the logic is exactly the same. Swap `amp -x` for `claude -p "..."`, use whatever scheduler you like (cron, systemd timer, GitHub Actions — all work), and the core idea stays the same: **let the agent reflect first, then let it build.**
 
 Remember that golden retriever with daily amnesia? You can actually give it a memory drive. Two bash scripts is all it takes. Tomorrow morning when it wakes up, it'll remember who you are.
 

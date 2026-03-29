@@ -1,44 +1,4 @@
 {
-  "SD-6": {
-    "score": 6,
-    "details": {
-      "reasoning": "Technical 2/4, sourceFaithfulness 2/3, logic 2/3. The core sandbox and CVE discussion is largely accurate: the repo is Apache-2.0 and Rust-based, sandbox modes and the two cited CVEs match public sources, and the version/date claim for v0.106.0 on 2026-02-26 is plausible. The main factual problems are the strong, likely incorrect web-search section (public release notes describe `web_search_cached` as a separate cached-only mode, which undercuts the claim that Codex web search is cached by default and only becomes live with `--search live` or `codex exec --sandbox read-only`), plus unsupported overclaims such as direct `@codex` tasking in GitHub Issues and the summary claim that every claim is source-backed."
-    },
-    "model": "gpt-5.4",
-    "iteration": 1,
-    "file": "20260301-codex-cli-sandbox-philosophy.mdx",
-    "ts": "2026-03-24T22:26:41+08:00"
-  },
-  "SD-5": {
-    "score": 5,
-    "details": {
-      "reasoning": "Technical 2/4, sourceFaith 1/3, logic 2/3. The post gets several broad product descriptions right (Gemini CLI is open source, Apache 2.0, has built-in web search, and one prompt can consume multiple backend requests), but it overstates or misstates key details: official Gemini CLI/Gemini Code Assist quota docs show 1,000 requests/day for free individuals and 1,500/day for Google AI Pro, so the claim that \"Flash 免費額度高達 1500 RPD\" is inaccurate; official Gemini 3.1 Pro Preview docs list a 1,048,576-token input limit, so \"1M token，甚至 2M\" is unsupported for the cited CLI/model context. Source faithfulness is weak for an original post because several numeric/security claims are asserted definitively without a cited first-hand source or with wording stronger than the available docs support, especially the sandbox mount claim and quota-reset claim."
-    },
-    "model": "gpt-5.4",
-    "iteration": 1,
-    "file": "20260301-three-cli-agents-gemini-safe-search.mdx",
-    "ts": "2026-03-26T12:22:33+08:00"
-  },
-  "SP-23": {
-    "score": 6,
-    "details": {
-      "reasoning": "Technical 2/4, sourceFaithfulness 1/3, logic 3/3. The post's core argument matches the available mirrored source excerpt for Cornelius's article, but it introduces stronger factual claims that are not supported by that source, especially around Cornell Notes research and student exam outcomes. The reasoning is internally consistent, but the translation/adaptation appears to add uncited empirical claims and extra technical framing beyond the source."
-    },
-    "model": "gpt-5.4",
-    "iteration": 1,
-    "file": "agentic-note-taking-verbatim-trap.mdx",
-    "ts": "2026-03-26T12:28:46+08:00"
-  },
-  "SP-5": {
-    "score": 7,
-    "details": {
-      "reasoning": "Technical 2/4, sourceFaith 2/3, logic 3/3. The core workflow is plausible and broadly matches Ryan Carson's described two-step overnight loop, and `gh pr create --draft` is accurate, but there are at least two technical problems: the post says a sleeping Mac means `launchd` jobs \"won't trigger at all,\" while `launchd.plist` docs say missed `StartCalendarInterval` jobs run on wake, and the script examples use `amp execute` whereas Amp's documented non-interactive CLI is `amp -x`/`amp --execute`, so the command as written is at best outdated/unverified. Source faithfulness is mostly intact, but some statements are overstated beyond the source-level concept, especially the strong scheduler/sleep explanation and the generalized claim that macOS cron has \"various weird permission problems\" without citation."
-    },
-    "model": "gpt-5.4",
-    "iteration": 1,
-    "file": "agent-ships-while-you-sleep.mdx",
-    "ts": "2026-03-26T12:35:47+08:00"
-  },
   "SP-14": {
     "score": 6,
     "details": {
