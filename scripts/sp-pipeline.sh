@@ -352,25 +352,43 @@ if [ ! -f "$WORK_DIR/source-tweet.md" ] && { [[ "$TWEET_URL" == *"twitter.com"* 
   fi
   [ -x "$SAFE_SEARCH" ] || die "gemini-safe-search.sh not found"
 
-  FETCH_PROMPT="You have the bird CLI tool for reading tweets.
+  FETCH_PROMPT="GOAL: Collect ALL source material a blog writer would need to write a comprehensive
+article about this tweet. The writer will ONLY see what you output — if you miss content,
+the article will be shallow or padded with filler.
 
-Commands:
+You have these tools:
 - bird read <url> — fetch a single tweet (text, author, date, URL, stats)
-- bird replies <url> — fetch replies (may be incomplete on high-engagement posts)
+- bird replies <url> — fetch replies to a tweet
+- Google Search — search the web for additional context
 
-Task:
+Steps:
 1. Run bird read $TWEET_URL to get the initial tweet.
-2. Check if it's a thread (numbered like '1/', '(1/N)', or author promising more).
-3. If thread: use bird replies to find the SAME AUTHOR's next tweet. Then bird read that URL, check its replies, repeat.
-4. Chase up to 30 tweets from the thread author only. Skip other people's replies.
-5. If bird replies doesn't show the author's next tweet, try the next few results — high-engagement posts bury the author's continuation.
+2. Check if it's a THREAD (numbered like '1/', '(1/N)', or author promising more).
+   If thread: use bird replies to chase the SAME AUTHOR's continuation tweets.
+   bird read each found URL. Chase up to 30 tweets. Skip other users' replies.
+   If bird replies buries the author's next tweet, check a few more results.
+3. Check if the tweet contains EXTERNAL LINKS (blog posts, articles, GitHub repos, etc.).
+   If yes: use Google Search to find and read the linked content. Include the FULL text
+   of linked articles — these are often the real substance behind a teaser tweet.
+   For t.co shortened URLs, search for the author name + keywords from the tweet to find
+   the destination article.
+4. If the tweet references another person's tweet or a specific resource, fetch that too.
 
-Output rules:
-- Print each tweet's full bird read output to stdout
-- Separate tweets with a line containing only: ---
-- Chronological order (first tweet at top)
-- Only the thread author's tweets, no other users
-- If single tweet (not a thread), just print that one tweet"
+Output format:
+=== TWEET(S) ===
+[Each tweet's full bird read output, separated by ---]
+[Chronological order, thread author only]
+
+=== LINKED CONTENT ===
+[For each external link found in the tweet:]
+Source URL: <url>
+<Full article text / content>
+---
+
+If there are no external links, omit the LINKED CONTENT section.
+If there is no thread (single tweet), just output that one tweet.
+
+REMEMBER: The writer depends entirely on your output. Missing content = bad article."
 
   if FETCH_OUTPUT=$("$SAFE_SEARCH" -m gemini-2.5-flash -t 300 "$FETCH_PROMPT" 2>"$WORK_DIR/fetch-agent-stderr.log"); then
     echo "$FETCH_OUTPUT" > "$WORK_DIR/source-tweet.md"
@@ -528,10 +546,19 @@ step_start "Step 2: write draft (Opus primary)"
 cat > "$WORK_DIR/gemini-write-prompt.txt" <<EOF_WRITE
 You are writing a gu-log SP article draft in Traditional Chinese.
 
+GOAL: Write a comprehensive, substantive article that covers ALL the ideas and details
+in the source material. The reader should walk away understanding everything the original
+author shared — not just a surface-level summary.
+
 Task:
 - Write ${TICKET_PREFIX}-${SP_NUM} article from the source material below.
+- The source may contain TWEETS + LINKED CONTENT (blog posts, articles). Cover ALL of it.
+- If the source includes a "=== LINKED CONTENT ===" section, that is the primary substance.
+  The tweet is just the teaser — the linked article is where the real content lives.
+  Your article MUST cover the linked content in depth, not just mention it exists.
 - The source may contain a FULL THREAD (multiple tweets separated by ---). Cover ALL tweets, not just the first one.
 - If you see "⚠️ INCOMPLETE THREAD", acknowledge what's missing and note it for the reader. Do NOT pad partial content into a full article.
+- NEVER pad or filler. If a section says "there are other patterns" but you don't have the details, either skip that claim or explicitly say the details weren't available. Do NOT write vague paragraphs that say nothing.
 - Follow the style guide exactly.
 - Use this metadata:
   - ticketId: ${TICKET_PREFIX}-${SP_NUM}
