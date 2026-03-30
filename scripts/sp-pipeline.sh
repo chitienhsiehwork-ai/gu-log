@@ -300,14 +300,44 @@ STEP0_TIME=$(step_end "Step 0")
 
 # Step 1: Fetch content
 step_start "Step 1: fetch content"
-# Skip fetch if source-tweet.md already exists with substantial content (manual override)
-if [ -f "$WORK_DIR/source-tweet.md" ] && [ "$(wc -l < "$WORK_DIR/source-tweet.md")" -gt 50 ]; then
-  log_info "source-tweet.md already exists ($(wc -l < "$WORK_DIR/source-tweet.md") lines) — skipping fetch (manual override)"
-  AUTHOR_HANDLE=$(grep -Eo '@[A-Za-z0-9_]+' "$WORK_DIR/source-tweet.md" | head -n 1 | sed 's/^@//' || true)
-  [ -n "$AUTHOR_HANDLE" ] || die "Failed to extract author handle from source-tweet.md"
-  ORIGINAL_DATE=$(extract_tweet_date "$WORK_DIR/source-tweet.md" || true)
-  [ -n "$ORIGINAL_DATE" ] || ORIGINAL_DATE=$(date +%F)
-elif [[ "$TWEET_URL" == *"twitter.com"* ]] || [[ "$TWEET_URL" == *"x.com"* ]]; then
+# --- Smart skip: if source-tweet.md exists, ask Claude whether to re-fetch ---
+if [ -f "$WORK_DIR/source-tweet.md" ] && [ -s "$WORK_DIR/source-tweet.md" ]; then
+  EXISTING_LINES=$(wc -l < "$WORK_DIR/source-tweet.md")
+  log_info "source-tweet.md exists ($EXISTING_LINES lines) — asking Claude whether to re-fetch"
+
+  SKIP_DECISION=$(claude -p --bare "You are a pipeline assistant. A source file already exists for this tweet URL:
+URL: $TWEET_URL
+File: $EXISTING_LINES lines
+
+First 10 lines:
+$(head -10 "$WORK_DIR/source-tweet.md")
+
+Last 10 lines:
+$(tail -10 "$WORK_DIR/source-tweet.md")
+
+Does this file look like a complete, usable source capture? Consider:
+- Does it contain actual tweet content (not just errors/empty)?
+- If the tweet mentions a thread or numbered list, does the file seem to contain all parts?
+- Are there author handles, dates, and tweet text present?
+
+Reply with ONLY one word: KEEP or REFETCH" 2>/dev/null || echo "REFETCH")
+
+  # Strip whitespace, take first word
+  SKIP_DECISION=$(echo "$SKIP_DECISION" | tr -d '[:space:]' | head -c 10)
+
+  if [[ "$SKIP_DECISION" == "KEEP" ]]; then
+    log_info "Claude says KEEP — using existing source-tweet.md"
+    AUTHOR_HANDLE=$(grep -Eo '@[A-Za-z0-9_]+' "$WORK_DIR/source-tweet.md" | head -n 1 | sed 's/^@//' || true)
+    [ -n "$AUTHOR_HANDLE" ] || die "Failed to extract author handle from source-tweet.md"
+    ORIGINAL_DATE=$(extract_tweet_date "$WORK_DIR/source-tweet.md" || true)
+    [ -n "$ORIGINAL_DATE" ] || ORIGINAL_DATE=$(date +%F)
+  else
+    log_info "Claude says REFETCH (or unavailable) — proceeding with fresh fetch"
+    rm -f "$WORK_DIR/source-tweet.md"
+  fi
+fi
+
+if [ ! -f "$WORK_DIR/source-tweet.md" ] && { [[ "$TWEET_URL" == *"twitter.com"* ]] || [[ "$TWEET_URL" == *"x.com"* ]]; }; then
   # --- Agentic fetch via gemini-safe-search.sh (Podman sandbox + bird) ---
   # Gemini handles the judgment calls (is this a thread? how to chase it?)
   # while bird provides the raw tweet data. Runs inside Podman sandbox so
@@ -368,7 +398,7 @@ Output rules:
 
   ORIGINAL_DATE=$(extract_tweet_date "$WORK_DIR/source-tweet.md" || true)
   [ -n "$ORIGINAL_DATE" ] || die "Failed to extract tweet date from source"
-else
+elif [ ! -f "$WORK_DIR/source-tweet.md" ]; then
   log_info "Non-twitter URL detected. Fetching via curl and extracting metadata via Gemini..."
   
   # Dump via curl and simple HTML stripping (just enough for Gemini to read text)
