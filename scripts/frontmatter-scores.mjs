@@ -29,7 +29,7 @@ const [, , op, filePath, judge, scoreJsonStr] = process.argv;
 
 if (!op || !filePath || !judge) {
   process.stderr.write(
-    'Usage: frontmatter-scores.mjs <get|write|delete> <file> <judge> [score_json]\n',
+    'Usage: frontmatter-scores.mjs <get|write|delete> <file> <judge> [score_json]\n'
   );
   process.exit(1);
 }

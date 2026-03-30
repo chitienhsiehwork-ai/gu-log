@@ -36,10 +36,10 @@ function getFileCommitCount(filePath, beforeTs = null) {
   if (!_gitAvailable) return null;
   try {
     const beforeFlag = beforeTs ? `--before="${beforeTs}"` : '';
-    const out = execSync(
-      `git log ${beforeFlag} --oneline -- "${filePath}"`,
-      { encoding: 'utf-8', maxBuffer: 2 * 1024 * 1024 },
-    );
+    const out = execSync(`git log ${beforeFlag} --oneline -- "${filePath}"`, {
+      encoding: 'utf-8',
+      maxBuffer: 2 * 1024 * 1024,
+    });
     const count = out.trim().split('\n').filter(Boolean).length;
     return count > 0 ? count : null;
   } catch {

@@ -37,9 +37,12 @@ const factCheckScore = scores?.codex?.score ?? null;
 const scriptLink = `${REPO_BASE}/scripts/ralph-orchestrator.sh`;
 
 // Model/harness info per judge
-const geminiModelInfo = [scores?.gemini?.model, scores?.gemini?.harness].filter(Boolean).join(' · ') || null;
-const codexModelInfo = [scores?.codex?.model, scores?.codex?.harness].filter(Boolean).join(' · ') || null;
-const ralphModelInfo = [scores?.ralph?.model, scores?.ralph?.harness].filter(Boolean).join(' · ') || null;
+const geminiModelInfo =
+  [scores?.gemini?.model, scores?.gemini?.harness].filter(Boolean).join(' · ') || null;
+const codexModelInfo =
+  [scores?.codex?.model, scores?.codex?.harness].filter(Boolean).join(' · ') || null;
+const ralphModelInfo =
+  [scores?.ralph?.model, scores?.ralph?.harness].filter(Boolean).join(' · ') || null;
 
 function scoreClass(_score: number): string {
   return 'score-neutral';

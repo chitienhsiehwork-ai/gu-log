@@ -20,8 +20,8 @@ const RALPH_PROGRESS = 'scripts/ralph-progress.json';
 // Build ticketId → file mapping
 function buildTicketMap() {
   const map = {}; // ticketId → [zhFile, enFile?]
-  const files = fs.readdirSync(POSTS_DIR).filter(f => f.endsWith('.mdx'));
-  
+  const files = fs.readdirSync(POSTS_DIR).filter((f) => f.endsWith('.mdx'));
+
   for (const file of files) {
     const content = fs.readFileSync(path.join(POSTS_DIR, file), 'utf8');
     const match = content.match(/ticketId:\s*"([^"]+)"/);
@@ -66,7 +66,7 @@ function collectScores() {
   for (const [file, judge] of Object.entries(judgeFiles)) {
     const filePath = path.join(SCORES_DIR, file);
     if (!fs.existsSync(filePath)) continue;
-    
+
     const scores = JSON.parse(fs.readFileSync(filePath, 'utf8'));
     for (const [tid, data] of Object.entries(scores)) {
       if (!tid || data.score == null) continue;
@@ -87,9 +87,19 @@ function collectScores() {
           };
         }
       } else if (judge === 'gemini') {
-        allScores[tid].gemini = { score: data.score, date, model: data.model || undefined, harness: 'Gemini CLI' };
+        allScores[tid].gemini = {
+          score: data.score,
+          date,
+          model: data.model || undefined,
+          harness: 'Gemini CLI',
+        };
       } else if (judge === 'codex') {
-        allScores[tid].codex = { score: data.score, date, model: data.model || undefined, harness: 'Codex CLI' };
+        allScores[tid].codex = {
+          score: data.score,
+          date,
+          model: data.model || undefined,
+          harness: 'Codex CLI',
+        };
       }
     }
   }
@@ -152,7 +162,9 @@ for (const [tid, scores] of Object.entries(allScores)) {
             { stdio: 'pipe' }
           );
         } catch (e) {
-          console.error(`ERROR writing ${judgeParam} to ${file}: ${e.stderr?.toString() || e.message}`);
+          console.error(
+            `ERROR writing ${judgeParam} to ${file}: ${e.stderr?.toString() || e.message}`
+          );
         }
       }
     }
@@ -160,5 +172,7 @@ for (const [tid, scores] of Object.entries(allScores)) {
   written++;
 }
 
-console.log(`\nBackfill complete: ${written} ticketIds written, ${skipped} skipped (no matching file)`);
+console.log(
+  `\nBackfill complete: ${written} ticketIds written, ${skipped} skipped (no matching file)`
+);
 if (DRY_RUN) console.log('(dry-run mode — no files were modified)');
