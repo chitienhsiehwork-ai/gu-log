@@ -192,7 +192,12 @@ const t = i18n[lang];
     const match = matches.find((m) => m.key === key);
     if (!match?.indices?.length) return escapeHtml(text);
 
-    const indices = [...match.indices].sort((a, b) => a[0] - b[0]);
+    // Filter out tiny matches (single chars) to avoid confetti highlighting
+    const indices = [...match.indices]
+      .filter(([start, end]) => end - start >= 2) // at least 3 chars
+      .sort((a, b) => a[0] - b[0]);
+    if (!indices.length) return escapeHtml(text);
+
     let result = '';
     let lastIndex = 0;
     for (const [start, end] of indices) {

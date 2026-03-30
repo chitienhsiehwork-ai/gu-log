@@ -17,7 +17,7 @@ export type SearchEntry = {
 export const fuseOptions: IFuseOptions<SearchEntry> = {
   includeMatches: true,
   threshold: 0.4,
-  minMatchCharLength: 1,
+  minMatchCharLength: 2,
   ignoreLocation: true, // Don't penalize matches that appear late in the string
   keys: [
     { name: 'ticketId', weight: 3 },

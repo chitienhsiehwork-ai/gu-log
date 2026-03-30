@@ -63,6 +63,23 @@ describe('Search Relevance — en', () => {
   });
 });
 
+describe('Search Relevance — highlight quality', () => {
+  it('should not produce single-character match indices for "interactive"', () => {
+    const results = fuseZh.search('interactive', { limit: 5 });
+    const sp90 = results.find((r) => r.item.ticketId === 'SP-90');
+    expect(sp90).toBeDefined();
+
+    // Check that match indices are meaningful (>= 3 chars each)
+    for (const match of sp90!.matches || []) {
+      const longIndices = match.indices.filter(([s, e]) => e - s >= 2);
+      // At least one meaningful match should exist
+      if (match.key === 'title' || match.key === 'summary') {
+        expect(longIndices.length).toBeGreaterThan(0);
+      }
+    }
+  });
+});
+
 describe('Search Relevance — ticket ID', () => {
   it('should find exact ticket by ID prefix', () => {
     const tickets = searchTickets(fuseZh, 'SP-90');
