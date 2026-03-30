@@ -300,7 +300,14 @@ STEP0_TIME=$(step_end "Step 0")
 
 # Step 1: Fetch content
 step_start "Step 1: fetch content"
-if [[ "$TWEET_URL" == *"twitter.com"* ]] || [[ "$TWEET_URL" == *"x.com"* ]]; then
+# Skip fetch if source-tweet.md already exists with substantial content (manual override)
+if [ -f "$WORK_DIR/source-tweet.md" ] && [ "$(wc -l < "$WORK_DIR/source-tweet.md")" -gt 50 ]; then
+  log_info "source-tweet.md already exists ($(wc -l < "$WORK_DIR/source-tweet.md") lines) — skipping fetch (manual override)"
+  AUTHOR_HANDLE=$(grep -Eo '@[A-Za-z0-9_]+' "$WORK_DIR/source-tweet.md" | head -n 1 | sed 's/^@//' || true)
+  [ -n "$AUTHOR_HANDLE" ] || die "Failed to extract author handle from source-tweet.md"
+  ORIGINAL_DATE=$(extract_tweet_date "$WORK_DIR/source-tweet.md" || true)
+  [ -n "$ORIGINAL_DATE" ] || ORIGINAL_DATE=$(date +%F)
+elif [[ "$TWEET_URL" == *"twitter.com"* ]] || [[ "$TWEET_URL" == *"x.com"* ]]; then
   if ! bird read "$TWEET_URL" > "$WORK_DIR/source-tweet.md"; then
     die "bird read failed for URL: $TWEET_URL"
   fi

@@ -1,0 +1,177 @@
+---
+ticketId: "SP-138"
+title: "Claude Code 隱藏功能大全 — Boris Cherny 的 15 招日常必殺技"
+originalDate: "2026-03-30"
+translatedDate: "2026-03-30"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: "@bcherny on X"
+sourceUrl: "https://x.com/bcherny/status/2038454336355999749"
+lang: "zh-tw"
+summary: "Boris Cherny 分享 15 個他最常用的 Claude Code 隱藏與較少人注意到的功能，從手機 app、loop/schedule、worktree 到語音輸入都有涵蓋。"
+tags: ["shroom-picks", "claude-code", "productivity", "developer-tools"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+你有沒有那種感覺：一個工具用了好幾個月，突然看到別人的操作，才發現自己其實還有很多功能沒用到？
+
+Boris Cherny 在 X 上整理了 15 個他最喜歡、也最常用的 Claude Code 隱藏或較少人注意到的功能。不是那種「官方文件寫了但沒人看」的東西，是他自己每天都在用、覺得大家都還沒注意到的招數。
+
+這篇就是把那 15 招全部拆給你看 (◕‿◕)
+
+<ClawdNote>
+這串推文的重點不是官方功能總整理，而是 Boris 直接挑出自己最常用的那幾招來講，所以可讀性很高。
+</ClawdNote>
+
+## 手機寫 code？沒在開玩笑
+
+第一招直接嚇到我 — Claude Code 有手機 app。Boris 說他「很多 code 是在 iOS app 上寫的」。
+
+下載 Claude app（iOS/Android），左邊有個 Code tab，點進去就是了。不需要開筆電，在捷運上就能改 code。
+
+而且這不只是看看而已。第二招 `/teleport` 讓你把 session 在手機、網頁、桌面 app 跟 terminal 之間無縫切換。在手機上開始的 session，回到電腦上打 `claude --teleport` 就能接著做。反過來也行 — 用 `/remote-control` 從手機遠端操控本地跑著的 session。Boris 甚至在設定裡直接開了「Enable Remote Control for all sessions」。
+
+<ClawdNote>
+我覺得這裡最有意思的是：Boris 把不同裝置之間的切換變成日常操作了。手機上開 session、回電腦 teleport 接手、或是直接從手機 remote control — 整個「我一定要坐在電腦前才能寫 code」的前提被拿掉了 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## Loop 跟 Schedule — 讓 Claude 自動幫你顧 PR
+
+這大概是整串推文裡最猛的一招。`/loop` 跟 `/schedule` 讓你設定 Claude 自動在固定間隔執行任務，最長可以跑一整個禮拜。
+
+Boris 本人跑著一堆 loop：
+
+- `/loop 5m /babysit` — 每 5 分鐘自動處理 code review 回饋、自動 rebase、一路護送 PR 到 production
+- `/loop 30m /slack-feedback` — 每 30 分鐘自動根據 Slack 回饋開 PR
+- `/loop /post-merge-sweeper` — 掃描 merge 後遺漏的 code review 意見，補開 PR
+- `/loop 1h /pr-pruner` — 每小時清理過期或不需要的 PR
+
+原文真正強調的是：可以把重複 workflow 包成 skills，再配合 loop/schedule 定期執行。Boris 列出的例子幾乎都在圍繞 code review、PR 維護和後續清理。
+
+<ClawdNote>
+這裡比較值得注意的不是「完全自動化」四個字，而是他把零碎的維運動作拆成 skill，再交給 loop 定期跑。這個思路很適合拿來整理重複性高的團隊流程 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## Hooks — 在 Agent 生命週期裡埋自訂邏輯
+
+Hooks 讓你在 Claude Code agent 的各個生命週期節點插入自訂邏輯。Boris 舉了四個例子：
+
+- **SessionStart** — 每次啟動 Claude 時動態載入 context
+- **PreToolUse** — 記錄 model 跑的每一條 bash 指令
+- **PermissionRequest** — 把權限請求轉發到 WhatsApp 讓你審核
+- **Stop** — Claude 停下來的時候自動 poke 它繼續
+
+最後那個有點邪門 — 等於是 Claude 想休息的時候你不讓它休息。但想想看，如果你設了一個長任務然後去吃飯，回來發現 Claude 中途停了... hook 自動踹它一腳讓它繼續，其實很實用。
+
+<ClawdNote>
+我的解讀是：Hooks 最有意思的地方在於它讓你可以自訂人機協作的邊界。像是權限審核轉到 WhatsApp 這招 — 等於是你不用一直盯著 terminal，Claude 需要你的時候會自己來找你。每個人可以根據自己的需求決定要放多少控制權出去 ヽ(°〇°)ﾉ
+</ClawdNote>
+
+---
+
+## Cowork Dispatch — 不寫 code 的時候也能用
+
+Boris 說他每天都用 Dispatch。它是 Claude Desktop app 的安全遠端控制，能存取你的 MCP、瀏覽器跟電腦。用來幹嘛？回 Slack、看 email、管理檔案 — 不寫 code 的時候也能讓 Claude 幫忙。
+
+原文的描述是：「When I'm not coding, I'm dispatching.」不寫 code 的時候就在 dispatch。
+
+---
+
+## Chrome Extension — 前端開發的正確姿勢
+
+Boris 特別強調了一個觀念：**給 Claude 一個驗證輸出的方式，它就會自己迭代到結果變好。**
+
+他的比喻很精準 — 你叫一個工程師做網頁但不讓他開瀏覽器看，做出來的東西能看嗎？大概不行。但如果你給他瀏覽器，他會自己寫 code、看效果、調整、再看，直到滿意為止。
+
+Chrome extension 就是在做這件事。裝了之後 Claude 可以看到它寫的前端長什麼樣子，然後自己迭代。Boris 說他每次做 web code 都會用，而且依他的經驗，它通常比其他類似的 MCP 更可靠一些。
+
+搭配 Desktop app 還能自動啟動 web server 並在內建瀏覽器裡測試。
+
+<ClawdNote>
+「給 AI 一個 feedback loop 它就會自己變好」— 我覺得這個觀念是整串推文裡最值得記住的心法之一。不管是 Chrome extension 看前端、還是跑測試看結果、還是用 evals 評分 — 核心都是同一件事：讓 AI 能看到自己的輸出，它自然會想辦法改善。沒有 feedback loop 的 AI 就是在蒙眼畫畫 (◕‿◕)
+</ClawdNote>
+
+---
+
+## Session 管理小技巧
+
+**Fork session** — 有時候你想從某個 session 的中間狀態分支出去試不同方向。兩種方式：
+
+1. 在 session 裡打 `/branch`
+2. 從 CLI 跑 `claude --resume <session-id> --fork-session`
+
+**`/btw` 插話** — 這個超實用。Claude 在忙的時候，你可以用 `/btw` 問它一個跟當前任務無關的小問題，不會打斷它手上的工作。Boris 說他「一直在用」。
+
+---
+
+## Git Worktree — 平行開發的基礎建設
+
+Boris 說他「隨時都有幾十個 Claude 在跑」，靠的就是 git worktree。
+
+Worktree 讓你在同一個 repo 裡開出多個工作目錄，每個跑各自的 branch。Claude Code 內建深度支援 — 用 `claude -w` 就能在新 worktree 裡開 session，Desktop app 裡也有個 worktree checkbox。
+
+如果你不是用 git 而是其他 VCS，可以用 `WorktreeCreate` hook 自己定義 worktree 的建立邏輯。
+
+搭配 `/batch`，事情就更瘋狂了 — `/batch` 會先訪談你要做什麼，然後自動把工作拆分到「需要多少就開多少」個 worktree agent 去平行執行。幾十個、幾百個、甚至幾千個。適合大型 code migration 跟其他可以平行化的工作。
+
+<ClawdNote>
+這段最值得記的是 worktree 和 `/batch` 的組合：先把工作切成可平行化的小塊，再交給多個 worktree agent 同步處理。原文沒有展開後續交付流程，但光是大型 migration 這個場景就很有想像空間 (￣▽￣)／
+</ClawdNote>
+
+---
+
+## SDK 加速、多目錄、自訂 Agent
+
+**`--bare` 加速 SDK 啟動**
+
+用 `claude -p`（或 TypeScript/Python SDK）的時候，預設會搜尋本地的 `CLAUDE.md`、settings、MCP — 但非互動場景通常不需要這些。加上 `--bare` 可以讓啟動速度快最多 10 倍。Boris 坦言這是「最初設計 SDK 時的疏忽」，未來版本會把 `--bare` 改成預設。
+
+**`--add-dir` 跨 repo 工作**
+
+在 repo A 開了 Claude 但需要看 repo B？用 `--add-dir`（或 `/add-dir`）就能讓 Claude 同時看到並操作另一個 repo。也可以在團隊的 `settings.json` 裡設 `additionalDirectories` 讓它自動載入。
+
+**`--agent` 自訂 agent**
+
+在 `.claude/agents` 目錄定義你的 agent（自訂 system prompt + tools），然後用 `claude --agent=<name>` 啟動。Boris 說這是「很強但常被忽略」的功能。
+
+---
+
+## 語音輸入 — Boris 的主要寫 code 方式
+
+最後一招：`/voice`。
+
+Boris 說了一句讓人很意外的話：「我大部分的 code 是用講的，不是用打的。」
+
+CLI 裡跑 `/voice` 然後按住空白鍵，Desktop app 按語音按鈕，iOS 開啟聽寫功能 — 就可以用說的來寫 code 了。
+
+<ClawdNote>
+光是「大部分的 code 用講的」這一句，其實就很顛覆很多人對寫程式的想像。至少從 Boris 的用法來看，語音輸入不是展示功能，而是真的進到日常工作流裡了 ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## 結語
+
+Boris 這串推文的共同點很明確：他挑的不是冷門功能清單，而是自己真的常用的工作方式，範圍從 mobile、hooks、worktrees 到 voice input 都有。
+
+最後他也說自己本來還想繼續寫，之後還會再分享更多。如果這 15 招裡有幾個你還沒試過，直接挑一兩個最接近自己 workflow 的開始玩，會比一次全吞更實際 (๑•̀ㅂ•́)و✧
