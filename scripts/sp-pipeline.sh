@@ -242,7 +242,7 @@ GU_LOG_DIR="${GU_LOG_DIR:-$HOME/clawd/projects/gu-log}"
 cd "$GU_LOG_DIR"
 source scripts/ralph-helpers.sh
 COUNTER_FILE="$GU_LOG_DIR/scripts/article-counter.json"
-STYLE_GUIDE_FILE="$GU_LOG_DIR/scripts/sp-style-guide.md"
+STYLE_GUIDE_FILE="$GU_LOG_DIR/WRITING_GUIDELINES.md"
 POSTS_DIR="$GU_LOG_DIR/src/content/posts"
 TOTAL_START=$(date +%s)
 
@@ -599,7 +599,7 @@ Review draft-v1.mdx for ${TICKET_PREFIX}-${SP_NUM}.
 
 Checklist:
 1. Fact-check: no hallucinated claims beyond source context.
-2. Style alignment: matches sp-style-guide.md requirements.
+2. Style alignment: matches WRITING_GUIDELINES.md requirements.
 3. Frontmatter accuracy: ticketId/source/sourceUrl/dates/tags format.
 4. ClawdNote usage and kaomoji requirements.
 5. Clear actionable fixes.

@@ -23,6 +23,47 @@
 
 ---
 
+## 📐 文章結構
+
+- 用 `## heading` 做大段落標題（會生成 TOC）
+- 允許使用 `###` 作為案例研究或列表的次級標題
+- `**bold**` 可用於關鍵字強調或段落內的子項目
+- 每篇文章都要有清楚的 `##` section 結構
+- 在每個 `##` 大段落標題之前（除了引言後的第一個 `##` 標題外）必須加上 `---` 分隔線
+- 結尾要有 `## 結語` section 做收束
+
+## 🧱 Narrative Structure（敘事結構）
+
+寫文章不是做整理報告。讀者打開這篇，是想聽人講故事，不是想看簡報。
+
+- **不要每段同一節奏**：如果每個 section 都是「介紹概念 → 拆解 → bullet list → ClawdNote」，那就是整理文，不是好文章。要有變化 — 有的段可以從一個問題切入，有的可以從反直覺觀點開始，有的可以先講 failure 再講 solution。
+- **段落之間要有敘事推進**：不是「接下來講第二招」，而是「好，前面解決了 X，但你有沒有想過 Y？」。像教授在講課，一個洞見帶出下一個。
+- **情緒要有起伏**：不能整篇都是平穩的 8 分。要有讓人停下來想「幹，這個觀點猛」的 peak，也可以有放鬆的段落。
+- **結尾不是摘要**：不要用 bullet list recap 全文。結尾要留一個 punch — 一個問題、一個挑戰、一個 callback 到開頭。讀完要有「靠，這句要記住」的感覺，不是「嗯，總結得很工整」。
+
+## 📋 MDX Frontmatter 格式（必須完全遵守）
+
+```yaml
+---
+ticketId: "SP-{N}"
+title: "中文標題 — 吸引人但不浮誇"
+originalDate: "YYYY-MM-DD"
+translatedDate: "YYYY-MM-DD"
+translatedBy:
+  model: "Gemini 3.1 Pro"
+  harness: "Gemini CLI"
+source: "@author on X"
+sourceUrl: "full_tweet_url"
+pipeline: "sp-96-pipeline" # Optional
+pipelineUrl: "https://github.com/..." # Optional
+lang: "zh-tw"
+summary: "2-3 句摘要（≤300 characters）"
+tags: ["shroom-picks", "tag2", "tag3"]
+---
+```
+
+---
+
 ## 🌏 雙語版本指南
 
 ### 繁體中文版 (zh-tw) — 預設
@@ -67,6 +108,17 @@
 - ✅ 吐槽 + 解釋 → 有趣
 - ✅ 類比 + 誇張 → 有趣
 - ✅ 假裝崩潰 → 有趣
+
+**組件語法**：
+```mdx
+import ClawdNote from '../../components/ClawdNote.astro';
+
+<ClawdNote>內容</ClawdNote>
+```
+- ClawdNote 裡面不要加「Clawd 補充」前綴，組件自動加
+- ClawdNote 數量：不限，有 insight 就放，沒有不硬擠。品質 > 數量
+- ClawdNote 內容要有 insight，不是廢話
+- 可加入 Clawd 的分析與延伸，但僅限於 ClawdNote 組件內，且必須明確標示為評論/推測；不得在正文新增原文沒有的事實、數字或結論
 
 **🔴 只用 ClawdNote — 不要用 CodexNote / GeminiNote / ClaudeCodeNote**：
 - 讀者不在乎哪個 model 寫了哪段。那是廚房裡的事，不要端到餐桌上。
@@ -121,6 +173,25 @@ Google 2017 年丟出這顆核彈後，整個 NLP 界直接進入新紀元。
 - 遇到特別有味道的句子時
 - 附上 1-2 句英文原文，讓讀者感受原本的 vibe
 - 格式：「原文是 "..." ，直譯大概是...，但這邊的 vibe 比較像...」
+
+---
+
+## 🛡️ 翻譯誠實性規則
+
+- **保留不確定用語 (Hedge Preservation)**：如果原文帶有不確定的語氣（如 seems, might, I think），翻譯必須保留同等的不確定性。
+- **禁止捏造數據 (No Number Synthesis)**：如果原文沒有具體數字，翻譯絕對不可自行發明或推測數字。
+- **歸屬優先 (Attribution-First)**：對於推測性或個人觀點的內容，必須加上明確的來源歸屬（例如：「原作者認為」、「推文中提到」）。
+- **保留限制條件 (Constraint Preservation)**：原文中提到的限制條件、注意事項或免責聲明 (limitations/caveats) 絕對不可省略。
+
+## ✅ 最終自我審查 (Final Self-Audit)
+
+在提交前，必須進行以下自我檢查：
+- 是否有捏造或自行發明的數字？
+- 是否擅自提升了語氣的肯定程度（將不確定變成肯定）？
+- 是否遺漏了任何原文的限制條件或警告？
+- 結尾的推論是否超出了原文的範圍？
+- 每個 section 的節奏是否都一樣？（如果是 → 改）
+- 結尾是不是在做 bullet recap？（如果是 → 改）
 
 ---
 
@@ -181,6 +252,17 @@ Google 2017 年丟出這顆核彈後，整個 NLP 界直接進入新紀元。
 - `width` 選填，可控制圖片寬度（像素）
 - 圖片會自動被 Astro 優化（壓縮、轉 webp 等）
 - 支援 `.png`、`.jpg`、`.jpeg`、`.webp`、`.gif` 等格式
+
+---
+
+## 🚫 絕對不要做的事
+
+- 不要用 markdown table
+- 不要逐字翻譯，要意譯
+- 不要寫得像教科書
+- 不要用反問句問讀者顯而易見的答案（如「不覺得很虧嗎？」）
+- ClawdNote 裡不要加「Clawd 補充：」前綴
+- 不要每個 section 都用相同的 explain → bullets → ClawdNote 節奏
 
 ---
 
