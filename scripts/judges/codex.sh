@@ -94,7 +94,7 @@ judge_score_post() {
     --arg reasoning "$reasoning" \
     --arg model "gpt-5.4" \
     --argjson iteration 1 \
-    '{score: $score, details: {reasoning: $reasoning}, model: $model, iteration: $iteration}'
+    '{score: $score, details: {reasoning: $reasoning}, model: $model, harness: "Codex CLI", iteration: $iteration}'
 
   rm -f "$input_file" "$raw_file" "$normalized_file"
 }

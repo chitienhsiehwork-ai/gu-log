@@ -51,7 +51,7 @@ function collectScores() {
         v: data.scores.vibe,
         date: data.timestamp ? data.timestamp.slice(0, 10) : '2026-03-01',
         model: data.model || 'claude-opus-4-6',
-        harness: 'Ralph Scorer',
+        harness: 'Claude Code',
       };
     }
   }
@@ -83,7 +83,7 @@ function collectScores() {
             v: data.details.vibe,
             date,
             model: data.model || undefined,
-            harness: 'Ralph Scorer',
+            harness: 'Claude Code',
           };
         }
       } else if (judge === 'gemini') {

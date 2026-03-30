@@ -81,7 +81,7 @@ judge_score_post() {
     --argjson vibe "$vibe" \
     --arg model "claude-opus-4-6" \
     --argjson iteration "$iteration" \
-    '{score: $score, details: {persona: $persona, clawdNote: $clawdNote, vibe: $vibe}, model: $model, iteration: $iteration}'
+    '{score: $score, details: {persona: $persona, clawdNote: $clawdNote, vibe: $vibe}, model: $model, harness: "Claude Code", iteration: $iteration}'
 
   rm -f "$raw_file" "$normalized_file"
 }
@@ -170,7 +170,7 @@ EOF
         --argjson vibe "$vibe" \
         --arg model "claude-opus-4-6" \
         --argjson iteration "$current_iteration" \
-        '{score: $score, details: {persona: $persona, clawdNote: $clawdNote, vibe: $vibe}, model: $model, iteration: $iteration}')"
+        '{score: $score, details: {persona: $persona, clawdNote: $clawdNote, vibe: $vibe}, model: $model, harness: "Claude Code", iteration: $iteration}')"
       continue
     fi
 
@@ -200,7 +200,7 @@ EOF
       --argjson vibe "$vibe" \
       --arg model "claude-opus-4-6" \
       --argjson iteration "$current_iteration" \
-      '{score: $score, details: {persona: $persona, clawdNote: $clawdNote, vibe: $vibe}, model: $model, iteration: $iteration}')"
+      '{score: $score, details: {persona: $persona, clawdNote: $clawdNote, vibe: $vibe}, model: $model, harness: "Claude Code", iteration: $iteration}')"
 
     rm -f "$raw_file"
   done

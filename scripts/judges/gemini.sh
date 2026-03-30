@@ -141,7 +141,7 @@ TASK_EOF
     --argjson unlinked_terms "$unlinked_terms" \
     --arg model "gemini-3.1-pro-preview" \
     --argjson iteration 1 \
-    '{score: $score, details: {reasoning: $reasoning, unlinked_terms: $unlinked_terms}, model: $model, iteration: $iteration}'
+    '{score: $score, details: {reasoning: $reasoning, unlinked_terms: $unlinked_terms}, model: $model, harness: "Gemini CLI", iteration: $iteration}'
 
   rm -f "$output_file" "$task_file"
 }

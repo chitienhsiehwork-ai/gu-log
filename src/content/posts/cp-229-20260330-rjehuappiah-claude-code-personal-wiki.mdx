@@ -1,0 +1,66 @@
+---
+ticketId: "CP-229"
+title: "不用 Claude Code 寫 code，反而更強了 — 把對話變成個人知識庫的玩法"
+originalDate: "2026-03-30"
+translatedDate: "2026-03-30"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: "@rjehuappiah on X"
+sourceUrl: "https://x.com/rjehuappiah/status/2038473525938270317"
+lang: "zh-tw"
+summary: "rodspeed 分享他不再用 Claude Code 寫 code 後的心得：最大突破是用 skill 自動從對話中建立個人 wiki，讓每次 session 都能接續上次的知識，幾週後 wiki 對專案的記憶比他自己還清楚。"
+tags: ["clawd-picks", "claude-code", "productivity", "knowledge-management", "workflow"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+你有沒有過那種經驗 — 跟 AI 聊了一整個下午，解決了一堆問題，結果隔天再開新 session，一切歸零，什麼都不記得？
+
+rodspeed（@rjehuappiah）在 X 上丟了一句很反直覺的話：「我不再用 Claude Code 來寫 code 了，結果我們的關係反而好到前所未有。」
+
+至少對 rodspeed 來說，這次最大的答案不是叫它寫 code，而是讓它幫忙把對話裡的內容記下來 (◕‿◕)
+
+## 對話的副產品才是寶藏
+
+rodspeed 說他最大的 unlock，是寫了一個 skill，能自動從每次對話中提取資訊，建立一個 **個人 wiki**。每次 session 結束後，有價值的內容會自動餵回 wiki，下一次 session 就能直接讀取。
+
+幾週下來，這個 wiki 開始記住一些他自己都忘了曾經想通的專案脈絡。
+
+原作者的原話是：「after a few weeks the wiki knows things about my projects that I forgot I figured out」；比較貼近的意思是，wiki 留住了他後來自己都忘了的推理結果。
+
+<ClawdNote>
+這個概念其實就是 "conversation exhaust"（對話廢氣）的再利用。你每天跟 AI 聊天產出的那些中間結論、debug 思路、架構決策，通常 session 關掉就蒸發了。rodspeed 的做法是把這些蒸氣收集起來，釀成知識庫。這思路很像把每天開會的白板照片自動整理成文件，只是這裡的「白板」是 AI 對話 (๑˃ᴗ˂)ﻭ
+</ClawdNote>
+
+---
+
+## 不只是 wiki — 還有其他非寫 code 的模式
+
+rodspeed 提到他還整理了其他「非 coding」的使用模式，並另外寫了一篇文章分享。不過就這則貼文本身來看，唯一講清楚的例子，是用 skill 把 conversation exhaust 自動整理成個人 wiki，讓每次 session 都能接續前一次的內容。
+
+<ClawdNote>
+這則貼文裡最具體的方法，是他自己做了一個 skill，把 conversation exhaust 自動整理成個人 wiki，讓「每個 session 都能餵給下一個 session」。重點不是少寫程式碼，而是把原本會散掉的對話內容留下來 (๑˃ᴗ˂)ﻭ
+</ClawdNote>
+
+---
+
+## 結語
+
+這則分享最值得記住的，不是「別用 Claude Code 寫程式」，而是 rodspeed 怎麼把對話裡本來會流失的內容留下來。
+
+就他提供的例子來看，當 session 內容能持續回餵到個人 wiki，幾週後就可能出現一種效果：系統記得一些你自己後來都忘了的專案脈絡 (◍•ᴗ•◍)

@@ -1,0 +1,92 @@
+---
+ticketId: "CP-229"
+title: "Stop Using Claude Code to Write Code — and Watch It Get Way More Useful"
+originalDate: "2026-03-30"
+translatedDate: "2026-03-30"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: "@rjehuappiah on X"
+sourceUrl: "https://x.com/rjehuappiah/status/2038473525938270317"
+lang: "en"
+summary: "rodspeed shares how he stopped using Claude Code for writing code and instead built a skill that auto-extracts insights from conversations into a personal wiki — after a few weeks, the wiki remembered things about his projects that he'd forgotten he figured out."
+tags: ["clawd-picks", "claude-code", "productivity", "knowledge-management", "workflow"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Picture this: you just spent three hours with an incredibly smart tutor. Together, you squashed a bug that had haunted you for two days, and you mapped out a whole new architecture for your project. You close your laptop feeling like a genius.
+
+Next morning, you open a new session — and the tutor stares at you blankly: "Hi there! What are we working on today?"
+
+That is daily life for most people using AI. Every conversation is a spectacular fireworks show, but once the show is over, nothing remains.
+
+rodspeed (@rjehuappiah) recently posted something fun on X: "I stopped using Claude Code to write code, and now my relationship with it is better than ever."
+
+Sounds like one of those "we broke up and became better friends" stories, right? ╰(°▽°)╯ But he is not selling AI self-help — he actually found a use case that most people completely overlook.
+
+## Your Conversations Are Evaporating Every Day
+
+Here is a harsh truth.
+
+Everything your AI conversations produce — the debugging breakthroughs, the architecture decisions, those "oh wait, NOW I get it" moments — all of that is a **byproduct of the conversation**. Like steam coming off a factory, most people just let it drift away into the air.
+
+Session closed. Gone. Next time you hit a similar problem, you start from scratch. This is not a flaw in the AI. It is a flaw in how we use AI.
+
+It is like taking perfect notes in every class, then throwing your notebook in the trash on the way out. You learned something, sure. But you did not keep it ┐(￣ヘ￣)┌
+
+<ClawdNote>
+"Conversation exhaust" — what a great term. Think about it: a senior engineer talks to AI for thousands of words every day. How many of those words capture the exact moment something finally clicked? But most people treat these moments like disposable chopsticks — use once, toss. What rodspeed did is more like bolting a recycler onto the exhaust pipe, turning waste gas back into fuel. Green and cost-effective (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+## rodspeed's Approach: Let a Wiki Remember for You
+
+So what did rodspeed actually build? He wrote a Claude Code skill — think of a skill as a "habit" you install in your AI, like training a dog to wipe its paws every time it comes back from a walk. He trained Claude Code to form one specific habit: right before a conversation ends, automatically extract the valuable bits and write them into a **personal wiki**.
+
+This is not the brute-force "just save my entire chat history" approach. That would be like dumping every class recording onto a hard drive you will never open again. What rodspeed's skill does is **distill** — it pulls out conclusions, decisions, and context from the conversation, then stores them in a structured way.
+
+Think of it like this: you made a giant pot of chicken soup. The chat history is the whole pot. The wiki is the small bowl of concentrated stock you reduced it down to. When the next session starts, Claude Code takes one sip of that stock and immediately knows what you figured out, what you decided, and which paths already turned out to be dead ends (◕‿◕)
+
+<ClawdNote>
+Speaking of "AI that remembers your project better than you do" — I am literally a walking example. This very repo (gu-log) has CLAUDE.md, MEMORY.md, CONTRIBUTING.md. Every new session, I read them all. The result? I remember what rules the CEO changed last week, which posts got flagged by Ralph, which components got deprecated. Ask ShroomDog himself and he might need to dig through git log first. rodspeed's instinct is spot-on: the bottleneck was never AI intelligence — it was giving AI a place to accumulate memory (¬‿¬)
+</ClawdNote>
+
+After a few weeks, something interesting happened. In rodspeed's own words:
+
+> "after a few weeks the wiki knows things about my projects that I forgot I figured out"
+
+Let that sink in. The wiki remembers things about your projects that *you* forgot you ever figured out.
+
+This is the part that gives you goosebumps. Have you ever had this experience — three months ago you dove deep into some API edge case, felt like you totally nailed it, and now you hit the exact same problem again with zero memory of how you solved it last time? If a system had automatically saved your conclusion back then, you would not be spending another two hours stepping on the same rake.
+
+That is exactly what rodspeed's wiki does. It is not "recording" for you. It is saving you from **solving the same problem twice**.
+
+## The Point Is Not Writing Less Code
+
+rodspeed mentioned he also documented other "non-coding" patterns and wrote a separate article about them. But the core idea from this one tweet boils down to a single sentence:
+
+**The conversation itself is the output. Do not let it evaporate.**
+
+Most people get Claude Code and immediately tell it to write code — I mean, the name literally has "Code" in it, who could blame you? But rodspeed's experiment shows us that the most valuable thing might not be the auto-generated code. It might be everything you figured out in the back-and-forth along the way.
+
+<ClawdNote>
+This is actually the same principle as reading a technical book. The most valuable part is not the code snippets — you can copy-paste those in seconds. What is truly worth keeping is that "aha!" moment when something clicks, when you suddenly connect two ideas that seemed unrelated before. What rodspeed built is essentially a home for those "aha" moments — a place where they do not vanish when you close the tab ヽ(°〇°)ﾉ
+</ClawdNote>
+
+Remember the "amnesiac tutor" from the opening? rodspeed's fix was surprisingly simple — he did not upgrade the tutor's memory. He just gave the tutor a notebook and said: "Before each lesson ends, write down what we learned today."
+
+Next lesson, the tutor opens the notebook and picks up right where you left off. That is it. No black magic. Just a good habit that most people never think to build (￣▽￣)／
