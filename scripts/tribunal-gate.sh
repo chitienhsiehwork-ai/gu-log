@@ -108,10 +108,6 @@ post_passes_tribunal() {
 # ─── Build tribunal queue ───
 # Outputs post filenames that have ALL 3 scores and fail threshold
 build_tribunal_queue() {
-  ensure_manifest_file gemini
-  ensure_manifest_file codex
-  ensure_manifest_file opus
-
   local post_file ticket_id
   while IFS= read -r post_file; do
     [ -n "$post_file" ] || continue
@@ -130,16 +126,24 @@ build_tribunal_queue() {
   done < <(list_all_posts)
 }
 
-# ─── Delete score entry from a manifest ───
+# ─── Delete score entry from post frontmatter ───
 delete_score_entry() {
   local judge="$1"
   local ticket_id="$2"
-  local manifest
-  manifest="$(score_manifest_path "$judge")"
-  [ -f "$manifest" ] || return 0
-  local tmp
-  tmp="$(mktemp)"
-  jq --arg t "$ticket_id" 'del(.[$t])' "$manifest" > "$tmp" && mv "$tmp" "$manifest"
+  local post_file
+  post_file="$(find_post_file_for_ticket "$ticket_id")"
+  [ -n "$post_file" ] || return 0
+
+  node "$SCORE_ROOT/scripts/frontmatter-scores.mjs" delete "$post_file" "$judge"
+
+  # Mirror to en-* counterpart
+  local base dir en_file
+  base="$(basename "$post_file")"
+  dir="$(dirname "$post_file")"
+  en_file="$dir/en-$base"
+  if [ -f "$en_file" ]; then
+    node "$SCORE_ROOT/scripts/frontmatter-scores.mjs" delete "$en_file" "$judge"
+  fi
 }
 
 # ─── Log current scores for a post ───
@@ -346,13 +350,12 @@ process_post() {
   git add "src/content/posts/$post_file" 2>/dev/null || true
   [ -f "$en_path" ] && git add "src/content/posts/$en_file" 2>/dev/null || true
   git add "$TRIBUNAL_PROGRESS" 2>/dev/null || true
-  git add "scores/gemini-scores.json" "scores/codex-scores.json" "scores/opus-scores.json" 2>/dev/null || true
 
   git commit -m "$(cat <<EOF
-tribunal(${ticket_id}): rewrite round $new_iter — clear scores for re-judging
+tribunal(${ticket_id}): rewrite round $new_iter — clear frontmatter scores for re-judging
 
 Tribunal iteration $new_iter / $TRIBUNAL_MAX_ROUNDS.
-Scores cleared: Gemini, Codex, Opus — will re-queue in next orchestrator round.
+Scores cleared from frontmatter: Gemini, Codex, Opus — will re-queue in next orchestrator round.
 
 Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
 EOF

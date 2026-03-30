@@ -149,30 +149,54 @@ ensure_manifest_file() {
   fi
 }
 
+# Find the zh-tw MDX file for a given ticketId (returns full path or empty)
+find_post_file_for_ticket() {
+  local ticket_id="$1"
+  local escaped_id
+  escaped_id="$(printf '%s' "$ticket_id" | sed 's/[.*[\^${}|()]/\\&/g')"
+  grep -rl "ticketId: \"${escaped_id}\"" "$SCORE_ROOT/src/content/posts/" 2>/dev/null \
+    | grep -v '/en-' | head -1
+}
+
+# Write score JSON to MDX frontmatter via node helper.
+# Also writes to the en-* counterpart if it exists.
+write_score_to_frontmatter() {
+  local file="$1"
+  local judge="$2"
+  local score_json="$3"
+
+  node "$SCORE_ROOT/scripts/frontmatter-scores.mjs" write "$file" "$judge" "$score_json"
+
+  # Mirror to en-* counterpart
+  local base dir en_file
+  base="$(basename "$file")"
+  dir="$(dirname "$file")"
+  en_file="$dir/en-$base"
+  if [ -f "$en_file" ]; then
+    node "$SCORE_ROOT/scripts/frontmatter-scores.mjs" write "$en_file" "$judge" "$score_json"
+  fi
+}
+
 get_score() {
   local judge="$1"
   local ticket_id="$2"
-  local manifest
-  manifest="$(score_manifest_path "$judge")"
-
-  if [ ! -f "$manifest" ]; then
-    return 0
-  fi
-
-  jq -c --arg ticket "$ticket_id" '.[$ticket] // empty' "$manifest"
+  local post_file
+  post_file="$(find_post_file_for_ticket "$ticket_id")"
+  [ -n "$post_file" ] || return 0
+  node "$SCORE_ROOT/scripts/frontmatter-scores.mjs" get "$post_file" "$judge"
 }
 
 write_score() {
   local judge="$1"
   local ticket_id="$2"
   local score_json="$3"
-  local manifest tmp
-  manifest="$(score_manifest_path "$judge")"
-  ensure_manifest_file "$judge"
-  tmp="$(mktemp)"
-
-  jq --arg ticket "$ticket_id" --argjson payload "$score_json" '.[$ticket] = $payload' "$manifest" > "$tmp"
-  mv "$tmp" "$manifest"
+  local post_file
+  post_file="$(find_post_file_for_ticket "$ticket_id")"
+  if [ -z "$post_file" ]; then
+    echo "[write_score] WARNING: no file found for ticketId $ticket_id" >&2
+    return 1
+  fi
+  write_score_to_frontmatter "$post_file" "$judge" "$score_json"
 }
 
 list_all_posts() {

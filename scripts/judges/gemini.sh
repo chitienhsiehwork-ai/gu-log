@@ -17,7 +17,6 @@ judge_required_tools() {
 
 judge_build_queue() {
   local post_file ticket_id
-  ensure_manifest_file gemini
 
   while IFS= read -r post_file; do
     [ -n "$post_file" ] || continue

@@ -1,5 +1,9 @@
 #!/usr/bin/env node
 /**
+ * @deprecated — scores are now stored directly in each post's MDX frontmatter.
+ * AiJudgeScore.astro reads from post.data.scores; this manifest is no longer updated.
+ * This file is kept for historical reference only. Do NOT run this in the build pipeline.
+ *
  * build-score-manifest.mjs - Build a single JSON manifest from ralph-progress.json
  * and any multi-score results for UI consumption at build time.
  *

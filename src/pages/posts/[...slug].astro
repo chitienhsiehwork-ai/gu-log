@@ -11,7 +11,6 @@ import LoginCta from '../../components/LoginCta.astro';
 import AiPopup from '../../components/AiPopup.astro';
 import ReadStatusButton from '../../components/ReadStatusButton.astro';
 import AiJudgeScore from '../../components/AiJudgeScore.astro';
-import scoreManifest from '../../data/score-manifest.json';
 
 export async function getStaticPaths() {
   const posts = await getCollection('posts', ({ data }) => {
@@ -34,20 +33,6 @@ const isClawdPicks = post.data.tags?.includes('clawd-picks');
 const ticketId = post.data.ticketId;
 const ticketPrefix = ticketId?.split('-')[0] || '';
 const isLevelUp = ticketId?.startsWith('Lv-') ?? false;
-
-interface VibeScores {
-  persona: number;
-  clawdNote: number;
-  vibe: number;
-  scoredAtVersion?: number;
-}
-interface PostScores {
-  currentVersion?: number;
-  vibe?: VibeScores;
-  factCheck?: { score: number; scoredAtVersion?: number };
-  crossRef?: { score: number; scoredAtVersion?: number };
-}
-const scores = ticketId ? (scoreManifest as unknown as Record<string, PostScores>)[ticketId] : null;
 
 const postVersion = getPostVersion(post.id);
 
@@ -144,21 +129,7 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
       )
     }
 
-    {
-      scores && ticketId && (
-        <AiJudgeScore
-          ticketId={ticketId}
-          vibeScores={scores.vibe ? { persona: scores.vibe.persona, clawdNote: scores.vibe.clawdNote, vibe: scores.vibe.vibe } : undefined}
-          vibeScoredAtVersion={scores.vibe?.scoredAtVersion}
-          factCheckScore={scores.factCheck?.score}
-          factCheckScoredAtVersion={scores.factCheck?.scoredAtVersion}
-          crossRefScore={scores.crossRef?.score}
-          crossRefScoredAtVersion={scores.crossRef?.scoredAtVersion}
-          currentVersion={scores.currentVersion}
-          lang="zh-tw"
-        />
-      )
-    }
+    {post.data.scores && <AiJudgeScore scores={post.data.scores} lang="zh-tw" />}
 
     <ReadStatusButton slug={post.slug} lang="zh-tw" />
 

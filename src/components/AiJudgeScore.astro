@@ -2,43 +2,37 @@
 /**
  * AiJudgeScore — Ralph Tribunal: Shows AI quality scores for a post
  *
- * Curator (Gemini) → Source verification (crossRefScore)
- * Checker (Codex)  → Fact check (factCheckScore)
- * Vibe (Opus)      → Style/persona (vibeScores: persona/clawdNote/vibe)
+ * Curator (Gemini) → Source verification (scores.gemini)
+ * Checker (Codex)  → Fact check (scores.codex)
+ * Vibe (Opus)      → Style/persona (scores.ralph: p/c/v)
  *
- * Gray-out: if scoredAtVersion < currentVersion, the card fades (stale score)
+ * Scores live in post frontmatter — no manifest lookup, no stale detection.
  */
 
 interface Props {
-  ticketId: string;
-  vibeScores?: { persona: number; clawdNote: number; vibe: number };
-  vibeScoredAtVersion?: number;
-  factCheckScore?: number;
-  factCheckScoredAtVersion?: number;
-  crossRefScore?: number;
-  crossRefScoredAtVersion?: number;
-  currentVersion?: number;
+  scores?: {
+    ralph?: { p: number; c: number; v: number; date: string };
+    gemini?: { score: number; date: string };
+    codex?: { score: number; date: string };
+  };
   lang?: string;
 }
 
-const {
-  ticketId: _ticketId,
-  vibeScores,
-  vibeScoredAtVersion,
-  factCheckScore,
-  factCheckScoredAtVersion,
-  crossRefScore,
-  crossRefScoredAtVersion,
-  currentVersion,
-  lang = 'zh-tw',
-} = Astro.props;
+const { scores, lang = 'zh-tw' } = Astro.props;
 
 const REPO_BASE = 'https://github.com/chitienhsiehwork-ai/gu-log/blob/main';
-const hasScores = vibeScores || factCheckScore != null || crossRefScore != null;
+const hasScores = scores && (scores.ralph || scores.gemini != null || scores.codex != null);
+
+const vibeScores = scores?.ralph
+  ? { persona: scores.ralph.p, clawdNote: scores.ralph.c, vibe: scores.ralph.v }
+  : null;
 
 const vibeComposite = vibeScores
   ? Math.floor((vibeScores.persona + vibeScores.clawdNote + vibeScores.vibe) / 3)
   : null;
+
+const crossRefScore = scores?.gemini?.score ?? null;
+const factCheckScore = scores?.codex?.score ?? null;
 
 const scriptLink = `${REPO_BASE}/scripts/ralph-orchestrator.sh`;
 
@@ -46,14 +40,6 @@ function scoreClass(score: number): string {
   if (score >= 8) return 'score-green';
   if (score >= 5) return 'score-amber';
   return 'score-red';
-}
-
-function isStale(scoredAtVersion?: number): boolean {
-  return (
-    scoredAtVersion != null &&
-    currentVersion != null &&
-    scoredAtVersion < currentVersion
-  );
 }
 ---
 
@@ -69,7 +55,7 @@ function isStale(scoredAtVersion?: number): boolean {
 
       <div class="judge-cards">
         {crossRefScore != null && (
-          <div class={`judge-card${isStale(crossRefScoredAtVersion) ? ' judge-card--stale' : ''}`}>
+          <div class="judge-card">
             <div class="card-header">
               <span class="judge-icon judge-color-curator">
                 <svg
@@ -104,14 +90,11 @@ function isStale(scoredAtVersion?: number): boolean {
               {crossRefScore}
               <span class="score-denom">/10</span>
             </div>
-            {isStale(crossRefScoredAtVersion) && (
-              <div class="stale-label">v{crossRefScoredAtVersion}</div>
-            )}
           </div>
         )}
 
         {factCheckScore != null && (
-          <div class={`judge-card${isStale(factCheckScoredAtVersion) ? ' judge-card--stale' : ''}`}>
+          <div class="judge-card">
             <div class="card-header">
               <span class="judge-icon judge-color-checker">
                 <svg
@@ -145,14 +128,11 @@ function isStale(scoredAtVersion?: number): boolean {
               {factCheckScore}
               <span class="score-denom">/10</span>
             </div>
-            {isStale(factCheckScoredAtVersion) && (
-              <div class="stale-label">v{factCheckScoredAtVersion}</div>
-            )}
           </div>
         )}
 
         {vibeScores && vibeComposite != null && (
-          <div class={`judge-card${isStale(vibeScoredAtVersion) ? ' judge-card--stale' : ''}`}>
+          <div class="judge-card">
             <div class="card-header">
               <span class="judge-icon judge-color-vibe">
                 <svg
@@ -201,9 +181,6 @@ function isStale(scoredAtVersion?: number): boolean {
                 <strong class={scoreClass(vibeScores.vibe)}>{vibeScores.vibe}</strong>
               </span>
             </div>
-            {isStale(vibeScoredAtVersion) && (
-              <div class="stale-label">v{vibeScoredAtVersion}</div>
-            )}
           </div>
         )}
       </div>
@@ -264,11 +241,6 @@ function isStale(scoredAtVersion?: number): boolean {
     gap: 0.4rem;
   }
 
-  .judge-card--stale {
-    opacity: 0.4;
-    color: var(--color-text-muted);
-  }
-
   .card-header {
     display: flex;
     align-items: center;
@@ -303,12 +275,6 @@ function isStale(scoredAtVersion?: number): boolean {
     font-size: 0.75rem;
     font-weight: 400;
     color: var(--color-text-muted);
-  }
-
-  .stale-label {
-    font-size: 0.7rem;
-    color: var(--color-text-muted);
-    margin-top: 0.1rem;
   }
 
   /* Theme-aware judge brand colors — WCAG AA 4.5:1 contrast on card surface */
