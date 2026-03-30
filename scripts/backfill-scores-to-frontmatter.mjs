@@ -50,6 +50,8 @@ function collectScores() {
         c: data.scores.clawdNote,
         v: data.scores.vibe,
         date: data.timestamp ? data.timestamp.slice(0, 10) : '2026-03-01',
+        model: data.model || 'claude-opus-4-6',
+        harness: 'Ralph Scorer',
       };
     }
   }
@@ -80,12 +82,14 @@ function collectScores() {
             c: data.details.clawdNote,
             v: data.details.vibe,
             date,
+            model: data.model || undefined,
+            harness: 'Ralph Scorer',
           };
         }
       } else if (judge === 'gemini') {
-        allScores[tid].gemini = { score: data.score, date };
+        allScores[tid].gemini = { score: data.score, date, model: data.model || undefined, harness: 'Gemini CLI' };
       } else if (judge === 'codex') {
-        allScores[tid].codex = { score: data.score, date };
+        allScores[tid].codex = { score: data.score, date, model: data.model || undefined, harness: 'Codex CLI' };
       }
     }
   }
@@ -126,10 +130,17 @@ for (const [tid, scores] of Object.entries(allScores)) {
             vibe: scoreData.v,
           },
           date: scoreData.date,
+          model: scoreData.model,
+          harness: scoreData.harness,
         });
       } else {
         judgeParam = judge;
-        scoreJson = JSON.stringify({ score: scoreData.score, date: scoreData.date });
+        scoreJson = JSON.stringify({
+          score: scoreData.score,
+          date: scoreData.date,
+          model: scoreData.model,
+          harness: scoreData.harness,
+        });
       }
 
       if (DRY_RUN) {

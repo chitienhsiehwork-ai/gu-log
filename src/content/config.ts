@@ -38,18 +38,24 @@ const postsCollection = defineCollection({
               c: z.number(),
               v: z.number(),
               date: z.string(),
+              model: z.string().optional(),
+              harness: z.string().optional(),
             })
             .optional(),
           gemini: z
             .object({
               score: z.number(),
               date: z.string(),
+              model: z.string().optional(),
+              harness: z.string().optional(),
             })
             .optional(),
           codex: z
             .object({
               score: z.number(),
               date: z.string(),
+              model: z.string().optional(),
+              harness: z.string().optional(),
             })
             .optional(),
         })

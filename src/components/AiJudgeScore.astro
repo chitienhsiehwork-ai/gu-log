@@ -11,9 +11,9 @@
 
 interface Props {
   scores?: {
-    ralph?: { p: number; c: number; v: number; date: string };
-    gemini?: { score: number; date: string };
-    codex?: { score: number; date: string };
+    ralph?: { p: number; c: number; v: number; date: string; model?: string; harness?: string };
+    gemini?: { score: number; date: string; model?: string; harness?: string };
+    codex?: { score: number; date: string; model?: string; harness?: string };
   };
   lang?: string;
 }
@@ -35,6 +35,11 @@ const crossRefScore = scores?.gemini?.score ?? null;
 const factCheckScore = scores?.codex?.score ?? null;
 
 const scriptLink = `${REPO_BASE}/scripts/ralph-orchestrator.sh`;
+
+// Model/harness info per judge
+const geminiModelInfo = [scores?.gemini?.model, scores?.gemini?.harness].filter(Boolean).join(' · ') || null;
+const codexModelInfo = [scores?.codex?.model, scores?.codex?.harness].filter(Boolean).join(' · ') || null;
+const ralphModelInfo = [scores?.ralph?.model, scores?.ralph?.harness].filter(Boolean).join(' · ') || null;
 
 function scoreClass(_score: number): string {
   return 'score-neutral';
@@ -88,6 +93,7 @@ function scoreClass(_score: number): string {
               {crossRefScore}
               <span class="score-denom">/10</span>
             </div>
+            {geminiModelInfo && <div class="model-info">{geminiModelInfo}</div>}
           </div>
         )}
 
@@ -126,6 +132,7 @@ function scoreClass(_score: number): string {
               {factCheckScore}
               <span class="score-denom">/10</span>
             </div>
+            {codexModelInfo && <div class="model-info">{codexModelInfo}</div>}
           </div>
         )}
 
@@ -179,6 +186,7 @@ function scoreClass(_score: number): string {
                 <strong class={scoreClass(vibeScores.vibe)}>{vibeScores.vibe}</strong>
               </span>
             </div>
+            {ralphModelInfo && <div class="model-info">{ralphModelInfo}</div>}
           </div>
         )}
       </div>
@@ -273,6 +281,14 @@ function scoreClass(_score: number): string {
     font-size: 0.75rem;
     font-weight: 400;
     color: var(--color-text-muted);
+  }
+
+  .model-info {
+    font-size: 0.65rem;
+    color: var(--color-text-muted);
+    opacity: 0.6;
+    margin-top: 0.2rem;
+    line-height: 1.2;
   }
 
   /* Theme-aware judge brand colors — WCAG AA 4.5:1 contrast on card surface */

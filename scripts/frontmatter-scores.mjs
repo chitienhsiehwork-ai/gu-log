@@ -221,10 +221,16 @@ function opWrite() {
     const persona = scoreData.details?.persona ?? scoreData.score ?? 0;
     const clawdNote = scoreData.details?.clawdNote ?? scoreData.score ?? 0;
     const vibe = scoreData.details?.vibe ?? scoreData.score ?? 0;
-    scores['ralph'] = { p: persona, c: clawdNote, v: vibe, date: today };
+    const entry = { p: persona, c: clawdNote, v: vibe, date: today };
+    if (scoreData.model) entry.model = scoreData.model;
+    if (scoreData.harness) entry.harness = scoreData.harness;
+    scores['ralph'] = entry;
   } else {
     // gemini or codex
-    scores[fmKey] = { score: scoreData.score, date: today };
+    const entry = { score: scoreData.score, date: today };
+    if (scoreData.model) entry.model = scoreData.model;
+    if (scoreData.harness) entry.harness = scoreData.harness;
+    scores[fmKey] = entry;
   }
 
   let newFm = removeScoresBlock(parts.fmText);
