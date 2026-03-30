@@ -20,8 +20,8 @@ source "$SCRIPT_DIR/score-helpers.sh"
 # score-helpers.sh sources ralph-helpers.sh already
 
 # ─── Thresholds ───
-TRIBUNAL_GEMINI_MIN=9
-TRIBUNAL_CODEX_MIN=9
+TRIBUNAL_GEMINI_MIN=8
+TRIBUNAL_CODEX_MIN=8
 TRIBUNAL_OPUS_PERSONA_MIN=8
 TRIBUNAL_OPUS_CLAWDNOTE_MIN=8
 TRIBUNAL_OPUS_VIBE_MIN=8

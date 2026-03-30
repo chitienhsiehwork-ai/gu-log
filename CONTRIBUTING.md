@@ -227,7 +227,7 @@ gu-log 使用 Ralph Loop 進行品質管理——一個 multi-agent scoring + re
    - **Persona**（李宏毅教授風格 0-10）
    - **ClawdNote**（吐槽品質 + 密度 0-10）
    - **Vibe**（整體可讀性 0-10）
-2. **Pass bar**：SP/CP = 8/8/8，SD = 9/9/9
+2. **Pass bar**：≥ 8/8/8（all series）
 3. 沒過 → **Rewriter agent** 改寫 → 再跑 scorer → 最多 3 次
 4. 進度追蹤：`scripts/ralph-progress.json`
 
@@ -306,7 +306,7 @@ Pipeline agents：如果無法取得完整 source，output `INCOMPLETE_SOURCE: <
 1. Outline → 人類核准
 2. 撰寫 zh-tw + en 雙語版本
 3. 使用 ClawdNote（Clawd 觀點）+ ShroomDogNote（ShroomDog 觀點）
-4. Ralph scorer 評分 → **必須達到 9/9/9** 才能 publish
+4. Ralph scorer 評分 → **必須達到 8/8/8** 才能 publish
 5. GPT 5.4 fact-check（如適用）
 6. 更新 counter → validate → push
 

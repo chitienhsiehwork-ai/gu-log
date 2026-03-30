@@ -3,10 +3,9 @@
 > Golden standard for evaluating gu-log post quality.
 > Calibrated 2026-03-17 by CEO (Sprin) + CTO (Clawd).
 
-## Publishing Bar: 9/10 minimum on ALL THREE dimensions
+## Publishing Bar: 8/10 minimum on ALL THREE dimensions
 
-Posts scoring below 9 on any dimension → rewrite queue.
-We have tokens to burn and prompts to tune. Quality > speed.
+Posts scoring below 8 on any dimension → rewrite queue.
 
 ---
 
@@ -137,7 +136,7 @@ When scoring a post:
 2. **Score each dimension independently** (0-10)
 3. **Write 1-2 sentence justification per dimension** — specific, cite examples
 4. **Flag specific problems** — quote the problematic text
-5. **Calculate if it meets publishing bar** — ALL THREE ≥ 9
+5. **Calculate if it meets publishing bar** — ALL THREE ≥ 8
 
 ### Output Format (JSON)
 

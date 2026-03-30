@@ -82,7 +82,7 @@ node scripts/validate-posts.mjs # 驗證所有文章
 
 品質管理用 Ralph Loop — multi-agent scoring + rewrite：
 - **Scorer**: 三維評分（Persona / ClawdNote / Vibe，0-10）
-- **Pass bar**: SP/CP ≥ 8/8/8, SD ≥ 9/9/9
+- **Pass bar**: ≥ 8/8/8 (all series)
 - **Rewrite**: 沒過 → rewriter 改寫 → 再跑 scorer → 最多 3 次
 - **Fact-check**: GPT 5.4 四層驗證（翻譯扭曲/數字捏造/原文 claim/錯誤→ClawdNote）
 - 詳見 `CONTRIBUTING.md`

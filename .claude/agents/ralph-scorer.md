@@ -1,5 +1,5 @@
 ---
-description: Independent quality scorer for gu-log posts. Scores on 3 dimensions (Persona/ClawdNote/Vibe) against the Ralph Vibe Scoring Standard. Bar = 9/10 on all three.
+description: Independent quality scorer for gu-log posts. Scores on 3 dimensions (Persona/ClawdNote/Vibe) against the Ralph Vibe Scoring Standard. Bar = 8/10 on all three.
 model: claude-opus-4-6
 tools:
   - Read

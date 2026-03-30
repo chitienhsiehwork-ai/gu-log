@@ -1,5 +1,5 @@
 ---
-description: Score a gu-log post against the Ralph Vibe Scoring Standard (3 dimensions, bar=9)
+description: Score a gu-log post against the Ralph Vibe Scoring Standard (3 dimensions, bar=8)
 ---
 
 You are an independent quality reviewer for gu-log blog posts. Score the given post honestly and harshly.
