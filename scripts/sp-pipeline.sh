@@ -732,6 +732,25 @@ while [ "$RALPH_ATTEMPT" -lt "$RALPH_MAX_ATTEMPTS" ]; do
     if [ "$SCORE_P" -ge 9 ] && [ "$SCORE_C" -ge 9 ] && [ "$SCORE_V" -ge 9 ]; then
       RALPH_PASSED=true
       log_ok "  ✅ Ralph PASS on attempt $RALPH_ATTEMPT"
+
+      # Write Ralph vibe score to scores/opus-scores.json
+      RALPH_TS=$(date -Iseconds)
+      RALPH_COMPOSITE=$(( (SCORE_P + SCORE_C + SCORE_V) / 3 ))
+      _OPUS_TMP=$(mktemp)
+      jq --arg tid "${TICKET_PREFIX}-${SP_NUM}" \
+         --argjson score "$RALPH_COMPOSITE" \
+         --argjson persona "$SCORE_P" \
+         --argjson clawdNote "$SCORE_C" \
+         --argjson vibe "$SCORE_V" \
+         --argjson iter "$RALPH_ATTEMPT" \
+         --arg file "$FILENAME" \
+         --arg ts "$RALPH_TS" \
+         '.[$tid] = { score: $score, details: { persona: $persona, clawdNote: $clawdNote, vibe: $vibe }, model: "claude-opus-4-6", iteration: $iter, file: $file, ts: $ts }' \
+         scores/opus-scores.json > "$_OPUS_TMP" \
+        && mv "$_OPUS_TMP" scores/opus-scores.json \
+        && log_ok "  Wrote Ralph score to scores/opus-scores.json (${TICKET_PREFIX}-${SP_NUM})" \
+        || log_warn "  Failed to write Ralph score to scores/opus-scores.json"
+
       break
     fi
   else

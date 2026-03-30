@@ -38,11 +38,13 @@ interface VibeScores {
   persona: number;
   clawdNote: number;
   vibe: number;
+  scoredAtVersion?: number;
 }
 interface PostScores {
+  currentVersion?: number;
   vibe?: VibeScores;
-  factCheck?: number;
-  crossRef?: number;
+  factCheck?: { score: number; scoredAtVersion?: number };
+  crossRef?: { score: number; scoredAtVersion?: number };
 }
 const scores = ticketId ? (scoreManifest as unknown as Record<string, PostScores>)[ticketId] : null;
 
@@ -145,9 +147,13 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
       scores && ticketId && (
         <AiJudgeScore
           ticketId={ticketId}
-          vibeScores={scores.vibe}
-          factCheckScore={scores.factCheck}
-          crossRefScore={scores.crossRef}
+          vibeScores={scores.vibe ? { persona: scores.vibe.persona, clawdNote: scores.vibe.clawdNote, vibe: scores.vibe.vibe } : undefined}
+          vibeScoredAtVersion={scores.vibe?.scoredAtVersion}
+          factCheckScore={scores.factCheck?.score}
+          factCheckScoredAtVersion={scores.factCheck?.scoredAtVersion}
+          crossRefScore={scores.crossRef?.score}
+          crossRefScoredAtVersion={scores.crossRef?.scoredAtVersion}
+          currentVersion={scores.currentVersion}
           lang="en"
         />
       )

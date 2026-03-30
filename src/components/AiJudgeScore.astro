@@ -5,21 +5,31 @@
  * Curator (Gemini) → Source verification (crossRefScore)
  * Checker (Codex)  → Fact check (factCheckScore)
  * Vibe (Opus)      → Style/persona (vibeScores: persona/clawdNote/vibe)
+ *
+ * Gray-out: if scoredAtVersion < currentVersion, the card fades (stale score)
  */
 
 interface Props {
   ticketId: string;
   vibeScores?: { persona: number; clawdNote: number; vibe: number };
+  vibeScoredAtVersion?: number;
   factCheckScore?: number;
+  factCheckScoredAtVersion?: number;
   crossRefScore?: number;
+  crossRefScoredAtVersion?: number;
+  currentVersion?: number;
   lang?: string;
 }
 
 const {
   ticketId: _ticketId,
   vibeScores,
+  vibeScoredAtVersion,
   factCheckScore,
+  factCheckScoredAtVersion,
   crossRefScore,
+  crossRefScoredAtVersion,
+  currentVersion,
   lang = 'zh-tw',
 } = Astro.props;
 
@@ -37,6 +47,14 @@ function scoreClass(score: number): string {
   if (score >= 5) return 'score-amber';
   return 'score-red';
 }
+
+function isStale(scoredAtVersion?: number): boolean {
+  return (
+    scoredAtVersion != null &&
+    currentVersion != null &&
+    scoredAtVersion < currentVersion
+  );
+}
 ---
 
 {
@@ -51,7 +69,7 @@ function scoreClass(score: number): string {
 
       <div class="judge-cards">
         {crossRefScore != null && (
-          <div class="judge-card">
+          <div class={`judge-card${isStale(crossRefScoredAtVersion) ? ' judge-card--stale' : ''}`}>
             <div class="card-header">
               <span class="judge-icon judge-color-curator">
                 <svg
@@ -86,11 +104,14 @@ function scoreClass(score: number): string {
               {crossRefScore}
               <span class="score-denom">/10</span>
             </div>
+            {isStale(crossRefScoredAtVersion) && (
+              <div class="stale-label">v{crossRefScoredAtVersion}</div>
+            )}
           </div>
         )}
 
         {factCheckScore != null && (
-          <div class="judge-card">
+          <div class={`judge-card${isStale(factCheckScoredAtVersion) ? ' judge-card--stale' : ''}`}>
             <div class="card-header">
               <span class="judge-icon judge-color-checker">
                 <svg
@@ -124,11 +145,14 @@ function scoreClass(score: number): string {
               {factCheckScore}
               <span class="score-denom">/10</span>
             </div>
+            {isStale(factCheckScoredAtVersion) && (
+              <div class="stale-label">v{factCheckScoredAtVersion}</div>
+            )}
           </div>
         )}
 
         {vibeScores && vibeComposite != null && (
-          <div class="judge-card">
+          <div class={`judge-card${isStale(vibeScoredAtVersion) ? ' judge-card--stale' : ''}`}>
             <div class="card-header">
               <span class="judge-icon judge-color-vibe">
                 <svg
@@ -177,6 +201,9 @@ function scoreClass(score: number): string {
                 <strong class={scoreClass(vibeScores.vibe)}>{vibeScores.vibe}</strong>
               </span>
             </div>
+            {isStale(vibeScoredAtVersion) && (
+              <div class="stale-label">v{vibeScoredAtVersion}</div>
+            )}
           </div>
         )}
       </div>
@@ -237,6 +264,11 @@ function scoreClass(score: number): string {
     gap: 0.4rem;
   }
 
+  .judge-card--stale {
+    opacity: 0.4;
+    color: var(--color-text-muted);
+  }
+
   .card-header {
     display: flex;
     align-items: center;
@@ -271,6 +303,12 @@ function scoreClass(score: number): string {
     font-size: 0.75rem;
     font-weight: 400;
     color: var(--color-text-muted);
+  }
+
+  .stale-label {
+    font-size: 0.7rem;
+    color: var(--color-text-muted);
+    margin-top: 0.1rem;
   }
 
   /* Theme-aware judge brand colors — WCAG AA 4.5:1 contrast on card surface */

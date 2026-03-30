@@ -10,6 +10,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import { execSync } from 'child_process';
 
 const PROGRESS_FILE = 'scripts/ralph-progress.json';
 const MULTI_SCORE_DIR = '/tmp/multi-score';
@@ -19,21 +20,60 @@ const OUTPUT_FILE = 'src/data/score-manifest.json';
 // Ensure output dir exists
 fs.mkdirSync(path.dirname(OUTPUT_FILE), { recursive: true });
 
+// --- Version helpers ---
+
+let _gitAvailable = true;
+
+/**
+ * Count git commits touching filePath, optionally only those before beforeTs (ISO string).
+ * Returns null if git is unavailable or the file has no history.
+ */
+function getFileCommitCount(filePath, beforeTs = null) {
+  if (!_gitAvailable) return null;
+  try {
+    const beforeFlag = beforeTs ? `--before="${beforeTs}"` : '';
+    const out = execSync(
+      `git log ${beforeFlag} --oneline -- "${filePath}"`,
+      { encoding: 'utf-8', maxBuffer: 2 * 1024 * 1024 },
+    );
+    const count = out.trim().split('\n').filter(Boolean).length;
+    return count > 0 ? count : null;
+  } catch {
+    _gitAvailable = false;
+    return null;
+  }
+}
+
+// --- Manifest build ---
+
 const manifest = {};
 
-// Load Ralph vibe scores
+// ticketId → MDX filename (without path prefix), used to compute currentVersion
+const ticketToFile = {};
+
+// Load Ralph vibe scores (from ralph-progress.json, has timestamp per entry)
 if (fs.existsSync(PROGRESS_FILE)) {
   const progress = JSON.parse(fs.readFileSync(PROGRESS_FILE, 'utf8'));
   for (const [file, data] of Object.entries(progress.posts || {})) {
     const ticketId = data.ticketId;
     if (!ticketId || !data.scores) continue;
 
-    if (!manifest[ticketId]) manifest[ticketId] = {};
-    manifest[ticketId].vibe = {
+    ticketToFile[ticketId] = file;
+
+    const vibeEntry = {
       persona: data.scores.persona,
       clawdNote: data.scores.clawdNote,
       vibe: data.scores.vibe,
     };
+
+    // Compute scoredAtVersion if we have a timestamp
+    if (data.timestamp) {
+      const v = getFileCommitCount(`src/content/posts/${file}`, data.timestamp);
+      if (v != null) vibeEntry.scoredAtVersion = v;
+    }
+
+    if (!manifest[ticketId]) manifest[ticketId] = {};
+    manifest[ticketId].vibe = vibeEntry;
   }
 }
 
@@ -48,7 +88,7 @@ if (fs.existsSync(MULTI_SCORE_DIR)) {
       const ticketId = data.ticketId || file.replace('codex-', '').replace('.json', '');
       if (!ticketId || data.score == null) continue;
       if (!manifest[ticketId]) manifest[ticketId] = {};
-      manifest[ticketId].factCheck = data.score;
+      manifest[ticketId].factCheck = { score: data.score };
     } catch (e) {
       console.error(`codex ${file}:`, e.message);
     }
@@ -63,7 +103,7 @@ if (fs.existsSync(MULTI_SCORE_DIR)) {
       const ticketId = data.ticketId || file.replace('gemini-', '').replace('.json', '');
       if (!ticketId || data.score == null) continue;
       if (!manifest[ticketId]) manifest[ticketId] = {};
-      manifest[ticketId].crossRef = data.score;
+      manifest[ticketId].crossRef = { score: data.score };
     } catch (e) {
       console.error(`gemini ${file}:`, e.message);
     }
@@ -84,12 +124,12 @@ if (fs.existsSync(MULTI_SCORE_DIR)) {
 
       // Extract fact-check score (single number)
       if (data.judges?.factCheck?.score != null) {
-        manifest[ticketId].factCheck = data.judges.factCheck.score;
+        manifest[ticketId].factCheck = { score: data.judges.factCheck.score };
       }
 
       // Extract cross-ref score (single number)
       if (data.judges?.crossRef?.score != null) {
-        manifest[ticketId].crossRef = data.judges.crossRef.score;
+        manifest[ticketId].crossRef = { score: data.judges.crossRef.score };
       }
     } catch (e) {
       console.error(`Failed to parse ${file}:`, e.message);
@@ -118,23 +158,41 @@ if (fs.existsSync(DAEMON_SCORES_DIR)) {
         if (!ticketId || data.score == null) continue;
         if (!manifest[ticketId]) manifest[ticketId] = {};
 
+        // Track file mapping for currentVersion computation
+        if (data.file) ticketToFile[ticketId] = data.file;
+
+        // Compute scoredAtVersion if we have a timestamp and file
+        let scoredAtVersion;
+        if (data.ts && data.file) {
+          const v = getFileCommitCount(`src/content/posts/${data.file}`, data.ts);
+          if (v != null) scoredAtVersion = v;
+        }
+
         if (judgeType === 'fact') {
-          manifest[ticketId].factCheck = data.score;
+          const entry = { score: data.score };
+          if (scoredAtVersion != null) entry.scoredAtVersion = scoredAtVersion;
+          manifest[ticketId].factCheck = entry;
           count++;
         } else if (judgeType === 'crossref') {
-          manifest[ticketId].crossRef = data.score;
+          const entry = { score: data.score };
+          if (scoredAtVersion != null) entry.scoredAtVersion = scoredAtVersion;
+          manifest[ticketId].crossRef = entry;
           count++;
         } else if (judgeType === 'vibe') {
           // Opus daemon scores have persona/clawdNote/vibe in details
           if (data.details?.persona != null) {
-            manifest[ticketId].vibe = {
+            const entry = {
               persona: data.details.persona,
               clawdNote: data.details.clawdNote,
               vibe: data.details.vibe,
             };
+            if (scoredAtVersion != null) entry.scoredAtVersion = scoredAtVersion;
+            manifest[ticketId].vibe = entry;
           } else {
             // Fallback: just store the aggregate score
-            manifest[ticketId].vibe = { score: data.score };
+            const entry = { score: data.score };
+            if (scoredAtVersion != null) entry.scoredAtVersion = scoredAtVersion;
+            manifest[ticketId].vibe = entry;
           }
           count++;
         }
@@ -145,6 +203,14 @@ if (fs.existsSync(DAEMON_SCORES_DIR)) {
       console.error(`daemon ${file}:`, e.message);
     }
   }
+}
+
+// Add currentVersion to each manifest entry
+for (const [ticketId, entry] of Object.entries(manifest)) {
+  const file = ticketToFile[ticketId];
+  if (!file) continue;
+  const v = getFileCommitCount(`src/content/posts/${file}`);
+  if (v != null) entry.currentVersion = v;
 }
 
 fs.writeFileSync(OUTPUT_FILE, JSON.stringify(manifest, null, 2));
