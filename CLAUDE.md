@@ -57,7 +57,7 @@ src/
 │   ├── ShroomDogNote.astro    # ShroomDog 本人聲音（SD 系列）
 │   ├── Toggle.astro           # 可收合內容
 │   ├── TableOfContents.astro  # 目錄
-│   └── ...                    # ReadingProgress, BackToTop, PrevNextNav, etc.
+│   └── ...                    # ReadingProgress, PrevNextNav, etc.
 ├── layouts/
 │   └── BaseLayout.astro       # 主 layout
 ├── pages/
