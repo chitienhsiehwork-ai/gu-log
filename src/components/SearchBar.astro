@@ -87,6 +87,7 @@ const t = i18n[lang];
 <script>
   import Fuse from 'fuse.js';
   import type { FuseResultMatch, FuseResult } from 'fuse.js';
+  import { fuseOptions, type SearchEntry } from '../config/fuse-options';
 
   // Read config from data attributes (avoids define:vars which blocks module imports)
   const modal = document.querySelector('[data-search-modal]') as HTMLElement | null;
@@ -99,17 +100,6 @@ const t = i18n[lang];
   const noResultsText = modal?.dataset.noResults || 'No results found';
   const maxResults = parseInt(modal?.dataset.maxResults || '5', 10);
   const debounceMs = parseInt(modal?.dataset.debounceMs || '150', 10);
-
-  type SearchEntry = {
-    slug: string;
-    ticketId: string | null;
-    title: string;
-    summary: string;
-    tags: string[];
-    lang: string;
-    date: string;
-    source: string;
-  };
 
   let searchIndex: SearchEntry[] | null = null;
   let fuse: Fuse<SearchEntry> | null = null;
@@ -128,17 +118,7 @@ const t = i18n[lang];
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const posts: SearchEntry[] = await res.json();
       searchIndex = posts;
-      fuse = new Fuse(searchIndex, {
-        includeMatches: true,
-        threshold: 0.35,
-        minMatchCharLength: 1,
-        keys: [
-          { name: 'ticketId', weight: 3 },
-          { name: 'title', weight: 2 },
-          { name: 'tags', weight: 1.5 },
-          { name: 'summary', weight: 1 },
-        ],
-      });
+      fuse = new Fuse(searchIndex, fuseOptions);
     } catch (e) {
       console.error('Failed to load search index:', e);
       loadPromise = null; // reset so next keystroke retries

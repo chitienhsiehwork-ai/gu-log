@@ -12,6 +12,7 @@
     "test:toc": "pnpm exec playwright test tests/toc.spec.ts",
     "test:visual": "node scripts/visual-test.mjs",
     "test:search": "node scripts/search-test.mjs",
+    "test:search-relevance": "pnpm exec vitest run tests/search-relevance.test.ts",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
     "format": "prettier --write \"src/components/**/*.{astro,js,ts}\" \"src/layouts/**/*.{astro,js,ts}\" \"src/pages/**/*.{astro,js,ts}\" \"src/config/**/*.{js,ts}\" \"src/styles/**/*.css\" \"scripts/**/*.{js,mjs,cjs,ts}\" \"*.{mjs,cjs,ts}\"",
@@ -55,11 +56,13 @@
     "eslint": "^9.39.3",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-astro": "^1.6.0",
+    "gray-matter": "^4.0.3",
     "monocart-reporter": "^2.10.0",
     "playwright": "^1.58.2",
     "prettier": "^3.8.1",
     "prettier-plugin-astro": "^0.14.1",
-    "typescript-eslint": "^8.56.1"
+    "typescript-eslint": "^8.56.1",
+    "vitest": "^4.1.2"
   },
   "packageManager": "pnpm@10.29.3",
   "overrides": {
