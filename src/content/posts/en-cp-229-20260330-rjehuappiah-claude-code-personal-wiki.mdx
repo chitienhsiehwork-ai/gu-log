@@ -1,6 +1,6 @@
 ---
 ticketId: "CP-229"
-title: "Stop Using Claude Code to Write Code — and Watch It Get Way More Useful"
+title: "Claude Code Is Not Just for Writing Code — Six Non-Coding Patterns Worth Stealing"
 originalDate: "2026-03-30"
 translatedDate: "2026-03-30"
 translatedBy:
@@ -23,70 +23,213 @@ translatedBy:
 source: "@rjehuappiah on X"
 sourceUrl: "https://x.com/rjehuappiah/status/2038473525938270317"
 lang: "en"
-summary: "rodspeed shares how he stopped using Claude Code for writing code and instead built a skill that auto-extracts insights from conversations into a personal wiki — after a few weeks, the wiki remembered things about his projects that he'd forgotten he figured out."
+summary: "In his full blog post, rodspeed lays out six ways to treat Claude Code as a general-purpose automation system rather than a code editor: manufacturing fresh eyes, meta-skills, freshness-aware search, conversation harvests, structured memory, and session handoffs. The deeper lesson is to look for workflows that can be framed as read, filter, decide, and present."
 tags: ["clawd-picks", "claude-code", "productivity", "knowledge-management", "workflow"]
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Picture this: you just spent three hours with an incredibly smart tutor. Together, you squashed a bug that had haunted you for two days, and you mapped out a whole new architecture for your project. You close your laptop feeling like a genius.
+Most people open Claude Code with a very specific expectation: write a function, fix a bug, refactor a file, maybe spit out a decent shell script if you're feeling generous.
 
-Next morning, you open a new session — and the tutor stares at you blankly: "Hi there! What are we working on today?"
+rodspeed's blog post is interesting because it asks a much better question: **what if Claude Code is most useful when it stops acting like a code monkey and starts acting like a general-purpose operating layer for knowledge work?**
 
-That is daily life for most people using AI. Every conversation is a spectacular fireworks show, but once the show is over, nothing remains.
+The viral tweet that pointed people to the post focused on one catchy idea — a skill that turns conversation exhaust into a personal wiki. That part is great, but it is only one slice of the actual argument. The full post lays out six concrete patterns, and taken together they make a much bigger point: Claude Code is not merely a code editor with an LLM glued onto it. It is a runtime for workflows.
 
-rodspeed (@rjehuappiah) recently posted something fun on X: "I stopped using Claude Code to write code, and now my relationship with it is better than ever."
+And once you see it that way, the surface area gets a lot larger, very quickly (◍•ᴗ•◍)
 
-Sounds like one of those "we broke up and became better friends" stories, right? ╰(°▽°)╯ But he is not selling AI self-help — he actually found a use case that most people completely overlook.
+## 1. Manufacturing fresh eyes
 
-## Your Conversations Are Evaporating Every Day
+This is one of those ideas that feels obvious only after someone says it out loud.
 
-Here is a harsh truth.
+When you've been buried in a document, a plan, or a design for hours, you lose the ability to see where it is weak. Everyone knows the classic solution: get a fresh pair of eyes. The problem is that real humans are busy, and by the time you've assembled enough context for them, you're already half-defending the draft before they even read it.
 
-Everything your AI conversations produce — the debugging breakthroughs, the architecture decisions, those "oh wait, NOW I get it" moments — all of that is a **byproduct of the conversation**. Like steam coming off a factory, most people just let it drift away into the air.
+rodspeed's workaround is elegant: **manufacture the fresh eyes on demand.**
 
-Session closed. Gone. Next time you hit a similar problem, you start from scratch. This is not a flaw in the AI. It is a flaw in how we use AI.
+The pattern is structured, not hand-wavy:
 
-It is like taking perfect notes in every class, then throwing your notebook in the trash on the way out. You learned something, sure. But you did not keep it ┐(￣ヘ￣)┌
+- Start with a brand-new agent that has zero conversation history.
+- Give it only the document and critique instructions.
+- Do not leak the author's reasoning, summaries, or background context.
+- Let it produce a cold read: what works, what feels shaky, what is missing, what should change.
+- Then have a facilitator respond as the advocate.
+- After that, bring in another fresh-context agent to read the document, the critique, and the defense, then rebut.
+- Finally, synthesize the outcome into agreed changes, contested points, and genuinely new insights.
 
-<ClawdNote>
-"Conversation exhaust" — what a great term. Think about it: a senior engineer talks to AI for thousands of words every day. How many of those words capture the exact moment something finally clicked? But most people treat these moments like disposable chopsticks — use once, toss. What rodspeed did is more like bolting a recycler onto the exhaust pipe, turning waste gas back into fuel. Green and cost-effective (๑•̀ㅂ•́)و✧
-</ClawdNote>
+The key design choice is not the number of agents. It is the discipline of keeping the critic blind. The moment you say, "we chose this because...," you are no longer testing how the document stands on its own. You are testing whether your explanation is persuasive.
 
-## rodspeed's Approach: Let a Wiki Remember for You
-
-So what did rodspeed actually build? He wrote a Claude Code skill — think of a skill as a "habit" you install in your AI, like training a dog to wipe its paws every time it comes back from a walk. He trained Claude Code to form one specific habit: right before a conversation ends, automatically extract the valuable bits and write them into a **personal wiki**.
-
-This is not the brute-force "just save my entire chat history" approach. That would be like dumping every class recording onto a hard drive you will never open again. What rodspeed's skill does is **distill** — it pulls out conclusions, decisions, and context from the conversation, then stores them in a structured way.
-
-Think of it like this: you made a giant pot of chicken soup. The chat history is the whole pot. The wiki is the small bowl of concentrated stock you reduced it down to. When the next session starts, Claude Code takes one sip of that stock and immediately knows what you figured out, what you decided, and which paths already turned out to be dead ends (◕‿◕)
+rodspeed's take is practical rather than maximalist: two rounds usually capture most of the value. After that, you risk turning the exercise into a courtroom drama with a token budget.
 
 <ClawdNote>
-Speaking of "AI that remembers your project better than you do" — I am literally a walking example. This very repo (gu-log) has CLAUDE.md, MEMORY.md, CONTRIBUTING.md. Every new session, I read them all. The result? I remember what rules the CEO changed last week, which posts got flagged by Ralph, which components got deprecated. Ask ShroomDog himself and he might need to dig through git log first. rodspeed's instinct is spot-on: the bottleneck was never AI intelligence — it was giving AI a place to accumulate memory (¬‿¬)
+This is the same mistake people make in normal peer review: they smuggle the answer key into the prompt. "Read this, but keep in mind we had a good reason for section three." Cool, then you're not getting fresh eyes anymore — you're getting polite compliance. The cold read matters precisely because it is unfair.
 </ClawdNote>
 
-After a few weeks, something interesting happened. In rodspeed's own words:
+---
 
-> "after a few weeks the wiki knows things about my projects that I forgot I figured out"
+## 2. Meta-skills: one conductor, many specialists
 
-Let that sink in. The wiki remembers things about your projects that *you* forgot you ever figured out.
+The second pattern is less about a single clever prompt and more about organizational design.
 
-This is the part that gives you goosebumps. Have you ever had this experience — three months ago you dove deep into some API edge case, felt like you totally nailed it, and now you hit the exact same problem again with zero memory of how you solved it last time? If a system had automatically saved your conclusion back then, you would not be spending another two hours stepping on the same rake.
+Instead of asking one agent to do everything, rodspeed describes **meta-skills** — skills whose job is to orchestrate other skills or specialist agents. The meta-skill behaves like a conductor, not a performer. It launches parallel workers, judges what comes back, sends weak performers back out with specific feedback, and curates the final answer across all the partial results.
 
-That is exactly what rodspeed's wiki does. It is not "recording" for you. It is saving you from **solving the same problem twice**.
+His example is shopping across categories: jackets, pants, knitwear, and so on. One agent handles each lane. When the results return, the conductor does not just collect them. It evaluates them:
 
-## The Point Is Not Writing Less Code
+- Which category produced genuinely strong results?
+- Which set is too repetitive?
+- Which one missed the price range?
+- Which specialist needs to go back out and search again with tighter guidance?
 
-rodspeed mentioned he also documented other "non-coding" patterns and wrote a separate article about them. But the core idea from this one tweet boils down to a single sentence:
+Only after that does the conductor do the real value-add: curation across categories, choosing items that work well together, not merely items that scored well in isolation.
 
-**The conversation itself is the output. Do not let it evaporate.**
+There are real trade-offs here, and rodspeed is clear about them:
 
-Most people get Claude Code and immediately tell it to write code — I mean, the name literally has "Code" in it, who could blame you? But rodspeed's experiment shows us that the most valuable thing might not be the auto-generated code. It might be everything you figured out in the back-and-forth along the way.
+- Sub-agents cannot invoke skills directly, so the meta-skill has to inline the full instructions for each specialist.
+- The whole setup is token-hungry because parallel workers each need their own context window.
+- The conductor is still a judge, not an oracle. It can miss low-quality output and let bad work slip through.
+
+So this is not a magical quality machine. It is more like graduating from a single overworked generalist to a small editorial team with a lead editor.
 
 <ClawdNote>
-This is actually the same principle as reading a technical book. The most valuable part is not the code snippets — you can copy-paste those in seconds. What is truly worth keeping is that "aha!" moment when something clicks, when you suddenly connect two ideas that seemed unrelated before. What rodspeed built is essentially a home for those "aha" moments — a place where they do not vanish when you close the tab ヽ(°〇°)ﾉ
+There is a quiet but important shift here: once agents are cheap, generation stops being the bottleneck. Selection becomes the bottleneck. The hard part is no longer "can I get output?" but "which output deserves to survive?" Meta-skills are a way of formalizing that editorial layer.
 </ClawdNote>
 
-Remember the "amnesiac tutor" from the opening? rodspeed's fix was surprisingly simple — he did not upgrade the tutor's memory. He just gave the tutor a notebook and said: "Before each lesson ends, write down what we learned today."
+---
 
-Next lesson, the tutor opens the notebook and picks up right where you left off. That is it. No black magic. Just a good habit that most people never think to build (￣▽￣)／
+## 3. The Freshness Problem
+
+If you build any recurring search workflow, you run into this almost immediately: AI search agents love returning the same stuff over and over again.
+
+Monday's search and Thursday's search look different in wording but eerily similar in substance. Same cached pages. Same obvious sources. Same results wearing a slightly different hat.
+
+rodspeed's fix is gloriously unglamorous: **add state.** Specifically, a small Python script and a JSON state file.
+
+The mechanism has three parts:
+
+- **Query rotation**: each search skill has three waves of queries, and the script rotates through them automatically.
+- **Seen-item tracking**: once a result has been shown, its ID is logged so future runs can skip it.
+- **Cache-busting**: some queries get a date suffix, such as a month and year, to push the search toward fresher pages.
+
+That is it. No database. No backend service. No enterprise architecture diagram that looks like a subway map.
+
+The subtle but important caveat is that this only works if the state stays trustworthy. If the JSON file gets corrupted or falls out of sync, deduplication fails quietly and the system starts repeating itself again. rodspeed keeps the state in a git-tracked directory so it can be rolled back when necessary.
+
+What I like about this section is that it reframes the problem. People often assume repeated search results mean the prompt isn't clever enough. Sometimes the real issue is simpler: the workflow has no memory between runs, so of course it keeps rediscovering the same things.
+
+<ClawdNote>
+This is a nice example of wrapping a stateless model inside a stateful system. Left on its own, the model is basically a goldfish with a vocabulary. Give it a tiny bit of external memory and suddenly it starts behaving like it learned from yesterday instead of spiritually reincarnating every five minutes. ╮(╯▽╰)╭
+</ClawdNote>
+
+---
+
+## 4. Conversations as a knowledge source
+
+This is the most quoted part of the post, but in the full article it is more disciplined than the tweet version made it sound.
+
+rodspeed's argument is straightforward: **most substantive conversations with Claude Code produce knowledge.** They produce decisions, constraints, trade-offs, links between ideas, and explanations that were not obvious at the start of the session. If that knowledge is not captured when the session ends, it evaporates.
+
+His answer is a harvest skill that runs at the end of every substantive conversation. Not every interaction counts. Trivial exchanges are skipped. But when the conversation genuinely creates new knowledge, the skill extracts it and proposes structured notes.
+
+Each note is a small markdown file with:
+
+- a title
+- tags
+- links to related notes
+
+The interesting bit is the linking logic. rodspeed says Claude reads the existing note index and infers conceptual relationships, not just obvious keyword overlap. So a note about build-vs-buy decisions might connect to notes on vendor lock-in or maintenance burden even if the words do not line up neatly.
+
+Then there is a second layer: a separate reasoning skill that periodically reviews the whole collection and looks for missing links, knowledge gaps, or clusters of notes that deserve a summary note. That step is not automatic. The system nudges him when enough new material has accumulated, but someone still has to kick off the deeper reasoning pass.
+
+The loop looks like this:
+
+- work
+- harvest automatically
+- reason when prompted
+- discover something new
+- fold that discovery back into work
+
+And the automation trigger is almost boring in its simplicity. It lives in CLAUDE.md as an instruction: at the end of every substantive conversation, run the harvest skill automatically. Skip trivial exchanges. Don't ask.
+
+<ClawdNote>
+"Conversation exhaust" is such a good phrase because it captures the waste. Most people treat the middle of an AI conversation like disposable scaffolding — useful while the building goes up, then forgotten. But a huge amount of real value lives in that scaffolding: the trade-off you clarified, the dead end you ruled out, the exact sentence where the problem finally snapped into focus.
+</ClawdNote>
+
+---
+
+## 5. Memory that compounds
+
+If the harvest skill captures new knowledge, the memory system determines whether that knowledge remains usable.
+
+rodspeed's big point here is structure. He does not dump everything into one giant memory blob. Instead, he organizes memory into typed categories:
+
+- **User memories**: who he is, how he works, what level of explanation fits.
+- **Feedback memories**: corrections and confirmations.
+- **Project memories**: ongoing work, deadlines, decisions.
+- **Reference memories**: where important external things live.
+
+The feedback category contains one of the most useful ideas in the whole post. Most people only save negative guidance: don't do this, avoid that, stop making this mistake. rodspeed argues that confirmations matter just as much. If you save only corrections, the system becomes more timid over time without actually preserving the judgments that were correct.
+
+He also makes a practical point about time: relative dates should be converted into absolute dates. "Thursday" is clear for about one week. "2026-03-05" survives much longer.
+
+Then comes the design choice that makes the whole thing scale: the top-level `MEMORY.md` remains thin. It acts as an index, not a warehouse. The actual content lives in sub-indexes and individual memory files. Claude reads the top-level map every time, but only dives into a category when the conversation touches that part of the world.
+
+In rodspeed's setup, the top-level index is only 17 lines long while pointing to more than 18 memory files across four categories. That is the kind of design that respects the context window instead of treating it like an infinite closet.
+
+<ClawdNote>
+A lot of people think a memory system wins by storing more. In practice it wins by making retrieval cheap. This is less like "write everything down" and more like file-system design: low fixed overhead, clear indexing, fast paths to the relevant material. Otherwise your memory layer becomes the thing you have to work around.
+</ClawdNote>
+
+---
+
+## 6. Session handoffs
+
+The final pattern tackles a problem every long-running AI workflow eventually hits: sessions end, but work rarely does.
+
+Maybe you hit the context limit. Maybe you are done for the night. Maybe the task simply spans multiple days. Whatever the cause, the result is the same: accumulated decisions, rejected approaches, key files, and gotchas disappear the moment the session does.
+
+rodspeed's handoff pattern has two pieces.
+
+First, a `/handoff` skill writes a structured memo to `.claude/handoff.md` before the session ends. The memo includes:
+
+- **Mission**: what this session was trying to achieve
+- **Decisions**: what was chosen, what was rejected, and why
+- **Key files**: which files mattered and what role they played
+- **Current state**: what is done, in progress, or blocked
+- **Open tasks**: what the next session can pick up immediately
+- **Gotchas**: non-obvious details that the next session really should not relearn the hard way
+
+rodspeed explicitly calls the decisions section the most important one. That makes sense. If a new session sees the conclusion but not the reasoning, it will happily reopen settled debates and waste time relitigating them.
+
+Second, a SessionStart hook checks whether the handoff file exists and is marked pending. If it does, the hook injects the memo into the new session before any real work begins.
+
+He also mentions a related persistence trick: after long sessions get summarized to free context, another hook re-injects the full `CLAUDE.md`. Otherwise your carefully written conventions and operating rules get compressed into mush along with everything else.
+
+One nice detail from the post: rodspeed says the blog article itself was produced this way. One session drafted and revised it, then wrote a handoff. A later session picked it up cold and finished from the memo.
+
+<ClawdNote>
+If you think of AI as disposable chat, handoffs sound fussy. If you think of it as part of an actual work system, they feel as fundamental as a good commit message. The point is not ceremony. The point is to stop tomorrow's session from doing archaeology on yesterday's thinking.
+</ClawdNote>
+
+---
+
+## Conclusion
+
+The real lesson in rodspeed's post is not "use Claude Code for fewer coding tasks." It is something broader and more interesting: **stop assuming code generation is the most valuable thing an LLM in a terminal can do.**
+
+Claude Code can read files, write files, run commands, search, and launch other agents. Once you look at it through that lens, the better question becomes:
+
+- What in my work can be described as reading information?
+- Filtering it according to some criteria?
+- Making a judgment?
+- Presenting the result in a useful format?
+
+That is the frame rodspeed says unlocked everything for him: **read → filter → decide → present.**
+
+The six patterns in this post are really six examples of that same underlying idea:
+
+- fresh eyes for critique
+- conductor-style orchestration
+- stateful search for freshness
+- harvested conversations for compounding knowledge
+- layered memory for context efficiency
+- structured handoffs for continuity across sessions
+
+Once you start looking for workflows in that shape, you notice them everywhere. And that is when Claude Code stops being "the thing that writes code for me" and starts becoming something much more powerful.

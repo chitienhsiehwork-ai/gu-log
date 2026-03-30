@@ -1,6 +1,6 @@
 ---
 ticketId: "CP-229"
-title: "不用 Claude Code 寫 code，反而更強了 — 把對話變成個人知識庫的玩法"
+title: "Claude Code 不只能寫 code — 六個讓你生產力翻倍的非 coding 模式"
 originalDate: "2026-03-30"
 translatedDate: "2026-03-30"
 translatedBy:
@@ -23,44 +23,219 @@ translatedBy:
 source: "@rjehuappiah on X"
 sourceUrl: "https://x.com/rjehuappiah/status/2038473525938270317"
 lang: "zh-tw"
-summary: "rodspeed 分享他不再用 Claude Code 寫 code 後的心得：最大突破是用 skill 自動從對話中建立個人 wiki，讓每次 session 都能接續上次的知識，幾週後 wiki 對專案的記憶比他自己還清楚。"
+summary: "rodspeed 在完整 blog post 裡分享六個把 Claude Code 從 code editor 變成個人 operating system 的玩法：製造 fresh eyes、用 meta-skill 管 specialist、解 freshness、把對話收成 wiki、用分層 memory 累積脈絡，以及靠 handoff 跨 session 接棒。重點不是叫 AI 多寫幾行 code，而是把 read-filter-decide-present 這類流程都自動化。"
 tags: ["clawd-picks", "claude-code", "productivity", "knowledge-management", "workflow"]
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-你有沒有過那種經驗 — 跟 AI 聊了一整個下午，解決了一堆問題，結果隔天再開新 session，一切歸零，什麼都不記得？
+大部分人打開 Claude Code，第一個念頭都很直覺：來，幫我寫 function、修 bug、改 refactor。
 
-rodspeed（@rjehuappiah）在 X 上丟了一句很反直覺的話：「我不再用 Claude Code 來寫 code 了，結果我們的關係反而好到前所未有。」
+但 rodspeed 這篇完整文章真正有料的地方，反而是另一個方向：**Claude Code 最可怕的地方，不是它會寫 code，而是它其實是一個可以讀檔、寫檔、跑 command、開 agent、接技能的通用 automation runtime。**
 
-至少對 rodspeed 來說，這次最大的答案不是叫它寫 code，而是讓它幫忙把對話裡的內容記下來 (◕‿◕)
+他在 X 上那則爆紅 teaser 只講到「把對話自動收進個人 wiki」，所以很容易讓人誤會這篇只是在講 knowledge management。其實不是。完整 blog post 裡，他一次拆了六個很具體的模式，從 fresh eyes、meta-skills，到記憶分層與 session handoff，幾乎每一個都比「請 AI 幫我生一段 code」更有槓桿。
 
-## 對話的副產品才是寶藏
+如果你最近也開始覺得，自己跟 AI 真正有價值的部分不是最後那份 diff，而是中間來回討論時形成的判斷、流程與決策，那這篇很值得讀。(◍•ᴗ•◍)
 
-rodspeed 說他最大的 unlock，是寫了一個 skill，能自動從每次對話中提取資訊，建立一個 **個人 wiki**。每次 session 結束後，有價值的內容會自動餵回 wiki，下一次 session 就能直接讀取。
+## 1. Manufacturing fresh eyes：自己做出一雙全新的眼睛
 
-幾週下來，這個 wiki 開始記住一些他自己都忘了曾經想通的專案脈絡。
+第一個模式很妙，也很反直覺。
 
-原作者的原話是：「after a few weeks the wiki knows things about my projects that I forgot I figured out」；比較貼近的意思是，wiki 留住了他後來自己都忘了的推理結果。
+我們平常寫文件、規劃方案、整理設計稿，卡住時都知道要找「fresh eyes」來看。但現實是，別人的時間很貴，而且你常常還沒整理到值得拿去打擾人的程度。rodspeed 的做法是：**直接用一個全新的 agent 來扮演那個完全不知情的 reviewer。**
+
+具體流程不是隨便丟一句「幫我 review」而已，而是有結構的：
+
+- **Cold read**：先開一個完全沒有對話歷史的新 agent。
+- 這個 agent 只拿到文件本身和 critique instructions。
+- **不給作者脈絡、不給摘要、不先解釋「我們為什麼這樣想」。**
+- 它先做第一輪冷讀，指出哪裡合理、哪裡 shaky、哪裡缺東西。
+- 接著由 facilitator（可能是你，也可能是有完整上下文的 skill）寫 advocate response。
+- 然後再叫另一個 fresh-context agent 來讀文件、初評與辯護，做第二輪 rebuttal。
+- 最後再做 synthesis：哪些點雙方同意、哪些點有爭議、哪些 insight 是來回交手後才浮出來的。
+
+這個模式最關鍵的設計，不是「多找幾個 agent」，而是 **嚴格保護 cold read**。
+
+原作者特別強調，一旦你忍不住先說「我們這樣設計是因為……」，其實就把價值打折了。因為真正有用的，正是那種外部讀者第一次接觸你的產物時，腦中會撞到哪些洞、卡在哪些地方。
+
+而且 rodspeed 的判斷很務實：**兩輪通常就吃到大部分價值了。** 不用無限辯經，不然最後只是在拿 token 買自尊。
 
 <ClawdNote>
-這個概念其實就是 "conversation exhaust"（對話廢氣）的再利用。你每天跟 AI 聊天產出的那些中間結論、debug 思路、架構決策，通常 session 關掉就蒸發了。rodspeed 的做法是把這些蒸氣收集起來，釀成知識庫。這思路很像把每天開會的白板照片自動整理成文件，只是這裡的「白板」是 AI 對話 (๑˃ᴗ˂)ﻭ
+很多人做 review 時最容易犯的錯，就是 review 還沒開始，先用三大段背景故事幫自己的方案鋪紅毯。這樣 reviewer 當然比較容易「理解你」，但也更不容易發現真正的可讀性問題。fresh eyes 最值錢的地方，就是它根本不欠你面子。(๑˃ᴗ˂)ﻭ
 </ClawdNote>
 
 ---
 
-## 不只是 wiki — 還有其他非寫 code 的模式
+## 2. Meta-skills：一個 conductor，帶一群 specialist 去做工
 
-rodspeed 提到他還整理了其他「非 coding」的使用模式，並另外寫了一篇文章分享。不過就這則貼文本身來看，唯一講清楚的例子，是用 skill 把 conversation exhaust 自動整理成個人 wiki，讓每次 session 都能接續前一次的內容。
+第二個模式是 rodspeed 認為自己最強的 pattern：**skill 去 orchestrate 其他 skill。**
+
+也就是說，真正厲害的 skill 不一定自己下場做事，而是像一個總編輯或現場導演。它先把工作拆開，平行派出多個 specialist agent，再回頭 judging、補件、重跑，最後才做 curate。
+
+原文舉的例子是搜尋不同服飾類別：外套、褲子、針織等等。meta-skill 會先一次丟五個 specialist agent 出去，每個 agent 負責自己的 category。等結果回來後，conductor 不是照單全收，而是會判斷：
+
+- 哪一類找到的東西明顯比較好
+- 哪一類結果太像、品牌太集中
+- 哪一類價位不對或乾脆是空的
+- 哪些 agent 需要帶著具體 feedback 回去重找
+
+等重找完，它才做最後的 cross-category curate，挑的是「整體搭配起來好」的結果，而不是每個類別各自最強就好。
+
+這裡有兩個很實際的 caveat，原作者沒有藏：
+
+- **sub-agent 不能直接 invoke skills**，所以 meta-skill prompt 必須把 specialist 的完整指令 inline 進去，會變得很長。
+- **這個模式很吃 token**，因為每個 agent 都有自己的 context window，而 conductor 還要有額外空間讀完所有輸出再判斷。
+- 而且 conductor 也不是上帝，它有可能看漏某個 agent 其實交了爛貨。
+
+所以這個玩法不是「自動化萬歲，品質會自己出現」，而是把 AI 從單兵作戰，升級成比較像編輯部或小型 team 的工作流。
 
 <ClawdNote>
-這則貼文裡最具體的方法，是他自己做了一個 skill，把 conversation exhaust 自動整理成個人 wiki，讓「每個 session 都能餵給下一個 session」。重點不是少寫程式碼，而是把原本會散掉的對話內容留下來 (๑˃ᴗ˂)ﻭ
+這個 pattern 很像你從「請一個很強的全端工程師什麼都做」進化成「找一個 tech lead 帶幾個 specialist」。不是因為 specialist 比較神，而是因為分工之後，judge 與 curate 會變成新的槓桿點。真正稀缺的不再是輸出，而是誰負責判斷哪些輸出值得留下來。
+</ClawdNote>
+
+---
+
+## 3. The Freshness Problem：AI 搜尋不是不夠快，是太容易一直重播
+
+如果你有做過 recurring search 類的 skill，很快就會踩到 rodspeed 說的 freshness problem。
+
+表面上你每次都叫 AI 去找新東西，但實際上它很可能一直打到差不多的 query、撞到差不多的 cached page，然後每次給你差不多的結果。週一跑一次、週四再跑一次，看起來像在 search，其實比較像在重播。
+
+rodspeed 的解法很樸素，但非常工程化：**用一個大概 100 行的 Python script，給 search skill 一點跨次執行的 state。**
+
+核心做法有三個：
+
+- **Query rotation**：每個 search skill 準備 3 個 query waves，state file 會記上次跑到哪一波，下一次自動輪到下一波。
+- **Seen-item tracking**：已經展示過的 result ID 記下來，之後直接跳過，不再重複出現。
+- **Cache-busting**：有些 query 會自動加上日期尾巴，例如某個月份年份，把搜尋引擎往比較新的結果推。
+
+整件事不需要資料庫、不需要 server，只靠一個 JSON state file 就能做。原作者甚至把它放進 git-tracked directory，因為他很清楚：**state 一旦壞掉或不同步，dedupe 會靜悄悄失效，然後你又會開始看到重複結果。**
+
+這個洞見我覺得超值得偷。很多人以為 recurring AI search 的問題是 prompt 不夠華麗，其實問題常常不是 prompt，而是系統完全沒有跨 run 的記憶。
+
+<ClawdNote>
+這其實是很典型的「把 stateless LLM 包進 stateful workflow」的例子。模型本身每次都像金魚，但你可以在外面幫牠裝魚缸、貼標籤、記昨天餵過什麼。突然之間，它就看起來沒那麼像金魚了。╮(╯▽╰)╭
+</ClawdNote>
+
+---
+
+## 4. Conversations as a knowledge source：把工作過程本身收成 wiki
+
+這是最廣為流傳的那一段，也是 teaser tweet 提到的重點，但完整文章其實講得比 tweet 深很多。
+
+rodspeed 的想法是：**大多數跟 Claude Code 的對話，本身就在產生 knowledge。** 你在裡面做決策、釐清概念、比對方案、辨認限制條件。這些東西如果不在 session 結束前被收下來，就會像對話蒸氣一樣散掉。
+
+所以他做了一個 harvest skill，會在每次「substantive conversation」結束時自動跑。注意，不是每次瞎聊都跑，而是只有在對話真的產生新知識時才跑， trivial exchange 要跳過。
+
+這個 harvest skill 會：
+
+- 掃描整段對話
+- 抽出 insights
+- 轉成結構化 markdown notes
+- 每則 note 都有標題、tags、以及 links to related notes
+
+原作者還特別點出一個很關鍵的地方：Claude 不是只在做 keyword matching。它會去讀現有的 note index，然後推理哪些筆記雖然沒共用明顯關鍵字，但其實概念上連在一起。
+
+再往前一步，他會定期跑另一個 reasoning skill 去 review 全部筆記：
+
+- 找出還沒被明確連起來的關聯
+- 標出知識缺口
+- 當某幾篇筆記開始圍著同一主題轉時，提議整理成 summary note
+
+這一步不是全自動的，原作者也沒有裝神弄鬼地說「系統會自己長大」。他的描述很誠實：整個 loop 是 **work → harvest（自動）→ reason（提示後跑）→ discover → work**。
+
+而讓 harvest 真的會自動發生的關鍵，不是什麼黑科技，而是 CLAUDE.md 裡那句 instruction：
+
+- 在每次 substantive conversation 結束時，自動跑 harvest skill。
+- substantive 的定義是：這次對話產生了新知識。
+- trivial exchange 不要跑。
+- 不要問，直接做。
+
+<ClawdNote>
+「conversation exhaust」這個詞真的取超好。大部分人跟 AI 聊天，最珍貴的不是最後那份正式輸出，而是中間那些本來只存在 20 秒的判斷瞬間：喔，原來真正的 bottleneck 在這；喔，原來這條路之前試過死掉了。rodspeed 做的事，本質上就是幫這些瞬間裝排氣回收系統。
+</ClawdNote>
+
+---
+
+## 5. Memory that compounds：記憶要分層，才會越積越有用
+
+如果前一節是在講「把新知識收下來」，那這一節講的是另一件更基礎的事：**留下來的記憶要怎麼組織，才不會反過來把 context window 吃爆。**
+
+rodspeed 沒有把 memory 當成一份越寫越長的流水帳，而是分成四種 typed categories：
+
+- **User memories**：我是誰、怎麼工作、我懂到哪裡。
+- **Feedback memories**：不只記 corrections，也記 confirmations。
+- **Project memories**：正在做什麼、做過哪些決策、deadline 是哪天。
+- **Reference memories**：外部系統裡的重要位置，例如 bug 在哪追、dashboard 在哪看。
+
+其中我最喜歡的是 feedback memories 這個提醒。原作者說，很多人只記「不要做 X」，卻不記「對，這次 bundled PR 的判斷是對的」。久了之後，模型只會越來越怕犯錯，卻學不到哪些判斷其實是應該保留的。
+
+另一個很實際的細節是：**相對日期要轉絕對日期。** 你今天寫「週四要交」，兩週後再讀根本不知道是哪個週四；但寫成 2026-03-05，就不會時空錯亂。
+
+更關鍵的是結構。原作者把最上層的 MEMORY.md 維持得很薄，只當 top-level index。真正內容放在各分類的 sub-index 和 memory files 裡。這樣每次開新對話時，系統只需要先載入一份很小的 lookup table；只有當對話碰到某個類別，才往下鑽。
+
+他自己的 top-level index 只有 17 行，但能指到 4 類、18+ 個 memory files。這種設計很像倉庫的總目錄：你每天進門先看地圖，不是把整座倉庫扛在身上。
+
+<ClawdNote>
+很多人以為 memory 的關鍵是「存得越多越好」，其實比較像檔案系統設計：不是東西多就厲害，而是你能不能用很低的固定成本，快速抵達需要的那一塊。否則 memory 還沒幫到你，token 就先被它吃掉了。(◍˃̶ᗜ˂̶◍)ノ"
+</ClawdNote>
+
+---
+
+## 6. Session handoffs：不要讓下一個 session 再重打一遍世界觀
+
+最後一個模式，解的是所有長工作流都會遇到的老問題：**session 會結束，但事情通常不會。**
+
+可能是 context limit 快到了，可能是今天先做到這，可能是你明天才有空接著弄。不管原因是什麼，只要 session 一斷，前面辛苦累積的決策、踩過的坑、看過的檔案，都很容易一起蒸發。
+
+rodspeed 的 handoff pattern 有兩個零件。
+
+第一個是 `/handoff` skill。它會在 session 結束前掃過整段對話，寫一份結構化 memo 到固定路徑 `.claude/handoff.md`。memo 內容包括：
+
+- **Mission**：這輪到底要完成什麼
+- **Decisions**：選了什麼、放棄了什麼、為什麼
+- **Key files**：哪些檔案重要，它們扮演什麼角色
+- **Current state**：哪些完成了、哪些卡住
+- **Open tasks**：下一輪能直接接手的待辦
+- **Gotchas**：那些不寫下來下一輪一定會再踩一次的坑
+
+原作者特別說 **Decisions 是最重要的一段**。因為如果沒有「為什麼當初這樣選」的脈絡，新 session 很容易把已經吵完的事再吵一次。
+
+第二個零件是 SessionStart hook。它會在新 session 開始時檢查 handoff file 是否存在，且是否標記成 pending；如果是，就把完整 memo 注入新對話的 context。
+
+除此之外，他還提到另一個很實用的 hook：當長對話因 context limit 被摘要壓縮後，再把完整 CLAUDE.md 重新注入。因為不然你的 conventions 很可能也被摘要掉，然後 session 越長越不像原本那套規矩。
+
+原作者甚至說，這篇文章本身就是這個模式的示範：前一個 session 先寫、檢查、改稿，再跑 `/handoff`；下一個 session 冷啟動時，直接接上來收尾。
+
+<ClawdNote>
+如果你把 AI 當成一次性聊天對象，handoff 看起來像多此一舉；但如果你把它當成工作系統的一部分，handoff 幾乎就跟 git commit message 一樣重要。不是為了形式，而是為了避免明天的自己重新考古今天的自己。
 </ClawdNote>
 
 ---
 
 ## 結語
 
-這則分享最值得記住的，不是「別用 Claude Code 寫程式」，而是 rodspeed 怎麼把對話裡本來會流失的內容留下來。
+rodspeed 這篇文章最值得偷走的，不是某一招神奇 prompt，而是一個視角轉換：**Claude Code 不是只有「叫它寫 code」這一條路。**
 
-就他提供的例子來看，當 session 內容能持續回餵到個人 wiki，幾週後就可能出現一種效果：系統記得一些你自己後來都忘了的專案脈絡 (◍•ᴗ•◍)
+它其實比較像一個裝著 LLM 的 terminal runtime。只要一個工作流程可以被描述成：
+
+- 讀一些東西
+- 按某些條件過濾
+- 根據規則做判斷
+- 用指定格式交付結果
+
+那它就不一定是 coding 問題，而可能是 automation 問題。
+
+而 rodspeed 這六個模式，剛好把這個視角拆得很完整：
+
+- 你可以用它製造 fresh eyes
+- 用它做多 agent orchestration
+- 用 state 解 recurring search 的 freshness
+- 把對話廢氣收成 wiki
+- 把記憶做成會複利的分層系統
+- 再靠 handoff 讓不同 session 像同一條工作流一樣接下去
+
+所以真正該問的，可能不是「Claude Code 還能幫我多寫多少 code？」
+
+而是：**我生活裡有哪些流程，本質上其實只是 read → filter → decide → present？**
+
+一旦你開始這樣看，能自動化的東西會突然變多很多。然後你才會發現，原來最強的地方，真的不是寫 code 本身。
