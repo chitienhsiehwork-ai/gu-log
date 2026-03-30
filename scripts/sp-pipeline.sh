@@ -308,70 +308,60 @@ if [ -f "$WORK_DIR/source-tweet.md" ] && [ "$(wc -l < "$WORK_DIR/source-tweet.md
   ORIGINAL_DATE=$(extract_tweet_date "$WORK_DIR/source-tweet.md" || true)
   [ -n "$ORIGINAL_DATE" ] || ORIGINAL_DATE=$(date +%F)
 elif [[ "$TWEET_URL" == *"twitter.com"* ]] || [[ "$TWEET_URL" == *"x.com"* ]]; then
-  if ! bird read "$TWEET_URL" > "$WORK_DIR/source-tweet.md"; then
-    die "bird read failed for URL: $TWEET_URL"
+  # --- Agentic fetch via Gemini CLI + bird ---
+  # Gemini handles the judgment calls (is this a thread? how to chase it?)
+  # while bird provides the raw tweet data. This replaces the fragile bash
+  # loop that failed on high-engagement threads (e.g. 15-reply Boris Cherny thread).
+  log_info "Agentic fetch: Gemini CLI + bird (Flash)"
+
+  FETCH_PROMPT="You have access to the \`bird\` CLI tool for reading tweets.
+
+Commands available:
+- \`bird read <url>\` — fetch a single tweet's full text, author, date, engagement stats
+- \`bird replies <url>\` — fetch replies to a tweet (may not return all replies; results are not sorted)
+
+Your task:
+1. Run \`bird read $TWEET_URL\` to get the initial tweet.
+2. Determine if this is part of a thread (look for numbered patterns like '1/', '(1/N)', or the author promising more content).
+3. If it's a thread, use \`bird replies\` to find the SAME AUTHOR's continuation tweets. The author's handle will be in the first tweet output.
+4. For each continuation tweet found, run \`bird read <url>\` to get its full content, then check ITS replies for the next one.
+5. Keep chasing until the author stops or you've collected up to 30 tweets.
+6. If \`bird replies\` doesn't show the author's next tweet (common on high-engagement posts), try varying your search — the author's reply might not be the first result.
+
+Output format — write EVERYTHING to a single file \`$WORK_DIR/source-tweet.md\`:
+- Each tweet separated by a line containing only \`---\`
+- Include the full \`bird read\` output for each tweet (author, text, date, URL, stats)
+- Order: chronological (first tweet at top)
+- Do NOT include replies from other users — only the thread author's tweets
+
+If the tweet is NOT a thread (single standalone tweet), just write that one tweet's output.
+
+IMPORTANT: Write the file even if it's a single tweet. Always use \`bird read\` for each tweet to get full metadata."
+
+  if ! GOOGLE_GENAI_USE_VERTEXAI=0 gemini -m gemini-2.5-flash -p "$FETCH_PROMPT" --sandbox 2>"$WORK_DIR/fetch-agent-stderr.log"; then
+    log_warn "Gemini agentic fetch failed — falling back to basic bird read"
+    if ! bird read "$TWEET_URL" > "$WORK_DIR/source-tweet.md"; then
+      die "bird read failed for URL: $TWEET_URL"
+    fi
   fi
+
+  # Validate output exists and has content
+  if [ ! -f "$WORK_DIR/source-tweet.md" ] || [ ! -s "$WORK_DIR/source-tweet.md" ]; then
+    log_warn "Gemini did not produce source-tweet.md — falling back to basic bird read"
+    if ! bird read "$TWEET_URL" > "$WORK_DIR/source-tweet.md"; then
+      die "bird read failed for URL: $TWEET_URL"
+    fi
+  fi
+
+  TWEETS_COLLECTED=$(grep -c '^---$' "$WORK_DIR/source-tweet.md" || echo 0)
+  TWEETS_COLLECTED=$((TWEETS_COLLECTED + 1))  # separators = tweets - 1
+  log_ok "Agentic fetch complete: $TWEETS_COLLECTED tweet(s) collected"
 
   AUTHOR_HANDLE=$(grep -Eo '@[A-Za-z0-9_]+' "$WORK_DIR/source-tweet.md" | head -n 1 | sed 's/^@//' || true)
-  [ -n "$AUTHOR_HANDLE" ] || die "Failed to extract author handle from bird output"
+  [ -n "$AUTHOR_HANDLE" ] || die "Failed to extract author handle from source"
 
   ORIGINAL_DATE=$(extract_tweet_date "$WORK_DIR/source-tweet.md" || true)
-  [ -n "$ORIGINAL_DATE" ] || die "Failed to extract tweet date from bird output"
-
-  # --- Thread detection: (N/M) pattern OR reply-based heuristic ---
-  THREAD_INDICATOR=$(grep -oE '\([0-9]+/[0-9]+\)' "$WORK_DIR/source-tweet.md" | head -1 || true)
-  THREAD_MAX=20  # hard cap to avoid infinite chasing
-
-  if [ -n "$THREAD_INDICATOR" ]; then
-    THREAD_TOTAL=$(echo "$THREAD_INDICATOR" | grep -oE '/[0-9]+' | tr -d '/')
-    log_info "Thread detected via (N/M): $THREAD_INDICATOR (expecting $THREAD_TOTAL tweets)"
-  else
-    # Heuristic: always try to chase replies from the same author.
-    # Many threads (especially long ones) don't use (1/N) numbering.
-    # We probe `bird replies` and if the author continues, we follow.
-    THREAD_TOTAL=$THREAD_MAX
-    log_info "No (N/M) indicator — probing for unnumbered thread via replies"
-  fi
-
-  # Chase the thread: follow replies from the same author
-  CURRENT_URL="$TWEET_URL"
-  TWEETS_COLLECTED=1
-
-  for (( i=2; i<=THREAD_TOTAL+2 && i<=THREAD_MAX+2; i++ )); do
-    REPLIES_OUT=$(bird replies "$CURRENT_URL" 2>/dev/null || true)
-    if [ -z "$REPLIES_OUT" ]; then
-      [ "$TWEETS_COLLECTED" -eq 1 ] && log_info "No replies found — single tweet, not a thread"
-      break
-    fi
-
-    # Find next tweet from the same author (thread continuation)
-    NEXT_TWEET_URL=$(echo "$REPLIES_OUT" | grep -A5 "@${AUTHOR_HANDLE}" | grep -oE 'https://x\.com/[^ ]+' | head -1 || true)
-    if [ -z "$NEXT_TWEET_URL" ]; then
-      break
-    fi
-
-    # Fetch the full tweet and append
-    if bird read "$NEXT_TWEET_URL" >> "$WORK_DIR/source-tweet.md" 2>/dev/null; then
-      TWEETS_COLLECTED=$((TWEETS_COLLECTED + 1))
-      printf '\n---\n' >> "$WORK_DIR/source-tweet.md"
-      CURRENT_URL="$NEXT_TWEET_URL"
-      log_info "  Collected tweet $TWEETS_COLLECTED"
-    else
-      log_warn "  Failed to fetch $NEXT_TWEET_URL, stopping"
-      break
-    fi
-  done
-
-  if [ "$TWEETS_COLLECTED" -gt 1 ]; then
-    if [ -n "$THREAD_INDICATOR" ] && [ "$TWEETS_COLLECTED" -lt "$THREAD_TOTAL" ]; then
-      log_warn "INCOMPLETE_SOURCE: Only got $TWEETS_COLLECTED/$THREAD_TOTAL tweets"
-      log_warn "Proceeding with partial thread — writer prompt will note incompleteness"
-      echo "" >> "$WORK_DIR/source-tweet.md"
-      echo "⚠️ INCOMPLETE THREAD: Only $TWEETS_COLLECTED of $THREAD_TOTAL tweets were fetched." >> "$WORK_DIR/source-tweet.md"
-    else
-      log_ok "Thread collected: $TWEETS_COLLECTED tweets"
-    fi
-  fi
+  [ -n "$ORIGINAL_DATE" ] || die "Failed to extract tweet date from source"
 else
   log_info "Non-twitter URL detected. Fetching via curl and extracting metadata via Gemini..."
   
