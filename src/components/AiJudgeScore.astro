@@ -36,10 +36,8 @@ const factCheckScore = scores?.codex?.score ?? null;
 
 const scriptLink = `${REPO_BASE}/scripts/ralph-orchestrator.sh`;
 
-function scoreClass(score: number): string {
-  if (score >= 8) return 'score-green';
-  if (score >= 5) return 'score-amber';
-  return 'score-red';
+function scoreClass(_score: number): string {
+  return 'score-neutral';
 }
 ---
 
@@ -301,24 +299,12 @@ function scoreClass(score: number): string {
   }
 
   /* Score value colors — also theme-aware */
-  .score-green {
-    color: #4ade80; /* bright green for dark */
-  }
-  .score-amber {
-    color: #fbbf24; /* bright amber for dark */
-  }
-  .score-red {
-    color: #f87171; /* bright red for dark */
+  .score-neutral {
+    color: #93a1a1; /* Solarized base1 — light gray on dark */
   }
 
-  :global([data-theme='light']) .score-green {
-    color: #16a34a; /* tailwind green-600 */
-  }
-  :global([data-theme='light']) .score-amber {
-    color: #ca8a04; /* tailwind yellow-600 */
-  }
-  :global([data-theme='light']) .score-red {
-    color: #dc2626; /* tailwind red-600 */
+  :global([data-theme='light']) .score-neutral {
+    color: #586e75; /* Solarized base01 — muted gray on light */
   }
 
   .vibe-sub {
