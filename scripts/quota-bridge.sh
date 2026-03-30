@@ -17,6 +17,45 @@ _QUOTA_CACHE_TTL=120
 _QUOTA_LKG_DIR="/tmp/quota-bridge-lkg"
 mkdir -p "$_QUOTA_LKG_DIR" 2>/dev/null || true
 
+# Per-provider pacing lock: when a provider says "sleep N seconds",
+# write the resume-after timestamp. Don't re-check until then.
+_QUOTA_PACING_DIR="/tmp/quota-bridge-pacing"
+mkdir -p "$_QUOTA_PACING_DIR" 2>/dev/null || true
+
+# Write a pacing lock: don't check this provider again until $2 seconds from now
+_set_pacing_lock() {
+  local provider="$1" seconds="$2"
+  local resume_at=$(( $(date +%s) + seconds ))
+  echo "$resume_at" > "$_QUOTA_PACING_DIR/${provider}.lock"
+}
+
+# Check if a pacing lock is active. Returns the cached status if locked.
+# Returns 1 if no lock or lock expired (caller should do a real check).
+_check_pacing_lock() {
+  local provider="$1"
+  local lock_file="$_QUOTA_PACING_DIR/${provider}.lock"
+  [ -f "$lock_file" ] || return 1
+  local resume_at now remaining
+  resume_at=$(cat "$lock_file")
+  now=$(date +%s)
+  if [ "$now" -lt "$resume_at" ]; then
+    remaining=$(( resume_at - now ))
+    local h=$(( remaining / 3600 ))
+    local m=$(( (remaining % 3600) / 60 ))
+    local human
+    if [ "$h" -gt 0 ]; then
+      human="${h}h${m}m"
+    else
+      human="${m}m"
+    fi
+    echo "pacing:${remaining}(${human})"
+    return 0
+  fi
+  # Lock expired — remove and let caller re-check
+  rm -f "$lock_file"
+  return 1
+}
+
 _fetch_quota_json() {
   local now
   now="$(date +%s)"
@@ -44,6 +83,12 @@ quota_invalidate_cache() {
 # ─── OpenAI (Codex) ──────────────────────────────
 # Returns: ok | sleep:<seconds> | exhausted
 codex_real_quota_check() {
+  local _locked
+  if _locked=$(_check_pacing_lock codex); then
+    echo "$_locked"
+    return 0
+  fi
+
   local json provider_json status remaining_5h remaining_7d reset_min reset_hr
   json="$(_fetch_quota_json)"
 
@@ -81,11 +126,8 @@ print('{}')
   fi
 
   # Budget pacing: spread remaining runs evenly across remaining time
-  #
-  # Concept: estimate cost_per_run from observed data, then compute
-  # interval = remaining_time / estimated_remaining_runs.
-  # Sleep until the next "slot" opens. No arbitrary thresholds.
-  python3 -c "
+  local _codex_result
+  _codex_result=$(python3 -c "
 import json, os, time
 
 remaining_5h = $remaining_5h
@@ -139,12 +181,28 @@ else:
             wait = min(7200, max(120, int(interval)))
             h = f'{wait//3600}h{(wait%3600)//60}m' if wait >= 3600 else f'{wait//60}m'
             print(f'pacing:{wait}({h})')
-" 2>/dev/null
+" 2>/dev/null)
+
+  if [[ "$_codex_result" == pacing:* ]]; then
+    local _secs="${_codex_result%%(*}"
+    _secs="${_secs#pacing:}"
+    _set_pacing_lock codex "$_secs"
+  elif [[ "$_codex_result" == sleep:* ]]; then
+    local _secs="${_codex_result#sleep:}"
+    _set_pacing_lock codex "$_secs"
+  fi
+  echo "$_codex_result"
 }
 
 # ─── Gemini ──────────────────────────────────────
 # Checks Pro tier quota (shared across 2.5-pro, 3-pro, 3.1-pro)
 gemini_real_quota_check() {
+  local _locked
+  if _locked=$(_check_pacing_lock gemini); then
+    echo "$_locked"
+    return 0
+  fi
+
   local json provider_json status
   json="$(_fetch_quota_json)"
 
@@ -170,7 +228,8 @@ print('{}')
     fi
   fi
 
-  python3 -c "
+  local _gemini_result
+  _gemini_result=$(python3 -c "
 import json, sys
 from datetime import datetime, timezone
 
@@ -216,11 +275,28 @@ elif used_pct > ideal_used + BURST:
     print(f'pacing:{sleep_needed}({h})')
 else:
     print('running')
-" 2>/dev/null
+" 2>/dev/null)
+
+  if [[ "$_gemini_result" == pacing:* ]]; then
+    local _secs="${_gemini_result%%(*}"
+    _secs="${_secs#pacing:}"
+    _set_pacing_lock gemini "$_secs"
+  elif [[ "$_gemini_result" == sleep:* ]]; then
+    local _secs="${_gemini_result#sleep:}"
+    _set_pacing_lock gemini "$_secs"
+  fi
+  echo "$_gemini_result"
 }
 
 # ─── Claude (Opus) ──────────────────────────────
 claude_real_quota_check() {
+  # If we already know Claude is pacing, don't bother checking API
+  local _locked
+  if _locked=$(_check_pacing_lock claude); then
+    echo "$_locked"
+    return 0
+  fi
+
   local json provider_json status
   json="$(_fetch_quota_json)"
 
@@ -249,7 +325,8 @@ print('{}')
     fi
   fi
 
-  python3 -c "
+  local _claude_result
+  _claude_result=$(python3 -c "
 import json
 
 data = json.loads('''$provider_json''')
@@ -299,5 +376,16 @@ elif remaining_5h < 20:
     print(f'pacing:{wait_5h}({h})')
 else:
     print('running')
-" 2>/dev/null
+" 2>/dev/null)
+
+  # Write pacing lock so we don't re-check until the sleep expires
+  if [[ "$_claude_result" == pacing:* ]]; then
+    local _secs="${_claude_result%%(*}"
+    _secs="${_secs#pacing:}"
+    _set_pacing_lock claude "$_secs"
+  elif [[ "$_claude_result" == sleep:* ]]; then
+    local _secs="${_claude_result#sleep:}"
+    _set_pacing_lock claude "$_secs"
+  fi
+  echo "$_claude_result"
 }
