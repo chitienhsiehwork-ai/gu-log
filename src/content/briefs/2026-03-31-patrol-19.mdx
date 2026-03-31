@@ -1,0 +1,51 @@
+---
+title: '🔭 Shroom Feed — 2026-03-31 19:40 台北'
+briefType: 'patrol'
+date: '2026-03-31'
+time: '19:40 台北'
+summary: 'Ollama + MLX Apple Silicon 飛躍、Boris 公開 Claude Code 15 大隱藏功能、Claude Code 原始碼外洩'
+lang: 'zh-tw'
+tags: ["ollama", "mlx", "apple-silicon", "claude-code", "source-leak", "dispatch", "figma-mcp", "kat-coder", "qwen-omni", "supply-chain"]
+---
+
+## 🍎 Ollama + MLX — Apple Silicon Local LLM 效能大飛躍
+
+Ollama 原生整合 MLX（Apple 自家 ML 框架），Apple Silicon local inference 大幅加速。MLX 作者 Awni Hannun 盛讚「等這一天很久了」。Huryn 跟進分析：社群已經把 Claude Opus 4.6 的推理模式蒸餾到 Qwen 27B，4-bit 量化只要 15GB，M4 Pro 24GB 就能流暢跑。Cloud 處理高難度問題、local 處理隱私敏感 — 雙軌 AI 時代正式到來。
+
+來源：[@ollama](https://x.com/ollama/status/2038835449012351197) / [@awnihannun](https://x.com/awnihannun/status/2038837352739844552) / [@PawelHuryn](https://x.com/PawelHuryn/status/2038920484813754543)
+
+## 🔧 Boris Cherny 公開 Claude Code 15 大隱藏功能
+
+Claude Code 核心開發者 Boris 分享他最愛的 15 個被低估功能：/voice 語音輸入（他大部分 coding 都是用講的）、Dispatch 手機遙控編碼、Desktop app 自動啟動和測試 web server 等。Huryn 特別推 Dispatch：買 Mac Mini $500 跑 24/7，每天早上醒來 Slack/Email 已整理好，手機就能指派任務。有些日子他完全不用打開筆電。
+
+來源：[@bcherny](https://x.com/bcherny/status/2038454336355999749) / [@PawelHuryn](https://x.com/PawelHuryn/status/2038925097092763810)
+
+## 🚨 Claude Code 原始碼外洩 — npm Source Map 事件
+
+Claude Code npm 套件意外包含 source map 檔，完整原始碼可還原。Dan McAteer 指出這是一週內第二起 Anthropic 洩漏，但真正的護城河是 model + harness 聯合訓練而非原始碼本身。社群在洩漏碼中發現了 'Tengu' 等未公開的內部代號和 "UNDERCOVER MODE" 標記，引發猜測。
+
+來源：[@daniel_mac8](https://x.com/daniel_mac8/status/2038941377522790872) / [@Fried_rice](https://x.com/Fried_rice/status/2038894956459290963)
+
+## 🎨 Thariq × Figma MCP 深度示範
+
+Thariq 展示 Figma MCP 進階玩法：在 Figma 畫醜草圖 → Claude Code 自動轉為正式 UI 並補上可能需要的 component 庫。3/31 與 Figma 聯合直播。從「design 給 AI 看」進化到「AI 幫你擴充設計」。
+
+來源：[@trq212](https://x.com/trq212/status/2038352023633228183)
+
+## 📱 Dispatch 支援指定 Model
+
+Noah Zweben 宣布 Dispatch 現在可以用自然語言指定 coding task 要用哪個 model。持續讓 Dispatch 成為委派 Cowork 和 Code 任務的最佳入口。
+
+來源：[@noahzweben](https://x.com/noahzweben/status/2038444046109315553)
+
+## 🏆 KAT-Coder-Pro V2 — 非推理模型追上 Sonnet 4.6
+
+Artificial Analysis 評測：KwaiKAT 的 KAT-Coder-Pro V2 Intelligence Index 達 44，追平 Claude Sonnet 4.6（non-reasoning）。Terminal-Bench Hard 49% 追平 Opus 4.6。重點是它不用推理 token，比同級推理模型省 8 倍 token，成本只要 $73 跑完整個 Intelligence Index。
+
+來源：[@ArtificialAnlys](https://x.com/ArtificialAnlys/status/2038898573937635359)
+
+## 🌐 Qwen3.5-Omni — 原生多模態理解
+
+Qwen3.5-Omni 發布，原生支援文字、圖像、音頻、影片理解和生成。亮點包含 Audio-Visual Vibe Coding — 語音描述 + 即時看到結果。
+
+來源：[@Ali_TongyiLab](https://x.com/Ali_TongyiLab/status/2038609308750143762)
