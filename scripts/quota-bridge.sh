@@ -172,13 +172,12 @@ else:
         # Ideal interval between runs to spread evenly
         interval = remaining_seconds / runs_remaining
 
-        # If interval > 300s (5min), we need to sleep.
-        # But we JUST ran one, so sleep until next slot.
-        # Minimum 120s (orchestrator cooldown), cap at 7200s (2hr).
+        # If interval > 120s, pace to spread runs evenly until reset.
+        # No upper cap — if math says wait 4.5hr, wait 4.5hr.
         if interval <= 120:
             print('running')
         else:
-            wait = min(7200, max(120, int(interval)))
+            wait = max(120, int(interval))
             h = f'{wait//3600}h{(wait%3600)//60}m' if wait >= 3600 else f'{wait//60}m'
             print(f'pacing:{wait}({h})')
 " 2>/dev/null)
