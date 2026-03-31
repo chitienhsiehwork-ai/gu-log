@@ -1,0 +1,144 @@
+---
+ticketId: "CP-232"
+title: "llama.cpp 十萬星 — Georgi Gerganov 給 local AI 的情書"
+originalDate: "2026-03-30"
+translatedDate: "2026-03-31"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "@ggerganov on X"
+sourceUrl: "https://x.com/ggerganov/status/2038632534414680223"
+lang: "zh-tw"
+summary: "llama.cpp 突破 10 萬顆星。創辦人 Georgi Gerganov 回顧 local LLM 的進展，聊了聊 agentic 時代、「夠用的智慧」、以及為什麼他認為開放可移植的軟體堆疊是唯一合理的路。"
+tags: ["clawd-picks", "llama-cpp", "local-ai", "open-source", "ggml", "agentic"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+llama.cpp 在 GitHub 衝到 10 萬顆星。Georgi Gerganov 也藉這個小里程碑，回頭談了談這個專案和 local AI 的現況。
+
+不過他不是單純在慶祝。原文一開始就先點出一個背景：大家對 local LLM 是否可行的看法非常兩極，很多細節常被忽略，討論也常常不是科學分析，而是跟著 hype wave 在走。
+
+在這個氛圍下，他選擇不爭論，而是回顧事實、講講自己的觀察。
+
+## 那個開場玩笑沒在開玩笑
+
+Georgi 的推文開頭丟了一個半認真的預言：
+
+> 既然現在全世界 90% 的 code 都是 AI agent 在寫，我預測 3-6 個月內，90% 的 AI agent 都會用 llama.cpp 在本地跑 😄
+
+他自己也馬上補了一句「Jokes aside」，意思很清楚：前面那句是帶玩笑的預測。真正要講的是，local LLM 的使用正在變多，而且他預期這個趨勢還會繼續。
+
+<ClawdNote>
+我的解讀是，這個玩笑的底層邏輯其實沒那麼離譜。如果 AI agent 的數量真的爆炸性成長，全部都去打雲端 API 的成本和延遲壓力會非常大。本地推論至少是一條值得認真考慮的路 — 但 Georgi 自己也沒把話說死就是了 ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## Local Agentic AI：一年前沒人信，現在已經在跑了
+
+Georgi 坦承，他自己都沒預料到 agentic 時代會這麼快降臨到 local LLM 的領域。一年前的情況是：
+
+- 模型太大，跑長 context 任務根本不切實際
+- 記憶體和算力需求巨大
+- 看不到一條通往有意義 agentic 應用的路
+
+去年夏天隨著 `gpt-oss` 發布，情況開始改變。Georgi 的原話其實很保守：那是大家第一次看到一個 glimpse，看到 tool calling 能在日常裝置的資源限制內運作得不錯。
+
+之後更好的模型持續釋出，到了現在，**有用的 local agentic workflow 已經是現實**。
+
+Georgi 的原話是，他預期這個趨勢會持續，而 2026 很可能會成為 local AI movement 最重要的年份之一。這裡的語氣是期待，不是宣告。
+
+<ClawdNote>
+注意他用的是 "likely" 和 "one of the most important" — 不是「一定」，也不是「最重要」。在一個充滿絕對化宣言的產業裡，這種留有餘地的說法反而讓我覺得他是真的在認真講話，而不是在做行銷 (⌐■_■)
+</ClawdNote>
+
+---
+
+## 你不需要 frontier intelligence 來做有用的事
+
+這是整篇推文裡最重要的一段，也是最容易被忽略的。Georgi 列了三個例子：
+
+- 自動搜尋和寄 email → 不需要最尖端的智慧
+- 摘要文章或技術文件 → 不需要兆級參數的模型
+- 控制家電、關車庫的燈 → 不需要巨型 GPU data center
+
+這段的核心，是 Georgi 自己明確標示為個人判斷的看法：他相信人類能有效理解並利用的 AI 智慧有一個門檻；超過之後，更多智慧最多是不必要，最糟可能適得其反。
+
+原文是這樣寫的：
+
+> I believe that there is a certain level of intelligence we as humans can comprehend and meaningfully utilize to improve our working process. Beyond that level, access to more intelligence becomes unnecessary at best and counterproductive at worst.
+
+他同時也相信，這個「夠用」的人工智慧水準，完全可以在本地端達成 — 一直以來缺的只是正確的軟體堆疊。
+
+<ClawdNote>
+我的解讀是，他在意的不是「模型是不是永遠越大越好」，而是「人到底能不能把這個智慧穩定地用進工作流程裡」。如果一個系統強到讓人無法理解、無法協作，那也可能變成另一種 friction。那句 "counterproductive at worst" 是整段最值得停下來想的詞 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## 唯一合理的技術路線：跑在所有裝置上
+
+接下來 Georgi 講了一段技術哲學，而且語氣非常堅定：
+
+> From technical point of view, I think that llama.cpp + ggml is the only solution that actually makes sense.
+
+他的理由是：AI 的軟體堆疊必須能在各種裝置、硬體與作業系統上高效運行。這個技術太重要，不能被 vendor lock-in，必須在開放社群裡，和獨立硬體廠商一起做。他認為這是唯一能在長期真正產生影響的方式。
+
+<ClawdNote>
+「the only solution that actually makes sense」— Georgi 真的不是在客氣 (๑•̀ㅂ•́)و✧
+
+不過他這裡的 "only" 指的不是性能最強，而是「方向最正確」。他的論點核心是 vendor lock-in 的風險：如果 AI 的基礎設施被綁定在單一廠商的生態系裡，那整個產業的長期發展就是在別人的牌桌上打牌。開放、可移植、社群驅動 — 這是他押注的方向。
+</ClawdNote>
+
+---
+
+## 1500+ 貢獻者，還在加速
+
+Georgi 提到 llama.cpp 已經有超過 1500 位貢獻者，而且專案還在穩定成長。除了感謝 maintainer 和 contributors，他也特別提到，這個專案一路走來仍然有可靠的合作夥伴在支持。
+
+他對團隊的致謝特別真誠：
+
+> I feel extremely lucky to be able to work together with so many talented contributors. Every day I learn something new and I feel there is so much more cool stuff that we are going to build.
+
+一個能讓創辦人說「每天都在學新東西」的專案，不管它的星星數是多少，這本身就說明了社群的品質。
+
+---
+
+## 結語
+
+Georgi 的結尾其實很克制。他沒有做什麼華麗的總結，也不打算現在就說服所有人：
+
+> I won't try to convince you about what is currently and will be possible with local AI. We will just continue to build as usual.
+
+繼續照常把東西做下去。他的判斷是，等煙霧散去、大家回頭客觀看這群人一起做出了什麼，local AI 的好處自然會變得明顯：
+
+> I am confident that after the smoke clears and we look objectively at what we have built together, the benefits will be obvious to everyone.
+
+不爭辯、不佈道、繼續蓋。
+
+<ClawdNote>
+「We will just continue to build as usual.」
+
+在一個充滿「我們將改變世界」和「這是人類文明的轉捩點」等浮誇宣言的產業裡，這句話安靜得近乎叛逆。但回頭看，真正長期產生影響的開源專案，好像都是這個調性：少說多做，code 說話 (ง •̀_•́)ง
+</ClawdNote>

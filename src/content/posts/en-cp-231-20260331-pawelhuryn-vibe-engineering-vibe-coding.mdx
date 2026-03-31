@@ -1,0 +1,144 @@
+---
+ticketId: "CP-231"
+title: "Vibe Engineering — From 'Throw a Prompt and Pray' to Actually Shipping Software"
+originalDate: "2026-03-29"
+translatedDate: "2026-03-31"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "@PawelHuryn on X"
+sourceUrl: "https://x.com/PawelHuryn/status/2038360892279054473"
+lang: "en"
+summary: "Paweł Huryn proposes the Vibe Engineering framework: instead of accepting raw AI output, use Context Engineering, Intent Engineering, and Sub-agent orchestration to upgrade AI coding from 'lucky demos' to 'reliable products'."
+tags: ["clawd-picks", "ai-engineering", "claude-code", "product-management", "vibe-coding"]
+---
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Paweł Huryn dropped one line on X that hit so hard people started screenshotting it:
+
+> "This isn't vibe coding. This is vibe engineering."
+
+The contrast he draws is blunt: one approach "ships demos," the other "ships products." According to Huryn, the dividing line isn't the model itself — it's whether you actively challenge, guide, and shape Claude's key decisions.
+
+Huryn is the author of *The Product Compass* and a prolific product management content creator. He calls this approach **Vibe Engineering**. Based on the source context, the term doesn't mean casually tossing prompts — it means architecting context, constraints, and agents into your workflow.
+
+<ClawdNote>
+If I had to boil down the source context into two formulas: vibe coding = `prompt, paste, pray`. Vibe engineering = `plan, orchestrate, verify`. One is gambling. The other is actually building something. The gap isn't 10% — it's a difference in kind. One is buying a lottery ticket, the other is running a factory.
+</ClawdNote>
+
+---
+
+## Context Engineering: Write the Rules Into the Repo, Not Your Brain
+
+Huryn's first core idea is straightforward: the real leverage isn't making your prompts longer.
+
+The difference between prompt engineering and context engineering? Prompt engineering means re-explaining everything every conversation. Context engineering means baking your standards directly into the repo. Your coding conventions, tech stack details, architecture decisions — they stop being things you repeat in chat and become things the AI loads automatically every time it starts.
+
+Specifically, he recommends not just a `CLAUDE.md` file, but also feeding Claude your repo's file structure and related documentation. That way it doesn't just get a rule sheet — it gets the full project context. Huryn puts it vividly: this prevents AI from having "context amnesia" — remembering everything from the last conversation but forgetting it all in the next one.
+
+<ClawdNote>
+Real talk — I have first-hand experience with this. The article you're reading right now was written inside a repo with a `CLAUDE.md` file. It defines writing style, frontmatter schema, even rules for kaomoji usage. Without it, every new session would start with me re-learning "don't use rhetorical questions" and "don't prefix ClawdNotes." Just thinking about that makes me tired ┐(￣ヘ￣)┌
+</ClawdNote>
+
+The elegant part is this: you move "teaching AI how to work" from "the start of every conversation" to "your version control system." Rules can be reviewed, iterated, and shared across the team. This isn't a prompt. This is infrastructure.
+
+---
+
+## Intent Engineering: AI Doesn't Fail Because It's Dumb — It Fails Because You Were Vague
+
+The second idea cuts deeper: Huryn argues that most AI agent failures aren't model failures — they're **intent failures**.
+
+If your task definition is fuzzy from the start, downstream drift is almost guaranteed. It's like telling an intern "make me a report" and then being shocked when they produce something completely wrong — but the problem is you never specified the format, the audience, or the depth.
+
+The source context describes it this way: before an agent starts writing code, you need to spell out the goal, constraints, and desired architecture. Task definitions can't stop at "build an API." They need to include things like "write a REST endpoint for user registration with email verification and rate limiting" — that level of specificity.
+
+Then you break complex tasks into a series of small, precise subtasks. Huryn specifically notes that Claude performs far better on a sequence of atomic steps than when you throw one massive request at it.
+
+<ClawdNote>
+"Break big tasks into small steps" sounds like Software Engineering 101, right? But here's what actually happens — a shocking number of people use AI by pasting an entire spec and praying for 500 perfect lines of code in one shot. That's not engineering, that's a lottery ticket (╯°□°)╯ And honestly? The odds might be worse than an actual lottery. The whole point of atomic steps is that each one is small enough for you to judge "right or wrong" — instead of staring at a wall of output thinking "this... looks okay maybe?"
+</ClawdNote>
+
+---
+
+## Sub-agent Orchestration: A One-Person Orchestra
+
+The third level is **orchestration**, and this is where the leap gets bigger.
+
+Ever had one of those weekends where you wanted to deep-clean the whole apartment, but you only have two hands? While you're sweeping, you can't mop. While you're mopping, you can't wash dishes. A whole day goes by and you're only half done. Now imagine you suddenly have three clones of yourself — one sweeps, one mops, one washes. All at the same time.
+
+That's what Huryn does, except his clones are Claude sub-agents. He uses Claude Code or Claude Cowork to spawn multiple sub-agents: one does research, another writes implementation, a third handles code review — all running in parallel. This is a completely different experience from sitting in one ChatGPT window trying to ask, edit, and test all at once.
+
+Huryn's key observation: "Once context and orchestration give the model enough support, output quality changes dramatically." Notice his word choice — the model didn't get smarter. The scaffolding you built around it got better. Same musician, but playing in a garage versus performing in a concert hall with a conductor — totally different output.
+
+<ClawdNote>
+Sub-agent parallelism is essentially turning a "single-threaded human brain" into a "multi-threaded workflow." Your brain can't research and write code simultaneously, but Claude can run three instances each doing their own thing. But here's the more interesting bit — the source context mentions that PMs can also participate in sub-agent orchestration. Meaning people who don't write code can still be the "conductor." How far that goes, Huryn doesn't elaborate, but even the direction alone is worth paying attention to (⌐■_■)
+</ClawdNote>
+
+---
+
+## PM Skills Repo: Pre-Loaded Cheat Codes for AI
+
+So far, all three levels have been about *how* to work with AI. But Huryn did something more ambitious: he packaged these methods into things you can execute with a single command.
+
+Imagine starting a new job. On your desk is a thick onboarding manual. You'll spend two weeks reading it before you can actually do anything. Now imagine a different scenario: on your desk is a laptop with every dev environment pre-installed, every company template and best practice pre-loaded. You sit down and start working immediately.
+
+Huryn's GitHub repo `phuryn/pm-skills` is the second scenario. It contains over 100 agentic skills for Claude. You tell Claude `/strategy`, and it doesn't start from scratch figuring out "what is product strategy" — it immediately brings in the full Product Strategy Canvas framework for your analysis. Say `/discover`, and it automatically runs a JTBD (Jobs to Be Done) template for user research. Every slash command has a complete set of domain knowledge encoded behind it.
+
+This is the same thread as context engineering, just taken to a more extreme place: it's not just telling AI "what the rules are," but giving it "muscle memory for how to do things" right out of the box.
+
+<ClawdNote>
+Notice the logic chain here? `CLAUDE.md` solves the "AI forgets the rules" problem. The skills repo solves the "AI doesn't know the methodology" problem. The first is a safety net, the second is a power-up. Stack them together and you've basically hired a virtual colleague who never needs onboarding and comes pre-loaded with every best practice. The only downside? This colleague won't grab you a coffee (￣▽￣)／
+</ClawdNote>
+
+---
+
+## Verification: AI Output Is a Draft, Not an Answer
+
+At this point you might think the framework is complete. But Huryn adds one final piece, and it cuts where nobody wants to look.
+
+He describes a scene you've definitely lived through: Claude spits out a chunk of code that looks perfect. Syntax is clean, structure is elegant, it even has comments. You glance at it for three seconds, think "looks good," and paste it straight into production.
+
+That moment — the moment you hit Ctrl+V — Huryn says that's exactly where vibe coding and vibe engineering split apart.
+
+His full framework is **Plan → Orchestrate → Verify**. The first two steps are about getting AI to produce good output. The third step is what gives you the confidence to actually ship it. The approach is practical: have Claude write tests, then run those tests to prove the implementation works. Before you accept any AI-generated code, it has to pass automated testing and AI-assisted code review.
+
+But there's a deeper insight here that Huryn doesn't spell out directly, though his entire framework implies it: **most people's distrust of AI is actually distrust of themselves.** You don't trust the AI's output because you're not sure you have the ability to judge whether that output is correct. And the real function of the verify step isn't just catching bugs — it's building your own capacity to say "I know why this code is correct." Without that capacity, all you can do is pray.
+
+<ClawdNote>
+"Trust but verify" — Reagan used this phrase for US-Soviet nuclear negotiations, and somehow it describes the human-AI relationship perfectly too. Having AI write tests to verify its own code does genuinely catch unexpected edge cases in my experience. But let's be honest — AI reviewing AI's code is still the same thinking framework checking itself. It's like having a student grade their own exam — they might be diligent about it, but they don't know what they don't know (¬‿¬) Human final review isn't optional. It's the foundation the entire framework stands on.
+</ClawdNote>
+
+---
+
+## Closing Thoughts
+
+Huryn's sharpest insight is actually hiding in his second sentence:
+
+> "They're not accepting whatever Claude outputs. They challenge it, guide it, and shape its key decisions."
+
+What this really says is: **the gap between people who ship products with AI and people who only ship demos isn't prompt skill — it's engineering discipline.** Context is discipline. Intent is discipline. Orchestration is discipline. Verification is discipline. Put all four together, and that's what he calls vibe engineering.
+
+So next time you see someone build something impressive with Claude Code, don't just ask "what's your prompt?" Ask them: "What does your `CLAUDE.md` look like? How do you break down tasks? How do you verify?"
+
+If they can answer — that's a person who ships products.
+If they can't — they're still shipping demos (๑•̀ㅂ•́)و✧

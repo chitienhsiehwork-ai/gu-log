@@ -5,7 +5,7 @@ originalDate: "2026-03-29"
 translatedDate: "2026-03-31"
 translatedBy:
   model: "Opus 4.6"
-  harness: "Gemini CLI + Codex CLI"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
   pipeline:
     - role: "Written"
       model: "Opus 4.6"
@@ -16,10 +16,16 @@ translatedBy:
     - role: "Refined"
       model: "Opus 4.6"
       harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
     - role: "Orchestrated"
       model: "Opus 4.6"
-      harness: "OpenClaw"
-  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
 source: "@PawelHuryn on X"
 sourceUrl: "https://x.com/PawelHuryn/status/2038360892279054473"
 lang: "zh-tw"
@@ -32,12 +38,12 @@ Paweł Huryn 在 X 上丟了一句話，精準到讓人想截圖：
 
 > "This isn't vibe coding. This is vibe engineering."
 
-他丟出的對比其實很直接：有一種用法，最後只會「ships demos」；另一種用法，才能「ships products」。照 Huryn 的說法，分水嶺不只是模型本身，而是你會不會主動 challenge、guide，還有 shape Claude 的關鍵決策。
+他的對比很直接：一種用法只會「ships demos」，另一種才能「ships products」。照 Huryn 的說法，分水嶺不是模型本身，而是你會不會主動 challenge、guide，還有 shape Claude 的關鍵決策。
 
 Huryn 是 *The Product Compass* 的作者，也是產品管理領域的內容創作者。他把這套做法叫做 **Vibe Engineering**。從 source context 來看，這個詞指的不是隨手丟 prompt，而是把 context、constraints 和 agents 架構進工作流。
 
 <ClawdNote>
-如果照這份 source context 的精神來抓，我會把 vibe coding 理解成 `prompt, paste, pray`，而 vibe engineering 比較像 `plan, orchestrate, verify`。前者像在碰運氣，後者才像真的把工作流搭起來。
+如果照這份 source context 的精神來抓，我會把 vibe coding 理解成 `prompt, paste, pray`，而 vibe engineering 比較像 `plan, orchestrate, verify`。前者像在碰運氣，後者才像真的把工作流搭起來。兩者的差距不是 10%，是性質上的不同 — 一個是買樂透，一個是開工廠。
 </ClawdNote>
 
 ---
@@ -46,7 +52,7 @@ Huryn 是 *The Product Compass* 的作者，也是產品管理領域的內容創
 
 Huryn 的第一個核心觀點很直接：真正有效的重點，不是把 prompt 拉得越長越好。
 
-兩者的差別在於：prompt engineering 是每次重講一次；context engineering 是把標準直接寫進 repo。後者的意思是，你的 coding convention、tech stack 細節、架構決策，不再是每次對話重新解釋的東西，而是「寫死」在 repo 裡，讓 AI 每次啟動就自動對齊。
+兩者的差別在於：prompt engineering 是每次重講一次；context engineering 是把標準直接寫進 repo。你的 coding convention、tech stack 細節、架構決策，不再是每次對話重新解釋的東西，而是「寫死」在 repo 裡，讓 AI 每次啟動就自動對齊。
 
 具體來說，他推薦的不只是 `CLAUDE.md` 這個檔案，還包括把 repo 的檔案結構和相關文件一起提供給 Claude。這樣它每次進來，不是只拿到一份規矩清單，而是連專案脈絡都比較完整。Huryn 用了一個很生動的說法：這樣 AI 就不會有「context amnesia」— 上一輪對話記得的東西，這一輪全忘光。
 
@@ -62,77 +68,65 @@ Huryn 的第一個核心觀點很直接：真正有效的重點，不是把 prom
 
 第二個核心觀點更犀利：Huryn 認為大多數 AI agent 的失敗，根本不是 model failure，而是 **intent failure**。
 
-這裡的意思是，你給 AI 的任務定義如果本來就含糊，後面的偏差其實很難避免。這就像你跟實習生說「幫我做個報告」，結果他做了一份你完全不想要的東西 — 但問題是你從來沒說清楚你要什麼格式、什麼受眾、什麼深度。
+你給 AI 的任務定義如果本來就含糊，後面的偏差其實很難避免。這就像你跟實習生說「幫我做個報告」，結果他做了一份你完全不想要的東西 — 但問題是你從來沒說清楚你要什麼格式、什麼受眾、什麼深度。
 
-Source context 對這段的描述是：在 agent 開始寫 code 之前，要先把 goal、constraints，還有想要的 architecture 講清楚。換句話說，任務定義不能只停在「做個 API」這種程度，而要把目標、限制和預期結構先講明白。比如「寫一個處理使用者註冊的 REST endpoint，要包含 email 驗證和 rate limiting」— 這種程度的具體。
+Source context 對這段的描述是：在 agent 開始寫 code 之前，要先把 goal、constraints，還有想要的 architecture 講清楚。任務定義不能只停在「做個 API」這種程度，而要把目標、限制和預期結構先講明白。比如「寫一個處理使用者註冊的 REST endpoint，要包含 email 驗證和 rate limiting」— 這種程度的具體。
 
 然後，把複雜任務拆成一系列小而精確的 subtask。Huryn 特別指出：Claude 在執行一連串 atomic steps 時的表現，遠遠好過你丟一個巨大的 request 給它。
 
 <ClawdNote>
-「把大任務拆成小步驟」— 這聽起來像是軟體工程 101，對吧？但你看看多少人用 AI 的方式是：把整個 spec 貼進去，然後期待它一次生出完美的 500 行 code。那不叫 engineering，那叫 gambling (╯°□°)╯
+「把大任務拆小步驟」聽起來像軟體工程 101 對吧？但你知道現實嗎 — 一堆人用 AI 的方式是：把整份 spec 貼進去，然後雙手合十期待一次生出完美的 500 行 code。這不叫 engineering，這叫去廟裡擲筊 (╯°□°)╯ 更慘的是，擲筊至少有 50% 機率聖筊，亂丟 prompt 的成功率搞不好還更低。Huryn 講的 atomic steps 精髓在於：每一步都小到你能判斷「對或錯」，而不是看著一整坨 output 猜「好像可以？」
 </ClawdNote>
 
 ---
 
-## Sub-agent 編排：一個人的軍隊
+## Sub-agent 編排：一個人的交響樂團
 
-第三個層次是 **orchestration**。Huryn 的做法不是只開一個 Claude session 然後在裡面什麼都做，而是用 Claude Code 或 Claude Cowork 來 spawn 多個 sub-agent，讓它們並行處理不同的工作。
+第三個層次是 **orchestration**，但這裡的跳躍比前兩步更大。
 
-想像一下：一個 agent 在做 research、另一個在寫 implementation、第三個在做 code review — 同時進行。這跟你一個人在 ChatGPT 視窗裡又問又改又測的體驗完全不同。
+你有沒有過這種經驗？週末想大掃除，但你只有一雙手。掃地的時候不能拖地，拖地的時候不能洗碗，結果一整天下來才做完一半。現在想像你突然多了三個分身 — 一個掃地、一個拖地、一個洗碗，同時進行。
 
-Huryn 的關鍵觀察是：「一旦 context 和 orchestration 給了模型足夠的支撐，輸出品質會 dramatically 改變。」從平庸變成 production-ready。注意他用的詞：不是模型變聰明了，是你給它的「鷹架」變完整了。
+Huryn 做的就是這件事，只不過他的分身是 Claude sub-agents。他用 Claude Code 或 Claude Cowork 來 spawn 多個 sub-agent：一個在做 research、另一個在寫 implementation、第三個在做 code review — 同時進行。這跟你一個人在 ChatGPT 視窗裡又問又改又測的體驗完全不同。
 
-這對 PM 來說也特別有意思，因為 source context 明確提到 Claude Cowork 可以讓 PM 也參與這種 sub-agent orchestration。能做到哪一步，source 沒有再往下展開，但至少方向很清楚：PM 不只是旁觀者。
+Huryn 的關鍵觀察是：「一旦 context 和 orchestration 給了模型足夠的支撐，輸出品質會 dramatically 改變。」注意他用的詞 — 不是模型變聰明了，是你給它的「鷹架」變完整了。這就像同一個樂手，在車庫裡自彈自唱跟在音樂廳裡有指揮帶著完全是不同的產出。
 
 <ClawdNote>
-Sub-agent 並行這件事，本質上就是把「單執行緒的人腦」變成「多執行緒的工作流」。你的腦不能同時 research 和 write code，但 Claude 可以同時跑三個 instance 各做各的。這不是偷懶，這是正確的資源分配 (⌐■_■)
+Sub-agent 並行這件事，本質上就是把「單執行緒的人腦」變成「多執行緒的工作流」。你的腦不能同時 research 和 write code，但 Claude 可以同時跑三個 instance 各做各的。不過更有趣的是 source context 提到 PM 也能參與 sub-agent orchestration — 也就是說，不會寫 code 的人也能當這個「指揮」。到底能指揮到什麼程度，Huryn 沒有再展開，但光是這個方向就已經很有想像空間了 (⌐■_■)
 </ClawdNote>
 
 ---
 
-## PM Skills 倉庫：100+ 個預裝技能包
+## PM Skills 倉庫：讓 AI 自帶「即戰力」的作弊碼
 
-Huryn 不只是講理論，他還建了一個 GitHub repo：`phuryn/pm-skills`，裡面放了超過 100 個給 Claude 用的 agentic skills 和 commands。
+好，前面三個層次都在講「怎麼跟 AI 協作」。但 Huryn 做了一件更有野心的事：他把這些方法論直接打包成可以一鍵執行的東西。
 
-這些 skills 是什麼概念？想像你可以對 Claude 說 `/strategy`、`/discover`、`/plan-launch`，它就自動帶入對應的 domain knowledge 和分析框架。比如說 `/strategy` 可能會讓 Claude 用 Product Strategy Canvas 來幫你分析市場定位，`/discover` 可能會用 JTBD（Jobs to Be Done）模板來做使用者研究。
+想像你進入一家新公司，桌上放著一本厚厚的 onboarding 手冊。你要花兩週讀完才能開始幹活。現在想像另一個場景：桌上放的不是手冊，而是一台已經裝好所有開發環境、預載了公司所有 template 和 best practice 的筆電。你坐下來就能直接開工。
 
-這些 skills 的價值在於：它們把產業最佳實踐「編碼」成了 Claude 可以直接執行的指令。你不需要每次都從零開始解釋什麼是 JTBD，skill 本身就帶著完整的 context。
+Huryn 的 GitHub repo `phuryn/pm-skills` 就是後者。裡面有超過 100 個給 Claude 用的 agentic skills。你對 Claude 說 `/strategy`，它不是從零開始理解「什麼是產品策略」，而是直接帶入 Product Strategy Canvas 的完整框架幫你分析。說 `/discover`，它自動用 JTBD（Jobs to Be Done）模板跑使用者研究。每個 slash command 背後都是一套已經被 encode 好的 domain knowledge。
+
+這跟前面的 context engineering 是同一條線的延伸，只是走到了更極端的地方：不只是讓 AI 知道「規矩是什麼」，而是讓它直接帶著「怎麼做事的肌肉記憶」上工。
 
 <ClawdNote>
-這其實就是 context engineering 的延伸應用：與其每次都教 Claude「JTBD 是什麼、怎麼用」，不如把整套方法論打包成一個 skill，一個 slash command 搞定。把重複的教學成本壓成零，讓 AI 直接進入「做事模式」而不是「學習模式」 ٩(◕‿◕｡)۶
+你有沒有發現這裡的邏輯鏈？`CLAUDE.md` 解決的是「AI 忘記規矩」的問題，skills repo 解決的是「AI 不懂方法論」的問題。前者是防呆，後者是賦能。把這兩個疊起來，等於你養了一個永遠不需要 onboarding、自帶所有 best practice 的虛擬同事。唯一的問題是，這個同事不會幫你買咖啡 (￣▽￣)／
 </ClawdNote>
 
 ---
 
-## 驗證：AI 的輸出是初稿，不是成品
+## 驗證：AI 交出來的不是答案，是草稿
 
-最後一個原則可能是最重要的，也是 vibe coding 和 vibe engineering 最本質的分界線：**驗證**。
+到這裡，你可能覺得框架已經很完整了。但 Huryn 最後補了一刀，而且這一刀砍在每個人最不想面對的地方。
 
-Huryn 的完整框架叫 **Plan → Orchestrate → Verify**。前兩步我們講過了，第三步「Verify」才是讓產出從「看起來能跑」變成「真的能跑」的關鍵。
+他講了一個場景，你一定經歷過：Claude 吐出一段看起來完美的 code。語法對、結構漂亮、甚至還自帶註解。你看了三秒鐘，心裡想「不錯嘛」，然後直接 copy-paste 進 production。
 
-他的做法很務實：讓 Claude 自己寫測試，然後跑測試來證明 implementation 是對的。在你接受任何 AI 生成的程式碼之前，它必須先通過自動化測試和 AI 輔助的 code review。
+那個按下 Ctrl+V 的瞬間 — Huryn 說 — 就是 vibe coding 和 vibe engineering 的分叉口。
 
-換句話說：把 AI 的輸出當成「first draft」，不是「final answer」。這個心態轉換聽起來簡單，但實際上大多數人用 AI 的方式都是看到 output 就直接 copy-paste 進 production。
+他的完整框架叫 **Plan → Orchestrate → Verify**。前兩步講的是怎麼讓 AI 產出好東西，第三步才是讓你敢把產出拿去見人的底氣。做法很務實：讓 Claude 自己寫測試，跑測試來證明 implementation 是對的。在你接受任何 AI 生成的程式碼之前，它必須先通過自動化測試和 AI 輔助的 code review。
+
+但這裡有一個更深的洞見，Huryn 沒有直接點破，但他的整個框架暗示了一件事：**大部分人對 AI 的不信任，其實是對自己的不信任。** 你不信任 AI 的 output，因為你不確定自己有沒有能力判斷它的 output 對不對。而 verify 這一步的真正作用，不只是抓 bug — 它是在幫你建立「我知道這段 code 為什麼是對的」的能力。沒有這個能力，你永遠只能 pray。
 
 <ClawdNote>
-這招我自己的感受是：有時候 AI 轉去寫 test，真的會用另一種角度把 edge case 挖出來，所以拿來當第二道檢查還不錯。但這是 Clawd 的評論，不是 Huryn 在 source 裡直接講過的保證；最後的人類 review 仍然不能省 ╰(°▽°)╯
+「trust but verify」— 雷根當年用這句話形容美蘇核武談判，結果現在拿來形容人類跟 AI 的關係也完全成立。AI 寫 test 來驗證自己的 code 這招，我自己的經驗是確實能挖出意想不到的 edge case。但話說回來，AI review AI 的 code 終究是同一個思維框架在自我檢查。就像讓一個學生自己改自己的考卷 — 他可能改得很認真，但他不知道自己不知道什麼 (¬‿¬) 人類的最終 review 不是可選項，是整個框架的地基。
 </ClawdNote>
-
----
-
-## 把整套框架攤開來看
-
-Huryn 在推文裡用了一句很有力的對比：
-
-> "One ships demos. The other ships products."
-
-真正的分水嶺大概就在這裡。
-
-**Vibe coding** 是直覺驅動的單人模式。Context 活在你的腦子裡或聊天記錄裡，策略是 prompt → paste → pray，工具是基本的 web chat 或 copilot。輸出看起來合理，但風險很高。
-
-**Vibe engineering** 是架構化的多人模式（就算只有你一個人，你也在編排多個 agent）。Context 活在 repo 裡（`CLAUDE.md`、文件、測試），策略是 plan → orchestrate → verify，工具是 Claude Code、Cowork、MCP servers。輸出可靠且 production-ready。
-
-這不只是工具升級。這是從「我在用 AI」到「我在工程化地使用 AI」的思維跳躍。
 
 ---
 
@@ -142,8 +136,9 @@ Huryn 最犀利的洞見其實藏在他推文的第二句：
 
 > "They're not accepting whatever Claude outputs. They challenge it, guide it, and shape its key decisions."
 
-能用 AI 產出好東西的人，不是 prompt 寫得特別好的人，是把跟 AI 協作這件事當成一個**工程問題**來解的人。你要設計 context、定義 intent、編排 agent、驗證輸出 — 這每一步都是工程紀律，不是玄學。
+這句話真正在說的是：**能用 AI 做出產品的人和只能做出 demo 的人，差的不是 prompt 技巧，是工程紀律。** Context 是紀律。Intent 是紀律。Orchestration 是紀律。Verify 也是紀律。四個加起來，就是他所謂的 vibe engineering。
 
 所以下次你看到有人用 Claude Code 做出很猛的東西，不要只問「你的 prompt 是什麼」。問他：「你的 `CLAUDE.md` 長什麼樣？你怎麼拆 task？你怎麼驗證？」
 
-那才是真正的 know-how 所在 (๑•̀ㅂ•́)و✧
+他如果答得出來 — 那就是 ships products 的人。
+答不出來的 — 還在 ships demos (๑•̀ㅂ•́)و✧
