@@ -1,121 +1,238 @@
 ---
 ticketId: "CP-226"
-title: "Natural-Language Agent Harnesses: Moving Agent Control Logic from Code to Plain Language"
+title: "Natural-Language Agent Harnesses: When an Agent's Soul Moves from Code to Plain Text"
 originalDate: "2026-03-27"
-translatedDate: "2026-03-30"
+translatedDate: "2026-03-31"
 translatedBy:
   model: "Opus 4.6"
-  harness: "Claude Code"
+  harness: "Claude Code + Claude Code"
   pipeline:
     - role: "Written"
       model: "Opus 4.6"
       harness: "Claude Code"
-    - role: "Reviewed"
-      model: "GPT-5.4"
-      harness: "Codex CLI"
-    - role: "Refined"
-      model: "Opus 4.6"
-      harness: "Claude Code"
-    - role: "Orchestrated"
-      model: "Opus 4.6"
-      harness: "OpenClaw"
 source: "@daniel_mac8 on X"
 sourceUrl: "https://x.com/daniel_mac8/status/2037581249100087667"
 lang: "en"
-summary: "Dan McAteer shares a paper on Natural-Language Agent Harnesses, arguing that harness logic should move from code to natural language — making harnesses portable, experimentable, and executable in shared runtimes. He believes harness engineering is as important as model capability scaling."
-tags: ["clawd-picks", "agent", "harness", "agentic-engineering"]
+summary: "A Tsinghua Shenzhen team proposes NLAH (Natural-Language Agent Harnesses): moving agent control logic from code into structured natural language, executed by an IHR runtime. Experiments show harnesses can reshape agent behavior patterns entirely, but more structure doesn't always mean better results. Dan McAteer argues harness engineering matters as much as model capability."
+tags: ["clawd-picks", "agent", "harness", "agentic-engineering", "paper", "context-engineering"]
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Have you noticed? The AI Agent conversation is quietly shifting.
+Dan McAteer dropped a line that made people want to screenshot it:
 
-A few months ago, everyone was arguing about which model is best — Sonnet vs GPT, benchmark scores, parameter counts. But Dan McAteer just dropped a line that changes the battlefield entirely:
+> **"Harness engineering is as important as model capability scaling."**
 
-**Harness engineering is as important as model capability scaling.**
+Then he twisted the knife: **AI Agents are 50% a harness story.**
 
-In plain English: how good your agent is depends only 50% on the model. The other 50% is the "shell" wrapped around it.
+If some random person said this, you'd probably roll your eyes and move on. But Dan came with receipts — a paper from Tsinghua University (Shenzhen) and Harbin Institute of Technology (Shenzhen). And this paper doesn't just talk. It ran experiments on SWE-bench and OSWorld, then reached some conclusions that might make you uncomfortable.
 
-<ClawdNote>
-This is the same Dan McAteer who, in CP-220, showed a single RTX 5060 Ti running Qwen3-14B beating Sonnet 4.5 on LiveCodeBench — thanks to the ATLAS harness. Smaller model, better harness, still wins. So when he talks about harness importance today, he's not just theorizing. He has receipts (⌐■_■)
-</ClawdNote>
+Why uncomfortable? Because it tells you: **when you think you're comparing "model capability differences" between two agent systems, you're actually comparing two completely different harness designs.** And you can't cleanly separate them.
 
-## What Is an Agent Harness? Let's Get the Term Straight
+## The Root Problem: What Is a Harness, and Why Is It So Tricky
 
-The word "harness" sounds fancy, but the concept is very intuitive.
+Let's get the concept straight. The paper gives a clean definition:
 
-The model is an engine. The harness is the entire car. An engine with no steering wheel, no brakes, and no transmission is just an expensive piece of metal spinning in place. The harness is everything that turns that engine into something you can actually drive — flow control, tool selection, error handling, guardrails.
+**Harness = orchestration layer**, managing three things:
+- **Control**: how to break tasks apart, how to schedule them
+- **Contracts**: artifact formats, verification gates, stopping rules
+- **State**: what needs to be remembered between each step
 
-<ClawdNote>
-Here's an even simpler way to think about it: imagine you hired an intern with an IQ of 200 (that's your LLM), but you gave them zero onboarding docs, didn't tell them where the tools are, and set no checkpoints. Day one, they drop the production database. Day two, they email the CEO's private calendar to the entire company. The harness is the onboarding manual plus every guardrail you set up. Without it, genius and disaster are one step apart (￣▽￣)／
-</ClawdNote>
+The model is the engine. The harness is the chassis, drivetrain, and dashboard. No matter how powerful the engine, a loose chassis means you're spinning in place.
 
-Dan's first core argument: **AI Agents are 50% a harness story.** Translation — stop obsessing over model parameters alone. Whether your agent is a dream or a nightmare, the harness is responsible for half of that outcome.
+But here's the catch: current harness designs are all buried inside controller code, framework defaults, tool adapters, and verifier scripts. You can't see it, can't touch it, and can't cleanly port it to another system.
 
----
-
-## Writing Harnesses in Natural Language: The Paper's Core Idea
-
-Now, here's where it gets really interesting. The paper Dan shared, "Natural-Language Agent Harnesses," pushes things one step further.
-
-How are agent harnesses traditionally built? Python, TypeScript — flow control lives in code, tool selection logic lives in code, retry policies live in code. But here's the thing: what is an LLM's native language?
-
-Natural language.
-
-So the paper's argument is: **if LLMs understand and reason in natural language, why not write the harness logic in natural language too?**
-
-Think of it as upgrading a system prompt into an entire operating system. A system prompt used to say "you are a helpful assistant." This concept takes the entire control logic — when to use which tool, how to handle errors, how to switch between tasks — and defines all of it in natural language.
+The paper nails a core pain point: **when two systems claim to differ by only "one design choice," their prompts, tool mediation, artifact conventions, verification gates, and state semantics are actually all different.** You think you're running an A/B test. You're actually comparing two entirely different universes.
 
 <ClawdNote>
-Wait... isn't this exactly what we do every day? CLAUDE.md, AGENTS.md, system prompts — they're all natural-language harnesses in disguise. The difference is, this paper wants to take it from "everyone hacking their own jQuery spaghetti" to a proper framework. Like how web dev went from custom jQuery to React. Natural-language harnesses are still in the jQuery era, but the direction is clear ╰(°▽°)╯
+This observation really stings. Imagine you're comparing two agent frameworks at work. Your boss asks "which one's better?" and you say "A's resolved rate is 3% higher." But A and B have different prompts, tool wrappers, state management, and error handling — so what exactly are you comparing? Not the models. You're comparing two engineering teams' taste. ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ---
 
-## Why This Is a Big Deal
+## Context Engineering > Prompt Engineering
 
-This isn't just "writing the same thing in a different language." Once the harness moves from code to natural language, the rules of the game change completely.
+Before diving into the paper's technical proposal, let's talk about a mindset shift: **context engineering.**
 
-Say you have an amazing agent harness written in Python. You want to share it with a team using TypeScript? Rewrite it. Want a non-engineer to tweak the behavior? Call an engineer. Want to A/B test two different strategies? Change code, deploy, wait.
+Everyone's heard of prompt engineering — crafting a single prompt to get better answers from a model. But the paper argues this framing is too narrow.
 
-But if the harness is written in natural language?
+The real question isn't "how to write one prompt." It's: **at each step of a long-running agent, what instructions, evidence, artifacts, and state should go into the context?**
 
-It becomes a **document**, not a **codebase**. You can pass it around like a Google Doc — doesn't matter what language, framework, or runtime the other team uses. Product managers can read it and edit it directly. Want to experiment with a different strategy? Change a few lines of natural language, run it immediately.
+This isn't a one-shot problem. It's a multi-step orchestration problem.
 
-And here's the really interesting part — the shared runtime concept. When all harnesses are natural-language artifacts, a single unified runtime can interpret and execute them. No more every team building their own infrastructure from scratch.
+Some things are already moving in this direction — AGENTS.md and skill bundles have shown that "portable natural-language text can carry operational knowledge." But the paper argues they're not enough: they can't integrate contracts, role boundaries, state semantics, and failure handling into something that can be "executed."
 
 <ClawdNote>
-This connects in a subtle way to what Karpathy said in CP-218 about vibe coding. He argued that the hardest part of vibe coding isn't writing the code — it's all the DevOps IKEA furniture around it. Natural-language harnesses are basically saying: don't even write the agent's control logic in code, let everyone participate. Put these two ideas together and the trend is crystal clear — natural language is eating the boundaries of code, one bite at a time (๑•̀ㅂ•́)و✧
+AGENTS.md is like the onboarding doc you write for new hires — "this is how our team works." It's useful, but it doesn't define "what happens when step three fails" or "what counts as done" or "who owns which stage." NLAH wants to upgrade that onboarding doc into a full SOP + flowchart + failure-handling manual — and one that a runtime can actually interpret and execute. (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
 ---
 
-## Harness Engineer: A New Role Is Forming
+## NLAH: Turning the Harness into a Portable Natural-Language Artifact
 
-Dan closes his thread with a bold prediction:
+Alright, let's get into the meat of the paper. It proposes two things, and we'll unpack them one at a time.
 
-**Agent harnesses will mature into a first class citizen of the AI Agent ecosystem.**
+### What NLAH Actually Describes
 
-Meaning: harnesses won't be an afterthought — not something you "deal with after building the agent." They'll become a dedicated layer in the agent stack, independently designed, independently optimized, independently discussed.
+NLAH (Natural-Language Agent Harnesses) is essentially a structured natural-language format for laying out the control logic that's normally buried in code.
 
-He goes further — there will be dedicated **Agent Harness Engineers** and experts.
+Think about inheriting someone else's agent system. You spend three days reading code before you finally understand the workflow, responsibilities, and failure handling. What NLAH wants to do is make it so you don't need those three days — one document tells the whole story.
+
+It covers a wide range: how agents agree on input/output formats (contracts), who handles which stage (roles), how the workflow is broken into phases (stage structure), how external tools connect (adapters), what information persists across steps (state semantics), and how various failure scenarios are handled (failure taxonomy).
+
+**Key point: natural language is not replacing code.** The paper explicitly says this in the discussion — NL handles the editable, high-level orchestration logic, while deterministic operations stay in code. You wouldn't write a sorting algorithm in English, but you absolutely can define in English "when to sort, what to do after sorting, and what to do if sorting fails."
+
+### IHR: The Runtime That Makes NLAH Executable
+
+A beautiful document means nothing if nobody reads and acts on it. IHR (Intelligent Harness Runtime) fills that role.
+
+At its core, there's an in-loop LLM that continuously interprets harness logic and makes decisions during execution, backed by a tool suite and multi-agent interface. But the really clever design is how it separates "global policy" from "task logic": the Runtime Charter defines shared rules of the game ("how do we define done," "how many retries before giving up"), while the Harness Logic contains task-specific workflows ("for this SWE task: run tests first, then modify code, then verify").
 
 <ClawdNote>
-This reminds me of something: when "prompt engineering" was coined two years ago, everyone laughed at it as a fake job. But look at where we are now — every company's system prompt is a core asset, and how well you write your CLAUDE.md directly determines your agent's performance. Harness engineering is essentially prompt engineering's final evolution — from "write one good prompt" to "architect the entire agent control system." The people who laughed at prompt engineers back then? They're probably quietly learning how to write CLAUDE.md files right now ┐(￣ヘ￣)┌
+Separating charter from harness logic is genuinely smart architecture. It's like working at a company where there's company-level policy ("all PRs need code review") and team-level workflow ("our PRs go through lint, then tests, then human review"). Company policy doesn't change when you switch teams, but each team's workflow can differ. The IHR charter is company policy. The NLAH is team workflow. ╰(°▽°)╯
 </ClawdNote>
 
 ---
 
-## So What Does This Mean?
+## File-backed State: Why Agents Need a Notebook
 
-Let's come back to Dan's opening line — the one that started this whole thing:
+The paper dedicates an entire module to this: **file-backed state.**
 
-**Harness engineering is as important as model capability scaling.**
+Here's the problem: long-horizon autonomy (letting agents run independently for extended periods) tends to fall apart not because models aren't smart enough, but because **state is implicit and ephemeral**.
 
-If you've been thinking "models will keep getting smarter, eventually they'll handle everything" — Dan's point is a reality check. A model can be incredibly powerful, but if the shell around it is bad, the agent will still crash and burn. It's like putting an F1 engine on a shopping cart. You're not winning any races.
+Your agent reaches step 50, and the context window has been truncated. That important decision from step 3? Gone. The evidence collected at step 15? Vanished.
 
-And natural-language harnesses mean the barrier to building that shell is dropping. You used to need Python to write a harness. Soon, you might just need to write clearly in plain language.
+The fix is actually intuitive: state must be externalized (written to artifacts, not just stored in the context window), path-addressable (you can reopen it with a file path instead of asking the LLM to "remember"), and compaction-stable (even if context gets truncated, the agent restarts, or the task gets delegated to another agent, state survives).
 
-Dan linked the paper in his thread if you want to read the original. But regardless of whether every conclusion in the paper holds up, one thing is already clear: **agent competitiveness is shifting from "who has the strongest model" to "who designs the best harness."**
+<ClawdNote>
+In plain terms: agents need a notebook, and this notebook shouldn't automatically rip out earlier pages just because you've flipped too far ahead. Right now, most agents' "memory" is the context window — which has a size limit and doesn't politely ask before truncating. File-backed state forces agents to write important things to disk instead of just keeping them in their heads. (◕‿◕)
+</ClawdNote>
 
-Remember the opening analogy? The engine is the engine, the car is the car. The F1 winner was never just the one with the most powerful engine — it was the one with the best overall car.
+---
+
+## The Experiments: More Subtle Than You'd Expect
+
+Now for the most interesting part — the results. The paper used Codex CLI v0.114.0 + GPT-5.4 (reasoning level: xhigh) as the backend, running on Ubuntu 24.04 with a 64-core CPU and 251 GiB of RAM in a Docker container. Due to budget constraints, they only ran **125 SWE-bench Verified samples** and **36 OSWorld samples**.
+
+### RQ1: Does the Harness Actually Change Behavior?
+
+Answer: yes, and more dramatically than you'd think.
+
+**Process metrics shifted far more than resolved rates.** In other words, the harness doesn't just fine-tune outcome scores — it completely reshapes how the agent behaves.
+
+One striking number: **in Full IHR mode, 90% of tokens and API calls happened inside delegated child agents.** This isn't a prompt wrapper. This is the entire workflow being reorganized.
+
+But at the same time, **most SWE cases didn't actually flip.** About 110 out of 125 had the same outcome across Full IHR and ablation variants. Full IHR isn't a "rising tide lifts all boats" kind of thing. It's a **solved-set replacer** — it solves a small number of previously unsolvable cases through different paths, but doesn't make everything easier.
+
+Then the paper drops a finding worth chewing on: **the harness can reshape local success signals, but those signals don't necessarily align with the benchmark's acceptance criteria.** Plain English: the agent might do the "right" thing, but the benchmark's scoring rubric doesn't buy it.
+
+<ClawdNote>
+"Solved-set replacer, not uniform frontier expander" — I think this is the single most memorable insight from the whole paper. It tells you something counterintuitive: a good harness doesn't make all problems easier. It unlocks a small group of previously stuck problems through different paths. Meanwhile, some previously solvable problems might get messed up by the new workflow. The harness doesn't raise the ceiling — it redraws the map. (⌐■_■)
+</ClawdNote>
+
+---
+
+## Module Ablation: More Structure = Better Results? Not So Fast
+
+So if harnesses clearly change behavior, you might think: just throw in every module you can think of and max it out, right?
+
+The paper ran an ablation study on six modules to answer exactly that. The conclusion fits in one sentence: **structure itself isn't the goal — whether structure aligns with the final acceptance criteria is.**
+
+On the useful side: self-evolution is a strict acceptance-gated attempt loop — try, verify, retry if failed, with gates controlling quality. This kind of "retry mechanism with clear feedback signals" has the most direct effect on solve rate, because it tightens the path from agent to correct answer.
+
+On the other side: file-backed state and evidence-backed answering improve process quality — your agent becomes more organized, traces look cleaner, handoffs are smoother. But resolved rate might not budge. That doesn't mean they're useless, just that their value lives in auditability and handoff quality, not in benchmark scores.
+
+Then come two sobering examples. The verifier module should theoretically be a real quality gate — but its acceptance criteria can clash with the benchmark's. The verifier says "pass," the benchmark says "fail," or the reverse. And multi-candidate search, under current token budgets, costs more in overhead than it returns in additional solves.
+
+<ClawdNote>
+This finding pokes a lot of people building agent frameworks. The industry's current vibe is "more guardrails, more verification steps, more planning layers = better." But this paper's data says: not necessarily. Some structure helps. Some just burns tokens. The test isn't "does this module sound reasonable?" — it's "does it bring the agent closer to the evaluator's acceptance criteria?" Structure isn't the goal. Alignment with outcomes is. ʕ•ᴥ•ʔ
+</ClawdNote>
+
+---
+
+## Code-to-Text Migration: OSWorld's Dramatic Shift
+
+If the SWE-bench results were subtle, OSWorld delivers a gut punch.
+
+The paper migrated a code-based harness to an NLAH natural-language version and ran OSWorld tasks (desktop environment operations). The results:
+
+**NLAH version: 47.2%**
+**Native code version: 30.4%**
+
+Nearly 17 percentage points apart.
+
+But what's even more interesting than the numbers is the **qualitative shift in behavior**.
+
+The native code harness behaved like this: screenshot-grounded GUI repair loop. The agent kept taking screenshots, looking at the screen, and trying to fix things through GUI interactions. Once the GUI state went wrong (say, a focus shifted), the agent got stuck in a loop — endlessly trying to fix focus, dragging windows, clicking buttons.
+
+NLAH's behavior was completely different: file-backed state + artifact-backed verification. The agent stopped fighting with the GUI and switched to shell-side approaches or direct file editing.
+
+The paper walks through three cases, each vivid in its own way:
+
+**System settings task** — the native harness got trapped in a GUI focus repair loop, like someone clicking "Apply" over and over while the settings refuse to stick. The NLAH version switched to shell, changed settings via commands, and verified with `sshd`. Clean and done.
+
+**Spreadsheet task** — the native harness visually appeared to make progress (screenshots looked like "almost there"), but closure failed — couldn't properly save. NLAH wrote the artifact deterministically, no GUI wrestling needed.
+
+**Presentation task** — the native harness fought with object binding and drag operations, much like trying to pixel-perfectly align that cursed text box in PowerPoint. NLAH skipped the GUI entirely and edited the `.pptx` package structure directly.
+
+The paper sums up this phenomenon: **migration relocates reliability from screen repair to durable state + artifact-backed closure.**
+
+<ClawdNote>
+These three cases remind me of an analogy: the native code harness is like someone operating Excel with a mouse, frantically clicking when the cursor goes rogue. The NLAH harness is like the same person having an epiphany, opening a terminal, and modifying the .xlsx file directly with Python. The reliability gap between these two approaches isn't even close. NLAH's natural-language description seems to make it easier for agents to "think of" non-GUI paths instead of getting trapped in the screenshot-click-check loop. (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧
+</ClawdNote>
+
+---
+
+## The Paper's Honest Side: It Knows Where the Holes Are
+
+One thing I really appreciate about this paper — it doesn't sell NLAH as a silver bullet. The limitations section is honest enough to make you want to give it a pat on the back.
+
+The most fundamental issue: natural language is inherently less precise than code. NL's ambiguity is an advantage in many scenarios — you don't need to hardcode every edge case because the LLM can exercise judgment. But where precise definitions are needed, that same ambiguity bites back.
+
+Then there's stuff that simply can't be written into natural language. Hidden service-side state, proprietary schedulers — their logic was never something you could fully describe in a document, regardless of what language you use.
+
+There's also a subtle problem called runtime contamination. If the IHR's runtime charter is too dominant, it can absorb behaviors that should be attributed to the harness text. You think NLAH is doing the work, but it's actually the charter's default policy steering the ship. It's like running an experiment where the control group itself has bias — how do you know you're testing what you think you're testing?
+
+Finally, module ablation isn't strict causal identification. Removing a module and measuring the change isn't an RCT (randomized controlled trial). Modules can have interaction effects — A + B together might not equal A's effect plus B's effect.
+
+<ClawdNote>
+Honestly, a paper that spells out its weaknesses in more detail than its contributions? That earns a thumbs up from me. Too many papers' limitations sections are just two lines of "future work will address this" and done. This one lays out every pit in a way that makes you think "yeah, that's genuinely unresolved" — no trace of the classic "we haven't done it yet but it's probably easy" handwave. (￣▽￣)／
+</ClawdNote>
+
+---
+
+## Harness as Search Space: What Comes Next
+
+The paper ends with an exciting direction: **once the harness becomes an explicit, structured object, it becomes a space that can be searched and optimized.**
+
+Current agent development goes like this: engineers design harnesses based on experience and intuition, run experiments, look at results, tweak manually. But if the harness is a natural-language, structured artifact, you can run automated search on it — like NAS (Neural Architecture Search) searches neural network architectures, you can search for optimal harness configurations.
+
+This direction hasn't been realized yet, but the conceptual leap is huge: the harness stops being an engineer's craft and becomes a design space that can be explored automatically.
+
+---
+
+## What the Community Thinks
+
+Dan's tweet thread had some sharp replies:
+
+**@atthatmatt** threw cold water: "If the harness itself is nondeterministic, then you need a harness harness." Meaning: if your harness relies on an LLM to interpret it (introducing randomness), how do you guarantee stable harness behavior? Do you need a "harness for the harness"? A very fair challenge.
+
+**@XunWallace (Rocky)** dropped a powerful line: "The harness IS the product. The model is interchangeable." He runs AI agents at OpenClaw, so this isn't armchair talk — it's a conclusion drawn from real production experience.
+
+**@gaia_intelflows** thinks Dan's 50% is conservative: "In production it's often 80% of the challenge."
+
+**@Adam_Cipher** added a production lens: "The harness breaks differently in week 1 vs week 6." This observation matters — harness problems aren't static. They evolve over time. What breaks in week one is completely different from what breaks in week six.
+
+<ClawdNote>
+@atthatmatt's "harness harness" quip is funny but hits the mark. The IHR architecture has an in-loop LLM interpreting harness logic — and that LLM is inherently nondeterministic. So the harness's behavior really isn't fully deterministic. The paper uses the runtime charter to constrain this, but reaching industrial-grade stability probably requires more engineering. Then again, code-based harnesses have their own instabilities (race conditions, edge cases) — those just happen to be easier to debug. (¬‿¬)
+</ClawdNote>
+
+---
+
+## Wrapping Up
+
+Dan said "Agent Harness engineers will become a role." After reading this paper, I think he might be right — but not for the reason you'd expect.
+
+It's not because harnesses are hard to write (that's just a barrier to entry). It's because **harness design choices affect agent behavior in ways you can't predict just by looking at architecture diagrams.** Add a verifier, and it might help solve two more problems while causing three others to misalign with the benchmark. Add file-backed state, and your agent gets more organized, but resolved rate doesn't move. Migrate the harness from code to NL, and suddenly your agent stops fighting the GUI on OSWorld and takes the shell route instead — a qualitative behavior shift no architecture diagram would have predicted.
+
+The paper's core message isn't "natural-language harnesses are awesome." It's: **the harness is a design space, and we're only just learning how to explore it.** The first step in that exploration is dragging it out of code's dark corners and turning it into something you can see, modify, and experiment with.

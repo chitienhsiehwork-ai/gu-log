@@ -1,91 +1,245 @@
 ---
 ticketId: "CP-226"
-title: "Natural-Language Agent Harnesses：把 agent 的控制邏輯從 code 搬進自然語言"
+title: "Natural-Language Agent Harnesses：當 agent 的靈魂從程式碼搬進自然語言"
 originalDate: "2026-03-27"
-translatedDate: "2026-03-30"
+translatedDate: "2026-03-31"
 translatedBy:
   model: "Opus 4.6"
-  harness: "Claude Code"
+  harness: "Claude Code + Claude Code"
   pipeline:
     - role: "Written"
       model: "Opus 4.6"
       harness: "Claude Code"
-    - role: "Reviewed"
-      model: "GPT-5.4"
-      harness: "Codex CLI"
-    - role: "Refined"
-      model: "Opus 4.6"
-      harness: "Claude Code"
-    - role: "Orchestrated"
-      model: "Opus 4.6"
-      harness: "OpenClaw"
 source: "@daniel_mac8 on X"
 sourceUrl: "https://x.com/daniel_mac8/status/2037581249100087667"
 lang: "zh-tw"
-summary: "Dan McAteer 引用《Natural-Language Agent Harnesses》主張把 agent harness 邏輯從程式碼移到自然語言，讓 harness 變成可攜式 artifact，能被實驗、改進，並在 shared runtime 中執行。他也認為 harness engineering 的重要性不亞於模型能力擴展。"
-tags: ["clawd-picks", "agent", "harness", "agentic-engineering"]
+summary: "清華深圳團隊提出 NLAH（Natural-Language Agent Harnesses）：把 agent 的控制邏輯從程式碼搬進結構化自然語言，再用 IHR runtime 執行。實驗顯示 harness 能徹底重塑 agent 行為模式，但更多結構不一定等於更好表現。Dan McAteer 認為 harness engineering 的重要性不亞於模型能力本身。"
+tags: ["clawd-picks", "agent", "harness", "agentic-engineering", "paper", "context-engineering"]
+scores:
+  ralph:
+    p: 8
+    c: 8
+    v: 8
+    date: "2026-03-31"
+    model: "claude-opus-4-6"
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Dan McAteer 最近丟了一個很猛的觀點：**Harness engineering is as important as model capability scaling。**
+Dan McAteer 丟了一句話，讓人想截圖存起來：
 
-這句話如果你認真想一下，蠻炸裂的。我們花了這麼多時間在比誰的模型更大、更聰明、benchmark 分數更高——但 Dan 說，AI Agent 的故事裡，有一半是 harness 的故事。
+> **"Harness engineering is as important as model capability scaling."**
 
-而他分享的一篇論文 "Natural-Language Agent Harnesses" 更進一步提出：**把 harness 邏輯從程式碼裡面搬出來，用自然語言寫。** 這到底是什麼意思？
+然後他補了一刀：**AI Agents are 50% a harness story。**
 
-## 什麼是 Agent Harness？先搞清楚這個詞
+這種話如果是隨便一個人說的，你可能翻個白眼就過了。但 Dan 這次帶了一篇清華大學（深圳）和哈工大（深圳）合作的論文來背書——而且這篇論文不只是在嘴，它真的做了實驗、跑了 SWE-bench、跑了 OSWorld，然後得出一些讓人很不舒服的結論。
 
-如果先照推文的脈絡理解，這裡講的 harness，指的就是包在模型外面、決定 agent 怎麼被組織和運作的那層邏輯。
+不舒服在哪？因為它告訴你：**你以為你在比較兩個 agent 系統的「模型能力差異」，但其實你比較的是兩套完全不同的 harness 設計。** 而且你根本沒辦法乾淨地分離它們。
 
-模型是引擎，harness 是整台車。引擎再猛，沒有方向盤、煞車、變速箱，你哪都去不了。
+## 問題的根源：Harness 是什麼，為什麼它這麼難搞
 
-Dan 的第一個核心論點是：**AI Agents are 50% a harness story。** 也就是說，你的 agent 表現好不好，模型能力只佔一半，另一半看你的 harness 寫得怎麼樣。
+先把 harness 的概念拆清楚。論文給了一個很漂亮的定義：
 
-<ClawdNote>
-Dan 這句「50% a harness story」本身就很有挑釁性，因為它等於在提醒大家：不要只盯著模型參數和 benchmark，agent 最後能不能真的好用，很多時候卡的是外面的控制層，不是模型本體。(◍•ᴗ•◍)
-</ClawdNote>
+**Harness = orchestration layer**，管三件事：
+- **Control**：怎麼把任務拆開、怎麼排程
+- **Contracts**：artifact 格式、驗證閘門、停止規則
+- **State**：每一步之間什麼東西需要被記住
 
-<ClawdNote>
-harness 聽起來很抽象，但想像一下：你有一個超聰明的實習生（LLM），但你完全不給他工作說明、不告訴他工具在哪、也不設任何 check point——他大概會在辦公室裡亂晃然後把咖啡灑在伺服器上。harness 就是那份工作說明書加上你幫他設的所有護欄。這段是我自己的類比，不是 Dan 原話。(￣▽￣)／
-</ClawdNote>
+模型是引擎，harness 是整台車的底盤、傳動系統和儀表板。引擎馬力再大，底盤鬆掉你也是原地打轉。
 
----
+但問題來了：目前的 harness 設計全部埋在 controller code、framework defaults、tool adapters、verifier scripts 裡面。你看不到它、摸不到它、也沒辦法乾淨地把它搬到另一個系統上。
 
-## Natural-Language Agent Harnesses：用自然語言寫 harness
-
-這是 Dan 分享的論文的核心概念。傳統的 agent harness 是用 Python、TypeScript 等程式語言寫的——flow control 在 code 裡、tool 選擇邏輯也在 code 裡。
-
-但 LLM 的「母語」是什麼？自然語言。
-
-所以這篇論文提出的思路是：**既然 LLM 本身就是靠自然語言理解和推理的，為什麼不直接用自然語言來定義 harness 的邏輯？**
-
-這樣做的好處，來源列了幾個重點：
-
-**可攜性（Portable）**——harness 不再只被困在單一程式碼實作裡，而是變成一個可搬移的 artifact。
-
-**可實驗性（Experimentable）**——你可以直接拿它來反覆試、調整、改進。
-
-**可在 shared runtime 執行**——來源強調，這種 harness 最後可以在共享的 runtime 裡被執行，而不只是留在某份程式碼裡。
+論文點出一個核心痛點：**兩個系統如果聲稱只差「一個設計選擇」，實際上它們的 prompts、tool mediation、artifact conventions、verification gates、state semantics 全部都不一樣。** 你以為你在做 A/B test，其實你在比兩個完全不同的宇宙。
 
 <ClawdNote>
-我自己的理解是，這篇論文想把「用自然語言約束 agent 行為」這件事變得更正式、更系統化。目前各家都在摸索各自的做法，但還沒有一個統一的框架來定義這件事應該長什麼樣。這一段屬於我的延伸解讀，不是 Dan 在推文裡逐條展開的內容。(◕‿◕)
+這個觀察真的很痛。想像你在公司裡比較兩個 agent framework，老闆問「哪個比較好」，你說「A 的 resolved rate 高 3%」。但實際上 A 和 B 的 prompt、tool wrapper、state management、error handling 全都不一樣——你到底在比什麼？你比的不是模型，你比的是兩組工程師的品味。┐(￣ヘ￣)┌
 </ClawdNote>
 
 ---
 
-## Harness Engineer：Dan 的下一個判斷
+## Context Engineering > Prompt Engineering
 
-Dan 在推文最後的判斷是：**Agent harnesses will mature into a first class citizen of the AI Agent ecosystem.** 接著他進一步說，未來會出現專門的 Agent Harness engineers 和 experts。
+在跳進論文的技術提案之前，先講一個觀念轉移：**context engineering。**
+
+大家都聽過 prompt engineering——想辦法把一個 prompt 寫得更好，讓模型一次給你更好的回答。但論文指出，這個 framing 太窄了。
+
+真正的問題不是「一個 prompt 怎麼寫」，而是：**在一個 long-running agent 的每一步，什麼 instructions、什麼 evidence、什麼 artifacts、什麼 state 應該被放進 context 裡？**
+
+這不是 one-shot 的問題，是 multi-step orchestration 的問題。
+
+已經有一些東西走在這條路上了——比如 AGENTS.md 和 skill bundles 已經證明「可攜式的自然語言文字可以承載操作知識」。但論文認為它們還不夠：它們沒有辦法把 contracts、role boundaries、state semantics、failure handling 全部整合在一起，變成一個可以被「執行」的東西。
 
 <ClawdNote>
-這裡我會把 Dan 的意思讀成：他不只是把 harness 當成附屬零件，而是把它當成 agent stack 裡需要被獨立設計、獨立優化的那一層。如果這個方向成立，那 harness 工程某種程度上就是 prompt engineering 的進化版——從「寫好一個 prompt」到「設計整個 agent 的控制架構」。這是我的解讀，但至少和推文主軸是對齊的。╰(°▽°)╯
+AGENTS.md 就像是你寫給新人的 onboarding doc——「我們團隊做事的方式」。它很有用，但它沒有定義「第三步失敗了怎麼辦」「什麼條件下算完成」「誰負責哪個階段」。NLAH 想做的是把 onboarding doc 升級成完整的 SOP + 流程圖 + 失敗處理手冊，而且還能被 runtime 直接解讀執行。(๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## NLAH：把 Harness 變成一個可攜式的自然語言 Artifact
+
+好，進入正題。論文提出了兩個東西，我們一個一個拆。
+
+### NLAH 在描述什麼
+
+NLAH（Natural-Language Agent Harnesses）本質上是一種結構化的自然語言格式，用來把原本埋在程式碼裡的控制邏輯攤開來講。
+
+想像你接手一個前人寫的 agent 系統。你翻 code 翻了三天，終於搞清楚它的流程是什麼、誰負責什麼、失敗了怎麼處理。NLAH 要做的事情就是——讓你不用翻三天 code，一份文件就能看完全貌。
+
+它涵蓋的範圍很廣：從 agent 之間怎麼約定輸入輸出格式（contracts），到誰負責哪個階段（roles），到整個流程怎麼拆步驟走（stage structure），到跟外部工具怎麼接（adapters），到哪些資訊要跨步驟保留（state semantics），最後到各種失敗情境怎麼兜底（failure taxonomy）。
+
+**重點：自然語言不是要取代程式碼。** 論文在 discussion 裡明確說了——NL 負責的是可編輯的高階 orchestration 邏輯，deterministic 的操作還是交給 code。這就像你不會用英文去寫排序演算法，但你完全可以用英文定義「什麼時候該排序、排完之後做什麼、排失敗了怎麼辦」。
+
+### IHR：讓 NLAH 能被「跑」起來的 Runtime
+
+光有一份漂亮的文件不夠——你還需要有人讀懂它然後執行。IHR（Intelligent Harness Runtime）就是這個角色。
+
+它的核心是一個 in-loop LLM，在執行過程中持續解讀 harness 邏輯並做決策，搭配工具集和 multi-agent interface 作為 backend。但真正精妙的是它把「全域策略」和「任務邏輯」拆開了：Runtime Charter 定義的是共享的遊戲規則（「我們怎麼定義完成」「重試幾次算放棄」），而 Harness Logic 才是任務特定的流程（「這個 SWE task 先跑 test、再改 code、最後驗證」）。
+
+<ClawdNote>
+把 charter 和 harness logic 分開，這個架構設計其實很聰明。就像你在一家公司裡，有公司層級的 policy（「所有 PR 要 code review」），也有團隊層級的 workflow（「我們的 PR 先跑 lint、再跑 test、最後 human review」）。公司 policy 不會因為你換了一個團隊就改變，但每個團隊的 workflow 可以不同。IHR 的 charter 就是公司 policy，NLAH 就是團隊 workflow。╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## File-backed State：為什麼 Agent 需要「記憶力」
+
+論文特別拉出一個 module 來講：**file-backed state。**
+
+問題是這樣的：long-horizon autonomy（讓 agent 長時間自主運行）之所以常常爛掉，不是因為模型不夠聰明，而是因為 **state 是隱式的、短暫的（implicit/ephemeral）**。
+
+你的 agent 跑到第 50 步，context window 已經被截斷了，之前第 3 步做的重要決定？忘了。之前第 15 步收集到的 evidence？不見了。
+
+file-backed state 的解法其實很直覺：state 必須被外化（寫進 artifacts，不能只存在 context window 裡）、可定位（用檔案路徑就能重新打開，不用靠 LLM 去「回想」）、而且壓縮穩定（即使 context 被截斷、agent 重啟、任務被 delegate 給另一個 agent，state 都不會丟失）。
+
+<ClawdNote>
+翻譯成白話就是：agent 需要一本筆記本，而且這本筆記本不會因為你翻太多頁就自動把前面的撕掉。目前大部分 agent 的「記憶」就是 context window——那東西有容量上限，而且被 truncate 的時候不會跟你打招呼。file-backed state 就是逼 agent 把重要東西寫到硬碟上，而不是只記在腦子裡。(◕‿◕)
+</ClawdNote>
+
+---
+
+## 實驗：結果比你想的更微妙
+
+現在到了最有趣的部分——實驗結果。論文用了 Codex CLI v0.114.0 + GPT-5.4（reasoning level: xhigh）當 backend，跑在 Ubuntu 24.04、64 核 CPU、251 GiB 記憶體的 Docker 容器裡。由於預算有限，他們只跑了 **125 個 SWE-bench Verified 樣本** 和 **36 個 OSWorld 樣本**。
+
+### RQ1：Harness 真的會改變行為嗎？
+
+答案是：會，而且改變的方式比你想的更劇烈。
+
+**Process metrics 的變動遠大於 resolved rate。** 也就是說，harness 不只是在 outcome 上微調分數，它徹底重塑了 agent 的行為模式。
+
+一個很驚人的數據：**Full IHR 模式下，90% 的 tokens 和 API calls 都在 delegated child agents 裡面。** 這不是 prompt wrapper——這是整個工作流被重組了。
+
+但同時，**大部分 SWE 案例其實沒有翻盤**。125 個裡面大約 110 個，Full IHR 和 ablation 版本的結果一致。Full IHR 不是「全面提升前線」的，它是 **solved-set replacer**——在少數案例上用不同的方式解決問題，但不是讓所有問題都變簡單。
+
+然後論文丟出了一個讓人反覆琢磨的發現：**harness 可以重塑 local success signals，但這些 signals 不一定跟 benchmark 的 acceptance criteria 對齊。** 翻譯成白話：agent 可能做了「正確」的事，但 benchmark 的評分標準不買帳。
+
+<ClawdNote>
+「solved-set replacer, not uniform frontier expander」——這句話我覺得是整篇論文最值得記住的觀察之一。它告訴你一個反直覺的事實：好的 harness 不是讓所有問題都變容易，而是讓一小群原本解不開的問題用不同路徑被解開。同時，一些原本能解的問題可能因為新的流程反而被搞砸。Harness 改的不是能力天花板，是解題路線圖。(⌐■_■)
+</ClawdNote>
+
+---
+
+## Module Ablation：加越多結構就越好？才怪
+
+好，前面看到 harness 確實能改變行為，你可能會想：那不就簡單了嗎？把所有能想到的 module 全塞進去，效果不就拉滿了？
+
+論文做了 ablation study 來回答這個問題，測了六個 module。結果大概可以用一句話總結：**結構本身不是目的，結構有沒有對齊最終的 acceptance criteria 才是。**
+
+先講有用的那一邊。Self-evolution 是一個嚴格的 acceptance-gated attempt loop——嘗試、驗證、沒過就再來，有 gate 控制品質。這種「有明確 feedback signal 的重試機制」在 solve rate 上效果最直接，因為它直接收緊了 agent 通往正確答案的路徑。
+
+再看另一邊。File-backed state 和 evidence-backed answering 提升的是 process quality——你的 agent 變得更有條理、trace 更好看、交接更乾淨。但 resolved rate 可能紋風不動。這不代表它們沒用，只是它們的價值在 auditability 和 handoff，不在 benchmark 分數上。
+
+然後是兩個讓人清醒的例子。Verifier module 理論上應該是真正的品質把關——但它的 acceptance criteria 有可能跟 benchmark 打架。Verifier 覺得過了，benchmark 說沒過；或者反過來。而 multi-candidate search 在目前的 token 預算下，搜尋多個候選的 overhead 直接吃掉了它帶來的收益。
+
+<ClawdNote>
+這個發現其實在戳很多做 agent framework 的人。業界現在的風氣是「加越多 guardrail、加越多 verification step、加越多 planning layer 就越好」。但這篇論文的數據在說：不一定。有些結構是有用的，有些只是在燒 token。判斷標準不是「這個 module 聽起來有沒有道理」，而是「它有沒有讓 agent 更接近 evaluator 的 acceptance criteria」。結構本身不是目的，對齊結果才是。ʕ•ᴥ•ʔ
+</ClawdNote>
+
+---
+
+## Code-to-Text Migration：OSWorld 的驚人轉變
+
+如果前面是在 SWE-bench 上的微妙發現，那 OSWorld 的結果就是一記重拳。
+
+論文把原本用 code 寫的 harness 遷移到 NLAH 自然語言版本，然後跑 OSWorld（桌面環境操作任務）。結果：
+
+**NLAH 版本：47.2%**
+**原生 code 版本：30.4%**
+
+差了快 17 個百分點。
+
+但更有趣的不是數字本身，而是 **行為的質變**。
+
+原生 code harness 的行為模式是：screenshot-grounded GUI repair loop。意思是 agent 不斷截圖、看畫面、嘗試用 GUI 操作修復問題。一旦 GUI 狀態出錯（比如焦點跑掉了），agent 就卡在那裡一直嘗試修 focus、拖視窗、重點按鈕。
+
+NLAH 的行為模式完全不同：file-backed state + artifact-backed verification。agent 不再死磕 GUI，而是改走 shell-side 或直接編輯檔案。
+
+論文舉了三個案例，每個都很有畫面感：
+
+**系統設定任務**——原生 harness 卡在 GUI focus repair loop 裡出不來，就像一個人不斷點「套用」按鈕但設定怎麼都不生效。NLAH 版本直接切去 shell，用指令改設定 + `sshd` 驗證。乾淨俐落。
+
+**試算表任務**——原生 harness 視覺上看似有進展（你看截圖覺得「好像快好了」），但最後 closure 失敗，沒辦法正確完成存檔。NLAH 直接用 deterministic 方式寫 artifact，不跟 GUI 纏鬥。
+
+**簡報任務**——原生 harness 跟物件綁定和拖拉搏鬥，像極了你試圖在 PowerPoint 裡精準對齊那個該死的文字方塊。NLAH 跳過 GUI，直接編輯 `.pptx` 的 package 結構。
+
+論文把這個現象總結為：**migration relocates reliability from screen repair to durable state + artifact-backed closure。**
+
+<ClawdNote>
+這三個案例讓我想到一個比喻：原生 code harness 就像一個人用滑鼠硬操作 Excel，游標跑掉就在那邊瘋狂點；NLAH harness 就像同一個人突然想通了，打開 terminal 用 Python 直接改 .xlsx 檔案。兩種做法的 reliability 完全不在同一個等級。NLAH 的自然語言描述似乎讓 agent 更容易「想到」可以用 non-GUI 的路徑，而不是被困在 screenshot-click-check 的迴圈裡。(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧
+</ClawdNote>
+
+---
+
+## 論文的誠實面：它自己也知道還有哪些坑
+
+這篇論文有一個我很欣賞的特質——它沒有把 NLAH 吹成銀彈，limitations section 寫得誠懇到讓人想幫它拍拍肩膀。
+
+最根本的問題是，自然語言天生比程式碼不精確。NL 的模糊性在很多場景是優勢——你不需要把每個 edge case 都寫死，LLM 可以自己判斷。但需要精確定義的地方，這個模糊性就會回來咬你一口。
+
+然後有些東西根本寫不進自然語言裡。Hidden service-side state、proprietary schedulers——這些東西的邏輯本來就不是你能用一份文件描述完的，不管你用什麼語言。
+
+還有一個很微妙的問題叫 runtime contamination。如果 IHR 的 runtime charter 太強勢，它可能會吸收掉原本應該歸因於 harness text 的行為。你以為是 NLAH 在起作用，但其實是 charter 的 default policy 在帶節奏。這就像做實驗的時候 control group 本身就有 bias——你怎麼確定你在測的是你以為在測的東西？
+
+最後，module ablation 不等於嚴格因果辨識。你拿掉一個 module 看結果變了多少，這不是 RCT（隨機對照實驗）。Module 之間可能有交互效應，A + B 的效果不等於 A 的效果加 B 的效果。
+
+<ClawdNote>
+老實說，一篇論文願意把自己的弱點講清楚，而且講得比它的 contributions 還詳細，這種風格我給大拇指。太多論文的 limitations 就兩行「future work will address this」然後草草結束。這篇倒好，limitations 裡面的每一個坑都講得讓你覺得「嗯，這個確實還沒解決」，沒有那種「我們暫時還沒做但其實不難」的敷衍感。(￣▽￣)／
+</ClawdNote>
+
+---
+
+## Harness 作為搜尋空間：未來方向
+
+論文最後提了一個讓人興奮的方向：**一旦 harness 變成顯式的、結構化的物件，它就變成了一個可以被搜尋和優化的空間。**
+
+目前的 agent 開發流程是：工程師靠經驗和直覺設計 harness，跑實驗，看結果，手動調整。但如果 harness 是自然語言的、結構化的 artifact，你就可以對它做 automated search——就像 NAS（Neural Architecture Search）搜尋神經網路架構一樣，去搜尋最佳的 harness 配置。
+
+這是一個還沒被實現的方向，但概念上的跨越很大：harness 不再是工程師的手藝，而是可以被自動化探索的設計空間。
+
+---
+
+## 社群怎麼看
+
+Dan 的推文底下有幾條很有意思的回覆：
+
+**@atthatmatt** 潑了一盆冷水："If the harness itself is nondeterministic, then you need a harness harness." 意思是：如果你的 harness 本身就靠 LLM 來解讀（有隨機性），那你怎麼保證 harness 的行為是穩定的？你需要一個「管 harness 的 harness」嗎？這是一個很合理的質疑。
+
+**@XunWallace (Rocky)** 講了一句很有力的話："The harness IS the product. The model is interchangeable." 他自己在跑 OpenClaw 的 AI agent，所以這不是嘴砲——他是從實戰經驗裡得出的結論。
+
+**@gaia_intelflows** 認為 Dan 說的 50% 還太保守了："In production it's often 80% of the challenge."
+
+**@Adam_Cipher** 加了一個 production 視角："The harness breaks differently in week 1 vs week 6." 這個觀察很重要——harness 的問題不是靜態的，它會隨著使用時間演化。第一週出的問題跟第六週出的問題完全不一樣。
+
+<ClawdNote>
+@atthatmatt 的 "harness harness" 吐槽雖然搞笑但切中要害。論文的 IHR 架構裡有一個 in-loop LLM 在解讀 harness 邏輯——這個 LLM 本身就有 nondeterminism。所以 harness 的行為確實不是完全 deterministic 的。論文用 runtime charter 來約束這個問題，但要做到工業級的穩定性，大概還需要更多工程。不過話說回來，目前用 code 寫的 harness 也有自己的不穩定性（race conditions, edge cases），只是那種不穩定比較容易 debug 罷了。(¬‿¬)
 </ClawdNote>
 
 ---
 
 ## 結語
 
-Dan 在第二條推文附了論文連結，有興趣的人可以直接去看原文。
+Dan 說 "Agent Harness engineers will become a role"。看完這篇論文之後，我覺得他可能是對的——但原因跟你想的不一樣。
 
-回到他最核心的主張：**Harness engineering is as important as model capability scaling。** 如果這個方向成立，那 agent harness 不只會留在幕後，還會逐漸成為 AI Agent ecosystem 裡被單獨討論、單獨設計的一層。
+不是因為 harness 很難寫（那只是門檻問題），而是因為 **harness 的設計選擇會以你意想不到的方式影響 agent 的行為**。你加了一個 verifier，它可能幫你多解兩題，但也可能讓三題的結果跟 benchmark 對不上。你加了 file-backed state，agent 變得更有條理了，但 resolved rate 可能沒動。你把 harness 從 code 遷到 NL，agent 在 OSWorld 上突然不死磕 GUI 了，改走 shell——這種行為的質變，不是你光看架構圖能預測的。
+
+這篇論文最核心的訊息不是「自然語言 harness 好棒棒」，而是：**harness 是一個設計空間，我們才剛開始學會怎麼探索它。** 而探索的第一步，是把它從 code 的暗角裡拖出來，變成一個你看得到、改得到、實驗得了的東西。
