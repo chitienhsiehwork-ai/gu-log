@@ -8,6 +8,8 @@ import manifest from '../data/post-versions.json';
 const versions: Record<string, number> = manifest as Record<string, number>;
 
 export function getPostVersion(postId: string): string {
-  const count = versions[postId];
+  // Astro post.id includes .mdx extension; manifest keys don't
+  const key = postId.replace(/\.mdx$/, '');
+  const count = versions[key];
   return count ? String(count) : '1';
 }
