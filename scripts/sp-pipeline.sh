@@ -129,6 +129,7 @@ Options:
   --dry-run           Run steps 0-4.5 and stop before deploy.
   --force             Skip evaluation step (Step 1.5).
   --opus              Use Claude Opus for ALL pipeline stages (write/review/refine).
+  --bar <N>           Override Ralph quality bar (default: 8). All 3 dimensions must >= N.
   --from-step <step>  Resume from a specific step (skips earlier steps).
                       Steps: 0/setup, 1/fetch, 1.5/eval, 2/write, 3/review,
                              4/refine, 4.7/ralph, 5/deploy
@@ -211,6 +212,7 @@ OPUS_MODE=false
 FROM_STEP=""
 FROM_STEP_INT=0
 EXISTING_FILE=""
+RALPH_BAR=8
 
 # Convert step name/number to sortable integer
 step_to_int() {
@@ -251,6 +253,12 @@ while [ "$#" -gt 0 ]; do
       ;;
     --opus)
       OPUS_MODE=true
+      shift
+      ;;
+    --bar)
+      shift
+      RALPH_BAR="${1:-}"
+      [[ "$RALPH_BAR" =~ ^[0-9]+$ ]] || die "--bar requires a number (e.g. --bar 9)"
       shift
       ;;
     --from-step)
@@ -803,7 +811,7 @@ if [[ -f "$FINAL_MDX" ]]; then
 fi
 fi  # end should_run_step 4 (4.6 credits)
 
-# Step 4.7: Ralph Quality Loop (score → rewrite → re-score, bar = 8/8/8)
+# Step 4.7: Ralph Quality Loop (score → rewrite → re-score, bar = $RALPH_BAR/$RALPH_BAR/$RALPH_BAR)
 RALPH_MAX_ATTEMPTS=3
 step_start "Step 4.7: ralph quality loop"
 
@@ -890,7 +898,7 @@ while [ "$RALPH_ATTEMPT" -lt "$RALPH_MAX_ATTEMPTS" ]; do
     read_scores "$SCORE_FILE"
     log_info "  Scores: P=$SCORE_P C=$SCORE_C V=$SCORE_V"
 
-    if [ "$SCORE_P" -ge 8 ] && [ "$SCORE_C" -ge 8 ] && [ "$SCORE_V" -ge 8 ]; then
+    if [ "$SCORE_P" -ge "$RALPH_BAR" ] && [ "$SCORE_C" -ge "$RALPH_BAR" ] && [ "$SCORE_V" -ge "$RALPH_BAR" ]; then
       RALPH_PASSED=true
       log_ok "  ✅ Ralph PASS on attempt $RALPH_ATTEMPT"
 
@@ -1020,7 +1028,7 @@ done
 STEP47_TIME=$(step_end "Step 4.7")
 
 if [ "$RALPH_PASSED" = false ]; then
-  log_warn "Ralph quality bar not met after $RALPH_MAX_ATTEMPTS attempts (P:$SCORE_P C:$SCORE_C V:$SCORE_V). Deploying best effort."
+  log_warn "Ralph quality bar ($RALPH_BAR/$RALPH_BAR/$RALPH_BAR) not met after $RALPH_MAX_ATTEMPTS attempts (P:$SCORE_P C:$SCORE_C V:$SCORE_V). Deploying best effort."
 fi
 
 # Step 5: Deploy
