@@ -1045,6 +1045,21 @@ STEP47_TIME=$(step_end "Step 4.7")
 
 if [ "$RALPH_PASSED" = false ]; then
   log_warn "Ralph quality bar ($RALPH_BAR/$RALPH_BAR/$RALPH_BAR) not met after $RALPH_MAX_ATTEMPTS attempts (P:$SCORE_P C:$SCORE_C V:$SCORE_V). Deploying best effort."
+
+  # Still write the best score to frontmatter (so UI shows it even on best-effort deploys)
+  if [ "$SCORE_P" -gt 0 ] && [ "$SCORE_C" -gt 0 ] && [ "$SCORE_V" -gt 0 ]; then
+    RALPH_SCORE_JSON="$(jq -cn \
+      --argjson score "$(( (SCORE_P + SCORE_C + SCORE_V) / 3 ))" \
+      --argjson persona "$SCORE_P" \
+      --argjson clawdNote "$SCORE_C" \
+      --argjson vibe "$SCORE_V" \
+      --argjson iter "$RALPH_ATTEMPT" \
+      '{score: $score, details: {persona: $persona, clawdNote: $clawdNote, vibe: $vibe}, model: "claude-opus-4-6", iteration: $iter}')"
+    node "$GU_LOG_DIR/scripts/frontmatter-scores.mjs" write \
+      "$POSTS_DIR/$FILENAME" opus "$RALPH_SCORE_JSON" \
+      && log_ok "  Wrote best-effort Ralph score to frontmatter" \
+      || log_warn "  Failed to write Ralph score to frontmatter"
+  fi
 fi
 
 # Step 5: Deploy
