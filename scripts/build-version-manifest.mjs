@@ -17,6 +17,12 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const outPath = join(__dirname, '..', 'src', 'data', 'post-versions.json');
 
+// On Vercel (shallow clone), skip — use the committed manifest instead.
+if (process.env.VERCEL) {
+  console.log('⏭️  Vercel detected — using committed post-versions.json');
+  process.exit(0);
+}
+
 function buildManifest() {
   const versions = {};
 
