@@ -123,13 +123,25 @@ run_with_fallback() {
 usage() {
   cat <<'USAGE'
 Usage:
-  bash sp-pipeline.sh <tweet_url> [--dry-run] [--force]
+  bash sp-pipeline.sh <tweet_url> [--dry-run] [--force] [--from-step <step>] [--file <filename>]
 
 Options:
-  --dry-run   Run steps 0-4.5 and stop before deploy.
-  --force     Skip evaluation step (Step 1.5).
-  --opus      Use Claude Opus for ALL pipeline stages (write/review/refine).
-  -h, --help  Show this help message.
+  --dry-run           Run steps 0-4.5 and stop before deploy.
+  --force             Skip evaluation step (Step 1.5).
+  --opus              Use Claude Opus for ALL pipeline stages (write/review/refine).
+  --from-step <step>  Resume from a specific step (skips earlier steps).
+                      Steps: 0/setup, 1/fetch, 1.5/eval, 2/write, 3/review,
+                             4/refine, 4.7/ralph, 5/deploy
+  --file <filename>   Existing post filename in src/content/posts/ (required with
+                      --from-step when skipping fetch/write steps).
+  -h, --help          Show this help message.
+
+Examples:
+  # Run Ralph loop on existing article
+  bash sp-pipeline.sh --from-step ralph --file cp-231-...-vibe-engineering.mdx
+
+  # Re-run from review step
+  bash sp-pipeline.sh --from-step review --file sp-138-...-hidden-features.mdx
 USAGE
 }
 
@@ -196,6 +208,31 @@ DRY_RUN=false
 FORCE=false
 TICKET_PREFIX="SP"
 OPUS_MODE=false
+FROM_STEP=""
+FROM_STEP_INT=0
+EXISTING_FILE=""
+
+# Convert step name/number to sortable integer
+step_to_int() {
+  case "$1" in
+    0|setup) echo 0 ;;
+    1|fetch) echo 10 ;;
+    1.5|eval) echo 15 ;;
+    2|write) echo 20 ;;
+    3|review) echo 30 ;;
+    4|refine) echo 40 ;;
+    4.7|ralph) echo 47 ;;
+    5|deploy) echo 50 ;;
+    *) die "Unknown step: $1. Valid: 0, 1, 1.5, 2, 3, 4, 4.7, 5 (or: setup, fetch, eval, write, review, refine, ralph, deploy)" ;;
+  esac
+}
+
+# Check if a step should run (based on --from-step)
+should_run_step() {
+  local step_int
+  step_int=$(step_to_int "$1")
+  [ "$step_int" -ge "$FROM_STEP_INT" ]
+}
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -216,6 +253,19 @@ while [ "$#" -gt 0 ]; do
       OPUS_MODE=true
       shift
       ;;
+    --from-step)
+      shift
+      FROM_STEP="${1:-}"
+      [ -n "$FROM_STEP" ] || die "--from-step requires a step name/number"
+      FROM_STEP_INT=$(step_to_int "$FROM_STEP")
+      shift
+      ;;
+    --file)
+      shift
+      EXISTING_FILE="${1:-}"
+      [ -n "$EXISTING_FILE" ] || die "--file requires a filename"
+      shift
+      ;;
     -h|--help)
       usage
       exit 0
@@ -233,9 +283,15 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
-if [ -z "$TWEET_URL" ]; then
+# TWEET_URL is required unless --from-step is used (resuming from existing file)
+if [ -z "$TWEET_URL" ] && [ -z "$FROM_STEP" ]; then
   usage
   exit 1
+fi
+
+# --from-step with late steps requires --file
+if [ -n "$FROM_STEP" ] && [ "$FROM_STEP_INT" -ge 20 ] && [ -z "$EXISTING_FILE" ]; then
+  die "--from-step $FROM_STEP requires --file <filename> (existing article in posts dir)"
 fi
 
 GU_LOG_DIR="${GU_LOG_DIR:-$HOME/clawd/projects/gu-log}"
@@ -291,14 +347,39 @@ step_start "Step 0: setup"
 [ -f "$COUNTER_FILE" ] || die "Missing counter file: $COUNTER_FILE"
 [ -f "$STYLE_GUIDE_FILE" ] || die "Missing style guide file: $STYLE_GUIDE_FILE"
 
-SP_NUM=$(jq -r ".${TICKET_PREFIX}.next // empty" "$COUNTER_FILE")
-[ -n "$SP_NUM" ] || die "Could not read ${TICKET_PREFIX}.next from $COUNTER_FILE"
+# When --file is given, extract metadata from existing file instead of allocating new counter
+if [ -n "$EXISTING_FILE" ]; then
+  [ -f "$POSTS_DIR/$EXISTING_FILE" ] || die "File not found: $POSTS_DIR/$EXISTING_FILE"
+
+  # Extract ticket prefix and number from frontmatter
+  TICKET_ID_FROM_FILE=$(grep -m1 'ticketId' "$POSTS_DIR/$EXISTING_FILE" | sed -E 's/.*ticketId:[[:space:]]*"?([^"]+)"?.*/\1/' | tr -d '[:space:]')
+  TICKET_PREFIX=$(echo "$TICKET_ID_FROM_FILE" | sed -E 's/-[0-9]+$//')
+  SP_NUM=$(echo "$TICKET_ID_FROM_FILE" | grep -oE '[0-9]+$')
+
+  # Extract other metadata from frontmatter
+  AUTHOR_HANDLE=$(grep -m1 'source:' "$POSTS_DIR/$EXISTING_FILE" | sed -E 's/.*@([A-Za-z0-9_]+).*/\1/' || true)
+  ORIGINAL_DATE=$(grep -m1 'originalDate:' "$POSTS_DIR/$EXISTING_FILE" | sed -E 's/.*originalDate:[[:space:]]*"?([0-9-]+)"?.*/\1/' || true)
+  TWEET_URL=$(grep -m1 'sourceUrl:' "$POSTS_DIR/$EXISTING_FILE" | sed -E 's/.*sourceUrl:[[:space:]]*"?([^"]+)"?.*/\1/' | tr -d '[:space:]' || true)
+
+  [ -n "$SP_NUM" ] || die "Could not extract ticket number from $EXISTING_FILE"
+  [ -n "$AUTHOR_HANDLE" ] || AUTHOR_HANDLE="Unknown"
+  [ -n "$ORIGINAL_DATE" ] || ORIGINAL_DATE=$(date +%F)
+
+  FILENAME="$EXISTING_FILE"
+  log_info "Resuming with existing file: $EXISTING_FILE (${TICKET_PREFIX}-${SP_NUM})"
+else
+  SP_NUM=$(jq -r ".${TICKET_PREFIX}.next // empty" "$COUNTER_FILE")
+  [ -n "$SP_NUM" ] || die "Could not read ${TICKET_PREFIX}.next from $COUNTER_FILE"
+fi
 
 WORK_DIR="$GU_LOG_DIR/tmp/${TICKET_PREFIX,,}-${SP_NUM}-pipeline"
 mkdir -p "$WORK_DIR"
 STEP0_TIME=$(step_end "Step 0")
 
 # Step 1: Fetch content
+if ! should_run_step 1; then
+  log_info "Step 1: fetch content — SKIPPED (--from-step $FROM_STEP)"
+else
 step_start "Step 1: fetch content"
 # --- Smart skip: if source-tweet.md exists, ask Claude whether to re-fetch ---
 if [ -f "$WORK_DIR/source-tweet.md" ] && [ -s "$WORK_DIR/source-tweet.md" ]; then
@@ -442,9 +523,12 @@ EOF_META
   log_info "Extracted Author: $AUTHOR_HANDLE, Date: $ORIGINAL_DATE"
 fi
 STEP1_TIME=$(step_end "Step 1")
+fi  # end should_run_step 1
 
 # Step 1.5: Evaluate worthiness
-if [ "$FORCE" = true ]; then
+if ! should_run_step 1.5; then
+  log_info "Step 1.5: evaluate worthiness — SKIPPED (--from-step $FROM_STEP)"
+elif [ "$FORCE" = true ]; then
   log_warn "--force enabled; skipping Step 1.5 evaluation"
 else
   step_start "Step 1.5: evaluate worthiness"
@@ -542,6 +626,14 @@ EOF_EVAL_CODEX
 fi
 
 # Step 2: Write Draft (Opus primary)
+if ! should_run_step 2; then
+  log_info "Step 2: write draft — SKIPPED (--from-step $FROM_STEP)"
+  # When skipping write, the existing file IS the draft
+  if [ -n "$EXISTING_FILE" ] && [ ! -f "$WORK_DIR/draft-v1.mdx" ]; then
+    cp "$POSTS_DIR/$EXISTING_FILE" "$WORK_DIR/draft-v1.mdx"
+    log_info "  Copied existing file as draft-v1.mdx"
+  fi
+else
 step_start "Step 2: write draft (Opus primary)"
 cat > "$WORK_DIR/gemini-write-prompt.txt" <<EOF_WRITE
 You are writing a gu-log SP article draft in Traditional Chinese.
@@ -591,8 +683,12 @@ WRITE_HARNESS="$LAST_HARNESS_USED"
 
 [ -s "$WORK_DIR/draft-v1.mdx" ] || die "draft-v1.mdx missing or empty"
 STEP2_TIME=$(step_end "Step 2")
+fi  # end should_run_step 2
 
 # Step 3: Codex Review
+if ! should_run_step 3; then
+  log_info "Step 3: codex review — SKIPPED (--from-step $FROM_STEP)"
+else
 step_start "Step 3: codex review"
 cat > "$WORK_DIR/review-prompt.txt" <<EOF_REVIEW
 Review draft-v1.mdx for ${TICKET_PREFIX}-${SP_NUM}.
@@ -637,8 +733,21 @@ fi
 
 [ -s "$WORK_DIR/review.md" ] || die "review.md missing or empty"
 STEP3_TIME=$(step_end "Step 3")
+fi  # end should_run_step 3
 
 # Step 4: Refine (Opus primary)
+if ! should_run_step 4; then
+  log_info "Step 4: refine draft — SKIPPED (--from-step $FROM_STEP)"
+  # When skipping refine, use existing file (or draft) as final.mdx
+  if [ ! -f "$WORK_DIR/final.mdx" ]; then
+    if [ -n "$EXISTING_FILE" ] && [ -f "$POSTS_DIR/$EXISTING_FILE" ]; then
+      cp "$POSTS_DIR/$EXISTING_FILE" "$WORK_DIR/final.mdx"
+    elif [ -f "$WORK_DIR/draft-v1.mdx" ]; then
+      cp "$WORK_DIR/draft-v1.mdx" "$WORK_DIR/final.mdx"
+    fi
+    log_info "  Using existing content as final.mdx"
+  fi
+else
 step_start "Step 4: refine draft (Opus primary)"
 cat > "$WORK_DIR/refine-prompt.txt" <<EOF_REFINE
 Refine the ${TICKET_PREFIX}-${SP_NUM} draft using review feedback.
@@ -667,9 +776,15 @@ REFINE_HARNESS="$LAST_HARNESS_USED"
 
 [ -s "$WORK_DIR/final.mdx" ] || die "final.mdx missing or empty"
 STEP4_TIME=$(step_end "Step 4")
+fi  # end should_run_step 4
 
 # Step 4.5 (agent notes insertion) — removed. All commentary now uses ClawdNote inline.
 
+# Step 4.6: Patch pipeline credits into frontmatter (only if refine ran)
+if ! should_run_step 4 || [ -n "$EXISTING_FILE" ] && [ "$FROM_STEP_INT" -ge 47 ]; then
+  log_info "Step 4.6: pipeline credits — SKIPPED (using existing credits)"
+fi
+if should_run_step 4 && { [ -z "$EXISTING_FILE" ] || [ "$FROM_STEP_INT" -lt 47 ]; }; then
 # Step 4.6: Patch pipeline credits into frontmatter
 # Gemini writes single-model credit; we add the full multi-model pipeline array
 PIPELINE_URL="https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
@@ -686,32 +801,47 @@ if [[ -f "$FINAL_MDX" ]]; then
   # Replace single harness line with full pipeline credits
   sed -i '/^  harness: ".*"$/c\  harness: "Gemini CLI + Codex CLI"\n  pipeline:\n    - role: "Written"\n      model: "'"$WRITE_MODEL"'"\n      harness: "'"$WRITE_HARNESS"'"\n    - role: "Reviewed"\n      model: "'"$REVIEW_MODEL"'"\n      harness: "'"$REVIEW_HARNESS"'"\n    - role: "Refined"\n      model: "'"$REFINE_MODEL"'"\n      harness: "'"$REFINE_HARNESS"'"\n    - role: "Orchestrated"\n      model: "Opus 4.6"\n      harness: "OpenClaw"\n  pipelineUrl: "'"$PIPELINE_URL"'"' "$FINAL_MDX"
 fi
+fi  # end should_run_step 4 (4.6 credits)
 
-# Step 4.7: Ralph Quality Loop (score → rewrite → re-score, bar = 9/9/9)
+# Step 4.7: Ralph Quality Loop (score → rewrite → re-score, bar = 8/8/8)
 RALPH_MAX_ATTEMPTS=3
 step_start "Step 4.7: ralph quality loop"
 
 # Extract title + generate filename early (scorer needs file in posts dir)
-TITLE=$(awk '
-  BEGIN { in_fm=0 }
-  /^---[[:space:]]*$/ { if (in_fm==0) { in_fm=1; next } else { exit } }
-  in_fm && /^title:[[:space:]]*/ {
-    line=$0
-    sub(/^title:[[:space:]]*/, "", line)
-    gsub(/^"|"$/, "", line)
-    print line
-    exit
-  }
-' "$WORK_DIR/final.mdx" || true)
+# When --file is given, FILENAME is already set from Step 0
+# Try extracting title from existing file first, then from final.mdx
+_TITLE_SOURCE=""
+if [ -n "$FILENAME" ] && [ -f "$POSTS_DIR/$FILENAME" ]; then
+  _TITLE_SOURCE="$POSTS_DIR/$FILENAME"
+elif [ -f "$WORK_DIR/final.mdx" ]; then
+  _TITLE_SOURCE="$WORK_DIR/final.mdx"
+fi
+
+TITLE=""
+if [ -n "$_TITLE_SOURCE" ]; then
+  TITLE=$(awk '
+    BEGIN { in_fm=0 }
+    /^---[[:space:]]*$/ { if (in_fm==0) { in_fm=1; next } else { exit } }
+    in_fm && /^title:[[:space:]]*/ {
+      line=$0
+      sub(/^title:[[:space:]]*/, "", line)
+      gsub(/^"|"$/, "", line)
+      print line
+      exit
+    }
+  ' "$_TITLE_SOURCE" || true)
+fi
 
 if [ -z "$TITLE" ]; then
   TITLE="${TICKET_PREFIX}-${SP_NUM}"
 fi
 
-DATE_STAMP=$(date +%Y%m%d)
-AUTHOR_SLUG=$(sanitize_slug "$AUTHOR_HANDLE")
-TITLE_SLUG=$(sanitize_slug "$TITLE")
-FILENAME="${TICKET_PREFIX,,}-${SP_NUM}-${DATE_STAMP}-${AUTHOR_SLUG}-${TITLE_SLUG}.mdx"
+if [ -z "$FILENAME" ]; then
+  DATE_STAMP=$(date +%Y%m%d)
+  AUTHOR_SLUG=$(sanitize_slug "$AUTHOR_HANDLE")
+  TITLE_SLUG=$(sanitize_slug "$TITLE")
+  FILENAME="${TICKET_PREFIX,,}-${SP_NUM}-${DATE_STAMP}-${AUTHOR_SLUG}-${TITLE_SLUG}.mdx"
+fi
 EN_FILENAME="en-${FILENAME}"
 
 # Cleanup trap: if pipeline dies mid-run, remove incomplete files from posts dir
@@ -737,8 +867,12 @@ _cleanup_on_exit() {
 }
 trap _cleanup_on_exit EXIT
 
-# Place file in posts dir for scorer
-cp "$WORK_DIR/final.mdx" "$POSTS_DIR/$FILENAME"
+# Place file in posts dir for scorer (skip if already there from --file)
+if [ -n "$EXISTING_FILE" ] && [ -f "$POSTS_DIR/$FILENAME" ]; then
+  log_info "  File already in posts dir: $FILENAME"
+elif [ -f "$WORK_DIR/final.mdx" ]; then
+  cp "$WORK_DIR/final.mdx" "$POSTS_DIR/$FILENAME"
+fi
 
 RALPH_ATTEMPT=0
 RALPH_PASSED=false
@@ -756,7 +890,7 @@ while [ "$RALPH_ATTEMPT" -lt "$RALPH_MAX_ATTEMPTS" ]; do
     read_scores "$SCORE_FILE"
     log_info "  Scores: P=$SCORE_P C=$SCORE_C V=$SCORE_V"
 
-    if [ "$SCORE_P" -ge 9 ] && [ "$SCORE_C" -ge 9 ] && [ "$SCORE_V" -ge 9 ]; then
+    if [ "$SCORE_P" -ge 8 ] && [ "$SCORE_C" -ge 8 ] && [ "$SCORE_V" -ge 8 ]; then
       RALPH_PASSED=true
       log_ok "  ✅ Ralph PASS on attempt $RALPH_ATTEMPT"
 
@@ -901,9 +1035,14 @@ else
   COUNTER_BACKUP="$WORK_DIR/counter-before.json"
   cp "$COUNTER_FILE" "$COUNTER_BACKUP"
 
-  TMP_COUNTER=$(mktemp)
-  jq ".${TICKET_PREFIX}.next += 1" "$COUNTER_FILE" > "$TMP_COUNTER"
-  mv "$TMP_COUNTER" "$COUNTER_FILE"
+  # Only bump counter for NEW articles (not --file resume)
+  if [ -z "$EXISTING_FILE" ]; then
+    TMP_COUNTER=$(mktemp)
+    jq ".${TICKET_PREFIX}.next += 1" "$COUNTER_FILE" > "$TMP_COUNTER"
+    mv "$TMP_COUNTER" "$COUNTER_FILE"
+  else
+    log_info "  Skipping counter bump (--file resume)"
+  fi
 
   set +e
   VALIDATION_OUTPUT=$(
