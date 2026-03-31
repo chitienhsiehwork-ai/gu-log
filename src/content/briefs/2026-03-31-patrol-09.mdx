@@ -1,0 +1,63 @@
+---
+title: '🔭 Shroom Feed — 2026-03-31 09:40 台北'
+briefType: 'patrol'
+date: '2026-03-31'
+time: '09:40 台北'
+summary: 'Claude Code Computer Use 上線、額度異常爆增事件、llama.cpp 10 萬星宣言'
+lang: 'zh-tw'
+tags: ["claude-code", "computer-use", "cache-bug", "llama-cpp", "local-ai", "hermes-agent", "glm-5", "cohere"]
+---
+
+## 🖥️ Claude Code Computer Use 正式上線
+
+Claude 現在可以從 CLI 直接開你的 macOS app、點 UI、測試它建好的東西。不用再手動切視窗驗收——agent 自己開 SwiftUI app、Electron build 或任何 GUI 工具來看結果。
+
+Research preview，Pro/Max plan，macOS 限定。用 `/mcp` 啟用。
+
+- [來源](https://x.com/claudeai/status/2038663014098899416)
+
+## 🔥 Claude Code 額度異常爆增 — Bun Cache Bug 被逆向工程揪出
+
+Lydia Hallie 確認用戶回報 Claude Code 額度消耗速度遠超預期，團隊 top priority 調查中。Huryn 引用 Reddit 逆向工程結果：Bun cache invalidation bug 加上 Chrome 模式的截圖成本，導致實際 token 消耗暴增 10-20x。
+
+Survival guide 重點：用 `npx @anthropic-ai/claude-code` 繞過 Bun cache bug、避免 `--resume`、`/compact` 壓縮 context、`/effort medium` 降低日常消耗、關掉沒在用的 MCP server。
+
+- [Lydia 確認](https://x.com/lydiahallie/status/2038686571676008625)
+- [Huryn 完整分析](https://x.com/PawelHuryn/status/2038748327429243055)
+
+## ⭐ llama.cpp 10 萬星 — Georgi 的 Local AI 宣言
+
+ggerganov 發表重要長文：local LLM agentic 時代已到，2026 將是 local AI 最關鍵的一年。他認為存在一個「人類可有效利用的 AI 智慧上限」，超過那個門檻反而適得其反——而那個門檻完全可以在本地達到。
+
+Simon Willison 補充引用 Georgi 指出：local model 在 coding agent 上效果差，主要是 harness 和 chat template 的問題，不是模型本身。Qwen3.5 系列目前最推薦。
+
+- [Georgi 長文](https://x.com/ggerganov/status/2038632534414680223)
+- [harness 問題分析](https://x.com/simonw/status/2038714926769094875)
+
+## 🤖 Hermes Agent Multi-Profile 上線
+
+Nous Research 的 Hermes Agent 推出 Multi Agent Profiles——可以跑多個隔離的 Agent 實例。同日創下最大日使用量紀錄。社群持續把它跟 OpenClaw 對比（雖然定位不太一樣）。
+
+- [來源](https://x.com/Teknium/status/2038787947923952016)
+
+## 📊 GLM-5-Turbo — Z AI 的 Agentic 專用模型
+
+Z AI 發布 GLM-5-Turbo，宣稱專為 OpenClaw 場景深度優化。GDPval-AA（真實 agentic 工作任務）分數 1503，超越 GLM-5。但 Intelligence Index 反而低 3 分（47 vs 50），知識可靠度也較差。
+
+定價 $1.20/$4.00，比 GLM-5 稍貴但 token 效率稍高。
+
+- [Artificial Analysis 完整評測](https://x.com/ArtificialAnlys/status/2038667075489808804)
+
+## 🎤 Cohere Transcribe 開源 — 14 語言 STT
+
+2B 參數、Apache 2.0 授權、4.7% WER，接近 Whisper Large v3（4.2%）水準。支援英/法/中/日/阿拉伯等 14 語言。免費 API 可用。
+
+- [來源](https://x.com/ArtificialAnlys/status/2038678855213568031)
+
+## 🏢 其他動態
+
+- **Auto Mode 擴大開放**：Claude Code auto mode 現在 Enterprise + API 也能用了
+- **GitHub Enterprise Server 支援**：Claude Code Web/iOS/Android + Code Review 全面支援 GHES
+- **SK hynix ADR**：F-1 已提交 SEC，目標 2026 年內美股上市。AI 記憶體龍頭
+- **Codex ← Claude Code 插件**：有人做了從 Claude Code 觸發 Codex 的插件。跨生態打通
+- **Huryn：角色合併趨勢**：一人做三人的事，關鍵能力是 system design + context engineering + product sense
