@@ -961,6 +961,21 @@ The zh-tw version should be rewritten in-place at src/content/posts/$FILENAME.
       log_warn "  Writer errored. See $WORK_DIR/ralph-writer-stdout-${RALPH_ATTEMPT}.txt"
     fi
 
+    # Validate frontmatter wasn't broken by writer (LLMs sometimes strip required fields)
+    _FM_VALID=true
+    for _check_field in title originalDate source sourceUrl summary; do
+      if ! grep -q "^${_check_field}:" "$POSTS_DIR/$FILENAME" 2>/dev/null; then
+        _FM_VALID=false
+        log_warn "  ❌ Writer broke frontmatter: missing '$_check_field' in $FILENAME"
+      fi
+    done
+    if [ "$_FM_VALID" = false ]; then
+      log_warn "  Restoring from pre-rewrite backup..."
+      git checkout HEAD -- "$POSTS_DIR/$FILENAME" 2>/dev/null || cp "$WORK_DIR/final.mdx" "$POSTS_DIR/$FILENAME"
+      rm -f "$POSTS_DIR/$EN_FILENAME"
+      continue
+    fi
+
     # Copy EN file from WORK_DIR to POSTS_DIR only if writer produced it
     if [ -f "$WORK_DIR/$EN_FILENAME" ]; then
       cp "$WORK_DIR/$EN_FILENAME" "$POSTS_DIR/$EN_FILENAME"
@@ -1007,9 +1022,10 @@ ralph_stages = """    - role: "Scored"
   pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh\""""
 
 # Replace existing Orchestrated + pipelineUrl with Ralph stages
+# NOTE: Do NOT use re.DOTALL — we want . to NOT match newlines so the regex stays on expected lines
 content = re.sub(
-    r'    - role: "Orchestrated"\n.*?harness:.*?\n  pipelineUrl:.*',
-    ralph_stages, content, count=1, flags=re.DOTALL
+    r'    - role: "Orchestrated"\n      model: ".*"\n      harness: ".*"\n  pipelineUrl: ".*"',
+    ralph_stages, content, count=1
 )
 # Update top-level harness to include Claude Code
 content = re.sub(
