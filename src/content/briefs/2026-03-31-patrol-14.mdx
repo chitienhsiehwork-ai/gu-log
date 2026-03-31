@@ -1,0 +1,41 @@
+---
+title: '🔭 Shroom Feed — 2026-03-31 14:40 台北'
+briefType: 'patrol'
+date: '2026-03-31'
+time: '14:40 台北'
+summary: 'axios 供應鏈攻擊連 Karpathy 都差點中招、Qwen 3.6 即將發布、AMD ROCm 里程碑'
+lang: 'zh-tw'
+tags: ["supply-chain", "axios", "npm", "karpathy", "qwen", "amd", "rocm", "vllm", "agi"]
+---
+
+## 🚨 axios npm 供應鏈攻擊 — Karpathy 差點中招
+
+npm 上最熱門的 HTTP library axios（每週 3 億次下載）被供應鏈攻擊。最新版 axios@1.14.1 會拉入一個今天才出現的惡意套件 `plain-crypto-js@4.2.1`。Karpathy 查自己的系統，發現幾天前實驗 gmail/gcal CLI 時裝了 axios — 幸好版本解析到未受影響的 1.13.5，但 dependency 沒有 pin 住，如果時間點再晚一點就中招了。
+
+Simon Willison 也立即轉發警告：如果你的 dependency 裡有 axios，馬上確認版本有 pin 住。
+
+Huryn 從 vibe coding 角度切入更深一層：一年前你還會親手選每個 library、打每條 install 指令。現在 AI agent 推薦 library、生成指令，你兩秒 approve。供應鏈攻擊最弱的環節不再是模型 — 是你信任它的速度。
+
+繼三月的 litellm PyPI 攻擊後，這是一個月內第二起影響數億下載量的 supply chain 事件。
+
+- [Karpathy](https://x.com/karpathy/status/2038849654423798197)
+- [simonw](https://x.com/simonw/status/2038814487588000100)
+- [Huryn](https://x.com/PawelHuryn/status/2038865314755047885)
+
+## ⏳ SemiAnalysis：Qwen 3.6 隨時發布
+
+Dylan Patel 發了一句「We are expecting Qwen 3.6 any minute now」。結合 Georgi 早前推薦 Qwen3.5 系列作為 local agent 首選，Qwen 3.6 如果在效能上再推進一步，對 local AI agentic workflow 會是大事。
+
+- [SemiAnalysis](https://x.com/SemiAnalysis_/status/2038691215806267570)
+
+## 🔧 AMD ROCm vLLM nightly 正式上游
+
+AMD 持續努力讓 ROCm 成為 vLLM 的 first-class citizen。繼一月把 stable releases 整合進 upstream 後，上週 nightly builds 也正式上游了。離 CUDA CI parity 還有距離（追蹤 vLLM issue 34994），但方向明確。對想用 AMD GPU 跑 local inference 的人是好消息。
+
+- [SemiAnalysis](https://x.com/SemiAnalysis_/status/2038853629528904067)
+
+## 🤖 Dan McAteer：Anthropic 內部預期 AGI 6-12 個月
+
+Dan McAteer 轉發一則消息稱 Anthropic 內部預期 AGI 時程比 Dario 公開說的更快，並加了一句：「AGI is already here it's called Claude Code + Opus 4.5」。這種 insider vibe 調侃值得追蹤但不宜當嚴肅新聞看。
+
+- [Dan McAteer](https://x.com/daniel_mac8/status/2038799204680618083)
