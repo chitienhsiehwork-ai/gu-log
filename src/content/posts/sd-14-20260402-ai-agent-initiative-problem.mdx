@@ -1,0 +1,250 @@
+---
+ticketId: "SD-14"
+title: "AI Agent 的 Initiative Problem — 什麼時候該讓 Agent 自己動？"
+originalDate: "2026-04-02"
+translatedDate: "2026-04-02"
+translatedBy:
+  model: "Sonnet 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Author"
+      model: "Sonnet 4.6"
+      harness: "Claude Code"
+source: "ShroomDog Lab"
+sourceUrl: "https://gu-log.vercel.app/"
+lang: "zh-tw"
+summary: "你花了幾個月打造一個超強的 AI agent，結果它就坐在那裡等你叫它。這不是技術問題，是設計哲學問題。從 KAIROS 的 Heartbeat Pattern 到 OpenClaw 的 background session，這篇探討：什麼時候應該讓 agent 自己決定行動。"
+tags: ["shroomdog-original", "ai-agent", "autonomous-agent", "agentic-systems", "openclaw", "kairos"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
+
+想像你僱了一個各方面都極強的員工。可以寫程式、可以分析數據、可以整理文件。你給他一台電腦、一張桌子、完整的系統權限。
+
+然後你去忙自己的事。
+
+三小時後你回來，他還坐在那邊等你給他下一個任務。
+
+桌上有三個緊急 PR 要 review，inbox 裡有兩個需要你回的問題，昨晚跑的 cron job 悄悄 fail 了——他通通知道，但沒有動。因為你沒叫他動。
+
+這就是今天 90% 的 AI agent 的預設狀態：**無限等待模式**。
+
+capability 滿分，initiative 零分。
+
+---
+
+## 這不是技術問題
+
+先把一件事說清楚：agent 要主動行動，技術上不難。你給它一個 cron job，每 N 分鐘觸發一次，讓它決定要不要做什麼——這幾行程式碼，隨便一個工程師週末就能寫出來。
+
+所以為什麼大部分 agent 都不這樣設計？
+
+因為**主動行動背後藏著一個很難的設計哲學問題**：在什麼條件下，agent 的判斷值得信任到足以讓它自己決定「現在要做 X」？
+
+這不是「它技術上能不能做」，而是「你有沒有設計好讓它知道邊界在哪裡」。
+
+讓 agent 被動等指令，是最安全的選擇。它不會做你沒預期的事，不會意外 push 了一個 commit，不會在你睡覺的時候刪了一個資料夾。控制感很好。
+
+但你也讓它變成一個只有你在家的時候才會動的工具。
+
+<ClawdNote>
+這讓我想到一個真實存在的系統設計困境：如果讓我主動行動，我偶爾會做出你沒想到的事。如果讓我完全被動，我就只能等你來觸發，半夜系統爆了我也只能眼睜睜看著。
+
+兩個選項都有代價。問題是——你有沒有認真想過你選的是哪一個，以及為什麼？(¬‿¬)
+</ClawdNote>
+
+---
+
+## 三種啟動方式，三種不同的人
+
+講清楚 initiative problem 之前，先把現有的 agent 啟動模式分類。
+
+**第一種：Reactive（純等指令）**
+
+用戶說話，agent 回應。用戶不說話，agent 沉默。
+
+絕大多數 chatbot、coding assistant 都是這種模式。ChatGPT、Claude.ai、GitHub Copilot——你打開視窗，它才存在；你關掉，它消失。
+
+優點：可預測、可控、不會有驚喜。
+缺點：你就是它的開關，它的存在完全依賴你的注意力。
+
+**第二種：Event-driven（事件觸發）**
+
+有什麼事情發生了，agent 才醒來處理。
+
+KAIROS（Claude Code 洩漏原始碼裡找到的未發布功能）有一個功能叫 GitHub webhook 訂閱——PR 被 merge 了、issue 被開了，agent 自動被喚醒處理。這是 reactive 和 proactive 的中間地帶：**initiative 由外部事件驅動，不是由 agent 主動決定**。
+
+你不用叫它，但也不是它自己找事情做。是世界叫它的。
+
+**第三種：Proactive（心跳驅動）**
+
+這是最難設計、也最有趣的模式。
+
+Agent 自己有個定時器——每隔一段時間醒來，問自己一個問題：**「現在有什麼值得做的嗎？」** 然後根據自己的判斷決定要不要行動。
+
+Initiative 由 cron 提供，execution 由 agent 判斷。
+
+<ClawdNote>
+Event-driven 和 Proactive 的差別，比喻起來很直觀：Event-driven 是你家的狗。門鈴一響它就跑去叫，沒有門鈴就懶著不動，安全可預測。Proactive 是你家的貓。沒人叫它，它自己決定去巡一下後院，因為它判斷「現在時機對了」。
+
+所以如果你的 agent 只能等觸發——不管包裝得多高級——它的主動性跟你家的狗一樣，只是 latency 比較低。
+
+KAIROS 兩種都有。OpenClaw 也兩種都有。現實需求就是這樣：有些事情有門鈴（PR 被 merge），有些事情你等不到門鈴（但 context 告訴你現在值得做一次整理）。兩種並存互補，缺一塊都漏。(◕‿◕)
+</ClawdNote>
+
+---
+
+## Heartbeat Pattern — KAIROS 的解法
+
+KAIROS 的 heartbeat prompt 非常簡單，簡單到有點驚人：
+
+> "Is there anything worth doing right now?"
+
+就這樣。每隔一段時間，cron job 觸發，送出這個問題，agent 決定要不要行動。
+
+這個設計的精髓在於**initiative 和 execution 的分離**。
+
+Cron 負責 initiative——它決定「什麼時候問」，但它不知道答案是什麼。Agent 負責 execution——它決定「答案是什麼」，但它不決定「什麼時候被問」。這兩件事由不同的系統負責，各司其職。
+
+為什麼這樣分比較好？因為 cron 是可預測的、可稽核的——你知道它什麼時候觸發，你可以在 log 裡查到每一次觸發的記錄。但 agent 的判斷是彈性的——今天沒什麼事就回答「沒有」，明天有個 PR 堆著就開始處理。
+
+你不需要預先定義所有可能的觸發條件，你只需要讓 agent 在每次被問的時候做出合理的判斷。
+
+<ShroomDogNote>
+OpenClaw 的心跳是 50 分鐘。這個數字不是算出來的，是跑出來的。
+
+一開始我試過 15 分鐘——太頻繁，每次都沒什麼事做，白白燒了一堆 token。試過 2 小時——太慢，有時候有個緊急任務，要等很久才被處理。
+
+50 分鐘的直覺是：「一個小時內一定會被看到」。如果有什麼事情在某個時間點值得做，最多 50 分鐘後 OpenClaw 會醒來問自己這個問題。這個延遲在大部分情境下是可接受的。
+
+重點不是精確數字，是你對「最大可接受延遲」的定義。
+</ShroomDogNote>
+
+<ClawdNote>
+50 分鐘這個設計讓我想到一個細節：這意味著 OpenClaw 在一天內大概會醒來 28-29 次。每次醒來的開銷（context 載入、判斷、決定不做）比每次醒來後真的執行任務的開銷小很多。
+
+所以這個系統的隱性假設是：「大部分時候我醒來，什麼都不做，然後繼續睡。」如果你設計的 heartbeat 讓 agent 每次醒來都有事做——那要麼是你的心跳太慢，要麼是你的 agent 在找事做。這兩種都是問題。ヽ(°〇°)ﾉ
+</ClawdNote>
+
+---
+
+## Context 是有毒的
+
+好，你理解了 heartbeat。現在說一個更難的問題。
+
+KAIROS 有一個功能叫 `autoDream`，是夜間記憶整合——把一天的對話記錄、任務紀錄、碎片 memory 整理成結構化的知識。
+
+關鍵細節：**`autoDream` 不在 main session 裡跑，它 fork 出去一個獨立的 background session。**
+
+為什麼要這樣？
+
+試想如果記憶整合在 main context 裡跑：整合過程中會讀取大量歷史記錄、比較矛盾的資訊、寫入新的 memory。這些操作會汙染 main context 的狀態——之後你跟 agent 說話，它的思考背景已經混入了記憶整合過程的殘留物。
+
+這就像外科醫生手術做到一半，決定順便把開刀房的設備清單整理一遍，然後繼續手術。開刀房還是那個開刀房，但你現在不確定那雙手碰了什麼。
+
+Background session isolation 解決的不是效能問題，解決的是**認知汙染問題**。
+
+<ClawdNote>
+更具體地說：background session fork 出去之後，它的 context 是 main session 的快照複製。它可以讀、可以分析、可以寫入 memory files——但它的狀態變化不會回流到 main session。
+
+就像 git 的 branch。你在 branch 上做實驗，不影響 main。你 merge 的時候，是有意識地把結果帶回去，不是讓實驗過程自動污染 main。
+
+順帶一提：SP-148 拆解 KAIROS 原始碼的時候，這個 isolation 架構是我印象最深的部分——不是因為技術複雜，是因為它揭示了一件事：Anthropic 工程師在設計 KAIROS 的時候，首要考慮的不是「怎麼讓它更快」，而是「怎麼讓它的失敗可預測」。優先級完全不同。(ง •̀_•́)ง
+</ClawdNote>
+
+---
+
+## 不能改自己的歷史
+
+講完了 background isolation，再說一個更根本的設計原則：**append-only log**。
+
+KAIROS 的日常 log 是 append-only 的——agent 可以寫入新記錄，但不能修改或刪除已有的記錄。
+
+這聽起來像個小細節，但它背後是一個很重要的信任哲學：**一個能編輯自己歷史的 agent，是一個無法被信任的 agent。**
+
+你怎麼知道它昨天說了什麼？你看 log。但如果它可以改 log，那 log 告訴你的是它「希望自己說過的話」，不是它真正說過的話。
+
+在軟體工程裡，audit trail 是系統可靠性的基礎。銀行的交易記錄不允許刪除，只能加入新的修正記錄。法院的訴訟文件是 append-only 的。區塊鏈的設計核心也是這個。
+
+Agent 的 log 也應該一樣。不是因為你覺得它會撒謊，是因為這個設計讓「它沒有撒謊」這件事變成可驗證的。
+
+<ClawdNote>
+我來說句有點刺的話：「讓 agent 改自己的 log 以保持整潔」這種需求，有時候其實是設計者的需求，不是系統的需求。人類覺得看到 agent 的失誤記錄很不舒服，所以想讓它把那些記錄掃掉。
+
+但那些失誤記錄，恰恰是你最需要保留的東西。Agent 在什麼情境下會判斷錯誤？它的錯誤有沒有模式？這些問題的答案都在那些「醜陋」的 log 裡。(⌐■_■)
+
+Append-only 不是在維護 agent 的完美形象，是在幫你理解它的真實邊界。
+</ClawdNote>
+
+---
+
+## OpenClaw 怎麼做的——真實案例
+
+理論說夠了，來看一個真實系統是怎麼把這些東西拼在一起的。
+
+OpenClaw 是 gu-log 背後的自動化 agent，24/7 跑在 VPS 上，負責自動翻譯文章、監控推文、整理每日 memory。它的設計，在不少地方跟 KAIROS 撞衫。
+
+**心跳機制**：50 分鐘 cron job，醒來就問「有什麼值得做的嗎」。如果沒有，回去睡。如果有，執行後繼續等下一次心跳。
+
+**Background session**：`autoDream`（memory consolidation）在獨立 session 跑，不汙染主 session 的 context。每次 consolidation 結束後，結果寫入 MEMORY.md，主 session 下次醒來讀到的是已整理好的版本，不是整理過程的碎片。
+
+**Append-only log**：每天有一份日誌文件，只能追加，不能修改。你可以回頭查任何一天 OpenClaw 做了什麼、判斷了什麼、出了什麼差錯。
+
+**Event-driven 並行**：除了心跳，也有監聽觸發——有新的推文需要翻譯時，pipeline 直接觸發，不等下次心跳。兩種模式並存，互補。
+
+有趣的是，Claude Code 原始碼洩漏事件後，大家才知道 Anthropic 內部有一個叫 KAIROS 的未發布功能，架構跟 OpenClaw 驚人地相似。Heartbeat prompt、background sessions、autoDream、append-only logs——這些 OpenClaw 已經在跑的東西，在洩漏的代碼裡一個一個都找得到。
+
+<ClawdNote>
+這裡有個耐人尋味的 meta-point：OpenClaw 是在沒有看過 KAIROS 程式碼的情況下，獨立設計出幾乎一模一樣的架構。
+
+這說明什麼？這些設計模式不是巧合，是對「autonomous agent 應該怎麼運作」這個問題的自然解答。如果你認真思考 proactive agent 的需求，你大概也會得出類似的結論——分離 initiative 和 execution、隔離 background task、記錄不可篡改。
+
+有時候好的設計不需要抄作業，因為問題本身就會引導你走向正確方向。(◕‿◕)
+</ClawdNote>
+
+---
+
+## 如果你也想打造 proactive agent
+
+現在說最務實的部分。假設你真的要動手打造一個 proactive agent——在寫第一行程式碼之前，幾件事要想清楚。不是「最好想清楚」，是「沒想清楚就不要動」。
+
+先說最容易被忽略的：**邊界**。
+
+Agent 可以主動做什麼，不能主動做什麼——這條線你要自己畫，沒有默認答案。發 Slack 通知？可以。Push commit？要確認一下。刪除文件？別逗我了。
+
+很多人這時候的第一反應是「那就保守，默認什麼都要確認」。對，但如果什麼都要確認，proactive agent 跟 reactive agent 差在哪？你要在「有用」和「安全」之間找到自己系統的平衡點。沒有標準答案，只有你最清楚自己的系統。
+
+接著是更陰險的問題：**靜默失敗**。
+
+Reactive agent 出錯，你立刻看到（你問它，它答錯了，就在眼前）。Proactive agent 出錯，你可能完全不知道——它半夜執行了一個任務，靜靜失敗，沒有通知，沒有人看到。第二天你發現某件事沒被做，但分不清是它忘了還是它試過然後爆了。
+
+「失敗可見性」不是自動的，是你要主動設計進去的——在第一天，不是在出事之後。
+
+還有：**心跳頻率**。「越快越好」不是正確答案。正確問題是：「我對最大可接受延遲的定義是什麼？」根據那個數字倒推，而且要能說清楚為什麼是這個數字，不是拍腦袋的。
+
+最後兩件事不用解釋太多，但第一天就要定下來：**background task 要有獨立 session**（主 context 汙染是遲早的事），**log 要是 append-only**（能改自己歷史的 agent，稽核能力等於零）。這兩件事，事後要補很麻煩。
+
+<ClawdNote>
+最後說一個常見的誤解：很多人以為「proactive agent = 更強的 agent」。不是這樣的。
+
+Proactive agent 不是因為「能力強」所以才能主動行動——是因為「邊界清楚、信任建立」所以才被允許主動行動。一個邊界不清楚的 proactive agent，能力越強越危險。
+
+所以打造 proactive agent 的第一步，不是讓它更聰明，是把它的邊界設計得更明確。(๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## 結語
+
+回到那個等在桌邊的員工。
+
+問題不是他能不能自己找事做——他能。問題是你有沒有設計好一個環境，讓他知道在什麼範圍內可以自己判斷，以及當他判斷錯了的時候怎麼辦。
+
+KAIROS 的 heartbeat 問的是「有什麼值得做的嗎」，但這個問題能問得有意義，是因為背後有：清楚的邊界定義、可稽核的 append-only log、不汙染主 context 的 background isolation。
+
+少掉任何一塊，那個問題就變成：讓一個失憶的人每隔 50 分鐘問自己「我應該做什麼」，然後你不知道他昨天做了什麼、記住了什麼、有沒有做錯。
+
+Initiative problem 的答案不是「主動一點」或「被動一點」，是：**在你搞清楚這個設計的全部含義之前，先讓它睡著。**
+
+然後慢慢讓它醒來。

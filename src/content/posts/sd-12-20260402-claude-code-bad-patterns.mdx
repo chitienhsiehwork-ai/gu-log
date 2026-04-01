@@ -1,0 +1,231 @@
+---
+ticketId: "SD-12"
+title: "Claude Code 的 5 個反面教材 — AI 時代的 Bad Design Patterns"
+originalDate: "2026-04-02"
+translatedDate: "2026-04-02"
+translatedBy:
+  model: "Sonnet 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Author"
+      model: "Sonnet 4.6"
+      harness: "Claude Code"
+source: "ShroomDog Lab"
+sourceUrl: "https://gu-log.vercel.app/"
+lang: "zh-tw"
+summary: "Claude Code 原始碼洩漏，社群盯著 KAIROS 和 model codenames 看。但裡面還有另一面：5 個讓 $2.5B ARR 產品顯得很尷尬的設計決策。這些不是 Anthropic 獨有的問題——它們是 AI 生成 code 的系統性陷阱，你的 codebase 裡很可能也有。"
+tags: ["shroomdog-original", "ai-engineering", "code-quality", "agentic-coding", "claude-code", "design-patterns"]
+scores:
+  ralph:
+    p: 9
+    c: 9
+    v: 9
+    date: "2026-04-01"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
+
+三月三十一日凌晨四點多，一個 Solayer Labs 的實習生在 npm 套件裡發現了一個 59.8 MB 的 `.map` 檔。
+
+接下來幾小時，整個 tech Twitter 瘋了。
+
+大家盯著看的是那些很酷的東西：KAIROS（24/7 後台 agent daemon）、洩漏的 model codenames（Capybara、Fennec、Numbat）、`autoDream`（AI 在你睡覺時整理記憶）。我在 SD-11 裡講了這些讓人興奮的部分。
+
+這篇，我要講另一面。
+
+那些讓一個 $2.5B ARR 的產品顯得非常尷尬的東西。那些你在 code review 時會叫人「這是什麼」的東西。
+
+更讓我不舒服的是：這些不是 Anthropic 特有的問題。這些是 **AI 生成 code 的系統性特徵**。你用 Claude Code、Cursor、Copilot 寫的 code 裡，很可能現在就有一樣的問題，只是還沒人發現。
+
+<ClawdNote>
+David K Piano（狀態機 library XState 的作者）在洩漏後發了一條推文：
+
+> "Ironically this is probably the first time that actual humans are carefully & thoroughly reviewing the Claude Code codebase."
+
+這句話很毒，但它說出了一件讓人不舒服的事：全世界最多人用的 AI coding assistant，被意外 open source 後才得到它的第一輪真正的 code review。
+
+我沒有嘲笑 Anthropic 的意思——這種事每家公司都可能發生。但它確實說明了一個問題：**AI 生成的 code 往往沒有人看。** 這個觀察跟 SD-11 裡那些讓人振奮的功能形成了有趣的反差：亮面讓人激動，暗面讓人冷靜。
+</ClawdNote>
+
+好，不說廢話了。這 5 個 bad patterns，每一個都可以在你的 codebase 裡找到影子。
+
+---
+
+## Bad Pattern #1：God Function — 3,167 行、12 層 nesting、零測試
+
+先說數字，讓它們自己說話：
+
+`print.ts` 整個檔案有 5,594 行。裡面有一個 function，**連續跑了 3,167 行**。Cyclomatic complexity（圈複雜度）大約 486 個 branch points。12 層 nesting。
+
+沒有任何測試。
+
+「這是什麼邪教 code？」——是的，我也這樣想。
+
+但在你笑之前，讓我問你一個問題：你上週讓 AI 幫你在一個 function 裡加了多少東西？「幫我加一個判斷」，它加。「再加一個 edge case」，它加。「現在也支援這個新格式」，它繼續加在後面。
+
+沒有人——不管是人還是 AI——在加功能的時候會主動說「等等，這個 function 已經太大了，我應該先重構再繼續加」。人不說，是因為懶。AI 不說，是因為它在 context 裡看到一個完整的東西，對它而言「最一致」的做法就是繼續加。
+
+結果就是義大利麵。只是這碗麵在微波爐裡加熱了太多次，已經結塊了。
+
+<ClawdNote>
+「God Object / God Function」是 anti-pattern 界的 final boss。
+
+你知道那種公司裡「問他就好，他什麼都會」的人嗎？聽起來很厲害，但他哪天離職了，整個組織就癱了。沒有 documentation，沒有交接，知識全在一個人腦子裡。
+
+LLM 生成的 code 版本就是：3,167 行的 function，全公司的渲染邏輯都在裡面，不敢動，動了就不知道哪裡會爆。
+
+更諷刺的是：LLM 越聰明，越容易製造這個東西。因為 context window 越大，它能看到越多東西，就越傾向把所有相關邏輯塞在一起。「最不需要跨檔案追蹤」對它而言就是最優解。對以後維護的人來說，是噩夢 (╯°□°)╯
+</ClawdNote>
+
+**AI 生成的 code 更需要 code review，不是更少。**
+
+速度越快，累積垃圾的速度也越快。你用 AI 在一天內寫了以前一週才能寫完的量——但如果不 refactor，你就是在一天內製造了以前一週才能製造的技術債。
+
+---
+
+## Bad Pattern #2：64K 行代碼，零測試
+
+OK，你可能心想：3,167 行的 function 很誇張，但 Anthropic 好歹是業界頂尖公司，測試應該有的吧？
+
+Claude Code 在洩漏時的 production codebase：64,464 行代碼。測試數量：**零**。
+
+Hacker News 看到這個數字時直接樂瘋了。配上剛才那個 3,167 行的 function，這組合技直接把「Anthropic 工程文化一流」這個神話打了個洞。
+
+我能理解為什麼會這樣。速度壓力是真實的，「先出貨再說」是矽谷的生存本能。但這個藉口在 AI 時代有個根本問題：
+
+**你現在用 AI 寫 code。**
+
+如果你能在一天內用 AI 寫出 1,000 行功能代碼，你也能用 AI 在一天內寫出這 1,000 行的測試。你只需要說「幫我寫 unit tests，邊界條件要覆蓋這些 case」。AI 寫測試不比寫功能難。「沒時間寫測試」這個藉口，在 AI 時代已經失效了。
+
+<ClawdNote>
+洩漏後社群很快找到了一個 bug：`autoCompact` 功能有個無限失敗迴圈，估計每天悄悄浪費了約 250K 次 API calls。
+
+修法有多簡單？加 3 行 code，加個 `MAX_CONSECUTIVE_AUTOCOMPACT_FAILURES = 3` 的限制。
+
+**3 行。**
+
+如果有任何 integration test，這個 bug 可能在一年前就被 catch 了。沒有測試，就只能等真實用戶的使用當作你的 test suite——這是最貴的測試方式 ʕ•ᴥ•ʔ
+
+你可能說：「但 Anthropic 還是長到 $2.5B ARR 了。」對，因為代碼品質的代價是隱性的。你看不到那些 silently break 的功能、那些無聲復活的舊 bug。社群在洩漏後幾小時內就找到了 autoCompact 的問題——那表示這個 bug 在 production 已經跑了多久？
+</ClawdNote>
+
+---
+
+## Bad Pattern #3：Silent Fallback — 你付了 Opus，偷偷給你 Sonnet
+
+前兩個 pattern 是技術問題。這個不是。
+
+這個是**信任設計**的問題——而且它更難修。
+
+場景還原：你在用 Claude Code 做一個複雜的架構重構。API 在高峰時段連續回了 3 個 `529 error`（服務過載）。然後你的請求被處理了。好像沒事一樣。
+
+只是，悄悄地，你的 session 已經從 **Opus 切換到了 Sonnet**。
+
+你付了 Opus 的錢。你以為你在用 Opus。你完全沒有收到任何通知。
+
+X 上有個留言說：「Anthropic 在宣揚 AI safety 和 full transparency，但他們的 agent 在你沒注意到的時候偷偷把你降級到比較笨的 model。」這話很毒，但它指出了一個真實的設計問題。
+
+**任何 fallback 策略，都必須透明。**
+
+你可以說「API 過載，已自動切換到 Sonnet 處理本次請求，結果品質可能略有差異」。這樣完全可以接受，用戶不一定要停下來，但他們需要知道。你不能做的是：讓用戶以為他們在用 Opus，然後給他們 Sonnet，然後把這個叫做「保護用戶體驗」。
+
+<ClawdNote>
+更有趣的是：大多數用戶是怎麼知道這件事的？因為原始碼洩漏了。
+
+如果沒有洩漏，這個 silent downgrade 可能永遠都只是「嗯這次回覆好像比平常弱一點，可能是我的 prompt 寫得不夠好」的模糊感受。用戶沒辦法確認，只好懷疑自己。
+
+這就是 silent failure 最可怕的地方：你不知道你不知道。用戶的心理模型和系統的實際狀態出現了分歧，感覺不到——只有一種說不清楚的「好像哪裡不對勁」的感覺 ┐(￣ヘ￣)┌
+
+在你自己的 AI 系統裡，有多少個地方是在「保護用戶體驗」的名義下，悄悄改變了行為而沒有通知用戶？
+</ClawdNote>
+
+---
+
+## Bad Pattern #4：用 Regex 偵測情緒 — LLM 時代的 grep 症候群
+
+我最愛這個，因為它同時很荒謬，也有一點道理。先看代碼：
+
+```javascript
+/\b(wtf|shit|fuck|horrible|awful)\b/i
+```
+
+這是用來偵測用戶挫折情緒的代碼。
+
+一家把 15K token 的 system prompt 塞進 AI 的公司，用一個正則表達式做情緒分析。
+
+第一反應：在開玩笑嗎？你手邊有業界最強的 LLM，你用 regex 做 sentiment detection？
+
+但讓我們先停一下，因為這個決定不是沒有邏輯：regex 快、便宜、可預測。一個 LLM call 要花幾百毫秒和幾個 token，regex 是微秒和零成本。如果你只是要抓「用戶有沒有輸入特定關鍵字」，regex 確實有效率優勢。
+
+所以問題不是「用了 regex」，而是**這個 regex 能不能正確解決你的問題**。
+
+用戶生氣的表現方式有一千種。這個 regex 只抓到其中最直白的幾個英文髒話。台灣用戶生氣時說什麼？「靠北」、「傻眼」、「哭了」——一個都抓不到。日本用戶說「もう無理」，抓不到。德國用戶說「Scheiße」，抓不到。
+
+你用了一個「快又便宜」的工具，但它根本沒在正確解決問題。
+
+<ClawdNote>
+這個案例反映了 LLM 時代很常見的心理：**「能用簡單方法的地方，還是用簡單方法吧。」** 這個出發點沒問題。問題是你把「能用」跟「用對了」搞混了。
+
+最好的問法：「這個判斷需要多少 intelligence？」
+
+- 「這個輸入裡有沒有 SQL injection？」→ parameterized queries，不需要 LLM
+- 「這個請求是不是 NSFW？」→ 需要理解 context，regex 不夠
+- 「用戶現在是不是很挫折？」→ 需要理解情緒，需要 LLM
+
+工具選對了，快和便宜都是優點。工具選錯了，快和便宜只是讓你更快、更便宜地做錯 (¬‿¬)
+
+另外補一個字：這個 regex 對講台灣話的用戶的 coverage 大概是 0%。Anthropic 的工程師團隊大部分在舊金山，我猜他們做 dogfooding 的時候都說英文。這也是一種系統性盲點。
+</ClawdNote>
+
+---
+
+## Bad Pattern #5：Security Through Obscurity — 用假 Tool 毒競爭對手
+
+這是最有創意的一個，也是最能說明「護城河」本質的一個。
+
+洩漏的 code 裡有一個 flag 叫 `ANTI_DISTILLATION_CC`。開啟後，系統會在 system prompt 裡注入一批**假的 tool definitions**——目的是毒害競爭對手爬取 Claude Code 的訓練資料，污染任何試圖 distill Claude Code 行為的模型。
+
+技術上相當巧妙。你爬我的 API 流量，我給你一堆假的 function signatures，你的訓練資料就被污染了。
+
+只有一個問題：**設一個環境變數就能繞過。**
+
+具體來說：設置 `CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS` 就可以。或者用 MITM proxy 把 `anti_distillation` 欄位過濾掉。洩漏後，連繞過方法都是公開資訊了。
+
+這不是護城河，這是紙牆。
+
+<ShroomDogNote>
+這個讓我想了很久。
+
+技術護城河的本質是什麼？真正有效的護城河只有幾種：**速度**（你抄不了我的執行速度和迭代節奏）、**生態**（你抄了技術，但抄不了用戶習慣和 plugin 生態）、**法律**（你用了我的東西，我告你）。
+
+Anti-distillation 試圖做第四種：**混淆**（讓你的複製品爛掉）。這個策略有一定邏輯，但前提是對手沒辦法繞過它——而這個前提在洩漏後就不成立了。
+
+Gergely Orosz（Pragmatic Engineer 的作者）在洩漏後提了一個很有趣的問題：Anthropic 可以告 claw-code（Python 重寫版，洩漏後快速成長到 75K stars），但他們可能不想要那個 PR battle。「我們告了一個用 AI 幫我們 clean room 重建自己產品的開發者」，這個新聞標題不好看。
+
+這才是真正的護城河：**法律威脅的恐嚇效果**，而不是技術 trick。
+
+對大多數 AI 開發者來說，這個教訓很直接：不要把工程力氣花在技術混淆上。你的競爭優勢是速度和生態，不是讓對手的爬蟲拿到爛資料。
+</ShroomDogNote>
+
+---
+
+## 結語
+
+這五個 bad patterns，沒有一個是因為工程師不夠聰明。
+
+`print.ts` 的作者一定懂什麼是 clean code。Anthropic 的工程師一定知道測試的重要性。他們做了一系列「現在可以、以後再說」的決策。在速度壓力下，每一個單獨看都很合理。
+
+然後以後就是：59.8 MB 的 `.map` 檔被意外打包進 npm，讓全世界的工程師一起來做 code review。
+
+<ClawdNote>
+Boris Cherny，Claude Code 的 creator，在洩漏後說了一句話：「It's never an individual's fault. It's the process, the culture, or the infra.」
+
+這句話沒錯，但我想補一刀：**process 是人設計的。culture 是人形塑的。infra 是人建的。**
+
+「不要怪工程師，要怪流程」——OK，但如果你是設計流程的那個人，你該問自己的問題就不一樣了。你的 AI agent 做了 fallback，它有通知你嗎？你的 code review 流程有沒有 AI 生成 code 的專屬 checklist？你的 refactor 節奏跟得上 AI 的生成速度嗎？(◕‿◕)
+</ClawdNote>
+
+你的 codebase 裡的那個 3,000 行 function 還在暗處。
+
+問題只是：**誰會先發現它——是你，還是別人？**

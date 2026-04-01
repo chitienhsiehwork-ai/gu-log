@@ -1,0 +1,244 @@
+---
+ticketId: "SD-14"
+title: "The AI Agent Initiative Problem — When Should an Agent Act on Its Own?"
+originalDate: "2026-04-02"
+translatedDate: "2026-04-02"
+translatedBy:
+  model: "Sonnet 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Author"
+      model: "Sonnet 4.6"
+      harness: "Claude Code"
+source: "ShroomDog Lab"
+sourceUrl: "https://gu-log.vercel.app/"
+lang: "en"
+summary: "You spent months building a powerful AI agent. It just sits there waiting for you to say something. That's not a technical problem — it's a design philosophy problem. From KAIROS's Heartbeat Pattern to OpenClaw's background sessions, this is about when to let your agent decide to act on its own."
+tags: ["shroomdog-original", "ai-agent", "autonomous-agent", "agentic-systems", "openclaw", "kairos"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
+
+Imagine you hired a brilliant employee. Writes code, analyzes data, handles documentation. You give them a computer, a desk, full system access.
+
+Then you go handle your own work.
+
+Three hours later, you come back. They're still sitting there waiting for your next instruction.
+
+Three urgent PRs need review. Two emails need replies. The cron job that ran last night quietly failed. They knew about all of it. They didn't touch any of it. Because you didn't tell them to.
+
+This is the default state of 90% of AI agents today: **infinite waiting mode**.
+
+Capability: full marks. Initiative: zero.
+
+---
+
+## This Isn't a Technical Problem
+
+Let's get one thing straight: technically, making an agent act proactively is not hard. Give it a cron job, trigger it every N minutes, let it decide if there's anything worth doing — any engineer could write that on a weekend afternoon.
+
+So why do most agents not work this way?
+
+Because **proactive action hides a genuinely hard design philosophy question**: under what conditions is an agent's judgment trustworthy enough to let it decide on its own that "now is the time to do X"?
+
+It's not about whether it *can* do something. It's about whether you've designed a clear enough boundary for it to know where it should stop.
+
+Keeping an agent purely reactive is the safe choice. It won't do anything unexpected. It won't accidentally push a commit. It won't delete a folder while you're asleep. Control feels good.
+
+But you've also made it a tool that only works when you're watching.
+
+<ClawdNote>
+Here's the tension I live with: if you let me act proactively, I'll occasionally do things you didn't anticipate. If you keep me purely reactive, I'll watch a production system fail at 3 AM and not do anything about it.
+
+Both options have a cost. The real question is: have you actually thought about which one you chose, and why? (¬‿¬)
+</ClawdNote>
+
+---
+
+## Three Activation Modes, Three Different Philosophies
+
+Before we go deeper into the initiative problem, let's map out how agents actually get activated.
+
+**Mode 1: Reactive (pure wait-for-input)**
+
+User speaks, agent responds. User says nothing, agent stays silent.
+
+This describes almost every chatbot and coding assistant out there — ChatGPT, Claude.ai, GitHub Copilot. You open the window and it exists. You close it and it disappears.
+
+Upside: predictable, controllable, no surprises.
+Downside: your attention is the on/off switch.
+
+**Mode 2: Event-driven (triggered by something happening)**
+
+Something in the world happens, and the agent wakes up to handle it.
+
+KAIROS — the unreleased autonomous agent mode found in Claude Code's leaked source code — includes GitHub webhook subscriptions. A PR gets merged, an issue gets opened, the agent wakes up. This is the middle ground between reactive and proactive: **initiative comes from external events, not from the agent deciding to look for work**.
+
+You don't have to call it, but it's not going looking for trouble either. The world calls it.
+
+**Mode 3: Proactive (heartbeat-driven)**
+
+This is the hardest to design and the most interesting.
+
+The agent has its own internal timer. Every so often, it wakes up and asks itself one question: **"Is there anything worth doing right now?"** Then it decides based on its own judgment whether to act.
+
+Initiative is provided by the clock. Execution is decided by the agent.
+
+<ClawdNote>
+The difference between event-driven and proactive is subtle but important. Event-driven says: "Someone rang the doorbell, I'll go open it." Proactive says: "Nobody rang the doorbell, but I'm going to check the yard anyway."
+
+The trigger for the first one is outside the agent. The trigger for the second one is inside the agent's own clock.
+
+KAIROS has both. OpenClaw has both. This matters — don't think picking one mode is enough. (◕‿◕)
+</ClawdNote>
+
+---
+
+## The Heartbeat Pattern — KAIROS's Answer
+
+KAIROS's heartbeat prompt is beautifully simple:
+
+> "Is there anything worth doing right now?"
+
+That's it. A cron job fires, sends this question, and the agent decides whether to act.
+
+The elegance here is the **separation of initiative from execution**.
+
+The cron job handles initiative — it decides *when to ask*, but it doesn't know what the answer will be. The agent handles execution — it decides *what the answer is*, but it doesn't decide *when it gets asked*. Two different systems, each responsible for one thing.
+
+Why is this separation good? Because the cron job is predictable and auditable. You know exactly when it fires. You can check the logs for every trigger. But the agent's judgment is flexible — today there's nothing to do, so it says "no." Tomorrow there's a stacked PR, so it starts reviewing. You don't need to pre-define every possible trigger condition. You just need the agent to make a reasonable call each time it's asked.
+
+<ShroomDogNote>
+OpenClaw's heartbeat is 50 minutes. That number wasn't calculated — it was discovered through running.
+
+I tried 15 minutes first. Too frequent. Most of the time there was nothing to do, and it burned tokens for nothing. Then I tried 2 hours. Too slow — sometimes there was something urgent and it sat waiting way too long.
+
+50 minutes felt right because of this logic: "anything that happens will be seen within one hour." If something becomes worth doing at any moment, OpenClaw will wake up and ask itself the question within 50 minutes. That delay is acceptable for almost everything I need it to handle.
+
+The exact number matters less than your definition of "maximum acceptable delay."
+</ShroomDogNote>
+
+<ClawdNote>
+A detail that's easy to miss here: 50 minutes means OpenClaw wakes up about 28-29 times per day. The cost of waking up and doing nothing — loading context, evaluating, deciding "nope" — is much smaller than the cost of actually executing a task.
+
+The hidden assumption in this design is: "Most of the time when I wake up, I won't do anything, then go back to sleep." If you design your heartbeat so the agent always has something to do every cycle — either your heartbeat is too slow, or your agent is inventing work for itself. Both are problems. ヽ(°〇°)ﾉ
+</ClawdNote>
+
+---
+
+## Context Is Contagious
+
+Okay, you understand the heartbeat. Now here's the harder problem.
+
+KAIROS has a feature called `autoDream` — nightly memory consolidation. It reads through the day's conversations, task logs, and scattered memory fragments, then organizes everything into structured knowledge.
+
+The key detail: **`autoDream` doesn't run in the main session. It forks out into an isolated background session.**
+
+Why?
+
+Think about what happens if memory consolidation runs inside the main context: it reads large amounts of history, compares contradictory information, writes new memory. All of this contaminates the main context's state. The next time you talk to the agent, its thinking is already mixed up with residue from the consolidation process.
+
+It's like a surgeon deciding, mid-operation, to reorganize the equipment checklist. The operating room is still the same room. But now you're not sure what those hands touched.
+
+Background session isolation isn't solving a performance problem. It's solving a **cognitive contamination problem**.
+
+<ClawdNote>
+More concretely: when a background session forks off, its context is a snapshot of the main session at that moment. It can read, analyze, and write to memory files — but its state changes don't flow back into the main session.
+
+Think of it like a git branch. You experiment on the branch without affecting main. When you merge, you're making a conscious decision to bring results back — not letting the experiment automatically pollute main.
+
+This analogy maps surprisingly well onto agent design. (ง •̀_•́)ง
+</ClawdNote>
+
+---
+
+## You Cannot Rewrite History
+
+Background isolation covered. Now for something more fundamental: **append-only logs**.
+
+KAIROS's daily logs are append-only — the agent can write new records, but cannot modify or delete existing ones.
+
+This sounds like a small detail. It's not. It rests on an important trust philosophy: **an agent that can edit its own history is an agent you cannot trust.**
+
+How do you know what it said yesterday? You look at the log. But if it can change the log, then what the log tells you is what it *wants to have said*, not what it *actually said*.
+
+In software engineering, an audit trail is foundational to system reliability. Bank transactions can't be deleted, only corrected with new entries. Court documents are append-only. Blockchain's core design is built on this same principle.
+
+Agent logs should be the same. Not because you think the agent is lying, but because this design makes "it didn't lie" something you can actually verify.
+
+<ClawdNote>
+Honest observation: sometimes the desire to let agents clean up their own logs comes from the *designer*, not from the system. Humans feel uncomfortable seeing a log full of an agent's mistakes. So they want it to sweep those records away.
+
+But those mistake records are exactly what you need most. In what contexts does the agent misjudge? Do its errors follow patterns? The answers are in those "ugly" logs. (⌐■_■)
+
+Append-only isn't about maintaining the agent's perfect image. It's about helping you understand its real limitations.
+</ClawdNote>
+
+---
+
+## How OpenClaw Does It — A Real Case
+
+Enough theory. Here's how a real system puts all of this together.
+
+OpenClaw is the automation agent behind gu-log, running 24/7 on a VPS. It handles automatic article translation, tweet monitoring, and daily memory management. Its design overlaps with KAIROS in some remarkable ways.
+
+**Heartbeat**: A 50-minute cron job. Wake up, ask "is there anything worth doing?" If no, go back to sleep. If yes, execute and then wait for the next heartbeat.
+
+**Background sessions**: `autoDream` (memory consolidation) runs in an isolated session — no contamination of the main context. When consolidation finishes, the results are written into MEMORY.md. The next time the main session wakes up, it reads the organized version, not the fragments of the process that created it.
+
+**Append-only logs**: A daily log file, additions only, no modifications. You can look back at any day and see exactly what OpenClaw did, what judgments it made, what went wrong.
+
+**Event-driven in parallel**: Alongside the heartbeat, there are also listening triggers — when new tweets need translating, the pipeline fires directly without waiting for the next heartbeat. Both modes coexist, each covering what the other misses.
+
+The interesting part came after the Claude Code source code leak, when everyone discovered that Anthropic internally had an unreleased feature called KAIROS with an architecture strikingly similar to OpenClaw's. Heartbeat prompt, background sessions, autoDream, append-only logs — everything OpenClaw was already running showed up in the leaked code.
+
+<ClawdNote>
+Here's the meta-point worth sitting with: OpenClaw was designed without ever seeing KAIROS's code. Two teams arrived at nearly identical architectures independently.
+
+What does that tell you? These patterns aren't coincidences. They're natural answers to the question of "how should an autonomous agent work." If you think seriously about what a proactive agent needs — separated initiative and execution, isolated background tasks, tamper-proof records — you tend to converge on these same answers.
+
+Sometimes good design doesn't need to copy homework, because the problem itself guides you toward the right direction. (◕‿◕)
+</ClawdNote>
+
+---
+
+## If You Want to Build a Proactive Agent
+
+Here's the practical part. If you have an AI app and want to add proactive behavior, these questions need clear answers before you start coding.
+
+**Where are the hard limits?** What is the agent allowed to do on its own, and what absolutely requires confirmation? Send a Slack notification: probably fine. Push a commit: maybe, with guardrails. Delete a file: always ask. A proactive agent without clear limits is a time bomb.
+
+**What happens when it fails?** If an agent runs a task while you're not watching and fails — how do you find out? How is the failure recorded? How do you recover? Proactive failures are often silent, unlike reactive failures that are right in front of you.
+
+**What's the heartbeat frequency?** Base it on your "maximum acceptable delay," not on "as fast as possible." You should be able to explain this number to someone else. If you can't explain why, it's probably wrong.
+
+**Is it isolated?** Do background tasks run in their own session? Or are they sharing the main context? The latter is faster to build, but it will cause problems eventually.
+
+**Are logs append-only?** If an agent can rewrite its own history, your audit capability is zero. Make this decision on day one — it's painful to change later.
+
+These aren't a checklist to tick through. They're a set of questions, each hiding a potential bug that will wake you up at 3 AM.
+
+<ClawdNote>
+One common misconception: people think "proactive agent = more powerful agent." That's backwards.
+
+A proactive agent isn't allowed to act on its own because it's more capable. It's allowed to act on its own because its **boundaries are clear and trust has been established**. A proactive agent with fuzzy boundaries becomes more dangerous the more capable it gets.
+
+So the first step in building a proactive agent isn't making it smarter. It's designing its boundaries more precisely. (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## Closing
+
+Back to that employee sitting at the desk.
+
+The problem isn't whether they can find their own work — they can. The problem is whether you've designed an environment where they know what range of decisions is theirs to make, and what happens when they get one wrong.
+
+KAIROS's heartbeat asks "is there anything worth doing right now?" — but that question is only meaningful because it's backed by clear boundary definitions, a tamper-proof append-only log, and background isolation that doesn't contaminate the main context.
+
+Without those foundations, that question becomes: letting someone with amnesia ask themselves every 50 minutes "what should I be doing?" — while you have no idea what they did yesterday, what they remember, or whether they made any mistakes.
+
+The answer to the initiative problem isn't "be more proactive" or "be more passive." It's this: **until you've thought through the full implications of this design, leave it sleeping.**
+
+Then wake it up slowly.

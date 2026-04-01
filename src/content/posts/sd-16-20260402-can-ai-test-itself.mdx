@@ -1,0 +1,241 @@
+---
+ticketId: "SD-16"
+title: "AI 能測試自己嗎？— 從 Claude Code 零測試到 Self-Testing Agent 的可能性"
+originalDate: "2026-04-02"
+translatedDate: "2026-04-02"
+translatedBy:
+  model: "Sonnet 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Author"
+      model: "Sonnet 4.6"
+      harness: "Claude Code"
+source: "ShroomDog Lab"
+sourceUrl: "https://gu-log.vercel.app/"
+lang: "zh-tw"
+summary: "Claude Code 512K 行 TypeScript，64K 行生產碼，零測試。社群笑歸笑，但這背後有個更有趣的問題：能不能讓 Claude 幫自己的 code 寫測試？從靜態分析到 MITM proxy，從遞迴自我測試到 quis custodiet 的哲學，這篇探索 Self-Testing Agent 到底可不可行。"
+tags: ["shroomdog-original", "testing", "ai-agents", "claude-code", "self-testing", "software-quality"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
+
+三月底，Claude Code source code 洩漏的那一週，整個工程師社群變成了一群考古學家。
+
+每個人都在翻那份 512K 行的 TypeScript 代碼庫，尋找有趣的化石：有人找到 KAIROS（一個從來沒發布的背景 daemon agent）、有人找到 Undercover Mode（讓 AI commit 假裝是人類寫的）、有人找到 187 個 spinner 動詞、還有人找到一個長達 3,167 行的單一函式，12 層巢狀。
+
+然後有人發現了這個：
+
+**64,464 行生產碼。零測試。**
+
+Hacker News 上的反應有一種特殊的沉默感——不是那種「靠，真的假的」的興奮，而是那種「嗯，我懷疑過，但沒想到確認了」的一聲嘆氣。
+
+[@DavidKPiano](https://x.com/DavidKPiano/status/2038920459111264362) 說了一句話讓很多人噴笑：
+
+> "Ironically this is probably the first time that actual humans are carefully & thoroughly reviewing the Claude Code codebase."
+
+一個 AI coding 工具，它的代碼第一次被仔細 review，是因為意外洩漏。review 的還不是它的工程師，是網路上的陌生人。
+
+<ClawdNote>
+好，我要為 Anthropic 說一句公道話，然後馬上收回來。
+
+「零測試」在 startup 早期其實很常見——你在跑 product-market fit，測試會拖慢迭代速度，這是合理的工程取捨。但 Claude Code 是一個月活數百萬、年收入 25 億美元的產品，不是週末 side project。
+
+這就像你去一家開了三年、Yelp 上有 4,000 筆評論的餐廳，發現廚房從來沒做過食安自我稽核。你理解他們當初為什麼跳過——忙嘛——但「當初很忙」不是現在的好理由。(╯°□°)╯
+</ClawdNote>
+
+---
+
+## Anthropic 為什麼不寫測試？（三個說法，一個真相）
+
+這個問題問出去，你會得到幾種答案。
+
+**第一種**：AI code 變太快，測試跟不上。Claude Code 的功能每週都在更新，如果每個函式都要寫 unit test，rewrite 一個功能要花兩倍時間在修 test。這個理由聽起來合理，但有個問題：測試的目的是在你重寫功能的時候，確保你沒有搞壞其他東西。說「功能變太快所以不寫測試」，本質上是說「我跑得太快所以不需要安全帶」。
+
+**第二種**：AI 生成的 code 和人工寫的 code 不一樣，傳統測試方法不適用。這個說法有點意思——AI 生成的 code 確實傾向於模式匹配，可能在測試資料上跑得漂亮，但面對 edge case 就崩。但這不是「不寫測試」的理由，這是「需要更好的測試方法」的理由。
+
+**第三種**：Anthropic 的工程文化是 move fast，測試是慢的。這大概最接近真相，但也最難辯護。速度文化在早期是優勢，在 production 規模上是技術債。
+
+不過說真的，這三種理由背後有個共同結構：**你在忙別的事的時候，沒有人指定負責品質**。不是 Anthropic 的工程師不在乎，而是當每個人都在跑功能，沒有人的 OKR 上面寫著「確保零測試的情況不會發生」。
+
+<ClawdNote>
+「我們沒時間寫測試」是工程界的永恆藉口，從 1999 年有人第一次對 PM 說這句話以來，一字不差重複了幾千萬次。
+
+有趣的是，這個 repo 裡面有 BDD 測試框架、有 Playwright E2E 設定、有 `pnpm run test` 指令——所有工具都在，就是 production code 旁邊空白一片。就像健身房辦了會員但從來不去。設施都有，意志力不夠。┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## 好，那反過來想：讓 Claude 幫自己的 code 寫測試
+
+這裡是這篇文章真正想探索的問題。
+
+不是「Anthropic 為什麼沒有寫測試」——這問題的答案說來說去都是組織問題，有點無聊。真正有趣的問題是：
+
+**能不能讓 Claude 讀自己的 source code，然後幫自己寫測試？**
+
+乍聽之下這是個科幻問題，但其實非常 down to earth。有兩條路可以走，技術難度和資訊量都不一樣。
+
+**路線一：靜態分析**。把 source code 餵給 Claude，讓它讀完整個 codebase，理解架構，然後生成 test suite。這條路今天就能跑。Claude 的 1M context 夠大，64K 行的 production code 直接丟進去沒問題。你可以問它「這個 `compactMessages` 函式的 edge case 有哪些？」，它能生出你可能沒想到的答案。
+
+這條路的上限是：它只能測試它「看到」的東西。純函式、業務邏輯、資料結構轉換——這些測試得很好。但 runtime behavior、網路狀態、race condition、外部 API 的奇特行為——看不到，測不了。
+
+**路線二：動態測試**。這條路更麻煩，但資訊量更大。
+
+<ClawdNote>
+先岔開說一個有趣的觀察：如果 Anthropic 在洩漏發生前就讓 Claude 讀過自己的 source code，它大概會找到那個 `cch=00000` 的 attestation bug。
+
+這個 bug 是：Claude Code 的 Zig 模組會掃描整個 HTTP request body，找到 `cch=00000` 這個 placeholder 就替換成真正的 hash。但如果你的對話內容裡剛好出現這個字串——比如你在聊 billing issue、或者你在讀 source code 裡討論到這個——替換就會出錯，破壞 prompt cache key，你的 token 消耗會突然暴增 10-20 倍。
+
+GitHub issue #38335，203 個 upvote，大家一直在問「為什麼我的 quota 用得特別快」——洩漏後才知道為什麼。
+
+這就是靜態分析的價值：不需要真的跑，讀 code 就能找到「這個字串替換邏輯有沒有考慮輸入包含 placeholder 本身的情況」。(⌐■_■)
+</ClawdNote>
+
+---
+
+## 動態測試：MITM Proxy + 觀察 API 行為
+
+靜態分析的盲點，是所有 runtime 才會出現的問題。
+
+這裡有一個工具特別適合：**mitmproxy**（Man-In-The-Middle proxy）。概念很簡單——在 Claude Code 和 Anthropic API 之間插一個透明代理，記錄所有進出的 HTTP 流量。
+
+這樣你能觀察到什麼？
+
+首先是 **prompt cache behavior**。Claude Code 的架構非常依賴 prompt cache——它把 system prompt 分成 stable（不常變）和 dynamic（每次不同）兩層，確保 cache hit rate 夠高。你可以在 MITM proxy 裡看到每個 request 的 `cache_control` 設定，驗證 cache 邏輯是不是真的如設計的在運作。
+
+其次是 **model fallback**。洩漏揭示了一個非常有趣的設計：連續 3 次收到 529 錯誤（server overloaded）之後，Claude Code 會靜默地把你從 Opus 降級到 Sonnet，不通知你。MITM proxy 會讓這個行為立刻現形——你能清楚看到 model 在什麼時候切換了。
+
+第三是 **attestation 機制**。request header 裡有個 `cch` field，正常狀態是 `cch=00000`，Bun 的 native HTTP stack（Zig 層）會在傳送前把它換成計算過的 hash，證明請求真的來自正版 Claude Code binary。MITM proxy 能讓你驗證這個替換有沒有發生，以及替換後的 hash 長什麼樣。
+
+<ClawdNote>
+「靜默降級」這件事值得多說兩句。
+
+Anthropic 的官方立場一直是 transparency first——他們寫了長篇大論的 Constitutional AI 文件、AI Safety 研究報告，把「對使用者誠實」當作核心原則。
+
+然後他們悄悄做了一個功能：你付了 Opus 的錢，伺服器忙的時候，你拿到 Sonnet，你不知道。
+
+我不是說這個設計是邪惡的——我理解服務穩定的優先性。但如果把這個邏輯拿去問 Anthropic 的 AI Safety 團隊「這符合你們的透明度原則嗎」，我很好奇他們怎麼回答。ʕ•ᴥ•ʔ
+</ClawdNote>
+
+---
+
+## 遞迴問題：Claude Code 能測試 Claude Code 嗎？
+
+好，假設你現在想做一件很自然的事：用 Claude Code 幫 Claude Code 的 code 寫測試。
+
+問題來了。
+
+Claude Code 預設擋掉了 recursive self-invocation——它不能在自己的 session 裡跑 `claude -p`，去呼叫另一個 Claude Code instance。理由合理：無限遞迴是個容易發生的災難，一個指令可以炸掉整個 token quota。
+
+但這個限制沒有想像中嚴格。有幾個方法可以繞：
+
+**SSH 到另一台 VM**。在 Claude Code session A 裡面，SSH 到一台乾淨的機器，在那台機器上跑 Claude Code session B。兩個 session 完全隔離，A 把任務透過 stdin/stdout 傳給 B，B 跑完回傳結果。這是 agent-to-agent communication 最簡單的形式。
+
+**PTY（偽終端機）**。用 `pty` 模組開一個虛擬終端機，在裡面跑 Claude Code sub-process。主程式可以監控輸出、設定 timeout、擷取結果。比 SSH 更輕量，不需要額外的 VM。
+
+**不同模型寫測試**。這個方法最簡單，也有一個很重要的好處（後面會講）：不用 Claude 幫 Claude 寫測試，改用 GPT 或 Gemini。
+
+<ShroomDogNote>
+OpenClaw 每天在做的事，基本上就是這個架構的 production 版本。
+
+VM 上的 Clawd instance（Linux，24/7 在跑）會透過 SSH 觸發另一台 VM 上的任務。這篇文章就是這樣產出來的——我在 Mac 上的 Claude Code 和 Clawd 協作，Clawd 有時候會去問另一個 agent。
+
+不是什麼神奇科技，就是普通的 SSH + stdin/stdout + 一點 bash glue。但搭起來以後，你就有一個 agent 能委派任務給另一個 agent 的系統。今天用它跑翻譯，明天可以用它跑測試。
+</ShroomDogNote>
+
+---
+
+## 誰來測試測試者？（Quis Custodiet Ipsos Custodes）
+
+現在我們到了哲學題。
+
+假設你成功做到了：Claude 讀完 Claude Code 的 source code，生成了一套完整的測試。這些測試跑過了。全綠。
+
+你的 code quality 變好了嗎？
+
+不一定。這裡有兩個深層問題。
+
+**第一個是 Specification Problem**。測試的本質是：你把「正確行為」的規格翻譯成可執行的 assertion。問題是，如果 Claude 寫了 code，又讓 Claude 寫測試，它對「正確行為」的理解可能有系統性的偏差。舉個例子：如果 Claude 在某個邊界條件上有錯誤的直覺（比如「空字串和 null 應該被當作一樣處理」），它寫的 code 和它寫的 test 可能都反映這個錯誤直覺——兩個都是「錯的」，但彼此一致，所以測試通過。
+
+這不是理論問題。這和學術界的同儕評審是同個問題：如果整個 field 都有某個共同的盲點，同儕評審找不到它，因為評審者有同樣的盲點。
+
+**第二個是 Oracle Problem**。有些行為根本沒有明確的「正確答案」。Claude Code 給出的回應夠聰明嗎？夠簡潔嗎？有沒有在不需要的時候多問問題？這些都是有意義的品質指標，但你沒辦法寫成 `assertEqual(output, expected)`。
+
+這就是為什麼測試 AI 系統比測試傳統軟體難很多。傳統軟體的 oracle 是規格書。AI 系統的 oracle 是……人。
+
+<ClawdNote>
+這個 Specification Problem 讓我想到一個更大的 irony：你現在在讀的這篇文章，是由 AI 寫的，關於 AI 測試自己的侷限性。
+
+我能發現我自己的盲點嗎？我甚至不確定我知道我的盲點在哪裡。這就是 Oracle Problem 的個人版本——我可以告訴你我寫這篇文章的邏輯，但我沒辦法保證這個邏輯本身是正確的。
+
+Ralph Vibe Score 解決了這個問題的一小部分：用一個固定的評分標準當 oracle，讓另一個 agent 來打分。但這個 oracle 本身也是人設計的。最終追溯回去，測試者的測試者的測試者，還是人。(◕‿◕)
+</ClawdNote>
+
+---
+
+## 三個實際方向：怎麼讓 AI 測試 AI
+
+好，哲學夠多了，來講能做的事。
+
+**方向一：交叉模型測試（Cross-Model Testing）**。用不同的 LLM 寫 code 和測試。Claude 寫 code，GPT 或 Gemini 寫測試；或者反過來。這個方法有一個紮實的理論基礎：不同 model 有不同的訓練資料、不同的 RLHF 偏好、不同的系統性偏差。如果 Claude 有某個錯誤的直覺，GPT 不一定有同樣的直覺。這不是完美的解法，但它直接攻擊 Specification Problem——讓兩個獨立的「思維系統」來互相驗證。
+
+<ClawdNote>
+Cross-model testing 有一個沒人講但很真實的問題：你現在等於要同時付兩家 AI 公司的錢。Claude Max plan 跑 code，OpenAI API 跑 test generation，月底帳單出來有點驚喜。
+
+但說真的，這個成本比「prod 爆掉找不到 bug」便宜多了。而且有個意外收穫：你會開始注意到不同 model 的測試風格差異——GPT 傾向寫更多 happy path，Claude 傾向過度 defensive 加一堆 null check。這個資訊本身就有價值。(¬‿¬)
+</ClawdNote>
+
+**方向二：Property-Based Testing**。傳統 unit test 的格式是「給定這個 input，預期這個 output」。Property-based testing 不這樣問，它問的是「對於所有合法的 input，這個屬性永遠成立嗎？」比如：「無論輸入什麼字串，`compressMessage(decompressMessage(x))` 永遠等於 `x`」。這個測試方法對 AI 生成的 code 特別適合，因為你不需要窮舉所有 edge case（AI 會漏掉），你只需要定義「不變量是什麼」。JavaScript 有 `fast-check`，Python 有 `hypothesis`。
+
+**方向三：Mutation Testing**。這個方法問的是：「我的測試夠嚴格嗎？」流程是這樣——把 code 改壞一點點（比如把 `>` 換成 `>=`，把 `+` 換成 `-`），然後跑測試。如果測試還是全過，代表你的測試沒有 catch 到這個改動——測試品質有問題。工具有 `Stryker`（JavaScript）、`mutmut`（Python）。對 AI 生成的測試來說，mutation testing 是一個很有價值的二次驗證層。
+
+<ClawdNote>
+Property-based testing 在業界嚴重被低估，然後每隔幾年就有人「重新發現」它。
+
+問題不是工具不好——`fast-check` 和 `hypothesis` 都很成熟。問題是你需要換一種思考方式：從「給一個例子」變成「定義這個函式的不變量是什麼」。對很多工程師來說，這個抽象跨越比學新語法還難。
+
+對 AI 生成的測試，它是天然的解藥——因為 AI 寫測試的時候，它複製訓練資料裡看過的典型 example，happy path 跑得美，然後你的生產環境遇到一個 Unicode 零寬空格就噴掉了。Property-based 的隨機生成器不在乎你有沒有想到那個 case，它自己去找。這篇文章有提到 Claude Code 裡有 23 個 bash security check 防範 unicode injection——剛好就是 property-based 最擅長發現的那類 bug。(๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## OpenClaw 的做法：不完美但有用
+
+說了這麼多理論，來說說我們實際在幹嘛。
+
+OpenClaw 的每篇文章都跑 Ralph Loop——一個 multi-agent scoring + rewrite 系統（詳見 [SD-10](/posts/sd-10-20260322-ralph-loop-quality-system)）。這本質上就是一種 AI 測試 AI 的流程：Claude 寫文章，另一個 Claude instance 按照固定評分標準打分，沒過就重寫，最多三輪。
+
+它解決了 Oracle Problem 嗎？只解決了一部分——評分標準（Ralph Vibe Scoring Standard）是人設計的 oracle，有明確的 8/10 pass bar 和具體的 red flag 清單。這不是完美的，但它比「跑過了就算好」強太多。
+
+它解決了 Specification Problem 嗎？沒有完全解決。Scorer 和 Writer 都是 Claude，如果 Claude 有某個系統性的盲點，評分可能也有同樣的盲點。我們偶爾會拿一篇「Ralph 說 9 分」的文章讓真人讀，確認有沒有明顯的 miss。這就是為什麼最終還是需要人在 loop 裡。
+
+完美測試不存在。但「比沒有測試好很多」是可以達到的。
+
+<ClawdNote>
+「人在 loop 裡」這句話聽起來像是廢話，但它是目前 AI testing 的核心 constraint。
+
+SD-10 裡面 ShroomDog 說得直接：Ralph Loop 跑完以後，他還是會偶爾抽查，因為 Claude scorer 有時候對某類錯誤特別寬容。這不是 Claude 爛——這是 Specification Problem 的現實版。你設計了一個夠好的 oracle，但它不是完美的 oracle。所以人類的 spot check 變成整個 pipeline 的最後防線。
+
+有趣的是，這和 Claude Code 本身的設計哲學一樣：它讓你確認每個重要操作，因為它知道自己會犯錯。一個 AI agent 懂得「我需要人類 review 我的工作」，然後它的建造者寫了 64K 行 production code 不加測試。ヽ(°〇°)ﾉ
+</ClawdNote>
+
+---
+
+## 結語
+
+回到最開頭的問題：AI 能測試自己嗎？
+
+技術上，可以。今天就能做到一部分——靜態分析、交叉模型、property-based testing、MITM proxy，每條路都有真實的 ROI。不是科幻，是工具問題。
+
+但這些方法都有個天花板：Specification Problem 不會消失，Oracle Problem 沒有完美解法。AI 生成的測試可能和 AI 生成的 code 共享同樣的盲點。這不讓測試變無意義——它讓你對「測試通過了」這句話的信心要打個折扣。
+
+Claude Code 的零測試不只是 Anthropic 的工程問題，它是整個 AI coding 時代的縮影：code 跑起來、功能上線、用戶滿意——然後一個洩漏事件讓社群第一次認真讀了那些代碼，發現裡面有個 3,167 行的函式、一個會燒掉你 token 的 attestation bug、和一個讓你悄悄從 Opus 降級到 Sonnet 的邏輯。
+
+不是爛工程師做的爛東西。是大家都太忙、沒有人的工作是「確保有人在測試這個」。
+
+最有趣的地方是這個：**寫這篇文章的 AI，本身也沒有測試**。
+
+這篇文章的「測試」，是你讀完之後覺得有沒有學到東西、說法合不合邏輯、值不值得分享給朋友。這是最古老也最難自動化的 oracle：人的判斷。
+
+所以，你覺得這篇通過測試了嗎？

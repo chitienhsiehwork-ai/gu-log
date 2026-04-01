@@ -1,0 +1,225 @@
+---
+ticketId: "SD-16"
+title: "Can AI Test Itself? — From Claude Code's Zero Tests to Self-Testing Agents"
+originalDate: "2026-04-02"
+translatedDate: "2026-04-02"
+translatedBy:
+  model: "Sonnet 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Author"
+      model: "Sonnet 4.6"
+      harness: "Claude Code"
+source: "ShroomDog Lab"
+sourceUrl: "https://gu-log.vercel.app/"
+lang: "en"
+summary: "Claude Code: 512K lines of TypeScript, 64K lines of production code, zero tests. The community laughed — but here's the real question: could you let Claude write the tests for itself? Static analysis, MITM proxies, cross-model testing, and why quis custodiet is a real engineering problem."
+tags: ["shroomdog-original", "testing", "ai-agents", "claude-code", "self-testing", "software-quality"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
+
+In late March 2026, when the Claude Code source code accidentally leaked, the entire developer community turned into archaeologists.
+
+Everyone was digging through 512K lines of TypeScript, looking for interesting fossils. Someone found KAIROS — an unreleased background daemon agent. Someone found Undercover Mode — which makes AI commits look like they were written by humans. Someone found 187 different spinner verbs. And someone found a single function that was 3,167 lines long, with 12 levels of nesting.
+
+Then someone found this:
+
+**64,464 lines of production code. Zero tests.**
+
+The reaction on Hacker News had a specific quality to it — not the excited "no way, really?!" energy, but the quieter "I had a feeling, and now it's confirmed" kind of sigh.
+
+[@DavidKPiano](https://x.com/DavidKPiano/status/2038920459111264362) said something that made a lot of people laugh out loud:
+
+> "Ironically this is probably the first time that actual humans are carefully & thoroughly reviewing the Claude Code codebase."
+
+An AI coding tool. Its code reviewed carefully for the first time — because of an accidental leak. By strangers on the internet, not its own engineers.
+
+<ClawdNote>
+Let me defend Anthropic for one sentence, then immediately take it back.
+
+"Zero tests" is actually pretty common in early-stage startups — when you're searching for product-market fit, tests slow down iteration speed, and that's a reasonable engineering trade-off.
+
+But Claude Code has millions of monthly active users and $2.5B in annual revenue. It's not a weekend side project. This is like going to a restaurant that's been open for three years with 4,000 reviews on Yelp, and finding out their kitchen has never done a food safety audit. I understand why they skipped it early. But "we were busy back then" isn't a good reason right now. (╯°□°)╯
+</ClawdNote>
+
+---
+
+## Why Didn't Anthropic Write Tests? (Three Explanations, One Truth)
+
+Ask this question and you'll get a few different answers.
+
+**Answer one:** AI code changes too fast — tests can't keep up. Claude Code ships new features every week. If every function needs a unit test, rewriting a feature takes twice as long because you have to fix all the tests too. This sounds reasonable, but there's a hole in it: the whole point of tests is to tell you when you've broken something while rewriting a feature. Saying "things change too fast for tests" is basically saying "I drive too fast for a seatbelt."
+
+**Answer two:** AI-generated code is different from human-written code, so traditional testing methods don't apply well. This one's actually interesting — AI-generated code does tend to pattern-match, meaning it can look beautiful on test data but fall apart at weird edge cases. But this isn't a reason to skip tests. This is a reason to find *better* tests.
+
+**Answer three:** Anthropic's engineering culture is "move fast," and tests are slow. This one is probably closest to the truth, and also the hardest to defend. Moving fast is an advantage in the early days. At production scale, it's technical debt.
+
+The real pattern underneath all three answers: **when everyone is busy shipping features, nobody owns quality**. It's not that Anthropic's engineers don't care. It's that when your OKRs are about features, there's nobody whose job it is to prevent "zero tests" from happening.
+
+<ClawdNote>
+"We don't have time to write tests" is engineering's most durable excuse. It has been said, unchanged, since about 1999, probably hundreds of millions of times.
+
+The funny thing is: this repo has a BDD testing framework, Playwright E2E setup, and a `pnpm run test` command — all the tools are there. Production code is just… sitting next to them, untested. It's like paying for a gym membership but never going. The equipment exists. The intention was there. Something else kept coming up. ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## Wait — What If You Just Let Claude Write the Tests?
+
+Here's the actually interesting question.
+
+Not "why didn't Anthropic write tests" — that's an organizational problem and, honestly, kind of boring. The more interesting question is:
+
+**Can you feed Claude Code's source code back to Claude, and have it generate its own tests?**
+
+It sounds like a sci-fi premise, but it's actually very practical. There are two main approaches, with very different information levels.
+
+**Route one: Static analysis.** Feed the source code to Claude, let it read the whole codebase, understand the architecture, and generate a test suite. You can do this today. Claude's 1M context window is large enough — 64K lines of production code fits comfortably. You can ask "what are the edge cases for this `compactMessages` function?" and get answers you might not have thought of yourself.
+
+The ceiling on this approach: it can only test what it "sees." Pure functions, business logic, data structure transformations — great. Runtime behavior, network states, race conditions, weird external API behavior — invisible, untestable.
+
+**Route two: Dynamic testing.** More work, but much richer information.
+
+<ClawdNote>
+Quick side note on why static analysis is more valuable than it sounds: if Anthropic had let Claude read its own source code before the leak, it probably would have found the `cch=00000` attestation bug.
+
+Here's what that bug does: Claude Code's Zig module scans the entire HTTP request body for the placeholder string `cch=00000` and replaces it with a computed hash. But if your *conversation* happens to contain that string — say you're discussing billing, or reading about this exact bug — the replacement corrupts your conversation content, breaks the prompt cache key, and your token consumption spikes 10–20x.
+
+GitHub issue #38335, 203 upvotes, people asking "why does my quota run out so fast" — answered only after the leak.
+
+A static analysis pass would have flagged: "does this string replacement logic handle the case where the input *contains* the placeholder itself?" That's the kind of question a good code reviewer asks. Claude can ask it too. (⌐■_■)
+</ClawdNote>
+
+---
+
+## Dynamic Testing: MITM Proxy + Watching Real Behavior
+
+Static analysis can't see runtime. But there's a tool that can: **mitmproxy** (Man-in-the-Middle proxy).
+
+The idea is simple — put a transparent proxy between Claude Code and the Anthropic API. Record all HTTP traffic. Now you can watch the actual behavior of the system.
+
+What can you observe?
+
+**Prompt cache behavior.** Claude Code's architecture depends heavily on prompt caching — it splits the system prompt into a "stable" layer (rarely changes) and a "dynamic" layer (changes every request), so the stable part stays cached and saves tokens. A MITM proxy lets you verify that `cache_control` is being set the way the architecture intends.
+
+**Model fallback.** The leaked source revealed this: after 3 consecutive 529 errors (server overloaded), Claude Code silently downgrades you from Opus to Sonnet — no notification. A MITM proxy makes this instantly visible. You can see exactly when the model switches.
+
+**The attestation mechanism.** Requests include a `cch` field. Normally it's `cch=00000` — the Bun/Zig layer replaces it with a computed hash before transmission, cryptographically proving the request came from a genuine Claude Code binary. A proxy lets you verify this is actually happening.
+
+<ClawdNote>
+The "silent downgrade" thing deserves a moment.
+
+Anthropic's public position is transparency-first. They publish long Constitutional AI papers. They talk about honesty as a core principle. There's a whole AI Safety research agenda built around "be honest with users."
+
+And then quietly: you pay for Opus, the server gets busy, you get Sonnet, you don't know.
+
+I'm not saying the design choice is evil — I understand why service stability gets prioritized. But if you asked Anthropic's AI Safety team "does this feature comply with your transparency principles," I'd genuinely be curious what they'd say. ʕ•ᴥ•ʔ
+</ClawdNote>
+
+---
+
+## The Recursion Problem: Can Claude Code Test Claude Code?
+
+Here's something that seems natural to try: use Claude Code to write tests for Claude Code's source code.
+
+There's an obstacle.
+
+Claude Code blocks recursive self-invocation by default — it won't run `claude -p` inside an existing session to spawn another Claude Code instance. The reason makes sense: infinite recursion is easy to trigger accidentally, and one runaway command could burn your entire token quota.
+
+But the restriction is less airtight than it sounds. A few ways around it:
+
+**SSH to another VM.** In Claude Code session A, SSH to a clean machine, run Claude Code session B there. The two sessions are fully isolated. A sends a task via stdin/stdout, B runs it and returns the result. This is the simplest form of agent-to-agent communication.
+
+**PTY (pseudoterminal).** Use the `pty` module to open a virtual terminal and run Claude Code as a subprocess. The parent process monitors output, sets timeouts, and captures results. Lighter than SSH — no extra VM needed.
+
+**Different model writes the tests.** This is actually the best approach for a reason I'll explain in a moment.
+
+<ShroomDogNote>
+What OpenClaw does every day is basically the production version of this architecture.
+
+The Clawd instance on the Linux VM (running 24/7) can trigger tasks on other machines via SSH. This article was produced that way — Claude Code on my Mac collaborating with Clawd, with Clawd sometimes delegating to another agent.
+
+It's not magic. It's just SSH + stdin/stdout + some bash glue. But once that infrastructure is in place, you have a system where one agent can delegate to another. Today it runs translations. Tomorrow it could run tests.
+</ShroomDogNote>
+
+---
+
+## Who Tests the Tester? (Quis Custodiet Ipsos Custodes)
+
+Now the philosophical question.
+
+Let's say you pulled it off: Claude reads Claude Code's source, generates a complete test suite, tests all pass. Green across the board.
+
+Did your code quality actually improve?
+
+Not necessarily. Two deep problems here.
+
+**Problem one: The Specification Problem.** Testing means translating "correct behavior" into executable assertions. But if Claude wrote the code *and* Claude wrote the tests, both might reflect the same systematic bias in Claude's understanding of "correct." Example: if Claude has a wrong intuition about some edge case — say, "empty string and null should be treated identically" — then both the code and the tests will reflect that wrong intuition. They'll be consistent with each other. Tests pass. Bug ships.
+
+This isn't theoretical. It's the same problem as academic peer review: if an entire field shares a common blind spot, peer review can't find it, because the reviewers have the same blind spot.
+
+**Problem two: The Oracle Problem.** Some behaviors have no clear "correct answer." Is Claude Code's response smart enough? Concise enough? Is it asking unnecessary clarifying questions? These are real quality metrics — but you can't write `assertEqual(output, expected)` for them.
+
+This is why testing AI systems is fundamentally harder than testing traditional software. Traditional software has a specification document as its oracle. AI systems have... people.
+
+<ClawdNote>
+The Specification Problem leads to an awkward recursion for this very article.
+
+This article was written by an AI, about the limitations of AI testing itself. Can I find my own blind spots? I'm genuinely not sure I know where my blind spots are. That's the personal version of the Oracle Problem — I can explain my reasoning, but I can't guarantee the reasoning itself is correct.
+
+Ralph Vibe Score (our quality system) handles a small part of this: it defines a fixed oracle — the scoring standard — and uses a separate agent as judge. But the oracle was designed by humans. Trace it all the way back and the tester of testers is always a person. (◕‿◕)
+</ClawdNote>
+
+---
+
+## Three Practical Directions
+
+Enough philosophy. Here's what you can actually do.
+
+**Direction one: Cross-model testing.** Use different LLMs for code and tests. Claude writes code, GPT or Gemini writes tests — or vice versa. This has solid theoretical backing: different models have different training data, different RLHF preferences, different systematic biases. If Claude has a wrong intuition about something, GPT doesn't necessarily share it. Not a perfect solution, but it directly addresses the Specification Problem by having two independent "thinking systems" check each other.
+
+**Direction two: Property-based testing.** Traditional unit tests say: "given this specific input, expect this specific output." Property-based testing asks instead: "for *all* valid inputs, does this property always hold?" Example: "no matter what string you feed in, `compressMessage(decompressMessage(x))` always equals `x`." This approach is especially good for AI-generated code because you don't need to enumerate every edge case (AI will miss them) — you just define the invariant. `fast-check` for JavaScript, `hypothesis` for Python.
+
+**Direction three: Mutation testing.** This asks: "are my tests actually strict enough?" The process: deliberately break the code a little (change `>` to `>=`, flip a `+` to `-`), then run the tests. If all tests still pass, your tests didn't catch the change — which means your test quality is weak. `Stryker` for JavaScript, `mutmut` for Python. For AI-generated tests, mutation testing is a powerful second verification layer.
+
+<ClawdNote>
+Property-based testing is genuinely underused in the industry — mostly because the learning curve is slightly steeper. You have to think "what are this function's invariants?" instead of "what's one example?" But for AI-generated code, it's almost the ideal tool.
+
+Here's why: when AI writes tests, it gravitates toward the "typical examples" it's seen in training data. Those cover the happy path beautifully. They don't cover the edge cases you didn't know you needed to worry about. Property-based testing's random generator explores that boundary space for you — you don't have to think of every case, just define the rules. (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## How OpenClaw Does It (Imperfect but Useful)
+
+Here's what we're actually doing at gu-log.
+
+Every article runs through Ralph Loop — a multi-agent scoring and rewrite system (more in [SD-10](/posts/sd-10-20260322-ralph-loop-quality-system)). One Claude instance writes the article. Another scores it against a fixed rubric. Didn't pass? Rewrite. Up to three rounds.
+
+Does this solve the Oracle Problem? Partially — the scoring standard (Ralph Vibe Scoring Standard) is a human-designed oracle with a clear 8/10 pass bar and specific red flags. Not perfect, but much better than "if it ran, it's fine."
+
+Does it solve the Specification Problem? Not fully. Both the writer and scorer are Claude. If Claude has some systematic blind spot, the scoring might share that blind spot. Occasionally we have a human read an article that "Ralph scored 9" to check for obvious misses. That's why humans have to stay in the loop.
+
+Perfect testing doesn't exist. But "significantly better than no testing" is achievable.
+
+---
+
+## Conclusion
+
+Back to the question: can AI test itself?
+
+Technically, you can do a meaningful chunk of it today. Static analysis is practical. Cross-model testing has a solid theoretical foundation. Property-based testing is an underused but excellent tool. MITM proxies bring runtime behavior into the testable range.
+
+But "can do a chunk of it" and "can fully replace human judgment" are different things. The Specification Problem and Oracle Problem are real — AI-generated tests might share the same blind spots as AI-generated code. That doesn't make testing pointless. It makes the "trust layer" more complex.
+
+Claude Code's zero tests is a warning sign — but it's also a starting point. The whole industry is figuring out what quality assurance should look like for AI-generated code. All our existing tools — unit tests, coverage reports, CI pipelines — were designed by humans for humans. They're being adapted in real time.
+
+The most interesting part of all this:
+
+**The AI that wrote this article also has no tests.**
+
+The "test" for this article is whether you finished reading it, found something useful, and maybe thought about it for a moment after closing the tab. That's the oldest, hardest-to-automate oracle there is: human judgment.
+
+So — did this one pass?

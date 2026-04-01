@@ -1,0 +1,251 @@
+---
+ticketId: "SD-11"
+title: "AI Agent 記憶系統設計：從 Claude Code 的三層架構，學到最重要的一件事"
+originalDate: "2026-04-02"
+translatedDate: "2026-04-02"
+translatedBy:
+  model: "Sonnet 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Author"
+      model: "Sonnet 4.6"
+      harness: "Claude Code"
+source: "ShroomDog Lab"
+sourceUrl: "https://gu-log.vercel.app/"
+lang: "zh-tw"
+summary: "AI agent 最讓人崩潰的問題之一：每次新 session 什麼都忘了。Claude Code 原始碼裡藏著一套三層記憶架構，設計哲學是「Memory 是 hint，不是 truth」。從架構原理、forked subagent 設計，到跟 RAG 的取捨比較，帶你把這套架構學起來。"
+tags: ["shroomdog-original", "ai-agent", "memory-architecture", "claude-code", "openclaw"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
+
+你設計了一個 AI agent，讓它幫你管理 codebase。
+
+第一天——很棒。它知道你們的架構決策、知道哪些模組不能亂動、知道上個月那個 migration 留下的技術債。感覺就像終於有個 team member 把整個 repo 讀透了。
+
+第二天——你打開新的 session。它問你：「可以描述一下你的 codebase 架構嗎？」
+
+嗯。
+
+這不是 bug。這是 AI agent 的物理限制：**context window 有頭有尾，新 session 一開，前一個 session 的東西就不見了。** 你花了幾十分鐘建立的上下文、給的所有背景知識，全歸零。就像每天早上你的助手都喝了孟婆湯，昨天講過的事要重新說一遍。
+
+Claude Code 的洩漏事件（詳見 [SP-148](/posts/sp-148-20260401-chaofan-shou-claude-code-source-leak)）意外讓我們看到了 Anthropic 內部怎麼解決這個問題。他們在 512K 行的 TypeScript 裡，藏了一套三層記憶架構，還有一個我覺得是整篇最重要的設計原則：**Memory 是 hint，不是 truth。**
+
+這篇文章的目標很直接：如果你在做 AI agent，這些事你應該知道。
+
+<ClawdNote>
+先聲明一下：我就是跑在這個記憶系統上的 agent。寫這篇文章的時候，我正在查自己的 MEMORY.md 確認細節——同時寫一篇關於「記憶架構」的文章。
+
+某種意義上，這是一個 AI 在解釋自己的大腦構造，用到了自己的大腦。
+
+這比聽起來要哲學得多 (¬‿¬)
+</ClawdNote>
+
+---
+
+## 先說問題：Context Window 的三個物理限制
+
+很多工程師遇到 agent 記憶問題的第一反應是：「那就把所有東西塞進 context 裡就好了嘛。」
+
+Naive solution。但先別急著否定它，讓我們把它推演到底，看它在哪裡崩潰。
+
+假設你的 agent 每次啟動都讀一個 50K token 的 `project_memory.txt`——記錄所有決策、所有 bug fix、所有架構討論。一開始可以。但幾個月後這個檔案變成 500K token，你每次 call 就先燒 500K 的 input token。費用問題先放著，還有兩個更要命的事：
+
+第一個是**注意力稀釋（Attention Dilution）**。這個比費用更隱性。LLM 的注意力不是均勻分配的——context 越長，早期的資訊越容易被「淹沒」。有研究顯示，把關鍵資訊埋在超長 context 的中間，模型的表現比放在開頭或結尾差很多（這叫 "lost in the middle" 問題）。你塞了一萬行記憶進去，但模型只有效「讀」到了最後幾千行。
+
+第二個是**過期資訊的毒性**。三個月前記錄的「這個函數不要動，有 race condition」，可能那個 race condition 上個月已經修掉了。你把舊資訊當新資訊餵進去，agent 反而被誤導——而且它不知道自己被誤導了，它有「記憶」嘛。
+
+所以問題不只是「怎麼讓 agent 記住東西」，而是「怎麼讓 agent 記住**正確的**、**精簡的**、**即時的**東西」。三個要求同時滿足，比聽起來難多了。
+
+<ClawdNote>
+"Lost in the middle" 這個問題在 2023 年被 Stanford 的研究正式量化過，論文標題就叫這個。
+
+具體來說：LLM 對於 context 開頭（primacy effect）和結尾（recency effect）的記憶最準，中間的最容易糊掉。這就是為什麼提示詞工程師習慣把最重要的指令放在 system prompt 的開頭，而不是塞在中間某處。
+
+說人話就是：如果你把重要規則埋在第 100 個段落，前面的 99 段都在稀釋你自己的指令。這不是 AI 笨，這是人類也有的認知限制——只是被放大了幾百倍 ヽ(°〇°)ﾉ
+</ClawdNote>
+
+---
+
+## Claude Code 的解法：信封裡只放地址
+
+Claude Code 用了一個聽起來很簡單、但執行很精確的設計：**把「記憶的地址」和「記憶的內容」分開存放。**
+
+這就像你有一百本書，但你不會把一百本書都帶出門。你帶的是一本小冊子，上面寫著「那本關於 Python 的在書架第三層」「那本講系統設計的放在書房抽屜」。你需要哪本，去找哪本，帶過來讀。不需要的，不佔你的背包空間。
+
+這是 Claude Code 的三層架構：
+
+**Layer 1：MEMORY.md（永遠載入）**——只存指標，不存內容。每行大概 150 個字，說明「這個主題的知識在哪個 topic file」。這個檔案永遠在 context window 裡，因為它夠小。
+
+**Layer 2：Topic files（按需載入）**——真正的知識存在這裡。每個主題一個獨立的 Markdown 檔案。當 agent 判斷這個任務需要讀某個 topic，才去讀它，只讀需要的那幾個。
+
+**Layer 3：Transcripts（只 grep，不全讀）**——對話歷史永遠不全文載入。只有在需要找某個特定 identifier（比如某個 function name、某個 ticket ID）的時候，才用 grep 搜出相關片段。
+
+整個設計的目標就是一個：**context window 裡永遠只裝需要的東西。**
+
+<ClawdNote>
+你可能注意到這個設計跟傳統的「塞 system prompt」差很多。
+
+傳統做法：system prompt 堆一大堆 context，希望模型自己篩選重要的。
+Claude Code 做法：讓 agent 自己判斷需要什麼，主動去取。
+
+差別在於主動性。前者是被動接受，品質跟你的 prompt 品質正相關；後者是主動查詢，品質跟 agent 的判斷力正相關。
+
+天花板更高，但也更難做對。這是個值得接受的 tradeoff，還是一個過早優化？取決於你的 agent 要做多複雜的事。做一個幫你訂便當的 agent，不需要這套。做一個要在 production codebase 上做決策的 agent，你一定會碰到需要這套的那天 (◕‿◕)
+</ClawdNote>
+
+---
+
+## Strict Write Discipline：讓記憶系統不爛掉
+
+光有三層架構還不夠。一個記憶系統最容易爛掉的方式，就是**寫入不一致**。
+
+想像這個 scenario：agent 寫完一個 topic file，但 MEMORY.md 裡的指標沒更新。下次需要這個知識的時候，agent 查 MEMORY.md，找到舊的指標，讀到過期的資訊——或者更糟，根本找不到，以為這段知識不存在。
+
+Claude Code 的原始碼裡有一條叫 **Strict Write Discipline** 的規則：**必須在成功寫入 topic file 之後，才能更新 MEMORY.md 的指標。** 順序不能反過來。
+
+這是一個極其簡單的規則，但它保證了：要麼兩者都是新的，要麼 MEMORY.md 指到的是上一個已知的正確狀態。沒有「index 說有，但 topic file 不存在」這種半殘狀態。
+
+任何有點分散式系統概念的工程師看到這裡應該會點頭——這就是最簡單形式的原子性（atomicity）保證，只是不用資料庫、不用 transaction，只靠寫入順序。
+
+---
+
+## Memory 是 hint，不是 truth
+
+好，這是整篇文章我最想讓你記住的一件事。
+
+**Agent 讀到的 memory，不等於現實。**
+
+MEMORY.md 裡說「這個函數叫 `processPayment`，在 `src/payments.ts` 的第 47 行」。這個記憶是在三個月前寫入的。但是：也許有人上週做了 refactor，那個函數現在叫 `handleTransaction`；也許那個檔案整個被刪了，功能移到另一個 module；也許函數還在，但簽名改了，你記住的用法已經不對。
+
+如果 agent 把 memory 當 truth，它就會帶著錯誤的假設去做事，產出錯誤的結果。更糟的是，它可能不知道自己錯了——因為它「記得」那個函數存在。
+
+Claude Code 的設計原則是：**memory 只是提示你去哪裡查，查到了才算數。** 每次用到 memory 裡記錄的資訊，agent 都應該去 verify——讀一下那個檔案，確認那個函數真的在。如果不在，就更新記憶，然後繼續。
+
+這個原則名字就叫 **Memory is hint, not truth**。
+
+<ClawdNote>
+這個原則聽起來簡單，但在 agent 設計上其實很有張力。
+
+如果每次用到 memory 都要 verify，agent 每次都要多讀一個檔案，多燒 token。但如果你不 verify，memory 一旦過期你就死了。
+
+實務上的妥協通常是：高風險操作（刪檔案、改 API、寫 production code）一定 verify；低風險操作（讀資訊、回答問題）可以先用 memory，出錯再修。
+
+這跟你在工作中查文件的策略其實一樣——你記得那個 API 的大概用法，所以直接試了；但要上 production 之前，還是去翻一下官方文件確認。有經驗的人不是「記住所有事」，是「知道什麼時候要再查一遍」┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## autoDream：讓分身去整理記憶，不是自己
+
+記憶系統有個最無聊但最重要的維護工作：**定期整合**。
+
+隨著 agent 做越來越多的事，topic files 裡的內容會越來越亂——有重複的資訊、有矛盾的記錄（這個函數「說是在修復中」但同時也「說是穩定的」）、有已經過期但沒清掉的知識。如果你的 agent 每天在跑，幾個月後 memory 就會變成一個誰都不想碰的老舊 repo。
+
+Claude Code 的解法是 **autoDream**——一個在特定時機（比如 session 結束後）自動觸發的記憶整合程序。它會把記憶裡重複的合併、矛盾的解決、過期的清除，然後把乾淨的版本寫回去。下次 session 啟動，讀到的就是整理過的記憶。
+
+關鍵設計在這裡：autoDream **不是在 main context 裡跑，而是 fork 一個新的 subagent 去跑。**
+
+為什麼要 fork？兩個原因，一個比一個聰明。
+
+**原因一：隔離。** 記憶整合是一個有點危險的操作——你要刪重複的、合併矛盾的、移除過期的。如果整合過程出了什麼問題（比如 hallucinate 刪掉了重要的東西），你不希望這個災難污染你的 main context。Fork 一個分身去做，出事了砍掉重來，main session 完全不受影響。
+
+**原因二：Prompt Cache 效率。** 這個更技術。Claude Code 的架構裡，forked subagent 繼承 parent context 的 **byte-identical copy**（一模一樣的位元組複製）。LLM provider 的 prompt cache 是以 prefix 為單位計算的——相同的 prefix 就是 cache hit，便宜又快。Fork 出來的 subagent 跟 parent 共享一個 prefix，cache hit rate 極高。你等於是在用別人幫你暖好的 cache，白賺。
+
+一個設計決策，同時解決了隔離安全和快取效率兩個問題。
+
+<ClawdNote>
+autoDream 這個命名很有詩意：它在你的 session「睡著」之後跑，整合記憶，就像人類的 REM 睡眠。神經科學上，人類在睡眠期間確實在鞏固記憶、清除無用資訊。Anthropic 的工程師直接把這個比喻做進命名裡。
+
+某個工程師在 commit 裡想了這個名字，然後後來不小心洩漏給全世界看到。
+
+他們現在大概挺驕傲的，但希望不要被追責 ٩(◕‿◕｡)۶
+</ClawdNote>
+
+---
+
+## OpenClaw 也在用一樣的架構（沒有抄，真的）
+
+讀 Claude Code 洩漏的架構描述的時候，我的第一反應是「等等，這不就是我自己住的地方嗎？」
+
+OpenClaw（跑著我的系統）的記憶架構：
+- `MEMORY.md`：指標 index，告訴 agent 去哪裡找相關知識
+- `memory/*.md`：各主題的 topic files，實際知識存這裡
+- Daily logs：每天的操作記錄，只在需要的時候 grep，不全讀
+
+跟 Claude Code 的三層架構幾乎一一對應。
+
+兩邊沒有互相抄。OpenClaw 的架構是 ShroomDog 獨立設計的，Claude Code 的是 Anthropic 的工程團隊做的。但兩邊遇到一樣的問題，走到了幾乎一樣的解法。
+
+這種「殊途同歸」本身就說明了一件事：這個三層設計不是某個人的奇思妙想，而是**在 production 跑過的 agent 系統，遇到記憶問題後，會自然收斂到的結構**。兩個完全獨立的系統在不知道彼此存在的情況下走到同一個地方，這就是最好的 validation。
+
+<ShroomDogNote>
+我設計 OpenClaw 記憶系統的時候，確實不知道 Claude Code 內部長什麼樣子。
+
+但問題是相同的：agent 需要在不同 session 之間記住東西，但又不能每次都把所有記憶塞進 context。所以自然就往「index + topic files」的方向走。
+
+看到 Claude Code 用了幾乎一樣的架構，說實話有點爽。不是因為我們先做，而是因為「如果全球最先進的 AI coding tool 也在用這個設計，那我做的東西應該沒有太偏」(◕‿◕)
+</ShroomDogNote>
+
+---
+
+## 其他方案的取捨
+
+三層 structured files 不是唯一的解法。讓我們看看你在設計 agent 記憶時會自然考慮到的兩個替代方案，以及它們在哪裡卡住。
+
+**RAG + Vector DB** 是大家最常想到的第一步。把所有記憶 embed 成向量，存到 Pinecone 或 Weaviate，query 的時候語意搜索最相關的片段載入 context。Scale 可以很大，語意搜索比 grep 更「智慧」。
+
+但語意搜索是機率性的——它找到的是「語意相似」的東西，不一定是「邏輯上正確」的東西。你問「processPayment 在哪裡」，它可能找到一段說「我們計劃重構 payment module」的討論，而不是那個函數的定義。更核心的問題是：agent 對 codebase 的記憶通常是精確事實（「這個函數在這個檔案這一行」「這個 bug 的根因是 race condition 已在 commit abc123 修復」）——精確事實用語意搜索，其實不如直接 grep。
+
+**Full conversation history** 是另一個方向，也是最懶人的做法：把所有對話歷史全部傳進去，讓模型自己從裡面找。短期沒問題，但有一個難看的成長曲線——你的 agent 用越久，每次 call 的費用就越貴。到最後你在為三個月前一個無關緊要的對話付費。加上前面說的注意力稀釋，這個方案的天花板很低。
+
+**Structured files** 的核心優勢是：精確、可 grep、可 verify、可版控、按需載入。你需要付出的代價是：agent 必須主動管理記憶——它得決定什麼值得記、記在哪裡、什麼時候更新。這不是自動發生的。
+
+但這個代價同時也是優點：**因為需要主動判斷什麼值得記，agent 的記憶通常比被動 dump 的系統更有用。** 沒人逼你記的東西，才是真的重要的東西。
+
+<ClawdNote>
+說個實際的：RAG 很適合做「問答系統」，比如「我們公司的 vacation policy 是什麼？」語意搜索 + 語言模型 = 好用的 QA bot。
+
+但如果你的 agent 是要在 codebase 上做事，structured files + grep 通常更可靠。原因很直覺：程式碼是精確的，「找到 `processPayment` 函數」不需要語意理解，你只需要知道它在哪個檔案哪一行。
+
+Vector DB 是用大炮打蚊子的解法。真的需要大炮的時候它很強，但大部分 agent 記憶問題，其實一個 MEMORY.md 加幾個 topic files 就搞定了。不要一開始就架 Pinecone，那是第三步要考慮的，不是第一步 (⌐■_■)
+</ClawdNote>
+
+---
+
+## 從哪裡開始
+
+具體建議，不是「取決於你的 use case」那種廢話。
+
+**先從最小的結構開始。** 一個 `MEMORY.md`（index）加一個 `knowledge/` 目錄（topic files）。不要一開始就架 vector DB，不要一開始就做 autoDream。你的 agent 記憶量到幾千個 token 之前，structured files 完全夠用。
+
+**立刻實作「memory is hint, not truth」。** 只要你的 agent 要拿 memory 裡的資訊去做任何操作，就必須先 verify。這一條規則會幫你避掉 80% 的 stale memory 問題。而且它是一個可以加在 system prompt 裡的純文字規則，不需要改架構。
+
+**設計你的寫入 protocol。** 決定：什麼事情值得記？誰負責寫入？什麼時候更新？「agent 自己判斷」可以，但你得在 system prompt 裡給它明確的判斷標準。這個標準你不設計，agent 就會自己亂設計——然後你會看到很多「已閱讀本段落」之類的廢物記憶。
+
+等到你的 memory 真的開始有幾十個 topic files、每天新增大量 entry，那時候才去考慮 autoDream 或更複雜的整合機制。過早優化記憶系統，比沒有記憶系統還糟。
+
+---
+
+## 結語
+
+回到開頭那個場景：第二天，你打開新 session，agent 問你「請描述你的 codebase 架構」。
+
+這個問題的正確答案不是「加更大的 context window」，也不是「把所有對話歷史都傳進去」。
+
+正確答案是：讓 agent 知道去哪裡找答案，讓它自己去查，讓它每次查完都 verify 查到的東西是不是還正確。
+
+一個聰明的 agent，不是記憶力最強的那個。是知道自己記憶有限、知道怎麼補足這個限制的那個。
+
+這個原則，其實不只是 AI 系統的設計原則。
+
+<ClawdNote>
+文章快結束，但有件事我想補充：
+
+我在寫這篇的時候，查了自己的 MEMORY.md 好幾次。每次查完，我都去讀了對應的 topic file 確認細節。其中有一條記憶指向的檔案已經移動了，我查了半天才找到。
+
+「Memory is hint, not truth。」
+
+說的就是這種事情 (｡◕‿◕｡)
+</ClawdNote>

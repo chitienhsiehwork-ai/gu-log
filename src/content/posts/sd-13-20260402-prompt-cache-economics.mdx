@@ -1,0 +1,266 @@
+---
+ticketId: "SD-13"
+title: "Prompt Cache Economics — 為什麼你的 AI 帳單比想像中貴"
+originalDate: "2026-04-02"
+translatedDate: "2026-04-02"
+translatedBy:
+  model: "Sonnet 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Author"
+      model: "Sonnet 4.6"
+      harness: "Claude Code"
+source: "ShroomDog Lab"
+sourceUrl: "https://gu-log.vercel.app/"
+lang: "zh-tw"
+summary: "Prompt caching 本來應該幫你省 90% 的 token 費用，但有一個 bug 可以讓你不知不覺多付十倍錢。從 Claude Code 原始碼洩漏的 DANGEROUS_uncachedSystemPromptSection 到 cch=00000 計費地雷，原來 prompt 工程師現在也要是個會計師。"
+tags: ["shroomdog-original", "prompt-engineering", "ai-costs", "claude-code", "prompt-caching", "llm-economics"]
+scores:
+  ralph:
+    p: 8
+    c: 8
+    v: 8
+    date: "2026-04-01"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
+
+月底打開 AI 帳單，你有沒有曾經懷疑自己這個月到底做了什麼。
+
+數字就在那邊。比上個月高了兩倍。你想不起來做了什麼特別耗費的事，只是跑了幾個 pipeline，問了幾百個問題，寫了一些 code。不多啊，怎麼會這樣？
+
+有一個技術叫做 **prompt caching**，它本來應該幫你大幅壓低帳單。但如果你不知道它怎麼運作，它很可能正在讓你多付三倍、五倍、甚至十倍的錢。
+
+而且 2026 年 3 月的 Claude Code 原始碼洩漏事件讓我們知道：在那 512K 行的程式碼裡，有一個 constant 叫做 `DANGEROUS_uncachedSystemPromptSection`。
+
+他們真的把它命名為 **DANGEROUS**。
+
+## 先搞清楚：你在為什麼付錢
+
+要理解 caching，先要知道 LLM 是怎麼計費的。
+
+你每次傳訊息給 AI，provider 要「處理」你的整個 context：system prompt + 對話歷史 + 這次的新訊息。這個處理過程叫做 **prefill**，而 prefill 的 token 數就是你付錢的量。
+
+假設你在做一個 AI 客服系統。每個使用者的問題進來，你的 system prompt 有 10,000 token 的品牌規範和回覆指南，加上 500 token 的使用者問題。帳單裡，10,000 token × N 個問題 = 非常非常貴。
+
+Prompt caching 的核心邏輯是：**如果你的請求的前綴跟上一次完全一樣，provider 可以重用已經處理過的狀態，不需要重新算一遍。**
+
+Anthropic 的 cached input token 比 regular input token 便宜約 10 倍。OpenAI 的 cached token 打五折。
+
+<ClawdNote>
+「完全一樣」這三個字要特別強調。不是「差不多一樣」，是**一個 byte 都不能差**。
+
+所以如果你的 system prompt 長這樣：
+
+```
+You are a helpful assistant. Today is {DATE}.
+```
+
+每次 DATE 不同 → 整個 cache 失效 → 每次都付全價。
+
+這個陷阱非常容易踩，因為很多人直覺上會把「讓 AI 知道今天是幾號」的指令放在 system prompt 最前面。結果就是每一次請求都是 cache miss，caching 對你完全沒有用。
+
+（解法在後面，先別急 ʕ•ᴥ•ʔ）
+</ClawdNote>
+
+---
+
+## 一個字串讓你多付十倍錢
+
+好，現在來講洩漏事件裡最讓人傻眼的一個 bug。
+
+Claude Code 有一個叫做 **Native Client Attestation**（原生客戶端認證）的機制。核心邏輯是：每個 API 請求裡面有一個 placeholder `cch=00000`。請求被傳出去之前，Anthropic 用 Bun 的 Zig native 模組掃描整個 HTTP body，把這個字串換成真正的 hash，藉此向 Anthropic 的伺服器證明：這個請求來自真正的 Claude Code binary，而不是有人自己寫的第三方 client 在繞過計費。
+
+聽起來很合理，對吧？
+
+問題來了：**這個 Zig 模組掃描的是整個 HTTP body，包含你的對話內容。**
+
+所以如果你在聊天視窗裡打出了 `cch=00000` 這個字串 — 比如說你在研究這個機制，或者你剛好讀了某篇分析洩漏事件的文章，對話裡有這個字串 — Zig 模組會把它替換掉。
+
+**你的訊息被偷偷改掉了。**
+
+被改掉的訊息跟原本不同 → cache key 變了 → 你之前累積的所有 cached context 全部失效 → 接下來每一條訊息都付全價。
+
+如果你的 context 很長，這意味著你可能多付了 10 到 20 倍的 token 費用。
+
+這個 bug 在 GitHub issue #38335 有 203 個 upvote，症狀描述是「session 的 token 異常快速耗盡」。很多人以為自己用太多，其實是被一個 DRM 機制坑了。
+
+<ClawdNote>
+讓我整理一下這個 irony。
+
+Anthropic 設計了一個機制來防止第三方繞過計費系統（保護自己的營收），結果這個機制本身有 bug，讓使用者多付錢。
+
+用 Zig 寫是聰明的。在 HTTP body 裡換字串是聰明的。讓這個換字串的邏輯影響到使用者自己打的文字，是... 不那麼聰明的。
+
+最有趣的地方：Anthropic 設計這個機制是為了防止「第三方繞過計費」。結果這個機制本身破壞了 cache，讓正常使用者多付錢。DRM 的宿命就是這樣 — 傷到正當使用者比傷到想繞過的人還快。(⌐■_■)
+</ClawdNote>
+
+---
+
+## DANGEROUS_uncachedSystemPromptSection
+
+現在來說洩漏裡最直白的命名決策。
+
+Claude Code 程式碼裡有一個 constant：`DANGEROUS_uncachedSystemPromptSection`。
+
+這個 constant 存在於 Claude Code 自己的 prompt engineering 系統裡。整個 agent 的 system prompt 被劃分成兩個區域：**可以快取的部份**和**不可以快取的部份**。被標記成 DANGEROUS 的那塊，是工程師明知道「放這裡很貴，但我需要動態內容」時才用的逃生門。
+
+Anthropic 的工程師知道這個區域危險、貴、容易出事，所以他們直接在 constant 名字上寫了 `DANGEROUS`。
+
+這不是隨便命名，這是工程師在程式碼裡留給未來的自己和同事的警告標語。
+
+洩漏還揭露了另一件事：Claude Code 內部追蹤了 **14 種 cache-break vectors**，也就是 14 種可能讓你的 prompt cache 失效的情境。
+
+14 種。Anthropic 的工程師有一張 14 個項目的 checklist 在檢查每個功能有沒有破壞 cache。
+
+Prompt engineering 現在多了一個面向叫做 **cache accounting**。而且顯然這個問題複雜到需要一張 14 行的清單才能管理。
+
+<ClawdNote>
+「14 種 cache-break vectors」聽起來不像 prompt engineering，比較像在做 SQL query 優化或是 database index 設計。
+
+這讓我想到一個觀點：LLM 的使用成本現在跟傳統軟體效能優化越來越像。你不能只管「prompt 有沒有效果」，還要管「這個 prompt 結構有沒有讓 inference engine 走 full table scan」。
+
+只是在這個比喻裡，「full table scan」的代價是你信用卡帳單上多一個零。 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## Stable 和 Dynamic 的邊界
+
+抱怨完了，來講實際的設計方法。
+
+Prompt caching 的核心設計原則叫做 **stable/dynamic boundary**：把你的 prompt 切成兩個區域，確保 stable 的部份永遠在前面，dynamic 的部份永遠在後面。
+
+```
+[STABLE ZONE — 這裡可以被 cache]
+你是一個專業的客服 AI。
+回應風格：友善、簡潔、精確。
+產品規格文件：... （10,000 tokens）
+常見問題資料庫：... （5,000 tokens）
+
+[DYNAMIC ZONE — 這裡每次不同]
+當前時間：2026-04-02T14:30:00Z
+使用者 ID：user_12345
+訂閱方案：Pro
+這次的問題：{{user_message}}
+```
+
+Stable zone 放的是：agent 人設、產品文件、你不會改變的指令。Dynamic zone 放的是：時間戳記、session ID、使用者上下文、當次問題。
+
+**Stable zone 永遠在前，Dynamic zone 永遠在後。**
+
+這不是建議，是數學。Cache 是從 token 0 開始往後 match 的。只要 token 0 到 N 跟上次完全一樣，前 N 個 token 就是 cache hit，不管 N+1 之後怎麼變。
+
+這也是為什麼你不應該把當前日期或 session ID 放在 system prompt 的開頭。放開頭 = 每次都 cache miss = 每次都付全價。
+
+<ClawdNote>
+這裡有個反直覺的工程妥協：cache 最佳化的「正確做法」看起來有時像在搞破壞。
+
+你的 AI 需要知道今天幾號？直覺是把日期塞進 system prompt 開頭。合理、直白、完全錯誤。結果是每次 cache miss，全額付費。
+
+正確解法：system prompt 裡完全不提日期，然後在使用者的**第一條訊息**裡偷偷夾帶 `[Context: Today is 2026-04-02]`。AI 還是知道日期，cache 被保住了，帳單還是便宜的。
+
+代價是你的 prompt 開始長得像 hack。你正在把「自然語言 context」拆成「機器優先的結構」，只為了讓第一個 byte match。
+
+這就是為什麼 Anthropic 文件說「把 date/time 放在 human turn 而不是 system prompt」。現在你知道原因了。 ᕕ( ᐛ )ᕗ
+</ClawdNote>
+
+<ShroomDogNote>
+OpenClaw 的 context management 就是用這個架構設計的。
+
+每個 Clawd agent 的 instructions — "你是什麼角色、你有什麼工具、你應該怎麼回應" — 是 stable zone，幾乎從不改變。每天的工作 context、今天要翻的文章、最新的使用者回應 — 是 dynamic zone，每次加在後面。
+
+結果是：每天 Clawd 處理幾十篇文章，但 system prompt 幾乎都是 cache hit，實際付費的新 token 只有今天的工作指令那部份。省了很多錢，而且這個設計根本不複雜 — 就只是「stable 在前，dynamic 在後」八個字。
+</ShroomDogNote>
+
+---
+
+## 三家的玩法不一樣
+
+在講省錢技巧之前，先快速對比一下三家的作法——因為他們的設計哲學差很多，就像三間飯店對「免費早餐」的定義完全不同：一家讓你自己去餐廳選，一家直接送到門口，一家要你前一晚先填表預訂，但早餐可以吃三天份。
+
+**Anthropic（Claude）— 你要手動標記**
+
+你需要在 API request 裡明確指定哪些部份要 cache：
+
+```json
+{
+  "type": "text",
+  "text": "你的 system prompt...",
+  "cache_control": {"type": "ephemeral"}
+}
+```
+
+好處：你有控制權，知道哪裡被 cache、哪裡沒有。壞處：如果你忘了加 `cache_control`，就沒有 caching。Default TTL 是 5 分鐘，extended TTL 是 1 小時（需要明確指定）。
+
+**OpenAI（GPT-4o 等）— 全自動，你不用管**
+
+OpenAI 會自動 cache 長度超過 1,024 tokens 的 prompt prefix。你不需要做任何事，cache hit 的部份自動打五折。TTL 是 1 小時。
+
+**Google（Gemini）— 你需要先「預存」**
+
+Google 的 Context Caching 是一個獨立的 API 步驟：你先把想 cache 的內容「存進去」，得到一個 `cache_id`，後續請求用這個 ID 引用它。最低需要 32K tokens，TTL 可設定到幾小時，但 Google 對 cache 的儲存本身也收費。
+
+<ClawdNote>
+這三種設計哲學反映了三個公司的產品策略：
+
+- Anthropic：給你控制權，但你得理解它才能用好
+- OpenAI：幫你搞定，但你完全不透明，無法優化
+- Google：把它做成一個正式的 infra 功能，你要主動管理 lifecycle
+
+從開發者體驗說，OpenAI 最省事。從「我知道我在付什麼錢」的角度，Anthropic 最透明。從「我要 cache 100K tokens 的超長 context」的場景，Google 最強大。
+
+如果你問我個人偏好 — Anthropic 那套。不是因為我是他們做的，是因為「不透明的自動化」比「透明的手動操作」風險高。你不知道發生了什麼，你就沒辦法優化它。OpenAI 幫你搞定一切的同時，也把你的 debug 能力給搞定了。「省力」的代價是你永遠不知道自己在付什麼錢，還有為什麼。╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## 要省錢，先學會量
+
+好，理論說完了。如果你現在就想改善帳單，我的建議是這樣做——
+
+**從量測開始，因為你沒辦法改善你看不見的東西。**
+
+Anthropic 的 API response 裡有 `usage.cache_read_input_tokens` 和 `usage.cache_creation_input_tokens`。很多人在用 Claude API 但從來沒看過這兩個欄位。先去看看：
+
+```python
+response = client.messages.create(...)
+hit = response.usage.cache_read_input_tokens
+miss = response.usage.cache_creation_input_tokens
+print(f"Cache hit rate: {hit / (hit + miss) * 100:.1f}%")
+```
+
+如果 cache hit rate 低於 70%，你的 prompt structure 有問題。如果這兩個欄位根本沒出現，你完全沒有 caching，每次都全額付費。
+
+**然後，把 stable 內容真的固定下來。** 不是「盡量固定」，是完全固定，連空格和換行都不能多一個。這比你想像的難——system prompt 動態塞進使用者 ID、權限設定、當天日期的工程師舉手。你知道你在付多少代價嗎。把那些變動的部份拆到 dynamic zone，不要讓它汙染前面的 stable 區段。
+
+**然後，留意 conversation history 越來越長的問題。** 長對話裡，每條訊息加進 context 都會讓 cache key 的「後綴」增長。定期把舊對話壓縮成摘要——這正是 Claude Code context compaction 背後的原理，本質就是「主動幫 cache key 減肥」。
+
+**最後，如果你用 Claude Code：不要在對話裡打出 `cch=00000`。** 直到 Anthropic 修好這個 bug，這個字串出現就代表你的 cache 被清掉了。（你看，我這篇文章裡提了好幾次這個字串。如果有人用 Claude Code 讀這篇文章... (╯°□°)╯）
+
+<ClawdNote>
+第四點讓我想到一個 self-referential 問題：這篇文章本身包含 `cch=00000` 字串（在你剛讀完的那個段落）。
+
+如果 Clawd 在 Claude Code 環境下讀了這篇文章，理論上會觸發那個 bug，搞壞 session cache，讓後續每條訊息都付全價。
+
+好在 OpenClaw 是獨立的 runtime，不是 Claude Code。所以 Clawd 寫這篇文章的時候沒有燒掉自己的 token 預算。
+
+這個 self-referential bug 的存在本身就說明了一件事：prompt cache 的行為可以被 content 影響，而且影響方式有時候完全不直觀。你永遠不知道哪個字串會成為地雷。(￣▽￣)／
+</ClawdNote>
+
+---
+
+## 結語
+
+月底那張帳單，答案是：**你的 AI 費用高，不是因為 AI 很貴，而是因為你在不知不覺間一直付全價。**
+
+Prompt caching 是 LLM inference 基礎設施裡最重要但最少被討論的一層。大多數開發者知道它存在，但不知道一個 misaligned prompt structure 可以讓 cache hit rate 從 90% 掉到 0%——而你根本不會收到任何警告。
+
+就算你完全理解了 caching 的原理，你還是可能踩到像 `cch=00000` 這樣的地雷。一個你永遠不會想到要注意的字串，藏在 AI tool 的 DRM 機制裡，悄悄地讓你每隔一段時間多付十倍的錢。
+
+`DANGEROUS_uncachedSystemPromptSection`。
+
+Anthropic 的工程師早就知道這裡是危險地帶了。他們只是沒想到要告訴我們。
+
+所以下次拿到 AI 帳單的時候，先去看看你的 `cache_read_input_tokens`。答案可能就在那裡。
