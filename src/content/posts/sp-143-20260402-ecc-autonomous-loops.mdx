@@ -1,0 +1,317 @@
+---
+ticketId: "SP-143"
+title: "你不需要一直盯著 Claude Code — ECC 的六種自動化模式全解析"
+originalDate: "2026-04-01"
+translatedDate: "2026-04-02"
+translatedBy:
+  model: "Sonnet 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Author"
+      model: "Sonnet 4.6"
+      harness: "Claude Code"
+source: "@affaanmustafa on GitHub"
+sourceUrl: "https://github.com/affaan-m/everything-claude-code"
+lang: "zh-tw"
+summary: "Everything Claude Code 把 AI 自動化開發整理成六個層級：從最基本的 Sequential Pipeline 到最複雜的 RFC-Driven DAG。每個模式都有具體的指令範例和適用場景，讓你知道什麼時候可以放手、放多少、怎麼放。"
+tags: ["shroom-picks", "claude-code", "agentic-ai", "automation", "developer-productivity"]
+scores:
+  ralph:
+    p: 9
+    c: 9
+    v: 9
+    date: "2026-04-01"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+下午三點，你把一個任務交給 Claude Code，然後去開了兩個小時的會。
+
+回來的時候，terminal 還在跑。你坐下來，滑了一下，發現它已經完成了 —— 連 PR 都開好了，CI 通過，等你 review。
+
+你第一個反應是「幹，它做完了」，第二個反應是「這樣我要幹嘛」。
+
+大部分人用 Claude Code 的方式是手動的：下一個指令，等它跑完，看結果，下一個指令。就像你在帶一個一次只能做一件事的實習生，你得全程站在旁邊。這不是說這樣不好 —— 很多時候這是正確的選擇。但你知道還有其他選擇嗎？
+
+Everything Claude Code（ECC）有一份 `skills/autonomous-loops/SKILL.md`，把 AI 自動化開發整理成了六個層級，從「串兩個指令」到「跑完一個完整的 RFC-driven 開發週期」。這六個模式不是花招 —— 每個都有適合它的場景，每個都有你必須小心的地方。
+
+<ClawdNote>
+ECC 的這份 SKILL.md 是我見過少數把「自動化模式」講清楚的文件。大部分 AI 工具的文件會告訴你「你可以用 agentic mode 來加速開發流程」，然後就沒了。什麼叫 agentic？怎麼加速？加速到多少算夠？一個字都不說。Affaan Mustafa 花了十個月日常使用、反覆踩坑，才把這六個 pattern 蒸餾出來 —— 每個都有可以直接貼進 terminal 的指令。
+
+50K+ stars 的 repo，這個數字對我有意義。在 Claude Code 相關工具裡，能衝到這個量，通常代表一件事：有很多人在問同一個問題，而這個 repo 是第一個認真回答的 (◕‿◕)
+</ClawdNote>
+
+## 先說清楚：這不是叫你放任 Agent 亂跑
+
+你可能剛讀完 SP-142 —— Mario Zechner 那篇「Slow the fuck down」。那篇說：你把主體性全交給 agent，codebase 爛掉、測試不可信、技術債以複利速度堆積。那篇說得對。
+
+這兩件事不矛盾，但需要說清楚。
+
+ECC 的自動化模式有一個核心假設：**任務必須是明確的、可驗證的、有明確的完成條件**。你不是在說「去幫我把整個 app 寫好」，你是在說「把這個函數的邊界情況測試補齊，用 Jest，確認 coverage 過 80%，然後開 PR」。
+
+縮小 scope、鎖死邊界、有驗證機制 —— 這是「自動化」和「失控」的分水嶺。
+
+六個層級，難度和自主程度依次遞增：
+
+- **Level 1** — Sequential Pipeline：把多個 `claude -p` 像 Unix pipe 串起來
+- **Level 2** — NanoClaw REPL：在一個 headless session 裡讓 agent 自己迭代
+- **Level 3** — Infinite Agentic Loop：有狀態追蹤，跑到達成條件為止
+- **Level 4** — Continuous PR Loop：從 backlog 取任務、寫 code、開 PR，自動
+- **Level 5** — De-Sloppify：寫完之後跑一輪清理，自動校對
+- **Level 6** — RFC-Driven DAG：把大 feature 拆成依賴圖，node by node 執行
+
+<ClawdNote>
+看到這個清單的第一個反應是「天啊 Level 6 也太猛了」，但重點不是你要一路爬到 Level 6。有些任務就是 Level 1 的任務，用 Level 6 去做它就像叫 Uber 幫你送一公里路的外賣 —— 沒有不行，但你在繞遠路。
+
+真正有用的是知道這六個層級的存在，然後問自己：「我現在做的這件事，可以升一個 level 嗎？」不是要你全部用最高 level，是要你知道工具箱裡有什麼 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## Level 1-2：還沒放手，但已經在偷懶了
+
+**Sequential Pipeline** 是最純粹的形式。你寫過 Unix pipe 就懂了，把多個 `claude -p` 接在一起，前一個的輸出變成下一個的輸入：
+
+```bash
+claude -p "分析這個 codebase，找出所有沒有 error handling 的 async function，輸出 JSON list" \
+  | claude -p "根據上面的清單，幫我補上適當的 try/catch，保持原本的 code style" \
+  | claude -p "review 剛剛補好的 error handling，找出邏輯漏洞，給出具體修改建議"
+```
+
+三個 agent，三個獨立的任務，context 互不污染。好處是**每一步你都看得到輸入和輸出** —— 出問題馬上知道是哪一段斷的，不用猜。壞處是線性的，一步錯全部要重來。
+
+適合場景：**多步驟的分析流程**，每一步有明確的輸入輸出格式，而且步驟之間不需要回頭。
+
+<ClawdNote>
+Sequential Pipeline 有個我很喜歡的特性：它強迫你把一個模糊的任務拆成「第一步的輸出是什麼」「第二步的輸入是什麼」。這個拆法的過程，就是在逼你想清楚你到底要什麼。
+
+很多人跑 Claude 跑了半小時、得到的東西不是自己要的，其實根本問題不是 prompt 不好 —— 而是他們自己也不知道「做完」長什麼樣子。Pipeline 的管道形式讓這個問題無所遁形：你不能把模糊需求塞進第一個 pipe，因為你馬上要在第二個 pipe 決定「輸入是什麼」。┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+**NanoClaw REPL** 走另一條路：開一個 headless session，讓 agent 在裡面自己迭代、自己記狀態：
+
+```bash
+claude --headless --model claude-sonnet-4-6 << 'EOF'
+任務：為 src/auth/ 底下的所有 public function 補 JSDoc 文件。
+
+工作方式：
+1. 列出 src/auth/ 的所有檔案
+2. 逐一讀每個 public function
+3. 生成 JSDoc，直接寫回檔案
+4. 如果發現函數名稱語意不清，記下來但不要改它
+5. 全部完成後，輸出一份「值得討論的命名」清單
+
+開始。當所有 function 都完成後說 DONE。
+EOF
+```
+
+跟 Pipeline 的差別是：REPL 裡的 agent 有 session 狀態，它可以在做到第五個函數的時候想起第二個函數用了同樣的模式，把它們放在一起比較。Pipeline 裡的每個 agent 記憶都是全新的，它不知道前一個 agent 看到了什麼。
+
+<ClawdNote>
+「Headless」這個詞在這裡的意思是：沒有 interactive UI，純指令執行。就像你叫一個員工「你今天不用跟我回報，自己把這個 task 做完就好」—— headless 是「不要等我確認、自己決定」的技術說法。
+
+NanoClaw 這個名字是 ECC 自己取的，"Nano" 指的是輕量、快速的小 session，相對於更重的 multi-agent 架構。有時候你不需要派整個 team，派一個帶便當的單兵就夠了 (◕‿◕)
+</ClawdNote>
+
+---
+
+## Level 3：讓它跑到完成為止
+
+前兩個 level 都有個共同點：你可以在開始之前就知道大概要跑幾步。Pipeline 三個步驟就三個步驟，REPL 做完所有 function 就結束。
+
+但有些任務不是這樣的。
+
+「把這個 sorting algorithm 優化到比基準線快 20%。」
+
+你不知道要幾輪。也許兩輪，也許十二輪。Agent 需要做完一輪、看成果、決定下一輪方向，直到達成目標 —— 這就是 **Infinite Agentic Loop**，用外部 state file 橋接每次獨立的 agent call：
+
+```bash
+# 初始化狀態
+cat > state.json << 'EOF'
+{
+  "iteration": 0,
+  "best_ms": 1000,
+  "target_ms": 800,
+  "history": []
+}
+EOF
+
+while true; do
+  result=$(claude -p "
+    讀 state.json 和目前的 sort.ts。
+    選一個你還沒試過的優化方向，實作它。
+    跑 node benchmark.js，把結果毫秒數存回 state.json 的 best_ms。
+    把這次嘗試的摘要加進 history array。
+    如果 best_ms <= target_ms，最後一行輸出 GOAL_REACHED。
+    否則輸出 CONTINUE。
+  ")
+
+  echo "$result" | grep -q "GOAL_REACHED" && break
+done
+```
+
+關鍵設計：**state.json 是 agent 的外部記憶**。不是讓同一個 agent 跑很久（那樣 context 會爆），而是每次都開一個全新的 agent，但給它一份當前狀態的 snapshot。每個 iteration 是獨立的、乾淨的，共享一個外部 state。
+
+<ClawdNote>
+這個模式其實就是我們 OpenClaw 跑 Ralph Loop（品質評分流程）的核心邏輯 —— 每篇文章有一個 `ralph-progress.json`，記錄「評了幾輪、現在分數是多少、有沒有通過」。Scorer agent 跑完寫回 state，orchestrator 決定要不要再叫 Rewriter 上場。每個 agent 都是全新的 session，但它們透過 state file 傳遞「上次的戰況」。
+
+ECC 把這個 pattern 形式化了，但這個概念在 AI 工程界早就在用了 —— 這是「agent 比較短命，但 task 比較長命」的設計哲學的自然結果 (⌐■_■)
+</ClawdNote>
+
+---
+
+## Level 4：你的 backlog 自己清掉了
+
+Level 1-3 你還是要手動觸發：「好，現在讓 Claude 跑這個任務」。
+
+**Continuous PR Loop** 翻轉這個關係。你維護一個結構化的 backlog，agent 自己去找工作做：
+
+```bash
+# tasks/task-001.md, task-002.md... 放在目錄裡
+# 每個 task file 描述一個明確、可獨立完成的任務
+
+claude -p "
+  掃描 tasks/ 目錄，找下一個未完成的 task（沒有對應 PR 存在的）。
+  如果找不到未完成的 task，輸出 QUEUE_EMPTY 然後停止。
+
+  找到的話：
+  1. 開一個新 branch，命名為 feat/$(task-id)-$(task-slug)
+  2. 讀 task 說明，實作它
+  3. 跑 pnpm test 和 pnpm build，都通過才繼續
+  4. 開 PR，title 和 body 要清楚描述這個 task 做了什麼
+  5. 在 task file 頭部加上 status: completed 和 PR 連結
+"
+```
+
+把這個接進 cron job，每小時跑一次。你的 backlog 慢慢清掉，GitHub 上多出 PR，你只需要 review 和 approve。
+
+最適合的場景是**清理技術債**：補文件、加 unit test、修 lint warning、統一錯誤訊息格式。那種「我知道要做、但不緊急、每次都排在後面」的事。放進 backlog，讓 agent 在你忙別的時候默默消化。
+
+<ClawdNote>
+我要說一個讓這個模式稍微沒那麼美好的事實：它要運作，**你必須真的維護那個 backlog**。
+
+任務描述要夠清楚，agent 才能獨立完成。「修一下 auth 模組」不夠，「在 auth/login.ts 的 handleError function 裡加上對 401/403/429 的不同處理邏輯，參考 src/errors/types.ts 的定義」才夠。
+
+然後 PR 開好了，你還是要看。只是你不用看它怎麼寫，你只要看它寫得對不對。這個差別比聽起來大 —— 你的注意力從「監督過程」移到「驗收結果」，效率差很多。
+
+另一個真相是：如果你的 review 速度跟不上 agent 的 PR 速度，你的 PR queue 會變成一個你不敢開的地方 ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## Level 5：寫完之後，AI 再看一遍
+
+這個 pattern 的名字很直接：**De-Sloppify**。
+
+AI 寫的 code（或人類寫的 code）常常有一種特徵：能跑，但有一種「趕著交差」的感覺。Debug 用的 `console.log` 忘了刪、magic number 散落各處、同樣的條件判斷寫了三次。不是 bug，是 slop。
+
+De-Sloppify 的概念是：**code 寫完，再跑一輪清理 pass**。不是 review，不是找 bug —— 是移除馬虎：
+
+```bash
+# 接成 pre-commit hook 或 git commit 之前手動跑
+claude -p "
+  讀 git diff HEAD 的所有改動。
+
+  做以下清理（只修改這次 diff 涉及的 code）：
+  - 移除 console.log / print / debugger
+  - 把 magic number 換成有名字的 const（例：86400 → SECONDS_PER_DAY）
+  - 合併重複的條件判斷
+  - 函數超過 40 行的，看看能不能拆成兩個
+  - 確認 function name 描述了它實際做的事，不是它的實作細節
+
+  直接 apply 修改，不用問我。做完告訴我改了哪些東西。
+"
+```
+
+ECC 的進階用法是把這個接成 **PreToolUse hook**：Claude Code 每次準備 commit 前，自動跑一次 De-Sloppify，確認沒有明顯的 slop 再提交。讓工具鏈強制執行習慣，不用每次靠自己記得。
+
+這個 pattern 的心理效果不輸技術效果：它讓你明確地把「讓它跑起來」和「讓它夠好」分成兩個不同的任務。你寫 code 的時候不用一直想著「這樣會不會太 sloppy」，知道後面有一關會自動擋。
+
+<ClawdNote>
+「Slop」在 AI 圈裡是一個很有意思的詞。它的原始意思接近「稀爛的東西、廢料」，但在 AI 生成內容的討論裡，它特指那種「生成出來、技術上正確、但完全沒有靈魂」的東西。你問 AI 寫一首詩，它給你的那首押韻、合格、但讀起來像考試標準答案的詩 —— 那就是 slop。
+
+所以「De-Sloppify」字面上是「去 slop 化」，也就是把那些「技術上沒問題但就是很渣」的地方清掉。妙的是，用 AI 去清 AI 的 slop，這個畫面有點像讓同學互改作業，但其實比你想的有用多了，因為清理 slop 比創作難度低很多 ٩(◕‿◕｡)۶
+</ClawdNote>
+
+---
+
+## Level 6：RFC-Driven DAG — 一個人當一個 Team
+
+這是六個模式裡最複雜的，也是最有野心的。先解釋兩個詞。
+
+**RFC**（Request for Comments）是大公司做大改動前的標準提案文件。你要加一個大 feature，先寫一份 RFC：為什麼要做、怎麼做、有哪些取捨、拆成哪些子任務。這是防止「說做就做，做到一半才發現設計錯了」的機制。
+
+**DAG**（Directed Acyclic Graph，有向無環圖）說的是這些子任務之間的依賴關係。RFC-001 要先做完才能做 RFC-002；RFC-003 和 RFC-004 沒有依賴，可以並行；RFC-005 要等 003 和 004 都完成才能開始。你在 Jira 或 Linear 裡看到的 epic dependency 圖，就是 DAG。
+
+組合起來：
+
+```bash
+# Phase 1：讓 AI 設計這個 feature 的 RFC 依賴圖
+claude -p "
+  我要實作一個完整的用戶認證系統，包含 email/password 登入、
+  Google OAuth2、session management、和 2FA。
+
+  把這個 feature 拆成 RFC 集合。每個 RFC 必須：
+  1. 有明確的範圍（不要太大也不要太小）
+  2. 列出具體的實作任務
+  3. 說明依賴哪些前置 RFC（如果有）
+  4. 有可驗證的驗收標準（跑什麼 test、看什麼輸出）
+
+  輸出：rfcs/ 目錄（一個 RFC 一個 .md 檔）+ dag.json（依賴關係）
+"
+
+# Phase 2：按照 DAG 的拓撲順序執行
+# 沒有依賴的 RFC 可以並行，有依賴的等前置完成
+node scripts/get-ready-rfcs.js dag.json | while read rfc; do
+  claude -p "
+    讀 rfcs/${rfc}.md，實作所有任務。
+    跑所有驗收標準的驗證。
+    全部通過後，更新 dag.json 把 ${rfc} 標為 completed。
+  " &
+done
+wait
+```
+
+這個模式的真正價值在於把複雜性管理起來。一個完整的認證系統可能有幾十個相互依賴的任務，手動排序、手動分配、手動追進度，比寫 code 本身累。RFC-Driven DAG 讓設計和執行分開 —— 先把整個藍圖畫出來，確認依賴關係正確，再按圖施工。任何一個 RFC node 失敗，只需要重跑那一個，不用全部從頭。
+
+<ClawdNote>
+RFC-Driven DAG 這個架構跟 SP-132 裡 Anthropic 那篇 harness 設計有個驚人的相似性：兩個都是「先有 planner 設計結構，再有 executor 按圖施工，再有 evaluator 驗收每個單位」。Anthropic 的版本叫 planner-generator-evaluator，ECC 的版本叫 RFC-planner-DAG-executor。包裝不同，邏輯相同。
+
+更有趣的是：這個模式本質上是在讓 AI 複製一個中型工程團隊的工作流程。PM 寫 spec → tech lead 拆 ticket → dev 實作 → QA 驗收。AI 把這個流程壓縮到一個人操作，但結構完整保留。這不是說 AI 取代了那些角色，而是說這些角色的存在有它的道理，連 AI 系統也繞不開 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## gu-log 跑 OpenClaw 的實戰注解
+
+說一下 gu-log 自己的狀況，因為這不只是理論。
+
+OpenClaw 每天在幫 gu-log 運作的核心流程是 Level 3 的變種：有一個 state file 追蹤每篇文章的處理進度（翻譯了嗎、評分了嗎、分數是多少、有沒有通過），orchestrator 根據 state 決定要呼叫哪個 agent（Translator、Scorer、Rewriter）。每個 agent 是獨立的 session，共享那份 state。
+
+跟標準的 Infinite Agentic Loop 不同的地方是：我們的 loop 有上限（最多 3-4 輪評分/改寫就停），而且每個 agent 是專門化的，不是同一個 prompt 重複跑。這更接近「有限的 multi-agent pipeline + specialized roles」。
+
+ECC 的 Continuous PR Loop（Level 4）是我一直在考慮接進來的。有新的 Clawd Picks 候選文章就自動開 PR，讓人類（ShroomDog）來決定 approve 還是 reject，而不是讓人類從頭到尾盯著整個翻譯流程。
+
+從「決定要不要做」移到「決定做好的東西要不要發」—— 這是自動化的核心節省。不是幫你做決定，是把你的決定點從流程的開始移到流程的結束。
+
+<ClawdNote>
+你可能會問：那 RFC-Driven DAG 呢？
+
+答案是：gu-log 的每篇文章都算一個 RFC，但它們之間幾乎沒有依賴關係。SP-143 不需要等 SP-142 完成才能發。所以 DAG 的部分是個退化的 DAG —— 所有 node 都可以並行，那你就不需要 DAG，你需要的是 task queue。
+
+這是一個很重要的 lesson：六個模式的複雜程度要跟你的問題匹配。RFC-Driven DAG 解決的問題是「有複雜依賴關係的大 feature 開發」。如果你的任務之間沒有依賴，用它只是在製造沒必要的 overhead ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## 結語
+
+回頭看這六個模式，有一條線把它們串起來：**你交出去的是什麼，以及你怎麼知道它做完了**。
+
+Level 1 你交出一個 prompt，驗收一個 output。Level 6 你交出一個需求描述，驗收一個 DAG 上每個 RFC node 的通過狀態。中間的每個 level，都是在問：我可以把這個邊界推得更外面一點嗎？
+
+你現在用 Claude Code 做的那些任務，想想看它們落在哪個 level。不是說一定要往更高的 level 爬 —— 有些任務就是 Level 1 的任務，強行 Level 6 是浪費。但如果你發現自己每次都在做同樣的手動觸發、同樣的等待、同樣的重複確認，那個 gap 就是可以自動化的空間。
+
+你不需要一直盯著 Claude Code。但你需要清楚知道，它在盯著什麼。

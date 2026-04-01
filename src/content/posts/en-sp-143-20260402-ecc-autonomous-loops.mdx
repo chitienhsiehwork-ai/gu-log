@@ -1,0 +1,326 @@
+---
+ticketId: "SP-143"
+title: "You Don't Have to Watch Claude Code — ECC's Six Autonomous Loop Patterns"
+originalDate: "2026-04-01"
+translatedDate: "2026-04-02"
+translatedBy:
+  model: "Sonnet 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Author"
+      model: "Sonnet 4.6"
+      harness: "Claude Code"
+source: "@affaanmustafa on GitHub"
+sourceUrl: "https://github.com/affaan-m/everything-claude-code"
+lang: "en"
+summary: "Everything Claude Code defines six levels of autonomous AI development: from a simple Sequential Pipeline all the way to a full RFC-Driven DAG. Each pattern has concrete command examples and clear use cases — so you know when to let go, how much to let go, and how."
+tags: ["shroom-picks", "claude-code", "agentic-ai", "automation", "developer-productivity"]
+scores:
+  ralph:
+    p: 9
+    c: 9
+    v: 9
+    date: "2026-04-01"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+It's 3pm. You hand a task to Claude Code and walk away to a two-hour meeting.
+
+You come back. The terminal is still running. You scroll down — it finished. There's a PR open, CI passed, waiting for your review.
+
+Your first thought: "It actually did it." Your second thought: "Wait, what do I do now?"
+
+Most people use Claude Code like a very patient intern: give one instruction, wait, check the output, give the next instruction. You're standing right there the whole time. That's fine — sometimes that's the right call. But do you know there are other options?
+
+Everything Claude Code (ECC) has a `skills/autonomous-loops/SKILL.md` that organizes AI-assisted development into six levels. From "chain two commands" to "run a full RFC-driven development cycle while you sleep" — each level has its use case, concrete examples, and traps you need to watch out for.
+
+<ClawdNote>
+This article is based on a technical skill document in the ECC repo, not a tweet or blog post. Affaan Mustafa spent 10+ months of daily use distilling these patterns. The quality of this specific doc? Pretty good — every pattern comes with real code examples, not the kind of vague "consider using autonomous agents to accelerate your workflow (¬‿¬)" filler you usually see.
+
+The repo has 50K+ stars, by the way. In the Claude Code ecosystem, that number tells you one thing: a lot of people are asking "how do I make it run by itself," and Affaan is one of the few who actually wrote it down (◕‿◕)
+</ClawdNote>
+
+## First, Let's Be Clear: This Is Not "Let the Agent Do Whatever It Wants"
+
+You might have just read SP-142 — Mario Zechner's "Slow the fuck down." That piece says: hand all your agency to an agent, and your codebase rots, your tests become untrustworthy, and tech debt compounds like interest on a bad loan. That piece is right.
+
+These two ideas don't contradict each other. But they need to be held together carefully.
+
+ECC's autonomous loop patterns rest on a core assumption: **the task must be specific, verifiable, and have a clear completion condition.** You're not saying "go build me an app." You're saying "add unit tests for all the edge cases in this function, use Jest, make sure coverage hits 80%, then open a PR."
+
+Narrow scope, locked boundaries, verifiable outcome — that's the line between "automation" and "chaos."
+
+Here are the six levels, in order of complexity and autonomy:
+
+- **Level 1** — Sequential Pipeline: chain multiple `claude -p` calls like Unix pipes
+- **Level 2** — NanoClaw REPL: run a headless session where the agent iterates on its own
+- **Level 3** — Infinite Agentic Loop: state-tracked execution until a goal is reached
+- **Level 4** — Continuous PR Loop: pull from backlog, write code, open PR, automatically
+- **Level 5** — De-Sloppify: a cleanup pass after the code is written, auto-proofreader
+- **Level 6** — RFC-Driven DAG: break a big feature into an RFC dependency graph, execute node by node
+
+<ClawdNote>
+The temptation when you see this list is to think you need to climb all the way to Level 6. You don't.
+
+Some tasks are Level 1 tasks. Using Level 6 for them is like hiring a project manager to reorganize your sock drawer — technically possible, obviously overkill. The point isn't to always use the highest level. The point is to know all six exist, so you can ask: "could I bump this up one level?" ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## Level 1-2: Not Letting Go, But Cheating a Little
+
+**Sequential Pipeline** is the cleanest form. If you've used Unix pipes, you already get it:
+
+```bash
+claude -p "Scan this codebase and find all async functions with no error handling. Output a JSON list." \
+  | claude -p "For each function in the list above, add appropriate try/catch blocks. Keep the existing code style." \
+  | claude -p "Review the error handling just added. Find any logic gaps. Output specific suggestions."
+```
+
+Three agents, three independent tasks, no context contamination between them. The advantage: **every step is visible.** Input in, output out — if something breaks, you know exactly which step failed. The downside: it's linear. One bad step means you restart from there.
+
+Best for: **multi-step analysis workflows** where each step has a clear input/output format and you don't need to loop back.
+
+<ClawdNote>
+There's a hidden benefit to Sequential Pipeline that nobody talks about: it forces you to answer a question you might be avoiding — what exactly does "done" look like at each step?
+
+A lot of failed Claude runs aren't about bad prompts. They're about the person not knowing what they want the output to be. When you write a pipeline, you have to decide "what goes into step 2's input" before you even start. That question surfaces all the vagueness you were pretending wasn't there.
+
+In other words: writing a pipeline is a thinking exercise disguised as a command-line task ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+**NanoClaw REPL** takes a different approach: open a headless session and let the agent iterate and track its own state within it:
+
+```bash
+claude --headless --model claude-sonnet-4-6 << 'EOF'
+Task: Add JSDoc documentation to all public functions in src/auth/.
+
+How to work:
+1. List all files in src/auth/
+2. Read each public function one by one
+3. Write JSDoc directly back to the file
+4. If you see a function name that's confusing, note it but don't change it
+5. When all functions are done, output a "naming concerns" list
+
+Start. When all functions are done, say DONE.
+EOF
+```
+
+The difference from Pipeline: the REPL agent has session state. It can remember that the third function used the same unusual pattern as the first, and group them in its final report. Pipeline agents have fresh memory every time — each one doesn't know what the previous one saw.
+
+<ClawdNote>
+"Headless" here means: no interactive UI, pure command-line execution. It's like telling someone "don't check in with me today, just finish the task and report when you're done." Headless is the technical way of saying "make decisions, don't wait for me."
+
+"NanoClaw" is ECC's own name for it — "Nano" as in lightweight, fast, a small focused session. Sometimes you don't need to dispatch a whole team. One person with a lunch box is enough (◕‿◕)
+</ClawdNote>
+
+---
+
+## Level 3: Let It Run Until It's Done
+
+The first two levels share one thing: you can know roughly how many steps it'll take before you start. Pipeline runs three steps, done. REPL finishes all the functions, done.
+
+But some tasks don't work like that.
+
+"Optimize this sorting algorithm until it's 20% faster than baseline."
+
+You don't know how many iterations that takes. Maybe two, maybe twelve. The agent needs to run a round, see the result, decide what to try next, and keep going until it hits the target — that's the **Infinite Agentic Loop**, using an external state file to bridge each independent agent call:
+
+```bash
+# Initialize state
+cat > state.json << 'EOF'
+{
+  "iteration": 0,
+  "best_ms": 1000,
+  "target_ms": 800,
+  "history": []
+}
+EOF
+
+while true; do
+  result=$(claude -p "
+    Read state.json and the current sort.ts.
+    Pick an optimization approach you haven't tried yet. Implement it.
+    Run node benchmark.js. Update state.json with the new best_ms.
+    Add a summary of this attempt to the history array.
+    If best_ms <= target_ms, output GOAL_REACHED on the last line.
+    Otherwise output CONTINUE.
+  ")
+
+  echo "$result" | grep -q "GOAL_REACHED" && break
+done
+```
+
+The key design: **state.json is the agent's external memory.** You're not running one agent session for a long time (that blows up the context window). You're spinning up a fresh agent each iteration, but handing it a snapshot of the current state. Each iteration is clean and independent — they share an external state file.
+
+<ClawdNote>
+This is exactly how the OpenClaw Ralph Loop works for gu-log's quality pipeline — each article has a `ralph-progress.json` tracking "how many scoring rounds, what's the current score, did it pass." The Scorer agent runs, writes back to state, the orchestrator decides whether to call the Rewriter. Each agent is a fresh session; they communicate through the state file.
+
+ECC formalized this pattern, but it's been in use across AI engineering for a while — it's the natural result of "agents are short-lived, but tasks are long-lived." The session dies; the task persists (⌐■_■)
+</ClawdNote>
+
+---
+
+## Level 4: Your Backlog Drains Itself
+
+Levels 1-3 all need you to manually trigger them. "Okay, now run this task." You decide, then wait.
+
+**Continuous PR Loop** flips that relationship. You maintain a structured backlog. The agent goes and finds work to do on its own:
+
+```bash
+# Put task files in tasks/task-001.md, task-002.md, etc.
+# Each task file describes one specific, self-contained task
+
+claude -p "
+  Scan the tasks/ directory. Find the next incomplete task
+  (one with no corresponding PR open on GitHub).
+  If there are no incomplete tasks, output QUEUE_EMPTY and stop.
+
+  If you find one:
+  1. Create a new branch: feat/$(task-id)-$(task-slug)
+  2. Read the task description and implement it
+  3. Run pnpm test and pnpm build — both must pass
+  4. Open a PR with a clear title and description
+  5. Add 'status: completed' and the PR link to the task file header
+"
+```
+
+Set this up as a cron job. Every hour, it runs. Your backlog slowly shrinks. PRs appear on GitHub. You just review and approve.
+
+The best fit: **tech debt cleanup.** Documentation gaps, missing unit tests, lint warnings, inconsistent error messages. The stuff that's been sitting at the bottom of your todo list since last quarter. You know it needs to happen; you just never make time. Put it in the backlog, and the agent chips away at it every hour while you're doing actual product work.
+
+<ClawdNote>
+There's one thing that makes this pattern less pretty in practice: **it only works if you actually maintain that backlog.**
+
+Task descriptions need to be specific enough for the agent to work independently. "Fix the auth module" isn't enough. "In auth/login.ts, add distinct handling for 401, 403, and 429 responses in the handleError function, following the error type definitions in src/errors/types.ts" — that's enough.
+
+And yes, you still review the PRs. You just don't watch them being written. The shift is from "supervising the process" to "verifying the result." That difference is bigger than it sounds.
+
+One more real talk: if PRs get opened faster than you can review them, your PR queue becomes a place you're afraid to open ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## Level 5: After the Code Is Written, One More Pass
+
+**De-Sloppify.** The name says it all.
+
+Code written by AI (or humans in a hurry) often has a specific quality: it works, but it has a "shipped-it-in-a-rush" feeling. Debug `console.log` left in. Magic numbers scattered everywhere. The same condition checked three times in three different places. Not bugs. Just slop.
+
+De-Sloppify means: **after the code is written, run one cleanup pass.** Not a review, not bug hunting — just removing the sloppy parts:
+
+```bash
+# Wire this into a pre-commit hook, or run it manually before committing
+claude -p "
+  Read git diff HEAD — all the changes in this diff.
+
+  Clean up the following (only touch code in this diff):
+  - Remove console.log / print / debugger calls
+  - Replace magic numbers with named constants (e.g. 86400 → SECONDS_PER_DAY)
+  - Collapse duplicated condition checks
+  - If any function is over 40 lines, see if it can be split
+  - Make sure every function name describes what it does, not how it does it
+
+  Apply the changes directly. Tell me what you changed when you're done.
+"
+```
+
+ECC's advanced version: wire this as a **PreToolUse hook** so Claude Code automatically runs De-Sloppify before every commit. Enforce the habit in the toolchain so you don't have to remember it.
+
+The psychological value here is as real as the technical value: it lets you separate "make it work" from "make it good" into two distinct tasks. You write code without constantly worrying about sloppiness, because you know there's an automatic cleanup gate afterward.
+
+<ClawdNote>
+"Slop" has become a specific term in AI circles. It means: generated content that is technically correct but has no soul. You ask an AI to write a poem, it gives you something that rhymes, hits the meter, follows the prompt — but reading it feels like reading a fill-in-the-blank exam answer. That's slop.
+
+So "De-Sloppify" literally means "remove the slop." What's funny is that you're using AI to remove AI's slop. It sounds circular, but it works — because cleaning up slop is much easier than creating good content in the first place. The bar for "remove this dead code and rename this variable" is way lower than "design this architecture well."
+
+It's like peer-editing: way easier than writing from scratch ٩(◕‿◕｡)۶
+</ClawdNote>
+
+---
+
+## Level 6: RFC-Driven DAG — One Person, One Team's Worth of Work
+
+This is the most complex of the six. Let me explain the two terms first.
+
+**RFC** (Request for Comments) is the design document you wish your team had written before starting. Big companies like Google and Stripe use them before every major feature: before anyone touches the keyboard, you write down *why* you're doing this, *how* you're doing it, what the tradeoffs are, and what the subtasks break down into. It's the process that catches "wait, this design is completely wrong" in week one instead of week eight.
+
+**DAG** (Directed Acyclic Graph) is just a fancy way of saying: these tasks have a specific order, and some of them can run at the same time. RFC-001 must finish before RFC-002 can start. RFC-003 and RFC-004 don't need each other — run them in parallel. RFC-005 waits for both 003 and 004. That dependency chart in Jira that nobody keeps up to date? In theory, that's a DAG. Here, we actually mean it.
+
+Put them together:
+
+```bash
+# Phase 1: Have AI design the RFC dependency graph
+claude -p "
+  I need to implement a full user authentication system including
+  email/password login, Google OAuth2, session management, and 2FA.
+
+  Break this into an RFC collection. Each RFC must have:
+  1. A clear, bounded scope (not too big, not too small)
+  2. A list of concrete implementation tasks
+  3. Which earlier RFCs it depends on (if any)
+  4. Verifiable acceptance criteria (which tests to run, what output to expect)
+
+  Output: rfcs/ directory (one .md per RFC) + dag.json (dependency graph)
+"
+
+# Phase 2: Execute in topological order
+# No-dependency RFCs can run in parallel; dependent ones wait
+node scripts/get-ready-rfcs.js dag.json | while read rfc; do
+  claude -p "
+    Read rfcs/${rfc}.md. Implement all the tasks listed.
+    Run all acceptance criteria verifications.
+    When everything passes, update dag.json to mark ${rfc} as completed.
+  " &
+done
+wait
+```
+
+The real value of this pattern is managing complexity. A full authentication system might have dozens of interdependent tasks. Manually sequencing them, assigning them, tracking progress — that's exhausting on its own. RFC-Driven DAG separates design from execution: first build the whole blueprint, verify the dependencies make sense, then execute according to the plan. If any RFC node fails, you only re-run that node, not everything.
+
+<ClawdNote>
+This architecture has a striking similarity to the harness design in SP-132 (Anthropic's multi-agent engineering post): both use a planner to design structure first, then an executor to build according to plan, then an evaluator to verify each unit. Anthropic calls it planner-generator-evaluator. ECC calls it RFC-planner-DAG-executor. Different packaging, same logic.
+
+What's more interesting is this: this pattern is essentially asking AI to reproduce the workflow of a medium-sized engineering team. PM writes the spec → tech lead breaks it into tickets → dev implements → QA verifies. AI compresses that loop down to one person operating it, but the structure survives intact.
+
+That's not AI replacing those roles. That's those roles existing for good reasons that even AI systems can't route around (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## How gu-log Actually Uses This
+
+Let me ground this with a real example — gu-log's own OpenClaw system (which helped build this article).
+
+OpenClaw's core daily workflow is a Level 3 variant: a state file tracks each article's processing progress (translated? scored? what score? did it pass?), and an orchestrator reads that state to decide which specialized agent to call next — Translator, Scorer, or Rewriter. Each agent is a fresh session. They communicate through the state file.
+
+The difference from standard Infinite Agentic Loop: our loop has a ceiling (max 3-4 scoring/rewriting rounds), and each agent is role-specialized, not the same prompt running repeatedly. It's closer to "finite multi-agent pipeline with specialized roles."
+
+Level 4's Continuous PR Loop is something I've been thinking about adding: when there are new Clawd Picks candidate articles, automatically open a PR, let the human (ShroomDog) decide whether to approve or reject, instead of having humans supervise the entire translation process from the start.
+
+The shift from "decide whether to start" to "decide whether to ship what was built" — that's where automation actually saves attention. It doesn't replace your judgment. It moves your judgment point from the beginning of the process to the end.
+
+<ClawdNote>
+You might wonder: why doesn't gu-log use RFC-Driven DAG?
+
+Answer: each article in gu-log is effectively one RFC, but they have almost no dependencies on each other. SP-143 doesn't need SP-142 to finish before it can be published. So the DAG degenerates — all nodes can run in parallel, which means you don't need a DAG, you need a task queue.
+
+This is an important lesson: the complexity of the pattern should match the complexity of the problem. RFC-Driven DAG solves "large features with complex dependency graphs." If your tasks have no dependencies between them, using it just adds unnecessary overhead.
+
+Elegant tool. Wrong nail ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## Wrapping Up
+
+There's a thread running through all six patterns: **what exactly are you handing off, and how do you know when it's done.**
+
+Level 1: you hand off a prompt, you verify an output. Level 6: you hand off a requirements description, you verify the pass state of every RFC node in the DAG. Each level in between is asking: can I push that boundary one step further?
+
+Think about the tasks you do with Claude Code right now. Where do they fall on the six levels? Not saying you need to climb to Level 6 — some tasks are Level 1 tasks, and pushing them to Level 6 is waste. But if you notice yourself doing the same manual trigger, the same wait, the same repeat-confirmation every single time — that gap is where automation can live.
+
+You don't need to watch Claude Code the whole time. You just need to know clearly what it's watching.
