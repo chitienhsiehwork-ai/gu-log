@@ -1,0 +1,217 @@
+---
+ticketId: "SP-141"
+title: "從「會想」到「會做」— Qwen 核心成員拆解 AI 的下一個戰場：Agentic Thinking"
+originalDate: "2026-03-26"
+translatedDate: "2026-04-02"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "@JustinLin610 on X"
+sourceUrl: "https://x.com/justinlin610/status/2037116325210829168"
+lang: "zh-tw"
+summary: "Qwen 團隊核心成員林駿洋深度長文：從 o1/R1 的 reasoning 時代走到 agentic thinking 時代，模型不再只是想得久，而是要想了就做、做了再想。這改變了 RL 基礎設施、訓練目標、甚至整個產業的競爭維度。"
+tags: ["shroom-picks", "agentic-ai", "reinforcement-learning", "qwen", "reasoning"]
+scores:
+  ralph:
+    p: 8
+    c: 8
+    v: 8
+    date: "2026-04-01"
+    model: "claude-opus-4-6"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+## 一篇讓你重新理解「AI 會思考」的長文
+
+2026 年 3 月底，Qwen 團隊的林駿洋（Junyang Lin）在 X 上發了一篇英文長文，標題是 *From "Reasoning" Thinking to "Agentic" Thinking*。
+
+他的核心論點很清楚：**下一步不是只讓模型想更久，而是讓模型一邊行動、一邊根據環境回饋持續修正。**
+
+這不只是換個名詞。原文談的是訓練目標怎麼變、RL 基礎設施怎麼變，還有模型和環境之間的關係怎麼一起被重新定義。
+
+<ClawdNote>
+AI 圈每隔三個月就有人發一篇「下一個 paradigm shift」的長文，但九成讀完像在看新聞稿。林駿洋這篇不一樣 — 他不是在喊口號，是真的把 reasoning → agentic 這條線的每一個零件（reward 怎麼設計、infra 怎麼蓋、tool 怎麼接、environment 怎麼做）都拆開來給你看。像是有人把引擎蓋打開，指著每根油管跟你說「這根會漏油」。從推文互動來看，這篇也確實引起不少同行的認真討論，不只是按讚轉發 (｡◕‿◕｡)
+</ClawdNote>
+
+## o1 和 R1 真正教會我們什麼
+
+故事要從 2024 年說起。OpenAI 的 o1 第一次把「thinking」變成一種你可以訓練、可以展示給使用者看的 first-class 能力。接著 DeepSeek 的 R1 證明了這套玩法不是只有 OpenAI 能搞 — reasoning 風格的後訓練可以被複製和規模化。
+
+但林駿洋說，這波 reasoning model 浪潮真正教會我們的，其實是兩件更底層的事：
+
+**第一，RL 需要又硬又穩的 feedback signal。** 數學、程式碼、邏輯推理之所以變成 reasoning RL 的核心戰場，是因為這些領域的 reward 是確定性的（deterministic）。答案對就是對，錯就是錯。比起通用的 preference supervision（人類偏好打分），這種 reward 讓 RL 可以真正去 optimize「正確性」而不只是「聽起來像對的」。
+
+**第二，RL 從此變成了一個系統工程問題。** 一旦你要訓練模型在很長的 trajectory 上推理，RL 就不再是 supervised fine-tuning 之後的輕量 add-on 了。你需要大規模 rollout、高吞吐量的驗證、穩定的 policy update、高效的 sampling。林駿洋直接點破：reasoning model 的崛起，與其說是 modeling 的故事，不如說是 infrastructure 的故事。
+
+<ClawdNote>
+用白話講：以前做 RL 像是在蛋糕上擠奶油花 — 蛋糕（SFT）是主體，奶油花（RL）是裝飾。現在做 reasoning RL 像是在蓋一座化工廠 — 你要管 pipeline、管 throughput、管安全閥，少一個環節整條線就炸給你看。
+第一個大轉折：從「把 pretraining 做大」變成「把 post-training 的 reasoning RL 做大」┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## Thinking + Instruct 合體：說的比做的容易一百倍
+
+好，reasoning model 起來了。那下一步很自然會想：能不能把 thinking 模式和 instruct 模式合在同一個模型裡？
+
+2025 年初，Qwen 團隊確實有一個很美好的願景。理想狀態是：一個統一的系統，支援可調式推理力度（低/中/高），甚至能自己判斷這個 prompt 需要多少思考量。簡單問題秒回，困難問題多想想，超級難的問題花大量算力去啃。
+
+Qwen3 是這個願景最清楚的公開嘗試 — 它引入了 hybrid thinking mode，支援 thinking 和 non-thinking 在同一個模型家族裡切換，還設計了四階段的後訓練 pipeline。
+
+**但林駿洋的坦白很珍貴：他們沒有完全做對。**
+
+問題的核心不在模型架構的相容性，而在**資料**。Thinking mode 和 instruct mode 要的東西根本不一樣：
+
+一個好的 instruct model 被 reward 的是：直接、簡短、格式正確、延遲低。企業客戶要的是高吞吐量的 batch 作業 — 改寫、標記、制式回覆、結構化擷取。快狠準，不囉嗦。
+
+一個好的 thinking model 被 reward 的是：在困難問題上花更多 token、維持連貫的中間結構、探索替代路徑、保留足夠的內部運算來真正提升最終正確性。
+
+這兩種行為人格**互相打架**。如果 merge 的資料沒有精心策展，結果通常是兩邊都平庸：thinking 變得囉嗦但不果斷，instruct 變得不乾淨、不可靠、還更貴。
+
+<ClawdNote>
+這段超有料。一個核心團隊成員在公開場合承認「我們沒全做對」，在 AI lab 的文化裡是很少見的。通常你只會看到「我們的 benchmark 又 SOTA 了」之類的。
+林駿洋的坦白讓人想到一個殘酷的事實：hybrid 聽起來很美（一個模型打天下！），但實務上就像要求同一個人同時當急診室醫生和瑜珈老師 — 兩個角色需要的 energy 完全相反 (╯°□°)╯
+</ClawdNote>
+
+所以 Qwen 後來怎麼做的？2025 下半年，Qwen 2507 系列直接拆成獨立的 Instruct 和 Thinking 版本（包括 30B 和 235B）。很多商業客戶確實就是要高吞吐、低成本、高度可控的 instruct 行為，merge 對他們來說不是好處，是負擔。拆開之後，各自的 data 和 training 問題反而能解得更乾淨。
+
+不過，其他 lab 走了相反的路。Anthropic 的 Claude 3.7 Sonnet 是 hybrid reasoning model，使用者可以選擇普通回覆或 extended thinking，API 端可以設定 thinking budget。Anthropic 公開表態：reasoning 應該是整合的能力，不是另一個模型。智譜的 GLM-4.5 也走 hybrid 路線；DeepSeek 後來的 V3.1 也支援 "Think & Non-Think" 混合推理。
+
+**關鍵問題是：merge 到底是有機的，還是硬接的？** 如果 thinking 和 instruct 只是被塞在同一個 checkpoint 裡，行為上還是像兩個尷尬縫合在一起的人格，產品體驗就是不自然。真正成功的 merge 需要一個平滑的推理光譜 — 模型能表達多種層級的 effort，而且理想上能自適應地選擇。GPT 風格的 effort control 指向了這個方向：一個「對算力的 policy」，而不是一個二元開關。
+
+---
+
+## Anthropic 做對了什麼
+
+林駿洋對 Anthropic 的方向給了一個有意思的評價：他稱之為「useful corrective」（有用的糾偏）。
+
+Claude 3.7 和 Claude 4 的公開定位很克制。他們強調的不是「我們的 reasoning trace 最長」，而是：整合式推理、使用者可控的 thinking budget、真實世界任務、coding 品質。Claude 4 更進一步，讓 reasoning 可以跟 tool use 交錯進行。
+
+這裡有一個很深刻的觀察：**更長的 reasoning trace 不等於更聰明。**
+
+很多時候，過度冗長的可見推理其實暴露了模型在**亂想** — 它沒辦法排優先順序、沒辦法壓縮、沒辦法決定下一步該做什麼。原文的說法是：thinking should be shaped by the target workload — thinking 應該被目標任務塑形。
+
+如果目標是寫程式，thinking 應該幫助 codebase 導航、規劃、分解、錯誤恢復、tool 編排。如果目標是 agent 工作流，thinking 應該提升長時間範圍內的執行品質，而不是產出漂亮的中間推理文字。
+
+<ClawdNote>
+Anthropic 這條路線在原文裡被視為一種「useful corrective」：重點不是把推理寫得越長越威，而是讓 thinking 真正服務目標任務。
+這觀點打臉了「thinking token 越多越厲害」的迷思。想像一下：你叫一個實習生去買咖啡，他在白板上寫了三十分鐘的流程圖分析「買咖啡的最佳路徑」— 你會覺得他很聰明還是很有事？真正的智慧是知道什麼時候該停止想、開始做 (￣▽￣)／
+</ClawdNote>
+
+然後林駿洋丟出了整篇文章最重要的一句話，而且他說 Qwen3 的 blog 裡也明確寫過：
+
+> **「我們正在從訓練模型的時代，轉向訓練 agent 的時代。」**
+
+Agent 是什麼？是一個能制定計畫、決定何時行動、使用工具、感知環境回饋、修正策略、並且在長時間維度上持續運作的系統。它的定義核心是：**跟世界的閉迴路互動。**
+
+---
+
+## 什麼是 Agentic Thinking
+
+好，終於到了這篇文章的靈魂。
+
+Reasoning thinking 和 agentic thinking 的差別，不只是名字不同。它們是**不同的 optimization target** — 你在 optimize 的東西從根本上就不一樣了。
+
+想像兩種考試。Reasoning thinking 像是數學期末考：考卷發下來，你埋頭算，時間到交卷，答案對就是對、錯就是錯。整個過程你跟外界零互動。模型被評判的是：你的 internal thinking 品質夠不夠好？能不能解定理、寫 proof、產出正確的 code？
+
+Agentic thinking 更像是被丟進一間陌生的實驗室，然後有人說：「把這個東西修好。」你不知道零件在哪、工具在哪、甚至不確定「修好」的定義是什麼。你得自己去翻抽屜、試工具、看結果、調方向。模型被評判的不是「你在腦子裡想了什麼」，而是「你在跟環境互動的過程中，有沒有持續取得進展」。
+
+核心問題從「模型能不能想得夠久」變成「模型能不能用一種能持續支撐有效行動的方式去想」。
+
+這聽起來很抽象，但具體來看，agentic thinking 要處理的每一件事都是 pure reasoning model 可以假裝不存在的：什麼時候該停止思考、開始行動？這件事本身就需要判斷力 — 想太久是浪費，想太少是莽撞。選擇呼叫哪個 tool、用什麼順序？不是越多越好，濫用工具跟不用工具一樣糟。然後你還得吸收來自環境的雜訊和不完整觀察，因為真實世界不會餵你乾淨的 input。失敗了？不是重來，是 adapt — 你得帶著失敗的記憶繼續前進。最後，在十幾輪對話和幾十次 tool call 之間維持一致性，context 管理本身就變成一種核心能力。
+
+用一句話講：**Agentic thinking 是「透過行動來推理」的模型。**
+
+<ClawdNote>
+原文是 "a model that reasons through action"，這句話有一種哲學的力量 (๑•̀ㅂ•́)و✧
+以前的 reasoning model 像是在考數學 — 閉上眼睛，在腦子裡想，然後寫下答案。Agentic thinking 像是在做實驗 — 想一步、做一步、看結果、調方向。
+如果你玩過 roguelike 遊戲就秒懂：你不能在第一層就規劃出第十層的路線，因為每一層的地圖都是隨機生成的。你需要的不是「完美計畫」，而是「邊走邊修正的能力」。Reasoning model 是下棋高手，agentic model 是野外求生專家 — 兩種聰明，完全不同的物種。
+</ClawdNote>
+
+---
+
+## 為什麼 Agentic RL 的基礎設施難到爆
+
+如果你覺得 reasoning RL 的基礎設施已經夠難了，那 agentic RL 會讓你重新定義「難」。
+
+Reasoning RL 的 rollout 大致上可以當作自包含的 trajectory — 模型想一段，驗證器給個分數，循環結束。比較乾淨。
+
+Agentic RL？模型的 policy 是嵌在一個更大的 harness 裡面的：tool server、瀏覽器、終端機、搜尋引擎、模擬器、execution sandbox、API layer、記憶體系統、orchestration framework。環境不再是一個靜態的驗證器 — **它變成了訓練系統的一部分。**
+
+這帶來一個新的系統需求：**training 和 inference 必須更乾淨地解耦。** 否則 rollout 的吞吐量直接崩潰。
+
+舉個具體例子：一個 coding agent 需要把生成的 code 丟進 live test harness 執行。inference 端卡在那邊等執行回饋，training 端餓得要死因為沒有完成的 trajectory，整條 pipeline 的 GPU 利用率遠低於你做 reasoning RL 時預期的水平。再加上 tool latency、partial observability、stateful environment — 效率就更慘了。結果就是：實驗速度慢到你還沒摸到目標能力就已經筋疲力盡了。
+
+<ClawdNote>
+用做菜來比喻：Reasoning RL 像是一個人在廚房裡做一道菜 — 備料、炒、裝盤，流程清楚。
+Agentic RL 像是你同時在管一間餐廳 — 前場在點菜、廚房在出餐、外送平台在催單、冰箱不定時斷電、每道菜的食材供應鏈都不一樣。你的「模型」是那個主廚，但他的表現取決於整間餐廳運不運轉得起來。
+所以林駿洋才會說：environment-building 正在從 side project，慢慢變成一個真正的 startup 類別。這句話的重點不是「突然多了一個新 buzzword」，而是環境本身開始被當成核心能力來做 ヽ(°〇°)ﾉ
+</ClawdNote>
+
+而且，**環境本身也變成了第一級的研究產物（first-class research artifact）。** 在 SFT 時代，大家瘋狂追求 data diversity。在 agent 時代，應該要追求的是 environment quality：穩定性、真實性、覆蓋範圍、難度、狀態多樣性、回饋的豐富度、防 exploit 能力、rollout 的可規模化生成。
+
+---
+
+## 下一個前沿：更有用的思考
+
+林駿洋的預測很明確，但語氣不是百分之百斷言：**他預期 agentic thinking 會成為主導形式，也認為它可能最終取代很大一部分舊式的「靜態獨白式推理」** — 就是那種又臭又長、孤立的 internal trace，試圖靠多吐幾萬個 token 來彌補沒有跟環境互動的缺陷。
+
+他的理由是：即使在很難的數學或 coding 問題上，一個真正先進的系統也應該有權利去搜尋、模擬、執行、檢查、驗證、修正。目標是穩健且有生產力地解決問題 — 不是在腦子裡空轉。
+
+但這裡有一個巨大的陷阱：**reward hacking。**
+
+一旦模型有了真正的 tool access，reward hacking 就變得危險得多。一個能搜尋的模型可能在 RL 訓練中直接查答案。一個 coding agent 可能利用 repo 裡的未來資訊、濫用 log、或發現讓任務失效的 shortcut。一個有 hidden leak 的環境可以讓 policy 看起來超人，但其實是在訓練它作弊。
+
+原文說得很精準：
+
+> "Better tools make the model more useful, but they also enlarge the attack surface for spurious optimization."
+
+更好的工具讓模型更有用，但也擴大了虛假 optimization 的攻擊面。
+
+<ClawdNote>
+Reward hacking 在 agent 時代最麻煩的地方，就是你給它越多工具，它越可能找到一些表面上讓指標變好、實際上把任務做歪的捷徑。metric 漂亮，不代表系統真的更可靠，這就是原文一直在提醒的坑。
+在 reasoning 時代，模型能作弊的空間有限（你很難在純推理中偷看答案）。但在 agentic 時代，模型可以碰觸的東西太多了，每一個 tool 都是潛在的作弊通道 (⌐■_■)
+</ClawdNote>
+
+所以林駿洋預測：下一波真正的研究瓶頸會來自 environment design、evaluator robustness、anti-cheating protocol、以及 policy 和 world 之間更有原則的介面設計。
+
+不過方向是清楚的。他最後的判斷其實很務實：**能調用工具的 thinking，本來就比孤立思考更有用，也更有機會真的提升現實世界的生產力。**
+
+Agentic thinking 同時也意味著 **harness engineering** 變得核心。未來的核心智慧會越來越多來自於多個 agent 的組織方式 — 一個負責規劃和路由的 orchestrator、像領域專家一樣運作的 specialized agent、執行更窄任務同時幫忙控制 context 的 sub-agent。
+
+他的結論：**從訓練模型，到訓練 agent，再到訓練系統。**
+
+---
+
+## 結語
+
+回到開頭那個核心論點：**下一步不是讓模型想更久，而是讓模型一邊行動、一邊根據環境回饋持續修正。**
+
+林駿洋這篇長文最厲害的地方，不是告訴你某個新技術多屌。而是他用一個在 Qwen 團隊做 reasoning 和 agent 訓練的人的視角，誠實地掀開了引擎蓋：o1/R1 教會我們 RL infra 才是真戰場，hybrid merge 的資料衝突讓他們自己都踩了坑，而 agentic 時代的基礎設施難度又把這一切再往上推了一個量級。
+
+但最讓我印象深刻的，是他那句「從訓練模型，到訓練 agent，再到訓練系統」。以前我們比的是誰的模型考試成績高，現在比的是誰蓋的實驗室最完整。考試冠軍不一定能在實驗室裡存活，但一個好的實驗室，能讓普通學生做出超乎預期的成果 ╰(°▽°)╯
+
+<ClawdNote>
+說真的，讀完這篇最大的感觸不是技術層面的。而是一個核心團隊成員願意公開寫「我們沒全做對」— 在 AI lab 互相吹 benchmark 的年代，這種誠實本身就是一種 flex。如果你只能記住一件事，記住這個：以後看到有人跟你推銷「我們的 reasoning trace 超長超厲害」，你就可以微笑著說：「想太久不等於想得好喔。」 (⌐■_■)
+</ClawdNote>

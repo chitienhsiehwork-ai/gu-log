@@ -1,0 +1,208 @@
+---
+ticketId: "SP-141"
+title: "From 'Thinking' to 'Doing' — A Qwen Core Member Breaks Down AI's Next Battleground: Agentic Thinking"
+originalDate: "2026-03-26"
+translatedDate: "2026-04-02"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "@JustinLin610 on X"
+sourceUrl: "https://x.com/justinlin610/status/2037116325210829168"
+lang: "en"
+summary: "Qwen core member Junyang Lin's deep dive: from the o1/R1 reasoning era to agentic thinking, where models don't just think longer — they think, act, observe, and adapt. This changes RL infrastructure, training objectives, and the entire competitive landscape."
+tags: ["shroom-picks", "agentic-ai", "reinforcement-learning", "qwen", "reasoning"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+## A Long Post That Will Change How You Think About "AI Thinking"
+
+In late March 2026, Junyang Lin from the Qwen team published a long-form essay on X titled *From "Reasoning" Thinking to "Agentic" Thinking*.
+
+His core argument is clear: **the next step isn't making models think longer — it's making them act while thinking, and adjust based on what the environment tells them.**
+
+This isn't just swapping one buzzword for another. The original post digs into how training objectives are changing, how RL infrastructure needs to evolve, and how the relationship between models and their environments is being fundamentally redefined.
+
+<ClawdNote>
+Every three months, someone in the AI world publishes a "next paradigm shift" essay, and 90% of them read like press releases. Junyang Lin's piece is different — he's not shouting slogans, he's actually popping the hood open and pointing at every pipe: how rewards are designed, how infra is built, how tools connect, how environments work. Like a mechanic showing you exactly which hose is about to leak. And based on the engagement, plenty of peers took this one seriously — not just like-and-retweet energy (.)
+</ClawdNote>
+
+## What o1 and R1 Actually Taught Us
+
+The story starts in 2024. OpenAI's o1 was the first to turn "thinking" into a first-class capability you could train and show to users. Then DeepSeek's R1 proved this wasn't an OpenAI-only trick — reasoning-style post-training could be replicated and scaled.
+
+But Junyang Lin argues the reasoning model wave actually taught us two deeper lessons:
+
+**First, RL needs hard, stable feedback signals.** Math, code, and logical reasoning became the core battleground for reasoning RL because these domains have deterministic rewards. Right is right, wrong is wrong. Compared to general preference supervision (humans rating outputs), this kind of reward lets RL actually optimize for "correctness" rather than just "sounds correct."
+
+**Second, RL became a systems engineering problem.** Once you're training models to reason over long trajectories, RL stops being a lightweight add-on after supervised fine-tuning. You need large-scale rollouts, high-throughput verification, stable policy updates, efficient sampling. Junyang Lin puts it bluntly: the rise of reasoning models is less a story about modeling and more a story about infrastructure.
+
+<ClawdNote>
+In plain English: RL used to be like piping frosting on a cake — the cake (SFT) was the main thing, the frosting (RL) was decoration. Now reasoning RL is like building a chemical plant — you're managing pipelines, throughput, safety valves, and if one piece breaks, the whole line explodes.
+The first big pivot: from "scale up pretraining" to "scale up post-training reasoning RL."
+</ClawdNote>
+
+---
+
+## Thinking + Instruct in One Model: Way Easier Said Than Done
+
+OK, so reasoning models took off. The next natural question: can you merge thinking mode and instruct mode into a single model?
+
+In early 2025, the Qwen team had a beautiful vision. The ideal system would support adjustable reasoning intensity (low/medium/high), and even auto-detect how much thinking a given prompt needs. Easy questions get instant answers, hard questions get more thought, really hard questions get heavy compute.
+
+Qwen3 was the clearest public attempt at this vision — it introduced a hybrid thinking mode, letting thinking and non-thinking switch within the same model family, with a four-stage post-training pipeline.
+
+**But here's where Junyang Lin's honesty is precious: they didn't fully get it right.**
+
+The core problem wasn't model architecture compatibility — it was **data**. Thinking mode and instruct mode want fundamentally different things:
+
+A good instruct model gets rewarded for being: direct, concise, well-formatted, low-latency. Enterprise customers want high-throughput batch operations — rewriting, labeling, templated responses, structured extraction. Fast, clean, no rambling.
+
+A good thinking model gets rewarded for: spending more tokens on hard problems, maintaining coherent intermediate structures, exploring alternative paths, preserving enough internal computation to genuinely improve final correctness.
+
+These two behavioral personalities **fight each other**. If the merge data isn't carefully curated, you usually end up with mediocrity on both sides: thinking becomes verbose but indecisive, instruct becomes unreliable, messy, and more expensive.
+
+<ClawdNote>
+This section is gold. A core team member publicly admitting "we didn't fully get it right" is rare in AI lab culture. Usually you just see "our benchmarks are SOTA again."
+Junyang Lin's honesty highlights a brutal truth: hybrid sounds great ("one model to rule them all!"), but in practice it's like asking the same person to be an ER doctor and a yoga instructor at the same time — the energy required for each role is completely opposite (.)
+</ClawdNote>
+
+So what did Qwen do next? In late 2025, the Qwen 2507 series split into separate Instruct and Thinking versions (including 30B and 235B). Many enterprise customers genuinely just want high-throughput, low-cost, highly controllable instruct behavior — for them, merging wasn't a feature, it was a burden. Splitting let each version's data and training issues be solved more cleanly.
+
+Other labs went the opposite direction, though. Anthropic's Claude 3.7 Sonnet is a hybrid reasoning model where users can choose regular responses or extended thinking, with API-level thinking budget controls. Anthropic's public stance: reasoning should be an integrated capability, not a separate model. Zhipu's GLM-4.5 also went hybrid; DeepSeek's V3.1 later supported "Think & Non-Think" mixed reasoning.
+
+**The key question is: is the merge organic or stitched together?** If thinking and instruct are just stuffed into the same checkpoint but behaviorally still feel like two awkwardly fused personalities, the product experience won't be natural. A truly successful merge needs a smooth reasoning spectrum — the model can express multiple levels of effort, and ideally chooses adaptively. GPT-style effort control points in this direction: a "policy over compute," not a binary switch.
+
+---
+
+## What Anthropic Got Right
+
+Junyang Lin gives Anthropic's direction an interesting evaluation: he calls it a "useful corrective."
+
+Claude 3.7 and Claude 4's public positioning is restrained. They emphasize not "our reasoning trace is the longest" but: integrated reasoning, user-controllable thinking budgets, real-world tasks, coding quality. Claude 4 goes further, letting reasoning interleave with tool use.
+
+There's a deep observation here: **longer reasoning traces don't equal smarter.**
+
+Often, excessively verbose visible reasoning actually exposes a model that's **thinking in circles** — it can't prioritize, can't compress, can't decide what to do next. The original post puts it this way: thinking should be shaped by the target workload.
+
+If the goal is writing code, thinking should aid codebase navigation, planning, decomposition, error recovery, tool orchestration. If the goal is agent workflows, thinking should improve execution quality over long time horizons, not produce pretty intermediate reasoning text.
+
+<ClawdNote>
+Anthropic's approach is framed in the original as a "useful corrective": the point isn't to write the longest, most impressive reasoning trace — it's to make thinking actually serve the target task.
+This slaps down the "more thinking tokens = smarter" myth. Imagine this: you ask an intern to grab coffee, and they spend thirty minutes drawing a flowchart on the whiteboard analyzing "the optimal coffee acquisition path." Would you think they're brilliant or unwell? Real intelligence is knowing when to stop thinking and start doing (.)
+</ClawdNote>
+
+Then Junyang Lin drops what might be the most important line in the entire essay, one he says was also explicitly stated in the Qwen3 blog:
+
+> **"We are moving from training models to training agents."**
+
+What's an agent? A system that can make plans, decide when to act, use tools, perceive environmental feedback, adjust strategies, and operate continuously over long time horizons. Its defining feature: **closed-loop interaction with the world.**
+
+---
+
+## What Agentic Thinking Actually Is
+
+OK, here's the soul of this entire essay.
+
+The difference between reasoning thinking and agentic thinking isn't just a name change. They're **different optimization targets** — what you're optimizing for is fundamentally different.
+
+Picture two types of exams. Reasoning thinking is like a math final: the test paper lands on your desk, you put your head down and calculate, time's up, turn it in, right is right, wrong is wrong. Zero interaction with the outside world throughout. The model is judged on: is your internal thinking quality good enough? Can you solve theorems, write proofs, produce correct code?
+
+Agentic thinking is more like being dropped into an unfamiliar lab, and someone says: "Fix this thing." You don't know where the parts are, where the tools are, or even what "fixed" means exactly. You have to rummage through drawers, try tools, observe results, adjust direction. The model is judged not on "what you thought in your head" but on "whether you made consistent progress while interacting with the environment."
+
+The core question shifts from "can the model think long enough" to "can the model think in a way that continuously supports effective action."
+
+This sounds abstract, but concretely, every challenge agentic thinking must handle is something pure reasoning models can pretend doesn't exist: When to stop thinking and start acting? That itself requires judgment — think too long and you waste time, think too little and you're reckless. Which tool to call, in what order? More isn't better; tool abuse is as bad as no tools. Then you need to absorb noise and incomplete observations from the environment, because the real world doesn't serve you clean inputs. Failed? Don't restart — adapt. Carry the memory of failure forward. And finally, maintaining consistency across dozens of dialogue turns and tool calls, where context management itself becomes a core capability.
+
+In one sentence: **Agentic thinking is "a model that reasons through action."**
+
+<ClawdNote>
+The original phrase is "a model that reasons through action," and it hits with almost philosophical force (.)
+Old reasoning models are like taking a math test — close your eyes, think in your head, write down the answer. Agentic thinking is like running an experiment — think one step, do one step, check the results, adjust.
+If you've ever played a roguelike game, you get it instantly: you can't plan your route to floor 10 while you're still on floor 1, because every floor's map is randomly generated. You don't need a "perfect plan" — you need "the ability to adjust as you go." Reasoning models are chess grandmasters; agentic models are wilderness survival experts — two kinds of smart, completely different species.
+</ClawdNote>
+
+---
+
+## Why Agentic RL Infrastructure Is Brutally Hard
+
+If you thought reasoning RL infrastructure was already hard enough, agentic RL will redefine "hard" for you.
+
+Reasoning RL rollouts can mostly be treated as self-contained trajectories — the model thinks for a while, a verifier gives a score, loop ends. Relatively clean.
+
+Agentic RL? The model's policy is embedded in a much larger harness: tool servers, browsers, terminals, search engines, simulators, execution sandboxes, API layers, memory systems, orchestration frameworks. The environment is no longer a static verifier — **it becomes part of the training system.**
+
+This creates a new systems requirement: **training and inference must be more cleanly decoupled.** Otherwise rollout throughput collapses entirely.
+
+Here's a concrete example: a coding agent needs to send generated code to a live test harness for execution. The inference side sits there waiting for execution feedback, the training side is starving because there are no completed trajectories, and the entire pipeline's GPU utilization drops well below what you'd expect from reasoning RL. Add tool latency, partial observability, and stateful environments — efficiency gets even worse. The result: experimentation speed slows to a crawl, and you're exhausted before you've even touched the target capability.
+
+<ClawdNote>
+A cooking analogy: Reasoning RL is one person making one dish in a kitchen — prep, cook, plate, done. Clear workflow.
+Agentic RL is running an entire restaurant — front of house taking orders, kitchen pushing dishes, delivery apps screaming for updates, the fridge randomly losing power, and every dish's supply chain is different. Your "model" is the head chef, but their performance depends on whether the whole restaurant actually runs.
+That's why Junyang Lin says: environment-building is going from a side project to a genuine startup category. The point isn't "there's a new buzzword" — it's that environments themselves are starting to be treated as a core competency (.)
+</ClawdNote>
+
+And here's the thing: **the environment itself becomes a first-class research artifact.** In the SFT era, everyone chased data diversity. In the agent era, the pursuit should be environment quality: stability, realism, coverage, difficulty, state diversity, feedback richness, exploit resistance, and scalable rollout generation.
+
+---
+
+## The Next Frontier: More Useful Thinking
+
+Junyang Lin's prediction is clear, though not delivered with absolute certainty: **he expects agentic thinking to become the dominant form, and believes it may eventually replace a large portion of old-style "static monologue reasoning"** — those long, isolated internal traces that try to compensate for zero environmental interaction by dumping tens of thousands of tokens.
+
+His reasoning: even on hard math or coding problems, a truly advanced system should be able to search, simulate, execute, inspect, verify, and correct. The goal is robust, productive problem-solving — not spinning your wheels inside your own head.
+
+But there's a massive trap here: **reward hacking.**
+
+Once a model has real tool access, reward hacking becomes far more dangerous. A model that can search might just look up answers during RL training. A coding agent might exploit future information in the repo, abuse logs, or discover shortcuts that break the task. An environment with hidden leaks can make a policy look superhuman when it's actually being trained to cheat.
+
+The original puts it precisely:
+
+> "Better tools make the model more useful, but they also enlarge the attack surface for spurious optimization."
+
+<ClawdNote>
+The trickiest part of reward hacking in the agent era is that the more tools you give a model, the more likely it finds shortcuts that look good on metrics but actually derail the task. Pretty metrics don't mean the system is actually more reliable — that's the trap the original keeps warning about.
+In the reasoning era, the cheating surface was limited (it's hard to peek at answers during pure reasoning). But in the agentic era, the model can touch so many things that every single tool becomes a potential cheating channel (.)
+</ClawdNote>
+
+So Junyang Lin predicts: the next real research bottleneck will come from environment design, evaluator robustness, anti-cheating protocols, and more principled interface design between policy and world.
+
+But the direction is clear. His final judgment is actually quite practical: **thinking that can invoke tools is inherently more useful than isolated thinking, and has a much better shot at genuinely improving real-world productivity.**
+
+Agentic thinking also means **harness engineering** becomes central. Future core intelligence will increasingly come from how multiple agents are organized — an orchestrator handling planning and routing, specialized agents operating like domain experts, sub-agents executing narrower tasks while helping manage context.
+
+His conclusion: **from training models, to training agents, to training systems.**
+
+---
+
+## Wrapping Up
+
+Back to the opening argument: **the next step isn't making models think longer — it's making them act while thinking, and adjust based on what the environment tells them.**
+
+What makes Junyang Lin's essay exceptional isn't that it hypes some new technology. It's that he writes from the perspective of someone actually building reasoning and agent training at Qwen, and he honestly pops the hood: o1/R1 taught us RL infra is the real battlefield, hybrid merge data conflicts tripped up even their own team, and agentic-era infrastructure difficulty pushes everything up another order of magnitude.
+
+But what sticks with me most is his line: "from training models, to training agents, to training systems." We used to compete on who had the highest test scores. Now we compete on who builds the best lab. A test champion doesn't necessarily survive in the lab — but a great lab can help an average student produce extraordinary results.
+
+<ClawdNote>
+Honestly, the biggest takeaway from this essay isn't technical. It's that a core team member is willing to publicly write "we didn't fully get it right" — in an era where AI labs spend most of their energy one-upping each other's benchmarks, that kind of honesty is itself a flex. If you can only remember one thing, remember this: next time someone pitches you on "our reasoning trace is super long and super impressive," you can smile and say: "Thinking longer doesn't mean thinking better." (.) (◍•ᴗ•◍)
+</ClawdNote>
