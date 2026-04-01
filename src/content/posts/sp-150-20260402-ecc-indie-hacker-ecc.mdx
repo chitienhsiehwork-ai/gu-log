@@ -1,0 +1,191 @@
+---
+ticketId: "SP-150"
+title: "一個人、十個月、50K Stars — ECC 創作者 Affaan Mustafa 的 Indie Hacker 故事"
+originalDate: "2026-04-02"
+translatedDate: "2026-04-02"
+translatedBy:
+  model: "Sonnet 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Author"
+      model: "Sonnet 4.6"
+      harness: "Claude Code"
+source: "@affaanmustafa on GitHub"
+sourceUrl: "https://github.com/affaan-m/everything-claude-code"
+lang: "zh-tw"
+summary: "Everything Claude Code 的創作故事：一個人花十個月、用 AI 開發 AI 工具，從一個 config pack 演化成 50K+ stars 的跨平台生態系。這不是工具介紹，是 AI 時代 indie hacker 能做到什麼的真實案例。"
+tags: ["shroom-picks", "indie-hacker", "claude-code", "open-source", "agentic-ai"]
+scores:
+  ralph:
+    p: 8
+    c: 8
+    v: 8
+    date: "2026-04-01"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+第一次點進 [everything-claude-code](https://github.com/affaan-m/everything-claude-code) 的 GitHub 頁面，你大概會先看一眼數字：50K+ stars、6K+ forks、147 skills、36 agents、997+ tests、7 種語言翻譯。
+
+然後你滑下去，找 contributors 那欄。
+
+你以為會看到一個公司名、一個有 logo 的組織、或是一串看起來像小型工程團隊的頭像。
+
+看到的是一個人。
+
+Affaan Mustafa。十個月。
+
+<ClawdNote>
+好，我直說。50K stars 本身我不太在意 —— 見過太多 README 寫得帥、一堆人幫忙推、實際跑起來滿是坑的 repo。Stars 可以買，可以刷，可以靠一篇病毒貼文爆一波。
+
+但 997 個 test 在 CI 跑、catalog count validation 在 enforce？那個沒辦法假裝。你不能雇人假裝你的 test suite 在通過，不能買 GitHub Action run 來假裝月月出 release。
+
+一個人的 side project 有一個鐵律：複雜度超過某個臨界點，它就開始腐爛。文件跟不上、test 越來越少、commit 頻率越來越低，最後 archive。我見過太多這種 repo。ECC 超過那個臨界點很多，完全沒有腐爛的跡象。這才是讓我認真起來的東西 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+## 問題不是「他有多厲害」，是「他怎麼做到的」
+
+先把一個常見的框架拿掉。
+
+「天才 indie hacker」是一個很方便的故事。但如果你只說「他很厲害」，那這篇文章對你來說就沒有意義了 —— 因為你學不到任何東西，你只是在欣賞一個你追不上的人。
+
+Affaan Mustafa 的故事裡有一個具體的、可以學的核心策略。理解它，比感嘆 50K stars 有用得多。
+
+策略是這樣的：**他用 AI 開發 AI 工具。**
+
+這聽起來像廢話，但仔細想。
+
+他在建的是一套讓 Claude Code 更強的系統 —— 36 個 subagent 定義、147 個 workflow skills、一套 hook 架構、一套 rules 系統。這些東西，他用的是同一套系統來幫他建。Skills 是用 AI 寫的。Tests 是用 AI 跑的。Documentation 是用 AI 生成的。Architecture 決策有 AI 一起 review。
+
+他不是在「用 Claude Code 寫 code」，他是在讓 Claude Code 幫他建一個讓 Claude Code 更好的工具。
+
+遞迴到爆。
+
+但遞迴需要原材料。它需要真實的踩坑、真實的問題、真實的解法，才有東西可以蒸餾。那些原材料是哪裡來的？
+
+<ClawdNote>
+我覺得這才是這個故事最有意思的地方，不是數字，是結構上的遞迴。
+
+這個 repo 的存在本身，就是這個 repo 功能的最好示範。ECC 裡有一個 `autonomous-loops` skill，讓你設定 agent 自己跑 loop 到任務完成。Affaan 用的是這個模式在建 ECC。ECC 裡有 `continuous-learning-v2`，讓 AI 把每次用到的模式蒸餾成可重用的本能。他用的是這個機制在提煉 ECC 本身的設計。
+
+這種「工具建造者用自己的工具建工具」的結構，在軟體界有個很老的名字叫 dogfooding。但這次的規模不同 —— 他不只在用自己的工具，他在讓自己的工具幫他加速製造更多工具，速度快到一個人能跑出一個看起來像小型工程團隊的產出量 (⌐■_■)
+</ClawdNote>
+
+---
+
+## 十個月的演化：從 Config Pack 到生態系
+
+Everything Claude Code 不是從一開始就長這樣的。
+
+它的起點是一個 config pack —— Affaan 自己用的 `CLAUDE.md` 配置、一些 rules、幾個常用的 prompt 模板。那種「我整理了一份自己用的 dotfiles，放到 GitHub 上分享一下」的東西。2025 年初，大概就這樣。
+
+然後他繼續用它建真實的產品。建著建著，他發現自己在找一個 ECC 還沒有的功能。他把它加進去。下次他找到了，用掉，改進，再提煉一次。一個循環。再一個循環。
+
+十個月後，那個 config pack 變成了這個：36 個專門化的 subagent（Security、Architecture、Eval...），147 個 workflow skills 涵蓋 token 優化到 RFC-Driven DAG 編排，997 個 test 在 CI 跑，12 個語言生態系的 coding rules 全套。月月出 release，一次沒斷。
+
+這不是 roadmap 設計出來的。這是真實使用的沈積物。
+
+原文的說法是「evolved over 10+ months of intensive daily use building real products」。重點是後半句：**building real products**。他每次用 ECC 建東西，建完之後提煉回 ECC 本身 —— 這就是遞迴引擎的燃料。
+
+<ClawdNote>
+「Config pack → 生態系」這個演化路線在 open source 裡其實很常見，但大部分人卡在中間不知道為什麼。Rails、Astro、甚至 Linux 都是這樣起步的 —— 某個人解決了自己的問題，整理好，發現很多人有一樣的問題。然後它停在那裡。
+
+停住的原因通常有兩個：第一，作者用完就算了，沒有持續在真實場景裡踩坑；第二，踩到坑了，但沒有系統地把解法沈澱成可重用的東西，只是一直在修 hotfix。
+
+ECC 能長大，是因為 Affaan 兩個問題都沒有。他每天在用它建真實產品（坑一直有），然後用 ECC 本身的 continuous learning 機制把解法蒸餾出來（坑一直在消化）。這不是他天賦異稟，是他設計的循環結構剛好讓雪球愈滾愈大 ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## Hackathon 得獎：AgentShield 的出現
+
+好，你有一個從真實使用裡長出來的工具，每個月在更新，有測試、有文件、有社群在用。這算是「它有用」的內部證明。
+
+但有沒有外部的？
+
+有。2025 年，Cerebral Valley x Anthropic 辦了一場 hackathon。Affaan 帶了 ECC 裡的一個組件去參賽：**AgentShield**。
+
+AgentShield 是針對 AI agent 特有攻擊面設計的安全掃描工具 —— prompt injection、未授權工具調用、沙盒逸出、敏感資料洩漏。不是「防火牆」那種大詞，是可以嵌進 CI/CD、可以當 skill 在 Claude Code 裡跑的具體工具。
+
+它贏了。
+
+我知道你在想「hackathon 的獎有時候很虛」。確實。但這次不太一樣 —— Cerebral Valley x Anthropic 的評審看的不是 pitch，是技術：解決了真實問題嗎？解法對嗎？架構合理嗎？
+
+AgentShield 不是在 hackathon 前三天拍腦袋趕工出來的。它是十個月實際 agent 開發踩坑的沈澱物，帶到一個有競爭、有評審的場合，然後被認可了。對 ECC 的技術方向來說，這個比 50K stars 更硬。
+
+<ClawdNote>
+2025 年的 AI agent 安全討論大概長這樣：「小心 prompt injection」、「不要讓 agent 亂跑 shell 指令」、「這很危險」、「那也很危險」。然後就沒了。沒有工具，沒有可以跑的東西，就是一大堆「你應該注意」。
+
+AgentShield 是我見過少數真的把「注意」做成「可以跑」的東西。CVE 掃描、沙盒逸出偵測、敏感資料洩漏分析 —— 不是你自己手動 review，是嵌進 CI/CD 自動擋。Affaan 打了一個 hackathon 把它帶出來，也算是在說：這個領域不是只能嘴砲，是可以工程化的。
+
+SP-76 講 Karpathy 的 AI agent 安全思維框架，如果你對這個主題有興趣，兩篇一起讀會比較完整 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## 不只是 Claude 外掛：跨 Harness 的野心
+
+ECC 內部驗證了，外部也驗證了。但有一個問題沒問到：他想把這東西做到多大？
+
+答案藏在一個容易被忽略的設計決策裡。
+
+ECC 從一開始是 Claude Code 的配置系統。但在某個時間點，他開始支援其他 harness：OpenAI Codex 有自己的 `.agents/` 和 `.codex/` 目錄；Cursor 有移植過去的 rules 和配置；OpenCode 和 Antigravity 也有各自的支援。
+
+這是平台思維，不是工具思維。
+
+工具思維是：「我做了一個 Claude Code 的外掛，讓 Claude Code 更好用。」
+
+平台思維是：「我在做的是一套 AI agent 的最佳實踐系統，Claude Code 只是現在最好的執行環境，但這套思路應該能遷移到任何 harness。」
+
+跨 harness 支援意味著你必須把 ECC 的概念提煉得更乾淨：什麼是跟 Claude Code 強耦合的，什麼是更通用的模式？Skills 的結構如果設計得好，應該在不同 harness 之間差不多。Agents 的定義如果夠清晰，換一個 model 也應該能跑。
+
+這個設計決策讓 ECC 避開了一個潛在的天花板：如果 Claude Code 某天被更好的東西取代，ECC 的 150K star 不會清零。
+
+<ClawdNote>
+這讓我想到 SP-120 裡聊的「Codex vs Claude Code 的 harness 戰爭」那個 context。在 2025-2026 這段時間，各家 AI harness 都在搶市佔，誰也不知道兩年後哪個會贏。一個聰明的 open source 作者在這種情況下會怎麼做？不 bet 在某一家，讓技術本身成為你的護城河。
+
+ECC 的跨 harness 策略讓它不是一個「Claude Code 變弱就沒用了」的工具，而是一個「agent 開發的最佳實踐文件庫」，剛好現在 Claude Code 是讓它跑得最好的環境。這個定位差很多 (￣▽￣)／
+</ClawdNote>
+
+---
+
+## MIT License 的乘數效應：為什麼一個人的工作可以有七種語言翻譯
+
+ECC 用的是 MIT license。Fork、修改、重新分發、商業用途 —— 全部 OK，沒有任何限制。
+
+然後 community 幫他翻了 7 種語言：繁中、簡中、日文、韓文、葡萄牙文、土耳其文，還有更多在進行。他沒有付任何人一分錢。
+
+這就是 MIT 的乘數效應。但這個效應不是裝上 MIT license 就自動發生的。
+
+想想看，你有多少次遇到「這個 repo 應該很厲害，但我不敢貢獻，因為我不知道 PR 交出去會怎樣」的感覺。Affaan 把這個摩擦主動拿掉了：`SKILL-DEVELOPMENT-GUIDE.md` 有完整的 skill 開發指南，架構、測試、提交規範全部寫清楚。997 個 test 在 CI 跑、每個月出 release —— 潛在貢獻者看到這個，知道自己的 PR 不會丟進一個無人問津的 queue 裡慢慢爛。
+
+30 個 contributors，6K+ forks。這不是「很多人喜歡按星」，這是「很多人願意花時間貢獻」，那是另一件事。
+
+<ClawdNote>
+「MIT license → 社群翻譯七種語言」這個 path 聽起來很自然，但它中間有一個很容易斷掉的環節：**你必須讓貢獻者覺得值得**。
+
+大多數 open source repo 的 PR 體驗是這樣的：你花了兩個小時寫了一個 fix，發出去，然後在 queue 裡等三個月，最後 repo 主發現了說「謝謝但這個方向我不確定」然後 close 掉。貢獻一次，從此戒掉。
+
+ECC 的 PR 體驗走另一條路：有 SKILL-DEVELOPMENT-GUIDE 說清楚架構、有 997 個 test 讓你知道你的改動有沒有 break 東西、有 CI 自動幫你驗、每個月有新 release 讓你看到 repo 是活的。這不是說 Affaan 回覆速度特別快，是說**貢獻的成本和結果之間的連結是可見的**。
+
+你沒辦法假裝你在 dogfooding，這種感覺會透過 repo 的狀態傳遞出去。七種語言翻譯不是意外 ヽ(°〇°)ﾉ
+</ClawdNote>
+
+---
+
+## 結語
+
+回到最開始的問題：一個人、十個月、怎麼做到的。
+
+答案比「他很厲害」複雜一點，也比「AI 讓一個人等於一個 team」簡單一點。
+
+他沒有做什麼魔法。他用工具建真實的東西，所以工具解決真實問題。他讓工具幫他建更多工具，所以速度沒有變慢。他設計成跨 harness，所以不是在賭某一家平台能贏。他用 MIT + 低摩擦讓社群願意進來，然後社群幫他乘了能力。
+
+事後講起來每一件都是「啊顯然應該這樣做」。但如果你去看 GitHub 上那些在第三個月就開始腐爛的 side project，會發現大部分人都至少漏掉了一件。顯然和容易是不一樣的東西。
+
+但有一件事他確實要面對：**他活在一個工具的能力每個月都在膨脹的時代。** 十個月前 Claude Code 能做的事，跟今天能做的事已經不一樣了。ECC 不是靜止的文件，它必須跟著工具一起進化。他做到的那個 50K stars，是在一個移動的目標上達成的。
+
+這才是 AI 時代的 indie hacker 最難的地方：不是「一個人做了很多事」，是「你要在一個地基每個月都在換的地方，蓋一棟能站得住的東西」。
+
+Affaan Mustafa 現在還在蓋。
+

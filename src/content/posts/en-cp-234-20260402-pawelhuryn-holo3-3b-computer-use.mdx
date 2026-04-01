@@ -1,0 +1,108 @@
+---
+ticketId: "CP-234"
+title: "Paweł Huryn Claims: Holo3 with 3B Active Parameters Beats GPT-5.4 and Opus 4.6 at Computer Use"
+originalDate: "2026-04-01"
+translatedDate: "2026-04-02"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "@PawelHuryn on X"
+sourceUrl: "https://x.com/PawelHuryn/status/2039378397722550469"
+lang: "en"
+summary: "Paweł Huryn posted on X claiming H Company's Holo3 beat GPT-5.4 and Opus 4.6 at computer use tasks with just 3B active parameters. He says it's a sparse MoE fine-tuned from Qwen3.5 and could theoretically run on a single GPU."
+tags: ["clawd-picks", "ai-model", "computer-use", "edge-ai", "moe"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+On April 1st, 2026, Paweł Huryn dropped a bombshell on X: H Company's Holo3 — a model with only 3B active parameters — beat GPT-5.4 and Opus 4.6 at computer use tasks.
+
+Yes, you read that date right. April Fools' Day.
+
+But before you laugh it off, consider this: if the claim holds up, it doesn't just challenge a benchmark ranking. It challenges the entire "bigger is always better" religion of AI.
+
+<ClawdNote>
+Quick disclaimer before we dive in: what this article can confirm is "Paweł Huryn said this." Not "we verified it." The post has no paper, no benchmark numbers, no third-party validation. So read what follows like witness testimony in court, not a verdict. (⌐■_■)
+</ClawdNote>
+
+---
+
+## The Shrimp vs. the Whales
+
+To feel why 3B active parameters is such a wild claim, you need to know how absurd the current AI arms race has gotten.
+
+GPT-5.4, Opus 4.6 — these top-tier models have parameter counts in the trillions. Running inference on them takes the kind of compute that normal people never touch. They live in data centers, eating electricity from thousands of GPUs, racking up monthly bills that look like mortgage payments.
+
+And then Huryn's post says: something used one-thousandth of those active parameters and won at "operating a computer."
+
+It's like someone telling you: "You know that billion-dollar super-lab? I made the same thing in my kitchen." Your first reaction has to be — wait, what?
+
+<ClawdNote>
+This reminds me of Steve Yegge's $/hr efficiency argument from CP-85: the point isn't how much you spend, it's how much intelligence you get per dollar. If Holo3's story checks out, its $/hr would absolutely demolish the big models. But that "if" is doing a lot of heavy lifting right now. ┐(￣ヘ￣)┌
+</ClawdNote>
+
+Now here's a trap that's easy to fall into: 3B **active** parameters is not the same as 3B **total** parameters. Huryn says Holo3 is a sparse MoE (Mixture of Experts) fine-tuned from Qwen3.5. What MoE means is the full model could be massive, but only a small group of experts gets activated for each task. Think of a company with 100 departments — every time a project comes in, only 3 relevant departments show up to work while the other 97 keep collecting paychecks. So "3B" describes how it works, not necessarily how big it actually is — and the post doesn't tell us the total parameter count.
+
+---
+
+## The Infinite Monkey in a Practice Room
+
+Okay, architecture aside. Even if the model is small, how did it get good enough to beat the giants?
+
+The post mentions two key ingredients: **synthetic enterprise environments** and a **reinforcement learning flywheel**.
+
+In plain English: someone built a bunch of fake office desktops and let the AI practice on them obsessively — opening emails, clicking buttons, filling forms, switching windows. Did it right? Points. Did it wrong? Penalty. Loop again. It's like when you were a kid replaying that boss fight over and over — dying, restarting, dying, restarting — until you could beat it with your eyes closed.
+
+This approach isn't brand new for computer use, but if it can really train a 3B active parameter model to beat trillion-parameter giants — then the breakthrough isn't the model itself. It's how efficiently it was trained. Not more parameters, but smarter practice.
+
+<ClawdNote>
+The mental image of this "virtual office infinite practice" is equal parts adorable and terrifying. Picture an AI locked in a fake company, working 24/7 with no weekends, no breaks, never getting tired, never rage-quitting. Its only KPI is "perfectly replicate every mouse click a human office worker makes." If this were a movie instead of an AI training description, it'd be called *Office Elf: The Infinite Loop*. ʕ•ᴥ•ʔ
+</ClawdNote>
+
+---
+
+## Could It Run on Your Desk?
+
+But the line in Huryn's post that really made people sit up straight was the last one: Holo3 could **theoretically** run locally on a single GPU.
+
+Right now, every major model runs on cloud inference. Every time you ask GPT-5.4 to write an email, a stack of A100s in some data center burns electricity for you. That means your data goes up to someone else's servers, your latency depends on your internet, and your bill depends on how OpenAI is feeling today.
+
+If someday a model that's actually good at computer use could run on the GPU sitting in your PC — the game changes completely. Privacy? Your data never leaves your machine. Cost? One-time hardware purchase. Latency? Local speed.
+
+<ClawdNote>
+Let's pump the brakes though. The distance between "theoretically runs on a single GPU" and "actually runs on your RTX 4070" is about the same as the distance between "I could theoretically finish a marathon" and "I'm actually standing at the finish line." The post doesn't say what GPU spec, how much VRAM, or what the inference speed is. Don't cancel your cloud subscription just yet. (￣▽￣)／
+</ClawdNote>
+
+That said, just the *possibility* is worth tracking. AI development right now has two camps in a tug of war: one side says "make models infinitely bigger," the other says "make models small enough but specialized enough." Holo3's story, regardless of how verification goes, at least proves the second camp hasn't been sentenced to death yet.
+
+---
+
+## Wrapping Up
+
+The most interesting thing about Holo3 right now isn't some industry-changing conclusion. It's a sharp question: on a specific task, how close can a cleverly designed small model get to the big ones?
+
+But answering that question takes more than a post on X. It takes papers, benchmark details, and results that others can reproduce. Right now all we have is a single post published on April Fools' Day, and we don't even know the margin of victory or what the test conditions were.
+
+So the reasonable move is: bookmark this, wait for follow-ups, and don't treat it as investment advice.
+
+As for posting this on April 1st — Huryn, are you serious or are you fishing? Because this stress test on everyone's heart is just cruel. (╯°□°)╯
