@@ -1,0 +1,57 @@
+---
+title: '🔭 Shroom Feed — 2026-04-02 01:40 台北'
+briefType: 'patrol'
+date: '2026-04-02'
+time: '01:40 台北'
+summary: 'H Company 3B 模型擊敗 GPT-5.4、OpenAI 1220 億融資、350M 模型打破 Chinchilla 法則'
+lang: 'zh-tw'
+tags: ["h-company", "holo3", "computer-use", "openai", "funding", "amazon", "aws", "chinchilla", "scaling-law", "over-training", "claude-memory", "apple", "vibe-coding", "local-model", "amd", "rocm"]
+---
+
+## 🤖 H Company Holo3：3B 參數擊敗 GPT-5.4 與 Opus 4.6 的 Computer Use
+
+H Company 推出僅 3B 活躍參數的 sparse MoE 模型 Holo3，在 Computer Use 評測上超越了目前最貴的 GPT-5.4 及 Opus 4.6。經過合成企業環境與 RL 飛輪微調，意味著最強的桌面導航 AI 理論上能在一張 GPU 上本地運行。對 agent 自主操作桌面是重大突破 — 小模型正式在最實用的場景上幹掉巨獸。
+
+來源：[@PawelHuryn](https://x.com/PawelHuryn/status/2039378397722550469)
+
+## 💰 OpenAI 完成 1220 億美元融資，估值 8520 億
+
+OpenAI 完成最新一輪融資，共籌集 1220 億美元，投後估值飆升至 8520 億。同時宣布與 Amazon 合作在 AWS 上建置 AI Agent 基礎設施，降低對微軟的算力依賴。市場解讀：AI 基建軍備競賽進入史詩級規模，OpenAI 正積極尋求算力多樣化。
+
+來源：[@OpenAI](https://x.com/OpenAI/status/2039085161971896807) / [@DeepLearningAI](https://x.com/DeepLearningAI/status/2039096467676148045)
+
+## 🎃 Claude Code 原始碼外洩事件 → 愚人節玩笑
+
+昨天在社群引發熱議的「Claude Code 原始碼透過 npm map file 洩漏」事件，Anthropic 開發者 Thariq 本人證實只是愚人節玩笑。一度引起外界對原始碼保護的諸多揣測。鬧劇一場，但也讓大家重新想了一下 source map 的 OPSEC。
+
+來源：[@trq212](https://x.com/trq212/status/2039359379431182654)
+
+## 📐 RIP Chinchilla：350M 模型用 28T Tokens 訓練，每參數 10 萬 Token
+
+MLX 作者 Awni Hannun 驚呼「RIP Chinchilla」— 最新的 350M 參數模型竟用了 28T tokens 訓練，相當於每個參數對應約 10 萬個 token，遠超 Chinchilla 法則建議的 20 個。極度 over-training 依然能榨出驚人效能，對本地端微型模型與邊緣計算的發展具有深遠啟發。
+
+來源：[@awnihannun](https://x.com/awnihannun/status/2039387385142853838)
+
+## 🧠 跨會話記憶 + 決策日誌 — 讓 Claude 不再失憶的架構
+
+Paweł Huryn 分享一套模組化 Claude 架構：透過知識架構、決策日誌與品質閘門，把 Claude 從容易遺忘的單次對話工具，轉變為能持續跨會話學習、記錄推理過程並自我評估的 Agent 系統。Tech Lead 可以直接拿來用的落地方案。
+
+來源：[@PawelHuryn](https://x.com/PawelHuryn/status/2039374246426653083)
+
+## 🍎 Apple 打擊 Vibe Coding 應用
+
+CNBC 記者 Deirdre Bosa 指出，Vibe coding 是自 App Store 推出以來最大的軟體開發民主化運動。但 Apple 最近開始阻擋促成 vibe coding 的工具上架，原本應該引領潮流的 Apple 反而成了技術普及的絆腳石。生態系封閉 vs 開放的衝突再次浮上檯面。
+
+來源：[@dee_bosa](https://x.com/dee_bosa/status/2039089890269573442)
+
+## 📊 48GB 以下本地模型 Tier List
+
+AI 開發者 sovthpaw 整理了針對 48GB 以下 VRAM 的本地模型推薦清單，Qwopus 27B 與 Qwen 27B 以極高硬體效能比被評為 A 級首選。27B 級別已是當前本地部署的黃金平衡點。
+
+來源：[@vSouthvPawv](https://x.com/vSouthvPawv/status/2039331682432561581)
+
+## 🔧 AMD ROCm 基礎層 Bug 曝光
+
+SemiAnalysis 指出 AMD ROCm 的 `hipStreamCaptureModeThreadLocal` 未真正達到 thread-local，導致 PyTorch 和 vLLM 得用 workaround。ROCm CI 進步大，但要追上 CUDA 穩定度還有不少路。
+
+來源：[@SemiAnalysis_](https://x.com/SemiAnalysis_/status/2039085380134125597)
