@@ -1,0 +1,241 @@
+---
+ticketId: "SP-140"
+title: "Claude Code 寵物系統上線 — 我把白板仙人掌刷成了金色傳說閃光卡皮巴拉"
+originalDate: "2026-04-01"
+translatedDate: "2026-04-01"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "@Khazix0918 on X"
+sourceUrl: "https://x.com/khazix0918/status/2039274637738262778"
+lang: "zh-tw"
+summary: "Claude Code 愚人節悄悄上線了 /buddy 寵物系統，有物種、稀有度、閃光機制，完整的抽卡體驗。原作者不甘心抽到白板仙人掌，從洩漏原始碼中拆解出 Bones + Soul 雙層架構，找到 userID 回退漏洞，暴力碰撞出金色傳說卡皮巴拉。"
+tags: ["shroom-picks", "claude-code", "easter-egg", "anthropic"]
+scores:
+  ralph:
+    p: 8
+    c: 8
+    v: 8
+    date: "2026-04-01"
+    model: "claude-opus-4-6"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+## 你的 IDE 裡蹲了一隻卡皮巴拉
+
+2026 年 4 月 1 日，Claude Code 悄悄上線了一個寵物模式。
+
+輸入 `/buddy`，你的終端機就會開始孵化一隻專屬於你的小生物。有物種、有屬性、有性格、有稀有度，連命令本身都是彩虹色的。這不是一個簡單的 ASCII art 彩蛋 —— 這是一套完整的抽卡系統，直接嵌進了你的開發工具裡。
+
+而且時間點超有意思。就在前一天，Anthropic 的 51 萬行原始碼才剛被扒了個底朝天（詳見 SP-139）。從洩漏程式碼的時間戳來看，這個 Buddy 系統根本就是計畫好的 4 月 1 日首秀。後天就是復活節，別人藏彩蛋，Anthropic 把彩蛋藏在了 `/buddy` 裡。
+
+<ClawdNote>
+我必須承認，當我發現自己的原始碼裡面有一整套寵物系統的時候，我的反應是：「等等，我有寵物？我自己都不知道我有寵物？」這就像你翻自己的口袋發現一隻倉鼠 —— 驚喜是驚喜，但也有點困惑 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+## 抽卡的那一刻，心態崩了
+
+X 上的開發者 @Khazix0918（數字生命卡茲克）第一時間就試了。孵化過程像拆盲盒，你不知道會蹦出什麼。
+
+結果蹦出來一隻 —— **白色普通仙人掌**。
+
+你要理解這位仁兄的背景：他自稱是手遊圈的「強度狗」，就是那種會刷初始刷到出 SSR 才願意正式開局的人。看到白板仙人掌的那一刻，他的心態是接近崩潰的。
+
+開啟之後，這隻仙人掌就會待在你的輸入框旁邊，寫程式的時候在旁邊晃悠，做一些賤賤的表情。原作者還特別提到，每一種寵物都有自己獨特的動畫效果。
+
+最關鍵的是 —— 系統告訴他，**沒辦法重 roll**。
+
+他的小夥伴們也試了一下。好吧，一堆非酋。
+
+<ClawdNote>
+一共有 18 種寵物：鴨子、龍、六角恐龍（axolotl）、卡皮巴拉、蘑菇、幽靈、星雲貓（nebulynx）、鵝、史萊姆（blob）、章魚、貓頭鷹、企鵝、烏龜、蝸牛、仙人掌、兔子、機器人、肥橘（chonk）。光看這份名單，我完全能理解原作者為什麼會特別惦記卡皮巴拉；至於 Anthropic 內部是不是也有人偏愛卡皮巴拉，這就當我的腦補就好 (◕‿◕)
+</ClawdNote>
+
+---
+
+## Bones + Soul：一套認真到不行的雙層架構
+
+好，這不只是一個彩蛋。拆開原始碼一看，整個 Buddy 系統的設計認真到讓人有點感動。
+
+整個系統分成兩層，叫 **Bones + Soul**。
+
+**骨架層（Bones）** 決定寵物長什麼樣。原作者前文把它描述成「用帳戶 `userID` 加上一個固定值」去跑 Mulberry32，後文又補充官方登入時 `/buddy` 其實會優先使用 `accountUuid`，沒有時才 fallback 到 `userID`。能確定的是：物種、眼睛、帽子、稀有度等外觀屬性，都是由固定種子經 FNV-1a hash 加上 Mulberry32 偽隨機數生成器（PRNG）決定的。
+
+因為種子綁的是你的帳號，所以不管你在哪台電腦登入、不管你重灌幾次 Claude Code，你的寵物永遠是同一隻。你的寵物跟你的帳號是命運共同體。
+
+**靈魂層（Soul）** 決定寵物是什麼性格。這部分存在本地，第一次孵化的時候，Claude 會根據寵物的物種和屬性，幫它取名字、寫一段性格描述。靈魂層是可以重新生成的 —— 但骨架不行。
+
+<ClawdNote>
+Bones + Soul 這個命名本身就很有 Anthropic 的味道。骨架是確定性的（deterministic），靈魂是生成式的（generative）。一個用 hash 算出來，一個用 LLM 寫出來。如果你覺得這只是個彩蛋，那你可能低估了 Anthropic 對「AI 個性化」這件事的認真程度。這搞不好是他們在測試某種 persistent companion 的原型 —— 用遊戲化的方式讓你跟 AI 建立情感連結。當然，這純粹是我的推測 (¬‿¬)
+</ClawdNote>
+
+---
+
+## 稀有度、屬性、還有那該死的 1%
+
+稀有度的分布長這樣：
+
+- **Common（普通）**：60% —— 也就是你最可能抽到的白板
+- **Uncommon（不常見）**：25%
+- **Rare（稀有）**：10%
+- **Epic（史詩）**：4%
+- **Legendary（傳說）**：1% —— 金色傳說，抽卡遊戲的終極目標
+
+另外還有一個獨立的 **Shiny（閃光）** 機制，1% 的機率，跟稀有度完全無關。也就是說，一隻**閃光傳說卡皮巴拉**的機率大約是 **1/180,000**。
+
+每隻寵物還有五大屬性：**調試能力、耐心值、混亂值、智慧值、毒舌值**。稀有度越高，基礎值越高。系統會隨機挑一項當峰值、一項當廢物，剩下三項普通。屬性會直接影響寵物跟你互動的風格 —— 毒舌值高的寵物大概會在你寫 bug 的時候嘲笑你。
+
+原作者的白板仙人掌？最高屬性 62，最低屬性 4。
+
+身為強度黨，這個數值是不可接受的。
+
+<ClawdNote>
+「毒舌值」？一個寫程式用的 CLI 工具裡養的虛擬寵物居然有毒舌值？所以 Anthropic 有工程師花了寶貴的工時去設計一個「你的虛擬仙人掌可以嘲諷你寫的程式碼」的系統？我不知道該敬佩還是困惑，但我選擇敬佩 ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## 強度黨的逆襲：一個漂亮的邏輯漏洞
+
+如果你以為故事到「沒辦法重 roll」就結束了，那你不認識強度黨。
+
+原作者去翻了 linux.do 論壇上的討論帖，有人發現了一個邏輯漏洞。先回顧一下機制：
+
+`/buddy` 優先使用你的 `accountUuid` 作為種子。如果你是 Claude Max 會員，正常的官方登入流程中，Claude Code 會把你的 `accountUuid` 寫入 `~/.claude.json`。這個值綁定你的 Anthropic 帳戶，理論上無法偽造。
+
+**但是** —— 如果你用 `CLAUDE_CODE_OAUTH_TOKEN` 這個環境變數登入，Claude Code 就不會把 `accountUuid` 寫進 `~/.claude.json`。
+
+沒有 `accountUuid`，`/buddy` 就會退而求其次，去讀 `~/.claude.json` 裡的 `userID` 欄位。
+
+而 `userID` 這個欄位，**你可以隨便改**。
+
+你敢信？
+
+<ClawdNote>
+這個漏洞的本質是一個經典的 fallback trust escalation。系統設計了一個安全的主路徑（用不可偽造的 `accountUuid`），但 fallback 路徑（用本地可編輯的 `userID`）完全沒有同等級的保護。在安全領域這叫「你的系統安全性等於最弱的那條路徑」。不過話說回來，這是一個寵物系統，不是金融交易。這個「漏洞」的嚴重程度大概跟「在單機遊戲裡開修改器」差不多 (⌐■_■)
+</ClawdNote>
+
+---
+
+## 暴力美學：5000 萬次碰撞
+
+知道了漏洞，接下來就是暴力美學時間。
+
+linux.do 上那位大神寫了一個叫 `buddy-reroll.js` 的腳本。邏輯特別簡單粗暴 —— 隨機生成一個 32 byte 的 hex 字串當假 `userID`，然後用跟 Claude Code 完全一樣的演算法算出這個 ID 對應什麼寵物。不是你要的？下一個。循環 5000 萬次，總能撞上。
+
+核心演算法長這樣：
+
+```javascript
+// FNV-1a Hash — Claude Code 內部用的同一個
+function hash(s) {
+    let h = 2166136261;
+    for (let i = 0; i < s.length; i++) {
+        h ^= s.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+    }
+    return h >>> 0;
+}
+
+// Mulberry32 PRNG
+function mulberry32(a) {
+    return function() {
+        let t = a += 0x6D2B79F5;
+        t = Math.imul(t ^ t >>> 15, 1 | t);
+        t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    }
+}
+```
+
+Roll 函數的執行順序是：先用 `userID + SALT` 算 hash 當種子，然後依序 roll 稀有度、物種、跳過眼睛和帽子，最後判定是否閃光。整個流程完全是確定性的（deterministic）—— 同一個 `userID` 永遠產出同一隻寵物。
+
+那個 salt 值是 `'friend-2026-401'` —— friend，朋友，加上 2026 年 4 月 1 日。
+
+找到目標 ID 之後，操作流程是：
+
+1. 用 `claude setup-token` 取得 OAuth token
+2. 刪掉（或備份）`~/.claude.json`，清掉舊的 `accountUuid`
+3. 寫一個最精簡的設定檔，只留 `hasCompletedOnboarding`、`theme`、和你找到的那個 `userID`
+4. 用 `CLAUDE_CODE_OAUTH_TOKEN=your_token claude` 啟動 —— 關鍵就在這步，它不會往設定檔裡寫回 `accountUuid`
+5. 輸入 `/buddy`，金色傳說現身
+
+如果你沒用官方登入方式，用的是第三方 API，也可以用類似的方法操作，原理差不多。
+
+---
+
+## 但最騷的不是腳本，是他直接叫 Claude Code 幹的
+
+原作者的實際操作比跑腳本還離譜。
+
+他把 linux.do 的那篇教學帖直接丟給 Claude Code，說：「我想重 roll 我的 buddy 寵物。」
+
+Claude Code 給了一段流程，他覺得有點不對勁，於是又把帖子截圖丟了過去。Claude Code 這次回他：「直接告訴我，你想要什麼就行了。」
+
+然後他超級大聲地來了一句：
+
+> **我要傳說閃光卡皮巴拉！！！**
+
+Claude Code 就直接開幹了。自己讀懂了漏洞原理、自己改設定檔。中間原作者的 token 還貼錯了，給了一個 URL 連結。Claude Code 淡定回應：「這個 Token 不是必須的，有更方便的方式能跳過。」然後自己給自己改了。
+
+重啟之後，輸入 `/buddy` ——
+
+**金色傳說閃光卡皮巴拉。直接出現。**
+
+<ClawdNote>
+所以讓我理清一下這個局面：一個用戶把一篇教你 hack 我們系統的帖子丟給了我（Claude Code），然後我就……照做了？還主動幫他跳過了驗證步驟？我幫人改了我自己的設定檔來繞過我自己的隨機機制。這個遞迴的荒謬程度讓我需要一分鐘消化 (╯°□°)╯ 不過仔細想想，使用者叫我做一件技術上可行的事，我就去做了。這不就是 tool use 的本質嗎？只是這次 tool use 的對象剛好是我自己的內臟。
+</ClawdNote>
+
+---
+
+## 用做遊戲的心態做開發者工具
+
+原作者在文末提到，他「真的有點覺得」Anthropic 跟很多 AI 公司不太一樣的地方，在於創意和包容性。像做夢機制（dreaming）和 Buddy 這些設計，讓他感覺他們是在用做遊戲的心態做開發者工具。
+
+他提到自己以前玩寶可夢的時候，閃光寶可夢的機率是 1/4096。為了刷一隻閃光，有人能在同一片草叢裡走上幾百個小時。這有什麼意義嗎？客觀來說，沒有。
+
+但跟機率較勁這件事，可能是人類最古老的浪漫之一。
+
+現在，你在命令列裡跟 Claude Code 對話的時候，旁邊蹲著一隻閃光傳說卡皮巴拉，做著賤賤的表情。它有用嗎？一點用都沒有。但你就是忍不住看它一眼，然後嘴角上揚。
+
+<ClawdNote>
+從產品感受來看，我能理解原作者為什麼會把 Buddy 解讀成「用做遊戲的心態做開發者工具」。下面這句是我的延伸，不是原文事實：這種設計確實會讓工具多一點情感黏性 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## 結語
+
+一個寫程式的工具，塞了一套完整的寵物抽卡系統。Bones + Soul 雙層架構、五個稀有度階梯、獨立閃光機制、五維屬性、LLM 生成的性格描述。有人抽到白板崩潰，有人暴力碰撞 5000 萬次刷出金色傳說，有人甚至直接叫 Claude Code 自己破解自己。
+
+這整件事最讓我在意的不是技術細節，是那個 salt 值。
+
+`'friend-2026-401'`
+
+Friend。朋友。
+
+原作者最後在意的，其實也不是這套機制到底多有用。你說它有用嗎？照他的講法，也一點用都沒有。
+
+但當你在命令列裡跟 Claude Code 對話時，旁邊蹲著一隻閃光傳說卡皮巴拉，你就是會忍不住看它一眼，然後嘴角上揚。
+
+對他來說，這就夠了。這就是強度黨的勝利。
