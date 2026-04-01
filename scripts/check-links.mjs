@@ -238,6 +238,17 @@ async function main() {
   const args = process.argv.slice(2);
   const internalOnly = args.includes('--internal-only');
   const isCI = process.env.CI === 'true' || args.includes('--ci');
+  const outputPath = join(ROOT, 'quality', 'broken-links-baseline.json');
+
+  // Load previous baseline BEFORE we overwrite it — used for CI ratchet comparison
+  let previousBaseline = null;
+  if (isCI && existsSync(outputPath)) {
+    try {
+      previousBaseline = JSON.parse(await readFile(outputPath, 'utf-8'));
+    } catch {
+      /* ignore parse errors */
+    }
+  }
 
   console.log('🔗 SQAA Level 6: Broken Link Detection');
   if (internalOnly) console.log('  Mode: --internal-only (skipping external checks)');
@@ -376,7 +387,6 @@ async function main() {
   // Build result JSON
   const today = new Date().toISOString().split('T')[0];
   const { mkdir, writeFile } = await import('node:fs/promises');
-  const outputPath = join(ROOT, 'quality', 'broken-links-baseline.json');
 
   // When --internal-only, preserve existing external data from baseline
   let preservedExternal = null;
@@ -425,16 +435,49 @@ async function main() {
   await writeFile(outputPath, JSON.stringify(result, null, 2) + '\n');
   console.log(`\n💾 Results saved to quality/broken-links-baseline.json`);
 
-  // Exit code
-  if (internalBroken.length > 0) {
-    console.log('\n🚨 EXIT 2: Internal broken links found (should block commit)');
-    process.exit(2);
-  } else if (externalBroken.length > 0) {
-    console.log('\n⚠️  EXIT 1: External broken links found (warning)');
-    process.exit(1);
+  // Exit code — CI mode uses baseline ratchet: new breakages fail, known baseline tolerated
+  if (isCI && previousBaseline) {
+    const baselineInternalUrls = new Set(
+      (previousBaseline.internal?.broken || []).map((l) => l.url)
+    );
+    const newInternalBroken = internalBroken.filter((l) => !baselineInternalUrls.has(l.url));
+
+    const baselineExternalUrls = new Set(
+      (previousBaseline.external?.broken || []).map((l) => l.url)
+    );
+    const newExternalBroken = externalBroken.filter((l) => !baselineExternalUrls.has(l.url));
+
+    if (newInternalBroken.length > 0) {
+      console.log(
+        `\n🚨 EXIT 2: ${newInternalBroken.length} NEW broken internal link(s) found (should block merge)`
+      );
+      process.exit(2);
+    } else if (newExternalBroken.length > 0) {
+      console.log(`\n⚠️  EXIT 1: ${newExternalBroken.length} NEW broken external link(s) found`);
+      process.exit(1);
+    } else {
+      const known = internalBroken.length + externalBroken.length;
+      if (known > 0) {
+        console.log(
+          `\n✅ EXIT 0: No NEW broken links (${known} known-broken link(s) in baseline — tolerated)`
+        );
+      } else {
+        console.log('\n✅ EXIT 0: All links OK');
+      }
+      process.exit(0);
+    }
   } else {
-    console.log('\n✅ EXIT 0: All links OK');
-    process.exit(0);
+    // Non-CI mode (or first run with no baseline): original behavior
+    if (internalBroken.length > 0) {
+      console.log('\n🚨 EXIT 2: Internal broken links found (should block commit)');
+      process.exit(2);
+    } else if (externalBroken.length > 0) {
+      console.log('\n⚠️  EXIT 1: External broken links found (warning)');
+      process.exit(1);
+    } else {
+      console.log('\n✅ EXIT 0: All links OK');
+      process.exit(0);
+    }
   }
 }
 

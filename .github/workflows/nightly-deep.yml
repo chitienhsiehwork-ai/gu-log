@@ -151,10 +151,30 @@ jobs:
           path: quality/bundle-size-history.json
           retention-days: 30
 
+  # ─── Full Link Check (internal + external with baseline ratchet) ──
+  link-check:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: 'pnpm' }
+      - run: pnpm install --frozen-lockfile
+
+      - name: Download dist
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Full link check (internal + external)
+        run: pnpm run links:check -- --ci
+
   # ─── Notify on failure ────────────────────────────────────────────
   notify-failure:
     runs-on: ubuntu-latest
-    needs: [visual-test, lighthouse, security-audit, dependency-freshness, bundle-budget-record]
+    needs: [visual-test, lighthouse, security-audit, dependency-freshness, bundle-budget-record, link-check]
     if: failure()
     steps:
       - name: Collect failed jobs
@@ -173,6 +193,7 @@ jobs:
           [ "${{ needs.security-audit.result }}" = "failure" ] && FAILED_JOBS="${FAILED_JOBS}• security-audit%0A"
           [ "${{ needs.dependency-freshness.result }}" = "failure" ] && FAILED_JOBS="${FAILED_JOBS}• dependency-freshness%0A"
           [ "${{ needs.bundle-budget-record.result }}" = "failure" ] && FAILED_JOBS="${FAILED_JOBS}• bundle-budget-record%0A"
+          [ "${{ needs.link-check.result }}" = "failure" ] && FAILED_JOBS="${FAILED_JOBS}• link-check%0A"
 
           echo "failed_jobs=${FAILED_JOBS}" >> "$GITHUB_OUTPUT"
 
