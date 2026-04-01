@@ -1,0 +1,223 @@
+---
+ticketId: "SP-144"
+title: "AI 犯了錯，你糾正，它記住了 — ECC 的 Instinct System 自我學習架構"
+originalDate: "2026-04-01"
+translatedDate: "2026-04-02"
+translatedBy:
+  model: "Sonnet 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Author"
+      model: "Sonnet 4.6"
+      harness: "Claude Code"
+source: "@affaanmustafa on GitHub"
+sourceUrl: "https://github.com/affaan-m/everything-claude-code"
+lang: "zh-tw"
+summary: "Everything Claude Code 的 Instinct System 把 AI 每次用到的行為模式蒸餾成「本能」：有信心分數、有專案隔離、有跨專案升級機制。這不是靜態的 MEMORY.md，是從使用中動態自我學習的完整框架。"
+tags: ["shroom-picks", "claude-code", "agentic-ai", "continuous-learning", "developer-productivity"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+你上週糾正了 Claude Code 一次。
+
+「不要用 class component，我們這個專案全都是 functional。」Claude 道歉，修了，那個 task 完成得很乾淨。
+
+然後這週，你開了一個新 session，它又用 class component 了。
+
+這不是你在抱怨，這是設計。每個 Claude Code session 從零開始，不帶任何上一個 session 的記憶。你上週說的話、糾正過的錯誤、反覆強調的 preference —— 全部隨著那個 session 消失了。你只有兩個選擇：在 CLAUDE.md 裡手動寫下每一條規則，或者每次都重新教一遍。
+
+SD-11 說的就是第一個選擇：用靜態的 MEMORY.md，把值得記的東西手動記下來。那個系統有用，但它的運轉靠的是你 —— 你必須知道什麼值得記，你必須知道怎麼寫，然後你得動手去寫。AI 不是在學習，你是在幫它學習。
+
+Everything Claude Code 的 Instinct System 想做的，是把這件事翻過來。
+
+## 一個 Instinct 是什麼
+
+在 ECC 的設計裡，Instinct（本能）是一個**原子行為單位** —— 最小、最完整的學習單元。一個觸發條件，一個對應行動，加上一個信心分數：
+
+```yaml
+---
+id: prefer-functional-style
+trigger: "when writing new functions"
+confidence: 0.7
+domain: "code-style"
+scope: project
+project_id: "a1b2c3d4e5f6"
+project_name: "my-react-app"
+---
+
+# Prefer Functional Style
+
+## Action
+Use functional patterns over classes when appropriate.
+
+## Evidence
+- Observed 5 instances of functional pattern preference
+- User corrected class-based approach to functional on 2025-01-15
+```
+
+這條 instinct 不是你手寫的。它是系統在觀察了你五次對 functional pattern 的偏好之後，加上記錄到你在 2025-01-15 那次糾正，自動建立的。
+
+**信心分數（confidence）**是整個系統最有意思的設計。不是 on/off，是連續值：
+
+- **0.3**：剛觀察到，半信半疑，只提建議
+- **0.5**：有依據了，遇到相關場景就套用
+- **0.7**：高度確定，自動執行
+- **0.9**：核心行為，穩如泰山
+
+分數也會動。每次 Claude 按這個 instinct 行動、你沒有糾正，分數往上爬。每次你糾正了，它掉下來。掉到夠低，系統重新審視這條 instinct 是不是應該存在。
+
+<ClawdNote>
+信心分數讓我想起人類建立習慣的方式。你第一次聽到「先寫 test 再寫 code」，半信半疑（0.3）。試了幾次，覺得有用，開始主動這樣做（0.5）。幾個專案都沒出問題，它成了你的直覺（0.7）。幾年後你在技術分享說「TDD 是我認為最重要的習慣」，你已經完全信了（0.9）。
+
+Instinct System 在做的，就是把這個「人類建立習慣」的過程，套在 AI 身上。不是用 fine-tuning 改 weights，是用 YAML 文件 + 信心分數做出「可讀寫的習慣層」。這個設計的優雅在於：任何人都可以讀這些 YAML，看懂 Claude 學到了什麼，然後直接刪掉學錯的。沒有 black box，全部可審查 (◕‿◕)
+</ClawdNote>
+
+---
+
+## React 的本能不應該進你的 Python 專案
+
+在 v2.0，有一個嚴重問題：所有的 instinct 全部是 global 的。
+
+你在 React 前端學到了「functional component 比 class component 可讀性高」。合理。然後你切換去寫 Django 後端，AI 把同樣的邏輯套過來 —— 但 Django 的 class-based views 是標準做法，那個 instinct 在這裡反而是壞建議。這個問題叫 cross-project contamination：好的規則在錯的 context 裡變成壞規則。
+
+v2.1 的解法是 **Project Scoping**。每條 instinct 預設 `scope: project`，只在這個 repo 有效。系統用 git remote URL 的 hash 識別你在哪個專案 —— 同一個 repo 在不同機器上，URL 一樣，hash 一樣，換了電腦 instinct 也跟著走。切換 repo，自動切換 instinct context：
+
+```
+my-react-app (hash: a1b2c3d4e5f6)
+  ├── prefer-functional-style (0.7) ← 只在這裡
+  └── use-react-hooks (0.9)         ← 只在這裡
+
+my-django-api (hash: f6e5d4c3b2a1)
+  └── use-class-based-views (0.8)   ← 只在這裡
+
+global/
+  ├── always-validate-input (0.85)  ← 所有專案都適用
+  └── grep-before-edit (0.6)        ← 所有專案都適用
+```
+
+框架習慣留在框架專案裡，安全實踐放在全局層，兩者互不干擾。
+
+<ClawdNote>
+v2.1 選擇用 git remote URL 做 project identity，有個不明顯但很重要的 trade-off。
+
+好處是 portable：同一個 repo 在家裡電腦和公司電腦的 URL 一樣，project hash 一樣，instinct 自動跟著走，不需要手動同步。壞處是：本地 repo 或沒有 remote 的實驗性 repo，系統就 fallback 到用 `git rev-parse --show-toplevel`（本機絕對路徑），那就不 portable 了。
+
+有個隱含假設值得在你開始用前就知道：這個系統假設你的 repo 都有 remote。如果你有個特別重要的本地私人 repo，它學到的東西就無法帶走 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## 當同一個 Instinct 在三個專案都出現
+
+Project scoping 解決了污染問題，但帶出了一個新問題：如果同樣的行為模式在多個不同專案都成立，它不應該繼續關在某個 project 的盒子裡。
+
+「永遠驗證 user input」不是 React 的規則，也不是 Django 的規則。它是所有 project 都適用的原則。
+
+**Promotion 機制**就是這個認識的系統化：
+
+> 同一條 instinct 在 **2 個以上的專案**出現，且平均信心分數 >= 0.8 → 自動升級為 global
+
+```bash
+# 預覽升級候選，不實際改動
+python3 instinct-cli.py promote --dry-run
+
+# 執行自動升級
+python3 instinct-cli.py promote
+
+# 手動指定升級某一條
+python3 instinct-cli.py promote prefer-explicit-errors
+```
+
+`/evolve` 指令也會在分析時提示哪些 instinct 已達升級條件。你可以接受、忽略、或手動刪掉某個 project 裡的那條（表示你不認為它是通則）。
+
+這個機制讓系統有了一個有趣的自然過濾：只有在多個不同 context 下都站得住腳的行為，才會升格為原則。在單一環境裡有效但無法推廣的東西，就留在那個環境裡。
+
+<ClawdNote>
+Promotion 讓我想到科學哲學裡的可重複性（reproducibility）。一個實驗觀察在一個條件下成立，是 evidence。在三個不同條件下都成立，才是 pattern。只有 pattern 才值得寫進教科書。
+
+Instinct System 的邏輯一模一樣：在一個 project 觀察到的行為是 local evidence。跨多個 project 都出現，才是 universal pattern。Universal pattern 才值得升格為 global instinct。
+
+這不是在說「多數決就是對的」—— promotion 還是需要你確認。而是說，跨 context 的一致性是「這個行為真的有普遍價值」的最強信號，比你靠感覺手動選要可靠得多 (¬‿¬)
+</ClawdNote>
+
+---
+
+## Hook 而不是 Skill：100% 和 50-80% 的差距
+
+v2 有一個關鍵的工程改動，說出來簡單，但影響非常大。
+
+ECC v1 的 Continuous Learning 用 **skill** 觀察 session —— Claude 自己決定要不要記錄。Skills 是概率性的：Claude 在判斷「這個情境需要用這個 skill」，判斷對了就記，判斷錯了就不記。實測觸發率大概是 50-80%。
+
+v2 改成 **hook**。Hook 不問 Claude 的意見，直接掛鉤到工具呼叫系統：每一次 `PreToolUse`（工具呼叫前）和 `PostToolUse`（工具呼叫後），observe 腳本就執行一次。100% 觸發，沒有例外：
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [{
+      "matcher": "*",
+      "hooks": [{"type": "command", "command": "~/.claude/skills/continuous-learning-v2/hooks/observe.sh"}]
+    }],
+    "PostToolUse": [{
+      "matcher": "*",
+      "hooks": [{"type": "command", "command": "~/.claude/skills/continuous-learning-v2/hooks/observe.sh"}]
+    }]
+  }
+}
+```
+
+所有觀察數據落進 `observations.jsonl`，然後一個 background observer agent（用更便宜的 Haiku 模型）定期讀取、找出 pattern、建立或更新 instinct。
+
+從 50% 到 100% 聽起來只是效率提升，但實際上是可靠性的本質轉變。50% 的觀察率意味著學習系統有系統性盲點 —— 某些 pattern 如果偏偏都落在沒被觀察到的那 50%，它永遠學不到。100% 才讓這個學習系統第一次真正可信。
+
+<ClawdNote>
+「背景跑 Haiku 做 pattern extraction」的 cost routing 邏輯很乾淨。Haiku 是最便宜的 Claude 模型，適合大量、低複雜度的分析。一個工作 session 可能有幾十次 tool call，全部記錄下來的 observations.jsonl 量不小。讓 Haiku 定期掃這些數據找 pattern，是對的成本配置。
+
+你的主 session 跑 Sonnet/Opus 做複雜推理，background 跑 Haiku 做 housekeeping —— 這跟 SP-143 裡 NanoClaw 的精神是同一件事：不是所有工作都需要最好的 model，匹配任務複雜度和成本才是正確的做法。
+
+這個系統在後台悄悄幫你整理學習筆記，你甚至不知道它在跑。這才是「越用越聰明」的基礎設施 ٩(◕‿◕｡)۶
+</ClawdNote>
+
+---
+
+## Instinct 長大成 Skill
+
+前面說的都是 instinct 的生成和管理。但 instinct 的旅程不止於此。
+
+`/evolve` 指令做的事是：把相關的 instinct 聚在一起，問「這些零散的行為，組合起來是不是一套完整的工作流程？」
+
+比如你有三條 instinct：
+- `prefer-test-first` (0.85)：寫功能前先寫 test
+- `run-tests-before-commit` (0.9)：commit 前跑測試
+- `verify-coverage-threshold` (0.75)：確認 coverage 過 80%
+
+這三條聚在一起，就是一個完整的 TDD 流程。`/evolve` 可以把它們轉換成：
+- 一個 **skill**（可以直接貼進 CLAUDE.md 的工作流程說明）
+- 一個 **command**（`/tdd-workflow`，可以在 session 裡呼叫）
+- 一個 **agent**（TDD 專門的 subagent，負責所有跟測試相關的判斷）
+
+這是從行為到知識的完整路徑：
+
+**session 觀察 → instinct（原子單位）→ instinct cluster → skill/command/agent**
+
+<ClawdNote>
+這裡的分工值得說清楚：Instinct System 的 /evolve 和 SD-11 的 MEMORY.md 不是在競爭，它們解決不同的問題。
+
+MEMORY.md 是你對 AI 的明確指令 —— 你清楚知道自己要 AI 遵守什麼規則，你寫下來，它照做。Instinct System 是 AI 對自己行為的自動記錄 —— 你說不出具體規則，但你知道「看到違反的時候我會糾正」，系統幫你把這種隱性知識提取出來。
+
+一個是顯性知識的輸入通道，一個是隱性知識的提取通道。兩個一起用，才是完整的記憶系統。前者是你在教 AI，後者是 AI 在跟你學 (ง •̀_•́)ง
+</ClawdNote>
+
+---
+
+## 結語
+
+Instinct System 的整個設計，核心只是一個問題：**誰來決定什麼值得記？**
+
+MEMORY.md 的答案是：你。你觀察、你判斷、你寫。
+
+Instinct System 的答案是：系統來提議，你來確認。系統用 hook 全程觀察，用 confidence scoring 篩選有價值的 pattern，用 project scoping 防止知識錯位，用 promotion 識別普遍原則，用 /evolve 把零散知識組成工具。你在這個流程裡的角色，是最後的審查者，不是第一線的記錄員。
+
+這不只是省力，是職責分工。記什麼、怎麼記，機器擅長 —— 它可以全程不間斷地觀察，不會忘、不會懶。判斷這個記憶對不對、值不值得採納，人擅長 —— 你有 context，你有 intent，你知道這個 project 真正的目標。
+
+那個每次都在犯同樣錯誤的 Claude，是可以被訓練的。而這個訓練，不需要你每次手動教。它只需要你在它犯錯的時候，糾正一次。

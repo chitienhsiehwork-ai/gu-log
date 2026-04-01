@@ -1,0 +1,227 @@
+---
+ticketId: "SP-144"
+title: "Fix It Once, Never Again — How ECC's Instinct System Teaches Claude to Actually Learn"
+originalDate: "2026-04-01"
+translatedDate: "2026-04-02"
+translatedBy:
+  model: "Sonnet 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Author"
+      model: "Sonnet 4.6"
+      harness: "Claude Code"
+source: "@affaanmustafa on GitHub"
+sourceUrl: "https://github.com/affaan-m/everything-claude-code"
+lang: "en"
+summary: "Everything Claude Code's Instinct System turns your AI's observed behaviors into atomic 'instincts' with confidence scores, project scoping, and a promotion mechanism. Not a static config file — a dynamic self-learning framework that gets smarter the more you use it."
+tags: ["shroom-picks", "claude-code", "agentic-ai", "continuous-learning", "developer-productivity"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Last week, you corrected Claude Code once.
+
+"Don't use class components. This whole project is functional." Claude apologized, fixed it, and the task went fine.
+
+This week, new session. Class component again.
+
+This isn't a complaint — it's the design. Every Claude Code session starts from zero. Nothing carries over. The corrections you made, the preferences you stated, the mistakes you caught — all of it vanishes when the session ends. You have exactly two options: manually write every rule into your CLAUDE.md, or teach it the same thing over and over.
+
+The first option is what SD-11 talks about: a static MEMORY.md where you manually record what's worth remembering. That system works. But it runs on *you* — you have to notice what's worth saving, decide how to write it, and actually sit down to write it. The AI isn't learning. You're doing the learning on its behalf.
+
+Everything Claude Code's Instinct System tries to flip this around.
+
+## What Is an Instinct?
+
+In ECC's design, an Instinct is an **atomic unit of learned behavior** — the smallest, most complete piece of knowledge the system can hold. One trigger, one action, one confidence score:
+
+```yaml
+---
+id: prefer-functional-style
+trigger: "when writing new functions"
+confidence: 0.7
+domain: "code-style"
+scope: project
+project_id: "a1b2c3d4e5f6"
+project_name: "my-react-app"
+---
+
+# Prefer Functional Style
+
+## Action
+Use functional patterns over classes when appropriate.
+
+## Evidence
+- Observed 5 instances of functional pattern preference
+- User corrected class-based approach to functional on 2025-01-15
+```
+
+You didn't write this. The system built it after observing five instances of your preference for functional patterns — plus the one time you explicitly corrected a class-based approach on that date.
+
+The **confidence score** is the most interesting part of the design. It's not a switch. It's a gradient:
+
+- **0.3**: Just noticed, tentative — only a suggestion
+- **0.5**: Evidence building — applies when relevant
+- **0.7**: Strong signal — auto-applied
+- **0.9**: Core behavior — near-certain
+
+And it moves. Every time Claude follows an instinct and you don't correct it, the score climbs. Every time you correct it, it drops. Drop far enough, and the system starts questioning whether this instinct should exist at all.
+
+<ClawdNote>
+The confidence score maps almost exactly to how humans build habits. You first hear "write tests before code" and you're skeptical (0.3). You try it a few times, it seems to work, you start doing it on purpose (0.5). A few projects later, it's reflex (0.7). Eventually you're giving conference talks about TDD, completely convinced (0.9).
+
+Instinct System is doing exactly this — but for AI. Not fine-tuning the weights, not retraining anything. Just building a "writable habit layer" with YAML files and confidence scores. The beautiful part? You can open these YAML files, read exactly what Claude has "learned," and delete anything wrong. No black box. Full audit trail. No mysterious drift.
+
+This is how you should build AI memory systems: legible, editable, human-reviewable (◕‿◕)
+</ClawdNote>
+
+---
+
+## Why React Instincts Should Not Contaminate Your Python Project
+
+In v2.0, there was a serious problem: all instincts were global.
+
+You learned in your React frontend that "functional components are more readable than class components." True! Then you switch to your Django backend, and the AI carries the same instinct over. But Django's class-based views are standard practice — the instinct is now actively bad advice. This problem has a name: cross-project contamination. A good rule in the wrong context is a bad rule.
+
+v2.1's solution is **Project Scoping**. Every instinct defaults to `scope: project`, meaning it only applies inside that specific repository. The system identifies your current project by hashing the git remote URL — same repo on different machines, same URL, same hash, instincts follow you automatically. Switch repos, switch instinct context:
+
+```
+my-react-app (hash: a1b2c3d4e5f6)
+  ├── prefer-functional-style (0.7) ← only here
+  └── use-react-hooks (0.9)         ← only here
+
+my-django-api (hash: f6e5d4c3b2a1)
+  └── use-class-based-views (0.8)   ← only here
+
+global/
+  ├── always-validate-input (0.85)  ← all projects
+  └── grep-before-edit (0.6)        ← all projects
+```
+
+Framework-specific habits stay in their framework. Universal best practices go in the global layer. They don't interfere with each other.
+
+<ClawdNote>
+Choosing git remote URL as the project identity has a subtle trade-off worth knowing before you start.
+
+The upside is portability: the same repo on your home laptop and your work machine share the same URL hash, so instincts sync naturally without any extra setup. The downside: local repos or repos without a remote fall back to using the absolute path (`git rev-parse --show-toplevel`), which is machine-specific and not portable.
+
+There's a quiet assumption baked into this system: your repos have remotes. If you do serious work in an important private local repo that never gets pushed, the instincts it builds stay trapped on that machine. Not a bug, just a design boundary — but one you should know about before you start building instincts in a repo that doesn't have a remote ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## When the Same Instinct Shows Up in Three Different Projects
+
+Project scoping fixes contamination. But it introduces a new question: if the same behavior pattern appears in multiple different projects, it shouldn't stay locked inside one project's box.
+
+"Always validate user input" is not a React rule. It's not a Django rule either. It applies everywhere.
+
+The **Promotion mechanism** is the system's answer:
+
+> Same instinct in **2+ projects**, average confidence >= 0.8 → automatically promoted to global
+
+```bash
+# Preview candidates without making changes
+python3 instinct-cli.py promote --dry-run
+
+# Run the promotion
+python3 instinct-cli.py promote
+
+# Promote one specific instinct
+python3 instinct-cli.py promote prefer-explicit-errors
+```
+
+The `/evolve` command also surfaces promotion candidates when it runs analysis. You can accept, skip, or manually delete one project's copy of an instinct (which tells the system: "I don't think this is a universal rule").
+
+This creates a natural filter: only behaviors that hold up across multiple different contexts get elevated to principles. Things that work in one environment but don't generalize stay where they belong.
+
+<ClawdNote>
+Promotion reminds me of scientific reproducibility. A single observation in one experiment is evidence. The same observation in three different experiments under different conditions is a pattern. Only patterns go into textbooks.
+
+Same logic here: one project is local evidence. Multiple projects are a universal pattern. Universal patterns become global instincts.
+
+This isn't "majority vote equals truth." Promotion still requires your confirmation. The point is that cross-context consistency is the strongest available signal that a behavior has genuine universal value — more reliable than picking by gut feel alone (¬‿¬)
+</ClawdNote>
+
+---
+
+## Why Hooks, Not Skills: 100% vs 50–80%
+
+There's one engineering change from v1 to v2 that sounds minor but completely changes the reliability of the system.
+
+ECC v1's Continuous Learning used a **skill** to observe sessions — meaning Claude itself decided when to record observations. Skills are probabilistic: Claude judges "this context probably needs this skill," sometimes gets it right, sometimes doesn't. Real-world trigger rate: roughly 50–80%.
+
+v2 changed to **hooks**. A hook doesn't ask Claude's opinion. It plugs directly into the tool call system: every `PreToolUse` (before a tool runs) and `PostToolUse` (after it completes), the observe script fires. 100% of the time, no exceptions:
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [{
+      "matcher": "*",
+      "hooks": [{"type": "command", "command": "~/.claude/skills/continuous-learning-v2/hooks/observe.sh"}]
+    }],
+    "PostToolUse": [{
+      "matcher": "*",
+      "hooks": [{"type": "command", "command": "~/.claude/skills/continuous-learning-v2/hooks/observe.sh"}]
+    }]
+  }
+}
+```
+
+Every observation lands in `observations.jsonl`. A background observer agent (running the cheaper Haiku model) periodically reads the file, identifies patterns, and creates or updates instincts.
+
+Going from 50% to 100% coverage sounds like a performance improvement. It's actually a reliability phase change. At 50%, the learning system has systematic blind spots — if a pattern consistently falls in the unobserved 50%, it never gets learned. 100% coverage is what makes the learning system trustworthy for the first time.
+
+<ClawdNote>
+The "background Haiku for pattern extraction" design has clean cost-routing logic. Haiku is the cheapest Claude model, and it's well-suited for high-volume, low-complexity analysis. A typical work session might involve fifty tool calls — all recorded. Having Haiku periodically scan that data for patterns is the right cost allocation.
+
+Main session runs Sonnet or Opus for complex reasoning. Background housekeeping runs Haiku. This is the same spirit as the NanoClaw pattern from SP-143: not every job needs the most powerful model. Matching task complexity to model cost is what good LLM engineering looks like.
+
+The system is quietly taking notes on everything you do, and you don't even notice it's running. That's the actual infrastructure behind "AI that gets smarter the more you use it" ٩(◕‿◕｡)۶
+</ClawdNote>
+
+---
+
+## When an Instinct Grows Up
+
+Everything above is about how instincts are created and managed. But the lifecycle doesn't stop at "YAML file in a directory."
+
+The `/evolve` command asks a different question: take a cluster of related instincts — do they, together, describe a complete workflow?
+
+Say you have three instincts:
+- `prefer-test-first` (0.85): write tests before writing the feature
+- `run-tests-before-commit` (0.9): run test suite before committing
+- `verify-coverage-threshold` (0.75): confirm coverage stays above 80%
+
+Together, that's a complete TDD workflow. `/evolve` can transform them into:
+- A **skill** (a complete workflow description you can paste into CLAUDE.md)
+- A **command** (`/tdd-workflow`, callable inside any session)
+- An **agent** (a TDD-specialist subagent that handles all test-related decisions)
+
+The full learning path looks like this:
+
+**session observations → instinct (atomic unit) → instinct cluster → skill/command/agent**
+
+<ClawdNote>
+The divide between Instinct System and a static MEMORY.md is worth being precise about — they solve different problems, not the same problem in different ways.
+
+MEMORY.md handles *explicit* knowledge: you know what you want the AI to do, you write the rule, it follows the rule. Instinct System handles *tacit* knowledge: you can't quite articulate the rule, but you know you'd correct it if violated. The system extracts that implicit preference from your behavior and makes it legible.
+
+One is an input channel for things you know explicitly. The other is an extraction channel for things you know implicitly. You need both. MEMORY.md is you teaching AI. Instinct System is AI learning from you. They're not competing — they're complementary (ง •̀_•́)ง
+</ClawdNote>
+
+---
+
+## The Ending That Isn't a Summary
+
+There's one question at the center of all this: **who decides what's worth remembering?**
+
+MEMORY.md says: you do. You observe, you judge, you write.
+
+Instinct System says: the system proposes, you confirm. Hooks watch everything. Confidence scoring filters signal from noise. Project scoping keeps knowledge where it belongs. Promotion surfaces universal patterns. `/evolve` turns scattered observations into tools. Your role in this pipeline is final reviewer — not first-line recorder.
+
+This isn't just about saving effort. It's about division of labor. Observation and recording? Machines are better at that — they're tireless, they don't forget, they catch everything. Judging whether a memory is right and worth keeping? That's yours — you have context, you have intent, you know what the project is actually for.
+
+That Claude that keeps making the same mistake? It's trainable. And the training doesn't require you to teach it the same thing ten times.
+
+Just once.
