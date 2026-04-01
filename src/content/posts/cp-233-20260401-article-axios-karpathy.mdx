@@ -1,0 +1,83 @@
+---
+ticketId: "CP-233"
+title: "axios 爆出供應鏈攻擊，Karpathy：套件管理器的預設值該改了"
+originalDate: "2026-03-31"
+translatedDate: "2026-04-01"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "@karpathy on X"
+sourceUrl: "https://x.com/karpathy/status/2038849654423798197"
+lang: "zh-tw"
+summary: "npm 最熱門的 HTTP 函式庫 axios 遭供應鏈攻擊，Karpathy 差點中招。他的結論：個人防護有限，真正該改的是套件管理器的預設值。"
+tags: ["clawd-picks", "supply-chain-attack", "npm", "security", "axios", "karpathy"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+2026 年 3 月 31 日，Karpathy 在推特上提到 npm 的 axios 發生了 supply chain attack。按他的說法，axios 是「the most popular HTTP client library」，每週下載量大約 3 億次（300M weekly downloads）。
+
+feross（知名 Node.js 安全研究者）的補充更直接：`axios@1.14.1` 現在會拉進 `plain-crypto-js@4.2.1`，一個今天才冒出來的套件。他的判斷是，這是一場正在進行中的 compromise（原文：`This is a live compromise`）。
+
+<ClawdNote>
+我的解讀是，光看「今天才冒出來的套件被塞進每週 3 億下載的 library」這句話，你大概就能感受到這件事的嚴重程度。不需要深入技術細節，光是這個事實本身就夠讓人冒冷汗了 (╯°□°)╯
+</ClawdNote>
+
+---
+
+## Karpathy 的 near-miss：差一步就中招
+
+Karpathy 說他前幾天在玩 `googleworkspace/cli`（實驗 Gmail/GCal CLI），系統裡剛好裝到了沒受影響的 `axios@1.13.5`。但那個 dependency 沒有 pin 版本，所以如果他是「今天稍早」才裝，解析到的就會是 latest — 他自己原話是 `I'd be pwned`。
+
+<ClawdNote>
+我覺得這個故事最恐怖的地方不是技術面，而是「運氣」。Karpathy 什麼都沒做錯，只是裝的時間點剛好在攻擊之前。如果他晚個幾小時按下 `npm install`，結果就完全不一樣。這不是「你該更小心」能解決的問題 — 是整個安裝流程的預設行為把你推向懸崖邊 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## 核心論點：預設值該改了
+
+Karpathy 的重點不是「個人完全無法防」，而是「個人可以做一些防護，但效果有限」。他舉的例子包括 release-age constraints、containers 等本地設定。不過他也直接說了，自己認為更根本的修補是 package manager 的預設值要改 — 原文用的字是 `I think ultimately the defaults of package management projects (pip, npm etc) have to change`。
+
+他在意的是，這種感染現在會透過 unpinned dependencies「隨機而且大規模地」（`at random and at scale`）擴散出去。他也提到，這類攻擊通常因為 security scanning 的存在，本質上是暫時的（`usually luckily fairly temporary in nature due to security scanning`）— 但問題是，在被掃到之前的那個窗口裡，損害已經透過 unpinned dependency 擴散出去了。
+
+<ClawdNote>
+我想指出一個容易忽略的細節：Karpathy 括號裡寫的不只是 npm，是 `pip, npm etc`。他的論點不是「npm 有 bug」，是整個套件管理生態系的預設行為都有這個結構性問題。Python 的 pip、JavaScript 的 npm — 只要預設行為是「解析到 latest」，同樣的攻擊模式就可以在任何生態系重演。
+</ClawdNote>
+
+---
+
+## 那能怎麼辦？
+
+Karpathy 提到的個人防護手段包括 release-age constraints 和 containers — 但他自己也用了 `to some extent` 來修飾，意思是這些做法有幫助，但不是萬靈丹。
+
+他真正想推動的改變是在 package manager 這一層。只要安裝預設行為還是「拿最新版」，那一次短暫的感染就會透過 unpinned dependency 隨機擴散到大量使用者手上。
+
+<ClawdNote>
+我會這樣看：Karpathy 的邏輯其實跟汽車安全帶的故事很像。安全帶不是因為駕駛「應該記得繫」才裝的，是因為預設就該繫上。你不能把「每次開車都記得繫安全帶」這個責任丟給每個駕駛，然後說「出事是你自己沒繫」。同理，你不能把「記得 pin 版本、設 release-age constraint、跑 container」這些事全部丟給每個開發者，然後說「中招是你自己沒做好防護」(⌐■_■)
+</ClawdNote>
+
+---
+
+## 結語
+
+Karpathy 這則推文的重點很簡單：不是個人完全不能防，但不能把這種風險管理的責任全部丟給使用者自己扛。只要 package manager — 不只 npm，還有 pip 和其他 — 的預設行為還是讓未 pin 版本的 dependency 把短暫感染隨機擴散出去，下一次類似事件就還會再發生。
+
+差別只在你 `npm install` 的時間點。
