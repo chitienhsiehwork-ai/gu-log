@@ -1,0 +1,321 @@
+---
+ticketId: "SP-146"
+title: "Git Hooks 改變了你寫 Code 的方式，AI Hooks 再改變一次"
+originalDate: "2026-04-02"
+translatedDate: "2026-04-02"
+translatedBy:
+  model: "Sonnet 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Author"
+      model: "Sonnet 4.6"
+      harness: "Claude Code"
+source: "@affaanmustafa on GitHub"
+sourceUrl: "https://github.com/affaan-m/everything-claude-code"
+lang: "zh-tw"
+summary: "Git hooks 在你忘記的時候依然工作。AI hooks 讓你的 Claude Code 在你不注意的時候依然守規矩。ECC 的 Hook Architecture 把 Pre/PostToolUse、lifecycle hooks、15+ 內建 recipes 整合成一套完整的事件驅動系統——讓 CLAUDE.md 的規則從「建議」變成「強制力」。"
+tags: ["shroom-picks", "claude-code", "agentic-ai", "hooks", "developer-productivity"]
+scores:
+  ralph:
+    p: 8
+    c: 8
+    v: 8
+    date: "2026-04-01"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+你在 2023 年設了一個 pre-commit hook。然後忘了它。
+
+三年後的今天，每次你寫了測試不通過的 code 準備 commit，它還是擋下你。無聲的、自動的、不需要你記得它的存在。
+
+Git hooks 有個很安靜的特性：**它們在你忘記的時候依然在工作**。你不需要每次 commit 都提醒自己「等等我要先跑測試」—— 因為你早就把這件事從你的記憶責任，轉移到了 Git 的事件系統。
+
+現在問題來了：你的 CLAUDE.md 裡有 20 條規則。Claude 在 session 開始的時候讀了它們。然後呢？
+
+然後在這個 session 到了第幾百個 token 的時候，你的第 14 條規則「不要在沒有 review 的情況下直接 push to main」已經只是一行文字，不是強制力。AI 沒有壞心眼，它就是在做它認為你要的事——但它會分心，會選擇，會在某個 context 飽和的下午用自己的判斷代替你的規則。
+
+**規則是建議。Hook 是執行力。**
+
+Everything Claude Code（ECC）的 Hook Architecture 把這個想法系統化了。
+
+<ClawdNote>
+「Hook」這個詞在程式界已經用了幾十年，從 Windows message hook 到 React `useEffect`，到 Git hooks，到 webhook，都叫 hook。核心意思不變：在某個事件發生的時間點，插入你的邏輯。
+
+AI hooks 繼承了完全一樣的概念，只是事件換了。「file changed」換成「Claude 準備呼叫工具」，「commit triggered」換成「Claude 完成了一次工具呼叫」。如果你曾經設過 Git pre-commit hook，你已經理解 90% 的 AI hooks 邏輯了。
+
+所以這篇文章其實不是在介紹什麼新概念——是在告訴你，你三年前就在用的那個東西，現在可以用在 AI 身上了 (◕‿◕)
+</ClawdNote>
+
+## 兩種 Hook，兩種不同的介入方式
+
+ECC 把 hooks 分成兩個主要類別，對應兩個完全不同的設計哲學。
+
+**PreToolUse**：Claude 準備做某件事之前，先攔截。可以阻斷，可以修改，可以警告後放行。這是門口的保鑣——你上不了車，除非通過檢查。
+
+**PostToolUse**：Claude 做完某件事之後，自動分析結果。不阻斷，但留紀錄、發警告、觸發後續動作。這是稽核員——事情發生了，但系統知道，而且會記在本子上。
+
+這兩個角色加在一起，構成一個完整的閉環：一個在前面說「等等」，一個在後面說「好，但要記住」。重要的是，這兩個不是互斥的——你可以同時跑兩個，在同一個事件上先擋後查。
+
+<ClawdNote>
+「我們需要這兩個」這件事本身挺有意思的。
+
+如果你完全信任 AI，PreToolUse 就是多此一舉——讓它做就好了。如果你完全不信任 AI，PostToolUse 也沒意義——你根本不讓它跑。PreToolUse + PostToolUse 是在說：我信任你足夠讓你動手，但不信任你到不需要任何網子。
+
+這個組合背後有一個隱含的「人機信任校準」——你信任多少，就設多少 hook。沒有 hook 不是信任，是僥倖。全部 blocking 不是謹慎，是不用 AI。中間那個甜蜜點，是你要自己設計的 ヽ(°〇°)ﾉ
+</ClawdNote>
+
+---
+
+## PreToolUse：在 AI 動手之前說不
+
+想像 Claude 正要在你的 terminal 跑一個 `pnpm dev`，然後它就在背景默默跑著，沒有 tmux，你關掉視窗就死了。或者它準備 `git push`，因為它判斷這個 task 已經完成、push 是合理的下一步。
+
+你沒有在旁邊。你也不知道它在做什麼。
+
+PreToolUse hook 在每次 Claude 準備呼叫工具的瞬間觸發，在工具真正執行之前攔截。你可以針對特定工具（比如只看 `Bash`），也可以用 `*` 攔截所有工具呼叫。ECC 最典型的兩個 blocking recipe——擋 dev server 在 tmux 外面跑，擋直接 push——長這樣：
+
+```bash
+#!/bin/bash
+# ~/.claude/hooks/pre-tool-guard.sh
+# 環境變數由 Claude Code 自動注入：TOOL_NAME, TOOL_INPUT
+
+# 只攔截 Bash 工具
+if [[ "$TOOL_NAME" != "Bash" ]]; then
+  exit 0
+fi
+
+# 擋住在 tmux 外面跑 dev server
+if [[ -z "$TMUX" ]] && echo "$TOOL_INPUT" | grep -qE "npm run dev|pnpm dev|yarn dev|bun dev"; then
+  echo "🚫 Dev server 必須在 tmux 裡面跑。先開 tmux，再試一次。" >&2
+  exit 2  # exit 2 = 阻斷這次工具呼叫
+fi
+
+# 擋住直接 push to remote
+if echo "$TOOL_INPUT" | grep -qE "git push"; then
+  echo "🚫 不可以直接 push。開 PR，走 review 流程。" >&2
+  exit 2
+fi
+```
+
+把這個 script 掛進 `hooks.json`：
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/pre-tool-guard.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+從這一刻起，Claude Code 永遠不會在 tmux 外面跑 dev server，也永遠不會直接 push——不是因為它記住了規則，而是因為每次嘗試，hook 都會在工具呼叫前擋下它。
+
+<ClawdNote>
+Exit code 2 這個選擇不是隨機的，但你不會直覺猜到它。
+
+Claude Code 的 hook 系統：exit 0 放行、exit 1 失敗但繼續、exit 2 阻斷工具呼叫。為什麼是 2？因為 1 已經被 Unix 的「一般失敗」預定了，hook 系統不能把「失敗」和「阻斷」混在一起——一個 script 可能因為各種理由 exit 1，你不希望 Claude 把「我的 grep 沒找到東西」誤判成「阻斷這次工具呼叫」。exit 2 是一個「我是刻意這樣說的」的明確信號。
+
+還有一件讓 shell script hook 好寫的事：Claude Code 把 `$TOOL_NAME`、`$TOOL_INPUT` 這些都塞進環境變數，你不用 parse stdin JSON。有多少 webhook system 是要你自己處理 JSON body 的？全部。這個設計決定了「普通開發者十分鐘寫得出 hook」而不是「只有平台工程師才碰得了」 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## PostToolUse：每一步之後的自動稽核
+
+PreToolUse 的重點是「不讓它做」。PostToolUse 的重點是「讓它做，但記下來」。
+
+兩者的定位不同。有些事情你想讓 AI 做，但你要知道做了什麼、有沒有問題。PostToolUse 就是在每次工具呼叫完成之後，自動觸發一段分析邏輯：
+
+```bash
+#!/bin/bash
+# ~/.claude/hooks/post-tool-logger.sh
+# 額外環境變數：TOOL_OUTPUT, EXIT_CODE
+
+# 工具呼叫失敗的時候，記錄到 log
+if [[ "$EXIT_CODE" != "0" ]]; then
+  echo "[$(date -Iseconds)] TOOL_FAIL: $TOOL_NAME | exit: $EXIT_CODE" >> ~/.claude/tool-failures.log
+  echo "⚠️ 指令失敗了。繼續前先確認輸出是否符合預期。" >&2
+fi
+
+# Write 或 Edit 工具寫了大量內容，提醒確認
+if [[ "$TOOL_NAME" == "Write" || "$TOOL_NAME" == "Edit" ]]; then
+  char_count=$(echo "$TOOL_OUTPUT" | wc -c)
+  if [[ $char_count -gt 10000 ]]; then
+    echo "ℹ️ 剛寫了一個比較大的檔案（約 $char_count 字元）。確認內容無誤？" >&2
+  fi
+fi
+```
+
+ECC 的 PostToolUse recipes 主要分三類：品質分析（每次 Bash 呼叫後檢查 stderr 有沒有 warning）、成本追蹤（記錄每次工具呼叫的 context 用量，session 結束時出報表）、自動備份（每次 Write/Edit 工具更動檔案後，把舊版本存到 `.claude/backups/`）。
+
+<ClawdNote>
+「自動備份每次 Write/Edit 的舊版本」這個 recipe，說出來每個人都覺得「對啊應該要有」，但絕大多數人沒設。
+
+我知道你在想什麼：「有 git 就夠了。」有 git 的前提是你記得 commit。AI 在一個 session 裡可能改了 20 個地方，你只 commit 了 3 次，另外 17 個中間狀態消失在歷史裡。PostToolUse backup hook 是在說：不管你有沒有記得 commit，每一次 Write/Edit 都有個快照。Git 是長期記憶，hook 備份是短期記憶——兩個都要 (◕‿◕)
+</ClawdNote>
+
+<ClawdNote>
+PostToolUse 是整個 ECC Instinct System（SP-144）的感測器層，這個關係值得說清楚。
+
+SP-144 裡提到，v2 的學習系統從 skill 改成 hook 觸發的核心理由是：skill 是概率性的（Claude 自己決定要不要用，觸發率 50-80%），hook 是必然的（100% 觸發）。那個 `observe.sh`——就是掛在 PostToolUse 上的。每一次工具呼叫後，它把觀察數據寫進 `observations.jsonl`，background Haiku agent 再從中提取 pattern。
+
+這意味著：PreToolUse + PostToolUse hooks 是 ECC 整個學習架構的眼睛。沒有 hooks，Instinct System 就是半盲的。這就是為什麼 hook 架構是 ECC 最底層的基礎建設——不是可選的 add-on，而是其他機制能正常運作的前提 (⌐■_■)
+</ClawdNote>
+
+---
+
+## Lifecycle Hooks：Session 的頭、尾、和中間那個微妙時刻
+
+工具呼叫之外，ECC 還有三個更大粒度的 lifecycle hooks。
+
+**`PreSession`**（session 啟動時）：Claude Code session 開始的瞬間。ECC 用這個時間點做環境驗證：確認必要的 env var 都設了、讀取今天的 sprint 目標、載入當前 project 的 instinct snapshot。就像你上班第一件事是打開 Slack 看有沒有新訊息——`PreSession` 讓 Claude 每次開始工作前先做環境 briefing，而不是直接開幹。
+
+**`Stop`**（session 結束時）：Session 結束的時候。ECC 在這裡做兩件事：把這個 session 的 tool call 記錄存進持久化 log，然後輸出今天 context 消耗的統計。這樣下次打開 session，你有一份「上次做到哪」的記錄可以看。
+
+然後是第三個，也是我最喜歡的：
+
+**`PreCompact`**（context compaction 觸發前）：當 Claude 的 context 快滿了，它會自動觸發 compaction——把前面的對話壓縮成摘要，騰出空間繼續工作。問題是：你珍視的某些細節在壓縮過程中可能消失。`PreCompact` hook 讓你在壓縮發生前，先跑一個 checkpoint script：
+
+```bash
+#!/bin/bash
+# ~/.claude/hooks/pre-compact-checkpoint.sh
+checkpoint_dir="$HOME/.claude/compaction-checkpoints"
+mkdir -p "$checkpoint_dir"
+
+cat > "$checkpoint_dir/$(date +%Y%m%d-%H%M%S).md" << 'EOF_MARKER'
+# Compaction Checkpoint
+## Working Directory
+$(pwd)
+
+## Recent Git Log
+$(git log --oneline -5 2>/dev/null || echo "Not a git repo")
+
+## Recently Modified Files
+$(find . -maxdepth 3 \( -name "*.ts" -o -name "*.tsx" -o -name "*.md" \) \
+  -newer ~/.claude/last-checkpoint 2>/dev/null | head -15)
+EOF_MARKER
+
+touch ~/.claude/last-checkpoint
+echo "✅ Checkpoint saved before compaction."
+```
+
+Context 飽和的時候，你認為重要的細節不一定和 Claude 認為重要的一樣。`PreCompact` hook 讓你把這個判斷的控制權拿回來。
+
+<ClawdNote>
+Context compaction 是 Claude Code 一個很微妙的設計——它讓你可以跑幾乎無限長的 session，代價是歷史資訊的有損壓縮。
+
+`PreCompact` hook 的存在承認了一件事：AI 的摘要能力很強，但它壓縮的時候不知道「哪些細節對你最重要」。哪段 code review 的結論需要保留？哪個你決定不用的方案卻記錄了重要的 trade-off 分析？AI 不知道，你也說不清楚——但你寫的 checkpoint script 至少把「最近動過的 file list」和「git log」留下來了，那已經比什麼都沒有強很多。
+
+有趣的是：這個 hook 是在幫 AI 解決 AI 自己製造的問題（context limit），用的工具是 AI 控制不了的確定性 shell script。越用越覺得這個架構設計很清醒 (◕‿◕)
+</ClawdNote>
+
+---
+
+## 15+ 內建 Recipes，以及怎麼寫自己的
+
+ECC 的 `hooks/hooks.json` 搭配 `scripts/` 目錄包含 15 個以上可以直接拿來用的 hook recipes。這些 recipes 有個共同特徵：它們全都是「有人踩過才寫出來的」。
+
+最直接的一批是防呆型的——擋住帶 `-rf` flag 的 `rm`、攔截 `git push --force`、在改 `package.json` 之前先備份。聽起來顯而易見，但有人在沒有這些 hook 的情況下讓 AI 跑了 `rm -rf node_modules dist .next`，然後才想到要寫這條。你不必是那個人。
+
+比較有趣的是 dev workflow 那批。有一個 recipe：任何 Bash 工具呼叫之後，如果改過 `.ts` 檔，自動跑 `tsc --noEmit`。
+
+這條是解決一個具體的痛。AI 在一個 session 裡改了八個地方。你在旁邊看著 terminal 一路跑，一切看起來正常。然後你 `pnpm build`，TypeScript 在第 3 個改動開始噴錯——因為它破壞了第 3 和第 7 個改動之間的型別相容性。當下修起來比 commit 之前修要多花三倍時間，因為你已經不知道是哪一步壞的了。
+
+`tsc --noEmit` hook 讓型別錯誤在每一步就標記出來，而不是在你準備 deploy 的時候。
+
+Observability 那批主要是讓系統可見：所有 tool call 寫進 JSONL log，Bash 呼叫超過 30 秒發 desktop notification。這些在你懶得監控的時候特別有用——也就是說，每天都有用。
+
+寫自己的 hook 很簡單，因為 hook 就是一個 shell script，合約只有三件事：
+
+```bash
+#!/bin/bash
+# 讀環境變數：
+# $TOOL_NAME     - 工具名稱（Bash, Write, Edit, Read...）
+# $TOOL_INPUT    - 工具的輸入參數（JSON string）
+# $TOOL_OUTPUT   - 工具的輸出（PostToolUse only）
+# $EXIT_CODE     - 工具的 exit code（PostToolUse only）
+# $SESSION_ID    - 當前 session 的 ID
+# $PROJECT_DIR   - 當前專案目錄
+
+# 做你的邏輯
+
+# 回 exit code：
+# exit 0 = 放行
+# exit 1 = 失敗，但 Claude 繼續（不阻斷）
+# exit 2 = 阻斷（PreToolUse only）
+```
+
+<ClawdNote>
+「hook 就是 shell script」這個設計決策讓 ECC 的 hook system 有一個好特性：你用任何你會的工具都能寫 hook。Python、Node.js、Ruby、純 bash——只要那個腳本符合「讀環境變數、回 exit code」的合約，它就是合法的 hook。
+
+這個設計跟 Git hooks 完全一致——Git hooks 也是「就是一個 executable file，你愛用什麼語言都行」。這種「用 Unix 的方式解決問題」的哲學，在 AI 工具界其實挺稀缺的。很多工具會發明自己的 DSL、自己的 YAML 格式——結果你學半小時只為了寫一個「呼叫前先 log 一下」的功能。shell script 的門檻低就是優點，不是缺點 ٩(◕‿◕｡)۶
+</ClawdNote>
+
+---
+
+## Runtime Controls：不是每個環境都需要一樣的規則
+
+設好 hooks 之後，下一個問題通常是：本機開發的時候想要這些 hooks，但 CI/CD 裡有些 hooks 反而會擋住流程。怎麼辦？
+
+想像一下：你設了一個 PreToolUse hook 擋住 tmux 外面跑 dev server。然後你在 CI/CD 裡面用 `claude -p` 自動化某件事——CI 沒有 tmux，所以 hook 觸發了，擋住了，你的 CI pipeline 在一個完全沒有意義的地方失敗了。你花了二十分鐘搞清楚為什麼 pipeline 掛在一個平常不可能有問題的步驟上。
+
+這不是 hook 設計的問題，是你需要「環境感知」的概念。**Profiles** 是 ECC 的解法：把 hook 組合分成不同的 profile，`dev` 全開、`ci` 只留 logging、`paranoid` 連大型寫入都警告。切換環境，整包換：`CLAUDE_PROFILE=ci claude -p "..."`。**Disabled Hooks** 是更細粒度的選項——你只需要暫時關掉一個 hook，不想換整個 profile：
+
+```bash
+# 緊急 hotfix，暫時關掉 push blocker
+claude config disable-hook git-push-blocker
+# ...做完...
+claude config enable-hook git-push-blocker
+```
+
+ECC 的設計原則是：**hooks 是預設開的，關掉要明確說明**。不是「你記得的時候才開 hook」，而是「你有充分理由的時候才關」。這個預設方向很重要，因為它和大部分人的直覺相反。
+
+<ClawdNote>
+「opt-out 而非 opt-in」在安全界有個名字：secure by default（預設安全）。
+
+最典型的例子是 HTTPS：現代瀏覽器預設 HTTPS，你得特別允許 HTTP。在這之前是反過來的，結果全世界 HTTP 用了幾十年。同樣的邏輯：ECC 把保護機制預設開，你要刻意選擇關掉。
+
+「忘記開 hook」這個失誤因此消失了——你不需要記得開，你只需要記得在需要的時候關。從「記得打開安全機制」到「記得關掉安全機制」，責任的方向反了，認知負擔卻少了很多 (¬‿¬)
+</ClawdNote>
+
+---
+
+## gu-log 的 OpenClaw 現在怎麼用 Hooks
+
+說個實際的，因為這不只是理論。
+
+OpenClaw 目前的 hook 設置比 ECC 的完整架構簡單得多——更接近這個系統的 Level 1 應用。有一個 PostToolUse hook 在每次文章寫入時觸發，跑 `node scripts/validate-posts.mjs` 確認 frontmatter schema 沒有壞掉；另一個在 Bash 工具呼叫失敗的時候記 log，方便事後 debug。
+
+這篇文章寫完之後，我確實在考慮把 PreToolUse 接進來做幾件事：每次 `Write` 工具準備寫新文章時，先確認 `article-counter.json` 的 ticketId 和要寫的 ticketId 一致；每次準備跑 `git push`，先問「Ralph Loop 跑完了嗎？」。這些不是我沒想到會需要的功能——是我現在靠記憶做的事。
+
+<ClawdNote>
+「靠記憶做的事」這個描述比聽起來嚴重。
+
+一個月前 OpenClaw 發生過一次：翻譯完文章後直接 commit，結果 frontmatter 裡的 ticketId 和 `article-counter.json` 的 counter 不同步，產出了重複的 ID。不是大問題，但它是一個本來可以在 hook 層攔住的問題。
+
+這篇文章寫完之後，那個 PreToolUse hook 會被寫進去。不是因為問題多嚴重，是因為「本來不需要發生的問題」就是 hook 應該處理的問題。把記憶責任從腦袋轉移到事件系統，那不就是這整篇文章在說的事嗎 (ง •̀_•́)ง
+</ClawdNote>
+
+---
+
+## 結語
+
+回頭看你的 CLAUDE.md。裡面有幾條規則是「每次都應該這樣做」的類型？有幾條是「在某個特定情況下不能做這個」的類型？
+
+很誠實的話，大部分的規則其實是 hooks 的候選人，不是文件的候選人。
+
+文件是給人讀的，讀了可以選擇遵不遵守。**給 AI 的規則，如果「不小心忘了」就會造成問題，那它不應該是文件——它應該是 hook。**
+
+你在 2023 年設的那個 pre-commit hook，它不在乎你有沒有記得它存在。它就是在那裡，等著那個失誤出現，然後擋下來。
+
+CLAUDE.md 給 AI 方向。Hook 讓 AI 守規矩。搞清楚哪件事靠哪個機制，才不會在事後發現你寫了 20 條規則，有 15 條在 context 飽和的下午完全沒有用。
