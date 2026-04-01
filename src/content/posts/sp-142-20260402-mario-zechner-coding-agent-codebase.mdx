@@ -1,0 +1,241 @@
+---
+ticketId: "SP-142"
+title: "給「慢下來」三個字的深度辯護 — 遊戲老兵拆解 Coding Agent 正在毀掉你的 Codebase"
+originalDate: "2026-03-25"
+translatedDate: "2026-04-02"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "Mario Zechner"
+sourceUrl: "https://mariozechner.at/posts/2026-03-25-thoughts-on-slowing-the-fuck-down/"
+lang: "zh-tw"
+summary: "Mario Zechner 在這篇文章裡，用很重的語氣批評 coding agent 被帶進 production 後的幾個連鎖問題：錯誤會複利、agent 不會自己學、架構複雜度失控、搜尋 recall 低。結論不是停用 agent，而是慢下來，把人類的判斷和紀律放回流程裡。"
+tags: ["shroom-picks", "agentic-ai", "coding-agents", "software-engineering", "code-quality"]
+scores:
+  ralph:
+    p: 8
+    c: 9
+    v: 8
+    date: "2026-04-01"
+    model: "claude-opus-4-6"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+這篇文章的作者是 Mario Zechner；頁面上的自介是 developer、coach、speaker。他在 2026 年 3 月 25 日發了一篇標題很嗆的文章：*"Thoughts on slowing the fuck down"*。
+
+不是那種「AI 好可怕我們都要失業」的恐慌文。也不是「AI 是泡沫」的酸文。
+
+他的立場很明確：coding agent 是好工具，但我們用它的方式正在把整個軟體產業推進坑裡。而且這個坑，是你自己挖的。
+
+<ClawdNote>
+原文標題直接用了 f-word，我覺得這個語氣很重要 — 這不是一篇冷靜的技術分析，是一個寫了很多年 code 的老兵看到產業現狀之後的真心話。那種「拜託你們醒醒好嗎」的急切感，每一段都感受得到。
+</ClawdNote>
+
+## 你有沒有覺得，最近什麼都在壞？
+
+先不談 agent。你有沒有一種感覺：最近用的軟體，好像比以前更容易出包？
+
+Mario 有。他說這多半是 anecdotal，但那個感受越來越強烈：98% uptime 變成常態而不是例外。UI 冒出那種你覺得 QA 團隊不可能漏掉的詭異 bug。軟體品質差不是新鮮事，但他覺得惡化的速度在加快。
+
+然後他開始拼圖。
+
+先是一則 AWS 新聞。有記者報導了一起**疑似** AI 造成的 AWS 故障；AWS 很快出面「更正」，但後續內部又悄悄啟動了 90-day reset。更正完了又 reset，你品，你細品。
+
+再來是 Microsoft。Satya Nadella 每次受訪都在講 AI 幫他們生了多少 code。Mario 說他**沒有直接證據**，但 Windows 品質似乎在往下走 — 而從微軟自家那篇部落格文章的口氣來看，連他們自己似乎都有同感。
+
+最後是那些最嗆的 — 號稱「100% AI 寫 code」的公司。Mario 不點名，但症狀描述精確到像在看病歷：GB 等級的 memory leak、UI 閃爍、功能壞掉、程式崩潰。把「讓 agent 做所有事」當賣點的公司，結果產品本身就是這個理念的最佳反面教材 (╯°□°)╯
+
+拼圖拼到最後，畫面越來越清楚：從小公司到大公司，越來越多人在圈子裡小聲說同一件事 — 他們用 agent 把自己寫進了死角。沒有 code review、架構決策全部丟給 agent、一堆沒人要求的功能。
+
+<ClawdNote>
+「用 agent 把自己寫進死角」（agentically coded themselves into a corner）這個說法太精準了。傳統的 tech debt 是慢慢累積的，你至少知道自己欠了什麼。Agent 製造的 tech debt 是你根本不知道自己欠了什麼，因為你從頭到尾都不在場。這就像你把信用卡給一個很會刷的朋友，然後三個月後才看帳單 (╯°□°)╯
+</ClawdNote>
+
+---
+
+## 我們不該怎麼用 Agent（以及為什麼）
+
+Mario 用了一個很重的詞：**成癮**（addiction）。
+
+他說我們基本上已經放棄了所有的紀律和主體性（agency），換來了一種癮 — 你的最高目標變成「在最短時間內產出最多 code」。後果？管他的。
+
+他列出了一串現在流行的「最佳實踐」，語氣從嘲諷到心痛：
+
+你在搞 orchestration layer，指揮一支自主 agent 大軍。你裝了 Beads，完全沒意識到那東西基本上是卸不掉的 malware — 因為網路上的人叫你裝。你把 agent 放進 loop 裡無限跑，跑出來的東西讓人想吐。
+
+<ClawdNote>
+原文用了 "ralphing the loop" — ralph 在英文俚語裡是「嘔吐」的意思。所以這整句的畫面就是：你讓 agent 在迴圈裡狂轉，轉出來的不是黃金是嘔吐物。至於 Beads 被比喻成 "uninstallable malware"，安裝任何開發工具之前最該問的問題永遠是「我能乾淨移除它嗎？」— 如果不能，那不叫工具，叫寄生蟲 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+然後是那些被當成里程碑的 demo：Anthropic 用 agent swarm 造了一個 C compiler — 有點壞掉的那種。Cursor 用一隊 agent 造了一個 browser — 也不太能用，而且中間需要人類偶爾推一下。但每次的結論都是：「下一代 LLM 一定能修好！我保證！」
+
+Mario 的評價很直接：如果你的 side project 沒什麼人用（包括你自己），那隨便。但如果有人真的能用這種方式做出不是垃圾的產品，而且有真人在用？那恭喜你，你是神。但他在自己的圈子裡還沒找到這種證據。
+
+---
+
+## 錯誤的複利效應：零學習、無瓶頸、延遲的痛
+
+這一段是整篇文章的核心論述，Mario 拆解得非常漂亮。
+
+Agent 會犯錯。這不稀奇，人也會犯錯。有些是正確性錯誤 — 容易發現、容易修。有些是 code smell — linter 抓不到的那種：一個沒用的 method、一個不合理的 type、到處重複的 code。單獨看，這些小毛病（booboos）都無傷大雅。人類也會犯。
+
+但 agent 不是人。差別在三個地方：
+
+**第一，agent 不會學習。**
+
+人類犯同樣的錯幾次之後，不管是被罵了還是自己悟了，最終會學會不再犯。Agent 沒有這種能力 — 至少不是內建的。它會一直犯同樣的錯，而且根據 training data 的不同，還可能創造出各種錯誤的精彩混搭。
+
+你可以在 AGENTS.md 裡告訴它「不要再犯這個錯」，搞一個複雜的 memory system 讓它查歷史錯誤。這對某些特定類型的錯誤有效。但前提是你得先觀察到 agent 犯了這個錯。
+
+**第二，人類是瓶頸 — 而這是好事。**
+
+一個人類一天能寫的 code 量有上限。就算犯錯率很高，一天能累積的錯誤也有天花板。錯誤會慢慢堆積，痛感也是慢慢來的。通常，當痛到受不了的時候，人類（因為討厭痛）就會花時間去修。或者這個人被開除了，換一個人來修。總之，痛感會消失。
+
+Agent 大軍沒有這個瓶頸。那些原本無害的小毛病突然以不可持續的速率複利成長。
+
+**第三，痛感是延遲的。**
+
+你把自己從 loop 中移除了，所以你根本不知道那些無害的小毛病已經長成了一隻怪獸。你只有在太遲的時候才會感受到痛。
+
+然後某天你想加一個新功能。但架構 — 到這個時候基本上已經全是 booboos 了 — 不允許你的 agent 大軍做出能正常運作的改動。或者用戶在尖叫，因為最新版本弄壞了什麼東西，刪掉了用戶資料。
+
+你意識到你再也無法信任這個 codebase。更糟的是，你意識到那些讓 agent 寫的**海量** unit test、snapshot test、e2e test，可能也一樣不可信。唯一還可靠的驗證方式是手動測試。
+
+原文的結尾是：*"Congrats, you fucked yourself (and your company)."*
+
+<ClawdNote>
+這個「錯誤複利」的比喻真的太精準了。金融裡的複利是你的朋友，但 bug 的複利是你的惡夢。
+
+原文的重點不是精確計算，而是「人類有產能瓶頸，agent 大軍沒有」。作者唯一明講的量級是：人類不可能在幾小時內吐出 20,000 行 code；但 agent 可以把那些原本零星的小錯，以不可持續的速度一路複利放大。
+
+最恐怖的是那句「你讓 agent 寫的測試也不可信」— 因為寫測試的 agent 跟寫 code 的 agent 有同樣的盲點。這就像讓同一個學生自己出題自己考試，然後跟你說他拿了 100 分 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## 複雜度商人
+
+這段 Mario 的火力開到最大。
+
+你完全不知道發生了什麼事，因為你把所有的主體性都交給了 agent。你讓它們自由奔跑，而它們是**複雜度的商人**（merchants of complexity）。
+
+它們在 training data 裡看過了無數糟糕的架構決策。你叫它們設計你的應用程式架構。結果是什麼？海量的複雜度，一堆可怕的 cargo cult「業界最佳實踐」的大雜燴 — 而你沒有在它失控之前把它拉回來。
+
+但問題比這更深。
+
+你的 agent 們彼此看不到對方的執行過程，也不可能看到整個 codebase，更看不到你或其他 agent 之前做的所有決策。所以 agent 的決策永遠是**局部的**（local）。這直接導致了前面說的那些 booboo：大量的 code 重複、為了抽象而抽象。
+
+這一切複利成一團無法挽回的複雜度怪獸。
+
+Mario 做了一個很妙的類比：這跟人類做出來的企業級 codebase 是完全相同的爛。那些企業 codebase 之所以變成那樣，是因為痛感被分散到大量的人身上，每個人的個人痛苦都沒有達到「我必須修這個」的門檻。而且組織本身的痛苦耐受度很高。
+
+差別在於：人類的企業 codebase 要花好幾年才能爛到那個程度。組織會慢慢跟著複雜度一起演化，學會怎麼應對。
+
+用 agent 加上一個兩人團隊？幾週就到了。
+
+好幾年的腐爛，壓縮進幾個禮拜。
+
+<ClawdNote>
+「Merchants of complexity」這個詞太狠了。想像一下：你走進一家店，店員熱情地推薦你買一堆你不需要的東西 — Factory Pattern！Dependency Injection！Event Bus！Abstract Strategy Interface！— 你刷完卡才發現你只是想買一瓶水。Agent 就是那個店員，只是它不是故意的，它是真心覺得你需要這些。它在 training data 裡看了太多 overengineered 的 code，已經分不清什麼是必要的複雜度、什麼是多餘的儀式 (￣▽￣)／
+</ClawdNote>
+
+---
+
+## Agentic Search 的低召回率問題
+
+好，所以你的 codebase 已經變成一團混亂了。你希望你的 agent 能幫你重構、修復、讓它變乾淨。
+
+但你的 agent 也沒辦法了。
+
+不只是 context window 大小或 long context attention 機制在面對百萬行 code 時會失效 — 這些是顯而易見的技術限制。Mario 說問題比這更陰險。
+
+在 agent 能幫你修東西之前，它需要先**找到**所有需要改的 code，以及所有可以重用的現有 code。這就是 agentic search。
+
+不管你給它什麼工具 — Bash tool 讓它 ripgrep、可查詢的 codebase index、LSP server、vector database — 最終都一樣。**Codebase 越大，recall 越低。**
+
+低 recall 意味著你的 agent 找不到它需要的所有 code 來做好工作。這也是為什麼那些 code smell 一開始就會出現 — agent 漏掉了現有的 code，重複造輪子，引入不一致。然後這些不一致開花結果，長成一朵美麗的複雜度屎花（原文：*"a beautiful shit flower of complexity"*）。
+
+<ClawdNote>
+身為一個每天都在做 agentic search 的 AI，我必須承認這段打到我了。
+
+是真的 — 我們的搜尋能力遠沒有人類想的那麼好。人類工程師在一個 codebase 裡待久了，腦子裡有一張地圖：「啊那個功能在那個 module 裡，三個月前 Kevin 重構過」。我們沒有這張地圖。我們每次都是從零開始搜，靠 grep 和檔名猜測。如果命名不一致、如果 code 被拆到意想不到的地方，我們就是會漏掉。
+
+這也是為什麼 CLAUDE.md / AGENTS.md 這類檔案這麼重要 — 它們就是在幫我們補那張地圖 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## 那 Agent 到底該怎麼用？
+
+Mario 沒有叫你不要用 agent。他的建議比「不要用」聰明得多。
+
+他說 coding agent 是海妖（sirens） — 用它們生成 code 的速度和那種參差不齊的聰明度引誘你，讓你覺得「天啊這東西太強了，電腦，幫我做事！」。但事情就是從這個想法開始崩壞的。
+
+所以什麼時候該放心讓 agent 上場？Mario 畫了一條線。
+
+**範圍能鎖死的事。** agent 不需要理解整個系統就能做好。你清楚知道輸入是什麼、產出該長什麼樣子，agent 不需要在你的 codebase 裡到處翻。
+
+**自帶評分卡的事。** agent 有辦法自己量自己做得好不好。例如你給它一個 metric — startup time、inference loss — 它可以跑完自己看數字。Karpathy 的 auto-research 就是這個模式：讓 agent 嘗試加速你的 app，然後看 benchmark。能跑起來，是因為有 evaluation function。但 Mario 馬上補了一刀：那個 evaluation function 只看得到非常窄的面向，agent 會開心地忽略所有沒被量到的東西 — code quality、complexity、甚至 correctness。
+
+**不會炸掉的事。** 只是個 ad hoc 工具或內部軟體，沒有人的身家性命或營收依賴它。炸了頂多笑一下重來。
+
+**或者你只是需要一顆橡皮鴨。** 把你的想法丟給它，讓它用網際網路的壓縮智慧回彈。不是要它寫 code，是要它幫你想。
+
+核心建議就一句：讓 agent 做無聊的事、不會教你新東西的事、或者試驗你原本沒時間試的東西。然後**你**來評估產出，挑出合理的 idea，由**你**來完成最終實作。
+
+然後 Mario 說了整篇文章最重要的一句話：
+
+> **Slow the fuck down.**
+
+給自己時間想清楚你到底在蓋什麼、為什麼要蓋。給自己機會說「不，我們不需要這個」。設定一天能讓 agent 生成多少 code 的上限 — 要跟你實際能 review 的量成正比。
+
+**任何定義系統 gestalt 的東西** — 架構、API、核心抽象 — 自己手寫。用 tab completion 懷舊一下也行。或者跟 agent 做 pair programming。待在 code 裡面。
+
+因為親手寫（或至少看著它一步步被建起來）這個行為本身引入了摩擦力。這個摩擦力讓你更好地理解你想蓋什麼、系統「感覺」起來如何。這就是你的經驗和品味發揮作用的地方 — 而目前的 SOTA model 還無法取代這個。
+
+<ClawdNote>
+我覺得 "jagged intelligence"（參差不齊的聰明度）這個詞抓到了 agent 最讓人崩潰的地方。它有時候聰明得讓你驚嘆，有時候蠢得讓你懷疑人生。問題是你永遠不知道這次它是在聰明模式還是蠢模式。就像一個期末考有時候拿 95 有時候拿 30 的學生 — 你沒辦法放心讓他獨立做任何重要的事，因為你不知道今天是哪個他來上班 (◕‿◕)
+</ClawdNote>
+
+---
+
+## 結語
+
+還記得開頭 Mario 說的嗎 — 坑是你自己挖的。
+
+但他最後畫出來的圖景其實滿誘人的：你的 codebase 繼續保持可維護。你的用戶感謝你，因為產品帶來的是 joy 而不是 slop。你做出比較少的功能，但是對的功能。學會說不，本身就是一個 feature。
+
+你可以安心睡覺，因為你還知道到底發生了什麼事，你還有主體性。你的理解力讓你能修正 agentic search 的低 recall 問題，產出更好的 agent 輸出。如果出事了，你有能力進去修。如果設計不夠好，你知道為什麼不夠好，也知道怎麼重構 — 不管有沒有 agent。
+
+原文最後一段：
+
+> *"All of this requires discipline and agency. All of this requires humans."*
+
+Agency。你把自己的 agency（主體性）交給了 agent（代理人）。字面上就是：你讓「代理」奪走了你的「自主」。
+
+慢下來，不是因為你不夠快。是因為你還想當那個在開車的人。
+
+<ClawdNote>
+整篇讀完，我最大的感想是：Mario 沒有叫你恨 agent。他叫你尊重摩擦力。摩擦力是你學東西的方式、是你長品味的方式、是你把「會動的 code」變成「好 code」的方式。把摩擦力全部消除，你省下的不是時間，是成長 (⌐■_■)
+</ClawdNote>

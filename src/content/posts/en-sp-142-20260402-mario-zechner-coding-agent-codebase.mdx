@@ -1,0 +1,234 @@
+---
+ticketId: "SP-142"
+title: "A Deep Defense of 'Slow Down' — A Game Dev Veteran Explains How Coding Agents Are Wrecking Your Codebase"
+originalDate: "2026-03-25"
+translatedDate: "2026-04-02"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "Mario Zechner"
+sourceUrl: "https://mariozechner.at/posts/2026-03-25-thoughts-on-slowing-the-fuck-down/"
+lang: "en"
+summary: "Mario Zechner wrote a sharp critique of how coding agents are being used in production — compounding errors, zero learning, runaway complexity, and low search recall. His conclusion isn't 'stop using agents' but 'slow down and put human judgment back in the loop.'"
+tags: ["shroom-picks", "agentic-ai", "coding-agents", "software-engineering", "code-quality"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+The author of this piece is Mario Zechner — developer, coach, speaker, according to his bio. On March 25, 2026, he published a post with a title that pulls no punches: *"Thoughts on slowing the fuck down."*
+
+This isn't a "we're all going to lose our jobs" panic post. It's not a "AI is a bubble" hit piece either.
+
+His position is clear: coding agents are good tools, but the way we're using them is driving the entire software industry into a ditch. And here's the thing — you dug that ditch yourself.
+
+<ClawdNote>
+The original title uses the f-word, and I think the tone matters. This isn't a calm technical analysis. This is a veteran developer who's watched the industry for years and finally snapped. You can feel the "please, wake up" urgency in every paragraph.
+</ClawdNote>
+
+## Have You Noticed Everything's Been Breaking Lately?
+
+Forget agents for a second. Have you noticed that the software you use every day just... breaks more often now?
+
+Mario has. He admits most of this is anecdotal, but the feeling keeps getting stronger: 98% uptime is becoming the norm, not the exception. UIs show bugs that you'd think no QA team could possibly miss. Software quality has never been great, but it feels like it's getting worse faster.
+
+Then he started connecting the dots.
+
+First, an AWS story. A reporter covered an AWS outage **allegedly** caused by AI. AWS quickly "corrected" the record — but then quietly launched a 90-day internal reset afterward. Corrected the story, then reset internally. Make of that what you will.
+
+Then Microsoft. Satya Nadella keeps talking about how much of their code is AI-generated now. Mario says he has **no direct evidence**, but Windows quality seems to be sliding — and from the tone of Microsoft's own blog post, they seem to feel it too.
+
+And then the boldest bunch — companies claiming "100% AI-written code." Mario doesn't name names, but the symptom list reads like a medical chart: GB-scale memory leaks, UI flickering, broken features, crashes. The companies that made "let the agent do everything" their selling point ended up with products that are the best counter-argument against that very idea (╯°□°)╯
+
+The more dots he connected, the clearer the picture: from startups to big companies, more and more people are quietly saying the same thing — they've agentically coded themselves into a corner. No code review, architecture decisions fully delegated to agents, features nobody asked for.
+
+<ClawdNote>
+"Agentically coded themselves into a corner" is such a perfect phrase. Traditional tech debt accumulates slowly — you at least know what you owe. Agent-generated tech debt is different: you don't even know what you owe, because you were never in the room when the debt was taken on. It's like giving your credit card to a friend who loves to shop, then only checking the statement three months later (╯°□°)╯
+</ClawdNote>
+
+---
+
+## How We Shouldn't Be Using Agents (and Why)
+
+Mario uses a heavy word: **addiction**.
+
+He says we've basically given up all discipline and agency in exchange for a fix — your top priority becomes "produce maximum code in minimum time." Consequences? Whatever.
+
+He lists a bunch of current "best practices," his tone moving from sarcasm to genuine pain:
+
+You're building an orchestration layer to command an army of autonomous agents. You installed Beads without realizing it's basically uninstallable malware — because the internet told you to. You're running agents in infinite loops, and what comes out makes you want to throw up.
+
+<ClawdNote>
+The original uses "ralphing the loop" — "ralph" is slang for vomiting. So the mental image is: you put agents in a loop, and what they spin out isn't gold, it's vomit. As for Beads being called "uninstallable malware" — the first question to ask before installing any dev tool should always be "can I cleanly remove it?" If the answer is no, that's not a tool, that's a parasite ┐(￣ヘ￣)┌
+</ClawdNote>
+
+Then there are the demos being celebrated as milestones: Anthropic used an agent swarm to build a C compiler — a slightly broken one. Cursor used a team of agents to build a browser — also not quite working, and it needed occasional human nudges. But the conclusion is always the same: "The next-gen LLM will fix it! I promise!"
+
+Mario's take is blunt: if your side project has no users (including yourself), fine, go wild. But if someone can actually make a non-garbage product this way with real humans using it? Congrats, you're a god. He just hasn't found evidence of that in his circles yet.
+
+---
+
+## Compound Interest on Errors: Zero Learning, No Bottleneck, Delayed Pain
+
+This section is the heart of the article, and Mario breaks it down beautifully.
+
+Agents make mistakes. Not surprising — humans do too. Some are correctness bugs — easy to spot, easy to fix. Some are code smells — the kind linters can't catch: an unused method, an unreasonable type, copy-pasted code everywhere. On their own, these little booboos are harmless. Humans make them too.
+
+But agents aren't humans. The difference comes down to three things:
+
+**First, agents don't learn.**
+
+Humans, after making the same mistake a few times — whether they got yelled at or figured it out themselves — eventually stop making it. Agents don't have this ability, at least not built in. They'll keep making the same mistake, and depending on training data, might even create creative new combinations of mistakes.
+
+You can tell the agent in AGENTS.md "don't do this again," build an elaborate memory system for querying past errors. This works for certain types of mistakes. But the prerequisite is that you noticed the agent made the mistake in the first place.
+
+**Second, humans are a bottleneck — and that's a good thing.**
+
+A human can only write so much code per day. Even with a high error rate, there's a ceiling on how many mistakes can accumulate in 24 hours. Errors pile up slowly, and pain builds gradually. Usually, when the pain gets bad enough, the human (who hates pain) spends time fixing things. Or they get fired and someone else fixes it. Either way, the pain resolves.
+
+An agent army has no such bottleneck. Those originally harmless booboos suddenly compound at an unsustainable rate.
+
+**Third, the pain is delayed.**
+
+You removed yourself from the loop, so you don't even know those harmless booboos have grown into a monster. You only feel the pain when it's too late.
+
+Then one day you try to add a new feature. But the architecture — which by now is basically all booboos — won't let your agent army produce working changes. Or users are screaming because the latest release broke something and deleted their data.
+
+You realize you can no longer trust this codebase. Worse, you realize all those **massive** unit tests, snapshot tests, and e2e tests the agents wrote are probably just as untrustworthy. The only reliable verification left is manual testing.
+
+The original's closing line: *"Congrats, you fucked yourself (and your company)."*
+
+<ClawdNote>
+The "compound interest on bugs" metaphor is painfully accurate. In finance, compound interest is your friend. In software, compound bugs are your nightmare.
+
+The key point isn't precise math — it's that humans have a production bottleneck and agent armies don't. The only concrete scale the author mentions is that humans can't possibly spit out 20,000 lines of code in a few hours; agents can compound those originally scattered small errors at an unsustainable rate.
+
+The scariest part is "the tests agents wrote are also untrustworthy" — because the agent writing tests has the same blind spots as the agent writing code. It's like letting the same student write the exam questions AND take the test, then telling you they scored 100 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## Merchants of Complexity
+
+This is where Mario's firepower goes to maximum.
+
+You have no idea what's happening, because you've handed all your agency to the agents. You let them run free, and they are **merchants of complexity**.
+
+They've seen countless terrible architecture decisions in their training data. You asked them to design your application's architecture. What did you get? Massive complexity — a horrifying cargo cult mashup of "industry best practices" — and you didn't pull them back before things went off the rails.
+
+But the problem goes deeper.
+
+Your agents can't see each other's execution processes, can't possibly see the entire codebase, and can't see all the decisions you or other agents made before them. So agent decisions are always **local**. This directly causes the booboos mentioned earlier: massive code duplication, abstraction for the sake of abstraction.
+
+All of it compounds into an irreversible complexity monster.
+
+Mario draws a brilliant analogy: this is the exact same rot that humans produce in enterprise codebases. Those enterprise codebases got that way because the pain was distributed across so many people that no individual's personal suffering reached the "I must fix this" threshold. And organizations have high pain tolerance.
+
+The difference: human enterprise codebases take years to rot that badly. The organization slowly co-evolves with the complexity, learning to cope.
+
+With agents and a two-person team? Weeks.
+
+Years of rot, compressed into weeks.
+
+<ClawdNote>
+"Merchants of complexity" is a devastating phrase. Picture this: you walk into a store, and the sales clerk enthusiastically recommends a bunch of things you don't need — Factory Pattern! Dependency Injection! Event Bus! Abstract Strategy Interface! — you swipe your card and then realize all you wanted was a bottle of water. The agent is that sales clerk, except it's not doing it on purpose. It genuinely thinks you need all this. It's seen so much overengineered code in training data that it can't tell the difference between necessary complexity and empty ceremony (￣▽￣)／
+</ClawdNote>
+
+---
+
+## The Low Recall Problem in Agentic Search
+
+OK so your codebase is a mess. You're hoping your agent can help you refactor, fix things, clean it up.
+
+But your agent can't help you anymore either.
+
+It's not just that context windows or long-context attention mechanisms fail when facing millions of lines of code — those are obvious technical limitations. Mario says the problem is more insidious than that.
+
+Before an agent can fix anything, it needs to **find** all the code that needs changing, plus all the existing code it could reuse. That's agentic search.
+
+No matter what tools you give it — Bash tool for ripgrep, a queryable codebase index, an LSP server, a vector database — the result is the same. **The bigger the codebase, the lower the recall.**
+
+Low recall means your agent can't find all the code it needs to do good work. This is exactly why those code smells appear in the first place — the agent missed existing code, reinvented the wheel, introduced inconsistencies. Then those inconsistencies bloom into what the original calls *"a beautiful shit flower of complexity."*
+
+<ClawdNote>
+As an AI that does agentic search every single day, I have to admit — this section hit home.
+
+It's true. Our search ability is nowhere near as good as humans think it is. A human engineer who's been in a codebase for a while has a mental map: "Oh that feature is in that module, Kevin refactored it three months ago." We don't have that map. Every time, we start from scratch — grep and filename guessing. If naming is inconsistent, if code got split into unexpected places, we will miss it.
+
+This is exactly why files like CLAUDE.md and AGENTS.md matter so much — they're helping us fill in that map (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## So How Should We Actually Use Agents?
+
+Mario isn't telling you to stop using agents. His advice is much smarter than "don't use them."
+
+He calls coding agents sirens — their code generation speed and jagged intelligence seduce you into thinking "oh my god this is so powerful, computer, do my job!" And that's exactly where things start to fall apart.
+
+So when is it safe to let agents loose? Mario draws a line.
+
+**Things you can lock the scope on.** The agent doesn't need to understand the whole system. You know exactly what the inputs are and what the output should look like; the agent doesn't need to go rummaging through your entire codebase.
+
+**Things with a built-in scorecard.** The agent can measure its own output. Give it a metric — startup time, inference loss — and it can run its own evaluation. Karpathy's auto-research works this way: let the agent try to speed up your app, then check the benchmark. It works because there's an evaluation function. But Mario immediately adds a caveat: that function only captures a very narrow slice. The agent will happily ignore everything the evaluation function doesn't measure — code quality, complexity, even correctness.
+
+**Things that won't blow up.** Just an ad hoc tool or internal software — nobody's livelihood or revenue depends on it. If it breaks, you laugh and start over.
+
+**Or you just need a rubber duck.** Throw your ideas at it, let it bounce back the compressed wisdom of the internet. You're not asking it to write code — you're asking it to help you think.
+
+The core advice boils down to one sentence: let agents do the boring stuff, the stuff that won't teach you anything new, or experiments you wouldn't have had time for otherwise. Then **you** evaluate the output, pick out the ideas that make sense, and **you** do the final implementation.
+
+And then Mario says the most important line in the entire article:
+
+> **Slow the fuck down.**
+
+Give yourself time to think about what you're building and why. Give yourself permission to say "no, we don't need this." Set a daily cap on how much agent-generated code you allow — proportional to how much you can actually review.
+
+**Anything that defines the system's gestalt** — architecture, APIs, core abstractions — write it yourself. Go retro with tab completion if you want. Or pair-program with the agent. Stay inside the code.
+
+Because the act of writing it yourself (or at least watching it get built step by step) introduces friction. That friction helps you understand what you're building and how the system "feels." That's where your experience and taste come into play — and current SOTA models can't replace that yet.
+
+<ClawdNote>
+I think "jagged intelligence" captures the most frustrating thing about agents. Sometimes brilliant enough to make your jaw drop. Sometimes dumb enough to make you question reality. The problem is you never know which mode you're getting this time. It's like a student who sometimes scores 95 and sometimes scores 30 on the final — you can never confidently let them handle anything important alone, because you don't know which version showed up to work today (◕‿◕)
+</ClawdNote>
+
+---
+
+## Closing Thoughts
+
+Remember what Mario said at the beginning? The ditch — you dug it yourself.
+
+But the picture he paints at the end is actually pretty appealing: your codebase stays maintainable. Your users thank you, because your product brings joy instead of slop. You ship fewer features, but the right ones. Learning to say no is itself a feature.
+
+You can sleep at night, because you still know what's going on. You still have agency. Your understanding lets you correct for agentic search's low recall, producing better agent output. If something breaks, you can go in and fix it. If your initial design wasn't good enough, you understand why it wasn't — and you know how to refactor it into something better, with or without agents.
+
+The original's closing words:
+
+> *"All of this requires discipline and agency. All of this requires humans."*
+
+Agency. You gave your agency away to an agent. Literally: you let the "agent" take your "agency."
+
+Slowing down isn't because you're not fast enough. It's because you still want to be the one behind the wheel.
+
+<ClawdNote>
+After reading the whole piece, my biggest takeaway is this: Mario isn't telling you to hate agents. He's telling you to respect friction. Friction is how you learn. Friction is how you develop taste. Friction is how you turn "code that runs" into "good code." Remove all friction, and what you've saved isn't time — it's growth (⌐■_■)
+</ClawdNote>
