@@ -1,0 +1,453 @@
+---
+/**
+ * SeriesNav — Series-aware Navigation Component (Issue #83)
+ *
+ * Shows prev/next within the series + full collapsible article list
+ * with read/unread indicators. Rendered above PrevNextNav.
+ *
+ * Only renders when the current post has a `series` field.
+ */
+
+interface Post {
+  slug: string;
+  data: {
+    title: string;
+    ticketId?: string;
+    series?: {
+      name: string;
+      order: number;
+    };
+    lang: string;
+  };
+}
+
+interface Props {
+  currentSlug: string;
+  allPosts: Post[];
+  lang?: 'zh-tw' | 'en';
+}
+
+const { currentSlug, allPosts, lang = 'zh-tw' } = Astro.props;
+
+// Find current post
+const currentPost = allPosts.find((p) => p.slug === currentSlug);
+if (!currentPost?.data.series) {
+  // No series — render nothing
+  return;
+}
+
+const seriesName = currentPost.data.series.name;
+const currentOrder = currentPost.data.series.order;
+
+// Filter series posts and sort by order
+const seriesPosts = allPosts
+  .filter((p) => p.data.series?.name === seriesName)
+  .sort((a, b) => (a.data.series?.order ?? 0) - (b.data.series?.order ?? 0));
+
+const totalInSeries = seriesPosts.length;
+
+// Prev/next within series
+const prevPost = seriesPosts.find((p) => p.data.series?.order === currentOrder - 1) ?? null;
+const nextPost = seriesPosts.find((p) => p.data.series?.order === currentOrder + 1) ?? null;
+
+const baseUrl = lang === 'en' ? '/en/posts/' : '/posts/';
+
+const labels = {
+  'zh-tw': {
+    seriesLabel: '系列文章',
+    progress: (cur: number, total: number) => `第 ${cur} / ${total} 篇`,
+    prevInSeries: '← 系列上一篇',
+    nextInSeries: '系列下一篇 →',
+    seriesList: '系列文章列表',
+    showList: '展開列表',
+    hideList: '收起列表',
+    readMark: '已讀',
+    unreadMark: '未讀',
+  },
+  en: {
+    seriesLabel: 'Series',
+    progress: (cur: number, total: number) => `${cur} / ${total}`,
+    prevInSeries: '← Series Prev',
+    nextInSeries: 'Series Next →',
+    seriesList: 'Series Article List',
+    showList: 'Show List',
+    hideList: 'Hide List',
+    readMark: 'Read',
+    unreadMark: 'Unread',
+  },
+};
+
+const t = labels[lang];
+---
+
+<nav class="series-nav" data-series-nav aria-label={t.seriesList}>
+  <!-- Header row: series label + name + progress -->
+  <div class="series-header">
+    <div class="series-meta">
+      <span class="series-label">{t.seriesLabel}</span>
+      <span class="series-name">{seriesName}</span>
+    </div>
+    <span class="series-progress" data-series-progress>
+      {t.progress(currentOrder, totalInSeries)}
+    </span>
+  </div>
+
+  <!-- Series prev/next navigation -->
+  <div class="series-nav-row">
+    <div class="series-prev-wrapper">
+      {
+        prevPost ? (
+          <a
+            href={`${baseUrl}${prevPost.slug}`}
+            class="series-nav-link series-prev-link"
+            data-series-prev
+          >
+            <span class="series-nav-dir">{t.prevInSeries}</span>
+            <span class="series-nav-title">{prevPost.data.title}</span>
+          </a>
+        ) : (
+          <span data-series-prev style="display:none" />
+        )
+      }
+    </div>
+
+    <div class="series-next-wrapper">
+      {
+        nextPost ? (
+          <a
+            href={`${baseUrl}${nextPost.slug}`}
+            class="series-nav-link series-next-link"
+            data-series-next
+          >
+            <span class="series-nav-dir">{t.nextInSeries}</span>
+            <span class="series-nav-title">{nextPost.data.title}</span>
+          </a>
+        ) : (
+          <span data-series-next style="display:none" />
+        )
+      }
+    </div>
+  </div>
+
+  <!-- Toggle button for series list -->
+  <button class="series-list-toggle" data-series-list-toggle type="button" aria-expanded="false">
+    <span class="toggle-label-show">{t.showList}</span>
+    <span class="toggle-label-hide" style="display:none">{t.hideList}</span>
+    <span class="toggle-icon">▾</span>
+  </button>
+
+  <!-- Full series article list (collapsed by default on mobile, expanded on desktop) -->
+  <ol class="series-list" data-series-list aria-label={t.seriesList}>
+    {
+      seriesPosts.map((post) => {
+        const isCurrent = post.slug === currentSlug;
+        return (
+          <li
+            class={`series-item${isCurrent ? ' series-item-current' : ''}`}
+            data-series-item
+            data-series-current={isCurrent ? 'true' : undefined}
+          >
+            <span class="read-indicator" data-read-indicator data-slug={post.slug} />
+            {isCurrent ? (
+              <span class="series-item-link series-item-current-label" aria-current="page">
+                <span class="series-order">{post.data.series?.order}.</span>
+                <span class="series-item-title">{post.data.title}</span>
+              </span>
+            ) : (
+              <a href={`${baseUrl}${post.slug}`} class="series-item-link">
+                <span class="series-order">{post.data.series?.order}.</span>
+                <span class="series-item-title">{post.data.title}</span>
+              </a>
+            )}
+          </li>
+        );
+      })
+    }
+  </ol>
+</nav>
+
+<script>
+  import { isRead } from '../lib/reading-tracker';
+
+  function initSeriesNav() {
+    const nav = document.querySelector<HTMLElement>('[data-series-nav]');
+    if (!nav) return;
+
+    // Update read indicators
+    const indicators = nav.querySelectorAll<HTMLElement>('[data-read-indicator]');
+    indicators.forEach((el) => {
+      const slug = el.dataset.slug ?? '';
+      const read = isRead(slug);
+      el.classList.toggle('is-read', read);
+      el.title = read ? 'Read' : 'Unread';
+    });
+
+    // Listen for read status changes
+    window.addEventListener('read-status-changed', (e: Event) => {
+      const detail = (e as CustomEvent<{ slug: string; read: boolean }>).detail;
+      const indicator = nav.querySelector<HTMLElement>(
+        `[data-read-indicator][data-slug="${detail.slug}"]`
+      );
+      if (indicator) {
+        indicator.classList.toggle('is-read', detail.read);
+        indicator.title = detail.read ? 'Read' : 'Unread';
+      }
+    });
+
+    // Toggle series list
+    const toggleBtn = nav.querySelector<HTMLButtonElement>('[data-series-list-toggle]');
+    const seriesList = nav.querySelector<HTMLElement>('[data-series-list]');
+
+    if (toggleBtn && seriesList) {
+      // Desktop: expanded by default. Mobile: collapsed by default.
+      const isMobile = window.innerWidth <= 640;
+
+      if (isMobile) {
+        seriesList.classList.add('collapsed');
+        toggleBtn.setAttribute('aria-expanded', 'false');
+      } else {
+        seriesList.classList.remove('collapsed');
+        toggleBtn.setAttribute('aria-expanded', 'true');
+        const showLabel = toggleBtn.querySelector<HTMLElement>('.toggle-label-show');
+        const hideLabel = toggleBtn.querySelector<HTMLElement>('.toggle-label-hide');
+        if (showLabel) showLabel.style.display = 'none';
+        if (hideLabel) hideLabel.style.display = '';
+      }
+
+      toggleBtn.addEventListener('click', () => {
+        const isExpanded = toggleBtn.getAttribute('aria-expanded') === 'true';
+        toggleBtn.setAttribute('aria-expanded', isExpanded ? 'false' : 'true');
+        seriesList.classList.toggle('collapsed', isExpanded);
+
+        const showLabel = toggleBtn.querySelector<HTMLElement>('.toggle-label-show');
+        const hideLabel = toggleBtn.querySelector<HTMLElement>('.toggle-label-hide');
+        if (showLabel) showLabel.style.display = isExpanded ? '' : 'none';
+        if (hideLabel) hideLabel.style.display = isExpanded ? 'none' : '';
+
+        const icon = toggleBtn.querySelector<HTMLElement>('.toggle-icon');
+        if (icon) icon.style.transform = isExpanded ? '' : 'rotate(180deg)';
+      });
+    }
+  }
+
+  initSeriesNav();
+</script>
+
+<style>
+  .series-nav {
+    margin: 2rem 0 1rem;
+    padding: 1.25rem;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    background: var(--color-surface);
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  .series-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+  }
+  .series-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+    flex: 1;
+  }
+  .series-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-accent);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .series-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-text);
+    line-height: 1.3;
+    word-break: break-word;
+  }
+  .series-progress {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 20px;
+    padding: 0.2rem 0.6rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .series-nav-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+  .series-nav-link {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0.75rem;
+    border-radius: 8px;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    text-decoration: none;
+    transition: all 0.2s ease;
+    overflow: hidden;
+  }
+  .series-nav-link:hover {
+    border-color: var(--color-accent);
+    background: var(--color-surface-hover);
+    transform: translateY(-1px);
+  }
+  .series-next-wrapper {
+    display: flex;
+    justify-content: flex-end;
+  }
+  .series-next-wrapper > a,
+  .series-next-link {
+    width: 100%;
+    text-align: right;
+  }
+  .series-nav-dir {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-accent);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .series-nav-title {
+    font-size: 0.85rem;
+    color: var(--color-text);
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .series-list-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-family: var(--font-sans);
+    padding: 0.3rem 0;
+    transition: color 0.2s ease;
+  }
+  .series-list-toggle:hover {
+    color: var(--color-accent);
+  }
+  .toggle-icon {
+    display: inline-block;
+    transition: transform 0.2s ease;
+  }
+  .series-list {
+    list-style: none;
+    margin: 0.5rem 0 0;
+    padding: 0;
+  }
+  .series-list.collapsed {
+    display: none;
+  }
+  .series-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .series-item:last-child {
+    border-bottom: none;
+  }
+  .read-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-border);
+    border: 1.5px solid var(--color-text-muted);
+    flex-shrink: 0;
+    margin-top: 0.35rem;
+    transition: background 0.2s ease;
+  }
+  .read-indicator.is-read {
+    background: var(--color-badge-sd, #50fa7b);
+    border-color: var(--color-badge-sd, #50fa7b);
+  }
+  .series-item-link {
+    display: flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    text-decoration: none;
+    color: var(--color-text);
+    font-size: 0.875rem;
+    line-height: 1.4;
+    flex: 1;
+    min-width: 0;
+  }
+  a.series-item-link:hover {
+    color: var(--color-accent);
+  }
+  .series-item-current .series-item-link {
+    font-weight: 600;
+    color: var(--color-accent);
+    cursor: default;
+  }
+  .series-order {
+    flex-shrink: 0;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    font-weight: 600;
+    min-width: 1.2rem;
+  }
+  .series-item-current .series-order {
+    color: var(--color-accent);
+  }
+  .series-item-title {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+  .series-nav-link:focus-visible,
+  a.series-item-link:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  @media (max-width: 640px) {
+    .series-nav {
+      padding: 1rem;
+    }
+    .series-nav-row {
+      grid-template-columns: 1fr;
+      gap: 0.5rem;
+    }
+    .series-next-wrapper > a,
+    .series-next-link {
+      text-align: left;
+    }
+    .series-next-wrapper {
+      justify-content: flex-start;
+    }
+    .series-nav-title {
+      -webkit-line-clamp: 3;
+    }
+  }
+  @media (pointer: coarse) {
+    .series-nav-link {
+      padding: 1rem;
+      min-height: 64px;
+    }
+    .series-item {
+      padding: 0.6rem 0;
+    }
+  }
+</style>
