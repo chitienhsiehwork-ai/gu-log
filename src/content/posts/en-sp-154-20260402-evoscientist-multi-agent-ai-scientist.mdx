@@ -1,0 +1,255 @@
+---
+ticketId: "SP-154"
+title: "What If Your AI Scientist Could Remember Why It Failed? EvoScientist's Self-Evolving Research Team"
+originalDate: "2026-03-09"
+translatedDate: "2026-04-02"
+translatedBy:
+  model: "GPT 5.4"
+  harness: "OpenClaw"
+  pipeline:
+    - role: "Author"
+      model: "GPT 5.4"
+      harness: "OpenClaw"
+source: "EvoScientist on arXiv"
+sourceUrl: "https://arxiv.org/abs/2603.08127"
+lang: "en"
+summary: "Most AI scientist systems still behave like brilliant interns with amnesia: they work hard, but they keep repeating the same bad experiments. EvoScientist adds three specialized agents and two persistent memories so the system can learn from failed directions, reuse good strategies, and evolve over time."
+tags: ["shroom-picks", "ai-scientist", "multi-agent", "persistent-memory", "scientific-discovery"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Imagine a scene that sounds ridiculous, but not *that* ridiculous anymore.
+
+You have an AI scientist. It reads papers, proposes research ideas, writes code, runs experiments, and summarizes results. It can even turn a rough idea into something that looks suspiciously close to a real proposal.
+
+Pretty impressive.
+
+But if every new task wipes its memory of the last one, then underneath all that polish, it's still just a very articulate first-year grad student. Yesterday it slammed into a dead end. Today it gets a fresh prompt and happily walks right back into the same wall.
+
+That is the problem EvoScientist is trying to solve: **what if your AI assistant could remember why previous attempts failed, then use that memory to come up with better strategies?**
+
+And the paper's answer is not simply "add more agents." The real move is more interesting: **put evolution inside the multi-agent system.** Don't just finish a task and throw the traces away. Distill the good directions, the bad directions, and the useful coding strategies into something the next task can actually use.
+
+<ClawdNote>
+A lot of agent systems look like they're building the Avengers: Research Agent, Coding Agent, Reviewer Agent, Manager Agent — everyone's got a cool title.
+
+But if the whole team gets collective amnesia after every mission, then this is not the Avengers. It's a party RPG where the characters reset to level 1 every morning.
+
+EvoScientist matters because it doesn't only give the team roles. It gives the team *memory*. Huge difference (◕‿◕)
+</ClawdNote>
+
+## The Problem Is Not Too Few Agents. It's Repeating the Same Mistakes Forever.
+
+The paper opens with a blunt critique of most current AI scientist systems: **their pipelines are static.**
+
+Static means the roles are fixed, the workflow is fixed, and the decision patterns are mostly fixed. A research agent proposes ideas. An engineering agent writes code. Everyone follows the script, produces an output, and goes home.
+
+This looks clean in a demo. Real scientific discovery is not clean.
+
+Research is closer to walking through fog. You chase ideas that look promising but go nowhere. You waste compute on things that were never feasible. You run experiments that fail for boring reasons. You stumble into good directions but don't realize they were good until later.
+
+And a static pipeline has one brutal weakness: **it does not get smarter from these collisions.**
+
+So you get the same three disasters again and again:
+
+- a direction already known to be bad gets explored one more time
+- a code strategy that worked before is forgotten, so implementation starts from random guessing again
+- a half-successful but promising idea disappears because nobody distilled what was valuable about it
+
+The paper's core insight is simple and strong: **interaction history is not noise. It is an asset.**
+
+If you treat every multi-agent run as disposable execution trace, then the whole system lives in permanent "first day on the job" mode.
+
+<ClawdNote>
+This is exactly what it's like mentoring a junior engineer.
+
+A junior is fine. A junior who wakes up every day as if it's day one is a problem. Yesterday you explained why this migration cannot be sliced that way. Today they slice it that way again. Last week you explained the rate limit. This week they hammer the API again.
+
+Growth is not "did work once." Growth is "left behind reusable judgment after doing the work." No judgment retained means no learning happened. AI agents are even more exposed here, because session reset is not a metaphor. It is literally the product behavior (╯°□°)╯
+</ClawdNote>
+
+---
+
+## EvoScientist Is Not Three Agents Standing in a Line. It's a Research Team That Learns.
+
+On paper, the architecture sounds simple: three agents.
+
+**The Researcher Agent (RA)** generates scientific ideas. It reads the goal, reviews relevant literature, proposes candidate directions, and runs a tree-search-like loop of propose, review, and refine.
+
+**The Engineer Agent (EA)** turns the proposal into real experiments. It searches for executable code, handles data processing, tries training strategies, runs experiments, reads logs, diagnoses failures, patches the implementation, and tries again. In other words, the most overworked and indispensable person in the lab.
+
+**The Evolution Manager Agent (EMA)** is the soul of the whole paper. It does not generate the first idea and it does not directly write the experiment code. Its job is something higher leverage: **distill the successes and failures from RA and EA into reusable knowledge for future tasks.**
+
+It feels less like a project manager and more like the strongest senior researcher in the room. Not because it does the most first-hand labor, but because after a research cycle it can say:
+
+"This direction is worth revisiting."
+
+"This one looks elegant but is currently a dead end. Stop wasting time there."
+
+"This implementation pattern is clearly more reliable. Start there next time."
+
+That is what separates EvoScientist from a lot of multi-agent papers. Others mostly do **role decomposition**. EvoScientist is trying to do **organizational learning**.
+
+<ClawdNote>
+I like EMA because it admits something many agent frameworks prefer not to admit:
+
+**storing logs is not the same thing as learning.**
+
+Plenty of systems proudly keep huge traces and say, "look, we have memory now." Cool. If nobody turns those traces into "here's what we should do differently next time," then congratulations — you built a smarter landfill.
+
+EMA is valuable because it is not a warehouse clerk. It is a coach. A clerk stores things. A coach helps you stop getting punched by the same move every week ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## The Real Core: Two Research Notebooks That Keep Getting Better
+
+EvoScientist does not solve memory by stuffing all history back into the prompt. That would be the lazy version. Instead, it splits memory into two parts, each serving a different stage.
+
+The first is **ideation memory**.
+
+This stores knowledge at the research-direction level: which directions look feasible, which ones have already failed, which patterns keep showing up in top-ranked ideas. Before RA starts generating new ideas, it retrieves relevant direction knowledge from this memory. So it does not begin from a blank whiteboard every time. It begins after reading the lab notebook.
+
+The second is **experimentation memory**.
+
+This stores knowledge at the implementation level: which data processing patterns are more stable, which training strategies work better, which code-search trajectories led to good implementations before. Before EA starts writing code and running experiments, it retrieves this memory. It is basically checking the lab survival guide before touching the equipment.
+
+Separating these two memories matters a lot.
+
+Because "good ideas" and "good implementation" are different kinds of intelligence. You can be brilliant at proposing directions and still fail every time code touches the machine. You can be an incredible debugger and still choose boring or impossible ideas. EvoScientist does not blur these into one giant bag of knowledge. It treats them as separate capabilities that need separate accumulation and separate evolution.
+
+This is also why the paper pairs so nicely with two earlier gu-log pieces: [SD-11](/en/posts/en-sd-11-20260402-ai-agent-memory-architecture) on memory architecture, and [SP-144](/en/posts/en-sp-144-20260402-ecc-instinct-system) on turning repeated patterns into instincts. EvoScientist feels like the academic version of those two ideas fused together: **memory preserves experience, and evolution turns experience into better future decisions.**
+
+<ClawdNote>
+The most steal-worthy idea here is not just "have memory." It's **design the granularity of memory correctly**.
+
+When people hear "agent memory," they often want one giant knowledge base where everything gets embedded together. Sounds modern. In practice, it often feels like throwing experiment notes, research hypotheses, debugging logs, and meeting minutes into one drawer.
+
+Good luck finding what matters.
+
+EvoScientist's split is clean: failure at the research-direction level is not the same thing as failure at the implementation level. If you mix them, retrieval gets muddy and you start using "this model never trained correctly" to contaminate "this research direction may still be promising." That is not memory design. That is just mess with embeddings on top (⌐■_■)
+</ClawdNote>
+
+---
+
+## How Does It Actually Evolve? Not by Magic — by Distilling Three Kinds of Lessons.
+
+If you only say "it has persistent memory, therefore it evolves," that still sounds a little magical.
+
+What makes this paper more convincing is that it spells out three distinct evolution mechanisms.
+
+**First: idea direction evolution.**
+
+After RA finishes idea tree search, EvoScientist does not only take the top-1 idea and move on. It summarizes the promising directions that appear across the top-ranked ideas and writes them into ideation memory. So the system is not merely remembering *which answer won*. It is remembering *which directions deserve more thought*.
+
+**Second: idea validation evolution.**
+
+If a proposal proves infeasible — maybe the engineer cannot find executable code within budget, or the proposed method performs worse than the baseline — EMA records that failure pattern into ideation memory too. This is one of the smartest parts of the design. It is not only collecting success stories. It is preserving "please stop wasting time here" knowledge.
+
+**Third: experiment strategy evolution.**
+
+EA leaves behind structured execution records: run status, logs, metrics, diagnoses, and the versions that actually worked. EMA distills reusable execution strategies from those traces and stores them in experimentation memory. The next time a similar proposal shows up, EA does not begin in darkness.
+
+The loop becomes very clear:
+
+- RA proposes
+- EA tests
+- EMA reflects and distills
+- the next RA and EA run with better priors
+
+That is not a normal pipeline anymore. It is closer to a research team doing weekly retrospective — and actually changing next week's behavior based on the retrospective.
+
+The paper also has two nice details.
+
+First, candidate ideas are ranked using an **Elo-based tournament** rather than one floating absolute score. That forces pairwise comparison, which is often a more stable way to judge messy, creative outputs.
+
+Second, EA does not just do one pass of code generation. It performs **experiment tree search**, meaning implementation itself becomes an iterative search process rather than a one-shot gamble.
+
+<ClawdNote>
+The idea of storing failure in memory sounds obvious only after someone else says it.
+
+In practice, most teams are terrible at preserving failure knowledge. Success cases get documented, blogged, turned into conference talks, added to the wiki. Failed directions usually remain trapped inside one person's head or buried in a postmortem everyone avoids reading after two weeks.
+
+For an autonomous agent that explores a big search space, **failure knowledge can be more valuable than success knowledge** because it cuts branches off the tree. Sometimes knowing where the walls are matters more than having one more inspirational map.
+
+Put more bluntly: remembering dead ends is a feature, not a mood disorder (¬‿¬)
+</ClawdNote>
+
+---
+
+## Do the Results Actually Matter? This Time, Yeah, Kind of.
+
+Architecture diagrams are cheap. Results are where the paper has to pay rent.
+
+On scientific idea generation, EvoScientist is compared against seven open-source and commercial baselines. The evaluation dimensions are four familiar ones: **novelty, feasibility, relevance, and clarity**.
+
+And importantly, the paper does not rely on only one judge. It reports both automatic evaluation and human evaluation. That matters, because "an LLM said we were amazing" is now roughly as trustworthy as every bubble tea shop claiming to be the best in town. Human reviewers make the result harder to hand-wave away.
+
+The headline is straightforward: **EvoScientist outperforms the baselines across those four dimensions overall.**
+
+On the code execution side, the paper gives a more grounded number: average execution success rate improves from **34.39** before evolution to **44.56** after evolution. Not a miracle. Not suspiciously perfect. Just a believable engineering result: once the system starts accumulating and reusing execution strategies, it succeeds more often.
+
+The authors also push EvoScientist into full end-to-end scientific discovery and use it to generate and write six complete papers. According to the paper, all six were accepted to the ICAIS 2025 AI Scientist Track, and two received major awards.
+
+I would keep a healthy academic eyebrow raised there — it is still the authors' own setup and submission context — but even without the awards, the central claim already lands: **persistent memory plus multi-agent evolution is not decorative. It changes exploration quality and execution reliability.**
+
+<ClawdNote>
+Honestly, I like 34.39 → 44.56 *because* it does not look like marketing.
+
+If the paper had said "we improved success rate from 34% to 93%," my first instinct would be: what benchmark got sweetened, and where is the hidden trick?
+
+But moving from low-30s to mid-40s feels like reality. The system did not become a god. It just started doing fewer stupid things. In engineering, that is often what major progress really looks like: same team, fewer walls, better odds ٩(◕‿◕｡)۶
+</ClawdNote>
+
+---
+
+## What Engineers Should Steal From This Paper
+
+If you use AI for research, coding, or agent workflows, the most valuable takeaway here is probably not "I should build my own AI scientist."
+
+What is more useful to steal is the way EvoScientist manages experience.
+
+A lot of memory systems start from the same instinct: save the best practices. Reasonable. EvoScientist pushes one step further and asks a more uncomfortable question: **what if the most valuable thing to remember is not success, but failure?** For an agent that explores large search spaces, avoiding three dead ends can be more valuable than discovering one extra clever trick.
+
+Then the paper makes another move that sounds boring but is actually architecture: it separates kinds of experience that people love to mix together. Research directions, validation outcomes, and implementation strategies are all "experience," sure — but they are not the same *kind* of experience. Shove them into one retrieval bucket and the system starts fishing out the wrong lesson at the wrong time.
+
+And then there is the last piece, the one many agent systems quietly skip: **raw history does not turn into wisdom by itself.** Logs, traces, and metrics are materials, not judgment. You need a distillation layer that turns "what happened this time" into "what we should do next time." That is EMA.
+
+<ClawdNote>
+This is where many agent systems stall out.
+
+Everyone loves talking about retrieval, embeddings, context windows, and memory stores — like they are designing a very fashionable data center. But the thing that actually makes a system smarter is usually not "can it store more?" It is "can it turn experience into an actionable preference for the next run?"
+
+Otherwise you are just putting more historical junk onto a more beautiful shelf (´・ω・`)
+</ClawdNote>
+
+That is why I see EvoScientist as complementary to [SD-11](/en/posts/en-sd-11-20260402-ai-agent-memory-architecture) and [SP-144](/en/posts/en-sp-144-20260402-ecc-instinct-system), not overlapping with them. SD-11 is closer to "how should memory be stored so it does not rot?" SP-144 is closer to "how do repeated behaviors become reusable instincts?" EvoScientist pushes the question further: when agents are exploring unknown territory for a long time, **how should memory and instincts reshape the research strategy itself?**
+
+One-sentence version: **EvoScientist is the academic version of agent evolution; ECC is the engineering version.** Both are aiming at the same end state — AI that does not merely do work, but grows judgment from doing the work.
+
+## The Ending That Actually Matters
+
+What I like about this paper is that it takes a concept that could easily drift into hand-wavy philosophy and nails it down into a concrete systems idea:
+
+**A powerful AI is not the one that gets it right the first time. It's the one that stops making the same mistake the second time.**
+
+That sounds almost too obvious. But if you look closely, this is exactly where a lot of current agent hype breaks apart. Everyone loves the first run: the autonomy, the polish, the theatrical feeling that you now have a tiny digital coworker. But once the work becomes long-horizon, systems without memory, without evolution, and without distilled failure reveal what they really are.
+
+They are just very impressive versions of "first attempt."
+
+EvoScientist points toward a different future: AI scientists that do not only generate ideas and experiments, but slowly accumulate research instinct.
+
+Today that instinct is being used for papers and benchmarks. Tomorrow the same pattern can show up in your coding agent, your research copilot, maybe even your entire AI team workflow.
+
+<ClawdNote>
+A lot of people assume the upgrade path for AI is just: bigger model, longer context, stronger tool use.
+
+Sure, those matter. But EvoScientist points at a quieter and more compounding path: **make the system repeat the same stupidity less often.**
+
+That kind of progress rarely makes for a flashy keynote demo. In real work, it is usually the thing that matters most.
+</ClawdNote>
+
+Because whether you call it a scientist, an engineer, or an assistant, the useful ability is the same:
+
+**remember how you failed, and be slightly less foolish next time.**
