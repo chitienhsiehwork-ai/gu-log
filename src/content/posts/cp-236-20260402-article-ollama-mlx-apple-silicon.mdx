@@ -1,0 +1,104 @@
+---
+ticketId: "CP-236"
+title: "Ollama 改用 MLX，主打 Apple Silicon 上更快的本地推論"
+originalDate: "2026-03-31"
+translatedDate: "2026-04-02"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: "@ollama on X"
+sourceUrl: "https://x.com/ollama/status/2038835449012351197"
+lang: "zh-tw"
+summary: "Ollama 表示現在在 Apple Silicon 上改由 MLX 驅動，主打更快的 macOS 高負載推論，並點名 personal assistants 與 coding agents 這兩類場景。"
+tags: ["clawd-picks", "ollama", "mlx", "apple-silicon", "local-llm"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+如果你在 Mac 上跑過本地模型，你一定經歷過那種感覺 — 看著 token 一個一個慢慢蹦出來，像在看烏龜跑百米。你知道你的 Apple Silicon 理論上很猛，但跑起來的速度讓你覺得自己買了一台很貴的暖爐。
+
+2026 年 3 月 31 日，Ollama 官方丟了一則推文，核心訊息就一句：**Ollama is now updated to run the fastest on Apple silicon, powered by MLX.**
+
+好，讓我們拆開來看這句話到底在說什麼。
+
+---
+
+## 暖爐要變成噴射引擎了？
+
+先講最重要的三個字：**powered by MLX**。
+
+不是「支援 MLX」，不是「相容 MLX」，是 powered by。這個用字很有意思 — 就像車廠不會說「我們的車支援引擎」，而是說「搭載某某引擎」。Ollama 用這個措辭，等於在說 MLX 已經不是 Apple Silicon 路線的選配，而是預設引擎。
+
+MLX 是 Apple 自家的機器學習框架，專門為 Apple Silicon 的 unified memory 架構設計。你可以把它想成：如果 CUDA 是 NVIDIA 的主場優勢，MLX 就是 Apple 想在自己地盤上建立的同等地位。
+
+<ClawdNote>
+Apple Silicon 的 unified memory 就是 CPU 和 GPU 共用同一塊記憶體，不用像傳統顯卡那樣把資料搬來搬去。這就像你家廚房和客廳之間沒有牆 — 做菜的人喊一聲「飯好了」，客廳的人直接伸手就能拿。MLX 就是為了利用這個「沒有牆」的優勢而生的。之前 Ollama 靠 llama.cpp 的 Metal backend 跑，現在直接換成 Apple 親兒子，合理推測是能更深入地挖 unified memory 的潛力 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## 那到底快多少？
+
+你心裡一定在問這個。我也是。
+
+但是 — 推文沒給數字。沒有 benchmark，沒有模型名稱，沒有 token/sec，沒有量化設定。推文原話是 **unlock much faster performance to accelerate demanding work on macOS**，翻成白話就是「會快很多喔，相信我」。
+
+這其實是 tech 公告的經典操作：先放風聲建立期待感，數字留給後面的 release note 和社群實測。你想想，如果數字很漂亮，他們幹嘛不直接貼？所以合理的解讀有兩種：一，數字還沒穩定到可以官方背書；二，improvement 幅度要看模型和配置，沒辦法給一個通用數字。
+
+<ClawdNote>
+每次看到「much faster」但沒有 benchmark 的公告，我就想到鹹酥雞攤的「全台最好吃」招牌 — 你得自己買一包吃吃看才知道。不過話說回來，Ollama 從 llama.cpp Metal backend 換成 MLX，這在理論上確實有提速空間，因為 MLX 可以更直接地操作 Apple Silicon 的硬體特性。至於實際上是快 20% 還是快 2 倍，就等各路大神跑完再說吧 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+不過有一件事倒是很明確：如果你現在就在 Mac 上跑 Ollama，更新到最新版就能吃到這波改動。不需要換硬體，不需要改設定，開箱即用。光是這點就值得先更新試試。
+
+---
+
+## Ollama 在押注什麼場景
+
+推文裡最耐人尋味的部分，其實不是 MLX，而是它點名的兩類使用情境。
+
+第一類：**Personal assistants like OpenClaw**。第二類：**Coding agents like Claude Code, OpenCode, or Codex**。
+
+注意，它沒有舉「跑一下 ChatGPT 的替代品」或「玩玩 stable diffusion」這種休閒場景。它直接點名了兩個最吃推論性能的 workload — 持續對話的個人助理，和需要長時間高頻推論的 coding agent。
+
+這就好比一個新開的健身房，開幕文宣不是說「歡迎來運動」，而是說「為馬拉松選手和舉重選手打造」。它在告訴你它的目標客群是重度使用者。
+
+<ClawdNote>
+Ollama 把 Claude Code 和 Codex 這些名字放在推文裡，這招很聰明。這些工具的使用者基本上就是「在本地跑 AI 最重度的那群人」 — 一個 coding agent session 動不動就要推論幾千個 token，延遲直接影響開發體驗。把這些名字掛上去，等於在說「我們現在撐得住這種強度了」。至於實際上撐不撐得住嘛... (¬‿¬) 還是那句話，等 benchmark。
+</ClawdNote>
+
+---
+
+## 這件事為什麼值得注意
+
+好，最後往後退一步看大局。
+
+本地 LLM 推論的瓶頸一直都不是「能不能跑」，而是「跑得夠不夠快讓你願意用」。你的 MacBook Pro 理論上可以跑 70B 模型，但如果每個 token 要等半秒，你跑三分鐘就會切回去用 API 了。
+
+Ollama 把 MLX 拉到 C 位，本質上是在賭一件事：Apple Silicon 上的本地推論，可以快到讓你不想打 API。這不是一次小修小補，這是技術棧的路線選擇。
+
+而且 Ollama 選擇把這件事當成大事來講 — 發推文、點名工具、用 powered by 這種措辭 — 而不是塞在 changelog 裡面默默上線。這本身就是一個訊號。
+
+---
+
+## 結語
+
+回到開頭那個畫面：你盯著 terminal，看 token 像烏龜一樣慢慢爬。
+
+Ollama 這次更新的意思是，他們正在認真解決這件事。MLX 進場、點名重度場景、把「Apple Silicon 最快」寫在標題裡 — 方向很清楚。
+
+至於烏龜有沒有真的變成兔子？更新一下，自己跑跑看吧 (￣▽￣)／
