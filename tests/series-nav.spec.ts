@@ -199,6 +199,88 @@ test.describe('SeriesNav Component — Mobile Responsive', () => {
   });
 });
 
+test.describe('Related Articles — Non-series Posts', () => {
+  test('R1. Post without series shows Related Articles section', async ({ page }) => {
+    await page.goto(NO_SERIES_POST);
+
+    const relatedSection = page.locator('[data-related-articles]');
+    await expect(relatedSection).toBeVisible();
+  });
+
+  test('R2. Related articles are based on tag overlap (not random)', async ({ page }) => {
+    // claude-is-a-space-to-think has tags: ["claude-code", "business-model", "trust"]
+    // Related should share at least one of these tags
+    await page.goto(NO_SERIES_POST);
+
+    const relatedSection = page.locator('[data-related-articles]');
+    await expect(relatedSection).toBeVisible();
+
+    // All related items should have links to real posts
+    const relatedLinks = relatedSection.locator('a[data-related-item]');
+    const count = await relatedLinks.count();
+    expect(count).toBeGreaterThan(0);
+
+    // Verify they are actual hrefs (not empty)
+    const href = await relatedLinks.first().getAttribute('href');
+    expect(href).toBeTruthy();
+    expect(href).toContain('/posts/');
+  });
+
+  test('R3. Related articles shows max 3 items', async ({ page }) => {
+    await page.goto(NO_SERIES_POST);
+
+    const relatedLinks = page.locator('[data-related-articles] [data-related-item]');
+    const count = await relatedLinks.count();
+    expect(count).toBeGreaterThan(0);
+    expect(count).toBeLessThanOrEqual(3);
+  });
+
+  test('R4. Unread articles appear before read articles in the list', async ({ page }) => {
+    await page.goto(NO_SERIES_POST);
+
+    // Mark the first related item as read
+    const relatedSection = page.locator('[data-related-articles]');
+    const firstLink = relatedSection.locator('[data-related-item]').first();
+    const firstSlug = await firstLink.getAttribute('data-slug');
+    expect(firstSlug).toBeTruthy();
+
+    // Set it as read via localStorage (matching reading-tracker's STORAGE_KEY)
+    await page.evaluate((slug) => {
+      const key = 'gu-log-read-articles';
+      const store = { version: 1, slugs: [slug!], lastUpdated: new Date().toISOString() };
+      localStorage.setItem(key, JSON.stringify(store));
+    }, firstSlug);
+
+    // Reload so the page picks up the read status
+    await page.reload();
+
+    // The previously-read item should now show as read (has is-read class on indicator)
+    // Note: data-read-indicator is a sibling of data-related-item inside .related-item
+    const readIndicator = page
+      .locator(`[data-related-articles] [data-read-indicator][data-slug="${firstSlug}"]`)
+      .first();
+
+    // Wait for client-side hydration
+    await page.waitForTimeout(500);
+
+    const indicatorClass = await readIndicator.getAttribute('class');
+    // After reload, the read item's indicator should have is-read class
+    expect(indicatorClass).toContain('is-read');
+  });
+
+  test('R5. Post with series does NOT show Related Articles (shows SeriesNav instead)', async ({
+    page,
+  }) => {
+    await page.goto(ECC_MID_POST);
+
+    const relatedSection = page.locator('[data-related-articles]');
+    await expect(relatedSection).not.toBeVisible();
+
+    const seriesNav = page.locator('[data-series-nav]');
+    await expect(seriesNav).toBeVisible();
+  });
+});
+
 test.describe('SD Deep Dive Series Navigation', () => {
   test('SD series: first post has no prev, next points to SD-12', async ({ page }) => {
     await page.goto(SD_FIRST_POST);

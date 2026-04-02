@@ -5,6 +5,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import TableOfContents from '../../components/TableOfContents.astro';
 import PrevNextNav from '../../components/PrevNextNav.astro';
 import SeriesNav from '../../components/SeriesNav.astro';
+import RelatedArticles from '../../components/RelatedArticles.astro';
 import TicketBadge from '../../components/TicketBadge.astro';
 import Giscus from '../../components/Giscus.astro';
 import ShareButton from '../../components/ShareButton.astro';
@@ -138,7 +139,18 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
 
     <LoginCta lang="zh-tw" />
 
-    {post.data.series && <SeriesNav currentSlug={post.slug} allPosts={allPosts} lang="zh-tw" />}
+    {
+      post.data.series ? (
+        <SeriesNav currentSlug={post.slug} allPosts={allPosts} lang="zh-tw" />
+      ) : (
+        <RelatedArticles
+          currentSlug={post.slug}
+          currentTags={post.data.tags ?? []}
+          allPosts={allPosts}
+          lang="zh-tw"
+        />
+      )
+    }
 
     <PrevNextNav currentSlug={post.slug} allPosts={allPosts} lang="zh-tw" />
 
