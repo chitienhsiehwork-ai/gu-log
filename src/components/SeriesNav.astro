@@ -236,13 +236,11 @@ const t = labels[lang];
 <style>
   .series-nav {
     margin: 2rem 0 1rem;
-    padding: 1.25rem;
-    border: 1px solid var(--color-border);
-    border-radius: 10px;
-    background: var(--color-surface);
     max-width: 100%;
     box-sizing: border-box;
   }
+
+  /* Header */
   .series-header {
     display: flex;
     justify-content: space-between;
@@ -254,35 +252,37 @@ const t = labels[lang];
   .series-meta {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 0.15rem;
     min-width: 0;
     flex: 1;
   }
   .series-label {
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--color-accent);
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--color-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.08em;
   }
   .series-name {
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--color-text);
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--color-accent);
     line-height: 1.3;
     word-break: break-word;
   }
   .series-progress {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--color-text-muted);
-    background: var(--color-bg);
-    border: 1px solid var(--color-border);
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--color-accent);
+    background: rgba(255, 121, 198, 0.1);
+    border: 1px solid rgba(255, 121, 198, 0.25);
     border-radius: 20px;
-    padding: 0.2rem 0.6rem;
+    padding: 0.2rem 0.65rem;
     white-space: nowrap;
     flex-shrink: 0;
   }
+
+  /* Prev/Next cards */
   .series-nav-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -293,18 +293,18 @@ const t = labels[lang];
     display: flex;
     flex-direction: column;
     gap: 0.2rem;
-    padding: 0.75rem;
+    padding: 0.75rem 1rem;
     border-radius: 8px;
-    background: var(--color-bg);
+    background: var(--color-surface);
     border: 1px solid var(--color-border);
     text-decoration: none;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
     overflow: hidden;
   }
   .series-nav-link:hover {
     border-color: var(--color-accent);
     background: var(--color-surface-hover);
-    transform: translateY(-1px);
+    transform: translateY(-2px);
   }
   .series-next-wrapper {
     display: flex;
@@ -316,21 +316,23 @@ const t = labels[lang];
     text-align: right;
   }
   .series-nav-dir {
-    font-size: 0.75rem;
-    font-weight: 600;
+    font-size: 0.7rem;
+    font-weight: 700;
     color: var(--color-accent);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.06em;
   }
   .series-nav-title {
     font-size: 0.85rem;
     color: var(--color-text);
-    line-height: 1.3;
+    line-height: 1.35;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+
+  /* Toggle */
   .series-list-toggle {
     display: flex;
     align-items: center;
@@ -339,10 +341,11 @@ const t = labels[lang];
     border: none;
     color: var(--color-text-muted);
     cursor: pointer;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
+    font-weight: 600;
     font-family: var(--font-sans);
-    padding: 0.3rem 0;
-    transition: color 0.2s ease;
+    padding: 0.35rem 0;
+    transition: color 0.15s ease;
   }
   .series-list-toggle:hover {
     color: var(--color-accent);
@@ -350,47 +353,63 @@ const t = labels[lang];
   .toggle-icon {
     display: inline-block;
     transition: transform 0.2s ease;
+    font-size: 0.75rem;
   }
+
+  /* Article list */
   .series-list {
     list-style: none;
     margin: 0.5rem 0 0;
     padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
   }
   .series-list.collapsed {
     display: none;
   }
+
   .series-item {
     display: flex;
     align-items: flex-start;
     gap: 0.5rem;
-    padding: 0.4rem 0;
-    border-bottom: 1px solid var(--color-border);
+    padding: 0.45rem 0.6rem;
+    border-radius: 6px;
+    transition: background 0.15s ease;
   }
-  .series-item:last-child {
-    border-bottom: none;
+  .series-item:hover {
+    background: var(--color-surface);
   }
+  .series-item-current {
+    background: rgba(255, 121, 198, 0.08);
+    border-left: 2px solid var(--color-accent);
+    padding-left: 0.5rem;
+  }
+
+  /* Read indicator */
   .read-indicator {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: var(--color-border);
-    border: 1.5px solid var(--color-text-muted);
     flex-shrink: 0;
-    margin-top: 0.35rem;
-    transition: background 0.2s ease;
+    margin-top: 0.4rem;
+    background: var(--color-accent);
+    opacity: 0.6;
+    transition: all 0.2s ease;
   }
   .read-indicator.is-read {
     background: var(--color-badge-sd, #50fa7b);
-    border-color: var(--color-badge-sd, #50fa7b);
+    opacity: 0.3;
   }
+
   .series-item-link {
     display: flex;
     align-items: baseline;
     gap: 0.35rem;
     text-decoration: none;
     color: var(--color-text);
-    font-size: 0.875rem;
-    line-height: 1.4;
+    font-size: 0.85rem;
+    line-height: 1.45;
     flex: 1;
     min-width: 0;
   }
@@ -404,10 +423,11 @@ const t = labels[lang];
   }
   .series-order {
     flex-shrink: 0;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     color: var(--color-text-muted);
-    font-weight: 600;
+    font-weight: 700;
     min-width: 1.2rem;
+    font-variant-numeric: tabular-nums;
   }
   .series-item-current .series-order {
     color: var(--color-accent);
@@ -416,16 +436,17 @@ const t = labels[lang];
     word-break: break-word;
     overflow-wrap: anywhere;
   }
+
+  /* Focus states */
   .series-nav-link:focus-visible,
   a.series-item-link:focus-visible {
     outline: 2px solid var(--color-accent);
     outline-offset: 2px;
     border-radius: 4px;
   }
+
+  /* Mobile */
   @media (max-width: 640px) {
-    .series-nav {
-      padding: 1rem;
-    }
     .series-nav-row {
       grid-template-columns: 1fr;
       gap: 0.5rem;
@@ -447,7 +468,7 @@ const t = labels[lang];
       min-height: 64px;
     }
     .series-item {
-      padding: 0.6rem 0;
+      padding: 0.55rem 0.6rem;
     }
   }
 </style>
