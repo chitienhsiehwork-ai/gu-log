@@ -78,6 +78,11 @@ const cpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('CP-')).sort(
               {pick.data.ticketId && <TicketBadge ticketId={pick.data.ticketId} />}
               {pick.data.translatedDate || pick.data.originalDate} · {pick.data.source}
             </span>
+            {pick.data.summary && (
+              <Toggle title="摘要預覽">
+                <p>{pick.data.summary}</p>
+              </Toggle>
+            )}
           </article>
         ))}
 
@@ -233,9 +238,13 @@ const cpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('CP-')).sort(
     border-radius: 22%;
   }
 
-  /* Tighter toggle on index page */
+  /* Tighter meta + toggle gap on index page */
+  .post-preview .post-meta {
+    margin-bottom: 0;
+  }
+
   .post-preview :global(.toggle-container) {
-    margin: 0.3rem 0 0;
+    margin: 0.1rem 0 0;
   }
 
   .post-preview :global(.toggle-header) {
@@ -261,6 +270,11 @@ const cpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('CP-')).sort(
     display: block;
     color: var(--color-text-muted);
     font-size: 0.75rem;
+    margin-bottom: 0;
+  }
+
+  .pick-preview :global(.toggle-container) {
+    margin: 0.1rem 0 0;
   }
 
   .post-preview {
