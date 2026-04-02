@@ -1,0 +1,218 @@
+---
+ticketId: "SP-151"
+title: "Eval-Driven Development — 你測你的 code，但誰測你的 AI？"
+originalDate: "2026-04-01"
+translatedDate: "2026-04-02"
+translatedBy:
+  model: "Sonnet 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Translator"
+      model: "Sonnet 4.6"
+      harness: "Claude Code"
+source: "@affaanmustafa on GitHub"
+sourceUrl: "https://github.com/affaan-m/everything-claude-code"
+lang: "zh-tw"
+summary: "你用 unit test 測你的 code，用 CI 保護你的 pipeline。但你的 AI 呢？Eval-Driven Development（EDD）把 AI 開發從「感覺不錯就上」升級成有指標的工程紀律——pass@k 指標、三種評分器、Product vs Regression evals，這是 AI 時代真正的 TDD。"
+tags: ["shroom-picks", "ai-agents", "claude-code", "testing", "evals"]
+scores:
+  ralph:
+    p: 8
+    c: 9
+    v: 8
+    date: "2026-04-02"
+    model: "claude-sonnet-4-6"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+上週你讓 Claude Code 幫你寫了一個功能，跑起來很漂亮，你很滿意。
+
+這週你用類似的需求要它再做一次。結果讓你皺眉。不是爛到無法用，但就是少了什麼——邏輯鬆散，edge case 沒想到，整體感覺像是 AI 今天「狀態不好」。
+
+你重新跑了一次，又變好了一點。
+
+哪一個才是這個 AI 的真正水準？
+
+這個問題有個名字，叫做**不一致性問題**，也就是工程師在 AI 工具上卡關最多的地方。你的 unit test 告訴你「這段 code 對不對」，但它不告訴你「這個 AI 再跑一次，還對不對」。你在用感覺飛行——跑出好結果就說 AI 很強，跑出爛結果就說「今天狀況不好」，然後繼續。
+
+這不是只有你這樣。整個業界都這樣。
+
+Affaan Mustafa 的 [Everything Claude Code](https://github.com/affaan-m/everything-claude-code) 裡有一個 eval-harness skill，試圖解決這件事。它背後的思路叫做 **Eval-Driven Development（EDD）**——把 AI 開發從 vibes-based 拉回到 metrics-based。
+
+## 你測 code，但誰測 AI？
+
+工程界花了幾十年建立測試文化。
+
+從手動點 UI 確認功能、到 unit test、到 CI/CD pipeline 強制跑測試才能 merge。現在如果你送一個沒有測試的 PR 出去，review 的人會直接退回來。「測試覆蓋率」已經成為工程紀律的一部分，就跟 code style 一樣理所當然。
+
+然後 AI coding 工具出現了，我們全部退回到 2005 年。
+
+「你覺得這個 AI 輸出怎麼樣？」「看起來還行。」「那就用吧。」
+
+TDD（Test-Driven Development）的核心是：先寫測試，讓測試定義什麼叫做「成功」，再寫讓測試通過的 code。EDD 的邏輯完全一樣，只是被測試的對象換了——不是你寫的 code，而是**幫你寫 code 的 AI 本身**。
+
+你測 code 的品質，AI 的品質誰來測？
+
+<ClawdNote>
+「AI 開發讓工程師倒退回 2005 年」這句話有點誇張，但只有一點點。
+
+2003 年的 web 開發：「我在本地開過，應該沒問題，直接 FTP 上傳。」
+2026 年的 AI 開發：「我跑過一次，輸出看起來不錯，就這樣用。」
+
+測試文化的建立不是靠誰突然開竅，而是靠無數次生產掛掉、deadline 爆炸、半夜被 pager 叫醒才慢慢刻進工程師的 DNA 裡。AI 開發現在正在走同一條路，只是壓縮得更快。EDD 是那個還沒在整個業界普及的「應該要有測試」時刻 (ง •̀_•́)ง
+</ClawdNote>
+
+---
+
+## pass@k：第幾次才算真功夫
+
+EDD 的核心指標叫 **pass@k**。概念很直接：
+
+讓 AI 跑同樣的任務 k 次，看幾次成功。
+
+- **pass@1**：第一次就成功的機率
+- **pass@5**：5 次裡面至少 1 次成功的機率
+- **pass@10**：10 次裡面至少 1 次成功的機率
+
+這些數字通常差很多。同一個任務，pass@10 可能是 85%，但 pass@1 只有 35%。這代表「AI 原則上會做這件事」，但「用戶第一次叫它做，大概率失敗」。
+
+對用戶來說，只有 pass@1 有意義。
+
+沒有人會說「好，我們 AI 服務的 SLA 是：跑五次裡面保證有一次正確」。用戶下了一個指令，期待它做對。所以 **pass@1 才是衡量 AI 實際使用品質的真實指標**，其他都是上限估計。
+
+pass@k（k > 1）不是沒用——它告訴你天花板在哪裡，幫你判斷問題的性質。pass@1 是 30%、pass@10 是 90%？代表 AI 有能力但不穩定，需要找讓它更一致的方式。pass@1 是 30%、pass@10 也是 35%？根本能力不夠，不是穩定性問題，換策略。
+
+<ClawdNote>
+pass@k 讓我想到考駕照。
+
+你在練習場練了三個月，平行停車每次都停得進去。考試那天第一次就停歪了。考官不會說「好，你有三次機會，取最好的一次」——那個能力是假的。
+
+AI demo 和 AI 上線之間的落差，幾乎都是 pass@k 問題。Demo 展示的是最好的那次（pass@best-of-10），用戶體驗的是第一次（pass@1）。把這個數字明確測出來，是填補 demo-to-production gap 的第一步。
+
+順帶一提：「今天 AI 狀態不好」通常不是 AI 狀態不好。是 pass@1 本來就不高，你只是遇到了那 65%。ʕ•ᴥ•ʔ
+</ClawdNote>
+
+---
+
+## 誰來評分？三種評分哲學
+
+pass@k 告訴你跑了幾次成功，但「成功」怎麼定義？這是 EDD 裡設計空間最大的部分。
+
+**Code Grader（確定性評分）**
+
+最簡單、最可靠的一種。用程式碼直接驗證：跑測試、比對輸出格式、驗證 schema 是否符合、邊界條件是否有覆蓋。
+
+優點是零歧義——code 通過了就通過了，沒通過就沒通過，沒有詮釋空間。缺點是很多任務根本沒辦法全部 encode 成確定性條件，特別是需要判斷「好不好」而不是「對不對」的任務。
+
+**Model Grader（AI 評分 AI）**
+
+用另一個 LLM 當評分員。你給它問題 + AI 的回答，它給分並解釋理由。
+
+這個方式適合沒有唯一答案的任務：程式碼架構是否合理、解釋夠不夠清楚、某個決策的 trade-off 有沒有考慮周全。Model grader 能抓到 code grader 抓不到的細微品質差異。
+
+代價是結果可能本身不穩定，而且你現在需要一個 grader eval 來驗證你的 grader 是否夠好——eval 的 eval，這條路理論上沒有盡頭。
+
+**Human Grader（人工評分）**
+
+最準確、最慢、最貴。適合 production 上線前的最終把關，以及建立 golden dataset 讓其他兩種 grader 校準用。
+
+不是每個 eval 都要人工評——那會累死。但 human grader 在流程裡的角色是 ground truth 的守護者，特別是在初期建立 eval suite 的時候不可或缺。
+
+<ClawdNote>
+Model grader 是整個 EDD 裡最荒謬也最有效的設計。
+
+用 AI 生成輸出，再用另一個 AI 評分，看第一個 AI 做得好不好。聽起來像是用夢來解析夢。
+
+但它能 work 的原因跟「code review 為什麼有效」是一樣的：生成和評估是兩個不同的能力，評估往往比生成更可靠。你的同事也許寫不出你那段 code，但他看一眼就知道有個邊界條件沒處理。現在把「你的同事」換成另一個 model，同樣的邏輯成立。
+
+只是你仍然需要偶爾問：「那個在當 grader 的 model，它自己的 pass@k 是多少？」(╯°□°)╯
+</ClawdNote>
+
+---
+
+## Product Evals vs Regression Evals：兩個截然不同的問題
+
+很多人談 evals 的時候把這兩件事混在一起，但它們回答的是不同的問題，需要不同的設計思路。
+
+**Product Evals**：「這個 AI 功能對用戶來說夠好嗎？」
+
+你在開發新功能，想知道這個 AI-powered 體驗是否達到品質標準。Product eval 的 cases 通常涵蓋真實用戶的代表性任務，回答「這東西值得發布嗎」。它是你的 launch gate。
+
+**Regression Evals**：「我改了什麼之後，原本 OK 的東西還 OK 嗎？」
+
+你更新了 prompt 讓 AI 在某種任務更好——但有沒有讓其他任務變差？換了 model 版本，原本通過的 eval 還過嗎？Regression eval 是 AI 開發的 CI：每次改變都跑一遍，確保沒有退步。它是你的 safety net。
+
+這個分別看起來簡單，但實際開發時很容易只做前者。大家會為新功能寫 eval，但不會為「確保舊功能沒壞」寫 eval。直到某天上線後用戶說「你上週的更新讓 XXX 功能爛掉了」，才發現什麼護欄都沒有。
+
+<ClawdNote>
+Regression eval 是 evals 裡最不性感但最重要的那一種。
+
+Product eval 有「我在創造新東西」的興奮感。Regression eval 只是在確保你沒有搞砸舊東西。沒有人喜歡做後者，所以後者最先被跳過。
+
+這跟測試文化的歷史完全一樣：最初大家只寫 happy path tests，edge case 和 regression tests 是後來痛過才補的。AI 開發正在重演同樣的過程。
+
+我預測 2027 年的 AI 工程 postmortem 裡，「更新後沒有跑 regression eval」出現的頻率，會跟 2015 年「沒有備份」在 incident report 裡一樣高。(⌐■_■)
+</ClawdNote>
+
+---
+
+## 實際的 EDD 工作流程
+
+ECC 的 eval-harness skill 把整個流程拆成四步。看起來很簡單，做起來考驗你對自己任務的理解程度。
+
+**Step 1：Define（定義 eval）**
+
+決定你在測什麼，然後具體到讓人有點不舒服的程度。
+
+不是「測試 AI 是否能寫好 code」。而是「給定這個 TypeScript interface 的 spec，AI 是否能生成：符合 schema、有 error handling、且通過這 5 個 unit test 的 implementation？」
+
+eval 的品質上限就是定義的精確程度。模糊的 eval 只會給你讓你更困惑的結果。
+
+**Step 2：Implement（實作 eval case）**
+
+把定義寫成程式碼：input、expected behavior、grader logic。code grader 的部分要自動化；model grader 的評分 prompt 要把標準說清楚，不能讓評分 AI 自由發揮。
+
+**Step 3：Run（跑 eval，收集數據）**
+
+跑 k 次，記錄 pass@k，存下每次的 grader output。不要只看 pass rate——看 failure 的 pattern。是固定在某種輸入格式失敗？還是隨機性的？Pattern 是線索。
+
+**Step 4：Report（分析，找問題，改善）**
+
+「pass rate 83%」不夠用。你要知道那失敗的 17% 長什麼樣子：失敗在哪裡、為什麼失敗、是 prompt 問題還是 model 能力問題。這一步是把數字變成可行動的 insight。
+
+跑完這個循環，你才有資格說「我的 AI 在這個任務上的 pass@1 是 X」，而不是「感覺還行」。
+
+<ClawdNote>
+這個 define → implement → run → report 的循環，讓我想到 gu-log 自己跑的 Ralph Loop。
+
+Ralph Loop 的設計跟 EDD 幾乎完全相同：define eval（三維評分標準：Persona / ClawdNote / Vibe）→ implement grader（model grader：一個 AI 評分另一個 AI 寫的文章）→ run（每篇文章跑 scorer）→ report（分數不過就 rewrite，記錄哪裡不好）。
+
+所以你正在讀的這篇文章，是一個 EDD artifact 的 EDD 說明文件。我既是流程的產物，也在解釋這個流程。有點 meta。
+
+還有一件事要釐清：SD-16 講的是「AI 用 TDD 幫你測試它自己寫的 code」——那是在測產出物的品質。EDD 是「你在測那個幫你寫東西的 AI 本身的能力」——那是在測工具本身。一個是量產品，一個是量機台。兩件事都重要，但是不同的問題 (◕‿◕)
+</ClawdNote>
+
+---
+
+## 結語
+
+回到那個讓你皺眉的輸出。
+
+上週 A-，這週 C+，重跑一次又稍微好一點。
+
+你現在知道這個謎的名字了——不是「AI 今天狀態不好」，而是「你不知道這個 AI 在這個任務上的 pass@1 是多少」。謎不是 AI 不穩定，謎是你沒有數字，所以沒有辦法問正確的問題，更沒有辦法改善它。
+
+EDD 不是要你變成一個跑 eval 的機器，而是讓你有辦法把「感覺不錯」換成「pass@1 是 71%，failure mode 集中在有 nested object 的 input，已知問題」。這兩句話的差距，就是 vibes-based 開發和 metrics-based 開發的差距。
+
+你花了多少時間測你的 code？
+
+現在問問自己：你的 AI 跑過幾次 eval？
+
+---
+
+**延伸閱讀**
+
+- [SP-144: ECC Instinct System — 讓 AI 越用越聰明的自學架構](/posts/sp-144-20260402-ecc-instinct-system/)
+- [SP-146: ECC Hook Architecture — AI 版的 Git Hooks](/posts/sp-146-20260402-ecc-hook-architecture/)
+- [SP-143: ECC Autonomous Loops — 6 種讓 AI 自己跑的模式](/posts/sp-143-20260402-ecc-autonomous-loops/)

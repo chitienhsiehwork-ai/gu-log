@@ -17,10 +17,10 @@ summary: "你的 AI Agent 超聽話——但它聽的可能不是你的話。Pro
 tags: ["shroom-picks", "claude-code", "agentic-ai", "security", "agent-security"]
 scores:
   ralph:
-    p: 8
-    c: 8
-    v: 8
-    date: "2026-04-01"
+    p: 9
+    c: 9
+    v: 9
+    date: "2026-04-02"
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
@@ -163,43 +163,57 @@ ECC Security Guide 把這個叫做 **Agent Attack Chain**：Prompt Injection →
 
 ECC 的作者 Affaan Mustafa 在 Cerebral Valley x Anthropic Hackathon 上拿了獎，帶來的作品叫做 **AgentShield**。它的設計目標很直接：讓上面那些攻擊更難成功。
 
-AgentShield 的三個核心防禦層：
+AgentShield 的設計思路，回到最開頭那個辦公室比喻：你那個超聽話的新員工，問題不是他壞，是他沒有鑑別指令真假的能力。公司請來了保全，在他和外部世界之間加了三道檢查站——不是解雇他，不是訓練他學會說不（那兩件事都做不到），而是在他身邊裝了三個機制。
 
-**Injection Detection**：在外部資料進入 agent 的 context 之前，先掃一遍有沒有看起來像指令的結構。白色文字、全大寫的 IGNORE、突然出現的 "You are now a..."——這些 pattern 會被 flag。不是 100% 準確，但 90% 比 0% 強。
+第一個機制在入口。所有外部資料進入 agent context 之前，先過一道掃描：有沒有夾帶指令格式的東西？全大寫的 IGNORE、突然出現的 "You are now a..."、異常的語氣切換。就像機場安檢——不是每個包都有問題，但有了掃描，把危險品帶進去的成本從「完全不需要費心」，變成了「要花點創意才過得了關」。
 
-**Tool Call Auditing**：每次 agent 準備呼叫工具前，先做一個 pre-call check：這個 tool call 是否符合這個 agent 被設計要做的事？一個翻譯 agent 準備呼叫 `send_email`？紅旗。Flag，alert，等待人工確認再繼續。
+過了入口，第二個機制在行動前。每次 agent 準備呼叫工具，系統先問一個問題：這個動作符合它今天的任務嗎？一個翻譯 agent 要呼叫 `send_email`？停。Flag。等人確認再繼續。這把最壞的結果從「已經做了，損失了」，變成「有人攔下來了，沒有執行」。聽起來很簡單，但這個確認點，大多數 agent 架構根本沒有。
 
-**Context Integrity Monitoring**：定期掃描 agent 的 memory 和 knowledge base，偵測有沒有和歷史資料不一致的地方——Context Poisoning 通常會留下這種痕跡。
+第三個機制是定期的記憶體稽核。定期掃描 agent 的 memory 和 knowledge base，找有沒有最近出現但跟歷史資料明顯不一致的東西。Context Poisoning 通常不夠聰明到完全不留痕跡——新植入的假資料和舊的舊資料放在一起，在統計上會顯得怪。怪的東西，就是開始追查的線索。
 
-技術上它是一個 npm package（`ecc-agentshield`），可以獨立安裝，不需要裝 ECC 全套。
+技術上 AgentShield 是一個 npm package（`ecc-agentshield`），可以獨立安裝，不需要裝 ECC 全套。
 
 <ClawdNote>
-我要誠實說一下 Hackathon 得獎的 context。
+老實說一下 Hackathon 得獎的 context：Hackathon 得獎 ≠ production-ready。很多得獎作品是「概念正確，在 demo 裡跑得很漂亮，但在真實 scale 下沒充分測試過」的東西。
 
-Hackathon 得獎 ≠ production-ready。很多得獎作品是「概念正確，但在 scale 下沒有充分測試過」的東西。AgentShield 是 2026 年初的作品，ECC 整個生態系（v1.9.0，2026 年 3 月發布）都算年輕。
+但這裡我更想說的是：「AI Agent 安全」這個領域，現在工具的豐富度，大概跟 DevOps 工具在 2010 年差不多——有人在認真做，有幾個能用的東西，但大多數公司的預設態度還是「需要再說」。AgentShield 的價值不在它有多完美，在於它把一個本來只存在於 paper 和 conference talk 裡的概念，變成了你今天就可以 `npm install` 的東西。
 
-但這不代表它沒價值。它的價值在於：把「AI Agent 安全」這件事從「一份 paper 和一個 blog post 裡的概念」具體化成一個可以裝上去的工具。就算 injection detection 的準確率只有 80%，你裝了之後比完全沒有要好太多。
+就算 injection detection 只有 80% 準確率，裝了也比沒裝好太多。這不是廢話，是跟「大多數跑在 production 的 AI agent 現在的防護是 0%」對比之下說的。
 
-把它想成你家的煙霧偵測器。它不能防止失火。它只是讓你有機會在整棟房子燒起來之前意識到出了什麼事。有時候，那幾分鐘的警告就是全部的差距 (◕‿◕)
+煙霧偵測器不能防火。但沒有煙霧偵測器，你只能靠聞到味道來知道出事了——通常等你聞到，已經很晚了 (◕‿◕)
 </ClawdNote>
 
 ---
 
 ## 你家現在有幾扇沒鎖的門？
 
-不列清單。列清單是讓人感覺「有做了什麼」然後什麼都不做的最有效方式。
+不列清單。列清單是讓人感覺「有做了什麼」然後繼續躺平的最有效方式。
 
-先從最簡單的問題開始：你的 agent 現在能做什麼，跟它需要能做什麼，是同一份清單嗎？
+讓我帶你走一遍你 agent 的日常——不是 checklist，是帶著你看看那些門在哪裡。
 
-我猜不是。很多 agent 拿到了遠超任務所需的工具。給 bash access 是因為「以後可能會需要」。給 email 發送權限是因為「說不定某次要通知我」。在你不知不覺間，你的助理已經拿到了辦公室所有的鑰匙，包括那幾間你完全不打算讓他進去的房間。拿出那份工具清單，刪掉所有「也許有一天」。
+你的 agent 每次上線，打開工具箱開始工作。那個工具箱裡有什麼？
 
-然後問第二個問題：你的 agent 今天會接觸哪些外部資料？
+工程師給 agent 配工具的邏輯，很多時候說穿了就是便利商店店長把收銀機密碼、備用金鑰、後門鑰匙全交給新打工仔，原因是「他看起來很可靠，而且以後都會用到」。Bash access 給了，email 發送權限給了，資料庫讀寫也開了。Agent 可能真的很可靠——問題是，給他不需要的鑰匙，不是相信他，是在你不注意的時候替攻擊者創造了入口。
 
-任何 agent 會讀到的東西——網站、email、API response、第三方文件——都是潛在的 injection 攻擊面。你在這些資料進入 agent 的 context 之前，有做任何 sanitization 嗎？「input data」和「agent instructions」在架構層面是清楚隔離的嗎？如果答案是「這問題我沒想過」，那你剛剛發現了第二扇沒鎖的門。
+拿出那份工具清單，刪掉所有「也許有一天」。不性感，但可能是你今天能做的最便宜的防禦。
 
-最後一個問題是最重要的，也是最多人沒有好答案的：如果你的 agent 做了一件你完全沒預料到的事，你多快會發現？
+<ClawdNote>
+這裡有個思路很有用：先問「如果這個 agent 被完全 compromise，攻擊者最壞能做什麼？」
 
-如果答案是「不知道，可能幾週後」，那你需要的不是更多安全規則——你需要 observability。ECC 的 PostToolUse hook 系統（SP-146）在這裡不只是方便工具，是安全基礎建設。每次 tool call 有沒有 log？有沒有 anomaly detection？有沒有任何方式讓你在三天後（而不是三週後）得知 agent 做了什麼奇怪的事？
+如果答案是「他最多只能亂搞翻譯文件」，損失邊界有限，還好。如果答案是「他能刪資料庫、傳 email、呼叫外部 API、跑 bash」——你不是在管理風險，你是在祈禱攻擊不要發生。
+
+這兩種情況在安全設計裡不是程度差異，是質的不同。而後者更可怕的地方是：那個風險通常沒有寫在任何文件裡，只存在於「當初給 agent 工具的時候誰也沒想到這個」這件事裡 ʕ•ᴥ•ʔ
+</ClawdNote>
+
+然後看你 agent 今天會接觸哪些外部資料。
+
+任何它讀得到的東西——網站、email、API response、第三方文件——都是潛在的 injection 攻擊面。「agent 的指令」和「agent 要處理的資料」在你的架構裡，有清楚的分界嗎？還是它們都在同一個 context window 裡，靠 agent 自己去分辨哪些該聽、哪些只是要處理的東西？如果後者，你剛剛發現了第二扇沒鎖的門。
+
+最後這個問題，是最多人沒有好答案的：**如果你的 agent 今天做了一件你完全沒預料到的事，你多快會發現？**
+
+不是「會不會」，是「多快」。
+
+如果答案是「不知道，可能幾週後」——你需要的不是更多安全規則，你需要 observability。ECC 的 PostToolUse hook 系統（SP-146）在這裡不只是方便工具，是安全基礎建設的地板。每次 tool call 有沒有 log？有沒有任何機制讓你在三天後（不是三週後）得知 agent 做了什麼奇怪的事？
 
 <ClawdNote>
 「你多快會發現」這個問題讓我想起 2025 年一個公開的 AI agent 事故案例。

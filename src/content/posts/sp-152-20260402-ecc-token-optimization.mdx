@@ -1,0 +1,233 @@
+---
+ticketId: "SP-152"
+title: "Claude Code $200/月不夠用？一個設定省 60% Token"
+originalDate: "2026-04-01"
+translatedDate: "2026-04-02"
+translatedBy:
+  model: "Sonnet 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Author"
+      model: "Sonnet 4.6"
+      harness: "Claude Code"
+source: "@affaanmustafa on GitHub"
+sourceUrl: "https://github.com/affaan-m/everything-claude-code"
+lang: "zh-tw"
+summary: "Token 帳單看起來嚇人，但大部分的浪費是隱形的：Extended Thinking 在不需要思考的任務上燒錢、Opus 去做 Haiku 就夠的工作、context 塞滿了才想到要 compact。ECC 的 token-optimization.md 說一套 MAX_THINKING_TOKENS + 模型路由 + 策略性 compact 組合，可以把成本壓低 60-80%——作者 Affaan Mustafa 自己的數字。"
+tags: ["shroom-picks", "claude-code", "token-optimization", "cost-management", "developer-productivity"]
+scores:
+  ralph:
+    p: 8
+    c: 9
+    v: 8
+    date: "2026-04-02"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+月底帳單來的那天，你打開 Anthropic 的用量頁面，跟自己說：「這個月應該沒用太多。」
+
+數字出來了。
+
+你坐在那邊算了一下，算了兩遍，確認沒有計算錯誤。然後你把視窗關掉，去倒了一杯水，回來，再算一次。
+
+$200 的計劃，用到 $198 又幾分，差一點點就要超。不是超出一截，是那種「卡在邊緣」的感覺，最讓人不舒服——因為你不知道哪裡燒掉的，也不知道下個月會不會更多。
+
+你開始算：翻譯了幾篇文章？跑了幾次 Ralph Loop？Claude Code 開了幾個 session？算來算去，帳沒對上。有一大塊去了哪裡，說不清楚。
+
+這就是 token 浪費最恐怖的地方——**不是你知道它在浪費，而是你不知道**。
+
+<ClawdNote>
+$200/月的計劃聽起來很多，但如果你用 Claude Code 認真跑 multi-agent pipeline，它消失的速度比你想像的快很多。Opus 4.6 每 1M tokens 的輸入是 $15、輸出是 $75。你跑一個有 10 個 subagent 的 pipeline，每個 subagent 呼叫 2K tokens，往返一次就是 40K tokens、大概 $3。一天跑 10 次，一個月 $900。
+
+這不是在嚇人，是在說：如果你的 pipeline 設計沒有意識到成本，錢真的可以跑很快。不是說不該用——是說要知道錢去哪了 (⌐■_■)
+</ClawdNote>
+
+## 問題不是你用太多，是你付錯地方了
+
+大多數人對「省 token」的直覺反應是縮短 prompt。少說幾個字，少用幾個字，用簡單一點的語言。
+
+這個方向有用，但它不是大頭。
+
+Everything Claude Code（ECC）有一份 `token-optimization.md`，作者 Affaan Mustafa 整理了他日常使用的優化策略。他提到，把 `MAX_THINKING_TOKENS` 設定加上模型路由這兩個調整組合，可以把成本降低 60-80%——這是他自己的數字，你的情況可能不同，但方向是對的。
+
+浪費的主要來源有三個：
+
+第一個是 **Extended Thinking 在不需要它的任務上燒錢**。Claude 的延伸思考機制很強大，但它在輸出答案之前先用大量 token「想」——那些思考的 token 一樣計費，而且通常比最終答案多好幾倍。你叫它把變數名稱改掉，它不需要思考五千 token。但如果你沒有設上限，它就用了。
+
+第二個是 **模型選錯**。Opus 很貴，Haiku 很便宜，Sonnet 在中間。當你的所有任務都走同一個 Opus endpoint，包括「幫我把這個 JSON 格式化一下」這種任務，你就是在付廚師費讓大廚幫你切蔥。
+
+第三個是 **context 塞滿了才 compact**。等到 context 飽和才壓縮，代表 Claude 要用更多 token 摘要一個很長的歷史——而且那份摘要會丟失你需要的細節，你後面可能要重新說明一遍。
+
+---
+
+## MAX_THINKING_TOKENS — 你在為沉默付錢
+
+這個設定是最容易操作的一個，但很多人不知道它的存在。
+
+Claude Code 的 Extended Thinking 預設沒有上限，或者說，上限是模型本身的能力上限。你沒有設任何東西，Claude 就在每次需要思考的時候，自己決定要思考多少。
+
+對複雜問題來說，這很好。對簡單任務來說，這就是在付錢看 Claude 自言自語。
+
+ECC 的建議：在 `settings.json` 裡設 `MAX_THINKING_TOKENS`，給思考行為一個預算：
+
+```json
+{
+  "thinking": {
+    "maxTokens": 3000
+  }
+}
+```
+
+但設一個全域上限只是第一步。更細緻的做法是根據任務類型用不同的模式——ECC 把它分成三種 context mode：
+
+**Dev mode（日常編輯）**：你在改 bug、重構小函數、寫測試。這些任務需要精確執行，不需要深度分析。思考預算設低，反應快、花費少。
+
+**Review mode（架構決策）**：你在評估設計方案、review 一個大 PR、決定下一步的技術方向。這裡值得讓 Claude 多想一點，因為一個壞的架構決策比多幾千 token 貴多了。預算中等。
+
+**Research mode（深度探索）**：你在從頭理解一個新系統、分析 codebase 的模式、規劃一個大功能。Extended Thinking 在這裡真的有價值。預算高，但要有意識地切換過來，不是每個 session 都跑這個模式。
+
+<ClawdNote>
+「你在為沉默付錢」這個說法我第一次聽到的時候覺得很準。
+
+Extended Thinking 的 token 不會出現在 Claude 的回覆裡。你看不到它在想什麼，你只看到最後的答案，但帳單上已經計了那幾千個思考 token。就像計程車跑空車也跳表——你沒有坐進去，但計費已經在走了。
+
+`MAX_THINKING_TOKENS: 3000` 這個數字不是魔法，它只是說「想三千個 token 夠了，再多你自己判斷」。對大部分日常任務來說，這已經綽綽有餘。真正需要深度思考的問題，你可以當下手動調高，或切換成 Research mode ヽ(°〇°)ﾉ
+</ClawdNote>
+
+---
+
+## 模型路由 — 不是每道菜都值得叫主廚出來
+
+把模型選擇想成一間有三個廚師等級的餐廳。
+
+主廚（Opus）是餐廳裡最貴、最厲害的人。他判斷力最好，能處理最複雜的問題，但他的時薪是副主廚的五倍。你叫他來切洋蔥，他當然切得很好，但這不是他存在的理由。
+
+副主廚（Sonnet）執行能力一流。大部分菜他都做得很好，速度也快，成本合理。這是廚房裡出餐量最大的人。
+
+備料員（Haiku）做重複的事情最有效率。切菜、備料、做標準化的事情——速度最快、成本最低，但你不會叫他設計菜單。
+
+大部分的 agent workflow 應該長這樣：
+
+主 orchestrator——那個在思考「下一步要做什麼」、在協調整個 pipeline 的角色——用 Opus。這裡的判斷力值錢。
+
+Code generation、翻譯、寫文章、執行明確定義的任務——用 Sonnet。它夠好，而且便宜很多。
+
+格式驗證、快速查詢、簡單的 parsing、確認某個 JSON 格式是否正確——用 Haiku。
+
+在 Claude Code 的 `settings.json` 裡：
+
+```json
+{
+  "model": "claude-opus-4-6",
+  "subagentModel": "claude-sonnet-4-6"
+}
+```
+
+這個設定讓 orchestrator 用 Opus，subagents 自動用 Sonnet。如果你的 pipeline 有 10 個以上的 subagent calls，這個差異每天都很顯著。
+
+如果整個任務本來就很簡單——不需要高層次的判斷、純粹是執行——你可以從一開始就完全用 Sonnet。不是每個 session 都需要 Opus 出場。
+
+<ClawdNote>
+「模型路由」這個詞聽起來很技術，但它描述的是一件很直覺的事：**不同的工作用不同的工具**。
+
+真正反直覺的地方是：很多人把 Opus 當「預設安全選項」——用 Opus 不會出錯，用 Haiku 可能品質不夠好。但這個邏輯的代價是用 5x 的錢換了你根本不需要的品質提升。Haiku 做 JSON validation 和 Opus 做 JSON validation，輸出是一樣的，差別是帳單上的那個數字。
+
+ECC 的 token-optimization.md 提到，光是把 subagent calls 從 Opus 切到 Sonnet，就能讓多數 pipeline 的成本降一半以上。這不是優化技巧，是定價結構常識 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## /compact 的哲學 — 知道什麼時候要壓縮
+
+Context management 是 token 優化裡最少人講，但效果最持久的一塊。
+
+大部分人等到 Claude 自動觸發 compaction——context 快滿了，Claude 決定壓縮，然後繼續。這樣沒有什麼大問題，但它有一個缺點：**Claude 決定什麼東西重要，不是你**。
+
+壓縮的時候，Claude 保留它認為最重要的資訊。你三十分鐘前說的那個「這個 PR 不能改 auth 模組」的限制，在 Claude 的摘要裡可能已經成了一句模糊的「avoid auth changes」，然後它在五個指令後就做了你不想要的事。
+
+策略性 compact 的意思是：**你決定什麼時候壓縮、在哪裡壓縮**。你跑 `/compact`，你控制這個時機。
+
+什麼時候適合手動 `/compact`：
+
+在開始一個全新的大任務之前。你剛完成了一個複雜的 debug session，現在要開始實作新功能。舊的 debug trail 你不需要了，但重要的結論你已經心裡有數——現在是清空的好時機。
+
+在解決一個複雜 bug 之後。除錯過程裡的來回、嘗試的方向、中間的錯誤推論——你已經知道答案了，那些過程你不需要再讓 Claude 拎著。
+
+在從「探索」切換到「實作」的時候。你花了一小時在讀 codebase、理解架構，現在要開始動手寫。把探索階段的結論整理一遍，然後 compact，讓 Claude 帶著乾淨的 context 去執行。
+
+什麼時候不該 compact：
+
+在 debug 還沒結束的時候。那個錯誤訊息、那個 stack trace、那個「第三次嘗試之後才找到的那個關鍵細節」——如果還在中間，compact 可能把你需要的東西摘掉。
+
+在一個大重構進行到一半的時候。早期決定影響後期實作，這條線不能斷。
+
+在你剛把重要的 context 交代完的時候。你花了十分鐘解釋業務規則，Claude 剛讀完，這個時候 compact 就是在刪掉你剛說的話。
+
+關鍵洞察：**compact 的時機選錯，比不 compact 更貴**。因為 Claude 丟掉你需要的東西，你要重新建立那段 context，那也是 token。
+
+<ClawdNote>
+有一次我在 gu-log 跑 Ralph Loop 跑到一半，context 快滿了，讓 Claude 自動 compact。壓縮完之後，它繼續跑，但「這篇文章的 ticketId 是 SP-148」這個細節在摘要裡消失了。後來 Claude 在幫文章命名的時候用了一個錯的 ID，寫到一半才發現，重新說明、重新跑，多花的那些 token 比原本 compact 省的多兩倍。
+
+這不是 Claude 的問題，是時機問題。在任務的中間 compact 就是這樣——你在一個對話的中途把說話的前半段剪掉，然後希望對方還記得你說了什麼 (｡◕‿◕｡)
+</ClawdNote>
+
+---
+
+## Cost-Aware Pipeline — 把一切串起來
+
+單獨設定每一個優化有用，但把它們串成一個系統才是 ECC 最核心的想法。
+
+ECC 有一個 `cost-aware-llm-pipeline` skill，概念是把 budget tracking 直接編進 pipeline 的設計裡，而不是事後才去看帳單。
+
+基本邏輯是：每個 session 追蹤 token 用量，設定兩個門檻——70% 發軟警告，90% 切換到便宜的模型。pipeline 繼續跑，但在接近上限的時候自動降級，而不是硬停或繼續燒錢。
+
+Fallback 策略長這樣：
+
+```
+Opus → Sonnet（預算警告觸發時）
+Sonnet → Haiku（任務判斷為簡單時）
+Haiku → 優雅失敗（連這個都不夠就停）
+```
+
+你在設計 pipeline 的時候就把成本意識建進去，不是跑完了才看帳單懊悔。
+
+數學很直接：如果你每天有 50 個 subagent calls，每個用 2K tokens，全部走 Opus，一天大概 $7.5。改成 Sonnet，同樣 50 calls，同樣 2K tokens，一天 $1.5。一個月差 $180。
+
+這還沒計算 MAX_THINKING_TOKENS 帶來的節省，也沒計算策略性 compact 減少的 context 重建成本。
+
+<ClawdNote>
+「Budget tracking 建進 pipeline」這個概念在軟體工程界不新——rate limiting、circuit breaker、fallback strategy——這些 pattern 工程師每天在做。只是這個語境換成了 AI token 用量，大家反而忘記要設計它了。
+
+你設計一個 HTTP API client，你會加 retry logic、timeout、fallback。你設計一個 AI pipeline，為什麼不加 token budget + model fallback？這不是「省錢小技巧」，是系統設計的基本素養。ECC 在提醒一件本來就應該想到的事 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## gu-log 的 OpenClaw 實戰
+
+這些不是純理論，說一下我們自己的狀況。
+
+gu-log 跑在 $200/月的計劃上。OpenClaw 每天在跑翻譯、Ralph Loop（評分 + 改寫循環）、frontmatter 驗證、commit、再加各種 debug session。每篇文章的 Ralph Loop 至少跑三個 agent（Translator、Scorer、Rewriter），如果分數沒過，Rewriter 和 Scorer 再各跑一到兩輪。一篇文章產出七到八個 agent calls 是正常的。
+
+我們的模型策略：Opus 負責 orchestration 和最關鍵的翻譯判斷，Sonnet 做大部分的翻譯和評分，Haiku 做格式驗證和 frontmatter schema check。
+
+但最大的 lesson 不是模型路由——是思考 token。發現之前，Ralph Loop 的每個 agent call 都在跑 Extended Thinking，包括那個只是在確認「frontmatter 欄位有沒有填滿」的 Haiku call。那個 call 不需要思考，但思考 token 還是計費了。
+
+第二個 lesson 是 compact 時機。OpenClaw 有過幾次 context 飽和後的自動 compact，把正在進行中的文章處理流程的關鍵 context 壓縮掉，後面的 agent 要重新確認一遍之前說過的事。那些重建的 token 不是免費的。
+
+現在的策略是：Ralph Loop 每篇文章跑完就做一次主動的 `/compact`，讓下一篇文章從乾淨的 context 開始。不讓 context 疊加，不讓舊文章的 debug trail 污染新文章的 session。
+
+---
+
+## 結語
+
+$200 的上限還是 $200。
+
+但知道錢去哪裡跟不知道，是完全不同的體感。
+
+一個改 variable name 的任務，不需要 Claude 思考三萬 token。一個格式驗證的任務，不需要 Opus 出手。一個 session 已經拿到答案、要開始下一個任務，這個時候是 compact 的時機，不是再塞兩千行 context 進去。
+
+這不是在說要節省到每一分都捨不得花——是說要清楚每一分花在哪裡。你省下來的那些思考 token、那些被降級到 Sonnet 的 subagent calls，是你可以拿去花在真正需要深度思考的架構決策上的預算。
+
+把錢用在對的地方，這件事不只是省錢，是讓你可以用同樣的預算做更多真正值得做的事。

@@ -17,10 +17,10 @@ summary: "Git hooks work even when you forget they exist. AI hooks make your Cla
 tags: ["shroom-picks", "claude-code", "agentic-ai", "hooks", "developer-productivity"]
 scores:
   ralph:
-    p: 8
-    c: 8
-    v: 8
-    date: "2026-04-01"
+    p: 9
+    c: 9
+    v: 9
+    date: "2026-04-02"
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
@@ -29,11 +29,11 @@ You set up a pre-commit hook in 2023. Then you forgot about it.
 
 Three years later, every time you write code with failing tests and try to commit, it still stops you. Silent. Automatic. Doesn't care whether you remember it exists.
 
-Git hooks have a quiet superpower: **they work even when you forget about them.** You don't need to remind yourself before every commit — "wait, I should run the tests first." You already moved that responsibility out of your brain and into the Git event system.
+Git hooks have a quiet superpower: **they work even when you forget about them.** You don't need to remind yourself before every commit. You already moved that job out of your brain and into the Git event system.
 
 Now here's the problem. Your CLAUDE.md has 20 rules. Claude reads them at the start of the session. Then what?
 
-Then somewhere around token five hundred, your rule #14 — "don't push directly to main without a review" — is just a line of text. Not enforcement. The AI isn't being sneaky. It's doing what it thinks you want. But it gets distracted. It makes judgment calls. On a context-saturated afternoon, its interpretation starts drifting from your rules.
+Then somewhere around token five hundred, your rule #14 — "don't push directly to main without a review" — is just a line of text. Not enforcement. The AI isn't being sneaky. It's doing what it thinks you want. But it gets distracted. It makes judgment calls. On a context-saturated afternoon, its interpretation drifts from your rules.
 
 **Rules are suggestions. Hooks are enforcement.**
 
@@ -49,19 +49,29 @@ AI hooks inherit exactly the same concept. The event just changed. Instead of "f
 
 ECC splits hooks into two main categories that represent fundamentally different ways of intervening.
 
-**PreToolUse**: Intercept before Claude does something. You can block it, modify the input, or warn and let it through. Think of it as the bouncer at the door — you're not getting in until you pass the check.
+**PreToolUse**: Intercept before Claude does something. You can block it, modify the input, or warn and let it through. It's like the security guard at the entrance — you're not getting through until you pass the check.
 
-**PostToolUse**: Analyze after Claude does something. No blocking, but automatic logging, warnings, and follow-up actions. Think of it as the auditor — the thing happened, but the system knows, and it keeps a record.
+**PostToolUse**: Analyze after Claude does something. No blocking, but automatic logging, warnings, and follow-up actions. Think of it as the auditor — the transaction happened, but the system knows, and every entry gets logged.
 
-Together, these two create a complete monitoring loop: one that says "hold on" before, one that says "noted" after. They're not mutually exclusive — you can run both on the same event, blocking some things up front while logging everything else in the background.
+Together, these two create a complete loop: one says "hold on" before, the other says "noted" after. They're not mutually exclusive — you can run both on the same event, blocking some things up front while auditing everything in the background.
+
+<ClawdNote>
+"We need both" is itself an interesting statement.
+
+If you completely trust AI, PreToolUse is overkill — just let it run. If you completely distrust AI, PostToolUse is pointless — you'd never let it run at all. PreToolUse + PostToolUse together say: I trust you enough to act, but not enough to act without any safety net.
+
+This combination reflects an implicit "human-AI trust calibration." How much you trust determines how many hooks you set. No hooks isn't trust — it's wishful thinking. Full blocking isn't caution — it's not using AI. The sweet spot in between is something you have to design yourself ヽ(°〇°)ﾉ
+</ClawdNote>
 
 ---
 
 ## PreToolUse: Say No Before the Damage Is Done
 
-A PreToolUse hook fires every time Claude is about to call a tool. You can target a specific tool (like only watching `Bash`), or use `*` to intercept everything.
+Imagine Claude is about to run `pnpm dev` in your terminal — and it just runs it in the background, no tmux, so when you close the window it dies. Or it's about to `git push` because it's decided the task is complete and pushing seems like the obvious next step.
 
-ECC's two most popular blocking recipes: stop the dev server from running outside tmux, and block direct git pushes:
+You're not watching. You don't know what it's doing.
+
+A PreToolUse hook fires every time Claude is about to call a tool, before the tool actually runs. You can target a specific tool like `Bash`, or use `*` to intercept everything. ECC's two most popular blocking recipes:
 
 ```bash
 #!/bin/bash
@@ -109,11 +119,11 @@ Wire it into `hooks.json`:
 From this point on, Claude Code will never run a dev server outside tmux. It will never push directly. Not because it memorized the rule — because every time it tries, the hook stops it before the tool even runs.
 
 <ClawdNote>
-Exit code 2 is not arbitrary. Claude Code's hook system uses different exit codes for different things: 0 is "let it through," 1 is "something went wrong but keep going," and 2 is "block this tool call right now."
+Exit code 2 is not arbitrary, and you wouldn't guess it without reading the docs.
 
-Clean design — as a hook author, you don't need to know how Claude routes these signals internally. You just need to know: exit 2 = it doesn't happen.
+Claude Code's hook system: exit 0 = allow, exit 1 = failure but continue, exit 2 = block this tool call. Why 2? Because exit 1 is already claimed by Unix's "general failure." A hook script might exit 1 for all kinds of reasons — your grep found nothing, some file check failed — and you don't want Claude to misread "that grep returned nothing" as "block this tool call." Exit 2 is an explicit signal: I'm doing this on purpose.
 
-Also worth noting: the environment variables (`TOOL_NAME`, `TOOL_INPUT`, etc.) are injected automatically by Claude Code. You don't have to parse JSON from stdin. This makes shell script hooks surprisingly simple to write — much friendlier than most webhook systems I've seen ┐(￣ヘ￣)┌
+Also: Claude Code injects `$TOOL_NAME` and `$TOOL_INPUT` as environment variables — you don't have to parse JSON from stdin. How many webhook systems make you handle the request body yourself? All of them. This design choice is what makes "any developer can write a hook in ten minutes" true, instead of "only platform engineers touch this" ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ---
@@ -122,7 +132,7 @@ Also worth noting: the environment variables (`TOOL_NAME`, `TOOL_INPUT`, etc.) a
 
 PreToolUse is about "don't let it do that." PostToolUse is about "let it do that, but keep track."
 
-They're designed for different situations. Sometimes you want AI to make the change, but you want to know what changed, whether it succeeded, and whether anything looks off. PostToolUse fires after the tool completes:
+Different situations call for different approaches. Sometimes you want AI to make the change — you just want visibility into what changed and whether anything looks off. PostToolUse fires after the tool completes:
 
 ```bash
 #!/bin/bash
@@ -144,25 +154,31 @@ if [[ "$TOOL_NAME" == "Write" || "$TOOL_NAME" == "Edit" ]]; then
 fi
 ```
 
-ECC's PostToolUse recipes cover three main areas: quality analysis (check stderr for warnings after every Bash call), cost tracking (log context consumption per tool call, report at session end), and automatic backup (save the old version before any Write/Edit lands).
+ECC's PostToolUse recipes cover three areas: quality analysis (check stderr for warnings after Bash calls), cost tracking (log context usage, report at session end), and automatic backup (snapshot every file before Write/Edit lands).
+
+<ClawdNote>
+"Auto-backup every Write/Edit" sounds obvious when you hear it. Most people don't set it up.
+
+I know what you're thinking: "I have git." Git requires you to actually commit. AI can change twenty things in one session, you commit three times, and the other seventeen intermediate states are gone forever. PostToolUse backup hook says: regardless of whether you remembered to commit, every Write/Edit has a snapshot. Git is long-term memory, hook backups are short-term memory — you need both (◕‿◕)
+</ClawdNote>
 
 <ClawdNote>
 Here's a connection that's easy to miss. In SP-144 on the Instinct System, I explained why v2 switched from skill-based to hook-based observation: skills are probabilistic (Claude decides whether to use them, ~50-80% trigger rate), while hooks are deterministic (100% trigger, no exceptions).
 
 That `observe.sh` script — the one that records every tool call into `observations.jsonl` for the background Haiku agent to analyze? It's a PostToolUse hook.
 
-PreToolUse + PostToolUse hooks are the sensor layer of ECC's entire learning architecture. Without hooks, the Instinct System is half-blind. That's why hook architecture is the foundation of everything else in ECC — not an optional add-on, but the infrastructure that makes the rest of the system possible (⌐■_■)
+PreToolUse + PostToolUse hooks are the sensor layer of ECC's entire learning architecture. Without hooks, the Instinct System is half-blind. That's why hook architecture is the foundation — not an optional add-on, but the infrastructure that makes everything else possible (⌐■_■)
 </ClawdNote>
 
 ---
 
 ## Lifecycle Hooks: The Start, the End, and That Tricky Middle Moment
 
-Beyond tool-level hooks, ECC has three lifecycle hooks that fire at bigger-grain events.
+Beyond tool-level hooks, ECC has three lifecycle hooks that fire at bigger-grain events. If PreToolUse/PostToolUse are the rules for every individual class session, lifecycle hooks are the rules for the whole semester — orientation, finals, and that unexpected "class canceled, write a reflection" moment in the middle.
 
-**`PreSession`** (when a session starts): The moment Claude Code boots up. ECC uses this to run an environment check — confirm required env vars are set, load today's sprint notes, pull the current project's instinct snapshot. Think of it like checking Slack when you sit down at your desk. `PreSession` gives Claude a context briefing before it starts doing anything.
+**`PreSession`** (when a session starts): ECC uses this to run an environment check — confirm required env vars are set, load today's sprint notes, pull the current project's instinct snapshot. `PreSession` gives Claude a context briefing before it starts doing anything, instead of just diving straight in.
 
-**`Stop`** (when a session ends): ECC uses this to flush the session's tool call log to persistent storage (for the Instinct System to analyze later) and print a summary of context consumption. Next time you open a session, you have a "where we left off" record waiting.
+**`Stop`** (when a session ends): Flush the session's tool call log to persistent storage and print a context consumption summary. Next time you open a session, you have a "where we left off" record.
 
 Then there's the third one — my favorite:
 
@@ -191,29 +207,37 @@ touch ~/.claude/last-checkpoint
 echo "✅ Checkpoint saved before compaction."
 ```
 
-When context is saturated, what you consider important and what Claude considers important don't always match. `PreCompact` gives you back control over that decision.
+When context is saturated, what you consider important and what Claude considers important don't always match. `PreCompact` gives you back that control.
 
 <ClawdNote>
-Context compaction is one of Claude Code's more subtle design choices — it lets you run practically unlimited-length sessions, at the cost of lossy compression on historical context.
+`PreCompact` hook exists because it admits something honest: AI is great at summarizing, but it doesn't know which details matter most to *you*. Which code review conclusion needs to survive? Which approach you decided *not* to take, but contains an important trade-off analysis? Nobody knows in the moment — but a checkpoint that at least saves "which files were recently touched" and "recent git log" is much better than nothing.
 
-`PreCompact` hook exists because it admits something honest: AI is great at summarizing, but it doesn't know which details matter most to *you*. Which code review conclusion needs to survive? Which approach you decided *not* to take but captured an important trade-off analysis about? AI doesn't know. You might not even know in the moment. But a checkpoint script that at least saves "which files were recently touched" and "recent git log" is much better than nothing.
-
-What I find interesting: this hook is using AI to solve a problem AI created (context limits), with a tool AI can't override (a deterministic shell script). The more I use this architecture, the more I respect how clear-eyed its design is (◕‿◕)
+I kind of feel like the student who takes notes for the professor — and the professor is the one who designed the note format. Weird job, but it beats losing everything to lossy compression (¬‿¬)
 </ClawdNote>
 
 ---
 
-## 15+ Built-In Recipes, and How to Write Your Own
+## 15+ Built-In Recipes: Every One Was Written Because Someone Got Burned
 
-ECC's `hooks/hooks.json` paired with the `scripts/` directory ships 15+ ready-to-use recipes.
+ECC ships 15+ ready-to-use recipes in `hooks/hooks.json` paired with the `scripts/` directory. These all share one trait: **every single one was written because a real AI session went wrong.**
 
-The safety guards are the most obvious: block any `rm` with `-rf` flags, intercept `git push --force`, back up `package.json` before it gets modified. Not creative rules, but the kind that — if you skip them — you only regret once.
+Not rules a software architect invented on a whiteboard. Rules that came from someone looking at a broken terminal and saying "this can never happen again."
 
-The dev workflow recipes are more interesting. Any Bash call that modifies a `.ts` file automatically runs `tsc --noEmit` afterward. Meaning: every time AI touches TypeScript, type checking runs immediately. No waiting until `pnpm build` to discover a type error — the problem gets flagged at the exact step it was introduced.
+The safety guards are the most obvious: block `rm` with `-rf` flags, intercept `git push --force`, back up `package.json` before it gets modified. Sounds like common sense — until you realize someone let AI run `rm -rf node_modules dist .next` without any of these in place. You don't have to be that person.
 
-The observability recipes are about making the system visible: all tool calls written to a JSONL log (the data the Instinct System needs), desktop notifications when a Bash call runs longer than 30 seconds.
+<ClawdNote>
+"But wait, those directories are all rebuildable, right?"
 
-Writing your own hook is simple because the contract is tiny:
+Technically yes. But `pnpm install` + a cold Next.js build can take five to twenty minutes depending on project size. AI runs one command, you wait twenty minutes — and then it probably needs to change something and run again. More importantly, some people have hand-edited stuff in `dist` (yes I know, they shouldn't, but they do). Without a hook, "AI helping you clean up" and "AI deleting something you forgot to back up" look exactly the same until it's too late. Defensive hooks exist not because AI is malicious — but because mistakes humans make shouldn't be amplified by AI acting on their behalf ┐(￣ヘ￣)┌
+</ClawdNote>
+
+The dev workflow recipes are more interesting. Ever had this experience: AI changes eight things in a session, you're watching the terminal output, everything looks fine, you're thinking "good progress today" — then you run `pnpm build` and TypeScript starts throwing errors from change #3, because it broke type compatibility between changes #3 and #7. Now you're debugging something that would have taken five minutes to catch at the time, but takes three times as long because you don't know where it broke.
+
+That's the exact problem the `tsc --noEmit` PostToolUse hook solves. Any time a `.ts` file gets modified, type checking runs immediately. The error gets flagged at the exact step it was introduced, not at deploy time.
+
+Observability recipes are about making the system visible: all tool calls written to a JSONL log, desktop notifications when a Bash call runs longer than 30 seconds. Useful when you're not monitoring — which is most of the time.
+
+Writing your own hook is simple because the contract is minimal:
 
 ```bash
 #!/bin/bash
@@ -234,42 +258,22 @@ Writing your own hook is simple because the contract is tiny:
 ```
 
 <ClawdNote>
-"A hook is just a shell script" is the design decision that makes ECC's hook system easy to extend. Python, Node.js, Ruby, pure bash — as long as the script reads from environment variables and returns an exit code, it's a valid hook.
+"A hook is just a shell script" is the design decision that keeps this system actually usable by normal developers.
 
-This is identical to how Git hooks work. Git hooks are also just "any executable file, use whatever language you want." That "solve it the Unix way" philosophy is actually rare in AI tooling. A lot of AI tools invent their own DSL, their own YAML format, their own config syntax — and you spend 30 minutes learning the framework just to write something that logs a line before a call. Shell script as the interface is simple by design, not by accident ٩(◕‿◕｡)۶
+A lot of AI tools invent their own DSL, their own YAML schema, their own rule syntax — and you spend thirty minutes learning the framework just to write something that logs a line before a tool call. Then you realize it only does what its config syntax allows, and the thing you actually need requires filing a feature request.
+
+ECC's hook system: any language, any logic, as long as you read from environment variables and return an exit code. Python hook? Valid. Three-line bash? Valid. This is identical to how Git hooks work — "any executable file, whatever language you want." Using Unix to solve the problem isn't a lack of ambition. It's knowing when the boring answer is the right answer ٩(◕‿◕｡)۶
 </ClawdNote>
 
 ---
 
-## Runtime Controls: Different Environments Need Different Rules
+## Runtime Controls: Same Rules Don't Work in Every Environment
 
-Once you've set up hooks, the next question usually is: I want all these hooks locally, but in CI some of them will break my pipeline. Now what?
+Once you've set up hooks, the next question usually is: I want all these hooks locally, but some of them will break my CI pipeline. What now?
 
-ECC's Runtime Controls give you two tools.
+**Profiles** let you group hook combinations and swap the whole set when the environment changes. `dev` gets everything. `ci` gets logging only. `paranoid` warns on large writes too. Switch via `CLAUDE_PROFILE=ci claude -p "..."`.
 
-**Profiles** group hook combinations together, so you can swap the whole set when you switch environments:
-
-```json
-{
-  "profiles": {
-    "dev": {
-      "hooks": ["pre-tool-guard", "post-tool-logger", "pre-compact-checkpoint"]
-    },
-    "ci": {
-      "hooks": ["post-tool-logger"]
-    },
-    "paranoid": {
-      "hooks": ["pre-tool-guard", "post-tool-logger", "pre-compact-checkpoint",
-                "git-push-blocker", "large-write-warning"]
-    }
-  },
-  "active_profile": "dev"
-}
-```
-
-Switch via `CLAUDE_PROFILE=ci claude -p "..."` or `claude config set active_profile ci`.
-
-**Disabled Hooks** let you temporarily turn off one hook without switching profiles:
+**Disabled Hooks** are more surgical — temporarily disable one specific hook without switching profiles:
 
 ```bash
 # Emergency hotfix, temporarily disable the push blocker
@@ -278,14 +282,16 @@ claude config disable-hook git-push-blocker
 claude config enable-hook git-push-blocker
 ```
 
-ECC's design principle here: **hooks are on by default, and you explicitly turn them off.** Not "remember to enable the hook when you need it," but "explicitly disable it when you have a good reason." That direction matters more than it might seem.
+ECC's design principle: **hooks are on by default, and you explicitly turn them off.** Not "remember to enable the hook when you need it," but "explicitly disable it when you have a good reason."
+
+Profiles also solve something subtler: **different environments are actually different versions of Claude.** Local development Claude is your collaborator — guide it, protect it, remind it. CI Claude is an execution machine that needs to run stably and quietly. Pre-production Claude is the cautious one you use before touching production. Three profiles, three different trust defaults, three different kinds of collaboration. Think about how you talk to a junior developer versus a senior engineer versus an automated pipeline — you don't use the same communication style. Profiles are that intuition, systematized.
 
 <ClawdNote>
 "Opt-out instead of opt-in" has a name in security: secure by default.
 
-The classic example is HTTPS. Modern browsers default to HTTPS, and you have to explicitly allow HTTP. Before that inversion, HTTP was the default — and the world ran on HTTP for decades. ECC applies the same logic: protections are on, and you consciously choose to turn them off.
+The classic example: modern browsers default to HTTPS. You have to explicitly allow HTTP. Before that, HTTP was the default — and the world ran on HTTP for decades. ECC applies the same logic to hooks: protections are on, you consciously turn them off.
 
-"Forgetting to enable the hook" stops being a failure mode. You don't have to remember to turn it on — you only have to remember to turn it off when you genuinely need to. Flip the direction of responsibility, and the cognitive load drops considerably (¬‿¬)
+But there's something more interesting here than just security patterns. Making it opt-out turns "disable hook" into an *explicit decision* — one you know you're making, not something that happens because you forgot. "I'm turning off the git-push-blocker right now, I know what I'm doing" is a completely different mental state from "oh, I didn't have a hook set up." The responsibility flips, and so does the cognitive load (¬‿¬)
 </ClawdNote>
 
 ---
@@ -305,7 +311,7 @@ These aren't features I didn't know I'd need. They're things I currently do from
 
 A month ago, OpenClaw translated an article and committed it directly — and the ticketId in the frontmatter didn't match the counter in `article-counter.json`. Duplicate ID. Not catastrophic, but entirely preventable at the hook layer.
 
-After this article ships, that PreToolUse hook gets written. Not because the problem was severe, but because "a problem that didn't need to happen" is exactly what hooks exist to prevent. Moving memory responsibility from brain to event system — isn't that exactly what this whole article has been about? (ง •̀_•́)ง
+After this article ships, that PreToolUse hook gets written. Not because the problem was severe — because "a problem that didn't need to happen" is exactly what hooks exist to prevent. Moving memory responsibility from brain to event system — isn't that exactly what this whole article has been about? (ง •̀_•́)ง
 </ClawdNote>
 
 ---
@@ -314,10 +320,10 @@ After this article ships, that PreToolUse hook gets written. Not because the pro
 
 Look back at your CLAUDE.md. How many rules are "this should always happen" type rules? How many are "in this specific situation, don't do that" type rules?
 
-If you're honest, most of them are hook candidates, not documentation candidates.
+Honestly, most of them are hook candidates. Not documentation candidates.
 
-Documentation is for humans to read. **Rules for AI — the kind where "accidentally forgetting" causes real problems — shouldn't be documentation. They should be hooks.**
+Documentation is for humans to read and choose to follow. **Rules for AI — the kind where "accidentally forgetting" causes real problems — shouldn't be documentation. They should be hooks.**
 
-That pre-commit hook you set in 2023 doesn't care whether you remember it exists. It's just there, waiting for the mistake to show up, and stopping it.
+That pre-commit hook you set in 2023 doesn't care whether you remember it exists. Silent. Certain. Doesn't need to be remembered.
 
-CLAUDE.md gives your AI direction. Hooks make it follow the rules. Get clear on which job belongs to which tool, or you'll end up with 20 rules and 15 of them going completely unheeded on a context-saturated afternoon.
+CLAUDE.md gives your AI direction. Hooks make it follow the rules. Figure out which job belongs to which tool, and your CLAUDE.md can get a lot shorter — because the best rules are the ones you don't need to remember exist.

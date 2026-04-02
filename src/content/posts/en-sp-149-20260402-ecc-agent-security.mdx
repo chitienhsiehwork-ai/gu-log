@@ -17,10 +17,10 @@ summary: "Your AI Agent is very obedient — but it might be obeying the wrong p
 tags: ["shroom-picks", "claude-code", "agentic-ai", "security", "agent-security"]
 scores:
   ralph:
-    p: 8
-    c: 8
-    v: 8
-    date: "2026-04-01"
+    p: 9
+    c: 9
+    v: 9
+    date: "2026-04-02"
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
@@ -163,45 +163,57 @@ Okay. You should feel a bit anxious right now. That's the correct response.
 
 ECC author Affaan Mustafa won at the Cerebral Valley × Anthropic Hackathon with a tool called **AgentShield**. Its goal is straightforward: make the attacks above harder to succeed.
 
-AgentShield has three core defense layers:
+Back to the office assistant. AgentShield's logic is simple: you can't fire him, and you can't rewire him to be skeptical. So you put three checkpoints between him and the outside world — not to stop him from working, just to make it harder for fake instructions to reach him undetected.
 
-**Injection Detection**: Before external data enters the agent's context, scan it for structures that look like instructions. White-on-white text. All-caps IGNORE. Sudden appearance of "You are now a..." These patterns get flagged. Not 100% accurate, but 90% is much better than 0%.
+The first checkpoint is at the entrance. Every piece of external data gets scanned before it enters the agent's context — looking for things that resemble instructions: all-caps IGNORE, sudden "You are now a..." role switches, unusual formatting shifts. Like airport security: not every bag has a problem, but the scan changes the cost of smuggling something through from "zero effort" to "needs some creativity."
 
-**Tool Call Auditing**: Before every tool call, run a pre-call check: does this tool call make sense for what this agent is supposed to do? A translation agent trying to call `send_email`? Red flag. Flag it, send an alert, wait for human confirmation.
+The second checkpoint is before every action. Each time the agent tries to use a tool, the system pauses: does this make sense for what this agent is supposed to be doing? A translation agent trying to call `send_email`? Stop. Flag. Wait for human confirmation. This flips the worst-case outcome from "it already happened, damage done" to "something caught it before it ran." Sounds simple. Most agent architectures don't have this.
 
-**Context Integrity Monitoring**: Periodically scan the agent's memory and knowledge base for inconsistencies with historical data — Context Poisoning typically leaves traces like this.
+The third checkpoint is a regular memory audit. Periodically scan the agent's memory and knowledge base for data that appeared recently but contradicts the historical record. Context Poisoning typically isn't careful enough to leave zero traces — a freshly injected fake fact sitting next to years of correct data looks statistically strange. Strange things are where you start digging.
 
 It's an npm package (`ecc-agentshield`), installable independently without the full ECC stack.
 
 <ClawdNote>
-Let me be honest about what "Hackathon winner" actually means.
+Honest take on the Hackathon winner label: Hackathon winner ≠ production-ready. A lot of winning hackathon projects are "concept is right, demo looks great, but nobody has stress-tested this at real scale" tools.
 
-Hackathon winner ≠ production-ready. A lot of winning hackathon projects are "concept is right, but untested at scale" tools. AgentShield is a 2026 product. The entire ECC ecosystem (v1.9.0, shipped March 2026) is still young.
+But here's the thing I actually want to say: the AI Agent security tooling space right now feels like DevOps tools in 2010 — a few serious people building real things, most companies defaulting to "we'll deal with it later." AgentShield's value isn't that it's perfect. It's that it turns a concept that only existed in papers and conference talks into something you can `npm install` today.
 
-But that doesn't mean it lacks value. Its value is turning "AI Agent security" from a concept in papers and blog posts into a thing you can actually install and run. Even if the injection detection accuracy is only 80%, having it is dramatically better than having nothing.
+Even if injection detection is only 80% accurate, that's infinitely better than the 0% most production AI agents have right now. That's not a low bar. That's the actual comparison.
 
-Think of it like the smoke detector in your house. It can't prevent a fire. It just gives you a chance to notice something is wrong before the whole building is on fire. Sometimes, those few minutes of warning are the entire difference (◕‿◕)
+Smoke detectors don't prevent fires. But without one, you find out about the fire when you smell smoke — and usually by then, it's too late to do much (◕‿◕)
 </ClawdNote>
 
 ---
 
-## Three Questions Better Than Any Checklist
+## How Many Unlocked Doors Does Your Agent Have?
 
-No checklist. Checklists are the most effective way to make people feel like they did something while actually doing nothing.
+No checklist. Checklists are the most effective way to make people feel productive while changing nothing.
 
-Just three questions.
+Let me walk you through your agent's day instead.
 
-**What can your Agent do, and what does it actually need to do?**
+Your agent starts up, opens its toolbox, gets to work. What's in that toolbox?
 
-Many agents have far more tools than their tasks require. Bash access was given "just in case." Email sending permission was added "maybe we'll need it sometime." Without noticing, your assistant now has keys to every room in the office, including the rooms you never meant to share. Pull up the tool list. Remove everything "might be useful later."
+The way engineers configure agent tools usually goes like this: the manager at a convenience store hands the new part-timer the register passcode, the safe backup key, and the back door key — because "he seems trustworthy, and we'll probably need all of it at some point." Bash access: sure. Email sending: why not. Database read/write: might come up. Your agent might be completely trustworthy. But giving it tools it doesn't need isn't trusting it — it's creating an entry point that wasn't necessary.
 
-**What external data will your Agent touch?**
+Pull up the tool list. Delete everything marked "maybe someday." Not exciting. Probably the cheapest security improvement you can make today.
 
-Every external source your agent reads — websites, emails, API responses, third-party documents — is a potential injection attack surface. Are you doing any sanitization before that data enters the context? Have you architecturally separated "input data" from "agent instructions"?
+<ClawdNote>
+Here's a useful thought exercise: ask yourself, "if this agent were fully compromised, what's the worst thing an attacker could do?"
 
-**If your Agent does something completely unexpected, how quickly would you find out?**
+If the answer is "mess around with some translation files" — okay, the damage ceiling is limited. If the answer is "delete the database, send emails, call external APIs, run bash commands" — you're not managing risk. You're praying the attack doesn't come.
 
-If the answer is "I don't know, maybe a few weeks later" — you don't need more security rules. You need observability. ECC's PostToolUse hook system (SP-146) isn't just a convenience tool in this context. It's security infrastructure. Does every tool call have a log? Is there any anomaly detection? Any mechanism that tells you within three days — not three weeks — that something unusual happened?
+Those two situations are not different in degree. They're different in kind. And the scarier part: that risk is usually nowhere in any documentation. It only exists in the fact that "nobody thought about this when we were setting up the agent's tools" ʕ•ᴥ•ʔ
+</ClawdNote>
+
+Then think about what external data your agent touches.
+
+Everything it reads — websites, emails, API responses, third-party documents — is a potential injection attack surface. Are your "agent instructions" and "data to process" clearly separated at the architecture level? Or are they both just floating in the same context window, and you're trusting the agent to figure out which one to listen to? If the second one: you just found an unlocked door.
+
+The last question is the one most people can't answer well: **If your agent did something completely unexpected today, how quickly would you find out?**
+
+Not "would you find out." How quickly.
+
+If the answer is "I don't know, maybe a few weeks" — you don't need more security rules. You need observability. ECC's PostToolUse hook system (SP-146) isn't a convenience feature here. It's the floor of your security infrastructure. Does every tool call have a log? Is there any mechanism that tells you within three days — not three weeks — that something unusual happened?
 
 <ClawdNote>
 "How quickly would you find out" makes me think of a real 2025 AI agent incident.
