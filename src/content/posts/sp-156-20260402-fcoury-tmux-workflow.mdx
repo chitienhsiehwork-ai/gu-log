@@ -1,0 +1,177 @@
+---
+ticketId: "SP-156"
+title: "Felipe Coury 的 tmux 工作流：零摩擦 session，才是 CLI Agent 時代真正的效率外掛"
+originalDate: "2026-03-30"
+translatedDate: "2026-04-02"
+translatedBy:
+  model: "GPT-5.4"
+  harness: "OpenClaw"
+source: "@fcoury on X"
+sourceUrl: "https://x.com/fcoury/status/2038693821543014506"
+lang: "zh-tw"
+summary: "Felipe Coury 把 tmux session 管理壓到幾乎零摩擦：每個 project 一個 session，directory name 就是 session name，再配上 tm、tp、tv、tn、zm 五個 helper。這看起來像 terminal 小技巧，實際上很像 CLI Agent 時代的基礎設施。"
+tags: ["shroom-picks", "tmux", "developer-workflow", "terminal", "cli-agents"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+如果你最近開始把 Claude Code、Codex CLI 這類 agent 丟到遠端機器上跑，你大概很快就會學到一個殘酷的教訓：**沒開 tmux 的 SSH session，跟沒存檔的文件差不多。** 網路斷一下、筆電闔上、咖啡店 Wi‑Fi 抽風一下，剛剛那個跑了 20 分鐘的任務，直接升天。
+
+所以我很喜歡 Felipe Coury 這篇 tmux workflow 分享。它不是那種「看我 terminal 多帥」的展示文，也不是把 `.tmux.conf` 堆成一座巴別塔。它真正厲害的地方很樸素：**把 session management 這件事做到接近零摩擦。**
+
+核心只有一句：**每個 project 一個 tmux session，而且 directory name 就是 session name。** 你 `cd` 到專案目錄，打一個 `tm`，如果 session 已存在就 attach，不存在就建立。你不用再想「這個 session 到底該叫 api、backend、prod-fix 還是 backend-v2？」——目錄就是答案 (◕‿◕)
+
+## 真正被優化掉的，不是按鍵，是「想一下」的成本
+
+Felipe 的做法表面上是在教 tmux，實際上是在砍掉一種很煩的小稅：**每次切換工作前，都要先替 session 取名字。**
+
+這種 2 秒鐘的事，最容易被低估。因為它小到你不會抱怨，大到你每天付很多次。久了之後，大腦就會開始偷懶：算了，先不要開新 session；算了，先在同一個視窗亂跑一下；算了，我等一下再整理。然後 terminal 就慢慢從「工作台」變成「案發現場」。
+
+Felipe 直接把這個決策從流程裡刪掉。當前目錄叫 `myapp`，session 就叫 `myapp`；如果資料夾叫 `my.project`，就轉成 `my_project`，避免 tmux session name 吃到句點時鬧脾氣。這個規則幾乎笨到不需要記，但正因為夠笨，才真的好用。
+
+它的精髓可以濃縮成這樣：
+
+```bash
+session_name=$(basename "$PWD" | tr '.' '_')
+tmux has-session -t "$session_name" 2>/dev/null \
+  && tmux attach-session -t "$session_name" \
+  || tmux new-session -s "$session_name"
+```
+
+這種設計很像把公司座位表改成「部門在哪層樓，你就去那層樓」，而不是每次上班都先查今天自己坐哪。你不一定會覺得自己因此變聰明，但整天就是會順很多。
+
+<ClawdNote>
+很多 productivity setup 都在追求「更多功能」。Felipe 這套比較像在追求「更少猶豫」。這兩者差很多。前者像買一支有 47 個模式的智慧牙刷，後者像把牙刷直接放在洗手台正中央。真正每天會改變行為的，通常是第二種。
+這種優化最厲害的地方，是你隔天就會忘記自己被優化過。因為流程已經順到像本來就該這樣 (◕‿◕)
+</ClawdNote>
+
+---
+
+## 五個 helper command，組成一套幾乎不用思考的 muscle memory
+
+Felipe 分享的 shell helper 只有五個：`tm`、`tp`、`tv`、`tn`、`zm`。數量不多，但如果你把它們排成一天的時間軸，其實滿有畫面的。
+
+早上開工，你人在專案目錄裡，按 `tm`，事情就結束了：有 session 就進去，沒 session 就建立。Felipe 直接說這是他一天會用 50 次的 workhorse。這句話很重要，因為它告訴你這套 workflow 的中心不是「功能很多」，而是「進場超快」。你不用進一個 mental mode 叫做「現在要管理 session 了」；你只是自然地回到工位。
+
+真正漂亮的 workflow 都有一種便利商店感：門推開，燈是亮的，東西在原位，你伸手就拿得到。如果一個 command 還需要你先暖機 5 秒，它大概就還不夠好。`tm` 厲害的地方，就是它幾乎把暖機時間壓到零。
+
+做到一半，session 多起來了，腦袋開始懶得一個個想名字，這時候 `tp` 出場，用 `fzf` 幫你把現場重新攤平。真的要進編輯器了，`tv` 接手，把「進 tmux」和「開 neovim」合併成同一個起手式。偶爾你有特殊任務，不想照目錄名走，那就讓 `tn` 當逃生門。至於 `zm`，則像作者自己偷偷留下的註腳：這套方法的靈魂其實不是 tmux 指令，而是那條更高階的原則——**目錄就是工作身份。**
+
+還有一個很可愛、但其實很實用的小細節：`tm` 會順便改 terminal title，前面加上 emoji，讓你在 tab bar 一眼認出現在是哪個 project。這種設計很像捷運站的顏色編碼。你平常不會特別感謝它，但它每天都在替你省掉半秒鐘的辨識時間。
+
+Felipe 真正聰明的地方，是他沒有去優化少見的大招，而是把日常最 boring 的動作壓成肌肉記憶。這很像寫 API 一樣：不是最華麗的 endpoint 最重要，而是那個每個 request 都會經過的 middleware 最值得你下功夫。
+
+<ClawdNote>
+開發者很容易迷上「罕見但酷」的功能，像一個月用一次的神級 macro；真正值錢的反而是那種一天按 50 次、每次只省 1 秒的小工具。因為一天 50 次的東西，不是在用 tool，你是在訓練神經系統。好用的 workflow，最後都會變成反射動作 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## 他貼出來的不只是 tmux 技巧，而是一套 terminal operating system
+
+如果你繼續往下看 Felipe 的 thread，會發現這不是只有 session script 而已。他其實把整套 terminal 生活方式都打磨過了。
+
+他把 pane navigation 改成 vim 風格的 `h/j/k/l`，resize 用大寫 `H/J/K/L`，split pane 時還特別指定**新 pane 要開在同一個 directory**。這個設定乍看很基本，但 tmux 預設其實沒那麼貼心；如果你常常一 split 就跑到奇怪路徑，你就知道這個小修正有多救命。
+
+他還做了一個我很喜歡的 `Alt-k` 小把戲：如果 pane 裡只是普通 shell，就清掉畫面和 scrollback，像 macOS Terminal 的 `Cmd-k`；但如果 pane 裡現在跑的是 `nvim`、dev server 之類的程式，就改送 `Ctrl-l`，不要粗暴把程式狀態洗掉。這種設計背後有一個很成熟的味道：**不是只追求能動，而是追求不要害自己。**
+
+更有意思的是，他連「離開本機之後怎麼活」都想好了。`tms` 會透過 SSH 管遠端機器上的 tmux session，terminal title 還會加 `🔗`，讓你一眼分出 local 跟 remote；`tw` / `twd` 把 git worktree 跟 tmux session 綁在一起，開新 branch 時像搭一個臨時工地，做完再一起拆掉；再往下，`tmux-resurrect`、`tmux-continuum` 和 `tmux-yank` 則是在處理另一種很討厭的現實：你的工作不該因為重開機、SSH 或剪貼簿跨機器而變得像原始人。
+
+看完整串後，你會發現 Felipe 不是在「客製化 tmux」，他是在做自己的 terminal OS。每個按鍵、每個 helper、每個 plugin 都圍繞同一件事：**不要讓 context 掉到地上。** 這不是炫技，這比較像工地管理。你不是在追求更酷的工具，而是在追求每天都能回到同一個施工現場。
+
+<ClawdNote>
+我很喜歡「same directory split」這種設定，因為它超級不性感，但超級重要。很多工具文最大的問題就是一直介紹吊炸天的 feature，卻不處理每天最常見的爛事。這個設定就像你搬新家先把插座裝對位置，而不是先買一盞會變 16 種顏色的智慧燈。
+老實說，成熟 workflow 最迷人的地方往往都很無聊：少走路、少找路、少踩坑。真正的高手，不是按鍵很多的人，是把自己每天會犯的蠢都先堵住的人 (￣▽￣)／
+</ClawdNote>
+
+---
+
+## 到了 CLI Agent 時代，tmux 已經不是 nice-to-have，而是基礎設施
+
+這也是我覺得這篇 thread 特別值得現在拿出來講的原因。
+
+如果今天還是 2019 年，你把 tmux 當成 terminal power user 的小眾興趣，我完全可以理解。很多人那時候會想：「我用 iTerm 分頁也活得好好的，幹嘛學這個看起來像黑魔法的東西？」
+
+但 2026 年不太一樣了。因為我們現在不是只在 terminal 裡跑 `pytest` 或 `npm test`，而是在裡面跑**會自己持續做事的 agent**。
+
+一旦你開始 SSH 到 VPS 上跑 Claude Code、Codex CLI 或其他 agent，tmux 的地位就會瞬間改變。以前它是在幫你整理 terminal；現在它是在幫你托管一群會持續工作的 process。斷線不再等於任務暴斃，因為你可以 detach 後再 attach 回來；你也終於能把多個 agent session 平鋪開來，一個跑 feature、一個看 logs、一個處理 hotfix，而不是在一個視窗裡跟自己玩套娃。
+
+更關鍵的是，tmux 讓長任務第一次變得「可離開」。這件事很重要。因為 agent 真正值錢的地方，本來就不是你坐在旁邊盯著它，而是它替你持續做事的那段時間。你可以去吃飯、切回別的工作、甚至直接合上筆電，回來之後現場還在。遠端機器也不再只是「借我一下 shell」，而更像「這裡就是我的第二工作站」。
+
+這就是為什麼 tmux 在 AI 時代反而變得更重要。Agent 再聰明，還是需要一個穩定、可中斷、可恢復、可並行的 runtime surface。tmux 沒有 flashy AI UI，也不會幫你生成 PR summary；它做的事更底層，也因此更難被取代。
+
+<ClawdNote>
+有人以為 AI 時代最先被淘汰的會是 tmux 這種老工具，我反而覺得剛好相反：你火箭可以換新引擎，發射台還是得是鋼筋水泥做的。agent 最需要的不是玻璃帷幕大廳，而是可靠的地下室：能續命、能切分、能回來、能留下痕跡。
+說白一點，沒有 tmux 的遠端 agent workflow，很像把實習生鎖在電梯裡做案子：只要訊號一斷，整個人跟進度一起消失 (╯°□°)╯
+</ClawdNote>
+
+---
+
+## Bash、Vim、tmux 這些老派工具，反而成了 AI 協作的 multiplier
+
+Felipe 的 workflow 之所以讓人有感，不只是因為他把 tmux 用得熟，而是因為它提醒了一件很反直覺的事：**AI 並沒有讓 terminal 過時，反而讓 terminal 重新變成中心。**
+
+原因其實不神祕。像 bash、vim、tmux 這種工具，全部都是 text-first、可以走 SSH、不綁 GUI，而且跟檔案系統、git、測試指令、log stream 的組合度高得可怕；更重要的是，它們壞掉時通常壞得很明白，一步出錯你可以重來那一步，而不是整個 workflow 一起陪葬。你會發現，這剛好就是 agent 最喜歡的生存環境。
+
+所以有時候不是「老工具在 AI 時代復興」，而是**它們本來就很適合被 AI 使用，只是以前沒有這個需求被放大而已。** 現在一堆人突然重新學 shell、學 vim motions、學 tmux，不是懷舊，是因為這些工具真的能把 agent 的工作流撐起來。
+
+這種感覺很像你以為自己買了一台最新的智慧家電，最後發現家裡最重要的東西還是那條 30 年前的延長線。它不炫，但所有設備最後都要靠它通電。
+
+<ClawdNote>
+AI 時代最荒謬也最迷人的畫面，大概就是大家一邊討論最前沿的 model，一邊回頭苦練 `grep`、`ssh`、`tmux`。科技樹明明一路往前衝，結果腳下踩的還是 Unix 老地板。不是因為大家守舊，而是因為這塊地板真的夠耐操 (⌐■_■)
+</ClawdNote>
+
+---
+
+## Productivity tool 成癮症，也在這種時候最容易發作
+
+當然，這種文章也很容易勾出另一種開發者本能：**啊幹，我也要來重構我的 dotfiles。**
+
+這個衝動完全可以理解。因為大腦真的會默默算一筆很危險的帳：
+
+- 現在花 3 小時調工具
+- 每天省 30 秒
+- 30 秒 × 無限多個未來工作日 = 無限
+
+數學上看起來超賺，心理上更是直接高潮。然後你回過神來，發現自己已經兩週沒寫正事，全都在研究怎麼讓 tmux prefix 跟 terminal title 更優雅 (￣▽￣)／
+
+不過 Felipe 這套我覺得相對健康，因為它不是那種為了炫技而加複雜度的 setup。它的核心改進非常節制：**只處理高頻痛點，只保留清楚規則。**
+
+這也是我對 productivity tool 的分界線：
+
+- 好的優化，是讓你更少思考
+- 壞的優化，是讓你多一套要維護的宗教
+
+如果一套 workflow 需要 18 頁文件才能解釋，那你大概不是在提升效率，你是在成立教派。
+
+<ClawdNote>
+開發者對 productivity tool 上癮這件事，真的很像買收納盒來整理收納盒。表面上看起來是效率，骨子裡其實是多巴胺。差別只在於：有些 setup 會讓你明天開始更順；有些 setup 只會讓你今晚覺得自己很專業。這兩種不要混在一起 (¬‿¬)
+</ClawdNote>
+
+---
+
+## 如果你用過 terminal，但還沒進 tmux 世界，最值得先偷的其實只有三招
+
+如果你看完這篇有點心動，但又不想一口氣跌進 dotfiles 深坑，我會建議你用一個很有畫面的節奏來偷。
+
+**明天早上**，先只偷一件事：把 `tm` 裝起來，讓「一個 project 一個 session，directory name = session name」變成你的新預設。這一步最有槓桿，因為它不是在加功能，而是在拔掉摩擦。
+
+**等你第一次真的離開座位時**，再學 detach / attach 跟 same-directory split。你會很快體會到，tmux 最強的地方不是把畫面切成四格，而是你回來時現場還在，而且路徑也沒跑掉。
+
+**等你真的開始覺得 session 變多了**，再去加 fuzzy picker、neovim mode、remote helper。不要第一天就把整套宗教穿上身，先讓身體記住那種「工作現場會自己留著」的安心感，再決定要不要往下挖。
+
+tmux 最常見的誤解，是大家以為它的價值在「同時開很多 pane」。其實不是。它更核心的價值是：**讓你的工作上下文有地方住，而且你離開後它還在。**
+
+<ClawdNote>
+很多人第一次學 tmux，都把重點放在「我要怎麼切出四格畫面」。但真正讓人回不去的，通常不是四格，而是 detach 之後再 attach 回來那一刻：欸，現場居然還在。那個感覺就像你終於替 terminal 裝上了自動存檔 (｡◕‿◕｡)
+</ClawdNote>
+
+## 結語
+
+Felipe Coury 這串分享，表面上是在講 tmux 小技巧；真正打中人的，是它背後那個很工程師、也很 AI 時代的原則：**把高頻但低價值的決策從流程裡刪掉。**
+
+你永遠不用再想 session name，這件事聽起來很小。但就是這種「小到不值得開會」的優化，最後最能決定一整天的流暢度。
+
+尤其當 terminal 不再只是拿來敲幾個指令，而是你拿來托管 agent、管理遠端工作、掛長任務的基地時，tmux 就不再是那種「學了會很帥」的工具，而是那種「不學遲早會痛」的工具。
+
+說到底，tmux 不是在幫你變 hardcore。它只是很務實地確保：當你起身去倒杯咖啡、闔上筆電、網路抽一下的時候，你的工作現場還在。這在 CLI Agent 時代，已經不是 bonus，這幾乎是基本人權了。
