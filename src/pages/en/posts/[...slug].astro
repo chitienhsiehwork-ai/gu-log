@@ -4,6 +4,7 @@ import { getPostVersion } from '../../../utils/post-versions';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import TableOfContents from '../../../components/TableOfContents.astro';
 import PrevNextNav from '../../../components/PrevNextNav.astro';
+import SeriesNav from '../../../components/SeriesNav.astro';
 import TicketBadge from '../../../components/TicketBadge.astro';
 import Giscus from '../../../components/Giscus.astro';
 import ShareButton from '../../../components/ShareButton.astro';
@@ -133,6 +134,8 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
     <ReadStatusButton slug={post.slug} lang="en" />
 
     <ShareButton title={post.data.title} lang="en" />
+
+    {post.data.series && <SeriesNav currentSlug={post.slug} allPosts={allPosts} lang="en" />}
 
     <PrevNextNav currentSlug={post.slug} allPosts={allPosts} lang="en" />
 

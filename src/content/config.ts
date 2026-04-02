@@ -30,6 +30,12 @@ const postsCollection = defineCollection({
       summary: z.string(), // for index page preview
       lang: z.enum(['zh-tw', 'en']).default('zh-tw'),
       tags: z.array(z.string()).optional(),
+      series: z
+        .object({
+          name: z.string(),
+          order: z.number(),
+        })
+        .optional(),
       scores: z
         .object({
           ralph: z
