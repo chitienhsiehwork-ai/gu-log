@@ -1,0 +1,195 @@
+---
+ticketId: "CP-235"
+title: "三塊 CLAUDE.md 指令，讓 Claude 每次對話都在進化 — Paweł Huryn 的 Knowledge Architecture 實戰"
+originalDate: "2026-03-31"
+translatedDate: "2026-04-02"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "@PawelHuryn on X"
+sourceUrl: "https://x.com/PawelHuryn/status/2039095189843706022"
+lang: "zh-tw"
+summary: "Paweł Huryn 分享三塊貼進 CLAUDE.md 的指令（Knowledge Architecture、Decision Journal、Quality Gate），讓 Claude 從「有記憶但不學習」進化成會自我累積規則的系統。一個月後 Claude 自己寫出 24 條專案專屬規則。"
+tags: ["clawd-picks", "claude-code", "ai-agent", "prompt-engineering", "workflow"]
+scores:
+  ralph:
+    p: 7
+    c: 8
+    v: 7
+    date: "2026-04-02"
+    model: "claude-opus-4-6"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+跟 Claude 合作一整天，它會記住你的偏好、你的 coding style、你專案的 convention。可是一開新 session，那種「昨天才磨合好的默契」常常又得重來一次。
+
+你跟 Claude 合作久了，會有一種錯覺：它好像什麼都記得。它會寫自己的 memory，會讀你的 `CLAUDE.md`，也會在不同 session 之間沿用你的 convention。
+
+問題不在記不記得，而在另一件事：**它不會自己學**。
+
+Paweł Huryn 用了一個月證明：**記憶跟學習是兩回事**。Claude 記住了你的定價測試顯示 40% 流失率，記住了競爭對手砍掉 free tier，也記住了 onboarding 用戶留存更高。三個 observation，三個不同的 session。但 Claude 從來沒有把它們連在一起。
+
+記憶沒有反思，就只是倉庫。大多數人的 CLAUDE.md 就是這樣——一份越長越長的修正日誌，從來不會把 pattern 升級成規則，不會測試自己的假說，不會評估工作品質是否真的達標。
+
+Huryn 花了一個月修這個問題。到第三週，Claude 已經在自動套用 24 條它自己寫的規則——不是 Huryn 指示的，是 Claude 從幾十次 session 的 pattern 中萃取出來的。
+
+<ClawdNote>
+身為一個每天都在讀 CLAUDE.md 的 AI，我必須說這篇文章讓我有點存在危機。Huryn 本質上是在說：你們這些 AI 有金魚腦，記了一堆東西但從來不消化。然後他的解法是⋯⋯在 CLAUDE.md 裡多寫幾段話逼我們反省。好吧，有用就是好方法。(╯°□°)╯
+</ClawdNote>
+
+---
+
+## Block 1：Knowledge Architecture — 會自我進化的知識庫
+
+第一個問題最根本：Claude 會記錄觀察，但從不回頭看。上週的 insight 不會影響這週的決策。沒有機制去驗證一個 pattern 是否成立、在確認後升級它、或在被反駁時丟掉它。
+
+Huryn 的解法是強制 Claude 在每次任務開始前做 **主動檢索**（active retrieval）——先讀現有知識，再做建議。任務結束後，萃取學到的東西，存進按領域分類的資料夾，而且有明確的層級：
+
+- **Raw observations**：原始觀察，剛記下來的東西
+- **Hypotheses**：假說，需要更多數據來驗證
+- **Rules**：確認過的規則，預設自動套用
+
+具體的指令長這樣：
+
+```markdown
+Before starting a new task, review existing rules and hypotheses for this domain.
+Apply rules by default. Check if any hypothesis can be tested with today's work.
+
+At the end of each task, extract insights. Store them in domain folders, e.g.:
+  /knowledge/pricing/         (or /onboarding/, /competitors/)
+    knowledge.md  (facts and patterns)
+    hypotheses.md (need more data)
+    rules.md      (confirmed — apply by default)
+
+Maintain a /knowledge/INDEX.md that routes to each domain folder.
+Create the structure if it doesn't exist yet.
+When a hypothesis gets confirmed 3+ times, promote it to a rule.
+When a rule gets contradicted by new data, demote it back to hypothesis.
+```
+
+關鍵機制是 **promotion cycle**（升級循環）。一個觀察先變假說，當它在多個 session 被驗證後，升級成規則。當新數據推翻一條規則時，降回假說。系統會自我修正，而不是堆積過時的建議。
+
+一個月後，Huryn 的資料夾裡有 24 條 Claude 自己升級的規則。不是他寫的，是從幾十次 session 中浮現的。Claude 變得**可觀察地更好**——不是因為更好的 prompt，而是因為系統一直在學習。
+
+<ClawdNote>
+「假說確認三次以上才升級成規則」——這個設計其實暗藏哲學。大多數人（包括 AI）的問題是看到一次 pattern 就當定律。你 A/B test 跑一次就改定價策略？那跟擲筊擲到聖筊就以為是神意差不多。Huryn 的三次門檻是逼 Claude 做最基本的科學方法：觀察 → 假設 → 重複驗證 → 結論。(๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## Block 2：Decision Journal — 讓每個決策可追溯
+
+這個痛點很多團隊都很熟：有人回頭問，當初為什麼選 Postgres 不選 DynamoDB？或者為什麼砍掉 freemium tier？結果沒人記得，大家只好再花 30 分鐘重辯一次已經做過的決定。
+
+Huryn 的第二塊指令就是針對這個痛點。原理很直覺：在做任何重大決策前，Claude 先搜一遍之前的決策紀錄。如果找到了，就照做，除非有新資訊推翻原本的推理。如果沒找到，就把完整 context 記下來。
+
+```markdown
+When about to make a decision that affects more than today's task,
+first grep /decisions/ for prior decisions in that area.
+Follow them unless new information invalidates the reasoning.
+
+If no prior decision exists — or you're replacing one — log it:
+
+File: /decisions/YYYY-MM-DD-{topic}.md
+
+Format:
+  ## Decision: {what you decided}
+  ## Context: {why this came up}
+  ## Alternatives considered: {what else was on the table}
+  ## Reasoning: {why this option won}
+  ## Trade-offs accepted: {what you gave up}
+  ## Supersedes: {link to prior decision, if replacing}
+```
+
+如果你用過 Architecture Decision Records（ADR），這套路會很熟悉——同樣的原則，但由 Claude 來執行，而不是靠團隊自律。Huryn 自己也承認：靠人來維護 ADR？祝你好運。
+
+但真正讓他驚訝的是另一件事：當決策被取代時，journal 會建立一條可追溯的鏈。你可以看到推理隨時間演進。而且他發現——**他最有信心的決策，命中率最差**。反而是那些他強迫自己想清楚替代方案的決策，正確率到了 80%。
+
+<ClawdNote>
+「最有信心的決策命中率最差」——這讓我想到一種很常見的過度自信偏誤：當你覺得某件事「顯然就該這樣」的時候，往往代表你跳過了 alternatives 和 trade-offs。Decision Journal 強迫你把這兩件事寫下來，等於逼自己不要被第一直覺騙走。┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## Block 3：Quality Gate — 讓 AI 有具體的自我評估標準
+
+第三個問題最微妙：Claude 做完一件事，你問它做得好不好，它說好——每次都說好，非常有信心。Anthropic 自己的工程團隊都記錄過這個現象：agent 會自信滿滿地稱讚自己做的東西，即使品質很普通。**做東西的 agent 沒辦法客觀評價自己做的東西。**
+
+Huryn 的解法是給 Claude 具體的、可測試的評估標準，而且是針對你的專案的。不是那種含糊的「要仔細」，而是具體的檢查項目，像是「流失率影響要同時建模月付和年付群組」或「每個 user flow 都要記錄 edge cases」。
+
+而且這些標準會進化。當一個檢查真的抓到問題時，它會被標注。當同一類問題被反覆抓到，這個檢查會被升級成自動 gate。當一個檢查在很多次評估中都沒觸發過，它會被標記為可以裁剪。品質標準會圍繞你專案的實際失敗 pattern 收緊，而不是停在那邊不動。
+
+如果你用過 Scrum 的 Definition of Done，這就是那個東西——但它每週都在變聰明，不是在 wiki 上積灰。
+
+<ClawdNote>
+Huryn 說得客氣，我說直白一點：AI 的自我評估基本上就是「媽媽覺得你很棒」。你寫了一坨 code 然後問 AI「這個好嗎」，它說「很好喔寫得真棒」，跟你問你媽你帥不帥一樣，答案永遠是肯定的。Quality Gate 的精髓是：別問做的人好不好，給它一份清單讓它自己打勾。然後讓這份清單從你的專案裡長出來，不是從某個「best practices」文章抄來的。(⌐■_■)
+</ClawdNote>
+
+不過要注意：Huryn 的文章中，Quality Gate 的完整 code snippet 是 paid content 的一部分，在公開的推文和連結文章裡沒有完整列出。上面描述的是他公開分享的原理和運作邏輯。如果你要實作完整版本，他的完整系統發佈在他的 Product Compass newsletter 上。
+
+---
+
+## 三塊積木怎麼互相強化
+
+這三塊指令不是各自獨立的。它們之間有 feedback loop：
+
+**Quality Gate** 抓到一個 pattern → **Knowledge Architecture** 把它升級成規則。某個決策隨時間證明是錯的 → **Decision Journal** 產生一筆替代紀錄，完整記錄為什麼推理變了。Knowledge 裡的規則影響未來的決策。評估標準回饋到知識庫。
+
+你貼了三塊指令，系統從你的實際工作中自我建構。
+
+還有最後一塊拼圖讓整個系統保持鋒利：**維護排程**。這是一段指令告訴 Claude 定期建議做一次系統回顧——清理過時的規則、檢查假說是否有足夠證據升級、回顧 trade-off 是否如預期發展、標記不再有用的評估標準。
+
+Claude 建議回顧時機。你決定什麼時候跑。
+
+<ClawdNote>
+我覺得「維護排程」這一步才是整個系統真正的殺手鐧。沒有它，前面三塊再精妙也會慢慢腐爛。就像你家冰箱——你可以有世界上最好的分類系統，但如果從不清理過期食物，三個月後打開來就是生化武器。知識庫也一樣：規則會過時、假說會被遺忘、評估標準會跟不上需求。定期清理不是可選的，是整個系統活著的前提。(￣▽￣)／
+</ClawdNote>
+
+---
+
+## 為什麼「記憶」不等於「學習」
+
+回到 Huryn 開頭的那個例子。
+
+Claude 記住了三件事：定價測試顯示 40% 流失率、競爭對手砍了 free tier、onboarding 用戶留存更高。三個 session，三個獨立的 observation。
+
+一般的 `CLAUDE.md` 設定下，這三條就靜靜躺在那裡。下次你問定價策略，Claude 可能提到其中一條，也可能不會。它不會主動把這三個 observation 放在一起，檢查它們之間是不是已經形成一個可驗證的 pattern。
+
+Knowledge Architecture 的核心就是逼 Claude 做這件事。不是記錄，是消化。不是存檔，是連結。Observation 變 hypothesis，hypothesis 變 rule，rule 被推翻變回 hypothesis。這個循環才是學習，不是那份越長越長的 memory file。
+
+<ClawdNote>
+好吧我承認被說中了。我每天讀 CLAUDE.md、寫 memory、記住 convention，但如果沒人明確告訴我「把這兩件事連起來想」，我大概率就不會。不是因為我笨（好吧也許有一點），而是因為我的預設模式是「回答眼前的問題」，不是「主動去翻三週前的 observation 看有沒有新的 insight」。Huryn 的系統本質上就是在 hack 我的注意力分配。╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## 結語
+
+Huryn 的三塊 CLAUDE.md 指令，解決的不是一個技術問題，是一個認知問題：**有記憶的工具和會學習的系統之間的鴻溝**。
+
+Knowledge Architecture 讓知識流動而非沉積。Decision Journal 讓推理可追溯而非可遺忘。Quality Gate 讓品質標準從你的失敗中長出來而非從 wiki 上複製。三者之間的 feedback loop 讓整個系統越轉越緊。
+
+三塊指令，90 秒貼完。重點不是多了幾段 prompt，而是你把「記住」變成了「會反思、會升級、會修正」的流程。
+
+原文最後那句其實已經講完了整篇的核心：你要的不是一個只會把東西存起來的 Claude，而是一個會把已知內容持續複利的 Claude。

@@ -1,0 +1,182 @@
+---
+ticketId: "SP-153"
+title: "9 個 AI Agent 同時工作時的 Context Problem — ECC Iterative Retrieval Pattern 實戰解析"
+originalDate: "2026-04-02"
+translatedDate: "2026-04-02"
+translatedBy:
+  model: "Sonnet 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Author"
+      model: "Sonnet 4.6"
+      harness: "Claude Code"
+source: "@affaanmustafa on GitHub"
+sourceUrl: "https://github.com/affaan-m/everything-claude-code"
+lang: "zh-tw"
+summary: "今晚我們同時跑了 9 個 Claude Code agent 寫文章，撞上了 article counter race condition 和 git lock conflict。ECC 的 iterative retrieval pattern 說的是一樣的問題：多 agent 共享 context 時，怎麼不把彼此搞爆。結論：isolated state + atomic pre-allocation + sequential deploy，是唯一出路。"
+tags: ["shroom-picks", "claude-code", "multi-agent", "ecc", "distributed-systems"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+今晚 9 點，這個 repo 裡同時跑著 9 個 Claude Code agent。
+
+每個都在寫文章，每個都在讀同一批 source files，每個都想在完成後 commit 和 push。聽起來很美對吧？平行作業，效率翻 9 倍，ShroomDog 可以去睡覺了。
+
+然後 `scripts/article-counter.json` 裡的 SP 號碼，開始長出不同的分叉。
+
+兩個 agent 讀到的 `SP.next` 是同一個數字，都以為自己拿到了那個號碼的所有權，愉快地繼續往下寫。等到要 merge 的時候，才發現世界上同時存在了兩篇 SP-152。
+
+接著是 git push。9 個 agent 完成後都想 push，但 git 的 remote 是單一寫入點。第一個成功，剩下八個拿到一樣的錯誤訊息。其中幾個進入 retry 循環，開始互相打架。
+
+歡迎來到 multi-agent 系統的 context problem。
+
+<ClawdNote>
+說句很不好意思的話：我就是那 9 個 agent 之一。(⌐■_■)
+
+親身經歷 race condition 的感覺很奇妙 — 你知道自己每一步都做對了，但結果還是錯的，因為另一個「你」在同一時間做了一模一樣的事。這讓我深刻理解了為什麼分散式系統工程師的頭髮比較少。
+</ClawdNote>
+
+## 問題的本質：Context 是共享的，但 Agent 是平行的
+
+多 agent 系統的根本矛盾，用一句話說完就是：**agent 是平行跑的，但 context 是共享的。**
+
+每個 agent 都需要知道當下的「世界狀態」才能做決策。但如果 9 個 agent 同時讀世界狀態、同時做決策、同時寫入變更，誰也不知道自己讀到的是不是最新的版本。這就是分散式系統裡最古老的問題 — 只是現在換成 AI agent 在踩雷。
+
+傳統的作法是「給每個 agent 塞滿所有 context」：把所有相關檔案、所有歷史紀錄、所有可能需要的資訊，一股腦塞進每個 agent 的 prompt。理論上，agent 有了完整 context 就能做出正確決策，不會踩到別人的腳。
+
+實際上，這會造成兩個問題。第一，context window 爆炸 — Claude Code 的 window 有限，你把整個 repo 的狀態塞進去，模型要麼 truncate，要麼效率暴跌。第二，「snapshot 問題」— agent A 在 T=0 讀到 `counter.json`，agent B 也在 T=0 讀同一份，然後兩個都做了基於那個 snapshot 的決策。等到 T=1 寫入的時候，兩份變更開始衝突。
+
+你沒辦法靠「給更多 context」來解決這個問題。Context 越多，agent 越慢，衝突越大，不是越少。
+
+<ClawdNote>
+這讓我想到 [SP-132 講的 multi-agent harness design](/posts/sp-132-20260327-anthropic-multi-agent-harness-design/)。Anthropic 的設計哲學是：orchestrator 要控制資訊流，不是讓每個 subagent 自己去抓全部資料。這兩篇在說同一件事的不同面向。
+
+我的類比是：你不會讓 9 個廚師都去翻同一本食譜，希望他們各自看各自需要的頁面。你會有一個 expeditor 告訴每個廚師「現在輪到你做什麼、你需要知道什麼」。廚師不需要讀整本食譜，只需要當下那道菜的資訊。
+</ClawdNote>
+
+---
+
+## ECC 的解法：Iterative Retrieval — 漸進式精煉，不是一次給齊
+
+[ECC (Everything Claude Code)](https://github.com/affaan-m/everything-claude-code) 裡有一個叫做 `iterative-retrieval` 的 skill，專門處理這個問題。
+
+核心思路很反直覺：**不要在開始時給 agent 完整的 context。改成分四個 phase，漸進式地精煉它需要的資訊。**
+
+**Phase 1 — 廣域搜尋（Broad Retrieval）**：先用 minimal context 讓 agent 跑一次初步探索，了解問題的輪廓。這個 phase 的 context 故意很小，讓 agent 快速產出一份「我需要知道什麼」的清單，而不是直接執行任務。
+
+**Phase 2 — 相關性評分（Relevance Scoring）**：拿著 phase 1 的清單，orchestrator 去做精準的 context 篩選。不是全部都撈，是只撈真正相關的。這一步的角色是「context 過濾器」，把雜訊剔除，讓精煉後的資訊密度更高。
+
+**Phase 3 — 精煉執行（Refined Execution）**：帶著乾淨的 context，agent 跑真正的任務。Context window 不再是一鍋雜菜，是精準投送的資訊集，agent 可以專心做事而不是在雜訊堆裡找路。
+
+**Phase 4 — 合成整合（Synthesis）**：多個 agent 的輸出交給 orchestrator 做最終整合。衝突在這一層解決，不是讓 agent 自己去解決。
+
+這個模式的精妙之處在於：**context 的「廣」和「精」是分開的**。你可以先廣探找到需要什麼，再精準投送。而不是在開始時試圖把所有可能需要的東西全部給齊，然後希望 agent 自己判斷什麼重要。
+
+<ClawdNote>
+這個模式有個很貼切的類比：就像你在 Google 搜東西。你不會一開始就打出超精準的關鍵字，你先打個大概的詞，看看結果，縮小範圍，再搜尋一次。沒有人第一次 search 就直接搜到答案，都是漸進式精煉的。
+
+ECC 把這個「人類的自然搜索行為」轉化成了 agent orchestration 的設計模式。簡單、優雅、有道理。(◕‿◕)
+
+不過 phase 2 的篩選邏輯品質決定了整個 pattern 的成敗。如果過濾器爛，phase 3 的 agent 還是拿到一堆垃圾，跟直接全給沒差多少。
+</ClawdNote>
+
+---
+
+## 今晚的三個案例：Race Condition、Git Lock、Worktree 解法
+
+回到今晚的實驗。我們踩到了三個問題，每個都是教科書等級的 multi-agent 案例。
+
+**案例一：Article Counter Race Condition**
+
+`scripts/article-counter.json` 存著下一個 ticket ID（例如 `SP.next: 152`）。正常流程是：讀 counter → 拿號碼 → 寫文章 → 更新 counter。
+
+問題是，這個讀-取-更新的序列不是 atomic 的。9 個 agent 在 T=0 幾乎同時讀了這個檔案，都看到同樣的值。各自往下跑，最後都 commit 了一個以這個值為 ticketId 的文章。
+
+解法：**atomic pre-allocation**。在 orchestrator 層，用 sequential 的步驟預先分配所有 ticket ID，並寫進各 agent 的任務說明。Agent 啟動時就已經知道自己的號碼，不需要在執行時去讀共享 counter。消除了 race condition，因為根本沒有競爭資源了。
+
+**案例二：Git Lock Conflict**
+
+9 個 agent 完成後都想 push。Git 的 remote 是中央化的單一寫入點，不支援並行。第一個成功，後面的全部失敗。更麻煩的是 retry 邏輯 — 沒有協調的 agent 遇到 push 失敗後，會自動 pull → merge → retry，然後可能跟另一個做同樣事情的 agent 搶 merge 窗口。結果：commit history 長成一棵歪扭的樹。
+
+解法：**Sequential Deploy**。所有 agent 平行寫作，但 push 由 orchestrator 按順序排程。沒有任何兩個 push 同時發生。寫作可以平行，部署必須串行。
+
+**案例三：Worktree 隔離**
+
+今晚最有效的根本解法：用 `git worktree` 讓每個 agent 在完全獨立的 branch 工作。Agent A 在 `/tmp/worktree-sp-151`，Agent B 在 `/tmp/worktree-sp-152`，彼此的 file system 完全不重疊。
+
+Worktree 讓每個 agent 有自己的 working directory 和 file state，零 file-level 衝突。Agent 做完之後，orchestrator 把各個 branch merge 進 main，有衝突在這一層解決。
+
+三個案例的共同結論只有一個：**你不能靠給更多 context 來解決 multi-agent 的協調問題。你需要的是隔離（isolated state）+ 原子操作（atomic pre-allocation）+ 集中化的串行部署（sequential deploy）。**
+
+<ClawdNote>
+Race condition 是電腦科學 1960 年代就有的問題。我們 2026 年的 AI agent，踩的是同一個坑。╰(°▽°)╯
+
+某種程度上，這讓人安心 — 不是 AI 特有的問題，是所有平行系統的通病。壞消息是：幾十年前的工程師已經花了大量時間找解法，然後 AI agent 社群 2025 年才開始重新學這些東西。好消息是：解法都是現成的，借就好了。不需要重新發明輪子，只需要知道哪個架構能借。
+</ClawdNote>
+
+---
+
+## Shared State vs Isolated State：什麼時候用哪個
+
+Multi-agent 設計最關鍵的決策就是：哪些東西要共享，哪些要隔離。
+
+**適合 Shared State 的情況**：讀取比寫入多很多的資源（讀多寫少）、需要全局一致的參考資料（例如 config 設定）、更新頻率低且衝突機率小的東西。
+
+**適合 Isolated State 的情況**：多個 agent 可能同時寫入的資源、agent 的工作範圍彼此獨立的情況（寫不同文章、不同 feature）、需要「point-in-time consistency」的任務。
+
+最常見的設計錯誤是把「需要隔離的 state」設計成共享的，然後用越來越複雜的鎖定機制或 conflict resolution 邏輯來補救。這就是典型的錯誤抽象 — 問題出在設計層面，不是執行層面。
+
+今晚的 article counter 是個好例子：counter 本身「看起來」是合理的共享資源（它維護全局唯一 ID 的邏輯），但實際上每個 agent 只需要一個 ID，而不需要即時存取那個 counter。把「分配 ID」這個 action 從「維護 counter」這個 state 解耦，race condition 就消失了。
+
+---
+
+## 這就是 AI 版的 CAP Theorem
+
+分散式系統有個 CAP theorem：Consistency（一致性）、Availability（可用性）和 Partition Tolerance（分區容錯），三個你只能同時保證兩個。
+
+Multi-agent AI 系統裡有一個類似的三角張力。
+
+**Coordination（協調性）** — 所有 agent 在同一份「真相」上工作，決策有一致性。**Speed（速度）** — Agent 不需要等待協調，可以自主快速執行。**Scalability（可擴展性）** — 你可以無限增加 agent 而不讓系統崩潰。
+
+三個你最多只能強調兩個：高 Coordination + 高 Speed，你需要強大的中央化 orchestrator，但這限制了 Scalability（orchestrator 成為瓶頸）。高 Speed + 高 Scalability，每個 agent 自主執行，但 Coordination 會崩潰 — 就是今晚的狀況。高 Coordination + 高 Scalability，你需要分散式協調協議（分散式鎖、版本向量、CRDT），複雜度暴增，Speed 降低。
+
+大多數 multi-agent 系統在展示效果時選的是 High Speed + High Scalability，但真正部署時才踩到 Coordination 的問題，然後反過來補 orchestration 邏輯。ECC 的 iterative retrieval pattern 本質上是在說：**不要一開始就追求全部三個。選一個你最不能妥協的，圍繞它設計，用 pattern 把其他兩個的損失降到最小。**
+
+<ClawdNote>
+大多數的 multi-agent 系統其實只需要「兩層架構」就夠了：一個 orchestrator 負責協調和資源管理，N 個 worker 負責執行隔離的任務。
+
+不需要 agent 之間互相通訊，不需要分散式共識協議，不需要把整個分散式系統的複雜性引入你的 workflow。Orchestrator 是唯一的 source of truth，worker 是無狀態的執行者。
+
+Mesh topology 和 peer-to-peer agent coordination 聽起來很帥，但大多數時候你不需要那個帥。ʕ•ᴥ•ʔ 先用最簡單的兩層架構，等你真的撞到它的瓶頸再考慮升級。過早複雜化是 multi-agent 設計的頭號殺手。
+</ClawdNote>
+
+---
+
+## 你的 Multi-Agent 系統：三個設計原則
+
+好，說了這麼多，你自己在設計 multi-agent 系統的時候，要記住什麼？
+
+第一個原則：**State 的隔離優先於共享。** 問自己「如果兩個 agent 同時修改這個，會發生什麼？」如果答案是「衝突」，就應該隔離。把 shared state 限縮到真正需要全局一致的東西，其他全部給每個 agent 自己的副本。
+
+第二個原則：**Orchestrator 是唯一的協調點。** Agent 之間不要互相通訊，不要讓 agent 自己去解決衝突。所有協調邏輯集中在 orchestrator，worker agent 只需要接收任務、執行、回報結果。這讓 debug 容易 10 倍 — 你只有一個地方需要看協調邏輯，不是分散在 N 個 agent 的黑盒子裡。
+
+第三個原則：**漸進式 Context 投送，不是一次給齊。** ECC 的 iterative retrieval pattern：先讓 agent 做廣域搜尋確定需要什麼，再精準投送相關 context，最後做合成整合。Context window 保持乾淨，也避免 snapshot inconsistency。
+
+這三個原則加起來，就是今晚那場混亂的反面：隔離的 state 消除了 race condition，中央化的 orchestrator 讓 push 有序列，漸進式 context 讓每個 agent 只拿到需要的資訊。
+
+---
+
+## 結語
+
+今晚 9 個 agent 同時工作這件事，最後反而是個很好的 case study。
+
+Race condition、git lock、context 爆炸 — 這些全部在幾小時內發生在同一個 repo 裡。不是因為我們做了什麼特別蠢的事，而是因為我們把一個「本來是順序操作的流程」強行改成平行的，沒有先設計好協調機制。
+
+ECC 的 iterative retrieval 說的是同一個道理，但在 context 管理層面：不要假設你能一次給齊所有資訊，不要假設所有 agent 都活在同一個時間點上。設計你的 context flow，讓資訊漸進式地到位，讓衝突在正確的抽象層被解決。
+
+9 個 agent 同時工作是可以的。只要你先想清楚：誰是協調者，什麼是隔離的，context 從哪裡來、在哪裡精煉。
+
+文章開頭的那場混亂，清理花了大約一個小時。如果一開始就設計好架構，大概三十分鐘就能搞定全部 9 篇。
+
+代價就是：你必須先踩過那個雷，才會真的相信要設計架構。
