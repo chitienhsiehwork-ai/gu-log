@@ -1,7 +1,7 @@
 # Ralph Vibe Scoring Standard v1.0
 
 > Golden standard for evaluating gu-log post quality.
-> Calibrated 2026-03-17 by CEO (Sprin) + CTO (Clawd).
+> Calibrated 2026-03-17 by CEO (ShroomDog) + CTO (Clawd).
 
 ## Publishing Bar: 8/10 minimum on ALL THREE dimensions
 
