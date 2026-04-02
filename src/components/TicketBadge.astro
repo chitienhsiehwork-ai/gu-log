@@ -72,6 +72,7 @@ const label = labels[prefix] || '';
   .ticket-sd {
     background-color: rgba(38, 139, 121, 0.15);
     color: var(--color-badge-sd);
+    border: 1px solid transparent;
   }
 
   .ticket-label-sd {
@@ -82,16 +83,18 @@ const label = labels[prefix] || '';
   .ticket-sp {
     background-color: rgba(38, 139, 210, 0.15);
     color: var(--color-badge-sp);
+    border: 1px solid transparent;
   }
 
   .ticket-label-sp {
     color: var(--color-badge-sp);
   }
 
-  /* CP: Clawd Picks - muted orange (低彩度橘色) */
+  /* CP: Clawd Picks - muted orange */
   .ticket-cp {
     background-color: rgba(203, 117, 81, 0.15);
     color: var(--color-badge-cp);
+    border: 1px solid transparent;
   }
 
   .ticket-label-cp {
@@ -102,9 +105,28 @@ const label = labels[prefix] || '';
   .ticket-lv {
     background-color: rgba(136, 97, 203, 0.15);
     color: var(--color-badge-lv);
+    border: 1px solid transparent;
   }
 
   .ticket-label-lv {
     color: var(--color-badge-lv);
+  }
+
+  /* Light mode: badges need visible borders on cream bg */
+  :global([data-theme='light']) .ticket-sd {
+    background-color: rgba(29, 106, 92, 0.12);
+    border-color: rgba(29, 106, 92, 0.35);
+  }
+  :global([data-theme='light']) .ticket-sp {
+    background-color: rgba(25, 93, 140, 0.12);
+    border-color: rgba(25, 93, 140, 0.35);
+  }
+  :global([data-theme='light']) .ticket-cp {
+    background-color: rgba(133, 77, 53, 0.12);
+    border-color: rgba(133, 77, 53, 0.35);
+  }
+  :global([data-theme='light']) .ticket-lv {
+    background-color: rgba(107, 76, 160, 0.12);
+    border-color: rgba(107, 76, 160, 0.35);
   }
 </style>
