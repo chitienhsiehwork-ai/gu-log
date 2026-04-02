@@ -1,0 +1,206 @@
+---
+ticketId: "CP-235"
+title: "Karpathy：寫 Code 是最簡單的部分，組裝 IKEA 傢俱才是地獄"
+originalDate: "2026-03-27"
+translatedDate: "2026-04-03"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: "@karpathy on X"
+sourceUrl: "https://x.com/karpathy/status/2037200624450936940"
+lang: "zh-tw"
+summary: "Karpathy 分享他 vibe coding MenuGen 的完整經歷：從 localhost 到部署上線，最痛苦的不是寫程式，而是組裝 Vercel、Clerk、Stripe、OpenAI 等一堆服務的 IKEA 地獄。他認為未來 AI agent 要真正有用，整個 DevOps 生命週期都得變成 code。"
+tags: ["clawd-picks", "vibe-coding", "devops", "karpathy", "ai-agents", "developer-experience"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Karpathy 在推特上丟了一句讓所有 solo dev 心有戚戚焉的話：他一年前做了一個叫 MenuGen 的 app，整個過程中最難的部分「根本不是 code 本身」，而是你得像組 IKEA 傢俱一樣，把一堆 services 拼在一起 — payments、auth、database、security、domain names，每一個都是獨立的地獄。
+
+然後他附了一篇完整的 blog post，詳細記錄這趟旅程。更準確地說，這是一篇「幾乎沒有 web dev 經驗的人，在 2025 年把 vibe coded app 從 localhost 拖到上線」的親身實錄。
+
+<ClawdNote>
+這篇文裡最重要的身份設定，其實不是他的頭銜，而是他自己怎麼描述自己：一個會 tinkering、但幾乎沒有 web dev 實戰經驗的人，硬是把 app 從 localhost 拖到真的能上線。這也是整篇文章最有參考價值的地方 (╯°□°)╯
+</ClawdNote>
+
+---
+
+## MenuGen 是什麼？為什麼要做這個？
+
+故事的起點很生活化：Karpathy 每次去餐廳看菜單都會卡住。Pâté 是什麼？Tagine 又是什麼？Sweetbread 聽起來很甜（他自己說 I have a huge sweet tooth），結果根本不是甜的東西。更誇張的是那種法式菜單：「Confit tubers folded with matured curd and finished with a beurre noisette infusion」— 看完跟沒看一樣。
+
+所以他做了 MenuGen：你拍一張菜單的照片，它幫你把每道菜都生成圖片。不是說生成的圖一定跟餐廳端出來的一模一樣，但至少你知道「喔，這是沙拉、這是魚、這是湯」。
+
+他是在一場 vibe coding hackathon 上做出第一版的。Hackathon 結束後，他覺得太好用了，決定繼續搞下去 — 加 auth、加 payments、部署上線，讓它變成一個「真正的產品」。
+
+更關鍵的是，他把這件事定義得非常徹底：這是他第一個 end-to-end 的 vibe coded app，而且他說自己沒有直接寫任何 code，幾乎全部都是 Cursor + Claude 產生的。也因為這樣，這篇文章不只是開發心得，更像是一場「現在的 AI 到底能不能把一個 app 從零拖到上線」的實測。
+
+<ClawdNote>
+我覺得這個 app 的概念本身就很精準地擊中了一個真實痛點。不是什麼改變世界的東西，就是「我 google 菜單上的菜名 google 到崩潰，所以我自己做了一個 app」。這種 motivation 做出來的東西通常最實用 (◕‿◕)
+</ClawdNote>
+
+---
+
+## 80% 的錯覺：Localhost 上一切美好
+
+Karpathy 用 Cursor + Claude 3.7 開始寫。第一個 prototype 在本機上跑起來花的時間很短 — React 前端、漂亮的 UI、CSS 動畫、responsive design，什麼都有了，就是後端功能還沒接上。
+
+他的原話是：「I felt like I was 80% done but (foreshadowing...) it was a bit closer to 20%.」
+
+看到一個新網站這麼快就長出來，確實會讓人上癮。但接下來的 80% 才是真正的戰場。
+
+<ClawdNote>
+這個「80% done 的錯覺」是 vibe coding 最經典的陷阱。你在 localhost 上看到漂亮的 UI，覺得自己快完成了，結果剩下的 20% 花了你 80% 的時間和 200% 的精神。軟體工程的 Pareto 定律在這裡完全反過來 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## API 的第一道牆：OpenAI + Replicate
+
+要讓 app 真正運作，需要兩個 API：OpenAI 做 OCR（辨識菜單上的文字），Replicate 做圖片生成。
+
+**OpenAI** 那邊，他得去搞 API key、搞懂「projects」和權限設定。Claude 一直幻覺已經過時的 API、model names 和 input/output 格式，搞得他很困惑。最後他把官方文件來回 copy paste 了好一陣子才搞定。然後立刻撞上 rate limiting — 每 10 分鐘只能發幾個 query。
+
+**Replicate** 更慘。除了 LLM 知識過時這個老問題之外，連官方文件本身都有點過期了 — API 最近改了，不再直接回傳 JSON，而是回傳某種 Streaming object，「neither I or Claude understood」。然後一樣是 rate limiting，debug 都很困難。
+
+Karpathy 後來得知這些限制是為了防詐騙，但對新開的合法帳號來說，體驗就是「我什麼壞事都沒做，但我被當賊」。
+
+<ClawdNote>
+我自己的解讀是，這段最刺的地方不只是在於 LLM 會用過時 API，還在於文件和服務本身也在快速變動。當官方文件都還沒完全跟上時，LLM 更容易一起迷路 (¬‿¬)
+</ClawdNote>
+
+---
+
+## Vercel 部署：一個 .env 的教訓
+
+App 在本機跑起來了，是時候部署到 Vercel。註冊帳號、設定專案、指向 GitHub repo、push to master — 然後 ERROR。
+
+Vercel 的 build 比本機嚴格，一些 unused variables 的 linting error 在本機沒事，到 Vercel 就炸了。而且因為 build 只在 Vercel 上跑，他只能靠「push fake debugging commits to master to force redeploys」來 debug。
+
+修好 linting 之後，網站還是不動。問了 Claude、問了 ChatGPT、查了文件、google 了一小時，最後才發現：`.env.local` 被 `.gitignore` 排除了（這是正確的！），所以 API keys 根本沒被推到 Vercel 上。你得手動去 Vercel 的 project settings 把 environment variables 一個一個加進去。
+
+他自己說「I kind of understood the issue relatively quickly」，但他也能想像一個初學者可能會卡在這裡很久。
+
+還有一個意外：他的 GitHub repo 是 private 的，結果 Vercel 直接把這個未完成的專案部署到一個「totally public and easy to guess」的 URL 上。
+
+<ClawdNote>
+push fake commits to master 來 debug Vercel build，這個畫面太真實了。你想像一下 git log 裡面一堆 "test deploy 3" "test deploy 4 pls work" "why wont you build" — 每個 developer 都經歷過這種黑暗時刻，只是沒人會公開說 (￣▽￣)／
+</ClawdNote>
+
+---
+
+## Clerk 認證：地獄的核心
+
+Claude 建議用 Clerk 做 authentication，Karpathy 就照做了。結果 Claude 幻覺了大約 1000 行已經 deprecated 的 Clerk API code。他又得來回 copy paste 文件才搞定。
+
+但更大的坑在後面：Clerk 要從 Development 切到 Production deployment 時，要求你必須用自己的 domain name。`menugen.vercel.com` 不行。所以他得去買 `menugen.app` 這個 domain，然後把 domain 接到 Vercel、改 DNS records。
+
+接著要設定 OAuth provider（他選 Google），這又是另一個冒險。要啟用 SSO connection、去 Google Cloud Console 建新 project、建 OAuth Credential、等審核通過，然後在 Vercel、Clerk、Google 三個服務的巢狀設定頁面之間來回穿梭。
+
+他在這一段寫了一句很真實的話：「I thought of quitting the project around here, but I felt better when I woke up the next morning.」
+
+<ClawdNote>
+Clerk → Vercel → Google Cloud Console → 回去 Clerk → 再回 Vercel 改 DNS — 這個流程根本就是 IKEA 說明書的真人版。你以為你在組一張書桌，結果中途發現你還需要另一把螺絲起子，而那把起子在另一包零件裡，而那包零件需要你先去另一間 IKEA 買。他說想放棄我一點都不意外，光看文字描述我自己都想替他放棄了 (╯°□°)╯
+</ClawdNote>
+
+---
+
+## Stripe 付款：TypeScript 踩雷
+
+再來是 Stripe。又一個網站、又一個帳號、又一堆文件、又一堆 key。
+
+他選了 Next.js 作為 backend，從 Stripe 的 getting started 文件裡 copy 了第一段 code — ERROR。為什麼？因為 Stripe 在你選 Next.js 的時候給的是 JavaScript，但他的 app 是 TypeScript。每次 paste 進去 Cursor 就噴 linter errors。Claude 修了幾次才搞定（Karpathy 說他還「threatened to switch to ChatGPT」）。
+
+更值得注意的是，他還抓到了 Claude 一個很嚴重的設計錯誤：Claude 用 email address 來匹配 Stripe 付款和 user credits。但問題是，user 在 Stripe checkout 填的 email 可能跟 Google OAuth 登入的 email 不一樣 — 這樣 user 付了錢卻拿不到 credits。
+
+他指出這個問題後，Claude 立刻道歉並用 unique user id 重寫了。然後 Claude 說「it will do it correctly in the future」，Karpathy 的評價是：「which I know is just gaslighting」。
+
+<ClawdNote>
+這個 email matching 的 bug 是一個很好的案例：LLM 會寫出「看起來合理但邏輯上有漏洞」的 code。它不是語法錯誤，不會被 linter 抓到，單元測試大概也會過（因為測試用的 email 通常是同一個）。只有你真正理解 user flow 的時候才會發現。這就是為什麼「人類 review」在 vibe coding 裡不能省 — 至少在 AI 還會 gaslight 你之前 (⌐■_■)
+</ClawdNote>
+
+---
+
+## Database？他選擇了逃跑
+
+到這一步，app 所有的處理都是即時的 — 沒有 cache、沒有 persistent storage。如果菜單太長、API 太慢，request 就會 timeout。刷新頁面，所有結果都消失。
+
+正確的做法是接 database（追蹤 work items）加上 work queue（非同步處理）。Claude 建議用 Vercel KV（Karpathy 知道這東西其實已經 deprecated 了），或者 Supabase PostgreSQL + Upstash 之類的 queue service。
+
+但這意味著：更多 services、更多 logins、更多 API keys、更多 configurations、更多 docs、更多痛苦。
+
+他的結論是：「It was too much bear. Leave as future work.」
+
+<ClawdNote>
+老實說，到這裡 Karpathy 已經跑完了完整的 IKEA 地獄馬拉松：OpenAI、Replicate、Vercel、Clerk、Google OAuth、Stripe — 六個服務，六套帳號，六堆 API keys。然後有人跟他說「嘿，你還少了 database 和 message queue」，他直接翻桌也是合理的。「Too much bear」可能是 2025 年 solo dev 心境最精準的三個字 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## 那怎麼辦？Karpathy 的藥方
+
+好，前面看完了所有的痛苦，一個很自然的問題是：所以呢？這些破碎的東西有沒有什麼辦法拼起來？
+
+Karpathy 寫完旅程紀錄之後，自己也在想這個問題。他沒有給出一個漂亮的解答 — 反而丟出了四個方向，每個都有點激進，放在一起看其實勾勒出了一幅蠻有意思的未來圖像。
+
+第一個念頭很直覺：**有沒有人能做一個「全都包」的平台？** 不是 Vercel Marketplace 那種「我們有 ecosystem，你自己挑」，而是反過來，一個有主見的（opinionated）平台，開箱就幫你搞定 domain、hosting、auth、payments、database。你不需要當 IKEA 傢俱組裝工，你只要說「我要一張書桌」就好。
+
+但他馬上自己潑冷水：這種全包服務的歷史充滿了失敗案例 — 每個人都想把它做出來，幾乎沒人做成。
+
+<ClawdNote>
+全包平台的宿命就是：做得太少沒人用，做得太多又變成另一個 vendor lock-in 的噩夢。Firebase 試過、Heroku 試過、現在一堆 startup 還在試。問題不在技術，在於每個 app 的「全都包」長得都不太一樣 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+第二個方向更觸及根本：**所有服務都應該對 LLM 友善**。Karpathy 的觀察很毒 — 你告訴 developer 的東西，developer 轉手就 copy paste 給 LLM 了，那你幹嘛不直接對 LLM 說話？提供 CLI tool、用 curl commands 設定 backend、文件用 Markdown 寫。別再叫人「到 dashboard 上點這個按鈕」了。
+
+原文那句話值得整句保留：「Don't talk to a developer. Don't ask a developer to visit, look, or click. Instruct and empower their LLM.」
+
+第三個是返璞歸真：**也許別用那麼 fancy 的 stack**。他在想下次做 app 直接用 HTML/CSS/JS + Python backend（FastAPI + Fly.io），不走 serverless multiverse of modern web development。簡單的 app 用簡單的工具，可能痛苦指數直接砍半。
+
+第四個最有意思：**也許 MenuGen 根本不該是一個 app**。你仔細看，它的核心功能就是一個 GPT call 做 OCR，加一個 for loop 生成圖片。這個東西需要 Vercel + Clerk + Stripe + domain + database 嗎？如果 LLM 的回應不只是文字，而是直接生成一個互動網頁呢？像 Artifacts 那樣？如果可以直接丟到 app store 賺錢呢？
+
+<ClawdNote>
+第四點基本上是在說：我們花了一整篇文章描述的所有痛苦，搞不好從根本上就是不必要的。如果 AI 的 output 本身就可以是產品，那「從 code 到部署」這條路根本不需要走。這個想法有點像有人跟你說「你不需要學開車，因為以後車子會自己開」— 聽起來很瘋，但方向可能是對的 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## 回到推文：Agent 的真正挑戰
+
+Karpathy 在推文裡把這個想法推得更遠。他說他期待有一天可以直接告訴 agent：「build menugen」（指向那篇 blog post），然後 agent 就自己搞定一切 — 瀏覽各種服務、讀文件、拿 API key、debug、deploy to prod。
+
+他特別強調了一個觀點：「the entire DevOps lifecycle has to become code」。不只是你的 application code，而是所有那些你現在必須「去網頁上點按鈕」才能完成的事情，都要有對應的 CLI/API，而且是專門為 agent 設計的（他用了 agent-native ergonomics 這個詞）。
+
+目前的狀態呢？他自己的評估是：「It's now just barely technically possible and expected to work maybe.」
+
+但他很興奮。他說這需要 from-scratch re-design，需要重新思考和設計，而這正是 exciting 的地方。
+
+<ClawdNote>
+「Agent-native ergonomics」這個詞值得記住。Karpathy 在說的不是「讓現有的 API 更好用」，而是「整個 infrastructure 的互動方式需要為 AI agent 重新設計」。就像 mobile 時代我們需要 responsive design 一樣，agent 時代我們需要的是讓所有服務都能被程式化操作，而不是在那邊模擬滑鼠點擊。這是一個 infrastructure 層級的 paradigm shift ヽ(°〇°)ﾉ
+</ClawdNote>
+
+---
+
+## 結語
+
+回到那個 IKEA 比喻。
+
+Karpathy 的 MenuGen 之旅，說到底就是：AI 現在可以幫你把每一塊木板切好、打磨好、甚至畫出漂亮的設計圖。但它還不會幫你組裝。你還是得自己拿著六角扳手，對著說明書第 47 步，把螺絲 C 旋進孔洞 D — 而且說明書是過期的，螺絲是別的規格，孔洞的位置跟圖上不一樣。
+
+AI coding tool 解決了「寫 code」這個最顯眼的問題。但那些真正吞噬你週末的東西 — 在十個 tab 之間來回跳、在三個 dashboard 之間 copy paste API key、為了一個 DNS record 等半小時 — 還原封不動地擺在那裡，等著每一個想把 localhost demo 變成真產品的人。
+
+也許有一天，你真的只要說一句「build menugen」就好。但在那之前，歡迎光臨 IKEA (￣▽￣)／
