@@ -2,6 +2,7 @@
 import { getCollection } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import TicketBadge from '../../components/TicketBadge.astro';
+import Toggle from '../../components/Toggle.astro';
 
 // Helper: extract number from ticketId (e.g., "CP-11" → 11)
 const getTicketNumber = (ticketId: string | undefined) => {
@@ -36,6 +37,11 @@ const cpPosts = (
             {pick.data.ticketId && <TicketBadge ticketId={pick.data.ticketId} />}
             {pick.data.translatedDate || pick.data.originalDate} · {pick.data.source}
           </span>
+          {pick.data.summary && (
+            <Toggle title="摘要預覽">
+              <p>{pick.data.summary}</p>
+            </Toggle>
+          )}
         </article>
       ))
     }
@@ -78,15 +84,16 @@ const cpPosts = (
   }
 
   .pick-preview {
-    padding: 0.75rem 0;
-    border-bottom: 1px solid var(--color-border);
+    padding: 0.6rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   }
 
   .pick-title {
     display: block;
     color: var(--color-text);
     font-size: 1rem;
-    margin-bottom: 0.25rem;
+    line-height: 1.35;
+    margin-bottom: 0.15rem;
   }
 
   .pick-title:hover {
@@ -97,5 +104,6 @@ const cpPosts = (
     display: block;
     color: var(--color-text-muted);
     font-size: 0.8rem;
+    opacity: 0.75;
   }
 </style>
