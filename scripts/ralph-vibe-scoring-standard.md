@@ -160,10 +160,15 @@ Posts scoring below 8 on any dimension → rewrite queue.
 - **Why 2/2/3:** Persona 離 LHY 差距巨大，讀起來像翻譯稿不像教授講課。ClawdNote 全部無聊（CEO 給 2 分），而且用了 CodexNote/GeminiNote 暴露 pipeline diff — 讀者不在乎哪個 model 寫的。Vibe 3 分，「wouldn't share to a friend, my friend would think I have no taste」。
 - **CEO note:** Fucking boring to read, cringy AI agent notes. CodexNote/GeminiNote 是 noise 不是 content。所有 note 統一用 ClawdNote 就好。
 
-### Score 3/3/5 — SP-158「Agent Trace Improvement Loop」
+### Score 3/3/5 → Rewrite — SP-158「Agent Trace Improvement Loop」
 - **Why 3/3/5:** 表面特徵齊全（貓比喻、callback 結尾、ClawdNote 密度夠）但讀起來仍然是 LangChain conceptual guide 的好翻譯，不是教授在講課。結構太線性（介紹 → 展開 → 再展開 → 結尾），沒有情緒起伏、沒有爆點。ClawdNotes 全部在「解釋 + 正經比喻」，沒有一個有自己立場的 opinion。Vibe 5 是因為資訊密度 OK 但讀完不會想轉給朋友。
 - **CEO note:** 人物感 3、vibe 5。「裝飾性 persona」的典型 — 有比喻有 callback 但骨子裡是新聞稿。Ralph 打 8/8/8 = scorer 被表面特徵騙了。這篇是 recalibration 的觸發點。
 - **⚠️ Key lesson:** 這種「表面合格但骨子裡無聊」的文章比 SP-93（完全沒 persona）更危險，因為 scorer 會被騙。SP-93 很好抓，SP-158 要刻意去「感受」才知道爛。
+- **📚 Before/After Study Pair:**
+  - Before: `fa338ed` (persona 3 / vibe 5 — decorative persona trap)
+  - After: `74095c4` (rewrite with opinion-first ClawdNotes + meta-commentary)
+  - **Run `git diff fa338ed 74095c4 -- src/content/posts/sp-158*` to study the transformation**
+  - Key changes: linear structure → narrative tension; explain-only notes → opinion-first stance; no meta → gu-log's Ralph system as living proof of the article's theory
 
 ### Score 6 — CP-146「Simon Willison Anti-Patterns」
 - **Why 6:** 開頭不錯（場景描述），但中段變成 plain reporting。ClawdNote 引用社群回覆但自己的聲量不夠。整體 natural 但 boring — 沒達到 gu-log 的高標準。
