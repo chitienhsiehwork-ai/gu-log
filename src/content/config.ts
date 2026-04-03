@@ -30,6 +30,9 @@ const postsCollection = defineCollection({
       summary: z.string(), // for index page preview
       lang: z.enum(['zh-tw', 'en']).default('zh-tw'),
       tags: z.array(z.string()).optional(),
+      deprecated: z.boolean().optional(),
+      deprecatedBy: z.string().optional(),
+      deprecatedReason: z.string().optional(),
       series: z
         .object({
           name: z.string(),

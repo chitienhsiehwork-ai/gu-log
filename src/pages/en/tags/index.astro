@@ -1,11 +1,9 @@
 ---
 import { getCollection } from 'astro:content';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { getVisiblePosts } from '../../../utils/post-deprecation';
 
-// Get all en posts
-const allPosts = await getCollection('posts', ({ data }) => {
-  return data.lang === 'en';
-});
+const allPosts = getVisiblePosts(await getCollection('posts'), 'en');
 
 // Count posts per tag
 const tagCounts = new Map<string, number>();

@@ -1,11 +1,9 @@
 import type { APIContext } from 'astro';
 import { getCollection } from 'astro:content';
+import { getVisiblePosts } from '../utils/post-deprecation';
 
 export async function GET(_context: APIContext) {
-  const posts = await getCollection('posts');
-
-  const searchIndex = posts
-    .filter((post) => post.data.lang === 'zh-tw')
+  const searchIndex = getVisiblePosts(await getCollection('posts'), 'zh-tw')
     .map((post) => ({
       slug: post.slug,
       ticketId: post.data.ticketId || null,

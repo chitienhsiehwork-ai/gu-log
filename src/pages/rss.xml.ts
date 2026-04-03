@@ -1,10 +1,10 @@
 import rss from '@astrojs/rss';
 import type { APIContext } from 'astro';
 import { getCollection } from 'astro:content';
+import { getVisiblePosts } from '../utils/post-deprecation';
 
 export async function GET(context: APIContext) {
-  // Get all zh-tw posts from content collections
-  const posts = await getCollection('posts', ({ data }) => data.lang === 'zh-tw');
+  const posts = getVisiblePosts(await getCollection('posts'), 'zh-tw');
 
   // Sort by translatedDate descending (when article was added to the blog)
   const sortedPosts = posts.sort((a, b) => {

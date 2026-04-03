@@ -48,6 +48,108 @@ fi
 echo "✓ No duplicate ticketIds"
 echo ""
 
+# ─── Step 0.1: Score gate — staged posts must have ralph scores ───
+# Only checks zh-tw primary posts (not en- translations).
+# Minimum: scores.ralph block with p, c, v fields.
+echo "📊 Score gate: checking staged posts for ralph scores..."
+SCORE_MISSING=""
+if [ -n "$STAGED_MDX" ]; then
+    # STAGED_MDX is populated later — we need it early. Compute here if empty.
+    true  # Will be populated by the diff command below
+fi
+# Compute staged zh-tw posts (non-en- prefix)
+STAGED_ZH_POSTS=$(git diff --cached --name-only --diff-filter=ACM -- "$POSTS_DIR"/*.mdx 2>/dev/null | grep -v '/en-' || true)
+
+if [ -z "$STAGED_ZH_POSTS" ]; then
+    echo "✓ No zh-tw posts staged"
+else
+    for file in $STAGED_ZH_POSTS; do
+        FULL_PATH="$REPO_ROOT/$file"
+        if [ ! -f "$FULL_PATH" ]; then continue; fi
+
+        # Check if file has scores.ralph block with p, c, v
+        if ! grep -q "^  ralph:" "$FULL_PATH" 2>/dev/null; then
+            BASENAME=$(basename "$file")
+            SCORE_MISSING="$SCORE_MISSING  ⚠️  $BASENAME — missing ralph score\n"
+        else
+            # Verify p, c, v fields exist under ralph
+            HAS_P=$(grep -A6 "^  ralph:" "$FULL_PATH" | grep -c "p:" 2>/dev/null || echo 0)
+            HAS_C=$(grep -A6 "^  ralph:" "$FULL_PATH" | grep -c "c:" 2>/dev/null || echo 0)
+            HAS_V=$(grep -A6 "^  ralph:" "$FULL_PATH" | grep -c "v:" 2>/dev/null || echo 0)
+            if [ "$HAS_P" -eq 0 ] || [ "$HAS_C" -eq 0 ] || [ "$HAS_V" -eq 0 ]; then
+                BASENAME=$(basename "$file")
+                SCORE_MISSING="$SCORE_MISSING  ⚠️  $BASENAME — ralph score incomplete (need p, c, v)\n"
+            fi
+        fi
+    done
+fi
+
+if [ -n "$SCORE_MISSING" ]; then
+    echo ""
+    echo "❌ SCORE GATE FAILED — posts missing ralph vibe scores:"
+    printf "$SCORE_MISSING"
+    echo ""
+    echo "Every post must have a ralph score before committing."
+    echo "Run the pipeline with ralph step, or manually score with:"
+    echo "  node scripts/frontmatter-scores.mjs write <file> opus '<json>'"
+    echo ""
+    echo "To bypass in emergency: git commit --no-verify"
+    exit 1
+fi
+echo "✓ All staged posts have ralph scores"
+echo ""
+
+# ─── Step 0.2: Topic dedup gate for newly added zh-tw posts ──────
+echo "🧠 Topic dedup gate: checking newly added zh-tw posts..."
+ADDED_ZH_POSTS=$(git diff --cached --name-only --diff-filter=A -- "$POSTS_DIR"/*.mdx 2>/dev/null | grep -v '/en-' || true)
+
+if [ -z "$ADDED_ZH_POSTS" ]; then
+    echo "✓ No newly added zh-tw posts"
+else
+    for file in $ADDED_ZH_POSTS; do
+        FULL_PATH="$REPO_ROOT/$file"
+        if [ ! -f "$FULL_PATH" ]; then
+            continue
+        fi
+
+        TITLE=$(grep '^title:' "$FULL_PATH" 2>/dev/null | head -1 | sed 's/title: *"\?//;s/"\?$//' || true)
+        SOURCE_URL=$(grep '^sourceUrl:' "$FULL_PATH" 2>/dev/null | head -1 | sed 's/sourceUrl: *"\?//;s/"\?$//' || true)
+        TAGS=$(grep '^tags:' "$FULL_PATH" 2>/dev/null | head -1 | sed 's/tags: *\[//;s/\]$//;s/["'"'"'']//g;s/, */,/g' || true)
+
+        if [ -z "$TITLE" ] || [ -z "$SOURCE_URL" ]; then
+            echo "⚠️  Skipping topic dedup for $(basename "$file") — missing title or sourceUrl"
+            continue
+        fi
+
+        RESULT=$(node "$REPO_ROOT/scripts/topic-dedup-check.mjs" \
+            --url "$SOURCE_URL" \
+            --title "$TITLE" \
+            --tags "$TAGS" \
+            --ignore-file "$FULL_PATH")
+
+        STATUS=$(printf '%s' "$RESULT" | node -e "let data='';process.stdin.on('data',c=>data+=c);process.stdin.on('end',()=>console.log(JSON.parse(data).status));")
+        SCORE=$(printf '%s' "$RESULT" | node -e "let data='';process.stdin.on('data',c=>data+=c);process.stdin.on('end',()=>console.log(JSON.parse(data).score));")
+        MATCH=$(printf '%s' "$RESULT" | node -e "let data='';process.stdin.on('data',c=>data+=c);process.stdin.on('end',()=>{const parsed=JSON.parse(data); console.log(parsed.match ? parsed.match.ticketId + ' — ' + parsed.match.title : 'none');});")
+
+        if [ "$STATUS" = "BLOCK" ]; then
+            echo ""
+            echo "❌ TOPIC DEDUP BLOCKED: $(basename "$file")"
+            echo "   Score: $SCORE"
+            echo "   Match: $MATCH"
+            echo "   Full result:"
+            printf '%s\n' "$RESULT"
+            echo ""
+            echo "This looks like a duplicate topic. Use a different source/topic, or bypass with --no-verify if intentional."
+            exit 1
+        fi
+
+        if [ "$STATUS" = "WARN" ]; then
+            echo "⚠️  Topic dedup warning for $(basename "$file"): $MATCH (score=$SCORE)"
+        fi
+    done
+fi
+echo ""
+
 # ─── Step 0.5: ESLint check on staged files ──────────────────────
 STAGED_LINT=$(git diff --cached --name-only --diff-filter=ACM -- '*.ts' '*.tsx' '*.astro' '*.mjs' 2>/dev/null || true)
 

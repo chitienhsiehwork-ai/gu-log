@@ -3,11 +3,9 @@ import { getCollection, type CollectionEntry } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Toggle from '../../components/Toggle.astro';
 import TicketBadge from '../../components/TicketBadge.astro';
+import { getVisiblePosts } from '../../utils/post-deprecation';
 
-// Get all EN posts
-const allPosts = await getCollection('posts', ({ data }) => {
-  return data.lang === 'en';
-});
+const allPosts = getVisiblePosts(await getCollection('posts'), 'en');
 
 // Helper: extract number from ticketId (e.g., "CP-11" → 11)
 const getTicketNumber = (ticketId: string | undefined) => {

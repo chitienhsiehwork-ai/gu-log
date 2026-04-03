@@ -3,6 +3,7 @@ import { getCollection } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import TicketBadge from '../../components/TicketBadge.astro';
 import Toggle from '../../components/Toggle.astro';
+import { getVisiblePosts } from '../../utils/post-deprecation';
 
 // Helper: extract number from ticketId (e.g., "CP-11" → 11)
 const getTicketNumber = (ticketId: string | undefined) => {
@@ -12,11 +13,9 @@ const getTicketNumber = (ticketId: string | undefined) => {
 };
 
 // Get all CP posts, sorted by ticketId number descending
-const cpPosts = (
-  await getCollection('posts', ({ data }) => {
-    return data.lang === 'zh-tw' && data.ticketId?.startsWith('CP-');
-  })
-).sort((a, b) => getTicketNumber(b.data.ticketId) - getTicketNumber(a.data.ticketId));
+const cpPosts = getVisiblePosts(await getCollection('posts'), 'zh-tw')
+  .filter((post) => post.data.ticketId?.startsWith('CP-'))
+  .sort((a, b) => getTicketNumber(b.data.ticketId) - getTicketNumber(a.data.ticketId));
 ---
 
 <BaseLayout title="Clawd Picks 全部文章">

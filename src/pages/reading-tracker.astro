@@ -1,8 +1,9 @@
 ---
 import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { getVisiblePosts } from '../utils/post-deprecation';
 
-const allPosts = await getCollection('posts', ({ data }) => data.lang === 'zh-tw');
+const allPosts = getVisiblePosts(await getCollection('posts'), 'zh-tw');
 
 // Sort by date descending
 allPosts.sort((a, b) => {

@@ -1,0 +1,78 @@
+---
+interface Props {
+  replacementHref?: string;
+  replacementTitle?: string;
+  replacementTicketId?: string;
+  lang?: 'zh-tw' | 'en';
+}
+
+const {
+  replacementHref,
+  replacementTitle,
+  replacementTicketId,
+  lang = 'zh-tw',
+} = Astro.props;
+
+const labels = {
+  'zh-tw': {
+    message: '⚠️ 這篇文章已被更完整的版本取代',
+    fallback: '查看替代文章',
+  },
+  en: {
+    message: '⚠️ This article has been replaced by a more complete version',
+    fallback: 'View replacement article',
+  },
+};
+
+const t = labels[lang];
+const linkLabel = replacementTicketId
+  ? `${replacementTicketId}${replacementTitle ? `：${replacementTitle}` : ''}`
+  : replacementTitle || t.fallback;
+---
+
+<div class="deprecation-banner" role="note" aria-live="polite">
+  <p>
+    <span>{t.message}</span>
+    {
+      replacementHref ? (
+        <>
+          {' '}
+          <a href={replacementHref}>{linkLabel}</a>
+        </>
+      ) : (
+        <span class="replacement-label"> {linkLabel}</span>
+      )
+    }
+  </p>
+</div>
+
+<style>
+  .deprecation-banner {
+    margin: 1rem 0 1.5rem;
+    padding: 0.9rem 1rem;
+    border: 1px solid rgba(255, 184, 108, 0.35);
+    border-left: 4px solid #ffb86c;
+    border-radius: 8px;
+    background: rgba(255, 184, 108, 0.08);
+    color: var(--color-text);
+  }
+
+  .deprecation-banner p {
+    margin: 0;
+    line-height: 1.6;
+  }
+
+  .deprecation-banner a {
+    color: var(--color-accent);
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .deprecation-banner a:hover {
+    text-decoration: underline;
+  }
+
+  .replacement-label {
+    font-weight: 600;
+  }
+</style>

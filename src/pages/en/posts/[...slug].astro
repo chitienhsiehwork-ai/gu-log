@@ -6,23 +6,28 @@ import TableOfContents from '../../../components/TableOfContents.astro';
 import PrevNextNav from '../../../components/PrevNextNav.astro';
 import SeriesNav from '../../../components/SeriesNav.astro';
 import RelatedArticles from '../../../components/RelatedArticles.astro';
+import DeprecationBanner from '../../../components/DeprecationBanner.astro';
 import TicketBadge from '../../../components/TicketBadge.astro';
 import Giscus from '../../../components/Giscus.astro';
 import ShareButton from '../../../components/ShareButton.astro';
 import AiPopup from '../../../components/AiPopup.astro';
 import ReadStatusButton from '../../../components/ReadStatusButton.astro';
 import AiJudgeScore from '../../../components/AiJudgeScore.astro';
+import {
+  getLocalizedPostUrl,
+  getNavigablePosts,
+  resolvePostDeprecation,
+} from '../../../utils/post-deprecation';
 
 export async function getStaticPaths() {
-  const posts = await getCollection('posts', ({ data }) => {
-    return data.lang === 'en';
-  });
+  const allPosts = await getCollection('posts');
+  const posts = allPosts.filter((post) => post.data.lang === 'en');
 
   return posts.map((post) => ({
     params: { slug: post.slug },
     props: {
       post,
-      allPosts: posts,
+      allPosts,
     },
   }));
 }
@@ -36,6 +41,8 @@ const ticketPrefix = ticketId?.split('-')[0] || '';
 const isLevelUp = ticketId?.startsWith('Lv-') ?? false;
 
 const postVersion = getPostVersion(post.id);
+const deprecation = resolvePostDeprecation(post, allPosts);
+const navigablePosts = getNavigablePosts(allPosts, post);
 
 const ticketLabels: Record<string, string> = {
   SD: 'ShroomDog Original',
@@ -68,6 +75,19 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
         }
       </div>
     </header>
+
+    {
+      deprecation.deprecated && (
+        <DeprecationBanner
+          lang="en"
+          replacementHref={
+            deprecation.replacementPost ? getLocalizedPostUrl(deprecation.replacementPost) : undefined
+          }
+          replacementTitle={deprecation.replacementPost?.data.title}
+          replacementTicketId={deprecation.replacementTicketId}
+        />
+      )
+    }
 
     {
       !post.data.ticketId?.startsWith('SD-') && !post.data.ticketId?.startsWith('Lv-') && (
@@ -138,18 +158,18 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
 
     {
       post.data.series ? (
-        <SeriesNav currentSlug={post.slug} allPosts={allPosts} lang="en" />
+        <SeriesNav currentSlug={post.slug} allPosts={navigablePosts} lang="en" />
       ) : (
         <RelatedArticles
           currentSlug={post.slug}
           currentTags={post.data.tags ?? []}
-          allPosts={allPosts}
+          allPosts={navigablePosts}
           lang="en"
         />
       )
     }
 
-    <PrevNextNav currentSlug={post.slug} allPosts={allPosts} lang="en" />
+    <PrevNextNav currentSlug={post.slug} allPosts={navigablePosts} lang="en" />
 
     <Giscus lang="en" />
 
