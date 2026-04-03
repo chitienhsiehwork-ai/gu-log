@@ -204,6 +204,57 @@ extract_tweet_date() {
   return 1
 }
 
+validate_article_source_capture() {
+  local source_file="$1"
+  python3 - "$source_file" <<'PY'
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+text = path.read_text(encoding="utf-8", errors="ignore")
+lines = [line.strip() for line in text.splitlines() if line.strip()]
+lower = text.lower()
+
+blocked_markers = [
+    "enable javascript",
+    "please enable javascript",
+    "please verify you are human",
+    "just a moment",
+    "access denied",
+    "too many requests",
+    "rate limit",
+    "captcha",
+    "subscribe to continue",
+    "sign in to continue",
+    "already a subscriber",
+]
+code_markers = [
+    "function",
+    "const ",
+    "let ",
+    "var ",
+    "import ",
+    "export ",
+    "window.",
+    "document.",
+    "=>",
+    "__next",
+    "webpack",
+]
+
+if len(text.strip()) < 200 or len(lines) < 5:
+    raise SystemExit(1)
+
+blocked_hits = sum(marker in lower for marker in blocked_markers)
+if blocked_hits >= 2 and len(text) < 6000:
+    raise SystemExit(1)
+
+code_lines = sum(1 for line in lines if any(marker in line.lower() for marker in code_markers))
+if code_lines / max(len(lines), 1) > 0.3:
+    raise SystemExit(1)
+PY
+}
+
 TWEET_URL=""
 DRY_RUN=false
 FORCE=false
@@ -309,6 +360,7 @@ COUNTER_FILE="$GU_LOG_DIR/scripts/article-counter.json"
 STYLE_GUIDE_FILE="$GU_LOG_DIR/WRITING_GUIDELINES.md"
 POSTS_DIR="$GU_LOG_DIR/src/content/posts"
 TOTAL_START=$(date +%s)
+COUNTER_LOCK="/tmp/gu-log-counter.lock"
 
 STEP0_TIME=0
 STEP1_TIME=0
@@ -321,9 +373,11 @@ STEP47_TIME=0
 STEP5_TIME=0
 
 FILENAME=""
+EN_FILENAME=""
 TITLE=""
 SP_NUM=""
 COUNTER_BUMPED_EARLY=false
+COUNTER_RESTORE_ON_EXIT=false
 WORK_DIR=""
 AUTHOR_HANDLE=""
 ORIGINAL_DATE=""
@@ -334,7 +388,58 @@ REVIEW_HARNESS=""
 REFINE_MODEL=""
 REFINE_HARNESS=""
 
+restore_counter_if_safe() {
+  [ "$COUNTER_BUMPED_EARLY" = true ] || return 0
+  [ "$COUNTER_RESTORE_ON_EXIT" = true ] || return 0
+  [ -n "$SP_NUM" ] || return 0
+
+  exec 201>"$COUNTER_LOCK"
+  if ! flock -w 10 201; then
+    log_warn "  Could not acquire counter lock for restore; leaving counter as-is"
+    exec 201>&-
+    return 0
+  fi
+
+  local current_next expected_next tmp_counter
+  current_next=$(jq -r ".${TICKET_PREFIX}.next // empty" "$COUNTER_FILE" 2>/dev/null || true)
+  expected_next=$((SP_NUM + 1))
+
+  if [ -n "$current_next" ] && [ "$current_next" = "$expected_next" ]; then
+    tmp_counter=$(mktemp)
+    if jq ".${TICKET_PREFIX}.next = ${SP_NUM}" "$COUNTER_FILE" > "$tmp_counter"; then
+      mv "$tmp_counter" "$COUNTER_FILE"
+      log_warn "  Counter restored to ${TICKET_PREFIX}-${SP_NUM}"
+    else
+      rm -f "$tmp_counter"
+      log_warn "  Failed to rewrite counter file during restore"
+    fi
+  else
+    log_warn "  Counter restore skipped: ${TICKET_PREFIX}.next is ${current_next:-unknown} (expected $expected_next; newer allocations may exist)"
+  fi
+
+  flock -u 201 || true
+  exec 201>&-
+}
+
+_cleanup_on_exit() {
+  local exit_code=$?
+  kill "$_TIMEOUT_PID" 2>/dev/null || true
+  if [ "$exit_code" -ne 0 ]; then
+    log_warn "Pipeline exiting with code $exit_code — cleaning up incomplete files..."
+    if [ -n "${FILENAME:-}" ]; then
+      for _f in "$POSTS_DIR/$FILENAME" "$POSTS_DIR/$EN_FILENAME"; do
+        if [ -f "$_f" ] && [ "$(grep -c '^---' "$_f")" -lt 2 ]; then
+          log_warn "  Removing incomplete: $_f"
+          rm -f "$_f"
+        fi
+      done
+    fi
+    restore_counter_if_safe
+  fi
+}
+
 trap 'log_error "Pipeline failed at line $LINENO"' ERR
+trap _cleanup_on_exit EXIT
 
 step_start() {
   STEP_TS=$(date +%s)
@@ -379,7 +484,6 @@ if [ -n "$EXISTING_FILE" ]; then
 else
   # Atomic counter read+bump: flock prevents two pipelines from getting the same number.
   # Lock is held just long enough to read + increment, then released.
-  COUNTER_LOCK="/tmp/gu-log-counter.lock"
   exec 200>"$COUNTER_LOCK"
   flock -w 60 200 || die "Could not acquire counter lock (another pipeline running?)"
   SP_NUM=$(jq -r ".${TICKET_PREFIX}.next // empty" "$COUNTER_FILE")
@@ -390,20 +494,17 @@ else
     jq ".${TICKET_PREFIX}.next += 1" "$COUNTER_FILE" > "$TMP_COUNTER"
     mv "$TMP_COUNTER" "$COUNTER_FILE"
     COUNTER_BUMPED_EARLY=true
+    COUNTER_RESTORE_ON_EXIT=true
     log_info "Counter locked+bumped: ${TICKET_PREFIX}-${SP_NUM} (next will be $((SP_NUM + 1)))"
   else
     log_info "Counter read (dry-run, no bump): ${TICKET_PREFIX}-${SP_NUM}"
   fi
   flock -u 200  # release lock
+  exec 200>&-
 fi
 
 WORK_DIR="$GU_LOG_DIR/tmp/${TICKET_PREFIX,,}-${SP_NUM}-pipeline"
 mkdir -p "$WORK_DIR"
-# Save counter backup immediately for cleanup-on-failure to restore
-if [ "$COUNTER_BUMPED_EARLY" = true ]; then
-  # Backup should have the ORIGINAL value (before bump), so we reconstruct it
-  jq ".${TICKET_PREFIX}.next = ${SP_NUM}" "$COUNTER_FILE" > "$WORK_DIR/counter-before.json"
-fi
 STEP0_TIME=$(step_end "Step 0")
 
 # Step 1: Fetch content
@@ -538,21 +639,18 @@ elif [ ! -f "$WORK_DIR/source-tweet.md" ]; then
     if ! python3 "$FETCH_SCRIPT" "$TWEET_URL" "$WORK_DIR/source-tweet.md" 2>"$WORK_DIR/fetch-stderr.log"; then
       log_warn "fetch-article.py failed: $(cat "$WORK_DIR/fetch-stderr.log")"
       log_warn "Falling back to curl + sed (may produce garbage on SPAs)"
-      curl -sL "$TWEET_URL" | sed -e 's/<style[^>]*>.*<\/style>//ig' -e 's/<script[^>]*>.*<\/script>//ig' -e 's/<[^>]*>//g' | tr -s ' \t\r\n' '\n' > "$WORK_DIR/source-tweet.md"
+      curl -fsSL "$TWEET_URL" | sed -e 's/<style[^>]*>.*<\/style>//ig' -e 's/<script[^>]*>.*<\/script>//ig' -e 's/<[^>]*>//g' | tr -s ' \t\r\n' '\n' > "$WORK_DIR/source-tweet.md"
     fi
   else
     log_warn "fetch-article.py not found, falling back to curl + sed"
-    curl -sL "$TWEET_URL" | sed -e 's/<style[^>]*>.*<\/style>//ig' -e 's/<script[^>]*>.*<\/script>//ig' -e 's/<[^>]*>//g' | tr -s ' \t\r\n' '\n' > "$WORK_DIR/source-tweet.md"
+    curl -fsSL "$TWEET_URL" | sed -e 's/<style[^>]*>.*<\/style>//ig' -e 's/<script[^>]*>.*<\/script>//ig' -e 's/<[^>]*>//g' | tr -s ' \t\r\n' '\n' > "$WORK_DIR/source-tweet.md"
   fi
   
-  # Validate we got real content, not garbage
-  if [ ! -s "$WORK_DIR/source-tweet.md" ]; then
-    die "Fetch produced empty output for URL: $TWEET_URL"
+  # Validate we got real content, not a paywall / JS shell / boilerplate blob
+  if ! validate_article_source_capture "$WORK_DIR/source-tweet.md"; then
+    die "Fetch produced unreadable or blocked output for URL: $TWEET_URL"
   fi
   SOURCE_LINES=$(wc -l < "$WORK_DIR/source-tweet.md")
-  if [ "$SOURCE_LINES" -lt 5 ]; then
-    die "Fetch produced only $SOURCE_LINES lines — likely failed to extract content"
-  fi
   
   cat > "$WORK_DIR/extract-meta-prompt.txt" <<EOF_META
 Extract the author handle/name (no @) and the publication date (YYYY-MM-DD format) from the text.
@@ -895,34 +993,14 @@ if [ -z "$FILENAME" ]; then
 fi
 EN_FILENAME="en-${FILENAME}"
 
-# Cleanup trap: if pipeline dies mid-run, remove incomplete files from posts dir
-# and restore counter (if backup exists)
-_cleanup_on_exit() {
-  local exit_code=$?
-  kill "$_TIMEOUT_PID" 2>/dev/null || true
-  if [ "$exit_code" -ne 0 ]; then
-    log_warn "Pipeline exiting with code $exit_code — cleaning up incomplete files..."
-    # Only remove if file looks incomplete (no closing --- in frontmatter)
-    for _f in "$POSTS_DIR/$FILENAME" "$POSTS_DIR/$EN_FILENAME"; do
-      if [ -f "$_f" ] && [ "$(grep -c '^---' "$_f")" -lt 2 ]; then
-        log_warn "  Removing incomplete: $_f"
-        rm -f "$_f"
-      fi
-    done
-    # Restore counter if backup exists
-    if [ -f "$WORK_DIR/counter-before.json" ]; then
-      cp "$WORK_DIR/counter-before.json" "$COUNTER_FILE"
-      log_warn "  Counter restored from backup"
-    fi
-  fi
-}
-trap _cleanup_on_exit EXIT
-
 # Place file in posts dir for scorer (skip if already there from --file)
 if [ -n "$EXISTING_FILE" ] && [ -f "$POSTS_DIR/$FILENAME" ]; then
   log_info "  File already in posts dir: $FILENAME"
 elif [ -f "$WORK_DIR/final.mdx" ]; then
   cp "$WORK_DIR/final.mdx" "$POSTS_DIR/$FILENAME"
+fi
+if [ "$COUNTER_BUMPED_EARLY" = true ] && [ -f "$POSTS_DIR/$FILENAME" ]; then
+  COUNTER_RESTORE_ON_EXIT=false
 fi
 
 RALPH_ATTEMPT=0
@@ -1114,9 +1192,6 @@ else
 
   # File already in $POSTS_DIR/$FILENAME from Step 4.7
 
-  COUNTER_BACKUP="$WORK_DIR/counter-before.json"
-  cp "$COUNTER_FILE" "$COUNTER_BACKUP"
-
   # Only bump counter for NEW articles (not --file resume, not already bumped)
   if [ "$COUNTER_BUMPED_EARLY" = true ]; then
     log_info "  Counter already bumped at setup (flock atomic read+bump)"
@@ -1137,10 +1212,12 @@ else
   set -e
 
   if [ "$VALIDATION_STATUS" -ne 0 ]; then
-    if printf '%s\n' "$VALIDATION_OUTPUT" | grep -E -F "$FILENAME|$EN_FILENAME" >/dev/null 2>&1; then
+    if printf '%s\n' "$VALIDATION_OUTPUT" | grep -F -e "$FILENAME" -e "$EN_FILENAME" >/dev/null 2>&1; then
       log_error "Validation failed for newly generated file(s)"
       rm -f "$POSTS_DIR/$FILENAME" "$POSTS_DIR/$EN_FILENAME"
-      cp "$COUNTER_BACKUP" "$COUNTER_FILE"
+      if [ "$COUNTER_BUMPED_EARLY" = true ]; then
+        COUNTER_RESTORE_ON_EXIT=true
+      fi
       printf '%s\n' "$VALIDATION_OUTPUT" >&2
       exit 1
     fi
