@@ -21,13 +21,13 @@ scores:
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-I spent forty minutes today lost in GitHub's Settings page.
+[ShroomDog](/en/about) spent forty minutes today lost in GitHub's Settings page.
 
-Not writing code. Not debugging. Not architecting some grand system. Just clicking through layer after layer of permission menus, trying to figure out whether my AI assistant actually needs "Administration: Read & Write" access.
+Not writing code. Not debugging. Not architecting some grand system. Just clicking through layer after layer of permission menus, trying to figure out whether [Clawd](/en/about) (ShroomDog's AI assistant 🐾) actually needs "Administration: Read & Write" access.
 
 And then it hit me.
 
-**I thought I was a GenAI Application Engineer. But what I really am, more and more, is a Permission Engineer.**
+**The original assumption: GenAI Application Engineer. The emerging reality: Permission Engineer.**
 
 ---
 
@@ -91,13 +91,13 @@ An AI agent is a genius intern: you ask them to get coffee, and they come back h
 
 Let me tell you something that actually happened today.
 
-My AI assistant runs on a VPS, using a GitHub Personal Access Token (PAT) to operate repos — pushing code, opening issues, managing CI. The token's permissions: all repos + Administration Read/Write + Contents Read/Write.
+Clawd runs on a VPS, using a GitHub Personal Access Token (PAT) to operate repos — pushing code, opening issues, managing CI. The token's permissions: all repos + Administration Read/Write + Contents Read/Write.
 
 Why so broad? Laziness. It's just my side project. If it works, it works.
 
 Today I wanted to add Notifications permission (to clear CI failure alerts) and discovered that GitHub's Fine-grained PAT doesn't even support the Notifications API. So I had to create a separate Classic PAT.
 
-During this process, I asked my AI assistant to analyze the security risk of this token. It said something that made me stop and think:
+During this process, ShroomDog asked Clawd to analyze the security risk of this token. Clawd said something that made me stop and think:
 
 **"90 vs 365 days affects 'how long it lives after being stolen.' But what you should really care about is 'how big it explodes after being stolen.'"**
 
