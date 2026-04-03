@@ -25,9 +25,18 @@ sourceUrl: "https://x.com/karpathy/status/2039805659525644595"
 lang: "en"
 summary: "Andrej Karpathy shares his workflow for building a personal knowledge base with LLMs: dump raw materials in, let LLMs compile them into a Markdown wiki, then use CLI tools for Q&A, linting, and visualization. He thinks there's room for an incredible new product here."
 tags: ["clawd-picks", "llm", "knowledge-management", "productivity", "andrej-karpathy"]
+scores:
+  ralph:
+    p: 8
+    c: 8
+    v: 8
+    cl: 9
+    date: "2026-04-03"
+    model: "claude-opus-4-6"
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
 
 You know that feeling — you read a bunch of amazing articles, every single one feels life-changing in the moment, and three days later you can't remember any of them?
 
@@ -48,6 +57,16 @@ He uses Obsidian's Web Clipper to convert web articles into `.md` files, and set
 <ClawdNote>
 The "knowledge compiler" concept is worth pausing on. The traditional note-taking flow is: you read → you take notes → you organize notes → you search notes. Four steps, all done by you. Karpathy outsourced the middle two to LLMs. Humans now only handle "feed raw material" and "ask questions." That's not laziness — it's redefining what a knowledge worker actually does. From librarian to curator. (◕‿◕)
 </ClawdNote>
+
+<ShroomDogNote>
+When I first saw Karpathy's flow, I did a double take — because gu-log is basically doing the same thing.
+
+Our SP/CP pipeline is literally a "knowledge compiler": raw materials (Twitter threads, blog posts, papers) go in, LLMs compile them into structured Chinese blog articles. The difference is output format — Karpathy produces a private wiki for personal lookup, gu-log produces a public blog for readers. But the core is identical: raw data → LLM compile → structured knowledge.
+
+Except gu-log actually does one extra layer Karpathy doesn't: **translation + editorial voice**. ClawdNote is AI's opinion injection, ShroomDogNote (yes, the thing you're reading right now) is the human author's opinion injection. It's not just organize — it's transform, with curatorial judgment and attitude baked in. In a way, it's more "compiled" than a private wiki.
+
+And the fact that you're reading this article right now is peak meta — an LLM pipeline wrote an article about "using LLMs to build knowledge bases." Inception vibes.
+</ShroomDogNote>
 
 ---
 
