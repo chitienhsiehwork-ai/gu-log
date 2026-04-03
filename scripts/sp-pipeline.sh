@@ -374,10 +374,11 @@ STEP5_TIME=0
 
 FILENAME=""
 EN_FILENAME=""
+ACTIVE_FILENAME=""
+ACTIVE_EN_FILENAME=""
 TITLE=""
 SP_NUM=""
-COUNTER_BUMPED_EARLY=false
-COUNTER_RESTORE_ON_EXIT=false
+PROMPT_TICKET_ID="PENDING"
 WORK_DIR=""
 AUTHOR_HANDLE=""
 ORIGINAL_DATE=""
@@ -387,38 +388,44 @@ REVIEW_MODEL=""
 REVIEW_HARNESS=""
 REFINE_MODEL=""
 REFINE_HARNESS=""
+DATE_STAMP=""
+AUTHOR_SLUG=""
+TITLE_SLUG=""
 
-restore_counter_if_safe() {
-  [ "$COUNTER_BUMPED_EARLY" = true ] || return 0
-  [ "$COUNTER_RESTORE_ON_EXIT" = true ] || return 0
-  [ -n "$SP_NUM" ] || return 0
+allocate_ticket_number() {
+  exec 200>"$COUNTER_LOCK"
+  flock -w 60 200 || die "Could not acquire counter lock (another pipeline running?)"
 
-  exec 201>"$COUNTER_LOCK"
-  if ! flock -w 10 201; then
-    log_warn "  Could not acquire counter lock for restore; leaving counter as-is"
-    exec 201>&-
-    return 0
+  local next_num tmp_counter
+  next_num=$(jq -r ".${TICKET_PREFIX}.next // empty" "$COUNTER_FILE")
+  [ -n "$next_num" ] || {
+    flock -u 200 || true
+    exec 200>&-
+    die "Could not read ${TICKET_PREFIX}.next from $COUNTER_FILE"
+  }
+
+  tmp_counter=$(mktemp)
+  if ! jq ".${TICKET_PREFIX}.next += 1" "$COUNTER_FILE" > "$tmp_counter"; then
+    rm -f "$tmp_counter"
+    flock -u 200 || true
+    exec 200>&-
+    die "Failed to bump ${TICKET_PREFIX}.next in $COUNTER_FILE"
   fi
+  mv "$tmp_counter" "$COUNTER_FILE"
 
-  local current_next expected_next tmp_counter
-  current_next=$(jq -r ".${TICKET_PREFIX}.next // empty" "$COUNTER_FILE" 2>/dev/null || true)
-  expected_next=$((SP_NUM + 1))
+  flock -u 200 || true
+  exec 200>&-
+  printf '%s' "$next_num"
+}
 
-  if [ -n "$current_next" ] && [ "$current_next" = "$expected_next" ]; then
-    tmp_counter=$(mktemp)
-    if jq ".${TICKET_PREFIX}.next = ${SP_NUM}" "$COUNTER_FILE" > "$tmp_counter"; then
-      mv "$tmp_counter" "$COUNTER_FILE"
-      log_warn "  Counter restored to ${TICKET_PREFIX}-${SP_NUM}"
-    else
-      rm -f "$tmp_counter"
-      log_warn "  Failed to rewrite counter file during restore"
-    fi
-  else
-    log_warn "  Counter restore skipped: ${TICKET_PREFIX}.next is ${current_next:-unknown} (expected $expected_next; newer allocations may exist)"
-  fi
+replace_pending_ticket_id() {
+  local file="$1"
+  local ticket_id="$2"
+  [ -f "$file" ] || return 0
 
-  flock -u 201 || true
-  exec 201>&-
+  sed -i "s/ticketId: \"PENDING\"/ticketId: \"${ticket_id}\"/g" "$file"
+  sed -i "s/ticketId: PENDING/ticketId: ${ticket_id}/g" "$file"
+  sed -i "s/PENDING/${ticket_id}/g" "$file"
 }
 
 _cleanup_on_exit() {
@@ -426,15 +433,12 @@ _cleanup_on_exit() {
   kill "$_TIMEOUT_PID" 2>/dev/null || true
   if [ "$exit_code" -ne 0 ]; then
     log_warn "Pipeline exiting with code $exit_code — cleaning up incomplete files..."
-    if [ -n "${FILENAME:-}" ]; then
-      for _f in "$POSTS_DIR/$FILENAME" "$POSTS_DIR/$EN_FILENAME"; do
-        if [ -f "$_f" ] && [ "$(grep -c '^---' "$_f")" -lt 2 ]; then
-          log_warn "  Removing incomplete: $_f"
-          rm -f "$_f"
-        fi
-      done
-    fi
-    restore_counter_if_safe
+    for _f in "$POSTS_DIR/$FILENAME" "$POSTS_DIR/$EN_FILENAME" "$POSTS_DIR/$ACTIVE_FILENAME" "$POSTS_DIR/$ACTIVE_EN_FILENAME"; do
+      if [ -f "$_f" ] && [ "$(grep -c '^---' "$_f")" -lt 2 ]; then
+        log_warn "  Removing incomplete: $_f"
+        rm -f "$_f"
+      fi
+    done
   fi
 }
 
@@ -480,30 +484,20 @@ if [ -n "$EXISTING_FILE" ]; then
   [ -n "$ORIGINAL_DATE" ] || ORIGINAL_DATE=$(date +%F)
 
   FILENAME="$EXISTING_FILE"
+  EN_FILENAME="en-${FILENAME}"
+  ACTIVE_FILENAME="$FILENAME"
+  ACTIVE_EN_FILENAME="$EN_FILENAME"
+  PROMPT_TICKET_ID="${TICKET_PREFIX}-${SP_NUM}"
   log_info "Resuming with existing file: $EXISTING_FILE (${TICKET_PREFIX}-${SP_NUM})"
 else
-  # Atomic counter read+bump: flock prevents two pipelines from getting the same number.
-  # Lock is held just long enough to read + increment, then released.
-  exec 200>"$COUNTER_LOCK"
-  flock -w 60 200 || die "Could not acquire counter lock (another pipeline running?)"
-  SP_NUM=$(jq -r ".${TICKET_PREFIX}.next // empty" "$COUNTER_FILE")
-  [ -n "$SP_NUM" ] || die "Could not read ${TICKET_PREFIX}.next from $COUNTER_FILE"
-  if [ "$DRY_RUN" = false ]; then
-    # Bump counter immediately so next parallel pipeline gets the next number
-    TMP_COUNTER=$(mktemp)
-    jq ".${TICKET_PREFIX}.next += 1" "$COUNTER_FILE" > "$TMP_COUNTER"
-    mv "$TMP_COUNTER" "$COUNTER_FILE"
-    COUNTER_BUMPED_EARLY=true
-    COUNTER_RESTORE_ON_EXIT=true
-    log_info "Counter locked+bumped: ${TICKET_PREFIX}-${SP_NUM} (next will be $((SP_NUM + 1)))"
-  else
-    log_info "Counter read (dry-run, no bump): ${TICKET_PREFIX}-${SP_NUM}"
-  fi
-  flock -u 200  # release lock
-  exec 200>&-
+  log_info "Deferring counter allocation until Step 5 commit"
 fi
 
-WORK_DIR="$GU_LOG_DIR/tmp/${TICKET_PREFIX,,}-${SP_NUM}-pipeline"
+if [ -n "$EXISTING_FILE" ]; then
+  WORK_DIR="$GU_LOG_DIR/tmp/${TICKET_PREFIX,,}-${SP_NUM}-pipeline"
+else
+  WORK_DIR="$GU_LOG_DIR/tmp/${TICKET_PREFIX,,}-pending-$(date +%s)-pipeline"
+fi
 mkdir -p "$WORK_DIR"
 STEP0_TIME=$(step_end "Step 0")
 
@@ -619,7 +613,8 @@ REMEMBER: The writer depends entirely on your output. Missing content = bad arti
     fi
   fi
 
-  TWEETS_COLLECTED=$(grep -c '^---$' "$WORK_DIR/source-tweet.md" || echo 0)
+  TWEETS_COLLECTED=$(grep -c '^---$' "$WORK_DIR/source-tweet.md" || true)
+  [ -n "$TWEETS_COLLECTED" ] || TWEETS_COLLECTED=0
   TWEETS_COLLECTED=$((TWEETS_COLLECTED + 1))  # separators = tweets - 1
   log_ok "Agentic fetch complete: $TWEETS_COLLECTED tweet(s) collected"
 
@@ -792,7 +787,7 @@ in the source material. The reader should walk away understanding everything the
 author shared — not just a surface-level summary.
 
 Task:
-- Write ${TICKET_PREFIX}-${SP_NUM} article from the source material below.
+- Write ${PROMPT_TICKET_ID} article from the source material below.
 - The source may contain TWEETS + LINKED CONTENT (blog posts, articles). Cover ALL of it.
 - If the source includes a "=== LINKED CONTENT ===" section, that is the primary substance.
   The tweet is just the teaser — the linked article is where the real content lives.
@@ -802,7 +797,7 @@ Task:
 - NEVER pad or filler. If a section says "there are other patterns" but you don't have the details, either skip that claim or explicitly say the details weren't available. Do NOT write vague paragraphs that say nothing.
 - Follow the style guide exactly.
 - Use this metadata:
-  - ticketId: ${TICKET_PREFIX}-${SP_NUM}
+  - ticketId: ${PROMPT_TICKET_ID}
   - originalDate: ${ORIGINAL_DATE}
   - translatedDate: $(date +%F)
   - source: @${AUTHOR_HANDLE} on X
@@ -840,7 +835,7 @@ if ! should_run_step 3; then
 else
 step_start "Step 3: codex review"
 cat > "$WORK_DIR/review-prompt.txt" <<EOF_REVIEW
-Review draft-v1.mdx for ${TICKET_PREFIX}-${SP_NUM}.
+Review draft-v1.mdx for ${PROMPT_TICKET_ID}.
 
 Checklist:
 1. Fact-check: no hallucinated claims beyond source context.
@@ -899,7 +894,7 @@ if ! should_run_step 4; then
 else
 step_start "Step 4: refine draft (Opus primary)"
 cat > "$WORK_DIR/refine-prompt.txt" <<EOF_REFINE
-Refine the ${TICKET_PREFIX}-${SP_NUM} draft using review feedback.
+Refine the ${PROMPT_TICKET_ID} draft using review feedback.
 
 Inputs:
 - draft-v1.mdx
@@ -956,11 +951,9 @@ fi  # end should_run_step 4 (4.6 credits)
 RALPH_MAX_ATTEMPTS=3
 step_start "Step 4.7: ralph quality loop"
 
-# Extract title + generate filename early (scorer needs file in posts dir)
-# When --file is given, FILENAME is already set from Step 0
-# Try extracting title from existing file first, then from final.mdx
+# Extract title first; new articles use a staging filename until Step 5 assigns the real ticket.
 _TITLE_SOURCE=""
-if [ -n "$FILENAME" ] && [ -f "$POSTS_DIR/$FILENAME" ]; then
+if [ -n "$EXISTING_FILE" ] && [ -f "$POSTS_DIR/$FILENAME" ]; then
   _TITLE_SOURCE="$POSTS_DIR/$FILENAME"
 elif [ -f "$WORK_DIR/final.mdx" ]; then
   _TITLE_SOURCE="$WORK_DIR/final.mdx"
@@ -982,25 +975,26 @@ if [ -n "$_TITLE_SOURCE" ]; then
 fi
 
 if [ -z "$TITLE" ]; then
-  TITLE="${TICKET_PREFIX}-${SP_NUM}"
+  TITLE="$PROMPT_TICKET_ID"
 fi
 
-if [ -z "$FILENAME" ]; then
-  DATE_STAMP=$(date +%Y%m%d)
-  AUTHOR_SLUG=$(sanitize_slug "$AUTHOR_HANDLE")
-  TITLE_SLUG=$(sanitize_slug "$TITLE")
-  FILENAME="${TICKET_PREFIX,,}-${SP_NUM}-${DATE_STAMP}-${AUTHOR_SLUG}-${TITLE_SLUG}.mdx"
+DATE_STAMP=$(date +%Y%m%d)
+AUTHOR_SLUG=$(sanitize_slug "$AUTHOR_HANDLE")
+TITLE_SLUG=$(sanitize_slug "$TITLE")
+
+if [ -n "$EXISTING_FILE" ]; then
+  ACTIVE_FILENAME="$FILENAME"
+  ACTIVE_EN_FILENAME="$EN_FILENAME"
+else
+  ACTIVE_FILENAME="${TICKET_PREFIX,,}-pending-${DATE_STAMP}-${AUTHOR_SLUG}-${TITLE_SLUG}.mdx"
+  ACTIVE_EN_FILENAME="en-${ACTIVE_FILENAME}"
 fi
-EN_FILENAME="en-${FILENAME}"
 
 # Place file in posts dir for scorer (skip if already there from --file)
-if [ -n "$EXISTING_FILE" ] && [ -f "$POSTS_DIR/$FILENAME" ]; then
-  log_info "  File already in posts dir: $FILENAME"
+if [ -n "$EXISTING_FILE" ] && [ -f "$POSTS_DIR/$ACTIVE_FILENAME" ]; then
+  log_info "  File already in posts dir: $ACTIVE_FILENAME"
 elif [ -f "$WORK_DIR/final.mdx" ]; then
-  cp "$WORK_DIR/final.mdx" "$POSTS_DIR/$FILENAME"
-fi
-if [ "$COUNTER_BUMPED_EARLY" = true ] && [ -f "$POSTS_DIR/$FILENAME" ]; then
-  COUNTER_RESTORE_ON_EXIT=false
+  cp "$WORK_DIR/final.mdx" "$POSTS_DIR/$ACTIVE_FILENAME"
 fi
 
 RALPH_ATTEMPT=0
@@ -1013,7 +1007,7 @@ while [ "$RALPH_ATTEMPT" -lt "$RALPH_MAX_ATTEMPTS" ]; do
   log_info "  Ralph attempt $RALPH_ATTEMPT/$RALPH_MAX_ATTEMPTS — Scoring..."
 
   # Score via independent subagent
-  if bash scripts/ralph-scorer.sh "$FILENAME" "$SCORE_FILE" \
+  if bash scripts/ralph-scorer.sh "$ACTIVE_FILENAME" "$SCORE_FILE" \
       > "$WORK_DIR/ralph-scorer-stdout-${RALPH_ATTEMPT}.txt" \
       2> "$WORK_DIR/ralph-scorer-stderr-${RALPH_ATTEMPT}.txt"; then
     read_scores "$SCORE_FILE"
@@ -1032,8 +1026,8 @@ while [ "$RALPH_ATTEMPT" -lt "$RALPH_MAX_ATTEMPTS" ]; do
         --argjson iter "$RALPH_ATTEMPT" \
         '{score: $score, details: {persona: $persona, clawdNote: $clawdNote, vibe: $vibe}, model: "claude-opus-4-6", iteration: $iter}')"
       node "$GU_LOG_DIR/scripts/frontmatter-scores.mjs" write \
-        "$POSTS_DIR/$FILENAME" opus "$RALPH_SCORE_JSON" \
-        && log_ok "  Wrote Ralph score to frontmatter (${TICKET_PREFIX}-${SP_NUM})" \
+        "$POSTS_DIR/$ACTIVE_FILENAME" opus "$RALPH_SCORE_JSON" \
+        && log_ok "  Wrote Ralph score to frontmatter (${PROMPT_TICKET_ID})" \
         || log_warn "  Failed to write Ralph score to frontmatter"
 
       break
@@ -1061,11 +1055,11 @@ while [ "$RALPH_ATTEMPT" -lt "$RALPH_MAX_ATTEMPTS" ]; do
 4. Read the reviewer's feedback: cat $SCORE_FILE
 
 ## Task
-Rewrite src/content/posts/$FILENAME to fix EVERY issue the reviewer flagged.
-Also create the English version at $WORK_DIR/$EN_FILENAME with lang: en and same ticketId.
+Rewrite src/content/posts/$ACTIVE_FILENAME to fix EVERY issue the reviewer flagged.
+Also create the English version at $WORK_DIR/$ACTIVE_EN_FILENAME with lang: en and same ticketId.
 
-IMPORTANT: Write the English version to $WORK_DIR/$EN_FILENAME (NOT to src/content/posts/).
-The zh-tw version should be rewritten in-place at src/content/posts/$FILENAME.
+IMPORTANT: Write the English version to $WORK_DIR/$ACTIVE_EN_FILENAME (NOT to src/content/posts/).
+The zh-tw version should be rewritten in-place at src/content/posts/$ACTIVE_FILENAME.
 
 ## Rules
 - Keep ALL existing frontmatter fields intact (ticketId, source, sourceUrl, title, summary, tags, lang, dates)
@@ -1085,44 +1079,44 @@ The zh-tw version should be rewritten in-place at src/content/posts/$FILENAME.
     # Validate frontmatter wasn't broken by writer (LLMs sometimes strip required fields)
     _FM_VALID=true
     for _check_field in title originalDate source sourceUrl summary; do
-      if ! grep -q "^${_check_field}:" "$POSTS_DIR/$FILENAME" 2>/dev/null; then
+      if ! grep -q "^${_check_field}:" "$POSTS_DIR/$ACTIVE_FILENAME" 2>/dev/null; then
         _FM_VALID=false
-        log_warn "  ❌ Writer broke frontmatter: missing '$_check_field' in $FILENAME"
+        log_warn "  ❌ Writer broke frontmatter: missing '$_check_field' in $ACTIVE_FILENAME"
       fi
     done
     if [ "$_FM_VALID" = false ]; then
       log_warn "  Restoring from pre-rewrite backup..."
-      git checkout HEAD -- "$POSTS_DIR/$FILENAME" 2>/dev/null || cp "$WORK_DIR/final.mdx" "$POSTS_DIR/$FILENAME"
-      rm -f "$POSTS_DIR/$EN_FILENAME"
+      git checkout HEAD -- "$POSTS_DIR/$ACTIVE_FILENAME" 2>/dev/null || cp "$WORK_DIR/final.mdx" "$POSTS_DIR/$ACTIVE_FILENAME"
+      rm -f "$POSTS_DIR/$ACTIVE_EN_FILENAME"
       continue
     fi
 
     # Copy EN file from WORK_DIR to POSTS_DIR only if writer produced it
-    if [ -f "$WORK_DIR/$EN_FILENAME" ]; then
-      cp "$WORK_DIR/$EN_FILENAME" "$POSTS_DIR/$EN_FILENAME"
+    if [ -f "$WORK_DIR/$ACTIVE_EN_FILENAME" ]; then
+      cp "$WORK_DIR/$ACTIVE_EN_FILENAME" "$POSTS_DIR/$ACTIVE_EN_FILENAME"
     fi
 
     # Build check
     log_info "  Running build check..."
     if ! pnpm run build > "$WORK_DIR/ralph-build-${RALPH_ATTEMPT}.txt" 2>&1; then
       log_warn "  ❌ Build failed after rewrite! Reverting..."
-      git checkout -- "$POSTS_DIR/$FILENAME" 2>/dev/null || true
+      git checkout -- "$POSTS_DIR/$ACTIVE_FILENAME" 2>/dev/null || true
       # Restore from work dir copy
-      cp "$WORK_DIR/final.mdx" "$POSTS_DIR/$FILENAME"
-      rm -f "$POSTS_DIR/$EN_FILENAME"
+      cp "$WORK_DIR/final.mdx" "$POSTS_DIR/$ACTIVE_FILENAME"
+      rm -f "$POSTS_DIR/$ACTIVE_EN_FILENAME"
       continue
     fi
     log_info "  Build passed."
 
     # Ensure kaomoji present
-    node scripts/add-kaomoji.mjs --write "$FILENAME" 2>/dev/null || true
-    [ -f "$POSTS_DIR/$EN_FILENAME" ] && node scripts/add-kaomoji.mjs --write "$EN_FILENAME" 2>/dev/null || true
+    node scripts/add-kaomoji.mjs --write "$ACTIVE_FILENAME" 2>/dev/null || true
+    [ -f "$POSTS_DIR/$ACTIVE_EN_FILENAME" ] && node scripts/add-kaomoji.mjs --write "$ACTIVE_EN_FILENAME" 2>/dev/null || true
   fi
 done
 
 # Append Ralph quality stages to existing SP pipeline signature
 # (stamp_ralph_signature replaces the whole block — we want to ADD to it)
-for _rf in "$POSTS_DIR/$FILENAME" "$POSTS_DIR/$EN_FILENAME"; do
+for _rf in "$POSTS_DIR/$ACTIVE_FILENAME" "$POSTS_DIR/$ACTIVE_EN_FILENAME"; do
   [ -f "$_rf" ] || continue
   # Append Scored + Rewritten + update Orchestrated, keep original Written/Reviewed/Refined
   python3 - "$_rf" "$RALPH_PASSED" "$SCORE_P" "$SCORE_C" "$SCORE_V" << 'PYEOF'
@@ -1140,7 +1134,7 @@ ralph_stages = """    - role: "Scored"
     - role: "Orchestrated"
       model: "Opus 4.6"
       harness: "OpenClaw + Ralph Loop"
-  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh\""""
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"""
 
 # Replace existing Orchestrated + pipelineUrl with Ralph stages
 # NOTE: Do NOT use re.DOTALL — we want . to NOT match newlines so the regex stays on expected lines
@@ -1177,7 +1171,7 @@ if [ "$RALPH_PASSED" = false ]; then
       --argjson iter "$RALPH_ATTEMPT" \
       '{score: $score, details: {persona: $persona, clawdNote: $clawdNote, vibe: $vibe}, model: "claude-opus-4-6", iteration: $iter}')"
     node "$GU_LOG_DIR/scripts/frontmatter-scores.mjs" write \
-      "$POSTS_DIR/$FILENAME" opus "$RALPH_SCORE_JSON" \
+      "$POSTS_DIR/$ACTIVE_FILENAME" opus "$RALPH_SCORE_JSON" \
       && log_ok "  Wrote best-effort Ralph score to frontmatter" \
       || log_warn "  Failed to write Ralph score to frontmatter"
   fi
@@ -1190,15 +1184,33 @@ else
   step_start "Step 5: deploy"
   [ -d "$POSTS_DIR" ] || die "Missing posts directory: $POSTS_DIR"
 
-  # File already in $POSTS_DIR/$FILENAME from Step 4.7
+  if [ -z "$EXISTING_FILE" ]; then
+    SP_NUM=$(allocate_ticket_number)
+    PROMPT_TICKET_ID="${TICKET_PREFIX}-${SP_NUM}"
+    FILENAME="${TICKET_PREFIX,,}-${SP_NUM}-${DATE_STAMP}-${AUTHOR_SLUG}-${TITLE_SLUG}.mdx"
+    EN_FILENAME="en-${FILENAME}"
 
-  # Only bump counter for NEW articles (not --file resume, not already bumped)
-  if [ "$COUNTER_BUMPED_EARLY" = true ]; then
-    log_info "  Counter already bumped at setup (flock atomic read+bump)"
-  elif [ -z "$EXISTING_FILE" ]; then
-    TMP_COUNTER=$(mktemp)
-    jq ".${TICKET_PREFIX}.next += 1" "$COUNTER_FILE" > "$TMP_COUNTER"
-    mv "$TMP_COUNTER" "$COUNTER_FILE"
+    log_info "  Counter locked+bumped at commit time: ${PROMPT_TICKET_ID} (next will be $((SP_NUM + 1)))"
+
+    if [ -f "$POSTS_DIR/$FILENAME" ] && [ "$ACTIVE_FILENAME" != "$FILENAME" ]; then
+      die "Final filename already exists: $POSTS_DIR/$FILENAME"
+    fi
+    if [ -f "$POSTS_DIR/$EN_FILENAME" ] && [ "$ACTIVE_EN_FILENAME" != "$EN_FILENAME" ]; then
+      die "Final EN filename already exists: $POSTS_DIR/$EN_FILENAME"
+    fi
+
+    if [ -f "$POSTS_DIR/$ACTIVE_FILENAME" ] && [ "$ACTIVE_FILENAME" != "$FILENAME" ]; then
+      mv "$POSTS_DIR/$ACTIVE_FILENAME" "$POSTS_DIR/$FILENAME"
+    fi
+    if [ -f "$POSTS_DIR/$ACTIVE_EN_FILENAME" ] && [ "$ACTIVE_EN_FILENAME" != "$EN_FILENAME" ]; then
+      mv "$POSTS_DIR/$ACTIVE_EN_FILENAME" "$POSTS_DIR/$EN_FILENAME"
+    fi
+
+    replace_pending_ticket_id "$POSTS_DIR/$FILENAME" "$PROMPT_TICKET_ID"
+    replace_pending_ticket_id "$POSTS_DIR/$EN_FILENAME" "$PROMPT_TICKET_ID"
+
+    ACTIVE_FILENAME="$FILENAME"
+    ACTIVE_EN_FILENAME="$EN_FILENAME"
   else
     log_info "  Skipping counter bump (--file resume)"
   fi
@@ -1215,9 +1227,6 @@ else
     if printf '%s\n' "$VALIDATION_OUTPUT" | grep -F -e "$FILENAME" -e "$EN_FILENAME" >/dev/null 2>&1; then
       log_error "Validation failed for newly generated file(s)"
       rm -f "$POSTS_DIR/$FILENAME" "$POSTS_DIR/$EN_FILENAME"
-      if [ "$COUNTER_BUMPED_EARLY" = true ]; then
-        COUNTER_RESTORE_ON_EXIT=true
-      fi
       printf '%s\n' "$VALIDATION_OUTPUT" >&2
       exit 1
     fi
@@ -1245,7 +1254,7 @@ else
     cd "$GU_LOG_DIR"
     git add "src/content/posts/$FILENAME" "scripts/article-counter.json"
     [ -f "src/content/posts/$EN_FILENAME" ] && git add "src/content/posts/$EN_FILENAME"
-    git commit -m "Add ${TICKET_PREFIX}-${SP_NUM}: ${TITLE}"
+    git commit -m "Add ${PROMPT_TICKET_ID}: ${TITLE}"
     git push
   )
 
@@ -1256,9 +1265,9 @@ fi
 TOTAL_TIME=$(( $(date +%s) - TOTAL_START ))
 printf "\n"
 log_info "Pipeline Summary"
-printf "SP number   : %s\n" "$SP_NUM"
+printf "SP number   : %s\n" "${SP_NUM:-PENDING}"
 printf "Title       : %s\n" "${TITLE:-N/A}"
-printf "Filename    : %s\n" "${FILENAME:-N/A (dry-run)}"
+printf "Filename    : %s\n" "${FILENAME:-${ACTIVE_FILENAME:-N/A (dry-run)}}"
 printf "Work dir    : %s\n" "$WORK_DIR"
 printf "Step 0 time : %ss\n" "$STEP0_TIME"
 printf "Step 1 time : %ss\n" "$STEP1_TIME"
