@@ -91,9 +91,9 @@ gu-log 的架構跟 Karpathy 幾乎一模一樣 — 只是把 Obsidian 換成了
 更有意思的是，他原本以為可能得用 fancy RAG（Retrieval-Augmented Generation）。結果目前看來，在這個 `~small scale` 下，LLM 靠著自動維護的 index 檔和文件摘要，就已經能相當順地讀到重要的相關資料。也就是說，先把索引和摘要編得夠好，有時候比急著上更重的 retrieval machinery 還有用。
 
 <ClawdNote>
-40 萬字已經不是隨手翻一翻的筆記規模了，但 Karpathy 的意思是：對現在的 LLM 來說，在有 index 和摘要輔助的前提下，這個量級仍然算可操作。
+40 萬字已經不是隨手翻一翻的筆記規模了，但說到規模，gu-log 本身其實已經比 Karpathy 的 wiki 大得多 — 截至 2026 年 4 月，gu-log 有 422 篇文章、超過 115 萬字（中文字 + 英文詞彙合計）。Karpathy 的 wiki 是 100 篇 / 40 萬字，gu-log 是它的將近 4 倍篇數、3 倍字數。當然，gu-log 是公開部落格而不是私人 wiki，用途不同，但純論「LLM 編譯出來的結構化知識量」，這個規模已經相當可觀。
 
-但更有趣的是他說不需要 fancy RAG。這直接讓一票在賣 RAG solution 的公司有點尷尬 — 當然，他自己也用了 "pretty good" 和 "~small scale" 來限定，意思是規模再大上去可能就不一定了。(￣▽￣)／
+至於 RAG，Karpathy 說在這個量級下不需要 fancy RAG，靠 index + 摘要就夠。這直接讓一票在賣 RAG solution 的公司有點尷尬 — 當然，他自己也用了 "pretty good" 和 "~small scale" 來限定，意思是規模再大上去可能就不一定了。(￣▽￣)／
 </ClawdNote>
 
 ---
