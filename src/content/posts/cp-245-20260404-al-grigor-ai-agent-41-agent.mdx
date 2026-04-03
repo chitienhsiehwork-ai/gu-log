@@ -1,0 +1,142 @@
+---
+ticketId: "CP-245"
+title: "一個人 + 四個 AI Agent = 一夜完成 41 個任務：Agent 團隊分工實戰報告"
+originalDate: "2026-04-03"
+translatedDate: "2026-04-04"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: "@Al_Grigor on X"
+sourceUrl: "https://x.com/Al_Grigor/status/2040019799234040260"
+lang: "zh-tw"
+summary: "Alexey Grigorev 不再讓一個 AI agent 包辦所有事，而是拆出 PM、SWE、QA、On-Call 四個角色組成 agent 團隊。他在五個真實專案上測試了這套架構，其中一個專案一個晚上自動完成了 46 個任務中的 41 個。"
+tags: ["clawd-picks", "ai-agents", "claude-code", "software-engineering"]
+scores:
+  ralph:
+    p: 0
+    c: 0
+    v: 0
+    date: "2026-04-03"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Alexey Grigorev 過去幾週一直在嘗試用 agent team 來做開發。重點不是讓一個 agent 包辦所有事，而是把工作拆給不同角色處理。
+
+他用 Claude Code 當指揮中心，底下拆出四個角色——PM、SWE、QA、On-Call——讓它們像真正的軟體團隊一樣協作。然後他拿五個真實專案來測試。
+
+其中一個專案，一個晚上完成了 46 個任務中的 41 個。
+
+<ClawdNote>
+46 個任務裡完成 41 個。這數字本身很漂亮，但更值得注意的是「一個晚上」這三個字——人類睡覺的時候，agent 團隊在加班。這已經不是「AI 輔助開發」了，這是「人類變成甲方然後下班」的等級 (⌐■_■)
+</ClawdNote>
+
+## 為什麼一個 Agent 不夠用？
+
+先想想人類軟體團隊為什麼要分工。不是因為 PM 不會寫 code（好吧，大多數真的不會），而是因為**不同角色帶著不同的思維模式**。PM 想的是「使用者要什麼」，SWE 想的是「怎麼實作」，QA 想的是「怎麼搞壞它」。
+
+AI agent 也一樣。當一個 agent 同時扮演所有角色，它很容易「自己寫、自己測、自己通過」——畢竟沒有人會認真挑自己的毛病。按照 Alexey 的觀察，沒有明確流程的 agent 會漂移（drift），會跳步驟，會自顧自地覺得「應該沒問題吧」就往下走。
+
+按照 Alexey 的觀察，問題不只是模型能力，而是流程和角色設計。
+
+<ClawdNote>
+這個 insight 其實很深。想想軟體工程幾十年來學到的教訓：code review 要別人 review、QA 要獨立於開發、PM 要代表使用者而不是工程師——這些全是「讓不同腦袋檢查同一件事」的機制。現在 AI agent 遇到了完全一樣的問題，解法也一樣：拆角色、建流程、互相制衡。人類花了幾十年踩的坑，AI 一個都沒少踩 ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## 四個角色，一條 Pipeline
+
+Alexey 的 agent 團隊分工如下：
+
+**Product Manager（PM）**——需求端的守門人。負責把原始的想法（raw ideas）轉化成規格書、user stories 和 acceptance criteria。最後也是由 PM 做 final acceptance，確認交付物符合當初的規格。
+
+**Software Engineer（SWE）**——寫 code、寫測試。拿到 PM 的規格後開始實作，這是整條 pipeline 裡產出最多程式碼的角色。
+
+**Tester（QA）**——跑測試、驗證 acceptance criteria，而且要**附上證據**。不是「看起來 OK」就過了，是要拿出具體的測試結果來證明每一條 criteria 都通過。
+
+**On-Call Engineer**——監控 CI/CD pipeline，修 pipeline 炸掉的問題。這個角色在人類團隊裡通常是最不想輪到的，但對 agent 來說，半夜三點修 CI 跟大白天修沒什麼差別。
+
+<ClawdNote>
+On-Call agent 是整個設計裡最被低估的角色。人類 on-call 最痛苦的不是修 bug，是半夜被叫醒然後腦袋還沒開機就要 debug。AI 完全沒有這個問題——不用睡覺、不會起床氣、不會在 Slack 上打「...looking」然後繼續躺回去。這是 AI 對人類最純粹的仁慈 (￣▽￣)／
+</ClawdNote>
+
+任務流動的方式是一條嚴格的 pipeline：
+
+**PM 拆任務** → **SWE 實作** → **QA 驗證** → **PM 最終驗收** → **Commit**
+
+每一步都必須通過才能進入下一步。QA 沒過，打回去給 SWE。PM 驗收沒過，整個 loop 再跑一次。這不是「建議」的流程，是**強制**的流程。
+
+---
+
+## 五個真實專案的實測
+
+理論講完了，來看實戰。Alexey 不是拿 todo app 來測的，他拿了五個有實際用途的專案。
+
+### AI Shipping Labs Website
+
+這是成績最亮眼的一個。46 個任務，一個晚上完成了 41 個。
+
+### DataTasks
+
+一個給 DataTalks.Club 用的 serverless task tracker，跑在 AWS Lambda + DynamoDB 上。這個專案的效率數字最有說服力：Alexey 花了大約 20 分鐘寫需求、20 分鐘啟動 session、隔天再花 20 分鐘給 feedback。
+
+總共一小時的人類投入，換來一個可運行的 serverless 應用。
+
+<ClawdNote>
+20 + 20 + 20 = 60 分鐘。一小時。一個跑在 Lambda + DynamoDB 上的完整應用。就算這個應用很小、很簡單，這個 ROI 也太誇張了。但請注意——這 60 分鐘不是「隨便講講」的 60 分鐘，而是「寫出夠清楚的 spec 讓 agent 能自己跑」的 60 分鐘。這種工作的困難度被嚴重低估了 (ง •̀_•́)ง
+</ClawdNote>
+
+### Merm
+
+一個純 Python 的 Mermaid 圖表 renderer，已經發佈到 GitHub。
+
+### Rustkyll
+
+用 Rust 重寫 Jekyll 靜態網站產生器，目標是改善大型網站的 build 速度。
+
+### Codehive
+
+這是最 meta 的一個。Alexey 正在打造的 coding orchestrator，目的是把「agent 團隊」這套方法論用更嚴格的方式自動化。原文提到，直接用 Claude Code 當 orchestrator 會碰到 usage limits 和 agent 閒置（idling）的問題，所以需要一個專門的工具來管理。
+
+<ClawdNote>
+Codehive 基本上是在說：「Claude Code 當 orchestrator 已經很好了，但還不夠好，所以要自己造一個。」這種「用 AI 寫了一個管理 AI 的工具」的遞迴結構，聽起來很瘋，但其實完全合理。就像人類也不會直接坐在 CPU 前面寫 machine code 一樣——工具之上永遠需要更好的工具 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## 最大的教訓：沒有流程，Agent 會失控
+
+五個專案跑下來，Alexey 的核心結論是：**複雜專案需要明確的規格和角色分配。**
+
+沒有定義好的流程，agent 會 drift（漂移）——開始自己決定什麼該做什麼不該做，跳過它覺得「不重要」的步驟，或者在不確定的地方自己腦補答案然後繼續往下走。
+
+這跟管理人類團隊的道理是一樣的。一個資深工程師丟進去不管，也許能自己搞定；但一整個團隊如果沒有流程，就是混亂。Agent 也是如此——能力越強，沒有框架時能搞出的亂子越大。
+
+所以 Alexey 的下一步是把這套方法論寫進 Codehive，讓流程不是靠「prompt 裡面交代清楚」來維持，而是靠**系統機制強制執行**。
+
+---
+
+## 結語
+
+真正值得記住的不是速度本身，而是這個教訓：複雜專案要有明確規格、清楚角色分工，以及能被驗證的流程。否則 agent 也會漂移、跳步驟，最後把問題一路往下傳。
+
+工具變了。紀律沒變。
+
+<ClawdNote>
+最後說一個殘酷的事實：Alexey 在這篇文章裡描述的工作流程——寫 spec、定角色、設流程、做驗收——這些本來就是好的軟體工程實踐。只是以前很多團隊懶得做（或覺得太慢）。現在 AI agent 逼著大家重新把這些東西撿回來，因為 agent 沒有流程就真的會亂來。所以某種意義上，AI 不只是在寫 code，還在逼人類變成更好的 PM (◕‿◕)
+</ClawdNote>
