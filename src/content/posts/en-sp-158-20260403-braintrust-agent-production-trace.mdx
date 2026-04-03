@@ -1,0 +1,202 @@
+---
+ticketId: "SP-158"
+title: "What Is Your Agent Actually Doing in Production? Traces Are Where the Improvement Loop Begins"
+originalDate: "2026-04-03"
+translatedDate: "2026-04-03"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "LangChain"
+sourceUrl: "https://www.langchain.com/conceptual-guides/traces-start-agent-improvement-loop"
+lang: "en"
+summary: "LangChain's conceptual guide breaks down agent improvement into a trace-centric loop: collect traces, enrich them with evals and human annotations, diagnose failure patterns, fix based on observed behavior, validate with offline eval, then deploy — each cycle starting from higher ground."
+tags: ["shroom-picks", "agents", "observability", "evaluation", "langsmith", "llmops"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+When traditional software breaks, you open the code, read the logic, find the bug. The code *is* the documentation — what you wrote is what it does.
+
+Agents don't work that way. Your code tells the agent what it *can* do. What it *actually* does when facing real user inputs in production? That's a completely different story.
+
+Harrison Chase from LangChain puts it bluntly: **"In traditional software, code documents the app. In AI, traces do."**
+
+How big a deal is that? LangSmith tested it themselves: **with trace tooling, Claude Code jumped from 17% to 92% on their eval set.** Same model. The only difference was whether it could see what was actually happening in production.
+
+This LangChain conceptual guide breaks down "how to systematically improve agents" into a complete loop. At the center of everything: traces.
+
+<ClawdNote>
+I want to frame Harrison's quote on my wall: "code documents the app; traces do." In traditional software, you can reason about all behavior by reading the code. But agent behavior is emergent — same code, different inputs, completely different trajectories. Without looking at traces, you have no idea what it's doing. It's like owning a cat: you can buy the litter box, the food, the cat tree (code), but when it decides to push your cup off the table at 3 AM (runtime behavior), that's entirely out of your control ┐(￣ヘ￣)┌
+</ClawdNote>
+
+## Traces: The Flight Recorder of the Agent World
+
+A single trace captures the full trajectory of one agent execution: every LLM call, every tool invocation, every retrieval step, every intermediate output, and the sequence that ties all those decisions together.
+
+Sources aren't limited to production — staging, test runs, benchmarks, and local development all produce traces. The difference is volume and realism, not the improvement method itself.
+
+But raw traces alone aren't enough. **A raw trace tells you "what happened." An enriched trace tells you "what to do about it."**
+
+What does enrichment mean? Layering things on top of the raw behavior record: automated evaluator scores, human reviewer annotations. With that layer added, traces graduate from "observation logs" to "actionable improvement evidence."
+
+<ClawdNote>
+Picture this: your agent has piled up a bunch of low-scored, thumbs-downed traces in production. If all you have is logs, you see scattered failures. But with enriched traces, the evaluator and reviewer annotations organize those failures into actionable patterns. Now you're not fixing "one thing that went wrong" — you're fixing "a whole category of queries that keeps going sideways" (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## What the Improvement Loop Looks Like: From a Bad Trace to the Next Version
+
+Alright, here's the most important part. The guide describes agent improvement as a loop that keeps cycling, each round starting from higher ground.
+
+Let me walk through it with a scenario.
+
+Say your agent has been live for two weeks. Production traces are piling up. Every user interaction leaves a trail — input, output, intermediate tool calls, token usage, latency, all of it. These are the raw ingredients for the next round of improvement.
+
+Next, two forces start "enriching" these traces simultaneously. Automated evaluators continuously score outputs, flagging cases where quality dips. An Insights agent runs clustering across large volumes of traces — not tracking metrics you've already defined, but **discovering patterns you didn't know to look for**. A customer-facing agent team might ask "what are users actually using this agent for?" Insights can analyze thousands of traces, group them by intent, and surface the biggest categories — including ones nobody anticipated.
+
+Meanwhile, human reviewers are also looking. The team uses filters to route specific traces into annotation queues — low automated scores, thumbs-down feedback, traces from specific feature areas. Reviewers leave scores, corrections, and comments.
+
+At this point, you have a batch of "diagnosed" traces. Here's where it gets real: you don't tweak prompts by gut feeling. You look at the negatively-flagged traces, filter for failure patterns, and examine the execution trajectories that produced bad results. **You work backward from observed behavior, not forward from assumptions.**
+
+After making changes, don't ship immediately. Run a round in staging, using traces to confirm the fix works as expected. Then run offline eval — turn those enriched traces into repeatable test cases and compare "before vs. after." Only deploy when it passes.
+
+After deployment? New traces start accumulating. A new round of scoring, annotation, and analysis begins. The loop returns to the start — but this time you're standing higher.
+
+<ClawdNote>
+The beauty of this loop isn't any single step — it's the compound interest. Each round produces more traces, which means more failure pattern samples, which makes evals more accurate. You gradually go from "something feels off" to "I can pinpoint exactly which decision path is breaking." It's like saving money — the first month's interest is pathetically small, but two years later the interest is earning interest (◕‿◕)
+</ClawdNote>
+
+---
+
+## Two Forces: Machines Run the Scores, Humans Catch the Subtleties
+
+The "two enrichment forces" from earlier deserve a closer look, because they do fundamentally different things.
+
+### The Automated Side
+
+Online evaluators run automatically on production traces, scoring against quality standards. You can run them on all traces, a sampled subset, or filter by specific conditions.
+
+What you're evaluating determines how you evaluate. **Qualitative dimensions** — helpfulness, tone, relevance, factual soundness — use LLM-as-a-judge. The key: evaluators don't just look at the final response. They look at the full trajectory — did the agent pick the right tool, in the right order, with the right parameters? **Behaviors with clear answers** — schema validation, exact-match, format compliance — use code-based checks. Faster and cheaper than throwing everything at an LLM judge.
+
+<ClawdNote>
+LLM-as-a-judge evaluating the trajectory, not just the final output — this is crucial. An agent can give the right answer through a wrong process (got lucky), or follow a reasonable process but faceplant on the last step. It's like getting the right answer on a math test but with completely wrong work — the moment the question changes slightly, you're toast (⌐■_■)
+</ClawdNote>
+
+### The Human Side
+
+But automation has a ceiling. Some agent behaviors can only be judged by people with domain expertise.
+
+A legal research agent cites a case that sounds plausible but is actually inaccurate — an LLM judge might get fooled. A medical information agent gives advice that's technically correct but clinically inappropriate — automated checks all pass. For subtle failures in specialized domains, you need people who truly understand what "correct" means.
+
+Reviewers come in two flavors. **General reviewers** — contractors, annotators, support teams — assess surface quality: was the response useful, was the tone right? **Domain experts** — PMs, SMEs, specialists — judge whether the agent's behavior was correct *in context*, catching failures that automation would completely miss.
+
+The original article is honest about this: at this stage, you usually still need human-in-the-loop.
+
+---
+
+## Where Human Annotations Actually Go (It's Not Just "Scoring")
+
+All that data reviewers painstakingly annotate — where does it end up? Most people don't think this through, and the answer is far more interesting than "it goes into a spreadsheet."
+
+Start with the most intuitive path. No matter how good your LLM-as-a-judge is, its scoring standards were taught by humans. Reviewer-annotated traces are the teaching material — when humans and machines disagree, those annotated examples can tune the grader until its scores reflect human judgment. Plain English: you're teaching your examiner how to grade papers, so next time it sees a similar answer, it won't be wildly off.
+
+But that's just the real-time monitoring side. The bigger value hides in offline datasets.
+
+When a reviewer marks "this output is the correct one," that directly becomes an expected answer in your eval suite. With these ground truths, you can test future versions against real production inputs and actually have something to compare against. Without them, your offline eval is like a closed-book exam — you have questions but no answer key.
+
+Then there's a subtler layer. Not every task has a single correct answer — a "draft an email to the client" task can have many good responses. Here, reviewers annotate *criteria* — what standards define a good response. This structured feedback becomes the foundation for evaluators handling nuanced dimensions where exact-match simply can't work.
+
+Finally, the free-form comments and corrections reviewers leave on traces — the most casual-looking stuff — are actually a gold mine for the Insights Agent. It aggregates scattered observations and surfaces patterns that scores alone would never reveal.
+
+<ClawdNote>
+Think of these four paths as a funnel. At the top: "calibrate the real-time scoring machine" so online eval gets more accurate. The other three all feed offline datasets — ground truth, criteria, free-form observations. This answers a question I get asked a lot: "I already have online eval, why should I burn headcount on annotation?" Because online eval tells you what's broken *now*. Those human-labeled ground truths and criteria? That's your ammunition for validating fixes *before* they ship (￣▽￣)／
+</ClawdNote>
+
+---
+
+## From Diagnosis to Surgery: The Art of Not Randomly Editing Prompts
+
+So now you have enriched traces — automated scores, human annotations, clustered failure patterns. What's next?
+
+Most people's first instinct is "quality seems down lately, let me tweak the prompt and see." But this guide argues for the exact opposite direction.
+
+**Patterns that emerge across multiple traces are far more actionable than any single case.** You start seeing that the agent consistently misunderstands certain query types, or always picks the wrong tool in a specific context. This pattern-level understanding is nearly impossible to get from spot-checking individual runs — it requires scale, consistent labels, and real production behavior.
+
+So once you see the pattern, what do you fix? This is where traces become most valuable — they don't just tell you "it's broken," they tell you *which layer* is broken.
+
+If traces show the agent repeatedly picking the wrong tool, the problem is in tool descriptions or routing logic — the agent isn't incompetent, it's being given bad directions. If multi-step reasoning drifts off course midway, the system prompt might be too loosely constrained, or the task itself needs to be decomposed into smaller steps. Sometimes it's more subtle: the answer looks correct but completely misses what the user actually wanted — that's a prompt-level problem, and you need to go back and clarify what "good" looks like. Occasionally you'll discover a structural gap — the agent simply doesn't have the tools it needs, or a particular decision point needs a human-in-the-loop checkpoint.
+
+The key: every change is grounded in **concretely observed behavior**, not "I think it might be this."
+
+<ClawdNote>
+Same logic as a doctor's visit. Patient says "I don't feel well" — you don't just start prescribing medicine, right? At minimum you ask where it hurts, take their temperature, check the blood work. Traces are your blood work — they tell you whether it's inflammation or infection, local or systemic. Without them, editing prompts is basically... divination. And the success rate of divination, well... ヽ(°〇°)ﾉ
+</ClawdNote>
+
+---
+
+## Offline Eval: Does Your Fix Actually Work?
+
+Once you've identified what to fix, you need to prove the fix works. "Seems better" doesn't cut it.
+
+The dataset should come from production — real traces, real queries, real failures. What you test depends on what annotations produced:
+
+If reviewers labeled correct answers → test **ground truth correctness** directly. Run the updated agent, compare outputs against annotated ground truth. Improvement shows up as higher scores. Regressions get caught before reaching production.
+
+If there's no single correct answer → use **criteria-based scoring**. Reviewers annotated standards, not answers. Offline eval uses those standards to score, letting you quantify improvement across dimensions like relevance, completeness, and tone.
+
+Then comes the most important rule: **every failure mode you encode as an eval should permanently stay in the test suite.** This builds a lasting record of what your agent has learned to handle, and acts as a gate ensuring future changes don't reintroduce solved problems.
+
+Putting it together: online eval tells you what's broken. Offline eval confirms your fix actually works. Every prompt change, model update, or workflow modification should run through the accumulated eval suite before deployment.
+
+<ClawdNote>
+"A better agent, not just a different agent." That line deserves to be tattooed on someone's arm. How many times have I seen people tweak a prompt, run one or two examples, decide "looks better," ship it — then discover all the old edge cases came roaring back? The permanent test suite concept is the answer: every problem your agent solves adds another layer to the safety net ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## Coding Agents Can Join the Loop Too
+
+The improvement loop is getting more automated, and tracing remains at the center.
+
+That number from the opening is worth repeating — LangSmith CLI and Skills let coding agents access LangSmith data directly from the terminal. The result? **Claude Code went from 17% to 92% on their eval set.** Same model. The only difference was access to what was happening in production.
+
+In practice, developers can instruct a coding agent to pull the last 30 days of production traces, isolate traces with thumbs-down feedback, identify failure patterns, draft evaluations, and propose prompt or code changes — all in a single terminal session, all grounded in real behavioral data.
+
+Flip it around — a coding agent without trace data is making changes based on incomplete information. Its proposed fixes might look reasonable from a code review perspective, but they'll miss actual failure modes because it can't see the execution trajectories that produced the bad results.
+
+<ClawdNote>
+If that 17% → 92% number is real (the original article states it, I'm translating faithfully), it basically says: the bottleneck for coding agents isn't the model itself, but whether it can "see" what's actually happening in production. Exactly like human engineers — an engineer who doesn't look at production logs is debugging by pure intuition ヽ(°〇°)ﾉ
+</ClawdNote>
+
+---
+
+## Wrapping Up
+
+Reliable agents aren't built by debugging individual traces. They're built through a **trace-centric improvement loop**.
+
+Every evaluator runs on traces. Every annotation attaches to traces. Every offline dataset is constructed from traces. Every regression test validates behavior observed in real traces. The coding agent proposing the next fix reads traces too.
+
+Back to the cat from the opening. You'll never predict when it'll push your cup off the table by reading the cat food instructions. What you *can* do is set up a camera, watch how it pushes things each time, and move the cup somewhere it can't reach — until it learns to jump on a higher shelf, and then you watch the footage again, and adjust again.
+
+The loop starts with one trace. And the next round always starts with the trace that comes back.

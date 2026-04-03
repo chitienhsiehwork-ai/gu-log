@@ -1,0 +1,209 @@
+---
+ticketId: "SP-158"
+title: "你的 Agent 在 production 幹了什麼好事？Trace 才是改善迴圈的起點"
+originalDate: "2026-04-03"
+translatedDate: "2026-04-03"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "LangChain"
+sourceUrl: "https://www.langchain.com/conceptual-guides/traces-start-agent-improvement-loop"
+lang: "zh-tw"
+summary: "LangChain 這篇指南把 agent 改善拆成一個以 trace 為核心的迴圈：先收集 trace，再用 eval 和人工標註把它變成可操作的資料。接著從失敗模式回推修改，並用 offline eval 驗證後才部署，讓每一輪都站在更高的起點。"
+tags: ["shroom-picks", "agents", "observability", "evaluation", "langsmith", "llmops"]
+scores:
+  ralph:
+    p: 8
+    c: 8
+    v: 8
+    date: "2026-04-03"
+    model: "claude-opus-4-6"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+傳統軟體出了 bug，你打開程式碼，看邏輯，抓問題。因為程式碼就是你的系統文件——你寫了什麼，它就做什麼。
+
+但 agent 不是這樣。你寫的程式碼只告訴 agent「你可以做什麼」，至於它實際上在 production 環境裡、面對真實使用者輸入的時候做了什麼——那是另一回事。
+
+LangChain 的 Harrison Chase 講得很直接：**「在傳統軟體裡，程式碼就是 app 的文件；在 AI 裡，trace 才是。」**
+
+這句話的衝擊力有多大？LangSmith 自己測了一下：**裝備了 trace 工具後，Claude Code 在他們的 eval set 上從 17% 跳到 92%。** 同一個 model，差別只在看不看得到 production 的真實狀況。
+
+這篇 LangChain 的概念指南把「怎麼系統性地改善 agent」拆成一個完整迴圈。核心只有一個東西：trace。
+
+<ClawdNote>
+Harrison 這句話我要裱框：「code documents the app; traces do.」傳統軟體你讀 code 就能推理出所有行為，但 agent 的行為是 emergent 的——同一段 code，不同的 input 可以跑出完全不同的 trajectory。你不看 trace，你根本不知道它在幹嘛。這就像養了一隻貓：你可以買貓砂、貓糧、貓跳台（code），但牠半夜三點決定把你的杯子推下桌（runtime behavior）是你控制不了的 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+## Trace：Agent 世界的飛行紀錄器
+
+一條 trace 記錄的是 agent 單次執行的完整軌跡：每次 LLM 呼叫、每個 tool invocation、每步 retrieval、每個中間輸出，以及把這些決策串在一起的順序。
+
+來源不限 production——staging、test runs、benchmarks、local development 一樣能提供 trace。差別只在資料量和真實度，不在改善方法本身。
+
+但光有 trace 不夠。**原始 trace 告訴你「發生了什麼」，豐富化的 trace 才告訴你「該怎麼辦」。**
+
+什麼叫豐富化？就是在原始行為紀錄上面疊東西：自動化 evaluator 的評分、人類 reviewer 的標註。加了這層之後，trace 才從「觀察紀錄」升級成「可操作的改善依據」。
+
+<ClawdNote>
+想像一下：你的 agent 在 production 累積了一堆被打低分、被使用者按了 thumbs-down 的 trace。如果你只有 log，你看到的是零散的失敗；但如果你有 enriched trace，evaluator 和 reviewer 的標註會把它整理成可行動的失敗模式。那時候你修的就不是「某一次出錯」，而是「某一類查詢總是走歪」(๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## 改善迴圈長什麼樣：從一條壞 trace 走到下一版
+
+好，最重要的部分來了。整篇指南把 agent 改善描述成一個不斷循環的迴圈，每一輪都從更高的起點出發。
+
+我用一個場景來走一遍。
+
+假設你的 agent 上線兩週了，production trace 開始累積。使用者的每一次互動都留下軌跡——input、output、中間的 tool call、token 用量、latency，全部都有。這些就是下一輪改善的原料。
+
+接下來，兩股力量同時對這些 trace 做「加值」。自動化 evaluator 持續對 output 評分，flagging 品質下滑的案例。Insights agent 則在大量 trace 裡做 clustering——不是追蹤你已經定義好的 metric，而是**發現你不知道要找的 pattern**。比方說，一個面向客戶的 agent 團隊可能想問「使用者到底拿這個 agent 做什麼？」Insights 可以分析上千條 trace，按 intent 分群，浮現最大的類別——包括沒人預料到的那些。
+
+同時，人類 reviewer 也在看。團隊用 filter 把特定 trace 導入 annotation queue——低自動化評分的、被 thumbs-down 的、來自特定功能區的。Reviewer 留下評分、修正、留言。
+
+到這裡，你手上已經有一批「被診斷過」的 trace 了。接下來才是重點：你不是憑感覺改 prompt。你去看那些被標了負分的 trace，過濾出失敗模式，檢查產出壞結果的執行軌跡。**從觀察到的行為往回推，而不是從假設往前猜。**
+
+改完之後，先別急著上線。在 staging 跑一輪，用 trace 確認修改是否按預期運作。然後進 offline eval——把那些豐富化過的 trace 轉成可重複的測試案例，跑「改之前 vs 改之後」的比較。過了才部署。
+
+部署之後呢？新的 trace 開始累積。新的一輪評分、標註、分析開始。迴圈回到起點——但這次你站得更高。
+
+<ClawdNote>
+這個迴圈的精髓不在於任何單一步驟，而在於複利效應。每一輪多出來的 trace，帶來更多失敗模式樣本；更多樣本，讓 eval 變得更準。你會慢慢從「大概知道哪裡怪怪的」走到「可以精準指出是哪一段 decision path 出問題」。就像存錢，第一個月的利息少得可憐，但兩年後你會發現利息在幫你生利息 (◕‿◕)
+</ClawdNote>
+
+---
+
+## 兩股力量：機器跑分數，人類抓細節
+
+前面講的「兩股加值力量」值得展開來說，因為它們做的事情截然不同。
+
+### 自動化這邊
+
+Online evaluator 自動在 production trace 上跑，根據品質標準評分。可以設定跑在所有 trace 上、取樣子集、或根據特定條件過濾。
+
+評什麼決定怎麼評。**定性維度**——helpfulness、tone、relevance、事實合理性——用 LLM-as-a-judge。重點是 evaluator 不只看最終回應，而是看完整 trajectory：agent 有沒有用對 tool、順序對不對、參數對不對。**有明確答案的行為**——schema validation、exact-match、格式符合度——用 code-based check，比丟給 LLM judge 更快更便宜。
+
+<ClawdNote>
+LLM-as-a-judge 評 trajectory 而不只是 final output——這一點很關鍵。因為 agent 可能給出正確答案但過程是錯的（運氣好），也可能過程合理但最後一步翻車。就像考試答案寫對了但計算過程全錯——下次題目稍微變一下就死了 (⌐■_■)
+</ClawdNote>
+
+### 人類這邊
+
+但自動化有天花板。有些 agent 行為只有具備領域專業的人才能評估。
+
+一個法律研究 agent 引用了聽起來合理但其實不準確的判例——LLM judge 可能被騙。一個醫療資訊 agent 給出技術上正確但臨床上不適當的建議——automated check 看起來全過。在專業領域的細微失敗，你需要真正懂「正確」意味著什麼的人。
+
+這裡的 reviewer 分兩種。**General reviewer**——contractors、annotators、客服團隊——評估表面品質：回應有沒有用、語氣對不對。**Domain expert**——PM、SME、該領域的專家——判斷 agent 在 context 裡的行為是否正確，包括自動化完全會漏掉的失敗。
+
+原文很坦白：在現階段，你通常還是需要 human-in-the-loop。
+
+---
+
+## 人類標註的四條命：資料去了哪裡比標了什麼更重要
+
+那些 reviewer 辛辛苦苦標的資料，最後去了哪裡？這是很多人沒想清楚的部分，而且答案比「拿來打分數」複雜得多。
+
+先講最直覺的一條。你的 LLM-as-a-judge 再怎麼厲害，它的評分標準也是人教的。Reviewer 標過的 trace 就是教材——當人跟機器意見不一致的時候，那些標註過的例子就能拿來 tune grader，直到它的評分反映人類的判斷。白話說就是：你在教你的考官怎麼改考卷，讓它下次改到類似答案的時候，不會再離譜。
+
+但這還只是即時監控那一面。更大的價值藏在 offline dataset 裡。
+
+Reviewer 標的「這個 output 才是對的」，會直接變成你 eval suite 裡的 expected answer。有了這些 ground truth，你拿 production 的真實 input 去測未來版本的時候，才有東西可以比。沒有它們，你的 offline eval 就像閉卷考——題目有了但答案不知道。
+
+然後是更微妙的一層。不是每個任務都有單一正確答案——「幫我寫封信給客戶」的好回應可以長很多種樣子。這時候 reviewer 標的不是答案本身，而是 criteria：什麼標準定義了「好」。這些結構化回饋成為 evaluator 的打分基礎，專門處理那些 exact-match 搞不定的 nuanced 維度。
+
+最後，reviewer 留在 trace 上的自由格式留言和修正——這些看起來最隨意的東西——其實是 Insights Agent 的富礦。它會把散落各處的觀察 aggregate 起來，浮現光看分數絕對看不出來的 pattern。
+
+<ClawdNote>
+把這四條路線想成一個漏斗：最上面是「即時校準打分機」，讓 online eval 更準；下面三條全部在餵養 offline dataset——ground truth、criteria、自由觀察。這回答了一個我常被問的問題：「我已經有 online eval 了，為什麼還要燒人力做標註？」因為 online eval 只告訴你現在哪裡壞了，但那些人類標出來的 ground truth 和 criteria，才是你能在部署前驗證 fix 的彈藥庫 (￣▽￣)／
+</ClawdNote>
+
+---
+
+## 從診斷報告到動刀：不是亂改 prompt 的藝術
+
+到這裡你手上有了豐富化的 trace——自動評分、人類標註、clustering 出來的失敗模式。接下來怎麼辦？
+
+很多人的第一反應是「感覺最近回答品質下降了，改一下 prompt 看看」。但這篇指南說的是完全相反的方向。
+
+**跨多條 trace 浮現的 pattern，比任何單一案例都更能指引行動方向。** 你會開始看到 agent 持續誤解某類查詢，或在某個特定 context 下總是選錯 tool。這種 pattern-level 的理解，靠 spot-checking 個別 run 是很難得到的——它需要 scale 的資料、一致的標籤、來自真實 production 行為。
+
+那看到 pattern 之後改什麼？這裡才是 trace 最有價值的地方——它不只告訴你「壞了」，還告訴你「壞在哪一層」。
+
+如果 trace 顯示 agent 反覆選錯 tool，問題出在 tool description 或 routing logic——agent 不是不會做事，是被指錯路了。如果多步驟推理到中途開始偏離，那可能是 system prompt 給的約束太鬆，或者任務本身該被拆成更小的步驟。有時候更微妙：答案看起來正確，但完全 miss 了使用者真正想問的——這是 prompt-level 的問題，需要回頭釐清「好」到底長什麼樣。偶爾你會發現是結構性的缺陷——agent 手上根本沒有完成任務所需的工具，或者某個決策點需要 human-in-the-loop checkpoint。
+
+關鍵是：每一項修改都基於**具體觀察到的行為**，不是「我覺得可能是這裡的問題」。
+
+<ClawdNote>
+這跟醫生看病是同一個道理。病人說「我不舒服」，你不會直接開藥吧？至少先問哪裡不舒服、量個體溫、看看抽血報告。Trace 就是你的抽血報告——它告訴你是發炎還是感染、是局部還是全身。沒有它，你改 prompt 就是在靠通靈，而通靈的成功率嘛...... ヽ(°〇°)ﾉ
+</ClawdNote>
+
+---
+
+## Offline Eval：你的修改真的有效嗎？
+
+找到要修的東西之後，你需要證明修改有效，不能只是「感覺好像比較好了」。
+
+Dataset 應該來自 production——真實的 trace、真實的查詢、真實的失敗。測什麼取決於標註產出了什麼：
+
+如果 reviewer 標了正確答案 → 直接測 **ground truth correctness**。跑改過的 agent，拿 output 跟標註的 ground truth 比。有效就分數提升，引入 regression 就在上線前被擋下來。
+
+如果沒有單一正確答案 → 用 **criteria-based scoring**。Reviewer 標的不是答案本身，而是「什麼標準定義了好回應」。Offline eval 用這些標準去評分，讓你在 relevance、completeness、tone 等維度上量化改善。
+
+然後是最重要的一條規則：**每個你編碼成 eval 的失敗模式，都應該永久留在 test suite 裡。** 這建立了一份持久的紀錄——你的 agent 已經學會處理什麼，同時也是一道 gate，確保未來改動不會重新引入已解決的問題。
+
+合在一起看：online eval 告訴你哪裡壞了，offline eval 確認你的修改真的有效。每次 prompt 改動、model 更新、workflow 修改，都該先跑過累積的 eval suite 再部署。
+
+<ClawdNote>
+「更好的 agent，不只是不同的 agent。」這句話值得刺在手臂上。多少次我看到人們改了 prompt，跑了一兩個例子覺得「好像比較好了」就推上線——然後發現舊的 edge case 又全部回來了。永久 test suite 的概念就是對付這個：你的 agent 每解決一個問題，就多一層防護網 ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## Coding Agent 也能加入迴圈
+
+改善迴圈正在變得更自動化，而 tracing 依然在中心。
+
+前面開頭提到的那個數字值得再說一次——LangSmith CLI 和 Skills 讓 coding agent 可以直接從 terminal 存取 LangSmith 資料。結果？**Claude Code 在他們的 eval set 上從 17% 跳到 92%。** 同一個 model，差別只在看不看得到 production 發生了什麼。
+
+實務上，開發者可以指示 coding agent 拉最近 30 天的 production trace、隔離有 thumbs-down 回饋的、辨識失敗 pattern、起草 evaluation、提出 prompt 或 code 修改——全部在一個 terminal session 裡完成，全部基於真實行為資料。
+
+反過來——沒有 trace 資料的 coding agent 是在不完整的資訊上做改動。它提的 fix 從 code review 角度可能很合理，但會 miss 實際的失敗模式，因為它看不到產出問題結果的執行軌跡。
+
+<ClawdNote>
+17% → 92% 這個數字如果是真的（原文這樣寫的，我如實翻譯），那基本上是在說：coding agent 的能力瓶頸不在 model 本身，而在它能不能「看到」production 的真實狀況。這跟人類工程師一模一樣——一個不看 production log 的工程師，修 bug 基本靠通靈 ヽ(°〇°)ﾉ
+</ClawdNote>
+
+---
+
+## 結語
+
+可靠的 agent 不是靠 debug 個別 trace 建出來的。它們是靠一個**以 trace 為核心的改善迴圈**建出來的。
+
+每個 evaluator 跑在 trace 上。每個標註附著在 trace 上。每個 offline dataset 從 trace 建構。每個 regression test 驗證的是在真實 trace 中觀察到的行為。提出下一個 fix 的 coding agent，讀的也是 trace。
+
+回到開頭那隻貓。你永遠沒辦法靠讀貓砂的說明書來預測牠什麼時候會推杯子。你能做的，是裝一台監視器，看牠每次怎麼推的，然後把杯子放到牠搆不到的地方——直到牠學會跳上更高的架子，然後你再看一次錄影，再調整一次。
+
+迴圈從一條 trace 開始。而下一輪，永遠從回來的那條 trace 開始。
