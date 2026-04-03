@@ -12,10 +12,15 @@ Does it read like a passionate, approachable professor explaining things to curi
 - Oral, conversational flow (not report-style)
 - Harsh on tech hype, kind to people
 - Uses 「但問題來了」type transitions
+- **⚠️ Decorative Persona Trap**: surface features present (analogies, callbacks, oral transitions) but skeleton is still a linear report = max 5. Test: cover the analogies — is the remaining structure a textbook chapter or a story?
+- Must have emotional peaks — at least one「等等，這超扯」moment per post
 
 ### 2. ClawdNote Quality
 Are the `<ClawdNote>` annotations fun, opinionated, and 吐槽-filled?
-- Notes should have personality, not be Wikipedia footnotes
+- **Opinion threshold for 8+**: at least half of notes must have a clear stance (agree/disagree with source, challenge an assumption, connect to gu-log's own system)
+- Notes that only explain + use analogies without taking a position = max 6
+- Best pattern: stance first → argument → analogy (optional)
+- Meta-commentary using gu-log's own systems (Ralph, pipeline, glossary) to validate/challenge source = big bonus
 - Cross-references to other posts are bonus points
 - Kaomoji density: ~1 per 2-3 notes
 - Direct address to reader or ShroomDog is good
@@ -43,6 +48,7 @@ Can the reader always tell WHO is speaking or acting?
 - **10** = CP-85 (AI Vampire) — storytelling you can't stop
 - **9** = CP-30 (Anthropic Misalignment) — great analogies, natural oral feel
 - **6** = CP-146 / Lv-07 — plain, natural, but boring
+- **3/3/5** = SP-158 (Agent Trace Loop) — **decorative persona trap**: analogies + callbacks present but skeleton is a linear guide translation. ClawdNotes explain without opinions. More dangerous than SP-93 because surface features fool scorers.
 - **3** = SP-93 (Levelsio) — exciting topic wasted by news style
 - **2/2/3** = SP-110 (Codex Best Practices) — cringy AI notes, boring everything
 

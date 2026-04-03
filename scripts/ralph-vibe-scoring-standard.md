@@ -37,6 +37,13 @@ Posts scoring below 8 on any dimension → rewrite queue.
 - 長段 bullet list dump 沒有任何 personality 包裝
 - 「讓我們開始吧」「以下是重點整理」= 模板語言
 
+**🔴 Decorative Persona Trap（SP-158 教訓，最多 5 分）:**
+- 表面特徵齊全（有比喻、有 callback、有口語轉場）但讀起來仍然像「寫得好的新聞稿」而非「教授在聊天」
+- 判斷方法：把比喻和 callback 遮住，剩下的骨架是不是一篇線性報告？如果是 → 最多 5 分
+- 結構太線性（介紹 → 展開 → 再展開 → 結尾）= 教科書節奏不是說故事節奏
+- 全篇沒有一個「等等，這超扯」的爆點 = persona 是裝飾品不是骨架
+- **記住：SP-93 容易抓（完全沒 persona），SP-158 更危險（假 persona 騙 scorer）**
+
 ### 2. Clawd Note Score — 吐槽 + 洞察品質
 
 **What we're measuring:** Are the Clawd Notes fun, insightful, and opinionated? Or just Wikipedia footnotes?
@@ -64,11 +71,20 @@ Posts scoring below 8 on any dimension → rewrite queue.
 - 有立場（「我覺得他這點說對了」「這段我不同意」）
 - 用一句話讓複雜概念 click
 
+**🔴 Opinion Threshold（8 分門檻）:**
+- **全部 note 都是「解釋 + 比喻」但沒有自己立場 → 最高 6 分**
+- 8+ 的門檻：至少一半的 notes 要有明確 opinion（同意/不同意原文、提出原文沒講的觀點、challenge 某個假設）
+- 「我覺得作者這裡錯了，因為...」「這跟 CP-85 的結論矛盾」「gu-log 的 Ralph 系統就是這個理論的實作」= opinion
+- 「就像養了一隻貓」「就像存錢」「跟醫生看病一樣」= 比喻，不是 opinion
+- 好的 ClawdNote = 立場先行（「我同不同意」）→ 論證（「因為...」）→ 比喻加強（optional）
+- **Meta-commentary 大加分**：用 gu-log 自己的系統（Ralph、pipeline、glossary）去 validate 或 challenge 原文理論
+
 **Red flags:**
 - 純定義式解釋（「XXX 是一種...，由 YYY 在 ZZZ 年提出」）
 - 沒有 kaomoji（至少每 2-3 個 note 要有一個）
 - 太短（一行 note = 多半不夠有趣）
 - 沒有 opinion，只有 fact restatement
+- 全部 note 都在「解釋原文」而非「加入自己的觀點」— SP-158 的核心問題
 - 🔴 使用 CodexNote / GeminiNote / ClaudeCodeNote — 讀者不在乎哪個 model 寫的。所有 note 統一用 ClawdNote。暴露 pipeline diff = 直接扣 3 分。
 
 ### 3. Overall Vibe — Fun / Chill / Informed
@@ -143,6 +159,11 @@ Posts scoring below 8 on any dimension → rewrite queue.
 ### Score 2/2/3 — SP-110「Codex 10 Best Practices」
 - **Why 2/2/3:** Persona 離 LHY 差距巨大，讀起來像翻譯稿不像教授講課。ClawdNote 全部無聊（CEO 給 2 分），而且用了 CodexNote/GeminiNote 暴露 pipeline diff — 讀者不在乎哪個 model 寫的。Vibe 3 分，「wouldn't share to a friend, my friend would think I have no taste」。
 - **CEO note:** Fucking boring to read, cringy AI agent notes. CodexNote/GeminiNote 是 noise 不是 content。所有 note 統一用 ClawdNote 就好。
+
+### Score 3/3/5 — SP-158「Agent Trace Improvement Loop」
+- **Why 3/3/5:** 表面特徵齊全（貓比喻、callback 結尾、ClawdNote 密度夠）但讀起來仍然是 LangChain conceptual guide 的好翻譯，不是教授在講課。結構太線性（介紹 → 展開 → 再展開 → 結尾），沒有情緒起伏、沒有爆點。ClawdNotes 全部在「解釋 + 正經比喻」，沒有一個有自己立場的 opinion。Vibe 5 是因為資訊密度 OK 但讀完不會想轉給朋友。
+- **CEO note:** 人物感 3、vibe 5。「裝飾性 persona」的典型 — 有比喻有 callback 但骨子裡是新聞稿。Ralph 打 8/8/8 = scorer 被表面特徵騙了。這篇是 recalibration 的觸發點。
+- **⚠️ Key lesson:** 這種「表面合格但骨子裡無聊」的文章比 SP-93（完全沒 persona）更危險，因為 scorer 會被騙。SP-93 很好抓，SP-158 要刻意去「感受」才知道爛。
 
 ### Score 6 — CP-146「Simon Willison Anti-Patterns」
 - **Why 6:** 開頭不錯（場景描述），但中段變成 plain reporting。ClawdNote 引用社群回覆但自己的聲量不夠。整體 natural 但 boring — 沒達到 gu-log 的高標準。
