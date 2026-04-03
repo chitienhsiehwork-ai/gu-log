@@ -7,20 +7,23 @@
  *   node scripts/frontmatter-scores.mjs write  <file_path> <judge> <score_json>
  *   node scripts/frontmatter-scores.mjs delete <file_path> <judge>
  *
- * Judges: gemini | codex | opus
+ * Judges: gemini | codex | opus | sonnet
  *
  * Frontmatter storage format:
- *   gemini  → scores.gemini { score, date }
- *   codex   → scores.codex  { score, date }
- *   opus    → scores.ralph  { p, c, v, cl?, date }  (p=persona c=clawdNote v=vibe cl=clarity)
+ *   gemini  → scores.gemini  { score, date }
+ *   codex   → scores.codex   { score, date }
+ *   opus    → scores.ralph   { p, c, v, cl?, date }  (p=persona c=clawdNote v=vibe cl=clarity)
+ *   sonnet  → scores.sonnet  { r, g, date }  (r=readability g=glossary)
  *
  * get output (stdout JSON, empty = not found):
  *   gemini/codex → { score: N }
  *   opus         → { score: min(p,c,v[,cl]), details: { persona: N, clawdNote: N, vibe: N, clarity?: N } }
+ *   sonnet       → { score: N, details: { readability: N, glossary: N } }
  *
  * write input (score_json from judge daemon):
  *   gemini/codex → { score: N, ... }
  *   opus         → { score: N, details: { persona: N, clawdNote: N, vibe: N, clarity?: N }, ... }
+ *   sonnet       → { score: N, details: { readability: N, glossary: N }, ... }
  */
 
 import fs from 'fs';
@@ -35,13 +38,13 @@ if (!op || !filePath || !judge) {
   process.exit(1);
 }
 
-if (!['gemini', 'codex', 'opus'].includes(judge)) {
-  process.stderr.write(`Unknown judge: ${judge}. Expected gemini, codex, or opus.\n`);
+if (!['gemini', 'codex', 'opus', 'sonnet'].includes(judge)) {
+  process.stderr.write(`Unknown judge: ${judge}. Expected gemini, codex, opus, or sonnet.\n`);
   process.exit(1);
 }
 
 // Map judge name → frontmatter key
-const FM_KEY = { gemini: 'gemini', codex: 'codex', opus: 'ralph' };
+const FM_KEY = { gemini: 'gemini', codex: 'codex', opus: 'ralph', sonnet: 'sonnet' };
 const fmKey = FM_KEY[judge];
 
 // ─── Frontmatter parser ────────────────────────────────────────────────────
@@ -188,6 +191,12 @@ function opGet() {
 
     const minScore = Math.min(...dimensions);
     output = { score: minScore, details };
+  } else if (judge === 'sonnet') {
+    // sonnet: { r, g, date } → { score: floor(avg), details: { readability, glossary } }
+    const { r, g } = entry;
+    if (r == null || g == null) process.exit(0);
+    const composite = Math.floor((r + g) / 2);
+    output = { score: composite, details: { readability: r, glossary: g } };
   } else {
     // gemini/codex: { score, date } → { score: N }
     if (entry.score == null) process.exit(0);
@@ -237,6 +246,14 @@ function opWrite() {
     if (scoreData.model) entry.model = scoreData.model;
     if (scoreData.harness) entry.harness = scoreData.harness;
     scores['ralph'] = entry;
+  } else if (judge === 'sonnet') {
+    const readability = scoreData.details?.readability ?? scoreData.score ?? 0;
+    const glossary = scoreData.details?.glossary ?? scoreData.score ?? 0;
+    const entry = { r: readability, g: glossary };
+    entry.date = today;
+    if (scoreData.model) entry.model = scoreData.model;
+    if (scoreData.harness) entry.harness = scoreData.harness;
+    scores['sonnet'] = entry;
   } else {
     // gemini or codex
     const entry = { score: scoreData.score, date: today };

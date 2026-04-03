@@ -25,6 +25,8 @@ TRIBUNAL_CODEX_MIN=8
 TRIBUNAL_OPUS_PERSONA_MIN=8
 TRIBUNAL_OPUS_CLAWDNOTE_MIN=8
 TRIBUNAL_OPUS_VIBE_MIN=8
+TRIBUNAL_SONNET_READABILITY_MIN=8
+TRIBUNAL_SONNET_GLOSSARY_MIN=8
 TRIBUNAL_MAX_ROUNDS=3
 
 # ─── Paths ───
@@ -98,11 +100,19 @@ post_passes_tribunal() {
   oclawdnote="$(jq -r '.details.clawdNote // 0' <<< "$opus_entry")"
   ovibe="$(jq -r '.details.vibe // 0' <<< "$opus_entry")"
 
+  local sreadability sglossary
+  local sonnet_entry
+  sonnet_entry="$(get_score sonnet "$ticket_id")"
+  sreadability="$(jq -r '.details.readability // 0' <<< "$sonnet_entry")"
+  sglossary="$(jq -r '.details.glossary // 0' <<< "$sonnet_entry")"
+
   [ "$gscore" -ge "$TRIBUNAL_GEMINI_MIN" ] \
     && [ "$cscore" -ge "$TRIBUNAL_CODEX_MIN" ] \
     && [ "$opersona" -ge "$TRIBUNAL_OPUS_PERSONA_MIN" ] \
     && [ "$oclawdnote" -ge "$TRIBUNAL_OPUS_CLAWDNOTE_MIN" ] \
-    && [ "$ovibe" -ge "$TRIBUNAL_OPUS_VIBE_MIN" ]
+    && [ "$ovibe" -ge "$TRIBUNAL_OPUS_VIBE_MIN" ] \
+    && [ "$sreadability" -ge "$TRIBUNAL_SONNET_READABILITY_MIN" ] \
+    && [ "$sglossary" -ge "$TRIBUNAL_SONNET_GLOSSARY_MIN" ]
 }
 
 # ─── Build tribunal queue ───
@@ -114,10 +124,11 @@ build_tribunal_queue() {
     ticket_id="$(get_ticket_id "$ROOT_DIR/src/content/posts/$post_file")"
     [ -n "$ticket_id" ] || continue
 
-    # Must have all 3 scores
+    # Must have all 4 scores
     [ -n "$(get_score gemini "$ticket_id")" ] || continue
     [ -n "$(get_score codex "$ticket_id")" ] || continue
     [ -n "$(get_score opus "$ticket_id")" ] || continue
+    [ -n "$(get_score sonnet "$ticket_id")" ] || continue
 
     # Must fail at least one threshold
     if ! post_passes_tribunal "$ticket_id"; then
@@ -151,10 +162,11 @@ log_scores() {
   local ticket_id="$1"
   local gscore cscore opersona oclawdnote ovibe opus_overall
 
-  local gemini_entry codex_entry opus_entry
+  local gemini_entry codex_entry opus_entry sonnet_entry
   gemini_entry="$(get_score gemini "$ticket_id")"
   codex_entry="$(get_score codex "$ticket_id")"
   opus_entry="$(get_score opus "$ticket_id")"
+  sonnet_entry="$(get_score sonnet "$ticket_id")"
 
   gscore="$(jq -r '.score // "?"' <<< "$gemini_entry")"
   local greasonlng
@@ -169,10 +181,18 @@ log_scores() {
   oclawdnote="$(jq -r '.details.clawdNote // "?"' <<< "$opus_entry")"
   ovibe="$(jq -r '.details.vibe // "?"' <<< "$opus_entry")"
 
+  local sreadability_log sglossary_log sreadnote sglossnote
+  sreadability_log="$(jq -r '.details.readability // "?"' <<< "$sonnet_entry")"
+  sglossary_log="$(jq -r '.details.glossary // "?"' <<< "$sonnet_entry")"
+  sreadnote="$(jq -r '.details.readabilityNote // ""' <<< "$sonnet_entry" | head -c 200)"
+  sglossnote="$(jq -r '.details.glossaryNote // ""' <<< "$sonnet_entry" | head -c 200)"
+
   tlog "  Scores for $ticket_id:"
   tlog "    Gemini=$gscore (min $TRIBUNAL_GEMINI_MIN) | $greasonlng"
   tlog "    Codex=$cscore (min $TRIBUNAL_CODEX_MIN) | $creasoning"
   tlog "    Opus overall=$opus_overall | persona=$opersona (min $TRIBUNAL_OPUS_PERSONA_MIN), clawdNote=$oclawdnote (min $TRIBUNAL_OPUS_CLAWDNOTE_MIN), vibe=$ovibe (min $TRIBUNAL_OPUS_VIBE_MIN)"
+  tlog "    Sonnet readability=$sreadability_log (min $TRIBUNAL_SONNET_READABILITY_MIN) | $sreadnote"
+  tlog "    Sonnet glossary=$sglossary_log (min $TRIBUNAL_SONNET_GLOSSARY_MIN) | $sglossnote"
 }
 
 # ─── Build rewrite prompt incorporating all 3 judges' feedback ───
@@ -180,10 +200,11 @@ build_rewrite_prompt() {
   local post_file="$1"
   local ticket_id="$2"
 
-  local gemini_entry codex_entry opus_entry
+  local gemini_entry codex_entry opus_entry sonnet_entry
   gemini_entry="$(get_score gemini "$ticket_id")"
   codex_entry="$(get_score codex "$ticket_id")"
   opus_entry="$(get_score opus "$ticket_id")"
+  sonnet_entry="$(get_score sonnet "$ticket_id")"
 
   local gscore greasonig gunlinked
   gscore="$(jq -r '.score // "?"' <<< "$gemini_entry")"
@@ -202,6 +223,15 @@ build_rewrite_prompt() {
   opus_pfeedback="$(jq -r '.details.personaFeedback // "(see persona score)"' <<< "$opus_entry")"
   opus_cfeedback="$(jq -r '.details.clawdNoteFeedback // "(see clawdNote score)"' <<< "$opus_entry")"
   opus_vfeedback="$(jq -r '.details.vibeFeedback // "(see vibe score)"' <<< "$opus_entry")"
+
+  local sreadability sglossary sreadnote sglossnote sconfusion smissing sunlinked_sonnet
+  sreadability="$(jq -r '.details.readability // "?"' <<< "$sonnet_entry")"
+  sglossary="$(jq -r '.details.glossary // "?"' <<< "$sonnet_entry")"
+  sreadnote="$(jq -r '.details.readabilityNote // "(no note)"' <<< "$sonnet_entry")"
+  sglossnote="$(jq -r '.details.glossaryNote // "(no note)"' <<< "$sonnet_entry")"
+  sconfusion="$(jq -r '(.details.confusionPoints // []) | join("; ")' <<< "$sonnet_entry")"
+  smissing="$(jq -r '(.details.missingTerms // []) | join(", ")' <<< "$sonnet_entry")"
+  sunlinked_sonnet="$(jq -r '(.details.unlinkedTerms // []) | join(", ")' <<< "$sonnet_entry")"
 
   local en_file="en-$post_file"
   local en_path="src/content/posts/$en_file"
@@ -231,14 +261,22 @@ Overall: $opus_overall
   clawdNote: $oclawdnote / 10 (need >= $TRIBUNAL_OPUS_CLAWDNOTE_MIN) — $opus_cfeedback
   vibe: $ovibe / 10 (need >= $TRIBUNAL_OPUS_VIBE_MIN) — $opus_vfeedback
 
+### Judge 4: Sonnet Readability Reviewer
+Readability: $sreadability / 10 (need >= $TRIBUNAL_SONNET_READABILITY_MIN) — $sreadnote
+Glossary: $sglossary / 10 (need >= $TRIBUNAL_SONNET_GLOSSARY_MIN) — $sglossnote
+Confusion points: $sconfusion
+Missing glossary terms: $smissing
+Unlinked glossary terms: $sunlinked_sonnet
+
 ## Task
-Rewrite src/content/posts/$post_file to fix EVERY issue flagged by ALL THREE judges above.
+Rewrite src/content/posts/$post_file to fix EVERY issue flagged by ALL FOUR judges above.
 Also create/rewrite the English version at $en_path with lang: en and same ticketId.
 
 ## Rules
 - Fix ALL Gemini issues: add missing internal links (use /posts/slug format), add attribution, link glossary terms
 - Fix ALL Codex issues: correct or remove unsupported claims, add hedging for unverifiable statements
 - Fix ALL Opus issues: improve persona (LHY professor style), strengthen ClawdNotes, boost overall vibe
+- Fix ALL Sonnet issues: clarify confusing passages, add brief explanations for jargon, link glossary terms the readability reviewer flagged
 - Keep ALL existing frontmatter fields intact (ticketId, source, sourceUrl, title, summary, tags, lang, dates)
 - Do NOT touch translatedBy — the shell handles that automatically
 - ALL annotation components must be <ClawdNote> (convert any CodexNote/GeminiNote/ClaudeCodeNote)
@@ -334,11 +372,12 @@ process_post() {
   stamp_ralph_signature "$post_path"
   [ -f "$en_path" ] && stamp_ralph_signature "$en_path"
 
-  # Clear scores from ALL 3 manifests (triggers re-queue in next round)
-  tlog "  Clearing scores for $ticket_id from all 3 manifests..."
+  # Clear scores from ALL 4 manifests (triggers re-queue in next round)
+  tlog "  Clearing scores for $ticket_id from all 4 manifests..."
   delete_score_entry gemini "$ticket_id"
   delete_score_entry codex "$ticket_id"
   delete_score_entry opus "$ticket_id"
+  delete_score_entry sonnet "$ticket_id"
 
   # Increment tribunal iteration
   local new_iter=$(( iteration + 1 ))
@@ -355,7 +394,7 @@ process_post() {
 tribunal(${ticket_id}): rewrite round $new_iter — clear frontmatter scores for re-judging
 
 Tribunal iteration $new_iter / $TRIBUNAL_MAX_ROUNDS.
-Scores cleared from frontmatter: Gemini, Codex, Opus — will re-queue in next orchestrator round.
+Scores cleared from frontmatter: Gemini, Codex, Opus, Sonnet — will re-queue in next orchestrator round.
 
 Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
 EOF
@@ -400,7 +439,10 @@ for post_file in "${QUEUE[@]}"; do
     opersona="$(jq -r '.details.persona // "?"' <<< "$opus_entry")"
     oclawdnote="$(jq -r '.details.clawdNote // "?"' <<< "$opus_entry")"
     ovibe="$(jq -r '.details.vibe // "?"' <<< "$opus_entry")"
-    tlog "[DRY-RUN] $post_file ($ticket_id) iter=$iteration — Gemini=$gscore Codex=$cscore Opus=${opersona}/${oclawdnote}/${ovibe}"
+    sonnet_entry="$(get_score sonnet "$ticket_id")"
+    sread="$(jq -r '.details.readability // "?"' <<< "$sonnet_entry")"
+    sgloss="$(jq -r '.details.glossary // "?"' <<< "$sonnet_entry")"
+    tlog "[DRY-RUN] $post_file ($ticket_id) iter=$iteration — Gemini=$gscore Codex=$cscore Opus=${opersona}/${oclawdnote}/${ovibe} Sonnet=${sread}/${sgloss}"
     PROCESSED=$(( PROCESSED + 1 ))
     continue
   fi

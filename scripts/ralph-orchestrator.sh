@@ -130,26 +130,28 @@ run_one_round() {
   # Invalidate quota cache for fresh check
   quota_invalidate_cache
 
-  local gemini_status codex_status claude_status
+  local gemini_status codex_status claude_status sonnet_status
   gemini_status="$(gemini_real_quota_check)"
   codex_status="$(codex_real_quota_check)"
   claude_status="$(claude_real_quota_check)"
+  # Sonnet shares Anthropic quota but is much cheaper; check separately for logging
+  sonnet_status="$claude_status"
 
-  log "Quota: Gemini=$gemini_status, Codex=$codex_status, Claude=$claude_status"
+  log "Quota: Gemini=$gemini_status, Codex=$codex_status, Claude=$claude_status, Sonnet=$sonnet_status"
 
   # ─── All exhausted? Calculate smart sleep ───
-  if ! can_run "$gemini_status" && ! can_run "$codex_status"; then
+  if ! can_run "$gemini_status" && ! can_run "$codex_status" && ! can_run "$sonnet_status"; then
     # Find earliest reset across all providers
     local earliest_sleep
-    earliest_sleep="$(_earliest_reset "$gemini_status" "$codex_status")"
-    log "Both Gemini and Codex unavailable. Next reset in ${earliest_sleep}s ($(human_duration "$earliest_sleep"))"
+    earliest_sleep="$(_earliest_reset "$gemini_status" "$codex_status" "$sonnet_status")"
+    log "All fan-out judges unavailable. Next reset in ${earliest_sleep}s ($(human_duration "$earliest_sleep"))"
     # Write sleep duration to temp file for daemon to read (can't use stdout)
     echo "$earliest_sleep" > /tmp/ralph-orchestrator-sleep
     return 2  # exit code 2 = all exhausted
   fi
 
-  # ─── Phase 1: Fan-out Gemini + Codex in parallel ───
-  local GEMINI_PID="" CODEX_PID="" GEMINI_EXIT=0 CODEX_EXIT=0
+  # ─── Phase 1: Fan-out Gemini + Codex + Sonnet in parallel ───
+  local GEMINI_PID="" CODEX_PID="" SONNET_PID="" GEMINI_EXIT=0 CODEX_EXIT=0 SONNET_EXIT=0
 
   if can_run "$gemini_status"; then
     log "Starting Gemini judge (limit=$LIMIT)..."
@@ -167,8 +169,17 @@ run_one_round() {
     log "Skipping Codex ($codex_status)"
   fi
 
+  if can_run "$sonnet_status"; then
+    log "Starting Sonnet judge (limit=$LIMIT)..."
+    bash "$ROOT_DIR/scripts/score-loop-engine.sh" sonnet "$LIMIT" >> "$round_log" 2>&1 &
+    SONNET_PID=$!
+  else
+    log "Skipping Sonnet ($sonnet_status)"
+  fi
+
   [ -n "$GEMINI_PID" ] && { wait "$GEMINI_PID" || GEMINI_EXIT=$?; log "Gemini done (exit=$GEMINI_EXIT)"; }
   [ -n "$CODEX_PID" ] && { wait "$CODEX_PID" || CODEX_EXIT=$?; log "Codex done (exit=$CODEX_EXIT)"; }
+  [ -n "$SONNET_PID" ] && { wait "$SONNET_PID" || SONNET_EXIT=$?; log "Sonnet done (exit=$SONNET_EXIT)"; }
 
   # ─── Phase 2: Fan-in — Opus ───
   quota_invalidate_cache
@@ -207,6 +218,7 @@ run_one_round() {
         [ -n "$(get_score gemini "$tid")" ] || continue
         [ -n "$(get_score codex "$tid")" ] || continue
         [ -n "$(get_score opus "$tid")" ] || continue
+        [ -n "$(get_score sonnet "$tid")" ] || continue
         # Check if it fails threshold (any score below min)
         gscore="$(jq -r '.score // 0' <<< "$(get_score gemini "$tid")")"
         cscore="$(jq -r '.score // 0' <<< "$(get_score codex "$tid")")"
@@ -214,8 +226,12 @@ run_one_round() {
         op="$(jq -r '.details.persona // 0' <<< "$opus_e")"
         oc_n="$(jq -r '.details.clawdNote // 0' <<< "$opus_e")"
         ov="$(jq -r '.details.vibe // 0' <<< "$opus_e")"
+        sonnet_e="$(get_score sonnet "$tid")"
+        sr="$(jq -r '.details.readability // 0' <<< "$sonnet_e")"
+        sg="$(jq -r '.details.glossary // 0' <<< "$sonnet_e")"
         if [ "$gscore" -lt 9 ] || [ "$cscore" -lt 9 ] \
-          || [ "$op" -lt 8 ] || [ "$oc_n" -lt 8 ] || [ "$ov" -lt 8 ]; then
+          || [ "$op" -lt 8 ] || [ "$oc_n" -lt 8 ] || [ "$ov" -lt 8 ] \
+          || [ "$sr" -lt 8 ] || [ "$sg" -lt 8 ]; then
           echo "$pf"
         fi
       done < <(list_all_posts)
@@ -238,11 +254,12 @@ run_one_round() {
   # ─── Round summary ───
   local TODAY_STAMP
   TODAY_STAMP="$(TZ=Asia/Taipei date +%Y%m%d)"
-  local gc cc oc
+  local gc cc oc sc
   gc="$(grep -c "Recorded.*=> score" "$LOG_DIR/gemini-${TODAY_STAMP}.log" 2>/dev/null || echo 0)"
   cc="$(grep -c "Recorded.*=> score" "$LOG_DIR/codex-${TODAY_STAMP}.log" 2>/dev/null || echo 0)"
   oc="$(grep -c "Recorded.*=> score" "$LOG_DIR/opus-${TODAY_STAMP}.log" 2>/dev/null || echo 0)"
-  log "Round complete. Today: Gemini=$gc, Codex=$cc, Opus=$oc"
+  sc="$(grep -c "Recorded.*=> score" "$LOG_DIR/sonnet-${TODAY_STAMP}.log" 2>/dev/null || echo 0)"
+  log "Round complete. Today: Gemini=$gc, Codex=$cc, Opus=$oc, Sonnet=$sc"
 
   return 0  # exit code 0 = normal round completed
 }

@@ -14,6 +14,7 @@ interface Props {
     ralph?: { p: number; c: number; v: number; date: string; model?: string; harness?: string };
     gemini?: { score: number; date: string; model?: string; harness?: string };
     codex?: { score: number; date: string; model?: string; harness?: string };
+    sonnet?: { r: number; g: number; date: string; model?: string; harness?: string };
   };
   lang?: string;
 }
@@ -21,7 +22,7 @@ interface Props {
 const { scores, lang = 'zh-tw' } = Astro.props;
 
 const REPO_BASE = 'https://github.com/chitienhsiehwork-ai/gu-log/blob/main';
-const hasScores = scores && (scores.ralph || scores.gemini != null || scores.codex != null);
+const hasScores = scores && (scores.ralph || scores.gemini != null || scores.codex != null || scores.sonnet != null);
 
 const vibeScores = scores?.ralph
   ? { persona: scores.ralph.p, clawdNote: scores.ralph.c, vibe: scores.ralph.v }
@@ -34,6 +35,14 @@ const vibeComposite = vibeScores
 const crossRefScore = scores?.gemini?.score ?? null;
 const factCheckScore = scores?.codex?.score ?? null;
 
+const readabilityScores = scores?.sonnet
+  ? { readability: scores.sonnet.r, glossary: scores.sonnet.g }
+  : null;
+
+const readabilityComposite = readabilityScores
+  ? Math.floor((readabilityScores.readability + readabilityScores.glossary) / 2)
+  : null;
+
 const scriptLink = `${REPO_BASE}/scripts/ralph-orchestrator.sh`;
 
 // Model/harness info per judge
@@ -43,6 +52,8 @@ const codexModelInfo =
   [scores?.codex?.model, scores?.codex?.harness].filter(Boolean).join(' · ') || null;
 const ralphModelInfo =
   [scores?.ralph?.model, scores?.ralph?.harness].filter(Boolean).join(' · ') || null;
+const sonnetModelInfo =
+  [scores?.sonnet?.model, scores?.sonnet?.harness].filter(Boolean).join(' · ') || null;
 
 function scoreClass(_score: number): string {
   return 'score-neutral';
@@ -192,6 +203,56 @@ function scoreClass(_score: number): string {
             {ralphModelInfo && <div class="model-info">{ralphModelInfo}</div>}
           </div>
         )}
+
+        {readabilityScores && readabilityComposite != null && (
+          <div class="judge-card">
+            <div class="card-header">
+              <span class="judge-icon judge-color-readability">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              </span>
+              <div class="card-meta">
+                <span class="judge-name judge-color-readability">Reader</span>
+                <a
+                  href={`${REPO_BASE}/scripts/prompts/readability-reviewer.md`}
+                  target="_blank"
+                  rel="noopener"
+                  class="judge-link"
+                >
+                  {lang === 'zh-tw' ? '可讀性' : 'Readability'}
+                </a>
+              </div>
+            </div>
+            <div class={`card-score ${scoreClass(readabilityComposite)}`}>
+              {readabilityComposite}
+              <span class="score-denom">/10</span>
+            </div>
+            <div class="vibe-sub">
+              <span class="vibe-dim">
+                {lang === 'zh-tw' ? '易讀' : 'Read'}
+                <strong class={scoreClass(readabilityScores.readability)}>{readabilityScores.readability}</strong>
+              </span>
+              <span class="vibe-sep">·</span>
+              <span class="vibe-dim">
+                {lang === 'zh-tw' ? '詞彙' : 'Terms'}
+                <strong class={scoreClass(readabilityScores.glossary)}>{readabilityScores.glossary}</strong>
+              </span>
+            </div>
+            {sonnetModelInfo && <div class="model-info">{sonnetModelInfo}</div>}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -231,7 +292,7 @@ function scoreClass(_score: number): string {
 
   .judge-cards {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 0.75rem;
   }
 
@@ -306,6 +367,9 @@ function scoreClass(_score: number): string {
   .judge-color-vibe {
     color: #fbbf24; /* bright amber — 5.48:1 on dark */
   }
+  .judge-color-readability {
+    color: #c084fc; /* bright purple — good contrast on dark */
+  }
 
   :global([data-theme='light']) .judge-color-curator {
     color: #1d4ed8; /* tailwind blue-700 */
@@ -315,6 +379,9 @@ function scoreClass(_score: number): string {
   }
   :global([data-theme='light']) .judge-color-vibe {
     color: #a16207; /* tailwind yellow-700 */
+  }
+  :global([data-theme='light']) .judge-color-readability {
+    color: #7e22ce; /* tailwind purple-700 */
   }
 
   /* Score value colors — also theme-aware */

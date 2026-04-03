@@ -80,6 +80,20 @@ case "$JUDGE" in
       fi
     done
     ;;
+  sonnet)
+    # Sonnet needs readability + glossary sub-scores
+    for field in readability glossary; do
+      val="$(jq -r ".scores.${field}.score // empty" "$JSON_FILE")"
+      if [ -z "$val" ]; then
+        echo "ERROR: Missing 'scores.${field}.score' for sonnet judge"
+        exit 1
+      fi
+      if ! [[ "$val" =~ ^[0-9]+$ ]] || [ "$val" -lt 0 ] || [ "$val" -gt 10 ]; then
+        echo "ERROR: 'scores.${field}.score' must be integer 0-10, got: $val"
+        exit 1
+      fi
+    done
+    ;;
 esac
 
 echo "OK"

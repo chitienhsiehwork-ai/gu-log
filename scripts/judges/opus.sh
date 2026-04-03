@@ -25,6 +25,7 @@ judge_build_queue() {
 
     if [ -n "$(get_score gemini "$ticket_id")" ] \
       && [ -n "$(get_score codex "$ticket_id")" ] \
+      && [ -n "$(get_score sonnet "$ticket_id")" ] \
       && [ -z "$(get_score opus "$ticket_id")" ]; then
       echo "$post_file"
     fi

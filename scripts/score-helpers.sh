@@ -272,6 +272,15 @@ validate_judge_score_json() {
       [ "$clawd_note" -ge 0 ] && [ "$clawd_note" -le 10 ] || return 1
       [ "$vibe" -ge 0 ] && [ "$vibe" -le 10 ] || return 1
       ;;
+    sonnet)
+      local readability glossary_score
+      readability="$(jq -r '.details.readability // empty' "$json_file")"
+      glossary_score="$(jq -r '.details.glossary // empty' "$json_file")"
+      [[ "$readability" =~ ^[0-9]+$ ]] || return 1
+      [[ "$glossary_score" =~ ^[0-9]+$ ]] || return 1
+      [ "$readability" -ge 0 ] && [ "$readability" -le 10 ] || return 1
+      [ "$glossary_score" -ge 0 ] && [ "$glossary_score" -le 10 ] || return 1
+      ;;
     *)
       return 1
       ;;
