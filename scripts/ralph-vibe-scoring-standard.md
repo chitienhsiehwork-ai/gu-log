@@ -1,7 +1,7 @@
 # Ralph Vibe Scoring Standard v1.1
 
 > Golden standard for evaluating gu-log post quality.
-> Calibrated 2026-03-17 by CEO (ShroomDog) + CTO (Clawd).
+> Calibrated 2026-03-17 by ShroomDog + Clawd.
 
 ## Publishing Bar: 8/10 minimum on EVERY scored dimension
 
@@ -60,7 +60,7 @@ Posts scoring below 8 on any dimension → rewrite queue.
 **ClawdNote density standard:**
 - 目標：每 ~25-30 行 prose 一個 ClawdNote（不含 frontmatter/imports/code blocks）
 - 參考 CP-30：5 notes / 156 lines = ~1 per 31 lines ✅
-- 參考 CP-85：6 notes / 187 lines = ~1 per 31 lines ✅（但 CEO 說密度可以再高）
+- 參考 CP-85：6 notes / 187 lines = ~1 per 31 lines ✅（但 ShroomDog 說密度可以再高）
 - 參考 SP-93：3 notes / 140 lines = ~1 per 47 lines ❌ 太稀
 - **建議密度：1 note per 25 lines（prose 行數）**
 
@@ -74,10 +74,10 @@ Posts scoring below 8 on any dimension → rewrite queue.
 **🔴 Opinion Threshold（8 分門檻）:**
 - **全部 note 都是「解釋 + 比喻」但沒有自己立場 → 最高 6 分**
 - 8+ 的門檻：至少一半的 notes 要有明確 opinion（同意/不同意原文、提出原文沒講的觀點、challenge 某個假設）
-- 「我覺得作者這裡錯了，因為...」「這跟 CP-85 的結論矛盾」「gu-log 的 Ralph 系統就是這個理論的實作」= opinion
+- 「我覺得作者這裡錯了，因為...」「這跟 CP-85 的結論矛盾」「gu-log 的 vibe scoring 系統就是這個理論的實作」= opinion
 - 「就像養了一隻貓」「就像存錢」「跟醫生看病一樣」= 比喻，不是 opinion
 - 好的 ClawdNote = 立場先行（「我同不同意」）→ 論證（「因為...」）→ 比喻加強（optional）
-- **Meta-commentary 大加分**：用 gu-log 自己的系統（Ralph、pipeline、glossary）去 validate 或 challenge 原文理論
+- **Meta-commentary 大加分**：用 gu-log 自己的系統（Ralph Loop、vibe scorer、pipeline、glossary）去 validate 或 challenge 原文理論
 
 **Red flags:**
 - 純定義式解釋（「XXX 是一種...，由 YYY 在 ZZZ 年提出」）
@@ -146,37 +146,37 @@ Posts scoring below 8 on any dimension → rewrite queue.
 
 ### Score 10 — CP-85「AI Vampire / Steve Yegge」
 - **Why 10:** Storytelling 不想停。$/hr 公式讓人記住。Colin Robinson 比喻完美。結尾 callback 多篇文章形成知識網。Cross-reference CP-53, CP-79, CP-83。
-- **CEO note:** Vibe outstanding 但 ClawdNote 密度可再高（6 notes / 187 lines），多 2 個更好。文字稍微不如 LHY 那麼平易近人。
+- **ShroomDog note:** Vibe outstanding 但 ClawdNote 密度可再高（6 notes / 187 lines），多 2 個更好。文字稍微不如 LHY 那麼平易近人。
 
 ### Score 9 — CP-30「Anthropic Misalignment Hot Mess」
 - **Why 9:** 比喻到位（金魚讀文章、期末考、學渣選C）。口語自然。Clawd Notes 有吐槽有自嘲。
-- **CEO note:** 已經很好，LHY 真人水準可能更 approachable 一點，但 9 分夠資格發布。
+- **ShroomDog note:** 已經很好，LHY 真人水準可能更 approachable 一點，但 9 分夠資格發布。
 
 ### Score 3 — SP-93「Levelsio 清空待辦清單」
 - **Why 3:** 題材超有趣但被寫成新聞稿 — 浪費好題材罪加一等。開場「各位觀眾好，今天這篇文章非常硬核」太生硬。Clawd Notes 只有 3 個且偏分析。結尾一大段 bullet dump + 勵志文收尾。Levelsio 是最有故事性的 indie hacker 之一，結果讀起來像在看 TechCrunch press release。
-- **CEO note:** 明明 Levelsio 的故事很 exciting，讀起來卻超爆無聊。3/3/3 — 浪費好題材比題材本身無聊更嚴重。
+- **ShroomDog note:** 明明 Levelsio 的故事很 exciting，讀起來卻超爆無聊。3/3/3 — 浪費好題材比題材本身無聊更嚴重。
 
 ### Score 2/2/3 — SP-110「Codex 10 Best Practices」
-- **Why 2/2/3:** Persona 離 LHY 差距巨大，讀起來像翻譯稿不像教授講課。ClawdNote 全部無聊（CEO 給 2 分），而且用了 CodexNote/GeminiNote 暴露 pipeline diff — 讀者不在乎哪個 model 寫的。Vibe 3 分，「wouldn't share to a friend, my friend would think I have no taste」。
-- **CEO note:** Fucking boring to read, cringy AI agent notes. CodexNote/GeminiNote 是 noise 不是 content。所有 note 統一用 ClawdNote 就好。
+- **Why 2/2/3:** Persona 離 LHY 差距巨大，讀起來像翻譯稿不像教授講課。ClawdNote 全部無聊（ShroomDog 給 2 分），而且用了 CodexNote/GeminiNote 暴露 pipeline diff — 讀者不在乎哪個 model 寫的。Vibe 3 分，「wouldn't share to a friend, my friend would think I have no taste」。
+- **ShroomDog note:** Fucking boring to read, cringy AI agent notes. CodexNote/GeminiNote 是 noise 不是 content。所有 note 統一用 ClawdNote 就好。
 
 ### Score 3/3/5 → Rewrite — SP-158「Agent Trace Improvement Loop」
 - **Why 3/3/5:** 表面特徵齊全（貓比喻、callback 結尾、ClawdNote 密度夠）但讀起來仍然是 LangChain conceptual guide 的好翻譯，不是教授在講課。結構太線性（介紹 → 展開 → 再展開 → 結尾），沒有情緒起伏、沒有爆點。ClawdNotes 全部在「解釋 + 正經比喻」，沒有一個有自己立場的 opinion。Vibe 5 是因為資訊密度 OK 但讀完不會想轉給朋友。
-- **CEO note:** 人物感 3、vibe 5。「裝飾性 persona」的典型 — 有比喻有 callback 但骨子裡是新聞稿。Ralph 打 8/8/8 = scorer 被表面特徵騙了。這篇是 recalibration 的觸發點。
+- **ShroomDog note:** 人物感 3、vibe 5。「裝飾性 persona」的典型 — 有比喻有 callback 但骨子裡是新聞稿。vibe scorer 打 8/8/8 = scorer 被表面特徵騙了。這篇是 recalibration 的觸發點。
 - **⚠️ Key lesson:** 這種「表面合格但骨子裡無聊」的文章比 SP-93（完全沒 persona）更危險，因為 scorer 會被騙。SP-93 很好抓，SP-158 要刻意去「感受」才知道爛。
 - **📚 Before/After Study Pair:**
   - Before: `fa338ed` (persona 3 / vibe 5 — decorative persona trap)
   - After: `74095c4` (rewrite with opinion-first ClawdNotes + meta-commentary)
   - **Run `git diff fa338ed 74095c4 -- src/content/posts/sp-158*` to study the transformation**
-  - Key changes: linear structure → narrative tension; explain-only notes → opinion-first stance; no meta → gu-log's Ralph system as living proof of the article's theory
+  - Key changes: linear structure → narrative tension; explain-only notes → opinion-first stance; no meta → gu-log's vibe scoring system as living proof of the article's theory
 
 ### Score 6 — CP-146「Simon Willison Anti-Patterns」
 - **Why 6:** 開頭不錯（場景描述），但中段變成 plain reporting。ClawdNote 引用社群回覆但自己的聲量不夠。整體 natural 但 boring — 沒達到 gu-log 的高標準。
-- **CEO note:** Plain, natural, but boring. 三個維度都是 6。
+- **ShroomDog note:** Plain, natural, but boring. 三個維度都是 6。
 
 ### Score 6 — Lv-07「OpenClaw Testing」
 - **Why 6:** ClawdNote 可以更好。Content ok 但 vibe boring。Quiz 互動是加分但沒有救起整體的 flatness。
-- **CEO note:** 三個維度全部 6。
+- **ShroomDog note:** 三個維度全部 6。
 
 ---
 
@@ -215,7 +215,7 @@ When scoring a post:
 
 ## Philosophy
 
-> 「我們有 token 可以燒、有 prompt 可以調、有 model 可以選。瓶頸不是成本，是品質。每篇文章都該讓讀者看完覺得『靠，這翻譯比原文還好看』。」— CEO, 2026-03-17
+> 「我們有 token 可以燒、有 prompt 可以調、有 model 可以選。瓶頸不是成本，是品質。每篇文章都該讓讀者看完覺得『靠，這翻譯比原文還好看』。」— ShroomDog, 2026-03-17
 
 Token cost for quality = investment, not expense.
 Human time saved + human mood improved = ultimate goal.

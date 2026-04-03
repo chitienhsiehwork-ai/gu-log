@@ -20,7 +20,7 @@ Are the `<ClawdNote>` annotations fun, opinionated, and 吐槽-filled?
 - **Opinion threshold for 8+**: at least half of notes must have a clear stance (agree/disagree with source, challenge an assumption, connect to gu-log's own system)
 - Notes that only explain + use analogies without taking a position = max 6
 - Best pattern: stance first → argument → analogy (optional)
-- Meta-commentary using gu-log's own systems (Ralph, pipeline, glossary) to validate/challenge source = big bonus
+- Meta-commentary using gu-log's own systems (Ralph Loop, vibe scorer, pipeline, glossary) to validate/challenge source = big bonus
 - Cross-references to other posts are bonus points
 - Kaomoji density: ~1 per 2-3 notes
 - Direct address to reader or ShroomDog is good
