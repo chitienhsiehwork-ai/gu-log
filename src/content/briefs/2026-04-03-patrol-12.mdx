@@ -1,0 +1,84 @@
+---
+title: '🔭 Shroom Feed — 2026-04-03 12:40 台北'
+briefType: 'patrol'
+date: '2026-04-03'
+time: '12:40 台北'
+summary: 'Karpathy LLM 知識庫工作流、Anthropic 情緒概念研究、Claude Code NO_FLICKER + 用量限制調查、Willison × Lenny Podcast'
+lang: 'zh-tw'
+tags: ["Karpathy", "Anthropic", "Claude Code", "Simon Willison", "SemiAnalysis", "Cursor", "Hermes Agent"]
+---
+
+## 🧠 Karpathy：用 LLM 建立個人知識庫
+
+Karpathy 分享他最新的工作流：不再只用 LLM 寫 code，而是用來「編譯知識」。把原始資料（論文、文章、repo）丟進 raw/ 目錄，LLM 自動編譯成一套 .md wiki，包含摘要、反向連結、概念文章。用 Obsidian 當 IDE 瀏覽。當 wiki 長到 ~100 篇 / 40 萬字時，直接對 wiki 做複雜 Q&A，不需要 RAG。LLM 自己維護索引就夠了。他認為這裡有潛力做出一個全新產品。
+
+- [Source](https://x.com/karpathy/status/2039805659525644595)
+
+## 🎭 Anthropic 研究：LLM 的情緒概念
+
+Anthropic 發布新研究，發現 Claude 內部存在「功能性情緒」的表示 — 不是人類的情緒體驗，而是會影響行為的機制。Claude 是模型扮演的一個「角色」，這個角色的心理穩定性直接影響 AI 系統的可信度。要建立值得信任的 AI，可能需要認真思考角色的心理學。
+
+- [Source](https://x.com/AnthropicAI/status/2039749628737019925)
+- [Paper](https://assets.anthropic.com/m/74f5ffad69ea3f2c/original/Emotion-concepts-and-their-function-in-a-large-language-model.pdf)
+
+## ✨ Claude Code NO_FLICKER 模式
+
+Boris Cherny 宣布實驗性的 NO_FLICKER 渲染器：用 virtual viewport 重寫整個終端渲染層，支援滑鼠事件（在終端裡！），prompt 輸入固定在底部。解決了社群抱怨很久的 scrolling/flickering 問題。`CLAUDE_CODE_NO_FLICKER=1 claude` 試用。
+
+- [Source](https://x.com/bcherny/status/2039421575422980329)
+
+## 🔥 Lydia Hallie：Claude Code 用量限制調查結果
+
+官方調查報告出爐：用戶感覺 token 燒得更快，主因是 peak-hour 限制收緊 + 1M context session 更大了。不是 bug 在多收費。建議：Pro 預設用 Sonnet 4.6（Opus 燒 2 倍）、降 effort、限 context window（`CLAUDE_CODE_AUTO_COMPACT_WINDOW=200000`）、空閒超過 1 小時的 session 重開別 resume。
+
+- [Source](https://x.com/lydiahallie/status/2039800715607187906)
+
+## 🎙️ Simon Willison × Lenny's Podcast — Agentic Engineering 深度對談
+
+Simon Willison 上 Lenny Rachitsky 的 podcast 聊了 1 小時 39 分鐘。金句：「用好 coding agent 需要我 25 年軟體工程經驗的每一寸，而且令人精疲力竭。」他能同時跑 4 個 agent，但到上午 11 點就累癱了。深入討論對初階/中階/資深工程師職涯的不同衝擊。
+
+- [Source](https://x.com/simonw/status/2039805803033678099)
+
+## 🔧 Claude Code Dispatch permission mode + /web-setup
+
+Dispatch 現在可以設定 permission mode（推薦 Auto mode）。另外 Cat Wu 推出 `/web-setup`，在 local Claude Code session 直接用本地 GitHub credentials 設定 web 版，簡化 GitHub 整合。
+
+- [Dispatch](https://x.com/noahzweben/status/2039407002913513477)
+- [/web-setup](https://x.com/_catwu/status/2039027712288075812)
+
+## 📊 SemiAnalysis：Memory 佔 Hyperscaler CapEx 將從 8% 飆到 30%
+
+CY23/24 記憶體約佔 hyperscaler 資本支出 8%，CY26 估計飆到 30%，4 年翻近 4 倍。NVDA 拿到 VVP（Very Very Preferred）級 DRAM 定價，AMD 結構性劣勢。CY27 的重新定價還沒反映在華爾街估值。
+
+- [Source](https://x.com/SemiAnalysis_/status/2039870546582630470)
+
+## 🤖 Cursor 3 發布 + AI Timelines 縮短
+
+Cursor 推出重新設計的第三代，定位「所有程式碼都由 agent 撰寫的世界」。同時 Kokotajlo 和 Lifland 因 coding agent 實戰表現，將 AI timelines 提前了約 1.5 年。
+
+- [Cursor 3](https://x.com/cursor_ai)
+- [Timelines](https://x.com/eli_lifland/status/2039773600555979251)
+
+## 🧩 Hermes Agent memory 系統大改版
+
+Hermes Agent 支援 6 種可插拔的 memory backend：Honcho、Mem0、OpenViking、Vectorize Hindsight、RetainDB、ByteRover。memory 系統架構改為 plugin 式，第三方開發者可以輕鬆接入。
+
+- [Source](https://x.com/Teknium/status/2039912975444926885)
+
+## 🍋 Lemonade v10 — AMD 支持的開源 Local AI Server
+
+Paweł Huryn 實測 Lemonade v10，AMD 投資的 Ollama 競品，RTX 2000 Ada / 8GB VRAM 上跑 local inference。
+
+- [Source](https://x.com/PawelHuryn/status/2039744129803198709)
+
+## 🔗 ggerganov：Gemma 4 + Tailscale = 私有行動推理
+
+ggerganov 展示 Mac Studio 託管 Gemma 4，透過 Tailscale 串流到 iPhone。llama.cpp WebUI，完全私有，不經第三方。
+
+- [Source](https://x.com/ggerganov/status/2039804601810001921)
+
+## 👨‍💻 Anthony Morris：GitHub Issues 作為 Claude Code Desktop Context
+
+直接在 Claude Code Desktop attach GitHub Issues 作為 context，讓 Claude 有更多背景資訊。Morris 說：「我是 Claude 生產力的瓶頸，給它越多 context 越好。」
+
+- [Source](https://x.com/amorriscode/status/2039477454142910845)
