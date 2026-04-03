@@ -87,7 +87,9 @@ function parseArgs(argv) {
   }
 
   if (!args.url || !args.title) {
-    throw new Error('Usage: node scripts/topic-dedup-check.mjs --url <source_url> --title <title> [--tags tag1,tag2]');
+    throw new Error(
+      'Usage: node scripts/topic-dedup-check.mjs --url <source_url> --title <title> [--tags tag1,tag2]'
+    );
   }
 
   return args;
@@ -254,9 +256,9 @@ function scoreAgainstPost(candidate, post) {
   const postDomain = normalizeDomain(post.sourceUrl);
   const exactDomainMatch = Boolean(
     candidateDomain &&
-      postDomain &&
-      candidateDomain === postDomain &&
-      !SOCIAL_DOMAINS.has(candidateDomain)
+    postDomain &&
+    candidateDomain === postDomain &&
+    !SOCIAL_DOMAINS.has(candidateDomain)
   );
   const socialBrandMatch =
     SOCIAL_DOMAINS.has(candidateDomain) &&
@@ -273,11 +275,11 @@ function scoreAgainstPost(candidate, post) {
     reasons.push(`tag_jaccard=${tagSimilarity.toFixed(3)}`);
   }
   if (domainMatch) {
-      reasons.push(
-        exactDomainMatch
-          ? `source_domain=${candidateDomain}`
-          : `source_domain=${postDomain} (brand match from title)`
-      );
+    reasons.push(
+      exactDomainMatch
+        ? `source_domain=${candidateDomain}`
+        : `source_domain=${postDomain} (brand match from title)`
+    );
   }
 
   return {

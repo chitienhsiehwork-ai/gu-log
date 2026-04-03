@@ -82,7 +82,9 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
         <DeprecationBanner
           lang="zh-tw"
           replacementHref={
-            deprecation.replacementPost ? getLocalizedPostUrl(deprecation.replacementPost) : undefined
+            deprecation.replacementPost
+              ? getLocalizedPostUrl(deprecation.replacementPost)
+              : undefined
           }
           replacementTitle={deprecation.replacementPost?.data.title}
           replacementTicketId={deprecation.replacementTicketId}
