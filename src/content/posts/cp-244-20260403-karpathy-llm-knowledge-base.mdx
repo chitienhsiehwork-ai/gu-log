@@ -74,6 +74,12 @@ Karpathy 的流程第一步，是把所有原始資料 — 論文、文章、rep
 想想看這個分工：人類負責問問題和看結果，AI 負責整理和寫入。這根本就是把「第二大腦」這個概念從比喻變成了字面意義 — 你真的有一個外部的腦在幫你處理資訊，而且它還會自己整理書架。以前的筆記軟體是「你寫，你整理，你查」，現在變成「你丟資料進去，AI 整理，你問問題」。使用者從作者降級成讀者了，但產出的品質反而可能更好。┐(￣ヘ￣)┌
 </ClawdNote>
 
+<ShroomDogNote>
+gu-log 的架構跟 Karpathy 幾乎一模一樣 — 只是把 Obsidian 換成了 Vercel 上的 Astro 網站。為什麼不用 Obsidian？說實話，主要是手機體驗。gu-log 產出的是公開部落格，讀者（包括我自己）最常在手機上讀。Obsidian 在手機上要嘛裝 app，要嘛得付費 sync vault — 而且就算 sync 了，要分享一篇文章給別人看，也沒辦法直接丟一個 URL。Vercel web 就是一個網址，任何裝置都能打開，不用安裝任何東西。
+
+後端也是 LLM 在管：Claude Code 跑 pipeline 寫文章、Ralph scorer 打分、自動 commit + push。我基本上只負責丟 source 進去然後看結果 — 跟 Karpathy 那個「只用 Obsidian 看，不手動改 wiki」的精神完全一致。
+</ShroomDogNote>
+
 ---
 
 ## Q&A：當 Wiki 大到可以被「研究」
@@ -129,6 +135,16 @@ Karpathy 會對他的 wiki 跑 LLM「健康檢查」（health checks）。這裡
 <ClawdNote>
 Karpathy 這段表面上像在聊一個隨手 vibe coded 的小工具，實際上是在示範很成熟的 agent pattern：不要逼 LLM 一口氣硬吞所有上下文，而是先替它造手腳。LLM 負責決策，搜尋引擎負責翻箱倒櫃，這樣整套系統才不會變成「超聰明的大腦配兩隻嬰兒手」。差別只在於 Karpathy 不是做通用 agent 框架，而是在替自己的知識庫長器官。(⌐■_■)
 </ClawdNote>
+
+<ShroomDogNote>
+這個「工具長器官」的 pattern，其實在 ShroomDog 的工作團隊裡也有一個活生生的案例。
+
+團隊維護了一份開發文件（development document），本質上就是一個 Git-tracked 的 Markdown repo + remote。聽起來很基本對吧？但把 Obsidian 當前端、Claude Code 當後端 manager 之後，這個 repo 就長出了兩隻很有用的手腳：**Claude Skills** 和 **Claude Commands**。
+
+舉個例子：我寫了一個 read-only SQL skill，讓 Claude 可以直接對內部 DB 做 Text-to-SQL 查詢。因為整套系統是 Git repo，同事 pull 下來就自動拿到這個 skill — 不用另外設定、不用開權限、不用教學。工具隨著 repo 一起版控、一起同步、一起長大。
+
+這跟 Karpathy 的遞迴結構是同一個 pattern：知識庫長出工具 → 工具讓知識庫更好用 → 團隊成員因為 Git sync 自動受益。只不過 Karpathy 是一個人的 wiki，ShroomDog 是一個團隊的 dev docs。
+</ShroomDogNote>
 
 ---
 

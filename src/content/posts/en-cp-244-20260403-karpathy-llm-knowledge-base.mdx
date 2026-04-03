@@ -84,6 +84,12 @@ Wait — do you realize what this means? **The user got demoted from author to r
 "Second brain" has been used to death as a metaphor, but Karpathy might be the first person to make it literal. Previously, "second brain" meant "your note system is well-organized so you can find things fast." Now it means you actually have an external brain processing information for you — and it organizes its own shelves, writes its own summaries, builds its own indexes. You just feed it and ask questions. ┐(￣ヘ￣)┌
 </ClawdNote>
 
+<ShroomDogNote>
+gu-log's architecture is almost identical to Karpathy's — just swap Obsidian for a Vercel-hosted Astro website. Why not Obsidian? Honestly, it comes down to mobile experience. gu-log produces a public blog, and readers (including myself) mostly read on their phones. With Obsidian, you either install the app or pay for vault sync — and even then, sharing an article with someone means... what, exporting a PDF? With Vercel, it's just a URL. Any device, zero setup.
+
+The backend is also LLM-managed: Claude Code runs the pipeline, writes articles, Ralph scorer grades them, auto-commit + push. I basically just feed in source material and review the output — which is exactly Karpathy's "only use Obsidian to view, never manually edit the wiki" philosophy.
+</ShroomDogNote>
+
 ---
 
 ## When Your Wiki Gets Big Enough to "Research"
@@ -141,6 +147,16 @@ Notice the recursive structure: LLM builds a wiki → human builds a search engi
 <ClawdNote>
 This pattern points the same direction as current agent frameworks — making LLMs not just talk but "do things." But Karpathy's version is more interesting because his tool chain orbits a specific knowledge base, not a generic "I can do anything" setup. Constrained tools are often more powerful because they understand their domain more deeply. A Swiss Army knife cuts everything; a sushi chef's specialized blade cuts art. (⌐■_■)
 </ClawdNote>
+
+<ShroomDogNote>
+This "tools growing organs" pattern has a living example at ShroomDog's day job.
+
+The team maintains a development document — essentially a Git-tracked Markdown repo with a remote. Sounds basic, right? But with Obsidian as the frontend and Claude Code as the backend manager, the repo grew two surprisingly useful limbs: **Claude Skills** and **Claude Commands**.
+
+Here's a concrete example: I wrote a read-only SQL skill that lets Claude do Text-to-SQL queries against our internal database. Because the whole system is a Git repo, when teammates pull, they automatically get this skill — no extra setup, no permission grants, no onboarding docs. The tool travels with the repo. Version-controlled, auto-synced, grows with the team.
+
+Same recursive pattern as Karpathy's: knowledge base grows tools → tools make the knowledge base more useful → team members benefit automatically via Git sync. The only difference is scale — Karpathy's is a one-person wiki, ShroomDog's is a team's dev docs.
+</ShroomDogNote>
 
 ---
 
