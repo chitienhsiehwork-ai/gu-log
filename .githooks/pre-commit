@@ -114,7 +114,7 @@ else
 
         TITLE=$(grep '^title:' "$FULL_PATH" 2>/dev/null | head -1 | sed 's/title: *"\?//;s/"\?$//' || true)
         SOURCE_URL=$(grep '^sourceUrl:' "$FULL_PATH" 2>/dev/null | head -1 | sed 's/sourceUrl: *"\?//;s/"\?$//' || true)
-        TAGS=$(grep '^tags:' "$FULL_PATH" 2>/dev/null | head -1 | sed 's/tags: *\[//;s/\]$//;s/["'"'"'']//g;s/, */,/g' || true)
+        TAGS=$(grep '^tags:' "$FULL_PATH" 2>/dev/null | head -1 | sed 's/tags: *\[//;s/\]$//;s/["'"'"']//g;s/, */,/g' || true)
 
         if [ -z "$TITLE" ] || [ -z "$SOURCE_URL" ]; then
             echo "⚠️  Skipping topic dedup for $(basename "$file") — missing title or sourceUrl"

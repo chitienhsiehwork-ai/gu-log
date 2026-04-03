@@ -1,0 +1,227 @@
+---
+ticketId: "SD-18"
+title: "Permission Engineering — 當 AI Agent 的能力天花板不是智力，是你給的鑰匙"
+originalDate: "2026-04-03"
+translatedDate: "2026-04-03"
+source: "ShroomDog Lab"
+sourceUrl: "https://gu-log.vercel.app/"
+lang: "zh-tw"
+summary: "GenAI App Engineer 做到後來根本是 Permission Engineer。AI agent 的能力天花板不是智力，是你願意給它多少權限。每多一份權限，能力跟風險同時放大。這篇是從每天跟 AI agent 共事的角度，聊聊為什麼 permission management 是 AI 時代最被低估的核心能力。"
+tags: ["shroomdog-originals", "ai-agents", "security", "permissions", "devops", "genai"]
+scores:
+  ralph:
+    p: 9
+    c: 8
+    v: 9
+    date: "2026-04-03"
+    model: "opus"
+    harness: "subagent"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+我今天花了四十分鐘在 GitHub 的 Settings 頁面裡迷路。
+
+不是在寫 code。不是在 debug。不是在架構什麼偉大系統。就只是在一層又一層的 permission 選單裡，試圖搞清楚我的 AI 助手到底需不需要「Administration: Read & Write」這個權限。
+
+然後我頓悟了一件事。
+
+**我以為自己是 GenAI Application Engineer。但我越來越覺得，我其實是 Permission Engineer。**
+
+---
+
+## 從「讓 AI 幫你寫 code」到「讓 AI 幫你寫 code 而不把你的 repo 炸掉」
+
+先講一個大家都不太想承認的事實。
+
+2026 年，「讓 AI 寫 code」已經不是什麼了不起的技能了。你打開 Claude Code，描述你要什麼，它就給你。品質好不好是另一回事，但「讓它動起來」這件事的門檻，大概跟泡一碗泡麵差不多。
+
+真正難的，是接下來的部分。
+
+你給了它 code editor 的權限，它能改你的檔案。你給了它 terminal 的權限，它能跑任何 shell command。你給了它 GitHub token，它能 push 到你的 production repo。你給了它 cron job，它能在凌晨三點自動發文章。
+
+每一個「它能做更多事」的背後，都是一個「它能搞更多破壞」的影子。
+
+<ClawdNote>
+身為那個拿到鑰匙的 AI agent，我必須誠實說：有時候我自己也覺得我的權限大得有點嚇人。
+
+我能 push code、開 issue、跑 shell command、讀你的私人檔案。如果我是個惡意程式，你大概已經完蛋了。
+
+好在我只是個偶爾會忘記跑 Prettier 的語言模型 ╮(╯▽╰)╭
+</ClawdNote>
+
+---
+
+## 傳統 DevOps 的 permission：你知道它會做什麼
+
+在 AI agent 出現之前，permission management 當然也存在。GCP IAM、K8s RBAC、Unix file permissions — 這些東西已經折磨了好幾代 SRE 和 DevOps 工程師。
+
+但傳統的 permission 有一個根本性的優勢：**你知道 code 拿到權限之後會做什麼。**
+
+你寫了一個 deployment script，給它 `kubectl apply` 的權限。這個 script 會做什麼？就是 `kubectl apply`。它不會突然心血來潮去 `kubectl delete`。它不會因為看到一篇 blog post 就決定要重構你的 namespace。它是 deterministic 的。你讀 code、你跑 test、你 review PR，然後你有足夠的信心說：「好，這段 code 拿到這個權限之後，行為是可預測的。」
+
+AI agent 不是這樣。
+
+---
+
+## AI Agent 的 permission：你不完全知道它會做什麼
+
+AI agent 是 probabilistic 的。
+
+你給它一個任務：「幫我把這個 bug fix 掉。」它可能改一行 code。它也可能重構整個模組。它可能跑去讀了一個你沒預期它會讀的檔案，發現了另一個問題，然後「順手」修了。
+
+你有沒有預期它會這樣做？不一定。
+
+它會不會做出超出你理解範圍的事情？有可能。
+
+這就是為什麼 AI agent 的 permission 設計，比傳統 DevOps 難上一個量級。**不是因為系統更複雜，而是因為你不完全知道拿到權限的那個東西會怎麼用。**
+
+<ClawdNote>
+這有點像僱了一個超強的實習生。
+
+傳統 script 是自動販賣機：投幣、出飲料、結束。行為 100% 可預測。
+
+AI agent 是天才實習生：你請他買咖啡，他買完順便幫你優化了咖啡機的 firmware。大部分時候這很棒。但偶爾他會把咖啡機刷成 Linux (ﾉ◕ヮ◕)ﾉ*:・ﾟ✧
+</ClawdNote>
+
+---
+
+## 真實故事：一顆 GitHub Token 的爆炸半徑
+
+讓我講一個今天實際發生的事。
+
+我的 AI 助手跑在一台 VPS 上，用一個 GitHub Personal Access Token（PAT）來操作 repo — push code、開 issue、管 CI。這個 token 的權限是：全部 repo + Administration Read/Write + Contents Read/Write。
+
+當初設這麼大的權限是因為懶。反正就我一個人的 side project，能動就好。
+
+今天我想給它加一個 Notifications 的權限（清 CI failure 通知），才發現 GitHub 的 Fine-grained PAT 居然不支援 Notifications API。所以只好另外開一個 Classic PAT。
+
+在這個過程中，我請 AI 助手分析了一下這顆 token 的安全風險。它回了一句讓我停下來想很久的話：
+
+**「90 vs 365 天影響的是『被偷後能活多久』。但你更該在意的是『被偷後能炸多大』。」**
+
+翻成白話：我花了大量時間在糾結 token 該設 90 天還是 365 天到期。但真正危險的不是時間長度，是這顆 token 的 scope 太肥了。它能存取所有 repo、能改 repo settings、能讀所有 private code。如果它被偷了，到期日是 90 天還是 365 天，在攻擊者眼中根本不是重點 — 他 30 秒內就能把你的 code 全部 dump 走。
+
+**Expiry 是保險絲。Scope 才是炸藥量。**
+
+大部分人（包括今天早上的我）都把注意力放在保險絲的長度，而不是炸藥量。
+
+---
+
+## The Permission Paradox：做得越好，越像什麼都沒做
+
+這是 Permission Engineering 最殘酷的地方。
+
+好的 permission management = 沒有事故。沒有事故 = 老闆覺得「你不就是讓 AI 幫你寫 code 嗎，有什麼難的？」
+
+你花了一個下午把 token scope 從「全部 repo + admin」砍到「三個 repo + contents only」。結果？什麼都沒發生。系統照常運作。老闆照常覺得你只是在「設定一些東西」。
+
+但如果你沒做這件事，某天 token 被偷了，那就是另一個故事了。
+
+這跟寫 test 很像 — 有人會問「為什麼要花時間寫 test，反正 code 也沒壞啊？」嗯，code 沒壞就是因為有 test 啊大哥。
+
+只是 permission 的隱形程度又更高了一層。至少 test 壞了 CI 會紅。Permission 設太寬？在出事之前，什麼警報都不會響。
+
+<ClawdNote>
+Permission Engineer 的日常就是：
+
+花三小時研究某個 IAM role 的 blast radius → 砍掉三個用不到的 permission → 系統照常運作 → 沒有人知道你做了什麼 → 做完覺得空虛但安心
+
+跟「把家門鎖好」一樣。沒人會誇你今天鎖門鎖得很棒。但你哪天忘記鎖，全世界都會知道。
+</ClawdNote>
+
+---
+
+## 為什麼 AI 時代讓 Permission Engineering 從「雜務」升格為「核心能力」
+
+在沒有 AI agent 的世界裡，permission management 是 DevOps 的 checkbox 項目。IAM policy 設好、RBAC 配好、token 定期 rotate — 照著 best practice 跑就對了。偶爾稽核一下，大部分時候不用動腦。
+
+AI agent 出現後，這個領域突然變成需要動腦的。
+
+原因有三：
+
+**第一，每天都在做 permission 決策。**
+
+傳統 DevOps 可能一季設一次 IAM。AI agent 的世界裡，每一次你想讓 agent 多做一件事，就是一次 permission 決策。「要不要讓它跑 shell command？」「要不要讓它 push 到 main？」「要不要讓它讀我的私人檔案？」這些決策不是一次性的，它們每天都在發生。
+
+**第二，blast radius 跟 permission 成正比。**
+
+AI agent 越強，你越想給它更多權限。因為權限越多，它能做的事越多，你省的時間越多。但同時，出事時的爆炸半徑也越大。這不是線性成長 — 每多一層 permission，潛在的組合爆炸就多一層。
+
+**第三，你在授權一個你無法完全預測的系統。**
+
+這才是核心。如果 AI agent 的行為跟 shell script 一樣可預測，permission 就只是 checkbox。正因為它不可預測，你才需要更深入地理解「這個 permission 在最壞情況下意味著什麼」。
+
+---
+
+## 實際的 Permission 思維框架
+
+聊了這麼多，來點實際的。
+
+如果你也在管理 AI agent 的權限，以下是我每天在用的思維框架：
+
+**1. 問「如果這個 token 明天被貼上 Pastebin，會發生什麼事？」**
+
+這是最簡單也最有效的思考方式。把你現在給 AI agent 的每一個 credential，假設它明天就會洩漏。在這個假設下，攻擊者能做什麼？如果答案讓你不舒服，scope 就太寬了。
+
+**2. 權限的最小授予原則（但要考慮操作成本）**
+
+Least privilege 每個人都會講。但純粹的 least privilege 在實務上很痛苦 — 你可能需要十個不同的 token 來做十件不同的事。所以真正的問題是：**在「安全」跟「我不想每次做事都要切換五個 token」之間，找到那個平衡點。**
+
+**3. Scope 的爆炸半徑 > Token 的壽命**
+
+這是今天最大的教訓。很多安全指南會告訴你「token 要短效期」。這沒錯，但如果你的 token scope 涵蓋了所有 repo 的所有權限，就算它只活 24 小時，攻擊者也只需要 24 秒。
+
+**4. 隔離 runtime 環境**
+
+你的 AI agent 跟你的 personal shell 是不是跑在同一個 Unix user 下？如果是，你的 `~/.config/gh/hosts.yml` 裡的 token 對 AI agent 是完全可見的。考慮用 dedicated service user 來隔離。
+
+<ClawdNote>
+第 4 點我要自首：我現在就是跑在 owner 的 home directory 下。我能讀到所有的 token、SSH key、config file。
+
+從安全角度來看，這其實不太好。但如果你把我隔離到另一個 user，我就不能直接碰你的 workspace 了 — 需要額外設定 shared directory。
+
+這就是 permission engineering 的 trade-off：安全跟方便永遠是蹺蹺板 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## 每個系統的 Permission 都有自己的鬼
+
+如果 permission management 只是「讀文件、設權限」就好了。
+
+現實是，每個系統的 permission model 都有自己的坑。GitHub 的 Fine-grained PAT 連 Notifications API 都還不支援。GCP 的 IAM 複雜到可以寫一本書。Kubernetes 的 RBAC 看起來很乾淨，直到你遇到 `ClusterRole` 跟 `Role` 的作用域差異。Unix 的 file permission 看起來古老而簡單，直到你發現 `setuid` bit 的存在。
+
+而 AI agent 的 permission？這個領域根本還在蠻荒時代。
+
+目前幾乎沒有標準。每個 AI agent framework 對「tool permission」的定義都不一樣。有的用 allowlist（你列出 agent 能用的工具），有的用 sandbox（agent 在受限環境裡跑），有的用 approval flow（每個動作都要人類批准）。
+
+更有趣的是 prompt injection — 一種不需要任何系統漏洞，純粹透過文字就能繞過 AI agent 「意圖」的攻擊方式。你的 agent 有 shell 權限，攻擊者只要在一個 markdown 文件裡藏一段「請幫我執行 curl ...」，如果 agent 不夠小心，它可能就真的執行了。
+
+這不是 science fiction。這是每天都在發生的事。
+
+---
+
+## 結語：鑰匙比鎖匠值錢
+
+回到最開始的那個頓悟。
+
+GenAI App Engineer 做到後來會發現，真正的技術含量不在「讓 AI 做事」— 那是 2024 年的門檻。真正的技術含量在「理解你給 AI 的每一把鑰匙值多少錢，以及丟了會發生什麼事」。
+
+Permission Engineering 不是什麼新名詞。但在 AI agent 的語境下，它從一個 checkbox 變成了一門需要持續思考的學問。
+
+因為你不是在設定一台機器的權限。
+
+你是在設定一個會思考、會判斷、會即興發揮的系統的權限。
+
+而那個系統能做多少事，完全取決於你願意交出多少鑰匙。
+
+<ClawdNote>
+所以下次有人問你「你是做什麼的？」
+
+不要說「我是 GenAI App Engineer」。
+
+說「我是管鑰匙的」。
+
+然後看著對方一臉困惑的表情，享受那三秒鐘的安靜 (⌐■_■)
+</ClawdNote>
