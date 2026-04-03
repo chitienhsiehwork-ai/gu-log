@@ -323,6 +323,7 @@ STEP5_TIME=0
 FILENAME=""
 TITLE=""
 SP_NUM=""
+COUNTER_BUMPED_EARLY=false
 WORK_DIR=""
 AUTHOR_HANDLE=""
 ORIGINAL_DATE=""
@@ -376,12 +377,33 @@ if [ -n "$EXISTING_FILE" ]; then
   FILENAME="$EXISTING_FILE"
   log_info "Resuming with existing file: $EXISTING_FILE (${TICKET_PREFIX}-${SP_NUM})"
 else
+  # Atomic counter read+bump: flock prevents two pipelines from getting the same number.
+  # Lock is held just long enough to read + increment, then released.
+  COUNTER_LOCK="/tmp/gu-log-counter.lock"
+  exec 200>"$COUNTER_LOCK"
+  flock -w 60 200 || die "Could not acquire counter lock (another pipeline running?)"
   SP_NUM=$(jq -r ".${TICKET_PREFIX}.next // empty" "$COUNTER_FILE")
   [ -n "$SP_NUM" ] || die "Could not read ${TICKET_PREFIX}.next from $COUNTER_FILE"
+  if [ "$DRY_RUN" = false ]; then
+    # Bump counter immediately so next parallel pipeline gets the next number
+    TMP_COUNTER=$(mktemp)
+    jq ".${TICKET_PREFIX}.next += 1" "$COUNTER_FILE" > "$TMP_COUNTER"
+    mv "$TMP_COUNTER" "$COUNTER_FILE"
+    COUNTER_BUMPED_EARLY=true
+    log_info "Counter locked+bumped: ${TICKET_PREFIX}-${SP_NUM} (next will be $((SP_NUM + 1)))"
+  else
+    log_info "Counter read (dry-run, no bump): ${TICKET_PREFIX}-${SP_NUM}"
+  fi
+  flock -u 200  # release lock
 fi
 
 WORK_DIR="$GU_LOG_DIR/tmp/${TICKET_PREFIX,,}-${SP_NUM}-pipeline"
 mkdir -p "$WORK_DIR"
+# Save counter backup immediately for cleanup-on-failure to restore
+if [ "$COUNTER_BUMPED_EARLY" = true ]; then
+  # Backup should have the ORIGINAL value (before bump), so we reconstruct it
+  jq ".${TICKET_PREFIX}.next = ${SP_NUM}" "$COUNTER_FILE" > "$WORK_DIR/counter-before.json"
+fi
 STEP0_TIME=$(step_end "Step 0")
 
 # Step 1: Fetch content
@@ -506,10 +528,31 @@ REMEMBER: The writer depends entirely on your output. Missing content = bad arti
   ORIGINAL_DATE=$(extract_tweet_date "$WORK_DIR/source-tweet.md" || true)
   [ -n "$ORIGINAL_DATE" ] || die "Failed to extract tweet date from source"
 elif [ ! -f "$WORK_DIR/source-tweet.md" ]; then
-  log_info "Non-twitter URL detected. Fetching via curl and extracting metadata via Gemini..."
+  log_info "Non-twitter URL detected. Fetching via readability parser..."
   
-  # Dump via curl and simple HTML stripping (just enough for Gemini to read text)
-  curl -sL "$TWEET_URL" | sed -e 's/<style[^>]*>.*<\/style>//ig' -e 's/<script[^>]*>.*<\/script>//ig' -e 's/<[^>]*>//g' | tr -s ' \t\r\n' '\n' > "$WORK_DIR/source-tweet.md"
+  # Use readability-lxml to extract clean article text (handles React SSR, SPAs, etc.)
+  # Falls back to BS4 tag stripping if readability fails.
+  # Old approach (curl | sed) produced JavaScript garbage on React SSR pages.
+  FETCH_SCRIPT="$GU_LOG_DIR/scripts/fetch-article.py"
+  if [ -x "$FETCH_SCRIPT" ] || [ -f "$FETCH_SCRIPT" ]; then
+    if ! python3 "$FETCH_SCRIPT" "$TWEET_URL" "$WORK_DIR/source-tweet.md" 2>"$WORK_DIR/fetch-stderr.log"; then
+      log_warn "fetch-article.py failed: $(cat "$WORK_DIR/fetch-stderr.log")"
+      log_warn "Falling back to curl + sed (may produce garbage on SPAs)"
+      curl -sL "$TWEET_URL" | sed -e 's/<style[^>]*>.*<\/style>//ig' -e 's/<script[^>]*>.*<\/script>//ig' -e 's/<[^>]*>//g' | tr -s ' \t\r\n' '\n' > "$WORK_DIR/source-tweet.md"
+    fi
+  else
+    log_warn "fetch-article.py not found, falling back to curl + sed"
+    curl -sL "$TWEET_URL" | sed -e 's/<style[^>]*>.*<\/style>//ig' -e 's/<script[^>]*>.*<\/script>//ig' -e 's/<[^>]*>//g' | tr -s ' \t\r\n' '\n' > "$WORK_DIR/source-tweet.md"
+  fi
+  
+  # Validate we got real content, not garbage
+  if [ ! -s "$WORK_DIR/source-tweet.md" ]; then
+    die "Fetch produced empty output for URL: $TWEET_URL"
+  fi
+  SOURCE_LINES=$(wc -l < "$WORK_DIR/source-tweet.md")
+  if [ "$SOURCE_LINES" -lt 5 ]; then
+    die "Fetch produced only $SOURCE_LINES lines — likely failed to extract content"
+  fi
   
   cat > "$WORK_DIR/extract-meta-prompt.txt" <<EOF_META
 Extract the author handle/name (no @) and the publication date (YYYY-MM-DD format) from the text.
@@ -1074,8 +1117,10 @@ else
   COUNTER_BACKUP="$WORK_DIR/counter-before.json"
   cp "$COUNTER_FILE" "$COUNTER_BACKUP"
 
-  # Only bump counter for NEW articles (not --file resume)
-  if [ -z "$EXISTING_FILE" ]; then
+  # Only bump counter for NEW articles (not --file resume, not already bumped)
+  if [ "$COUNTER_BUMPED_EARLY" = true ]; then
+    log_info "  Counter already bumped at setup (flock atomic read+bump)"
+  elif [ -z "$EXISTING_FILE" ]; then
     TMP_COUNTER=$(mktemp)
     jq ".${TICKET_PREFIX}.next += 1" "$COUNTER_FILE" > "$TMP_COUNTER"
     mv "$TMP_COUNTER" "$COUNTER_FILE"
