@@ -43,7 +43,14 @@ Technical terms that appear in the post AND exist in glossary.json SHOULD be lin
 - **1** = Refs exist but some obvious connections missing
 - **0** = Broken links or completely irrelevant refs
 
-### 4. Attribution & Sourcing (0-3 points)
+### 4. Identity Linking (0-1 point)
+- First mention of **ShroomDog** should link to `/about` (zh-tw) or `/en/about` (en)
+- First mention of **ShroomClawd** or **Clawd** should link to `/about` (zh-tw) or `/en/about` (en)
+- Subsequent mentions can be unlinked plain text
+- **1** = First mentions properly linked
+- **0** = First mentions appear as plain text with no link
+
+### 5. Attribution & Sourcing (0-3 points)
 - Are quotes attributed to the right people?
 - Are technical claims backed by source or marked as opinion/ClawdNote?
 - Are numbers/statistics cited with sources?
@@ -52,9 +59,16 @@ Technical terms that appear in the post AND exist in glossary.json SHOULD be lin
 - **1** = Multiple unsourced claims or misattributions
 - **0** = Fabricated quotes or data
 
+### 6. Pronoun Clarity — zh-tw only (0-1 point)
+- zh-tw body text must NOT contain ambiguous「你」or「我」
+- Allowed ONLY inside `<ClawdNote>`, blockquotes, code blocks, and frontmatter
+- English posts are exempt from this check
+- **1** = No 你/我 in body text (or English post)
+- **0** = 你/我 found in body text outside allowed zones
+
 ## Scoring
 
-Total score = sum of four dimensions (0-10).
+Total score = sum of six dimensions (0-12 for zh-tw, 0-11 for en since pronoun rule is auto 1).
 
 ## Calibration
 
@@ -75,4 +89,4 @@ Total score = sum of four dimensions (0-10).
 
 ## Output Format
 Output ONLY valid JSON (no markdown fences, no preamble, no explanation):
-{"score": N, "reasoning": "Glossary X/3: [list unlinked terms]. sourceUrl Y/2. crossRef Z/2: [missing connections]. attribution W/3: [issues]. Total: N/10.", "unlinked_terms": ["term1", "term2"]}
+{"score": N, "reasoning": "Glossary X/3: [list unlinked terms]. sourceUrl Y/2. crossRef Z/2: [missing connections]. identityLink A/1. attribution W/3: [issues]. pronounClarity B/1. Total: N/12.", "unlinked_terms": ["term1", "term2"]}
