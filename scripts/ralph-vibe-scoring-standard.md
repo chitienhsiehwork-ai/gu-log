@@ -1,15 +1,15 @@
-# Ralph Vibe Scoring Standard v1.0
+# Ralph Vibe Scoring Standard v1.1
 
 > Golden standard for evaluating gu-log post quality.
 > Calibrated 2026-03-17 by CEO (ShroomDog) + CTO (Clawd).
 
-## Publishing Bar: 8/10 minimum on ALL THREE dimensions
+## Publishing Bar: 8/10 minimum on EVERY scored dimension
 
 Posts scoring below 8 on any dimension → rewrite queue.
 
 ---
 
-## Three Scoring Dimensions (each 0-10)
+## Four Scoring Dimensions (each 0-10)
 
 ### 1. Persona Score — 李宏毅教授 (LHY) 風格
 
@@ -98,9 +98,35 @@ Posts scoring below 8 on any dimension → rewrite queue.
 - 情緒起伏（先鋪墊 → 揭曉 → 吐槽 → 反思）
 - Kaomoji 作為情緒標點（不是裝飾）
 
+### 4. Clarity Score — Pronoun Clarity / Voice Attribution
+
+**What we're measuring:** Does every sentence make it obvious who is speaking, who is acting, and who the sentence is about?
+
+| Score | Description |
+|-------|-------------|
+| 10 | Every sentence has a clear speaker/subject. Zero ambiguous pronouns. Reader always knows who's talking. |
+| 8 | Rare ambiguity. Pronouns used only in clearly scoped contexts (ClawdNote, blockquote). Body text uses specific names. |
+| 6 | Some 你/我 slip through in body but context usually disambiguates. |
+| 4 | Frequent 你/我 in body. Reader has to guess who's speaking. |
+| 2 | Confusing mess. Can't tell if "I" is author, AI, or original source. |
+
+**Clarity killers:**
+- 正文直接用「你」「我」卻沒有明確 speaker / audience
+- 「我們」但沒說清楚是 ShroomDog 團隊、作者、還是讀者
+- 同一段在作者觀點、Clawd 觀點、原文觀點之間跳來跳去
+- reader orientation 模糊：到底是在講「讀者會遇到」還是「作者自己遇到」
+
+**Clarity boosters:**
+- 直接點名主體：ShroomDog、Clawd、原作者、讀者、工程師、開發者
+- 用無主語或被動重寫句子，避免硬塞第二人稱
+- 把個人評論收進 `<ClawdNote>`，把正文保持敘事中立
+- 引用原話時用 blockquote，讓 voice boundary 清楚
+
 ---
 
 ## Calibration Examples（Golden Standards）
+
+> Note: Older calibration examples below predate the clarity dimension, so they list only persona / ClawdNote / vibe.
 
 ### Score 10 — CP-85「AI Vampire / Steve Yegge」
 - **Why 10:** Storytelling 不想停。$/hr 公式讓人記住。Colin Robinson 比喻完美。結尾 callback 多篇文章形成知識網。Cross-reference CP-53, CP-79, CP-83。
@@ -136,7 +162,7 @@ When scoring a post:
 2. **Score each dimension independently** (0-10)
 3. **Write 1-2 sentence justification per dimension** — specific, cite examples
 4. **Flag specific problems** — quote the problematic text
-5. **Calculate if it meets publishing bar** — ALL THREE ≥ 8
+5. **Calculate if it meets publishing bar** — ALL scored dimensions ≥ 8
 
 ### Output Format (JSON)
 
@@ -147,7 +173,8 @@ When scoring a post:
   "scores": {
     "persona": { "score": 5, "reason": "Opens with '各位觀眾好，今天這篇文章非常硬核' — news anchor tone. Final section is a raw bullet dump with no personality." },
     "clawdNote": { "score": 5, "reason": "Only 3 notes in 140 lines. Notes are analytical — 'levelsio 流派的核心' reads like a textbook conclusion." },
-    "vibe": { "score": 5, "reason": "Levelsio's story should be exciting but reads like a press release. Closing '讓我們一起期待' is motivational-poster energy." }
+    "vibe": { "score": 5, "reason": "Levelsio's story should be exciting but reads like a press release. Closing '讓我們一起期待' is motivational-poster energy." },
+    "clarity": { "score": 4, "reason": "Body text uses ambiguous 你/我 framing, so the reader has to infer whether the speaker is ShroomDog, Clawd, or the audience." }
   },
   "meetBar": false,
   "topIssues": [

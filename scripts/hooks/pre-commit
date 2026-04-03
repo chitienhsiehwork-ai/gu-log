@@ -5,6 +5,9 @@
 #
 # Pipeline:
 #   0) Quick ticketId duplicate check (~100ms, shell)
+#   0.1) Score gate for staged zh-tw posts
+#   0.15) Pronoun clarity check for staged zh-tw posts
+#   0.2) Topic dedup gate for newly added zh-tw posts
 #   1) Post validator — frontmatter, content rules, cross-file checks (Node.js)
 #   1.5) translatedBy.model consistency check vs runtime model (Node.js)
 #   2) Content integrity BDD tests (Playwright, if available)
@@ -14,6 +17,7 @@ set -e
 POSTS_DIR="src/content/posts"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(git rev-parse --show-toplevel)"
+STAGED_MDX=$(git diff --cached --name-only --diff-filter=ACM -- "$POSTS_DIR"/*.mdx 2>/dev/null || true)
 
 # ─── Step -1: Gitleaks secret scan (~500ms) ───────────────────────
 if command -v gitleaks >/dev/null 2>&1; then
@@ -53,12 +57,7 @@ echo ""
 # Minimum: scores.ralph block with p, c, v fields.
 echo "📊 Score gate: checking staged posts for ralph scores..."
 SCORE_MISSING=""
-if [ -n "$STAGED_MDX" ]; then
-    # STAGED_MDX is populated later — we need it early. Compute here if empty.
-    true  # Will be populated by the diff command below
-fi
-# Compute staged zh-tw posts (non-en- prefix)
-STAGED_ZH_POSTS=$(git diff --cached --name-only --diff-filter=ACM -- "$POSTS_DIR"/*.mdx 2>/dev/null | grep -v '/en-' || true)
+STAGED_ZH_POSTS=$(printf '%s\n' "$STAGED_MDX" | grep -v '/en-' | sed '/^$/d' || true)
 
 if [ -z "$STAGED_ZH_POSTS" ]; then
     echo "✓ No zh-tw posts staged"
@@ -97,6 +96,30 @@ if [ -n "$SCORE_MISSING" ]; then
     exit 1
 fi
 echo "✓ All staged posts have ralph scores"
+echo ""
+
+# ─── Step 0.15: Pronoun clarity check (你/我 ban in zh-tw body) ───
+if [ -n "$STAGED_MDX" ]; then
+    ZH_FILES=""
+    for file in $STAGED_MDX; do
+        case "$file" in
+            */en-*) ;; # skip English
+            *) ZH_FILES="$ZH_FILES $REPO_ROOT/$file" ;;
+        esac
+    done
+
+    if [ -n "$ZH_FILES" ]; then
+        echo "🔍 Pronoun clarity: checking zh-tw posts for 你/我 in body..."
+        if ! node "$REPO_ROOT/scripts/check-pronoun-clarity.mjs" $ZH_FILES; then
+            echo ""
+            echo "❌ Pronoun clarity check FAILED."
+            echo "   你/我 found in article body (outside ClawdNote/blockquote/code)."
+            echo "   Use specific names (ShroomDog, Clawd, 讀者) or restructure sentences."
+            exit 1
+        fi
+        echo "✓ Pronoun clarity passed"
+    fi
+fi
 echo ""
 
 # ─── Step 0.2: Topic dedup gate for newly added zh-tw posts ──────
@@ -203,8 +226,6 @@ echo ""
 
 # ─── Step 1: Post validator (Node.js, blocking) ──────────────────
 # Validate only staged .mdx files (ACM = Added, Copied, Modified)
-STAGED_MDX=$(git diff --cached --name-only --diff-filter=ACM -- "$POSTS_DIR"/*.mdx 2>/dev/null || true)
-
 if [ -z "$STAGED_MDX" ]; then
     echo "✓ No .mdx files to validate"
 else

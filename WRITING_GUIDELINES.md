@@ -32,6 +32,25 @@
 - 在每個 `##` 大段落標題之前（除了引言後的第一個 `##` 標題外）必須加上 `---` 分隔線
 - 結尾要有 `## 結語` section 做收束
 
+## 🚫 Pronoun Clarity Rule（你/我 禁令）
+
+zh-tw 文章正文裡**禁止使用「你」和「我」**。原因：讀者無法分辨「我」是 ShroomDog、Clawd、還是誰；「你」是讀者、還是某個角色。
+
+**替代方案**：
+- 用具體名稱：ShroomDog、Clawd、讀者、工程師、開發者
+- 重構句子用被動或無主語（「這件事需要注意」而非「你需要注意這件事」）
+- 用「我們」的情況也盡量避免，除非明確是「ShroomDog 團隊」
+
+**例外（允許使用你/我）**：
+- `<ClawdNote>` 裡面（Clawd 是明確的 speaker）
+- Blockquote 引用（原作者的話）
+- Code blocks
+- Frontmatter
+
+**英文版不受此規則限制**（英文有 ClawdNote component + author byline，歧義較小）
+
+Pre-commit hook 會自動檢查。違反會 block commit。
+
 ## 🧱 Narrative Structure（敘事結構）
 
 寫文章不是做整理報告。讀者打開這篇，是想聽人講故事，不是想看簡報。

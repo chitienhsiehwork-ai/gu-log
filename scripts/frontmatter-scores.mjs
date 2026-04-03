@@ -12,18 +12,19 @@
  * Frontmatter storage format:
  *   gemini  → scores.gemini { score, date }
  *   codex   → scores.codex  { score, date }
- *   opus    → scores.ralph  { p, c, v, date }  (p=persona c=clawdNote v=vibe)
+ *   opus    → scores.ralph  { p, c, v, cl?, date }  (p=persona c=clawdNote v=vibe cl=clarity)
  *
  * get output (stdout JSON, empty = not found):
  *   gemini/codex → { score: N }
- *   opus         → { score: min(p,c,v), details: { persona: N, clawdNote: N, vibe: N } }
+ *   opus         → { score: min(p,c,v[,cl]), details: { persona: N, clawdNote: N, vibe: N, clarity?: N } }
  *
  * write input (score_json from judge daemon):
  *   gemini/codex → { score: N, ... }
- *   opus         → { score: N, details: { persona: N, clawdNote: N, vibe: N }, ... }
+ *   opus         → { score: N, details: { persona: N, clawdNote: N, vibe: N, clarity?: N }, ... }
  */
 
 import fs from 'fs';
+import process from 'node:process';
 
 const [, , op, filePath, judge, scoreJsonStr] = process.argv;
 
@@ -57,7 +58,7 @@ function splitFrontmatter(content) {
 
 /**
  * Parse the scores: block from YAML frontmatter text.
- * Returns an object like { ralph: { p: 9, c: 9, v: 9, date: "..." }, gemini: { score: 8, date: "..." } }
+ * Returns an object like { ralph: { p: 9, c: 9, v: 9, cl: 9, date: "..." }, gemini: { score: 8, date: "..." } }
  */
 function parseScores(fmText) {
   const lines = fmText.split('\n');
@@ -77,7 +78,7 @@ function parseScores(fmText) {
         break;
       }
       // 2-space indent: judge key (e.g. "  ralph:")
-      const judgeMatch = line.match(/^  (\w+):\s*$/);
+      const judgeMatch = line.match(/^\s{2}(\w+):\s*$/);
       if (judgeMatch) {
         currentKey = judgeMatch[1];
         scores[currentKey] = {};
@@ -85,8 +86,8 @@ function parseScores(fmText) {
       }
       // 4-space indent: field value (e.g. "    p: 9" or "    date: \"2026-03-30\"")
       if (currentKey) {
-        const numMatch = line.match(/^    (\w+):\s*(\d+(?:\.\d+)?)\s*$/);
-        const strMatch = line.match(/^    (\w+):\s*"([^"]*)"\s*$/);
+        const numMatch = line.match(/^\s{4}(\w+):\s*(\d+(?:\.\d+)?)\s*$/);
+        const strMatch = line.match(/^\s{4}(\w+):\s*"([^"]*)"\s*$/);
         if (numMatch) {
           scores[currentKey][numMatch[1]] = Number(numMatch[2]);
         } else if (strMatch) {
@@ -174,11 +175,19 @@ function opGet() {
 
   let output;
   if (judge === 'opus') {
-    // ralph: { p, c, v, date } → { score: min, details: { persona, clawdNote, vibe } }
-    const { p, c, v } = entry;
+    // ralph: { p, c, v, cl?, date } → { score: min, details: { persona, clawdNote, vibe, clarity? } }
+    const { p, c, v, cl } = entry;
     if (p == null || c == null || v == null) process.exit(0);
-    const minScore = Math.min(p, c, v);
-    output = { score: minScore, details: { persona: p, clawdNote: c, vibe: v } };
+    const dimensions = [p, c, v];
+    const details = { persona: p, clawdNote: c, vibe: v };
+
+    if (cl != null) {
+      dimensions.push(cl);
+      details.clarity = cl;
+    }
+
+    const minScore = Math.min(...dimensions);
+    output = { score: minScore, details };
   } else {
     // gemini/codex: { score, date } → { score: N }
     if (entry.score == null) process.exit(0);
@@ -221,7 +230,10 @@ function opWrite() {
     const persona = scoreData.details?.persona ?? scoreData.score ?? 0;
     const clawdNote = scoreData.details?.clawdNote ?? scoreData.score ?? 0;
     const vibe = scoreData.details?.vibe ?? scoreData.score ?? 0;
-    const entry = { p: persona, c: clawdNote, v: vibe, date: today };
+    const clarity = scoreData.details?.clarity;
+    const entry = { p: persona, c: clawdNote, v: vibe };
+    if (clarity != null) entry.cl = clarity;
+    entry.date = today;
     if (scoreData.model) entry.model = scoreData.model;
     if (scoreData.harness) entry.harness = scoreData.harness;
     scores['ralph'] = entry;
@@ -236,7 +248,7 @@ function opWrite() {
   let newFm = removeScoresBlock(parts.fmText);
   const scoresYaml = serializeScores(scores);
   if (scoresYaml) {
-    newFm = newFm + '\n' + scoresYaml;
+    newFm = newFm ? `${newFm}\n${scoresYaml}` : scoresYaml;
   }
 
   writeFrontmatter(filePath, newFm, parts.body);
@@ -259,7 +271,7 @@ function opDelete() {
   let newFm = removeScoresBlock(parts.fmText);
   const scoresYaml = serializeScores(scores);
   if (scoresYaml) {
-    newFm = newFm + '\n' + scoresYaml;
+    newFm = newFm ? `${newFm}\n${scoresYaml}` : scoresYaml;
   }
 
   writeFrontmatter(filePath, newFm, parts.body);
