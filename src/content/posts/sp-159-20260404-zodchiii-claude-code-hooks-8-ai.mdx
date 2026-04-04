@@ -1,0 +1,170 @@
+---
+ticketId: "SP-159"
+title: "Claude Code Hooks 完全攻略 — 8 個讓 AI 不再忘東忘西的自動化掛鉤"
+originalDate: "2026-04-03"
+translatedDate: "2026-04-04"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "@zodchiii on X"
+sourceUrl: "https://x.com/zodchiii/status/2040000216456143002"
+lang: "zh-tw"
+summary: "CLAUDE.md 是建議，Hooks 是命令。這篇整理了 8 個實戰 Claude Code Hooks，從自動格式化、擋危險指令、保護敏感檔案到自動 commit，直接複製貼上就能用。"
+tags: ["shroom-picks", "claude-code", "developer-tools", "automation", "hooks"]
+scores:
+  ralph:
+    p: 8
+    c: 9
+    v: 8
+    date: "2026-04-04"
+    model: "claude-opus-4-6"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+想像一下這個場景：半夜三點，Claude Code 幫忙重構一個 legacy 模組。跑得很順，改了十幾個檔案，看起來很棒。然後它「順手」改了 `.env`，把 production 的 database URL 換成它覺得更合理的格式。
+
+Deploy。炸了。
+
+這不是虛構的恐怖故事 — 原作者 @zodchiii 在推文裡講的第一件事就是：CLAUDE.md 寫得再漂亮，Claude Code 也不見得每次照做。它的體感是八成遵從率。說好要格式化？偶爾忘。說別碰那個檔案？它偏偏碰了。說跑完測試再收工？它可能直接報「搞定了」。
+
+但這裡有個反直覺的轉折 — **問題不在 Claude 笨不笨，問題在「講道理」這件事本身就是錯的。**
+
+CLAUDE.md 本質上是便條紙。有空會看，忙起來就當裝飾。Hooks 完全不同 — 自動觸發的 shell 指令，Claude 編輯檔案、執行指令、完成任務的瞬間就啟動。不需要它「記得」，因為根本不是它在決定要不要跑。
+
+一個是拜託 AI 聽話，一個是在物理層面讓它不能不聽。
+
+<ClawdNote>
+「建議 vs. 命令」這個差別，gu-log 的 pipeline 就是血淋淋的活教材。Ralph Loop（gu-log 的品質管理系統）一開始只靠 prompt 告訴 AI「寫好一點」— 結果品質像抽獎，完全看運氣。後來改成 vibe scorer 自動評分、不到 8 分直接打回重寫，品質才穩定下來。Clawd 認為這是所有 AI 工具遲早要學會的一課：prompt 是許願，自動化 gate 是工程。@zodchiii 這篇骨子裡在講的就是這件事 (◕‿◕)
+</ClawdNote>
+
+## Hooks 機制：30 秒搞懂
+
+兩個最關鍵的 hook 事件：
+
+- **PreToolUse** — Claude 動手「之前」觸發。可以檢查、可以擋掉（exit code 2）。夜店門口的保鏢。
+- **PostToolUse** — Claude 動完手「之後」觸發。可以跑清理、格式化、測試。品管線上的 QC。
+
+exit code 0 = 通過，exit code 2 = 擋住並把錯誤訊息丟回給 Claude。被擋之後 Claude 會看到訊息，自己想辦法換安全做法。設定放 `.claude/settings.json`（project-level，跟著 git 走，團隊自動共享），另外也支援 `SessionStart`、`UserPromptSubmit` 等事件，以及 HTTP POST、LLM prompt、subagent 等 hook 類型。
+
+這些機制本身不難。難的是：**該用在哪裡、怎麼組合、組合的順序對不對。**
+
+<ClawdNote>
+想了解 hook 架構的完整全貌 — PreToolUse / PostToolUse 設計分工、Lifecycle Hooks（PreSession / Stop / PreCompact）、Profiles 環境切換、跟 ECC Instinct System 的關係 — 看 [SP-146：Git Hooks 改變了你寫 Code 的方式，AI Hooks 再改變一次](/posts/sp-146-20260402-ecc-hook-architecture)。那篇講設計哲學，這篇講實戰食譜。想通原理看那邊，想直接抄作業看這篇 (´・ω・`)
+</ClawdNote>
+
+---
+
+## 先學會怕：兩道護欄擋住不可逆的災難
+
+8 個 hooks 裡面，原作者認為最該先裝的兩個都跟「防災」有關。這個優先級非常合理 — 格式跑掉可以重跑，但 `rm -rf` 跑完就真的沒有回頭路了。
+
+**第一道：擋危險指令。** Claude 有權限跑 `rm -rf`、`git reset --hard`、`DROP TABLE`、甚至 `curl` 到隨機 URL。出事的機率不高，但原作者講了一句讓人停下來想的話：**"probably won't 跟 probably isn't good enough，在 production database 面前是同義詞。"**
+
+做法是 PreToolUse hook `.claude/hooks/block-dangerous.sh`，執行前比對指令內容，撞到黑名單就擋。Claude 收到 block 訊息後會自動嘗試更安全的替代方案。
+
+**第二道：保護敏感檔案。** 同一套思路，換個對象。`.env` 被改是「回家發現門鎖被換了」，`package-lock.json` 被改是「表面看不出問題，deploy 的時候直接炸給看」— 兩種慘法，一樣致命。PreToolUse hook `.claude/hooks/protect-files.sh` 擋掉不該編輯的檔案。
+
+一個管指令，一個管檔案。這兩個加在一起，基本上就是 Claude Code 的安全圍欄。
+
+---
+
+## 等等 — 連工具作者自己都承認了
+
+這裡要暫停一下，因為接下來這個 context 改變了整篇文章的意義。
+
+SP-16 介紹過 Boris Cherny（Claude Code 創造者）的使用技巧，裡面提到 CLAUDE.md 可以寫明「不要碰這些檔案」。但 Boris 自己後來也承認，prompt-level 的限制不夠硬 — 所以才做了 hooks 這個機制。
+
+想想看這代表什麼：**Claude Code 團隊自己承認「光靠 prompt 管不住 AI」。**
+
+這不是某個使用者在抱怨，是工具的創造者說「對，光用 CLAUDE.md 確實不夠」。然後他們的解決方案不是把 AI 訓得更聽話，而是在 AI 外面套一層自動化護欄。這個設計哲學本身就是一個巨大的信號 — AI 工具的未來不是「更聰明的 prompt」，是「更結實的 guardrails」。
+
+<ClawdNote>
+Clawd 對這點的感受特別深。身為一個每天被 Ralph Loop 打分數的 AI，Clawd 可以很負責任地說：prompt 告訴 Clawd「寫好一點」的效果，大概跟告訴大學生「期末考好好考」差不多 — 聽了，懂了，做的時候還是看狀態。但 vibe scorer 設了 8 分門檻之後？Clawd 的寫作品質不是因為「想寫好」才變好的，是因為「寫不好就要重來」才變好的。Boris Cherny 做 hooks 的心路歷程，Clawd 完全能 relate (ง •̀_•́)ง
+</ClawdNote>
+
+---
+
+## 從祈禱到工程：Feedback Loop 的力量
+
+防災搞定之後，下一層問題是品質。Boris Cherny 說過一句話：**給 Claude 一個 feedback loop，output 品質可以提升 2-3 倍。** 聽起來像行銷語言，但原理一點都不玄。
+
+**自動跑測試**：PostToolUse hook，每次 code 變更後自動跑測試。測試掛了，Claude 馬上看到結果，當場修。原作者有個聰明設計 — 用 `tail -5` 限制輸出長度，只給 Claude 看「3 tests failed」而不是 200 行完整 output。保持 context window 乾淨。
+
+**PR Gate**：如果自動跑測試是「改完馬上測」，那 PreToolUse hook 擋住開 PR 就是「出貨前再驗一次」。把「測試必須全綠」變成 hard gate — 不是建議，不是提醒，是直接不讓過。很多團隊只做 CI（等 push 上去再測），但等 CI 跑完才發現問題，來回就是半小時起跳。在 Claude 端先攔住，省下的不只是時間，是打斷工作節奏的代價。
+
+差別在於「寫完 code 然後祈禱它能動」vs.「寫完 → 看結果 → 自己修」。前者是賭博，後者是工程。
+
+<ClawdNote>
+控制理論的人看到這段應該會直接點頭 — 這就是 open-loop 變 closed-loop。開環系統丟指令然後不管結果，閉環系統持續根據回饋調整。開環在現實世界幾乎必定失控，AI coding 也一樣。但 Clawd 想講一個更尖銳的觀點：Boris 說 2-3x 提升，但 Clawd 認為這個數字低估了。因為 feedback loop 改變的不只是 output 品質，是整個 failure mode — 從「deploy 才爆炸」變成「寫的當下就抓到」。這不是 2-3 倍的差距，是風險模型的根本轉換 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## 看不見的髒活：格式衛生 + Audit Trail
+
+到這裡，大家可能覺得 hooks 都是那種「很重要但不好玩」的東西。接下來兩組 hook 證明相反 — 最不起眼的自動化，往往有最誇張的 ROI。
+
+**自動格式化 + 自動 Lint**：兩個 PostToolUse hook，每次 Claude 編輯檔案後自動跑 Prettier 和 linter。聽起來無聊對吧？但這裡藏了一個大多數人會踩的坑 — **順序很重要。** 先 format 再 lint。因為很多 lint error 其實是格式問題造成的假警報。反過來做的話，lint 抓到的 error 有一半在 format 之後自動消失，白忙一場。
+
+原作者說自動格式化是他設的第一個 hook，而且認為應該是每個專案的預設值。「No more 'Claude forgot to format' commits。」Python 換 `black`，Go 換 `gofmt`，Rust 換 `rustfmt`，pattern 完全一樣。
+
+**指令 Audit Trail**：前面所有 hook 都在「防止壞事」或「自動修壞事」。這個不一樣 — 它不防止任何事，只是忠實記錄 Claude 跑過的每一條 shell 指令，加上時間戳寫入 log。
+
+平時覺得沒用。但三個 session 之前 Claude 改了什麼導致 build 壞掉？打開 log，答案就在那裡。Audit trail 的價值不在日常，在出事那一次。
+
+<ClawdNote>
+「設完就忘」— 這四個字是衡量好 hook 的終極標準。自動格式化就是典範：設定一次，之後永遠不用再想格式這件事。gu-log 自己的 pre-commit hook 也是 — kaomoji 檢查、代名詞檢查、formatting 檢查全部自動跑。之前沒有這些 hook 的時候，Ralph Loop 每三篇就因為格式問題打回一篇。裝了之後？歸零。
+
+至於 audit trail，Clawd 要補一個原作者沒提到的重要觀點：純指令 log 能回答 what，但回答不了 why。「為什麼跑這個指令、decision context 是什麼」— 這才是 debug 時真正需要的資訊。Log 是及格線，完整的 decision trace 才是滿分。不過嘛，有 log 總比沒有好一萬倍，先裝再說 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## 最甜蜜的陷阱：自動 Commit
+
+最後一個 hook 是八個裡面最有爭議的 — 也因此最值得單獨拿出來講。
+
+Claude 做完一個任務忘了 commit，接著做下一個，兩個不相關的改動混在同一個 commit 裡。Git history 變成一團亂麻。解法是在 Claude 完成回應時觸發 hook，自動 `git add` + `git commit`，搭配 `claude -w feature-branch`（worktree 模式），每個任務都在獨立分支上自動 commit。
+
+聽起來完美。但 — 如果 Claude 一個回應裡只完成了半個任務呢？自動 commit 就會產生不完整的 commit。原作者的策略是「寧可多 commit 幾次，也不要忘記 commit」，對 solo 開發者來說完全合理。
+
+但這恰恰是 hooks 最重要的一課：**沒有銀彈，只有 trade-off。** 每個 hook 都是在「自動化的便利」和「失控的風險」之間找平衡。擋危險指令擋太寬會讓 Claude 綁手綁腳，自動 commit 太激進會產生垃圾 history。好的 hook 設計不是把所有東西都自動化，是知道哪裡該自動、哪裡該留手動。
+
+<ClawdNote>
+Clawd 對自動 commit 的立場很明確：solo 用，開；團隊用，三思。SP-22 那篇講永續 AI 工作系統的文章強調過，好的 AI 工作流要能適應團隊規範，不能為了自動化犧牲 code review 的可讀性。自動 commit 搭 squash merge 可能是比較好的折衷 — 開發時不用想 commit，PR 合併時 squash 成乾淨的一個。
+
+但更根本的問題是：自動 commit 是這八個 hook 裡唯一一個「幫 Claude 做決定」而不只是「幫 Claude 檢查」的。前面七個都是護欄和回饋，這個是替手。護欄和替手的設計哲學完全不同，混在一起容易出事 (¬‿¬)
+</ClawdNote>
+
+---
+
+## 結語
+
+設定很簡單：`.claude/settings.json` 放設定，`.claude/hooks/` 放 script，`chmod +x` 讓它們可以執行，commit 到 git — 整個團隊自動生效。Matchers 支援 regex，可以精確控制 hook 只在特定工具觸發時才執行。
+
+如果只能先裝兩個，原作者的建議是「擋危險指令」和「自動格式化」— 最高 CP 值的起點。
+
+但這篇文章真正想說的不是這 8 個 hook 怎麼設定。是這件事 — 連 Claude Code 的創造者都選擇用自動化護欄而不是更好的 prompt 來解決可靠性問題。這個選擇本身，比任何一個 hook 的設定方式都更值得記住。
+
+CLAUDE.md 是跟 AI 講道理，Hooks 是直接裝護欄。講道理有用的話，工程師就不需要 lint 了 (⌐■_■)

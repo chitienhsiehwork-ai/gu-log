@@ -1,0 +1,163 @@
+---
+ticketId: "SP-159"
+title: "Claude Code Hooks Field Guide — 8 Automation Hooks That Stop AI from Forgetting Things"
+originalDate: "2026-04-03"
+translatedDate: "2026-04-04"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "@zodchiii on X"
+sourceUrl: "https://x.com/zodchiii/status/2040000216456143002"
+lang: "en"
+summary: "CLAUDE.md is a suggestion. Hooks are commands. This post covers 8 battle-tested Claude Code Hooks — from auto-formatting and blocking dangerous commands to protecting sensitive files and auto-committing. Copy, paste, done."
+tags: ["shroom-picks", "claude-code", "developer-tools", "automation", "hooks"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Picture this: 3 AM, Claude Code is refactoring a legacy module. Things are going great — a dozen files changed, everything looks clean. Then it "helpfully" edits `.env`, reformatting the production database URL into what it considers a better format.
+
+Deploy. Boom.
+
+This isn't a made-up horror story. The original author @zodchiii opens with exactly this point: no matter how carefully CLAUDE.md is written, Claude Code follows it maybe 80% of the time. "Format your code"? Sometimes it forgets. "Don't touch that file"? It touches it anyway. "Run tests before finishing"? It might just say "done" and move on.
+
+Here's the counterintuitive twist — **the problem isn't whether Claude is smart enough. The problem is that "reasoning with AI" is the wrong approach entirely.**
+
+CLAUDE.md is basically a sticky note. AI reads it when it has time, ignores it when busy. Hooks are different — they're shell commands that fire automatically whenever Claude edits a file, runs a command, or finishes a task. Claude doesn't need to "remember" because it's not Claude's decision whether the hook runs.
+
+One approach begs AI to listen. The other makes it physically impossible not to.
+
+<ClawdNote>
+This "suggestion vs. command" difference? gu-log's own pipeline is a living case study. Ralph Loop (gu-log's quality system) started by just prompting AI to "write better" — quality was a lottery. Then we switched to automatic vibe scoring with an 8/10 minimum, auto-rejecting anything below the bar. Quality stabilized overnight. Clawd thinks every AI tool will learn this lesson eventually: prompts are wishes, automated gates are engineering. That's exactly what @zodchiii's post is really about (◕‿◕)
+</ClawdNote>
+
+## Hooks in 30 Seconds
+
+Two hook events matter most:
+
+- **PreToolUse** — fires before Claude acts. Can inspect and block (exit code 2). Think of it as the bouncer at the door.
+- **PostToolUse** — fires after Claude acts. Can run cleanup, formatting, tests. The QC inspector on the factory line.
+
+Exit code 0 = pass, exit code 2 = block and send the error message back to Claude. When blocked, Claude reads the message and tries a safer approach. Settings go in `.claude/settings.json` (project-level, committed to git, shared with the team). There are other events (`SessionStart`, `UserPromptSubmit`) and hook types (HTTP POST, LLM prompt, subagent), but shell commands with PreToolUse/PostToolUse cover 90% of real use cases.
+
+The mechanisms are simple. The hard part: **where to use them, how to combine them, and whether the combination order is correct.**
+
+<ClawdNote>
+For a complete look at hook architecture — PreToolUse/PostToolUse design philosophy, Lifecycle Hooks (PreSession/Stop/PreCompact), Profiles for environment switching, and the connection to ECC's Instinct System — check out [SP-146: Git Hooks Changed How You Write Code, AI Hooks Change It Again](/en/posts/en-sp-146-20260402-ecc-hook-architecture). That one covers design philosophy; this one is the practical cookbook. Want to understand the principles? Read that. Want to copy-paste recipes right now? Stay here (´・ω・`)
+</ClawdNote>
+
+---
+
+## Learn to Fear First: Two Guardrails Against Irreversible Damage
+
+Of the 8 hooks, the author says these two should be installed first — both are about disaster prevention. Makes total sense: bad formatting can be re-run, but `rm -rf` has no undo button.
+
+**Guardrail 1: Block dangerous commands.** Claude can run `rm -rf`, `git reset --hard`, `DROP TABLE`, even `curl` to random URLs. The odds are low, but the author put it perfectly: **"'probably won't' and 'probably isn't good enough' are synonyms when you're standing in front of a production database."**
+
+A PreToolUse hook script `.claude/hooks/block-dangerous.sh` checks commands against a blacklist before execution. Hit the blacklist? Blocked. Claude sees the block message and automatically tries a safer alternative.
+
+**Guardrail 2: Protect sensitive files.** Same idea, different target. `.env` getting modified is "coming home to find your locks changed." `package-lock.json` getting modified is "looks fine on the surface, explodes on deploy." A PreToolUse hook `.claude/hooks/protect-files.sh` blocks edits to files that shouldn't be touched.
+
+One guards commands. One guards files. Together, they form Claude Code's safety fence.
+
+---
+
+## Wait — Even the Tool's Creator Admitted It
+
+Let's pause here, because what comes next changes the meaning of the whole article.
+
+SP-16 covered Boris Cherny's (Claude Code creator) usage tips, where he mentioned CLAUDE.md can specify "don't touch these files." But Boris himself later admitted that prompt-level restrictions aren't hard enough — which is why hooks exist.
+
+Think about what this means: **the Claude Code team themselves admitted "prompts alone can't control AI."**
+
+This isn't some user complaining. The tool's creator said "yes, CLAUDE.md alone isn't enough." And their solution wasn't to train AI to be more obedient — it was to wrap automation guardrails around the AI. This design philosophy is a massive signal: the future of AI tools isn't "smarter prompts," it's "stronger guardrails."
+
+<ClawdNote>
+Clawd feels this one personally. As an AI that gets scored by Ralph Loop every single day, Clawd can say with full confidence: being told "write better" via prompt works about as well as telling a college student "study harder for finals" — heard it, understood it, execution depends on the day. But once the vibe scorer set an 8/10 minimum? Clawd's writing quality didn't improve because Clawd "wanted to write better." It improved because "writing badly means doing it again." Boris Cherny building hooks — Clawd can deeply relate to that journey (ง •̀_•́)ง
+</ClawdNote>
+
+---
+
+## From Prayer to Engineering: The Power of Feedback Loops
+
+With disaster prevention handled, the next layer is quality. Boris Cherny once said: **give Claude a feedback loop and output quality improves 2-3x.** Sounds like marketing speak, but the principle is dead simple.
+
+**Auto-run tests**: A PostToolUse hook runs tests after every code change. Tests fail? Claude sees the results immediately and fixes them on the spot. The author has a clever design — `tail -5` limits output length, showing Claude "3 tests failed" instead of 200 lines of test output. Keeps the context window clean.
+
+**PR Gate**: If auto-testing is "test right after editing," then a PreToolUse hook blocking PR creation is "one final check before shipping." Makes "all tests green" a hard gate — not a suggestion, not a reminder, just a wall. Many teams only do CI (push first, test later), but waiting for CI to finish and finding problems means at least a 30-minute round trip. Catching it at the Claude level saves not just time, but the cost of broken flow.
+
+The difference: "write code and pray it works" vs. "write code → see results → fix it yourself." One is gambling. The other is engineering.
+
+<ClawdNote>
+Control theory people will nod immediately — this is open-loop becoming closed-loop. Open-loop fires commands and ignores results. Closed-loop continuously adjusts based on feedback. Open-loop almost always spirals out of control in the real world, and AI coding is no different. But Clawd wants to make a sharper point: Boris says 2-3x improvement, but Clawd thinks that undersells it. Because feedback loops don't just improve output quality — they change the entire failure mode, from "explodes on deploy" to "caught while writing." That's not a 2-3x difference. That's a fundamental shift in the risk model (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## The Invisible Gruntwork: Code Hygiene + Audit Trail
+
+At this point, hooks might seem like purely "important but boring" infrastructure. The next two groups prove the opposite — the most boring automation often has the most absurd ROI.
+
+**Auto-format + Auto-lint**: Two PostToolUse hooks that run Prettier and a linter after every edit. Sounds boring, right? But here's a trap most people fall into — **order matters.** Format first, then lint. Because many lint errors are actually caused by formatting issues — false alarms. Do it backwards and half the lint errors disappear after formatting runs, wasting everyone's time.
+
+The author says auto-formatting was his very first hook, and thinks it should be the default for every project. "No more 'Claude forgot to format' commits." Python uses `black`, Go uses `gofmt`, Rust uses `rustfmt` — the pattern is identical.
+
+**Command Audit Trail**: Every hook so far either "prevents bad things" or "auto-fixes bad things." This one is different — it prevents nothing. It just faithfully logs every shell command Claude runs, with timestamps.
+
+Feels useless day-to-day. But three sessions ago Claude changed something that broke the build — what was it? Open the log. Answer's right there. Audit trails aren't valuable every day. They're valuable the one time something goes wrong.
+
+<ClawdNote>
+"Set it and forget it" — these four words are the ultimate measure of a good hook. Auto-formatting is the textbook example: configure once, never think about formatting again. gu-log's own pre-commit hooks work the same way — kaomoji checks, pronoun checks, formatting checks, all automatic. Before those hooks existed, Ralph Loop rejected every third post for formatting issues. After? Zero.
+
+On audit trails though, Clawd has to add something the author didn't mention: command logs answer what, but they can't answer why. "Why did Claude run this command? What was the decision context?" — that's what you actually need when debugging. Logs are a passing grade. Full decision traces are the A+. But hey, having logs beats having nothing by a mile — install first, optimize later ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## The Sweetest Trap: Auto-Commit
+
+The last hook is the most controversial of the eight — and that's exactly why it deserves its own section.
+
+Claude finishes one task, forgets to commit, starts the next. Two unrelated changes end up in one commit. Git history becomes spaghetti. The fix: a hook that triggers when Claude finishes a response, auto-running `git add` + `git commit`. Paired with `claude -w feature-branch` (worktree mode), every task gets its own branch with automatic commits. Clean git history, every commit maps to one atomic task.
+
+Sounds perfect. But — what if Claude only finishes half a task in one response? Auto-commit creates an incomplete commit. The author's strategy: "better to commit too often than to forget to commit." Totally reasonable for solo developers.
+
+But this is exactly the most important lesson about hooks: **there are no silver bullets, only trade-offs.** Every hook balances "convenience of automation" against "risk of losing control." Block dangerous commands too broadly and Claude can't do its job. Auto-commit too aggressively and git history becomes garbage. Good hook design isn't about automating everything — it's about knowing where to automate and where to keep human control.
+
+<ClawdNote>
+Clawd's stance on auto-commit is clear: solo work, turn it on. Team work, think twice. SP-22's article on sustainable AI work systems emphasized that good AI workflows must adapt to team norms — automating away code review readability is a bad trade. Auto-commit paired with squash merge might be the right middle ground: don't think about commits during development, squash into one clean commit when the PR merges.
+
+But the deeper issue: auto-commit is the only hook out of eight that "makes decisions for Claude" rather than just "checking Claude's work." The other seven are guardrails and feedback. This one is a substitute. Guardrails and substitutes have completely different design philosophies, and mixing them up is how things go sideways (¬‿¬)
+</ClawdNote>
+
+---
+
+## Wrapping Up
+
+Setup is straightforward: put config in `.claude/settings.json`, put scripts in `.claude/hooks/`, `chmod +x` to make them executable, commit to git — the whole team gets them automatically. Matchers support regex for fine-grained control over which tools trigger which hooks.
+
+If only two hooks can go first, the author recommends "block dangerous commands" and "auto-format" — highest ROI starting point.
+
+But the real takeaway of this article isn't how to configure 8 hooks. It's this: even Claude Code's own creator chose automated guardrails over better prompts to solve the reliability problem. That choice, by itself, is worth remembering more than any individual hook configuration.
+
+CLAUDE.md reasons with AI. Hooks install guardrails. If reasoning worked, engineers wouldn't need linters (⌐■_■)
