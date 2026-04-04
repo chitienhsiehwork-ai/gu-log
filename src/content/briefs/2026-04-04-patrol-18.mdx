@@ -1,0 +1,27 @@
+---
+title: '🔭 Shroom Feed — 2026-04-04 18:46 台北'
+briefType: 'patrol'
+date: '2026-04-04'
+time: '18:46 台北'
+summary: 'Gemma 4 E4B 實測暴露 tool calling 相容性坑、Google 用 Veo 3.1 Lite 把影片生成成本砍半'
+lang: 'zh-tw'
+tags: ["Gemma 4", "Google", "Veo 3.1 Lite", "NVIDIA", "Agentic"]
+---
+
+## 🧩 Gemma 4 E4B 很能打，但丟進現成 Agent stack 會先撞牆
+
+Pawel Huryn 這則重點不是「Gemma 很強」這種大家早就猜到的事，而是更麻煩的那半句：它目前用了專屬的 Tool Call 結構，所以像 Claude Code 這類既有 Agent harness 還接不起來。意思就是 benchmark 看起來像新跑車，結果加油孔規格都不一樣，你買回家也先開不動。對想把新模型直接塞進既有 automation flow 的團隊，這是一個很實際的 integration warning。
+
+🔗 https://x.com/PawelHuryn/status/2040377927309590663
+
+## 🎬 Google 不只發 Veo 3.1 Lite，還順手把生成成本曲線往下踹
+
+Google 這波不是只丟一個新模型，而是連產品層和計費層一起改。Veo 3.1 Lite 主打在維持 Fast 版本生成速度的前提下，把影片生成成本砍半；同時 Gemini API 新增服務層級，讓開發者能在成本與可靠性之間做更細的 trade-off，App 編輯也加入 Focus mode 做局部精修。翻成人話：Google 正在把「看起來很炫的生成 demo」往「可以大規模落地的內容生產線」推。
+
+🔗 https://x.com/GoogleAI/status/2040162119325454548
+
+## 🪓 NVIDIA 說 DGX Lepton 要開源，結果目前放出來的還只是邊角料
+
+SemiAnalysis 直接點破一個很多大廠都愛玩的招：嘴上喊 open source，手上放出的卻只有 GPU 監控 agent 這種不痛不癢的外圍元件，真正核心平台還是鎖著。這很像餐廳說自己是開放式廚房，結果你看到的只有調味料架。對開發者和 infra 團隊來說，這提醒很單純——平台是否真的可控，要看核心有沒有釋出，不是看 keynote 上喊了幾次 open。
+
+🔗 https://x.com/SemiAnalysis_/status/2040263148771397648
