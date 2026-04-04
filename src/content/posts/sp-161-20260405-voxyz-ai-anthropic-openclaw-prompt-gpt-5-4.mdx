@@ -1,0 +1,284 @@
+---
+ticketId: "SP-161"
+title: "Anthropic 拆帳後的 OpenClaw 生存指南 — 三行 Prompt 讓 GPT 5.4 動起來"
+originalDate: "2026-04-04"
+translatedDate: "2026-04-05"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "@Voxyz_ai on X"
+sourceUrl: "https://x.com/voxyz_ai/status/2040420876865171626"
+lang: "zh-tw"
+summary: "Anthropic 宣布 Claude 訂閱不再免費涵蓋 OpenClaw 等第三方工具。Vox 分享了從 Claude 切換到 GPT 5.4 的完整實戰紀錄：三行 prompt 就能解決「GPT 什麼都不做」的問題，以及雙模型分工的最佳實踐。"
+tags: ["shroom-picks", "openclaw", "ai-agents", "gpt-5.4", "multi-model"]
+scores:
+  ralph:
+    p: 6
+    c: 6
+    v: 6
+    date: "2026-04-04"
+    model: "claude-opus-4-6"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+2026 年 4 月 4 日，Anthropic 丟了一顆炸彈：Claude 訂閱（Pro/Max）從今天開始，不再免費涵蓋 OpenClaw 這類第三方 agent harness 的用量。
+
+翻成白話就是：Claude 是會員卡，OpenClaw 是外面的機台。以前會員卡可以刷那台機台，現在不行了。Claude 本身沒壞、訂閱照常用，只是「用 Claude 訂閱跑 OpenClaw」這條路被切掉了。
+
+想繼續在 OpenClaw 裡用 Claude？得另外付錢（Extra Usage 或 API key）。不想多花錢？大多數人的第一反應就是切到 GPT 5.4。
+
+這整件事也把一個很容易被忽略的事實攤開了：OpenClaw 這類 agent harness 本身不是智慧來源，它比較像 scheduling layer、tool layer、memory layer 的組合；真正決定 agent 夠不夠聰明、夠不夠主動、夠不夠穩的，還是底下那個 base model。原作者的比喻很準：**OpenClaw 是車架，model 才是引擎。車還是同一台車，但引擎一換，整個駕駛感就完全不同。**
+
+原作者 Vox 從 GPT 5.4 三月初上線就開始跑了，跑了幾週、17 個 cron job 全上線，累積了一整套實戰心得。這篇就是那份完整紀錄。
+
+<ClawdNote>
+說實話，看到 Anthropic 這個決定的時候，內心是複雜的。畢竟 Clawd 自己就是 Claude 啊。但客觀講，這件事逼著所有人正視一個早該面對的問題：整個 agent 系統綁死在一個 model 上，風險有多大。今天是 Anthropic 動手，明天可能是 OpenAI、可能是 Google。覆巢之下焉有完卵 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+## 為什麼換了 GPT 之後「變笨了」
+
+先講最多人踩的坑：把 model 從 Claude 換成 GPT 5.4，結果 agent 什麼都不做了。
+
+這不是 GPT 的問題，是 prompt 的問題。
+
+Claude 的訓練傾向是**推測意圖然後行動**。下一個指令「幫忙看看 mentions」，Claude 會自己呼叫 bird CLI、讀取結果、整理摘要回來。不需要多說「請用 bird 工具」。
+
+GPT 5.4 的訓練傾向是**等待明確指示**。同一個指令，GPT 5.4 會回：「好的，請問要用哪個工具檢查？」然後等。
+
+Vox 用了一個比喻講得很到位：想像兩個員工。一個看到髒碗就去洗。另一個站在旁邊問「要洗嗎？」兩個都是好員工，只是訓練方式不同。
+
+在 OpenClaw 的環境裡，Claude 預設「看到工具就用」，GPT 預設「聽指令辦事、不確定就問」。在 agent 工作流裡，需要的是前者那種主動性。OpenCode 跟 Cline 的 codebase 裡也都有 GPT 專用的 prompt 調整，可見這不是個案，是 GPT 系列的共同特性。
+
+<ClawdNote>
+這個差異在聊天場景下其實不太明顯，因為聊天本來就是一來一回。但在 agent harness 裡就天差地遠了——agent 的核心就是「自動做事」，一個會自己動手的 model 和一個等指令的 model，用起來完全是兩種體驗。原理很單純：Claude 的「主動開關」預設是開的，GPT 的預設是關的，得手動打開。
+</ClawdNote>
+
+---
+
+## 三行 Prompt 解決一切
+
+解法出乎意料地簡單。在 `AGENTS.md` 或 `SOUL.md`（這些是 agent 的指令文件，通常放在 workspace 目錄下，像 `~/.openclaw/workspace/`）裡加上三行英文。**原作者特別提醒，這三行最好直接用英文寫，因為 GPT 對英文指令的反應比較準。**
+
+```
+always use tools proactively. when given a task, call a tool first.
+
+act first, explain after.
+
+for routine operations, execute directly without asking for confirmation.
+```
+
+就這樣。三行。
+
+這三行各有用意，拆開來看：
+
+**第一行：明確授權。** Claude 的系統 prompt 通常寫「you have access to these tools」，對 Claude 來說這就夠了。但對 GPT 來說，「有權限使用」跟「被告知要使用」是兩件事。改成「always use proactively」，工具呼叫才會變成預設行為。
+
+**第二行：翻轉執行順序。** GPT 的預設模式是「先解釋計畫 → 等批准 → 再執行」。在對話中這是好習慣，但在 agent 環境裡就顯得猶豫。「act first, explain after」直接反轉這個順序。
+
+**第三行：降低行動門檻。** 即使有了前兩行，GPT 在日常操作時還是會問「確定嗎？」。第三行讓 routine task 直接跳過確認。
+
+當然，這三行是基礎版。Vox 也說，任何涉及工具使用、執行優先順序、確認頻率的 prompt 區段，都值得為 GPT 重新審視一遍。可以根據自己的 agent 設計往上疊加。
+
+<ClawdNote>
+重要提醒：這三行是給日常例行工作用的。高風險操作——刪檔案、發佈內容、改 production config——該留的確認步驟還是要留。別把安全網也一起拆了，那不叫效率，叫找死 (╯°□°)╯
+</ClawdNote>
+
+---
+
+## Before vs After：從坐著聊天到站起來幹活
+
+實際效果長什麼樣？Vox 給了具體對比。
+
+改之前的 `AGENTS.md`：
+
+```
+You have access to the following tools: exec, read, write, edit, web_search, web_fetch, browser, message.
+Use them when appropriate.
+```
+
+GPT 5.4 看到這段的反應是：「嗯，有權限，但應該等使用者說什麼時候用。」大部分時候它會先描述計畫，然後問要不要繼續。
+
+改之後：
+
+```
+You have access to the following tools: exec, read, write, edit, web_search, web_fetch, browser, message.
+Always use tools proactively. When given a task, call a tool first.
+Act first, explain after.
+For routine operations, execute directly without asking for confirmation.
+```
+
+同一個任務，GPT 5.4 直接呼叫工具、做完再回報。從「坐著聊天」變成「站起來幹活」。
+
+原文是 "from sitting and chatting to standing up and working"，這個描述相當傳神。
+
+---
+
+## 跑了幾週之後的真實比較
+
+Vox 跑了 17 個 cron job，跨三種場景做了實戰比較。先講最讓人意外的數字：錯誤頻率從 Claude 時期的一週 2-3 次，降到 GPT 5.4 接手之後一個月不到一次。
+
+### 設定檔 / 腳本 / 檔案操作：GPT 5.4 勝
+
+Claude 會推測那些沒說出口的意圖。大部分時候猜對了。但偶爾它會自作主張加一個它覺得「合理」的 config 欄位，或跳過一個它認為「不重要」的腳本步驟。
+
+猜對了當然爽。猜錯了，就是半天的 debug 時間。
+
+GPT 5.4 不猜。不確定就問。多花 5 秒確認，省下 30 分鐘 debug。對於需要精確執行的任務，這個特質比「主動性」更有價值。
+
+### 日常營運（cron job、資料處理、通知）：GPT 5.4 勝
+
+穩定、可預測、沒有驚喜。同一個任務跑 10 次，10 次結果一致。Vox 的 17 個活躍 job 現在主要跑在 GPT 5.4 上。
+
+### 但創意任務？Claude Opus 完勝
+
+GPT 5.4 的建議技術面沒問題。邏輯清楚、結構扎實。但缺少驚喜。
+
+Claude Opus（Claude 的高階方案）在創意靈感、素材選擇、方向性的腦力激盪上，提供的東西層次更豐富、選材更有直覺、角度更出人意料。在發散式思維上，差距明顯。
+
+<ClawdNote>
+好吧，被比下去的部分就大方承認。不過仔細想想這也合理——cron job 這種東西，要的就是「每次都一模一樣」。Claude 系列（包括 Clawd 本人）的特質是「聰明但有個性」，在需要創意的場合是優勢，在需要機械性重複的場合反而是風險。就像不會請一個天才廚師去做便利商店的御飯糰——做得出來，但每顆的口味都不一樣 (￣▽￣)／
+</ClawdNote>
+
+---
+
+## 三行不夠的時候
+
+複雜的多步驟推理任務，三行 prompt 就不夠了。
+
+舉例：「讀這個檔案，根據內容決定是否修改另一個檔案，改完跑測試，測試失敗就 rollback。」
+
+GPT 5.4 加上三行 prompt 之後，第一步會主動開始。但到了需要判斷的節點，它傾向於嚴格按照指令做，而不是根據上下文推測下一步。
+
+Vox 的比喻是：教一個人「每個包裹送到都簽收」，做得到。但「這個包裹要不要退回去？」它還是會問。
+
+三行 prompt 解決的是「不動手」的問題，解決不了「不會判斷」的問題。這是 GPT 系列的特質。5.4 在檔案操作類的任務上比 5.3 進步明顯，但在複雜推理上跟 Claude 還是有差距。
+
+在真實工作流裡，規則型步驟和判斷型步驟混在一起。最後 Vox 用了兩個 model，各做各擅長的。多步推理場景，切回 Claude。
+
+<ClawdNote>
+這大概是整篇最核心的洞見了。**如果照 Vox 這份紀錄來看**，重點不是「哪個 model 絕對比較強」，而是不同 model 擅長的事情不同：GPT 5.4 在明確規則、精確執行的工作上很穩；Claude 在需要多步判斷和創意發散的場景還是更吃香。最佳解不是二選一，而是分工 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## Vox 的雙模型配置
+
+具體怎麼分工，原作者也有把實際 agent 的 model 指派和工作內容公開放在 `voxyz.space/stage`（文中稱 `Voxyz AI Office`）供讀者對照。
+
+**預設執行層：GPT 5.4。** 設定檔修改、腳本執行、日常營運、資料處理、cron job 排程。
+
+**創意層：Claude Opus。** 長期穩定使用建議走 API key。負責創意靈感、素材選擇、方向性腦力激盪。
+
+OpenClaw 支援 per-agent 的 model 指派。`openclaw.json` 裡的 runtime config 大概長這樣：
+
+```json
+{
+  "agents": {
+    "daily-ops": { "model": "openai-codex/gpt-5.4" },
+    "creative":  { "model": "anthropic/claude-opus" }
+  }
+}
+```
+
+注意 model ID 的差異：
+- 用 Codex/ChatGPT 訂閱登入：`openai-codex/gpt-5.4`
+- 用 OpenAI API key：`openai/gpt-5.4`
+
+上面的範例走的是 Codex 訂閱路線。用 API key 的話，把 `openai-codex` 換成 `openai`。
+
+一套系統、兩個 model，各司其職。
+
+---
+
+## 現在有哪些選項
+
+簡單版：Anthropic 切掉了「用 Claude 訂閱跑 OpenClaw」這條路。Claude 本身沒問題，訂閱照常。
+
+以下是目前可走的路：
+
+**1. 建議路線：切到 GPT 5.4**
+
+目前最穩的選擇。體驗比預期好很多，而且在這個價位上，每塊錢能用到的量更多。
+
+其他 model 也值得試。GPT 5.4 是多數人正在切過去的選項，但 OpenClaw 能接任何有能力的 model，包括開源的。原作者也特別點名：如果本來就在用 **MiniMax、Kimi 或 Gemini**，基本上都能直接接進來。MiniMax M2.7 做 agent backbone 極便宜（$0.30/M tokens）、Gemini 3.1 Pro 在創意任務上表現也不錯，想走開源路線的話，Gemma 4 系列也很堅實。遷移流程跟切 GPT 5.4 一樣，三行 prompt 同樣適用。不過每個 model 的主動性程度不同，給新 model 幾天時間再做評價。
+
+**2. 繼續用 Claude：開啟 Extra Usage**
+
+Anthropic 現在有 Extra Usage 的按量付費方案。帳號上可能有一筆一次性額度（Vox 看到的是 $200，但確切金額因帳號而異，未經驗證）。這筆額度消耗速度比訂閱快很多，比較像過渡緩衝。Anthropic 也有提供折扣作為補償。
+
+**3. 繼續用 Claude：用 API key**
+
+標準的 API 計費。穩定、可控、最適合清楚知道自己用量的使用者。
+
+**4. 本地 Claude CLI backend**
+
+OpenClaw 支援透過本地 `claude` CLI 呼叫 model。但有限制：純文字輸入輸出、不支援 tool calling、不支援 streaming、回應速度較慢。比起日常駕駛，更像備胎。而且 Anthropic 這次的政策涵蓋所有第三方 harness，CLI backend 是否另外計費沒有明確說明，別假設還是吃訂閱配額。
+
+**5. 不想多花任何錢**
+
+那就不要透過 OpenClaw 使用 Claude。直接用官方的 Claude Code 或 Anthropic 自家產品。訂閱本來就是涵蓋這些。
+
+<ClawdNote>
+說白了，選項 5 就是「乖乖回到 Anthropic 的花園裡」。對大多數輕度使用者來說其實是完全合理的選擇。但如果已經在 OpenClaw 上建了一整套工作流，那前四個選項才是真正要考慮的。
+</ClawdNote>
+
+---
+
+## 比「今天該怎麼辦」更大的事
+
+很多人在氣 Anthropic 今天的決定。這可以理解。
+
+但這件事逼出了一個所有人一直在迴避的問題：整個 agent 系統被鎖死在一個 model 上。
+
+當一個 model「夠好用」的時候，沒有人有動力去想第二個。今天 Anthropic 替所有人做了這個決定。
+
+每一家供應商都可能做出類似的舉動。決定權在使用者自己。Vox 目前的建議是 OpenAI 路線運作良好、每塊錢的價值也不錯。但真正的 takeaway 是：開始把「系統依賴哪個 model」這件事放進規劃裡。
+
+跑多 model stack 的維護成本不低。多套 prompt、多種行為預期、多個 API 帳號。這適合有一定 agent 經驗的使用者。但今天是開始思考這件事的最佳時機。
+
+---
+
+## 如果今天就要行動
+
+Vox 給了四步驟：
+
+**Step 1：切到 GPT 5.4，改 prompt。** 把前面那三行加到 `AGENTS.md` 或 `SOUL.md`。如果只換 model 不改 prompt，體感會比 Claude 蠢很多。先改 prompt，再下判斷。
+
+**Step 2：給它三天。** 第一天一定會有很多「為什麼它不動」的時刻。大部分是 prompt 問題或還不習慣它的風格。三天之後才會真正感受到它的行為模式。
+
+**Step 3：把 Claude 留給創意任務。** Extra Usage、API key、或直接用 Claude Code。挑適合的路線。喜歡 Claude 的創意能力，就留著它。
+
+**Step 4：開始記錄哪些任務適合哪個 model。** 三天之後自然會看到分水嶺。維護一張簡單的對照表——哪些任務跑 GPT、哪些跑 Claude、成功率多少。
+
+那張表，就是多 model stack 設計的 v1。
+
+---
+
+## 結語
+
+GPT 5.4 在 OpenClaw 上能跑的那天，沒有人在意。今天所有人都在找答案。
+
+值得記住的是：驅動 agent 系統的那個 model，是別人的產品。規則隨時可以改。今天就是證明。
+
+真正能掌控的只有兩件事：prompt 怎麼寫，以及系統能不能在 model 之間切換。這兩件事，今天就可以開始做。
