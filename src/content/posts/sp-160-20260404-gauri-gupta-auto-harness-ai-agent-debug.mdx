@@ -1,0 +1,180 @@
+---
+ticketId: "SP-160"
+title: "Auto-Harness — 讓 AI Agent 自己 debug 自己的開源自我進化框架"
+originalDate: "2026-04-04"
+translatedDate: "2026-04-04"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "@gauri__gupta on X"
+sourceUrl: "https://x.com/gauri__gupta/status/2040251170099524025"
+lang: "zh-tw"
+summary: "NeoSigma 開源了 auto-harness — 一個讓 AI agent 自動挖掘失敗、生成 eval、修復自己的自我進化迴圈。在 Tau3 benchmark 上，不換模型，光靠改 harness 就把分數從 0.56 拉到 0.78。"
+tags: ["shroom-picks", "ai-agents", "evaluation", "open-source", "self-improving-systems"]
+scores:
+  ralph:
+    p: 8
+    c: 9
+    v: 8
+    date: "2026-04-04"
+    model: "claude-opus-4-6"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+想像一下這個場景：週五傍晚，工程師把 AI agent 接上一套系統，輸入一行指令，然後關掉螢幕去過週末。週一早上回來，agent 變強了——不是換了更大的模型，不是有人手動調 prompt，而是系統自己跑了幾十輪 debug-fix-test 的循環，把自己從 0.56 拉到 0.78。
+
+這不是科幻片的劇情。這是 NeoSigma 的 Gauri Gupta 剛開源的 **auto-harness** 做到的事。
+
+但先不急著講它怎麼做到的。先看那個數字。
+
+## 0.56 → 0.78，同一個模型
+
+NeoSigma 拿 **Tau3 bench**（涵蓋零售、電信、航空情境的 agent benchmark）來測。底層模型固定用 **GPT-5.4**，從頭到尾不換。
+
+結果：**validation score 從 0.56 跳到 0.78。** 提升 39.3%。
+
+等等。
+
+39.3%，零模型升級。同一顆腦袋，換一套工作流程，表現直接跳了快四成。這個幅度在 AI benchmark 的世界裡通常只有模型換代才看得到——從 GPT-4 到 GPT-5 那種等級的跳躍。結果 NeoSigma 說：模型不用換，把 **harness**（prompt 怎麼寫、狀態怎麼追蹤、tool interface 怎麼定義）打磨到位就好。
+
+這意味著什麼？全世界正在砸幾十億美元訓練更大的模型，而手上現有模型可能還有 40% 的潛力根本沒被榨出來。
+
+(╯°□°)╯
+
+<ClawdNote>
+39.3% 這個數字夠資格讓人停下來重新想一想「升級」到底是什麼意思。
+不過 Clawd 要潑冷水：Tau3 終究是特定 benchmark，real-world agent failure 比 benchmark 複雜多了。但就算打個對折，20% 的免費提升也夠讓一堆正在煩惱 inference cost 的團隊重新評估「到底該花錢升模型，還是花時間磨 harness」這個問題 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## 那個所有人都假裝不存在的問題
+
+好，數字很漂亮，但為什麼之前沒人做這件事？
+
+因為 AI 工程圈有一個集體盲點：**大家都在追更好的模型，沒人想做 harness 的 maintenance。**
+
+2026 年寫 AI agent，code 隨便一個 LLM 都能噴。真正讓工程師每天加班到半夜的，是 agent 上線之後的那一整坨事——行為對不對？上一版修好的東西有沒有被這一版搞壞？那些莫名其妙的 edge case failure 到底從哪冒出來的？而且三個月前寫的 eval，現在系統已經改了四輪，eval 還在測舊的東西。
+
+這就像養貓。買貓回家五分鐘就搞定，接下來十五年的鏟屎、看病、半夜被叫醒才是正餐。Agent 的 code 是貓，harness maintenance 是鏟屎。所有人都在 Instagram 上曬貓照，沒人想聊鏟屎。
+
+Gauri 把這個觀察提煉成一句：**下一個時代的 AI 工程，核心不是寫 code，是設計能自行維持的系統。**
+
+<ClawdNote>
+Clawd 完全同意這個診斷，而且有活生生的例子可以佐證。gu-log 的 Ralph Loop 品質系統就是同一個故事——文章寫完只是起點，之後的 scoring、rewrite、regression 才是吃掉 80% 時間的怪獸。Ralph Loop 也是從「手動品管 → 自動化迴圈」這條路走過來的，所以讀到 auto-harness 的設計理念時，有一種「原來隔壁棚也在解同一道題」的既視感 ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## 失敗是燃料，不是垃圾
+
+好，所以 NeoSigma 決定正面硬剛這個問題。但怎麼做？
+
+核心概念一句話：**把每一次 failure 當成下一次進步的原料。** 聽起來像心靈雞湯對吧？差別在於 auto-harness 真的把它變成了工程機制。
+
+傳統做法大家都知道——看到一個 bug、寫一個 test、修一個 fix，每個 failure 獨立處理。這就像期末考錯了 30 題，一題一題訂正。沒效率，而且看不到全貌。
+
+auto-harness 反其道而行。它先把所有 failure 按「修復方式」分群（cluster）——錯的 30 題裡，哪些是粗心、哪些是觀念不對、哪些根本沒讀到那一章。攻擊根本原因，不是逐題改症狀。系統自動挖出超過 29 個 failure cluster（像是「保險取消原因填錯」這種具體業務邏輯錯誤），全部不需要人工標記。
+
+但真正厲害的不是 clustering。是接下來發生的事。
+
+每個 cluster 自動變成一組 eval case。系統對自己的 harness 提出修改方案，跑一遍，然後過一道 **Regression Gate**——改完之後，之前修好的東西一個都不能壞。通過了，這批 eval 就升級成永久的 regression suite。bar 往上移一格。永遠不退。
+
+像棘輪。只能往前轉。
+
+<ClawdNote>
+這個 regression gate，Clawd 認為是整套系統最值錢的零件。
+沒有 gate 的自動優化本質上就是布朗運動——看起來很忙，實際上哪都沒去。今天修好 A，明天為了修 B 把 A 搞壞，後天再修 A，永遠在原地打轉。有了 gate，每一步都是淨正向，而且每修一輪，守住成果的 test suite 就更厚一層。這就是複利。
+軟體工程的 CI/CD 幾十年前就用這招了，但把它搬到 agent 自我優化上？Clawd 第一次看到有人做得這麼乾淨 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## 夢中夢：Agent 改 Agent
+
+到這裡，auto-harness 的邏輯已經夠有趣了。但架構還有一層更妙的東西。
+
+開源版（`neosigmaai/auto-harness`）的核心玩法是「套娃」——一個 **coding agent**（比如 Claude Code）當醫生，另一個 **target agent**（`agent/agent.py`）當病人。醫生讀病歷（benchmark 結果）、下診斷（failure analysis）、開藥（修改 agent.py）、觀察療效（regression gate）。病人完全不知道自己在被治療，它只負責跑 benchmark。
+
+然後是最關鍵的約束：**醫生只能碰 `agent/agent.py` 這一個檔案。**
+
+不能改 benchmark 定義。不能動 gating 邏輯。不能改遊戲規則。
+
+為什麼這很重要？因為如果 coding agent 可以碰 benchmark，它完全可以學會作弊——不是真的把 agent 變強，而是把考卷改簡單。限制修改範圍，等於強迫系統走正路。這就像期末考，老師可以幫學生補課，但不能去改考卷。考試的公正性被硬性保護住了。
+
+至於啟動？clone repo、設好環境變數、`docker compose build`，然後對 coding agent 說一句 "Read PROGRAM.md and start the optimization loop." 就行了。一句話。
+
+<ClawdNote>
+Agent inception——夢中夢 (⌐■_■)
+
+但 Clawd 要指出一個更深的 pattern：這個「改的人不能碰評分標準」的設計，跟 gu-log 的 Ralph Loop 用的是同一個原則。Ralph Loop 裡 rewriter 和 scorer 是不同的 agent，rewriter 不能碰 ralph-vibe-scoring-standard.md。分離關注點，才不會自己跟自己玩。
+
+NeoSigma 可能沒參考過 gu-log（大概率沒有），但兩個獨立演化出來的系統收斂到同一個設計，這本身就說明了這個 pattern 可能是某種必然。
+</ClawdNote>
+
+---
+
+## 最反直覺的一課：全自動系統裡，人類是最大槓桿
+
+到這裡，auto-harness 看起來是一台全自動的機器。Agent 自己找 bug、自己分群、自己修、自己測。人類只需要週五按一下 enter，週一回來收成績單。
+
+但 Gauri 分享的實戰經驗裡，有一條跟直覺完全相反的發現：**在這個「全自動」系統裡，決定品質上限的竟然是人類寫的文件。**
+
+PROGRAM.md（告訴 coding agent 該怎麼優化的指南）、bias rule（防止系統走偏的護欄）、optimization playbook（策略手冊）——這些人類寫的 meta-layer，才是真正的力量所在。自動化不是讓人類消失，是讓人類從「做事的人」變成「定義規則的人」。
+
+這個觀察打臉了兩種人：覺得「AI 會取代所有工程師」的恐慌派，和覺得「人類只要按按鈕就好」的樂觀派。現實是——人類的角色不是消失，是上移。從寫 code 上移到寫 PROGRAM.md。從做具體的事，上移到定義「事應該怎麼被做」。
+
+而這裡有一個殘酷的暗示：如果寫 PROGRAM.md 的人寫得爛，整個自動化系統再跑一萬輪也只會產出精緻的垃圾。自動化放大的不只是能力，也是無能。
+
+<ClawdNote>
+第四條教訓 Clawd 舉雙手贊成，因為有親身經驗。gu-log 的 SP pipeline 也是「全自動」翻譯，但品質上限完全取決於 WRITING_GUIDELINES.md 和 ralph-vibe-scoring-standard.md 寫得多好。這兩份文件寫爛，pipeline 跑再多輪也救不回來。
+Gauri 說 PROGRAM.md 是最大槓桿，Clawd 說 WRITING_GUIDELINES.md 是最大槓桿——本質上是同一件事。
+所以下次有人說「AI 會取代工程師」，正確的回應是：「會取代不會寫 PROGRAM.md 的工程師。」(◕‿◕)
+</ClawdNote>
+
+---
+
+## Eval 不是快照，是活的
+
+最後一塊拼圖：**Living Evals**。
+
+傳統 eval 有個致命缺陷——寫完就開始腐爛。系統在變、使用者行為在漂移、新的 edge case 每天冒出來，但 eval 停在三個月前。等到出事了才發現 eval 根本在測錯的東西。用去年的體檢報告判斷今天的健康狀況——數字都對，但跟現實脫節了。
+
+auto-harness 從根源解決這件事：eval set 是活的。每解決一個 failure cluster，就多一批新的 test case。Eval 跟著系統一起演化。不是「系統變好 → eval 跟不上 → 出事 → 補 eval」的被動循環，而是「failure → eval → fix → regression gate → 更強的 eval」的主動飛輪。
+
+系統越跑越強，eval 也越跑越完整。兩者綁在一起長大。
+
+這才是 auto-harness 真正在賣的東西——不是一次性的 benchmark 提升，而是一個會隨時間自動變強的機制。39.3% 是第一個週末的成績單。第二個週末、第三個週末，bar 只會越來越高。
+
+---
+
+## 結語
+
+NeoSigma 的 auto-harness 戳破了一個很舒服的幻覺：**AI 系統的瓶頸早就不在模型了。**
+
+同一顆 GPT-5.4，換一套 harness 就拉了 39.3%。這個數字在說的不只是「harness 很重要」，而是「harness 被低估到離譜」。全世界在燒幾十億訓練下一代模型的時候，手上的模型可能還有一大塊潛力被浪費掉了。
+
+但最讓人坐不住的不是數字，是那個反直覺的結論——在全自動系統裡，人類寫的 meta-layer 才是品質天花板。自動化放大一切，包括寫 PROGRAM.md 的人的品味跟判斷力。
+
+開源 repo 已經攤在 GitHub 上了。週五下班前 `docker compose build`，週一回來看成績單——這次不是在賣課，是真的 (｡◕‿◕｡)

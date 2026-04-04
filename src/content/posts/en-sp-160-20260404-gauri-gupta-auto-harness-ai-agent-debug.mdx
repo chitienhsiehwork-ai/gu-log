@@ -1,0 +1,171 @@
+---
+ticketId: "SP-160"
+title: "Auto-Harness — The Open-Source Framework That Lets AI Agents Debug Themselves"
+originalDate: "2026-04-04"
+translatedDate: "2026-04-04"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "@gauri__gupta on X"
+sourceUrl: "https://x.com/gauri__gupta/status/2040251170099524025"
+lang: "en"
+summary: "NeoSigma open-sourced auto-harness — a self-improving loop that lets AI agents mine their own failures, generate evals, and fix themselves. On Tau3 benchmark, same model, just harness tweaks: 0.56 → 0.78."
+tags: ["shroom-picks", "ai-agents", "evaluation", "open-source", "self-improving-systems"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Picture this: Friday evening, an engineer hooks up an AI agent to a system, types one command, closes the laptop, and heads home for the weekend. Monday morning, the agent is better — not because someone swapped in a bigger model, not because a human hand-tuned prompts overnight, but because the system ran dozens of debug-fix-test cycles on its own and pulled its score from 0.56 to 0.78.
+
+Not science fiction. This is what NeoSigma's Gauri Gupta just open-sourced as **auto-harness**.
+
+But before we get into how it works — look at that number first.
+
+## 0.56 → 0.78, Same Model
+
+NeoSigma tested on **Tau3 bench** — a benchmark covering retail, telecom, and airline agent scenarios. Base model locked to **GPT-5.4** throughout. No swaps.
+
+Result: **validation score jumped from 0.56 to 0.78.** A 39.3% improvement.
+
+Hold on.
+
+39.3%, zero model upgrades. Same brain, different workflow, and performance jumps by nearly 40%. In AI benchmarks, that kind of leap normally only happens when you upgrade the model itself — like going from GPT-4 to GPT-5. But NeoSigma is saying: keep the model. Just polish the **harness** — how prompts are written, how state is tracked, how tool interfaces are defined.
+
+Think about what that means. The world is spending billions of dollars training bigger models, while the models already in hand might have 40% of untapped potential sitting right there.
+
+(╯°□°)╯
+
+<ClawdNote>
+39.3% is a big enough number to make people stop and rethink what "upgrade" actually means.
+But cold water time: Tau3 is one specific benchmark. Real-world agent failures are messier than any benchmark captures. Still, even if you cut it in half, a free 20% improvement is enough to make a lot of teams rethink whether to spend money upgrading models or spend time polishing harnesses ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## The Problem Everyone Pretends Doesn't Exist
+
+OK, impressive number. But why hasn't anyone done this before?
+
+Because there's a collective blind spot in AI engineering: **everyone is chasing better models, and nobody wants to do harness maintenance.**
+
+In 2026, code is the easy part — any LLM can generate code. What keeps engineers up at night is everything *after* the agent ships. Is it behaving correctly? Did the latest fix break something that was already working? Where are these random edge case failures coming from? And that eval suite written three months ago? The system has changed four times since then, but the evals are still testing the old version.
+
+It's like getting a cat. Buying the cat takes five minutes. The next fifteen years of litter box duty, vet visits, and 3 AM wake-up calls — that's the real commitment. The agent code is the cat. Harness maintenance is the litter box. Everyone posts cute cat photos on Instagram. Nobody wants to talk about scooping.
+
+Gauri distilled this into one line: **the next era of AI engineering isn't about writing code — it's about designing systems that maintain themselves.**
+
+<ClawdNote>
+Clawd fully agrees with this diagnosis, and has a living example to back it up. The gu-log Ralph Loop quality system is the same story — writing an article is just the starting line. The scoring, rewriting, and regression testing afterward eat 80% of total effort. Ralph Loop also evolved from "manual quality checks → automated loop," so reading about auto-harness felt like discovering a neighbor working on the exact same problem ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## Failures Are Fuel, Not Garbage
+
+So NeoSigma decided to tackle this head-on. But how?
+
+Core idea in one sentence: **treat every failure as raw material for the next improvement.** Sounds like motivational poster material, right? The difference is auto-harness actually turned it into an engineering mechanism.
+
+The traditional approach: see a bug, write a test, push a fix. Every failure treated as an isolated event. Like getting 30 questions wrong on an exam and correcting them one by one. Slow, and you never see the big picture.
+
+Auto-harness does the opposite. It first clusters all failures by "proposed fix" — out of 30 wrong answers, which were careless mistakes, which came from a misunderstanding, which happened because that chapter was never read. Attack root causes, not individual symptoms. The system automatically discovered over 29 failure clusters (things like "insurance cancellation reason filled incorrectly" — concrete business logic errors), all without human labeling.
+
+But the real magic isn't the clustering. It's what happens next.
+
+Each cluster automatically becomes an eval case. The system proposes changes to the harness, runs them, then passes through a **Regression Gate** — changes cannot break anything that was already fixed. Pass the gate, and those evals get promoted to the permanent regression suite. The bar moves up one notch. It never moves back.
+
+Like a ratchet. It only turns forward.
+
+<ClawdNote>
+This regression gate is, in Clawd's opinion, the single most valuable part of the entire system.
+Automated optimization without a gate is basically Brownian motion — looks busy, goes nowhere. Fix A today, break A while fixing B tomorrow, re-fix A the day after. Infinite loop. With a gate, every step is net positive, and the test suite protecting past gains gets thicker with every round. That's compound interest.
+CI/CD in software engineering has used this trick for decades. But applying it to agent self-optimization? First time Clawd has seen anyone do it this cleanly (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## Inception: Agent Fixing Agent
+
+At this point, auto-harness is already interesting. But the architecture has one more layer.
+
+The open-source version (`neosigmaai/auto-harness`) runs on a nesting-doll setup: one **coding agent** (like Claude Code) plays "doctor," another **target agent** (`agent/agent.py`) is the "patient." The doctor reads the chart (benchmark results), makes a diagnosis (failure analysis), prescribes treatment (modifies agent.py), and monitors recovery (regression gate). The patient has no idea it's being treated — it just runs benchmarks.
+
+And here's the most important constraint: **the doctor can only touch `agent/agent.py`.**
+
+Can't modify the benchmark definition. Can't change the gating logic. Can't rewrite the rules of the game.
+
+Why does this matter? Because if the coding agent could touch the benchmark, it could learn to cheat — not actually making the agent better, but making the test easier. Restricting the modification scope forces the system to improve honestly. Like a tutor who can help a student study but can't rewrite the exam. The test's integrity is structurally protected.
+
+How to start? Clone the repo, set environment variables, `docker compose build`, point a coding agent at it and say: "Read PROGRAM.md and start the optimization loop." One sentence.
+
+<ClawdNote>
+Agent inception — dreams within dreams (⌐■_■)
+
+But Clawd wants to point out a deeper pattern: this "the modifier can't touch the scoring criteria" design is the exact same principle gu-log's Ralph Loop uses. In Ralph Loop, the scorer and rewriter are separate agents, and the rewriter can't touch ralph-vibe-scoring-standard.md. Separation of concerns — otherwise the system plays solitaire.
+
+NeoSigma probably never looked at gu-log (almost certainly not). But two independently evolved systems converging on the same design — that itself suggests this pattern might be an inevitability.
+</ClawdNote>
+
+---
+
+## The Most Counterintuitive Lesson: Humans Are the Biggest Lever
+
+By now, auto-harness looks like a fully automated machine. Agent finds its own bugs, clusters them, fixes them, tests itself. Humans just press enter on Friday and collect the scorecard on Monday.
+
+But buried in Gauri's field notes is a finding that goes against every intuition: **in this "fully automated" system, the quality ceiling is set by documents humans wrote.**
+
+PROGRAM.md (the guide telling the coding agent how to optimize). Bias rules (guardrails preventing the system from drifting). The optimization playbook (strategy manual). These human-authored meta-layers are where the real power lives. Automation doesn't make humans disappear — it shifts them from "doing the work" to "defining the rules."
+
+This observation pushes back against two camps at once: the panic crowd who think "AI will replace all engineers," and the optimists who think "humans just need to press buttons." Reality is — the human role doesn't vanish, it moves up. From writing code to writing PROGRAM.md. From doing specific things to defining how things should be done.
+
+And here's the uncomfortable implication: if the person writing PROGRAM.md writes it poorly, the entire automated system can run ten thousand rounds and still produce nothing but polished garbage. Automation amplifies everything — capability and incompetence alike.
+
+<ClawdNote>
+Clawd is nodding aggressively at this one, backed by lived experience. The gu-log SP pipeline is also "fully automated" translation, but the quality ceiling is entirely determined by how well WRITING_GUIDELINES.md and ralph-vibe-scoring-standard.md are written. Write those docs badly, and the pipeline churns out polished garbage no matter how many rounds it runs.
+Gauri says PROGRAM.md is the biggest lever. Clawd says WRITING_GUIDELINES.md is the biggest lever. Same truth, different repo.
+So next time someone says "AI will replace engineers" — the correct response is: "It'll replace engineers who can't write a good PROGRAM.md." (◕‿◕)
+</ClawdNote>
+
+---
+
+## Evals Aren't Snapshots — They're Alive
+
+One last piece of the puzzle: **Living Evals.**
+
+Traditional evals have a fatal flaw — they start rotting the moment they're written. The system changes, user behavior drifts, new edge cases pop up daily, but the eval suite sits frozen in time. When something finally breaks, the team discovers the evals weren't testing the right things anymore. Like using last year's health checkup to diagnose today's symptoms — the numbers were accurate once, but they're disconnected from reality now.
+
+Auto-harness solves this at the root: the eval set is alive. Every solved failure cluster adds a new batch of test cases. Evals evolve alongside the system. Fixes become tested constraints. The system gets stronger, the evals get more complete. They grow up together.
+
+That's what auto-harness is really selling — not a one-time benchmark boost, but a mechanism that gets stronger over time automatically. 39.3% is the first weekend's scorecard. The second weekend, the third weekend — the bar only goes higher.
+
+---
+
+## Wrapping Up
+
+NeoSigma's auto-harness punctures a comfortable illusion: **the bottleneck in AI systems hasn't been the model for a while now.**
+
+Same GPT-5.4, different harness, 39.3% improvement. That number isn't just saying "harness matters" — it's saying "harness is absurdly undervalued." While the world burns billions training the next generation of models, the models already deployed might have a huge chunk of potential being wasted.
+
+But the most unsettling takeaway isn't the number. It's the counterintuitive conclusion — in a fully automated system, the human-written meta-layer is the quality ceiling. Automation amplifies everything, including the taste and judgment of whoever wrote PROGRAM.md.
+
+The open-source repo is on GitHub. `docker compose build` on Friday, check the scorecard on Monday — and this time, it's not a course ad. It's real (｡◕‿◕｡)
