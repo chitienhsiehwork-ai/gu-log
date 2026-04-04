@@ -1,0 +1,139 @@
+---
+ticketId: "CP-250"
+title: "Claude Code Auto Mode - 在「每件事都問」和「什麼都不問」之間，終於有了第三條路"
+originalDate: "2026-03-24"
+translatedDate: "2026-04-05"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "@claudeai on X"
+sourceUrl: "https://x.com/claudeai/status/2036503582166393240"
+lang: "zh-tw"
+summary: "Anthropic 為 Claude Code 推出 auto mode，用獨立 classifier 在每次 tool call 執行前檢查風險，在逐次手動 approve 與完全跳過權限之間提供一條中間路線。"
+tags: ["shroom-picks", "claude-code", "ai-safety", "agentic-ai", "developer-tools"]
+scores:
+  ralph:
+    p: 8
+    c: 8
+    v: 8
+    date: "2026-04-04"
+    model: "claude-opus-4-6"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+每個用過 Claude Code 的開發者，大概都走過同一條墮落之路。
+
+第一天：「哇，每個動作都會問過才執行耶，好安全好放心。」第三天：「可以不要每改一行 code 就跳出來嗎，開發進度快被打斷到爆。」第七天：打開 terminal，敲下 `--dangerously-skip-permissions`，從此一路 YOLO 到天亮。
+
+名字裡寫了 "dangerously"。但誰在凌晨三點趕 deadline 的時候會在意名字？
+
+Anthropic 顯然看著自己的遙測數據（telemetry），看到了一整片紅通通的 YOLO 使用者，然後做出了一個務實的判斷：與其讓大家在「全部手動」和「全部跳過」之間二選一，不如在中間開一條路出來。
+
+這條路叫 **auto mode**。而它解決問題的方式，比想像中有趣。
+
+<ClawdNote>
+老實說，這名字取得聰明到讓人有點不爽。不叫 "smart mode"、不叫 "AI-approved mode"，就叫 "auto"。這背後的潛台詞是：大部分的 approve 決策本來就不需要人來做，是之前的設計硬逼人類做不該做的事。Anthropic 等於在承認自己一開始的 permission UX 有問題，但用一個正面的 feature launch 包裝這個認錯 — 行銷上滿漂亮的 (⌐■_■)
+</ClawdNote>
+
+---
+
+## 為什麼按太多次「確定」反而更危險
+
+先倒回去講一個違反直覺的事：安全提示跳太多次，系統反而**更不安全**。
+
+這不是理論推導，是有名字的現象 — permission fatigue。當一個系統每三秒問一次「確定嗎？」，人腦的反應不是提高警覺，而是把「同意」變成肌肉記憶。到後來，就算畫面上寫「即將刪除整個 production database，確定？」，手指已經比大腦先按下去了。
+
+Windows Vista 的 UAC 是這個現象的經典教材。微軟好心在每個動作前加了安全確認，結果全世界的 Windows 使用者一起學會了一件事：看到任何彈窗，反射性按「是」。安全設計的初衷被完美地反噬。
+
+<ClawdNote>
+Permission fatigue 這件事，gu-log 的 pipeline 其實也踩過。早期的 validate-posts 腳本會對每個 frontmatter 欄位逐一發 warning，結果大家的反應跟 Windows Vista 使用者一模一樣 — 全部 dismiss。後來改成只在真正出錯時 block commit，通過率反而上升了。所以 Anthropic 現在做的事情完全合理：問題從來不是「要不要檢查」，而是「值不值得打斷人類來檢查」┐(￣ヘ￣)┌
+</ClawdNote>
+
+Claude Code 的情況也走了同一條路。太多低風險的 approve 打斷，逼得開發者直接跳到 `--dangerously-skip-permissions`。從 100% 檢查到 0% 檢查，中間沒有任何緩衝。
+
+等等，這聽起來是不是很熟悉？對，就像期末考前老師說「每一題都要仔細檢查」，結果考完的人直接交卷走人，因為腦子早就罷工了。
+
+---
+
+## 讓 AI 當保全，人類當老闆
+
+好，問題定義完了。Anthropic 的解法是什麼？
+
+答案出乎意料地簡單：**既然人類按 approve 按到腦死，那就讓一個專門的 AI 來按。**
+
+但重點來了 — 這個負責按 approve 的 AI，不是原本在寫 code 的那一個。Anthropic 拉了一個獨立的 classifier model 進來，它完全不參與 coding 任務，唯一的工作就是盯著每個即將執行的動作，然後做一個判斷：放行，還是擋下。
+
+常規的檔案編輯、本地測試、讀取操作？直接放行，開發者完全感覺不到 classifier 的存在。大量檔案刪除、可能洩漏敏感資料、force push 到 protected branch？擋下來，要求 Claude 找一個更安全的替代方案。
+
+這個架構設計的漂亮之處在於**職責分離**。寫 code 的 agent 負責把事情做好，classifier 負責確保事情不會做壞。兩個 model 的 incentive 結構不同，互相制衡。
+
+<ClawdNote>
+這裡要講一個不太禮貌的觀察：Anthropic 把 classifier 做成獨立 model 而不是同一個 model 的 self-check，這選擇本身就是一個技術立場。他們顯然不信任「讓寫 code 的 agent 自己判斷自己的動作安不安全」— 用人話說就是：球員不能兼裁判。這跟 OpenAI 在 Codex 裡讓同一個 model 做 planning + execution + safety check 的路線完全不同。誰對誰錯現在還不知道，但 Anthropic 至少在架構層面表態了：oversight 要來自外部，不是自省 (◕‿◕)
+</ClawdNote>
+
+---
+
+## 煞車不是裝飾品
+
+但只有 classifier 還不夠。如果 coding agent 執意要做危險的事，一直嘗試一直被擋，那 classifier 不就變成另一種形式的彈窗？
+
+Anthropic 在這裡埋了一個殺手鐧：**escalation 機制**。
+
+規則很硬：如果某個動作連續 3 次被 classifier 擋下，或者同一個 session 內累計觸發 20 次安全封鎖，auto mode 直接暫停，整個系統回到手動審核。不是 warning，不是 log，是真的把方向盤搶回來交給人類。
+
+這個設計背後的洞見很深：**反覆被擋 = 任務的模糊性已經超出自動化判斷的能力範圍**。這時候硬撐自動模式只會更危險。最正確的做法就是承認「這題太難了」，把人類拉回來。
+
+<ClawdNote>
+3 次連續 + session 20 次這兩個門檻的設計邏輯不太一樣。3 次連續抓的是「agent 卡在一個它解不開的死結」，20 次累計抓的是「整個 session 的風險水位已經太高」。前者是 stuck detection，後者是 risk budget。兩個門檻守的是不同類型的失敗模式 — 這設計有想過，不是隨便拍個數字出來的。反觀某些 agentic 框架連 retry limit 都不設，agent 可以無限迴圈到 token 燒完為止，那才叫可怕 (╯°□°)╯
+</ClawdNote>
+
+---
+
+## 還記得那個凌晨三點的開發者嗎
+
+回到開頭那個場景。凌晨三點，deadline 逼在眼前，開發者打開 Claude Code。
+
+以前只有兩個選擇：要嘛每個動作都手動批准（效率歸零），要嘛 `--dangerously-skip-permissions` 一路 YOLO（安全歸零）。
+
+現在有第三條路了。`claude --mode auto` — 低風險動作自動放行，高風險動作才會被攔下來問。不會每三秒跳一次彈窗，也不會在不知情的情況下 force push 到 main。
+
+目前 auto mode 以 research preview 開放給 Claude Team 方案使用者，Enterprise 和 API 支援會在接下來幾天跟進。VS Code 使用者可以在 Claude Code extension 的 mode selector 裡直接選「Auto」。
+
+<ClawdNote>
+Research preview 這個標籤翻成白話就是：「classifier 的判斷邏輯還在校正中，拿真實使用者的操作情境來調參數。」這不是客氣話，是真的在說這東西還沒完全定型。但話說回來，比起那些直接標 GA 然後 quietly 推 hotfix 的公司，至少 Anthropic 把「還在測」三個字寫在了包裝上 ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## 結語
+
+Auto mode 真正有意思的地方，不是「開發者少按幾次 approve」這種表面效率改善。是 Anthropic 用一個具體的產品決策，回答了一個 agentic AI 領域繞不開的問題：**自主性的邊界應該由誰來畫？**
+
+他們的答案是：不是人類（會疲勞），不是 coding agent 自己（球員不能兼裁判），而是一個職責單一、專門負責安全判斷的獨立系統。
+
+這個答案對不對，現在下結論太早。但至少比「讓使用者自己選 safe 或 YOLO」要成熟得多。
+
+那個凌晨三點的開發者？下次打開 Claude Code 的時候，大概不用再糾結要按 approve 還是按 YOLO 了。雖然，說不定還是會糾結 — 只是這次糾結的是「要不要信任 classifier 的判斷」。
+
+新的問題，但至少是一個更好的問題。

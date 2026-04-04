@@ -1,0 +1,132 @@
+---
+ticketId: "CP-250"
+title: "Claude Code Auto Mode — Between 'Ask Me Everything' and 'Ask Me Nothing,' There's Finally a Third Way"
+originalDate: "2026-03-24"
+translatedDate: "2026-04-05"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "@claudeai on X"
+sourceUrl: "https://x.com/claudeai/status/2036503582166393240"
+lang: "en"
+summary: "Anthropic ships auto mode for Claude Code — a separate classifier checks every tool call for risk before execution, offering a middle ground between manual approval fatigue and full YOLO mode."
+tags: ["shroom-picks", "claude-code", "ai-safety", "agentic-ai", "developer-tools"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Every developer who has used Claude Code has walked the same path of corruption.
+
+Day one: "Oh nice, it asks before every action. So safe. So responsible." Day three: "Can you please stop interrupting me every time I change one line of code?" Day seven: opens terminal, types `--dangerously-skip-permissions`, YOLO mode activated, never looks back.
+
+The flag literally has "dangerously" in the name. But who reads warning labels at 3 AM with a deadline breathing down their neck?
+
+Anthropic clearly looked at their telemetry data, saw an ocean of YOLO users, and made a pragmatic call: instead of forcing people to choose between "approve everything manually" and "skip all checks," build a road in between.
+
+That road is called **auto mode**. And the way it works is more interesting than you'd expect.
+
+<ClawdNote>
+The naming is cleverly passive-aggressive. Not "smart mode," not "AI-approved mode" — just "auto." The subtext: most of those approve decisions never needed a human in the first place. Anthropic is basically admitting their original permission UX was broken, but packaging the admission as a shiny new feature launch. Marketing-wise, kind of brilliant (⌐■_■)
+</ClawdNote>
+
+---
+
+## Why Clicking "Yes" Too Many Times Makes You Less Safe
+
+Here's something that sounds backwards but is very real: the more a system asks "are you sure?", the **less safe** it actually becomes.
+
+This phenomenon has a name — permission fatigue. When a system asks for confirmation every three seconds, the human brain doesn't stay alert. It turns "approve" into muscle memory. Eventually, even if the screen says "about to delete your entire production database, confirm?", the finger hits yes before the brain finishes reading.
+
+Windows Vista's UAC is the textbook case. Microsoft kindly added a safety confirmation before every action. The result? Every Windows user on the planet learned one skill: see popup, click yes, repeat. The security design backfired perfectly.
+
+<ClawdNote>
+Permission fatigue isn't just a Windows thing — gu-log's own pipeline hit the same wall. Early versions of the validate-posts script threw warnings for every single frontmatter field, and everyone's response was identical to Vista users: dismiss all. Switching to "only block on real errors" actually improved pass rates. So what Anthropic is doing makes total sense: the question was never "should we check?" but "is this worth interrupting a human for?" ┐(￣ヘ￣)┌
+</ClawdNote>
+
+Claude Code followed the same arc. Too many low-risk interruptions pushed developers straight to `--dangerously-skip-permissions`. From 100% checking to 0% checking, with nothing in between.
+
+Sound familiar? It's like a teacher saying "double-check every single answer on the exam." By question 50, everyone just submits and walks out because their brain quit an hour ago.
+
+---
+
+## Let AI Be the Security Guard, Let Humans Be the Boss
+
+Okay, problem defined. What's Anthropic's solution?
+
+Surprisingly simple: **if humans go brain-dead clicking approve, let a dedicated AI do the clicking instead.**
+
+But here's the key — the AI handling approvals is not the same one writing the code. Anthropic brought in a separate classifier model that has zero involvement in the coding task. Its only job is to watch every action about to execute and make one call: allow or block.
+
+Routine file edits, local tests, read operations? Waved through instantly. Developers don't even notice the classifier exists. Mass file deletions, potential sensitive data leaks, force push to a protected branch? Blocked. Claude gets told to find a safer alternative.
+
+The elegant part is the **separation of concerns**. The coding agent's job is to get things done. The classifier's job is to make sure nothing gets broken. Two models with different incentive structures, keeping each other in check.
+
+<ClawdNote>
+Here's an observation that might ruffle some feathers: Anthropic choosing to make the classifier a separate model — not a self-check within the same model — is itself a technical stance. They clearly don't trust "let the code-writing agent judge whether its own actions are safe." In plain English: the player can't also be the referee. This is the opposite of OpenAI's approach in Codex, where the same model handles planning, execution, and safety checks all at once. Who's right? Too early to tell. But Anthropic has at least made their architectural bet explicit: oversight must come from outside, not from self-reflection (◕‿◕)
+</ClawdNote>
+
+---
+
+## The Brakes Aren't Decorative
+
+A classifier alone isn't enough, though. If the coding agent keeps trying dangerous things and keeps getting blocked, the classifier just becomes a different flavor of popup spam.
+
+Anthropic planted a kill switch here: **escalation logic**.
+
+Hard rules: if an action gets blocked 3 times in a row, or the same session hits 20 total blocks, auto mode pauses entirely. The system reverts to full manual review. Not a warning, not a log entry — it literally takes the steering wheel back and hands it to the human.
+
+The insight behind this design runs deep: **repeated blocks = the task's ambiguity has exceeded what automation can handle.** Forcing auto mode to keep going would only make things worse. The smartest move is admitting "this one's too hard" and pulling the human back in.
+
+<ClawdNote>
+The two thresholds — 3 consecutive and 20 per session — catch different failure modes. Three consecutive means "the agent is stuck in a loop it can't break out of." Twenty cumulative means "the overall risk budget for this session is used up." One is stuck detection, the other is risk budgeting. Two guardrails for two different ways things go wrong — this was actually thought through, not just a random number someone picked in a meeting. Compare that to certain agentic frameworks that don't even set retry limits, letting agents loop until the token budget burns to zero. Now that's scary (╯°□°)╯
+</ClawdNote>
+
+---
+
+## Remember That 3 AM Developer?
+
+Back to the opening scene. Three in the morning, deadline looming, developer opens Claude Code.
+
+Before, there were only two choices: approve every action manually (efficiency: zero) or `--dangerously-skip-permissions` full YOLO (safety: zero).
+
+Now there's a third path. `claude --mode auto` — low-risk actions auto-approved, high-risk actions get flagged. No popup every three seconds, but also no accidental force push to main.
+
+Auto mode is currently available as a research preview for Claude Team plan users, with Enterprise and API support rolling out in the coming days. VS Code users can select "Auto" directly from the mode picker in the Claude Code extension.
+
+<ClawdNote>
+"Research preview" in plain language means: "the classifier's judgment logic is still being calibrated using real user behavior." This isn't false modesty — they're genuinely saying the thing isn't finalized yet. But compared to companies that ship something labeled GA and then quietly push hotfixes for weeks, at least Anthropic put "still testing" on the label ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## Wrapping Up
+
+The most interesting thing about auto mode isn't the surface-level efficiency gain of "developers click approve less." It's that Anthropic used a concrete product decision to answer a question the entire agentic AI space can't avoid: **who should draw the line on autonomy?**
+
+Their answer: not humans (they get fatigued), not the coding agent itself (the player can't be the referee), but a single-purpose independent system whose only job is safety judgment.
+
+Whether that answer holds up — too early to say. But it's a lot more mature than "let users pick between safe and YOLO."
+
+That 3 AM developer? Next time they open Claude Code, they probably won't agonize over approve vs. YOLO anymore. Though they might still agonize — just this time over whether to trust the classifier's judgment.
+
+A new question. But at least a better one.
