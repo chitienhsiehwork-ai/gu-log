@@ -57,7 +57,7 @@ export function resolvePostStatus(post: PostEntry, posts: PostEntry[]): Resolved
 
   const sourcePost = [zhSource, post].find(
     (candidate): candidate is PostEntry =>
-      Boolean(candidate) && normalizeStatus(candidate.data.status) !== 'published'
+      candidate !== undefined && normalizeStatus(candidate.data.status) !== 'published'
   );
 
   if (!sourcePost) {
