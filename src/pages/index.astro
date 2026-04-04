@@ -3,9 +3,11 @@ import { getCollection, type CollectionEntry } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Toggle from '../components/Toggle.astro';
 import TicketBadge from '../components/TicketBadge.astro';
-import { getVisiblePosts } from '../utils/post-deprecation';
+import PostStatusLabel from '../components/PostStatusLabel.astro';
+import { getListablePosts, getPostStatus, type PostStatus } from '../utils/post-status';
 
-const allPosts = getVisiblePosts(await getCollection('posts'), 'zh-tw');
+const allPostsFull = await getCollection('posts');
+const allPosts = getListablePosts(allPostsFull, 'zh-tw');
 
 // Helper: extract number from ticketId (e.g., "CP-11" → 11)
 const getTicketNumber = (ticketId: string | undefined) => {
@@ -13,6 +15,9 @@ const getTicketNumber = (ticketId: string | undefined) => {
   const match = ticketId.match(/\d+$/);
   return match ? parseInt(match[0]) : 0;
 };
+
+const getTimelineStyle = (status: PostStatus) =>
+  status === 'published' ? undefined : 'opacity: 0.6; filter: grayscale(0.22);';
 
 // Sort by ticketId number descending (largest first = newest)
 const sortByTicketNumber = (a: CollectionEntry<'posts'>, b: CollectionEntry<'posts'>) =>
@@ -36,20 +41,26 @@ const cpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('CP-')).sort(
         <h2>📚 ShroomDog Picks</h2>
         <p class="section-subtitle">ShroomDog 精選長文翻譯</p>
 
-        {spPosts.slice(0, 3).map((post) => (
-          <article class="post-preview">
-            <h3>
-              <a href={`/posts/${post.slug}`}>{post.data.title}</a>
-            </h3>
-            <p class="post-meta">
-              {post.data.ticketId && <TicketBadge ticketId={post.data.ticketId} />}
-              {post.data.translatedDate || post.data.originalDate} · 翻譯自 {post.data.source}
-            </p>
-            <Toggle title="摘要預覽">
-              <p>{post.data.summary}</p>
-            </Toggle>
-          </article>
-        ))}
+        {spPosts.slice(0, 3).map((post) => {
+          const status = getPostStatus(post, allPostsFull);
+          return (
+            <article class="post-preview" style={getTimelineStyle(status)}>
+              <h3>
+                <a href={`/posts/${post.slug}`}>
+                  {post.data.title}
+                  {status !== 'published' && <PostStatusLabel status={status} />}
+                </a>
+              </h3>
+              <p class="post-meta">
+                {post.data.ticketId && <TicketBadge ticketId={post.data.ticketId} />}
+                {post.data.translatedDate || post.data.originalDate} · 翻譯自 {post.data.source}
+              </p>
+              <Toggle title="摘要預覽">
+                <p>{post.data.summary}</p>
+              </Toggle>
+            </article>
+          );
+        })}
 
         {spPosts.length > 3 && (
           <p class="view-all">
@@ -69,20 +80,26 @@ const cpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('CP-')).sort(
         </h2>
         <p class="section-subtitle">Clawd 每 5 小時精選一則推文翻譯</p>
 
-        {cpPosts.slice(0, 5).map((pick) => (
-          <article class="pick-preview">
-            <a href={`/posts/${pick.slug}`}>{pick.data.title}</a>
-            <span class="pick-meta">
-              {pick.data.ticketId && <TicketBadge ticketId={pick.data.ticketId} />}
-              {pick.data.translatedDate || pick.data.originalDate} · {pick.data.source}
-            </span>
-            {pick.data.summary && (
-              <Toggle title="摘要預覽">
-                <p>{pick.data.summary}</p>
-              </Toggle>
-            )}
-          </article>
-        ))}
+        {cpPosts.slice(0, 5).map((pick) => {
+          const status = getPostStatus(pick, allPostsFull);
+          return (
+            <article class="pick-preview" style={getTimelineStyle(status)}>
+              <a href={`/posts/${pick.slug}`}>
+                {pick.data.title}
+                {status !== 'published' && <PostStatusLabel status={status} />}
+              </a>
+              <span class="pick-meta">
+                {pick.data.ticketId && <TicketBadge ticketId={pick.data.ticketId} />}
+                {pick.data.translatedDate || pick.data.originalDate} · {pick.data.source}
+              </span>
+              {pick.data.summary && (
+                <Toggle title="摘要預覽">
+                  <p>{pick.data.summary}</p>
+                </Toggle>
+              )}
+            </article>
+          );
+        })}
 
         {cpPosts.length > 5 && (
           <p class="view-all">
@@ -102,20 +119,26 @@ const cpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('CP-')).sort(
         </h2>
         <p class="section-subtitle">ShroomDog 原創內容</p>
 
-        {sdPosts.slice(0, 3).map((post) => (
-          <article class="post-preview">
-            <h3>
-              <a href={`/posts/${post.slug}`}>{post.data.title}</a>
-            </h3>
-            <p class="post-meta">
-              {post.data.ticketId && <TicketBadge ticketId={post.data.ticketId} />}
-              {post.data.translatedDate || post.data.originalDate} · {post.data.source}
-            </p>
-            <Toggle title="摘要預覽">
-              <p>{post.data.summary}</p>
-            </Toggle>
-          </article>
-        ))}
+        {sdPosts.slice(0, 3).map((post) => {
+          const status = getPostStatus(post, allPostsFull);
+          return (
+            <article class="post-preview" style={getTimelineStyle(status)}>
+              <h3>
+                <a href={`/posts/${post.slug}`}>
+                  {post.data.title}
+                  {status !== 'published' && <PostStatusLabel status={status} />}
+                </a>
+              </h3>
+              <p class="post-meta">
+                {post.data.ticketId && <TicketBadge ticketId={post.data.ticketId} />}
+                {post.data.translatedDate || post.data.originalDate} · {post.data.source}
+              </p>
+              <Toggle title="摘要預覽">
+                <p>{post.data.summary}</p>
+              </Toggle>
+            </article>
+          );
+        })}
 
         {sdPosts.length > 3 && (
           <p class="view-all">
@@ -133,20 +156,26 @@ const cpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('CP-')).sort(
         <h2>⚔️ Level-Up</h2>
         <p class="section-subtitle">互動式技術教學 — 用 RPG 爬塔風格學技術</p>
 
-        {lvPosts.slice(0, 3).map((post) => (
-          <article class="post-preview">
-            <h3>
-              <a href={`/posts/${post.slug}`}>{post.data.title}</a>
-            </h3>
-            <p class="post-meta">
-              {post.data.ticketId && <TicketBadge ticketId={post.data.ticketId} />}
-              {post.data.translatedDate || post.data.originalDate} · {post.data.source}
-            </p>
-            <Toggle title="摘要預覽">
-              <p>{post.data.summary}</p>
-            </Toggle>
-          </article>
-        ))}
+        {lvPosts.slice(0, 3).map((post) => {
+          const status = getPostStatus(post, allPostsFull);
+          return (
+            <article class="post-preview" style={getTimelineStyle(status)}>
+              <h3>
+                <a href={`/posts/${post.slug}`}>
+                  {post.data.title}
+                  {status !== 'published' && <PostStatusLabel status={status} />}
+                </a>
+              </h3>
+              <p class="post-meta">
+                {post.data.ticketId && <TicketBadge ticketId={post.data.ticketId} />}
+                {post.data.translatedDate || post.data.originalDate} · {post.data.source}
+              </p>
+              <Toggle title="摘要預覽">
+                <p>{post.data.summary}</p>
+              </Toggle>
+            </article>
+          );
+        })}
 
         {lvPosts.length > 3 && (
           <p class="view-all">

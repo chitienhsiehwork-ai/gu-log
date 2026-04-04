@@ -1,10 +1,10 @@
 import rss from '@astrojs/rss';
 import type { APIContext } from 'astro';
 import { getCollection } from 'astro:content';
-import { getVisiblePosts } from '../utils/post-deprecation';
+import { getPublishedPosts } from '../utils/post-status';
 
 export async function GET(context: APIContext) {
-  const posts = getVisiblePosts(await getCollection('posts'), 'zh-tw');
+  const posts = getPublishedPosts(await getCollection('posts'), 'zh-tw');
 
   // Sort by translatedDate descending (when article was added to the blog)
   const sortedPosts = posts.sort((a, b) => {

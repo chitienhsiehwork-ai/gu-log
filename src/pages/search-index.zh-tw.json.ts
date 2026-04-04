@@ -1,9 +1,9 @@
 import type { APIContext } from 'astro';
 import { getCollection } from 'astro:content';
-import { getVisiblePosts } from '../utils/post-deprecation';
+import { getPublishedPosts } from '../utils/post-status';
 
 export async function GET(_context: APIContext) {
-  const searchIndex = getVisiblePosts(await getCollection('posts'), 'zh-tw').map((post) => ({
+  const searchIndex = getPublishedPosts(await getCollection('posts'), 'zh-tw').map((post) => ({
     slug: post.slug,
     ticketId: post.data.ticketId || null,
     title: post.data.title,

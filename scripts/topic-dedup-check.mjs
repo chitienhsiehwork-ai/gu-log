@@ -230,7 +230,7 @@ function loadPublishedPosts(ignoreFile) {
         title: data.title,
         sourceUrl: data.sourceUrl,
         tags: parseTags(data.tags),
-        deprecated: Boolean(data.deprecated),
+        status: data.status ?? (data.deprecated ? 'deprecated' : 'published'),
       };
     })
     .filter(
@@ -239,7 +239,7 @@ function loadPublishedPosts(ignoreFile) {
         post.ticketId &&
         post.title &&
         post.sourceUrl &&
-        !post.deprecated
+        post.status === 'published'
     );
 }
 

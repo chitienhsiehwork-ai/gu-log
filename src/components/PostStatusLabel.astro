@@ -1,0 +1,33 @@
+---
+import type { PostStatus } from '../utils/post-status';
+
+interface Props {
+  status: Exclude<PostStatus, 'published'>;
+}
+
+const { status } = Astro.props;
+const label = `[${status}]`;
+---
+
+<span class={`post-status-label post-status-label--${status}`}>{label}</span>
+
+<style>
+  .post-status-label {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 0.45rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    vertical-align: middle;
+  }
+
+  .post-status-label--deprecated {
+    color: var(--color-badge-cp, #ffb86c);
+  }
+
+  .post-status-label--retired {
+    color: var(--color-text-muted);
+  }
+</style>

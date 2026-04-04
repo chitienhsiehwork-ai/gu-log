@@ -30,9 +30,11 @@ const postsCollection = defineCollection({
       summary: z.string(), // for index page preview
       lang: z.enum(['zh-tw', 'en']).default('zh-tw'),
       tags: z.array(z.string()).optional(),
-      deprecated: z.boolean().optional(),
+      status: z.enum(['published', 'deprecated', 'retired']).default('published'),
       deprecatedBy: z.string().optional(),
       deprecatedReason: z.string().optional(),
+      retiredReason: z.string().optional(),
+      retiredAt: z.string().optional(),
       series: z
         .object({
           name: z.string(),

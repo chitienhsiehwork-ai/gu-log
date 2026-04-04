@@ -1,9 +1,9 @@
 ---
 import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { getVisiblePosts } from '../utils/post-deprecation';
+import { getPublishedPosts } from '../utils/post-status';
 
-const allPosts = getVisiblePosts(await getCollection('posts'), 'zh-tw');
+const allPosts = getPublishedPosts(await getCollection('posts'), 'zh-tw');
 
 // Sort by date descending
 allPosts.sort((a, b) => {

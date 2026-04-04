@@ -1,0 +1,104 @@
+---
+import type { PostStatus } from '../utils/post-status';
+
+interface Props {
+  type: Exclude<PostStatus, 'published'>;
+  replacementHref?: string;
+  replacementTitle?: string;
+  replacementTicketId?: string;
+  lang?: 'zh-tw' | 'en';
+}
+
+const {
+  type,
+  replacementHref,
+  replacementTitle,
+  replacementTicketId,
+  lang = 'zh-tw',
+} = Astro.props;
+
+const labels = {
+  'zh-tw': {
+    deprecated: {
+      message: '⚠️ 這篇文章已被更完整的版本取代',
+      fallback: '查看替代文章',
+    },
+    retired: {
+      message:
+        '⚠️ ShroomDog 覺得這篇品質不夠好，所以已經 retire 了。文章內容保留供參考，但不會再維護。',
+    },
+  },
+  en: {
+    deprecated: {
+      message: '⚠️ This article has been replaced by a more complete version',
+      fallback: 'View replacement article',
+    },
+    retired: {
+      message:
+        "⚠️ ShroomDog wasn't happy with this one, so it's been retired. The content is preserved for reference but won't be maintained.",
+    },
+  },
+} as const;
+
+const t = labels[lang][type];
+const linkLabel = replacementTicketId
+  ? `${replacementTicketId}${replacementTitle ? `：${replacementTitle}` : ''}`
+  : replacementTitle || ('fallback' in t ? t.fallback : '');
+---
+
+<div class={`post-status-banner post-status-banner--${type}`} role="note" aria-live="polite">
+  <p>
+    <span>{t.message}</span>
+    {
+      type === 'deprecated' &&
+        (replacementHref ? (
+          <>
+            {' '}
+            <a href={replacementHref}>{linkLabel}</a>
+          </>
+        ) : (
+          <span class="replacement-label"> {linkLabel}</span>
+        ))
+    }
+  </p>
+</div>
+
+<style>
+  .post-status-banner {
+    margin: 1rem 0 1.5rem;
+    padding: 0.9rem 1rem;
+    border-radius: 8px;
+    color: var(--color-text);
+  }
+
+  .post-status-banner--deprecated {
+    border: 1px solid rgba(255, 184, 108, 0.35);
+    border-left: 4px solid #ffb86c;
+    background: rgba(255, 184, 108, 0.08);
+  }
+
+  .post-status-banner--retired {
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    border-left: 4px solid #94a3b8;
+    background: rgba(148, 163, 184, 0.08);
+  }
+
+  .post-status-banner p {
+    margin: 0;
+    line-height: 1.6;
+  }
+
+  .post-status-banner a {
+    color: var(--color-accent);
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .post-status-banner a:hover {
+    text-decoration: underline;
+  }
+
+  .replacement-label {
+    font-weight: 600;
+  }
+</style>

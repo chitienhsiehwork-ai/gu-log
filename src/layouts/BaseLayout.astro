@@ -424,7 +424,7 @@ const finalDescription = description || t.defaultDescription;
       </header>
 
       <!-- Hamburger slide-down menu -->
-      <div class="hamburger-menu" id="hamburger-menu" aria-hidden="true">
+      <div class="hamburger-menu" id="hamburger-menu" aria-hidden="true" inert>
         <div class="hamburger-menu-inner">
           <nav class="hamburger-nav">
             <a href={t.homeLink} class="hamburger-item">
@@ -507,12 +507,14 @@ const finalDescription = description || t.defaultDescription;
         btn?.setAttribute('aria-expanded', 'true');
         menu?.classList.add('menu-open');
         menu?.setAttribute('aria-hidden', 'false');
+        menu?.removeAttribute('inert');
       }
 
       function closeMenu() {
         btn?.setAttribute('aria-expanded', 'false');
         menu?.classList.remove('menu-open');
         menu?.setAttribute('aria-hidden', 'true');
+        menu?.setAttribute('inert', '');
       }
 
       btn?.addEventListener('click', (e) => {

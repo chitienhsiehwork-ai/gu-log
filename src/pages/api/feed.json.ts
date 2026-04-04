@@ -1,6 +1,6 @@
 import type { APIContext } from 'astro';
 import { getCollection } from 'astro:content';
-import { getVisiblePosts } from '../../utils/post-deprecation';
+import { getPublishedPosts } from '../../utils/post-status';
 
 /**
  * Static JSON feed for gu-log iOS app (and any other client).
@@ -15,7 +15,7 @@ import { getVisiblePosts } from '../../utils/post-deprecation';
  *   translatedBy (model info), url (relative link)
  */
 export async function GET(_context: APIContext) {
-  const posts = getVisiblePosts(await getCollection('posts'));
+  const posts = getPublishedPosts(await getCollection('posts'));
 
   // Derive prefix (SP/CP/Lv/SD) from ticketId
   const getPrefix = (ticketId?: string): string | null => {

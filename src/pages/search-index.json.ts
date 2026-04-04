@@ -1,6 +1,6 @@
 import type { APIContext } from 'astro';
 import { getCollection } from 'astro:content';
-import { getVisiblePosts } from '../utils/post-deprecation';
+import { getPublishedPosts } from '../utils/post-status';
 
 function extractPlainText(body: string): string {
   return body
@@ -15,7 +15,7 @@ function extractPlainText(body: string): string {
 }
 
 export async function GET(_context: APIContext) {
-  const searchIndex = getVisiblePosts(await getCollection('posts')).map((post) => ({
+  const searchIndex = getPublishedPosts(await getCollection('posts')).map((post) => ({
     slug: post.slug,
     ticketId: post.data.ticketId || null,
     title: post.data.title,

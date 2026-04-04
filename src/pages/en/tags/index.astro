@@ -1,9 +1,9 @@
 ---
 import { getCollection } from 'astro:content';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
-import { getVisiblePosts } from '../../../utils/post-deprecation';
+import { getPublishedPosts } from '../../../utils/post-status';
 
-const allPosts = getVisiblePosts(await getCollection('posts'), 'en');
+const allPosts = getPublishedPosts(await getCollection('posts'), 'en');
 
 // Count posts per tag
 const tagCounts = new Map<string, number>();
