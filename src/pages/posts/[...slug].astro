@@ -6,7 +6,7 @@ import TableOfContents from '../../components/TableOfContents.astro';
 import PrevNextNav from '../../components/PrevNextNav.astro';
 import SeriesNav from '../../components/SeriesNav.astro';
 import RelatedArticles from '../../components/RelatedArticles.astro';
-import DeprecationBanner from '../../components/DeprecationBanner.astro';
+import PostStatusBanner from '../../components/PostStatusBanner.astro';
 import TicketBadge from '../../components/TicketBadge.astro';
 import Giscus from '../../components/Giscus.astro';
 import ShareButton from '../../components/ShareButton.astro';
@@ -14,11 +14,7 @@ import LoginCta from '../../components/LoginCta.astro';
 import AiPopup from '../../components/AiPopup.astro';
 import ReadStatusButton from '../../components/ReadStatusButton.astro';
 import AiJudgeScore from '../../components/AiJudgeScore.astro';
-import {
-  getLocalizedPostUrl,
-  getNavigablePosts,
-  resolvePostDeprecation,
-} from '../../utils/post-deprecation';
+import { getLocalizedPostUrl, getNavigablePosts, resolvePostStatus } from '../../utils/post-status';
 
 export async function getStaticPaths() {
   const allPosts = await getCollection('posts');
@@ -42,7 +38,7 @@ const ticketPrefix = ticketId?.split('-')[0] || '';
 const isLevelUp = ticketId?.startsWith('Lv-') ?? false;
 
 const postVersion = getPostVersion(post.id);
-const deprecation = resolvePostDeprecation(post, allPosts);
+const postStatus = resolvePostStatus(post, allPosts);
 const navigablePosts = getNavigablePosts(allPosts, post);
 
 const ticketLabels: Record<string, string> = {
@@ -78,16 +74,15 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
     </header>
 
     {
-      deprecation.deprecated && (
-        <DeprecationBanner
+      postStatus.status !== 'published' && (
+        <PostStatusBanner
+          type={postStatus.status}
           lang="zh-tw"
           replacementHref={
-            deprecation.replacementPost
-              ? getLocalizedPostUrl(deprecation.replacementPost)
-              : undefined
+            postStatus.replacementPost ? getLocalizedPostUrl(postStatus.replacementPost) : undefined
           }
-          replacementTitle={deprecation.replacementPost?.data.title}
-          replacementTicketId={deprecation.replacementTicketId}
+          replacementTitle={postStatus.replacementPost?.data.title}
+          replacementTicketId={postStatus.replacementTicketId}
         />
       )
     }

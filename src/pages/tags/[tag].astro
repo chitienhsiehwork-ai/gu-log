@@ -3,10 +3,12 @@ import { getCollection } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Toggle from '../../components/Toggle.astro';
 import TicketBadge from '../../components/TicketBadge.astro';
-import { getVisiblePosts } from '../../utils/post-deprecation';
+import PostStatusLabel from '../../components/PostStatusLabel.astro';
+import { getListablePosts, getPostStatus } from '../../utils/post-status';
 
 export async function getStaticPaths() {
-  const allPosts = getVisiblePosts(await getCollection('posts'), 'zh-tw');
+  const allPostsFull = await getCollection('posts');
+  const allPosts = getListablePosts(allPostsFull, 'zh-tw');
 
   // Get all unique tags
   const tags = new Set<string>();
@@ -27,12 +29,12 @@ export async function getStaticPaths() {
 
     return {
       params: { tag },
-      props: { tag, posts: tagPosts },
+      props: { tag, posts: tagPosts, allPostsFull },
     };
   });
 }
 
-const { tag, posts } = Astro.props;
+const { tag, posts, allPostsFull } = Astro.props;
 ---
 
 <BaseLayout title={`${tag} - 標籤 - gu-log`}>
@@ -50,32 +52,41 @@ const { tag, posts } = Astro.props;
 
     <section class="posts-list">
       {
-        posts.map((post) => (
-          <article class="post-card">
-            <h2>
-              <a href={`/posts/${post.slug}`}>{post.data.title}</a>
-            </h2>
-            <p class="post-meta">
-              {post.data.ticketId && <TicketBadge ticketId={post.data.ticketId} />}
-              <span class="meta-date">{post.data.translatedDate || post.data.originalDate}</span>
-              {post.data.source && <span class="meta-source">· {post.data.source}</span>}
-            </p>
-            <Toggle title="摘要預覽">
-              <p>{post.data.summary}</p>
-            </Toggle>
-            {post.data.tags && post.data.tags.length > 1 && (
-              <div class="post-tags">
-                {post.data.tags
-                  .filter((t) => t !== tag)
-                  .map((t) => (
-                    <a href={`/tags/${t}`} class="tag-chip">
-                      {t}
-                    </a>
-                  ))}
-              </div>
-            )}
-          </article>
-        ))
+        posts.map((post) => {
+          const status = getPostStatus(post, allPostsFull);
+          return (
+            <article
+              class="post-card"
+              style={status !== 'published' ? 'opacity: 0.6; filter: grayscale(0.22);' : undefined}
+            >
+              <h2>
+                <a href={`/posts/${post.slug}`}>
+                  {post.data.title}
+                  {status !== 'published' && <PostStatusLabel status={status} />}
+                </a>
+              </h2>
+              <p class="post-meta">
+                {post.data.ticketId && <TicketBadge ticketId={post.data.ticketId} />}
+                <span class="meta-date">{post.data.translatedDate || post.data.originalDate}</span>
+                {post.data.source && <span class="meta-source">· {post.data.source}</span>}
+              </p>
+              <Toggle title="摘要預覽">
+                <p>{post.data.summary}</p>
+              </Toggle>
+              {post.data.tags && post.data.tags.length > 1 && (
+                <div class="post-tags">
+                  {post.data.tags
+                    .filter((t) => t !== tag)
+                    .map((t) => (
+                      <a href={`/tags/${t}`} class="tag-chip">
+                        {t}
+                      </a>
+                    ))}
+                </div>
+              )}
+            </article>
+          );
+        })
       }
     </section>
 

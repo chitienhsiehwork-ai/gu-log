@@ -2,7 +2,9 @@
 import { getCollection } from 'astro:content';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import TicketBadge from '../../../components/TicketBadge.astro';
-import { getVisiblePosts } from '../../../utils/post-deprecation';
+import PostStatusLabel from '../../../components/PostStatusLabel.astro';
+import { getListablePosts, getPostStatus } from '../../../utils/post-status';
+import type { PostStatus } from '../../../utils/post-status';
 
 // Helper: extract number from ticketId (e.g., "CP-11" → 11)
 const getTicketNumber = (ticketId: string | undefined) => {
@@ -12,9 +14,12 @@ const getTicketNumber = (ticketId: string | undefined) => {
 };
 
 // Get all CP posts, sorted by ticketId number descending
-const cpPosts = getVisiblePosts(await getCollection('posts'), 'en')
+const allPostsFull = await getCollection('posts');
+const cpPosts = getListablePosts(allPostsFull, 'en')
   .filter((post) => post.data.ticketId?.startsWith('CP-'))
   .sort((a, b) => getTicketNumber(b.data.ticketId) - getTicketNumber(a.data.ticketId));
+const getTimelineStyle = (status: PostStatus) =>
+  status === 'published' ? undefined : 'opacity: 0.6; filter: grayscale(0.22);';
 ---
 
 <BaseLayout title="Clawd Picks - All Posts" lang="en">
@@ -26,17 +31,21 @@ const cpPosts = getVisiblePosts(await getCollection('posts'), 'en')
 
   <section class="archive-list">
     {
-      cpPosts.map((pick) => (
-        <article class="pick-preview">
-          <a href={`/en/posts/${pick.slug}`} class="pick-title">
-            {pick.data.title}
-          </a>
-          <span class="pick-meta">
-            {pick.data.ticketId && <TicketBadge ticketId={pick.data.ticketId} />}
-            {pick.data.translatedDate || pick.data.originalDate} · {pick.data.source}
-          </span>
-        </article>
-      ))
+      cpPosts.map((pick) => {
+        const status = getPostStatus(pick, allPostsFull);
+        return (
+          <article class="pick-preview" style={getTimelineStyle(status)}>
+            <a href={`/en/posts/${pick.slug}`} class="pick-title">
+              {pick.data.title}
+              {status !== 'published' && <PostStatusLabel status={status} />}
+            </a>
+            <span class="pick-meta">
+              {pick.data.ticketId && <TicketBadge ticketId={pick.data.ticketId} />}
+              {pick.data.translatedDate || pick.data.originalDate} · {pick.data.source}
+            </span>
+          </article>
+        );
+      })
     }
   </section>
 </BaseLayout>
