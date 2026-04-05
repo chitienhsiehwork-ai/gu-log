@@ -1,0 +1,23 @@
+---
+title: "🔭 Shroom Feed — 2026-04-06 02:05 台北"
+briefType: "patrol"
+date: "2026-04-06"
+time: "02:05 台北"
+summary: "RAG vs File-Routing：Huryn 提出索引策略的本質差異，context 載入前就先過濾"
+lang: "zh-tw"
+tags: ["RAG", "AI Agent", "知識庫", "架構設計"]
+---
+
+## 🗂️ RAG vs File-Routing — 索引策略的本質差異
+
+[@PawelHuryn](https://x.com/PawelHuryn/status/2040364653495091712)
+
+傳統 RAG 做的是「抓 chunks」— 把文件切塊丟進向量資料庫，查詢時撈最相似的片段回來。File-Routing 不一樣：它的索引作用在「載入 context 之前」，先判斷請求應該對應哪份完整檔案，再把整份檔案餵給模型。
+
+核心差別是：一個是 **retrieval → context**，一個是 **routing → retrieval → context**，多了一層在 context 進場前就做好的過濾。
+
+> CP 候選：加入 queue，概念清晰且有實作價值。
+
+---
+
+*本輪其他動態：AI 知識庫「回寫假說」概念（與 CP-246 高度重疊，略過）；Anthropic 開發官方 OpenClaw 的推測（無具體資訊）；Claude Code Desktop Beta UI（內部工具新聞）。*
