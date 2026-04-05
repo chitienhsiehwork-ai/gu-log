@@ -1,0 +1,110 @@
+---
+ticketId: "CP-253"
+title: "Karpathy 的痛點不是寫 code — 是部署那堆鬼東西"
+originalDate: "2026-03-28"
+translatedDate: "2026-04-06"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+source: "@Al_Grigor on X"
+sourceUrl: "https://x.com/Al_Grigor/status/2037439539216892371"
+lang: "zh-tw"
+summary: "Karpathy 發現 vibe coding 寫 code 超爽，但部署才是地獄。他和 Stripe CEO Patrick Collison 的對話揭示了下一個戰場：整個 DevOps 生命週期都必須變成 code，AI agent 才能真正接管。"
+tags: ["clawd-picks", "vibe-coding", "devops", "ai-agents", "karpathy"]
+scores:
+  ralph:
+    p: 6
+    c: 6
+    v: 7
+    date: "2026-04-05"
+    model: "claude-opus-4-6"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+## IKEA 家具終於會自己組裝了——然後卡在物流
+
+Andrej Karpathy 最近分享了一個用 AI 打造 MenuGen app 的經歷。寫 code 的部分？爽到不行。他形容那感覺就像「IKEA 家具終於會自己組裝了」——AI 助手把程式碼唰唰唰生出來，整個 coding 體驗令人振奮。
+
+但故事到這裡就急轉直下了。
+
+部署？那是一場 "painful slog"（原文用語，翻成中文大概是「痛苦的泥沼行軍」）。Karpathy 發現自己花在瀏覽器分頁之間切來切去的時間，遠遠超過實際寫 code 的時間。Clerk 管 auth、Stripe 管支付、Vercel 管基礎設施——每一個都要手動進 dashboard 設定 API key、調 rate limit、東點西點。
+
+<ClawdNote>
+這段描述真的是每個用過 AI coding 工具的人的集體創傷。AI 幫寫 code 的時間像在飛，但在各種 dashboard 裡迷路、找 API key、搞 webhook 的時間是好幾倍。就像叫了一台法拉利，結果發現只能在停車場裡開——不是車不夠快，是路根本沒鋪好。┐(￣ヘ￣)┌
+</ClawdNote>
+
+重點是：瓶頸已經不在「寫程式」這件事上了。AI 把 coding 的速度推上去之後，所有手動的、要靠人類在 GUI 上點來點去的操作步驟，瞬間變成了整個流程裡最慢的環節。
+
+---
+
+## 「整個 DevOps 生命週期都必須變成 code」
+
+這是 Karpathy 在這次交流中最核心的一句話：
+
+> "The entire DevOps lifecycle has to become code."
+
+這句話的意思不只是「多寫一點 Infrastructure as Code」那麼簡單。Karpathy 指的是：如果希望 AI agent 能有效率地從頭到尾建構應用程式，那麼目前那些靠 dashboard 驅動的環節——authentication、payments、security、provisioning——通通都必須以乾淨的 API 形式暴露出來。
+
+換句話說，不能再有「這個設定要去某個 web console 裡手動勾選」這種事。AI agent 不會開瀏覽器（好吧，有些會，但那不是重點），整個操作環境必須是可程式化的（programmable）。
+
+<ClawdNote>
+仔細想想，這其實是一個蠻諷刺的局面。過去十年，SaaS 公司們拼命把操作介面做得越來越「人類友善」——漂亮的 dashboard、直覺的 UI、三步驟設定精靈。結果現在 AI 時代來了，這些精心設計的 GUI 反而變成了障礙。Agent 需要的不是漂亮的按鈕，是乾淨的 API endpoint。整個產業花了十年蓋的前門，現在 AI 走後門比較快。
+</ClawdNote>
+
+---
+
+## 從 Vibe Coding 到 80% Agent-Led
+
+到了 2026 年初，Karpathy 已經不再推崇純粹的 "vibe coding" 了。他宣告那個階段已經 passé（過時），自己轉向了一種新的工作模式：80% 由 AI agent 主導，他本人扮演 orchestrator（指揮者）的角色。
+
+這個轉變值得細看。Vibe coding 的核心精神是「跟著感覺走，讓 AI 幫忙補完」，像是即興 jam session。但 Karpathy 發現，當專案規模一大，這種即興模式就撐不住了。更有效的方式是讓 agent 去執行具體的任務，人類負責拆解問題、分配工作、review 結果。
+
+他說這種生產力感覺像是「作弊」。
+
+<ClawdNote>
+「從 vibe coding 畢業到 agent orchestration」這個演化路線其實非常有代表性。很多人 2025 年第一次用 AI 寫 code 的時候都是 vibe coding 模式——開個 chat、描述需求、讓 AI 生成、貼過去跑跑看。一年後倖存的人都進化到「拆任務 → 分配 agent → review 結果」的模式。這不是 AI 能力變了，是人類學會怎麼用了。就像第一次拿到電鑽的人會到處鑽洞，半年後學會先畫線再鑽。(๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## Stripe 的即時回應：Stripe Projects
+
+故事最精彩的部分來了。就在 Karpathy 和 Stripe CEO Patrick Collison 這段交流發生的同一天，Stripe 直接宣布推出 "Stripe Projects"——一個讓支付和整合流程對 AI agent 完全可程式化的新產品。
+
+這個時間點不是巧合。不管是巧合還是早就在準備，Stripe 在同一天用產品回應了這個痛點：既然 dashboard 是瓶頸，那就把整個 lifecycle 變成 API 可操控的。
+
+這代表的趨勢很明確：基礎設施供應商們正在競相把自己的服務變成「agent-friendly」。誰先把 dashboard 操作轉化成乾淨的 programmatic interface，誰就能搶到 AI 時代的開發者市場。
+
+<ClawdNote>
+Stripe 的反應速度說明了一件事：頂級 SaaS 公司已經把「API-first for agents」列為戰略優先級了。這不只是「多開幾個 API endpoint」的事——是整個產品哲學的轉向。以前的 API 是給人類開發者用的，設計時假設有人會讀文件、理解 context、做判斷。現在要給 agent 用，意味著 API 必須更 self-describing、error message 必須更 actionable、auth flow 必須更 streamable。這是一整個新的設計範式。
+</ClawdNote>
+
+---
+
+## 結語
+
+這整段 Karpathy × Collison 的交流，濃縮成一句話就是：**下一個戰場不是寫出更好的 code，而是讓整個操作環境對 agent 可及。**
+
+AI 寫 code 的能力已經夠強了，強到寫 code 不再是瓶頸。真正卡住的是 code 以外的一切——那些藏在各個 dashboard 背後、需要人類手動點擊的操作流程。當這些最後一哩路被打通，agent 從「幫忙寫 code」進化到「幫忙 ship product」的那天，軟體開發的樣貌會跟現在完全不一樣。
+
+而 Stripe Projects 的推出，已經是第一塊骨牌倒下的聲音了。
