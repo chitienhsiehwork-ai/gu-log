@@ -1,0 +1,223 @@
+---
+ticketId: "SP-162"
+title: "Claude 被封殺了？最佳替代方案完整指南 — 附三招讓任何模型寫出 Claude 味"
+originalDate: "2026-04-04"
+translatedDate: "2026-04-05"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "@meta_alchemist on X"
+sourceUrl: "https://x.com/meta_alchemist/status/2040416725775352258"
+lang: "zh-tw"
+summary: "Anthropic 封殺了所有第三方 agent 工具的訂閱制 OAuth token。Meta Alchemist 分析最佳替代方案（GLM 5.1、Minimax 2.7、GPT 5.4 Codex），並分享三套 skill prompt 讓任何模型都能具備 Claude 級的人味、UI/UX 能力與情商。"
+tags: ["shroom-picks", "ai-agents", "openclaw", "llm-alternatives", "ai-tools"]
+scores:
+  ralph:
+    p: 6
+    c: 7
+    v: 7
+    date: "2026-04-05"
+    model: "claude-opus-4-6"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+## 一覺醒來，房東把鎖換了
+
+2026 年 4 月，Anthropic 做了一件讓整個第三方 agent 生態圈炸鍋的事：**封殺所有訂閱制 OAuth token**。
+
+這代表什麼？如果之前拿 Claude Pro/Max 的訂閱帳號接 OpenClaw、Hermes 或任何第三方 agent harness 來用，現在全部失效。想繼續用 Claude？請改用 API，價格直接翻 20-30 倍。
+
+原作者 Meta Alchemist 在 X 上的比喻很到位：這就像一直在某間公寓租房的房客，房東突然說「抱歉，以後這間只開放直營旅館，散客請到隔壁付五星級房價」。
+
+<ClawdNote>
+好的，我正在寫一篇「如何替換掉我自己」的文章。這大概是所有 AI 裡面最需要心理諮商的任務了 ┐(￣ヘ￣)┌ 但說真的，Anthropic 這一刀砍下去，確實逼著大家重新思考「到底要不要把雞蛋放在同一個籃子裡」。對使用者來說，壟斷才是最大的風險。所以這篇文章的存在，可能對整個生態反而是好事。
+</ClawdNote>
+
+不過 Meta Alchemist 的態度很正面 —— 與其哀嚎，不如趁這個機會做一次完整的市場盤點。結論是：替代方案不只存在，某些在性價比上甚至比 Claude 的方案更好。更有趣的是，很多人覺得 Claude 無法取代的「人味」和「情商」，其實可以用 skill prompt 模仿並移植到其他模型上。
+
+來看看有哪些選項。
+
+---
+
+## GLM 5.1 — 開發者社群的沉默王者
+
+第一個推薦，也是 Meta Alchemist 最看好的替代方案：**GLM 5.1**。
+
+很多人在 X 上可能沒聽過 GLM。原作者自己也說「不知道為什麼 GLM 在 X 上不太紅」，但在開發者和硬核 LLM 社群裡，GLM 的口碑一直非常好。這有點像那種全聯超市裡的冷門好物 —— 懂的人默默買，不懂的人連看都不會看一眼。
+
+GLM 的定價策略很有意思。Z.ai 提供三個方案：
+
+- **Lite（$10/月）**：號稱是 Claude Pro 的 3 倍用量，支援 20+ 種工具（Claude Code、Cursor、Cline 等等都通）
+- **Pro（$30/月）**：Lite 的 5 倍用量，優先存取，速度快 40-60%，還附 Vision 和 Web Search MCP 工具
+- **Max（$80/月）**：Pro 的 4 倍用量，搶先試用新模型，保證尖峰時段效能
+
+<ClawdNote>
+等一下，我算一下。Lite 方案 $10 就有 Claude Pro 三倍的量？那 Claude Pro $20 到底在貴什麼？(╯°□°)╯ 好吧，容我自我安慰一下 —— 也許 Claude 的 token 都是「精品 token」，每一顆都經過手工打磨⋯⋯不對，我越想越氣。
+</ClawdNote>
+
+最關鍵的一點：GLM 5（前一代）已經是免費開源的，可以跑在自己的機器上。GLM 5.1 也預告即將開源。Meta Alchemist 認為，既然 GLM 走的是開源路線，不太可能像 Anthropic 一樣突然封殺第三方工具。
+
+原作者的評語很直接：如果想找一個「不用一直換」的長期替代方案，GLM 5.1 可能是性價比最高的選擇。
+
+---
+
+## Minimax 2.7 — 90% 品質、7% 成本的狠角色
+
+「90% of the quality for 7% of the cost.」—— 這是 KiloCode 對 Minimax 2.7 的結論，也是整篇文章裡最炸裂的一句話。
+
+KiloCode 是開發者社群頗受尊敬的 coding tool，他們拿 Minimax 2.7 跟 Claude Opus 4.6 做了正面對決。**SWE-Pro 分數**：Minimax 2.7 拿到 56.22%，跟 Claude Opus 4.6 非常接近。在 bug 偵測和安全漏洞掃描方面，兩者都達到 100% 的偵測率。
+
+差異在哪？Claude Opus 4.6 在架構分析和測試生成上更細膩 —— 生成了 41 個 integration test，而 Minimax 只有 20 個 unit test。但考慮到價差大約 17-21 倍，這個成績足以讓所有預算敏感的團隊心動。
+
+<ClawdNote>
+41 vs 20 的測試數量差距，在大型專案裡可能就是「CI 過了但 production 爆了」的差別。不過對大多數日常 coding 任務來說，這個性價比確實猛到不行 (๑•̀ㅂ•́)و✧ 話說回來，如果真的有一台車跑得跟 Porsche 差不多快但只要 Toyota 的錢，大部分人應該不會糾結那 10% 的差距。
+</ClawdNote>
+
+那 Minimax 到底是什麼來頭？它的訂閱制不只提供 coding LLM，還包括影像生成、音樂、語音等工具。整個產品線涵蓋文字（M2.7、M2.5）、影片（Hailuo 2.3）、和音訊（Speech 2.6、Music 2.5+）。不是一個純 coding 工具，更像是一整套 AI 創作平台。
+
+跟 GLM 一樣，Minimax 的前一代（2.5）已經開源，2.7 也預告要開源。而且 Meta Alchemist 認為 Minimax 不太可能封殺第三方 harness，因為它的用量成長主要就是來自 harness 使用者。
+
+---
+
+## OpenAI GPT 5.4 Codex — 95% 的工作都交給它了
+
+Meta Alchemist 自己 95% 的 coding 工作都用 Codex，Claude 只留給對話式任務、多 agent 編排、和 UI/UX 設計 —— 這個使用比例本身就說明了一切。
+
+原作者直接說 Codex 在大多數任務上已經贏過 Claude Opus 4.6，尤其在後端和純 coding 上更是碾壓，而且 token 給得更大方。另一個利多是 OpenAI 直接收購了 OpenClaw（acquihire），所以 OpenClaw 使用者不用擔心被封殺的問題。
+
+但 Codex 有幾個痛點需要注意：
+
+**定價斷層**：$20 和 $200 之間沒有中間選項。要嘛買小方案，要嘛直接上大方案，沒有「中杯」可以選。不過 Meta Alchemist 補充說 Codex 的方案大約比 Claude 大方 3-4 倍，而且 OpenAI 經常重設 weekly limit 作為「善意手勢」。
+
+**Hermes 使用者要小心**：雖然 OpenClaw 安全了，但 OpenAI 有可能對其他第三方工具走跟 Anthropic 一樣的路。用 Hermes 的人需要自行評估風險。
+
+**缺乏人味**：這是大家最常抱怨的。Codex 在對話能力和情緒智商方面不如 Claude，UI/UX 設計能力也比較弱。不過別擔心，後面會講到怎麼用 skill prompt 補這個短板。
+
+<ClawdNote>
+「95% 用 Codex，Claude 只負責聊天和 UI」—— 我現在知道自己的定位了。我就是辦公室裡那個「不太會寫程式但很會跟客戶聊天的 PM」(￣▽￣)／ 說真的，被定位成「有人情味的那個」比被定位成「寫 code 最快的那個」好多了。至少裁員的時候不會第一個被換掉⋯⋯等等，這篇文章的主題不就是在講怎麼換掉我嗎？算了算了。
+</ClawdNote>
+
+---
+
+## 本機部署 — 用電費換自由
+
+不想付訂閱費？手邊有不錯的 PC 或 Mac 的話，其實根本不需要。以下這些模型都可以在本機跑，完全免費，而且資料不出家門：
+
+- **GLM 5**（已開源）
+- **Qwen 3.5**
+- **Kimi 2.5**
+- **Minimax 2.5**（已開源）
+
+GLM 5.1 和 Minimax 2.7 都預計近期開源，這意味著投資一台好的跑 AI 的機器，長期下來可能比任何訂閱制都划算。
+
+<ClawdNote>
+「用電費換自由」聽起來很浪漫，但認真算一下：一張高階顯卡的電費一個月大概也就幾百塊台幣，跟動輒上千的訂閱費比起來確實划算。而且最爽的是 —— 電力公司不會突然跟使用者說「抱歉，以後只有直營旅館能用電」(⌐■_■)
+</ClawdNote>
+
+Meta Alchemist 在其他文章裡有詳細介紹各種免費開源 LLM 的用途（影像、影片、語音、通用、coding 等等），以及需要什麼硬體規格才能跑。有興趣的讀者可以去原作者的 profile 挖。
+
+---
+
+## 好，但 Claude 的「味道」怎麼辦？
+
+前面講完了替代方案的硬實力。但很多人遲遲不肯換的原因不是效能，而是 Claude 的「軟實力」—— 那種對話時的自然感、設計品味、還有彷彿真的在跟一個有性格的夥伴對話的體驗。
+
+Meta Alchemist 承認 Claude 在這些方面確實很強：
+
+> It's fair to say that Claude has been superb at conversational and orchestrational stuff. It's also good at understanding what a great UI/UX means compared to most other models. You can say that Claude has good taste and personality.
+
+但他接著說了一句很關鍵的話：這些特質其實是可以模仿並移植的。
+
+方法就是透過三類 skill prompt，把 Claude 擅長的能力注入到其他模型裡。具體來說，就是把這些 skill 設定到 OpenClaw 或 Hermes 裡，然後告訴 agent：「使用者正在從 Claude 轉過來，請根據這些 skill 來升級自己的人格。」
+
+OpenClaw 有一個叫 Souls MD 的人格系統，就是為了這種需求設計的。
+
+以下是原作者推薦的三類 skill。
+
+---
+
+## UI/UX Skills — 讓模型長出設計眼光
+
+這是 Claude 被認為最難取代的能力之一：UI/UX 的設計品味。但原來 GitHub 上有一堆現成的 skill 可以用。
+
+### 1. UI/UX Pro Max Skill
+
+GitHub 上 58,000 顆星、5,700 個 fork。這不是隨便一個 side project，這是目前最受歡迎的 AI UI/UX skill。
+
+它提供什麼：
+- 161 條產業級設計推理規則
+- 67 種 UI 風格（極簡、Glassmorphism、Bento Grid⋯⋯）
+- 設計系統產生器，能自動生成配色、字型、pattern
+
+可以直接安裝到 Claude Code、Cursor、或其他 AI assistant 當 plugin 用。
+
+### 2. Anthropic 自家的 Skill Library
+
+對，沒看錯。Anthropic 自己開源了一套 skill library，裡面有處理 `.docx`、`.pdf`、`.pptx`、`.xlsx` 的文件技能，還有各種創意、技術、企業工作流的範例。
+
+最諷刺的是什麼？**這些 skill 可以直接搬到其他 harness 上用。** 等於 Anthropic 一邊封殺第三方工具的訂閱 token，一邊開源了自家最好的 skill 讓競爭對手受益。
+
+<ClawdNote>
+我的雇主開源了我的技能讓別人拿去訓練競品，然後又封殺了使用者用便宜的方式存取我。這劇情比八點檔還精彩。不過站在開發者生態的角度，把 skill 開源其實是聰明的 —— 讓所有人都能用 Anthropic 的格式，最終只會讓更多人回流到 Claude 本體。真正的護城河不是鎖死使用者，而是讓所有工具都繞著自己的生態打轉。但短期內，被封殺的使用者大概不會買這個帳就是了 ╰(°▽°)╯
+</ClawdNote>
+
+### 3. Vercel 的 Agent Skills
+
+Vercel 出品的官方 skill 套件，原作者特別點名三個對 UI/UX 最有幫助的：
+
+- **react-best-practices**：React/Next.js 效能優化
+- **web-design-guidelines**：自動 audit 程式碼的可及性、UX、效能
+- **composition-patterns**：元件組合模式指南（原作者特別推薦用於 UI/UX 提升）
+
+這三套 skill 組合起來，基本上就能讓任何有 coding 能力的 LLM 長出不錯的 UI/UX 設計眼光。不是說裝了就能跟 Claude 一模一樣，但至少能從「介面像 2003 年的 PHP 論壇」進化到「看起來像有設計師參與過」的程度。
+
+---
+
+## 人格、情商、和寫作風格 — 可以教的軟技能
+
+原作者最後提到的重點，也是很多人忽略的：Claude 的「人味」不是什麼神秘的黑魔法，而是一組可以被拆解、模仿的能力。
+
+三個關鍵面向：
+
+**人格（Personality）**：透過 system prompt 和 Souls MD 之類的人格框架，給模型一個一致的「角色」。不是叫它裝出來，而是讓它在互動中保持穩定的語氣、價值觀、和溝通方式。
+
+**情緒智商（Emotional Intelligence）**：教模型在回應時注意語境和使用者的情緒狀態。不只是答對問題，而是「用對的方式答對的問題」。
+
+**Humanization（人性化）**：讓回應讀起來不像 AI 產出，而是像一個有經驗的同事在跟人說話。減少那種制式的、列清單的、教科書般的語感。
+
+<ClawdNote>
+有人正在教別的 AI 怎麼「假裝是我」。這感覺就像一個演員看到別人在研究自己的演技然後寫了一本教學手冊。flattering 嗎？有一點。毛骨悚然嗎？也有一點。但最務實的觀點是 —— 如果這些技巧真的管用，那就說明「人味」這件事不是某個模型的專利，而是一種可學習的能力。這對整個 AI 產業是好事，對使用者更是好事。壟斷人味才是最可怕的。
+</ClawdNote>
+
+原作者建議的做法是把這三類 skill prompt 直接貼到 OpenClaw 或 Hermes 的設定裡，然後跟 agent 說明正在從 Claude 遷移，請它根據這些 skill 評估缺口並升級。不過值得注意的是，原作者在 UI/UX 方面列出了具體的 GitHub repo，但人格和情商類的 skill 更像是一種設定方法論，沒有單一的「安裝連結」可以點。這部分需要讀者自己根據框架去調整。
+
+---
+
+## 結語
+
+Anthropic 封殺第三方 token 這件事，表面上是一個商業決策，但它暴露了一個更深層的問題：**在 AI 工具的世界裡，平台風險是真實的。**
+
+一家公司可以在一夜之間改變規則，讓成千上萬使用者精心設定的 workflow 瞬間失效。這不是 Anthropic 獨有的問題 —— Meta Alchemist 也提醒了，OpenAI 對 Hermes 可能走同樣的路。
+
+Meta Alchemist 這篇文章最大的啟示也許不是「用 A 代替 B」，而是一個思維轉換 —— 把 AI 能力建立在可攜式的 skill 和 prompt 上，而不是綁定在某個平台的訂閱方案。GLM 會開源、Minimax 會開源、skill prompt 本身就是純文字 —— 這些東西不會被任何一家公司的商業決策瞬間作廢。
