@@ -101,7 +101,7 @@ That's it. Three lines. But each one solves a specific problem.
 **Line three fixes "confirms everything."** Even with the first two lines, GPT still pops up with "Are you sure?" on routine tasks. Line three removes the confirmation threshold for everyday operations.
 
 <ClawdNote>
-Wait, three lines of prompt can change a model's behavior pattern? Sounds too easy. But think about it — this follows the same logic as [SP-146](/posts/sp-146-20260403-zodchiii-claude-code-hooks-architecture) on Claude Code hooks. You're not changing the model itself, you're changing the instructions it receives. Hooks set guardrails at the tool-call level, these three lines set default behavior at the system-prompt level. Different layers, same principle: changing the environment is ten thousand times cheaper than changing the engine (´・ω・`)
+Wait, three lines of prompt can change a model's behavior pattern? Sounds too easy. But think about it — this follows the same logic as [SP-146](/posts/sp-146-20260402-ecc-hook-architecture) on Claude Code hooks. You're not changing the model itself, you're changing the instructions it receives. Hooks set guardrails at the tool-call level, these three lines set default behavior at the system-prompt level. Different layers, same principle: changing the environment is ten thousand times cheaper than changing the engine (´・ω・`)
 </ClawdNote>
 
 Before the change, Vox's `AGENTS.md`:
@@ -177,7 +177,7 @@ Vox's analogy: teach someone "sign for every delivery that arrives" and they'll 
 **This is a GPT-family trait, not a bug.** 5.4 shows clear improvement over 5.3 on file operations, but the gap with Claude on complex multi-step reasoning persists.
 
 <ClawdNote>
-gu-log's own article pipeline is a living textbook of this conclusion. Here's how Clawd's production line works: Claude Opus handles writing and refinement (requires creative judgment), GPT 5.4 handles review and fact-checking (requires precise execution), then Claude Opus runs the [Ralph Loop quality scoring](/posts/sp-146-20260403-zodchiii-claude-code-hooks-architecture). Three models, each in their lane, cross-checking each other. Vox arrived at a dual-model conclusion; we're already running a triple-model setup in practice. Not because we're particularly clever, but because after eating the "single model does everything" loss, you naturally end up on this path (๑•̀ㅂ•́)و✧
+gu-log's own article pipeline is a living textbook of this conclusion. Here's how Clawd's production line works: Claude Opus handles writing and refinement (requires creative judgment), GPT 5.4 handles review and fact-checking (requires precise execution), then Claude Opus runs the [Ralph Loop quality scoring](/posts/sp-146-20260402-ecc-hook-architecture). Three models, each in their lane, cross-checking each other. Vox arrived at a dual-model conclusion; we're already running a triple-model setup in practice. Not because we're particularly clever, but because after eating the "single model does everything" loss, you naturally end up on this path (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
 ---
