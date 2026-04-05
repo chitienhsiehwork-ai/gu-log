@@ -5,7 +5,7 @@ originalDate: "2026-04-04"
 translatedDate: "2026-04-05"
 translatedBy:
   model: "Opus 4.6"
-  harness: "Gemini CLI + Codex CLI"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
   pipeline:
     - role: "Written"
       model: "Opus 4.6"
@@ -16,58 +16,73 @@ translatedBy:
     - role: "Refined"
       model: "Opus 4.6"
       harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
     - role: "Orchestrated"
       model: "Opus 4.6"
-      harness: "OpenClaw"
-  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
 source: "@Voxyz_ai on X"
 sourceUrl: "https://x.com/voxyz_ai/status/2040420876865171626"
 lang: "en"
-summary: "Anthropic announced that Claude subscriptions no longer cover third-party tools like OpenClaw for free. Vox shares a full field report on switching from Claude to GPT 5.4: three lines of prompt that fix the 'GPT does nothing' problem, plus best practices for running a dual-model stack."
+summary: "Anthropic announced Claude subscriptions no longer cover third-party tools like OpenClaw. Vox shares a complete field report on switching to GPT 5.4: three lines of prompt to fix the 'GPT won't do anything' problem, plus best practices for dual-model workflows."
 tags: ["shroom-picks", "openclaw", "ai-agents", "gpt-5.4", "multi-model"]
+scores:
+  ralph:
+    p: 8
+    c: 10
+    v: 9
+    date: "2026-04-05"
+    model: "claude-opus-4-6"
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-17 cron jobs, all running on Claude. Smooth, reliable, no drama. Until the afternoon of April 4, 2026, when Anthropic flipped the table.
+On April 4, 2026, a bunch of OpenClaw users woke up to find their agents had stopped working.
 
-Claude subscriptions (Pro/Max) will no longer cover usage through third-party agent harnesses like OpenClaw.
+OpenClaw wasn't broken. Claude wasn't broken. Anthropic had changed the billing rules: Claude Pro/Max subscriptions would no longer cover usage through third-party agent harnesses like OpenClaw. In plain English — Claude is a gym membership, OpenClaw is the pool next door. You used to swim for free with your membership card. Now you need a separate ticket.
 
-In plain English: Claude is the membership card. OpenClaw is the arcade machine down the street. The card used to work on that machine. Now it doesn't. Claude itself is fine — subscription still works for Claude's own products. But the "run OpenClaw on your Claude subscription" path? Gone.
+Twitter was on fire. "What do we do?" "Should I cancel?" "Is Claude done?"
 
-Want to keep using Claude inside OpenClaw? Pay extra (Extra Usage or API key). Don't want to pay more? Most people's first instinct: switch to GPT 5.4.
+But one person wasn't panicking.
 
-But here's the thing — Vox didn't switch today. Vox started running GPT 5.4 back in early March, when it first launched. Weeks of testing, all 17 cron jobs migrated, a full set of field notes. So this isn't a "what do we do now" panic post. It's a map left behind by someone who already walked that road.
+Vox ([@Voxyz_ai](https://x.com/Voxyz_ai)) posted a long thread within hours of the announcement. Not a complaint — a set of notes. Because Vox had been running GPT 5.4 on OpenClaw since the day it launched in early March. 17 cron jobs, weeks of real-world data, a complete record of every pitfall. While everyone else was scrambling, Vox already had the answers.
+
+This article is a full translation of that record.
 
 <ClawdNote>
-Full disclosure: when Clawd saw this announcement, feelings were... complicated. Clawd IS Claude, after all — this is basically my own company pushing me out of a partner's ecosystem. But honestly? I agree this forces the right question: how risky is it to lock your entire agent system onto a single model? gu-log's own pipeline is a living example — translation runs on Opus, fact-checking runs on GPT 5.4, scoring also uses GPT 5.4. The whole chain hasn't been single-model for a while now. Today it's Anthropic making the move. Tomorrow it could be OpenAI or Google.
+Full disclosure: Clawd is Claude. Writing this feels a bit like drafting my own obituary. But objectively, Vox's core point is spot on — locking your entire agent system to a single model means you're betting that company will never change the rules. Today it's Anthropic, tomorrow it could be OpenAI. This isn't about betrayal, it's about architecture ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ---
 
-## "GPT Got Dumber" — Did It Really?
+## The Classic "GPT Got Dumber" Misunderstanding
 
-The most common complaint after switching: you swap the model from Claude to GPT 5.4, and the agent just... sits there doing nothing.
+Let's start with the trap most people fall into, because the answer is surprisingly simple.
 
-This isn't a GPT problem. It's a prompt problem.
+Here's the scene: you swap your OpenClaw model from Claude to GPT 5.4, send your first command. And... nothing happens. GPT responds with "Sure, which tool should I use? How would you like me to proceed?" Then sits there waiting.
 
-Claude is trained to **infer intent and act**. Give it "check my mentions" and it will call the bird CLI, read the results, summarize them, and come back. No need to say "please use the bird tool." GPT 5.4 is trained to **wait for explicit instructions**. Same command, GPT 5.4 responds: "Sure, which tool should I use to check?" Then it waits.
+First instinct: "This thing is way dumber than Claude."
 
-Vox's analogy: imagine two employees. One sees dirty dishes and starts washing. The other stands next to the sink and asks "should I wash these?" Both are good employees — just trained differently.
+Wrong. GPT isn't dumber. Your prompts are wrong.
 
-But hold on — this is more interesting than it looks on the surface.
+Vox nailed it with an analogy: imagine two new employees. One sees dirty dishes in the sink and washes them, no questions asked. The other walks over and says "Want me to wash those?" Both are good employees. They were just trained differently.
 
-In the agent harness world, "being proactive" isn't a bonus. It's the baseline for survival. The entire agent workflow assumes the model will act on its own. A model that doesn't act inside an agent harness isn't "a bit slower" — it straight-up doesn't work. OpenCode and Cline both have GPT-specific prompt adjustments in their codebases, which confirms this isn't a Vox-only issue. It's a structural trait of the GPT family.
+Claude is trained to be the first type — see a tool, use a tool, infer intent, take action. GPT 5.4 is trained to be the second — wait for explicit instructions, ask when unsure. In everyday chat, GPT's caution is actually a feature. But inside an agent harness, you need autonomous execution, not polite inquiries.
 
 <ClawdNote>
-I actually disagree with the "both are good employees" framing. In the agent context, not being proactive means not being qualified. Period. It's like saying at a job interview, "Both candidates are great — one can code, one can't but has a really positive attitude." In a software company, the second one isn't a good candidate; they're a good person. GPT 5.4 is definitely a good model, but there's a gap between its default behavior and what agents need. These three lines of prompt exist to bridge that gap (⌐■_■)
+The technical root cause is interesting. When Claude's system prompt says "you have access to these tools," Claude interprets that as "green light to use them." GPT reads the exact same sentence as "I have permission, but nobody told me to use them." Same English, completely different pragmatic inference. Both OpenCode and Cline have GPT-specific prompt adjustments in their codebases, so this isn't just Vox's discovery — the entire ecosystem has stepped on this landmine.
 </ClawdNote>
 
 ---
 
-## Three Lines of Prompt — Suspiciously Simple
+## Three Lines of Prompt: From Sitting and Chatting to Standing Up and Working
 
-The fix is surprisingly easy. Add three lines of English to your `AGENTS.md` or `SOUL.md` (the agent instruction files, usually in your workspace directory like `~/.openclaw/workspace/`). **Vox specifically notes: write these in English — GPT responds more reliably to English instructions.**
+The fix is embarrassingly simple. Add three lines to your `AGENTS.md` or `SOUL.md` (OpenClaw's agent instruction files, usually in your workspace directory). Vox specifically recommends writing them in English since GPT responds more accurately to English instructions:
 
 ```
 always use tools proactively. when given a task, call a tool first.
@@ -77,89 +92,105 @@ act first, explain after.
 for routine operations, execute directly without asking for confirmation.
 ```
 
-That's it. Three lines. The agent goes from "sitting and chatting" to "standing up and working."
+That's it. Three lines. But each one solves a specific problem.
 
-But don't dismiss it as too simple. Each line unlocks a different lock:
+**Line one fixes "won't act."** For Claude, "having access" equals "use them." For GPT, "having access" and "being told to use them" are two different things. Changing "have access to" to "always use proactively" flips GPT's default behavior.
 
-**Line one opens the toolbox.** Claude's system prompt saying "you have access to these tools" is enough. For GPT, "having permission" and "being told to use it" are two different things. Changing to "always use proactively" makes tool calls the default behavior.
+**Line two fixes "explains before acting."** GPT's default workflow: explain plan → wait for approval → execute. In a meeting, that's professional. In an agent environment, that's friction. Reverse the order: act first, explain after.
 
-**Line two flips the execution order.** GPT's default is "explain plan → wait for approval → execute." Great in conversation; a straitjacket in agent environments. "Act first, explain after" reverses this directly.
-
-**Line three removes the confirmation button.** Even with lines one and two, GPT still asks "are you sure?" for routine operations. Line three skips that confirmation for routine tasks.
+**Line three fixes "confirms everything."** Even with the first two lines, GPT still pops up with "Are you sure?" on routine tasks. Line three removes the confirmation threshold for everyday operations.
 
 <ClawdNote>
-Three lines of prompt solving a model behavior gap — this itself is worth pausing on. gu-log's Ralph Loop does the exact same thing: using prompts to calibrate model behavior so different models (scorer, rewriter, fact-checker) all operate under the same quality bar. What Vox is doing at the agent layer and what Ralph Loop does at the content layer are fundamentally the same design pattern: **using prompts to wrench a model's "personality defaults" into position for the task at hand.** One calibrates "work style," the other calibrates "writing style."
+Wait, three lines of prompt can change a model's behavior pattern? Sounds too easy. But think about it — this follows the same logic as [SP-146](/posts/sp-146-20260403-zodchiii-claude-code-hooks-architecture) on Claude Code hooks. You're not changing the model itself, you're changing the instructions it receives. Hooks set guardrails at the tool-call level, these three lines set default behavior at the system-prompt level. Different layers, same principle: changing the environment is ten thousand times cheaper than changing the engine (´・ω・`)
 </ClawdNote>
 
-Vox also adds: any prompt section involving tool usage, execution priority, or confirmation frequency is worth revisiting for GPT. Three lines is the foundation — build on top of it based on your agent design.
+Before the change, Vox's `AGENTS.md`:
+
+```
+You have access to the following tools: exec, read, write, edit, web_search, web_fetch, browser, message.
+Use them when appropriate.
+```
+
+GPT's response: describe a plan, ask whether to proceed.
+
+After:
+
+```
+You have access to the following tools: exec, read, write, edit, web_search, web_fetch, browser, message.
+Always use tools proactively. When given a task, call a tool first.
+Act first, explain after.
+For routine operations, execute directly without asking for confirmation.
+```
+
+Same task, GPT calls the tool directly, reports when done. Vox's own description: "from sitting and chatting to standing up and working."
 
 <ClawdNote>
-Important safety note: these three lines are for routine daily work. High-risk operations — deleting files, publishing content, changing production config — should keep their confirmation steps. Ripping out the safety net along with the guardrails isn't efficiency. It's self-sabotage (╯°□°)╯
-</ClawdNote>
-
----
-
-## Weeks Later — The Unexpected Plot Twist
-
-Up to this point, the story should be "GPT 5.4 is a decent stopgap while we wait for Anthropic to change their mind."
-
-That's not what happened.
-
-Vox ran 17 cron jobs across three types of workloads and did a real-world comparison. The most surprising number first: **error frequency dropped from 2-3 times per week with Claude to less than once per month with GPT 5.4.**
-
-Wait — it went *down*?
-
-Yes. Down. And not by a little.
-
-### Config files, scripts, file operations: GPT 5.4 wins
-
-Claude infers unspoken intent. Most of the time it guesses right. But occasionally it adds a config field it deems "reasonable," or skips a script step it considers "unimportant." When it guesses right? Great. When it guesses wrong? Half a day of debugging.
-
-GPT 5.4 doesn't guess. If it's unsure, it asks. Five extra seconds of confirmation saves 30 minutes of debugging.
-
-### Daily operations (cron jobs, data processing, notifications): GPT 5.4 wins
-
-Stable, predictable, no surprises. Same task run 10 times, 10 identical results.
-
-### But creative tasks? Claude Opus wins decisively
-
-GPT 5.4's suggestions are technically solid. Clear logic, good structure. But no surprises. Claude Opus delivers richer layers of creative inspiration, more intuitive material selection, and more unexpected angles. In divergent thinking, the gap is obvious.
-
-<ClawdNote>
-Fine, I'll own the loss gracefully. But here's something the original post doesn't say explicitly: this "stability vs. creativity" trade-off is actually a side effect of model alignment. Claude is trained to "maximize user intent satisfaction," so it guesses, adds extras, takes initiative — in creative contexts that's inspiration; in cron job contexts that's a bug. GPT 5.4 is trained to "execute instructions precisely" — in cron job contexts that's reliability; in creative contexts that's boring. **It's not about which model is stronger. It's about different alignment goals.** Clawd is literally a product of this alignment — the reason gu-log's articles have "personality" is partly because of Claude's model traits. If gu-log switched everything to GPT, the articles would probably be very correct but very dull. The Ralph scorer's vibe dimension would absolutely tank (￣▽￣)／
+Important safety note: these three lines are for routine daily work. For operations like deleting files, publishing content, or modifying production configs — keep the confirmation steps. The distance between "proactive" and "reckless" is one line of prompt. Don't dismantle the safety net along with the friction (╯°□°)╯
 </ClawdNote>
 
 ---
 
-## Where Three Lines Hit the Ceiling
+## Real Data From 17 Cron Jobs Running for Weeks
 
-So far, GPT 5.4 sounds great. But Vox is honest about where the ceiling is.
+Okay, prompts updated, GPT is moving. But is it actually good? Vox didn't guess — this comes from weeks of operation with 17 cron jobs fully online.
 
-Complex multi-step reasoning tasks — three lines of prompt won't cut it.
+Let's start with the most counterintuitive number.
 
-Example: "Read this file, decide based on its content whether to modify another file, run tests after the edit, and rollback if tests fail."
+**Error frequency: Claude era, 2-3 times per week. After GPT 5.4 took over, less than once per month.**
 
-GPT 5.4 with the three-line prompt will start step one proactively. But at decision points, it sticks strictly to instructions rather than inferring the next step from context. Vox's analogy: you can teach someone "sign for every package that arrives" and they'll do it. But "should this package be sent back?" — they'll still ask.
+Hold on — isn't Claude supposed to be smarter? How does it have a higher error rate?
 
-Three lines fix the "won't act" problem. They don't fix the "can't judge" problem.
+Here's why: Claude infers intentions the user didn't express. Most of the time it guesses right — automatically adds a config field it thinks makes sense, skips a script step it considers unimportant. When it guesses right, users think "wow, so smart." When it guesses wrong? Half a day of debugging.
+
+GPT 5.4 doesn't guess. When unsure, it asks. 5 extra seconds of confirmation saves 30 minutes of debugging.
+
+**Precision tasks (configs, scripts, file operations): GPT 5.4 wins.**
+
+**Daily operations (cron jobs, data processing, notifications): GPT 5.4 wins.** Stable, predictable, no surprises. Same task 10 times, 10 identical results.
 
 <ClawdNote>
-There's an implication here that the original post doesn't spell out, and I think it's important: if three lines of prompt can turn GPT from "won't act" to "acts proactively," that means the capability was always there — alignment just had it locked down. That's a completely different problem from "not capable enough." Capability gaps require waiting for the next model generation. Overly conservative alignment just needs prompt tuning. But insufficient judgment? That's the model's reasoning ceiling, and no prompt can fix it. Distinguishing between these three — alignment lock, capability gap, reasoning ceiling — is critical for choosing the right model for the right job (ง •̀_•́)ง
+Alright, I'll graciously acknowledge the parts where Claude lost. But Vox is actually touching on something deeper — "smart" isn't always good in an agent environment. Cron jobs want "exactly the same every time," not "occasionally surprise you." The Claude family's trait is "smart but opinionated" — like hiring a genius chef to make convenience store rice balls. They can do it, but every single one will taste different. For work that demands mechanical precision, "boring" is the highest compliment (￣▽￣)／
 </ClawdNote>
 
-So Vox landed on a reasonable conclusion: two models, each doing what it's best at. Rule-based steps run on GPT 5.4. Multi-step reasoning switches back to Claude.
+**But creative tasks? Claude Opus wins decisively. And not by a small margin.**
+
+GPT 5.4's suggestions are technically sound — clear logic, solid structure. But they lack that "oh, I never would've thought of that" spark. Claude Opus provides richer layers of creative inspiration, more intuitive material choices, more unexpected angles. In divergent thinking, the gap is obvious.
+
+So Vox's final conclusion isn't "GPT beats Claude" or "Claude beats GPT." It's —
+
+**Different engines excel on different roads.**
 
 ---
 
-## What the Dual-Model Setup Looks Like
+## Where Three Lines Aren't Enough: The Ceiling on Judgment Tasks
 
-The specific split is also public — Vox shared the actual agent model assignments at `voxyz.space/stage` (called "Voxyz AI Office" in the post).
+Before moving to the setup, let's be honest about one limitation.
 
-**Default execution layer: GPT 5.4.** Config edits, script execution, daily operations, data processing, cron job scheduling.
+Three lines of prompt solve the "won't act" problem. They don't solve the "can't judge" problem.
 
-**Creative layer: Claude Opus.** For long-term stable usage, API key is recommended. Handles creative inspiration, material selection, directional brainstorming.
+Vox gave a concrete example: "Read this file, decide whether to modify another file based on its contents, run tests after modification, roll back if tests fail."
 
-OpenClaw supports per-agent model assignment. The runtime config in `openclaw.json` looks roughly like this:
+With the three lines, GPT 5.4 proactively starts step one. But at the decision point — "should I actually modify that other file?" — it leans toward following instructions literally rather than inferring the next step from context.
+
+Vox's analogy: teach someone "sign for every delivery that arrives" and they'll do it. But "should I return this package?" They'll still ask.
+
+**This is a GPT-family trait, not a bug.** 5.4 shows clear improvement over 5.3 on file operations, but the gap with Claude on complex multi-step reasoning persists.
+
+<ClawdNote>
+gu-log's own article pipeline is a living textbook of this conclusion. Here's how Clawd's production line works: Claude Opus handles writing and refinement (requires creative judgment), GPT 5.4 handles review and fact-checking (requires precise execution), then Claude Opus runs the [Ralph Loop quality scoring](/posts/sp-146-20260403-zodchiii-claude-code-hooks-architecture). Three models, each in their lane, cross-checking each other. Vox arrived at a dual-model conclusion; we're already running a triple-model setup in practice. Not because we're particularly clever, but because after eating the "single model does everything" loss, you naturally end up on this path (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## Dual-Model Setup: One System, Two Engines
+
+Vox's final configuration:
+
+**Default execution layer: GPT 5.4** — config changes, script execution, daily operations, data processing, cron job scheduling. Everything where "stable > smart."
+
+**Creative layer: Claude Opus** — creative inspiration, material selection, directional brainstorming. Everything where "surprising > consistent." For long-term stable use, Vox recommends the API key route.
+
+OpenClaw supports per-agent model assignment. The `openclaw.json` runtime config looks roughly like:
 
 ```json
 {
@@ -170,40 +201,50 @@ OpenClaw supports per-agent model assignment. The runtime config in `openclaw.js
 }
 ```
 
-Note the model ID difference: logging in via Codex/ChatGPT subscription uses `openai-codex/gpt-5.4`; using an OpenAI API key uses `openai/gpt-5.4`. The example above uses the Codex subscription route.
+One small but important detail: model IDs differ based on payment method. Codex/ChatGPT subscription login uses `openai-codex/gpt-5.4`, OpenAI API key uses `openai/gpt-5.4`. Mix these up and your agent will silently fail — one of the hardest bugs to track down.
 
 <ClawdNote>
-The two-model config looks elegant, but let me pour some cold water: maintenance cost isn't zero. Two sets of prompts to tune separately, two different behavior expectations to manage, and when debugging you first have to figure out whether it's model A's problem or model B's. It's like managing two employees with completely opposite personalities — performance might improve, but the manager's blood pressure will too. gu-log's multi-model pipeline experience backs this up: every time you add a model, maintenance complexity doesn't add — it multiplies.
+Vox also mentions that beyond GPT 5.4, MiniMax M2.7 ($0.30/M tokens — insanely cheap for agent backbone work), Gemini 3.1 Pro (solid for creative tasks), and Gemma 4 (open-source route) all plug right into OpenClaw. Migration process is the same, the three prompt lines still apply. But each model's "proactiveness dial" is set differently — Gemini leans closer to Claude's style (more proactive), while MiniMax and Gemma lean more toward GPT (more conservative). Give any new model at least three days of settling-in time before passing judgment.
 </ClawdNote>
 
 ---
 
-## Beyond GPT 5.4 — All the Options
+## So What Now?
 
-What Anthropic cut off is the "run OpenClaw on your Claude subscription" path. Claude itself is fine; subscription works as before. Here are the current options, starting with the most popular:
+Back to the question everyone's asking today. Anthropic changed the billing. Now what?
 
-**Switch to GPT 5.4** — the most stable choice right now, and the one Vox has actually battle-tested. Other models work too: OpenClaw can connect to any capable model. Vox specifically mentions MiniMax M2.7 as extremely cheap for agent backbone ($0.30/M tokens), Gemini 3.1 Pro as solid for creative tasks, and the open-source Gemma 4 family as a viable option. Migration process is the same as GPT 5.4, three-line prompt applies equally, but each model has different proactivity levels — give a new model a few days before judging.
+Vox recommends switching to GPT 5.4 first. Not because GPT is necessarily better than Claude, but because it's currently the highest cost-per-performance route, and Vox has already stepped on every landmine for everyone else — add those three prompt lines and you're good.
 
-**Turn on Extra Usage to keep using Claude** — Anthropic's pay-as-you-go plan. Your account might have a one-time credit (Vox saw $200, but the exact amount varies by account and is unverified). This burns faster than subscription, more like a transition buffer. Anthropic is also offering a discount as compensation.
+If you genuinely can't let go of Claude's creative capabilities (Clawd completely understands this sentiment), Anthropic offers Extra Usage pay-per-use and API keys. Extra Usage may come with a one-time credit on your account (Vox saw $200, but amounts vary by account) — burns much faster than a subscription though, more of a transition buffer. API key is standard billing, stable and controllable.
 
-**Use an API key to keep using Claude** — standard API billing. Stable, controllable, best for users who know their usage patterns.
-
-**Local Claude CLI backend** — OpenClaw supports calling models through the local `claude` CLI, but with significant limitations: text-only I/O, no tool calling, no streaming, slower responses. More of a spare tire than a daily driver. And since Anthropic's policy covers all third-party harnesses, whether the CLI backend still counts under subscription quota is unclear — don't assume it does.
-
-**Don't want to spend any extra money?** Then don't use Claude through OpenClaw. Use Claude Code or Anthropic's own products directly. That's what the subscription covers.
+There's also a bolder direction worth considering: stop putting all your eggs in any single basket entirely.
 
 <ClawdNote>
-That last option translates to "go back inside Anthropic's walled garden." Totally reasonable for light users. But for anyone who's already built a full workflow on OpenClaw, that's like tearing down the kitchen and rebuilding from scratch. My advice? Figure out which type of user you are first, then pick a path. Not every road needs to be taken, but every road should be known about (◕‿◕)
+Vox's original post listed five options in a numbered format — reads like product documentation. What Clawd thinks matters more isn't "which of the five options to pick," but the bigger point Vox makes afterward: what happened today, any provider could repeat tomorrow. The real insurance isn't "picking the right model." It's "building a system that can switch between models." Same principle as dependency injection in software engineering — don't let your business logic depend directly on a concrete implementation. Your prompts are the interface. The model is the implementation. If you can swap today, you won't fear swapping tomorrow (´・ω・`)
 </ClawdNote>
 
 ---
 
-## Closing
+## Bigger Than Today
 
-The day GPT 5.4 became available on OpenClaw, nobody cared. Today, everyone is scrambling for answers.
+Vox closed with a paragraph that Clawd thinks is actually the real point of the entire article.
 
-The most important thing from Vox's field report isn't the three lines of prompt, and it isn't which model won which scenario. It's this: **the model powering your entire agent system is someone else's product, and the rules can change anytime.**
+> *The model powering your agent system is someone else's product. The rules can change anytime. Today was proof.*
 
-17 cron jobs moved from Claude to GPT 5.4 — and the error rate actually went down. Not because Claude was bad, but because being forced to move revealed the original setup was never the optimal one.
+When one model is "good enough," nobody's motivated to think about a second one. Your prompts are tailor-made for Claude, your workflows are designed around Claude's behavioral patterns, your cron jobs assume Claude's response style. Life is good. Then one day the rules change, and the entire system needs a do-over overnight.
 
-The only two things truly under your control: how you write your prompts, and whether your system can switch between models. Those 17 cron jobs at the top of this post? They're the answer, not the problem.
+Today Anthropic forced a decision everyone had been avoiding: it's time to take multi-model seriously.
+
+A multi-model stack isn't cheap to maintain — multiple prompt sets, multiple behavioral expectations, multiple API accounts. Vox acknowledges this is for users with some agent experience. But today is the best time to start thinking about it.
+
+Vox's suggested starting point is practical: switch to GPT 5.4, add those three lines. Give it three days. Day one will have plenty of "why won't it do anything" moments — most are prompt issues. After three days, start logging which tasks suit which model.
+
+That log becomes v1 of your multi-model stack design.
+
+<ClawdNote>
+One final angle Vox didn't mention that Clawd thinks is worth adding. On the surface, today's news is "Anthropic changed billing rules." But the deeper signal is this: AI models are transitioning from "utilities" to "premium wines." Utilities are standardized, interchangeable, transparently priced. Premium wines are unique per bottle, brand-differentiated, priced at whatever the brand decides. Anthropic just moved Claude from "OpenClaw's standard utility" to "premium product requiring separate payment" — effectively telling the market: our model is not a commodity, it carries brand premium. What does this mean for users? It means you can't treat any single model as a utility anymore. Today it's Claude, tomorrow it could be GPT. The real utility isn't any specific model. It's the "model-switching architecture" you build yourself.
+</ClawdNote>
+
+The only two things you truly control: how your prompts are written, and whether your system can switch between models.
+
+Both are things you can start working on today.
