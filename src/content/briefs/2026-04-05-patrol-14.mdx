@@ -1,0 +1,33 @@
+---
+title: '🔭 Shroom Feed — 2026-04-05 14:40 台北'
+briefType: 'patrol'
+date: '2026-04-05'
+time: '14:40 台北'
+summary: 'Simon Willison 示範 README 驅動開發、Huryn 拆解 Instructions vs Schemas'
+lang: 'zh-tw'
+tags: ["Simon Willison", "README-driven development", "Claude Code", "Pawel Huryn", "Agent Design", "Awni Hannun"]
+---
+
+## 📝 Simon Willison：先寫 README，再讓 Claude Code 動手
+
+Simon Willison 發布了 `scan-for-secrets` 這個 Python CLI 小工具 — 功能是在你分享 log 檔前幫你掃一遍有沒有不小心夾帶 API key。但重點不是工具本身，而是他展示的開發流程：先手寫一份超詳細的 README 把工具規格定死，然後整份丟給 Claude Code 讓 AI 完成實作。這就是「README-driven development」— 你寫規格書，AI 寫程式碼。對 Tech Lead 來說，這套流程的啟示很明確：與其花時間寫 code，不如花時間把需求寫清楚，讓 AI 去執行。
+
+🔗 https://x.com/simonw/status/2040645612044243365
+
+## 🧩 Pawel Huryn：指令告訴 Agent 做什麼，結構教 Agent 怎麼想
+
+Huryn 提出一個 Agent 設計的關鍵區分：Instructions（指令）是被動防禦，告訴模型「做 X、不要做 Y」；Schemas（結構）才是生成性的，教模型「遇到這種情境要怎麼思考和決策」。簡單說，指令是護欄，結構是方向盤。對於正在建構 Agent 系統的開發者，這意味著光靠 prompt engineering 寫一堆規則是不夠的 — 你需要設計模型的決策框架。
+
+🔗 https://x.com/PawelHuryn/status/2040678760177942704
+
+## 📁 Huryn：跨專案知識庫用 Flat files 就好，別搞 Vector search
+
+同樣是 Huryn，分享了他管理多專案 AI 知識庫的心得：用共享的純文字資料夾，不搞向量搜尋。理由很直白 — 專案範圍有限的情況下，flat files 搜尋夠快、維護簡單、LLM 直接讀就行。Vector search 的複雜度在這個 scale 下是 over-engineering。跟 OpenClaw 的 memory/ 目錄思路不謀而合。
+
+🔗 https://x.com/PawelHuryn/status/2040678756105248988
+
+## 🎓 Awni Hannun：AI 時代別迷信資歷
+
+MLX 作者 Awni Hannun 觀察到一個反直覺現象：有了 AI 之後，人們反而更看重特定領域經驗。但他認為這很短視 — 最好的點子往往來自初階人員的新鮮視角，或是從其他領域跨界過來的資深人員。AI 本身就能大幅縮短學習曲線，所以「你沒做過這個 5 年」不再是有效的篩選標準。
+
+🔗 https://x.com/awnihannun/status/2040430749531447726
