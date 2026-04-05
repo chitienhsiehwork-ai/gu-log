@@ -1,5 +1,6 @@
 ---
 import { getCollection } from 'astro:content';
+import type { GetStaticPathsOptions } from 'astro';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import TicketBadge from '../../../components/TicketBadge.astro';
 import PostStatusLabel from '../../../components/PostStatusLabel.astro';
@@ -7,7 +8,7 @@ import Pagination from '../../../components/Pagination.astro';
 import { getListablePosts, getPostStatus } from '../../../utils/post-status';
 import type { PostStatus } from '../../../utils/post-status';
 
-export async function getStaticPaths({ paginate }: any) {
+export async function getStaticPaths({ paginate }: GetStaticPathsOptions) {
   const getTicketNumber = (ticketId: string | undefined) => {
     if (!ticketId) return 0;
     const match = ticketId.match(/\d+$/);
@@ -35,7 +36,7 @@ const getTimelineStyle = (status: PostStatus) =>
 
   <section class="archive-list">
     {
-      page.data.map((pick: any) => {
+      page.data.map((pick) => {
         const status = getPostStatus(pick, allPostsFull);
         return (
           <article class="pick-preview" style={getTimelineStyle(status)}>

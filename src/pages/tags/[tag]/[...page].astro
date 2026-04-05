@@ -1,5 +1,6 @@
 ---
 import { getCollection } from 'astro:content';
+import type { GetStaticPathsOptions } from 'astro';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import Toggle from '../../../components/Toggle.astro';
 import TicketBadge from '../../../components/TicketBadge.astro';
@@ -7,7 +8,7 @@ import PostStatusLabel from '../../../components/PostStatusLabel.astro';
 import Pagination from '../../../components/Pagination.astro';
 import { getListablePosts, getPostStatus } from '../../../utils/post-status';
 
-export async function getStaticPaths({ paginate }: any) {
+export async function getStaticPaths({ paginate }: GetStaticPathsOptions) {
   const allPostsFull = await getCollection('posts');
   const allPosts = getListablePosts(allPostsFull, 'zh-tw');
 
@@ -54,7 +55,7 @@ const allPostsFull = await getCollection('posts');
 
     <section class="posts-list">
       {
-        page.data.map((post: any) => {
+        page.data.map((post) => {
           const status = getPostStatus(post, allPostsFull);
           return (
             <article
