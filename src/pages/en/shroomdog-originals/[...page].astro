@@ -1,42 +1,47 @@
 ---
 import { getCollection } from 'astro:content';
-import BaseLayout from '../../layouts/BaseLayout.astro';
-import TicketBadge from '../../components/TicketBadge.astro';
-import Toggle from '../../components/Toggle.astro';
-import PostStatusLabel from '../../components/PostStatusLabel.astro';
-import { getListablePosts, getPostStatus, type PostStatus } from '../../utils/post-status';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import TicketBadge from '../../../components/TicketBadge.astro';
+import Toggle from '../../../components/Toggle.astro';
+import PostStatusLabel from '../../../components/PostStatusLabel.astro';
+import Pagination from '../../../components/Pagination.astro';
+import { getListablePosts, getPostStatus } from '../../../utils/post-status';
+import type { PostStatus } from '../../../utils/post-status';
 
-// Helper: extract number from ticketId (e.g., "SD-1" → 1)
-const getTicketNumber = (ticketId: string | undefined) => {
-  if (!ticketId) return 0;
-  const match = ticketId.match(/\d+$/);
-  return match ? parseInt(match[0]) : 0;
-};
+export async function getStaticPaths({ paginate }: any) {
+  const getTicketNumber = (ticketId: string | undefined) => {
+    if (!ticketId) return 0;
+    const match = ticketId.match(/\d+$/);
+    return match ? parseInt(match[0]) : 0;
+  };
+  const allPostsFull = await getCollection('posts');
+  const sdPosts = getListablePosts(allPostsFull, 'en')
+    .filter((post) => post.data.ticketId?.startsWith('SD-'))
+    .sort((a, b) => getTicketNumber(b.data.ticketId) - getTicketNumber(a.data.ticketId));
+  return paginate(sdPosts, { pageSize: 20 });
+}
 
-// Get all SD posts, sorted by ticketId number descending
+const { page } = Astro.props;
 const allPostsFull = await getCollection('posts');
-const sdPosts = getListablePosts(allPostsFull, 'zh-tw')
-  .filter((post) => post.data.ticketId?.startsWith('SD-'))
-  .sort((a, b) => getTicketNumber(b.data.ticketId) - getTicketNumber(a.data.ticketId));
 const getTimelineStyle = (status: PostStatus) =>
   status === 'published' ? undefined : 'opacity: 0.6; filter: grayscale(0.22);';
 ---
 
-<BaseLayout title="ShroomDog Original 全部文章">
+<BaseLayout title="ShroomDog Original - All Posts" lang="en">
   <h1><img src="/gu-log-icon-trimmed.png" alt="" class="page-icon" /> ShroomDog Original</h1>
-  <p class="page-subtitle">ShroomDog 原創內容</p>
-  <p class="post-count">共 {sdPosts.length} 篇</p>
+  <p class="page-subtitle">Original content by ShroomDog</p>
+  <p class="post-count">{page.total} posts</p>
 
-  <a href="/" class="back-link">← 返回首頁</a>
+  <a href="/en" class="back-link">← Back to home</a>
 
   <section class="archive-list">
     {
-      sdPosts.map((post) => {
+      page.data.map((post: any) => {
         const status = getPostStatus(post, allPostsFull);
         return (
           <article class="post-preview" style={getTimelineStyle(status)}>
             <h3>
-              <a href={`/posts/${post.slug}`}>
+              <a href={`/en/posts/${post.slug}`}>
                 {post.data.title}
                 {status !== 'published' && <PostStatusLabel status={status} />}
               </a>
@@ -45,7 +50,7 @@ const getTimelineStyle = (status: PostStatus) =>
               {post.data.ticketId && <TicketBadge ticketId={post.data.ticketId} />}
               {post.data.translatedDate || post.data.originalDate} · {post.data.source}
             </p>
-            <Toggle title="摘要預覽">
+            <Toggle title="Preview">
               <p>{post.data.summary}</p>
             </Toggle>
           </article>
@@ -54,12 +59,14 @@ const getTimelineStyle = (status: PostStatus) =>
     }
   </section>
 
-  {sdPosts.length === 0 && <p class="empty-message">目前還沒有原創內容，敬請期待！</p>}
+  {page.data.length === 0 && <p class="empty-message">No original content yet. Stay tuned!</p>}
+
+  <Pagination page={page} lang="en" />
 </BaseLayout>
 
 <style>
   h1 {
-    color: var(--color-heading-sd, var(--color-badge-sd));
+    color: var(--color-accent);
   }
 
   .page-subtitle {
@@ -90,13 +97,12 @@ const getTimelineStyle = (status: PostStatus) =>
   }
 
   .post-preview {
-    padding: 0.6rem 0;
-    border-bottom: 1px solid var(--color-divider);
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--color-border);
   }
 
   .post-preview h3 {
-    line-height: 1.35;
-    margin-bottom: 0.15rem;
+    margin-bottom: 0.25rem;
   }
 
   .post-preview h3 a {

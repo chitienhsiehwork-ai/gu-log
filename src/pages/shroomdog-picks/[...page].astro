@@ -4,34 +4,38 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import TicketBadge from '../../components/TicketBadge.astro';
 import Toggle from '../../components/Toggle.astro';
 import PostStatusLabel from '../../components/PostStatusLabel.astro';
+import Pagination from '../../components/Pagination.astro';
 import { getListablePosts, getPostStatus, type PostStatus } from '../../utils/post-status';
 
-// Helper: extract number from ticketId (e.g., "Lv-02" → 2)
-const getTicketNumber = (ticketId: string | undefined) => {
-  if (!ticketId) return 0;
-  const match = ticketId.match(/\d+$/);
-  return match ? parseInt(match[0]) : 0;
-};
+export async function getStaticPaths({ paginate }: any) {
+  const getTicketNumber = (ticketId: string | undefined) => {
+    if (!ticketId) return 0;
+    const match = ticketId.match(/\d+$/);
+    return match ? parseInt(match[0]) : 0;
+  };
+  const allPostsFull = await getCollection('posts');
+  const spPosts = getListablePosts(allPostsFull, 'zh-tw')
+    .filter((post) => post.data.ticketId?.startsWith('SP-'))
+    .sort((a, b) => getTicketNumber(b.data.ticketId) - getTicketNumber(a.data.ticketId));
+  return paginate(spPosts, { pageSize: 20 });
+}
 
-// Get all Lv posts, sorted by ticketId number descending
+const { page } = Astro.props;
 const allPostsFull = await getCollection('posts');
-const lvPosts = getListablePosts(allPostsFull, 'zh-tw')
-  .filter((post) => post.data.ticketId?.startsWith('Lv-'))
-  .sort((a, b) => getTicketNumber(b.data.ticketId) - getTicketNumber(a.data.ticketId));
 const getTimelineStyle = (status: PostStatus) =>
   status === 'published' ? undefined : 'opacity: 0.6; filter: grayscale(0.22);';
 ---
 
-<BaseLayout title="Level-Up 全部文章">
-  <h1>⚔️ Level-Up</h1>
-  <p class="page-subtitle">互動式技術教學 — 用 RPG 爬塔風格學技術</p>
-  <p class="post-count">共 {lvPosts.length} 篇</p>
+<BaseLayout title="ShroomDog Picks 全部文章">
+  <h1>📚 ShroomDog Picks</h1>
+  <p class="page-subtitle">ShroomDog 精選長文翻譯</p>
+  <p class="post-count">共 {page.total} 篇</p>
 
   <a href="/" class="back-link">← 返回首頁</a>
 
   <section class="archive-list">
     {
-      lvPosts.map((post) => {
+      page.data.map((post: any) => {
         const status = getPostStatus(post, allPostsFull);
         return (
           <article class="post-preview" style={getTimelineStyle(status)}>
@@ -43,7 +47,7 @@ const getTimelineStyle = (status: PostStatus) =>
             </h3>
             <p class="post-meta">
               {post.data.ticketId && <TicketBadge ticketId={post.data.ticketId} />}
-              {post.data.translatedDate || post.data.originalDate} · {post.data.source}
+              {post.data.translatedDate || post.data.originalDate} · 翻譯自 {post.data.source}
             </p>
             <Toggle title="摘要預覽">
               <p>{post.data.summary}</p>
@@ -53,6 +57,8 @@ const getTimelineStyle = (status: PostStatus) =>
       })
     }
   </section>
+
+  <Pagination page={page} lang="zh-tw" />
 </BaseLayout>
 
 <style>

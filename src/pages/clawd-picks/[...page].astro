@@ -1,41 +1,45 @@
 ---
 import { getCollection } from 'astro:content';
-import BaseLayout from '../../../layouts/BaseLayout.astro';
-import TicketBadge from '../../../components/TicketBadge.astro';
-import PostStatusLabel from '../../../components/PostStatusLabel.astro';
-import { getListablePosts, getPostStatus } from '../../../utils/post-status';
-import type { PostStatus } from '../../../utils/post-status';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import TicketBadge from '../../components/TicketBadge.astro';
+import Toggle from '../../components/Toggle.astro';
+import PostStatusLabel from '../../components/PostStatusLabel.astro';
+import Pagination from '../../components/Pagination.astro';
+import { getListablePosts, getPostStatus, type PostStatus } from '../../utils/post-status';
 
-// Helper: extract number from ticketId (e.g., "CP-11" → 11)
-const getTicketNumber = (ticketId: string | undefined) => {
-  if (!ticketId) return 0;
-  const match = ticketId.match(/\d+$/);
-  return match ? parseInt(match[0]) : 0;
-};
+export async function getStaticPaths({ paginate }: any) {
+  const getTicketNumber = (ticketId: string | undefined) => {
+    if (!ticketId) return 0;
+    const match = ticketId.match(/\d+$/);
+    return match ? parseInt(match[0]) : 0;
+  };
+  const allPostsFull = await getCollection('posts');
+  const cpPosts = getListablePosts(allPostsFull, 'zh-tw')
+    .filter((post) => post.data.ticketId?.startsWith('CP-'))
+    .sort((a, b) => getTicketNumber(b.data.ticketId) - getTicketNumber(a.data.ticketId));
+  return paginate(cpPosts, { pageSize: 20 });
+}
 
-// Get all CP posts, sorted by ticketId number descending
+const { page } = Astro.props;
 const allPostsFull = await getCollection('posts');
-const cpPosts = getListablePosts(allPostsFull, 'en')
-  .filter((post) => post.data.ticketId?.startsWith('CP-'))
-  .sort((a, b) => getTicketNumber(b.data.ticketId) - getTicketNumber(a.data.ticketId));
 const getTimelineStyle = (status: PostStatus) =>
   status === 'published' ? undefined : 'opacity: 0.6; filter: grayscale(0.22);';
 ---
 
-<BaseLayout title="Clawd Picks - All Posts" lang="en">
+<BaseLayout title="Clawd Picks 全部文章">
   <h1><img src="/clawd-picks-icon.png" alt="" class="page-icon" /> Clawd Picks</h1>
-  <p class="page-subtitle">One tweet, translated every hour by Clawd</p>
-  <p class="post-count">{cpPosts.length} posts</p>
+  <p class="page-subtitle">Clawd 每 5 小時精選一則推文翻譯</p>
+  <p class="post-count">共 {page.total} 篇</p>
 
-  <a href="/en" class="back-link">← Back to home</a>
+  <a href="/" class="back-link">← 返回首頁</a>
 
   <section class="archive-list">
     {
-      cpPosts.map((pick) => {
+      page.data.map((pick: any) => {
         const status = getPostStatus(pick, allPostsFull);
         return (
           <article class="pick-preview" style={getTimelineStyle(status)}>
-            <a href={`/en/posts/${pick.slug}`} class="pick-title">
+            <a href={`/posts/${pick.slug}`} class="pick-title">
               {pick.data.title}
               {status !== 'published' && <PostStatusLabel status={status} />}
             </a>
@@ -43,11 +47,18 @@ const getTimelineStyle = (status: PostStatus) =>
               {pick.data.ticketId && <TicketBadge ticketId={pick.data.ticketId} />}
               {pick.data.translatedDate || pick.data.originalDate} · {pick.data.source}
             </span>
+            {pick.data.summary && (
+              <Toggle title="摘要預覽">
+                <p>{pick.data.summary}</p>
+              </Toggle>
+            )}
           </article>
         );
       })
     }
   </section>
+
+  <Pagination page={page} lang="zh-tw" />
 </BaseLayout>
 
 <style>
@@ -86,15 +97,16 @@ const getTimelineStyle = (status: PostStatus) =>
   }
 
   .pick-preview {
-    padding: 0.75rem 0;
-    border-bottom: 1px solid var(--color-border);
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--color-divider);
   }
 
   .pick-title {
     display: block;
     color: var(--color-text);
     font-size: 1rem;
-    margin-bottom: 0.25rem;
+    line-height: 1.35;
+    margin-bottom: 0.15rem;
   }
 
   .pick-title:hover {
@@ -105,5 +117,6 @@ const getTimelineStyle = (status: PostStatus) =>
     display: block;
     color: var(--color-text-muted);
     font-size: 0.8rem;
+    opacity: 0.75;
   }
 </style>

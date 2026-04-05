@@ -4,35 +4,39 @@ import BaseLayout from '../../../layouts/BaseLayout.astro';
 import TicketBadge from '../../../components/TicketBadge.astro';
 import Toggle from '../../../components/Toggle.astro';
 import PostStatusLabel from '../../../components/PostStatusLabel.astro';
+import Pagination from '../../../components/Pagination.astro';
 import { getListablePosts, getPostStatus } from '../../../utils/post-status';
 import type { PostStatus } from '../../../utils/post-status';
 
-// Helper: extract number from ticketId (e.g., "SD-1" → 1)
-const getTicketNumber = (ticketId: string | undefined) => {
-  if (!ticketId) return 0;
-  const match = ticketId.match(/\d+$/);
-  return match ? parseInt(match[0]) : 0;
-};
+export async function getStaticPaths({ paginate }: any) {
+  const getTicketNumber = (ticketId: string | undefined) => {
+    if (!ticketId) return 0;
+    const match = ticketId.match(/\d+$/);
+    return match ? parseInt(match[0]) : 0;
+  };
+  const allPostsFull = await getCollection('posts');
+  const spPosts = getListablePosts(allPostsFull, 'en')
+    .filter((post) => post.data.ticketId?.startsWith('SP-'))
+    .sort((a, b) => getTicketNumber(b.data.ticketId) - getTicketNumber(a.data.ticketId));
+  return paginate(spPosts, { pageSize: 20 });
+}
 
-// Get all SD posts, sorted by ticketId number descending
+const { page } = Astro.props;
 const allPostsFull = await getCollection('posts');
-const sdPosts = getListablePosts(allPostsFull, 'en')
-  .filter((post) => post.data.ticketId?.startsWith('SD-'))
-  .sort((a, b) => getTicketNumber(b.data.ticketId) - getTicketNumber(a.data.ticketId));
 const getTimelineStyle = (status: PostStatus) =>
   status === 'published' ? undefined : 'opacity: 0.6; filter: grayscale(0.22);';
 ---
 
-<BaseLayout title="ShroomDog Original - All Posts" lang="en">
-  <h1><img src="/gu-log-icon-trimmed.png" alt="" class="page-icon" /> ShroomDog Original</h1>
-  <p class="page-subtitle">Original content by ShroomDog</p>
-  <p class="post-count">{sdPosts.length} posts</p>
+<BaseLayout title="ShroomDog Picks - All Posts" lang="en">
+  <h1>📚 ShroomDog Picks</h1>
+  <p class="page-subtitle">Long-form articles, translated and explained</p>
+  <p class="post-count">{page.total} posts</p>
 
   <a href="/en" class="back-link">← Back to home</a>
 
   <section class="archive-list">
     {
-      sdPosts.map((post) => {
+      page.data.map((post: any) => {
         const status = getPostStatus(post, allPostsFull);
         return (
           <article class="post-preview" style={getTimelineStyle(status)}>
@@ -44,7 +48,7 @@ const getTimelineStyle = (status: PostStatus) =>
             </h3>
             <p class="post-meta">
               {post.data.ticketId && <TicketBadge ticketId={post.data.ticketId} />}
-              {post.data.translatedDate || post.data.originalDate} · {post.data.source}
+              {post.data.translatedDate || post.data.originalDate} · From {post.data.source}
             </p>
             <Toggle title="Preview">
               <p>{post.data.summary}</p>
@@ -55,14 +59,10 @@ const getTimelineStyle = (status: PostStatus) =>
     }
   </section>
 
-  {sdPosts.length === 0 && <p class="empty-message">No original content yet. Stay tuned!</p>}
+  <Pagination page={page} lang="en" />
 </BaseLayout>
 
 <style>
-  h1 {
-    color: var(--color-accent);
-  }
-
   .page-subtitle {
     color: var(--color-text-muted);
     font-size: 0.9rem;
@@ -105,12 +105,5 @@ const getTimelineStyle = (status: PostStatus) =>
 
   .post-preview h3 a:hover {
     color: var(--color-accent);
-  }
-
-  .empty-message {
-    padding: 2rem;
-    text-align: center;
-    color: var(--color-text-muted);
-    font-style: italic;
   }
 </style>
