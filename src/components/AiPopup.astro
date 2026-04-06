@@ -399,6 +399,17 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
       selectedText = '';
     }
 
+    function isPanel() {
+      return (
+        currentState === 'ask-input' ||
+        currentState === 'ask-result' ||
+        currentState === 'edit-input' ||
+        currentState === 'edit-result' ||
+        currentState === 'error' ||
+        currentState === 'committed'
+      );
+    }
+
     function positionPopup(rect) {
       if (!popup) return;
 
@@ -408,9 +419,18 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
         // Bottom sheet style
         popup.classList.add('ai-popup--mobile');
         popup.classList.remove('ai-popup--desktop');
-      } else {
-        // Float near selection
+        popup.classList.remove('ai-popup--sidebar');
+      } else if (isPanel()) {
+        // Sidebar mode: fixed to right side, doesn't block content
         popup.classList.remove('ai-popup--mobile');
+        popup.classList.remove('ai-popup--desktop');
+        popup.classList.add('ai-popup--sidebar');
+        popup.style.top = '';
+        popup.style.left = '';
+      } else {
+        // Float near selection (buttons only)
+        popup.classList.remove('ai-popup--mobile');
+        popup.classList.remove('ai-popup--sidebar');
         popup.classList.add('ai-popup--desktop');
 
         const popupRect = popup.getBoundingClientRect();
@@ -680,6 +700,8 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
 
     function isTokenErrorMessage(msg) {
       const text = String(msg || '');
+      // Only match user-session token errors, not backend Claude API auth failures
+      if (/claude/i.test(text)) return false;
       return /token/i.test(text) && /(expired|invalid)/i.test(text);
     }
 
@@ -1109,9 +1131,21 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
     }
   }
 
-  /* ─── Desktop ─── */
+  /* ─── Desktop floating (buttons only) ─── */
   .ai-popup--desktop {
     position: absolute;
+  }
+
+  /* ─── Desktop sidebar (panels) — fixed right, doesn't block content ─── */
+  .ai-popup--sidebar {
+    position: fixed;
+    top: 5rem;
+    right: 1rem;
+    left: auto;
+    max-width: min(400px, 35vw);
+    max-height: calc(100vh - 6rem);
+    overflow-y: auto;
+    flex-direction: column;
   }
 
   /* ─── Mobile Bottom Sheet ─── */
@@ -1186,15 +1220,6 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
 
   .ai-popup-btn--edit {
     color: #9ece6a;
-  }
-
-  .ai-popup-btn--confirm {
-    color: #9ece6a;
-    font-weight: 500;
-  }
-
-  .ai-popup-btn--cancel {
-    color: var(--color-text-muted, #565f89);
   }
 
   /* ─── Primary / Ghost button hierarchy ─── */
@@ -1526,10 +1551,6 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
   }
 
   [data-theme='light'] .ai-popup-btn--edit {
-    color: var(--color-badge-sd);
-  }
-
-  [data-theme='light'] .ai-popup-btn--confirm {
     color: var(--color-badge-sd);
   }
 
