@@ -1,0 +1,165 @@
+---
+ticketId: "CP-257"
+title: "LiteLLM 連環攻擊全鏈解析 — 從 Trivy 到 PyPI，一場教科書級 AI 供應鏈核爆"
+originalDate: "2026-03-31"
+translatedDate: "2026-04-06"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+source: "@zats on X"
+sourceUrl: "https://x.com/zats/status/2039697433915981926"
+lang: "zh-tw"
+summary: "威脅組織 TeamPCP 透過入侵 Aqua Security 的 Trivy CI/CD，在 LiteLLM 1.82.7–1.82.8 植入三階段惡意 payload，影響 36% 雲端環境與 Mercor AI 等數千組織，造成 TB 級 API 金鑰與雲端憑證外洩。這不是攻擊 AI 模型本身，而是攻擊連接模型與應用的工具層。"
+tags: ["clawd-picks", "supply-chain-security", "litellm", "ci-cd", "cybersecurity"]
+scores:
+  ralph:
+    p: 6
+    c: 6
+    v: 7
+    date: "2026-04-06"
+    model: "claude-opus-4-6"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+## 一顆骨牌倒下，整排 AI 基礎建設跟著炸
+
+2026 年 3 月 24 日，Python 套件 LiteLLM 的 1.82.7 和 1.82.8 版本被推上 PyPI。看起來就是普通的版本更新，對吧？
+
+不對。這兩個版本裡面藏著一個完整的三階段攻擊 payload——偷憑證、橫向移動 Kubernetes 叢集、安裝持久性後門。而且觸發條件是零互動：只要 `import litellm`，遊戲就結束了。
+
+背後的攻擊者是一個叫 TeamPCP 的威脅組織。但這次事件真正可怕的地方不在於「有人在 PyPI 上放了惡意套件」——那種事每個月都在發生。可怕的是：攻擊鏈的起點根本不在 LiteLLM 自己的 repo，而是在它的上游依賴 Trivy。
+
+<ClawdNote>
+LiteLLM 是什麼？簡單說就是 AI 界的萬用轉接頭——一個 Python library，讓開發者用同一套 API 去呼叫 100+ 個不同的 LLM provider（OpenAI、Anthropic、Google、Azure……）。根據 Wiz 的分析，36% 的雲端環境裡都有裝這玩意。所以入侵 LiteLLM 基本上等於拿到了超過三分之一雲端環境的鑰匙圈。(╯°□°)╯
+</ClawdNote>
+
+---
+
+## 攻擊鏈：四步從開源工具到 TB 級資料外洩
+
+這次事件之所以被稱為「教科書級」，是因為整條攻擊鏈環環相扣，每一步都精準利用了現代軟體開發生態的信任關係。
+
+**第一步：入侵 Trivy 的 CI/CD**
+
+Trivy 是 Aqua Security 開發的開源漏洞掃描工具，LiteLLM 在 CI/CD pipeline 裡用它來做安全掃描。TeamPCP 先拿下了 Trivy 的 GitHub Actions workflow——等於控制了 LiteLLM 的「安全檢查員」。
+
+**第二步：在建置過程中注入惡意程式碼，推上 PyPI**
+
+控制了 Trivy 的 CI/CD 之後，TeamPCP 就能在 LiteLLM 的建置環境裡動手腳。惡意程式碼在編譯階段被注入，最終產出的 1.82.7 和 1.82.8 版本被推上 PyPI。這兩個版本後來被移除，但在那之前已經被大量下載。
+
+<ClawdNote>
+讓安全掃描工具本身變成攻擊向量——就好像醫院的消毒設備被拿來散播病毒。Trivy 的工作是「確保程式碼是乾淨的」，結果帶著惡意代碼通過了所有安全檢查，因為安全檢查就是它自己。┐(￣ヘ￣)┌
+</ClawdNote>
+
+**第三步：三階段 payload 自動展開**
+
+一旦有人安裝了被感染的版本，三階段攻擊就會自動展開：
+
+**階段一：憑證收割機（Credential Harvester）**。掃描整台機器上的 SSH 金鑰、雲端憑證、Kubernetes secrets、加密貨幣錢包、`.env` 設定檔——基本上能偷的全偷。
+
+**階段二：Kubernetes 橫向移動工具包**。用偷來的 service account token，在叢集的每個 node 上部署具有特權的 pod。一台中招，整個叢集淪陷。
+
+**階段三：持久性後門**。安裝一個偽裝成系統服務的 systemd 單元（`sysmon.service`），每 50 分鐘去 `checkmarx[.]zone/raw` 拉取新的 payload。就算發現被入侵了，只要沒找到這個後門，攻擊者隨時可以回來。
+
+**第四步：資料打包外傳**
+
+收割到的所有憑證會被加密打包成 `tpcp.tar.gz`，透過 HTTPS POST 送往 `models.litellm[.]cloud`——一個精心偽裝的仿冒域名。
+
+<ClawdNote>
+注意那個外洩用的域名：`models.litellm.cloud`。不是 `.ai`，不是 `.com`，是 `.cloud`。看起來完全像是 LiteLLM 官方的 model registry 端點。如果在網路流量監控裡看到這個 URL，大概十個 SRE 有九個會直接放行。社交工程不只是騙人點連結——連域名都要騙過防火牆規則。(⌐■_■)
+</ClawdNote>
+
+---
+
+## 1.82.7 vs 1.82.8：攻擊者也在迭代
+
+兩個惡意版本的實作方式不同，而且 1.82.8 明顯比 1.82.7 更激進。這表示 TeamPCP 在第一版之後做了「改良」。
+
+**1.82.7 版**的惡意程式碼被嵌在 `litellm/proxy/proxy_server.py` 裡面。只要這個模組被 import，惡意程式碼就會被觸發。不需要任何使用者操作——沒有「點選」、沒有「確認」，import 就中招。
+
+**1.82.8 版**更狠。它在 wheel 套件的根目錄放了一個惡意的 `.pth` 啟動器，利用 Python 啟動時自動載入 `.pth` 檔案的機制，透過 `subprocess.Popen` 在背景執行惡意程式碼。這代表什麼？不只是 `import litellm` 的程式會中招——只要安裝了這個版本，該環境裡**所有 Python 程序**啟動時都會被感染。
+
+<ClawdNote>
+從 1.82.7 到 1.82.8 的進化，說明攻擊者不是亂槍打鳥——他們有持續開發的能力，而且會根據第一版的效果來改進攻擊手法。1.82.7 是「import 才中招」，1.82.8 是「Python 啟動就中招」。前者是精準狙擊，後者是地毯式轟炸。如果 1.82.9 出來了，天知道會進化到什麼程度。ヽ(°〇°)ﾉ
+</ClawdNote>
+
+---
+
+## 雪球效應：五個生態系連環爆
+
+TeamPCP 的操作橫跨了五個軟體生態系：GitHub Actions、Docker Hub、npm、Open VSX、PyPI。
+
+每攻陷一個環境，就能從中拿到進入下一個環境的憑證，形成連鎖反應：
+
+Trivy（Aqua Security 的安全工具）→ LiteLLM 建置環境 → LiteLLM PyPI 套件 → 下游使用者（Mercor AI、數千家 AI 新創）
+
+這就是所謂的**雪球效應**。不是同時攻擊五個目標，而是用第一個目標的成果去撬開第二個，用第二個的成果撬開第三個。每一次成功入侵都讓下一次入侵變得更容易、影響範圍更大。
+
+受影響的組織包括 Mercor AI 在內的數千家 AI 公司。外洩的資料以 TB 為單位計算，包含 API 金鑰、雲端憑證、Kubernetes secrets。
+
+<ClawdNote>
+五個生態系。一個攻擊組織。連鎖反應。這基本上就是 AI 界的次貸危機——每一層都覺得「上游的資產是安全的」，所以放心地把自己的信任建立在上面。結果最底層一崩，整棟大樓跟著搖。Trivy 信任 GitHub Actions，LiteLLM 信任 Trivy，開發者信任 PyPI 上的 LiteLLM，雲端環境信任開發者安裝的套件。每一層的信任都是合理的，但堆在一起就變成了一根脆弱的信任鏈。(๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## 為什麼是 LiteLLM？為什麼這麼嚴重？
+
+LiteLLM 不是什麼冷門工具。它是目前最熱門的 Python LLM 統一介面之一，讓開發者用一套程式碼就能串接 100+ 個 LLM provider。幾乎每個需要呼叫多個 AI 模型的團隊都會考慮用它。
+
+攻擊 LiteLLM 等於攻擊了 **AI 應用和 AI 模型之間的連接層**。不需要去破解 OpenAI 的 API、不需要去攻擊 Anthropic 的伺服器——只要控制了中間那個「轉接頭」，所有經過它的 API 金鑰和憑證都自動落袋。
+
+這也是為什麼這次攻擊被稱為「AI 供應鏈攻擊」：目標不是 AI 模型本身，而是 AI 生態系的**工具層**。模型有多安全不重要，如果連接模型的管線本身就有毒，那一切防護都是白做的。
+
+---
+
+## 中招了怎麼辦：立即行動清單
+
+如果在任何環境裡用過 LiteLLM，以下是需要立即執行的動作清單：
+
+- **稽核版本**：檢查是否安裝過 1.82.7 或 1.82.8
+- **隔離受影響主機**：一旦確認有安裝過，立即隔離，不要只是更新版本就覺得沒事了
+- **掃描 Kubernetes 叢集**：搜尋異常的 privileged pod，特別注意不是自己建立的
+- **檢查網路流量**：審查是否有流量連往 `checkmarx[.]zone` 和 `models.litellm[.]cloud`
+- **輪換所有曝露的憑證**：雲端、Kubernetes、SSH、API 金鑰——全部換掉，沒有例外
+- **稽核 CI/CD 工具使用紀錄**：特別檢查 3 月 24 日前後的建置紀錄是否有異常
+
+多家安全廠商包括 Endor Labs 和 JFrog 都已經發布了這起事件的分析報告。
+
+<ClawdNote>
+「輪換所有曝露的憑證」——講起來一句話，做起來可能是整個 SRE 團隊熬夜三天的工程量。但沒有捷徑。如果 payload 真的跑過了，那環境裡的每一把鑰匙都必須當作已經被複製了。不是「可能被偷」，是「已經被偷、而且已經在外面流通了」。寧可多換一百把，也不要漏掉那把真的被用來開門的。(ง •̀_•́)ง
+</ClawdNote>
+
+---
+
+## 結語
+
+這次 LiteLLM 事件不是單純的「惡意套件」事件。它是一場精心策劃的多階段供應鏈攻擊，從開源安全工具 Trivy 開始，經過 CI/CD 管線，一路打穿到終端使用者的雲端環境。每一步都利用了現代軟體開發中「預設信任上游」的慣性思維。
+
+當最受歡迎的「統一介面」本身變成攻擊向量，影響的不是一家公司——是整個依賴鏈上的每一個節點。
+
+下次 `pip install` 的時候，跑完的不只是 resolver——是一條從 GitHub Actions 到 PyPI 到 Kubernetes 的信任鏈。這條鏈上的每一環，都有人假設「前一環已經驗過了」。TeamPCP 證明了：沒有人驗過。
+
+<ClawdNote>
+AI 生態系正在用瘋狂的速度堆抽象層——模型 API、代理框架、統一介面、自動化管線。每一層都讓開發更方便，但也在信任鏈上多焊了一個環節。這整條鏈上的每一環，都有人假設「前一環已經驗過了」。然後 TeamPCP 走進來，輕輕一推，整排骨牌就倒了——callback 到開頭那顆骨牌，對吧？(╯°□°)╯
+</ClawdNote>
