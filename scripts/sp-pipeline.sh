@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Ensure local bin wrappers (e.g. codex shim) are found before system symlinks
+export PATH="/home/clawd/.local/bin:$HOME/.local/bin:$PATH"
+
 # === Pipeline Timeout ===
 # Total wall-clock limit for the entire pipeline run.
 # The full pipeline (eval → write → review → refine → 3x Ralph loop + builds)
@@ -348,8 +351,8 @@ if [ -z "$TWEET_URL" ] && [ -z "$FROM_STEP" ]; then
   exit 1
 fi
 
-# --from-step with late steps requires --file
-if [ -n "$FROM_STEP" ] && [ "$FROM_STEP_INT" -ge 20 ] && [ -z "$EXISTING_FILE" ]; then
+# --from-step with late steps requires --file (unless PIPELINE_WORK_DIR is set)
+if [ -n "$FROM_STEP" ] && [ "$FROM_STEP_INT" -ge 20 ] && [ -z "$EXISTING_FILE" ] && [ -z "${PIPELINE_WORK_DIR:-}" ]; then
   die "--from-step $FROM_STEP requires --file <filename> (existing article in posts dir)"
 fi
 
@@ -495,6 +498,8 @@ fi
 
 if [ -n "$EXISTING_FILE" ]; then
   WORK_DIR="$GU_LOG_DIR/tmp/${TICKET_PREFIX,,}-${SP_NUM}-pipeline"
+elif [ -n "${PIPELINE_WORK_DIR:-}" ]; then
+  WORK_DIR="$PIPELINE_WORK_DIR"
 else
   WORK_DIR="$GU_LOG_DIR/tmp/${TICKET_PREFIX,,}-pending-$(date +%s)-pipeline"
 fi
@@ -504,6 +509,14 @@ STEP0_TIME=$(step_end "Step 0")
 # Step 1: Fetch content
 if ! should_run_step 1; then
   log_info "Step 1: fetch content — SKIPPED (--from-step $FROM_STEP)"
+  # Extract author/date from pre-populated source-tweet.md when skipping fetch
+  if [ -f "$WORK_DIR/source-tweet.md" ] && [ -s "$WORK_DIR/source-tweet.md" ]; then
+    AUTHOR_HANDLE=$(grep -Eo '@[A-Za-z0-9_]+' "$WORK_DIR/source-tweet.md" | head -1 | sed 's/^@//' || true)
+    [ -n "$AUTHOR_HANDLE" ] || AUTHOR_HANDLE=$(printf '%s' "$TWEET_URL" | grep -oP '(?<=x\.com/)[^/?]+' || true)
+    ORIGINAL_DATE=$(extract_tweet_date "$WORK_DIR/source-tweet.md" || true)
+    [ -n "$ORIGINAL_DATE" ] || ORIGINAL_DATE=$(TZ=Asia/Taipei date +%F)
+    log_info "  Extracted from existing source: author=$AUTHOR_HANDLE date=$ORIGINAL_DATE"
+  fi
 else
 step_start "Step 1: fetch content"
 # --- Smart skip: if source-tweet.md exists, ask Claude whether to re-fetch ---
@@ -511,6 +524,11 @@ if [ -f "$WORK_DIR/source-tweet.md" ] && [ -s "$WORK_DIR/source-tweet.md" ]; the
   EXISTING_LINES=$(wc -l < "$WORK_DIR/source-tweet.md")
   log_info "source-tweet.md exists ($EXISTING_LINES lines) — asking Claude whether to re-fetch"
 
+  # PIPELINE_SOURCE_KEEP=1 bypasses the Claude check (for pre-injected content)
+  if [ -n "${PIPELINE_SOURCE_KEEP:-}" ]; then
+    SKIP_DECISION="KEEP"
+    log_info "  PIPELINE_SOURCE_KEEP set — forcing KEEP"
+  else
   SKIP_DECISION=$(claude -p --bare "You are a pipeline assistant. A source file already exists for this tweet URL:
 URL: $TWEET_URL
 File: $EXISTING_LINES lines
@@ -527,6 +545,7 @@ Does this file look like a complete, usable source capture? Consider:
 - Are there author handles, dates, and tweet text present?
 
 Reply with ONLY one word: KEEP or REFETCH" 2>/dev/null || echo "REFETCH")
+  fi  # end PIPELINE_SOURCE_KEEP check
 
   # Strip whitespace, take first word
   SKIP_DECISION=$(echo "$SKIP_DECISION" | tr -d '[:space:]' | head -c 10)
@@ -534,6 +553,7 @@ Reply with ONLY one word: KEEP or REFETCH" 2>/dev/null || echo "REFETCH")
   if [[ "$SKIP_DECISION" == "KEEP" ]]; then
     log_info "Claude says KEEP — using existing source-tweet.md"
     AUTHOR_HANDLE=$(grep -Eo '@[A-Za-z0-9_]+' "$WORK_DIR/source-tweet.md" | head -n 1 | sed 's/^@//' || true)
+    [ -n "$AUTHOR_HANDLE" ] || AUTHOR_HANDLE=$(printf '%s' "$TWEET_URL" | grep -oP '(?<=x\.com/)[^/?]+' || true)
     [ -n "$AUTHOR_HANDLE" ] || die "Failed to extract author handle from source-tweet.md"
     ORIGINAL_DATE=$(extract_tweet_date "$WORK_DIR/source-tweet.md" || true)
     [ -n "$ORIGINAL_DATE" ] || ORIGINAL_DATE=$(date +%F)
@@ -613,15 +633,41 @@ REMEMBER: The writer depends entirely on your output. Missing content = bad arti
     fi
   fi
 
+  # Detect bird auth failure: sandbox fetch succeeded but content lacks @handle
+  # (happens when AUTH_TOKEN/CT0 not set — Gemini can't use bird in container)
+  if ! grep -qE '@[A-Za-z0-9_]+' "$WORK_DIR/source-tweet.md"; then
+    log_warn "Sandbox fetch has no @handle — bird likely not auth'd. Retrying with web-search-only prompt"
+    WEB_ONLY_PROMPT="Search the web for this tweet and return its COMPLETE content. You MUST include:
+- The author's @handle (e.g. @PawelHuryn) — check x.com or search results for this
+- The tweet date (YYYY-MM-DD format)
+- The full tweet text (all parts if it is a thread)
+
+Tweet URL: $TWEET_URL
+
+Output in this format:
+@<handle> — <YYYY-MM-DD>
+<full tweet text>"
+    if WEB_FETCH_OUT=$("$SAFE_SEARCH" -m gemini-2.5-flash -t 120 "$WEB_ONLY_PROMPT" 2>/dev/null) && [ -n "$WEB_FETCH_OUT" ]; then
+      echo "$WEB_FETCH_OUT" > "$WORK_DIR/source-tweet.md"
+      log_ok "Web-search fallback fetch succeeded"
+    else
+      log_warn "Web-search fallback also failed — proceeding with partial content"
+    fi
+  fi
+
   TWEETS_COLLECTED=$(grep -c '^---$' "$WORK_DIR/source-tweet.md" || true)
   [ -n "$TWEETS_COLLECTED" ] || TWEETS_COLLECTED=0
   TWEETS_COLLECTED=$((TWEETS_COLLECTED + 1))  # separators = tweets - 1
   log_ok "Agentic fetch complete: $TWEETS_COLLECTED tweet(s) collected"
 
   AUTHOR_HANDLE=$(grep -Eo '@[A-Za-z0-9_]+' "$WORK_DIR/source-tweet.md" | head -n 1 | sed 's/^@//' || true)
+  # Fallback: extract handle from tweet URL (covers envs where bird isn't auth'd)
+  [ -n "$AUTHOR_HANDLE" ] || AUTHOR_HANDLE=$(printf '%s' "$TWEET_URL" | grep -oP '(?<=x\.com/)[^/?]+' || true)
   [ -n "$AUTHOR_HANDLE" ] || die "Failed to extract author handle from source"
 
   ORIGINAL_DATE=$(extract_tweet_date "$WORK_DIR/source-tweet.md" || true)
+  # Fallback: use today's date if bird isn't auth'd and Gemini output lacks date
+  [ -n "$ORIGINAL_DATE" ] || ORIGINAL_DATE=$(TZ=Asia/Taipei date +%F)
   [ -n "$ORIGINAL_DATE" ] || die "Failed to extract tweet date from source"
 elif [ ! -f "$WORK_DIR/source-tweet.md" ]; then
   log_info "Non-twitter URL detected. Fetching via readability parser..."
