@@ -90,13 +90,12 @@ console.log('  critical: ' + d.critical);
 "
 echo "History appended to: ${HISTORY_FILE}"
 
-# Exit with 1 if high or critical found
+# Report status — exit always 0 (recording-only; gating is done by security-gate.mjs)
 if [ "${HIGH}" -gt 0 ] || [ "${CRITICAL}" -gt 0 ]; then
   echo ""
-  echo "⚠️  HIGH/CRITICAL vulnerabilities detected! Immediate action recommended."
-  exit 1
+  echo "⚠️  HIGH/CRITICAL vulnerabilities detected (recorded). Run security-gate.mjs for allowlist-aware gating."
 else
   echo ""
   echo "✅ No high/critical vulnerabilities. Moderate issues may be addressed at next maintenance window."
-  exit 0
 fi
+exit 0

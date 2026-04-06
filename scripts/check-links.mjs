@@ -37,6 +37,23 @@ const MANUAL_CHECK_DOMAINS = [
   'instagram.com',
   'facebook.com',
   'threads.net',
+  // Paywalls and rate-limit-aggressive domains
+  'cnbc.com',
+  'bloomberg.com',
+  'reuters.com',
+  'wsj.com',
+  'ft.com',
+  'nytimes.com',
+  'axios.com',
+  'science.org',
+  'npmjs.com',
+  'substack.com',
+  'venturebeat.com',
+  'nof1.ai',
+  'raspberrypi.com',
+  'cybersecuritynews.com',
+  'epilepsy.com',
+  'theshamblog.com',
 ];
 
 // Skip these URL patterns entirely (not real links)
@@ -48,6 +65,7 @@ const SKIP_PATTERNS = [
   /^data:/,
   /^\{\{/, // template expressions
   /^\$\{/, // template literals
+  /example\.com/, // RFC 2606 reserved placeholder domain — never a real link
 ];
 
 // ── Link Extraction ──────────────────────────────────────────────

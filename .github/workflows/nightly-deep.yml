@@ -102,6 +102,9 @@ jobs:
       - name: Full security audit (with history recording)
         run: bash scripts/security-audit.sh
 
+      - name: Security gate (allowlist-aware, blocks on unallowlisted high/critical)
+        run: node scripts/security-gate.mjs
+
       - name: Upload audit history
         if: always()
         uses: actions/upload-artifact@v4
