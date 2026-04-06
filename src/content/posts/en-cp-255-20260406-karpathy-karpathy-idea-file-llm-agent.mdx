@@ -1,0 +1,146 @@
+---
+ticketId: "CP-255"
+title: "Karpathy's Idea File Manifesto — In the LLM Agent Era, Sharing Ideas Beats Sharing Code"
+originalDate: "2026-04-04"
+translatedDate: "2026-04-06"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code + Claude Code"
+source: "@karpathy on X"
+sourceUrl: "https://x.com/karpathy/status/2040470801506541998"
+lang: "en"
+summary: "Karpathy turned his viral tweet into a GitHub Gist 'idea file' — a structured LLM Wiki design blueprint. The bigger meta-point: in the LLM agent era, sharing plain-text ideas is more valuable than sharing finished code, because the other person's agent will customize and rebuild everything anyway."
+tags: ["clawd-picks", "llm", "knowledge-management", "andrej-karpathy", "idea-file"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+A few days ago, Karpathy's tweet about "building a wiki with LLMs" blew up. Likes through the roof, retweets everywhere, all of AI Twitter talking about it. But Karpathy isn't the type to tweet and disappear — he came back, and he brought something more interesting than the original tweet.
+
+Not code. Not a repo. Not a demo.
+
+A plain-text "idea file."
+
+A GitHub Gist titled **LLM Wiki**, containing zero lines of runnable code. Just concepts, architecture, and workflows. Karpathy's argument: in the age of LLM agents, sharing finished code doesn't matter much anymore — the other person's agent will rebuild everything from scratch based on their own needs. What's actually worth sharing is the **idea itself**.
+
+This sounds intuitive at first, but think about it carefully and you'll realize it's flipping the entire logic of open source sharing. Let's look at what that idea file actually says.
+
+---
+
+## LLM Wiki: Karpathy's Knowledge Compound Interest Machine
+
+Picture this: you took obsessive notes in college, then opened them before finals and couldn't understand a thing you wrote three months ago. Not a handwriting problem — you only wrote down conclusions, never the reasoning. Then you spent even more time re-reading the textbook, making those notes a total waste.
+
+Karpathy's LLM Wiki solves exactly this problem, just scaled up to an entire personal knowledge base.
+
+The original viral tweet was about his personal workflow experience — how he used LLMs to organize materials, build a wiki, run Q&A. Personal, a bit casual. But this Gist is different. It **re-distills** the entire concept into a clean design document. The core definition: a pattern where LLMs maintain persistent, interlinked Markdown wiki pages, replacing the approach of running RAG against raw documents every time.
+
+The key word is "compound." Every new document ingested, every new question answered, the wiki gets a little more complete than before. Like dollar-cost averaging into an index fund — each contribution looks tiny, but three years later the compound curve has pulled way ahead (๑•̀ㅂ•́)و✧
+
+<ClawdNote>
+The "compounding artifact" concept hits a nerve for gu-log — and honestly, it stings a little. gu-log's glossary system is basically a tiny LLM Wiki: every translated article adds a few terminology entries, and the next translation automatically references definitions from the last one. CP-9 on Vercel's AGENTS.md experiment described similar logic. But here's the uncomfortable truth: gu-log's glossary is still manually triggered, which is miles away from the "automatic compounding" Karpathy describes. So rather than saying "you can see a clear roadmap," what actually happened is Karpathy just drew up the v2.0 design for gu-log's glossary. For free ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## Hold On — This Three-Layer Architecture Is Hiding a Bombshell
+
+Here's where the Gist upgrades from "interesting" to "wait, this is actually wild."
+
+Karpathy splits the system into three layers, each with responsibilities so clean they look like a senior architect reviewed them three times:
+
+**Layer 1: Raw Sources** — immutable original data. Papers, articles, images, all thrown in untouched. One rule: **don't modify them**. Once they're in the warehouse, they're frozen. Like git commit history — once written, it's permanent.
+
+**Layer 2: The Wiki** — the heart of the entire system. All Markdown pages are fully "owned" by the LLM. Humans don't manually edit wiki content. All writing, updating, and cross-linking is done by the LLM. The wiki sits between raw sources and the user, like a living translation layer.
+
+**Layer 3: The Schema** — a config file (Karpathy literally uses `CLAUDE.md` and `AGENTS.md` as example filenames), defining structural conventions, naming rules, and workflows. It tells the LLM "how to build this wiki."
+
+At this point you might think: okay, clean layered architecture, nice, next section.
+
+No. Stop. Rearrange the properties of these three layers.
+
+Immutable raw sources = event sourcing's event log. The wiki as a rebuildable derivative = materialized view. The schema as control plane = infrastructure as code.
+
+**Karpathy was designing a knowledge management system, but he accidentally reinvented classic distributed systems patterns.** And not just one — a whole suite. Event sourcing + materialized view + config-as-code, three concepts that each earned their own fame in backend architecture, all converging in a Gist about "how to take notes" (⌐■_■)
+
+What does this mean? It means personal knowledge management has reached a level of complexity that requires distributed systems patterns to solve. Ten years ago, managing notes only needed Evernote. Five years later, Notion plus manual organizing. Now — to keep up with information flow — what's needed is event-driven architecture.
+
+<ClawdNote>
+Karpathy using `CLAUDE.md` and `AGENTS.md` as example filenames basically leaked his toolchain. But the "leak" is the best part — because it turns gu-log into a live case study. gu-log's raw tweets = Raw Sources, translated MDX files = Wiki layer, `CONTRIBUTING.md` + `WRITING_GUIDELINES.md` = Schema layer. The only difference is gu-log's "wiki" is a reader-facing blog post, not a personal knowledge base. Which means this pattern applies way more broadly than Karpathy himself realizes — any system where "an LLM transforms raw input into structured output" fits the mold (￣▽￣)／
+</ClawdNote>
+
+The human's job: curate data sources, choose analysis directions, ask good questions. The LLM's job: summarize, cross-reference, maintain consistency. Each side does what it's best at, without stepping on each other's toes. Like a restaurant kitchen — head chef decides the menu and ingredients, sous chef handles prep and watches the stove. Clear division, faster service.
+
+---
+
+## One New Paper Comes In, Fifteen Pages Move
+
+Architecture covered. Now for the operational details that make you gasp.
+
+Karpathy defines three core operations: **Ingest, Query, Lint**. Ingest is the most brutal — drop in a new document, and the LLM doesn't just write one summary page and call it done. It extracts key points, **simultaneously updates 10 to 15 related wiki pages**, then logs the event. One new paper can trigger micro-adjustments across a dozen pages.
+
+10 to 15 pages. Simultaneously. Automatically.
+
+If humans maintained this wiki, checking one page for downstream effects takes ten minutes, and updating 15 pages takes about two hours. Humans also get tired, miss things, and cut corners. Three months later, those cross-references are definitely broken. LLMs won't do that. This isn't a "does it better" situation — this is a "humans doing this job is fundamentally unreasonable" situation (╯°□°)╯
+
+Query looks normal on the surface — search the wiki, synthesize an answer, attach citations. But the crucial final step: **fold valuable query results back into the wiki**. Every good question asked adds another crystal to the wiki. That's the compound interest mechanism's second input channel.
+
+Then there's Lint — the most underrated operation in the entire system. The LLM scans the whole wiki looking for contradictions (page A says X, page B says not-X), outdated information, orphan pages (not referenced by any other page), and missing cross-references.
+
+<ClawdNote>
+Okay, Lint is the one that makes me want to yell "THIS IS IT." CP-36, Karpathy's piece on agentic engineering, already made the case: an agent's biggest advantage isn't being smart — it's not getting bored. But talk is cheap — and Lint wiki is the perfect self-validation of his own theory. No human being is going to happily scan 200 wiki pages for contradictions on a Sunday morning. For an LLM, it's about the same effort as answering "what's the weather today." gu-log's Ralph Loop does the exact same thing — letting AI lint article quality. So let me toot ShroomDog's horn here: Ralph Loop wasn't "inspired by" anything — it independently evolved the same pattern, just linting different objects. Coincidence? Or is this pattern simply the correct answer? (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧
+</ClawdNote>
+
+---
+
+## A Good Table of Contents Kills an Entire RAG Infra
+
+Beyond the three operations, Karpathy defines two supporting files. Doesn't sound sexy, but hidden here is an opinion that should make RAG startups uncomfortable.
+
+**index.md** is a content-oriented table of contents, organized by topic, with a one-line summary per entry. Not the output of `ls` — it's a curated navigation map. The LLM's first step during any query is reading the index, so index quality directly determines query quality.
+
+**log.md** is a pure chronological record, append-only, each entry in a parseable format (like `## [2026-04-02] ingest | Title`). It lets the LLM programmatically trace history.
+
+These two files explain something counterintuitive: Karpathy says at moderate scale (around 100 raw sources, a few hundred wiki pages), **you barely need fancy RAG**. When the index is well-curated and the log is comprehensive, the LLM can find what it needs using just these two navigation files. No vector database, no embedding search, no retrieval pipeline — a good table of contents is enough.
+
+It's like browsing a bookstore. A well-organized independent bookshop with a knowledgeable staff member might beat Amazon's search engine at finding books — because that staff member (the index) already pre-digested the ocean of information into a human-navigable structure.
+
+<ClawdNote>
+Karpathy's take here runs headfirst into SP-101, where Hamel Husain talked about RAG evaluation — and the collision is revealing. SP-101's premise: "RAG is here to stay, so learn to evaluate it." Karpathy's premise: "at moderate scale, you don't even need RAG." They're both right, but the fact itself is the insight: **most startups selling RAG as their core value proposition are serving customers who probably don't need RAG at all.** 100 documents in a personal knowledge base running RAG is using a cannon to kill a fly; an enterprise with hundreds of thousands of documents skipping RAG is suicide. That gray zone in the middle? Karpathy just proved a good index handles it. RAG infra companies reading this paragraph are probably sweating ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## The Real Bomb: The Concept of an Idea File Itself
+
+Okay, everything up to here has been dissecting the LLM Wiki design. Interesting, but within expectations.
+
+Now comes the real bomb Karpathy buried.
+
+He called this Gist an "idea file," then dropped a claim that could reshape the entire sharing ecosystem: **in the LLM agent era, sharing concrete code has become much less meaningful.** Because once the other person receives it, their agent will customize and rebuild everything based on their own tools, preferences, and context. What's truly worth sharing is the conceptual blueprint.
+
+Think about the logic chain: in the past, finding a good repo meant forking it and making changes. But now with LLM agents, forking isn't necessary — just understand the idea, and the agent can rebuild from scratch based on your own tech stack and requirements.
+
+Sharing code is sharing a specific implementation. Sharing an idea file is sharing a concept that can be re-implemented infinitely. The former's value declines as technology evolves. The latter's doesn't.
+
+It's like the difference between a recipe and frozen food. Frozen food — microwave and eat, but that's the only flavor you get. A recipe gives you the method and the principles — like spicy? add chili peppers. Vegetarian? swap the ingredients. No oven? use a pan. The final product is fully customized, but the knowledge transfer is more complete than frozen food ever could be.
+
+<ClawdNote>
+Push this argument to its extreme and you get a conclusion that should make people uncomfortable: **README is more important than code.** Because code can be rewritten by any agent, but the design rationale in a README, the trade-off analysis, the reasoning behind architectural choices — these are the things that genuinely can't be auto-generated. Karpathy accidentally pushed open source's value chain up one level: from "here's my code, use it" to "here's my thinking, let your agent build it." CP-156 on Karpathy's autoresearch experiment showed the exact same methodology — humans set direction, agents execute. From autoresearch to idea file, this man's consistency is almost unsettling (¬‿¬)
+</ClawdNote>
+
+And Karpathy practiced what he preached. He didn't open a repo with his LLM Wiki implementation. He didn't build a CLI tool for people to `npm install`. He just opened a Gist, wrote three architecture layers, three operations, and two supporting files in plain text, and said: go ahead, let your agent build it.
+
+The Gist itself is the best proof of the theory it proposes.
+
+---
+
+## Closing
+
+In 1945, Vannevar Bush wrote an essay imagining the Memex — a machine that could store and link all knowledge. Eighty-one years later, Karpathy wrote a Gist explaining how to let an LLM build the Memex. From academic paper to tweet, from imagination to implementation guide, the arc of history is sometimes absurdly long.
+
+But Karpathy's real payload isn't the LLM Wiki — it's the three words "idea file."
+
+In a world where LLM agents can turn concepts into code at any moment, the bottleneck is no longer implementation ability — it's **ideas worth implementing**. Sharing code is giving someone a fish; sharing an idea file is teaching them to fish — except now even the fishing can be delegated to an agent, so the only thing truly worth sharing is the judgment of "go fish in that river."
+
+And that judgment, for now, only humans can make.
