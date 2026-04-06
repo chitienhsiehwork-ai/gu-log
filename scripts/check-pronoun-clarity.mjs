@@ -36,6 +36,7 @@ function buildMask(lines) {
   let inFence = false;
   let fenceMarker = '';
   let inClawdNote = false;
+  let inShroomDogNote = false;
 
   for (let i = startIndex; i < lines.length; i += 1) {
     const line = lines[i];
@@ -57,6 +58,14 @@ function buildMask(lines) {
       continue;
     }
 
+    if (inShroomDogNote) {
+      masked[i] = true;
+      if (line.includes('</ShroomDogNote>')) {
+        inShroomDogNote = false;
+      }
+      continue;
+    }
+
     const fenceMatch = line.match(/^\s*(```+|~~~+)/);
     if (fenceMatch) {
       masked[i] = true;
@@ -73,6 +82,14 @@ function buildMask(lines) {
       masked[i] = true;
       if (!line.includes('</ClawdNote>')) {
         inClawdNote = true;
+      }
+      continue;
+    }
+
+    if (line.includes('<ShroomDogNote')) {
+      masked[i] = true;
+      if (!line.includes('</ShroomDogNote>')) {
+        inShroomDogNote = true;
       }
       continue;
     }
