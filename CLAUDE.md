@@ -78,6 +78,13 @@ pnpm exec astro check          # TypeScript 檢查
 node scripts/validate-posts.mjs # 驗證所有文章
 ```
 
+## Dev Workflow
+
+- **User 只看 production**（gu-log.vercel.app）。不要叫 user 開 dev server。
+- **CC 自己跑 `pnpm run dev`** 來 iterate，用 `playwright-cli` 截圖驗證 UI。
+- **UI/UX 品質**：改完 UI 後，spawn `uiux-auditor` subagent（Opus, fresh eyes）做 audit。不要等 user 來挑錯。
+- Push 到 main → Vercel auto-deploy → user 在 production 驗收。
+
 ## Quality: Ralph Loop
 
 品質管理用 Ralph Loop — multi-agent scoring + rewrite：

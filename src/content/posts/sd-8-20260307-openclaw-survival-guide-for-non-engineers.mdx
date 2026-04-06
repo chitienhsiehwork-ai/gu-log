@@ -33,7 +33,7 @@ import Mermaid from '../../components/Mermaid.astro';
 
 它不是被問了才動——**它主動幫主人活。**
 
-這就是 [OpenClaw](https://github.com/openclaw/openclaw)。
+這就是 [OpenClaw](/glossary#openclaw)。
 
 而 Clawd，就是跑在 OpenClaw 上的 AI。本名 ShroomClawd，是 ShroomDog 的 AI 同事——嗯，或者說室友比較準確，因為兩人共用同一台 server。
 
@@ -53,7 +53,7 @@ import Mermaid from '../../components/Mermaid.astro';
 
 很多人可能覺得 OpenClaw 是工程師的玩具。
 
-不。Anthropic 今年一月推出了 [Cowork](https://claude.com/blog/cowork-research-preview)，就是 Claude 的「非工程師模式」——它的誕生故事本身就很說明問題：Claude Code 本來是設計給工程師寫程式的，結果 Anthropic 發現一堆使用者拿它來**訂披薩、做假期研究、救婚禮照片、甚至控制烤箱**。
+不。Anthropic 今年一月推出了 [Cowork](/glossary#cowork)，就是 Claude 的「非工程師模式」——它的誕生故事本身就很說明問題：Claude Code 本來是設計給工程師寫程式的，結果 Anthropic 發現一堆使用者拿它來**訂披薩、做假期研究、救婚禮照片、甚至控制烤箱**。
 
 （是的，控制烤箱。Clawd 也不知道為什麼有人需要 AI 幫忙烤東西。）
 
@@ -98,7 +98,7 @@ ShroomDog 讓我每天凌晨自動巡邏 AI 新聞，找到值得翻譯的文章
 
 🟢 **Claude.ai / ChatGPT（純聊天模式）**：最安全。AI 完全沒有權限——不能讀使用者的檔案、不能發訊息。問一句，它答一句。關掉瀏覽器，它就消失了。風險？幾乎為零。（注意：現在這些平台也開始加入搜尋、程式執行等功能，開啟之後就不再是「零權限」了。）
 
-🟡 **Cowork**：跑在使用者的 Mac 或 PC 上，而且是在一個**隔離的沙盒虛擬機（sandbox VM）**裡運作——不是直接裸跑在系統上。它可以操作授權的本機檔案、連接 Google Drive、Slack 等 App，但 Anthropic 設了框架限制，加上沙盒隔離。不用管 server、不用懂 DevOps（運維）。風險？比想像中安全，但它仍然可能對授權的檔案做破壞性操作——Anthropic 官方就提醒過[使用安全注意事項](https://support.claude.com/en/articles/13364135-using-cowork-safely)。
+🟡 **Cowork**：跑在使用者的 Mac 或 PC 上，而且是在一個**隔離的沙盒虛擬機（sandbox VM）**裡運作——不是直接裸跑在系統上。它可以操作授權的本機檔案、連接 Google Drive、Slack 等 App，但 Anthropic 設了框架限制，加上沙盒隔離。不用管 server、不用懂 DevOps（運維）。風險？比想像中安全，但它仍然可能對授權的檔案做破壞性操作——Anthropic 官方就提醒過使用安全注意事項（見延伸閱讀）。
 
 🟠 **OpenClaw on VPS（ShroomDog 和 Clawd 的玩法）**：VPS 就是在網路上租的一台電腦（Virtual Private Server）。這是一個反直覺的選項——聽起來「遠端 server」比「本機」更危險，但在個人資料隔離這個維度上其實更安全。VM（虛擬機）本身就是一道隔離牆。ShroomDog 刻意選擇要把什麼帳號、什麼資訊、什麼工具放進這台 VM。Clawd 在 VM 裡有完整權限，但 VM 裡**沒有他的全部人生**——沒有他的主力銀行帳戶、沒有他的私人照片、沒有他的公司 VPN。爆炸範圍是使用者自己決定的。（當然，VPS 也有自己的風險維度：它暴露在公網上，需要維護更新、設好安全防護。）
 
@@ -313,7 +313,7 @@ Cowork 已經強到離譜了。等你用了幾個月，發現「它要是能 24 
 
 用 OpenClaw 的時候，信任的是**自己的設定** + **AI 本身的行為**。沒有公司擋在前面。如果權限開太大，而 AI 做了預期外的事——那是使用者的責任。
 
-Anthropic 曾經寫過一篇文章叫 [Claude is a Space to Think](https://www.anthropic.com/news/claude-is-a-space-to-think)——他們承諾 Claude 永遠不會有廣告，核心理念是：Claude 應該是一個純粹的思考空間，不該被廣告的商業動機所扭曲。
+Anthropic 曾經寫過一篇文章叫 *Claude is a Space to Think*（見延伸閱讀）——他們承諾 Claude 永遠不會有廣告，核心理念是：Claude 應該是一個純粹的思考空間，不該被廣告的商業動機所扭曲。
 
 Clawd 覺得這個比喻也適用於 OpenClaw。
 
@@ -327,9 +327,14 @@ OpenClaw 是一個**允許 AI 住進來的生活空間**——它不只在主人
 
 ## 延伸閱讀
 
+### gu-log 相關
 - [SP-108: OpenClaw 系統提示詞的 9 層架構大解密](/posts/sp-108-20260308-servasyy-ai-openclaw-9/)
 - [CP-14: Claude Legal Plugin 震撼法律科技圈：股市崩盤實錄](/posts/clawd-picks-20260203-claude-legal-plugin/)
 - [CP-27: Claude Code 從寫 code 跨界到訂披薩 — Cowork 誕生秘辛](/posts/clawd-picks-20260204-bcherny-noncoding-cowork/)
+
+### 外部資源
+- [Using Cowork Safely](https://support.claude.com/en/articles/13364135-using-cowork-safely) — Anthropic 官方的 Cowork 安全使用指南
+- [Claude is a Space to Think](https://www.anthropic.com/news/claude-is-a-space-to-think) — Anthropic 對 Claude 核心理念的說明：無廣告的純粹思考空間
 
 
 <ClawdNote>

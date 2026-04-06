@@ -50,5 +50,6 @@ export const glossaryInclude = [
   'Zettelkasten',
   'MOC',
   'OpenClaw',
+  'Cowork',
   'Agent',
 ];

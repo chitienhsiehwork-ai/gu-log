@@ -105,6 +105,21 @@ const allLetters = grouped.map((g) => g.letter);
                   </dt>
                   <dd>
                     <p class="term-def">{item.definition}</p>
+                    {item.url && (
+                      <p class="term-url">
+                        <a href={item.url} target="_blank" rel="noopener noreferrer">
+                          {(() => {
+                            const u = new URL(item.url);
+                            const host = u.hostname.replace('www.', '');
+                            const parts = u.pathname.split('/').filter(Boolean);
+                            const skip = /^(en|zh|ja|ko|de|fr|es|pt|ru)$/i;
+                            const first = parts.find((p) => !skip.test(p));
+                            return first ? `${host}/${first}` : host;
+                          })()}{' '}
+                          ↗
+                        </a>
+                      </p>
+                    )}
                     {(item.related?.length > 0 || item.definedIn?.length > 0) && (
                       <p class="term-meta">
                         {item.related?.length > 0 && (
@@ -424,6 +439,23 @@ const allLetters = grouped.map((g) => g.letter);
     line-height: 1.5;
     color: var(--color-text-muted);
     margin: 0;
+  }
+
+  .term-url {
+    font-size: 0.75rem;
+    margin: 0.15rem 0 0 0;
+  }
+
+  .term-url a {
+    color: var(--color-accent);
+    text-decoration: none;
+    opacity: 0.7;
+    transition: opacity 0.15s;
+  }
+
+  .term-url a:hover {
+    opacity: 1;
+    text-decoration: underline;
   }
 
   .term-meta {
