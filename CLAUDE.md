@@ -16,10 +16,9 @@ CLAUDE.md (你在讀的這個)
   ├→ src/content/config.ts    ← SSOT: Frontmatter schema (Zod validation)
   └→ scripts/
       ├ article-counter.json  ← Ticket ID counter（SD/SP/CP/Lv）
-      ├ ralph-loop.sh         ← Ralph Loop 品質管理（batch scoring + rewrite）
-      ├ ralph-scorer.sh       ← 單篇文章 Ralph 評分
-      ├ ralph-vibe-scoring-standard.md ← 評分標準 SSOT
-      ├ ralph-progress.json   ← Ralph 進度追蹤
+      ├ ralph-loop.sh         ← Ralph Loop（batch scoring + rewrite 迴圈）
+      ├ ralph-vibe-scoring-standard.md ← Vibe 評分標準 SSOT
+      ├ ralph-progress.json   ← Loop 進度追蹤
       ├ sp-pipeline.sh        ← SP 自動翻譯 pipeline
       ├ clawd-picks-prompt.md ← Clawd Picks 任務流程（給 Clawd on VM 用）
       ├ clawd-picks-config.json ← 推文帳號清單
@@ -85,14 +84,16 @@ node scripts/validate-posts.mjs # 驗證所有文章
 - **UI/UX 品質**：改完 UI 後，spawn `uiux-auditor` subagent（Opus, fresh eyes）做 audit。不要等 user 來挑錯。
 - Push 到 main → Vercel auto-deploy → user 在 production 驗收。
 
-## Quality: Ralph Loop
+## Quality: Vibe Scoring + Tribunal
 
-品質管理用 Ralph Loop — multi-agent scoring + rewrite：
-- **Scorer**: 三維評分（Persona / ClawdNote / Vibe，0-10）
-- **Pass bar**: ≥ 8/8/8 (all series)
-- **Rewrite**: 沒過 → rewriter 改寫 → 再跑 scorer → 最多 3 次
-- **Fact-check**: GPT 5.4 四層驗證（翻譯扭曲/數字捏造/原文 claim/錯誤→ClawdNote）
-- 詳見 `CONTRIBUTING.md`
+品質管理用 Ralph Loop（迴圈模式）+ 4-judge tribunal：
+- **Vibe Scorer** (Opus): 四維評分（Persona / ClawdNote / Vibe / Clarity，0-10）
+- **Fact Checker** (Opus): 技術準確度 / 來源忠實 / 邏輯一致
+- **Librarian** (Sonnet): Glossary 連結 / cross-ref / identity linking
+- **Fresh Eyes** (Haiku): 陌生讀者第一印象
+- **Pass bar**: Vibe 四維 ≥ 8，Fact ≥ 8，Librarian composite ≥ 8，Fresh Eyes ≥ 7
+- **Rewrite**: 沒過 → rewriter 改寫 → 再跑 → 最多 3 次
+- Agents 在 `.claude/agents/`，評分標準 SSOT 在 `scripts/ralph-vibe-scoring-standard.md`
 
 ## Style Guide (Quick Ref)
 
