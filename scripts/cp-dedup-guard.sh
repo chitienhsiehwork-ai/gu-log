@@ -31,7 +31,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 POSTS_DIR="$PROJECT_DIR/src/content/posts"
-QUEUE_FILE="$PROJECT_DIR/cp-candidates-queue.yaml"
+QUEUE_FILE="$PROJECT_DIR/scripts/cp-candidates-queue.yaml"
 CACHE_FILE="$PROJECT_DIR/scripts/.dedup-cache.json"
 
 # Thresholds

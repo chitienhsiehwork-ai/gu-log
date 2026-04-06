@@ -10,7 +10,7 @@ set -euo pipefail
 # --dry-run: show what would be removed without modifying the queue file.
 
 GU_LOG_DIR="${GU_LOG_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
-QUEUE_FILE="$GU_LOG_DIR/cp-candidates-queue.yaml"
+QUEUE_FILE="$GU_LOG_DIR/scripts/cp-candidates-queue.yaml"
 POSTS_DIR="$GU_LOG_DIR/src/content/posts"
 
 DRY_RUN=false
