@@ -106,7 +106,7 @@ const allLetters = grouped.map((g) => g.letter);
                   <dd>
                     <p class="term-def">{item.definition}</p>
                     {item.url && (
-                      <p class="term-url">
+                      <p class="term-meta">
                         <a href={item.url} target="_blank" rel="noopener noreferrer">
                           {(() => {
                             const u = new URL(item.url);
@@ -439,23 +439,6 @@ const allLetters = grouped.map((g) => g.letter);
     line-height: 1.5;
     color: var(--color-text-muted);
     margin: 0;
-  }
-
-  .term-url {
-    font-size: 0.75rem;
-    margin: 0.15rem 0 0 0;
-  }
-
-  .term-url a {
-    color: var(--color-accent);
-    text-decoration: none;
-    opacity: 0.7;
-    transition: opacity 0.15s;
-  }
-
-  .term-url a:hover {
-    opacity: 1;
-    text-decoration: underline;
   }
 
   .term-meta {
