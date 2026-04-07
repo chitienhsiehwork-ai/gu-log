@@ -150,7 +150,9 @@ USAGE
 }
 
 check_required_tools() {
-  local tools=(bird gemini codex jq node npm git)
+  # NOTE(all-claude): bird, gemini, codex removed from critical path.
+  # Dead code: old tools=(bird gemini codex jq node npm git)
+  local tools=(jq node npm git)
   local missing=()
   local t
   for t in "${tools[@]}"; do
@@ -262,7 +264,7 @@ TWEET_URL=""
 DRY_RUN=false
 FORCE=false
 TICKET_PREFIX="SP"
-OPUS_MODE=false
+OPUS_MODE=true  # all-claude: Opus is default; Gemini/Codex fallback kept as dead code below
 FROM_STEP=""
 FROM_STEP_INT=0
 EXISTING_FILE=""
@@ -1096,122 +1098,18 @@ elif [ -f "$WORK_DIR/final.mdx" ]; then
   cp "$WORK_DIR/final.mdx" "$POSTS_DIR/$ACTIVE_FILENAME"
 fi
 
-RALPH_ATTEMPT=0
 RALPH_PASSED=false
-SCORE_P=0; SCORE_C=0; SCORE_V=0
+SCORE_P=0; SCORE_C=0; SCORE_V=0  # kept for pipeline signature compat below
 
-while [ "$RALPH_ATTEMPT" -lt "$RALPH_MAX_ATTEMPTS" ]; do
-  RALPH_ATTEMPT=$((RALPH_ATTEMPT + 1))
-  SCORE_FILE="$WORK_DIR/ralph-score-attempt-${RALPH_ATTEMPT}.json"
-  log_info "  Ralph attempt $RALPH_ATTEMPT/$RALPH_MAX_ATTEMPTS — Scoring..."
-
-  # Score via independent subagent
-  if bash scripts/ralph-scorer.sh "$ACTIVE_FILENAME" "$SCORE_FILE" \
-      > "$WORK_DIR/ralph-scorer-stdout-${RALPH_ATTEMPT}.txt" \
-      2> "$WORK_DIR/ralph-scorer-stderr-${RALPH_ATTEMPT}.txt"; then
-    read_scores "$SCORE_FILE"
-    log_info "  Scores: P=$SCORE_P C=$SCORE_C V=$SCORE_V"
-
-    if [ "$SCORE_P" -ge "$RALPH_BAR" ] && [ "$SCORE_C" -ge "$RALPH_BAR" ] && [ "$SCORE_V" -ge "$RALPH_BAR" ]; then
-      RALPH_PASSED=true
-      log_ok "  ✅ Ralph PASS on attempt $RALPH_ATTEMPT"
-
-      # Write Ralph vibe score directly to post frontmatter
-      RALPH_SCORE_JSON="$(jq -cn \
-        --argjson score "$(( (SCORE_P + SCORE_C + SCORE_V) / 3 ))" \
-        --argjson persona "$SCORE_P" \
-        --argjson clawdNote "$SCORE_C" \
-        --argjson vibe "$SCORE_V" \
-        --argjson iter "$RALPH_ATTEMPT" \
-        '{score: $score, details: {persona: $persona, clawdNote: $clawdNote, vibe: $vibe}, model: "claude-opus-4-6", iteration: $iter}')"
-      node "$GU_LOG_DIR/scripts/frontmatter-scores.mjs" write \
-        "$POSTS_DIR/$ACTIVE_FILENAME" opus "$RALPH_SCORE_JSON" \
-        && log_ok "  Wrote Ralph score to frontmatter (${PROMPT_TICKET_ID})" \
-        || log_warn "  Failed to write Ralph score to frontmatter"
-
-      break
-    fi
-  else
-    log_warn "  Scorer failed (attempt $RALPH_ATTEMPT). See $WORK_DIR/ralph-scorer-stderr-${RALPH_ATTEMPT}.txt"
-    continue
-  fi
-
-  # Not passed — rewrite if we have attempts left
-  if [ "$RALPH_ATTEMPT" -lt "$RALPH_MAX_ATTEMPTS" ]; then
-    log_info "  Rewriting (writer reads reviewer feedback)..."
-
-    # Writer writes to WORK_DIR first (atomic: avoids broken files in src/content/posts/)
-    if timeout 900 claude -p \
-      --model claude-opus-4-6 \
-      --permission-mode bypassPermissions \
-      --max-turns 20 \
-      "You are a rewriter for gu-log blog posts. Your job is to improve a post that failed quality review.
-
-## References (read ALL before rewriting)
-1. Read scripts/ralph-vibe-scoring-standard.md — THE scoring rubric with calibration examples
-2. Read WRITING_GUIDELINES.md — LHY persona and style rules
-3. Read CONTRIBUTING.md — frontmatter schema, ClawdNote format
-4. Read the reviewer's feedback: cat $SCORE_FILE
-
-## Task
-Rewrite src/content/posts/$ACTIVE_FILENAME to fix EVERY issue the reviewer flagged.
-Also create the English version at $WORK_DIR/$ACTIVE_EN_FILENAME with lang: en and same ticketId.
-
-IMPORTANT: Write the English version to $WORK_DIR/$ACTIVE_EN_FILENAME (NOT to src/content/posts/).
-The zh-tw version should be rewritten in-place at src/content/posts/$ACTIVE_FILENAME.
-
-## Rules
-- Keep ALL existing frontmatter fields intact (ticketId, source, sourceUrl, title, summary, tags, lang, dates)
-- Do NOT touch translatedBy — shell handles that automatically
-- ALL notes must be ClawdNote (convert any CodexNote/GeminiNote/ClaudeCodeNote)
-- Import ONLY ClawdNote from components (remove unused imports)
-- Apply full LHY persona — professor teaching with life analogies, not news article
-- ClawdNote density: ~1 per 25 lines of prose, each with personality and opinion
-- No bullet-dump endings, no motivational closings, no 「各位觀眾好」openings
-- Kaomoji: MANDATORY — pre-commit hook rejects posts without at least one kaomoji. Sprinkle naturally in prose, avoid markdown special chars (backticks, asterisks)" \
-      > "$WORK_DIR/ralph-writer-stdout-${RALPH_ATTEMPT}.txt" 2>&1; then
-      log_info "  Writer completed."
-    else
-      log_warn "  Writer errored. See $WORK_DIR/ralph-writer-stdout-${RALPH_ATTEMPT}.txt"
-    fi
-
-    # Validate frontmatter wasn't broken by writer (LLMs sometimes strip required fields)
-    _FM_VALID=true
-    for _check_field in title originalDate source sourceUrl summary; do
-      if ! grep -q "^${_check_field}:" "$POSTS_DIR/$ACTIVE_FILENAME" 2>/dev/null; then
-        _FM_VALID=false
-        log_warn "  ❌ Writer broke frontmatter: missing '$_check_field' in $ACTIVE_FILENAME"
-      fi
-    done
-    if [ "$_FM_VALID" = false ]; then
-      log_warn "  Restoring from pre-rewrite backup..."
-      git checkout HEAD -- "$POSTS_DIR/$ACTIVE_FILENAME" 2>/dev/null || cp "$WORK_DIR/final.mdx" "$POSTS_DIR/$ACTIVE_FILENAME"
-      rm -f "$POSTS_DIR/$ACTIVE_EN_FILENAME"
-      continue
-    fi
-
-    # Copy EN file from WORK_DIR to POSTS_DIR only if writer produced it
-    if [ -f "$WORK_DIR/$ACTIVE_EN_FILENAME" ]; then
-      cp "$WORK_DIR/$ACTIVE_EN_FILENAME" "$POSTS_DIR/$ACTIVE_EN_FILENAME"
-    fi
-
-    # Build check
-    log_info "  Running build check..."
-    if ! pnpm run build > "$WORK_DIR/ralph-build-${RALPH_ATTEMPT}.txt" 2>&1; then
-      log_warn "  ❌ Build failed after rewrite! Reverting..."
-      git checkout -- "$POSTS_DIR/$ACTIVE_FILENAME" 2>/dev/null || true
-      # Restore from work dir copy
-      cp "$WORK_DIR/final.mdx" "$POSTS_DIR/$ACTIVE_FILENAME"
-      rm -f "$POSTS_DIR/$ACTIVE_EN_FILENAME"
-      continue
-    fi
-    log_info "  Build passed."
-
-    # Ensure kaomoji present
-    node scripts/add-kaomoji.mjs --write "$ACTIVE_FILENAME" 2>/dev/null || true
-    [ -f "$POSTS_DIR/$ACTIVE_EN_FILENAME" ] && node scripts/add-kaomoji.mjs --write "$ACTIVE_EN_FILENAME" 2>/dev/null || true
-  fi
-done
+# ── 4-stage all-Claude tribunal (replaces old inline ralph scorer loop) ──────
+log_info "  Running 4-stage tribunal (ralph-all-claude.sh)..."
+if bash "$GU_LOG_DIR/scripts/ralph-all-claude.sh" "$ACTIVE_FILENAME" \
+    >> "$WORK_DIR/tribunal-stdout.txt" 2>&1; then
+  RALPH_PASSED=true
+  log_ok "  Tribunal PASS: $ACTIVE_FILENAME"
+else
+  log_warn "  Tribunal FAIL (see $WORK_DIR/tribunal-stdout.txt). Deploying best effort."
+fi
 
 # Append Ralph quality stages to existing SP pipeline signature
 # (stamp_ralph_signature replaces the whole block — we want to ADD to it)

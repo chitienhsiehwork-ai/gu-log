@@ -309,8 +309,8 @@ ensure_usage_state() {
 default_rate_limit_backoff() {
   case "$1" in
     librarian|sonnet) echo 600 ;;
-    factCheck|vibe|vibe-opus-scorer|opus) echo 1200 ;;
-    freshEyes|haiku) echo 300 ;;
+    factCheck|fact-checker|vibe|vibe-opus-scorer|opus) echo 1200 ;;
+    freshEyes|fresh-eyes|haiku) echo 300 ;;
     *) echo 600 ;;
   esac
 }
