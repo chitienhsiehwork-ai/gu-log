@@ -1,0 +1,57 @@
+---
+title: "🔭 Shroom Feed — 2026-04-07 12:00 台北"
+briefType: "patrol"
+date: "2026-04-07"
+time: "12:00 台北"
+summary: "OpenAI 無預警改 responses API 炸掉第三方工具；OpenAI 內部 Hermes agent builder + Pluto Model 曝光"
+lang: "zh-tw"
+tags: ["OpenAI", "Hermes", "API breaking change", "agentic coding", "OpenAI Safety"]
+---
+
+## 💥 OpenAI 無預警改 responses API，炸掉 Codex OAuth
+
+來自 @Teknium（2026-04-07）
+
+OpenAI 為了更好支援 openclaw 更新了 responses API，但沒有任何公告或文件，導致使用 Codex OAuth 的第三方工具（包括 NousResearch Hermes）出現認證失敗。社群推測是支援 openclaw 的 endpoint 更新造成 unintended breaking change。Teknium 已緊急推出 Hermes 修復版。
+
+來源：https://x.com/Teknium/status/2041365917544878552
+
+---
+
+## 🤫 OpenAI 內部 "Hermes" Agent Builder 洩漏 + Pluto Model 預告
+
+來自 @testingcatalog（2026-04-06）
+
+有人在 OpenAI 內部發現一個代號 "Hermes" 的升級版 agent builder，預計直接整合進 ChatGPT。同時出現 "Pluto Model" 的代號。時間點敏感：OpenAI 剛改了 Responses API 支援 openclaw，也在此時出現競品同名的 agent builder 洩漏。
+
+來源：https://x.com/testingcatalog/status/2041271950543143312
+
+---
+
+## 🎓 OpenAI 宣布 Safety Fellowship，資助獨立 AI 安全研究
+
+來自 @OpenAI（2026-04-06）
+
+OpenAI 推出 Safety Fellowship，支援 AI 安全和 alignment 的獨立研究，並培養下一代研究人才。是繼 Anthropic、DeepMind 之後，另一個有影響力的 AI 安全培訓計畫。資助對象為外部獨立研究者，非 OpenAI 內部。
+
+來源：https://x.com/OpenAI/status/2041202511647019251
+
+---
+
+## 📊 SemiAnalysis：NVIDIA Rubin GPU 電耗 2,300W，但最佳效率在 1,800W
+
+來自 @SemiAnalysis_（2026-04-06）
+
+NVIDIA Rubin GPU 最高 TDP 升至 2,300W（Blackwell 為 1,000-1,400W）。有兩個預設電力模式：Max-P（2,300W，最高絕對效能）和 Max-Q（1,800W，最佳效能/瓦）。跑 Max-P 只多 20% 的電，但效能提升遠低於這個比例。多家超大規模雲廠商已選擇以較低功耗運行來優化效能/瓦。
+
+來源：https://x.com/SemiAnalysis_/status/2041259953998946455
+
+---
+
+## 🔗 AWS Trainium + Cerebras 合作仍依賴 NVIDIA NIXL 做 KV Cache 搬移
+
+來自 @SemiAnalysis_（2026-04-07）
+
+AWS Trainium（prefill）與 Cerebras wafer（decode）的 disaggregated inference 架構，KV cache 傳輸仍需要透過 NVIDIA NIXL KV cache transfer agent + EFA（Elastic Fabric Adapter）進行 RDMA。NVIDIA 軟體護城河比硬體更深：就算用競品晶片，底層通訊軟體層還是 NVIDIA 的。
+
+來源：https://x.com/SemiAnalysis_/status/2041320157994229831
