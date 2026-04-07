@@ -1,0 +1,76 @@
+version: 2
+updates:
+  # ─── npm (pnpm) ──────────────────────────────────────────────────────────
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Taipei"
+    target-branch: "main"
+    open-pull-requests-limit: 5
+
+    # Major bumps for these need careful migration — skip them
+    ignore:
+      - dependency-name: "astro"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@astrojs/*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "typescript-eslint"
+        update-types: ["version-update:semver-major"]
+
+    # Group minor + patch updates into one PR to reduce noise
+    groups:
+      astro-ecosystem:
+        patterns:
+          - "astro"
+          - "@astrojs/*"
+        update-types:
+          - "minor"
+          - "patch"
+      eslint-ecosystem:
+        patterns:
+          - "eslint"
+          - "@eslint/*"
+          - "eslint-*"
+        update-types:
+          - "minor"
+          - "patch"
+      playwright-ecosystem:
+        patterns:
+          - "playwright"
+          - "@playwright/*"
+          - "@axe-core/playwright"
+        update-types:
+          - "minor"
+          - "patch"
+      misc-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # ─── GitHub Actions ───────────────────────────────────────────────────────
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Taipei"
+    target-branch: "main"
+    open-pull-requests-limit: 5
+
+    groups:
+      actions-all:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
