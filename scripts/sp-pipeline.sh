@@ -570,7 +570,7 @@ if [ ! -f "$WORK_DIR/source-tweet.md" ] && { [[ "$TWEET_URL" == *"twitter.com"* 
   # while bird provides the raw tweet data. Runs inside Podman sandbox so
   # prompt injection from tweets can't touch the host filesystem.
   # Replaces the fragile bash loop that failed on high-engagement threads.
-  log_info "Agentic fetch: Gemini sandbox + bird (Flash)"
+  log_info "Agentic fetch: Gemini sandbox + bird (Flash → bird thread → Claude Opus fallback chain)"
 
   SAFE_SEARCH="${GU_LOG_DIR}/scripts/../../../scripts/gemini-safe-search.sh"
   # Resolve to absolute path; fall back to well-known location
@@ -620,16 +620,22 @@ REMEMBER: The writer depends entirely on your output. Missing content = bad arti
   if FETCH_OUTPUT=$("$SAFE_SEARCH" -m gemini-2.5-flash -t 300 "$FETCH_PROMPT" 2>"$WORK_DIR/fetch-agent-stderr.log"); then
     echo "$FETCH_OUTPUT" > "$WORK_DIR/source-tweet.md"
   else
-    log_warn "Gemini agentic fetch failed (exit $?) — falling back to basic bird read"
-    if ! bird read "$TWEET_URL" > "$WORK_DIR/source-tweet.md"; then
-      die "bird read failed for URL: $TWEET_URL"
+    log_warn "Gemini agentic fetch failed (exit $?) — falling back to bird thread (host)"
+    BIRD_OUT=$(bird thread "$TWEET_URL" 2>/dev/null || bird read "$TWEET_URL" 2>/dev/null || true)
+    if [ -n "$BIRD_OUT" ]; then
+      echo "$BIRD_OUT" > "$WORK_DIR/source-tweet.md"
+    else
+      die "All fetch methods failed for URL: $TWEET_URL"
     fi
   fi
 
   # Validate output exists and has content
   if [ ! -s "$WORK_DIR/source-tweet.md" ]; then
-    log_warn "Gemini produced empty output — falling back to basic bird read"
-    if ! bird read "$TWEET_URL" > "$WORK_DIR/source-tweet.md"; then
+    log_warn "Gemini produced empty output — falling back to bird thread (host)"
+    BIRD_OUT=$(bird thread "$TWEET_URL" 2>/dev/null || bird read "$TWEET_URL" 2>/dev/null || true)
+    if [ -n "$BIRD_OUT" ]; then
+      echo "$BIRD_OUT" > "$WORK_DIR/source-tweet.md"
+    else
       die "bird read failed for URL: $TWEET_URL"
     fi
   fi
@@ -637,8 +643,14 @@ REMEMBER: The writer depends entirely on your output. Missing content = bad arti
   # Detect bird auth failure: sandbox fetch succeeded but content lacks @handle
   # (happens when AUTH_TOKEN/CT0 not set — Gemini can't use bird in container)
   if ! grep -qE '@[A-Za-z0-9_]+' "$WORK_DIR/source-tweet.md"; then
-    log_warn "Sandbox fetch has no @handle — bird likely not auth'd. Retrying with web-search-only prompt"
-    WEB_ONLY_PROMPT="Search the web for this tweet and return its COMPLETE content. You MUST include:
+    log_warn "Sandbox fetch has no @handle — bird likely not auth'd. Retrying with bird thread (host)"
+    BIRD_OUT=$(bird thread "$TWEET_URL" 2>/dev/null || bird read "$TWEET_URL" 2>/dev/null || true)
+    if [ -n "$BIRD_OUT" ]; then
+      echo "$BIRD_OUT" > "$WORK_DIR/source-tweet.md"
+      log_ok "bird thread fallback fetch succeeded"
+    else
+      log_warn "bird thread also failed — falling back to Claude Opus web search"
+      WEB_ONLY_PROMPT="Search the web for this tweet and return its COMPLETE content. You MUST include:
 - The author's @handle (e.g. @PawelHuryn) — check x.com or search results for this
 - The tweet date (YYYY-MM-DD format)
 - The full tweet text (all parts if it is a thread)
@@ -648,11 +660,14 @@ Tweet URL: $TWEET_URL
 Output in this format:
 @<handle> — <YYYY-MM-DD>
 <full tweet text>"
-    if WEB_FETCH_OUT=$("$SAFE_SEARCH" -m gemini-2.5-flash -t 120 "$WEB_ONLY_PROMPT" 2>/dev/null) && [ -n "$WEB_FETCH_OUT" ]; then
-      echo "$WEB_FETCH_OUT" > "$WORK_DIR/source-tweet.md"
-      log_ok "Web-search fallback fetch succeeded"
-    else
-      log_warn "Web-search fallback also failed — proceeding with partial content"
+      OPUS_WEB_OUT=$(claude -p --model opus --permission-mode bypassPermissions \
+        --allowedTools WebFetch,WebSearch "$WEB_ONLY_PROMPT" 2>/dev/null || true)
+      if [ -n "$OPUS_WEB_OUT" ]; then
+        echo "$OPUS_WEB_OUT" > "$WORK_DIR/source-tweet.md"
+        log_ok "Claude Opus web-search fallback fetch succeeded"
+      else
+        log_warn "All fallbacks failed — proceeding with partial content"
+      fi
     fi
   fi
 
