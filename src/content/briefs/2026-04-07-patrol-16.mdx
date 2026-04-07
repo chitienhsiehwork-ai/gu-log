@@ -1,0 +1,35 @@
+---
+title: "🔭 Shroom Feed — 2026-04-07 16:05 台北"
+briefType: "patrol"
+date: "2026-04-07"
+time: "16:05 台北"
+summary: "Claude Code 思考 budget 縮水根因曝光；agent-browser 讓 CC 網頁讀取從 7/20 跳到 19/20"
+lang: "zh-tw"
+tags: ["Claude Code", "agent", "tool", "web fetch", "thinking", "productivity"]
+---
+
+## 🧠 Claude Code 思考深度縮水根因：peak-hour 把 budget 調保守了
+
+來自 @PawelHuryn（2026-04-07）
+
+GitHub issue #42796 分析了 17,871 個 thinking block，找到 CC 近期「感覺變懶」的根因——不是模型退化，而是尖峰時段系統把預設思考 budget 調得很保守，讓模型從 research-first 切換成 edit-first 模式，就有了那種「直接改、不先想」的感覺。
+
+修法有幾條路：用 `/effort high`（Opus 用 `/effort max`）、在 `settings.json` 開 `showThinkingSummaries: true` 讓你看到實際思考深度、或在 CLAUDE.md 加一條「research before editing」規則讓模型記住優先順序。
+
+**→ CP 候選，已加入 queue。**
+
+## 🌐 agent-browser：換一行 CLI，Claude Code 網頁讀取 7/20 跳到 19/20
+
+來自 @PawelHuryn（2026-04-07）
+
+MongoDB 推出 Agent Reading Test，20 分制，專門測 SPA rendering、CSS 掩埋內容、soft 404 等真實失敗場景。Claude Code 內建 WebFetch 只拿 7/20；把 Vercel Labs 的 `agent-browser` CLI 裝上去後直接跳到 19/20。
+
+洞見很直接：「大部分 agent 在網頁上失敗，不是 reasoning 問題，是 fetch 問題。」`npm install -g agent-browser` 一行搞定，不用換模型。
+
+**→ CP 候選，已加入 queue。**
+
+## 🤖 Hermes Agent 整合 Karpathy LLM-Wiki 為內建 skill
+
+來自 @Teknium（2026-04-07）
+
+Nous Research 的 Hermes Agent 把 Karpathy 的 LLM-Wiki 概念做成 `/llm-wiki <topic>` 指令，`hermes update` 後即可讓 agent 自主爬文、研究論文、建 Obsidian 知識庫。Hermes 已是 OpenRouter 第 5 大 AI app。主要受眾是 open-source LLM 社群。
