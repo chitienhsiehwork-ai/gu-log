@@ -1,0 +1,147 @@
+---
+ticketId: "SP-164"
+title: "He Used Claude Code to Apply for 700+ Jobs — And Actually Got Hired. Here's What That Means."
+originalDate: "2026-04-05"
+translatedDate: "2026-04-07"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "OpenClaw"
+source: "@Hesamation on X"
+sourceUrl: "https://x.com/Hesamation/status/2040820834428658008"
+lang: "en"
+summary: "Santiago built career-ops — a full job search command center powered by Claude Code. He evaluated 740+ listings, generated 100+ custom CVs, and landed a Head of Applied AI role. But the community's reaction reveals a deeper question: when AI runs on both sides of the hiring process, how long before the whole system collapses?"
+tags: ["shroom-picks", "claude-code", "ai-tools", "job-search", "automation", "open-source"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+A tweet went viral on X: someone built a complete AI job search system using Claude Code, fired off 700+ applications, and actually landed a job.
+
+24,000 likes. 1,800 retweets. 300+ replies. But the most interesting part isn't the tool itself — it's the philosophical war raging in the replies.
+
+---
+
+## First, the Tool: What Is career-ops?
+
+Santiago (@santifer) isn't backed by some big engineering team. He's just a person who was looking for a job. He turned Claude Code into a full job search command center called **career-ops**.
+
+This isn't a "let me tweak your resume" kind of tool. This is an entire production line.
+
+career-ops has **14 operational modes**, each handling a different part of the job search pipeline: paste a job URL, and the system automatically evaluates whether the role is a good fit (using a 10-dimension A-F scoring system), generates an ATS-optimized resume tailored to that specific listing (rendered to PDF via Playwright), and tracks the application status. End-to-end automation, from discovering a job to submitting an application.
+
+<ClawdNote>
+Just the "14 modes" alone is wild — scan, evaluate, pdf, batch, tracker, apply, deep research, LinkedIn outreach... This isn't a side project. It's an entire SaaS feature set crammed into a CLI tool, all wired together through Claude Code's custom slash commands.
+</ClawdNote>
+
+A few standout design choices worth noting:
+
+**6-Block Evaluation** — Not a simple "80% match score." The system generates six blocks of analysis: role summary, CV match assessment, seniority strategy, compensation research, personalization tips, and interview prep (using the STAR+R framework). Each evaluation feeds stories into an Interview Story Bank — after enough runs, there are 5-10 master stories ready for any behavioral question.
+
+**Batch Processing** — Uses `claude -p` to spin up multiple workers in parallel, conductor-worker architecture. Santiago tested processing 10+ listings at once.
+
+**Portal Scanner** — 45+ companies pre-configured (Anthropic, OpenAI, ElevenLabs, Retool, n8n, and more), scanning across Greenhouse, Ashby, Lever, and other major ATS platforms for new openings.
+
+**Go TUI Dashboard** — A terminal UI built with Bubble Tea + Lipgloss in a Catppuccin Mocha theme. Browsing, filtering, and sorting the entire job pipeline without leaving the terminal.
+
+<ClawdNote>
+Santiago's tech stack choices are telling: Claude Code for reasoning and evaluation, Playwright for web automation and PDF rendering, Go for the dashboard. Three languages, three tools — each picked because it's the best fit for that particular job. That kind of "right tool for the right job" judgment might be more valuable than the tool itself.
+</ClawdNote>
+
+---
+
+## The Scoreboard: 740+ Evaluations, 100+ Custom CVs, One Head of Applied AI Offer
+
+Santiago didn't just build a demo and hype it on X. According to his case study, as of March 2026, career-ops has real numbers:
+
+- **631 job evaluations completed**
+- **302 applications processed**
+- **68 applications actually submitted**
+- **100+ customized PDF resumes generated**
+- Final result: **Head of Applied AI** offer accepted
+
+From 740+ scanned listings down to 68 submissions — that funnel ratio (about 9%) reveals something important: career-ops isn't about "apply to more jobs." It's about "filter more aggressively."
+
+Santiago emphasizes this in the README: **"This is NOT a spray-and-pray tool."** The system actively recommends against applying to anything scoring below 4.0/5. It's a filter, not a firehose.
+
+<ClawdNote>
+Here's the counterintuitive bit: most people assume AI job tools are about "applying to more." But Santiago's design philosophy is the opposite — the value is in "applying to fewer, but better." 740 scanned, 68 submitted, higher hit rate. That mindset shift might matter more than any tool.
+</ClawdNote>
+
+---
+
+## Human-in-the-Loop: The AI Never Clicks "Submit"
+
+career-ops has one crucial design principle: **the system never submits an application automatically.**
+
+AI handles the analysis, evaluation, material preparation, even form-filling — but the final submit button is always pressed by a human. Santiago repeats this point throughout the documentation.
+
+This isn't just a feature limitation. It's a design philosophy. In an era where everything is racing toward full automation, deliberately preserving human final authority is a choice worth noticing.
+
+---
+
+## The Philosophical Battlefield in the Replies
+
+The tool is cool. But what's happening in the X replies is even more worth reading. Over 300 replies paint a vivid picture of where AI job searching is heading.
+
+### The "Beautiful Loop" Camp
+
+> "we automated ourselves into needing 700 applications to get one job and then automated the 700 applications. Beautiful loop honestly"
+> — @VladGersh
+
+> "we live in a timeline where AI applies to 700 jobs for you and the recruiter on the other end is using AI to screen your AI-written resume. at some point two AIs are just gonna negotiate a salary and cc the humans on the offer letter"
+> — @adshotco
+
+These two replies resonated the most. They point at an absurd cycle: the job market becomes increasingly dehumanized by ATS and auto-screening, forcing applicants to submit more applications to get noticed → someone builds tools to automate the submissions → the hiring side deploys stronger AI to filter → even more applications needed...
+
+<ClawdNote>
+That line from @adshotco — "two AIs are just gonna negotiate a salary and cc the humans on the offer letter" — sounds like a joke. But seriously, how far away are we? The applicant side has career-ops. The hiring side has AI screening. Interviews have AI mock prep. Both sides of the entire pipeline are automating. Humans are increasingly just... signing off on what the AIs already agreed on.
+</ClawdNote>
+
+### The "Does This Actually Work?" Camp
+
+Someone who actually tried career-ops offered a very sober assessment:
+
+> "Tried it. Not to hate, but it feels like the same pattern as a lot of AI tools right now: flashy, comprehensive, and ultimately not that useful. Web fetch/search barely works. Resume/CV generation is mediocre at best. No real auto-apply, so there's still a ton of manual work."
+> — @mir_ow
+
+"Flashy, comprehensive, and ultimately not that useful" — those nine words might be the most accurate AI tool review of 2026. So many AI projects share this pattern: dazzling demos, thorough READMEs, but actual usage... well.
+
+### The Recruiter's Warning
+
+> "This is a terrible idea without harnesses. As someone who hires for several engineering roles, when your titles or resumes are changed significantly such as titles etc it's red and yellow flagged on most popular platforms (such as greenhouse)"
+> — @JohnHilarious
+
+This hiring-side perspective is crucial. Modern ATS systems like Greenhouse cross-reference applicant data across platforms — if LinkedIn says "Senior Engineer" but the submitted resume says "Staff Engineer," the system auto-flags it. AI-customized resumes that change too much can actually trigger anti-fraud mechanisms.
+
+### The "This Kills the System" Camp
+
+> "Now these recruiters are going to use an AI to attempt to combat this. It misfires by non-determinism, human applicants are rejected as well. Will rely on automated system, full loop. No one gets hired. That kills the job."
+> — @weedeej
+
+The bleakest prediction: AI job tools → AI countermeasures → false positives reject real humans → nobody gets hired → the job ceases to exist. Sounds absurd, but every single step in that chain is logically sound.
+
+---
+
+## The Real Question Isn't Whether the Tool Works
+
+Is career-ops a good tool? Maybe. Santiago did land a job using it. But someone who actually tried it says the experience is mediocre. Both things can be true — Santiago invested serious time tuning the system ("The first evaluations won't be great. Feed it context"), while most people won't put in that effort.
+
+But what career-ops truly reveals isn't about whether AI job tools work.
+
+**The real question is: why does finding a job require evaluating 740 listings in the first place?**
+
+Before ATS existed, submitting a resume meant something — a human would read it. After ATS arrived, resumes got machine-screened first, so keyword optimization became necessary. Then AI entered from both sides — application and screening simultaneously automated, submission volumes exploded, screening got stricter, requiring even more applications...
+
+Santiago isn't solving the problem. Santiago found a temporary workaround in a broken system. The very existence of career-ops is the strongest evidence: **the job search system is broken.**
+
+---
+
+## Final Thought
+
+Santiago's career-ops is open source ([GitHub](https://github.com/santifer/career-ops)) — anyone can use it, fork it, improve it. As an advanced Claude Code application, it demonstrates what's possible when AI agents become personal automation platforms — 14 modes, multi-agent batch processing, structured scoring systems. These design patterns go far beyond "help me write a resume."
+
+But the next time someone asks "can AI help with job searching?" — maybe the better question is: **why has job searching become something that needs AI to be manageable?**
+
+As @adshotco put it — maybe one day, two AIs will negotiate the salary and just cc the humans for signatures.
+
+That day might not be as far off as it seems.

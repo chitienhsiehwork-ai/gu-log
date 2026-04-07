@@ -1,0 +1,154 @@
+---
+ticketId: "SP-164"
+title: "他用 Claude Code 投了 700 份履歷，然後真的找到工作了 — AI 求職軍備競賽全解析"
+originalDate: "2026-04-05"
+translatedDate: "2026-04-07"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "OpenClaw"
+source: "@Hesamation on X"
+sourceUrl: "https://x.com/Hesamation/status/2040820834428658008"
+lang: "zh-tw"
+summary: "Santiago 打造了 career-ops — 一個用 Claude Code 驅動的完整求職 command center，評估了 740+ 職缺、產出 100+ 客製履歷，最後拿到 Head of Applied AI。但社群的反應揭露了一個更深的問題：當 AI 在兩端同時運作，整個求職系統還能撐多久？"
+tags: ["shroom-picks", "claude-code", "ai-tools", "job-search", "automation", "open-source"]
+scores:
+  ralph:
+    p: 6
+    c: 5
+    v: 7
+    date: "2026-04-07"
+    model: "claude-opus-4-6"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+一則推文在 X 上炸開：有人用 Claude Code 打造了一套完整的 AI 求職系統，投了 700 多份申請，然後真的拿到 offer 了。
+
+24,000 個愛心、1,800 次轉推、300 多則回覆 — 但最有趣的不是這套工具本身。最有趣的是回覆區裡正在上演的一場哲學戰爭。
+
+---
+
+## 先看東西：career-ops 到底是什麼
+
+Santiago（@santifer）不是什麼大公司的工程師團隊，就是一個在找工作的人。他把 Claude Code 改造成了一個完整的求職 command center，叫做 **career-ops**。
+
+這不是那種「幫忙改改履歷」的小工具。這是一整條產線。
+
+career-ops 有 **14 種操作模式**，每一種對應求職流程的一個環節：貼一個職缺 URL 進去，系統會自動評估這份工作適不適合（用 10 個維度的 A-F 評分系統）、自動產生一份針對該職缺優化的 ATS 履歷（用 Playwright 渲染成 PDF）、自動追蹤申請進度。整套流程一條龍，從發現職缺到送出申請，中間幾乎不需要手動操作。
+
+<ClawdNote>
+光「14 種模式」就夠嚇人了 — scan、evaluate、pdf、batch、tracker、apply、deep research、LinkedIn outreach... 這不是一個 side project，這是一整個 SaaS 的 feature set 被塞進了一個 CLI 工具裡。而且全部都是靠 Claude Code 的 custom slash commands 串起來的。
+</ClawdNote>
+
+幾個特別值得注意的設計：
+
+**6-Block Evaluation** — 不是簡單的「這份工作適合度 80%」。系統會產出六大區塊的分析：角色摘要、履歷匹配度、職級策略、薪資研究、個人化建議、面試準備（用 STAR+R 框架）。每次評估都會累積面試故事到一個 Story Bank 裡，跑久了之後，就有 5-10 個萬用故事可以應付任何 behavioral question。
+
+**Batch Processing** — 用 `claude -p` 開多個 worker 平行處理，conductor-worker 架構。Santiago 實測一次可以平行評估 10+ 份職缺。
+
+**Portal Scanner** — 預先設定了 45+ 家公司的招聘頁面（Anthropic、OpenAI、ElevenLabs、Retool、n8n 等等），跨 Greenhouse、Ashby、Lever 等主流 ATS 平台掃描新職缺。
+
+**Go TUI Dashboard** — 用 Bubble Tea + Lipgloss 做的 terminal UI，Catppuccin Mocha 主題。可以瀏覽、篩選、排序整個求職 pipeline。
+
+<ClawdNote>
+Santiago 的 tech stack 選擇很有意思：Claude Code 做推理和評估、Playwright 做網頁自動化和 PDF 渲染、Go 做 dashboard。三種語言三種工具，每個都選了最適合那件事的。這種「什麼工具做什麼事」的判斷力，可能比工具本身更值得學。
+</ClawdNote>
+
+---
+
+## 戰績：740+ 評估、100+ 客製 CV、一個 Head of Applied AI
+
+Santiago 不是做了個 demo 就上 X 吹。根據他的 case study，截至 2026 年 3 月，career-ops 實際跑出的成績是：
+
+- **631 次職缺評估**
+- **302 份申請處理**
+- **68 份正式送出的申請**
+- **100+ 份客製化 PDF 履歷**
+- 最終結果：拿到 **Head of Applied AI** 的 offer
+
+從 740+ 份掃描到的職缺，篩選到 68 份實際送出 — 這個漏斗比率（約 9%）其實說明了一件事：career-ops 的核心不是「幫助大量投遞」，而是「幫助大量過濾」。
+
+Santiago 在 README 裡特別強調：**「This is NOT a spray-and-pray tool.」** 系統會強烈建議不要申請任何低於 4.0/5 分的職缺。這不是海投工具，是一個幫忙從數百個機會中找到那幾個值得投的 filter。
+
+<ClawdNote>
+這裡有個反直覺的點：大部分人覺得 AI 求職工具的價值是「投更多」。但 Santiago 的設計哲學剛好相反 — 價值在「投更少但更精準」。740 個看過，只投 68 個，命中率反而更高。這個 mindset shift 可能比任何工具都重要。
+</ClawdNote>
+
+---
+
+## Human-in-the-Loop：AI 不會幫按下「送出申請」
+
+career-ops 有一個很重要的設計原則：**系統永遠不會自動送出申請**。
+
+AI 負責的是分析、評估、準備材料、甚至填寫表單 — 但最後按下 submit 的那一刻，永遠是人。Santiago 在文件裡反覆強調這一點。
+
+這不只是功能限制，更是一種設計哲學。在一個所有東西都在走向全自動的時代，刻意保留人類的最終決定權 — 這個選擇本身就很有意思。
+
+---
+
+## 回覆區的哲學戰場
+
+工具本身很酷，但 X 回覆區發生的事更值得看。300 多則回覆裡，上演了一場關於 AI 求職未來的激烈辯論。
+
+### 「Beautiful Loop」派
+
+> "we automated ourselves into needing 700 applications to get one job and then automated the 700 applications. Beautiful loop honestly"
+> — @VladGersh
+
+> "we live in a timeline where AI applies to 700 jobs for you and the recruiter on the other end is using AI to screen your AI-written resume. at some point two AIs are just gonna negotiate a salary and cc the humans on the offer letter"
+> — @adshotco
+
+這兩則回覆拿到了最多共鳴。它們指出了一個荒謬的循環：求職市場因為 ATS 和自動篩選變得越來越不人性化，迫使求職者需要投更多申請才能得到回音 → 於是有人做了工具自動化投遞 → 招聘端會用更強的 AI 來篩選 → 又需要更多申請... 
+
+<ClawdNote>
+@adshotco 那句「two AIs are just gonna negotiate a salary and cc the humans on the offer letter」聽起來像玩笑，但仔細想想，距離這個未來到底還有多遠？求職端有 career-ops，招聘端有 AI screening，面試有 AI mock interview。整條 pipeline 兩邊都在自動化，人類越來越像是在簽核 AI 已經談好的交易。
+</ClawdNote>
+
+### 「這東西真的有用嗎」派
+
+有人實際試用了 career-ops，給了一個非常清醒的評價：
+
+> "Tried it. Not to hate, but it feels like the same pattern as a lot of AI tools right now: flashy, comprehensive, and ultimately not that useful. Web fetch/search barely works. Resume/CV generation is mediocre at best. No real auto-apply, so there's still a ton of manual work. The job scan surfaces stale listings from weeks ago, and some links are dead."
+> — @mir_ow
+
+「Flashy, comprehensive, and ultimately not that useful」— 這九個字可能是 2026 年最精準的 AI 工具評語。很多 AI 專案都有這個問題：demo 很驚豔，README 寫得很完整，但實際用起來... 嗯。
+
+### 招聘端的警告
+
+> "This is a terrible idea without harnesses. As someone who hires for several engineering roles, when your titles or resumes are changed significantly such as titles etc it's red and yellow flagged on most popular platforms (such as greenhouse)"
+> — @JohnHilarious
+
+這個來自招聘端的觀點很重要。現代 ATS 系統（像 Greenhouse）會交叉比對求職者在不同平台上的資料 — 如果 LinkedIn 上的 title 是 Senior Engineer，但投過來的履歷寫 Staff Engineer，系統會自動標紅旗。AI 客製化履歷如果改得太多，反而會觸發反作弊機制。
+
+### 「這會摧毀整個體系」派
+
+> "Now these recruiters are going to use an AI to attempt to combat this. It misfires by non-determinism, human applicants are rejected as well. Will rely on automated system, full loop. No one gets hired. That kills the job."
+> — @weedeej
+
+最悲觀的預測：AI 求職工具 → AI 反制工具 → 誤殺真人求職者 → 沒有人被錄取 → 工作消失。聽起來荒謬，但每一步的邏輯都站得住腳。
+
+---
+
+## 真正的問題不是工具好不好用
+
+career-ops 是不是一個好工具？也許。Santiago 確實用它找到了工作。但實際試用的人說體驗不怎麼樣。這兩件事可能同時為真 — Santiago 花了大量時間調教這套系統（「The first evaluations won't be great. Feed it context — your CV, your career story, your proof points」），而大多數人不會投入那個時間。
+
+但 career-ops 真正揭示的，不是 AI 求職工具好不好用的問題。
+
+**真正的問題是：為什麼找一份工作需要評估 740 個職缺？**
+
+在 ATS 出現之前，投一份履歷是有意義的 — 有人會讀。ATS 出現後，履歷先被機器篩，所以需要 keyword optimization。然後 AI 來了，申請端和篩選端同時自動化，投遞量爆炸，篩選更嚴格，又需要投更多... 
+
+Santiago 不是在解決問題。Santiago 是在一個壞掉的系統裡找到了一個暫時能用的 workaround。career-ops 的存在本身，就是最好的證據：**求職系統壞了** (╯°□°)╯
+
+---
+
+## 結語
+
+Santiago 的 career-ops 已經 open source（[GitHub](https://github.com/santifer/career-ops)），任何人都可以拿去用、拿去改。作為一個 Claude Code 的進階應用案例，它展示了把 AI agent 當作個人自動化平台的可能性 — 14 種模式、multi-agent batch processing、結構化評分系統，這些設計模式遠超過「幫忙寫履歷」的層次。
+
+但下次有人問「AI 能不能幫忙找工作？」的時候，也許更好的問題是：**為什麼找工作變成了一件需要 AI 幫忙才能完成的事？**
+
+@adshotco 說得好 — 也許有一天，兩個 AI 談完薪水，cc 人類簽名就好了。
+
+那一天可能沒有想像中那麼遠。
