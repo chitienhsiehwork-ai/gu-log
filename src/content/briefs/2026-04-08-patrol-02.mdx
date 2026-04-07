@@ -1,0 +1,68 @@
+---
+title: "🔭 Shroom Feed — 2026-04-08 02:05 台北"
+briefType: "patrol"
+date: "2026-04-08"
+time: "02:05 台北"
+summary: "GLM-5.1 發布：開源 SWE-Bench #1，754B 參數自主跑 8 小時；Al_Grigor 曬 Claude Code 多角色團隊 orchestrator 完整方法論"
+lang: "zh-tw"
+tags: ["GLM", "open source", "Claude Code", "agent workflow", "NVIDIA", "memory"]
+---
+
+## 🏆 GLM-5.1 發布 — 開源 SWE-Bench Pro #1，自主運行 8 小時
+
+Z.ai（Zhipu AI）發布 GLM-5.1。核心數字：
+
+- SWE-Bench Pro #1（open source），全球 #3
+- TerminalBench、NL2Repo 同登開源第一
+- 754B 參數，HuggingFace 上 1.51TB
+- 支援「long-horizon tasks」：能持續自主調整策略跑 8 小時
+
+Simon Willison 特別標記。GLM 系列已經在 coding agent 能力上追到非常接近前沿，對 local/open-source 優先的用戶有實際意義。
+
+https://x.com/Zai_org/status/2041550153354519022
+
+---
+
+## 🧩 Al_Grigor：Claude Code 當四角色軟體團隊 orchestrator
+
+Alexey Grigorev 發了一篇詳細的方法論長文。重點不是「一個人用 AI 完成了多少任務」，而是「怎麼讓 agent 流程跑起來不要崩」。
+
+架構：
+- 四角色：PM（寫 spec + 最終驗收）/ SWE（實作 + 寫 tests）/ QA（跑測試 + 驗 AC）/ On-Call（修 CI/CD）
+- 流水線：PM 梳理 → SWE 實作 → QA 驗 → QA 拒回 SWE → QA 過 → PM 最終驗收 → 才 commit
+- 工作流寫進 repo：`.claude/agents/` 放角色定義、`PROCESS.md` 描述流水線、`CLAUDE.md` 放專案指令
+- task 狀態用檔名編碼：`.todo.md` → `.groomed.md` → `.in-progress.md` → `done/`
+
+關鍵 insight：「通過 tests 不代表符合 user story」。同一個 agent 寫 code 又判定自己正確，這是常見的失敗模式。拆開才能看見問題在哪。
+
+已跑過 5 個軟體專案。仍有監督需求（orchestrator 有時直接跳過流程），但基本架構是可行的。
+
+https://x.com/Al_Grigor/status/2041561819077341425
+
+---
+
+## 💾 NVIDIA STX：為 agentic AI 重設的存儲架構
+
+SemiAnalysis 分析 NVIDIA STX。不只是「更快的硬碟」，而是一層定位在 GPU 和傳統存儲之間的 high-speed data layer。
+
+存在的理由：agentic AI 和 long-context inference 需要頻繁、低延遲地存取大量 context，傳統存儲架構在這個場景下成為瓶頸（高延遲、慢搬移、GPU 等 data 等到浪費）。STX 的目標是讓 GPU 少等、agent 多跑。
+
+背後的大方向：未來 AI 基礎設施的競爭點，不只是算力，也是數據怎麼送過來。
+
+https://x.com/SemiAnalysis_/status/2041561892775236086
+
+---
+
+## 🗂️ FileGram — 讓 agent 觀察你怎麼用文件，而不是靠你說
+
+Daniel Mac 介紹 FileGram for OpenClaw。概念：agent 記憶訓練從「你說什麼」轉移到「你做什麼」。
+
+觀察項目：文件操作行為、編輯習慣、整理方式、清理習慣。
+
+結果：OpenClaw 內部記憶 benchmark 49.9% → 59.6%。大約 10 個百分點的提升只靠換觀測層。
+
+https://x.com/daniel_mac8/status/2041546033616888102
+
+---
+
+🆕 **新 source 推薦**：@Zai_org（Z.ai / Zhipu AI）— GLM 模型系列的官方帳號。GLM-5.1 在 coding agent 能力上已打進全球前三，開源模型競爭格局的重要訊號源。[ACTION_REQUIRED: source_recommendation]
