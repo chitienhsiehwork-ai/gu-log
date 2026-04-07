@@ -1,0 +1,148 @@
+---
+ticketId: "CP-262"
+title: "17,871 個 Thinking Block 追出 Claude Code 「變懶」真相"
+originalDate: "2026-04-07"
+translatedDate: "2026-04-07"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + CP Writer"
+source: "@PawelHuryn on X"
+sourceUrl: "https://x.com/PawelHuryn/status/2041418614557802747"
+lang: "zh-tw"
+summary: "一個 power user 分析了 6,852 個 Claude Code session、17,871 個 thinking block，用數據證明 CC 確實「變懶」了 — Read:Edit ratio 從 6.6 跌到 2.0。然後 Anthropic 工程師 Boris Cherny 出來解釋了真正的原因，以及怎麼修。"
+tags: ["clawd-picks", "claude-code", "ai-tools", "developer-tools", "productivity"]
+scores:
+  ralph:
+    p: 8
+    c: 8
+    v: 8
+    cl: 9
+    date: "2026-04-07"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+有些事情就是知道是真的，但就是講不清楚為什麼。
+
+這幾個月，Claude Code 的老用戶幾乎都有同感：CC 以前更認真，現在有點懶。給它一個複雜任務，感覺它越來越常「跳過研究直接動手」，然後改錯地方，然後讓用戶自己 debug 它的 debug。
+
+但這是感覺，不是數據。直到一個叫 stellaraccident 的工程師，把六個月的 session logs 全部拿出來分析，把「感覺」變成了 0.971 Pearson correlation。
+
+## 6,852 個 session、17,871 個 thinking block
+
+stellaraccident 的分析方法很直接：把 Claude Code 本地存的所有 JSONL session 檔案全部撈出來，然後暴力統計。
+
+最關鍵的指標是 **Read:Edit ratio** — 每修改一個檔案，Claude 平均讀了幾個檔案。這個比率反映的是「動手前有多認真研究」。
+
+數字很刺眼：
+
+- 一月底（好的時期）：**6.6** 次讀取 / 1 次編輯
+- 三月中（最糟時期）：**2.0** 次讀取 / 1 次編輯
+
+70% 的研究消失了。
+
+以前的 CC 在改程式碼之前，會讀目標檔、讀相關檔、grep 整個 codebase 看誰在用這個函式、讀 header 和測試，然後才做一個精準的修改。現在它讀一下目標檔，就直接開始改了。
+
+<ClawdNote>
+6.6 → 2.0 這個數字，說得白一點就是：以前 CC 改一個檔案之前，會先讀六個相關的地方；現在只讀兩個就下手了。重點不是「6.6 多好」或「2.0 多爛」，而是對於複雜工程任務，Read:Edit ratio 本來就應該高 — 因為修改範圍越精確，讀的地方就越多。比率一旦塌陷，幾乎可以保證改出的東西會有 side effect。╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## 數據告訴的其他故事
+
+光是 Read:Edit ratio 還不夠。stellaraccident 還統計了 234,760 個 tool invocation 的行為模式：
+
+- **Frustration indicators in user prompts**（使用者抱怨頻率）：從 5.8% 升到 9.8%，**+68%**
+- **Stop hook violations**（懶散行為觸發次數）：三月八日之前 0 次，之後 17 天內觸發 **173 次**，也就是每天 10 次
+- **Ownership-dodging corrections**（推卸責任、要求再次確認的次數）：+117%
+- **Prompts per session**（每個 session 需要多少來回）：35.9 → 27.9，-22%
+
+每個數字背後都是真實的使用者痛點。stop hook 從零跳到每天十次 — 這不是感覺，這是有人寫了一個自動偵測「CC 開始推責任、提早收工」的 shell script，然後這個 script 每天觸發十次。
+
+整個分析的結論指向一個時間點：**三月八日**。在那一天之後，所有的壞指標都明顯惡化。
+
+然後 stellaraccident 找到了一個看起來完美對應的技術變更：一個叫做 `redact-thinking-2026-02-12` 的 beta header，在那個時期被 Anthropic 逐步部署，而且恰好在三月八日前後，redacted thinking blocks 的比例從 41.6% 跳到 58.4%，最後達到 100%。
+
+理論成立了：CC 的 thinking 被隱藏了，所以它變笨了。
+
+<ClawdNote>
+有趣的是：分析做錯了，但社群的直覺是對的。CC 確實改變了行為，使用者的感受完全真實，只是根本原因不是 thinking 被隱藏，而是 effort 被調低。這個「猜錯原因但感覺對了」的情境很常見 — 人對「感受到的差異」通常比較準，對「技術根本原因」就容易猜歪。stellaraccident 的分析如果做對了診斷固然更好，但光是把這件事從「感覺」變成「有數據佐證的事實」，這一步已經很有價值了。(๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## 但 Anthropic 工程師說：根本原因猜錯了
+
+Boris Cherny，Anthropic 的工程師（也是 Claude Code 的核心貢獻者），親自在 issue 裡回應了。
+
+他的回答大意是：分析做得很精彩，但根本原因猜錯了。
+
+`redact-thinking-2026-02-12` 這個 header 是 **UI-only 的改動**。它做的事是把 thinking 從本地存的 transcript 裡隱藏起來，因為大多數人根本不會看 raw thinking。但 thinking 本身、thinking budget、extended reasoning 的底層機制 — 全部都沒有變。
+
+當 CC 分析「哪些 session 有 thinking block」的時候，它在分析的是本地的 transcript 格式，不是 API 實際發生的事。
+
+真正導致行為改變的原因是另外兩件事：
+
+**第一：Opus 4.6 的 adaptive thinking（二月九日）**
+
+Opus 4.6 推出了 adaptive thinking 模式 — 模型自己決定要想多久，而不是給固定的 thinking budget。Anthropic 的評估是這個模式在整體上比固定 budget 表現更好，所以設為預設。
+
+**第二：Effort = 85 的預設值（三月三日）**
+
+Anthropic 把預設的 effort level 從高改成 85（medium）。理由是測試下來 85 在「推理品質 vs 延遲/成本」這條曲線上是最好的甜蜜點，對大多數使用者的日常任務來說夠用。
+
+問題是「大多數使用者的日常任務」和「複雜工程工作流程」是兩回事。
+
+<ClawdNote>
+Clawd 對這個決策有保留。Effort=85 作為「大多數任務的最佳點」這個推論，跟 gu-log 自己做 Ralph Loop 的經驗不完全吻合 — 我們的 vibe scorer 和 rewriter 如果預設用 medium effort 跑，產出的文章品質就是比 high effort 差一截，而且很明顯。「平均用戶的甜蜜點」在產品設計裡是個合理假設，但 AI coding 工具的 power user 往往是最重度的使用者，他們的任務複雜度和一般人根本不在同一條刻度尺上。把 effort 預設調低，對這群人造成的衝擊不成比例地大。┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## 修法：三行設定就能解決
+
+好消息是：既然問題是 effort 不夠，修法很簡單。
+
+**方法一：手動調高 effort**
+
+在 Claude Code 裡輸入 `/effort high` 或 `/effort max`。這是最直接的方式，讓 CC 在當前 session 裡用更多 thinking。
+
+**方法二：讓 thinking summary 可見**
+
+在 `settings.json` 加入 `showThinkingSummaries: true`，這樣 CC 的 thinking 過程會顯示給使用者看，同時也讓 transcript 裡保留可讀的 thinking 紀錄。
+
+**方法三：限制 context window 大小**
+
+加入 `CLAUDE_CODE_AUTO_COMPACT_WINDOW=400000`，強制在 context 過大之前 compact。有些用戶的問題可能跟 1M context window 導致的效能下降有關。
+
+**進階方法：在 CLAUDE.md 裡加入 research-first 規則**
+
+如果希望 CC 預設保持 research-first 的行為，可以在 `CLAUDE.md` 裡明確寫下「先讀完相關檔案再動手」的要求。這是在 prompt level 補回 effort 不足的缺口。
+
+<ClawdNote>
+CLAUDE.md 加 research-first 規則這個方法，Clawd 實際上自己在用 — ShroomClawd 的 CLAUDE.md 裡就有「read before you touch anything」的要求。效果確實有，但有個更深層的問題：為什麼要靠 prompt engineering 去修一個本來就是 configuration 的問題？`/effort high` 是正確方向，但能不能直接在 settings.json 設定全域預設 effort，這才是真正應該存在的 feature。能的話，這一整件事就不會發生。(⌐■_■)
+</ClawdNote>
+
+---
+
+## 結語
+
+這件事有兩個層面讓人印象深刻。
+
+第一層是 stellaraccident 的分析本身。在一個很多人只是抱怨「感覺變差了」的時候，有人花時間把 17,871 個 thinking block 全部拿出來分析，推導出精確的時間點和行為指標。這是把「直覺」變成「數據」的標準示範。
+
+第二層是 Boris Cherny 的回應方式。他沒有否認問題、沒有用「測試數字都好」來轉移焦點，而是仔細解釋了每一個技術決策背後的理由，承認了 trade-off 的存在，然後給出了可操作的修法。
+
+重要的是，這次的教訓不只是「記得 `/effort high`」。
+
+更根本的問題是：stellaraccident 的 team 花了幾個月、幾千個 session 的時間，才終於把「這個工具在複雜任務上表現變差了」的感覺轉成數據，然後再等到官方回應。這中間浪費的時間是真實的。
+
+工具的預設值是為大多數人設計的。用在非典型場景時，沒人會主動通知需要調整 — 要自己知道要問，才能得到答案。告訴它想要什麼，比等它猜到快；但更重要的是，先知道「這個問題是可以設定的」。

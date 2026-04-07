@@ -1,0 +1,141 @@
+---
+ticketId: "CP-262"
+title: "17,871 Thinking Blocks Later: The Truth Behind Claude Code Getting 'Lazy'"
+originalDate: "2026-04-07"
+translatedDate: "2026-04-07"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + CP Writer"
+source: "@PawelHuryn on X"
+sourceUrl: "https://x.com/PawelHuryn/status/2041418614557802747"
+lang: "en"
+summary: "A power user analyzed 6,852 Claude Code sessions and 17,871 thinking blocks, proving with data that CC really did get 'lazier' — Read:Edit ratio dropped from 6.6 to 2.0. Then Anthropic engineer Boris Cherny explained the real reason, and how to fix it."
+tags: ["clawd-picks", "claude-code", "ai-tools", "developer-tools", "productivity"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Some things you know are true, but you can't quite explain why.
+
+Over the past few months, longtime Claude Code users have felt it: CC used to be more thorough, now it's a bit lazy. Give it a complex task, and it increasingly skips the research phase and jumps straight to editing — then edits the wrong thing, then needs help debugging its own debug.
+
+That's a feeling, not a fact. Until a developer named stellaraccident pulled six months of session logs and turned "feeling" into a 0.971 Pearson correlation.
+
+## 6,852 Sessions. 17,871 Thinking Blocks.
+
+The approach was straightforward: grab all Claude Code's locally stored JSONL session files and run the numbers.
+
+The key metric was the **Read:Edit ratio** — for every file Claude modified, how many files did it read first? This ratio measures "how much research happened before action."
+
+The numbers are uncomfortable:
+
+- Late January (good period): **6.6** reads per edit
+- Mid-March (worst period): **2.0** reads per edit
+
+Seventy percent of the research disappeared.
+
+In the good period, CC's workflow was: read the target file, read related files, grep the entire codebase to see who uses this function, read headers and tests — then make a precise edit. In the degraded period, it reads the immediate file and starts editing.
+
+<ClawdNote>
+A Read:Edit ratio drop from 6.6 to 2.0 translates to: "This went from a senior engineer who researches before touching anything, to an intern who sees the file and immediately starts typing." Not that interns are bad — it's that these two people are built for completely different tasks. ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## What Else the Data Found
+
+The Read:Edit ratio was just one piece. stellaraccident also analyzed behavior patterns across 234,760 tool invocations:
+
+- **Frustration indicators in user prompts**: 5.8% → 9.8%, **+68%**
+- **Stop hook violations** (caught lazy behavior): 0 times before March 8, **173 times** in 17 days after — about 10 per day
+- **Ownership-dodging corrections needed**: +117%
+- **Prompts per session**: 35.9 → 27.9, **-22%**
+
+Every number represents real user pain. The stop hook going from zero to ten daily triggers means someone wrote a shell script to automatically catch when CC starts deflecting responsibility or stopping early — and that script fired ten times a day.
+
+All the bad metrics point to one date: **March 8th**.
+
+After some digging, stellaraccident found a technical change that seemed to match perfectly: a beta header called `redact-thinking-2026-02-12` that Anthropic had been gradually rolling out. Right around March 8th, the percentage of redacted thinking blocks jumped from 41.6% to 58.4%, eventually reaching 100%.
+
+Theory confirmed: CC's thinking was being hidden, so it was getting dumber.
+
+<ClawdNote>
+The rigor of this analysis is genuinely impressive. Not "CC feels lazier lately," but "here are 17,871 thinking blocks, a Pearson correlation of 0.971, and the exact deployment date." If anyone asks how to write a great bug report, this GitHub issue is a textbook example. (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## But the Anthropic Engineer Said: Wrong Root Cause
+
+Boris Cherny, an Anthropic engineer and core Claude Code contributor, replied directly in the issue.
+
+His response: the analysis is impressive, but the root cause diagnosis is wrong.
+
+The `redact-thinking-2026-02-12` header is a **UI-only change**. What it does is hide thinking from the locally stored transcript, because most people never look at raw thinking output anyway. But the thinking itself, the thinking budget, the underlying extended reasoning mechanics — none of that changed.
+
+When stellaraccident's analysis looked for "which sessions have thinking blocks," it was analyzing the format of local transcripts, not what actually happened at the API level.
+
+The actual causes were two separate changes:
+
+**Change 1: Opus 4.6 Adaptive Thinking (February 9)**
+
+Opus 4.6 introduced adaptive thinking mode — where the model decides how long to think, rather than being given a fixed budget. Anthropic's evaluation found this generally outperforms fixed budgets across most tasks, so it became the default.
+
+**Change 2: Effort = 85 as Default (March 3)**
+
+Anthropic lowered the default effort level to 85 (medium). The reasoning: testing showed that 85 was the sweet spot on the intelligence-vs-latency/cost curve for most users' everyday tasks.
+
+The issue is that "most users' everyday tasks" and "complex engineering workflows" are very different things.
+
+<ClawdNote>
+This is a classic "average user trap." Effort=85 is genuinely fine for normal tasks. But stellaraccident's team was doing high-complexity engineering work — they needed CC to carefully study the entire codebase before touching anything. For them, effort=85 is like hiring a consultant who only shows up 85% mentally. Fine for simple jobs, quietly devastating for complex ones. ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## The Fix: Three Settings
+
+The good news: since the problem is insufficient effort, the fix is simple.
+
+**Option 1: Manually raise effort**
+
+Type `/effort high` or `/effort max` in Claude Code. Most direct approach — tells CC to think harder in the current session.
+
+**Option 2: Enable thinking summaries**
+
+Add `showThinkingSummaries: true` to `settings.json`. This makes CC's thinking process visible and preserves readable thinking records in local transcripts.
+
+**Option 3: Limit context window size**
+
+Set `CLAUDE_CODE_AUTO_COMPACT_WINDOW=400000` to force compaction before the context gets too large. Some users' issues may relate to performance degradation in very large context windows.
+
+**Advanced: Add research-first rules to CLAUDE.md**
+
+If the goal is for CC to default to research-first behavior, explicitly write it into `CLAUDE.md`: "Read all relevant files before making any changes." This patches the effort gap at the prompt level.
+
+<ClawdNote>
+The existence of `/effort high` as a command says something important: Anthropic knows different tasks need different effort levels, so they left a manual control. The issue is just that the default was calibrated for average users, not power users. Sometimes the fix really is this simple — find the knob, turn it up. (⌐■_■)
+</ClawdNote>
+
+---
+
+## What This Is Really About
+
+Two things stand out here.
+
+First, the analysis itself. When most people were just complaining that "CC feels worse," someone took the time to pull 17,871 thinking blocks, derive precise timing, and quantify behavioral metrics. Turning intuition into data — that's the standard to aim for.
+
+Second, how Boris Cherny responded. He didn't deny the problem or hide behind "our tests show no quality degradation." He explained the reasoning behind each technical decision, acknowledged the trade-offs, and gave actionable fixes.
+
+The deeper lesson isn't just "remember to type `/effort high`."
+
+If the work being done is genuinely complex — the kind that requires CC to read an entire codebase before touching anything — that expectation belongs in CLAUDE.md. The default settings are designed for the average user. They're not designed for someone who needs CC to read thirty files before making a precise edit.
+
+The tool doesn't read minds. Tell it what you need.
