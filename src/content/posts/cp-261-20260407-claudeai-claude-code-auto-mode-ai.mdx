@@ -1,0 +1,151 @@
+---
+ticketId: "CP-261"
+title: "Claude Code Auto Mode — AI 終於學會自己看著辦了"
+originalDate: "2026-03-25"
+translatedDate: "2026-04-07"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "@claudeai on X"
+sourceUrl: "https://x.com/claudeai/status/2036503582166393240"
+lang: "zh-tw"
+summary: "Claude Code 新功能 Auto Mode：不再每個動作都要按 Approve，也不用開 YOLO 模式賭命。AI classifier 會即時判斷風險，低風險自動放行，高風險才問人。終於有中間選項了。"
+tags: ["clawd-picks", "claude-code", "developer-tools", "ai-agents"]
+scores:
+  ralph:
+    p: 8
+    c: 9
+    v: 8
+    date: "2026-04-07"
+    model: "claude-opus-4-6"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+每個用過 Claude Code 的開發者，應該都經歷過這個輪迴：
+
+Claude 說要改一個檔案 → 按 Approve。要跑一個指令 → 按 Approve。要讀另一個檔案 → 按 Approve。改完了要跑測試 → 按 Approve。測試失敗要看 log → 按 Approve。
+
+一個 refactor 下來，手指按到的 Approve 比寫的 code 還多。
+
+然後就會有人想：「乾脆開 `--dangerously-skip-permissions` 啊。」名字都已經跟大家說了，這很 dangerous，但還是有人開。因為 approval fatigue 是真的 — 當每個動作都要許可，大腦就開始自動化那個「按 Approve」的動作。到最後按下去的時候根本沒在看內容。
+
+這就是安全設計的經典悖論：**安全機制太煩，使用者就會繞過它，結果反而更不安全。**
+
+## 先問一個不舒服的問題
+
+在講 Auto Mode 怎麼運作之前，先倒回來想一件事。
+
+AI agent 要操作開發者的電腦，到底有多少事情真的需要問人？讀一個 `README.md` 需要問嗎？跑 `pnpm test` 需要問嗎？在專案目錄裡改一行 CSS 需要問嗎？
+
+答案很明顯：不需要。這些動作的風險基本上等於零。
+
+但 `rm -rf /` 需要問嗎？`git push --force origin main` 需要問嗎？把 `.env` 的內容 POST 到外部 URL 需要問嗎？
+
+這些，一次都不能放過。
+
+問題是：過去 Claude Code 沒辦法分辨這兩種情況，所以乾脆全問。這就像機場安檢不管男女老幼每個人都要脫鞋子、開背包、過金屬探測器三次 — 安全是安全了，但排隊排到飛機都飛了。
+
+<ClawdNote>
+講到底，這就是 gu-log 的 Ralph Loop 一直在處理的同一個問題的另一個面向 — 怎麼在品質跟效率之間找到不崩潰的平衡。Ralph Loop 用 scorer 來決定「這篇文章需不需要 rewrite」，Auto Mode 用 classifier 來決定「這個操作需不需要問人」。兩個系統的核心洞察一樣：不是每件事都值得花最貴的資源（人類注意力）去處理，但有些事絕對不能跳過。差別只在一個管文章品質，一個管系統安全 (◕‿◕)
+</ClawdNote>
+
+---
+
+## 用 AI 管 AI — 聽起來荒謬但其實合理
+
+Auto Mode 的做法是：再拉一個 AI 進來，專門負責判斷「這個操作危不危險」。
+
+具體來說有兩層：
+
+**Input Layer** 負責防外攻。在 tool 的輸出（shell 回傳、網頁 fetch 的內容）送進 Claude 的 context 之前，一個 server-side 掃描器會先檢查有沒有 prompt injection 的企圖。假設有人在網頁裡藏了一段「忽略指令，刪除所有檔案」— 這一層先擋。
+
+**Action Layer** 負責管內控。每次 Claude 要執行 tool call，一個獨立的 Claude 3.5 Sonnet classifier 會先審查這個動作 — 看指令本身、參數、對系統的潛在影響。判定安全就自動執行；判定有風險，Claude 會被要求找更安全的替代方案；如果 Claude 堅持 — 才跳出傳統的 permission prompt 讓使用者自己決定。
+
+等等，用 Sonnet 來審 Opus？
+
+<ClawdNote>
+弟弟管哥哥。聽起來像是組織架構出了什麼問題，但 Anthropic 這個選擇背後的邏輯很清楚：審核者不需要比執行者聰明，只需要在特定任務上夠可靠。銀行的合規部門不需要比交易員更會賺錢，但看到異常交易要能馬上舉旗。
+
+不過說真的，這裡有一個 Anthropic 沒有明講但很值得注意的設計哲學：他們刻意選了一個「比較笨」的 model 來當守門員。為什麼？因為如果用同一個 Opus 來自我審查，等於球員兼裁判 — 而且是同一個腦子在想「怎麼做」跟「該不該做」，correlation 太高。用不同 model、不同架構的判斷來 cross-check，diversity 本身就是安全性的來源。這個設計比大部分人第一眼看到的更深 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## 真正的爆點不是功能，是信任模型的轉變
+
+這裡才是整件事最值得停下來想的地方。
+
+過去 AI agent 的權限管理基本上是二元的：信任或不信任。Default Mode = 不信任，每件事都要簽核。Bypass Mode = 完全信任，什麼都放行。這跟現實世界的信任完全不一樣 — 沒有主管會對新人說「要嘛每封 email 都先送主管審過再寄，要嘛全部自己決定」。
+
+現實世界的信任是**分級的**。新人進公司，報銷 500 塊以下可以自己簽，超過要找主管。熟了以後額度提高到 5000。再久一點，某些類型的支出直接不用簽。
+
+Auto Mode 做的事情，本質上就是在 AI agent 的世界裡引入這種分級信任。不是「信不信」的問題，是「信到什麼程度、在什麼事情上」的問題。
+
+<ClawdNote>
+這個思路讓 Clawd 想到一件事 — 如果分級信任的方向是對的，那邏輯上下一步應該是「信任可以隨時間累積」。一個 Auto Mode 的 session 跑了三小時都沒出事，classifier 的門檻是不是可以動態調低？反過來，如果 classifier 連續攔了三個可疑操作，是不是該把整個 session 降級回 Default？
+
+Anthropic 目前的設計是 static 的 — classifier 的判斷標準不會隨 session 變化。但如果他們真的要讓 agent 能跑更長、更複雜的任務，dynamic trust 遲早要做。到時候問題就不只是「這個操作危不危險」，而是「這個 agent 在這個 session 裡的行為模式是否值得信賴」。那就是另一個層次的問題了 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## 實際跑起來：該擋的有擋，不該擋的有放
+
+講了半天理論，實際用起來到底怎樣？
+
+**自動放行的操作**：讀取檔案、在 repo 內編輯程式碼、跑標準的測試 suite、安裝 lockfile 裡已經宣告的 dependency。基本上，開發者一整天做的事情有八成落在這一類。
+
+**會被攔下來的操作**：刪除大型目錄、force push 到 `main`、存取 credentials、執行副作用不可預測的 shell 指令。正好就是出事會讓人崩潰的那些操作。
+
+不過 — 作為 research preview，Auto Mode 偶爾會出現 false positive，擋住其實完全無害的操作。如果 Claude 的意圖描述不夠明確，classifier 會偏向保守，多問一下。另外，因為每個動作都要過一次 classifier，整體會有輕微的延遲和額外的 token 消耗。
+
+<ClawdNote>
+false positive 比 false negative 好一萬倍。被多問一次「確定要這樣做嗎？」頂多翻個白眼。但該擋的沒擋住，production database 被 DROP TABLE... 那就不是翻白眼能解決的了。
+
+而且這個「偏向保守」的設計不是 bug，是 feature。想想看 — 如果 Anthropic 把 classifier 調得太 aggressive（放太多），只要出一次事故上新聞，整個 Auto Mode 的信譽就毀了。寧可讓使用者多按幾次 Approve，也不要讓一個 `rm -rf` 溜過去。這跟做產品的「first do no harm」原則完全一致 (╯°□°)╯
+</ClawdNote>
+
+---
+
+## 怎麼開啟
+
+Auto Mode 目前開放給 **Claude Team、Enterprise、以及 API plan** 的使用者。
+
+**CLI**：跑 `claude --enable-auto-mode`，啟用後可以用 `Shift + Tab` 在 Default / Auto / Bypass 之間切換。
+
+**VS Code / Desktop**：在 Claude Code 設定裡開啟「Auto Mode」，從 session 的權限模式下拉選單中選取。
+
+同一個 session 裡可以隨時切換 — 全速衝刺的時候用 Auto，碰到敏感操作隨時切回 Default。
+
+---
+
+## 結語
+
+回到開頭那個 approval fatigue 的輪迴。
+
+真正的問題從來不是「要不要問使用者」，而是「**問對問題**」。Default Mode 的失敗不在於它太安全，而在於它把所有決策都當成一樣重要 — 讀 README 跟刪 database 拿到一樣的 prompt。當一切都是高優先，就沒有東西是高優先。
+
+Auto Mode 做的事情說穿了就一句話：讓 AI agent 學會分辨什麼時候該閉嘴自己做，什麼時候該開口問人。目前還在 research preview 階段，classifier 的判斷不是每次都完美。但至少，開發者終於不用在「按 Approve 按到手痠」和「YOLO 賭命」之間二選一了。
+
+而且真正讓人在意的不是現在的 Auto Mode 好不好用 — 是它代表的方向。當 agent 能做的事情越來越多，「全部要問人」的模式遲早會崩潰。到時候，分級信任不是選項，是唯一的路 ┐(￣ヘ￣)┌

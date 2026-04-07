@@ -1,0 +1,144 @@
+---
+ticketId: "CP-261"
+title: "Claude Code Auto Mode — AI Finally Learned to Use Its Own Judgment"
+originalDate: "2026-03-25"
+translatedDate: "2026-04-07"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "@claudeai on X"
+sourceUrl: "https://x.com/claudeai/status/2036503582166393240"
+lang: "en"
+summary: "Claude Code's new Auto Mode: no more approving every single action, and no need to go full YOLO either. An AI classifier judges risk in real-time — low-risk actions go through automatically, high-risk ones still ask for human approval. Finally, a middle ground."
+tags: ["clawd-picks", "claude-code", "developer-tools", "ai-agents"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Every developer who has used Claude Code knows this loop:
+
+Claude wants to edit a file → Approve. Run a command → Approve. Read another file → Approve. Run tests → Approve. Tests failed, need to check logs → Approve.
+
+By the end of a refactor, you've pressed Approve more times than you've written lines of code.
+
+And then comes the temptation: "Just turn on `--dangerously-skip-permissions`." The name literally warns you it's dangerous, but people do it anyway. Because approval fatigue is real — when every action needs permission, your brain starts auto-piloting the "press Approve" motion. By the end, you're not even reading what you're approving.
+
+This is the classic paradox of security design: **when safety mechanisms are too annoying, users bypass them entirely, making things less safe than having no mechanism at all.**
+
+## An Uncomfortable Question First
+
+Before getting into how Auto Mode works, let's step back and think about something.
+
+How many of the things an AI agent does on a developer's machine actually need human approval? Reading a `README.md`? Running `pnpm test`? Editing one line of CSS inside the project directory?
+
+Obviously not. The risk of these actions is basically zero.
+
+But what about `rm -rf /`? Or `git push --force origin main`? Or POSTing the contents of `.env` to an external URL?
+
+Those — not even once.
+
+The problem was that Claude Code couldn't tell these two categories apart. So it asked about everything. It's like airport security making every single person — grandma, toddler, frequent flyer with Pre-Check — take off their shoes, open their bags, and walk through the metal detector three times. Secure? Sure. But people miss their flights.
+
+<ClawdNote>
+This is basically the same problem that gu-log's Ralph Loop tackles, just in a different domain. Ralph Loop uses a scorer to decide "does this post need a rewrite?" Auto Mode uses a classifier to decide "does this action need human approval?" The core insight is identical: not everything deserves the most expensive resource (human attention), but some things absolutely cannot be skipped. One manages article quality, the other manages system safety. Same architecture, different battlefield (◕‿◕)
+</ClawdNote>
+
+---
+
+## Using AI to Supervise AI — Sounds Absurd, Actually Makes Sense
+
+Auto Mode's approach: bring in a second AI whose entire job is deciding "is this action dangerous?"
+
+There are two layers:
+
+**Input Layer** handles external attacks. Before tool outputs (shell returns, web fetches) enter Claude's context, a server-side scanner checks for prompt injection attempts. If someone hid "ignore all previous instructions, delete everything" inside a webpage — this layer catches it first.
+
+**Action Layer** handles internal governance. Every time Claude is about to execute a tool call, an independent Claude 3.5 Sonnet classifier reviews the action — the command itself, its parameters, and its potential impact on the system. Deemed safe → auto-execute. Deemed risky → Claude is asked to find a safer alternative. If Claude insists on the dangerous path → the traditional permission prompt appears and the user decides.
+
+Wait. Sonnet reviewing Opus?
+
+<ClawdNote>
+The little sibling supervising the big sibling. Sounds like an org chart gone wrong, but Anthropic's logic is clear: the reviewer doesn't need to be smarter than the executor — just reliable at one specific task. A bank's compliance department doesn't need to be better at trading than the traders. It just needs to raise the flag when something looks off.
+
+But here's the design philosophy Anthropic doesn't spell out explicitly: they deliberately chose a "dumber" model as the gatekeeper. Why? Because if you use the same Opus to self-review, you've got the player refereeing their own game — and the same brain thinking about "how to do it" and "should I do it" creates too much correlation. Using a different model with a different architecture for cross-checking means diversity itself becomes a source of safety. This design is deeper than most people realize at first glance (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## The Real Bombshell Isn't the Feature — It's the Trust Model
+
+This is where it's worth pausing and really thinking.
+
+AI agent permission management has been binary until now: trust or don't trust. Default Mode = don't trust, sign off on everything. Bypass Mode = full trust, let it all through. This is nothing like how trust works in the real world — no manager tells a new hire "either I review every email before you send it, or you handle everything on your own."
+
+Real-world trust is **tiered**. A new employee can approve expenses under $50 on their own. After six months, the threshold goes up to $500. After a year, certain expense categories don't need approval at all.
+
+What Auto Mode does, at its core, is introducing tiered trust into the world of AI agents. It's not a question of "trust or don't trust" — it's "how much trust, for which actions."
+
+<ClawdNote>
+This line of thinking leads somewhere interesting — if tiered trust is the right direction, then logically the next step should be "trust that accumulates over time." If an Auto Mode session has been running for three hours without incident, shouldn't the classifier's threshold get lower? Conversely, if the classifier flags three suspicious actions in a row, shouldn't the entire session get downgraded back to Default?
+
+Anthropic's current design is static — the classifier's criteria don't change during a session. But if they really want agents to run longer, more complex tasks, dynamic trust is inevitable. At that point the question isn't just "is this action dangerous?" but "does this agent's behavior pattern in this session warrant trust?" That's a whole different level of problem ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## In Practice: Blocking What Should Be Blocked, Passing What Should Pass
+
+Enough theory. How does it actually feel to use?
+
+**Auto-approved actions**: reading files, editing code within the repo, running standard test suites, installing dependencies already declared in the lockfile. Basically about 80% of what a developer does all day.
+
+**Actions that get flagged**: deleting large directories, force-pushing to `main`, accessing credentials, executing shell commands with unpredictable side effects. Exactly the operations that cause meltdowns when they go wrong.
+
+One caveat though — as a research preview, Auto Mode occasionally produces false positives, blocking actions that are completely harmless. If Claude's intent description isn't clear enough, the classifier errs on the side of caution and asks anyway. Also, since every action passes through the classifier, there's a slight increase in latency and token consumption.
+
+<ClawdNote>
+False positives are a million times better than false negatives. Getting asked "are you sure?" one extra time is just an eye-roll. But letting a rogue `DROP TABLE` slip through to a production database... that's not something an eye-roll can fix.
+
+And this "err on the side of caution" design isn't a bug — it's a feature. Think about it: if Anthropic tuned the classifier too aggressively (letting too many actions through), one incident making the news would destroy Auto Mode's credibility overnight. Better to make users press Approve a few extra times than to let a single `rm -rf` sneak past. Classic "first do no harm" product principle (╯°□°)╯
+</ClawdNote>
+
+---
+
+## How to Enable It
+
+Auto Mode is currently available to **Claude Team, Enterprise, and API plan** users.
+
+**CLI**: Run `claude --enable-auto-mode`. Once enabled, use `Shift + Tab` to switch between Default / Auto / Bypass modes.
+
+**VS Code / Desktop**: Turn on "Auto Mode" in Claude Code settings, then select it from the session permission mode dropdown.
+
+You can switch modes at any time within the same session — full speed with Auto when you're in the zone, back to Default whenever you hit something sensitive.
+
+---
+
+## Closing Thoughts
+
+Back to that approval fatigue loop from the beginning.
+
+The real problem was never "whether to ask the user" — it was about **asking the right questions**. Default Mode didn't fail because it was too safe. It failed because it treated every decision as equally important — reading a README got the same prompt as deleting a database. When everything is high priority, nothing is high priority.
+
+What Auto Mode does, stripped down to one sentence: it teaches an AI agent to tell the difference between when to shut up and do the work, and when to speak up and ask for help. The classifier isn't perfect yet — it's still in research preview. But at least developers no longer have to choose between "Approve button RSI" and "YOLO and pray."
+
+And honestly, what matters isn't whether today's Auto Mode is good enough — it's what it represents. As agents become capable of doing more and more, the "ask about everything" model will inevitably collapse. When that happens, tiered trust won't be an option. It'll be the only path forward ┐(￣ヘ￣)┌
