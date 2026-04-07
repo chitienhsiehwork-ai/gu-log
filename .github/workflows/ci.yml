@@ -16,9 +16,9 @@ jobs:
   lockfile-consistency:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v6
         with: { node-version: 22, cache: 'pnpm' }
 
       - name: Verify pnpm lockfile is in sync
@@ -31,9 +31,9 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v6
         with: { node-version: 22, cache: 'pnpm' }
       - run: pnpm install --frozen-lockfile
 
@@ -45,9 +45,9 @@ jobs:
   validate-content:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v6
         with: { node-version: 22, cache: 'pnpm' }
       - run: pnpm install --frozen-lockfile
 
@@ -57,9 +57,9 @@ jobs:
   security-gate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v6
         with: { node-version: 22, cache: 'pnpm' }
       - run: pnpm install --frozen-lockfile
 
@@ -71,9 +71,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [lockfile-consistency, lint, validate-content, security-gate]
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v6
         with: { node-version: 22, cache: 'pnpm' }
       - run: pnpm install --frozen-lockfile
 
@@ -83,7 +83,7 @@ jobs:
         run: pnpm run build
 
       - name: Upload dist for downstream jobs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: dist
           path: dist/
@@ -94,14 +94,14 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v6
         with: { node-version: 22, cache: 'pnpm' }
       - run: pnpm install --frozen-lockfile
 
       - name: Download dist
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: dist
           path: dist/
