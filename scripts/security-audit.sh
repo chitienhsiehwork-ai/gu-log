@@ -27,14 +27,15 @@ fi
 COUNTS=$(echo "${AUDIT_JSON}" | node -e "
 const data = JSON.parse(require('fs').readFileSync('/dev/stdin', 'utf8'));
 const v = data.metadata?.vulnerabilities || {};
-console.log(JSON.stringify({
-  info: v.info || 0,
-  low: v.low || 0,
-  moderate: v.moderate || 0,
-  high: v.high || 0,
-  critical: v.critical || 0,
-  total: v.total || 0
-}));
+const info = v.info || 0;
+const low = v.low || 0;
+const moderate = v.moderate || 0;
+const high = v.high || 0;
+const critical = v.critical || 0;
+const total = (typeof v.total === 'number' && v.total > 0)
+  ? v.total
+  : (info + low + moderate + high + critical);
+console.log(JSON.stringify({ info, low, moderate, high, critical, total }));
 ")
 
 HIGH=$(echo "${COUNTS}" | node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); console.log(d.high)")

@@ -14,7 +14,7 @@
  *   2 = internal broken (should block commit)
  */
 
-import { readdir, readFile, stat } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { existsSync } from 'node:fs';
 
@@ -54,6 +54,12 @@ const MANUAL_CHECK_DOMAINS = [
   'cybersecuritynews.com',
   'epilepsy.com',
   'theshamblog.com',
+  'tomsguide.com',
+  'winbuzzer.com',
+  'theneuron.ai',
+  'ai.google.dev',
+  'datasette.io',
+  'adplist.org',
 ];
 
 // Skip these URL patterns entirely (not real links)
