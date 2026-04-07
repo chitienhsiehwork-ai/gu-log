@@ -32,4 +32,33 @@ export default [
       ],
     },
   },
+
+  // Node.js scripts — declare Node globals to suppress no-undef false positives
+  {
+    files: ['scripts/*.mjs'],
+    languageOptions: {
+      globals: {
+        console: 'readonly',
+        process: 'readonly',
+        URL: 'readonly',
+        fetch: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        AbortController: 'readonly',
+        Response: 'readonly',
+      },
+    },
+  },
+
+  // Playwright scripts that use page.evaluate() — need browser globals inside callbacks
+  {
+    files: ['scripts/screenshot-audit.mjs', 'scripts/visual-test.mjs'],
+    languageOptions: {
+      globals: {
+        document: 'readonly',
+        getComputedStyle: 'readonly',
+        window: 'readonly',
+      },
+    },
+  },
 ];

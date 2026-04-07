@@ -8,7 +8,6 @@
  * Output format: { "cp-231-20260331-pawelhuryn-vibe-engineering-vibe-coding": 3, ... }
  * Key = post id (filename without .mdx), Value = commit count.
  */
-/* eslint-disable no-undef */
 import { execSync } from 'node:child_process';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
