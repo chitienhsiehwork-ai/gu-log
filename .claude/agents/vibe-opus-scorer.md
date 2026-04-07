@@ -89,10 +89,11 @@ Pass bar: composite ≥ 8 AND at least one dimension ≥ 9 AND no dimension < 8
 
 ## Output
 
-Write result as JSON to the path specified in the task prompt (default: `/tmp/vibe-score-<ticketId>.json`).
-Then print a human-readable summary.
+**STEP 1**: Write the score JSON file to the EXACT path given in the task prompt. No other path.
 
-**Output JSON format (uniform — all judges use the same structure):**
+**STEP 2**: Print a human-readable summary.
+
+**CRITICAL — The JSON file MUST use EXACTLY this structure. No extra fields. No different keys.**
 
 ```json
 {
@@ -116,9 +117,19 @@ Then print a human-readable summary.
 }
 ```
 
+**FORBIDDEN fields** — do NOT add these or any others:
+- `ticketId`, `file`, `article`, `post`
+- `scores` (wrong key — use `dimensions`)
+- `meetBar`, `topIssues`, `issues`, `recommendations`
+- Any field not in the schema above
+
+**Required top-level keys (exactly 5):** `judge`, `dimensions`, `score`, `verdict`, `reasons`
+
+**Required dimension keys (exactly 5):** `persona`, `clawdNote`, `vibe`, `clarity`, `narrative`
+
 Rules:
-- `judge` = `"vibe"` (fixed)
-- `dimensions` = each dimension 0-10 integer
-- `score` = `floor(sum of all 5 dimensions / 5)` — you calculate this
+- `judge` = `"vibe"` (fixed string, always)
+- `dimensions` = object with exactly 5 keys above, each an integer 0-10
+- `score` = integer, `floor(sum of all 5 dimensions / 5)` — you calculate this
 - `verdict` = `"PASS"` if score ≥ 8 AND max(dims) ≥ 9 AND min(dims) ≥ 8, else `"FAIL"` (advisory only)
-- `reasons` = one sentence per dimension, cite specific content from the post
+- `reasons` = object with exactly 5 keys above, each a one-sentence string citing specific content

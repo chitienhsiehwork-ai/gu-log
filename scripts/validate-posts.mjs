@@ -8,11 +8,20 @@
  * Usage:
  *   node scripts/validate-posts.mjs                    # validate all posts
  *   node scripts/validate-posts.mjs file1.mdx file2.mdx  # validate specific files
+ *   node scripts/validate-posts.mjs --check-duplicates # scan all posts for duplicates
  */
 
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import {
+  normalizeUrl,
+  extractTweetId,
+  computeSimilarity,
+  REJECT_THRESHOLD,
+  FLAG_THRESHOLD,
+  MIN_EN_OVERLAP,
+} from './dedup-gate.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const POSTS_DIR = path.join(__dirname, '../src/content/posts');
@@ -267,9 +276,173 @@ function validatePost(filepath, allPosts) {
   return { filename, errors, warnings };
 }
 
+// ─── Duplicate Detection ────────────────────────────────────────────
+/**
+ * Load all active (non-deprecated) zh-tw articles for duplicate scanning.
+ * Returns array of article metadata objects.
+ */
+function loadActiveZhTwArticles() {
+  const allFiles = fs
+    .readdirSync(POSTS_DIR)
+    .filter((f) => f.endsWith('.mdx') && !f.startsWith('en-'));
+  const articles = [];
+
+  for (const file of allFiles) {
+    const filePath = path.join(POSTS_DIR, file);
+    let content;
+    try {
+      content = fs.readFileSync(filePath, 'utf-8');
+    } catch {
+      continue;
+    }
+
+    const fm = parseFrontmatter(content);
+    if (!fm || !fm.ticketId) continue;
+    // Skip deprecated articles
+    if (fm.status === 'deprecated') continue;
+    // Only zh-tw (no en- prefix, already filtered above, but double-check lang)
+    if (fm.lang && fm.lang !== 'zh-tw') continue;
+
+    const sourceUrl = fm.sourceUrl ?? '';
+    const normalizedUrl = normalizeUrl(sourceUrl);
+    const tweetId = extractTweetId(sourceUrl);
+
+    articles.push({
+      file,
+      ticketId: fm.ticketId,
+      title: fm.title ?? '',
+      tags: Array.isArray(fm.tags) ? fm.tags : [],
+      sourceUrl,
+      normalizedUrl,
+      tweetId,
+      status: fm.status ?? 'active',
+      keywordText: `${fm.title ?? ''} ${fm.summary ?? ''} ${Array.isArray(fm.tags) ? fm.tags.join(' ') : ''}`,
+    });
+  }
+
+  return articles;
+}
+
+/**
+ * Run pairwise duplicate check across all active zh-tw articles.
+ * Returns array of duplicate groups.
+ */
+function checkDuplicates() {
+  const articles = loadActiveZhTwArticles();
+  console.log(`\nScanning ${articles.length} active zh-tw articles for duplicates...\n`);
+
+  const groups = [];
+  const alreadyGrouped = new Set();
+
+  for (let i = 0; i < articles.length; i++) {
+    if (alreadyGrouped.has(i)) continue;
+
+    const a = articles[i];
+    const group = { representative: a, duplicates: [] };
+
+    for (let j = i + 1; j < articles.length; j++) {
+      if (alreadyGrouped.has(j)) continue;
+
+      const b = articles[j];
+      let matchReason = null;
+      let score = 0;
+
+      // Layer 1: URL match
+      if (a.normalizedUrl && b.normalizedUrl && a.normalizedUrl === b.normalizedUrl) {
+        matchReason = 'URL match';
+        score = 1.0;
+      } else if (a.tweetId && b.tweetId && a.tweetId === b.tweetId) {
+        matchReason = 'tweet ID match';
+        score = 1.0;
+      }
+
+      // Layer 2: topic similarity (only if no URL match)
+      if (!matchReason) {
+        // title-to-title (tight match)
+        const titleSim = computeSimilarity(a.title, b.title);
+        // full keyword text (broad match)
+        const fullSim = computeSimilarity(a.keywordText, b.keywordText);
+        const best = titleSim.score >= fullSim.score ? titleSim : fullSim;
+
+        if (best.score >= REJECT_THRESHOLD && best.enOverlap >= MIN_EN_OVERLAP) {
+          matchReason = `topic similarity (score: ${best.score.toFixed(3)}, overlap: ${best.enOverlap})`;
+          score = best.score;
+        } else if (best.score >= FLAG_THRESHOLD) {
+          matchReason = `topic similarity WARN (score: ${best.score.toFixed(3)})`;
+          score = best.score;
+        }
+      }
+
+      // Only hard-block matches count as duplicates (URL match or BLOCK-level similarity)
+      // WARN-level similarity is advisory and does not fail the check
+      const isHardBlock = matchReason !== null && !matchReason.startsWith('topic similarity WARN');
+      if (isHardBlock) {
+        group.duplicates.push({ article: b, reason: matchReason, score });
+        alreadyGrouped.add(j);
+      }
+    }
+
+    if (group.duplicates.length > 0) {
+      alreadyGrouped.add(i);
+      groups.push(group);
+    }
+  }
+
+  // Report
+  let activeGroupCount = 0;
+
+  if (groups.length === 0) {
+    console.log('  No duplicates found.\n');
+  } else {
+    for (const { representative, duplicates } of groups) {
+      const allActive = duplicates.every((d) => d.article.status !== 'deprecated');
+      const hasActiveDup = duplicates.some((d) => d.article.status !== 'deprecated');
+
+      if (hasActiveDup) {
+        activeGroupCount++;
+        console.log(`  [ACTIVE DUPLICATE GROUP]`);
+      } else {
+        console.log(`  [already deprecated]`);
+      }
+
+      console.log(`    Base:  ${representative.ticketId} — ${representative.file}`);
+      console.log(`           "${representative.title}"`);
+      console.log(`           status: ${representative.status || 'active'}`);
+
+      for (const { article, reason } of duplicates) {
+        console.log(`    Dup:   ${article.ticketId} — ${article.file}`);
+        console.log(`           "${article.title}"`);
+        console.log(`           status: ${article.status || 'active'}, reason: ${reason}`);
+      }
+      console.log('');
+    }
+  }
+
+  const totalGroups = groups.length;
+  console.log(
+    `Summary: ${totalGroups} duplicate group(s) found, ${activeGroupCount} with active (non-deprecated) duplicates.\n`
+  );
+
+  if (activeGroupCount > 0) {
+    console.log(
+      `FAILED: ${activeGroupCount} active duplicate group(s) detected. Deprecate or remove duplicates before merging.`
+    );
+    process.exit(1);
+  } else {
+    console.log('PASSED: No active duplicates found.');
+    process.exit(0);
+  }
+}
+
 // ─── Main ──────────────────────────────────────────────────────────
 function main() {
   const args = process.argv.slice(2);
+
+  // --check-duplicates mode: scan all published articles for URL/topic dupes
+  if (args.includes('--check-duplicates')) {
+    checkDuplicates();
+    return; // checkDuplicates() calls process.exit()
+  }
 
   // Load all posts for cross-file checks
   const allFiles = fs.readdirSync(POSTS_DIR).filter((f) => f.endsWith('.mdx'));
