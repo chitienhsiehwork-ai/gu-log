@@ -227,11 +227,74 @@
     "startedAt": "2026-04-08T05:34:08+08:00",
     "stages": {
       "librarian": {
-        "status": "in_progress",
-        "score": null,
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Key terms 'agent' and 'context window' are linked to glossary anchors (/glossary#agent, /glossary#context-window); no other standalone glossary terms appear unlinked.",
+            "crossRef": "Both footer cross-ref posts (ai-memory-design-cc-auto-memory-vs-openclaw, clawdbot-memory-deep-dive) resolve to real slugs; [Clawd](/about) identity link present in ClawdNote on line 89.",
+            "sourceAlign": "Content directly covers MemPalace from @bensig on X — benchmarks, AAAK compression, palace structure, and MIT/local design are all traceable to the declared sourceUrl.",
+            "attribution": "Ben Sigman's claims consistently attributed ('Ben Sigman 宣稱', 'Ben Sigman 在推文裡列了三個 benchmark'), ClawdNote opinions clearly separated; minor gap on line 86 where '這是有記錄以來的第一個滿分' is stated as body-text fact without explicit 'Ben claims' framing in that sentence."
+          }
+        },
         "model": "sonnet",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "FactChecker",
+          "dimensions": {
+            "accuracy": 7,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Token math in the article is correct: '每個 token 約對應 0.75 個英文單字（也就是說，英文每個字大概需要 1.3 個 token）' and ClawdNote's '90 個英文字' (120 × 0.75 = 90) both check out; Method of Loci historical attribution is accurate; however AAAK 30× lossless compression, specific benchmark figures (LongMemEval 500/500, ConvoMem 92.9%, LoCoMo 100%), and the Milla Jovovich co-author claim are all tweet-sourced and independently unverifiable — normal pattern for CP/tweet-origin content, scores 7 per calibration.",
+            "fidelity": "Key claims consistently framed as originator's claims: 'Ben Sigman 宣稱' (compression), 'Ben Sigman 在推文裡列了' (benchmarks); ClawdNotes add active skepticism flagging self-reported numbers and the undefined '無損' boundary; minor gap: Milla Jovovich involvement stated as fact in body prose ('花了好幾個月') with the hedge ('Ben Sigman 說她是他的朋友') deferred to ClawdNote rather than appearing in the body claim itself.",
+            "consistency": "Tight logical arc — pain point → architecture → compression → benchmarks → contradiction detection → local/open-source → conclusion — with no internal contradictions; every ClawdNote opinion is visually separated; conclusion skepticism ('如果這些數字經得起考驗') is fully consistent with the benchmark-section doubt planted earlier; no fact/opinion bleed in body prose."
+          }
+        },
+        "model": "opus",
+        "attempts": 2
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "fresh-eyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Opens with a universally relatable pain point, explains 'token' inline for beginners, and walks through wings/halls/rooms with clear spatial analogy — only stumble is the closing paragraph dropping 'embedding/cosine similarity/vector store' without explanation, after earning goodwill all the way through.",
+            "firstImpression": "The Milla Jovovich hook genuinely surprised me and kept me reading; ClawdNotes add skeptical punch without breaking flow (especially the benchmark self-report = restaurant michelin sticker line); ending is measured/analytical rather than punchy but doesn't spoil an otherwise engaging read — would finish and mention to a friend who asked about AI memory."
+          }
+        },
+        "model": "haiku",
         "attempts": 1
+      },
+      "vibe": {
+        "status": "fail",
+        "score": null,
+        "model": "opus",
+        "attempts": 3
       }
-    }
+    },
+    "status": "FAILED",
+    "failedStage": "vibe",
+    "finishedAt": "2026-04-08T05:50:19+08:00"
   }
 }
