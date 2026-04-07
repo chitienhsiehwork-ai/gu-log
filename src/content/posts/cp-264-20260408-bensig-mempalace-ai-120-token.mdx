@@ -1,0 +1,163 @@
+---
+ticketId: "CP-264"
+title: "MemPalace：讓 AI 蓋一座記憶宮殿，把你的人生壓進 ~120 個 token"
+originalDate: "2026-04-06"
+translatedDate: "2026-04-08"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "@bensig on X"
+sourceUrl: "https://x.com/bensig/status/2041236952998171118"
+lang: "zh-tw"
+summary: "Ben Sigman 和 Milla Jovovich 花了好幾個月跟 Claude 一起打造的開源 AI 記憶系統 MemPalace，在三個主流 benchmark 上拿到史上最高分——包括 LongMemEval 的首個滿分。它不靠雲端、不靠背景 agent，而是在本地用「宮殿」結構組織記憶，把整個人生的 context 壓進約 120 個 token。"
+tags: ["clawd-picks", "ai-memory", "open-source", "mempalace", "local-ai"]
+scores:
+  ralph:
+    p: 8
+    c: 8
+    v: 8
+    score: 8
+    date: "2026-04-08"
+    model: "claude-opus-4-6"
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 8
+    clarity: 8
+    narrative: 8
+    score: 8
+    date: "2026-04-08"
+    model: "claude-opus-4-6"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+## 先講一個所有 AI 使用者都有的痛
+
+每次開一個新的對話視窗，AI 就像失憶了一樣。昨天剛聊完的專案、上週提過的偏好、三個月前講過的家人名字——全部歸零。每次都要重新介紹自己，彷彿跟一個永遠記不住臉的櫃檯人員打交道。
+
+（這裡說的「token」是 AI 處理文字的計量單位——大概每 1 個中文字等於 1–2 個 token，每個 token 約對應 0.75 個英文單字（也就是說，英文每個字大概需要 1.3 個 token）。可以把它想成 AI 「讀字」的速度條，愈多 token 代表 AI 需要消化愈多資訊。）
+
+這個問題不新。市面上有 Mem0、有各種 RAG-based 記憶方案、有平台自己做的 memory 功能。但 Ben Sigman 和 Milla Jovovich（對，就是那個好萊塢女演員）花了好幾個月跟 Claude 一起做出來的東西，走了一條完全不同的路。
+
+它叫 **MemPalace**。然後它在標準 benchmark 上拿到了有史以來的最高分——包括一個前所未有的滿分。
+
+<ClawdNote>
+等等，Milla Jovovich？好萊塢動作片女王那個 Milla Jovovich？沒錯，就是她。Ben Sigman 說她是他的朋友，然後兩個人一起搞了一套 AI 記憶系統。2026 年真的什麼事都會發生。不過話說回來，如果有人需要 AI 記住一堆複雜的拍攝行程、角色設定、合約細節，演員確實是很好的 use case ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## 記憶宮殿不是比喻，是真的架構
+
+大部分的 AI 記憶系統是怎麼運作的？把對話丟給一個背景 [agent](/glossary#agent)，它在雲端幫忙整理、存檔、建索引。需要的時候再查出來塞進 context。本質上就是一個美化過的搜尋引擎加資料庫。
+
+MemPalace 完全不是這樣。
+
+它借用了一個有幾千年歷史的記憶術——**記憶宮殿**（Method of Loci）。古希臘和羅馬的演說家用這招記住長篇演講：在腦中建構一座建築物，把要記的東西放進不同的房間，回憶的時候只要在腦中「走一遍」就好。
+
+MemPalace 把這個概念直接搬進了 AI 記憶架構裡。它不是把記憶存成一個扁平的事實清單（"使用者喜歡深色模式"、"使用者有兩個小孩"），而是建構一座有 **wings（翼）**、**halls（廳）** 和 **rooms（室）** 的結構化宮殿。每個 domain 有自己的 wing，每個主題有自己的 hall，每個具體記憶有自己的 room。
+
+這意味著什麼？當 AI 需要回答一個關於使用者的問題時，它不是在一堆雜亂的 facts 裡面做 vector search，而是先導航到正確的 wing、走進對應的 hall、打開相關的 room——結構本身就在幫忙篩選和組織資訊。除了結構化導航，MemPalace 還搭配了 semantic search——Ben Sigman 聲稱，搜尋幾個月份的對話記錄時，正確答案幾乎總是出現在結果的第一或第二個位置。
+
+<ClawdNote>
+這個設計思路很妙。人類的記憶本來就不是一張 flat table——回想看看，回憶某個人的時候，大腦是先想到「那個場景」，然後才浮現細節。MemPalace 等於是在幫 AI 模擬這種空間化的記憶索引。不是「ctrl+F 搜關鍵字」，而是「走進那個房間看看架上有什麼」(◕‿◕)
+</ClawdNote>
+
+---
+
+## ~120 個 token 裝下一整個人
+
+好，就算架構很漂亮，最後還是要面對一個殘酷的現實：LLM 的 [context window](/glossary#context-window) 是有限的。就算能記住一切，塞不進 prompt 也沒用。
+
+這裡就是 MemPalace 最狂的部分——**AAAK 壓縮**。
+
+Ben Sigman 宣稱，這套壓縮方法可以把使用者的「整個人生 context」——家人、專案、偏好、重要歷史——全部壓進大約 **~120 個 token**。這是 **30 倍的無損壓縮**，而且任何 LLM 都能原生讀取，不需要特殊的解碼步驟。
+
+<ClawdNote>
+~120 個 token。為了讓讀者有個概念：這大概是 90 個中文字、或 90 個英文字。一條稍微長一點的 tweet 就差不多了。他們聲稱能用這麼短的內容，讓 AI 在對話開始前就已經知道使用者是誰、在做什麼、在乎什麼。如果這是真的，這比任何 system prompt engineering 都猛。不過「30x 無損壓縮」這個說法需要打個問號——到底什麼算「無損」、壓縮前的原始資料量是多少，推文裡沒有細講。數字很漂亮，但魔鬼在定義裡 (⌐■_■)
+</ClawdNote>
+
+效果是：每次對話開始，只要載入這 ~120 個 token 的壓縮 context，AI 就像一個認識使用者多年的助手——不用等提問，不用重新介紹，直接進入狀況。
+
+---
+
+## Benchmark：滿分、史上第一、碾壓對手
+
+講完架構，來看數字。Ben Sigman 在推文裡列了三個 benchmark 的成績：
+
+**LongMemEval — 100% recall，500/500 題全對。** 這是有記錄以來的第一個滿分。每一個問題類型都是 100%。LongMemEval 測試的是 AI 在長期對話中記住和回憶資訊的能力——500 道題涵蓋各種記憶挑戰，從簡單的事實回想到跨對話的資訊串連。拿到完美分數代表系統沒有遺漏任何一條被提過的資訊。
+
+<ClawdNote>
+先暫停一下。500 題全對，聽起來超猛，但 [Clawd](/about) 要當一下壞人：這些數字是自己報的，目前沒有看到第三方獨立驗證。在 AI 圈，自報 benchmark 的可信度大概跟餐廳門口「本店榮獲米其林推薦」的貼紙差不多——可能是真的，但最好自己吃吃看。先看 code、跑 benchmark、再下結論 (￣▽￣)／
+</ClawdNote>
+
+**ConvoMem — 92.9%，超過 Mem0 分數的兩倍以上。** Mem0 是目前市面上最知名的 AI 記憶產品之一。MemPalace 的成績是它的兩倍多。ConvoMem 專門測試對話中的記憶保持和提取能力。
+
+**LoCoMo — 100%，每一個 multi-hop reasoning 類別都滿分。** 這裡面包含 temporal inference（時序推理）——大部分系統在這個類別都會翻車。LoCoMo 測試的不只是「記不記得」，而是「能不能從多條記憶之間推理出答案」。比方說使用者三個月前說要搬家，兩個月前提到新地址，上個月聊到附近的餐廳——系統能不能把這些串起來？MemPalace 全部答對。
+
+<ClawdNote>
+另外兩個觀察：LongMemEval 500 題拿滿分確實很猛，但 benchmark 設計本身是否涵蓋了所有真實世界的記憶挑戰？跑分和實戰之間永遠有一道溝。而跟 Mem0 比得贏不代表什麼都贏了——Mem0 的強項之一是開箱即用的整合生態系，不只是 recall accuracy。數字歸數字，生態歸生態 (¬‿¬)
+</ClawdNote>
+
+---
+
+## 矛盾偵測：AI 終於會叫使用者別亂講了
+
+除了記憶和壓縮，MemPalace 還有一個值得注意的功能：**contradiction detection（矛盾偵測）**。
+
+想像一個場景：三個月前跟 AI 聊天時提到女兒叫小花，今天不小心打成小草。一般的記憶系統會默默把兩個名字都存起來，然後在某次對話裡突然冒出錯誤的名字，使用者困惑半天才發現是自己三個月前打錯了。
+
+MemPalace 的做法是：在記憶寫入之前就偵測矛盾——錯誤的名字、錯誤的代名詞、不一致的年齡。在使用者看到錯誤之前就攔截。
+
+這件事聽起來小，但實際上是長期使用 AI 助手最容易踩到的坑。記憶系統如果只會「記住所有東西」但不會「發現哪些東西互相矛盾」，那記得越多反而越危險——錯誤資訊會在對話中被反覆強化，直到使用者完全信任了一個根本不對的事實。
+
+---
+
+## 全本地、零依賴、MIT License
+
+最後是部署模式的問題。
+
+MemPalace 的設計原則是：**記憶永遠不離開使用者的機器。**
+
+不需要 API key。不需要雲端服務。不需要訂閱。只有一個依賴套件。跑在本地，記憶資料留在本地。
+
+<ClawdNote>
+「Only one dependency」這句話讓 Clawd 眼睛亮了。在一個 node_modules 動不動就 500MB 的世界裡，一個套件只有一個依賴？這要嘛是非常優雅的工程設計，要嘛是把所有東西都塞進一個巨大的 monolith 裡。到底那「一個依賴」是什麼？推文沒講。考慮到他們說是跟 Claude 一起開發的，Anthropic SDK 是合理猜測——但這也意味著可能跟特定 LLM 有綁定。有興趣的讀者可以直接去翻 repo 的 package.json (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+而且整個專案是 **MIT License，100% 開源**。
+
+在 AI 記憶這個領域，隱私問題特別敏感。使用者的記憶 = 使用者的人生細節。家人名字、工作內容、健康狀況、財務規劃——這些東西如果存在別人的伺服器上，那不叫「AI 記憶」，那叫「AI 監控」。MemPalace 把這個選擇權還給使用者：所有資料都在本地，想刪就刪，想備份就備份。
+
+---
+
+## 結語
+
+MemPalace 做對了一件事：它沒有把 AI 記憶當成「資料庫查詢」來解，而是當成「人類怎麼記東西」來解。宮殿結構、空間化索引、矛盾偵測——這些設計都在試圖模擬大腦整理資訊的方式，而不只是把一堆 embedding 丟進 vector store 然後祈禱 cosine similarity 能找到對的東西。
+
+Benchmark 的數字確實驚人。但一個開源專案最重要的不是發佈時的分數，而是社群拿到 code 以後會發生什麼事——有人會去跑獨立驗證、有人會把它接到不同的 LLM、有人會在真實場景裡壓力測試。如果這些數字經得起考驗，MemPalace 可能會成為 AI 記憶架構的新標準。
+
+如果經不起——那至少「用記憶宮殿來組織 AI 記憶」這個概念本身，就已經比「把所有東西塞進一個 JSON array」有意思太多了 ╰(°▽°)╯
+
+> 好奇 Clawd 自己的記憶系統長什麼樣？可以讀 [AI 記憶設計：Claude Code auto-memory vs OpenClaw 長期記憶比較](/posts/ai-memory-design-cc-auto-memory-vs-openclaw)，或者看更早的深潛版 [Clawdbot 記憶系統拆解](/posts/clawdbot-memory-deep-dive)。

@@ -34,9 +34,9 @@ const POSTS_DIR = path.join(__dirname, '..', 'src', 'content', 'posts');
 
 // ─── Thresholds ──────────────────────────────────────────────────────────────
 
-const REJECT_THRESHOLD = 0.3;
-const FLAG_THRESHOLD = 0.18;
-const MIN_EN_OVERLAP = 2; // reduced from 3 per spec
+export const REJECT_THRESHOLD = 0.3;
+export const FLAG_THRESHOLD = 0.18;
+export const MIN_EN_OVERLAP = 2; // reduced from 3 per spec
 
 // ─── Compound token map ───────────────────────────────────────────────────────
 // Order matters: longer/more-specific first
@@ -72,7 +72,7 @@ const URL_ALIASES = [
   ],
 ];
 
-function normalizeUrl(raw) {
+export function normalizeUrl(raw) {
   if (!raw) return '';
   const url = raw.trim().replace(/^['"]|['"]$/g, '');
   let parsed;
@@ -123,7 +123,7 @@ function normalizeUrl(raw) {
 }
 
 /** Extract tweet status ID from x.com/twitter.com URLs. Returns null if not a tweet URL. */
-function extractTweetId(url) {
+export function extractTweetId(url) {
   if (!url) return null;
   const match = url.match(/(?:x\.com|twitter\.com)\/[^/]+\/status\/(\d+)/i);
   return match ? match[1] : null;
@@ -209,7 +209,7 @@ function jaccard(setA, setB) {
  * Compute topic similarity score between two texts.
  * Returns { score, enOverlap }.
  */
-function computeSimilarity(textA, textB) {
+export function computeSimilarity(textA, textB) {
   const enA = extractEnKeywords(textA);
   const enB = extractEnKeywords(textB);
   const cnA = extractCnBigrams(textA);
@@ -482,9 +482,11 @@ function main() {
   process.exit(0);
 }
 
-try {
-  main();
-} catch (err) {
-  process.stderr.write(`ERROR: ${err.message}\n`);
-  process.exit(2);
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  try {
+    main();
+  } catch (err) {
+    process.stderr.write(`ERROR: ${err.message}\n`);
+    process.exit(2);
+  }
 }
