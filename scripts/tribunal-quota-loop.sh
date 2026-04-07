@@ -15,7 +15,8 @@
 #   bash scripts/tribunal-quota-loop.sh              # run continuously
 #   bash scripts/tribunal-quota-loop.sh --dry-run    # list what would be processed
 
-set -euo pipefail
+set -uo pipefail  # no -e: loop handles errors individually
+trap '' HUP       # ignore SIGHUP (systemd/nohup)
 export TZ=Asia/Taipei
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
