@@ -34,6 +34,22 @@ curl -s "https://x.com/i/api/graphql/V7H0Ap3_Hh2FyS75OCDO3Q/UserTweets?variables
 - 優先選有 context 可以展開的
 - **避免重複**：依 `CONTRIBUTING.md` 的防重複 SOP 執行（搜尋 sourceUrl、關鍵字、作者）
 
+## Step 3.5: Dedup Gate（必須通過才能繼續）
+
+選好推文後，**必須**跑 dedup gate：
+
+```bash
+node scripts/dedup-gate.mjs \
+  --url "SOURCE_URL" \
+  --title "CANDIDATE_TITLE" \
+  --tags "tag1,tag2" \
+  --series CP
+```
+
+- 🔴 BLOCK → 換一篇推文，這個 topic 已經有人寫了
+- 🟡 WARN → 印出相似文章，自行判斷是否有足夠差異化角度
+- 🟢 PASS → 繼續
+
 ## Step 4：取得 Ticket ID
 
 依 `CONTRIBUTING.md` 的「新增文章前必做」步驟：

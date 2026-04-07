@@ -368,6 +368,7 @@ COUNTER_LOCK="/tmp/gu-log-counter.lock"
 STEP0_TIME=0
 STEP1_TIME=0
 STEP15_TIME=0
+STEP17_TIME=0
 STEP2_TIME=0
 STEP3_TIME=0
 STEP4_TIME=0
@@ -823,6 +824,36 @@ EOF_EVAL_CODEX
   fi
 
   STEP15_TIME=$(step_end "Step 1.5")
+fi
+
+# Step 1.7: Dedup Gate — block if URL or topic already covered
+if should_run_step 1 && [ -n "$TWEET_URL" ]; then
+  # Extract suggested title from eval JSON if available
+  DEDUP_TITLE=""
+  if [ -f "$WORK_DIR/eval-gemini.json" ]; then
+    DEDUP_TITLE=$(jq -r '.suggested_title // empty' "$WORK_DIR/eval-gemini.json" 2>/dev/null || true)
+  fi
+  [ -n "$DEDUP_TITLE" ] || DEDUP_TITLE="${PROMPT_TICKET_ID}"
+
+  step_start "Step 1.7: dedup gate"
+  log_info "Running dedup gate..."
+  DEDUP_RESULT=$(node "$SCRIPT_DIR/dedup-gate.mjs" \
+    --url "$TWEET_URL" \
+    --title "$DEDUP_TITLE" \
+    --series SP 2>&1) || true
+
+  if echo "$DEDUP_RESULT" | grep -q "^BLOCK"; then
+    log_error "Dedup gate blocked: $DEDUP_RESULT"
+    exit 1
+  fi
+
+  if echo "$DEDUP_RESULT" | grep -q "^WARN"; then
+    log_warn "Dedup warning: $DEDUP_RESULT"
+    # Continue but log the warning
+  fi
+
+  log_info "Dedup gate: $DEDUP_RESULT"
+  STEP17_TIME=$(step_end "Step 1.7")
 fi
 
 # Step 2: Write Draft (Opus primary)
