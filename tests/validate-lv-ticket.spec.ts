@@ -91,8 +91,9 @@ ${filler}
       );
       // Should not reach here
       expect(true).toBe(false);
-    } catch (e: any) {
-      expect(e.stdout || e.stderr).toContain('Invalid ticketId format');
+    } catch (e: unknown) {
+      const err = e as { stdout?: string; stderr?: string };
+      expect(err.stdout || err.stderr).toContain('Invalid ticketId format');
     }
   });
 });

@@ -15,7 +15,7 @@ function extractDateFromTwitterId(tweetId) {
     const timestamp = Number((id >> 22n) + TWITTER_EPOCH);
     const date = new Date(timestamp);
     return date.toISOString().split('T')[0]; // YYYY-MM-DD
-  } catch (e) {
+  } catch (_e) {
     return null;
   }
 }

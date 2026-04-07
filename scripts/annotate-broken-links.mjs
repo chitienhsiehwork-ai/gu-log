@@ -64,7 +64,7 @@ function annotateMarkdownLink(content, url, date) {
  * Annotate an HTML href in content.
  * href="url" → adds broken-link class
  */
-function annotateHtmlLink(content, url, date) {
+function annotateHtmlLink(content, url, _date) {
   const escaped = url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
   // Already annotated?

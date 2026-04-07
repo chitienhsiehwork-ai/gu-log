@@ -213,7 +213,7 @@ test.describe('AI Popup – iPhone Bugs', () => {
       // Check 2: popup shows the selected text somewhere (e.g., a quote block)
       const popup = document.getElementById('ai-popup');
       if (!popup) return false;
-      const texts = popup.innerText;
+      const _texts = popup.innerText;
       // The original selected text should appear somewhere in the popup
       // (even abbreviated) as context for the user
       return false; // Currently neither is implemented

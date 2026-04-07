@@ -119,7 +119,7 @@ test.describe('AI Popup - Chat Box', () => {
   });
 
   test('GIVEN input box visible WHEN user types question and submits THEN API is called with question field', async ({ page }) => {
-    let capturedBody: any = null;
+    let capturedBody: Record<string, unknown> | null = null;
     await page.route('**/ai/ask', async (route) => {
       const request = route.request();
       capturedBody = JSON.parse(request.postData() || '{}');
@@ -148,12 +148,12 @@ test.describe('AI Popup - Chat Box', () => {
 
     // Verify API was called with question field
     expect(capturedBody).not.toBeNull();
-    expect(capturedBody.question).toBe('這段 code 怎麼處理 error？');
-    expect(capturedBody.text).toBeTruthy(); // selected text should be present
+    expect(capturedBody!.question).toBe('這段 code 怎麼處理 error？');
+    expect(capturedBody!.text).toBeTruthy(); // selected text should be present
   });
 
   test('GIVEN input box visible WHEN submit with empty input THEN API is called without question (backwards compatible)', async ({ page }) => {
-    let capturedBody: any = null;
+    let capturedBody: Record<string, unknown> | null = null;
     await page.route('**/ai/ask', async (route) => {
       const request = route.request();
       capturedBody = JSON.parse(request.postData() || '{}');
@@ -180,8 +180,8 @@ test.describe('AI Popup - Chat Box', () => {
 
     // API should be called without question field (or question is empty/undefined)
     expect(capturedBody).not.toBeNull();
-    expect(capturedBody.question || '').toBe('');
-    expect(capturedBody.text).toBeTruthy();
+    expect((capturedBody!.question as string) || '').toBe('');
+    expect(capturedBody!.text).toBeTruthy();
   });
 
   test('GIVEN API returns 500 with detail WHEN Ask AI submits THEN popup shows the specific error detail', async ({ page }) => {

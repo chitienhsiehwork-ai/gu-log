@@ -16,10 +16,10 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const POSTS_DIR = path.join(__dirname, '../src/content/posts');
-const COUNTER_FILE = path.join(__dirname, 'article-counter.json');
+const _COUNTER_FILE = path.join(__dirname, 'article-counter.json');
 
 // ─── Config ────────────────────────────────────────────────────────
-const VALID_PREFIXES = ['SP', 'CP', 'SD', 'Lv'];
+const _VALID_PREFIXES = ['SP', 'CP', 'SD', 'Lv'];
 const VALID_LANGS = ['zh-tw', 'en'];
 const TICKET_PATTERN = /^(SP|CP|SD|Lv)-\d+$/;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;

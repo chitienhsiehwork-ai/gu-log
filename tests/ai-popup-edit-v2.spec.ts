@@ -64,7 +64,7 @@ test.describe('Edit v2 — Instruction Input', () => {
   }) => {
     await setupLoggedIn(page);
 
-    let capturedBody: any = null;
+    let capturedBody: Record<string, unknown> | null = null;
     await page.route('**/ai/edit', async (route) => {
       const body = route.request().postDataJSON();
       capturedBody = body;
@@ -94,11 +94,11 @@ test.describe('Edit v2 — Instruction Input', () => {
 
     // Verify request body structure
     expect(capturedBody).toBeTruthy();
-    expect(capturedBody.selectedText).toBeTruthy();
-    expect(capturedBody.instruction).toBe('語氣改輕鬆一點');
-    expect(capturedBody.filePath).toBeTruthy();
+    expect(capturedBody!.selectedText).toBeTruthy();
+    expect(capturedBody!.instruction).toBe('語氣改輕鬆一點');
+    expect(capturedBody!.filePath).toBeTruthy();
     // Old field 'text' should NOT be used
-    expect(capturedBody.text).toBeUndefined();
+    expect(capturedBody!.text).toBeUndefined();
   });
 
   test('GIVEN backend returns validation detail array WHEN edit submit fails THEN shows readable error text', async ({

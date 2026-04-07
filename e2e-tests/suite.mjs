@@ -8,7 +8,7 @@
  */
 
 import { chromium, webkit } from 'playwright';
-import { strict as assert } from 'node:assert';
+import { strict as _assert } from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -85,7 +85,7 @@ async function saveA11ySnapshot(page, name, browser) {
     // Playwright 1.58+ removed page.accessibility.snapshot()
     // Use DOM-based introspection instead
     const snapshot = await page.evaluate(() => {
-      function buildTree(el, depth = 0) {
+      function _buildTree(el, depth = 0) {
         if (depth > 6) return null; // limit depth
         const role = el.getAttribute('role') || el.tagName.toLowerCase();
         const ariaLabel = el.getAttribute('aria-label') || '';
@@ -94,14 +94,14 @@ async function saveA11ySnapshot(page, name, browser) {
         const node = { role, name: ariaLabel || text || '' };
         const children = [];
         for (const child of el.children) {
-          const childNode = buildTree(child, depth + 1);
+          const childNode = _buildTree(child, depth + 1);
           if (childNode) children.push(childNode);
         }
         if (children.length > 0) node.children = children;
         return node;
       }
       // Build from landmark elements
-      const landmarks = {};
+      const _landmarks = {};
       const landmarkEls = document.querySelectorAll('nav, main, footer, header, aside, [role]');
       const tree = [];
       landmarkEls.forEach(el => {
@@ -158,12 +158,12 @@ async function saveA11ySnapshot(page, name, browser) {
 }
 
 // Recursively collect all nodes from accessibility tree
-function collectA11yNodes(node, collected = []) {
+function _collectA11yNodes(node, collected = []) {
   if (!node) return collected;
   collected.push(node);
   if (node.children) {
     for (const child of node.children) {
-      collectA11yNodes(child, collected);
+      _collectA11yNodes(child, collected);
     }
   }
   return collected;
@@ -190,13 +190,13 @@ async function testHomepageLoad(page, browser) {
   check(loadTime < 15000, 'homepage-load-time', `${loadTime}ms < 15s`);
 }
 
-async function testLangAttribute(page, browser) {
+async function testLangAttribute(page, _browser) {
   console.log('\n  📋 Test: HTML lang Attribute');
   const lang = await page.evaluate(() => document.documentElement.lang);
   check(lang === 'zh-TW', 'lang-zh-TW', `lang="${lang}"`);
 }
 
-async function testSEOMetaTags(page, browser) {
+async function testSEOMetaTags(page, _browser) {
   console.log('\n  📋 Test: SEO Meta Tags');
 
   const ogTitle = await page.evaluate(() => {
@@ -554,7 +554,7 @@ async function testEnglishLocalization(page, browser) {
   check(enPosts > 0, 'en-posts-exist', `Found ${enPosts} EN post links`);
 }
 
-async function testBackToTop(page, browser) {
+async function _testBackToTop(page, browser) {
   console.log('\n  📋 Test: Back-to-Top Button');
 
   await page.goto(BASE_URL, { waitUntil: 'networkidle' });
@@ -639,7 +639,7 @@ async function testBackToTop(page, browser) {
   }
 }
 
-async function testPWAManifest(page, browser) {
+async function _testPWAManifest(page, _browser) {
   console.log('\n  📋 Test: PWA Manifest');
 
   await page.goto(BASE_URL, { waitUntil: 'networkidle' });
@@ -664,7 +664,7 @@ async function testPWAManifest(page, browser) {
   }
 }
 
-async function testRSSFeed(page, browser) {
+async function testRSSFeed(page, _browser) {
   console.log('\n  📋 Test: RSS Feed');
 
   const resp = await page.goto(`${BASE_URL}/rss.xml`, { waitUntil: 'networkidle' });
@@ -686,7 +686,7 @@ async function testRSSFeed(page, browser) {
   );
 }
 
-async function testFavicon(page, browser) {
+async function testFavicon(page, _browser) {
   console.log('\n  📋 Test: Favicon');
 
   await page.goto(BASE_URL, { waitUntil: 'networkidle' });
@@ -828,7 +828,7 @@ async function testHomepageA11y(page, browser) {
   }
 }
 
-async function testConsoleErrors(page, browser) {
+async function testConsoleErrors(page, _browser) {
   console.log('\n  📋 Test: Console Errors');
 
   const consoleErrors = [];
@@ -886,7 +886,7 @@ async function testBriefsPage(page, browser) {
   check(briefLinks > 0, 'briefs-content', `Found ${briefLinks} brief links`);
 }
 
-async function testMobileViewportOverflow(page, browser) {
+async function testMobileViewportOverflow(page, _browser) {
   console.log('\n  📋 Test: Mobile Viewport Overflow');
 
   await page.goto(BASE_URL, { waitUntil: 'networkidle' });

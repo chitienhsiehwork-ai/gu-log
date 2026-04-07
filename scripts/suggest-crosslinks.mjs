@@ -72,7 +72,7 @@ function parseFrontmatter(content) {
   return fm;
 }
 
-function getBody(content) {
+function _getBody(content) {
   const match = content.match(/^---\n[\s\S]*?\n---\n([\s\S]*)/);
   return match ? match[1] : '';
 }

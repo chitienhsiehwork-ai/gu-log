@@ -18,7 +18,7 @@ try {
           ['console-details'],
           ['json', { file: './quality/coverage/coverage.json' }],
         ],
-        entryFilter: (entry: any) => {
+        entryFilter: (entry: { url: string }) => {
           // Only measure our own code, not node_modules or external
           return entry.url.includes('/src/') || entry.url.includes('/scripts/');
         },

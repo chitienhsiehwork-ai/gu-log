@@ -61,4 +61,77 @@ export default [
       },
     },
   },
+
+  // E2E test suite runs inside Playwright page.evaluate() — needs browser globals
+  {
+    files: ['e2e-tests/**/*.mjs'],
+    languageOptions: {
+      globals: {
+        console: 'readonly',
+        process: 'readonly',
+        document: 'readonly',
+        window: 'readonly',
+        navigator: 'readonly',
+        localStorage: 'readonly',
+        sessionStorage: 'readonly',
+        MutationObserver: 'readonly',
+        IntersectionObserver: 'readonly',
+        HTMLElement: 'readonly',
+        Element: 'readonly',
+        Node: 'readonly',
+        NodeList: 'readonly',
+        getComputedStyle: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
+        URL: 'readonly',
+        fetch: 'readonly',
+        AbortController: 'readonly',
+        Response: 'readonly',
+        performance: 'readonly',
+        location: 'readonly',
+        history: 'readonly',
+        CustomEvent: 'readonly',
+        Event: 'readonly',
+        MouseEvent: 'readonly',
+        KeyboardEvent: 'readonly',
+        alert: 'readonly',
+        confirm: 'readonly',
+        requestAnimationFrame: 'readonly',
+        cancelAnimationFrame: 'readonly',
+      },
+    },
+    rules: {
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
+      ],
+    },
+  },
+
+  // CommonJS config files — need module/exports globals
+  {
+    files: ['**/*.cjs'],
+    languageOptions: {
+      globals: {
+        module: 'readonly',
+        exports: 'readonly',
+        require: 'readonly',
+        __dirname: 'readonly',
+        __filename: 'readonly',
+      },
+    },
+  },
+
+  // All scripts and tests — allow unused vars prefixed with _
+  {
+    files: ['scripts/**/*.mjs', 'tests/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
+      ],
+    },
+  },
 ];
