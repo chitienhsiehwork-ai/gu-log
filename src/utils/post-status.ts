@@ -97,7 +97,10 @@ export function getPublishedPosts(posts: PostEntry[], lang?: PostLang): PostEntr
 }
 
 export function getListablePosts(posts: PostEntry[], lang?: PostLang): PostEntry[] {
-  return posts.filter((post) => !lang || post.data.lang === lang);
+  return posts.filter(
+    (post) =>
+      (!lang || post.data.lang === lang) && resolvePostStatus(post, posts).status !== 'deprecated',
+  );
 }
 
 export function getNavigablePosts(posts: PostEntry[], currentPost: PostEntry): PostEntry[] {
