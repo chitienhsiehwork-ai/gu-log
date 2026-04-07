@@ -87,11 +87,11 @@ node scripts/validate-posts.mjs # 驗證所有文章
 ## Quality: Vibe Scoring + Tribunal
 
 品質管理用 Ralph Loop（迴圈模式）+ 4-judge tribunal：
-- **Vibe Scorer** (Opus): 四維評分（Persona / ClawdNote / Vibe / Clarity，0-10）
+- **Vibe Scorer** (Opus): 五維評分（Persona / ClawdNote / Vibe / Clarity / Narrative，0-10）
 - **Fact Checker** (Opus): 技術準確度 / 來源忠實 / 邏輯一致
-- **Librarian** (Sonnet): Glossary 連結 / cross-ref / identity linking
-- **Fresh Eyes** (Haiku): 陌生讀者第一印象
-- **Pass bar**: Vibe 四維 ≥ 8，Fact ≥ 8，Librarian composite ≥ 8，Fresh Eyes ≥ 7
+- **Librarian** (Sonnet): Glossary / cross-ref + identity linking / sourceAlign / attribution
+- **Fresh Eyes** (Haiku): 陌生讀者第一印象（3-month engineer persona）
+- **Pass bar**: Vibe composite ≥ 8 AND 至少一維 ≥ 9 AND 沒有任何維 < 8，Fact ≥ 8，Librarian composite ≥ 8，Fresh Eyes ≥ 8
 - **Rewrite**: 沒過 → rewriter 改寫 → 再跑 → 最多 3 次
 - Agents 在 `.claude/agents/`，評分標準 SSOT 在 `scripts/ralph-vibe-scoring-standard.md`
 

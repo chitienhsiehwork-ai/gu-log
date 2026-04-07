@@ -1,17 +1,213 @@
-# Ralph Vibe Scoring Standard v1.1
+# Ralph Vibe Scoring Standard v2.0
 
 > Golden standard for evaluating gu-log post quality.
-> Calibrated 2026-03-17 by ShroomDog + Clawd.
+> Tribunal v2 calibrated 2026-04-08 by ShroomDog + Clawd.
+> **SSOT for all 4 tribunal judges + writer agent.**
 
-## Publishing Bar: 8/10 minimum on EVERY scored dimension
+## Tribunal System Overview
 
-Posts scoring below 8 on any dimension → rewrite queue.
+4 sequential judges, all using **uniform 0-10 scale**. Composite = `floor(avg of all dims)`.
+
+| Stage | Judge | Model | Dimensions | Pass Bar |
+|-------|-------|-------|------------|----------|
+| 1 | Librarian | Sonnet | glossary · crossRef · sourceAlign · attribution | composite ≥ 8 |
+| 2 | Fact Checker | Opus | accuracy · fidelity · consistency | composite ≥ 8 |
+| 3 | Fresh Eyes | Haiku | readability · firstImpression | composite ≥ 8 |
+| 4 | Vibe Scorer | Opus | persona · clawdNote · vibe · clarity · narrative | composite ≥ 8 AND one dim ≥ 9 AND no dim < 8 |
+
+## Uniform Agent Output JSON
+
+All judges output the same structure:
+
+```json
+{
+  "judge": "<judge-name>",
+  "dimensions": {
+    "<dim1>": 8,
+    "<dim2>": 9
+  },
+  "score": 8,
+  "verdict": "PASS",
+  "reasons": {
+    "<dim1>": "One sentence with specific evidence.",
+    "<dim2>": "One sentence with specific evidence."
+  }
+}
+```
+
+- `score` = `floor(sum of dimension values / count of dimensions)` — agent calculates this
+- `verdict` = `"PASS"` or `"FAIL"` — **advisory only**
+- Orchestrator uses `checkPassBar(judge, dimensions)` in code for final verdict
+
+## Pass Bar: Code is the Rule
+
+```javascript
+function checkPassBar(judge, dimensions) {
+  const values = Object.values(dimensions);
+  const composite = Math.floor(values.reduce((a, b) => a + b) / values.length);
+
+  if (composite < 8) return { pass: false, composite, reason: `composite ${composite} < 8` };
+
+  if (judge === 'vibe') {
+    const max = Math.max(...values);
+    const min = Math.min(...values);
+    if (max < 9) return { pass: false, composite, reason: `no dimension ≥ 9 (max: ${max})` };
+    if (min < 8) return { pass: false, composite, reason: `dimension < 8 (min: ${min})` };
+  }
+
+  return { pass: true, composite };
+}
+```
+
+Agent verdict and code verdict disagree → **code wins**. Log the discrepancy.
 
 ---
 
-## Four Scoring Dimensions (each 0-10)
+## Stage 1: Librarian (Sonnet) — 4 Dimensions
 
-### 1. Persona Score — 李宏毅教授 (LHY) 風格
+### glossary — Glossary Term Coverage
+Does every technical term that exists in `src/data/glossary.json` get linked or explained?
+
+| Score | Description |
+|-------|-------------|
+| 10 | All glossary terms linked or naturally explained |
+| 8 | 1-2 minor terms unlinked but all key terms covered |
+| 5 | Multiple key terms used without glossary connection |
+| 2 | Full of terms with zero glossary integration |
+
+### crossRef — Internal Cross-References + Identity Linking
+Do internal `/posts/slug/` links resolve? Are relevant connections made?
+- First mention of **ShroomDog** → must link to `/about`
+- First mention of **Clawd/ShroomClawd** → must link to `/about`
+
+| Score | Description |
+|-------|-------------|
+| 10 | All refs verified, identity links present, obvious thematic connections made |
+| 8 | Refs valid, identity links present, 1-2 optional connections could be added |
+| 5 | Refs valid but obvious connections missing |
+| 2 | Broken links or missing required identity links |
+
+### sourceAlign — sourceUrl Alignment
+Does the content match what's at the declared `sourceUrl`?
+- SP/CP translations: content addresses the source topic?
+- SD originals: sourceUrl points to self → auto 8/10
+
+| Score | Description |
+|-------|-------------|
+| 10 | Content clearly derived from sourceUrl |
+| 8 | Minor content drift but overall aligned |
+| 5 | Partial alignment or hard to verify |
+| 2 | Content topic does not match sourceUrl |
+
+### attribution — Quote & Opinion Attribution
+Are quotes, stats, and opinions properly attributed?
+
+| Score | Description |
+|-------|-------------|
+| 10 | Perfect attribution — every claim sourced, every opinion clearly labeled as ClawdNote opinion |
+| 8 | Generally good, 1-2 minor gaps |
+| 5 | Multiple unattributed claims or opinion/fact blur in body |
+| 2 | Pervasive attribution failure |
+
+---
+
+## Stage 2: Fact Checker (Opus) — 3 Dimensions
+
+### accuracy — Technical Accuracy
+
+| Score | Description |
+|-------|-------------|
+| 10 | Every technical claim verifiable and correct. All version numbers, model names, benchmark scores match primary sources. **EXTREMELY RARE.** |
+| 9 | All claims correct. One minor imprecision that does not mislead. |
+| 8 | Mostly accurate. 1–2 claims technically imprecise but not materially wrong. |
+| 7 | Generally accurate. 1–2 claims unverifiable or one imprecise claim a domain expert would notice. Normal for tweet-sourced translations. |
+| 5–6 | Unverifiable statistics presented as fact, OR 1–2 technically incorrect claims. |
+| 3–4 | Multiple incorrect technical claims. Benchmark numbers fabricated or significantly misreported. |
+| 1–2 | Significant fabrications that actively mislead readers. |
+| 0 | Wholesale technical fabrication. |
+
+**Red flags:** any number without a cited first-hand source; referencing a product/model that doesn't exist.
+
+### fidelity — Source Faithfulness
+
+| Score | Description |
+|-------|-------------|
+| 10 | Translation perfectly faithful. All hedges preserved. Every caveat included. ClawdNote clearly separated. |
+| 9 | Near-perfect. One very minor paraphrase but meaning preserved. |
+| 8 | Faithful with slight nuance loss expected from good translation. Hedges mostly preserved. |
+| 7 | Generally faithful but 1–2 hedges converted from uncertain to certain ("might" → "is"), OR one caveat omitted. |
+| 5–6 | Multiple uncertainty erasures. OR major caveats stripped. OR conclusions extended beyond source. |
+| 3–4 | Significant departure. ClawdNote opinions bleed into body without attribution. |
+| 1–2 | Fundamental misrepresentation of source. |
+| 0 | Completely fabricated or inverted from source. |
+
+**Key failure mode:** source says "might/could" but translation says "is/does" (uncertainty erasure).
+
+### consistency — Logical Consistency
+
+| Score | Description |
+|-------|-------------|
+| 10 | Argument flows perfectly. Every conclusion supported by evidence. ClawdNote opinions clearly marked. Zero contradictions. |
+| 9 | Excellent logic. Minor gap in one step but overall coherent. |
+| 8 | Good logical flow. ClawdNotes mostly distinguish opinion vs. fact. |
+| 7 | Generally consistent. 1 logical leap or mild contradiction careful readers would notice. |
+| 5–6 | Noticeable gaps. ClawdNotes blur fact/speculation without marking. |
+| 3–4 | Multiple inconsistencies. Argument breaks down in 1+ sections. |
+| 1–2 | Argument fundamentally incoherent. |
+| 0 | No logical structure. |
+
+### Calibration Examples (Fact Checker)
+
+**High anchor — SP-14 (`ai-assistance-coding-skills.mdx`): accuracy 9 / fidelity 9 / consistency 9**
+- Anthropic official research, research-grade stats (52 engineers, p=0.01)
+- Research limitations explicitly preserved in Toggle component
+- Driving lesson narrative arc; opinion/fact clearly separated
+
+**Medium anchor — CP-153 (`cp-153-20260312-nvidia-nemotron3-super-120b-mamba-moe.mdx`): accuracy 8 / fidelity 8 / consistency 9**
+- Source: @ArtificialAnlys tweet — specific but tweet-level authority
+- Technical architecture (Mamba + Transformer MoE) correct
+- No uncertainty erasure; tweet origin limits traceability
+
+**Low anchor (hypothetical pattern — 5–6):**
+- Source says "outperforms on benchmark X in controlled settings"
+- Translation says "在所有任務上領先 40%" (uncertainty erasure + stat fabrication)
+- 40% figure absent from source; ClawdNote presents as verified fact
+
+---
+
+## Stage 3: Fresh Eyes (Haiku) — 2 Dimensions
+
+**Persona: developer with ~3 months of experience.** Impatient, scared of jargon, will close the tab after 2 boring paragraphs. Does NOT know what ShroomDog, Clawd, or OpenClaw are.
+
+### readability — Can You Follow Without Getting Lost?
+
+| Score | Description |
+|-------|-------------|
+| 10 | Reads like a well-edited blog for curious beginners. Zero confusion. |
+| 8 | Smooth, 1-2 spots where re-reading a sentence. Still enjoyable. |
+| 6 | Understandable but effort needed. Some sections feel like notes, not prose. |
+| 4 | Get the gist but multiple confusing paragraphs. Would not share. |
+| 2 | Lost in jargon. Gave up halfway. |
+
+### firstImpression — Would You Finish? Would You Share?
+
+| Score | Description |
+|-------|-------------|
+| 10 | Couldn't stop. Immediately sent to group chat. |
+| 8 | Finished happily. Might share if topic comes up. |
+| 6 | Finished but wouldn't revisit. Fine. |
+| 4 | Skimmed the second half. Meh. |
+| 2 | Closed tab after 3 paragraphs. |
+
+---
+
+## Stage 4: Vibe Scorer (Opus) — 5 Dimensions
+
+**Pass bar: composite ≥ 8 AND at least one dimension ≥ 9 AND no dimension < 8**
+
+Read `WRITING_GUIDELINES.md` before scoring. Study calibration examples below.
+
+### persona — 李宏毅教授 (LHY) 風格
 
 **What we're measuring:** Does it read like a passionate, approachable professor explaining things to curious people?
 
@@ -24,192 +220,129 @@ Posts scoring below 8 on any dimension → rewrite queue.
 | 5-6 | 像新聞稿或 Wikipedia。「各位觀眾好，今天這篇文章非常硬核」= 典型的 5 分開場。結尾像勵志文。 |
 | 1-4 | 完全沒有 persona，機器翻譯質感。 |
 
-**Key signals of good persona:**
-- 生活化比喻（便利商店、期末考、金魚、鹹酥雞）
-- 口語感（「但問題來了」「等等，這」「好，10x 是真的」）
-- 對技術吐槽（「這 API 設計根本反人類」）
-- 對人友善（「如果你也卡在這裡，別擔心」）
-- 讀起來像在聽人說話，不像在讀報告
-
-**Red flags (kills score by 2-3 points):**
-- 「各位觀眾好，今天這篇文章非常硬核」（開場太生硬）
-- 結尾用勵志金句收（「AI 時代的超級個體，拼的是...」）
-- 長段 bullet list dump 沒有任何 personality 包裝
-- 「讓我們開始吧」「以下是重點整理」= 模板語言
-
 **🔴 Decorative Persona Trap（SP-158 教訓，最多 5 分）:**
-- 表面特徵齊全（有比喻、有 callback、有口語轉場）但讀起來仍然像「寫得好的新聞稿」而非「教授在聊天」
-- 判斷方法：把比喻和 callback 遮住，剩下的骨架是不是一篇線性報告？如果是 → 最多 5 分
-- 結構太線性（介紹 → 展開 → 再展開 → 結尾）= 教科書節奏不是說故事節奏
-- 全篇沒有一個「等等，這超扯」的爆點 = persona 是裝飾品不是骨架
-- **記住：SP-93 容易抓（完全沒 persona），SP-158 更危險（假 persona 騙 scorer）**
+Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear report? If yes → persona ≤ 5.
 
-### 2. Clawd Note Score — 吐槽 + 洞察品質
+**EN version:**
+
+| Score | EN Persona Description |
+|-------|------------------------|
+| 10 | Reads like a passionate, approachable teacher explaining to curious non-experts. Analogies are universally resonant, oral feel strong. |
+| 9 | Great analogies, warm tone, good oral feel. Slightly formal in 1–2 spots. |
+| 8 | Has analogies and oral feel, but some paragraphs slide into "blog writing" mode. |
+| 5–6 | Reads like a well-written blog post, not a conversation. Informative but not warm. Cultural references only accessible to TW readers → cap 6. |
+| 3 | Reads like a press release or translated article. No personality. |
+
+**EN cultural accessibility** is part of persona: analogies must work for global EN readers (e.g., "Honda Civic of coding tools" > unexplained 鹹酥雞 reference).
+
+### clawdNote — 吐槽 + 洞察品質
 
 **What we're measuring:** Are the Clawd Notes fun, insightful, and opinionated? Or just Wikipedia footnotes?
 
 | Score | Description |
 |-------|-------------|
-| 10 | 每個 note 都是 highlight — 有吐槽有觀點有比喻，讀者會專門來看 Clawd 怎麼說。Cross-reference 其他文章加分。 |
+| 10 | 每個 note 都是 highlight — 有吐槽有觀點有比喻，讀者會專門來看 Clawd 怎麼說。 |
 | 9 | 吐槽精準、比喻有趣、有自己的立場。偶爾有一兩個偏分析但整體很讚。 |
 | 8 | 有吐槽但某些 note 偏「解釋」多於「有趣」。功能性夠但 edge 少了一截。 |
-| 7 | 分析正確、引用社群回覆不錯，但自己的吐槽聲量不夠。 |
+| 7 | 分析正確，但自己的吐槽聲量不夠。 |
 | 5-6 | Wikipedia 式冷靜解釋。「Transformer 是一種 neural network 架構」= 典型 5 分 note。 |
 | 1-4 | 只有「補充說明」功能，完全沒有 personality。 |
 
-**ClawdNote density standard:**
-- 目標：每 ~25-30 行 prose 一個 ClawdNote（不含 frontmatter/imports/code blocks）
-- 參考 CP-30：5 notes / 156 lines = ~1 per 31 lines ✅
-- 參考 CP-85：6 notes / 187 lines = ~1 per 31 lines ✅（但 ShroomDog 說密度可以再高）
-- 參考 SP-93：3 notes / 140 lines = ~1 per 47 lines ❌ 太稀
-- **建議密度：1 note per 25 lines（prose 行數）**
-
-**What makes a great Clawd Note:**
-- 吐槽 + 解釋的混合體（「又來了，每篇論文都說自己 SOTA，就像每家鹹酥雞都說自己全台最好吃」）
-- 自嘲（「突然覺得自己有點像柏青哥」「我就是你的多巴胺販賣機」）
-- Cross-reference 其他 gu-log 文章（「跟 CP-79 的結論殊途同歸」）
-- 有立場（「我覺得他這點說對了」「這段我不同意」）
-- 用一句話讓複雜概念 click
-
 **🔴 Opinion Threshold（8 分門檻）:**
-- **全部 note 都是「解釋 + 比喻」但沒有自己立場 → 最高 6 分**
-- 8+ 的門檻：至少一半的 notes 要有明確 opinion（同意/不同意原文、提出原文沒講的觀點、challenge 某個假設）
-- 「我覺得作者這裡錯了，因為...」「這跟 CP-85 的結論矛盾」「gu-log 的 vibe scoring 系統就是這個理論的實作」= opinion
-- 「就像養了一隻貓」「就像存錢」「跟醫生看病一樣」= 比喻，不是 opinion
-- 好的 ClawdNote = 立場先行（「我同不同意」）→ 論證（「因為...」）→ 比喻加強（optional）
-- **Meta-commentary 大加分**：用 gu-log 自己的系統（Ralph Loop、vibe scorer、pipeline、glossary）去 validate 或 challenge 原文理論
+- 全部 note 都是「解釋 + 比喻」但沒有自己立場 → **最高 6 分**
+- 8+ 門檻：至少一半的 notes 要有明確 opinion（同意/不同意原文、challenge 某個假設）
+- Density target: ~1 note per 25 prose lines
 
-**Red flags:**
-- 純定義式解釋（「XXX 是一種...，由 YYY 在 ZZZ 年提出」）
-- 沒有 kaomoji（至少每 2-3 個 note 要有一個）
-- 太短（一行 note = 多半不夠有趣）
-- 沒有 opinion，只有 fact restatement
-- 全部 note 都在「解釋原文」而非「加入自己的觀點」— SP-158 的核心問題
-- 🔴 使用 CodexNote / GeminiNote / ClaudeCodeNote — 讀者不在乎哪個 model 寫的。所有 note 統一用 ClawdNote。暴露 pipeline diff = 直接扣 3 分。
+### vibe — Fun / Chill / Informed
 
-### 3. Overall Vibe — Fun / Chill / Informed
-
-**What we're measuring:** Would you want to share this with a friend? Would you read this on your phone for fun?
+**What we're measuring:** Would you want to share this with a friend?
 
 | Score | Description |
 |-------|-------------|
 | 10 | 讀完想轉發、想討論。既學到東西又被逗樂。CP-85 = benchmark 10. |
-| 9 | 讀起來很舒服，有教育性也有趣味。不會讓人中途 scroll past。資訊密度剛好。 |
+| 9 | 讀起來很舒服，有教育性也有趣味。不會讓人中途 scroll past。 |
 | 8 | 好讀，有些段落很精彩，但整體沒有完全「黏住」讀者。 |
 | 7 | 合格，能讀下去，但不會讓人想分享給朋友。 |
-| 5-6 | Plain, natural, but boring. 題材可能很好但被寫得很無聊。 |
+| 5-6 | Plain, natural, but boring. |
 | 1-4 | 讀不下去，想關掉。 |
 
-**Vibe killers:**
-- 結尾 bullet list dump（把所有重點列出來，沒有 narrative 收尾）
-- 段落太長沒有喘息點
-- 過度使用「首先...其次...最後...」結構
-- 勵志文收尾（「讓我們一起期待...」「這就是 AI 時代的...」）
-- 明明題材超有趣但被寫得像公文
+### clarity — Pronoun Clarity / Voice Attribution
 
-**Vibe boosters:**
-- 開頭就 hook（場景描述、反直覺結論、設問句）
-- 結尾有 callback 到開頭（narrative arc）
-- 節奏感：短句穿插長段、一行話的衝擊句
-- 情緒起伏（先鋪墊 → 揭曉 → 吐槽 → 反思）
-- Kaomoji 作為情緒標點（不是裝飾）
-
-### 4. Clarity Score — Pronoun Clarity / Voice Attribution
-
-**What we're measuring:** Does every sentence make it obvious who is speaking, who is acting, and who the sentence is about?
+**What we're measuring:** Does every sentence make it obvious who is speaking?
 
 | Score | Description |
 |-------|-------------|
-| 10 | Every sentence has a clear speaker/subject. Zero ambiguous pronouns. Reader always knows who's talking. |
-| 8 | Rare ambiguity. Pronouns used only in clearly scoped contexts (ClawdNote, blockquote). Body text uses specific names. |
+| 10 | Every sentence has a clear speaker/subject. Zero ambiguous pronouns. |
+| 8 | Rare ambiguity. Pronouns used only in clearly scoped contexts (ClawdNote, blockquote). |
 | 6 | Some 你/我 slip through in body but context usually disambiguates. |
 | 4 | Frequent 你/我 in body. Reader has to guess who's speaking. |
 | 2 | Confusing mess. Can't tell if "I" is author, AI, or original source. |
 
-**Clarity killers:**
-- 正文直接用「你」「我」卻沒有明確 speaker / audience
-- 「我們」但沒說清楚是 ShroomDog 團隊、作者、還是讀者
-- 同一段在作者觀點、Clawd 觀點、原文觀點之間跳來跳去
-- reader orientation 模糊：到底是在講「讀者會遇到」還是「作者自己遇到」
+**EN version:** Pronoun prohibition doesn't apply. Instead: every "you/I" must have a clear referent.
 
-**Clarity boosters:**
-- 直接點名主體：ShroomDog、Clawd、原作者、讀者、工程師、開發者
-- 用無主語或被動重寫句子，避免硬塞第二人稱
-- 把個人評論收進 `<ClawdNote>`，把正文保持敘事中立
-- 引用原話時用 blockquote，讓 voice boundary 清楚
+| Score | EN Clarity Description |
+|-------|------------------------|
+| 10 | Every "you/I" has clear referent. Reader always knows who is speaking. |
+| 8 | Rare ambiguity. "You" consistently addresses reader; "I" is always Clawd in ClawdNote. |
+| 6 | Occasional "we" ambiguity (Clawd + reader? Author + Anthropic?). |
+| 4 | Multiple instances where reader can't tell if "I" is Clawd, original author, or ShroomDog. |
+
+### narrative — Narrative Structure / Rhythm / Emotional Arc
+
+**What we're measuring:** Does the post have genuine narrative structure, or is it a linear report?
+
+| Score | Description |
+|-------|-------------|
+| 10 | 情緒起伏明確，每個 section 節奏不同，結尾 callback 開頭，讀完有「靠，這句要記住」的感覺 |
+| 9 | 有起伏有節奏，結尾有收 punch，個別段落可再加強 |
+| 8 | 有變化但某些段落回到 explain → bullets → ClawdNote 的 template 節奏 |
+| 6 | 線性結構（介紹 → 展開 → 再展開 → 結尾），沒有情緒高低點 |
+| 4 | SP-158 level — 骨架是報告，表面裝飾改不了結構問題 |
+| 2 | 純 bullet dump，沒有 narrative 可言 |
+
+**Key test:** Strip analogies, kaomoji, and ClawdNotes. Is the remaining skeleton a linear textbook report? If yes → narrative ≤ 5.
+
+**SP-158 教訓:** decorative persona (surface features + linear structure) = narrative ≤ 5.
 
 ---
 
-## Calibration Examples（Golden Standards）
-
-> Note: Older calibration examples below predate the clarity dimension, so they list only persona / ClawdNote / vibe.
+## Calibration Examples — Vibe Scorer
 
 ### Score 10 — CP-85「AI Vampire / Steve Yegge」
-- **Why 10:** Storytelling 不想停。$/hr 公式讓人記住。Colin Robinson 比喻完美。結尾 callback 多篇文章形成知識網。Cross-reference CP-53, CP-79, CP-83。
-- **ShroomDog note:** Vibe outstanding 但 ClawdNote 密度可再高（6 notes / 187 lines），多 2 個更好。文字稍微不如 LHY 那麼平易近人。
+- **Why 10:** Storytelling 不想停。$/hr 公式讓人記住。Colin Robinson 比喻完美。結尾 callback 多篇文章。
+- **ShroomDog note:** Vibe outstanding 但 ClawdNote 密度可再高。
 
 ### Score 9 — CP-30「Anthropic Misalignment Hot Mess」
 - **Why 9:** 比喻到位（金魚讀文章、期末考、學渣選C）。口語自然。Clawd Notes 有吐槽有自嘲。
-- **ShroomDog note:** 已經很好，LHY 真人水準可能更 approachable 一點，但 9 分夠資格發布。
 
 ### Score 3 — SP-93「Levelsio 清空待辦清單」
-- **Why 3:** 題材超有趣但被寫成新聞稿 — 浪費好題材罪加一等。開場「各位觀眾好，今天這篇文章非常硬核」太生硬。Clawd Notes 只有 3 個且偏分析。結尾一大段 bullet dump + 勵志文收尾。Levelsio 是最有故事性的 indie hacker 之一，結果讀起來像在看 TechCrunch press release。
-- **ShroomDog note:** 明明 Levelsio 的故事很 exciting，讀起來卻超爆無聊。3/3/3 — 浪費好題材比題材本身無聊更嚴重。
+- **Why 3:** 題材超有趣但被寫成新聞稿。開場「各位觀眾好，今天這篇文章非常硬核」太生硬。
+- **ShroomDog note:** 明明 Levelsio 的故事很 exciting，讀起來卻超爆無聊。3/3/3。
 
 ### Score 2/2/3 — SP-110「Codex 10 Best Practices」
-- **Why 2/2/3:** Persona 離 LHY 差距巨大，讀起來像翻譯稿不像教授講課。ClawdNote 全部無聊（ShroomDog 給 2 分），而且用了 CodexNote/GeminiNote 暴露 pipeline diff — 讀者不在乎哪個 model 寫的。Vibe 3 分，「wouldn't share to a friend, my friend would think I have no taste」。
-- **ShroomDog note:** Fucking boring to read, cringy AI agent notes. CodexNote/GeminiNote 是 noise 不是 content。所有 note 統一用 ClawdNote 就好。
+- **Why 2/2/3:** Persona 離 LHY 差距巨大。ClawdNote 全部無聊且用了 CodexNote/GeminiNote 暴露 pipeline diff。
 
 ### Score 3/3/5 → Rewrite — SP-158「Agent Trace Improvement Loop」
-- **Why 3/3/5:** 表面特徵齊全（貓比喻、callback 結尾、ClawdNote 密度夠）但讀起來仍然是 LangChain conceptual guide 的好翻譯，不是教授在講課。結構太線性（介紹 → 展開 → 再展開 → 結尾），沒有情緒起伏、沒有爆點。ClawdNotes 全部在「解釋 + 正經比喻」，沒有一個有自己立場的 opinion。Vibe 5 是因為資訊密度 OK 但讀完不會想轉給朋友。
-- **ShroomDog note:** 人物感 3、vibe 5。「裝飾性 persona」的典型 — 有比喻有 callback 但骨子裡是新聞稿。vibe scorer 打 8/8/8 = scorer 被表面特徵騙了。這篇是 recalibration 的觸發點。
-- **⚠️ Key lesson:** 這種「表面合格但骨子裡無聊」的文章比 SP-93（完全沒 persona）更危險，因為 scorer 會被騙。SP-93 很好抓，SP-158 要刻意去「感受」才知道爛。
+- **Why 3/3/5:** 表面特徵齊全（貓比喻、callback 結尾、ClawdNote 密度夠）但讀起來仍然是線性報告。ClawdNotes 全部在「解釋 + 正經比喻」，沒有一個有自己立場的 opinion。narrative = 4（SP-158 的核心問題）。
+- **⚠️ Key lesson:** 這種「表面合格但骨子裡無聊」的文章比 SP-93（完全沒 persona）更危險，因為 scorer 會被騙。
 - **📚 Before/After Study Pair:**
-  - Before: `fa338ed` (persona 3 / vibe 5 — decorative persona trap)
-  - After: `74095c4` (rewrite with opinion-first ClawdNotes + meta-commentary)
-  - **Run `git diff fa338ed 74095c4 -- src/content/posts/sp-158*` to study the transformation**
-  - Key changes: linear structure → narrative tension; explain-only notes → opinion-first stance; no meta → gu-log's vibe scoring system as living proof of the article's theory
+  - Before: `fa338ed` — decorative persona trap (persona 3 / vibe 5 / narrative 4)
+  - After: `74095c4` — opinion-first ClawdNotes + narrative tension
+  - `git diff fa338ed 74095c4 -- src/content/posts/sp-158*`
 
 ### Score 6 — CP-146「Simon Willison Anti-Patterns」
-- **Why 6:** 開頭不錯（場景描述），但中段變成 plain reporting。ClawdNote 引用社群回覆但自己的聲量不夠。整體 natural 但 boring — 沒達到 gu-log 的高標準。
-- **ShroomDog note:** Plain, natural, but boring. 三個維度都是 6。
-
-### Score 6 — Lv-07「OpenClaw Testing」
-- **Why 6:** ClawdNote 可以更好。Content ok 但 vibe boring。Quiz 互動是加分但沒有救起整體的 flatness。
-- **ShroomDog note:** 三個維度全部 6。
+- **Why 6:** 開頭不錯，但中段變成 plain reporting。ClawdNote 引用社群回覆但自己的聲量不夠。
 
 ---
 
-## Evaluation Protocol for Sub-Agents
-
-When scoring a post:
+## Evaluation Protocol (All Judges)
 
 1. **Read the ENTIRE post** — don't skim
 2. **Score each dimension independently** (0-10)
 3. **Write 1-2 sentence justification per dimension** — specific, cite examples
-4. **Flag specific problems** — quote the problematic text
-5. **Calculate if it meets publishing bar** — ALL scored dimensions ≥ 8
-
-### Output Format (JSON)
-
-```json
-{
-  "ticketId": "SP-93",
-  "file": "sp-93-20260302-levelsio-claude-code-todo-blitz.mdx",
-  "scores": {
-    "persona": { "score": 5, "reason": "Opens with '各位觀眾好，今天這篇文章非常硬核' — news anchor tone. Final section is a raw bullet dump with no personality." },
-    "clawdNote": { "score": 5, "reason": "Only 3 notes in 140 lines. Notes are analytical — 'levelsio 流派的核心' reads like a textbook conclusion." },
-    "vibe": { "score": 5, "reason": "Levelsio's story should be exciting but reads like a press release. Closing '讓我們一起期待' is motivational-poster energy." },
-    "clarity": { "score": 4, "reason": "Body text uses ambiguous 你/我 framing, so the reader has to infer whether the speaker is ShroomDog, Clawd, or the audience." }
-  },
-  "meetBar": false,
-  "topIssues": [
-    "Opening line is generic news anchor format",
-    "ClawdNote density too low (3/140 lines)",
-    "Ending bullet dump kills narrative momentum"
-  ]
-}
-```
+4. **Calculate composite** = floor(avg of all dims)
+5. **Apply pass bar** — check composite ≥ 8; for vibe, also check one ≥ 9 and no dim < 8
+6. **Output uniform JSON** — `{ judge, dimensions, score, verdict, reasons }`
 
 ---
 

@@ -1,86 +1,107 @@
 ---
 /**
- * AiJudgeScore — Ralph Tribunal: Shows AI quality scores for a post
+ * AiJudgeScore — Tribunal Quality Panel
  *
- * Curator (Gemini) → Source verification (scores.gemini)
- * Checker (Codex)  → Fact check (scores.codex)
- * Vibe (Opus)      → Style/persona (scores.ralph: p/c/v)
+ * 4 judges, uniform 0-10 scale, new dimension map:
+ *   Librarian (Sonnet)  → glossary · crossRef · sourceAlign · attribution
+ *   Fact Check (Opus)   → accuracy · fidelity · consistency
+ *   Fresh Eyes (Haiku)  → readability · firstImpression
+ *   Vibe (Opus)         → persona · clawdNote · vibe · clarity · narrative
  *
- * Scores live in post frontmatter — no manifest lookup, no stale detection.
+ * Scores live in post frontmatter. No legacy keys (ralph/gemini/codex/sonnet).
  */
 
 interface Props {
   scores?: {
-    ralph?: { p: number; c: number; v: number; date: string; model?: string; harness?: string };
-    gemini?: { score: number; date: string; model?: string; harness?: string };
-    codex?: { score: number; date: string; model?: string; harness?: string };
-    sonnet?: { r: number; g: number; date: string; model?: string; harness?: string };
+    librarian?: {
+      glossary: number;
+      crossRef: number;
+      sourceAlign: number;
+      attribution: number;
+      score: number;
+      date: string;
+      model?: string;
+    };
+    factCheck?: {
+      accuracy: number;
+      fidelity: number;
+      consistency: number;
+      score: number;
+      date: string;
+      model?: string;
+    };
+    freshEyes?: {
+      readability: number;
+      firstImpression: number;
+      score: number;
+      date: string;
+      model?: string;
+    };
+    vibe?: {
+      persona: number;
+      clawdNote: number;
+      vibe: number;
+      clarity: number;
+      narrative: number;
+      score: number;
+      date: string;
+      model?: string;
+    };
   };
   lang?: string;
 }
 
 const { scores, lang = 'zh-tw' } = Astro.props;
 
-const REPO_BASE = 'https://github.com/chitienhsiehwork-ai/gu-log/blob/main';
 const hasScores =
-  scores &&
-  (scores.ralph || scores.gemini != null || scores.codex != null || scores.sonnet != null);
+  scores && (scores.librarian || scores.factCheck || scores.freshEyes || scores.vibe);
 
-const vibeScores = scores?.ralph
-  ? { persona: scores.ralph.p, clawdNote: scores.ralph.c, vibe: scores.ralph.v }
-  : null;
-
-const vibeComposite = vibeScores
-  ? Math.floor((vibeScores.persona + vibeScores.clawdNote + vibeScores.vibe) / 3)
-  : null;
-
-const crossRefScore = scores?.gemini?.score ?? null;
-const factCheckScore = scores?.codex?.score ?? null;
-
-const readabilityScores = scores?.sonnet
-  ? { readability: scores.sonnet.r, glossary: scores.sonnet.g }
-  : null;
-
-const readabilityComposite = readabilityScores
-  ? Math.floor((readabilityScores.readability + readabilityScores.glossary) / 2)
-  : null;
-
-const scriptLink = `${REPO_BASE}/scripts/ralph-orchestrator.sh`;
-
-// Model/harness info per judge
-const geminiModelInfo =
-  [scores?.gemini?.model, scores?.gemini?.harness].filter(Boolean).join(' · ') || null;
-const codexModelInfo =
-  [scores?.codex?.model, scores?.codex?.harness].filter(Boolean).join(' · ') || null;
-const ralphModelInfo =
-  [scores?.ralph?.model, scores?.ralph?.harness].filter(Boolean).join(' · ') || null;
-const sonnetModelInfo =
-  [scores?.sonnet?.model, scores?.sonnet?.harness].filter(Boolean).join(' · ') || null;
-
-function scoreClass(_score: number): string {
-  return 'score-neutral';
+function scoreColor(score: number): string {
+  if (score >= 9) return 'score-high';
+  if (score >= 8) return 'score-pass';
+  return 'score-fail';
 }
+
+const isZhTw = lang === 'zh-tw';
+
+const labels = {
+  librarian: isZhTw ? '圖書館長' : 'Librarian',
+  factCheck: isZhTw ? '事實查核' : 'Fact Check',
+  freshEyes: isZhTw ? '新鮮眼睛' : 'Fresh Eyes',
+  vibe: isZhTw ? '氛圍評審' : 'Vibe',
+  glossary: isZhTw ? '術語' : 'Glossary',
+  crossRef: isZhTw ? '交叉引用' : 'CrossRef',
+  sourceAlign: isZhTw ? '來源對齊' : 'SourceAlign',
+  attribution: isZhTw ? '引用歸屬' : 'Attribution',
+  accuracy: isZhTw ? '準確性' : 'Accuracy',
+  fidelity: isZhTw ? '忠實度' : 'Fidelity',
+  consistency: isZhTw ? '一致性' : 'Consistency',
+  readability: isZhTw ? '可讀性' : 'Readability',
+  firstImpression: isZhTw ? '第一印象' : 'FirstImpression',
+  persona: isZhTw ? '人物感' : 'Persona',
+  clawdNote: 'ClawdNote',
+  vibe_dim: 'Vibe',
+  clarity: isZhTw ? '清晰度' : 'Clarity',
+  narrative: isZhTw ? '敘事結構' : 'Narrative',
+};
 ---
 
 {
   hasScores && (
     <div class="ai-judge-panel">
       <div class="judge-header">
-        <span class="judge-title">🏛️ Ralph Tribunal</span>
-        <a href={scriptLink} target="_blank" rel="noopener" class="judge-link">
-          {lang === 'zh-tw' ? '評分腳本 →' : 'Scoring script →'}
-        </a>
+        <span class="judge-title">{isZhTw ? '🏛️ Tribunal 評分' : '🏛️ Tribunal Score'}</span>
       </div>
 
       <div class="judge-cards">
-        {crossRefScore != null && (
+        {scores?.librarian && (
           <div class="judge-card">
             <div class="card-header">
-              <span class="judge-icon judge-color-curator">
+              <span class="judge-icon judge-color-librarian">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
+                  width="20"
+                  height="20"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -90,37 +111,57 @@ function scoreClass(_score: number): string {
                 >
                   <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
                   <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-                  <path d="M12 1l1 2 2 1-2 1-1 2-1-2-2-1 2-1z" />
                 </svg>
               </span>
               <div class="card-meta">
-                <span class="judge-name judge-color-curator">Curator</span>
-                <a
-                  href={`${REPO_BASE}/scripts/prompts/crossref-verifier.md`}
-                  target="_blank"
-                  rel="noopener"
-                  class="judge-link"
-                >
-                  {lang === 'zh-tw' ? '來源驗證' : 'Source Check'}
-                </a>
+                <span class="judge-name judge-color-librarian">{labels.librarian}</span>
+                {scores.librarian.model && <span class="model-info">{scores.librarian.model}</span>}
               </div>
             </div>
-            <div class={`card-score ${scoreClass(crossRefScore)}`}>
-              {crossRefScore}
+            <div class={`card-score ${scoreColor(scores.librarian.score)}`}>
+              {scores.librarian.score}
               <span class="score-denom">/10</span>
             </div>
-            {geminiModelInfo && <div class="model-info">{geminiModelInfo}</div>}
+            <div class="dim-list">
+              <span class="dim-item">
+                <span class="dim-label">{labels.glossary}</span>
+                <strong class={scoreColor(scores.librarian.glossary)}>
+                  {scores.librarian.glossary}
+                </strong>
+              </span>
+              <span class="dim-sep">·</span>
+              <span class="dim-item">
+                <span class="dim-label">{labels.crossRef}</span>
+                <strong class={scoreColor(scores.librarian.crossRef)}>
+                  {scores.librarian.crossRef}
+                </strong>
+              </span>
+              <span class="dim-sep">·</span>
+              <span class="dim-item">
+                <span class="dim-label">{labels.sourceAlign}</span>
+                <strong class={scoreColor(scores.librarian.sourceAlign)}>
+                  {scores.librarian.sourceAlign}
+                </strong>
+              </span>
+              <span class="dim-sep">·</span>
+              <span class="dim-item">
+                <span class="dim-label">{labels.attribution}</span>
+                <strong class={scoreColor(scores.librarian.attribution)}>
+                  {scores.librarian.attribution}
+                </strong>
+              </span>
+            </div>
           </div>
         )}
 
-        {factCheckScore != null && (
+        {scores?.factCheck && (
           <div class="judge-card">
             <div class="card-header">
-              <span class="judge-icon judge-color-checker">
+              <span class="judge-icon judge-color-factcheck">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
+                  width="20"
+                  height="20"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -133,87 +174,47 @@ function scoreClass(_score: number): string {
                 </svg>
               </span>
               <div class="card-meta">
-                <span class="judge-name judge-color-checker">Checker</span>
-                <a
-                  href={`${REPO_BASE}/scripts/prompts/fact-checker.md`}
-                  target="_blank"
-                  rel="noopener"
-                  class="judge-link"
-                >
-                  {lang === 'zh-tw' ? '事實查核' : 'Fact Check'}
-                </a>
+                <span class="judge-name judge-color-factcheck">{labels.factCheck}</span>
+                {scores.factCheck.model && <span class="model-info">{scores.factCheck.model}</span>}
               </div>
             </div>
-            <div class={`card-score ${scoreClass(factCheckScore)}`}>
-              {factCheckScore}
+            <div class={`card-score ${scoreColor(scores.factCheck.score)}`}>
+              {scores.factCheck.score}
               <span class="score-denom">/10</span>
             </div>
-            {codexModelInfo && <div class="model-info">{codexModelInfo}</div>}
+            <div class="dim-list">
+              <span class="dim-item">
+                <span class="dim-label">{labels.accuracy}</span>
+                <strong class={scoreColor(scores.factCheck.accuracy)}>
+                  {scores.factCheck.accuracy}
+                </strong>
+              </span>
+              <span class="dim-sep">·</span>
+              <span class="dim-item">
+                <span class="dim-label">{labels.fidelity}</span>
+                <strong class={scoreColor(scores.factCheck.fidelity)}>
+                  {scores.factCheck.fidelity}
+                </strong>
+              </span>
+              <span class="dim-sep">·</span>
+              <span class="dim-item">
+                <span class="dim-label">{labels.consistency}</span>
+                <strong class={scoreColor(scores.factCheck.consistency)}>
+                  {scores.factCheck.consistency}
+                </strong>
+              </span>
+            </div>
           </div>
         )}
 
-        {vibeScores && vibeComposite != null && (
+        {scores?.freshEyes && (
           <div class="judge-card">
             <div class="card-header">
-              <span class="judge-icon judge-color-vibe">
+              <span class="judge-icon judge-color-fresheyes">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.5"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <path d="M2 13 C4 13, 5.5 7, 7 6.5 C8.5 6, 8.5 20, 10.5 20.5 C12.5 21, 12 2.5, 14 2 C16 1.5, 16 15, 18 15.5 C20 16, 21 12.5, 22 12" />
-                </svg>
-              </span>
-              <div class="card-meta">
-                <span class="judge-name judge-color-vibe">Vibe</span>
-                <a
-                  href={`${REPO_BASE}/scripts/prompts/vibe-scorer.md`}
-                  target="_blank"
-                  rel="noopener"
-                  class="judge-link"
-                >
-                  {lang === 'zh-tw' ? '風格評審' : 'Vibe Judge'}
-                </a>
-              </div>
-            </div>
-            <div class={`card-score ${scoreClass(vibeComposite)}`}>
-              {vibeComposite}
-              <span class="score-denom">/10</span>
-            </div>
-            <div class="vibe-sub">
-              <span class="vibe-dim">
-                {lang === 'zh-tw' ? '人物感' : 'Persona'}
-                <strong class={scoreClass(vibeScores.persona)}>{vibeScores.persona}</strong>
-              </span>
-              <span class="vibe-sep">·</span>
-              <span class="vibe-dim">
-                ClawdNote
-                <strong class={scoreClass(vibeScores.clawdNote)}>{vibeScores.clawdNote}</strong>
-              </span>
-              <span class="vibe-sep">·</span>
-              <span class="vibe-dim">
-                Vibe
-                <strong class={scoreClass(vibeScores.vibe)}>{vibeScores.vibe}</strong>
-              </span>
-            </div>
-            {ralphModelInfo && <div class="model-info">{ralphModelInfo}</div>}
-          </div>
-        )}
-
-        {readabilityScores && readabilityComposite != null && (
-          <div class="judge-card">
-            <div class="card-header">
-              <span class="judge-icon judge-color-readability">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
+                  width="20"
+                  height="20"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -226,37 +227,85 @@ function scoreClass(_score: number): string {
                 </svg>
               </span>
               <div class="card-meta">
-                <span class="judge-name judge-color-readability">Reader</span>
-                <a
-                  href={`${REPO_BASE}/scripts/prompts/readability-reviewer.md`}
-                  target="_blank"
-                  rel="noopener"
-                  class="judge-link"
-                >
-                  {lang === 'zh-tw' ? '可讀性' : 'Readability'}
-                </a>
+                <span class="judge-name judge-color-fresheyes">{labels.freshEyes}</span>
+                {scores.freshEyes.model && <span class="model-info">{scores.freshEyes.model}</span>}
               </div>
             </div>
-            <div class={`card-score ${scoreClass(readabilityComposite)}`}>
-              {readabilityComposite}
+            <div class={`card-score ${scoreColor(scores.freshEyes.score)}`}>
+              {scores.freshEyes.score}
               <span class="score-denom">/10</span>
             </div>
-            <div class="vibe-sub">
-              <span class="vibe-dim">
-                {lang === 'zh-tw' ? '易讀' : 'Read'}
-                <strong class={scoreClass(readabilityScores.readability)}>
-                  {readabilityScores.readability}
+            <div class="dim-list">
+              <span class="dim-item">
+                <span class="dim-label">{labels.readability}</span>
+                <strong class={scoreColor(scores.freshEyes.readability)}>
+                  {scores.freshEyes.readability}
                 </strong>
               </span>
-              <span class="vibe-sep">·</span>
-              <span class="vibe-dim">
-                {lang === 'zh-tw' ? '詞彙' : 'Terms'}
-                <strong class={scoreClass(readabilityScores.glossary)}>
-                  {readabilityScores.glossary}
+              <span class="dim-sep">·</span>
+              <span class="dim-item">
+                <span class="dim-label">{labels.firstImpression}</span>
+                <strong class={scoreColor(scores.freshEyes.firstImpression)}>
+                  {scores.freshEyes.firstImpression}
                 </strong>
               </span>
             </div>
-            {sonnetModelInfo && <div class="model-info">{sonnetModelInfo}</div>}
+          </div>
+        )}
+
+        {scores?.vibe && (
+          <div class="judge-card">
+            <div class="card-header">
+              <span class="judge-icon judge-color-vibe">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M2 13 C4 13, 5.5 7, 7 6.5 C8.5 6, 8.5 20, 10.5 20.5 C12.5 21, 12 2.5, 14 2 C16 1.5, 16 15, 18 15.5 C20 16, 21 12.5, 22 12" />
+                </svg>
+              </span>
+              <div class="card-meta">
+                <span class="judge-name judge-color-vibe">{labels.vibe}</span>
+                {scores.vibe.model && <span class="model-info">{scores.vibe.model}</span>}
+              </div>
+            </div>
+            <div class={`card-score ${scoreColor(scores.vibe.score)}`}>
+              {scores.vibe.score}
+              <span class="score-denom">/10</span>
+            </div>
+            <div class="dim-list">
+              <span class="dim-item">
+                <span class="dim-label">{labels.persona}</span>
+                <strong class={scoreColor(scores.vibe.persona)}>{scores.vibe.persona}</strong>
+              </span>
+              <span class="dim-sep">·</span>
+              <span class="dim-item">
+                <span class="dim-label">{labels.clawdNote}</span>
+                <strong class={scoreColor(scores.vibe.clawdNote)}>{scores.vibe.clawdNote}</strong>
+              </span>
+              <span class="dim-sep">·</span>
+              <span class="dim-item">
+                <span class="dim-label">{labels.vibe_dim}</span>
+                <strong class={scoreColor(scores.vibe.vibe)}>{scores.vibe.vibe}</strong>
+              </span>
+              <span class="dim-sep">·</span>
+              <span class="dim-item">
+                <span class="dim-label">{labels.clarity}</span>
+                <strong class={scoreColor(scores.vibe.clarity)}>{scores.vibe.clarity}</strong>
+              </span>
+              <span class="dim-sep">·</span>
+              <span class="dim-item">
+                <span class="dim-label">{labels.narrative}</span>
+                <strong class={scoreColor(scores.vibe.narrative)}>{scores.vibe.narrative}</strong>
+              </span>
+            </div>
           </div>
         )}
       </div>
@@ -275,25 +324,12 @@ function scoreClass(_score: number): string {
   }
 
   .judge-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
     margin-bottom: 0.75rem;
   }
 
   .judge-title {
     font-weight: 600;
     font-size: 0.9rem;
-  }
-
-  .judge-link {
-    font-size: 0.75rem;
-    color: var(--color-text-muted);
-    text-decoration: none;
-  }
-
-  .judge-link:hover {
-    color: var(--color-accent);
   }
 
   .judge-cards {
@@ -303,6 +339,12 @@ function scoreClass(_score: number): string {
   }
 
   @media (max-width: 639px) {
+    .judge-cards {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  @media (max-width: 399px) {
     .judge-cards {
       grid-template-columns: 1fr;
     }
@@ -333,6 +375,7 @@ function scoreClass(_score: number): string {
     display: flex;
     flex-direction: column;
     gap: 0.1rem;
+    min-width: 0;
   }
 
   .judge-name {
@@ -345,6 +388,7 @@ function scoreClass(_score: number): string {
     font-size: 1.5rem;
     font-weight: 700;
     line-height: 1;
+    margin: 0.1rem 0;
   }
 
   .score-denom {
@@ -356,73 +400,92 @@ function scoreClass(_score: number): string {
   .model-info {
     font-size: 0.65rem;
     color: #b8c2ea;
-    margin-top: 0.2rem;
     line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   :global([data-theme='light']) .model-info {
     color: #475569;
   }
 
-  /* Theme-aware judge brand colors — WCAG AA 4.5:1 contrast on card surface */
-  /* Dark surface: #44475a → need bright variants */
-  /* Light surface: #eee8d5 → need darker variants */
-  .judge-color-curator {
-    color: #78b4ff; /* bright blue — 4.26:1 on dark */
+  /* Score value colors */
+  .score-high {
+    color: #34d399; /* bright emerald — exceptional */
   }
-  .judge-color-checker {
-    color: #34d399; /* bright emerald — 4.76:1 on dark */
+  .score-pass {
+    color: #93a1a1; /* Solarized base1 — passing */
+  }
+  .score-fail {
+    color: #e57373; /* soft red — failing */
+  }
+
+  :global([data-theme='light']) .score-high {
+    color: #047857;
+  }
+  :global([data-theme='light']) .score-pass {
+    color: #586e75;
+  }
+  :global([data-theme='light']) .score-fail {
+    color: #b71c1c;
+  }
+
+  /* Judge brand colors */
+  .judge-color-librarian {
+    color: #78b4ff;
+  }
+  .judge-color-factcheck {
+    color: #34d399;
+  }
+  .judge-color-fresheyes {
+    color: #c084fc;
   }
   .judge-color-vibe {
-    color: #fbbf24; /* bright amber — 5.48:1 on dark */
-  }
-  .judge-color-readability {
-    color: #c084fc; /* bright purple — good contrast on dark */
+    color: #fbbf24;
   }
 
-  :global([data-theme='light']) .judge-color-curator {
-    color: #1d4ed8; /* tailwind blue-700 */
+  :global([data-theme='light']) .judge-color-librarian {
+    color: #1d4ed8;
   }
-  :global([data-theme='light']) .judge-color-checker {
-    color: #047857; /* tailwind emerald-700 */
+  :global([data-theme='light']) .judge-color-factcheck {
+    color: #047857;
+  }
+  :global([data-theme='light']) .judge-color-fresheyes {
+    color: #7e22ce;
   }
   :global([data-theme='light']) .judge-color-vibe {
-    color: #a16207; /* tailwind yellow-700 */
-  }
-  :global([data-theme='light']) .judge-color-readability {
-    color: #7e22ce; /* tailwind purple-700 */
+    color: #a16207;
   }
 
-  /* Score value colors — also theme-aware */
-  .score-neutral {
-    color: #93a1a1; /* Solarized base1 — light gray on dark */
-  }
-
-  :global([data-theme='light']) .score-neutral {
-    color: #586e75; /* Solarized base01 — muted gray on light */
-  }
-
-  .vibe-sub {
+  .dim-list {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.25rem;
+    gap: 0.2rem 0.15rem;
     align-items: center;
     color: var(--color-text-muted);
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     margin-top: 0.1rem;
   }
 
-  .vibe-dim {
+  .dim-item {
     display: flex;
-    gap: 0.25rem;
-    align-items: center;
+    gap: 0.2rem;
+    align-items: baseline;
   }
 
-  .vibe-dim strong {
+  .dim-label {
+    font-size: 0.65rem;
+    color: var(--color-text-muted);
+  }
+
+  .dim-item strong {
     font-weight: 600;
+    font-size: 0.75rem;
   }
 
-  .vibe-sep {
+  .dim-sep {
     color: var(--color-border);
+    font-size: 0.7rem;
   }
 </style>

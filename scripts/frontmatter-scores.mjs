@@ -1,33 +1,33 @@
 #!/usr/bin/env node
 /**
- * frontmatter-scores.mjs — Read/write/delete AI judge scores in MDX frontmatter
+ * frontmatter-scores.mjs — Read/write/delete tribunal judge scores in MDX frontmatter
  *
  * Usage:
  *   node scripts/frontmatter-scores.mjs get    <file_path> <judge>
  *   node scripts/frontmatter-scores.mjs write  <file_path> <judge> <score_json>
  *   node scripts/frontmatter-scores.mjs delete <file_path> <judge>
  *
- * Judges: gemini | codex | opus | sonnet
+ * Judges: librarian | factCheck | freshEyes | vibe
  *
- * Frontmatter storage format:
- *   gemini  → scores.gemini  { score, date }
- *   codex   → scores.codex   { score, date }
- *   opus    → scores.ralph   { p, c, v, cl?, date }  (p=persona c=clawdNote v=vibe cl=clarity)
- *   sonnet  → scores.sonnet  { r, g, date }  (r=readability g=glossary)
+ * Frontmatter storage format (uniform — all judges):
+ *   scores:
+ *     librarian:
+ *       glossary: 8
+ *       crossRef: 9
+ *       sourceAlign: 8
+ *       attribution: 8
+ *       score: 8
+ *       date: "2026-04-07"
+ *       model: "claude-sonnet-4-6"
  *
- * get output (stdout JSON, empty = not found):
- *   gemini/codex → { score: N }
- *   opus         → { score: min(p,c,v[,cl]), details: { persona: N, clawdNote: N, vibe: N, clarity?: N } }
- *   sonnet       → { score: N, details: { readability: N, glossary: N } }
- *
- * write input (score_json from judge daemon):
- *   gemini/codex → { score: N, ... }
- *   opus         → { score: N, details: { persona: N, clawdNote: N, vibe: N, clarity?: N }, ... }
- *   sonnet       → { score: N, details: { readability: N, glossary: N }, ... }
+ * write input: uniform agent JSON { judge, dimensions, score, verdict, reasons, model? }
+ * get output: { dimensions, score, date, model? }
  */
 
 import fs from 'fs';
 import process from 'node:process';
+
+const VALID_JUDGES = ['librarian', 'factCheck', 'freshEyes', 'vibe'];
 
 const [, , op, filePath, judge, scoreJsonStr] = process.argv;
 
@@ -38,20 +38,15 @@ if (!op || !filePath || !judge) {
   process.exit(1);
 }
 
-if (!['gemini', 'codex', 'opus', 'sonnet'].includes(judge)) {
-  process.stderr.write(`Unknown judge: ${judge}. Expected gemini, codex, opus, or sonnet.\n`);
+if (!VALID_JUDGES.includes(judge)) {
+  process.stderr.write(`Unknown judge: ${judge}. Expected: ${VALID_JUDGES.join(', ')}.\n`);
   process.exit(1);
 }
-
-// Map judge name → frontmatter key
-const FM_KEY = { gemini: 'gemini', codex: 'codex', opus: 'ralph', sonnet: 'sonnet' };
-const fmKey = FM_KEY[judge];
 
 // ─── Frontmatter parser ────────────────────────────────────────────────────
 
 /**
  * Split MDX file into { fmText, body }.
- * fmText is the raw YAML between the --- delimiters (without the --- lines).
  */
 function splitFrontmatter(content) {
   const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/);
@@ -61,7 +56,7 @@ function splitFrontmatter(content) {
 
 /**
  * Parse the scores: block from YAML frontmatter text.
- * Returns an object like { ralph: { p: 9, c: 9, v: 9, cl: 9, date: "..." }, gemini: { score: 8, date: "..." } }
+ * Returns an object like { librarian: { glossary: 8, crossRef: 9, ..., score: 8, date: "..." } }
  */
 function parseScores(fmText) {
   const lines = fmText.split('\n');
@@ -80,14 +75,14 @@ function parseScores(fmText) {
       if (line !== '' && !/^\s/.test(line)) {
         break;
       }
-      // 2-space indent: judge key (e.g. "  ralph:")
+      // 2-space indent: judge key (e.g. "  librarian:")
       const judgeMatch = line.match(/^\s{2}(\w+):\s*$/);
       if (judgeMatch) {
         currentKey = judgeMatch[1];
         scores[currentKey] = {};
         continue;
       }
-      // 4-space indent: field value (e.g. "    p: 9" or "    date: \"2026-03-30\"")
+      // 4-space indent: field value (e.g. "    glossary: 8" or "    date: \"2026-04-07\"")
       if (currentKey) {
         const numMatch = line.match(/^\s{4}(\w+):\s*(\d+(?:\.\d+)?)\s*$/);
         const strMatch = line.match(/^\s{4}(\w+):\s*"([^"]*)"\s*$/);
@@ -103,8 +98,7 @@ function parseScores(fmText) {
 }
 
 /**
- * Serialize scores object back to YAML lines (without trailing newline).
- * Returns empty string if scores is empty.
+ * Serialize scores object back to YAML lines.
  */
 function serializeScores(scores) {
   if (Object.keys(scores).length === 0) return '';
@@ -123,8 +117,7 @@ function serializeScores(scores) {
 }
 
 /**
- * Remove the scores: block from YAML text (all lines from scores: to next top-level key).
- * Returns new fmText without the scores block.
+ * Remove the entire scores: block from YAML text.
  */
 function removeScoresBlock(fmText) {
   const lines = fmText.split('\n');
@@ -145,7 +138,7 @@ function removeScoresBlock(fmText) {
     }
     result.push(line);
   }
-  // Trim trailing blank lines that were between scores block and end
+  // Trim trailing blank lines
   while (result.length > 0 && result[result.length - 1] === '') {
     result.pop();
   }
@@ -159,6 +152,15 @@ function writeFrontmatter(filePath, fmText, body) {
   fs.writeFileSync(filePath, `---\n${fmText}\n---\n${body}`);
 }
 
+// ─── Dimension definitions per judge ──────────────────────────────────────
+
+const JUDGE_DIMS = {
+  librarian: ['glossary', 'crossRef', 'sourceAlign', 'attribution'],
+  factCheck: ['accuracy', 'fidelity', 'consistency'],
+  freshEyes: ['readability', 'firstImpression'],
+  vibe: ['persona', 'clawdNote', 'vibe', 'clarity', 'narrative'],
+};
+
 // ─── Operations ───────────────────────────────────────────────────────────
 
 function opGet() {
@@ -170,38 +172,26 @@ function opGet() {
   if (!parts) process.exit(0);
 
   const scores = parseScores(parts.fmText);
-  const entry = scores[fmKey];
+  const entry = scores[judge];
 
   if (!entry || Object.keys(entry).length === 0) {
-    process.exit(0); // empty = no score
+    process.exit(0);
   }
 
-  let output;
-  if (judge === 'opus') {
-    // ralph: { p, c, v, cl?, date } → { score: min, details: { persona, clawdNote, vibe, clarity? } }
-    const { p, c, v, cl } = entry;
-    if (p == null || c == null || v == null) process.exit(0);
-    const dimensions = [p, c, v];
-    const details = { persona: p, clawdNote: c, vibe: v };
+  if (entry.score == null) process.exit(0);
 
-    if (cl != null) {
-      dimensions.push(cl);
-      details.clarity = cl;
-    }
-
-    const minScore = Math.min(...dimensions);
-    output = { score: minScore, details };
-  } else if (judge === 'sonnet') {
-    // sonnet: { r, g, date } → { score: floor(avg), details: { readability, glossary } }
-    const { r, g } = entry;
-    if (r == null || g == null) process.exit(0);
-    const composite = Math.floor((r + g) / 2);
-    output = { score: composite, details: { readability: r, glossary: g } };
-  } else {
-    // gemini/codex: { score, date } → { score: N }
-    if (entry.score == null) process.exit(0);
-    output = { score: entry.score };
+  const dims = JUDGE_DIMS[judge];
+  const dimensions = {};
+  for (const dim of dims) {
+    if (entry[dim] != null) dimensions[dim] = entry[dim];
   }
+
+  const output = {
+    dimensions,
+    score: entry.score,
+    date: entry.date,
+    ...(entry.model ? { model: entry.model } : {}),
+  };
 
   process.stdout.write(JSON.stringify(output));
 }
@@ -235,32 +225,28 @@ function opWrite() {
   const today = new Date().toISOString().slice(0, 10);
   const scores = parseScores(parts.fmText);
 
-  if (judge === 'opus') {
-    const persona = scoreData.details?.persona ?? scoreData.score ?? 0;
-    const clawdNote = scoreData.details?.clawdNote ?? scoreData.score ?? 0;
-    const vibe = scoreData.details?.vibe ?? scoreData.score ?? 0;
-    const clarity = scoreData.details?.clarity;
-    const entry = { p: persona, c: clawdNote, v: vibe };
-    if (clarity != null) entry.cl = clarity;
-    entry.date = today;
-    if (scoreData.model) entry.model = scoreData.model;
-    if (scoreData.harness) entry.harness = scoreData.harness;
-    scores['ralph'] = entry;
-  } else if (judge === 'sonnet') {
-    const readability = scoreData.details?.readability ?? scoreData.score ?? 0;
-    const glossary = scoreData.details?.glossary ?? scoreData.score ?? 0;
-    const entry = { r: readability, g: glossary };
-    entry.date = today;
-    if (scoreData.model) entry.model = scoreData.model;
-    if (scoreData.harness) entry.harness = scoreData.harness;
-    scores['sonnet'] = entry;
-  } else {
-    // gemini or codex
-    const entry = { score: scoreData.score, date: today };
-    if (scoreData.model) entry.model = scoreData.model;
-    if (scoreData.harness) entry.harness = scoreData.harness;
-    scores[fmKey] = entry;
+  // Build the new entry from uniform agent JSON
+  const dims = JUDGE_DIMS[judge];
+  const entry = {};
+
+  // Extract dimensions from agent JSON (supports both { dimensions: {...} } and flat { dim: score } formats)
+  const dimSource = scoreData.dimensions || scoreData.details || scoreData;
+  for (const dim of dims) {
+    const val = dimSource[dim] ?? scoreData[dim];
+    if (val != null) entry[dim] = Number(val);
   }
+
+  // Calculate composite score: floor(avg of dims)
+  const dimValues = dims.map((d) => entry[d]).filter((v) => v != null);
+  entry.score =
+    dimValues.length > 0
+      ? Math.floor(dimValues.reduce((a, b) => a + b, 0) / dimValues.length)
+      : Number(scoreData.score) || 0;
+
+  entry.date = today;
+  if (scoreData.model) entry.model = scoreData.model;
+
+  scores[judge] = entry;
 
   let newFm = removeScoresBlock(parts.fmText);
   const scoresYaml = serializeScores(scores);
@@ -273,7 +259,7 @@ function opWrite() {
 
 function opDelete() {
   if (!fs.existsSync(filePath)) {
-    process.exit(0); // nothing to do
+    process.exit(0);
   }
 
   const content = fs.readFileSync(filePath, 'utf8');
@@ -281,9 +267,9 @@ function opDelete() {
   if (!parts) process.exit(0);
 
   const scores = parseScores(parts.fmText);
-  if (!scores[fmKey]) process.exit(0); // already absent
+  if (!scores[judge]) process.exit(0);
 
-  delete scores[fmKey];
+  delete scores[judge];
 
   let newFm = removeScoresBlock(parts.fmText);
   const scoresYaml = serializeScores(scores);

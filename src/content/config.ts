@@ -43,30 +43,47 @@ const postsCollection = defineCollection({
         .optional(),
       scores: z
         .object({
-          ralph: z
+          // Tribunal judges — uniform: all dims 0-10, score = floor(avg)
+          librarian: z
             .object({
-              p: z.number(),
-              c: z.number(),
-              v: z.number(),
+              glossary: z.number().min(0).max(10),
+              crossRef: z.number().min(0).max(10),
+              sourceAlign: z.number().min(0).max(10),
+              attribution: z.number().min(0).max(10),
+              score: z.number().min(0).max(10),
               date: z.string(),
               model: z.string().optional(),
-              harness: z.string().optional(),
             })
             .optional(),
-          gemini: z
+          factCheck: z
             .object({
-              score: z.number(),
+              accuracy: z.number().min(0).max(10),
+              fidelity: z.number().min(0).max(10),
+              consistency: z.number().min(0).max(10),
+              score: z.number().min(0).max(10),
               date: z.string(),
               model: z.string().optional(),
-              harness: z.string().optional(),
             })
             .optional(),
-          codex: z
+          freshEyes: z
             .object({
-              score: z.number(),
+              readability: z.number().min(0).max(10),
+              firstImpression: z.number().min(0).max(10),
+              score: z.number().min(0).max(10),
               date: z.string(),
               model: z.string().optional(),
-              harness: z.string().optional(),
+            })
+            .optional(),
+          vibe: z
+            .object({
+              persona: z.number().min(0).max(10),
+              clawdNote: z.number().min(0).max(10),
+              vibe: z.number().min(0).max(10),
+              clarity: z.number().min(0).max(10),
+              narrative: z.number().min(0).max(10),
+              score: z.number().min(0).max(10),
+              date: z.string(),
+              model: z.string().optional(),
             })
             .optional(),
         })

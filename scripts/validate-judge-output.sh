@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# validate-judge-output.sh — Validate judge score JSON against schema
+# validate-judge-output.sh — Validate tribunal judge score JSON against uniform schema
 # Usage: ./validate-judge-output.sh <judge> <json-file>
+# Judges: librarian | factCheck | freshEyes | vibe
 # Exit 0 = valid, Exit 1 = invalid (prints error to stdout)
 set -euo pipefail
 
@@ -8,7 +9,7 @@ JUDGE="${1:-}"
 JSON_FILE="${2:-}"
 
 if [ -z "$JUDGE" ] || [ -z "$JSON_FILE" ]; then
-  echo "Usage: validate-judge-output.sh <gemini|codex|opus> <json-file>"
+  echo "Usage: validate-judge-output.sh <librarian|factCheck|freshEyes|vibe> <json-file>"
   exit 1
 fi
 
@@ -17,7 +18,6 @@ if [ ! -f "$JSON_FILE" ]; then
   exit 1
 fi
 
-# Must be non-empty valid JSON
 if [ ! -s "$JSON_FILE" ]; then
   echo "ERROR: Not valid JSON. File is empty."
   exit 1
@@ -29,9 +29,9 @@ if ! jq empty "$JSON_FILE" 2>/dev/null; then
   exit 1
 fi
 
-# Common fields
+# Uniform fields: judge, dimensions (object), score (0-10), verdict (PASS/FAIL), reasons (object)
 score="$(jq -r '.score // empty' "$JSON_FILE")"
-reasoning="$(jq -r '.reasoning // empty' "$JSON_FILE")"
+verdict="$(jq -r '.verdict // empty' "$JSON_FILE")"
 
 if [ -z "$score" ]; then
   echo "ERROR: Missing 'score' field. Got: $(jq -c '.' "$JSON_FILE")"
@@ -48,51 +48,53 @@ if [ "$score" -lt 0 ] || [ "$score" -gt 10 ]; then
   exit 1
 fi
 
-if [ -z "$reasoning" ]; then
-  echo "ERROR: Missing 'reasoning' field."
+if [ -z "$verdict" ]; then
+  echo "ERROR: Missing 'verdict' field (expected PASS or FAIL)."
   exit 1
 fi
 
-# Judge-specific validation
+# Helper: validate a single dimension in .dimensions object
+validate_dim() {
+  local field="$1"
+  local val
+  val="$(jq -r ".dimensions.${field} // empty" "$JSON_FILE")"
+  if [ -z "$val" ]; then
+    echo "ERROR: Missing dimensions.${field}"
+    exit 1
+  fi
+  if ! [[ "$val" =~ ^[0-9]+$ ]] || [ "$val" -lt 0 ] || [ "$val" -gt 10 ]; then
+    echo "ERROR: dimensions.${field} must be integer 0-10, got: $val"
+    exit 1
+  fi
+}
+
+# Judge-specific dimension validation
 case "$JUDGE" in
-  gemini)
-    # unlinked_terms should be array (can be empty)
-    ut_type="$(jq -r '.unlinked_terms | type' "$JSON_FILE" 2>/dev/null)"
-    if [ "$ut_type" != "array" ] && [ "$ut_type" != "null" ]; then
-      echo "ERROR: 'unlinked_terms' must be array, got: $ut_type"
-      exit 1
-    fi
+  librarian)
+    validate_dim glossary
+    validate_dim crossRef
+    validate_dim sourceAlign
+    validate_dim attribution
     ;;
-  codex)
-    # flaggedClaims is optional but nice-to-have
+  factCheck|fact-checker)
+    validate_dim accuracy
+    validate_dim fidelity
+    validate_dim consistency
     ;;
-  opus)
-    # Opus needs details sub-scores
-    for field in persona clawdNote vibe; do
-      val="$(jq -r ".details.${field} // empty" "$JSON_FILE")"
-      if [ -z "$val" ]; then
-        echo "ERROR: Missing 'details.${field}' for opus judge"
-        exit 1
-      fi
-      if ! [[ "$val" =~ ^[0-9]+$ ]] || [ "$val" -lt 0 ] || [ "$val" -gt 10 ]; then
-        echo "ERROR: 'details.${field}' must be integer 0-10, got: $val"
-        exit 1
-      fi
-    done
+  freshEyes|fresh-eyes)
+    validate_dim readability
+    validate_dim firstImpression
     ;;
-  sonnet)
-    # Sonnet needs readability + glossary sub-scores
-    for field in readability glossary; do
-      val="$(jq -r ".scores.${field}.score // empty" "$JSON_FILE")"
-      if [ -z "$val" ]; then
-        echo "ERROR: Missing 'scores.${field}.score' for sonnet judge"
-        exit 1
-      fi
-      if ! [[ "$val" =~ ^[0-9]+$ ]] || [ "$val" -lt 0 ] || [ "$val" -gt 10 ]; then
-        echo "ERROR: 'scores.${field}.score' must be integer 0-10, got: $val"
-        exit 1
-      fi
-    done
+  vibe|vibe-opus-scorer)
+    validate_dim persona
+    validate_dim clawdNote
+    validate_dim vibe
+    validate_dim clarity
+    validate_dim narrative
+    ;;
+  *)
+    echo "ERROR: Unknown judge '$JUDGE'. Expected: librarian, factCheck, freshEyes, vibe"
+    exit 1
     ;;
 esac
 

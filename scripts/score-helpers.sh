@@ -245,41 +245,43 @@ validate_judge_score_json() {
   normalize_json_file "$json_file" || return 1
   jq empty "$json_file" >/dev/null 2>&1 || return 1
 
-  local score iteration model
+  local score
   score="$(jq -r '.score // empty' "$json_file")"
-  iteration="$(jq -r '.iteration // empty' "$json_file")"
-  model="$(jq -r '.model // empty' "$json_file")"
 
   [[ "$score" =~ ^[0-9]+$ ]] || return 1
-  [[ "$iteration" =~ ^[0-9]+$ ]] || return 1
   [ "$score" -ge 0 ] && [ "$score" -le 10 ] || return 1
-  [ "$iteration" -ge 1 ] || return 1
-  [ -n "$model" ] || return 1
+
+  # Validate dimensions for each tribunal judge (uniform JSON: { judge, dimensions, score, verdict, reasons })
+  local _validate_dim
+  _validate_dim() {
+    local val
+    val="$(jq -r ".dimensions.${1} // empty" "$json_file")"
+    [[ "$val" =~ ^[0-9]+$ ]] || return 1
+    [ "$val" -ge 0 ] && [ "$val" -le 10 ] || return 1
+  }
 
   case "$judge" in
-    gemini|codex)
-      # reasoning is nice-to-have; don't reject a valid score just because the model was terse
+    librarian)
+      _validate_dim glossary    || return 1
+      _validate_dim crossRef    || return 1
+      _validate_dim sourceAlign || return 1
+      _validate_dim attribution || return 1
       ;;
-    opus)
-      local persona clawd_note vibe
-      persona="$(jq -r '.details.persona // empty' "$json_file")"
-      clawd_note="$(jq -r '.details.clawdNote // empty' "$json_file")"
-      vibe="$(jq -r '.details.vibe // empty' "$json_file")"
-      [[ "$persona" =~ ^[0-9]+$ ]] || return 1
-      [[ "$clawd_note" =~ ^[0-9]+$ ]] || return 1
-      [[ "$vibe" =~ ^[0-9]+$ ]] || return 1
-      [ "$persona" -ge 0 ] && [ "$persona" -le 10 ] || return 1
-      [ "$clawd_note" -ge 0 ] && [ "$clawd_note" -le 10 ] || return 1
-      [ "$vibe" -ge 0 ] && [ "$vibe" -le 10 ] || return 1
+    factCheck|fact-checker)
+      _validate_dim accuracy    || return 1
+      _validate_dim fidelity    || return 1
+      _validate_dim consistency || return 1
       ;;
-    sonnet)
-      local readability glossary_score
-      readability="$(jq -r '.details.readability // empty' "$json_file")"
-      glossary_score="$(jq -r '.details.glossary // empty' "$json_file")"
-      [[ "$readability" =~ ^[0-9]+$ ]] || return 1
-      [[ "$glossary_score" =~ ^[0-9]+$ ]] || return 1
-      [ "$readability" -ge 0 ] && [ "$readability" -le 10 ] || return 1
-      [ "$glossary_score" -ge 0 ] && [ "$glossary_score" -le 10 ] || return 1
+    freshEyes|fresh-eyes)
+      _validate_dim readability     || return 1
+      _validate_dim firstImpression || return 1
+      ;;
+    vibe|vibe-opus-scorer)
+      _validate_dim persona    || return 1
+      _validate_dim clawdNote  || return 1
+      _validate_dim vibe       || return 1
+      _validate_dim clarity    || return 1
+      _validate_dim narrative  || return 1
       ;;
     *)
       return 1
@@ -306,9 +308,9 @@ ensure_usage_state() {
 
 default_rate_limit_backoff() {
   case "$1" in
-    gemini) echo 300 ;;
-    codex) echo 900 ;;
-    opus) echo 1200 ;;
+    librarian|sonnet) echo 600 ;;
+    factCheck|vibe|vibe-opus-scorer|opus) echo 1200 ;;
+    freshEyes|haiku) echo 300 ;;
     *) echo 600 ;;
   esac
 }
