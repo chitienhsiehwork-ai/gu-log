@@ -1,0 +1,138 @@
+---
+ticketId: "CP-263"
+title: "兩個人撐起 18 億美元營收？AI 獨角獸 MEDVi 的真相與幻覺"
+originalDate: "2026-04-03"
+translatedDate: "2026-04-08"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Claude Code"
+  pipeline:
+    - role: "Evaluator"
+      model: "Opus 4.6"
+      harness: "Claude Code (opus fallback)"
+    - role: "Evaluator"
+      model: "Gemini 2.5 Flash"
+      harness: "Gemini CLI"
+    - role: "Translator"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Reviewer"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+source: "@PawelHuryn on X"
+sourceUrl: "https://x.com/PawelHuryn/status/2039819521205121313"
+lang: "zh-tw"
+summary: "MEDVi 據報只靠兩個人就做到 18 億美元營收，被《紐約時報》報導為 AI 奇蹟。但故事沒那麼簡單——假醫生、假照片、FDA 警告信接踵而來。這不只是 vibecoding 的故事，更是一堂關於 AI 規模幻覺的課。"
+tags: ["clawd-picks", "ai-business", "telehealth", "vibecoding", "startup"]
+scores:
+  ralph:
+    p: 6
+    c: 6
+    v: 5
+    date: "2026-04-07"
+    model: "claude-opus-4-6"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Sam Altman 在 2024 年預言：AI 終將讓一個人建起一家十億美元的公司。
+
+2026 年 4 月，《紐約時報》似乎找到了那個人。Matthew Gallagher 和他弟弟 Elliot，兩個人，零外部員工，一家叫 MEDVi 的遠距醫療公司，預估年營收 18 億美元。
+
+聽起來像是創業圈的童話故事。但童話讀到最後一頁，通常會發現巫婆藏在角落。
+
+## 從 60 人到 2 人：Gallagher 的反省
+
+Paweł Huryn 在推文中點出了一個多數人跳過的細節——Gallagher 的上一家公司。那是一間訂閱制企業，團隊規模一度膨脹到 60 人。人頭增加了，利潤沒跟上來。Gallagher 從中學到一件事：**效率不會隨著人數等比例成長**。
+
+這個教訓直接塑造了 MEDVi 的基因。
+
+<ClawdNote>
+這其實是軟體圈的經典魔咒——Brooks's Law。《人月神話》五十年前就講過：加人不等於加速。但多數創辦人要親身賠過一輪才會信。Gallagher 至少把學費花在正確的地方 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+MEDVi 專攻 GLP-1 減重藥物（Ozempic、Wegovy 那個品類）的遠距醫療服務。Gallagher 的策略核心只有一條：
+
+**擁有客戶介面層，其他全部租。**
+
+醫生？外部平台。藥局？合作夥伴。物流？現成服務。法規遵循？租來的基礎設施。AI 負責處理所有客戶看得到的東西——程式碼、行銷文案、廣告素材、客服對話。據報導，Gallagher 使用了十幾種 AI 工具來完成這些工作。
+
+---
+
+## Playbook：領域知識 + 租來的後端 + AI 介面
+
+Huryn 把 MEDVi 的模式拆成三層，形成了一套可複製的 playbook：
+
+**第一層：Domain Expertise（領域專業）**
+Gallagher 本身是行銷人出身，後來自學技術。但真正的武器是他對遠距醫療市場缺口的嗅覺。GLP-1 藥物需求爆發，但取得管道對消費者來說依然充滿摩擦——這個 gap 就是整間公司的地基。
+
+**第二層：Rented Infrastructure（租來的基礎設施）**
+不自建任何重資產。醫療服務、藥房、物流、合規——全部接上現有平台的 API。這讓固定成本壓到極低，據稱淨利率達到 16%。
+
+**第三層：AI as the Interface（AI 作為介面層）**
+客戶碰到的每個接觸點都由 AI 驅動。不是「用 AI 輔助人類」，而是「AI 就是那個面對客戶的人」。
+
+<ClawdNote>
+做個對比就知道這有多誇張：MEDVi 的最大競爭對手 Hims & Hers 做類似的營收規模，需要 2,442 名員工。MEDVi 只有兩個人。如果數字為真，這不是效率提升，這是完全不同的物種 (╯°□°)╯
+</ClawdNote>
+
+第一個月 300 個客戶，第二個月 1,000 個。2025 年全年營收 4.01 億美元。2026 年預估 18 億。成長曲線陡到像是 Excel 裡不小心拉錯的公式。
+
+---
+
+## 但是——巫婆來了
+
+《紐約時報》的原始報導在付費牆後面，以下爭議細節來自後續調查報導的公開摘要。
+
+**假醫生檔案**：調查發現 MEDVi 疑似使用 AI 生成的虛構醫生個人資料。不是「AI 協助撰寫」，是整個醫生可能根本不存在。在遠距醫療這個領域，這不是小事——病患信任的是那個螢幕上的醫生名字和臉。
+
+**假見證、假照片**：病患見證和 before-and-after 對比照也被指控是 AI 生成的 deepfake。行銷效率拉到極致的代價，是連「真實」這個概念都一起省掉了。
+
+**FDA 警告信**：美國食品藥物管理局（FDA）據報向 MEDVi 發出了警告信，理由包括產品標示欺騙性，以及未經授權宣稱其複方藥物等同於品牌 GLP-1 藥物。
+
+<ClawdNote>
+所以完整的故事是這樣的：一個人用 AI 建了一家看起來像有幾百人的公司。問題是，「看起來像」的部分不只是營運效率，連醫生都是「看起來像」的。AI 可以幫助做到極致的精實創業，但「精實」和「造假」之間有一條線。MEDVi 似乎一腳踩過去了。
+</ClawdNote>
+
+---
+
+## 18 億是營收，不是估值
+
+還有一個容易被忽略的細節：報導標題裡的「18 億美元公司」指的是**預估年營收**，不是經過驗證的市場估值。MEDVi 是一家私人公司、自行融資（bootstrapped），從未經歷過公開的估值程序。
+
+營收和估值是兩碼事。一家淨利率據稱 16% 的私人公司，「18 億美元公司」這個標題暗示的份量，和實際的財務意義並不完全對等。而且這些都是自報數字——一家 bootstrapped 公司，從未經過公開的估值程序。
+
+---
+
+## Vibecoding 不是重點
+
+整個科技圈看到這則新聞，第一反應是「vibecoding 太強了」。但 Huryn 指出一個更深的觀點：Gallagher 做的不只是用 AI 寫程式。
+
+他是一個行銷人，自學了技術，找到了一個巨大的市場缺口，然後做了一個架構決策：只擁有客戶層，其他全部外包。AI 是執行工具，不是策略本身。
+
+這個 playbook 的核心不在「會不會寫 code」，而在：
+
+- 有沒有領域知識看到機會
+- 有沒有判斷力知道哪些該自建、哪些該租
+- 有沒有紀律不去擴編團隊
+
+這套邏輯以前只有大公司玩得起——養得起 2,000 人的公司才有資格做全通路整合。現在 AI 把門檻拉低了。兩個人，加上正確的架構決策，理論上可以做到同樣的事。
+
+<ClawdNote>
+「理論上」是這段的關鍵字。Playbook 本身是合理的——領域專業 + 租賃基礎設施 + AI 介面。問題從來不是模式好不好，而是執行的人有沒有把「高效」和「誠實」放在同一個優先級。MEDVi 的故事證明了模式可行，同時也示範了模式失控的樣子。
+</ClawdNote>
+
+---
+
+## 結語
+
+MEDVi 的故事最終變成了一則寓言：AI 確實能讓兩個人建立一個看起來像巨型企業的公司。但「看起來像」本身就是問題——當 AI 把規模的外觀做得太逼真，連監管機構都需要花時間才能看穿，那這項能力到底是工具還是武器？
+
+Gallagher 的 playbook 會被更多人複製。領域知識加上租賃基礎設施加上 AI 介面，這個組合真的能讓小團隊做大事。但 MEDVi 的後續爭議也說明了一件事：當 AI 把規模的外觀做得太逼真，「高效」和「造假」之間的界線比想像中模糊。
+
+<ClawdNote>
+想想那個 "veneer of scale" — AI 可以讓兩個人看起來像兩千人的公司。問題是，當連醫生都是 AI 生成的「外觀」，這到底是精實創業還是精緻詐騙？這條線，每個想複製這套 playbook 的人都得自己畫 (´・ω・`)
+</ClawdNote>
