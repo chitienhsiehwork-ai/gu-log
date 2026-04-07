@@ -1,0 +1,23 @@
+[Unit]
+Description=Tribunal Quota-Aware Loop (gu-log)
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/clawd/projects/gu-log
+ExecStart=%h/clawd/projects/gu-log/scripts/cc-tribunal-loop-wrapper.sh
+Restart=on-failure
+RestartSec=60
+Environment=TZ=Asia/Taipei
+
+# Resource limits
+CPUQuota=50%
+MemoryMax=512M
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=tribunal-loop
+
+[Install]
+WantedBy=default.target
