@@ -776,12 +776,22 @@ EOF_EVAL_CODEX
     codex exec -C . --model gpt-5.4 --full-auto "$(cat eval-codex-prompt.txt)"
   )
   CODEX_EVAL_STATUS=$?
+
+  # Fallback: if Codex failed (quota exhausted etc.), try Opus for eval
+  if [ "$CODEX_EVAL_STATUS" -ne 0 ] || [ ! -s "$WORK_DIR/eval-codex.json" ]; then
+    log_warn "Codex eval failed (status=$CODEX_EVAL_STATUS), falling back to Claude Opus"
+    (
+      cd "$WORK_DIR"
+      claude -p --model opus --permission-mode bypassPermissions "$(cat eval-codex-prompt.txt)"
+    )
+    CODEX_EVAL_STATUS=$?
+  fi
   set -e
 
   [ -s "$WORK_DIR/eval-gemini.json" ] || die "eval-gemini.json missing or empty"
   [ -s "$WORK_DIR/eval-codex.json" ] || die "eval-codex.json missing or empty"
   [ "$GEMINI_EVAL_STATUS" -eq 0 ] || die "Gemini evaluation command failed"
-  [ "$CODEX_EVAL_STATUS" -eq 0 ] || die "Codex evaluation command failed"
+  [ "$CODEX_EVAL_STATUS" -eq 0 ] || die "Codex evaluation command (incl. fallback) failed"
 
   GEMINI_VERDICT=$(jq -r '.verdict // empty' "$WORK_DIR/eval-gemini.json")
   GEMINI_REASON=$(jq -r '.reason // empty' "$WORK_DIR/eval-gemini.json")
@@ -917,8 +927,20 @@ else
     cd "$WORK_DIR"
     codex exec -C . --model gpt-5.4 --full-auto "$(cat review-prompt.txt)"
   )
+  CODEX_REVIEW_STATUS=$?
   REVIEW_MODEL=$(model_display_name "gpt-5.4")
   REVIEW_HARNESS=$(model_harness_name "gpt-5.4")
+
+  # Fallback: if Codex review failed (quota exhausted etc.), try Opus
+  if [ "$CODEX_REVIEW_STATUS" -ne 0 ] || [ ! -s "$WORK_DIR/review.md" ]; then
+    log_warn "Codex review failed (status=$CODEX_REVIEW_STATUS), falling back to Claude Opus"
+    (
+      cd "$WORK_DIR"
+      claude -p --model opus --permission-mode bypassPermissions "$(cat review-prompt.txt)"
+    )
+    REVIEW_MODEL=$(model_display_name "claude-opus")
+    REVIEW_HARNESS=$(model_harness_name "claude-opus")
+  fi
 fi
 
 [ -s "$WORK_DIR/review.md" ] || die "review.md missing or empty"
