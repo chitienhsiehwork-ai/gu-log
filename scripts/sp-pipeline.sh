@@ -1102,8 +1102,8 @@ RALPH_PASSED=false
 SCORE_P=0; SCORE_C=0; SCORE_V=0  # kept for pipeline signature compat below
 
 # ── 4-stage all-Claude tribunal (replaces old inline ralph scorer loop) ──────
-log_info "  Running 4-stage tribunal (ralph-all-claude.sh)..."
-if bash "$GU_LOG_DIR/scripts/ralph-all-claude.sh" "$ACTIVE_FILENAME" \
+log_info "  Running 4-stage tribunal (tribunal-all-claude.sh)..."
+if bash "$GU_LOG_DIR/scripts/tribunal-all-claude.sh" "$ACTIVE_FILENAME" \
     >> "$WORK_DIR/tribunal-stdout.txt" 2>&1; then
   RALPH_PASSED=true
   log_ok "  Tribunal PASS: $ACTIVE_FILENAME"

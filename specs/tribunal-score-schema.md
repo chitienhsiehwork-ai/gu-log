@@ -258,7 +258,7 @@ function checkPassBar(judge, dimensions) {
 | 10 | `scripts/score-helpers.sh` | `validate_judge_score_json()` 改為只認新 judge names + uniform JSON validation | Default `*) return 1` 會 reject 新 judges |
 | 11 | `scripts/score-helpers.sh` | `default_rate_limit_backoff()` 加 sonnet/haiku cases | 缺 backoff defaults |
 | 12 | `scripts/validate-judge-output.sh` | 改為只認新 judge names + uniform JSON | 只認得 gemini/codex/opus/sonnet |
-| 13 | `scripts/tribunal-gate.sh` | References "3 judges" → being replaced | 被 ralph-all-claude.sh 取代 |
+| 13 | `scripts/tribunal-gate.sh` | References "3 judges" → being replaced | 被 tribunal-all-claude.sh 取代 |
 | 14 | `CLAUDE.md` | "Fresh Eyes ≥ 7" → "Fresh Eyes ≥ 8"；更新 scores 描述 | Parent spec 明確要求 |
 | 15 | `scripts/validate-posts.mjs` | 確認 score-related checks 對齊新 schema | 獨立於 Zod 的 validation |
 
@@ -266,7 +266,7 @@ function checkPassBar(judge, dimensions) {
 
 | # | File | 狀態 |
 |---|---|---|
-| 16 | `scripts/ralph-orchestrator.sh` | 被 ralph-all-claude.sh 取代 |
+| 16 | `scripts/ralph-orchestrator.sh` | 被 tribunal-all-claude.sh 取代 |
 | 17 | `scripts/gemini-scorer.sh` | Gemini judge wrapper |
 | 18 | `scripts/codex-scorer.sh` | Codex judge wrapper |
 | 19 | `scripts/ralph-scorer.sh` | Opus vibe scorer wrapper |

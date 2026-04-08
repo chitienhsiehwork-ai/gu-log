@@ -153,14 +153,14 @@ New tribunal judges (`librarian`, `factCheck`, `freshEyes`, `vibe`) are NOT in t
 | 9 | `scripts/score-helpers.sh` | `validate_judge_score_json()` L259-287: add cases for `librarian`, `fact-checker`, `fresh-eyes`, `vibe-opus-scorer`; opus case missing `clarity` validation | Default `*) return 1` rejects new judge names |
 | 10 | `scripts/score-helpers.sh` | `default_rate_limit_backoff()` L307-314: add `sonnet`, `haiku` cases | Missing backoff defaults for new model tiers |
 | 11 | `scripts/validate-judge-output.sh` | Add cases for new judge names; currently only gemini/codex/opus/sonnet (L57-97) | Will reject new judge output as invalid |
-| 12 | `scripts/tribunal-gate.sh` | References "3 judges" (L6, L240); calls `frontmatter-scores.mjs delete` with old judge names | Being replaced by ralph-all-claude.sh but should be noted |
+| 12 | `scripts/tribunal-gate.sh` | References "3 judges" (L6, L240); calls `frontmatter-scores.mjs delete` with old judge names | Being replaced by tribunal-all-claude.sh but should be noted |
 | 13 | `CLAUDE.md` L94 | "Fresh Eyes ≥ 7" → "Fresh Eyes ≥ 8" | Parent spec Section A explicitly says update this |
 
 ### TIER 3: Dead code (parent spec says keep, don't delete)
 
 | # | File | Status |
 |---|---|---|
-| 14 | `scripts/ralph-orchestrator.sh` | Being replaced by ralph-all-claude.sh; keep as dead code per parent spec |
+| 14 | `scripts/ralph-orchestrator.sh` | Being replaced by tribunal-all-claude.sh; keep as dead code per parent spec |
 | 15 | `scripts/gemini-scorer.sh` | Gemini judge wrapper; keep as dead code |
 | 16 | `scripts/codex-scorer.sh` | Codex judge wrapper; keep as dead code |
 | 17 | `scripts/ralph-scorer.sh` | Opus vibe scorer wrapper; keep as dead code |
