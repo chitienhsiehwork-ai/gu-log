@@ -1057,22 +1057,113 @@
     "startedAt": "2026-04-09T00:42:39+08:00",
     "stages": {
       "librarian": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 7,
+            "crossRef": 8,
+            "sourceAlign": 8,
+            "attribution": 7
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "glossary": "'Claude Code' is the central tool of the post (~10 mentions) but is never linked to the glossary entry; it's the one key term that matters most and it's missing.",
+            "crossRef": "All three internal cross-refs resolve to existing files (sp-124, sp-118, sp-126); connections are contextually relevant to CLAUDE.md workflow; no ShroomDog/Clawd identity links required.",
+            "sourceAlign": "CP post from @PawelHuryn tweet; content clearly covers the declared topic (three CLAUDE.md blocks: Knowledge Architecture, Decision Journal, Quality Gate); typical tweet-to-article expansion within acceptable range.",
+            "attribution": "'Anthropic 自家的研究已經點出 AI agent 會自信地稱讚自己的平庸成果' (line 91) cites Anthropic research without a link or paper name; Huryn's specific claims are properly attributed throughout; ClawdNotes cleanly separated as Clawd opinion."
+          }
+        },
         "model": "sonnet",
-        "attempts": 1
+        "attempts": 2
       }
-    }
+    },
+    "status": "FAILED",
+    "failedStage": "librarian",
+    "finishedAt": "2026-04-09T02:17:04+08:00"
   },
   "cp-pending-20260409-trq212-claude-code-viewport-cli-ide.mdx": {
     "article": "cp-pending-20260409-trq212-claude-code-viewport-cli-ide.mdx",
     "startedAt": "2026-04-09T01:07:40+08:00",
     "stages": {
       "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "ticketId": "PENDING",
+          "file": "src/content/posts/cp-pending-20260409-trq212-claude-code-viewport-cli-ide.mdx",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 8,
+            "sourceAlign": 8,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Only one glossary-registered term appears ('Claude Code') and it is correctly linked via /glossary#claude-code on its first mention (line 32); no other glossary terms (MCP, Agent, etc.) appear in the post.",
+            "crossRef": "SP-166 internal link (/posts/sp-166-20260408-rohit4verse-claude-code-55-331-ai-agent) verified and file exists; no ShroomDog/Clawd mentions so identity links not required; 1–2 optional thematic connections to other Claude Code posts could still be added.",
+            "sourceAlign": "Content clearly expands on @trq212's NO_FLICKER renderer tweet; additional depth from Boris Cherny and Anthropic TUI engineer HN comments represents minor scope extension but stays on-topic with the declared source.",
+            "attribution": "Thariq (@trq212) and Boris Cherny are named and attributed; HN TUI engineer comments referenced but specific thread not linked; 16ms/5ms performance claims attributed to 'TUI engineer' with appropriate hedging; ClawdNotes clearly separated from body prose."
+          },
+          "passBar": {
+            "pass": true,
+            "composite": 8,
+            "reason": "composite 8 >= 8"
+          },
+          "topIssues": [
+            "HN source thread not directly linked — '根據該工程師的說法' is vague; ideally link the HN comment",
+            "1–2 optional thematic cross-references to other Claude Code posts could strengthen crossRef score",
+            "85% flicker stat from Dec 2025 patch in ClawdNote has no cited first-hand source"
+          ]
+        },
+        "model": "sonnet",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factChecker",
+          "dimensions": {
+            "accuracy": 7,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Core technical claims (alternate screen buffer, virtual viewport, React→layout→rasterize→diff→ANSI pipeline, TypedArray GC avoidance, 16ms/60fps budget) are all technically correct and coherent; however, the ClawdNote claim that a Dec 2025 patch 'reduced flickering by 85%' is an unattributed numeric fact with no cited primary source — a red flag per scoring standard. The ~5ms rendering budget is attributed to an HN comment from 'Anthropic TUI engineer' (secondary, unverifiable). Version 'v2.1.89' and env var names are specific and unverified.",
+            "fidelity": "The source is a single tweet (@trq212), yet the article responsibly expands with attributed details from Boris Cherny and an Anthropic HN engineer. The 'early, has tradeoffs' hedge is preserved verbatim. The opt-in / research-preview framing is maintained throughout. Minor drift: the article presents rendering pipeline details (TypedArray, memoization specifics) that exceed the tweet — but these are attributed inline to HN, not fabricated in the body.",
+            "consistency": "Logical flow is excellent: problem (flickering) → architectural cause (scrollback model) → solution (virtual viewport) → sub-features (mouse, fixed prompt, search) → broader implications. Each section's conclusion is supported by the preceding technical explanation. ClawdNotes are clearly marked as editorial opinion with no fact/opinion bleed into the body. The '打字機→聊天室' metaphor is internally consistent with the fixed-prompt-bar feature described in the body. Zero contradictions detected."
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Opens with a relatable pain point (screen flickering), technical terms like alternate screen buffer and TypedArray are explained with accessible analogies (vim, virtual DOM, game engines), and section headers guide navigation clearly — one mild re-read needed in the GC/TypedArray ClawdNote but context carries it.",
+            "firstImpression": "Hooks immediately with a real developer frustration, each section delivers a concrete feature reveal (zero flicker → mouse support → fixed prompt → search), ClawdNotes read as fun commentary even without knowing the 'Clawd' persona, and the post ends with a single copy-pasteable command — a 3-month dev would finish this and mention it to a colleague."
+          }
+        },
+        "model": "haiku",
+        "attempts": 1
+      },
+      "vibe": {
         "status": "in_progress",
         "score": null,
-        "model": "sonnet",
-        "attempts": 1
+        "model": "opus",
+        "attempts": 2
       }
     }
   }
