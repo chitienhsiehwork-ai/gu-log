@@ -512,7 +512,7 @@
     },
     "status": "FAILED",
     "failedStage": "vibe",
-    "finishedAt": "2026-04-08T10:30:55+08:00"
+    "finishedAt": "2026-04-08T10:37:14+08:00"
   },
   "cp-pending-20260408-semianalysis-gpu-2-0-gpu-h100.mdx": {
     "article": "cp-pending-20260408-semianalysis-gpu-2-0-gpu-h100.mdx",
@@ -541,9 +541,59 @@
         "attempts": 2
       },
       "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factChecker",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Core price data is internally consistent (($2.35-$1.70)/$1.70 = 38.2% ≈ 接近40% ✓); cluster sizing math (50MW→24k, 100MW→48k GB300 NVL72) is proportionally sound; the Anthropic ARR claim ($9B→$30B+ in one quarter) is extraordinary but correctly attributed to SemiAnalysis 追蹤顯示 rather than stated as independently verified; the drug-buying quote attributed to original text; no fabricated model names or impossible benchmark figures detected.",
+            "fidelity": "Source attribution is consistent throughout — 根據 SemiAnalysis / SemiAnalysis 認為 / SemiAnalysis 的判斷 preserve epistemic distance; hedges mostly retained (可能性遠高於下跌 not 一定會漲; 不一定會重演 on OEM margin expansion); ClawdNote on stock section explicitly flags SemiAnalysis's conflict of interest (深度參與 GPU 租賃撮合) which is exemplary transparency; minor concern: the certainty tone of the final two paragraphs edges slightly beyond a question-mark headline conclusion.",
+            "consistency": "The causal chain (open-weight model proliferation → inference demand surge → old GPU non-obsolescence → memory price spike → server CapEx surge → supply contraction → rental price spike → self-reinforcing cycle) is explicitly laid out with every link supported by a named mechanism; ClawdNotes correctly distinguish SemiAnalysis claims from Clawd opinion throughout; three-tier market structure is consistently referenced in later sections; the stock-price divergence section is presented as a logical tension rather than ignored, strengthening consistency; no internal contradictions detected."
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Opening hook ('錯。連 64 張 GPU 都租不到') grabs immediately, headers and ClawdNotes break up density well, and analogies (apartment rent, Airbnb, Grand Prix subletting) make abstract market structure tangible — but the Hyperscaler credit-intermediary section and memory spec details (LPDDR5/DDR5 YoY multiples) require a second pass for a newcomer.",
+            "firstImpression": "The drug-trading analogy ClawdNote is instantly memorable, '二房東' lands as a genuine laugh, and the ending ('現在看到的不是泡沫，是序幕') is quotable — a 3-month developer would finish and likely share this if GPU costs came up in conversation."
+          }
+        },
+        "model": "haiku",
+        "attempts": 1
+      },
+      "vibe": {
         "status": "in_progress",
         "score": null,
         "model": "opus",
+        "attempts": 3
+      }
+    }
+  },
+  "sp-pending-20260408-anthropic-anthropic-claude-mythos-preview-ai.mdx": {
+    "article": "sp-pending-20260408-anthropic-anthropic-claude-mythos-preview-ai.mdx",
+    "startedAt": "2026-04-08T10:36:50+08:00",
+    "stages": {
+      "librarian": {
+        "status": "in_progress",
+        "score": null,
+        "model": "sonnet",
         "attempts": 1
       }
     }
