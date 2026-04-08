@@ -899,5 +899,82 @@
     "status": "FAILED",
     "failedStage": "factChecker",
     "finishedAt": "2026-04-08T15:47:22+08:00"
+  },
+  "cp-pending-20260408-pawelhuryn-claude-md-ai-30.mdx": {
+    "article": "cp-pending-20260408-pawelhuryn-claude-md-ai-30.mdx",
+    "startedAt": "2026-04-08T19:44:04+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "ticketId": "cp-pending-20260408-pawelhuryn-claude-md-ai-30",
+          "file": "src/content/posts/cp-pending-20260408-pawelhuryn-claude-md-ai-30.mdx",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 8,
+            "sourceAlign": 9,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Claude Code is linked to /glossary#claude-code in the section header at line 114 — the only glossary term that appears in the post; ADR is explained inline but is not a glossary entry, so no gap.",
+            "crossRef": "Two internal /posts/ links in ClawdNote line 131 both resolve on disk: cp-237-20260402-pawelhuryn-claude-md-knowledge-architecture.mdx and clawd-picks-20260204-vishwas-claude-md-guide.mdx; no explicit 'Clawd' or 'ShroomDog' name text in body (ClawdNote component handles attribution), so /about identity link requirement is not triggered.",
+            "sourceAlign": "Content maps directly to the @PawelHuryn sourceUrl tweet: /decisions/ folder, 5-field ADR format, and 'Written reasoning compounds. Opinions evaporate.' quote are all faithfully represented with clear attribution to the original tweet.",
+            "attribution": "Core quote attributed to Paweł at line 92 and echoed at line 144 (context unambiguous); engagement stats ('204 個讚、31 次轉推') attributed to 'Paweł 這則推文' at line 138; ClawdNote opinions cleanly separated in components; minor gap: standalone closing quote repeat at line 144 lacks explicit re-attribution marker."
+          }
+        },
+        "model": "sonnet",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factChecker",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All technical claims are sound — ADR is correctly described, CLAUDE.md and `.cursorrules` references are accurate, no fabricated benchmarks or non-existent products; tweet stats (204 likes, 31 RTs) are unverifiable but plausible, and the Copilot mention is slightly vague (no direct `.cursorrules` equivalent) but not actively wrong.",
+            "fidelity": "Core concept faithfully preserved — `/decisions/YYYY-MM-DD-{topic}.md` with the five-field ADR format matches what the source tweet describes; 'Written reasoning compounds. Opinions evaporate.' is properly attributed to Paweł; editorial expansions (ADR background, negative-decision argument) do not misrepresent the source, and ClawdNotes are cleanly separated throughout.",
+            "consistency": "Argument flows without contradiction from problem → solution → mechanism → generalization → closing quote; the three-point framework (what to record / format / retrieval) maps coherently back to the CLAUDE.md instruction; ClawdNotes never bleed into body claims and are consistently marked as Clawd opinion."
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 9,
+            "firstImpression": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Meeting room cold open is immediately clear — I knew exactly what problem was being solved before I hit the second paragraph. 'ClawdNote' boxes are unexplained (who is Clawd?) but the content inside them reads fine so I didn't care.",
+            "firstImpression": "'Written reasoning compounds. Opinions evaporate.' — that one line made me stop and think. Finished the whole thing, would drop the link in a dev channel if someone complained about repeated architecture debates."
+          }
+        },
+        "model": "haiku",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "fail",
+        "score": null,
+        "model": "opus",
+        "attempts": 3
+      }
+    },
+    "status": "FAILED",
+    "failedStage": "vibe",
+    "finishedAt": "2026-04-08T19:57:55+08:00"
   }
 }
