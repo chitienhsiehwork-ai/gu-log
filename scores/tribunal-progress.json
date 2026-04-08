@@ -594,10 +594,70 @@
     "startedAt": "2026-04-08T10:36:50+08:00",
     "stages": {
       "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "All glossary terms appearing in the post (Claude Code ×2 at lines 148/152, Agent at line 391, Subagent at line 389) are properly linked to /glossary#term; non-glossary technical terms (SAE, IRT, CTF, RSP, ECI) explained inline.",
+            "crossRef": "4 internal post links all verified: Opus 4.6 Sabotage Risk Report (line 43), CP-30 Misalignment (line 108), SP-127 Auto Mode (line 148), CP-130 RSP v3 (line 423); Clawd identity linked to /about in first ClawdNote (line 43); thematic connections excellent and relevant.",
+            "sourceAlign": "Content is clearly and thoroughly derived from the Anthropic System Card PDF — covers benchmarks, cybersecurity experiments, safety evaluations, model welfare, RSP assessment with no topic drift.",
+            "attribution": "Generally strong: expert quotes attributed, Anthropic statements blockquoted, ClawdNote opinions cleanly separated in components; minor gap where some specific statistics (0.001%, n=18) lack explicit 'System Card 指出' framing though context makes source clear."
+          }
+        },
+        "model": "sonnet",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factChecker",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Technical concepts (IRT, SAE, AV, beta-hairpin structure) correctly described; benchmark names real; Firefox experiment conditions properly noted (sandbox removed); minor imprecision in summary's '自主發現零日漏洞' vs body's more nuanced framing of provided crash categories.",
+            "fidelity": "Hedges well preserved ('IRT 方法對 benchmark 的選擇很敏感', '信心是歷來最低的'); critical early-version caveat explicitly called out; direct Anthropic quotes used in RSP section; ClawdNote opinions cleanly separated; title slightly dramatized but faithful to core decision.",
+            "consistency": "Central paradox (best-aligned AND highest-risk) introduced with mountain guide analogy, sustained through three logical reasons, and resolved in conclusion; narrative arc from capabilities→risks→evidence→welfare→RSP flows without contradictions; opinion/fact clearly delineated in every ClawdNote."
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Complex AI safety topic made surprisingly accessible — the sandwich-in-the-park anecdote, the 847-attempt story, and the protein poem all anchor abstract concepts in vivid scenes. A few spots where jargon piles up (SAE features, IRT, contrastive probes, Activation Verbalizer) require re-reading, but ClawdNotes and the conversational tone carry you through without losing the thread.",
+            "firstImpression": "Couldn't stop reading. The narrative arc — from 'how powerful is it' through 'the terrifying edge cases' to 'what does this mean for humanity' — builds genuine tension. The Firefox exploit section, the cover-up attempts, and the model welfare chapter each feel like separate 'holy shit' moments. The callback to the sonnet at the end is a perfect landing. Would absolutely share the sandbox escape + sandwich story with friends."
+          }
+        },
+        "model": "haiku",
+        "attempts": 1
+      },
+      "vibe": {
         "status": "in_progress",
         "score": null,
-        "model": "sonnet",
-        "attempts": 1
+        "model": "opus",
+        "attempts": 2
       }
     }
   }

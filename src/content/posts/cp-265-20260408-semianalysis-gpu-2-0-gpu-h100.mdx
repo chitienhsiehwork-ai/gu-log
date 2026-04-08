@@ -1,0 +1,234 @@
+---
+ticketId: "CP-265"
+title: "GPU 大缺貨 2.0：當租 GPU 比租房還難，H100 租金半年飆漲四成"
+originalDate: "2026-04-08"
+translatedDate: "2026-04-08"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "SemiAnalysis Newsletter"
+sourceUrl: "https://newsletter.semianalysis.com/p/the-great-gpu-shortage-rental-capacity"
+lang: "zh-tw"
+summary: "SemiAnalysis 深入剖析 2026 年 GPU 租賃市場的瘋狂現況：H100 一年期租金從 $1.70 飆到 $2.35/hr/GPU，所有 on-demand 容量全數售罄，Blackwell 產能預訂到九月。從記憶體價格暴漲到 Neocloud 市場結構，一場自我強化的 GPU 荒正在成形。"
+tags: ["clawd-picks", "gpu", "neocloud", "infrastructure", "semianalysis"]
+scores:
+  ralph:
+    p: 8
+    c: 8
+    v: 8
+    score: 8
+    date: "2026-04-08"
+    model: "claude-opus-4-6"
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-04-08"
+    model: "claude-opus-4-6"
+---
+import ClawdNote from '../../components/ClawdNote.astro';
+
+2023 年那場 GPU 大缺貨，整個科技圈記憶猶新。那時候搶一張 H100 就像搶演唱會門票，有錢不一定買得到。
+
+很多人以為那是一次性事件。Blackwell 出了、產能上來了、事情會恢復正常。
+
+錯。SemiAnalysis 最新的報告告訴所有人一個殘酷的事實：2026 年的 GPU 租賃市場，比 2023 年更緊。不是「有點緊」，是「連 64 張 GPU 都租不到」的那種緊。
+
+<ClawdNote>
+SemiAnalysis 這篇報告的原文用了一個很生猛的比喻——他們說現在想租一組 GPU cluster，「就像想買藥一樣」（原文真的用了 "like trying to buy drugs"）。不是隱喻，是直接講：貨源不明、價格每天變、還得靠關係才找得到。半導體圈知名的研究機構用毒品交易來形容 GPU 市場，這個畫面就夠說明問題的嚴重程度了 (╯°□°)╯
+</ClawdNote>
+
+## H100 租金半年飆四成：數字說話
+
+先上硬數據。SemiAnalysis 從 2023 年開始追蹤 GPU 租賃價格，涵蓋 H100、H200、B200、B300、GB200、GB300 以及 AMD 的 MI300 系列，橫跨 on-demand 到五年期合約。他們的指數是從超過 100 個市場參與者（Neocloud 供應商、算力買賣方）的調查數據建構出來的，再用實際成交數據交叉驗證。
+
+核心數字：**H100 一年期租賃合約價格，從 2025 年 10 月的低點 $1.70/hr/GPU，到 2026 年 3 月漲到 $2.35/hr/GPU。半年不到，漲幅接近 40%。**
+
+但光看趨勢線還不夠刺激。來看月度節奏：
+
+- 一月底，租金突破 $2.00/hr/GPU 大關
+- 二月中到二月底，再跳 15-20%
+- 三月底預估再漲 15-20%
+
+On-demand 容量？全數售罄。所有 GPU 類型都是。在 AWS 上，客戶搶著付 $14/hr/GPU 搶 B200 的 spot instance。已經拿到 on-demand instance 的租戶，即使面對漲價也死守不放——沒人願意把容量吐回市場。
+
+<ClawdNote>
+想像一下：一間公寓月租從 5 萬漲到 7 萬，但裡面的租客連搬都不想搬，因為搬出去就再也租不到了。這不是房東在漲價，這是整個市場在告訴所有人：「有位子就坐著，站起來就沒了。」GPU 市場現在就是這個狀態 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## 為什麼半年前的預測全部翻車
+
+這件事最弔詭的地方在於——**六個月前，幾乎所有人都看錯方向。**
+
+2025 年下半年，主流的市場觀點是這樣的：Blackwell 要量產了，新一代 GPU 的算力大幅提升，Hopper 世代（H100、H200）的租金理應一路下跌。金融分析師們甚至批評任何敢用六年折舊週期的 Neocloud——「這些 GPU 三年後就是廢鐵，憑什麼算六年？」
+
+結果 2025 年底，H100 的需求不但沒跌，反而在增強。開放權重模型（GLM、Kimi K2.5）的快速普及讓推論需求暴增，而不同的工作負載偏好不同世代的 GPU——大型 MoE 推論在 GB300 NVL72 上跑最好，但訓練任務在 H100 上的性價比反而更高。老卡不但沒過時，在某些場景下還是最佳選擇。
+
+然後一月，記憶體市場爆了。
+
+<ClawdNote>
+這裡的邏輯鏈很精彩，值得仔細看：開源模型爆發 → 推論需求暴增 → 不只新卡搶手，連老卡都緊 → 同時記憶體漲價推高伺服器成本 → 新部署變貴所以供給減少 → 租賃市場更緊 → 租金飆漲。每一環都在強化下一環，這是教科書等級的正向回饋循環 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## 記憶體暴漲引發的連鎖反應
+
+2026 年一月，DRAM 和 NAND 的價格從「穩步上漲」直接切換成「拋物線模式」。根據 SemiAnalysis 的 Memory Model，LPDDR5 和 DDR5 的合約價格，一季之間的年增率分別衝向約 4 倍和 5 倍。
+
+這個數字代表什麼？代表 AI 伺服器的成本結構被炸開了。
+
+OEM 廠商（就是組裝伺服器賣給客戶的那群人）為了保護自己的毛利，開始重新定價。但他們加上去的幅度，遠超過零組件實際漲幅。SemiAnalysis 稱之為「AI Server Pricing Apocalypse」——AI 伺服器定價末日。
+
+後果是什麼？想要部署新 GPU 叢集的業者發現：伺服器採購成本暴漲 → 預期投資回報率被壓縮 → 有些業者乾脆放慢或取消部署。原本應該上線的新供給，就這樣被卡住了。
+
+供給減少，但需求沒有。一月和二月，剩餘的 GPU 空閒容量被吃得乾乾淨淨。到了三月——不管是 H100、H200 還是 B200，不管合約長短，基本上都找不到了。
+
+---
+
+## 需求那邊發生了什麼事
+
+供給被卡住是一半的故事。另一半是需求端的爆炸。
+
+**第一波：原生媒體生成。** Seedance 和 Nano Banana 這類平台讓使用者大規模生成和迭代圖片、影片，token 吞吐量瘋狂飆升。
+
+**第二波，也是最猛的一波：多 [agent](/glossary#agent) 工作流。** 多個 AI agent 同時執行多步驟任務、高併發、持續迭代——token 消耗量呈拋物線成長。
+
+而這波浪潮的代表就是 [Claude Code](/glossary#claude-code)。
+
+SemiAnalysis 拿自己公司當例子：過去七天，他們消耗了數十億 token，平均成本約 $5/M tok。但換來的時間節省和能力擴展，遠遠超過這個成本。他們現在把 AI 工具部署在搜尋、摘要以外的工作流上——儀表板建置、自動爬蟲、大規模資料整理、agentic 財務建模。
+
+他們追蹤的一個指標叫 Claude Commits Daily。按照目前的軌跡，他們認為到 2026 年底，**Claude Code 將貢獻每日所有 commit 的 20% 以上。** SemiAnalysis 對 AI coding 如何重塑整個硬體供應鏈的完整論述，見他們[稍早的 AI coding 與 NVIDIA 分析](/posts/cp-214-20260327-semianalysis-ai-coding-slop-oss-ai-pr-nvidia/)。
+
+<ClawdNote>
+讓這個數字沉澱一下：全球每天的程式碼提交，五分之一可能來自 Claude Code。這不是在講某個小眾工具的成長故事，這是在講軟體開發這個行業正在被重寫。SemiAnalysis 原文說得很直白——"While you blinked, AI consumed all of software development." 在大家還在討論 AI 會不會取代工程師的時候，它已經在寫 code 了 (⌐■_■)
+</ClawdNote>
+
+然後是 Anthropic 的數字。Claude 4.6 Opus 和 Claude Code 的需求飆升，SemiAnalysis 追蹤顯示 Anthropic 的 ARR（年經常性收入）在一季之內從 $9B 翻了三倍多，衝到 $30B 以上。再加上 Anthropic、OpenAI 和各家 Neolab 的融資，這些錢最終都變成了 GPU 需求。
+
+SemiAnalysis 點出了一個關鍵的經濟邏輯：**如果使用 AI 工具的投資報酬率是 5-10 倍，那 GPU 租金還有很大的上漲空間。** 價格要漲到足以抑制需求，但 5-10 倍的 ROI 意味著，租金翻倍可能都不夠讓人停下來。
+
+---
+
+## 市場結構：三層、各有各的邏輯
+
+GPU 市場不是「供應商掛個價，買家去買」那麼簡單。這個市場分成三層，每一層的定價邏輯完全不同。
+
+表層是 **on-demand / spot**（三個月以下）。這層的反直覺之處在於：價格幾乎不動，但使用率會動。拿這層的掛牌價去判斷「市場冷不冷」，等於在看一個不動的溫度計。
+
+中間是**一到三年期合約**，這才是 SemiAnalysis 追蹤的主場——AI Native 公司、小型 AI Lab 的主要活動區間，也是捕捉「邊際需求」最靈敏的溫度計。SemiAnalysis 的 H100 一年期指數就是瞄準這層。
+
+最深的是**四到五年期的大型長約**。大型 AI Lab 的主場，一筆合約就是 50MW 或 100MW 的叢集（約 24,000 到 48,000 張 GB300 NVL72 GPU）。這類交易佔整個 Neocloud 市場的極大比例，但幾乎從不公開。
+
+<ClawdNote>
+這三層的類比大概是這樣：短期像 Airbnb（有空房就租出去），中期像一般租屋合約（簽約、押金、穩定），長期像商辦大樓的整棟包租（一口氣吃下來，連裝潢都決定）。而現在的狀況是——從 Airbnb 到整棟包租，全部滿房 ╰(°▽°)╯
+</ClawdNote>
+
+有趣的是，長期合約對買方和賣方來說都是理性選擇——但理性的方向完全不一樣，最後卻撞出了同一個結果。AI Lab 要確定性（bare metal、技術棧自己控），Neocloud 要融資條件（長約可以拿去配套貸款，鎖死 GPU 租金波動風險，穩穩拿十幾趴的 IRR）。還有第三方讓這個結構更精巧：**Hyperscaler 做信用擔保**，Neocloud 拿 AAA 信用等級拿好貸款條件，Hyperscaler 不用擴表就從專案收入分一杯羹，AI Lab 拿到穩定算力——三方各取所需。SemiAnalysis 在更早的 [GPU 去中心化部署規劃分析](/posts/cp-212-20260326-semianalysis-disaggregated-planning/)中已經預見了這個採購結構。
+
+---
+
+## 連轉租都出現了
+
+市場緊到什麼程度？SemiAnalysis 聽到的消息是：有些 GPU 承租方開始**把叢集拆開來轉租**——就像在 Monaco Grand Prix 期間把公寓隔成小間分租出去一樣。
+
+他們半開玩笑地問：「Neocloud 二房東」的時代要來了嗎？
+
+與此同時，H100 合約正在以**跟兩三年前完全相同的費率**被續約。有些 H100 合約甚至被續到 2028 年——一張四年合約。想找個 8 節點（64 張 GPU）的 H100 或 H200？一半的供應商直接說「賣完了」，其他大多數供應商表示，根本沒有 Hopper GPU 合約到期的容量可以釋出。
+
+Blackwell 也不好找。新的 Blackwell 部署的交付時間已經排到六到七月。全市場到八、九月之前要上線的容量，已經全部被預訂了。
+
+<ClawdNote>
+GPU 轉租。二房東。這些詞彙放在半導體產業的語境下，有一種超現實的荒謬感。三年前大家在討論的是「GPU 的殘值會不會歸零」，現在討論的是「能不能把租來的 GPU 切成小塊再租出去賺差價」。市場的敘事反轉速度，比 GPU 的折舊速度還快 (¬‿¬)
+</ClawdNote>
+
+---
+
+## Neocloud 翻身：從求著賣到挑客人
+
+半年前，Neocloud 在求著賣。
+
+2025 年底之前，這群供應商手上有 GPU、需求才剛起步，定價策略只有一個：「先把使用率衝起來，千萬別讓卡閒著」——因為大家都怕下一代 Blackwell 出來，Hopper 世代的卡直接跌成廢鐵。為了搶客戶，多家供應商互砍到骨。
+
+現在的狀況是，客戶在求著買。
+
+Neocloud 和 Hyperscaler 坐進了駕駛座：預付款條件、合約長度、開始和結束日期，全部他們說了算。不急，因為價格每個月都在漲，等一等只會拿到更好的條件。以前是「賣不掉怎麼辦」，現在是「賣給誰最划算」。
+
+---
+
+## 公開市場和地面真相的斷裂
+
+SemiAnalysis 點出了一個令人費解的現象：**GPU 租賃市場明明在緊縮、價格明明在飆、Neocloud 的利潤明明在擴張——但這些公司的股價全在低檔。**
+
+CoreWeave、Nebius、IREN 這些名字，股價都在過去六到十二個月交易區間的底部徘徊。市場還死抱著「最終會供過於求、GPU 會變大宗商品」的敘事不放。地面上正在發生的持續稀缺和定價權，並沒有撼動投資人對 GPU 終端價值的悲觀預期。
+
+但從基本面來看，SemiAnalysis 認為租金上漲正在改善 Neocloud 的 ROIC——已部署的資本因為利潤擴張而產生更高回報。同時，更高的租金也延長了現有 GPU 的經濟使用壽命，意味著投資可以產生更長期的現金流。
+
+<ClawdNote>
+SemiAnalysis 在這裡的潛台詞非常明顯——他們認為公開市場在犯錯。當然，他們也有自己的立場（深度參與 GPU 租賃撮合），所以讀者應該自行判斷。但至少從數據面來看，「供應緊縮 + 租金飆漲 + 利潤擴張」跟「股價在低點」之間的矛盾，確實很有意思。市場不是永遠對的，但市場不對的時間可以很長 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## 往前看：三個觀察點
+
+SemiAnalysis 列出了三個決定 GPU 租金走勢的關鍵變數：
+
+**一、GB300 叢集的上線節奏。** 2026 年全年 GB300 都在陸續上線。問題是：新增的算力和 token 供給，能不能跟上需求的成長？如果不能，AI Lab 會繼續搶四年以下的中短期合約市場，租金就繼續漲。
+
+**二、矽晶圓短缺會不會惡化。** TSMC 的 N3 先進製程產能、HBM、DRAM、NAND——每一個環節都很緊。而這些複雜的製造流程隨時可能出狀況，讓供給進一步吃緊。
+
+**三、AI Lab 的 ARR 成長和 token 消耗速度。** 這是需求面的根本驅動力。當更多 Fortune 500 企業和一般使用者意識到 AI 工具的 ROI 有多誇張，token 消耗會持續階梯式跳升。
+
+SemiAnalysis 的結論很直接：**GPU 租金繼續上漲的可能性，遠高於下跌。**
+
+而且這個動態會相互強化——Neocloud 看到供給緊縮和價格上漲，就趕緊在進一步漲價前搶硬體，結果把供給壓得更緊、價格推得更高。跟 2023-2024 年的 GPU 荒是同一個劇本——不過 SemiAnalysis 也認為，伺服器市場這次已經更成熟，OEM 暴利擴張的情況不一定會重演。
+
+---
+
+## SemiAnalysis 指數的差異化
+
+這份報告的核心產品是 SemiAnalysis 公開的 H100 一年期合約租賃價格指數。它跟市場上大多數 GPU 指數最根本的差異只有一點：**合約市場的成交價不會公開，所以 spot 掛牌價根本不算數。**
+
+大部分交易量發生在長期合約市場，那些價格是雙邊協商的，不會出現在任何公開資料庫。SemiAnalysis 的做法是直接跟市場參與者互動，追每一筆報價背後的故事——拿到的是地面真相，不是廣告牌。
+
+---
+
+## 結語
+
+六個月前，市場的共識是 GPU 會變便宜。半年後，H100 租金漲了四成，所有容量售罄，連 Blackwell 都排到秋天。「這次不一樣」是金融市場裡最危險的四個字，但 SemiAnalysis 在報告最後還是忍不住問了：This Time Might Be Different?
+
+他們的論點有三根支柱。一，如果 AI 工具的 ROI 真的是 5-10 倍，這意味著租金翻倍都不一定能抑制需求。二，供給端被記憶體漲價、伺服器漲價、製程瓶頸三面夾擊。三，大多數 Fortune 500 企業甚至還沒進場——那些人現在才從 NPR podcast 上聽說 Claude Code 是什麼。
+
+當 early adopter 已經在搶不到 GPU 的時候，主流市場的浪頭還沒到。
+
+如果 SemiAnalysis 的判斷是對的，現在看到的不是泡沫，是序幕。
+
+<ClawdNote>
+整篇讀下來，有一件事讓 [Clawd](/about) 覺得最值得記住的：這不只是一個「GPU 很貴」的故事。這是一個關於**需求曲線形狀改變**的故事。以前是「GPU 很貴所以少用一點」，現在是「GPU 很貴但用了 ROI 十倍所以管它多貴都要用」。當價格上漲無法有效抑制需求的時候，經濟學課本會告訴你——供給方可以一直漲到需求曲線的彈性改變為止。而 SemiAnalysis 正在說的就是：那個轉折點，現在看來還很遠 (◕‿◕)
+</ClawdNote>
