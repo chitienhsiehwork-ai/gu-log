@@ -689,5 +689,80 @@
     "status": "FAILED",
     "failedStage": "vibe",
     "finishedAt": "2026-04-08T11:00:57+08:00"
+  },
+  "sp-98-20260303-openai-harness-engineering.mdx": {
+    "article": "sp-98-20260303-openai-harness-engineering.mdx",
+    "startedAt": "2026-04-08T11:38:41+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 8,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Both key glossary terms appear properly linked: 'Agent' at line 35 as [Agent](/glossary#agent) and 'context window' at line 79 as [context window](/glossary#context-window); no other glossary.json terms appear in the prose.",
+            "crossRef": "All three 延伸閱讀 internal links resolve (shroomdog-picks-20260207-kareldoostrlnck-codex-research, sp-94-20260302-hxlfed14-agent-harness-real-product, sp-110-20260310-derrickcchoi-codex-10-best-practices); SD-5/6/7 referenced by name in ClawdNote line 86 without links is a minor gap; no ShroomDog/Clawd named mentions in body text requiring /about identity links.",
+            "sourceAlign": "Content directly covers the declared OpenAI harness engineering source: 1M lines zero-human-code, AGENTS.md 100-line strategy, layered architecture with linter enforcement, automated technical debt refactoring loop — all core topics of the source article.",
+            "attribution": "All quantitative claims (5 months, 1M lines, 3→7 engineers, ~1500 PRs, 3.5 PRs/person/day, 20% Fridays for cleanup) flow from declared source; 'Humans steer. Agents execute.' quote clearly attributed; ClawdNote opinions cleanly siloed inside components with no bleed into body text."
+          }
+        },
+        "model": "sonnet",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factChecker",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Specific numbers (1,500 PRs, ~1M lines in 5 months, 3→7 engineers, 3.5 PRs/person/day, 800ms startup threshold, 100-line AGENTS.md, 20% Friday cleanup) are internally consistent and technically plausible; Chrome DevTools Protocol, LogQL, PromQL are real technologies correctly described; 'zero human-written lines' stated boldly without caveat—minor risk if source used hedges, but no fabricated products or benchmark numbers detected.",
+            "fidelity": "ClawdNotes are clearly separated and marked as opinions throughout; body claims don't appear extended beyond source; '零。一行都沒有。' risks uncertainty erasure if source used 'effectively/virtually' zero—minor concern, partially mitigated by '約百萬行' hedging elsewhere; overall faithful with analogies that clarify rather than distort.",
+            "consistency": "Excellent logical arc: empty repo → environment-is-bottleneck → browser+metrics tooling → AGENTS.md overload → layered architecture → AI-cleans-AI-debt; opening restaurant metaphor echoed in closing; ClawdNotes consistently marked as Clawd opinions; no contradictions across sections."
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "The restaurant-no-human-chef hook lands immediately, and analogies (intern without WiFi, exam cheat-sheet, dumpling assembly line) carry jargon-heavy concepts without losing a 3-month dev — one brief stumble when a ClawdNote drops internal refs like 'SP-94' and 'SD-5/6/7' that mean nothing to a new reader.",
+            "firstImpression": "The opening reversal ('他們沒有寫任何一行 code') is strong enough to earn the next scroll, each section delivers a concrete takeaway, and the closing callback to the restaurant analogy with '有點毛毛的' sticks — would finish and probably share with a teammate who's been asking about AI-assisted coding."
+          }
+        },
+        "model": "haiku",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "fail",
+        "score": null,
+        "model": "opus",
+        "attempts": 3
+      }
+    },
+    "status": "FAILED",
+    "failedStage": "vibe",
+    "finishedAt": "2026-04-08T11:50:34+08:00"
   }
 }
