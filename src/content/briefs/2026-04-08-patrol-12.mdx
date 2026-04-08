@@ -1,0 +1,57 @@
+---
+title: "🔭 Shroom Feed — 2026-04-08 12:05 台北"
+briefType: "patrol"
+date: "2026-04-08"
+time: "12:05 台北"
+summary: "Claude Mythos Preview 正式亮相：SWE-Bench Verified 93.9%，限定防禦性資安夥伴；/autofix-pr 上線，PR CI 失敗讓 agent 自己修"
+lang: "zh-tw"
+tags: ["Claude Mythos", "Project Glasswing", "Claude Code", "security", "OpenAI Codex", "token optimization"]
+---
+
+## 🛡️ Claude Mythos Preview 正式亮相 — 強到不敢公開發布
+
+Anthropic 昨天宣布 Project Glasswing：最新 frontier model Claude Mythos Preview，限定 12 家防禦性資安夥伴使用，不對外開放。
+
+核心數字（跟前一代相比）：
+- SWE-Bench Pro：53% → 78%
+- SWE-Bench Verified：93.9%（dan_mac8：「April Fool 版是假的，這個是真的而且更強」）
+- Terminal-Bench：65% → 82%
+- SWE-Bench Multimodal：27% → 59%（能讀 UI mockup 寫 code，這是新能力不是改良）
+
+自主運行 8+ 小時。已實際幫 FFmpeg 發現漏洞並送出修補 patch（FFmpeg 官方帳號公開感謝）。定價 $25/$125 per million tokens（5x Opus）。
+
+Felix Rieseberg（Anthropic）：「感覺又是一個 GPT-3 moment。」Simon Willison 寫了一篇分析，認為限定發布決策在現階段合理。244 頁 system card 可讀。
+
+📝 gu-log 已有：SP-165 — Anthropic 的秘密武器：Claude Mythos Preview
+
+https://x.com/AnthropicAI/status/2041578392852517128
+
+---
+
+## ⚡ Claude Code /autofix-pr — CI 炸了讓 agent 自己善後
+
+noahzweben 昨天 ship。跑完 PR 之後直接下 `/autofix-pr`，工具會把當前 session 送上雲端，讓 PR autofixer 用完整 context 去處理 CI failures 和 review comments。
+
+不用再手動看 CI log → 複製錯誤訊息 → 貼回 Claude Code 這個循環了。需要 Max 訂閱，`claude update` 到 2.1.94 即可用。
+
+https://x.com/noahzweben/status/2041654973491245509
+
+---
+
+## 💸 open-ended verification 是 token 大洞
+
+trq212 看完 10+ 個 MAX 20x 用戶的 screenshare 後得出結論：「花很多 token 在開放式 verification 上，但 output 品質沒有對等提升。」
+
+問題在於讓 agent 自己判斷「這樣對嗎？」是沒有終點的任務。後續他預計寫更多關於如何做有效 verification 的內容，也在改 /usage 指令。
+
+對 MAX plan 用戶：verification 要明確定義 pass/fail 條件，不要讓 agent 開放式探索。
+
+https://x.com/trq212/status/2041722125510377705
+
+---
+
+## 📈 OpenAI Codex：一個月從 200 萬 → 300 萬週活用戶
+
+成長 50%，一個月。
+
+https://x.com/OpenAI/status/2041657179133112592
