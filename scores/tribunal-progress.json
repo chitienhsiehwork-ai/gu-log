@@ -764,5 +764,74 @@
     "status": "FAILED",
     "failedStage": "vibe",
     "finishedAt": "2026-04-08T12:47:53+08:00"
+  },
+  "sp-pending-20260408-rohit4verse-claude-code-55-331-ai-agent.mdx": {
+    "article": "sp-pending-20260408-rohit4verse-claude-code-55-331-ai-agent.mdx",
+    "startedAt": "2026-04-08T14:19:15+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 10,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Every glossary term (Agent, Claude Code, Context Window, Subagent, MCP, Hooks) is either naturally explained inline on first use or linked to a prior post. Inline definitions match glossary.json wording closely — e.g., line 43 explains agent as '能自主讀寫檔案、執行指令', line 235 defines MCP as 'AI 的 USB 接口'. Perfect coverage.",
+            "crossRef": "Six internal cross-references (SP-116, SP-94, SP-97, SP-96, SP-149, SP-146) — all verified to exist as published posts. Each link adds genuine thematic context (e.g., SP-97 for context window crisis, SP-94 for harness vs toy gap). No identity links needed since neither ShroomDog nor Clawd appear as named text in the body. One optional connection: SD-18 (permission engineering) alongside the security section.",
+            "sourceAlign": "Post is clearly derived from @rohit4verse's X thread on Claude Code architecture teardown. Content faithfully expands on the source's core topics (execution loop, context compaction, multi-agent, permissions, hooks, design patterns). The post adds significant structure beyond tweet-thread scope, but this is additive elaboration, not topic misalignment.",
+            "attribution": "Rohit credited as source throughout with consistent '@rohit4verse' references. Princeton NLP SWE-agent paper cited with direct arxiv link. Core thesis quote properly blockquoted and attributed. ClawdNote opinions structurally separated via component. One minor gap: the 64% performance stat cites the paper but doesn't specify the benchmark condition — acceptable for blog context."
+          }
+        },
+        "model": "sonnet",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 7,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Core architecture claims (Bun/Ink/TS stack, async generator loop, progressive compaction, AgentTool subagents, deferred tool loading, permission pipeline, hooks, MCP) are all consistent with known Claude Code behavior; however, the 64% SWE-agent improvement figure attributed to Yang et al. 2024 is not confirmed in the paper's abstract (which reports 12.5% pass@1 vs prior SOTA) and may be an unverifiable statistic.",
+            "fidelity": "Source tweet inaccessible for direct comparison; post clearly attributes to Rohit throughout and ClawdNote opinions are well-separated, but the significant editorial expansion from a tweet source and the unverifiable 64% figure attributed to an academic paper represent mild fidelity concerns.",
+            "consistency": "Argument flows logically from core loop through increasingly complex subsystems to design patterns and conclusion; all six cross-referenced posts (SP-94, 96, 97, 116, 146, 149) exist and are contextually appropriate; final ClawdNote challenges the source's own thesis (co-design point), demonstrating intellectual honesty with zero internal contradictions."
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "fail",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 7,
+            "firstImpression": 7
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "readability": "Analogies are strong (hospital triage for compaction, projecting reports for fork pattern, traffic lights for permissions) and every jargon term gets a parenthetical explanation — but the sheer density of new concepts per section (generator, backpressure, prompt caching, circuit breaker, MCP, hooks, skills) means a 3-month dev has to re-read multiple paragraphs to keep up. Never truly lost, but definitely working hard.",
+            "firstImpression": "The some-people-use-tools opening hooks well and ClawdNotes add enough personality to keep scrolling. But mid-article (tool system → hooks → skills → MCP) starts to feel like an architecture tour rather than a story — each section introduces a new subsystem with the same explain → analogy → ClawdNote rhythm. Finished reading but would not share with friends; too dense for casual recommendation."
+          }
+        },
+        "model": "haiku",
+        "attempts": 2
+      }
+    },
+    "status": "FAILED",
+    "failedStage": "freshEyes",
+    "finishedAt": "2026-04-08T14:34:41+08:00"
   }
 }
