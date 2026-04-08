@@ -54,6 +54,9 @@ jobs:
       - name: Validate posts (frontmatter + content policy)
         run: pnpm run validate:posts
 
+      - name: Dedup check (block active duplicates)
+        run: node scripts/validate-posts.mjs --check-duplicates
+
   security-gate:
     runs-on: ubuntu-latest
     steps:

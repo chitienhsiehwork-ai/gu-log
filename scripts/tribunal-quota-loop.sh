@@ -4,12 +4,9 @@
 # Checks Claude API quota via usage-monitor.sh and adapts processing speed.
 # Never burns below 3% floor (CEO personal use reserve).
 #
-# Adaptive sleep tiers:
-#   BURN     (>50%)  : 0s  — maximize throughput
-#   CRUISE   (20-50%): 5min
-#   CONSERVE (10-20%): 30min
-#   SCARCE   (3-10%) : 2hr
-#   STOP     (<3%)   : halt, check every 30min, resume at >10%
+# Strategy: burn tokens above floor, unused quota that refreshes = real waste.
+#   GO   (>3%)  : process immediately, 10s cooldown between articles
+#   STOP (≤3%)  : halt, check every 30min, resume at >10% (hysteresis)
 #
 # Usage:
 #   bash scripts/tribunal-quota-loop.sh              # run continuously
@@ -74,22 +71,17 @@ except Exception:
 
 # Returns sleep seconds for the given effective remaining integer %.
 # Returns -1 to signal STOP.
+# Philosophy: unused quota that refreshes = real waste. Burn it all above floor.
 compute_sleep() {
   local pct="$1"
-  if (( pct > 50 )); then echo 0         # BURN
-  elif (( pct > 20 )); then echo 300     # CRUISE: 5min
-  elif (( pct > 10 )); then echo 1800    # CONSERVE: 30min
-  elif (( pct > QUOTA_FLOOR )); then echo 7200  # SCARCE: 2hr
-  else echo -1                            # STOP
+  if (( pct > QUOTA_FLOOR )); then echo 0   # GO: burn tokens, no sleep
+  else echo -1                               # STOP: at floor
   fi
 }
 
 compute_tier_name() {
   local pct="$1"
-  if (( pct > 50 )); then echo "BURN"
-  elif (( pct > 20 )); then echo "CRUISE"
-  elif (( pct > 10 )); then echo "CONSERVE"
-  elif (( pct > QUOTA_FLOOR )); then echo "SCARCE"
+  if (( pct > QUOTA_FLOOR )); then echo "GO"
   else echo "STOP"
   fi
 }

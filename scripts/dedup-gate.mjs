@@ -26,7 +26,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 import matter from 'gray-matter';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -34,9 +34,9 @@ const POSTS_DIR = path.join(__dirname, '..', 'src', 'content', 'posts');
 
 // ─── Thresholds ──────────────────────────────────────────────────────────────
 
-export const REJECT_THRESHOLD = 0.3;
-export const FLAG_THRESHOLD = 0.18;
-export const MIN_EN_OVERLAP = 2; // reduced from 3 per spec
+const REJECT_THRESHOLD = 0.3;
+const FLAG_THRESHOLD = 0.18;
+const MIN_EN_OVERLAP = 2; // reduced from 3 per spec
 
 // ─── Compound token map ───────────────────────────────────────────────────────
 // Order matters: longer/more-specific first
@@ -72,7 +72,7 @@ const URL_ALIASES = [
   ],
 ];
 
-export function normalizeUrl(raw) {
+function normalizeUrl(raw) {
   if (!raw) return '';
   const url = raw.trim().replace(/^['"]|['"]$/g, '');
   let parsed;
@@ -123,7 +123,7 @@ export function normalizeUrl(raw) {
 }
 
 /** Extract tweet status ID from x.com/twitter.com URLs. Returns null if not a tweet URL. */
-export function extractTweetId(url) {
+function extractTweetId(url) {
   if (!url) return null;
   const match = url.match(/(?:x\.com|twitter\.com)\/[^/]+\/status\/(\d+)/i);
   return match ? match[1] : null;
@@ -209,7 +209,7 @@ function jaccard(setA, setB) {
  * Compute topic similarity score between two texts.
  * Returns { score, enOverlap }.
  */
-export function computeSimilarity(textA, textB) {
+function computeSimilarity(textA, textB) {
   const enA = extractEnKeywords(textA);
   const enB = extractEnKeywords(textB);
   const cnA = extractCnBigrams(textA);
@@ -482,7 +482,8 @@ function main() {
   process.exit(0);
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+// Only run as CLI entry point (not when imported as a module)
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {
     main();
   } catch (err) {
@@ -490,3 +491,16 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     process.exit(2);
   }
 }
+
+// ─── Exports (for use by validate-posts.mjs --check-duplicates) ───────────────
+export {
+  normalizeUrl,
+  extractTweetId,
+  computeSimilarity,
+  layer1Match,
+  layer2Match,
+  loadPublishedArticles,
+  REJECT_THRESHOLD,
+  FLAG_THRESHOLD,
+  MIN_EN_OVERLAP,
+};
