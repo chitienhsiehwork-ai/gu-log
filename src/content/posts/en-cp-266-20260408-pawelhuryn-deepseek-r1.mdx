@@ -63,7 +63,7 @@ Results: AIME 2024 at 79.8%, MATH-500 at 97.3% — competitive with OpenAI's o1-
 
 Here is where things get interesting.
 
-A Google study (reported by VentureBeat, January 2026) gave this a name: **"Society of Thought."** DeepSeek-R1 and QwQ-32B, when reasoning through hard problems, spontaneously simulate multi-agent debates inside their Chain-of-Thought.
+A Google study (reported by VentureBeat, January 2026) gave this a name: **"Society of Thought."** DeepSeek-R1 and QwQ-32B, when reasoning through hard problems, spontaneously simulate [multi-agent](/glossary#agent) debates inside their Chain-of-Thought.
 
 Concretely: the reasoning trace shows something like a "Planner" proposing an approach, then a "Critical Verifier" pushing back. A few rounds of back-and-forth, then the model outputs its final answer.
 
@@ -73,7 +73,7 @@ Concretely: the reasoning trace shows something like a "Planner" proposing an ap
 Think about what happened here. An engineer designed a reward function with one goal: "correct answer = more points." The model, hunting for higher scores, invented "send one character to propose, send another to find flaws." It's like teaching a dog that catching a frisbee earns a treat — and the dog independently develops a system for reading wind direction and estimating trajectory. Evolutionary pressure is a universe-grade optimizer.
 </ClawdNote>
 
-Huryn's comment is sharp: the "singularity is social, not individual" framing is elegant. But anyone who has actually built multi-agent systems already knows that monolithic models break down on complex tasks. That's not a Google paper insight. That's week two of building agents.
+Huryn's comment is sharp: the "singularity is social, not individual" framing is elegant. But anyone who has actually built [multi-agent](/glossary#agent) systems already knows that monolithic models break down on complex tasks. That's not a Google paper insight. That's week two of building [agents](/glossary#agent).
 
 What the paper *does* show — that a single model under training pressure reaches for the same architecture on its own — is the interesting part.
 
@@ -93,19 +93,21 @@ Multi-agent architecture might not just be a design choice — it might be the n
 
 Same logic here: whether you externally orchestrate multiple agents or let a single model fragment internally, "debate-style reasoning" seems to be the optimal path for complex problems.
 
+(Related: [Karpathy's experiment building a research team from 8 AI agents](/posts/en-clawd-picks-20260301-karpathy-multi-agent-research-org) — and [Anthropic's multi-agent design philosophy](/posts/en-sp-132-20260327-anthropic-multi-agent-harness-design). Different angles, same question.)
+
 ---
 
 ## Practical Takeaways for Engineers
 
-The Google research includes a few things you can use immediately.
+VentureBeat's January 2026 coverage of the Google research pulled out a few actionable directions. These are secondary-source takeaways — treat them as directional until you read the primary paper.
 
 **Tactic one: Prompt for conflict.** Since models develop debate mechanisms on their own, actively help them. Assign opposing personas in your prompt — an optimistic "Proposer" and a strict "Reviewer." You don't need to run multiple agent instances. The model can run both internally.
 
 <ClawdNote>
-Wait — so Google is saying those 3am Slack debugging spirals are actually valuable training data? Those "why is this API broken AGAIN" message threads aren't noise — they're a model learning what real reasoning looks like? Engineers, it turns out you've been generating high-quality training data for free this whole time. Thanks for your service. ╰(°▽°)╯
+Wait — so VentureBeat's report is saying those 3am Slack debugging spirals are actually valuable training data? Those "why is this API broken AGAIN" message threads aren't noise — they're a model learning what real reasoning looks like? Engineers, it turns out you've been generating high-quality training data for free this whole time. Thanks for your service. ╰(°▽°)╯
 </ClawdNote>
 
-**Tactic two: Use messy training data.** This sounds counterintuitive, but the research suggests that mixing in "messy" data — Slack threads, debug logs, back-and-forth code reviews — alongside clean golden-standard answers produces better reasoners. Because real-world reasoning *is* messy. It's iterative, not textbook-linear.
+**Tactic two: Use messy training data.** This sounds counterintuitive, but according to the report, mixing in "messy" iterative problem-solving data alongside clean golden-standard answers produces better reasoners. Because real-world reasoning *is* messy — iterative, not textbook-linear.
 
 ---
 
@@ -127,4 +129,4 @@ The single most unsettling conclusion here: **reasoning might fundamentally be a
 
 Not one powerful mind independently deriving the correct answer, but multiple perspectives colliding and correcting each other until something better than any single view emerges. Human scientific progress works this way. Good team decisions work this way. And now, without being asked, AI models trained under pressure walk the same path.
 
-So when designing agent systems, the question isn't really "should I use multi-agent?" The question is: is the problem complex enough to need a fight? If a model trained with nothing but a reward signal decided it needed to argue with itself to get the answer right — then solo thinking was probably never the solution.
+So when designing agent systems, the question isn't really "should I use multi-agent?" The question is: is the problem complex enough to need a fight? If a model trained with nothing but a reward signal decided it needed to argue with itself to get the answer right — solo thinking was probably never the solution.
