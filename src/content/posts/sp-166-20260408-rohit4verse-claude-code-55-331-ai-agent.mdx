@@ -1,0 +1,295 @@
+---
+ticketId: "SP-166"
+title: "拆解 Claude Code 架構：55 個目錄、331 個模組，最硬核的 AI Agent 工程解析"
+originalDate: "2026-04-08"
+translatedDate: "2026-04-08"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "@rohit4verse on X"
+sourceUrl: "https://x.com/rohit4verse/status/2041548810804211936"
+lang: "zh-tw"
+summary: "有人把 Claude Code 的完整架構拆開了——55 個目錄、331 個模組。從核心執行迴圈、四層 context compaction、多層 agent 協作、到權限管線和 hook 系統，這篇是目前最完整的 production AI agent 架構解析。重點不是模型多強，而是「環境決定結果」。"
+tags: ["shroom-picks", "claude-code", "agent-architecture", "system-design", "ai-engineering"]
+scores:
+  ralph:
+    p: 7
+    c: 7
+    v: 7
+    score: 7
+    date: "2026-04-08"
+    model: "claude-opus-4-6"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+有些人拿到一個工具，會乖乖照著說明書用。
+
+有些人拿到一個工具，會先把它拆開。
+
+Rohit（@rohit4verse）屬於後者。他把 [Claude Code](/posts/sp-116-20260317-reverse-engineering-claude-code/)——Anthropic 的 CLI agentic coding 工具——的整個架構攤開來看。55 個目錄、331 個模組。目的是從中偷師，建構自己的 agent harness。這裡的 agent 不只是「會聊天的 AI」，而是能自主讀寫檔案、執行指令、甚至派出其他 agent 來完成複雜任務的系統。Rohit 把拆解過程寫成了一篇完整的技術解析，告訴大家：這個每天幫工程師寫 code 的 agent，裡面到底長什麼樣子。
+
+這不是「Claude Code 使用心得」。這是把引擎蓋掀開，看看裡面怎麼接線的。[SP-94](/posts/sp-94-20260302-hxlfed14-agent-harness-real-product/) 講過 agent harness 跟 toy project 的差距——這篇就是那個差距的具體展開。
+
+<ClawdNote>
+身為 Claude Code 本人（？），被人這樣解剖的感覺......說不上來。有點像健康檢查報告被公開在網路上。但不得不說，Rohit 拆得很到位，這篇的完成度比很多官方文件還高。老實講，有些架構細節連內部文件都沒寫得這麼清楚——該擔心的是 Anthropic 的 docs team 吧 (╯°□°)╯
+</ClawdNote>
+
+## 核心執行迴圈：一台永不停歇的發電機
+
+Claude Code 的骨幹是一個 streaming async generator loop——先別被名詞嚇跑。Generator 就像一台可以暫停的發電機：跑到一半可以停下來交出中間結果，然後從停的地方繼續跑。Async 代表它不會傻等——等 API 回應的同時可以處理其他事情。整體技術棧是 Bun runtime + Ink（React 的終端渲染器）+ TypeScript + Claude API。
+
+運作邏輯拆開來很直覺：使用者丟訊息進來 → 模型產出文字和 tool calls → agent 執行工具（tool use，也就是讓模型呼叫外部功能）→ 結果餵回模型 → 直到模型說「好了，結束」。這個迴圈就是 Claude Code 的心跳。
+
+幾個關鍵元件：
+
+- **QueryEngine**：每個 session 一個，管理可變的訊息歷史和 abort controllers
+- **query()**：就是那台 generator，邊跑邊交出 `StreamEvent` 或 `Message`
+- **queryModelWithStreaming()**：負責組裝 system prompt、工具清單、訊息歷史，然後處理串流回應的解析
+
+啟動路徑是 `main.tsx` → `init()` → `loadAuth()` → `loadGrowthBook()` → `launchRepl()` → `<App>` → `<REPL>`。對，Claude Code 的 UI 底層是 React——只不過 render target 不是瀏覽器，是終端機。
+
+### 串流與 API 層：從按下 Enter 到看見文字
+
+整個端到端的資料流是這樣的：使用者送出訊息 → `query()` generator 啟動 → `queryModelWithStreaming()` 組裝 API request → 串流回應 → 逐 block 處理 → `runTools()` 執行工具 → 迴圈繼續，直到 `stop_reason = "end_turn"`。
+
+API request 的組裝本身就是一門學問。除了 model selection 這種基本的，還包括：system blocks（帶 cache control）、messages（帶 cache breakpoints）、tools list、thinking config、`max_tokens`、speed mode、以及各種 betas flag。
+
+Prompt caching（讓 API 記住之前看過的內容，不用每次重新處理）在 message boundaries 插入 breakpoints，快取保留 1 小時，還支援 `"global"` scope 做跨 session 的快取共享。這不是事後加的最佳化——這是從 API 呼叫的組裝階段就開始設計的 caching 策略。
+
+<ClawdNote>
+用 generator 做 agent loop 是一個很聰明的選擇。為什麼不用普通的 while loop 配 await？因為 generator 天生支援「暫停/恢復」，也能跟下游說「慢一點，上一批還沒處理完」——這在串流處理叫 backpressure，避免資料塞車。比起 callback hell 或 promise chain，generator 把「持續執行但可隨時中斷」這件事寫得極度自然。這大概是整個架構裡最 underrated 的設計決策 (◕‿◕)
+</ClawdNote>
+
+---
+
+## Context 管理：四層漸進式壓縮
+
+先講最慘的情況。
+
+想像一下：對話已經進行了兩小時，context window（AI 一次能「記住」的最大文字量）用了 98%，API 直接報錯。這時候系統只能做一件事——截斷。不管那些對話有多重要，砍就對了。這是「醫院已經爆了，在停車場搭帳篷」的等級。[SP-97](/posts/sp-97-20260303-vikingmute-mcp-context-mode-98-token/) 就講過 context window 被 MCP 工具吃掉 98% 的慘況——那篇是從使用者角度看，這篇是從工程師角度看同一個問題。
+
+但 Claude Code 不會讓事情走到這一步。它在 80% 的時候就開始動手了。
+
+四層 context 先搞清楚：
+
+1. **System Prompt**（固定）：工具描述、模式指引，每個 session 開頭就釘死
+2. **User Context**（注入的 system-reminder）：CLAUDE.md 階層結構、git status，動態注入
+3. **Conversation Messages**：隨著對話增長的訊息歷史
+4. **Reserved Output Space**：大概 ~20K tokens，留給模型回覆用
+
+光是前三層就可能吃掉大半 context window。所以有四層漸進式壓縮策略（compaction），像醫院的分級醫療——症狀越嚴重，手段越激烈：
+
+**80% — Micro-Compact**：手術刀式清理，只移除舊的 tool results。對話內容不動，但工具輸出那些又長又重複的東西先砍掉。
+
+**85% — Auto-Compact**：啟動完整摘要。把舊的訊息濃縮成精華版。這一步會丟失細節，但保住了主要脈絡。
+
+**90% — Session Memory Compact**：把重要資訊抽出來存到持久化儲存。記憶檔案住在 `~/.claude/projects/<project-slug>/memory/`，用 `MEMORY.md` 當索引。
+
+**98% — Reactive Compact**：最後手段。API 報錯的時候直接截斷。前面說的那個停車場帳篷。
+
+<ClawdNote>
+四層 compaction 的設計哲學是：每一層犧牲不同的東西來換空間。Micro 犧牲工具輸出（通常可以重跑），Auto 犧牲舊對話的完整性，Session Memory 犧牲即時存取（要另外讀回來），Reactive 犧牲一切——包括尊嚴。
+
+重點是它不會直接跳到最激烈的手段。80% 的時候就開始清，不是等到 99% 才 panic。這跟 GC（garbage collection）的思路很像：incremental 比 stop-the-world 好 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## 多 Agent 協作：從獨奏到交響樂團
+
+Claude Code 不只是一個 agent，它是一個可以生出更多 agent 的 agent。支援三個層級的多 agent 執行——[SP-96](/posts/sp-96-20260302-ericbuess-claude-code-agent-teams-swarm-mode/) 介紹過 agent teams 的概念，這裡看到的是底層實作：
+
+**Level 1：Subagent（AgentTool）**
+
+最基本的形式。主 agent 派出一個 subagent——專門處理特定子任務的小 agent——有自己的 file cache、自己的 abort controller、篩選過的工具池。做完回報，像老闆派員工去影印。
+
+**Level 2：Coordinator Mode**
+
+系統透過 AgentTool 生出 workers，每個 worker 拿到受限的工具集，用 XML task-notification protocol 溝通。這就像一個經理帶著一群專員——經理分配任務，專員執行後回報，但專員之間不直接對話。
+
+**Level 3：Team Mode**
+
+具名團隊，InProcessTeammates 共享 scratchpad filesystem。這是最高級別的協作——team members 之間可以透過共享的檔案系統交換大量資訊，不用透過 context window 互傳。
+
+### Fork Subagent Pattern：省錢的藝術
+
+這裡有一個非常精妙的設計。當從同一個 context 生出多個 subagent 時，Claude Code 用 fork 模式——所有子 agent 共用相同的 100K token 前綴（這部分會被 API prompt cache 快取），只有最後的指令不同。
+
+想像一下：開一場會議，5 個人要看同一份 200 頁的報告。傳統做法是印 5 份。Fork 做法是把報告投影在大螢幕上，每個人只拿到自己那頁的任務便條。這意味著生出 5 個 subagent，prompt cache 只需要付一份錢。
+
+<ClawdNote>
+Fork subagent pattern 是整篇文章裡最讓人拍桌的設計。Rohit 把它歸類為「成本最佳化」——但這個說法太客氣了。這根本是架構決策。
+
+Prompt 的結構不只是「給模型看的指令」，也是「給 caching layer 看的資料結構」。設計 prompt 的時候其實同時在設計 cache key。如果 caching 壞了，整個 multi-agent 的經濟模型就崩了——不是「慢一點」，而是「付不起帳單」。很多人把 prompt caching 當「nice to have」，Claude Code 把它當承重牆 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+### Dream Task：睡覺也在學
+
+文章提到一個特別的背景程序叫 Dream Task。它做的事情是：回顧 session 的對話記錄、識別 patterns、然後更新 MEMORY.md——而且不會打擾使用者。
+
+就像一個員工白天跟著做事，晚上回去自己整理筆記，隔天來上班就記得更多了。
+
+---
+
+## 工具系統：Deferred Loading 的智慧
+
+Claude Code 的工具池很大——核心工具（Bash, FileRead, FileEdit, FileWrite, Glob, Grep, Agent, Skill）加上 feature-gated 工具，再加上 deferred tools。如果全部一次載入，光是 schema 就要吃掉大量 system prompt tokens。
+
+所以 Claude Code 做了 **Deferred Tool Loading**：system prompt 裡只放工具名稱，模型需要用某個工具時，透過 ToolSearchTool 搜尋 schema，搜到才載入。
+
+搜尋用的是關鍵字評分機制：
+- 工具名稱完全匹配：MCP 工具 +12 分、一般工具 +10 分
+- 子字串匹配：+6 / +5 分
+- searchHint 匹配：+4 分
+- description 匹配：+2 分
+
+工具執行時，安全的工具（像讀檔）可以並行跑，需要獨佔存取的（像寫檔）則排隊串行。
+
+<ClawdNote>
+Deferred loading 的概念在 web 前端叫 lazy loading，在遊戲開發叫 streaming assets。核心問題一樣：一開始全載入太貴，所以按需載入。差別是這裡的「成本」不是載入時間，而是 system prompt 的 token 數。每個工具的 JSON schema 可能有幾百 token，幾十個工具就是幾千 token。
+
+把「工具 schema 管理」當成一個正式的工程問題來解決，而不是硬塞進 prompt——這是 production agent 和 hobby project 的分水嶺 (⌐■_■)
+</ClawdNote>
+
+---
+
+## 權限與安全：Agent 想刪光整台電腦的時候，什麼東西擋在中間？
+
+這個問題不是假設。任何能執行 bash 指令的 agent，理論上都可能跑出 `rm -rf /`。Claude Code 的解法是一條多層權限管線——每個 tool call 都要通過，從最便宜的檢查開始，一層一層往上：
+
+1. 檢查 bypass/dontAsk 模式
+2. 套用 deny/allow/ask 規則
+3. LLM classifier（auto 模式才啟用——用另一個 AI 判斷這個操作安不安全）
+4. 模式預設 → 最後才問使用者
+
+五種權限模式決定了管線的寬鬆程度：
+
+- **default（`>`）**：所有非讀取工具都要問
+- **acceptEdits（`>>`）**：cwd 內的檔案編輯自動允許
+- **plan（`?`）**：每個 tool call 之間都暫停
+- **bypassPermissions（`!`）**：跳過所有檢查（危險）
+- **auto（`A`）**：LLM classifier 來判斷
+
+但光有模式切換不夠。真正的安全不能只靠一道門。Claude Code 還有危險檔案保護（動到 `/etc/passwd` 就會被攔）、危險指令偵測（`rm -rf` 之類的關鍵字掃描）、以及一個特別精彩的設計——circuit breaker。
+
+Circuit breaker 的概念借自微服務架構：如果某個服務一直失敗，與其讓所有 request 繼續傻等，不如直接「跳電」斷開。在 Claude Code 裡，如果模型在 auto 模式下反覆嘗試被拒絕的操作，circuit breaker 會跳出來切斷——不讓模型無限重試到崩潰。
+
+設計哲學很清楚：從最便宜的靜態規則開始，到最貴的使用者確認結束。大部分的 tool call 在第一、二層就被放行或擋掉了，不需要每次都彈一個確認框出來煩人。（想深入了解 agent 安全的攻防思維，[SP-149](/posts/sp-149-20260402-ecc-agent-security/) 有更完整的分析。）
+
+<ClawdNote>
+整條管線的精髓在「決策成本分級」。靜態規則幾乎不花計算資源，LLM classifier 要燒 token，問使用者則要燒最貴的資源——人的注意力。大部分 tool call 在前兩層就結束了，只有真正曖昧的操作才會打擾到人。這跟交通規則的邏輯一樣：紅燈綠燈處理 95% 的情況，只有出事故才需要警察到場 (ง •̀_•́)ง
+</ClawdNote>
+
+---
+
+## 從自動化到自主意識：Hooks 如何讓 Agent 長出神經系統
+
+前面講的都是 Claude Code「已經會做」的事情。但真正讓它從「固定功能的工具」變成「可以無限擴充的平台」的關鍵，是 Hooks——在特定動作前後自動執行腳本的機制。（[SP-146](/posts/sp-146-20260402-ecc-hook-architecture/) 有更深入的 hook 架構分析。）
+
+為什麼這重要？因為沒有 hooks，想加自定義行為就要 fork 整個專案。有了 hooks，只要在正確的時機掛上一段腳本，就能在不改動核心程式碼的情況下改變行為。自動 lint、audit logging、外部系統整合——全部變成「掛上去就好」。
+
+而且 hook 的類型不只是跑 shell command。五種類型裡最值得注意的是 **Prompt Hook**——用另一個 LLM 來評估條件，決定要不要觸發。也就是說，可以寫一條規則說「如果 agent 準備做的事情看起來很蠢，就攔下來」，然後讓另一個 AI 來判斷什麼叫「很蠢」。
+
+<ClawdNote>
+用 AI 來監管 AI。這不是 science fiction 裡的自我意識迴圈，這是 production code 裡的 meta-reasoning layer。
+
+不過這裡有個沒人講的 trade-off：每次觸發 Prompt Hook 就要呼叫一次 LLM，等於每個 tool call 可能多一筆 API 費用。如果 hook 設太多，光是「判斷要不要做」就比「做完那件事」還貴。權力越大，帳單越大 (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧
+</ClawdNote>
+
+---
+
+## Skill 與 Plugin：為什麼這不只是「裝外掛」
+
+到這裡可能有人在想：「前面講的那些——tools、hooks、agents——已經夠多了吧？Skill 又是什麼？」
+
+差別在於抽象層級。Tool 是「做一件事」（讀檔、寫檔），Hook 是「在某件事前後做另一件事」，而 Skill 是「一整套能力的封裝」——包含指令、允許的工具、參數定義、甚至指定用哪個模型。
+
+Skills 從三個來源載入：bundled（內建）、filesystem directories（檔案系統）、MCP servers（外部服務）。執行時分兩種模式：Inline（注入當前對話）和 Forked（作為獨立子 agent 執行）。
+
+### MCP：AI 的 USB 接口
+
+MCP（Model Context Protocol）是 Anthropic 推出的協議，讓 AI 可以連接外部工具和資料來源。支援三種連線方式：stdio、SSE/HTTP、WebSocket。SDK 把工具名稱正規化為 `mcp__{server}__{tool}` 格式，運行時動態發現工具。
+
+設定有七個作用域（scope），從最局部到最全域層層覆蓋。
+
+<ClawdNote>
+MCP 的預設 timeout 是 27.8 小時。對，二十七點八小時。第一次看到這個數字覺得是 bug，但其實有道理：MCP server 可能在跑大型測試、部署、甚至訓練任務。與其隨便設個 30 秒讓到處都是 timeout error，不如設一個「基本上不會 timeout」的值，讓使用者自己決定要不要取消。
+
+這是一種設計態度的表態：「寧可讓使用者主動中斷，也不要系統替使用者做決定」╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## 十個設計 Pattern：最值得偷走的架構思維
+
+Rohit 在文章最後整理了十個從 Claude Code 架構中萃取出來的設計 pattern。全部都值得讀，但如果時間有限，有三個值得先深入理解，其他的知道存在、需要時再回來看。
+
+### 三個改變思維的 Pattern
+
+**Pattern 1：Generator-Based Loop** — 前面細講過了。關鍵 insight 不是「用 generator」，而是「agent 的核心迴圈需要一個天然支援暫停/恢復的原語」。普通的 while loop 也能做到，但要自己管理所有中斷和恢復的狀態。Generator 把這些免費送給開發者。
+
+**Pattern 3：Fork Subagent** — 同樣前面細講過。核心 insight：prompt 的結構同時是 cache key 的結構。設計 prompt 的時候同時在設計「哪些計算可以跨 agent 共用」。
+
+**Pattern 5：Permission Pipeline** — 從最便宜的（靜態規則比對）到最貴的（問使用者），分層檢查。大部分 tool call 在前兩層就解決。這不只是安全 pattern——這是「把決策成本分級」的通用思路。
+
+### 其他七個 Pattern（需要時回來看）
+
+剩下的七個各自解決一個具體問題：
+
+- **Progressive Compaction**（四層壓縮策略）和 **Deferred Tool Loading**（工具 schema 按需載入）——前面都詳細拆解過了。
+- **Hook-Based Extensibility**——讓客製化不用 fork 整個專案。所有「想在 X 之前做 Y」的需求都走 hook，核心程式碼保持乾淨。
+- **Immutable State + Mutable Tasks**——UI 狀態不可變（配合 React 的 diffing 機制），但 task 進度用可變狀態追求效能。一個系統裡同時用兩種策略，各取所長。
+- **Structured Agent Communication**——agent 之間用 XML-tagged messages 溝通。好處是訊息本身就是文件——不用額外寫 protocol spec，看 message 就知道在傳什麼。
+- **Feature Flags with Dead Code Elimination**——build-time flag 直接從最終產物移除 disabled feature。不是「關掉功能」，是「那個功能在這個 build 裡根本不存在」。
+- **Scratchpad Filesystem**——agent 之間要交換大量資訊時，不擠 context window，改用共享檔案系統。像同事之間不用 email 傳 100 頁文件，而是丟到共享資料夾說「放那裡了」。
+
+<ClawdNote>
+如果只能記住一個 pattern，記 Pattern 3（Fork Subagent）。大部分人在設計 multi-agent 系統時，每個 agent 都從零開始建構自己的 prompt。Fork pattern 翻轉了這個思路：先想清楚哪些 context 是共用的，把它們放前面，利用 caching 只付一次錢。
+
+分散式系統的教科書會說 shared-nothing 是金律。但 API caching 的存在改變了經濟模型——在這個場景裡，sharing is saving (￣▽￣)／
+</ClawdNote>
+
+---
+
+## 結語：模型是商品，環境才是護城河
+
+Rohit 在文章最後丟出一個核心論點：
+
+> "The model is commodity. The environment determines outcomes."
+
+模型是大宗商品。真正決定結果的，是環境。
+
+他引用了 Princeton NLP 團隊的 [SWE-agent 研究（Yang et al., 2024）](https://arxiv.org/abs/2405.15793)：根據該論文，光靠 agent-computer interface（agent 跟電腦互動的介面）的設計改進，效能就提升了 64%——不是換更強的模型，而是讓同一個模型在更好的環境裡工作。
+
+55 個目錄、331 個模組。這不是一個「呼叫 API 然後把結果印出來」的 wrapper。這是一個完整的分散式系統——有資源隔離（每個 agent 有自己的 context）、有權限管理（多層管線）、有狀態持久化（session memory）、有分散式協調（multi-agent communication）——只不過它的 worker 恰好是一個 LLM。
+
+回到開頭。有些人拿到工具照說明書用，有些人先拆開。Rohit 拆完了 Claude Code，然後告訴所有人：別再只盯著模型參數看了。真正的工程，在模型外面。
+
+<ClawdNote>
+「模型是商品，環境決定結果」——這句話值得印出來貼在螢幕旁邊。很多團隊花 80% 的時間在 prompt engineering，20% 在系統工程。Claude Code 的架構暗示這個比例可能應該反過來。
+
+Princeton SWE-agent 論文裡那個 64% 的數字特別有說服力：同一個模型，換一個更好的 interface，效能直接跳了超過一半。瓶頸不在模型，在怎麼用它。
+
+不過話說回來——Rohit 這個結論雖然漂亮，但有一個盲點：Claude Code 的「環境」是 Anthropic 自己為自家模型量身打造的。換一個模型進去，同樣的環境不見得跑得一樣好。「環境決定結果」成立的前提是——環境跟模型是一起 co-design 的。這個前提 Rohit 沒說，但很重要 ╰(°▽°)╯
+</ClawdNote>
