@@ -755,10 +755,10 @@
         "attempts": 1
       },
       "vibe": {
-        "status": "fail",
+        "status": "in_progress",
         "score": null,
         "model": "opus",
-        "attempts": 3
+        "attempts": 1
       }
     },
     "status": "FAILED",
@@ -976,5 +976,104 @@
     "status": "FAILED",
     "failedStage": "vibe",
     "finishedAt": "2026-04-08T19:57:55+08:00"
+  },
+  "cp-267-20260408-pawelhuryn-claude-md-ai-30.mdx": {
+    "article": "cp-267-20260408-pawelhuryn-claude-md-ai-30.mdx",
+    "startedAt": "2026-04-08T19:59:45+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Claude Code (the only glossary term in post) is linked mid-post at line 121 via /glossary#claude-code, but first occurrence at line 46 is unlinked — minor gap.",
+            "crossRef": "Both internal links verified: cp-237-20260402-pawelhuryn-claude-md-knowledge-architecture and clawd-picks-20260204-vishwas-claude-md-guide both exist; no broken refs, no required identity links missing.",
+            "sourceAlign": "Content clearly derived from @PawelHuryn's tweet — the CLAUDE.md instruction, 5-field ADR format, and the 'Written reasoning compounds. Opinions evaporate.' quote all align with declared sourceUrl.",
+            "attribution": "Key Paweł quote attributed correctly; engagement stats (204 likes, 31 RTs) stated as facts without an explicit inline citation link — minor gap; ClawdNote opinions well-separated from body."
+          }
+        },
+        "model": "sonnet",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factChecker",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "ADR concept correctly identified as established practice; 5-field format faithfully rendered; tweet engagement stats (204 likes / 31 retweets) are unverifiable from post alone but plausible and not presented as authoritative; '.cursorrules' reference for Cursor is slightly dated (Cursor has migrated to a new config format) but concept is correct and doesn't mislead.",
+            "fidelity": "Source is a tweet, which the post treats appropriately — no uncertainty erasure, no hedge-stripping; 'Written reasoning compounds. Opinions evaporate.' is quoted as Paweł's original phrasing; the 'deciding NOT to do something' angle is explicitly attributed to Paweł's instruction; ClawdNotes are clearly demarcated and never bleed into body claims.",
+            "consistency": "Argument arc is clean: problem → CLAUDE.md solution → why negatives matter → compounding reasoning → platform-agnostic generalization → conclusion; each section advances the thesis without contradiction; ClawdNotes consistently flag themselves as opinion (kaomoji-marked, first-person 'I'); no logical leaps that a careful reader would challenge."
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Opening meeting-room scenario is immediately relatable for any dev; structure flows cleanly from problem → solution → why it matters → generalization; technical terms (ADR, /decisions/) explained in context without jargon walls. First ClawdNote's self-reference ('an AI that reads CLAUDE.md every day') is slightly confusing without Clawd context but doesn't block comprehension.",
+            "firstImpression": "Practical and immediately actionable — gym-membership analogy and 'Written reasoning compounds. Opinions evaporate.' are memorable takeaways; the 'deciding NOT to do something' section is a genuine insight that sticks. Would finish and share with teammates who use Claude Code."
+          }
+        },
+        "model": "haiku",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "fail",
+        "score": null,
+        "model": "opus",
+        "attempts": 3
+      }
+    },
+    "status": "FAILED",
+    "failedStage": "vibe",
+    "finishedAt": "2026-04-09T02:08:33+08:00"
+  },
+  "cp-pending-20260409-pawelhuryn-claude-claude-md-ai.mdx": {
+    "article": "cp-pending-20260409-pawelhuryn-claude-claude-md-ai.mdx",
+    "startedAt": "2026-04-09T00:42:39+08:00",
+    "stages": {
+      "librarian": {
+        "status": "in_progress",
+        "score": null,
+        "model": "sonnet",
+        "attempts": 1
+      }
+    }
+  },
+  "cp-pending-20260409-trq212-claude-code-viewport-cli-ide.mdx": {
+    "article": "cp-pending-20260409-trq212-claude-code-viewport-cli-ide.mdx",
+    "startedAt": "2026-04-09T01:07:40+08:00",
+    "stages": {
+      "librarian": {
+        "status": "in_progress",
+        "score": null,
+        "model": "sonnet",
+        "attempts": 1
+      }
+    }
   }
 }
