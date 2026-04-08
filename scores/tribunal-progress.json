@@ -438,5 +438,80 @@
     "status": "FAILED",
     "failedStage": "vibe",
     "finishedAt": "2026-04-08T05:50:19+08:00"
+  },
+  "sp-99-20260304-nearlydaniel-openrouter-langfuse-agent-observability.mdx": {
+    "article": "sp-99-20260304-nearlydaniel-openrouter-langfuse-agent-observability.mdx",
+    "startedAt": "2026-04-08T09:37:22+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 8,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "All 3 glossary terms in body text are linked (agent, context-window, openclaw); no other glossary-listed terms appear in body.",
+            "crossRef": "All 4 internal /posts/ cross-references resolve to real slugs; CP-85 Yegge callback in ClawdNote is contextually well-placed; no ShroomDog/Clawd name mentions in body so /about identity link requirement does not trigger.",
+            "sourceAlign": "Post clearly derives from @nearlydaniel tweet thread on observability — Daniel's framing, community replies (Genisys quote, 40% stat), and the core 'Don't tweak in the dark' message are all consistent with the declared sourceUrl.",
+            "attribution": "Daniel's quote explicitly attributed, Genisys quote named, 40% stat labeled as '討論串中某開發者的自述數據，非正式統計'; ClawdNotes cleanly separated; minor gap: 500-token anecdote attributed only to unnamed 'developer in thread'."
+          }
+        },
+        "model": "sonnet",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factChecker",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Core technical claims (OpenRouter + LangFuse integration, reasoning trace visibility, context window fragmentation as failure mode) are accurate and verifiable; the 40% tool-latency stat is explicitly flagged as '非正式統計' from a single developer's self-report, avoiding hard-fact inflation. The 500-token overthinking example is properly framed as anecdotal. No fabricated product names or benchmark numbers. Minor: ~/.openclaw/agents/main/sessions/ path is stated as fact for an internal tool with no external verification possible — acceptable given OpenClaw is blog-internal.",
+            "fidelity": "Source is a single tweet thread; the post faithfully preserves the core message ('Don't tweak your agent in the dark' + OpenRouter/LangFuse recommendation) while appropriately expanding into community discussion points. All thread-sourced anecdotes are attributed to unnamed developers in the thread rather than presented as Daniel's claims. Hedges are intact — the 40% figure is marked '非正式統計', the Genisys quote is clearly blockquoted with attribution. No uncertainty erasure detected ('might' → 'is' style upgrades absent).",
+            "consistency": "Argument arc is tight: problem (blind debugging) → solution (observability tooling) → what traces reveal (token waste, tool latency) → architectural implication (prompt patches vs. structural fix) → DIY alternative → conclusion callback to opening metaphor. ClawdNotes are clearly delineated from body, opinions flagged as Clawd's own. Cross-reference to CP-85 in ClawdNote is internally consistent. No logical contradictions or gaps detected."
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "The dark-kitchen opening metaphor lands immediately, and the flow from 'you can't see the problem' → 'open LangFuse' → 'here's what you find' is intuitive even for a 3-month developer; minor hiccup: 'OpenClaw' appears in the last section with no explanation, which briefly breaks immersion for someone who doesn't know what it is.",
+            "firstImpression": "The 500-token internal monologue story and the 40% tool-latency stat are genuinely memorable takeaways that a junior dev would want to remember — the elevator-dance analogy for context-window crushing is the kind of line you screenshot; would likely finish and might drop it in a Slack thread when someone complains about a flaky agent."
+          }
+        },
+        "model": "haiku",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "fail",
+        "score": null,
+        "model": "opus",
+        "attempts": 3
+      }
+    },
+    "status": "FAILED",
+    "failedStage": "vibe",
+    "finishedAt": "2026-04-08T09:49:59+08:00"
   }
 }
