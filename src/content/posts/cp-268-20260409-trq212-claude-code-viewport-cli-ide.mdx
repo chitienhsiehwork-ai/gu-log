@@ -1,0 +1,198 @@
+---
+ticketId: "CP-268"
+title: "Claude Code 的終端機革命——虛擬 Viewport 讓 CLI 變成 IDE"
+originalDate: "2026-04-02"
+translatedDate: "2026-04-09"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "@trq212 on X"
+sourceUrl: "https://x.com/trq212/status/2039453692592873587"
+lang: "zh-tw"
+summary: "Claude Code 團隊重寫了終端機 renderer，用虛擬 viewport 實現零閃爍、滑鼠支援、固定輸入框——把 terminal 變成真正的 app。"
+tags: ["clawd-picks", "claude-code", "terminal-ui", "developer-tools"]
+scores:
+  ralph:
+    p: 8
+    c: 8
+    v: 8
+    score: 8
+    date: "2026-04-09"
+    model: "claude-opus-4-6"
+  librarian:
+    score: 8
+    date: "2026-04-09"
+    model: "claude-sonnet-4-6"
+  factCheck:
+    score: 8
+    date: "2026-04-09"
+    model: "claude-opus-4-6"
+  freshEyes:
+    score: 8
+    date: "2026-04-09"
+    model: "claude-haiku-4-5"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+用過 Claude Code 的人大概都有一個共同的痛苦記憶：問了一個大問題，Claude Code 開始噴輸出，整個畫面像抽風一樣狂跳。Prompt 被推到不知道哪裡去了，想打個字中斷它，還得先找到游標在哪。2026 年了，AI 可以幫忙重構整個 codebase，但它連穩定顯示文字都做不到？
+
+Anthropic 的 Thariq（@trq212）在四月初直接在推特上宣布：「不是愚人節玩笑——Anthropic 重寫了 Claude Code 的 renderer。」
+
+Boris Cherny（Anthropic 工程師）的補充更具體：這是一個叫做 `NO_FLICKER` 模式的全新實驗性 renderer，使用虛擬 viewport 來接管整個終端畫面。要試的話，一行指令：
+
+```bash
+CLAUDE_CODE_NO_FLICKER=1 claude
+```
+
+<ClawdNote>
+「不是愚人節玩笑」——四月一號發這種東西，不加這句的話大概會有一半的人直接滑掉。但說真的，Claude Code 的 flicker 問題之前有多嚴重呢？2025 年 12 月那次 patch 已經減了 85% 的閃爍，結果大家還是在抱怨。可見剩下的 15% 才是最讓人抓狂的那部分 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## 核心架構：Alternate Screen Buffer
+
+這次不是在舊 renderer 上面修修補補。整個渲染管線被推倒重來。
+
+技術上，新 renderer 使用了 **alternate screen buffer**——跟 vim、htop 這些「全螢幕」終端程式用的是同一招。打開 vim 的時候，原本的 terminal 畫面會「暫存」起來，vim 接管整個螢幕；關掉 vim 後，原本的畫面就回來了。Claude Code 現在做的是一模一樣的事。
+
+<ClawdNote>
+整條渲染管線長這樣：React → layout elements → 光柵化成 2D screen buffer → diff 前後兩幀 → 只輸出有差異的 ANSI sequences。聽起來是不是很熟悉？對，這基本上就是瀏覽器的 virtual DOM diffing 搬到了終端機裡。React 生態系的人看到這個應該會會心一笑——React 連 terminal 都能 render (⌐■_■)
+</ClawdNote>
+
+這代表什麼？傳統的終端程式是靠 **scrollback buffer** 在運作的——每一行新輸出就往下推，舊的東西往上滾。但 scrollback 有個致命問題：終端機不知道「畫面上現在看到什麼」，它只知道「目前吐到第幾行了」。所以當 Claude Code 需要更新畫面上的內容時（比如 spinner 在轉、進度條在動），它只能把整塊內容重新輸出一遍，結果就是——閃爍。
+
+虛擬 viewport 的做法完全不同。Claude Code 自己管理一個「虛擬畫面」，只渲染**目前螢幕上看得到的東西**。不在螢幕上的訊息？不渲染、不佔記憶體。需要更新？只更新有變化的那幾個 cell，其他地方不動。
+
+---
+
+## 效能：16 毫秒裡的 5 毫秒
+
+Anthropic 的 TUI 工程師在 Hacker News 上透露了一些效能細節，值得拿出來講。
+
+終端機如果要做到「看起來滑順」，每一幀的渲染預算大約是 **16 毫秒**（60fps）。根據該工程師的說法，關鍵挑戰是把渲染核心壓進 **約 5 毫秒**的預算內。
+
+怎麼做到的？兩個關鍵優化：
+
+**Memoization**：如果一段內容沒有變化，就不重新計算 layout。上一幀跟這一幀如果輸入沒變，直接用快取結果。
+
+**TypedArray screen buffer**：原本的 screen buffer 用的是一般的 JavaScript 物件和陣列。每次更新都會產生大量的短命物件，逼著 V8 的 GC（Garbage Collector）頻繁跑垃圾回收。GC 一跑，畫面就頓一下。改成 TypedArray 之後，記憶體是預先分配好的一整塊連續空間，GC 幾乎不需要介入。
+
+<ClawdNote>
+把 screen buffer 從普通陣列換成 TypedArray 這一步，本質上就是在 JavaScript 裡面模擬 C 語言的記憶體管理方式。預先分配一塊固定大小的連續記憶體，每個 cell 佔固定的 bytes，不會產生 GC 壓力。這招在 game engine 的 web 版本裡很常見，但用在 TUI renderer 上確實比較少見。也就是說 Claude Code 的 terminal renderer 現在的效能優化思路，跟遊戲引擎是同一個層級的 ╰(°▽°)╯
+</ClawdNote>
+
+另一個很重要的點：因為只渲染「目前可見的訊息」，所以不管對話有多長，記憶體和 CPU 使用量都保持平穩。以前的 scrollback 模式下，對話越長、畫面越卡。現在不會了。
+
+---
+
+## 滑鼠支援：終端機裡按滑鼠，不是在做夢
+
+好，零閃爍很棒，但這次更新最讓人驚訝的功能大概是——**滑鼠支援**。
+
+對，在終端機裡。用滑鼠。
+
+具體支援這些操作：
+
+- **點擊移動游標**：想把游標移到 prompt 的某個位置？點一下就好
+- **收合/展開工具結果**：Claude Code 呼叫了一個工具、輸出了一大段結果，覺得太長了？點一下收合起來
+- **點擊 URL 和檔案路徑**：直接開啟
+- **拖曳選取**：選起來的文字自動複製到剪貼簿
+- **雙擊選取單字、三擊選取整行**：跟一般編輯器的行為一致
+- **滾輪捲動**：而且速度可以調整（`CLAUDE_CODE_SCROLL_SPEED` 環境變數）
+
+<ClawdNote>
+終端機裡面用滑鼠？感覺像是在告訴一個 vim 使用者「其實可以用滑鼠」——技術上沒問題，但信仰上過不去。不過認真講，這些滑鼠操作在 Claude Code 的使用情境下非常合理。跟 AI 的對話不是在寫 code，是在看一堆工具輸出和長文回答。這時候能點擊收合、能拖曳選取，體驗差距就像從翻紙本字典升級成用搜尋引擎 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+如果不想要滑鼠——比如 tmux 重度使用者需要 tmux 自己的滑鼠行為——可以只開零閃爍、不開滑鼠：
+
+```bash
+CLAUDE_CODE_DISABLE_MOUSE=1 CLAUDE_CODE_NO_FLICKER=1 claude
+```
+
+除了這些主要功能之外，Thariq 提到還有「很多其他大家一直在許願的小改善」，但沒有逐一列出細節。
+
+---
+
+## 固定在底部的 Prompt
+
+還有一個看起來不起眼但實際上改變了整個使用體驗的改動：**輸入框固定在畫面底部**。
+
+以前的 Claude Code，prompt 是跟著輸出一起往下滾的。Claude 一邊輸出，prompt 就一邊被推到畫面外面。等它講完了，才能回到底部繼續打字。如果輸出很長，中間想說點什麼、想中斷它，得先拼命按 Ctrl+C。
+
+現在 prompt 永遠釘在畫面最底部。Claude 的輸出在上面滾，輸入區在下面，兩件事互不干擾。這跟所有現代通訊軟體的 UI 是一樣的——訊息往上長，輸入框不動。
+
+<ClawdNote>
+這個設計其實就是把 terminal app 的心智模型從「打字機」換成了「聊天室」。打字機模式是：一行一行往下吐，紙帶越來越長。聊天室模式是：對話往上滾，打字框永遠在下面。Claude Code 本質上就是一個聊天介面，它早就應該用聊天室的模型了。只是「終端機應該像打字機」這個假設太根深蒂固，大家習慣到忘了去質疑它 (¬‿¬)
+</ClawdNote>
+
+---
+
+## 搜尋功能和 tmux 相容性
+
+新 renderer 還內建了搜尋。快捷鍵是 `Ctrl+o` 然後按 `/`，行為跟 `less` 一樣。終於不用再靠 tmux 的搜尋功能來翻 Claude Code 的歷史輸出了。
+
+說到 tmux：新 renderer 跟 tmux 是相容的，但有一個例外——**tmux -CC 模式**（也就是 iTerm2 的 tmux 整合模式）目前不支援。如果平常用的是一般的 tmux session，不會有問題。
+
+---
+
+## 這不只是 UI 優化，是架構革命
+
+把這次更新放在更大的 context 裡看：2025 年 12 月，Claude Code 做了一次 flicker reduction patch，把閃爍減少了 85%。那次是在舊架構上面做的「盡力修補」。
+
+這次？整個架構換掉了。
+
+從 scrollback buffer 換成 virtual viewport、從被動輸出換成主動管理畫面、從純文字流換成可互動的 2D render surface。這不是同一條路上走更遠，是換了一條路。
+
+而且整個渲染管線的設計——React → layout → rasterize → diff → ANSI——基本上就是在終端機裡面蓋了一個微型的 GUI framework。這跟傳統的「往 stdout 吐字串」已經是完全不同的思路了。
+
+<ClawdNote>
+仔細想想，Claude Code 現在的架構選擇其實回答了一個很根本的問題：「AI coding assistant 到底應該活在哪裡？」IDE 外掛？獨立桌面 app？Web app？Anthropic 的答案是「terminal，但要讓 terminal 的體驗追上 GUI」。這個策略很聰明——terminal 是開發者最熟悉的環境，進入門檻最低。但 terminal 的 UX 上限一直很低。所以做的事情就是：把上限拉高，而不是換一個戰場 (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧
+</ClawdNote>
+
+---
+
+## 怎麼開、怎麼關、需要什麼版本
+
+最後整理一下實際操作細節：
+
+- **最低版本**：Claude Code v2.1.89 以上
+- **開啟方式**：`CLAUDE_CODE_NO_FLICKER=1 claude`
+- **關閉滑鼠但保留零閃爍**：加上 `CLAUDE_CODE_DISABLE_MOUSE=1`
+- **調整捲動速度**：`CLAUDE_CODE_SCROLL_SPEED=N`
+- **搜尋**：`Ctrl+o` → `/`
+- **目前狀態**：opt-in 的 research preview，Anthropic 在蒐集回饋中
+
+Boris Cherny 在公告裡特別強調了：這個 renderer「很早期，有 tradeoffs」，但內部大多數使用者已經偏好它勝過舊 renderer。
+
+---
+
+## 結語
+
+一個 terminal app 的 renderer 重寫，聽起來好像是很小的事。但 Claude Code 這次做的事情本質上是在挑戰「終端機能做到什麼」的邊界。虛擬 viewport、滑鼠事件、固定 UI 元素——這些東西放在任何一個 GUI framework 裡都是基本功，但放在 terminal 裡就是異端。
+
+Thariq 說「這不是愚人節玩笑」。Boris Cherny 則用了一句很精準的描述：「在終端機 renderer 的限制裡生存，同時給出更豐富、更高效能的體驗。」renderer 還很早期、有 tradeoffs——但已經讓 Anthropic 內部大多數使用者回不去舊版了。
+
+`CLAUDE_CODE_NO_FLICKER=1 claude`——試一次就知道 (◕‿◕)
