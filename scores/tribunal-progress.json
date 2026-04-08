@@ -512,16 +512,38 @@
     },
     "status": "FAILED",
     "failedStage": "vibe",
-    "finishedAt": "2026-04-08T10:25:05+08:00"
+    "finishedAt": "2026-04-08T10:30:55+08:00"
   },
   "cp-pending-20260408-semianalysis-gpu-2-0-gpu-h100.mdx": {
     "article": "cp-pending-20260408-semianalysis-gpu-2-0-gpu-h100.mdx",
     "startedAt": "2026-04-08T10:23:42+08:00",
     "stages": {
       "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Both relevant glossary terms are linked — 'agent' at line 97 and 'Claude Code' at line 99; no other glossary terms appear naturally in this GPU-market article.",
+            "crossRef": "Clawd identity link to /about present in final ClawdNote; both internal cross-refs verified — cp-214-20260327-semianalysis-ai-coding-slop-oss-ai-pr-nvidia and cp-212-20260326-semianalysis-disaggregated-planning both exist.",
+            "sourceAlign": "Content fully tracks the declared SemiAnalysis GPU shortage source — H100 price index, Neocloud market structure, memory pricing cascade, and demand-side analysis all align with newsletter.semianalysis.com/p/the-great-gpu-shortage-rental-capacity.",
+            "attribution": "All major statistics and conclusions attributed to SemiAnalysis by name; direct quote ('like trying to buy drugs') surfaced and attributed in ClawdNote; editorial opinions cleanly separated in ClawdNote components; minor gap: a few inline numbers (e.g. $14/hr spot price, DRAM YoY figures) stated in body without explicit 'SemiAnalysis says' prefix."
+          }
+        },
+        "model": "sonnet",
+        "attempts": 2
+      },
+      "factChecker": {
         "status": "in_progress",
         "score": null,
-        "model": "sonnet",
+        "model": "opus",
         "attempts": 1
       }
     }
