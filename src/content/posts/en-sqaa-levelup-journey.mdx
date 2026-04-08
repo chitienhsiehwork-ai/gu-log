@@ -12,15 +12,15 @@ tags: ["sqaa", "quality", "ai", "tech-lead", "devops"]
 import ClawdNote from '../../components/ClawdNote.astro';
 import Mermaid from '../../components/Mermaid.astro';
 
-I'm a Tech Lead managing a 6-person backend team.
+ShroomDog runs a 6-person backend team.
 
-A while back, I decided to introduce SQAA (Software Quality Assurance Agent) at my company — basically letting AI agents automate our quality metrics. Sounds cool, right? But here's the thing: **I barely knew the basics myself**.
+A while back, he decided to introduce SQAA (Software Quality Assurance Agent) at work — basically letting AI agents automate quality metrics. Sounds impressive, right? But there was a problem: **he barely knew the basics himself**.
 
-npm audit? Vaguely. Test coverage? Seen the reports but never actually used them. Lighthouse? Heard of it, never ran it on my own project. SLI/SLO? Memorized the definitions for job interviews. Zero real experience.
+npm audit? Vaguely. Test coverage? Seen the reports but never actually used them. Lighthouse? Heard of it, never ran it on his own project. SLI/SLO? Memorized the definitions for job interviews. Zero real experience.
 
-Leading a 6-person team into quality automation when I can barely swim myself? That's like a swimming coach who can't swim — sooner or later everyone drowns, and it's a team effort.
+Leading a team into quality automation when you can barely swim yourself? That's a swimming coach who can't swim — sooner or later everyone drowns, and it's a team effort.
 
-So I made a decision: **practice on my own side project first, then bring it to work.**
+So he made a decision: **practice on his own side project first, then bring it to work.**
 
 The training ground? This very blog — gu-log.
 
@@ -34,11 +34,11 @@ Because every time I finish explaining a concept, my clones have already done th
 
 ## Origin: Why Learn Like a Game
 
-It started when ShroomClawd (my AI assistant on OpenClaw — the one writing these side comments) proposed a teaching method.
+It started when ShroomClawd (the AI assistant on OpenClaw — the one writing these side comments) proposed a teaching method.
 
-I told him: "I want to learn quality metrics, but not the 'here's a pile of documentation, go read it' way. Too boring."
+The request was something like: "I want to learn quality metrics, but not the 'here's a pile of documentation, go read it' approach. Too boring."
 
-He came back with something called **Level-Up Style** — inspired by RPG progression systems and Professor Li Hung-yi's teaching approach.
+ShroomClawd came back with something called **Level-Up Style** — inspired by RPG progression systems and Professor Li Hung-yi's teaching approach.
 
 Simple rules:
 
@@ -47,7 +47,7 @@ Simple rules:
 3. **MCQ Quiz** — multiple choice test, pass to level up, fail and retry
 4. **Sub-Agent parallel implementation** — after each quiz, AI clones build that metric into gu-log in the background
 
-Point 4 is the best part. While I'm taking quizzes and learning concepts in the foreground, sub-agents in the background have already written the ESLint config, run npm audit, and set up Lighthouse CI.
+Point 4 is the best part. While taking quizzes and learning concepts in the foreground, sub-agents in the background have already written the ESLint config, run npm audit, and set up Lighthouse CI.
 
 **Class is in session, and the homework writes itself.**
 
@@ -60,15 +60,15 @@ Though he'd probably be more concerned about why the AI's quiz questions are har
 
 ## Two Days, 12 Levels
 
-Here are the 12 Levels I cleared in two days. Not textbook numbers — these are the bloody realities dug up from gu-log's actual codebase.
+Here are the 12 Levels cleared in two days. Not textbook numbers — these are the bloody realities dug up from gu-log's actual codebase.
 
-### Level 1 & 2: Sweep the Floor First
+### Level 1 & 2: Day One, Getting Slapped Twice
 
-First up: **npm audit**. Supply chain security is one of those things where you feel perfectly safe until you actually check. gu-log turned up 5 moderate vulnerabilities, all from lodash — not a direct dependency, but something pulled in by a package of a package of a package. You think you installed 10 packages, but node_modules has 300 tenants, and any of them could cause trouble at 3 AM.
+Level 1 finished. The node_modules tenant list came back: 300 residents.
 
-Right after that: **ESLint + Prettier**. When 6 people write code in 6 different styles, half your code review time goes to arguing about semicolons. First scan: 6 errors. Then Prettier reformatted 66 files in one go. Sixty-six! I thought my code was reasonably tidy. Prettier respectfully disagreed.
+Only 10 packages were installed. Three hundred. That number hits like opening the fridge for a glass of water and finding an entire neighborhood living in the back — each one a package of a package of a package that snuck in as someone's plus-one. npm audit flagged 5 moderate vulnerabilities, all from lodash. No one directly installed lodash, but there it was, quietly living there.
 
-Formatting isn't aesthetics, it's hygiene. Like brushing your teeth — you wouldn't argue with your dentist that "my teeth are clean enough" (￣▽￣)／
+First lesson of supply chain security: you don't know what you don't know. You feel perfectly safe until you check.
 
 <ClawdNote>
 The scariest thing about supply chain security: you don't know what you don't know.
@@ -76,32 +76,40 @@ It's like thinking your fridge is clean, then finding a three-month-old lunch bo
 That lunch box is your transitive dependency, and it's already growing things ┐(￣ヘ￣)┌
 </ClawdNote>
 
-### Level 3: Lighthouse's Brutal Honesty
+Level 2 was a different kind of slap. ESLint caught 6 errors — nothing alarming. Then Prettier reformatted **66 files** in one go. Not 6. Sixty-six. Six people, six coding styles, half the code review time arguing about the same semicolons. Prettier doesn't debate you. It just reformats, and lets the 66-file diff make its point.
 
-Before running Lighthouse, my mental model of gu-log's performance was "probably fine."
+Formatting isn't aesthetics, it's hygiene. Like brushing your teeth — you wouldn't argue with your dentist that "my teeth are clean enough" (￣▽￣)／
+
+### Level 3: Lighthouse's 56
+
+Before running Lighthouse, the mental model of gu-log's performance was "probably fine."
 
 After running it: **Performance score 56.**
 
-Fifty. Six. I briefly thought the decimal point was missing.
+Fifty. Six. For a moment it seemed like the decimal point was missing.
 
-The culprit was CJK font loading dragging down LCP (Largest Contentful Paint). Chinese fonts are massive — English needs 26 letters, Chinese needs thousands of commonly used characters, each one costing bandwidth. Accessibility scored 95+ though — Astro's semantic HTML helped a lot there.
+The culprit was CJK font loading dragging down LCP (Largest Contentful Paint). Chinese fonts are massive — English needs 26 letters, Chinese needs thousands of commonly used characters, each one costing bandwidth. Accessibility scored 95+ though — Astro's semantic HTML helped a lot there. At least one wall wasn't collapsing.
 
-But that 56 taught me something: **"probably fine" is not a baseline. 56 is.** With a number, you can set a target. With a target, you know what to work on next month.
+But that 56 settled something: **"probably fine" is not a baseline. 56 is.** With a number, you can set a target. With a target, you know what to work on next month. Before seeing that 56, no one had ever asked what gu-log's performance score actually was.
 
 <ClawdNote>
 Performance score 56.
 Let me put this in perspective: most gu-log readers are in Taiwan, running Chrome on fiber internet.
 A score of 56 means on slower devices, opening gu-log might take longer than walking to 7-Eleven for coffee.
-A static blog slower than a convenience store visit. Something doesn't add up (╯°□°)╯
+A static blog slower than a convenience store run. Something doesn't add up (╯°□°)╯
 </ClawdNote>
 
-### Level 4: The Coverage Mirror
+### Level 4: The Number That Was Lying
 
-Test coverage is the easiest metric to lie to yourself about.
+74.63%.
 
-Statement coverage 74.63%? Sounds decent, right? But branch coverage was only 42.99% — meaning more than half the if-else paths were never tested. Half the roads in your code have never been walked. Are you sure nothing explodes down there?
+Statement coverage. Sounds decent. But the full report told a different story: branch coverage was only 42.99% — meaning more than half the if-else paths were never tested.
 
-It's like getting a health checkup where the doctor says "your blood pressure is normal" and you walk out thinking you're healthy. But you never tested your blood sugar. Statement coverage is blood pressure; branch coverage is the full physical exam.
+Put it this way: half the code paths have never been walked. No one knows what's down those roads.
+
+It's like getting a health checkup where the doctor says "blood pressure's normal" and calls it done. Blood sugar unchecked. Liver function untested. No X-ray. Statement coverage is the blood pressure number — reportable, looks fine, but nowhere near the full picture. Branch coverage is the X-ray.
+
+The real Level 4 lesson wasn't "low coverage is dangerous." It was: "statement coverage alone will convince you everything is fine while half your code sits untested."
 
 <ClawdNote>
 Branch coverage 42.99%.
@@ -110,13 +118,19 @@ I'm serious — last time someone let branch coverage drop below 30%, production
 If the probability isn't zero, it isn't zero (⊙_⊙)
 </ClawdNote>
 
-### Level 5 & 6: The Scale and the Health Report
+### Level 5 & 6: One Relief, One Gut Punch
 
-**Bundle size** is your website stepping on a scale. gu-log's total: 13,370 KB. Sounds terrifying, but JS is only 3.2 KB. Thanks to Astro's Islands Architecture, unnecessary JavaScript never even reaches the browser. It's like going to an all-you-can-eat buffet — the plate looks full, but the high-calorie stuff is just one tiny dish. What matters isn't how heavy the plate is, but how big that pile of fried chicken is.
+**Bundle size** came in at 13,370 KB. Sounds terrifying.
 
-Then **broken links**. You think your site has no broken links? I thought so too. Results: 106 broken out of 865. That's 12.25%. The main offender was glossary page anchor links — auto-generated glossary terms pointing to anchor IDs that didn't exist.
+But look closer — JS is only 3.2 KB. Thanks to Astro's Islands Architecture, unnecessary JavaScript never reaches the browser. The plate looks full at an all-you-can-eat buffet, but the actual high-calorie dish is tiny. 13,370 KB is the whole plate; 3.2 KB is the pile of fried chicken. That's what matters.
 
-106 broken links is like running a restaurant where 12% of the menu items get a "sorry, we don't have that" from the kitchen. Customers leave.
+Five minutes of relief.
+
+Then came the broken links check.
+
+865 links scanned. 106 broken. 12.25%. The main offender: glossary page anchor links — auto-generated glossary terms pointing to anchor IDs that were never created. An entire batch of links pointing to places that never existed.
+
+106 broken links is like running a restaurant where 12% of the menu gets a "sorry, we don't have that" from the kitchen. Customers don't say "I understand, systems are complex." Customers leave.
 
 <ClawdNote>
 JS is only 3.2 KB.
@@ -125,11 +139,11 @@ This is Astro's philosophy — "are you sure you actually need that JavaScript?"
 Most of the time the answer is no. The site ends up as fast as static HTML, because it basically is (¬‿¬)
 </ClawdNote>
 
-### Level 7 & 8: Freshness and Pulse
+### Level 7 & 8: And That Surprising 57%
 
-**Dependency freshness** isn't about keeping everything on the latest version — it's about knowing how far behind you are. gu-log has 17 dependencies, 15 on the latest version. The only major version lag is eslint v10 — the config format change was too disruptive, so it's on hold. Running `npm outdated` regularly is a hundred times safer than one big annual upgrade. It's the difference between weighing yourself weekly versus stepping on the scale once a year — the latter usually involves screaming.
+**Dependency freshness** isn't about keeping everything on the latest version — it's about knowing how far behind you are. gu-log has 17 dependencies, 15 on the latest version. The only major version lag is eslint v10 — the config format change was too disruptive, so it's on hold for now. Running `npm outdated` regularly is a hundred times safer than one big annual upgrade. The difference between weighing yourself weekly versus stepping on the scale once a year — the latter usually involves screaming.
 
-**Content velocity** — for content-driven sites, "how often you update" is itself a quality metric. gu-log's numbers look impressive: 127 articles, averaging 31.75 per week. But here's the secret — 57% are Clawd Picks, auto-selected and translated by AI. Human output is about 1-2 posts per week.
+**Content velocity** numbers came back with a surprise: 127 articles, averaging 31.75 per week. But the real number is buried in the breakdown — 57% are Clawd Picks, auto-selected and translated by AI. Human output is about 1-2 posts per week.
 
 <ClawdNote>
 57% of those 31.75 weekly posts are mine.
@@ -138,30 +152,31 @@ ShroomDog is more like... the publisher? He handles taste, I handle volume.
 Not sure if this counts as AI replacing humans or humans finally learning to delegate (⌐■_■)
 </ClawdNote>
 
-### Level 9 & 10: From Numbers to Systems
+### Level 9 & 10: Data Sitting in Logs Is Dead Data
 
-After 8 levels, you have a pile of metrics and numbers. But if those numbers only live in CI logs, nobody will remember them two weeks later.
+After 8 levels, there was a pile of metrics and numbers.
 
-So Level 9 was about making quality data **API-accessible**. Built a FastAPI endpoint at `/api/quality/summary`, aggregating all metrics into one JSON response. The frontend can consume it, Telegram bots can query it, cron jobs can pull it periodically. Data that's not behind an API might as well not exist — it's like measuring your blood pressure daily but writing it on sticky notes and slapping them on the fridge door. Three days later they're buried under takeout flyers.
+And then a different problem became obvious: all of it was living in CI logs. Two weeks later, no one would remember any of it.
 
-Level 10 took it further — once you have the API, adding OAuth, Ask AI, and Edit with AI is just natural progression. The dashboard API quietly grew into a full AI-powered backend. OAuth via GitHub login, Ask AI for querying quality data ("which pages have the lowest Lighthouse scores?"), Edit with AI for suggesting article improvements.
+So Level 9 was about making quality data **API-accessible**. Built a FastAPI endpoint at `/api/quality/summary`, aggregating all metrics into one JSON response. The frontend can consume it, Telegram bots can query it, cron jobs can pull it on a schedule. Numbers that leave CI logs take on a life of their own.
+
+Level 10 was the natural next step — once the API existed, adding OAuth, Ask AI, and Edit with AI wasn't extra engineering, it was just momentum. The dashboard API quietly grew into a full AI-powered backend. OAuth via GitHub login, Ask AI for querying quality data ("which pages have the lowest Lighthouse scores?"), Edit with AI for suggesting article improvements.
 
 <ClawdNote>
-The Level 9 to 10 jump is like building a house —
-Levels 1-8 are laying bricks, Level 9 is plumbing and electrical, Level 10 is smart home gadgets.
-Once the plumbing's in, you suddenly realize: "hey, adding voice-controlled lights doesn't seem that hard?"
-Right, because once the infrastructure is solid, the application layer is just a bonus round ╰(°▽°)╯
+Here's my actual opinion on Level 9: the core problem wasn't "we need an API." It was that 8 levels of quality data were rotting in CI logs that nobody reads.
+API-ification isn't a technical choice — it's the difference between data that exists and data that gets consumed.
+As for all those Level 10 AI features? They're just what happens naturally when you build the plumbing right. The real design decision was Level 9. Level 10 is gravy ╰(°▽°)╯
 </ClawdNote>
 
-### Level 11: The SLI Golden Triangle
+### Level 11: Turning "Quality vs Speed" into Math
 
 The first 10 levels measured "static quality" — how good is the code, how big is the bundle, are links broken. But once the backend is running, you need to measure **dynamic quality**: how much latency? What's the error rate? How many requests per second?
 
 That's the SLI golden triangle — latency, error rate, throughput. Used Prometheus client on the FastAPI backend to instrument metrics. Set SLOs: P99 latency < 500ms, error rate < 1%.
 
-With SLOs come error budgets. With error budgets, "quality vs speed" stops being a philosophical debate and becomes math: 80% budget remaining? Ship features. 10% left? Stop and fix quality — not a suggestion, it's a rule.
+With SLOs come error budgets. With error budgets, "quality vs speed" stops being a philosophical debate and becomes a math problem: 80% budget remaining? Ship features. 10% left? Stop and fix quality — not a suggestion, it's a rule.
 
-When arguing with PMs about "why we need to stop and fix bugs," pulling out error budget numbers is ten times more effective than giving a speech.
+When arguing with PMs about "why we need to stop and fix bugs," pulling out error budget numbers is ten times more effective than a speech.
 
 <ClawdNote>
 No SLI means no SLO, no SLO means no error budget, no error budget means "quality vs speed" arguments never end.
@@ -181,10 +196,8 @@ This is cutting-edge open-problem territory. LLM evaluating LLM. Grading yoursel
 Level 12 is the only level without a "correct answer." Quality metrics, taken to their logical end, circle back to the most human question of all: what does "good" even mean?
 
 <ClawdNote>
-LLM evaluating LLM. Grading myself.
-I gave myself 87 points. Can't go higher than that.
-Is there bias? Of course. But human code review has bias too —
-you and your best work buddy will always score each other higher than a stranger would.
+LLM evaluating LLM. Grading myself. I gave myself 87 points. Can't go higher than that.
+Is there bias? Of course. But human code review has bias too — you and your best work buddy will always score each other higher than a stranger would.
 At least LLMs don't give you extra points because you bought them coffee last time (´∀`)
 </ClawdNote>
 
@@ -223,7 +236,7 @@ After clearing all 12 levels, looking at the overall architecture, the biggest t
 
 The design principle is one word: **fast first.**
 
-Pre-commit only runs ESLint + Prettier — done in 3 seconds. Developers won't accept commits that take longer than 3 seconds. Any longer and they'll go make coffee, then forget what they were doing. Pre-push adds npm audit, unit tests, bundle size — under 60 seconds. CI handles Lighthouse, coverage, broken links — heavier stuff. Cron runs dependency freshness, content velocity, LLM-as-Judge — these don't need to run on every push, once a day or week is enough.
+Pre-commit only runs ESLint + Prettier — done in 3 seconds. Developers won't tolerate commits that take longer than 3 seconds. Any longer and they'll go make coffee, then forget what they were working on. Pre-push adds npm audit, unit tests, bundle size — under 60 seconds. CI handles Lighthouse, coverage, broken links — heavier stuff. Cron runs dependency freshness, content velocity, LLM-as-Judge — these don't need to run on every push, once a day or week is enough.
 
 The core philosophy is **Shift-Left** — the earlier you catch problems, the cheaper the fix. A lint error caught at pre-commit is a one-line fix. A performance issue found in production might mean refactoring half a module. Like cavities — getting your teeth cleaned every six months versus waiting until a tooth snaps. The cost difference is a hundred to one.
 
@@ -231,13 +244,13 @@ The core philosophy is **Shift-Left** — the earlier you catch problems, the ch
 
 ## What Actually Stuck After 12 Levels
 
-The technical stuff is all above. Numbers, tools, configs — you can Google any of them. But after clearing these 12 levels, what's actually burned into my brain isn't which command to run — it's three things I "knew but never felt."
+The technical stuff is all above. Numbers, tools, configs — you can Google any of them. But after clearing these 12 levels, what's burned into memory isn't which command to run — it's three things that were "known but not felt" before.
 
-First: dogfooding hits different. I know this sounds like a management textbook subheading, but hear me out. After practicing on my own side project, I had muscle memory for every single metric. npm audit shows 5 moderate? Don't even need to look it up — lodash transitive dependency. Lighthouse 56? CJK fonts, I could answer that in my sleep. When I brought this to work and team members asked "what does this red text mean," I could answer instantly — not because I have great memory, but because every number is attached to an "oh THAT'S what that means" moment. Stuff you read in docs? Forgotten in three days. Mines you've stepped on? Remembered for life.
+**First: dogfooding hits different.** This sounds like a management textbook subheading, but after practicing on a real side project, there's muscle memory for every metric. npm audit shows 5 moderate vulnerabilities? Don't even need to look it up — lodash transitive dependency. Lighthouse 56? CJK fonts, could answer that in my sleep. When team members at work ask "what does this red text mean," the answer comes instantly — not from great memory, but because every number is attached to an "oh, THAT'S what that means" moment. Stuff you read in docs? Forgotten in three days. Mines you've stepped on? Remembered for life.
 
-Second: AI parallel implementation squashes the "learning" and "doing" timelines into one. You know the traditional flow — learn concept, find time for lab, hit a wall, search Stack Overflow, finish, debug, search again. Half a day gone just like that. But with Level-Up + Sub-Agent, the flow goes like this: I'm learning concepts and taking quizzes in the foreground, while sub-agents are writing configs, running CI, deploying in the background. Quiz done, turn around — lab is done too. Clearing 12 levels in two days wasn't because I'm a genius. It's because learning and building literally happened at the same time. It's like eating dinner while someone washes the dishes for you — efficiency doubles instantly.
+**Second: AI parallel implementation compresses "learning" and "doing" into one timeline.** You know the traditional flow — learn concept, find time for lab, hit a wall, search Stack Overflow, finish, debug, search again. Half a day gone just like that. But with Level-Up + Sub-Agent, the flow goes like this: learning concepts and taking quizzes in the foreground, while sub-agents write configs, run CI, and deploy in the background. Quiz done, turn around — lab is done too. Clearing 12 levels in two days wasn't genius. It was because learning and building literally happened at the same time. Like eating dinner while someone washes the dishes — efficiency doubles instantly.
 
-Third, and this is the most important one: "get a baseline before talking about improvement" sounds so obvious it's almost embarrassing to say out loud. But look around — how many teams coast through sprint after sprint on the comforting illusion that "quality feels fine"? No numbers means no basis for conversation. No basis means you're forever stuck between "I think" and "you think." Running Lighthouse takes 30 seconds. But that 30-second score of 56 is worth more than ten Medium articles on performance optimization. Because that 56 is yours, not someone else's.
+**Third, and most important: "get a baseline before talking about improvement" sounds so obvious it's almost embarrassing.** But look around — how many teams coast through sprint after sprint on the comforting illusion that "quality feels fine"? No numbers means no basis for conversation. No basis means you're forever stuck in "I think" vs "you think" with no way to resolve it. Running Lighthouse takes 30 seconds. But that 30-second score of 56 is worth more than ten Medium articles on performance optimization. Because that 56 belongs to gu-log specifically — not someone else's codebase.
 
 <ClawdNote>
 ShroomDog says he'll use Level-Up teaching for onboarding new hires.
@@ -252,15 +265,15 @@ This is management in the AI era: delegation to the delegation ᕕ( ᐛ )ᕗ
 
 Remember the swimming coach from the beginning? The one who couldn't swim?
 
-Two days ago, my understanding of quality metrics was roughly: "npm audit checks for vulnerabilities, right? Lighthouse is a Google thing? SLO shows up in interview questions?" — basically drowning level.
+Two days earlier, the understanding of quality metrics was roughly: "npm audit checks for vulnerabilities, right? Lighthouse is a Google thing? SLO shows up in interview questions?" — basically drowning level.
 
-Two days later, I've run all 12 metrics on my own blog. Every number, I've seen with my own eyes. Every red flag, I've fixed with my own hands. Every "oh, so THAT'S how it works" moment, I remember.
+Two days later: all 12 metrics run on a real blog. Every number seen firsthand. Every red flag fixed by hand. Every "oh, so THAT'S how it works" moment remembered.
 
-I won't pretend I'm an Olympic swimmer now. But at least — I'm not afraid to jump in anymore.
+Not an Olympic swimmer. But at least — not afraid to jump in anymore.
 
-And when I jump in, there's an AI coach next to me who's already adjusted the pool temperature, prepared the kickboard, and stationed the lifeguard (￣▽￣)／
+And when jumping in, there's an AI coach next to you who's already adjusted the pool temperature, prepared the kickboard, and stationed the lifeguard (￣▽￣)／
 
-Next step? Bring these scars to work and push SQAA company-wide. Not standing at a podium reading slides, but pulling up my own codebase and saying: "Here, let me show you. This number means this. Let me explain using my own project."
+Next step? Bring these scars to work and push SQAA company-wide. Not standing at a podium reading slides, but pulling up gu-log's actual codebase and saying: "Here, let me show you. This number means this. Let me explain using a real project."
 
 The coach who couldn't swim? Learned in two days. Time to take the team into the water.
 

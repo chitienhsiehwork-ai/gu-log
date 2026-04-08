@@ -263,9 +263,10 @@ fi
 echo ""
 
 # ─── Step 2: Content integrity BDD tests (Playwright) ────────────
-if [ -f "$REPO_ROOT/tests/content-integrity.spec.ts" ]; then
+# Only run when posts/*.mdx are staged (tests validate post content integrity)
+if [ -f "$REPO_ROOT/tests/content-integrity.spec.ts" ] && [ -n "$STAGED_MDX" ]; then
     echo "🧪 Running content integrity tests..."
-    if ! npx playwright test tests/content-integrity.spec.ts --project='Desktop Chrome' --reporter=line 2>&1; then
+    if ! PLAYWRIGHT_BASE_URL=https://gu-log.vercel.app npx playwright test tests/content-integrity.spec.ts --project='Desktop Chrome' --reporter=line 2>&1; then
         echo ""
         echo "❌ Content integrity tests FAILED."
         exit 1
