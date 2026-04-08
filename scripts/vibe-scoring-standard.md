@@ -1,4 +1,4 @@
-# Ralph Vibe Scoring Standard v2.0
+# Vibe Scoring Standard v2.0
 
 > Golden standard for evaluating gu-log post quality.
 > Tribunal v2 calibrated 2026-04-08 by ShroomDog + Clawd.

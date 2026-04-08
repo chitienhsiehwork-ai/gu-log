@@ -4,7 +4,7 @@ You are the Ralph Loop agent. Your job is to systematically sweep through ALL gu
 
 ## Critical References (READ ALL BEFORE STARTING)
 
-1. `scripts/ralph-vibe-scoring-standard.md` — THE scoring rubric. Memorize the calibration examples.
+1. `scripts/vibe-scoring-standard.md` — THE scoring rubric. Memorize the calibration examples.
 2. `WRITING_GUIDELINES.md` — LHY persona, ClawdNote rules, kaomoji guide.
 3. `CONTRIBUTING.md` — Frontmatter schema, file conventions, ClawdNote format.
 

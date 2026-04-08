@@ -240,7 +240,7 @@ build_rewrite_prompt() {
 You are a rewriter for the gu-log blog. Your task is to improve a post that failed the Tribunal Gate — a multi-judge quality threshold requiring ALL 3 judges to pass.
 
 ## References (read ALL before rewriting)
-1. Read scripts/ralph-vibe-scoring-standard.md — scoring rubric with calibration examples
+1. Read scripts/vibe-scoring-standard.md — scoring rubric with calibration examples
 2. Read WRITING_GUIDELINES.md — LHY persona and style rules
 3. Read CONTRIBUTING.md — frontmatter schema, ClawdNote format
 

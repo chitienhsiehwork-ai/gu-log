@@ -17,7 +17,7 @@ CLAUDE.md (你在讀的這個)
   └→ scripts/
       ├ article-counter.json  ← Ticket ID counter（SD/SP/CP/Lv）
       ├ ralph-loop.sh         ← Ralph Loop（batch scoring + rewrite 迴圈）
-      ├ ralph-vibe-scoring-standard.md ← Vibe 評分標準 SSOT
+      ├ vibe-scoring-standard.md ← Vibe 評分標準 SSOT
       ├ ralph-progress.json   ← Loop 進度追蹤
       ├ sp-pipeline.sh        ← SP 自動翻譯 pipeline
       ├ clawd-picks-prompt.md ← Clawd Picks 任務流程（給 Clawd on VM 用）
@@ -93,7 +93,7 @@ node scripts/validate-posts.mjs # 驗證所有文章
 - **Fresh Eyes** (Haiku): 陌生讀者第一印象（3-month engineer persona）
 - **Pass bar**: Vibe composite ≥ 8 AND 至少一維 ≥ 9 AND 沒有任何維 < 8，Fact ≥ 8，Librarian composite ≥ 8，Fresh Eyes ≥ 8
 - **Rewrite**: 沒過 → rewriter 改寫 → 再跑 → 最多 3 次
-- Agents 在 `.claude/agents/`，評分標準 SSOT 在 `scripts/ralph-vibe-scoring-standard.md`
+- Agents 在 `.claude/agents/`，評分標準 SSOT 在 `scripts/vibe-scoring-standard.md`
 
 ## Style Guide (Quick Ref)
 

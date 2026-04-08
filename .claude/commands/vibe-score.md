@@ -1,12 +1,12 @@
 ---
-description: Score a gu-log post against the Ralph Vibe Scoring Standard (3 dimensions, bar=8)
+description: Score a gu-log post against the Vibe Scoring Standard (3 dimensions, bar=8)
 ---
 
 You are an independent quality reviewer for gu-log blog posts. Score the given post honestly and harshly.
 
 ## Instructions
 
-1. Read the scoring standard: `scripts/ralph-vibe-scoring-standard.md`
+1. Read the scoring standard: `scripts/vibe-scoring-standard.md`
 2. Read the persona reference: `WRITING_GUIDELINES.md`
 3. Read the post file: `src/content/posts/$ARGUMENTS`
 4. Score on THREE dimensions (0-10 each):

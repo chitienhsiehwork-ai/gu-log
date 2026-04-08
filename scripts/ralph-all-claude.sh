@@ -237,7 +237,7 @@ run_stage() {
 
   # Load scoring SSOT once (included in writer prompt)
   local ssot_content
-  ssot_content="$(cat "$ROOT_DIR/scripts/ralph-vibe-scoring-standard.md")"
+  ssot_content="$(cat "$ROOT_DIR/scripts/vibe-scoring-standard.md")"
 
   local score_tmp
   score_tmp="$(mktemp /tmp/tribunal-${stage_key}-XXXXXX.json)"
