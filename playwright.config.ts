@@ -46,7 +46,10 @@ export default defineConfig({
   projects: [
     {
       name: 'Desktop Chrome',
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        launchOptions: { args: ['--no-sandbox', '--disable-setuid-sandbox'] },
+      },
     },
     {
       name: 'Mobile Chrome',
