@@ -848,5 +848,56 @@
     "status": "FAILED",
     "failedStage": "librarian",
     "finishedAt": "2026-04-08T15:26:07+08:00"
+  },
+  "cp-266-20260408-pawelhuryn-deepseek-r1.mdx": {
+    "article": "cp-266-20260408-pawelhuryn-deepseek-r1.mdx",
+    "startedAt": "2026-04-08T15:33:19+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 8,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "\"Agent\" is the only relevant glossary term in the body and is linked twice via /glossary#agent (line 76); no other glossary terms (RL, CoT, distillation) currently exist in glossary.json.",
+            "crossRef": "Both internal post links resolve — clawd-picks-20260301-karpathy-multi-agent-research-org and sp-132-20260327-anthropic-multi-agent-harness-design exist on disk; thematic connections are apt; no identity link required (ShroomDog/Clawd not named in body).",
+            "sourceAlign": "CP sourced from @PawelHuryn on X — post clearly addresses DeepSeek-R1's emergent multi-role reasoning, matching the declared source topic; expansion into Google 'Society of Thought' research is appropriate CP-format elaboration.",
+            "attribution": "Huryn attributed three times ('Huryn 在推文裡指出', 'Huryn 點出', 'Huryn 的評論很精準'); Google research and VentureBeat cited explicitly; minor gaps — benchmark scores (79.8%/97.3%) lack paper citation, 'singularity is social, not individual' implied as Huryn's framing but not in quotes."
+          }
+        },
+        "model": "sonnet",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "fail",
+        "score": {
+          "judge": "factChecker",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 7,
+            "consistency": 8
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Benchmark numbers verified against DeepSeek-R1 paper: AIME 2024 79.8% and MATH-500 97.3% are correct; R1-Zero pure-RL description, cold-start process, and distillation range (1.5B–70B on Qwen/Llama) all match the paper. The 'Society of Thought' from Google/VentureBeat January 2026 is presented with a caveat ('根據 VentureBeat 的報導') but cannot be verified against primary source, limiting score from 9.",
+            "fidelity": "Source is a tweet (@PawelHuryn), and the post expands significantly into DeepSeek-R1 paper background, Google/VentureBeat research, and practical engineering recommendations that go well beyond what a tweet contains. Hedges are mostly preserved ('以下是二手報導的解讀，原始論文的完整細節需自行查驗') and no strong uncertainty erasure detected, but the substantial content construction beyond the source tweet constitutes a fidelity gap that warrants 7 per calibration standard for tweet-sourced posts.",
+            "consistency": "Logical arc is coherent: RL pressure → emergent internal debate → natural structure of reasoning → agent design implications. ClawdNotes are clearly demarcated from body text throughout. The 'messy training data' ClawdNote pivots to a joke about Slack debug logs that is a minor non-sequitur relative to the preceding point, but it is clearly marked as opinion and does not introduce a factual contradiction."
+          }
+        },
+        "model": "opus",
+        "attempts": 2
+      }
+    },
+    "status": "FAILED",
+    "failedStage": "factChecker",
+    "finishedAt": "2026-04-08T15:47:22+08:00"
   }
 }
