@@ -82,15 +82,75 @@
     "startedAt": "2026-04-08T01:57:30+08:00",
     "stages": {
       "librarian": {
-        "status": "fail",
-        "score": null,
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 8,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Both glossary.json terms used in the post — OpenClaw (/glossary#openclaw, line 37) and Sub-Agent (/glossary#subagent, line 48) — are properly linked; no other glossary terms (npm audit, ESLint, Lighthouse, SLI/SLO, etc.) exist in glossary.json so no gaps.",
+            "crossRef": "Required identity links confirmed present: ShroomDog → /about (line 28 inside ClawdNote), ShroomClawd → /about (line 37); SD-1 cross-reference (/posts/openclaw-talk-deep-dive) file exists in repo; thematic link to prior architecture post is well-motivated.",
+            "sourceAlign": "SD original post — sourceUrl points to itself (https://gu-log.vercel.app/posts/sqaa-levelup-journey) — auto 8/10 per rubric.",
+            "attribution": "All numeric claims (Lighthouse 56, branch coverage 42.99%, 106/865 broken links, 31.75 posts/week, 57% Clawd Picks, etc.) are first-hand data from author running tools on own blog — no external citation gap; 李宏毅教授 credited as inspiration source; ClawdNote opinions fully isolated in <ClawdNote> components with zero bleed into body prose."
+          }
+        },
         "model": "sonnet",
         "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "fact-checker",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All technical concepts are correctly described (Astro Islands Architecture, Lighthouse LCP/CJK causation, Prometheus SLI setup, LLM-as-Judge dimensions); self-reported metrics (56 Lighthouse score, 42.99% branch coverage, 106/865 broken links, 3.2 KB JS) are internally plausible and consistent with gu-log's known architecture. One minor imprecision: attributing the config format breaking change to 'eslint v10' — the flat config breaking change was introduced in eslint v9, not v10 — but this does not materially mislead.",
+            "fidelity": "SD original post — sourceUrl self-references, so translation fidelity does not apply. The author consistently presents claims as personal first-hand experience with appropriate hedges preserved throughout, and no assertion exceeds what the data supports. ClawdNote opinions are properly contained within ClawdNote components and never bleed into the body as verified facts.",
+            "consistency": "The 'can't swim → learns to swim → leads team into water' arc is established in the intro and cleanly closed in the conclusion with no contradiction. The logical chain L1→L2→L3→L4 (Layered Defense) follows naturally from the 12-level journey. The SLO → error budget → PM argument is internally sound. ClawdNotes consistently maintain Clawd's voice without asserting body-level facts. Zero structural contradictions across the full post."
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "fresh-eyes",
+          "dimensions": {
+            "readability": 9,
+            "firstImpression": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "The swimming-coach-who-can't-swim hook lands immediately, Level-by-level structure is naturally scannable, and jargon (npm audit, ESLint, SLI/SLO) is always contextualized with an analogy before the reader has time to panic — only 'Clawd/OpenClaw/ShroomClawd' remain unexplained but context makes it clear it's an AI assistant.",
+            "firstImpression": "The RPG level-up framing is novel enough to keep reading, concrete numbers (Performance 56分, 106 broken links, JS 3.2 KB smaller than a PNG) make each reveal satisfying, and the callback to 'the coach finally learned to swim' at the close gives a complete emotional arc — a 3-month dev would likely share this with peers for the learning-methodology angle alone."
+          }
+        },
+        "model": "haiku",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "fail",
+        "score": null,
+        "model": "opus",
+        "attempts": 3
       }
     },
     "status": "FAILED",
-    "failedStage": "librarian",
-    "finishedAt": "2026-04-08T02:31:08+08:00"
+    "failedStage": "vibe",
+    "finishedAt": "2026-04-08T08:50:14+08:00"
   },
   "cp-263-20260408-type-18-ai-medvi.mdx": {
     "article": "cp-263-20260408-type-18-ai-medvi.mdx",
