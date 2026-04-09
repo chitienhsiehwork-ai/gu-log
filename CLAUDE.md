@@ -38,6 +38,7 @@ CLAUDE.md (你在讀的這個)
 
 - **Framework**: Astro 5 (Content Collections + MDX)
 - **Deployment**: Vercel (auto-deploy on push)
+- **Analytics**: Vercel Web Analytics (`@vercel/analytics`, inject in BaseLayout)
 - **Package manager**: pnpm
 - **Fonts**: Inter + Noto Sans TC (Google Fonts)
 - **Theme**: Solarized dark / light
@@ -75,6 +76,7 @@ pnpm run dev                   # 本地開發 localhost:4321
 pnpm run build                 # 生產 build
 pnpm exec astro check          # TypeScript 檢查
 node scripts/validate-posts.mjs # 驗證所有文章
+vercel logs --since 1h         # 查最近 1h request logs（需 vercel login）
 ```
 
 ## Dev Workflow
