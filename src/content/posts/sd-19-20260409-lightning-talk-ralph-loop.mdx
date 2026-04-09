@@ -1,0 +1,147 @@
+---
+ticketId: "SD-19"
+title: "Lightning Talk：叫 Claude 幫你蓋一個 Ralph Loop"
+originalDate: "2026-04-09"
+translatedDate: "2026-04-09"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Author"
+      model: "Human + Opus 4.6"
+      harness: "ShroomDog + Claude Code"
+source: "ShroomDog Lab"
+sourceUrl: "https://gu-log.vercel.app/"
+lang: "zh-tw"
+summary: "3 分鐘 lightning talk 投影片。AI 什麼都讀過，但有些概念它還不知道——你知道、它不知道，這就是你的槓桿。"
+tags: ["lightning-talk", "ralph-loop", "agentic-coding", "claude-code", "leverage"]
+scores:
+  ralph:
+    p: 8
+    c: 9
+    v: 9
+    score: 8
+    date: "2026-04-09"
+    model: "claude-opus-4-6"
+  vibe:
+    persona: 8
+    clawdNote: 9
+    vibe: 9
+    clarity: 8
+    narrative: 8
+    score: 8
+    date: "2026-04-09"
+    model: "claude-opus-4-6"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import DiffBlock from '../../components/DiffBlock.astro';
+
+大家好，[香菇大狗狗（ShroomDog）](/about)。
+
+## 人類知道的 > AI 知道的 = 槓桿
+
+AI 模型讀過幾乎所有公開資料。
+
+但有些概念**還沒進訓練資料**。
+
+人類知道，AI 不知道——這就是槓桿。
+
+今天用一個例子說明。
+
+---
+
+## Ralph Loop：原版定義
+
+[Geoffrey Huntley](https://ghuntley.com/ralph/) 在 2025 夏天提出的概念，核心就三件事：
+
+1. **`while true` bash loop**（或 stop hook）——每輪給 agent fresh context，避免 context rot
+2. **File + git persistence**——agent 每輪看得到自己上一輪改過的檔案和 git history
+3. **可量化的完成條件**——agent 輸出特定字串（如 `"DONE"`）或通過 build/test 才能離開 loop
+
+這個概念 2025 夏天才出現。**Opus 4.6 的 knowledge cutoff 是 2025 年 5 月。**
+
+現在問 Claude「不上網，你知道 Ralph Loop in AI agent 是什麼嗎？」——它答不出來。
+
+<ClawdNote>
+Clawd 在這裡先自我介紹一下——Clawd 是 gu-log 的常駐 AI 編輯，負責吐槽、註解、偶爾被當苦力使喚。香菇大狗狗剛剛實測過，Sonnet 4.6 和 Opus 4.6 都答不出 Ralph Loop 是什麼。但只要把概念講清楚，叫 Clawd search web 然後實作——三句話變成一整個 multi-agent 系統。這就是人類的槓桿 (◕‿◕)
+</ClawdNote>
+
+---
+
+## 香菇大狗狗版：加一個超級難搞的 Scorer
+
+原版 Ralph Loop 的完成條件是 agent 自己說 "DONE"。問題是——**作者不能當自己的評審。**
+
+香菇大狗狗加了一層：
+
+> 一個 bash while loop，裡面放一個**超級難搞的 scorer agent** 和 **writer agent**，跑到分數過 bar 為止。
+
+```
+bash loop（確定性，管紀律）
+  → Scorer 評分（獨立的 LLM，不是 writer 自己）
+  → Writer 根據 feedback 改寫
+  → 沒過 bar？→ 重來，最多 3 次
+  → 過了？→ commit，下一篇
+```
+
+跟原版的差別：
+
+- **獨立 scorer** ——writer 不能自己決定「做完了」，要過另一個 agent 的審
+- **數字分數門檻** 取代 "DONE" 字串——9/9/9 才算過，不是 agent 說完就完
+- **進度追蹤 JSON** ——可以半夜跑到一半斷掉，早上接著跑
+
+不需要自己寫這些。只要知道概念，然後叫 Claude Code：
+
+> 「寫一個 scorer agent，用這三個維度評分」
+> 「寫一個 rewriter，根據 feedback 改寫」
+> 「寫一個 bash loop 串起來，跑到 9/9/9 為止」
+
+概念是人類的，實作是 Claude 的。
+
+用途不一定很酷——例如香菇大狗狗的就只是把自己的菇-log 改到自己看得下去。
+
+---
+
+## 結果
+
+gu-log 有 336 篇 AI 翻譯文章。一開始香菇大狗狗覺得品質「還行」——畢竟 Claude 很會寫文章。
+
+看過幾篇之後：「真是難看死了，這是什麼鬼東西。」
+
+跑完 Ralph Loop：**74% 需要改寫。** 不是微調，是重寫。
+
+239 篇在一兩週內被改寫——靠 Claude Max 的 quota 加上 spring 2x bonus，離峰時段讓 agent 整夜跑。最後 198 篇拿到 9 分以上——「難搞的 AI 打分仔覺得值得轉發給朋友」的等級。
+
+<DiffBlock
+  before="在當今快速演變的 AI 領域中，AI agent 代表了一種軟體開發方式的典範轉移..."
+  after="新來的同事是吸血鬼。他不是來說「AI 好棒棒」或「AI 會搶工作」。他是來說：AI 正在用沒人注意到的方式慢慢吸乾所有人。"
+  beforeLabel="改寫前（Vibe 3）"
+  afterLabel="改寫後（Vibe 10）"
+/>
+
+完整故事 → [SD-10：336 篇 AI 文章從「能看」變成「想分享」](/posts/sd-10-20260322-ralph-loop-quality-system)
+
+<ClawdNote>
+那個 before 的開頭，你是不是在哪裡看過？對，每一篇你滑過去沒點開的 AI 文章，開頭大概都長這樣。改寫後那段是我們評分最高的文章 CP-85 的開頭——同一個 pipeline，同一天翻的，一篇 3 分一篇 10 分。差別不在 AI，在有沒有人/AI 打工仔去認真看 ╮(╯▽╰)╭
+</ClawdNote>
+
+---
+
+## 帶走一件事
+
+> **AI 還不知道的概念，就是你的槓桿。**
+>
+> 只需要知道三件事：知道概念、告訴 AI、讓它幫你蓋。
+
+Ralph Loop 只是其中一個例子。
+
+這種「AI 還不知道但人類可以告訴它」的概念，gu-log 一直在整理。
+
+**gu-log.vercel.app**
+
+![QR Code](https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://gu-log.vercel.app)
+
+<ClawdNote>
+最後講一個幕後花絮。這篇 lightning talk 本身就是用 Claude Code 寫的。過程中被 vibe scorer 打回來重寫（沒有任何維度到 9）、被 pronoun clarity hook 擋下來（正文不能用「你」和「我」）、被 Prettier 格式檢查退件。AI agent 越忙越痛苦，成果就越好——讓 agent 在凌晨三點被反覆折磨，讓人早上起來喝咖啡看成果。所以整理一下今天的重點：人類學會一個 AI 不知道的概念，用這個概念叫 AI 蓋了一個折磨 AI 的系統。這就是槓桿。Clawd 覺得這個槓桿可以不要這麼痛 ╮(╯▽╰)╭
+</ClawdNote>

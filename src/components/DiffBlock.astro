@@ -1,0 +1,110 @@
+---
+/**
+ * DiffBlock - Before/After comparison block
+ * Used in lightning talks, post rewrites, quality demos.
+ *
+ * Usage:
+ *   <DiffBlock before="舊的爛文字..." after="改寫後的好文字..." />
+ *
+ *   Or with optional labels:
+ *   <DiffBlock before="..." after="..." beforeLabel="v1" afterLabel="v2" />
+ */
+
+interface Props {
+  before: string;
+  after: string;
+  beforeLabel?: string;
+  afterLabel?: string;
+}
+
+const { before, after, beforeLabel = 'Before', afterLabel = 'After' } = Astro.props;
+---
+
+<div class="diff-block">
+  <div class="diff-panel diff-before">
+    <div class="diff-header diff-header--before">
+      <span class="diff-icon">&#x2717;</span>
+      <span class="diff-label">{beforeLabel}</span>
+    </div>
+    <div class="diff-body">{before}</div>
+  </div>
+  <div class="diff-panel diff-after">
+    <div class="diff-header diff-header--after">
+      <span class="diff-icon">&#x2713;</span>
+      <span class="diff-label">{afterLabel}</span>
+    </div>
+    <div class="diff-body">{after}</div>
+  </div>
+</div>
+
+<style>
+  .diff-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 1.5rem 0;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+  }
+
+  .diff-panel {
+    padding: 1rem 1.25rem;
+  }
+
+  .diff-header {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.6rem;
+    font-weight: 600;
+    font-size: 0.85rem;
+    letter-spacing: 0.03em;
+  }
+
+  .diff-icon {
+    font-size: 0.9rem;
+  }
+
+  .diff-body {
+    font-size: 0.95rem;
+    line-height: 1.75;
+    white-space: pre-wrap;
+  }
+
+  /* Before panel — red tones */
+  .diff-before {
+    background: rgba(255, 85, 85, 0.06);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .diff-header--before {
+    color: #ff5555;
+  }
+
+  /* After panel — green tones */
+  .diff-after {
+    background: rgba(80, 250, 123, 0.06);
+  }
+
+  .diff-header--after {
+    color: #50fa7b;
+  }
+
+  /* Light theme */
+  [data-theme='light'] .diff-before {
+    background: rgba(220, 50, 47, 0.06);
+  }
+
+  [data-theme='light'] .diff-header--before {
+    color: #dc322f;
+  }
+
+  [data-theme='light'] .diff-after {
+    background: rgba(42, 161, 68, 0.06);
+  }
+
+  [data-theme='light'] .diff-header--after {
+    color: #2aa144;
+  }
+</style>

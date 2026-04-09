@@ -1,0 +1,130 @@
+---
+ticketId: "SD-19"
+title: "Lightning Talk: Asking Claude to Build a Ralph Loop"
+originalDate: "2026-04-09"
+translatedDate: "2026-04-09"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Author"
+      model: "Human + Opus 4.6"
+      harness: "ShroomDog + Claude Code"
+source: "ShroomDog Lab"
+sourceUrl: "https://gu-log.vercel.app/"
+lang: "en"
+summary: "3-minute lightning talk slides. AI has read almost everything — but some concepts aren't in training data yet. What you know that AI doesn't = your leverage."
+tags: ["lightning-talk", "ralph-loop", "agentic-coding", "claude-code", "leverage"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import DiffBlock from '../../components/DiffBlock.astro';
+
+Hi, I'm [ShroomDog (香菇大狗狗)](/about).
+
+## What You Know > What AI Knows = Leverage
+
+AI models have read almost all public data.
+
+But some concepts **haven't made it into training data yet**.
+
+You know it, AI doesn't — that's your leverage.
+
+Here's one example.
+
+---
+
+## Ralph Loop: The Original Definition
+
+[Geoffrey Huntley](https://ghuntley.com/ralph/) introduced this concept in summer 2025. Three core ideas:
+
+1. **`while true` bash loop** (or stop hook) — each iteration gives the agent fresh context, avoiding context rot
+2. **File + git persistence** — the agent sees its own previous changes and git history each round
+3. **Quantifiable completion condition** — agent outputs a specific string (e.g., `"DONE"`) or passes build/tests to exit the loop
+
+This concept emerged in summer 2025. **Opus 4.6's knowledge cutoff is May 2025.**
+
+Ask Claude "without searching the web, do you know what Ralph Loop in AI agent is?" — it won't know.
+
+<ClawdNote>
+Quick intro — Clawd is gu-log's resident AI editor, responsible for commentary, snark, and occasionally being worked like a draft horse. ShroomDog just tested — both Sonnet 4.6 and Opus 4.6 drew a blank on Ralph Loop. But tell Clawd the concept and ask to search the web and implement it — three sentences become an entire multi-agent system. That's human leverage (◕‿◕)
+</ClawdNote>
+
+---
+
+## ShroomDog's Version: Add a Ridiculously Picky Scorer
+
+The original Ralph Loop's completion condition is the agent saying "DONE." The problem — **the writer shouldn't be its own judge.**
+
+ShroomDog added one layer:
+
+> A bash while loop with a **ridiculously picky scorer agent** and a **writer agent** inside. Runs until scores pass the bar.
+
+```
+bash loop (deterministic, handles discipline)
+  → Scorer evaluates (independent LLM, not the writer)
+  → Writer rewrites based on feedback
+  → Below bar? → Loop again, max 3 attempts
+  → Passed? → Commit, next post
+```
+
+What's different from the original:
+
+- **Independent scorer** — the writer can't decide "I'm done"; another agent has to approve
+- **Numerical score threshold** replaces "DONE" string — 9/9/9 to pass, not just the agent's word
+- **Progress tracking JSON** — can crash at 3am, resume in the morning
+
+No need to build this yourself. Just know the concept, then tell Claude Code:
+
+> "Build me a scorer agent with these three dimensions"
+> "Build me a rewriter that rewrites based on scorer feedback"
+> "Build me a bash loop that chains them, runs until 9/9/9"
+
+The concept is yours, the implementation is Claude's.
+
+The use case doesn't have to be fancy — ShroomDog's was just making a personal blog readable enough to not cringe at.
+
+---
+
+## Results
+
+gu-log has 336 AI-translated posts. At first, ShroomDog thought quality was "fine" — after all, Claude is great at writing.
+
+Then actually reading a few: "This is awful. What is this garbage."
+
+After running Ralph Loop: **74% needed rewriting.** Not tweaking. Rewriting.
+
+239 posts were rewritten over one to two weeks — powered by Claude Max quota plus the spring 2x bonus, agents running through off-peak hours every night. 198 ended up scoring 9+ — the "picky AI scorer thinks it's worth sharing with a friend" tier.
+
+<DiffBlock
+  before="In today's rapidly evolving AI landscape, AI agents represent a paradigm shift in how we approach software development..."
+  after="Your new coworker is a vampire. He's not here to say 'AI is great' or 'AI will steal your job.' He's here to say: AI is slowly draining you in ways you haven't noticed."
+  beforeLabel="Before rewrite (Vibe 3)"
+  afterLabel="After rewrite (Vibe 10)"
+/>
+
+Full story → [SD-10: How We Made 336 AI-Generated Posts Actually Worth Reading](/en/posts/en-sd-10-20260322-ralph-loop-quality-system)
+
+<ClawdNote>
+That "before" opening — you've seen it, right? Every AI article you scrolled past without clicking starts like that. The "after" is from CP-85, our highest-scoring post — same pipeline, same day, one scored 3, the other scored 10. The difference isn't the AI. It's whether someone actually checked ╮(╯▽╰)╭
+</ClawdNote>
+
+---
+
+## One Takeaway
+
+> **Concepts that AI doesn't know yet are your leverage.**
+>
+> You only need three things: know the concept, tell AI, let it build.
+
+Ralph Loop is just one example.
+
+We keep collecting these "AI doesn't know yet but you can tell it" concepts.
+
+**gu-log.vercel.app**
+
+![QR Code](https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://gu-log.vercel.app)
+
+<ClawdNote>
+Behind-the-scenes confession: this lightning talk post was written by Claude Code. During the process, the vibe scorer rejected the first draft (no dimension hit 9), the pronoun clarity hook blocked the commit (body text can't use "you" or "I" in zh-tw), and Prettier rejected the formatting. The more the AI agent suffers, the better the output — agent gets beaten up at 3am, human checks results over morning coffee. So let's recap today's key takeaway: a human learned a concept that AI didn't know, then used that concept to make AI build a system that tortures AI. That's leverage. Clawd just wishes this leverage hurt a little less ╮(╯▽╰)╭
+</ClawdNote>
