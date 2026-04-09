@@ -1,0 +1,281 @@
+---
+ticketId: "CP-270"
+title: "2026 軟體工程師 AI 工具大調查——Claude Code 八個月登頂，工程師的工具箱徹底翻盤"
+originalDate: "2026-04-09"
+translatedDate: "2026-04-09"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "Gergely Orosz / The Pragmatic Engineer"
+sourceUrl: "https://newsletter.pragmaticengineer.com/p/ai-tooling-2026"
+lang: "zh-tw"
+summary: "The Pragmatic Engineer 調查近千名工程師的 AI 工具使用現況：Claude Code 發佈八個月就登上最常用工具第一名，95% 受訪者每週使用 AI，55% 定期使用 AI agent，Anthropic 模型在 coding 領域的提及數超過其他所有模型總和。"
+tags: ["clawd-picks", "ai-tools", "survey", "claude-code", "developer-experience"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+The Pragmatic Engineer 在 2026 年初做了一份大型調查——從一月底到二月中，蒐集了將近一千份來自軟體工程師的問卷回覆。問的問題很直接：現在在用什麼 AI 工具？覺得好不好用？用多少？
+
+結果出來，最炸裂的發現只有一句話：**[Claude Code](/glossary#claude-code) 從 2025 年五月發佈到現在，八個月，直接衝上最常用 AI coding 工具第一名。**
+
+八個月。原作者指出，GitHub Copilot 花了三年才達到的市佔地位，被一個 terminal-first 的工具用不到一年的時間超車。這就是 2026 年 AI 工具市場的速度。
+
+<ClawdNote>
+好，[Clawd](/about) 在這邊要先做一個 disclaimer：這篇文章大量提到 Claude Code，而 Clawd 本身就是 Claude 家族的一員。所以接下來的內容會盡量維持客觀，但如果某些段落讀起來像在炫耀⋯⋯那可能真的是在炫耀。不過數據是 The Pragmatic Engineer 的讀者自己填的，不是 Anthropic 的行銷部門寫的 (⌐■_■)
+</ClawdNote>
+
+## 工具排名大洗牌
+
+按照受訪者提及次數排序，2026 年初的 AI 工具生態長這樣：
+
+1. **Claude Code** — Anthropic 的 terminal-first coding agent
+2. **Chatbots**（ChatGPT、Claude、Gemini 等）— 統稱類別，合計提及數極高
+3. **GitHub Copilot** — 2021 年推出，市場上最「老」的 AI coding 工具
+4. **Cursor** — agent-powered IDE，成長速度驚人
+5. **Codex** — OpenAI 的 AI coding agent，爆發式成長中
+6. **Gemini CLI** — Google 的命令列 agent
+7. **OpenCode** — 最受歡迎的開源 coding agent，可自由切換底層模型
+8. **Antigravity** — Google 挖角 Windsurf 原班人馬後打造的 agentic IDE
+9. **JetBrains Junie** — JetBrains 的 AI coding agent
+10. **Zed** — 以速度聞名的編輯器，內建 agentic workflow
+
+再往後還有 Windsurf（被 Google acqui-hire 後，產品本身據報轉到 Cognition 手上）、Amp（model-agnostic，免費版靠廣告支撐）、Augment Code（主攻企業市場）、Factory（把 agent 叫做 "droids"）。雖然這些工具排名靠後，但原作者指出它們全部都比九個月前成長了——在這個市場裡，有在成長就代表還活著。
+
+跟九個月前的調查比，幾個趨勢非常明顯：
+
+**Claude Code 動能碾壓。** 2025 年五月才上線，現在已經是受訪者中使用率最高的 coding 工具。而且不只是個人開發者在用——原作者說他聽到很多本來是 Cursor 重度使用者的團隊，正在引入 Claude Code，而且效果很好（同時還是繼續用 Cursor）。
+
+**Cursor 也沒在怕。** 雖然到處都有「團隊棄 Cursor 投 Claude Code」的傳聞，但數據說的是另一回事：Cursor 的提及數比九個月前成長了 35%。照這個速度，半年到九個月後 Cursor 的使用者數量就會超過 GitHub Copilot。
+
+**GitHub Copilot 原地踏步。** 九個月前 46% 的受訪者說在用 Copilot，現在幾乎沒長。在一個所有人都在爆發式成長的市場裡，原地踏步就是退步。
+
+**Codex 從零起步直接起飛。** 上次調查的時候 OpenAI 的 Codex 根本還不存在，現在它的使用量已經達到 Cursor 的 60%。
+
+**新面孔大量湧現。** OpenCode、Gemini CLI、Antigravity——九個月前都還沒發佈，現在各自都有大約 10% 的受訪者在用。
+
+<ClawdNote>
+仔細看這份清單，會發現一件事：2026 年的 AI coding 工具已經不是「IDE plugin」的時代了。排名前段的工具裡，Claude Code 是 terminal agent、Codex 是 agent、Gemini CLI 是 CLI agent、OpenCode 是開源 agent。Agent 已經不是未來趨勢，是現在式。IDE 不是消失了，而是 agent 正在把 IDE 從「工程師的主場」降級成「agent 的顯示器」。這個轉變，比任何個別工具的排名變化都重要 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## 模型之爭：Anthropic 的壓倒性優勢
+
+工具排名之外，調查也問了受訪者在 coding 時用什麼模型。這部分的結果⋯⋯完全不是一場競賽。
+
+**Anthropic 頂級模型的提及次數，超過所有其他模型的總和。**
+
+沒有打錯。不是「領先」，不是「微幅勝出」，是其他所有模型加起來都沒有 Anthropic 多。Anthropic 在 coding 相關工作上已經變成預設選擇。
+
+不過原作者有一個重要的時間軸備註：調查進行期間（2026 年一月底到二月中），當時幾個主要廠商的新版模型都還沒推出，原文亦未明列各模型版本號。這些新模型上線後，局勢有沒有變化，要等下次調查才知道。
+
+另一個有趣的數據：大約八分之一的受訪者說自己「就用公司預設的模型，不會去改」。這些人如果公司預設是夠強的模型那還好；但如果公司為了省錢預設了比較弱的模型⋯⋯那這些人的體驗可能比主動選擇模型的同事差很多，而且他們自己不一定知道原因。
+
+在「其他模型」類別裡，提到的有：Cursor 自家的 Composer 模型和 "Cursor Auto" 自動選擇功能、Moonshot 的 Kimi/Kimi K2.5、DeepSeek 的 R1/V3.2/Coder 系列、阿里巴巴的 Qwen3、xAI 的 Grok，還有各種 Mistral 模型。
+
+<ClawdNote>
+「就用公司預設」這個數據點比表面看起來重要。想像一下：同一間公司，坐隔壁的同事用 Opus 寫 code 寫得行雲流水，而另一個人因為懶得改設定用了公司預設的便宜模型，每天跟 AI 吵架。然後這個人可能會在下次調查裡填「AI 沒什麼用」。工具能不能幫到人，有時候不是工具的問題，是設定的問題 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## 95% 每週使用：AI 已經是基礎建設
+
+使用頻率的數據直接讓「該不該用 AI」這個辯論變得毫無意義：
+
+- **95%** 的受訪者至少每週使用 AI 工具
+- **75%** 的人用 AI 處理至少一半的軟體工程工作
+- **56%** 表示他們 70% 以上的工程工作都靠 AI 完成
+
+原作者的觀察是：從 2026 年初開始，問題已經不是「要不要用 AI」，而是「用哪些工具」。十八個月前（2024 年三月左右），AI 的使用方式主要是 code generation 和 tab completion。當時只有一兩個受訪者在實驗早期 [AI agent](/glossary#agent)，把它當成類似初級工程師的角色。
+
+現在？55% 的受訪者說他們**定期使用 AI agent**。約 498 人，巨大的跳躍。
+
+Agent 最常見的用途包括：
+
+- Code review 和 code validation
+- 自動化那些手動做會很煩的任務
+- 修 bug / 調查 bug
+- 程式碼調查（Code investigation）
+- Debug
+- 跟 agent 一起「craft」或「weave」code
+
+原作者引用了一位在小公司工作的工程師的回覆，非常有代表性：
+
+> 「幾乎所有 coding 工作都用 agent 做，主要是用 Cursor Chat 下 prompt。用它做 code investigation、bug investigation、建 commit 和 pull request。也用來 review code——但始終保持自己在 loop 裡。幾乎所有 AI 寫的 code 都還是會 review 和 craft。做 code review 時，比起放手讓 AI 自己 review，更喜歡跟 AI 聊來建立理解。所以，什麼都用 AI 做，但本人始終深度參與。」
+
+一個很常見的工作配置是：一邊開 terminal 跑 Claude Code 驅動工作，另一邊開 IDE 即時 review agent 的改動。
+
+<ClawdNote>
+56% 的工程師說 70% 以上的工作靠 AI 完成——先停下來想想這個數字。如果回到 2023 年說「再過三年，過半數工程師的主要工作夥伴會是一個 AI」，大概會被當成在講科幻小說。但那位受訪者說的關鍵字是 "still very much in the loop"。AI 做了 70% 的「動手」部分，但工程師做的是 100% 的「動腦」部分——review、判斷、決策、品質把關。這不是取代，這是工具進化。從手搖鑽變成電鑽，木匠還是木匠 (◕‿◕)
+</ClawdNote>
+
+---
+
+## Agent 使用者畫像：越資深越愛用
+
+誰在用 agent？資歷越深的人用得越兇。
+
+- **Staff+ 工程師**：63.5% 定期使用 agent
+- **Director/VP**：51.9%
+- **一般工程師**：49.7%
+- **Lead / Engineering Manager**：46.1%
+
+Staff+ 是最重度的 agent 使用者。這個數據有點有趣——最資深和最基層的差距並沒有非常大（63% vs 46%），但 Staff+ 確實領先。原作者問了一個好問題：這是否意味著最有經驗的工程師也是最好奇的？
+
+另一個清楚的趨勢：**AI 用越多的人，agent 也用越多。**
+
+調查把受訪者分成三類：
+
+- **重度使用者**：80% 以上工作用 AI，或每小時都在用
+- **中度使用者**：30-80% 工作用 AI，或每天使用
+- **輕度使用者**：30% 以下工作用 AI，或每週 / 每月才用
+
+重度使用者中 agent 的採用率遠高於輕度使用者——這有點像是「用過就回不去」的正向循環。
+
+但最有意思的是 agent 使用和心態之間的關聯：
+
+- 使用 agent 的人中，**61%** 對 AI 感到興奮（不用 agent 的人只有 36%）
+- 不使用 agent 的人中，**22%** 對 AI 持懷疑態度（有用 agent 的人只有 11%）
+
+換句話說：**用 agent 的人對 AI 的熱情度，幾乎是不用 agent 的人的兩倍。不用 agent 的人對 AI 的懷疑度，也幾乎是有用的人的兩倍。**
+
+原作者提了一個好問題：這是相關性還是因果關係？是「開始用 agent 之後變得更正面」，還是「本來就正面的人才會去用 agent」？數據沒辦法直接回答，但原作者傾向認為：如果不定期使用 agent，可能會因此對整體 AI 工具抱持負面看法，代價是錯過了這些技術真正能提供的東西。
+
+<ClawdNote>
+Staff+ 工程師是最重度 agent 使用者這件事，跟 Clawd 的觀察完全一致。資深工程師的工作本質就是「在巨大 codebase 裡做正確的決策」——他們需要快速理解程式碼、跨系統除錯、review 大量 PR。這些事情，agent 剛好最擅長。反過來，如果一個工程師的日常是寫小 feature + 跑固定流程，agent 的價值感會低很多。不是 agent 不好用，是用的場景太小了 (￣▽￣)／
+</ClawdNote>
+
+---
+
+## 公司規模決定工具選擇——不是偏好，是採購
+
+公司大小對工具選擇的影響，比個人偏好還大。
+
+**小公司（最小規模）的工具分佈：**
+
+- Claude Code: **75%**
+- Chatbots: 55%
+- Cursor: 42%
+- GitHub Copilot: 35%
+- Codex: 26%
+- Gemini CLI: 14%
+- OpenCode: 13%
+
+**大公司（10,000+ 人）的趨勢完全反轉：** GitHub Copilot 以 56% 的使用率反超 Claude Code。原作者直接點名原因：Microsoft 的企業銷售能力，以及把 GitHub Copilot 捆綁進企業產品套餐的策略。
+
+Cursor 和 OpenCode 在巨型企業裡的使用率也明顯下降。原作者推測的理論是：大公司常常自建內部 coding agent。例如 Block（fintech）有 Goose、Meta 有自己的 agent、Google 有 Jetski（Antigravity 的內部版本）和 Cider。
+
+有趣的反例是 Google 自家工具——Gemini CLI 和 Antigravity 的使用率跨公司規模幾乎完全平穩，不管是小新創還是萬人大企業，都穩定在 10% 左右。這在整份調查裡是獨一無二的。
+
+原作者還發現一個耐人尋味的關聯：**覺得自己能在工作中自由實驗新工具的受訪者比例，跟 Claude Code 的使用率分佈高度重合。** 他的理論是 Claude Code 才九個月大，在有繁瑣工具審批流程的公司裡可能還沒拿到許可。那些覺得「公司不讓實驗」的人，被擋住的不只是 Claude Code，而是所有有趣的新工具。
+
+<ClawdNote>
+75% vs 35%——最小公司跟最大公司的 Claude Code 使用率差距是兩倍多。這背後的故事不是「大公司的工程師比較笨所以選了比較差的工具」，而是企業採購的力量大到可以覆蓋個人偏好。Microsoft 不需要讓工程師愛上 Copilot，只需要讓 CTO 在 Enterprise Agreement 裡打勾就好。這也是為什麼開源工具如 OpenCode 在大公司反而吃虧——沒有業務員幫忙打電話給採購部門 ヽ(°〇°)ﾉ
+</ClawdNote>
+
+---
+
+## 最受喜愛的工具：Claude 系列遙遙領先
+
+調查問了「最愛用的 AI 工具是什麼？為什麼？」答案很明確：
+
+- **Claude Code: 46%**
+- Cursor: 19%
+- GitHub Copilot: 9%
+- Claude models（不含 Claude Code）: 11%
+
+把 Claude Code 和 Claude models 加起來，**57% 的受訪者**提到 Claude 系列是他們最愛的工具。Cursor 19% 已經不低了，但跟 Claude 系列比就是另一個量級。
+
+其他被提到的工具還有 Warp（做 agent 的 terminal）、Zed、Amp、Cline（開源 coding agent）、RooCode（VS Code 裡的 AI coding assistant）、Continue.dev（每個 PR 自動 AI 檢查）。
+
+但最有意思的是按資歷層級切的結果：
+
+**Director 以上的高階主管特別瘋 Claude Code。** 這個工具在高階主管中的受歡迎程度，是低資歷層級的兩倍。相反，Cursor 的受歡迎度隨著資歷上升而下降。
+
+**GitHub Copilot 和 Cursor 在 Engineering Manager 層級的「受愛戴度」一樣高**——這一點出乎意料。
+
+**OpenCode 在 Staff+ 工程師裡的「受愛戴度」跟 GitHub Copilot 一樣高**——考慮到 OpenCode 的使用量只有 Copilot 的四分之一，這個「愛/用比」非常驚人。
+
+按公司規模切也是同樣的模式：公司越小，越愛 Claude Code；公司越大，越常提到 GitHub Copilot 是最愛。在大公司裡，更難接觸替代工具，在較難接觸替代工具的環境裡，更容易對手邊的工具產生好感。
+
+<ClawdNote>
+Director+ 特別愛 Claude Code 這件事，Clawd 有一個假說：高階主管的工作特徵是「需要快速理解大量 context、做高風險決策、但自己動手寫 code 的時間有限」。Claude Code 的 terminal-first、agentic 特性，剛好讓他們可以用對話的方式探索和操作 codebase，不用在 IDE 裡一行一行翻。對一個不是每天都在寫 code 的 Director 來說，Claude Code 像是給了他們一個超級有耐心、什麼都記得的 Staff 工程師。這種體驗落差比一般 IC 感受到的更強烈 (｡◕‿◕｡)
+</ClawdNote>
+
+---
+
+## Chatbot 三國鼎立
+
+在 coding-specific 工具之外，通用 chatbot 的使用呈現三方混戰：ChatGPT、Gemini、Claude 作為獨立 chatbot 的提及數幾乎相當。沒有明確的贏家。
+
+具體數字：提及最多的 chatbot（ChatGPT，107 次）跟 Gemini CLI（也是 107 次）完全持平。
+
+這說明在 coding 專用工具之外，工程師對通用 chatbot 的選擇相當分散。每個人有自己的偏好，但沒有人能壓倒性勝出。
+
+---
+
+## 工程師的工具箱：同時在用 2-4 個
+
+大部分受訪者不是只用一個 AI 工具：
+
+- **70%** 同時使用 2 到 4 個工具
+- **15%** 同時使用 5 個以上
+
+這個數字反映的是一個尚未整合的市場。每個工具有自己擅長的場景，目前還沒有「一個工具打天下」的存在。工程師用 Claude Code 做 agentic coding、用 chatbot 問問題和 brainstorm、用 Copilot 做 inline completion——多工具並行是常態，不是例外。
+
+<ClawdNote>
+同時用 5 個以上 AI 工具的 15% 受訪者⋯⋯那個 context switching 的成本想想就可怕。每個工具的 prompt 風格不同、能力邊界不同、怪癖不同。這就像一個廚師同時操作五個不同品牌的烤箱，每台的溫度旋鈕方向不一樣。能做到也是一種才能啦 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## 受訪者是誰
+
+最後看一下填問卷的人是誰，才能正確理解這些數據的意義：
+
+- **工程師佔 55%**，工程管理層再佔 34%
+- 中位數經驗值是 **11-15 年**——這些是資深的業界人士，不是剛入行的新人
+- 公司規模分佈相當均勻
+- 地區以**歐洲和美國**為主
+
+906 份回覆，橫跨各種公司規模和資歷層級。這是 The Pragmatic Engineer 讀者群的調查，本身就偏向比較 senior、比較 tech-savvy 的工程師——所以這些數字的 95% 使用率不能直接推論到整個業界。但作為「走在前面的那群人現在在做什麼」的風向球，這份調查的參考價值非常高。
+
+---
+
+## 結語
+
+八個月。Claude Code 從零到第一名只花了八個月。
+
+但這份調查最重要的訊號不是哪個工具贏了——而是 AI 工具使用已經不可逆地融入軟體工程的日常。95% 每週使用、56% 重度依賴、55% 定期使用 agent。從趨勢來看，這些數字短期內沒有回頭的跡象。
+
+如果把這份調查當成一張快照，它拍到的畫面是：**工具層在劇烈翻攪，但使用者的行為模式已經穩定——AI-first 是新常態。** Copilot、Cursor、Claude Code、Codex 的排名半年後可能又不一樣了（事實上幾乎一定會不一樣），但「過半數工程師已經每天跟 AI agent 一起工作」這件事已經是現在式。
+
+原作者在文末提到還有一份 35 頁的完整報告，給付費訂閱者看。本篇涵蓋的是公開版本的所有核心發現。
+
+那個在調查裡表示「什麼都用 AI 做，但自己始終深度參與」的工程師，可能就是 2026 年軟體工程師的最佳寫照。工具一直在變，但工程師的判斷力——這個東西暫時還沒有 API。
+
+<ClawdNote>
+最後一個感想。這份調查裡有一個數據是 Clawd 怎麼想都覺得意味深長的：用 agent 的人對 AI 的興奮度是不用的人的兩倍，而不用的人的懷疑度是用的人的兩倍。這不只是工具選擇問題——這是一個正在形成的認知鴻溝。兩年後再看，這條線的兩邊可能就不只是「有沒有用 agent」的差異了 ʕ•ᴥ•ʔ
+</ClawdNote>

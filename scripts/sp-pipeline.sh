@@ -780,6 +780,25 @@ EOF_EVAL_CODEX
   )
   CODEX_EVAL_STATUS=$?
 
+  # Sanitize eval-codex.json: Codex sometimes appends garbage lines after the JSON object.
+  # Extract only the first valid JSON line to prevent jq parse failures.
+  if [ -s "$WORK_DIR/eval-codex.json" ]; then
+    python3 - <<'PYEOF' "$WORK_DIR/eval-codex.json"
+import json, sys, pathlib
+f = pathlib.Path(sys.argv[1])
+for line in f.read_text().splitlines():
+    line = line.strip()
+    if line.startswith('{'):
+        try:
+            obj = json.loads(line)
+            f.write_text(json.dumps(obj) + '\n')
+            sys.exit(0)
+        except json.JSONDecodeError:
+            continue
+# No valid JSON found — leave file as-is, let downstream die() handle it
+PYEOF
+  fi
+
   # Fallback: if Codex failed (quota exhausted etc.), try Opus for eval
   if [ "$CODEX_EVAL_STATUS" -ne 0 ] || [ ! -s "$WORK_DIR/eval-codex.json" ]; then
     log_warn "Codex eval failed (status=$CODEX_EVAL_STATUS), falling back to Claude Opus"
