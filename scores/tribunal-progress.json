@@ -1394,5 +1394,56 @@
     "status": "FAILED",
     "failedStage": "vibe",
     "finishedAt": "2026-04-09T16:16:44+08:00"
+  },
+  "cp-pending-20260409-bcherny-effort-claude-code.mdx": {
+    "article": "cp-pending-20260409-bcherny-effort-claude-code.mdx",
+    "startedAt": "2026-04-09T19:24:42+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 8,
+            "sourceAlign": 8,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Both applicable glossary terms (Claude Code at line 38, context window at line 84) are correctly linked via /glossary# anchors; no other glossary entries are central enough to require linking in this post.",
+            "crossRef": "First mention of Clawd (line 44) links to /about as required; glossary hash links use correct format; no obvious thematic cross-ref opportunities to related posts missed, though a link to related effort/token-optimization posts would strengthen it.",
+            "sourceAlign": "Content directly maps to a Boris Cherny tweet thread: effort levels (low/medium/high/max), the March 3 default change, CLAUDE_CODE_EFFORT_LEVEL env var, and FAQ — all clearly derived from the declared @bcherny sourceUrl.",
+            "attribution": "Boris's direct quotes are clearly attributed, FAQ answers explicitly credited to his 'third tweet,' and all Clawd opinions are isolated inside <ClawdNote> components; minor gap: the 2026-03-03 date is stated as fact without an explicit 'per Boris' re-attribution."
+          }
+        },
+        "model": "sonnet",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "fail",
+        "score": {
+          "judge": "factChecker",
+          "dimensions": {
+            "accuracy": 7,
+            "fidelity": 8,
+            "consistency": 8
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core technical claims (Opus 4.6 model name, /effort levels low/medium/high/max, /effort max not persisting across sessions) are consistent with known Claude Code behavior, but two specific claims are unverifiable without source access: the exact date '2026年3月3日' and the env var name 'CLAUDE_CODE_EFFORT_LEVEL=high' — typical tweet-sourced ceiling of 7.",
+            "fidelity": "ClawdNotes are cleanly separated from body text; Boris's hedges are preserved ('部分原因' for rate limit connection); FAQ section is editorial framing but all claims are attributed back to Boris — minor expansion without uncertainty erasure.",
+            "consistency": "Logical arc is coherent: perceived quality drop → same model, effort default changed → car/accelerator analogy used consistently throughout; ClawdNotes clearly mark opinion vs. reported fact; no contradictions found."
+          }
+        },
+        "model": "opus",
+        "attempts": 2
+      }
+    },
+    "status": "FAILED",
+    "failedStage": "factChecker",
+    "finishedAt": "2026-04-09T19:34:09+08:00"
   }
 }
