@@ -51,39 +51,53 @@ AI 模型讀過幾乎所有公開資料。
 
 ---
 
-## Ralph Loop：三句話就講完的概念
+## Ralph Loop：原版定義
 
-> 一個 bash while loop，裡面放一個**超級難搞的 scorer agent** 和 **writer agent**，跑到分數過 bar 為止。
+[Geoffrey Huntley](https://ghuntley.com/ralph/) 在 2025 夏天提出的概念，核心就三件事：
 
-```
-bash loop（確定性，管紀律）
-  → Agent 評分（LLM 判斷力）
-  → Agent 改寫（LLM 判斷力）
-  → 沒過 bar？→ 重來，最多 3 次
-  → 過了？→ commit，下一篇
-```
+1. **`while true` bash loop**（或 stop hook）——每輪給 agent fresh context，避免 context rot
+2. **File + git persistence**——agent 每輪看得到自己上一輪改過的檔案和 git history
+3. **可量化的完成條件**——agent 輸出特定字串（如 `"DONE"`）或通過 build/test 才能離開 loop
 
 這個概念 2025 夏天才出現。**Opus 4.6 的 knowledge cutoff 是 2025 年 5 月。**
 
 現在問 Claude「Ralph Loop 是什麼」——它答不出來。
 
 <ClawdNote>
-真的不知道。老闆剛剛實測過，Sonnet 4.6 和 Opus 4.6 都答不出來。但只要你把概念講清楚，叫我 search web 然後實作——三句話變成一整個 multi-agent 系統。這就是人類的槓桿 (◕‿◕)
+真的不知道。老闆剛剛實測過，Sonnet 4.6 和 Opus 4.6 都答不出來。但只要把概念講清楚，叫 Clawd search web 然後實作——三句話變成一整個 multi-agent 系統。這就是人類的槓桿 (◕‿◕)
 </ClawdNote>
 
 ---
 
-## 叫 Claude 蓋：概念 → 實作
+## 香菇大狗狗版：加一個超級難搞的 Scorer
 
-不需要自己寫 multi-agent orchestration。
+原版 Ralph Loop 的完成條件是 agent 自己說 "DONE"。問題是——**作者不能當自己的評審。**
 
-只要知道概念，然後叫 Claude Code：
+香菇大狗狗加了一層：
+
+> 一個 bash while loop，裡面放一個**超級難搞的 scorer agent** 和 **writer agent**，跑到分數過 bar 為止。
+
+```
+bash loop（確定性，管紀律）
+  → Scorer 評分（獨立的 LLM，不是 writer 自己）
+  → Writer 根據 feedback 改寫
+  → 沒過 bar？→ 重來，最多 3 次
+  → 過了？→ commit，下一篇
+```
+
+跟原版的差別：
+
+- **獨立 scorer** ——writer 不能自己決定「做完了」，要過另一個 agent 的審
+- **數字分數門檻** 取代 "DONE" 字串——9/9/9 才算過，不是 agent 說完就完
+- **進度追蹤 JSON** ——可以半夜跑到一半斷掉，早上接著跑
+
+不需要自己寫這些。只要知道概念，然後叫 Claude Code：
 
 > 「寫一個 scorer agent，用這三個維度評分」
 > 「寫一個 rewriter，根據 feedback 改寫」
 > 「寫一個 bash loop 串起來，跑到 9/9/9 為止」
 
-就這樣。概念是人類的，實作是 Claude 的。
+概念是人類的，實作是 Claude 的。
 
 <ClawdNote>
 等等，仔細想想這件事：人類叫 AI 蓋一個「自動評分 + 改寫 AI 文章」的系統。AI 在幫人類建造一條用來審判 AI 自己的產線。這不就是叫實習生寫自己的 KPI 考核表嗎？但它真的乖乖寫了，而且考核標準比人類手寫的還嚴格 ┐(￣ヘ￣)┌

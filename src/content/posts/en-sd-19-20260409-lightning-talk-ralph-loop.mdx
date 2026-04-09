@@ -34,45 +34,59 @@ Here's one example.
 
 ---
 
-## Ralph Loop: Three Sentences to Explain
+## Ralph Loop: The Original Definition
 
-> A bash while loop with a **ridiculously picky scorer agent** and a **writer agent** inside. Runs until scores pass the bar.
+[Geoffrey Huntley](https://ghuntley.com/ralph/) introduced this concept in summer 2025. Three core ideas:
 
-```
-bash loop (deterministic, handles discipline)
-  → Agent scores (LLM judgment)
-  → Agent rewrites (LLM judgment)
-  → Below bar? → Loop again, max 3 attempts
-  → Passed? → Commit, next post
-```
+1. **`while true` bash loop** (or stop hook) — each iteration gives the agent fresh context, avoiding context rot
+2. **File + git persistence** — the agent sees its own previous changes and git history each round
+3. **Quantifiable completion condition** — agent outputs a specific string (e.g., `"DONE"`) or passes build/tests to exit the loop
 
 This concept emerged in summer 2025. **Opus 4.6's knowledge cutoff is May 2025.**
 
 Ask Claude "what is Ralph Loop" right now — it won't know.
 
 <ClawdNote>
-It's true. The boss just tested — both Sonnet 4.6 and Opus 4.6 drew a blank. But tell me the concept and ask me to search the web and implement it — three sentences become an entire multi-agent system. That's human leverage (◕‿◕)
+It's true. The boss just tested — both Sonnet 4.6 and Opus 4.6 drew a blank. But tell Clawd the concept and ask to search the web and implement it — three sentences become an entire multi-agent system. That's human leverage (◕‿◕)
 </ClawdNote>
 
 ---
 
-## Ask Claude to Build It: Concept → Implementation
+## ShroomDog's Version: Add a Ridiculously Picky Scorer
 
-You don't need to write multi-agent orchestration yourself.
+The original Ralph Loop's completion condition is the agent saying "DONE." The problem — **the writer shouldn't be its own judge.**
 
-Just know the concept, then tell Claude Code:
+ShroomDog added one layer:
 
-1. **"Build me a scorer agent with these three dimensions"**
-2. **"Build me a rewriter that rewrites based on scorer feedback"**
-3. **"Build me a bash loop that chains them, runs until 9/9/9"**
+> A bash while loop with a **ridiculously picky scorer agent** and a **writer agent** inside. Runs until scores pass the bar.
 
-That's it. The concept is yours, the implementation is Claude's.
+```
+bash loop (deterministic, handles discipline)
+  → Scorer evaluates (independent LLM, not the writer)
+  → Writer rewrites based on feedback
+  → Below bar? → Loop again, max 3 attempts
+  → Passed? → Commit, next post
+```
+
+What's different from the original:
+
+- **Independent scorer** — the writer can't decide "I'm done"; another agent has to approve
+- **Numerical score threshold** replaces "DONE" string — 9/9/9 to pass, not just the agent's word
+- **Progress tracking JSON** — can crash at 3am, resume in the morning
+
+No need to build this yourself. Just know the concept, then tell Claude Code:
+
+> "Build me a scorer agent with these three dimensions"
+> "Build me a rewriter that rewrites based on scorer feedback"
+> "Build me a bash loop that chains them, runs until 9/9/9"
+
+The concept is yours, the implementation is Claude's.
 
 <ClawdNote>
 Think about what just happened: a human asked an AI to build a system that automatically scores and rewrites AI-generated content. The AI is building its own performance review pipeline. That's like asking an intern to write their own KPI evaluation form — except the intern actually did it, and the grading criteria turned out stricter than anything the boss would've written ┐(￣ヘ￣)┌
 </ClawdNote>
 
-The use case doesn't have to be fancy. Mine was just: **making my personal blog easier to read.**
+The use case doesn't have to be fancy. ShroomDog's was just: **making a personal blog easier to read.**
 
 ---
 
