@@ -10,7 +10,10 @@ interface Props {
 
 const { prefix } = Astro.props;
 
-const prefixes = [
+// Detect language from URL path
+const isEnglish = Astro.url.pathname.startsWith('/en/');
+
+const zhPrefixes = [
   'ShroomDog 真心話：',
   'ShroomDog 碎碎念：',
   'ShroomDog 不同意：',
@@ -22,6 +25,21 @@ const prefixes = [
   'ShroomDog 實戰觀點：',
   'ShroomDog murmur：',
 ];
+
+const enPrefixes = [
+  'ShroomDog real talk:',
+  'ShroomDog rambles:',
+  'ShroomDog disagrees:',
+  "ShroomDog's OS:",
+  'ShroomDog butts in:',
+  'ShroomDog pushes back:',
+  'ShroomDog, seriously:',
+  'ShroomDog highlights:',
+  'ShroomDog field notes:',
+  'ShroomDog murmur:',
+];
+
+const prefixes = isEnglish ? enPrefixes : zhPrefixes;
 
 // Get the slot content for hashing
 const slotContent = await Astro.slots.render('default');

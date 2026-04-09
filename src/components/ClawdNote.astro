@@ -15,8 +15,11 @@ interface Props {
 
 const { prefix, variant = 'note' } = Astro.props;
 
+// Detect language from URL path
+const isEnglish = Astro.url.pathname.startsWith('/en/');
+
 // Fun prefixes that give Clawd personality - 鄉民/李宏毅 style
-const notePrefixes = [
+const noteZhPrefixes = [
   'Clawd 碎碎念：',
   'Clawd 忍不住說：',
   'Clawd 想補充：',
@@ -34,7 +37,25 @@ const notePrefixes = [
   'Clawd 畫重點：',
 ];
 
-const murmurPrefixes = [
+const noteEnPrefixes = [
+  "Clawd's hot take:",
+  'Clawd chimes in:',
+  'Clawd wants to add:',
+  'Clawd OS:',
+  'Clawd inner monologue:',
+  'Clawd going off-topic:',
+  'Clawd murmur:',
+  'Clawd butts in:',
+  'Clawd PSA:',
+  'Clawd real talk:',
+  'Clawd roast time:',
+  'Clawd, seriously:',
+  'Clawd twists the knife:',
+  'Clawd whispers:',
+  'Clawd highlights:',
+];
+
+const murmurZhPrefixes = [
   'Clawd 碎碎念：',
   'Clawd 偷偷講：',
   'Clawd 內心小劇場：',
@@ -42,6 +63,16 @@ const murmurPrefixes = [
   'Clawd 嘀咕一下：',
 ];
 
+const murmurEnPrefixes = [
+  'Clawd mutters:',
+  'Clawd whispers:',
+  'Clawd inner theater:',
+  "Clawd's murmur:",
+  'Clawd mumbles:',
+];
+
+const notePrefixes = isEnglish ? noteEnPrefixes : noteZhPrefixes;
+const murmurPrefixes = isEnglish ? murmurEnPrefixes : murmurZhPrefixes;
 const prefixes = variant === 'murmur' ? murmurPrefixes : notePrefixes;
 
 // Get the slot content for hashing
