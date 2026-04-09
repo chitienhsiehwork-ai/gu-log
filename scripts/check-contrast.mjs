@@ -30,7 +30,7 @@ function hexToRgb(hex) {
 
 function relativeLuminance(hex) {
   const [r, g, b] = hexToRgb(hex).map((c) =>
-    c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4),
+    c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)
   );
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
@@ -50,11 +50,31 @@ function contrastRatio(fg, bg) {
 
 const MANIFEST = [
   // AiJudgeScore light theme
-  { fg: '#047857', bg: '#fdf6e3', context: 'light score-high', file: 'src/components/AiJudgeScore.astro' },
-  { fg: '#586e75', bg: '#fdf6e3', context: 'light score-pass', file: 'src/components/AiJudgeScore.astro' },
-  { fg: '#b71c1c', bg: '#fdf6e3', context: 'light score-fail', file: 'src/components/AiJudgeScore.astro' },
+  {
+    fg: '#047857',
+    bg: '#fdf6e3',
+    context: 'light score-high',
+    file: 'src/components/AiJudgeScore.astro',
+  },
+  {
+    fg: '#586e75',
+    bg: '#fdf6e3',
+    context: 'light score-pass',
+    file: 'src/components/AiJudgeScore.astro',
+  },
+  {
+    fg: '#b71c1c',
+    bg: '#fdf6e3',
+    context: 'light score-fail',
+    file: 'src/components/AiJudgeScore.astro',
+  },
   // ClawdNote light theme (orange on surface)
-  { fg: '#955330', bg: '#eee8d5', context: 'light clawd-orange on surface', file: 'src/components/ClawdNote.astro' },
+  {
+    fg: '#955330',
+    bg: '#eee8d5',
+    context: 'light clawd-orange on surface',
+    file: 'src/components/ClawdNote.astro',
+  },
 ];
 
 // ── Auto-scan: extract "color: #xxx; /* ... on #yyy */" patterns ────
@@ -100,7 +120,7 @@ if (args.length > 0) {
   const { execSync } = await import('node:child_process');
   const found = execSync(
     'find src/components src/styles -name "*.astro" -o -name "*.css" 2>/dev/null',
-    { cwd: repoRoot, encoding: 'utf-8' },
+    { cwd: repoRoot, encoding: 'utf-8' }
   )
     .trim()
     .split('\n')
@@ -140,7 +160,7 @@ for (const pair of allPairs) {
   if (!pass) {
     failures++;
     console.error(
-      `❌ FAIL  ${pair.fg} on ${pair.bg} → ${ratio.toFixed(2)}:1 (need ≥${THRESHOLD}:1)  ${loc}`,
+      `❌ FAIL  ${pair.fg} on ${pair.bg} → ${ratio.toFixed(2)}:1 (need ≥${THRESHOLD}:1)  ${loc}`
     );
     if (pair.context) {
       console.error(`         ${pair.context}`);
