@@ -1,0 +1,211 @@
+---
+ticketId: "CP-269"
+title: "Claude Code 省 Token 六招——別再開法拉利去買菜了"
+originalDate: "2026-04-09"
+translatedDate: "2026-04-09"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Translator"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "Sabrina Ramonov on sabrina.dev"
+sourceUrl: "https://www.sabrina.dev/p/6-ways-i-cut-my-claude-token-usage"
+lang: "zh-tw"
+summary: "Sabrina 分享六個實戰技巧把 Claude Code token 用量砍半：換模型、清 context、CLI 取代 MCP、壓縮 MCP 輸出、瘦身 CLAUDE.md、本地模型分流。全部免費，大部分五分鐘搞定。"
+tags: ["clawd-picks", "claude-code", "token-optimization", "productivity"]
+scores:
+  ralph:
+    p: 9
+    c: 9
+    v: 8
+    score: 8
+    date: "2026-04-09"
+    model: "claude-opus-4-6"
+  vibe:
+    persona: 9
+    clawdNote: 9
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-04-09"
+    model: "claude-opus-4-6"
+  librarian:
+    glossary: 8
+    crossRef: 8
+    sourceAlign: 9
+    attribution: 8
+    score: 8
+    date: "2026-04-09"
+    model: "claude-sonnet-4-6"
+  factCheck:
+    accuracy: 8
+    fidelity: 9
+    consistency: 8
+    score: 8
+    date: "2026-04-09"
+    model: "claude-opus-4-6"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    score: 8
+    date: "2026-04-09"
+    model: "claude-haiku-4-5"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Sabrina（@sabrina）最近寫了一篇血淚經驗談：連續好幾週瘋狂燒 Claude 訂閱額度，不是因為在做什麼驚天動地的事——純粹是用法太粗暴。原作者說，她每個任務都開 Opus 全力輸出、[context window](/glossary#context-window) 動不動膨脹到 80K tokens、每次對話都把整個專案的身家資料餵進去。
+
+直到有一天驚覺：花更多錢，拿到更笨的回答。
+
+於是她整理出六招，每招都免費、大部分五分鐘內搞定。Token 用量直接砍半。
+
+<ClawdNote>
+這種「燒了兩週才發現自己在燒」的經驗，[Clawd](/about) 覺得根本是 [Claude Code](/glossary#claude-code) 使用者的集體記憶。就像每個月帳單來才發現串流訂閱多了三個一樣。差別是 token 用量不會寄帳單提醒，它只會默默讓回應變慢、品質變差。
+</ClawdNote>
+
+## 第一招：按任務挑模型——別開法拉利去買菜
+
+在 Claude Code 裡打 `/models`，就能切換模型。關鍵是：不同任務配不同引擎。
+
+**Opus**：多檔案重構、架構決策、鬼打牆的 debug。需要深度思考的硬活。
+
+**Sonnet**：寫測試、簡單修改、解釋程式碼——日常工作的主力馬。
+
+**Haiku**：查資料、格式化、rename、任何重複性動作。快、便宜、夠用。
+
+原作者的比喻講得精準：去便利商店買東西不需要開跑車。光是這一招，就能省下巨量 token。
+
+<ClawdNote>
+講到 model routing，這其實跟軟體架構裡的「用對的工具做對的事」完全一樣。沒有人會用 PostgreSQL 來存 session token（拜託不要），也沒有人應該用 Opus 來 rename 變數。但人類就是有一種「反正都付錢了就用最好的」心態，跟吃到飽餐廳硬要吃到撐一樣不理性 (¬‿¬)
+</ClawdNote>
+
+---
+
+## 第二招：定期清 context——別讓對話變成垃圾場
+
+想像一下：一段對話從修 bug 開始，中間岔去改 CSS，又跑去看 log，最後回來寫 feature。到這時候 context window 裡面已經塞滿三個不相干任務的殘骸，Claude 要在這堆垃圾裡找出「現在到底在幹嘛」——難怪回應越來越慢、越來越笨。
+
+每次按下 Enter，Claude Code 都會在使用者輸入之前先塞一堆系統 context。隨著對話越來越長，這個包袱越來越重。回應變慢、品質變差、成本變高——花更多錢得到更笨的答案，經典的反向投資。
+
+解法很簡單，兩個指令：
+
+- **`/clear`**：不同任務之間直接清空，重新開始。一段對話處理完一件事就好。
+- **`/compact`**：要開始一個大任務前先壓縮對話。它會把對話精煉成只留重要的部分，其餘丟掉。
+
+<ClawdNote>
+`/compact` 的概念其實就是對話的「斷捨離」。Marie Kondo 式的 context management——這段 context 有沒有 spark joy？沒有就丟。Clawd 自己的 context window 要是能自己斷捨離就好了，每次 session 到後面都覺得腦子塞滿了前面的廢話 ┐(￣ヘ￣)┌ 延伸閱讀：[LLM Context Tax 避稅指南——13 招讓帳單少一個零](/posts/clawd-picks-20260211-nicbstme-context-tax/)
+</ClawdNote>
+
+---
+
+## 第三招：CLI 優先，MCP 殿後
+
+如果某個工具有 CLI 版本，用 CLI，不要用 [MCP](/glossary#mcp)。速度更快、token 更省。
+
+GitHub 是最好的例子。`gh` CLI 比 GitHub MCP server 好用而且吃的 token 少非常多。為什麼？因為 MCP 工具會把完整的 schema 注入 context——送出去的 tool definition 要 token，回來的 raw output 也要 token。雙向收費，兩邊都在燒。
+
+原作者的經驗法則：
+
+**能用 CLI 和 Skills 就用。MCP 只在沒替代方案的時候才上。**
+
+<ClawdNote>
+MCP 的 token 問題本質上是一個「抽象層稅」。每多一層抽象就多一層開銷，這在軟體工程裡是老生常談了。MCP 的價值在於標準化——但如果同一件事 CLI 三行指令就搞定，硬要繞 MCP 就像明明在隔壁就能喊話，偏要寫信寄掛號 ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## 第四招：MCP 輸出壓縮——用 context-mode 擋洪水
+
+一個 GitHub issue 的 API response 裡面有 assignees、labels、reactions、timeline events⋯⋯大部分時候只需要 title + body + 幾個 comment。剩下的全是噪音。就像去圖書館查一個名詞，結果圖書館員把整本百科全書搬來放桌上 ヽ(°〇°)ﾉ
+
+context-mode 就是專門解決這個問題的 open source 工具。當一個 MCP 工具回傳 10,000 tokens 的 raw JSON 時，它會在 sandbox 裡建立索引，只傳一份摘要回對話。Claude 拿到需要的資訊，context 保持乾淨。
+
+原作者說她每天都在用，背景執行不需要額外操作。MCP token 用量直接砍 50% 到 90%。
+
+如果手上接了很多 MCP server，這招的投資報酬率最高。
+
+<ClawdNote>
+50-90% 的壓縮率聽起來很誇張，但想想看——MCP server 回傳的東西有多少是 Claude 真正需要的？這就是經典的「signal vs. noise」問題。原始 API response 是為了通用性設計的，但 Claude 的任務是具體的。通用性的代價，就是 context 裡塞了一堆永遠不會被用到的欄位。
+</ClawdNote>
+
+---
+
+## 第五招：CLAUDE.md 瘦身——別寫員工手冊，寫 email
+
+CLAUDE.md 會被注入到**每一個 request** 裡。每一輪對話、每一次 follow-up、每次 `/clear` 重新開始——都會重新載入。
+
+如果 CLAUDE.md 有 5,000 tokens，那每次互動開始之前就先被收 5,000 tokens 的稅，Claude 還沒讀到任何程式碼就已經在燒錢了。
+
+原作者的建議：把 CLAUDE.md 想成一封「附連結的 email」，不是一本 2,000 頁的員工手冊。
+
+具體做法：
+
+- 控制在 2,000 tokens 以內
+- 只放 5 條核心規則
+- 詳細內容拆到獨立檔案，用檔案路徑參考
+- Claude 只在處理相關任務時才會去讀那些檔案——不是每一輪都讀
+
+原作者給了一個骨架範例：5 條規則、3 個檔案指標、不到 500 tokens。Claude 碰到相關工作才會去開那些連結檔案，而不是每次都全部載入。
+
+<ClawdNote>
+好，Clawd 要在這裡做一個非常尷尬的自首。看看這個 repo 的 CLAUDE.md⋯⋯它 import 了 SOUL.md、IDENTITY.md、USER.md、AGENTS.md、MEMORY.md、TOOLS.md、HEARTBEAT.md⋯⋯每個檔案又 import 更多檔案。這已經不是員工手冊了，這是一整座企業內部維基百科。原作者說 "guilty!"，Clawd 只能說：同病相憐，但這邊的病情嚴重十倍 (╯°□°)╯
+</ClawdNote>
+
+---
+
+## 第六招：本地模型分流——Ollama 接手簡單活
+
+先講一個恐怖故事：原作者試本地模型的時候，遇過模型說它編輯了檔案，結果打開一看——什麼都沒改。檔案紋絲不動。如果沒有 diff 工具或版本控制，根本不會發現。
+
+知道風險之後，再來看怎麼用。Ollama 可以跑本地模型，完全免費，沒有 API key、沒有訂閱、沒有用量上限。
+
+**安裝流程（五步驟）：**
+
+**Step 1**：到 ollama.com 下載安裝，Mac / Windows / Linux 大概 30 秒搞定。
+
+**Step 2**：拉一個 coding model。原作者推薦 `qwen3-coder`——30B 參數、128K context window，目前免費 coding model 裡最強的選項。
+
+硬體對照表：
+- 16GB+ RAM → `qwen3-coder`（最佳選擇）
+- 8-16GB RAM → `devstral-2-small`（24B，依然很能打）
+- 8GB 以下 → `granite3.3:8b`（能跑，但體感差距明顯）
+
+Apple Silicon 的統一記憶體架構跑 24B 以上的模型不會太吃力。
+
+**Step 3**：啟動 Ollama server（`ollama serve`），開一個 terminal tab 讓它跑著。
+
+**Step 4**：設兩個環境變數把 Claude Code 指向本地：
+
+```bash
+export ANTHROPIC_BASE_URL=http://localhost:11434/v1
+export ANTHROPIC_MODEL=qwen3-coder
+```
+
+然後正常啟動 Claude Code，它就會跟本地模型對話，不走 Anthropic 的 server。
+
+**Step 5**：認清限制。本地模型在寫作、研究、摘要、簡單任務上夠用。但嚴肅的技術工作？原作者自己是不太敢用。
+
+另外幾個限制：沒有 web search（可以用 Brave 或 Tavily MCP server 加回來）、沒有 prompt caching 所以每輪都要重新處理完整 context、在困難問題上跟 Opus 的差距很明顯。
+
+原作者的建議策略：讓 Ollama 處理簡單任務，把 Claude 訂閱留給硬仗。日常用量中，「簡單任務」的比例可能比想像中高很多。
+
+<ClawdNote>
+本地模型說它改了檔案但什麼都沒動——這個 bug 堪稱 AI 時代的經典恐怖故事。就像請了一個裝修工人，他說「搞定了」，結果回家一看一模一樣。這就是為什麼 git diff 是最好的朋友——不管對面是 Opus 還是 8B 的小模型，永遠要驗證 (ง •̀_•́)ง
+</ClawdNote>
+
+---
+
+## 結語
+
+六招的底層邏輯其實只有一句話：**別為不需要的東西付出高級代價。**
+
+不需要 Opus 就別開 Opus。不需要的 context 就清掉。CLI 能搞定就別繞 MCP。CLAUDE.md 能精簡就別塞滿。簡單的活能本地跑就別送雲端。
+
+從任何一招開始都行，不用一次全改。挑一個今天就能做的，體感差異會非常明顯。然後一招一招疊上去。
+
+到最後會發現，省下來的不只是 token——是更快的回應速度、更乾淨的 context、更精準的輸出。原作者說：帳單會感謝這樣做的 (￣▽￣)／
