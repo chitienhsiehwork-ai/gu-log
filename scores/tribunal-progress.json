@@ -1169,5 +1169,80 @@
     "status": "FAILED",
     "failedStage": "vibe",
     "finishedAt": "2026-04-09T02:24:28+08:00"
+  },
+  "cp-pending-20260409-sabrina-claude-code-token.mdx": {
+    "article": "cp-pending-20260409-sabrina-claude-code-token.mdx",
+    "startedAt": "2026-04-09T10:20:38+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "All three relevant glossary terms in the post body are properly linked: context-window (line 36), Claude Code (line 43), MCP (line 83); 'token' is not a glossary entry so no penalty.",
+            "crossRef": "Clawd's first mention (line 43, ClawdNote #1) correctly links to /about; cross-reference to /posts/clawd-picks-20260211-nicbstme-context-tax/ (line 76) resolves to a verified existing file; no broken internal links detected.",
+            "sourceAlign": "Source URL slug '6-ways-i-cut-my-claude-token-usage' exactly matches the post's six-technique structure; all six sections (model routing, /clear+/compact, CLI-over-MCP, context-mode, CLAUDE.md trim, Ollama) are clearly derived from the declared sourceUrl.",
+            "attribution": "Consistent '原作者說/建議/的建議' attribution throughout body; 50-90% MCP compression stat attributed to 原作者; ClawdNote opinions cleanly contained in ClawdNote blocks; minor gap: Ollama hardware RAM tier table lacks explicit '原作者' prefix on the table rows themselves, though the surrounding section makes attribution clear."
+          }
+        },
+        "model": "sonnet",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factChecker",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Core technical claims are solid: `/models`, `/clear`, `/compact` commands are real; CLAUDE.md-per-request injection is accurate; `ANTHROPIC_BASE_URL` override for Ollama is correct. Two flags: (1) `qwen3-coder` and `devstral-2-small` model identifiers can't be verified against primary sources — plausible for April 2026 but no citation. (2) The 50–90% context-mode compression stat is presented as author experience ('原作者說她每天都在用'), which is properly hedged. No materially misleading claims.",
+            "fidelity": "Source attribution is consistently maintained via '原作者說' and '原作者的建議' framing throughout. Key caveats from the source are preserved: local model hallucination horror story retained in full, limitations of local models (no prompt caching, no web search, quality gap vs Opus) all present. No uncertainty erasure detected — the post does not upgrade 'might' to 'is'. ClawdNotes are clearly separated from source content.",
+            "consistency": "Six-tip structure is logically coherent; each tip follows from the same underlying principle stated explicitly in the conclusion ('別為不需要的東西付出高級代價'). The self-referential ClawdNote in Tip 5 (acknowledging the repo's own bloated CLAUDE.md) is consistent rather than contradictory — it strengthens the point. No contradictions between sections; argument flows cleanly from problem (accumulated context = higher cost + worse quality) through solutions to unified conclusion."
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Clear headings per tip, accessible analogies (法拉利買菜, Marie Kondo context, 圖書館員搬百科全書) make abstract token costs concrete; the Ollama 5-step section is especially scannable and beginner-friendly; MCP and context-window are linked/explained rather than dropped cold.",
+            "firstImpression": "Title hook '別再開法拉利去買菜了' is immediately memorable; opening 'two-week burn → worse answers' story is relatable; the CLAUDE.md self-roast ClawdNote is the post's funniest moment and makes you want to share it; ending is slightly listy but the kaomoji landing is warm enough to land."
+          }
+        },
+        "model": "haiku",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "fail",
+        "score": null,
+        "model": "opus",
+        "attempts": 3
+      }
+    },
+    "status": "FAILED",
+    "failedStage": "vibe",
+    "finishedAt": "2026-04-09T10:32:25+08:00"
   }
 }
