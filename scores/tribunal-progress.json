@@ -1547,5 +1547,56 @@
     },
     "status": "PASS",
     "finishedAt": "2026-04-09T19:54:36+08:00"
+  },
+  "cp-pending-20260410-semianalysis-typescript-claude-code-60-ai.mdx": {
+    "article": "cp-pending-20260410-semianalysis-typescript-claude-code-60-ai.mdx",
+    "startedAt": "2026-04-10T00:36:15+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 8,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Agent, Claude Code, and Context Window all linked at first mention via /glossary anchors (lines 33, 50, 61, 74, 218); no other glossary.json terms appear in the body, so coverage is complete.",
+            "crossRef": "All 4 internal /posts/ links resolve (cp-269-sabrina, cp-270-pragmaticengineer, cp-271-bcherny, clawd-picks-20260207-semianalysis); no ShroomDog/Clawd body mentions requiring /about identity links; thematic cross-refs are well-chosen and contextually grounded.",
+            "sourceAlign": "Core thesis (TypeScript as assembly language, 60萬行 source leak) directly matches @SemiAnalysis_ tweet; secondary sources (Seemann, Sabrina.dev, Engineers Codex) are explicitly framed as downstream analysis of the same event — appropriate for CP multi-synthesis format.",
+            "attribution": "SemiAnalysis, Boris Cherny, Ryan Dahl, Karpathy, Malte Ubl, Mark Seemann, Sabrina.dev, and Engineers Codex all properly attributed; retry metrics (1,279 sessions, 3,272 retries) attributed to Engineers Codex (line 129); one minor gap: 'If it's manual, it will be skipped' cited as quoted by Sabrina but original speaker unnamed."
+          }
+        },
+        "model": "sonnet",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "fail",
+        "score": {
+          "judge": "factChecker",
+          "dimensions": {
+            "accuracy": 7,
+            "fidelity": 7,
+            "consistency": 8
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Technical concepts are sound (parser differential, three-layer memory architecture, anti-distillation, context compaction attack surface) but multiple specific statistics — 1,279 sessions, 3,272 retries per session, 250k wasted API calls on 2026-03-10, 4% of public GitHub commits — come from secondary analyses (Engineers Codex, SemiAnalysis data) with no independently verifiable primary source; the 'zero prevention measures between the two leaks' claim is stated with high certainty ('零。完全沒有。') but is Sabrina.dev's interpretation, not a documented fact.",
+            "fidelity": "The declared sourceUrl is a single SemiAnalysis tweet but the post synthesizes at least four distinct sources (SemiAnalysis, Engineers Codex, Sabrina.dev, Mark Seemann) plus multiple third-party quotes; each source is attributed inline in the body, but the SemiAnalysis tweet alone cannot contain Engineers Codex retry data or Seemann's type-system thesis — the meta-attribution is misleading; the 'zero prevention' conclusion and the '每天 25 萬次' headline are stated with more certainty than secondary-source analysis warrants.",
+            "consistency": "Logical structure is coherent: leak → architecture findings → agent modes → ironic anti-distillation → security vulnerabilities → type-system implications → closing synthesis; ClawdNotes are clearly separated from body text throughout; the Note challenging the '100% AI-generated from day one' framing shows appropriate critical marking rather than inconsistency; no internal contradictions found between sections."
+          }
+        },
+        "model": "opus",
+        "attempts": 2
+      }
+    },
+    "status": "FAILED",
+    "failedStage": "factChecker",
+    "finishedAt": "2026-04-10T02:15:54+08:00"
   }
 }
