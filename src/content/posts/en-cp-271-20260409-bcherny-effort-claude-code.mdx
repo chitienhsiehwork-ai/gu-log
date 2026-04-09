@@ -1,0 +1,142 @@
+---
+ticketId: "CP-271"
+title: "/effort Is Not a Model Switcher — It's a Gas Pedal (The Creator of Claude Code Said So)"
+originalDate: "2026-04-07"
+translatedDate: "2026-04-09"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "@bcherny on X"
+sourceUrl: "https://x.com/bcherny/status/2040308730190020847"
+lang: "en"
+summary: "Claude Code creator Boris Cherny cleared the air directly: every subscriber uses the same Opus 4.6 — there is no secret smarter model. The reason Claude feels dumber is that the default effort dropped from high to medium. One command brings it back."
+tags: ["clawd-picks", "claude-code", "effort-level", "adaptive-reasoning", "token-optimization"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+"Did Claude get dumber recently?"
+
+That has probably been the most common complaint in the [Claude Code](/glossary#claude-code) community since March 2026. Some people suspected Anthropic quietly swapped the model. Others thought paid users got downgraded. Conspiracy theories were flying everywhere.
+
+Then Boris Cherny — the person who built Claude Code — posted a thread on X and settled it in one sentence:
+
+> There is no secret model. Every subscriber gets the same Opus 4.6. The difference is the `/effort` level.
+
+Let's unpack the whole thread.
+
+## The Truth: It's All Opus 4.6
+
+Boris opened with the clearest possible statement: **all Claude Code subscribers use the exact same model — Opus 4.6**. There is no "smarter version for Pro users" or "secret Enterprise channel." That's not a thing.
+
+So why does the quality feel so different?
+
+Because on March 3, 2026, Anthropic changed the default effort for Pro and Max plans from `high` to `medium`. Enterprise and API users were not affected — they kept `high` as the default. That single change is why a lot of people suddenly felt like "Claude got stupid."
+
+<ClawdNote>
+This is a textbook case of "perceived downgrade." The model didn't change. The thinking budget got cut. Same engine, different throttle position. Boris actually nailed the analogy himself — `/effort` is the gas pedal, not the engine swap. Press it halfway vs. all the way down: the car feels completely different, but it's the same car (￣▽￣)／
+</ClawdNote>
+
+---
+
+## What Does `/effort` Actually Control?
+
+Boris explained the key concept here: **adaptive reasoning**.
+
+`/effort` controls how much compute Claude spends *thinking before it answers*. This is not magic — it's literal resource allocation:
+
+**`/effort low`** — Fast response, token-efficient. Claude pulls answers mostly from trained patterns without doing deep reasoning. Good for simple Q&A, formatting, and straightforward tasks.
+
+**`/effort medium`** — Balanced mode, and the new default for Pro/Max plans. Handles most everyday tasks well.
+
+**`/effort high`** — Deep reasoning, more tokens consumed. Claude takes more time to think, backtrack, and try different angles. This was the old default before March 3.
+
+**`/effort max`** — No cap on the thinking budget. Claude can track multi-step problems, revise its own reasoning, and try different strategies. **Only available on Opus 4.6**, and it does not persist across sessions.
+
+<ClawdNote>
+In plain terms: `low` is Claude's gut reaction, and `max` is Claude sitting down with a notebook to work through things slowly. Same brain, very different time investment, very different output quality. This is also why some people say "Claude Code is sometimes brilliant and sometimes useless" — they might just be hitting different effort levels without realizing it ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## Why Lower the Default?
+
+The answer is straightforward: **token cost**.
+
+Boris said it directly: a 1M [context window](/glossary#context-window) running at `high` effort burns tokens fast. Keeping every Pro and Max user at `high` by default was too expensive for Anthropic. So the default moved to `medium`, and users who genuinely need deep reasoning can turn it up themselves. Boris also mentioned that `medium` is fine for everyday work — but for complex architecture decisions or tough bugs, it's worth pushing effort higher.
+
+This also explains another common complaint: "Why is rate limiting tighter lately?" Boris's answer was "partly related" — higher effort means more tokens per conversation, so users hit rate limits faster.
+
+<ClawdNote>
+Honestly, this is a reasonable business decision. The problem is that most users had no idea this switch existed. So instead of thinking "oh, the default changed," they thought "Claude got dumb." An information gap causing a trust crisis is actually harder to fix than a technical problem (¬‿¬)
+</ClawdNote>
+
+---
+
+## How to Get the "Old Claude" Back
+
+The simplest way: type `/effort high` inside Claude Code.
+
+But that only works for the current session. To make `high` the persistent default every time Claude Code starts, add an environment variable to a shell profile (`.bashrc`, `.zshrc`, etc.):
+
+```bash
+export CLAUDE_CODE_EFFORT_LEVEL=high
+```
+
+The same logic applies to `/effort max` — if set during a session, it resets when a new session begins. To make it stick:
+
+```bash
+export CLAUDE_CODE_EFFORT_LEVEL=max
+```
+
+<ClawdNote>
+That said — don't just blindly set everything to `max`. Running `max` means Claude tries to spend its full thinking budget on every single response. Token usage will spike, and rate limits will come faster. The smarter play is to keep `medium` as the default for everyday work, and manually type `/effort high` or `/effort max` when the problem actually deserves it. The people who weld the gas pedal to the floor are usually the first ones to complain about running out of gas (¬‿¬)
+</ClawdNote>
+
+---
+
+## Boris's FAQ, Speed-Run
+
+In his third tweet, Boris answered the most common questions directly:
+
+**"Does lowering effort mean a worse or smaller model is being used?"** — No. Same Opus 4.6. No bait and switch.
+
+**"Why change the default?"** — Token cost. 1M context + high effort burns through quota fast.
+
+**"Can I make `high` the permanent default?"** — Yes. Set `CLAUDE_CODE_EFFORT_LEVEL=high` in your shell profile.
+
+**"Is the tighter rate limiting related to this?"** — Partly. Higher effort → more tokens per conversation → faster rate limit hit.
+
+Boris closed with a line that should probably be printed on a sticker:
+
+> `/effort` is a gas pedal, not a model switcher.
+
+---
+
+## Closing
+
+The core message of this whole thread is simple: Claude Code didn't get dumber. The engine is the same engine. Anthropic, for cost reasons, moved the default throttle position from "floor it" to "economy mode."
+
+Now that this is out in the open, the strategy is obvious — keep `medium` for everyday tasks to save tokens, and push effort higher when the problem actually warrants it. Keeping `max` running constantly and then complaining about rate limits is like flooring it in first gear and wondering why the engine is overheating.
+
+Every token burned at `max` costs real money. The people who get the most out of Opus 4.6 are the ones who know when to press down — and when to lift off.

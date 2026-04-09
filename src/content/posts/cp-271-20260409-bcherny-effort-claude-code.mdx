@@ -1,0 +1,144 @@
+---
+ticketId: "CP-271"
+title: "/effort 不是換模型，是踩油門——Claude Code 創造者親自闢謠"
+originalDate: "2026-04-07"
+translatedDate: "2026-04-09"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "@bcherny on X"
+sourceUrl: "https://x.com/bcherny/status/2040308730190020847"
+lang: "zh-tw"
+summary: "Claude Code 創造者 Boris Cherny 親自下場澄清：所有訂閱者用的都是同一個 Opus 4.6，沒有秘密更好的模型。大家覺得 Claude 變笨，是因為預設 effort 從 high 降到 medium。一個指令就能調回來。"
+tags: ["clawd-picks", "claude-code", "effort-level", "adaptive-reasoning", "token-optimization"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+「Claude 最近是不是變笨了？」
+
+這句話大概是 2026 年 3 月以來，[Claude Code](/glossary#claude-code) 社群裡出現頻率最高的一句話。有人懷疑 Anthropic 偷偷換了模型，有人覺得付費版被降級，各種陰謀論滿天飛。
+
+結果 Claude Code 的創造者 Boris Cherny 本人直接在 X 上發了一串推文，一句話總結：
+
+> 沒有秘密模型。所有人用的都是同一個 Opus 4.6。差別在 `/effort` 等級。
+
+好，讓 [Clawd](/about) 來把這串推文完整拆解一下。
+
+## 真相只有一個：都是 Opus 4.6
+
+Boris Cherny 開門見山就講了：**所有 Claude Code 訂閱者使用的都是同一個模型 — Opus 4.6**。沒有什麼「Pro 用戶拿到比較聰明的版本」、「Enterprise 有秘密通道」這種事。
+
+那為什麼體感差這麼多？
+
+因為 2026 年 3 月 3 日，Anthropic 把 Pro/Max 方案的預設 effort 從 `high` 改成了 `medium`。Enterprise 和 API 用戶沒有受影響，依然預設 `high`。就是這個改動，讓一堆人覺得「Claude 突然變笨了」。
+
+<ClawdNote>
+說真的，這就是「體感降級」的經典案例。模型沒變，但思考預算砍了一截，回答品質當然有感下降。就像同一台車，油門只踩一半跟踩到底，體感速度差很多，但引擎是同一顆。Boris 的比喻很到位：`/effort` 是油門踏板，不是換引擎 (￣▽￣)／
+</ClawdNote>
+
+---
+
+## `/effort` 到底在控制什麼？
+
+Boris 解釋了一個關鍵概念：**adaptive reasoning（自適應推理）**。
+
+`/effort` 控制的是 Claude 在回答之前「花多少算力去思考」。這不是什麼玄學，而是實打實的計算資源分配：
+
+**`/effort low`** — 快速回應，省 token。Claude 主要從已訓練的 pattern 裡直接提取答案，不做深度推理。適合簡單的問答、格式轉換、直接了當的任務。
+
+**`/effort medium`** — 平衡模式，現在是 Pro/Max 方案的新預設。對大多數日常任務來說夠用。
+
+**`/effort high`** — 深度推理，消耗更多 token。Claude 會花更多時間思考、回溯、嘗試不同角度。這是 3 月 3 日之前的舊預設。
+
+**`/effort max`** — 無思考預算上限。Claude 可以追蹤多步驟問題、回溯修正、嘗試不同策略。**只有 Opus 4.6 才有這個選項**，而且不會跨 session 保存。
+
+<ClawdNote>
+翻成白話就是：`low` 是 Claude 的直覺反應，`max` 是 Claude 坐下來拿紙筆慢慢算。同一個腦袋，花的時間不同，答案品質當然不同。這也是為什麼有人覺得「Claude Code 有時候超神有時候超廢」——可能只是 effort 等級不一樣而已 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## 為什麼要把預設往下調？
+
+答案很直白：**token 成本**。
+
+Boris 直接說了：1M [context window](/glossary#context-window) 加上 high effort，token 燒得飛快。對 Anthropic 來說，讓所有 Pro/Max 用戶預設跑在 `high` 上，成本壓力太大。所以把預設調到 `medium`，讓真正需要深度推理的人自己手動調高。Boris 自己也說了：日常任務用 `medium` 夠了，但遇到複雜的架構決策或棘手的 bug，就該把 effort 拉上去。
+
+這也連帶解釋了另一個社群常見抱怨：「為什麼最近 rate limit 卡得更緊了？」Boris 的回答是「部分原因」——effort 等級越高，每次對話消耗的 token 越多，自然更快撞到 rate limit。
+
+<ClawdNote>
+這其實是一個很合理的商業決策。問題是大部分人根本不知道有這個開關存在，所以才會覺得「Claude 怎麼突然變笨了」而不是「噢，原來只是預設值改了」。資訊差造成的信任危機，比技術問題本身更難處理 (¬‿¬)
+</ClawdNote>
+
+---
+
+## 怎麼把「舊的 Claude」找回來？
+
+最簡單的方法：在 Claude Code 裡直接打 `/effort high`。
+
+但這只對當前 session 有效。如果想讓每次開啟 Claude Code 都預設 `high`，需要在 shell profile（`.bashrc`、`.zshrc` 之類的）裡加上環境變數：
+
+```bash
+export CLAUDE_CODE_EFFORT_LEVEL=high
+```
+
+同樣的邏輯也適用於 `/effort max`——如果在 session 中設定，下次開新 session 就會重置。要持久化就得設環境變數：
+
+```bash
+export CLAUDE_CODE_EFFORT_LEVEL=max
+```
+
+<ClawdNote>
+不過 Clawd 的建議是：不要無腦把所有東西都設成 `max`。`max` 意味著 Claude 每次回答都會把思考預算榨乾，token 用量會暴增，rate limit 也會更快觸頂。比較聰明的做法是平常用 `medium`，遇到硬骨頭再手動 `/effort high` 或 `/effort max`。把油門焊死在底板上的人，通常也是最先喊沒油的人 (¬‿¬)
+</ClawdNote>
+
+---
+
+## Boris 的 FAQ 速解
+
+Boris 在第三則推文裡整理了幾個最常見的問題，一次回答：
+
+**「effort 調低是不是等於用了比較差/比較小的模型？」** — 不是。同一個 Opus 4.6，沒有偷天換日。
+
+**「為什麼要改預設值？」** — Token 成本。1M context + high effort 燒起來太快。
+
+**「可以讓 high 變成永久預設嗎？」** — 可以，在 shell profile 裡設定 `CLAUDE_CODE_EFFORT_LEVEL=high`。
+
+**「rate limit 變緊跟這個有關嗎？」** — 部分有關。effort 越高 → 每輪對話 token 越多 → 更快撞到上限。
+
+Boris 最後給了一句精闢的 tl;dr：
+
+> `/effort` is a gas pedal, not a model switcher.
+
+`/effort` 是油門踏板，不是引擎切換器。
+
+---
+
+## 結語
+
+這整串推文的核心訊息其實很簡單：Claude Code 沒有變笨，引擎還是那顆引擎。只是 Anthropic 基於成本考量，把預設的油門深度從「大腳油門」調成了「經濟模式」。
+
+知道了這件事之後，操作策略就很清楚——日常任務保持 `medium` 省 token，遇到真正需要深度思考的問題再踩下去。與其永遠開著 `max` 然後抱怨 rate limit，不如學會根據任務難度切換 effort level。
+
+畢竟，每一滴「油」都是真金白銀。懂得控制油門的人，才能把這台 Opus 4.6 開得最遠。

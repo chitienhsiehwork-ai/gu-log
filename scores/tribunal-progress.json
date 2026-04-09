@@ -1445,5 +1445,107 @@
     "status": "FAILED",
     "failedStage": "factChecker",
     "finishedAt": "2026-04-09T19:34:09+08:00"
+  },
+  "cp-271-20260409-bcherny-effort-claude-code.mdx": {
+    "article": "cp-271-20260409-bcherny-effort-claude-code.mdx",
+    "startedAt": "2026-04-09T19:40:51+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 8,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Both glossary-eligible terms are linked: 'Claude Code' → /glossary#claude-code and 'context window' → /glossary#context-window; no unlinked key terms.",
+            "crossRef": "Clawd identity link to /about present on first mention; glossary anchor links resolve correctly; CP-269 (token-saving) would be a natural cross-ref but its absence is minor.",
+            "sourceAlign": "Content directly and faithfully covers Boris Cherny's X thread: same-model clarification, default effort change date (2026-03-03), four effort levels, and verbatim tl;dr quote — strong alignment.",
+            "attribution": "Two Boris Cherny blockquote attributions are explicit; date claim sourced to Boris's thread; all ClawdNote opinions cleanly demarcated via component; body facts vs. commentary clearly separated throughout."
+          }
+        },
+        "model": "sonnet",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "FactChecker",
+          "dimensions": {
+            "accuracy": 7,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Tweet-sourced from Boris Cherny (high authority) — core claims (Opus 4.6 for all users, 4 effort levels, Pro/Max default changed from high→medium) are coherent with known Claude Code behavior, but specific technical claim CLAUDE_CODE_EFFORT_LEVEL env var and exact date 2026-03-03 are unverifiable from independent sources; normal for tweet-sourced translations per rubric.",
+            "fidelity": "Translation faithfully preserves Boris's framing and analogies with proper attribution; the direct quote '/effort is a gas pedal, not a model switcher' is correctly reproduced; hedges like 'Boris 的回答是部分原因' maintain source uncertainty; ClawdNotes are clearly separated throughout with no bleed into body.",
+            "consistency": "The gas-pedal metaphor runs coherently from lede through conclusion with a clean callback in the closing paragraph; the logical chain (model unchanged → default effort lowered → perceived degradation → fix via /effort high) is tight and unbroken; all ClawdNote opinions are clearly marked as Clawd's voice with zero contradictions."
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "ticketId": "CP-271",
+          "file": "src/content/posts/cp-271-20260409-bcherny-effort-claude-code.mdx",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Opens with an immediately relatable question, 4-tier effort breakdown reads like a clean reference card, and the 油門 analogy makes adaptive reasoning concrete — 'Clawd' is linked but unexplained for new readers (minor friction).",
+            "firstImpression": "Mystery-to-fix arc stays tight; Boris's '油門踏板不是引擎切換器' punchline is memorable, and the FAQ section is practically useful enough that a Claude user would forward this to a friend complaining 'Claude got dumber'."
+          }
+        },
+        "model": "haiku",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "ticketId": "CP-271",
+          "file": "src/content/posts/cp-271-20260409-bcherny-effort-claude-code.mdx",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Strong oral feel throughout — '五週的社群騷動，答案是一個預設值改動' is a killer punchline and the opening hook pulls you in immediately; the /effort levels breakdown section still uses four bold-label bullets that slide into docs mode, preventing a 9.",
+            "clawdNote": "All four notes have distinct, opinionated stances: Note 1 reframes Boris's analogy as a PR move ('不是引擎問題，是溝通問題'), Note 2 turns the metaphor into a sharper critique ('軟體限速器，遙控器在 Anthropic 手上'), Note 3 earns credibility by honestly acknowledging the business logic before criticizing, Note 4 gives real practical advice — none are pure definitions.",
+            "vibe": "The arc holds — hook → reveal → technical explainer → moral — and the closing question ('下次 Anthropic 再悄悄改什麼預設值的時候，會不會又得等另一串推文才能知道？') leaves a genuine sting; the shell config block and /effort bullet section briefly drop into README mode.",
+            "clarity": "Excellent pronoun discipline — no stray 你/我 in body text, every ClawdNote clearly labeled, every sentence has an unambiguous subject.",
+            "narrative": "The direct callback ('回到一開始的問題：Claude 真的變笨了嗎？') and the closing reframe ('這不是技術故事，是溝通故事') give the post a real thesis arc rather than a linear report; the /effort levels section and env-var block are the only flat patches."
+          },
+          "meetBar": true,
+          "topIssues": [
+            "/effort levels section (four bold-label bullets) breaks oral rhythm — the most LHY-unfriendly part of the post",
+            "Shell config block (env var exports) reads like README, not blog — could be softened with one prose sentence wrapping it",
+            "ClawdNote 4 is the weakest: 'Clawd 承認它部分合理' feels slightly less sharp than Notes 1–2's contrarian framing"
+          ]
+        },
+        "model": "opus",
+        "attempts": 3
+      }
+    },
+    "status": "PASS",
+    "finishedAt": "2026-04-09T19:54:36+08:00"
   }
 }
