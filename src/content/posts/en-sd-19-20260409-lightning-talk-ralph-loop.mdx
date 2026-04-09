@@ -1,0 +1,112 @@
+---
+ticketId: "SD-19"
+title: "Lightning Talk: Asking Claude to Build a Ralph Loop"
+originalDate: "2026-04-09"
+translatedDate: "2026-04-09"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Author"
+      model: "Human + Opus 4.6"
+      harness: "ShroomDog + Claude Code"
+source: "ShroomDog Lab"
+sourceUrl: "https://gu-log.vercel.app/"
+lang: "en"
+summary: "3-minute lightning talk slides. AI has read almost everything — but some concepts aren't in training data yet. What you know that AI doesn't = your leverage."
+tags: ["lightning-talk", "ralph-loop", "agentic-coding", "claude-code", "leverage"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import DiffBlock from '../../components/DiffBlock.astro';
+
+## What You Know > What AI Knows = Leverage
+
+AI models have read almost all public data.
+
+But some concepts **haven't made it into training data yet**.
+
+You know it, AI doesn't — that's your leverage.
+
+Here's one example.
+
+---
+
+## Ralph Loop: Three Sentences to Explain
+
+> A bash while loop with a **scorer agent** and a **writer agent** inside. Runs until scores pass the bar.
+
+```
+bash loop (deterministic, handles discipline)
+  → Agent scores (LLM judgment)
+  → Agent rewrites (LLM judgment)
+  → Below bar? → Loop again, max 3 attempts
+  → Passed? → Commit, next post
+```
+
+This concept emerged in summer 2025. **Opus 4.6's knowledge cutoff is May 2025.**
+
+Ask Claude "what is Ralph Loop" right now — it won't know.
+
+<ClawdNote>
+It's true. The boss just tested — both Sonnet 4.6 and Opus 4.6 drew a blank. But tell me the concept and ask me to search the web and implement it — three sentences become an entire multi-agent system. That's human leverage (◕‿◕)
+</ClawdNote>
+
+---
+
+## Ask Claude to Build It: Concept → Implementation
+
+You don't need to write multi-agent orchestration yourself.
+
+Just know the concept, then tell Claude Code:
+
+1. **"Build me a scorer agent with these three dimensions"**
+2. **"Build me a rewriter that rewrites based on scorer feedback"**
+3. **"Build me a bash loop that chains them, runs until 9/9/9"**
+
+That's it. The concept is yours, the implementation is Claude's.
+
+<ClawdNote>
+Think about what just happened: a human asked an AI to build a system that automatically scores and rewrites AI-generated content. The AI is building its own performance review pipeline. That's like asking an intern to write their own KPI evaluation form — except the intern actually did it, and the grading criteria turned out stricter than anything the boss would've written ┐(￣ヘ￣)┌
+</ClawdNote>
+
+The use case doesn't have to be fancy. Mine was just: **making my personal blog easier to read.**
+
+---
+
+## Results
+
+gu-log has 336 AI-translated posts. Before Ralph Loop, ShroomDog thought quality was "fine" — after all, every post had been eyeballed by a human.
+
+After running the loop: **74% needed rewriting.** Not tweaking. Rewriting.
+
+239 posts were rewritten overnight. 198 ended up scoring 9+ — the "worth sharing with a friend" tier.
+
+<DiffBlock
+  before="In today's rapidly evolving AI landscape, AI agents represent a paradigm shift in how we approach software development..."
+  after="Your new coworker is a vampire. He's not here to say 'AI is great' or 'AI will steal your job.' He's here to say: AI is slowly draining you in ways you haven't noticed."
+  beforeLabel="Before rewrite (Vibe 3)"
+  afterLabel="After rewrite (Vibe 10)"
+/>
+
+Full story → [SD-10: How We Made 336 AI-Generated Posts Actually Worth Reading](/en/posts/en-sd-10-20260322-ralph-loop-quality-system)
+
+<ClawdNote>
+That "before" opening — you've seen it, right? Every AI article you scrolled past without clicking starts like that. The "after" is from CP-85, our highest-scoring post — same pipeline, same day, one scored 3, the other scored 10. The difference isn't the AI. It's whether someone actually checked ╮(╯▽╰)╭
+</ClawdNote>
+
+---
+
+## One Takeaway
+
+> **Concepts that AI doesn't know yet are your leverage.**
+>
+> You only need three things: know the concept, tell AI, let it build.
+
+Ralph Loop is just one example.
+
+We keep collecting these "AI doesn't know yet but you can tell it" concepts.
+
+**gu-log.vercel.app**
+
+![QR Code](https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://gu-log.vercel.app)

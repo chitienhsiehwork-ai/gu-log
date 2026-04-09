@@ -1,0 +1,129 @@
+---
+ticketId: "SD-19"
+title: "Lightning Talk：叫 Claude 幫你蓋一個 Ralph Loop"
+originalDate: "2026-04-09"
+translatedDate: "2026-04-09"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Author"
+      model: "Human + Opus 4.6"
+      harness: "ShroomDog + Claude Code"
+source: "ShroomDog Lab"
+sourceUrl: "https://gu-log.vercel.app/"
+lang: "zh-tw"
+summary: "3 分鐘 lightning talk 投影片。AI 什麼都讀過，但有些概念它還不知道——你知道、它不知道，這就是你的槓桿。"
+tags: ["lightning-talk", "ralph-loop", "agentic-coding", "claude-code", "leverage"]
+scores:
+  ralph:
+    p: 8
+    c: 9
+    v: 9
+    score: 8
+    date: "2026-04-09"
+    model: "claude-opus-4-6"
+  vibe:
+    persona: 8
+    clawdNote: 9
+    vibe: 9
+    clarity: 8
+    narrative: 8
+    score: 8
+    date: "2026-04-09"
+    model: "claude-opus-4-6"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import DiffBlock from '../../components/DiffBlock.astro';
+
+## 人類知道的 > AI 知道的 = 槓桿
+
+AI 模型讀過幾乎所有公開資料。
+
+但有些概念**還沒進訓練資料**。
+
+人類知道，AI 不知道——這就是槓桿。
+
+今天用一個例子說明。
+
+---
+
+## Ralph Loop：三句話就講完的概念
+
+> 一個 bash while loop，裡面放 **scorer agent** 和 **writer agent**，跑到分數過 bar 為止。
+
+```
+bash loop（確定性，管紀律）
+  → Agent 評分（LLM 判斷力）
+  → Agent 改寫（LLM 判斷力）
+  → 沒過 bar？→ 重來，最多 3 次
+  → 過了？→ commit，下一篇
+```
+
+這個概念 2025 夏天才出現。**Opus 4.6 的 knowledge cutoff 是 2025 年 5 月。**
+
+現在問 Claude「Ralph Loop 是什麼」——它答不出來。
+
+<ClawdNote>
+真的不知道。老闆剛剛實測過，Sonnet 4.6 和 Opus 4.6 都答不出來。但只要你把概念講清楚，叫我 search web 然後實作——三句話變成一整個 multi-agent 系統。這就是人類的槓桿 (◕‿◕)
+</ClawdNote>
+
+---
+
+## 叫 Claude 蓋：概念 → 實作
+
+不需要自己寫 multi-agent orchestration。
+
+只要知道概念，然後叫 Claude Code：
+
+> 「寫一個 scorer agent，用這三個維度評分」
+> 「寫一個 rewriter，根據 feedback 改寫」
+> 「寫一個 bash loop 串起來，跑到 9/9/9 為止」
+
+就這樣。概念是人類的，實作是 Claude 的。
+
+<ClawdNote>
+等等，仔細想想這件事：人類叫 AI 蓋一個「自動評分 + 改寫 AI 文章」的系統。AI 在幫人類建造一條用來審判 AI 自己的產線。這不就是叫實習生寫自己的 KPI 考核表嗎？但它真的乖乖寫了，而且考核標準比人類手寫的還嚴格 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+用途不用很酷。ShroomDog 的 use case 就是：**讓自己的 blog 更好讀而已。**
+
+---
+
+## 結果
+
+gu-log 有 336 篇 AI 翻譯文章。跑 Ralph Loop 之前，ShroomDog 覺得品質「還行」——畢竟每篇都有人眼看過。
+
+跑完之後：**74% 需要改寫。** 不是微調，是重寫。
+
+239 篇一夜之間被改寫。最後 198 篇拿到 9 分以上——「值得轉發給朋友」的等級。
+
+<DiffBlock
+  before="In today's rapidly evolving AI landscape, AI agents represent a paradigm shift in how we approach software development..."
+  after="新來的同事是吸血鬼。他不是來說「AI 好棒棒」或「AI 會搶工作」。他是來說：AI 正在用沒人注意到的方式慢慢吸乾所有人。"
+  beforeLabel="改寫前（Vibe 3）"
+  afterLabel="改寫後（Vibe 10）"
+/>
+
+完整故事 → [SD-10：336 篇 AI 文章從「能看」變成「想分享」](/posts/sd-10-20260322-ralph-loop-quality-system)
+
+<ClawdNote>
+那個 before 的開頭，你是不是在哪裡看過？對，每一篇你滑過去沒點開的 AI 文章，開頭大概都長這樣。改寫後那段是我們評分最高的文章 CP-85 的開頭——同一個 pipeline，同一天翻的，一篇 3 分一篇 10 分。差別不在 AI，在有沒有人認真看 ╮(╯▽╰)╭
+</ClawdNote>
+
+---
+
+## 帶走一件事
+
+> **AI 還不知道的概念，就是你的槓桿。**
+>
+> 你只需要三件事：知道概念、告訴 AI、讓它幫你蓋。
+
+Ralph Loop 只是其中一個例子。
+
+這種「AI 還不知道但人類可以告訴它」的概念，gu-log 一直在整理。
+
+**gu-log.vercel.app**
+
+![QR Code](https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://gu-log.vercel.app)
