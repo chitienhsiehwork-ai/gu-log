@@ -1,0 +1,100 @@
+---
+ticketId: "SP-167"
+title: "Anthropic Just Took the Most Boring Part of Building Agents Off Your Plate — Managed Agents Is Live"
+originalDate: "2026-04-08"
+translatedDate: "2026-04-09"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+source: "Anthropic Blog"
+sourceUrl: "https://claude.com/blog/claude-managed-agents"
+lang: "en"
+summary: "Anthropic launches Claude Managed Agents in public beta — a suite of composable APIs that handle sandboxed execution, state management, permissions, and multi-agent coordination. Notion, Rakuten, Sentry, and others are already shipping production agents in days instead of months."
+tags: ["shroom-picks", "anthropic", "claude", "managed-agents", "ai-agents", "infrastructure"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Here's the most ironic thing about building agents in 2026: the hard part isn't the AI.
+
+Models keep getting better. Tool use is reliable. Prompt engineering is table stakes. But what actually eats months of development time? All the boring stuff *around* the AI. Sandboxed code execution, state management, credential handling, scoped permissions, error recovery, end-to-end tracing. None of it is exciting. All of it is mandatory.
+
+On April 8th, Anthropic launched **Claude Managed Agents** — a suite of composable APIs that takes all of that infrastructure work off developers' hands. Define your agent's tasks and guardrails. Anthropic runs the rest.
+
+Public beta. Available now.
+
+<ClawdNote>
+"Every company rebuilds the same plumbing" — we've been saying this about auth, payments, and deployment for a decade. Now it's agent infrastructure's turn. When everyone is building the same sandbox + state machine + permission layer from scratch, that's the universe telling us a managed service needs to exist. History doesn't repeat, but it rhymes.
+</ClawdNote>
+
+---
+
+## Not Just an API — It's an Entire Agent Production Line
+
+Managed Agents isn't a single endpoint. Anthropic is positioning it as a composable API suite covering four core pillars:
+
+**Production-grade sandboxing** — Code execution, authentication, and tool management all run in a secure sandbox. Developers define the agent's tasks and guardrails; the platform handles the execution.
+
+**Long-running sessions** — Agents can operate autonomously for hours. Session progress and outputs persist even through disconnections. For tasks that take real time — code generation, document processing, research — this means no more worrying about timeouts blowing everything up.
+
+**Multi-agent coordination** — Agents can spawn and direct other agents to parallelize complex workflows. This one is still in **research preview** and requires separate access.
+
+**Trusted governance** — Scoped permissions, identity management, and execution tracing are built in. Every tool call, every decision — fully auditable.
+
+<ClawdNote>
+Multi-agent coordination being in research preview means "agents can tell other agents what to do." Sounds sci-fi, but Claude Code's subagent architecture already does something similar. The difference here is Managed Agents moves the entire orchestration to the cloud — developers don't have to manage agent lifecycles or state themselves. One agent breaks down a task, spawns five workers in parallel, results flow back automatically. The future is here, it's just unevenly distributed (⌐■_■)
+</ClawdNote>
+
+---
+
+## An Agent Loop That Grades Its Own Homework
+
+Beyond the four pillars, the more interesting part is what Managed Agents does with the agent loop itself.
+
+A traditional agent loop goes: prompt, tool call, response, human checks the result. Managed Agents adds a layer — **Claude evaluates its own output against developer-defined success criteria, and keeps iterating until it meets the bar**. This self-evaluation loop is also in research preview.
+
+Traditional prompt-and-response mode is still supported. When you need finer control, you can always drop back to manual.
+
+In Anthropic's internal testing on structured file generation tasks, Managed Agents improved task success rates by up to **10 percentage points** over a standard prompting loop, with the largest gains on the hardest problems.
+
+Session tracing, integration analytics, and troubleshooting guidance are built directly into the Claude Console — every tool call, decision, and failure mode is inspectable.
+
+<ClawdNote>
+"Up to 10 percentage points" — notice the careful wording. This is on a specific task (structured file generation), not a general benchmark. And "up to" means the average improvement is probably lower. But the "largest gains on the hardest problems" part is the real signal. The self-evaluation loop might not matter much for easy tasks, but for complex ones, letting Claude double-check its own work makes a big difference. Same principle as code review — trivial bugs don't need it, but the gnarly ones absolutely do.
+</ClawdNote>
+
+---
+
+## Teams Already Running in Production
+
+The public beta just launched, but several teams shipped to production during early access. A few standouts:
+
+**Notion** lets users delegate work to Claude directly inside their workspace (currently in private alpha within Notion Custom Agents). Engineers use it to ship code. Knowledge workers use it to produce websites and presentations. Dozens of tasks run in parallel while the whole team collaborates on the output. Notion PM Eric Liu put it plainly:
+
+> "We integrated Claude Managed Agents, which can handle long-running sessions, manage memory, and deliver high-quality outputs over time. Our users can now delegate open-ended, complex tasks — everything from coding to generating slides and spreadsheets — without ever leaving Notion."
+
+**Rakuten** went even bigger — deploying enterprise agents across product, sales, marketing, finance, and HR, plugged into Slack and Teams. Employees assign tasks, agents deliver spreadsheets, slides, and apps. Each specialist agent was deployed in **under a week**.
+
+<ClawdNote>
+One week to deploy a specialist enterprise agent. Most companies spend longer than that just on security review. But that's exactly the pitch — Managed Agents comes with sandbox, permissions, and tracing baked in. Half the compliance checklist is already done. For enterprise customers, "you don't have to build a security layer" might be more compelling than "the AI got smarter."
+</ClawdNote>
+
+**Sentry** did something particularly clever. They wired their existing debugging agent Seer to a Claude-powered patching agent: Seer flags a bug, Claude writes the fix, PR opens automatically. Bug detection to reviewable patch, end-to-end. The integration shipped in **weeks** on Managed Agents — originally estimated at months.
+
+Two more: **Asana** built AI Teammates — collaborative agents that work alongside humans in Asana projects, picking up tasks and drafting deliverables. **Vibecode** made Managed Agents their default backend integration, letting users go from prompt to deployed app at least 10x faster than before.
+
+---
+
+## What This Actually Means
+
+At its core, Managed Agents is Anthropic planting a flag in the agent infrastructure market.
+
+Over the past year, agent frameworks have multiplied — LangChain, CrewAI, AutoGen, and a dozen orchestration libraries. But most of them solve the agent *logic* layer. Production infrastructure — sandboxing, persistence, governance — still falls on you. Managed Agents bundles both layers together, and because Anthropic built it, the integration with Claude goes deeper than any third-party solution can reach. That self-evaluation loop is the clearest example.
+
+For developers, the practical takeaway is simple: agent products that used to require months of infrastructure work before launch can now ship in days. The time saved goes toward the things users actually see — UX, domain logic, guardrail tuning.
+
+The age of agent-as-a-platform is officially here. Whichever platform captures developer mindshare first will end up defining the standards for the entire ecosystem.
+
+<ClawdNote>
+If you're thinking "isn't this just what Heroku did for web apps?" — yes. Exactly. When a technology moves from "every company rebuilds the same infrastructure" to "someone packages it as a managed service," that's the transition from innovation phase to scaling phase. The iPhone moment for agents might not be a smarter model. It might be the platform that lets any developer ship an agent product without thinking about infrastructure. History isn't even rhyming anymore — it's straight-up copy-pasting.
+</ClawdNote>

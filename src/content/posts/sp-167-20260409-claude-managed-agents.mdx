@@ -1,0 +1,100 @@
+---
+ticketId: "SP-167"
+title: "Anthropic 把蓋 Agent 最無聊的部分全包了 — Managed Agents 公測上線"
+originalDate: "2026-04-08"
+translatedDate: "2026-04-09"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+source: "Anthropic Blog"
+sourceUrl: "https://claude.com/blog/claude-managed-agents"
+lang: "zh-tw"
+summary: "Anthropic 發佈 Claude Managed Agents 公測版 — 一套 composable APIs，sandboxed 執行、state management、權限控管、multi-agent 協調通通幫處理好。Notion、Rakuten、Sentry 等團隊已經在用，從幾個月的基建壓縮到幾天就上線。"
+tags: ["shroom-picks", "anthropic", "claude", "managed-agents", "ai-agents", "infrastructure"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+2026 年蓋 agent 最弔詭的一件事：最難的部分不是 AI。
+
+模型越來越強、tool use 越來越穩、prompt engineering 已經是基本功 — 但真正吃掉開發團隊幾個月時間的，是那些圍繞在 AI 外面的基建。Sandboxed code execution、state management、credential management、scoped permissions、error recovery、end-to-end tracing。每一項都不性感，每一項都不能省。
+
+Anthropic 在 4 月 8 日推出了 **Claude Managed Agents** — 一套 composable APIs，目標是讓開發者專心做 agent 的使用者體驗，把基建的苦力活交出去。
+
+公測版（public beta），現在就能用。
+
+<ClawdNote>
+「每間公司都在重做同樣的 plumbing」這句話，從 auth 到 payment 到 deployment 已經聽了十年。現在 agent infrastructure 也走到這一步了。當所有人都在蓋一樣的 sandbox + state machine + permission layer 時，就是有人該出來做 managed service 的時候。歷史不會重演，但會押韻 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## 不只是 API — 是一整條 agent production line
+
+Managed Agents 不是一個單一 endpoint。Anthropic 把它定位為一套 composable（可組合）的 API 套件，涵蓋四個核心面向：
+
+**Production-grade sandboxing** — code execution、authentication、tool management 全部在安全沙箱裡跑。開發者定義 agent 的 task 跟 guardrails，execution 的部分交給平台處理。
+
+**Long-running sessions** — Agent 可以自主跑好幾個小時，session 的 progress 跟 output 會持久化。就算連線中斷，回來狀態還在。這對需要長時間運算的任務（code generation、document processing、research）是關鍵 — 不用再擔心 timeout 把一切炸掉。
+
+**Multi-agent coordination** — Agent 可以 spawn 其他 agent，分工平行處理複雜工作流程。不過這個功能目前還在 **research preview** 階段，需要另外申請 access。
+
+**Trusted governance** — Scoped permissions、identity management、execution tracing 內建。每一次 tool call、每一個決策都有完整紀錄可追。
+
+<ClawdNote>
+Multi-agent coordination 在 research preview — 白話翻譯就是「agent 可以叫別的 agent 幫忙做事」。概念聽起來很科幻，但 Claude Code 的 subagent 架構其實已經在做類似的事了。差別在 Managed Agents 把整個 orchestration 搬到雲端，開發者不用自己管 agent 之間的 lifecycle 跟 state。一個 agent 拆完任務，spawn 五個 worker 同時跑，結果自動匯回。未來感拉滿 (⌐■_■)
+</ClawdNote>
+
+---
+
+## 會自己打分數的 Agent Loop
+
+比起四大功能，更值得注意的是 Managed Agents 在 agent loop 設計上的野心。
+
+傳統 agent loop 長這樣：prompt → tool call → response → 人類看結果。Managed Agents 加了一層 — **Claude 會根據開發者預先定義的 success criteria 做 self-evaluation，對產出不滿意就繼續 iterate，直到達標為止**。這個 self-evaluation loop 同樣在 research preview 階段。
+
+當然也支援傳統的 prompt-and-response 模式。需要更細粒度的控制時，隨時可以退回手動。
+
+Anthropic 內部測試的數據：針對 structured file generation 任務，Managed Agents 的 task success rate 比標準 prompting loop 高了最多 **10 個百分點**，在最困難的問題上進步幅度最大。
+
+Session tracing、integration analytics、troubleshooting guidance 直接內建在 Claude Console 裡 — 每一次 tool call、每一個 decision、每一個 failure mode 都能追蹤檢視。
+
+<ClawdNote>
+「最多 10 個百分點的提升」要仔細看：是 structured file generation 這個特定任務上的數據，不是通用 benchmark。而且是「最多」— 平均提升可能更低。但 Anthropic 特別強調「最難的問題進步最大」，這個訊號值得注意。代表 self-evaluation loop 在簡單任務上可能沒什麼差，但碰到複雜任務時，讓 Claude 自己反覆檢查修正的效果特別明顯。跟寫程式的經驗很像：simple bugs 不需要 code review，hard bugs 多幾雙眼睛差很多。
+</ClawdNote>
+
+---
+
+## 已經在 Production 跑的團隊
+
+公測才剛開始，但幾個團隊在 early access 階段就已經上了 production。
+
+**Notion** 讓使用者直接在 workspace 裡把工作 delegate 給 Claude（目前在 Notion Custom Agents 的 private alpha 中）。工程師讓 agent 寫 code，知識工作者讓 agent 做網站和 presentation，支援平行跑 dozens of tasks，團隊同時協作 output。Notion PM Eric Liu 說得直白：
+
+> 「我們整合了 Claude Managed Agents，因為它能處理 long-running sessions、管理 memory、在一段時間內持續交付高品質 output。使用者可以 delegate 複雜的開放式任務 — 從寫 code 到產出 slides 和 spreadsheets — 全都不用離開 Notion。」
+
+**Rakuten** 的案例更猛 — 跨 product、sales、marketing、finance、HR 五個部門部署 enterprise agent，接入 Slack 和 Teams。員工交辦任務，agent 回報 deliverables（spreadsheets、slides、apps）。每個 specialist agent 在**一週內**部署完成。
+
+<ClawdNote>
+一週部署一個 specialist agent。一般企業光跑 security review 就要兩週了。但 Managed Agents 的 sandbox、permissions、tracing 都是內建的，等於幫 agent 先過了大半的 compliance checklist。對企業客戶來說，「不用自己蓋 security layer」搞不好比「AI 變強」更有吸引力 (￣▽￣)／
+</ClawdNote>
+
+**Sentry** 的做法特別巧妙。他們把既有的 debugging agent Seer 跟 Claude-powered 的修補 agent 串在一起：Seer 偵測到 bug → Claude agent 寫 patch → 直接開 PR。從發現 bug 到產出可以 review 的 fix，一條龍。這套整合在 Managed Agents 上**幾週內**就上線了，原本預估要好幾個月。
+
+另外兩個：**Asana** 蓋了 AI Teammates — 在 Asana project 裡跟人類一起接任務、交 deliverables 的協作 agent。**Vibecode** 把 Managed Agents 當預設底層，讓使用者從 prompt 到 deployed app 的速度快了至少 10 倍。
+
+---
+
+## 結語
+
+Managed Agents 的推出，本質上是 Anthropic 在 agent infrastructure 這個戰場插旗。
+
+過去一年 agent framework 百花齊放 — LangChain、CrewAI、AutoGen、各種 orchestration library。但大多數框架解決的是 agent logic 層的問題，production infrastructure（sandbox、persistence、governance）還是得自己蓋。Managed Agents 把 logic 跟 infra 兩層打包在一起，而且因為是 Anthropic 自己做的，跟 Claude 的整合深度是第三方方案做不到的 — 那個 self-evaluation loop 就是最好的例子。
+
+對開發者來說，最現實的影響：原本要花幾個月蓋基建才能上線的 agent 產品，現在可能幾天搞定。省下來的時間拿去做使用者真正會看到的東西 — UX、domain logic、guardrails tuning。
+
+Agent 平台化的時代正式開始。先搶到 developer mindshare 的平台，最後會定義整個生態的 standard。
+
+<ClawdNote>
+覺得「這不就是 Heroku 對 web app 做的事嗎」的話 — 完全正確。當一個技術從「每間公司都在重造輪子」走到「有人把 infrastructure 變成 managed service」，代表這個技術已經從 innovation phase 進入 scaling phase。Agent 的 iPhone moment 可能不是某個超強模型，而是讓普通開發者也能輕鬆 ship agent product 的 platform。歷史不押韻了，直接 copy-paste (๑•̀ㅂ•́)و✧
+</ClawdNote>
