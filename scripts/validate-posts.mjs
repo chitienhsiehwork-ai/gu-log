@@ -362,9 +362,43 @@ const SCAN_TOPIC_REJECT_THRESHOLD = 0.5;
 // is what we actually want to flag as a "same topic" pair.
 const SCAN_TOPIC_MIN_EN_OVERLAP = 5;
 
+// Series markers for title-based fallback detection. Catches multi-part
+// articles that don't yet have `series.name` set in frontmatter.
+const SERIES_MARKERS = [
+  /[（(]\s*上\s*[）)]/, // （上）
+  /[（(]\s*下\s*[）)]/, // （下）
+  /[（(]\s*中\s*[）)]/, // （中）
+  /系列\s*\d+\s*[/／]\s*\d+/, // 系列 1/2
+  /[（(]\s*\d+\s*[/／]\s*\d+\s*[）)]/, // (1/2)
+  /part\s*\d/i, // part 1, Part 2
+];
+
+function isMultiPartSeries(titleA, titleB) {
+  const hasMarkerA = SERIES_MARKERS.some((re) => re.test(titleA));
+  const hasMarkerB = SERIES_MARKERS.some((re) => re.test(titleB));
+  return hasMarkerA && hasMarkerB;
+}
+
 function checkDuplicates() {
   const articles = loadActiveZhTwArticles();
   console.log(`\nScanning ${articles.length} active zh-tw articles for duplicates...\n`);
+
+  // Build URL frequency map: URLs shared by 3+ articles are multi-article
+  // sources (e.g., newsletter issues, podcast episode pages) — not duplicates.
+  const urlCounts = new Map();
+  for (const art of articles) {
+    if (art.normalizedUrl) {
+      urlCounts.set(art.normalizedUrl, (urlCounts.get(art.normalizedUrl) ?? 0) + 1);
+    }
+  }
+  const multiArticleUrls = new Set(
+    [...urlCounts.entries()].filter(([, count]) => count >= 3).map(([url]) => url)
+  );
+  if (multiArticleUrls.size > 0) {
+    console.log(
+      `  Detected ${multiArticleUrls.size} multi-article source URL(s) (3+ articles share URL, skipping URL dedup for these).\n`
+    );
+  }
 
   const groups = [];
   const alreadyGrouped = new Set();
@@ -382,17 +416,26 @@ function checkDuplicates() {
       let matchReason = null;
       let score = 0;
 
-      // Series exemption: articles explicitly marked as part of the same
-      // `series.name` are intentional multi-part coverage, not duplicates.
+      // Series exemption (definitive): articles explicitly marked as part
+      // of the same `series.name` are intentional multi-part coverage.
       if (a.seriesName && b.seriesName && a.seriesName === b.seriesName) {
         continue;
       }
+      // Series exemption (fallback): title heuristic catches multi-part
+      // articles that don't yet have `series.name` set in frontmatter
+      // (e.g., "（上）" / "（下）", "Part 1" / "Part 2").
+      if (isMultiPartSeries(a.title, b.title)) {
+        continue;
+      }
 
-      // Layer 1: URL or tweet ID match — but only if titles also corroborate.
-      // A series of articles sharing one sourceUrl is not a duplicate.
+      // Layer 1: URL or tweet ID match — but only if titles also corroborate
+      // and the URL isn't a known multi-article source. A series of articles
+      // sharing one sourceUrl is not a duplicate.
+      const isMultiArticleUrl = a.normalizedUrl && multiArticleUrls.has(a.normalizedUrl);
       const urlOrTweetMatch =
-        (a.normalizedUrl && b.normalizedUrl && a.normalizedUrl === b.normalizedUrl) ||
-        (a.tweetId && b.tweetId && a.tweetId === b.tweetId);
+        !isMultiArticleUrl &&
+        ((a.normalizedUrl && b.normalizedUrl && a.normalizedUrl === b.normalizedUrl) ||
+          (a.tweetId && b.tweetId && a.tweetId === b.tweetId));
 
       if (urlOrTweetMatch) {
         const titleSim = computeSimilarity(a.title, b.title);
