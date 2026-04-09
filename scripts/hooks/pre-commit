@@ -173,6 +173,35 @@ else
 fi
 echo ""
 
+# ─── Step 0.45: WCAG AA contrast check on staged components ──────
+STAGED_STYLE=$(git diff --cached --name-only --diff-filter=ACM -- 'src/components/*.astro' 'src/styles/*.css' 2>/dev/null || true)
+
+if [ -z "$STAGED_STYLE" ]; then
+    echo "✓ No component/style files staged — skipping contrast check"
+else
+    STYLE_COUNT=$(echo "$STAGED_STYLE" | wc -l | tr -d ' ')
+    echo "🎨 Contrast check: $STYLE_COUNT staged component/style file(s)..."
+
+    STYLE_FILES=""
+    for file in $STAGED_STYLE; do
+        if [ -f "$REPO_ROOT/$file" ]; then
+            STYLE_FILES="$STYLE_FILES $REPO_ROOT/$file"
+        fi
+    done
+
+    if [ -n "$STYLE_FILES" ]; then
+        if ! node "$REPO_ROOT/scripts/check-contrast.mjs" $STYLE_FILES; then
+            echo ""
+            echo "❌ WCAG AA contrast check FAILED."
+            echo "   Fix color pairs to meet ≥4.5:1 contrast ratio."
+            echo "   Run: pnpm run check:contrast"
+            exit 1
+        fi
+        echo "✓ Contrast check passed"
+    fi
+fi
+echo ""
+
 # ─── Step 0.5: ESLint check on staged files ──────────────────────
 STAGED_LINT=$(git diff --cached --name-only --diff-filter=ACM -- '*.ts' '*.tsx' '*.astro' '*.mjs' 2>/dev/null || true)
 

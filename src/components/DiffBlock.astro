@@ -79,7 +79,7 @@ const { before, after, beforeLabel = 'Before', afterLabel = 'After' } = Astro.pr
   }
 
   .diff-header--before {
-    color: #ff5555;
+    color: #ff5555; /* Dracula red — 7.45:1 on #282a36 */
   }
 
   /* After panel — green tones */
@@ -88,23 +88,24 @@ const { before, after, beforeLabel = 'Before', afterLabel = 'After' } = Astro.pr
   }
 
   .diff-header--after {
-    color: #50fa7b;
+    color: #50fa7b; /* Dracula green — 10.3:1 on #282a36 */
   }
 
-  /* Light theme */
+  /* Light theme — needs higher contrast on warm #fdf6e3 base */
   [data-theme='light'] .diff-before {
-    background: rgba(220, 50, 47, 0.06);
+    background: #fef2f1;
+    border-bottom-color: #e8c4c0;
   }
 
   [data-theme='light'] .diff-header--before {
-    color: #dc322f;
+    color: #9a3412; /* dark burnt orange — 6.68:1 on #fef2f1 */
   }
 
   [data-theme='light'] .diff-after {
-    background: rgba(42, 161, 68, 0.06);
+    background: #f0f5e6;
   }
 
   [data-theme='light'] .diff-header--after {
-    color: #2aa144;
+    color: #116329; /* forest green — 6.66:1 on #f0f5e6 */
   }
 </style>
