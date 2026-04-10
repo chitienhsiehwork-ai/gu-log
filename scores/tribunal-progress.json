@@ -1753,5 +1753,97 @@
     "status": "FAILED",
     "failedStage": "factChecker",
     "finishedAt": "2026-04-10T14:05:38+08:00"
+  },
+  "cp-pending-20260410-artificialanlys-gemma-4-google-token.mdx": {
+    "article": "cp-pending-20260410-artificialanlys-gemma-4-google-token.mdx",
+    "startedAt": "2026-04-10T15:17:34+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 10,
+            "crossRef": 9,
+            "sourceAlign": 8,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Both glossary-registered terms linked correctly: `/glossary#context-window` appears twice (lines 48, 186) and `/glossary#agent` appears twice (line 97); MoE/token/benchmark are not in glossary but all explained inline; full coverage.",
+            "crossRef": "All three internal /posts/ links resolve to existing files: cp-242-20260403-article-gemma-4-google-gemini-3.mdx, cp-153-20260312-nvidia-nemotron3-super-120b-mamba-moe.mdx, cp-225-20260329-artificialanlys-aa-agentperf-agent-benchmark.mdx; no ShroomDog/Clawd body mentions requiring identity links; minor: could link to a token glossary entry if one existed.",
+            "sourceAlign": "Content is squarely Artificial Analysis benchmark data (Intelligence Index scores, token efficiency comparisons, AA-Omniscience, AA-AgentPerf) — fully aligned with @ArtificialAnlys source; specific tweet URL unverifiable but topic alignment is unambiguous.",
+            "attribution": "Token count data explicitly attributed inline ('以上 token 用量數據來自 Artificial Analysis 的 Intelligence Index 測試'); ClawdNotes clearly separated as opinion via component; speculation flagged with '這搞不好是'; minor gap: AA-Omniscience section omits explicit 'per Artificial Analysis' though article-level source frame covers it."
+          }
+        },
+        "model": "sonnet",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "FactChecker",
+          "dimensions": {
+            "accuracy": 7,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Source is @ArtificialAnlys (same tier as CP-153 calibration anchor, accuracy 8), but this post contains a larger number of unverifiable specific claims: Intelligence Index scores across 4 model tiers (15/19/31/39), token counts for 5 models (3900万–1.67億), 5 per-benchmark head-to-head rows, AA-Omniscience scores for 6 models, and the Apache 2.0 license change for Gemma 4 — all beyond my knowledge cutoff (August 2025). Internal math checks out (98/39 ≈ 2.51 confirms the '2.5倍' claim; 5.1B at 4-bit quantization under 3GB is plausible), and Artificial Analysis's benchmark methodology (Intelligence Index, AA-Omniscience) is correctly described. No fabricated-sounding numbers, but tweet-level authority with higher-than-usual claim density lands at 7.",
+            "fidelity": "Source is expanded faithfully from tweet into structured article — expected for CP posts. Uncertainty is preserved: '落後一截' (not '大幅落後'), '搞不好...也可能' in ClawdNote speculation, '聽起來不多' acknowledging score gap subjectivity. The explicit attribution footer '(以上 token 用量數據來自 Artificial Analysis 的 Intelligence Index 測試。)' is good practice. ClawdNotes are clearly bounded and never bleed into the body. Minor: the conclusion's '很可能是性價比最高的選擇' extends slightly beyond strict benchmark reading, but it is framed as inference rather than stated as fact.",
+            "consistency": "Argument flows with genuine narrative logic: benchmark gap (39 vs 42) → deconstruct the 3-point gap (core benchmarks parity, agentic deficit) → token efficiency reframes the value proposition → MoE sub-category situates the 26B A4B → AA-Omniscience adds a counterintuitive twist that is handled as intentional tension → E2B closes on on-device angle → conclusion synthesizes all axes into a 'not smartest but best value' thesis. ClawdNotes explicitly flag speculation vs fact. Zero logical contradictions found."
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Well-structured with clear headers and accessible analogies (student exam analogy lands immediately); minor friction from 'Intelligence Index' and 'AA-Omniscience' appearing before definition, and MoE acronym used before its parenthetical expansion.",
+            "firstImpression": "Strong hook, compelling token-efficiency story, and the counter-intuitive small-model honesty finding provides a genuine surprise that sustains reading through the end; ClawdNotes add personality without being noise, and the conclusion delivers a crisp takeaway worth sharing."
+          }
+        },
+        "model": "haiku",
+        "attempts": 2
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Basketball team analogy, 3GB mystery plant-and-resolve, 「同一個人突然開竅」— LHY classroom feel is strong throughout; 26B A4B section edges toward reporty but overall 口語感 holds up.",
+            "clawdNote": "All notes carry personality; Apache 2.0 note stakes a clear position (「比 benchmark 分數重要十倍」), Harry Potter token comparison is shareable, and the final callback note reframes the whole article's thesis with a real opinion.",
+            "vibe": "Counter-intuitive small-model honesty finding and the 3GB mystery make this genuinely share-worthy; no bullet-dump ending, final ClawdNote lands a real punch — held back from 9 because MoE and multimodal sections briefly feel like benchmark summaries.",
+            "clarity": "Body text is clean of 你/我 violations; subjects are consistently named (Gemma 4 31B, Qwen3.5, 模型) and pronoun use is confined to ClawdNote where Clawd is an explicit speaker.",
+            "narrative": "3GB planted in section 2 and resolved in section 7 is a structural device; 「反直覺的發現」section deliberately breaks the bigger-is-better arc; final ClawdNote explicitly callbacks the opening frame — skeleton is not purely linear."
+          }
+        },
+        "model": "opus",
+        "attempts": 3
+      }
+    },
+    "status": "PASS",
+    "finishedAt": "2026-04-10T15:51:01+08:00"
   }
 }
