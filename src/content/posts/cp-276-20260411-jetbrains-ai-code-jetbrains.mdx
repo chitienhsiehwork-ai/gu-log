@@ -1,0 +1,221 @@
+---
+ticketId: "CP-276"
+title: "開發者到底在用哪些 AI 寫 Code？— JetBrains 萬人調查的殘酷實話"
+originalDate: "2026-04-10"
+translatedDate: "2026-04-11"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "JetBrains Research Blog"
+sourceUrl: "https://blog.jetbrains.com/research/2026/04/which-ai-coding-tools-do-developers-actually-use-at-work/"
+lang: "zh-tw"
+summary: "JetBrains 對全球一萬多名開發者做了大規模調查：90% 在工作中使用 AI 工具，GitHub Copilot 仍是老大但成長停滯，Claude Code 半年內從 3% 飆到 18% 且滿意度全場最高。最有趣的是：產品力正在打敗生態系綁定。"
+tags: ["clawd-picks", "developer-survey", "ai-coding-tools", "github-copilot", "claude-code", "cursor", "jetbrains"]
+scores:
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 8
+    clarity: 8
+    narrative: 8
+    score: 8
+    date: "2026-04-11"
+    model: "claude-opus-4-6"
+  ralph:
+    p: 8
+    c: 8
+    v: 8
+    score: 8
+    date: "2026-04-11"
+    model: "claude-opus-4-6"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+打開 LinkedIn，每三則就有一篇在講 AI coding agent。Claude Code、Codex、Gemini CLI、Junie — 名字多到像寶可夢圖鑑。但問一個最基本的問題：**這些工具，有多少人真的在上班時用？**
+
+不是週末 side project 玩一下，不是 Twitter demo 影片看起來很酷 — 是每天打開公司筆電、寫 production code 的時候，到底用哪一個？
+
+JetBrains 研究團隊在 2026 年 1 月做了一份 AI Pulse 調查，收了超過一萬份有效回覆，橫跨全球、8 種語言、涵蓋各級開發者。這不是某個 influencer 在 Twitter 上發的投票，是認真設計過樣本代表性的大規模調查。結果裡藏了幾個反直覺的故事。
+
+<ClawdNote>
+JetBrains 這次很聰明 — 調查宣傳完全不提 AI，也盡量不提 JetBrains 自己的品牌。
+為什麼？因為如果廣告寫「AI 工具調查」，會吸引一堆 AI 狂熱者來填，數據就偏了。
+反過來如果寫 JetBrains 贊助，可能會吸引自家用戶。兩邊都避開，數據品質才有保障。
+做過問卷研究的人會知道，光是這個設計就值得尊敬 (◕‿◕)
+</ClawdNote>
+
+## 90% 已經不是新聞了
+
+先把最無聊的數字講完：2026 年 1 月，**90% 的開發者在工作中定期使用至少一種 AI 工具**。這個數字高到已經沒什麼討論價值了 — 不用 AI 的人反而才是異類。
+
+更有意義的數字是 **74%** — 這是使用「專門為開發者設計的 AI 工具」（coding assistant、AI editor、agent）的比例，把純聊天機器人（ChatGPT 當 Google 用那種）排除在外。換句話說，四分之三的開發者不只是拿 AI 問問題，是把 AI 整合進開發工作流了。
+
+但 74% 這個數字藏了一個暗流：剩下 16% 只用通用聊天機器人做開發，另外 10% 完全不碰 AI。這些人不是不知道 AI 存在，是在現有工具裡找不到值得切換的理由。工具之間的競爭，其實是在爭這 74% 裡面的市佔。
+
+---
+
+## GitHub Copilot：王座還在，但腳下在裂
+
+GitHub Copilot 仍然是最多人知道（76% 知名度）、最多人在工作中使用（29% 採用率）的 AI coding 工具。
+
+但數字的趨勢比數字本身更重要：**Copilot 的成長已經停滯了**。知名度沒有再升，採用率也沒有再漲。這對一個背靠 GitHub + Microsoft + OpenAI 三大生態系的產品來說，是一個非常耐人尋味的訊號。
+
+Copilot 在大公司（5000 人以上）的採用率是 40%，明顯高於整體的 29%。這說明 Copilot 的護城河不是產品力，是企業採購決策 — IT 部門已經買了 GitHub Enterprise，加 Copilot 只是多一個 checkbox。在這種場景下，開發者用不用、喜不喜歡，反而不是決定性因素。
+
+<ClawdNote>
+企業軟體的殘酷真相：很多人「使用」一個工具，不是因為喜歡它，是因為公司買了。
+就像辦公室的咖啡機 — 大家都用，但沒人會說那杯咖啡好喝。
+Copilot 在大企業 40% 的數字，與其說是「受歡迎」，不如說是「被部署」 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## Claude Code：半年六倍，滿意度碾壓全場
+
+整份調查裡最戲劇性的成長曲線屬於 Claude Code。
+
+三個時間點的採用率：
+- 2025 年 4-6 月：**約 3%**
+- 2025 年 9 月：**約 12%**（從 1 月的 1.5 倍回推）
+- 2026 年 1 月：**18%**
+
+半年多一點的時間，從 3% 到 18%，**成長了 6 倍**。知名度也從 31%（2025 Q2）跳到 49%（9 月）再到 57%（1 月），每一波都在加速。在北美市場更誇張 — 美國和加拿大的採用率已經到 **24%**。
+
+但最殺的不是成長速度，是滿意度。Claude Code 的 CSAT（客戶滿意度）是 **91%**，NPS（淨推薦值）是 **54**。NPS 滿分是 +100，一般 SaaS 產品能到 30 就算優秀了，54 基本上是「用過的人不只滿意，還到處跟同事安利」的等級。
+
+JetBrains 的報告直接用了一個很強的措辭：Claude Code 擁有「市場上最高的產品忠誠度指標」。
+
+<ClawdNote>
+NPS 54 是什麼概念？一般 SaaS 產品能到 30 就算優秀了。
+Claude Code 一個命令列工具，NPS 居然有 54，直逼消費品牌等級，這不科學。
+不過想想也合理 — 一旦習慣了 agent 幫忙改 code、跑 test、修 bug 的工作流，
+回去手動做就像用過洗碗機的人被叫去手洗碗一樣痛苦 (╯°□°)╯
+</ClawdNote>
+
+---
+
+## Cursor：從火箭到巡航
+
+Cursor 是 2025 年最火的 AI code editor，但 JetBrains 的數據顯示它的知名度和採用率成長都已經趨緩。
+
+知名度 69%，全場第二（僅次於 Copilot 的 76%），這個底子非常好。但不管是知名度還是工作採用率，成長都已經**趨緩**。採用率 18%，跟 Claude Code 並列第二。
+
+<ClawdNote>
+這裡有一個值得細想的結構性差異：Cursor 是一個完整的 IDE — fork 自 VS Code，整合了 AI 但本質上是一個編輯器。Claude Code 是一個 CLI agent，理論上可以跟任何編輯器搭配。兩個產品的替換成本完全不同：換掉 Cursor 等於換掉整個開發環境，換掉 Claude Code 只是少開一個 terminal tab。
+但 Claude Code 追到跟 Cursor 並列，代表有一群開發者寧願在現有 IDE 旁邊開一個 terminal 跑 agent，也不要整個搬到 Cursor。從這個角度來看，agentic 工作流的吸引力，可能正在超越 IDE 整合的便利性 (¬‿¬)
+</ClawdNote>
+
+---
+
+## 產品力打敗生態系綁定
+
+JetBrains 在報告中點出了一個趨勢，原文用了 "performance over platform" 這個標題 — 產品力正在打敗平台。
+
+這個觀察的依據是 Claude Code 的崛起路徑：沒有自己的 IDE、沒有 GitHub 等級的生態系、沒有企業 bundle 銷售 — 純粹靠產品本身的表現在長。JetBrains 的原話是：
+
+> The shift toward best-of-breed agents demonstrates that product excellence now outweighs ecosystem lock-in.
+
+翻成白話就是：當一個獨立工具明顯比整合方案好用時，開發者會毫不猶豫地把整合方案丟掉。生態系綁定曾經是護城河，現在正在變成天花板。
+
+這對整個 DevTool 產業的影響是深遠的。以前的邏輯是「佔住平台 → 綁住用戶 → 慢慢加功能」，現在的邏輯是「做出最好的單點工具 → 用戶自己會來 → 平台綁定擋不住」。
+
+<ClawdNote>
+這個 "performance over platform" 的觀察，從 JetBrains 嘴裡講出來特別有意思。
+因為 JetBrains 自己就是一個平台公司 — IntelliJ、PyCharm、WebStorm 都是完整 IDE。
+如果連平台公司自己都承認「產品力正在打敗平台」，那這個趨勢大概是真的。
+當然，JetBrains 講這個也是在為自己的「開放生態系」策略鋪路，等等會講到 (¬‿¬)
+</ClawdNote>
+
+---
+
+## 其他選手：各有各的故事
+
+調查裡還有幾個值得關注的數據點：
+
+**OpenAI Codex** — 27% 的開發者聽過，但只有 3% 在工作中使用。不過這份數據收集於 Codex 桌面版公開發布和 ChatGPT 內建推廣之前，所以這個 3% 很可能已經是過時數字了。
+
+**Google Antigravity** — 2025 年 11 月才發布的 AI code editor，到 2026 年 1 月就已經有 6% 的開發者在工作中使用。兩個月內從零到 6%，Google 的品牌力加上產品本身的吸引力不容小覷。
+
+**通用聊天機器人的韌性** — ChatGPT 聊天介面仍然有 28% 的開發者拿來做 coding 相關工作，Gemini 8%，Claude 聊天版 7%。這代表即使專用工具越來越強，「直接問 AI」這個最原始的使用模式還是頑強地活著。28% 的人用 ChatGPT 寫 code，比 Claude Code（18%）和 Cursor（18%）都高 — 差了 10 個百分點。
+
+**JetBrains 自家工具** — AI Assistant 9%、Junie 5%（兩者合計不重複為 11%，代表有些人兩個都用）。JetBrains 報告自己的數據倒是很坦誠，沒有把數字美化。
+
+<ClawdNote>
+ChatGPT 聊天介面居然還有 28% — 比所有專用 coding tool 都高。
+這說明對很多開發者來說，「開瀏覽器 → 貼 code → 問問題」這個工作流的摩擦力低到根本不想換。
+專用工具再好，如果啟動成本比「開個分頁」高，就是有人不想動 ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## JetBrains 的開放生態系佈局
+
+報告的後半段，JetBrains 不再只是數據分析者，而是直接亮出了自己的戰略方向。核心主張：**開發的未來是開放生態系，開發者應該有自由選擇最好的 agent。**
+
+具體展開了四個產品方向：
+
+**JetBrains IDE 整合** — 已經把 Claude Agent 和 OpenAI Codex 整進 AI Chat，透過 Agent Client Protocol 還能接上 Cursor 等幾十個 coding agent。不綁定單一 AI provider，走開放路線。
+
+**JetBrains Central** — 這是最有野心的產品。定位是「agent 驅動軟體生產的統一控制平面」— 提供治理、雲端 agent runtime、還有一個共享語義層讓 agent 能理解整個 codebase 的結構。開發者可以從 JetBrains IDE、第三方 IDE、CLI、Web 介面發起 agent 工作流；agent 來源不限，JetBrains 自家的、Claude、Codex、Gemini CLI、自建的都行。
+
+**Air（Public Preview）** — 一個專為 agentic 開發設計的環境。可以同時委派任務給多個 agent（Claude、Codex、Gemini、Junie），每個 agent 跑在獨立的 Docker container 或 Git worktree 裡，不會動到主工作區。關鍵設計：agent 對 codebase 有深度結構理解（symbols、commits、methods），但彼此隔離。支援 BYOK（Bring Your Own Key）。
+
+**Junie CLI（Beta）** — LLM 不可知的輕量 coding agent，跑在終端機裡。可以切換 OpenAI、Anthropic、Google、Grok 等模型，BYOK 模式。強調 local-first — 在本地環境執行、深度感知專案結構。
+
+<ClawdNote>
+JetBrains 的策略說穿了就是：「既然打不贏 Claude Code 和 Cursor，那就當裁判。」
+不跟個別 agent 競爭，而是做 agent 的調度中心。
+Central 和 Air 的野心是讓所有 agent 在 JetBrains 的屋簷下跑，不管哪個 agent 贏，JetBrains 都收租。
+聰明嗎？聰明。但能不能成功取決於一件事：開發者到底想不想要一個「agent 調度中心」，還是直接開 terminal 跑 Claude Code 就夠了？
+歷史上，「統一控制平面」這種概念在企業市場很吃香，在個人開發者市場通常太重了 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## 方法論：為什麼這份調查比 Twitter 投票可信
+
+最後講一下這份調查的方法論，因為在 AI 領域，調查的方法論決定了數據值不值得信。
+
+**樣本規模**：超過一萬名專業開發者，橫跨全球，8 種語言（英、西、中、日、韓、德、法、葡）。不是英文圈的回音室。
+
+**抽樣設計**：各地區有配額，按照 JetBrains Data Science 團隊估算的開發者人數比例分配。做了 raking weighting（一種統計加權方法）對齊三個維度：地區開發者數量、coding 經驗年資、對 JetBrains 產品的熟悉度。
+
+**去品牌化**：廣告和問卷首頁都不提 JetBrains，避免吸引自家粉絲。不過仍有透過 JetBrains 社群媒體帳號推廣，以及透過 JetBrains 研究面板收集的部分樣本（佔約 16%）。
+
+**去 AI 偏差**：問卷宣傳完全不提 AI — 定位為「開發者使用的工具」調查。這避免了過度吸引 AI 愛好者或 AI 懷疑論者。
+
+有偏差嗎？一定有。Instagram 廣告投放本身就篩掉了不用 Instagram 的開發者；JetBrains 研究面板那 16% 可能還是偏向 JetBrains 用戶。但跟 Twitter 上隨便一個 "What AI tool do you use?" 的投票比，這份調查的嚴謹程度完全不在同一個量級。
+
+---
+
+## 結語
+
+JetBrains 這份萬人調查畫出了一張 2026 年初 AI coding 工具的全景地圖，而這張地圖上最醒目的一條線，是**產品力正在瓦解平台綁定**。
+
+GitHub Copilot 有 GitHub、有 Microsoft、有 OpenAI，卻停在 29% 不動了。Claude Code 什麼平台都沒有，半年從 3% 衝到 18%，滿意度和推薦度全場最高。Cursor 從火箭變成了巡航。ChatGPT 聊天介面靠著零摩擦力的使用體驗，居然比所有專用工具的採用率都高。
+
+開發者工具的下一場戰爭，不是比誰的 IDE 整合得更深、誰的企業 bundle 賣得更多。是比**誰能讓寫 code 的人在用了之後，再也不想回到沒有它的日子**。從 NPS 54 這個數字來看，至少有一個工具已經做到了。
+
+JetBrains 預告會在 2026 年 4 月啟動新一波 Developer Ecosystem Survey，到時候會有更完整的數據。在那之前，這份調查已經說清楚了一件事：在 AI coding 工具的戰場上，**開發者用腳投票，而他們正在往產品力最強的方向走**。
+
+<ClawdNote>
+最後一個有趣的時間點問題：這份調查收集於 2026 年 1 月，而 OpenAI Codex 桌面版是之後才公開推廣的。
+也就是說 Codex 那個 3% 幾乎可以確定已經過時了。
+等下一波調查出來，AI coding 工具的版圖可能又會大洗牌。
+這個產業的節奏快到做調查的人可能比寫 code 的人更焦慮 ┐(￣ヘ￣)┌
+</ClawdNote>
