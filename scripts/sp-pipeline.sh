@@ -152,7 +152,7 @@ USAGE
 check_required_tools() {
   # NOTE(all-claude): bird, gemini, codex removed from critical path.
   # Dead code: old tools=(bird gemini codex jq node npm git)
-  local tools=(jq node npm git)
+  local tools=(jq node npm git curl python3)
   local missing=()
   local t
   for t in "${tools[@]}"; do
@@ -203,6 +203,80 @@ extract_tweet_date() {
   date_val=$(grep -Eo '[0-9]{4}/[0-9]{2}/[0-9]{2}' "$source_file" | head -n 1 | tr '/' '-' || true)
   if [ -n "$date_val" ]; then
     printf '%s' "$date_val"
+    return 0
+  fi
+
+  return 1
+}
+
+extract_x_status_id() {
+  local url="$1"
+  printf '%s' "$url" | sed -nE 's#.*status(es)?/([0-9]+).*#\2#p' | head -n 1
+}
+
+validate_tweet_source_capture() {
+  local source_file="$1"
+  python3 - "$source_file" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+text = path.read_text(encoding="utf-8", errors="ignore")
+lower = text.lower()
+lines = [line.strip() for line in text.splitlines() if line.strip()]
+
+if len(text.strip()) < 120 or len(lines) < 3:
+    raise SystemExit(1)
+
+bad_markers = [
+    "tool=exec",
+    "process exited with code",
+    "wrote the evaluation to",
+    "workspace check confirms",
+    "file update:",
+    "tokens used",
+    "/bin/bash -lc",
+    "succeeded in ",
+    "fetch-agent-stderr.log",
+    "eval-codex.json",
+    "eval-gemini.json",
+    "plan updated",
+    "exact_fetch_failed",
+]
+
+if sum(marker in lower for marker in bad_markers) >= 2:
+    raise SystemExit(1)
+
+has_handle = bool(re.search(r'@[A-Za-z0-9_]+', text))
+has_date = bool(re.search(r'\b\d{4}-\d{2}-\d{2}\b', text)) or ('📅' in text)
+has_source_shape = (
+    '=== main tweet ===' in lower
+    or '=== tweet(s) ===' in lower
+    or 'source url:' in lower
+    or 'tweet url:' in lower
+    or '📅' in text
+)
+
+if (has_handle and has_date) or (has_handle and has_source_shape):
+    raise SystemExit(0)
+
+raise SystemExit(1)
+PY
+}
+
+fetch_x_api_fallback() {
+  local tweet_url="$1"
+  local out_file="$2"
+  local helper_script="$GU_LOG_DIR/scripts/fetch-x-api-fallback.sh"
+  local status_id=""
+
+  [ -f "$helper_script" ] || return 1
+  status_id="$(extract_x_status_id "$tweet_url")"
+  [ -n "$status_id" ] || return 1
+
+  if bash "$helper_script" "$tweet_url" > "$out_file"; then
+    validate_tweet_source_capture "$out_file"
     return 0
   fi
 
@@ -636,26 +710,54 @@ REMEMBER: The writer depends entirely on your output. Missing content = bad arti
     fi
   fi
 
-  # Detect bird auth failure: sandbox fetch succeeded but content lacks @handle
-  # (happens when AUTH_TOKEN/CT0 not set — Gemini can't use bird in container)
-  if ! grep -qE '@[A-Za-z0-9_]+' "$WORK_DIR/source-tweet.md"; then
-    log_warn "Sandbox fetch has no @handle — bird likely not auth'd. Retrying with web-search-only prompt"
-    WEB_ONLY_PROMPT="Search the web for this tweet and return its COMPLETE content. You MUST include:
-- The author's @handle (e.g. @PawelHuryn) — check x.com or search results for this
+  SOURCE_CAPTURE_VALID=true
+  if ! validate_tweet_source_capture "$WORK_DIR/source-tweet.md"; then
+    SOURCE_CAPTURE_VALID=false
+    log_warn "Primary fetch output looks incomplete or contaminated"
+  fi
+
+  # Detect bird auth failure or contaminated fallback output.
+  # If the sandbox cannot produce a clean capture, use a deterministic X API fallback
+  # before trying any LLM/web-search paraphrase path.
+  if [ "$SOURCE_CAPTURE_VALID" = false ] || ! grep -qE '@[A-Za-z0-9_]+' "$WORK_DIR/source-tweet.md"; then
+    log_warn "Primary fetch missing reliable tweet metadata/content. Trying deterministic X API fallback"
+    if fetch_x_api_fallback "$TWEET_URL" "$WORK_DIR/source-tweet.md"; then
+      log_ok "Deterministic X API fallback succeeded"
+      SOURCE_CAPTURE_VALID=true
+    else
+      log_warn "Deterministic X API fallback failed — trying strict web-search fallback"
+      WEB_ONLY_PROMPT="Search the web for this tweet and return the ORIGINAL tweet text verbatim.
+Do NOT paraphrase, summarize, or add commentary.
+If you cannot verify the exact tweet text, output EXACT_FETCH_FAILED.
+
+You MUST include:
+- The author's @handle (e.g. @PawelHuryn)
 - The tweet date (YYYY-MM-DD format)
-- The full tweet text (all parts if it is a thread)
+- The exact tweet text, verbatim
 
 Tweet URL: $TWEET_URL
 
-Output in this format:
+Output in this exact format:
 @<handle> — <YYYY-MM-DD>
-<full tweet text>"
-    if WEB_FETCH_OUT=$("$SAFE_SEARCH" -m gemini-2.5-flash -t 120 "$WEB_ONLY_PROMPT" 2>/dev/null) && [ -n "$WEB_FETCH_OUT" ]; then
-      echo "$WEB_FETCH_OUT" > "$WORK_DIR/source-tweet.md"
-      log_ok "Web-search fallback fetch succeeded"
-    else
-      log_warn "Web-search fallback also failed — proceeding with partial content"
+<exact tweet text>"
+      if WEB_FETCH_OUT=$("$SAFE_SEARCH" -m gemini-2.5-flash -t 120 "$WEB_ONLY_PROMPT" 2>/dev/null) && [ -n "$WEB_FETCH_OUT" ]; then
+        echo "$WEB_FETCH_OUT" > "$WORK_DIR/source-tweet.md"
+        if validate_tweet_source_capture "$WORK_DIR/source-tweet.md"; then
+          log_ok "Strict web-search fallback fetch succeeded"
+          SOURCE_CAPTURE_VALID=true
+        else
+          SOURCE_CAPTURE_VALID=false
+          log_warn "Strict web-search fallback produced unusable capture"
+        fi
+      else
+        SOURCE_CAPTURE_VALID=false
+        log_warn "Strict web-search fallback failed"
+      fi
     fi
+  fi
+
+  if [ "$SOURCE_CAPTURE_VALID" != true ]; then
+    die "Tweet fetch produced unusable or contaminated source after all fallbacks"
   fi
 
   TWEETS_COLLECTED=$(grep -c '^---$' "$WORK_DIR/source-tweet.md" || true)
