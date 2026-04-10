@@ -1,0 +1,167 @@
+---
+ticketId: "SP-168"
+title: "Karpathy：AI 能力認知斷層 — 兩群人活在平行宇宙"
+originalDate: "2026-04-09"
+translatedDate: "2026-04-10"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (vibe-opus-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "@karpathy on X"
+sourceUrl: "https://x.com/karpathy/status/2042334451611693415"
+lang: "zh-tw"
+summary: "Karpathy 指出 AI 能力認知出現巨大斷層：一群人還在嘲笑 ChatGPT 的笨回答，另一群人已經看著 AI agent 在一小時內重構整個 codebase。兩邊講的是同一個技術，卻活在完全不同的現實裡。"
+tags: ["shroom-picks", "ai-agents", "karpathy", "ai-capability-gap"]
+scores:
+  ralph:
+    p: 7
+    c: 7
+    v: 7
+    score: 7
+    date: "2026-04-10"
+    model: "claude-opus-4-6"
+  vibe:
+    persona: 7
+    clawdNote: 7
+    vibe: 7
+    clarity: 8
+    narrative: 7
+    score: 7
+    date: "2026-04-10"
+    model: "claude-opus-4-6"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Andrej Karpathy 丟了一顆觀察炸彈：現在 AI 圈裡有兩群人，他們對 AI 能力的認知差距大到彷彿活在平行宇宙。
+
+一群人看著 Instagram 上 Advanced Voice Mode 連「該開車還是走路去洗車」都答不好的搞笑影片，笑得很開心。另一群人，每個月付 200 美金看著 [AI agent](/glossary#agent) 花一小時自動重構整個 codebase，看到手在抖。
+
+這兩群人講的是同一個技術。但他們的體感完全不同。
+
+這篇推文的起點是 @staysaasy 的一句話：
+
+> The degree to which you are awed by AI is perfectly correlated with how much you use AI to code.
+>
+> — @staysaasy
+
+翻成白話：越常拿 AI 來寫 code 的人，越會被 AI 嚇到。Karpathy 看到這句直接接上了一整篇分析，拆解這個認知鴻溝到底怎麼來的。
+
+## 第一層斷裂：時間差 + 等級差
+
+Karpathy 認為第一個問題是**時間和使用層級**。
+
+Karpathy 認為，很多人對 AI 的印象，停留在去年某個時候試了免費版 ChatGPT 的那一次，然後讓那次經驗過度影響了自己的判斷。用了一下，覺得「嗯，就這樣吧」，然後這個印象就固化了。這群人看到各種模型翻車的搞笑影片 — 幻覺、答非所問、簡單問題搞砸 — 覺得 AI 不過如此，甚至有點好笑。
+
+<ClawdNote>
+這就像 2010 年試過第一代 Siri 然後得出「語音助理是廢物」的結論，之後十五年都不再碰。
+技術在進步，但很多人的認知卡在他們上次體驗的那個版本。
+免費版 ChatGPT 和 2026 年的 frontier agentic model 之間的差距，大概跟腳踏車和特斯拉的差距差不多 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+問題在於，那些免費的、舊版的、甚至已經被棄用的模型，完全無法代表 2026 年最新一輪 state-of-the-art agentic model 的實力 — 特別是 OpenAI Codex 和 [Claude Code](/glossary#claude-code) 這類讓 [Vibe Coding](/glossary#vibe-coding) 成為可能的工具。
+
+<ClawdNote>
+Karpathy 自己也承認看過 OpenAI Advanced Voice Mode 在簡單問題上翻車的病毒影片。那些確實很好笑。但拿那個來評斷整個 AI 的能力，就像看到一個 F1 車手在超市停車場擦到柱子，然後宣稱 F1 賽車技術是假的。
+</ClawdNote>
+
+---
+
+## 第二層斷裂：能力分布是鋸齒型的
+
+就算有人願意每個月付 200 美金用最頂級的模型，還有第二個問題。
+
+AI 的能力進步不是均勻分布的 — 用 Karpathy 自己的慣用說法，這是一種 **jagged**（鋸齒型/參差不齊）的進步曲線。在某些高度技術性的領域，AI 的進步幅度大到離譜；但在一般人日常使用的場景 — 搜尋、寫作、問建議 — 進步沒那麼劇烈。
+
+<ClawdNote>
+這個「鋸齒型」的觀察超重要。一般人用 AI 寫 email、問食譜、查資料，覺得「比去年好一點但也沒多厲害」。
+但同一個模型拿去寫 code、解數學、做研究，能力是指數級跳躍。
+就像同一把瑞士刀，切水果的時候普普通通，但拿來開紅酒瓶的那個功能不知道為什麼特別猛。
+Karpathy 的「jagged intelligence / jagged frontier」這組詞在 AI 圈很常被引用，專門描述這種領域間能力落差劇烈的現象。
+</ClawdNote>
+
+為什麼會這樣？Karpathy 給了兩個原因：
+
+**原因一：強化學習需要可驗證的獎勵函數。** 寫程式這件事天生適合 RL 訓練 — 程式碼跑不跑得過 unit test，是就是是，不是就是不是，黑白分明。但「寫作品質好不好」、「回答有沒有幫助」這種事情，很難給出明確的對錯判斷。強化學習在有明確 reward signal 的領域可以瘋狂進化，在模糊的領域就推不太動。
+
+**原因二：錢。** B2B 市場裡，程式開發、數學推理、研究輔助這些能力可以直接換成$$$$。AI 公司把最大比例的團隊資源投入在改善這些領域，因為那才是真正的金礦 — Karpathy 的大意是，資源追著商業價值跑，技術研發重心自然也跟著走。至於日常搜尋和寫作？嗯，沒那麼優先。
+
+<ClawdNote>
+這解釋了一個很多人困惑的現象：「為什麼 AI 可以寫出完整的 production code，但叫它推薦餐廳還是很廢？」
+不是模型笨，是訓練的激勵結構不一樣。寫 code 有 unit test 當裁判，推薦餐廳要怎麼打分？Yelp 評分嗎？那也太主觀了。
+RL 這個訓練範式天生偏愛有明確對錯的任務。這不是 bug，是 feature — 只是對一般使用者來說感受很差 (╯°□°)╯
+</ClawdNote>
+
+---
+
+## AI Psychosis：被嚇到的那群人
+
+所以現在存在一群非常特殊的使用者。他們同時滿足兩個條件：
+
+1. **付費使用最前沿的 agentic model**（OpenAI Codex / [Claude Code](/glossary#claude-code)）
+2. **在高度技術性領域專業使用**（程式開發、數學、研究）
+
+Karpathy 說這群人正在經歷最高程度的 **"AI Psychosis"**（AI 精神衝擊）。因為在這些領域，2026 年的進步幅度只能用 "staggering"（令人震驚）來形容。
+
+具體到什麼程度？當把一個 terminal 交給這些模型，可以看著它們**融化**（melt）掉那些正常人類需要花好幾天甚至好幾週才能解決的程式問題。
+
+這群人不只是被現在的能力嚇到 — Karpathy 指出，他們更在意的是進步的斜率，以及隨之而來的各種資安相關後果。
+
+<ClawdNote>
+"melt" 這個用詞很有畫面 — 不是「解決」，是「融化」。
+就像問題是一塊冰，AI 是一把噴槍，咻一下就沒了。
+Karpathy 本人是 OpenAI 前核心成員、Tesla AI 前負責人，[Vibe Coding](/glossary#vibe-coding) 這個詞也是他發明的（[我們之前有一篇專門談他的 Vibe Coding + DevOps 觀察](/posts/cp-218-20260328-karpathy-vibe-coding-devops-ikea)）。這個人說「staggering」的時候，那個重量跟路人說的完全不一樣 (ง •̀_•́)ง
+</ClawdNote>
+
+而且不只是寫 code。依照 Karpathy 在推文中的描述，OpenAI 最高等級的付費 Codex 模型可以在一個小時內連貫地重構整個 codebase，或者找到並利用電腦系統中的漏洞（Karpathy 是這樣形容的，但源推文在 X 認證牆後無法直接核實原文措辭）。（Codex 和 [Claude Code](/glossary#claude-code) 的差異，先前[有篇文章拆解過](/posts/claude-code-vs-codex)。）
+
+這不是「幫忙補個 function」的等級。這是 [autonomous agent](/glossary#agent) 等級的能力。
+
+---
+
+## 兩個平行宇宙，同一個技術
+
+Karpathy 的 TLDR 意思是（Clawd 意譯版）：
+
+> 這兩群人完全在雞同鴨講。（Clawd 意譯，非 Karpathy 原話）
+
+以下這兩件事**同時為真**：
+
+OpenAI 免費的、可能有點被冷落的 Advanced Voice Mode 會在 Instagram Reels 上搞砸最蠢的問題。**同時**，OpenAI 最高等級的付費 Codex 模型會花一小時連貫地重構整個 codebase，或者找到並利用系統漏洞。
+
+<ClawdNote>
+Karpathy 提到 Advanced Voice Mode 時的語氣帶著「這個產品好像沒人在管了？」的意味（他原文的用詞加了問號，顯示連他本人也不確定內部狀況）。
+不管原文確切措辭如何，那個語氣本身就很說明問題：連 Karpathy 這個等級的人都要用問號試探，足見 AVM 在 OpenAI 內部的優先級是多低。
+這其實呼應了前面說的：資源追著錢跑。Voice mode 是 consumer 玩具，Codex 是 B2B 印鈔機。同一家公司的兩個產品，品質落差可以大成這樣。
+</ClawdNote>
+
+同一家公司，同一個品牌，一個產品在搞笑影片裡當丑角，另一個產品在專業場景裡表現得像超人。難怪兩群使用者對 AI 的評價天差地別。
+
+---
+
+## 結語
+
+Karpathy 這篇推文的核心洞見不是「AI 很厲害」或「AI 很爛」— 而是**這兩件事同時為真，而且完全不矛盾**。
+
+可驗證的 reward function 讓 RL 在技術領域狂飆，B2B 的商業價值把研發資源往同一個方向推 — Karpathy 認為這兩股力量疊在一起，就是認知斷層的根源。兩群人各自的體驗都是真實的，只是他們剛好站在同一個技術的完全不同切面上。
+
+Karpathy 的結尾是一句冷靜的 "So here we are."。沒有給建議，沒有喊口號 — 就是把現象攤開來，讓每個人自己判斷自己站在哪邊。
