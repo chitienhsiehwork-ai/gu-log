@@ -1651,5 +1651,56 @@
     "status": "FAILED",
     "failedStage": "factChecker",
     "finishedAt": "2026-04-10T10:43:35+08:00"
+  },
+  "sp-pending-20260410-karpathy-karpathy-ai.mdx": {
+    "article": "sp-pending-20260410-karpathy-karpathy-ai.mdx",
+    "startedAt": "2026-04-10T12:50:44+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "All three relevant glossary terms (Agent, Claude Code, Vibe Coding) are properly linked via /glossary#anchor on first or contextually appropriate mention; no unlinked glossary terms found.",
+            "crossRef": "Both internal post links verified as real slugs (cp-218-20260328-karpathy-vibe-coding-devops-ikea, claude-code-vs-codex); no ShroomDog/Clawd identity mentions requiring /about link; thematic connections to prior Karpathy coverage and Codex comparison post are well-placed.",
+            "sourceAlign": "Content faithfully maps to Karpathy's tweet thread — the two-groups framing, 'peaky' capability distribution, RL reward function argument, B2B incentive logic, 'AI Psychosis' label, and 'slightly orphaned' Voice Mode remark all derive directly from the declared sourceUrl.",
+            "attribution": "Exemplary attribution: @staysaasy quote clearly sourced; Karpathy direct quotes properly introduced; TLDR paraphrase explicitly labeled '(Clawd 意譯，非 Karpathy 原話)'; Karpathy's own hedging '(?)' on 'slightly orphaned' preserved; ClawdNote opinions strictly contained in separate component blocks."
+          }
+        },
+        "model": "sonnet",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "fail",
+        "score": {
+          "judge": "factChecker",
+          "dimensions": {
+            "accuracy": 7,
+            "fidelity": 7,
+            "consistency": 8
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "ClawdNote attributes 'jagged intelligence / jagged frontier' as Karpathy's coinage, but 'jagged frontier' originates from Dell'Acqua et al. 2023 HBS paper — Karpathy popularizes but didn't coin it; domain-expert-noticeable attribution error. Tweet source (status/2042334451611693415) is behind auth wall and unverifiable. All other technical claims (RL reward function rationale, $200/month tier, Karpathy's OpenAI/Tesla background, Vibe Coding coinage) are accurate and consistent with public record.",
+            "fidelity": "Article is transparent about source inaccessibility ('源推文在 X 認證牆後無法直接核實原文措辭') and labels paraphrases as 'Clawd 意譯，非 Karpathy 原話' — hedging is mostly preserved. Minor issue: interpreting Karpathy's AVM question mark as signaling low internal priority ('好像沒人在管了') goes slightly beyond what the hedged source phrasing supports, converting an uncertainty into editorial framing. For a tweet-sourced SP this is acceptable but caps fidelity at 7.",
+            "consistency": "Logical argument flows cleanly: two-user-group observation → time/tier gap → jagged capability distribution → RL+money structural explanation → AI Psychosis synthesis → coexistence conclusion. ClawdNotes are clearly separated from body throughout. No internal contradictions. The link to '/posts/claude-code-vs-codex' referenced in body is likely a dead internal link but this is a Librarian concern, not a consistency one."
+          }
+        },
+        "model": "opus",
+        "attempts": 2
+      }
+    },
+    "status": "FAILED",
+    "failedStage": "factChecker",
+    "finishedAt": "2026-04-10T13:04:48+08:00"
   }
 }
