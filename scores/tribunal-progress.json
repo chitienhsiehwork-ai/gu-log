@@ -1598,5 +1598,58 @@
     "status": "FAILED",
     "failedStage": "factChecker",
     "finishedAt": "2026-04-10T02:15:54+08:00"
+  },
+  "cp-pending-20260410-pawelhuryn-agent-agent-browser-claude-code-7-19.mdx": {
+    "article": "cp-pending-20260410-pawelhuryn-agent-agent-browser-claude-code-7-19.mdx",
+    "startedAt": "2026-04-10T10:33:58+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "ticketId": "CP-273",
+          "file": "src/content/posts/cp-pending-20260410-pawelhuryn-agent-agent-browser-claude-code-7-19.mdx",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Agent linked via [AI agent](/glossary#agent) and Claude Code via [Claude Code](/glossary#claude-code); Rodney mentioned in ClawdNote alongside Playwright but not linked despite being in glossary.json — one minor miss.",
+            "crossRef": "All three internal cross-refs verified and resolve (sd-9-20260312-browser-automation-tool-comparison, cp-196-20260322-teknium-hermes-agent-browser-use, sp-125-20260323-browseruse-cli-2-browser-automation); no ShroomDog/Clawd body mentions requiring /about identity links.",
+            "sourceAlign": "Content maps directly to Huryn's tweet — 7/20 vs 19/20 benchmark gap, agent-browser as the fix, hallucination-reframe framing; translator even quotes original English inline ('all the things that break basic crawlers') showing source awareness.",
+            "attribution": "Huryn quote properly blockquoted and attributed; ClawdNotes clearly separated from body; speculative content explicitly labeled '純屬個人推測'; minor gap: agent-browser capability claims lack inline source citation but are clearly contextual."
+          }
+        },
+        "model": "sonnet",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "fail",
+        "score": {
+          "judge": "FactChecker",
+          "dimensions": {
+            "accuracy": 7,
+            "fidelity": 8,
+            "consistency": 8
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "ClawdNote (line 88) states '效能從 35% 跳到 95%' but 7/25 = 28% and 19/25 = 76% — both percentages are inflated; body correctly cites raw scores (7/25, 19/25) and properly discloses they are unverifiable tweet-sourced stats ('數字來自 Huryn 的推文，目前無法從公開來源獨立驗證'); all technical claims about SPA rendering, soft 404, and heavy JS bundles are accurate.",
+            "fidelity": "Expansion from tweet source is faithful — key hedges preserved in body and reinforced in ClawdNote ('Huryn 自己測的，沒有同行評審'); no uncertainty erasure; Huryn's core quote attributed verbatim; analytical sections on modern web crawling are clearly editorial expansion, not misrepresentation.",
+            "consistency": "Argument flows coherently from problem (HTTP client gets empty shell) → evidence (7 vs 19) → solution (real browser) → conclusion (fetch tool is the variable); ClawdNote speculation is explicitly flagged ('純屬個人推測啦'); benchmark-comparison extrapolation framed as a question, not assertion; no internal contradictions detected."
+          }
+        },
+        "model": "opus",
+        "attempts": 2
+      }
+    },
+    "status": "FAILED",
+    "failedStage": "factChecker",
+    "finishedAt": "2026-04-10T10:43:35+08:00"
   }
 }
