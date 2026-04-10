@@ -1702,5 +1702,56 @@
     "status": "FAILED",
     "failedStage": "factChecker",
     "finishedAt": "2026-04-10T13:04:48+08:00"
+  },
+  "sp-168-20260410-karpathy-karpathy-ai.mdx": {
+    "article": "sp-168-20260410-karpathy-karpathy-ai.mdx",
+    "startedAt": "2026-04-10T13:56:08+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 6,
+            "sourceAlign": 8,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "All three glossary-tracked terms used in the post are linked: `agent` (lines 57, 120, 137), `claude-code` (lines 81, 120, 135), `vibe-coding` (lines 81, 132); RL and Codex are not in glossary so no gap.",
+            "crossRef": "Both internal cross-references resolve (`cp-218-20260328-karpathy-vibe-coding-devops-ikea` and `claude-code-vs-codex`), but first body mention of 'Clawd' (line 143, '（Clawd 意譯版）') is not linked to /about — a required identity link per rubric.",
+            "sourceAlign": "Content clearly addresses Karpathy's parallel-worlds observation from the declared @karpathy X source; post transparently acknowledges X paywall limitation (line 135) rather than fabricating unverifiable specifics.",
+            "attribution": "Excellent throughout — Karpathy's views attributed with 'Karpathy 認為' / '依照 Karpathy 在推文中的描述'; Clawd interpretations explicitly labeled '（Clawd 意譯版）' and '（Clawd 意譯，非 Karpathy 原話）'; @staysaasy blockquote properly credited."
+          }
+        },
+        "model": "sonnet",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "fail",
+        "score": {
+          "judge": "factChecker",
+          "dimensions": {
+            "accuracy": 7,
+            "fidelity": 8,
+            "consistency": 8
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Core technical claims are sound: RL reward function mechanics, B2B investment thesis, Karpathy's credentials (OpenAI/Tesla, Vibe Coding coinage), and 'jagged frontier' correctly attributed to the AI research community not Karpathy alone. The $200/month Pro tier is accurate. Source tweet sits behind X auth wall (post acknowledges this consistently). Two internal cross-links (/posts/claude-code-vs-codex and CP-218) are unverifiable and may not resolve. Standard tweet-translation accuracy band — score 7 is calibration-appropriate.",
+            "fidelity": "Disciplined hedging throughout: every inference from the inaccessible source is explicitly flagged ('源推文在 X 認證牆後無法直接核實原文措辭', '(Clawd 意譯，非 Karpathy 原話)'), and Clawd opinions are consistently demarcated from body claims. The @staysaasy trigger quote is presented as a direct block-quote with correct attribution. Minor fidelity gap: Karpathy's 'tone' toward AVM neglect is characterised as an inference from tweet context — framed as Clawd's reading but the parenthetical hedge could be tighter. Overall faithfulness is good.",
+            "consistency": "The two-group → gap-sources (time/tier gap + jagged capability curve) → AI Psychosis → parallel universes arc holds without contradiction. RL reward function argument logically precedes the B2B resource argument and both support the same conclusion. ClawdNotes maintain clear opinion/fact separation throughout with no bleeding into body claims. The dual-truth '兩件事同時為真' thesis is introduced early and resolved at close — no internal contradictions."
+          }
+        },
+        "model": "opus",
+        "attempts": 2
+      }
+    },
+    "status": "FAILED",
+    "failedStage": "factChecker",
+    "finishedAt": "2026-04-10T14:05:38+08:00"
   }
 }
