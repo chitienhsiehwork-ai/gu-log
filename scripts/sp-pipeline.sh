@@ -350,12 +350,13 @@ step_to_int() {
     0|setup) echo 0 ;;
     1|fetch) echo 10 ;;
     1.5|eval) echo 15 ;;
+    1.7|dedup) echo 17 ;;
     2|write) echo 20 ;;
     3|review) echo 30 ;;
     4|refine) echo 40 ;;
     4.7|ralph) echo 47 ;;
     5|deploy) echo 50 ;;
-    *) die "Unknown step: $1. Valid: 0, 1, 1.5, 2, 3, 4, 4.7, 5 (or: setup, fetch, eval, write, review, refine, ralph, deploy)" ;;
+    *) die "Unknown step: $1. Valid: 0, 1, 1.5, 1.7, 2, 3, 4, 4.7, 5 (or: setup, fetch, eval, dedup, write, review, refine, ralph, deploy)" ;;
   esac
 }
 
@@ -434,6 +435,7 @@ fi
 
 GU_LOG_DIR="${GU_LOG_DIR:-$HOME/clawd/projects/gu-log}"
 cd "$GU_LOG_DIR"
+SCRIPT_DIR="$GU_LOG_DIR/scripts"
 source scripts/ralph-helpers.sh
 COUNTER_FILE="$GU_LOG_DIR/scripts/article-counter.json"
 STYLE_GUIDE_FILE="$GU_LOG_DIR/WRITING_GUIDELINES.md"
@@ -1236,14 +1238,44 @@ fi
 # (stamp_ralph_signature replaces the whole block — we want to ADD to it)
 for _rf in "$POSTS_DIR/$ACTIVE_FILENAME" "$POSTS_DIR/$ACTIVE_EN_FILENAME"; do
   [ -f "$_rf" ] || continue
-  # Append Scored + Rewritten + update Orchestrated, keep original Written/Reviewed/Refined
-  python3 - "$_rf" "$RALPH_PASSED" "$SCORE_P" "$SCORE_C" "$SCORE_V" << 'PYEOF'
-import sys, re
-filepath, passed, sp, sc, sv = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5]
-with open(filepath, 'r') as f:
-    content = f.read()
+  # Normalize Ralph stages deterministically so reruns stay idempotent.
+  python3 - "$_rf" << 'PYEOF'
+import re
+import sys
+from pathlib import Path
 
-ralph_stages = """    - role: "Scored"
+filepath = Path(sys.argv[1])
+content = filepath.read_text()
+
+match = re.match(r'^---\n([\s\S]*?)\n---\n([\s\S]*)$', content)
+if not match:
+    raise SystemExit(0)
+
+fm, body = match.group(1), match.group(2)
+
+# Remove any existing translatedBy pipeline block and pipelineUrl line.
+fm = re.sub(r'(?ms)^  pipeline:\n(?:    - role:.*\n      model:.*\n      harness:.*\n)+', '', fm)
+fm = re.sub(r'(?m)^  pipelineUrl: ".*\n?', '', fm)
+
+# Normalize top-level harness once.
+fm = re.sub(
+    r'(?m)^  harness: ".*"$',
+    '  harness: "Gemini CLI + Codex CLI + Claude Code"',
+    fm,
+    count=1,
+)
+
+pipeline_block = '''  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
       model: "Opus 4.6"
       harness: "Claude Code (vibe-opus-scorer)"
     - role: "Rewritten"
@@ -1252,25 +1284,16 @@ ralph_stages = """    - role: "Scored"
     - role: "Orchestrated"
       model: "Opus 4.6"
       harness: "OpenClaw + Ralph Loop"
-  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"""
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"'''
 
-# Replace existing Orchestrated + pipelineUrl with Ralph stages
-# NOTE: Do NOT use re.DOTALL — we want . to NOT match newlines so the regex stays on expected lines
-content = re.sub(
-    r'    - role: "Orchestrated"\n      model: ".*"\n      harness: ".*"\n  pipelineUrl: ".*"',
-    ralph_stages, content, count=1
+fm = re.sub(
+    r'(?m)^  harness: ".*"$',
+    lambda m: m.group(0) + '\n' + pipeline_block,
+    fm,
+    count=1,
 )
-# Update top-level harness to include Claude Code
-content = re.sub(
-    r'(  harness: "[^"]*)"',
-    r'\1 + Claude Code"',
-    content, count=1
-)
-# Deduplicate " + Claude Code + Claude Code"
-content = content.replace(' + Claude Code + Claude Code', ' + Claude Code')
 
-with open(filepath, 'w') as f:
-    f.write(content)
+filepath.write_text(f"---\n{fm}\n---\n{body}")
 PYEOF
 done
 
