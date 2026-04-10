@@ -124,7 +124,18 @@ function extractLinks(content, filePath) {
 
 function isInternalLink(url) {
   if (url.startsWith('/') && !url.startsWith('//')) return true;
-  if (url.includes('gu-log.vercel.app')) return true;
+  // Hostname match only — substring matching breaks on URLs that put the
+  // gu-log.vercel.app domain inside a query parameter (e.g.
+  // `https://api.qrserver.com/v1/create-qr-code/?data=https://gu-log.vercel.app`),
+  // which is an EXTERNAL call to api.qrserver.com, not an internal link.
+  try {
+    const host = new URL(url).hostname;
+    if (host === 'gu-log.vercel.app' || host === 'www.gu-log.vercel.app') {
+      return true;
+    }
+  } catch {
+    // not a valid absolute URL — fall through
+  }
   return false;
 }
 
