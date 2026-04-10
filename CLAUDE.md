@@ -82,8 +82,10 @@ vercel logs --since 1h         # 查最近 1h request logs（需 vercel login）
 ## Dev Workflow
 
 - **User 只看 production**（gu-log.vercel.app）。不要叫 user 開 dev server。
-- **CC 自己跑 `pnpm run dev`** 來 iterate，用 `playwright-cli` 截圖驗證 UI。
-- **UI/UX 品質**：改完 UI 後，spawn `uiux-auditor` subagent（Opus, fresh eyes）做 audit。不要等 user 來挑錯。
+- **CC 自己跑 `pnpm run dev`** 來 iterate，用 `playwright-cli` 截圖驗證 UI（skill 在 `.claude/skills/playwright-cli/`）。
+- **UI/UX 品質**：改完任何視覺的東西（CSS、component、color、spacing、typography、layout）就跑 `uiux-auditor` skill（`.claude/skills/uiux-auditor/`）。它會強制兩個主題都截圖、算 WCAG 對比、flag 寫死的 hex。不要等 user 來挑錯。
+- **建立 / 修改 skill**：用 `skill-creator` skill（`.claude/skills/skill-creator/`）— 官方 anthropic/skills 的來源。
+- **沙箱環境限制**：這個 agent 沙箱封鎖外部 HTTPS（fonts.googleapis.com 等），playwright-cli 的 `goto` 會在 `domcontentloaded` 卡死。每次 navigate 前先用 `run-code` 裝一個 route handler：localhost/data: 放行，其他一律 abort。uiux-auditor skill 裡有完整範本。
 - Push 到 main → Vercel auto-deploy → user 在 production 驗收。
 
 ## Quality: Vibe Scoring + Tribunal
