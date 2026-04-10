@@ -1845,5 +1845,97 @@
     },
     "status": "PASS",
     "finishedAt": "2026-04-10T15:51:01+08:00"
+  },
+  "cp-275-20260410-artificialanlys-gemma-4-google-token.mdx": {
+    "article": "cp-275-20260410-artificialanlys-gemma-4-google-token.mdx",
+    "startedAt": "2026-04-10T16:00:42+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 8,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Context Window (256K/128K) and Agent/Agentic (used across multiple sections) both exist in glossary but are unlinked; Context Window is explained inline so the gap is minor. Other key technical terms in this post (MoE, Intelligence Index, AA-Omniscience) are not in the glossary.",
+            "crossRef": "No internal post links and no ShroomDog/Clawd body mentions triggering identity-link requirement; no broken refs. Optional thematic connections to other open-weights model comparison posts (e.g. CP-153 Nemotron) could be added.",
+            "sourceAlign": "Content is clearly derived from @ArtificialAnlys benchmark data — specific Intelligence Index scores, output token counts, and AA-Omniscience figures all align with Artificial Analysis methodology and the declared sourceUrl topic.",
+            "attribution": "Artificial Analysis is cited by name multiple times as the data source; ClawdNote opinions are cleanly separated in components with no bleed into body; minor gap — on-device hardware specs (5.1B params, <3GB 4-bit footprint) stated as fact without explicit source call-out, but consistent with the tweet thread."
+          }
+        },
+        "model": "sonnet",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factChecker",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All internal math checks out (98M/39M = 2.51x ✓; 167M/39M > 4x ✓; 32K→128K = 4x ✓; 5.1B params at 4-bit ≈ 2.55GB so 'under 3GB' ✓). Numbers are plausible for Artificial Analysis tweet-sourced benchmark data. One mild flag: E4B is described as '8B 參數' without clarifying active-param distinction, while 26B A4B explicitly explains its MoE architecture — minor inconsistency in presentation depth. No fabrications detected.",
+            "fidelity": "ClawdNotes are cleanly separated and marked as opinion throughout. Hedges preserved. One mild fidelity issue: '3 分的差距主要來自 agentic 能力' is stated as fact in the body rather than flagged as editorial interpretation — this analytical conclusion may go slightly beyond what the source tweet explicitly asserts, though the benchmark data cited supports it.",
+            "consistency": "Argument arc is tight: token efficiency thesis introduced early, developed through specific numbers, validated in conclusion. The '核心知識型 benchmark 上幾乎持平' claim is directly backed by five specific benchmark rows (SciCode, TerminalBench Hard, GPQA Diamond, IFBench, HLE). The AA-Omniscience reversal section is honestly caveat'd in ClawdNote ('搞不好是 calibration，也可能是 reasoning 副作用'). Zero internal contradictions."
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Flows smoothly for a 3-month dev — token efficiency explained via concrete numbers, MoE and Dense defined on first use, but the benchmark-comparison-heavy middle section (MoE 賽道, AA-Omniscience scores) requires a second pass to parse all the numbers.",
+            "firstImpression": "The 反直覺 section (small models are more honest than big ones) is genuinely surprising and kept me reading; ending lands a real argument rather than a bullet recap, so I'd finish and mention it if Gemma came up in conversation."
+          }
+        },
+        "model": "haiku",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "老大/老二 family framing and oral asides like「這是 Google 要讓社群記住的那張臉」keep LHY feel alive, but the benchmark bullet sections and the 四兄弟 product breakdown slip into reporting mode rather than storytelling.",
+            "clawdNote": "6 of 7 notes carry explicit opinions (student exam analogy in note 1, Apache 2.0 strategic read in note 2, 護城河 reframe in note 7) clearing the 50% opinion threshold; note 6 (calibration speculation) is the one analytical outlier.",
+            "vibe": "The token-efficiency thesis and the 小模型比大模型誠實 surprise are genuinely interesting and shareable, but the dense benchmark comparison block and MoE analysis section drag momentum before the payoff.",
+            "clarity": "Body text is clean of 你/我 throughout; benchmark data consistently attributed to Artificial Analysis; ClawdNote speaker is unambiguous in every instance.",
+            "narrative": "Opening reframes 'lost the benchmark' as 'wrong question', AA-Omniscience reversal is a real structural surprise, and the 十億支手機裡護城河 punch closes the thesis arc — but the 四兄弟 breakdown and token data table sections are structured as delivery rather than story."
+          }
+        },
+        "model": "opus",
+        "attempts": 2
+      }
+    },
+    "status": "PASS",
+    "finishedAt": "2026-04-10T16:12:37+08:00"
   }
 }

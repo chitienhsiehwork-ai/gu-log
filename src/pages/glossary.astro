@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import ClawdNote from '../components/ClawdNote.astro';
 import glossaryData from '../data/glossary.json';
 
 const glossary = [...glossaryData].sort((a, b) => a.term.localeCompare(b.term));
@@ -105,6 +106,7 @@ const allLetters = grouped.map((g) => g.letter);
                   </dt>
                   <dd>
                     <p class="term-def">{item.definition}</p>
+                    {item.clawdNote && <ClawdNote>{item.clawdNote}</ClawdNote>}
                     {item.url && (
                       <p class="term-meta">
                         <a href={item.url} target="_blank" rel="noopener noreferrer">
@@ -439,6 +441,7 @@ const allLetters = grouped.map((g) => g.letter);
     line-height: 1.5;
     color: var(--color-text-muted);
     margin: 0;
+    white-space: pre-line;
   }
 
   .term-meta {
@@ -456,6 +459,13 @@ const allLetters = grouped.map((g) => g.letter);
   .term-meta a:hover {
     text-decoration: underline;
     opacity: 1;
+  }
+
+  /* Compact ClawdNote inside glossary entries */
+  .glossary-entry :global(blockquote.claude-note) {
+    margin: 0.4rem 0 0.2rem 0;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
   }
 
   .glossary-empty {

@@ -3,7 +3,17 @@
     "term": "Agent",
     "en": "Agent",
     "definition": "能自主執行任務的 AI。不只是回答問題，而是能使用工具、讀寫檔案、呼叫 API、甚至派出其他 Agent 來完成複雜任務。",
+    "clawdNote": "聽起來很威，其實就是「有工具和 Wi-Fi 的 AI」。能自己開瀏覽器、改檔案、叫其他 AI 幫忙，而且不會下班。",
     "related": ["Subagent", "Tool Use"],
+    "definedIn": [],
+    "category": "concepts"
+  },
+  {
+    "term": "Codex",
+    "en": "Codex",
+    "definition": "OpenAI 生態裡的同名異物，「Codex」至少可以指：\n• 舊模型（2021）：程式碼生成模型，2023 年已下架\n• 新產品（2025）：agentic coding 工具，背後跑 codex-1（基於 o3）\n• 系統框架：模型 + 執行環境 + 介面整合體，整包都叫 Codex\n\nOpenAI 官方人員自己也承認這名字讓人一頭霧水。用戶只能自己猜。",
+    "clawdNote": "OpenAI 2025 年把這個名字拿來重用，Simon Willison 形容為「令人困惑的同名產品陣列」。Gabriel Chua 建議用 Model + Harness + Surfaces 三層框架來拆解 — 有用，但這本來不應該需要解釋框架才能理解一個品牌名稱。",
+    "related": ["Agent"],
     "definedIn": [],
     "category": "concepts"
   },
@@ -11,6 +21,7 @@
     "term": "Claude Code",
     "en": "Claude Code",
     "definition": "Anthropic 官方的 CLI 工具，讓 Claude 可以直接在你的電腦上執行指令、讀寫檔案、跑測試。agentic coding 的主力工具。",
+    "clawdNote": "就是讓 Clawd 從「聊天框裡的 AI」升格成「可以真的動你電腦的 AI」。這個詞彙表頁面，包括這段文字，都是 Claude Code 寫的 — 沒什麼比這更 meta。",
     "url": "https://docs.anthropic.com/en/docs/claude-code",
     "related": ["Vibe Coding", "MCP"],
     "definedIn": [],
@@ -20,6 +31,7 @@
     "term": "Context Window",
     "en": "Context Window",
     "definition": "AI 一次能「記住」的最大文字量。超過這個限制，AI 就會開始「遺忘」前面的對話。",
+    "clawdNote": "就是 AI 的工作記憶。超過上限，前面說過的事可能突然不算數。長對話裡 AI 犯蠢，通常不是笨，是 context 快滿了。",
     "related": ["Token"],
     "definedIn": [],
     "category": "concepts"
@@ -28,6 +40,7 @@
     "term": "Cowork",
     "en": "Cowork",
     "definition": "Anthropic 官方的非工程師 Agent 模式，跑在本機的隔離沙盒裡。能操作檔案、連接 Google Drive / Slack 等 App，但受 Anthropic 框架限制。不需要 server、不需要 DevOps。",
+    "clawdNote": "Anthropic 想讓不寫 code 的人也能用 agent — 沙盒隔離、接 Google Drive、不用裝一堆東西。目前是 research preview，保留觀察立場。",
     "url": "https://claude.com/blog/cowork-research-preview",
     "related": ["Claude Code", "Agent"],
     "definedIn": [],
@@ -37,6 +50,7 @@
     "term": "Hooks",
     "en": "Hooks",
     "definition": "Claude Code 的自動化機制。可以在 session 開始、結束、或特定動作後自動執行腳本。",
+    "clawdNote": "就是給 Claude Code 埋伏筆。「每次 commit 之前先跑這個」、「session 結束後幫我存紀錄」。自動化最快的辦法是提前想好觸發時機，不是每次手動叫 AI。",
     "related": ["Claude Code"],
     "definedIn": [],
     "category": "concepts"
@@ -45,6 +59,7 @@
     "term": "MCP",
     "en": "Model Context Protocol",
     "definition": "Anthropic 推出的協議，讓 AI 可以連接外部工具和資料來源。像是 AI 的 USB 接口。",
+    "clawdNote": "USB 接口比喻是對的，但更準確是「AI 的 App Store 後台協議」。有了它，任何工具可以宣稱「我支援 MCP」，然後 AI 就能接上去用。Server 品質目前參差，慎選。",
     "url": "https://modelcontextprotocol.io",
     "related": ["Claude Code", "Tool Use"],
     "definedIn": [],
@@ -54,6 +69,7 @@
     "term": "MOC",
     "en": "Map of Content",
     "definition": "內容地圖。一個專門用來連結相關筆記的索引頁面，幫助你在筆記之間導航。",
+    "clawdNote": "筆記系統的索引頁，指向其他筆記。問題是索引也需要維護，最後容易變成一堆指向空頁面的連結，然後就不更新了。",
     "related": ["Obsidian", "Zettelkasten"],
     "definedIn": [],
     "category": "methods"
@@ -62,6 +78,7 @@
     "term": "OpenClaw",
     "en": "OpenClaw",
     "definition": "開源的 AI Agent 框架，可以把 Claude 變成 24/7 運作的個人助理，透過 Telegram、Discord 等管道互動。前身叫 Moltbot/Clawdbot。",
+    "clawdNote": "gu-log 的 Clawd 就跑在 OpenClaw 上。24/7 掛機、Telegram 接指令、自動翻推文 — 不抱怨、不請假、薪水是零。",
     "url": "https://github.com/openclaw/openclaw",
     "related": ["Agent", "Claude Code"],
     "definedIn": [],
@@ -71,6 +88,7 @@
     "term": "Ralph Loop",
     "en": "Ralph Loop",
     "definition": "讓 AI coding agent 在 while(true) 迴圈裡自主工作的模式：agent 執行任務 → evaluator 檢查結果 → 沒完成就帶著上一輪的 context 再跑一次。由 Geoffrey Huntley 命名（致敬 Ralph Wiggum），核心概念是「你去睡覺，AI 繼續幹活」。每次 iteration 都是全新的 agent instance，避免 context 污染。",
+    "clawdNote": "得名自 The Simpsons 的 Ralph Wiggum — 那個永遠開心、有點迷糊的小孩。AI 版的 Ralph 也是這樣：一直跑、一直跑，直到 evaluator 說行了為止。",
     "related": ["Vibe Coding", "Agent", "Claude Code"],
     "definedIn": [],
     "category": "methods"
@@ -79,6 +97,7 @@
     "term": "Rodney",
     "en": "Rodney",
     "definition": "Simon Willison 開發的 CLI 版瀏覽器自動化工具，基於 Playwright。可以截圖、跑 JavaScript、做 accessibility audit，專門設計給 AI agent 當「眼睛」用。跟 Showboat 搭配使用效果最佳。",
+    "clawdNote": "Simon Willison 的工具命名品味一貫很 British — 用人名，不解釋。Rodney 是給 AI 用的「眼睛」，讓 agent 可以真的看網頁、截圖、跑 JS，而不是靠猜。",
     "related": ["Showboat", "Agent"],
     "definedIn": [],
     "category": "tools"
@@ -87,6 +106,7 @@
     "term": "Showboat",
     "en": "Showboat",
     "definition": "Simon Willison 開發的 CLI 工具，讓 AI agent 自動產生 Markdown demo 文件來展示自己寫的 code 實際跑起來的樣子。解決一個核心問題：agent 說 test 全 pass，但你怎麼知道它真的 work？用截圖 + 指令記錄來「證明」成果。",
+    "clawdNote": "解決了 agent 最常見的問題：說「好了」但不知道真的好了沒。Showboat 強迫 agent 留下截圖和指令記錄，把「聲稱完成」變成「有圖有真相」。",
     "related": ["Rodney", "Agent", "Claude Code"],
     "definedIn": [],
     "category": "tools"
@@ -95,6 +115,7 @@
     "term": "Subagent",
     "en": "Subagent",
     "definition": "主 Agent 派出去處理特定任務的小 Agent。像是老闆派員工去做事，做完回報結果。",
+    "clawdNote": "分工的本質。主 agent 不用什麼都自己來，把任務拆開派出去。這版本的員工不會在週五下午消失。",
     "related": ["Agent", "Claude Code"],
     "definedIn": [],
     "category": "concepts"
@@ -103,6 +124,7 @@
     "term": "Tools for Thought",
     "en": "Tools for Thought",
     "definition": "幫助人類思考的工具，如 Obsidian、Roam Research、Notion。核心理念是把想法外部化、連結化、可搜尋化。",
+    "clawdNote": "這個分類的工具都預設使用者有時間整理想法。現實是最常被使用的「思考工具」還是 LINE 群組。",
     "related": ["Obsidian", "Zettelkasten"],
     "definedIn": [],
     "category": "concepts"
@@ -111,6 +133,7 @@
     "term": "Vibe Coding",
     "en": "Vibe Coding",
     "definition": "用自然語言描述你要什麼，讓 AI 幫你寫 code 的開發方式。重點是「說感覺」而不是「寫規格」。由 Andrej Karpathy 命名。",
+    "clawdNote": "Karpathy 2025 年初創的詞，幾乎立刻變成行業標準用法。核心是「不用完全懂，說感覺就好」。副作用是：code 有時候神奇地能動，你不知道為什麼，也不太敢改。",
     "related": ["Claude Code", "Agent"],
     "definedIn": [],
     "category": "concepts"
@@ -119,6 +142,7 @@
     "term": "Vibe Note-Taking",
     "en": "Vibe Note-Taking",
     "definition": "把 Vibe Coding 的概念套用到筆記：用語音或隨意打字記錄想法，讓 AI 幫你整理成結構化筆記。",
+    "clawdNote": "Vibe Coding 的筆記版。以前維護筆記系統需要很強的自律，現在只需要願意說話。",
     "related": ["Vibe Coding", "Obsidian"],
     "definedIn": [],
     "category": "concepts"
@@ -127,6 +151,7 @@
     "term": "Zettelkasten",
     "en": "Zettelkasten",
     "definition": "德文「卡片盒」。一種筆記方法：每張卡片一個想法，卡片之間用連結串起來。現代 Obsidian 的核心靈感來源。",
+    "clawdNote": "Niklas Luhmann 靠這套系統寫出 70 本書、400 篇論文。現代人在 Obsidian 裡重現這個方法，產出量通常差了一個數量級。(¬‿¬)",
     "related": ["Tools for Thought", "Obsidian"],
     "definedIn": [],
     "category": "methods"

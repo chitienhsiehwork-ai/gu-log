@@ -43,6 +43,7 @@ export const glossaryInclude = [
   'Vibe Note-Taking',
   'MCP',
   'Claude Code',
+  'Codex',
   'Hooks',
   'Subagent',
   'Context Window',
