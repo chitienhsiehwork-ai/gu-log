@@ -55,9 +55,39 @@ echo ""
 # ─── Step 0.1: Score gate — staged posts must have ralph scores ───
 # Only checks zh-tw primary posts (not en- translations).
 # Minimum: scores.ralph block with p, c, v fields.
+#
+# Exemption: posts whose ONLY diff vs HEAD is dedup/series housekeeping
+# (status: deprecated, deprecatedReason, deprecatedBy, series.*) skip the
+# gate. The score is about content quality, not bookkeeping. Forcing a
+# rescore just to add a `series.name` to a 4-month-old post is the wrong
+# trade-off.
 echo "📊 Score gate: checking staged posts for ralph scores..."
 SCORE_MISSING=""
 STAGED_ZH_POSTS=$(printf '%s\n' "$STAGED_MDX" | grep -v '/en-' | sed '/^$/d' || true)
+
+is_metadata_only_diff() {
+    local file="$1"
+    # If the file is newly added there's no HEAD version to diff against —
+    # treat as content change so the gate enforces.
+    if ! git cat-file -e "HEAD:$file" 2>/dev/null; then
+        return 1
+    fi
+    # All added/removed lines (excluding the ±±± headers) must match the
+    # housekeeping field allowlist. Anything else → content change.
+    local diff_body
+    diff_body=$(git diff --cached --no-color -U0 -- "$file" \
+        | grep -E '^[+-]' \
+        | grep -vE '^(\+\+\+|---) ' \
+        || true)
+    if [ -z "$diff_body" ]; then
+        return 0
+    fi
+    if printf '%s\n' "$diff_body" \
+        | grep -vqE '^[+-][[:space:]]*(status|deprecatedReason|deprecatedBy|series|name|order):'; then
+        return 1
+    fi
+    return 0
+}
 
 if [ -z "$STAGED_ZH_POSTS" ]; then
     echo "✓ No zh-tw posts staged"
@@ -65,6 +95,11 @@ else
     for file in $STAGED_ZH_POSTS; do
         FULL_PATH="$REPO_ROOT/$file"
         if [ ! -f "$FULL_PATH" ]; then continue; fi
+
+        # Skip the gate if this is a metadata-only housekeeping edit.
+        if is_metadata_only_diff "$file"; then
+            continue
+        fi
 
         # Check if file has scores.ralph block with p, c, v
         if ! grep -q "^  ralph:" "$FULL_PATH" 2>/dev/null; then
@@ -99,12 +134,20 @@ echo "✓ All staged posts have ralph scores"
 echo ""
 
 # ─── Step 0.15: Pronoun clarity check (你/我 ban in zh-tw body) ───
+# Same metadata-only exemption as the score gate: housekeeping edits
+# (status/series/deprecation) don't change body text and shouldn't be
+# punished for pre-existing 你/我 in 4-month-old articles.
 if [ -n "$STAGED_MDX" ]; then
     ZH_FILES=""
     for file in $STAGED_MDX; do
         case "$file" in
             */en-*) ;; # skip English
-            *) ZH_FILES="$ZH_FILES $REPO_ROOT/$file" ;;
+            *)
+                if is_metadata_only_diff "$file"; then
+                    continue
+                fi
+                ZH_FILES="$ZH_FILES $REPO_ROOT/$file"
+                ;;
         esac
     done
 

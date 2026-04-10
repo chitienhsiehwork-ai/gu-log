@@ -304,7 +304,13 @@ function loadActiveZhTwArticles() {
     if (fm.lang && fm.lang !== 'zh-tw') continue;
 
     const sourceUrl = fm.sourceUrl ?? '';
-    const normalizedUrl = normalizeUrl(sourceUrl);
+    // Self-referential / placeholder URLs (e.g. SD originals that have no
+    // external source) must NOT participate in URL match — otherwise every
+    // SD post that lists `gu-log.vercel.app` as a placeholder source becomes
+    // a "duplicate" of every other SD post.
+    const isPlaceholderUrl =
+      /\/\/(www\.)?gu-log\.vercel\.app\/?$/i.test(sourceUrl) || sourceUrl === '';
+    const normalizedUrl = isPlaceholderUrl ? '' : normalizeUrl(sourceUrl);
     const tweetId = extractTweetId(sourceUrl);
 
     articles.push({
@@ -316,6 +322,7 @@ function loadActiveZhTwArticles() {
       normalizedUrl,
       tweetId,
       status: fm.status ?? 'active',
+      seriesName: fm.series && typeof fm.series === 'object' ? (fm.series.name ?? '') : '',
       keywordText: `${fm.title ?? ''} ${fm.summary ?? ''} ${Array.isArray(fm.tags) ? fm.tags.join(' ') : ''}`,
     });
   }
@@ -326,7 +333,35 @@ function loadActiveZhTwArticles() {
 /**
  * Run pairwise duplicate check across all active zh-tw articles.
  * Returns array of duplicate groups.
+ *
+ * NOTE: this bulk audit uses STRICTER thresholds than the new-article gate
+ * (`scripts/dedup-gate.mjs`). When auditing existing published content, the
+ * cost of a false positive is high (humans must triage 36 false alarms to
+ * find 0 real ones), and the cost of a missed duplicate is low (the article
+ * is already public). The single-candidate gate stays loose to catch
+ * potential dupes for review at write time; this scan only flags pairs that
+ * are corroborated on multiple signals.
+ *
+ *   URL match           → also requires title similarity ≥ 0.4 OR meaningful
+ *                         English overlap ≥ 4. Without this, deliberate series
+ *                         that share a sourceUrl (ECC SP-143…SP-153 from one
+ *                         GitHub repo, batch-340 SP-60/61/62 from one digest)
+ *                         all fire as false positives.
+ *   Topic similarity    → score ≥ 0.5 AND overlap ≥ 4 (vs the single-candidate
+ *                         gate's 0.3 / 2). At 0.30 with overlap 2, any two
+ *                         articles that mention `claude-code` plus one other
+ *                         token cross the line, which on a Claude-focused
+ *                         blog is essentially every pair.
  */
+const SCAN_TITLE_OVERLAP_REQUIRED = 0.4;
+const SCAN_MIN_TITLE_EN_OVERLAP = 4;
+const SCAN_TOPIC_REJECT_THRESHOLD = 0.5;
+// At overlap=4, two articles sharing `claude-code` + `agent` + `ai` + one
+// other token cross the line — basically every pair on a Claude-focused
+// blog. Overlap ≥ 5 requires meaningfully more vocabulary in common, which
+// is what we actually want to flag as a "same topic" pair.
+const SCAN_TOPIC_MIN_EN_OVERLAP = 5;
+
 function checkDuplicates() {
   const articles = loadActiveZhTwArticles();
   console.log(`\nScanning ${articles.length} active zh-tw articles for duplicates...\n`);
@@ -347,16 +382,30 @@ function checkDuplicates() {
       let matchReason = null;
       let score = 0;
 
-      // Layer 1: URL match
-      if (a.normalizedUrl && b.normalizedUrl && a.normalizedUrl === b.normalizedUrl) {
-        matchReason = 'URL match';
-        score = 1.0;
-      } else if (a.tweetId && b.tweetId && a.tweetId === b.tweetId) {
-        matchReason = 'tweet ID match';
-        score = 1.0;
+      // Series exemption: articles explicitly marked as part of the same
+      // `series.name` are intentional multi-part coverage, not duplicates.
+      if (a.seriesName && b.seriesName && a.seriesName === b.seriesName) {
+        continue;
       }
 
-      // Layer 2: topic similarity (only if no URL match)
+      // Layer 1: URL or tweet ID match — but only if titles also corroborate.
+      // A series of articles sharing one sourceUrl is not a duplicate.
+      const urlOrTweetMatch =
+        (a.normalizedUrl && b.normalizedUrl && a.normalizedUrl === b.normalizedUrl) ||
+        (a.tweetId && b.tweetId && a.tweetId === b.tweetId);
+
+      if (urlOrTweetMatch) {
+        const titleSim = computeSimilarity(a.title, b.title);
+        if (
+          titleSim.score >= SCAN_TITLE_OVERLAP_REQUIRED ||
+          titleSim.enOverlap >= SCAN_MIN_TITLE_EN_OVERLAP
+        ) {
+          matchReason = `URL match + title corroboration (titleSim: ${titleSim.score.toFixed(3)}, overlap: ${titleSim.enOverlap})`;
+          score = 1.0;
+        }
+      }
+
+      // Layer 2: topic similarity — stricter for bulk audit.
       if (!matchReason) {
         // title-to-title (tight match)
         const titleSim = computeSimilarity(a.title, b.title);
@@ -364,7 +413,10 @@ function checkDuplicates() {
         const fullSim = computeSimilarity(a.keywordText, b.keywordText);
         const best = titleSim.score >= fullSim.score ? titleSim : fullSim;
 
-        if (best.score >= REJECT_THRESHOLD && best.enOverlap >= MIN_EN_OVERLAP) {
+        if (
+          best.score >= SCAN_TOPIC_REJECT_THRESHOLD &&
+          best.enOverlap >= SCAN_TOPIC_MIN_EN_OVERLAP
+        ) {
           matchReason = `topic similarity (score: ${best.score.toFixed(3)}, overlap: ${best.enOverlap})`;
           score = best.score;
         } else if (best.score >= FLAG_THRESHOLD) {
@@ -373,7 +425,7 @@ function checkDuplicates() {
         }
       }
 
-      // Only hard-block matches count as duplicates (URL match or BLOCK-level similarity)
+      // Only hard-block matches count as duplicates (URL+title corroboration or BLOCK-level similarity)
       // WARN-level similarity is advisory and does not fail the check
       const isHardBlock = matchReason !== null && !matchReason.startsWith('topic similarity WARN');
       if (isHardBlock) {
