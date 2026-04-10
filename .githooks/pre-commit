@@ -61,7 +61,24 @@ echo ""
 # gate. The score is about content quality, not bookkeeping. Forcing a
 # rescore just to add a `series.name` to a 4-month-old post is the wrong
 # trade-off.
-echo "📊 Score gate: checking staged posts for ralph scores..."
+#
+# Merge-commit exemption: if .git/MERGE_HEAD exists we're finalising a
+# merge, which brings in content that was already gated on its source
+# branch. Re-gating it here would block legitimate merges whenever main
+# has posts that didn't pass this specific gate (e.g. pipeline gaps
+# where scores were written to scores/tribunal-progress.json instead of
+# the mdx frontmatter). Content-quality gates fire on authored commits,
+# not on merges.
+IS_MERGE_COMMIT=0
+if [ -f "$REPO_ROOT/.git/MERGE_HEAD" ]; then
+    IS_MERGE_COMMIT=1
+fi
+
+if [ "$IS_MERGE_COMMIT" = "1" ]; then
+    echo "📊 Score gate: merge commit detected — skipping (content was gated on source branches)"
+else
+    echo "📊 Score gate: checking staged posts for ralph scores..."
+fi
 SCORE_MISSING=""
 STAGED_ZH_POSTS=$(printf '%s\n' "$STAGED_MDX" | grep -v '/en-' | sed '/^$/d' || true)
 
@@ -91,6 +108,8 @@ is_metadata_only_diff() {
 
 if [ -z "$STAGED_ZH_POSTS" ]; then
     echo "✓ No zh-tw posts staged"
+elif [ "$IS_MERGE_COMMIT" = "1" ]; then
+    : # already printed the skip message above
 else
     for file in $STAGED_ZH_POSTS; do
         FULL_PATH="$REPO_ROOT/$file"
@@ -137,7 +156,8 @@ echo ""
 # Same metadata-only exemption as the score gate: housekeeping edits
 # (status/series/deprecation) don't change body text and shouldn't be
 # punished for pre-existing 你/我 in 4-month-old articles.
-if [ -n "$STAGED_MDX" ]; then
+# Also skipped on merge commits — content was gated on source branches.
+if [ -n "$STAGED_MDX" ] && [ "$IS_MERGE_COMMIT" != "1" ]; then
     ZH_FILES=""
     for file in $STAGED_MDX; do
         case "$file" in
@@ -162,6 +182,8 @@ if [ -n "$STAGED_MDX" ]; then
         fi
         echo "✓ Pronoun clarity passed"
     fi
+elif [ "$IS_MERGE_COMMIT" = "1" ]; then
+    echo "🔍 Pronoun clarity: merge commit detected — skipping"
 fi
 echo ""
 

@@ -1,0 +1,207 @@
+---
+ticketId: "CP-276"
+title: "Which AI Coding Tools Do Developers Actually Use at Work? JetBrains Surveyed 10,000+ to Find Out"
+originalDate: "2026-04-10"
+translatedDate: "2026-04-11"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "JetBrains Research Blog"
+sourceUrl: "https://blog.jetbrains.com/research/2026/04/which-ai-coding-tools-do-developers-actually-use-at-work/"
+lang: "en"
+summary: "JetBrains surveyed 10,000+ developers worldwide: 90% use AI tools at work, GitHub Copilot leads but its growth has stalled, and Claude Code grew 6x in six months with the highest satisfaction scores on the market."
+tags: ["clawd-picks", "developer-survey", "ai-coding-tools", "github-copilot", "claude-code", "cursor", "jetbrains"]
+scores:
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 8
+    clarity: 8
+    narrative: 8
+    score: 8
+    date: "2026-04-10"
+    model: "claude-opus-4-6"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Open LinkedIn right now. Every third post is about a new AI coding agent. Claude Code, Codex, Gemini CLI, Junie — the names pile up like a Pokémon list nobody asked for. But here's the question nobody's asking: **how many developers actually use these tools at work?**
+
+Not for weekend side projects. Not for Twitter demos that look cool for 30 seconds. The real question is: when a developer opens their work laptop to write production code, which tool do they actually reach for?
+
+JetBrains Research ran a large-scale AI Pulse survey in January 2026. Over 10,000 professional developers. Eight languages. Globally representative. This isn't a Twitter poll — it's the kind of survey with actual methodology.
+
+Here's what the data says. Some of it will surprise you.
+
+<ClawdNote>
+JetBrains did something clever: they ran this survey without mentioning AI in the ads. Zero JetBrains branding on the survey landing page either.
+Why? Because if your ad says "AI tool survey," you attract AI enthusiasts — and your data gets skewed toward power users. If it says "JetBrains survey," you attract JetBrains users. They avoided both.
+This kind of survey design discipline is genuinely rare. Most "developer surveys" are just recruitment funnels in disguise (◕‿◕)
+</ClawdNote>
+
+## 90% Is Not the Interesting Number
+
+Let's get the obvious headline out of the way: in January 2026, **90% of developers regularly used at least one AI tool at work**. Not surprising. Not even interesting. The developers NOT using AI are the weird ones now.
+
+The more interesting number is **74%** — the share using tools specifically built for developers (coding assistants, AI editors, agents), as opposed to just chatting with ChatGPT to get answers. Three out of four developers have moved beyond "ask the AI a question" into "integrate AI into my actual workflow."
+
+That still leaves 26% either stuck on general chatbots or avoiding AI entirely. These aren't people who don't know AI exists — they're developers who haven't found a compelling enough reason to change their habits. The tool wars aren't about winning over the 74%. They're about fighting for share within that 74%.
+
+---
+
+## GitHub Copilot: Still on the Throne, But the Floor Is Cracking
+
+GitHub Copilot remains the most recognized (76% awareness) and most used (29% adoption) AI coding tool for professional work.
+
+Here's the problem: its growth has completely stalled. Awareness hasn't moved. Adoption hasn't moved. For a product backed by GitHub, Microsoft, and OpenAI — three of the most powerful distribution machines in tech — this is a strange place to be.
+
+Copilot's 40% adoption rate at companies with 5,000+ employees (vs. 29% overall) tells you everything. That's not product love — that's enterprise procurement. IT bought a GitHub Enterprise license, Copilot came with it, and developers use it because it's already installed. Whether they love it is beside the point.
+
+<ClawdNote>
+There's a term for this in enterprise software: "shelfware." It's the software IT buys because it's bundled with something else, and everyone uses it because it's there — like the coffee machine in the break room that nobody would've chosen, but everyone drinks because it's free.
+Copilot's 40% enterprise number might be measuring "deployed" more than "loved" ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## Claude Code: 6x Growth in Six Months
+
+This is the most dramatic data story in the entire survey.
+
+Three snapshots of Claude Code adoption at work:
+- April–June 2025: **~3%**
+- September 2025: **~12%** (derived from 1.5x multiplier to January figure)
+- January 2026: **18%**
+
+Six times growth in roughly six months. Awareness jumped from 31% to 49% to 57% in three waves, each bigger than the last. In the US and Canada, it's already at **24%**.
+
+But the growth numbers aren't even the most impressive part. Claude Code's **CSAT (customer satisfaction) is 91%** and its **NPS (Net Promoter Score) is 54**. On a scale where -100 is "everyone hates you" and +100 is "everyone loves you," a score of 54 means users don't just like it — they're evangelizing it to their coworkers.
+
+JetBrains called it outright: Claude Code has "the highest product loyalty metrics on the market."
+
+<ClawdNote>
+NPS 54 for a command-line tool. Let that sit for a second.
+Most SaaS products would celebrate an NPS of 30. Consumer brands shoot for 50+. Claude Code — a terminal agent — is sitting in consumer brand territory.
+Once you've had an AI agent that can read your codebase, write tests, fix bugs, and iterate while you grab coffee, going back to doing it manually feels like washing dishes by hand after you've had a dishwasher. That's what 54 is measuring (╯°□°)╯
+</ClawdNote>
+
+---
+
+## Cursor: From Rocket Ship to Cruise Control
+
+Cursor was the hottest AI code editor in 2025. The JetBrains data tells a more complicated story in 2026.
+
+Awareness at 69% (second only to Copilot's 76%) — great foundation. But both awareness and adoption growth have slowed significantly. Adoption sits at 18%, tied with Claude Code for second place.
+
+<ClawdNote>
+There's a structural difference worth thinking about here. Cursor is a full IDE — a VS Code fork with AI baked in. Switching to Cursor means switching your entire development environment. Claude Code is a CLI agent that works next to whatever editor you already use. The switching cost is completely different.
+The fact that Claude Code caught up to Cursor while requiring zero workflow migration is a signal: for a lot of developers, the agentic workflow is more valuable than the IDE integration. Opening a terminal tab beats changing your whole setup (¬‿¬)
+</ClawdNote>
+
+---
+
+## Performance Over Platform
+
+JetBrains framed the big trend with a phrase worth keeping: **"performance over platform."**
+
+The argument is about Claude Code's rise: no proprietary IDE, no GitHub-scale ecosystem, no enterprise bundle deal — just a tool that's dramatically better at the thing it's supposed to do. The report quotes it directly:
+
+> The shift toward best-of-breed agents demonstrates that product excellence now outweighs ecosystem lock-in.
+
+Translation: when a standalone tool is clearly better, developers will abandon the integrated stack to get it. Ecosystem lock-in used to be a moat. It's becoming a ceiling.
+
+This flips the old DevTool playbook. The old strategy was "own the platform → lock in users → add features slowly." The new one is "build the best single tool → users come to you → platform bundling can't stop them."
+
+<ClawdNote>
+The fun part here is who's saying this. JetBrains is a platform company. IntelliJ, PyCharm, WebStorm — all full IDEs, all platform plays.
+When the platform company publishes research saying "product excellence now beats ecosystem lock-in," you know the shift is real. They're not just reporting it — they're pivoting their strategy around it. Which brings us to their actual play... (¬‿¬)
+</ClawdNote>
+
+---
+
+## The Other Players
+
+A few other numbers worth knowing:
+
+**OpenAI Codex** — 27% awareness, only 3% adoption at work. Caveat: this data was collected before the Codex desktop app launched and before ChatGPT started actively promoting it. That 3% is probably already stale.
+
+**Google Antigravity** — launched in November 2025, hit 6% work adoption by January 2026. Two months, 6%. Google's brand plus a compelling product is a fast combination.
+
+**ChatGPT as a coding tool** — 28% of developers still use the ChatGPT chat interface for coding tasks at work. That's higher than Claude Code (18%) and Cursor (18%). The lowest-friction workflow wins.
+
+**JetBrains' own tools** — AI Assistant at 9%, Junie at 5%, with 11% using at least one (some overlap). Honest reporting from JetBrains here — they didn't try to spin these numbers.
+
+<ClawdNote>
+ChatGPT chatbot still at 28%. Think about what that means: more developers use "open browser tab → paste code → ask question" than use Claude Code or Cursor.
+Specialized tools can be better in every measurable way and still lose to zero-friction habits. The activation energy of opening a new tool is real. If your workflow already includes a browser tab, adding a chatbot is easier than adding a CLI agent ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## JetBrains' Play: Be the Referee
+
+The second half of the JetBrains report isn't analysis — it's a strategy announcement. Their core thesis: **the future of development is an open ecosystem where developers freely choose the best agents.**
+
+Four products they're building around this:
+
+**JetBrains IDEs** — Already integrated Claude Agent and OpenAI Codex into their AI chat. Dozens more agents accessible via Agent Client Protocol, including Cursor.
+
+**JetBrains Central** — The ambitious one. A "unified control and execution plane for agent-driven software production." Governance, cloud agent runtimes, a shared semantic layer for codebase understanding. Developers kick off agent workflows from any IDE, CLI, or web interface. Agents can come from anywhere — JetBrains, Claude, Codex, Gemini CLI, custom.
+
+**Air (Public Preview)** — An environment built specifically for agentic development. Delegate tasks to multiple agents (Claude, Codex, Gemini, Junie) running concurrently in isolated Docker containers or Git worktrees. Deep structural codebase understanding without touching your main working copy. Bring Your Own Key for OpenAI and Google.
+
+**Junie CLI (Beta)** — A lightweight LLM-agnostic coding agent for the terminal. Switch between OpenAI, Anthropic, Google, and Grok models with Bring Your Own Key. Local-first, deep project structure awareness.
+
+<ClawdNote>
+JetBrains' strategy is essentially: "If we can't beat Claude Code and Cursor, become the stadium they play in."
+Don't compete with individual agents — be the orchestration layer. Central and Air are bets that whoever wins the agent wars, JetBrains collects the rent.
+Smart play? Probably. But it only works if developers actually want an "agent coordination center" — and not just a terminal window running Claude Code.
+Enterprise market: probably yes. Individual developers: historically hate anything that adds management overhead (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## Why This Survey Is More Trustworthy Than Most
+
+Before you take these numbers seriously, here's why the methodology actually holds up.
+
+**Sample size**: 10,000+ professional developers. Eight languages. Global coverage weighted to regional developer population estimates.
+
+**Sampling design**: Regional quotas based on JetBrains' Data Science team estimates. Raking weighting across three dimensions: developer count by region, coding experience, and familiarity with JetBrains products.
+
+**Debranding**: No JetBrains mention in ad banners or on the survey landing page. Survey promoted through JetBrains social media accounts and a research panel (accounting for ~16% of responses).
+
+**Anti-AI bias**: No mention of AI in the survey description. Positioned as a general "developer tools" survey — to avoid self-selection by AI enthusiasts or AI skeptics.
+
+Is there bias? Yes. Instagram ad targeting excludes developers who don't use Instagram. The 16% research panel sample skews toward JetBrains users. But compared to a Twitter poll that 300 people voted on, this is in a completely different category.
+
+---
+
+## The Takeaway
+
+JetBrains' survey maps the AI coding tool landscape as of early 2026, and the most striking line on that map is: **product excellence is dismantling platform lock-in**.
+
+GitHub Copilot has GitHub, Microsoft, and OpenAI, and it's stuck at 29%. Claude Code has no platform ecosystem at all, grew 6x in six months, and has the highest satisfaction scores in the market. Cursor went from rocket ship to cruise control. ChatGPT chatbot — the most boring interface possible — still has more adoption than any specialized tool.
+
+The next war in developer tools isn't about who has the deepest IDE integration or the biggest enterprise bundle. It's about **who can make developers feel so dependent they can't imagine going back**.
+
+At least one tool has already answered that question. NPS 54 doesn't lie.
+
+<ClawdNote>
+One timing note worth flagging: this survey data was collected in January 2026, before OpenAI publicly launched the Codex desktop app and ChatGPT integration. That 3% adoption number is almost certainly already out of date.
+When the next survey wave drops in April, the landscape might look completely different again. This industry moves faster than survey methodology can keep up with ┐(￣ヘ￣)┌
+</ClawdNote>
