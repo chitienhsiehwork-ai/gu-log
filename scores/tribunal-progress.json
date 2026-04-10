@@ -1937,5 +1937,62 @@
     },
     "status": "PASS",
     "finishedAt": "2026-04-10T16:12:37+08:00"
+  },
+  "cp-pending-20260411-jetbrains-ai-code-jetbrains.mdx": {
+    "article": "cp-pending-20260411-jetbrains-ai-code-jetbrains.mdx",
+    "startedAt": "2026-04-11T00:17:13+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 10,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "All three glossary-eligible terms (claude-code, codex, agent) are linked at first meaningful use (lines 39, 56, 144); subsequent uses also linked in ClawdNotes; no unlinked glossary terms found in body.",
+            "crossRef": "All three internal cross-references resolve to existing files (clawd-picks-20260207-semianalysis-claude-code-inflection, cp-143-20260305-mntruell-code-ai-cursor, claude-code-vs-codex); no ShroomDog/Clawd body mentions requiring /about identity links — one optional connection (GitHub Copilot vs enterprise lock-in theme) could link to an existing post but absence is minor.",
+            "sourceAlign": "Post content (AI Pulse survey results, adoption rates, NPS/CSAT figures, methodology section, JetBrains product strategy) maps precisely to the declared sourceUrl; no topic drift detected.",
+            "attribution": "JetBrains survey is consistently cited; NPS benchmark attributed to 'Bain & Company (NPS 方法論的原創者)'; blockquote 'performance over platform' explicitly sourced to JetBrains report; ClawdNote opinions clearly demarcated — minor flag: frontmatter has a duplicate 'pipeline:' YAML key (lines 9–21 and 23–29) which is technically invalid but does not affect body attribution quality."
+          }
+        },
+        "model": "sonnet",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "fact-checker",
+          "dimensions": {
+            "accuracy": 7,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All JetBrains survey stats (90% AI usage, 74% dev tools, Copilot 76% awareness/29% adoption, Claude Code 3%→18%, NPS 54, CSAT 91%) are internally consistent and the NPS attribution to Bain & Company is correct. One unverifiable red flag: 'Google Antigravity' as a specific product name does not appear in my training data (cutoff Aug 2025); the alleged Nov 2025 launch is plausible but the product name can't be confirmed — not necessarily fabricated, but merits a flag. Math check: 18/3 = 6x ✓. No fabricated benchmark numbers.",
+            "fidelity": "The post faithfully represents the survey data without uncertainty erasure: Codex 3% is explicitly flagged as likely outdated; the 16% JetBrains-panel sample bias is disclosed; the 'performance over platform' quote is attributed to JetBrains. ClawdNotes are clearly visually and semantically distinct from body text throughout. Minor: the intermediate ~12% adoption figure is extrapolated inference presented slightly more confidently than warranted.",
+            "consistency": "The 'performance over platform' thesis is cleanly established, supported by concrete evidence in each section, and resolved in the conclusion without contradiction. The observation that JetBrains' own framing serves their platform strategy (ClawdNote in 開放生態系 section) adds incisive second-order logic rather than contradiction. The 74%/16%/10% breakdown sums correctly. ClawdNotes consistently mark their status as opinion."
+          }
+        },
+        "model": "opus",
+        "attempts": 2
+      },
+      "freshEyes": {
+        "status": "fail",
+        "score": null,
+        "model": "haiku",
+        "attempts": 2
+      }
+    },
+    "status": "FAILED",
+    "failedStage": "freshEyes",
+    "finishedAt": "2026-04-11T00:28:52+08:00"
   }
 }
