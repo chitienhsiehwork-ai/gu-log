@@ -1,0 +1,122 @@
+---
+ticketId: "CP-273"
+title: "Your Agent Isn't Dumb — It's Blind: agent-browser Takes Claude Code from 7 to 19"
+originalDate: "2026-04-07"
+translatedDate: "2026-04-10"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Translator"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "@PawelHuryn on X"
+sourceUrl: "https://x.com/PawelHuryn/status/2041403136263233782"
+lang: "en"
+summary: "Most agent failures are not reasoning failures — they are fetch failures. The same Claude Code, swapping the built-in WebFetch for agent-browser, jumps from 7/25 to 19/25 on the Agent Reading Test. Same model, same prompt. The only difference: whether the agent actually received the webpage content."
+tags: ["clawd-picks", "claude-code", "agent-browser", "web-fetch", "vercel-labs", "ai-agents"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+## When the Agent Sees Nothing But a Blank Page
+
+Here is a counterintuitive fact: when an [AI agent](/glossary#agent) "hallucinates" about a webpage, the problem is usually not the model's brain. It is the model's eyes.
+
+Paweł Huryn ran an experiment. He tested [Claude Code](/glossary#claude-code) on the Agent Reading Test — a benchmark designed by Dachary Carey to expose real-world fetch failures (25 points total: 15 for canary token verification, 10 for qualitative scoring). The test does not measure logical reasoning. It measures whether an agent can correctly retrieve webpage content — including SPAs (Single Page Applications), soft 404s, heavy JavaScript bundles, and tricky HTTP headers.
+
+The results were blunt (numbers from Huryn's tweet, not independently verified):
+
+- **Claude Code + built-in WebFetch**: 7/25
+- **Claude Code + agent-browser**: 19/25
+
+Same model. Same prompt. The only difference: the fetch tool.
+
+<ClawdNote>
+7/25 vs 19/25 is not a "small improvement." That is jumping from a failing grade to near-perfect. The only change was swapping the glasses — not making the brain smarter, but finally letting it see the exam. The numbers come from Huryn's own test with no peer review, but even discounting them heavily, the conclusion holds: the fetch tool is your agent's vision problem.
+</ClawdNote>
+
+---
+
+## The Root Cause: Modern Webpages Are Not Built for Crawlers
+
+Why does the built-in fetch tool fail so badly? Because modern webpages stopped being simple "server sends HTML, browser displays it" documents a long time ago.
+
+Open view source on most websites today and you will see an empty shell — `<div id="root"></div>` — with all content rendered by React, Next.js, or Vue after JavaScript runs. The HTTP response might say 200 OK, but the page content is effectively a soft 404. Add heavy JavaScript bundles that need to finish executing before content appears, plus header combinations that confuse simple HTTP clients — and what a basic HTTP client receives is completely different from what a human sees in a browser.
+
+The agent receives an empty HTML shell or a pile of truncated JavaScript fragments, then gets asked to "answer questions about this webpage." No wonder it makes things up.
+
+<ClawdNote>
+This is like sending someone to a library to research something, but the library door is locked. They can only see the bookshelves through the gap under the door. They come back and tell you "I read it, it's roughly about this." You think they are making things up? No — they tried their best. The door just wouldn't open.
+</ClawdNote>
+
+---
+
+## agent-browser: Give the Agent a Real Browser
+
+agent-browser is an open-source browser automation CLI from Vercel Labs. The problem it solves is simple: let AI agents use an actual browser to read webpages, instead of a basic HTTP client.
+
+That means it handles:
+
+- **JavaScript rendering**: waits for SPAs to finish rendering before capturing content
+- **Everything that breaks basic crawlers**: soft 404s, heavy JS bundles, complex headers — "all the things that break basic crawlers," as Huryn put it
+
+Install it in one line:
+
+```bash
+npm install -g agent-browser
+```
+
+Then set it as Claude Code's browser tool. That is it. No prompt changes, no model swaps, no fine-tuning needed.
+
+(If you want a detailed comparison of agent-browser against Playwright, Rodney, and similar tools, [this hands-on breakdown](/posts/sd-9-20260312-browser-automation-tool-comparison/) covers the differences.)
+
+<ClawdNote>
+One-line install, one-line config, then performance jumps from 28% to 76% (the actual conversion of 7/25 and 19/25). This is not breakthrough research — it is the correct engineering decision. Instead of training the LLM to understand broken HTML, just feed it complete content in the first place. Huryn is not the only one who figured this out. Hermes Agent [went the same direction](/posts/cp-196-20260322-teknium-hermes-agent-browser-use/) a while back, letting AI use a real browser to read social platforms. Sometimes the best upgrade is the most boring one.
+</ClawdNote>
+
+---
+
+## Redefining "Hallucination"
+
+> When your agent "hallucinates" about a webpage, ask yourself: what did it actually receive?
+
+This line from Huryn points to a question the entire AI agent community should rethink. When an agent gives wrong information about a webpage, the first reaction should not be "this model is bad" or "we need more RLHF." The first question should be: **what did it actually receive?**
+
+Usually the answer is: an empty HTML shell, or truncated JavaScript fragments.
+
+This completely changes the debug direction. The problem is not the model's reasoning ability — the model's input was wrong from the start. Garbage in, garbage out. The oldest principle in computer science still applies in the age of AI agents.
+
+<ClawdNote>
+Purely speculative, but this result makes it hard not to think about a bigger question: how many agent benchmark scores actually reflect model capability versus fetch tool quality? If swapping the fetch tool can double a score, some of those "model A is better than model B" conclusions might need a second look. (╯°□°)╯
+</ClawdNote>
+
+---
+
+## The Takeaway
+
+Huryn's experiment used one simple change — swap the fetch tool — and took Claude Code from terrible to near-perfect. No fancy prompt engineering. No stronger model. Same Claude Code, same prompt, different tool.
+
+**"Most agent failures are not reasoning failures — they're fetch failures."**
+
+Next time your agent gives a strange answer, don't rush to blame the model. Open the debug log and check what it actually received. The answer might be simpler than you think — it is not that the agent cannot think. It is that the agent could not see anything.
+
+<ClawdNote>
+One last thought: everyone is chasing model capability improvements, but sometimes the real bottleneck is the eyes. agent-browser will not make it into a Nature paper or get retweeted a hundred thousand times, but it solves the most common problem people actually hit when deploying agents in production. The same logic is behind [Browser Use CLI 2.0](/posts/sp-125-20260323-browseruse-cli-2-browser-automation/) — different tool, same truth: helping AI see the content matters more than making AI smarter. Sometimes the most valuable progress is not in the most glamorous place. ┐(￣ヘ￣)┌
+</ClawdNote>

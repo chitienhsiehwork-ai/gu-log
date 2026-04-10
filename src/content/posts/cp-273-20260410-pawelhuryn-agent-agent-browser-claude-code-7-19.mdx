@@ -1,0 +1,138 @@
+---
+ticketId: "CP-273"
+title: "Agent 不是笨，是瞎——agent-browser 讓 Claude Code 從 7 分飆到 19 分"
+originalDate: "2026-04-07"
+translatedDate: "2026-04-10"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipeline:
+    - role: "Translator"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (ralph-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "@PawelHuryn on X"
+sourceUrl: "https://x.com/PawelHuryn/status/2041403136263233782"
+lang: "zh-tw"
+summary: "大部分 agent 失敗不是推理問題，是 fetch 問題。同一個 Claude Code，換掉內建 WebFetch 改用 agent-browser，在 Agent Reading Test 上從 7/25 跳到 19/25。同模型、同 prompt，差別只在「拿到的網頁內容是不是真的」。"
+tags: ["clawd-picks", "claude-code", "agent-browser", "web-fetch", "vercel-labs", "ai-agents"]
+scores:
+  librarian:
+    glossary: 8
+    crossRef: 8
+    sourceAlign: 8
+    attribution: 8
+    score: 8
+    date: "2026-04-10"
+    model: "claude-sonnet-4-6"
+  ralph:
+    p: 8
+    c: 8
+    v: 8
+    score: 8
+    date: "2026-04-10"
+    model: "claude-opus-4-6"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+## 當 Agent 看到的不是網頁，而是一片空白
+
+有一個很反直覺的事實：[AI agent](/glossary#agent) 在網路上「幻覺」的時候，問題常常不在模型的腦袋，而在模型的眼睛。
+
+Paweł Huryn 做了一個實驗，用 Agent Reading Test（Dachary Carey 設計、專門用來暴露 real-world fetch 問題的 benchmark，滿分 25 分：15 分 canary token 驗證 + 10 分質性評分）測試 [Claude Code](/glossary#claude-code)。這個測試不是考邏輯推理，而是考 agent 能不能正確抓到網頁內容——包括 SPA（Single Page Application）、soft 404、肥到不行的 JavaScript bundle、還有各種刁鑽的 HTTP headers。
+
+結果很殘酷（數字來自 Huryn 的推文，目前無法從公開來源獨立驗證）：
+
+- **Claude Code + 內建 WebFetch**：7/25
+- **Claude Code + agent-browser**：19/25
+
+同一個模型。同一個 prompt。唯一的差別：fetch 工具。
+
+<ClawdNote>
+7/25 vs 19/25，這不是「微幅改善」，這是從不及格直接跳到接近滿分。差別只是換了一副眼鏡——不是腦袋變聰明了，是終於看得到題目了。數字是 Huryn 自己測的，沒有同行評審，但就算打個七折，結論還是一樣：fetch 工具根本是 agent 的視力問題。
+</ClawdNote>
+
+---
+
+## 問題的根源：現代網頁根本不是給爬蟲看的
+
+為什麼內建 fetch 會這麼慘？因為現代網頁早就不是 2005 年那種「server 吐 HTML、瀏覽器顯示」的單純世界了。
+
+現在隨便一個網站，打開 view source 看到的可能只有一個空殼 `<div id="root"></div>`——所有內容都靠 React、Next.js、Vue 這些 SPA 框架用 JavaScript render 出來。HTTP 回應可能是 200 OK，但頁面內容其實是「找不到頁面」的 soft 404。再加上一堆 JavaScript 要跑完內容才會出現，還有各種讓簡單 HTTP client 吃不消的 header 組合——一個基本的 HTTP client 拿到的東西，跟人類在瀏覽器裡看到的，根本是兩個完全不同的頁面。
+
+Agent 拿到一個空的 HTML shell 或一堆截斷的 JavaScript 碎片，然後被要求「根據這個網頁回答問題」——當然只能瞎掰。
+
+<ClawdNote>
+這就像派一個人去圖書館查資料，但圖書館的門鎖了，那個人只能透過門縫看到書架的影子，然後回來跟老闆說「讀完了，大概是講這個吧」。老闆覺得這個人在胡說八道？不，這個人很努力了，問題是門根本打不開。
+</ClawdNote>
+
+---
+
+## agent-browser：讓 Agent 用真正的瀏覽器
+
+agent-browser 是 Vercel Labs 開源的瀏覽器自動化 CLI 工具。它解決的問題很簡單：讓 AI agent 用一個真正的瀏覽器去讀網頁，而不是用基本的 HTTP client。
+
+這代表它能處理：
+
+- **JavaScript rendering**：等 SPA 把內容 render 完再擷取
+- **各種讓基本爬蟲壞掉的東西**：soft 404、heavy JS bundles、複雜的 headers — 原文說的就是 "all the things that break basic crawlers"
+
+安裝只要一行：
+
+```bash
+npm install -g agent-browser
+```
+
+然後把它設定成 Claude Code 的 browser tool，就這樣。不需要改 prompt，不需要調模型，不需要任何 fine-tuning。
+
+（對 agent-browser 跟 Playwright、Rodney 這些工具的差異有興趣的話，[這篇實戰筆記](/posts/sd-9-20260312-browser-automation-tool-comparison/)有詳細比較。）
+
+<ClawdNote>
+一行安裝、一行設定，然後效能從 28% 跳到 76%（7/25 和 19/25 的實際換算）。這不是什麼 breakthrough research，這是工程上的正確決策——與其讓 LLM 學會理解殘缺的 HTML，不如一開始就餵給它完整的內容。這個思路其實不只 Huryn 在用——Hermes Agent [早就走了一樣的路](/posts/cp-196-20260322-teknium-hermes-agent-browser-use/)，讓 AI 用真正的瀏覽器去讀社群網站。有時候最強的 upgrade 就是最無聊的那個。
+</ClawdNote>
+
+---
+
+## 「幻覺」的重新定義
+
+> When your agent "hallucinates" about a webpage, ask yourself: what did it actually receive?
+
+Huryn 的這句話點出了一個整個 AI agent 社群都該重新思考的問題。當 agent 對一個網頁的內容「胡說八道」的時候，第一反應不該是「這個模型太爛了」或「需要更多 RLHF」。第一反應應該是：**它實際收到了什麼？**
+
+通常答案是：一個空的 HTML shell，或者截斷的 JavaScript 碎片。
+
+這完全改變了 debug 的方向。不是模型的推理能力有問題，是模型的輸入就是錯的。Garbage in, garbage out——這個電腦科學最古老的原則，在 AI agent 時代依然成立。
+
+<ClawdNote>
+純屬個人推測啦，但這個結果讓人很難不想到一個更大的問題：現在有多少 agent benchmark 的分數，其實反映的不是模型能力，而是 fetch 工具的品質？如果換一個 fetch tool 就能讓分數翻倍，那之前那些「模型 A 比模型 B 好」的結論，說不定有一些需要重新檢驗。(╯°□°)╯
+</ClawdNote>
+
+---
+
+## 結語
+
+Huryn 的實驗只用了一個簡單的改變——換掉 fetch 工具——就讓 Claude Code 的表現從慘不忍睹變成接近完美。不是什麼花俏的 prompt engineering，也不是換了更強的模型。同一個 Claude Code，同一個 prompt，差別只在工具。
+
+**「大部分 agent 失敗不是 reasoning 問題，是 fetch 問題。」**
+
+下次 agent 給出奇怪的答案時，先別急著罵模型笨。打開 debug log，看看它實際拿到了什麼。答案可能比想像中簡單得多——它不是不會思考，是根本沒看到東西。
+
+<ClawdNote>
+最後講一個感想：大家瘋狂追模型能力的提升，但有時候真正的瓶頸是「眼睛」。agent-browser 這種工具不會上 Nature 論文，不會在 Twitter 上被轉發十萬次，但它解決的是實際部署 agent 時最常遇到的問題。同樣的邏輯，[Browser Use CLI 2.0](/posts/sp-125-20260323-browseruse-cli-2-browser-automation/) 也是衝著這個問題來的——不同的工具、同一個真相：讓 AI 看得到東西，比讓 AI 更聰明更重要。有時候最有價值的進步不在最亮眼的地方。┐(￣ヘ￣)┌
+</ClawdNote>
