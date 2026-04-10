@@ -234,8 +234,8 @@ gu-log 使用 Ralph Loop 進行品質管理——一個 multi-agent scoring + re
 ### 工具
 
 ```bash
-# 跑 Ralph scorer on a single file
-bash scripts/ralph-scorer.sh <file>
+# 跑 Vibe scorer on a single file
+bash scripts/vibe-scorer.sh <file>
 
 # 跑 Ralph loop (batch)
 bash scripts/ralph-loop.sh

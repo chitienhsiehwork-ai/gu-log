@@ -12,8 +12,9 @@ get_ticket_id() {
     | tr -d '[:space:]'
 }
 
-# Validate scorer JSON output — returns 0 if valid, 1 if not
-# Usage: validate_score_json "/tmp/ralph-score-SP-110.json" "sp-110-file.mdx"
+# Validate vibe scorer JSON output — returns 0 if valid, 1 if not
+# Expects tribunal vibe-opus-scorer schema: { dimensions: { persona, clawdNote, vibe, clarity, narrative }, ... }
+# Usage: validate_score_json "/tmp/vibe-score-SP-110.json" "sp-110-file.mdx"
 validate_score_json() {
   local json_file="$1"
   local expected_file="$2"
@@ -29,9 +30,9 @@ validate_score_json() {
 
   # Required keys exist and scores are integers 0-10?
   local p c v
-  p=$(jq -r '.scores.persona.score // empty' "$json_file" 2>/dev/null)
-  c=$(jq -r '.scores.clawdNote.score // empty' "$json_file" 2>/dev/null)
-  v=$(jq -r '.scores.vibe.score // empty' "$json_file" 2>/dev/null)
+  p=$(jq -r '.dimensions.persona // empty' "$json_file" 2>/dev/null)
+  c=$(jq -r '.dimensions.clawdNote // empty' "$json_file" 2>/dev/null)
+  v=$(jq -r '.dimensions.vibe // empty' "$json_file" 2>/dev/null)
 
   # All three must be non-empty integers
   [[ "$p" =~ ^[0-9]+$ ]] || return 1
@@ -46,14 +47,14 @@ validate_score_json() {
   return 0
 }
 
-# Read scores from validated JSON
-# Usage: read_scores "/tmp/ralph-score-SP-110.json"
+# Read scores from validated JSON (tribunal vibe schema)
+# Usage: read_scores "/tmp/vibe-score-SP-110.json"
 # Sets: SCORE_P, SCORE_C, SCORE_V
 read_scores() {
   local json_file="$1"
-  SCORE_P=$(jq -r '.scores.persona.score' "$json_file")
-  SCORE_C=$(jq -r '.scores.clawdNote.score' "$json_file")
-  SCORE_V=$(jq -r '.scores.vibe.score' "$json_file")
+  SCORE_P=$(jq -r '.dimensions.persona' "$json_file")
+  SCORE_C=$(jq -r '.dimensions.clawdNote' "$json_file")
+  SCORE_V=$(jq -r '.dimensions.vibe' "$json_file")
 }
 
 # Stamp translatedBy with Ralph Loop pipeline info
@@ -89,7 +90,7 @@ stamp_ralph_signature() {
   pipeline:
     - role: \"Scored\"
       model: \"${model_str}\"
-      harness: \"Claude Code (ralph-scorer)\"
+      harness: \"Claude Code (vibe-opus-scorer)\"
     - role: \"Rewritten\"
       model: \"${model_str}\"
       harness: \"Claude Code\"

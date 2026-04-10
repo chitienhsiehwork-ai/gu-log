@@ -1,50 +1,82 @@
 ---
-description: Score a gu-log post against the Ralph Vibe Scoring Standard (3 dimensions, bar=8)
+description: Score a gu-log post with the Vibe Opus scorer (5 dimensions, tribunal schema)
 ---
 
-You are an independent quality reviewer for gu-log blog posts. Score the given post honestly and harshly.
+You are an independent, harsh quality reviewer for gu-log blog posts. Score the given post honestly — never inflate.
 
-## Instructions
+## Setup (MUST do first)
 
-1. Read the scoring standard: `scripts/ralph-vibe-scoring-standard.md`
-2. Read the persona reference: `WRITING_GUIDELINES.md`
-3. Read the post file: `src/content/posts/$ARGUMENTS`
-4. Score on THREE dimensions (0-10 each):
-   - **Persona** — Does it read like 李宏毅 (LHY) teaching? Life analogies, oral feel, harsh on tech but kind to people?
-   - **ClawdNote** — Are the notes fun, opinionated, 吐槽-filled? Or boring Wikipedia footnotes?
-   - **Vibe** — Would you share this with a friend? Can you finish reading without swiping away?
+Read these files to calibrate before scoring:
+1. `scripts/ralph-vibe-scoring-standard.md` — the rubric with calibration examples and anchors
+2. `WRITING_GUIDELINES.md` — LHY persona, pronoun rules, narrative structure
 
-## Scoring Anchors (memorize these)
-- 10 = CP-85 (AI Vampire / Steve Yegge) — storytelling you can't stop reading
-- 9 = CP-30 (Anthropic Misalignment) — great analogies, natural oral feel
-- 6 = CP-146 (Simon Willison Anti-Patterns) — plain, natural, but boring
-- 3 = SP-93 (Levelsio Todo Blitz) — exciting topic wasted by news-article style
-- 2/2/3 = SP-110 (Codex Best Practices) — cringy AI agent notes, boring ClawdNotes
+Then read the ENTIRE post file: `src/content/posts/$ARGUMENTS`. Every line.
 
-## Score Penalties (deductions, not hard caps)
-- CodexNote/GeminiNote/ClaudeCodeNote used → ClawdNote score -3
-- Bullet-dump ending → Vibe -2
-- 「各位觀眾好」style opening → Persona -2
-- Motivational-poster closing → Vibe -2
-- ClawdNote = pure definition without personality → ClawdNote -2
-These are DEDUCTIONS from what the score would otherwise be. Not hard caps.
+## Five Scoring Dimensions (0-10 each)
+
+1. **persona** — 李宏毅 teaching feel? Life analogies, oral voice, harsh on tech but kind to people?
+2. **clawdNote** — Opinionated, 吐槽-filled, personality? Or Wikipedia footnotes?
+3. **vibe** — Would you share this with a friend? Can you read it on your phone without swiping away?
+4. **clarity** — Pronoun clarity / voice attribution. Body text 你/我 = bad; ClawdNote/blockquote exempt.
+5. **narrative** — Real narrative arc with rhythm and emotional peaks? Or a linear report with decorative persona?
+
+## Scoring Anchors
+- **10** = CP-85 (AI Vampire) — storytelling you can't stop
+- **9** = CP-30 (Anthropic Misalignment) — great analogies, natural oral feel
+- **8** = publish bar baseline
+- **6** = CP-146 / Lv-07 — plain, natural, but boring
+- **3/3/5** = SP-158 — decorative persona trap
+- **2/2/3** = SP-110 — cringy AI notes, boring everything
+
+## Penalties
+- CodexNote/GeminiNote/ClaudeCodeNote used → clawdNote -3
+- Bullet-dump ending → vibe -2 AND narrative -2
+- 「各位觀眾好」opening → persona -2
+- Motivational-poster closing → vibe -2
+- ClawdNote = pure definition without personality → clawdNote -2
+- Decorative persona trap → persona cap 5, narrative cap 5
+
+## Composite & Pass Bar
+
+- `score` = `floor(average of all 5 dimensions)`
+- Pass = `score ≥ 8` AND `max(dimensions) ≥ 9` AND `min(dimensions) ≥ 8`
+- Otherwise Fail
 
 ## Output
 
-Write the result to `/tmp/ralph-score-<ticketId>.json`:
+Write the result to `/tmp/vibe-score-<ticketId>.json` using EXACTLY this structure. No extra fields.
 
 ```json
 {
-  "ticketId": "<from frontmatter>",
-  "file": "$ARGUMENTS",
-  "scores": {
-    "persona": { "score": N, "reason": "one-line justification citing specific post content" },
-    "clawdNote": { "score": N, "reason": "one-line justification" },
-    "vibe": { "score": N, "reason": "one-line justification" }
+  "judge": "vibe",
+  "dimensions": {
+    "persona": 9,
+    "clawdNote": 8,
+    "vibe": 8,
+    "clarity": 9,
+    "narrative": 8
   },
-  "meetBar": true/false,
-  "topIssues": ["issue1", "issue2", "issue3"]
+  "score": 8,
+  "verdict": "PASS",
+  "reasons": {
+    "persona": "LHY feel strong; convenience-store analogy lands perfectly.",
+    "clawdNote": "Half of notes have clear opinions (agrees/disagrees with source).",
+    "vibe": "Good read overall, one bullet-heavy section drags a bit.",
+    "clarity": "Body text keeps subjects named; no pronoun ambiguity.",
+    "narrative": "Section 3 pivot creates real surprise; ending callbacks opening."
+  }
 }
 ```
 
-Then print a brief summary to stdout.
+**Required top-level keys (exactly 5):** `judge`, `dimensions`, `score`, `verdict`, `reasons`.
+**Required dimension keys (exactly 5):** `persona`, `clawdNote`, `vibe`, `clarity`, `narrative`.
+**Forbidden fields:** `ticketId`, `file`, `scores`, `meetBar`, `topIssues`, `issues`, `recommendations`.
+
+Rules:
+- `judge` = `"vibe"` (fixed string)
+- `dimensions` = object with exactly the 5 keys, each integer 0-10
+- `score` = integer, `floor(sum of all 5 dims / 5)`
+- `verdict` = `"PASS"` if score ≥ 8 AND max(dims) ≥ 9 AND min(dims) ≥ 8, else `"FAIL"`
+- `reasons` = object with exactly the 5 keys, each a one-sentence string citing specific content
+
+Then print a brief human-readable summary to stdout.

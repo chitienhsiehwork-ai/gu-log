@@ -146,6 +146,6 @@ Mixed models (Haiku + Sonnet + Opus) will be cheaper and faster than all-Opus. H
 - `scripts/score-loop-engine.sh` — generic judge loop engine
 - `scripts/tribunal-gate.sh` — convergence rewrite loop
 - `scripts/judges/{gemini,codex,opus,sonnet}.sh` — per-judge scripts
-- `scripts/ralph-scorer.sh` — Opus vibe scorer wrapper
+- `scripts/vibe-scorer.sh` — Opus vibe scorer wrapper
 - `scripts/ralph-vibe-scoring-standard.md` — scoring SSOT
 - `.claude/agents/{librarian,fact-checker,fresh-eyes,vibe-opus-scorer}.md` — agent definitions

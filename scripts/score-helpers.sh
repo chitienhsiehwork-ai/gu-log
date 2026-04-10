@@ -10,8 +10,6 @@ source "$SCORE_ROOT/scripts/ralph-helpers.sh"
 
 ensure_score_dirs() {
   mkdir -p \
-    "$SCORE_ROOT/scripts/judges" \
-    "$SCORE_ROOT/scripts/prompts" \
     "$SCORE_ROOT/scores" \
     "$SCORE_ROOT/.score-loop/logs" \
     "$SCORE_ROOT/.score-loop/tmp"

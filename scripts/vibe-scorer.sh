@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Ralph Scorer — Independent review via Claude Code subagent
-# Usage: ./ralph-scorer.sh <post-filename> [output-path]
-#   ./ralph-scorer.sh "sp-110-xxx.mdx"
-#   ./ralph-scorer.sh "sp-110-xxx.mdx" "/tmp/ralph/run-1/score.json"
+# Vibe Scorer — Independent review via Claude Code subagent (vibe-opus-scorer)
+# Usage: ./vibe-scorer.sh <post-filename> [output-path]
+#   ./vibe-scorer.sh "sp-110-xxx.mdx"
+#   ./vibe-scorer.sh "sp-110-xxx.mdx" "/tmp/vibe/run-1/score.json"
 # Exit: 0 = success (valid JSON written), 1 = error
 
 set -euo pipefail
@@ -22,7 +22,7 @@ TICKET_ID=$(get_ticket_id "$POST_PATH")
 [ -z "$TICKET_ID" ] && TICKET_ID="unknown"
 
 # Output path: explicit arg or default
-OUT_FILE="${2:-/tmp/ralph-score-${TICKET_ID}.json}"
+OUT_FILE="${2:-/tmp/vibe-score-${TICKET_ID}.json}"
 
 # Ensure output dir exists
 mkdir -p "$(dirname "$OUT_FILE")"
@@ -30,10 +30,10 @@ mkdir -p "$(dirname "$OUT_FILE")"
 # Clean previous score file
 rm -f "$OUT_FILE"
 
-# Run independent Claude Code instance with the ralph-scorer subagent
+# Run independent Claude Code instance with the vibe-opus-scorer subagent
 # Timeout: 5 minutes per score (should take ~2min normally)
 timeout 300 claude -p \
-  --agent ralph-scorer \
+  --agent vibe-opus-scorer \
   --permission-mode bypassPermissions \
   --max-turns 5 \
   "Score this post: src/content/posts/$POST_FILE

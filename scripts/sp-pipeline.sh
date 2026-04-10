@@ -1143,7 +1143,7 @@ with open(filepath, 'r') as f:
 
 ralph_stages = """    - role: "Scored"
       model: "Opus 4.6"
-      harness: "Claude Code (ralph-scorer)"
+      harness: "Claude Code (vibe-opus-scorer)"
     - role: "Rewritten"
       model: "Opus 4.6"
       harness: "Claude Code"

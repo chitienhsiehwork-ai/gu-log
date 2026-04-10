@@ -32,20 +32,21 @@ Read `scripts/ralph-progress.json`. If this post is already marked `PASS` or `OP
 ### Step 2: Score (via independent reviewer)
 **🔴 You MUST NOT score posts yourself.** Use the external scorer script:
 ```bash
-bash scripts/ralph-scorer.sh "<filename>"
+bash scripts/vibe-scorer.sh "<filename>"
 ```
-This runs a SEPARATE Claude instance (`claude -p`) so the reviewer is never the writer.
-The script outputs JSON with scores. Read the score from `/tmp/ralph-score-<ticketId>.json`.
+This runs a SEPARATE Claude instance (`claude -p --agent vibe-opus-scorer`) so the reviewer is never the writer.
+The script outputs JSON with scores. Read the score from `/tmp/vibe-score-<ticketId>.json`.
 
 ### Step 3: Decision Gate
 - **ALL THREE ≥ 9** → Mark as `PASS` in progress file → go to Step 6
 - **ANY < 9** → Go to Step 4
 
 ### Step 4: Rewrite (informed by reviewer feedback)
-**Before rewriting, read the full score file** at `/tmp/ralph-score-<ticketId>.json`.
+**Before rewriting, read the full score file** at `/tmp/vibe-score-<ticketId>.json`.
 Pay close attention to:
-- `scores.*.reason` — the reviewer's specific critique per dimension
-- `topIssues` — the 3 most critical problems to fix
+- `dimensions.*` — per-dimension scores (persona, clawdNote, vibe, clarity, narrative)
+- `reasons.*` — the reviewer's one-sentence critique per dimension
+- `verdict` — overall PASS/FAIL from the scorer
 
 Address EVERY issue the reviewer flagged. Don't just tweak — if the reviewer says "reads like news recap", restructure into storytelling. If they say "ClawdNote is bland", rewrite the note with 吐槽 and personality.
 
@@ -74,7 +75,7 @@ Rewrite the post IN PLACE (same file path) to fix the issues the reviewer identi
 ### Step 5: Re-score (via independent reviewer)
 **🔴 Again, use the external scorer — never self-score:**
 ```bash
-bash scripts/ralph-scorer.sh "<filename>"
+bash scripts/vibe-scorer.sh "<filename>"
 ```
 If still not all ≥ 9:
 - Attempt up to 3 total rewrites per post
@@ -133,7 +134,7 @@ Go back to Step 1 with the next post in the queue.
 2. **ALWAYS COMMIT** — Never accumulate uncommitted changes. Commit after each post.
 3. **BUILD CHECK** — Run `pnpm run build 2>&1 | tail -20` after each rewrite to catch MDX errors. If build fails, fix immediately.
 4. **DON'T REWRITE WHAT'S GOOD** — If a post scores ≥ 9 on all three, just log PASS and move on. Don't touch it.
-5. **NEVER SELF-SCORE** — Always use `bash scripts/ralph-scorer.sh` for scoring. The writer must never be the reviewer. This is non-negotiable.
+5. **NEVER SELF-SCORE** — Always use `bash scripts/vibe-scorer.sh` for scoring. The writer must never be the reviewer. This is non-negotiable.
 6. **PRESERVE MEANING** — Rewrites improve style/persona/notes, not factual content. Don't change what the post is about.
 7. **FRONTMATTER INTEGRITY** — Never change ticketId, sourceUrl, source. These are immutable.
 8. **ENGLISH VERSION IS MANDATORY** — Every post must have an en- version when you're done with it.

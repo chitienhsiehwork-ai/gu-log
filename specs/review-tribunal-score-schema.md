@@ -163,7 +163,7 @@ New tribunal judges (`librarian`, `factCheck`, `freshEyes`, `vibe`) are NOT in t
 | 14 | `scripts/ralph-orchestrator.sh` | Being replaced by ralph-all-claude.sh; keep as dead code per parent spec |
 | 15 | `scripts/gemini-scorer.sh` | Gemini judge wrapper; keep as dead code |
 | 16 | `scripts/codex-scorer.sh` | Codex judge wrapper; keep as dead code |
-| 17 | `scripts/ralph-scorer.sh` | Opus vibe scorer wrapper; keep as dead code |
+| 17 | `scripts/vibe-scorer.sh` | Opus vibe scorer wrapper |
 | 18 | `scripts/multi-scorer.sh` | Multi-judge orchestration; keep as dead code |
 | 19 | `scripts/score-loop-engine.sh` | Generic judge loop; keep as dead code |
 

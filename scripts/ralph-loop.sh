@@ -54,8 +54,8 @@ for cmd in claude jq git pnpm node; do
 done
 
 # Check scorer agent exists
-if [ ! -f ".claude/agents/ralph-scorer.md" ]; then
-  log "ERROR: Scorer agent not found at .claude/agents/ralph-scorer.md"
+if [ ! -f ".claude/agents/vibe-opus-scorer.md" ]; then
+  log "ERROR: Scorer agent not found at .claude/agents/vibe-opus-scorer.md"
   preflight_ok=false
 fi
 
@@ -175,7 +175,7 @@ for POST_FILE in "${POSTS[@]}"; do
     log "  Attempt $ATTEMPT/$MAX_ATTEMPTS — Scoring..."
 
     # Score via independent subagent
-    if bash scripts/ralph-scorer.sh "$POST_FILE" "$SCORE_FILE" \
+    if bash scripts/vibe-scorer.sh "$POST_FILE" "$SCORE_FILE" \
         > "$POST_DIR/scorer-stdout-${ATTEMPT}.txt" \
         2> "$POST_DIR/scorer-stderr-${ATTEMPT}.txt"; then
       read_scores "$SCORE_FILE"

@@ -269,7 +269,7 @@ function checkPassBar(judge, dimensions) {
 | 16 | `scripts/ralph-orchestrator.sh` | 被 ralph-all-claude.sh 取代 |
 | 17 | `scripts/gemini-scorer.sh` | Gemini judge wrapper |
 | 18 | `scripts/codex-scorer.sh` | Codex judge wrapper |
-| 19 | `scripts/ralph-scorer.sh` | Opus vibe scorer wrapper |
+| 19 | `scripts/vibe-scorer.sh` | Opus vibe scorer wrapper |
 | 20 | `scripts/multi-scorer.sh` | Multi-judge orchestration |
 | 21 | `scripts/score-loop-engine.sh` | Generic judge loop |
 
