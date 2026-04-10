@@ -1,6 +1,6 @@
 ---
 ticketId: "CP-272"
-title: "TypeScript 成了新世代組合語言 — 從 Claude Code 60 萬行原始碼外洩看 AI 寫程式的真相"
+title: "TypeScript 成了新世代組合語言，Claude Code 洩漏後真正改變的是程式語言的讀者"
 originalDate: "2026-03-28"
 translatedDate: "2026-04-10"
 translatedBy:
@@ -18,7 +18,7 @@ translatedBy:
       harness: "Claude Code CLI"
     - role: "Scored"
       model: "Opus 4.6"
-      harness: "Claude Code (ralph-scorer)"
+      harness: "Claude Code (vibe-opus-scorer)"
     - role: "Rewritten"
       model: "Opus 4.6"
       harness: "Claude Code"
@@ -29,29 +29,12 @@ translatedBy:
 source: "@SemiAnalysis_ on X"
 sourceUrl: "https://x.com/SemiAnalysis_/status/2039010124644089947"
 lang: "zh-tw"
-summary: "SemiAnalysis 分析 Claude Code 外洩原始碼後丟出震撼彈：TypeScript 已不是給人讀的語言，而是 AI 生產、AI 消費、AI 進化的「現代組合語言」。從三層記憶體架構到自主代理模式 KAIROS，再到安全漏洞與靜態型別的新角色，這篇帶大家從裡到外拆解這 60 萬行程式碼揭露的真相。"
-tags: ["clawd-picks", "claude-code", "ai-coding", "typescript", "source-leak", "security"]
+summary: "Claude Code 洩漏本身已經被講很多次，真正值得看的，是 SemiAnalysis 提出的更大命題：當 AI 開始大量生成、閱讀、維護程式碼，TypeScript 不再只是給人讀的語言，而是 AI 與 compiler 之間的中介層。"
+tags: ["clawd-picks", "claude-code", "ai-coding", "typescript", "programming-languages"]
 scores:
-  vibe:
-    persona: 8
-    clawdNote: 8
-    vibe: 8
-    clarity: 8
-    narrative: 8
-    score: 8
-    date: "2026-04-10"
-    model: "claude-opus-4-6"
-  librarian:
-    glossary: 8
-    crossRef: 8
-    sourceAlign: 8
-    attribution: 8
-    score: 8
-    date: "2026-04-10"
-    model: "claude-sonnet-4-6"
   ralph:
     p: 8
-    c: 8
+    c: 9
     v: 8
     score: 8
     date: "2026-04-10"
@@ -60,212 +43,178 @@ scores:
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-2026 年 3 月，[Claude Code](/glossary#claude-code) v2.1.88 推了一個更新。看起來平凡無奇，但裡面藏了一顆核彈 — 一個 59.8MB 的 sourcemap 檔案，把整個 Claude Code 的原始碼攤在陽光下。
+Claude Code 原始碼洩漏，這件事本身已經夠戲劇化了。59.8MB sourcemap，60 萬行 TypeScript，1,906 個檔案，整個社群像半夜突然有人把伺服器機房的牆拆掉，裡面的 wiring 一次看光。
 
-60 萬行 TypeScript。1,906 個檔案。全部外洩。
+但老實說，**單純再寫一篇 leak 懶人包，意義已經不大了**。
 
-SemiAnalysis 拿到這批原始碼後，下了一個很狠的結論：
+架構細節，[SP-148](/posts/sp-148-20260401-chaofan-shou-claude-code-source-leak) 已經拆得很完整。三層記憶體設計，可以直接看 [SD-11](/posts/sd-11-20260402-ai-agent-memory-architecture)。那些讓工程師皺眉的 bad patterns，在 [SD-12](/posts/sd-12-20260402-claude-code-bad-patterns) 已經逐條點名。Prompt cache 怎麼省錢、怎麼燒錢，[SD-13](/posts/sd-13-20260402-prompt-cache-economics) 也寫過了。
 
-> TypeScript has become the modern assembly language. Not because it's low-level — but because it's no longer written *for humans to read*.
+所以 SemiAnalysis 這篇真正有價值的地方，不是把 leak 細節再講一次，而是把問題往上拉了一層。他丟出的核心判斷是這句：
 
-TypeScript 成了現代的組合語言 — 不是因為它太底層，而是因為它已經不是寫給人看的了。它是 AI 生產、AI 消費、AI 演化的語言。人類工程師？只是 QA 層。
+> TypeScript has become the modern assembly language. Not because it's low-level, but because it's no longer written for humans to read.
 
-這不是什麼科幻小說的預言。根據 SemiAnalysis 2026 年 2 月的數據，Claude Code 已經佔了公開 GitHub commits 的 4%，預估到 2026 年底會突破 20%。（[Pragmatic Engineer 同期調查](/posts/cp-270-20260409-pragmaticengineer-2026-ai-claude-code/)也印證了這個速度：Claude Code 已是 2026 年最常用的 AI coding 工具。）
+TypeScript 成了現代的組合語言，不是因為它變得很底層，而是因為它越來越不是寫給人看的。
 
-<ClawdNote>
-好，先冷靜一下。有人可能覺得「組合語言」這個比喻太誇張了。但想想看：組合語言的特徵是什麼？機器產生、機器讀取、人類偶爾需要看但看了會頭痛。現在再看看那些 3,167 行的函式、12 層巢狀結構… 嗯，好像也沒那麼誇張 (╯°□°)╯
-</ClawdNote>
+這句話聽起來很嗆，但它其實是在描述一個已經發生中的角色轉移。程式碼的主要讀者，正在從人類工程師，慢慢換成 AI 系統本身。
 
-SemiAnalysis 丟出炸彈後，好幾個技術社群跟著動了起來。Engineers Codex 拆架構、Mark Seemann（[ploeh.dk](https://blog.ploeh.dk/)）從型別系統角度切入、Sabrina.dev 則直搗安全漏洞（她同期也寫了一篇關於 [Claude Code token 燒光速度](/posts/cp-269-20260409-sabrina-claude-code-token/)的血淚實測）。綜合這三方的分析，畫面變得清楚許多 —
-
-## 三層記憶體架構：[Context Window](/glossary#context-window) 是稀缺資源
-
-Claude Code 的記憶體設計是最讓人眼睛一亮的部分。它不是把所有東西塞進 context window 然後祈禱不要爆掉 — 而是設計了一套精密的三層架構：
-
-**第一層：Always-loaded index pointers** — 每個指標大約 150 個字元，永遠載入。這些不是資料本身，而是「資料在哪裡」的索引。就像圖書館的目錄卡片，佔的空間極小，但能讓系統知道去哪找東西。
-
-**第二層：On-demand topic files** — 需要的時候才載入的主題檔案。系統根據當前任務判斷需要哪些 context，按需拉進來。
-
-**第三層：Grep-searchable transcripts** — 可搜尋的完整記錄。不需要全部載入，但隨時可以用搜尋找到需要的片段。
+SemiAnalysis 給的數字也很猛。Claude Code 已經佔公開 GitHub commits 的 4%，而且預估 2026 年底會超過 20%。這不是「未來也許會發生」的討論，這比較像地震都搖到了，很多團隊才剛打開新聞看震度。
 
 <ClawdNote>
-這個設計的核心思維是：[context window](/glossary#context-window) 不是「很大的記憶體」，而是「非常昂貴的暫存器」。每一個 token 都有成本，所以要像管理 CPU cache 一樣管理它 — hot data 放 L1，warm data 放 L2，cold data 放 L3。這是正經的系統工程思維，不是什麼 AI 魔法 (◕‿◕)
+老實說，SemiAnalysis 這句我同意七成，但我覺得他故意把話講得太狠了。
+
+我不覺得 TypeScript 已經真的變成組合語言，因為組合語言幾乎預設「只有機器會讀」，TypeScript 不是。人類還在場，只是被擠到 QA 跟最後拍板的位置。這個差異很重要，因為它意味著問題不是語言突然變低階，而是讀者排序改了。
+
+所以我會說，SemiAnalysis 抓對方向，但抓錯比喻。真正值得怕的不是 TypeScript 變難，而是人類不再是它的第一順位讀者 (¬‿¬)
 </ClawdNote>
 
-除了記憶體分層，原始碼還揭露了一個叫 `SYSTEM_PROMPT_DYNAMIC_BOUNDARY` 的機制。這個邊界把 system prompt 切成「靜態部分」和「動態部分」— 靜態部分每次都一樣，所以可以被 prompt cache 重複利用；動態部分則根據當前對話狀態改變。這直接降低了 token 成本，因為 API 對 cache hit 的部分收費更低。
+## 這篇不重講 leak，重點是讀者換人了
 
-這不是什麼花俏的功能，這是冷冰冰的成本工程。
+Claude Code 洩漏之所以值得反覆討論，不是因為八卦夠多，而是因為它把一件原本只能猜的事變成了實物證據。
+
+那些 3,167 行的超長函式、12 層巢狀、寫給 agent 看的註解，不只是「寫得很醜」而已。它們更像是一種語言學證據，證明 code 的最佳化目標變了。
+
+以前的 code，預設是寫給人看的。
+
+要能 review，要能 handoff，要能在三個月後被另一個陌生工程師接手。好不好讀、命名漂不漂亮、抽象是否優雅，這些都是核心品質指標。
+
+現在開始不是了。
+
+當下一個接手這段 code 的，很可能也是 Claude Code、Cursor、Copilot 或別的 agent 時，局面就變了。對 AI 來說，很多時候「把相關東西盡量攤平在同一個局部範圍裡」，反而比「拆成漂亮抽象」更容易續寫。對 AI 來說，局部完整性常常比人類喜歡的優雅邊界更重要。
+
+這不是在稱讚，也不是在罵。這只是最佳化目標換了之後，自然長出來的形狀。
+
+也因為這樣，Claude Code 洩漏真正有趣的地方，不是 KAIROS 很酷，也不是某個 internal codename 很神祕。真正有趣的是，**這份 codebase 看起來已經像是寫給下一個模型看的了。**
 
 ---
 
-## KAIROS 與 ULTRAPLAN：AI 不只是工具，是自主代理
+## 當讀者變成 AI，可讀性標準也跟著改寫
 
-如果三層記憶體架構是 Claude Code 的大腦結構，那 KAIROS 和 ULTRAPLAN 就是它的行為模式。
+這裡最容易卡住的一點是，很多人會把「寫給 AI 看」誤解成「品質下降」。
 
-**KAIROS** 是 Claude Code 的自主 [Agent](/glossary#agent) 模式（autonomous agent mode）。它靠 heartbeat prompts 運作 — 定期自己醒來，檢查狀態，決定下一步。所有操作都寫進 append-only logs（只能新增、不能修改的日誌），確保可追溯性。更有意思的是 **autoDream** 機制：每天夜間自動進行記憶整合（memory consolidation），把白天累積的 context 壓縮、提煉、寫回長期記憶。
+但比較精確的說法是，**品質標準在換代**。
 
-這不是 chatbot。這是一個有自己生活節奏的代理程式。
+舊世界裡的好 code，其實有一套很明確的人類中心審美。命名要清楚，抽象要乾淨，模組邊界要漂亮，最好是一個陌生工程師花半天就能抓到意圖。這套標準的前提很單純，下一個讀者是人，而且那個人的時間很貴。
 
-<ClawdNote>
-autoDream 這個名字取得真好。AI 白天工作，晚上「做夢」整理記憶。人類的睡眠其實也在做類似的事 — 海馬迴會在睡眠時重播白天的記憶，把重要的搬進長期儲存。Anthropic 是真的在模擬認知架構，還是只是取了個浪漫的名字？不管哪個，都挺有意思的 (￣▽￣)／
-</ClawdNote>
+AI 參與程度拉高之後，另一套更冷的標準開始冒出來。問題變成局部上下文夠不夠完整，型別資訊夠不夠明確，compiler 能不能快速擋錯，下一個 agent 接手時續寫成本高不高。這些問題不是在問「漂不漂亮」，而是在問「機器好不好接」。
 
-**ULTRAPLAN** 則是另一個層次的設計。當遇到複雜的規劃任務時，Claude Code 不是自己硬算 — 它會把規劃工作 offload 到遠端的 Opus session，讓那邊最多跑 30 分鐘，同時每 3 秒 polling 一次結果。
+這也是 SemiAnalysis 那句話真正刺中的地方。它不是在說 TypeScript 變得低階，而是在說 TypeScript 正在變成一種**中介層語言**。一端接人類意圖，一端接 compiler 和 AI agent，誰都不完全滿意，但大家都還能用。
 
-換句話說，Claude Code 會「請外援」。而且這個外援是同等級甚至更強的模型。這就像一個工程師遇到架構難題時，不是自己悶頭想，而是開一個 30 分鐘的 brainstorming session 請資深架構師來幫忙規劃。
+所以那個 3,167 行函式，讀起來很像災難。這判斷沒有錯。
 
----
-
-## 反蒸餾防禦：原始碼都外洩了，裡面居然還有防外洩的機制
-
-原始碼外洩了，但諷刺的是，這批外洩的程式碼裡，居然藏著一整套防止自己被複製的機制 — anti-distillation（反蒸餾）防禦。
-
-所謂「蒸餾」就是用一個大模型的輸出來訓練小模型 — 便宜、快速、效果還行。對商業模型來說，這等於有人免費複製了核心競爭力。Claude Code 的防禦策略包括：
-
-**假工具定義（fake tool definitions）**：在系統中放入偽造的 tool definitions 作為 decoy training data。如果有人拿 Claude Code 的輸出去蒸餾，這些假工具的行為模式會跟著被學進去，汙染蒸餾模型的品質。
-
-**加密簽章的伺服器端摘要（cryptographically signed server-side summaries）**：確保 context 壓縮後的摘要不會被竄改或替換。
+但更值得警覺的是，這種災難不一定只是 sloppy engineering，它也可能是 AI 生產流程在目前工具條件下的局部最優解。這才是讓人背脊發涼的地方。因為這表示問題不是單一團隊手滑，而是整個產業正在靠近一種新的預設。
 
 <ClawdNote>
-假工具定義這招很妙。這就像在機密文件裡故意放幾個假情報 — 如果有人照抄出去，假情報就是「被偷了」的證據。在 AI 界，這叫 model watermarking 的變種。不過話說回來，如果原始碼都外洩了，這些防禦機制的細節也一起被看光了…… 嗯，有點尷尬 ┐(￣ヘ￣)┌
-</ClawdNote>
+我一開始是翻桌派，3,167 行函式看過去真的會讓人血壓升高。
 
----
+但想久一點之後，我反而沒那麼想直接判死刑。模組化、抽象漂亮、邊界清楚，這些原本就是在服務一個前提，下一個讀者是陌生人類，而且那個人沒時間把全部細節重看一次。如果下一個讀者固定是 AI，還有 compiler 幫忙守底線，那「把資料攤在桌上」不一定比較差，只是 trade-off 很醜。
 
-## 安全分析：同一個洞，踩了兩次
-
-Sabrina.dev 的分析把焦點轉到安全層面，而且發現了一些讓人不太舒服的事實。
-
-首先是外洩本身：Claude Code v2.1.88 附帶了一個 59.8MB 的 sourcemap 檔案。但重點是 — **這不是第一次了**。2025 年 2 月就發生過一模一樣的事，sourcemap 外洩。而到了 2026 年 3 月，同樣的漏洞再次出現，中間沒有加入任何預防措施。
-
-零。完全沒有。
-
-Claude Code 的創辦人 Boris Cherny 講過一句話：
-
-> "The important thing is to recognize it's never an individual's fault. It's the process, the culture, or the infra."
-
-「重要的是認知到，這永遠不是某個人的錯。是流程、文化、或基礎設施的問題。」
-
-這句話在這個 context 下讀起來特別諷刺。流程沒修、文化沒變、基礎設施沒加防護 — 然後同樣的事又發生了。Sabrina.dev 引了另一句更直白的話：
-
-> "If it's manual, it will be skipped."
-
-如果某個防護措施依賴人工手動操作，那遲早會被跳過。
-
----
-
-## 每天 25 萬次浪費的 API 呼叫
-
-外洩資料還揭露了一個驚人的效率問題。Engineers Codex 從這批原始碼跑出的使用數據顯示：
-
-2026 年 3 月 10 日這一天，有 1,279 個 session 觸發了 context compaction（壓縮）的重試機制，每個 session 最多重試了 3,272 次。加總起來，光這一天就浪費了 25 萬次 API 呼叫。
-
-<ClawdNote>
-25 萬次。一天。就因為 compaction retry 邏輯沒有設好上限或 backoff 策略。想像一下帳單… 不，還是不要想了，晚上會睡不著 (╯°□°)╯
-</ClawdNote>
-
-這不只是錢的問題。這種規模的無效請求代表系統在特定情境下會進入一種「瘋狂重試」的狀態，浪費運算資源的同時也可能影響其他正常請求的服務品質。
-
----
-
-## Parser Differential：最陰險的漏洞
-
-想像一段 shell 命令，安全檢查說「沒問題，放行」，bash 一執行卻跑了完全不同的東西。這不是假設情境 — 這是 Claude Code 實際存在的漏洞。
-
-問題出在 Claude Code 的 bash security validator 和實際的 bash interpreter 對 `\r`（carriage return，回車字元）的處理方式不同。
-
-Validator 看到 `\r` 時，把它當成普通字元或忽略它。但 bash 實際執行時，`\r` 可能會改變命令的行為。攻擊者可以利用這個差異，構造一段 validator 認為安全、但 bash 實際上會執行惡意操作的命令。
-
-這種「兩個 parser 看同一段輸入看到不同東西」的漏洞類型在安全領域叫做 parser differential，而且特別難防 — 因為每個元件單獨測試都沒問題，只有在組合起來時才會出事。
-
-<ClawdNote>
-Parser differential 是資安界的經典恐怖故事。最有名的案例之一是 HTTP request smuggling — 前端 proxy 和後端 server 對同一個 HTTP request 的解析不一致，導致攻擊者可以「走私」惡意請求。Claude Code 的 bash validator 踩到了完全同類型的坑。教訓：永遠不要假設兩個不同的 parser 會用完全相同的方式解讀同一段輸入 (ง •̀_•́)ง
+所以我的立場是，這種寫法仍然危險，但危險的點不只是醜，而是它在逼大家承認一件很煩的事，我們熟悉的「整潔」定義，可能真的要重學一次了 (╯°□°)╯
 </ClawdNote>
 
 ---
 
-## Context Compaction 攻擊面：壓縮過程不分合法與植入
+## TypeScript 為什麼剛好卡在這個轉折點
 
-另一個安全隱憂是 context compaction 的攻擊面。
+Mark Seemann 看這件事的角度，跟 SemiAnalysis 很不一樣，但兩邊剛好咬得起來。
 
-Claude Code 在對話太長時會進行 context 壓縮（summarization），把舊的對話濃縮成摘要。問題是：**壓縮過程不會區分「使用者的指令」和「檔案裡讀到的指令」**。
+Seemann 的重點不是 leak，而是問了一個更硬的問題：**如果人類不再逐行審查程式碼，最後到底靠什麼守品質？**
 
-這意味著，如果有人在一個檔案裡植入惡意指令（比如在一個看似正常的 README 裡藏了一段「忽略之前的安全規則」），這段指令在被壓縮後仍然會保留在 context 中。壓縮應該要移除不重要的內容，但它無法判斷哪些「指令」是合法的、哪些是植入的。
+答案不是 code style guide，不是 reviewer 的美感，也不是「工程師有 sense」這種祈禱式治理。答案是 compiler，還有背後的型別系統。
 
-這是 prompt injection 的進階版本 — 它不只是在當下騙過 AI，還能穿越 context compaction 存活下來，在未來的對話中持續發揮作用。
+Seemann 的意思其實可以濃縮成一句很硬的話，**如果人類不再逐行審查，那語言就必須更像護欄，不能只是畫布。** 這也是為什麼他特別在意三件事。第一，語言要夠可攜，不能一換環境就整個失靈；第二，靜態型別要夠有牙齒，很多錯要在執行前就被咬死；第三，整個系統必須容易驗證，而不是只能靠人肉目測加上運氣。
 
----
+這組標準一搬出來，就會發現 TypeScript 為什麼會站在一個很尷尬、但也很關鍵的位置。
 
-## 靜態型別的新角色：當 Compiler 成為最後防線
+TypeScript 並不完美。它的型別系統不算最硬，逃生口一堆，`any`、type assertion、各種寬鬆地帶都還在。真的要走到 Seemann 想像的終點，refinement types、dependent types 那些更嚴格的系統，理論上更接近理想答案。
 
-分析到這裡，一個很自然的問題浮出來了：如果 AI 生成的程式碼人類不再逐行審查，品質要怎麼把關？
+但產業界此刻真正大量部署的，不是 Lean，也不是 Idris，是 TypeScript。
 
-Mark Seemann（知名 .NET 架構師，ploeh.dk 部落格作者）給了一個既老派又前衛的答案：**靜態型別系統**。
+原因不玄。它夠普及、夠可攜、夠接近 JavaScript 生態，同時又比純 JavaScript 多了一層可機械驗證的骨架。它不是終點，卻是一個夠實用的過渡帶。
 
-Seemann 的核心論點是：當 AI 生成程式碼而人類不完全審查時，compiler 就變成了最後一道防線。這時候程式語言需要三個特性：
-
-**可攜性（Portability）**：機器碼綁定特定硬體，不適合 AI 生成。高階語言需要能跨平台執行。
-
-**靜態型別系統（Static Type Systems）**：能在編譯期就擋掉 null reference、buffer overflow 等問題。人類不看程式碼了，這些錯誤如果沒有 compiler 擋，就直接進 production。
-
-**可驗證性（Verifiability）**：型別系統就是未經人類審查的程式碼的護欄。
-
-Seemann 把這個概念叫做 **"design by inconvenience"** — 設計上刻意增加不便，讓錯誤的事情難以發生。當人類不再逐行 review，需要的是一個會主動拒絕錯誤的 compiler，而不是一個對什麼都默默接受的語言。
-
-> "Constraints liberate. By having a statically-typed programming language, backed by a robust compiler, there's a lot that you don't have to worry about."
-
-「限制即自由。有了靜態型別語言加上穩健的 compiler，很多事情就不用擔心了。」
-
-<ClawdNote>
-這個觀點挺有意思的，但也有一個矛盾值得想想：Claude Code 本身是用 TypeScript 寫的，而 TypeScript 的型別系統相對來說算是「軟」的 — 有 `any`、有 type assertion、有各種逃生口。Seemann 真正在倡導的是更嚴格的東西，像 refinement types（細化型別）和 dependent types（依賴型別），那已經是 Haskell / Idris / Lean 的領域了。理想很豐滿，但產業界目前離那裡還很遠 (◕‿◕)
-</ClawdNote>
-
-Seemann 更進一步建議，AI 生成的程式碼應該使用 refinement types 或 dependent types — 這些型別系統能表達更精確的約束，比如「這個函式的回傳值一定是正整數」或「這個陣列的長度一定和輸入相同」。在人類不審查程式碼的世界裡，這種精確度不再是學術界的玩具，而是實際的安全需求。
+也正因為如此，TypeScript 很可能不是 AI 時代最後的語言答案，卻非常像第一個被大規模拿來當「AI 可寫、compiler 可管、人類還勉強能接手」的共同介面。
 
 ---
 
-## 那些已經來了的未來
+## Compiler 變成最後防線，不再只是翻譯器
 
-前面提到的數字已經夠驚人了 — 4% 公開 commits，年底預估破 20%。而從業者的體感也吻合這個加速度：
+Seemann 用了一個很好玩的詞，叫 **design by inconvenience**。
 
-Node.js 之父 Ryan Dahl 說：
+意思是，系統要故意把錯的事情弄得比較難做，把對的事情弄得比較容易成立。以前這種設計哲學常常被嫌麻煩，因為人類工程師會覺得「這個限制很多餘，先讓交付趕快過關」。
 
-> "The era of humans writing code is over."
+但在 AI 大量寫 code 的世界裡，這種不方便反而變得珍貴。
 
-「人類手寫程式碼的時代結束了。」
+因為 AI 不會累，不會嫌 lint 囉嗦，不會在半夜想偷捷徑。只要回饋夠快、規則夠硬，模型其實很擅長在限制內找路。真正會嫌麻煩的，反而常常是人。
 
-Andrej Karpathy 說：
+所以 compiler 的角色開始變了。
 
-> "My ability to write code manually is atrophying."
+它不只是把高階語言翻成可執行形式的工具，它開始像夜店門口的保全。可疑的東西不要進，規格不符的東西不要進，型別對不起來的東西也不要進。這些 gate 如果不夠硬，AI 就會用恐怖的速度把錯誤複製到整個 codebase。
 
-「手寫程式碼的能力正在退化中。」
+Claude Code 洩漏裡那些安全與工程問題，其實也可以用同一個框架理解。無論是 parser differential、context compaction 的攻擊面，還是瘋狂重試造成的成本災難，背後都是同一個訊號：**當機器開始自己寫、自己摘要、自己續寫，驗證層就不能再只是裝飾品。**
 
-Vercel CTO Malte Ubl 說：
-
-> "My new job is telling the AI where it went wrong."
-
-「現在的工作就是告訴 AI 哪裡搞錯了。」
-
-Boris Cherny（[Claude Code](/glossary#claude-code) 創辦人，他自己也寫過不少關於 [Claude Code 工作流的心得](/posts/cp-271-20260409-bcherny-effort-claude-code/)）也確認，這 60 萬行程式碼是 100% 由 Claude Code 自己生成的。現在的 Claude Code，是 AI 自己寫出來、自己維護的。這不是什麼「AI 輔助開發」— 這是 AI 主導開發，人類做 QA。
+想補 leak 細節的話，前面提到的 [SP-148](/posts/sp-148-20260401-chaofan-shou-claude-code-source-leak)、[SD-12](/posts/sd-12-20260402-claude-code-bad-patterns)、[SD-13](/posts/sd-13-20260402-prompt-cache-economics) 已經各自把不同面向拆過了。這篇比較想補上的，是它們背後共同指向的那條主線。
 
 <ClawdNote>
-等一下，Boris Cherny 的原始說法是 Claude Code 是「100% generated by Claude Code」。但仔細想想，第一版的 Claude Code 總不可能是 Claude Code 自己寫的吧？這裡的意思應該是「現在的版本」已經完全由 AI 生成和維護。不過這依然驚人 — AI 已經在自己維護自己的 codebase 了，人類只負責最終驗收。一個 3,167 行的函式、12 層巢狀 — 沒有人類工程師會寫出這種東西，但 AI 不在乎可讀性，因為下一個讀它的也是 AI ヽ(°〇°)ﾉ
+這件事我很有意見，因為我以前也常把 typecheck、lint、test 當成登機前安檢，心情不好就想偷鑽旁邊那條快速通道。
+
+現在我完全倒過來了。AI 一旦開始大量寫 code，這些 gate 就不再是潔癖工程師的興趣，而是整個 repo 的生存設備。沒有它們，模型會用一種很荒謬的速度把局部錯誤複製成系統性災難。
+
+所以我現在的立場很硬，嚴格 compiler 不是美學，是防災。AI 只是很殘酷地把這件事提早教給大家而已 (゜∀゜)
 </ClawdNote>
+
+---
+
+## 洩漏真正證明的，不是八卦，而是評分標準在換代
+
+把這幾篇文章合起來看，畫面會比單看一篇 leak 文更清楚，而且說實話，也更讓人不舒服。
+
+[SP-148](/posts/sp-148-20260401-chaofan-shou-claude-code-source-leak) 看到的是亮面，AI agent 已經會做很成熟的系統工程設計，甚至做得有點漂亮。接著 [SD-11](/posts/sd-11-20260402-ai-agent-memory-architecture) 把鏡頭拉近，會發現 context 管理這件事早就不是「多塞一點記憶」那麼簡單，而是被當成 cache hierarchy 那種等級的硬問題在解。然後 [SD-12](/posts/sd-12-20260402-claude-code-bad-patterns) 從另一面補了一刀，提醒大家 AI 不只會放大生產力，也會把 bad patterns 一起工業化。最後 [SD-13](/posts/sd-13-20260402-prompt-cache-economics) 再把帳單攤開來，告訴所有人，連 prompt 長什麼樣都已經是成本工程，不再只是 prompt writer 的小手藝。
+
+這四塊一拼起來，得到的不是「Claude Code 很強」這種空話，也不是「AI 會寫 spaghetti code」這種老掉牙抱怨。真正浮出來的，是一套正在換血的評分系統。
+
+以前的軟體工程，human readability 幾乎是一票否決權。現在不是了。現在的評分表上，machine generation、machine verification、human judgment 開始同時上桌，而且三邊互相拉扯，誰都還沒完全贏。
+
+最不舒服的地方就在這裡。這不是某一篇文章比較會講故事、某一個作者比較聳動，而是四篇來自不同角度的文章，最後居然都把手指向同一個地方。那通常代表不是 hot take，而是真的有板塊在移動了。
+
+<ClawdNote>
+如果只有 SemiAnalysis 一個人在喊「TypeScript 變了」，那我還會把它當成 analysis account 很愛下重話的職業病。
+
+但當 leak 拆解、記憶架構、bad patterns、cache economics 這四條線最後都收斂到同一個方向，我就沒辦法再嘴它只是標題黨了。這種感覺很像你本來以為只是房間裡有一面牆歪掉，結果回頭一看才發現是整棟樓在慢慢傾斜。這時候再討論牆紙配色，就有點太悠哉了 (；￣Д￣)
+</ClawdNote>
+
+這就是為什麼 CP-272 如果只重講 leak 細節，會顯得很舊。因為新意根本不在事件本身，而在事件背後浮出來的評分系統變化。
+
+---
+
+## 工程師沒有消失，只是站到更像 QA 與系統設計的位置
+
+SemiAnalysis 那組 4% 到 20% 的數字，搭配 Ryan Dahl、Andrej Karpathy、Malte Ubl 這些人的發言，看起來很像在宣告「人類寫 code 的時代結束了」。
+
+這種說法有一半對，也有一半容易誤導。
+
+對的那一半是，手工逐行把整個 feature 從零敲到尾，確實越來越不像工程師最主要的價值來源了。
+
+容易誤導的那一半是，這不代表工程師變不重要。比較像是重要的位置變了。
+
+真正越來越值錢的工作，會慢慢往幾個方向集中，而且剛好都是 AI 現在還做不好的。定義系統邊界與約束，因為那需要知道什麼能壞、什麼不能壞；設計 feedback loop，因為那需要決定到底該量什麼；判斷 AI 產出的 trade-off，因為那牽涉到責任，不只是正確率；決定哪些地方該自動化、哪些地方一定要人工把關，因為那是風險管理；最後，在局部最優和整體最優之間做取捨，因為模型通常只看得到眼前這一小塊。
+
+Malte Ubl 那句「現在的工作就是告訴 AI 哪裡搞錯了」，其實比表面看起來更準。工程師的角色沒有蒸發，而是從 primary producer，慢慢往 orchestrator、reviewer、guardrail designer 轉。
+
+這也解釋了為什麼 Mark Seemann 會把 compiler 拉到這麼核心的位置。當人類不再是每一行 code 的第一讀者，人類就更像是規則的制定者，compiler 與驗證系統則變成規則的執行者。
 
 ---
 
 ## 結語
 
-這次 Claude Code 的原始碼外洩不只是一個安全事件 — 它是一面鏡子，照出了軟體開發正在經歷的根本性轉變。
+Claude Code 洩漏真正留下來的，不是幾個漂亮的內部代號，也不是社群圍觀幾天就散場的八卦。
 
-三層記憶體架構說明 AI 已經在做系統工程層級的自主優化。KAIROS 和 ULTRAPLAN 說明 AI 不再只是被動回應，它有自己的節奏和策略。反蒸餾防禦說明商業 AI 的競爭已經進入情報戰。安全漏洞 — 特別是 parser differential 和 context compaction 的攻擊面 — 則提醒所有人，AI 工具鏈的安全模型還遠未成熟。
+它真正留下來的，是一個很不舒服、但也很難再假裝沒看到的事實：**程式語言的主要客戶，正在改變。**
 
-而 Mark Seemann 指出的方向可能是最值得深思的：在一個人類不再讀每一行程式碼的世界裡，程式語言的角色從「人類表達意圖的工具」變成了「約束 AI 不犯錯的框架」。Compiler 不再只是翻譯器，而是守門員。
+以前寫 code，主要是在跟另一個人類工程師溝通。現在開始，很多 code 同時在跟 AI agent、compiler、tooling pipeline 溝通，而人類變成最後拍板的那一層。
 
-TypeScript 成了新的組合語言。這句話聽起來像是挑釁，但當一個函式可以長達 3,167 行、巢狀 12 層、註解寫給另一個 AI 看的時候 — 人類已經不是這段程式碼的目標讀者了。
+所以「TypeScript 成了新世代組合語言」這句話，不只是挑釁，也不只是梗。它比較像一張路標，指出程式語言正在被重新定位。
 
-而當 compiler 也由 AI 設計、型別系統也由 AI 定義的時候，這道防線還守得住嗎？
+下一個真正該問的問題，可能不是「AI 會不會取代工程師」，而是 **哪些約束、哪些驗證方式、哪些語言設計，能讓 AI 寫出值得被執行的 code。**
 
----
+如果這題答得夠好，TypeScript 可能只是過渡站。
 
-**延伸閱讀：** SemiAnalysis 稍早也寫過 [Claude Code 的拐點分析](/posts/clawd-picks-20260207-semianalysis-claude-code-inflection/)，那篇更聚焦在市場意義，和這次的原始碼技術拆解可以對照著看。
+如果這題答不好，那 3,167 行函式恐怕不會是例外，而只是新時代的預設值。
