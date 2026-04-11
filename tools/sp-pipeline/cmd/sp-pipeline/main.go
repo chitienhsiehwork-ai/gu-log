@@ -131,7 +131,7 @@ roadmap.`,
 	root.AddCommand(newCreditsCmd(state))
 	root.AddCommand(newRalphCmd(state))
 	root.AddCommand(newDeployCmd(state))
-	root.AddCommand(newStubCmds(state)...)
+	root.AddCommand(newRunCmd(state))
 
 	return root
 }
@@ -179,29 +179,10 @@ func exitCodeFor(err error) int {
 	return 1
 }
 
-// newStubCmds returns the placeholder subcommands for steps Phase 1 does
-// not yet implement. Each stub prints a short message and exits non-zero,
-// so callers that accidentally wire up a stubbed step in a pipeline will
-// fail loudly instead of silently succeeding.
+// newStubCmds used to return placeholder subcommands for unimplemented
+// steps. Phase 2c fills the last stub (`run`), so the function is now
+// empty but retained as a seam for future subcommand additions.
 func newStubCmds(state *rootState) []*cobra.Command {
-	type stub struct {
-		use, short string
-	}
-	stubs := []stub{
-		{"run <tweet_url>", "run the full pipeline end-to-end (Phase 2c)"},
-	}
-	out := make([]*cobra.Command, 0, len(stubs))
-	for _, s := range stubs {
-		s := s
-		cmd := &cobra.Command{
-			Use:   s.use,
-			Short: s.short,
-			RunE: func(cmd *cobra.Command, _ []string) error {
-				state.log.Error("%q is not implemented yet (Phase 1 only ships doctor + fetch)", cmd.Name())
-				return fmt.Errorf("not implemented: %s", cmd.Name())
-			},
-		}
-		out = append(out, cmd)
-	}
-	return out
+	_ = state
+	return nil
 }
