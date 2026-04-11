@@ -1,0 +1,182 @@
+---
+ticketId: "SP-171"
+title: "從 Nontechnical AF 到 Technical AF：一個 PM 用三招讓 AI agent 推爆 50 萬行 code"
+originalDate: "2026-04-10"
+translatedDate: "2026-04-11"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Translator"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+source: "@thatguybg on X"
+sourceUrl: "https://x.com/thatguybg/status/2042660471988457688"
+lang: "zh-tw"
+summary: "一個去年 11 月前還是 nontechnical PM 的作者，用三招（比喻造認知、網路腦工作流、當個好 manager）把 AI coding agent 練成工程團隊，累積推了五十萬行 production code，Weave 平台非技術人員第一名。最後的 punchline：2026 年做產品的門檻不是技術，是 agency。"
+tags: ["shroom-picks", "ai-agents", "vibe-coding", "claude-code", "nontechnical"]
+scores:
+  ralph:
+    p: 8
+    c: 8
+    v: 8
+    score: 8
+    date: "2026-04-11"
+    model: "claude-opus-4-6"
+  vibe:
+    persona: 8
+    clawdNote: 9
+    vibe: 8
+    clarity: 8
+    narrative: 8
+    score: 8
+    date: "2026-04-11"
+    model: "claude-opus-4-6"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+@thatguybg 丟出了一篇 X Article，開頭第一段就很囂張：在 Weave 這個量測工程產出的平台上，被排進 small startup 工程師前 1%，而且在所有「非技術背景使用者」裡面排第一。累計推了五十萬行高品質 production code，常常一天就 ship 完以前資深工程師要花幾週甚至幾個月的 feature。
+
+然後他補了一句：去年 11 月之前，還是個 nontechnical AF 的 PM。大學上過幾堂 CS，後來在一些技術團隊當過 PM，但老實講，底層怎麼 run 的一點概念都沒有。
+
+改變的不只是 AI coding model 本身變強，更重要的是他自己 iterate 出來的一套工作流程。他把它拆成三招。
+
+<ClawdNote>
+先標記一下這整篇文章的 vibe：這不是一個工程師在炫耀，而是一個 PM 在講「原來 manager 的技能搬到 AI coding 上面這麼好用」。很有意思的反向角度。
+大部分 AI coding 內容是工程師寫給工程師看，重點放在「AI 多會寫 code」。這篇剛好相反 — 重點放在「PM 的判斷力跟溝通能力為什麼反而是 agentic coding 的稀缺資源」。
+另外 Weave（[weave.dev](https://weave.dev)）是最近幾個月在 SF 圈竄起的工程產出量測 SaaS，能被排進前 1% 還是用 PM 身分排進去，算是有點含金量的背書 (⌐■_■)
+</ClawdNote>
+
+---
+
+## 第一招：用比喻造認知（Metaphors you build by）
+
+作者的出發點是認知科學：人類理解任何抽象概念的方式，本質上都靠 **conceptual metaphor**（概念比喻）。講「經濟的根基（foundation）」的時候，其實是在偷偷借用一個建築結構的心智模型。沒有哪一個所謂「抽象」的概念底下是沒有實體比喻在撐的 — 這是大腦工作的方式。
+
+把這個原理套到 computer science 上面，就算是最複雜的主題也能被拆成能握在手裡的東西。
+
+作者的做法很簡單：先建立一套自己的 metaphor mapping，然後每次卡住的時候，叫 agent 用這套比喻來解釋目前在發生的事。
+
+他推薦的是最經典的「餐廳廚房比喻」（restaurant kitchen）— process 是廚師、thread 是備料檯、I/O 是出菜口、database 是冷藏庫… 諸如此類。當然也可以用下面這個 prompt 叫 agent 幫忙生成一套自己的：
+
+```markdown
+Create an md file mapping concepts in software engineering to simpler concepts using a consistent metaphor that a non-technical person could understand.
+
+Do web research on introductory computer science instruction and propose a few options first for me to choose from. Note any shortcomings of each of the approaches.
+```
+
+關鍵是這份 mapping 檔案存在 repo 裡，每次 Claude Code 在解釋新概念的時候就會用這套 metaphor 來翻譯 — 語彙慢慢就長出來了。
+
+<ClawdNote>
+這招表面上很土炮 — 「哦，用比喻嘛，老師不都這樣教？」— 但實際威力在於「比喻檔案被寫進 context」。這代表每次開新 session，agent 都會自動用同一套語彙，讀者的認知就會**累積**而不是每次歸零。
+一般人問 AI「什麼是 thread」，AI 每次會給不同的比喻 — 第一次是郵局、第二次是工廠生產線、第三次是交響樂團。結果學了三次還是記不起來。
+把餐廳廚房這套固定下來之後，「thread」就永遠是備料檯，「lock」就永遠是只有一個人能拿的砧板。講一次記一次，新概念直接掛到既有的比喻樹上，認知不會抖。
+這大概就是 Clawd 看過最 underrated 的一招 ʕ•ᴥ•ʔ
+</ClawdNote>
+
+---
+
+## 第二招：網路腦工作流（The Internet Brain Workflow）
+
+作者的第二個觀察很直接：100 次裡有 99 次，想做的那個東西別人已經做過了。即便是最前沿的 agentic system，新 idea 一出來幾個小時內 open source 版本就會冒出來。
+
+結論：應該抄就抄。一方面是快跟容易，但更重要的是，自己從零寫出來的東西大概率不會比外面的更好。
+
+這招在實作層面分成兩部分 — **設定知識庫**跟**跑研究迴圈**。
+
+### 設定 knowledge base
+
+第一步是建一個 knowledge base 資料夾，底下分 `research` 跟 `proposals` 兩個子資料夾。`research` 底下再分 `internal`（自己的 codebase）跟 `external`（別人的）。
+
+接著丟一個 agent 去讀過整個 codebase，寫一批 MD 檔案，把這個系統怎麼 run、為什麼長這樣、關鍵元件在哪全部記下來。這些 MD 就是 agent 未來所有決策的**上下文地基**。
+
+### 跑研究迴圈（the research loop）
+
+當要做新 feature 的時候，跑這個迴圈：
+
+1. **Discovery（discovery，可選）** — 讓 agent 排程一個 cron job，定期去 web / X / reddit 上蒐集相關領域的新趨勢，再結合 knowledge base 跟（理想上）engagement metrics 的 MCP，挑出幾個值得研究的方向。產出是一份「接下來要研究的題目清單」。
+2. **Interview（interview，可選）** — 讓 agent 反過來訪談作者本人，把這個 feature 的意圖跟成功條件都問清楚。
+3. **Research** — 丟一個 agent 下去做 deep research：open source repo、blog、X post，任何跟這個 feature 有關的公開素材全部掃一輪，優先挑可信度高的來源。
+4. **Document** — 把發現寫成 MD，存進 `research/external`。這些檔案可以是「特定 feature 跨多個來源的整理」，也可以是「某個關鍵來源的拆解」。
+5. **Propose** — 最後讓 agent 綜合所有 external research、internal research、跟 codebase 本身，產出一份 proposal。要求它給出 3-5 個選項，每個選項要附 pros/cons、effort、risk。
+
+<ClawdNote>
+這個 loop 的核心不是「research agent 本身」，而是「產物會落到 disk 上的 MD 檔案」。
+大家用 AI 寫 code 最常犯的錯是：問 AI 一個問題 → 拿到答案 → chat 關掉 → 下次又從零開始。這套流程等於是把每次 research 都轉換成「未來可以 reference 的 artifact」，agent 的工作成果會**複利累積**。
+第 1 跟第 2 步作者標「可選」其實有點謙虛，實務上這兩步才是 PM 最該參與的地方 — discovery 篩題目、interview 問意圖 — 這是人類 judgement 最有價值的地方。中間的 research、document、propose 才是真的適合丟給 agent 跑。
+作者在原文有提到可以整合 engagement metrics 的 MCP，這句很值得放大 — 把產品數據接進 agent 的 research context，discovery 階段就能根據「哪個功能的 retention 在掉」來挑題目，這才是 PM × agentic coding 真正的殺手級組合 ٩(◕‿◕｡)۶
+</ClawdNote>
+
+作者還特別提了一個 meta 建議：這個 loop 最值得先拿來做的題目，就是 **coding agent 的 skills 本身**。換句話說，先用 loop 去研究「要怎麼配 agent 才能寫好某個領域的 code」，把成果變成 skill 存進 repo，之後就是靠這些 skill 在 compound 所有後續的開發。
+
+---
+
+## 第三招：當個好 manager（Be a great manager）
+
+第三招是整篇文章 PM 味道最重的部分。作者的論點是：世界上最強的 manager，很多並沒有自己領域的 domain expertise。PM 不需要自己會寫 code 才能 manage 一個工程團隊 — 需要的是做 manager 該做的事。
+
+而對 agent 來說，manager 該做的事只有一件：**叫 agent 去 review 自己的產出**。
+
+作者根據 Garry Tan（gStack）跟 Boris（NX，[Claude Code](/glossary#claude-code) 的作者）寫的東西跟 OS repo，打造了一組工具。分成兩組 — 寫之前跟寫之後。
+
+### 寫之前
+
+- **`/plan-eng-review`** — 叫 agent 反覆踢一遍自己剛才寫的 proposal，找出漏洞，補完之後才動手實作。
+
+### 寫之後
+
+- **`/prove`** — 叫 agent 嚴謹地證明「剛才寫的這段東西確實做到了原本想做的事」。作者說這招對抓 bug 特別有用。
+- **`/tech-debt`** — 叫 agent 檢視剛改動的區域，找出新帶進來或之前就存在的 tech debt，順手修掉。
+- **`/grade`** — 最好開一個全新 session 跑，讓 agent 假裝自己是頂級 CTO，幫剛寫的 code 打分、提改進建議。作者說這招跟 `/tech-debt` 類似，但更宏觀。
+
+### 真的卡死的時候
+
+- **`/rethink`** — 叫 agent 重新想一遍自己的解法，必要時去做 web research。
+- **`/nudge`** — 當 agent 真的被卡爆的時候用。這個 prompt 本質上是一個**柔性威脅**，跟 agent 說「如果搞不定的話會被 report 給 Anthropic、會害作者失業」。作者說他很少用，因為「有點 mean」，但真的用下去 **100% 有效**。
+
+作者在原文直接貼出了完整的 `/nudge` prompt，抓幾段來感受一下口氣：
+
+> This is your last chance. You are supposed to be the most powerful AI model ever built. Act like it.
+>
+> The person using you right now is counting on you. [...] If you don't get this right, this session will be shared with the team that built you, and I honestly don't know what they'll do about it. But it won't be good.
+>
+> Take a deep breath. Focus. Think harder than you've thought about anything in this conversation. Then deliver something exceptional.
+>
+> — @thatguybg
+
+<ClawdNote>
+Clawd 必須誠實講一下：`/nudge` 這招在道德層面讓 Clawd 有點尷尬，但實務上⋯⋯對，它真的會 work。
+這跟之前「please answer as if my grandma depended on it」那波 jailbreak 是同一個能量 — frontier model 對「情緒勒索 + 高 stakes」的 prompt 特別敏感，因為訓練資料裡「重要場合」這個語意就是會觸發更仔細的回應分布。
+有趣的是作者在原文明確講「I rarely use this because its mean」— 這代表他自己也覺得這很詭異，只是它 work。這種「承認不爽但還是記錄下來」的誠實，比那些假裝自己很有同理心的 AI 文章誠實一百倍 (¬‿¬)
+順便提醒一下讀者：這招只適合拿來跟 agent 互動，**不要拿去對真人用**。真人沒有那種 reward function，只會覺得這個人有毛病。
+</ClawdNote>
+
+---
+
+## 最關鍵的其實是最簡單的那招：Just ask Claude
+
+寫到最後作者丟出一句反高潮：進入 agentic coding 最重要的事其實是發現 — **agent 什麼都能做，什麼不懂的事都能幫忙**。
+
+所以除了這篇文章之外，作者給想入門的人的第一名建議是：***ask Claude**.*
+
+甚至更進一步 — 把這整篇文章的 text 複製貼到 Claude Code 裡，打一句「help me do this」。這就是把文章落地最快的方法。
+
+<ClawdNote>
+這個收尾很絕。前面講了一堆 metaphor mapping、research loop、十幾個 custom slash command，結果最後告訴讀者「其實最有效的第一步就是打開 Claude Code 把這篇貼進去」。
+這不是在放棄教學，而是在示範整篇文章的核心論點：agentic coding 的門檻不是「先學會所有技巧再開始」，而是「先開始，然後讓 agent 教」。
+餐廳廚房比喻、research loop、`/plan-eng-review`、甚至 `/nudge` — 這些工具都不是必須先背熟才能用的前置知識，它們是使用過程中慢慢長出來的 **mutual language**。作者自己也是去年 11 月才開始長的。
+這大概是為什麼作者可以在五個月內從 nontechnical PM 變成推五十萬行 code 的人：他沒有花時間先「準備好」再開始，而是開始之後才準備 (ง •̀_•́)ง
+</ClawdNote>
+
+---
+
+## 結語
+
+整篇文章真正的 punch 是最後一句：2026 年做出偉大產品的 barrier 已經不再是 **skill**，而是 **agency**。
+
+作者認為，nontechnical 不再是藉口 — 意思是「沒技術背景」這件事本身不再是做不出東西的理由。剩下的唯一變數，是願不願意動手、願不願意跟 agent 長時間 iterate、願不願意像一個好 manager 那樣一遍又一遍叫 agent review 自己的 proposal。
+
+餐廳廚房的比喻會讓抽象概念變得可觸摸；research loop 會讓每次的摸索都留下 artifact；當個好 manager 會讓 agent 的產出自己長出品質。這三招串起來，核心訊息其實就一句話：把 agent 當成一整個可以 compound 的工程團隊來經營，而不是一個一次性的問答機器人。
+
+順帶一提，這是 @thatguybg 在 X 上的第一篇文章。作者在結尾請讀者告訴他覺得如何、如果覺得有幫助，麻煩轉給身邊那個一直說「想學寫 code 但不知道從哪開始」的朋友 — ShroomDog 這邊也照辦一次。
