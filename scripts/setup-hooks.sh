@@ -33,4 +33,16 @@ if [ -d "$SCRIPT_DIR/../.githooks" ]; then
     echo "✓ Synced to .githooks/"
 fi
 
+# ── Custom merge driver: post-versions-regen ────────────────────────
+# .gitattributes marks `src/data/post-versions.json` as needing this
+# driver. Configure the driver command in the local .git/config so the
+# driver is actually callable. Registry is per-clone (not tracked in
+# .gitattributes, since driver bodies must live outside version
+# control) — this line adds it idempotently on every setup run.
+git config --local merge.post-versions-regen.name \
+    "Regenerate post-versions.json from git log (HEAD + MERGE_HEAD)"
+git config --local merge.post-versions-regen.driver \
+    "scripts/merge-post-versions.sh %O %A %B %P"
+echo "✓ Configured merge driver post-versions-regen"
+
 echo "Done!"
