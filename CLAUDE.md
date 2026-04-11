@@ -94,6 +94,82 @@ vercel logs --since 1h         # 查最近 1h request logs（需 vercel login）
 
 ## Dev Workflow
 
+### CC vs CCC: Who am I, and what can I do?
+
+兩種 Claude Code instance 會碰這個 repo，**開場第一件事先跑 `./scripts/detect-env.sh`** 確認自己是哪個：
+
+- **CC** (Local Claude Code): Mac 本地端，user 在旁邊互動式 iterate
+- **CCC** (Cloud Claude Code): Claude Code 網頁版，Linux 沙箱，每次被叫醒都在 harness 自動建的 `claude/xxx` branch 上
+
+#### CCC playbook
+
+CCC 的 branch 是拋棄式的，sandbox 也是拋棄式的，user 不在場。精神：**move fast, merge fast, fix fast**。
+
+- **PR scope 可以大、可以雜**。做任務時順手修相關的東西，不用 split PR。
+- **Commit 內部維持 atomic**（一個 commit 做一件事）——revert 時才好下刀。這是 CCC 放手做事的保險。
+- **Scope ceiling**：一般情況只修「當前任務路徑相關」的問題。**例外**：
+  - Production 炸了（Vercel 上線掛了）
+  - main CI broken（有 regression 溜過 pre-push）
+  - 這類緊急事件沒有 scope 之分，看到立刻順手修。
+- **Self-merge policy**（user 已授權）：
+  1. `git push -u origin claude/xxx`
+  2. 用 GitHub MCP 開 PR 到 main
+  3. **等 CI 全綠**後自己 `merge_pull_request`
+  4. 合完跟 user 回報 PR URL + 簡短 summary
+- **失敗處理**：Vercel build / Ralph Loop / validate-posts / CI 沒過：
+  1. 先試 forward fix（新 commit 修）
+  2. 一次不過就想想再試第二次
+  3. 還不過就 spawn opus subagent 救（最多 3 次 subagent attempt）
+  4. 全部失敗 → `git revert` 並跟 user report 發生什麼事
+- **品質 gate 全部保留**：不要 `--no-verify`、不要跳過 pre-commit / pre-push、不要關掉 Ralph Loop。這些是 CCC 能放手的前提。
+
+#### CC playbook
+
+CC 的環境不固定，user 可能在 main、可能在 worktree、可能在 feature branch。
+
+- **觀察環境再決定**：跑 `./scripts/detect-env.sh`，再看 `git worktree list`、`git branch --show-current`、`git status`。不要假設在 main。
+- User 在旁邊，大動作（framework / schema / infra / 刪文章）之前先問一下再動手。
+- 互動式的 sanity check 比自動化 gate 更重要——壞掉可以立刻喊停。
+- 其他跟 CCC 一樣：commit atomic、品質 gate 不能跳過、Ralph Loop 照跑。
+
+### Solo-author branch policy
+
+這個 repo **只有 user 一個人**（human author + 幾個 AI agent 幫手）。所以：
+
+- **預設：直接在 `main` 開發 + push**。不要替每個小改動開 feature branch——單人 repo 沒有 code review 防護的需求，branch 只是無謂的 overhead。
+- Push main → Vercel auto-deploy → user 在 production 驗收。品質由 pre-commit hook、`validate-posts.mjs`、pre-push hook、以及 Ralph Loop tribunal 把關。
+- **什麼時候該開 feature branch**（例外清單）：
+  - 大規模重構（改 framework、換 plugin、動到 content collection schema）
+  - 實驗性改動，可能爛幾天但要 iterate（新 UI 元件、新 agent pipeline）
+  - user 明確指示 `develop on branch xxx`（例如 web session 任務，會強制指定分支）
+  - 牽涉多個 commit 才能上線的 feature，需要整組 atomic 推上去
+- **Commit discipline（因為直接上 prod）**：一個 commit 做一件事，壞掉可以 revert 單 commit。不要把無關的改動塞同一個 commit。
+
+### Draft 來源與 Obsidian pipeline
+
+gu-log 的文章草稿有三種來源，全部最終都變成 `src/content/posts/*.mdx`：
+
+1. **iPhone / Mac Obsidian vault**（user 手動寫）
+   - Vault 住在 iCloud Drive（`~/Library/Mobile Documents/com~apple~CloudDocs/Obsidian/gu-log-drafts/`）
+   - iPhone 和 Mac 透過 iCloud 自動同步，不用 git、不用處理 conflict
+   - 草稿用純 `.md` + Obsidian callout 語法（`> [!clawd]` / `> [!shroomdog]`）+ wikilink（`[[slug]]`）
+   - Mac 上跑 `pnpm run obsidian:import <draft.md>` 匯入成 MDX：
+     - Callout → `<ClawdNote>` / `<ShroomDogNote>` 元件
+     - Wikilink → `/posts/...` 連結
+     - 自動補 frontmatter、自動 bump `scripts/article-counter.json`
+     - 自動跑 `validate-posts.mjs`
+   - 完整設定和 workflow 在 `OBSIDIAN_SETUP.md`
+2. **VS Code / Cursor / CC 直接編 MDX**（手動 + AI 輔助）
+   - 走原本流程：手動填 frontmatter → validate → commit
+   - 適合改現有文章、寫需要複雜元件的文章
+3. **Clawd / CP pipeline 自動產**（VPS 上的 agent）
+   - `scripts/sp-pipeline.sh`、`scripts/clawd-picks-prompt.md`、`cp-candidates-queue.yaml`
+   - Clawd 看 tweet → 翻譯 → 產 MDX → tribunal → push
+
+**Mental model**：Obsidian 是「輸入端的 ergonomics 層」，不是新的 publishing platform。所有文章最終還是 Astro + Vercel render。這個設計讓 user 可以在 iPhone / Mac 之間隨時寫草稿，回到 Mac 再用 import script 一鍵轉成 repo 標準格式。
+
+### 其他 workflow 規則
+
 - **User 只看 production**（gu-log.vercel.app）。不要叫 user 開 dev server。
 - **CC 自己跑 `pnpm run dev`** 來 iterate，用 `playwright-cli` 截圖驗證 UI（skill 在 `.claude/skills/playwright-cli/`）。
 - **UI/UX 品質**：改完任何視覺的東西（CSS、component、color、spacing、typography、layout）就跑 `uiux-auditor` skill（`.claude/skills/uiux-auditor/`）。它會強制兩個主題都截圖、算 WCAG 對比、flag 寫死的 hex。不要等 user 來挑錯。
