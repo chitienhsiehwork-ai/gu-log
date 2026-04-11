@@ -209,7 +209,7 @@ while true; do
   tlog "Processing: $next_article (${remaining}% remaining, tier ${tier})"
 
   # || true: set -e must not kill the loop when an article fails
-  bash "$SCRIPT_DIR/ralph-all-claude.sh" "$next_article" >> "$LOG_FILE" 2>&1 \
+  bash "$SCRIPT_DIR/tribunal-all-claude.sh" "$next_article" >> "$LOG_FILE" 2>&1 \
     || tlog "  Article $next_article failed (non-zero exit). Continuing to next."
 
   # Brief cooldown (same as batch runner)

@@ -29,7 +29,7 @@ CLAUDE.md (你在讀的這個)
   ├→ src/content/config.ts    ← SSOT: Frontmatter schema (Zod validation)
   └→ scripts/
       ├ article-counter.json  ← Ticket ID counter（SD/SP/CP/Lv）
-      ├ ralph-loop.sh         ← Ralph Loop（batch scoring + rewrite 迴圈）
+      ├ ralph-loop.sh         ← Ralph Loop（autonomous rewrite loop，會呼叫 Tribunal）
       ├ ralph-vibe-scoring-standard.md ← Vibe 評分標準 SSOT
       ├ ralph-progress.json   ← Loop 進度追蹤
       ├ sp-pipeline.sh        ← SP 自動翻譯 pipeline

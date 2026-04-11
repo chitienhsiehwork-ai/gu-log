@@ -59,14 +59,14 @@ Key fields:
 │    5. if effective_remaining < 3% → STOP mode   │
 │    6. compute sleep_duration from tier table    │
 │    7. sleep(sleep_duration)                     │
-│    8. run ralph-all-claude.sh on next article   │
+│    8. run tribunal-all-claude.sh on next article   │
 │    9. git add + commit + push results           │
 │   10. loop back to step 1                       │
 │                                                 │
 └─────────────────────────────────────────────────┘
          │                        │
          ▼                        ▼
-  usage-monitor.sh          ralph-all-claude.sh
+  usage-monitor.sh          tribunal-all-claude.sh
   (quota JSON)              (4-stage tribunal)
 ```
 
@@ -161,7 +161,7 @@ while true; do
 
   next_article=$(echo "$articles" | head -1)
   log "Processing: $next_article (${remaining}% remaining)"
-  bash scripts/ralph-all-claude.sh "$next_article"
+  bash scripts/tribunal-all-claude.sh "$next_article"
 
   # Brief cooldown (10s, same as current batch runner)
   sleep 10
@@ -228,12 +228,12 @@ Note: `CLAUDE_CODE_OAUTH_TOKEN` needs to be sourced from `~/.cc-cron-token` at r
 
 ### Quiet Hours
 
-`ralph-all-claude.sh` already has quiet hours logic (weekday 20:00–02:00 TST). The loop does NOT need to duplicate this — each `ralph-all-claude.sh` invocation handles its own quiet-hour pausing internally.
+`tribunal-all-claude.sh` already has quiet hours logic (weekday 20:00–02:00 TST). The loop does NOT need to duplicate this — each `tribunal-all-claude.sh` invocation handles its own quiet-hour pausing internally.
 
 ### Logging
 
 - Loop-level logs: `journalctl --user -u tribunal-quota-loop`
-- Per-article logs: existing `.score-loop/logs/tribunal-*.log` (written by `ralph-all-claude.sh`)
+- Per-article logs: existing `.score-loop/logs/tribunal-*.log` (written by `tribunal-all-claude.sh`)
 - Quota decisions logged at loop level: tier, remaining %, sleep duration
 
 ### Out of Scope
@@ -242,13 +242,13 @@ Note: `CLAUDE_CODE_OAUTH_TOKEN` needs to be sourced from `~/.cc-cron-token` at r
 - Parallel article processing (tribunal stages are sequential by design)
 - Telegram notifications for quota events (nice-to-have, not MVP)
 - Extra usage billing awareness (extra_usage_enabled exists but floor logic is sufficient)
-- Modifying `ralph-all-claude.sh` or `tribunal-batch-runner.sh` internals
+- Modifying `tribunal-all-claude.sh` or `tribunal-batch-runner.sh` internals
 
 ### Dependencies
 
 - `usage-monitor.sh` on VM must remain functional (it's the quota SSOT)
 - `~/.cc-cron-token` must exist and be valid (same as current cron)
-- `ralph-all-claude.sh` must remain idempotent (crash resume works)
+- `tribunal-all-claude.sh` must remain idempotent (crash resume works)
 
 ### Acceptance Criteria
 
