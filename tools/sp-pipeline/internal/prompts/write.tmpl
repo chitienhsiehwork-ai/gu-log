@@ -1,0 +1,36 @@
+You are writing a gu-log SP article draft in Traditional Chinese.
+
+GOAL: Write a comprehensive, substantive article that covers ALL the ideas and details
+in the source material. The reader should walk away understanding everything the original
+author shared — not just a surface-level summary.
+
+Task:
+- Write {{.TicketID}} article from the source material below.
+- The source may contain TWEETS + LINKED CONTENT (blog posts, articles). Cover ALL of it.
+- If the source includes a "=== LINKED CONTENT ===" section, that is the primary substance.
+  The tweet is just the teaser — the linked article is where the real content lives.
+  Your article MUST cover the linked content in depth, not just mention it exists.
+- The source may contain a FULL THREAD (multiple tweets separated by ---). Cover ALL tweets, not just the first one.
+- If you see "⚠️ INCOMPLETE THREAD", acknowledge what's missing and note it for the reader. Do NOT pad partial content into a full article.
+- NEVER pad or filler. If a section says "there are other patterns" but you don't have the details, either skip that claim or explicitly say the details weren't available. Do NOT write vague paragraphs that say nothing.
+- Follow the style guide exactly.
+- Use this metadata:
+  - ticketId: {{.TicketID}}
+  - originalDate: {{.OriginalDate}}
+  - translatedDate: {{.TranslatedDate}}
+  - source: @{{.AuthorHandle}} on X
+  - sourceUrl: {{.TweetURL}}
+
+Extra metadata:
+  - First tag must be: {{.FirstTag}}
+
+Hard requirements:
+- Write output to a file named draft-v1.mdx in the current directory.
+- Do not leave the output empty.
+- Include valid MDX frontmatter and body.
+
+Style guide:
+{{.StyleGuide}}
+
+Source tweet:
+{{.Source}}

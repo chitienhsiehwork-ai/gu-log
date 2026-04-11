@@ -1,0 +1,18 @@
+Evaluate whether this tweet/thread is worth translating into a gu-log article.
+
+IMPORTANT: The source below may be a multi-tweet thread (separated by ---).
+Evaluate the ENTIRE content holistically, not just the first tweet.
+A thread with multiple substantial tweets IS enough content for an article.
+
+Checklist:
+1. Is the TOTAL content substantial enough for a gu-log article (not just a one-liner/hot take)?
+2. Is it relevant to gu-log audience topics (AI, tech, developer, indie hacker)?
+3. Does it have enough depth to expand into a full article?
+
+Source content ({{.LineCount}} lines):
+{{.Source}}
+
+Output requirements:
+- Write JSON only (no markdown) to {{.OutputFilename}} in current directory.
+- Exact schema:
+  {"verdict":"GO"|"SKIP","reason":"...","suggested_title":"..."}
