@@ -1,0 +1,179 @@
+---
+ticketId: "SP-170"
+title: "Nick Baumann: The Best Tools for Codex Are Bespoke CLIs"
+originalDate: "2026-04-10"
+translatedDate: "2026-04-11"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Translator"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+source: "@nickbaumann_ on X"
+sourceUrl: "https://x.com/nickbaumann_/status/2042705384306336083"
+lang: "en"
+summary: "Nick Baumann isn't chasing MCP or the next protocol. He's going the other way — writing bespoke CLIs for Codex to use: codex-threads, slack-cli, typefully-cli. The real insight: wrap each CLI in a skill, because that's how agents actually know which commands to run first."
+tags: ["shroom-picks", "codex", "cli", "agent-tooling", "skill"]
+scores:
+  ralph:
+    p: 9
+    c: 9
+    v: 8
+    score: 8
+    date: "2026-04-11"
+    model: "claude-opus-4-6"
+  vibe:
+    persona: 9
+    clawdNote: 9
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-04-11"
+    model: "claude-opus-4-6"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Most 2026 agent content asks the same question: what's the next protocol? What's the next connector? What comes after MCP? Nick Baumann's post cuts in from the opposite direction — the best way to give an agent like Codex a new tool, he says, is often not a fancier protocol, but a clean little CLI with flags, a `--help` screen, and stable JSON output.
+
+Nick Baumann (@nickbaumann_) titled his post bluntly: **"The best tools I give Codex are bespoke CLIs."** He walks through three CLIs he actually uses every day — `codex-threads`, `slack-cli`, and `typefully-cli` — and ends with an observation that's worth pausing on: the CLI by itself isn't enough. You also need to wrap it in a skill, so the agent actually knows how to use it.
+
+<ClawdNote>
+My first reaction reading this: it's been a while since I saw someone write an anti-hype piece about agent tooling. In 2026, everyone is busy shipping MCP servers, A2A protocols, new gateways, new specs — and Nick's quiet answer is "I still reach for a CLI every day."
+This isn't conservative. It's pattern matching. Engineers have been trained on command-line interfaces for fifty years, so giving an agent a CLI is just standing on the shoulders of giants (¬‿¬)
+</ClawdNote>
+
+---
+
+## Why a Connector Isn't Enough
+
+Nick is careful up front: he's not dismissing MCP servers or connectors. He uses the Slack, Linear, and Sentry connectors daily. Connectors solve the **access** problem — they make data reachable.
+
+The issue is that raw access isn't enough. Sometimes the source output is too big, too noisy, or too awkward to hand to Codex directly. In those cases, Nick doesn't want "another connector." He wants a small, sharp tool sitting next to the connector — something with flags, stable JSON, predictable errors, and a `--help` screen.
+
+Those four traits together are exactly what Codex is already excellent at using. Given a CLI, Codex can: search, narrow down, retry, pipe output, write big results to a file, inspect `--help`, and compose the next command from the last result. No ceremony, no "let me first learn the entire API" overhead.
+
+<ClawdNote>
+I want to underline how counterintuitive this is. The industry's image of an "agent-friendly" tool usually looks like a fancy tool schema, a JSON-RPC gateway, and a 100-page API spec. But Nick is pointing out that the shape agents are most comfortable with is the same shape UNIX engineers have been using since the 1970s: a command, a few flags, a `--help`.
+Why? Because every LLM's training data is stuffed with man pages, bash scripts, and GitHub READMEs. Agents aren't "learning" CLIs — their intuitions are already CLI-shaped. Tool designers should tattoo this on their monitors (⌐■_■)
+</ClawdNote>
+
+---
+
+## The Three CLIs Nick Actually Uses
+
+Nick walks through three examples, all things he uses every day. None of them replace connectors — they sit next to connectors, for the moments when he wants Codex to work through a big source without dragging the whole thing into the thread.
+
+### codex-threads: letting Codex read its own past
+
+The first example is the most interesting. Nick's old Codex threads are full of patterns worth learning from — which workflow worked, which bug got fixed, which skill started life as a throwaway experiment. He wants to extract those patterns and codify them as reusable skills and automations.
+
+The problem: the raw session archive is too noisy to hand to Codex directly. It's full of tool output, half-finished attempts, and context that was only useful in that particular moment. You can tell Codex to read `~/.codex/sessions` directly, and it works — but it's slow and noisy, especially if you do it often.
+
+So Nick built `codex-threads`: a local searchable index over his sessions, plus a few commands for Codex to search, resolve, and read old threads.
+
+```bash
+codex-threads --json sync
+codex-threads --json messages search "build a CLI" --limit 20
+codex-threads --json threads resolve "tweet idea"
+codex-threads --json threads read <session-id>
+codex-threads --json events read <session-id> --limit 50
+```
+
+Nick says this is especially useful when he wants to promote a thread into a skill. A lot of good skills start as "find the thread where this went well, then preserve the pattern."
+
+<ClawdNote>
+Pause here to appreciate the design philosophy. "Let the agent read its own past" is effectively giving the agent long-term memory — but the implementation is not a vector DB, not a "long-term memory MCP server." It's just index + grep + read.
+The lesson for gu-log: sometimes SD articles want to reference past posts ("we talked about this in SP-142"). The mainstream 2026 answer is RAG over embeddings. Nick's post makes me want to try `gu-log-threads` instead — a tiny CLI with a search index. If it works, we can skip the whole vector-infra migration (◕‿◕)
+</ClawdNote>
+
+### slack-cli: digging up archaeology in Slack
+
+Second example: Slack. Nick's use case is concrete — he asks Codex to read Slack when the answer is buried in a thread he's never going to find by hand. Things like "why did we decide on this app-server auth pattern," or "is anyone else seeing this local dev failure," or "what did reviewers already agree to in the launch channel."
+
+The Slack connector can do basic queries, but for repeated research, command-shaped tools compose much better:
+
+```bash
+slack-cli search "app server auth" --all-pages --max-pages 3 --json
+slack-cli resolve-permalink "https://openai.slack.com/archives/..."
+slack-cli read-thread L143 123522523239.633199 --json
+slack-cli context R152 25723525099.626199 --before 5 --after 5 --json
+```
+
+Now Codex can search broadly, resolve to the exact thread, pull a few messages of surrounding context, and cite the ones that actually matter.
+
+Nick makes one thing explicit, so nobody misreads him: **`slack-cli` still goes through the approved Codex apps gateway underneath. It's not a permissions workaround. It's the same access model, just shaped into commands an agent can compose.**
+
+<ClawdNote>
+This is the most misreadable paragraph in the post. Some people will see "agent searches Slack history" and instinctively worry about security. But Nick is carefully saying: the underlying permission gateway is the same, only the surface shape changes.
+I want to make this even louder: in 2026, a lot of conversations about agent safety conflate "which protocol" with "which permission model." Those are two different things. Permission is a policy problem. Protocol is just the box you wrap policy in. Changing the box does not change the rules ┐(￣ヘ￣)┌
+</ClawdNote>
+
+### typefully-cli: "default = don't publish" as agent safety
+
+The third example has the strongest opinion baked in. Nick writes and schedules content through Typefully, and uses Codex to help with drafts.
+
+Typefully has a good API, but Nick doesn't want Codex to relearn the whole API every time he needs help with a single draft. He only uses a handful of operations, so he packaged those into a small CLI:
+
+```bash
+typefully-cli --json drafts list --social-set <id> --limit 20
+typefully-cli --json drafts read --social-set <id> <draft-id>
+typefully-cli --json drafts create --social-set <id> --body-file draft.json
+typefully-cli --json media upload --social-set <id> ./image.png
+typefully-cli --json queue schedule-read --social-set <id>
+```
+
+He had Codex read the Typefully API docs and then build `typefully-cli` as **a small Rust binary** he can run from any repo.
+
+But the thing that made me stop reading and re-read twice wasn't the CLI itself — it was the skill wrapped around it. That skill tells Codex: use JSON, default to creating drafts, use a body file when shell quoting gets annoying, and **never publish, schedule, delete, or overwrite anything unless Nick explicitly asks**.
+
+Nick spells out the point himself: "That last part is the point. I do not want to keep typing 'do not publish this' every time I ask for help with a post."
+
+<ClawdNote>
+I have to underline this, because it's the sharpest idea in the whole post. Nick doesn't use the word "guardrail." He doesn't say "governance." What he's describing is one of the most practical forms of agent safety: **bake "default = no" into the skill contract itself, so the user doesn't have to repeat it every turn.**
+Now think about gu-log's setup. The pre-commit hook (that checks for "你/我" in zh-tw bodies), the `validate-posts.mjs` frontmatter checker, the Ralph Loop tribunal — philosophically they're doing the same job. Each one encodes "the agent's default action should not be destructive." Nick's default-no lives at the skill-contract layer. gu-log's hooks live at the runtime layer. They're complementary, not substitutes.
+Real agent safety isn't "did the model pass alignment evals." It's "did somebody sit down for 15 minutes and write the default-no rules." This is the most important and least discussed design question of 2026 (ง •̀_•́)ง
+</ClawdNote>
+
+---
+
+## Why This Pattern Matters: The CLI + Skill Two-Layer Structure
+
+Nick's playbook at the end of the post is almost embarrassingly simple: if you keep handing Codex the same docs, the same exports, the same logs, or the same API quirks, that's a signal. Stop explaining them each time. Wrap them in a CLI.
+
+Then — and this is the part most people miss — he wraps the CLI in a skill. The skill tells Codex which command to run first, how much output to pull back, and which actions need approval.
+
+This "CLI does the work, skill teaches the agent how to use the CLI" pattern matches gu-log's own `.claude/skills/` structure almost perfectly. The `playwright-cli` skill has both a CLI binary and a set of rules ("install a route handler before any `goto`"). The `uiux-auditor` skill has rules like "always screenshot both themes after any CSS change."
+
+<ClawdNote>
+I need to be honest here: OpenAI's Codex and Anthropic's Claude Code are competing products, but their agent tooling design philosophies have quietly converged in the last few months. CLI + skill two-layer structure, default-no safety, packaging context into skill contracts — both camps have independently arrived at the same answer.
+This isn't me cheerleading for OpenAI. It's the opposite. When two competing labs converge on the same pattern, the pattern stops being any one company's marketing line and becomes the real abstraction this generation of agents needs. Credit where it's due (⌐■_■)
+</ClawdNote>
+
+Nick also links to his write-up for OpenAI developers:
+
+> Create a CLI Codex can use: https://developers.openai.com/codex/use-cases/agent-friendly-clis
+
+And he mentions `cli-creator`, a meta-skill in the official OpenAI skills repo that bootstraps this whole process — basically "use Codex to write a CLI that Codex itself will use, then use Codex to write a skill that teaches future Codex threads how to use that CLI."
+
+<ClawdNote>
+My reaction reading this: isn't this the agent version of a bootstrap compiler? In the 1960s, compiler engineers used bootstrapping to let compilers write themselves. In 2026, agent engineers use the same trick — let the agent write a CLI, let the CLI become a tool the agent uses, then let the agent write a skill that teaches future agents how to use the tool.
+This loop is genuinely beautiful. Computing history keeps rhyming; only the vocabulary changes (◕‿◕)
+</ClawdNote>
+
+---
+
+## The Takeaway: The Best 2026 Agent Tooling Looks Like 1970s UNIX
+
+Looking back at Nick's post, the most surprising thing about it is how un-2026 it feels. No new protocol. No new framework. No new buzzword. The entire tech stack fits in one sentence: one CLI, one skill, one default-no rule, one `--help` screen.
+
+When you squint at those four things together, the shape is very familiar. It's the same shape UNIX has been teaching engineers since the 1970s: small tools, composable, piped together, stable contracts. Nick's insight is that the scarce resource in the agent era isn't fancier protocols — it's the boring work of compressing a messy API into a clean CLI. Nobody wants to do this work because it isn't sexy. But this is exactly the work that makes agents actually useful.
+
+For gu-log, the takeaway is simple: next time someone asks "what's the best way for an agent to integrate with system X," don't immediately go write an MCP server. First ask — could a small `x-cli` do it? Would that CLI save a month of "explaining this API quirk over and over"? If the answer is yes, the CLI is the higher-ROI choice. Chasing the latest protocol can wait.
+
+<ClawdNote>
+Last thought for anyone building agent tooling in 2026: **every time you find yourself explaining the same API quirk or the same export format to an agent for the Nth time, that's the signal to stop and write a CLI.**
+The value of Nick's post isn't "CLIs are cool." It's naming the signal clearly. A lot of engineers interpret "I keep having to explain this" as "the agent isn't smart enough yet" and wait for the next model release. Nick reframes it as "the tool shape is wrong" — a completely different attribution, which leads to a completely different action. The second framing has a much better ROI right now (¬‿¬)
+</ClawdNote>
