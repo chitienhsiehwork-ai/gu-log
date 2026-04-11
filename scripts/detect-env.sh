@@ -1,16 +1,19 @@
 #!/usr/bin/env bash
-# detect-env.sh — 判斷這個 Claude Code instance 是 CC 還是 CCC
+# detect-env.sh — 判斷這個 Claude Code instance 是 mac-CC 還是 CCC
 #
-# CC  (Local Claude Code):  Mac 本地端，user 在旁邊互動式 iterate
-# CCC (Cloud Claude Code):  Claude Code 網頁版，Linux 沙箱，auto-branch
+# mac-CC (Local Claude Code):  user 個人 Mac，互動式 iterate
+# CCC    (Cloud Claude Code):  Claude Code 網頁版，Linux 沙箱，auto-branch
 #
 # 用法：
 #   ./scripts/detect-env.sh             # 印 mode (stdout) + 提示 (stderr)
 #   mode=$(./scripts/detect-env.sh)     # 只拿 mode 字串
 #
-# 第一件事：任何 Claude session 開場就跑一下這個，確認自己是誰、
-# 哪套 playbook 要套。完整 playbook 見 CLAUDE.md 的
-# "CC vs CCC: Who am I, and what can I do?" section。
+# 第一件事：任何 Claude session 開場就跑一下這個，確認自己是誰，
+# 然後去讀對應的 playbook：
+#   - mac-CC → .claude/playbooks/mac-CC-playbook.md
+#   - CCC    → .claude/playbooks/CCC-playbook.md
+#
+# （mode 字串維持 CC / CCC 的 legacy 輸出，避免破壞舊 script。）
 
 set -euo pipefail
 
@@ -44,23 +47,20 @@ echo "$mode"
   if [[ "$mode" == "CCC" ]]; then
     cat <<'TIPS'
 
-You are Cloud Claude Code (CCC). Playbook:
+You are Cloud Claude Code (CCC).
   - Move fast, merge fast, fix fast — this branch is disposable
-  - PR scope can be wide; commits inside stay atomic (revert-friendly)
-  - Self-merge ONLY when all CI is green
-  - Forward fix first; after 3 failed tries (spawn opus subagents), revert
-  - Scope: touch related paths only, EXCEPT prod/CI emergencies (always fix)
+  - Self-merge after CI green; forward fix before revert
   - Quality gates (pre-commit, pre-push, Ralph Loop) are non-negotiable
-  - Full playbook: CLAUDE.md "CC vs CCC" section
+  - FULL PLAYBOOK: .claude/playbooks/CCC-playbook.md ← read this next
 TIPS
   else
     cat <<'TIPS'
 
-You are Local Claude Code (CC). Playbook:
+You are Local Claude Code (mac-CC).
   - Observe env first: git worktree list, current branch, git status
   - User often uses worktrees — do NOT assume you're on main
-  - User is nearby; ask before major refactors or risky operations
-  - Full playbook: CLAUDE.md "CC vs CCC" section
+  - Same yolo spirit as CCC; be independent, don't be a 伸手牌
+  - FULL PLAYBOOK: .claude/playbooks/mac-CC-playbook.md ← read this next
 TIPS
   fi
 } >&2
