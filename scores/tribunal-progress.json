@@ -2271,5 +2271,97 @@
     },
     "status": "PASS",
     "finishedAt": "2026-04-12T00:42:39+08:00"
+  },
+  "cp-pending-20260412-techcrunch-openai-100-pro-claude-codex.mdx": {
+    "article": "cp-pending-20260412-techcrunch-openai-100-pro-claude-codex.mdx",
+    "startedAt": "2026-04-12T05:13:19+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "三個 glossary 關鍵詞全部正確連結：Codex (L50: /glossary#codex)、Claude Code (L81: /glossary#claude-code)、context window (L84: /glossary#context-window)；rate limit、GPT 等非 glossary 術語無需強制連結，覆蓋率優。",
+            "crossRef": "Clawd 首次出現於 L84 ClawdNote 內，正確連結 /about；L87 有內部 crossref 到 cp-270-20260409-pragmaticengineer-2026-ai-claude-code，對應 .mdx 檔案確認存在，且主題選擇恰當（Pragmatic Engineer 調查直接支撐「Claude Code 是 2026 最常用 AI 工具」論點）。",
+            "sourceAlign": "文章涵蓋 TechCrunch 報導所有核心要點：$100 Pro 定價、Codex 5x 用量、$200 方案從頁面消失、300 萬週用戶、月增 70%、5 月底限時額度，並引用 OAI 官方發言人原文，與 sourceUrl 主題高度吻合。",
+            "attribution": "OpenAI 發言人引言放在 blockquote 且明確標注「直接跟 TechCrunch 說」；統計數字（300 萬用戶、5 倍成長、70% 月增）標注「OpenAI 透露」；$200 方案確認標注「OpenAI 自己也跟 TechCrunch 確認了」；所有 Clawd 分析意見均在 ClawdNote 元件內，與正文事實清晰分離，無 opinion/fact 滲透。"
+          }
+        },
+        "model": "sonnet",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factChecker",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "具體數字（300萬用戶、5倍成長、70%月增長、$100=5x/$200=20x Plus）全部標記「OpenAI 透露」，來源是 TechCrunch 官方報導；$8 Go 方案和廣告機制無法獨立核實但與來源一致，屬正常 CP 精確度；frontmatter 有重複 pipeline key 的 YAML bug（技術問題，非事實錯誤）。",
+            "fidelity": "引言以 blockquote 正確分隔，stats 歸因於 OpenAI，$200 方案仍存在有「OpenAI 自己也跟 TechCrunch 確認了」支撐；輕微過詮釋：「毫不掩飾地說：就是衝著 Claude 來的」比原文（compared with）語氣更強，但屬可接受的意譯範圍；ClawdNote 推論均標明為推測（「合理猜測」）。",
+            "consistency": "ClawdNote 定價數學精確驗算（$20/x for Plus 和 $100 Pro；$10/x for $200 Pro 正確）；5月甜頭→6月縮額的行銷手法分析邏輯清晰；ClawdNote 全程明確標記為意見而非事實，opinion 與 body 無滲漏，整篇論點前後一致零矛盾。"
+          }
+        },
+        "model": "opus",
+        "attempts": 2
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "清楚的 section headers + bullet 定價表讓人一眼掌握結構，ClawdNote 裡的 CP 值算法（$20/x vs $10/x）對 3-month dev 來說完全跟得上，唯一稍微需要停頓的是「從定價頁面消失但還活著」這個概念，需要讀第二遍才完全理解。",
+            "firstImpression": "開場直接點出「這件事為什麼值得寫」，節奏穩定不囉嗦；五月底額度陷阱那一段有點小驚喜感，能讓人讀完；主題（$100 coding AI 工具選哪家）對開發者來說高度相關，讀完有足夠資訊判斷，但結語略平——「才剛開始」的收尾稍微削弱了分享欲。"
+          }
+        },
+        "model": "haiku",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "「斷崖 → 階梯」是 load-bearing 比喻而非裝飾，電信吃到飽類比在結尾被回收，「好，先暫停一下」口語節奏到位；但 $100 vs $200 比較段滑回純說明語氣，LHY 感略有中斷，距 9 分還差一個「讓人停下來想」的高峰比喻。",
+            "clawdNote": "五個 ClawdNote 全部有明確立場：CP 值算帳推翻「$100 才是甜蜜點」直覺、Clawd 本人被 OpenAI 點名的複雜心情夠有梗、「行銷教科書等級，respect」態度清晰——personality 密度超過 8 分門檻，第三個 note 是全文最強的一擊。",
+            "vibe": "OpenAI 直接點名 Claude 的敘事峰夠強，ClawdNote 的 meta 自嘲讓人會心一笑，「量的戰場今天才正式開打」結尾有記憶點；中段定價列表區偏工整，整體黏度在舒服閱讀但未達主動轉發門檻。",
+            "clarity": "正文全程無 你/我 違規，主語一律具體化（開發者、OpenAI、Codex），所有引用都有 blockquote 標出原文，ClawdNote 內第一人稱 speaker 明確為 Clawd，attribution 乾淨無歧義。",
+            "narrative": "開頭「斷崖」設好框架，結語第一句直接 callback（「OpenAI 補上了那個 $100 的斷崖，定價結構從斷崖，變成了階梯」），結尾 pivot 到 context/codebase 戰場有真正的 punch；各 section 骨架仍偏線性堆疊，但節奏變化（暫停、算帳、陷阱命名）救了它沒跌到 SP-158 的裝飾性陷阱。"
+          }
+        },
+        "model": "opus",
+        "attempts": 2
+      }
+    },
+    "status": "PASS",
+    "finishedAt": "2026-04-12T05:30:47+08:00"
   }
 }
