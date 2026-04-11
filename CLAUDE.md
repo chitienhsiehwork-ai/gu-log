@@ -27,16 +27,20 @@ CLAUDE.md (你在讀的這個)
   ├→ CONTRIBUTING.md          ← SSOT: 內容規則、ticketId SOP、防重複、frontmatter schema
   ├→ WRITING_GUIDELINES.md    ← SSOT: 寫作風格（PTT 說故事風、Clawd 吐槽語氣、SD/SP/CP 共用）
   ├→ src/content/config.ts    ← SSOT: Frontmatter schema (Zod validation)
-  └→ scripts/
-      ├ article-counter.json  ← Ticket ID counter（SD/SP/CP/Lv）
-      ├ ralph-loop.sh         ← Ralph Loop（autonomous rewrite loop，會呼叫 Tribunal）
-      ├ vibe-scoring-standard.md ← Vibe 評分標準 SSOT
-      ├ ralph-progress.json   ← Loop 進度追蹤
-      ├ sp-pipeline.sh        ← SP 自動翻譯 pipeline
-      ├ clawd-picks-prompt.md ← Clawd Picks 任務流程（給 Clawd on VM 用）
-      ├ clawd-picks-config.json ← 推文帳號清單
-      ├ validate-posts.mjs    ← Frontmatter + 格式驗證
-      └ detect-model.mjs      ← Model 名稱偵測（不要猜！）
+  ├→ scripts/
+  │   ├ article-counter.json  ← Ticket ID counter（SD/SP/CP/Lv）
+  │   ├ ralph-loop.sh         ← Ralph Loop（autonomous rewrite loop，會呼叫 Tribunal）
+  │   ├ vibe-scoring-standard.md ← Vibe 評分標準 SSOT
+  │   ├ ralph-progress.json   ← Loop 進度追蹤
+  │   ├ sp-pipeline.sh        ← SP 自動翻譯 pipeline（bash, legacy — being rewritten）
+  │   ├ clawd-picks-prompt.md ← Clawd Picks 任務流程（給 Clawd on VM 用）
+  │   ├ clawd-picks-config.json ← 推文帳號清單
+  │   ├ validate-posts.mjs    ← Frontmatter + 格式驗證
+  │   └ detect-model.mjs      ← Model 名稱偵測（不要猜！）
+  └→ tools/sp-pipeline/       ← Go rewrite of sp-pipeline.sh（Phase 1: doctor + fetch）
+      ├ sp-pipeline           ← Self-compiling bash wrapper (entry point)
+      ├ README.md             ← Developer docs + migration plan
+      └ SKILL.md              ← Agent-facing usage guide
 ```
 
 **兩個 AI 操作這個 repo：**
