@@ -10,8 +10,10 @@ Fetch an X URL's full translatable body, or fail loud. One script, one contract.
 ## When to use
 
 - User drops an `https://x.com/...` or `https://twitter.com/...` URL and asks for an SP or CP
-- `sp-pipeline.sh` is the natural next step and the source capture stage needs the body
+- `sp-pipeline run <url>` (the Go binary in `tools/sp-pipeline/`) or `sp-pipeline fetch <url>` is the natural next step and the source capture stage needs the body
 - Any time "I need the tweet content but curl returns gibberish"
+
+> **Note**: as of Phase 4 of the Go rewrite, the canonical entry point is `tools/sp-pipeline/sp-pipeline run <url>`. The `scripts/sp-pipeline.sh` bash script still works (it's a thin shim that execs the Go binary), but agents should prefer the Go CLI when writing new tooling. The `sp-pipeline fetch <url>` subcommand internally calls `scripts/fetch-x-article.sh` — the same helper this skill documents. If you just need the raw capture for manual inspection, `bash scripts/fetch-x-article.sh <url>` is still the most direct path.
 
 Do NOT use for:
 - Non-X URLs (blog posts, arXiv, GitHub README) — those go through `scripts/fetch-article.py`
