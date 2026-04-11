@@ -1,8 +1,8 @@
 # sp-pipeline
 
-Go rewrite of `scripts/sp-pipeline.sh`. Under construction — Phase 1 of a 6-phase migration.
+The gu-log SP/CP translation pipeline, Go edition. `scripts/sp-pipeline.sh` is now a thin shim that execs into this binary.
 
-> **Status**: Phase 2a. `doctor`, `fetch`, `counter`, and `dedup` are fully working; `eval`/`write`/`review`/`refine`/`ralph`/`deploy`/`run` are stubs that exit non-zero. `scripts/sp-pipeline.sh` remains the production pipeline — this binary is purely additive and safe to ignore until Phase 4.
+> **Status**: Phase 4 complete. `run` is the canonical entry point. `doctor`, `fetch`, `eval`, `write`, `review`, `refine`, `credits`, `ralph`, `deploy`, `dedup`, `counter`, and `run` are all implemented. Phase 5 (native port of `fetch-x-article.sh` and `ralph-all-claude.sh`) is explicitly out of scope — those stay as bash helpers.
 
 ## Why a Go rewrite
 
@@ -113,38 +113,39 @@ tools/sp-pipeline/
 
 | Phase | Scope | Risk | Status |
 |-------|-------|------|--------|
-| **1** | Scaffold, `doctor`, `fetch`, LLM dispatcher (wired, not yet used by pipeline), Python validator → Go port | 🟢 low (purely additive; bash unchanged) | **done** |
-| **2a** | `internal/frontmatter`, `internal/counter`, `internal/dedup`, `counter next/bump` subcommand, `dedup` subcommand, typed ExitError | 🟢 low (no LLM, all unit-tested) | **done** |
-| 2b | `eval`, `write`, `review`, `refine`, inline prompt templates from `sp-pipeline.sh` | 🟡 medium (MDX byte-equivalence + prompt migration) | planned |
-| 3 | `ralph` (wraps `ralph-all-claude.sh`), `credits` frontmatter patch, `deploy` | 🟡 medium (touches git push) | planned |
-| 4 | Docs / playbook / skill cutover, `sp-pipeline.sh` becomes a shim | 🟢 low | planned |
-| 5 | Native port of `fetch-x-article.sh` + `ralph-all-claude.sh` | 🟠 high (optional polish) | planned |
-| 6 | Delete `scripts/sp-pipeline.sh` | 🟢 low | planned |
+| **1** | Scaffold, `doctor`, `fetch`, LLM dispatcher, Python validator → Go port | 🟢 low | **done** |
+| **2a** | `internal/frontmatter`, `internal/counter`, `internal/dedup`, `counter next/bump`, `dedup` subcommand, typed ExitError | 🟢 low | **done** |
+| **2b** | `eval`, `write`, `review`, `refine`, `internal/prompts` (embed.FS + text/template), `FakeProvider` for CCC unit tests | 🟡 medium | **done** |
+| **3** | `credits`, `ralph` (wraps `ralph-all-claude.sh`), `deploy` (counter bump → rename → validate → build → commit → push) | 🟡 medium | **done** |
+| **2c** | `run` orchestrator with `--from-step`, `--dry-run`, `--force`, `--opus`, `--file`, etc. | 🟡 medium | **done** |
+| **4** | Docs cutover, `scripts/sp-pipeline.sh` → 49-line shim, `CLAUDE.md`/`CONTRIBUTING.md`/`crontab-tribunal.example` updated | 🟢 low | **done** |
+| 5 | Native port of `fetch-x-article.sh` + `ralph-all-claude.sh` | 🟠 high | **out of scope** — bash helpers stay |
+| 6 | Delete the shim | 🟢 low | **not planned** — 49-line shim is free insurance for unknown callers |
 
 The existing Node / Python helpers (`validate-posts.mjs`, `detect-model.mjs`, `frontmatter-scores.mjs`, `dedup-gate.mjs`, `fetch-article.py`) stay in their current languages forever — they are part of the Astro build and outside the pipeline hot path.
 
-## Phase 1 acceptance
+## Acceptance (all phases done)
 
-- [x] `go build ./...` / `go vet ./...` / `go test ./...` all pass
-- [x] `sp-pipeline --help` prints the subcommand tree with stubs marked
+- [x] `go fmt / go vet / go build / go test ./...` clean with zero cache
+- [x] `sp-pipeline --help` lists every subcommand, no stubs left
 - [x] `sp-pipeline doctor` reports binary + file health
-- [ ] `sp-pipeline doctor --probe-llm` sends canary prompts (not exercised in sandbox — CI will verify on mac-CC)
-- [x] `sp-pipeline fetch <url>` captures a tweet into `$REPO/tmp/sp-pending-<epoch>-pipeline/source-tweet.md`
-- [x] Source validator is a native Go port of the Python heredocs (not a shell-out)
-- [x] LLM dispatcher has claude/codex/gemini providers wired, fallback chain, `Probe()` for doctor
+- [x] `sp-pipeline fetch <url>` captures a tweet into the work dir (native Go validator, no shell-out)
+- [x] `sp-pipeline counter next/bump --prefix SP` uses syscall.Flock, 20-goroutine concurrency test
+- [x] `sp-pipeline dedup` wraps `dedup-gate.mjs`, exit 13 on BLOCK
+- [x] `sp-pipeline eval` runs two evaluators via FakeProvider (CCC) or real LLM chain (mac-CC), GO/GO / SKIP/SKIP / split exit codes
+- [x] `sp-pipeline write` renders `internal/prompts/write.tmpl` with source + style guide, outputs draft-v1.mdx
+- [x] `sp-pipeline review` / `sp-pipeline refine` run their respective prompts with stdout fallback
+- [x] `sp-pipeline credits` stamps the 4-entry pipeline block via `frontmatter.SetBlock` — verified round-trip on real SP-170
+- [x] `sp-pipeline ralph --file <mdx>` wraps `scripts/ralph-all-claude.sh`, runs the frontmatter normaliser, log-and-continues on tribunal failure
+- [x] `sp-pipeline deploy` bumps counter → renames pending → replaces frontmatter ticketId → validates → builds → commits → pushes (with `SkipBuild`/`SkipPush`/`SkipValidate` test hooks)
+- [x] `sp-pipeline run <url>` walks all 9 steps end-to-end in the happy path; `--from-step ralph --file <mdx>` resumes on SP-170
+- [x] `scripts/sp-pipeline.sh` is a 49-line shim that translates env vars → flags and execs into the Go binary
 - [x] No binary checked into git (self-compiling wrapper handles cold start)
 
-## Phase 2a acceptance
-
-- [x] `internal/frontmatter` parses MDX → Bytes() round trip is byte-stable on real gu-log posts
-- [x] `internal/frontmatter` GetScalar / SetScalar / HasBlock cover the mutations `sp-pipeline.sh` actually performs
-- [x] `internal/counter` uses `syscall.Flock` on `/tmp/gu-log-counter.lock`; concurrent Bump test proves 20 goroutines allocate 20 distinct IDs with no gaps
-- [x] `internal/counter` preserves label/description/ordering of article-counter.json verbatim (surgical regex replace, not JSON round-trip)
-- [x] `internal/dedup` wraps `scripts/dedup-gate.mjs` and parses PASS / WARN / BLOCK verdicts
-- [x] `sp-pipeline counter next --prefix SP` prints `SP-171` (or JSON with --json)
-- [x] `sp-pipeline counter bump --prefix SP` atomically advances and prints the allocated ticketId
-- [x] `sp-pipeline dedup --url <x> --title <t>` wraps the gate with exit code 13 on BLOCK
-- [x] Typed ExitError in main.go maps subcommand failures to documented exit codes (10/11/13/14/124)
+**CCC sandbox cannot verify** (mac-CC responsibility):
+- Real `claude -p --model opus` invocation under a non-TTY subprocess
+- Real `codex exec` / `gemini` CLI calls
+- Full production run on a live X URL with the real LLM chain
 
 ## References
 

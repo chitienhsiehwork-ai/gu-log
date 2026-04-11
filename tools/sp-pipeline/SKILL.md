@@ -2,7 +2,7 @@
 
 Agent-facing usage guide. If you are a future Claude / Codex / Gemini session picking up work on gu-log, read this before running any `sp-pipeline` subcommand.
 
-> **Status**: Phase 2a. `doctor`, `fetch`, `counter`, and `dedup` are fully implemented. `eval`/`write`/`review`/`refine`/`ralph`/`deploy`/`run` are stubs that exit non-zero — do not rely on them yet.
+> **Status**: Phase 4 complete. Every subcommand is live. `sp-pipeline run <url>` is the canonical entry point. `scripts/sp-pipeline.sh` is a thin shim that execs into this binary.
 
 ## What this binary is
 
@@ -24,13 +24,19 @@ Expected: first call takes ~3 seconds (cold compile), subsequent calls are insta
 
 | User intent | Run | Why |
 |-------------|-----|-----|
+| **"Run the whole pipeline on a tweet URL"** | `sp-pipeline run <url>` | The canonical end-to-end entry point — fetch → eval → dedup → write → review → refine → credits → ralph → deploy |
+| "Resume a stuck run from a specific step" | `sp-pipeline run --from-step <name> --file <existing.mdx>` | Honors bash's `--from-step` contract: setup / fetch / eval / dedup / write / review / refine / ralph / deploy |
+| "Run everything except deploy" | `sp-pipeline run --dry-run <url>` | Stops before the deploy step |
 | "Is my environment set up correctly?" | `sp-pipeline doctor` | Walks PATH + repo-relative files, exits 0 if all required deps present |
 | "Can the LLM providers respond non-interactively?" | `sp-pipeline doctor --probe-llm` | Sends a 1-token canary to each provider, reports ok/error/missing |
-| "I have a tweet URL and want to start an SP" | `sp-pipeline fetch <url>` | Captures into `$REPO/tmp/sp-pending-<epoch>-pipeline/source-tweet.md`, prints the path |
-| "What ticketId will the next SP use?" | `sp-pipeline counter next --prefix SP` | Reads `scripts/article-counter.json` without mutation |
-| "Allocate a new ticketId" | `sp-pipeline counter bump --prefix SP` | Atomically advances the counter under `flock`, prints the value just allocated |
-| "Is this source already covered?" | `sp-pipeline dedup --url <x> --title <t>` | Wraps `scripts/dedup-gate.mjs`, returns PASS / WARN / BLOCK |
-| "Run the whole pipeline" | *stubbed* — use `bash scripts/sp-pipeline.sh <url>` for now | Phase 2b target |
+| "Just capture a tweet without running anything else" | `sp-pipeline fetch <url>` | Captures into `$REPO/tmp/sp-pending-<epoch>-pipeline/source-tweet.md` |
+| "What ticketId will the next SP use?" | `sp-pipeline counter next --prefix SP` | Reads counter without mutating |
+| "Allocate a new ticketId" | `sp-pipeline counter bump --prefix SP` | Atomically advances under `flock` |
+| "Is this source already covered?" | `sp-pipeline dedup --url <x> --title <t>` | Wraps `scripts/dedup-gate.mjs` |
+| "Run just one LLM-heavy step" | `sp-pipeline {eval,write,review,refine} --source ...` | Each step is independently callable with `--fake-provider` for CCC testing |
+| "Run the 4-stage tribunal on an existing post" | `sp-pipeline ralph --file <sp-NNN-*.mdx>` | Wraps `scripts/ralph-all-claude.sh` + runs the frontmatter normaliser |
+| "Patch pipeline credits into a final.mdx for debugging" | `sp-pipeline credits --file <final.mdx>` | Step 4.6 standalone |
+| "Deploy a recovered article" | `sp-pipeline deploy --active-file ... --title ...` | Step 5 standalone — counter bump + rename + commit + push |
 
 ## Global flags
 
@@ -96,21 +102,24 @@ Distinct per failure mode so agents can branch on `$?` without parsing stderr:
 
 ## Which actions need approval
 
-**Safe to run autonomously** (read-only or sandboxed to `tmp/`):
+**Safe to run autonomously** (read-only, tmp-scoped, or file-scoped under --file):
 
 - `doctor`, `doctor --probe-llm`
 - `fetch` (writes only to `tmp/sp-pending-<epoch>-pipeline/`)
 - `counter next` (read-only)
 - `dedup` (read-only, invokes the Node gate)
-- Future: `eval`, `write`, `review`, `refine`, `ralph` (all sandboxed to `tmp/`)
+- `eval`, `write`, `review`, `refine` (each writes only under `--work-dir`)
+- `ralph --file <sp-NNN-*.mdx>` (mutates a SINGLE posts/ file with a deterministic frontmatter normaliser; safe because the file is already committed)
+- `credits --file <final.mdx>` (debugging single-file mutation)
+- `run --dry-run <url>` (skips the deploy step)
 
 **Requires explicit user approval** (mutates shared state):
 
-- `counter bump` — modifies `scripts/article-counter.json` under flock. Safe but the mutation IS visible to concurrent pipelines, so only call this when you actually mean to allocate a ticketId
+- `counter bump` — advances `scripts/article-counter.json` under flock. Safe but visible to concurrent pipelines
 - `deploy` — validates, builds, commits, pushes to origin
-- `run` — wraps `deploy`
+- `run <url>` (WITHOUT `--dry-run`) — wraps all of the above
 
-In practice: call `counter next` first, confirm with the user, THEN call `counter bump` right before writing the article file.
+In practice: call `counter next` first, confirm with the user, THEN call `counter bump` right before writing the article file. For unattended agent runs, `run --dry-run` is the safest rehearsal.
 
 ## Common failure modes
 
