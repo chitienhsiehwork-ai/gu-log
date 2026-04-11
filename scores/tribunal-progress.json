@@ -1994,5 +1994,97 @@
     "status": "FAILED",
     "failedStage": "freshEyes",
     "finishedAt": "2026-04-11T00:28:52+08:00"
+  },
+  "cp-pending-20260411-al-grigor-claude-code-ai.mdx": {
+    "article": "cp-pending-20260411-al-grigor-claude-code-ai.mdx",
+    "startedAt": "2026-04-11T10:13:52+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 8,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "All three glossary-present terms used in the post are correctly linked — Claude Code → /glossary#claude-code (line 31), agent → /glossary#agent (line 31), subagent → /glossary#subagent (line 133); orchestrator and CI/CD are not in glossary.json so no deduction.",
+            "crossRef": "Both internal cross-refs resolve to existing files — /posts/claude-code-sustainable-ai-workflow (line 86) and /posts/agent-ships-while-you-sleep (line 109); identity link rule not triggered since Clawd/ShroomDog are not named in prose; 1-2 optional thematic connections (Ralph Loop) could be added.",
+            "sourceAlign": "Content (PM/SWE/QA/On-Call roles, pipeline lifecycle, file-based tracker, limitations, 5-project validation, next-steps roadmap) is detailed and internally consistent with the declared @Al_Grigor tweet source; tweet cannot be independently fetched so minor undetectable drift stays possible.",
+            "attribution": "Al Grigor's views are attributed at every section ('Al Grigor 分享了...', 'Al Grigor 特別強調...', 'Al Grigor 的看法是...', 'Al Grigor 很坦白地說了...'); ClawdNote opinions are fully contained within ClawdNote components; Roland WayneOZ and Ryan Carson cross-refs properly attributed by name."
+          }
+        },
+        "model": "sonnet",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "fact-checker",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Technical claims (Claude Code's .claude/agents/ structure, CLAUDE.md, execute skill, multi-agent orchestration patterns) are all accurate and consistent with real Claude Code capabilities; no fabricated statistics or benchmark numbers — the only quantitative claim ('五個軟體專案') is explicitly attributed to Al Grigor as his own experience, not presented as a verifiable external fact.",
+            "fidelity": "Source attribution to Al Grigor is consistent throughout; limitations section explicitly preserved ('Al Grigor 很坦白地說了這套方法的限制') with specific failure modes listed (orchestrator stopping, unnecessary confirmations, skipping process, limited subagent visibility); ClawdNotes are clearly separated from body content and no source hedges are converted to certainties.",
+            "consistency": "Strong logical arc from opening problem ('single agent verifying its own work is unreliable') through solution (role separation), implementation (pipeline + repo encoding), honest limitations, to conclusion that callbacks the core insight; ClawdNotes reliably flag opinion vs. fact; cross-references to related posts reinforce the theme without contradiction."
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Clear structure with numbered pipeline steps; a few unexplained terms (orchestrator, subagent, backlog) but glossary links soften the blow, and cross-references to other posts land without enough context for a new reader.",
+            "firstImpression": "Practical problem framing (AI lies about being done) hooks immediately, ClawdNotes add levity, and the honest limitations section earns trust — would finish and might share with someone frustrated by AI agent drift."
+          }
+        },
+        "model": "haiku",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Opening exam analogy (出題者/作答者/改卷者) and small-company framing are strong LHY; sections 2-5 (pipeline, file tracker, parallel) slide into report mode and dilute the oral feel.",
+            "clawdNote": "Note 6 ('prompt-based enforcement 本質上就是「拜託」agent 照著做') and Note 2 (test-green-but-wrong-feature insight) are genuine opinion highlights with edge; all six notes avoid Wikipedia territory.",
+            "vibe": "Honest limitations section ('也足以說明它哪裡不夠用') is the article's strongest moment; task-tracking section is the only genuinely dry stretch; would share with a dev friend interested in AI agents.",
+            "clarity": "Body text clean of 你/我 throughout; Al Grigor's opinions consistently attributed by name; ClawdNote speaker never ambiguous.",
+            "narrative": "Genuine arc from exam-problem to enforcement-as-architecture with explicit callback close ('回到開頭那個數學問題'); limitations section is a real emotional pivot; middle sections 2-5 are mechanically sequential but don't reduce to a pure decorative trap."
+          }
+        },
+        "model": "opus",
+        "attempts": 3
+      }
+    },
+    "status": "PASS",
+    "finishedAt": "2026-04-11T10:38:46+08:00"
   }
 }
