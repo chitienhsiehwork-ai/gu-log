@@ -47,13 +47,18 @@ func (c *ClaudeProvider) Available() bool {
 }
 
 // Run implements Provider.
-func (c *ClaudeProvider) Run(ctx context.Context, prompt string) (string, error) {
+func (c *ClaudeProvider) Run(ctx context.Context, prompt string, opts RunOptions) (string, error) {
 	args := []string{
 		"-p",
 		"--model", c.modelFlag(),
 		"--permission-mode", "bypassPermissions",
 	}
-	res, err := runner.RunWithStdin(ctx, []byte(prompt), "claude", args...)
+	res, err := runner.RunWithOptions(ctx, runner.Options{
+		Name:    "claude",
+		Args:    args,
+		Stdin:   []byte(prompt),
+		WorkDir: opts.WorkDir,
+	})
 	if err != nil {
 		return "", err
 	}

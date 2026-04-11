@@ -36,13 +36,19 @@ type rootState struct {
 	verbose bool
 	// timeout is the pipeline-wide deadline (ctx.WithTimeout).
 	timeout time.Duration
+	// fakeProviderPath, when non-empty, causes LLM subcommands to build a
+	// dispatcher backed by a FakeProvider loaded from JSON instead of the
+	// real claude/codex/gemini chain. Hidden from --help because it is a
+	// test-only affordance.
+	fakeProviderPath string
 }
 
 var (
-	flagJSON    bool
-	flagVerbose bool
-	flagTimeout time.Duration
-	flagWorkDir string
+	flagJSON         bool
+	flagVerbose      bool
+	flagTimeout      time.Duration
+	flagWorkDir      string
+	flagFakeProvider string
 )
 
 // buildRoot constructs the root cobra.Command. Extracted so tests can build
@@ -70,9 +76,10 @@ one step at a time without inheriting the whole pipeline's side effects:
   doctor     check that every external dependency is reachable
   counter    (stub) read / bump the ticket counter
 
-Use --help on any subcommand for details. Phase 1 ships doctor and fetch;
-later phases fill in the stubs. See tools/sp-pipeline/README.md for the
-migration roadmap.`,
+Use --help on any subcommand for details. Phase 2b adds eval/write/
+review/refine; Phase 3 adds credits/ralph/deploy; Phase 2c wires them
+together as "run". See tools/sp-pipeline/README.md for the migration
+roadmap.`,
 		Version:       Version,
 		SilenceErrors: true,
 		SilenceUsage:  true,
@@ -83,6 +90,7 @@ migration roadmap.`,
 			state.json = flagJSON
 			state.verbose = flagVerbose
 			state.timeout = flagTimeout
+			state.fakeProviderPath = flagFakeProvider
 
 			cfg, err := config.Resolve("")
 			if err != nil {
@@ -101,6 +109,9 @@ migration roadmap.`,
 		"wall-clock timeout for the entire invocation (e.g. 50m, 1h30m)")
 	root.PersistentFlags().StringVar(&flagWorkDir, "work-dir", "",
 		"override the work directory (default: $GU_LOG_DIR/tmp/sp-pending-<epoch>-pipeline)")
+	root.PersistentFlags().StringVar(&flagFakeProvider, "fake-provider", "",
+		"(test only) path to a JSON file with canned LLM responses; replaces the real provider chain")
+	_ = root.PersistentFlags().MarkHidden("fake-provider")
 
 	// Hide the auto-generated `completion` command by default — it is
 	// noise in --help for an agent-facing CLI. Users who need completions
@@ -113,6 +124,10 @@ migration roadmap.`,
 	root.AddCommand(newFetchCmd(state))
 	root.AddCommand(newCounterCmd(state))
 	root.AddCommand(newDedupCmd(state))
+	root.AddCommand(newEvalCmd(state))
+	root.AddCommand(newWriteCmd(state))
+	root.AddCommand(newReviewCmd(state))
+	root.AddCommand(newRefineCmd(state))
 	root.AddCommand(newStubCmds(state)...)
 
 	return root
@@ -170,11 +185,7 @@ func newStubCmds(state *rootState) []*cobra.Command {
 		use, short string
 	}
 	stubs := []stub{
-		{"run <tweet_url>", "run the full pipeline end-to-end (Phase 2+)"},
-		{"eval", "evaluate whether a source is SP-worthy (Phase 2b)"},
-		{"write", "draft the MDX pair (Phase 2b)"},
-		{"review", "run the review checklist (Phase 2b)"},
-		{"refine", "apply review back into the draft (Phase 2b)"},
+		{"run <tweet_url>", "run the full pipeline end-to-end (Phase 2c)"},
 		{"ralph", "run the 4-judge tribunal (Phase 3)"},
 		{"deploy", "validate / build / commit / push (Phase 3)"},
 	}

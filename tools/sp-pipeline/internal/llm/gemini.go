@@ -40,12 +40,16 @@ func (g *GeminiProvider) Available() bool {
 }
 
 // Run implements Provider.
-func (g *GeminiProvider) Run(ctx context.Context, prompt string) (string, error) {
+func (g *GeminiProvider) Run(ctx context.Context, prompt string, opts RunOptions) (string, error) {
 	args := []string{
 		"--model", g.modelName(),
 		"--prompt", prompt,
 	}
-	res, err := runner.Run(ctx, "gemini", args...)
+	res, err := runner.RunWithOptions(ctx, runner.Options{
+		Name:    "gemini",
+		Args:    args,
+		WorkDir: opts.WorkDir,
+	})
 	if err != nil {
 		return "", err
 	}

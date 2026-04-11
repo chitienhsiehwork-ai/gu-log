@@ -20,8 +20,20 @@ type Provider interface {
 	// without a subprocess round-trip.
 	Available() bool
 	// Run sends prompt to the model and returns the stdout. ctx propagates
-	// cancellation and timeout.
-	Run(ctx context.Context, prompt string) (string, error)
+	// cancellation and timeout. opts carries invocation-specific knobs such
+	// as the working directory — the bash pipeline's prompts assume they
+	// run under a `cd $WORK_DIR && claude -p …` wrapper so that the LLM's
+	// "write output to foo.json" instructions land in the right directory.
+	Run(ctx context.Context, prompt string, opts RunOptions) (string, error)
+}
+
+// RunOptions configures a single provider invocation. The zero value is
+// "inherit the parent process CWD, no extra env" and is what `doctor
+// --probe-llm` and other throwaway callers use.
+type RunOptions struct {
+	// WorkDir is the child process working directory. When empty the
+	// child inherits the parent's CWD.
+	WorkDir string
 }
 
 // RunResult describes what came back from a Dispatcher.Run call.
@@ -65,8 +77,8 @@ func (d *Dispatcher) Providers() []Provider {
 
 // Run executes prompt through the chain and returns the first success.
 // If every provider fails, Run returns a multi-error containing each
-// provider's reason.
-func (d *Dispatcher) Run(ctx context.Context, prompt string) (*RunResult, error) {
+// provider's reason. opts are forwarded to every provider attempt.
+func (d *Dispatcher) Run(ctx context.Context, prompt string, opts RunOptions) (*RunResult, error) {
 	var fellBack []string
 	var errs []string
 
@@ -76,7 +88,7 @@ func (d *Dispatcher) Run(ctx context.Context, prompt string) (*RunResult, error)
 			continue
 		}
 		d.log.Info("llm: trying %s (%s)", p.Name(), DisplayName(p.Model()))
-		out, err := p.Run(ctx, prompt)
+		out, err := p.Run(ctx, prompt, opts)
 		if err == nil {
 			if len(fellBack) > 0 {
 				d.log.Warn("llm: %s succeeded after %d provider(s) failed", p.Name(), len(fellBack))
@@ -115,7 +127,7 @@ func (d *Dispatcher) Probe(ctx context.Context) []ProbeResult {
 			results = append(results, r)
 			continue
 		}
-		out, err := p.Run(ctx, canary)
+		out, err := p.Run(ctx, canary, RunOptions{})
 		if err != nil {
 			r.Status = "error"
 			r.Detail = err.Error()

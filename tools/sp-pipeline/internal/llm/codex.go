@@ -47,7 +47,7 @@ func (c *CodexProvider) Available() bool {
 }
 
 // Run implements Provider.
-func (c *CodexProvider) Run(ctx context.Context, prompt string) (string, error) {
+func (c *CodexProvider) Run(ctx context.Context, prompt string, opts RunOptions) (string, error) {
 	args := []string{
 		"exec",
 		"--model", c.modelName(),
@@ -55,7 +55,11 @@ func (c *CodexProvider) Run(ctx context.Context, prompt string) (string, error) 
 		"--",
 		prompt,
 	}
-	res, err := runner.Run(ctx, "codex", args...)
+	res, err := runner.RunWithOptions(ctx, runner.Options{
+		Name:    "codex",
+		Args:    args,
+		WorkDir: opts.WorkDir,
+	})
 	if err != nil {
 		return "", err
 	}
