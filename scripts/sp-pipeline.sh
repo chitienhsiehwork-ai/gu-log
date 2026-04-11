@@ -268,7 +268,10 @@ PY
 fetch_x_api_fallback() {
   local tweet_url="$1"
   local out_file="$2"
-  local helper_script="$GU_LOG_DIR/scripts/fetch-x-api-fallback.sh"
+  # Primary source-capture path for X URLs. Uses fxtwitter (full article
+  # body via article.content.blocks) with vxtwitter as secondary fallback
+  # for plain tweets. See scripts/fetch-x-article.sh for the why.
+  local helper_script="$GU_LOG_DIR/scripts/fetch-x-article.sh"
   local status_id=""
 
   [ -f "$helper_script" ] || return 1
