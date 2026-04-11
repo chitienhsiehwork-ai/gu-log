@@ -147,7 +147,7 @@ for article in "${ARTICLES[@]}"; do
 
   # Run tribunal
   local rc=0
-  bash "$SCRIPT_DIR/ralph-all-claude.sh" "$article" >> "$LOG_FILE" 2>&1 || rc=$?
+  bash "$SCRIPT_DIR/tribunal-all-claude.sh" "$article" >> "$LOG_FILE" 2>&1 || rc=$?
 
   if [ "$rc" -eq 0 ]; then
     PASSED=$((PASSED + 1))
