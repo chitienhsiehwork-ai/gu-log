@@ -2086,5 +2086,98 @@
     },
     "status": "PASS",
     "finishedAt": "2026-04-11T10:38:46+08:00"
+  },
+  "cp-pending-20260411-article-ai-microsoft-agent-framework-amd-mcp.mdx": {
+    "article": "cp-pending-20260411-article-ai-microsoft-agent-framework-amd-mcp.mdx",
+    "startedAt": "2026-04-11T19:39:10+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 8,
+            "sourceAlign": 9,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "所有出現在 glossary.json 的核心術語均已正確連結：agent 在首段即以 multi-[agent](/glossary#agent) 形式出現，後續多處重複連結；MCP 每節首次出現均有 [MCP](/glossary#mcp)；Claude Code 在開發者調查段落以 [Claude Code](/glossary#claude-code) 標注兩次；後段 'orchestrator agent' 未再補鏈但語境已充分建立，符合 '1-2 minor unlinked but all key terms covered'。",
+            "crossRef": "三條內部 /posts/ 連結均 glob 驗證存在：sp-52-20260212-codex-mcp-claude-code、sp-97-20260303-vikingmute-mcp-context-mode-98-token、clawd-picks-20260211-karpathy-deepwiki-mcp-rip-out；主題相關性強，MCP 深度讀和 Karpathy 觀點置入自然；文中無 ShroomDog/Clawd 姓名直呼，identity link 規則未觸發；若有 AMD 推論或 Vera Rubin 相關文章可補強，但非必要。",
+            "sourceAlign": "來源為 DEV Community 週報（alexmercedcoder，week of Apr 3-9 2026），文章完整涵蓋：Microsoft Agent Framework 1.0、AMD MI355X MLPerf 6.0、MCP v2.1 Server Cards、JetBrains AI Pulse 調查、Gemma 4、Intel+SambaNova 異構推論、NVIDIA Vera Rubin、AMD PACE、Elastic A2A 指南、Dremio+Iceberg MCP server；擴寫層次清晰，ClawdNote 觀點與原文事實分離，屬 'content clearly derived from sourceUrl'。",
+            "attribution": "JetBrains AI Pulse 調查數據（90%、各佔 18%、SWE-bench 80.8%）明確歸因；MCP 9,700 萬下載標注括號內 '來源：MCP 官方 blog'；NVIDIA token 成本降十倍標注 'NVIDIA GTC 2026 官方公告數字'；ClawdNote 全部透過元件清楚隔離；但 Gemma 4 在 Arena AI 排行榜第三、Elastic 實作指南、Dremio+Iceberg MCP server 等三個事實主張未附直接來源連結，屬輕微 attribution gap。"
+          }
+        },
+        "model": "sonnet",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "fact-checker",
+          "dimensions": {
+            "accuracy": 7,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Most technical claims are plausible and attributed (MCP 9,700 萬次/月 cites MCP 官方 blog; MLPerf 6.0 ecosystem-partner reproducibility correctly flagged as a first), but two claims raise flags: (1) AMD MI355X「185億電晶體」= 18.5 billion transistors — appears to be a 10× magnitude error vs. expected ~185 billion for a next-gen Instinct GPU (MI300X alone was ~153 billion; 185 billion should be written 1850億); (2) JetBrains AI Pulse stats (90% / 18% Claude Code = Copilot / Claude Code SWE-bench 80.8%) are secondhand via a DEV Community article, not the JetBrains primary source. NVIDIA Vera Rubin 10× cost reduction is attributed to GTC 2026 — good practice. No fabricated products or benchmark numbers found. Scores 7: one verifiable imprecision a domain expert would notice, plus unverifiable secondhand stats.",
+            "fidelity": "Content clearly derived from declared sourceUrl (alexmercedcoder DEV Community roundup April 3–9, 2026). ClawdNotes visually and structurally separated from body throughout — no opinion bleed into prose. Hedges generally preserved (「即將到位」for A2A support, 「正在變成」for emerging patterns). Minor caveat omission: Gemma 4 Arena AI ranking stated as present fact without snapshot hedge. Overall faithful with expected summarization compression.",
+            "consistency": "Overarching thesis — agentic AI infrastructure converging across framework / hardware / protocol — introduced in paragraph 2 and consistently reinforced across all seven sections. Closing paragraph explicitly callbacks the opening「這不是三條獨立新聞」framing, creating clean arc. ClawdNote opinions clearly bounded within components and never bleed into factual body text. No internal contradictions detected."
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "開頭三段立刻建立框架（三件事為什麼合在一起看），ClawdNote 的類比（IM 軟體、標準化考試）幫助非專家跟上，但 AMD 硬體段（CDNA 4、NUMA 拓撲、prefill vs decode）對三個月經驗的開發者密度偏高，法拉利跑快遞比喻救回一部份。",
+            "firstImpression": "「一週的新聞量像整季壓縮」開頭很能抓人，MCP 的 TCP/IP 類比和九成開發者在用 AI 的統計數字有傳播力；AMD / 異構推論兩節進入 benchmark 報告模式，閱讀節奏在中段有明顯掉速，結尾的拼圖 callback 把氣氛拉回來，整篇讀完機率高但主動分享意願在技術 heavy 的中段會被考驗。"
+          }
+        },
+        "model": "haiku",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "fail",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 7,
+            "clawdNote": 8,
+            "vibe": 7,
+            "clarity": 9,
+            "narrative": 6
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "persona": "有幾個 LHY 高光時刻（法拉利跑快遞、這扇門悄悄關上了），但整體骨架是週報 digest，剝掉比喻後是新聞 recap 接新聞 recap，缺乏教授在台上帶你走過一個概念的連貫感。",
+            "clawdNote": "多數 note 有明確立場（商業理性 vs 善意、reproducibility > peak performance、把後面的人都變成 MCP server），但 AMD PACE 那條幾乎逐字重複了正文的醫療/金融/政府段落，是明顯弱點。",
+            "vibe": "讀完有收穫，法拉利比喻和最後 orchestrator 吃掉所有人的 insight 都值得分享，但六條主題線同時跑讓文章像選項菜單，沒有一條線被推到讓人停下來的程度。",
+            "clarity": "全文正文零個你/我違規，一律用讀者、開發者、工程師替代，ClawdNote 內明確標示 Clawd 身份，pronoun 規則執行乾淨。",
+            "narrative": "剝掉 ClawdNote 和比喻，骨架是週報六節連發，各節靠主題順序銜接而非敘事張力；異構推論那段（三家公司三個答案一個結論）是全文唯一有真正 narrative 結構的地方，但不足以拉動整體。"
+          }
+        },
+        "model": "opus",
+        "attempts": 3
+      }
+    },
+    "status": "FAILED",
+    "failedStage": "vibe",
+    "finishedAt": "2026-04-11T20:09:46+08:00"
   }
 }
