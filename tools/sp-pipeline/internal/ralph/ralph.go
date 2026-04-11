@@ -1,8 +1,8 @@
 // Package ralph is a thin shell-out wrapper around
-// scripts/ralph-all-claude.sh — the standalone 4-judge tribunal that
+// scripts/tribunal-all-claude.sh — the standalone 4-judge tribunal that
 // Phase 3 invokes as a black box.
 //
-// Why shell out instead of porting: ralph-all-claude.sh is 372 lines of
+// Why shell out instead of porting: tribunal-all-claude.sh is 372 lines of
 // battle-tested bash with its own flock, quiet-hours logic, and progress
 // JSON checkpoint. It has exit-code-1-on-failure semantics and does NOT
 // call back into sp-pipeline.sh, so wrapping it is safe and the Go port
@@ -20,7 +20,7 @@ import (
 
 // Options controls the ralph invocation. All fields are required.
 type Options struct {
-	// RalphScript is the absolute path to scripts/ralph-all-claude.sh.
+	// RalphScript is the absolute path to scripts/tribunal-all-claude.sh.
 	RalphScript string
 	// Filename is the basename of the article under src/content/posts.
 	// The bash script strips any path component via $(basename "$1"),
@@ -56,7 +56,7 @@ func Run(ctx context.Context, opts Options) (passed bool, err error) {
 	if res != nil {
 		// Append captured output (stdout + stderr) to the log file. This
 		// intentionally ignores file errors — the tribunal's own logging
-		// is also written to .score-loop/logs/ by ralph-all-claude.sh.
+		// is also written to .score-loop/logs/ by tribunal-all-claude.sh.
 		if f, err := os.OpenFile(opts.StdoutFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644); err == nil {
 			_, _ = f.Write(res.Stdout)
 			_, _ = f.Write(res.Stderr)

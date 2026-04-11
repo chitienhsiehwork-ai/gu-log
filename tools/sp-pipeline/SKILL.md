@@ -34,7 +34,7 @@ Expected: first call takes ~3 seconds (cold compile), subsequent calls are insta
 | "Allocate a new ticketId" | `sp-pipeline counter bump --prefix SP` | Atomically advances under `flock` |
 | "Is this source already covered?" | `sp-pipeline dedup --url <x> --title <t>` | Wraps `scripts/dedup-gate.mjs` |
 | "Run just one LLM-heavy step" | `sp-pipeline {eval,write,review,refine} --source ...` | Each step is independently callable with `--fake-provider` for CCC testing |
-| "Run the 4-stage tribunal on an existing post" | `sp-pipeline ralph --file <sp-NNN-*.mdx>` | Wraps `scripts/ralph-all-claude.sh` + runs the frontmatter normaliser |
+| "Run the 4-stage tribunal on an existing post" | `sp-pipeline ralph --file <sp-NNN-*.mdx>` | Wraps `scripts/tribunal-all-claude.sh` + runs the frontmatter normaliser |
 | "Patch pipeline credits into a final.mdx for debugging" | `sp-pipeline credits --file <final.mdx>` | Step 4.6 standalone |
 | "Deploy a recovered article" | `sp-pipeline deploy --active-file ... --title ...` | Step 5 standalone — counter bump + rename + commit + push |
 

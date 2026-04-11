@@ -52,7 +52,7 @@ type State struct {
 	// OpusMode pins every LLM step to Claude Opus (no Codex fallback).
 	OpusMode bool
 	// RalphBar is the minimum tribunal score (advisory — current bash
-	// ralph-all-claude.sh has its own internal bar).
+	// tribunal-all-claude.sh has its own internal bar).
 	RalphBar int
 	// ExistingFile is set when resuming via --file <basename>. Empty for
 	// fresh runs.

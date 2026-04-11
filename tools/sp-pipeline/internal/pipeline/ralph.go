@@ -21,7 +21,7 @@ const finalPipelineURL = "https://github.com/chitienhsiehwork-ai/gu-log/blob/mai
 //     for new articles; the caller-provided filename when resuming).
 //  2. Copies final.mdx into src/content/posts/ at that filename if it's
 //     not already there.
-//  3. Runs `bash scripts/ralph-all-claude.sh <filename>` via the ralph
+//  3. Runs `bash scripts/tribunal-all-claude.sh <filename>` via the ralph
 //     package. Tribunal failures are logged-and-continued (bash behavior).
 //  4. For each of {zh-tw, en} files in the posts dir, runs the
 //     frontmatter normaliser that strips any existing pipeline block +
@@ -101,9 +101,9 @@ func (s *State) Ralph(ctx context.Context) error {
 	}
 
 	// Run the tribunal.
-	s.Log.Info("  Running 4-stage tribunal (ralph-all-claude.sh)...")
+	s.Log.Info("  Running 4-stage tribunal (tribunal-all-claude.sh)...")
 	passed, err := ralph.Run(ctx, ralph.Options{
-		RalphScript: filepath.Join(s.Cfg.ScriptsDir, "ralph-all-claude.sh"),
+		RalphScript: filepath.Join(s.Cfg.ScriptsDir, "tribunal-all-claude.sh"),
 		Filename:    s.ActiveFilename,
 		StdoutFile:  filepath.Join(s.WorkDir, "tribunal-stdout.txt"),
 	})
