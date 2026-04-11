@@ -32,7 +32,7 @@ func newRalphCmd(state *rootState) *cobra.Command {
 		Use:   "ralph",
 		Short: "Run the 4-stage Claude tribunal on an existing posts/ file",
 		Long: `ralph is Step 4.7 of the pipeline. It shells out to
-scripts/ralph-all-claude.sh — the standalone 4-judge tribunal with its
+scripts/tribunal-all-claude.sh — the standalone 4-judge tribunal with its
 own flock + quiet-hours logic — and then runs the frontmatter normaliser
 that injects the canonical 6-entry pipeline: block.
 

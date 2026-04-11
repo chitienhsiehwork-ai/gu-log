@@ -17,7 +17,7 @@ import (
 
 // makeRunHarness returns a fully wired State + workDir for an end-to-end
 // run test. It writes a fake fetch-x-article.sh that emits a plausible
-// capture, a fake ralph-all-claude.sh that exits 0, a fake
+// capture, a fake tribunal-all-claude.sh that exits 0, a fake
 // dedup-gate.mjs that echoes PASS, and a real temp git repo + counter
 // file. The FakeProvider is seeded with plausible responses for
 // eval/write/review/refine.
@@ -55,7 +55,7 @@ SOURCE
 echo "[stub-ralph] passing: $*"
 exit 0
 `
-	if err := os.WriteFile(filepath.Join(scriptsDir, "ralph-all-claude.sh"), []byte(ralphStub), 0o755); err != nil {
+	if err := os.WriteFile(filepath.Join(scriptsDir, "tribunal-all-claude.sh"), []byte(ralphStub), 0o755); err != nil {
 		t.Fatal(err)
 	}
 

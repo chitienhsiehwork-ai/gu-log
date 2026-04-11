@@ -121,7 +121,7 @@ body
 }
 
 // TestRalph_WithStubScript runs the ralph step against a stub
-// ralph-all-claude.sh that just exits 0. This verifies the shellout
+// tribunal-all-claude.sh that just exits 0. This verifies the shellout
 // wrapper, the filename plumbing, and the frontmatter normaliser.
 func TestRalph_WithStubScript(t *testing.T) {
 	tmp := t.TempDir()
@@ -134,13 +134,13 @@ func TestRalph_WithStubScript(t *testing.T) {
 		}
 	}
 
-	// Stub ralph-all-claude.sh that just writes a marker file.
+	// Stub tribunal-all-claude.sh that just writes a marker file.
 	stub := `#!/usr/bin/env bash
 set -e
 echo "[stub-ralph] invoked with: $*"
 exit 0
 `
-	stubPath := filepath.Join(scriptsDir, "ralph-all-claude.sh")
+	stubPath := filepath.Join(scriptsDir, "tribunal-all-claude.sh")
 	if err := os.WriteFile(stubPath, []byte(stub), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -223,7 +223,7 @@ func TestRalph_StubFailureContinues(t *testing.T) {
 echo "[stub-ralph] simulated failure"
 exit 1
 `
-	if err := os.WriteFile(filepath.Join(scriptsDir, "ralph-all-claude.sh"), []byte(failStub), 0o755); err != nil {
+	if err := os.WriteFile(filepath.Join(scriptsDir, "tribunal-all-claude.sh"), []byte(failStub), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	finalSeed := `---
