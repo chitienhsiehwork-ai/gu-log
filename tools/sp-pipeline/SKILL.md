@@ -2,7 +2,7 @@
 
 Agent-facing usage guide. If you are a future Claude / Codex / Gemini session picking up work on gu-log, read this before running any `sp-pipeline` subcommand.
 
-> **Status**: Phase 1. Only `doctor` and `fetch` are fully implemented. Other subcommands are stubs that exit non-zero — do not rely on them yet.
+> **Status**: Phase 2a. `doctor`, `fetch`, `counter`, and `dedup` are fully implemented. `eval`/`write`/`review`/`refine`/`ralph`/`deploy`/`run` are stubs that exit non-zero — do not rely on them yet.
 
 ## What this binary is
 
@@ -27,7 +27,10 @@ Expected: first call takes ~3 seconds (cold compile), subsequent calls are insta
 | "Is my environment set up correctly?" | `sp-pipeline doctor` | Walks PATH + repo-relative files, exits 0 if all required deps present |
 | "Can the LLM providers respond non-interactively?" | `sp-pipeline doctor --probe-llm` | Sends a 1-token canary to each provider, reports ok/error/missing |
 | "I have a tweet URL and want to start an SP" | `sp-pipeline fetch <url>` | Captures into `$REPO/tmp/sp-pending-<epoch>-pipeline/source-tweet.md`, prints the path |
-| "Run the whole pipeline" | *stubbed* — use `bash scripts/sp-pipeline.sh <url>` for now | Phase 2 target |
+| "What ticketId will the next SP use?" | `sp-pipeline counter next --prefix SP` | Reads `scripts/article-counter.json` without mutation |
+| "Allocate a new ticketId" | `sp-pipeline counter bump --prefix SP` | Atomically advances the counter under `flock`, prints the value just allocated |
+| "Is this source already covered?" | `sp-pipeline dedup --url <x> --title <t>` | Wraps `scripts/dedup-gate.mjs`, returns PASS / WARN / BLOCK |
+| "Run the whole pipeline" | *stubbed* — use `bash scripts/sp-pipeline.sh <url>` for now | Phase 2b target |
 
 ## Global flags
 
@@ -93,15 +96,21 @@ Distinct per failure mode so agents can branch on `$?` without parsing stderr:
 
 ## Which actions need approval
 
-Phase 1 subcommands are **all safe to run autonomously**. None of them write to `src/content/posts/`, mutate the counter, commit, or push. The only side effect is creating `$REPO/tmp/sp-pending-<epoch>-pipeline/` with the capture file.
+**Safe to run autonomously** (read-only or sandboxed to `tmp/`):
 
-Future subcommands that DO need explicit user approval before running:
+- `doctor`, `doctor --probe-llm`
+- `fetch` (writes only to `tmp/sp-pending-<epoch>-pipeline/`)
+- `counter next` (read-only)
+- `dedup` (read-only, invokes the Node gate)
+- Future: `eval`, `write`, `review`, `refine`, `ralph` (all sandboxed to `tmp/`)
 
-- `sp-pipeline deploy` — validates, builds, commits, pushes to origin
-- `sp-pipeline counter bump` — mutates `scripts/article-counter.json` (shared with the bash pipeline)
-- `sp-pipeline run` — wraps all of the above
+**Requires explicit user approval** (mutates shared state):
 
-`doctor`, `fetch`, `eval`, `dedup`, `write`, `review`, `refine`, `ralph` are safe to run autonomously — they only read files and produce artifacts under `tmp/`.
+- `counter bump` — modifies `scripts/article-counter.json` under flock. Safe but the mutation IS visible to concurrent pipelines, so only call this when you actually mean to allocate a ticketId
+- `deploy` — validates, builds, commits, pushes to origin
+- `run` — wraps `deploy`
+
+In practice: call `counter next` first, confirm with the user, THEN call `counter bump` right before writing the article file.
 
 ## Common failure modes
 

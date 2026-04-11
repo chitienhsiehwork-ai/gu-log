@@ -83,14 +83,14 @@ func runFetch(ctx context.Context, state *rootState, url string) error {
 	if err != nil {
 		report.OK = false
 		report.Error = err.Error()
+		code := 10
 		if source.IsValidationError(err) {
-			report.ErrorCode = 11
-		} else {
-			report.ErrorCode = 10
+			code = 11
 		}
+		report.ErrorCode = code
 		report.ElapsedMs = time.Since(start).Milliseconds()
 		emitFetchReport(state, report)
-		return fmt.Errorf("fetch failed: %w", err)
+		return newExitError(code, fmt.Errorf("fetch failed: %w", err))
 	}
 
 	report.OK = true

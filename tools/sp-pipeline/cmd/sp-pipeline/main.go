@@ -11,6 +11,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -110,6 +111,8 @@ migration roadmap.`,
 	// access to the resolved config, logger, and flags.
 	root.AddCommand(newDoctorCmd(state))
 	root.AddCommand(newFetchCmd(state))
+	root.AddCommand(newCounterCmd(state))
+	root.AddCommand(newDedupCmd(state))
 	root.AddCommand(newStubCmds(state)...)
 
 	return root
@@ -126,14 +129,33 @@ func main() {
 	}
 }
 
-// exitCodeFor maps known error types to documented exit codes. For Phase 1
-// the mapping is coarse — Phase 2 will add typed errors for each subcommand
-// so dedup/eval/ralph/etc can return their dedicated codes.
+// ExitError wraps an error with a documented exit code so subcommands can
+// signal specific failure modes (dedup BLOCK = 13, fetch validation = 11,
+// timeout = 124, etc.). Subcommands construct these via newExitError();
+// main.go unwraps them via errors.As.
+type ExitError struct {
+	Code int
+	Err  error
+}
+
+func (e *ExitError) Error() string { return e.Err.Error() }
+func (e *ExitError) Unwrap() error { return e.Err }
+
+func newExitError(code int, err error) *ExitError {
+	return &ExitError{Code: code, Err: err}
+}
+
+// exitCodeFor maps known error types to documented exit codes. See
+// SKILL.md for the full exit code contract.
 func exitCodeFor(err error) int {
 	if err == nil {
 		return 0
 	}
-	if ctxErr := context.Cause(context.Background()); ctxErr != nil && ctxErr == context.DeadlineExceeded {
+	var ee *ExitError
+	if errors.As(err, &ee) {
+		return ee.Code
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
 		return 124
 	}
 	return 1
@@ -149,14 +171,12 @@ func newStubCmds(state *rootState) []*cobra.Command {
 	}
 	stubs := []stub{
 		{"run <tweet_url>", "run the full pipeline end-to-end (Phase 2+)"},
-		{"eval", "evaluate whether a source is SP-worthy (Phase 2)"},
-		{"dedup", "check the dedup gate (Phase 2)"},
-		{"write", "draft the MDX pair (Phase 2)"},
-		{"review", "run the review checklist (Phase 2)"},
-		{"refine", "apply review back into the draft (Phase 2)"},
+		{"eval", "evaluate whether a source is SP-worthy (Phase 2b)"},
+		{"write", "draft the MDX pair (Phase 2b)"},
+		{"review", "run the review checklist (Phase 2b)"},
+		{"refine", "apply review back into the draft (Phase 2b)"},
 		{"ralph", "run the 4-judge tribunal (Phase 3)"},
 		{"deploy", "validate / build / commit / push (Phase 3)"},
-		{"counter", "read / bump the ticket counter (Phase 3)"},
 	}
 	out := make([]*cobra.Command, 0, len(stubs))
 	for _, s := range stubs {

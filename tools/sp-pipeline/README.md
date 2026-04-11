@@ -2,7 +2,7 @@
 
 Go rewrite of `scripts/sp-pipeline.sh`. Under construction — Phase 1 of a 6-phase migration.
 
-> **Status**: Phase 1. `doctor` and `fetch` work; every other subcommand is a stub that exits non-zero. `scripts/sp-pipeline.sh` remains the production pipeline — this binary is purely additive and safe to ignore until Phase 4.
+> **Status**: Phase 2a. `doctor`, `fetch`, `counter`, and `dedup` are fully working; `eval`/`write`/`review`/`refine`/`ralph`/`deploy`/`run` are stubs that exit non-zero. `scripts/sp-pipeline.sh` remains the production pipeline — this binary is purely additive and safe to ignore until Phase 4.
 
 ## Why a Go rewrite
 
@@ -91,14 +91,19 @@ tools/sp-pipeline/
 ├── README.md                        # this file
 ├── SKILL.md                         # agent-facing usage guide
 ├── cmd/sp-pipeline/
-│   ├── main.go                      # cobra root + stub subcommands
+│   ├── main.go                      # cobra root + typed ExitError + stub subcommands
 │   ├── doctor.go                    # `doctor` implementation
-│   └── fetch.go                     # `fetch` implementation
+│   ├── fetch.go                     # `fetch` implementation
+│   ├── counter.go                   # `counter next/bump` implementation
+│   └── dedup.go                     # `dedup` implementation
 ├── internal/
 │   ├── config/                      # resolve repo-relative paths
 │   ├── logx/                        # colored + JSON logger
 │   ├── runner/                      # exec.CommandContext wrapper
 │   ├── source/                      # fetch + validate (native Go port of Python validators)
+│   ├── frontmatter/                 # MDX frontmatter text-level mutation (replaces sed -i)
+│   ├── counter/                     # article-counter.json with syscall.Flock atomic bump
+│   ├── dedup/                       # wrapper around scripts/dedup-gate.mjs
 │   └── llm/                         # dispatcher + claude/codex/gemini providers
 └── testdata/                        # fixtures for source validator tests
     └── clean-fxtwitter.md
@@ -108,9 +113,10 @@ tools/sp-pipeline/
 
 | Phase | Scope | Risk | Status |
 |-------|-------|------|--------|
-| **1** | Scaffold, `doctor`, `fetch`, LLM dispatcher (wired, not yet used by pipeline), Python validator → Go port | 🟢 low (purely additive; bash unchanged) | **in progress** |
-| 2 | `eval`, `write`, `review`, `refine`, frontmatter round-tripping | 🟡 medium (MDX byte-equivalence matters) | planned |
-| 3 | `ralph` (wraps `ralph-all-claude.sh`), `credits`, `counter`, `deploy` | 🟡 medium (touches git push) | planned |
+| **1** | Scaffold, `doctor`, `fetch`, LLM dispatcher (wired, not yet used by pipeline), Python validator → Go port | 🟢 low (purely additive; bash unchanged) | **done** |
+| **2a** | `internal/frontmatter`, `internal/counter`, `internal/dedup`, `counter next/bump` subcommand, `dedup` subcommand, typed ExitError | 🟢 low (no LLM, all unit-tested) | **done** |
+| 2b | `eval`, `write`, `review`, `refine`, inline prompt templates from `sp-pipeline.sh` | 🟡 medium (MDX byte-equivalence + prompt migration) | planned |
+| 3 | `ralph` (wraps `ralph-all-claude.sh`), `credits` frontmatter patch, `deploy` | 🟡 medium (touches git push) | planned |
 | 4 | Docs / playbook / skill cutover, `sp-pipeline.sh` becomes a shim | 🟢 low | planned |
 | 5 | Native port of `fetch-x-article.sh` + `ralph-all-claude.sh` | 🟠 high (optional polish) | planned |
 | 6 | Delete `scripts/sp-pipeline.sh` | 🟢 low | planned |
@@ -119,9 +125,7 @@ The existing Node / Python helpers (`validate-posts.mjs`, `detect-model.mjs`, `f
 
 ## Phase 1 acceptance
 
-- [x] `go build ./...` passes
-- [x] `go vet ./...` passes
-- [x] `go test ./...` passes (source validator table-driven tests)
+- [x] `go build ./...` / `go vet ./...` / `go test ./...` all pass
 - [x] `sp-pipeline --help` prints the subcommand tree with stubs marked
 - [x] `sp-pipeline doctor` reports binary + file health
 - [ ] `sp-pipeline doctor --probe-llm` sends canary prompts (not exercised in sandbox — CI will verify on mac-CC)
@@ -129,6 +133,18 @@ The existing Node / Python helpers (`validate-posts.mjs`, `detect-model.mjs`, `f
 - [x] Source validator is a native Go port of the Python heredocs (not a shell-out)
 - [x] LLM dispatcher has claude/codex/gemini providers wired, fallback chain, `Probe()` for doctor
 - [x] No binary checked into git (self-compiling wrapper handles cold start)
+
+## Phase 2a acceptance
+
+- [x] `internal/frontmatter` parses MDX → Bytes() round trip is byte-stable on real gu-log posts
+- [x] `internal/frontmatter` GetScalar / SetScalar / HasBlock cover the mutations `sp-pipeline.sh` actually performs
+- [x] `internal/counter` uses `syscall.Flock` on `/tmp/gu-log-counter.lock`; concurrent Bump test proves 20 goroutines allocate 20 distinct IDs with no gaps
+- [x] `internal/counter` preserves label/description/ordering of article-counter.json verbatim (surgical regex replace, not JSON round-trip)
+- [x] `internal/dedup` wraps `scripts/dedup-gate.mjs` and parses PASS / WARN / BLOCK verdicts
+- [x] `sp-pipeline counter next --prefix SP` prints `SP-171` (or JSON with --json)
+- [x] `sp-pipeline counter bump --prefix SP` atomically advances and prints the allocated ticketId
+- [x] `sp-pipeline dedup --url <x> --title <t>` wraps the gate with exit code 13 on BLOCK
+- [x] Typed ExitError in main.go maps subcommand failures to documented exit codes (10/11/13/14/124)
 
 ## References
 
