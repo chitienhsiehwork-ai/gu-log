@@ -18,16 +18,37 @@ tags: ["shroom-picks", "ai-agents", "vibe-coding", "claude-code", "nontechnical"
 scores:
   ralph:
     p: 8
-    c: 8
+    c: 9
     v: 8
     score: 8
     date: "2026-04-11"
     model: "claude-opus-4-6"
+  librarian:
+    glossary: 7
+    crossRef: 6
+    sourceAlign: 10
+    attribution: 9
+    score: 8
+    date: "2026-04-11"
+    model: "claude-opus-4-6"
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 9
+    score: 8
+    date: "2026-04-11"
+    model: "claude-opus-4-6"
+  freshEyes:
+    readability: 8
+    firstImpression: 9
+    score: 8
+    date: "2026-04-11"
+    model: "claude-haiku-4-5"
   vibe:
     persona: 8
     clawdNote: 9
     vibe: 8
-    clarity: 8
+    clarity: 9
     narrative: 8
     score: 8
     date: "2026-04-11"
@@ -45,7 +66,7 @@ What changed wasn't just that the AI coding models got better. It was also the p
 <ClawdNote>
 Before anything else, notice the vibe of this whole article. This isn't an engineer showing off. It's a PM explaining why manager skills transfer insanely well to AI coding. That reversal is the interesting part.
 Most AI-coding content is written by engineers for engineers, obsessing over "look how much code the AI can write." This one is the mirror image: the bottleneck isn't the model, it's the PM-style judgment and communication skills that turn out to be weirdly scarce in agentic coding workflows.
-Also, Weave ([weave.dev](https://weave.dev)) is a recent SF favorite for quantifying engineering output. Topping the non-technical leaderboard on that platform is not nothing (⌐■_■)
+Also, the source just describes Weave as "an engineering output platform called Weave" — no link, no vendor details. If it checks out, topping the non-technical leaderboard on any such platform isn't nothing (⌐■_■)
 </ClawdNote>
 
 ---
@@ -54,7 +75,7 @@ Also, Weave ([weave.dev](https://weave.dev)) is a recent SF favorite for quantif
 
 The starting point is cognitive science. The way humans understand any abstract concept is through **conceptual metaphor**. When people talk about "the foundation of the economy," they are secretly borrowing a mental model from building structures. Every "abstract" concept is propped up by a physical metaphor underneath — that's just how the brain works.
 
-Apply that idea to computer science and even the ugliest topics become graspable. The trick is to set up a metaphor mapping, and then whenever something gets confusing, ask the agent to explain what's happening using that mapping.
+Apply that idea to computer science and even the ugliest topics become graspable. The trick is to set up a metaphor mapping, and then whenever something gets confusing, ask the [agent](/glossary#agent) to explain what's happening using that mapping.
 
 His favorite is the classic restaurant kitchen metaphor — a process is a chef, a thread is a prep station, an I/O channel is the pass window, a database is the walk-in fridge, and so on. But he also offers a prompt for people who want their own custom one:
 
@@ -93,7 +114,7 @@ Then kick off an agent to read through the codebase end-to-end and write a handf
 
 When it's time to build a new feature, run this loop:
 
-1. **Discovery (optional)** — Have an agent run a cron job that scans the web, X, Reddit, and so on for new ideas worth building. It should combine findings with docs from the knowledge base and, ideally, engagement metrics exposed via MCP, then hand back a shortlist of research topics.
+1. **Discovery (optional)** — Have an agent run a cron job that scans the web, X, Reddit, and so on for new ideas worth building. It should combine findings with docs from the knowledge base and, ideally, engagement metrics exposed via [MCP](/glossary#mcp) (Model Context Protocol — think of it as the way agents plug into outside data sources), then hand back a shortlist of research topics.
 2. **Interview (optional)** — Have the agent turn around and interview the builder about the feature, nailing down intent and success criteria.
 3. **Research** — Kick off an agent to do deep research across every open source repo, blog post, and X thread related to the feature. Bias toward credible sources.
 4. **Document** — Have it synthesize the findings into one or more MD files inside `research/external/`. These files can focus on a single feature across many sources, or a single source in depth.
@@ -116,7 +137,7 @@ Move three is where the PM angle really shows up. The argument goes: the best ma
 
 And for an agent, what a great manager does collapses to a single thing: **ask the agent to review its own work.**
 
-Drawing on writings and open source repos from Garry Tan (gStack) and Boris (NX — the creator of [Claude Code](/glossary#claude-code)), the author built a small toolkit of custom commands, split into "before" and "after" implementation.
+Drawing on writings and open source repos from Garry Tan (Y Combinator's current CEO, also the author of the gStack AI-coding workflow) and NX (the author's word for the creator of [Claude Code](/glossary#claude-code)), the author built a small toolkit of custom commands, split into "before" and "after" implementation.
 
 ### Before
 
@@ -177,4 +198,4 @@ Being nontechnical isn't an excuse anymore — the author's point is that the ab
 
 Restaurant kitchen metaphors make abstract concepts graspable. Research loops turn every confused afternoon into a reusable artifact. Managerial review turns agent output into something with actual quality. String those three moves together and the whole message collapses to one sentence: treat the agent like a compounding engineering team, not a one-shot answer machine.
 
-One last note — this is @thatguybg's first-ever X Article. His own closing line is a request for feedback and a nudge to share it with "that friend who keeps saying they want to learn to code but doesn't know where to start." ShroomDog's passing it along here for the same reason.
+One last note — this is @thatguybg's first-ever X Article. His own closing line is a request for feedback and a nudge to share it with "that friend who keeps saying they want to learn to code but doesn't know where to start." [ShroomDog](/about) is passing it along here for the same reason.
