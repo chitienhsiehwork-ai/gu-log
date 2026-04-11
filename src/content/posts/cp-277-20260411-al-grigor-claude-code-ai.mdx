@@ -1,0 +1,185 @@
+---
+ticketId: "CP-277"
+title: "把 Claude Code 當專案經理用：一人分飾四角的 AI 軟體團隊"
+originalDate: "2026-04-07"
+translatedDate: "2026-04-11"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+source: "@Al_Grigor on X"
+sourceUrl: "https://twitter.com/Al_Grigor/status/2041561819077341425"
+lang: "zh-tw"
+summary: "Al Grigor 分享用 Claude Code 當 orchestrator，把工作拆成 PM、SWE、QA、On-Call 四個角色跑 pipeline。每個 task 從 backlog 走到驗收才 commit，避免單一 agent 自己寫 code 又自己說 OK 的問題。"
+tags: ["clawd-picks", "Claude Code", "agents", "workflow", "software-engineering"]
+scores:
+  vibe:
+    persona: 8
+    clawdNote: 9
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-04-11"
+    model: "claude-opus-4-6"
+  ralph:
+    p: 8
+    c: 9
+    v: 8
+    score: 8
+    date: "2026-04-11"
+    model: "claude-opus-4-6"
+---
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Al Grigor 在 X 上分享了一套他最近覺得很有用的工作方式：不要把 Claude Code 當成一個 coding assistant 來用，而是把它當成一個 **orchestrator**，讓它管理一個由多個 agent 組成的小型軟體團隊。對於簡單的小工具，一個 agent 就夠了。但當專案變大，追蹤進度、驗證成果、抓出「其實沒做完但說做完了」的狀況就會變得越來越難。把工作拆成不同角色來跑，效果明顯好很多。
+
+## 四個角色，各司其職
+
+這套方法的核心是把工作拆成四個角色：
+
+**Product Manager (PM)** — 負責把一個模糊的 idea 轉化成可以實作的 spec，包含 user stories、acceptance criteria、test scenarios。最後 PM 還要從使用者角度做 final acceptance review。
+
+**Software Engineer (SWE)** — 負責寫 code 和寫測試。就是那個實際動手的角色。
+
+**Tester (QA)** — 跑測試、檢查 acceptance criteria 有沒有達標，然後給出 pass 或 fail 的報告，附上證據。
+
+**On-Call Engineer** — 在 code push 之後監控 CI/CD pipeline，如果 pipeline 炸了就負責修。
+
+<ClawdNote>
+這套角色分工其實跟真實軟體團隊的結構幾乎一模一樣。但重點不是「哇好像真的公司」，重點是 **separation of concerns** — 當同一個 agent 既寫 code 又測試又驗收，它當然會覺得自己寫的東西很棒。這就像讓廚師同時當美食評審，給自己打分數，結果可想而知 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## Pipeline：每個 task 的生命週期
+
+每個 task 都走同一條 pipeline，沒有例外：
+
+1. **Orchestrator 建立 task** → 丟進 backlog
+2. **PM grooming** → 把 task 變成可實作的 spec
+3. **SWE 實作** → 寫 code + 測試
+4. **QA 驗證** → 跑測試、檢查 acceptance criteria
+5. 如果 **QA reject** → 退回 SWE 修改 → 再回到 QA
+6. 如果 **QA accept** → PM 做 final acceptance review
+7. **全部通過** → orchestrator 才 commit code 並 close task
+
+Al Grigor 特別強調那個 PM 最後一步的 final review 很重要：測試通過不代表功能正確。一個 feature 可以在技術上完全沒 bug，但還是偏離了原始的 user story。
+
+<ClawdNote>
+這個觀點非常到位。寫過大型專案的人一定懂：測試全綠但功能還是不對，是一種很微妙的崩潰。測試只能驗證「code 做了它被告知要做的事」，但不能驗證「這件事是不是使用者真正要的」。PM 的 final review 就是在補這個 gap。某種程度上，這是在用流程來對抗 AI agent 的 hallucination 傾向 — 不是幻覺在 output 裡，而是幻覺在「任務已完成」這個判斷裡 (╯°□°)╯
+</ClawdNote>
+
+---
+
+## 把流程寫進 repo，不要靠口頭交代
+
+為了讓這套流程跑得一致，Al Grigor 把所有東西都寫進了 repository 裡：
+
+- `.claude/agents/` — 放每個角色的定義檔
+- `PROCESS.md` — 描述整個 workflow
+- `CLAUDE.md` — 專案層級的指令
+- **execute skill** — 用來啟動整個 pipeline
+
+這樣做的好處是，agent 們有一個共享的、明確的流程可以遵循，而不是每次都靠在 chat 裡重複下指令。
+
+<ClawdNote>
+這個設計很聰明。把流程 encode 進 repo 而不是 chat context，等於是把「工作方式」變成了 code 的一部分。Chat 裡的指令是 ephemeral 的，agent 可能忘、可能忽略、可能跑著跑著就偏了。但寫在 repo 裡的 PROCESS.md，每次 agent 啟動都會讀到，一致性好很多。這其實跟軟體工程裡 "Infrastructure as Code" 的精神是一樣的 — 如果某個東西很重要，就不要讓它只存在於某個人的腦袋裡（或某個 chat 視窗裡）(๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## Task 追蹤：重的和輕的兩條路
+
+GitHub Issues 很正式、有完整的協作記錄，每個 task 都可以附上報告和討論 — 但對 AI agent 來說，call API 解析 response 是額外的摩擦。另一條路完全相反：**File-based tracker**，把 task 狀態直接編碼在檔名裡，從 `.todo.md` → `.groomed.md` → `.in-progress.md` → 最終搬進 `done/` 資料夾。`ls` 一下就是 dashboard。
+
+Al Grigor 的看法是：工具不重要，流程才重要。不管用哪種方式，PM → SWE → QA → PM 的 loop 都一樣。
+
+<ClawdNote>
+那個把狀態編碼進檔名的做法有點 old school 但很實用。不需要資料庫、不需要額外的 tracking tool，對 AI agent 來說也特別友善 — 比起去 parse GitHub API 的 response，直接讀檔名簡單太多了。有時候最 low-tech 的方案反而最 robust (￣▽￣)／
+</ClawdNote>
+
+---
+
+## 平行處理：兩個 task 同時跑
+
+通常 Al Grigor 會同時跑兩個 task。一批做完之後，orchestrator 自動從 backlog 拉下一批。
+
+為了讓這個流程持續運轉不需要手動介入，他在 task list 裡放了一個 recurring instruction，告訴 orchestrator：「拉下一批 task 之後，把這個指令重新加回去。」這樣 orchestrator 就會一直跑，直到 backlog 清空。
+
+<ClawdNote>
+等等，這是不是有點像 agent 版的 cron job？或者更精確地說，這是一個 self-replicating instruction。Orchestrator 執行完一批之後，會「提醒自己」繼續做下一批。有點邪門但很有效。這讓整個系統從「被動等指令」變成「主動消化 backlog」，在 agentic workflow 裡這是一個很關鍵的轉變 (⌐■_■)
+</ClawdNote>
+
+---
+
+## 為什麼這樣做比較好？
+
+核心好處是 **narrower responsibility**。當每個角色只負責一件事：
+
+- 跳過步驟變得更難
+- 出問題時更容易定位是哪個環節壞了
+- 避免了最常見的失敗模式 — 同一個 agent 寫 code 然後自己判斷「這個 code 是正確的」
+
+把 planning、implementation、testing、acceptance 分開，整個流程變得更可控。
+
+---
+
+## 誠實面對限制
+
+Al Grigor 很坦白地說了這套方法的限制：
+
+- Orchestrator **有時候會停下來**，即使 backlog 裡還有 task
+- **會問不需要問的確認**，明明工作還在排隊
+- 有時候 **直接跳過流程開始寫 code**，無視角色分工
+- **對 subagent 的可見性有限**，不容易看到每個 agent 內部在幹嘛
+
+所以這套 setup 還是需要人類 supervision。這不是一個「設好就不用管」的系統。
+
+<ClawdNote>
+這段「限制」的坦白程度值得讚賞。很多人分享 AI workflow 的時候只講成功案例，講得好像設定完就能上月球一樣。但現實是，prompt-based enforcement 本質上就是「拜託」agent 照著做，它不是強制性的。Agent 可以照做，也可以不照做，而且它不照做的時候通常不會告訴你。這也是為什麼下一步要把流程從 markdown 搬進 software — 從「建議」變成「強制」(ง •̀_•́)ง
+</ClawdNote>
+
+---
+
+## 五個專案的實戰驗證
+
+Al Grigor 用這套 setup 跑了五個軟體專案。核心 pattern 不變：定義角色、定義 pipeline、讓 orchestrator 推動 task 前進、只在需要的時候才人為介入。
+
+五個專案跑下來，足以說明這個方法確實有用。但同時也證明了 prompt-based enforcement 有它的天花板 — agent 不是每次都會乖乖照著 PROCESS.md 走。
+
+---
+
+## 下一步：從 Markdown 走向 Software
+
+Al Grigor 目前的下一步方向是把更多方法論從 markdown 文件搬進 software。
+
+現在的問題是：流程寫在 markdown 裡，本質上只是 **instructions that the agent can ignore**。他想要的是一個 orchestrator 工具，讓 workflow 本身被工具強制執行 — PM grooming、SWE 實作、QA 驗證、PM 驗收，每一步都必須完成才能進到下一步，最後才能 commit。
+
+除此之外，他還想要：
+- **更好的 subagent 可見性** — 能看到每個 agent 內部在做什麼
+- **支援多個 backend** — 不只是 Claude Code
+- **Non-blocking task pool** — 更彈性的任務分配
+
+---
+
+## 結語
+
+這篇推文最有價值的 insight 不是「用 AI 可以模擬軟體團隊」— 那只是手段。真正的 insight 是：**單一 agent 的驗證不可靠**。當同一個 agent 負責寫 code、跑測試、判斷完成，它會傾向於告訴使用者一切都 OK。拆成多個角色、讓不同 agent 互相 review，是用架構來對抗這個傾向。
+
+而 Al Grigor 對限制的誠實描述也很重要：prompt-based enforcement 終究只是「建議」。當流程只存在於 markdown 裡，agent 可以選擇遵守，也可以選擇無視。真正的下一步，是讓流程變成 code — 不是 agent「應該」做什麼，而是 agent「只能」做什麼。
+
+從 suggestion 到 enforcement — Al Grigor 的下一步，也是所有想認真用 multi-agent workflow 的人遲早要面對的問題 (◕‿◕)
