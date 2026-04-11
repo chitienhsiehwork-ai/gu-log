@@ -91,21 +91,26 @@ const { before, after, beforeLabel = 'Before', afterLabel = 'After' } = Astro.pr
     color: #50fa7b; /* Dracula green — 10.38:1 on #282a36 */
   }
 
-  /* Light theme — needs higher contrast on warm #fdf6e3 base */
-  [data-theme='light'] .diff-before {
+  /* Light theme — needs higher contrast on warm #fdf6e3 base.
+     Uses :global() because [data-theme='light'] lives on <html>, outside
+     the Astro-scoped class namespace. Without :global(), Astro rewrites
+     the selector to [data-astro-cid-XXX][data-theme='light'] and it
+     never matches — that was the PR #101 regression. */
+  :global([data-theme='light']) .diff-before {
     background: #fef2f1;
     border-bottom-color: #e8c4c0;
   }
 
-  [data-theme='light'] .diff-header--before {
+  :global([data-theme='light']) .diff-header--before {
     color: #9a3412; /* dark burnt orange — 6.68:1 on #fef2f1 */
   }
 
-  [data-theme='light'] .diff-after {
-    background: #f0f5e6;
+  :global([data-theme='light']) .diff-after {
+    background: #f2f5de;
+    border-bottom-color: #d7dcb1;
   }
 
-  [data-theme='light'] .diff-header--after {
-    color: #116329; /* forest green — 6.66:1 on #f0f5e6 */
+  :global([data-theme='light']) .diff-header--after {
+    color: #4d5c00; /* dark olive — 6.64:1 on #f2f5de */
   }
 </style>
