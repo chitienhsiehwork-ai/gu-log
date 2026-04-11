@@ -96,41 +96,19 @@ vercel logs --since 1h         # 查最近 1h request logs（需 vercel login）
 
 ### CC vs CCC: Who am I, and what can I do?
 
-兩種 Claude Code instance 會碰這個 repo，**開場第一件事先跑 `./scripts/detect-env.sh`** 確認自己是哪個：
+兩種 Claude Code instance 會碰這個 repo。**開場第一件事先跑 `./scripts/detect-env.sh`** 確認自己是哪個，然後讀對應的 playbook：
 
-- **CC** (Local Claude Code): Mac 本地端，user 在旁邊互動式 iterate
-- **CCC** (Cloud Claude Code): Claude Code 網頁版，Linux 沙箱，每次被叫醒都在 harness 自動建的 `claude/xxx` branch 上
+| Instance | 跑在哪 | Playbook |
+|---|---|---|
+| **mac-CC** (Local Claude Code) | user 個人 Mac，互動式 iterate | [`.claude/playbooks/mac-CC-playbook.md`](.claude/playbooks/mac-CC-playbook.md) |
+| **CCC** (Cloud Claude Code) | Claude Code 網頁版，Linux sandbox，auto-branch | [`.claude/playbooks/CCC-playbook.md`](.claude/playbooks/CCC-playbook.md) |
 
-#### CCC playbook
+Playbook 各自是 SSOT，定義各自的精神、scope ceiling、失敗處理、merge policy、品質 gate。**不要在這個檔案重複那些規則。** 有要加規則就去編對應的 playbook 檔。
 
-CCC 的 branch 是拋棄式的，sandbox 也是拋棄式的，user 不在場。精神：**move fast, merge fast, fix fast**。
-
-- **PR scope 可以大、可以雜**。做任務時順手修相關的東西，不用 split PR。
-- **Commit 內部維持 atomic**（一個 commit 做一件事）——revert 時才好下刀。這是 CCC 放手做事的保險。
-- **Scope ceiling**：一般情況只修「當前任務路徑相關」的問題。**例外**：
-  - Production 炸了（Vercel 上線掛了）
-  - main CI broken（有 regression 溜過 pre-push）
-  - 這類緊急事件沒有 scope 之分，看到立刻順手修。
-- **Self-merge policy**（user 已授權）：
-  1. `git push -u origin claude/xxx`
-  2. 用 GitHub MCP 開 PR 到 main
-  3. **等 CI 全綠**後自己 `merge_pull_request`
-  4. 合完跟 user 回報 PR URL + 簡短 summary
-- **失敗處理**：Vercel build / Ralph Loop / validate-posts / CI 沒過：
-  1. 先試 forward fix（新 commit 修）
-  2. 一次不過就想想再試第二次
-  3. 還不過就 spawn opus subagent 救（最多 3 次 subagent attempt）
-  4. 全部失敗 → `git revert` 並跟 user report 發生什麼事
-- **品質 gate 全部保留**：不要 `--no-verify`、不要跳過 pre-commit / pre-push、不要關掉 Ralph Loop。這些是 CCC 能放手的前提。
-
-#### CC playbook
-
-CC 的環境不固定，user 可能在 main、可能在 worktree、可能在 feature branch。
-
-- **觀察環境再決定**：跑 `./scripts/detect-env.sh`，再看 `git worktree list`、`git branch --show-current`、`git status`。不要假設在 main。
-- User 在旁邊，大動作（framework / schema / infra / 刪文章）之前先問一下再動手。
-- 互動式的 sanity check 比自動化 gate 更重要——壞掉可以立刻喊停。
-- 其他跟 CCC 一樣：commit atomic、品質 gate 不能跳過、Ralph Loop 照跑。
+共通原則（兩邊都不能跳）：
+- Commit 內部維持 atomic，一個 commit 做一件事，revert 時才好下刀
+- 品質 gate 全部保留：`pre-commit` / `pre-push` hook、`validate-posts.mjs`、Ralph Loop tribunal 一個都不能關
+- 遇到 prod 炸了或 main CI broken → 緊急事件沒有 scope 之分，看到立刻修
 
 ### Solo-author branch policy
 
