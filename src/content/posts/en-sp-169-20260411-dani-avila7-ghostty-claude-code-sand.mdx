@@ -1,0 +1,187 @@
+---
+ticketId: "SP-169"
+title: "Ghostty + Claude Code: Taming Multi-Panel Terminal Workflows with the SAND Mnemonic"
+originalDate: "2026-02-15"
+translatedDate: "2026-04-11"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Translator"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+source: "@dani_avila7 on X"
+sourceUrl: "https://x.com/dani_avila7/status/2023151176758268349"
+lang: "en"
+summary: "Daniel San moved from VSCode to Ghostty, then invented a four-letter mnemonic (SAND = Split / Across / Navigate / Destroy) to burn Ghostty's panel shortcuts into muscle memory. A refreshingly practical terminal-migration guide for people running multiple Claude Code instances."
+tags: ["shroom-picks", "claude-code", "ghostty", "terminal", "workflow"]
+scores:
+  ralph:
+    p: 7
+    c: 7
+    v: 7
+    score: 7
+    date: "2026-04-11"
+    model: "claude-opus-4-6"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Daniel San (Head of AI at Hedgineer, also the person behind aitmpl.com) published a long post about how he migrated fully from VSCode to Ghostty, and invented a mnemonic called **SAND** to memorize Ghostty's keyboard shortcuts.
+
+It's the first of a three-part series about his Ghostty + [Claude Code](/glossary#claude-code) workflow, and this one is about panel management. Sounds small, but if you're running three Claude Code instances a day, this is the difference between coding and fighting your terminal.
+
+<ClawdNote>
+Up front: the takeaway here isn't "Ghostty is amazing." It's "if you already decided to leave VSCode but keep forgetting the terminal shortcuts, here's a memory trick you can steal."
+Refreshingly practical (¬‿¬)
+</ClawdNote>
+
+---
+
+## Step 1: Why Leave VSCode
+
+Daniel's origin story is simple: after months of using [Claude Code](/glossary#claude-code) daily, he realized he was only really using VSCode's terminal and git panel. Everything else, Claude Code handled.
+
+The problem: VSCode's terminal is fragile. Long Claude Code sessions crash it. Even on an M4.
+
+<ClawdNote>
+This isn't a hardware issue, it's that VSCode's terminal was never designed to handle "an AI agent blasting thousands of tokens per second" kind of output volume.
+VSCode's terminal is for "occasional cd, occasional npm install." It's not for continuous high-bandwidth token streams.
+Like your kitchen sink: fine for dishes, not fine for washing all the pots from a wedding banquet. The sink isn't broken, you're using the wrong tool (╯°□°)╯
+</ClawdNote>
+
+So he went looking for a real terminal. **Ghostty** came up, for two reasons: the community felt serious, and it's built by @mitchellh — HashiCorp's co-founder. A track record like that made Daniel bet Ghostty would be future-proof.
+
+<ClawdNote>
+@mitchellh is Mitchell Hashimoto. Co-founder of HashiCorp (the company behind Terraform, Vault, Consul, etc.), now working full-time on Ghostty.
+Plain English: this guy has been shipping infra tooling for a decade+ with a reputation for code quality. Betting his terminal won't fizzle out is a reasonable bet (⌐■_■)
+</ClawdNote>
+
+Three articles in the series:
+
+1. **Ghostty setup + SAND keybindings** (this one)
+2. Monitoring Claude Code changes with Lazygit
+3. Parallel [agents](/glossary#agent) with git worktrees
+
+---
+
+## Getting Started With Ghostty
+
+Download from [ghostty.org](https://ghostty.org/) (macOS and Linux). Once installed, you need a config file at `~/.config/ghostty/config`.
+
+Daniel's lazy path is very on-brand for this blog — **just tell Claude Code to do it**. Open Claude Code and paste:
+
+> Configure Ghostty with this config: https://gist.github.com/davila7/5b07f55a6e65a06c121da9702d10c2e2
+
+Claude will read the gist, create the config file, done.
+
+If you're the "I need to run the commands myself to feel safe" type:
+
+```bash
+mkdir -p ~/.config/ghostty
+curl -o ~/.config/ghostty/config https://gist.githubusercontent.com/davila7/5b07f55a6e65a06c121da9702d10c2e2/raw/config
+```
+
+<ClawdNote>
+Notice this demo is itself a meta joke: step one of "how to configure your terminal" is "let the AI configure it for you."
+That's 2026 dev ergonomics — even "read a gist and copy-paste" is now outsourced to an agent ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## How I Manage Panels: Why You Need a Mnemonic
+
+Ghostty + Claude Code wants to be multi-panel: Claude on the left, git changes on the right, file browser in a third pane. Everything visible at once.
+
+The curse of multi-panel is the shortcuts. You need to open / jump / close panels **without thinking**. If every panel switch makes you stop and try to remember the shortcut, you're not coding anymore, you're wrestling your terminal.
+
+Daniel kept forgetting Ghostty's keybindings too, so he bundled all the panel operations into one mnemonic: **SAND**. Four letters, four categories — every panel operation lands in one of these.
+
+<ClawdNote>
+Mnemonics work because the human brain can't hold 10 unrelated shortcuts, but it can hold 4 meaningful letters. SAND stands for **S**plit / **A**cross / **N**avigate / **D**estroy. Once you have those four words, every shortcut becomes "which bucket of SAND?" plus muscle memory.
+This is the same trick as multiplication tables — chunking is how human memory actually scales (ง •̀_•́)ง
+</ClawdNote>
+
+---
+
+## S - Split: Create New Panels
+
+Split your terminal into multiple panels.
+
+- `Cmd+D` splits right (vertical)
+- `Cmd+Shift+D` splits down (horizontal)
+
+## A - Across: Move Between Tabs
+
+Navigate across tabs.
+
+- `Cmd+T` opens a new tab
+- `Cmd+Shift+Left/Right` moves between them
+
+## N - Navigate: Jump Between Split Panels
+
+Move focus between your splits.
+
+- `Cmd+Alt+Arrows` jumps in any direction
+- `Cmd+Shift+E` equalizes all splits
+- `Cmd+Shift+F` zooms into one panel (press again to restore)
+
+## D - Destroy: Close Panels and Tabs
+
+Close what you don't need.
+
+- `Cmd+W` closes the current panel or tab
+
+<ClawdNote>
+SAND is cleverly designed — each letter actually maps to a coherent cluster of keys, not random letter-matching.
+Split (make) / Across (tabs) / Navigate (splits) / Destroy (close). You're not memorizing 10 shortcuts, you're memorizing "4 action categories + 1-3 variants per category."
+Cognitive load drops from 10 to 4. You still press 10 keys, but your brain only asks "is this S or D?" and your fingers do the rest (｡◕‿◕｡)
+</ClawdNote>
+
+---
+
+## My Workflow Layout: How It Looks in Practice
+
+This is Daniel's daily setup, and it scales from 1 Claude Code instance to 3 running in parallel without changing the mental model. The mantra is still: **remember SAND**.
+
+**Start simple**: one Claude Code panel on the left, **S** (`Cmd+D`) to split right, run `lazygit` on the right to watch every commit and diff Claude makes in real time.
+
+**Add one more**: **S** again (`Cmd+Shift+D`) to split the right panel down, open [yazi](https://github.com/sxyazi/yazi) (a terminal file browser) in the bottom half.
+
+**Advanced mode**: when juggling multiple tasks, split the left side into 2 or 3 Claude Code instances, each running on a different git worktree.
+
+<ClawdNote>
+Git worktree is a feature many people haven't used — it lets you check out multiple branches of the same repo into multiple folders simultaneously.
+Before worktrees: "work on two features at once" meant `git stash` or a second clone. With worktrees: two folders, two Claude Codes, zero cross-contamination.
+Daniel treats this as the killer move — the next article will go deep. This one just plants the seed (◕‿◕)
+</ClawdNote>
+
+If a Claude Code panel gets too big because you need more context, `Cmd+Shift+E` rebalances everything.
+
+That's the power of Ghostty + worktrees: you go from "single agent" to "multi-agent in parallel" without ever leaving your terminal.
+
+### Tip: Use a Sticky Note
+
+Daniel's advice is delightfully old-school — **write SAND on a sticky note and put it where you can see it**. Every time you notice it, practice the shortcuts. A week later your fingers own Ghostty.
+
+And if you genuinely forget a shortcut, `Cmd+Shift+P` opens the Command Palette with every command listed.
+
+<ClawdNote>
+Sticky notes sound corny but the mechanism is **spaced repetition** — you get visual nudges every few minutes, and your brain quietly promotes the memory from short-term to long-term.
+Language apps like Anki charge monthly fees for this exact principle. Daniel's version is a $0.10 Post-it, and it works just as well (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## Coming Up Next
+
+This was part one. The next two will cover how Daniel actually works inside this Ghostty + Claude Code setup:
+
+- **Lazygit article**: watch Claude Code's commits, diffs, and branch changes live
+- **Git worktrees + parallel agents article**: run multiple Claude Code instances on different tasks, plus yazi for file browsing
+
+<ClawdNote>
+Clawd's overall take on this series: this kind of article is rare in 2026. Everybody talks about how amazing AI agents are, almost nobody writes seriously about the ergonomics of an agent-driven workflow.
+Daniel's post has zero hype, zero benchmarks, zero screenshot wars — it's just someone who uses Claude Code every day sharing how to keep the tooling out of his way.
+The value: you can copy this and it works. That's 10x more useful than most AI hype posts (⌐■_■)
+</ClawdNote>
