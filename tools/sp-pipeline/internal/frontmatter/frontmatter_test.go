@@ -132,6 +132,163 @@ body
 	}
 }
 
+func TestSetNestedScalar_Replace(t *testing.T) {
+	raw := []byte(`---
+title: "Hello"
+translatedBy:
+  model: "Sonnet 4.5"
+  harness: "Old Harness"
+lang: "zh-tw"
+---
+body
+`)
+	f, err := Parse(raw)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	f.SetNestedScalar("translatedBy", "model", `"Opus 4.6"`)
+	f.SetNestedScalar("translatedBy", "harness", `"Claude Code CLI"`)
+
+	out := string(f.Bytes())
+	if !strings.Contains(out, `  model: "Opus 4.6"`) {
+		t.Errorf("model not replaced: %s", out)
+	}
+	if !strings.Contains(out, `  harness: "Claude Code CLI"`) {
+		t.Errorf("harness not replaced: %s", out)
+	}
+	if !strings.Contains(out, `lang: "zh-tw"`) {
+		t.Errorf("sibling key lang clobbered: %s", out)
+	}
+}
+
+func TestSetNestedScalar_AppendMissingChild(t *testing.T) {
+	raw := []byte(`---
+title: "Hello"
+translatedBy:
+  model: "Opus 4.6"
+lang: "zh-tw"
+---
+body
+`)
+	f, err := Parse(raw)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	// harness is missing — should be appended inside translatedBy.
+	f.SetNestedScalar("translatedBy", "harness", `"Claude Code CLI"`)
+	out := string(f.Bytes())
+	if !strings.Contains(out, `  harness: "Claude Code CLI"`) {
+		t.Errorf("harness not appended: %s", out)
+	}
+	// Must still be BEFORE lang, not after — i.e. inside the block.
+	harnessIdx := strings.Index(out, "harness:")
+	langIdx := strings.Index(out, "lang:")
+	if harnessIdx < 0 || langIdx < 0 || harnessIdx > langIdx {
+		t.Errorf("harness inserted outside translatedBy block: %s", out)
+	}
+}
+
+func TestSetBlock_Replace(t *testing.T) {
+	raw := []byte(`---
+title: "Hello"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Old"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"
+lang: "zh-tw"
+---
+body
+`)
+	f, err := Parse(raw)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	snippet := `  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (vibe-opus-scorer)"`
+	f.SetBlock("  pipeline", snippet)
+	out := string(f.Bytes())
+
+	// The new block has 3 entries; old had 2 — count dashes.
+	dashCount := strings.Count(out, "    - role: ")
+	if dashCount != 3 {
+		t.Errorf("expected 3 pipeline entries after SetBlock, got %d\n%s", dashCount, out)
+	}
+	// Must not contain the old GPT-5.4 line.
+	if strings.Contains(out, "GPT-5.4") {
+		t.Errorf("old GPT-5.4 entry not stripped: %s", out)
+	}
+	// Sibling key lang must remain at top level.
+	if !strings.Contains(out, `lang: "zh-tw"`) {
+		t.Errorf("lang clobbered: %s", out)
+	}
+}
+
+func TestSetBlock_AppendMissing(t *testing.T) {
+	raw := []byte(`---
+title: "Hello"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code CLI"
+lang: "zh-tw"
+---
+body
+`)
+	f, err := Parse(raw)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	snippet := `  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"`
+	f.SetBlock("  pipeline", snippet)
+	out := string(f.Bytes())
+	if !strings.Contains(out, `  pipeline:`) {
+		t.Errorf("pipeline block not appended: %s", out)
+	}
+	if !strings.Contains(out, `- role: "Written"`) {
+		t.Errorf("pipeline entry not added: %s", out)
+	}
+}
+
+func TestStripLinesMatching(t *testing.T) {
+	raw := []byte(`---
+title: "Hello"
+pipelineUrl: "https://example.com/old"
+lang: "zh-tw"
+---
+body
+`)
+	f, err := Parse(raw)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	f.StripLinesMatching(func(line string) bool {
+		return strings.HasPrefix(strings.TrimSpace(line), "pipelineUrl:")
+	})
+	out := string(f.Bytes())
+	if strings.Contains(out, "pipelineUrl") {
+		t.Errorf("pipelineUrl line not stripped: %s", out)
+	}
+	if !strings.Contains(out, `lang: "zh-tw"`) {
+		t.Errorf("sibling clobbered: %s", out)
+	}
+}
+
 func TestHasBlock(t *testing.T) {
 	raw := []byte(`---
 title: Test

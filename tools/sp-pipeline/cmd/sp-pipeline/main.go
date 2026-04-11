@@ -128,6 +128,9 @@ roadmap.`,
 	root.AddCommand(newWriteCmd(state))
 	root.AddCommand(newReviewCmd(state))
 	root.AddCommand(newRefineCmd(state))
+	root.AddCommand(newCreditsCmd(state))
+	root.AddCommand(newRalphCmd(state))
+	root.AddCommand(newDeployCmd(state))
 	root.AddCommand(newStubCmds(state)...)
 
 	return root
@@ -186,8 +189,6 @@ func newStubCmds(state *rootState) []*cobra.Command {
 	}
 	stubs := []stub{
 		{"run <tweet_url>", "run the full pipeline end-to-end (Phase 2c)"},
-		{"ralph", "run the 4-judge tribunal (Phase 3)"},
-		{"deploy", "validate / build / commit / push (Phase 3)"},
 	}
 	out := make([]*cobra.Command, 0, len(stubs))
 	for _, s := range stubs {
