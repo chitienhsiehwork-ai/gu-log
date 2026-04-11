@@ -216,3 +216,163 @@ func (f *File) HasBlock(key string) bool {
 	}
 	return false
 }
+
+// SetNestedScalar replaces the value of a scalar key nested one level deep,
+// or appends a new key at the nested indent if absent.
+//
+// This is the Phase 3 addition for the credits / ralph frontmatter
+// mutations, which target keys like `  model: "..."` and `  harness: "..."`
+// (2-space-indented nested under `translatedBy:`). Rather than introduce
+// a key-path syntax, SetNestedScalar takes the parent key plus the child
+// name: SetNestedScalar("translatedBy", "model", `"Opus 4.6"`) will find
+// the line `  model: "..."` that follows `translatedBy:` at indent 2 and
+// replace the value portion.
+//
+// If the parent block is not found, or no child with that name exists
+// inside it, SetNestedScalar appends a new `  <child>: <value>` line at
+// the bottom of the parent block (before the next line at indent 0).
+//
+// The value is written verbatim — caller is responsible for quoting.
+func (f *File) SetNestedScalar(parentKey, childKey, value string) {
+	parentHeader := parentKey + ":"
+
+	// Locate the parent block's start line (exact match on "parentKey:").
+	parentIdx := -1
+	for i, line := range f.lines {
+		if strings.TrimRight(line, " \t") == parentHeader {
+			parentIdx = i
+			break
+		}
+	}
+
+	// Walk the nested children inside the parent block, looking for
+	// childKey. Stop when we hit a line that is NOT at indent 2+ (i.e. a
+	// sibling top-level key or empty line that breaks the block).
+	if parentIdx >= 0 {
+		for i := parentIdx + 1; i < len(f.lines); i++ {
+			ln := f.lines[i]
+			if ln == "" {
+				continue
+			}
+			// Any line not starting with at least two spaces is outside
+			// the nested block.
+			if !strings.HasPrefix(ln, "  ") {
+				break
+			}
+			trimmed := strings.TrimLeft(ln, " \t")
+			if strings.HasPrefix(trimmed, childKey+":") {
+				// Direct child. Replace the line, preserving the
+				// indent level (we compute indent from the original
+				// rather than hard-coding two spaces).
+				indent := ln[:len(ln)-len(trimmed)]
+				f.lines[i] = indent + childKey + ": " + value
+				return
+			}
+		}
+		// Not found — append inside the parent block at indent 2.
+		// Insert position: end of the nested block (first sibling or end).
+		insertAt := len(f.lines)
+		for i := parentIdx + 1; i < len(f.lines); i++ {
+			ln := f.lines[i]
+			if ln != "" && !strings.HasPrefix(ln, "  ") {
+				insertAt = i
+				break
+			}
+		}
+		newLine := "  " + childKey + ": " + value
+		f.lines = append(f.lines[:insertAt], append([]string{newLine}, f.lines[insertAt:]...)...)
+		return
+	}
+
+	// Parent block missing entirely. Append both parent + child at the
+	// top level.
+	f.lines = append(f.lines, parentHeader, "  "+childKey+": "+value)
+}
+
+// SetBlock replaces (or appends) a nested block like:
+//
+//	pipeline:
+//	  - role: "Written"
+//	    model: "Opus 4.6"
+//	    harness: "Claude Code CLI"
+//
+// inside its parent block. indentedKey is the KEY PATH of the block within
+// the frontmatter, rendered as it should appear in the source — usually
+// "  pipeline" (2-space indented, nested under translatedBy). yamlSnippet
+// is the full replacement block INCLUDING the key header line, pre-indented
+// to match indentedKey's indent level. SetBlock does not try to fix
+// indentation for you.
+//
+// Strategy: find the line that starts with "<indentedKey>:", consume it
+// plus every subsequent line whose indentation is GREATER than
+// indentedKey's indent (i.e. the block's children), and replace the whole
+// range with yamlSnippet split on newlines. If the key is not found, the
+// snippet is appended at the end of the frontmatter.
+func (f *File) SetBlock(indentedKey, yamlSnippet string) {
+	snippet := strings.Split(strings.TrimRight(yamlSnippet, "\n"), "\n")
+
+	indent := leadingSpaces(indentedKey)
+	keyHeader := indentedKey + ":"
+
+	start := -1
+	for i, line := range f.lines {
+		if strings.TrimRight(line, " \t") == keyHeader {
+			start = i
+			break
+		}
+	}
+	if start < 0 {
+		// Not found — append at the end of the frontmatter.
+		f.lines = append(f.lines, snippet...)
+		return
+	}
+
+	// Consume children: any line with strictly greater indentation than
+	// the key header. An empty line counts as "still inside the block"
+	// ONLY if the next non-empty line is also more deeply indented; for
+	// simplicity we treat empty lines as continuation (bash sed does the
+	// same via multi-line patterns).
+	end := start + 1
+	for end < len(f.lines) {
+		ln := f.lines[end]
+		if ln == "" {
+			end++
+			continue
+		}
+		lineIndent := leadingSpaces(ln)
+		if len(lineIndent) <= len(indent) {
+			break
+		}
+		end++
+	}
+
+	// Splice snippet over [start, end).
+	out := make([]string, 0, len(f.lines)-(end-start)+len(snippet))
+	out = append(out, f.lines[:start]...)
+	out = append(out, snippet...)
+	out = append(out, f.lines[end:]...)
+	f.lines = out
+}
+
+// StripLinesMatching removes every frontmatter line whose content matches
+// the predicate. Used by the ralph normaliser to drop old pipelineUrl
+// lines before re-inserting the canonical one.
+func (f *File) StripLinesMatching(pred func(line string) bool) {
+	out := f.lines[:0]
+	for _, line := range f.lines {
+		if pred(line) {
+			continue
+		}
+		out = append(out, line)
+	}
+	f.lines = out
+}
+
+// leadingSpaces returns the leading whitespace prefix of s.
+func leadingSpaces(s string) string {
+	i := 0
+	for i < len(s) && (s[i] == ' ' || s[i] == '\t') {
+		i++
+	}
+	return s[:i]
+}

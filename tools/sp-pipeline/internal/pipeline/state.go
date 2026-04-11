@@ -59,6 +59,15 @@ type State struct {
 	ExistingFile string
 	// KeepWorkDir disables the cleanup handler for --keep-work-dir runs.
 	KeepWorkDir bool
+	// SkipBuild disables `npm run build` in Deploy. Used by tests that
+	// do not want to boot the Astro build.
+	SkipBuild bool
+	// SkipPush disables `git push` in Deploy. Used by tests + the
+	// future --skip-push flag on `sp-pipeline run`.
+	SkipPush bool
+	// SkipValidate disables `node scripts/validate-posts.mjs` in Deploy.
+	// Tests only.
+	SkipValidate bool
 
 	// ── Dependencies injected by the caller ────────────────────────────
 
