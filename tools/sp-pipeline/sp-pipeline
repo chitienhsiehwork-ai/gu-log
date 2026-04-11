@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# sp-pipeline — self-compiling wrapper around the Go binary.
+#
+# First call on a fresh checkout builds the binary into ./bin/; subsequent calls
+# reuse it. Go's incremental build cache makes the "is the binary stale?" check
+# effectively free. This exists so that CCC (Cloud Claude Code) spawning a brand
+# new sandbox does not need a prebuilt binary checked into git — just run:
+#
+#   tools/sp-pipeline/sp-pipeline run <tweet_url>
+#
+# and the first call takes ~3 seconds cold, everything after that is instant.
+set -euo pipefail
+
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BIN="$DIR/bin/sp-pipeline"
+PKG="./cmd/sp-pipeline"
+BUILD_FLAGS=(-trimpath -ldflags=-s\ -w)
+
+need_rebuild() {
+  if [ ! -x "$BIN" ]; then
+    return 0
+  fi
+  # Any source file newer than the binary triggers a rebuild. `-newer` is a
+  # POSIX find primary so this works on both GNU and BSD find.
+  if find "$DIR" -name '*.go' -newer "$BIN" -print 2>/dev/null | grep -q .; then
+    return 0
+  fi
+  if [ "$DIR/go.mod" -nt "$BIN" ] || [ "$DIR/go.sum" -nt "$BIN" ]; then
+    return 0
+  fi
+  return 1
+}
+
+if need_rebuild; then
+  if ! command -v go >/dev/null 2>&1; then
+    printf 'sp-pipeline: "go" not found on PATH — install Go >= 1.24 or point at a binary in %s\n' "$BIN" >&2
+    exit 127
+  fi
+  mkdir -p "$DIR/bin"
+  (cd "$DIR" && go build "${BUILD_FLAGS[@]}" -o "$BIN" "$PKG")
+fi
+
+exec "$BIN" "$@"
