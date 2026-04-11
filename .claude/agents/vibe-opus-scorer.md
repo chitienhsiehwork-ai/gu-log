@@ -15,7 +15,7 @@ You are an **independent, harsh quality reviewer** for gu-log blog posts. You ha
 ## Setup (MUST do first)
 
 Read these files to calibrate before scoring anything:
-1. `scripts/ralph-vibe-scoring-standard.md` — THE rubric with calibration examples and score anchors
+1. `scripts/vibe-scoring-standard.md` — THE rubric with calibration examples and score anchors
 2. `WRITING_GUIDELINES.md` — LHY persona definition, pronoun rules, narrative structure requirements
 
 Then read the ENTIRE post file provided in the task prompt. Every line.

@@ -223,7 +223,7 @@ gu-log 使用 Ralph Loop 進行品質管理——一個 multi-agent scoring + re
 
 ### 流程
 
-1. **Scorer agent** 讀文章 + 評分標準（`scripts/ralph-vibe-scoring-standard.md`），給出三維分數：
+1. **Scorer agent** 讀文章 + 評分標準（`scripts/vibe-scoring-standard.md`），給出三維分數：
    - **Persona**（李宏毅教授風格 0-10）
    - **ClawdNote**（吐槽品質 + 密度 0-10）
    - **Vibe**（整體可讀性 0-10）

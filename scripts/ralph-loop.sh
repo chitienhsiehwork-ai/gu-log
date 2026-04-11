@@ -216,7 +216,7 @@ Fix the syntax issue this time."
         "You are a rewriter for gu-log blog posts. Your job is to improve a post that failed quality review.
 
 ## References (read ALL before rewriting)
-1. Read scripts/ralph-vibe-scoring-standard.md — THE scoring rubric with calibration examples
+1. Read scripts/vibe-scoring-standard.md — THE scoring rubric with calibration examples
 2. Read WRITING_GUIDELINES.md — LHY persona and style rules
 3. Read CONTRIBUTING.md — frontmatter schema, ClawdNote format
 4. Read the reviewer's feedback: cat $SCORE_FILE
