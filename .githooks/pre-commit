@@ -56,6 +56,14 @@ echo ""
 # Only checks zh-tw primary posts (not en- translations).
 # Minimum: scores.ralph block with p, c, v fields.
 #
+# Scope: only enforced on newly ADDED posts (git diff-filter=A). Edits to
+# existing posts are trusted — typo fixes from humans, small rewordings,
+# and Edit with AI flows (`ai: edit <file>` commits produced by the
+# /ai/edit/confirm endpoint on gu-log-api) must not be blocked just
+# because some older post was committed without a score. Full rewrites
+# still get rescored because the Ralph rewriter agent writes a fresh
+# score block before it commits.
+#
 # Exemption: posts whose ONLY diff vs HEAD is dedup/series housekeeping
 # (status: deprecated, deprecatedReason, deprecatedBy, series.*) skip the
 # gate. The score is about content quality, not bookkeeping. Forcing a
@@ -80,7 +88,10 @@ else
     echo "📊 Score gate: checking staged posts for ralph scores..."
 fi
 SCORE_MISSING=""
-STAGED_ZH_POSTS=$(printf '%s\n' "$STAGED_MDX" | grep -v '/en-' | sed '/^$/d' || true)
+# Only newly added zh-tw posts are subject to the score gate. Modifications
+# (Edit with AI, typo fixes, housekeeping) flow through is_metadata_only_diff
+# and the rewriter agent's own scoring, so we don't re-gate them here.
+STAGED_ZH_POSTS=$(git diff --cached --name-only --diff-filter=A -- "$POSTS_DIR"/*.mdx 2>/dev/null | grep -v '/en-' | sed '/^$/d' || true)
 
 is_metadata_only_diff() {
     local file="$1"
