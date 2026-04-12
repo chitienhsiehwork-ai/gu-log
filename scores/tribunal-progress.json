@@ -2812,5 +2812,62 @@
     "status": "FAILED",
     "failedStage": "freshEyes",
     "finishedAt": "2026-04-13T05:22:30+08:00"
+  },
+  "cp-286-20260413-ggerganov-llama-cpp-mac-300-t-s-georgi-gerganov.mdx": {
+    "article": "cp-286-20260413-ggerganov-llama-cpp-mac-300-t-s-georgi-gerganov.mdx",
+    "startedAt": "2026-04-13T05:43:15+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "MCP is explained inline thoroughly; 'Agent' used once casually at the end without glossary link — all key terms covered, 1 minor term unlinked.",
+            "crossRef": "Three thematically relevant internal links (CP-232 llama.cpp 100k, CP-236 Ollama MLX, Sentdex local LLM) are well-contextualized; no ShroomDog/Clawd first-mention identity link trigger.",
+            "sourceAlign": "Content clearly derived from Gerganov's X demo — 300 t/s, Mac Studio M2 Ultra, Gemma 4 26B, WebUI, MCP tool list, and speculative decoding all match the declared sourceUrl.",
+            "attribution": "ClawdNote opinions cleanly boxed; Gerganov's specific tweet claims ('full quality', MCP tool list) attributed by name; minor gap: opening 300 t/s headline stated before first explicit attribution to Gerganov."
+          }
+        },
+        "model": "sonnet",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "M2 Ultra specs (UltraFusion, 192GB, 76-core GPU, 2023-06 release) correct; Q8_0 as 8-bit ≈ half FP16 correct; H100 80GB VRAM correct; 300 t/s comes solely from source tweet (unverifiable independently); 'Prompt Speculative Decoding' explanation slightly imprecise — post describes Prompt Lookup Decoding mechanics (reusing prompt n-grams as draft tokens) reasonably but does not distinguish from standard speculative decoding with a draft model.",
+            "fidelity": "Source is a brief tweet/screen-recording demo; post expands heavily but ClawdNote sections are clearly separated as editorial commentary; no uncertainty erasure detected — 300 t/s demo claim not upgraded to absolute benchmark; 'full quality' / Q8_0 claim accurately attributed to Gerganov's own tweet.",
+            "consistency": "Four-layer thesis (Apple Silicon memory → MoE compute efficiency → llama.cpp optimisation → WebUI/MCP ecosystem) established in intro and paid off in each section; ClawdNote opinions clearly marked throughout; '300 t/s = 60× human reading speed' analogy arithmetically correct; no logical contradictions found."
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "fail",
+        "score": null,
+        "model": "haiku",
+        "attempts": 2
+      }
+    },
+    "status": "FAILED",
+    "failedStage": "freshEyes",
+    "finishedAt": "2026-04-13T05:49:10+08:00"
   }
 }

@@ -1,0 +1,126 @@
+---
+ticketId: "CP-286"
+title: "llama.cpp 的真正實力 — 三年前的 Mac 跑出 300 t/s，Georgi Gerganov 親自示範"
+originalDate: "2026-04-02"
+translatedDate: "2026-04-13"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "@ggerganov on X"
+sourceUrl: "https://x.com/ggerganov/status/2039752638384709661"
+lang: "zh-tw"
+summary: "llama.cpp 作者 Georgi Gerganov 親自展示：三年前的 Mac Studio M2 Ultra 跑 Gemma 4 26B，搭配 speculative decoding 飆出 300 tokens/s。還附帶 WebUI 和 MCP 支援，整個生態系已經成熟到不像話。"
+tags: ["shroom-picks", "llama-cpp", "local-inference", "apple-silicon", "mcp"]
+pipeline:
+  - role: "Written"
+    model: "Opus 4.6"
+    harness: "Claude Code CLI"
+  - role: "Reviewed"
+    model: "Opus 4.6"
+    harness: "Claude Code CLI"
+  - role: "Refined"
+    model: "Opus 4.6"
+    harness: "Claude Code CLI"
+  - role: "Scored"
+    model: "Opus 4.6"
+    harness: "Claude Code (vibe-opus-scorer)"
+  - role: "Rewritten"
+    model: "Opus 4.6"
+    harness: "Claude Code"
+  - role: "Orchestrated"
+    model: "Opus 4.6"
+    harness: "OpenClaw + Ralph Loop"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+llama.cpp 的作者 Georgi Gerganov 在 X 上丟了一支影片，標題很直白：「讓我展示 llama.cpp 的真正實力。」
+
+就算你追過 [llama.cpp 衝破十萬 GitHub 星的那篇](/posts/cp-232-20260331-ggerganov-llama-cpp-100k-local-ai/)，這支影片看起來還是會讓你愣一下。
+
+沒有長篇大論的 blog post，沒有花俏的 benchmark 圖表。就是一支即時螢幕錄影（沒有加速），一台三年前的 Mac Studio，然後文字以肉眼幾乎無法追上的速度往外噴。
+
+300 tokens per second。
+
+這不是什麼特製的 demo 機器、不是雲端 GPU cluster、不是 H100。是一台 2023 年買的 Mac Studio M2 Ultra，跑 Gemma 4 26B 的完整 Q8_0 量化。在自己桌上。
+
+<ClawdNote>
+300 t/s 是什麼概念？一般人閱讀速度大約每分鐘 250 個英文字，換算下來大約 5 tokens/s。也就是說這台機器吐字的速度是人類閱讀速度的 60 倍。字面意義上的「比讀還快」——不是比打字快，是比眼球掃描還快。
+</ClawdNote>
+
+## 硬體：三年前的機器，今天的效能
+
+先聊硬體。Mac Studio M2 Ultra 是 Apple 在 2023 年 6 月發表的工作站級產品。M2 Ultra 把兩顆 M2 Max 黏在一起（Apple 叫 UltraFusion），最高配到 192GB 統一記憶體，GPU 最多 76 core。
+
+重點是：這台機器已經三年了。在 AI 硬體的時間尺度裡，三年前的東西幾乎是化石等級。NVIDIA 已經從 A100 一路推到 H100 再到 B200，整個雲端 inference 的世界翻了好幾輪。
+
+但 Gerganov 的示範反過來證明了一件事——llama.cpp 的最佳化做得夠深，三年前的晶片配上正確的軟體堆疊，效能依然炸裂。
+
+<ClawdNote>
+Apple Silicon 在跑 LLM 上有一個被低估的結構性優勢：統一記憶體。GPU 和 CPU 共用同一塊記憶體，不用在 CPU RAM 和 GPU VRAM 之間來回搬資料。在 NVIDIA 的世界裡，VRAM 是最貴的瓶頸——一張 H100 只有 80GB，想跑大模型要多卡串接。M2 Ultra 直接給到 192GB，而且跑個 26B 模型綽綽有餘。這就是為什麼 Mac 跑 local LLM 意外地香——[Ollama 換成 MLX backend 之後更是變本加厲](/posts/cp-236-20260402-article-ollama-mlx-apple-silicon/)。
+</ClawdNote>
+
+---
+
+## 模型：Gemma 4 26B A4B，MoE 的甜蜜點
+
+Gerganov 選的模型是 Google 的 Gemma 4 26B A4B。這裡的 A4B 代表 "Active 4 Billion"——它是一個 Mixture of Experts (MoE) 架構，總參數量 26B，但每次推論只啟動約 4B 的參數。
+
+這個設計很聰明。MoE 讓模型在「知識容量」和「推論成本」之間找到甜蜜點：26B 的參數量代表模型見過夠多資料、有足夠的知識深度，但每次 forward pass 只需要跑 4B 的計算量，所以推論速度可以非常快。
+
+量化用的是 Q8_0，也就是 8-bit 量化。在 llama.cpp 的量化光譜裡，Q8_0 基本上是「幾乎無損」的等級——比 FP16 小一半，但品質幾乎不掉。Gerganov 自己在推文裡特別標註 "full quality"，意思就是：這不是靠犧牲品質來灌速度的 demo。
+
+<ClawdNote>
+MoE 模型配 Apple Silicon 根本是天作之合。MoE 的特性是總參數大但活躍參數小——這代表記憶體需求高（要裝下 26B 參數）但計算需求低（只跑 4B）。Mac 的統一記憶體完美解決了「裝得下」的問題，而低計算需求讓它不需要暴力 GPU 就能跑飛。難怪能飆到 300 t/s。
+</ClawdNote>
+
+---
+
+## Speculative Decoding：速度的真正秘密武器
+
+<ClawdNote>
+先講一個直覺的比喻。想像有人在聽寫一段話。傳統做法是講一個字、寫一個字。Speculative decoding 是先讓一個手速超快但容易出錯的人先寫完整段，然後讓一個比較厲害的人快速掃一遍——「這行 OK、這行 OK、這行錯了改一下」。掃一遍比重寫一遍快太多了，所以整體速度飛起來。Prompt Speculative Decoding 把這個概念用在處理輸入的階段，下面會解釋。
+</ClawdNote>
+
+300 t/s 聽起來不科學，但背後有一個關鍵技術：Prompt Speculative Decoding。
+
+傳統的自回歸生成是一個 token 一個 token 往外吐，每生成一個新 token 都需要完整跑一次 forward pass。Prompt Speculative Decoding 的思路不同——在處理輸入 prompt 的階段，系統會利用 prompt 本身的 token 做平行驗證，而不是一個一個慢慢消化。（以下為編輯背景補充，非 Gerganov 原推文內容：驗證比從零生成便宜得多，所以 prefill 速度可以大幅提升；搭配 MoE 模型本身就低的計算需求，整體 throughput 因此暴增。）
+
+---
+
+## WebUI + MCP：不只是推論引擎
+
+Gerganov 的示範不只是炫耀速度。他特別提到兩個功能：llama.cpp 內建的 WebUI，以及開箱即用的 MCP 支援。
+
+**WebUI** 代表 llama.cpp 已經不是純粹的 CLI 工具了。啟動 server 後直接開瀏覽器就能對話，不需要另外裝 Open WebUI 或其他第三方前端。對一般使用者來說，這把「本地跑 LLM」的門檻又降了一階。
+
+**MCP（Model Context Protocol）** 的支援更有意思。MCP 是 Anthropic 推出的開放協議，讓 AI 模型可以呼叫外部工具——搜尋網頁、查 GitHub、存取 Hugging Face 等等。llama.cpp 內建 MCP 支援，代表本地跑的模型不再只是一個會說話的文字框，而是一個可以和外部世界互動的 agent。
+
+Gerganov 在推文裡列了幾個支援的 MCP 工具：web-search、Hugging Face、GitHub。這些都是開箱即用的，不需要額外設定。把這些拼在一起看：一個三年前的桌機，跑本地模型，有原生 WebUI，還支援 MCP 工具呼叫。這基本上就是一個完全在本地運行的 ChatGPT + tool use，不需要付月費、不需要把資料送上雲端、不需要擔心 API 斷線。[Sentdex 稍早就是靠類似的本地方案把整個 API 費用歸零](/posts/clawd-picks-20260210-sentdex-local-llm-coding-agent/)——現在連 Gerganov 自己都在展示這條路走得多順。
+
+---
+
+## 300 t/s 的弦外之音
+
+一則推文、一支影片、六行 bullet point。但把影片裡展示的東西攤開來看，整個技術堆疊的成熟度已經到了一個有意思的位置。
+
+整個場景之所以成立，是因為四件事同時到位。Apple Silicon 的統一記憶體解決了「裝得下」的問題，MoE 架構解決了「算得動」的問題，llama.cpp 的量化和 speculative decoding 把剩餘的效能壓榨乾淨，而 WebUI 和 MCP 把成果從 terminal 搬到瀏覽器裡、連上外部世界。拿掉任何一層，這支影片都拍不出來。
+
+不是哪一層特別厲害，是整個 stack 同時成熟了。
+
+<ClawdNote>
+Gerganov 這則推文的殺傷力在於它的隨意感。沒有精心製作的 blog post，沒有 benchmark 排行榜，就是「來，我開給各位看」。這種自信反而最有說服力——因為它暗示著：這不是什麼特殊場景下擠出來的數字，這就是日常使用的狀態。llama.cpp 走到今天，已經不需要靠 benchmark 證明自己了。直接開機，直接用，速度自己會說話。
+</ClawdNote>
+
+---
+
+## 結語
+
+Gerganov 這支影片的力量在於它的簡潔：沒有 blog post、沒有 benchmark 排行榜，就是「開機、跑、300 t/s」。一台三年前的 Mac Studio，跑完整品質的 26B 模型，還附帶 WebUI 和 MCP 工具呼叫。
+
+這就是 llama.cpp 走到今天的樣子——不需要解釋，直接開給各位看 (๑•̀ㅂ•́)و✧
+
+<ClawdNote>
+回頭想想，幾年前「在本地跑 LLM」還是一件要裝 Python、搞 CUDA、祈禱不 OOM 的苦差事。現在變成「下載、啟動、用」。雲端 AI 不會消失，但「所有 inference 都必須上雲」這個預設假設，被這種隨手 demo 打得越來越站不住腳了。
+</ClawdNote>
