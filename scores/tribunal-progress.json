@@ -2731,5 +2731,86 @@
     },
     "status": "PASS",
     "finishedAt": "2026-04-12T19:29:09+08:00"
+  },
+  "cp-pending-20260413-article-ai-agent-framework-1-0-amd-mcp.mdx": {
+    "article": "cp-pending-20260413-article-ai-agent-framework-1-0-amd-mcp.mdx",
+    "startedAt": "2026-04-13T00:23:36+08:00",
+    "stages": {
+      "librarian": {
+        "status": "in_progress",
+        "score": null,
+        "model": "sonnet",
+        "attempts": 1
+      }
+    }
+  },
+  "cp-pending-20260413-ggerganov-llama-cpp-mac-300-t-s-georgi-gerganov.mdx": {
+    "article": "cp-pending-20260413-ggerganov-llama-cpp-mac-300-t-s-georgi-gerganov.mdx",
+    "startedAt": "2026-04-13T05:14:24+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 9,
+            "sourceAlign": 8,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "MCP 有 inline 自然解釋（\"MCP 是 Anthropic 推出的開放協議...\"），視為 naturally explained；「agent」用了一次未連結 glossary，屬次要漏網。",
+            "crossRef": "三個內部連結全部驗證存在：cp-232、cp-236、clawd-picks-20260210-sentdex；主題關聯（local inference 生態）緊密；文中未提 ShroomDog/Clawd 名字，identity link 未觸發。",
+            "sourceAlign": "內容明顯源自 Gerganov X 推文（300 t/s、Gemma 4 26B A4B、Q8_0、MCP 工具清單均有 source 痕跡）；編輯補充段明確標注為「非原推文內容」，實踐良好；無法直接驗證每個細節屬合理限制。",
+            "attribution": "「以下為編輯背景補充，非 Gerganov 原推文內容」標記是範例級實踐；ClawdNote 全部在元件內隔離；Gerganov 的 full quality 標記和 MCP 工具清單均有明確來源歸因；整篇幾乎零 opinion/fact blur。"
+          }
+        },
+        "model": "sonnet",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "fact-checker",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Mac Studio M2 Ultra specs are correct (UltraFusion, 192GB unified memory, 76 GPU cores, June 2023 launch); Gemma 4 26B A4B as MoE with ~4B active params is accurate; Q8_0 as '幾乎無損' vs FP16 half-size is accurate; reading speed math (~250 wpm → ~5 t/s → 60x) is approximately correct; Prompt Speculative Decoding description is vague but the editorial note explicitly marks it as background context not from the source tweet, which is the right call. No fabricated numbers.",
+            "fidelity": "Article correctly attributes editorial additions with an explicit inline parenthetical '(以下為編輯背景補充，非 Gerganov 原推文內容：...)'; ClawdNotes are clearly separated and never bleed into body text; no uncertainty erasure — claims from the demo (300 t/s, Q8_0, WebUI, MCP tools) are presented as Gerganov's own demonstration without being inflated; source authority is tweet-level and article doesn't overclaim.",
+            "consistency": "Logical chain is tight and self-reinforcing: unified memory solves 'fit it' problem → MoE solves 'compute' problem → llama.cpp quantization + speculative decoding squeezes remaining performance → WebUI/MCP makes it usable. The four-pillar synthesis at the end is well-supported by preceding sections. ClawdNotes maintain clear opinion/fact separation throughout. No internal contradictions found."
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "fail",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 7
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "readability": "結構清晰，MoE / Q8_0 / speculative decoding 全都有即時解釋，ClawdNote 的「60 倍人類閱讀速度」比喻讓抽象數字立刻有感；唯一卡頓點是 Speculative Decoding 段落正文裡的括號 meta-comment「（以下為編輯背景補充，非 Gerganov 原推文內容：...）」，像論文腳注誤入部落格，打斷敘事節奏。",
+            "firstImpression": "開頭夠強，300 t/s + 三年前的 Mac 這個組合馬上勾住讀者，5 個 ClawdNote 都有貢獻；但結語幾乎逐字重複開頭和「弦外之音」段落的結論（no blog post、no benchmark、直接開給各位看），讀到最後感覺像看到「以上所述」——動能在終點洩掉了，Fresh reader 不太可能把這篇傳出去。"
+          }
+        },
+        "model": "haiku",
+        "attempts": 2
+      }
+    },
+    "status": "FAILED",
+    "failedStage": "freshEyes",
+    "finishedAt": "2026-04-13T05:22:30+08:00"
   }
 }
