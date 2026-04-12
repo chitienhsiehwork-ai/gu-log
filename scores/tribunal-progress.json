@@ -2860,14 +2860,49 @@
         "attempts": 1
       },
       "freshEyes": {
-        "status": "fail",
-        "score": null,
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Flows well. MoE and speculative decoding explained clearly without parenthetical interruptions.",
+            "firstImpression": "300 t/s hook lands, ending pushes reader to think rather than just repeating the opening."
+          }
+        },
         "model": "haiku",
+        "attempts": 3
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "「化石的反擊」反轉設問（照理說連跑龍套的資格都沒有 → 那為什麼選它？）有明確 LHY 張力，但正文較多段落維持解說模式，核心比喻集中在 ClawdNote 而非正文本身。",
+            "clawdNote": "7 notes 中 4 則帶明確立場——最強是護城河那則「正在慢慢掏空雲端 AI 訂閱制的護城河」和末尾「被這種隨手 demo 打得越來越站不住腳」——勉強過 50% opinion 門檻，但 #1/#2/#4 仍偏純解釋模式。",
+            "vibe": "開頭「300 tokens per second」獨立成行的 punch 有力，整篇讀起來流暢，但「300 t/s 的弦外之音」與「結語」重複了同一個「四層同時成熟」結論，稀釋了收尾力道。",
+            "clarity": "正文全程用具名主語（Gerganov、Apple Silicon、MoE、llama.cpp），無一處讓你/我溜進正文，pronoun discipline 乾淨。",
+            "narrative": "「化石的反擊」反直覺設問是好的敘事開局，speculative decoding section 先 ClawdNote 再正文是少見的結構變化，但弦外之音→結語兩段高度重疊（都說「四層同時成熟」），結尾問句力道不足以作為 callback。"
+          }
+        },
+        "model": "opus",
         "attempts": 2
       }
     },
-    "status": "FAILED",
-    "failedStage": "freshEyes",
-    "finishedAt": "2026-04-13T05:49:10+08:00"
+    "status": "PASS",
+    "finishedAt": "2026-04-13T06:07:19+08:00"
   }
 }
