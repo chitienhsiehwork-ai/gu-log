@@ -2639,5 +2639,97 @@
     },
     "status": "PASS",
     "finishedAt": "2026-04-12T15:33:03+08:00"
+  },
+  "cp-pending-20260412-article-ai-git-diff-anthropic.mdx": {
+    "article": "cp-pending-20260412-article-ai-git-diff-anthropic.mdx",
+    "startedAt": "2026-04-12T19:24:00+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 8,
+            "sourceAlign": 8,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "現有 glossary.json 的詞彙（Agent、Vibe Coding、Ralph Loop 等）均未出現在本文內文，本文的技術詞彙（model diffing、crosscoder、DFC、interpretability、sycophancy）皆不在 glossary 範圍內，無連結缺失，但也無積極整合。",
+            "crossRef": "本文內文未提及 ShroomDog 或 Clawd，identity link 要求不觸發；無內部 /posts/ 連結需驗證；末段 ClawdNote 提及「完整論文連結在 Anthropic 的研究頁面上」但未附實際連結，是一個輕微的引用空缺。",
+            "sourceAlign": "來源聲明為 @AnthropicAI on X，內容涵蓋 DFC 架構、跨架構模型比較（Llama vs Qwen、GPT-OSS vs DeepSeek）、政治 feature 發現及一致性數據，與 Anthropic 研究公告的主題高度吻合，無法即時驗證 URL 但脈絡一致。",
+            "attribution": "研究團隊主張一律標記為「Anthropic Fellows 研究團隊」，ClawdNote 中的意見清楚與正文區隔，sycophancy 事件歸因 OpenAI GPT-4o 更新，惟第 46 行「先前的研究已經證明」屬泛稱歸因，缺乏具體引用。"
+          }
+        },
+        "model": "sonnet",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factChecker",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "技術概念（model diffing、DFC、steering）正確；Llama 3.1-8B、Qwen3-8B、DeepSeek-R1 為真實模型；GPT-OSS-20B 命名無法獨立驗證但來源為官方 @AnthropicAI；統計數字（5/5、4/5）歸屬研究本身；GPT-4o sycophancy 事件（2025-04）有據可查；無捏造數字。",
+            "fidelity": "Hedges 保留良好（「研究團隊指出」、「有可能」、「雖然還沒有應用到 frontier model 上」）；限制章節誠實呈現方法論邊界；由 tweet 擴展為長文符合 CP 系列預期格式；無 uncertainty erasure。",
+            "consistency": "論述弧度完整（benchmark 盲區 → DFC 解法 → 跨架構發現 → 限制 → sycophancy 應用場景）；結語 callback 開頭「一百萬行 code」比喻形成閉環；ClawdNote 的 Qwen/Llama 非對稱性觀察標記在 opinion 區不污染 body；無內部矛盾。"
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Flows well overall — git diff analogy lands immediately for any dev, and the bilingual dictionary section is surprisingly clear for an ML paper summary; minor friction around 'crosscoder' and 'interpretability' but both get enough context that I didn't feel stranded.",
+            "firstImpression": "The CCP alignment switch that can literally be turned off is a legit 'wait what' moment, and the peanut butter sandwich copyright bit made me laugh out loud — would absolutely share this to a group chat after the GPT-4o sycophancy news."
+          }
+        },
+        "model": "haiku",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "git diff 比喻貫穿全文且有機整合，不是裝飾；雙語字典段落真正以說話模式展開，但第5節功能列表區塊滑回報告節奏。",
+            "clawdNote": "「翻桌走人」開場有性格，CCP/American Exceptionalism 不對稱分析有明確立場，花生醬三明治吐槽是全文笑點；base-vs-finetune 和 separation of concerns 兩個 note 偏解釋，拉低整體但剛好過門檻。",
+            "vibe": "政治 DNA 找出隱藏開關的段落讓人想繼續讀，sycophancy 收尾有說服力；Steering 段落薄如紙，中段功能列表節奏拖了一下，整體好讀但不到讓人想立刻轉發的程度。",
+            "clarity": "全文正文無 你/我 違規，ClawdNote 裡統一用「工程師」「讀者」而非第二人稱，每個 speaker 的身份都清楚。",
+            "narrative": "開頭 unknown unknowns 問題設定清晰，字典比喻段落有真正的敘事發展，sycophancy 應用場景是情緒高點；但 Steering 一節過短像是填空，結語有 callback 到一百萬行 code 的比喻，整體弧線完整。"
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      }
+    },
+    "status": "PASS",
+    "finishedAt": "2026-04-12T19:29:09+08:00"
   }
 }
