@@ -2547,5 +2547,97 @@
     },
     "status": "PASS",
     "finishedAt": "2026-04-12T10:31:11+08:00"
+  },
+  "cp-pending-20260412-article-openai-anthropic-google-ai.mdx": {
+    "article": "cp-pending-20260412-article-openai-anthropic-google-ai.mdx",
+    "startedAt": "2026-04-12T15:28:39+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 7,
+            "sourceAlign": 10,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "No glossary terms are misused; 'agent' and 'tool use' appear only in passing as Kimi attack targets (not as concepts requiring explanation). Key technical terms used throughout — 'chain-of-thought', 'distillation', 'alignment' — are not in the glossary but are all explained inline in the prose, satisfying coverage intent. Minor gap: 'chain-of-thought' is a recurring core concept that merits a glossary entry (doesn't exist yet, not the post's fault).",
+            "crossRef": "No ShroomDog or Clawd mentions in body, so identity-link requirement doesn't trigger. Zero internal /posts/ links — CP-282 (OpenAI's $100 Pro plan) and any prior Anthropic/China AI coverage would be natural cross-references; the omission is a real gap. No broken links (there are no links to break).",
+            "sourceAlign": "Post maps precisely to Bloomberg's 2026-04-06 reporting on OpenAI/Anthropic/Google uniting against Chinese distillation via FMF; all major sections (FMF upgrade, Anthropic's February disclosure, the four intelligence types) derive directly from the declared source. No content drift.",
+            "attribution": "All statistics tied explicitly back to 'Anthropic 在 2026 年 2 月 23 日的公開揭露' and 'Bloomberg 4 月 6 日報導'. Per-company breakdowns (MiniMax ~13M, Kimi ~3.4M, DeepSeek ~150K) attributed to Anthropic's disclosure. ClawdNotes cleanly demarcated as opinion throughout. Minor: the per-company numbers could explicitly note they come from Anthropic's published report rather than Bloomberg's summary of it."
+          }
+        },
+        "model": "sonnet",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factChecker",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "核心數據（約 24,000 假帳號、約 1,600 萬次交換、MiniMax 約 1,300 萬、Kimi 約 340 萬、DeepSeek 約 15 萬）內部自洽（1300+340+15≈1655≈1600萬 ✓）；adversarial distillation 技術定義正確；chain-of-thought 解釋準確；FMF 成立年份（2023）及成員正確；DeepSeek 鎖定政府審查能力此說法具體而重，無法由此核實第一手，扣 1 分。",
+            "fidelity": "全文用「約」保持數字模糊度、保留 Bloomberg 原始不確定性；ClawdNote 與正文明確分隔，無觀點滲入正文；無「might → is」式確定性升格；Bloomberg 作為一級來源的可信度足夠，整體翻譯忠於原報導立場。",
+            "consistency": "論證脈絡清晰：蒸餾攻擊規模說明 → Anthropic 揭露作為導火線 → FMF 升級回應 → 四項情報共享 → 結論；數字加總自洽；ClawdNote 中的推論明確標示為 Clawd 觀點；全文無互相矛盾之處。"
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Opening hook is immediate and concrete; adversarial distillation gets a clear plain-language explanation ('讓 GPT、Claude 當免費家教') before the jargon lands; the MiniMax/Kimi/DeepSeek breakdown with bolded headers makes it easy to track three separate actors; only the FMF backstory section briefly slows momentum but doesn't lose the reader.",
+            "firstImpression": "The 'dead rivals forced into the same trench' framing makes you keep reading; the DeepSeek revelation ('用 Claude 來學怎麼做審查') is genuinely shocking and memorable; ClawdNotes are well-timed palate cleansers, not interruptions; ending question ('防守方能跑得比攻擊方快嗎？') lands cleanly and would prompt sharing with anyone following AI news."
+          }
+        },
+        "model": "haiku",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Opening hook strong ('死對頭被逼到同一條壕溝') and oral punches like '這不是什麼理論威脅。這已經發生了。' land well, but the MiniMax/Kimi/DeepSeek breakdown section and the four-items section slide into news-report mode.",
+            "clawdNote": "FMF '合照組織' note and DeepSeek irony ('讓一個被訓練成誠實的 AI 教另一個 AI 怎麼說謊') are genuine opinion highlights, but ~3/7 notes are primarily analogy/framing without explicit stance, falling just under the 50% opinion threshold.",
+            "vibe": "The fish-metaphor triple (MiniMax/Kimi/DeepSeek), the '底褲都不剩' line, and the '情報單位的緊繃' pivot keep it engaging throughout, but the subject's inherently policy-heavy nature caps the sharability ceiling.",
+            "clarity": "Body text consistently avoids 你/我 — subjects are named ('Anthropic', '攻擊方', '四家') — and ClawdNote speaker attribution is always unambiguous.",
+            "narrative": "Real escalation arc from corporate rivalry → concept reveal → scale shock (1,600萬次) → institutional transformation → strategic implications, with DeepSeek irony as genuine emotional peak; middle breakdown sections are listy and opening metaphor ('壕溝') is never called back in the conclusion."
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      }
+    },
+    "status": "PASS",
+    "finishedAt": "2026-04-12T15:33:03+08:00"
   }
 }
