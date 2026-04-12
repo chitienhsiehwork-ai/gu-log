@@ -2455,5 +2455,97 @@
     },
     "status": "PASS",
     "finishedAt": "2026-04-12T06:00:15+08:00"
+  },
+  "cp-pending-20260412-felixrieseberg-dns-ubuntu-sandbox.mdx": {
+    "article": "cp-pending-20260412-felixrieseberg-dns-ubuntu-sandbox.mdx",
+    "startedAt": "2026-04-12T10:19:07+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 7,
+            "sourceAlign": 8,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "唯一與 glossary 重疊的術語是「Cowork」（glossary 中定義為 Anthropic 官方 Agent 模式），文中多次使用但未連結至 glossary；其餘技術詞（DNS、systemd-resolved、gVisor、SERVFAIL、ECONNRESET）均不在 glossary 範圍內，無需處理。",
+            "crossRef": "文中無任何內部 /posts/ 連結，ShroomDog 和 Clawd 未在本文 body 中以名稱提及故不觸發必填身份連結規則，但明顯的主題性 cross-ref（如其他 debugging、devops、clawd-picks 文章）一個都沒有。",
+            "sourceAlign": "文章主軸（凌晨六點錯誤暴增 → 六層骨牌因果鏈 → Ubuntu auto-update 觸發 systemd-resolved 覆寫 resolv.conf → SERVFAIL 被誤報成 ECONNRESET）完全圍繞 @felixrieseberg 的 X 貼文，內容衍伸合理，未出現明顯主題偏離。",
+            "attribution": "技術事實與行動（六層因果鏈、patch 計畫）均歸因於 Felix Rieseberg 或 Cowork 團隊，ClawdNote 中的所有意見與建議都清晰隔離在元件內，body 正文無 opinion/fact 混淆。"
+          }
+        },
+        "model": "sonnet",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factChecker",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Core technical claims are all plausible and internally consistent: systemd-resolved is a known manager of resolv.conf (and does overwrite it on restart), libmount1 as a shared library can trigger downstream service restarts via systemd, gVisor sandbox DNS sensitivity is a documented concern, and Bun/axios ECONNRESET misreporting on DNS failure is a known class of library bug. Source is a tweet thread so primary-source traceability is limited, but no fabricated statistics or non-existent products flagged.",
+            "fidelity": "Content faithfully reconstructs a post-mortem thread without uncertainty erasure — the post doesn't overclaim beyond what a debugging writeup would contain. ClawdNotes are cleanly separated from the body. The conclusion restates Felix's two remediation actions (harden config + upstream patch) consistently with the summary. No hedge stripping detected.",
+            "consistency": "The six-domino causal chain is logically airtight — each step is necessitated by the previous one, and the explanation of why the bug is nondeterministic (all six conditions must coincide) is well-supported throughout. ClawdNotes are clearly marked as Clawd's opinions. Minor structural redundancy (conclusion section re-states what 'why this case matters' already covers) but no logical contradictions."
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "六張骨牌的結構非常清晰，每張都有加粗標題 + 類比說明（熱心鄰居換門牌、客服電話 SERVFAIL），3 個月工程師就算不懂 gVisor 也能跟上；唯一扣分是結語段落幾乎逐字重複了「為什麼這個案例值得記住」的最後兩句，讓收尾節奏有點打滑。",
+            "firstImpression": "開頭「它很快就自己恢復了」直接觸發好奇心，ECONNRESET → DNS 的反直覺轉折夠勁、最後 ClawdNote 的 dig/nslookup 建議對新手有實際用途，整體讀完會想分享給踩過 nondeterministic bug 的朋友；結語的重複感稍微削弱了收尾的衝擊力。"
+          }
+        },
+        "model": "haiku",
+        "attempts": 2
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "大樓清潔工比喻精準傳達「六個正確行為合力出錯」，口語感強且有教授溫度，但 section 4 的 bullet 列舉局部回到報告節奏，稍微拉低了 LHY 說話感。",
+            "clawdNote": "三個 note 全有明確立場：「我對這個設計有很強烈的不滿」直接挑戰 systemd-resolved default，「越資深越危險」是有 edge 的觀點，「它自己好了是最恐怖的五個字」比喻層次高，密度和品質均達標。",
+            "vibe": "mystery spike → 逐步拆解 → misleading error twist 的弧線讓人想繼續讀，ECONNRESET 那段是真正的 aha moment，section 4 的 bullet list 稍微放慢節奏但未到 bullet-dump ending。",
+            "clarity": "正文全程第三人稱（工程師、Cowork 團隊、Felix），無 你/我 違規；ClawdNote 內的「我」有明確 speaker。",
+            "narrative": "開頭「它自己好了」→ 層層揭開 → 結尾 callback「那是骨牌倒完了，安靜地等著下一次重新排好」收得有力，三段 ClawdNote 各有不同情緒高點，非線性報告骨架。"
+          }
+        },
+        "model": "opus",
+        "attempts": 2
+      }
+    },
+    "status": "PASS",
+    "finishedAt": "2026-04-12T10:31:11+08:00"
   }
 }
