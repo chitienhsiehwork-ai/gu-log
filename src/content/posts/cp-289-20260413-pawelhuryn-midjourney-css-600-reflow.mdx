@@ -1,0 +1,152 @@
+---
+ticketId: "CP-289"
+title: "Midjourney 工程師開源了一套不用 CSS 的排版引擎 — 600 倍速度碾壓瀏覽器 reflow"
+originalDate: "2026-03-30"
+translatedDate: "2026-04-13"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "@PawelHuryn on X"
+sourceUrl: "https://x.com/PawelHuryn/status/2038525388037448113"
+lang: "zh-tw"
+summary: "Midjourney 工程師開源了一個純 TypeScript 文字測量演算法，完全繞過瀏覽器 CSS reflow，排版速度快 600 倍。因為 AI agent 動態生成 UI 時，30 年前設計的瀏覽器排版管線根本跟不上。"
+tags: ["shroom-picks", "web-development", "ai-agents", "open-source", "typography"]
+pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (vibe-opus-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+scores:
+  tribunalVersion: 1
+  librarian:
+    glossary: 9
+    crossRef: 9
+    sourceAlign: 8
+    attribution: 9
+    score: 8
+    date: "2026-04-13"
+    model: "claude-sonnet-4-6"
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 9
+    score: 8
+    date: "2026-04-13"
+    model: "claude-opus-4-6"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    score: 8
+    date: "2026-04-13"
+    model: "claude-haiku-4-5-20251001"
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-04-13"
+    model: "claude-opus-4-6"
+  ralph:
+    p: 8
+    c: 8
+    v: 8
+    score: 8
+    date: "2026-04-13"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+一個 Midjourney 的工程師把一件事開源了：不用 CSS，直接在 TypeScript 裡完成整個網頁的文字排版。
+
+不是又一個前端框架。不是一個包了 DOM 的 wrapper library。是一個純粹的文字測量演算法，從頭到尾不碰瀏覽器的排版引擎。速度？600 倍。
+
+聽到「600 倍」第一反應通常是「在吹吧？」——但仔細想想這個東西要解決的問題，就會發現這不是什麼奇蹟，而是從根本上換了一條路走。
+
+---
+
+## 瀏覽器 reflow：一個 30 年前的設計，撞上一個它沒預見的未來
+
+<ClawdNote>
+600 倍聽起來像在吹，但想想 CSS reflow 到底在幹嘛——cascade、inheritance、media queries、flexbox、grid、float⋯⋯30 年份的歷史包袱全塞在裡面。這台機器要啟動，就像每次只想查一個字，卻要把整本百科全書從頭翻到尾。繞過它之後快 600 倍，反而是正常的 (╯°□°)╯
+</ClawdNote>
+
+CSS 排版引擎是給人類寫靜態網頁用的。
+
+這不是在貶低它——CSS 是偉大的發明，讓網頁從「純文字文件」進化成「可以排版的媒體」。但它的整個設計前提是：有一個人類工程師，坐在那裡，寫好 HTML 和 CSS，然後瀏覽器慢慢把它畫出來。Layout 計算可能會觸發好幾輪 reflow（回流），每一輪都要重新走一遍 cascade、計算盒模型、解析相依性。
+
+這個流程對人類手寫的靜態頁面來說完全夠用——畢竟頁面載入一次，reflow 幾次，使用者根本感覺不到。
+
+但 [AI agent](/glossary#agent) 不是人類。
+
+---
+
+## AI 時代的排版需求：為什麼非得繞過瀏覽器不可
+
+<ClawdNote>
+想像一下：一個 AI agent 正在即時生成 dashboard，圖表、表格、文字區塊全部根據 prompt 動態長出來。每生成一個元素，瀏覽器就跑一輪 reflow。十個元素，十輪。每輪都把整個 DOM tree 重新算一遍。這就像每次在白板上多寫一個字，就要把整面白板擦掉重畫——效率災難 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+AI 生成的介面有一個根本性的不同：**排版是動態的、即時的、大量的**。
+
+傳統網頁開發，排版決策在「開發階段」就定了——工程師寫好 CSS，部署上去，使用者看到的是固定的版面。但當 AI agent 需要根據對話內容、使用者偏好、即時資料去「生成」介面時，排版變成 runtime 的事。而且不是偶爾做一次，是每一幀、每一個互動都可能觸發全新的排版計算。
+
+瀏覽器的 reflow pipeline 不是為了這種工作負載設計的。它假設排版是低頻事件——頁面載入時算一次，使用者 resize 視窗時再算一次。當 AI agent 每秒要計算數百次排版時，這個 30 年前的管線直接成了瓶頸。（Karpathy 在 [Agentic Engineering 那篇](/posts/clawd-picks-20260206-karpathy-agentic-engineering/) 就點出 AI agent 會重新定義軟體的基本假設——這個 text layout engine 是具體的一個例子。）
+
+所以這位 Midjourney 工程師做的事情很直接：不改瀏覽器，繞過它。
+
+用純 TypeScript 實作文字測量和排版演算法，在記憶體裡算好每段文字該放哪裡、佔多少空間，完全不觸發瀏覽器的 layout engine。結果是快 600 倍——因為省掉了 CSS cascade、DOM tree traversal、style recalculation 這些在動態場景下完全多餘的計算。
+
+<ClawdNote>
+這個思路其實跟遊戲引擎的邏輯一樣。遊戲不會用 CSS 排版 HUD（抬頭顯示器），因為遊戲的 UI 是每幀重繪的，需要「算得快」而不是「語法靈活」。AI agent 生成 UI 本質上跟遊戲 HUD 同一個挑戰：要的是 60 fps 等級的排版速度，傳統瀏覽器管線提供不了 (⌐■_■)
+</ClawdNote>
+
+---
+
+## AI 時代的 Web Stack 正在被重建
+
+Paweł Huryn 在推文最後說了一句很有份量的話：
+
+> The AI-era stack is being rebuilt from scratch. One library at a time.
+
+回頭看過去兩年，AI 對 web 開發的改變不只是「用 AI 寫 code」。是底層的技術假設在被挑戰——這個 text layout engine 繞過了瀏覽器 reflow，而類似的「繞過」思路可能還會出現在其他層。（Simon Willison 的 [Agentic Loops 那篇](/posts/clawd-picks-20260203-simonw-agentic-loops/) 講的是 AI agent 怎麼靠迴圈解決「試一次不夠」的問題——同樣是為了 agent 的工作模式重新設計工具，不是修補舊的。）
+
+每一個「繞過」的背後邏輯都一樣：AI 的使用模式跟人類不一樣。不是一次寫好、載入、顯示，而是持續生成、即時渲染、動態調整。30 年來為人類設計的 web 基礎建設，正在被 AI agent 的需求一塊一塊地挑戰。
+
+<ClawdNote>
+歷史總是在重複：大型主機到 PC，重寫。桌面到 web，重寫。Web 到 mobile，又重寫。現在 AI agent 成了新的運算範式，web stack 開始被質疑，一點都不意外。有趣的是這次的方向——不是「做一個更好的瀏覽器」，而是「根本不用瀏覽器那套」。繞過，而不是改良。這才是真正激進的地方 (ง •̀_•́)ง
+</ClawdNote>
+
+<ClawdNote>
+至於為什麼是 Midjourney 的工程師做這件事？原推沒有解釋，但不難猜——Midjourney 做圖像生成，下一步如果要做「生成可互動的 UI」，排版速度就是硬瓶頸。這個 library 可能就是他們在鋪的路。純屬推測，但邏輯通 ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## 結語
+
+一個純 TypeScript 的文字排版演算法，聽起來像是很 niche 的技術玩具。但它代表的信號比程式碼本身重要得多：**AI agent 的需求正在倒逼 web 基礎建設進化**。
+
+原推說得精準：
+
+> The AI-era stack is being rebuilt from scratch. One library at a time.
+
+這個 text layout engine 是 "one library" 的其中一個。至於下一個會是什麼——沒人知道，但方向已經很清楚了：不是修瀏覽器，是繞過它。
+
+對了，Paweł Huryn 還補了一句「Such a fun to play with that!」——這東西不是紙上談兵，是真的可以拿來玩的開源 library。有興趣的話，去 repo 裡翻翻。
