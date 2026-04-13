@@ -43,6 +43,8 @@ const postsCollection = defineCollection({
         .optional(),
       scores: z
         .object({
+          // Tribunal version — tracks which scoring rubric was used
+          tribunalVersion: z.number().min(1).optional(),
           // Tribunal judges — uniform: all dims 0-10, score = floor(avg)
           librarian: z
             .object({
