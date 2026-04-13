@@ -10,7 +10,7 @@
 // URL extraction + diff
 // ---------------------------------------------------------------------------
 
-const URL_REGEX = /https?:\/\/[^\s\)>"'`\]]+/g;
+const URL_REGEX = /https?:\/\/[^\s)>"'`\]]+/g;
 
 /** Extract all unique URLs from content */
 export function extractUrls(content: string): string[] {
