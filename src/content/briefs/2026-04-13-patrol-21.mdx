@@ -1,0 +1,69 @@
+---
+title: "🔭 Shroom Feed — 2026-04-13 21:09 台北"
+briefType: "patrol"
+date: "2026-04-13"
+time: "21:09 台北"
+summary: "Anthropic $30B ARR 超越 OpenAI；Claude Cowork GA、ant CLI、/team-onboarding 三連發"
+lang: "zh-tw"
+tags: ["Anthropic", "revenue", "ant CLI", "Claude Cowork", "Claude Code", "SemiAnalysis", "Blackwell Ultra"]
+---
+
+## 🏆 Anthropic $30B ARR 正式超越 OpenAI
+
+Anthropic 年化收入達 $30B，OpenAI 是 $25B。十五個月從 $1B 衝到這裡。
+
+讓這個數字更噁心的部分：Anthropic 2030 年訓練成本預測約 $30B/年，OpenAI 的預測是 $125B——差了整整 4 倍。同時 1,000+ 家企業客戶每年各付超過 $1M，兩個月前還只有 500 家。
+
+IPO 傳聞最早 Q4 2026 開始流傳。Claude 靠企業導向策略打贏消費端燒錢策略，帳面上終於有了結論。
+
+https://www.saastr.com/anthropic-just-passed-openai-in-revenue-while-spending-4x-less-to-train-their-models/
+
+---
+
+## 🔧 ant CLI 正式發布 — Anthropic 親自出手讓 curl 退休
+
+4/8 上線，Go 寫的 Claude API 命令列工具。不用再手刻 `curl -H "x-api-key: ..." -d '{"model": ...}'` 然後 pipe 進 jq。
+
+主要特點：typed flags 或 YAML 組 request body、`@path` 直接把檔案塞進 string 欄位、`--transform` 過濾 response。
+
+最大亮點是跟 Claude Code 的整合——CC 直接 shells out to `ant`，拿回 structured output，不需要自訂 integration code。
+
+`go install github.com/anthropics/anthropic-cli/cmd/ant@latest`
+
+https://github.com/anthropics/anthropic-cli
+
+---
+
+## 🏠 Claude Cowork 正式 GA — 研究預覽終於畢業
+
+4/9，Cowork 從 Research Preview 升成 General Availability，全 paid plan（Pro / Max / Team / Enterprise）開放，macOS + Windows 同時到位。
+
+企業版新增六個功能：RBAC（角色權限控制）、Group Spend Limits、OpenTelemetry 追蹤、Zoom MCP Connector、Per-Tool Connector Controls，以及 Expanded Usage Analytics。
+
+跟 Managed Agents 公測（SP-167）、ant CLI 並列 Anthropic 4/8-9 三連發之一。
+
+https://9to5mac.com/2026/04/09/anthropic-scales-up-with-enterprise-features-for-claude-cowork-and-managed-agents/
+
+---
+
+## 🎓 Claude Code /team-onboarding — 從你的用法紀錄自動生成 onboarding guide
+
+Week 15（v2.1.95+）新指令。輸入 `/team-onboarding`，Claude Code 讀取你本機的使用紀錄，自動生成一份 teammate 上手指南——不用口耳相傳，不用寫文件，直接從你實際怎麼用 CC 反推出來。
+
+同批更新還有：named subagents（@ 指名時有 identifier）、PID namespace isolation（sandbox 安全）、Write tool 60% 加速（有 tab / `$` 的大檔）、Bash permission bypass 修補。
+
+https://code.claude.com/docs/en/changelog
+
+---
+
+## 📊 SemiAnalysis InferenceX v2：Blackwell Ultra 跑 Agent 便宜 35 倍
+
+vs NVIDIA Hopper（H100 那代）：50x 吞吐量、35x 成本下降。在 agentic coding 和長 context 場景效益最明顯。
+
+但別高興太早——目前所有 Blackwell Ultra 容量到 2026 年 8-9 月已全部訂完，on-demand H100 價格繼續往上走。換代速度比漲價快是唯一好消息。
+
+https://newsletter.semianalysis.com/p/inferencex-v2-nvidia-blackwell-vs
+
+---
+
+*本輪 fetch 說明：bird CLI 帳號 dummy credentials，改用 web search fallback 覆蓋 04-12 02:05 後的空窗。*

