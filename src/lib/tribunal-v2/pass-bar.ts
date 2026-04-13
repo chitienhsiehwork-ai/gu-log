@@ -94,9 +94,9 @@ export function checkFactLibPassBar(scores: {
   library_pass: boolean;
 } {
   const fact_pass =
-    Math.floor((scores.factAccuracy + scores.sourceFidelity) / 2) >= PASS_BARS.STAGE_1_COMPOSITE;
+    Math.floor((scores.factAccuracy + scores.sourceFidelity) / 2) >= PASS_BARS.STAGE_3_FACT_COMPOSITE;
   const library_pass =
-    Math.floor((scores.linkCoverage + scores.linkRelevance) / 2) >= PASS_BARS.STAGE_1_COMPOSITE;
+    Math.floor((scores.linkCoverage + scores.linkRelevance) / 2) >= PASS_BARS.STAGE_3_LIBRARY_COMPOSITE;
 
   return {
     pass: fact_pass && library_pass,

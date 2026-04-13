@@ -49,6 +49,9 @@ export interface WorthinessJudgeOutput extends BaseJudgeOutput {
     audienceRelevance: number; // 對 gu-log 目標讀者的價值
   };
 
+  // Stage 0 specific: WARN signal for orchestrator
+  warned: boolean; // true when composite < 7 or any dim < 5 — orchestrator sets frontmatter
+
   // Dual reasoning output — Stage 0 specific
   internal_reason: string; // 完整技術分析，for debug/tuning
   reader_friendly_reason: string; // 一行中文，給 banner 顯示用（150 char cap）
@@ -187,6 +190,8 @@ export const PASS_BARS = {
   STAGE_1_MIN_DIMENSION: 8,
   STAGE_1_HIGHLIGHT: 9, // at least one dim >= 9 (要有亮點)
   STAGE_2_COMPOSITE: 8,
+  STAGE_3_FACT_COMPOSITE: 8, // floor(avg(factAccuracy, sourceFidelity)) >= 8
+  STAGE_3_LIBRARY_COMPOSITE: 8, // floor(avg(linkCoverage, linkRelevance)) >= 8
   STAGE_4_MAX_REGRESSION: 1, // relative: no dim drops > 1 from Stage 1
 } as const;
 
