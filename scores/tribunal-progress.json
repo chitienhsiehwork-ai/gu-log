@@ -2904,5 +2904,97 @@
     },
     "status": "PASS",
     "finishedAt": "2026-04-13T06:07:19+08:00"
+  },
+  "cp-pending-20260413-article-anthropic-agent-90.mdx": {
+    "article": "cp-pending-20260413-article-anthropic-agent-90.mdx",
+    "startedAt": "2026-04-13T10:24:59+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "所有 glossary 術語均正確連結：agent（多次）、context-window（多次）、mcp（2 次）；glossary 中無其他本文用到的條目（harness/sandbox/container 不在 glossary 內）。",
+            "crossRef": "三條內部 cross-ref 全部驗證存在：cp-179、cp-169、sp-99 均對應有效 .mdx 檔案，且主題關聯性強（agent 架構、observability）；文章主體未直接提及 ShroomDog/Clawd，無 identity link 需求。⚠️ 附帶發現：frontmatter 的 `pipeline:` 欄位縮排了 2 個空格，被放在 `tags:` flow sequence 之後，YAML 解析可能失敗，需修正為頂層 key。",
+            "sourceAlign": "內容明確來自 Anthropic 工程部落格 /engineering/managed-agents：作者（Lance Martin、Gabe Cemaj、Michael Cohen）、架構細節（session/harness/sandbox 三元拆分）、效能數字（p95 >90%、p50 ~60%）均與聲明來源主題吻合。",
+            "attribution": "作者署名、「context anxiety」加括號標注原文用詞、效能數字歸因 Anthropic；ClawdNote 皆在元件內清楚分隔。輕微扣分：Pets vs Cattle 比喻及 UNIX read() 類比均源自原文，但行文中未明確標注「原文如此比喻」，讀者可能誤以為是 Clawd 的自創比喻。"
+          }
+        },
+        "model": "sonnet",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factChecker",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Technical architecture claims (session/harness/sandbox split, stateless harness, credential isolation via proxy) are internally coherent and consistent with known Anthropic engineering patterns; specific API signatures (execute(name, input) → string, wake(), getSession(), emitEvent()) and author names (Lance Martin, Gabe Cemaj, Michael Cohen) are unverifiable without source access, but plausibly transcribed — red flag on the p50/p95 stats is mitigated by clear source attribution rather than free-standing fabrication; model names Sonnet 4.5 / Opus 4.5 are plausible given April 2026 context.",
+            "fidelity": "Content is faithfully scoped to the declared sourceUrl topic (Managed Agents architecture evolution); the term 「context anxiety」 is correctly flagged as 原文用詞 rather than editorial invention; performance numbers are presented as sourced claims, not extrapolated; ClawdNotes are architecturally separated from the body and clearly marked as opinion — hedges are preserved throughout; no signs of uncertainty erasure or conclusion extension beyond source scope.",
+            "consistency": "Argument flows cleanly from problem statement (harness encodes stale assumptions) → old architecture pain points → three-component split → stateless recovery → security model → context management → performance results → extensibility → OS abstraction philosophy; every section builds on prior ones; ClawdNotes never contradict body claims; the UNIX read() analogy in the conclusion coherently closes the abstraction theme introduced at the start; no logical contradictions detected."
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Section headers, relatable analogies (寵物 vs 牛群, save/load 遊戲, OS system call), and ClawdNote breaks keep a 3-month dev on track — only p95/TTFT and MCP OAuth sections might need a re-read.",
+            "firstImpression": "Title immediately promises a concrete result (90% faster); the pets→cattle→stateless arc pays off cleanly; ClawdNotes add enough wit to keep scrolling — a 3-month dev would finish and likely mention it if infra architecture came up."
+          }
+        },
+        "model": "haiku",
+        "attempts": 2
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Analogies are integrated into the prose structure (不是裝飾：便利商店廚房開機費直接解釋 container setup 成本，打遊戲即時存檔解釋 stateless 恢復，飯店房卡解釋 credential 隔離)，口語 pivot 句有 LHY 口吻，但 大手術 section bold-item 列表和 多腦多手 section 回到說明文模式，拉低整體。",
+            "clawdNote": "全七個 note 均有明確立場：Pets vs Cattle note 直接點名業界 ('只是換了個更貴的品種')，p95 note 重新定義意義 ('告訴你之前的方向根本就錯了')，credential note 稱無隔離是 '不負責任的設計不是最佳實踐建議'；getEvents 遞迴問題識別和 agent attribution gap 均超過 opinion threshold，密度和品質均達 9 分線。",
+            "vibe": "Credential curl exploit 場景和 '安靜的怪獸在等著' pivot 製造真實閱讀動能；p95 ClawdNote 有情緒 peak；結語 callback 到 'harness 會過期' 有滿足感；安全性和 context 管理兩節是全文能量低谷，但整體不會讓人想中途關頁。",
+            "clarity": "正文全篇無 你/我 違規，主語全程具名 (Claude、Anthropic、harness、工程師、企業客戶)，ClawdNote 內一人稱完全合規，零歧義。",
+            "narrative": "有三個真正的敘事轉折：'Stateless 解決了恢復問題。但拆開這件事，同時帶來了一個沒人想談的新麻煩。'、'到這裡大部分顯而易見的問題都解決了。但還有一個安靜的怪獸在等著'、結語 callback 到開頭 hook；'他們養的就是寵物。' 單句段落節奏感強；但 strip 後骨架仍是線性 section tour，多腦多手 section 完全沒有情緒參與。"
+          }
+        },
+        "model": "opus",
+        "attempts": 3
+      }
+    },
+    "status": "PASS",
+    "finishedAt": "2026-04-13T10:50:34+08:00"
   }
 }
