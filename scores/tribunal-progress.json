@@ -3088,5 +3088,97 @@
     },
     "status": "PASS",
     "finishedAt": "2026-04-13T16:18:07+08:00"
+  },
+  "cp-pending-20260413-pawelhuryn-midjourney-css-600-reflow.mdx": {
+    "article": "cp-pending-20260413-pawelhuryn-midjourney-css-600-reflow.mdx",
+    "startedAt": "2026-04-13T19:16:11+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 8,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "唯一相關 glossary term「AI agent」已正確以 [AI agent](/glossary#agent) 連結（第52行）；文章核心主題（CSS reflow、text layout engine）不在 glossary 範圍內，無遺漏。",
+            "crossRef": "兩個 internal cross-ref 均已驗證存在：clawd-picks-20260206-karpathy-agentic-engineering.mdx ✓、clawd-picks-20260203-simonw-agentic-loops.mdx ✓；文章 body 無 ShroomDog/Clawd 名稱出現，不需要 identity link；主題連結選擇精準，呼應 AI agent 需求論點。",
+            "sourceAlign": "文章主題（Midjourney 工程師開源純 TypeScript 文字排版演算法、600 倍速、繞過 CSS reflow）與 sourceUrl @PawelHuryn X 推文一致；原文引用「The AI-era stack is being rebuilt from scratch. One library at a time.」與「Such a fun to play with that!」均對應推文內容；無法直接 fetch URL 驗證，扣 1 分反映無法完整確認。",
+            "attribution": "600 倍數字、Paweł Huryn 引言均有明確出處且引言 block 格式正確；ClawdNote 全部在元件內，opinion 與 body 分離清楚；末段 ClawdNote 明確標示「純屬推測」，speculation 處理得當；frontmatter 的 translatedBy.harness（Gemini CLI + Codex CLI）與 pipeline 欄位（Claude Code CLI）不一致，屬 metadata 問題，不影響 body attribution 評分。"
+          }
+        },
+        "model": "sonnet",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factChecker",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "600x claim is tweet-sourced and treated with initial skepticism ('在吹吧？') before being contextually justified — no fabricated numbers; CSS reflow mechanics (cascade, DOM traversal, style recalculation) are technically correct; the '30年前的設計' framing is accurate for CSS ~1996; the 'hundreds of layout calculations per second' for AI agents is plausible editorial inference, not a cited stat, which is normal for tweet-origin CP posts.",
+            "fidelity": "Core source claims (TypeScript text layout, bypasses CSS reflow, 600x speed, open source, Paweł Huryn as author) are faithfully represented; direct quotes are attributed; substantial editorial context (game engine analogy, historical CSS framing, Midjourney roadmap speculation) is clearly separated into ClawdNotes or marked as '純屬推測'; minor gap: the article gradually accepts the 600x figure without preserving whatever hedges may have existed in the original tweet.",
+            "consistency": "Argument chain is airtight — CSS designed for static pages → AI agents need high-frequency dynamic layout → bypass browser pipeline → 600x speedup → AI-era stack being rebuilt; ClawdNotes consistently distinguish opinion from body facts; Midjourney motivation speculation is explicitly flagged as speculation; no contradictions found across all sections."
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "fresh-eyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Opening hook is strong and jargon is always contextualized — 'CSS reflow' gets a百科全書 analogy immediately, and the game-engine analogy in ClawdNote makes the 600x claim click for a dev newcomer; 1-2 spots (cascade/DOM pipeline explanation) might need a re-read but never lost.",
+            "firstImpression": "The '600倍' → 'why CSS is slow' → 'why AI needs this' → 'bigger signal' arc pays off cleanly, ClawdNotes add enough personality to prevent tab-closing, and the 'One library at a time' callback lands — a 3-month dev working with AI tooling would likely finish and mention it to a colleague."
+          }
+        },
+        "model": "haiku",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Hook opens direct and oral ('在吹吧？' self-doubt moment lands), but middle sections slide into essay-report mode — game engine analogy is the clearest LHY moment.",
+            "clawdNote": "Notes 3 and 4 have genuine opinions ('這才是真正激進的地方', labeled speculation on Midjourney's motive); notes 1 and 2 are mostly analogy-with-personality, clearing the ≥50% opinion threshold.",
+            "vibe": "Solid, readable post with a memorable game-engine analogy and a clean non-bullet 結語, but the niche topic and linear structure prevent it from being must-share territory.",
+            "clarity": "Body text uses zero direct 你/我; subjects are consistently named (AI agent, 工程師, 瀏覽器); one borderline implicit imperative ('去 repo 裡翻翻') at the very end is harmless.",
+            "narrative": "Hook → context → AI need → big-picture pivot → callback quote is a clean arc that avoids bullet recap, but the skeleton is linear with no genuine surprise twist or emotional peak."
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      }
+    },
+    "status": "PASS",
+    "finishedAt": "2026-04-13T19:24:17+08:00"
   }
 }
