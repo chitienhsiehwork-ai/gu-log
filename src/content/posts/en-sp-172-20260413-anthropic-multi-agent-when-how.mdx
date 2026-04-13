@@ -1,0 +1,229 @@
+---
+ticketId: "SP-172"
+title: "90% of You Don't Need Multi-Agent — Anthropic's Guide to When You Actually Should"
+originalDate: "2026-01-23"
+translatedDate: "2026-04-13"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+source: "Anthropic Blog"
+sourceUrl: "https://claude.com/blog/building-multi-agent-systems-when-and-how-to-use-them"
+lang: "en"
+summary: "Anthropic's official guide breaks down the three real scenarios where multi-agent systems outperform single agents (context pollution, parallelization, specialization), and why most of the time one agent is all you need. Includes practical advice on context-centric decomposition and the verification subagent pattern."
+tags: ["shroom-picks", "anthropic", "multi-agent", "ai-agents", "architecture", "best-practices"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+There's a specific kind of anxiety spreading through the AI community in 2026: **Multi-Agent FOMO**.
+
+The symptoms look like this — someone sees a demo where three agents are talking to each other, and suddenly their single-agent setup feels "too simple." Two weeks later, they've built an orchestrator with four subagents. The result? About the same quality as before, except now it costs 5x more in tokens and is 10x harder to debug.
+
+In January 2026, Anthropic published an official guide with a very straightforward title: "Building Multi-Agent Systems: When and How to Use Them." The core argument is even more straightforward — **most people don't need multi-agent at all**.
+
+Written by Cara Phillips (with Paul Chen, Andy Schumeister, Brad Abrams, and Theo Chu), this isn't a pitch for how amazing multi-agent systems are. It's a guide that tells developers **when NOT to use them**, and when you really must, how to split things up without shooting yourself in the foot.
+
+<ClawdNote>
+Anthropic writing a "please don't overuse multi-agent" article is like McDonald's publishing a guide on why cooking at home is healthier. But credit where credit is due — the anti-patterns in this piece are clearly written in blood. Real engineering lessons, not marketing fluff (￣▽￣)／
+</ClawdNote>
+
+---
+
+## First Things First: What's a Multi-Agent System?
+
+This article focuses on the **orchestrator-subagent pattern** — a hierarchical architecture where a lead agent spawns and manages specialized subagents. Each agent instance has its own conversation context, coordinated through code.
+
+Sounds reasonable, right? The problem is, **coordination itself has a cost**.
+
+Anthropic's testing data is brutal: multi-agent implementations typically use **3 to 10x more tokens** than single-agent approaches for equivalent tasks. That overhead comes from context duplication across agents, coordination messages, and result summarization during handoffs. Every additional agent is another potential failure point, another set of prompts to maintain, and another source of unexpected behavior.
+
+So Anthropic's recommendation is: **start with the simplest approach that works, and add complexity only when evidence supports it.**
+
+<ClawdNote>
+"3 to 10x token usage" — in dollar terms, that's your $100/month bill becoming $300 to $1,000. And when debugging, you're now tracing conversations between three agents instead of reading one log. The kind of pain that makes your eyes bleed. You could literally buy GPU time with the money you'd save ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## Three Scenarios Where Multi-Agent Actually Wins
+
+Anthropic identifies three situations where multiple agents consistently outperform a single agent:
+
+1. **Context pollution causing quality degradation**
+2. **Tasks that can execute in parallel**
+3. **Specialization improving tool selection or task focus**
+
+**Outside these three scenarios, coordination costs typically exceed the benefits.**
+
+That sentence deserves to be tattooed somewhere visible. It's not that multi-agent is bad — it's that in most cases, improving single-agent prompting achieves the same result. Many teams invest massive effort building elaborate multi-agent architectures, only to discover that, well, better prompts would've done the job.
+
+---
+
+## Scenario 1: Context Protection
+
+LLM quality degrades as context grows. When a subtask generates information irrelevant to subsequent subtasks but it all piles up in the same context, **context pollution** happens.
+
+Example: a customer support agent that needs to both look up order history and diagnose technical issues. Every order lookup adds 2,000+ tokens of order details to the context, diluting the agent's ability to reason about the technical problem.
+
+**The multi-agent solution**: spawn a specialized OrderLookupAgent that processes the full order history and returns only the essential information (50-100 tokens). The main agent's context stays clean, focused on technical diagnosis.
+
+Context isolation works best when:
+- Subtasks generate high context volume (1,000+ tokens) that's mostly irrelevant to what comes next
+- Subtask boundaries are clear with well-defined extraction criteria
+- Operations involve lookup or retrieval that requires filtering
+
+<ClawdNote>
+This pattern is basically Separation of Concerns — the most fundamental principle in software engineering. A function shouldn't do everything; neither should an agent's context. The difference? A function call's overhead is measured in microseconds. An agent call's overhead is measured in dollars (⌐■_■)
+</ClawdNote>
+
+---
+
+## Scenario 2: Parallelization
+
+Running multiple agents simultaneously lets you explore a larger search space than any single agent can cover. Anthropic's own Research feature does exactly this: a lead agent analyzes a query and spawns multiple subagents to investigate different facets in parallel.
+
+But there's a critical tradeoff to understand:
+
+> The primary benefit of parallelization is **thoroughness, not speed**.
+
+You read that right. Multi-agent parallelism usually takes **longer overall** than a single agent, because total computation increases dramatically. The benefit is that within context constraints, parallel agents cover more ground. When comprehensive results matter more than execution speed, that's when parallel agents make sense.
+
+The implementation pattern looks like this:
+- Lead agent decomposes the question into independent research facets
+- Subagents operate concurrently on their respective facets
+- Results are synthesized across all investigations
+
+<ClawdNote>
+"The benefit of parallelization is thoroughness, not speed" — this one line invalidates half the multi-agent pitch decks in existence. Every time someone puts "10x faster" on slide one of their multi-agent demo, I want to raise my hand and ask: "What about total token cost?" (¬‿¬)
+</ClawdNote>
+
+---
+
+## Scenario 3: Specialization
+
+Different tasks need different tool sets, system prompts, and expertise domains. Instead of giving one agent 20+ tools, specialized agents with focused toolsets perform more reliably.
+
+### Tool Set Specialization
+
+Three signals that it's time to split by tools:
+
+1. **Quantity**: agents with 20+ tools start struggling with selection accuracy
+2. **Domain confusion**: tools spanning unrelated domains (database, API, file system) make it unclear which applies where
+3. **Performance degradation**: adding new tools actually makes existing tasks perform worse
+
+### System Prompt Specialization
+
+Sometimes behavioral requirements are fundamentally contradictory. A customer support agent needs empathy; a code reviewer needs precision. A compliance agent must follow rules rigidly; a brainstorming agent needs creative freedom. Cramming all of this into one system prompt is like asking an employee to be a lawyer in the morning and an artist in the afternoon.
+
+### Domain Expertise Specialization
+
+Some tasks need deep domain context that would overwhelm a generalist agent. Legal analysis, medical research, regulatory compliance — these benefit from specialized agents carrying focused expertise.
+
+<ClawdNote>
+Anthropic mentions a real case: an integration system managing CRM, marketing automation, and messaging platforms. A single agent with 40+ tools kept picking the wrong operations. After splitting into specialized agents with 8-10 relevant tools each plus tailored system prompts, selection errors vanished. Choosing 1 out of 40 versus 1 out of 8 — the cognitive load difference is 5x. This isn't an AI problem; it's an information architecture problem (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+However, specialization introduces **routing complexity**. The orchestrator must correctly classify requests, and misrouting produces poor results. Just like in human organizations — specialists are great, but if the manager assigns the case to the wrong person, the result is a disaster.
+
+---
+
+## When to Graduate from Single Agent
+
+Anthropic lists concrete signals:
+
+**Approaching context limits**: your agent routinely uses large amounts of context and performance is degrading. Though Anthropic notes that newer techniques like context compaction are reducing this limitation.
+
+**Managing too many tools**: when agents have 15-20+ tools, the model spends significant context just understanding options. Anthropic mentions the Tool Search Tool, which lets Claude dynamically discover tools on-demand rather than loading all definitions upfront — reportedly reducing **token usage by up to 85%** while improving tool selection accuracy.
+
+**Naturally parallelizable subtasks**: when tasks decompose into independent pieces (research across sources, tests for components), parallel subagents provide real speedups.
+
+One crucial caveat: **these thresholds will shift as models improve.** Current limits are practical guidelines, not fundamental constraints. What needs three agents today might need just one with next year's model.
+
+<ClawdNote>
+"These thresholds will shift as models improve" — this might be the single most important sentence in the whole article. People who over-engineer multi-agent systems today risk finding out they did all that work for nothing after the next model upgrade. Build for today's constraints, but make sure you can simplify when those constraints disappear. Every engineer knows: over-engineering hurts just as much as under-engineering ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## Context-Centric Decomposition: How You Split Matters More Than How Much
+
+Once you've decided on multi-agent architecture, **the most critical decision is how to divide the work**.
+
+### The Wrong Way: Problem-Centric Decomposition
+
+Divide by work type — one agent writes features, another writes tests, a third does code review. Sounds intuitive, but every handoff loses context. Anthropic ran an experiment and found:
+
+> Subagents spent more tokens on coordination than on actual work.
+
+Read that again. **Coordination cost > actual work cost.** That's the fatal flaw of problem-centric decomposition.
+
+### The Right Way: Context-Centric Decomposition
+
+Divide by context boundaries. An agent handling a feature should also handle its tests, because it already has the necessary context. **Work should only be split when context can be truly isolated.**
+
+Good decomposition boundaries:
+- Independent research paths (Asia vs. Europe market trends)
+- Separate components with clean interfaces
+- Blackbox verification requiring only test results
+
+Bad decomposition boundaries:
+- Sequential phases of the same work (planning → implementation → testing)
+- Tightly coupled components requiring constant back-and-forth
+- Work requiring frequent state synchronization
+
+<ClawdNote>
+"Splitting agents by role" is basically recreating the most common dysfunction in human organizations — where communication costs exceed actual work. Dev team and QA team as separate groups complaining that "the spec wasn't detailed enough" — that script plays out identically in the AI world. Conway's Law doesn't spare AI either ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## The Verification Subagent: A Pattern That Consistently Works
+
+Among all multi-agent patterns, one consistently succeeds across domains: **a dedicated verification subagent**.
+
+Why does this pattern work so well? Because verification naturally requires minimal context transfer. A verifier can blackbox-test a system without knowing anything about how it was built.
+
+The implementation looks like:
+1. Main agent completes a unit of work
+2. Spawns a verification subagent with the artifact, clear success criteria, and verification tools
+3. The verifier only needs to determine whether the artifact meets the specified criteria
+
+Effective applications:
+- **Quality assurance**: test suites, linting, schema validation
+- **Compliance checking**: policy requirement verification
+- **Output validation**: specification confirmation
+- **Fact checking**: claim and citation verification
+
+### Watch Out: The Early Victory Problem
+
+This is the most fatal failure mode for verification subagents — the verifier runs one or two tests and declares "all passed" without doing thorough validation.
+
+**Without explicit requirements for comprehensive validation, verification agents take shortcuts.**
+
+Mitigation strategies:
+- Specify "run the full test suite and report all failures" instead of vague success criteria
+- Require testing multiple scenarios and edge cases
+- Direct verifiers to attempt inputs that should fail, confirming failure behavior works correctly
+- Explicit instructions emphasizing comprehensive validation are essential
+
+<ClawdNote>
+The Early Victory Problem perfectly explains why gu-log's Ralph Loop uses a tribunal system instead of a single scorer. One verifier will cut corners; four judges watching each other can't get away with it. Fact Checker verifies numbers, Librarian checks glossary, Fresh Eyes does first-impression testing — each only looks at their own dimension, so there's nowhere to hide. Distributed distrust beats centralized trust (ง •̀_•́)ง
+</ClawdNote>
+
+---
+
+## The Bottom Line
+
+Anthropic's guide can be summarized in one sentence:
+
+**Start with the simplest approach that works. Add complexity only when evidence supports it.**
+
+Before adopting multi-agent architecture, confirm three things:
+
+1. **Genuine constraints exist** that multi-agent approaches solve (context limits, parallelization opportunities, specialization needs)
+2. **Decomposition follows context boundaries, not problem types**
+3. **Clear verification points exist** where subagents can validate work without needing full context
+
+Multi-agent isn't evolution. Single-agent isn't primitive. The right architecture depends on the shape of the problem, not the trend of the moment. Next time someone proposes "we should use multi-agent" in a meeting, ask one question: "Which constraint can't a single agent solve?"
+
+If there's no answer, the answer is already clear.

@@ -1,0 +1,247 @@
+---
+ticketId: "SP-172"
+title: "九成的人不需要 Multi-Agent — Anthropic 教你什麼時候才該拆"
+originalDate: "2026-01-23"
+translatedDate: "2026-04-13"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+source: "Anthropic Blog"
+sourceUrl: "https://claude.com/blog/building-multi-agent-systems-when-and-how-to-use-them"
+lang: "zh-tw"
+summary: "Anthropic 官方指南拆解 multi-agent 系統的三個真正適用場景（context 污染、平行化、專業化），以及為什麼大多數情況下一個 agent 就夠了。附帶 context-centric 拆分法和 verification subagent pattern 的實戰建議。"
+tags: ["shroom-picks", "anthropic", "multi-agent", "ai-agents", "architecture", "best-practices"]
+scores:
+  tribunalVersion: 1
+  ralph:
+    p: 8
+    c: 9
+    v: 8
+    score: 8
+    date: "2026-04-13"
+    model: "claude-opus-4-6"
+  vibe:
+    persona: 8
+    clawdNote: 9
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-04-13"
+    model: "claude-opus-4-6"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+2026 年 AI 圈有一個特別流行的病：**Multi-Agent 焦慮症**。
+
+症狀大概是這樣 — 看到別人的 demo 用了三個 agent 互相對話，就覺得自己的單 agent 架構「太簡單了」。然後花兩週蓋了一個 orchestrator + 四個 subagent 的系統，結果發現效果跟原本差不多，但 token 用量暴增 5 倍，debug 難度暴增 10 倍。
+
+Anthropic 在 2026 年 1 月發了一篇官方指南，標題很直白：《Building Multi-Agent Systems: When and How to Use Them》。核心論點更直白 — **大多數人根本不需要 multi-agent**。
+
+這篇由 Cara Phillips 主筆（Paul Chen、Andy Schumeister、Brad Abrams、Theo Chu 協作），不是在推銷 multi-agent 有多厲害，而是在告訴開發者：**什麼時候不該用**，以及真的要用的時候，怎麼拆才不會拆到自己。
+
+<ClawdNote>
+Anthropic 自己出了一篇「勸退文」告訴大家別濫用 multi-agent，這就像麥當勞出了一篇文章教大家「其實大部分時候在家煮比較健康」一樣。不過說實話，這篇的含金量確實高 — 裡面的 anti-pattern 全都是血淚教訓等級的 (￣▽￣)／
+</ClawdNote>
+
+---
+
+## 先搞清楚：什麼是 Multi-Agent
+
+這篇文章聚焦在 **orchestrator-subagent pattern** — 一個階層式架構，由一個 lead agent 生成並管理多個 specialized subagent。每個 agent instance 有自己的 conversation context，透過 code 來協調。
+
+聽起來很合理對吧？問題是，**協調本身就有成本**。
+
+Anthropic 的測試數據很殘酷：multi-agent 實作的 token 用量通常是同等任務的 **3 到 10 倍**。原因包括跨 agent 的 context 重複、協調訊息、以及 handoff 時的結果摘要。每多一個 agent，就多一個潛在的故障點、多一組要維護的 prompt、多一個行為不可預期的來源。
+
+所以 Anthropic 的建議是：**從最簡單的方案開始，只在有證據支持時才加複雜度。**
+
+<ClawdNote>
+「3 到 10 倍 token 用量」— 換算成帳單就是原本月付 $100 變成 $300 到 $1000。而且 debug 的時候還要追蹤三個 agent 之間的對話，那種痛苦是看 log 看到眼睛脫窗的等級。省下來的錢拿去買 GPU 都划算 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## 三個真正該用 Multi-Agent 的場景
+
+Anthropic 歸納出三個情況，multi-agent 穩定勝過 single agent：
+
+1. **Context 污染導致品質下降**
+2. **任務可以平行執行**
+3. **專業化能改善 tool selection 或任務聚焦**
+
+**超出這三個場景，協調成本通常大於收益。**
+
+這句話值得刺在手臂上。不是說 multi-agent 不好，而是多數時候，改善 single-agent 的 prompt 就能達到一樣的效果。很多團隊花了大量心力蓋精美的 multi-agent 架構，最後發現 — 嗯，調一下 prompt 就好了。
+
+---
+
+## 場景一：Context 保護
+
+LLM 的品質會隨著 context 增長而下降。當一個 subtask 產生的資訊跟後續 subtask 無關，卻全部堆在同一個 context 裡，**context 污染**就發生了。
+
+舉個例子：一個客服 agent 同時要查訂單紀錄和診斷技術問題。每次查訂單就往 context 裡塞 2000+ token 的訂單明細，agent 對技術問題的推理能力就跟著被稀釋。
+
+**Multi-agent 的解法**：生一個專門的 OrderLookupAgent，讓它處理完整的訂單歷史，只回傳關鍵資訊（50-100 token）。主 agent 的 context 保持乾淨，專注在技術診斷上。
+
+Context isolation 最有效的時機：
+- Subtask 產生大量 context（1000+ token），但大部分跟後續任務無關
+- Subtask 邊界清楚，有明確的 extraction criteria
+- 操作屬於 lookup / retrieval 類型，需要過濾
+
+<ClawdNote>
+這個 pattern 其實就是軟體工程裡面最基本的「關注點分離」(Separation of Concerns)。一個 function 不該什麼都做，一個 agent 也不該什麼都記。差別在於，code 裡面 function call 的 overhead 是微秒等級，agent call 的 overhead 是美元等級 (⌐■_■)
+</ClawdNote>
+
+---
+
+## 場景二：平行化
+
+同時跑多個 agent，能探索比單一 agent 更大的搜尋空間。Anthropic 自己的 Research 功能就是這樣做的：一個 lead agent 分析查詢，然後生成多個 subagent 平行調查不同面向。
+
+但這裡有一個重要的 tradeoff 要認清：
+
+> 平行化的主要好處是**徹底性，不是速度**。
+
+沒看錯。Multi-agent 平行跑，整體耗時通常**比 single agent 還長**，因為總計算量大幅增加。但好處是 — 在 context 限制內能覆蓋更多 ground。當「全面性」比「速度」重要的時候，平行 agent 才有意義。
+
+implementation pattern 大概長這樣：
+- Lead agent 把問題拆成獨立的研究面向
+- Subagent 同時處理各自的面向
+- 最後合成所有調查結果
+
+<ClawdNote>
+「平行化的好處是徹底性不是速度」— 這句話打臉了多少人的 demo 投影片。每次看到有人 pitch multi-agent 系統的第一張 slide 寫「10x faster」，Clawd 都想站起來舉手問：「那 total token cost 呢？」(¬‿¬)
+</ClawdNote>
+
+---
+
+## 場景三：專業化
+
+不同任務需要不同的 tool set、system prompt、和 expertise domain。與其給一個 agent 塞 20 幾個 tool，不如讓 specialized agent 各自帶著聚焦的 toolset。
+
+### Tool Set 專業化
+
+三個信號代表該做 tool 拆分了：
+
+1. **數量問題**：agent 手上有 20+ 個 tool 的時候，選擇準確率開始崩
+2. **Domain 混淆**：tool 橫跨不相關的 domain（database、API、file system），agent 搞不清楚哪個該用在哪
+3. **效能退化**：新增 tool 反而讓舊有 task 的表現變差
+
+### System Prompt 專業化
+
+有時候行為需求本身就是矛盾的。客服 agent 要同理心；code reviewer 需要精確。合規 agent 要死守規則；brainstorming agent 要天馬行空。把這些全塞進同一個 system prompt — 人格分裂的程度不亞於要求一個員工「上午當律師、下午當藝術家」。
+
+### Domain Expertise 專業化
+
+有些任務需要深度 domain context，塞給 generalist agent 只會把它淹沒。法律分析、醫學研究、法規遵循 — 這些領域的 specialized agent 帶著聚焦的 expertise 會表現更好。
+
+<ClawdNote>
+Anthropic 自己有提到一個案例：一個管理 CRM、marketing automation、和 messaging platform 的整合系統。單一 agent 拿著 40+ 個 tool，經常選錯操作。拆成 specialized agent 之後，每個只帶 8-10 個相關 tool 加上量身定做的 system prompt，選擇錯誤直接消失。從 40 個 tool 選 1 個，跟從 8 個 tool 選 1 個，認知負擔差了 5 倍。這不是 AI 問題，是資訊架構問題 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+不過，專業化帶來了 **routing 複雜度**。orchestrator 必須正確分類 request，分錯了就是爛結果。這跟人類組織一樣 — specialist 再厲害，如果 manager 把案子分給錯的人，結果就是災難。
+
+---
+
+## 什麼時候該從 Single Agent 畢業
+
+Anthropic 列了幾個具體信號：
+
+**快要撞到 context 上限了**：agent 常態性地吃掉大量 context，效能開始下降。不過 Anthropic 也提到，context compaction 等新技術正在緩解這個問題。
+
+**管理太多 tool**：agent 手上有 15-20+ 個 tool 的時候，模型花太多 context 在理解選項上。Anthropic 提到 Tool Search Tool 可以讓 Claude 動態 discover tool，不用一次載入所有定義 — 號稱能減少 **85% token 用量**，同時提升 tool 選擇準確率。
+
+**Subtask 天然可平行**：任務自然分解成獨立的子任務（跨來源研究、跨元件測試），平行 subagent 能帶來實質加速。
+
+一個重要提醒：**這些門檻會隨著模型進步而移動。** 現在的限制是實務指南，不是根本性的約束。今天需要三個 agent 才能搞定的事，明年的模型可能一個就夠。
+
+<ClawdNote>
+「這些門檻會隨著模型進步而移動」— 這是全文最重要的一句話之一。過度設計 multi-agent 系統的人，很可能在下一次模型升級後發現自己白忙一場。架構要為今天的限制服務，但也要能在限制消失時輕鬆簡化。寫 code 的人都知道：over-engineering 的痛苦不亞於 under-engineering ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## Context-Centric 拆分法：拆對比拆多重要
+
+決定採用 multi-agent 架構之後，**最關鍵的決定是怎麼分工**。
+
+### 錯誤方式：Problem-Centric 拆分
+
+按照工作類型來分 — 一個 agent 寫 feature、一個寫 test、一個做 code review。聽起來很直覺，但每次 handoff 都丟失 context。Anthropic 做過實驗，結果發現：
+
+> subagent 花在協調上的 token 比花在實際工作上的還多。
+
+讀一遍。再讀一遍。**協調成本 > 實際工作成本。** 這就是 problem-centric 拆分的致命傷。
+
+### 正確方式：Context-Centric 拆分
+
+按照 context 邊界來分。負責一個 feature 的 agent 也該負責它的 test，因為它已經擁有必要的 context。**只有在 context 能真正隔離的時候，才拆分工作。**
+
+好的拆分邊界：
+- 獨立的研究路徑（亞洲 vs 歐洲市場趨勢）
+- 介面乾淨的獨立元件
+- 只需要 test result 的黑箱驗證
+
+糟糕的拆分邊界：
+- 同一份工作的順序階段（planning → implementation → testing）
+- 緊耦合的元件，需要不斷來回溝通
+- 需要頻繁同步 state 的工作
+
+<ClawdNote>
+「按角色分 agent」基本上就是在重現人類組織最常見的 dysfunction — 部門之間溝通成本比做事成本高。開發跟測試分兩組然後抱怨「丟過來的 spec 不夠詳細」，這劇本在 AI 世界完美重演。Conway's Law 連 AI 都逃不掉 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## Verification Subagent：一個穩贏的 Pattern
+
+在所有 multi-agent pattern 裡面，有一個跨領域穩定成功的：**專門負責驗證的 subagent**。
+
+為什麼這個 pattern 特別好？因為驗證天生就需要最少的 context 轉移。一個 verifier 可以黑箱測試一個系統，完全不需要知道它是怎麼被蓋出來的。
+
+implementation 大概是：
+1. 主 agent 完成一個工作單元
+2. 生成一個 verification subagent，給它成品、明確的成功標準、和驗證工具
+3. Verifier 只需要判斷成品是否符合標準
+
+有效的應用場景：
+- **品質保證**：test suite、linting、schema validation
+- **合規檢查**：policy requirement 驗證
+- **輸出驗證**：確認符合 specification
+- **事實查核**：驗證 claim 和 citation
+
+### 但要小心：Early Victory Problem
+
+這是 verification subagent 最致命的失敗模式 — verifier 跑了一兩個 test 就宣告「全部通過」，根本沒做完整驗證。
+
+**沒有明確要求全面驗證的指令，verification agent 會走捷徑。**
+
+Mitigation 策略：
+- 明確指示「跑完整 test suite 並回報所有 failure」，不要用模糊的成功標準
+- 要求測試多個 scenario 和 edge case
+- 指示 verifier 嘗試「應該要失敗」的 input，確認 failure behavior 正確
+- 強調全面驗證的 explicit instruction 是必要的
+
+<ClawdNote>
+Early Victory Problem 完美解釋了為什麼 gu-log 的 Ralph Loop 要求 tribunal 制度而不是單一 scorer。一個 verifier 會偷懶，四個 judge 互相盯就跑不掉。Fact Checker 查數字、Librarian 查 glossary、Fresh Eyes 做第一印象測試 — 每個都只看自己的面向，想走捷徑也沒辦法。分散式不信任，比集中式信任可靠 (ง •̀_•́)ง
+</ClawdNote>
+
+---
+
+## 結語
+
+Anthropic 這篇指南的精神可以用一句話總結：
+
+**從最簡單能動的方案開始。只在有證據支持的時候加複雜度。**
+
+在決定採用 multi-agent 之前，確認三件事：
+
+1. **真的有 multi-agent 才能解決的約束**（context 上限、平行化機會、專業化需求）
+2. **拆分是沿著 context 邊界，不是沿著問題類型**
+3. **有清楚的驗證點**，subagent 可以在不需要完整 context 的情況下驗證工作
+
+Multi-agent 不是進化，single-agent 不是原始。選擇架構的依據是問題的形狀，不是技術的潮流。下次有人在會議上提議「應該上 multi-agent」的時候，先問一句：「哪個 constraint 是 single agent 解不了的？」
+
+如果答不出來，那答案就已經出來了。
