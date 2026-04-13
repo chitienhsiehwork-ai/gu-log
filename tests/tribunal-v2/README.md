@@ -12,6 +12,7 @@
 Tribunal v2 的 mental model 和 decisions 都 locked 了（見 `.score-loop/specs/`），但**還沒寫任何 code**。這份 pseudo code 是 **test-first spec** — 你可以把它讀成「未來 Builder 要讓這些 invariants 成立」。
 
 但更重要的是，它是**教學**。每個 test 檔案都有 What / Why / Pros / Cons / Alternatives，告訴你：
+
 - 哪些東西值得寫 test（deterministic、高價值、低維護成本）
 - 哪些東西**不值得寫 test**（LLM quality、主觀、需要 eval dataset）
 - 哪些東西**延後寫**（等 impl 穩定再說）
@@ -24,29 +25,29 @@ Tribunal v2 的 mental model 和 decisions 都 locked 了（見 `.score-loop/spe
 
 ### ✅ 該測（deterministic、高價值）
 
-這些東西**不需要跑 LLM 就能測**，只要餵 input 就能 assert output。寫一次、跑一輩子，regression 保護很紮實。
+    這些東西**不需要跑 LLM 就能測**，只要餵 input 就能 assert output。寫一次、跑一輩子，regression 保護很紮實。
 
-| 類別 | 範例 | 為什麼值得測 |
-|---|---|---|
-| **Programmatic constraints** | Writer diff check (URLs/headings 不變) | LLM 靠 prompt 守不住，只能靠 script enforce |
-| **Pure logic functions** | Pass bar calculation, relative degradation | 一行公式，改壞會立刻壞很多篇文章 |
-| **Schema validation** | Judge output shape, frontmatter Zod schema | Upstream 壞掉，downstream 全部崩 |
-| **State machine** | Stage transitions (PASS/FAIL/retry/NEEDS_REVIEW) | 迴圈 cap 錯了會燒死 quota |
-| **String parsing** | Git commit message format, LUXURY_TOKEN audit | 以後要 `git log --grep` 靠這個吃飯 |
-| **Contract tests** | Mock LLM 但驗 prompt 結構 | 抓到「有沒有把 checklist 塞進 prompt」這種 regression |
+| 類別                         | 範例                                             | 為什麼值得測                                          |
+| ---------------------------- | ------------------------------------------------ | ----------------------------------------------------- |
+| **Programmatic constraints** | Writer diff check (URLs/headings 不變)           | LLM 靠 prompt 守不住，只能靠 script enforce           |
+| **Pure logic functions**     | Pass bar calculation, relative degradation       | 一行公式，改壞會立刻壞很多篇文章                      |
+| **Schema validation**        | Judge output shape, frontmatter Zod schema       | Upstream 壞掉，downstream 全部崩                      |
+| **State machine**            | Stage transitions (PASS/FAIL/retry/NEEDS_REVIEW) | 迴圈 cap 錯了會燒死 quota                             |
+| **String parsing**           | Git commit message format, LUXURY_TOKEN audit    | 以後要 `git log --grep` 靠這個吃飯                    |
+| **Contract tests**           | Mock LLM 但驗 prompt 結構                        | 抓到「有沒有把 checklist 塞進 prompt」這種 regression |
 
 ### ❌ 不該測（主觀、非 deterministic、需要 ground truth）
 
 這些東西寫 unit test 會**假陽性**或**假陰性**，浪費你的時間。
 
-| 想測的 | 為什麼不該寫 unit test |
-|---|---|
-| **Vibe 好不好** | 主觀判斷，沒有 oracle |
-| **FactCorrector 真的找到錯誤嗎** | 需要 eval dataset（標註過的文章集）才能測 |
-| **ClawdNote 梗好不好笑** | 人類都無法 agree，測個屁 |
-| **Judge calibration（分數準不準）** | 需要 human-labeled ground truth |
-| **實際翻譯品質** | 同上 |
-| **LLM 真的遵守 negative constraint 嗎** | 測不到 — 只能測「我們有沒有用 programmatic diff check 兜底」|
+| 想測的                                  | 為什麼不該寫 unit test                                       |
+| --------------------------------------- | ------------------------------------------------------------ |
+| **Vibe 好不好**                         | 主觀判斷，沒有 oracle                                        |
+| **FactCorrector 真的找到錯誤嗎**        | 需要 eval dataset（標註過的文章集）才能測                    |
+| **ClawdNote 梗好不好笑**                | 人類都無法 agree，測個屁                                     |
+| **Judge calibration（分數準不準）**     | 需要 human-labeled ground truth                              |
+| **實際翻譯品質**                        | 同上                                                         |
+| **LLM 真的遵守 negative constraint 嗎** | 測不到 — 只能測「我們有沒有用 programmatic diff check 兜底」 |
 
 這些東西要靠**人肉 review + 長期 metrics (`completion_rate`, `dwell_time`)**，不是 unit test。
 
@@ -90,17 +91,17 @@ Tribunal v2 的 mental model 和 decisions 都 locked 了（見 `.score-loop/spe
 
 每個檔案都是獨立的 teaching artifact。建議照順序讀 01 → 09。
 
-| # | 檔案 | 這個測什麼 | 難度 |
-|---|---|---|---|
-| 01 | `pseudo/01-writer-constraints.pseudo.ts` | Programmatic diff check — URLs/headings/frontmatter 在 writer 跑完後必須不變 | ★★☆ |
-| 02 | `pseudo/02-pass-bar.pseudo.ts` | Pass bar 公式（Stage 1 absolute, Stage 4 relative） | ★☆☆ |
-| 03 | `pseudo/03-judge-schemas.pseudo.ts` | Judge output JSON 的 shape validation（Zod / TS types） | ★★☆ |
-| 04 | `pseudo/04-fact-corrector.pseudo.ts` | Standing checklist 塞進 prompt、source URL fetch、ClawdNote scope 排除 | ★★★ |
-| 05 | `pseudo/05-stage-transitions.pseudo.ts` | Stage 之間的 state machine（PASS/FAIL/retry/max loops/NEEDS_REVIEW） | ★★★ |
-| 06 | `pseudo/06-frontmatter.pseudo.ts` | Frontmatter schema 擴充（`warnedByStage0`, `warnReason`, `stage4Scores`） | ★☆☆ |
-| 07 | `pseudo/07-banner-rendering.pseudo.ts` | Banner UI 從 frontmatter 讀資料並渲染（Astro component） | ★★☆ |
-| 08 | `pseudo/08-git-commit-format.pseudo.ts` | Squash merge commit message 嵌 stage summary、`git log --grep` 找得到 | ★★☆ |
-| 09 | `pseudo/09-luxury-token-audit.pseudo.ts` | `scripts/luxury-token-audit.sh` 能正確 grep 到所有 LUXURY_TOKEN 標記 | ★☆☆ |
+| #   | 檔案                                     | 這個測什麼                                                                   | 難度 |
+| --- | ---------------------------------------- | ---------------------------------------------------------------------------- | ---- |
+| 01  | `pseudo/01-writer-constraints.pseudo.ts` | Programmatic diff check — URLs/headings/frontmatter 在 writer 跑完後必須不變 | ★★☆  |
+| 02  | `pseudo/02-pass-bar.pseudo.ts`           | Pass bar 公式（Stage 1 absolute, Stage 4 relative）                          | ★☆☆  |
+| 03  | `pseudo/03-judge-schemas.pseudo.ts`      | Judge output JSON 的 shape validation（Zod / TS types）                      | ★★☆  |
+| 04  | `pseudo/04-fact-corrector.pseudo.ts`     | Standing checklist 塞進 prompt、source URL fetch、ClawdNote scope 排除       | ★★★  |
+| 05  | `pseudo/05-stage-transitions.pseudo.ts`  | Stage 之間的 state machine（PASS/FAIL/retry/max loops/NEEDS_REVIEW）         | ★★★  |
+| 06  | `pseudo/06-frontmatter.pseudo.ts`        | Frontmatter schema 擴充（`warnedByStage0`, `warnReason`, `stage4Scores`）    | ★☆☆  |
+| 07  | `pseudo/07-banner-rendering.pseudo.ts`   | Banner UI 從 frontmatter 讀資料並渲染（Astro component）                     | ★★☆  |
+| 08  | `pseudo/08-git-commit-format.pseudo.ts`  | Squash merge commit message 嵌 stage summary、`git log --grep` 找得到        | ★★☆  |
+| 09  | `pseudo/09-luxury-token-audit.pseudo.ts` | `scripts/luxury-token-audit.sh` 能正確 grep 到所有 LUXURY_TOKEN 標記         | ★☆☆  |
 
 ---
 
