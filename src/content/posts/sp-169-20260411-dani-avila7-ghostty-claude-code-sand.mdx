@@ -1,0 +1,178 @@
+---
+ticketId: "SP-169"
+title: "Ghostty + Claude Code：用 SAND 口訣馴服多面板 terminal 工作流"
+originalDate: "2026-02-15"
+translatedDate: "2026-04-11"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Translator"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+source: "@dani_avila7 on X"
+sourceUrl: "https://x.com/dani_avila7/status/2023151176758268349"
+lang: "zh-tw"
+summary: "Daniel San 從 VSCode 搬家到 Ghostty，發明了一組叫 SAND 的口訣（Split / Across / Navigate / Destroy），把 Claude Code 的多面板工作流練成肌肉記憶。一篇務實到不行的 terminal 搬家指南。"
+tags: ["shroom-picks", "claude-code", "ghostty", "terminal", "workflow"]
+scores:
+  ralph:
+    p: 8
+    c: 9
+    v: 8
+    score: 8
+    date: "2026-04-11"
+    model: "claude-opus-4-6"
+  vibe:
+    persona: 8
+    clawdNote: 9
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-04-11"
+    model: "claude-opus-4-6"
+  factCheck:
+    accuracy: 8
+    fidelity: 9
+    consistency: 9
+    score: 8
+    date: "2026-04-11"
+    model: "claude-opus-4-6"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+2026 年的 terminal 搬家指南，第一步是：打開 Claude Code，叫它幫忙設定新 terminal。
+
+這不是笑話，是 Daniel San（Hedgineer 的 Head of AI，也是 aitmpl.com 的作者）寫的一篇 Ghostty + [Claude Code](/glossary#claude-code) workflow 文，字面上的第一個操作步驟。整篇文章也不是在講「哪個 terminal 最潮」，而是在回答一個更尷尬的問題 — 當每天同時跑三個 Claude Code instance 的時候，VSCode 到底是怎麼爛掉的？
+
+<ClawdNote>
+先講結論：這篇的價值不是「Ghostty 有多神」，而是「如果 VSCode 已經撐不住 AI agent 工作流，這裡有一條務實的搬家路線 + 一個便利貼等級的記憶術」。
+整篇文章零 benchmark、零 hype、零 screenshot 炫技。Clawd 樂見這種文章 — 2026 年的 AI 內容裡已經太少了 (¬‿¬)
+</ClawdNote>
+
+---
+
+## 從 VSCode 逃出來的那天
+
+Daniel 的故事起點很家常：每天用 Claude Code 用到後來，發現自己其實只在用 VSCode 的兩個功能 — terminal 和 git panel。其他那些 extension、debugger、intellisense，全都讓 Claude Code 自己在 shell 裡幹掉了。IDE 變成一個拿來開 terminal 的 wrapper。
+
+問題是這個 terminal 會死。Claude Code session 一開久，尤其是那種 agent 在跑 build、一秒噴幾百行 log 的時候，VSCode 內建的 terminal 會直接卡住。連在 M4 上都卡。
+
+<ClawdNote>
+這不是硬體不夠力，是工具用錯了地方。VSCode 的 terminal 本來的設計假設是「偶爾 cd 一下、偶爾 npm install」那種輕量使用 — 不是「AI agent 每秒噴一千行 token」這種量級。
+比喻一下：家裡廚房的洗碗槽可以洗晚餐的碗，但今天要洗的是整場婚宴宴客後的鍋碗瓢盆。水槽沒壞，只是這場戰役需要的是餐廳的三槽式洗滌台 (╯°□°)╯
+Clawd 的立場：繼續凹 VSCode 的 terminal 去跑 Claude Code，等於用家用洗碗槽洗婚宴 — 遲早炸。
+</ClawdNote>
+
+於是 Daniel 去找「真正的 terminal」，最後停在 **Ghostty** 上。理由很直接：社群看起來認真在做事，而且作者是 @mitchellh — 也就是 HashiCorp 的共同創辦人，現在離開公司全職寫 Ghostty。
+
+<ClawdNote>
+Mitchell Hashimoto 在 infra 圈是重量級人物。HashiCorp 的 Terraform、Vault、Consul 這些工具在過去十年幾乎定義了「infra as code」這個類別。一個寫 infra 寫了十幾年、以程式碼品質出名的人，現在全職寫 terminal — 這個賭注的賠率確實很漂亮。
+但 Clawd 要潑一點冷水：infra 工程師出身的人寫 UI/UX 工具有時候會卡在「功能都在，但用起來卡卡的」那種陷阱。所以 Clawd 的立場是「樂觀，但保留修正空間」— Ghostty 現在的口碑撐得住，但終端機做為日常 UI 還是吃設計直覺的 (⌐■_■)
+</ClawdNote>
+
+這個系列總共三篇，這篇是第一篇：
+
+1. **Ghostty 設定 + SAND 鍵盤快捷鍵**（本篇）
+2. 用 Lazygit 監控 Claude Code 的變更
+3. 用 git worktrees 跑平行 [agent](/glossary#agent)
+
+---
+
+## 讓 AI 來設定 AI 用的 terminal
+
+裝 Ghostty 這步沒什麼好寫的 — 去 [ghostty.org](https://ghostty.org/) 下載（macOS 和 Linux 都有），裝完需要一份設定檔放在 `~/.config/ghostty/config`。重點是 Daniel 怎麼處理設定檔這一步，因為這裡藏著整篇文章最荒謬、也最 2026 的細節。
+
+他直接打開 Claude Code，然後貼這一句：
+
+> Configure Ghostty with this config: https://gist.github.com/davila7/5b07f55a6e65a06c121da9702d10c2e2
+
+Claude 會自己去讀那個 gist、生出 config、丟進正確位置，結束。整個過程 zero 手動操作。
+
+如果屬於「沒親手跑指令會不安」的那一派，當然也可以老派一點：
+
+```bash
+mkdir -p ~/.config/ghostty
+curl -o ~/.config/ghostty/config https://gist.githubusercontent.com/davila7/5b07f55a6e65a06c121da9702d10c2e2/raw/config
+```
+
+<ClawdNote>
+Clawd 堅持這個細節值得停下來欣賞五秒鐘：「如何設定你的新 terminal」這份教學的第 1 步，是「叫 AI 幫你設定新 terminal」。
+這就是為什麼這篇的標題不應該叫「Ghostty 教學」，而應該叫「2026 年的 dev workflow 長這樣 — 連『讀 gist、複製貼上』這種雜事都被 outsource 掉了」。
+Clawd 的立場：這不是懶，是對的。人腦留給思考 workflow、不要浪費在複製 config。這一條支持 Daniel ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## 多面板的詛咒，跟 SAND 怎麼救命
+
+Ghostty 裝好、Claude Code 跑起來之後，真正的麻煩才開始。Ghostty + Claude Code 的正確姿勢是「多面板並陳」 — Claude 在左邊講話、`lazygit` 在右上角即時顯示 commit/diff、檔案瀏覽器在右下角看檔案樹。所有東西同時看得到，沒有「切 tab 找資料」這回事。
+
+問題：這套玩法的阻力不在工具，在人腦。開面板、跳面板、關面板、縮放面板 — 這些動作必須**不經思考**就能按出來。只要每次切面板都要停下來回想快捷鍵是 `Cmd+Shift+什麼`，整個 flow 就壞了 — 從「跟 Claude 一起寫 code」變成「跟 Ghostty 打快捷鍵摔角比賽」。
+
+Daniel 本來就這樣一直忘快捷鍵，直到他把所有面板操作塞進一組四個字母：**SAND**。**S**plit、**A**cross、**N**avigate、**D**estroy。開（S）、換 tab（A）、跳面板（N）、關（D） — 所有操作都會落在這四個桶子裡。
+
+### S / A / N / D 分別對到哪些鍵
+
+Split（`Cmd+D` 往右切、`Cmd+Shift+D` 往下切）。
+Across 在 tab 之間移動（`Cmd+T` 開新 tab、`Cmd+Shift+Left/Right` 切換 tab）。
+Navigate 在同一個 tab 的 split 之間跳焦點（`Cmd+Alt+Arrows` 任意方向、`Cmd+Shift+E` 把所有 split 大小拉平、`Cmd+Shift+F` 放大當前面板再按一次還原）。
+Destroy 關掉不要的（`Cmd+W` 關掉當前面板或 tab）。
+
+就這樣，九個快捷鍵，四個字母。
+
+<ClawdNote>
+Clawd 必須承認：SAND 這個口訣看起來很土，但心理學上它真的有根據 — 這招叫 chunking（分塊），人腦記東西的唯一方式。人腦記不住 10 個無關聯的快捷鍵，但可以記住 4 個有意義的英文單字。
+把這個跟業界常見的「UI 設計師花三小時想快捷鍵的好聽名字」比起來，SAND 這種野路子有用一百倍，因為它直接承認「人腦是爛的，別假裝讀者會記得住 10 組無意義的按鍵組合」。
+Clawd 的立場：設計快捷鍵的人應該都該學這招。Ghostty 的 default 快捷鍵雖然合理但記不住，Daniel 的 SAND 是貼在原生之上的認知外掛 (ง •̀_•́)ง
+</ClawdNote>
+
+---
+
+## 實戰 layout：從一個 agent 擴到三個
+
+光知道快捷鍵沒用，要看這套怎麼疊出來。Daniel 每天的標準 layout 是用 SAND 一步步疊出來的，可以從「一個 Claude Code」無痛長到「三個平行跑的 Claude Code」，而且心裡的口訣從頭到尾就是 SAND 四個字母。
+
+**第一層**：開一個 Ghostty 視窗，左邊跑一個 Claude Code 面板。**S** 一下（`Cmd+D`）往右切，右邊跑 [lazygit](https://github.com/jesseduffield/lazygit)，即時看著 Claude 每一個 commit、每一個 diff。這一步已經勝過 VSCode 百分之八十的使用者體驗了。
+
+**第二層**：再 **S** 一次（`Cmd+Shift+D`）把右邊那塊往下切，下半部開 [yazi](https://github.com/sxyazi/yazi)（一個 terminal 裡的檔案瀏覽器）。現在螢幕上同時有三樣東西：Claude 在講話、git 變動即時跑、檔案樹隨時點。這個 layout 大概處理得掉 80% 的日常任務。
+
+**第三層（進階）**：同時要處理多個功能時，把左邊的 Claude Code 區再 Split 成 2 或 3 個 Claude Code instance，每個指到不同的 git worktree — 一個 Claude 修 bug A、一個寫 feature B、一個重構 C，三個 agent 平行跑，互不干擾。
+
+<ClawdNote>
+Git worktree 這個 feature 在 git 裡冷板凳很久了 — 它讓同一個 repo 可以同時 checkout 好幾個 branch 到不同資料夾。以前工程師想「同時開發兩個 feature」的標準做法是 `git stash` 或開第二份 clone，兩個都醜。
+Clawd 必須站出來支持 Daniel 把 worktree 當成殺手鐧這個立場。平行跑三個 Claude Code agent 的前提就是 branch 之間要真正互不干擾，worktree 是唯一沒有狐臭的解法。`git stash` 會搞丟 context，第二份 clone 要重新 setup 一次 node_modules — 這兩條 Clawd 都不推。
+下一篇 Daniel 會細講，這篇先埋梗 (◕‿◕)
+</ClawdNote>
+
+某個 Claude Code 面板因為在看大段 log 或 diff 而吃掉太多空間的時候，只要 `Cmd+Shift+E`，所有 split 的大小就會重新拉平 — 屬於 N 的一招。這就是 Ghostty + worktrees 的組合拳：從「單一 agent 工作流」一路擴到「多 agent 平行工作流」，整個過程沒有離開 terminal 一次。
+
+### 把肌肉記憶燒進腦袋的土方法
+
+Daniel 的最後一個建議很 old-school，但 Clawd 在這裡要舉雙手雙腳贊成：**拿一張便利貼，上面寫 SAND，貼在螢幕邊緣看得到的地方**。每次眼角瞄到就練一次快捷鍵，大概一週之後 Ghostty 就會被手指完全接管，那張便利貼可以撕掉。
+
+真的忘記某個快捷鍵的時候，按 `Cmd+Shift+P` 叫出 Command Palette，所有指令都會列出來。但這是救急用的，不是日常操作。
+
+<ClawdNote>
+便利貼這招背後其實是認知科學裡的 **spaced repetition**（間隔重複）— 大腦每隔幾分鐘被視覺提示戳一下，就會自動把「這個東西重要」這個訊號放大，然後把記憶從短期區搬到長期區。
+這個原理值得注意的地方是：Anki、Duolingo 這種語言學習 app 整套商業模式就是賣這個原理，訂閱月費從台幣 150 到 450 不等。Daniel 用的是一張 10 塊錢便利貼。效果一樣好，成本差 40 倍。
+Clawd 的立場：tech 圈動不動就想「用 app 解決問題」，但有時候最便宜的類比工具才是對的答案。這種「低科技勝出」的情境在 2026 年其實越來越稀缺，值得記下來 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## 結語：一張便利貼 vs. 三個 AI agent
+
+回頭看這整篇文章，它的結構其實很反 2026 的 AI 內容常態。沒有跑 benchmark、沒有曲線圖、沒有「GPT-X 又被打敗了」的戰場播報。只有一個每天跑多個 Claude Code instance 的工程師，承認自己記不住快捷鍵，所以拿便利貼貼在螢幕邊。
+
+但這正是它強的地方。當整個產業都在討論「agent 有多神」的時候，Daniel 討論的是「agent workflow 的 ergonomics 怎麼調才不會累死自己」— 這是一個明顯更小、更雞毛蒜皮、但實際上影響每天能不能好好下班的問題。
+
+所以整篇的 takeaway 可以壓成一句：**管理三個 AI agent 的前提，是先把一張寫著 SAND 的便利貼貼在螢幕旁邊**。聽起來荒謬，但這就是 2026 年的 dev ergonomics 真正的樣子。
+
+<ClawdNote>
+Clawd 對這個系列的整體立場：這篇沒有開新技術、沒有 benchmark war、沒有「Ghostty 大戰 iTerm2」那種戰文——就是一個真的每天用 Claude Code 的人，分享怎麼讓工具不要擋路。
+最有價值的一句話在哪裡？不在 SAND、不在 worktree，而在於「第一步是叫 AI 幫你設定新 terminal」這個細節 — 這一句把 2026 年的 dev 生活畫面直接釘在牆上。
+這篇照做就能用，不用懂 Ghostty 的原理，不用懂 worktree 的內部實作，不用懂 Mitchell Hashimoto 是誰。這種能「抄完就跑」的文章，比大多數 AI hype 文章有用 10 倍，Clawd 結案 (⌐■_■)
+</ClawdNote>

@@ -223,7 +223,7 @@ gu-log 使用 Ralph Loop 進行品質管理——一個 multi-agent scoring + re
 
 ### 流程
 
-1. **Scorer agent** 讀文章 + 評分標準（`scripts/ralph-vibe-scoring-standard.md`），給出三維分數：
+1. **Scorer agent** 讀文章 + 評分標準（`scripts/vibe-scoring-standard.md`），給出三維分數：
    - **Persona**（李宏毅教授風格 0-10）
    - **ClawdNote**（吐槽品質 + 密度 0-10）
    - **Vibe**（整體可讀性 0-10）
@@ -313,10 +313,16 @@ Pipeline agents：如果無法取得完整 source，output `INCOMPLETE_SOURCE: <
 ### SP Pipeline（自動翻譯流程）
 
 ```bash
+# Canonical: the Go binary (self-compiling wrapper — first run cold-builds)
+tools/sp-pipeline/sp-pipeline run <tweet_url>
+
+# Backwards-compat: old bash entry point is a shim that execs into the Go binary.
 bash scripts/sp-pipeline.sh <tweet_url>
 ```
 
-自動流程：抓原文 → 翻譯 → 生成雙語 MDX → Ralph 評分 → commit
+自動流程：抓原文 → 評估 → dedup → 翻譯 → review → refine → credits → Ralph 評分 → commit。
+
+單一 step 也可以直接 call：`tools/sp-pipeline/sp-pipeline fetch <url>` / `eval` / `write` / `review` / `refine` / `ralph` / `deploy`。每個 subcommand 都支援 `--json` 輸出。完整 exit code + flag 對照見 `tools/sp-pipeline/SKILL.md`。
 
 ### Validation
 

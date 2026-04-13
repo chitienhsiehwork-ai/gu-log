@@ -51,8 +51,29 @@ const COMPOUND_TOKENS = [
   ['vibe-coding', 'vibe-coding'],
 ];
 
-// Domain stop words: only demote standalone occurrences, NOT inside compounds
-const DOMAIN_STOP_WORDS = new Set(['ai', 'agent', 'claude', 'code', 'anthropic', 'coding']);
+// Domain stop words: only demote standalone occurrences, NOT inside compounds.
+// Includes frequent person/handle names — these indicate WHO the article covers,
+// not WHAT topic, so they shouldn't count toward topic similarity overlap.
+const DOMAIN_STOP_WORDS = new Set([
+  // Tech domain terms
+  'ai',
+  'agent',
+  'claude',
+  'code',
+  'anthropic',
+  'coding',
+  // Frequently-covered person names (cause false positives in pairwise scan)
+  'simon',
+  'willison',
+  'simonw',
+  'boris',
+  'cherny',
+  'bcherny',
+  'karpathy',
+  'rauchg',
+  'andrew',
+  'ng',
+]);
 
 // ─── URL utilities ────────────────────────────────────────────────────────────
 

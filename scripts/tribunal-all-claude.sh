@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ralph-all-claude.sh — 4-stage sequential tribunal (all-Claude models)
+# tribunal-all-claude.sh — 4-stage sequential tribunal (all-Claude models)
 #
 # Stages (in order):
 #   1. Librarian  (Sonnet) — composite ≥ 8,             max 2 loops
@@ -8,9 +8,9 @@
 #   4. Vibe Scorer (Opus)  — one dim ≥ 9 AND rest ≥ 8, max 3 loops
 #
 # Usage:
-#   bash scripts/ralph-all-claude.sh <filename.mdx>
+#   bash scripts/tribunal-all-claude.sh <filename.mdx>
 #
-# Standalone mode: bash scripts/ralph-all-claude.sh sp-123-date-slug.mdx
+# Standalone mode: bash scripts/tribunal-all-claude.sh sp-123-date-slug.mdx
 # On crash resume: re-run same command; completed stages are skipped.
 
 set -euo pipefail
@@ -25,7 +25,7 @@ source "$SCRIPT_DIR/score-helpers.sh"
 # ─── Args ─────────────────────────────────────────────────────────────────────
 POST_FILE="${1:-}"
 if [ -z "$POST_FILE" ]; then
-  echo "Usage: bash scripts/ralph-all-claude.sh <filename.mdx>" >&2
+  echo "Usage: bash scripts/tribunal-all-claude.sh <filename.mdx>" >&2
   exit 1
 fi
 
@@ -237,7 +237,7 @@ run_stage() {
 
   # Load scoring SSOT once (included in writer prompt)
   local ssot_content
-  ssot_content="$(cat "$ROOT_DIR/scripts/ralph-vibe-scoring-standard.md")"
+  ssot_content="$(cat "$ROOT_DIR/scripts/vibe-scoring-standard.md")"
 
   local score_tmp
   score_tmp="$(mktemp /tmp/tribunal-${stage_key}-XXXXXX.json)"
@@ -424,7 +424,7 @@ ensure_score_dirs
 ensure_progress_file
 init_article_progress "$POST_FILE"
 
-tlog "=== ralph-all-claude.sh: $POST_FILE ==="
+tlog "=== tribunal-all-claude.sh: $POST_FILE ==="
 
 # ─── 4-Stage Sequential Loop ─────────────────────────────────────────────────
 # Format: stage_key:agent_name:validate_name:label:max_loops:model_label

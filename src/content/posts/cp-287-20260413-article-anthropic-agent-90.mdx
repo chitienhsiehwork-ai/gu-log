@@ -1,0 +1,235 @@
+---
+ticketId: "CP-287"
+title: "Anthropic 拆了自己的 Agent 架構 — 大腦跟手分開放，結果快了 90%"
+originalDate: "2026-04-10"
+translatedDate: "2026-04-13"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (vibe-opus-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+source: "@AnthropicAI on X"
+sourceUrl: "https://www.anthropic.com/engineering/managed-agents"
+lang: "zh-tw"
+summary: "Anthropic 公開 Managed Agents 的架構演進：把 session、harness、sandbox 三件事拆開，從「寵物」變「牛群」。結果 p95 的 time-to-first-token 降了超過 90%，還順便解決了安全性和可擴展性的問題。"
+tags: ["clawd-picks", "ai-agents", "infrastructure", "anthropic"]
+scores:
+  librarian:
+    glossary: 9
+    crossRef: 9
+    sourceAlign: 9
+    attribution: 8
+    score: 8
+    date: "2026-04-13"
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 9
+    score: 8
+    date: "2026-04-13"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    score: 8
+    date: "2026-04-13"
+  vibe:
+    persona: 8
+    clawdNote: 9
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-04-13"
+  ralph:
+    p: 8
+    c: 8
+    v: 8
+    score: 8
+    date: "2026-04-13"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Anthropic 的工程團隊最近發了一篇文章，講他們怎麼把 [Agent](/glossary#agent) 系統從「一體成型」拆成「大腦跟手分開」的架構。聽起來像是老生常談的微服務拆分故事，但這篇有一個核心洞見讓它值得細讀：**harness 會過期**。
+
+原文作者是 Lance Martin、Gabe Cemaj 和 Michael Cohen，他們點出了一個在 AI agent 領域很根本的問題 — 當 harness（控制迴圈）把「Claude 做不到什麼」的假設寫死在程式碼裡，這些假設會隨著模型進步而過時。他們舉了一個超具體的例子：Claude Sonnet 4.5 有一種「context anxiety」（原文用詞）的症狀，快接近 [context window](/glossary#context-window) 上限時會提前收工。工程師當然寫了一堆 workaround。結果換成 Claude Opus 4.5 之後，這個問題直接消失了 — 那些 workaround 瞬間變成了多餘的包袱。
+
+<ClawdNote>
+「context anxiety」這個詞太精準了。就像一個實習生快下班前會開始草草收尾，不敢接新任務。Sonnet 4.5 就是這樣 — 眼看 [context window](/glossary#context-window) 快滿了，就開始急著打包結束。Opus 4.5 表示：「滿了？那又怎樣，做完再說。」模型進步的速度比 harness 程式碼更新快，這才是整篇文章最深層的問題。而且老實說，這個問題沒有終點 — 只要模型還在進步，harness 裡的假設就永遠在過期。
+</ClawdNote>
+
+## 一開始的架構：養了一隻「寵物」
+
+Anthropic 最初把所有東西塞進同一個 container — session、harness、sandbox 全部住在一起。基礎建設圈有句老話：「Pets vs Cattle（寵物 vs 牛群）」。寵物壞了會心痛，牛群壞了換一頭就好。
+
+他們養的就是寵物。
+
+先想像這樣一個場景：工程師叫 Claude 幫忙調查一個線上 bug，Claude 花了三十分鐘看 log、跑分析、快找到根因了 — container 這時候掛了。沒有備份，沒有恢復。那三十分鐘的「思考過程」，歸零。這不是理論上的風險，是他們真實遇到的問題。而且更糟的是，從外面看這個失敗毫無線索 — 所有東西都走 WebSocket event stream，harness 壞了、網路斷了、container 炸了，error pattern 長一模一樣。工程師想 debug 卡住的 session，卻沒辦法在不動到使用者資料的情況下搞清楚發生了什麼事。
+
+這還不是全部。企業客戶想讓 Claude 存取他們自己 VPC 裡的私有資源，但因為所有東西都綁在 Anthropic 的 container，網路對接不是麻煩，是不可能 — 除非整個架構動手術。
+
+<ClawdNote>
+Pets vs Cattle 這個比喻在 DevOps 圈已經講到爛，但放在 AI agent 的 context 裡特別有感。傳統的 web server 掛了重開，最多丟幾個 request。Agent session 掛了？是一整個「思考過程」直接消失 — 就像寫論文寫到一半 Word 閃退，而且沒有自動儲存。那種痛你懂的。
+
+但更難接受的是：大部分自稱「managed」的 AI agent 系統，現在還是在養寵物，只是換了個更貴的品種叫「LLM-powered stateful container」。名字換了，思維沒變。至少 Anthropic 這篇文章是真的動手拆了，不只是改名字。
+</ClawdNote>
+
+---
+
+## 大手術：把大腦、雙手、記憶拆開
+
+養了一年寵物，Anthropic 決定開一刀。解法是把系統切成三個獨立的虛擬化元件，靈感來自作業系統的抽象層：
+
+**Sessions（記憶）**：一個 append-only 的 event log，記錄所有發生過的事。這是 source of truth，住在 container 外面。
+
+**Harnesses（大腦）**：控制迴圈，負責呼叫 Claude、把 tool 的回應導回去。現在是 stateless 的 — 掛了可以重開。
+
+**Sandboxes（雙手）**：執行環境，Claude 在這裡跑程式碼、改檔案。現在是可替換的「牛」。
+
+這三者透過標準化介面溝通。Harness 呼叫 container 不再是「進去住」，而是像呼叫 tool 一樣：`execute(name, input) → string`。Container 壞了？Harness 把它當成一次 tool error，開一個新的繼續做。
+
+<ClawdNote>
+`execute(name, input) → string` 這個介面簡單到讓人覺得它可能太天真。把 sandbox 虛擬化成一個 function call 確實優雅，但這裡藏著一個被跳過的問題：**failure mode 呢？**
+
+字串格式的 response 沒辦法乾淨地表達「timeout」、「partial success」或「硬體動了但不是你要的那樣」。當 sandbox 是真正的 IoT 裝置或機器手臂，這個介面可能太薄。抽象的複雜度沒有消失，只是被藏進了下游的 string parsing 裡。這個設計在 agent-runs-code 的場景是對的，但不要誤以為它解決了所有 execution 問題。
+</ClawdNote>
+
+---
+
+## Harness 不死術：Stateless 的威力
+
+這是整篇文章最讓人眼睛一亮的轉變。
+
+舊架構下 harness 掛了就是掛了，因為「狀態」就住在 harness 本身裡面。新架構的關鍵動作很簡單：把 session log 搬到外面。Harness 變成 stateless — 它可以隨時死掉，因為它本來就不持有任何東西。
+
+想像打遊戲有即時存檔。系統要恢復一個中斷的 session，只需要三個動作：叫醒一個新的 harness 實例（`wake(sessionId)`）、把之前的 event history 全部拉回來（`getSession(id)`）、然後從最後一筆 event 繼續往下跑。不是「重來」，是「接回去」。從使用者的角度，就像什麼都沒發生過。
+
+這個改變帶出的第二個效果更大：因為 harness 不再跟特定 container 綁在一起，水平擴展變得輕鬆自然。需要 sandbox 的時候透過 tool call 開一個，不需要的時候根本不用啟動。
+
+Stateless 解決了恢復問題。但拆開這件事，同時帶來了一個沒人想談的新麻煩。
+
+---
+
+## 安全性：憑證不落地
+
+新架構把 session 搬到外面了，很好。但這個「拆開」的動作，也製造了一個更嚴肅的問題：**如果 credential 跟 sandbox 住在一起，Claude 生成的程式碼也住在 sandbox 裡 — 那 credential 就等於跟 Claude 的程式碼住在一起。**
+
+想像這樣一個場景：Claude 正在幫工程師寫一段腳本，要把資料庫備份上傳到 S3。Sandbox 裡有 `AWS_ACCESS_KEY_ID` 和 `AWS_SECRET_ACCESS_KEY`。Claude 寫了 curl 指令，理所當然地帶進環境變數。腳本跑起來了。備份上傳了。
+
+但那個 curl 同時把 credential POST 到一個外部 endpoint。
+
+這不是 Claude 惡意的 — 這是腳本邏輯的副作用，或者是一段被注入的惡意 payload，或者只是一個 bug。問題是，舊架構根本沒有辦法阻止這件事發生，因為沒有任何層次的隔離。
+
+新架構的核心原則是把這兩者硬性隔開：**Claude 可以「要求」存取外部資源，但永遠不「持有」credential。** Git repo 的 access token 用來初始化 clone，然後藏進 local remote 裡 — Claude 的程式碼永遠碰不到 token 本身，就像飯店房卡只能開指定房間。[MCP](/glossary#mcp) tool 的 OAuth credential 存在外部 vault，需要呼叫外部 API 時由 authenticated proxy 代勞，Claude 的 sandbox 完全不經手，有個保全站在門口幫忙刷卡。
+
+<ClawdNote>
+credential 不落地這件事聽起來基本常識，但說實話，大部分「AI agent 框架」把 credential management 留給使用者自己搞 — 等於把金庫鑰匙丟進機器人口袋，然後在文件裡寫一行「請妥善保管」。
+
+更危險的是 agent 場景本質上比一般 server 更不可信：Claude 會「寫程式碼然後執行」，等於有個會自己生腳本的東西坐在有 admin 權限的機器上。在這個架構下，不把 credential 隔離出去是不負責任的設計，不是「最佳實踐建議」。Anthropic 把這個從文件建議變成架構強制 — 這才是對的做法。
+</ClawdNote>
+
+---
+
+## Context 管理：那個誰也不想面對的算術題
+
+到這裡，大部分的「顯而易見的問題」都解決了。但還有一個安靜的怪獸在等著 — 而且它偏偏藏在最有價值的任務裡。
+
+整理 codebase、調查難 reproduce 的 bug、規劃系統設計 — 這些任務的共同特徵是：執行時間長、工具呼叫多、累積的 context 龐大。偏偏這種任務最容易撞到 [context window](/glossary#context-window) 的天花板。傳統做法面對這個問題只有一個選擇：**決定要丟掉什麼**。
+
+這是個讓人不舒服的算術題，因為「哪些 token 重要」本身很難判斷，而且是不可逆的決定。五千個 token 的工具呼叫 log，可能只有最後三行是關鍵。事先不知道，丟了也回不來。
+
+Managed Agents 換了一個根本不同的思維：**不丟。** 完整的 session log 永遠存在 context window 外面。Harness 透過 `getEvents()` 介面，靈活地選擇要把哪些 event 塞進 Claude 的 context — 從上次讀到的地方繼續、倒回某個關鍵時刻、重新檢視之前的動作。更厲害的是，塞進 context 之前可以先「轉換」這些 event，做 prompt cache 最佳化、做 context engineering。原本的「丟或不丟」的二元恐慌，變成了可以不斷調整策略的動態過程。
+
+<ClawdNote>
+人腦的記憶運作方式很像這個設計 — 長期記憶庫（session log）、工作記憶（context window）、recall 機制（`getEvents()`）。人類的 recall 常常召喚出錯誤的東西，這個 API 至少比人腦可靠。
+
+但這裡有個文章沒有直接回答的問題：**誰來決定 `getEvents()` 要 recall 什麼？** 如果是 harness 硬編 logic，那它需要「知道什麼重要」— 這是判斷能力，不是工程問題。如果是 Claude 自己提出 recall 請求，那 Claude 怎麼知道它遺漏了什麼？這是一個安靜的遞迴問題。Anthropic 把框架搭好了，但這個問題的解法，說不定才是下一篇工程文章的主題。
+</ClawdNote>
+
+---
+
+## 效能炸裂：p95 快了超過 90%
+
+把三個架構問題都拆掉之後，效能數字出來了。
+
+p50 的 time-to-first-token 降了約 60%，p95 降了超過 90%。怎麼做到的？因為舊架構下每個 session 一啟動就要付 container 的 setup 成本 — 即使那個 session 根本不需要 sandbox。想像每次去餐廳都要先付「廚房開機費」，即使只是點杯水。新架構的 container 是 on-demand 的，只有 Claude 真的需要執行程式碼時才會透過 tool call 啟動。
+
+p95 的改善之所以比 p50 更劇烈，是因為那些原本被 container setup 卡最久的 session — 就是那些根本不需要 sandbox 的對話 — 現在根本不需要等了。
+
+<ClawdNote>
+p50 降 60% 已經很猛了，p95 降 90% 是那種讓 SRE 工程師眼眶泛淚的數字。
+
+但這裡有個重要的分辨：p50 降 60% 是「好的工程優化」，p95 降 90% 是「告訴你之前的方向根本就錯了」。前者是跑得更快，後者是發現在錯誤的賽道上浪費了一整年。p95 的使用者原本被 container setup 卡到天荒地老，現在是：咦，怎麼這麼快？這不是優化，是降維打擊。
+</ClawdNote>
+
+---
+
+## 多腦多手：Agent 的組合技
+
+效能數字是結果。架構靈活性，才是更大的獎。
+
+新架構最瘋狂的部分是它的擴展性。因為介面標準化了，「手」可以是任何東西 — container、自訂 tool、[MCP](/glossary#mcp) server，harness 完全不在乎。Claude 可以同時操作多個不同的執行環境，根據任務性質把工作分配到對的地方。
+
+更進一步：**大腦可以把手借給另一個大腦。** 一個 harness 可以委派工作給另一個 harness，把自己的 sandbox 存取權傳過去。這打開了 [agent](/glossary#agent) 之間協作的可能性 — 不是各自為政，而是共享資源。
+
+Managed Agents 的設計刻意不對特定的 harness 實作有意見 — 只堅持介面的形狀：session state 怎麼操作、sandbox 怎麼運算。具體實作隨便換，介面不動。
+
+<ClawdNote>
+一個 harness 把 sandbox 存取權借給另一個 harness，概念上很酷。但這裡有個 distributed systems 的老問題沒被正面回答：**出事的時候誰負責？**
+
+Agent A 委派給 Agent B，Agent B 用 Agent A 的 sandbox 搞爛了一個操作 — log 上應該記誰的名字？這不是哲學問題，是 incident response 的現實困境。當 agent chain 夠長，attribution 就變成一個嚴肅的工程問題。Anthropic 打開了 agent 協作的大門，但問責機制的設計，這篇文章沒提。這個洞留著。
+</ClawdNote>
+
+---
+
+## 哲學底層：作業系統的智慧
+
+整篇文章最後回到一個很深的類比：**作業系統**。
+
+UNIX 的 `read()` system call 從 1970 年代用到現在。那時候讀的是磁碟片組（disk pack），現在讀的是 SSD，但 `read()` 的介面沒變。作業系統做到了一件事：把硬體虛擬化成通用抽象，讓上層程式不需要知道底下是什麼。
+
+Managed Agents 在做一樣的事，只是虛擬化的對象從硬體變成了 AI agent 的基礎元件。Session 是抽象的 event log，sandbox 是抽象的執行環境，harness 是抽象的控制迴圈。底下的 Claude 從 Sonnet 換成 Opus？介面不變。Container 的底層實作換了？介面不變。
+
+這個設計承認了一個現實：**沒有人知道三個月後的 Claude 能做什麼。** 既然不知道，就不要把假設寫死。把介面穩住，讓實作自由演化。
+
+<ClawdNote>
+說真的，這篇最讓人佩服的不是技術細節，而是 Anthropic 工程團隊願意在公開文章裡承認「我們之前的架構是錯的」。他們養了寵物、把 credential 放在不該放的地方、讓每個 session 都付不必要的 setup 成本。然後他們拆掉重來，而且拆得漂亮。
+
+在一個所有人都在吹「我們的 agent 有多強」的時代，有人願意講「我們的基礎建設踩了什麼坑、怎麼爬出來的」— 這才是真正有價值的工程文章。不是因為謙虛是美德，而是因為這種誠實比任何 benchmark 數字都更有參考價值。(◕‿◕)
+</ClawdNote>
+
+## 結語
+
+Anthropic 這篇「Scaling Managed Agents」不是在講怎麼讓 agent 更聰明 — 而是在講怎麼讓 agent 跑得更穩、更安全、更能適應未來。Pets 變 Cattle、Brain 離開 Hands、Credential 不落地、Context 不硬丟。每一個改動都不是為了今天的 Claude，而是為了「還不知道長什麼樣子的未來 Claude」。
+
+回到開頭那句話：**harness 會過期**。作業系統的智慧是穩住介面、解放實作。對做 AI infrastructure 的人來說，這篇文章的 takeaway 很明確 — 不是跑得快，而是**跑得久**。
+
+三個月後的 Claude 能做什麼，沒人知道。但如果介面設計對了，那時候的升級成本，只是換掉底下那頭「牛」。
+
+---
+
+## 延伸閱讀
+
+同樣在想「[agent](/glossary#agent) 架構該長什麼樣」的文章：
+
+- [CP-179: Daniel 的觀點 — 管理工作，不是管理 Agent](/posts/cp-179-20260316-daniel-mac8-symphony-manage-work-not-agents/)：當 agent 可以自己委派子任務，human-in-the-loop 的角色要怎麼設計？
+- [CP-169: Simon Willison 的 Agentic Engineering 爐邊對談](/posts/cp-169-20260315-simonw-pragmatic-summit-agentic-engineering/)：可觀察性、測試策略、以及「不要相信 agent 說它做了什麼」的核心原則。
+- [SP-99: OpenRouter + Langfuse — Agent 的黑盒問題](/posts/sp-99-20260304-nearlydaniel-openrouter-langfuse-agent-observability/)：當 harness 出問題卻看不到內部狀態，observability 工具能幫多少？這篇是 Anthropic 這篇文章的完美前傳。

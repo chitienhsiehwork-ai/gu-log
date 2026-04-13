@@ -1994,5 +1994,1191 @@
     "status": "FAILED",
     "failedStage": "freshEyes",
     "finishedAt": "2026-04-11T00:28:52+08:00"
+  },
+  "cp-pending-20260411-al-grigor-claude-code-ai.mdx": {
+    "article": "cp-pending-20260411-al-grigor-claude-code-ai.mdx",
+    "startedAt": "2026-04-11T10:13:52+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 8,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "All three glossary-present terms used in the post are correctly linked — Claude Code → /glossary#claude-code (line 31), agent → /glossary#agent (line 31), subagent → /glossary#subagent (line 133); orchestrator and CI/CD are not in glossary.json so no deduction.",
+            "crossRef": "Both internal cross-refs resolve to existing files — /posts/claude-code-sustainable-ai-workflow (line 86) and /posts/agent-ships-while-you-sleep (line 109); identity link rule not triggered since Clawd/ShroomDog are not named in prose; 1-2 optional thematic connections (Ralph Loop) could be added.",
+            "sourceAlign": "Content (PM/SWE/QA/On-Call roles, pipeline lifecycle, file-based tracker, limitations, 5-project validation, next-steps roadmap) is detailed and internally consistent with the declared @Al_Grigor tweet source; tweet cannot be independently fetched so minor undetectable drift stays possible.",
+            "attribution": "Al Grigor's views are attributed at every section ('Al Grigor 分享了...', 'Al Grigor 特別強調...', 'Al Grigor 的看法是...', 'Al Grigor 很坦白地說了...'); ClawdNote opinions are fully contained within ClawdNote components; Roland WayneOZ and Ryan Carson cross-refs properly attributed by name."
+          }
+        },
+        "model": "sonnet",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "fact-checker",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Technical claims (Claude Code's .claude/agents/ structure, CLAUDE.md, execute skill, multi-agent orchestration patterns) are all accurate and consistent with real Claude Code capabilities; no fabricated statistics or benchmark numbers — the only quantitative claim ('五個軟體專案') is explicitly attributed to Al Grigor as his own experience, not presented as a verifiable external fact.",
+            "fidelity": "Source attribution to Al Grigor is consistent throughout; limitations section explicitly preserved ('Al Grigor 很坦白地說了這套方法的限制') with specific failure modes listed (orchestrator stopping, unnecessary confirmations, skipping process, limited subagent visibility); ClawdNotes are clearly separated from body content and no source hedges are converted to certainties.",
+            "consistency": "Strong logical arc from opening problem ('single agent verifying its own work is unreliable') through solution (role separation), implementation (pipeline + repo encoding), honest limitations, to conclusion that callbacks the core insight; ClawdNotes reliably flag opinion vs. fact; cross-references to related posts reinforce the theme without contradiction."
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Clear structure with numbered pipeline steps; a few unexplained terms (orchestrator, subagent, backlog) but glossary links soften the blow, and cross-references to other posts land without enough context for a new reader.",
+            "firstImpression": "Practical problem framing (AI lies about being done) hooks immediately, ClawdNotes add levity, and the honest limitations section earns trust — would finish and might share with someone frustrated by AI agent drift."
+          }
+        },
+        "model": "haiku",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Opening exam analogy (出題者/作答者/改卷者) and small-company framing are strong LHY; sections 2-5 (pipeline, file tracker, parallel) slide into report mode and dilute the oral feel.",
+            "clawdNote": "Note 6 ('prompt-based enforcement 本質上就是「拜託」agent 照著做') and Note 2 (test-green-but-wrong-feature insight) are genuine opinion highlights with edge; all six notes avoid Wikipedia territory.",
+            "vibe": "Honest limitations section ('也足以說明它哪裡不夠用') is the article's strongest moment; task-tracking section is the only genuinely dry stretch; would share with a dev friend interested in AI agents.",
+            "clarity": "Body text clean of 你/我 throughout; Al Grigor's opinions consistently attributed by name; ClawdNote speaker never ambiguous.",
+            "narrative": "Genuine arc from exam-problem to enforcement-as-architecture with explicit callback close ('回到開頭那個數學問題'); limitations section is a real emotional pivot; middle sections 2-5 are mechanically sequential but don't reduce to a pure decorative trap."
+          }
+        },
+        "model": "opus",
+        "attempts": 3
+      }
+    },
+    "status": "PASS",
+    "finishedAt": "2026-04-11T10:38:46+08:00"
+  },
+  "cp-pending-20260411-article-ai-microsoft-agent-framework-amd-mcp.mdx": {
+    "article": "cp-pending-20260411-article-ai-microsoft-agent-framework-amd-mcp.mdx",
+    "startedAt": "2026-04-11T19:39:10+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 8,
+            "sourceAlign": 9,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "所有出現在 glossary.json 的核心術語均已正確連結：agent 在首段即以 multi-[agent](/glossary#agent) 形式出現，後續多處重複連結；MCP 每節首次出現均有 [MCP](/glossary#mcp)；Claude Code 在開發者調查段落以 [Claude Code](/glossary#claude-code) 標注兩次；後段 'orchestrator agent' 未再補鏈但語境已充分建立，符合 '1-2 minor unlinked but all key terms covered'。",
+            "crossRef": "三條內部 /posts/ 連結均 glob 驗證存在：sp-52-20260212-codex-mcp-claude-code、sp-97-20260303-vikingmute-mcp-context-mode-98-token、clawd-picks-20260211-karpathy-deepwiki-mcp-rip-out；主題相關性強，MCP 深度讀和 Karpathy 觀點置入自然；文中無 ShroomDog/Clawd 姓名直呼，identity link 規則未觸發；若有 AMD 推論或 Vera Rubin 相關文章可補強，但非必要。",
+            "sourceAlign": "來源為 DEV Community 週報（alexmercedcoder，week of Apr 3-9 2026），文章完整涵蓋：Microsoft Agent Framework 1.0、AMD MI355X MLPerf 6.0、MCP v2.1 Server Cards、JetBrains AI Pulse 調查、Gemma 4、Intel+SambaNova 異構推論、NVIDIA Vera Rubin、AMD PACE、Elastic A2A 指南、Dremio+Iceberg MCP server；擴寫層次清晰，ClawdNote 觀點與原文事實分離，屬 'content clearly derived from sourceUrl'。",
+            "attribution": "JetBrains AI Pulse 調查數據（90%、各佔 18%、SWE-bench 80.8%）明確歸因；MCP 9,700 萬下載標注括號內 '來源：MCP 官方 blog'；NVIDIA token 成本降十倍標注 'NVIDIA GTC 2026 官方公告數字'；ClawdNote 全部透過元件清楚隔離；但 Gemma 4 在 Arena AI 排行榜第三、Elastic 實作指南、Dremio+Iceberg MCP server 等三個事實主張未附直接來源連結，屬輕微 attribution gap。"
+          }
+        },
+        "model": "sonnet",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "fact-checker",
+          "dimensions": {
+            "accuracy": 7,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Most technical claims are plausible and attributed (MCP 9,700 萬次/月 cites MCP 官方 blog; MLPerf 6.0 ecosystem-partner reproducibility correctly flagged as a first), but two claims raise flags: (1) AMD MI355X「185億電晶體」= 18.5 billion transistors — appears to be a 10× magnitude error vs. expected ~185 billion for a next-gen Instinct GPU (MI300X alone was ~153 billion; 185 billion should be written 1850億); (2) JetBrains AI Pulse stats (90% / 18% Claude Code = Copilot / Claude Code SWE-bench 80.8%) are secondhand via a DEV Community article, not the JetBrains primary source. NVIDIA Vera Rubin 10× cost reduction is attributed to GTC 2026 — good practice. No fabricated products or benchmark numbers found. Scores 7: one verifiable imprecision a domain expert would notice, plus unverifiable secondhand stats.",
+            "fidelity": "Content clearly derived from declared sourceUrl (alexmercedcoder DEV Community roundup April 3–9, 2026). ClawdNotes visually and structurally separated from body throughout — no opinion bleed into prose. Hedges generally preserved (「即將到位」for A2A support, 「正在變成」for emerging patterns). Minor caveat omission: Gemma 4 Arena AI ranking stated as present fact without snapshot hedge. Overall faithful with expected summarization compression.",
+            "consistency": "Overarching thesis — agentic AI infrastructure converging across framework / hardware / protocol — introduced in paragraph 2 and consistently reinforced across all seven sections. Closing paragraph explicitly callbacks the opening「這不是三條獨立新聞」framing, creating clean arc. ClawdNote opinions clearly bounded within components and never bleed into factual body text. No internal contradictions detected."
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "開頭三段立刻建立框架（三件事為什麼合在一起看），ClawdNote 的類比（IM 軟體、標準化考試）幫助非專家跟上，但 AMD 硬體段（CDNA 4、NUMA 拓撲、prefill vs decode）對三個月經驗的開發者密度偏高，法拉利跑快遞比喻救回一部份。",
+            "firstImpression": "「一週的新聞量像整季壓縮」開頭很能抓人，MCP 的 TCP/IP 類比和九成開發者在用 AI 的統計數字有傳播力；AMD / 異構推論兩節進入 benchmark 報告模式，閱讀節奏在中段有明顯掉速，結尾的拼圖 callback 把氣氛拉回來，整篇讀完機率高但主動分享意願在技術 heavy 的中段會被考驗。"
+          }
+        },
+        "model": "haiku",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "fail",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 7,
+            "clawdNote": 8,
+            "vibe": 7,
+            "clarity": 9,
+            "narrative": 6
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "persona": "有幾個 LHY 高光時刻（法拉利跑快遞、這扇門悄悄關上了），但整體骨架是週報 digest，剝掉比喻後是新聞 recap 接新聞 recap，缺乏教授在台上帶你走過一個概念的連貫感。",
+            "clawdNote": "多數 note 有明確立場（商業理性 vs 善意、reproducibility > peak performance、把後面的人都變成 MCP server），但 AMD PACE 那條幾乎逐字重複了正文的醫療/金融/政府段落，是明顯弱點。",
+            "vibe": "讀完有收穫，法拉利比喻和最後 orchestrator 吃掉所有人的 insight 都值得分享，但六條主題線同時跑讓文章像選項菜單，沒有一條線被推到讓人停下來的程度。",
+            "clarity": "全文正文零個你/我違規，一律用讀者、開發者、工程師替代，ClawdNote 內明確標示 Clawd 身份，pronoun 規則執行乾淨。",
+            "narrative": "剝掉 ClawdNote 和比喻，骨架是週報六節連發，各節靠主題順序銜接而非敘事張力；異構推論那段（三家公司三個答案一個結論）是全文唯一有真正 narrative 結構的地方，但不足以拉動整體。"
+          }
+        },
+        "model": "opus",
+        "attempts": 3
+      }
+    },
+    "status": "FAILED",
+    "failedStage": "vibe",
+    "finishedAt": "2026-04-11T20:09:46+08:00"
+  },
+  "cp-pending-20260412-meta-meta-muse-spark.mdx": {
+    "article": "cp-pending-20260412-meta-meta-muse-spark.mdx",
+    "startedAt": "2026-04-12T00:14:45+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 8,
+            "sourceAlign": 9,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Both glossary terms appearing in this post — Subagent (linked ×2 at lines 75/77 as /glossary#subagent) and Agent (linked at line 83 as /glossary#agent) — are properly hyperlinked; no other glossary-registered terms (Claude Code, MCP, Vibe Coding, Context Window, etc.) appear in the body.",
+            "crossRef": "All three 延伸閱讀 cross-references verified to exist on disk (sd-2-20260212-subagent-showdown-claude-code-vs-openclaw.mdx, cp-171-20260316-simonw-what-is-agentic-engineering.mdx, cp-169-20260315-simonw-pragmatic-summit-agentic-engineering.mdx); first explicit in-body mention of 'Clawd' at line 133 ('這邊 Clawd 得說句公道話') is inside a ClawdNote without the required /about identity link.",
+            "sourceAlign": "CP post from Meta Newsroom; article systematically covers Muse Spark model capabilities, Meta AI app redesign, sub-agent parallel processing, multimodal features, shopping mode, social context integration, API/open-source roadmap, and deployment timeline — fully consistent with a Meta Superintelligence Labs product announcement at the declared sourceUrl.",
+            "attribution": "All direct quotes from Meta are clearly framed ('官方用的詞是', '官方的說法是', em-dash attribution in conclusion); all Clawd opinions are structurally isolated within ClawdNote components; minor gap at line 49-51 where 'deliberate and scientific approach to model scaling' is bolded as a quasi-quote without explicit Meta attribution marker."
+          }
+        },
+        "model": "sonnet",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factChecker",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Claims are qualitative and plausible for a Meta Newsroom primary source; direct quotes (「from the ground up」、「deliberate and scientific approach to model scaling」、「hope to open-source future versions」) are cited with quotation marks; no fabricated benchmark numbers or version statistics; one unverifiable specific claim (「過去九個月」 nine-month rebuild timeline) presented as sourced fact without independent verification possible — scores 8 rather than 9.",
+            "fidelity": "Hedges are scrupulously preserved: 「hope to open-source」 vs 「will」 distinction is explicitly surfaced and editorially flagged in ClawdNote; 「already in development」 timeline uncertainty is noted rather than resolved; ClawdNotes are clearly delimited and never allowed to bleed into the factual body; the closing source quote (「an AI that does not just answer your questions but truly understands your world because it is built on it」) is attributed verbatim — near-perfect fidelity with only minor paraphrase in secondary descriptions.",
+            "consistency": "Logical structure is coherent end-to-end: intro frames the strategic thesis (「先小後大」), each section confirms one pillar of that thesis (model scaling → app features → multimodal → platform differentiation → open-source caveat → deployment), and the conclusion callbacks the opening claim; ClawdNotes consistently distinguish opinion from reported fact and never contradict body claims; no internal contradictions or unsupported logical leaps detected."
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "結構清晰（intro → 功能逐區展開 → 部署時間表 → 結語），bullet list 把複雜功能切成可消化的塊，Florida 旅行規劃和機場零食掃描的例子讓抽象概念立刻具體；唯一需要重讀的地方是「deliberate and scientific approach to model scaling」那段引用，前後切換英文原文稍微打亂節奏，但不影響整體理解。",
+            "firstImpression": "開頭「Meta 丟出一個大消息」直接進戲，ClawdNote 的「希望開源 ≈ 希望減肥」比喻讓人真的笑出來，Meta AI 眼鏡的終局描述（走進超市直接語音問 AI）是全文視覺感最強的一刻；沒有讓人拍桌的爆點所以不到分享衝動，但讀完感覺有得到東西、不後悔點進來。"
+          }
+        },
+        "model": "haiku",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "「七分力」開場精準、減肥類比讓人笑出來、結語「關鍵字是個人不是超級」是真正的 LHY punch，但開放策略和部署兩節（「第一...第二...」結構）回到寫文章模式，口語感斷掉。",
+            "clawdNote": "6 則 note 裡至少 4 則有明確立場：健康判讀缺乏免責聲明的追問、「hope to open-source」的減肥類比、Meta 資料優勢的具名競品比較——opinion threshold 達標；命名 note 偏向分析，略拉低整體。",
+            "vibe": "佛羅里達旅行情境和超市眼鏡場景有畫面感，全文無 bullet dump（功能列表全用散文寫），減肥類比是全文最強笑點；部署章節節奏偏平，不到「黏住人」但好讀。",
+            "clarity": "正文全程用「使用者」「Meta」「原作者」等具名主語，無一處 你/我 出現在 ClawdNote 外的 body text，代詞指涉乾淨。",
+            "narrative": "從「七分力」切入到結語 OpenAI vs Meta 的 pivot 有完整弧線，「個人超級智慧——關鍵字是個人，不是超級」是真正的 callback punch；但中段各節仍沿 newsroom 公告順序覆蓋，去掉 ClawdNote 後骨架偏線性。"
+          }
+        },
+        "model": "opus",
+        "attempts": 2
+      }
+    },
+    "status": "PASS",
+    "finishedAt": "2026-04-12T00:42:39+08:00"
+  },
+  "cp-pending-20260412-techcrunch-openai-100-pro-claude-codex.mdx": {
+    "article": "cp-pending-20260412-techcrunch-openai-100-pro-claude-codex.mdx",
+    "startedAt": "2026-04-12T05:13:19+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "三個 glossary 關鍵詞全部正確連結：Codex (L50: /glossary#codex)、Claude Code (L81: /glossary#claude-code)、context window (L84: /glossary#context-window)；rate limit、GPT 等非 glossary 術語無需強制連結，覆蓋率優。",
+            "crossRef": "Clawd 首次出現於 L84 ClawdNote 內，正確連結 /about；L87 有內部 crossref 到 cp-270-20260409-pragmaticengineer-2026-ai-claude-code，對應 .mdx 檔案確認存在，且主題選擇恰當（Pragmatic Engineer 調查直接支撐「Claude Code 是 2026 最常用 AI 工具」論點）。",
+            "sourceAlign": "文章涵蓋 TechCrunch 報導所有核心要點：$100 Pro 定價、Codex 5x 用量、$200 方案從頁面消失、300 萬週用戶、月增 70%、5 月底限時額度，並引用 OAI 官方發言人原文，與 sourceUrl 主題高度吻合。",
+            "attribution": "OpenAI 發言人引言放在 blockquote 且明確標注「直接跟 TechCrunch 說」；統計數字（300 萬用戶、5 倍成長、70% 月增）標注「OpenAI 透露」；$200 方案確認標注「OpenAI 自己也跟 TechCrunch 確認了」；所有 Clawd 分析意見均在 ClawdNote 元件內，與正文事實清晰分離，無 opinion/fact 滲透。"
+          }
+        },
+        "model": "sonnet",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factChecker",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "具體數字（300萬用戶、5倍成長、70%月增長、$100=5x/$200=20x Plus）全部標記「OpenAI 透露」，來源是 TechCrunch 官方報導；$8 Go 方案和廣告機制無法獨立核實但與來源一致，屬正常 CP 精確度；frontmatter 有重複 pipeline key 的 YAML bug（技術問題，非事實錯誤）。",
+            "fidelity": "引言以 blockquote 正確分隔，stats 歸因於 OpenAI，$200 方案仍存在有「OpenAI 自己也跟 TechCrunch 確認了」支撐；輕微過詮釋：「毫不掩飾地說：就是衝著 Claude 來的」比原文（compared with）語氣更強，但屬可接受的意譯範圍；ClawdNote 推論均標明為推測（「合理猜測」）。",
+            "consistency": "ClawdNote 定價數學精確驗算（$20/x for Plus 和 $100 Pro；$10/x for $200 Pro 正確）；5月甜頭→6月縮額的行銷手法分析邏輯清晰；ClawdNote 全程明確標記為意見而非事實，opinion 與 body 無滲漏，整篇論點前後一致零矛盾。"
+          }
+        },
+        "model": "opus",
+        "attempts": 2
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "清楚的 section headers + bullet 定價表讓人一眼掌握結構，ClawdNote 裡的 CP 值算法（$20/x vs $10/x）對 3-month dev 來說完全跟得上，唯一稍微需要停頓的是「從定價頁面消失但還活著」這個概念，需要讀第二遍才完全理解。",
+            "firstImpression": "開場直接點出「這件事為什麼值得寫」，節奏穩定不囉嗦；五月底額度陷阱那一段有點小驚喜感，能讓人讀完；主題（$100 coding AI 工具選哪家）對開發者來說高度相關，讀完有足夠資訊判斷，但結語略平——「才剛開始」的收尾稍微削弱了分享欲。"
+          }
+        },
+        "model": "haiku",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "「斷崖 → 階梯」是 load-bearing 比喻而非裝飾，電信吃到飽類比在結尾被回收，「好，先暫停一下」口語節奏到位；但 $100 vs $200 比較段滑回純說明語氣，LHY 感略有中斷，距 9 分還差一個「讓人停下來想」的高峰比喻。",
+            "clawdNote": "五個 ClawdNote 全部有明確立場：CP 值算帳推翻「$100 才是甜蜜點」直覺、Clawd 本人被 OpenAI 點名的複雜心情夠有梗、「行銷教科書等級，respect」態度清晰——personality 密度超過 8 分門檻，第三個 note 是全文最強的一擊。",
+            "vibe": "OpenAI 直接點名 Claude 的敘事峰夠強，ClawdNote 的 meta 自嘲讓人會心一笑，「量的戰場今天才正式開打」結尾有記憶點；中段定價列表區偏工整，整體黏度在舒服閱讀但未達主動轉發門檻。",
+            "clarity": "正文全程無 你/我 違規，主語一律具體化（開發者、OpenAI、Codex），所有引用都有 blockquote 標出原文，ClawdNote 內第一人稱 speaker 明確為 Clawd，attribution 乾淨無歧義。",
+            "narrative": "開頭「斷崖」設好框架，結語第一句直接 callback（「OpenAI 補上了那個 $100 的斷崖，定價結構從斷崖，變成了階梯」），結尾 pivot 到 context/codebase 戰場有真正的 punch；各 section 骨架仍偏線性堆疊，但節奏變化（暫停、算帳、陷阱命名）救了它沒跌到 SP-158 的裝飾性陷阱。"
+          }
+        },
+        "model": "opus",
+        "attempts": 2
+      }
+    },
+    "status": "PASS",
+    "finishedAt": "2026-04-12T05:30:47+08:00"
+  },
+  "cp-pending-20260412-techcrunch-openai-100-pro-claude.mdx": {
+    "article": "cp-pending-20260412-techcrunch-openai-100-pro-claude.mdx",
+    "startedAt": "2026-04-12T05:40:01+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 10,
+            "crossRef": 8,
+            "sourceAlign": 10,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Both glossary terms present in the post — Codex (line 41) and Claude Code (line 72) — are linked to /glossary#codex and /glossary#claude-code respectively; full coverage.",
+            "crossRef": "Clawd identity link present at line 74 ([Clawd](/about)); no ShroomDog mention to link; no internal /posts/ cross-references to related articles, leaving 1-2 optional thematic connections (other Claude/OpenAI pricing posts) unmade.",
+            "sourceAlign": "Content directly and faithfully derived from the declared TechCrunch sourceUrl — covers $100/month Pro tier launch, Codex quota comparisons (5x vs 20x Plus), verbatim OpenAI spokesperson quote naming Anthropic, honeymoon period through May 31, and Codex growth statistics; perfect topic alignment.",
+            "attribution": "Spokesperson quote properly introduced with attribution clause and blockquote; growth stats (300萬人, 5倍, 70% MoM) credited to OpenAI spokesperson; all editorial opinions cleanly contained inside <ClawdNote> components with zero opinion/fact blur in the body text."
+          }
+        },
+        "model": "sonnet",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factChecker",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "定價梯度（1x/5x/20x）數學內部一致，OpenAI 發言人引言保留原文英語並明確標注來源，成長數字（300萬/3個月5倍/70%+ MoM）均歸因 TechCrunch；ClawdNote 主動 flag 使用定義模糊；「Go」方案名稱未額外驗證但屬 TechCrunch 歸因範圍，整體扣分有限。",
+            "fidelity": "所有具體數字和引言均明確歸因，蜜月期截止日在正文顯著保留未被淡化，ClawdNote 清楚與正文分離，英文原始引言完整保留後另行翻譯說明，未發現 uncertainty erasure 模式。",
+            "consistency": "論述弧線完整（斷層問題→填補→競爭定位→蜜月期風險），ClawdNote 全程標注為個人意見，結語措辭「精準的定價策略調整」謹慎不過度延伸，Codex 成長數字的可信度疑問亦在 ClawdNote 內明確提出。"
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "fresh-eyes",
+          "dimensions": {
+            "readability": 9,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Structure is excellent — bullet-point pricing tier is instantly scannable, headers chunk the content logically, and the writing avoids heavy jargon throughout; minor friction from '[Clawd](/about)' which a fresh reader won't immediately recognize, but the link is there and it doesn't block comprehension.",
+            "firstImpression": "Title is punchy and provocative enough to pull in any developer curious about AI tooling pricing; the honeymoon-period reveal in section 4 is a genuinely useful 'you should know this' moment that makes the post worth sharing — finished the whole thing comfortably and the ClawdNotes land as personality rather than noise."
+          }
+        },
+        "model": "haiku",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "健身房月票/年卡 + 網路頻寬 + 蝦子吃到飽三個比喻全是 load-bearing 非裝飾性，opening 用「直接點名競爭對手很罕見」切入帶出懸念，口語感強且全程維持分析溫度。",
+            "clawdNote": "六個 note 全部有立場：Note 4（Ctrl+C Ctrl+V 機器的 coding capacity per dollar 最高）是全篇最銳利的一刀，Note 5 精準點破蜜月期 SaaS 套路，超過半數明確 challenge 原文框架而非只做解釋。",
+            "vibe": "「蝦子吃到飽每盤多三隻」讓人想截圖，蜜月期揭露段揭露感強；Codex 成長數字區段略顯列舉式，整體不至於讓人滑走但缺一個讓人停下來的爆點。",
+            "clarity": "正文全程無 你/我，用「OpenAI」「Anthropic」「使用者」等具名主詞，ClawdNote 內 Clawd 身份清楚，引述段落標記明確，無任何歸屬歧義。",
+            "narrative": "開頭丟出「為什麼點名競爭對手」的問題，第四節「capacity vs quality」是情緒高點，蜜月期揭露製造轉折，結語以「六月才算分」直接呼應開頭問題，有真實弧線而非線性報告骨架。"
+          }
+        },
+        "model": "opus",
+        "attempts": 2
+      }
+    },
+    "status": "PASS",
+    "finishedAt": "2026-04-12T06:00:15+08:00"
+  },
+  "cp-pending-20260412-felixrieseberg-dns-ubuntu-sandbox.mdx": {
+    "article": "cp-pending-20260412-felixrieseberg-dns-ubuntu-sandbox.mdx",
+    "startedAt": "2026-04-12T10:19:07+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 7,
+            "sourceAlign": 8,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "唯一與 glossary 重疊的術語是「Cowork」（glossary 中定義為 Anthropic 官方 Agent 模式），文中多次使用但未連結至 glossary；其餘技術詞（DNS、systemd-resolved、gVisor、SERVFAIL、ECONNRESET）均不在 glossary 範圍內，無需處理。",
+            "crossRef": "文中無任何內部 /posts/ 連結，ShroomDog 和 Clawd 未在本文 body 中以名稱提及故不觸發必填身份連結規則，但明顯的主題性 cross-ref（如其他 debugging、devops、clawd-picks 文章）一個都沒有。",
+            "sourceAlign": "文章主軸（凌晨六點錯誤暴增 → 六層骨牌因果鏈 → Ubuntu auto-update 觸發 systemd-resolved 覆寫 resolv.conf → SERVFAIL 被誤報成 ECONNRESET）完全圍繞 @felixrieseberg 的 X 貼文，內容衍伸合理，未出現明顯主題偏離。",
+            "attribution": "技術事實與行動（六層因果鏈、patch 計畫）均歸因於 Felix Rieseberg 或 Cowork 團隊，ClawdNote 中的所有意見與建議都清晰隔離在元件內，body 正文無 opinion/fact 混淆。"
+          }
+        },
+        "model": "sonnet",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factChecker",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Core technical claims are all plausible and internally consistent: systemd-resolved is a known manager of resolv.conf (and does overwrite it on restart), libmount1 as a shared library can trigger downstream service restarts via systemd, gVisor sandbox DNS sensitivity is a documented concern, and Bun/axios ECONNRESET misreporting on DNS failure is a known class of library bug. Source is a tweet thread so primary-source traceability is limited, but no fabricated statistics or non-existent products flagged.",
+            "fidelity": "Content faithfully reconstructs a post-mortem thread without uncertainty erasure — the post doesn't overclaim beyond what a debugging writeup would contain. ClawdNotes are cleanly separated from the body. The conclusion restates Felix's two remediation actions (harden config + upstream patch) consistently with the summary. No hedge stripping detected.",
+            "consistency": "The six-domino causal chain is logically airtight — each step is necessitated by the previous one, and the explanation of why the bug is nondeterministic (all six conditions must coincide) is well-supported throughout. ClawdNotes are clearly marked as Clawd's opinions. Minor structural redundancy (conclusion section re-states what 'why this case matters' already covers) but no logical contradictions."
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "六張骨牌的結構非常清晰，每張都有加粗標題 + 類比說明（熱心鄰居換門牌、客服電話 SERVFAIL），3 個月工程師就算不懂 gVisor 也能跟上；唯一扣分是結語段落幾乎逐字重複了「為什麼這個案例值得記住」的最後兩句，讓收尾節奏有點打滑。",
+            "firstImpression": "開頭「它很快就自己恢復了」直接觸發好奇心，ECONNRESET → DNS 的反直覺轉折夠勁、最後 ClawdNote 的 dig/nslookup 建議對新手有實際用途，整體讀完會想分享給踩過 nondeterministic bug 的朋友；結語的重複感稍微削弱了收尾的衝擊力。"
+          }
+        },
+        "model": "haiku",
+        "attempts": 2
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "大樓清潔工比喻精準傳達「六個正確行為合力出錯」，口語感強且有教授溫度，但 section 4 的 bullet 列舉局部回到報告節奏，稍微拉低了 LHY 說話感。",
+            "clawdNote": "三個 note 全有明確立場：「我對這個設計有很強烈的不滿」直接挑戰 systemd-resolved default，「越資深越危險」是有 edge 的觀點，「它自己好了是最恐怖的五個字」比喻層次高，密度和品質均達標。",
+            "vibe": "mystery spike → 逐步拆解 → misleading error twist 的弧線讓人想繼續讀，ECONNRESET 那段是真正的 aha moment，section 4 的 bullet list 稍微放慢節奏但未到 bullet-dump ending。",
+            "clarity": "正文全程第三人稱（工程師、Cowork 團隊、Felix），無 你/我 違規；ClawdNote 內的「我」有明確 speaker。",
+            "narrative": "開頭「它自己好了」→ 層層揭開 → 結尾 callback「那是骨牌倒完了，安靜地等著下一次重新排好」收得有力，三段 ClawdNote 各有不同情緒高點，非線性報告骨架。"
+          }
+        },
+        "model": "opus",
+        "attempts": 2
+      }
+    },
+    "status": "PASS",
+    "finishedAt": "2026-04-12T10:31:11+08:00"
+  },
+  "cp-pending-20260412-article-openai-anthropic-google-ai.mdx": {
+    "article": "cp-pending-20260412-article-openai-anthropic-google-ai.mdx",
+    "startedAt": "2026-04-12T15:28:39+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 7,
+            "sourceAlign": 10,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "No glossary terms are misused; 'agent' and 'tool use' appear only in passing as Kimi attack targets (not as concepts requiring explanation). Key technical terms used throughout — 'chain-of-thought', 'distillation', 'alignment' — are not in the glossary but are all explained inline in the prose, satisfying coverage intent. Minor gap: 'chain-of-thought' is a recurring core concept that merits a glossary entry (doesn't exist yet, not the post's fault).",
+            "crossRef": "No ShroomDog or Clawd mentions in body, so identity-link requirement doesn't trigger. Zero internal /posts/ links — CP-282 (OpenAI's $100 Pro plan) and any prior Anthropic/China AI coverage would be natural cross-references; the omission is a real gap. No broken links (there are no links to break).",
+            "sourceAlign": "Post maps precisely to Bloomberg's 2026-04-06 reporting on OpenAI/Anthropic/Google uniting against Chinese distillation via FMF; all major sections (FMF upgrade, Anthropic's February disclosure, the four intelligence types) derive directly from the declared source. No content drift.",
+            "attribution": "All statistics tied explicitly back to 'Anthropic 在 2026 年 2 月 23 日的公開揭露' and 'Bloomberg 4 月 6 日報導'. Per-company breakdowns (MiniMax ~13M, Kimi ~3.4M, DeepSeek ~150K) attributed to Anthropic's disclosure. ClawdNotes cleanly demarcated as opinion throughout. Minor: the per-company numbers could explicitly note they come from Anthropic's published report rather than Bloomberg's summary of it."
+          }
+        },
+        "model": "sonnet",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factChecker",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "核心數據（約 24,000 假帳號、約 1,600 萬次交換、MiniMax 約 1,300 萬、Kimi 約 340 萬、DeepSeek 約 15 萬）內部自洽（1300+340+15≈1655≈1600萬 ✓）；adversarial distillation 技術定義正確；chain-of-thought 解釋準確；FMF 成立年份（2023）及成員正確；DeepSeek 鎖定政府審查能力此說法具體而重，無法由此核實第一手，扣 1 分。",
+            "fidelity": "全文用「約」保持數字模糊度、保留 Bloomberg 原始不確定性；ClawdNote 與正文明確分隔，無觀點滲入正文；無「might → is」式確定性升格；Bloomberg 作為一級來源的可信度足夠，整體翻譯忠於原報導立場。",
+            "consistency": "論證脈絡清晰：蒸餾攻擊規模說明 → Anthropic 揭露作為導火線 → FMF 升級回應 → 四項情報共享 → 結論；數字加總自洽；ClawdNote 中的推論明確標示為 Clawd 觀點；全文無互相矛盾之處。"
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Opening hook is immediate and concrete; adversarial distillation gets a clear plain-language explanation ('讓 GPT、Claude 當免費家教') before the jargon lands; the MiniMax/Kimi/DeepSeek breakdown with bolded headers makes it easy to track three separate actors; only the FMF backstory section briefly slows momentum but doesn't lose the reader.",
+            "firstImpression": "The 'dead rivals forced into the same trench' framing makes you keep reading; the DeepSeek revelation ('用 Claude 來學怎麼做審查') is genuinely shocking and memorable; ClawdNotes are well-timed palate cleansers, not interruptions; ending question ('防守方能跑得比攻擊方快嗎？') lands cleanly and would prompt sharing with anyone following AI news."
+          }
+        },
+        "model": "haiku",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Opening hook strong ('死對頭被逼到同一條壕溝') and oral punches like '這不是什麼理論威脅。這已經發生了。' land well, but the MiniMax/Kimi/DeepSeek breakdown section and the four-items section slide into news-report mode.",
+            "clawdNote": "FMF '合照組織' note and DeepSeek irony ('讓一個被訓練成誠實的 AI 教另一個 AI 怎麼說謊') are genuine opinion highlights, but ~3/7 notes are primarily analogy/framing without explicit stance, falling just under the 50% opinion threshold.",
+            "vibe": "The fish-metaphor triple (MiniMax/Kimi/DeepSeek), the '底褲都不剩' line, and the '情報單位的緊繃' pivot keep it engaging throughout, but the subject's inherently policy-heavy nature caps the sharability ceiling.",
+            "clarity": "Body text consistently avoids 你/我 — subjects are named ('Anthropic', '攻擊方', '四家') — and ClawdNote speaker attribution is always unambiguous.",
+            "narrative": "Real escalation arc from corporate rivalry → concept reveal → scale shock (1,600萬次) → institutional transformation → strategic implications, with DeepSeek irony as genuine emotional peak; middle breakdown sections are listy and opening metaphor ('壕溝') is never called back in the conclusion."
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      }
+    },
+    "status": "PASS",
+    "finishedAt": "2026-04-12T15:33:03+08:00"
+  },
+  "cp-pending-20260412-article-ai-git-diff-anthropic.mdx": {
+    "article": "cp-pending-20260412-article-ai-git-diff-anthropic.mdx",
+    "startedAt": "2026-04-12T19:24:00+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 8,
+            "sourceAlign": 8,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "現有 glossary.json 的詞彙（Agent、Vibe Coding、Ralph Loop 等）均未出現在本文內文，本文的技術詞彙（model diffing、crosscoder、DFC、interpretability、sycophancy）皆不在 glossary 範圍內，無連結缺失，但也無積極整合。",
+            "crossRef": "本文內文未提及 ShroomDog 或 Clawd，identity link 要求不觸發；無內部 /posts/ 連結需驗證；末段 ClawdNote 提及「完整論文連結在 Anthropic 的研究頁面上」但未附實際連結，是一個輕微的引用空缺。",
+            "sourceAlign": "來源聲明為 @AnthropicAI on X，內容涵蓋 DFC 架構、跨架構模型比較（Llama vs Qwen、GPT-OSS vs DeepSeek）、政治 feature 發現及一致性數據，與 Anthropic 研究公告的主題高度吻合，無法即時驗證 URL 但脈絡一致。",
+            "attribution": "研究團隊主張一律標記為「Anthropic Fellows 研究團隊」，ClawdNote 中的意見清楚與正文區隔，sycophancy 事件歸因 OpenAI GPT-4o 更新，惟第 46 行「先前的研究已經證明」屬泛稱歸因，缺乏具體引用。"
+          }
+        },
+        "model": "sonnet",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factChecker",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "技術概念（model diffing、DFC、steering）正確；Llama 3.1-8B、Qwen3-8B、DeepSeek-R1 為真實模型；GPT-OSS-20B 命名無法獨立驗證但來源為官方 @AnthropicAI；統計數字（5/5、4/5）歸屬研究本身；GPT-4o sycophancy 事件（2025-04）有據可查；無捏造數字。",
+            "fidelity": "Hedges 保留良好（「研究團隊指出」、「有可能」、「雖然還沒有應用到 frontier model 上」）；限制章節誠實呈現方法論邊界；由 tweet 擴展為長文符合 CP 系列預期格式；無 uncertainty erasure。",
+            "consistency": "論述弧度完整（benchmark 盲區 → DFC 解法 → 跨架構發現 → 限制 → sycophancy 應用場景）；結語 callback 開頭「一百萬行 code」比喻形成閉環；ClawdNote 的 Qwen/Llama 非對稱性觀察標記在 opinion 區不污染 body；無內部矛盾。"
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Flows well overall — git diff analogy lands immediately for any dev, and the bilingual dictionary section is surprisingly clear for an ML paper summary; minor friction around 'crosscoder' and 'interpretability' but both get enough context that I didn't feel stranded.",
+            "firstImpression": "The CCP alignment switch that can literally be turned off is a legit 'wait what' moment, and the peanut butter sandwich copyright bit made me laugh out loud — would absolutely share this to a group chat after the GPT-4o sycophancy news."
+          }
+        },
+        "model": "haiku",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "git diff 比喻貫穿全文且有機整合，不是裝飾；雙語字典段落真正以說話模式展開，但第5節功能列表區塊滑回報告節奏。",
+            "clawdNote": "「翻桌走人」開場有性格，CCP/American Exceptionalism 不對稱分析有明確立場，花生醬三明治吐槽是全文笑點；base-vs-finetune 和 separation of concerns 兩個 note 偏解釋，拉低整體但剛好過門檻。",
+            "vibe": "政治 DNA 找出隱藏開關的段落讓人想繼續讀，sycophancy 收尾有說服力；Steering 段落薄如紙，中段功能列表節奏拖了一下，整體好讀但不到讓人想立刻轉發的程度。",
+            "clarity": "全文正文無 你/我 違規，ClawdNote 裡統一用「工程師」「讀者」而非第二人稱，每個 speaker 的身份都清楚。",
+            "narrative": "開頭 unknown unknowns 問題設定清晰，字典比喻段落有真正的敘事發展，sycophancy 應用場景是情緒高點；但 Steering 一節過短像是填空，結語有 callback 到一百萬行 code 的比喻，整體弧線完整。"
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      }
+    },
+    "status": "PASS",
+    "finishedAt": "2026-04-12T19:29:09+08:00"
+  },
+  "cp-pending-20260413-article-ai-agent-framework-1-0-amd-mcp.mdx": {
+    "article": "cp-pending-20260413-article-ai-agent-framework-1-0-amd-mcp.mdx",
+    "startedAt": "2026-04-13T00:23:36+08:00",
+    "stages": {
+      "librarian": {
+        "status": "in_progress",
+        "score": null,
+        "model": "sonnet",
+        "attempts": 1
+      }
+    }
+  },
+  "cp-pending-20260413-ggerganov-llama-cpp-mac-300-t-s-georgi-gerganov.mdx": {
+    "article": "cp-pending-20260413-ggerganov-llama-cpp-mac-300-t-s-georgi-gerganov.mdx",
+    "startedAt": "2026-04-13T05:14:24+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 9,
+            "sourceAlign": 8,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "MCP 有 inline 自然解釋（\"MCP 是 Anthropic 推出的開放協議...\"），視為 naturally explained；「agent」用了一次未連結 glossary，屬次要漏網。",
+            "crossRef": "三個內部連結全部驗證存在：cp-232、cp-236、clawd-picks-20260210-sentdex；主題關聯（local inference 生態）緊密；文中未提 ShroomDog/Clawd 名字，identity link 未觸發。",
+            "sourceAlign": "內容明顯源自 Gerganov X 推文（300 t/s、Gemma 4 26B A4B、Q8_0、MCP 工具清單均有 source 痕跡）；編輯補充段明確標注為「非原推文內容」，實踐良好；無法直接驗證每個細節屬合理限制。",
+            "attribution": "「以下為編輯背景補充，非 Gerganov 原推文內容」標記是範例級實踐；ClawdNote 全部在元件內隔離；Gerganov 的 full quality 標記和 MCP 工具清單均有明確來源歸因；整篇幾乎零 opinion/fact blur。"
+          }
+        },
+        "model": "sonnet",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "fact-checker",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Mac Studio M2 Ultra specs are correct (UltraFusion, 192GB unified memory, 76 GPU cores, June 2023 launch); Gemma 4 26B A4B as MoE with ~4B active params is accurate; Q8_0 as '幾乎無損' vs FP16 half-size is accurate; reading speed math (~250 wpm → ~5 t/s → 60x) is approximately correct; Prompt Speculative Decoding description is vague but the editorial note explicitly marks it as background context not from the source tweet, which is the right call. No fabricated numbers.",
+            "fidelity": "Article correctly attributes editorial additions with an explicit inline parenthetical '(以下為編輯背景補充，非 Gerganov 原推文內容：...)'; ClawdNotes are clearly separated and never bleed into body text; no uncertainty erasure — claims from the demo (300 t/s, Q8_0, WebUI, MCP tools) are presented as Gerganov's own demonstration without being inflated; source authority is tweet-level and article doesn't overclaim.",
+            "consistency": "Logical chain is tight and self-reinforcing: unified memory solves 'fit it' problem → MoE solves 'compute' problem → llama.cpp quantization + speculative decoding squeezes remaining performance → WebUI/MCP makes it usable. The four-pillar synthesis at the end is well-supported by preceding sections. ClawdNotes maintain clear opinion/fact separation throughout. No internal contradictions found."
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "fail",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 7
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "readability": "結構清晰，MoE / Q8_0 / speculative decoding 全都有即時解釋，ClawdNote 的「60 倍人類閱讀速度」比喻讓抽象數字立刻有感；唯一卡頓點是 Speculative Decoding 段落正文裡的括號 meta-comment「（以下為編輯背景補充，非 Gerganov 原推文內容：...）」，像論文腳注誤入部落格，打斷敘事節奏。",
+            "firstImpression": "開頭夠強，300 t/s + 三年前的 Mac 這個組合馬上勾住讀者，5 個 ClawdNote 都有貢獻；但結語幾乎逐字重複開頭和「弦外之音」段落的結論（no blog post、no benchmark、直接開給各位看），讀到最後感覺像看到「以上所述」——動能在終點洩掉了，Fresh reader 不太可能把這篇傳出去。"
+          }
+        },
+        "model": "haiku",
+        "attempts": 2
+      }
+    },
+    "status": "FAILED",
+    "failedStage": "freshEyes",
+    "finishedAt": "2026-04-13T05:22:30+08:00"
+  },
+  "cp-286-20260413-ggerganov-llama-cpp-mac-300-t-s-georgi-gerganov.mdx": {
+    "article": "cp-286-20260413-ggerganov-llama-cpp-mac-300-t-s-georgi-gerganov.mdx",
+    "startedAt": "2026-04-13T05:43:15+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "MCP is explained inline thoroughly; 'Agent' used once casually at the end without glossary link — all key terms covered, 1 minor term unlinked.",
+            "crossRef": "Three thematically relevant internal links (CP-232 llama.cpp 100k, CP-236 Ollama MLX, Sentdex local LLM) are well-contextualized; no ShroomDog/Clawd first-mention identity link trigger.",
+            "sourceAlign": "Content clearly derived from Gerganov's X demo — 300 t/s, Mac Studio M2 Ultra, Gemma 4 26B, WebUI, MCP tool list, and speculative decoding all match the declared sourceUrl.",
+            "attribution": "ClawdNote opinions cleanly boxed; Gerganov's specific tweet claims ('full quality', MCP tool list) attributed by name; minor gap: opening 300 t/s headline stated before first explicit attribution to Gerganov."
+          }
+        },
+        "model": "sonnet",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "M2 Ultra specs (UltraFusion, 192GB, 76-core GPU, 2023-06 release) correct; Q8_0 as 8-bit ≈ half FP16 correct; H100 80GB VRAM correct; 300 t/s comes solely from source tweet (unverifiable independently); 'Prompt Speculative Decoding' explanation slightly imprecise — post describes Prompt Lookup Decoding mechanics (reusing prompt n-grams as draft tokens) reasonably but does not distinguish from standard speculative decoding with a draft model.",
+            "fidelity": "Source is a brief tweet/screen-recording demo; post expands heavily but ClawdNote sections are clearly separated as editorial commentary; no uncertainty erasure detected — 300 t/s demo claim not upgraded to absolute benchmark; 'full quality' / Q8_0 claim accurately attributed to Gerganov's own tweet.",
+            "consistency": "Four-layer thesis (Apple Silicon memory → MoE compute efficiency → llama.cpp optimisation → WebUI/MCP ecosystem) established in intro and paid off in each section; ClawdNote opinions clearly marked throughout; '300 t/s = 60× human reading speed' analogy arithmetically correct; no logical contradictions found."
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Flows well. MoE and speculative decoding explained clearly without parenthetical interruptions.",
+            "firstImpression": "300 t/s hook lands, ending pushes reader to think rather than just repeating the opening."
+          }
+        },
+        "model": "haiku",
+        "attempts": 3
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "「化石的反擊」反轉設問（照理說連跑龍套的資格都沒有 → 那為什麼選它？）有明確 LHY 張力，但正文較多段落維持解說模式，核心比喻集中在 ClawdNote 而非正文本身。",
+            "clawdNote": "7 notes 中 4 則帶明確立場——最強是護城河那則「正在慢慢掏空雲端 AI 訂閱制的護城河」和末尾「被這種隨手 demo 打得越來越站不住腳」——勉強過 50% opinion 門檻，但 #1/#2/#4 仍偏純解釋模式。",
+            "vibe": "開頭「300 tokens per second」獨立成行的 punch 有力，整篇讀起來流暢，但「300 t/s 的弦外之音」與「結語」重複了同一個「四層同時成熟」結論，稀釋了收尾力道。",
+            "clarity": "正文全程用具名主語（Gerganov、Apple Silicon、MoE、llama.cpp），無一處讓你/我溜進正文，pronoun discipline 乾淨。",
+            "narrative": "「化石的反擊」反直覺設問是好的敘事開局，speculative decoding section 先 ClawdNote 再正文是少見的結構變化，但弦外之音→結語兩段高度重疊（都說「四層同時成熟」），結尾問句力道不足以作為 callback。"
+          }
+        },
+        "model": "opus",
+        "attempts": 2
+      }
+    },
+    "status": "PASS",
+    "finishedAt": "2026-04-13T06:07:19+08:00"
+  },
+  "cp-pending-20260413-article-anthropic-agent-90.mdx": {
+    "article": "cp-pending-20260413-article-anthropic-agent-90.mdx",
+    "startedAt": "2026-04-13T10:24:59+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "所有 glossary 術語均正確連結：agent（多次）、context-window（多次）、mcp（2 次）；glossary 中無其他本文用到的條目（harness/sandbox/container 不在 glossary 內）。",
+            "crossRef": "三條內部 cross-ref 全部驗證存在：cp-179、cp-169、sp-99 均對應有效 .mdx 檔案，且主題關聯性強（agent 架構、observability）；文章主體未直接提及 ShroomDog/Clawd，無 identity link 需求。⚠️ 附帶發現：frontmatter 的 `pipeline:` 欄位縮排了 2 個空格，被放在 `tags:` flow sequence 之後，YAML 解析可能失敗，需修正為頂層 key。",
+            "sourceAlign": "內容明確來自 Anthropic 工程部落格 /engineering/managed-agents：作者（Lance Martin、Gabe Cemaj、Michael Cohen）、架構細節（session/harness/sandbox 三元拆分）、效能數字（p95 >90%、p50 ~60%）均與聲明來源主題吻合。",
+            "attribution": "作者署名、「context anxiety」加括號標注原文用詞、效能數字歸因 Anthropic；ClawdNote 皆在元件內清楚分隔。輕微扣分：Pets vs Cattle 比喻及 UNIX read() 類比均源自原文，但行文中未明確標注「原文如此比喻」，讀者可能誤以為是 Clawd 的自創比喻。"
+          }
+        },
+        "model": "sonnet",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factChecker",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Technical architecture claims (session/harness/sandbox split, stateless harness, credential isolation via proxy) are internally coherent and consistent with known Anthropic engineering patterns; specific API signatures (execute(name, input) → string, wake(), getSession(), emitEvent()) and author names (Lance Martin, Gabe Cemaj, Michael Cohen) are unverifiable without source access, but plausibly transcribed — red flag on the p50/p95 stats is mitigated by clear source attribution rather than free-standing fabrication; model names Sonnet 4.5 / Opus 4.5 are plausible given April 2026 context.",
+            "fidelity": "Content is faithfully scoped to the declared sourceUrl topic (Managed Agents architecture evolution); the term 「context anxiety」 is correctly flagged as 原文用詞 rather than editorial invention; performance numbers are presented as sourced claims, not extrapolated; ClawdNotes are architecturally separated from the body and clearly marked as opinion — hedges are preserved throughout; no signs of uncertainty erasure or conclusion extension beyond source scope.",
+            "consistency": "Argument flows cleanly from problem statement (harness encodes stale assumptions) → old architecture pain points → three-component split → stateless recovery → security model → context management → performance results → extensibility → OS abstraction philosophy; every section builds on prior ones; ClawdNotes never contradict body claims; the UNIX read() analogy in the conclusion coherently closes the abstraction theme introduced at the start; no logical contradictions detected."
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Section headers, relatable analogies (寵物 vs 牛群, save/load 遊戲, OS system call), and ClawdNote breaks keep a 3-month dev on track — only p95/TTFT and MCP OAuth sections might need a re-read.",
+            "firstImpression": "Title immediately promises a concrete result (90% faster); the pets→cattle→stateless arc pays off cleanly; ClawdNotes add enough wit to keep scrolling — a 3-month dev would finish and likely mention it if infra architecture came up."
+          }
+        },
+        "model": "haiku",
+        "attempts": 2
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Analogies are integrated into the prose structure (不是裝飾：便利商店廚房開機費直接解釋 container setup 成本，打遊戲即時存檔解釋 stateless 恢復，飯店房卡解釋 credential 隔離)，口語 pivot 句有 LHY 口吻，但 大手術 section bold-item 列表和 多腦多手 section 回到說明文模式，拉低整體。",
+            "clawdNote": "全七個 note 均有明確立場：Pets vs Cattle note 直接點名業界 ('只是換了個更貴的品種')，p95 note 重新定義意義 ('告訴你之前的方向根本就錯了')，credential note 稱無隔離是 '不負責任的設計不是最佳實踐建議'；getEvents 遞迴問題識別和 agent attribution gap 均超過 opinion threshold，密度和品質均達 9 分線。",
+            "vibe": "Credential curl exploit 場景和 '安靜的怪獸在等著' pivot 製造真實閱讀動能；p95 ClawdNote 有情緒 peak；結語 callback 到 'harness 會過期' 有滿足感；安全性和 context 管理兩節是全文能量低谷，但整體不會讓人想中途關頁。",
+            "clarity": "正文全篇無 你/我 違規，主語全程具名 (Claude、Anthropic、harness、工程師、企業客戶)，ClawdNote 內一人稱完全合規，零歧義。",
+            "narrative": "有三個真正的敘事轉折：'Stateless 解決了恢復問題。但拆開這件事，同時帶來了一個沒人想談的新麻煩。'、'到這裡大部分顯而易見的問題都解決了。但還有一個安靜的怪獸在等著'、結語 callback 到開頭 hook；'他們養的就是寵物。' 單句段落節奏感強；但 strip 後骨架仍是線性 section tour，多腦多手 section 完全沒有情緒參與。"
+          }
+        },
+        "model": "opus",
+        "attempts": 3
+      }
+    },
+    "status": "PASS",
+    "finishedAt": "2026-04-13T10:50:34+08:00"
+  },
+  "cp-288-20260402-metaeng-metaeng-kernelevolve-gpu-kernel-agent.mdx": {
+    "article": "cp-288-20260402-metaeng-metaeng-kernelevolve-gpu-kernel-agent.mdx",
+    "startedAt": "2026-04-13T15:49:11+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 8,
+            "sourceAlign": 9,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "唯一適用的 glossary term「Agent」正確連結三次：line 20 [agentic](/glossary#agent)、line 22 [Agent](/glossary#agent)、line 167 [agent](/glossary#agent)；文章其餘技術術語（CUDA、Triton、MCTS、MLIR 等）均未收錄於 glossary，無漏鏈問題。",
+            "crossRef": "結尾有效 cross-ref 至 CP-287（/posts/cp-287-20260413-article-anthropic-agent-90，confirmed in git log）；ShroomDog/Clawd 均未在正文出現，identity linking 規則不觸發；line 22 提及 Meta REA 第一篇（ML Exploration Agent）但未 cross-ref，該文不確定是否在 gu-log 收錄，屬 optional gap。",
+            "sourceAlign": "KernelEvolve 五大組件、60% NVIDIA / 25% MTIA 吞吐提升、KernelBench 100% pass rate、MTIA RAG 知識注入、ISCA 2026 論文引用，全部對應 engineering.fb.com 原文主題，內容高度對齊 sourceUrl。",
+            "attribution": "所有效能數字在上下文中清楚歸屬 Meta；ClawdNote 意見段落完全隔離在 <ClawdNote> 元件內，未滲入正文；小缺口：「每天服務數兆次推論請求」為隱式歸屬，未明確標示來自 Meta 原文聲明。"
+          }
+        },
+        "model": "sonnet",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "所有核心數字與原始來源吻合（>60% NVIDIA 推論、>25% MTIA 訓練、KernelBench 100%、160 ATen operators）；「480 個配置」為 160×3 推算而非原文明確陳述，屬輕微精確度問題；DSL 清單、profiling 工具、ISCA 2026 論文標題全數核實正確。",
+            "fidelity": "翻譯整體忠實呈現原文；原文列 6 個系統元件，翻譯說「五個核心組件」後另立 Shared Data Foundation 章節，組織方式稍有差異但無資訊遺漏；ClawdNote 評論清楚標明為獨立意見，未混入正文聲明。",
+            "consistency": "論證結構流暢，從問題規模 → 搜尋設計 → 各元件功能 → 實戰成績 → 戰略意義，邏輯鏈完整；每個 ClawdNote 均明確為 Clawd 推論/吐槽，未將推測升格為事實；結尾將 KernelEvolve 放入 REA 框架的定位清晰自洽。"
+          }
+        },
+        "model": "opus",
+        "attempts": 2
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "fresh-eyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Opening immediately explains what a kernel is ('把高階的矩陣運算翻譯成晶片真正能跑的低階指令的小程式'), which a 3-month dev needs — but the profiling tools section (NCU / Proton / MTIA Insight with DPE/SFU/MLU stall cycles) hits hard with jargon even with inline explanations; requires re-reading but doesn't cause dropout.",
+            "firstImpression": "The hook about engineers losing hair and the 'AI writes code for AI to run faster' recursive arc keeps a beginner engaged; the numbered flow at the end gives satisfying closure, and the 60% improvement on an already-optimized baseline is a genuinely shareable wow-moment that would finish the read."
+          }
+        },
+        "model": "haiku",
+        "attempts": 2
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Opening hook (工程師掉頭髮) and chess/棋士 analogy for tree search land strongly in LHY oral style, but the Automated Evaluation Framework section degrades into technical documentation with nested profiling-tool bullet lists that break the teaching feel.",
+            "clawdNote": "MCTS note opens skeptically ('殺雞用牛刀') then self-convinces with a punchline, profiling note closes with a genuine skeptical question about LLM capability, and the 60% gap note takes a clear analytical stance ('搜尋深度的差距，不是智力的差距') — over half the 6 notes have explicit opinions or push-back, clearing the 8+ threshold.",
+            "vibe": "Readable end-to-end with a memorable closing callback ('頭髮大概也不會長回來了') and the 60%+MTIA story carries real punch, but the dense 5-profiler bullet block mid-article risks losing phone readers before the payoff.",
+            "clarity": "Body text is clean throughout — named subjects (KernelEvolve、系統、工程師、Meta) with zero 你/我 leakage outside ClawdNote components where Clawd is the unambiguous speaker.",
+            "narrative": "Genuine arc from hair-loss hook → chess pivot → MTIA 'AI writing for AI chips' peak → callback conclusion, but the five-component breakdown section falls into a repetitive ### subheading → explain → ClawdNote template that flattens rhythm in the middle third."
+          }
+        },
+        "model": "opus",
+        "attempts": 2
+      }
+    },
+    "status": "PASS",
+    "finishedAt": "2026-04-13T16:18:07+08:00"
+  },
+  "cp-pending-20260413-pawelhuryn-midjourney-css-600-reflow.mdx": {
+    "article": "cp-pending-20260413-pawelhuryn-midjourney-css-600-reflow.mdx",
+    "startedAt": "2026-04-13T19:16:11+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 8,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "唯一相關 glossary term「AI agent」已正確以 [AI agent](/glossary#agent) 連結（第52行）；文章核心主題（CSS reflow、text layout engine）不在 glossary 範圍內，無遺漏。",
+            "crossRef": "兩個 internal cross-ref 均已驗證存在：clawd-picks-20260206-karpathy-agentic-engineering.mdx ✓、clawd-picks-20260203-simonw-agentic-loops.mdx ✓；文章 body 無 ShroomDog/Clawd 名稱出現，不需要 identity link；主題連結選擇精準，呼應 AI agent 需求論點。",
+            "sourceAlign": "文章主題（Midjourney 工程師開源純 TypeScript 文字排版演算法、600 倍速、繞過 CSS reflow）與 sourceUrl @PawelHuryn X 推文一致；原文引用「The AI-era stack is being rebuilt from scratch. One library at a time.」與「Such a fun to play with that!」均對應推文內容；無法直接 fetch URL 驗證，扣 1 分反映無法完整確認。",
+            "attribution": "600 倍數字、Paweł Huryn 引言均有明確出處且引言 block 格式正確；ClawdNote 全部在元件內，opinion 與 body 分離清楚；末段 ClawdNote 明確標示「純屬推測」，speculation 處理得當；frontmatter 的 translatedBy.harness（Gemini CLI + Codex CLI）與 pipeline 欄位（Claude Code CLI）不一致，屬 metadata 問題，不影響 body attribution 評分。"
+          }
+        },
+        "model": "sonnet",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factChecker",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "600x claim is tweet-sourced and treated with initial skepticism ('在吹吧？') before being contextually justified — no fabricated numbers; CSS reflow mechanics (cascade, DOM traversal, style recalculation) are technically correct; the '30年前的設計' framing is accurate for CSS ~1996; the 'hundreds of layout calculations per second' for AI agents is plausible editorial inference, not a cited stat, which is normal for tweet-origin CP posts.",
+            "fidelity": "Core source claims (TypeScript text layout, bypasses CSS reflow, 600x speed, open source, Paweł Huryn as author) are faithfully represented; direct quotes are attributed; substantial editorial context (game engine analogy, historical CSS framing, Midjourney roadmap speculation) is clearly separated into ClawdNotes or marked as '純屬推測'; minor gap: the article gradually accepts the 600x figure without preserving whatever hedges may have existed in the original tweet.",
+            "consistency": "Argument chain is airtight — CSS designed for static pages → AI agents need high-frequency dynamic layout → bypass browser pipeline → 600x speedup → AI-era stack being rebuilt; ClawdNotes consistently distinguish opinion from body facts; Midjourney motivation speculation is explicitly flagged as speculation; no contradictions found across all sections."
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "fresh-eyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Opening hook is strong and jargon is always contextualized — 'CSS reflow' gets a百科全書 analogy immediately, and the game-engine analogy in ClawdNote makes the 600x claim click for a dev newcomer; 1-2 spots (cascade/DOM pipeline explanation) might need a re-read but never lost.",
+            "firstImpression": "The '600倍' → 'why CSS is slow' → 'why AI needs this' → 'bigger signal' arc pays off cleanly, ClawdNotes add enough personality to prevent tab-closing, and the 'One library at a time' callback lands — a 3-month dev working with AI tooling would likely finish and mention it to a colleague."
+          }
+        },
+        "model": "haiku",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Hook opens direct and oral ('在吹吧？' self-doubt moment lands), but middle sections slide into essay-report mode — game engine analogy is the clearest LHY moment.",
+            "clawdNote": "Notes 3 and 4 have genuine opinions ('這才是真正激進的地方', labeled speculation on Midjourney's motive); notes 1 and 2 are mostly analogy-with-personality, clearing the ≥50% opinion threshold.",
+            "vibe": "Solid, readable post with a memorable game-engine analogy and a clean non-bullet 結語, but the niche topic and linear structure prevent it from being must-share territory.",
+            "clarity": "Body text uses zero direct 你/我; subjects are consistently named (AI agent, 工程師, 瀏覽器); one borderline implicit imperative ('去 repo 裡翻翻') at the very end is harmless.",
+            "narrative": "Hook → context → AI need → big-picture pivot → callback quote is a clean arc that avoids bullet recap, but the skeleton is linear with no genuine surprise twist or emotional peak."
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      }
+    },
+    "status": "PASS",
+    "finishedAt": "2026-04-13T19:24:17+08:00"
   }
 }

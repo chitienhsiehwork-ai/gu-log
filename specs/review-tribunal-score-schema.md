@@ -144,7 +144,7 @@ New tribunal judges (`librarian`, `factCheck`, `freshEyes`, `vibe`) are NOT in t
 | 5 | `.claude/agents/fresh-eyes.md` | Pass bar ≥ 7 → ≥ 8, output format | See delta table above |
 | 6 | `.claude/agents/vibe-opus-scorer.md` | Pass bar add "one ≥ 9", output format | See delta table above |
 | 7 | `scripts/frontmatter-scores.mjs` | Add new judge names (librarian/factCheck/freshEyes/vibe), new key mappings, new read/write logic | Currently only accepts gemini/codex/opus/sonnet |
-| 8 | `scripts/ralph-vibe-scoring-standard.md` | Output JSON format alignment; pass bar update (Vibe: one ≥ 9 + rest ≥ 8; Fresh Eyes: ≥ 8) | Parent spec Section A mandates this |
+| 8 | `scripts/vibe-scoring-standard.md` | Output JSON format alignment; pass bar update (Vibe: one ≥ 9 + rest ≥ 8; Fresh Eyes: ≥ 8) | Parent spec Section A mandates this |
 
 ### TIER 2: Should update (called by orchestrator)
 
@@ -153,14 +153,14 @@ New tribunal judges (`librarian`, `factCheck`, `freshEyes`, `vibe`) are NOT in t
 | 9 | `scripts/score-helpers.sh` | `validate_judge_score_json()` L259-287: add cases for `librarian`, `fact-checker`, `fresh-eyes`, `vibe-opus-scorer`; opus case missing `clarity` validation | Default `*) return 1` rejects new judge names |
 | 10 | `scripts/score-helpers.sh` | `default_rate_limit_backoff()` L307-314: add `sonnet`, `haiku` cases | Missing backoff defaults for new model tiers |
 | 11 | `scripts/validate-judge-output.sh` | Add cases for new judge names; currently only gemini/codex/opus/sonnet (L57-97) | Will reject new judge output as invalid |
-| 12 | `scripts/tribunal-gate.sh` | References "3 judges" (L6, L240); calls `frontmatter-scores.mjs delete` with old judge names | Being replaced by ralph-all-claude.sh but should be noted |
+| 12 | `scripts/tribunal-gate.sh` | References "3 judges" (L6, L240); calls `frontmatter-scores.mjs delete` with old judge names | Being replaced by tribunal-all-claude.sh but should be noted |
 | 13 | `CLAUDE.md` L94 | "Fresh Eyes ≥ 7" → "Fresh Eyes ≥ 8" | Parent spec Section A explicitly says update this |
 
 ### TIER 3: Dead code (parent spec says keep, don't delete)
 
 | # | File | Status |
 |---|---|---|
-| 14 | `scripts/ralph-orchestrator.sh` | Being replaced by ralph-all-claude.sh; keep as dead code per parent spec |
+| 14 | `scripts/ralph-orchestrator.sh` | Being replaced by tribunal-all-claude.sh; keep as dead code per parent spec |
 | 15 | `scripts/gemini-scorer.sh` | Gemini judge wrapper; keep as dead code |
 | 16 | `scripts/codex-scorer.sh` | Codex judge wrapper; keep as dead code |
 | 17 | `scripts/vibe-scorer.sh` | Opus vibe scorer wrapper |
@@ -207,7 +207,7 @@ New tribunal judges (`librarian`, `factCheck`, `freshEyes`, `vibe`) are NOT in t
 - [ ] **AC-18**: `scripts/frontmatter-scores.mjs` accepts judge names `librarian`, `factCheck`, `freshEyes`, `vibe` (in addition to legacy `gemini`, `codex`, `opus`, `sonnet`). Maps to correct frontmatter keys.
 - [ ] **AC-19**: `scripts/score-helpers.sh` `validate_judge_score_json()` handles `librarian`, `fact-checker`, `fresh-eyes`, `vibe-opus-scorer` judge names with correct dimension validation.
 - [ ] **AC-20**: `scripts/validate-judge-output.sh` handles new judge names.
-- [ ] **AC-21**: `scripts/ralph-vibe-scoring-standard.md` output format section matches new tribunal JSON structure.
+- [ ] **AC-21**: `scripts/vibe-scoring-standard.md` output format section matches new tribunal JSON structure.
 
 ### Documentation
 
@@ -262,7 +262,7 @@ Missing from Dependencies:
 - `scripts/validate-judge-output.sh` — validates judge output JSON
 - `scripts/score-helpers.sh` — contains `validate_judge_score_json()`
 - `CLAUDE.md` — contains stale Fresh Eyes bar (≥ 7)
-- `scripts/ralph-vibe-scoring-standard.md` — listed in parent spec but missing from this spec's Dependencies
+- `scripts/vibe-scoring-standard.md` — listed in parent spec but missing from this spec's Dependencies
 
 ### [WARN] No mention of `validate-posts.mjs`
 

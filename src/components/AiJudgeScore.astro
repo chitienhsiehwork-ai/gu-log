@@ -13,6 +13,7 @@
 
 interface Props {
   scores?: {
+    tribunalVersion?: number;
     librarian?: {
       glossary: number;
       crossRef: number;
@@ -51,10 +52,12 @@ interface Props {
   lang?: string;
 }
 
-const { scores, lang = 'zh-tw' } = Astro.props;
+const { scores } = Astro.props;
 
 const hasScores =
   scores && (scores.librarian || scores.factCheck || scores.freshEyes || scores.vibe);
+
+const tribunalVersion = scores?.tribunalVersion ?? 1;
 
 function scoreColor(score: number): string {
   if (score >= 9) return 'score-high';
@@ -62,27 +65,25 @@ function scoreColor(score: number): string {
   return 'score-fail';
 }
 
-const isZhTw = lang === 'zh-tw';
-
 const labels = {
-  librarian: isZhTw ? '圖書館長' : 'Librarian',
-  factCheck: isZhTw ? '事實查核' : 'Fact Check',
-  freshEyes: isZhTw ? '新鮮眼睛' : 'Fresh Eyes',
-  vibe: isZhTw ? '氛圍評審' : 'Vibe',
-  glossary: isZhTw ? '術語' : 'Glossary',
-  crossRef: isZhTw ? '交叉引用' : 'CrossRef',
-  sourceAlign: isZhTw ? '來源對齊' : 'SourceAlign',
-  attribution: isZhTw ? '引用歸屬' : 'Attribution',
-  accuracy: isZhTw ? '準確性' : 'Accuracy',
-  fidelity: isZhTw ? '忠實度' : 'Fidelity',
-  consistency: isZhTw ? '一致性' : 'Consistency',
-  readability: isZhTw ? '可讀性' : 'Readability',
-  firstImpression: isZhTw ? '第一印象' : 'FirstImpression',
-  persona: isZhTw ? '人物感' : 'Persona',
+  librarian: 'Librarian',
+  factCheck: 'Fact Check',
+  freshEyes: 'Fresh Eyes',
+  vibe: 'Vibe',
+  glossary: 'Glossary',
+  crossRef: 'CrossRef',
+  sourceAlign: 'SourceAlign',
+  attribution: 'Attribution',
+  accuracy: 'Accuracy',
+  fidelity: 'Fidelity',
+  consistency: 'Consistency',
+  readability: 'Readability',
+  firstImpression: 'FirstImpression',
+  persona: 'Persona',
   clawdNote: 'ClawdNote',
   vibe_dim: 'Vibe',
-  clarity: isZhTw ? '清晰度' : 'Clarity',
-  narrative: isZhTw ? '敘事結構' : 'Narrative',
+  clarity: 'Clarity',
+  narrative: 'Narrative',
 };
 ---
 
@@ -90,7 +91,8 @@ const labels = {
   hasScores && (
     <div class="ai-judge-panel">
       <div class="judge-header">
-        <span class="judge-title">{isZhTw ? '🏛️ Tribunal 評分' : '🏛️ Tribunal Score'}</span>
+        <span class="judge-title">🏛️ Tribunal Scores</span>
+        <span class="tribunal-version">v{tribunalVersion}</span>
       </div>
 
       <div class="judge-cards">
@@ -325,11 +327,20 @@ const labels = {
 
   .judge-header {
     margin-bottom: 0.75rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   }
 
   .judge-title {
     font-weight: 600;
     font-size: 0.9rem;
+  }
+
+  .tribunal-version {
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--color-text-muted);
   }
 
   .judge-cards {

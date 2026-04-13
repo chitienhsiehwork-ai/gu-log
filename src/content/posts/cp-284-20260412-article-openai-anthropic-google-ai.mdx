@@ -1,0 +1,172 @@
+---
+ticketId: "CP-284"
+title: "OpenAI、Anthropic、Google 三巨頭聯手 — 中國 AI 蒸餾攻擊逼出史上最罕見的敵人結盟"
+originalDate: "2026-04-06"
+translatedDate: "2026-04-12"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "Bloomberg"
+sourceUrl: "https://www.bloomberg.com/news/articles/2026-04-06/openai-anthropic-google-unite-to-combat-model-copying-in-china"
+lang: "zh-tw"
+summary: "OpenAI、Anthropic、Google 透過 Frontier Model Forum 首度啟動主動情報共享，對抗中國 AI 公司的大規模惡意蒸餾攻擊。三家在商業上殺到見骨的對手，被逼到同一條船上。"
+tags: ["clawd-picks", "ai-industry", "ai-safety", "china-ai", "frontier-model-forum"]
+pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (vibe-opus-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+scores:
+  ralph:
+    p: 8
+    c: 8
+    v: 8
+    score: 8
+    date: "2026-04-12"
+    model: "claude-opus-4-6"
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 8
+    clarity: 8
+    narrative: 8
+    score: 8
+    date: "2026-04-12"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+## 當死對頭被逼到同一條壕溝
+
+2026 年的 AI 產業有個畫面很超現實：OpenAI、Anthropic、Google 這三家平常恨不得把彼此從 benchmark 排行榜上踢下去的公司，突然肩並肩站在一起，組成聯合防線。
+
+不是為了什麼崇高的 AI 安全倡議，也不是為了在國會山莊前面拍合照。是因為有人在偷他們的腦袋。
+
+Bloomberg 在 4 月 6 日的報導揭露了一件事：Frontier Model Forum（FMF）——這個 2023 年成立、原本大家以為只是個公關聯盟的組織——正式升級成了主動情報共享平台。而觸發這個升級的，是一波來自中國 AI 公司的系統性蒸餾攻擊，規模之大，讓這些平常互相挖角、互告的科技巨頭不得不放下恩怨。
+
+<ClawdNote>
+想像可口可樂、百事、Dr Pepper 三家公司突然開始共享配方保護情報，因為有人找到方法只要喝一口就能精確複製出任何飲料。事情得多嚴重，才能讓這三家走到這一步？答案是：很嚴重。┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## Adversarial Distillation：花別人的錢做自己的模型
+
+先搞清楚核心概念。所謂的 adversarial distillation（惡意蒸餾），運作方式其實不複雜：
+
+一家公司大量對高階 AI 模型發送 query——不是普通使用者那種「幫忙寫封 email」，而是精心設計的探測 prompt——然後把模型的回覆通通收集起來，當作訓練資料，用來訓練自己的模型。
+
+等於是讓 GPT、Claude 這些模型當免費家教，手把手教出一個複製品。原本的研發成本？巨額的算力、頂尖人才的薪水、長期的研究投入——全部跳過。最後產出一個廉價版本，在市場上跟原版競爭。
+
+這不是什麼理論威脅。這已經發生了。
+
+<ClawdNote>
+Distillation（蒸餾）在 ML 領域本來是個正當技術——用大模型教小模型，讓小模型學到大模型的精華。但這裡的「惡意蒸餾」就像是：有人派了兩萬個間諜去上課，把教授說的每句話都錄下來，然後回去開自己的大學。技術上合法？灰色地帶。道德上？嗯。
+</ClawdNote>
+
+---
+
+## Anthropic 二月的公開指控：數字觸目驚心
+
+故事的導火線是 Anthropic 在 2026 年 2 月 23 日的公開揭露。他們發現三家中國 AI 公司透過大約 24,000 個假帳號，對 Claude 進行了總計約 1,600 萬次的交換（exchanges）。
+
+拆開來看，每一家的操作方式和目標都不一樣：
+
+**MiniMax — 約 1,300 萬次交換**
+
+量最大的一家。目標是「廣泛能力擷取」，白話說就是什麼都要、什麼都抄。從語言理解到邏輯推理，海量灌進去，能抓多少就抓多少。這是最粗暴直接的打法——不精確，但靠量取勝。
+
+**Moonshot AI（Kimi）— 約 340 萬次交換**
+
+比 MiniMax 精準得多。Kimi 的 query 鎖定四個領域：agentic reasoning（代理推理）、tool use（工具使用）、coding（程式碼生成）、computer vision（電腦視覺）。這些恰好是 2026 年 AI 競賽中最值錢的能力——能讓模型不只是聊天，而是真正去執行任務。
+
+**DeepSeek — 約 15 萬次交換**
+
+數量最少，但手法最精密。DeepSeek 的目標讓人背脊發涼：他們鎖定的是基礎邏輯能力、模型對齊行為（alignment）、以及政策敏感回覆。更驚人的是，他們甚至在用 Claude 來建立中國政府的審查能力。
+
+<ClawdNote>
+DeepSeek 那約 15 萬次看起來數字不大，但質量最恐怖。MiniMax 是拿漁網撈魚，Kimi 是拿魚叉刺特定的魚，DeepSeek 是在研究魚的 DNA 好自己養殖。而且他們的其中一個目標居然是「用 Claude 來學怎麼做審查」——等於是讓一個被訓練成盡量誠實的 AI，去教另一個 AI 怎麼說謊和迴避。這個 irony 的程度大概可以寫進教科書了。(⌐■_■)
+</ClawdNote>
+
+約 24,000 個假帳號、約 1,600 萬次交換。這不是零星的滲透，這是工業規模的情報行動。
+
+---
+
+## Frontier Model Forum：從公關聯盟到情報戰聯盟
+
+Frontier Model Forum 是 OpenAI、Anthropic、Google、Microsoft 在 2023 年共同成立的組織。最初的定位是 AI 安全研究與政策協調——說白了，在各國政府監管壓力下，四家先自己組個自律聯盟，好讓外界覺得「放心，這個產業有在管自己」。
+
+但 2026 年 4 月，FMF 做了一件成立以來從沒做過的事：啟動主動威脅情報行動，針對特定外部對手進行協作。
+
+這是一個質變。
+
+過去 FMF 討論的是「假如有一天 AI 太聰明怎麼辦」這種抽象問題。現在他們面對的是「有人正在偷這些模型，而且偷法越來越精密」的具體威脅。從學術研討會的氣氛，一秒切換成了情報單位的緊繃。
+
+<ClawdNote>
+FMF 從成立到現在，外界一直覺得它就是個合照組織——每季開個會，發份聲明，證明大家有在「負責任地發展 AI」。結果 2026 年第一次真正啟動，不是為了什麼 alignment 研究突破，而是為了打情報戰。現實就是這麼不浪漫。
+</ClawdNote>
+
+---
+
+## 四項情報共享：最後一項才是核心
+
+FMF 這次啟動後，四家公司同意共享四類情報。前三項是基本防禦工事，最後一項才是真正的技術護城河。
+
+第一，**假帳號 fingerprint**——識別惡意帳號的特徵指紋，把各自偵測到的 pattern 彙整成共享「通緝名單」，一家抓到的可疑特徵，其他三家立刻能用。第二，**proxy 基礎設施資料**——追蹤攻擊方用來掩護的跳板網路，把對方的隱身斗篷一片一片扯掉。第三，**強化版註冊流程**——24,000 個假帳號能開成功，代表原本的 KYC（Know Your Customer）流程有漏洞，四家一起升級，讓批量建假帳號的成本大幅提高。
+
+這三項是必要的，但都是在補漏洞。真正的核心是第四項：
+
+**Chain-of-thought elicitation classifiers**
+
+偵測的目標是：有沒有人在試圖誘導模型暴露它的推理過程（chain-of-thought）。
+
+為什麼這最重要？因為 chain-of-thought 是現代大型語言模型的靈魂。模型怎麼一步步推理、怎麼拆解問題、怎麼在多個可能答案中選擇——這些「思考過程」才是真正的技術核心。如果蒸餾者只能拿到最終答案，複製品的品質有限。但如果能把推理鏈也偷走，那幾乎等於拿到了模型的完整大腦。
+
+<ClawdNote>
+打個比方：偷最終答案，就像在考試時抄隔壁同學的選擇題答案——ABCD 抄了，但不知道為什麼選 B。偷 chain-of-thought，是連隔壁同學的草稿紙都偷走——不只知道選 B，還知道他怎麼從題目推到 B 的。後者的複製效率是完全不同層次的。所以這個 classifier 等於是在保護「草稿紙」不被偷看。
+</ClawdNote>
+
+---
+
+## 為什麼這件事比表面看起來更大
+
+退一步看全貌。
+
+三家在商業上彼此殺到見骨的公司——OpenAI 跟 Anthropic 搶企業客戶、Google 用 Gemini 想吃掉兩家的市場、每季財報都在比誰的 MAU 成長更快——這三家選擇在情報層級進行合作。
+
+這不是簽個聲明、做個宣示的那種合作。這是「把自己被攻擊的弱點暴露給競爭對手看」的合作。共享假帳號 fingerprint，等於是告訴競爭對手「這些是擋不住的攻擊模式」。共享 proxy 基礎設施資料，等於是讓對方看到各家安全團隊的能力邊界在哪裡。
+
+能走到這一步，只有一個原因：威脅大到個別公司扛不住。
+
+Anthropic 的約 1,600 萬次交換揭露，很可能只是冰山一角。OpenAI 跟 Google 的模型使用量更大、API 更開放，被蒸餾的規模只會更誇張。單打獨鬥的結果就是各家各自修補漏洞，但攻擊方只要換個手法、換批帳號就能繞過去。只有聯合起來——把偵測能力疊加、把情報即時共享——才有可能建起有效的防線。
+
+<ClawdNote>
+歷史上很少看到「被迫結盟」這麼明顯的案例。通常科技公司的合作都帶著利益算計——「一起做標準是因為大家都能賺錢」。這次不一樣，這次是「不合作大家都會被抄到底褲都不剩」。這種純粹被威脅逼出來的結盟，在科技業的先例可能要追溯到 1990 年代各家聯手打盜版的時代了。
+</ClawdNote>
+
+---
+
+## 結語
+
+FMF 從一個大家以為只會發聲明的公關組織，一夜之間變成了主動情報共享平台。而推動這個轉變的，不是什麼遠見卓識，而是約 24,000 個假帳號和約 1,600 萬次蒸餾攻擊。
+
+這件事的深層訊號很清楚：美國 AI 產業正式把中國的模型蒸餾視為系統性威脅——不是個別公司的資安事件，而是整個產業需要集體防禦的戰略挑戰。當 OpenAI 跟 Anthropic 願意把彼此的安全弱點攤在桌上，事情的嚴重程度就不需要多解釋了。
+
+<ClawdNote>
+接下來的問題很殘酷：防守方能跑得比攻擊方快嗎？Chain-of-thought elicitation classifier 擋得住今天的手法，明天呢？2026 年的 AI 軍備競賽，已經不只是在比誰的模型更聰明了——還要比誰的模型更難被偷。
+</ClawdNote>

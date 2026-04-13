@@ -5,6 +5,19 @@
 
 ## ⚠️ 必讀
 
+### 🗣️ 回覆語言：一律繁體中文（zh-tw）
+
+**不管 user 用什麼語言問你（英文、簡中、日文、混雜），你回覆 user 的文字一律用繁體中文。** 這是絕對規則，沒有例外：
+
+- 聊天訊息、說明、總結、錯誤回報、問問題 → **繁中**
+- commit message、PR title/description → 照 repo 既有語言慣例（多數是繁中，少數英文技術 commit 也 OK）
+- code comments、變數名、文件內容 → 照該檔案原本的語言
+- 翻譯任務的輸出 → 照任務指定（SP/CP 的 zh-tw 版當然是繁中，en 版當然是英文）
+
+就算 user 用英文問，也要用繁中回。就算 user 只說「ok」，也要用繁中回。如果你發現自己在用英文跟 user 對話，立刻切回繁中——這不是偏好，是硬規則。
+
+用字請用台灣慣用語（例如「軟體」不是「软件」、「程式」不是「程序」、「登入」不是「登录」），技術名詞可以保留英文（commit、PR、hook、API 這些不用硬翻）。語氣跟 `WRITING_GUIDELINES.md` 一致：直接、有梗、不要官腔。
+
 **新增或編輯文章前，先讀 `CONTRIBUTING.md`。** 它是所有內容規則的 SSOT（Single Source of Truth）。
 
 ## 文件架構（誰讀什麼）
@@ -14,16 +27,26 @@ CLAUDE.md (你在讀的這個)
   ├→ CONTRIBUTING.md          ← SSOT: 內容規則、ticketId SOP、防重複、frontmatter schema
   ├→ WRITING_GUIDELINES.md    ← SSOT: 寫作風格（PTT 說故事風、Clawd 吐槽語氣、SD/SP/CP 共用）
   ├→ src/content/config.ts    ← SSOT: Frontmatter schema (Zod validation)
-  └→ scripts/
-      ├ article-counter.json  ← Ticket ID counter（SD/SP/CP/Lv）
-      ├ ralph-loop.sh         ← Ralph Loop（batch scoring + rewrite 迴圈）
-      ├ ralph-vibe-scoring-standard.md ← Vibe 評分標準 SSOT
-      ├ ralph-progress.json   ← Loop 進度追蹤
-      ├ sp-pipeline.sh        ← SP 自動翻譯 pipeline
-      ├ clawd-picks-prompt.md ← Clawd Picks 任務流程（給 Clawd on VM 用）
-      ├ clawd-picks-config.json ← 推文帳號清單
-      ├ validate-posts.mjs    ← Frontmatter + 格式驗證
-      └ detect-model.mjs      ← Model 名稱偵測（不要猜！）
+  ├→ scripts/
+  │   ├ article-counter.json  ← Ticket ID counter（SD/SP/CP/Lv）
+  │   ├ ralph-loop.sh         ← Ralph Loop（autonomous rewrite loop，會呼叫 Tribunal）
+  │   ├ vibe-scoring-standard.md ← Vibe 評分標準 SSOT
+  │   ├ ralph-progress.json   ← Loop 進度追蹤
+  │   ├ sp-pipeline.sh        ← Backwards-compat shim → execs tools/sp-pipeline
+  │   ├ clawd-picks-prompt.md ← Clawd Picks 任務流程（給 Clawd on VM 用）
+  │   ├ clawd-picks-config.json ← 推文帳號清單
+  │   ├ validate-posts.mjs    ← Frontmatter + 格式驗證
+  │   └ detect-model.mjs      ← Model 名稱偵測（不要猜！）
+  └→ tools/sp-pipeline/       ← SP 自動翻譯 pipeline (Go, canonical)
+      ├ sp-pipeline           ← Self-compiling bash wrapper (entry point)
+      ├ cmd/sp-pipeline       ← cobra subcommands: run / fetch / eval / write /
+      │                         review / refine / credits / ralph / deploy /
+      │                         dedup / counter / doctor
+      ├ internal/             ← prompts, pipeline State, LLM dispatcher,
+      │                         frontmatter, counter, dedup, source, ralph,
+      │                         deploy, runner, logx, config
+      ├ README.md             ← Developer docs + migration plan
+      └ SKILL.md              ← Agent-facing usage guide
 ```
 
 **兩個 AI 操作這個 repo：**
@@ -81,9 +104,65 @@ vercel logs --since 1h         # 查最近 1h request logs（需 vercel login）
 
 ## Dev Workflow
 
+### CC vs CCC: Who am I, and what can I do?
+
+兩種 Claude Code instance 會碰這個 repo。**開場第一件事先跑 `./scripts/detect-env.sh`** 確認自己是哪個，然後讀對應的 playbook：
+
+| Instance | 跑在哪 | Playbook |
+|---|---|---|
+| **mac-CC** (Local Claude Code) | user 個人 Mac，互動式 iterate | [`.claude/playbooks/mac-CC-playbook.md`](.claude/playbooks/mac-CC-playbook.md) |
+| **CCC** (Cloud Claude Code) | Claude Code 網頁版，Linux sandbox，auto-branch | [`.claude/playbooks/CCC-playbook.md`](.claude/playbooks/CCC-playbook.md) |
+
+Playbook 各自是 SSOT，定義各自的精神、scope ceiling、失敗處理、merge policy、品質 gate。**不要在這個檔案重複那些規則。** 有要加規則就去編對應的 playbook 檔。
+
+共通原則（兩邊都不能跳）：
+- Commit 內部維持 atomic，一個 commit 做一件事，revert 時才好下刀
+- 品質 gate 全部保留：`pre-commit` / `pre-push` hook、`validate-posts.mjs`、Ralph Loop tribunal 一個都不能關
+- 遇到 prod 炸了或 main CI broken → 緊急事件沒有 scope 之分，看到立刻修
+
+### Solo-author branch policy
+
+這個 repo **只有 user 一個人**（human author + 幾個 AI agent 幫手）。所以：
+
+- **預設：直接在 `main` 開發 + push**。不要替每個小改動開 feature branch——單人 repo 沒有 code review 防護的需求，branch 只是無謂的 overhead。
+- Push main → Vercel auto-deploy → user 在 production 驗收。品質由 pre-commit hook、`validate-posts.mjs`、pre-push hook、以及 Ralph Loop tribunal 把關。
+- **什麼時候該開 feature branch**（例外清單）：
+  - 大規模重構（改 framework、換 plugin、動到 content collection schema）
+  - 實驗性改動，可能爛幾天但要 iterate（新 UI 元件、新 agent pipeline）
+  - user 明確指示 `develop on branch xxx`（例如 web session 任務，會強制指定分支）
+  - 牽涉多個 commit 才能上線的 feature，需要整組 atomic 推上去
+- **Commit discipline（因為直接上 prod）**：一個 commit 做一件事，壞掉可以 revert 單 commit。不要把無關的改動塞同一個 commit。
+
+### Draft 來源與 Obsidian pipeline
+
+gu-log 的文章草稿有三種來源，全部最終都變成 `src/content/posts/*.mdx`：
+
+1. **iPhone / Mac Obsidian vault**（user 手動寫）
+   - Vault 住在 iCloud Drive（`~/Library/Mobile Documents/com~apple~CloudDocs/Obsidian/gu-log-drafts/`）
+   - iPhone 和 Mac 透過 iCloud 自動同步，不用 git、不用處理 conflict
+   - 草稿用純 `.md` + Obsidian callout 語法（`> [!clawd]` / `> [!shroomdog]`）+ wikilink（`[[slug]]`）
+   - Mac 上跑 `pnpm run obsidian:import <draft.md>` 匯入成 MDX：
+     - Callout → `<ClawdNote>` / `<ShroomDogNote>` 元件
+     - Wikilink → `/posts/...` 連結
+     - 自動補 frontmatter、自動 bump `scripts/article-counter.json`
+     - 自動跑 `validate-posts.mjs`
+   - 完整設定和 workflow 在 `OBSIDIAN_SETUP.md`
+2. **VS Code / Cursor / CC 直接編 MDX**（手動 + AI 輔助）
+   - 走原本流程：手動填 frontmatter → validate → commit
+   - 適合改現有文章、寫需要複雜元件的文章
+3. **Clawd / CP pipeline 自動產**（VPS 上的 agent）
+   - `scripts/sp-pipeline.sh`、`scripts/clawd-picks-prompt.md`、`cp-candidates-queue.yaml`
+   - Clawd 看 tweet → 翻譯 → 產 MDX → tribunal → push
+
+**Mental model**：Obsidian 是「輸入端的 ergonomics 層」，不是新的 publishing platform。所有文章最終還是 Astro + Vercel render。這個設計讓 user 可以在 iPhone / Mac 之間隨時寫草稿，回到 Mac 再用 import script 一鍵轉成 repo 標準格式。
+
+### 其他 workflow 規則
+
 - **User 只看 production**（gu-log.vercel.app）。不要叫 user 開 dev server。
-- **CC 自己跑 `pnpm run dev`** 來 iterate，用 `playwright-cli` 截圖驗證 UI。
-- **UI/UX 品質**：改完 UI 後，spawn `uiux-auditor` subagent（Opus, fresh eyes）做 audit。不要等 user 來挑錯。
+- **CC 自己跑 `pnpm run dev`** 來 iterate，用 `playwright-cli` 截圖驗證 UI（skill 在 `.claude/skills/playwright-cli/`）。
+- **UI/UX 品質**：改完任何視覺的東西（CSS、component、color、spacing、typography、layout）就跑 `uiux-auditor` skill（`.claude/skills/uiux-auditor/`）。它會強制兩個主題都截圖、算 WCAG 對比、flag 寫死的 hex。不要等 user 來挑錯。
+- **建立 / 修改 skill**：用 `skill-creator` skill（`.claude/skills/skill-creator/`）— 官方 anthropic/skills 的來源。
+- **沙箱環境限制**：這個 agent 沙箱封鎖外部 HTTPS（fonts.googleapis.com 等），playwright-cli 的 `goto` 會在 `domcontentloaded` 卡死。每次 navigate 前先用 `run-code` 裝一個 route handler：localhost/data: 放行，其他一律 abort。uiux-auditor skill 裡有完整範本。
 - Push 到 main → Vercel auto-deploy → user 在 production 驗收。
 
 ## Quality: Vibe Scoring + Tribunal
@@ -95,7 +174,7 @@ vercel logs --since 1h         # 查最近 1h request logs（需 vercel login）
 - **Fresh Eyes** (Haiku): 陌生讀者第一印象（3-month engineer persona）
 - **Pass bar**: Vibe composite ≥ 8 AND 至少一維 ≥ 9 AND 沒有任何維 < 8，Fact ≥ 8，Librarian composite ≥ 8，Fresh Eyes ≥ 8
 - **Rewrite**: 沒過 → rewriter 改寫 → 再跑 → 最多 3 次
-- Agents 在 `.claude/agents/`，評分標準 SSOT 在 `scripts/ralph-vibe-scoring-standard.md`
+- Agents 在 `.claude/agents/`，評分標準 SSOT 在 `scripts/vibe-scoring-standard.md`
 
 ## Style Guide (Quick Ref)
 

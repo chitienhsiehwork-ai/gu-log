@@ -55,16 +55,81 @@ echo ""
 # ─── Step 0.1: Score gate — staged posts must have ralph scores ───
 # Only checks zh-tw primary posts (not en- translations).
 # Minimum: scores.ralph block with p, c, v fields.
-echo "📊 Score gate: checking staged posts for ralph scores..."
+#
+# Scope: only enforced on newly ADDED posts (git diff-filter=A). Edits to
+# existing posts are trusted — typo fixes from humans, small rewordings,
+# and Edit with AI flows (`ai: edit <file>` commits produced by the
+# /ai/edit/confirm endpoint on gu-log-api) must not be blocked just
+# because some older post was committed without a score. Full rewrites
+# still get rescored because the Ralph rewriter agent writes a fresh
+# score block before it commits.
+#
+# Exemption: posts whose ONLY diff vs HEAD is dedup/series housekeeping
+# (status: deprecated, deprecatedReason, deprecatedBy, series.*) skip the
+# gate. The score is about content quality, not bookkeeping. Forcing a
+# rescore just to add a `series.name` to a 4-month-old post is the wrong
+# trade-off.
+#
+# Merge-commit exemption: if .git/MERGE_HEAD exists we're finalising a
+# merge, which brings in content that was already gated on its source
+# branch. Re-gating it here would block legitimate merges whenever main
+# has posts that didn't pass this specific gate (e.g. pipeline gaps
+# where scores were written to scores/tribunal-progress.json instead of
+# the mdx frontmatter). Content-quality gates fire on authored commits,
+# not on merges.
+IS_MERGE_COMMIT=0
+if [ -f "$REPO_ROOT/.git/MERGE_HEAD" ]; then
+    IS_MERGE_COMMIT=1
+fi
+
+if [ "$IS_MERGE_COMMIT" = "1" ]; then
+    echo "📊 Score gate: merge commit detected — skipping (content was gated on source branches)"
+else
+    echo "📊 Score gate: checking staged posts for ralph scores..."
+fi
 SCORE_MISSING=""
-STAGED_ZH_POSTS=$(printf '%s\n' "$STAGED_MDX" | grep -v '/en-' | sed '/^$/d' || true)
+# Only newly added zh-tw posts are subject to the score gate. Modifications
+# (Edit with AI, typo fixes, housekeeping) flow through is_metadata_only_diff
+# and the rewriter agent's own scoring, so we don't re-gate them here.
+STAGED_ZH_POSTS=$(git diff --cached --name-only --diff-filter=A -- "$POSTS_DIR"/*.mdx 2>/dev/null | grep -v '/en-' | sed '/^$/d' || true)
+
+is_metadata_only_diff() {
+    local file="$1"
+    # If the file is newly added there's no HEAD version to diff against —
+    # treat as content change so the gate enforces.
+    if ! git cat-file -e "HEAD:$file" 2>/dev/null; then
+        return 1
+    fi
+    # All added/removed lines (excluding the ±±± headers) must match the
+    # housekeeping field allowlist. Anything else → content change.
+    local diff_body
+    diff_body=$(git diff --cached --no-color -U0 -- "$file" \
+        | grep -E '^[+-]' \
+        | grep -vE '^(\+\+\+|---) ' \
+        || true)
+    if [ -z "$diff_body" ]; then
+        return 0
+    fi
+    if printf '%s\n' "$diff_body" \
+        | grep -vqE '^[+-][[:space:]]*(status|deprecatedReason|deprecatedBy|series|name|order):'; then
+        return 1
+    fi
+    return 0
+}
 
 if [ -z "$STAGED_ZH_POSTS" ]; then
     echo "✓ No zh-tw posts staged"
+elif [ "$IS_MERGE_COMMIT" = "1" ]; then
+    : # already printed the skip message above
 else
     for file in $STAGED_ZH_POSTS; do
         FULL_PATH="$REPO_ROOT/$file"
         if [ ! -f "$FULL_PATH" ]; then continue; fi
+
+        # Skip the gate if this is a metadata-only housekeeping edit.
+        if is_metadata_only_diff "$file"; then
+            continue
+        fi
 
         # Check if file has scores.ralph block with p, c, v
         if ! grep -q "^  ralph:" "$FULL_PATH" 2>/dev/null; then
@@ -99,12 +164,21 @@ echo "✓ All staged posts have ralph scores"
 echo ""
 
 # ─── Step 0.15: Pronoun clarity check (你/我 ban in zh-tw body) ───
-if [ -n "$STAGED_MDX" ]; then
+# Same metadata-only exemption as the score gate: housekeeping edits
+# (status/series/deprecation) don't change body text and shouldn't be
+# punished for pre-existing 你/我 in 4-month-old articles.
+# Also skipped on merge commits — content was gated on source branches.
+if [ -n "$STAGED_MDX" ] && [ "$IS_MERGE_COMMIT" != "1" ]; then
     ZH_FILES=""
     for file in $STAGED_MDX; do
         case "$file" in
             */en-*) ;; # skip English
-            *) ZH_FILES="$ZH_FILES $REPO_ROOT/$file" ;;
+            *)
+                if is_metadata_only_diff "$file"; then
+                    continue
+                fi
+                ZH_FILES="$ZH_FILES $REPO_ROOT/$file"
+                ;;
         esac
     done
 
@@ -119,6 +193,8 @@ if [ -n "$STAGED_MDX" ]; then
         fi
         echo "✓ Pronoun clarity passed"
     fi
+elif [ "$IS_MERGE_COMMIT" = "1" ]; then
+    echo "🔍 Pronoun clarity: merge commit detected — skipping"
 fi
 echo ""
 

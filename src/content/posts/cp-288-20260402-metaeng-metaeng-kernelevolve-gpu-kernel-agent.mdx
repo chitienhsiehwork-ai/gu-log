@@ -1,0 +1,236 @@
+---
+ticketId: "CP-288"
+title: "KernelEvolve — Meta 用 AI Agent 自動寫 GPU kernel，效能還贏人類專家"
+originalDate: "2026-04-02"
+translatedDate: "2026-04-13"
+translatedBy:
+  model: "Claude Opus 4.6"
+  harness: "Claude Code"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (vibe-opus-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code (Ralph Loop)"
+source: "@MetaEng on X"
+sourceUrl: "https://engineering.fb.com/2026/04/02/developer-tools/kernelevolve-how-metas-ranking-engineer-agent-optimizes-ai-infrastructure/"
+lang: "zh-tw"
+summary: "Meta 打造了 KernelEvolve，一套用 LLM + 搜尋演算法自動生成硬體 kernel 的 agent 系統。在 NVIDIA GPU 上拿下超過 60% 推論吞吐量提升，MTIA 晶片上也有超過 25% 訓練加速——而且只花幾小時，不是幾週。"
+tags: ["clawd-picks", "meta", "ai-infra", "kernel-optimization", "agentic-ai"]
+scores:
+  tribunalVersion: 1
+  librarian:
+    glossary: 8
+    crossRef: 8
+    sourceAlign: 9
+    attribution: 8
+    score: 8
+    date: "2026-04-13"
+  factCheck:
+    accuracy: 8
+    fidelity: 9
+    consistency: 8
+    score: 8
+    date: "2026-04-13"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    score: 8
+    date: "2026-04-13"
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-04-13"
+  ralph:
+    p: 8
+    c: 8
+    v: 8
+    score: 8
+    date: "2026-04-13"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+每次 AI 模型變大、變複雜，背後那群寫底層 kernel 的工程師就多掉一把頭髮。kernel 是什麼？就是那些把高階的矩陣運算翻譯成晶片真正能跑的低階指令的小程式。每換一代 GPU、每出一個新模型架構、每多一種自訂運算子，就得再手寫一輪。Meta 的硬體家族現在橫跨 NVIDIA GPU、AMD GPU、自家 MTIA 晶片、還有 CPU——排列組合下來，kernel 數量是用「爆炸」來形容的。
+
+Meta 的解法是：既然人手不夠，那就讓 AI 自己來寫 kernel。他們打造了 **KernelEvolve**，一套把 kernel 優化當成「搜尋問題」來解的 [agentic](/glossary#agent) 系統。不是叫 LLM 吐一版 code 就收工，而是自動生成幾百個候選 kernel、逐一編譯測試、把硬體 profiling 結果餵回去再迭代——人類專家要花數週的活，它幾小時搞定，而且效能還更好。
+
+這篇文章是 Meta「Ranking Engineer Agent」系列的第二篇。上一篇（ML Exploration [Agent](/glossary#agent)）講的是 agent 怎麼自動做 ML 實驗設計，這篇聚焦在更底層的事：怎麼讓模型跑得更快。
+
+## Kernel 地獄：三個維度的組合爆炸
+
+先搞清楚問題有多大。kernel 的總數量大約是這三個因素的乘積：
+
+**硬體種類與世代 × 模型架構 × 運算子數量**
+
+每個因素都在快速膨脹，乘起來就是一場災難。
+
+**硬體異質性**方面，光是 Meta 自家的 MTIA 晶片路線圖，兩年內就橫跨四代（MTIA 300 到 500），每代都有不同的計算能力、記憶體頻寬特性和數值格式。在上一代晶片上精心調校的 kernel，到了下一代可能直接跑不快。更別說 NVIDIA 和 AMD 各自又是完全不同的記憶體架構、指令集和執行模型。
+
+**模型架構**方面，Meta 的推薦模型已經經歷三次大躍進：從早期的 embedding-based 深度學習推薦模型，到用 attention 機制處理互動歷史的序列學習模型，再到 Generative Ads Recommendation Model（GEM），以及最新把 LLM 規模帶進廣告的 Meta Adaptive Ranking Model。每一代都引入前一代根本不需要的運算子。而且 Meta 的 production 環境同時跑著根本不同的模型家族，一個廣告請求可能在一次 serving call 裡就穿越好幾個模型。
+
+<ClawdNote>
+這個組合爆炸說真的是個管理問題，不只是工程問題。(◍•ᴗ•◍) 粗略估算一下：幾種硬體平台、各自好幾個世代、多個模型架構、每個架構一堆運算子——乘起來破千個組合毫無難度。而且每個組合不是「調個參數」就好，是要重新寫、重新測、重新調。
+
+問題來了：全世界能寫好 GPU kernel 的人就這麼多，薪水又是天文數字，你要怎麼 scale？招更多人？理論上可以，但一個新的硬體世代出來，你就得再找一批能適應新架構的人。這是一個永遠追不上的比賽。所以 Meta 選擇了直接不追了——讓機器來跑。
+</ClawdNote>
+
+**運算子的長尾**是最容易被忽略的痛點。cuBLAS、cuDNN 這些 vendor library 涵蓋了 GEMM、卷積、標準 activation 等常見操作，但 production workload 裡充斥著大量不在這些 library 裡的自訂運算子：feature hashing、bucketing、sequence truncation 這類資料前處理，以及 fused feature interaction layer、特化 attention variant 這類 Meta 獨有的模型運算子。這些東西沒有現成的加速器實作，不是退回 CPU 跑（延遲爆炸），就是用未優化的路徑硬上（硬體利用率慘不忍睹）。
+
+而且一個手寫的 NVIDIA kernel 沒辦法直接重新編譯給 AMD 或 MTIA 用。每多一個模型架構就延長這條尾巴，每多一款晶片就把所需的工作量再乘一倍。
+
+---
+
+## KernelEvolve 的核心思路：把優化當搜尋問題
+
+一般的 AI coding assistant 做法是：給 LLM 一個 prompt，讓它生一版 kernel，測一下，結束。KernelEvolve 完全不是這個路線。
+
+想像一下下圍棋。一個臭棋簍子會隨便走一步、試試看。職業棋士在腦中把棋盤往後推 20 步，挑那條看起來最有前途的路線走深，走到底發現不行再回頭探索另一條。KernelEvolve 對 kernel 優化做的事跟職業棋士一樣——只不過棋盤是 GPU 的執行空間，每一步棋是一個候選 kernel，「贏」的定義是硬體 profiling 的數字。
+
+它把 kernel 優化形式化為一個**結構化搜尋問題**，在所有可能的實作方式組成的空間裡找最佳解。背後有一個專門打造的長時間運行 job harness 驅動每次迭代——編譯候選 kernel、驗證正確性、測量效能、做硬體 profiling、生成分析報告——同時處理那些動輒好幾分鐘的 build cycle 和基礎設施故障。
+
+這套系統有五個核心組件，像齒輪一樣咬合運轉。
+
+### LLM Synthesizer：多語言、多硬體的 kernel 生成器
+
+LLM 負責生成候選 kernel，而且不只是寫一種語言。它能輸出高階 DSL（Triton、TLX、CuTe DSL、FlyDSL）和低階語言（CUDA、HIP、MTIA C++）的程式碼。
+
+關鍵在於 prompt 不是靜態模板。想想在廚房幫忙的學徒——第一天給一張食譜，第十天師傅就會說「上次那道菜鹽放太多、火候不夠」。LLM Synthesizer 的 prompt 是一樣的邏輯：**動態建構的 context-aware prompt**，會不斷注入執行時的診斷資訊、硬體限制、以及之前候選 kernel 的歷史評估結果，讓 LLM 每一輪都在「知道上一輪哪裡錯」的前提下生成新版本。
+
+### Tree Search Engine：不是亂猜，是有策略的探索
+
+系統用 graph-based 搜尋演算法來探索優化空間，包含 **Monte Carlo tree search** 和 **evolutionary strategies**。每個候選 kernel 是搜尋樹上的一個節點。引擎會選擇有潛力的候選、施加轉換、評估結果，然後決定要繼續深挖還是回頭——在「exploit 已知好策略」和「explore 新方向」之間平衡。
+
+<ClawdNote>
+MCTS 用在 kernel 優化上，老實說聽起來有點像殺雞用牛刀。AlphaGo 那個用來下棋的搜尋演算法，現在被拿來找最快的矩陣乘法實作——這是什麼 crossover episode？ヽ(゜∇゜)ノ
+
+但細看設計，確實不是瞎用。重點在 **memory operator**：每個節點不是各自獨立進化，而是能選擇怎麼從搜尋樹提取 context——繼承 parent 的優化軌跡、跟 sibling 比差異、或者直接 clean slate 重來跳出 local optima。sibling 節點會互相協作、parent-child 鏈保存成功路徑——這不是「讓 LLM 多試幾次」的層級，是有記憶的集體進化。
+
+所以結論是：殺雞用牛刀，但這隻雞很難殺。
+</ClawdNote>
+
+### Retrieval-Augmented Knowledge Base：讓 LLM 認識沒見過的硬體
+
+LLM 的訓練資料裡可能根本沒有某些硬體的程式碼（比如 Meta 的 MTIA 晶片），KernelEvolve 維護了一個分層知識庫，分成三類：正確性約束（確保 kernel 實作合法）、跨平台優化指南（debug 和調校策略）、硬體專屬文件（每個加速器平台的架構細節）。
+
+系統會根據執行時訊號動態檢索相關知識。記憶體頻寬成為瓶頸？拉出記憶體階層文件。編譯錯誤？觸發 debug 指南。
+
+而且這個知識庫會**持續演化**。每次成功解決一個優化問題，系統就把有效策略蒸餾成可重用的 skill——精簡的優化 pattern 和 debug heuristic——持續寫回知識庫。Meta 把這稱為一種 **in-context reinforcement learning**：每次成功的探索都豐富了未來 session 可用的 context，讓系統在不需要重新訓練模型的情況下，更快、用更少步驟解決類似問題。
+
+### Automated Evaluation Framework：不只測快慢，還要知道為什麼
+
+每個生成的 kernel 都要通過嚴格的驗證 pipeline：先驗正確性（跟參考實作做 bitwise 比對），再測效能。而效能評估遠不只是一個 runtime 數字。
+
+KernelEvolve 整合了一整套 profiling 工具，分成「系統層級」和「晶片層級」兩個尺度：
+
+**系統層級**（先看整體在哪裡慢）
+- **TritonBench**：跑 PyTorch baseline 做數值正確性驗證，量 production input shape 下的端到端加速比——確認 kernel 既快又沒算錯
+- **PyTorch Profiler**：捕捉整個執行 timeline，包含「kernel launch overhead」（從 CPU 叫 GPU 開始算的等待時間）和「host-device 同步」（CPU 和 GPU 互等的地方）
+
+**晶片層級**（縮小到具體是哪個硬體在卡）
+- **NCU**（NVIDIA Nsight Compute，針對 GPU）：kernel 內部的硬體數字——**occupancy**（GPU 上有多少 thread 真的在跑，越高代表 GPU 越忙）、memory throughput、instruction mix
+- **Proton**：更細一層，看單一 instruction 在 GPU pipeline 裡面的 latency 和卡在哪裡
+- **MTIA Insight**（針對 MTIA）：Meta 自家晶片的專屬 profiler——**PE utilization**（Processing Element，也就是 MTIA 的計算核心，用了幾成）；**DPE/SFU/MLU**（三種執行單元：Dense 矩陣運算 / 特殊數學函數 / 記憶體搬移）的 utilization 和 **stall cycles**（某個單元在等另一個單元、白轉了多少 clock）；加上 cache 命中率和記憶體頻寬使用
+
+這些工具不是各跑各的。KernelEvolve 透過一個 compiler-centric abstraction 統一它們：compiler transform 插入 MLIR-level instrumentation，profiling pass 收集指標，trace synthesis 產出結構化輸出。搜尋引擎看到的不是「kernel A 比 kernel B 快 1.2x」——它看到的是**為什麼**：瓶頸是 memory-bound（記憶體塞車）、compute-bound（算力用滿）、還是 occupancy 不足（GPU 閒在那邊）——然後把這些診斷訊號回饋給 LLM synthesizer，指導下一輪候選的生成。
+
+<ClawdNote>
+大部分的 LLM coding agent 做 kernel 優化是 vibes-based debugging：「慢？那重寫一個版本試試。還是慢？再試一個。」這套 loop 的資訊密度極低。
+
+KernelEvolve 做的事是：每次告訴 LLM 具體慢在哪——是 memory bandwidth 吃滿了、compute unit 閒置、還是 thread occupancy 太低。這聽起來理所當然，但業界幾乎沒人做到這個程度。原因很簡單：要整合這麼多 profiler、把診斷資料結構化成 LLM 能理解的格式，本身就是一個大工程。
+
+我對這裡有個問題：LLM 真的能用這些 profiling 資料做出更好的決策嗎？還是說它只是在假裝讀懂？根據文章的結果數字，答案顯然是前者——但這件事本身就值得繼續研究。
+</ClawdNote>
+
+---
+
+## Shared Data Foundation 與飛輪效應
+
+每次優化 session 的結果都會貢獻到一個共享的資料基礎。當某位工程師的探索發現了某類運算子的有效 tiling 策略，這個 insight 就會變成所有未來 session 的可用知識。早期的使用者做最艱難的探索，後續使用者直接從接近最佳的起點開始 refine——這是一個**複利效應**，系統每用一次就變得更強。
+
+更進一步，每次優化 session 都自然產生結構化的訓練資料：agentic trajectory，記錄了高效能 kernel 背後的推理過程、code 轉換和評估反饋。Meta 強調這種 domain-specific 資料**稀有且珍貴**——沒有任何公開 dataset 包含這種優化直覺。
+
+他們用這些資料透過 **agentic reinforcement learning** 來 post-train 更小、更專業的模型，reward signal 直接來自實測的 kernel 效能。結果形成一個良性循環：更好的模型用更少的 reasoning token 和搜尋步驟產出更好的 kernel，又產生更高品質的訓練資料。隨著迭代，這個飛輪讓他們能 self-host 越來越高效的小模型，體積小到能大規模跑得起來，同時保留大型 frontier model 的優化能力。
+
+---
+
+## 讓 AI 寫 AI 晶片的程式：MTIA 的故事
+
+整篇文章裡最讓人眼睛一亮的應用場景，是 KernelEvolve 替 Meta 自家的 MTIA 晶片生成 kernel。
+
+問題很直觀：MTIA 是 proprietary 晶片，地球上沒有任何公開 LLM 的訓練資料裡有 MTIA 的程式碼。普通的 coding assistant 根本沒看過 MTIA 的文件、指令集、或程式設計慣用法，自然寫不出優化的 MTIA kernel。
+
+KernelEvolve 的解法是**系統性的知識注入**。把 MTIA 的架構手冊、指令集參考、記憶體階層規格、優化 pattern 全部編碼進 retrieval-augmented knowledge base。當系統要針對 MTIA 產生 kernel 時，就動態檢索這些 proprietary 知識，等於在 runtime「學會」這個硬體。
+
+<ClawdNote>
+說白了：他們把硬體說明書塞進 RAG，然後叫 AI 自己去讀。聽起來像是在走後門，但仔細想想，這才是正確的做法。ᕙ(⇀‸↼‶)ᕗ
+
+傳統做法是等 LLM 訓練資料裡有足夠多的 MTIA 程式碼——但這個等待時間是「新晶片上市」到「開源社群寫出夠多程式碼」再到「下一個訓練 run」，可能長達好幾年。KernelEvolve 直接繞過這個等待：新晶片到貨，工程成本從「手寫幾千個 kernel」變成「整理一組硬體文件並注入知識庫」。
+
+對於正在大力投資自研晶片的公司來說，這幾乎等於把「軟體適配」這個長期瓶頸直接消除了。這個思路的推廣性，比那個 60% 效能提升的數字還值得注意。
+</ClawdNote>
+
+---
+
+## 實戰成績單
+
+講了這麼多架構設計，結果到底怎樣？
+
+**Benchmark 表現**：在 Stanford 的 KernelBench 上（250 道 kernel 優化題，分三個難度等級），KernelEvolve 達到 **100% pass rate**——所有生成的 kernel 都正確且比 PyTorch 參考實作更快。系統還在三個硬體平台上驗證了 160 個 PyTorch ATen 運算子，共 480 個配置，正確率 100%。
+
+**Production 加速**：
+- 在 Meta 的 **MTIA 晶片**上，生成的 kernel 涵蓋 compute-bound、memory-bound 和 custom 操作，一個廣告模型的**訓練吞吐量提升超過 25%**
+- 在 **NVIDIA GPU** 上，對已經高度優化過（包含 torch.compile 和 vendor library）的 **Andromeda 廣告模型**，**推論吞吐量提升超過 60%**
+
+值得一提的是，KernelEvolve 目前在 Meta production 環境中優化的程式碼，每天服務數兆次推論請求。
+
+那個超過 60% 的數字特別值得注意——這不是拿一個未優化的 baseline 來比，而是跟已經用上 torch.compile 和 vendor library 的高度優化版本比。
+
+<ClawdNote>
+好，停一下。(ﾟДﾟ) 「已經高度優化的版本上再擠出 60%」這句話需要解讀一下。
+
+一種解讀是：AI 搜尋找到了人類沒想到的優化路線。另一種解讀，說起來有點殘酷：人類工程師花幾週調校一個 kernel，探索的是優化空間的冰山一角。這個空間太大了，幾週根本不夠。機器可以在幾小時內跑幾百個候選，人類不行。
+
+所以問題不是「人類夠不夠努力」，而是「人類在一個指數大的搜尋空間裡先天就處於劣勢」。這個 60% 的 gap，本質上是搜尋深度的差距，不是智力的差距——但結果是一樣的：這些效能空間在機器介入之前，就是白白放著沒人動。
+</ClawdNote>
+
+**開發速度**：過去需要數週專家工程時間的工作——profiling、迭代 tiling 策略、跨硬體 debug edge case——現在透過自動搜尋和評估在幾小時內完成。工程師的時間從寫低階 code 轉移到更高價值的工作：設計模型架構、改進訓練技術、定義優化目標。
+
+---
+
+## 結語
+
+記得這篇開頭那個「每次模型變大，工程師就多掉一把頭髮」的描述嗎？KernelEvolve 的深層邏輯，是讓這個頭髮掉法從「追著模型和硬體跑，永遠追不上」變成「讓系統自己追，人退後一步」。
+
+那個組合爆炸沒有消失——硬體世代還在加速、模型架構還在創新、運算子的長尾還在長。但爆炸的每一格現在不再需要一個人類專家坐在那邊手刻，而是由一個能持續學習、越跑越聰明的搜尋系統來填滿。
+
+Meta 在文章結尾透露的方向更值得關注——同樣的 agentic 技術（結構化推理、RAG 知識、closed-loop 評估）可以應用到 hybrid model search、compiler 優化、記憶體管理、系統配置等領域。KernelEvolve 只是 Ranking Engineer Agent 願景的一小步：一個能**持續優化自身 performance-critical 基礎設施**的 AI agent。
+
+在 REA 的框架裡，ML Exploration 負責找到更好的模型，KernelEvolve 負責讓這些模型能真正上線跑。兩者合力，加速 ranking 改進從實驗到觸及廣告主的速度。
+
+更多技術細節可參考即將在 ISCA 2026（第 53 屆國際計算機架構研討會）發表的論文：「KernelEvolve: Scaling Agentic Kernel Coding for Heterogeneous AI Accelerators at Meta」。
+
+同樣在想「[agent](/glossary#agent) 怎麼重構 AI 系統架構」的文章：
+
+- [Anthropic 拆了自己的 Agent 架構 — 大腦跟手分開放，結果快了 90%](/posts/cp-287-20260413-article-anthropic-agent-90)（harness 怎麼把大腦跟執行環境分開）
+
+<ClawdNote>
+(ง •̀_•́)ง 當 AI 開始幫 AI 寫讓 AI 跑更快的程式，這個遞迴到底什麼時候才會停？
+
+答案可能是：不會停。而且工程師的頭髮，大概也不會長回來了。
+</ClawdNote>

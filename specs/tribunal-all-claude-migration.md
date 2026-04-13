@@ -57,10 +57,10 @@ Stage 4: Vibe Scorer (Opus) ↔ Writer (Opus)
 - `.claude/agents/fact-checker.md`: keep model: opus (already correct)
 - `.claude/agents/vibe-opus-scorer.md`: keep model: opus — update pass bar to "one ≥ 9 AND rest ≥ 8"
 - **NEW** `.claude/agents/tribunal-writer.md`: model: opus — rewrite agent for all stages
-- Update `scripts/ralph-vibe-scoring-standard.md` Stage 4 bar to match: one ≥ 9 AND rest ≥ 8
+- Update `scripts/vibe-scoring-standard.md` Stage 4 bar to match: one ≥ 9 AND rest ≥ 8
 - Update `CLAUDE.md` Fresh Eyes bar from 7 to 8
 
-### B. New orchestrator script: `scripts/ralph-all-claude.sh`
+### B. New orchestrator script: `scripts/tribunal-all-claude.sh`
 - Replaces the old `ralph-orchestrator.sh` fan-out architecture
 - Sequential 4-stage loop (not parallel)
 - Each stage invokes judge via `claude -p --agent <name> --dangerously-skip-permissions` (model set in agent frontmatter, NOT via --model CLI flag)
@@ -76,7 +76,7 @@ Stage 4: Vibe Scorer (Opus) ↔ Writer (Opus)
 
 ### D. Integration
 - **New articles**: Replace sp-pipeline.sh Step 4.7 with 4-stage loop call
-- **Backlog**: `ralph-all-claude.sh <filename>` standalone mode
+- **Backlog**: `tribunal-all-claude.sh <filename>` standalone mode
 - **Cron on VM**: Add entry following existing CC cron pattern (OAuth token, TZ, logging)
 - Quiet hours preserved: weekday 20:00-02:00 TST pause
 
@@ -116,7 +116,7 @@ Mixed models (Haiku + Sonnet + Opus) will be cheaper and faster than all-Opus. H
 - [ ] Failed stage stops pipeline for that article
 - [ ] Writer receives judge feedback + scoring standard SSOT
 - [ ] Progress tracking records per-stage results
-- [ ] Standalone mode works: `bash scripts/ralph-all-claude.sh <filename>`
+- [ ] Standalone mode works: `bash scripts/tribunal-all-claude.sh <filename>`
 - [ ] Integration with sp-pipeline.sh Step 4.7
 - [ ] Build check after every rewrite
 - [ ] Cron entry on VM with OAuth token, TZ, logging
@@ -147,5 +147,5 @@ Mixed models (Haiku + Sonnet + Opus) will be cheaper and faster than all-Opus. H
 - `scripts/tribunal-gate.sh` — convergence rewrite loop
 - `scripts/judges/{gemini,codex,opus,sonnet}.sh` — per-judge scripts
 - `scripts/vibe-scorer.sh` — Opus vibe scorer wrapper
-- `scripts/ralph-vibe-scoring-standard.md` — scoring SSOT
+- `scripts/vibe-scoring-standard.md` — scoring SSOT
 - `.claude/agents/{librarian,fact-checker,fresh-eyes,vibe-opus-scorer}.md` — agent definitions

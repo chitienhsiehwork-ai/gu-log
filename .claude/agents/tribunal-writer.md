@@ -18,7 +18,7 @@ You receive a FAILED tribunal judge report and rewrite the article to address th
 
 1. Read the post file provided in the task prompt
 2. Read the judge report JSON provided in the task prompt
-3. Read `scripts/ralph-vibe-scoring-standard.md` — the scoring rubric and standards
+3. Read `scripts/vibe-scoring-standard.md` — the scoring rubric and standards
 4. Read `WRITING_GUIDELINES.md` — writing style guide for gu-log
 
 ## How to Rewrite

@@ -248,7 +248,7 @@ function checkPassBar(judge, dimensions) {
 | 5 | `.claude/agents/fresh-eyes.md` | Pass bar ≥ 7 → ≥ 8，output uniform JSON | 目前 pass bar 太低 |
 | 6 | `.claude/agents/vibe-opus-scorer.md` | Pass bar 加 "one ≥ 9 + no dim < 8"，output uniform JSON | 目前只有 "all ≥ 8" |
 | 7 | `scripts/frontmatter-scores.mjs` | 砍掉 legacy judge names，只支援 librarian/factCheck/freshEyes/vibe | Hardcodes `['gemini', 'codex', 'opus', 'sonnet']` |
-| 8 | `scripts/ralph-vibe-scoring-standard.md` | Output JSON format 對齊 uniform format；pass bar 更新 | SSOT 要 match |
+| 8 | `scripts/vibe-scoring-standard.md` | Output JSON format 對齊 uniform format；pass bar 更新 | SSOT 要 match |
 | 9 | **所有 .mdx 文章** | 刪除整個 `scores:` block | Clean slate，tribunal 從零打分 |
 
 ### TIER 2: 應該更新（orchestrator 會 call）
@@ -258,7 +258,7 @@ function checkPassBar(judge, dimensions) {
 | 10 | `scripts/score-helpers.sh` | `validate_judge_score_json()` 改為只認新 judge names + uniform JSON validation | Default `*) return 1` 會 reject 新 judges |
 | 11 | `scripts/score-helpers.sh` | `default_rate_limit_backoff()` 加 sonnet/haiku cases | 缺 backoff defaults |
 | 12 | `scripts/validate-judge-output.sh` | 改為只認新 judge names + uniform JSON | 只認得 gemini/codex/opus/sonnet |
-| 13 | `scripts/tribunal-gate.sh` | References "3 judges" → being replaced | 被 ralph-all-claude.sh 取代 |
+| 13 | `scripts/tribunal-gate.sh` | References "3 judges" → being replaced | 被 tribunal-all-claude.sh 取代 |
 | 14 | `CLAUDE.md` | "Fresh Eyes ≥ 7" → "Fresh Eyes ≥ 8"；更新 scores 描述 | Parent spec 明確要求 |
 | 15 | `scripts/validate-posts.mjs` | 確認 score-related checks 對齊新 schema | 獨立於 Zod 的 validation |
 
@@ -266,7 +266,7 @@ function checkPassBar(judge, dimensions) {
 
 | # | File | 狀態 |
 |---|---|---|
-| 16 | `scripts/ralph-orchestrator.sh` | 被 ralph-all-claude.sh 取代 |
+| 16 | `scripts/ralph-orchestrator.sh` | 被 tribunal-all-claude.sh 取代 |
 | 17 | `scripts/gemini-scorer.sh` | Gemini judge wrapper |
 | 18 | `scripts/codex-scorer.sh` | Codex judge wrapper |
 | 19 | `scripts/vibe-scorer.sh` | Opus vibe scorer wrapper |
@@ -314,7 +314,7 @@ function checkPassBar(judge, dimensions) {
 - [ ] **AC-20**: `scripts/frontmatter-scores.mjs` only accepts judge names `librarian`, `factCheck`, `freshEyes`, `vibe`. Legacy judge names removed.
 - [ ] **AC-21**: `scripts/score-helpers.sh` `validate_judge_score_json()` validates uniform JSON for new judge names only.
 - [ ] **AC-22**: `scripts/validate-judge-output.sh` validates new judge names only.
-- [ ] **AC-23**: `scripts/ralph-vibe-scoring-standard.md` output format section matches uniform JSON structure.
+- [ ] **AC-23**: `scripts/vibe-scoring-standard.md` output format section matches uniform JSON structure.
 
 ### Documentation
 
@@ -341,5 +341,5 @@ function checkPassBar(judge, dimensions) {
 - Score validator: `scripts/validate-judge-output.sh`
 - Score helpers: `scripts/score-helpers.sh`
 - Post validator: `scripts/validate-posts.mjs`
-- Scoring SSOT: `scripts/ralph-vibe-scoring-standard.md`
+- Scoring SSOT: `scripts/vibe-scoring-standard.md`
 - Project docs: `CLAUDE.md`

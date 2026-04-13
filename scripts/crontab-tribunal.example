@@ -8,7 +8,7 @@
 #   GU_LOG_DIR         — path to gu-log repo (set below)
 #   TZ                 — Asia/Taipei for correct quiet-hours logic
 #
-# Quiet hours are enforced inside ralph-all-claude.sh itself
+# Quiet hours are enforced inside tribunal-all-claude.sh itself
 # (weekday 20:00-02:00 TST — script will sleep and resume automatically).
 #
 # How to install on VM:
@@ -17,8 +17,11 @@
 # Run tribunal on the oldest unprocessed article every 6 hours:
 # 0 */6 * * * TZ=Asia/Taipei GU_LOG_DIR=/home/clawd/clawd/projects/gu-log /home/clawd/clawd/projects/gu-log/scripts/tribunal-cron-runner.sh >> /home/clawd/logs/tribunal.log 2>&1
 
-# ─── Alternatively: run ralph-all-claude.sh directly on a specific file ───
-# 30 9 * * 1-5 TZ=Asia/Taipei GU_LOG_DIR=/home/clawd/clawd/projects/gu-log bash /home/clawd/clawd/projects/gu-log/scripts/ralph-all-claude.sh <filename.mdx> >> /home/clawd/logs/tribunal.log 2>&1
+# ─── Alternatively: run tribunal-all-claude.sh directly on a specific file ───
+# 30 9 * * 1-5 TZ=Asia/Taipei GU_LOG_DIR=/home/clawd/clawd/projects/gu-log bash /home/clawd/clawd/projects/gu-log/scripts/tribunal-all-claude.sh <filename.mdx> >> /home/clawd/logs/tribunal.log 2>&1
 
-# ─── Existing CC cron pattern (for reference) ─────────────────────────────
-# 0 10 * * 1-5 TZ=Asia/Taipei GU_LOG_DIR=/home/clawd/clawd/projects/gu-log bash /home/clawd/clawd/projects/gu-log/scripts/sp-pipeline.sh <tweet_url> --opus >> /home/clawd/logs/sp-pipeline.log 2>&1
+# ─── SP pipeline invocation (Go binary, canonical as of Phase 4) ──────────
+# 0 10 * * 1-5 TZ=Asia/Taipei GU_LOG_DIR=/home/clawd/clawd/projects/gu-log /home/clawd/clawd/projects/gu-log/tools/sp-pipeline/sp-pipeline run --opus <tweet_url> >> /home/clawd/logs/sp-pipeline.log 2>&1
+
+# ─── Backwards-compat shim (still works — execs into the Go binary above) ─
+# 0 10 * * 1-5 TZ=Asia/Taipei GU_LOG_DIR=/home/clawd/clawd/projects/gu-log bash /home/clawd/clawd/projects/gu-log/scripts/sp-pipeline.sh --opus <tweet_url> >> /home/clawd/logs/sp-pipeline.log 2>&1

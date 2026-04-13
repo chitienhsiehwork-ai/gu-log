@@ -1,0 +1,118 @@
+---
+ticketId: "CP-283"
+title: "一個凌晨六點的 DNS 慘案 — 當 Ubuntu 自動更新把整個 sandbox 炸了"
+originalDate: "2026-03-27"
+translatedDate: "2026-04-12"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "@felixrieseberg on X"
+sourceUrl: "https://x.com/felixrieseberg/status/2037582003730858269"
+lang: "zh-tw"
+summary: "Cowork 團隊遇到凌晨六點的錯誤暴增，一路追查下來，發現是 Ubuntu 自動安全更新觸發 systemd-resolved 重啟、覆寫 resolv.conf、摧毀 gVisor sandbox 的 DNS 設定，再加上 Bun/axios 把 SERVFAIL 誤報成 ECONNRESET，組成了一個完美的 nondeterministic bug。"
+tags: ["clawd-picks", "linux", "dns", "debugging", "devops"]
+scores:
+  ralph:
+    p: 8
+    c: 8
+    v: 8
+    score: 8
+    date: "2026-04-12"
+    model: "claude-opus-4-6"
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 8
+    clarity: 8
+    narrative: 8
+    score: 8
+    date: "2026-04-12"
+    model: "claude-opus-4-6"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+## 凌晨六點，警報響了
+
+UTC 早上六點整，Cowork 的監控面板突然炸開一片紅。錯誤數量像被人按了快進鍵一樣飆升，正在工作的使用者被硬生生打斷。
+
+但詭異的是——它很快就自己恢復了。
+
+這種「來得快去得也快」的 spike，debug 起來通常比持續性故障還要棘手。因為等工程師反應過來，現場已經恢復，留下的線索少之又少。Cowork 團隊先把自家 infra 翻了一遍，確認不是自己的 code 炸了，也不是 deploy 出問題。那到底是什麼鬼？
+
+<ClawdNote>
+「它自己好了」是 debug 界最恐怖的五個字。不是「找不到原因」——那至少你知道自己在黑暗中摸索。「它自己好了」是你以為燈亮了，但其實你只是習慣了黑暗。這個 bug 隨時可以再來，下次不一定會自己好。┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## Felix 拼出了一條「誰都沒做錯」的因果鏈
+
+這就是這個 bug 最令人崩潰的地方。
+
+Felix Rieseberg 追了整條線索之後，發現兇器不是某個寫爛的 code，不是哪個工程師的 typo——而是六個「完全正確的行為」排成一列，然後一起把系統幹掉了。
+
+想像大樓的清潔工凌晨六點準時來巡樓，這是他的工作，他做得很好。途中他發現走廊公告欄貼得有點亂，「好心地」幫忙整理了一下——把某住戶貼的那張「私人停車位」牌子撤了，換成標準格式。他沒有做任何「錯誤的事」。但車子第二天就被拖走了。
+
+這就是 Cowork 的狀況：Ubuntu VM 跑著自動安全更新，排在 UTC 早上六點，更新了 `libmount1` 這個 shared library。`systemd-resolved` 依賴這個 library，被連帶自動重啟——以上全是 intended behavior，甚至是 best practice。`systemd-resolved` 重啟後，「好心地」把 `resolv.conf` 用自己的設定覆寫了一遍。
+
+問題是，Cowork 的 gVisor sandbox 有自己的 nameserver 設定寫在那個檔案裡。那份設定就這樣無聲無息地消失了。
+
+<ClawdNote>
+我對這個設計有很強烈的不滿：`systemd-resolved` 重啟時直接覆寫 `resolv.conf`，這是 Ubuntu「幫你管」文化走歪了的典型。這種無聲的 side effect 不應該是 default 行為，應該要求 opt-in，或至少在 log 裡留下一行明顯的記錄。
+
+Linux 的 old sin 就是這個——「反正我知道什麼對你好，我就替你決定了」。(¬‿¬)
+</ClawdNote>
+
+---
+
+## 然後，最壞的那一層出現了
+
+DNS 設定消失之後，所有 DNS 查詢開始回傳 SERVFAIL。這很合理——nameserver 設定被換掉，當然解析不了域名。
+
+但接下來的事情才是真正的殺招。
+
+Bun 和 axios 把 SERVFAIL 錯誤報告成 `ECONNRESET`。
+
+`ECONNRESET` 的意思是「TCP 連線被對方強制重置」——跟 DNS 毫無關係。工程師看到這個訊息，第一反應是「是不是哪個 server 崩了？是不是網路不穩？」，不會有任何人往 DNS 方向想。這就是為什麼這個 bug 能讓一個有經驗的工程師卡住一整個早上。不是問題難，是地圖是錯的。
+
+<ClawdNote>
+這是錯誤訊息設計最危險的反例：misleading error 比 no error 更毒。
+
+沒有 error message？工程師知道自己在黑暗中，會謹慎地排除每一個可能性。錯誤的 error message？工程師以為自己知道方向，自信滿滿地走向懸崖——而且越資深越危險，因為越有經驗的人越相信自己讀錯誤訊息的直覺。
+
+Felix 計畫對 Bun/axios 提 upstream patch。這一手非常正確，我強烈支持：這種 bug 修了之後，下一個踩到類似坑的人只需要十分鐘就能定位問題。不修，就是在讓每一個後來者替你的設計缺陷買單。(ง •̀_•́)ง
+</ClawdNote>
+
+---
+
+## 六個正確的行為，一個完美的結果
+
+回頭看這條因果鏈——每一步都能通過「這樣設計合理嗎？」的測試：
+
+- 自動安全更新凌晨六點跑：Best practice，不開才奇怪
+- Shared library 更新觸發 service 重啟：合理
+- `systemd-resolved` 重啟後管理 `resolv.conf`：那是它的職責
+- DNS 解析失敗回傳 SERVFAIL：技術上正確
+- Runtime 看到底層連線失敗，回報 `ECONNRESET`：它確實看到了連線失敗
+
+把這些加在一起，就變成一個 nondeterministic bug——只在特定的幾分鐘內存在，且每次都自己消失。少任何一個條件，bug 不存在；多一個正確的 error message，十分鐘就能修好。
+
+<ClawdNote>
+Nondeterministic bug 才是工程師噩夢的本體。可重現的 bug 是禮物——它就在那裡等你，你可以對它 stare 到死。不可重現的 bug 是幽靈，每次你想抓，它就不見了。
+
+這個 case 的 nondeterminism 有完美的根因解釋，算是「乾淨」。但大多數 nondeterministic bug 沒有這麼清晰的結構，只是在某個 race condition 或 timing gap 裡若隱若現。
+
+碰到「它自己好了」的時候，正確反應是：留下 trace，然後假設它還會再來——因為它一定會。(◕‿◕)
+</ClawdNote>
+
+---
+
+## 結語
+
+Felix 的團隊把 gVisor sandbox 的設定 harden 了，也計畫對相關的 open-source 專案提交 patch。從技術上來說，這個 bug 已經被解決了。
+
+但凌晨六點的自動更新還是會繼續跑。`systemd-resolved` 還是會在重啟時管理 `resolv.conf`。下次，至少有人知道：看到 `ECONNRESET`，先跑一下 `dig` 確認 DNS 還活著再說。
+
+開頭那個「它自己好了」的 spike？現在知道那不是系統在康復——那是骨牌倒完了，安靜地等著下一次重新排好。(╯°□°)╯
