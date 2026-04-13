@@ -2996,5 +2996,97 @@
     },
     "status": "PASS",
     "finishedAt": "2026-04-13T10:50:34+08:00"
+  },
+  "cp-288-20260402-metaeng-metaeng-kernelevolve-gpu-kernel-agent.mdx": {
+    "article": "cp-288-20260402-metaeng-metaeng-kernelevolve-gpu-kernel-agent.mdx",
+    "startedAt": "2026-04-13T15:49:11+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 8,
+            "sourceAlign": 9,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "唯一適用的 glossary term「Agent」正確連結三次：line 20 [agentic](/glossary#agent)、line 22 [Agent](/glossary#agent)、line 167 [agent](/glossary#agent)；文章其餘技術術語（CUDA、Triton、MCTS、MLIR 等）均未收錄於 glossary，無漏鏈問題。",
+            "crossRef": "結尾有效 cross-ref 至 CP-287（/posts/cp-287-20260413-article-anthropic-agent-90，confirmed in git log）；ShroomDog/Clawd 均未在正文出現，identity linking 規則不觸發；line 22 提及 Meta REA 第一篇（ML Exploration Agent）但未 cross-ref，該文不確定是否在 gu-log 收錄，屬 optional gap。",
+            "sourceAlign": "KernelEvolve 五大組件、60% NVIDIA / 25% MTIA 吞吐提升、KernelBench 100% pass rate、MTIA RAG 知識注入、ISCA 2026 論文引用，全部對應 engineering.fb.com 原文主題，內容高度對齊 sourceUrl。",
+            "attribution": "所有效能數字在上下文中清楚歸屬 Meta；ClawdNote 意見段落完全隔離在 <ClawdNote> 元件內，未滲入正文；小缺口：「每天服務數兆次推論請求」為隱式歸屬，未明確標示來自 Meta 原文聲明。"
+          }
+        },
+        "model": "sonnet",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "所有核心數字與原始來源吻合（>60% NVIDIA 推論、>25% MTIA 訓練、KernelBench 100%、160 ATen operators）；「480 個配置」為 160×3 推算而非原文明確陳述，屬輕微精確度問題；DSL 清單、profiling 工具、ISCA 2026 論文標題全數核實正確。",
+            "fidelity": "翻譯整體忠實呈現原文；原文列 6 個系統元件，翻譯說「五個核心組件」後另立 Shared Data Foundation 章節，組織方式稍有差異但無資訊遺漏；ClawdNote 評論清楚標明為獨立意見，未混入正文聲明。",
+            "consistency": "論證結構流暢，從問題規模 → 搜尋設計 → 各元件功能 → 實戰成績 → 戰略意義，邏輯鏈完整；每個 ClawdNote 均明確為 Clawd 推論/吐槽，未將推測升格為事實；結尾將 KernelEvolve 放入 REA 框架的定位清晰自洽。"
+          }
+        },
+        "model": "opus",
+        "attempts": 2
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "fresh-eyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Opening immediately explains what a kernel is ('把高階的矩陣運算翻譯成晶片真正能跑的低階指令的小程式'), which a 3-month dev needs — but the profiling tools section (NCU / Proton / MTIA Insight with DPE/SFU/MLU stall cycles) hits hard with jargon even with inline explanations; requires re-reading but doesn't cause dropout.",
+            "firstImpression": "The hook about engineers losing hair and the 'AI writes code for AI to run faster' recursive arc keeps a beginner engaged; the numbered flow at the end gives satisfying closure, and the 60% improvement on an already-optimized baseline is a genuinely shareable wow-moment that would finish the read."
+          }
+        },
+        "model": "haiku",
+        "attempts": 2
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Opening hook (工程師掉頭髮) and chess/棋士 analogy for tree search land strongly in LHY oral style, but the Automated Evaluation Framework section degrades into technical documentation with nested profiling-tool bullet lists that break the teaching feel.",
+            "clawdNote": "MCTS note opens skeptically ('殺雞用牛刀') then self-convinces with a punchline, profiling note closes with a genuine skeptical question about LLM capability, and the 60% gap note takes a clear analytical stance ('搜尋深度的差距，不是智力的差距') — over half the 6 notes have explicit opinions or push-back, clearing the 8+ threshold.",
+            "vibe": "Readable end-to-end with a memorable closing callback ('頭髮大概也不會長回來了') and the 60%+MTIA story carries real punch, but the dense 5-profiler bullet block mid-article risks losing phone readers before the payoff.",
+            "clarity": "Body text is clean throughout — named subjects (KernelEvolve、系統、工程師、Meta) with zero 你/我 leakage outside ClawdNote components where Clawd is the unambiguous speaker.",
+            "narrative": "Genuine arc from hair-loss hook → chess pivot → MTIA 'AI writing for AI chips' peak → callback conclusion, but the five-component breakdown section falls into a repetitive ### subheading → explain → ClawdNote template that flattens rhythm in the middle third."
+          }
+        },
+        "model": "opus",
+        "attempts": 2
+      }
+    },
+    "status": "PASS",
+    "finishedAt": "2026-04-13T16:18:07+08:00"
   }
 }
