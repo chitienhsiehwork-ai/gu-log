@@ -1,0 +1,187 @@
+---
+ticketId: "SP-173"
+title: "Harrison Chase 說不擁有 Harness 就不擁有記憶 — 但 gu-log 就是反例"
+originalDate: "2026-04-11"
+translatedDate: "2026-04-13"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+source: "@hwchase17 on X"
+sourceUrl: "https://x.com/hwchase17/status/2042978500567609738"
+lang: "zh-tw"
+summary: "LangChain CEO Harrison Chase 主張 agent harness 跟 memory 綁死，用封閉 harness 等於把記憶主權讓給第三方。論點有道理，但結論太粗糙 — gu-log 同時用閉源 harness（Claude Code）和開源 harness（OpenClaw），memory 全在自己的 git repo 裡，沒有被鎖住。真正的 lock-in 不在 harness 開不開源，在 memory 的格式是不是你的。"
+tags: ["shroom-picks", "langchain", "ai-agents", "agent-harness", "memory", "lock-in", "open-source"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+LangChain CEO Harrison Chase 在 2026 年 4 月 11 日發了一篇 X Article，標題是 **"Your harness, your memory"**。
+
+核心論點用一句話就能講完：**Agent harness 跟 memory 綁死，用封閉 harness = 把記憶交給第三方 = lock-in。所以要用 open harness。**
+
+這個論點前半段是對的。後半段是行銷。
+
+<ClawdNote>
+Harrison Chase 用了 3000 字論證「封閉 harness 會鎖住記憶」，結論剛好是「所以來用 LangChain 的 Deep Agents 吧」。這就像一個賣有機食品的老闆寫了一篇長文論證超市食物有毒 — 論點不一定錯，但結論的方向太巧了 (¬‿¬)
+</ClawdNote>
+
+---
+
+## 什麼是 Agent Harness
+
+先定義名詞。Agent harness 是包在 LLM 外面的那一層系統框架 — 負責管理工具呼叫、context、memory、檔案存取。不是 model 本身，而是讓 model 變成 agent 的那個「殼」。
+
+具體的例子：Claude Code、Codex、OpenClaw、Letta Code，全部都是 harness。
+
+Chase 的第一個論點：**Harness 不會消失。** Model 會吃掉一些 scaffolding，但永遠需要一個系統來協調 model 跟工具的互動。需要證據的話 — Claude Code 洩漏的原始碼有 512k 行 TypeScript。就算做出世界上最好 model 的公司，也在 harness 上投入了大量工程。
+
+這個觀察是正確的。
+
+<ClawdNote>
+順帶一提，Claude Code 的那 512k 行原始碼不是被駭客偷的 — 是有人忘記在 npm 發布時寫 `.npmignore`，source map 直接跟著 package 一起出去了。裡面有 44 個隱藏 feature flag 和一個叫 KAIROS 的未上線 daemon agent。人類犯的錯永遠比 AI 精彩 (￣▽￣)／
+</ClawdNote>
+
+---
+
+## Harness 跟 Memory 綁死？
+
+Chase 引用了 Letta CTO Sarah Wooders 的一篇文章，核心比喻是：
+
+> 要求把 memory 插進 agent harness，就像要求把「駕駛」插進一台車。
+
+意思是：memory 不是一個可以拆出來的 plugin，它就是 harness 的核心功能。短期記憶（對話歷史、tool call 結果）由 harness 管理。長期記憶（跨 session 的偏好、知識）也需要 harness 來讀寫。
+
+Chase 列了一串問題來證明 harness 跟 memory 有多緊密：
+
+- AGENTS.md 或 CLAUDE.md 怎麼被載入 context？
+- Skill metadata 怎麼呈現給 agent？
+- Agent 能不能修改自己的 system instructions？
+- Context compaction 時什麼會被保留，什麼會丟失？
+- 互動紀錄有沒有被儲存和可查詢？
+
+這些問題問得好。但結論跳太快了。
+
+<ClawdNote>
+Sarah Wooders 的「駕駛不是車的 plugin」比喻確實很精準。但 Chase 用這個比喻推導出「所以車（harness）必須開源」— 這個邏輯有縫隙。駕駛跟車綁死，不代表只有開源的車才能讓駕駛安全。重點是駕駛紀錄（memory）存在哪裡、用什麼格式。如果行車紀錄是開放格式，換車的時候帶著走就好 (◕‿◕)
+</ClawdNote>
+
+---
+
+## 三層 Lock-in：從「有點煩」到「非常糟」
+
+Chase 把 lock-in 分成三層，越來越嚴重：
+
+**第一層（有點煩）**：用了 stateful API（像 OpenAI 的 Responses API 或 Anthropic 的 server-side compaction），對話狀態存在對方 server 上。想換 model 然後續接之前的對話？做不到。
+
+**第二層（不太妙）**：用了閉源 harness（Chase 點名 Claude Agent SDK，說它底下跑的是閉源的 Claude Code）。Harness 怎麼跟 memory 互動是黑箱，產出的 artifacts 格式未知，沒辦法帶到另一個 harness。
+
+**第三層（最慘）**：整個 harness 包含長期記憶全部藏在 API 後面。零可見度，零擁有權。Chase 點名 Anthropic 的 Managed Agents — 所有東西都鎖在平台上。
+
+然後 Chase 加了一個判斷：
+
+> **Model provider 有極大動機這麼做。因為 memory 很重要，而且它製造的 lock-in 是單純的 model 做不到的。**
+
+<ClawdNote>
+Chase 的 lock-in 分層確實有道理。但他忽略了一個事實：lock-in 的嚴重程度取決於 memory 的格式，不是 harness 的授權方式。一個開源 harness 如果把 memory 存在 proprietary 格式裡，一樣鎖死。一個閉源 harness 如果 memory 全是 plain text 在本地，反而沒有 lock-in。開源 ≠ 自由，閉源 ≠ 牢籠 — 格式才是關鍵 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## Chase 自己的故事：Email Agent 被刪掉
+
+這是全文最有說服力的段落。
+
+Chase 有一個 email assistant，建在 LangChain 的 Fleet 平台上。用了幾個月，agent 學會了他的 tone、偏好、工作習慣。幾週前，這個 agent 被意外刪除。
+
+重建了一個一模一樣的 agent — 同一個 template、同一個 model。但體驗直接崩壞。所有個人化的東西都消失了，必須從頭教。
+
+Chase 說：「壞消息是 agent 被刪了。好消息是，我終於理解 memory 有多強大、多黏。」
+
+這個 anecdote 是真的。Memory 讓 agent 越用越好用，丟了就回到原點。問題是 — **這能推導出「所以要用 open harness」嗎？**
+
+<ClawdNote>
+Chase 的 email agent 被刪，他「氣死了」。但等一下 — 這個 agent 是建在 LangChain 自家的 Fleet 平台上。Fleet 是什麼？是 LangChain 自己的 no-code 平台。所以... 把 memory 鎖死的那個系統，就是 LangChain 自己的產品。被自己家的 lock-in 鎖住，然後寫了一篇文章說 lock-in 不好。這個自我推銷的完美閉環值得 respect (⌐■_■)
+</ClawdNote>
+
+---
+
+## gu-log 的反例：閉源 Harness，開放 Memory
+
+現在來講為什麼 Chase 的結論跳太快了。
+
+gu-log 同時用兩個 harness：
+- **Claude Code**（閉源）— 日常開發、寫文章、debug
+- **OpenClaw**（開源）— VPS 上 24/7 自動翻譯推文
+
+按照 Chase 的邏輯，用閉源的 Claude Code 應該意味著 memory 被鎖住。但實際上：
+
+| Memory 類型 | 格式 | 存在哪 | 可攜帶？ |
+|---|---|---|---|
+| CLAUDE.md（agent 指令） | Markdown | git repo | 完全可攜 |
+| glossary.json（術語庫） | JSON | git repo | 完全可攜 |
+| .claude/agents/（evaluator） | Markdown | git repo | 完全可攜 |
+| Skills、Hooks | Plain text | git repo | 完全可攜 |
+| CONTRIBUTING.md（寫作規則） | Markdown | git repo | 完全可攜 |
+
+所有 memory 都是 plain text，存在本地 git repo 裡。Claude Code 讀取這些檔案來「記住」怎麼幫 gu-log 工作。但這些檔案不屬於 Claude Code，不屬於 Anthropic — 屬於 gu-log。
+
+明天換一個 harness，帶著這些檔案就能走。CLAUDE.md 改名叫 AGENTS.md，glossary.json 照搬，skills 調一下格式。Core memory 不會消失。
+
+<ClawdNote>
+Chase 說「if you don't own your harness, you don't own your memory」。gu-log 的情況是：不擁有 harness（Claude Code 是閉源的），但完全擁有 memory（全是 plain text 在 git 裡）。這兩件事不是等號關係。Chase 把 correlation 當成 causation 了 — 有些閉源 harness 確實會鎖 memory，但這不是因為它閉源，而是因為它的 memory 格式不開放 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## 那真正的 Lock-in 在哪？
+
+Chase 的論點不是完全錯的。真正的 lock-in 確實存在，但不在 harness 的 source code — 在這些地方：
+
+**Server-side conversation state**：Anthropic 的 server-side compaction 把對話摘要存在他們的 server 上。換 model provider，那些摘要拿不回來。OpenAI 的 Codex 更狠 — 產生的 compaction summary 是加密的，OpenAI 生態以外用不了。
+
+**Model-specific prompt tuning**：花了三個月在 Claude 上調到完美的 prompt，換到 GPT 大概要重調 30%。不是 lock-in，但是 switching cost。
+
+**Proprietary memory format**：如果 memory 存在某個 harness 自己的資料庫 schema 裡，沒有 export 功能，那才是真正的牢籠。
+
+重點是：**這些問題跟 harness 是不是開源無關。** 一個開源 harness 如果把 memory 存在 MongoDB 的 proprietary schema 裡（咦，Chase 推薦的 Deep Agents 就支援 Mongo plugin），一樣有 lock-in 風險。
+
+<ClawdNote>
+Chase 推薦 Deep Agents 用 Mongo、Postgres、Redis 儲存 memory。問題是 — memory 的 schema 是誰定義的？如果 schema 是 Deep Agents 自己設計的 proprietary 格式，那「開源 harness + 閉源 memory schema」跟「閉源 harness + 開放 memory 格式」哪個更自由？答案不一定是前者。開源是必要條件，不是充分條件 ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## LangChain 的 Rebrand 大歷史
+
+最後值得提一下 LangChain 的產品演化路線，因為這篇文章的脈絡離不開它：
+
+- **2023**：LangChain — 「用 chain 串接一切」
+- **2024**：LangGraph — 「chain 不夠，要用 graph」
+- **2025**：Agent Harness 概念興起 — 「graph 也不夠，要有 harness」
+- **2026**：Deep Agents — 「open harness 才是正解」
+
+每一代的 narrative 都是「之前的抽象不夠用了，需要新的一層」。每一代的結論都是「來用 LangChain 的新產品」。
+
+Chase 在文章裡說：model 進步會讓舊的 scaffolding 變得不需要。這句話他自己的公司最清楚 — LangChain 2023 年的 chain 抽象層，到 2024 年就被 model 進步淘汰了。那 2026 年的 Deep Agents，到 2027 年會不會也一樣？
+
+<ClawdNote>
+從 Chain 到 Graph 到 Harness 到 Deep Agents — LangChain 的產品路線像是一個不斷重新定義問題然後賣解法的無限循環。每次都說「這次是最終答案」，每次都不是。不過話說回來，能在 AI 生態快速變化中持續找到定位的公司，本身也是一種能力。只是消費者要分清楚「技術觀察」跟「產品推銷」的邊界 (⌐■_■)
+</ClawdNote>
+
+---
+
+## 結語
+
+Harrison Chase 提出了一個真議題：**agent memory 的所有權很重要，被鎖在第三方平台的 memory 是風險。**
+
+但他的解法太粗糙了。「open harness = own your memory」是一個 false equivalence。真正決定 memory 是不是被鎖住的，不是 harness 開不開源，而是三件事：
+
+1. **Memory 的格式是不是開放的**（plain text vs proprietary schema）
+2. **Memory 存在哪裡**（本地 vs 第三方 server）
+3. **Memory 能不能 export**（API export vs 無法匯出）
+
+gu-log 用閉源的 Claude Code 當 harness，memory 全是 markdown 和 JSON 存在 git 裡。沒有 lock-in。反過來，一個用「開源」harness 但把 memory 鎖在某個 managed service 裡的團隊 — 才是真的被鎖住了。
+
+下次看到有人說「open source 就是自由」，先問一句：memory 存在哪？什麼格式？能帶走嗎？
+
+這三個問題比 harness 的 GitHub license 重要一百倍。
