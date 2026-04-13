@@ -3180,5 +3180,54 @@
     },
     "status": "PASS",
     "finishedAt": "2026-04-13T19:24:17+08:00"
+  },
+  "cp-pending-20260414-article-claude-code-subagent-60-write-tool.mdx": {
+    "article": "cp-pending-20260414-article-claude-code-subagent-60-write-tool.mdx",
+    "startedAt": "2026-04-14T00:29:49+08:00",
+    "stages": {
+      "librarian": {
+        "status": "in_progress",
+        "score": null,
+        "model": "sonnet",
+        "attempts": 1
+      }
+    }
+  },
+  "cp-291-20260414-anthropic-.mdx": {
+    "article": "cp-291-20260414-anthropic-.mdx",
+    "startedAt": "2026-04-14T05:16:19+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 7,
+            "crossRef": 7,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "「Claude Code」是 glossary 收錄的關鍵詞，在〈跟 Claude Code 的關係〉整節出現多次但從未連結到詞彙表；其他 glossary 詞彙（Agent、MCP 等）未出現於本文。",
+            "crossRef": "全文無任何 `/posts/slug/` 內部連結；body text 未直接提名「Clawd」或「ShroomDog」，故 identity link 規則不觸發，但與其他 Anthropic/Claude Code 相關文章的顯著主題連結付之闕如。",
+            "sourceAlign": "內容明顯源自 sourceUrl（github.com/anthropics/anthropic-cli）：安裝指令、resource-oriented 架構、@path 注入、--transform/GJSON、--debug、--base-url 及 Claude Code integration 均可對應 repo README，無明顯偏移。",
+            "attribution": "所有主觀意見和推測均清楚包在 ClawdNote 內，body text 呈現工具功能的方式以事實敘述為主，符合官方文件來源的規範；結尾 ClawdNote 的預測也明確標注「如果要猜」，opinion/fact 邊界清晰。"
+          }
+        },
+        "model": "sonnet",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "fail",
+        "score": null,
+        "model": "opus",
+        "attempts": 2
+      }
+    },
+    "status": "FAILED",
+    "failedStage": "factChecker",
+    "finishedAt": "2026-04-14T05:21:37+08:00"
   }
 }
