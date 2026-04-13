@@ -1,0 +1,149 @@
+---
+/**
+ * Stage4DegradedBanner — Tribunal v2 Stage 4 Final Vibe regression banner.
+ *
+ * Rendered when a post's frontmatter has `stage4Scores.isDegraded === true`.
+ * This is informational only — Stage 4 fail does NOT block publishing.
+ * Shows which vibe dimensions degraded after Stage 2-3 editing.
+ * ShroomDog reads this on site and decides: keep / fix / re-run.
+ *
+ * Design ref: .score-loop/specs/tribunal-v2-mental-model.md Stage 4 section
+ */
+
+interface Stage4Scores {
+  persona: number;
+  clawdNote: number;
+  vibe: number;
+  clarity: number;
+  narrative: number;
+  degradedDimensions?: string[];
+  isDegraded: boolean;
+}
+
+interface Props {
+  stage4Scores: Stage4Scores;
+  lang?: 'zh-tw' | 'en';
+}
+
+const { stage4Scores, lang = 'zh-tw' } = Astro.props;
+const { degradedDimensions = [] } = stage4Scores;
+
+const labels = {
+  'zh-tw': {
+    title: 'Final Vibe: 部分維度在後期修改後退步了',
+    description:
+      '以下維度的 vibe 分數比文章初始評分低超過 1 分。文章仍然發布，ShroomDog 可手動 review。',
+    degradedLabel: '退步維度：',
+    noDetails: '（詳細分數未記錄）',
+  },
+  en: {
+    title: 'Final Vibe: Some dimensions regressed after late-stage edits',
+    description:
+      'The following vibe dimensions dropped more than 1 point from the initial score. The post is still published — ShroomDog can review manually.',
+    degradedLabel: 'Degraded dimensions:',
+    noDetails: '(detailed scores not recorded)',
+  },
+} as const;
+
+const t = labels[lang];
+---
+
+<div class="stage4-degraded-banner" role="note" aria-live="polite">
+  <div class="banner-header">
+    <span class="banner-title">{t.title}</span>
+  </div>
+  <div class="banner-body">
+    <p class="banner-description">{t.description}</p>
+    {
+      degradedDimensions.length > 0 ? (
+        <div class="degraded-dims">
+          <span class="degraded-label">{t.degradedLabel}</span>
+          <ul class="dim-list">
+            {degradedDimensions.map((dim) => (
+              <li class="dim-item">{dim}</li>
+            ))}
+          </ul>
+        </div>
+      ) : (
+        <p class="no-details">{t.noDetails}</p>
+      )
+    }
+  </div>
+</div>
+
+<style>
+  .stage4-degraded-banner {
+    margin: 0.75rem 0 1.25rem;
+    padding: 0;
+    border-radius: 8px;
+    border: 1px solid rgba(108, 191, 255, 0.25); /* blue/cyan tone */
+    border-left: 4px solid var(--color-badge-sp); /* cyan badge color */
+    background: rgba(108, 191, 255, 0.05);
+    overflow: hidden;
+  }
+
+  .banner-header {
+    padding: 0.55rem 1rem;
+    border-bottom: 1px solid rgba(108, 191, 255, 0.15);
+    background: rgba(108, 191, 255, 0.07);
+  }
+
+  .banner-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--color-badge-sp);
+  }
+
+  .banner-body {
+    padding: 0.75rem 1rem;
+  }
+
+  .banner-description {
+    margin: 0 0 0.6rem;
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    line-height: 1.55;
+  }
+
+  .degraded-dims {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .degraded-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+    padding-top: 0.05rem;
+  }
+
+  .dim-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+
+  .dim-item {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    background: rgba(108, 191, 255, 0.1);
+    border: 1px solid rgba(108, 191, 255, 0.25);
+    border-radius: 12px;
+    font-size: 0.78rem;
+    font-family: monospace;
+    color: var(--color-badge-sp);
+  }
+
+  .no-details {
+    margin: 0;
+    font-size: 0.82rem;
+    color: var(--color-text-muted);
+    font-style: italic;
+  }
+</style>
