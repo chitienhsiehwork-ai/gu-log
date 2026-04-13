@@ -82,6 +82,19 @@ function parseScores(fmText) {
         scores[currentKey] = {};
         continue;
       }
+      // 2-space indent: scalar value (e.g. "  tribunalVersion: 1")
+      const scalarNumMatch = line.match(/^\s{2}(\w+):\s*(\d+(?:\.\d+)?)\s*$/);
+      const scalarStrMatch = line.match(/^\s{2}(\w+):\s*"([^"]*)"\s*$/);
+      if (scalarNumMatch) {
+        scores[scalarNumMatch[1]] = Number(scalarNumMatch[2]);
+        currentKey = null;
+        continue;
+      }
+      if (scalarStrMatch) {
+        scores[scalarStrMatch[1]] = scalarStrMatch[2];
+        currentKey = null;
+        continue;
+      }
       // 4-space indent: field value (e.g. "    glossary: 8" or "    date: \"2026-04-07\"")
       if (currentKey) {
         const numMatch = line.match(/^\s{4}(\w+):\s*(\d+(?:\.\d+)?)\s*$/);
@@ -103,13 +116,26 @@ function parseScores(fmText) {
 function serializeScores(scores) {
   if (Object.keys(scores).length === 0) return '';
   let out = 'scores:';
+  // Scalar fields first (e.g. tribunalVersion: 1)
   for (const [key, data] of Object.entries(scores)) {
-    out += `\n  ${key}:`;
-    for (const [field, val] of Object.entries(data)) {
-      if (typeof val === 'string') {
-        out += `\n    ${field}: "${val}"`;
+    if (typeof data !== 'object' || data === null) {
+      if (typeof data === 'string') {
+        out += `\n  ${key}: "${data}"`;
       } else {
-        out += `\n    ${field}: ${val}`;
+        out += `\n  ${key}: ${data}`;
+      }
+    }
+  }
+  // Judge objects
+  for (const [key, data] of Object.entries(scores)) {
+    if (typeof data === 'object' && data !== null) {
+      out += `\n  ${key}:`;
+      for (const [field, val] of Object.entries(data)) {
+        if (typeof val === 'string') {
+          out += `\n    ${field}: "${val}"`;
+        } else {
+          out += `\n    ${field}: ${val}`;
+        }
       }
     }
   }
@@ -247,6 +273,11 @@ function opWrite() {
   if (scoreData.model) entry.model = scoreData.model;
 
   scores[judge] = entry;
+
+  // Ensure tribunalVersion is set (default to 1 for current rubric)
+  if (scores.tribunalVersion == null) {
+    scores.tribunalVersion = 1;
+  }
 
   let newFm = removeScoresBlock(parts.fmText);
   const scoresYaml = serializeScores(scores);
