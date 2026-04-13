@@ -3220,28 +3220,34 @@
         "attempts": 1
       },
       "factChecker": {
-        "status": "fail",
+        "status": "pass",
         "score": {
-          "judge": "FactChecker",
+          "judge": "factChecker",
           "dimensions": {
-            "accuracy": 7,
+            "accuracy": 8,
             "fidelity": 8,
-            "consistency": 8
+            "consistency": 9
           },
-          "score": 7,
-          "verdict": "FAIL",
+          "score": 8,
+          "verdict": "PASS",
           "reasons": {
-            "accuracy": "Source is a GitHub repo (higher authority than tweet), and core claims are plausible: Go binary, resource-oriented CLI, @path file injection, GJSON for --transform, --debug, --base-url, env var auth. Two unverifiable specifics: (1) the exact 7 output format names (auto/explore/json/jsonl/pretty/raw/yaml) cannot be confirmed without reading the actual README; (2) the claim that 'Claude Code is a first-class integration target, per the README' cannot be verified without accessing the repo. Additionally, the --message flag example uses non-standard JSON syntax (unquoted keys like `{content: [{text: x, type: text}], role: user}`) which may be a CLI-specific HJSON/relaxed format—if it's standard JSON, it's malformed. These warrant a 7 rather than 8.",
-            "fidelity": "Source is a GitHub repo (features described = features that exist), so converting README descriptions to factual statements is appropriate—no uncertainty erasure issues. ClawdNote opinions are cleanly separated in ClawdNote components. The final ClawdNote speculation about `ant` following gh's path is clearly labeled 「如果要猜」. One minor note: the frontmatter `translatedBy.harness: 'Gemini CLI + Codex CLI + Claude Code'` is metadata noise (competitor names in an Anthropic tool's pipeline metadata) but does not affect article body fidelity.",
-            "consistency": "Argument arc is clear and well-supported: curl pain → ant fills gap → specific features demonstrate DX improvement → positioning vs Claude Code → 官方出品 significance. ClawdNotes amplify and editorialize without contradicting the body. The conclusion that `ant`'s main value is 'official product' (not raw functionality) is coherently built up across all sections. No logical leaps or contradictions found."
+            "accuracy": "技術描述內部一致且可信：GJSON 是真實的 Go JSON 查詢函式庫、`claude-sonnet-4-6` 模型名稱正確、Homebrew tap 語法和 `go install` 路徑符合標準慣例；「1月上 repo、4月9號最後更新」等日期來自 sourceUrl 本身的 GitHub 紀錄，無法二次驗證但無明顯紅旗。七種輸出格式（auto/explore/json/jsonl/pretty/raw/yaml）和 `@path` 語法描述無可查矛盾。",
+            "fidelity": "文章直接以 GitHub repo 作為來源，功能描述屬於軟體 spec 類別（不是研究結果），無 uncertainty erasure 問題。「ant 與 Claude Code 補位關係」明確標注「Anthropic 沒有明說」，作者推論清楚與事實分隔。frontmatter 的 `pipelineUrl` YAML 縮排有輕微格式問題（多餘空行），不影響內文正確性。",
+            "consistency": "問題（curl hell）→ 解法（ant）→ 功能逐層展開 → 與既有工具比較 → 結語（官方出品的意義）邏輯弧線清晰。ClawdNotes 全程保持意見與事實分離，「未來 ant 是否成為基礎設施」明確標注為猜測。無前後矛盾，各功能介紹彼此不重疊。"
           }
         },
         "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "fail",
+        "score": null,
+        "model": "haiku",
         "attempts": 2
       }
     },
     "status": "FAILED",
-    "failedStage": "factChecker",
-    "finishedAt": "2026-04-14T05:25:18+08:00"
+    "failedStage": "freshEyes",
+    "finishedAt": "2026-04-14T05:29:33+08:00"
   }
 }
