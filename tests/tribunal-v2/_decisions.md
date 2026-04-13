@@ -26,9 +26,9 @@
 - B) Mock HTTP adapter (fetch level)
 - C) Real Opus integration
 
-**Answer**: _待 CEO 決策_
-**Reason**:
-**Impl Notes**:
+**Answer**: **B + A 混搭** — CTO decided (2026-04-11)
+**Reason**: B (mock HTTP) for prompt construction tests — 可以 inspect prompt body, 確保 checklist 有塞進去。A (mock JSON fixture) for response parsing tests — 快、穩定、deterministic。不同 test 用不同 mock layer 比追求一致性更有意義。
+**Impl Notes**: Builder 寫 prompt construction test 時用 MSW / nock 之類 mock fetch；response parsing test 用 JSON fixture files in `tests/tribunal-v2/fixtures/`。
 
 ---
 
@@ -41,9 +41,9 @@
 - B) Warning log + strip the unused fields
 - C) Silent accept
 
-**Answer**: _待 CEO 決策_
-**Reason**:
-**Impl Notes**:
+**Answer**: **B (warn + strip)** — CTO decided (2026-04-11)
+**Reason**: Hard-fail 對 LLM 太兇 — LLM 偶爾會在 PASS 時也塞 improvements（多嘴而已，不影響正確性）。Silent accept 又讓 schema 沒意義。warn + strip 兩全其美：log 下來方便 debug，但不 block pipeline。
+**Impl Notes**: Builder 用 Zod `.transform()` strip extras + `console.warn()` log。不要用 `.passthrough()`（那會 silent accept）。
 
 ---
 
@@ -57,9 +57,9 @@
 - C) Full context — 讓 Opus 吃 200k tokens
 - D) Chunked scan (分段掃，各段 fact check)
 
-**Answer**: _待 CEO 決策_
-**Reason**:
-**Impl Notes**:
+**Answer**: **A (first N + last M)** for now — CTO decided (2026-04-11)
+**Reason**: 初期 source 多是推文（短），simple truncation 夠用。不需要 pre-pass LLM call 或 chunked scan 的複雜度。
+**Impl Notes**: 建議 N=8000 chars front, M=2000 chars tail（合計 ~10k chars ≈ 2.5k tokens）。未來 source 是 paper 或長文時，考慮升級到 D (chunked scan) — 屆時 re-open 這個 decision。
 
 ---
 
@@ -73,9 +73,9 @@
 - C) Skip FactCorrector, 只跑 Librarian
 - D) Block publish — 沒 source URL 不准發
 
-**Answer**: _待 CEO 決策_
-**Reason**:
-**Impl Notes**:
+**Answer**: **B (degrade gracefully)** — CTO decided (2026-04-11)
+**Reason**: Gu-log 的 source 很多是推文 (X/Twitter)，fetch 失敗率不低（rate limit, 需登入, 暫時掛了）。Fail-loud 和 block-publish 都會卡死 pipeline。沒 source 也能跑，只是 FactCorrector 要更保守（多 flag、少自動修）。
+**Impl Notes**: FactCorrector output 加 `source_unavailable: true` flag。Combined Judge 看到這個 flag 時要降低 factAccuracy 的信心。Log warning 給 heartbeat monitor。
 
 ---
 
@@ -89,9 +89,9 @@
 - C) 250 chars (paragraph-sized)
 - D) No cap, let UI CSS truncate
 
-**Answer**: _待 CEO 決策_
-**Reason**:
-**Impl Notes**:
+**Answer**: **B (150 chars)** — CTO decided (2026-04-11)
+**Reason**: Mobile 2 行剛好，不會爆版。100 太短（judge 很難一行講清楚 reason），250 太長（banner 變段落）。
+**Impl Notes**: Zod schema: `z.string().max(150)`。Judge prompt 要明確指示 "reader_friendly_reason 不超過 150 字"。超過時 response parsing 要 truncate + warn（不 hard-fail，跟 Q2 一致）。
 
 ---
 
@@ -105,9 +105,9 @@
 - C) en 版 有自己的 Stage 0 judge 跑一次
 - D) en 版 warn 但顯示英文 reason (需要額外翻譯)
 
-**Answer**: _待 CEO 決策_
-**Reason**:
-**Impl Notes**:
+**Answer**: **A (copy from zh-tw)** — CTO decided (2026-04-11)
+**Reason**: Stage 0 只跑 zh-tw（mental model Section 6），en 版翻譯後 inherit 同樣的 warn flag。Reason 保持中文是可接受的 trade-off — zh-tw 版先發，en 版讀者通常知道這是翻譯。
+**Impl Notes**: Stage 5 Translation 時自動 copy `warnedByStage0` + `warnReason` from zh-tw frontmatter 到 en frontmatter。Banner component 讀 frontmatter 即可，不用管 lang。
 
 ---
 
@@ -119,9 +119,9 @@
 - A) 一個 component 用 variant prop (`<WarnBanner variant="stage0"/>`)
 - B) 兩個獨立 component (`Stage0WarnBanner` + `Stage4DegradedBanner`)
 
-**Answer**: _待 CEO 決策_
-**Reason**:
-**Impl Notes**:
+**Answer**: **B (兩個獨立 component)** — CTO decided (2026-04-11)
+**Reason**: Stage 0 (judge 沒把握) 和 Stage 4 (維度退化) 語意不同，共用 component 只會讓 prop 變醜。兩個獨立 component 各自清楚，維護也不會互相影響。
+**Impl Notes**: `Stage0WarnBanner.astro` + `Stage4DegradedBanner.astro`，各自獨立 props。共用 styling 可以抽到 CSS class / Astro partial，但 component 本身分開。
 
 ---
 
@@ -133,9 +133,9 @@
 - A) `→` (U+2192) — 跟中文 commit 比較合拍
 - B) `->` (ASCII) — terminal 相容性好
 
-**Answer**: _待 CEO 決策_
-**Reason**:
-**Impl Notes**:
+**Answer**: **A (`→` U+2192)** — CTO decided (2026-04-11)
+**Reason**: 2026 了，modern terminal 全部 UTF-8 safe。中文 commit message 已經不 care ASCII compat。`→` 比 `->` 視覺更清楚（特別是跟分數數字混在一起時）。
+**Impl Notes**: `formatStageSummary()` 用 `→` (U+2192)。`parseStageSummary()` 也要用 `→` match（不要 fallback 到 `->`，保持 format 唯一）。
 
 ---
 
@@ -148,9 +148,9 @@
 - B) `tribunal/2026-04-11-cp-280-slug` (時間序清楚)
 - C) `tribunal/cp-280-slug-r1` (retry suffix 明確)
 
-**Answer**: _待 CEO 決策_
-**Reason**:
-**Impl Notes**:
+**Answer**: **B (日期 prefix)** — CTO decided (2026-04-11)
+**Reason**: `tribunal/2026-04-11-cp-280-slug` — 文章多了以後 `git branch` 按時間排會很方便。Retry 時 force-push 到同個 branch（保留一個 canonical source of truth），不用 `-r1` suffix。
+**Impl Notes**: Branch format: `tribunal/YYYY-MM-DD-<ticketId-lowercase>-<slug>`。Builder 寫 `generateBranchName()` helper。同一篇文章 re-run 直接 force-push，不另開 branch。
 
 ---
 
@@ -163,9 +163,9 @@
 - B) Medium: `LUXURY_TOKEN:` (colon 後面要有內容)
 - C) Strict: `(//|#|<!--)\s*LUXURY_TOKEN:` (只認 inline comment)
 
-**Answer**: _待 CEO 決策_
-**Reason**:
-**Impl Notes**:
+**Answer**: **C (strict comment-only grep)** — CTO decided (2026-04-11)
+**Reason**: `(//|#|<!--)\s*LUXURY_TOKEN:` 只認 code 裡的 inline comment。這樣 audit script 不會把 spec、markdown、這份 _decisions.md 裡的 mention 算進去。只抓 Builder 實際標記的位置。
+**Impl Notes**: 更新 `scripts/luxury-token-audit.sh` 的 grep pattern 從 `LUXURY_TOKEN:` 改成 `(//|#|<!--)\s*LUXURY_TOKEN:`。對應 test 也用同樣 pattern。
 
 ---
 
