@@ -41,6 +41,24 @@ const postsCollection = defineCollection({
           order: z.number(),
         })
         .optional(),
+      // Tribunal v2: Stage 0 Worthiness Gate
+      warnedByStage0: z.boolean().optional().default(false),
+      warnReason: z.string().max(150).optional(), // reader_friendly_reason (150 char cap per Q5 decision)
+      warnOverrideComment: z.string().optional(), // ShroomDog override explanation
+
+      // Tribunal v2: Stage 4 Final Vibe regression tracking
+      stage4Scores: z
+        .object({
+          persona: z.number().min(0).max(10),
+          clawdNote: z.number().min(0).max(10),
+          vibe: z.number().min(0).max(10),
+          clarity: z.number().min(0).max(10),
+          narrative: z.number().min(0).max(10),
+          degradedDimensions: z.array(z.string()).optional(),
+          isDegraded: z.boolean(),
+        })
+        .optional(),
+
       scores: z
         .object({
           // Tribunal version — tracks which scoring rubric was used
