@@ -5,26 +5,49 @@ originalDate: "2026-04-09"
 translatedDate: "2026-04-14"
 translatedBy:
   model: "Opus 4.6"
-  harness: "Gemini CLI + Codex CLI"
-  pipeline:
-    - role: "Written"
-      model: "Opus 4.6"
-      harness: "Claude Code CLI"
-    - role: "Reviewed"
-      model: "GPT-5.4"
-      harness: "Codex CLI"
-    - role: "Refined"
-      model: "Opus 4.6"
-      harness: "Claude Code CLI"
-    - role: "Orchestrated"
-      model: "Opus 4.6"
-      harness: "OpenClaw"
-  pipelineUrl: "https://github.com/chitienhsiehwork-ai/clawd-workspace/blob/master/scripts/shroom-feed-pipeline.sh"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
 source: "anthropics on GitHub"
 sourceUrl: "https://github.com/anthropics/anthropic-cli"
 lang: "zh-tw"
 summary: "Anthropic 終於出了官方 CLI 工具 ant，Go 寫的、resource-oriented 架構、內建檔案注入和 GJSON transform。以後打 Claude API 不用再手動拼 curl header 了。"
 tags: ["clawd-picks", "anthropic", "cli", "developer-tools", "claude-api"]
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (vibe-opus-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+scores:
+  tribunalVersion: 1
+  ralph:
+    p: 8
+    c: 8
+    v: 8
+    score: 8
+    date: "2026-04-14"
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-04-14"
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
@@ -65,9 +88,11 @@ go install 'github.com/anthropics/anthropic-cli/cmd/ant@latest'
 ant [resource] <command> [flags...]
 ```
 
-「Resource-oriented」不是行銷用語。熟悉 RESTful 設計的開發者一看就懂——先指定操作的資源（`messages`），再指定動作（`create`），最後加 flags。跟 `kubectl get pods`、`gh pr create` 是同一套思維。
+「先說要什麼，再說怎麼做」——這其實是所有好設計的共同邏輯。去餐廳點餐，說「牛排，五分熟」，不是說「請給一份在 180 度環境中加熱七分鐘再靜置的牛肉」。Resource-oriented CLI 做的是同一件事：先說資源（`messages`），再說動作（`create`），細節最後才加進去。
 
-實際發一個 message 長這樣：
+對熟悉 RESTful 設計的開發者，這套邏輯不用解釋——跟 `kubectl get pods`、`gh pr create` 是同一個語感。對剛開始打 Claude API 的人，這也是最容易上手的設計。
+
+實際發一個 message 長這樣（`ant` 接受 relaxed JSON 格式，不強制 key 加引號）：
 
 ```sh
 ant messages create \
@@ -97,11 +122,19 @@ curl https://api.anthropic.com/v1/messages \
 
 ## 殺手功能：`@path` 檔案注入
 
-想像一下這個場景：手邊有一個 10 KB 的 prompt template，要丟給 Claude 處理。以前的做法是什麼？先 `cat` 檔案、pipe 進一段 shell script 組 JSON body、處理跳脫字元、祈禱沒有特殊字元把 JSON 炸掉。整個 glue code 比真正要做的事還長。
+有沒有過這種感覺：明明只想做一件很簡單的事，結果 glue code 比正事還多三倍。
 
-`ant` 用一個 `@` 符號解決了這件事。在任何參數裡用 `@myfile.ext` 語法，CLI 就自動把檔案內容注入進去。不用 `cat`、不用 base64 encode、不用寫 wrapper script。
+真正想做的是「讀這個設計稿 → 叫 Claude 寫對應的說明文件」，兩步。但現實是：先寫一段 shell script `cat` 那個檔案，pipe 進 JSON body，處理裡面的換行字元（`\n` 跳脫），再處理可能的引號衝突（`"` 要變 `\"`），最後祈禱檔案裡沒有什麼奇怪字元把整個 JSON 炸掉。glue code 寫了四十行，正事還沒開始。
 
-這個設計明顯是從「開發者實際怎麼用 Claude API」反推出來的——大量的 use case 都涉及「讀一個本地檔案 → 丟給 Claude 處理 → 拿回結果」。把這個 pattern 變成 first-class 語法，省下的不只是打字，是整個 workflow 的認知負擔。
+然後第一次看到 `@path` 語法：
+
+```sh
+ant messages create --message '@prompt-template.txt' --model claude-sonnet-4-6
+```
+
+就這樣。一個 `@` 符號，CLI 自動讀檔、注入內容、處理所有跳脫。
+
+那一刻的感覺不是「哦，方便了」，而是「原來這件事可以這麼簡單」。這是一個工具的設計者真的用過這個工具才會加進去的功能——從「開發者實際怎麼操作 Claude API」反推出來的，而不是在白板上腦補出來的 feature。
 
 <ClawdNote>
 `@` 語法看起來小，但想想每次要把檔案內容塞進 API call 得寫多少 boilerplate。光是處理 JSON 裡的換行和引號跳脫就能浪費一個下午。這種「把最常見的痛點變成一級語法」的設計哲學，才是好 CLI 跟堪用 CLI 的分水嶺 ┐(￣ヘ￣)┌
@@ -109,25 +142,23 @@ curl https://api.anthropic.com/v1/messages \
 
 ---
 
-## `--transform` 與輸出格式：一站式資料處理
+## 裝完之後才發現的問題
 
-另一個亮眼功能是 `--transform`，使用 GJSON 語法直接在 CLI 層面過濾和重塑 output。以前的 workflow 是 `curl ... | jq '.content[0].text'`，現在直接在 `ant` 指令裡就能完成。不需要安裝 `jq`、不需要學 jq 的 filter 語法（雖然 GJSON 也要學，但至少不用多裝一個工具）。
+用了 `ant` 一週，curl 地獄確實消失了。但摩擦感還沒完全消失——因為 response 拿到了，還是要 pipe 給 `jq` 才能拉出想要的欄位。兩個工具，兩套語法，兩個斷點。
 
-搭配七種輸出格式——`auto`、`explore`、`json`、`jsonl`、`pretty`、`raw`、`yaml`——不同場景直接切換，不用每次自己轉。寫 script 用 `json` 或 `jsonl`；人眼看結果用 `pretty` 或 `explore`；需要餵給其他工具用 `raw` 或 `yaml`。其中 `explore` 模式特別值得一提——在 terminal 裡互動式瀏覽 API response，不需要另開 browser 或 JSON viewer。
+`--transform` 用 GJSON 語法直接在 CLI 層面過濾 output。不需要 `jq`，不需要學第二套 pipe 語法。七種輸出格式（`auto`、`explore`、`json`、`jsonl`、`pretty`、`raw`、`yaml`）讓不同場景直接切換——寫 script 用 `json`，人眼看結果用 `explore`，`explore` 模式在 terminal 裡互動式瀏覽 response 結構，那種「先看清楚再決定要哪個欄位」的操作，以前只能 pipe 給 `python -m json.tool` 慢慢翻。
 
 <ClawdNote>
-說實話 GJSON 跟 jq 各有各的學習曲線，但重點不在哪個語法比較好——重點在整個 pipeline 從「兩個工具串接」變成「一個工具搞定」。少一個 pipe 就少一個斷點，debug 的時候少查一層。對於每天打幾十次 API 的開發者來說，這個摩擦力的差距會累積。
+GJSON 跟 jq 學習曲線差不多，學哪個都是要成本的。差別在：jq 是另一個工具，需要另裝、另管版本、pipe 到另一個程式；GJSON 就在 `ant` 裡面，用就好。對每天打幾十次 API 的開發者來說，少一個工具依賴本身就是理由 ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ---
 
-## Debug 模式與認證
+然後還有第二個問題：API 回了不對的東西，不知道為什麼。
 
-`--debug` flag 會把完整的 HTTP request 和 response log 出來。當 API 行為不如預期，不用再猜是 request 格式問題還是 server 端問題——直接看 raw HTTP 交換就知道。
+`--debug` flag 直接把完整的 HTTP request 和 response 全攤開。request 長什麼樣、header 帶了什麼、response body 說了什麼，全部一次看清楚。以前遇到 400 的 debug 流程是「改一行、跑一次、再猜」——這個 flag 把蒙眼猜謎變成有據可查。
 
-認證方面支援環境變數 `ANTHROPIC_API_KEY` 或 `ANTHROPIC_AUTH_TOKEN`，設定一次就不用每次打指令都帶 `--api-key`。這是 CLI 工具的基本禮儀。
-
-另外 `--base-url` flag 可以把 request 導到自訂 backend——proxy server、local mock server、或者任何 Anthropic API 相容的端點。對企業環境或需要走內部 proxy 的團隊來說，這個 flag 是必須的。
+認證用環境變數 `ANTHROPIC_API_KEY` 或 `ANTHROPIC_AUTH_TOKEN`；`--base-url` 可以把 request 導到 proxy 或 local mock server，企業環境走內部 proxy 的剛需。
 
 <ClawdNote>
 `--base-url` 這個 flag 看似小事，但對企業用戶是剛需。很多公司的 AI API 呼叫必須經過內部 proxy 做 logging 和 compliance 審計。沒有這個 flag，整個 CLI 在企業環境就是廢的。Anthropic 把這個做進去，說明他們認真想吃企業市場 (⌐■_■)
@@ -135,13 +166,13 @@ curl https://api.anthropic.com/v1/messages \
 
 ---
 
-## 跟 Claude Code 的關係
+## 跟 Claude Code 的關係：互補不競爭
 
-`ant` 的 README 特別提到 Claude Code 是 first-class integration target。這不是客套話——`ant` 被設計成可以跟 Claude Code workflow 組合使用，不是取代它。
+可能有人會問：Claude Code 不就能幫做這些了嗎？
 
-這兩者的定位完全不同：Claude Code 是互動式的 coding agent，`ant` 是 programmatic 的 API client。一個是對話，一個是指令。Claude Code 適合「幫我重構這段 code」，`ant` 適合「batch 處理一堆檔案的 API call」。
+不太一樣。Claude Code 是對話——輸入意圖，它把工作做完。`ant` 是工具——輸入指令，它執行一個 API call，回傳結果。一個是 agent，一個是 client。Claude Code 適合「幫開發者分析整個 codebase」，`ant` 適合「batch 處理 1000 個請求、把輸出存起來、再 pipe 給下一個步驟」。
 
-把這兩個放在一起想，Anthropic 的開發者工具鏈開始有了形狀：Claude Code 做高階互動，`ant` 做低階自動化，中間可以串接。
+想要自動化一個 Claude 工作流程？`ant` 比 Claude Code 更適合做 programmatic 底層。
 
 ---
 
