@@ -7,6 +7,8 @@ import PrevNextNav from '../../components/PrevNextNav.astro';
 import SeriesNav from '../../components/SeriesNav.astro';
 import RelatedArticles from '../../components/RelatedArticles.astro';
 import PostStatusBanner from '../../components/PostStatusBanner.astro';
+import Stage0WarnBanner from '../../components/Stage0WarnBanner.astro';
+import Stage4DegradedBanner from '../../components/Stage4DegradedBanner.astro';
 import TicketBadge from '../../components/TicketBadge.astro';
 import Giscus from '../../components/Giscus.astro';
 import ShareButton from '../../components/ShareButton.astro';
@@ -84,6 +86,22 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
           replacementTitle={postStatus.replacementPost?.data.title}
           replacementTicketId={postStatus.replacementTicketId}
         />
+      )
+    }
+
+    {
+      post.data.warnedByStage0 && post.data.warnReason && (
+        <Stage0WarnBanner
+          reason={post.data.warnReason}
+          overrideComment={post.data.warnOverrideComment}
+          lang="zh-tw"
+        />
+      )
+    }
+
+    {
+      post.data.stage4Scores?.isDegraded && (
+        <Stage4DegradedBanner stage4Scores={post.data.stage4Scores} lang="zh-tw" />
       )
     }
 

@@ -1,0 +1,156 @@
+---
+/**
+ * Stage0WarnBanner — Tribunal v2 Stage 0 Worthiness Gate warning banner.
+ *
+ * Rendered when a post's frontmatter has `warnedByStage0: true`.
+ * This is NOT an error — it's a transparency signal that the AI judge
+ * had low confidence about whether this post is worth publishing.
+ * Readers are invited to leave feedback via giscus.
+ *
+ * Design ref: .score-loop/specs/devils-advocate-review.md Appendix C
+ */
+
+interface Props {
+  reason: string; // reader_friendly_reason from Stage 0 judge
+  judgeModel?: string; // e.g. "Opus" — for transparency
+  overrideComment?: string; // ShroomDog's override explanation (optional)
+  lang?: 'zh-tw' | 'en';
+}
+
+const { reason, judgeModel = 'Opus', overrideComment, lang = 'zh-tw' } = Astro.props;
+
+const labels = {
+  'zh-tw': {
+    title: 'Clawd 的 AI judge 對這篇沒把握 ಠ_ಠ',
+    preamble: `${judgeModel} judge 覺得這篇可能不太適合登上 gu-log：`,
+    callToAction:
+      '我們還在 tune gu-log 的 AI judge 的判斷標準，你覺得這篇有沒有料？下面留言告訴我們 (>w<)',
+    overrideLabel: 'ShroomDog 的說明：',
+    jumpLink: '↓ 跳到留言區 ↓',
+  },
+  en: {
+    title: "Clawd's AI judge wasn't sure about this one ಠ_ಠ",
+    preamble: `${judgeModel} judge thought this post might not be the best fit for gu-log:`,
+    callToAction:
+      "We're still tuning our AI judge's standards. Got a take? Drop a comment below (>w<)",
+    overrideLabel: "ShroomDog's note:",
+    jumpLink: '↓ Jump to comments ↓',
+  },
+} as const;
+
+const t = labels[lang];
+---
+
+<div class="stage0-warn-banner" role="note" aria-live="polite">
+  <div class="banner-header">
+    <span class="banner-title">{t.title}</span>
+  </div>
+  <div class="banner-body">
+    <p class="banner-preamble">{t.preamble}</p>
+    <blockquote class="banner-reason">"{reason}"</blockquote>
+    <p class="banner-cta">{t.callToAction}</p>
+    {
+      overrideComment && (
+        <div class="banner-override">
+          <span class="override-label">{t.overrideLabel}</span>
+          <span class="override-comment">"{overrideComment}"</span>
+        </div>
+      )
+    }
+  </div>
+  <div class="banner-footer">
+    <a href="#giscus-comments" class="banner-jump-link">{t.jumpLink}</a>
+  </div>
+</div>
+
+<style>
+  .stage0-warn-banner {
+    margin: 1rem 0 1.5rem;
+    padding: 0;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 184, 108, 0.35); /* --color-clawd-orange at 35% opacity */
+    border-left: 4px solid var(--color-clawd-orange);
+    background: rgba(255, 184, 108, 0.07);
+    overflow: hidden;
+  }
+
+  .banner-header {
+    padding: 0.65rem 1rem;
+    border-bottom: 1px solid rgba(255, 184, 108, 0.2);
+    background: rgba(255, 184, 108, 0.1);
+  }
+
+  .banner-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--color-clawd-orange);
+    letter-spacing: 0.01em;
+  }
+
+  .banner-body {
+    padding: 0.85rem 1rem;
+  }
+
+  .banner-preamble {
+    margin: 0 0 0.5rem;
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+  }
+
+  .banner-reason {
+    margin: 0 0 0.75rem;
+    padding: 0.5rem 0.75rem;
+    border-left: 3px solid var(--color-clawd-orange);
+    background: rgba(255, 184, 108, 0.06);
+    border-radius: 0 4px 4px 0;
+    font-size: 0.9rem;
+    font-style: italic;
+    color: var(--color-text);
+    line-height: 1.5;
+  }
+
+  .banner-cta {
+    margin: 0;
+    font-size: 0.88rem;
+    color: var(--color-text-muted);
+    line-height: 1.6;
+  }
+
+  .banner-override {
+    margin-top: 0.75rem;
+    padding-top: 0.65rem;
+    border-top: 1px solid rgba(255, 184, 108, 0.2);
+    font-size: 0.88rem;
+    color: var(--color-text-muted);
+  }
+
+  .override-label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    color: var(--color-text);
+  }
+
+  .override-comment {
+    font-style: italic;
+  }
+
+  .banner-footer {
+    padding: 0.5rem 1rem;
+    border-top: 1px solid rgba(255, 184, 108, 0.15);
+    text-align: right;
+  }
+
+  .banner-jump-link {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--color-clawd-orange);
+    text-decoration: none;
+    transition: opacity 0.2s ease;
+  }
+
+  .banner-jump-link:hover {
+    opacity: 0.75;
+    text-decoration: underline;
+  }
+</style>
