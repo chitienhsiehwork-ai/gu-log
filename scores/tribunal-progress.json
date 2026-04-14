@@ -3369,12 +3369,70 @@
         "attempts": 2
       },
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "pass",
+        "score": {
+          "judge": "factChecker",
+          "dimensions": {
+            "accuracy": 7,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "所有統計數字（6,852 sessions、17,871 thinking blocks、67% 下降、6.6→2 files）均正確歸因給 Stella Laurenzo 的分析，無憑空捏造；但「Opus 4.6 二月五日上線」是極具體的日期聲稱且僅靠 tweet-level 來源支撐，tweet-sourced CP 正常 7 分範圍。",
+            "fidelity": "正確交代 Alex Banks 分享 Stella 分析的框架，保留關鍵 hedge（「可能是最扎實的研究」），ClawdNote 與正文清楚分離，無 uncertainty erasure，整體忠實呈現來源。",
+            "consistency": "邏輯弧度完整（問題→數據→指標→意涵→結語），工程師讀 bug 的類比與讀檔數量暴跌直接對應，時間線相關性論述謹慎未過度推論為因果關係（「高度吻合」不等於直接歸咎 Opus 4.6）。"
+          }
+        },
         "model": "opus",
         "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 9,
+            "firstImpression": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "開頭 hook「有一種恐怖是慢慢來的」立刻抓住注意力，bug report 比喻對 3 個月新手工程師完全直覺，thinking blocks 這個詞沒有深入解釋但不影響理解主旨，ClawdNote 補充而非阻塞閱讀節奏。",
+            "firstImpression": "6,852 個 session、67% 暴跌、6.6 → 2 個檔案 — 具體數字讓關心 AI coding tool 的開發者很難不繼續讀；結尾「信任但驗證是生存策略」有記住的價值，會想轉發到工程師群組。"
+          }
+        },
+        "model": "haiku",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Opening hook and engineer-workflow analogy ('先看 issue 描述、翻一下相關的 code、trace 一遍 call stack') are strong LHY moves, but the '為什麼這件事重要' section slides into journalistic-analysis mode rather than professor-talking-to-students mode, capping at 8.",
+            "clawdNote": "All four notes carry real opinions — '這不是效率提升，是偷工減料', self-aware meta-commentary as the thing being analyzed, 'release note 的功能從來就不是 changelog，是行銷素材', and the database-monitoring-alert analogy — every note challenges or extends the source.",
+            "vibe": "Tight and engaging topic with a non-preachy close; the analytical third section slightly loses the oral energy that makes the rest stick, preventing a higher score.",
+            "clarity": "Body text is fully pronoun-clean — '使用者' instead of '你', no stray '我'; ClawdNote '我/你' is always clearly Clawd speaking, never the reader or body narrator.",
+            "narrative": "Opening metaphor ('慢慢來的恐怖') pays off with an explicit callback in the closing; arc moves hook → evidence → implication → why it matters → callback close; some mid-sections lean analytical but the frame holds without becoming a linear report."
+          }
+        },
+        "model": "opus",
+        "attempts": 2
       }
-    }
+    },
+    "status": "PASS",
+    "finishedAt": "2026-04-14T15:47:57+08:00"
   },
   "cp-pending-20260414-thealexbanks-amd-ai-6-852-session-claude.mdx": {
     "article": "cp-pending-20260414-thealexbanks-amd-ai-6-852-session-claude.mdx",
@@ -3390,5 +3448,17 @@
     "status": "FAILED",
     "failedStage": "librarian",
     "finishedAt": "2026-04-14T15:41:21+08:00"
+  },
+  "cp-pending-20260414-stellaraccident-amd-claude-code-regression-6852.mdx": {
+    "article": "cp-pending-20260414-stellaraccident-amd-claude-code-regression-6852.mdx",
+    "startedAt": "2026-04-14T15:46:41+08:00",
+    "stages": {
+      "librarian": {
+        "status": "in_progress",
+        "score": null,
+        "model": "sonnet",
+        "attempts": 1
+      }
+    }
   }
 }
