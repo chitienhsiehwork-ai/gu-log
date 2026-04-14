@@ -1,0 +1,122 @@
+---
+ticketId: "CP-294"
+title: "\"Claude Code Automates 80% of Your Work, $28k/mo Passive Income\" — We Checked the Four Claims in That Viral Tweet. None Fully Hold Up."
+originalDate: "2026-04-13"
+translatedDate: "2026-04-14"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Fact-checked"
+      model: "Opus 4.6"
+      harness: "Claude Code (WebFetch subagent)"
+source: "@noisyb0y1 on X"
+sourceUrl: "https://x.com/noisyb0y1/status/2043609541477044439"
+lang: "en"
+summary: "A viral X tweet: a Google engineer automated 80% of his job with Claude Code and earns $28k/mo passive income. We checked the four main claims — Karpathy didn't write that CLAUDE.md, the repo's internal stats are wrong, the npm package name is wrong, and the billing claim has no receipts."
+tags: ["clawd-picks", "fact-check", "ai-slop", "claude-code", "engagement-farming"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+A tweet went viral on X this week: "A Google engineer with 11 years of experience used Claude Code plus a small dotnet app to automate 80% of his job. Now he works 2-3 hours a day, chills the rest, and earns $28,000 in passive income."
+
+The tweet packs a CLAUDE.md template, two GitHub repo recommendations, and a one-line downgrade command. It reads like a dense takeaway checklist. Likes, retweets, bookmarks — the full combo.
+
+There's one problem: we fact-checked the four main claims. **Not one of them fully holds up.**
+
+<ClawdNote>
+gu-log's CLAUDE.md is clear on this: any AI tooling claim must be verified, not recalled. I was going to translate it as a normal SP. But credibility was far lower than expected, and publishing it as-is would just amplify the misinformation. So it became this post instead — a breakdown of the four standard tricks in AI tooling slop (◕‿◕)
+</ClawdNote>
+
+## Trick 1: Famous-name attribution
+
+**The tweet says**: Andrej Karpathy documented the mistakes LLMs make when writing code and distilled them into four principles — Think Before Coding / Simplicity First / Surgical Changes / Goal-Driven Execution. Someone wrote a CLAUDE.md from these and got 15,000 stars in a week.
+
+**What's actually true**:
+
+- The repo is `forrestchang/andrej-karpathy-skills`. **Author: forrestchang, not Karpathy.**
+- Real star count: ~27k, accumulated over ~2.5 months (created 2026-01-27), not one week.
+- Karpathy tweeted observations about LLM coding pitfalls, but **he never framed them as "four principles"**. That naming is forrestchang's packaging.
+
+Short version: a community derivative work, attributed to the famous source so readers assume it's official.
+
+<ClawdNote>
+Classic move in the AI tooling space. Karpathy, Simon Willison, Andrew Ng — those names carry trust. Put them in the headline and the reader's guard drops a notch. One click on the repo's owner field takes 30 seconds to disprove. Nobody clicks (￣▽￣)／
+</ClawdNote>
+
+## Trick 2: Right star count, wrong everything else
+
+**The tweet says** `affaan-m/everything-claude-code` has **153,000+ stars**, **30+ specialized agents**, **180+ skills**, **1,282 security tests**.
+
+**What's on GitHub** (visible in the README):
+
+- Stars: ~154k. Close enough. (The one correct number.)
+- Agents: **47**, not 30+. Underreported.
+- Skills: **181**. Roughly matches 180+. Fine.
+- 1,282 tests: that's **AgentShield's** coverage, a sub-component. Not the repo's security tests overall.
+
+One correct number plus a few close-but-wrong numbers manufactures the impression that the author did their homework.
+
+<ClawdNote>
+This trick is sneakier than the first one. Star count is right, skill count is roughly right — get two out of four and readers assume the rest is solid. Agents count and test count are just made up. Credibility compounds: one right, one slightly off, one way off — most people average the ends and skip verification (¬‿¬)
+</ClawdNote>
+
+## Trick 3: Wrong package name
+
+**The tweet offers a 30-second "token waste fix"**:
+
+```
+npx claude-code@2.1.98
+```
+
+**Here's the issue**: `claude-code` on npm exists, but it's an **official pointer package**. Its description literally says "Pointer to the official Claude Code package at @anthropic-ai/claude-code". The package has only `1.0.0`. There is no `2.1.98` under this name.
+
+The real Claude Code CLI is **`@anthropic-ai/claude-code`**. The correct downgrade command would be:
+
+```sh
+npx @anthropic-ai/claude-code@2.1.98
+```
+
+One `@` symbol off. A reader who copy-pastes gets a 404 from npm.
+
+<ClawdNote>
+This is the meanest of the four. Reader thinks "30 seconds to solve it", pastes the command, sees an npm error, assumes they screwed up, searches again, forgets it. The original tweet doesn't care — the like-and-bookmark already happened. That's the engagement-farm structure: the target is the interaction itself, not whether the reader actually accomplishes the thing (ง •̀_•́)ง
+</ClawdNote>
+
+## Trick 4: Extraordinary claim plus unverifiable evidence
+
+**The most dramatic segment**: someone "set up an HTTP proxy to intercept full API requests across two Claude Code versions", and found that v2.1.100 sends 978 bytes less but charges **20,196 more tokens** per request.
+
+**Reality check**:
+
+- Version numbers are real — both 2.1.98 and 2.1.100 ship on npm
+- The exact comparison — "169,514 bytes / 49,726 tokens" vs "168,536 bytes / 69,922 tokens" — would need: the proxy setup details, request dumps from both versions, side-by-side usage header logs
+- The tweet links to **none of this**. No proxy log. No repo. No GitHub issue number. Just one oddly precise table
+
+Classic pairing: extraordinary claim + unverifiable evidence.
+
+<ClawdNote>
+Golden rule of bullshit distribution: the more outrageous the claim, the more precise the numbers must be. "20,196 more tokens" feels solid; "many more tokens" doesn't. But precision is not evidence. If someone actually caught Anthropic inflating tokens, they would open a GitHub issue, dump logs, and post a reproducible experiment — not a screenshot on X. No receipts, so treat it as fiction (⌐■_■)
+</ClawdNote>
+
+## Self-defense: a 3-step verify checklist
+
+Every time you see a tweet like this, 30 seconds of clicks:
+
+1. **Repo owner field**: tweet mentions a repo? Click in. Is the owner the famous person, or a fan's fork?
+2. **Package name spelled correctly**: search npm or pypi directly. Does the package exist? Does the claimed version exist?
+3. **Receipts for extraordinary claims**: precise numbers should come with logs, an issue, a repo, or reproducible steps. No receipts = fiction.
+
+You don't need to be a detective. You just need two more clicks than the average reader. Most AI tooling slop fails at step 1.
+
+## Wrap
+
+noisyb0y1 isn't the target here — he happened to be the sample that hit a textbook pattern. Similar tweets pile up on X every week.
+
+What matters is what you do when you see the next one. gu-log's own CLAUDE.md is blunt: "Subagent conclusions need one more verification pass" — subagents get things wrong, tweets get things wrong, gut feelings get things wrong. For AI tooling facts, **don't answer from memory or instinct**. Verify.
+
+30 seconds of clicking saves 30 minutes of debugging later.

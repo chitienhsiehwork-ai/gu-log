@@ -1,6 +1,47 @@
 #!/bin/bash
 echo "🚀 Running pre-push checks..."
 
+# 0. PENDING ticketId guard — never push a PENDING placeholder to main.
+#    PENDING is a legitimate in-flight state on working branches (see
+#    CONTRIBUTING.md §並行撰寫防 ID collision), but must be swapped for
+#    a real ticket number before merging to main. Prod MDX with
+#    ticketId "CP-PENDING" would render on gu-log.vercel.app.
+#
+#    Git stdin contract for pre-push: <local-ref> <local-sha> <remote-ref> <remote-sha>
+#    per line. If any line targets refs/heads/main and the commits being
+#    pushed touch a posts/*.mdx with "-PENDING" ticketId, block.
+while read -r _local_ref local_sha remote_ref remote_sha; do
+  case "$remote_ref" in
+    refs/heads/main|refs/heads/master)
+      # local_sha of all-zeros = branch delete, skip.
+      if [ "$local_sha" = "0000000000000000000000000000000000000000" ]; then
+        continue
+      fi
+      # For a brand-new remote branch, remote_sha is all-zeros; diff from
+      # the merge-base with the default main instead.
+      if [ "$remote_sha" = "0000000000000000000000000000000000000000" ]; then
+        DIFF_BASE="$(git merge-base "$local_sha" HEAD 2>/dev/null || echo "")"
+      else
+        DIFF_BASE="$remote_sha"
+      fi
+      if [ -z "$DIFF_BASE" ]; then
+        continue
+      fi
+      PENDING_FILES=$(git diff --name-only --diff-filter=AM "${DIFF_BASE}..${local_sha}" -- 'src/content/posts/*.mdx' 2>/dev/null | \
+        xargs -r grep -l 'ticketId:.*-PENDING' 2>/dev/null || true)
+      if [ -n "$PENDING_FILES" ]; then
+        echo ""
+        echo "❌ PENDING ticketId in commits being pushed to $remote_ref:"
+        echo "$PENDING_FILES" | sed 's/^/   /'
+        echo ""
+        echo "   Swap PENDING for a real ticket number before pushing to main."
+        echo "   See CONTRIBUTING.md §並行撰寫防 ID collision for the swap procedure."
+        exit 1
+      fi
+      ;;
+  esac
+done
+
 # 1. Bundle budget check (check-only; must not write git working tree files)
 #    Blocking budgets fail the push; trend alerts are warnings only.
 echo "📦 Checking bundle budgets (blocking + trend monitor)..."

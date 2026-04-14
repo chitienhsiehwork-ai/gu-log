@@ -83,10 +83,15 @@ test.describe('Content Integrity: ticketId', () => {
     const posts = getAllPosts();
     const ticketIdMap = new Map<string, PostFrontmatter[]>();
     
-    // Group posts by ticketId
+    // Group posts by ticketId.
+    // PENDING is a placeholder shared across parallel in-flight drafts
+    // (see CONTRIBUTING.md §並行撰寫防 ID collision). Real numbers are
+    // allocated per-draft at deploy. The pre-push guard blocks PENDING
+    // from reaching main, so collisions here are not prod-visible.
     for (const post of posts) {
       if (!post.ticketId) continue;
-      
+      if (post.ticketId.endsWith('-PENDING')) continue;
+
       const existing = ticketIdMap.get(post.ticketId) || [];
       existing.push(post);
       ticketIdMap.set(post.ticketId, existing);
@@ -147,7 +152,9 @@ test.describe('Content Integrity: ticketId', () => {
   test('GIVEN all posts WHEN checking ticketId format THEN ticketIds should follow PREFIX-N pattern (SP/CP/SD/Lv)', async () => {
     const posts = getAllPosts();
     // Valid prefixes: SP (ShroomDog Picks), CP (Clawd Picks), SD (ShroomDog Originals), Lv (Level-Up)
-    const validPattern = /^(SP|CP|SD|Lv)-\d+$/;
+    // PENDING is a legitimate in-flight placeholder (see CONTRIBUTING.md §並行撰寫防 ID collision);
+    // gets swapped for a real number at deploy and can't reach main (pre-push guard).
+    const validPattern = /^(SP|CP|SD|Lv)-(?:\d+|PENDING)$/;
     const invalidFormat = posts.filter(p => p.ticketId && !p.ticketId.match(validPattern));
     
     if (invalidFormat.length > 0) {

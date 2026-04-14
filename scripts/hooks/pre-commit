@@ -37,8 +37,13 @@ fi
 
 # ─── Step 0: Quick ticketId duplicate check (shell, ~100ms) ───────
 echo "⚡ Quick ticketId duplicate check..."
+# PENDING ticketIds are legitimate in-flight placeholders (see
+# CONTRIBUTING.md §並行撰寫防 ID collision). Filter them out before
+# counting — parallel drafts on the same branch can legitimately share
+# "<PREFIX>-PENDING" until the deploy step swaps them for real numbers.
 DUPLICATES=$(grep -h 'ticketId:' "$POSTS_DIR"/*.mdx 2>/dev/null | \
     sed 's/.*ticketId:[[:space:]]*["'"'"']\([^"'"'"']*\)["'"'"'].*/\1/' | \
+    grep -v -- '-PENDING$' | \
     sort | uniq -c | sort -rn | awk '$1 > 2 {print $2 " (" $1 " occurrences)"}')
 
 if [ -n "$DUPLICATES" ]; then
@@ -128,6 +133,13 @@ else
 
         # Skip the gate if this is a metadata-only housekeeping edit.
         if is_metadata_only_diff "$file"; then
+            continue
+        fi
+
+        # Skip the gate for PENDING drafts — scoring happens during tribunal
+        # between draft and deploy. See CONTRIBUTING.md §並行撰寫防 ID collision.
+        # The pre-push guard ensures PENDING never reaches main anyway.
+        if grep -qE '^ticketId:[[:space:]]*["'"'"'][A-Za-z]+-PENDING["'"'"']' "$FULL_PATH" 2>/dev/null; then
             continue
         fi
 
