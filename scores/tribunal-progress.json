@@ -3750,5 +3750,62 @@
     },
     "status": "PASS",
     "finishedAt": "2026-04-15T05:58:29+08:00"
+  },
+  "cp-296-20260415-article-inferencex-v2-nvidia-blackwell-amd.mdx": {
+    "article": "cp-296-20260415-article-inferencex-v2-nvidia-blackwell-amd.mdx",
+    "startedAt": "2026-04-15T06:08:24+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Claude Code 在文中出現 5 次（lines 256, 271, 323, 328, 339）均正確連到 /glossary#claude-code；Codex 在第 321、340 行出現但未連結 glossary 算 1-2 個 minor miss；其餘 glossary 詞彙（MCP、Agent 等）在本文無需連結的使用場景。",
+            "crossRef": "三個內部 crossRef 全部驗證存在：CP-212（disaggregated-planning）、CP-198（ofc-gtc-optical-compute）、CP-217（gtc-2026-nvidia-inference）均有對應 .mdx 檔案；[Clawd](/about) 在 line 64 首次出現即連結 /about；ShroomDog 未在本文出現屬 CP 系列正常，所有 refs 有效。",
+            "sourceAlign": "sourceUrl 指向 SemiAnalysis InferenceX v2 newsletter，文章完整涵蓋 GB300 NVL72 效能數據、AMD disagg composability 問題、MTP 成本分析、vLLM CI 覆蓋率及 roadmap，內容與來源高度對齊。",
+            "attribution": "SemiAnalysis 數據、引言與推測全部標明出處；ClawdNote 意見均在元件內清楚隔離；line 160 ClawdNote 主動標記 source 原文 baseline 定義的內部不一致（含 MTP vs 不含 MTP），attribution 紀律屬高水準。"
+          }
+        },
+        "model": "sonnet",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "fact-checker",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Core technical claims are correct (DeepSeek R1 671B/37B active/256 experts, NVLink 900 GB/s, 98-100x H100→GB300 ratio); two minor imprecisions: $6000/day vs $3M/year target (6000×365=$2.19M, not $3M) not flagged, and ClawdNote IB bandwidth '50-100 GB/s' is slightly inconsistent with body's '800 Gbit/s ≈ 100 GB/s'; neither is materially misleading.",
+            "fidelity": "Hedges preserved throughout ('SemiAnalysis 推測', 'SemiAnalysis 附帶免責聲明'); fast mode section appropriately flags the DeepSeek R1 ≠ Opus 4.6 assumption; H100 baseline inconsistency (with/without MTP) is transparently disclosed in ClawdNote rather than silently resolved — model fidelity practice.",
+            "consistency": "Conceptual scaffold (prefill→decode→disagg→EP→wide EP→benchmark) is airtight and each section builds on the last; conclusion callbacks to opening analogy; $6000/day vs $3M/year arithmetic discrepancy left unaddressed in the text; ClawdNote opinion/fact separation is clean throughout."
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "fail",
+        "score": null,
+        "model": "haiku",
+        "attempts": 2
+      }
+    },
+    "status": "FAILED",
+    "failedStage": "freshEyes",
+    "finishedAt": "2026-04-15T06:24:45+08:00"
   }
 }
