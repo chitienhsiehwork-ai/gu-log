@@ -136,6 +136,13 @@ else
             continue
         fi
 
+        # Skip the gate for PENDING drafts — scoring happens during tribunal
+        # between draft and deploy. See CONTRIBUTING.md §並行撰寫防 ID collision.
+        # The pre-push guard ensures PENDING never reaches main anyway.
+        if grep -qE '^ticketId:[[:space:]]*["'"'"'][A-Za-z]+-PENDING["'"'"']' "$FULL_PATH" 2>/dev/null; then
+            continue
+        fi
+
         # Check if file has scores.ralph block with p, c, v
         if ! grep -q "^  ralph:" "$FULL_PATH" 2>/dev/null; then
             BASENAME=$(basename "$file")
