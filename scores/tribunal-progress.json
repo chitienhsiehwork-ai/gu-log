@@ -3356,5 +3356,184 @@
     "status": "FAILED",
     "failedStage": "librarian",
     "finishedAt": "2026-04-14T15:30:38+08:00"
+  },
+  "cp-pending-20260414-thealexbanks-amd-ai-6-852-claude-code-session-67.mdx": {
+    "article": "cp-pending-20260414-thealexbanks-amd-ai-6-852-claude-code-session-67.mdx",
+    "startedAt": "2026-04-14T15:35:45+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 8,
+            "sourceAlign": 9,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Claude Code 正確連結到 /glossary#claude-code（第 40 行）；其他技術術語（thinking blocks、model degradation、reasoning depth）不在 glossary 中，無遺漏覆蓋問題。",
+            "crossRef": "延伸閱讀的兩個 internal link（/posts/cp-290-20260414-article-claude-code-subagent-60-write-tool、/posts/cp-292-20260414-article-anthropic-openai-ai）均已確認檔案存在；本文未直接提及 ShroomDog 或 Clawd 身份名稱，identity link 規則不觸發。",
+            "sourceAlign": "文章明確點名 @thealexbanks 分享 AMD AI lead Stella Laurenzo 的分析，具體數字（6,852 sessions、17,871 thinking blocks、67% 推理深度下降、6.6→2 讀檔數）與 sourceUrl attribution 高度一致，無 content drift。",
+            "attribution": "數據均歸因於 Stella Laurenzo 的分析，ClawdNote 全部置於 <ClawdNote> 標籤內隔離，Alex Banks 引言有明確歸屬；微小缺口是 body 中「這代表什麼？想像一個工程師...」段落屬編輯詮釋但未標記為 ClawdNote opinion。"
+          }
+        },
+        "model": "sonnet",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factChecker",
+          "dimensions": {
+            "accuracy": 7,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "所有統計數字（6,852 sessions、17,871 thinking blocks、67% 下降、6.6→2 files）均正確歸因給 Stella Laurenzo 的分析，無憑空捏造；但「Opus 4.6 二月五日上線」是極具體的日期聲稱且僅靠 tweet-level 來源支撐，tweet-sourced CP 正常 7 分範圍。",
+            "fidelity": "正確交代 Alex Banks 分享 Stella 分析的框架，保留關鍵 hedge（「可能是最扎實的研究」），ClawdNote 與正文清楚分離，無 uncertainty erasure，整體忠實呈現來源。",
+            "consistency": "邏輯弧度完整（問題→數據→指標→意涵→結語），工程師讀 bug 的類比與讀檔數量暴跌直接對應，時間線相關性論述謹慎未過度推論為因果關係（「高度吻合」不等於直接歸咎 Opus 4.6）。"
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 9,
+            "firstImpression": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "開頭 hook「有一種恐怖是慢慢來的」立刻抓住注意力，bug report 比喻對 3 個月新手工程師完全直覺，thinking blocks 這個詞沒有深入解釋但不影響理解主旨，ClawdNote 補充而非阻塞閱讀節奏。",
+            "firstImpression": "6,852 個 session、67% 暴跌、6.6 → 2 個檔案 — 具體數字讓關心 AI coding tool 的開發者很難不繼續讀；結尾「信任但驗證是生存策略」有記住的價值，會想轉發到工程師群組。"
+          }
+        },
+        "model": "haiku",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Opening hook and engineer-workflow analogy ('先看 issue 描述、翻一下相關的 code、trace 一遍 call stack') are strong LHY moves, but the '為什麼這件事重要' section slides into journalistic-analysis mode rather than professor-talking-to-students mode, capping at 8.",
+            "clawdNote": "All four notes carry real opinions — '這不是效率提升，是偷工減料', self-aware meta-commentary as the thing being analyzed, 'release note 的功能從來就不是 changelog，是行銷素材', and the database-monitoring-alert analogy — every note challenges or extends the source.",
+            "vibe": "Tight and engaging topic with a non-preachy close; the analytical third section slightly loses the oral energy that makes the rest stick, preventing a higher score.",
+            "clarity": "Body text is fully pronoun-clean — '使用者' instead of '你', no stray '我'; ClawdNote '我/你' is always clearly Clawd speaking, never the reader or body narrator.",
+            "narrative": "Opening metaphor ('慢慢來的恐怖') pays off with an explicit callback in the closing; arc moves hook → evidence → implication → why it matters → callback close; some mid-sections lean analytical but the frame holds without becoming a linear report."
+          }
+        },
+        "model": "opus",
+        "attempts": 2
+      }
+    },
+    "status": "PASS",
+    "finishedAt": "2026-04-14T15:47:57+08:00"
+  },
+  "cp-pending-20260414-thealexbanks-amd-ai-6-852-session-claude.mdx": {
+    "article": "cp-pending-20260414-thealexbanks-amd-ai-6-852-session-claude.mdx",
+    "startedAt": "2026-04-14T15:36:33+08:00",
+    "stages": {
+      "librarian": {
+        "status": "fail",
+        "score": null,
+        "model": "sonnet",
+        "attempts": 2
+      }
+    },
+    "status": "FAILED",
+    "failedStage": "librarian",
+    "finishedAt": "2026-04-14T15:41:21+08:00"
+  },
+  "cp-pending-20260414-stellaraccident-amd-claude-code-regression-6852.mdx": {
+    "article": "cp-pending-20260414-stellaraccident-amd-claude-code-regression-6852.mdx",
+    "startedAt": "2026-04-14T15:46:41+08:00",
+    "stages": {
+      "librarian": {
+        "status": "fail",
+        "score": null,
+        "model": "sonnet",
+        "attempts": 2
+      }
+    },
+    "status": "FAILED",
+    "failedStage": "librarian",
+    "finishedAt": "2026-04-14T15:52:05+08:00"
+  },
+  "cp-293-20260414-stellaraccident-stellaraccident-amd-claude-code-regression-6852.mdx": {
+    "article": "cp-293-20260414-stellaraccident-stellaraccident-amd-claude-code-regression-6852.mdx",
+    "startedAt": "2026-04-14T16:08:14+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "All relevant glossary terms linked: 'Claude Code' → /glossary#claude-code (line 38), 'Stop hook' → /glossary#hooks (lines 104, 108); no other glossary terms from src/data/glossary.json appear in this post.",
+            "crossRef": "Clawd identity link present in first ClawdNote (/about); both 延伸閱讀 cross-references resolve to existing files (sp-146-20260402-ecc-hook-architecture.mdx and clawd-picks-20260203-boris-cherny-workflow.mdx); ShroomDog not mentioned so no identity link needed.",
+            "sourceAlign": "Content clearly derived from GitHub issue #42796 by Stella Laurenzo — covers all key data points (6,852 sessions, thinking depth decline, Read:Edit ratio, behavioral metrics, $12→$1,504 cost, word frequency shift, Boris Cherny's response, meta-conclusion) with no material drift from the declared source.",
+            "attribution": "Stats and quotes are consistently attributed to Laurenzo's analysis or Boris Cherny; ClawdNotes clearly marked as opinion; minor gap: the closing blockquote ('Claude has been good to them...') is a paraphrase rather than direct quote but is not flagged as such, creating slight attribution ambiguity."
+          }
+        },
+        "model": "sonnet",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factChecker",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "所有關鍵數字（6,852 sessions、Read:Edit 從 6.6→2.0、每日成本 $12→$1,504、stop hook 違規 0→10次/天等）均直接引用 GitHub issue #42796 原始來源，且「估算」等 hedge 字眼保留完整；唯一無法獨立驗證的是 issue 內部的原始統計方法，但文章本身沒有超出 source 宣稱範圍，無明顯捏造或誤引。",
+            "fidelity": "ClawdNote 與正文分離明確，blockquote 使用正確，Anthropic（Boris Cherny）的反方立場完整呈現；唯一微瑕是「這份報告不是 Laurenzo 本人寫的，是 Claude Opus 自己產出的」此說法將 AI 角色呈現得比 GitHub issue 中可能更絕對（可能 Laurenzo 有大量編輯介入），但程度屬 minor nuance 而非 material 失真。",
+            "consistency": "文章邏輯弧線完整：從 data credibility → 三類退化指標 → 成本爆炸 → 情緒詞頻 → Anthropic 回應 → meta-conclusion，層層遞進；更難得的是 Boris Cherny section 的 ClawdNote 主動指出「Cherny 回應與 Laurenzo 測量之間的 gap」，這是內部一致性最高的段落，顯示文章沒有迴避邏輯矛盾而是正面梳理。"
+          }
+        },
+        "model": "opus",
+        "attempts": 2
+      },
+      "freshEyes": {
+        "status": "fail",
+        "score": null,
+        "model": "haiku",
+        "attempts": 2
+      }
+    },
+    "status": "FAILED",
+    "failedStage": "freshEyes",
+    "finishedAt": "2026-04-14T16:15:24+08:00"
   }
 }
