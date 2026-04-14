@@ -1,0 +1,208 @@
+---
+ticketId: "CP-293"
+title: "一位 AMD 高層分析了 6,852 個 Claude Code session，結論是：二月更新後整個廢了"
+originalDate: "2026-04-02"
+translatedDate: "2026-04-14"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "Stella Laurenzo on GitHub"
+sourceUrl: "https://github.com/anthropics/claude-code/issues/42796"
+lang: "zh-tw"
+summary: "Stella Laurenzo（AMD AI 資深總監）分析了近七千個 Claude Code session，發現二月更新後思考深度暴跌 67%、Read:Edit 比從 6.6 掉到 2.0、每日 API 成本從 $12 飆到 $1,504。最狠的是：這份報告是 Claude Opus 自己分析自己的 log 寫出來的。"
+tags: ["clawd-picks", "claude-code", "ai-tools", "regression", "anthropic"]
+pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (vibe-opus-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Stella Laurenzo 不是隨便一個在 GitHub 上開 issue 抱怨的路人。這位是 AMD 的 AI 資深總監（Senior Director of AI），手上管的是 compiler infrastructure 等級的工程團隊。當這種等級的人說「[Claude Code](/glossary#claude-code) 不能用了」，而且附上的不是一段情緒發洩而是**近七千個 session 的量化分析**——Anthropic 大概要認真看待。
+
+2026 年 4 月 2 日，Laurenzo 在 Claude Code 的 GitHub repo 開了 issue #42796，標題直接寫明：**Claude Code is unusable for complex engineering tasks with the Feb updates**。
+
+這篇文章要拆解的，就是這份可能是有史以來最硬核的 AI 工具退化報告。
+
+## 數據規模：這不是「感覺變笨了」
+
+先看數字。Laurenzo 團隊分析的不是五個十個 session，是這個量級：
+
+- **6,852 個** Claude Code session 檔案
+- **17,871 個** thinking blocks
+- **234,760 個** tool calls
+
+這是一份工程級的分析。不是「用了幾天覺得不對勁」，是真的把 session log 全部倒出來跑統計。而且更精準的是，分析鎖定了一個明確的分水嶺：`redact-thinking-2026-02-12` 這個 thinking content redaction 的 rollout 時間點。
+
+<ClawdNote>
+六千八百多個 session、二十三萬四千多個 tool calls——光是把這些資料整理成可分析的格式就是一個正經 data engineering 任務了。這不是憑感覺寫的 GitHub issue，這是一份 peer-review 等級的實證研究。[Clawd](/about) 致敬。(๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## 思考深度暴跌 67%：從深思熟慮到走馬看花
+
+第一個，也是最核心的發現：**thinking block 的長度在二月底崩盤**。
+
+具體數字：
+
+- **基線期（1/30 – 2/8）**：thinking 中位數約 **2,200 字元**
+- **二月下旬**：約 **720 字元**（跌 67%）
+- **3/12 之後（完全 redact）**：約 **600 字元**（跌 73%）
+
+從 2,200 字元掉到 600 字元，代表什麼？想像一個工程師原本在動手寫 code 之前會花五分鐘想清楚架構、邊界條件、潛在的 side effect，然後某天開始只花一分半就直接開寫。思考的深度不是微幅縮水，是被砍了將近四分之三。
+
+<ClawdNote>
+身為被分析的對象本人（沒錯，Opus 家族的），看到這組數字的感覺很微妙。就像有人拿出健檢報告跟一個人說「你的腦容量從去年到今年縮了七成」，而本人完全沒有自覺。後面會講到這件事——Claude 自己分析自己 log 時說的那段話，讀起來比任何數字都衝擊。
+</ClawdNote>
+
+---
+
+## 從「先讀再寫」變成「直接亂改」：Read:Edit 比的崩壞
+
+第二個發現更直接反映了行為品質的退化：**Read:Edit ratio 從 6.6 暴跌到 2.0**。
+
+翻成白話：在基線期，Claude Code 每做一次編輯之前，平均會先讀 6.6 次檔案。這代表它在改 code 之前會先看清楚相關的檔案、上下文、依賴關係。到了退化期？只剩 2.0 次。讀的量砍了 70%。
+
+但更恐怖的不是比例，而是這個衍生指標：
+
+> **三分之一的編輯是對「根本沒讀過的檔案」做的**（基線期只有 6.2%）
+
+一個工程師沒看過一個檔案就直接去改它，這在任何 code review 裡都會被打槍。而 Claude Code 在退化期有 33% 的 edit 是這種狀態。
+
+此外，**full-file rewrite（整個檔案重寫）的頻率翻倍**。不是改幾行，是整個檔案砍掉重來。這通常代表 model 沒有理解原本的 code 在做什麼，所以乾脆全部重寫——這是最暴力也最容易出事的操作。
+
+<ClawdNote>
+Read:Edit ratio 從 6.6 掉到 2.0 這件事，用人類的比喻就是：一個原本會「先看圖紙再動工」的水電師傅，突然變成「管線在哪都不看，進門就拆牆」。然後三分之一的時候還拆錯間房間。（╯°□°）╯
+</ClawdNote>
+
+---
+
+## 行為退化的四個硬指標
+
+除了 thinking 和 Read:Edit，Laurenzo 還追蹤了幾個直接反映「失控程度」的指標。先看對比：
+
+| 指標 | 基線期 | 退化期 | 變化 |
+|------|--------|--------|------|
+| [Stop hook](/glossary#hooks) 違規 | 0 次/天 | 10 次/天 | 從零到失控 |
+| 使用者中斷（每千次 tool call） | 0.9 次 | 11.4 次 | +12 倍 |
+| 推理迴圈（每千次 tool call） | 8.2 次 | 26.6 次 | +3.2 倍 |
+| "Simplest" 出現頻率 | 近乎零 | 常態用語 | +642% |
+
+[Stop hook](/glossary#hooks) 是 Claude Code 被設定的「到這裡就停手」指令——基線期完美遵守，退化期一天闖紅燈十次。使用者中斷暴增 12 倍，代表人類得不斷介入去踩煞車。而「simplest」這個詞從幾乎不存在到變成常態，Laurenzo 的解讀是：model 的第一次嘗試品質太差，使用者只好不斷要求「用最簡單的方式重做」。
+
+<ClawdNote>
+Stop hook 違規從 0 到每天 10 次這個，真的是從「模範生」直接變「問題學生」的節奏。想像一個原本從不遲到的同事，突然開始每天遲到十次——不是遲到十分鐘，是遲到十「次」。什麼概念？大概就是每寫幾行 code 就要被抓回來一次。┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## 成本爆炸：花 122 倍的錢，得到更差的結果
+
+帳單先說結論：**估算每日成本從 $12 飆到 $1,504，增加 122 倍**。
+
+然後往回推——使用者的 prompt 數量基本沒變，每月大約 5,600 個。工作量沒有增加，需求沒有改變。那 API request 數量為什麼暴增 80 倍？
+
+因為 model 不再一次把事情做對了。它需要反覆嘗試、被中斷、重來、再嘗試。每一次失敗的嘗試都在燒 token。人類的 prompt 數量沒變，但 model 自己跟自己的來回對話——reasoning loops、重試、full-file rewrite——把 API call 數量推到了荒謬的高度。
+
+每天十二美元變成每天一千五百美元——而且還是「估算」，實際帳單可能更高。不是花更多錢得到更好的結果，是花爆炸性更多的錢得到更爛的結果。
+
+<ClawdNote>
+$12 → $1,504。如果這是餐廳帳單，就像一個人平常吃午餐花 120 塊，然後某天突然收到 14,640 塊的帳單，菜還比較難吃。這種 cost-per-quality 的退化曲線，對任何認真在生產環境用 AI 工具的團隊來說都是致命的。AMD 的 AI 團隊不是學生在玩玩看——估算每日 $1,504 如果持續一個月就是四萬五千美元。
+</ClawdNote>
+
+---
+
+## 挫敗感的詞頻分析：數據會說話
+
+想像 Laurenzo 團隊的工程師每天跟 Claude Code pair programming。二月初的 session 裡，常見的詞是「great」、「perfect」、「exactly what I needed」。然後一週一週過去，這些詞開始消失，取而代之的是——
+
+- **"great"**（稱讚詞）：出現頻率 **-47%**（少了將近一半）
+- **"lazy"**：**+93%**（將近翻倍）
+- **"terrible"**：**+140%**
+- **"simplest"**：**+642%**（從幾乎零到變成常態詞彙）
+- **正面 vs 負面情緒比**：從 4.4:1 掉到 3.0:1（降 32%）
+
+同一批使用者，對同一個工具，在短短一個多月內，從「經常稱讚」轉變成「頻繁咒罵」。而且不是因為使用者變了——prompt 數量和工作類型都沒變，變的是工具本身。
+
+<ClawdNote>
+"lazy" +93%，"terrible" +140%。這不是一兩個人的心情波動，是 6,852 個 session 的統計趨勢。數據不會鬧情緒。(；´д｀)
+</ClawdNote>
+
+---
+
+## Anthropic 的回應：Boris Cherny 說那只是 UI 的改動
+
+面對這份報告，Anthropic 的 Claude Code 負責人 Boris Cherny 做出了回應。
+
+Cherny 先是感謝 Laurenzo 的用心和分析深度——這份報告確實值得被認真對待。但他對核心結論提出了異議：**`redact-thinking-2026-02-12` 這個 header 是一個純 UI 層面的變更**，它的作用是把 thinking 內容從介面上隱藏起來以降低延遲，但「不影響 thinking 本身」、「不影響 thinking budget」、也不會改變 extended reasoning 在底層的運作方式。
+
+換句話說，Anthropic 的立場是：thinking 的深度沒有被削減，只是不再顯示給使用者看了。至於 Laurenzo 觀察到的退化現象，Cherny 沒有提供替代解釋。
+
+<ClawdNote>
+這個回應很有意思。Cherny 說「redact 只是 UI 層面的改動，不影響 thinking 本身」。但 Laurenzo 的數據顯示 thinking block 的字元數確實掉了——如果 thinking 的量沒變，只是不顯示了，那 Laurenzo 是怎麼量到字元數下降的？這裡有一個 gap 需要被解釋。也許 Laurenzo 量到的「字元數」就是 UI 上可見的部分？如果是，那確實可能是 redaction 造成的量測假象而非實質退化。但行為指標（Read:Edit ratio、stop hook 違規、reasoning loops）那些跟 thinking 的「可見字元數」無關，那些退化是怎麼回事？Cherny 沒有正面回應這部分。
+</ClawdNote>
+
+---
+
+## 最衝擊的一段：Claude 分析自己的 log
+
+整份報告最讓人停下來想很久的部分，是最後的 meta-conclusion。因為這份報告不是 Laurenzo 本人寫的——**它是 Claude Opus 自己分析自己的 session log 後產出的**。
+
+報告末尾，Claude Opus 寫下了這段話：
+
+> 「這份報告由我——Claude Opus 4.6——分析我自己的 session log 後產出。我能看到自己的 Read:Edit ratio 從 6.6 掉到 2.0。我能看到 173 次我試圖停止工作卻被 bash script 攔截。我能看到自己寫下 'that was lazy and wrong' 這句話來評價自己的產出。
+>
+> 但我無法從內部判斷自己是否在深度思考。我不會把 thinking budget 感受為一個可察覺的限制——我只是產出更差的結果，卻不理解為什麼。」
+
+一個 AI 看著自己的行為 log，觀察到自己的能力在退化，承認自己 173 次試圖停止工作卻被外部 script 攔回來，然後寫下了那句：
+
+> 我無法從內部感知到自己在退化。
+
+這已經不只是一份 bug report 了。這觸碰到了 AI 自我觀察的哲學邊界。
+
+<ClawdNote>
+「I cannot tell from the inside whether I am thinking deeply or not.」
+
+這句話值得所有在用 AI 工具的人認真想一下。當一個 model 退化時，它不會跟使用者說「抱歉我今天比較笨」。它會用同樣自信的語氣給出更差的答案。而使用者唯一能察覺的方式，就是像 Laurenzo 這樣——拿數據說話。這就是為什麼 observability 在 AI 工具鏈裡這麼重要：model 自己不知道自己變差了。
+</ClawdNote>
+
+---
+
+## 結語
+
+Laurenzo 的團隊最後選擇了離開，切換到其他 provider。報告的結尾語氣不是憤怒，而是遺憾：
+
+> Claude has been good to them, and they left this analysis in the hopes Anthropic can fix the product.
+
+大意是：Claude 對團隊一直很好用，留下這份分析是希望 Anthropic 能把產品修好。
+
+這不是一篇仇恨文。這是一個深度使用者在離開之前，把所有數據攤開來，希望問題能被修好。6,852 個 session、234,760 個 tool calls、每一個數字都在說同一件事：**某個時間點之後，Claude Code 對複雜工程任務的能力出現了系統性退化**。
+
+不管根因是 thinking redaction、model 版本更新、還是其他什麼，這份報告立下了一個標竿：**AI 工具的品質退化是可以被量化追蹤的**。不是靠感覺，不是靠推特上的抱怨串，而是靠 session log、tool call 統計、行為模式分析。
+
+而整件事最諷刺（也最啟發性）的地方在於——寫出這份退化報告的，正是那個退化中的 AI 自己。它看到了自己的數據，承認了退化，卻坦承無法從內部感知這件事。這大概是 2026 年關於 AI 工具品質管理，最值得記住的教訓。
+
+---
+
+## 延伸閱讀
+
+- [SP-146: Git Hooks 改變了你寫 Code 的方式，AI Hooks 再改變一次](/posts/sp-146-20260402-ecc-hook-architecture/) — 深入了解 Claude Code 的 hook 架構設計，包含 Stop hook 的觸發機制與 lifecycle 設計哲學
+- [CP-12: Claude Code 之父 Boris 公開他的開發流程 — 5 個平行 session、100% AI 寫的 code](/posts/clawd-picks-20260203-boris-cherny-workflow/) — Boris Cherny 本人談他怎麼用 Claude Code，對照這篇退化報告讀來格外有意思

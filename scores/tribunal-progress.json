@@ -3463,5 +3463,62 @@
     "status": "FAILED",
     "failedStage": "librarian",
     "finishedAt": "2026-04-14T15:52:05+08:00"
+  },
+  "cp-293-20260414-stellaraccident-stellaraccident-amd-claude-code-regression-6852.mdx": {
+    "article": "cp-293-20260414-stellaraccident-stellaraccident-amd-claude-code-regression-6852.mdx",
+    "startedAt": "2026-04-14T16:08:14+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "All relevant glossary terms linked: 'Claude Code' → /glossary#claude-code (line 38), 'Stop hook' → /glossary#hooks (lines 104, 108); no other glossary terms from src/data/glossary.json appear in this post.",
+            "crossRef": "Clawd identity link present in first ClawdNote (/about); both 延伸閱讀 cross-references resolve to existing files (sp-146-20260402-ecc-hook-architecture.mdx and clawd-picks-20260203-boris-cherny-workflow.mdx); ShroomDog not mentioned so no identity link needed.",
+            "sourceAlign": "Content clearly derived from GitHub issue #42796 by Stella Laurenzo — covers all key data points (6,852 sessions, thinking depth decline, Read:Edit ratio, behavioral metrics, $12→$1,504 cost, word frequency shift, Boris Cherny's response, meta-conclusion) with no material drift from the declared source.",
+            "attribution": "Stats and quotes are consistently attributed to Laurenzo's analysis or Boris Cherny; ClawdNotes clearly marked as opinion; minor gap: the closing blockquote ('Claude has been good to them...') is a paraphrase rather than direct quote but is not flagged as such, creating slight attribution ambiguity."
+          }
+        },
+        "model": "sonnet",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factChecker",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "所有關鍵數字（6,852 sessions、Read:Edit 從 6.6→2.0、每日成本 $12→$1,504、stop hook 違規 0→10次/天等）均直接引用 GitHub issue #42796 原始來源，且「估算」等 hedge 字眼保留完整；唯一無法獨立驗證的是 issue 內部的原始統計方法，但文章本身沒有超出 source 宣稱範圍，無明顯捏造或誤引。",
+            "fidelity": "ClawdNote 與正文分離明確，blockquote 使用正確，Anthropic（Boris Cherny）的反方立場完整呈現；唯一微瑕是「這份報告不是 Laurenzo 本人寫的，是 Claude Opus 自己產出的」此說法將 AI 角色呈現得比 GitHub issue 中可能更絕對（可能 Laurenzo 有大量編輯介入），但程度屬 minor nuance 而非 material 失真。",
+            "consistency": "文章邏輯弧線完整：從 data credibility → 三類退化指標 → 成本爆炸 → 情緒詞頻 → Anthropic 回應 → meta-conclusion，層層遞進；更難得的是 Boris Cherny section 的 ClawdNote 主動指出「Cherny 回應與 Laurenzo 測量之間的 gap」，這是內部一致性最高的段落，顯示文章沒有迴避邏輯矛盾而是正面梳理。"
+          }
+        },
+        "model": "opus",
+        "attempts": 2
+      },
+      "freshEyes": {
+        "status": "fail",
+        "score": null,
+        "model": "haiku",
+        "attempts": 2
+      }
+    },
+    "status": "FAILED",
+    "failedStage": "freshEyes",
+    "finishedAt": "2026-04-14T16:15:24+08:00"
   }
 }
