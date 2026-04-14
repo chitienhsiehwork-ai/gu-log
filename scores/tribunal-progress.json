@@ -3566,5 +3566,97 @@
     "status": "FAILED",
     "failedStage": "librarian",
     "finishedAt": "2026-04-15T02:22:32+08:00"
+  },
+  "cp-294-20260415-lydiahallie-claude-code-pro-token-anthropic.mdx": {
+    "article": "cp-294-20260415-lydiahallie-claude-code-pro-token-anthropic.mdx",
+    "startedAt": "2026-04-15T02:35:24+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 8,
+            "sourceAlign": 8,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "兩個關鍵 glossary 詞彙（Claude Code、context window）均已正確連結 `/glossary#claude-code` 和 `/glossary#context-window`；其他 glossary 詞彙（Agent、MCP、Hooks 等）未在文中出現，無需連結。",
+            "crossRef": "CP-259 跨篇引用共出現三次（intro、ClawdNote、結語），均正確指向 `/posts/cp-259-20260330-lydiahallie-claude-code-rate-limit`，檔案存在確認無誤；文中未提及 ShroomDog/Clawd 本名，無需 identity link。",
+            "sourceAlign": "文章內容明確源自 @lydiahallie 的 X 推文，四個節省 token 技巧（Sonnet 預設、extended thinking、fresh session、context window cap）均附有對應原文引用，主題與 sourceUrl 聲明一致；因無法 live fetch 原始推文，扣 1 分。",
+            "attribution": "所有原文引用均以 blockquote 格式呈現並可追溯至 Lydia Hallie；ClawdNote 全部包在 `<ClawdNote>` 元件內，Clawd 觀點與原文事實清楚分離；結語的「往好處想／往壞處想」對比分析明確標示為評論立場，無歸因混淆。"
+          }
+        },
+        "model": "sonnet",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factChecker",
+          "dimensions": {
+            "accuracy": 7,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Claims are mostly tweet-sourced and accurately transmitted, but 'Claude 的完整 context window 遠大於這個值' is technically imprecise — Claude's model context window IS 200k tokens, conflating the model limit with Claude Code's session accumulation behavior; the CLAUDE_CODE_AUTO_COMPACT_WINDOW env var is unverifiable beyond the source tweet.",
+            "fidelity": "All source quotes are included verbatim and clearly marked; hedges preserved ('roughly twice', '~1h'); ClawdNotes cleanly separated; minor elevation of Lydia's tweet to 'analyzed usage reports' is plausible but slightly beyond what the tweet confirms.",
+            "consistency": "Narrative arc is tight — CP-259 callback opens and closes, each tip is logically explained, '四招的共同邏輯' correctly synthesizes the common pattern, ClawdNotes consistently mark opinion, and the editorial conclusion is fully supported by the four tips."
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "四招結構清晰、類比具體（超跑市區通勤、哲學教授搬家、Chrome tab、自助餐盤子），三個月的開發者能輕鬆跟上，只有第四招的 env var 語境稍薄但不至於迷路。",
+            "firstImpression": "開頭三天前 CP-259 → 三天後帶藥方回來的 callback 立即抓人，結尾「官方建議居然是請克制使用」有 punch，讀完有留下印象，會考慮分享給剛入門 Claude Code 的朋友。"
+          }
+        },
+        "model": "haiku",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "生活化比喻密度高（超跑市區通勤、哲學教授搬家、47個tab、自助餐盤子），口語感強，但4招並列結構讓中段偏向「tips報告」模式而非純粹LHY說課感。",
+            "clawdNote": "6個note中至少3個有明確立場——電信吃到飽諷刺、/feedback評Anthropic態度誠實、哲學教授段純吐槽感佳，但200000分析note偏analytical多於opinionated。",
+            "vibe": "CP-259 callback開場 + 結尾「官方建議居然是請克制使用」的反轉觀察讓整篇有分享價值，但中間4招的技術性讓閱讀節奏略平，token省用話題本身不夠性感。",
+            "clarity": "全文body無「你」「我」字符，主語始終明確（Lydia、Claude Code、model、用戶），ClawdNote內Clawd聲音清晰，無身份歧義。",
+            "narrative": "「三天前...三天後」callback + 第三招「對吧？錯。」反轉 + 結尾meta評論三點構成弱弧線；「四招的共同邏輯」段落略偏整理報告，但強結尾「最佳註腳」完成情緒收尾。"
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      }
+    },
+    "status": "PASS",
+    "finishedAt": "2026-04-15T02:41:50+08:00"
   }
 }
