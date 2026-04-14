@@ -20,6 +20,27 @@
 
 **新增或編輯文章前，先讀 `CONTRIBUTING.md`。** 它是所有內容規則的 SSOT（Single Source of Truth）。
 
+### 🔍 事實查核紀律：AI tooling 的 claim 必須 verify
+
+gu-log 寫的就是 AI / agent / tooling 圈，這個圈子有兩個特性：
+1. **變動極快**：上週的事實這週可能就過時
+2. **詞彙混亂**：open source、source-available、permissive license、bundled、SDK、CLI、API 容易混為一談
+
+所以對 AI tooling 相關的事實聲明（哪個東西是不是開源、誰收購了誰、哪個 model 何時發布、某個產品支不支援某個 feature），**不要從記憶或直覺答**。要 verify。
+
+**特別容易踩的雷**（已踩過、不要再踩）：
+
+- **Claude Code 是 closed source**，不是 open source、也不是 source-available。GitHub 的 `anthropics/claude-code` repo 只有 plugins / examples / scripts，**核心 CLI 原始碼不在 repo 裡**，是 npm bundled 發布的閉源軟體。License: `© Anthropic PBC. All rights reserved.`
+- **Claude Agent SDK** 是另一個專案（Python/TypeScript，MIT License），跟 Claude Code 不一樣，不要混為一談。
+- 2026-03-31 那次 512k 行原始碼洩漏，是 npm 發布時缺 `.npmignore` 導致 source map 意外曝光，**不是**駭客入侵也**不是**官方開源。
+
+**操作原則**：
+
+- 寫 glossary、寫文章、跟 user 對話時，AI tooling 相關事實都要 verify
+- 不確定時用 `WebFetch` 查官方 repo / docs，不要靠直覺或舊記憶
+- **Subagent 的事實結論要自己驗證一次**：subagent 也會用聽起來合理但錯的詞（例如把 closed source 說成 source-available）。看到關鍵 claim 就 fetch 一次原始碼或 license 確認
+- 完整時間線參考 `src/data/glossary.json` 的 Claude Code 條目
+
 ## 文件架構（誰讀什麼）
 
 ```
