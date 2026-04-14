@@ -1,0 +1,128 @@
+{
+  "articlePath": "/Users/shroom/gu-log/src/content/posts/cp-290-20260414-article-claude-code-subagent-60-write-tool.mdx",
+  "articleBranch": "tribunal/2026-04-14-cp-290-20260414-article-claude-code-subagent-60-write-tool",
+  "status": "running",
+  "currentStage": 3,
+  "crossRunAttempt": 1,
+  "stages": {
+    "stage0": {
+      "status": "passed",
+      "loops": 1,
+      "maxLoops": 0,
+      "history": [
+        {
+          "pass": true,
+          "scores": {
+            "coreInsight": 8,
+            "expandability": 8,
+            "audienceRelevance": 9
+          },
+          "composite": 8,
+          "internal_reason": "CP-290 是一篇從 Claude Code changelog（v2.1.94 → v2.1.101，三天三版）抽出敘事主軸的文章。作者不是照抄 changelog，而是把分散的項目織成兩條明確的脈絡：(1) 安全模型從『字串匹配指令表面』走向『理解 shell 執行語意』，(2) Agent 架構從『匿名 worker』走向『有身份的長期 team member』。這種 meta 層次的觀察比單純列版本差異有價值。技術細節扎實：四條 permission bypass 路徑（反斜線轉義 / compound bash / /dev/tcp / LSP injection）解釋精準，尤其 /dev/tcp 的 ClawdNote 補上 2003 年 CTF 歷史脈絡是亮點。記憶體洩漏那段把 50 MB/hr × 8hr = 400 MB 的算數攤開，讓『下午要重開』的痛點有了具體解釋。四個 ClawdNote 各有角度（MCP 胖、/dev/tcp 歷史、named subagent 的 audit 延伸、default effort 的信號意義），沒有重複。Frontmatter 完整，vibe v1 scores 全 8，ralph PCV 也全 8。唯一小可惜：結尾『Write tool 快了 60%』和『Bedrock auth bug』在標題提到但內文沒展開，不過那是 scope 取捨不是缺陷。對 gu-log 的目標讀者（zh-tw AI/tech 開發者）直接相關——很多人每天都在用 Claude Code。值得進 pipeline。",
+          "reader_friendly_reason": "從三天三版的 changelog 抽出安全模型與 agent 架構兩條敘事主軸，/dev/tcp 的 CTF 歷史補白很加分，對每天用 Claude Code 的開發者直接相關。",
+          "judge_model": "claude-opus-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-15T00:00:00Z"
+        }
+      ],
+      "startedAt": "2026-04-14T18:25:05.916Z",
+      "output": {
+        "pass": true,
+        "scores": {
+          "coreInsight": 8,
+          "expandability": 8,
+          "audienceRelevance": 9
+        },
+        "composite": 8,
+        "internal_reason": "CP-290 是一篇從 Claude Code changelog（v2.1.94 → v2.1.101，三天三版）抽出敘事主軸的文章。作者不是照抄 changelog，而是把分散的項目織成兩條明確的脈絡：(1) 安全模型從『字串匹配指令表面』走向『理解 shell 執行語意』，(2) Agent 架構從『匿名 worker』走向『有身份的長期 team member』。這種 meta 層次的觀察比單純列版本差異有價值。技術細節扎實：四條 permission bypass 路徑（反斜線轉義 / compound bash / /dev/tcp / LSP injection）解釋精準，尤其 /dev/tcp 的 ClawdNote 補上 2003 年 CTF 歷史脈絡是亮點。記憶體洩漏那段把 50 MB/hr × 8hr = 400 MB 的算數攤開，讓『下午要重開』的痛點有了具體解釋。四個 ClawdNote 各有角度（MCP 胖、/dev/tcp 歷史、named subagent 的 audit 延伸、default effort 的信號意義），沒有重複。Frontmatter 完整，vibe v1 scores 全 8，ralph PCV 也全 8。唯一小可惜：結尾『Write tool 快了 60%』和『Bedrock auth bug』在標題提到但內文沒展開，不過那是 scope 取捨不是缺陷。對 gu-log 的目標讀者（zh-tw AI/tech 開發者）直接相關——很多人每天都在用 Claude Code。值得進 pipeline。",
+        "reader_friendly_reason": "從三天三版的 changelog 抽出安全模型與 agent 架構兩條敘事主軸，/dev/tcp 的 CTF 歷史補白很加分，對每天用 Claude Code 的開發者直接相關。",
+        "judge_model": "claude-opus-4-6",
+        "judge_version": "2.0.0",
+        "timestamp": "2026-04-15T00:00:00Z"
+      },
+      "completedAt": "2026-04-14T18:26:21.554Z"
+    },
+    "stage1": {
+      "status": "passed",
+      "loops": 1,
+      "maxLoops": 3,
+      "history": [
+        {
+          "pass": true,
+          "scores": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "composite": 8,
+          "judge_model": "claude-opus-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-15T12:00:00Z"
+        }
+      ],
+      "startedAt": "2026-04-14T18:26:24.503Z",
+      "output": {
+        "pass": true,
+        "scores": {
+          "persona": 8,
+          "clawdNote": 8,
+          "vibe": 8,
+          "clarity": 9,
+          "narrative": 8
+        },
+        "composite": 8,
+        "judge_model": "claude-opus-4-6",
+        "judge_version": "2.0.0",
+        "timestamp": "2026-04-15T12:00:00Z"
+      },
+      "completedAt": "2026-04-14T18:27:41.212Z"
+    },
+    "stage2": {
+      "status": "passed",
+      "loops": 1,
+      "maxLoops": 2,
+      "history": [
+        {
+          "pass": true,
+          "scores": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "composite": 8,
+          "judge_model": "claude-opus-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-15T00:00:00Z"
+        }
+      ],
+      "startedAt": "2026-04-14T18:27:44.010Z",
+      "output": {
+        "pass": true,
+        "scores": {
+          "readability": 8,
+          "firstImpression": 8
+        },
+        "composite": 8,
+        "judge_model": "claude-opus-4-6",
+        "judge_version": "2.0.0",
+        "timestamp": "2026-04-15T00:00:00Z"
+      },
+      "completedAt": "2026-04-14T18:28:59.419Z"
+    },
+    "stage3": {
+      "status": "running",
+      "loops": 0,
+      "maxLoops": 2,
+      "history": [],
+      "startedAt": "2026-04-14T18:29:02.315Z"
+    },
+    "stage4": {
+      "status": "pending",
+      "loops": 0,
+      "maxLoops": 2,
+      "history": []
+    }
+  },
+  "startedAt": "2026-04-14T18:25:05.888Z"
+}
