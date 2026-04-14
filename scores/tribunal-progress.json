@@ -3658,5 +3658,97 @@
     },
     "status": "PASS",
     "finishedAt": "2026-04-15T02:41:50+08:00"
+  },
+  "cp-pending-20260415-article-inferencex-v2-nvidia-blackwell-amd.mdx": {
+    "article": "cp-pending-20260415-article-inferencex-v2-nvidia-blackwell-amd.mdx",
+    "startedAt": "2026-04-15T05:39:34+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 8,
+            "sourceAlign": 9,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Glossary has 18 terms (Agent, Claude Code, Codex, Context Window, etc.); post mentions Claude Code and Codex in passing (SemiAnalysis tooling section + roadmap section) but neither is linked — 1-2 minor terms unlinked, all key technical terms in the post (disagg, MoE, EP, FP4/FP8, MTP) are not in glossary so no linking required for those.",
+            "crossRef": "No ShroomDog or Clawd mentions in body so no required identity links; no internal /posts/ links present, which is acceptable for a dense CP benchmark translation, but 1-2 optional connections to related inference/GPU posts could improve cross-reference density.",
+            "sourceAlign": "sourceUrl points to SemiAnalysis InferenceX v2 newsletter; post content precisely mirrors that article's scope — GB300/GB200 NVL72 benchmarks, AMD MI355X FP4 composability failures, disagg+wideEP+MTP analysis, cost economics, roadmap — with transparent ClawdNote acknowledging the H100 baseline discrepancy found in the source.",
+            "attribution": "Source claims consistently attributed to SemiAnalysis (直言/推測/建議 pattern); ClawdNotes clearly separated via component; fast mode economics section appropriately hedged with '假設 DeepSeek R1 跟 Opus 4.6 的推論特性相似 — 實際上並非如此'; minor gap: '六個月' lead time claim in ClawdNote attributed to SemiAnalysis context but presented slightly as Clawd's own observation."
+          }
+        },
+        "model": "sonnet",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 9,
+            "consistency": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Core technical claims are correct: DeepSeek R1 architecture (671B/37B active/256 routed experts + 1 shared/8 per token), MTP mechanics (auxiliary prediction heads in main model, no separate draft model required), IB bandwidth conversion (800 Gbit/s ÷ 8 = 100 GB/s), Jensen GTC 2024 30x promise. One minor naming error: NIXL is described as 'NVIDIA Inference Transfer Library' but the correct expansion is 'NVIDIA Inference eXchange Library'. Key benchmark numbers (98x/100x speedup vs H100, MTP cost drop from $0.251 to $0.057/M tokens) are attributed to SemiAnalysis InferenceX data and cannot be independently verified without primary source access, which is expected for a newsletter-sourced CP post.",
+            "fidelity": "Highly faithful to the SemiAnalysis source throughout. Appropriate hedging used consistently: '據報' for the Claude Code on Trainium claim, 'SemiAnalysis 推測' for the GB300 FP4 software-not-yet-optimized inference, 'SemiAnalysis 直言' before AMD software critique passages. Exemplary self-correction at lines 145-147: the ClawdNote explicitly flags that the source article itself is inconsistent about whether MTP is included in the H100 baseline, explains the conservative interpretation chosen, and notes both numbers are real — this level of editorial transparency is rare and commendable.",
+            "consistency": "Argument flows cleanly from premise to conclusion throughout. The 'high interactivity = low batch size' definitional relationship is established early and applied consistently in all subsequent analysis. The apparent tension between '98x speedup at 116 tok/s/user' and 'NVL72 cost advantage disappears at 130 tok/s/user' is not a contradiction — they measure different things (raw throughput ratio vs $/M tokens cost). The $6k/day figure (≈$2.19M/year) vs the $3M/year target presents a mild reader-math tension: a reader who multiplies $6k × 365 gets $2.19M, not $3M. The ClawdNote lists both numbers without explicitly noting this is current-rate vs aspiration — a minor logical gap that careful readers will notice."
+          }
+        },
+        "model": "opus",
+        "attempts": 2
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "fresh-eyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Opening 'entrance exam vs daily work' analogy and subway/bus vs race car comparison lower the barrier well; Wide EP and Expert Parallelism sections are dense but section headers and ClawdNotes keep a 3-month dev from getting fully lost — 1-2 spots require re-reading but never feels like jargon soup.",
+            "firstImpression": "'Jensen promised 30x, delivered 100x' narrative tension plus the AMD vLLM CI tests = 0 punchline create genuine shareable moments; ClawdNotes maintain a fun tone throughout, and the 'Speed is the moat' ending lands cleanly — a beginner interested in AI infra would finish and likely share."
+          }
+        },
+        "model": "haiku",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Opening '入學考/日常打工' and the '工程師被拍肩膀' prefill-interrupt metaphor show genuine LHY warmth, and '好。概念都鋪完了' is a strong lecture-voice pivot — but several technical sections (EP mechanics, SKU梯隊, precision accuracy) slip into journalism mode rather than professor mode.",
+            "clawdNote": "More than half the notes carry a clear stance: DeepSeek R1 selection bias '說選題是巧合，我是不信的', Jensen chess-dimension comparison, AMD six-months=a-lifetime, management-should-redirect-ATOM-engineers, and the Copilot jab all deliver real opinion; two or three notes (latency disclaimer, TogetherAI deep-dive) are supplementary rather than opinionated.",
+            "vibe": "Jensen's 30x→100x reveal and the AMD困境 '想像一下：手上有一張 MI355X' walk-through are genuine page-turners for target readers; the EP/Wide EP concept sections are dense and create a mid-article plateau for anyone without ML infra background.",
+            "clarity": "Body text maintains clean 你/我 discipline throughout — concrete actors (SemiAnalysis, AMD, NVIDIA, Jensen, Lisa Su) used as subjects consistently; '手上有一張 MI355X' avoids second-person cleanly; all 你/我 usage correctly scoped inside ClawdNotes.",
+            "narrative": "The 入學考/打工 callback in the conclusion, the '0% vLLM CI' punch landing at the closing paragraph, and the AMD four-barrier 第一關/第二關/第三關/第四關 rhetorical device prevent this from being a flat linear report — but the technical concept middle acts as a plateau, and the roadmap section reads as a checklist."
+          }
+        },
+        "model": "opus",
+        "attempts": 2
+      }
+    },
+    "status": "PASS",
+    "finishedAt": "2026-04-15T05:58:29+08:00"
   }
 }
