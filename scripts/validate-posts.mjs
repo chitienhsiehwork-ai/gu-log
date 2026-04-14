@@ -30,7 +30,11 @@ const _COUNTER_FILE = path.join(__dirname, 'article-counter.json');
 // ─── Config ────────────────────────────────────────────────────────
 const _VALID_PREFIXES = ['SP', 'CP', 'SD', 'Lv'];
 const VALID_LANGS = ['zh-tw', 'en'];
-const TICKET_PATTERN = /^(SP|CP|SD|Lv)-\d+$/;
+// PENDING is a legitimate in-flight ticket state used by the sp-pipeline
+// and by manual drafters working on parallel branches. The deploy step
+// swaps PENDING for a real number allocated from article-counter.json at
+// the last moment (see CONTRIBUTING.md §並行撰寫防 ID collision).
+const TICKET_PATTERN = /^(SP|CP|SD|Lv)-(?:\d+|PENDING)$/;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const URL_PATTERN = /^https?:\/\/.+/;
 const MIN_CONTENT_LENGTH = 200; // characters, excluding frontmatter
@@ -209,7 +213,9 @@ function validatePost(filepath, allPosts) {
   }
 
   // ── Rule 12: ticketId uniqueness (cross-file check) ──
-  if (fm.ticketId && allPosts) {
+  // Exempt PENDING — multiple parallel drafts legitimately share the
+  // PENDING placeholder; real numbers get allocated per-draft at deploy.
+  if (fm.ticketId && allPosts && !fm.ticketId.endsWith('-PENDING')) {
     const sameTicket = allPosts.filter(
       (p) => p.ticketId === fm.ticketId && getBaseFilename(p.filename) !== getBaseFilename(filename)
     );

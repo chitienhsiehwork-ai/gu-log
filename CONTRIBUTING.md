@@ -87,6 +87,40 @@ tags: ["tag1", "tag2"]  # 用於分類和過濾
 
 **Counter 位置**: `scripts/article-counter.json`
 
+### 並行撰寫防 ID collision：PENDING ticket pattern
+
+**問題**：兩條 branch 同時在寫 SP/CP，如果都從 `article-counter.json` 讀當前 `next` 值（例如 SP-174），就會撞號——先 merge 的那條沒事，後 merge 的那條要改號、改檔名、改 cross-ref，一堆瑣事。
+
+**SOP**：寫作階段一律用 `PENDING` 當 ticketId + 檔名前綴，**只在 merge 前最後一刻才 allocate 真號**。兩條 branch 各自用 `CP-PENDING` 沒衝突，等要上 main 時才各自跟 counter 要號。
+
+**工作流程**：
+
+```yaml
+# 撰寫 / review / tribunal 階段的 frontmatter
+ticketId: "CP-PENDING"   # 或 SP-PENDING / SD-PENDING / Lv-PENDING
+```
+
+檔名用：`<prefix>-pending-YYYYMMDD-<slug>.mdx`（zh-tw）、`en-<prefix>-pending-YYYYMMDD-<slug>.mdx`（en）
+
+**Merge 前的 swap procedure**（四步，手動或交給 `sp-pipeline deploy`）：
+
+1. `node -e "console.log(require('./scripts/article-counter.json').CP.next)"` 拿下一個真號
+2. 改 frontmatter：`ticketId: "CP-PENDING"` → `ticketId: "CP-293"`（兩個檔案都改）
+3. Rename 檔案：`cp-pending-20260414-foo.mdx` → `cp-293-20260414-foo.mdx`（兩個檔案都改）
+4. Bump counter：`node -e "const fs=require('fs'); const c=JSON.parse(fs.readFileSync('scripts/article-counter.json')); c.CP.next++; fs.writeFileSync('scripts/article-counter.json', JSON.stringify(c,null,2)+'\n');"`
+5. `node scripts/validate-posts.mjs` → commit swap → push 到 main
+
+**自動化版本**：`tools/sp-pipeline/sp-pipeline deploy` 包辦整個 swap，在 pipeline orchestrated 流程裡自動跑。
+
+**Gate 行為**：
+- `validate-posts.mjs` 接受 `<PREFIX>-PENDING`，跳過 uniqueness 檢查（讓多條 branch 並行用 PENDING）
+- `.githooks/pre-commit` 也跳過 PENDING 的 duplicate count 檢查
+- `.githooks/pre-push` **阻擋** PENDING 推上 `main` / `master`——這是 SOP 的 safety net，防止 PENDING 誤入 production
+
+**什麼時候可以跳過 PENDING？** 一條 branch 只有一篇、也沒有其他並行工作時，直接用真號也 OK。PENDING 是並行場景的防呆，不是強制規定。
+
+---
+
 ### ⚠️ 新增文章前必做（防止重複）
 
 **Step 1: 檢查是否已存在**
