@@ -3535,5 +3535,36 @@
     "status": "FAILED",
     "failedStage": "freshEyes",
     "finishedAt": "2026-04-14T16:15:24+08:00"
+  },
+  "cp-pending-20260415-lydiahallie-claude-code-pro-token-anthropic.mdx": {
+    "article": "cp-pending-20260415-lydiahallie-claude-code-pro-token-anthropic.mdx",
+    "startedAt": "2026-04-15T00:17:10+08:00",
+    "stages": {
+      "librarian": {
+        "status": "fail",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 5,
+            "crossRef": 5,
+            "sourceAlign": 8,
+            "attribution": 7
+          },
+          "score": 6,
+          "verdict": "FAIL",
+          "reasons": {
+            "glossary": "三個核心 glossary 術語（Claude Code、Context Window、Token）貫穿全文卻沒有任何連結或自然解釋；Token 是整篇主題詞，Context Window 在第四招直接出現，Claude Code 是討論對象，三個都在 glossary.json 有條目但全數缺失。",
+            "crossRef": "開篇和 ClawdNote 各引用 CP-259 一次，但兩處都只用括號 '（CP-259）' 標示，未連結到實際存在的 /posts/cp-259-20260330-lydiahallie-claude-code-rate-limit/；最明顯的 thematic connection 完全沒有 internal link。",
+            "sourceAlign": "內容主題（Lydia Hallie 的 Claude Code Pro 四招省 token）與 sourceUrl 宣告一致，blockquote 直接收錄原推文英文；但 translatedBy.harness 寫 'Gemini CLI + Codex CLI' 而 pipeline[] 條目寫 'Claude Code CLI'，metadata 自相矛盾，產生輕微 drift。",
+            "attribution": "正文 blockquote 標示引文正確，ClawdNote 意見清楚隔離，'Lydia 也提到...' 等歸屬語使用恰當；但 pipelineUrl 指向 chitienhsiehwork-ai/clawd-workspace 外部 repo（非 gu-log 官方 sp-pipeline），translatedBy.harness 與 pipeline[] 條目矛盾，屬於 attribution metadata 層級的不一致。"
+          }
+        },
+        "model": "sonnet",
+        "attempts": 2
+      }
+    },
+    "status": "FAILED",
+    "failedStage": "librarian",
+    "finishedAt": "2026-04-15T02:22:32+08:00"
   }
 }
