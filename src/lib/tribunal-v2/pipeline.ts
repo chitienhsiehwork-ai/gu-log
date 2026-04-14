@@ -17,6 +17,7 @@ import type {
   LibrarianOutput,
 } from './types';
 import { MAX_LOOPS } from './types';
+import { enforceWriterConstraints } from './writer-constraints';
 
 // ---------------------------------------------------------------------------
 // Pipeline State Types
@@ -28,18 +29,18 @@ export interface StageResult<T> {
   status: StageStatus;
   loops: number;
   maxLoops: number;
-  output?: T;          // judge/worker output from final loop
-  history: T[];        // all loop outputs for debugging
-  startedAt?: string;  // ISO 8601
+  output?: T; // judge/worker output from final loop
+  history: T[]; // all loop outputs for debugging
+  startedAt?: string; // ISO 8601
   completedAt?: string;
 }
 
 export interface PipelineState {
-  articlePath: string;       // e.g. "src/content/posts/cp-280-slug.mdx"
-  articleBranch: string;     // e.g. "tribunal/2026-04-11-cp-280-slug"
+  articlePath: string; // e.g. "src/content/posts/cp-280-slug.mdx"
+  articleBranch: string; // e.g. "tribunal/2026-04-11-cp-280-slug"
   status: 'running' | 'passed' | 'failed' | 'needs_review';
-  currentStage: number;      // 0-4 (Stage 5 translation is separate)
-  crossRunAttempt: number;   // 1-3, NEEDS_REVIEW at 3
+  currentStage: number; // 0-4 (Stage 5 translation is separate)
+  crossRunAttempt: number; // 1-3, NEEDS_REVIEW at 3
 
   stages: {
     stage0: StageResult<WorthinessJudgeOutput>;
@@ -79,10 +80,16 @@ export interface PipelineConfig {
     stage1Writer: StageRunner<{ articleContent: string; feedback: string }, { content: string }>;
     stage2Judge: StageRunner<{ articleContent: string }, FreshEyesJudgeOutput>;
     stage2Writer: StageRunner<{ articleContent: string; feedback: string }, { content: string }>;
-    stage3FactCorrector: StageRunner<{ articleContent: string; sourceUrl: string }, FactCorrectorOutput>;
+    stage3FactCorrector: StageRunner<
+      { articleContent: string; sourceUrl: string },
+      FactCorrectorOutput
+    >;
     stage3Librarian: StageRunner<{ articleContent: string }, LibrarianOutput>;
     stage3Judge: StageRunner<{ articleContent: string }, FactLibJudgeOutput>;
-    stage4Judge: StageRunner<{ articleContent: string; stage1Scores: VibeJudgeOutput['scores'] }, FinalVibeJudgeOutput>;
+    stage4Judge: StageRunner<
+      { articleContent: string; stage1Scores: VibeJudgeOutput['scores'] },
+      FinalVibeJudgeOutput
+    >;
     stage4Writer: StageRunner<{ articleContent: string; feedback: string }, { content: string }>;
   };
 
@@ -133,7 +140,10 @@ function initPipelineState(articlePath: string, branchName: string): PipelineSta
 }
 
 /** Format judge feedback string from improvements + critical_issues */
-function formatFeedback(output: { improvements?: Record<string, string>; critical_issues?: string[] }): string {
+function formatFeedback(output: {
+  improvements?: Record<string, string>;
+  critical_issues?: string[];
+}): string {
   const parts: string[] = [];
 
   if (output.critical_issues?.length) {
@@ -161,10 +171,7 @@ function formatFeedback(output: { improvements?: Record<string, string>; critica
  * Stage 0: Worthiness Gate
  * All WARN mode — always advances. If scores are low, marks frontmatter.
  */
-async function runStage0(
-  state: PipelineState,
-  config: PipelineConfig,
-): Promise<void> {
+async function runStage0(state: PipelineState, config: PipelineConfig): Promise<void> {
   const stage = state.stages.stage0;
   if (stage.status === 'passed' || stage.status === 'skipped') return;
 
@@ -198,14 +205,20 @@ async function runStage0(
  * Standard judge→writer loop for Stages 1, 2.
  * Returns true if stage passed, false if max loops exhausted.
  */
-async function runJudgeWriterLoop<TJudge extends { pass: boolean; improvements?: Record<string, string>; critical_issues?: string[] }>(
+async function runJudgeWriterLoop<
+  TJudge extends {
+    pass: boolean;
+    improvements?: Record<string, string>;
+    critical_issues?: string[];
+  },
+>(
   state: PipelineState,
   stage: StageResult<TJudge>,
   stageNum: number,
   stageLabel: string,
   config: PipelineConfig,
   judge: (content: string) => Promise<TJudge>,
-  writer: (content: string, feedback: string) => Promise<{ content: string }>,
+  writer: (content: string, feedback: string) => Promise<{ content: string }>
 ): Promise<boolean> {
   if (stage.status === 'passed' || stage.status === 'skipped') return true;
 
@@ -213,6 +226,11 @@ async function runJudgeWriterLoop<TJudge extends { pass: boolean; improvements?:
   stage.startedAt = now();
   state.currentStage = stageNum;
   await config.onProgress?.(state);
+
+  // Persistent constraint-violation feedback carried across loops — once the
+  // writer violates a structural invariant, we remind it on every subsequent
+  // loop until the violation is gone (cheap insurance against repeat offenses).
+  let pendingConstraintFeedback = '';
 
   for (let loop = 1; loop <= stage.maxLoops; loop++) {
     stage.loops = loop;
@@ -227,17 +245,48 @@ async function runJudgeWriterLoop<TJudge extends { pass: boolean; improvements?:
     if (judgeOutput.pass) {
       stage.status = 'passed';
       stage.completedAt = now();
-      await config.git.commit(`tribunal(stage${stageNum}): ${stageLabel} — PASS @ loop ${loop}/${stage.maxLoops}`);
+      await config.git.commit(
+        `tribunal(stage${stageNum}): ${stageLabel} — PASS @ loop ${loop}/${stage.maxLoops}`
+      );
       await config.onProgress?.(state);
       return true;
     }
 
     // FAIL — if more loops available, run writer
     if (loop < stage.maxLoops) {
-      const feedback = formatFeedback(judgeOutput);
+      const judgeFeedback = formatFeedback(judgeOutput);
+      const feedback = pendingConstraintFeedback
+        ? `STRUCTURAL CONSTRAINTS (previous rewrite was rejected — MUST fix these this time):\n${pendingConstraintFeedback}\n\n${judgeFeedback}`
+        : judgeFeedback;
+
       const writerResult = await writer(articleContent, feedback);
       await config.io.writeArticle(state.articlePath, writerResult.content);
-      await config.git.commit(`tribunal(stage${stageNum}): ${stageLabel} writer rewrite — loop ${loop}/${stage.maxLoops}`);
+
+      // Enforce writer-constraints BEFORE committing — catches URL/heading/
+      // frontmatter drift and 你/我 pronoun leaks that the pre-commit hook
+      // would otherwise reject (which would crash the pipeline).
+      const afterContent = await config.io.readArticle(state.articlePath);
+      const constraints = await enforceWriterConstraints(
+        articleContent,
+        afterContent,
+        state.articlePath
+      );
+
+      if (!constraints.pass) {
+        // Revert the writer's changes and treat this loop as a writer failure.
+        await config.io.writeArticle(state.articlePath, articleContent);
+        pendingConstraintFeedback = constraints.feedback;
+        await config.git.commit(
+          `tribunal(stage${stageNum}): ${stageLabel} writer rejected (constraint violations) — loop ${loop}/${stage.maxLoops}`
+        );
+        continue;
+      }
+
+      // Writer passed structural checks — clear the pending feedback.
+      pendingConstraintFeedback = '';
+      await config.git.commit(
+        `tribunal(stage${stageNum}): ${stageLabel} writer rewrite — loop ${loop}/${stage.maxLoops}`
+      );
     }
   }
 
@@ -253,10 +302,7 @@ async function runJudgeWriterLoop<TJudge extends { pass: boolean; improvements?:
  * Stage 3: FactLib — Worker-first pattern.
  * FactCorrector → Librarian → Combined Judge. Loop back to workers on fail.
  */
-async function runStage3(
-  state: PipelineState,
-  config: PipelineConfig,
-): Promise<boolean> {
+async function runStage3(state: PipelineState, config: PipelineConfig): Promise<boolean> {
   const stage = state.stages.stage3;
   if (stage.status === 'passed' || stage.status === 'skipped') return true;
 
@@ -326,10 +372,7 @@ async function runStage3(
  * Stage 4: Final Vibe — relative pass bar, no-block-on-fail.
  * On fail: records degradation, does NOT stop pipeline.
  */
-async function runStage4(
-  state: PipelineState,
-  config: PipelineConfig,
-): Promise<void> {
+async function runStage4(state: PipelineState, config: PipelineConfig): Promise<void> {
   const stage = state.stages.stage4;
   if (stage.status === 'passed' || stage.status === 'skipped') return;
 
@@ -363,7 +406,9 @@ async function runStage4(
     if (judgeOutput.pass) {
       stage.status = 'passed';
       stage.completedAt = now();
-      await config.git.commit(`tribunal(stage4): Final Vibe — PASS @ loop ${loop}/${stage.maxLoops}`);
+      await config.git.commit(
+        `tribunal(stage4): Final Vibe — PASS @ loop ${loop}/${stage.maxLoops}`
+      );
       await config.onProgress?.(state);
       return;
     }
@@ -373,7 +418,9 @@ async function runStage4(
       const feedback = formatFeedback(judgeOutput);
       const writerResult = await config.runners.stage4Writer.run({ articleContent, feedback });
       await config.io.writeArticle(state.articlePath, writerResult.content);
-      await config.git.commit(`tribunal(stage4): Final Vibe writer — loop ${loop}/${stage.maxLoops}`);
+      await config.git.commit(
+        `tribunal(stage4): Final Vibe writer — loop ${loop}/${stage.maxLoops}`
+      );
     }
   }
 
@@ -410,7 +457,7 @@ const MAX_CROSS_RUN_ATTEMPTS = 3;
 export async function runPipeline(
   articlePath: string,
   config: PipelineConfig,
-  existingState?: Partial<PipelineState>,
+  existingState?: Partial<PipelineState>
 ): Promise<PipelineState> {
   // Import git-format for branch naming (lazy to avoid circular deps)
   const { tribunalBranchName } = await import('./git-format');
@@ -418,13 +465,13 @@ export async function runPipeline(
 
   // Initialize or resume state
   const state: PipelineState = existingState?.stages
-    ? {
+    ? ({
         ...initPipelineState(articlePath, branchName),
         ...existingState,
         articlePath,
         articleBranch: branchName,
         status: 'running',
-      } as PipelineState
+      } as PipelineState)
     : initPipelineState(articlePath, branchName);
 
   // Check cross-run retry cap
@@ -449,7 +496,7 @@ export async function runPipeline(
     'Vibe',
     config,
     (content) => config.runners.stage1Judge.run({ articleContent: content }),
-    (content, feedback) => config.runners.stage1Writer.run({ articleContent: content, feedback }),
+    (content, feedback) => config.runners.stage1Writer.run({ articleContent: content, feedback })
   );
 
   if (!stage1Passed) {
@@ -467,7 +514,7 @@ export async function runPipeline(
     'FreshEyes',
     config,
     (content) => config.runners.stage2Judge.run({ articleContent: content }),
-    (content, feedback) => config.runners.stage2Writer.run({ articleContent: content, feedback }),
+    (content, feedback) => config.runners.stage2Writer.run({ articleContent: content, feedback })
   );
 
   if (!stage2Passed) {

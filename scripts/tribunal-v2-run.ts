@@ -42,7 +42,13 @@ Env:
 }
 
 function printStateSummary(state: PipelineState): void {
-  const fmt = (label: string, s: typeof state.stages.stage0): string => {
+  type AnyStage = {
+    status: string;
+    loops: number;
+    maxLoops: number;
+    output?: unknown;
+  };
+  const fmt = (label: string, s: AnyStage): string => {
     const out = s.output as
       | { composite?: number; pass?: boolean; scores?: Record<string, number> }
       | undefined;

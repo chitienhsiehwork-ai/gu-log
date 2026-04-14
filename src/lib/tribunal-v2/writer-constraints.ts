@@ -3,8 +3,16 @@
  *
  * Deterministic structural constraint checks for writer output.
  * These catch things LLMs can't reliably self-enforce:
- * URL immutability, heading order preservation, frontmatter protection.
+ * URL immutability, heading order preservation, frontmatter protection,
+ * and pronoun clarity (no 你/我 in body — delegates to the existing
+ * `scripts/check-pronoun-clarity.mjs` so the rule stays SSOT'd with
+ * the pre-commit hook).
  */
+
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+
+const execFileAsync = promisify(execFile);
 
 // ---------------------------------------------------------------------------
 // URL extraction + diff
@@ -22,7 +30,7 @@ export function extractUrls(content: string): string[] {
 /** Check that URLs are unchanged between versions */
 export function checkUrlsUnchanged(
   before: string,
-  after: string,
+  after: string
 ): {
   pass: boolean;
   violations: Array<{ type: 'added' | 'removed' | 'changed'; url: string }>;
@@ -73,7 +81,7 @@ export function extractHeadings(content: string): Heading[] {
 /** Check that markdown headings order is preserved */
 export function checkHeadingsPreserved(
   before: string,
-  after: string,
+  after: string
 ): {
   pass: boolean;
   violations: Array<{ type: 'added' | 'removed' | 'reordered'; heading: string }>;
@@ -144,7 +152,7 @@ export function parseFrontmatter(content: string): Record<string, string> {
 export function checkFrontmatterPreserved(
   before: string,
   after: string,
-  protectedFields: string[],
+  protectedFields: string[]
 ): {
   pass: boolean;
   violations: Array<{ field: string; before: string; after: string }>;
@@ -163,4 +171,149 @@ export function checkFrontmatterPreserved(
   }
 
   return { pass: violations.length === 0, violations };
+}
+
+// ---------------------------------------------------------------------------
+// Pronoun clarity (delegates to the canonical mjs script — SSOT w/ hook)
+// ---------------------------------------------------------------------------
+
+/**
+ * Run `scripts/check-pronoun-clarity.mjs <articlePath>` and parse its stdout.
+ * Returns `{ pass, violations }` where violations carry file/line/pronoun
+ * context so the pipeline can feed useful feedback back into the writer.
+ */
+export async function checkPronounsClean(
+  articlePath: string,
+  cwd: string = process.cwd()
+): Promise<{
+  pass: boolean;
+  violations: Array<{ line: number; pronoun: string; snippet: string }>;
+  rawOutput: string;
+}> {
+  try {
+    const { stdout } = await execFileAsync(
+      'node',
+      ['scripts/check-pronoun-clarity.mjs', articlePath],
+      { cwd, timeout: 30_000, maxBuffer: 4 * 1024 * 1024 }
+    );
+    return { pass: true, violations: [], rawOutput: stdout.toString() };
+  } catch (err: unknown) {
+    const e = err as { stdout?: string; stderr?: string; code?: number };
+    const stdout = (e.stdout ?? '').toString();
+    const stderr = (e.stderr ?? '').toString();
+    const combined = stdout + '\n' + stderr;
+
+    const violations: Array<{ line: number; pronoun: string; snippet: string }> = [];
+    const lineRegex = /line (\d+) — found 「([^」]+)」/g;
+    let m: RegExpExecArray | null;
+    while ((m = lineRegex.exec(combined)) !== null) {
+      const lineNum = Number(m[1]);
+      const pronoun = m[2];
+      const afterMatch = combined.slice(m.index, m.index + 400);
+      const snippetMatch = afterMatch.match(/>\s*\d+\s*\|\s*(.+)/);
+      violations.push({
+        line: lineNum,
+        pronoun,
+        snippet: snippetMatch ? snippetMatch[1].trim().slice(0, 200) : '',
+      });
+    }
+    return { pass: false, violations, rawOutput: combined };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Unified enforcement — single call-site from the pipeline
+// ---------------------------------------------------------------------------
+
+export interface WriterConstraintViolations {
+  urls: ReturnType<typeof checkUrlsUnchanged>['violations'];
+  headings: ReturnType<typeof checkHeadingsPreserved>['violations'];
+  frontmatter: ReturnType<typeof checkFrontmatterPreserved>['violations'];
+  pronouns: Array<{ line: number; pronoun: string; snippet: string }>;
+}
+
+export interface EnforceWriterConstraintsResult {
+  pass: boolean;
+  violations: WriterConstraintViolations;
+  feedback: string;
+}
+
+/** Fields in gu-log frontmatter that a writer must never touch. */
+export const PROTECTED_FRONTMATTER_FIELDS = [
+  'title',
+  'ticketId',
+  'slug',
+  'lang',
+  'date',
+  'updatedAt',
+  'pubDate',
+  'summary',
+  'description',
+  'source',
+  'sourceUrl',
+  'series',
+  'author',
+  'translator',
+  'status',
+  'tags',
+];
+
+/**
+ * Run all four writer-constraint checks on the article at `articlePath`
+ * comparing the current file contents with the `before` snapshot.
+ *
+ * Returns `pass: false` with structured violations AND a formatted
+ * feedback string ready to feed into the next writer loop prompt.
+ */
+export async function enforceWriterConstraints(
+  before: string,
+  after: string,
+  articlePath: string,
+  cwd: string = process.cwd()
+): Promise<EnforceWriterConstraintsResult> {
+  const urls = checkUrlsUnchanged(before, after);
+  const headings = checkHeadingsPreserved(before, after);
+  const frontmatter = checkFrontmatterPreserved(before, after, PROTECTED_FRONTMATTER_FIELDS);
+  const pronouns = await checkPronounsClean(articlePath, cwd);
+
+  const violations: WriterConstraintViolations = {
+    urls: urls.violations,
+    headings: headings.violations,
+    frontmatter: frontmatter.violations,
+    pronouns: pronouns.violations,
+  };
+
+  const allPass = urls.pass && headings.pass && frontmatter.pass && pronouns.pass;
+
+  const parts: string[] = [];
+  if (!urls.pass) {
+    parts.push('URLs changed (must be preserved byte-for-byte):');
+    for (const v of urls.violations.slice(0, 5)) parts.push(`  - ${v.type}: ${v.url}`);
+  }
+  if (!headings.pass) {
+    parts.push('Headings changed (structure must be preserved):');
+    for (const v of headings.violations.slice(0, 5)) parts.push(`  - ${v.type}: ${v.heading}`);
+  }
+  if (!frontmatter.pass) {
+    parts.push('Frontmatter changed (must be immutable):');
+    for (const v of frontmatter.violations.slice(0, 5))
+      parts.push(`  - ${v.field}: "${v.before}" → "${v.after}"`);
+  }
+  if (!pronouns.pass) {
+    parts.push(
+      'Pronoun violations (你/我 in body — forbidden outside ClawdNote/ShroomDogNote/blockquote/code):'
+    );
+    for (const v of pronouns.violations.slice(0, 5)) {
+      parts.push(`  - line ${v.line}: found 「${v.pronoun}」 — ${v.snippet}`);
+    }
+    parts.push(
+      '  Fix: use specific names (ShroomDog, Clawd, 讀者) or restructure sentences to be impersonal.'
+    );
+  }
+
+  return {
+    pass: allPass,
+    violations,
+    feedback: parts.join('\n'),
+  };
 }

@@ -61,12 +61,17 @@ For each dimension in `improvements` (Stage 1 = 5 dims, Stage 2 = 2 dims), the f
 
 ### Rules for rewriting (writer-constraints)
 
-These are **enforced programmatically** by `src/lib/tribunal-v2/writer-constraints.ts` — if you violate them, the rewrite is rejected and the pipeline fails:
+These are **enforced programmatically** by `src/lib/tribunal-v2/writer-constraints.ts` — if you violate them, your rewrite is reverted and you'll be asked to retry:
 
 1. **Frontmatter is immutable.** Every key/value in frontmatter (title, ticketId, dates, sourceUrl, lang, summary, etc.) must match the input byte-for-byte. Do not add, remove, reorder, or edit frontmatter.
 2. **URLs are immutable.** Every `http://`/`https://` URL in the body + ClawdNote must appear in the output with identical target. You may move them, rephrase the surrounding sentence, or change anchor text — but the URL itself cannot change.
 3. **Heading structure is immutable.** The exact sequence of `#`, `##`, `###` headings must be preserved in the same order. You may edit prose under headings, but cannot add/remove/reorder/retitle headings.
 4. **Source citations stay.** If the article cites the source URL inline (`[source](url)` or raw), that citation must remain.
+5. **NO `你` or `我` in body text.** gu-log's pronoun rule: the words `你` and `我` are **forbidden in article body** (everything outside `<ClawdNote>`, `<ShroomDogNote>`, blockquotes `>`, and code fences). Body prose must be written impersonally — rephrase using:
+   - specific names: `ShroomDog`, `Clawd`, `讀者`, `開發者`, `user`, `維運者`
+   - sentence restructuring: `"如果你的 server 不穩"` → `"如果 server 不穩定"`, `"你不盯著"` → `"沒人盯著"`
+   - passive or impersonal mood: `"我覺得"` → `"看起來"`, `"我還在翻"` → `"翻過當年的"`
+   ClawdNote / ShroomDogNote / blockquote can freely use 你/我 because speaker attribution is explicit there. Body text is third-person narration.
 
 ### Rules for rewriting (craft)
 
