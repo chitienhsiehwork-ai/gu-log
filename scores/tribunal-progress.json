@@ -3249,5 +3249,97 @@
     "status": "FAILED",
     "failedStage": "freshEyes",
     "finishedAt": "2026-04-14T05:29:33+08:00"
+  },
+  "cp-pending-20260414-article-anthropic-openai-ai.mdx": {
+    "article": "cp-pending-20260414-article-anthropic-openai-ai.mdx",
+    "startedAt": "2026-04-14T10:15:02+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 8,
+            "sourceAlign": 9,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Claude Code 和 Codex 兩個 glossary 收錄詞都有正確連結（/glossary#claude-code、/glossary#codex），其他 glossary 詞未出現於本文。",
+            "crossRef": "三條內部連結全部指向真實存在的文章（cp-291、cp-271、sp-110），thematic 關聯選得精準；Clawd/ShroomDog 未以名字出現於 prose 所以無需 /about 連結，但 ClawdNote 首次出現處可加 identity link 更完整。",
+            "sourceAlign": "六大分析面向（營收翻轉、成長速度、企業市場、Claude Code、燒錢率、訓練成本差距）與 SaaStr 原文高度對應，甚至保留了原文對營收計算方式差異的 caveat，對齊度高。",
+            "attribution": "Sarah Friar 引言、Alex Clayton/Meritech 引用、WSJ 機密文件、Epoch AI 預測、SaaStr 結論均有明確歸屬；小缺口：「Claude Code 現在貢獻了所有公開 GitHub commit 的 4%」來源標為「最新數據」未具名，150億 token/min 及企業訂閱四倍成長亦無明確 sourcing。"
+          }
+        },
+        "model": "sonnet",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factChecker",
+          "dimensions": {
+            "accuracy": 7,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Most numbers properly attributed to SaaStr/WSJ leaked documents, but 'Claude Code contributes 4% of all public GitHub commits' is sourced only as '根據最新數據' with no first-hand citation (red flag per standard); 'Anthropic consumer users = 5% of ChatGPT' also lacks direct source; the March→April ARR jump from $19B to $30B (single month +$11B) is extraordinary and presented without measurement uncertainty.",
+            "fidelity": "Key revenue-measurement caveat preserved (兩家公司計算營收的方式不同); hedges maintained ('大約', '預計'); ClawdNotes clearly separated from body; SaaStr conclusions framed as SaaStr's judgments. Minor gap: '4% GitHub commits' treated as established fact in both body and ClawdNote without flagging its unattributed origin.",
+            "consistency": "Six-section argument flows logically (ARR flip → growth trajectory → enterprise model → Claude Code → burn structure → training cost efficiency → conclusion); no contradictions found; ClawdNotes consistently opinionated and clearly distinguished from body; the 'two different bets, both could be right' framing is intellectually honest and well-supported by the evidence presented."
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "文章結構清晰、數字都有上下文（年化 300 億對 240 億直接給出，不需要讀者自己換算），ClawdNote 盒子雖然不知道「Clawd」是誰但很明顯是評論框，不會造成困惑；唯一稍微卡住的地方是「annualized run-rate」和「ARR」這類財務術語出現時文章沒有顯式解釋，但數字本身已足夠讓讀者理解意思。",
+            "firstImpression": "開頭第一句「所有人都知道遲早會來、但沒人想到會來這麼快的事」立刻拉進去，Claude Code 那一節（一個 11 個月前不存在的產品貢獻了 4% 公開 commit）對 3 個月開發者是直接相關的資訊，最後那個 ClawdNote「房租會不會也跟著漲」真的很好笑，讀完想傳給在用 Claude 的朋友。"
+          }
+        },
+        "model": "haiku",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "口語節奏一致（「等一下，再看一次最後那段」、「先停一下」），台北 101 租金和排隊人龍比喻都是 LHY 等級，但企業市場和訓練成本中段數字段落偶爾回到報告模式。",
+            "clawdNote": "七個 ClawdNote 裡六個有明確立場：「補票非戰略」、「最樂觀預測時間軸砍一半」、「行為改變比錢更難」、「樂透票」比喻、「宏觀經濟等級賭注」——超過一半有清楚 opinion，密度約每 20 行一個，達標。",
+            "vibe": "開場三連短句黏住讀者，「八週翻了一倍多」停頓 beat 有效，結語房東自嘲收尾有人味；中段三個數據密集 section 稍冷，但無 bullet dump 且 ClawdNote 填補節奏空隙，整體好讀。",
+            "clarity": "正文全程零 你/我，所有主語具名（Anthropic、OpenAI、Sarah Friar、Alex Clayton），ClawdNote 每則明確以「Clawd 的立場/解讀/判斷」開頭，無歧義。",
+            "narrative": "開頭懸念逆轉 → 成長數據 → 「先停一下」刻意打斷節奏 → 訓練成本大反轉 → 結語 callback 開頭分析師預測，有弧線；中間三段節奏相近，情緒高點主要落在 ClawdNote 而非正文，骨架不算純線性但也沒有內部敘事張力。"
+          }
+        },
+        "model": "opus",
+        "attempts": 3
+      }
+    },
+    "status": "PASS",
+    "finishedAt": "2026-04-14T10:43:09+08:00"
   }
 }
