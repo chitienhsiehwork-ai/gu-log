@@ -30,7 +30,7 @@ const TIMEOUT = {
   JUDGE_STAGE0: 180,
   JUDGE_VIBE: 300,
   JUDGE_FRESH_EYES: 300,
-  JUDGE_FACTLIB: 300,
+  JUDGE_FACTLIB: 600,
   WORKER_FACT_CORRECTOR: 600,
   WORKER_LIBRARIAN: 300,
   WRITER_STAGE: 900,
@@ -41,11 +41,16 @@ const TIMEOUT = {
 // Stage 0 — Worthiness Judge
 // ---------------------------------------------------------------------------
 
-export const stage0JudgeRunner: StageRunner<{ articleContent: string; articlePath?: string }, WorthinessJudgeOutput> = {
+export const stage0JudgeRunner: StageRunner<
+  { articleContent: string; articlePath?: string },
+  WorthinessJudgeOutput
+> = {
   async run(input) {
-    const articlePath = input.articlePath ?? (() => {
-      throw new Error('stage0Judge: articlePath required');
-    })();
+    const articlePath =
+      input.articlePath ??
+      (() => {
+        throw new Error('stage0Judge: articlePath required');
+      })();
 
     const { parsed } = await runJudgeAgent<WorthinessJudgeOutput>({
       agent: 'v2-worthiness-judge',
@@ -66,11 +71,16 @@ Confirm with a one-line status on stdout.`,
 // Stage 1 / Stage 4 — Vibe Judge (shared agent, dual-mode)
 // ---------------------------------------------------------------------------
 
-export const stage1JudgeRunner: StageRunner<{ articleContent: string; articlePath?: string }, VibeJudgeOutput> = {
+export const stage1JudgeRunner: StageRunner<
+  { articleContent: string; articlePath?: string },
+  VibeJudgeOutput
+> = {
   async run(input) {
-    const articlePath = input.articlePath ?? (() => {
-      throw new Error('stage1Judge: articlePath required');
-    })();
+    const articlePath =
+      input.articlePath ??
+      (() => {
+        throw new Error('stage1Judge: articlePath required');
+      })();
 
     const { parsed } = await runJudgeAgent<VibeJudgeOutput>({
       agent: 'v2-vibe-judge',
@@ -92,9 +102,11 @@ export const stage4JudgeRunner: StageRunner<
   FinalVibeJudgeOutput
 > = {
   async run(input) {
-    const articlePath = input.articlePath ?? (() => {
-      throw new Error('stage4Judge: articlePath required');
-    })();
+    const articlePath =
+      input.articlePath ??
+      (() => {
+        throw new Error('stage4Judge: articlePath required');
+      })();
 
     const { parsed } = await runJudgeAgent<FinalVibeJudgeOutput>({
       agent: 'v2-vibe-judge',
@@ -124,11 +136,16 @@ Confirm with a one-line status on stdout.`,
 // Stage 2 — Fresh Eyes Judge
 // ---------------------------------------------------------------------------
 
-export const stage2JudgeRunner: StageRunner<{ articleContent: string; articlePath?: string }, FreshEyesJudgeOutput> = {
+export const stage2JudgeRunner: StageRunner<
+  { articleContent: string; articlePath?: string },
+  FreshEyesJudgeOutput
+> = {
   async run(input) {
-    const articlePath = input.articlePath ?? (() => {
-      throw new Error('stage2Judge: articlePath required');
-    })();
+    const articlePath =
+      input.articlePath ??
+      (() => {
+        throw new Error('stage2Judge: articlePath required');
+      })();
 
     const { parsed } = await runJudgeAgent<FreshEyesJudgeOutput>({
       agent: 'v2-fresh-eyes-judge',
@@ -154,9 +171,11 @@ export const stage3FactCorrectorRunner: StageRunner<
   FactCorrectorOutput
 > = {
   async run(input) {
-    const articlePath = input.articlePath ?? (() => {
-      throw new Error('stage3FactCorrector: articlePath required');
-    })();
+    const articlePath =
+      input.articlePath ??
+      (() => {
+        throw new Error('stage3FactCorrector: articlePath required');
+      })();
 
     const { parsed } = await runJudgeAgent<FactCorrectorOutput>({
       agent: 'v2-fact-corrector',
@@ -177,11 +196,16 @@ Confirm with a one-line status on stdout.`,
   },
 };
 
-export const stage3LibrarianRunner: StageRunner<{ articleContent: string; articlePath?: string }, LibrarianOutput> = {
+export const stage3LibrarianRunner: StageRunner<
+  { articleContent: string; articlePath?: string },
+  LibrarianOutput
+> = {
   async run(input) {
-    const articlePath = input.articlePath ?? (() => {
-      throw new Error('stage3Librarian: articlePath required');
-    })();
+    const articlePath =
+      input.articlePath ??
+      (() => {
+        throw new Error('stage3Librarian: articlePath required');
+      })();
 
     const { parsed } = await runJudgeAgent<LibrarianOutput>({
       agent: 'v2-librarian-worker',
@@ -198,11 +222,16 @@ Confirm with a one-line status on stdout.`,
   },
 };
 
-export const stage3JudgeRunner: StageRunner<{ articleContent: string; articlePath?: string }, FactLibJudgeOutput> = {
+export const stage3JudgeRunner: StageRunner<
+  { articleContent: string; articlePath?: string },
+  FactLibJudgeOutput
+> = {
   async run(input) {
-    const articlePath = input.articlePath ?? (() => {
-      throw new Error('stage3Judge: articlePath required');
-    })();
+    const articlePath =
+      input.articlePath ??
+      (() => {
+        throw new Error('stage3Judge: articlePath required');
+      })();
 
     const { parsed } = await runJudgeAgent<FactLibJudgeOutput>({
       agent: 'v2-factlib-judge',
@@ -228,9 +257,11 @@ export const stage1WriterRunner: StageRunner<
   { content: string }
 > = {
   async run(input) {
-    const articlePath = input.articlePath ?? (() => {
-      throw new Error('stage1Writer: articlePath required');
-    })();
+    const articlePath =
+      input.articlePath ??
+      (() => {
+        throw new Error('stage1Writer: articlePath required');
+      })();
 
     await runWriterAgent({
       agent: 'v2-stage-writer',
@@ -257,9 +288,11 @@ export const stage2WriterRunner: StageRunner<
   { content: string }
 > = {
   async run(input) {
-    const articlePath = input.articlePath ?? (() => {
-      throw new Error('stage2Writer: articlePath required');
-    })();
+    const articlePath =
+      input.articlePath ??
+      (() => {
+        throw new Error('stage2Writer: articlePath required');
+      })();
 
     await runWriterAgent({
       agent: 'v2-stage-writer',
@@ -284,9 +317,11 @@ export const stage4WriterRunner: StageRunner<
   { content: string }
 > = {
   async run(input) {
-    const articlePath = input.articlePath ?? (() => {
-      throw new Error('stage4Writer: articlePath required');
-    })();
+    const articlePath =
+      input.articlePath ??
+      (() => {
+        throw new Error('stage4Writer: articlePath required');
+      })();
 
     await runWriterAgent({
       agent: 'v2-final-vibe-writer',
@@ -317,7 +352,9 @@ Per your agent instructions, focus ONLY on the degraded dimensions (those that d
  */
 export function buildRunners(articlePath: string) {
   // Wrap every runner so input includes articlePath automatically.
-  const inject = <TIn, TOut>(r: StageRunner<TIn & { articlePath?: string }, TOut>): StageRunner<TIn, TOut> => ({
+  const inject = <TIn, TOut>(
+    r: StageRunner<TIn & { articlePath?: string }, TOut>
+  ): StageRunner<TIn, TOut> => ({
     run: (input, feedback) => r.run({ ...input, articlePath }, feedback),
   });
 

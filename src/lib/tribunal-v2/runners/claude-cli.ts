@@ -11,13 +11,10 @@
  * - Zero extra auth setup — inherits user's claude login
  */
 
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
+import { spawn } from 'node:child_process';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
-const execFileAsync = promisify(execFile);
 
 /**
  * Options for a single Claude agent invocation.
@@ -45,47 +42,69 @@ export interface SpawnClaudeAgentResult {
  * Returns captured stdout/stderr. Does NOT parse JSON — that's the caller's job.
  * Throws on non-zero exit or timeout.
  */
-export async function spawnClaudeAgent(opts: SpawnClaudeAgentOptions): Promise<SpawnClaudeAgentResult> {
+export async function spawnClaudeAgent(
+  opts: SpawnClaudeAgentOptions
+): Promise<SpawnClaudeAgentResult> {
   const started = Date.now();
-  const args = [
-    '-p',
-    '--agent',
-    opts.agent,
-    '--dangerously-skip-permissions',
-    opts.prompt,
-  ];
+  const args = ['-p', '--agent', opts.agent, '--dangerously-skip-permissions', opts.prompt];
 
-  try {
-    const { stdout, stderr } = await execFileAsync('claude', args, {
+  return new Promise((resolve, reject) => {
+    // Use `spawn` (not execFile) so we can pass stdio: 'ignore' on stdin —
+    // `claude -p` otherwise waits 3s for stdin data on every invocation.
+    const child = spawn('claude', args, {
       cwd: opts.cwd ?? process.cwd(),
-      timeout: opts.timeoutSec * 1000,
-      // claude agents can emit large outputs (full article rewrites) — raise buffer
-      maxBuffer: 16 * 1024 * 1024, // 16 MB
       env: process.env,
+      stdio: ['ignore', 'pipe', 'pipe'],
     });
 
-    return {
-      stdout: stdout.toString(),
-      stderr: stderr.toString(),
-      durationMs: Date.now() - started,
-    };
-  } catch (err: unknown) {
-    const durationMs = Date.now() - started;
-    const e = err as { killed?: boolean; signal?: string; code?: number | string; stdout?: string; stderr?: string; message?: string };
+    let stdout = '';
+    let stderr = '';
+    let timedOut = false;
 
-    if (e.killed && e.signal === 'SIGTERM') {
-      throw new Error(
-        `claude --agent ${opts.agent} timed out after ${opts.timeoutSec}s (ran ${durationMs}ms)`,
-      );
-    }
+    const timer = setTimeout(() => {
+      timedOut = true;
+      child.kill('SIGTERM');
+    }, opts.timeoutSec * 1000);
 
-    throw new Error(
-      `claude --agent ${opts.agent} failed (code=${e.code}, ${durationMs}ms):\n` +
-        `stdout: ${(e.stdout ?? '').toString().slice(-500)}\n` +
-        `stderr: ${(e.stderr ?? '').toString().slice(-500)}\n` +
-        `error: ${e.message}`,
-    );
-  }
+    child.stdout.on('data', (buf: Buffer) => {
+      stdout += buf.toString();
+    });
+    child.stderr.on('data', (buf: Buffer) => {
+      stderr += buf.toString();
+    });
+
+    child.on('error', (err) => {
+      clearTimeout(timer);
+      reject(new Error(`claude --agent ${opts.agent} failed to spawn: ${err.message}`));
+    });
+
+    child.on('close', (code) => {
+      clearTimeout(timer);
+      const durationMs = Date.now() - started;
+
+      if (timedOut) {
+        reject(
+          new Error(
+            `claude --agent ${opts.agent} timed out after ${opts.timeoutSec}s (ran ${durationMs}ms)`
+          )
+        );
+        return;
+      }
+
+      if (code !== 0) {
+        reject(
+          new Error(
+            `claude --agent ${opts.agent} failed (code=${code}, ${durationMs}ms):\n` +
+              `stdout: ${stdout.slice(-500)}\n` +
+              `stderr: ${stderr.slice(-500)}`
+          )
+        );
+        return;
+      }
+
+      resolve({ stdout, stderr, durationMs });
+    });
+  });
 }
 
 /**

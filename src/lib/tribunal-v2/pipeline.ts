@@ -326,17 +326,52 @@ async function runStage3(state: PipelineState, config: PipelineConfig): Promise<
     });
     stage.factCorrectorOutput = factOutput;
 
-    // If FactCorrector made changes, write them
-    // (the runner is responsible for returning the modified article via io)
-    await config.git.commit(`tribunal(stage3): FactCorrector — loop ${loop}/${stage.maxLoops}`);
+    // Enforce writer-constraints after FactCorrector — it has scope to rewrite
+    // body prose and MUST NOT touch frontmatter/URLs/headings/pronouns.
+    {
+      const afterFact = await config.io.readArticle(state.articlePath);
+      const constraints = await enforceWriterConstraints(
+        articleContent,
+        afterFact,
+        state.articlePath
+      );
+      if (!constraints.pass) {
+        // Revert FactCorrector's changes — treat as worker failure.
+        await config.io.writeArticle(state.articlePath, articleContent);
+        await config.git.commit(
+          `tribunal(stage3): FactCorrector rejected (constraint violations) — loop ${loop}/${stage.maxLoops}`
+        );
+        // Fall through: Librarian + Judge run on the unmodified article.
+      } else {
+        await config.git.commit(`tribunal(stage3): FactCorrector — loop ${loop}/${stage.maxLoops}`);
+      }
+    }
 
-    // Session 2: Librarian (runs on FactCorrector's output — causal dependency)
-    const articleAfterFact = await config.io.readArticle(state.articlePath);
+    // Session 2: Librarian (runs on current article state — may or may not
+    // include FactCorrector's changes depending on whether they passed)
+    const articleBeforeLib = await config.io.readArticle(state.articlePath);
     const libOutput = await config.runners.stage3Librarian.run({
-      articleContent: articleAfterFact,
+      articleContent: articleBeforeLib,
     });
     stage.librarianOutput = libOutput;
-    await config.git.commit(`tribunal(stage3): Librarian — loop ${loop}/${stage.maxLoops}`);
+
+    // Librarian should only add links, never change text/frontmatter/URLs/etc.
+    {
+      const afterLib = await config.io.readArticle(state.articlePath);
+      const constraints = await enforceWriterConstraints(
+        articleBeforeLib,
+        afterLib,
+        state.articlePath
+      );
+      if (!constraints.pass) {
+        await config.io.writeArticle(state.articlePath, articleBeforeLib);
+        await config.git.commit(
+          `tribunal(stage3): Librarian rejected (constraint violations) — loop ${loop}/${stage.maxLoops}`
+        );
+      } else {
+        await config.git.commit(`tribunal(stage3): Librarian — loop ${loop}/${stage.maxLoops}`);
+      }
+    }
 
     // Combined Judge
     const articleAfterWorkers = await config.io.readArticle(state.articlePath);
