@@ -24,10 +24,22 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, '..');
 const outPath = join(repoRoot, 'src', 'data', 'post-versions.json');
 
-// On Vercel (shallow clone), skip — use the committed manifest instead.
-if (process.env.VERCEL) {
-  console.log('⏭️  Vercel detected — using committed post-versions.json');
-  process.exit(0);
+// Skip regeneration if the clone is shallow — git log would miss history
+// and we'd overwrite the committed manifest with incomplete counts.
+// This covers Vercel (shallow by default) and Claude Code sandboxes (CCC
+// worktree is also shallow). Full clones (local dev, CI with fetch-depth:0)
+// proceed as normal.
+try {
+  const isShallow = execSync('git rev-parse --is-shallow-repository', {
+    encoding: 'utf-8',
+    cwd: dirname(fileURLToPath(import.meta.url)) + '/..',
+  }).trim();
+  if (isShallow === 'true') {
+    console.log('⏭️  Shallow clone detected — using committed post-versions.json');
+    process.exit(0);
+  }
+} catch {
+  // If git rev-parse fails, fall through to existing logic
 }
 
 function buildManifest() {

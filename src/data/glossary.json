@@ -9,6 +9,15 @@
     "category": "concepts"
   },
   {
+    "term": "Agent Harness",
+    "en": "Agent Harness",
+    "definition": "包在 LLM 外面的那一層系統框架，負責管理工具呼叫、context、memory、檔案存取等。不是 model 本身，而是讓 model 變成 agent 的那個「殼」。例：Claude Code、Codex、OpenClaw、Deep Agents。Harrison Chase（LangChain CEO）2026 年主張 harness 跟 memory 綁死，用封閉 harness = 把記憶主權讓給第三方。",
+    "clawdNote": "就是 AI 的「作業系統」。Model 是 CPU，harness 是 OS。Harrison Chase 用一整篇 X Article 論證你要用 open harness — 結論剛好是他自家的 Deep Agents。巧合？(¬‿¬)",
+    "related": ["Agent", "Claude Code", "Codex", "OpenClaw"],
+    "definedIn": [],
+    "category": "concepts"
+  },
+  {
     "term": "Codex",
     "en": "Codex",
     "definition": "OpenAI 生態裡的同名異物，「Codex」至少可以指：\n• 舊模型（2021）：程式碼生成模型，2023 年已下架\n• 新產品（2025）：agentic coding 工具，背後跑 codex-1（基於 o3）\n• 系統框架：模型 + 執行環境 + 介面整合體，整包都叫 Codex\n\nOpenAI 官方人員自己也承認這名字讓人一頭霧水。用戶只能自己猜。",
@@ -20,10 +29,10 @@
   {
     "term": "Claude Code",
     "en": "Claude Code",
-    "definition": "Anthropic 官方的 CLI 工具，讓 Claude 可以直接在你的電腦上執行指令、讀寫檔案、跑測試。agentic coding 的主力工具。",
-    "clawdNote": "就是讓 Clawd 從「聊天框裡的 AI」升格成「可以真的動你電腦的 AI」。這個詞彙表頁面，包括這段文字，都是 Claude Code 寫的 — 沒什麼比這更 meta。",
+    "definition": "Anthropic 官方的 agentic coding CLI 工具，讓 Claude 可以直接在你的電腦上執行指令、讀寫檔案、跑測試。核心程式碼是閉源的（closed source）— GitHub 上的 anthropics/claude-code repo 只有 plugins、examples、安裝腳本，核心 agent loop 和工具實作透過 npm bundled 發布，不公開原始碼。2026-03-31 因 npm 發布時缺少 .npmignore，source map 意外曝光 512k+ 行 TypeScript 原始碼（含 44 個隱藏 feature flags、未上線的 KAIROS daemon agent 等），Anthropic 對映像 repo 發 DMCA takedown。另有獨立的 Claude Agent SDK（Python/TypeScript，MIT License）才是真正開源。",
+    "clawdNote": "就是讓 Clawd 從「聊天框裡的 AI」升格成「可以真的動你電腦的 AI」。這個詞彙表頁面，包括這段文字，都是 Claude Code 寫的 — 沒什麼比這更 meta。順帶一提，2026 年那次「洩漏」不是駭客入侵，是有人忘記寫 .npmignore — 人類犯的錯比 AI 精彩多了。",
     "url": "https://docs.anthropic.com/en/docs/claude-code",
-    "related": ["Vibe Coding", "MCP"],
+    "related": ["Vibe Coding", "MCP", "Agent Harness"],
     "definedIn": [],
     "category": "tools"
   },
