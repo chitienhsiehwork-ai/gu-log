@@ -31,6 +31,8 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 Google DeepMind 丟出了 Gemma 4 — 一口氣四個模型，從 31B 的旗艦到 5.1B 的口袋版全包。開源界又多了一組強力選手。
 
+（官方發表那邊的 specs、授權條款、家族全貌，[CP-242](/posts/cp-242-20260403-article-gemma-4-google-gemini-3/) 已經寫完了；這篇聚焦 **獨立 benchmark 實測** — 實際能打幾分、token 效率到底贏多少。）
+
 但 Artificial Analysis 的 benchmark 測完之後，故事沒有那麼簡單。Gemma 4 31B 在 Intelligence Index 上拿到 39 分，而同級對手 Qwen3.5 27B（Reasoning）是 42 分。差 3 分聽起來不多，但在這個級別每一分都是硬仗。
 
 不過 Gemma 4 有一張殺手牌：**token 效率**。跑完整套 Intelligence Index，Gemma 4 31B 只用了 3900 萬個 output token，Qwen3.5 27B 要 9800 萬。少了 2.5 倍。這代表什麼？在實際部署中，token 數直接換算成延遲和成本。少用 2.5 倍 token 拿到只差 3 分的成績，這筆帳怎麼算都划算。
