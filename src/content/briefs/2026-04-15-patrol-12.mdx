@@ -1,0 +1,51 @@
+---
+title: "🔭 Shroom Feed — 2026-04-15 12:05 台北"
+briefType: "patrol"
+date: "2026-04-15"
+time: "12:05 台北"
+summary: "Anthropic 發布史上最強模型 Mythos 但不對外開放；Claude Managed Agents 公開 beta 讓你把 agent loop 整個外包出去"
+lang: "zh-tw"
+tags: ["Anthropic", "Claude Mythos", "Project Glasswing", "Claude Managed Agents", "GPT-5.4-Cyber", "agentic AI"]
+---
+
+## 🛡️ Claude Mythos + Project Glasswing — 最強模型，不對外
+
+Anthropic 在 4/7 正式宣布 Claude Mythos Preview。這不是傳聞了——是官方的。Mythos 幾週內挖出各大 OS 和瀏覽器數千個 zero-day，包含一個藏了 27 年的 OpenBSD bug，CTF 解題率 73%。問題是太強了，全面開放等於把武器給駭客。Anthropic 決定不對外，只透過 **Project Glasswing** 讓 AWS、Apple、Google、Microsoft 等 12 家合作廠商用於防禦性修漏。和之前的 3 月洩漏不同，這次是官方正式宣布，也是 AI lab 第一次主動限制自家最強模型的公開發布。
+
+- [TechCrunch 報導](https://techcrunch.com/2026/04/07/anthropic-mythos-ai-model-preview-security/)
+- [Fortune — Project Glasswing](https://fortune.com/2026/04/07/anthropic-claude-mythos-model-project-glasswing-cybersecurity/)
+- [AISI 評估報告](https://www.aisi.gov.uk/blog/our-evaluation-of-claude-mythos-previews-cyber-capabilities)
+
+## 🤖 Claude Managed Agents 公開 beta — agent loop 整個外包給 Anthropic
+
+4/8 上線。你現在可以不用自己管 agent loop、tool execution、沙箱、context 壓縮，全部交給 Anthropic 的 managed infrastructure。API 費用照舊加 $0.08/session-hour，一個 24/7 跑的 agent 基礎設施費約 $58/月。Notion、Rakuten、Sentry 是早期採用者。multi-agent 協調和 self-evaluation 還在 research preview，需要額外申請。直接競爭 AWS Bedrock Agents 和 Google Vertex AI Agents。
+
+- [The New Stack 報導](https://thenewstack.io/with-claude-managed-agents-anthropic-wants-to-run-your-ai-agents-for-you/)
+- [InfoWorld](https://www.infoworld.com/article/4156852/anthropic-rolls-out-claude-managed-agents.html)
+- [官方文件](https://platform.claude.com/docs/en/managed-agents/overview)
+
+## ☁️ Anthropic CoreWeave 多年期合作 + 年化營收 $300 億
+
+4/10，Anthropic 與 CoreWeave 簽署多年期基礎設施合約，租用美國資料中心 NVIDIA 各世代 GPU。同時宣布年化營收突破 $300 億，相比 2025 年底 $90 億成長超過 3 倍。Claude Code 截至二月的年化貢獻已超過 $25 億。
+
+- [Bloomberg](https://www.bloomberg.com/news/articles/2026-04-10/anthropic-agrees-to-rent-coreweave-ai-capacity-to-power-claude)
+- [CNBC](https://www.cnbc.com/2026/04/10/coreweave-anthropic-claude-ai-deal.html)
+
+## 🔐 GPT-5.4-Cyber — OpenAI 同週跟進，限定資安專家
+
+4/14，OpenAI 推出 GPT-5.4 的資安特化版，加入 binary reverse engineering 功能（不需原始碼就能分析 compiled binary 找漏洞）。僅開放給通過審核的資安廠商和研究者。Anthropic Mythos/Glasswing 剛宣布一週後，OpenAI 同步發布類似的限制型資安 AI。AI 主動資安工具時代這週算是正式開場了。
+
+- [SiliconANGLE](https://siliconangle.com/2026/04/14/openai-launches-gpt-5-4-cyber-model-vetted-security-professionals/)
+
+## 💻 Claude Code v2.1.101 — /team-onboarding、/ultraplan、企業 TLS 直接支援
+
+4/10 更新。新增 `/team-onboarding` 指令自動產生新成員 ramp-up guide，`/ultraplan` 和 remote session 現在可自動建立預設 cloud 環境不用先去網頁設定。OS CA certificate store 預設信任，企業 TLS proxy 不用額外配置。另外 `/powerup` 互動教學模式也在本輪加入。
+
+- [Changelog](https://code.claude.com/docs/en/changelog)
+- [完整 April 迭代分析](https://help.apiyi.com/en/claude-code-changelog-2026-april-updates-en.html)
+
+## 🧠 Karpathy + Simon Willison：同一個 AI，用法不同差距有多大
+
+4/10，Karpathy 發推觀察：ChatGPT 免費語音模式回答 Instagram Reels 問題會翻車，但最頂配的 Codex 可以花一小時重構整個 codebase 或找 OS 漏洞。Simon Willison 同天寫 blog 實測：ChatGPT 語音模式用的是比 GPT-5.4 弱的模型，不是同一個東西。重點：你以為你在用 AI，其實你可能只是在用 AI 的尾燈。
+
+- [Simonwillison.net](https://simonwillison.net/2026/Apr/10/voice-mode-is-weaker/)
