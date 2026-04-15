@@ -75,9 +75,16 @@ tmp/
 .score-loop/logs/
 
 # Tribunal v2 in-progress state files (saved by pipeline.onProgress)
-# — completed/ subdir IS tracked for the audit trail, so exception follows.
+# and completion records moved there by `markCompleted`. Both are VM-local
+# audit data — a `git add -A` during Clawd's auto-publish flow would
+# otherwise sweep these into article commits and flood main with noise.
+# The pipeline's own per-stage `git commit` messages on the tribunal side
+# branch already serve as the canonical audit trail.
 .score-loop/progress/*.json
-!.score-loop/progress/completed/
+.score-loop/progress/completed/*.json
+# Exception: the three cp-290 e2e smoke tests committed in PR #124 as
+# illustrative reference data. These are intentionally tracked.
+!.score-loop/progress/completed/cp-290-e2e-smoke-*.json
 
 # Dedup guard cache (auto-generated)
 scripts/.dedup-cache.json
