@@ -3931,5 +3931,56 @@
     "status": "FAILED",
     "failedStage": "vibe",
     "finishedAt": "2026-04-15T12:45:14+08:00"
+  },
+  "cp-pending-20260415-article-anthropic-ai-mythos-project-glasswing.mdx": {
+    "article": "cp-pending-20260415-article-anthropic-ai-mythos-project-glasswing.mdx",
+    "startedAt": "2026-04-15T15:12:25+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 8,
+            "sourceAlign": 8,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "本文聚焦於 Claude Mythos / Project Glasswing / 資安，glossary.json 現有詞條（Agent、Claude Code、Vibe Coding 等）均未出現在正文中，無需補連結；zero-day、CTF、CVE、dual-use 等核心術語尚未收錄進 glossary，是 coverage gap 而非 linking failure，輕扣一分。",
+            "crossRef": "正文 ClawdNote（line 91）有一個內部連結 /posts/clawd-picks-20260211-anthropic-opus46-sabotage-risk-report/，已驗證對應檔案存在；連結脈絡恰當，呼應 Anthropic responsible scaling policy 的論述；正文未以名字提及 Clawd 或 ShroomDog，不觸發 /about identity link 強制規則；整體 cross-ref 結構乾淨無破損連結。",
+            "sourceAlign": "文章標題、摘要、正文完整覆蓋 TechCrunch 2026-04-07 報導核心（73% CTF 解題率、數千個 zero-day、27 年 OpenBSD bug、Project Glasswing 12 家合作夥伴、首次主動不發布決策）；正文兩處明確點名「TechCrunch 的報導」；無法直接 fetch URL 驗證，但主題一致性高，無明顯 drift。",
+            "attribution": "統計數字（73%、數千個 zero-day、27 年）可回溯至 TechCrunch 原報導；正文兩處明確點名「TechCrunch 的報導」，一處引述 Anthropic 官方措辭並標明出處；ClawdNote 意見清楚隔離在元件內；Dario Amodei 親自參與 Glasswing 框架設計一說依賴 sourceUrl 隱性歸因，無 inline citation，構成 1 個輕微缺口。"
+          }
+        },
+        "model": "sonnet",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "fail",
+        "score": {
+          "judge": "factChecker",
+          "dimensions": {
+            "accuracy": 7,
+            "fidelity": 7,
+            "consistency": 8
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "73% 解題率、198個已驗證、27年 OpenBSD bug 均有明確歸因（UK AISI評測、Anthropic公布、原始報告確認）；ClawdNote 中「Cybench 近乎打滿」斷言無來源引用；ClawdNote 合夥方計數自相矛盾（body 列出10家已含 JPMorgan Chase，ClawdNote 又說『10家加上 JPMorgan Chase』，多算一家）；無法獨立驗證 TechCrunch 2026-04-07 原文具體數字。",
+            "fidelity": "主體正確引用「數千個高嚴重性漏洞」（model-flagged），但攻防章節升格描述為「能自主找到 zero-day 的 AI」——high-severity flagged ≠ zero-day，是輕微 uncertainty erasure；<1% 修補比例的分母（是198個中的不到1%，還是數千個中的不到1%？）未釐清；TechCrunch 來源多次明確標注，ClawdNote 與 body 分離清晰。",
+            "consistency": "整體論證弧線清晰（Mythos強大→dual-use風險→不公開→Glasswing封閉框架→兩個第一次→攻防不對稱），邏輯無斷層；cross-reference Opus 4.6 破壞行為風險評估報告符合邏輯；攻防不對稱性的「以資訊不對稱對抗攻防不對稱」論述在內部自洽；唯一小瑕疵是 <1% 修補率分母不清楚，讀者需自行推斷。"
+          }
+        },
+        "model": "opus",
+        "attempts": 2
+      }
+    },
+    "status": "FAILED",
+    "failedStage": "factChecker",
+    "finishedAt": "2026-04-15T15:25:24+08:00"
   }
 }
