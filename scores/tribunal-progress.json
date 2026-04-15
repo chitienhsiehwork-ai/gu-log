@@ -3997,5 +3997,56 @@
     "status": "FAILED",
     "failedStage": "librarian",
     "finishedAt": "2026-04-15T19:38:23+08:00"
+  },
+  "cp-299-20260415-article-openai-gpt-5-4-cyber-ai-refusal.mdx": {
+    "article": "cp-299-20260415-article-openai-gpt-5-4-cyber-ai-refusal.mdx",
+    "startedAt": "2026-04-15T19:45:14+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Codex 是文中唯一的 glossary 詞，ClawdNote 引用 Simon Willison 並解釋命名混亂（與 glossary 定義高度一致），無直接 glossary 連結但有充分解釋；其餘 glossary 詞（Claude Code、MCP、Agent 等）與本文主題無關。",
+            "crossRef": "兩個內部連結均已驗證：cp-298-20260415-article-anthropic-ai-mythos-project-glasswing.mdx 存在、sp-165-20260408-anthropic-anthropic-claude-mythos-preview-ai.mdx 存在；CP-298 被正確交叉引用三次，SP-165 一次；本文不涉及 ShroomDog/Clawd identity link 需求。",
+            "sourceAlign": "sourceUrl（siliconangle.com/2026/04/14/openai-launches-gpt-5-4-cyber-model-vetted-security-professionals/）與文章內容高度吻合：GPT-5.4-Cyber 發布、Trusted Access for Cyber 分級驗證、CTF benchmark、Codex Security 均有對應；附加的 Anthropic 對比段落屬 CP 格式正常編輯延伸。",
+            "attribution": "數字有語境歸因（「OpenAI 秀出的 CTF benchmark 數據」、「根據官方數據」），Simon Willison 引言有明確歸屬，ClawdNote 意見與正文事實清楚分隔；第 108 行的 'contributed to fixes' 措辭質疑是良好的 attribution 實踐；少數統計（27%、76%）透過 SiliconAngle 轉述，間接來源鏈未明說但可接受。"
+          }
+        },
+        "model": "sonnet",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "fail",
+        "score": {
+          "judge": "factChecker",
+          "dimensions": {
+            "accuracy": 7,
+            "fidelity": 7,
+            "consistency": 8
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Trusted Access for Cyber 啟動年份寫成「2026 年 2 月」，但 source（siliconangle.com）明確指出是 2025 年 2 月，差了整整一年；Codex for Open Source「超過 1,000 個開源專案」無法從 source 直接驗證，其餘 CTF benchmark（27%/76%）、Codex Security 3,000 個漏洞、chatgpt.com/cyber 入口均與 source 吻合。",
+            "fidelity": "整體翻譯忠實，binary reverse engineering 能力描述、分級驗證機制、cyber-permissive 定位均正確呈現；但 Trusted Access 啟動年份（2026 vs 實際 2025）是可追溯至 source 的明確背離，不屬於翻譯詮釋範圍的偏差。",
+            "consistency": "文章論述連貫，blanket restriction → identity-based access 的主線有力且有 source 支撐，ClawdNotes 均清楚標示為觀點而非事實，Anthropic Mythos 的對比段落有 CP-298 內部交叉參照支撐，邏輯無矛盾。"
+          }
+        },
+        "model": "opus",
+        "attempts": 2
+      }
+    },
+    "status": "FAILED",
+    "failedStage": "factChecker",
+    "finishedAt": "2026-04-15T19:51:20+08:00"
   }
 }
