@@ -24,7 +24,16 @@ const ENV_MODE = process.env.TRIBUNAL_V2_SQUASH_MERGE === 'apply' ? 'apply' : 'l
 
 export interface GitAdapter {
   createBranch(name: string): Promise<void>;
-  commit(message: string): Promise<string>;
+  /**
+   * Commit `paths` (if any) with `message`. When `paths` is empty/omitted
+   * or nothing is staged after `git add`, a `--allow-empty` marker commit
+   * is created instead — keeping the tribunal audit trail complete without
+   * sweeping in unrelated dirty worktree state (e.g. `.score-loop/progress/`
+   * snapshots the CLI writes alongside the article).
+   *
+   * Returns the new commit hash.
+   */
+  commit(message: string, paths?: string[]): Promise<string>;
   squashMerge(branch: string, commitMessage: string): Promise<void>;
 }
 
@@ -46,16 +55,13 @@ async function currentBranch(cwd = process.cwd()): Promise<string> {
   return git(['rev-parse', '--abbrev-ref', 'HEAD'], cwd);
 }
 
-async function hasStagedOrUnstagedChanges(cwd = process.cwd()): Promise<boolean> {
+/** True iff there are staged changes (index differs from HEAD). */
+async function hasStagedChanges(cwd = process.cwd()): Promise<boolean> {
   try {
-    // Exit 1 if diff, exit 0 if clean
-    await execFileAsync('git', ['diff', '--quiet'], { cwd });
     await execFileAsync('git', ['diff', '--cached', '--quiet'], { cwd });
-    // Also check untracked files (porcelain picks them up)
-    const { stdout } = await execFileAsync('git', ['status', '--porcelain'], { cwd });
-    return stdout.trim().length > 0;
+    return false;
   } catch {
-    // `git diff --quiet` exits 1 when there are changes
+    // `git diff --cached --quiet` exits 1 when there are staged changes
     return true;
   }
 }
@@ -76,16 +82,23 @@ export function buildGitAdapter(cwd = process.cwd(), mode: SquashMergeMode = ENV
       await git(['checkout', '-b', name], cwd);
     },
 
-    async commit(message) {
-      // Skip if nothing to commit — some stages (judge PASS without rewrite)
-      // might end up clean after we already committed changes earlier.
-      if (!(await hasStagedOrUnstagedChanges(cwd))) {
-        // Record an empty commit so the tribunal audit trail is complete.
-        await git(['commit', '--allow-empty', '-m', message], cwd);
-        return git(['rev-parse', 'HEAD'], cwd);
+    async commit(message, paths) {
+      // Only stage the explicit paths the pipeline owns. NEVER `git add -A`
+      // — that sweeps in untracked scratch (progress snapshots, editor
+      // temp files, unrelated developer changes) which would then get
+      // squash-merged into main once apply mode is enabled.
+      if (paths && paths.length > 0) {
+        await git(['add', '--', ...paths], cwd);
       }
-      await git(['add', '-A'], cwd);
-      await git(['commit', '-m', message], cwd);
+
+      if (await hasStagedChanges(cwd)) {
+        await git(['commit', '-m', message], cwd);
+      } else {
+        // Marker commit — keeps the audit trail complete even when the
+        // pipeline ran a stage with no file changes (revert + rejected,
+        // judge PASS on clean file, loop exhausted).
+        await git(['commit', '--allow-empty', '-m', message], cwd);
+      }
       return git(['rev-parse', 'HEAD'], cwd);
     },
 

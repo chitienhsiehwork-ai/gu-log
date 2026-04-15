@@ -95,7 +95,14 @@ export interface PipelineConfig {
 
   git: {
     createBranch(name: string): Promise<void>;
-    commit(message: string): Promise<string>; // returns commit hash
+    /**
+     * Commit `paths` with `message`. Callers pass an explicit pathspec so
+     * the tribunal branch only picks up pipeline-owned files (never a blind
+     * `git add -A`). When `paths` is empty/omitted or nothing ends up
+     * staged, an `--allow-empty` marker commit is created for audit-trail
+     * continuity. Returns the new commit hash.
+     */
+     commit(message: string, paths?: string[]): Promise<string>;
     squashMerge(branch: string, commitMessage: string): Promise<void>;
   };
 
@@ -197,7 +204,10 @@ async function runStage0(state: PipelineState, config: PipelineConfig): Promise<
   stage.status = 'passed'; // Always pass — WARN mode
   stage.completedAt = now();
 
-  await config.git.commit(`tribunal(stage0): worthiness gate — ${output.pass ? 'PASS' : 'WARN'}`);
+  await config.git.commit(
+    `tribunal(stage0): worthiness gate — ${output.pass ? 'PASS' : 'WARN'}`,
+    [state.articlePath]
+  );
   await config.onProgress?.(state);
 }
 
@@ -246,7 +256,8 @@ async function runJudgeWriterLoop<
       stage.status = 'passed';
       stage.completedAt = now();
       await config.git.commit(
-        `tribunal(stage${stageNum}): ${stageLabel} — PASS @ loop ${loop}/${stage.maxLoops}`
+        `tribunal(stage${stageNum}): ${stageLabel} — PASS @ loop ${loop}/${stage.maxLoops}`,
+        [state.articlePath]
       );
       await config.onProgress?.(state);
       return true;
@@ -285,12 +296,13 @@ async function runJudgeWriterLoop<
       // Writer passed structural checks — clear the pending feedback.
       pendingConstraintFeedback = '';
       await config.git.commit(
-        `tribunal(stage${stageNum}): ${stageLabel} writer rewrite — loop ${loop}/${stage.maxLoops}`
+        `tribunal(stage${stageNum}): ${stageLabel} writer rewrite — loop ${loop}/${stage.maxLoops}`,
+        [state.articlePath]
       );
     }
   }
 
-  // Max loops exhausted
+  // Max loops exhausted — marker commit (no article paths to stage)
   stage.status = 'failed';
   stage.completedAt = now();
   await config.git.commit(`tribunal(stage${stageNum}): ${stageLabel} — FAIL (max loops exhausted)`);
@@ -343,7 +355,10 @@ async function runStage3(state: PipelineState, config: PipelineConfig): Promise<
         );
         // Fall through: Librarian + Judge run on the unmodified article.
       } else {
-        await config.git.commit(`tribunal(stage3): FactCorrector — loop ${loop}/${stage.maxLoops}`);
+        await config.git.commit(
+          `tribunal(stage3): FactCorrector — loop ${loop}/${stage.maxLoops}`,
+          [state.articlePath]
+        );
       }
     }
 
@@ -369,7 +384,10 @@ async function runStage3(state: PipelineState, config: PipelineConfig): Promise<
           `tribunal(stage3): Librarian rejected (constraint violations) — loop ${loop}/${stage.maxLoops}`
         );
       } else {
-        await config.git.commit(`tribunal(stage3): Librarian — loop ${loop}/${stage.maxLoops}`);
+        await config.git.commit(
+          `tribunal(stage3): Librarian — loop ${loop}/${stage.maxLoops}`,
+          [state.articlePath]
+        );
       }
     }
 
@@ -385,7 +403,10 @@ async function runStage3(state: PipelineState, config: PipelineConfig): Promise<
     if (judgeOutput.pass) {
       stage.status = 'passed';
       stage.completedAt = now();
-      await config.git.commit(`tribunal(stage3): FactLib — PASS @ loop ${loop}/${stage.maxLoops}`);
+      await config.git.commit(
+        `tribunal(stage3): FactLib — PASS @ loop ${loop}/${stage.maxLoops}`,
+        [state.articlePath]
+      );
       await config.onProgress?.(state);
       return true;
     }
@@ -448,7 +469,8 @@ async function runStage4(state: PipelineState, config: PipelineConfig): Promise<
       stage.status = 'passed';
       stage.completedAt = now();
       await config.git.commit(
-        `tribunal(stage4): Final Vibe — PASS @ loop ${loop}/${stage.maxLoops}`
+        `tribunal(stage4): Final Vibe — PASS @ loop ${loop}/${stage.maxLoops}`,
+        [state.articlePath]
       );
       await config.onProgress?.(state);
       return;
@@ -485,7 +507,8 @@ async function runStage4(state: PipelineState, config: PipelineConfig): Promise<
 
       pendingConstraintFeedback = '';
       await config.git.commit(
-        `tribunal(stage4): Final Vibe writer — loop ${loop}/${stage.maxLoops}`
+        `tribunal(stage4): Final Vibe writer — loop ${loop}/${stage.maxLoops}`,
+        [state.articlePath]
       );
     }
   }
@@ -503,7 +526,10 @@ async function runStage4(state: PipelineState, config: PipelineConfig): Promise<
     });
   }
 
-  await config.git.commit(`tribunal(stage4): Final Vibe — degraded (non-blocking)`);
+  await config.git.commit(
+    `tribunal(stage4): Final Vibe — degraded (non-blocking)`,
+    [state.articlePath]
+  );
   await config.onProgress?.(state);
 }
 
