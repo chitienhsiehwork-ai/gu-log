@@ -78,7 +78,20 @@ export function extractHeadings(content: string): Heading[] {
   return headings;
 }
 
-/** Check that markdown headings order is preserved */
+/** Identity key for a heading: level + text. A `## Foo` → `### Foo` demotion
+ * produces a different key even though the text is identical — this closes
+ * the gap flagged by the Codex review where text-only comparison let silent
+ * heading hierarchy mutations slip through. */
+function headingKey(h: Heading): string {
+  return `h${h.level}:${h.text}`;
+}
+
+/** Pretty-print a heading for violation messages. */
+function headingLabel(h: Heading): string {
+  return `${'#'.repeat(h.level)} ${h.text}`;
+}
+
+/** Check that markdown headings order AND levels are preserved */
 export function checkHeadingsPreserved(
   before: string,
   after: string
@@ -91,30 +104,33 @@ export function checkHeadingsPreserved(
 
   const violations: Array<{ type: 'added' | 'removed' | 'reordered'; heading: string }> = [];
 
-  const beforeTexts = beforeHeadings.map((h) => h.text);
-  const afterTexts = afterHeadings.map((h) => h.text);
+  const beforeKeys = beforeHeadings.map(headingKey);
+  const afterKeys = afterHeadings.map(headingKey);
 
-  // Check for removed headings
-  for (const h of beforeTexts) {
-    if (!afterTexts.includes(h)) {
-      violations.push({ type: 'removed', heading: h });
+  // Removed: same text at a different level is reported as BOTH removed
+  // and added — which is exactly what we want, since the hierarchy has
+  // changed even though the words are the same.
+  for (let i = 0; i < beforeHeadings.length; i++) {
+    if (!afterKeys.includes(beforeKeys[i])) {
+      violations.push({ type: 'removed', heading: headingLabel(beforeHeadings[i]) });
     }
   }
 
-  // Check for added headings
-  for (const h of afterTexts) {
-    if (!beforeTexts.includes(h)) {
-      violations.push({ type: 'added', heading: h });
+  for (let i = 0; i < afterHeadings.length; i++) {
+    if (!beforeKeys.includes(afterKeys[i])) {
+      violations.push({ type: 'added', heading: headingLabel(afterHeadings[i]) });
     }
   }
 
-  // Check for reordered headings (only among shared headings)
-  const sharedBefore = beforeTexts.filter((h) => afterTexts.includes(h));
-  const sharedAfter = afterTexts.filter((h) => beforeTexts.includes(h));
+  // Reordered (only among shared level+text keys)
+  const sharedBefore = beforeKeys.filter((k) => afterKeys.includes(k));
+  const sharedAfter = afterKeys.filter((k) => beforeKeys.includes(k));
 
   if (sharedBefore.length === sharedAfter.length && violations.length === 0) {
     for (let i = 0; i < sharedBefore.length; i++) {
       if (sharedBefore[i] !== sharedAfter[i]) {
+        // sharedAfter[i] is already a "h2:Some Heading" key — parse it back
+        // into a display label so the violation message stays readable.
         violations.push({ type: 'reordered', heading: sharedAfter[i] });
       }
     }
@@ -217,6 +233,21 @@ export async function checkPronounsClean(
         snippet: snippetMatch ? snippetMatch[1].trim().slice(0, 200) : '',
       });
     }
+
+    // If the catch fired but we couldn't parse any violation lines, this
+    // is an operational failure (ENOENT on the script, syntax error in
+    // the .mjs, timeout, unexpected exit code) — NOT a pronoun violation.
+    // Returning `pass: false` with empty violations would feed empty
+    // feedback into the writer loop and burn retries on a problem that
+    // has nothing to do with the article. Rethrow so the pipeline
+    // surfaces the real error instead of masking it as quality failure.
+    if (violations.length === 0) {
+      throw new Error(
+        `scripts/check-pronoun-clarity.mjs failed for ${articlePath} ` +
+          `(exit=${e.code ?? '?'}, no parseable violations):\n${combined.slice(-500) || '(no output)'}`
+      );
+    }
+
     return { pass: false, violations, rawOutput: combined };
   }
 }

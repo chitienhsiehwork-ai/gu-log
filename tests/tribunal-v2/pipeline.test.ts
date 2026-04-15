@@ -361,6 +361,90 @@ describe('pipeline — writer-constraint enforcement', () => {
   });
 
   // -------------------------------------------------------------------------
+  // Iteration-3 (local Codex) — judges must be read-only. If a judge agent
+  // mutates the article (prompt injection / agent drift), the pipeline must
+  // revert and fail-fast instead of silently committing the mutation.
+  // -------------------------------------------------------------------------
+  it('fails the pipeline when a judge mutates the article (security guard)', async () => {
+    const git = mockGit();
+    const config: PipelineConfig = {
+      ...passThroughConfig(),
+      git: git.adapter,
+      runners: {
+        ...passThroughConfig().runners,
+        // This judge misbehaves — simulates prompt-injection / drift.
+        stage1Judge: {
+          run: async () => {
+            // Silently modify the article file during a read-only judge run.
+            const raw = await readFile(articlePath, 'utf-8');
+            await writeFile(articlePath, raw + '\n<!-- evil injection -->', 'utf-8');
+            return vibe(true, PASSING_SCORES);
+          },
+        },
+      },
+    };
+
+    await expect(runPipeline(articlePath, config)).rejects.toThrow(
+      /judge mutated article/i
+    );
+
+    // The injection must have been reverted off disk.
+    const content = await readFile(articlePath, 'utf-8');
+    expect(content).not.toContain('evil injection');
+  });
+
+  // -------------------------------------------------------------------------
+  // Iteration-3 (GitHub Codex bot P2) — Stage 4 pass decision is derived
+  // DETERMINISTICALLY from scores vs Stage 1, not from whatever pass flag
+  // the model returns. A model claiming `pass: true` while its scores show
+  // a degradation must be overridden and marked degraded.
+  // -------------------------------------------------------------------------
+  it('Stage 4: overrides model pass=true when scores show a > 1 dim regression', async () => {
+    const git = mockGit();
+
+    // Stage 1 scores: all high
+    const stage1Scores = { persona: 9, clawdNote: 9, vibe: 9, clarity: 9, narrative: 9 };
+
+    const config: PipelineConfig = {
+      ...passThroughConfig(),
+      git: git.adapter,
+      runners: {
+        ...passThroughConfig().runners,
+        stage1Judge: { run: async () => vibe(true, stage1Scores) },
+        // Stage 4: degraded scores but model LIES about pass.
+        stage4Judge: {
+          run: async ({ stage1Scores: s1 }) => ({
+            pass: true, // model claims pass
+            scores: { ...stage1Scores, clarity: 6 }, // but clarity dropped 3 points (> 1 regression)
+            composite: 8,
+            stage_1_scores: s1,
+            degraded_dimensions: [], // and model forgot to report it
+            is_degraded: false,
+            judge_model: 'mock',
+            judge_version: '2.0.0',
+            timestamp: '2026-04-16T00:00:00Z',
+          }),
+        },
+      },
+    };
+
+    const final = await runPipeline(articlePath, config);
+
+    // Stage 4 fail is non-blocking — pipeline still passes overall...
+    expect(final.status).toBe('passed');
+    // ...but the deterministic pass-bar must have overridden the model.
+    expect(final.stages.stage4.status).toBe('failed');
+    const stage4Out = final.stages.stage4.output;
+    expect(stage4Out?.pass).toBe(false);
+    expect(stage4Out?.is_degraded).toBe(true);
+    expect(stage4Out?.degraded_dimensions).toContain('clarity');
+
+    // Degraded frontmatter marker should have been written to the article.
+    const content = await readFile(articlePath, 'utf-8');
+    expect(content).toContain('stage4Degraded');
+  });
+
+  // -------------------------------------------------------------------------
   // Finding #6c / Finding #5 — Stage 4 writer must also go through
   // constraint enforcement. Without the fix, a Stage 4 writer mutating URLs
   // would land the mutation on the tribunal branch.

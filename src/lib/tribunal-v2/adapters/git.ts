@@ -11,6 +11,7 @@
 
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { relative, isAbsolute } from 'node:path';
 
 const execFileAsync = promisify(execFile);
 
@@ -55,15 +56,17 @@ async function currentBranch(cwd = process.cwd()): Promise<string> {
   return git(['rev-parse', '--abbrev-ref', 'HEAD'], cwd);
 }
 
-/** True iff there are staged changes (index differs from HEAD). */
-async function hasStagedChanges(cwd = process.cwd()): Promise<boolean> {
-  try {
-    await execFileAsync('git', ['diff', '--cached', '--quiet'], { cwd });
-    return false;
-  } catch {
-    // `git diff --cached --quiet` exits 1 when there are staged changes
-    return true;
-  }
+/** Repo-relative paths currently in the git index (NUL-separated). */
+async function getStagedFiles(cwd: string): Promise<string[]> {
+  const { stdout } = await execFileAsync('git', ['diff', '--cached', '--name-only', '-z'], {
+    cwd,
+  });
+  return stdout.split('\0').filter(Boolean);
+}
+
+/** Normalize an arbitrary commit path to repo-relative form (matches git output). */
+function normalizePath(cwd: string, p: string): string {
+  return isAbsolute(p) ? relative(cwd, p) : p;
 }
 
 /**
@@ -87,11 +90,33 @@ export function buildGitAdapter(cwd = process.cwd(), mode: SquashMergeMode = ENV
       // — that sweeps in untracked scratch (progress snapshots, editor
       // temp files, unrelated developer changes) which would then get
       // squash-merged into main once apply mode is enabled.
+      const expected = new Set((paths ?? []).map((p) => normalizePath(cwd, p)));
+
       if (paths && paths.length > 0) {
         await git(['add', '--', ...paths], cwd);
       }
 
-      if (await hasStagedChanges(cwd)) {
+      // Belt-and-suspenders: assert the index only contains files the
+      // pipeline declared. This catches BOTH pre-staged dirt from before
+      // the pipeline started AND any accidental collateral from our own
+      // `git add`. Without this guard, a dev who happened to have staged
+      // unrelated files before running tribunal would see those files
+      // land on the tribunal branch and — in apply mode — in main.
+      const staged = await getStagedFiles(cwd);
+      const unexpected = staged.filter((f) => !expected.has(f));
+      if (unexpected.length > 0) {
+        const head = unexpected.slice(0, 5).join(', ');
+        const tail = unexpected.length > 5 ? ` (+${unexpected.length - 5} more)` : '';
+        const declared = expected.size === 0 ? '(none)' : [...expected].join(', ');
+        throw new Error(
+          `tribunal commit refused: git index contains unexpected files ` +
+            `not declared by the pipeline: ${head}${tail}. ` +
+            `Declared pathspec: [${declared}]. ` +
+            `Reset the index with \`git reset HEAD --\` or pass the correct pathspec.`
+        );
+      }
+
+      if (staged.length > 0) {
         await git(['commit', '-m', message], cwd);
       } else {
         // Marker commit — keeps the audit trail complete even when the

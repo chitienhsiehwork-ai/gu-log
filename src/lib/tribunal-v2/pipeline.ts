@@ -18,6 +18,7 @@ import type {
 } from './types';
 import { MAX_LOOPS } from './types';
 import { enforceWriterConstraints } from './writer-constraints';
+import { checkFinalVibePassBar } from './pass-bar';
 
 // ---------------------------------------------------------------------------
 // Pipeline State Types
@@ -146,6 +147,35 @@ function initPipelineState(articlePath: string, branchName: string): PipelineSta
   };
 }
 
+/**
+ * Guard against judge agents silently mutating the article.
+ *
+ * Judges run under `claude --dangerously-skip-permissions` with full Write
+ * access, and read untrusted article content verbatim into their prompts.
+ * A prompt injection in the article body, or plain agent drift, could
+ * push a judge to rewrite the file during its run — which we'd then
+ * silently commit if the orchestrator assumed the article was untouched.
+ *
+ * Snapshot the article before the judge runs; if the file changed after,
+ * revert it and fail-fast with a loud error. Judges must remain read-only.
+ */
+async function assertJudgeDidNotMutate(
+  config: PipelineConfig,
+  articlePath: string,
+  before: string,
+  stageLabel: string
+): Promise<void> {
+  const after = await config.io.readArticle(articlePath);
+  if (after !== before) {
+    await config.io.writeArticle(articlePath, before);
+    throw new Error(
+      `[tribunal-v2] ${stageLabel} judge mutated article — reverted. ` +
+        `This should never happen; judges are read-only. Likely cause: prompt ` +
+        `injection in article content or agent drift. Investigate before re-running.`
+    );
+  }
+}
+
 /** Format judge feedback string from improvements + critical_issues */
 function formatFeedback(output: {
   improvements?: Record<string, string>;
@@ -188,6 +218,7 @@ async function runStage0(state: PipelineState, config: PipelineConfig): Promise<
 
   const articleContent = await config.io.readArticle(state.articlePath);
   const output = await config.runners.stage0Judge.run({ articleContent });
+  await assertJudgeDidNotMutate(config, state.articlePath, articleContent, 'stage0');
 
   stage.loops = 1; // Stage 0 is a single evaluation, no loops
   stage.output = output;
@@ -248,6 +279,12 @@ async function runJudgeWriterLoop<
     // Run judge
     const articleContent = await config.io.readArticle(state.articlePath);
     const judgeOutput = await judge(articleContent);
+    await assertJudgeDidNotMutate(
+      config,
+      state.articlePath,
+      articleContent,
+      `stage${stageNum}`
+    );
 
     stage.output = judgeOutput;
     stage.history.push(judgeOutput);
@@ -255,9 +292,12 @@ async function runJudgeWriterLoop<
     if (judgeOutput.pass) {
       stage.status = 'passed';
       stage.completedAt = now();
+      // No-path marker: the judge is read-only, so any article changes
+      // for this stage were already committed by prior writer loops.
+      // Using a marker prevents leaking undetected judge mutations even
+      // if the assertion above missed something.
       await config.git.commit(
-        `tribunal(stage${stageNum}): ${stageLabel} — PASS @ loop ${loop}/${stage.maxLoops}`,
-        [state.articlePath]
+        `tribunal(stage${stageNum}): ${stageLabel} — PASS @ loop ${loop}/${stage.maxLoops}`
       );
       await config.onProgress?.(state);
       return true;
@@ -391,11 +431,17 @@ async function runStage3(state: PipelineState, config: PipelineConfig): Promise<
       }
     }
 
-    // Combined Judge
+    // Combined Judge — must be read-only.
     const articleAfterWorkers = await config.io.readArticle(state.articlePath);
     const judgeOutput = await config.runners.stage3Judge.run({
       articleContent: articleAfterWorkers,
     });
+    await assertJudgeDidNotMutate(
+      config,
+      state.articlePath,
+      articleAfterWorkers,
+      'stage3'
+    );
 
     stage.output = judgeOutput;
     stage.history.push(judgeOutput);
@@ -403,9 +449,9 @@ async function runStage3(state: PipelineState, config: PipelineConfig): Promise<
     if (judgeOutput.pass) {
       stage.status = 'passed';
       stage.completedAt = now();
+      // No-path marker — workers already committed their passing changes.
       await config.git.commit(
-        `tribunal(stage3): FactLib — PASS @ loop ${loop}/${stage.maxLoops}`,
-        [state.articlePath]
+        `tribunal(stage3): FactLib — PASS @ loop ${loop}/${stage.maxLoops}`
       );
       await config.onProgress?.(state);
       return true;
@@ -461,6 +507,19 @@ async function runStage4(state: PipelineState, config: PipelineConfig): Promise<
       articleContent,
       stage1Scores: stage1Output.scores,
     });
+    await assertJudgeDidNotMutate(config, state.articlePath, articleContent, 'stage4');
+
+    // The Stage 4 judge prompt explicitly says the ORCHESTRATOR applies the
+    // relative pass bar (no dim drops > 1 from Stage 1). Trusting the
+    // model's `pass` boolean defeats that contract — if agent drift or a
+    // different rubric ends up in the model's head, degraded drafts can
+    // be accepted and skip the degradation marker. Derive pass/degraded
+    // deterministically here from scores, and overwrite the model's
+    // claim so downstream consumers always see the orchestrator's truth.
+    const passBar = checkFinalVibePassBar(judgeOutput.scores, stage1Output.scores);
+    judgeOutput.pass = passBar.pass;
+    judgeOutput.is_degraded = !passBar.pass;
+    judgeOutput.degraded_dimensions = passBar.degradedDimensions.map((d) => d.dim);
 
     stage.output = judgeOutput;
     stage.history.push(judgeOutput);
@@ -469,8 +528,7 @@ async function runStage4(state: PipelineState, config: PipelineConfig): Promise<
       stage.status = 'passed';
       stage.completedAt = now();
       await config.git.commit(
-        `tribunal(stage4): Final Vibe — PASS @ loop ${loop}/${stage.maxLoops}`,
-        [state.articlePath]
+        `tribunal(stage4): Final Vibe — PASS @ loop ${loop}/${stage.maxLoops}`
       );
       await config.onProgress?.(state);
       return;

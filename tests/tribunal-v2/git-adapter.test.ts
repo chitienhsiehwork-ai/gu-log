@@ -136,4 +136,60 @@ describe('git adapter — explicit pathspec commits (Codex P1 fix)', () => {
     const tracked = await filesInHead(cwd);
     expect(tracked).toEqual([]); // but it's empty
   });
+
+  // -------------------------------------------------------------------------
+  // Iteration-3 finding (local Codex): `git add -- <paths>` doesn't wipe the
+  // index. If someone pre-staged unrelated files BEFORE the pipeline started,
+  // the old `hasStagedChanges` check would happily commit them. Guard asserts
+  // the index only contains files the pipeline declared.
+  // -------------------------------------------------------------------------
+  it('refuses to commit when the index has pre-staged unrelated files (no-path marker)', async () => {
+    const adapter = buildGitAdapter(cwd, 'log-only');
+
+    // Simulate a developer who staged a random file before running tribunal.
+    const leaked = join(cwd, 'dev-notes.md');
+    await writeFile(leaked, 'private notes\n', 'utf-8');
+    await git(cwd, ['add', 'dev-notes.md']);
+
+    // Marker commit (no paths) must refuse because the index is dirty with
+    // a file the pipeline does not own.
+    await expect(
+      adapter.commit('tribunal(stage1): FAIL (max loops exhausted)')
+    ).rejects.toThrow(/index contains unexpected files.*dev-notes\.md/);
+  });
+
+  it('refuses to commit when index has pre-staged files outside the declared pathspec', async () => {
+    const adapter = buildGitAdapter(cwd, 'log-only');
+
+    const articlePath = join(cwd, 'article.mdx');
+    await writeFile(articlePath, 'ok\n', 'utf-8');
+
+    // Developer pre-staged an unrelated config file.
+    const leaked = join(cwd, 'config.json');
+    await writeFile(leaked, '{"x":1}\n', 'utf-8');
+    await git(cwd, ['add', 'config.json']);
+
+    // Even though we declare `articlePath`, the leftover config.json in
+    // the index should force the commit to abort — not silently land on
+    // the tribunal branch.
+    await expect(
+      adapter.commit('tribunal(stage1): writer rewrite', [articlePath])
+    ).rejects.toThrow(/index contains unexpected files.*config\.json/);
+  });
+
+  it('accepts pre-staged files that match the declared pathspec', async () => {
+    const adapter = buildGitAdapter(cwd, 'log-only');
+
+    const articlePath = join(cwd, 'article.mdx');
+    await writeFile(articlePath, 'v1\n', 'utf-8');
+    // Caller might have already staged the article (e.g. partial re-entry).
+    // That's fine — it IS in the declared pathspec.
+    await git(cwd, ['add', 'article.mdx']);
+
+    await expect(
+      adapter.commit('tribunal(stage1): writer rewrite', [articlePath])
+    ).resolves.toBeTruthy();
+
+    expect(await filesInHead(cwd)).toEqual(['article.mdx']);
+  });
 });
