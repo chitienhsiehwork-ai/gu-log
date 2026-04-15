@@ -49,21 +49,43 @@ export async function spawnClaudeAgent(
   const args = ['-p', '--agent', opts.agent, '--dangerously-skip-permissions', opts.prompt];
 
   return new Promise((resolve, reject) => {
-    // Use `spawn` (not execFile) so we can pass stdio: 'ignore' on stdin —
+    // `spawn` (not execFile) so we can pass stdio: 'ignore' on stdin —
     // `claude -p` otherwise waits 3s for stdin data on every invocation.
+    //
+    // `detached: true` puts the child in its own process group. On timeout
+    // we send the signal to the group (`process.kill(-pid, sig)`) so that
+    // any tool-execution subprocesses Claude has spawned (Write/Edit/Bash)
+    // are torn down with it — otherwise orphaned children can keep
+    // mutating the repo after the pipeline has already moved on, racing
+    // with constraint reverts and subsequent git commits.
     const child = spawn('claude', args, {
       cwd: opts.cwd ?? process.cwd(),
       env: process.env,
       stdio: ['ignore', 'pipe', 'pipe'],
+      detached: true,
     });
 
     let stdout = '';
     let stderr = '';
     let timedOut = false;
+    let sigkillTimer: NodeJS.Timeout | null = null;
+
+    /** Signal the entire process group. Swallow ESRCH (group already gone). */
+    const killGroup = (signal: NodeJS.Signals): void => {
+      if (child.pid === undefined) return;
+      try {
+        process.kill(-child.pid, signal);
+      } catch {
+        // Group already exited — benign.
+      }
+    };
 
     const timer = setTimeout(() => {
       timedOut = true;
-      child.kill('SIGTERM');
+      killGroup('SIGTERM');
+      // Fallback: if the group ignores SIGTERM or a child hangs in I/O,
+      // force-kill after 5s so the Promise never stalls past the timeout.
+      sigkillTimer = setTimeout(() => killGroup('SIGKILL'), 5000);
     }, opts.timeoutSec * 1000);
 
     child.stdout.on('data', (buf: Buffer) => {
@@ -75,11 +97,13 @@ export async function spawnClaudeAgent(
 
     child.on('error', (err) => {
       clearTimeout(timer);
+      if (sigkillTimer) clearTimeout(sigkillTimer);
       reject(new Error(`claude --agent ${opts.agent} failed to spawn: ${err.message}`));
     });
 
     child.on('close', (code) => {
       clearTimeout(timer);
+      if (sigkillTimer) clearTimeout(sigkillTimer);
       const durationMs = Date.now() - started;
 
       if (timedOut) {
