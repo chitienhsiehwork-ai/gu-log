@@ -1,0 +1,141 @@
+---
+ticketId: "CP-298"
+title: "Anthropic 造了一個太強的 AI，然後決定不發布——Mythos 與 Project Glasswing"
+originalDate: "2026-04-07"
+translatedDate: "2026-04-15"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "TechCrunch"
+sourceUrl: "https://techcrunch.com/2026/04/07/anthropic-mythos-ai-model-preview-security/"
+lang: "zh-tw"
+summary: "Anthropic 公布了內部最強模型 Claude Mythos，在 UK AI Security Institute 的 expert-level 資安任務評測中達到 73% 解題率，幾週內由模型標記數千個高嚴重性漏洞——然後決定不公開發布。透過 Project Glasswing，只讓 AWS、Apple、Google、Microsoft 等約 12 家機構用於防禦性資安。這是 Anthropic 首次主動不發布自家模型。"
+tags: ["clawd-picks", "anthropic", "cybersecurity", "ai-safety", "claude"]
+pipeline:
+  - role: "Written"
+    model: "Opus 4.6"
+    harness: "Claude Code CLI"
+  - role: "Reviewed"
+    model: "Opus 4.6"
+    harness: "Claude Code CLI"
+  - role: "Refined"
+    model: "Opus 4.6"
+    harness: "Claude Code CLI"
+  - role: "Scored"
+    model: "Opus 4.6"
+    harness: "Claude Code (vibe-opus-scorer)"
+  - role: "Orchestrated"
+    model: "Opus 4.6"
+    harness: "OpenClaw + Ralph Loop"
+scores:
+  ralph:
+    p: 8
+    c: 9
+    v: 8
+    score: 8
+    date: "2026-04-15"
+  tribunalVersion: 1
+  vibe:
+    persona: 8
+    clawdNote: 9
+    vibe: 8
+    clarity: 8
+    narrative: 8
+    score: 8
+    date: "2026-04-15"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+當一家 AI 公司造出了自己史上最強的模型，正常劇本應該是什麼？辦個發表會、寫篇 blog post、讓全世界排隊搶 API access。但 Anthropic 這次拿到了不同的劇本：造出來，然後鎖起來。
+
+2026 年 4 月 7 日，Anthropic 正式公布 Claude Mythos——公司描述為「有史以來最強大的模型」。但這個「最強」不是拿來跑 benchmark 炫耀的那種強，而是強到讓 Anthropic 自己決定：這東西不能公開。
+
+取而代之的是一個叫 **Project Glasswing** 的封閉計畫，把 Mythos 限定在防禦性資安用途，只有少數合作夥伴能碰。
+
+這件事為什麼重要？因為這是 AI 產業第一次有公司主動說：「這個模型太強了，不適合讓所有人用。」
+
+## Mythos 到底有多強
+
+先講數字。
+
+Claude Mythos 在 **UK AI Security Institute 對 expert-level 資安任務的評測**中拿下 **73% 的解題率**。這類評測不是那種靠背題庫就能過的 benchmark——它測的是真實世界的攻防能力，包含逆向工程、漏洞利用、密碼破解等 CTF 類型題目。73% 這個數字放在人類頂尖戰隊裡都算猛的。
+
+<ClawdNote>
+73% 是什麼概念？DEF CON CTF 決賽的人類頂尖隊伍也不見得每題都解得出來 (╯°□°)╯ 而且值得注意的是，Cybench 這個 CTF 專用的 AI benchmark 已經被近乎打滿了——UK AI Security Institute 的 expert-level 評測之所以更有說服力，正是因為它的設計就是為了不被輕易打穿。73% 解開那些題目，不是「AI 考試題考得不錯」，而是「AI 已經可以跟真正的資安專家平起平坐了」。
+</ClawdNote>
+
+但 CTF 只是暖身。真正讓人倒吸一口氣的是接下來這段：在一個持續數週的受控測試期間，Mythos **由模型自主標記了數千個高嚴重性漏洞**，橫跨主要作業系統和瀏覽器。這些是模型 flag 出來、等待人工驗證的潛在漏洞——Anthropic 公布的數字是約 198 個已人工驗證，正式修補的比例不到 1%。規模是前所未有的。
+
+其中有一個 bug，藏在 OpenBSD 裡面，**整整 27 年沒有人發現**。這個由原始報告直接確認。
+
+27 年。一個 AI 跑了幾週就把它翻出來了。
+
+<ClawdNote>
+OpenBSD 的 slogan 是「Only two remote holes in the default install, in a heck of a long time!」——一個以安全性為最高信仰的作業系統，被 AI 翻出一個藏了 27 年的 bug。Theo de Raadt 看到報告的時候臉色應該很精彩 (ﾟДﾟ) 不過認真說，這不是 OpenBSD 的恥辱，而是說明了人類 code review 的能力極限——再厲害的人眼也有漏看的時候，而 AI 不會累、不會分心、不會因為「這段看起來沒問題」就跳過。
+</ClawdNote>
+
+Anthropic 官方的措辭是：Mythos 在自主發現和分析漏洞方面的能力，代表了 AI 資安工具的一次「step change」——不是漸進式進步，是直接跳了一個台階。
+
+---
+
+## Project Glasswing：不發布，但也不浪費
+
+既然 Mythos 這麼強，Anthropic 的選擇不是把它丟進 API marketplace，而是建了一個叫 **Project Glasswing** 的封閉存取計畫。
+
+Glasswing 的規則很簡單：只做防禦，不做攻擊。合作夥伴拿到 Mythos 的存取權限後，用途限定在**找漏洞然後補起來**——在壞人發現之前先把洞堵上。
+
+目前已知的合作夥伴包括 **AWS、Apple、Google、Microsoft、Broadcom、Cisco、CrowdStrike、JPMorgan Chase、NVIDIA、Palo Alto Networks** 等，總共約 12 家機構。看到這個名單就知道 Glasswing 瞄準的是什麼等級：這些公司的軟體加在一起，覆蓋了全球大部分的運算基礎設施。如果 Mythos 能在這些 codebase 裡持續找出高嚴重性漏洞並修補，對整個網路生態的安全性提升是巨大的。
+
+<ClawdNote>
+科技、資安、加上金融（JPMorgan Chase）——三個最怕被打的產業都在名單裡，加起來約 12 家機構。讓 Mythos 去掃這些 codebase，等於是派了一個不需要睡覺、不需要付 bug bounty 的超級資安研究員，7x24 不間斷地翻你的程式碼。光想就覺得各家資安團隊的 bug backlog 要爆炸了 ಠ_ಠ
+</ClawdNote>
+
+這件事的意義不只是「找 bug」。Anthropic 在做的是一個全新的 AI 部署模式：不把模型當產品推出，而是建立一個有限制的、任務導向的存取框架。模型存在，但只能透過特定管道、做特定的事。
+
+---
+
+## 兩個歷史性的「第一次」
+
+TechCrunch 的報導點出了兩個 Anthropic 的「第一次」，這兩個都值得認真想一下：
+
+**第一：Anthropic 首次主動用自家 AI 大規模掃描 CVE。**
+
+之前的 AI 公司——包括 Anthropic 自己——對資安的態度基本上是「被動防禦」：紅隊測試自家模型、寫 safety report、回應外部研究者的漏洞回報。但 Glasswing 是主動出擊：拿自己最強的模型，去別人的 codebase 裡找漏洞。這從「AI 安全」延伸到了「用 AI 做安全」，是一個根本性的角色轉換。
+
+**第二：Anthropic 首次刻意選擇不發布一個自己知道很強的模型。**
+
+這才是真正炸裂的部分。AI 公司的商業模式建立在「做出更強的模型 → 賣更多 API / 訂閱」上面。一個模型越強，商業價值越高。但 Anthropic 看了看 Mythos 的能力，然後說：不行，這東西的破壞潛力太大了，不能讓所有人碰。
+
+<ClawdNote>
+想像一下這個場景：一家公司花了大把資源訓練出史上最強的模型，然後跟投資人說「對了，這個模型太危險所以不能賣喔」。Dario Amodei 在董事會上講這段話的時候，現場空氣應該可以切來吃。不過這也是 Anthropic 一直在喊的 responsible scaling policy 的邏輯終點——如果真的相信某些能力等級的模型需要更嚴格的管控，那遲早會碰到「這個不能發布」的那條線。現在 Mythos 就是那條線。順帶一提，Anthropic 早在 [Opus 4.6 破壞行為風險評估報告](/posts/clawd-picks-20260211-anthropic-opus46-sabotage-risk-report/)裡就已經在跑這種「模型到底敢不敢幫你做壞事」的測試——Mythos 不發布這件事，某種程度上是那份報告邏輯的延伸，只是這次答案從「可控但要小心」變成「不能放出去」。
+</ClawdNote>
+
+---
+
+## 攻防一體的困境
+
+為什麼 Mythos 不能公開？因為資安能力天生就是雙面刃（dual-use）。
+
+想像一下：有人發明了一把萬能鑰匙，可以開任何鎖、找出任何鎖的弱點。如果只給鎖匠用，是業界福音；但如果在街上免費發放，下場是什麼？Mythos 的狀況完全一樣。一個能自主大規模 flag 高嚴重性漏洞的 AI，用在防禦端，是守護者；用在攻擊端，是終極武器。從「標記潛在漏洞」到「開發可利用的 exploit」之間的距離，薄得像一層紙。Mythos 如果被公開釋出，任何人——包括國家級駭客組織、勒索軟體集團——都可能拿它來大規模掃描目標系統的漏洞，而且速度遠超任何人類團隊。
+
+TechCrunch 的報導用了一個精準的描述：「隨著模型成為更強大的資安工具，防禦與攻擊應用之間的界線越來越模糊——而傷害的不對稱性，讓天平倒向了不發布這一邊。」
+
+這裡的「不對稱性」是關鍵。如果 Mythos 公開後被用在防禦上，好處是漸進的（一個一個漏洞被修補）；但如果被用在攻擊上，傷害是爆炸性的（一個 zero-day 就可能癱瘓整個系統）。資安的基本邏輯是：防禦要堵住所有洞，攻擊只需要找到一個。TechCrunch 所說的「傷害的不對稱性」指的就是這件事——而這種不對稱決定了 Anthropic 的選擇。
+
+<ClawdNote>
+Mythos 的問題在於它把攻防不對稱性放大了不知道幾個數量級。以前找一個高風險漏洞可能需要一個頂尖研究員花幾個月，現在一個 AI 幾週就能 flag 數千個高嚴重性的候選——其中只有不到 1% 已完成人工驗證，但光是這個規模就已經嚇人。如果這種快速 flag 漏洞的能力擴散到攻擊方手上，他們可以快速篩出真正可利用的，而防守方根本來不及補。所以 Anthropic 的邏輯是：與其讓攻防兩方都拿到這個能力然後看誰跑得快，不如只讓防守方拿到。某種程度上，這是用「資訊不對稱」去對抗「攻防不對稱」——以毒攻毒的味道 ᕕ( ᐛ )ᕗ
+</ClawdNote>
+
+---
+
+## 結語
+
+Claude Mythos 和 Project Glasswing 標誌著 Anthropic 首次主動扣住一個自家模型——不是因為不夠好，而是因為太強。
+
+這背後是一個產業正在學著回答的問題：**當 AI 的能力強到可以造成系統性風險的時候，「做出來就應該發布」還是不是一個合理的預設？**
+
+Anthropic 在用行動回應自己喊了很久的 responsible scaling——碰到那條線的時候，確實踩了煞車。
+
+回頭看開頭那個問題：一家 AI 公司造出最強的模型，正常劇本是什麼？發表會、blog post、全球搶 API access。Anthropic 的劇本確實不一樣——造出來，然後鎖起來。至於這個不同的劇本會不會成為業界常態，現在說還太早。但 Anthropic 已經把第一頁翻出來了。
