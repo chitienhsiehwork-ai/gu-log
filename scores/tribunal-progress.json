@@ -3807,5 +3807,36 @@
     "status": "FAILED",
     "failedStage": "freshEyes",
     "finishedAt": "2026-04-15T06:24:45+08:00"
+  },
+  "cp-pending-20260415-karpathy-karpathy-ai.mdx": {
+    "article": "cp-pending-20260415-karpathy-karpathy-ai.mdx",
+    "startedAt": "2026-04-15T10:38:41+08:00",
+    "stages": {
+      "librarian": {
+        "status": "fail",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 5,
+            "crossRef": 6,
+            "sourceAlign": 9,
+            "attribution": 7
+          },
+          "score": 6,
+          "verdict": "FAIL",
+          "reasons": {
+            "glossary": "多個 glossary 收錄詞彙在文中直接使用但完全沒有連結或說明：Agent（多次出現）、Vibe Coding（原文用 'vibe code 一個前端'）、Codex（出現於 Karpathy 引言）、Tools for Thought（全篇核心概念，Obsidian 也有收錄）— 四個 key terms 零 glossary integration。",
+            "crossRef": "無任何內部 /posts/ 連結；文中提及 Karpathy 的 LLM Wiki 概念（'之前丟出了他的 LLM Wiki 概念'）但沒有指向相關 SP/CP 文章；Obsidian 出現在 glossary 的 related 欄卻未連結；ShroomDog/Clawd 未在 body 明確點名，identity link 規則未觸發，但主題連結明顯缺失。",
+            "sourceAlign": "內文四大原則（Explicit / Yours / File over App / BYOAI）皆有對應 Karpathy blockquote，'agent proficiency is a CORE SKILL' 也完整引述，內容明確源自宣告的 sourceUrl tweet thread。",
+            "attribution": "Karpathy 的直接引言均以 blockquote 格式標注，ClawdNotes 與 body 分離清楚；但三個缺口：(1) 'File over App' 提及的文章未附連結，(2) 末段 ClawdNote 的「另一篇推文」沒有 URL 或日期，(3) 'AI 公司知道這件事，而且很多時候這就是他們的商業模式' 為 body 內的編輯意見但未標明為 Clawd 觀點。Frontmatter 另有 harness 欄位（Gemini CLI + Codex CLI）與 pipeline 欄位（全部 Claude Code CLI）互相矛盾的 meta-attribution 問題。"
+          }
+        },
+        "model": "sonnet",
+        "attempts": 2
+      }
+    },
+    "status": "FAILED",
+    "failedStage": "librarian",
+    "finishedAt": "2026-04-15T10:57:00+08:00"
   }
 }
