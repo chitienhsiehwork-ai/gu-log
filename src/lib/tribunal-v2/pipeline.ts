@@ -426,6 +426,12 @@ async function runStage4(state: PipelineState, config: PipelineConfig): Promise<
     return;
   }
 
+  // Persistent constraint-violation feedback carried across loops — same
+  // pattern as runJudgeWriterLoop so Stage 4 writer violations get caught
+  // before commit (Stage 4 fail is non-blocking but mutations still land
+  // on the tribunal branch and get squash-merged into main).
+  let pendingConstraintFeedback = '';
+
   for (let loop = 1; loop <= stage.maxLoops; loop++) {
     stage.loops = loop;
 
@@ -450,9 +456,34 @@ async function runStage4(state: PipelineState, config: PipelineConfig): Promise<
 
     // FAIL — try writer if more loops
     if (loop < stage.maxLoops) {
-      const feedback = formatFeedback(judgeOutput);
+      const judgeFeedback = formatFeedback(judgeOutput);
+      const feedback = pendingConstraintFeedback
+        ? `STRUCTURAL CONSTRAINTS (previous rewrite was rejected — MUST fix these this time):\n${pendingConstraintFeedback}\n\n${judgeFeedback}`
+        : judgeFeedback;
+
       const writerResult = await config.runners.stage4Writer.run({ articleContent, feedback });
       await config.io.writeArticle(state.articlePath, writerResult.content);
+
+      // Enforce writer-constraints BEFORE committing — Stage 4 has its own
+      // dedicated writer (v2-final-vibe-writer) but the same structural
+      // invariants apply (URLs / headings / frontmatter / pronouns).
+      const afterContent = await config.io.readArticle(state.articlePath);
+      const constraints = await enforceWriterConstraints(
+        articleContent,
+        afterContent,
+        state.articlePath
+      );
+
+      if (!constraints.pass) {
+        await config.io.writeArticle(state.articlePath, articleContent);
+        pendingConstraintFeedback = constraints.feedback;
+        await config.git.commit(
+          `tribunal(stage4): Final Vibe writer rejected (constraint violations) — loop ${loop}/${stage.maxLoops}`
+        );
+        continue;
+      }
+
+      pendingConstraintFeedback = '';
       await config.git.commit(
         `tribunal(stage4): Final Vibe writer — loop ${loop}/${stage.maxLoops}`
       );
