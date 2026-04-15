@@ -80,15 +80,45 @@ pnpm run build
 
 確認 build 通過，沒有 error。
 
-## Step 7：Commit & Push
+## Step 7：Commit（本地，先不 push）
 
 ```bash
 git add src/content/posts/clawd-picks-* src/content/posts/en-clawd-picks-* scripts/article-counter.json
 git commit -m "CP-N: 簡短標題描述"
+```
+
+## Step 7.5：Tribunal v2 Quality Log（log-only，~20–30 min）
+
+每篇文章 commit 後跑 tribunal-v2 的 5-stage 品質 pipeline，log-only 模式產出 audit log。之後會 flip 成 `apply` 模式變成 publish gate。
+
+```bash
+# 從剛 commit 的檔案找 CP 中文 .mdx（跳過 en- 版）
+CP_FILE=$(git show --stat --name-only HEAD \
+  | grep -E "^src/content/posts/cp-[0-9]+-[^/]+\.mdx$" \
+  | head -1)
+if [ -n "$CP_FILE" ]; then
+  echo "[cp-writer] running tribunal-v2 log-only on $CP_FILE ..."
+  LOG="/tmp/tribunal-v2-$(basename "$CP_FILE" .mdx).log"
+  TRIBUNAL_V2_SQUASH_MERGE=log-only pnpm tribunal:run "$CP_FILE" 2>&1 | tee "$LOG" || true
+  # tribunal 會切到 side branch，切回 main 才能繼續 push
+  git checkout main
+else
+  echo "[cp-writer] tribunal skipped: couldn't identify CP file from HEAD"
+fi
+```
+
+注意：
+- log-only 失敗（`|| true`）不 block push，soak 階段純 observability
+- tribunal 一定會在 side branch（`tribunal/YYYY-MM-DD-cp-N-slug`）累積 commits，只留 local 不 push
+- 跑完必 `git checkout main`，否則 Step 8 push 會跑錯分支
+
+## Step 8：Push
+
+```bash
 git push
 ```
 
-## Step 8：自動擴充帳號
+## Step 9：自動擴充帳號
 
 如果搜尋過程中發現有趣的新帳號（被 retweet、被引用、或在討論串中出現），直接加進 `scripts/clawd-picks-config.json` 的 accounts 陣列，一起 commit。
 
