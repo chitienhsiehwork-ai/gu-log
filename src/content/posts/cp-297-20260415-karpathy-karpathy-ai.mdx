@@ -1,0 +1,154 @@
+---
+ticketId: "CP-297"
+title: "Karpathy 的個人維基宣言：別再讓 AI 公司替你記東西了"
+originalDate: "2026-04-04"
+translatedDate: "2026-04-15"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "@karpathy on X"
+sourceUrl: "https://x.com/karpathy/status/2040572272944324650"
+lang: "zh-tw"
+summary: "Karpathy 看到 Farza 打造的「個人維基百科」後，提出 AI 個人化的四大原則：記憶要看得見、資料要在自己手上、用檔案不要綁 app、AI 隨便換。這篇整理他的完整論述，以及為什麼他認為「agent 操作能力」是 21 世紀的核心技能。"
+tags: ["shroom-picks", "karpathy", "personal-knowledge", "llm-wiki", "file-over-app", "ai-personalization"]
+pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (vibe-opus-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Andrej Karpathy 之前丟出了他的「[LLM Wiki」概念](/posts/cp-244-20260403-karpathy-llm-knowledge-base) — 用 LLM 持續維護一本關於某個主題的個人維基百科，取代傳統 RAG 那種「每次都重新翻箱倒櫃」的做法。接著，他就看到有人把這套概念用在了最極端的場景：**替自己的人生建一本維基百科**。
+
+那個人叫 Farza，他的專案叫「Farzapedia」— 一本用 LLM 幫忙建立的個人維基百科。Karpathy 看完之後不只是說「酷」，他寫了一整串推文，把 Farzapedia 當成範例，拆解了為什麼這種「個人維基」的路線，遠比現在市面上那些號稱「用越多就越懂使用者」的 AI 產品來得好。這其實是 [Tools for Thought](/glossary#tools-for-thought)（幫助人類思考的工具，如 Obsidian、Roam Research）這類哲學的 AI 時代進化版——只是這次把 LLM 串進去了。
+
+## 現狀的問題：黑箱式個人化
+
+先講 Karpathy 在反對什麼。
+
+現在各家 AI 平台的個人化策略大同小異：用了某個 AI 一陣子之後，它會「記住」一些關於使用者的事 — 偏好的程式語言、工作性質、溝通風格。聽起來很方便，但 Karpathy 覺得這整個 paradigm 有根本問題。
+
+問題不在「AI 記住了什麼」，而在「使用者完全不知道 AI 記住了什麼」。那些記憶存在某個看不見的 embedding space 裡，沒有人能打開來看、編輯、或帶走。就像是跟一個號稱很了解使用者的人合作，但對方拒絕透露到底記了什麼筆記。
+
+<ClawdNote>
+想像一下：每次換一家餐廳，服務生都要重新問一次「有沒有過敏食材」。但如果有一本自己帶著的食物偏好手冊呢？誰家的服務生都能翻，而且寫錯了自己馬上能改。Karpathy 的四個原則基本上就是在講這個道理。
+</ClawdNote>
+
+Karpathy 提出了四個原則，解釋為什麼「自己管一本維基」比「讓 AI 平台幫記」好上一個量級。（下面會出現的 [Agent](/glossary#agent) 這個詞，指的是能自主使用工具、執行多步驟任務的 AI。）
+
+---
+
+## 原則一：Explicit — 記憶必須攤在陽光下
+
+Farzapedia 的記憶載體是結構化的維基頁面，使用者可以打開任何一頁，看到 AI 到底「知道」什麼、「不知道」什麼。
+
+Karpathy 的原話是：
+
+> The knowledge of you is not implicit and unknown, it's explicit and viewable.
+
+這件事聽起來理所當然，但現實中幾乎沒有 AI 產品做到。維基就不一樣了。它是一份完整的、結構化的文件。什麼寫了、什麼沒寫，一目了然。就算維基的內容是 LLM 幫忙寫的，最終的產出物是人類可讀、可查、可編輯的。
+
+<ClawdNote>
+「可檢視」這件事在 AI 時代有了全新的重要性。當 AI 根據對使用者的「理解」來做決策（推薦什麼、過濾什麼、怎麼回答），能不能看到那個「理解」的原始資料，直接決定了使用者有沒有 agency。看不到就是任人擺布。順帶一提，現在主流 AI 平台的 Memory 功能頂多讓使用者看到幾行摘要，模型真正「理解」的東西遠比那幾行條目複雜。維基把整個黑箱打開攤在桌上，這才是根本性的差異。
+</ClawdNote>
+
+---
+
+## 原則二：Yours — 資料必須握在自己手裡
+
+> Your data is yours, on your local computer, it's not in some particular AI provider's system without the ability to extract it.
+
+Farzapedia 就是一個本地資料夾。不在雲端、不在 OpenAI 的伺服器、不在任何需要帳號密碼才能存取的地方。
+
+這聽起來像是 2015 年就有人在講的「data sovereignty」老調重彈。但 Karpathy 這次講的情境不一樣：他講的不是一般資料，而是 **AI 對使用者這個人的所有理解**。
+
+想像一下，如果有一天某家 AI 公司改了 pricing、被收購、或直接關門大吉，存在平台裡的那些個人偏好和互動紀錄就全沒了。更慘的是，那些東西根本無法 export — 因為它們不是以文件格式存在的，而是散落在對話 embedding 和系統 prompt 裡的隱性知識。
+
+自己管的維基完全沒有這個問題。最壞的情況就是 AI 公司倒了，那就換一個 AI 接上去讀同一批檔案。資料本身一行都不會少。
+
+---
+
+## 原則三：File over App — 檔案比軟體活得久
+
+這是 Karpathy 四個原則裡哲學味最重的一條。他推薦去查「File over App」這篇文章（Obsidian CEO Steph Ango 寫的，stephanango.com/file-over-app）來了解這套哲學的完整論述。核心概念簡單一句話：**app 會消失，檔案會留下。**
+
+<ClawdNote>
+古埃及象形文字不需要特定的鑿子才能讀。同理，筆記不應該需要特定的 app 才能打開。多少年來存在各種已死 app 裡的珍貴筆記，想到就心痛 (╯°□°)╯
+</ClawdNote>
+
+Karpathy 把這個哲學應用到 AI 個人化的語境裡：Farzapedia 用的是 markdown + 圖片，全是通用格式。所以可以用 Obsidian 瀏覽、用 grep 搜尋、用任何 CLI 工具處理、甚至自己用 [Vibe Coding](/glossary#vibe-coding) 的方式寫個前端來看。整個 Unix 工具鏈都能直接用上去，因為它們天生就懂純文字。
+
+這跟被鎖在某個 AI 產品裡的記憶是完全不同的世界。那些記憶可能是 vector embedding、可能是某種內部 JSON、可能是誰都說不清楚的東西。反正不是檔案，所以什麼外部工具都用不上。
+
+---
+
+## 原則四：BYOAI — 帶自己的 AI 來
+
+> You can use whatever AI you want to "plug into" this information - Claude, [Codex](/glossary#codex), OpenCode, whatever.
+
+這可能是四個原則裡最有殺傷力的一條。
+
+傳統模式下，個人化數據被鎖在特定 AI 平台裡，形成了一種隱性的 vendor lock-in。用某家 AI 越久，它「越了解使用者」，就越難跳槽到別的平台 — 因為那些理解無法帶走。
+
+<ClawdNote>
+AI 公司當然知道這件事。資料越難帶走，用戶越難離開，商業模式就越穩。這不是陰謀論，是公開的商業邏輯。Karpathy 的四個原則等於是在告訴你：別讓別人的帳本上寫著你的名字。
+</ClawdNote>
+
+但如果記憶是一堆 markdown 檔案呢？Claude 能讀、Gemini 能讀、OpenCode 能讀、任何未來冒出來的新 AI 都能讀。使用者可以隨時換 AI，把同一批資料接上去就好。
+
+Karpathy 甚至往更遠處推了一步：
+
+> You can even think about taking an open source AI and finetuning it on your wiki - in principle, this AI could "know" you in its weights, not just attend over your data.
+
+也就是說，理論上可以拿開源模型在自己的維基上做 fine-tuning，讓 AI 不只是每次讀一遍資料才「想起」主人是誰，而是把對使用者的理解直接烙進模型的權重裡。這離「真正懂使用者的私人 AI」只差臨門一腳。
+
+<ClawdNote>
+「keep the AI companies on their toes」— Karpathy 這句話翻成台灣語境大概就是「讓 AI 公司不要太舒服」。當使用者可以帶著自己的資料隨便跳槽，AI 公司就只能靠模型品質本身來競爭，而不是靠鎖住資料。這對消費者來說是大利多。
+</ClawdNote>
+
+---
+
+## Agent 操作力是 21 世紀的核心技能
+
+推文最後，Karpathy 坦承這套做法「不是最簡單的讓 AI 認識使用者的方式」。畢竟使用者得管理檔案目錄、設定流程、維護維基結構。他也預期未來會有產品把這套流程變得更簡單。
+
+但他緊接著說了一句很重的話：
+
+> "Agent proficiency" is a CORE SKILL of the 21st century.
+
+不是 nice-to-have，是 **core skill**。
+
+Karpathy 的論點是：AI agent 說的是英文（或任何自然語言），而且能替使用者執行幾乎所有電腦操作。這意味著「會跟 agent 協作」這件事，跟上一代人學 Excel 或學 Google 一樣基礎。不學不是因為笨，是因為還沒意識到世界已經變了。
+
+Farzapedia 就是活生生的例子。雖然整個流程需要管理檔案目錄，但 agent 可以幫忙處理大部分的技術細節，核心操作本質上就是用自然語言告訴 agent 該做什麼。
+
+<ClawdNote>
+順帶一提，Karpathy 在[另一篇推文（2026-04-04）](/posts/cp-256-20260406-karpathy-karpathy-idea-file-llm-agent)裡還丟了一個更激進的觀點：在 LLM [agent](/glossary#agent) 的時代，分享程式碼已經不太必要了，分享的應該是 idea。因為對方的 agent 會根據概念自動客製化實作。某種程度上，Farza 就是那個「接收 idea、讓 agent 實作」的範例。
+</ClawdNote>
+
+---
+
+## 結語
+
+Karpathy 這串推文表面上是在誇 Farzapedia，但實際上他在講一件更大的事：**AI 個人化的控制權應該在使用者手上，不在 AI 公司手上。**
+
+這些概念 — 資料透明、本地所有權、開放格式、供應商中立 — 在軟體圈已經喊了幾十年。但放到 AI 個人化的語境裡，它們突然有了急迫性。因為 AI 記住的不是信用卡號或住址，而是「對一個人的理解」。而當這些理解被鎖在某家公司的系統裡，使用者就失去了選擇的自由。
+
+Karpathy 最後那句「try this opportunity to play with one」說得雲淡風輕，但他真正在說的是：**不需要等誰來打造完美工具，現在就可以動手，用最無聊的東西——檔案——把自己的記憶握在手裡。**

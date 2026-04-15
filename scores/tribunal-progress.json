@@ -3838,5 +3838,98 @@
     "status": "FAILED",
     "failedStage": "librarian",
     "finishedAt": "2026-04-15T10:57:00+08:00"
+  },
+  "cp-297-20260415-karpathy-karpathy-ai.mdx": {
+    "article": "cp-297-20260415-karpathy-karpathy-ai.mdx",
+    "startedAt": "2026-04-15T11:05:12+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 8,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "All four glossary terms appearing in the body (Tools for Thought, Agent, Vibe Coding, Codex) are properly linked; no glossary term slipped through unlinked.",
+            "crossRef": "Both internal post links resolve (cp-244, cp-256); glossary anchors match existing terms; ShroomDog/Clawd not named explicitly in body so /about identity links are not triggered; one optional Obsidian cross-ref could be added.",
+            "sourceAlign": "Content maps directly to Karpathy's tweet thread about Farzapedia and personal wiki AI personalization; all four principles covered in faithful sequence.",
+            "attribution": "All six blockquote pulls explicitly attributed to Karpathy; ClawdNote opinions fully contained within ClawdNote boxes; minor gap: final quote 'try this opportunity to play with one' embedded in prose without blockquote."
+          }
+        },
+        "model": "sonnet",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factChecker",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "此文主要是哲學/觀點型推文翻譯，硬技術數字極少，無捏造數字紅旗；Steph Ango 是 Obsidian CEO、'File over App' 出自 stephanango.com/file-over-app 均可查證屬實；fine-tuning 可能性以「理論上」保留不確定性，符合來源用語 'in principle'；因 sourceUrl 為 2026-04 推文無法即時 fetch 驗原文，但所有引述均以 blockquote 清楚標記，tweet-sourced 等級給 8。",
+            "fidelity": "Karpathy 四個原則的英文原話全數以 blockquote 形式保留，未翻譯成中文而直接呈現，忠實度極高；來源明確承認「不是最簡單的方式」此 caveat 在結語段被忠實保留（'Karpathy 坦承這套做法「不是最簡單的讓 AI 認識使用者的方式」'）；ClawdNote 意見與正文明確區隔，未發生 uncertainty erasure，給 9。",
+            "consistency": "文章論述結構完整：問題（黑箱個人化）→ 四原則解法 → Agent 能力是核心技能 → 結語呼籲，每個環節邏輯銜接無斷點；ClawdNote 的商業分析（vendor lock-in 是公開商業邏輯）清楚標記為 Clawd 觀點，不與正文事實主張混淆；cp-256 的交叉引用置於 ClawdNote 中屬附帶評論，未影響主論述一致性，給 9。"
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "結構清晰（四大原則 + 結語），ClawdNote 的餐廳比喻和埃及象形文字比喻有效降低入門門檻；「embedding space」一詞未解釋，3 個月新手可能要停一下，但 glossary 連結（agent、Vibe Coding、Codex）有補足，整體流暢。",
+            "firstImpression": "Karpathy 是知名人物，主題（AI 到底在記你什麼？）直接打到新手痛點；四個原則層層遞進，結尾「用最無聊的東西——檔案——把自己的記憶握在手裡」有力收尾，會讀完；話題時效性高，若朋友問起 AI 個人化會想傳這篇。"
+          }
+        },
+        "model": "haiku",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "fail",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 7,
+            "clawdNote": 8,
+            "vibe": 7,
+            "clarity": 9,
+            "narrative": 7
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "persona": "Body text has solid rhetorical pivots (「問題不在X而在Y」、「這聽起來像老調重彈，但情境不一樣」) but all warmth and life analogies live entirely in ClawdNotes; stripped of those, the skeleton is a linear 4-principles report rather than a professor talking in front of students.",
+            "clawdNote": "Notes 2, 4, and 5 clear the opinion bar — 「看不到就是任人擺布」, naming vendor lock-in as intentional business logic (not conspiracy), and consumer-benefit framing of BYOAI; notes 1 and 3 are charming analogies-only, and note 6 is a pure cross-ref, which barely holds the 50%-must-have-stance threshold at 8.",
+            "vibe": "Clean and readable with no tab-closing moments, but the experience reads as 「整理了 Karpathy 的四個原則」 rather than 「被一個論點說服了」; ending punch (「用最無聊的東西——檔案——把自己的記憶握在手裡」) is the best line but arrives too quietly to elevate the whole.",
+            "clarity": "Zero 你/我 violations in body text; 「使用者」used consistently; Karpathy quotes properly blockquoted throughout; ClawdNote first-person is the allowed exception — clean discipline top to bottom.",
+            "narrative": "BYOAI section earns genuine escalation (「最有殺傷力的一條」→ fine-tuning extrapolation) and the Farza callback in the coda is a light structural echo; but the 4 principles are presented additively with no inter-section tension or surprise, so stripping ClawdNotes leaves a listicle skeleton — one good ending cannot carry a narrative arc."
+          }
+        },
+        "model": "opus",
+        "attempts": 3
+      }
+    },
+    "status": "FAILED",
+    "failedStage": "vibe",
+    "finishedAt": "2026-04-15T12:43:52+08:00"
   }
 }
