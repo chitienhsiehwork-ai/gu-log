@@ -137,8 +137,20 @@ describe('checkHeadingsPreserved', () => {
     const after = '## Opening\ntext\n## Second Section';
     const result = checkHeadingsPreserved(before, after);
     expect(result.pass).toBe(false);
-    expect(result.violations).toContainEqual({ type: 'removed', heading: 'First Section' });
-    expect(result.violations).toContainEqual({ type: 'added', heading: 'Opening' });
+    // Violation labels now include the heading level so demotions like
+    // `## Foo` → `### Foo` can't hide behind text-only equality.
+    expect(result.violations).toContainEqual({ type: 'removed', heading: '## First Section' });
+    expect(result.violations).toContainEqual({ type: 'added', heading: '## Opening' });
+  });
+
+  it('fails when a heading level changes (## → ###) even if text is identical', () => {
+    const before = '# Title\n## Section\ntext';
+    const after = '# Title\n### Section\ntext';
+    const result = checkHeadingsPreserved(before, after);
+    expect(result.pass).toBe(false);
+    // Same text, different level → reported as removed + added
+    expect(result.violations).toContainEqual({ type: 'removed', heading: '## Section' });
+    expect(result.violations).toContainEqual({ type: 'added', heading: '### Section' });
   });
 
   it('fails when headings are reordered', () => {
@@ -154,7 +166,7 @@ describe('checkHeadingsPreserved', () => {
     const after = '## A\n## Summary\n## B';
     const result = checkHeadingsPreserved(before, after);
     expect(result.pass).toBe(false);
-    expect(result.violations).toContainEqual({ type: 'added', heading: 'Summary' });
+    expect(result.violations).toContainEqual({ type: 'added', heading: '## Summary' });
   });
 
   it('fails when a heading is removed', () => {
@@ -162,7 +174,7 @@ describe('checkHeadingsPreserved', () => {
     const after = '## A\n## C';
     const result = checkHeadingsPreserved(before, after);
     expect(result.pass).toBe(false);
-    expect(result.violations).toContainEqual({ type: 'removed', heading: 'B' });
+    expect(result.violations).toContainEqual({ type: 'removed', heading: '## B' });
   });
 
   it('handles empty content', () => {

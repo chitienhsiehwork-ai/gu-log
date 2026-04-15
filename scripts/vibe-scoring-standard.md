@@ -6,60 +6,66 @@
 
 ## Tribunal System Overview
 
-4 sequential judges, all using **uniform 0-10 scale**. Composite = `floor(avg of all dims)`.
+Tribunal v2 pipeline — 5 stages (0–4). All judges use **uniform 0-10 integer scale**. Composite = `Math.floor(avg of all dims)`.
 
 | Stage | Judge | Model | Dimensions | Pass Bar |
 |-------|-------|-------|------------|----------|
-| 1 | Librarian | Sonnet | glossary · crossRef · sourceAlign · attribution | composite ≥ 8 |
-| 2 | Fact Checker | Opus | accuracy · fidelity · consistency | composite ≥ 8 |
-| 3 | Fresh Eyes | Haiku | readability · firstImpression | composite ≥ 8 |
-| 4 | Vibe Scorer | Opus | persona · clawdNote · vibe · clarity · narrative | composite ≥ 8 AND one dim ≥ 9 AND no dim < 8 |
+| 0 | Worthiness Gate | Opus | coreInsight · expandability · audienceRelevance | WARN mode — always advances, marks frontmatter if low |
+| 1 | Vibe | Opus | persona · clawdNote · vibe · clarity · narrative | composite ≥ 8 AND one dim ≥ 9 AND no dim < 8 |
+| 2 | Fresh Eyes | Opus | readability · firstImpression | composite ≥ 8 |
+| 3 | FactLib (combined) | Opus | factAccuracy · sourceFidelity · linkCoverage · linkRelevance | fact_pass AND library_pass (independent) |
+| 4 | Final Vibe | Opus | persona · clawdNote · vibe · clarity · narrative | relative: no dim drops > 1 from Stage 1 |
 
-## Uniform Agent Output JSON
+## Uniform Agent Output JSON (v2)
 
-All judges output the same structure:
+All judges output the `BaseJudgeOutput` shape from `src/lib/tribunal-v2/types.ts`:
 
 ```json
 {
-  "judge": "<judge-name>",
-  "dimensions": {
+  "pass": true,
+  "scores": {
     "<dim1>": 8,
     "<dim2>": 9
   },
-  "score": 8,
-  "verdict": "PASS",
-  "reasons": {
-    "<dim1>": "One sentence with specific evidence.",
-    "<dim2>": "One sentence with specific evidence."
-  }
+  "composite": 8,
+  "improvements": {
+    "<dim1>": "Specific, actionable rewrite suggestion for this dimension."
+  },
+  "critical_issues": ["1-3 root-cause statements"],
+  "judge_model": "claude-opus-4-6",
+  "judge_version": "2.0.0",
+  "timestamp": "2026-04-15T12:00:00Z"
 }
 ```
 
-- `score` = `floor(sum of dimension values / count of dimensions)` — agent calculates this
-- `verdict` = `"PASS"` or `"FAIL"` — **advisory only**
-- Orchestrator uses `checkPassBar(judge, dimensions)` in code for final verdict
+**Field rules:**
+- `pass` — boolean. Judge's self-assessed verdict per their pass bar (below).
+- `scores` — object, exactly the dimension keys for that judge, each integer 0-10.
+- `composite` — `Math.floor(sum(scores) / count(scores))`.
+- `improvements` — per-dimension rewrite guidance. **Only populate when `pass === false`** (省 token on PASS).
+- `critical_issues` — 1-3 root-cause statements. **Only populate when `pass === false`**.
+- `judge_model` — your model identifier (e.g. `"claude-opus-4-6"`).
+- `judge_version` — semver of this prompt (e.g. `"2.0.0"`).
+- `timestamp` — ISO 8601.
+
+Stage 3 (FactLib) extends this with `fact_pass` and `library_pass` booleans. Stage 4 (Final Vibe) extends with `stage_1_scores`, `degraded_dimensions`, `is_degraded`. See `types.ts` for exact shapes.
 
 ## Pass Bar: Code is the Rule
 
-```javascript
-function checkPassBar(judge, dimensions) {
-  const values = Object.values(dimensions);
-  const composite = Math.floor(values.reduce((a, b) => a + b) / values.length);
+The orchestrator in `src/lib/tribunal-v2/pass-bar.ts` is the ultimate authority. Even if an agent sets `pass: true`, the orchestrator re-evaluates. Mismatches are logged — agents must keep `pass` aligned.
 
-  if (composite < 8) return { pass: false, composite, reason: `composite ${composite} < 8` };
+```typescript
+// Stage 1 / Stage 4 (Vibe)
+composite >= 8 && max(scores) >= 9 && min(scores) >= 8
 
-  if (judge === 'vibe') {
-    const max = Math.max(...values);
-    const min = Math.min(...values);
-    if (max < 9) return { pass: false, composite, reason: `no dimension ≥ 9 (max: ${max})` };
-    if (min < 8) return { pass: false, composite, reason: `dimension < 8 (min: ${min})` };
-  }
+// Stage 2 (Fresh Eyes), Stage 3 (FactLib per independent axis)
+composite >= 8
 
-  return { pass: true, composite };
-}
+// Stage 4 relative check — applied on top of Stage 4 absolute
+forEach dim: stage1Score - stage4Score <= 1
 ```
 
-Agent verdict and code verdict disagree → **code wins**. Log the discrepancy.
+Agents self-assess `pass` but the pass-bar lib wins. Log the discrepancy.
 
 ---
 
@@ -338,11 +344,12 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
 ## Evaluation Protocol (All Judges)
 
 1. **Read the ENTIRE post** — don't skim
-2. **Score each dimension independently** (0-10)
-3. **Write 1-2 sentence justification per dimension** — specific, cite examples
-4. **Calculate composite** = floor(avg of all dims)
-5. **Apply pass bar** — check composite ≥ 8; for vibe, also check one ≥ 9 and no dim < 8
-6. **Output uniform JSON** — `{ judge, dimensions, score, verdict, reasons }`
+2. **Score each dimension independently** (integer 0-10)
+3. **Calculate composite** = `Math.floor(avg of all dims)`
+4. **Apply pass bar** — per-judge rules above; set `pass` accordingly
+5. **If `pass === false`:** write actionable `improvements` per failing dimension + 1-3 `critical_issues` root causes
+6. **If `pass === true`:** omit `improvements` and `critical_issues` to save tokens
+7. **Output v2 JSON** — `BaseJudgeOutput` shape from `src/lib/tribunal-v2/types.ts` (`pass/scores/composite/improvements?/critical_issues?/judge_model/judge_version/timestamp`)
 
 ---
 
