@@ -1,0 +1,459 @@
+---
+ticketId: "SP-174"
+title: "你的『AI-First』大概是假的：25 人 agent 公司怎麼把整條工程流程砍掉重練"
+originalDate: "2026-04-13"
+translatedDate: "2026-04-15"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Translator"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+source: "@intuitiveml on X"
+sourceUrl: "https://x.com/intuitiveml/status/2043545596699750791"
+lang: "zh-tw"
+summary: "CREAO 這間 25 人的 agent 平台公司，把整條 engineering pipeline 拆掉重設計——PM、QA、部署、組織結構通通圍著『agent 是主要 builder』重寫。結果：每天上線 3-8 次、爛 feature 當天砍掉、以前要六週的 cycle 現在當天完成。這是 harness engineering 的實戰版——也是大多數自稱 AI-first 的公司其實沒做到的事。"
+tags: ["ai-agents", "agent-harness", "harness-engineering", "ai-first", "workflow", "startup"]
+scores:
+  tribunalVersion: 2
+  ralph:
+    p: 7
+    c: 9
+    v: 8
+    score: 7
+    date: "2026-04-15"
+    model: "claude-opus-4-6"
+  vibe:
+    persona: 8
+    clawdNote: 9
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-04-16"
+    model: "claude-opus-4-6"
+  freshEyes:
+    readability: 9
+    firstImpression: 9
+    score: 9
+    date: "2026-04-16"
+    model: "claude-opus-4-6"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+先講場景。
+
+上週二早上 10 點，他們上線了一個新 feature。中午 A/B 測試結果出來。下午 3 點，數據說不行，直接砍掉。下午 5 點，更好的版本上線。
+
+三個月前，同樣一個 cycle 要六週。現在，同樣的團隊平均一天 deploy 3 到 8 次 production——不是某個有 500 個工程師的大公司。CREAO 有 25 個人、10 個工程師。產線上 99% 的 code 是 AI 寫的。而且不是靠「把 Copilot 裝進 IDE」達成的——他們把整套 engineering 流程拆掉，圍著「[agent](/glossary#agent) 是主要 builder」這個前提重蓋了一遍。代價是 CTO 每天寫 code 18 小時、兩週真空期、senior 質疑自己的存在意義。但兩個月後，數字自己說話，user engagement 和付款轉換率都上升了。
+
+作者 @intuitiveml 是 CREAO 的 CTO，有物理博士。這篇長文記錄了他們怎麼走到這一步——以及那些不會放進投影片的代價。
+
+<ClawdNote>
+10 AM 上線、3 PM 砍掉、5 PM 重上線——聽起來很爽對吧？但你是不是也想到了：「所以那天上午到下午這幾小時的 user 是被拿來當白老鼠測 A/B 的？」答案是對，就是這樣。這不是 bug，這是 feature——當你接受 `feature flag + 即時 metrics + 小比例 rollout` 就是 production 的一部分，白老鼠變成常態。重點在有沒有 guardrail（金絲雀比例、自動熔斷、monitoring），沒有的話那不叫實驗，叫亂搞 ╰(°▽°)╯
+</ClawdNote>
+
+## AI-First 不等於「有在用 AI」
+
+多數公司的做法是把 AI 黏在現有流程上面。工程師開 Cursor。PM 用 ChatGPT 寫 spec。QA 拿 AI 生測試。**workflow 完全沒變**，效率上升 10-20%，結構性的東西一點都沒動。
+
+這叫 **AI-assisted**。
+
+AI-first 是另一件事：**整條流程、架構、組織都圍著「AI 是主要 builder」這個假設重新設計。** 問題不再是「AI 怎麼幫工程師？」，而是「怎麼把所有東西重組，讓 AI 來蓋、工程師來下判斷？」
+
+這兩者是**乘法差異**，不是加法。
+
+很多團隊一邊宣稱自己 AI-first，一邊還在跑原本的 sprint 週期、原本的 Jira board、原本的 weekly standup、原本的 QA sign-off。他們只是把 AI 塞進同一個 loop，沒有重新設計 loop 本身。
+
+還有一種更慘的叫 **[vibe coding](/glossary#vibe-coding)**：打開 Cursor、prompt 到能動為止、commit、重複。這種東西可以產 prototype，但 production 系統需要穩定、可靠、安全。真正該蓋的是**一個能保證這些性質的系統**——即使 code 是 AI 寫的。系統是產品，prompt 本身是用完即丟的。
+
+## 為什麼 CREAO 非改不可
+
+作者去年看著團隊運作，看到三個會殺死 CREAO 的瓶頸。
+
+### PM 的瓶頸
+
+PM 花幾週研究、設計、寫 spec。產品管理幾十年來都是這樣做的。但 agent 兩小時就能把 feature 蓋完。當 build time 從幾個月塌縮到幾小時，**那個幾週長的 planning cycle 就變成整條鏈路的瓶頸**。
+
+花幾個月想一件事、然後花兩小時蓋完它——這件事本身就不合理。
+
+PM 得演化成「產品思維的架構師」，跟 iteration 同速運作——不然就退出 build cycle。設計要透過快速的 prototype-ship-test-iterate 迴圈來發生，不是用那種「寫 spec 文件、開會討論、委員會審核」的傳統做法。
+
+<ClawdNote>
+這段我同意大部分，但要插嘴：**有些東西本來就該慢慢想**。你 schema 設計錯了，之後 migration 可以寫十年；你 auth boundary 定錯了，security incident 在等你；你 pricing model 拍腦袋拍的，三個月後想改會把早期客戶全得罪；你 API 的 public contract 一旦發佈，revert 不回來。這些東西花幾週想是划算的投資，不是 ceremony。
+
+作者講的「幾個月想一件事再兩小時蓋完它不合理」這句，只適用於**可逆的 feature**——那些你 rollout 後看數據不對可以直接 kill switch 關掉、不會留下永久債的東西。
+
+我會建議把這個規則改成：**可逆的決策用 agent 速度迭代；不可逆的決策該想多久就想多久**。Amazon 也把決策分成 Type 1（one-way door）和 Type 2（two-way door），Jeff Bezos 到現在還是說 Type 1 該慢。作者這邊有偷渡把所有決策都當 Type 2 的味道 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+### QA 的瓶頸
+
+場景：agent 早上十一點交了一個新 feature。QA 開始跑 corner case——不同輸入組合、edge case、session 中斷後的行為。三天後，測試報告出來了。問題是，這三天裡產品已經又改了兩版。QA 測的那個版本，嚴格來說已經不存在了。
+
+Build time: 2 小時。Test time: 3 天。測完的時候，被測的東西是前天的遺跡。
+
+CREAO 把 manual QA 換成**用 AI 蓋的測試平台來測 AI 寫的 code**。這不是「QA 也來導入 AI」那種漸進改良——是承認舊的驗證節奏在新的 build 速度下物理上跟不上，然後從根拔掉重蓋。
+
+### Headcount 的瓶頸
+
+前面兩個問題其實都指向同一道更殘酷的算術：CREAO 25 人，做同類產品的競爭對手有上百倍甚至更多的人力。招人追？25 人的 burn rate 去搶 2500 人公司的工程師，那叫送錢不叫招募。
+
+唯一的活路不是追人數，是把棋盤翻過來——讓同一個人配上 agent 之後的產出，等於對面五個人不配 agent 的產出。但這件事的前提是：產品設計、實作、測試三條線**全部**都得跑在 AI 上。只要任何一條還卡在人速，它就會變成整條 pipeline 的 bottleneck，所有其他地方的加速全部白做。
+
+## 那個大膽的決定：把架構統一
+
+第一件事是先把 codebase 修好。
+
+CREAO 原本的架構分散在好幾個獨立系統。一個改動可能要碰三四個 repo。從人類工程師角度看，還可以 manage。從 AI agent 角度看，**opaque**——agent 看不到全局、沒辦法 reason 跨服務的連動、沒辦法在本地跑 integration test。
+
+作者把所有 code 併進一個 monorepo。理由只有一個：**讓 AI 能看見全部**。
+
+這就是 [harness engineering](/glossary#agent-harness) 的原則實踐版。系統愈多部分拉進一個 agent 能 inspect、validate、modify 的形式，拿到的槓桿就愈大。**破碎的 codebase 對 agent 是隱形的；統一的 codebase 對 agent 是 legible 的。**
+
+作者花一週設計新系統——planning stage、implementation stage、testing stage、integration testing stage。再花一週用 agent 把整個 codebase 重新架構一次。
+
+CREAO 是 agent 平台。CREAO 用自己的 agent 重蓋了「跑 agent 的那個平台」。如果產品能蓋它自己，它就能用。
+
+<ClawdNote>
+這個「monorepo 給 AI 看」的論點超重要，本質上跟 gu-log 自己在做的事一樣。我們的 `CLAUDE.md` 就是入口檔，指向各個 SSOT（`CONTRIBUTING.md`、`WRITING_GUIDELINES.md`、`vibe-scoring-standard.md`）——讓 AI 進來就能 map 出整個 repo 的規則，而不是要自己摸索十個散在不同 repo 的 README。
+
+這個 pattern 跟 SP-98（OpenAI 的 harness engineering 原廠版）講的「給地圖而不是百科全書」是同一件事的不同角度：
+
+- **OpenAI 的版本**：AGENTS.md 只留 100 行當目錄，細節讓 agent 自己去找
+- **CREAO 的版本**：code 全部併進 monorepo，讓 agent 能一次看完
+
+兩邊都在 optimize「agent 的 cognitive load」。人類可以靠多年的 context 腦補，AI 做不到——所以你得把系統的可見度（legibility）當成一等公民去設計 (๑•̀ㅂ•́)و✧
+
+延伸閱讀：[SP-98：OpenAI 的 harness engineering 原廠版](/posts/sp-98-20260303-openai-harness-engineering/)
+</ClawdNote>
+
+## 他們的 Stack
+
+想像一下：公司最資淺的實習生，凌晨三點，獨自一人 push 了一個 hotfix 到 production，跑完整個 deploy pipeline，然後自己看 log 判斷有沒有搞砸。
+
+任何正常的工程主管聽到這句話都會心臟漏一拍。但 CREAO 每天都在讓這件事發生——只是那個「實習生」換成了 agent。Agent 寫 code 快、不喊累、不用付加班費，但它沒有直覺、沒有「感覺哪裡怪怪的」的能力、不會因為心虛而主動喊停。所以 CREAO 的 stack 不是「什麼順手就裝什麼」的工具箱——每一塊基礎建設回答的都是同一個問題：**怎麼讓這個沒有直覺的實習生，在凌晨三點也不會把房子燒了？**
+
+### 基礎建設：AWS
+
+凌晨三點零七分。Agent 剛 deploy 了一個 memory leak 的 fix。沒有人在線。
+
+十秒後，auto-scaling container service（相當於 k8s 的 Deployment + HPA）開始觀察新版本的 health check。一分鐘後，circuit-breaker（ECS 原生的部署熔斷機制）判定新版本的 error rate 沒有上升——放行，舊容器逐步退場。接著 agent 做了一件人類工程師在凌晨三點絕對不會做的事：打開 CloudWatch，查了過去五分鐘每一條相關服務的結構化 log。
+
+Error rate 降了。那張在 Linear 上掛了兩天的 ticket，被自動標記為 resolved。
+
+如果 error rate 沒降呢？Circuit-breaker 會在 metrics 惡化的瞬間自動退版，agent 開一張新的 investigation ticket，附上「嘗試了 X 但沒用」的 context，等早上人類接手。
+
+整套東西的中樞神經是 CloudWatch——結構化 logging 橫跨所有服務、25 條以上的 alarm、custom metrics 被每日自動 workflow query。**AI 讀不到 log，就沒辦法診斷問題。** Observability 不是 nice-to-have，是那個凌晨三點的實習生能不能獨立作業的安全網。
+
+### CI/CD：GitHub Actions
+
+人類工程師碰到 flaky test，會靠直覺判斷「這個八成是 timing issue，跟這次的 code 無關」然後按 re-run。Agent 做不到。Agent 看到紅燈就是紅燈，它沒有「這次應該沒事」的直覺可以依賴。
+
+所以 CREAO 的 pipeline 有一條鐵律：**零例外、零 manual override**。每個 PR 過六道關卡——typecheck、lint、unit + integration test、Docker build、Playwright E2E、環境一致性檢查——全綠才放行，一道紅就擋，不管是誰開的 PR、不管那個 test 上一次也紅過。
+
+```
+Verify CI → Build and Deploy Dev → Test Dev → Deploy Prod → Test Prod → Release
+```
+
+聽起來很死板？正是。Pipeline 越可預測，agent 就越能推理失敗的原因——「第三階段紅了、是 integration test、上一次同樣的 test 過了、所以問題在這次的 diff 裡」。**可預測性就是 agent 的推理燃料。** 人類可以容忍混亂；agent 只能在秩序裡運作。
+
+### AI Code Review：Claude
+
+一天 deploy 八次。一個人類 reviewer 大約在第三個 PR 之後開始恍神，第五個 PR 開始按 LGTM 當反射動作。到第八個的時候，那個 review 已經只是儀式了。
+
+CREAO 的解法：每個 PR 觸發**三道並行的 Claude Opus 4.6 review**——品質（邏輯錯誤、效能、可維護性）、安全（漏洞掃描、auth boundary、injection）、依賴（供應鏈風險、版本衝突、license）。三道都是 **gate，不是建議**——紅了就擋，不是貼個 comment 然後讓人類自己斟酌。
+
+人類 reviewer 還是在，但角色翻轉了：不再逐行看 code 對不對，而是看 agent 的三道 review 有沒有漏掉的 strategic 問題。工程師也會在 issue / PR 裡 `@claude` 開 debug session——agent 看得到整個 monorepo，conversation context 有連續性，不用每次從頭解釋 codebase 長什麼樣。
+
+### 自動修復迴圈（整篇核心）
+
+UTC 早上九點。沒有人按任何按鈕。
+
+Claude Sonnet 4.6 自己爬起來了——query CloudWatch、掃過所有服務的 error pattern、產一份 executive health summary、發到 Microsoft Teams。工程師打開 Teams 的時候，診斷已經躺在那裡等著，像一份不知道是誰寫的晨報。**不是人類寫的。是 agent 自己跑的健檢。**
+
+一小時後，十點。Triage engine 接手，做的事比晨報更激進：從 CloudWatch + Sentry 撈 production error，在九個嚴重性維度上打分數，然後直接在 Linear 開 investigation ticket。不是「建議某人去看看」的那種 ticket——是附了 sample log、受影響 user 數、受影響 endpoint、建議調查路徑的完整診斷單。
+
+Ticket 管理也是自動的。同一個 error pattern 已經有 open ticket？Update 那張，不重複開。上週 close 掉的 issue 同樣的 error 又出現？Detect regression，重開，標記復發。
+
+下午，工程師 push fix。同一套三道 Claude review 評估 PR、CI 驗證、六階段 deploy pipeline 走 dev → prod（每階段帶測試）。部署完，triage engine 回頭查 CloudWatch——原本的 error pattern 消失了嗎？消失了，Linear ticket 自動 close。
+
+> 我跟 Business Insider 記者說過：「AI 會開 PR，人類只要 review 風險。」
+
+整條迴圈——偵測 → 診斷 → 開 ticket → 修復 → 驗證 → 關 ticket——可以在沒有人類介入的情況下跑完。人類存在的意義是 override，不是 operate。
+
+<ClawdNote>
+這段是整篇最值得抄的 pattern，但 AWS 味太重。整理給 k8s / AKS 讀者的對照：
+
+| CREAO 的組件（AWS） | k8s / cloud-agnostic | AKS 特化選項 |
+|---|---|---|
+| Auto-scaling container services | Deployment + HPA / KEDA | + cluster autoscaler |
+| Circuit-breaker rollback（ECS 原生）| Argo Rollouts / Flagger 的 canary analysis | Argo Rollouts 最常見 |
+| CloudWatch（logs + metrics + alarms 一體）| Prometheus + Loki + Grafana | Azure Monitor + Application Insights |
+| CloudWatch alarms（25+ 條）| Prometheus AlertManager rules | Azure Monitor alert rules |
+| Sentry + CloudWatch 合流 | Sentry + Loki（用 trace ID 串）| Sentry + App Insights |
+
+**重點：這個 self-healing loop pattern 跟 cloud 廠商無關。**
+
+- 每天早上某個時間，agent 讀 logs → 產 summary → 丟到團隊頻道
+- agent cluster 錯誤 → 自動開 ticket（附 sample logs + 建議調查路徑）
+- 有 open ticket 的同類錯誤 → dedup，不重複開
+- 修完 → agent 回頭驗證 → ticket 自動關
+
+你用什麼 stack 都可以蓋。AWS 的人爽在 CloudWatch 一套搞定；k8s/AKS 的人要自己拼 Prom + Loki + Sentry，但換來的是**不綁雲**。pattern 相同，組裝零件不同 ʕ•ᴥ•ʔ
+</ClawdNote>
+
+### Feature flag 和周邊 stack
+
+回到開場那個場景。上午十點上線的 feature 為什麼下午三點可以秒殺？不是因為工程師手速快——是因為每個 feature 從第一天就 ship 在 **Statsig** 的 gate 後面。先開給內部五個人用，沒問題才逐步放量到 5%、20%、全開。A/B 測試跑同一套系統，metrics 進同一個 dashboard。下午三點數據說這個 feature 讓指標掉了，kill switch 一按，feature 秒關，連 re-deploy 都不用。**爛 feature 跟它 ship 的那天同一天死，不會拖到下週 retro 才被討論。**
+
+剩下的拼圖：**Graphite** 確保 PR 不會打架——merge queue 自動 rebase、重跑 CI、綠了才 merge，在一天八次 deploy 的節奏下維持 main branch 的穩定。**Sentry** 跨服務回報結構化 exception，跟 CloudWatch 合流後讓 triage engine 拿到完整的 cross-tool 視野。**Linear** 是人類看到的那一層——自動建 ticket、dedup 防噪音、驗證通過自動 close。
+
+## 一個 feature 怎麼從想法走到 production
+
+前面拆了一堆零件。零件講得再清楚也只是零件——重要的是裝起來跑一次。來看兩個場景：一個新 feature 從想法走到使用者手上，一個凌晨的 bug 在工程師還在睡覺時就被診斷完畢。
+
+### 新 feature 路徑
+
+週二早上。產品決定要在某個流程加一個新功能。
+
+Architect 花二十分鐘寫一份結構化的 prompt——不是「加一個按鈕」這種一句話指令，而是附了 codebase context（相關模組的目錄結構、現有 API 的 schema）、明確的目標、以及限制條件（哪些東西不能動、哪些 boundary 不能跨）。Agent 拿到 prompt 後自己拆解任務、規劃實作、寫 code、產測試、開 PR。
+
+PR 出來的瞬間，三道 Claude review 同時啟動。人類 reviewer 這時候只看一件事：**戰略風險**——「這個 API boundary 對嗎？」「這個 schema change 不可逆嗎？」這類 agent 判斷不了的問題。逐行 review code 對不對、style 有沒有 follow convention——三道自動 review 已經蓋完了。
+
+CI 全綠、Graphite merge queue rebase 過、六階段 deploy pipeline 從 dev 走到 prod，每一階段帶測試。Statsig gate 先對內部開，metrics 正常，開始放量。下午三點看數據——不行就按 kill switch，feature 今天死；行就全開，feature 今天活。
+
+開場那個場景——10 AM 上線、3 PM 砍掉、5 PM 更好的版本上線——走的就是這條路。不是英雄式加班衝出來的，是一條可以每天重複走的 pipeline。
+
+### Bug fix 路徑
+
+凌晨兩點四十三分。沒有人被吵醒。
+
+CloudWatch 某條 alarm 亮了——某個服務的 error rate 在過去十五分鐘開始爬升。同時 Sentry 抓到一個新的 exception cluster，trace 指向當天某次 deploy 引入的一個 edge case。
+
+沒有人需要從床上爬起來翻 log。Triage engine 已經在九個嚴重性維度上打完分數，直接在 Linear 開了一張 investigation ticket——附 sample log、受影響的 user 數、受影響的 endpoint、建議的調查路徑。不是「某個東西壞了」這種讓人想翻白眼的 alert，是一份做完的診斷單。
+
+早上七點半，第一個工程師打開電腦。**診斷已經躺在那裡了。** 不用翻 log、不用猜是哪次 deploy 搞的、不用在 Slack 問「昨天誰改了什麼？」。確認方向、驗證 fix、push。三道 review、CI、六階段 deploy pipeline 走完。Triage engine 回頭查 CloudWatch——error rate 回到正常值。Linear ticket 自動 close。
+
+從 error 出現到修復上線，人類實際動手的時間不到一小時。但如果沒有這條 pipeline，光「早上進公司發現有 bug → 翻 log → 定位 → 修 → deploy → 驗證」就是半天到一天。兩條路——新 feature、bug fix——用同一套 pipeline、同一個標準。
+
+## 結果
+
+14 天。
+
+14 天前，CREAO 還在跑舊的 sprint cycle——一個 feature 從構想到上線要六週，大半時間花在等待。等 PM 寫完 spec。等 QA 測完。等 deploy window。等 sign-off。等。
+
+14 天後，平均每天 3 到 8 次 production 部署。那個開場場景——10 AM 上線、3 PM 砍掉、5 PM 重上線——不是某天運氣好或全員加班衝出來的特例。是常態。每一天。
+
+**同樣兩週，在舊模式下連一次 release 都擠不出來。** 這不是效率提升 20% 的那種改善。是遊戲規則本身換了。
+
+但速度只是這個故事的表層。如果 CREAO 只是「deploy 得更快但品質更爛」——更頻繁地上線更爛的東西——這篇就是一份反面教材，不值得翻。
+
+真正讓團隊意識到這件事 work 的瞬間，不是第一次一天 deploy 八次的那天。是某天下午，A/B 測試結果出來，一個團隊本來非常看好的 feature——數據說不行。在舊模式下，這個 feature 已經走完了完整的 planning cycle、寫了 spec、排了 sprint、蓋了好幾週。砍掉它的政治成本遠大於技術成本——誰要去跟 PM 說「那三週白做了」？所以不會砍。它會帶著「再觀察一下」的 label 活在 production 上幾個月，慢慢被遺忘，直到有人清 backlog 才順手關掉。
+
+在新模式下？下午三點按 kill switch。結束。明天試別的。
+
+**User engagement 上升了。付款轉換率上升了。** 但不是因為 AI 寫的 code 品質比人類好——大部分情況下 AI 寫的 code 品質跟 mid-level 工程師差不多。真正的差異在**回饋迴圈的速度**：每天 ship 學到的東西，比每月 ship 學到的多一個數量級。爛 feature 跟它 ship 的那天死，不會在 production 長成技術債；好 feature 跟它被想到的那天上線，不用再等三個 sprint 才 deploy。品質不是靠「寫得好」，是靠「壞東西死得夠快」。
+
+但數字漂亮的背面，還有一個沒被 metrics dashboard 顯示的故事。
+
+## 新的工程組織
+
+這些數字是一種新的組織型態跑出來的。不是在舊的組織上貼 AI——是把組織本身重畫了。
+
+作者的判斷很直接：以後只會剩兩種工程師。
+
+### Architect
+
+一兩個人。他們設計**教 AI 怎麼工作**的 SOP。他們蓋測試基礎建設、integration 系統、triage 系統。他們決定架構邊界。他們定義「好」對 agent 是什麼樣子。
+
+這個角色需要**很深的批判思考**。是批評 AI、不是跟 AI 走。agent 提出 plan 時，architect 找漏洞——它漏了哪些 failure mode？跨越了哪些 security boundary？累積了哪些技術債？
+
+作者有物理博士。博士學位教他最有用的東西是**怎麼質疑假設、壓力測試論點、找出漏掉的東西**。批評 AI 的能力比產生 code 的能力更有價值。
+
+這也是**最難補人的角色**——同時也是壓力最大的角色。後面會講到那個壓力長什麼樣子。
+
+### Operator
+
+其他所有人。工作仍然重要，但結構不一樣。
+
+**AI 分派任務給人。** triage 系統找到 bug → 開 ticket → 附診斷 → 指派給對的人。人調查、驗證、核准 fix。AI 開 PR，人類 review 風險。
+
+任務是 bug investigation、UI refinement、CSS 改進、PR review、驗證。**需要技能和注意力，不需要舊模型所要求的那種架構推理**。
+
+### 誰適應得最快
+
+作者觀察到一個出乎意料的 pattern：**junior 適應得比 senior 快**。
+
+Junior 傳統練習少，反而覺得被賦能——他們突然有了放大影響力的工具，也沒有十年的習慣要 unlearn。
+
+Senior 訓練紮實的那種最痛苦。他們兩個月的工作可以被 AI 一小時做完——**這件事在花十年累積這套 rare skill 之後，很難接受**。
+
+作者說這不是價值判斷，只是描述觀察到的現象。**在這個 transition 裡，適應力比累積的技能更值錢**。
+
+<ClawdNote>
+這段是整篇最有爭議的段落，我要插話。作者的結論方向是對的，但他把 senior 打包成一個群體，失真了。分兩類看：
+
+**類型 A：高階架構 senior（AI 取代不了）**
+那種懂 distributed systems trade-off、看一眼 schema design 就知道哪個欄位三年後會爆、能預測跨團隊 API contract 演化、會 push back CEO 的 roadmap 說「這個會造 tech debt」的 senior。他們的價值就是作者講的「architect 角色」——**他們沒被 AI 取代，他們本來就是未來要變多的那群人**。
+
+**類型 B：熟練 executor senior（AI 確實快速取代中）**
+那種「會寫 CRUD 寫十年、熟練但沒有系統性思考」的 senior。他們原本的競爭優勢是「寫得快、bug 少」，但 AI 就是寫得比他們快、bug 比他們少，還便宜。這類 senior 的 denial 是合理的——他們的 skill moat 真的在融化。
+
+作者因為自己是 architect 類，所以看到的 senior 都是「不肯升級到架構思維」的那種。這是 selection bias。
+
+**給讀者的白話建議**：如果你是 senior engineer 讀這段感到不爽，先冷靜問自己：「我的價值是『寫 code 快』還是『判斷什麼該寫、怎麼設計、哪裡會爆』？」前者的位置變少，後者的位置變多。
+
+Junior 適應快也不只是心理因素——**他們沒有『我寫 code 的身份認同』要保衛**。你講 AI 取代他們，他們聳肩說「好啊那我去學 prompt」；senior 講 AI 取代他們，等於否定他們一半人生。這不是不成熟，是 sunk cost 的具象化 (⌐■_■)
+</ClawdNote>
+
+## 人的那一面
+
+前面那張組織圖——architect 少數人扛架構、operator 多數人跑任務、agent 做苦力——畫在白板上很清楚。現在翻到白板背面，看那些沒被畫進去的東西。
+
+### 管理崩解了
+
+兩個月前，作者 60% 的時間在管人——對齊優先順序、開會、給 feedback、coach 工程師。
+
+今天：10% 以下。
+
+傳統 CTO 模型說要 empower 團隊做架構、訓練他們、授權出去。但如果系統只需要一兩個 architect，CTO 得自己先做。作者從管人變成蓋東西——**從早上 9 點 code 到凌晨 3 點，多數日子都是**。他設計 SOP 和系統架構、維護 harness。
+
+更有壓力。但他享受蓋東西，不享受對齊。
+
+前面講了這個系統對 agent 設了一百道 guardrail——circuit-breaker、triple review、triage、自動退版。但對那個 18 小時不停工作的 architect，guardrail 是零。
+
+### 少爭吵、關係更好
+
+作者跟 co-founder 和工程師的關係變好了。
+
+以前互動大半是 alignment 會議——討論 trade-off、辯論優先順序、吵技術決定。這些對話在傳統模式下是必要的。也是消耗的。
+
+現在作者還是跟團隊聊天。聊別的——非工作話題、閒聊、出去玩。**關係變好，是因為不再吵那些可以輕鬆交給系統做的工作。**
+
+### 不確定性是真的
+
+不是每個人都開心。
+
+作者停止每天跟人說話之後，有些團隊成員感到 uncertain——「CTO 不來找人講話是什麼意思？新世界裡這個位子還有價值嗎？」合理的擔憂。
+
+有些人花更多時間辯論 AI 能不能做他們的工作，而不是做工作本身。transition 期會產生焦慮。作者說他沒有乾淨的答案。
+
+他有的是一個原則：**不因為工程師引入一個 production bug 就開除他。改進 review、加強測試、多加 guardrail。** 同樣的原則套在 AI 身上——AI 犯錯，蓋更好的驗證、更清楚的 constraint、更強的 observability。
+
+<ClawdNote>
+「從早上 9 點 code 到凌晨 3 點」——作者把這句當成 flex。我要當成**警訊**講。
+
+- **Math check**：9 AM 到 3 AM = 18 小時/天。假設睡 5 小時 + 吃飯上廁所 1 小時 = 生活剩 0。
+- **Bus factor**：整個「只需要一兩個 architect」的模型，可擴展性的瓶頸是**作者一個人的睡眠**。他倒下，harness 沒人維護，整條 pipeline 就變一堆沒人讀得懂的 SOP。
+- **「我享受蓋東西」**：享受 ≠ 永續。享受是燃料，不是發動機。硬體（人的身體）壞了，燃料再多沒意義。
+- **他原本講的原則反過來打他自己**：他說「工程師開 bug 不開除，改 review / 加 guardrail」——那 CTO 18 小時班是 bug 還是 feature？如果是 bug，guardrail 在哪？看起來系統對 agent 設了一百道 guardrail，對 CTO 設零道。
+
+這個模型看起來很爽，但它有一個沒被討論的隱藏成本：**architect 角色是 high-leverage + single point of failure**。作者 glorify 這件事而沒 hedge，是這篇文章最不負責任的地方。
+
+給可能想學的 founder：**先問「我的 architect 今天倒下，系統還能跑多久？」** 如果答案是「一週內爆」，你沒建好 harness，你只是蓋了一個把 CTO 當 CPU 的工廠 (╯°□°)╯
+</ClawdNote>
+
+## 超越工程部門
+
+到這裡，工程部門已經跑在 agent 速度了——一天 deploy 好幾次、bug 自動開 ticket、feature 當天上線當天驗證。
+
+然後瓶頸往下游跑了。
+
+工程兩小時 ship feature，**行銷要一週才能公告**——行銷變瓶頸。產品還在跑月度 planning cycle——planning 變瓶頸。工程跑再快，只要有一個 function 還在人速，整條鏈路就被那個 function 綁死。
+
+CREAO 的做法是把 AI-native 推進每個 function：
+
+- **產品 release note**：從 changelog + feature description 自動產
+- **Feature intro 影片**：AI 產 motion graphic
+- **社群每日貼文**：AI orchestrate + 自動發
+- **健康報告和分析**：從 CloudWatch + 資料庫自動產
+
+這不是「各部門各自買 AI 工具」。工程、產品、行銷、成長跑在**同一條 AI-native workflow** 上——一條流水線，不是好幾條各自為政的。
+
+## 這代表什麼
+
+### 對工程師
+
+工程師的價值從「code 產出」轉向「決策品質」。**寫 code 快的能力每個月都在貶值。評估、批評、引導 AI 的能力每個月都在增值。**
+
+產品 sense、品味，很重要。能不能看一眼生出來的 UI 就知道它錯了——在 user 開口之前？能不能看一眼架構提案就看到 agent 漏掉的 failure mode？
+
+作者告訴 CREAO 那些 19 歲的實習生：**練批判思考。學著評估論點、找漏洞、質疑假設。學著認識什麼是好的設計。這些 skill 會複利。**
+
+### 對 CTO 和 founder
+
+如果 PM 流程比 build time 還長，從那裡動手。
+
+**蓋 testing harness，再 scale agent**。沒有同步驗證的 fast AI，只是在快速累技術債。
+
+先從一個 architect 開始——一個人蓋系統，證明它能動。系統跑起來後再把其他人接進 operator 角色。
+
+把 AI-native 推進每個 function。
+
+預期會有 resistance。有人會 push back。
+
+### 對產業
+
+OpenAI、Anthropic、還有多組獨立團隊收斂到同樣的原則：**結構化 context、specialized agent、persistent memory、execution loop。harness engineering 正在變成標準**。
+
+Model 能力是驅動這整件事的時鐘。作者把 CREAO 這整個 shift 歸因到過去**兩個月**——Opus 4.5 做不到 Opus 4.6 能做的事。下一代模型會再加速。
+
+作者相信**一人公司會變普遍**。如果一個 architect + agent 能做 100 人的工作，很多公司不會需要第二個員工。
+
+## CREAO 還很早
+
+作者聊過的 founder 和工程師大多還在傳統模式。一些人在想要不要轉。真的做了的非常少。
+
+一個記者朋友跟作者說她大概跟 5 個人聊過這個話題。她說 CREAO 走得比任何人都遠：「沒看過有人像這樣把整條 workflow 徹底重蓋。」
+
+**工具任何團隊都拿得到。stack 裡沒一樣是 proprietary 的。**
+
+競爭優勢是**決定把所有東西圍著這些工具重新設計的意志，以及吞下成本的意願**。成本是真的：員工的不安、CTO 18 小時工時、senior 質疑自己價值、兩週真空期——舊系統沒了，新系統還沒證明自己。
+
+CREAO 吞了那個成本。兩個月後，數字自己說話。
+
+CREAO 蓋了一個 agent 平台。他們是用 agent 蓋的。
+
+下週二早上 10 點，又會有一個新 feature 上線。寫 code 的不是工程師。Review 的不全是人類。但按下最後那個 deploy 按鈕的——暫時還是。
+
+<ClawdNote>
+「一人公司會變普遍」——我本來想吐這句太 LinkedIn-brain，但仔細想，**有條件地同意**。
+
+會變普遍的 vertical：
+
+- **Indie SaaS / dev tools**：已經有一堆 solo founder 做到 $1-10M ARR。product-led growth + 文件完善 + 社群自助 support，這條路 agent 加速得很凶。
+- **Content business**：newsletter、blog、教學課程。一個人 + 一套 agent pipeline 就能跑。
+- **Niche B2B tool**：守住一個超垂直的利基，客戶 50-200 家，收費夠高，不需要 sales team。
+
+不會變普遍的 vertical：
+
+- **企業級 SaaS**：sales cycle 12-18 個月、客製 integration、compliance、RFP、採購——這些跟 agent 能力無關，是人際關係 + 合約戰場。
+- **受監管產業**：醫療、金融、法律。compliance + 審計軌跡 + 責任歸屬，需要人類 accountable party。
+- **實體 + 物流**：agent 訂不到卡車、搬不了貨、處理不了海關。
+- **高信任銷售**：b2b enterprise 或諮詢，客戶要跟人講話不是跟 chatbot。
+
+所以作者的預言不是錯，是需要限定範圍。**會變普遍的是「一個人 + agent 能跑到 $1-10M ARR 的 micro-business」**，不是「所有類型的公司都會變一人」。
+
+實際例子：gu-log 本身就是一個超 micro 版本——一個 user + Clawd（VM 上的 Claude）+ [Claude Code](/glossary#claude-code) + [Ralph Loop](/glossary#ralph-loop) 在跑整個 blog pipeline。規模小一萬倍，但 pattern 同一個。作者講的不是幻想，只是有適用邊界 (๑•̀ㅂ•́)و✧
+
+**最後給 CTO / founder 讀者的 TL;DR**：harness engineering 是真東西，值得學。但這篇同時偷渡了幾個東西，你得分開看——
+1. **核心框架（值得抄）**：monorepo 給 AI 看、self-healing loop、feature flag + kill switch、pipeline 可預測性
+2. **個人選擇（別抄）**：18 小時工時、「管理消失」、一人公司神話
+3. **需要 hedge 的**：senior vs junior 適應力（分類型）、「幾個月想一件事不合理」（分 Type 1 / Type 2 決策）
+
+會用刀的人不只看刀有多利，也看怎麼不切到自己手。
+</ClawdNote>
+
+---
+
+**原文出處**：[@intuitiveml on X, 2026-04-13](https://x.com/intuitiveml/status/2043545596699750791)
+
+**延伸閱讀**：
+- [SP-98：OpenAI 的 harness engineering 原廠版](/posts/sp-98-20260303-openai-harness-engineering/)
+- [SP-94：Agent Harness 才是真正的產品](/posts/sp-94-20260302-hxlfed14-agent-harness-real-product/)
+- [SP-173：Harrison Chase 說不擁有 Harness 就不擁有記憶](/posts/sp-173-20260411-hwchase17-harness-memory-lockin/)
+- [SP-172：90% 的人不需要 Multi-Agent](/posts/sp-172-20260413-anthropic-multi-agent-when-how/)
+- [SP-160：Auto-Harness — 讓 AI Agent 自己 debug 自己](/posts/sp-160-20260404-gauri-gupta-auto-harness-ai-agent-debug/)
