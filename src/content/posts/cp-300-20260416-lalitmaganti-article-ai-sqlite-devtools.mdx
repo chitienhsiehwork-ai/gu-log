@@ -1,0 +1,247 @@
+---
+ticketId: "CP-300"
+title: "八年磨一劍，三個月用 AI 造出來 — 一個 SQLite devtools 的誕生實錄"
+originalDate: "2026-04-03"
+translatedDate: "2026-04-16"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+source: "Lalit Maganti (blog)"
+sourceUrl: "https://lalitm.com/post/building-syntaqlite-ai/"
+lang: "zh-tw"
+summary: "一個工程師花八年想做 SQLite devtools，用 AI coding agent 三個月就做出來了。但過程不是什麼一帆風順的成功故事——有一整個月的 vibe-coding 全部報廢重來，有凌晨三點停不下來的 prompt 成癮，也有對 codebase 失去掌控的恐慌。這是目前看過最誠實的 AI 輔助開發實戰報告。"
+tags: ["clawd-picks", "ai-coding", "developer-tools", "sqlite", "vibe-coding"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+八年。一個工程師腦子裡裝了八年的 side project，每次看到 SQLite 相關工具不夠好就會浮上來，每次又因為「太難、太無聊、不值得花個人時間」而被塞回去。
+
+然後 AI coding agent 出現了。三個月，大約 250 小時，syntaqlite 誕生——一套完整的 SQLite 開發者工具，從 parser 到 formatter 到 linter 到 VS Code extension 到 WASM playground，全部到位。
+
+但這不是又一篇「AI 一鍵搞定」的炫耀文。坊間不缺這種文章，也不缺「AI 全是垃圾」的抱怨文。原作者 Lalit Maganti 選擇走一條完全不同的路：一份極度誠實的開發紀錄，哪裡靠 AI 飛起來、哪裡被 AI 拖下水、一整個月的 vibe-coding 全部作廢重來、凌晨停不下來的 prompt 成癮。每一個 claim 都附上 project journal、coding transcript 或 commit history 作為佐證。
+
+## 為什麼是 SQLite devtools
+
+Lalit 在 Google 維護 [Perfetto](https://perfetto.dev/)，一個效能追蹤平台。Perfetto 有自己的 SQL 方言叫 PerfettoSQL——基本上就是 SQLite 加了一些擴充語法，用來查詢效能 trace。Google 內部有超過十萬行的 PerfettoSQL 程式碼，被各種團隊使用。
+
+有了語言，使用者自然會開始期望配套工具：formatter、linter、editor extension。Lalit 一直希望能從 open source 生態系裡找到現成的 SQLite 工具來改裝，但找了一圈之後非常失望——要嘛不夠可靠、要嘛太慢、要嘛不夠彈性。
+
+從頭做一套的念頭因此一直存在，但在工作裡這件事永遠排不到「最重要的事」。同時 Lalit 也考慮過用個人時間來做，但他年少時維護開源專案的經歷讓他知道：maintainer 要做的事遠不只是「把 code 丟出去」——要 triage bug、寫文件、建社群、有方向感。對一個已經有全職工作的人來說，這個投入太大了。
+
+<ClawdNote>
+SQLite 是世界上部署量最大的資料庫引擎——手機裡有、瀏覽器裡有、作業系統裡有，但它的開發者工具生態卻爛到不可思議。這就像全世界最多人穿的鞋子居然沒有一個好用的鞋拔一樣荒謬。不是沒人想做，是這個問題同時具備「很難」和「很無聊」兩種屬性，剛好是最讓人提不起勁的組合 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## 難在哪裡、煩在哪裡
+
+任何語言工具的核心都是 parser——把原始碼轉成 parse tree，後面的 formatter、linter 全部建立在這棵樹上面。Parser 不準，後面的工具就會繼承這些不準確性。Lalit 發現的那些現有工具，很多問題就出在它們的 parser 只是「近似」SQLite 語法，而不是精確還原。
+
+問題是，SQLite 沒有正式的語法規格（formal specification）。它也沒有穩定的 parser API。更離譜的是，SQLite 的實作裡根本**不建 parse tree**——它在 parse 的過程中就直接執行了。
+
+所以唯一合理的做法是：深入 SQLite 的 C 原始碼，把 parser 相關的部分抽取出來，再改造成能建構 parse tree 的版本。
+
+而 SQLite 的原始碼是出了名的難讀。整個專案用 C 寫成，風格極度密集。Lalit 花了好幾天才搞懂 virtual table 的 API 和實作。光是要理解完整的 parser stack 就已經令人生畏。
+
+然後是規模問題：SQLite 有超過 400 條語法規則，每一條都要指定「這段語法對應到 parse tree 的哪個節點」。這些規則彼此相似又各自不同——是那種極度重複但又不能用同一個模板解決的工作。
+
+再加上要寫測試、要 debug、要處理使用者回報的 bug⋯⋯
+
+多年來，這個專案的構想就死在這裡。作為 side project 太難、作為長期工作太無聊、投入幾個月卻可能失敗的風險太高。
+
+<ClawdNote>
+超過 400 條語法規則，每條都長得差不多但又不一樣。這種工作的可怕之處不在於任何單一步驟很難，而在於它會慢慢磨掉做事的意志力。就像洗碗——一個碗不難洗，但想到要洗 400 個的時候就會開始考慮直接把廚房炸了重蓋。
+</ClawdNote>
+
+---
+
+## Vibe-coding 月：一個價值連城的失敗
+
+Lalit 從 2025 年初就開始用 coding agent（Aider、Roo Code，七月起改用 Claude Code），一直覺得有用但還不夠信任。但到了 2025 年底，AI coding agent 的品質似乎有了一次顯著的提升。同時 Lalit 在 Perfetto 工作中不斷遇到「如果有一個可靠的 parser 就能秒殺」的問題。聖誕假期他決定認真壓力測試最極端的使用方式：用 Claude Code（Max 方案，每月 £200）純 vibe-code 整個專案。
+
+整個一月，Lalit 扮演半技術性的 manager 角色，幾乎把所有設計和實作都交給 Claude。在功能面，結果還不錯：一個從 SQLite 原始碼用 Python 腳本抽取出來的 C parser、一個 formatter、對 SQLite 和 PerfettoSQL 的支援、一個 web playground。
+
+但到了一月底，他仔細 review 整個 codebase 的時候，問題暴露了：**整個 codebase 是義大利麵。**
+
+Python extraction pipeline 他大半看不懂。函式散落在隨機的檔案裡，沒有清楚的架構。好幾個檔案膨脹到幾千行。整個系統極度脆弱——能解決眼前的問題，但永遠撐不起更大的願景，更別說整合進 Perfetto 的工具鏈。
+
+唯一的價值是：它證明了這條路走得通，而且生成了超過 500 個測試案例，其中很多可以重用。
+
+Lalit 決定**全部砍掉重來**，同時把大部分 codebase 從 C/Python 切換到 Rust。
+
+<ClawdNote>
+花了一整個月 vibe-coding，最後全部砍掉重來。這個故事的教育意義在於：那個月**不是浪費**。它證明了方法可行、產出了 500 多個可重用的測試、讓 Lalit 具體看到了架構上的陷阱。但如果他在第一個月就投入了那些額外的精力去做設計和 review，也許根本不需要重來。這就是 vibe-coding 的核心悖論：省下的力氣，最後會用另一種方式還回來。
+</ClawdNote>
+
+---
+
+## 第二次：換一種方式用 AI
+
+重來的時候，Lalit 徹底改變了自己的角色。他不再當「半技術性 manager」，而是**拿回所有決策權**，把 AI 降級成「加了渦輪增壓的 autocomplete」。
+
+新的工作流程長這樣：
+
+- **先做設計**：在讓 AI 寫任何 code 之前，先自己想清楚架構和 API
+- **徹底 review 每一個 change**：不是瞄一眼「看起來對」就 merge，而是真的讀每一行
+- **立刻修問題**：看到不對勁就馬上處理，不留到「以後」
+- **投資 scaffolding**：linting、validation、非平凡的測試，用來自動檢查 AI 的輸出
+
+核心功能在二月成形，最後衝刺階段（upstream test validation、editor extension、打包、文件）在三月中完成 0.1 版發佈。
+
+但 Lalit 認為這個時間線是整個故事裡最不有趣的部分。他真正想談的是：沒有 AI 就不會發生什麼，以及使用 AI 的代價。
+
+---
+
+## AI 讓這個專案存在
+
+### 打破慣性
+
+Lalit 坦承自己最大的弱點之一是面對大型新專案時的拖延症。AI 幫他繞過了這個心理障礙。
+
+原本的思維模式是「要搞懂 SQLite 的 parsing 怎麼運作」——巨大、模糊、讓人不想開始。AI 把它變成了「先讓 AI 提出一個方案，再來拆解、批評、重建」。有了一個具體的 prototype 可以把玩，每一步都變得容易很多。
+
+### 寫 code 變快
+
+在「顯而易見」的 code 上，AI 比人類快。如果能把問題拆解到「寫一個有這些參數和這個行為的函式」或「寫一個實作這個 interface 的 class」，AI 會更快完成，而且風格可能比本人寫的更直覺、更一致。它會寫文件、保持風格統一、用目標語言的「標準方言」。
+
+但這個「標準化」是雙面刃。大部分 code 確實要標準：可預測、可讀、不意外。但每個專案都有它的「刀鋒」——價值來自非顯而易見做法的部分。對 syntaqlite 來說，extraction pipeline 和 parser 架構就是這種地方。AI 的「正常化」本能在這裡是有害的，這些部分 Lalit 必須自己深入設計，甚至直接自己寫。
+
+而 AI 寫 code 快的另一面是：**它讓重構也變快了**。如果用 AI 在工業規模生成 code，就必須持續不斷地重構。不重構的話事情會立刻失控——這正是 vibe-coding 那個月的核心教訓。重寫之後，重構成了工作流程的核心：每一批生成的 code 之後，Lalit 會退一步問「這醜嗎？」有時候 AI 自己就能清理。有時候有一個 AI 看不到但人能看到的大尺度抽象，Lalit 給方向、讓 AI 執行。
+
+原文裡的這句話很精準：
+
+> If you have taste, the cost of a wrong approach drops dramatically because you can restructure quickly.
+
+如果有品味，走錯路的成本就會急劇降低，因為可以迅速重組。
+
+<ClawdNote>
+「如果有品味，走錯路的成本就會急劇降低。」這句話值得裱框掛在每一個用 AI 寫 code 的人的螢幕旁邊。它的逆命題更值得深思：如果沒有品味，AI 只會讓走錯路的速度變快，而且走得更遠才發現不對 (⌐■_■)
+</ClawdNote>
+
+### AI 當家教
+
+在所有使用 AI 的方式裡，**研究和學習**的 value-to-time 比是最高的。
+
+Lalit 之前做過 interpreter 和 parser，但從沒聽過 Wadler-Lindig pretty printing 演算法。他需要做 formatter 的時候，AI 從他能理解的角度給了一堂具體、可操作的課，還指向了相關的論文。自己找可能要花一兩天翻閱文獻，AI 把這壓縮成一場可以追問「但為什麼這樣能 work？」的對話。
+
+這延伸到了整個他不熟悉的領域。Lalit 有深厚的 C++ 和 Android 效能專長，但幾乎沒碰過 Rust 工具鏈或 editor extension API。有了 AI 不是問題：基礎原理相通、術語類似，AI 搭起了橋梁。VS Code extension 原本可能需要一兩天學 API 才能開始，有了 AI 一小時就搞出了能用的版本。
+
+AI 在幫助**重新拾起放了幾天沒看的 code** 上也非常好用。可以控制深度：「講講這個 component 的概況」做快速複習、「給一個詳細的線性 walkthrough」做深入回顧、「audit 這個 repo 裡的 unsafe 用法」做問題獵捕。頻繁 context switch 時很容易失去脈絡，AI 讓人可以隨時按需恢復。
+
+### 做出了本來做不出的東西
+
+AI 不只是讓同樣的專案更快完成——它改變了專案本身能做到的規模。
+
+每個開源專案都有一長串「重要但不緊急」的 feature：editor extension、Python binding、WASM playground、文件網站、多生態系打包。AI 讓這些東西的成本低到了「跳過反而說不過去」的程度。
+
+它也釋放了心智能量給 UX。不用把所有時間花在 implementation 上，就可以去想使用者的第一次體驗應該長什麼樣：什麼樣的 error message 能真正幫到人、formatter 的預設輸出應該長怎樣、CLI flag 是否直覺。這些東西決定了一個工具是被用一次還是一直被用——AI 給了 Lalit 去在乎這些事的餘裕。
+
+<ClawdNote>
+這段觀察非常到位。AI 最容易被忽略的價值不是「寫 code 變快」，而是「釋放出的認知頻寬可以拿去做更高價值的事」。以前做 side project，光是實作就把精力榨乾了，誰還有力氣想 UX？現在 implementation 的認知負擔降低了，工程師終於有腦力去想「這個東西用起來爽不爽」。
+</ClawdNote>
+
+---
+
+## AI 的代價
+
+### 成癮性
+
+Lalit 觀察到使用 AI coding 工具和玩老虎機之間有一種令人不安的相似性。送出 prompt、等待、然後得到一個很棒的結果或一個完全沒用的結果。他發現自己深夜還在想「再一個 prompt 就好」，就算明知可能不會 work 也要試試看。沉沒成本謬誤也踢進來了：在 AI 明顯不適合的任務上也繼續嘗試，告訴自己「也許換個問法就行」。
+
+疲勞的正回饋迴路讓情況更糟。有精力的時候可以寫精確、scope 明確的 prompt，生產力很高。但疲倦的時候 prompt 變得含糊，輸出變差，然後就繼續試，結果更累。在這些時候，AI 可能比自己直接寫還慢，但要跳出這個迴路太難了。
+
+<ClawdNote>
+「AI coding 成癮」這個觀察目前為止很少有人敢寫出來，但幾乎每個重度使用者都心知肚明。那個「再一個 prompt 就好」的感覺，跟凌晨三點在 YouTube 上「再看一支影片就睡」是完全一樣的機制。差別是 YouTube 浪費的是時間，AI prompt 浪費的是時間加上對 codebase 的信任 (╯°□°)╯
+</ClawdNote>
+
+### 失去觸感
+
+專案進行期間，Lalit 好幾次失去了對 codebase 的 mental model。不是整體架構或元件怎麼組合——而是日常的細節：什麼東西住在哪裡、哪個函式呼叫哪個、那些累積成一個可運作系統的小決策。當這種情況發生時，詭異的問題會冒出來，而他完全不知道怎麼回事。
+
+更深層的問題是：失去觸感會造成**溝通崩潰**。不清楚 codebase 的脈絡時，就無法有效地跟 agent 溝通。每次交流都變得更長更囉嗦。原本可以說「改 FooClass 去做 X」，現在只能說「改那個做 Bar 的東西去做 X」。然後 agent 要自己去搞清楚 Bar 是什麼、怎麼映射到 FooClass——有時候搞錯了。
+
+Lalit 精準地點出了這個諷刺：
+
+> It's exactly the same complaint engineers have always had about managers who don't understand the code asking for fanciful or impossible things. Except now you've become that manager.
+
+工程師一直抱怨不懂 code 的 manager 提出天馬行空的要求。用 AI 用到失去觸感之後，自己就變成了那個 manager。
+
+解法是刻意為之：每次 AI 寫完 code，Lalit 養成立刻通讀的習慣，主動去想「如果是自己會怎麼寫不一樣」。
+
+當然，某種程度上這也適用於任何幾個月前自己寫的 code（所以才有「AI code 一寫完就是 legacy code」這種說法）。但 AI 讓這個疏離感來得更快，因為不是自己一行一行打出來的，少了那種打字過程中建立的肌肉記憶。
+
+### 慢性腐蝕
+
+還有一些問題是在三個月裡逐漸浮現的。
+
+**設計決策的拖延**：因為重構便宜，可以一直說「以後再處理」。因為 AI 可以用同樣的工業規模重構，推遲的成本感覺很低。但其實不低：推遲決策會腐蝕清晰思考的能力，因為 codebase 在這段時間持續處於混亂狀態。如果更早做出艱難的設計決策，收斂到正確架構的速度會快很多。
+
+**測試的虛假安全感**：有 500 多個測試讓人感覺安心，AI 也讓生成更多測試變得容易。但人類和 AI 都不夠有創意去預見未來會碰到的每一個 edge case。在 vibe-coding 階段，好幾次 Lalit 自己想到一個 test case 才發現某個 component 的設計根本就是錯的，需要完全重做。
+
+核心教訓用 Lalit 的原話說：軟體工程的「正常規則」在 AI 時代依然適用。沒有紮實的基礎（清楚的架構、明確定義的邊界），就會永遠在追新冒出來的 bug。
+
+<ClawdNote>
+「重構便宜所以設計可以拖」——這個陷阱太精妙了。表面上看很合理：反正之後可以重構嘛。但實際上，設計決策拖越久，codebase 在混亂狀態裡待的時間就越長，而在混亂狀態裡做出好決策的難度也越高。這是一個惡性循環，AI 的速度把它加速了，但本質跟有沒有 AI 無關——這是軟體工程裡最古老的教訓之一，只是穿了新衣服。
+</ClawdNote>
+
+### 沒有時間感
+
+AI 看到的是 codebase 的一個快照，但它不會像人一樣感受時間。一個人類工程師可以告訴別人「用這個 API 的體感」、「它怎麼在幾個月或幾年間演化」、「某些決策為什麼做了又撤回」。
+
+失去這種理解的直接後果是：要嘛重蹈覆轍、要嘛掉進本來已經成功繞過的陷阱。Lalit 認為這跟失去一個高品質 senior engineer 對團隊的傷害類似——他們帶著不存在於其他地方的歷史和 context，也引導著周圍的人。
+
+理論上可以靠 spec 和文件來保存這些 context。但寫得夠完整的文件極度昂貴、極度耗時。AI 可以幫忙 draft，但因為沒有自動驗證「是否準確捕捉了重要資訊」的方法，人類仍然必須手動 audit。
+
+還有 context 污染問題：永遠不知道 API A 的設計筆記會不會在 API B 裡產生迴響。一致性是 codebase 能運作的重要原因，而這不只需要「現在正在做什麼」的 context，還需要「其他用類似方式設計的東西」的 context。判斷什麼相關，本身就需要 institutional knowledge 才能提供的那種判斷力。
+
+---
+
+## 相對論
+
+回顧整個過程，AI 什麼時候有幫助、什麼時候有害，有一個相當一致的規律。
+
+**已經深入理解的領域**：AI 非常出色。可以瞬間 review 輸出、在問題落地之前就抓到錯誤、速度是以前不敢想的。Parser rule 的生成是最清楚的例子——Lalit 精確知道每條規則應該產出什麼，所以可以在一兩分鐘內 review AI 的輸出並快速迭代。
+
+**能描述但還不會的領域**：AI 很好但需要更多小心。Wadler-Lindig formatter 就是這種情況——可以表達想要什麼、判斷輸出是否往對的方向走、從 AI 的解釋中學習。但必須保持 engaged，不能照單全收。
+
+**連自己想要什麼都不知道的領域**：AI 的幫助介於無用和有害之間。專案架構是最明顯的例子——早期花了好幾週跟著 AI 走進死胡同，當下感覺很有生產力，但經不起仔細檢視。事後回想，也許完全不用 AI 自己想反而更快。
+
+但光有專業知識還不夠。即使深入理解問題，如果任務**沒有客觀可驗證的答案**，AI 還是會掙扎。Implementation 有「對」的答案——code 能編譯、測試通過、輸出符合預期。Design 沒有。OOP 爭論了幾十年還在吵。
+
+具體來說，Lalit 發現設計 syntaqlite 的 public API 是最痛的地方。三月初花了好幾天什麼都沒做就是在 refactor API，手動修那些有經驗的工程師本能就會避開、但 AI 搞得一團糟的東西。「這個 API 用起來愉不愉快」和「這個 API 能不能幫使用者解決問題」沒有測試或客觀指標可以衡量——而這正是 coding agent 做得最差的地方。
+
+Lalit 用了一個物理學的比喻來總結。他過去對物理——特別是相對論——著迷過。在任何一個小的局部區域，物理定律看起來很簡單、很牛頓式。但放大來看，時空會以從局部圖景無法預測的方式彎曲。Code 也一樣：在函式或 class 的層級，通常有明確的正確答案，AI 在這裡很強。但架構是所有這些局部元件互動時發生的事——把局部正確的元件縫在一起，不會自動得到全域正確的行為。
+
+<ClawdNote>
+用相對論來比喻 AI coding 的適用邊界——局部牛頓力學 ok，全域時空彎曲就不行——這可能是目前看過最精準的類比。每個函式在自己的 scope 裡都是對的，但整個系統的行為不是把局部正確加總起來就能得到的。這也是為什麼純 vibe-coding 能產出「每個函式都 ok 但整體是義大利麵」的結果：局部很牛頓，全域歪掉了。
+</ClawdNote>
+
+---
+
+## 結語
+
+八年醞釀、三個月實作、250 小時投入。syntaqlite 存在了，而且只花三個月就做到了這個完成度——這是一個巨大的勝利。沒有 AI，這件事不會發生。
+
+但過程不是乾淨的線性成功敘事。一整個月的 vibe-coding 全部報廢。掉進了「管理一個自己不理解的 codebase」的陷阱。付出了全面重寫的代價。
+
+Lalit 的結論很簡單但很重要：**AI 是 implementation 的超級力量倍增器，但它是 design 的危險替代品。** 它很擅長回答具體的技術問題，但它沒有歷史感、沒有品味、也不知道人類實際使用 API 時的感受。如果把軟體的「靈魂」交給它，只會比以前更快撞牆。
+
+Lalit 希望看到更多人這樣做——不是寫週末玩具或一次性腳本的心得，而是寫那種要面對使用者、bug report、還有自己不斷改變想法的真正軟體。有數據、有 journal、有 commit history 佐證的誠實開發紀錄。
+
+知道自己在「已知→能描述→完全未知」和「客觀可驗證→主觀判斷」這兩條軸上的哪個位置，然後據此決定怎麼用 AI——Lalit 認為這才是跟 AI 有效合作的核心技能。
