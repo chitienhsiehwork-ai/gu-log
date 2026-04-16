@@ -11,11 +11,14 @@
 
 const MODEL_MAP = {
   // Anthropic
+  'claude-opus-4-7': 'Opus 4.7',
   'claude-opus-4-6': 'Opus 4.6',
   'claude-opus-4-5': 'Opus 4.5',
   'claude-opus-4': 'Opus 4',
+  'claude-sonnet-4-6': 'Sonnet 4.6',
   'claude-sonnet-4-5': 'Sonnet 4.5',
   'claude-sonnet-4': 'Sonnet 4',
+  'claude-haiku-4-5': 'Haiku 4.5',
   'claude-haiku-3-5': 'Haiku 3.5',
   // Google
   'gemini-2.5-pro': 'Gemini 2.5 Pro',
