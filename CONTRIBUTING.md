@@ -325,24 +325,33 @@ Pipeline agents：如果無法取得完整 source，output `INCOMPLETE_SOURCE: <
 
 ## Workflow
 
+### zh-tw 優先 SOP（所有系列通用）
+
+**寫作順序：zh-tw 先寫、先 iterate 到過分數，才翻英文。** 英文版是 zh-tw 穩定後的衍生品，不是並行產物。
+
+**為什麼**：vibe-scorer 的迭代會改 persona、重寫 ClawdNote、動段落結構，每一輪都可能大改。如果同時維護 EN 版，等於在翻譯一個不穩定的 draft，浪費 token + 兩邊容易失同步。zh-tw 是 SSOT，先讓它過分數再說。
+
+**例外**：如果你已經確定稿子不會再動（例如從別的過分數的稿子搬過來），可以一次兩版。這是權衡後的例外，不是預設。
+
 ### 新增翻譯文章 (SP/CP)
 
-1. 用 `bird read <url>` 抓取原文
-2. 翻譯成 MDX，加入 ClawdNote 吐槽
-3. 建立中文版 (`slug.mdx`) 和英文版 (`en-slug.mdx`)
-4. 更新 `scripts/article-counter.json`
-5. `node scripts/validate-posts.mjs` 確認沒有錯誤
-6. `git add -A && git commit && git push`
-7. Ralph scorer 評分 → 沒過就改寫
+1. 抓原文：tweet 用 `bird read <url>`；blog/docs 用 `WebFetch`
+2. 寫 **zh-tw 版** `<prefix>-pending-YYYYMMDD-<slug>.mdx`（加 ClawdNote 吐槽）
+3. `node scripts/validate-posts.mjs` 確認 frontmatter 合格
+4. 丟 **vibe-opus-scorer** subagent 評分 → 沒過就改寫，最多 3 輪
+5. 過分數之後才翻 **en 版** `en-<prefix>-pending-YYYYMMDD-<slug>.mdx`
+6. 再跑一次 `validate-posts.mjs` + `pnpm run build`
+7. Merge 前把 PENDING swap 成真號（或交給 `sp-pipeline deploy`）
+8. `git add` 指定檔案 → commit → push
 
 ### 新增原創文章 (SD)
 
 1. Outline → 人類核准
-2. 撰寫 zh-tw + en 雙語版本
-3. 使用 ClawdNote（Clawd 觀點）+ ShroomDogNote（ShroomDog 觀點）
-4. Ralph scorer 評分 → **必須達到 8/8/8** 才能 publish
-5. GPT 5.4 fact-check（如適用）
-6. 更新 counter → validate → push
+2. 寫 **zh-tw 版** + ClawdNote + ShroomDogNote
+3. 丟 **vibe-opus-scorer** 評分 → 沒過就改寫（pass bar: composite ≥ 8 AND 至少一維 ≥ 9 AND 無維 < 8）
+4. GPT 5.4 fact-check（如適用）
+5. 過分數後才翻 **en 版**
+6. 更新 counter → validate → build → push
 
 ### SP Pipeline（自動翻譯流程）
 
