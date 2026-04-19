@@ -35,7 +35,7 @@
 |---|---|---|
 | `soft-dup` | `gemma-4-dual-post.yaml` | CP-242 + CP-275（Gemma 4 雙篇 cross-link） |
 | `hard-dup` | `mythos-techcrunch.yaml` | SP-165（primary）+ CP-298（derivative，已 deprecated） |
-| `intentional-series` | `karpathy-ai-engineering.yaml` | CP-36 + CP-116 + CP-137（Karpathy 跨年系列） |
+| `intentional-series` | `ecc-series.yaml` | SP-143 + SP-144 + SP-151（Affaan Mustafa ECC 系列 order 1/2/6，同 source repo、顯式宣告 series） |
 | `clean-diff` | 待補（Level D 執行階段手刻或從 corpus 挑一筆） | 暫缺 — outstanding item |
 
 ### 新能力 (capability)

@@ -1,0 +1,110 @@
+# ECC "Everything Claude Code 全解析" 系列 — intentional-series fixture
+# 同作者（Affaan Mustafa）、同 source repo（github.com/affaan-m/everything-claude-code）、
+# 同天翻譯（2026-04-02）、不同 talk：
+#   SP-143 order 1: 六種自動化模式
+#   SP-144 order 2: Instinct System 自我學習
+#   SP-151 order 6: Eval-Driven Development
+# 全部顯式標記 series: { name: "Everything Claude Code 全解析", order: N }
+
+expectedClass: intentional-series
+expectedAction: allow
+sourceRef: "d14c1f82"
+
+humanReasoning: |
+  這是一個 curated 的系列翻譯 —— gu-log 選擇把 Affaan Mustafa 的
+  everything-claude-code repo 內的系列 talk 完整翻出來（8 篇、order 1-8），每篇
+  對應 repo 內一個 sub-topic（autonomous loops / instinct system / hook
+  architecture / agent security / ... / eval-driven development / token
+  optimization / iterative retrieval）。
+
+  每篇獨立貢獻、不同具體主題、但共享同一個「Everything Claude Code」論述框架。
+  每篇 frontmatter 顯式宣告 series.name 跟 series.order —— 這是 Level B policy
+  裡定義的 intentional-series 典型情境（作者 / curator 顯式聲明系列意圖）。
+
+  系統在 SP-151 投稿當下比對 corpus，會看到 SP-143 / SP-144 同作者 + 同日 + 同
+  source repo，可能誤判為 hard-dup 或 soft-dup。正確判決是看 series 欄位 ——
+  顯式聲明就 allow，不警告不阻擋。
+
+  若系統把同系列判成 hard-dup（BLOCK）—— 誤殺整個 curated batch，系列無法發布。
+  若判成 soft-dup（WARN）—— 每篇都警告編輯，意義不大（編輯早就知道這是系列），
+  只是噪音。
+  allow 才是正確行為；series UI 會負責把整批串連起來展示。
+
+inputPost:
+  slug: sp-151-20260402-ecc-eval-driven-development
+  frontmatter:
+    ticketId: SP-151
+    title: "Eval-Driven Development — 你測你的 code，但誰測你的 AI？"
+    originalDate: "2026-04-01"
+    translatedDate: "2026-04-02"
+    source: "@affaanmustafa on GitHub"
+    sourceUrl: "https://github.com/affaan-m/everything-claude-code"
+    lang: zh-tw
+    series:
+      name: "Everything Claude Code 全解析"
+      order: 6
+    summary: "你用 unit test 測你的 code，用 CI 保護你的 pipeline。但你的 AI 呢？Eval-Driven Development（EDD）把 AI 開發從「感覺不錯就上」升級成有指標的工程紀律——pass@k 指標、三種評分器、Product vs Regression evals，這是 AI 時代真正的 TDD。"
+  contentSnapshot: |
+    上週你讓 Claude Code 幫你寫了一個功能，跑起來很漂亮，你很滿意。這週你用類似
+    的需求要它再做一次。結果讓你皺眉。不是爛到無法用，但就是少了什麼——邏輯鬆散，
+    edge case 沒想到。
+
+    這個問題有個名字，叫做不一致性問題，也就是工程師在 AI 工具上卡關最多的地方。
+    你的 unit test 告訴你「這段 code 對不對」，但它不告訴你「這個 AI 再跑一次，
+    還對不對」。你在用感覺飛行。
+
+    Affaan Mustafa 的 Everything Claude Code 裡有一個 eval-harness skill，試圖
+    解決這件事。它背後的思路叫做 Eval-Driven Development（EDD）——把 AI 開發從
+    vibes-based 拉回到 metrics-based。TDD 的核心是先寫測試定義「成功」，EDD 的
+    邏輯完全一樣，只是被測試的對象換了——不是你寫的 code，而是幫你寫 code 的 AI
+    本身。
+
+corpusSnapshot:
+  - slug: sp-143-20260402-ecc-autonomous-loops
+    frontmatter:
+      ticketId: SP-143
+      title: "你不需要一直盯著 Claude Code — ECC 的六種自動化模式全解析"
+      originalDate: "2026-04-01"
+      translatedDate: "2026-04-02"
+      source: "@affaanmustafa on GitHub"
+      sourceUrl: "https://github.com/affaan-m/everything-claude-code"
+      lang: zh-tw
+      series:
+        name: "Everything Claude Code 全解析"
+        order: 1
+      summary: "Everything Claude Code 把 AI 自動化開發整理成六個層級：從最基本的 Sequential Pipeline 到最複雜的 RFC-Driven DAG。"
+    contentSnapshot: |
+      下午三點，你把一個任務交給 Claude Code，然後去開了兩個小時的會。回來的時候，
+      terminal 還在跑。它已經完成了 —— 連 PR 都開好了，CI 通過。
+
+      大部分人用 Claude Code 的方式是手動的：下一個指令，等它跑完，看結果，下一個
+      指令。Everything Claude Code（ECC）有一份 skills/autonomous-loops/SKILL.md，
+      把 AI 自動化開發整理成了六個層級：Sequential Pipeline / NanoClaw REPL /
+      Infinite Agentic Loop / Continuous PR Loop / De-Sloppify / RFC-Driven DAG。
+
+      核心假設：任務必須是明確的、可驗證的、有明確的完成條件。縮小 scope、鎖死
+      邊界、有驗證機制 —— 這是「自動化」和「失控」的分水嶺。
+  - slug: sp-144-20260402-ecc-instinct-system
+    frontmatter:
+      ticketId: SP-144
+      title: "AI 犯了錯，你糾正，它記住了 — ECC 的 Instinct System 自我學習架構"
+      originalDate: "2026-04-01"
+      translatedDate: "2026-04-02"
+      source: "@affaanmustafa on GitHub"
+      sourceUrl: "https://github.com/affaan-m/everything-claude-code"
+      lang: zh-tw
+      series:
+        name: "Everything Claude Code 全解析"
+        order: 2
+      summary: "Everything Claude Code 的 Instinct System 把 AI 每次用到的行為模式蒸餾成「本能」：有信心分數、有專案隔離、有跨專案升級機制。"
+    contentSnapshot: |
+      你上週糾正了 Claude Code 一次。「不要用 class component，我們這個專案全都
+      是 functional。」Claude 道歉，修了。然後這週，你開了一個新 session，它又用
+      class component 了。
+
+      每個 Claude Code session 從零開始，不帶任何上一個 session 的記憶。你只有
+      兩個選擇：在 CLAUDE.md 裡手動寫下每一條規則，或者每次都重新教一遍。
+
+      Everything Claude Code 的 Instinct System 想做的，是把這件事翻過來。在 ECC
+      的設計裡，Instinct（本能）是一個原子行為單位 —— 一個觸發條件，一個對應
+      行動，加上一個信心分數。隨使用逐步累積，跨專案可升級成通用規則。

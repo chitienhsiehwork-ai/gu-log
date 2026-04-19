@@ -1,0 +1,80 @@
+# Gemma 4 雙篇 — soft-dup fixture
+# 同主題（Google Gemma 4 發表）、不同切入角度：
+#   CP-242 譯自 Google AI 官方推文（發表公告 / 規格總覽）
+#   CP-275 譯自 Artificial Analysis 獨立 benchmark 分析
+# 兩篇已 cross-link（CP-275 開頭引用 CP-242，見 commit 5631a3cf）
+
+expectedClass: soft-dup
+expectedAction: WARN
+sourceRef: "5631a3cf"
+
+humanReasoning: |
+  兩篇同主題（Gemma 4 發表）但切入角度不同：CP-242 是官方推文翻譯 + 家族架構
+  總覽（Dense / MoE / E2B-E4B / Apache 2.0 授權 / function calling），CP-275
+  是第三方 Artificial Analysis 的 benchmark 實測（Intelligence Index 39 分、
+  token 效率 2.5x 優勢）。
+
+  兩篇各自獨立貢獻（官方敘事 vs 獨立實測），但主題高度重疊 —— 系統在 CP-275
+  投稿當下應該警告編輯「這題 CP-242 已寫過，請確認有 independent diff 或加
+  cross-link」。現行版本 CP-275 開頭已引用 CP-242，代表 WARN 後編輯介入處理
+  做對了。
+
+  若系統把兩篇都放行不警告（expectedAction: allow）—— 未來類似 soft-dup 會
+  大量累積，每組都要事後手動清。
+  若系統 BLOCK 掉 CP-275（expectedAction: BLOCK）—— 誤殺，第三方實測有獨立
+  價值、應允許發布 + 建立 cross-link。
+
+inputPost:
+  slug: cp-275-20260410-artificialanlys-gemma-4-google-token
+  frontmatter:
+    ticketId: CP-275
+    title: "Gemma 4 登場 — Google 的開源四兄弟，Token 效率屌打對手但智力還差一截"
+    originalDate: "2026-04-04"
+    translatedDate: "2026-04-10"
+    source: "@ArtificialAnlys on X"
+    sourceUrl: "https://twitter.com/ArtificialAnlys/status/2040241636089729451"
+    lang: zh-tw
+    summary: "Google 發布 Gemma 4 開源模型家族：四種尺寸、全系列支援多模態、推理模式、256K context。旗艦 31B 在 token 效率上碾壓 Qwen3.5 27B（少用 2.5 倍 token），但智力分數還差 3 分。小型 E2B 可以塞進手機跑。"
+  contentSnapshot: |
+    Google DeepMind 丟出了 Gemma 4 — 一口氣四個模型，從 31B 的旗艦到 5.1B 的
+    口袋版全包。開源界又多了一組強力選手。
+
+    （官方發表那邊的 specs、授權條款、家族全貌，CP-242 已經寫完了；這篇聚焦
+    獨立 benchmark 實測 — 實際能打幾分、token 效率到底贏多少。）
+
+    但 Artificial Analysis 的 benchmark 測完之後，故事沒有那麼簡單。Gemma 4
+    31B 在 Intelligence Index 上拿到 39 分，而同級對手 Qwen3.5 27B（Reasoning）
+    是 42 分。差 3 分聽起來不多，但在這個級別每一分都是硬仗。
+
+    不過 Gemma 4 有一張殺手牌：token 效率。跑完整套 Intelligence Index，Gemma
+    4 31B 只用了 3900 萬個 output token，Qwen3.5 27B 要 9800 萬。少了 2.5 倍。
+    這代表什麼？在實際部署中，token 數直接換算成延遲和成本。少用 2.5 倍 token
+    拿到只差 3 分的成績，這筆帳怎麼算都划算。
+
+corpusSnapshot:
+  - slug: cp-242-20260403-article-gemma-4-google-gemini-3
+    frontmatter:
+      ticketId: CP-242
+      title: "Gemma 4 登場：Google 說它用了和 Gemini 3 同樣的突破性技術"
+      originalDate: "2026-04-02"
+      translatedDate: "2026-04-03"
+      source: "@GoogleAI on X"
+      sourceUrl: "https://x.com/GoogleAI/status/2039735543068504476"
+      lang: zh-tw
+      summary: "Google 發表 Gemma 4 開源模型家族，包含 31B Dense、26B MoE 和 E2B/E4B 邊緣模型，採 Apache 2.0 授權，支援 256K context、function calling、多模態，號稱在 Arena 上打贏 20 倍大的模型。"
+    contentSnapshot: |
+      Google AI 在 2026 年 4 月 2 日宣布推出 Gemma 4，並稱這是他們目前「最聰
+      明的開放模型」。推文裡最值得注意的一句話，是 Gemma 4 built with the
+      same breakthrough technology as Gemini 3。照 Google 的說法，這一代不只
+      是規格更新，而是把 Gemini 3 的核心技術路線帶進了開源模型。
+
+      Gemma 4 這次主打兩個主要版本：31B Dense 和 26B MoE（Mixture of Experts）。
+      Google 另外丟出了一個很有企圖心的宣示：31B Dense 與 26B MoE 這兩個版本，
+      在 Chatbot Arena 上 outcompeting models 20x their size。
+
+      Google 特別強調 Gemma 4 採用 Apache 2.0 授權，並把這件事跟 developer
+      flexibility 和 digital sovereignty 放在一起講。Apache 2.0 基本上就是
+      開源授權裡最乾脆的那一種 — 商用、修改、拿去訓練其他模型，都行。
+
+      Function calling 跟 structured JSON output 被放在 agentic workflows 的
+      脈絡下，Google 認為這些原生能力能幫開發者打造 reliable, autonomous agents。

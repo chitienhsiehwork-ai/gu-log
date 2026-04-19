@@ -29,12 +29,13 @@
   - [ ] expectedClass: `hard-dup`、expectedAction: `BLOCK`
   - [ ] humanReasoning 寫明「TechCrunch 是對 Anthropic Mythos 官方 blog 的轉述，無 independentDiff」
   - [ ] sourceRef: `2289c882`（Mythos deprecation commit）
-- [ ] `tribunal/fixtures/intentional-series/karpathy-ai-engineering.yaml`
-  - [ ] inputPost 收 CP-137 的 slug / frontmatter / lead paragraph
-  - [ ] corpusSnapshot 收 CP-36 + CP-116 的 slug / frontmatter / lead paragraph
+- [ ] `tribunal/fixtures/intentional-series/ecc-series.yaml`
+  - [ ] inputPost 收 SP-151（ECC order 6）的 slug / frontmatter / lead paragraph
+  - [ ] corpusSnapshot 收 SP-143（order 1）+ SP-144（order 2）的 slug / frontmatter / lead paragraph
   - [ ] expectedClass: `intentional-series`、expectedAction: `allow`
-  - [ ] humanReasoning 寫明「Karpathy 跨年 AI 工程論述系列，三篇互為續作、各自獨立貢獻」
-  - [ ] sourceRef: Karpathy trilogy cross-link commit（Level D 執行時從 git log 補）
+  - [ ] humanReasoning 寫明「ECC curated 系列翻譯，每篇顯式宣告 series.name + series.order，是 Level B policy 裡 intentional-series 的典型情境」
+  - [ ] sourceRef: `d14c1f82`（SP-143 creation commit）
+  - [ ] 決策理由記錄：原 spec 規劃 Karpathy trilogy，但 session memory 實際把 CP-36/116/137 判為 SOFT-DUP；ECC 系列有顯式 `series` 欄位，是更乾淨的 intentional-series 案例
 
 ## 4. 驗證
 

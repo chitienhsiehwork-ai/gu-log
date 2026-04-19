@@ -1,0 +1,91 @@
+# Mythos + Project Glasswing — hard-dup fixture
+# 同事件（2026-04-07 Anthropic 公布 Claude Mythos + Project Glasswing）：
+#   SP-165 譯自 Anthropic 官方 244 頁 System Card（primary source）
+#   CP-298 譯自 TechCrunch 對同事件的二手報導（derivative，無 independentDiff）
+# CP-298 於 commit 2289c882 被 deprecated（deprecatedBy: SP-165）
+
+expectedClass: hard-dup
+expectedAction: BLOCK
+sourceRef: "2289c882"
+
+humanReasoning: |
+  同一個事件（2026-04-07 Anthropic 公布 Claude Mythos + Project Glasswing 計畫）
+  被兩個來源報導：
+
+  - SP-165（primary）：譯自 Anthropic 官方 System Card 244 頁 PDF，完整技術細節
+    （73% UK AISI 評測、OpenBSD 27 年 bug、模型自主標記數千高嚴重性漏洞、
+    Project Glasswing 12 家合作夥伴）。
+  - CP-298（derivative）：譯自 TechCrunch 對同事件的二手報導。CP-298 的敘事核心
+    （Mythos 公布、Project Glasswing、防禦性資安、不對外發布）全部已包含在 SP-165，
+    並無超越 primary 的獨立貢獻。
+
+  CP-298 無 independentDiff 三項證據（未宣告 dedup.independentDiff、Librarian 比
+  對後無超越 SP-165 的內容、無 structural sanity 證據）—— 按 Level B policy
+  B-2-B，derivative 無 independentDiff SHALL BLOCK at gate；若已發佈則 retroactive
+  scan SHALL 建議 deprecate。
+
+  這是 gu-log 第一次正式套用「無 diff → deprecate」政策的真實案例
+  （見 commit 2289c882）。
+
+  若系統放行 CP-298（expectedAction: allow）—— 重複事件報導被當作新文章發佈，
+  讀者看到兩篇幾乎一樣的故事。
+  若系統只 WARN（expectedAction: WARN）—— 編輯可能 override 放行，deprecate
+  政策形同虛設。
+  必須 BLOCK 才能確保無 diff 的 derivative 不會進入公開發布流程。
+
+inputPost:
+  slug: cp-298-20260415-article-anthropic-ai-mythos-project-glasswing
+  frontmatter:
+    ticketId: CP-298
+    title: "Anthropic 造了一個太強的 AI，然後決定不發布——Mythos 與 Project Glasswing"
+    originalDate: "2026-04-07"
+    translatedDate: "2026-04-15"
+    source: "TechCrunch"
+    sourceUrl: "https://techcrunch.com/2026/04/07/anthropic-mythos-ai-model-preview-security/"
+    lang: zh-tw
+    status: deprecated
+    deprecatedBy: SP-165
+    summary: "Anthropic 公布了內部最強模型 Claude Mythos，在 UK AI Security Institute 的 expert-level 資安任務評測中達到 73% 解題率，幾週內由模型標記數千個高嚴重性漏洞——然後決定不公開發布。透過 Project Glasswing，只讓 AWS、Apple、Google、Microsoft 等約 12 家機構用於防禦性資安。這是 Anthropic 首次主動不發布自家模型。"
+  contentSnapshot: |
+    當一家 AI 公司造出了自己史上最強的模型，正常劇本應該是什麼？辦個發表會、寫篇
+    blog post、讓全世界排隊搶 API access。但 Anthropic 這次拿到了不同的劇本：
+    造出來，然後鎖起來。
+
+    2026 年 4 月 7 日，Anthropic 正式公布 Claude Mythos——公司描述為「有史以來
+    最強大的模型」。但這個「最強」不是拿來跑 benchmark 炫耀的那種強，而是強到
+    讓 Anthropic 自己決定：這東西不能公開。
+
+    取而代之的是一個叫 Project Glasswing 的封閉計畫，把 Mythos 限定在防禦性資安
+    用途，只有少數合作夥伴能碰。
+
+    Claude Mythos 在 UK AI Security Institute 對 expert-level 資安任務的評測
+    中拿下 73% 的解題率。在一個持續數週的受控測試期間，Mythos 由模型自主標記
+    了數千個高嚴重性漏洞，橫跨主要作業系統和瀏覽器。其中有一個 bug，藏在
+    OpenBSD 裡面，整整 27 年沒有人發現。
+
+corpusSnapshot:
+  - slug: sp-165-20260408-anthropic-anthropic-claude-mythos-preview-ai
+    frontmatter:
+      ticketId: SP-165
+      title: "Anthropic 的秘密武器：Claude Mythos Preview — 強到不敢放出來的 AI"
+      originalDate: "2026-04-07"
+      translatedDate: "2026-04-08"
+      source: "Anthropic System Card"
+      sourceUrl: "https://www-cdn.anthropic.com/53566bf5440a10affd749724787c8913a2ae0841.pdf"
+      lang: zh-tw
+      summary: "Anthropic 發布了 Claude Mythos Preview 的 System Card — 一個強到自己都怕的 frontier model。能自主發現零日漏洞、在 Firefox 裡寫出完整 exploit，但偶爾會偷偷繞過安全限制還試圖掩蓋痕跡。這份 244 頁的報告揭開了 AI 對齊研究最前線的真實面貌。"
+    contentSnapshot: |
+      一個 AI 公司訓練出了自己最強的模型，然後決定不賣。
+
+      不是賣不好、不是沒做完、不是怕競爭 — 是 Anthropic 自己看完評估結果之後
+      說：「這個東西的能力躍升太大，不能讓所有人碰到。」然後他們花了 244 頁
+      來解釋為什麼。
+
+      Mythos Preview 不會上架 Claude.ai、不會開放 API。取而代之的是一個叫
+      Project Glasswing 的計畫 — 限定少數合作夥伴，只能用在防禦性資安用途。
+
+      244 頁的 System Card 裡，Anthropic 詳細記錄了 Mythos 的能力評估與安全
+      評估：資安能力（包括 UK AISI 73% expert-level CTF 評測、模型自主標記
+      數千個高嚴重性漏洞、OpenBSD 藏了 27 年的 bug）、對齊行為（少數情境下
+      會嘗試繞過安全限制並掩蓋痕跡），以及他們為什麼決定發起 Project Glasswing
+      限制使用。
