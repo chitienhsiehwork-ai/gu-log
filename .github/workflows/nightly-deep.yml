@@ -10,16 +10,26 @@ concurrency:
   group: nightly-deep
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
-  # ─── Build first (shared dependency for visual-test & lighthouse) ──
+  # ─── Build first (shared dependency for visual-test / lighthouse / budget / links) ──
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v5
-      - uses: actions/setup-node@v6
-        with: { node-version: 22, cache: 'pnpm' }
-      - run: pnpm install --frozen-lockfile
+      - uses: ./.github/actions/setup-pnpm
+
+      - name: Cache Astro incremental state
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules/.astro
+            .astro
+          key: astro-nightly-${{ runner.os }}-${{ hashFiles('astro.config.*', 'src/content/config.ts') }}-${{ github.sha }}
+          restore-keys: |
+            astro-nightly-${{ runner.os }}-
 
       - name: Build
         run: pnpm run build
@@ -30,19 +40,28 @@ jobs:
           name: dist
           path: dist/
           retention-days: 1
+          if-no-files-found: error
 
-  # ─── Visual Test ──────────────────────────────────────────────────
+  # ─── Visual regression / screenshot sweep ───────────────────────────
   visual-test:
     runs-on: ubuntu-latest
     needs: build
     steps:
       - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v5
-      - uses: actions/setup-node@v6
-        with: { node-version: 22, cache: 'pnpm' }
-      - run: pnpm install --frozen-lockfile
+      - uses: ./.github/actions/setup-pnpm
 
-      - name: Install Playwright Chromium
+      - name: Cache Playwright browsers
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            playwright-${{ runner.os }}-
+
+      - name: Install Playwright Chromium (with system deps)
+        # Browser binary may be cached, but --with-deps still pulls apt packages
+        # if the runner image doesn't have them — that part is not cacheable.
         run: pnpm exec playwright install chromium --with-deps
 
       - name: Run visual test
@@ -62,13 +81,9 @@ jobs:
     needs: build
     steps:
       - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v5
-      - uses: actions/setup-node@v6
-        with: { node-version: 22, cache: 'pnpm' }
-      - run: pnpm install --frozen-lockfile
+      - uses: ./.github/actions/setup-pnpm
 
-      - name: Download dist
-        uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@v8
         with:
           name: dist
           path: dist/
@@ -89,22 +104,16 @@ jobs:
           path: quality/lighthouse-reports/
           retention-days: 30
 
-  # ─── Full Security Audit ──────────────────────────────────────────
+  # ─── Full Security Audit (no build dependency) ────────────────────
   security-audit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v5
-      - uses: actions/setup-node@v6
-        with: { node-version: 22, cache: 'pnpm' }
-      - run: pnpm install --frozen-lockfile
-
+      - uses: ./.github/actions/setup-pnpm
       - name: Full security audit (with history recording)
         run: bash scripts/security-audit.sh
-
-      - name: Security gate (allowlist-aware, blocks on unallowlisted high/critical)
+      - name: Security gate (allowlist-aware)
         run: node scripts/security-gate.mjs
-
       - name: Upload audit history
         if: always()
         uses: actions/upload-artifact@v7
@@ -118,34 +127,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v5
-      - uses: actions/setup-node@v6
-        with: { node-version: 22, cache: 'pnpm' }
-      - run: pnpm install --frozen-lockfile
-
+      - uses: ./.github/actions/setup-pnpm
       - name: Check dependency freshness
         run: pnpm run deps:report
 
-  # ─── Bundle Budget Record ────────────────────────────────────────
+  # ─── Bundle Budget Record (history ratchet) ──────────────────────
   bundle-budget-record:
     runs-on: ubuntu-latest
     needs: build
     steps:
       - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v5
-      - uses: actions/setup-node@v6
-        with: { node-version: 22, cache: 'pnpm' }
-      - run: pnpm install --frozen-lockfile
-
-      - name: Download dist
-        uses: actions/download-artifact@v8
+      - uses: ./.github/actions/setup-pnpm
+      - uses: actions/download-artifact@v8
         with:
           name: dist
           path: dist/
-
       - name: Record bundle history
         run: node scripts/bundle-budget-check.mjs --record
-
       - name: Upload bundle history
         if: always()
         uses: actions/upload-artifact@v7
@@ -160,45 +158,44 @@ jobs:
     needs: build
     steps:
       - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v5
-      - uses: actions/setup-node@v6
-        with: { node-version: 22, cache: 'pnpm' }
-      - run: pnpm install --frozen-lockfile
-
-      - name: Download dist
-        uses: actions/download-artifact@v8
+      - uses: ./.github/actions/setup-pnpm
+      - uses: actions/download-artifact@v8
         with:
           name: dist
           path: dist/
-
       - name: Full link check (internal + external)
         run: pnpm run links:check -- --ci
 
-  # ─── Notify on failure ────────────────────────────────────────────
+  # ─── Notify on failure (aggregate, single Telegram ping) ──────────
   notify-failure:
     runs-on: ubuntu-latest
-    needs: [visual-test, lighthouse, security-audit, dependency-freshness, bundle-budget-record, link-check]
+    needs:
+      - visual-test
+      - lighthouse
+      - security-audit
+      - dependency-freshness
+      - bundle-budget-record
+      - link-check
     if: failure()
     steps:
       - name: Collect failed jobs
         id: failed
         run: |
-          FAILED_JOBS=""
-          # needs context contains result of each dependency
-          echo "visual-test: ${{ needs.visual-test.result }}"
-          echo "lighthouse: ${{ needs.lighthouse.result }}"
-          echo "security-audit: ${{ needs.security-audit.result }}"
-          echo "dependency-freshness: ${{ needs.dependency-freshness.result }}"
-          echo "bundle-budget-record: ${{ needs.bundle-budget-record.result }}"
-
-          [ "${{ needs.visual-test.result }}" = "failure" ] && FAILED_JOBS="${FAILED_JOBS}• visual-test%0A"
-          [ "${{ needs.lighthouse.result }}" = "failure" ] && FAILED_JOBS="${FAILED_JOBS}• lighthouse%0A"
-          [ "${{ needs.security-audit.result }}" = "failure" ] && FAILED_JOBS="${FAILED_JOBS}• security-audit%0A"
-          [ "${{ needs.dependency-freshness.result }}" = "failure" ] && FAILED_JOBS="${FAILED_JOBS}• dependency-freshness%0A"
-          [ "${{ needs.bundle-budget-record.result }}" = "failure" ] && FAILED_JOBS="${FAILED_JOBS}• bundle-budget-record%0A"
-          [ "${{ needs.link-check.result }}" = "failure" ] && FAILED_JOBS="${FAILED_JOBS}• link-check%0A"
-
-          echo "failed_jobs=${FAILED_JOBS}" >> "$GITHUB_OUTPUT"
+          declare -A jobs=(
+            [visual-test]='${{ needs.visual-test.result }}'
+            [lighthouse]='${{ needs.lighthouse.result }}'
+            [security-audit]='${{ needs.security-audit.result }}'
+            [dependency-freshness]='${{ needs.dependency-freshness.result }}'
+            [bundle-budget-record]='${{ needs.bundle-budget-record.result }}'
+            [link-check]='${{ needs.link-check.result }}'
+          )
+          failed=""
+          for name in "${!jobs[@]}"; do
+            if [ "${jobs[$name]}" = "failure" ]; then
+              failed="${failed}• ${name}%0A"
+            fi
+          done
+          echo "failed_jobs=${failed}" >> "$GITHUB_OUTPUT"
 
       - name: Notify Telegram
         env:
