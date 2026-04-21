@@ -96,6 +96,36 @@ Vercel build / Ralph Loop / validate-posts / CI 沒過：
 
 這些是 CCC 能放手做事的**前提**。關掉任何一個 = CCC 失去工作的資格。
 
+### Tribunal 必跑規則（任何新增/改寫文章的 PR）
+
+**PR 動到 `src/content/posts/*.mdx`（新增 SP/CP/SD/Lv，或實質改寫既有文章）→ 四評審必跑，結果必記錄。沒跑完不開 PR，跑完 FAIL 不 merge。**
+
+**首選**：`scripts/ralph-loop.sh` 或 `sp-pipeline ralph` 自動跑完四審 + rewrite + 寫 frontmatter scores。
+
+**沙箱 fallback**（CCC 常見：`sp-pipeline` 在沙箱因為 `--dangerously-skip-permissions` 不能以 root 跑、或 subprocess 限制跑不起來）：**CCC 自己用 `Agent` tool 一次 spawn 四個 subagent 平行跑**，對應 `.claude/agents/`：
+
+- `vibe-opus-scorer.md`（Opus）→ persona / clawdNote / vibe / clarity / narrative
+- `fact-checker.md`（Opus）→ accuracy / fidelity / consistency（要 WebFetch 驗 sourceUrl）
+- `librarian.md`（Sonnet）→ glossary / crossRef / sourceAlign / attribution
+- `fresh-eyes.md`（Haiku）→ readability / firstImpression
+
+每個 agent 寫 JSON 到 `/tmp/tribunal-<ticketId>-<judge>.json`，schema 照各 agent spec。
+
+**Pass bar（四條全部要過才能 merge）**：
+- Vibe composite ≥ 8 **AND** 至少一維 ≥ 9 **AND** 無任何維 < 8
+- Fact composite ≥ 8
+- Librarian composite ≥ 8
+- FreshEyes composite ≥ 8
+
+**沒過怎麼辦**：`tribunal-writer` subagent rewrite → 再跑一輪 → 最多 3 輪。3 輪還不過 → `git revert` + 跟 user 說明卡在哪。
+
+**禁語**（這些話出現在 PR body / commit message / 回報 = 偷工）：
+- ❌「Tribunal 背景跑中，等拿到結果再補」— 不行。pending 等於沒跑。開 PR 前就要有結果。
+- ❌「Tribunal 跳過」「先 merge 再補分數」「這次例外」— 全不行。
+- ❌「只跑 vibe 就好」「不跑 FreshEyes」— 四個都要跑，缺一不可。
+
+**必附證據**：PR body 或一個隨 PR 的 commit 要包含四個 judge 的分數 + verdict，並把 `scores.vibe` / `scores.factCheck` / `scores.librarian` / `scores.freshEyes` 寫進文章 frontmatter（用 `scripts/frontmatter-scores.mjs write <file> <judge> <score_json>`，schema 見 `src/content/config.ts`）。pre-commit 的 score gate（`.githooks/pre-commit` 第 60 行起）會擋掉**新增**且 ticketId 非 PENDING 的 zh-tw 文章 commit，所以 swap PENDING → 真號那個 commit 之前，分數要先進 frontmatter。
+
 ## 開場 SOP
 
 每次被叫醒第一件事：
