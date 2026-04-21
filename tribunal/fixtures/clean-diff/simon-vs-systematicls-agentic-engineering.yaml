@@ -1,0 +1,117 @@
+# Simon Willison vs @systematicls — Agentic Engineering 不同視角
+# 同主題（Agentic Engineering 最佳實踐）、兩位獨立作者的不同洞察：
+#   CP-169 Simon Willison（Pragmatic Summit 爐邊對談）— focus 在工作流與品質驗證
+#   SP-102 @systematicls — focus 在系統設計與 context 管理
+
+expectedClass: clean-diff
+expectedAction: allow
+sourceRef: "e0c68346ac76054db45d51aafc1100aa46d42bfd"
+
+humanReasoning: |
+  兩篇都討論「Agentic Engineering 如何做好」，但切入角度與論點獨立：
+
+  CP-169（Simon Willison @ Pragmatic Summit 爐邊對談）：
+  - 焦點：開發者工作流程和驗收機制
+  - 核心論述：TDD 變免費了、測試自動寫→代碼品質是你的選擇、Showboat 做手動驗證、
+    用六個框架反推標準、模仿 codebase pattern
+  - 視角：從實習生類比開始，談信任、驗證、標準設定
+
+  SP-102（@systematicls）：
+  - 焦點：系統架構與信息流設計
+  - 核心論述：別追新工具，focus context 品質、把研究和實作分開、消除 sycophancy、
+    compaction 後要重讀 task、任務終點可驗證、rules 要定期掃除
+  - 視角：從「為什麼你的 agent 飄」的問題出發，落點在工程紀律和資訊架構
+
+  兩篇的獨立貢獻：
+  1. 論點不重疊：Simon 關鍵詞是「TDD/測試/品質選擇」，systematicls 是「context/研究拆開/終點驗證」
+  2. 證據不同：Simon 舉 Datasette 多框架反推、StrongDM 無人審查，systematicls 舉規則膨脹、
+     sycophancy bias、compaction 漂移
+  3. 讀者 take away 不同：Simon 教你「怎麼跟 agent 交互才能保證品質」，systematicls 教你「怎麼設計
+     系統讓 agent 不亂」
+
+  這不是「同一個方案的補充說明」（soft-dup），也不是「重述對方論點」，而是兩位不同背景的
+  工程師在同一個主題上的獨立思考。Simon focus 微觀（工作流），systematicls focus 宏觀（系統設計），
+  兩個視角相輔相成但論述各自成立。
+
+  若系統放行（expectedAction: allow）—— 讀者可以同時讀到「工作流驗證」和「系統設計」兩個視角，
+  理解更完整。
+  若系統警告甚至擋掉（expectedAction: WARN/BLOCK）—— 誤殺，兩篇各有獨立貢獻，應允許發布。
+
+inputPost:
+  slug: cp-169-20260315-simonw-pragmatic-summit-agentic-engineering
+  frontmatter:
+    ticketId: CP-169
+    title: "Simon Willison 的 Agentic Engineering 爐邊對談：測試免費了、程式品質是你的選擇"
+    originalDate: "2026-03-14"
+    translatedDate: "2026-03-15"
+    source: "@simonw on X"
+    sourceUrl: "https://x.com/simonw/status/2032885170542620884"
+    lang: zh-tw
+    summary: "Simon Willison 在 Pragmatic Summit 分享了他的 agentic engineering 實戰方法：五個 token 啟動 TDD、Showboat 做手動驗證、用六個框架反推出標準再實作、以及 code quality 是一個有意識的選擇。"
+  contentSnapshot: |
+    想像一下這個畫面：你請了一個實習生來幫你寫 code，結果這個實習生不只速度比你快十倍，他還不會
+    抱怨加班、不會偷看 Instagram、不需要 onboarding。但問題來了——你敢讓他一個人上線嗎？
+
+    Simon Willison 上個月在舊金山的 Pragmatic Summit 就在聊這件事。這場爐邊對談由 Statsig 的 Eric
+    Lui 主持，Simon 分享了他跟 coding agent 實戰半年多的心得。不是那種「AI 會改變世界」的空話，是真正
+    拿去用之後踩過的坑跟長出來的 pattern。
+
+    Simon 把開發者用 AI 的進程分成幾個階段。一開始就是打開 ChatGPT 問問題，有時候有幫助，有時候在唬爛。
+    然後你開始讓 coding agent 幫忙寫片段。再來到了某個轉折點——agent 寫的 code 量正式超過你自己寫的。
+
+    TDD：五個 token 翻轉了二十年的態度。Simon 說他現在跟 agent 開始每一個 coding session，第一件事就是
+    告訴它怎麼跑測試（通常是 `uv run pytest`），然後加五個字：**"use red-green TDD"**。
+
+    就這樣。五個 token。所有好的 coding agent 都知道 red-green TDD 是什麼，它們會乖乖照做，而且寫出來
+    的 code 能跑的機率大幅上升。測試免費了。他丟出了整場最狠的一句：**"Tests are free now."**
+
+    光是測試綠燈還不夠。Simon 說他會叫 agent 在背景把 server 跑起來，然後用 curl 打剛建好的 API。
+    他甚至做了一個工具叫 **Showboat**——它會產生一份 markdown 文件，把 agent 手動測試的整個過程記錄下來。
+    curl 指令、回傳結果、判斷邏輯，全部白紙黑字寫進文件裡。
+
+    用六個框架反推出一個標準。Simon 要幫自己的 web framework Datasette 加 multipart file upload 功能。
+    他沒有直接開始實作——他叫 Claude **先針對 Go、Node.js、Django、Starlette 等六個框架，建出一套所有
+    框架都能 pass 的通用 test suite**。然後他才說：「好，現在用這套測試來幫 Datasette 做一個新的實作。」
+
+    爛 code 是你自己選的。Simon 對 code quality 的態度很務實。他做的那些單頁 vibe-coded HTML 小工具？
+    800 行 spaghetti code，**who cares**，能跑就好。但長期維護的專案就不一樣了。
+
+    關鍵是這句話：**「Having poor quality code from an agent is a choice that you make.」**
+
+corpusSnapshot:
+  - slug: sp-102-20260304-systematicls-agentic-engineer
+    frontmatter:
+      ticketId: SP-102
+      title: "世界級 Agentic Engineer 的真相 — 少裝一點，反而飛更快"
+      originalDate: "2026-03-03"
+      translatedDate: "2026-03-04"
+      source: "@systematicls on X"
+      sourceUrl: "https://x.com/systematicls/status/2028814227004395561"
+      lang: zh-tw
+      summary: "這篇推文的核心很直接：多數人不是輸在模型太弱，而是輸在 context 管理失控。原作者主張先用最精簡的 CLI 工作流，再用 rules、skills 與明確任務終點逐步迭代。重點不是追新工具，而是把 agent 的行為設計成可控、可驗證、可收斂。"
+    contentSnapshot: |
+      你有沒有過那種經驗 — 裝了一堆 plugin、寫了三頁的 `CLAUDE.md`、搞了各種 memory 跟 skill，結果
+      agent 的表現反而越來越飄？別人用 Claude 像開鋼彈，你用起來像在搬石頭。問題出在哪？
+
+      這篇推文的作者 @systematicls 說了一句很扎心的話：**你不需要更複雜的工具，你需要的是更乾淨的工作方式。**
+
+      原作者先破題：大家常以為 agent 用不好，是因為 harness 不夠 fancy、plugin 不夠多、設定檔不夠長。
+      於是一路加到爆 — `CLAUDE.md` 寫到跟小說一樣厚，結果效果還是不上不下。
+
+      他的觀察是，真正把 agent 用得猛的人，靠的不是「工具疊羅漢」，而是幾個底層紀律：控制 context、
+      把研究和實作拆開、定義清楚什麼叫「做完」、持續整理 rules 避免自相矛盾。
+
+      Context 是主戰場。原作者反覆強調：agent 表現好不好，關鍵不在模型聰不聰明，在 context 品質。當你
+      把太多歷史紀錄、memory plugin、命名混亂的 skills 一起塞進去，就會 context bloat。結果 agent 明明
+      只要寫一個小功能，卻被迫讀一堆不相干的資訊，注意力直接被稀釋。
+
+      研究歸研究，實作歸實作。推文裡一個超實戰的原則：**不要用模糊任務直接叫 agent 開工**。你說「幫我做
+      auth system」，agent 會先花一大圈搜各種方案，context 很快被候選實作塞滿。但你說「用 JWT + bcrypt-12
+      + refresh token rotation」，agent 就會直接進入執行模式，不亂搜不亂猜。
+
+      Sycophancy：它太想討好你，反而會出事。你直接說「幫我找 bug」，agent 可能會很努力地「找出 bug」，
+      甚至把可疑的地方硬拗成 bug。原作者建議改用中性 prompt，例如先要求逐段檢查邏輯並回報發現，不預設
+      一定有 bug。
+
+      任務終點要可驗證。原作者說 agent 常見的問題不是不會開始，而是不知道什麼時候該停。他的解法是把終點
+      寫成契約：哪些 tests 必須通過、不能改測試來硬過、必要時加 screenshot 驗證行為。
