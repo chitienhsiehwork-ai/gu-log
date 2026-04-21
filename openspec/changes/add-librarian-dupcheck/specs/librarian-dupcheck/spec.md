@@ -33,12 +33,15 @@ pass = fact_pass AND library_pass AND dupCheck_pass
 
 高 fact / library 分數 SHALL NOT 補償低 dupCheck 分數，反之亦然。
 
-#### Scenario: 三個 pass bar 任一不過則整體不過
+#### Scenario: 三個 pass bar 任一不過則整體不過（dupCheck-only FAIL 路徑）
 
 - **WHEN** judge 輸出 `factAccuracy=10, sourceFidelity=10, linkCoverage=9, linkRelevance=9, dupCheck=5`
 - **THEN** `fact_pass = true`、`library_pass = true`、`dupCheck_pass = false`
 - **AND** 整體 `pass = false`
-- **AND** Stage 3 SHALL 觸發 workers 重跑（若未用完 max loops）
+- **AND** Stage 3 SHALL NOT 觸發 workers 重跑（FactCorrector / Librarian 無法修 dedup 問題）
+- **AND** Stage 3 SHALL 標記 `status = 'needs_review'`
+- **AND** Stage 3 SHALL 把 judge 的 dedup verdict（class / action / matchedSlugs / score）寫入 article frontmatter `dedup.tribunalVerdict`
+- **AND** 交由 Level F gate 或人工處理
 
 #### Scenario: 三個 pass bar 全過整體才過
 

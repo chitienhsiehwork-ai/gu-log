@@ -507,3 +507,203 @@ describe('pipeline — writer-constraint enforcement', () => {
     ).toBe(true);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Level E — dupCheck-only FAIL: skip worker loop, write frontmatter verdict
+// ---------------------------------------------------------------------------
+
+describe('pipeline — Stage 3 dupCheck-only FAIL (Level E)', () => {
+  let tmpDir: string;
+  let articlePath: string;
+
+  beforeEach(async () => {
+    tmpDir = await mkdtemp(join(tmpdir(), 'tribunal-v2-dupcheck-test-'));
+    articlePath = join(tmpDir, 'cp-999-dup-test.mdx');
+    await writeFile(articlePath, MINIMAL_ARTICLE, 'utf-8');
+  });
+
+  afterEach(async () => {
+    await rm(tmpDir, { recursive: true, force: true });
+  });
+
+  // -------------------------------------------------------------------------
+  // BLOCKER 1: When fact + library pass but dupCheck fails, Stage 3 MUST
+  // skip the worker re-run loop and mark needs_review immediately.
+  // -------------------------------------------------------------------------
+  it('Stage 3: skips worker loop on dupCheck-only FAIL and writes frontmatter verdict', async () => {
+    let factCorrectorCalls = 0;
+    let librarianCalls = 0;
+    let judgeCallCount = 0;
+    const git = mockGit();
+
+    const dupCheckFailOutput: FactLibJudgeOutput = {
+      pass: false,
+      scores: {
+        factAccuracy: 9,
+        sourceFidelity: 9,
+        linkCoverage: 8,
+        linkRelevance: 8,
+        dupCheck: 3,
+      },
+      composite: 7,
+      fact_pass: true,
+      library_pass: true,
+      dupCheck_pass: false,
+      improvements: {
+        dupCheck:
+          'class=hard-dup action=BLOCK matchedSlugs=[sp-165-20260408-some-slug] reason=與 SP-165 同 cluster primary，無 independentDiff',
+      },
+      critical_issues: ['duplicate detected — manual review required'],
+      judge_model: 'mock',
+      judge_version: '2.1.0',
+      timestamp: '2026-04-22T00:00:00Z',
+    };
+
+    const config: PipelineConfig = {
+      ...passThroughConfig(),
+      git: git.adapter,
+      runners: {
+        ...passThroughConfig().runners,
+        stage3FactCorrector: {
+          run: async () => {
+            factCorrectorCalls++;
+            return emptyFactCorrector();
+          },
+        },
+        stage3Librarian: {
+          run: async () => {
+            librarianCalls++;
+            return emptyLibrarian();
+          },
+        },
+        stage3Judge: {
+          run: async () => {
+            judgeCallCount++;
+            return dupCheckFailOutput;
+          },
+        },
+      },
+    };
+
+    const final = await runPipeline(articlePath, config);
+
+    // Pipeline must NOT proceed to Stage 4 — it returns false from Stage 3
+    expect(final.status).not.toBe('passed');
+
+    // Stage 3 MUST be marked needs_review (not 'failed')
+    expect(final.stages.stage3.status).toBe('needs_review');
+
+    // Judge ran exactly ONCE — no worker re-run loop
+    expect(judgeCallCount).toBe(1);
+
+    // Workers ran exactly ONCE (the initial worker-first pass, loop 1)
+    // — they must NOT have been re-invoked for a second loop
+    expect(factCorrectorCalls).toBe(1);
+    expect(librarianCalls).toBe(1);
+
+    // Descriptive commit message — NOT "max loops exhausted"
+    expect(
+      git.commits.some((m) => m.includes('dupCheck FAIL') && m.includes('class=hard-dup'))
+    ).toBe(true);
+    expect(git.commits.every((m) => !m.includes('max loops exhausted'))).toBe(true);
+
+    // Frontmatter verdict MUST have been written to the article
+    const finalContent = await readFile(articlePath, 'utf-8');
+    expect(finalContent).toContain('dedup.tribunalVerdict');
+    expect(finalContent).toContain('hard-dup');
+  });
+
+  // -------------------------------------------------------------------------
+  // When ALL three pass bars pass, Stage 3 should NOT take the dupCheck
+  // shortcut — workers ran once and judge passed on the first try.
+  // -------------------------------------------------------------------------
+  it('Stage 3: does NOT take dupCheck shortcut when all three pass bars pass', async () => {
+    let factCorrectorCalls = 0;
+    let judgeCallCount = 0;
+    const git = mockGit();
+
+    const config: PipelineConfig = {
+      ...passThroughConfig(),
+      git: git.adapter,
+      runners: {
+        ...passThroughConfig().runners,
+        stage3FactCorrector: {
+          run: async () => {
+            factCorrectorCalls++;
+            return emptyFactCorrector();
+          },
+        },
+        stage3Judge: {
+          run: async () => {
+            judgeCallCount++;
+            return factLibPass(); // all three bars pass (dupCheck: 10)
+          },
+        },
+      },
+    };
+
+    const final = await runPipeline(articlePath, config);
+
+    expect(final.status).toBe('passed');
+    expect(final.stages.stage3.status).toBe('passed');
+    expect(judgeCallCount).toBe(1);
+    expect(factCorrectorCalls).toBe(1);
+
+    // No dupCheck shortcut commit
+    expect(git.commits.every((m) => !m.includes('dupCheck FAIL'))).toBe(true);
+  });
+
+  // -------------------------------------------------------------------------
+  // When fact ALSO fails alongside dupCheck, Stage 3 should use the normal
+  // worker re-run loop (fact/library issues ARE fixable by workers).
+  // -------------------------------------------------------------------------
+  it('Stage 3: uses normal worker loop when both fact and dupCheck fail', async () => {
+    let judgeCallCount = 0;
+    const git = mockGit();
+
+    const config: PipelineConfig = {
+      ...passThroughConfig(),
+      git: git.adapter,
+      runners: {
+        ...passThroughConfig().runners,
+        stage3Judge: {
+          run: async () => {
+            judgeCallCount++;
+            // fact fails AND dupCheck fails — NOT a dupCheck-only scenario
+            return {
+              pass: false,
+              scores: {
+                factAccuracy: 5,
+                sourceFidelity: 5,
+                linkCoverage: 8,
+                linkRelevance: 8,
+                dupCheck: 3,
+              },
+              composite: 5,
+              fact_pass: false,
+              library_pass: true,
+              dupCheck_pass: false,
+              improvements: { factAccuracy: 'multiple errors found' },
+              critical_issues: ['fact errors + dup'],
+              judge_model: 'mock',
+              judge_version: '2.1.0',
+              timestamp: '2026-04-22T00:00:00Z',
+            } satisfies FactLibJudgeOutput;
+          },
+        },
+      },
+    };
+
+    const final = await runPipeline(articlePath, config);
+
+    // Stage 3 should reach max loops (2) via the normal path, NOT dupCheck shortcut
+    expect(final.stages.stage3.status).toBe('failed');
+    // Judge runs for max loops (2 loops)
+    expect(judgeCallCount).toBe(2);
+
+    // "max loops exhausted" commit SHOULD appear
+    expect(git.commits.some((m) => m.includes('max loops exhausted'))).toBe(true);
+    // "dupCheck FAIL — skip worker loop" commit SHOULD NOT appear
+    expect(git.commits.every((m) => !m.includes('dupCheck FAIL'))).toBe(true);
+  });
+});
