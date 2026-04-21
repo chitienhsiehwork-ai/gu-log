@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v5
+      - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v6
         with: { node-version: 22, cache: 'pnpm' }
 
@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v5
+      - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v6
         with: { node-version: 22, cache: 'pnpm' }
       - run: pnpm install --frozen-lockfile
@@ -46,7 +46,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v5
+      - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v6
         with: { node-version: 22, cache: 'pnpm' }
       - run: pnpm install --frozen-lockfile
@@ -62,7 +62,7 @@ jobs:
           # Need history + base ref so the translation-pair gate can
           # diff "newly added in this PR" against the base branch.
           fetch-depth: 0
-      - uses: pnpm/action-setup@v5
+      - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v6
         with: { node-version: 22, cache: 'pnpm' }
       - run: pnpm install --frozen-lockfile
@@ -83,7 +83,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v5
+      - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v6
         with: { node-version: 22, cache: 'pnpm' }
       - run: pnpm install --frozen-lockfile
@@ -97,7 +97,7 @@ jobs:
     needs: [lockfile-consistency, lint, contrast, validate-content, security-gate]
     steps:
       - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v5
+      - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v6
         with: { node-version: 22, cache: 'pnpm' }
       - run: pnpm install --frozen-lockfile
@@ -120,7 +120,7 @@ jobs:
     needs: build
     steps:
       - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v5
+      - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v6
         with: { node-version: 22, cache: 'pnpm' }
       - run: pnpm install --frozen-lockfile
