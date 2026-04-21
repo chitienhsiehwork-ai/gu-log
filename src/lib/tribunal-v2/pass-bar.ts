@@ -121,6 +121,12 @@ export function checkFactLibPassBar(scores: {
       `[checkFactLibPassBar] scores.dupCheck is not a finite number: ${JSON.stringify(raw)}`
     );
   }
+  if (!Number.isInteger(raw)) {
+    throw new Error(
+      `[checkFactLibPassBar] scores.dupCheck = ${raw} is not an integer. ` +
+        `Spec R1 requires integer 0..10. Judge must not output fractional scores.`
+    );
+  }
   // Clamp to valid range instead of silently passing garbage values.
   if (raw < 0 || raw > 10) {
     throw new Error(

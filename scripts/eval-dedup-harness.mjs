@@ -211,6 +211,10 @@ function buildJudgePrompt(fixture, outputPath) {
   // provided below. Globbing the live corpus would: (a) break reproducibility
   // because the corpus changes over time, and (b) cause self-matching when the
   // fixture inputPost slug already exists in the real corpus.
+  //
+  // Label "EVALUATOR MODE — CORPUS SOURCE OVERRIDE" MUST match the override block
+  // heading in .claude/agents/v2-factlib-judge.md. If you rename it here, update
+  // the agent file too (the judge uses the label to detect evaluator mode).
   return `You are evaluating a dedup fixture. Score ONLY the dupCheck dimension for this exercise.
 The fact / library dimensions may be stubbed (e.g. 8, 8, 8, 8) — focus on judging whether
 this inputPost is hard-dup / soft-dup / intentional-series / clean-diff relative to the

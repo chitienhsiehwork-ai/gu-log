@@ -94,19 +94,19 @@ Does this article duplicate / overlap with existing corpus? Your job is to **ide
 
 ## Language Filter（跨語言翻譯對豁免）
 
-gu-log 的 corpus 有 **435 篇英文鏡像版**（`en-sp-*` / `en-cp-*`）。每篇中文翻譯稿都對應一篇英文版，兩者：
+gu-log 的 corpus 有 **英文鏡像版**（`en-sp-*` / `en-cp-*` / `en-sd-*` / `en-lv-*`）。每篇中文稿都對應一篇英文版，兩者：
 - 同 `sourceUrl`、同 `tags`、同 `clusterIds`
 - `lang` 欄位不同（`zh-tw` vs `en`）
-- slug 差 `en-` 前綴（例：`sp-165-...` ↔ `en-sp-165-...`）
+- slug 差 `en-` 前綴（例：`sp-165-...` ↔ `en-sp-165-...`，`sd-10-...` ↔ `en-sd-10-...`，`cp-300-...` ↔ `en-cp-300-...`，`lv-3-...` ↔ `en-lv-3-...`）
 
 **規則**：
 1. **Corpus pre-filter 必須先排除 `lang` 不同的 posts**：只比對 `lang` 相同的 corpus posts。
-2. **翻譯對豁免**：若 inputPost 與某 corpus post 的 slug 差 `en-` 前綴（例：`sp-165-xxx` vs `en-sp-165-xxx`），這是同一篇文章的雙語版本，**不算 dup，不納入比對**。
+2. **翻譯對豁免**：若 inputPost 與某 corpus post 的 slug 差 `en-` 前綴（例：`sp-165-xxx` vs `en-sp-165-xxx`，適用所有系列前綴 sp/cp/sd/lv），這是同一篇文章的雙語版本，**不算 dup，不納入比對**。
 3. 違反上述規則會誤殺所有新翻譯的英文版（production 第一天就炸）。
 
 ## Corpus Comparison Scope（重要 — 控 token 成本）
 
-> **EVALUATOR MODE OVERRIDE**: If your task prompt contains a `CORPUS SNAPSHOT` block
+> **EVALUATOR MODE — CORPUS SOURCE OVERRIDE**: If your task prompt contains a `CORPUS SNAPSHOT` block
 > (labelled `CORPUS SNAPSHOT (凍結的既有 corpus...)`), use ONLY that snapshot as the
 > corpus. Do NOT glob `src/content/posts/` or read any real corpus files.
 > The snapshot is a frozen reproducibility fixture — globbing live corpus breaks

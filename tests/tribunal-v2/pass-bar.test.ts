@@ -323,6 +323,16 @@ describe('checkFactLibPassBar (Stage 3)', () => {
     ).toThrow(/not a finite number/i);
   });
 
+  it('throws when dupCheck is a non-integer (spec R1 requires integer 0..10)', () => {
+    expect(() =>
+      checkFactLibPassBar({
+        factAccuracy: 9, sourceFidelity: 9,
+        linkCoverage: 9, linkRelevance: 9,
+        dupCheck: 8.5,
+      })
+    ).toThrow(/not an integer/i);
+  });
+
   it('throws when dupCheck is out of range [0, 10]', () => {
     expect(() =>
       checkFactLibPassBar({
