@@ -12,6 +12,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdtemp, writeFile, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import matter from 'gray-matter';
 
 import { runPipeline, type PipelineConfig } from '../../src/lib/tribunal-v2/pipeline';
 import { buildIoAdapter } from '../../src/lib/tribunal-v2/adapters/io';
@@ -587,10 +588,10 @@ describe('pipeline — Stage 3 dupCheck-only FAIL (Level E)', () => {
 
     const final = await runPipeline(articlePath, config);
 
-    // Pipeline must NOT proceed to Stage 4 — it returns false from Stage 3
-    expect(final.status).not.toBe('passed');
+    // Bug A fix: pipeline-level status must propagate needs_review (not 'failed')
+    expect(final.status).toBe('needs_review');
 
-    // Stage 3 MUST be marked needs_review (not 'failed')
+    // Stage 3 MUST also be marked needs_review
     expect(final.stages.stage3.status).toBe('needs_review');
 
     // Judge ran exactly ONCE — no worker re-run loop
@@ -607,10 +608,20 @@ describe('pipeline — Stage 3 dupCheck-only FAIL (Level E)', () => {
     ).toBe(true);
     expect(git.commits.every((m) => !m.includes('max loops exhausted'))).toBe(true);
 
-    // Frontmatter verdict MUST have been written to the article
+    // Bug B fix: frontmatter verdict MUST be NESTED dedup.tribunalVerdict,
+    // not a literal dotted key. Round-trip via gray-matter to verify.
     const finalContent = await readFile(articlePath, 'utf-8');
-    expect(finalContent).toContain('dedup.tribunalVerdict');
-    expect(finalContent).toContain('hard-dup');
+    const parsedFrontmatter = matter(finalContent).data as Record<string, unknown>;
+    const dedup = parsedFrontmatter['dedup'] as Record<string, unknown> | undefined;
+    expect(dedup).toBeDefined();
+    const verdict = dedup?.['tribunalVerdict'] as Record<string, unknown> | undefined;
+    expect(verdict).toBeDefined();
+    expect(verdict?.['class']).toBe('hard-dup');
+    expect(verdict?.['action']).toBe('BLOCK');
+    expect(Array.isArray(verdict?.['matchedSlugs'])).toBe(true);
+    expect(typeof verdict?.['score']).toBe('number');
+    // Literal dotted key MUST NOT appear as a top-level key
+    expect('dedup.tribunalVerdict' in parsedFrontmatter).toBe(false);
   });
 
   // -------------------------------------------------------------------------
@@ -705,5 +716,75 @@ describe('pipeline — Stage 3 dupCheck-only FAIL (Level E)', () => {
     expect(git.commits.some((m) => m.includes('max loops exhausted'))).toBe(true);
     // "dupCheck FAIL — skip worker loop" commit SHOULD NOT appear
     expect(git.commits.every((m) => !m.includes('dupCheck FAIL'))).toBe(true);
+  });
+
+  // -------------------------------------------------------------------------
+  // Case 4: fact_pass ✓, library_pass ✗, dupCheck_pass ✗
+  // shortcut NOT taken (shortcut requires library_pass = true).
+  // Workers loop, library can be fixed next round; then shortcut fires.
+  // -------------------------------------------------------------------------
+  it('Stage 3: runs worker loop when library fails alongside dupCheck (Case 4)', async () => {
+    let judgeCallCount = 0;
+    const git = mockGit();
+
+    // Round 1: library fails + dupCheck fails → no shortcut, worker loop
+    // Round 2: library passes + dupCheck still fails → shortcut fires (needs_review)
+    const round1Output: FactLibJudgeOutput = {
+      pass: false,
+      scores: { factAccuracy: 9, sourceFidelity: 9, linkCoverage: 6, linkRelevance: 6, dupCheck: 3 },
+      composite: 6,
+      fact_pass: true,
+      library_pass: false,  // library fails — workers CAN fix this
+      dupCheck_pass: false,
+      improvements: {
+        linkCoverage: 'missing glossary links',
+        dupCheck: 'class=hard-dup action=BLOCK matchedSlugs=[sp-100] reason=同 cluster primary',
+      },
+      critical_issues: ['library incomplete', 'duplicate detected'],
+      judge_model: 'mock',
+      judge_version: '2.1.0',
+      timestamp: '2026-04-22T00:00:00Z',
+    };
+    const round2Output: FactLibJudgeOutput = {
+      pass: false,
+      scores: { factAccuracy: 9, sourceFidelity: 9, linkCoverage: 9, linkRelevance: 8, dupCheck: 3 },
+      composite: 7,
+      fact_pass: true,
+      library_pass: true,  // library fixed by workers
+      dupCheck_pass: false,
+      improvements: {
+        dupCheck: 'class=hard-dup action=BLOCK matchedSlugs=[sp-100] reason=同 cluster primary',
+      },
+      critical_issues: ['duplicate detected'],
+      judge_model: 'mock',
+      judge_version: '2.1.0',
+      timestamp: '2026-04-22T00:00:00Z',
+    };
+
+    const config: PipelineConfig = {
+      ...passThroughConfig(),
+      git: git.adapter,
+      runners: {
+        ...passThroughConfig().runners,
+        stage3Judge: {
+          run: async () => {
+            judgeCallCount++;
+            return judgeCallCount === 1 ? round1Output : round2Output;
+          },
+        },
+      },
+    };
+
+    const final = await runPipeline(articlePath, config);
+
+    // Round 1: library failed → worker loop ran. Round 2: library passed,
+    // dupCheck still failed → shortcut fired → needs_review.
+    expect(final.status).toBe('needs_review');
+    expect(final.stages.stage3.status).toBe('needs_review');
+    expect(judgeCallCount).toBe(2);
+
+    // shortcut fires on round 2 (after library is fixed by workers)
+    expect(git.commits.some((m) => m.includes('dupCheck FAIL') && m.includes('class=hard-dup'))).toBe(true);
+    expect(git.commits.every((m) => !m.includes('max loops exhausted'))).toBe(true);
   });
 });

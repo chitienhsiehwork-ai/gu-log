@@ -478,13 +478,18 @@ async function runStage3(state: PipelineState, config: PipelineConfig): Promise<
       const reason = reasonMatch?.[1]?.trim() ?? '';
       const score = judgeOutput.scores.dupCheck;
 
+      // Write nested dedup.tribunalVerdict — io adapter deep-merges object
+      // values so existing dedup.* fields (e.g. independentDiff from Level C)
+      // are preserved rather than overwritten.
       await config.io.updateFrontmatter(state.articlePath, {
-        'dedup.tribunalVerdict': {
-          class: dupClass,
-          action: dupAction,
-          matchedSlugs,
-          score,
-          reason,
+        dedup: {
+          tribunalVerdict: {
+            class: dupClass,
+            action: dupAction,
+            matchedSlugs,
+            score,
+            reason,
+          },
         },
       });
 
@@ -720,7 +725,12 @@ export async function runPipeline(
   const stage3Passed = await runStage3(state, config);
 
   if (!stage3Passed) {
-    state.status = 'failed';
+    // Propagate stage-level status: 'needs_review' (dupCheck-only FAIL) vs
+    // 'failed' (fact/library exhausted max loops). Do NOT flatten both paths
+    // into 'failed' — scripts/tribunal-v2-run.ts uses exit code 3 for
+    // needs_review and exit code 1 for failed; CI/orchestrator behavior differs.
+    state.status =
+      state.stages.stage3.status === 'needs_review' ? 'needs_review' : 'failed';
     state.completedAt = now();
     await config.onProgress?.(state);
     return state;

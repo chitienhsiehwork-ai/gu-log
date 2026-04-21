@@ -28,7 +28,27 @@ export function buildIoAdapter(): IoAdapter {
     async updateFrontmatter(path, updates) {
       const raw = await readFile(path, 'utf-8');
       const parsed = matter(raw);
-      const merged = { ...parsed.data, ...updates };
+      // Deep-merge object-valued keys so nested frontmatter sections (e.g.
+      // `dedup: { tribunalVerdict }`) don't clobber sibling fields that were
+      // already set by a previous stage (e.g. `dedup: { independentDiff }`).
+      // Primitive-valued keys and arrays are overwritten (same as before).
+      const merged: Record<string, unknown> = { ...parsed.data };
+      for (const [k, v] of Object.entries(updates)) {
+        const existing = merged[k];
+        if (
+          v !== null &&
+          typeof v === 'object' &&
+          !Array.isArray(v) &&
+          existing !== null &&
+          typeof existing === 'object' &&
+          !Array.isArray(existing)
+        ) {
+          // Both existing and incoming are plain objects — deep merge one level.
+          merged[k] = { ...(existing as Record<string, unknown>), ...(v as Record<string, unknown>) };
+        } else {
+          merged[k] = v;
+        }
+      }
       // gray-matter's stringify preserves excerpt/delimiters
       const next = matter.stringify(parsed.content, merged);
       await writeFile(path, next, 'utf-8');
