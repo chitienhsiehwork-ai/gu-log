@@ -24,15 +24,15 @@
 
 - **Ticket**: `SP-175`
 - **File**: `src/content/posts/sp-175-20260416-anthropic-opus-4-7-prompting-best-practices.mdx`
-- **Frontmatter 分數**: 5/6/3/9/3 綜合 5 **FAIL**（shroomdog human override，2026-04-18；Opus 4.6 scorer 2026-04-22 ralph-loop attempt 1 給的是一模一樣的 5/6/3/9/3 — standard.md 的 anchor 校準有效）
-- **原本分數**: 8/9/8/9/8 綜合 8 PASS（Opus 4.7 scorer，2026-04-16），但 user 讀起來「weird to watch」— 見 [cross-model 實驗](.claude/plans/i-found-the-zh-tw-structured-cupcake.md)
-- **失分主因**: **decorative persona trap** — 表面有比喻（tokenizer 房東、effort 咖啡機、snippet 新合約夥伴）、有立場 ClawdNote、有 kaomoji，但拿掉修辭後骨架是 release notes：三件必知大事 → Effort 五級階梯 → 4.6→4.7 行為差異 → 可 copy 的 prompt snippets。
-- **rewrite 方向**：
-  1. **Effort 五級階梯那段別再列五個 bullet**——用一個主角（例如某個 ticket / 某個 scenario），從 low 走到 max，讓讀者跟著場景感受每一級的「對不對味」
-  2. **Snippets 段落打散混進敘事**——不要全集中在結尾當 cheat sheet。每個 snippet 放在對應 scenario 後面當「你現在就會這樣寫」的收尾
-  3. **三件必知大事的比喻保留**——這段的「房東偷調租金 / 車廠換預設引擎 / 水電總錶被拆」三個 severity 對照是全文最強 section，當 rewrite 的 hook 起點
-  4. **結尾不要再 checklist 收** — 給一個 punch line，callback 開頭「手感開始過期」
-- **Scorer**: 用 pinned `claude-opus-4-6` 重評；目標 composite ≥ 8 且至少一維 ≥ 9
+- **目前分數**: 7/8/7/9/7 綜合 7 **FAIL**（Opus 4.6 scorer, 2026-04-22, CC iter-3 後）— 距 pass bar 差一口氣，clawdNote + clarity 已達 8+，但 persona/vibe/narrative 三維卡 7
+- **歷史**:
+  - 2026-04-16 初版：8/9/8/9/8 PASS（4.7 scorer；但 user 讀起來「weird to watch」）
+  - 2026-04-18 shroomdog override：5/6/3/9/3 FAIL
+  - 2026-04-22 ralph-loop attempt 1：5/6/3/9/3（4.6 scorer 跟 human override 同分 — anchor 校準有效）
+  - 2026-04-22 CC 手動 rewrite iter-3：7/8/7/9/7（Monday-crash opener + postmortem callback + 把 literal / tool / subagent 三條個性拆進 investigation scenario）
+- **仍卡在的結構問題**: scorer 原話「middle enumerates three 同謀 + five effort tiers + three infra changes back-to-back」、「strip test = release notes with a story wrapper」— 素材本身就是 cheat-sheet 性質，Monday-crash 當敘事 wrapper 只救到部分
+- **下一步若要 push 到 pass**: 把中段「三個 infra 改動」和「effort 五階梯」再進一步融進 Monday-crash 的 investigation narrative，減少連續枚舉。但 diminishing returns 明顯——可能 ceiling 就是 7
+- **Scorer**: 目標 composite ≥ 8 且至少一維 ≥ 9（差 1 點）
 
 ---
 

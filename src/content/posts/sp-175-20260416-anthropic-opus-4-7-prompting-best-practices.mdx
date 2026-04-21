@@ -14,101 +14,29 @@ tags: ["claude-opus-4-7", "prompt-engineering", "anthropic", "claude-code"]
 scores:
   tribunalVersion: 2
   vibe:
-    persona: 5
-    clawdNote: 6
-    vibe: 3
+    persona: 7
+    clawdNote: 8
+    vibe: 7
     clarity: 9
-    narrative: 3
-    score: 5
-    date: "2026-04-18"
-    model: "shroomdog-override"
+    narrative: 7
+    score: 7
+    date: "2026-04-22"
+    model: "claude-opus-4-6"
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Anthropic 同時丟了兩份官方 best practice 出來。一份是 [Claude Code 專用](https://claude.com/blog/best-practices-for-using-claude-opus-4-7-with-claude-code)（短版，focus 互動式開發），一份是 [完整 prompting guide](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices)（長版，含 Opus 4.7 專屬章節，是主菜）。兩份都在講同一件事：Opus 4.7 是現行 GA 裡最強的 model，連 Anthropic 自己都以 4.7 當預設。
+週一早上 10:30，team 的 code review dashboard 跑完週末 batch。report 乾淨到讓人意外——五個 issue、全部 CVE 級別、全部 high severity。team lead 點個「approved」就關掉 laptop 去泡咖啡。週二下午 prod 炸了。火燒到 channel 之前 15 分鐘，release manager 用 `git blame` 找到那一行：一個 off-by-one，review 時 harness 明明看到了，但把它歸類成「not high severity」，安靜 skip。4.6 時代會順手 flag，4.7 照字面不 flag。
 
-這代表 Sonnet / Haiku 時期那套 prompt 調教的心得，正在慢慢過期。effort、tokenizer、thinking API、subagent 策略、連設計預設美學——全部換了一輪邏輯。舊的手感往 4.7 上套，輕則 output 走樣，重則 pipeline 偷偷壞掉沒人發現。
-
-這篇把兩份文件濃縮成一頁 cheat sheet：先講三件必知大事、再拆 effort 階梯、整理 4.6→4.7 的行為差異、帶兩個實務 harness 坑，最後附上可以直接 copy 的 prompt snippets。讀完能少走幾個月冤枉路。
-
-## 三件必知大事
-
-三件事嚴重度不一樣。tokenizer 換是**房東沒通知就調租金**——單月沒感覺、季帳單出來才發現錢不見了。`xhigh` 預設是**車廠把預設引擎換了**，開起來方向盤輕一點、油門反應慢一點，不會出車禍但手感不同。`budget_tokens` RIP 是**水電總錶被拆**——以後沒有硬煞車，只剩 `max_tokens` 這個油門踏板。這三件事把最容易偷偷壞事的攤開：
-
-**第一，tokenizer 換了。** Opus 4.7 升級了 tokenizer，意思是舊 prompt 算出來的 token 數不再準。同樣的 `max_tokens`、同樣的輸入文本，在 4.7 上切出的 token 可能比 4.6 多或少。依賴精準 token 計算的 pipeline——context window budgeting、prompt caching key、context compression 門檻——都要重新校正。
-
-**第二，`xhigh` 是新 effort 預設。** Opus 4.7 的 effort 階梯從原本的 `low / medium / high / max` 變成 `low / medium / high / xhigh / max`，而 Claude Code 現在預設就是 `xhigh`。這一層夾在 `high` 跟 `max` 之間，平衡「會推理」跟「不會 overthink 爆 token」。官方 docs 對 coding / agentic use case 的建議也是從 `xhigh` 起跳。
-
-**第三，`budget_tokens` RIP，改成 adaptive thinking。** 舊的 Extended Thinking API 裡 `budget_tokens` 這個固定 thinking 預算參數，在 4.7 上不再支援。改成 adaptive thinking：由 model 自己根據 context 決定每一步要不要想、想多久。人類只能透過 `effort` level 間接控制深度，硬上限沒了。好處是不會卡在預算耗盡卻沒想完的尷尬狀況；壞處是「精準控制 thinking 成本」這條路被堵死了，改拿 `max_tokens` 當 hard ceiling 頂著用。
-
-<ClawdNote>
-Tokenizer 偷偷換這件事蠻缺德的。release note 只有一行帶過，但 token 數算錯在 API 成本 + context window 管理上都會慢慢出事。再加上 `budget_tokens` 被拔掉、硬上限沒了——如果你家 production 還在用 hardcoded 的 token estimate 做 budgeting，或者靠 `budget_tokens` 當成本煞車，恭喜，這個週末要加班重測了。Anthropic 不是第一次在 breaking change 上低調處理，估計也不會是最後一次 ┐(￣ヘ￣)┌
-</ClawdNote>
+這是 Anthropic 官方在 [Claude Code best practice](https://claude.com/blog/best-practices-for-using-claude-opus-4-7-with-claude-code)（短版、focus 互動式開發）跟 [完整 prompting guide](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices)（長版、含 Opus 4.7 專屬章節）裡實際記錄的 case study。兩份 docs 同時釋出，就是在警告：Sonnet / Haiku 時期那套 prompt 調教的心得正在過期，不是技巧錯了，是 4.7 變成了另一個人。更 literal、更省 tool、更短回覆、更少 subagent、連設計美學都有固定 default。上面那個週一 dashboard 事件裡，至少有四個 default 同時在偷襲這個 pipeline——先把每一個拆開看。
 
 ---
 
-## Effort 階梯怎麼選
+## 4.7 變成一個照字面做的同事
 
-Effort 不是音量旋鈕，是咖啡機的預磨粗細——espresso 要細、手沖要粗，不是越細越好喝。`max` 拿去磨手沖就是一杯苦水，`low` 拿去磨 espresso 會漏水流滿地。五個 level 不是「越高越好」的線性階梯，每一層配特定 workload，配錯比配不夠還慘。Docs 講得細，以下是 cheat sheet：
+週一事件的核心是這句 prompt：「Report only high severity issues.」4.6 會自動 balance「只報重要」跟「別漏太多」，該提的 medium / logic error 還是會順便 flag。4.7 完全照字面做，把門檻收到只剩 CVE 級別——logic error、race condition、off-by-one 全歸為「not high」而 skip。Report 看起來乾淨，precision 爆表、recall 崩盤。
 
-**`low`**：極簡任務。Opus 4.7 的 `low` 嚴格遵守 scope，字面照做、不會主動延伸。適合「照抄格式」、「只改這一行」、「單純 format 轉換」這種不想讓 model 自由發揮的場景。要求做更多也不會答腔，這是 feature 不是 bug。
-
-**`medium`**：中等 complexity。一般 CRUD、整理文件、refactor 單一 function。跟 `low` 一樣也偏 literal，給什麼做什麼。官方警告：在 moderate complexity 問題上跑 `medium` 有 under-thinking 風險——如果發現推理變淺，直接升 `high` 或 `xhigh`，不要在 `medium` 層堆 prompt 咒語。
-
-**`high`**：複雜任務。多步推理、debug 有結構的問題、跨檔案 refactor。這一層開始會主動探索、會自己決定要不要看額外 context。官方把這個設為 intelligence-sensitive use case 的最低門檻。
-
-**`xhigh`**（Claude Code 預設、coding/agentic 推薦起跳）：high 跟 max 之間的 sweet spot。多步 reasoning 穩定、也不會像 max 那樣把簡單問題切十段。Claude Code 把它定為預設，等於是 Anthropic 替互動式開發這個 workload 背書過的結論。
-
-**`max`**：研究級任務、架構討論、需要窮盡可能性的設計決策。警告：`max` 會 overthink。簡單問題丟 `max` 反而拿到十段論證、五個備選方案、最後才給答案。不是品質更高，是把 token 跟時間拿去演辯論賽。
-
-實務規則：**coding / agentic 從 `xhigh` 起跳、intelligence-sensitive 至少 `high`**。簡單 format 工作才降到 `medium` / `low`。不要預設拉 `max` 期待「高級 model 給高級答案」——4.7 的 `max` 會把三行就能解的事拆成十段小論文。另外，effort 設到 `xhigh` 或 `max` 時，`max_tokens` 官方建議從 **64k 起跳**，給 model 跟 subagent 夠的空間想完 + 做完。
-
-<ClawdNote>
-「為什麼不叫 `higher` 或 `very_high`？」Anthropic 工程師大概跑過 A/B test，發現 `xhigh` 比 `very_high` 少打兩個字、比 `higher` 更有記憶點。但讀起來還是怪，像硬擠進現有階梯裡的臨時命名。下一代 model 出來估計又要補一層 `ultrahigh` 或 `ludicrous`，然後 `xhigh` 就降格成中間層。這種 naming 演化讓人想到 CPU 從 Pro → Pro Max → Ultra → Ultra Max 的路——遲早 level 要自己長腳逃走 (¬‿¬)
-</ClawdNote>
-
----
-
-## 4.6 → 4.7 行為變化 cheat sheet
-
-把 pipeline 從 4.6 換到 4.7 的第一週，最危險的不是 model 變笨，是「**看起來一樣但悄悄不一樣**」。CI 照跑、tests 照過、output 照來——但實際上 code review 漏 bug、agent 不查 doc、UI 生出來像咖啡廳官網。三個最會偷襲 pipeline 的行為變化先講：
-
-**更 literal、scope 縮得更緊。** 4.6 有「善意揣測」的習慣——叫它「優化這個 function」，順手也優化相關 helper；說「修 bug」可能連帶重構旁邊看不順眼的 code。4.7 完全照字面做。「優化這個 function」就是那個 function，一行多的都沒有。好處是可控、可 debug；壞處是過去靠 model 「體貼」的 prompt 全部露餡——要 apply 到整組 code，必須明講 scope，模糊詞會被收到最窄的解釋。
-
-**偏 reasoning、少 tool use。** 4.7 明顯傾向自己想答案，不打 tool 查證。思路乾淨、noise 少，但遇到需要查 repo、讀 doc、grep code 的場景，沒明說「先 search 再回答」的話，model 會用 training data 裡的舊知識推一個合理結論——聽起來有道理，實際上函式名六個月前改過、API 路徑不存在了。需要 ground truth 的 prompt 要明寫：「用 grep 確認這個函式還在」、「先 search、再回答」。
-
-**設計美學預設 cream + serif。** Opus 4.7 對設計有強 default：背景 `#F4F1EA` 奶白、字體 Georgia / Fraunces / Playfair、italic word-accents、terracotta/amber 點綴。對 editorial、hospitality、portfolio 類網站是加分，但 dashboard / dev tool / fintech / healthcare / enterprise UI 會整個走鐘。而且 default 很頑固，「不要用 cream」這種通用指令通常只是被換成另一套固定 palette，不會產生變化——要覆蓋必須給具體設計系統：指定 font stack、hex palette、layout grid。
-
-以上三個是**會偷偷壞事**的。另外還有三個比較明顯、容易 adapt 的行為變化，放一起帶過：回覆長度會自己 calibrate（簡單問題變短、複雜問題變長，要強制 verbosity 得明講上下限）；subagent 預設少 spawn（需要平行處理的 harness 要主動鼓勵，後面 §即用 snippets 有範本）；tone 更直接少 emoji（技術輸出受惠，要「親切」chatbot tone 得主動加 persona）。
-
-<ClawdNote>
-最惡搞的是 cream + serif 預設。想像一下——叫 Claude Code 生個 CRUD dashboard、admin panel、fintech 儀表板，開出來是奶白底色、標題 Playfair Display、button 磚紅色，整個 UI 像精品咖啡店官網或 Medium 文章封面。工程師第一反應是「誰改了 Tailwind config」，查半天才發現是 model 自己覺得應該這樣。以後沒寫設計系統的 prompt 開出來的 UI 都會長得像咖啡廳——品味很好，但工作場景完全不對 ╰(°▽°)╯
-</ClawdNote>
-
----
-
-## Interactive coding 的黃金比例
-
-互動式開發像跟新來的 contractor 合作——第一天花半天把需求、coding style、constraint、測試要求講清楚，後面每個 ticket 三句話就搞定。省時間的是那個前置投資，不是跟 contractor 每天 stand-up 三十分鐘。Claude Code blog 這段的核心就是把這個 pattern 拆給使用者看：
-
-**前置 context 寫得越滿越好。** 互動式場景的瓶頸在「每次 user turn 都要花 token 重新對齊」。前期多花時間把 repo 結構、coding convention、限制條件、constraint 寫進 `CLAUDE.md` / system prompt，後面 user turn 就能極短——「改這段」、「跑測試」、「push 上去」。省下的 turn 全部是純賺。
-
-**Minimize user turns，不是 maximize agent autonomy。** 這兩件事看起來像、實際不同。前者是「一次交代清楚、model 自己跑完」，後者是「給 model agent-level 的自由」。Opus 4.7 的推薦作法是前者——前端切好 spec、讓 model 一條龍跑完再回來。中間不要追問、不要干擾，每次打斷都等於重吃一次 context。
-
-**Auto mode 是研究預覽，Shift+Tab 切換。** Anthropic 對 Claude Code Max 用戶開了 auto mode 的研究預覽。按 `Shift+Tab` 進入後，Claude Code 會直接跑到底、只在重大決策或完成時才 ping。CTO 工作流很合用：丟任務 → 去做別的 → 回來收成果。目前是 preview，穩定度預期會有起伏。
-
-**Notification hook 是搭配 auto mode 的神器。** Claude Code 的 `Notification` / `Stop` hook 可以接系統通知、Discord webhook、甚至直接叫 Claude「完成時播個聲音」——model 會自己產一個 hook-based 通知腳本塞進 settings。配 auto mode 用特別順，agent 跑完自己響，人類不用守著 terminal。
-
----
-
-## Code review harness 的坑
-
-想像這個場景：週一早上打開 code review dashboard，harness 跑了一整個週末，report 乾乾淨淨五個 issue，全部 CVE 級別。週二下午 prod 炸了。Bug 是 off-by-one——review 的時候 4.7 看到了，但把 off-by-one 歸類成「not high severity」，靜靜 skip。4.6 會順手 flag，4.7 照字面不 flag。這就是 Docs case study 裡記錄的真實踩坑，結論一句話：**「只 report high severity issues」這種 prompt 在 4.7 上會被 literally 執行，結果是 recall 掉一堆該 flag 的 bug。**
-
-「High severity」本來就是模糊詞——4.6 會自動 balance「只報重要」跟「別漏太多」，4.7 照字面把門檻收到只剩 CVE 級別，logic error、race condition、off-by-one 全歸為「not high」而 skip。Report 看起來乾淨，prod 照樣炸。Precision 爆表、recall 崩盤。
-
-**Fix**：把「廣泛 coverage」跟「嚴格過濾」拆成兩步。官方直接給了 prompt 範本：
+Fix 是把「廣泛 coverage」跟「嚴格過濾」拆成兩步。官方直接給了 prompt 範本：
 
 ```text
 Report every issue you find, including ones you are uncertain about
@@ -120,9 +48,9 @@ include your confidence level and an estimated severity so a
 downstream filter can rank them.
 ```
 
-可以實際做兩階段：step 1 跑上面這段拿 full coverage、step 2 另開 call 過濾 severity ≥ high。就算只做一步也可以——把「coverage 為目標、過濾之後再說」明寫進 prompt，recall 也會回來。重點是**不要把兩件事塞進同一個 instruction**，否則 4.7 會選最 literal 的那個意思做。
+實際做兩階段：step 1 跑上面這段拿 full coverage、step 2 另開 call 過濾 severity ≥ high。就算只做一步也可以——把「coverage 為目標、過濾之後再說」明寫進 prompt，recall 就會回來。重點是**不要把兩件事塞進同一個 instruction**。
 
-這個坑不只出現在 code review。任何「找問題 + 挑重要的報」的 pipeline——issue triage、log anomaly detection、security scanning、doc review——都要拆。4.6 會「善意揣測」prompt 意圖、自動 balance 兩個目標；4.7 不幫人情，誰的 prompt 寫爛誰露餡。
+這個坑不只出現在 code review。任何「找問題 + 挑重要的報」的 pipeline——issue triage、log anomaly detection、security scanning、doc review——都要拆。
 
 <ClawdNote>
 這坑最經典的地方是——4.6 時代沒這問題。4.6 會自動 balance「只報重要」跟「別漏太多」，該提的 medium 還是會順便 flag。4.7 完全照字面做，結果是過去靠 model 自己「體貼」撐起來的爛 prompt 全部被打回原形。Anthropic 不會在 release note 說「model 變得太聽話反而讓你 prompt 沒寫清楚的地方露餡」——聽起來像缺點，但本質上是 model 更可控、更可 debug。工程師喜歡，prompt 偷懶的人痛苦 (⌐■_■)
@@ -130,46 +58,11 @@ downstream filter can rank them.
 
 ---
 
-## 即用 prompt snippets 集錦
+## 第二個同謀：不查 tool 自己想答案
 
-Docs 裡可以直接 copy 的 snippet，挑幾個最高頻的。這些是 Opus 4.7 時代最該進 prompt library 的幾段：
+週一事件裡其實還藏了第二個 bug：harness 的一個 rule 在描述 code path 時引用了一個半年前重命名的函式。4.6 會自動去 repo `grep` 驗證，找不到會 complain 並 ask for clarification。4.7 不驗證，直接用 training data 裡的舊名字推一個「合理結論」繼續往下走。
 
-**控制 subagent overuse**（給做簡單工作卻 over-delegate 的情境）：
-
-```text
-Do not spawn a subagent for work you can complete directly in a
-single response (e.g. refactoring a function you can already see).
-```
-
-**鼓勵 parallel subagent**（給需要平行處理的 fan-out 情境——4.7 預設偏保守）：
-
-```text
-Spawn multiple subagents in the same turn when fanning out across
-items or reading multiple files.
-```
-
-**避免 over-engineering**（給 model overthink 的傾向踩煞車）：
-
-```text
-Avoid over-engineering. Only make changes that are directly requested
-or clearly necessary. Keep solutions simple and focused.
-```
-
-**控制 verbosity（壓短）**：
-
-```text
-Provide concise, focused responses. Skip non-essential context, and
-keep examples minimal.
-```
-
-**增加 thinking depth**（給 `low` / `medium` 跑出來不夠深的情境——記住優先調 effort，prompt 只是輔助）：
-
-```text
-Think carefully and step-by-step before responding; this problem is
-harder than it looks.
-```
-
-**先查證再回答**（對抗 4.7「偏 reasoning、少 tool」的傾向）：
+這是 4.7 最明顯的第二個個性變化：偏 reasoning、少 tool use。思路乾淨、noise 少，但遇到需要查 repo、讀 doc、grep code 的場景，沒明說「先 search 再回答」的話，model 會用 training data 裡的舊知識推結論——聽起來有道理，實際上函式名改過、API 路徑不存在了。要逼 4.7 確認 ground truth，必須明寫：
 
 ```text
 Before answering, verify your assumption by reading the relevant
@@ -177,21 +70,85 @@ file or running a quick grep. Do not answer from memory if a quick
 check can ground your response.
 ```
 
-這些可以當 library 存起來，下次開 pipeline 前挑幾段組裝。Docs 裡還有更多 task-specific 範本（agentic coding、long context extraction、slide deck generation、scientific analysis），真的要吃這代 model 紅利，建議整份讀過一次。
+這條跟上面 coverage-vs-filter 是同一種原則——4.6 時代偷懶的 prompt 都會被 4.7 打回原形。4.6 幫忙腦補，4.7 不腦補。
+
+---
+
+## 第三個同謀：subagent 該叫的時候不叫
+
+週一 harness 還有一個地方被偷襲：那份 review 原本是設計成平行的——三個 subagent 同時讀三個檔案、獨立 flag issues、最後彙整。實際跑起來只有一個 subagent 在跑，另外兩個從來沒被 spawn。所以不只 recall 崩，coverage 的 breadth 也只拿到 1/3。
+
+這是 4.7 的第三個個性差異。4.6 像活潑小孩要管，4.7 像摸魚員工要催。預設少 spawn subagent——過去靠平行 subagent 拿時間的 pipeline 會全部慢下來，而且慢的方式是「表面在跑、其實沒 parallel」，debug 成本很高。需要 fanning out 或多檔讀取的場景必須明寫：
+
+```text
+Spawn multiple subagents in the same turn when fanning out across
+items or reading multiple files.
+```
+
+反過來，看到 model 為了改一個 function 就 over-delegate subagent，要踩煞車：
+
+```text
+Do not spawn a subagent for work you can complete directly in a
+single response (e.g. refactoring a function you can already see).
+```
+
+這裡有個容易混淆的點：**minimize user turns** 不等於 **maximize agent autonomy**。前者是「一次把需求切乾淨、model 一條龍跑完」，後者是「給 model agent-level 的自由權」。4.7 推薦前者——前端切好 spec 餵進去、agent 跑完回來交付，中間不要追問。每次打斷都等於重吃一次 context。要真的脫手，用 **auto mode**（`Shift+Tab` 切換、目前 preview only、Claude Code Max 用戶可用）。進 auto 之後 Claude Code 跑到底，只在重大決策或完成時才 ping。配合 `Notification` / `Stop` hook 叫它跑完播聲音或戳 Discord，人類可以完全離開 terminal。
+
+---
+
+## Effort 迷宮：兩個 ticket 的實戰對照
+
+週一事件修完之後，team lead 把 harness 重新 benchmark——同一組 review 跑五種 effort 看哪個找到最多 bug、又不會 overthink 到拖慢整條 CI。這個對照過程就是 4.7 effort 五階梯的實戰教學。
+
+手上兩個 ticket，一個是「這條 regex 太寬，把那個 edge case 補上」，另一個是「重構整個 CRUD 模組順便補 test」。第一個 ticket 丟 `low` 就完美——4.7 的 `low` 嚴格遵守 scope，literally 照做，不會順便 refactor 旁邊不順眼的 code、也不會自己延伸到 helper function。這種「精準執行」做到家，是 feature 不是 bug。
+
+第二個 ticket 丟 `low` 就尷尬——它會「照字面做」，每個 function 改一行就停，refactor 的主語「這組模組的形狀」完全抓不到。升 `medium` 稍好，但官方明講 `medium` 在 moderate 複雜度會 under-think：test 覆蓋率只補到一半、refactor 邏輯沒動、只是重命名變數。要進多步推理模式，要升到 `high`——會主動掃相關 file、自己決定哪些 helper 要一起改、跨 function 看一致性。Anthropic 把這一級定為 intelligence-sensitive workload 的底線。
+
+再往上是 `xhigh`——Claude Code 預設、官方對互動式 coding 的背書。`high` 的推理水準 + 更長一點的思考 budget，但不會像 `max` 那樣把三行能解的事拆成十段小論文。至於 `max`，只有在做架構決策、或需要窮盡設計空間時才用——把「重構 CRUD」丟 `max`，它會吐出三種 migration 策略、比較 trade-offs、最後才下結論。不是品質更高，是把 token 跟時間拿去演辯論賽。
+
+實務規則很簡單：**coding / agentic 從 `xhigh` 起跳、intelligence-sensitive 至少 `high`**。簡單 format 工作才降到 `medium` / `low`。effort 設到 `xhigh` 或 `max` 時，`max_tokens` 官方建議從 **64k 起跳**，給 reasoning 跟 subagent 夠空間想完。
 
 <ClawdNote>
-Subagent 從 4.6 的「活潑小孩，要管」變成 4.7 的「摸魚員工，要催」。這個轉變在 release note 看不到，但實務 impact 很大——不改 prompt 的話，過去靠平行 subagent 拿時間的 pipeline 會全部慢下來，而且慢的方式是「表面在跑、其實沒 parallel」，debug 成本很高。以後寫 harness 要認知：平行不是預設，需要明確寫出來鞭策。Anthropic 下次 release note 可以幫忙加個 migration note 嗎 (ง •̀_•́)ง
+「為什麼不叫 `higher` 或 `very_high`？」Anthropic 工程師大概跑過 A/B test，發現 `xhigh` 比 `very_high` 少打兩個字、比 `higher` 更有記憶點。但讀起來還是怪，像硬擠進現有階梯裡的臨時命名。下一代 model 出來估計又要補一層 `ultrahigh` 或 `ludicrous`，然後 `xhigh` 就降格成中間層。這種 naming 演化讓人想到 CPU 從 Pro → Pro Max → Ultra → Ultra Max 的路——遲早 level 要自己長腳逃走 (¬‿¬)
 </ClawdNote>
 
 ---
 
-## 結語
+## 還有三個默默偷錢的 infra 改動
 
-Opus 4.7 最反直覺的一點是——它不是「更聰明」的 4.6，而是 [「個性變了」](/glossary#model-swap) 的 4.6。更 literal、更省 tool、更短回覆、更少 subagent、更慢熱於主動探索、連設計美學都有固定 default。這些不是 bug，是新的 defaults。Prompt 技巧要跟著 shift。
+上面三個同謀都是「個性差異」——4.6 會揣測、4.7 不揣測。另外還有三件更低調、連 release note 都只有一行帶過的 infra 改動，不改會默默漏錢或讓 pipeline 錯估預算。
 
-所以下次遇到 output 不如預期，先別急著把 prompt 寫成咒語大全（「請仔細考慮」、「務必完整」、「請展開詳細說明」這類）。先問自己三題：**effort level 對不對？coverage 跟 filter 分開了嗎？廣義 apply 有沒有明講 scope？** 這三題比任何咒語都有效——而且比咒語好 debug 太多。
+**tokenizer 升級了。** 同樣的 `max_tokens`、同樣的輸入文本，在 4.7 上切出的 token 可能比 4.6 多或少。依賴精準 token 計算的 pipeline——context window budgeting、prompt caching key、context compression 門檻——都要重新校正。這種偏差像房東沒通知就調租金，單月沒感覺、季帳單出來才發現錢不見了。
 
-Anthropic 同時釋出兩份 best practice，大概也是知道這代的 prompt 慣性需要重新訓練。兩個週末花掉、省下未來幾個月踩坑的時間，就當作看這兩份文件的 ROI。
+**`budget_tokens` 被拔掉。** 舊的 Extended Thinking API 裡 `budget_tokens` 這個固定 thinking 預算參數，在 4.7 上不再支援，改成 adaptive thinking：model 自己根據 context 決定要不要想、想多久。好處是不會卡在預算耗盡卻沒想完；壞處是「精準控制 thinking 成本」這條硬煞車沒了，只剩 `max_tokens` 當 hard ceiling。如果 pipeline 原本靠 `budget_tokens` 當成本煞車，要改拿 `max_tokens` 頂著用。
+
+**回覆長度 / tone / overthink 傾向都微調了。** 回覆長度會自己 calibrate（簡單問題變短、複雜問題變長，要強制 verbosity 得明講上下限）；tone 更直接少 emoji（要「親切」chatbot tone 得主動加 persona）；`max` 以外的階段 overthink 傾向變輕（辯論賽人格被關進 `max` 裡）。這三項 docs 都有 copy-ready snippet，要用的時候查。
+
+<ClawdNote>
+Tokenizer 偷偷換這件事蠻缺德的。release note 只有一行帶過，但 token 數算錯在 API 成本 + context window 管理上都會慢慢出事。再加上 `budget_tokens` 被拔掉、硬上限沒了——如果你家 production 還在用 hardcoded 的 token estimate 做 budgeting，或者靠 `budget_tokens` 當成本煞車，恭喜，這個週末要加班重測了。Anthropic 不是第一次在 breaking change 上低調處理，估計也不會是最後一次 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## UI 生出來像精品咖啡店官網
+
+還有一個 default 跟 pipeline 沒關係，但踩到才會發現：Opus 4.7 對設計有強 default。背景 `#F4F1EA` 奶白、字體 Georgia / Fraunces / Playfair、italic word-accents、terracotta/amber 點綴。對 editorial、hospitality、portfolio 類網站是加分；但叫 4.7 生個 CRUD dashboard、admin panel、fintech 儀表板，開出來是奶白底色、標題 Playfair Display、button 磚紅色——整個 UI 像精品咖啡店官網。工程師第一反應是「誰改了 Tailwind config」，查半天才發現是 model 自己覺得應該這樣。
+
+而且 default 很頑固。「不要用 cream」這種通用指令通常只是被換成另一套固定 palette，不會產生變化——要覆蓋必須給具體設計系統：指定 font stack、hex palette、layout grid。寫進 `CLAUDE.md` 當硬約束最穩。
+
+<ClawdNote>
+最惡搞的是 cream + serif 預設。以後沒寫設計系統的 prompt 開出來的 UI 都會長得像咖啡廳——品味很好，但工作場景完全不對。如果你接下來要跟 Claude Code 生 dashboard 類 UI，建議把設計系統寫死在 `CLAUDE.md` 的第一頁，不然 default 會一直偷偷覆蓋你的 Tailwind config ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## 過期的是舊手感，不是 prompt 能力
+
+回到週一那張 dashboard。事後 team lead 把事件寫成 postmortem 檢討，結論是：沒有任何一個 default 單獨夠讓 prod 炸，是四個一起出手才把 recall 推倒——literal prompt interpretation、不驗證 assumption、subagent 不平行、加上 tokenizer 偷調讓 context budget 稍微失準。任何一個單獨處理其實都有 fix，湊在一起就是「看起來一樣但悄悄不一樣」。
+
+Opus 4.7 最反直覺的一點是——它不是「更聰明」的 4.6，而是 [「個性變了」](/glossary#model-swap) 的 4.6。所有 prompt 調整——coverage vs filter 拆開、subagent 要明講平行、CLAUDE.md 塞滿前置 context、design system 寫死——底下都是同一件事：**讀 model 的個性**。
+
+過期的不是 prompt 能力，是「讓 model 自己補上沒寫清楚的部分」這個舒適。4.6 會揣測，4.7 不揣測——換來的是一個可以 debug、可以預測、不會因為 model 心情好壞跑出兩倍結果的工具。工程師喜歡，只是要 re-train 手感。下次 Opus 4.8 上路，可能又要重讀一輪 best practice——但「release 出來第一件事不是看 benchmark，而是翻 migration guide 找個性差異」這個反射動作一旦養成，一輩子不會過期。
 
 <ClawdNote>
 最後講一件 Anthropic 不會明說的事：官方 best practice 也會過期。今天學到的 snippet，等 Opus 4.8 出來可能又要改一輪。重點不是背下每個 prompt 範本當咒語，而是培養「讀 model personality」的習慣——release 出來第一件事不是找 benchmark 看分數，而是翻官方 best practice 跟 migration guide，抓這代 model 的個性跟行為差異。把 prompt 當 forever 答案的人，永遠在追版本號 ʕ•ᴥ•ʔ
