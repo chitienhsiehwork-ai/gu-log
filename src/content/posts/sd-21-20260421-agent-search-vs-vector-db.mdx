@@ -70,11 +70,11 @@ import ShroomDogNote from '../../components/ShroomDogNote.astro';
 
 傳統 RAG pipeline 的運作方式，拆開來看是這樣：
 
-使用者丟一個問題進來 → 系統把問題轉成向量 → 到向量資料庫撈 top-k 最像的幾段 → 把那幾段塞進 LLM 的 context → LLM 看完回答。
+使用者丟一個問題進來 → 系統把問題轉成向量 → 到向量資料庫撈 top-k 最像的幾段 → 把那幾段塞進 LLM 的 [context window](/glossary#context-window) → LLM 看完回答。
 
 **一條路，從頭到尾寫死。** 如果 top-k 撈錯了——比如使用者問「退貨政策」但向量搜尋撈到「退休金計畫」（因為語意很近）——LLM 只能硬著頭皮用爛資料回答。整條 pipeline 沒有回頭路。
 
-Agent 搜尋不一樣。Agent 拿到問題後**自己決定怎麼找**：
+Agent 搜尋不一樣。[Agent](/glossary#agent) 拿到問題後**自己決定怎麼找**：
 
 先 grep 一下檔名，看到有個 `退貨政策.pdf` → 直接讀那個檔 → 找到答案 → 結束。從頭到尾沒碰向量搜尋，因為不需要。
 
