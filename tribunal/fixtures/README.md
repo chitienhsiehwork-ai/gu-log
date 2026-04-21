@@ -45,12 +45,17 @@ gu-log 重複文章判定系統的 eval harness —— 已知答案的題庫。
 | `hard-dup` | 1 | `mythos-techcrunch.yaml` |
 | `soft-dup` | 1 | `gemma-4-dual-post.yaml` |
 | `intentional-series` | 1 | `ecc-series.yaml` |
-| `clean-diff` | 0 | **TODO: Level E 開始前補齊** |
+| `clean-diff` | 1 | `simon-vs-systematicls-agentic-engineering.yaml` |
 
-## Level E 展望
+## Level E 已完成
 
-Level E（`add-librarian-dupcheck`）會把本 harness 接入 tribunal：
+Level E（`add-librarian-dupcheck`）已把本 harness 接上 tribunal v2：
 
-- Librarian 新增 `dupCheck` 評分維度，讀 `tribunal/fixtures/**/*.yaml` 中的 3-5 筆當 few-shot 範例
-- `scripts/eval-dedup-harness.mjs` 擴充 evaluator 邏輯，對每筆 fixture 呼叫 Librarian → 比對 `expectedClass` → 算 per-category precision + recall
-- clean-diff 那筆 fixture 要在 Level E 開始前補齊（spec R6 明定）
+- `v2-factlib-judge` 新增 `dupCheck` 評分維度（0-10），rubric：10 clean-diff / 8 正確識別 /
+  5 邊界 / 2 誤判。Pass bar `dupCheck >= 8`，跟 fact / library 兩個 composite 獨立，無補償。
+- Judge 在工作時會讀本目錄下四類各 1 筆 YAML 當 few-shot 範例。
+- `scripts/eval-dedup-harness.mjs --run` 對每筆 fixture 呼叫 judge，算 per-category
+  precision + recall，輸出 markdown report 到 `scores/dedup-eval-YYYYMMDD-HHMMSS.md`。
+- 詳見 `openspec/specs/librarian-dupcheck/spec.md`。
+
+Level F（`add-semantic-dedup-gate-layers`，pre-publish gate）會再加一層檢查。
