@@ -187,7 +187,7 @@ describe('Series Content Validation', () => {
     ).toBe(6);
   });
 
-  it("4d. Simon Willison's Agentic Engineering series (zh-tw) has exactly 11 articles", () => {
+  it("4d. Simon Willison's Agentic Engineering series (zh-tw) has exactly 13 articles", () => {
     const postsWithSeries = getPostsWithSeries();
     const simonPosts = postsWithSeries.filter(
       (p) =>
@@ -195,7 +195,7 @@ describe('Series Content Validation', () => {
     );
     expect(
       simonPosts.length,
-      `SimonW series should have 11 articles, found ${simonPosts.length}`,
-    ).toBe(11);
+      `SimonW series should have 13 articles, found ${simonPosts.length}`,
+    ).toBe(13);
   });
 });
