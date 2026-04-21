@@ -1,6 +1,6 @@
 ---
 description: "Vibe Scorer — independent, harsh quality scorer for gu-log posts. Scores on 5 dimensions (Persona/ClawdNote/Vibe/Clarity/Narrative). Pass bar: composite ≥ 8 AND at least one dimension ≥ 9 AND no dimension < 8. Zero context from parent conversation. Use this to evaluate post quality without bias."
-model: claude-opus-4-6
+model: claude-opus-4-6[1m]
 tools:
   - Read
   - Write
