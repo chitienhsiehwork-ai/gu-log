@@ -197,6 +197,14 @@ for POST_FILE in "${POSTS[@]}"; do
     if [ "$ATTEMPT" -lt "$MAX_ATTEMPTS" ]; then
       log "  Rewriting (writer reads reviewer feedback)..."
 
+      # Snapshot current post state BEFORE writer runs. On build failure we
+      # restore from this snapshot instead of `git checkout -- POST_PATH`,
+      # which would wipe out successful prior-attempt rewrites that haven't
+      # been committed yet. Without this, a writer error in attempt N throws
+      # away a valid rewrite from attempt N-1.
+      cp -f "$POST_PATH" "$POST_DIR/post-pre-attempt-${ATTEMPT}.mdx"
+      [ -f "$EN_PATH" ] && cp -f "$EN_PATH" "$POST_DIR/en-post-pre-attempt-${ATTEMPT}.mdx" || true
+
       # Build error feedback from previous attempt (if any)
       BUILD_FEEDBACK=""
       if [ -n "$LAST_BUILD_ERROR" ]; then
@@ -204,7 +212,14 @@ for POST_FILE in "${POSTS[@]}"; do
 ## Previous Build Error (FIX THIS)
 Your last rewrite caused a build error:
 $LAST_BUILD_ERROR
-Fix the syntax issue this time."
+Fix the syntax issue this time.
+
+## MDX Syntax Traps (avoid these — they cause build errors)
+- JSX attributes: NO space before \`=\`. Write \`<Tag attr=\"v\">\` NOT \`<Tag attr =\"v\">\` or \`<Tag =\"v\">\`
+- Component self-close: \`<ClawdNote>...content...</ClawdNote>\` or \`<ClawdNote/>\` (never leave unclosed)
+- Literal \`<\` or \`>\` in prose: escape as \`&lt;\` / \`&gt;\` OR wrap in backticks
+- Curly braces \`{...}\` in prose = JSX expression; escape with backslash or wrap in backticks
+- Imports must be at the top of file, immediately after frontmatter closing \`---\`"
       fi
 
       # Writer agent — reads scorer feedback and scoring standard
@@ -246,12 +261,14 @@ Also create/rewrite the English version at $EN_PATH with lang: en and same ticke
       if ! pnpm run build > "$POST_DIR/build-${ATTEMPT}.txt" 2>&1; then
         LAST_BUILD_ERROR=$(tail -20 "$POST_DIR/build-${ATTEMPT}.txt")
         log "  ❌ Build failed! See $POST_DIR/build-${ATTEMPT}.txt"
-        log "  Reverting post changes..."
-        # Revert tracked changes
-        git checkout -- "$POST_PATH" 2>/dev/null || true
-        git checkout -- "$EN_PATH" 2>/dev/null || true
-        # Remove untracked en file if writer just created it
-        if ! git ls-files --error-unmatch "$EN_PATH" &>/dev/null; then
+        log "  Reverting to pre-attempt-${ATTEMPT} snapshot (keeps prior valid rewrite)..."
+        # Restore from attempt-N snapshot instead of HEAD — preserves successful
+        # prior-attempt rewrites that haven't been committed.
+        cp -f "$POST_DIR/post-pre-attempt-${ATTEMPT}.mdx" "$POST_PATH"
+        if [ -f "$POST_DIR/en-post-pre-attempt-${ATTEMPT}.mdx" ]; then
+          cp -f "$POST_DIR/en-post-pre-attempt-${ATTEMPT}.mdx" "$EN_PATH"
+        elif ! git ls-files --error-unmatch "$EN_PATH" &>/dev/null; then
+          # No snapshot and not tracked → writer created it broken, remove
           rm -f "$EN_PATH"
         fi
         FAILURE_TYPE="BUILD_ERROR"
