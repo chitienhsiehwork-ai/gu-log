@@ -6,24 +6,23 @@ on:
   pull_request:
     branches: ['main']
 
-# Cancel previous runs for the same PR/branch
+# Cancel superseded runs for the same PR/branch so pushes don't queue.
 concurrency:
   group: fast-gate-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+  pull-requests: read
+
 jobs:
-  # ─── Parallel tier: these 4 run simultaneously ───────────────────
+  # ─── Tier 1: independent checks (all run in parallel, no job blocks another) ──
   lockfile-consistency:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v5
-      - uses: actions/setup-node@v6
-        with: { node-version: 22, cache: 'pnpm' }
-
-      - name: Verify pnpm lockfile is in sync
-        run: pnpm install --frozen-lockfile
-      - name: Verify lockfile unchanged
+      - uses: ./.github/actions/setup-pnpm
+      - name: Verify lockfile unchanged after install
         run: git diff --exit-code -- pnpm-lock.yaml
       - name: Ensure npm lockfile not tracked
         run: test ! -f package-lock.json
@@ -32,25 +31,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v5
-      - uses: actions/setup-node@v6
-        with: { node-version: 22, cache: 'pnpm' }
-      - run: pnpm install --frozen-lockfile
-
+      - uses: ./.github/actions/setup-pnpm
       - name: ESLint
         run: pnpm run lint
       - name: Prettier check
         run: pnpm run format:check
 
+  type-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-pnpm
+      - name: Astro type check
+        run: pnpm exec astro check
+
   contrast:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v5
-      - uses: actions/setup-node@v6
-        with: { node-version: 22, cache: 'pnpm' }
-      - run: pnpm install --frozen-lockfile
-
+      - uses: ./.github/actions/setup-pnpm
       - name: WCAG AA contrast check
         run: pnpm run check:contrast
 
@@ -62,14 +61,9 @@ jobs:
           # Need history + base ref so the translation-pair gate can
           # diff "newly added in this PR" against the base branch.
           fetch-depth: 0
-      - uses: pnpm/action-setup@v5
-      - uses: actions/setup-node@v6
-        with: { node-version: 22, cache: 'pnpm' }
-      - run: pnpm install --frozen-lockfile
-
+      - uses: ./.github/actions/setup-pnpm
       - name: Validate posts (frontmatter + content policy)
         run: pnpm run validate:posts
-
       - name: Dedup check (block active duplicates)
         run: node scripts/validate-posts.mjs --check-duplicates
 
@@ -83,27 +77,52 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v5
-      - uses: actions/setup-node@v6
-        with: { node-version: 22, cache: 'pnpm' }
-      - run: pnpm install --frozen-lockfile
-
+      - uses: ./.github/actions/setup-pnpm
       - name: Security gate (block new high/critical)
         run: pnpm run security:gate
 
-  # ─── Sequential tier: build after all checks pass ───────────────
-  build:
+  unit-tests:
     runs-on: ubuntu-latest
-    needs: [lockfile-consistency, lint, contrast, validate-content, security-gate]
     steps:
       - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v5
-      - uses: actions/setup-node@v6
-        with: { node-version: 22, cache: 'pnpm' }
-      - run: pnpm install --frozen-lockfile
+      - uses: ./.github/actions/setup-pnpm
+      - name: Vitest unit tests
+        run: pnpm exec vitest run --reporter=default
 
-      - name: Type check
-        run: pnpm exec astro check
+  dependency-review:
+    # Only runs on PRs — needs base..head diff. Blocks PRs that introduce
+    # moderate+ CVEs or non-allowlisted licenses.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Review dependency diff
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: moderate
+          comment-summary-in-pr: on-failure
+
+  # ─── Tier 1 (cont.): build runs in parallel with checks above ────────────
+  # Type check and content validation happen in their own jobs, so build
+  # doesn't wait for them. A build failure and a lint failure surface at the
+  # same time instead of serially, which is what we actually want.
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-pnpm
+
+      - name: Cache Astro incremental state
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules/.astro
+            .astro
+          key: astro-${{ runner.os }}-${{ hashFiles('astro.config.*', 'src/content/config.ts') }}-${{ github.sha }}
+          restore-keys: |
+            astro-${{ runner.os }}-${{ hashFiles('astro.config.*', 'src/content/config.ts') }}-
+            astro-${{ runner.os }}-
+
       - name: Build
         run: pnpm run build
 
@@ -113,23 +132,63 @@ jobs:
           name: dist
           path: dist/
           retention-days: 1
+          if-no-files-found: error
 
-  # ─── Internal link check (needs dist/) ───────────────────────────
+  # ─── Tier 2: jobs that consume dist/ ──────────────────────────────────────
   internal-links:
     runs-on: ubuntu-latest
     needs: build
     steps:
       - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v5
-      - uses: actions/setup-node@v6
-        with: { node-version: 22, cache: 'pnpm' }
-      - run: pnpm install --frozen-lockfile
-
-      - name: Download dist
-        uses: actions/download-artifact@v8
+      - uses: ./.github/actions/setup-pnpm
+      - uses: actions/download-artifact@v8
         with:
           name: dist
           path: dist/
-
       - name: Check internal links
         run: pnpm run links:check -- --internal-only --ci
+
+  bundle-budget:
+    # PR-level bundle budget gate — fails if blocking budgets are violated.
+    # Nightly still runs with --record to append history; here we check only.
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-pnpm
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist/
+      - name: Bundle budget check (no history write)
+        run: pnpm run bundle:check
+
+  # ─── Aggregate gate for branch protection ─────────────────────────────────
+  # Point required status checks at this single job instead of each leaf job.
+  # Adding or renaming a leaf no longer requires a protection-rule edit.
+  ci-passed:
+    runs-on: ubuntu-latest
+    if: always()
+    needs:
+      - lockfile-consistency
+      - lint
+      - type-check
+      - contrast
+      - validate-content
+      - security-gate
+      - unit-tests
+      - dependency-review
+      - build
+      - internal-links
+      - bundle-budget
+    steps:
+      - name: Fail if any required job failed or was cancelled
+        run: |
+          results='${{ toJSON(needs) }}'
+          echo "$results"
+          failed=$(echo "$results" | grep -Eo '"result":"(failure|cancelled)"' || true)
+          if [ -n "$failed" ]; then
+            echo "::error::One or more required jobs failed. See results above."
+            exit 1
+          fi
+          echo "All required jobs passed."

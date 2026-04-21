@@ -1,0 +1,48 @@
+name: Setup pnpm + Node + cached install
+description: >
+  Shared setup for all CI jobs. Checks out the repo, installs pnpm and Node
+  (with the pnpm tarball cache), then restores the pnpm store and node_modules
+  cache keyed by lockfile. When the lockfile is unchanged we skip the install
+  network work almost entirely (~5-10s instead of ~30-60s).
+
+inputs:
+  node-version:
+    description: Node major version
+    required: false
+    default: "22"
+  install:
+    description: Whether to run pnpm install --frozen-lockfile after restoring caches
+    required: false
+    default: "true"
+
+runs:
+  using: composite
+  steps:
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v5
+
+    - name: Setup Node
+      uses: actions/setup-node@v6
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: pnpm
+
+    - name: Resolve pnpm store path
+      id: pnpm-store
+      shell: bash
+      run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+    - name: Restore pnpm store + node_modules
+      uses: actions/cache@v4
+      with:
+        path: |
+          ${{ steps.pnpm-store.outputs.path }}
+          node_modules
+        key: ${{ runner.os }}-node${{ inputs.node-version }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+        restore-keys: |
+          ${{ runner.os }}-node${{ inputs.node-version }}-pnpm-
+
+    - name: Install dependencies
+      if: inputs.install == 'true'
+      shell: bash
+      run: pnpm install --frozen-lockfile --prefer-offline
