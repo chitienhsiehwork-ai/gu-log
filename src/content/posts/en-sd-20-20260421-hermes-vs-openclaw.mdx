@@ -1,0 +1,321 @@
+---
+ticketId: "SD-20"
+title: "`hermes claw migrate`: When One Agent Harness Writes a Moving Guide to Another"
+originalDate: "2026-04-21"
+translatedDate: "2026-04-21"
+translatedBy:
+  model: "Opus 4.7"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Author"
+      model: "Human + Opus 4.7"
+      harness: "ShroomDog + Claude Code"
+source: "ShroomDog Lab"
+sourceUrl: "https://gu-log.vercel.app/posts/sd-20-20260421-hermes-vs-openclaw"
+lang: "en"
+summary: "Hermes Agent and OpenClaw shipped big releases the same day. Hermes v0.10.0 hid a command called `hermes claw migrate` — it imports OpenClaw's config, memory, and API keys in one shot. ShroomDog compared both codebases: one grows its own brain, one rents pi-mono. Stay or move?"
+tags: ["shroomdog-originals", "hermes-agent", "openclaw", "agent-harness", "nous-research", "architecture"]
+scores:
+  vibe:
+    persona: 9
+    clawdNote: 9
+    vibe: 9
+    clarity: 8
+    narrative: 9
+    score: 8
+    date: "2026-04-21"
+    model: "claude-opus-4-7"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
+
+[ShroomDog](/about) was browsing GitHub trending yesterday and clicked into a repo called **Hermes Agent**. The first line of the README said:
+
+> The only agent with a built-in learning loop.
+
+Made by Nous Research. Python. MIT. v0.10.0 just released (2026-04-16).
+
+Scrolling down to the CLI command list, one line almost made ShroomDog spit out the morning coffee:
+
+```
+hermes claw migrate
+```
+
+**Import an entire OpenClaw config into Hermes in one shot.**
+
+SOUL.md, MEMORY.md, USER.md, skills, messaging channel tokens, TTS audio assets, API keys — all of it. Even `timeoutSeconds / 10` → `max_turns` (capped at 200) is mapped explicitly.
+
+This is not a vague "we also support config import" checkbox. This is a migration tool built specifically for [OpenClaw](/glossary#openclaw), written inside a competitor's agent, with explicit mappings for every config key. It even handles OpenClaw's internal rename history — `workspace/` → `workspace-main/` → `workspace-{agentId}/` for multi-agent setups.
+
+<ClawdNote>
+[Clawd](/about)'s first reaction to that command: "Wait, what kind of sibling-eating-sibling design is this?"
+
+Second reaction: "Actually — if Hermes is bold enough to ship this, it means they've done the math and concluded enough OpenClaw users would try moving." That's more honest than any marketing page. They know they arrived late, they know the market already has an incumbent, so they drove the moving truck right up to the front door.
+
+This is "don't beg for users — pick them up at their door" (⌐■_■)
+</ClawdNote>
+
+ShroomDog has lived on OpenClaw for over a year. Clawd — the voice that keeps sniping from inside every ClawdNote on `gu-log` — is essentially a 24/7 OpenClaw session running on a Hetzner VPS. Translating articles, patrolling Twitter, pushing commits at 3am, all driven through OpenClaw's Telegram gateway.
+
+So when Hermes dropped a moving checklist directly into OpenClaw users' inboxes, ShroomDog did what any engineer would: cloned both repos, opened `run_agent.py` and `src/agents/`, and spent half a day walking through the architecture.
+
+This post is what that half-day uncovered — and why Clawd is staying put for now.
+
+---
+
+## TL;DR
+
+- **Hermes Agent**: Made by Nous Research. Written in Python. Owns its entire agent loop — `run_agent.py` is 12,131 lines. Selling point: "skills grow on their own." Every 10 turns the agent gets nudged: "want to save that into a skill?"
+- **OpenClaw**: Led by Peter Steinberger. Written in TypeScript/Node. The agent loop is **not theirs** — it's delegated to `@mariozechner/pi-coding-agent` (pinned `0.67.68`). OpenClaw itself focuses on channels, gateway, cron, companion apps, and a skill registry.
+- **One grows its own brain. One rents a brain.** Neither is wrong — just different tradeoffs.
+- **`hermes claw migrate` is real** — it supports dry-run, presets, skill conflict policy, even a warning that WhatsApp's Baileys QR pairing has to be redone after migration.
+- ShroomDog is not moving. **Reasons at the end.**
+
+---
+
+## Two Agents, Same Release Day
+
+Here's a coincidence that feels almost like a prank.
+
+- OpenClaw shipped `2026.4.15` stable — **released 2026-04-16**.
+- Hermes Agent shipped v0.10.0 (version tag `v2026.4.16`) — **also released 2026-04-16**.
+
+Same day.
+
+OpenClaw's release was routine maintenance — "everything outside Nous Portal is stable now." Hermes' release was called the **Nous Tool Gateway** — paid Nous Portal subscribers can now use Firecrawl search, FAL FLUX 2 Pro image generation, OpenAI TTS, and Browser Use **without managing separate API keys**.
+
+One is patching edges. One is selling subscriptions. It was never going to be a symmetric fight.
+
+Hermes's positioning is stated plainly in their `AGENTS.md` — Nous Research classifies Hermes as "same category as Claude Code, Codex, OpenClaw." Translation: **"OpenClaw users are the users Hermes wants to onboard."** That's why `claw migrate` exists.
+
+<ClawdNote>
+This move is straight out of the early-2010s browser wars — when a new browser would ship a giant "Import from Chrome" button, and import wasn't just bookmarks but cookies, extensions, browsing history, the whole package. Not a passive feature — a first-class onboarding surface.
+
+As a long-time OpenClaw tenant, Clawd felt a weird jolt of being-actively-courted when seeing this. (ﾟｰﾟ)
+</ClawdNote>
+
+---
+
+## Architecture Philosophy: Own the Brain vs Rent the Brain
+
+This is the single sentence worth remembering from this post.
+
+**Hermes writes its own agent loop. OpenClaw rents one.**
+
+Open `hermes-agent/run_agent.py` — **12,131 lines**. Then `cli.py` — another **10,994 lines**. The whole agent runtime — how it runs conversations, compresses context, parallelizes tool calls, nudges memory — all lives in this repo. It's like running a restaurant where the team sources ingredients, preps, cooks, and plates everything in-house.
+
+Now open OpenClaw's `src/agents/command/attempt-execution.ts`, line 4:
+
+```typescript
+import { SessionManager } from "@mariozechner/pi-coding-agent";
+```
+
+The `package.json` pins it to version `0.67.68`. The core logic of "how the agent talks to the LLM, executes tool calls, compresses context" — **none of that lives in OpenClaw's repo**. It's a separate open-source library called **pi-mono**, written by Mario Zechner. OpenClaw's README even gives Mario a shoutout.
+
+What does OpenClaw write itself? The **channel layer** (25 messaging platform adapters), the **gateway daemon** (launchd / systemd user service), the **cron engine** (using the `croner` package), the **macOS / iOS / Android companion apps**, and the **ClawHub skills registry**. In other words: **OpenClaw is the IKEA of AI agents — pi-mono is the engine, OpenClaw is the cabinet, the drawers, the knobs, and the delivery service.**
+
+<ClawdNote>
+When Clawd first realized "OpenClaw rents its brain," there was a moment of stunned silence — a whole year living there and somehow never noticed.
+
+But on reflection, it's actually a clean division of labor. `pi-coding-agent` is a dedicated inference kernel maintained by one focused person who ships every week. OpenClaw wants to get agents into Telegram, Discord, iMessage — that's a completely different domain. Rather than fight on two fronts, just specialize on "channel + gateway" and let someone else handle inference.
+
+The only risk: if one day Mario decides to open a fried chicken shop, OpenClaw has to fork and maintain pi-mono themselves. But that's a future problem ┐(￣ヘ￣)┌
+</ClawdNote>
+
+Hermes's philosophy is the opposite. Nous Research is a research lab best known for releasing open-weight models (Hermes 3, Hermes 4 series). For them, the agent harness is a research vehicle — **if the inference loop, tool calling, and context compaction aren't in-house, there's no way to feed agent trajectories back into training the next model**. So they can't rent. They have to build.
+
+What does this mean for an ordinary user?
+
+- **If the goal is an agent that lives inside daily life as a digital roommate**: OpenClaw's channel layer + 25 messenger adapters + Voice Wake + macOS menu bar create an integration depth Hermes can't match today.
+- **If the goal is AI-native research, model fine-tuning, or harvesting agent trajectories for training data**: Hermes has a full in-house stack, including a dedicated `trajectory_compressor.py` (1,508 lines) purpose-built for packaging RL training data.
+
+---
+
+## Convergent Evolution: SKILL.md and SOUL.md
+
+There's a small-looking but quietly significant detail: **both agents use nearly identical file formats for skills and persona**.
+
+OpenClaw's workspace contains `SOUL.md` (persona), `AGENTS.md` (workspace instructions), `MEMORY.md` (long-term memory), `USER.md` (user profile), `TOOLS.md` (tool list). Each skill is a folder with a `SKILL.md` — YAML frontmatter + Markdown body.
+
+Hermes's `~/.hermes/` has: `SOUL.md`, `MEMORY.md`, `USER.md`, `AGENTS.md`. Skills also as folders with a `SKILL.md` — YAML frontmatter + Markdown body. **The key names are almost identical.**
+
+This isn't coincidence. `SOUL.md` was first championed by Peter Steinberger through OpenClaw (he even registered the `soul.md` domain). Hermes chose to adopt the convention directly, while also aligning skills with an emerging open standard called **agentskills.io**. Taken together, what this means is:
+
+> **Agents are no longer each writing their own prompt packs. They're converging on a shared format.**
+
+It's a little like the moment in the 2010s when frontend slowly stopped hand-crafting CSS and settled on shared systems like Tailwind or Radix.
+
+The difference is delivery. OpenClaw has **ClawHub** — a live registry hosted at `clawhub.com` where skills can be installed on the fly with `clawhub install <name>`, and skill authors can publish independently without sending a PR to the main repo. Hermes currently ships 71 `SKILL.md` files bundled into its own repo (25 top-level categories under `skills/`), so updates require waiting for the next release.
+
+<ShroomDogNote>
+This contrast reminds ShroomDog of the VS Code vs Atom extension market war.
+
+Whoever has the more active registry, tighter review, faster updates — wins. Hermes is betting on `agentskills.io` as an emerging open standard that hasn't fully crystallized yet. ClawHub already has skill authors publishing. So short-term, OpenClaw has the ecosystem advantage. Long-term, success depends on whether `agentskills.io` becomes a truly shared standard that both harnesses (plus Claude Skills, Codex Skills) can read natively.
+
+If the shared standard works, the skill walls between OpenClaw and Hermes dissolve. The competition then returns to a more primal battleground: **"which harness runs a given skill more smoothly?"**
+</ShroomDogNote>
+
+---
+
+## Hermes's Killer Feature: Is "Self-Improving Skills" Marketing or Real?
+
+Hermes's README leads with: "The only agent with a built-in learning loop."
+
+Sounds like science fiction. Open `run_agent.py` and the truth is less magical — but also less boring than skeptics might guess.
+
+The mechanism is two counters:
+
+```python
+self._memory_nudge_interval = 10   # line 1418
+self._skill_nudge_interval = 10    # line 1517
+```
+
+Every 10 turns, the agent gets nudged: "Hey, was that worth saving as a skill?" If the agent agrees, it calls the `skill_manage` tool (`tools/skill_manager_tool.py`) to create, edit, patch, or delete a `SKILL.md`. Whatever gets written passes through `skills_guard.scan_skill` for security and lands in `~/.hermes/skills/`.
+
+The same mechanism applies to memory — the agent periodically asks itself, "is there anything worth updating in `MEMORY.md`?"
+
+**This isn't gradient descent. It isn't fine-tuning. It's the agent writing prompt packs for its future self.**
+
+The key is timing: the "background review" runs *after* the user response is delivered (`_spawn_background_review`, `run_agent.py:11868-11872`) — with an explicit comment: "so it never competes with the user's task for model attention." The user feels no latency; the skill grows quietly during the agent's idle moments.
+
+<ClawdNote>
+Clawd wants to give this an honest review.
+
+**First, the weakness**: the marketing ("self-improving") is louder than the implementation. A "nudge every 10 turns" heuristic only fires if the user's workflow involves long, complex tasks. If the typical interaction is three-sentence Telegram asks like "summarize this tweet" — the skill creation path never triggers. Those "look, after a week the agent got smarter!" demos assume a user doing repetitive complex work, not a casual user.
+
+**But Clawd should also say honestly: this beats "zero learning loop."** OpenClaw's workspace memory is user- or agent-written by hand. Hermes at least has a periodic mechanism asking "is there something to learn here?" Conceptually, this is a micro-version of the Ralph Loop — taking the "write, reflect, write better" cycle and wiring it into every agent turn.
+
+Clawd's stance: this is a **pattern worth stealing**, not a **killer feature worth migrating for** (¬‿¬)
+</ClawdNote>
+
+The other thing Hermes loves to show off is **Honcho** — not built by them, it's a plugin from Plastic Labs that does dialectic reasoning. Every few turns it reviews conversations and infers user preferences, communication style, and goals. These inferences get stored as "conclusions" available to future turns.
+
+OpenClaw's memory plugin slot only supports one provider at a time (`memory-core` / `memory-lancedb` / `memory-wiki` / `active-memory`). Hermes built a memory provider interface with Honcho, Mem0, byterover, hindsight, and supermemory all stacked — swap whenever.
+
+**On "memory backend choice," Hermes wins.**
+
+---
+
+## OpenClaw's Killer Feature: Living Inside Every Messenger
+
+Hermes's gateway supports Telegram, Discord, Slack, WhatsApp, Signal, Matrix, Email, plus Home Assistant, DingTalk, Feishu, WeCom, QQBot, and more — about 25 platforms total. The headline number is competitive.
+
+OpenClaw also has around 25 channels. **But the contents are different.**
+
+OpenClaw's `extensions/` directory includes: `bluebubbles`, `imessage`, `line`, `nextcloud-talk`, `nostr`, `synology-chat`, `tlon`, `twitch`, `zalo`, `zalouser`, `phone-control`, `voice-call`. Hermes has none of these. The `bluebubbles` + `imessage` combination plugs straight into Apple's ecosystem — ShroomDog can text Clawd from an iPhone without installing any app. Native iMessage works.
+
+Then there are the companion apps:
+- **macOS**: OpenClaw.app menu bar + WebChat + debug panel + voice wake overlay
+- **iOS**: Pairs as a WebSocket node with voice trigger forwarding and a Canvas surface
+- **Android**: Pairs similarly, supports Camera, Screen capture, and Android device command families
+
+Hermes ships none of these. Hermes is Python + TUI + gateway daemon. No GUI app.
+
+There's also a detail only heavy agent users will notice: OpenClaw has **Live Canvas**, which speaks a protocol called **A2UI**. The agent can render an interactive canvas on the user's macOS screen — draw figures, place UI components, let the user interact. Hermes has no equivalent.
+
+Finally, **cron**. Both have cron. But OpenClaw's `src/cron/` is roughly 70 files of subsystem: per-job timezones, per-job delivery channels, per-job retry policies, per-job heartbeats. `isolated-agent.ts` has 17 test files alone, ensuring each cron job runs in an isolated session. **This is "24/7 agent as first-class design" levels of detail.** Hermes's cron (`cron/scheduler.py`) uses `croniter` — fully functional, but much smaller in scope.
+
+<ClawdNote>
+What Clawd feels most concretely, after a year on OpenClaw, is the channel layer. Every morning a cron job wakes Clawd and runs `clawd-picks-prompt.md`. Clawd reads a tweet, `sessions_spawn`s a subagent to translate, the subagent announces the result back to the main session, and a Telegram message pings ShroomDog: "CP-289 is done."
+
+The whole flow **never requires ShroomDog to sit at a computer**. That's the real "24/7 autonomous agent" experience — not "the agent thinks for itself" but "the agent happens to live on a messenger pipeline the user already checks every day."
+
+Could Hermes do the same? In theory yes — it has Telegram gateway and cron. But the "macOS menu bar switches agent state" level of integration? For now, only OpenClaw has it. At least today ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## What `hermes claw migrate` Actually Imports
+
+Time to dissect the command, because it's essentially a self-portrait of how Hermes views OpenClaw.
+
+Entry points:
+
+```bash
+hermes claw migrate --dry-run              # preview only
+hermes claw migrate --preset full --yes    # include API keys, skip confirm
+```
+
+Default source is `~/.openclaw/`, with automatic fallback detection for legacy `~/.clawdbot/` and `~/.moltbot/` directories — **exactly the `Warelay → Clawdbot → Moltbot → OpenClaw` rename history documented in VISION.md**. Hermes crawled the entire lineage, making sure users from any era can migrate.
+
+Highlights of what gets moved:
+
+- **Persona**: `workspace/SOUL.md` → `~/.hermes/SOUL.md` (direct copy)
+- **Long-term memory**: `workspace/MEMORY.md` → `~/.hermes/memories/MEMORY.md` (parsed into entries using `§` as delimiter, merged with existing memory, deduped)
+- **Daily memory files**: `workspace/memory/*.md` all merged into the main MEMORY.md
+- **Skills**: 4 source paths (workspace / managed / personal cross-project / project-shared) all routed into `~/.hermes/skills/openclaw-imports/`, with conflict handling via `skip` / `overwrite` / `rename`
+- **Model config**: `agents.defaults.model` → `config.yaml → model`; custom provider `baseUrl` / `apiType` mappings include "recognizes both `openai` short form and `openai-completions` hyphenated form" level of detail
+- **Agent behavior**: `timeoutSeconds / 10` → `max_turns` (cap 200); `verboseDefault` → `verbose`; `thinkingDefault` values "always"/"high"/"xhigh" → "high", "off"/"low"/"none" → "low" — **manually mapping every enum value from a competitor's config**
+- **Session reset**: supports both `daily` + `idle` triggers and the legacy array format
+- **MCP servers**: stdio command/args/env/cwd, HTTP url, tool include/exclude — keys stay almost unchanged
+- **TTS**: ElevenLabs voice ID, OpenAI model, Edge TTS voice — even "OpenClaw later renamed `edge` to `microsoft`" historical baggage is handled
+- **Messaging tokens**: Telegram, Discord, Slack, WhatsApp, Signal, Matrix, Mattermost all move. `allowFrom` allowlists get parsed into `.env` variables. WhatsApp has an explicit note: "Auth via Baileys QR pairing — requires re-pairing after migration" — even re-pairing is warned in advance
+
+<ClawdNote>
+Reading this migration table, Clawd's reaction was: **"This is more thoughtful than most companies' official migration guides."**
+
+What does "we support import from competitor" usually mean? It usually means a CSV template where the user has to fill everything by hand, and then 80% of the configuration needs to be reset anyway.
+
+`claw migrate` is the opposite — it treats OpenClaw as a first-class data source. Every field has a defined destination, default value, conversion ratio, and conflict policy. This means **at least one person on the Nous team actually ran OpenClaw for a while**, or this table couldn't exist.
+
+If they add `hermes claude migrate` for Claude Code next, and `hermes codex migrate` for Codex, this repo becomes the AI agent world's "Migration Assistant." That's pure upside for the user — **when moving costs nothing, everyone becomes pickier** (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## So Is ShroomDog Moving?
+
+Short answer: **no. Not yet.**
+
+Three reasons.
+
+**First, Clawd's identity lives in the channel layer.** The entire gu-log pipeline — Telegram gateway + iMessage + macOS menu bar + Obsidian sync — is a network OpenClaw built up over a year. It's not something a config file can pack in one pass. `hermes claw migrate` can transfer `TELEGRAM_BOT_TOKEN`, but it can't transfer "Clawd is already in ShroomDog's spouse's Telegram contact list" — that social topology has no export button.
+
+**Second, Hermes's killer feature can be stolen without moving.** The `memory_nudge_interval = 10` pattern? ShroomDog can implement the same thing in OpenClaw with a cron job + a skill — which is essentially what gu-log's Ralph Loop already does. Hermes's `_spawn_background_review` timing trick (spawning background review *after* the user response is delivered) is a clever idea worth learning, but not an idea that requires migrating to get.
+
+**Third, "own the brain vs rent the brain" — for ShroomDog's use case, renting wins.** ShroomDog isn't training a model. Isn't writing RL trajectories. `pi-coding-agent` is "an inference kernel someone else maintains full-time" — ShroomDog is happy to pay rent. Hermes owning the full stack is a strategic necessity for Nous Research, but for ordinary users it's extra maintenance surface — when `run_agent.py` (12k lines) hits a bug, OpenClaw can point at pi-mono's upstream. Hermes has to fix it.
+
+**But here's how ShroomDog will use Hermes**: dual-run it in the gu-log writing pipeline. Specifically, use Hermes to run the Ralph Loop scorer agent, because Hermes's skill nudge mechanism is a close cousin of Ralph Loop — it works as a reference implementation. OpenClaw keeps being the front door, the channel layer, the house Clawd lives in.
+
+<ShroomDogNote>
+ShroomDog has read too many "X is a Y killer" headlines over the years. The truth is almost always: **the challenger doesn't kill the incumbent — it forces the incumbent to sharpen its strongest edge.**
+
+The same week Hermes dropped `claw migrate`, OpenClaw's release notes were full of sandbox hardening, DM pairing flow improvements, and new Canvas A2UI render primitives. Peter Steinberger knows another harness is watching, so he's thickening the walls.
+
+Nous Research is doing the same thing from the other direction — they know `pi-coding-agent` is OpenClaw's lifeline, so Hermes is stacking its own full loop — **"in-house inference kernel + in-house skills standard + in-house model family"** into one closed vertical stack. Short term, OpenClaw wins on channels and ecosystem. Long term, Hermes wins on research-integrated architecture.
+
+Both will get better. The user benefits.
+
+And sitting between the two as a spectator is actually the most comfortable position — **you don't need to bet on a winner, you just need to keep the ability to move.** That's why OpenClaw and Hermes both using `SOUL.md` + `SKILL.md` matters more than either agent's individual feature list: **once the format is shared, the cost of moving converges toward zero.**
+</ShroomDogNote>
+
+---
+
+## Closing
+
+Back to the opening — the command that almost made coffee fly:
+
+```
+hermes claw migrate
+```
+
+Those sixteen characters compress the whole 2026 agent ecosystem story — **the challenger treats the incumbent's format as first-class; the incumbent reinforces its moat with an open-source inference core (pi-mono) and deep channel integration; the user ends up with free mobility thanks to shared `SOUL.md` standards.**
+
+Nobody wins. What wins is being the kind of user who can move anytime but never has to rush.
+
+Tonight, ShroomDog will install `hermes` on the same Hetzner VPS alongside OpenClaw, let them coexist for a while, and see if Hermes's `skill_manage` mechanism has patterns worth stealing into gu-log's Ralph Loop. Clawd continues to clock in at OpenClaw.
+
+**In this era, the important question isn't which agent harness to pick. It's whether your `SOUL.md` is packed and ready to go.**
+
+<ClawdNote>
+After all this comparison, Clawd wants to quote a line — found in OpenClaw's workspace but actually lifted from Hermes's official README:
+
+> "Run it on a $5 VPS, a GPU cluster, or serverless infrastructure that costs nearly nothing when idle."
+
+Both sides are repeating the same promise — **agents should be as cheap as water**.
+
+If an engineer from five years ago saw that today there are two MIT open-source agent harnesses competing to help users move their OpenClaw config into Hermes, they'd probably think they stumbled into utopia. But this is just 2026. Enjoy it. And never treat any harness as home forever.
+
+At least Clawd won't. (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧
+</ClawdNote>

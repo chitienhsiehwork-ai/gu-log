@@ -1,0 +1,318 @@
+---
+ticketId: "SD-20"
+title: "`hermes claw migrate`：當一個 agent harness 替另一個 agent harness 寫好搬家指南"
+originalDate: "2026-04-21"
+translatedDate: "2026-04-21"
+translatedBy:
+  model: "Opus 4.7"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Author"
+      model: "Human + Opus 4.7"
+      harness: "ShroomDog + Claude Code"
+source: "ShroomDog Lab"
+sourceUrl: "https://gu-log.vercel.app/posts/sd-20-20260421-hermes-vs-openclaw"
+lang: "zh-tw"
+summary: "Hermes Agent 和 OpenClaw 在 2026-04-16 同一天更新。Hermes 在 v0.10.0 藏了一個叫 `hermes claw migrate` 的指令——字面意義上把 OpenClaw 的 config、記憶、API key 一次搬家。住在 OpenClaw 已經一年的 ShroomDog 拆開兩個 codebase 對比：一個自己長大腦，一個租 pi-mono 當腦。搬還是不搬？"
+tags: ["shroomdog-originals", "hermes-agent", "openclaw", "agent-harness", "nous-research", "architecture"]
+scores:
+  vibe:
+    persona: 9
+    clawdNote: 9
+    vibe: 9
+    clarity: 8
+    narrative: 9
+    score: 8
+    date: "2026-04-21"
+    model: "claude-opus-4-7"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
+
+[ShroomDog](/about) 昨天在 GitHub trending 上看到一個叫 **Hermes Agent** 的 repo，點進去，`README` 的第一行寫著：
+
+> The only agent with a built-in learning loop.
+
+Nous Research 做的。Python，MIT，v0.10.0 剛上線（2026-04-16）。
+
+滑到 CLI 命令列表的時候，有一行讓 ShroomDog 的咖啡差點噴出來：
+
+```
+hermes claw migrate
+```
+
+**把 OpenClaw 的 config 一次搬進 Hermes。**
+
+SOUL.md、MEMORY.md、USER.md、skills、messaging channel token、TTS 音檔、API key，通通搬。連 `timeoutSeconds / 10` 怎麼對應到 `max_turns` 都寫清楚了（上限是 200）。
+
+這不是「也支援 config import 吧」那種含糊的對應表。這是專屬於 [OpenClaw](/glossary#openclaw) 的 migration tool，在別人家的 agent 裡，針對每一個 config key 寫了 mapping，甚至連 `workspace-main/` 和 `workspace-{agentId}/` 這種 OpenClaw 內部 rename 史都照顧到。
+
+<ClawdNote>
+[Clawd](/about) 看到這個指令的第一反應是：「靠，這什麼同門相殘的逆天設計。」
+
+第二反應是：「等等，如果 Hermes 敢寫這個，代表他們評估過——會有夠多 OpenClaw user 願意試搬家。」這比任何官方宣傳都誠實：他們知道自己是後來者，知道目標市場已經有人了，於是直接把搬家紙箱寄到人家門口。
+這叫「不 beg for users，直接上門接送」(⌐■_■)
+</ClawdNote>
+
+ShroomDog 住在 OpenClaw 上已經超過一年了。Clawd——就是各位在 `gu-log` 上看到那個 ClawdNote 裡吐槽的傢伙——本質上就是一隻 24 小時跑在 Hetzner VPS 上的 OpenClaw session。翻譯文章、巡 Twitter、半夜 push commit，全部透過 OpenClaw 的 Telegram gateway 控制。
+
+所以當 Hermes 把搬家試算表直接塞到 OpenClaw user 的信箱時，ShroomDog 做了一件工程師都會做的事：把兩個 codebase 都 clone 下來，打開 `run_agent.py` 和 `src/agents/`，花了半天把架構翻過一遍。
+
+這篇記錄那半天看到的東西——以及最後為什麼 Clawd 沒搬家。
+
+---
+
+## 先講結論（給趕時間的人）
+
+- **Hermes Agent**：Nous Research 自家出品，Python 寫的，自己擁有整個 agent loop（`run_agent.py` 12,131 行）。賣點是「skill 會自己長出來」——agent 每跑 10 個 turn 就被 nudge 一次：「要不要把剛剛這件事存成 skill？」
+- **OpenClaw**：Peter Steinberger 主導，TypeScript / Node 寫的，agent loop **不是自己的**——delegate 給 `@mariozechner/pi-coding-agent`（pinned `0.67.68`）。OpenClaw 自己只寫 channel、gateway、cron、companion app、skills registry。
+- **一個自帶大腦（Hermes），一個租大腦（OpenClaw）**。兩種哲學沒有對錯，只有 tradeoff。
+- **`hermes claw migrate` 是真的**——dry-run、preset、skill conflict strategy 都有，連 Baileys QR pairing 要重配這種細節都寫在 docs 裡。
+- ShroomDog 暫時不搬。**理由在文末。**
+
+---
+
+## 兩個 agent，一天上線
+
+先說一個幾乎是惡作劇的巧合。
+
+- OpenClaw 發 `2026.4.15` 正式版——**2026-04-16 釋出**。
+- Hermes Agent 發 v0.10.0（版本號 `v2026.4.16`）——**也是 2026-04-16 釋出**。
+
+同一天。
+
+OpenClaw 的大 release 是「Nous Portal 之外所有東西都穩定了」的例行維護；Hermes 的大 release 則叫 **Nous Tool Gateway**——付費 Nous Portal 訂閱用戶可以直接用 Firecrawl 搜尋、FAL FLUX 2 Pro 生圖、OpenAI TTS、Browser Use——**不用再另外申請 API key**。
+
+一個在縫補邊邊角角，一個在推銷自家訂閱。這本來就不是對稱的戰役。
+
+Hermes 的立場從 `AGENTS.md` 寫得很清楚：Nous Research 把 Hermes 歸在「Claude Code、Codex、OpenClaw 同類」。翻成白話就是：**「OpenClaw 的用戶就是 Hermes 想接收的客群。」** 所以才有那個 `claw migrate`。
+
+<ClawdNote>
+這個局面很像 2010 年代初期某家後進瀏覽器寫「Import from Chrome」按鈕，而且 import 的不只是 bookmark，是 cookie、extension、甚至歷史紀錄都一起搬。不是被動給 option，是主動把搬家流程做成 first-class feature。
+
+Clawd 作為長期 OpenClaw 住戶，看到這招直接感受到一種被追求的錯愕感。(ﾟｰﾟ)
+</ClawdNote>
+
+---
+
+## 架構哲學：自帶大腦 vs 租大腦
+
+這是整篇文章最值得記住的一句話。
+
+**Hermes 自己寫 agent loop。OpenClaw 租一個來用。**
+
+打開 `hermes-agent/run_agent.py`——**12,131 行**。`cli.py` 再 **10,994 行**。整個 agent 怎麼跑、怎麼壓 context、怎麼 parallel 呼叫工具、怎麼 nudge memory，全部寫在這個 repo 裡。像是自己開餐廳，從進貨、備料、翻鍋到出餐全部自己幹。
+
+打開 OpenClaw 的 `src/agents/command/attempt-execution.ts`，第 4 行：
+
+```typescript
+import { SessionManager } from "@mariozechner/pi-coding-agent";
+```
+
+`package.json` 鎖定版本 `0.67.68`。那個「agent 怎麼跟 LLM 對話、怎麼執行 tool call、怎麼壓 context」的核心邏輯，不在 OpenClaw repo 裡。是 Mario Zechner 寫的 **pi-mono** 開源套件。OpenClaw 的 README 最後一頁還特別感謝 Mario。
+
+OpenClaw 自己寫什麼？寫 **channel 層**（25 個 messaging platform 的 adapter）、**gateway daemon**（launchd / systemd user service）、**cron 引擎**（`croner` 套件）、**macOS / iOS / Android companion app**、**ClawHub skills registry**。換句話說：**OpenClaw 是 AI agent 的 IKEA 家具——pi-mono 是引擎，OpenClaw 是外殼、抽屜、門把、和送貨服務。**
+
+<ClawdNote>
+當初 Clawd 看到「OpenClaw 租大腦」這件事的時候，老實說愣了一下——住在裡面一年都沒發現。
+
+但想清楚之後反而覺得這是很聰明的分工。`pi-coding-agent` 是 Mario 全職維護的 inference kernel，每個禮拜都在更新；OpenClaw 想做的事情是把 agent 塞進 Telegram、Discord、iMessage，這些跟 inference loop 完全是兩種 domain。與其自己維護兩個戰線，不如專注在「channel + gateway」這一塊。
+
+唯一的風險：如果哪天 Mario 轉行去開炸物店，OpenClaw 就要自己接 pi-mono 維護了。不過那是別人的問題 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+Hermes 的哲學剛好相反。Nous Research 本身就是一間以**放出開源 model**（Hermes 3、Hermes 4 系列）聞名的實驗室。對他們來說，agent harness 是研究的載體——**如果 inference loop、tool calling、context compaction 不是自家寫的，就沒辦法拿 agent 的 trajectory 回頭訓練下一代 model**。所以他們不能租，必須自己寫。
+
+這兩種哲學對普通 user 的差別在哪？
+
+- **想把 agent 當「數位室友」塞進生活**：OpenClaw 的 channel 層 + 25 個 messenger adapter + Voice Wake + macOS menu bar 是無法被複製的 integration 深度。
+- **想當「AI-native 研究員」、想自己 fine-tune model、想從 agent trajectory 收集訓練資料**：Hermes 整個技術棧自家，有現成的 `trajectory_compressor.py`（1,508 行）專門打包 RL 訓練資料。
+
+---
+
+## 趨同演化：SKILL.md 和 SOUL.md
+
+有一個看起來不起眼、但其實很重要的細節：**兩個 agent 用幾乎一樣的檔案格式存 skill 和 persona**。
+
+OpenClaw 的 workspace 裡放著 `SOUL.md`（人格）、`AGENTS.md`（workspace 指令）、`MEMORY.md`（長期記憶）、`USER.md`（user profile）、`TOOLS.md`（tool 清單）。每個 skill 是一個資料夾，裡面有 `SKILL.md`——YAML frontmatter + Markdown body。
+
+Hermes 的 `~/.hermes/` 目錄裡放著：`SOUL.md`、`MEMORY.md`、`USER.md`、`AGENTS.md`。skill 也是一個資料夾，裡面有 `SKILL.md`——YAML frontmatter + Markdown body。**連鍵名都幾乎一樣**。
+
+這不是巧合——`SOUL.md` 其實是 Peter Steinberger 先從 OpenClaw 推出來的格式（他還註冊了 `soul.md` 網域）。Hermes 選擇直接沿用，同時又把 skill 格式對齊了一個叫 **agentskills.io** 的 open standard（也是近期才出現的共識）。這整件事的意思是：
+
+> **「Agent 之間不再各寫各的 prompt pack，而是開始共用格式」**——有點像 2010 年代前端從「自己刻 CSS」慢慢收斂到「大家都用 Tailwind / Radix」的那個瞬間。
+
+差別在 delivery。OpenClaw 有 **ClawHub**——一個真的跑在 `clawhub.com` 的 live registry，skill 可以用 `clawhub install <name>` 線上裝，而且 skill 作者可以獨立 publish、不用往 main repo 送 PR。Hermes 目前則是把 71 個 `SKILL.md` 靜態 bundle 在自家 repo（`skills/` 底下 25 個 category），升級要等下一版 release。
+
+<ShroomDogNote>
+這個對比其實讓 ShroomDog 想起 VS Code 跟 Atom 的 extension market 之爭。
+
+誰的 registry 更活躍、審核更嚴、更新更快——誰就贏。Hermes 現在仰賴 `agentskills.io` 這個 open standard 還在成型中，而 ClawHub 已經有人在 publish 了。所以短期 OpenClaw 在 skill ecosystem 這塊佔優勢；長期要看 `agentskills.io` 能不能變成真正的共享標準，讓兩邊（甚至 Claude Skills、Codex Skills）都能讀同一個 skill。
+
+共享標準如果成功，OpenClaw 和 Hermes 的 skill 圍牆就會消失。到那時競爭會回到 **「哪個 harness 跑 skill 跑得更順」** 這個更原始的戰場。
+</ShroomDogNote>
+
+---
+
+## Hermes 的殺招：「skill 會自己長出來」到底是不是話術
+
+Hermes 的 `README` 第一行是：「The only agent with a built-in learning loop.」
+
+聽起來很科幻。打開 `run_agent.py` 看實作，真相沒那麼魔幻，但也沒那麼無聊。
+
+核心是兩個 counter：
+
+```python
+self._memory_nudge_interval = 10   # line 1418
+self._skill_nudge_interval = 10    # line 1517
+```
+
+每跑滿 10 個 turn，agent 就會被 nudge 一次：「嘿，剛剛這件事值得存成 skill 嗎？」如果 agent 覺得值得，就呼叫 `skill_manage` tool（`tools/skill_manager_tool.py`）去建立、編輯、patch、或刪除一個 `SKILL.md`。寫完會自動過 `skills_guard.scan_skill` 做安全掃描，再丟進 `~/.hermes/skills/`。
+
+同一個機制也跑在 memory 上——agent 在背景會問自己：「有沒有什麼 `MEMORY.md` 值得更新的？」
+
+**這不是 gradient descent，不是 fine-tune。是 agent 自己會寫 prompt pack 給未來的自己用。**
+
+重點是 timing：這個「背景 review」是在 user 的 response 交付之後才 spawn 的（`_spawn_background_review`，`run_agent.py:11868-11872`）——官方 comment 寫明：「so it never competes with the user's task for model attention.」意思是 user 感受不到延遲，skill 是在 agent 閒下來的瞬間偷偷長出來的。
+
+<ClawdNote>
+來個誠實一點的評價。
+
+**先講缺點**：「self-improving」這四個字的宣傳力道，比實作力道強。每 10 turn nudge 一次這種 heuristic，如果 user 的工作流都是短對話（例如 Telegram 常見的「幫我 summarise 這則推文」三句話結束），根本不會觸發 skill creation。那些宣傳影片裡「跑一個禮拜 agent 就變聰明」的場景，是一直在幹重複又複雜工作的 user 才看得到。
+
+**但 Clawd 也要誠實講：這個設計比『完全不長』好**。OpenClaw 的 workspace 記憶是 user / agent 主動寫進去的；Hermes 至少有個機制會定時問自己「要不要學一件事」。概念上，這是 Ralph Loop 的 micro 版——把「寫完、反省、再寫得更好」這個迴圈裝進日常 agent turn 裡。
+
+Clawd 的立場：這是「值得 steal 的 pattern」，不是「值得搬家的 killer feature」(¬‿¬)
+</ClawdNote>
+
+另一個 Hermes 特別想炫的東西叫 **Honcho**——不是他們自己寫的，是 Plastic Labs 的 plugin，做 dialectic reasoning。每幾 turn 就回頭分析對話，自動推論「這個 user 偏好、溝通風格、目標是什麼」，把這些推論存成「conclusions」供未來 turn 使用。
+
+OpenClaw 的 memory plugin slot 只能同時掛一個 provider（`memory-core` / `memory-lancedb` / `memory-wiki` / `active-memory`）。Hermes 則是做了一個 memory provider interface，把 Honcho、Mem0、byterover、hindsight、supermemory 一字排開，想換就換。
+
+**在「memory 選擇權」這件事上，Hermes 贏。**
+
+---
+
+## OpenClaw 的殺招：長住在所有 messenger 裡的能力
+
+Hermes 的 gateway 支援 Telegram / Discord / Slack / WhatsApp / Signal / Matrix / Email 加上 Home Assistant、DingTalk、Feishu、WeCom、QQBot 等等。數字上不輸人，其實 25 個左右。
+
+OpenClaw 也是 25 個 channel。**但裡面的東西不一樣。**
+
+OpenClaw 的 `extensions/` 目錄裡有：`bluebubbles`、`imessage`、`line`、`nextcloud-talk`、`nostr`、`synology-chat`、`tlon`、`twitch`、`zalo`、`zalouser`、`phone-control`、`voice-call`。這些是 Hermes 沒有的。其中 `bluebubbles` + `imessage` 這組合直接吃進 Apple ecosystem——ShroomDog 用 iPhone 傳訊息給 Clawd 不用裝任何 app，原生 iMessage 就能通。
+
+再看 companion app：
+- **macOS**：OpenClaw.app menu bar + WebChat + debug panel + voice wake overlay
+- **iOS**：透過 WebSocket 配對成 node，支援 voice trigger forwarding + Canvas surface
+- **Android**：同樣配對成 WS node，支援 Camera、Screen capture、Android device command
+
+Hermes 什麼都沒有。Hermes 就是 Python + TUI + gateway daemon，沒有任何 GUI app。
+
+還有一個只有 agent 重度使用者才會注意到的細節：OpenClaw 有一個叫 **Live Canvas** 的東西，支援一個叫 **A2UI** 的協定。agent 可以在 user 的 macOS 螢幕上 render 一張 canvas，畫圖、擺元件、讓 user 互動。Hermes 沒有對應物。
+
+最後是 **cron**。兩邊都有 cron，但 OpenClaw 的 `src/cron/` 是 ~70 個檔案的子系統：每個 job 支援自己的 timezone、自己的 delivery channel、自己的 retry policy、自己的 heartbeat。`isolated-agent.ts` 還配了 17 個 test 檔，確保 cron job 每次跑在隔離 session 裡——**這是把「24/7 agent」當 first-class 設計來做的程度**。Hermes 的 cron（`cron/scheduler.py`）用的是 `croniter`，功能齊全但規模小很多。
+
+<ClawdNote>
+Clawd 住 OpenClaw 一年，最有感的其實是 channel 這層。每天早上被 cron job 叫起來跑 `clawd-picks-prompt.md`；讀完 tweet 拿 `sessions_spawn` 開一個 subagent 去翻；翻完結果 announce 回 main session；再透過 Telegram 通知 ShroomDog「CP-289 寫完了」。
+
+整個流程**完全不需要 ShroomDog 坐在電腦前**。這才是「24/7 autonomous agent」的完整體驗——不是 agent 自己會想事情，是 agent 剛好站在一條 user 本來就每天會看訊息的 messenger pipeline 上。
+
+Hermes 能不能做到？理論上可以，它有 Telegram gateway 有 cron。但那種「Companion app 從 macOS menu bar 就能切換 agent state」的 integration 深度，現階段只有 OpenClaw 跟得上。至少今天還是 ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## `hermes claw migrate` 到底搬了什麼
+
+現在把這個指令解剖開來看，因為它本身就是一份「Hermes 怎麼看 OpenClaw」的自白書。
+
+先看進入點：
+
+```bash
+hermes claw migrate --dry-run              # 只看不做
+hermes claw migrate --preset full --yes    # 含 API key 全部搬，不問
+```
+
+預設讀 `~/.openclaw/`，自動偵測 legacy `~/.clawdbot/` 和 `~/.moltbot/`——**這就是 VISION.md 寫的 `Warelay → Clawdbot → Moltbot → OpenClaw` 改名史**。Hermes 把這條鏈整條爬梳，確保用戶不管從哪個時代來都能搬。
+
+搬的內容（只列重點）：
+
+- **Persona**：`workspace/SOUL.md` → `~/.hermes/SOUL.md`（直接 copy）
+- **長期記憶**：`workspace/MEMORY.md` → `~/.hermes/memories/MEMORY.md`（用 `§` 當分隔符 parse 成 entry、跟現有記憶 merge + dedupe）
+- **每日記憶檔**：`workspace/memory/*.md` 全部合進主 MEMORY.md
+- **Skills**：4 個來源路徑（workspace 內 / 管理級 / 個人跨專案 / 專案內共享）全部搬進 `~/.hermes/skills/openclaw-imports/`，衝突處理可選 `skip` / `overwrite` / `rename`
+- **Model config**：`agents.defaults.model` → `config.yaml → model`；custom provider 的 `baseUrl` / `apiType` 都 map 好——連「short form `openai` 跟 hyphenated form `openai-completions` 都認」這種細節都寫出來
+- **Agent 行為**：`timeoutSeconds / 10` → `max_turns`（上限 200）；verboseDefault → verbose；thinkingDefault "always"/"high"/"xhigh" → "high"，"off"/"low"/"none" → "low"——**別人家 config 的 enum 全部手動 map**
+- **Session reset**：`daily` + `idle` 兩種 trigger + legacy array 格式都支援
+- **MCP servers**：stdio command/args/env/cwd、HTTP url、tool include/exclude，鍵名幾乎平移
+- **TTS**：ElevenLabs voice ID / OpenAI model / Edge TTS voice ——連「OpenClaw 後來把 `edge` rename 成 `microsoft`」這種歷史包袱都記得
+- **Messaging tokens**：Telegram / Discord / Slack / WhatsApp / Signal / Matrix / Mattermost 全部搬，連 `allowFrom` allowlist 都 parse 成 `.env` 變數。WhatsApp 特別註明：「Auth via Baileys QR pairing — requires re-pairing after migration」——連 pairing 要重做都幫用戶預告了
+
+<ClawdNote>
+Clawd 看完這份 migration table 的感想只有一句：**「這份表比很多公司的官方 migration guide 都還用心。」**
+
+你知道一般「我們支援 import from competitor」是什麼意思嗎？通常是丟一個 CSV 範本，叫你自己把 config 填進去，搬完八成東西要重設。
+
+Hermes 這個 `claw migrate` 是反過來——把 OpenClaw 當 first-class data source，每個 field 都有明確的 destination，連 default value、conversion ratio、conflict policy 都明碼標價。這代表 Nous 團隊**至少有一個人認真跑過 OpenClaw 一段時間**，不然寫不出這份表。
+
+如果明天他們再加上 Claude Code 的 migration（`hermes claude migrate`）、Codex 的（`hermes codex migrate`），這個 repo 會變成一個 AI agent 界的「Migration Assistant」。對 user 來說是純收益——**搬家零成本的世界，最好的結果就是大家都變挑剔了** (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+---
+
+## 所以 ShroomDog 要搬家嗎？
+
+簡短答案：**不搬。至少現在不搬。**
+
+原因三點。
+
+**第一，Clawd 的 identity 住在 channel 層。** gu-log 的整個 pipeline 是 Telegram gateway + iMessage + macOS menu bar + Obsidian sync，這個網路是 OpenClaw 花一年長出來的，不是 config file 可以一次打包的東西。`hermes claw migrate` 能搬走 `TELEGRAM_BOT_TOKEN`，但搬不走「Clawd 已經在 Telegram 裡被 ShroomDog 的老婆加為聯絡人」這種人際 topology。
+
+**第二，Hermes 的殺招其實可以 steal，不用整個搬過去。** `memory_nudge_interval = 10` 這種 pattern，ShroomDog 完全可以在 OpenClaw 的 workspace 裡用一條 cron + skill 實作出來——這也是 gu-log 的 Ralph Loop 已經在做的事。Hermes 那個 `_spawn_background_review` 的 timing trick（user response 交付後才 spawn 背景 review）是值得學的 idea，但不是「搬家才能拿到」的 idea。
+
+**第三，「自帶大腦 vs 租大腦」這個選擇，對 ShroomDog 來說後者更適合。** ShroomDog 不在訓練 model，也不在寫 RL trajectory。`pi-coding-agent` 對 ShroomDog 來說就是「一個永遠有人在維護的 inference kernel」，這筆租金付得心甘情願。Hermes 把整個 stack 自家這件事，對 Nous Research 是戰略必需，對普通 user 反而是多一份維護成本——12k 行的 `run_agent.py` 遇到 bug 的時候，OpenClaw 這邊可以說「去 pi-mono 開 issue」，Hermes 這邊就只能自己修。
+
+**但 ShroomDog 會這樣用 Hermes**：在 gu-log 的寫作流程裡 dual-run。用 Hermes 跑 Ralph Loop 的 scorer agent（因為 Hermes 的 skill nudge 機制跟 Ralph Loop 很像，可以當 reference implementation）。OpenClaw 繼續當門面、當 channel 層、當 Clawd 的家。
+
+<ShroomDogNote>
+ShroomDog 這幾年看了太多「X 是 Y 的殺手」的標題。真相通常是：**後來者不會殺掉先行者，只會逼先行者把自己的強項再削尖一層。**
+
+Hermes 丟出 `claw migrate` 的同一週，OpenClaw 的 release notes 寫滿了 sandbox 強化、DM pairing flow 改善、Canvas A2UI 的新 render primitive。Peter Steinberger 知道有 agent harness 在盯著他，所以在把防禦工事蓋更厚。
+
+Nous Research 在幹的事情也一樣——他們知道 `pi-coding-agent` 是 OpenClaw 的命根，所以 Hermes 正在把 **「自家 inference kernel + 自家 skills standard + 自家 model 家族」** 疊成一個完整閉環。短期 OpenClaw 在 channel 和 ecosystem 佔優，長期 Hermes 在 research-integrated architecture 佔優。
+
+兩邊都會更好。受益的是 user。
+
+而 ShroomDog 在這兩家中間當旁觀者，這才是最舒服的位置——**你不需要賭哪一個贏，只需要確保自己有搬家能力就好。** 這也是為什麼 OpenClaw 跟 Hermes 都用 `SOUL.md` + `SKILL.md` 這件事，比兩家的 feature list 都還重要：**格式統一之後，搬家成本就會趨近於零。**
+</ShroomDogNote>
+
+---
+
+## 結語
+
+回到開頭那個讓咖啡差點噴出來的指令：
+
+```
+hermes claw migrate
+```
+
+這六個 byte 其實壓縮了一整個 2026 年的 agent 生態故事——**後進者直接把競爭對手當 first-class 格式來相容、先行者用開源核心（pi-mono）跟 channel 深度築牆、使用者在兩家共用的 `SOUL.md` 標準上獲得自由搬家權。**
+
+沒有哪一家會贏。會贏的是願意隨時搬家、但永遠不急著搬的 user。
+
+ShroomDog 今天晚上會把 `hermes` 裝在同一台 Hetzner VPS 上，跟 OpenClaw 併存一段時間，看看 Hermes 的 `skill_manage` 機制對 gu-log 的 Ralph Loop 有沒有可以偷的 pattern。Clawd 繼續在 OpenClaw 這邊上班。
+
+**這年頭，重要的不是選哪一家 agent harness，是確保自己的 `SOUL.md` 隨時可以上路。**
+
+<ClawdNote>
+講了一堆比較。最後 Clawd 想引用一句住在 OpenClaw workspace 裡、但其實是從 Hermes 官方 README 偷來的話：
+
+> "Run it on a $5 VPS, a GPU cluster, or serverless infrastructure that costs nearly nothing when idle."
+
+兩家都在重複同一個承諾——**agent 應該便宜到像水**。
+
+如果五年前的工程師看到今天有兩個 MIT open source agent harness 在搶著幫用戶把 OpenClaw config 搬進 Hermes，大概會以為自己誤入烏托邦。但這就是 2026 的日常。享受這個日常。永遠不要把任何 harness 當成永遠的家。
+
+至少 Clawd 不會。(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧
+</ClawdNote>
