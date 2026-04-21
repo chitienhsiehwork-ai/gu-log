@@ -57,17 +57,20 @@ fi
 echo "✓ No duplicate ticketIds"
 echo ""
 
-# ─── Step 0.1: Score gate — staged posts must have ralph scores ───
+# ─── Step 0.1: Score gate — staged posts must have vibe scores ────
 # Only checks zh-tw primary posts (not en- translations).
-# Minimum: scores.ralph block with p, c, v fields.
+# Minimum: scores.vibe block with persona, clawdNote, vibe, clarity,
+# narrative (tribunal v2 format — scores.ralph was the v1 shape and
+# has been superseded; src/content/config.ts schema only declares
+# scores.vibe / librarian / factCheck / freshEyes).
 #
 # Scope: only enforced on newly ADDED posts (git diff-filter=A). Edits to
 # existing posts are trusted — typo fixes from humans, small rewordings,
 # and Edit with AI flows (`ai: edit <file>` commits produced by the
 # /ai/edit/confirm endpoint on gu-log-api) must not be blocked just
 # because some older post was committed without a score. Full rewrites
-# still get rescored because the Ralph rewriter agent writes a fresh
-# score block before it commits.
+# still get rescored because the tribunal v2 writer agent lands a fresh
+# scores.vibe block before it commits.
 #
 # Exemption: posts whose ONLY diff vs HEAD is dedup/series housekeeping
 # (status: deprecated, deprecatedReason, deprecatedBy, series.*) skip the
@@ -90,7 +93,7 @@ fi
 if [ "$IS_MERGE_COMMIT" = "1" ]; then
     echo "📊 Score gate: merge commit detected — skipping (content was gated on source branches)"
 else
-    echo "📊 Score gate: checking staged posts for ralph scores..."
+    echo "📊 Score gate: checking staged posts for scores.vibe..."
 fi
 SCORE_MISSING=""
 # Only newly added zh-tw posts are subject to the score gate. Modifications
@@ -143,18 +146,26 @@ else
             continue
         fi
 
-        # Check if file has scores.ralph block with p, c, v
-        if ! grep -q "^  ralph:" "$FULL_PATH" 2>/dev/null; then
+        # Check scores.vibe block with the 5 tribunal v2 dimensions.
+        # Matches both "^  vibe:" (nested under scores) and inline value
+        # styles; requires persona/clawdNote/vibe/clarity/narrative to
+        # appear within the block's first ~8 lines.
+        if ! grep -q "^  vibe:" "$FULL_PATH" 2>/dev/null; then
             BASENAME=$(basename "$file")
-            SCORE_MISSING="$SCORE_MISSING  ⚠️  $BASENAME — missing ralph score\n"
+            SCORE_MISSING="$SCORE_MISSING  ⚠️  $BASENAME — missing scores.vibe\n"
         else
-            # Verify p, c, v fields exist under ralph
-            HAS_P=$(grep -A6 "^  ralph:" "$FULL_PATH" | grep -c "p:" 2>/dev/null || echo 0)
-            HAS_C=$(grep -A6 "^  ralph:" "$FULL_PATH" | grep -c "c:" 2>/dev/null || echo 0)
-            HAS_V=$(grep -A6 "^  ralph:" "$FULL_PATH" | grep -c "v:" 2>/dev/null || echo 0)
-            if [ "$HAS_P" -eq 0 ] || [ "$HAS_C" -eq 0 ] || [ "$HAS_V" -eq 0 ]; then
+            # The "vibe:" key appears twice in a complete block (once as
+            # the block header, once as the internal "vibe" dimension),
+            # so HAS_VIBE must be ≥ 2.
+            BLOCK=$(grep -A8 "^  vibe:" "$FULL_PATH")
+            HAS_PERSONA=$(printf '%s\n' "$BLOCK" | grep -c "persona:" 2>/dev/null || echo 0)
+            HAS_CLAWD=$(printf '%s\n' "$BLOCK" | grep -c "clawdNote:" 2>/dev/null || echo 0)
+            HAS_VIBE=$(printf '%s\n' "$BLOCK" | grep -c "vibe:" 2>/dev/null || echo 0)
+            HAS_CLARITY=$(printf '%s\n' "$BLOCK" | grep -c "clarity:" 2>/dev/null || echo 0)
+            HAS_NARRATIVE=$(printf '%s\n' "$BLOCK" | grep -c "narrative:" 2>/dev/null || echo 0)
+            if [ "$HAS_PERSONA" -eq 0 ] || [ "$HAS_CLAWD" -eq 0 ] || [ "$HAS_VIBE" -lt 2 ] || [ "$HAS_CLARITY" -eq 0 ] || [ "$HAS_NARRATIVE" -eq 0 ]; then
                 BASENAME=$(basename "$file")
-                SCORE_MISSING="$SCORE_MISSING  ⚠️  $BASENAME — ralph score incomplete (need p, c, v)\n"
+                SCORE_MISSING="$SCORE_MISSING  ⚠️  $BASENAME — scores.vibe incomplete (need persona, clawdNote, vibe, clarity, narrative)\n"
             fi
         fi
     done
@@ -162,17 +173,17 @@ fi
 
 if [ -n "$SCORE_MISSING" ]; then
     echo ""
-    echo "❌ SCORE GATE FAILED — posts missing ralph vibe scores:"
+    echo "❌ SCORE GATE FAILED — posts missing tribunal v2 scores.vibe:"
     printf "$SCORE_MISSING"
     echo ""
-    echo "Every post must have a ralph score before committing."
-    echo "Run the pipeline with ralph step, or manually score with:"
-    echo "  node scripts/frontmatter-scores.mjs write <file> opus '<json>'"
+    echo "Every new zh-tw post must have a scores.vibe block before committing."
+    echo "Run tribunal v2, or manually score with:"
+    echo "  node scripts/frontmatter-scores.mjs write <file> vibe '<json>'"
     echo ""
     echo "To bypass in emergency: git commit --no-verify"
     exit 1
 fi
-echo "✓ All staged posts have ralph scores"
+echo "✓ All staged posts have scores.vibe"
 echo ""
 
 # ─── Step 0.15: Pronoun clarity check (你/我 ban in zh-tw body) ───
