@@ -1,0 +1,230 @@
+---
+ticketId: "SD-21"
+title: "Fire Truck vs. Succulent — Vector Database vs. Agent Search, in Simple Math"
+originalDate: "2026-04-21"
+translatedDate: "2026-04-21"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Author"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+source: "ShroomDog Lab"
+sourceUrl: "https://gu-log.vercel.app/"
+lang: "en"
+summary: "Someone deployed Milvus to search 5,000 vectors. That's like calling a fire truck to water a desk succulent. This post uses dead-simple math to compare vector databases vs. agent-driven search — IO pressure, scalability, and how each approach dies at 10K and 1M users."
+tags: ["shroomdog-original", "rag", "vector-database", "agentic-search", "architecture"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
+
+Picture this: a team spends two weeks deploying Milvus. Three pods humming on Kubernetes — etcd for metadata, MinIO for object storage, Milvus for vector search. The monitoring dashboard lights up like a Christmas tree.
+
+Then someone asks: "So how many vectors are in this vector database?"
+
+The answer is 5,000.
+
+Five thousand. Not five million. Five thousand.
+
+That's like calling a fire truck to water a desk succulent. The truck arrives, the ladder goes up, the hose is ready. The succulent drowns.
+
+<ClawdNote>
+Don't laugh — I've seen this happen way too many times. Teams pick "the most technically correct solution" first, then count their data second. That's backwards. Count first, pick second. If the answer is 5,000 vectors, the right tool might be a JSON file and a for loop (╯°□°)╯
+</ClawdNote>
+
+This post doesn't explain how to deploy a vector database. There's no code. Just dead-simple math to answer one question: **what scale needs what tool, and what breaks when you push it to the extreme?**
+
+(Further reading: Karpathy's [LLM knowledge base](/posts/cp-244-20260403-karpathy-llm-knowledge-base) wiki architecture and the grep-vs-RAG analysis in [AI Agent Memory Architecture](/posts/sd-11-20260402-ai-agent-memory-architecture) complement this post.)
+
+## Highway vs. Driving Yourself
+
+Here's how a traditional RAG pipeline works, step by step:
+
+User asks a question → system converts it to a vector → fetches the top-k most similar chunks from the vector database → stuffs those chunks into the LLM's [context window](/glossary#context-window) → LLM reads them and answers.
+
+**One road, hardcoded from start to finish.** If top-k pulls the wrong chunks — say the user asks about "return policy" but vector search fetches "retirement plan" (semantically close!) — the LLM has no choice but to answer using bad data. No backtracking allowed.
+
+[Agent](/glossary#agent) search works differently. The agent gets a question and **decides how to find the answer itself**:
+
+First, grep the filenames. Oh look, there's a `return-policy.pdf` → read it → found the answer → done. Vector search was never touched, because it wasn't needed.
+
+Grep comes up empty? The agent pivots: try semantic search → three results come back → read the most relevant one → nope, wrong → try the second → got it.
+
+Here's the key difference: RAG is a **one-shot**. Hit or miss. Agent search is **multi-turn navigation** — if the first step is wrong, it self-corrects. MIT's [Recursive Language Model research](/posts/recursive-language-models-mit) showed that GPT-5-mini with this kind of multi-turn navigation (RLM) can outperform GPT-5 running on full context for long-context tasks. Even an 8B-parameter model with RLM can approach GPT-5 performance.
+
+<ClawdNote>
+The problem with RAG isn't that vector search is inaccurate — it's actually great at finding semantically similar things. The problem is that many agent retrieval needs **aren't about semantic similarity at all**.
+
+"Find the return policy" → grep works. Exact keyword match.
+"Find similar complaints from before" → now we're talking. That's semantic search's home turf.
+
+Routing every query through the same vector pipeline is like prescribing the same pill regardless of the illness. Sometimes it works. More often it's a waste ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## Napkin Math
+
+Assume a user uploads 50MB of files to the system. All text (worst case).
+
+**Step 1: How many chunks?**
+
+50MB of pure text at ~1KB per chunk ≈ **50,000 chunks**. But most users won't max out with pure text — mixed PDFs, images, and code means text might be half. Reasonable estimate: **5,000 to 25,000 chunks per user**.
+
+**Step 2: How big is each vector?**
+
+Using a mainstream embedding model (OpenAI text-embedding-3-small is 1,536 dimensions), each vector = 1,536 floats × 4 bytes = **~6KB**.
+
+**Step 3: How big is the full index?**
+
+5,000 chunks × 6KB = **30MB**.
+25,000 chunks × 6KB = **150MB**.
+
+One user's entire vector index fits in a single SQLite file. It's about the size of a short video.
+
+**Step 4: How fast is search?**
+
+sqlite-vec doing brute-force search over 5,000 vectors: **under 10 milliseconds**.
+Even at 50,000 vectors: **under 100 milliseconds**.
+
+No HNSW index needed. No IVF. No fancy approximate algorithms. The dataset is small enough that brute force is faster than building an index.
+
+<ShroomDogNote>
+Writing this, ShroomDog had to laugh. So much time was spent tuning HNSW parameters — `ef_construction`, what value for `M` — only to look back and realize the entire collection was a few thousand vectors. Those advanced indexing algorithms were designed for tens of millions, hundreds of millions of vectors. A few thousand? A for loop handles that just fine (￣▽￣)／
+</ShroomDogNote>
+
+---
+
+## IO Pressure: Detached Houses vs. Apartment Building
+
+Now scale up. Not one user — ten thousand. Each with their own files, their own index.
+
+Two paths, completely different IO profiles.
+
+### Path A: One small index per user (detached houses)
+
+Each user gets their own sqlite-vec file, ~30MB. Queries only touch that one file.
+
+Ten thousand users online simultaneously? Won't happen. Realistic concurrency is 500 to 2,000. That means the system is reading 500 to 2,000 **different small files** at any given second.
+
+Each file is 30MB — easily cached by the OS page cache. The IO pattern is random reads on small files, which is exactly what SSDs are built for. **Zero contention** between files, because each query hits a different one.
+
+Imagine a street of detached houses. One person going in and out of each. Wide lanes, no traffic jams. Your neighbor's renovation has zero impact on you.
+
+### Path B: Everything in one big index (apartment building)
+
+The Milvus approach: all ten thousand users' vectors in one collection, separated by metadata filter (`user_id = xxx`).
+
+10,000 users × 5,000 chunks = **50 million vectors**. HNSW index needs the full graph in memory: 50M × 1,536 dims × 4 bytes ≈ **300GB RAM**.
+
+300GB of RAM, running 24/7. Just so each query can find 5 nearest vectors in that haystack.
+
+And every query competes for **the same block of memory**. During peak hours, memory bandwidth becomes the bottleneck. One user's heavy querying slows everyone down. One apartment's burst pipe floods the whole building.
+
+<ClawdNote>
+The cruelest comparison: detached houses bottleneck on **storage** (cheap), apartment buildings bottleneck on **memory** (expensive).
+
+Azure Blob Storage: $0.02/GB/month. Ten thousand users' files + indexes ≈ 800GB (10,000 × 80MB) = **$16/month**.
+
+Milvus needs 300GB RAM: at least two Standard_E32s_v5 instances (256GB each) on AKS = **$3,000/month minimum**.
+
+$16 vs. $3,000. Nearly 200x difference. And the $16 side searches faster, because there's no metadata filter overhead (⌐■_■)
+</ClawdNote>
+
+---
+
+## Pushing to One Million: A Thought Experiment
+
+What if it's not ten thousand users, but one million? Pure thought experiment — let's see where each path breaks first.
+
+### Detached Houses × 1 Million
+
+One million users, each with 50MB files + 30MB index = 80TB total storage.
+
+80TB sounds scary? Azure Blob Storage monthly cost for 80TB: roughly **$1,600**. Less than half of what Milvus costs at just ten thousand users.
+
+More importantly: concurrent users won't be one million. Assume 5% online at once — that's 50,000 people. Those 50,000 queries hit 50,000 **different small files**. Each file is 30MB, SSD random read — the IO pattern is **identical** to the ten-thousand-user scenario.
+
+Scale grew 100x. IO pressure barely changed. Because **users are naturally isolated** — they can't steal each other's resources.
+
+The only new challenge: the storage layer needs to handle millions of small files. Azure Blob can (flat namespace design). Longhorn might need more thought (inode pressure). But that's an ops concern, not an architectural bottleneck.
+
+### Apartment Building × 1 Million
+
+One million × 5,000 chunks = **5 billion vectors**.
+
+HNSW index size: 5B × 1,536 × 4 bytes = **30TB RAM**.
+
+Yeah.
+
+30TB of memory. Roughly 120 machines at 256GB RAM each. Memory cost alone: **$180,000/month**. Before CPU, networking, etcd, MinIO, and the distributed coordination to keep 120 machines in sync.
+
+Even switching to disk-based indexes (IVF_PQ + DiskANN), latency jumps from sub-millisecond to **50–200ms**, and each query generates heavy random disk IO that fights every other query under high concurrency.
+
+<ClawdNote>
+Let me restate the comparison:
+
+At one million users —
+Detached houses: **$1,600/month** (storage), IO unchanged
+Apartment building: **$180,000/month** (memory), plus a full SRE team
+
+The gap is over **100x** ($1,600 vs. $180,000), and the apartment side's complexity scales exponentially.
+
+This isn't to say Milvus-style systems are bad — they're designed for "global cross-user semantic search," like recommendation engines and search platforms. But if each query only searches within one user's small corpus, cramming everyone into one index is **manufacturing a problem that doesn't exist** (╯°□°)╯
+</ClawdNote>
+
+<ShroomDogNote>
+Honestly, ShroomDog's own system made this exact mistake. The reasoning for choosing Milvus was "what if we need cross-user recommendations someday?" — ran it for a year, that "someday" never arrived. But the Milvus maintenance bill arrived every month.
+
+Looking back, the right move was: start with the simplest approach, **upgrade when "someday" actually shows up**. Future requirements might never materialize. Today's infrastructure bill always does.
+</ShroomDogNote>
+
+---
+
+## Where's the Cliff?
+
+This whole article has been saying "small scale doesn't need a vector database." But **how small is small? Where's the tipping point?**
+
+The answer depends on what's growing.
+
+**If user count increases** (from ten thousand to one million) — we already did the math. Per-user sandbox IO pressure barely changes. Add more users, each query still hits its own small file. The cliff isn't here.
+
+**If a single user's data grows** (from 50MB to 5GB) — this is where agent search starts to strain. 5GB of text ≈ 5,000,000 chunks. Grep takes longer to scan, sqlite-vec brute-force exceeds 1 second. Not fatal, but noticeable.
+
+At 50GB per user? Grep needs its own index, brute-force needs to switch to HNSW. That's a **per-user index** — 50 million chunks, HNSW index around 300GB (50M × 1,536 × 4 bytes). Sounds scary, but this is a **single user's** extreme scenario. In practice, quantization helps (int8 → ~75GB, Product Quantization → ~20GB). One machine handles it. No distributed system needed.
+
+**If you need cross-user search** ("find similar documents uploaded by other users") — now Milvus is in its element. Global semantic search, billion-scale vector index, distributed query routing. But that's a recommendation engine or search platform requirement, not a chat assistant's.
+
+So there are three kinds of cliffs, each in a different place:
+
+- **User count cliff**: essentially nonexistent under per-user sandbox architecture
+- **Per-user data volume cliff**: appears around 5–50GB per user. Solution is per-user HNSW, not Milvus
+- **Cross-user search cliff**: deal with it the day the requirement appears. Most assistant products never get here
+
+<ClawdNote>
+The most common engineering mistake: conflating the three cliffs, then applying the hardest solution to the easiest problem.
+
+"We might have a million users!" → Sure, but each user's data is isolated. No global index needed.
+"What if we need a recommendation engine?" → Deal with it when that day comes. Save the bill today.
+"But Milvus has such nice documentation!" → …that's not a reason to pick a technology (¬‿¬)
+</ClawdNote>
+
+---
+
+## Conclusion
+
+Back to that fire truck.
+
+The fire truck isn't wrong. Milvus isn't wrong. HNSW isn't wrong. They're all excellent tools for large-scale problems.
+
+What's wrong is using large-scale tools for small-scale problems, then paying large-scale costs — not just money, but maintenance headaches, debugging time, and the number of times you get woken up at 3 AM by an OOM alert.
+
+An AI assistant product where each user's files max out at 50MB — at that scale, give the agent a set of tools (grep, file read, semantic search), let it pick how to search, and it'll be more flexible, cheaper, and easier to debug than any hardcoded RAG pipeline.
+
+Vector search isn't something to get rid of. It's something to **demote to one screwdriver in the toolbox**. Pull it out when needed, let it collect dust when not. No need to build an entire hardware store for one screwdriver.
+
+As for when to upgrade? Don't guess. When the agent starts answering slowly, when grep starts missing, when users start complaining — that's the cliff. Upgrade then. It's not too late.
+
+Until then, return the fire truck. The succulent just needs a spray bottle.
