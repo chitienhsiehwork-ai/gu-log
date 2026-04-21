@@ -45,7 +45,7 @@ gu-log 重複文章判定系統的 eval harness —— 已知答案的題庫。
 | `hard-dup` | 1 | `mythos-techcrunch.yaml` |
 | `soft-dup` | 1 | `gemma-4-dual-post.yaml` |
 | `intentional-series` | 1 | `ecc-series.yaml` |
-| `clean-diff` | 1 | `simon-vs-systematicls-agentic-engineering.yaml` |
+| `clean-diff` | 2 | `simon-vs-systematicls-agentic-engineering.yaml` + `zh-en-translation-pair.yaml`（跨語言翻譯對豁免案例）|
 
 ## Level E 已完成
 

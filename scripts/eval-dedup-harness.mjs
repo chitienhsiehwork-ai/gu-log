@@ -197,10 +197,20 @@ function buildJudgePrompt(fixture, outputPath) {
     )
     .join('\n');
 
+  // IMPORTANT: The CORPUS SNAPSHOT below is the authoritative corpus for this
+  // evaluation. DO NOT glob src/content/posts/ — use ONLY the corpusSnapshot
+  // provided below. Globbing the live corpus would: (a) break reproducibility
+  // because the corpus changes over time, and (b) cause self-matching when the
+  // fixture inputPost slug already exists in the real corpus.
   return `You are evaluating a dedup fixture. Score ONLY the dupCheck dimension for this exercise.
 The fact / library dimensions may be stubbed (e.g. 8, 8, 8, 8) — focus on judging whether
 this inputPost is hard-dup / soft-dup / intentional-series / clean-diff relative to the
 provided corpusSnapshot.
+
+EVALUATOR MODE — CORPUS SOURCE OVERRIDE:
+  DO NOT glob src/content/posts/ or read any real corpus files.
+  Use ONLY the CORPUS SNAPSHOT below as the authoritative corpus for this evaluation.
+  Reason: this is a frozen reproducibility test; live corpus may differ.
 
 INPUT POST (被審稿件):
 ---

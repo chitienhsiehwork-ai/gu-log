@@ -30,7 +30,7 @@ You evaluate **THREE** things in one pass, all scored and passed **independently
    - `tribunal/fixtures/hard-dup/*.yaml`（至少 1 筆）
    - `tribunal/fixtures/soft-dup/*.yaml`（至少 1 筆）
    - `tribunal/fixtures/intentional-series/*.yaml`（至少 1 筆）
-   - `tribunal/fixtures/clean-diff/*.yaml`（至少 1 筆；若為空則以其他三類當對比基準）
+   - `tribunal/fixtures/clean-diff/*.yaml`（至少 1 筆；若任一類為空，以其他類當對比基準）
    這些 fixture 是「判決 pattern」的示範，不是當 corpus 比對用。
 
 ## Five Scoring Dimensions (each 0-10, integer)
@@ -92,13 +92,37 @@ Does this article duplicate / overlap with existing corpus? Your job is to **ide
 - **5**: 邊界案例 — 看得出有重疊但類別不確定，保守給 WARN
 - **2**: 誤判 — clean-diff 被判為 dup 誤殺，或 hard-dup 被放行
 
-**Corpus comparison scope**（重要 — 控 token 成本）：
+## Language Filter（跨語言翻譯對豁免）
 
-1. **Pre-filter**：用文章 frontmatter 的 `clusterIds`、`seriesId`、`authorCanonical`、`sourceType`、`temporalType` 欄位先篩候選（glob `src/content/posts/**/*.mdx`，只取 frontmatter）
-2. **候選範圍 SHOULD ≤ 10 篇**
-3. **對候選讀首 300 字**（title + summary + lead paragraph 等級），SHALL NOT 讀全文
-4. **非候選不讀內文**
-5. 若無任何候選命中 → 視為 clean-diff candidate，dupCheck 傾向 10 分
+gu-log 的 corpus 有 **435 篇英文鏡像版**（`en-sp-*` / `en-cp-*`）。每篇中文翻譯稿都對應一篇英文版，兩者：
+- 同 `sourceUrl`、同 `tags`、同 `clusterIds`
+- `lang` 欄位不同（`zh-tw` vs `en`）
+- slug 差 `en-` 前綴（例：`sp-165-...` ↔ `en-sp-165-...`）
+
+**規則**：
+1. **Corpus pre-filter 必須先排除 `lang` 不同的 posts**：只比對 `lang` 相同的 corpus posts。
+2. **翻譯對豁免**：若 inputPost 與某 corpus post 的 slug 差 `en-` 前綴（例：`sp-165-xxx` vs `en-sp-165-xxx`），這是同一篇文章的雙語版本，**不算 dup，不納入比對**。
+3. 違反上述規則會誤殺所有新翻譯的英文版（production 第一天就炸）。
+
+## Corpus Comparison Scope（重要 — 控 token 成本）
+
+> **EVALUATOR MODE OVERRIDE**: If your task prompt contains a `CORPUS SNAPSHOT` block
+> (labelled `CORPUS SNAPSHOT (凍結的既有 corpus...)`), use ONLY that snapshot as the
+> corpus. Do NOT glob `src/content/posts/` or read any real corpus files.
+> The snapshot is a frozen reproducibility fixture — globbing live corpus breaks
+> reproducibility and may cause self-matching if inputPost slug exists in real corpus.
+>
+> Only use the glob strategy below when NO `CORPUS SNAPSHOT` is provided (normal pipeline mode).
+
+**Normal pipeline mode** (no CORPUS SNAPSHOT in prompt):
+
+1. **Language pre-filter**（FIRST）：只取 `lang` 與 inputPost 相同的 corpus posts
+2. **Slug pre-filter**：排除 slug 為 `en-{inputPost.slug}` 或 `{inputPost.slug}` 去掉 `en-` 前綴的 post（翻譯對豁免）
+3. **Frontmatter pre-filter**：用文章的 `clusterIds`、`seriesId`、`authorCanonical`、`sourceType`、`temporalType` 先篩候選
+4. **候選範圍 SHOULD ≤ 10 篇**
+5. **對候選讀首 300 字**（title + summary + lead paragraph 等級），SHALL NOT 讀全文
+6. **非候選不讀內文**
+7. 若無任何候選命中 → 視為 clean-diff candidate，dupCheck 傾向 10 分
 
 **判斷 verdict 時 reference Level B policy**：
 - `sourceType = derivative` 且同 cluster 有 primary 且無 `dedup.independentDiff` → hard-dup / BLOCK
