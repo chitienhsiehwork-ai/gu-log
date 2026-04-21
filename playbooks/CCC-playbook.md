@@ -126,6 +126,51 @@ Vercel build / Ralph Loop / validate-posts / CI 沒過：
 
 **必附證據**：PR body 或一個隨 PR 的 commit 要包含四個 judge 的分數 + verdict，並把 `scores.vibe` / `scores.factCheck` / `scores.librarian` / `scores.freshEyes` 寫進文章 frontmatter（用 `scripts/frontmatter-scores.mjs write <file> <judge> <score_json>`，schema 見 `src/content/config.ts`）。pre-commit 的 score gate（`.githooks/pre-commit` 第 60 行起）會擋掉**新增**且 ticketId 非 PENDING 的 zh-tw 文章 commit，所以 swap PENDING → 真號那個 commit 之前，分數要先進 frontmatter。
 
+## 文章寫作 SOP（省 token 版）
+
+**核心原則：先寫好 zh-tw，通過 tribunal 後才翻 en。不要兩個版本同時寫、同時改。**
+
+原因很簡單：tribunal 回來的修改意見要 iterate，如果兩版都寫了，每輪 rewrite 要改兩份，token 花費直接翻倍。zh-tw 是主版本，en 是衍生翻譯，先把主版本品質打到及格再翻。
+
+### 流程
+
+```
+Step 1: 寫 zh-tw 版
+  - 建立 MDX，填 frontmatter，寫正文
+  - ClawdNote / ShroomDogNote 都在這步完成
+  - validate-posts.mjs 確認格式
+
+Step 2: Tribunal review（spawn subagent）
+  - Vibe Scorer（Opus）：五維評分
+  - Fact Checker（Opus）：技術準確度
+  - Librarian（Sonnet）：glossary / cross-ref
+  - Fresh Eyes（Haiku）：陌生讀者第一印象
+  - Pass bar：Vibe composite ≥ 8 且沒有任何維 < 8
+
+Step 3: Iterate（如未通過）
+  - Spawn opus writer subagent，帶入 tribunal feedback
+  - Writer 改寫 zh-tw 版
+  - 再跑 tribunal
+  - 最多 3 輪。3 輪還沒過 → 回報 user，不要硬出
+
+Step 4: zh-tw 通過 → 翻譯 en 版
+  - 以通過 tribunal 的 zh-tw 為 source
+  - 翻成 en，按 WRITING_GUIDELINES.md 的英文版指南
+  - en 版不用再跑完整 tribunal（zh-tw 已驗證內容品質）
+  - 但仍需通過 validate-posts.mjs
+
+Step 5: 更新 counter → commit → push
+  - 兩版一起 commit（atomic：一篇文章 = 一個 commit）
+  - 更新 scripts/article-counter.json
+```
+
+### 為什麼不 en 也跑 tribunal？
+
+- zh-tw 和 en 的**內容一致**（en 是翻譯，不是另一篇文章）
+- Tribunal 驗的是內容品質（persona / fact / vibe），不是語言品質
+- en 版的語言品質靠 WRITING_GUIDELINES 的 en 指南 + 翻譯者的功力
+- 真的對 en 版不放心 → 可選跑一次 Fresh Eyes，但不是必須
+
 ## Stream idle timeout 應對（CCC-only failure mode）
 
 這個失敗模式**只在 CCC 沙箱觀察到**（2026-04-21 session 首度記錄）。mac-CC 從沒遇過，mac-CC 可以跳過這段。

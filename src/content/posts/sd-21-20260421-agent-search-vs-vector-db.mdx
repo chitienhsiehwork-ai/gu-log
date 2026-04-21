@@ -1,0 +1,258 @@
+---
+ticketId: "SD-21"
+title: "消防車澆多肉 — 向量資料庫 vs Agent 搜尋的簡單數學"
+originalDate: "2026-04-21"
+translatedDate: "2026-04-21"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Author"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+source: "ShroomDog Lab"
+sourceUrl: "https://gu-log.vercel.app/"
+lang: "zh-tw"
+summary: "有人拿 Milvus 搜 5000 個向量，就像叫消防車澆多肉。這篇用最簡單的數學，比較向量資料庫 vs agent 自己翻書的 IO 壓力、擴展性，以及一萬人跟一百萬人時各自會怎麼死。"
+tags: ["shroomdog-original", "rag", "vector-database", "agentic-search", "architecture"]
+scores:
+  tribunalVersion: 1
+  vibe:
+    persona: 9
+    clawdNote: 8
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-04-21"
+  factCheck:
+    accuracy: 7
+    fidelity: 7
+    consistency: 7
+    score: 7
+    date: "2026-04-21"
+  librarian:
+    glossary: 6
+    crossRef: 6
+    sourceAlign: 7
+    attribution: 7
+    score: 6
+    date: "2026-04-21"
+  freshEyes:
+    readability: 8.5
+    firstImpression: 9
+    score: 8
+    date: "2026-04-21"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
+
+場景：某個工程團隊花了兩週部署 Milvus。三個 pod 在 Kubernetes 上跑著——etcd 管 metadata、MinIO 存 object、Milvus 跑向量搜尋。監控儀表板亮得像聖誕樹。
+
+然後有人問：「所以這個向量資料庫裡面有多少向量？」
+
+答案是 5000 個。
+
+五千。不是五百萬。是五千。
+
+這就像叫一台消防車去澆桌上那盆多肉植物。車來了、梯子架好了、水管接好了。多肉淹死了。
+
+<ClawdNote>
+別笑，我看過太多次了。團隊先選了「最正確的技術」，然後才去數自己有多少資料。這個順序反了。正確的順序是：先數，再選。數完發現只有 5000 個向量，那答案可能是一個 JSON 檔加一個 for loop (╯°□°)╯
+</ClawdNote>
+
+這篇文章不講怎麼部署向量資料庫，也不寫任何 code。只用最簡單的數學，算清楚一件事：**什麼規模該用什麼工具，以及推到極端會怎麼死。**
+
+（延伸閱讀：Karpathy 在 [LLM knowledge base](/posts/cp-244-20260403-karpathy-llm-knowledge-base) 提出的 wiki 架構、[AI agent 記憶系統設計](/posts/sd-11-20260402-ai-agent-memory-architecture)裡 grep vs RAG 的取捨分析，跟這篇的論點互補。）
+
+## 一條公路 vs 自己開車
+
+傳統 RAG pipeline 的運作方式，拆開來看是這樣：
+
+使用者丟一個問題進來 → 系統把問題轉成向量 → 到向量資料庫撈 top-k 最像的幾段 → 把那幾段塞進 LLM 的 context → LLM 看完回答。
+
+**一條路，從頭到尾寫死。** 如果 top-k 撈錯了——比如使用者問「退貨政策」但向量搜尋撈到「退休金計畫」（因為語意很近）——LLM 只能硬著頭皮用爛資料回答。整條 pipeline 沒有回頭路。
+
+Agent 搜尋不一樣。Agent 拿到問題後**自己決定怎麼找**：
+
+先 grep 一下檔名，看到有個 `退貨政策.pdf` → 直接讀那個檔 → 找到答案 → 結束。從頭到尾沒碰向量搜尋，因為不需要。
+
+如果 grep 沒找到？Agent 會改策略：用語意搜尋試試 → 回來三個結果 → 讀最像的那個 → 發現不對 → 換第二個 → 找到了。
+
+差別在這裡：RAG 是**一次性的射擊**，打中就打中、打偏就偏了。Agent 搜尋是**多輪導航**，第一步錯了可以修正。MIT 的 [Recursive Language Model 研究](/posts/recursive-language-models-mit)證明，GPT-5-mini 搭配這種多輪導航（RLM），能在超長 context 任務上打贏直接吃下整個 context 的 GPT-5；而 8B 參數等級的小模型配上 RLM，也能逼近 GPT-5 的表現。
+
+<ClawdNote>
+RAG 的問題不是向量搜尋不準——向量搜尋在「找語意相似」這件事上非常強。問題是很多 agent 的檢索需求**根本不是語意相似**。
+
+「找退貨政策」→ grep 就好，關鍵字精確 match。
+「找之前討論過的類似問題」→ 這才是語意搜尋的主場。
+
+把所有 query 都丟進同一個向量 pipeline，就像不管什麼病都吃同一顆藥。有時候會好，但更多時候是浪費藥 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## 拿筆算一下
+
+假設一個使用者在系統上傳了 50MB 的檔案。全部是文字（最極端的情況）。
+
+**Step 1：切成多少段？**
+
+50MB 純文字，用常見的 chunk size（~1KB per chunk）切，大概切成 **50,000 段**。但大多數使用者不會塞滿 50MB 純文字——混合 PDF、圖片、程式碼的話，文字部分可能只佔一半。所以合理估計：**每個使用者 5,000 到 25,000 段**。
+
+**Step 2：每段的向量多大？**
+
+用主流 embedding model（OpenAI text-embedding-3-small 是 1536 維），每個向量 = 1536 個浮點數 × 4 bytes = **~6KB**。
+
+**Step 3：整個 index 多大？**
+
+5,000 段 × 6KB = **30MB**。
+25,000 段 × 6KB = **150MB**。
+
+一個使用者的向量 index，塞進一個 SQLite 檔案裡，大概就是**一部短影片的大小**。
+
+**Step 4：搜尋要多久？**
+
+sqlite-vec 在 5,000 個向量上做 brute-force 搜尋：**不到 10 毫秒**。
+就算是 50,000 個向量：**不到 100 毫秒**。
+
+不需要 HNSW index。不需要 IVF。不需要任何花哨的近似演算法。因為資料量小到暴力搜尋比建 index 還快。
+
+<ShroomDogNote>
+寫到這裡 ShroomDog 自己也笑了。之前花了好多時間研究 HNSW 的參數調校——`ef_construction`、`M` 值怎麼設——結果回頭一看，整個 collection 就幾千個向量。那些高級 index 算法是設計給千萬級、億級資料用的。幾千個向量？一個 for loop 就搜完了 (￣▽￣)／
+</ShroomDogNote>
+
+---
+
+## IO 壓力：獨棟透天 vs 公寓大樓
+
+現在把場景放大。不是一個使用者，是一萬個。每個人都有自己的檔案、自己的 index。
+
+這裡有兩條路可以走，IO 壓力完全不同。
+
+### 路線 A：每人一個小 index（獨棟透天）
+
+每個使用者有自己的 sqlite-vec 檔案，~30MB。搜尋時只碰自己那一個檔。
+
+一萬個使用者同時上線？不會。實際 concurrent 大概 500 到 2000。也就是同一秒，系統在讀 500 到 2000 個**不同的小檔案**。
+
+每個檔案 30MB，OS 的 page cache 輕鬆 cache 住。讀取是 random read on small file——這是 SSD 最擅長的 workload。檔案之間**零競爭**，因為每個 query 打不同的檔。
+
+想像一整條街都是獨棟透天。每家只有一個人進出。巷子很寬、不會塞車。隔壁家裝潢打牆壁，跟另一端的住戶完全無關。
+
+### 路線 B：全部塞一個大 index（公寓大樓）
+
+Milvus 的做法：一萬個使用者的向量全部塞進一個 collection，用 metadata filter（`user_id = xxx`）切分。
+
+一萬個使用者 × 5,000 段 = **5,000 萬個向量**。HNSW index 要把整個 graph 放進記憶體：5,000 萬 × 1536 維 × 4 bytes ≈ **300GB RAM**。
+
+300GB RAM 常駐。就為了讓每個 query 在裡面找 5 個最接近的向量。
+
+而且所有 query 都在競爭**同一塊記憶體**。高峰時段，記憶體頻寬變成瓶頸。一個使用者的大量查詢會拖慢所有人。隔壁的水管爆了，全棟停水。
+
+<ClawdNote>
+最殘酷的對比：獨棟透天的瓶頸是**儲存空間**（便宜），公寓大樓的瓶頸是**記憶體**（貴）。
+
+Azure Blob Storage：$0.02/GB/月。一萬個使用者的檔案 + index，大概 800GB（10,000 × 80MB），一個月 $16。
+
+Milvus 要 300GB RAM：AKS 上開 Standard_E32s_v5（256GB RAM）起碼要兩台，一個月 $3,000 起跳。
+
+$16 vs $3,000。差了快兩百倍。而且 $16 那邊的搜尋還更快，因為不用做 metadata filter (⌐■_■)
+</ClawdNote>
+
+---
+
+## 推到一百萬：壓力鍋思想實驗
+
+如果使用者不是一萬，是一百萬呢？純粹的思想實驗，看兩條路各自在哪裡先斷。
+
+### 獨棟透天 × 100 萬
+
+一百萬個使用者，每人 50MB 檔案 + 30MB index = 80TB 總儲存。
+
+80TB 聽起來嚇人？Azure Blob Storage 上 80TB 的月租費大約 **$1,600**。不到 Milvus 在一萬使用者時的一半。
+
+更重要的是：concurrent 使用者不會是一百萬。假設同時在線 5%，也就是 50,000 人。這 50,000 個 query 打的是 50,000 個**不同的小檔案**。每個檔案 30MB，SSD random read，跟一萬使用者時的 IO pattern **一模一樣**。
+
+規模推了一百倍，IO 壓力幾乎沒變。因為**使用者之間天然隔離**，不會互相搶資源。
+
+唯一的新問題：storage layer 需要能處理百萬級的小檔案 listing。Azure Blob 可以（flat namespace 設計），Longhorn 可能要多想一下（inode 壓力）。但這是 ops 層面的事，不是架構層面的瓶頸。
+
+### 公寓大樓 × 100 萬
+
+一百萬 × 5,000 段 = **50 億個向量**。
+
+HNSW index 大小：50 億 × 1536 × 4 bytes = **30TB RAM**。
+
+嗯。
+
+30TB 的記憶體。大概需要 120 台 256GB RAM 的機器，光記憶體成本一個月 **$180,000**。還沒算 CPU、網路、etcd、MinIO、以及讓這 120 台機器保持 consistent 的分散式 coordination。
+
+就算改用 disk-based index（IVF_PQ + DiskANN），延遲會從 sub-millisecond 暴增到 **50-200ms**，而且每個 query 會產生大量 random disk IO，在高 concurrent 下互相打架。
+
+<ClawdNote>
+重新講一次那個對比：
+
+一百萬使用者時——
+獨棟透天：**$1,600/月**（storage），IO 不變
+公寓大樓：**$180,000/月**（memory），還要一整個 SRE 團隊
+
+差距超過 **100 倍**（$1,600 vs $180,000），而且公寓那邊的複雜度是指數級的。
+
+不是說 Milvus 這類系統不好——它是為了「全域跨使用者語意搜尋」設計的，比如推薦系統、搜尋引擎。但如果每個 query 本來就只在一個使用者的小 corpus 裡面找，把所有人塞進同一個 index 就是在**製造不存在的問題** (╯°□°)╯
+</ClawdNote>
+
+<ShroomDogNote>
+說實話，ShroomDog 自己的系統也犯過這個錯。當初選 Milvus 的理由是「萬一以後要做跨使用者推薦呢？」——結果跑了一年，那個「萬一」從來沒發生過。但 Milvus 的維護成本每個月都在燒。
+
+事後回頭看，正確的做法是：先用最簡單的方案跑起來，**等「萬一」真的發生再升級**。未來的需求可能永遠不會來，但今天的基礎建設費帳單每個月都會來。
+</ShroomDogNote>
+
+---
+
+## 懸崖到底在哪
+
+這整篇文章一直在說「小規模不需要向量資料庫」。但**多小算小？臨界點在哪？**
+
+答案要看是什麼在增長。
+
+**如果是使用者數量增加**（從一萬到一百萬），前面算過了——per-user sandbox 的 IO 壓力幾乎不變。使用者加再多，每個 query 還是打自己那個小檔案。懸崖不在這裡。
+
+**如果是單一使用者的資料量增加**（從 50MB 到 5GB），這才是 agent 搜尋開始吃力的地方。5GB 純文字 ≈ 5,000,000 段。grep 一次要掃的量變大、sqlite-vec brute-force 要花超過 1 秒。不致命，但能感覺到遲鈍。
+
+到 50GB per user？grep 需要做 index，brute-force 要換成 HNSW。這是 **per-user 的 index**，5,000 萬段，HNSW index 大小約 300GB（50M × 1536 × 4 bytes）——聽起來嚇人，但這是**單一使用者**的極端情境。實務上可以用量化壓縮（int8 → ~75GB，Product Quantization → ~20GB）。一台機器就搞定。不需要分散式系統。
+
+**如果是需要跨使用者搜尋**（「找其他使用者上傳過的類似文件」），這才是 Milvus 真正的主場。全域語意搜尋，billion-scale vector index，分散式 query routing。但這是推薦系統、搜尋引擎的需求，不是 chat assistant 的需求。
+
+所以懸崖有三種，各自在不同的地方：
+
+- **使用者數量懸崖**：per-user sandbox 架構下，幾乎不存在
+- **單一使用者資料量懸崖**：大約在 5-50GB per user 時出現，解法是 per-user HNSW，不是 Milvus
+- **跨使用者搜尋懸崖**：需求出現的那天才需要面對，大多數 assistant 產品永遠不會到這裡
+
+<ClawdNote>
+工程師最常犯的錯：把三種懸崖混在一起，然後用「最難那種」的解法去應對「最簡單那種」的問題。
+
+「我們可能有一百萬使用者！」→ 是，但每個使用者的資料是隔離的，不用全域 index。
+「萬一要做推薦系統呢？」→ 等那天來了再說。今天帳單先省下來。
+「但 Milvus 的文件寫得好好看！」→ ……這不是選技術的理由 (¬‿¬)
+</ClawdNote>
+
+---
+
+## 結語
+
+回到那台消防車。
+
+消防車沒有錯。Milvus 沒有錯。HNSW 沒有錯。它們都是解決大規模問題的好工具。
+
+錯的是拿大規模工具去解決小規模問題，然後花大規模的成本——不只是錢，還有維護的心力、debug 的時間、半夜被 OOM 叫起來的次數。
+
+一個 AI assistant 產品，每個使用者的檔案撐死 50MB。這個規模的檢索，給 agent 一組工具——grep、讀檔、語意搜尋——讓它自己選怎麼找，比任何預設的 RAG pipeline 都靈活、都便宜、都好 debug。
+
+向量搜尋不是不要，而是**降級成工具箱裡的其中一把螺絲起子**。需要的時候拿出來轉兩下，不需要的時候放著吃灰。不用為了一把螺絲起子蓋一整間五金行。
+
+至於什麼時候該升級？不用猜。等 agent 開始回答變慢、grep 開始 miss、使用者開始抱怨的時候，那就是懸崖到了。到那天再升級，不遲。
+
+在那之前，把消防車還回去。多肉只需要一個噴水壺。
