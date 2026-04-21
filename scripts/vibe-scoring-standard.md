@@ -336,6 +336,16 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
   - After: `74095c4` — opinion-first ClawdNotes + narrative tension
   - `git diff fa338ed 74095c4 -- src/content/posts/sp-158*`
 
+### 綜合五分的標準 — SP-175「Opus 4.7 prompting cheat sheet」
+- **為什麼是五分（7/8/7/9/7，composite 7 FAIL）:** SP-175 是 cheat sheet 偽裝成 blog post 的典型案例。表面有比喻（tokenizer 房東換租金、effort 咖啡機粗細、snippet 換合約夥伴）、有 ClawdNote、有 kaomoji —— 所有 decorative 特徵齊全。但骨架是教科書：三件必知大事 → Effort 五級階梯 → 4.6→4.7 行為差異 → 可 copy 的 prompt snippets。**拿掉比喻之後就是 release notes**。
+- **Scorer 判讀差異（2026-04-17 跨版本實驗）**：
+  - Opus 4.6 scorer: composite 7 FAIL — 抓到 "effort ladder and snippets sections revert to reference-doc mode — listing 5 levels in order and pasting code blocks is writing, not talking"、"readers bookmark it, not share it for fun"
+  - Opus 4.7 scorer: composite 8 PASS — reasons 裡看到了同樣問題（「偏實用 cheat sheet 寫法」「snippet 集錦那段偏 reference dump」「結尾偏 checklist」）**但沒扣分**。典型 bar drift。
+  - Opus 4.5 scorer: composite 8 PASS — 也沒扣到 FAIL。
+- **⚠️ 最關鍵的教訓 — 這就是 decorative persona trap 的 2026 年版本**：SP-158 是「貓比喻 + 正經 ClawdNote」偽裝，SP-175 是「房東/咖啡機比喻 + 有立場 ClawdNote」偽裝。比 SP-158 更難抓，因為 ClawdNote 真的有 opinion。但骨架一樣 linear。
+- **為什麼要 pin scorer 到 4.6**：`.claude/agents/vibe-opus-scorer.md` 現在 pin `model: claude-opus-4-6` 就是因為 4.6 在這種 trap 上最敏銳。fuzzy `model: opus` 會解到 4.7，直接放水。
+- **Strip test 怎麼做**：遮住所有 `<ClawdNote>` 區塊、遮住段落裡的第一個比喻句，只讀剩下的 body。如果讀起來像 release notes / cheat sheet / reference doc，narrative 就 ≤ 5。SP-175 通過 strip test 就是一份 release notes。
+
 ### Score 6 — CP-146「Simon Willison Anti-Patterns」
 - **Why 6:** 開頭不錯，但中段變成 plain reporting。ClawdNote 引用社群回覆但自己的聲量不夠。
 
