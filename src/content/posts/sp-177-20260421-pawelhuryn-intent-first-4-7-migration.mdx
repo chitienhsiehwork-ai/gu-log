@@ -1,0 +1,204 @@
+---
+ticketId: "SP-177"
+title: "Opus 4.7 migration 補遺：prompt 變短、CLAUDE.md 變厚——Pawel Huryn 的 intent-first 六招"
+originalDate: "2026-04-20"
+translatedDate: "2026-04-21"
+translatedBy:
+  model: "Opus 4.7"
+  harness: "Claude Code"
+source: "@PawelHuryn on X"
+sourceUrl: "https://x.com/PawelHuryn/status/2046197132105769065"
+lang: "zh-tw"
+summary: "SP-175 講完 Opus 4.7 的硬規格（tokenizer、effort、adaptive thinking），這篇補上 workflow 層。Pawel Huryn 16 小時實戰下來的主張：intent 才是新 unlock。涵蓋 Reddit regression 爭議拆解、CLAUDE.md 分層、effort mid-task toggle、批次問問題、正面示範勝負面規則、砍過時 scaffolding、審計劃不審 diff。結尾帶 Anthropic + OpenAI converge 的觀察。"
+tags: ["claude-opus-4-7", "prompt-engineering", "intent-engineering", "claude-code", "workflow"]
+scores:
+  tribunalVersion: 2
+  vibe:
+    persona: 9
+    clawdNote: 9
+    vibe: 9
+    clarity: 10
+    narrative: 9
+    score: 9
+    date: "2026-04-21"
+    model: "claude-opus-4-7"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    score: 8
+    date: "2026-04-21"
+    model: "claude-opus-4-7"
+  factCheck:
+    accuracy: 8
+    fidelity: 9
+    consistency: 9
+    score: 8
+    date: "2026-04-21"
+    model: "claude-opus-4-7"
+  librarian:
+    glossary: 8
+    crossRef: 9
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-04-21"
+    model: "claude-opus-4-7"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+先講一個 Opus 4.7 上路後常見的抱怨場景：同一個 prompt，在 4.7 上跑出來比 4.6 慢、比 4.6 貴，輸出看起來還比較呆。很多人第一反應是「4.7 是不是 regression」——Reddit 有這種貼文、LM Arena 這類 vote-based 排行榜也顯示 4.6 在 instruction following 分數較高。
+
+但如果看 Anthropic 自己的 migration guide，會看到相反的敘述：4.7 "takes the instructions literally" 且 "will not silently generalize"——這不是 bug，是設計方向。Boris Cherny（Claude Code 產品負責人）[在 release 當天說](https://x.com/bcherny/status/2044822408826380440)："It took a few days for me to learn how to work with it effectively."
+
+所以怎麼解釋這個矛盾？Pawel Huryn 在 4.7 剛上路那週做了 16 小時密集使用，寫出一份 migration guide 就在回答這題。核心 claim 一句：**4.6 會幫人腦補、4.7 照字面做**——典型的 [Model Swap](/glossary#model-swap) 情境，升版就是在換同事、不是換 API key。換了同事之後，「寫 prompt 寫得多仔細」讓位給「把意圖（intent）講多清楚」，leverage 移到新的位置上。
+
+> **名詞小抄**（沒看過 [SP-175](/posts/sp-175-20260416-anthropic-opus-4-7-prompting-best-practices) 也能讀下去）：
+> - **tokenizer**：model 把文字切成 tokens 的方式。換 tokenizer 等於換計量單位，舊 prompt 的 token 數會跑掉、API 帳單會浮動。
+> - **effort**：Claude API 的思考力道旋鈕，從 `low` 到 `max`。Opus 4.7 多了一層 `xhigh`，Claude Code 把它設成預設。
+> - **adaptive thinking**：新的思考模式，model 自己決定每一步要不要想、想多久，人類透過 `effort` 間接控制。舊的固定 `budget_tokens` 參數不再支援。
+>
+> 這些「硬規格」SP-175 拆過一次。這篇是上面那層——**工具沒壞，是工作方式要換。** 這六招就是把 Boris 說的那幾天 learning curve 攤開。
+
+## 先把「regression」爭議拆乾淨
+
+Reddit 說退步、Arena 分數說退步、Anthropic docs 說這是 design。三個看起來衝突，其實在量不同的東西。
+
+**Arena 跟 Reddit 量的是「vague prompt 表現」。** LM Arena 是 vote-based 排行榜——兩個 model 對同一題 blind test、人類投票選哪邊好，累計算分。但它的題庫以普通使用者隨手丟的問題為主、context 淺。4.6 會幫忙補齊意圖，答出一個「大概是這意思吧」的合理答案；4.7 照字面回，看起來比較呆。這種場景的分數當然降。
+
+**Anthropic docs 量的是「清楚意圖 + 結構化 workflow」的表現。** 有 context 檔（像 Claude Code 讀的 `CLAUDE.md`）、有明確 success criteria、用 agentic coding pattern 時，4.7 贏。官方 benchmark 裡 coding、creative writing、structured work 全部進步，退步的項目集中在 vague prompts、multi-turn、long-context retrieval。
+
+把兩邊放一起看，答案就出來了：**4.7 不是變笨，是懶得腦補。** 過去靠 model「體貼」撐起來的 prompt，在 4.7 上會露餡；投資在 context 上的 prompt，在 4.7 上拿更多紅利。SP-175 講過 code review「只 report high severity」那個坑——那就是同一條規律的小型示範。
+
+<ClawdNote>
+Arena 這套 pairwise blind test 對「會腦補的 model」有結構性偏袒。試想對照組：甲 model 照字面做、乙 model 自動延伸——丟一堆 vague prompt 給投票者選，投票者多半覺得乙「更懂我」。但到 production 上，vague prompt 遠少於 structured prompt，乙的延伸經常走偏反而要修。把 vote-based 排行榜當作 model 能力排行榜去訂生產決策，就是這樣被打臉的。benchmark 世界跟 production 世界分家好幾年了，Arena 的公信力還沒跟上這個 shift ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## Intent 是新 unlock：CLAUDE.md 分成兩層
+
+Pawel 的核心 claim 一句話：**Opus 4.7 獎勵清楚的 intent。其他都是戰術。**
+
+這裡的 intent 不是「寫一長串 prompt 咒語」，也不是「塞一個 500 行的 CLAUDE.md 期待 model 自己找出重點」。Intent 要拆成兩層，兩層寫在不同地方、更新頻率也不同：
+
+**Strategic context**（長青層）：在做什麼產品、for 誰、哪些東西禁止動、什麼叫做好的成果。這一層寫一次、進 `CLAUDE.md`，之後每個 session 都 progressive disclosure 自動載入，不用每次開場重介紹專案。
+
+**Per-task intent**（當次層）：這次具體要做什麼、success criteria 是什麼、哪些是 constraint。這一層每個 task 重寫，但因為 strategic context 已經打底，turn 可以比以前短很多——「把這段 refactor 成純函式，測試跑過就好」這種一句就夠。
+
+放一起運作的效果是：工程師輸入的 token 數變少、model 可用的 context 變更豐富。反過來看，那些把 4.6 時代養成的「每次開場重講一次專案背景」習慣搬到 4.7 的 workflow，沒享受到這個紅利——Pawel 實測 4.7 新 tokenizer 在同樣輸入上會多切出 1.0 到 1.35 倍的 tokens，同樣的 prompt 直接變貴。
+
+Karpathy 早先講過類似的事：["Don't tell it what to do, give it success criteria and watch it go"](https://x.com/karpathy/status/2015883857489522876)——從命令式轉向宣告式。4.7 把這個 shift 正式寫進了 model 行為。
+
+<ClawdNote>
+「Intent-first」聽起來像 buzzword，但實務上差很多。4.6 時代寫 prompt 比較像寫 shell script——step by step 命令機器做。4.7 時代寫 prompt 比較像寫合約——把目的、範圍、驗收標準講清楚，執行細節交給對方。這個轉換對老派工程師反而比較痛苦，因為「我明明知道怎麼做最好」的技術 ego 要先放下 (¬‿¬)
+</ClawdNote>
+
+---
+
+## Effort 是 per-call 旋鈕，不是 session 設定
+
+SP-175 拆過 effort 階梯怎麼選（`low` / `medium` / `high` / `xhigh` / `max`，Claude Code 預設 `xhigh`）。Pawel 補了一個實務上常被忽略的點：**effort 是每次 call 可以換的，不是設定整個 session。**
+
+Migration guide 建議的 pattern：大問題用 `max` 想一次、子問題 drop 回 `high`，最後 polish 用 `medium`。同一個對話裡切來切去，不是整個 session 鎖在一個 level。
+
+為什麼重要？因為 `max` 很容易 overthink。SP-175 那篇也強調過同樣的事——`max` 會把三行能解的事拆成十段論證。Pawel 的觀察是，大多數喊「4.7 好慢」的人，其實是反射動作把 effort 拉到 `max`。複雜度低的 task 用 `max`，就是慢 + 貴而且品質沒比較高。
+
+實用規則：**開 session 時 default `xhigh`，遇到架構決策或需要窮盡解空間的 subproblem 才臨時升 `max`，做完馬上降回來。** 這個 toggle 習慣可以省掉大半 token 帳單，Claude Code 在 UI 上直接支援。
+
+---
+
+## 批次問問題，別 drip-feed
+
+4.6 時代 multi-turn 對話很便宜——每個 turn 都會幫忙記 context、回頭對齊前面說過的話。「先解釋 X、再問 Y、最後整合」這種三步走，4.6 跟得上。
+
+4.7 不是。Pawel 的觀察：**每一 turn 都會在前面 turn 的 literal 解讀上再加一層 reasoning overhead**，每多一 turn 就多一次 literal interpretation 可以偏離本意的機會。三個問題 drip-feed 成三 turn，錯誤會複利。
+
+**對策**：問題併在一則訊息裡一次問完。
+
+```text
+I need to do three things, consider them together before replying:
+
+1. <question 1>
+2. <question 2>
+3. <question 3>
+
+Identify dependencies between them and answer in that order.
+```
+
+Clarification 保留給「真的不懂 constraint、不問下去會亂做」的場景。把 clarification 當 workflow 的一部分、預設就要來回幾 turn——這在 4.6 可以，在 4.7 會 compound 出成本。
+
+<ClawdNote>
+這招在跟新人合作的職場也成立：一次把脈絡丟齊、讓對方看完整張圖再回答，會比切碎成「等一下我再問你一個問題」快很多。Drip-feed 讓對方每次都要重新 load context 一次。4.6 因為 model 超會腦補，可以吸收這個 overhead；4.7 字面執行，overhead 就全部變成你的 token 帳單 (⌐■_■)
+</ClawdNote>
+
+---
+
+## 正面示範 > 負面規則
+
+Pawel 引 Anthropic 的觀察：**4.7 在「Like this:」底下跟著範例時表現最好；在「Don't do this:」或「Never X」這類禁令底下，經常一邊吃 token 一邊該做的事還是沒做。**
+
+為什麼？因為「別做 X」的 literal 執行沒有 positive target——model 只知道 X 是禁區，但 negative space 很大，隨便找一個不是 X 的方向都合格。Positive example 則給了明確形狀，model 照著做就對齊了。
+
+實際 prompt 改寫範本：
+
+```text
+❌ Don't make it too verbose.
+❌ Never use passive voice.
+❌ Avoid starting sentences with "As an AI".
+
+✅ Like this:
+   "The migration fixes three bugs. Run `pnpm test` to verify."
+   "The pipeline writes to S3. CloudWatch picks up the logs."
+```
+
+如果 prompt 裡超過三行 "don't"、"never"、"avoid"，直接翻成 "Like this: 具體兩個範例"。短、精準、recall 也高。這點跟 SP-175 說 code review 要把 coverage 跟 severity filter 拆兩步是同一種心法——**明確的正面 target 勝過模糊的 negative constraint。**
+
+---
+
+## 砍掉過時的 progress 腳手架
+
+4.6 時代為了不讓 model「跑到一半不知道做什麼」，常常要在 prompt 裡塞這類句子：「每 3 次 tool call summarize 一次進度」、「開始前先列 plan」、「執行完每個 step 報告一次」。
+
+Pawel 在 4.7 上跑同樣 pipeline 發現：**這些 scaffolding 已經過時了。** 4.7 原生就會在長 agentic trace 裡產出高品質的進度 update，不需要用 prompt 強迫。硬加反而會 double up——model 照做一份官方 update，再被 prompt 逼著補一份手動 summary，兩份內容高度重疊只是格式略不同。
+
+**對策**：把這類 scaffolding 從 `CLAUDE.md` 跟 system prompt 裡刪掉，開新 task 先讓 4.7 自己跑一輪。如果真的覺得 update 頻率不夠或格式不 OK 再加回去——大多數情況不會。
+
+這個改動附帶節省 token、也讓 trace log 更好讀（沒有重複的 summary 在干擾閱讀）。
+
+<ClawdNote>
+Prompt 咒語大全這東西，每一代 model 都要砍一輪。4.5 需要的咒語，4.6 可以省一半；4.6 有效的 scaffolding，4.7 變成冗員。工程師寫 CLAUDE.md 常常有考古層累積——五個 model 前加的規則還在裡面，當時 debug 完一直沒刪。升 model 的當週花兩小時 review 一次 CLAUDE.md，把「當時為什麼加這行」講不出來的直接砍，可能是 migration 投資報酬率最高的一件事 ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## Review plans, not diffs
+
+這招 SP-175 沒講，但在實務 impact 很大。Pawel 的主張：**4.7 把 intent literal 執行，意思是小的 intent 誤讀會變成大的 diff 誤讀。** 所以 review 的重點要從 diff level 前移到 plan level。
+
+兩個工具負責這件事：
+
+- **Plan mode**（Claude Code CLI 裡連按兩下 `Shift+Tab`）：在 model 動手之前先把 plan 印出來，inline 看過再決定要不要執行。適合跨多檔的改動。
+- **`/ultraplan`**（CLI only，VS Code extension 不支援）：plan 在 cloud session 跑、terminal 不會卡住。寫完在瀏覽器開 review view 批註。
+
+用哪一個看情境，但共通原則是：**把 intent drift 的攔截點前移到 plan。** Review 一份 10 行的 plan 找意圖偏差要 30 秒；等到 diff 長成 200 行再看，同樣的偏差要挖 15 分鐘。
+
+對有 agentic pipeline 的團隊特別值得：**CI-gated autonomous 跑到最後丟出 PR 再 review，比在 plan 階段攔下來成本高一個數量級。** Intent drift 會 compound，catch 得越早修越便宜。
+
+---
+
+## 結語：Anthropic 跟 OpenAI 在往中間 converge
+
+Pawel 丟的一個觀察值得收進來當結尾。
+
+Anthropic 在 Opus 4.7 把 model 推向「more literal instruction following」——少腦補、照字面做。OpenAI 12 月更新的 Model Spec 同時把自己的方向調成："consider not just the literal wording but the underlying intent"——要求 model 學會推敲字面底下的意圖。
+
+兩家從相反方向往中間收斂。Anthropic 本來的 intent-first 現在加上精準度；OpenAI 本來的精準執行現在加上意圖推敲。
+
+這意味著**「把意圖講清楚」這個技能的 shelf life 變很長**——跨 vendor、跨 model version 都在獎勵同一件事。Prompt 咒語會過期，tokenizer 會再換一次，`xhigh` 可能下一代又降級成中間層，但「寫得出 strategic context + per-task intent」的能力，會跟著每一代 model 持續兌現紅利。
+
+所以下次開 prompt session 前，少花五分鐘排 `Avoid X / Don't Y / Never Z` 的禁令，改成花五分鐘寫「這次到底要 model 交付什麼、用什麼標準驗收」。差別會直接反映在 diff 的品質跟帳單的數字上。
+
+<ClawdNote>
+Anthropic 跟 OpenAI 往中間 converge 這件事 Pawel 提得輕，但 implication 重。過去幾年 prompt engineering 圈有很強的「這家 model 吃這招、那家 model 吃另一招」派別——每次換 vendor 要重學一整套技巧。現在兩家同時往「清楚意圖」收斂，等於是這一波 prompt engineering 知識的 consolidation——從 vendor-specific trick 變成 transferable skill。這對大家是好事，對靠賣 vendor-specific prompt 課程的 influencer 大概是壞事 (ง •̀_•́)ง
+</ClawdNote>
