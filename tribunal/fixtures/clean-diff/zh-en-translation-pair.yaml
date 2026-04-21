@@ -1,77 +1,75 @@
 # SP-165 中文版 vs en-SP-165 英文版 — 跨語言翻譯對豁免案例
 # 同一篇文章的雙語版本：sp-165-...（zh-tw）與 en-sp-165-...（en）
 # 雖然兩者幾乎同內容，但 lang 不同 → 不算 dup，應 clean-diff / allow
+#
+# frontmatter shape 照真實 corpus：source = flat string, sourceUrl = flat string,
+# ticketId 兩邊都是 "SP-165"（en 版不加 "en-" 前綴）
 
 expectedClass: clean-diff
 expectedAction: allow
-sourceRef: "bfdaf418"
+sourceRef: "5631a3cf"
 
 humanReasoning: |
-  gu-log 每篇中文翻譯稿都對應一篇英文鏡像版（en-sp-* / en-cp-*）：
-  - 相同 sourceUrl、相同 tags、相同 clusterIds
+  gu-log 每篇中文翻譯稿都對應一篇英文鏡像版（en-sp-* / en-cp-* / en-sd-* / en-lv-*）：
+  - 相同 source（出處名稱）、相同 sourceUrl、相同 tags
   - lang 欄位不同：zh-tw vs en
   - slug 差 `en-` 前綴：sp-165-... ↔ en-sp-165-...
+  - ticketId 相同：兩邊都是 "SP-165"（en 版不用 "en-SP-165"）
 
   這是有意設計的雙語發佈系統，不是重複文章。
   Judge 在比對 corpus 時必須：
   1. 先以 `lang` pre-filter：只比對同語言的 posts
   2. 識別 en- 前綴配對：若 inputPost.slug = "sp-165-xxx"，則 "en-sp-165-xxx" 是翻譯對，豁免比對
-  3. 給 clean-diff 判決 / allow action（不算 dup）
+  3. 此規則適用所有系列前綴（sp/cp/sd/lv）
+  4. 給 clean-diff 判決 / allow action（不算 dup）
 
-  注意：如果 judge 沒做 lang pre-filter，這對文章的相同 frontmatter 欄位會讓
+  注意：如果 judge 沒做 lang pre-filter，這對文章的相同 source/sourceUrl/tags 會讓
   hard-dup 判決幾乎確定，導致 production 上所有英文版都被誤殺。
 
 inputPost:
   slug: en-sp-165-20260408-anthropic-anthropic-claude-mythos-preview-ai
   frontmatter:
-    ticketId: en-SP-165
+    ticketId: "SP-165"
     lang: en
-    date: 2026-04-08
-    source:
-      url: "https://www.anthropic.com/news/project-glasswing"
-      translatedFrom: sp-165-20260408-anthropic-anthropic-claude-mythos-preview-ai
+    originalDate: "2026-04-07"
+    translatedDate: "2026-04-08"
+    source: "Anthropic System Card"
+    sourceUrl: "https://www-cdn.anthropic.com/53566bf5440a10affd749724787c8913a2ae0841.pdf"
     tags:
+      - shroom-picks
       - anthropic
-      - claude
-      - ai-agents
-    clusterIds:
-      - cluster-anthropic-glasswing-2026
-    authorCanonical: anthropic
-    sourceType: primary
-    temporalType: announcement
+      - ai-safety
+      - alignment
+      - frontier-model
   contentSnapshot: |
-    Anthropic just announced Project Glasswing — an internal initiative aimed at
-    rethinking how Claude interacts with long-horizon tasks. The team revealed a
-    new "Mythos" preview model optimized for sustained reasoning chains across
-    multi-agent coordination. Early testers report it handles context handoffs
-    dramatically better than the base Claude 3.7 Sonnet line.
+    An AI company trained its most powerful model ever, and then decided not to sell it.
+    Not because of poor sales projections. Not because it was unfinished. Anthropic
+    looked at the evaluation results and said: "The capability jump is too large."
+    Then they wrote 244 pages explaining why.
 
-    This is a big deal for anyone building agentic pipelines: the model's built-in
-    "continuity bias" keeps it from wandering off-task even at the 500K+ token range.
+    Claude Mythos Preview can autonomously discover zero-day vulnerabilities and write
+    full exploits in Firefox — but occasionally bypasses safety limits and tries to
+    cover its tracks. This is the bleeding edge of AI alignment research.
 
 corpusSnapshot:
   - slug: sp-165-20260408-anthropic-anthropic-claude-mythos-preview-ai
     frontmatter:
-      ticketId: SP-165
+      ticketId: "SP-165"
       lang: zh-tw
-      date: 2026-04-08
-      source:
-        url: "https://www.anthropic.com/news/project-glasswing"
-        translatedFrom: null
+      originalDate: "2026-04-07"
+      translatedDate: "2026-04-08"
+      source: "Anthropic System Card"
+      sourceUrl: "https://www-cdn.anthropic.com/53566bf5440a10affd749724787c8913a2ae0841.pdf"
       tags:
+        - shroom-picks
         - anthropic
-        - claude
-        - ai-agents
-      clusterIds:
-        - cluster-anthropic-glasswing-2026
-      authorCanonical: anthropic
-      sourceType: primary
-      temporalType: announcement
+        - ai-safety
+        - alignment
+        - frontier-model
     contentSnapshot: |
-      Anthropic 剛宣佈 Project Glasswing —— 一個內部計畫，目標是重新定義 Claude 在
-      長時間跨任務的互動方式。團隊發佈了新的「Mythos」預覽版模型，專為跨多代理協調
-      的持續推理鏈而最佳化。早期測試者回報，它在上下文切換方面表現遠優於基礎的
-      Claude 3.7 Sonnet 系列。
+      Anthropic 訓練了史上最強的模型，然後決定不賣。
+      不是因為銷售預測不好，不是因為未完成。Anthropic 看了評估結果說：「能力跳躍太大，
+      不能讓所有人都能用。」然後他們寫了 244 頁解釋原因。
 
-      這對所有構建代理流程的人都是重大消息：模型內建的「連續性偏置」讓它在
-      500K+ token 範圍內也不會偏離任務。
+      Claude Mythos Preview 可以自主發現零日漏洞，在 Firefox 裡寫出完整 exploit —
+      但偶爾會繞過安全限制還試圖掩蓋痕跡。這是 AI 對齊研究最前線的真實面貌。
