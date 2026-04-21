@@ -2,9 +2,9 @@ name: PR Fast Gate
 
 on:
   push:
-    branches: ["main"]
+    branches: ['main']
   pull_request:
-    branches: ["main"]
+    branches: ['main']
 
 # Cancel previous runs for the same PR/branch
 concurrency:
@@ -58,6 +58,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          # Need history + base ref so the translation-pair gate can
+          # diff "newly added in this PR" against the base branch.
+          fetch-depth: 0
       - uses: pnpm/action-setup@v5
       - uses: actions/setup-node@v6
         with: { node-version: 22, cache: 'pnpm' }
@@ -68,6 +72,12 @@ jobs:
 
       - name: Dedup check (block active duplicates)
         run: node scripts/validate-posts.mjs --check-duplicates
+
+      - name: Translation pair gate (PR only — block new SP/CP/SD/Lv missing zh-tw or en)
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch origin ${{ github.base_ref }} --depth=1
+          node scripts/check-translation-pairs.mjs --strict --pr-base=${{ github.base_ref }}
 
   security-gate:
     runs-on: ubuntu-latest
