@@ -10,8 +10,8 @@
 #
 # 第一件事：任何 Claude session 開場就跑一下這個，確認自己是誰，
 # 然後去讀對應的 playbook：
-#   - mac-CC → .claude/playbooks/mac-CC-playbook.md
-#   - CCC    → .claude/playbooks/CCC-playbook.md
+#   - mac-CC → playbooks/mac-CC-playbook.md
+#   - CCC    → playbooks/CCC-playbook.md
 #
 # （mode 字串維持 CC / CCC 的 legacy 輸出，避免破壞舊 script。）
 
@@ -51,7 +51,7 @@ You are Cloud Claude Code (CCC).
   - Move fast, merge fast, fix fast — this branch is disposable
   - Self-merge after CI green; forward fix before revert
   - Quality gates (pre-commit, pre-push, Ralph Loop) are non-negotiable
-  - FULL PLAYBOOK: .claude/playbooks/CCC-playbook.md ← read this next
+  - FULL PLAYBOOK: playbooks/CCC-playbook.md ← read this next
 TIPS
   else
     cat <<'TIPS'
@@ -60,7 +60,7 @@ You are Local Claude Code (mac-CC).
   - Observe env first: git worktree list, current branch, git status
   - User often uses worktrees — do NOT assume you're on main
   - Same yolo spirit as CCC; be independent, don't be a 伸手牌
-  - FULL PLAYBOOK: .claude/playbooks/mac-CC-playbook.md ← read this next
+  - FULL PLAYBOOK: playbooks/mac-CC-playbook.md ← read this next
 TIPS
   fi
 } >&2

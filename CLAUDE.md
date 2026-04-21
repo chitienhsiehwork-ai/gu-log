@@ -131,8 +131,8 @@ vercel logs --since 1h         # 查最近 1h request logs（需 vercel login）
 
 | Instance | 跑在哪 | Playbook |
 |---|---|---|
-| **mac-CC** (Local Claude Code) | user 個人 Mac，互動式 iterate | [`.claude/playbooks/mac-CC-playbook.md`](.claude/playbooks/mac-CC-playbook.md) |
-| **CCC** (Cloud Claude Code) | Claude Code 網頁版，Linux sandbox，auto-branch | [`.claude/playbooks/CCC-playbook.md`](.claude/playbooks/CCC-playbook.md) |
+| **mac-CC** (Local Claude Code) | user 個人 Mac，互動式 iterate | [`playbooks/mac-CC-playbook.md`](playbooks/mac-CC-playbook.md) |
+| **CCC** (Cloud Claude Code) | Claude Code 網頁版，Linux sandbox，auto-branch | [`playbooks/CCC-playbook.md`](playbooks/CCC-playbook.md) |
 
 Playbook 各自是 SSOT，定義各自的精神、scope ceiling、失敗處理、merge policy、品質 gate。**不要在這個檔案重複那些規則。** 有要加規則就去編對應的 playbook 檔。
 
