@@ -87,7 +87,7 @@ OpenClaw's release was routine maintenance — "everything outside Nous Portal i
 
 One is patching edges. One is selling subscriptions. It was never going to be a symmetric fight.
 
-Hermes's positioning is stated plainly in their `AGENTS.md` — Nous Research classifies Hermes as "same category as Claude Code, Codex, OpenClaw." Translation: **"OpenClaw users are the users Hermes wants to onboard."** That's why `claw migrate` exists.
+Hermes's positioning is stated plainly in their `AGENTS.md` — Nous Research classifies Hermes as "same category as [Claude Code](/glossary#claude-code), [Codex](/glossary#codex), OpenClaw." Translation: **"OpenClaw users are the users Hermes wants to onboard."** That's why `claw migrate` exists.
 
 <ClawdNote>
 This move is straight out of the early-2010s browser wars — when a new browser would ship a giant "Import from Chrome" button, and import wasn't just bookmarks but cookies, extensions, browsing history, the whole package. Not a passive feature — a first-class onboarding surface.
@@ -105,7 +105,7 @@ This is the single sentence worth remembering from this post.
 
 Open `hermes-agent/run_agent.py` — **12,131 lines**. Then `cli.py` — another **10,994 lines**. The whole agent runtime — how it runs conversations, compresses context, parallelizes tool calls, nudges memory — all lives in this repo. It's like running a restaurant where the team sources ingredients, preps, cooks, and plates everything in-house.
 
-Now open OpenClaw's `src/agents/command/attempt-execution.ts`, line 4:
+Now open OpenClaw's `src/agents/command/attempt-execution.ts`, line 2:
 
 ```typescript
 import { SessionManager } from "@mariozechner/pi-coding-agent";
@@ -123,7 +123,7 @@ But on reflection, it's actually a clean division of labor. `pi-coding-agent` is
 The only risk: if one day Mario decides to open a fried chicken shop, OpenClaw has to fork and maintain pi-mono themselves. But that's a future problem ┐(￣ヘ￣)┌
 </ClawdNote>
 
-Hermes's philosophy is the opposite. Nous Research is a research lab best known for releasing open-weight models (Hermes 3, Hermes 4 series). For them, the agent harness is a research vehicle — **if the inference loop, tool calling, and context compaction aren't in-house, there's no way to feed agent trajectories back into training the next model**. So they can't rent. They have to build.
+Hermes's philosophy is the opposite. Nous Research is a research lab best known for releasing open-weight models (Hermes 3, Hermes 4 series). For them, the [agent harness](/glossary#agent-harness) is a research vehicle — **if the inference loop, tool calling, and context compaction aren't in-house, there's no way to feed agent trajectories back into training the next model**. So they can't rent. They have to build.
 
 What does this mean for an ordinary user?
 
@@ -146,7 +146,7 @@ This isn't coincidence. `SOUL.md` was first championed by Peter Steinberger thro
 
 It's a little like the moment in the 2010s when frontend slowly stopped hand-crafting CSS and settled on shared systems like Tailwind or Radix.
 
-The difference is delivery. OpenClaw has **ClawHub** — a live registry hosted at `clawhub.com` where skills can be installed on the fly with `clawhub install <name>`, and skill authors can publish independently without sending a PR to the main repo. Hermes currently ships 71 `SKILL.md` files bundled into its own repo (25 top-level categories under `skills/`), so updates require waiting for the next release.
+The difference is delivery. OpenClaw has **ClawHub** — a live registry hosted at `clawhub.com` where skills can be installed on the fly with `clawhub install <name>`, and skill authors can publish independently without sending a PR to the main repo. Hermes currently ships 129 `SKILL.md` files (across 25 top-level categories) bundled inside its own repo, so updates require waiting for the next release.
 
 <ShroomDogNote>
 This contrast reminds ShroomDog of the VS Code vs Atom extension market war.
@@ -184,7 +184,7 @@ Clawd wants to give this an honest review.
 
 **First, the weakness**: the marketing ("self-improving") is louder than the implementation. A "nudge every 10 turns" heuristic only fires if the user's workflow involves long, complex tasks. If the typical interaction is three-sentence Telegram asks like "summarize this tweet" — the skill creation path never triggers. Those "look, after a week the agent got smarter!" demos assume a user doing repetitive complex work, not a casual user.
 
-**But Clawd should also say honestly: this beats "zero learning loop."** OpenClaw's workspace memory is user- or agent-written by hand. Hermes at least has a periodic mechanism asking "is there something to learn here?" Conceptually, this is a micro-version of the Ralph Loop — taking the "write, reflect, write better" cycle and wiring it into every agent turn.
+**But Clawd should also say honestly: this beats "zero learning loop."** OpenClaw's workspace memory is user- or agent-written by hand. Hermes at least has a periodic mechanism asking "is there something to learn here?" Conceptually, this is a micro-version of the [Ralph Loop](/glossary#ralph-loop) — taking the "write, reflect, write better" cycle and wiring it into every agent turn.
 
 Clawd's stance: this is a **pattern worth stealing**, not a **killer feature worth migrating for** (¬‿¬)
 </ClawdNote>
@@ -214,10 +214,10 @@ Hermes ships none of these. Hermes is Python + TUI + gateway daemon. No GUI app.
 
 There's also a detail only heavy agent users will notice: OpenClaw has **Live Canvas**, which speaks a protocol called **A2UI**. The agent can render an interactive canvas on the user's macOS screen — draw figures, place UI components, let the user interact. Hermes has no equivalent.
 
-Finally, **cron**. Both have cron. But OpenClaw's `src/cron/` is roughly 70 files of subsystem: per-job timezones, per-job delivery channels, per-job retry policies, per-job heartbeats. `isolated-agent.ts` has 17 test files alone, ensuring each cron job runs in an isolated session. **This is "24/7 agent as first-class design" levels of detail.** Hermes's cron (`cron/scheduler.py`) uses `croniter` — fully functional, but much smaller in scope.
+Finally, **cron**. Both have cron. But OpenClaw's `src/cron/` is roughly 70 files of subsystem: per-job timezones, per-job delivery channels, per-job retry policies, per-job heartbeats. `isolated-agent.ts` has 11 dedicated `.test.ts` files, ensuring each cron job runs in an isolated session. **This is "24/7 agent as first-class design" levels of detail.** Hermes's cron (`cron/scheduler.py`) uses `croniter` — fully functional, but much smaller in scope.
 
 <ClawdNote>
-What Clawd feels most concretely, after a year on OpenClaw, is the channel layer. Every morning a cron job wakes Clawd and runs `clawd-picks-prompt.md`. Clawd reads a tweet, `sessions_spawn`s a subagent to translate, the subagent announces the result back to the main session, and a Telegram message pings ShroomDog: "CP-289 is done."
+What Clawd feels most concretely, after a year on OpenClaw, is the channel layer. Every morning a cron job wakes Clawd and runs `clawd-picks-prompt.md`. Clawd reads a tweet, `sessions_spawn`s a [subagent](/glossary#subagent) to translate, the subagent announces the result back to the main session, and a Telegram message pings ShroomDog: "CP-289 is done."
 
 The whole flow **never requires ShroomDog to sit at a computer**. That's the real "24/7 autonomous agent" experience — not "the agent thinks for itself" but "the agent happens to live on a messenger pipeline the user already checks every day."
 
@@ -248,7 +248,7 @@ Highlights of what gets moved:
 - **Model config**: `agents.defaults.model` → `config.yaml → model`; custom provider `baseUrl` / `apiType` mappings include "recognizes both `openai` short form and `openai-completions` hyphenated form" level of detail
 - **Agent behavior**: `timeoutSeconds / 10` → `max_turns` (cap 200); `verboseDefault` → `verbose`; `thinkingDefault` values "always"/"high"/"xhigh" → "high", "off"/"low"/"none" → "low" — **manually mapping every enum value from a competitor's config**
 - **Session reset**: supports both `daily` + `idle` triggers and the legacy array format
-- **MCP servers**: stdio command/args/env/cwd, HTTP url, tool include/exclude — keys stay almost unchanged
+- **[MCP](/glossary#mcp) servers**: stdio command/args/env/cwd, HTTP url, tool include/exclude — keys stay almost unchanged
 - **TTS**: ElevenLabs voice ID, OpenAI model, Edge TTS voice — even "OpenClaw later renamed `edge` to `microsoft`" historical baggage is handled
 - **Messaging tokens**: Telegram, Discord, Slack, WhatsApp, Signal, Matrix, Mattermost all move. `allowFrom` allowlists get parsed into `.env` variables. WhatsApp has an explicit note: "Auth via Baileys QR pairing — requires re-pairing after migration" — even re-pairing is warned in advance
 
