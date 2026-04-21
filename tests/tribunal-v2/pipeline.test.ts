@@ -111,12 +111,19 @@ function freshEyesPass(): FreshEyesJudgeOutput {
 function factLibPass(): FactLibJudgeOutput {
   return {
     pass: true,
-    scores: { factAccuracy: 8, sourceFidelity: 8, linkCoverage: 8, linkRelevance: 8 },
+    scores: {
+      factAccuracy: 8,
+      sourceFidelity: 8,
+      linkCoverage: 8,
+      linkRelevance: 8,
+      dupCheck: 10,
+    },
     composite: 8,
     fact_pass: true,
     library_pass: true,
+    dupCheck_pass: true,
     judge_model: 'mock',
-    judge_version: '2.0.0',
+    judge_version: '2.1.0',
     timestamp: '2026-04-16T00:00:00Z',
   };
 }

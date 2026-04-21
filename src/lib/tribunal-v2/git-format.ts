@@ -102,7 +102,7 @@ export function squashCommitMessage(state: PipelineState): string {
   const s3 = state.stages.stage3;
   const s3Output = s3.output as FactLibJudgeOutput | undefined;
   const s3Detail = s3Output
-    ? `fact:${Math.floor((s3Output.scores.factAccuracy + s3Output.scores.sourceFidelity) / 2)} lib:${Math.floor((s3Output.scores.linkCoverage + s3Output.scores.linkRelevance) / 2)}`
+    ? `fact:${Math.floor((s3Output.scores.factAccuracy + s3Output.scores.sourceFidelity) / 2)} lib:${Math.floor((s3Output.scores.linkCoverage + s3Output.scores.linkRelevance) / 2)} dup:${s3Output.scores.dupCheck ?? 'n/a'}`
     : undefined;
   lines.push(formatStageStatus('Stage 3', s3, s3Detail));
 

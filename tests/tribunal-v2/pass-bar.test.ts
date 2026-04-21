@@ -209,55 +209,79 @@ describe('checkFreshEyesPassBar (Stage 2)', () => {
 // ============================================================================
 
 describe('checkFactLibPassBar (Stage 3)', () => {
-  it('passes when both fact and library pass', () => {
+  it('passes when fact, library, and dupCheck all pass', () => {
     const result = checkFactLibPassBar({
       factAccuracy: 9, sourceFidelity: 8,
       linkCoverage: 8, linkRelevance: 9,
+      dupCheck: 10,
     });
     expect(result.pass).toBe(true);
     expect(result.fact_pass).toBe(true);
     expect(result.library_pass).toBe(true);
+    expect(result.dupCheck_pass).toBe(true);
   });
 
-  it('fails when fact fails even if library passes (no compensation)', () => {
+  it('fails when fact fails even if library+dupCheck pass (no compensation)', () => {
     const result = checkFactLibPassBar({
       factAccuracy: 7, sourceFidelity: 7,
       linkCoverage: 10, linkRelevance: 10,
+      dupCheck: 10,
     });
     // fact: floor((7+7)/2) = 7 < 8 → fail
     // library: floor((10+10)/2) = 10 → pass
+    // dupCheck: 10 → pass
     expect(result.pass).toBe(false);
     expect(result.fact_pass).toBe(false);
     expect(result.library_pass).toBe(true);
+    expect(result.dupCheck_pass).toBe(true);
   });
 
-  it('fails when library fails even if fact passes', () => {
+  it('fails when library fails even if fact+dupCheck pass', () => {
     const result = checkFactLibPassBar({
       factAccuracy: 10, sourceFidelity: 10,
       linkCoverage: 6, linkRelevance: 7,
+      dupCheck: 10,
     });
-    // fact: 10, library: floor((6+7)/2) = 6 → fail
+    // fact: 10, library: floor((6+7)/2) = 6 → fail, dupCheck: pass
     expect(result.pass).toBe(false);
     expect(result.fact_pass).toBe(true);
     expect(result.library_pass).toBe(false);
+    expect(result.dupCheck_pass).toBe(true);
   });
 
-  it('fails when both fail', () => {
+  it('fails when dupCheck fails even if fact+library pass (Level E)', () => {
+    const result = checkFactLibPassBar({
+      factAccuracy: 10, sourceFidelity: 10,
+      linkCoverage: 10, linkRelevance: 10,
+      dupCheck: 5,
+    });
+    // fact: pass, library: pass, dupCheck: 5 < 8 → fail
+    expect(result.pass).toBe(false);
+    expect(result.fact_pass).toBe(true);
+    expect(result.library_pass).toBe(true);
+    expect(result.dupCheck_pass).toBe(false);
+  });
+
+  it('fails when all three fail', () => {
     const result = checkFactLibPassBar({
       factAccuracy: 5, sourceFidelity: 6,
       linkCoverage: 4, linkRelevance: 3,
+      dupCheck: 2,
     });
     expect(result.pass).toBe(false);
     expect(result.fact_pass).toBe(false);
     expect(result.library_pass).toBe(false);
+    expect(result.dupCheck_pass).toBe(false);
   });
 
-  it('uses floor for each sub-composite', () => {
+  it('uses floor for fact+library sub-composites, strict >=8 for dupCheck', () => {
     // fact: floor((9+8)/2) = floor(8.5) = 8 → pass
     // library: floor((9+8)/2) = floor(8.5) = 8 → pass
+    // dupCheck: 8 → pass (boundary)
     const result = checkFactLibPassBar({
       factAccuracy: 9, sourceFidelity: 8,
       linkCoverage: 9, linkRelevance: 8,
+      dupCheck: 8,
     });
     expect(result.pass).toBe(true);
 
@@ -265,7 +289,16 @@ describe('checkFactLibPassBar (Stage 3)', () => {
     const result2 = checkFactLibPassBar({
       factAccuracy: 8, sourceFidelity: 7,
       linkCoverage: 9, linkRelevance: 8,
+      dupCheck: 10,
     });
     expect(result2.fact_pass).toBe(false);
+
+    // dupCheck boundary: 7 is below threshold
+    const result3 = checkFactLibPassBar({
+      factAccuracy: 10, sourceFidelity: 10,
+      linkCoverage: 10, linkRelevance: 10,
+      dupCheck: 7,
+    });
+    expect(result3.dupCheck_pass).toBe(false);
   });
 });

@@ -238,7 +238,17 @@ export const stage3JudgeRunner: StageRunner<
       timeoutSec: TIMEOUT.JUDGE_FACTLIB,
       buildPrompt: (outputPath) => `Judge FactLib for this post: ${articlePath}
 
-Score factAccuracy / sourceFidelity / linkCoverage / linkRelevance. Set fact_pass (from first 2 dims) and library_pass (from last 2 dims) independently. Overall pass = fact_pass AND library_pass.
+Score all 5 dimensions: factAccuracy / sourceFidelity / linkCoverage / linkRelevance / dupCheck.
+Set three independent pass bars:
+- fact_pass from factAccuracy + sourceFidelity (floor avg >= 8)
+- library_pass from linkCoverage + linkRelevance (floor avg >= 8)
+- dupCheck_pass from dupCheck (>= 8)
+Overall pass = fact_pass AND library_pass AND dupCheck_pass.
+
+For dupCheck, read tribunal/fixtures/{hard-dup,soft-dup,intentional-series,clean-diff}/*.yaml
+(one per class) as few-shot reference, then compare this article's frontmatter + first 300
+words against candidate corpus posts filtered by clusterIds / seriesId / authorCanonical.
+Record verdict (class=.. action=.. matchedSlugs=..) in improvements.dupCheck.
 
 Write the v2 FactLibJudgeOutput JSON to: ${outputPath}
 Confirm with a one-line status on stdout.`,

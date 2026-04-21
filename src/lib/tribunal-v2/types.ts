@@ -112,9 +112,15 @@ export interface FreshEyesJudgeOutput extends BaseJudgeOutput {
 
 /**
  * Stage 3 FactLib combined judge output.
- * fact_pass and library_pass are independent — neither can compensate the other.
- * overall pass = fact_pass AND library_pass
+ * fact_pass, library_pass, and dupCheck_pass are independent — none compensates
+ * another. overall pass = fact_pass AND library_pass AND dupCheck_pass.
  * Max loops: 2
+ *
+ * dupCheck rubric (Level E `add-librarian-dupcheck`):
+ * - 10: clean-diff — 主題類似但有獨立貢獻，放行無疑義
+ * -  8: 正確識別為 hard-dup (BLOCK) / soft-dup (WARN) / intentional-series (allow)
+ * -  5: 邊界案例 — judge 判斷有重疊但類別不確定，保守給 WARN
+ * -  2: 誤判 — clean-diff 被誤殺，或 hard-dup 被放行
  */
 // LUXURY_TOKEN: Opus combined judge — will affect fact accuracy if downgraded (lowest priority downgrade: Sonnet)
 export interface FactLibJudgeOutput extends BaseJudgeOutput {
@@ -123,12 +129,14 @@ export interface FactLibJudgeOutput extends BaseJudgeOutput {
     sourceFidelity: number; // 對 source 的忠實度
     linkCoverage: number; // 站內/glossary 連結覆蓋
     linkRelevance: number; // 連結是否真的相關
+    dupCheck: number; // 重複判定（Level E）— 跟 corpus 比對後的判決正確度
   };
 
   // Independent pass bars — composite cannot compensate
   fact_pass: boolean;
   library_pass: boolean;
-  // overall `pass` = fact_pass AND library_pass
+  dupCheck_pass: boolean;
+  // overall `pass` = fact_pass AND library_pass AND dupCheck_pass
 }
 
 /**
@@ -192,6 +200,7 @@ export const PASS_BARS = {
   STAGE_2_COMPOSITE: 8,
   STAGE_3_FACT_COMPOSITE: 8, // floor(avg(factAccuracy, sourceFidelity)) >= 8
   STAGE_3_LIBRARY_COMPOSITE: 8, // floor(avg(linkCoverage, linkRelevance)) >= 8
+  STAGE_3_DUPCHECK: 8, // dupCheck >= 8 (Level E — 獨立 pass bar，不合入 library composite)
   STAGE_4_MAX_REGRESSION: 1, // relative: no dim drops > 1 from Stage 1
 } as const;
 

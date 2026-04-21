@@ -82,25 +82,38 @@ export function checkFreshEyesPassBar(scores: {
   };
 }
 
-/** Check if Stage 3 FactLib passes (independent fact_pass AND library_pass) */
+/**
+ * Check if Stage 3 FactLib passes.
+ *
+ * Three independent pass bars (Level E — `add-librarian-dupcheck`):
+ *   fact_pass    = floor(avg(factAccuracy, sourceFidelity)) >= 8
+ *   library_pass = floor(avg(linkCoverage, linkRelevance)) >= 8
+ *   dupCheck_pass = dupCheck >= 8
+ *
+ * overall pass = fact_pass AND library_pass AND dupCheck_pass (無補償)
+ */
 export function checkFactLibPassBar(scores: {
   factAccuracy: number;
   sourceFidelity: number;
   linkCoverage: number;
   linkRelevance: number;
+  dupCheck: number;
 }): {
   pass: boolean;
   fact_pass: boolean;
   library_pass: boolean;
+  dupCheck_pass: boolean;
 } {
   const fact_pass =
     Math.floor((scores.factAccuracy + scores.sourceFidelity) / 2) >= PASS_BARS.STAGE_3_FACT_COMPOSITE;
   const library_pass =
     Math.floor((scores.linkCoverage + scores.linkRelevance) / 2) >= PASS_BARS.STAGE_3_LIBRARY_COMPOSITE;
+  const dupCheck_pass = scores.dupCheck >= PASS_BARS.STAGE_3_DUPCHECK;
 
   return {
-    pass: fact_pass && library_pass,
+    pass: fact_pass && library_pass && dupCheck_pass,
     fact_pass,
     library_pass,
+    dupCheck_pass,
   };
 }
