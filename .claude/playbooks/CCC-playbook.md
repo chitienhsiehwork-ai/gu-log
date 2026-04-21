@@ -132,16 +132,37 @@ Vercel build / Ralph Loop / validate-posts / CI 沒過：
 
 **Trigger**：user 回報 `Error happened, resume` / `still error` / `retry` / `continue`，或 API 自己報 `Stream idle timeout - partial response received`。
 
-**Workaround — split the write**：
-不要 retry 同一個大 Write call。改成：
-1. 先 `Write` 一個**骨架**（frontmatter + imports + 空 section headers）
-2. 再用多個 `Edit` 分段填 prose（每 call 一個 section 或一個 `<ClawdNote>`）
+**Workaround A — `/tmp` chunks + `cat`**（2026-04-21 實測最穩，預設走這條）：
+
+**這是目前最可靠的一招。第一次 retry / resume / continue 且前一個失敗動作是 Write/Edit，立刻切這條**——不要再 retry 任何 long Write/Edit，改走這條。
+
+```bash
+# 1. Write 每個 section 到 /tmp/<slug>/NN-xxx.mdx，每個檔案只含一個段落或一個 ClawdNote
+Write /tmp/sd20/01-frontmatter.mdx   # frontmatter
+Write /tmp/sd20/02-intro.mdx         # intro + 第一個 ClawdNote
+Write /tmp/sd20/03-tldr.mdx          # TL;DR 結論
+# ...繼續切到 section 級別（每檔 20–80 行）
+
+# 2. 全部寫完後 cat 成最終檔
+cat /tmp/sd20/01-frontmatter.mdx /tmp/sd20/02-intro.mdx ... \
+  > src/content/posts/sd-20-YYYYMMDD-slug.mdx
+
+# 3. 後續小修正直接用 Edit 改最終檔（短 edits 不會 timeout）
+```
+
+為什麼比 in-place skeleton+edit 更穩：`/tmp` 檔案是**獨立 Write 生成**，每個 Write 都是一次短 call，不需要 Read 大檔的 overhead；`cat` 是 Bash，不走 stream。整篇 ~300 行的 MDX 可以切成 10–11 個 chunk，每個 chunk 本身很短所以不會 idle。
+
+**Workaround B — in-place skeleton + edit**（fallback）：
+如果 `/tmp` chunks 不合適（例如只是改一個段落），退回舊招：
+1. 先 `Write` 一個骨架（frontmatter + imports + 空 section headers）
+2. 再用多個 `Edit` 分段填 prose
 
 短 call → stream 不會 idle → timeout window 關不起來。代價是 tool call 變多、吃 context 多一點，但能穩定產出。
 
 **什麼時候切 split mode**（不要等 user 講第三次）：
+- **Trigger 精確化**：user 回報 `error` / `retry` / `resume` / `proceed` / `continue` / `still error`，且**上一個想做但失敗的動作是 Write/Edit/NotebookEdit**——立刻切 Workaround A（`/tmp` chunks）。不要先 retry 同一個 Write 再觀察。
 - 同一個 Write call **連兩次** stream idle timeout → 第三次直接切 split，不要硬 retry
-- 否則照自己判斷，沒有硬行數門檻 — 每個 CCC session 邊做邊累積：哪種長度穩、哪種容易炸，下次就知道要不要 preemptive split。已知高風險形狀：長 MDX（frontmatter + 多段 `<ClawdNote>` + 長 prose）
+- 預防性切換：已知高風險形狀就直接 `/tmp` chunks 開工。已知高風險形狀：長 MDX（frontmatter + 多段 `<ClawdNote>` + 長 prose）、>200 行的文章、任何一次要寫 >150 行的內容
 
 **Root cause 備忘**（2026-04-21 實驗結論）：
 疑似 Opus 4.7 adaptive thinking 在長 creative generation 中有短暫 token 停頓。停頓 > stream idle threshold 就斷線。跟**生成時間分佈**有關，不是**字符內容**問題 — kaomoji / RTL Arabic / multi-script 都 isolated 測過無關。
