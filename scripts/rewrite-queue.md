@@ -6,20 +6,6 @@
 
 ## Pending
 
-### SP-176 「Codex Chronicle — stop explaining context」
-
-- **Ticket**: `SP-176`
-- **File**: `src/content/posts/sp-176-20260421-dkundel-codex-chronicle-stop-explaining.mdx`
-- **Frontmatter 分數**: 7/8/8/9/8 綜合 8 **FAIL**（Opus 4.6 scorer，2026-04-22 rescored；persona 7 破 pass bar 下限 8）
-- **原本分數**: 8/9/8/9/9 綜合 8 PASS（Opus 4.7 scorer，2026-04-21）
-- **失分主因**: persona 7 — scorer 原話「Body 有 voice 但整體仍是 Kundel-this/Kundel-that 的分析性 op-ed，strip 掉比喻剩下來的骨架更像 tech analyst recap 而非 LHY 站在台上講課」。跟 SP-175 同一條 decorative trap，只是 ClawdNote 密度高 + narrative 有 Chronicle 代價 pivot，所以不像 SP-175 那麼糟
-- **rewrite 方向**：
-  1. **開場不要以 Kundel 推文事件為主語**——改成以「你自己昨天打包 context 的場景」切入，讓 Chronicle 的對照有體感，而非從外部觀察 OpenAI 在做什麼
-  2. **Wrong Romain / real colleague / Chronicle 代價三段要打散重編**——目前是「條目 1 分析、條目 2 分析、條目 3 分析」的 op-ed 結構。打散成敘事：先用「message Romain」這句話黏住，中段交錯 real colleague / Wrong Romain 做為懸念，最後 Chronicle 代價三連 callback
-  3. **結尾不要用「Chronicle 不會問」當 punch**——太 analytical。改成讓讀者看到 Kundel 的 demo 同時腦中浮現「螢幕錄影權限按鈕在哪」的那種個人化警覺
-  4. **保留**：五個 ClawdNote 目前都有 opinion、密度達標，只需要把 stance 從「分析性評論」再偏向「朋友在旁邊吐槽」的方向
-- **Scorer**: 用 pinned `claude-opus-4-6` 重評；目標 composite ≥ 8 且至少一維 ≥ 9，重點拉 persona 到 8+
-
 ### SP-175 「Opus 4.7 prompting cheat sheet」
 
 - **Ticket**: `SP-175`
@@ -38,4 +24,15 @@
 
 ## Done
 
-_(尚無 rewrite 完成紀錄。處理完的條目搬到這裡，附上 after-rewrite commit SHA 跟新分數。)_
+### SP-176 「Codex Chronicle — stop explaining context」✅
+
+- **Ticket**: `SP-176`
+- **Rewrite by**: ralph-loop auto-rewrite（attempt 2 writer output，attempt 3 scored PASS）
+- **Final score**: P=8 / C=8 / V=8 composite 8 **PASS**（Opus 4.6 scorer, 2026-04-22 05:28 TST）
+- **Trajectory**:
+  - 2026-04-21 初版：8/9/8/9/9 PASS（4.7 scorer；但 pinned 4.6 rescore 後 FAIL）
+  - 2026-04-22 02:49 CC scan：7/8/8/9/8 FAIL（persona 7 破下限）— scorer 抓到 decorative op-ed pattern
+  - 2026-04-22 05:28 ralph-loop：8/8/8 PASS（attempt 3）— attempt 1 writer 雖 error 但 revert bug fix 讓 build-passing attempt 被保留，attempt 2 rewriter 繼續在之上改進
+- **Commit**: `c25694e2 ralph: SP-176 — PASS (P:8 C:8 V:8)` + `23d14cb9` progress update
+- **結構改變**: 原本是 Kundel-this/Kundel-that op-ed → 現在開場「新同事第一天上班」比喻、「三個月 context」框架、Chronicle 當「偷瞄螢幕的眼睛」、收尾「同事會問 Romain 是指 @romainhuet 對吧? Chronicle 不會問」punch line
+- **備註**: 這是 ralph-loop 修掉 revert bug 之後第一個成功的 auto-rewrite case；writer attempt 1 雖然 errored（產生壞 MDX），但因為 backup-per-attempt 機制保留了 attempt 1 build-passing 的 rewrite，attempt 2 在那基礎繼續 iterate 到 PASS
