@@ -4335,33 +4335,86 @@
     "startedAt": "2026-04-22T06:06:43+08:00",
     "stages": {
       "librarian": {
-        "status": "fail",
+        "status": "pass",
         "score": {
-          "pass": false,
-          "improvements": {
-            "crossRef": "ShroomDogNote 第 105 行「OpenClaw 的 SOUL.md...」是文章正文中第一個明確出現 Clawd/ShroomClawd 身份的文字（<ClawdNote> 是元件標籤而非文字提及）。依規則，此處 OpenClaw 須加上 /about 連結：`[OpenClaw](/about)`。延伸閱讀三個 /posts/ 連結均驗證存在，此項扣分僅針對缺少的身份連結。"
-          },
-          "critical_issues": [
-            "crossRef：OpenClaw（= Clawd/ShroomClawd）在 ShroomDogNote 第 105 行首次以文字出現，但未連結 /about，違反身份連結必填規則。ShroomDog 本人連結（/about）已正確存在，但 Clawd 一側對應連結缺失。"
-          ],
+          "pass": true,
           "judge_model": "claude-sonnet-4-6",
           "judge_version": "2.0.0",
           "timestamp": "2026-04-22T00:00:00Z",
           "dimensions": {
             "glossary": 8,
-            "crossRef": 7,
+            "crossRef": 9,
             "sourceAlign": 8,
-            "attribution": 8
+            "attribution": 9
           },
-          "score": 7,
-          "verdict": "FAIL"
+          "score": 8,
+          "verdict": "PASS"
         },
         "model": "sonnet",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-sonnet-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-22T00:00:00Z",
+          "dimensions": {
+            "accuracy": 7,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-sonnet-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-22T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "haiku",
         "attempts": 2
+      },
+      "vibe": {
+        "status": "fail",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 7
+          },
+          "score": 8,
+          "verdict": "FAIL",
+          "reasons": {
+            "persona": "Strong fridge analogy with structural callback, organic oral voice and LHY warmth throughout, but the 17-tip numbered skeleton becomes visible in mid-sections (6–10) where explanation mode dominates over talking mode.",
+            "clawdNote": "Majority of notes carry explicit opinions — 'Claude 沒有記憶不是缺點，是逼人把系統建好的機制' and '靠「只有我會用 API」維持地位的工程師，大概要開始緊張了' are genuine challenges; ShroomDog/Clawd banter in tip 3 is a standout highlight.",
+            "vibe": "Consistently enjoyable read with well-landing ClawdNotes and the fridge callback providing a satisfying close, but the 17-tip list format and mechanical mid-section transitions limit how shareable it feels beyond a practitioner audience.",
+            "clarity": "Body text consistently uses 大部分人/具體名稱/passive voice throughout; one subtle implicit-you at line 182 is the only minor slip; speaker attribution between body, ClawdNote, and ShroomDogNote is clean.",
+            "narrative": "The automation section pivot ('不是讓 Claude 做得更好，而是讓它在沒有人的時候自己動起來') is a real escalation and the fridge callback works structurally, but the stripped skeleton is a linear 1→17 tips report with no emotional peaks in tips 6–9, and the closing principle trends toward motivational-poster rather than a punch."
+          }
+        },
+        "model": "opus",
+        "attempts": 3
       }
     },
     "status": "FAILED",
-    "failedStage": "librarian",
-    "finishedAt": "2026-04-22T06:15:05+08:00"
+    "failedStage": "vibe",
+    "finishedAt": "2026-04-22T06:54:01+08:00"
   }
 }
