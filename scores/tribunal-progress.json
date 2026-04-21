@@ -4241,5 +4241,93 @@
     },
     "status": "PASS",
     "finishedAt": "2026-04-22T05:33:04+08:00"
+  },
+  "sp-96-20260302-ericbuess-claude-code-agent-teams-swarm-mode.mdx": {
+    "article": "sp-96-20260302-ericbuess-claude-code-agent-teams-swarm-mode.mdx",
+    "startedAt": "2026-04-22T05:33:26+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "library_pass": true,
+          "judge_model": "claude-sonnet-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-22T00:00:00Z",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 9,
+            "sourceAlign": 8,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "sonnet",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-sonnet-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-22T00:00:00Z",
+          "dimensions": {
+            "accuracy": 7,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-sonnet-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-22T00:00:00Z",
+          "dimensions": {
+            "readability": 9,
+            "firstImpression": 9
+          },
+          "score": 9,
+          "verdict": "PASS"
+        },
+        "model": "haiku",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "fail",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 7
+          },
+          "score": 8,
+          "verdict": "FAIL",
+          "reasons": {
+            "persona": "期末分組報告開場和結尾 callback 都是 LHY level，便利商店店員 vs 顧問團隊比喻自然，但 Memory Frontmatter 段落滑入 documentation 模式，口語感在那段明顯斷掉。",
+            "clawdNote": "6 個 note 中 4-5 個有明確立場（AI 互動 = 實習生亂開會、宿舍管理荒謬論、高射炮打蚊子帳單是真的），達到 opinion 門檻，但 note #2（外送員比喻）純類比缺立場，整體偏 8 分邊緣。",
+            "vibe": "「千萬不要」的傻眼發現時刻和 callback 結尾都有留住讀者，但 Memory Frontmatter 同場加映打斷主線節奏，整體好讀但不會想主動分享。",
+            "clarity": "全文正文無 你/我 違規（ShroomDog 花了幾天、建議先從兩人小隊、跟 AI 合作最崩潰的事），speaker 歸屬清晰，代詞使用乾淨。",
+            "narrative": "有開場鉤子、傻眼中段、callback 收尾，弧線存在；但 Memory Frontmatter 是文件式 bolt-on，strip test 後主骨架是 feature walkthrough（解鎖→終端→bug→框架→場景→記憶功能），缺情緒推進峰值，narrative 壓在 7。"
+          }
+        },
+        "model": "opus",
+        "attempts": 3
+      }
+    },
+    "status": "FAILED",
+    "failedStage": "vibe",
+    "finishedAt": "2026-04-22T06:04:06+08:00"
   }
 }
