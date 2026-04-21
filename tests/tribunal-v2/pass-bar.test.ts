@@ -301,4 +301,43 @@ describe('checkFactLibPassBar (Stage 3)', () => {
     });
     expect(result3.dupCheck_pass).toBe(false);
   });
+
+  // SHOULD 6: runtime type guard — undefined / non-number / out-of-range must throw
+  it('throws when dupCheck is undefined (old judge version without Level E)', () => {
+    expect(() =>
+      checkFactLibPassBar({
+        factAccuracy: 9, sourceFidelity: 9,
+        linkCoverage: 9, linkRelevance: 9,
+        dupCheck: undefined as unknown as number,
+      })
+    ).toThrow(/dupCheck is undefined/i);
+  });
+
+  it('throws when dupCheck is not a finite number', () => {
+    expect(() =>
+      checkFactLibPassBar({
+        factAccuracy: 9, sourceFidelity: 9,
+        linkCoverage: 9, linkRelevance: 9,
+        dupCheck: NaN as number,
+      })
+    ).toThrow(/not a finite number/i);
+  });
+
+  it('throws when dupCheck is out of range [0, 10]', () => {
+    expect(() =>
+      checkFactLibPassBar({
+        factAccuracy: 9, sourceFidelity: 9,
+        linkCoverage: 9, linkRelevance: 9,
+        dupCheck: 11,
+      })
+    ).toThrow(/outside the valid range/i);
+
+    expect(() =>
+      checkFactLibPassBar({
+        factAccuracy: 9, sourceFidelity: 9,
+        linkCoverage: 9, linkRelevance: 9,
+        dupCheck: -1,
+      })
+    ).toThrow(/outside the valid range/i);
+  });
 });

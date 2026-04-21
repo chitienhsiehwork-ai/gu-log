@@ -104,7 +104,7 @@ Fixture YAML 的讀取 SHALL 走 `Read` tool，SHALL NOT 依賴腳本 inline 注
 - **THEN** judge SHALL 在執行評分前 Read `tribunal/fixtures/hard-dup/` 下至少 1 個 YAML
 - **AND** Read `tribunal/fixtures/soft-dup/` 下至少 1 個
 - **AND** Read `tribunal/fixtures/intentional-series/` 下至少 1 個
-- **AND** 若 `tribunal/fixtures/clean-diff/` 有至少 1 筆，也 SHALL 讀 1 筆（若為空，judge 以已讀三類當對比基準執行）
+- **AND** Read `tribunal/fixtures/clean-diff/` 下至少 1 個（若任一類為空，judge 以其他類當對比基準執行）
 
 #### Scenario: Judge 不直接讀 fixture 當 corpus
 

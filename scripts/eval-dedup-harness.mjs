@@ -21,7 +21,7 @@ import { mkdtemp, mkdir, readFile, writeFile, rm } from 'node:fs/promises';
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { tmpdir } from 'node:os';
-import { parse as parseYAML } from 'yaml';
+import { parse as parseYAML, stringify as stringifyYAML } from 'yaml';
 
 const FIXTURES_DIR = 'tribunal/fixtures';
 const SCORES_DIR = 'scores';
@@ -188,14 +188,23 @@ function printSchemaSummary(fixtures, errors) {
 function buildJudgePrompt(fixture, outputPath) {
   const { inputPost, corpusSnapshot } = fixture.data;
 
-  const inputYaml = `slug: ${inputPost.slug}\nfrontmatter:\n${indentYaml(inputPost.frontmatter, 2)}\ncontentSnapshot: |\n${indentBlock(inputPost.contentSnapshot, 2)}`;
+  // Use yaml.stringify for round-trip-safe serialization. Avoids the special-
+  // char / nested-object edge cases of the hand-rolled indentYaml emitter.
+  const inputYaml = stringifyYAML({
+    slug: inputPost.slug,
+    frontmatter: inputPost.frontmatter,
+    contentSnapshot: inputPost.contentSnapshot,
+  }).trimEnd();
 
   const corpusYaml = corpusSnapshot
-    .map(
-      (c) =>
-        `- slug: ${c.slug}\n  frontmatter:\n${indentYaml(c.frontmatter, 4)}\n  contentSnapshot: |\n${indentBlock(c.contentSnapshot, 4)}`,
+    .map((c) =>
+      stringifyYAML({
+        slug: c.slug,
+        frontmatter: c.frontmatter,
+        contentSnapshot: c.contentSnapshot,
+      }).trimEnd()
     )
-    .join('\n');
+    .join('\n---\n');
 
   // IMPORTANT: The CORPUS SNAPSHOT below is the authoritative corpus for this
   // evaluation. DO NOT glob src/content/posts/ — use ONLY the corpusSnapshot
@@ -232,33 +241,6 @@ Format improvements.dupCheck as:
 
 Confirm with a one-line status on stdout.
 `;
-}
-
-function indentYaml(obj, spaces) {
-  // Minimal YAML emitter for frontmatter (strings + objects). Good enough for
-  // fixture snapshots — we don't need full YAML spec coverage here.
-  const pad = ' '.repeat(spaces);
-  return Object.entries(obj)
-    .map(([k, v]) => {
-      if (typeof v === 'object' && v !== null && !Array.isArray(v)) {
-        return `${pad}${k}:\n${indentYaml(v, spaces + 2)}`;
-      }
-      if (Array.isArray(v)) {
-        return `${pad}${k}: [${v.map((x) => JSON.stringify(x)).join(', ')}]`;
-      }
-      // Quote strings that contain special chars; otherwise bare value.
-      const s = typeof v === 'string' ? JSON.stringify(v) : String(v);
-      return `${pad}${k}: ${s}`;
-    })
-    .join('\n');
-}
-
-function indentBlock(text, spaces) {
-  const pad = ' '.repeat(spaces);
-  return text
-    .split('\n')
-    .map((line) => pad + line)
-    .join('\n');
 }
 
 /**

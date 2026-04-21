@@ -104,11 +104,36 @@ export function checkFactLibPassBar(scores: {
   library_pass: boolean;
   dupCheck_pass: boolean;
 } {
+  // Runtime type guard for dupCheck (spec R1: integer 0..10).
+  // Old judge versions (< 2.1.0) or malformed output may omit dupCheck or send
+  // a non-integer. Silent `undefined >= 8 → false` would permanently fail the
+  // dupCheck bar without any diagnostic. Throw early with a clear message.
+  const raw = scores.dupCheck;
+  if (raw === undefined || raw === null) {
+    throw new Error(
+      `[checkFactLibPassBar] scores.dupCheck is ${raw}. ` +
+        `judge_version >= 2.1.0 is required for Level E dupCheck. ` +
+        `Check that the judge agent is using the updated v2-factlib-judge.md prompt.`
+    );
+  }
+  if (typeof raw !== 'number' || !Number.isFinite(raw)) {
+    throw new Error(
+      `[checkFactLibPassBar] scores.dupCheck is not a finite number: ${JSON.stringify(raw)}`
+    );
+  }
+  // Clamp to valid range instead of silently passing garbage values.
+  if (raw < 0 || raw > 10) {
+    throw new Error(
+      `[checkFactLibPassBar] scores.dupCheck = ${raw} is outside the valid range [0, 10]. ` +
+        `Judge must output an integer between 0 and 10 inclusive.`
+    );
+  }
+
   const fact_pass =
     Math.floor((scores.factAccuracy + scores.sourceFidelity) / 2) >= PASS_BARS.STAGE_3_FACT_COMPOSITE;
   const library_pass =
     Math.floor((scores.linkCoverage + scores.linkRelevance) / 2) >= PASS_BARS.STAGE_3_LIBRARY_COMPOSITE;
-  const dupCheck_pass = scores.dupCheck >= PASS_BARS.STAGE_3_DUPCHECK;
+  const dupCheck_pass = raw >= PASS_BARS.STAGE_3_DUPCHECK;
 
   return {
     pass: fact_pass && library_pass && dupCheck_pass,
