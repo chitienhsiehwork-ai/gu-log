@@ -31,11 +31,13 @@ mkdir -p "$(dirname "$OUT_FILE")"
 rm -f "$OUT_FILE"
 
 # Run independent Claude Code instance with the vibe-opus-scorer subagent
-# Timeout: 5 minutes per score (should take ~2min normally)
-timeout 300 claude -p \
+# Timeout: 10 minutes per score. Opus 4.6 (pinned) on decorative-trap posts
+# can need 10+ turns to do strip test + read standard + write JSON.
+# Max-turns 30 gives scorer enough space; real cost is still bounded by timeout.
+timeout 600 claude -p \
   --agent vibe-opus-scorer \
   --permission-mode bypassPermissions \
-  --max-turns 5 \
+  --max-turns 30 \
   "Score this post: src/content/posts/$POST_FILE
 Write your JSON output to exactly this path: $OUT_FILE" || true
 
