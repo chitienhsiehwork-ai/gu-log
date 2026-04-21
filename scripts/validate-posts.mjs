@@ -22,6 +22,7 @@ import {
   FLAG_THRESHOLD,
   MIN_EN_OVERLAP,
 } from './dedup-gate.mjs';
+import { loadPostMap, findMissingPairs, reminderText } from './check-translation-pairs.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const POSTS_DIR = path.join(__dirname, '../src/content/posts');
@@ -586,6 +587,39 @@ function main() {
         totalWarnings++;
       }
     }
+  }
+
+  // ─── Translation pair nudge ─────────────────────────────────────
+  // Gentle reminder only. In file-list mode (pre-commit) we list the
+  // specific missing pairs for the staged files; in full-repo mode we
+  // print a summary count to keep noise down. The hard gate lives in
+  // CI (scripts/check-translation-pairs.mjs --strict --pr-base=…).
+  const isFileListMode = args.length > 0;
+  const scope = isFileListMode
+    ? new Set(
+        filesToValidate.map((fp) => {
+          const name = path.basename(fp);
+          return name.startsWith('en-') ? name.slice(3) : name;
+        })
+      )
+    : null;
+  const missingPairs = findMissingPairs(loadPostMap(), scope);
+  if (missingPairs.length > 0) {
+    console.log('');
+    console.log('📝 Translation pair reminder:');
+    if (isFileListMode) {
+      for (const m of missingPairs) {
+        console.log(`   • ${m.ticketId} (${m.file}) — missing ${m.missingLang} version`);
+      }
+    } else {
+      console.log(`   ${missingPairs.length} active post(s) missing their lang sidecar.`);
+      console.log(`   Run: node scripts/check-translation-pairs.mjs  (full list)`);
+    }
+    console.log('');
+    for (const line of reminderText().split('\n')) {
+      console.log(`   ${line}`);
+    }
+    totalWarnings += missingPairs.length;
   }
 
   console.log('');
