@@ -228,6 +228,17 @@ for idx, ch in enumerate(text):
         obj, _ = decoder.raw_decode(text[idx:])
     except Exception:
         continue
+    # Schema-normalize common model drift before validation:
+    #   scores    → dimensions (Sonnet/Opus sometimes emit this)
+    #   composite → score
+    #   pass:bool → verdict:"PASS"/"FAIL"
+    if isinstance(obj, dict):
+        if 'dimensions' not in obj and isinstance(obj.get('scores'), dict):
+            obj['dimensions'] = obj.pop('scores')
+        if 'score' not in obj and isinstance(obj.get('composite'), (int, float)):
+            obj['score'] = int(obj.pop('composite'))
+        if 'verdict' not in obj and isinstance(obj.get('pass'), bool):
+            obj['verdict'] = 'PASS' if obj['pass'] else 'FAIL'
     path.write_text(json.dumps(obj, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     sys.exit(0)
 
