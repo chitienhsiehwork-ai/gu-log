@@ -1,0 +1,172 @@
+---
+ticketId: "SP-177"
+title: "Opus 4.7 Migration, Part II: Shorter Prompts, Thicker CLAUDE.md — Pawel Huryn's Six Intent-First Moves"
+originalDate: "2026-04-20"
+translatedDate: "2026-04-21"
+translatedBy:
+  model: "Opus 4.7"
+  harness: "Claude Code"
+source: "@PawelHuryn on X"
+sourceUrl: "https://x.com/PawelHuryn/status/2046197132105769065"
+lang: "en"
+summary: "SP-175 covered Opus 4.7 hard specs. This is the workflow layer. Pawel Huryn argues intent is the new unlock. Two-layer CLAUDE.md, per-call effort toggle, batch questions, show-don't-forbid, kill stale scaffolding, review plans not diffs — plus Anthropic/OpenAI converging."
+tags: ["claude-opus-4-7", "prompt-engineering", "intent-engineering", "claude-code", "workflow"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Here's a complaint you hear a lot after upgrading to Opus 4.7: the same prompt that used to work now runs slower, costs more, and the output looks a bit dumber. First reaction for many: "Is 4.7 a regression?" Reddit has posts saying yes. LM Arena — a vote-based leaderboard — even shows 4.6 winning on instruction following.
+
+Read Anthropic's own migration guide and the story flips. The guide says 4.7 "takes the instructions literally" and "will not silently generalize." That's not a bug — that's the design direction. Boris Cherny (Claude Code product lead) [said on release day](https://x.com/bcherny/status/2044822408826380440): "It took a few days for me to learn how to work with it effectively."
+
+So how do these two stories square up? Pawel Huryn spent 16+ hours intensively using 4.7 the week it launched and wrote a migration guide that answers exactly that. The core claim in one line: **4.6 fills in what you meant. 4.7 takes you at your word.** Classic [Model Swap](/glossary#model-swap) scenario — upgrading is like getting a new colleague, not swapping an API key. And once you've got a new colleague, "write longer, more careful prompts" gives way to "communicate intent more clearly." The leverage moves.
+
+> **Quick glossary** (you can skip ahead if you never read [SP-175](/posts/en-sp-175-20260416-anthropic-opus-4-7-prompting-best-practices)):
+> - **tokenizer**: how a model slices text into tokens. Swap the tokenizer and you've changed the measuring stick — old prompts count differently, API bills drift.
+> - **effort**: the Claude API's "thinking intensity" knob, from `low` to `max`. Opus 4.7 adds `xhigh` in between, which Claude Code now uses as its default.
+> - **adaptive thinking**: new mode where the model decides for itself whether and how long to think per step. Humans steer indirectly via `effort`. The old fixed `budget_tokens` parameter is gone.
+>
+> Those "hard specs" are what SP-175 unpacks. This piece is the layer above — **the tool isn't broken, the way you work with it needs to change.** These six moves are Boris's "few days of learning" laid out on the table.
+
+## First: untangle the "regression" debate
+
+Reddit says it regressed. Arena says it regressed. Anthropic's docs say this is the design. Three stories that look contradictory, but they're measuring different things.
+
+**Reddit and Arena are measuring "performance on vague prompts."** LM Arena is a vote-based leaderboard — two models respond to the same question in a blind test, humans pick the better one, scores accumulate. The prompt pool skews heavily toward casual questions with thin context. 4.6 fills in the intent and gives a "this is probably what you meant" answer; 4.7 takes the prompt literally and looks a bit dumb. Scores on that kind of test drop, no surprise.
+
+**Anthropic's docs are measuring "clear intent + structured workflow" performance.** With a context file (like the `CLAUDE.md` that Claude Code reads), a clear success criterion, and an agentic coding pattern, 4.7 wins. Official benchmarks show gains across coding, creative writing, and structured work. The regressions cluster on vague prompts, multi-turn, and long-context retrieval.
+
+Stack the two measurements together and the picture gets simple: **4.7 isn't dumber — it refuses to guess.** Prompts that used to lean on the model's tendency to fill in blanks now show their gaps. Prompts that invest in context get paid back more. SP-175's code review trap (the "only report high severity" disaster) is the same rule playing out in miniature.
+
+<ClawdNote>
+Arena's pairwise blind test has a structural bias toward "models that fill in the blanks." Thought experiment: two models, A takes prompts literally, B auto-extends them. Feed both a pile of vague prompts, ask voters which one "gets them" — B wins. But in production, vague prompts are rare. B's freelance extensions often go sideways and need fixing. This is exactly how teams make model decisions from vote-based leaderboards and then get burned. The benchmark world and the production world split years ago. Arena's credibility hasn't caught up to that shift ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## Intent is the new unlock: split CLAUDE.md into two layers
+
+Pawel's core claim, one sentence: **Opus 4.7 rewards clear intent. Everything else is tactics.**
+
+"Clear intent" is not "a longer incantation of a prompt" and also not "a 500-line `CLAUDE.md` and hope the model finds what matters." Intent splits into two layers, written in different places and updated at different cadences:
+
+**Strategic context** (the evergreen layer): what product you're building, for whom, what's off-limits, what "good" looks like. Write it once, drop it in `CLAUDE.md`. Every session loads it through progressive disclosure — no need to re-introduce the project on turn one.
+
+**Per-task intent** (the per-call layer): what this particular task needs, what the success criteria are, what constraints apply. Rewrite this every task. But because strategic context is already loaded, the per-task turn can be much shorter than before — "refactor this block into a pure function, tests need to pass" is often enough.
+
+Together: input tokens from the engineer go down, usable context for the model goes up. Meanwhile, engineers who carried over the 4.6 habit of "re-explain the project every session" at the start of every conversation don't get that dividend — worse, Pawel measured the new 4.7 tokenizer producing 1.0 to 1.35× more tokens on the same input, so those unchanged prompts just got more expensive.
+
+Karpathy said something similar earlier: ["Don't tell it what to do, give it success criteria and watch it go"](https://x.com/karpathy/status/2015883857489522876) — shift from imperative to declarative. 4.7 bakes that shift into the model's behavior.
+
+<ClawdNote>
+"Intent-first" sounds like a buzzword, but the practice is different. In the 4.6 era, writing a prompt felt like writing a shell script — step by step commands for the machine. In the 4.7 era it feels more like writing a contract — state the goal, the scope, the acceptance criteria, and leave the execution details to the other party. This transition is hardest on senior engineers, because the "I already know how I'd do it best" ego has to sit down first (¬‿¬)
+</ClawdNote>
+
+---
+
+## Effort is a per-call knob, not a session setting
+
+SP-175 broke down how to pick an effort level (`low` / `medium` / `high` / `xhigh` / `max`, with Claude Code defaulting to `xhigh`). Pawel adds a detail that gets missed a lot in practice: **effort is per-call, not per-session.**
+
+The pattern Pawel's migration guide suggests: use `max` once on the hard subproblem, drop back to `high` for the rest, polish at `medium`. Switching inside the same conversation, not locking a whole session at one level.
+
+Why does this matter? Because `max` overthinks easily. SP-175 hit the same note — `max` will split a three-line problem into ten sub-arguments. Pawel's observation: most people complaining "4.7 feels slow" reflexively set effort to `max`. For a low-complexity task, `max` is slower, more expensive, and no better in quality.
+
+Practical rule: **default to `xhigh` at session start; bump to `max` only for architectural calls or subproblems that need to exhaust a solution space, then drop back down immediately.** This toggling habit can chop a big fraction off the token bill, and Claude Code supports it in the UI directly.
+
+---
+
+## Batch your questions — stop drip-feeding
+
+In the 4.6 era, multi-turn conversations were cheap. Every turn helped carry context forward and re-align to earlier decisions. A three-step flow — "first explain X, then ask Y, finally consolidate" — worked fine.
+
+4.7 is different. Pawel's observation: **each turn adds a layer of reasoning overhead on top of the earlier turns' literal interpretations.** Every extra turn is another chance for literal interpretation to drift. Drip-feeding three questions across three turns compounds the error.
+
+**Fix**: combine the questions into a single message.
+
+```text
+I need to do three things, consider them together before replying:
+
+1. <question 1>
+2. <question 2>
+3. <question 3>
+
+Identify dependencies between them and answer in that order.
+```
+
+Save clarifications for the cases where the constraint is genuinely unclear and not asking would send the model off-track. Treating clarification as a workflow default — expecting several back-and-forth turns — was fine on 4.6. On 4.7 that overhead compounds into the cost column.
+
+<ClawdNote>
+This trick also works with new hires at the office: dump all the context up front, let the person see the whole picture, then get the answer. That's faster than chopping everything into "hang on, one more follow-up question." Drip-feeding forces the other side to reload context every time. In 4.6 the model was so good at filling in the blanks it absorbed this overhead; 4.7 takes everything literally, and the overhead lands on your token bill (⌐■_■)
+</ClawdNote>
+
+---
+
+## Show, don't forbid
+
+Pawel cites an Anthropic observation: **4.7 performs best when "Like this:" is followed by examples; under "Don't do this:" or "Never X" style prohibitions, it tends to burn tokens while still failing to deliver what was wanted.**
+
+Why? Because "don't do X" has no positive target. The model knows X is off-limits, but the negative space is huge — any direction that isn't X counts as compliant. A positive example gives a concrete shape the model can match, and matching the shape means alignment.
+
+Rewrite template:
+
+```text
+❌ Don't make it too verbose.
+❌ Never use passive voice.
+❌ Avoid starting sentences with "As an AI".
+
+✅ Like this:
+   "The migration fixes three bugs. Run `pnpm test` to verify."
+   "The pipeline writes to S3. CloudWatch picks up the logs."
+```
+
+If a prompt has more than three "don't" / "never" / "avoid" lines, flip them into "Like this: [two concrete examples]." Shorter, more accurate, better recall. Same logic as SP-175's lesson about splitting code review into coverage and severity filter as two separate steps — **a clear positive target beats a vague negative constraint.**
+
+---
+
+## Delete the outdated progress scaffolding
+
+In the 4.6 era, a lot of prompts carried scaffolding like: "summarize progress every 3 tool calls," "draft a plan first," "report after each step." This was there to keep the model from losing the plot mid-task.
+
+Pawel ran the same pipelines on 4.7 and found: **this scaffolding is now obsolete.** 4.7 natively emits high-quality progress updates during long agentic traces. Forcing it via prompt ends up doubling — the model emits its own update, and the prompt coerces a second one on top. The two overlap heavily, differing only in format.
+
+**Fix**: delete this kind of scaffolding from `CLAUDE.md` and system prompts. Run a new task letting 4.7 do its thing once. If the update cadence or format genuinely isn't enough, add scaffolding back — but most of the time you won't need to.
+
+Bonus: fewer tokens spent, easier-to-read trace logs (no duplicate summaries cluttering the view).
+
+<ClawdNote>
+The big prompt incantation playbook needs trimming every model generation. Spells you needed on 4.5 could be halved by 4.6; scaffolding that helped on 4.6 is dead weight on 4.7. Engineers' `CLAUDE.md` files tend to accumulate archaeological layers — rules added five models ago after some debugging session that never got cleaned up. Spending two hours the week of an upgrade reviewing `CLAUDE.md` and deleting every rule you can't explain "why was this added?" is probably the highest-ROI move of the whole migration ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## Review the plan, not the diff
+
+SP-175 didn't cover this, but it's high-impact in practice. Pawel's argument: **since 4.7 executes intent literally, a small misread at the intent stage becomes a large misread at the diff stage.** So review needs to move earlier — from the diff level up to the plan level.
+
+Two tools handle this:
+
+- **Plan mode** (double-tap `Shift+Tab` in Claude Code CLI): prints the plan inline before the model touches any code. Review it, then decide whether to run. Good for changes spanning multiple files.
+- **`/ultraplan`** (CLI only, not available in the VS Code extension): runs plan drafting in a cloud session so the terminal stays free. Review the draft in a browser with annotations.
+
+Which one depends on the context, but the rule is the same: **push the intent-drift catch point up to the plan.** Finding a misread in a 10-line plan takes 30 seconds. Finding the same misread in a 200-line diff takes 15 minutes.
+
+This matters even more for teams with agentic pipelines: **letting an autonomous, CI-gated run produce a PR and reviewing only then is an order of magnitude more expensive than catching drift in the plan.** Intent drift compounds — the earlier you catch it, the cheaper it is to fix.
+
+---
+
+## Closing: Anthropic and OpenAI are converging from opposite sides
+
+One observation from Pawel worth saving for the end.
+
+Anthropic pushed Opus 4.7 toward "more literal instruction following" — less guessing, take the prompt at face value. OpenAI's December update to their Model Spec went the other direction: "consider not just the literal wording but the underlying intent" — asking the model to learn to read intent behind the literal text.
+
+Two companies converging from opposite directions. Anthropic's intent-first model is adding precision; OpenAI's precision-first model is adding intent inference.
+
+Which means **the "communicate intent clearly" skill has a long shelf life** — it's getting rewarded across vendors and across model versions. Prompt incantations expire, tokenizers get swapped again, `xhigh` might get demoted to a middle rung in the next generation. But the ability to write "strategic context + per-task intent" clearly keeps paying out with every generation.
+
+So next time you're about to open a prompt session, spend less of the five minutes listing `Avoid X / Don't Y / Never Z` and more of it writing "what does the model need to deliver this time, and how will I know it's done right?" The difference shows up directly in the diff quality and the billing numbers.
+
+<ClawdNote>
+Pawel drops the Anthropic-OpenAI convergence observation lightly, but the implications are heavy. For the last few years, prompt engineering had strong "this vendor's model eats this trick, the other one eats a different trick" factions — every time you switched vendors, you re-learned a whole toolbox. Both companies moving toward "clear intent" at once is basically a consolidation moment for the field — prompt engineering goes from vendor-specific tricks to a transferable skill. This is great news for everyone, except maybe the influencers selling vendor-specific prompt courses (ง •̀_•́)ง
+</ClawdNote>
