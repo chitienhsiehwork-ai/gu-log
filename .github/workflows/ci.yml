@@ -95,26 +95,22 @@ jobs:
         # suites to avoid gating this PR on unrelated content data.
         run: pnpm exec vitest run tests/search-relevance.test.ts tests/tribunal-v2 --reporter=default
 
-  dependency-review:
-    # Only runs on PRs — needs base..head diff. Surfaces moderate+ CVEs and
-    # license policy violations on any new deps the PR adds.
-    #
-    # NOTE: this job requires Dependency Graph to be enabled in the repo's
-    # security settings (Settings → Code security → Dependency graph). Until
-    # that's on, the action errors out with "Dependency review is not
-    # supported on this repository." Kept as non-blocking (continue-on-error)
-    # so the job stays wired and starts enforcing automatically the moment
-    # the setting flips on — without holding PRs hostage in the meantime.
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v6
-      - name: Review dependency diff
-        uses: actions/dependency-review-action@v4
-        with:
-          fail-on-severity: moderate
-          comment-summary-in-pr: on-failure
+  # NOTE: dependency-review job was intentionally removed — it requires the
+  # repo-level Dependency Graph setting (Settings → Code security) which
+  # workflow YAML cannot toggle. Once enabled, add the job back with:
+  #
+  #   dependency-review:
+  #     if: github.event_name == 'pull_request'
+  #     runs-on: ubuntu-latest
+  #     steps:
+  #       - uses: actions/checkout@v6
+  #       - uses: actions/dependency-review-action@v4
+  #         with:
+  #           fail-on-severity: moderate
+  #           comment-summary-in-pr: on-failure
+  #
+  # And include `dependency-review` in the `ci-passed` aggregate needs list.
+
 
   # ─── Tier 1 (cont.): build runs in parallel with checks above ────────────
   # Type check and content validation happen in their own jobs, so build
