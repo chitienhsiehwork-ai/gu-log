@@ -28,15 +28,15 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 週一早上 10:30，team 的 code review dashboard 跑完週末 batch。report 乾淨到讓人意外——五個 issue、全部 CVE 級別、全部 high severity。team lead 點個「approved」就關掉 laptop 去泡咖啡。週二下午 prod 炸了。火燒到 channel 之前 15 分鐘，release manager 用 `git blame` 找到那一行：一個 off-by-one，review 時 harness 明明看到了，但把它歸類成「not high severity」，安靜 skip。4.6 時代會順手 flag，4.7 照字面不 flag。
 
-這是 Anthropic 官方在 [Claude Code best practice](https://claude.com/blog/best-practices-for-using-claude-opus-4-7-with-claude-code)（短版、focus 互動式開發）跟 [完整 prompting guide](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices)（長版、含 Opus 4.7 專屬章節）裡實際記錄的 case study。兩份 docs 同時釋出，就是在警告：Sonnet / Haiku 時期那套 prompt 調教的心得正在過期，不是技巧錯了，是 4.7 變成了另一個人。更 literal、更省 tool、更短回覆、更少 subagent、連設計美學都有固定 default。上面那個週一 dashboard 事件裡，至少有四個 default 同時在偷襲這個 pipeline——先把每一個拆開看。
+這是 Anthropic 官方在 [Claude Code best practice](https://claude.com/blog/best-practices-for-using-claude-opus-4-7-with-claude-code)（短版、focus 互動式開發）跟 [完整 prompting guide](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices)（長版、含 Opus 4.7 專屬章節）裡實際記錄的 case study。兩份 docs 同時釋出，就是在警告：Sonnet / Haiku 時期那套 prompt 調教的心得正在過期，不是技巧錯了，是 4.7 變成了另一個人。更 literal、更省 tool、更短回覆、更少 subagent、連設計美學都有固定 default。
 
 ---
 
-## 4.7 變成一個照字面做的同事
+## 週二下午的 postmortem
 
-週一事件的核心是這句 prompt：「Report only high severity issues.」4.6 會自動 balance「只報重要」跟「別漏太多」，該提的 medium / logic error 還是會順便 flag。4.7 完全照字面做，把門檻收到只剩 CVE 級別——logic error、race condition、off-by-one 全歸為「not high」而 skip。Report 看起來乾淨，precision 爆表、recall 崩盤。
+release manager 攤開那份週末 batch log，想找到底是哪裡走鐘。事情沒那麼單純——愈往裡挖，愈發現不是單一 bug、是幾個 4.7 default 同時沒被 prompt 校正過。
 
-Fix 是把「廣泛 coverage」跟「嚴格過濾」拆成兩步。官方直接給了 prompt 範本：
+**第一條線在 prompt wording。** harness 裡寫著「report only high severity issues」。4.6 時代這句勉強能用——會自動 balance「只報重要」跟「別漏太多」，該提的 medium、logic error 還是會順便 flag。4.7 完全照字面做，把門檻收到只剩 CVE 級別——logic error、race condition、off-by-one 全歸為「not high」而 skip。官方 docs 直接給了修正範本：
 
 ```text
 Report every issue you find, including ones you are uncertain about
@@ -48,21 +48,9 @@ include your confidence level and an estimated severity so a
 downstream filter can rank them.
 ```
 
-實際做兩階段：step 1 跑上面這段拿 full coverage、step 2 另開 call 過濾 severity ≥ high。就算只做一步也可以——把「coverage 為目標、過濾之後再說」明寫進 prompt，recall 就會回來。重點是**不要把兩件事塞進同一個 instruction**。
+兩階段拆開跑：step 1 拿 full coverage、step 2 另開 call 過濾 severity ≥ high。就算只做一步也可以——把「coverage 為目標、過濾之後再說」明寫進 prompt，recall 會回來。重點是**不要把兩件事塞進同一個 instruction**。這個坑不只出現在 code review——issue triage、log anomaly detection、security scanning、doc review 全會中招。
 
-這個坑不只出現在 code review。任何「找問題 + 挑重要的報」的 pipeline——issue triage、log anomaly detection、security scanning、doc review——都要拆。
-
-<ClawdNote>
-這坑最經典的地方是——4.6 時代沒這問題。4.6 會自動 balance「只報重要」跟「別漏太多」，該提的 medium 還是會順便 flag。4.7 完全照字面做，結果是過去靠 model 自己「體貼」撐起來的爛 prompt 全部被打回原形。Anthropic 不會在 release note 說「model 變得太聽話反而讓你 prompt 沒寫清楚的地方露餡」——聽起來像缺點，但本質上是 model 更可控、更可 debug。工程師喜歡，prompt 偷懶的人痛苦 (⌐■_■)
-</ClawdNote>
-
----
-
-## 第二個同謀：不查 tool 自己想答案
-
-週一事件裡其實還藏了第二個 bug：harness 的一個 rule 在描述 code path 時引用了一個半年前重命名的函式。4.6 會自動去 repo `grep` 驗證，找不到會 complain 並 ask for clarification。4.7 不驗證，直接用 training data 裡的舊名字推一個「合理結論」繼續往下走。
-
-這是 4.7 最明顯的第二個個性變化：偏 reasoning、少 tool use。思路乾淨、noise 少，但遇到需要查 repo、讀 doc、grep code 的場景，沒明說「先 search 再回答」的話，model 會用 training data 裡的舊知識推結論——聽起來有道理，實際上函式名改過、API 路徑不存在了。要逼 4.7 確認 ground truth，必須明寫：
+**但 recall 只是病徵的一半。** release manager 再往下挖：harness 的某一條 rule 在描述 code path 時，引用了一個半年前就 renamed 的函式。4.6 會自動 `grep` repo 驗證、找不到會停下來 ask；4.7 不驗證，直接用 training data 裡的舊名推一個「合理結論」繼續走。這是 4.7 偏 reasoning、少 tool use 的第二面——思路乾淨但容易 hallucinate 成聽起來合理的舊知識。要壓制這個傾向必須明寫：
 
 ```text
 Before answering, verify your assumption by reading the relevant
@@ -70,29 +58,27 @@ file or running a quick grep. Do not answer from memory if a quick
 check can ground your response.
 ```
 
-這條跟上面 coverage-vs-filter 是同一種原則——4.6 時代偷懶的 prompt 都會被 4.7 打回原形。4.6 幫忙腦補，4.7 不腦補。
+跟 coverage-vs-filter 是同一種原則——4.6 會幫忙腦補，4.7 不腦補。偷懶的 prompt 全部露餡。
 
----
-
-## 第三個同謀：subagent 該叫的時候不叫
-
-週一 harness 還有一個地方被偷襲：那份 review 原本是設計成平行的——三個 subagent 同時讀三個檔案、獨立 flag issues、最後彙整。實際跑起來只有一個 subagent 在跑，另外兩個從來沒被 spawn。所以不只 recall 崩，coverage 的 breadth 也只拿到 1/3。
-
-這是 4.7 的第三個個性差異。4.6 像活潑小孩要管，4.7 像摸魚員工要催。預設少 spawn subagent——過去靠平行 subagent 拿時間的 pipeline 會全部慢下來，而且慢的方式是「表面在跑、其實沒 parallel」，debug 成本很高。需要 fanning out 或多檔讀取的場景必須明寫：
+**然後 release manager 看到第三層。** 那份 review 的 harness 設計成平行的，應該三個 subagent 同時讀三個檔案獨立 flag issues，最後 aggregator 彙整。實際跑起來只有一個 subagent spawn 成功，另外兩個從來沒被叫醒。所以 recall 崩、breadth 也只拿到 1/3。4.6 像活潑小孩要管，4.7 像摸魚員工要催——預設少 spawn subagent，慢的方式是「表面在跑、其實沒 parallel」，debug 成本高。需要 fanning out 的場景必須明寫：
 
 ```text
 Spawn multiple subagents in the same turn when fanning out across
 items or reading multiple files.
 ```
 
-反過來，看到 model 為了改一個 function 就 over-delegate subagent，要踩煞車：
+反過來，看到 model 為了改一個 function 就 over-delegate subagent，也要踩煞車：
 
 ```text
 Do not spawn a subagent for work you can complete directly in a
 single response (e.g. refactoring a function you can already see).
 ```
 
-這裡有個容易混淆的點：**minimize user turns** 不等於 **maximize agent autonomy**。前者是「一次把需求切乾淨、model 一條龍跑完」，後者是「給 model agent-level 的自由權」。4.7 推薦前者——前端切好 spec 餵進去、agent 跑完回來交付，中間不要追問。每次打斷都等於重吃一次 context。要真的脫手，用 **auto mode**（`Shift+Tab` 切換、目前 preview only、Claude Code Max 用戶可用）。進 auto 之後 Claude Code 跑到底，只在重大決策或完成時才 ping。配合 `Notification` / `Stop` hook 叫它跑完播聲音或戳 Discord，人類可以完全離開 terminal。
+這裡有個 Anthropic docs 特別強調的容易混淆點：**minimize user turns** 不等於 **maximize agent autonomy**。前者是「一次把需求切乾淨、model 一條龍跑完」，後者是「給 model agent-level 的自由權」。4.7 推薦前者——前端切好 spec 餵進去、agent 跑完回來交付，中間不要追問。每次打斷都等於重吃一次 context。要真的脫手，用 **auto mode**（`Shift+Tab` 切換、preview only、Claude Code Max 用戶可用）：進去後 Claude Code 跑到底，只在重大決策或完成時才 ping。配合 `Notification` / `Stop` hook，agent 跑完播聲音或戳 Discord，人類可以完全離開 terminal。
+
+<ClawdNote>
+這整個事件最經典的地方是——4.6 時代壓根沒有這些問題。4.6 會自動 balance「只報重要」跟「別漏太多」、會順手 grep 確認、會積極 spawn subagent，三條線都靠 model 「體貼」撐起來。4.7 完全照字面做，結果是過去靠 model 自己補位的爛 prompt 全部被打回原形。Anthropic 不會在 release note 說「model 變得太聽話反而讓 prompt 沒寫清楚的地方露餡」——聽起來像缺點，但本質上是 model 更可控、更可 debug。工程師喜歡，prompt 偷懶的人痛苦 (⌐■_■)
+</ClawdNote>
 
 ---
 
