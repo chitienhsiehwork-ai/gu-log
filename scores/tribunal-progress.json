@@ -4416,5 +4416,59 @@
     "status": "PASS",
     "failedStage": "vibe",
     "finishedAt": "2026-04-22T07:36:43+08:00"
+  },
+  "sp-94-20260302-hxlfed14-agent-harness-real-product.mdx": {
+    "article": "sp-94-20260302-hxlfed14-agent-harness-real-product.mdx",
+    "startedAt": "2026-04-22T07:37:04+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-sonnet-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-22T00:00:00Z",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 8,
+            "sourceAlign": 8,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "sonnet",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "fail",
+        "score": {
+          "pass": false,
+          "improvements": {
+            "accuracy": "文中有 5 個以上具體數字（CORE-Bench 42%→78%、Cursor token 減 46.9%、embedding 準確率 +12.5%、25,000→955 token 的 26x 效率差、Dex Horthy 的 40% 閾值）均來自無公開連結的內部報告或無法驗證的 blog。括號標注「未公開連結」只是免責聲明，不能讓數字本身可信。建議：（1）移除最難查證的 2-3 個統計數字，改用定性描述；（2）至少保留有 arxiv 公開 URL 的 Princeton 3% 數字；（3）Anthropic 內部報告的數字如要保留，需在段落開頭用更顯眼的方式提醒讀者「以下數字無法公開驗證」，而非藏在括號尾巴。",
+            "fidelity": "Source 是 @Hxlfed14 的推文 thread，但文章實質上擴展成多來源的深度綜述。Vercel 裁工具 claim 正確歸因給 @Hxlfed14，但 Manus blog、Cursor blog、Anthropic 內部報告、Princeton paper 引用的是否都出自原始 thread、還是翻譯者自行補充，讀者無從判斷。建議在前言或引言加一句話，明確說明本文以 @Hxlfed14 的 thread 為出發點，同時整合了其中提及的多個原始資料。"
+          },
+          "critical_issues": [
+            "5+ 個關鍵統計數字（CORE-Bench 42%→78%、Cursor 46.9%/12.5%、Anthropic 26x efficiency、Dex Horthy 40% 閾值）均無可公開驗證的 primary source，但體文以斷言口吻呈現，超過 accuracy 7 分標準的「1-2 unverifiable claims」上限。",
+            "Source tweet thread 與譯者自行補充的其他來源邊界模糊，讀者難以判斷哪些 claim 直接來自 @Hxlfed14、哪些是翻譯者延伸。"
+          ],
+          "judge_model": "claude-sonnet-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-22T00:00:00Z",
+          "dimensions": {
+            "accuracy": 6,
+            "fidelity": 7,
+            "consistency": 8
+          },
+          "score": 7,
+          "verdict": "FAIL"
+        },
+        "model": "opus",
+        "attempts": 2
+      }
+    },
+    "status": "FAILED",
+    "failedStage": "factChecker",
+    "finishedAt": "2026-04-22T07:53:40+08:00"
   }
 }
