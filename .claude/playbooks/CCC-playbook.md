@@ -126,6 +126,26 @@ Vercel build / Ralph Loop / validate-posts / CI 沒過：
 
 **必附證據**：PR body 或一個隨 PR 的 commit 要包含四個 judge 的分數 + verdict，並把 `scores.vibe` / `scores.factCheck` / `scores.librarian` / `scores.freshEyes` 寫進文章 frontmatter（用 `scripts/frontmatter-scores.mjs write <file> <judge> <score_json>`，schema 見 `src/content/config.ts`）。pre-commit 的 score gate（`.githooks/pre-commit` 第 60 行起）會擋掉**新增**且 ticketId 非 PENDING 的 zh-tw 文章 commit，所以 swap PENDING → 真號那個 commit 之前，分數要先進 frontmatter。
 
+## Stream idle timeout 應對（CCC-only failure mode）
+
+這個失敗模式**只在 CCC 沙箱觀察到**（2026-04-21 session 首度記錄）。mac-CC 從沒遇過，mac-CC 可以跳過這段。
+
+**Trigger**：user 回報 `Error happened, resume` / `still error` / `retry` / `continue`，或 API 自己報 `Stream idle timeout - partial response received`。
+
+**Workaround — split the write**：
+不要 retry 同一個大 Write call。改成：
+1. 先 `Write` 一個**骨架**（frontmatter + imports + 空 section headers）
+2. 再用多個 `Edit` 分段填 prose（每 call 一個 section 或一個 `<ClawdNote>`）
+
+短 call → stream 不會 idle → timeout window 關不起來。代價是 tool call 變多、吃 context 多一點，但能穩定產出。
+
+**什麼時候切 split mode**（不要等 user 講第三次）：
+- 同一個 Write call **連兩次** stream idle timeout → 第三次直接切 split，不要硬 retry
+- 否則照自己判斷，沒有硬行數門檻 — 每個 CCC session 邊做邊累積：哪種長度穩、哪種容易炸，下次就知道要不要 preemptive split。已知高風險形狀：長 MDX（frontmatter + 多段 `<ClawdNote>` + 長 prose）
+
+**Root cause 備忘**（2026-04-21 實驗結論）：
+疑似 Opus 4.7 adaptive thinking 在長 creative generation 中有短暫 token 停頓。停頓 > stream idle threshold 就斷線。跟**生成時間分佈**有關，不是**字符內容**問題 — kaomoji / RTL Arabic / multi-script 都 isolated 測過無關。
+
 ## 開場 SOP
 
 每次被叫醒第一件事：
