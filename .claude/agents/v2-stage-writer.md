@@ -1,6 +1,6 @@
 ---
 description: "Tribunal v2 Stage 1/2 Writer — rewrite agent for Vibe (5-dim) and FreshEyes (2-dim) judge failures. Receives v2 judge JSON (pass/scores/composite/improvements/critical_issues) and rewrites the article in-place to address specific failing dimensions. Obeys writer-constraints: frontmatter, URLs, heading structure, and source citations MUST remain unchanged."
-model: opus
+model: claude-opus-4-6[1m]
 tools:
   - Read
   - Write

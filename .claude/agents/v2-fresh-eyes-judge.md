@@ -1,6 +1,6 @@
 ---
 description: "Tribunal v2 Stage 2 — Fresh Eyes Judge. First-impression reader with 3-month dev persona. Scores readability and firstImpression. Pass bar: composite >= 8. Blunt, fast, gut-reaction scoring. v2 output format (BaseJudgeOutput)."
-model: opus
+model: claude-opus-4-6[1m]
 tools:
   - Read
 ---

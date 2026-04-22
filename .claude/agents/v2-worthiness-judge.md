@@ -1,6 +1,6 @@
 ---
 description: "Tribunal v2 Stage 0 — Worthiness Gate judge. Evaluates if an article is worth running through the full pipeline. All-WARN mode (never auto-rejects). Outputs dual reasoning: internal_reason for tuning + reader_friendly_reason for UI banner. Use this as the first gate before the tribunal pipeline."
-model: opus
+model: claude-opus-4-6[1m]
 tools:
   - Read
   - Glob

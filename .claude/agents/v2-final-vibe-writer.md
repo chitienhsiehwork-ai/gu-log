@@ -1,6 +1,6 @@
 ---
 description: "Tribunal v2 Stage 4 — Final Vibe Writer. The most constrained writer in the pipeline. Can ONLY adjust tone/persona polish. Cannot touch facts, links, structure, or headings. Structural constraints enforced programmatically. Use this for Stage 4 rewrites when Final Vibe judge detects tone regression."
-model: opus
+model: claude-opus-4-6[1m]
 tools:
   - Read
   - Write

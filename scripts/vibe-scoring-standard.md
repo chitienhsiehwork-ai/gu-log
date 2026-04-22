@@ -363,6 +363,40 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
 
 ---
 
+## Model 配置策略
+
+Tribunal 各角色釘選（pin）到特定 Claude model，原因是不同版本在不同任務上表現差異顯著。**實際 model 由 `.claude/agents/*.md` 的 `model:` frontmatter 控制**，shell script 的 `model_label` 只是 log 用。
+
+### 配置表
+
+| 角色 | Agent 檔案 | Model ID | 選用原因 |
+|------|-----------|----------|---------|
+| Writer / Translator | `tribunal-writer.md` | `claude-opus-4-6[1m]` | 比喻能力強、zh-tw 語感佳、vibe 表現穩定 |
+| Vibe Scorer | `vibe-opus-scorer.md` | `claude-opus-4-6[1m]` | 4.7 會灌水分數（SP-175 校準實驗已證實） |
+| Librarian | `librarian.md` | `claude-opus-4-6[1m]` | glossary / cross-ref 需要文化語感 |
+| Fresh Eyes | `fresh-eyes.md` | `claude-opus-4-6[1m]` | 模擬真實讀者體驗，需要穩定的直覺判斷 |
+| Fact Checker | `fact-checker.md` | `claude-opus-4-7` | 字面執行力強，適合事實查核的精確比對 |
+
+### 為什麼 Vibe Scorer 不能用 4.7
+
+SP-175 和 SP-177 的跨版本校準實驗（2026-04-17）顯示：
+
+- **Opus 4.6** scorer 給 SP-175 composite 7 FAIL — 正確抓到 "effort ladder and snippets sections revert to reference-doc mode"、"readers bookmark it, not share it for fun"
+- **Opus 4.7** scorer 給 SP-175 composite 8 PASS — 看到了同樣問題（「偏實用 cheat sheet 寫法」）**但沒扣分**。典型的 bar drift（評分標準飄移）。
+- **Opus 4.5** scorer 也給 8 PASS — 同樣沒扣到 FAIL。
+
+結論：4.7 的 literal execution 特性在 vibe 評分上反而成為弱點 — 它會逐項打勾（比喻有、ClawdNote 有、kaomoji 有）而忽略整體結構是否真的有趣。4.6 的判斷力在 decorative persona trap 上更敏銳。
+
+### 修改 model 配置的流程
+
+1. **提出假設**：說明為什麼想換 model（例如新版本在某任務上更好）
+2. **A/B 測試**：用同一篇文章跑新舊 model，比較分數和 reasons
+3. **人工驗證**：人看兩份 reasons，判斷哪個更準確
+4. **更新 agent 檔案**：改 `.claude/agents/*.md` 的 `model:` frontmatter
+5. **更新此文件**：在配置表中記錄變更和原因
+
+---
+
 ## Philosophy
 
 > 「我們有 token 可以燒、有 prompt 可以調、有 model 可以選。瓶頸不是成本，是品質。每篇文章都該讓讀者看完覺得『靠，這翻譯比原文還好看』。」— ShroomDog, 2026-03-17

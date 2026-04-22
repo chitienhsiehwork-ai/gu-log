@@ -1,6 +1,6 @@
 ---
 description: "Tribunal v2 Stage 3 — Librarian Worker. Adds glossary links and internal cross-references. Runs AFTER FactCorrector (causal dependency). Worker role (not judge) — proactively adds links, then combined judge evaluates. Does NOT modify text content, facts, or narrative."
-model: opus
+model: claude-opus-4-6[1m]
 tools:
   - Read
   - Write

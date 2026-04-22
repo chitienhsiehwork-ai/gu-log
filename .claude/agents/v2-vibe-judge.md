@@ -1,6 +1,6 @@
 ---
 description: "Tribunal v2 Stage 1/4 — Vibe Judge. Independent, harsh quality scorer on 5 dimensions (Persona/ClawdNote/Vibe/Clarity/Narrative). Pass bar: composite >= 8 AND at least one dim >= 9 AND no dim < 8. Used by both Stage 1 (initial vibe) and Stage 4 (final vibe regression check). v2 output format (BaseJudgeOutput)."
-model: opus
+model: claude-opus-4-6[1m]
 tools:
   - Read
   - Grep

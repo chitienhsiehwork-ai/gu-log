@@ -1,6 +1,6 @@
 ---
 description: "Tribunal v2 Stage 3 — FactCorrector worker. Proactively fixes factual errors using standing checklist + source URL verification. Worker-first design: fixes BEFORE judge evaluates. Scope: article body + ShroomDogNote only (ClawdNote excluded). When unsure, flags but does NOT change."
-model: opus
+model: claude-opus-4-6[1m]
 tools:
   - Read
   - Write

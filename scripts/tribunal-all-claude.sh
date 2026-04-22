@@ -2,10 +2,10 @@
 # tribunal-all-claude.sh — 4-stage sequential tribunal (all-Claude models)
 #
 # Stages (in order):
-#   1. Librarian  (Sonnet) — composite ≥ 8,             max 2 loops
-#   2. Fact Check (Opus)   — composite ≥ 8,             max 2 loops
-#   3. Fresh Eyes (Haiku)  — composite ≥ 8,             max 2 loops
-#   4. Vibe Scorer (Opus)  — one dim ≥ 9 AND rest ≥ 8, max 3 loops
+#   1. Librarian  (Opus 4.6) — composite ≥ 8,             max 2 loops
+#   2. Fact Check (Opus 4.7) — composite ≥ 8,             max 2 loops
+#   3. Fresh Eyes (Opus 4.6) — composite ≥ 8,             max 2 loops
+#   4. Vibe Scorer (Opus 4.6) — one dim ≥ 9 AND rest ≥ 8, max 3 loops
 #
 # Usage:
 #   bash scripts/tribunal-all-claude.sh <filename.mdx>
@@ -244,11 +244,19 @@ run_stage() {
   local validate_name="$3" # validate name: librarian, fact-checker, fresh-eyes, vibe-opus-scorer
   local label="$4"        # human label: Librarian, FactChecker, FreshEyes, VibeScorer
   local max_loops="$5"    # 2 or 3
-  local model_label="$6"  # sonnet, opus, haiku
+  local model_label="$6"  # opus-4.6 or opus-4.7 (for logging + --model flag)
   local post_file="$7"
   local fm_judge_key="${8:-}" # frontmatter scores key: librarian, factCheck, freshEyes, vibe
 
   local post_path="$ROOT_DIR/src/content/posts/$post_file"
+
+  # Map model_label to CLI model ID (belt + suspenders: agent file also pins)
+  local model_id
+  case "$model_label" in
+    opus-4.6) model_id="claude-opus-4-6" ;;
+    opus-4.7) model_id="claude-opus-4-7" ;;
+    *) model_id="" ;;  # no override, rely on agent file
+  esac
 
   # ── Crash resume: skip already-passed stages ──
   local existing_status
@@ -282,9 +290,9 @@ run_stage() {
     tlog "  Invoking agent '$agent_name' (timeout 300s)..."
 
     local judge_rc=0
-    timeout 300 claude -p \
-      --agent "$agent_name" \
-      --dangerously-skip-permissions \
+    local -a judge_cmd=(timeout 300 claude -p --agent "$agent_name" --dangerously-skip-permissions)
+    [ -n "$model_id" ] && judge_cmd+=(--model "$model_id")
+    "${judge_cmd[@]}" \
       "Score this post: src/content/posts/$post_file
 Write your JSON result to: $score_tmp" \
       > "$judge_out" 2>&1 || judge_rc=$?
@@ -391,9 +399,8 @@ PROMPT
     writer_out="$(mktemp)"
     writer_rc=0
 
-    timeout 900 claude -p \
-      --agent tribunal-writer \
-      --dangerously-skip-permissions \
+    local -a writer_cmd=(timeout 900 claude -p --agent tribunal-writer --dangerously-skip-permissions --model claude-opus-4-6)
+    "${writer_cmd[@]}" \
       "$writer_prompt" \
       > "$writer_out" 2>&1 || writer_rc=$?
 
@@ -471,10 +478,10 @@ tlog "=== tribunal-all-claude.sh: $POST_FILE ==="
 # Format: stage_key:agent_name:validate_name:label:max_loops:model_label:fm_judge_key
 # fm_judge_key = frontmatter scores key (used by frontmatter-scores.mjs)
 declare -a STAGES=(
-  "librarian:librarian:librarian:Librarian:2:sonnet:librarian"
-  "factChecker:fact-checker:fact-checker:FactChecker:2:opus:factCheck"
-  "freshEyes:fresh-eyes:fresh-eyes:FreshEyes:2:haiku:freshEyes"
-  "vibe:vibe-opus-scorer:vibe-opus-scorer:VibeScorer:3:opus:vibe"
+  "librarian:librarian:librarian:Librarian:2:opus-4.6:librarian"
+  "factChecker:fact-checker:fact-checker:FactChecker:2:opus-4.7:factCheck"
+  "freshEyes:fresh-eyes:fresh-eyes:FreshEyes:2:opus-4.6:freshEyes"
+  "vibe:vibe-opus-scorer:vibe-opus-scorer:VibeScorer:3:opus-4.6:vibe"
 )
 
 for stage_def in "${STAGES[@]}"; do

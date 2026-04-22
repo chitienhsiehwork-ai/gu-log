@@ -1,6 +1,6 @@
 ---
 description: "Fact Checker — independent factual accuracy verifier for gu-log posts. Checks technical accuracy, source faithfulness, and logical consistency. Does NOT evaluate writing style. Use this to catch fabricated numbers, translation distortions, and factual errors."
-model: opus
+model: claude-opus-4-7
 tools:
   - Read
   - Write
