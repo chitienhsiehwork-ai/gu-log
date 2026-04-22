@@ -112,6 +112,11 @@ write_stage_progress() {
      "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
 }
 
+# Hard cap on how many times tribunal-all-claude.sh may run against the same
+# article before we give up. Prevents sp-94-style 11-round FactChecker burn
+# where quota-loop kept re-picking a FAILED article until it happened to pass.
+MAX_TOP_ATTEMPTS=5
+
 init_article_progress() {
   local article="$1"
   local tmp
@@ -121,11 +126,30 @@ init_article_progress() {
   if [ -z "$existing" ]; then
     jq --arg a "$article" \
        --arg ts "$(TZ=Asia/Taipei date -Iseconds)" \
-       '.[$a] = {article: $a, startedAt: $ts, stages: {}}' \
+       '.[$a] = {article: $a, startedAt: $ts, stages: {}, topLevelAttempts: 0}' \
        "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
     tlog "Progress initialized for $article"
   else
     tlog "Resuming existing progress for $article"
+  fi
+
+  # Increment + cap check
+  local attempts
+  attempts=$(jq -r --arg a "$article" '.[$a].topLevelAttempts // 0' "$PROGRESS_FILE")
+  attempts=$((attempts + 1))
+  jq --arg a "$article" --argjson n "$attempts" \
+     '.[$a].topLevelAttempts = $n' \
+     "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
+  tlog "Top-level attempt $attempts/$MAX_TOP_ATTEMPTS for $article"
+
+  if [ "$attempts" -gt "$MAX_TOP_ATTEMPTS" ]; then
+    tlog "ERROR: $article exceeded MAX_TOP_ATTEMPTS=$MAX_TOP_ATTEMPTS. Marking EXHAUSTED."
+    jq --arg a "$article" \
+       --arg ts "$(TZ=Asia/Taipei date -Iseconds)" \
+       '.[$a].status = "EXHAUSTED" | .[$a].finishedAt = $ts' \
+       "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
+    commit_progress "tribunal(${article%.mdx}): EXHAUSTED after $MAX_TOP_ATTEMPTS top-level attempts"
+    exit 2
   fi
 }
 

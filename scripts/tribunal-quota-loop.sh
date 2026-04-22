@@ -109,9 +109,10 @@ get_unscored_articles() {
     if grep -q '^status: "deprecated"' "$full_path" 2>/dev/null; then
       continue
     fi
-    # Skip already passed
+    # Skip already passed or permanently exhausted (hit MAX_TOP_ATTEMPTS=5 in
+    # tribunal-all-claude.sh — prevents sp-94-style infinite retry loop).
     status=$(jq -r --arg a "$article" '.[$a].status // "pending"' "$PROGRESS_FILE" 2>/dev/null || echo "pending")
-    if [ "$status" = "PASS" ]; then
+    if [ "$status" = "PASS" ] || [ "$status" = "EXHAUSTED" ]; then
       continue
     fi
     echo "$article"
