@@ -4862,34 +4862,87 @@
     "startedAt": "2026-04-22T11:45:06+08:00",
     "stages": {
       "librarian": {
-        "status": "fail",
+        "status": "pass",
         "score": {
-          "pass": false,
-          "improvements": {
-            "glossary": "Codex、Claude Code、OpenClaw 三個核心術語在 glossary.json 均有完整條目，但全文無任何 glossary 鏈接。建議在各術語首次出現時加上對應連結。Model Swap 在 glossary 有深度定義（換同事思維模式），文章雖有簡短 inline 解釋但缺 glossary 連結，讓讀者錯失完整脈絡。"
-          },
-          "critical_issues": [
-            "Codex、Claude Code、OpenClaw 三個貫穿全文的核心術語均缺少 glossary 鏈接——這三個剛好都是 glossary.json 中有最完整定義的條目，不連結等於切斷讀者延伸學習的路徑。",
-            "Model Swap 在 glossary 中的定義（包含換同事思維模式、model 個性差異等）比文章 inline 說明豐富許多，缺少鏈接讓讀者只拿到簡版解釋。"
-          ],
+          "pass": true,
           "judge_model": "claude-sonnet-4-6",
           "judge_version": "2.0.0",
           "timestamp": "2026-04-22T00:00:00Z",
           "dimensions": {
-            "glossary": 5,
-            "crossRef": 9,
+            "glossary": 8,
+            "crossRef": 8,
             "sourceAlign": 8,
-            "attribution": 9
+            "attribution": 8
           },
-          "score": 7,
-          "verdict": "FAIL"
+          "score": 8,
+          "verdict": "PASS"
         },
         "model": "sonnet",
         "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "fact_pass": true,
+          "judge_model": "claude-sonnet-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-22T00:00:00Z",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus",
+        "attempts": 2
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-sonnet-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-22T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "haiku",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "fail",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 7
+          },
+          "score": 8,
+          "verdict": "FAIL",
+          "reasons": {
+            "persona": "凌晨兩點泡麵開場強，火影忍者影分身 vs 蛤蟆文太比喻精準自然，外送 vs 駐場工程師也有 LHY 溫度，但設定段落與 YAML 塊讓三個 section 完全滑入文件說明模式。",
+            "clawdNote": "7 notes 裡 5 個有明確 opinion（PM Jira 梗、thread binding 是基礎建設非附加功能、熱插拔批舊做法「什麼年代了」、sandbox error message 欠一行說明），通過 opinion threshold，無 CodexNote/GeminiNote 扣分。",
+            "vibe": "泡麵框架給整篇記憶點，persistent bindings gateway 重啟小故事有真實痛感，結尾 callback 「binding 不會涼的」乾淨有力，但中段連續 YAML dump 稍拖節奏。",
+            "clarity": "正文徹底無 你/我 違規，你/我 只出現在 ClawdNote（授權範圍）和一處括號說明，全篇具名主語清晰。",
+            "narrative": "Strip test：移除所有比喻、kaomoji、ClawdNote 後，骨架是 12 個 section 的線性功能介紹（ACP → 兩種模式 → thread binding → model swap → 比較 → 設定 → persistent → 審計 → sandbox → provenance → 自然語言 → 結語），泡麵 frame 是真實場景不是裝飾，persistent bindings gateway 重啟段有敘事張力，但多數 section 走 介紹 → 說明 → ClawdNote 的 template 節奏，narrative 定 7。"
+          }
+        },
+        "model": "opus",
+        "attempts": 3
       }
     },
     "status": "FAILED",
-    "failedStage": "librarian",
-    "finishedAt": "2026-04-22T11:53:21+08:00"
+    "failedStage": "vibe",
+    "finishedAt": "2026-04-22T12:42:14+08:00"
   }
 }
