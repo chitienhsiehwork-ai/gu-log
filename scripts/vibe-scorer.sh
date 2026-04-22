@@ -7,7 +7,7 @@
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
-source scripts/ralph-helpers.sh
+source scripts/tribunal-helpers.sh
 
 POST_FILE="$1"
 POST_PATH="src/content/posts/$POST_FILE"

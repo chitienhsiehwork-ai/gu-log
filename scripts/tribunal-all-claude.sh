@@ -246,6 +246,7 @@ run_stage() {
   local max_loops="$5"    # 2 or 3
   local model_label="$6"  # sonnet, opus, haiku
   local post_file="$7"
+  local fm_judge_key="${8:-}" # frontmatter scores key: librarian, factCheck, freshEyes, vibe
 
   local post_path="$ROOT_DIR/src/content/posts/$post_file"
 
@@ -265,9 +266,6 @@ run_stage() {
 
   local score_tmp
   score_tmp="$(mktemp /tmp/tribunal-${stage_key}-XXXXXX.json)"
-  # Ensure the tempfile is cleaned up on exit
-  # shellcheck disable=SC2064
-  trap "rm -f '$score_tmp'" RETURN
 
   local attempt=0
   while [ "$attempt" -lt "$max_loops" ]; do
@@ -311,6 +309,7 @@ Write your JSON result to: $score_tmp" \
       if [ "$attempt" -ge "$max_loops" ]; then
         tlog "  Max loops exhausted with invalid JSON. FAIL."
         write_stage_progress "$post_file" "$stage_key" "fail" "null" "$model_label" "$attempt"
+        rm -f "$score_tmp"
         return 1
       fi
       continue
@@ -326,6 +325,22 @@ Write your JSON result to: $score_tmp" \
     if check_pass_bar "$validate_name" "$score_tmp"; then
       tlog "  PASS: $label passed on attempt $attempt"
       write_stage_progress "$post_file" "$stage_key" "pass" "$score_json" "$model_label" "$attempt"
+
+      # ── Write score to post frontmatter (tribunal badge) ──
+      if [ -n "$fm_judge_key" ]; then
+        local fm_score_json fm_model
+        fm_model="$(jq -r '.judge_model // empty' "$score_tmp")"
+        [ -z "$fm_model" ] && fm_model="claude-${model_label}"
+        fm_score_json="$(jq --arg model "$fm_model" '. + {model: $model}' "$score_tmp")"
+        tlog "  Writing $fm_judge_key score to frontmatter..."
+        if write_score_to_frontmatter "$post_path" "$fm_judge_key" "$fm_score_json"; then
+          tlog "  Frontmatter updated for $fm_judge_key."
+        else
+          tlog "  WARN: Failed to write $fm_judge_key score to frontmatter (non-fatal)."
+        fi
+      fi
+
+      rm -f "$score_tmp"
       return 0
     fi
 
@@ -342,6 +357,7 @@ Write your JSON result to: $score_tmp" \
     if [ "$attempt" -ge "$max_loops" ]; then
       tlog "  Max loops ($max_loops) exhausted for $label. FAIL."
       write_stage_progress "$post_file" "$stage_key" "fail" "$score_json" "$model_label" "$attempt"
+      rm -f "$score_tmp"
       return 1
     fi
 
@@ -418,6 +434,7 @@ PROMPT
 
   # Should never reach here (while condition handles all exits), but just in case:
   write_stage_progress "$post_file" "$stage_key" "fail" "null" "$model_label" "$attempt"
+  rm -f "$score_tmp"
   return 1
 }
 
@@ -451,20 +468,21 @@ init_article_progress "$POST_FILE"
 tlog "=== tribunal-all-claude.sh: $POST_FILE ==="
 
 # ─── 4-Stage Sequential Loop ─────────────────────────────────────────────────
-# Format: stage_key:agent_name:validate_name:label:max_loops:model_label
+# Format: stage_key:agent_name:validate_name:label:max_loops:model_label:fm_judge_key
+# fm_judge_key = frontmatter scores key (used by frontmatter-scores.mjs)
 declare -a STAGES=(
-  "librarian:librarian:librarian:Librarian:2:sonnet"
-  "factChecker:fact-checker:fact-checker:FactChecker:2:opus"
-  "freshEyes:fresh-eyes:fresh-eyes:FreshEyes:2:haiku"
-  "vibe:vibe-opus-scorer:vibe-opus-scorer:VibeScorer:3:opus"
+  "librarian:librarian:librarian:Librarian:2:sonnet:librarian"
+  "factChecker:fact-checker:fact-checker:FactChecker:2:opus:factCheck"
+  "freshEyes:fresh-eyes:fresh-eyes:FreshEyes:2:haiku:freshEyes"
+  "vibe:vibe-opus-scorer:vibe-opus-scorer:VibeScorer:3:opus:vibe"
 )
 
 for stage_def in "${STAGES[@]}"; do
-  IFS=':' read -r stage_key agent_name validate_name label max_loops model_label <<< "$stage_def"
+  IFS=':' read -r stage_key agent_name validate_name label max_loops model_label fm_judge_key <<< "$stage_def"
 
   if ! run_stage \
       "$stage_key" "$agent_name" "$validate_name" "$label" \
-      "$max_loops" "$model_label" "$POST_FILE"; then
+      "$max_loops" "$model_label" "$POST_FILE" "$fm_judge_key"; then
     tlog "=== FAILED at stage: $label ==="
     mark_article_failed "$POST_FILE" "$stage_key"
     commit_progress "tribunal(${POST_FILE%.mdx}): FAILED at $label stage"

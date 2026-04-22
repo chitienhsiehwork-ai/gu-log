@@ -12,7 +12,7 @@ import fs from 'fs';
 import path from 'path';
 
 const POSTS_DIR = 'src/content/posts';
-const PROGRESS_FILE = 'scripts/ralph-progress.json';
+const PROGRESS_FILE = 'scores/archive/ralph-progress.json';
 
 const args = process.argv.slice(2);
 const RETIRE_ONLY = args.includes('--retire-candidates');

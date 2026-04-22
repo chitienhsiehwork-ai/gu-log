@@ -36,7 +36,7 @@
 //   1. 產生 src/content/posts/{series}-{N}-{date}-{slug}.mdx
 //   2. 自動 bump scripts/article-counter.json
 //   3. 跑 scripts/validate-posts.mjs 驗證
-//   4. 印出下一步（git add / commit / ralph-loop）
+//   4. 印出下一步（git add / commit / tribunal）
 // ---------------------------------------------------------------------------
 
 import fs from 'node:fs';
@@ -393,7 +393,7 @@ function main() {
   console.log(
     `  git commit -m "content(${imported[0].ticketId.toLowerCase()}): draft from obsidian"`
   );
-  console.log(`  ./scripts/ralph-loop.sh    # 跑 tribunal`);
+  console.log(`  bash scripts/tribunal-batch-runner.sh  # 跑 tribunal`);
   console.log(`  git push`);
 }
 

@@ -1,6 +1,6 @@
 # Obsidian Setup（iPhone + Mac + iCloud）
 
-> 用 Obsidian 當 gu-log 的「草稿編輯器」，**不取代** Astro / Vercel pipeline。iPhone 上寫草稿 → Mac 上 import → 跑 Ralph Loop → `git push`。
+> 用 Obsidian 當 gu-log 的「草稿編輯器」，**不取代** Astro / Vercel pipeline。iPhone 上寫草稿 → Mac 上 import → 跑 tribunal → `git push`。
 
 ## 為什麼這樣分工
 
@@ -130,7 +130,7 @@ import 會自動做：
 ### 跑品質 tribunal + push
 
 ```bash
-./scripts/ralph-loop.sh             # Vibe / Fact / Librarian / FreshEyes
+bash scripts/tribunal-batch-runner.sh  # Vibe / Fact / Librarian / FreshEyes
 git add scripts/article-counter.json src/content/posts/
 git commit -m "content(sd-20): ..."
 git push
@@ -172,7 +172,7 @@ Vercel 自動 deploy，幾分鐘後 `gu-log.vercel.app` 上線。
 - SP / CP 必填，沒填會直接報錯
 
 **Q: 我想在 iPhone 上直接 commit、直接跑 validate？**
-- 別。iPhone 跑不動 node script，跑不動 ralph-loop。維持「iPhone = 寫 / Mac = 發布」分工。硬要在 iPhone 上做 git 只會讓你恨自己。
+- 別。iPhone 跑不動 node script，跑不動 tribunal。維持「iPhone = 寫 / Mac = 發布」分工。硬要在 iPhone 上做 git 只會讓你恨自己。
 
 **Q: Templater 太複雜，我想手打 frontmatter？**
 - 可以。最少欄位：`series` + `title` + `summary`（SD/Lv）；SP/CP 再加 `source` + `sourceUrl`。其餘 import script 會補。

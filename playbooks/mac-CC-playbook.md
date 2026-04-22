@@ -14,7 +14,7 @@
 
 - Commit discipline（atomic commits）
 - Scope ceiling（相關路徑 + prod/CI 緊急事件例外）
-- 品質 gate（不能跳任何 hook 或 Ralph Loop）
+- 品質 gate（不能跳任何 hook 或 tribunal）
 - 失敗處理（forward fix → opus subagent → revert）
 
 ## 環境差異（mac-CC 該知道、CCC 不會遇到）

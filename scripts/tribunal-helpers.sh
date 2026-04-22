@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Ralph Loop — Shared helper functions
-# Source this file: source scripts/ralph-helpers.sh
+# Tribunal — Shared helper functions
+# Source this file: source scripts/tribunal-helpers.sh
 
 # Extract ticketId from a post file (handles both single and double quotes)
 # Usage: ticket_id=$(get_ticket_id "src/content/posts/file.mdx")
@@ -57,7 +57,7 @@ read_scores() {
   SCORE_V=$(jq -r '.dimensions.vibe' "$json_file")
 }
 
-# Stamp translatedBy with Ralph Loop pipeline info
+# Stamp translatedBy with tribunal pipeline info
 # Usage: stamp_ralph_signature "src/content/posts/file.mdx"
 stamp_ralph_signature() {
   local file="$1"
@@ -96,8 +96,8 @@ stamp_ralph_signature() {
       harness: \"Claude Code\"
     - role: \"Orchestrated\"
       model: \"${model_str}\"
-      harness: \"Ralph Loop\"
-  pipelineUrl: \"https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/ralph-loop.sh\"\`;
+      harness: \"Tribunal Batch Runner\"
+  pipelineUrl: \"https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/tribunal-batch-runner.sh\"\`;
 
     if (tbRegex.test(fm)) {
       fm = fm.replace(tbRegex, newTB);

@@ -125,6 +125,89 @@ function now(): string {
   return new Date().toISOString();
 }
 
+function todayISO(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+type FrontmatterJudgeKey = 'vibe' | 'freshEyes' | 'factCheck' | 'librarian';
+
+interface FrontmatterScoreEntry {
+  [dim: string]: number | string;
+  score: number;
+  date: string;
+  model: string;
+}
+
+const FRONTMATTER_DIM_MAP: Record<
+  string,
+  { fmKey: FrontmatterJudgeKey; dims: readonly string[] }
+> = {
+  stage1: { fmKey: 'vibe', dims: ['persona', 'clawdNote', 'vibe', 'clarity', 'narrative'] },
+  stage2: { fmKey: 'freshEyes', dims: ['readability', 'firstImpression'] },
+  stage3fact: {
+    fmKey: 'factCheck',
+    dims: ['accuracy', 'fidelity', 'consistency'],
+  },
+  stage3lib: {
+    fmKey: 'librarian',
+    dims: ['glossary', 'crossRef', 'sourceAlign', 'attribution'],
+  },
+};
+
+const RESERVED_KEYS = new Set(['score', 'date', 'model']);
+
+function buildFrontmatterScore(
+  scores: Record<string, number>,
+  dimNames: readonly string[],
+  model: string,
+  renameMap?: Record<string, string>
+): FrontmatterScoreEntry {
+  const entry: FrontmatterScoreEntry = { score: 0, date: todayISO(), model };
+  const vals: number[] = [];
+  for (const dim of dimNames) {
+    if (RESERVED_KEYS.has(dim)) continue;
+    const srcDim = renameMap?.[dim] ?? dim;
+    const val = scores[srcDim];
+    if (val != null) {
+      entry[dim] = val;
+      vals.push(val);
+    }
+  }
+  entry.score = vals.length > 0 ? Math.floor(vals.reduce((a, b) => a + b, 0) / vals.length) : 0;
+  return entry;
+}
+
+const STAGE3_FACT_RENAME: Record<string, string> = {
+  accuracy: 'factAccuracy',
+  fidelity: 'sourceFidelity',
+};
+
+const STAGE3_LIB_RENAME: Record<string, string> = {
+  crossRef: 'linkCoverage',
+  sourceAlign: 'linkRelevance',
+};
+
+async function persistScoreToFrontmatter(
+  config: PipelineConfig,
+  articlePath: string,
+  fmKey: FrontmatterJudgeKey,
+  scoreEntry: FrontmatterScoreEntry
+): Promise<void> {
+  const update = { scores: { [fmKey]: scoreEntry } };
+  await config.io.updateFrontmatter(articlePath, update);
+
+  // Sync to en-* counterpart (same convention as shell pipeline's write_score_to_frontmatter)
+  const dir = articlePath.substring(0, articlePath.lastIndexOf('/'));
+  const basename = articlePath.substring(articlePath.lastIndexOf('/') + 1);
+  const enPath = `${dir}/en-${basename}`;
+  try {
+    await config.io.readArticle(enPath);
+    await config.io.updateFrontmatter(enPath, update);
+  } catch {
+    // en-* counterpart doesn't exist — skip
+  }
+}
+
 function makeStageResult<T>(maxLoops: number): StageResult<T> {
   return { status: 'pending', loops: 0, maxLoops, history: [] };
 }
@@ -249,6 +332,8 @@ async function runStage0(state: PipelineState, config: PipelineConfig): Promise<
 async function runJudgeWriterLoop<
   TJudge extends {
     pass: boolean;
+    scores?: Record<string, number>;
+    judge_model?: string;
     improvements?: Record<string, string>;
     critical_issues?: string[];
   },
@@ -259,7 +344,8 @@ async function runJudgeWriterLoop<
   stageLabel: string,
   config: PipelineConfig,
   judge: (content: string) => Promise<TJudge>,
-  writer: (content: string, feedback: string) => Promise<{ content: string }>
+  writer: (content: string, feedback: string) => Promise<{ content: string }>,
+  fmPersist?: { fmKey: FrontmatterJudgeKey; dims: readonly string[] }
 ): Promise<boolean> {
   if (stage.status === 'passed' || stage.status === 'skipped') return true;
 
@@ -292,12 +378,19 @@ async function runJudgeWriterLoop<
     if (judgeOutput.pass) {
       stage.status = 'passed';
       stage.completedAt = now();
-      // No-path marker: the judge is read-only, so any article changes
-      // for this stage were already committed by prior writer loops.
-      // Using a marker prevents leaking undetected judge mutations even
-      // if the assertion above missed something.
+
+      if (fmPersist && judgeOutput.scores) {
+        const entry = buildFrontmatterScore(
+          judgeOutput.scores,
+          fmPersist.dims,
+          judgeOutput.judge_model ?? `stage${stageNum}`
+        );
+        await persistScoreToFrontmatter(config, state.articlePath, fmPersist.fmKey, entry);
+      }
+
       await config.git.commit(
-        `tribunal(stage${stageNum}): ${stageLabel} — PASS @ loop ${loop}/${stage.maxLoops}`
+        `tribunal(stage${stageNum}): ${stageLabel} — PASS @ loop ${loop}/${stage.maxLoops}`,
+        fmPersist ? [state.articlePath] : undefined
       );
       await config.onProgress?.(state);
       return true;
@@ -449,9 +542,19 @@ async function runStage3(state: PipelineState, config: PipelineConfig): Promise<
     if (judgeOutput.pass) {
       stage.status = 'passed';
       stage.completedAt = now();
-      // No-path marker — workers already committed their passing changes.
+
+      const model = judgeOutput.judge_model ?? 'stage3';
+      const { dims: factDims, fmKey: factKey } = FRONTMATTER_DIM_MAP.stage3fact;
+      const factEntry = buildFrontmatterScore(judgeOutput.scores, factDims, model, STAGE3_FACT_RENAME);
+      await persistScoreToFrontmatter(config, state.articlePath, factKey, factEntry);
+
+      const { dims: libDims, fmKey: libKey } = FRONTMATTER_DIM_MAP.stage3lib;
+      const libEntry = buildFrontmatterScore(judgeOutput.scores, libDims, model, STAGE3_LIB_RENAME);
+      await persistScoreToFrontmatter(config, state.articlePath, libKey, libEntry);
+
       await config.git.commit(
-        `tribunal(stage3): FactLib — PASS @ loop ${loop}/${stage.maxLoops}`
+        `tribunal(stage3): FactLib — PASS @ loop ${loop}/${stage.maxLoops}`,
+        [state.articlePath]
       );
       await config.onProgress?.(state);
       return true;
@@ -574,8 +677,18 @@ async function runStage4(state: PipelineState, config: PipelineConfig): Promise<
     if (judgeOutput.pass) {
       stage.status = 'passed';
       stage.completedAt = now();
+
+      const { fmKey, dims } = FRONTMATTER_DIM_MAP.stage1;
+      const entry = buildFrontmatterScore(
+        judgeOutput.scores,
+        dims,
+        judgeOutput.judge_model ?? 'stage4'
+      );
+      await persistScoreToFrontmatter(config, state.articlePath, fmKey, entry);
+
       await config.git.commit(
-        `tribunal(stage4): Final Vibe — PASS @ loop ${loop}/${stage.maxLoops}`
+        `tribunal(stage4): Final Vibe — PASS @ loop ${loop}/${stage.maxLoops}`,
+        [state.articlePath]
       );
       await config.onProgress?.(state);
       return;
@@ -693,7 +806,8 @@ export async function runPipeline(
     'Vibe',
     config,
     (content) => config.runners.stage1Judge.run({ articleContent: content }),
-    (content, feedback) => config.runners.stage1Writer.run({ articleContent: content, feedback })
+    (content, feedback) => config.runners.stage1Writer.run({ articleContent: content, feedback }),
+    FRONTMATTER_DIM_MAP.stage1
   );
 
   if (!stage1Passed) {
@@ -711,7 +825,8 @@ export async function runPipeline(
     'FreshEyes',
     config,
     (content) => config.runners.stage2Judge.run({ articleContent: content }),
-    (content, feedback) => config.runners.stage2Writer.run({ articleContent: content, feedback })
+    (content, feedback) => config.runners.stage2Writer.run({ articleContent: content, feedback }),
+    FRONTMATTER_DIM_MAP.stage2
   );
 
   if (!stage2Passed) {

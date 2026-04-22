@@ -251,9 +251,9 @@ import Toggle from '../../components/Toggle.astro';
 (ﾉ∀`*) (つ✧ω✧)つ (๑•́ ₃ •̀๑)
 ```
 
-## 品質管理：Ralph Loop
+## 品質管理：Tribunal
 
-gu-log 使用 Ralph Loop 進行品質管理——一個 multi-agent scoring + rewrite 系統。
+gu-log 使用 tribunal 進行品質管理——一個 multi-agent scoring + rewrite 系統（`tribunal-batch-runner.sh` 批次掃描、`tribunal-all-claude.sh` 單篇執行）。
 
 ### 流程
 
@@ -263,7 +263,7 @@ gu-log 使用 Ralph Loop 進行品質管理——一個 multi-agent scoring + re
    - **Vibe**（整體可讀性 0-10）
 2. **Pass bar**：≥ 8/8/8（all series）
 3. 沒過 → **Rewriter agent** 改寫 → 再跑 scorer → 最多 3 次
-4. 進度追蹤：`scripts/ralph-progress.json`
+4. 進度追蹤：`scores/tribunal-progress.json`（歷史資料在 `scores/archive/ralph-progress.json`）
 
 ### 工具
 
@@ -271,8 +271,8 @@ gu-log 使用 Ralph Loop 進行品質管理——一個 multi-agent scoring + re
 # 跑 Vibe scorer on a single file
 bash scripts/vibe-scorer.sh <file>
 
-# 跑 Ralph loop (batch)
-bash scripts/ralph-loop.sh
+# 跑 tribunal batch（動態掃描 posts/，newest-first）
+bash scripts/tribunal-batch-runner.sh
 ```
 
 ### GPT 5.4 Fact-Check（四層驗證）

@@ -1,7 +1,7 @@
 # Rewrite Queue
 
 > 清單形式記錄：哪幾篇 gu-log 文章需要 rewrite、為什麼、要改什麼方向。
-> 由 human（ShroomDog）維護。ralph-loop 或 Clawd 讀這份清單決定下一步動哪篇。
+> 由 human（ShroomDog）維護。tribunal-batch-runner 或 Clawd 讀這份清單決定下一步動哪篇。
 > 一篇文章處理完就把條目移到最底下的「Done」section，保留紀錄不刪掉。
 
 ## Pending

@@ -74,7 +74,7 @@ MCP API 的 `get_check_runs` 可能返回「舊 workflow 被改過後殘留的 i
 
 ## 失敗處理
 
-Vercel build / Ralph Loop / validate-posts / CI 沒過：
+Vercel build / tribunal / validate-posts / CI 沒過：
 
 1. **先試 forward fix**（新 commit 修）
 2. 一次不過就想想再試第二次
@@ -85,14 +85,14 @@ Vercel build / Ralph Loop / validate-posts / CI 沒過：
 - 用 `--no-verify` 跳過 hook
 - 用 `git reset --hard` 丟掉別人的 commit
 - 硬 force push 蓋掉 user 的改動
-- 關掉 Ralph Loop 讓爛文章過
+- 關掉 tribunal 讓爛文章過
 
 ## 品質 gate（全部不能跳）
 
 - `pre-commit` hook（eslint / prettier / validate-posts / contrast check / ticketId dedup）
 - `pre-push` hook（dependency / budget / dist checks）
 - `validate-posts.mjs`（frontmatter + kaomoji + filename）
-- Ralph Loop tribunal（Vibe + Fact + Librarian + FreshEyes）
+- Tribunal（Vibe + Fact + Librarian + FreshEyes）
 
 這些是 CCC 能放手做事的**前提**。關掉任何一個 = CCC 失去工作的資格。
 
@@ -100,7 +100,7 @@ Vercel build / Ralph Loop / validate-posts / CI 沒過：
 
 **PR 動到 `src/content/posts/*.mdx`（新增 SP/CP/SD/Lv，或實質改寫既有文章）→ 四評審必跑，結果必記錄。沒跑完不開 PR，跑完 FAIL 不 merge。**
 
-**首選**：`scripts/ralph-loop.sh` 或 `sp-pipeline ralph` 自動跑完四審 + rewrite + 寫 frontmatter scores。
+**首選**：`scripts/tribunal-batch-runner.sh` 或 `sp-pipeline ralph` 自動跑完四審 + rewrite + 寫 frontmatter scores。
 
 **沙箱 fallback**（CCC 常見：`sp-pipeline` 在沙箱因為 `--dangerously-skip-permissions` 不能以 root 跑、或 subprocess 限制跑不起來）：**CCC 自己用 `Agent` tool 一次 spawn 四個 subagent 平行跑**，對應 `.claude/agents/`：
 

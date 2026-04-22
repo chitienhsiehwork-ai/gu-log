@@ -66,10 +66,10 @@ const postsCollection = defineCollection({
           // Tribunal judges — uniform: all dims 0-10, score = floor(avg)
           librarian: z
             .object({
-              glossary: z.number().min(0).max(10),
-              crossRef: z.number().min(0).max(10),
-              sourceAlign: z.number().min(0).max(10),
-              attribution: z.number().min(0).max(10),
+              glossary: z.number().min(0).max(10).optional(),
+              crossRef: z.number().min(0).max(10).optional(),
+              sourceAlign: z.number().min(0).max(10).optional(),
+              attribution: z.number().min(0).max(10).optional(),
               score: z.number().min(0).max(10),
               date: z.string(),
               model: z.string().optional(),
@@ -77,9 +77,9 @@ const postsCollection = defineCollection({
             .optional(),
           factCheck: z
             .object({
-              accuracy: z.number().min(0).max(10),
-              fidelity: z.number().min(0).max(10),
-              consistency: z.number().min(0).max(10),
+              accuracy: z.number().min(0).max(10).optional(),
+              fidelity: z.number().min(0).max(10).optional(),
+              consistency: z.number().min(0).max(10).optional(),
               score: z.number().min(0).max(10),
               date: z.string(),
               model: z.string().optional(),
@@ -87,8 +87,8 @@ const postsCollection = defineCollection({
             .optional(),
           freshEyes: z
             .object({
-              readability: z.number().min(0).max(10),
-              firstImpression: z.number().min(0).max(10),
+              readability: z.number().min(0).max(10).optional(),
+              firstImpression: z.number().min(0).max(10).optional(),
               score: z.number().min(0).max(10),
               date: z.string(),
               model: z.string().optional(),
@@ -96,11 +96,11 @@ const postsCollection = defineCollection({
             .optional(),
           vibe: z
             .object({
-              persona: z.number().min(0).max(10),
-              clawdNote: z.number().min(0).max(10),
-              vibe: z.number().min(0).max(10),
-              clarity: z.number().min(0).max(10),
-              narrative: z.number().min(0).max(10),
+              persona: z.number().min(0).max(10).optional(),
+              clawdNote: z.number().min(0).max(10).optional(),
+              vibe: z.number().min(0).max(10).optional(),
+              clarity: z.number().min(0).max(10).optional(),
+              narrative: z.number().min(0).max(10).optional(),
               score: z.number().min(0).max(10),
               date: z.string(),
               model: z.string().optional(),

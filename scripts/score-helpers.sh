@@ -5,8 +5,8 @@ SCORE_HELPERS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCORE_ROOT="$(cd "$SCORE_HELPERS_DIR/.." && pwd)"
 export SCORE_ROOT
 
-# shellcheck source=scripts/ralph-helpers.sh
-source "$SCORE_ROOT/scripts/ralph-helpers.sh"
+# shellcheck source=scripts/tribunal-helpers.sh
+source "$SCORE_ROOT/scripts/tribunal-helpers.sh"
 
 ensure_score_dirs() {
   mkdir -p \

@@ -179,7 +179,7 @@ func normalizeRalphFrontmatter(path string) error {
 		{Role: "Refined", Model: "Opus 4.6", Harness: "Claude Code CLI"},
 		{Role: "Scored", Model: "Opus 4.6", Harness: "Claude Code (vibe-opus-scorer)"},
 		{Role: "Rewritten", Model: "Opus 4.6", Harness: "Claude Code"},
-		{Role: "Orchestrated", Model: "Opus 4.6", Harness: "OpenClaw + Ralph Loop"},
+		{Role: "Orchestrated", Model: "Opus 4.6", Harness: "OpenClaw + Tribunal"},
 	}
 	f.SetBlock("  pipeline", renderPipelineBlock("  pipeline", entries))
 	f.SetNestedScalar("translatedBy", "pipelineUrl", quoted(finalPipelineURL))

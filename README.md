@@ -160,21 +160,17 @@ Sends Telegram alert on failure.
 | `TELEGRAM_BOT_TOKEN` | nightly-deep, deploy-smoke-test |
 | `TELEGRAM_CHAT_ID` | nightly-deep, deploy-smoke-test |
 
-## Ralph Loop (Autonomous AI Development)
+## Tribunal Batch Runner
 
-`ralph-loop.sh` runs Claude Code in a headless loop. Each iteration picks one task from `TODO.json`, does the work, commits, pushes, then exits — starting the next iteration with a fresh context window.
+`tribunal-batch-runner.sh` dynamically scans `src/content/posts/` (newest-first) and runs the 4-judge tribunal on each unscored article. No static queue — it always sees the latest posts.
 
 ```bash
-./ralph-loop.sh      # default 10 iterations
-./ralph-loop.sh 5    # run 5 iterations
+bash scripts/tribunal-batch-runner.sh              # run until quota floor
+bash scripts/tribunal-batch-runner.sh --max 5      # run at most 5 articles
+bash scripts/tribunal-batch-runner.sh --dry-run    # list articles to process
 ```
 
-Runtime logs: `.ralph/loop.log` (gitignored)
-
-The loop stops when:
-- All tasks are done (creates `.ralph/DONE`)
-- Max iterations reached
-- You `Ctrl+C`
+Runtime logs: `.score-loop/logs/` (gitignored)
 
 ## Task Tracking
 

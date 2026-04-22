@@ -50,7 +50,7 @@ echo "$mode"
 You are Cloud Claude Code (CCC).
   - Move fast, merge fast, fix fast — this branch is disposable
   - Self-merge after CI green; forward fix before revert
-  - Quality gates (pre-commit, pre-push, Ralph Loop) are non-negotiable
+  - Quality gates (pre-commit, pre-push, tribunal) are non-negotiable
   - FULL PLAYBOOK: playbooks/CCC-playbook.md ← read this next
 TIPS
   else
