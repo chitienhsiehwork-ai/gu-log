@@ -27,7 +27,7 @@ jobs:
           path: |
             node_modules/.astro
             .astro
-          key: astro-nightly-${{ runner.os }}-${{ hashFiles('astro.config.*', 'src/content/config.ts') }}-${{ github.sha }}
+          key: astro-nightly-${{ runner.os }}-${{ hashFiles('astro.config.*', 'src/content/config.ts', 'src/plugins/**') }}-${{ github.sha }}
           restore-keys: |
             astro-nightly-${{ runner.os }}-
 

@@ -11,25 +11,44 @@ concurrency:
   group: fast-gate-${{ github.ref }}
   cancel-in-progress: true
 
+# Minimal permissions. `contents: read` for checkout; nothing else needed now
+# that dependency-review (which wanted pull-requests: write for PR comments)
+# is removed. See the "Re-enabling dependency-review" block at the bottom of
+# this file for what to restore if Dependency Graph gets enabled.
 permissions:
   contents: read
-  # dependency-review-action needs write to post its summary comment on PRs.
-  pull-requests: write
+
+# ─── Design note: build vs checks parallelism ──────────────────────────────
+# build runs in parallel with every fast check (lint / type-check / contrast
+# / validate-content / security-gate / unit-tests). A fast check failing
+# does NOT cancel the in-flight build, so we pay the full ~2 min of build
+# runner minutes even when lint errors in 10s. For a solo-author public repo
+# that's fine (GitHub Actions is free on public repos and wall-time for the
+# iterating author matters more than idle runner minutes). If this repo ever
+# goes private or the runner-minute cost starts to bite, add:
+#   needs: [lockfile-consistency, lint]
+# to `build` — those two are the cheapest fail-fast gates.
+# ────────────────────────────────────────────────────────────────────────────
 
 jobs:
-  # ─── Tier 1: independent checks (all run in parallel, no job blocks another) ──
+  # ─── Tier 1: independent checks (all run in parallel) ────────────────────
   lockfile-consistency:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-pnpm
-      - name: Verify lockfile unchanged after install
+      # `pnpm install --frozen-lockfile` inside the composite already fails
+      # on any lockfile drift; this diff catches the narrower case of a
+      # post-install lockfile rewrite (shouldn't happen, but cheap to check).
+      - name: Sanity check — lockfile byte-identical after install
         run: git diff --exit-code -- pnpm-lock.yaml
       - name: Ensure npm lockfile not tracked
         run: test ! -f package-lock.json
 
   lint:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-pnpm
@@ -40,6 +59,7 @@ jobs:
 
   type-check:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-pnpm
@@ -48,6 +68,7 @@ jobs:
 
   contrast:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-pnpm
@@ -56,6 +77,7 @@ jobs:
 
   validate-content:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v6
         with:
@@ -76,6 +98,7 @@ jobs:
 
   security-gate:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-pnpm
@@ -84,35 +107,18 @@ jobs:
 
   unit-tests:
     runs-on: ubuntu-latest
+    # vitest run is fast (~5s locally) but tribunal-v2/pipeline.test.ts spawns
+    # subprocesses; cap the job so a hung test can't eat 6h of runner time.
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-pnpm
       - name: Vitest unit tests
         run: pnpm exec vitest run --reporter=default
 
-  # NOTE: dependency-review job was intentionally removed — it requires the
-  # repo-level Dependency Graph setting (Settings → Code security) which
-  # workflow YAML cannot toggle. Once enabled, add the job back with:
-  #
-  #   dependency-review:
-  #     if: github.event_name == 'pull_request'
-  #     runs-on: ubuntu-latest
-  #     steps:
-  #       - uses: actions/checkout@v6
-  #       - uses: actions/dependency-review-action@v4
-  #         with:
-  #           fail-on-severity: moderate
-  #           comment-summary-in-pr: on-failure
-  #
-  # And include `dependency-review` in the `ci-passed` aggregate needs list.
-
-
-  # ─── Tier 1 (cont.): build runs in parallel with checks above ────────────
-  # Type check and content validation happen in their own jobs, so build
-  # doesn't wait for them. A build failure and a lint failure surface at the
-  # same time instead of serially, which is what we actually want.
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-pnpm
@@ -123,9 +129,12 @@ jobs:
           path: |
             node_modules/.astro
             .astro
-          key: astro-${{ runner.os }}-${{ hashFiles('astro.config.*', 'src/content/config.ts') }}-${{ github.sha }}
+          # Key covers everything `astro build` reads from config or plugins.
+          # If you add a new config file or plugin location, add it here or
+          # stale incremental state may leak between builds.
+          key: astro-${{ runner.os }}-${{ hashFiles('astro.config.*', 'src/content/config.ts', 'src/plugins/**') }}-${{ github.sha }}
           restore-keys: |
-            astro-${{ runner.os }}-${{ hashFiles('astro.config.*', 'src/content/config.ts') }}-
+            astro-${{ runner.os }}-${{ hashFiles('astro.config.*', 'src/content/config.ts', 'src/plugins/**') }}-
             astro-${{ runner.os }}-
 
       - name: Build
@@ -143,6 +152,7 @@ jobs:
   internal-links:
     runs-on: ubuntu-latest
     needs: build
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-pnpm
@@ -158,6 +168,7 @@ jobs:
     # Nightly still runs with --record to append history; here we check only.
     runs-on: ubuntu-latest
     needs: build
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-pnpm
@@ -174,9 +185,6 @@ jobs:
   ci-passed:
     runs-on: ubuntu-latest
     if: always()
-    # dependency-review is intentionally excluded — it requires the repo-level
-    # Dependency Graph setting and is wired as continue-on-error. Once the
-    # setting is enabled and runs go green, add it back here to start gating.
     needs:
       - lockfile-consistency
       - lint
@@ -189,13 +197,46 @@ jobs:
       - internal-links
       - bundle-budget
     steps:
-      - name: Fail if any required job failed or was cancelled
+      - name: Verify every required job succeeded
         run: |
+          # Positive-match semantics: every leaf job's result MUST be "success".
+          # success / failure / cancelled / skipped — only success passes. This
+          # is the conservative choice: a skip from an `if:` shortcut or a
+          # cancel-in-progress race would silently slip through a failure-only
+          # grep, leaving branch protection green on an incomplete run.
           results='${{ toJSON(needs) }}'
           echo "$results"
-          failed=$(echo "$results" | grep -Eo '"result":"(failure|cancelled)"' || true)
-          if [ -n "$failed" ]; then
-            echo "::error::One or more required jobs failed. See results above."
+          passed=$(printf '%s' "$results" | grep -Eo '"result":"success"' | wc -l | tr -d ' ')
+          total=$(printf '%s' "$results" | grep -Eo '"result":"[^"]+"' | wc -l | tr -d ' ')
+          echo "Success: $passed / $total"
+          if [ "$passed" != "$total" ]; then
+            echo "::error::One or more required jobs did not succeed (failure / cancelled / skipped)."
             exit 1
           fi
           echo "All required jobs passed."
+
+# ─── Re-enabling dependency-review (currently disabled) ────────────────────
+# The dependency-review-action requires the repo-level setting
+# Settings → Code security → Dependency graph. Without it the action errors
+# out ("Dependency review is not supported on this repository.") so the job
+# was removed entirely on this branch — a disabled-but-present job adds UI
+# noise without buying security.
+#
+# To re-enable once Dependency Graph is on:
+#   1. Restore permissions → add `pull-requests: write` at the top of this
+#      file (dep-review's comment-summary-in-pr needs it).
+#   2. Add back this job alongside `security-gate`:
+#
+#        dependency-review:
+#          if: github.event_name == 'pull_request'
+#          runs-on: ubuntu-latest
+#          timeout-minutes: 5
+#          steps:
+#            - uses: actions/checkout@v6
+#            - uses: actions/dependency-review-action@v4
+#              with:
+#                fail-on-severity: moderate
+#                comment-summary-in-pr: on-failure
+#
+#   3. Add `dependency-review` to the `ci-passed.needs` list.
+# ────────────────────────────────────────────────────────────────────────────
