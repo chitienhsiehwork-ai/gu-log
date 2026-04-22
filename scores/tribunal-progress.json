@@ -4445,20 +4445,19 @@
         "score": {
           "pass": false,
           "improvements": {
-            "accuracy": "三個具體 claim 需加強處理：(1) `nO` 函式名稱是非常具體的 community-sourced claim，目前文中已有「社群分析結論，無法獨立確認」，但建議進一步說明「無法連結到任何具體公開報告」；(2) SWE-Agent linter 移除效能掉 3% 雖然 cite 了 arxiv，文中應補充「在 SWE-bench 上」的限定語（目前寫「在 SWE-bench 上效能直接掉 3%」——實際上文中有這個限定，OK，但要確認 arxiv paper 確實有這個具體數字）；(3) 'OpenAI Codex' 指稱歧義——文中未區分 2020 code completion model 與後期 Codex agent，建議改為「早期 OpenAI 模型」或加時間點說明。",
-            "fidelity": "Source 是 @Hxlfed14 的單篇推文，文章主體（Claude Code loop、Cursor embedding 訓練、Manus 29 tools + logit masking、SWE-Agent ACI）全部來自推文以外的其他來源。雖然文章開頭有括號說明（「延伸自推文主題，資料來自各廠商的技術文章與社群研究，非原推文的直接內容」），但這個 disclaimer 只出現一次，且埋在第一節之後才出現，讀者可能在讀 Cursor/Manus/SWE-Agent 段落時已忘記這個說明。建議在每個廠商小節的來源標示更清楚，或在文章頭部加更顯眼的 scope 說明。另外 Harrison Chase 的引述標記為「大意表示（無公開 URL 可驗證；以下為作者詮釋，非直接引用）」——這個 hedge 做得好，但仍算 unverifiable paraphrase 被作為 authority 引用。"
+            "accuracy": "文章有 3–4 個關鍵技術 claim 來自無公開 URL 可驗證的來源（Cursor blog 關於工具命名策略 + embedding model 訓練、Anthropic 內部報告關於 progressive disclosure 效率、LangChain blog）。每個都有個別標注免責聲明，方向正確，但累積數量超過 accuracy ≥ 8 的容忍上限。建議：(1) 把 Cursor 相關 claim 換成可驗證的公開 docs/changelog；(2) 把所有 unverifiable synthesis 集中到一個明確標注的「作者綜合判斷」section；(3) Manus logit masking claim（29 個工具永遠載入、在 decoding 階段用 logit masking 控制）若無法從公開 blog URL 直接確認，應加上適當 hedge。"
           },
           "critical_issues": [
-            "多處 blog 來源（LangChain、Cursor 各兩個 claim）標示「無公開 URL 可驗證」，技術 claim 無法被讀者獨立核實，這些 claim 佔文章相當比例，是 accuracy/fidelity 雙雙 7 分的主因",
-            "Source URL 是單篇推文，文章 80% 內容來自推文以外的多個第三方來源；disclaimer 只出現一次且位置不夠醒目，source fidelity 因此受限",
-            "'OpenAI Codex' 命名未加時間點限定，Cursor 歷史上使用過多代 OpenAI 模型，指稱不清可能造成讀者錯誤對應"
+            "3–4 個關鍵技術 claim（Cursor 依 model 特調工具命名、Cursor 用 agent 軌跡訓練 embedding model、Anthropic progressive disclosure 內部效率數據）來源均無公開可驗證 URL，累積量超過 accuracy 7→8 的門檻上限（評分標準要求 1–2 個 unverifiable 才能到 7 分，超出則應扣到 5–6）。",
+            "Manus logit masking 機制（29 個工具永遠在 context 中、在 decoding 階段控制可用集合）以事實形式陳述，是具體技術精確聲明，應在提交前對照公開 blog 原文確認或加適當 hedge。"
           ],
+          "fact_pass": false,
           "judge_model": "claude-sonnet-4-6",
           "judge_version": "2.0.0",
-          "timestamp": "2026-04-22T08:00:00Z",
+          "timestamp": "2026-04-22T00:00:00Z",
           "dimensions": {
             "accuracy": 7,
-            "fidelity": 7,
+            "fidelity": 8,
             "consistency": 8
           },
           "score": 7,
@@ -4470,6 +4469,6 @@
     },
     "status": "FAILED",
     "failedStage": "factChecker",
-    "finishedAt": "2026-04-22T09:02:01+08:00"
+    "finishedAt": "2026-04-22T09:10:21+08:00"
   }
 }
