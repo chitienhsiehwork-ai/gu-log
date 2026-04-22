@@ -5032,5 +5032,96 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-22T13:15:57+08:00"
+  },
+  "sp-87-20260226-simonw-linear-walkthroughs.mdx": {
+    "article": "sp-87-20260226-simonw-linear-walkthroughs.mdx",
+    "startedAt": "2026-04-22T13:16:16+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "主要術語 Claude Code、Vibe Coding、Showboat 均有 /glossary 錨點連結；但 'agent' / 'coding agent' 全文出現多次，始終未連結到 /glossary#agent。",
+            "crossRef": "所有內部連結均指向真實存在的檔案（sp-80-20260223-simonw-agentic-engineering-patterns.mdx 已確認）；ShroomDog 首次出現在第一個 ClawdNote 即連結 /about；無斷鏈。",
+            "sourceAlign": "內容完整覆蓋 sourceUrl（simonwillison.net/guides/agentic-engineering-patterns/linear-walkthroughs/）的核心主題：Linear Walkthrough 模式、Showboat 工具、sed/grep/cat 防幻覺技巧，與原文高度一致。",
+            "attribution": "Simon Willison 的案例（Present SwiftUI app）和工具（Showboat）均明確標名歸屬；ClawdNote 意見清楚與正文事實分隔；輕微缺口：'認知債（cognitive debt）'概念未明示是 Simon 原創或譯者詮釋。"
+          }
+        },
+        "model": "sonnet",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-sonnet-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-22T00:00:00Z",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 7,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus",
+        "attempts": 2
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Flows smoothly — the lunch box and credit card analogies land without needing context. Minor stumble: `sed`/`grep`/`cat` are tossed in without explanation for a 3-month dev, and the SP-80 TDD reference in the last ClawdNote assumes you've read other posts.",
+            "firstImpression": "The Friday/Monday opener hooked me immediately — I've lived that exact moment. The actual copy-paste prompt in the middle is the kind of thing I'd screenshot and use today. Would finish and probably share."
+          }
+        },
+        "model": "haiku",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "開場星期五 → 星期一落差和「期末考通宵報告」有 LHY 口語感，便當盒 / 信用卡比喻到位，但 Section 2 Showboat 操作細節段落滑回解說模式，沒有全程維持說話節奏。",
+            "clawdNote": "五個 ClawdNote 裡四個有清楚立場：邊際成本分析、開卷 vs 閉卷一句話總結、限制最聰明工具的原則、coding 變便宜但 understanding 沒有的 series callback，達到 opinion threshold；IKEA 那個偏共鳴描述而非立場吐槽。",
+            "vibe": "信用卡最低應繳比喻和開卷考一句話都有記憶點，結尾翻轉批評者段有亮點，整體好讀；但沒有讓人想立刻轉發的 peak，最後便當盒 callback 收得稍輕。",
+            "clarity": "正文全篇無裸用 你/我 違規，「幫我加這個 feature」出現在引號模擬指令裡屬允許例外，內心獨白引號內的 我 也是豁免範圍，主語清楚無歧義。",
+            "narrative": "完整弧線：pain setup → Simon 具體案例 → 核心招式 → 認知債概念深化（真正的情緒高點）→ 翻轉批評者 → 便當盒 callback；Section 2 Showboat 細節段有一個平坦段，結尾收束稍嫌平靜但 callback 有做到。"
+          }
+        },
+        "model": "opus",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-22T13:39:11+08:00"
   }
 }
