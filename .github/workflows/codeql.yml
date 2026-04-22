@@ -35,9 +35,10 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           queries: security-extended,security-and-quality
-
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
+          # JavaScript/TypeScript is interpreted — CodeQL reads source
+          # directly, no build needed. `build-mode: none` skips the
+          # autobuild no-op that otherwise burns ~30-90s.
+          build-mode: none
 
       - name: Perform analysis
         uses: github/codeql-action/analyze@v3
