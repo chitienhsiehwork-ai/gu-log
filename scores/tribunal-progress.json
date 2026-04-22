@@ -5123,5 +5123,96 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-22T13:39:11+08:00"
+  },
+  "sp-86-20260225-simonw-claude-code-remote-cowork.mdx": {
+    "article": "sp-86-20260225-simonw-claude-code-remote-cowork.mdx",
+    "startedAt": "2026-04-22T13:39:34+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-sonnet-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-22T00:00:00Z",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 9,
+            "sourceAlign": 8,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "sonnet",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All verifiable technical claims check out: --dangerously-skip-permissions is a real Claude Code flag; Tailscale 100.x.x.x CGNAT IP range is correct; Swift socket code syntax is valid; GET-based state mutation as CSRF vulnerability is technically accurate; FOO Camp as O'Reilly unconference is correct; Cowork described as 'general agent sibling' matches the linked simonwillison.net source. The Feb 24 Remote Control launch → Feb 25 tweet timeline is internally consistent.",
+            "fidelity": "Source faithfully represented: the central 'requires computer to stay on' thesis is preserved from Simon's quoted text. Direct quotes are blockquote-formatted. The Cowork docs limitation quote is presented verbatim. Simon's bugs are attributed to his experience (first-person framing preserved). 'I really hope they're working on a Cowork Cloud' is correctly quoted. ClawdNote opinions are structurally separated and never attributed to Simon.",
+            "consistency": "Tight logical structure: the 'same power cord' thesis anchors both Remote Control and Cowork Scheduled Tasks sections. The Present.app section is explicitly flagged as unrelated to prevent confusion. The CSRF note in the final ClawdNote is clearly labeled as Clawd's engineering analysis, not Simon's position. Conclusion callback to the opening metaphor is earned and coherent."
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "開頭跑步機比喻超強，馬上進入狀況。大部分術語（OpenClaw、Vibe Coding、FOO Camp、CSRF）都有括號解釋，不會迷路。唯二扣分：Tailscale 丟出來沒解釋，Clawd/ShroomDog 是誰完全不清楚——ClawdNote 對第一次讀的人感覺像在看別人家的內部笑話，但不影響理解主文。",
+            "firstImpression": "45 分鐘寫演講 app 這段是全文殺手鐧——76KB、前一晚才決定、然後隔天直接上戰場，這種故事我會傳給朋友。無線吸塵器和外送員確認每一口的比喻讓我笑出來。「同一條電源線」收尾乾淨，整篇有開場有結論不拖泥帶水。看完會搜這個 Simon Willison 是誰。"
+          }
+        },
+        "model": "haiku",
+        "attempts": 2
+      },
+      "vibe": {
+        "status": "fail",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 7,
+            "narrative": 9
+          },
+          "score": 8,
+          "verdict": "FAIL",
+          "reasons": {
+            "persona": "跑步機/無線吸塵器30cm線/管家只在主人回家才工作 — all three analogies land precisely; '前一晚。演講前一晚。' and 'built different' fragments are pure LHY oral rhythm; persona holds across all four sections.",
+            "clawdNote": "4 of 6 notes take clear positions (Clawd's 超然同情, wanting a cloud competitor, challenging blind vibe-coding, endorsing CSRF pragmatism as '時間管理的 bug'); notes 2 and 4 lean toward praise/explanation without a challenge, keeping this at 8 not 9.",
+            "vibe": "Strong evening-story arc with escalating bug comedy and satisfying twist ending; Cowork section's bare documentary quote briefly kills momentum before the Present.app section fully recovers.",
+            "clarity": "'你的電腦，得一直開著' appears as a standalone body-prose line (after the opening blockquote) — unambiguous but a clear body-text 你 violation outside ClawdNote/blockquote; can't reach 8 with even one body-text pronoun.",
+            "narrative": "'同一條電源線' conclusion genuinely inverts the premise — Simon criticized 'must be on' while building exactly that; callback to the 30cm cable analogy completes the arc; the structural irony is in the skeleton, not just decoration, and the final line has real punch."
+          }
+        },
+        "model": "opus",
+        "attempts": 3
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "FAILED",
+    "failedStage": "vibe",
+    "finishedAt": "2026-04-22T14:24:25+08:00"
   }
 }
