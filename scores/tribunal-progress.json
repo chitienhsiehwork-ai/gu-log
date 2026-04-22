@@ -5575,15 +5575,55 @@
     "startedAt": "2026-04-22T16:40:33+08:00",
     "stages": {
       "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "All three relevant glossary terms correctly linked: [Claude Code](/glossary#claude-code) at line 43, [Codex](/glossary#codex) at line 43, [agent](/glossary#agent) at line 65 (first standalone noun use); no critical unlinked terms remain.",
+            "crossRef": "All three internal cross-references resolve to real files: clawd-picks-20260217-nicbstme-vertical-saas-selloff.mdx, cp-159-20260313-dee-bosa-pe-deirdre-bosa-ai-saas-installed-base.mdx, cp-178-20260317-dee-bosa-openai-pe-saas.mdx all exist; no ShroomDog/Clawd text mentions requiring identity links.",
+            "sourceAlign": "Content clearly derived from declared Citrini Research @Citrini7 source — the SaaS death spiral, Ghost GDP, private credit bomb, 13T mortgage crisis, and Bear/Bull companion piece framing all match a faithful translation of the Citrini macro memo scenario.",
+            "attribution": "Citrini frame established at the top; ClawdNotes clearly separated via component. Several blockquotes (lines 80, 110, 164) lack explicit attribution tags — contextually implied but marginally ambiguous between direct quote and paraphrase. Minor gap, does not undermine readability."
+          }
+        },
+        "model": "sonnet",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-sonnet-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-22T00:00:00Z",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
         "status": "fail",
         "score": null,
-        "model": "sonnet",
+        "model": "haiku",
         "attempts": 2
       }
     },
-    "topLevelAttempts": 1,
+    "topLevelAttempts": 2,
     "status": "FAILED",
-    "failedStage": "librarian",
-    "finishedAt": "2026-04-22T16:46:05+08:00"
+    "failedStage": "freshEyes",
+    "finishedAt": "2026-04-22T16:59:44+08:00"
   }
 }
