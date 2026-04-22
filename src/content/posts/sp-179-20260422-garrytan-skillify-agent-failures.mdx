@@ -15,11 +15,11 @@ scores:
   tribunalVersion: 2
   vibe:
     persona: 8
-    clawdNote: 8
-    vibe: 7
-    clarity: 8
+    clawdNote: 9
+    vibe: 8
+    clarity: 9
     narrative: 8
-    score: 7
+    score: 8
     date: "2026-04-22"
     model: "claude-opus-4-7"
 ---
@@ -215,46 +215,44 @@ Integration test 則是把整條產線從頭到尾拼起來真的跑一遍，原
 
 ### Step 5：LLM evals——用 model 判斷另一個 model
 
-這招有點玄，但想一下就通：有些輸出 deterministic test 判不了——「這份 calendar 摘要有沒有用？」不是一個 yes/no 問題。這就像考作文不能用 ctrl+F 改，得找一位真的會寫字的老師評分。Garry 的老師也是一位 model：**LLM-as-judge**，一個 model 依照 rubric 評另一個 model 的輸出。
+這招有點玄，但其實想一下就通：有些輸出 deterministic test 就是判不動——「這份 calendar 摘要有沒有用？」根本不是 yes/no 問題。這關就像國中會考的作文題——不能塞進 ctrl+F 改，只能找一個真的會寫字的老師來評分。Garry 的老師也是一位 model：**LLM-as-judge**，讓一個 model 按照 rubric 評另一個 model 的輸出。有點左手打右手的味道，但在沒有更好辦法的時候，這是目前最接近「有品味的 reviewer」的版本。
 
-context-now 的 eval 每天跑 35 個。其中一個餵給 agent 一句「嘿，航班 45 分鐘後起飛，趕得到 SFO 嗎？」，然後**檢查 agent 有沒有先跑 `context-now.mjs` 才回答**。如果 agent 跳過腳本自己心算，eval 就 fail。
+context-now 的 eval 每天 35 個跑一輪。其中一題餵給 agent 一句「嘿，航班 45 分鐘後起飛，趕得到 SFO 嗎？」，然後**檢查的不是答案對不對，是 agent 有沒有先跑 `context-now.mjs` 才開口**。如果 agent 跳過腳本自己心算，就算答案剛好對、eval 一樣 fail。
 
-另一個 eval 給 agent 一個 UTC 時間戳問「這是本地幾點？」正確行為：跑腳本、引結果。錯誤行為：心算。eval 同時捕捉「答錯」**跟**「過程錯」——因為就算這次心算剛好對，下次就會錯。「賭對一次」跟「每次都對」在工程上完全是兩件事，LLM eval 要擋的是前者偽裝成後者。
+另一題給 agent 一個 UTC 時間戳問「這是本地幾點？」正確行為：跑腳本、引結果。錯誤行為：心算。eval 同時捕捉「答錯」**跟**「過程錯」——因為就算這次心算賭對，下次就會錯。講白了，「賭對一次」跟「每次都對」在工程上是完全兩件事，LLM eval 要擋的就是前者偽裝成後者。
 
-Garry 給了一個很真實的 heuristic：**想找還缺什麼 test？把對話紀錄裡搜「fucking shit」跟「wtf」，那些就是漏掉的 test case。** 講白了就是暴怒考古學——哪裡罵聲最大，哪裡就是該補 eval 的地方。
+Garry 最後給了一個非常黑色幽默的 heuristic：**想知道還缺什麼 test？把跟 agent 的對話紀錄搜「fucking shit」跟「wtf」，那些位置就是漏掉的 test case。** 說穿了就是暴怒考古學——哪裡罵聲最大，哪裡就是該補 eval 的現場。
 
 ### Step 6-7：Resolver trigger + eval
 
-先講一個真實場景：病人腹痛掛急診，醫院裡明明有腸胃科主治、內視鏡台也 stand by，偏偏掛號櫃檯的分科名單漏登，護理師照名單找不到人，病人被丟到一般科打止痛。不是沒資源，是路由斷了。Agent 系統最陰的 bug 就長這個樣子——skill 齊全，但沒人叫得到它。
+先講一個真實場景。病人半夜腹痛掛急診，醫院裡明明有腸胃科主治在、內視鏡台也 stand by，偏偏掛號櫃檯的分科名單漏登這一科，護理師照名單找不到人，病人被丟去一般科打止痛針走人。資源都在——**只是路由斷了**。Agent 系統最陰的 bug 就長這個樣子：skill 寫好了、放好了、腳本也測過了，但沒人叫得到它。比完全沒做還糟，因為工程師會以為系統能處理這件事。
 
-**Resolver** 就是 agent 的掛號櫃檯 + 分科名單——某種任務類型出現時，自動載入對應的 skill。Garry 在另一篇 [resolver 專文](https://x.com/garrytan/status/2044479509874020852) 講得更細。每個 skill 都需要在 `AGENTS.md` 裡註冊一行 trigger。
+**Resolver** 扮演的就是那個掛號櫃檯 + 分科名單——某種任務類型出現時，自動載入對應的 skill。Garry 在另一篇 [resolver 專文](https://x.com/garrytan/status/2044479509874020852) 拆得更細。每個 skill 都要在 `AGENTS.md` 裡登記一行 trigger，Step 6 擋的就是「蓋了科室但忘記寫在名單上」這個失誤。
 
-Step 6 擋掉的就是剛才那個急診劇本：skill 寫好了但忘了加 resolver entry。skill 在、capability 在，**但系統找不到它**——比沒這個 skill 還糟，因為工程師會**以為**系統能處理。
-
-Step 7 是大多數人完全跳過的一層。resolver trigger 說「這句話應該路由到這個 skill」，resolver eval **驗證它真的路由過去**。類比延伸：光是在名單上寫「王醫師——腸胃科」還不夠，要真的派一個假病人進來、看王醫師有沒有被叫到。Garry 的 eval suite 有 50+ test case：
+Step 7 是 90% 的人會跳過的那一層。resolver trigger 說「這句話應該路由到這個 skill」，resolver eval **驗證它真的路由過去**。類比延伸下去：名單上寫「王醫師——腸胃科」還不夠，得真的派一個假病人掛號、然後盯著看王醫師有沒有被叫到診間。沒這一步，名單永遠是紙上作業。Garry 的 eval suite 養了 50+ 個 test case：
 
 ```javascript
 { intent: 'what time is my meeting', expectedSkill: 'context-now' },
 { intent: 'find my 2016 trip',       expectedSkill: 'calendar-recall' },
 ```
 
-兩種 failure 形態都要抓：**false negative**（該 fire 沒 fire，trigger description 寫爛了）跟 **false positive**（錯的 skill fire 了，兩個 trigger 重疊）。「明天行事曆上有什麼」應該路由到 `calendar-check`，不是 `calendar-recall` 也不是 `google-calendar`。三個 skill、三個不同的時間區間、一句話可能都能 match——resolver eval 在 user 撞到模糊之前先 catch。
+兩種 failure 形態都要抓：**false negative**（該 fire 沒 fire，trigger description 寫爛）跟 **false positive**（錯的 skill fire 了，兩個 trigger 重疊）。「明天行事曆上有什麼」應該路由到 `calendar-check`，不是 `calendar-recall` 也不是 `google-calendar`。三個 skill、三個時間區間、一句話可能都能 match——resolver eval 就是在 user 踩到這個模糊之前先把它 catch 下來。
 
 ### Step 8：Check-resolvable + DRY audit——清理暗能力
 
-Garry 一個月建了 40+ 個 skill，有些是 failure 後補的、有些是子 agent 跑 cron 時自動產生的，沒人維護 resolver 表格。skill 一直生、但沒人登記。
+先把場景拉到抽屜前面。想像家裡那個萬用抽屜裡躺著 15 支長得一模一樣的 USB 充電線，每次急著充手機伸手一抓，抓到的偏偏是內部斷芯的那支——其他 14 支 ok 的就當陪襯在裡面爛。Agent 的 skill 庫放著不管，就是長這個樣。Garry 一個月建了 40+ 個 skill，有些是 failure 後補的、有些是子 agent 跑 cron 時自動產生的，沒人維護 resolver 表格。skill 一直生、沒人登記、長相越來越像、抽屜越塞越滿。
 
-所以他寫了一個 meta-test 叫 **`check-resolvable`**，走整條鍊：AGENTS.md resolver → SKILL.md → script/cron。如果某支腳本做有意義的事、但從 resolver 到那裡沒有路——**這個 skill 就是不可抵達的，LLM 永遠不會知道該用它。**
+所以他寫了一個 meta-test 叫 **`check-resolvable`**，走整條鍊：AGENTS.md resolver → SKILL.md → script/cron。某支腳本做有意義的事、但從 resolver 到那裡沒有路——**這個 skill 就是不可抵達的，LLM 永遠不會知道該用它。** 說穿了就是一條 linter，但盯的不是 syntax，是「有路可達」這件事。
 
-第一次跑發現 40+ 個 skill 裡有 **6 個完全不可抵達**。**系統 15% 的能力是暗的。**
+第一次跑就爆雷：40+ 個 skill 裡 **6 個完全不可抵達**。**系統 15% 的能力根本是暗的。**
 
-- 一個 flight tracker，但沒人能透過問航班的方式叫到它
+- 一個 flight tracker，但沒人能用「問航班」的方式叫到它
 - 一個 content-ideas generator 只有 cron 跑，手動叫不出來
-- 一個 citation fixer 住在 skills 目錄但完全沒在 resolver 裡
+- 一個 citation fixer 住在 skills 目錄但完全沒在 resolver 上登記
 
-一小時修完，都只是加 trigger entry 到 AGENTS.md。現在 `check-resolvable` 每週跑一次，查三件事：每個 SKILL.md 有對應 resolver entry、每支 script 真的能 call、兩個 skill 不能有重疊 trigger。
+一小時全修完，都只是加 trigger entry 到 AGENTS.md。現在 `check-resolvable` 每週跑一次，查三件事：每個 SKILL.md 有對應 resolver entry、每支 script 真的能 call、兩個 skill 不能有重疊 trigger。
 
-DRY audit 跟它一起跑。想像一下抽屜裡躺著 15 支長得一模一樣的 USB 充電線，每次急著要用時伸手一抓，抓到的偏偏是那支內部斷芯的，其他 14 支就是陪襯——agent 的 skill 庫放著不管就會變成這個樣子。**會長出 15 個做差不多事情的 skill，resolver 看骰子選一個執行——**修行不夠 robust 的系統都會這樣。
+DRY audit 跟它綁在一起跑。**一直放任不管，skill 庫會長出 15 個做差不多事情的 skill，resolver 看骰子選一個執行——**不夠 robust 的系統都會這樣，包含人腦。那條斷芯的充電線就是這樣長期生存在抽屜裡的。
 
 ### Step 9-10：E2E smoke test + Brain filing rules
 
