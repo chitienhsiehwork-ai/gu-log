@@ -4592,5 +4592,94 @@
     "status": "PASS",
     "failedStage": "factChecker",
     "finishedAt": "2026-04-22T10:14:31+08:00"
+  },
+  "sp-92-20260301-zackbshapiro-claude-native-law-firm.mdx": {
+    "article": "sp-92-20260301-zackbshapiro-claude-native-law-firm.mdx",
+    "startedAt": "2026-04-22T10:14:52+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 7,
+            "sourceAlign": 9,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Cowork 正確連結至 /glossary#cowork（第 99 行），是最關鍵的 glossary 詞彙且有完整連結；Claude Code 在正文和 ClawdNote 中多次出現但未連結 glossary，為主要缺口。",
+            "crossRef": "ShroomDog 首次出現即連結 /about（第 104 行）✓；延伸閱讀中 CP-52（mattpocockuk）和 SP-22（claude-code-sustainable-ai-workflow）兩條連結均確認存在 ✓；但 CP-12「clawd-picks-20260203-boris-cherny-workflow」在 src/content/posts/ 中無對應檔案，屬於斷鏈 ✗。",
+            "sourceAlign": "全文持續以 Zack Shapiro 第一人稱視角呈現，涵蓋其 M&A 攻防案例、tracked changes workflow、法律研究 skill 設計，內容與 sourceUrl 所指向的 Zack Shapiro X 推文主題高度一致，attribution 清晰。",
+            "attribution": "Zack Shapiro 的行動和判斷全程明確歸因；ABA Formal Opinion 512 有具名；Anthropic Trust Center 附連結；ClawdNote 與正文清晰分隔。唯一瑕疵：「根據 Zack 引述的研究」（AI 過度依賴使績效下降）未提供具體研究名稱或來源，屬輕微 attribution gap。"
+          }
+        },
+        "model": "sonnet",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-sonnet-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-22T00:00:00Z",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-sonnet-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-22T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "haiku",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 8,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Opening crisis scene and 御飯糰 analogy land solidly in LHY territory, and the closing callback ('然後他回家了。十年 judgment 沒有被淘汰。它被裝上了一具引擎。') is textbook oral-style punch — but 實戰三則 settles into a formulaic situation→action→outcome rhythm that briefly drops from storytelling mode.",
+            "clawdNote": "Nine notes, nearly all opinionated: Note 4's meta-commentary ('你現在讀的這篇文章就是這樣生出來的') is a standout, Note 6 explicitly defends AI and blames humans for hallucination incidents (clear position), Note 7 lands a sharp Google Drive hypocrisy jab — well above the 8+ opinion threshold.",
+            "vibe": "Compelling hook, satisfying arc, and a clean circular close make this genuinely shareable, but the three-case-study block carries slightly repetitive pacing that briefly loses the 'can't stop' momentum.",
+            "clarity": "All 你/我 in ClawdNotes or inside 「」quoted speech are properly exempt; one real body-text violation at line 187 ('我們正在接近一個有趣的交叉點') and 你的 in the section heading keep this from a 9.",
+            "narrative": "Strong circular frame (opens and closes with the same 晚上七點 scene), but the middle stretch (三把不同的刀 → 三個 case studies) defaults to an explain→ClawdNote cadence without the rhythm variation that would push to 9."
+          }
+        },
+        "model": "opus",
+        "attempts": 3
+      }
+    },
+    "status": "PASS",
+    "finishedAt": "2026-04-22T10:41:21+08:00"
   }
 }
