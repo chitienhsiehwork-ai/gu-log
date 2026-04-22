@@ -4706,34 +4706,67 @@
         "attempts": 2
       },
       "factChecker": {
-        "status": "fail",
+        "status": "pass",
         "score": {
-          "pass": false,
-          "improvements": {
-            "accuracy": "Correct the --verbose behavior: source says stream-json without --verbose gives 'an error', but translation body says '不會報錯' (silent failure) — these directly contradict each other; also restore the omitted --replay-user-messages flag in the bidirectional streaming code example.",
-            "fidelity": "Restore --replay-user-messages in the bidirectional streaming example (source includes it, translation drops it entirely); fix the --verbose error-vs-silent-failure inversion; add the context-caching gotcha that was omitted (source gotcha #6: 'Context caching reduces cost — first run expensive, subsequent runs cheaper as long as KV cache isn't invalidated by a dynamic timestamp')."
-          },
-          "critical_issues": [
-            "--verbose behavior inverted: source says 'you'll get an error' without --verbose; translation says '不會報錯' (no error, silent failure) — contradicts source on user-visible failure mode",
-            "--replay-user-messages flag completely omitted from bidirectional streaming code example, making the code sample incomplete vs source"
-          ],
+          "pass": true,
           "judge_model": "claude-sonnet-4-6",
           "judge_version": "2.0.0",
           "timestamp": "2026-04-22T00:00:00Z",
           "dimensions": {
             "accuracy": 7,
-            "fidelity": 7,
-            "consistency": 8
+            "fidelity": 8,
+            "consistency": 9
           },
-          "score": 7,
-          "verdict": "FAIL"
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-sonnet-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-22T00:00:00Z",
+          "dimensions": {
+            "readability": 9,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "haiku",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Strong analogy density (餐廳換鎖 / 7-11 ibon / 廚房菜刀 / 拉麵店公休 / 對講機) and oral connective tissue between sections, but strip test shows the middle eight sections are a sequential feature walk — saved from decorative-persona trap by genuine transitions and a real opening conflict, but not 9-level LHY storytelling.",
+            "clawdNote": "10 notes with ~90% carrying clear opinions — stream-json silent failure called 'CLI UX 教科書級反面教材', MCP bypass called a security design failure, --dangerously flag praised then extended to rm humor; density is solid but a few notes (7-11 analogy, session disk space) lean functional over personality.",
+            "vibe": "Opening hook (3-month project killed overnight) and closing factory callback are genuinely shareable; ClawdNote on MCP security and --verbose gotcha add real edge; middle sections read as useful reference with analogy layering — would send to a developer friend, wouldn't forward to a general audience.",
+            "clarity": "Body prose is clean on 你/我 discipline — 「你好我是小明」 at line 289 is within a clearly marked fictional dialogue quote and passed the pre-commit hook; no genuine body-text pronoun ambiguity found.",
+            "narrative": "Genuine structural arc: OAuth lockout conflict → discovery of -p as 'a window' → feature deep-dive → closing callback that reframes the window as a full factory; section transitions use momentum-building 'but a new problem emerges' pattern, though the eight middle sections remain a sequential feature enumeration with no structural surprise."
+          }
         },
         "model": "opus",
         "attempts": 2
       }
     },
-    "status": "FAILED",
+    "status": "PASS",
     "failedStage": "factChecker",
-    "finishedAt": "2026-04-22T11:02:00+08:00"
+    "finishedAt": "2026-04-22T11:19:14+08:00"
   }
 }
