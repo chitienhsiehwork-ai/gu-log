@@ -45,7 +45,7 @@ function parseArgs(argv) {
     else if (a.startsWith('--timeout=')) args.timeoutSec = Number(a.slice('--timeout='.length));
     else if (a === '-h' || a === '--help') {
       console.log(
-        `Usage: node scripts/eval-dedup-harness.mjs [--run] [--dry-run] [--timeout=SECONDS]`,
+        `Usage: node scripts/eval-dedup-harness.mjs [--run] [--dry-run] [--timeout=SECONDS]`
       );
       process.exit(0);
     } else {
@@ -87,14 +87,10 @@ function validateFixture(path, data) {
     if (!(key in data)) errors.push(`missing required field: ${key}`);
   }
   if (data.expectedClass && !VALID_CLASSES.includes(data.expectedClass)) {
-    errors.push(
-      `expectedClass "${data.expectedClass}" not in ${JSON.stringify(VALID_CLASSES)}`,
-    );
+    errors.push(`expectedClass "${data.expectedClass}" not in ${JSON.stringify(VALID_CLASSES)}`);
   }
   if (data.expectedAction && !VALID_ACTIONS.includes(data.expectedAction)) {
-    errors.push(
-      `expectedAction "${data.expectedAction}" not in ${JSON.stringify(VALID_ACTIONS)}`,
-    );
+    errors.push(`expectedAction "${data.expectedAction}" not in ${JSON.stringify(VALID_ACTIONS)}`);
   }
   if (data.inputPost) {
     if (typeof data.inputPost.slug !== 'string') errors.push('inputPost.slug must be string');
@@ -108,8 +104,7 @@ function validateFixture(path, data) {
       errors.push('corpusSnapshot must be array');
     } else {
       data.corpusSnapshot.forEach((item, i) => {
-        if (typeof item.slug !== 'string')
-          errors.push(`corpusSnapshot[${i}].slug must be string`);
+        if (typeof item.slug !== 'string') errors.push(`corpusSnapshot[${i}].slug must be string`);
         if (typeof item.contentSnapshot !== 'string')
           errors.push(`corpusSnapshot[${i}].contentSnapshot must be string`);
         if (!item.frontmatter || typeof item.frontmatter !== 'object')
@@ -122,7 +117,7 @@ function validateFixture(path, data) {
   const dirClass = rel.split('/')[0];
   if (VALID_CLASSES.includes(dirClass) && data.expectedClass && dirClass !== data.expectedClass) {
     errors.push(
-      `directory mismatch: placed in ${dirClass}/ but expectedClass is ${data.expectedClass}`,
+      `directory mismatch: placed in ${dirClass}/ but expectedClass is ${data.expectedClass}`
     );
   }
   return errors;
@@ -295,13 +290,7 @@ async function invokeJudge(fixture, { timeoutSec, dryRun }) {
 
 function spawnClaudeJudge(prompt, timeoutSec) {
   return new Promise((resolve, reject) => {
-    const args = [
-      '-p',
-      '--agent',
-      'v2-factlib-judge',
-      '--dangerously-skip-permissions',
-      prompt,
-    ];
+    const args = ['-p', '--agent', 'v2-factlib-judge', '--dangerously-skip-permissions', prompt];
     const child = spawn('claude', args, {
       env: process.env,
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -369,9 +358,7 @@ function extractJson(raw) {
 function parseDupCheckVerdict(judgeOutput) {
   const dupCheckScore = Number(judgeOutput?.scores?.dupCheck ?? 0);
   const improvementStr =
-    judgeOutput?.improvements?.dupCheck ??
-    judgeOutput?.improvements?.dedup ??
-    '';
+    judgeOutput?.improvements?.dupCheck ?? judgeOutput?.improvements?.dedup ?? '';
 
   // Parse "class=X action=Y matchedSlugs=[...] reason=..."
   const classMatch = /class=([a-z-]+)/i.exec(improvementStr);
@@ -405,7 +392,7 @@ function parseDupCheckVerdict(judgeOutput) {
 function buildConfusionMatrix(results) {
   const allClasses = [...VALID_CLASSES, 'unknown'];
   const matrix = Object.fromEntries(
-    VALID_CLASSES.map((e) => [e, Object.fromEntries(allClasses.map((p) => [p, 0]))]),
+    VALID_CLASSES.map((e) => [e, Object.fromEntries(allClasses.map((p) => [p, 0]))])
   );
   for (const r of results) {
     const expected = r.expectedClass;
@@ -471,11 +458,13 @@ function buildMarkdownReport({ results, metrics, accuracy, matrix, timestamp, co
   for (const c of VALID_CLASSES) {
     const m = metrics[c];
     lines.push(
-      `| \`${c}\` | ${m.expectedCount} | ${m.predictedCount} | ${m.truePositive} | ${formatMetric(m.precision)} | ${formatMetric(m.recall)} |`,
+      `| \`${c}\` | ${m.expectedCount} | ${m.predictedCount} | ${m.truePositive} | ${formatMetric(m.precision)} | ${formatMetric(m.recall)} |`
     );
   }
   lines.push('');
-  lines.push(`**Overall accuracy**: ${formatMetric(accuracy)} (${results.filter((r) => r.expectedClass === r.actualClass).length}/${results.length})`);
+  lines.push(
+    `**Overall accuracy**: ${formatMetric(accuracy)} (${results.filter((r) => r.expectedClass === r.actualClass).length}/${results.length})`
+  );
   lines.push('');
   lines.push('## Confusion Matrix');
   lines.push('');
@@ -483,7 +472,11 @@ function buildMarkdownReport({ results, metrics, accuracy, matrix, timestamp, co
   lines.push(`| ${header.join(' | ')} |`);
   lines.push(`| ${header.map(() => '---').join(' | ')} |`);
   for (const e of VALID_CLASSES) {
-    const row = [`\`${e}\``, ...VALID_CLASSES.map((p) => String(matrix[e][p] ?? 0)), String(matrix[e].unknown ?? 0)];
+    const row = [
+      `\`${e}\``,
+      ...VALID_CLASSES.map((p) => String(matrix[e][p] ?? 0)),
+      String(matrix[e].unknown ?? 0),
+    ];
     lines.push(`| ${row.join(' | ')} |`);
   }
   lines.push('');
@@ -496,12 +489,12 @@ function buildMarkdownReport({ results, metrics, accuracy, matrix, timestamp, co
     lines.push('無 — 所有 fixture 判對。');
   } else {
     lines.push(
-      '| slug | expectedClass | actualClass | expectedAction | actualAction | dupCheck | fixture |',
+      '| slug | expectedClass | actualClass | expectedAction | actualAction | dupCheck | fixture |'
     );
     lines.push('|---|---|---|---|---|---|---|');
     for (const m of misclassified) {
       lines.push(
-        `| \`${m.slug}\` | ${m.expectedClass} | ${m.actualClass} | ${m.expectedAction} | ${m.actualAction} | ${m.dupCheckScore} | \`${m.fixturePath}\` |`,
+        `| \`${m.slug}\` | ${m.expectedClass} | ${m.actualClass} | ${m.expectedAction} | ${m.actualAction} | ${m.dupCheckScore} | \`${m.fixturePath}\` |`
       );
     }
   }
@@ -516,7 +509,9 @@ function buildMarkdownReport({ results, metrics, accuracy, matrix, timestamp, co
     lines.push('');
     lines.push(`- **Fixture**: \`${r.fixturePath}\``);
     lines.push(`- **Expected**: class=\`${r.expectedClass}\` action=\`${r.expectedAction}\``);
-    lines.push(`- **Judge**: class=\`${r.actualClass}\` action=\`${r.actualAction}\` dupCheck=\`${r.dupCheckScore}\``);
+    lines.push(
+      `- **Judge**: class=\`${r.actualClass}\` action=\`${r.actualAction}\` dupCheck=\`${r.dupCheckScore}\``
+    );
     if (r.matchedSlugs && r.matchedSlugs.length > 0) {
       lines.push(`- **Matched**: ${r.matchedSlugs.map((s) => `\`${s}\``).join(', ')}`);
     }
@@ -621,7 +616,7 @@ async function main() {
   for (const c of VALID_CLASSES) {
     const m = metrics[c];
     console.log(
-      `  ${c.padEnd(22)} P=${formatMetric(m.precision)} R=${formatMetric(m.recall)} (expected=${m.expectedCount}, predicted=${m.predictedCount}, TP=${m.truePositive})`,
+      `  ${c.padEnd(22)} P=${formatMetric(m.precision)} R=${formatMetric(m.recall)} (expected=${m.expectedCount}, predicted=${m.predictedCount}, TP=${m.truePositive})`
     );
   }
   console.log(`  ${'overall accuracy'.padEnd(22)} ${formatMetric(accuracy)}`);
