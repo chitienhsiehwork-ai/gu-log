@@ -11,6 +11,24 @@ import matter from 'gray-matter';
 export interface IoAdapter {
   readArticle(path: string): Promise<string>;
   writeArticle(path: string, content: string): Promise<void>;
+  /**
+   * Write frontmatter fields into an article.
+   *
+   * Deep-merge contract (one level only):
+   * - **Top-level plain object + plain object** → shallow-merged. Sibling keys
+   *   on the existing object are preserved; colliding keys are replaced by
+   *   incoming. Enables `dedup: { tribunalVerdict }` to coexist with a
+   *   previously-set `dedup: { independentDiff }` without clobbering.
+   * - **Array, primitive, null, or type mismatch** → incoming value overwrites
+   *   existing. Arrays are NOT concatenated.
+   * - **Nested objects below top level** → replaced wholesale. Only the first
+   *   level of keys is deep-merged. Writing
+   *   `{ dedup: { tribunalVerdict: { class: 'hard-dup' } } }` on top of
+   *   `{ dedup: { tribunalVerdict: { class: 'soft-dup', matchedSlugs: [...] } } }`
+   *   produces `{ dedup: { tribunalVerdict: { class: 'hard-dup' } } }`, NOT a
+   *   merged `{ class, matchedSlugs }`. Callers that need to preserve
+   *   sub-fields must read → spread → write themselves.
+   */
   updateFrontmatter(path: string, updates: Record<string, unknown>): Promise<void>;
   extractSourceUrl(path: string): Promise<string>;
 }

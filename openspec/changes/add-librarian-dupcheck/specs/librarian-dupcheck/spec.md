@@ -119,11 +119,11 @@ Fixture YAML 的讀取 SHALL 走 `Read` tool，SHALL NOT 依賴腳本 inline 注
 
 `v2-factlib-judge` 在比對稿件跟 corpus 時，對每一篇 corpus post SHALL 只讀 frontmatter + 首 300 字（即 lead paragraph 等級），SHALL NOT 讀全文。此範圍與 fixture `contentSnapshot` 設計一致（200-400 字）。
 
-Judge SHALL 在 pre-filter 階段以 `lang` 欄位排除語言不同的 corpus posts。gu-log 的 922 篇 corpus 中有 435 篇英文鏡像版（`en-sp-*` / `en-cp-*`），與其對應的中文版 slug 差 `en-` 前綴但內容相同 — 這類跨語言翻譯對 SHALL 豁免 dedup 比對（不算 dup）。
+Judge SHALL 在 pre-filter 階段以 `lang` 欄位排除語言不同的 corpus posts。gu-log 的 corpus 裡每篇中文翻譯稿（`sp-*` / `cp-*` / `sd-*` / `lv-*`）都對應一篇英文鏡像版（`en-sp-*` / `en-cp-*` / `en-sd-*` / `en-lv-*`），slug 差 `en-` 前綴但內容相同 — 這類跨語言翻譯對 SHALL 豁免 dedup 比對（不算 dup）。
 
 #### Scenario: Corpus 比對限縮在 frontmatter + 首 300 字
 
-- **WHEN** judge 比對稿件 vs. 922 篇 corpus
+- **WHEN** judge 比對稿件 vs. corpus
 - **THEN** 判定 pipeline SHALL 先以 `lang` 欄位 pre-filter（只比對相同語言的 posts）
 - **AND** 再以 frontmatter 欄位（`clusterIds`、`seriesId`、`authorCanonical`、`sourceType`、`temporalType`）做第二層篩選
 - **AND** 對 pre-filter 後的候選（SHOULD ≤ 10 篇）讀首 300 字
