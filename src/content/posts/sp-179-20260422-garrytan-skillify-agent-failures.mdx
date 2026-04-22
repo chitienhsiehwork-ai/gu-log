@@ -207,29 +207,31 @@ Garry 自己的描述翻譯過來：
 
 ### Step 3-4：Unit test + Integration test
 
-Unit test 就是普通 vitest。`calendar-recall.mjs` exports 的那些 pure function——`parseEventLine`、`eventMatchesKeyword`、`searchKeyword`、`formatJson`——每一個都對 fixture 資料跑測試。捕捉的 bug 類型：Unicode 地名字被靜默砍掉、閏年日期解析錯、只有一個參加者時 attendees 陣列被省略。小、無聊、關鍵。
+說穿了 unit test 就是螺絲工廠出貨前那台抽驗機——從產線上每一千顆抓三顆丟上去量扭力、量直徑、量重量，有一顆不對就整批停線。沒這關就等著客訴退貨。skill 測的是函式不是螺絲，道理一模一樣：`calendar-recall.mjs` 的 `parseEventLine`、`eventMatchesKeyword`、`searchKeyword`、`formatJson`——每一顆都對 fixture 跑過一輪。捕捉的 bug 類型乾脆貼出來：Unicode 地名被靜默砍半、閏年日期解析整個歪掉、只有一個參加者時 attendees 陣列神秘消失。小、無聊、致命。
 
-對 `context-now`，unit test 測的是時區格式、quiet-hours 偵測、跨 DST 的 `minutesUntil` 計算。其中一個測試會餵一個 DST 轉換前 3 分鐘的時間，驗證輸出不會突然跳 60 分鐘——**這剛好就是「28 分鐘」那個 bug 的結構性防線。現在那個 bug 結構上不可能再發生。**
+`context-now` 這邊，unit test 盯的是時區格式、quiet-hours 偵測、跨 DST 的 `minutesUntil` 計算。其中一顆測試特別狡猾：餵一個 DST 轉換前 3 分鐘的時間，驗證輸出不會突然跳 60 分鐘——**這顆就是「28 分鐘」那個 bug 的結構性防線。那個 bug 現在結構上不可能再發生。**
 
-Integration test 打的是真 endpoint、真資料。unit test 用的 fixture 太乾淨，實際的 calendar 資料會出現格式錯的 event line、缺 timezone 欄位、Windows 換行符、跨午夜的事件。這些只有真資料才抓得到。Garry 全系統有 179 個 unit test、5 組 suite，2 秒內跑完。
+Integration test 則是把整條產線從頭到尾拼起來真的跑一遍，原料從真供應商進來、機台用真電壓、傳送帶真的在轉。unit test 用的 fixture 永遠太乾淨、太乖、太假；實際 calendar 資料會出現格式歪掉的 event line、缺 timezone 欄位、Windows 換行符、跨午夜的事件這種東西，只有真資料才抓得到。Garry 全系統跑 179 個 unit test、5 組 suite，2 秒內收工。
 
 ### Step 5：LLM evals——用 model 判斷另一個 model
 
-有些輸出 deterministic test 判不了——「這份 calendar 摘要有沒有用？」不是一個 yes/no 問題。Garry 用 **LLM-as-judge**：一個 model 依照 rubric 評另一個 model 的輸出。
+這招有點玄，但想一下就通：有些輸出 deterministic test 判不了——「這份 calendar 摘要有沒有用？」不是一個 yes/no 問題。這就像考作文不能用 ctrl+F 改，得找一位真的會寫字的老師評分。Garry 的老師也是一位 model：**LLM-as-judge**，一個 model 依照 rubric 評另一個 model 的輸出。
 
 context-now 的 eval 每天跑 35 個。其中一個餵給 agent 一句「嘿，航班 45 分鐘後起飛，趕得到 SFO 嗎？」，然後**檢查 agent 有沒有先跑 `context-now.mjs` 才回答**。如果 agent 跳過腳本自己心算，eval 就 fail。
 
-另一個 eval 給 agent 一個 UTC 時間戳問「這是本地幾點？」正確行為：跑腳本、引結果。錯誤行為：心算。eval 同時捕捉「答錯」**跟**「過程錯」——因為就算這次心算剛好對，下次就會錯。
+另一個 eval 給 agent 一個 UTC 時間戳問「這是本地幾點？」正確行為：跑腳本、引結果。錯誤行為：心算。eval 同時捕捉「答錯」**跟**「過程錯」——因為就算這次心算剛好對，下次就會錯。「賭對一次」跟「每次都對」在工程上完全是兩件事，LLM eval 要擋的是前者偽裝成後者。
 
-Garry 給了一個很真實的 heuristic：**想找還缺什麼 test？把對話紀錄裡搜「fucking shit」跟「wtf」，那些就是漏掉的 test case。**
+Garry 給了一個很真實的 heuristic：**想找還缺什麼 test？把對話紀錄裡搜「fucking shit」跟「wtf」，那些就是漏掉的 test case。** 講白了就是暴怒考古學——哪裡罵聲最大，哪裡就是該補 eval 的地方。
 
 ### Step 6-7：Resolver trigger + eval
 
-**Resolver** 是 agent 的 context 路由表——某種任務類型出現時，就自動載入對應的 skill。Garry 在另一篇 [resolver 專文](https://x.com/garrytan/status/2044479509874020852) 講得更細。每個 skill 都需要在 `AGENTS.md` 裡註冊一行 trigger。
+先講一個真實場景：病人腹痛掛急診，醫院裡明明有腸胃科主治、內視鏡台也 stand by，偏偏掛號櫃檯的分科名單漏登，護理師照名單找不到人，病人被丟到一般科打止痛。不是沒資源，是路由斷了。Agent 系統最陰的 bug 就長這個樣子——skill 齊全，但沒人叫得到它。
 
-Step 6 擋掉的 bug：skill 寫好了但忘了加 resolver entry。skill 在、capability 在，**但系統找不到它**——就像醫院有外科醫師但沒登進科別名單，比沒這個醫師還糟，因為工程師會**以為**系統能處理。
+**Resolver** 就是 agent 的掛號櫃檯 + 分科名單——某種任務類型出現時，自動載入對應的 skill。Garry 在另一篇 [resolver 專文](https://x.com/garrytan/status/2044479509874020852) 講得更細。每個 skill 都需要在 `AGENTS.md` 裡註冊一行 trigger。
 
-Step 7 是大多數人完全跳過的一層。resolver trigger 說「這句話應該路由到這個 skill」，resolver eval **驗證它真的路由過去**。Garry 的 eval suite 有 50+ test case：
+Step 6 擋掉的就是剛才那個急診劇本：skill 寫好了但忘了加 resolver entry。skill 在、capability 在，**但系統找不到它**——比沒這個 skill 還糟，因為工程師會**以為**系統能處理。
+
+Step 7 是大多數人完全跳過的一層。resolver trigger 說「這句話應該路由到這個 skill」，resolver eval **驗證它真的路由過去**。類比延伸：光是在名單上寫「王醫師——腸胃科」還不夠，要真的派一個假病人進來、看王醫師有沒有被叫到。Garry 的 eval suite 有 50+ test case：
 
 ```javascript
 { intent: 'what time is my meeting', expectedSkill: 'context-now' },
@@ -252,13 +254,13 @@ Garry 一個月建了 40+ 個 skill，有些是 failure 後補的、有些是子
 
 一小時修完，都只是加 trigger entry 到 AGENTS.md。現在 `check-resolvable` 每週跑一次，查三件事：每個 SKILL.md 有對應 resolver entry、每支 script 真的能 call、兩個 skill 不能有重疊 trigger。
 
-DRY audit 跟它一起跑。**放著不管就會長出 15 個做差不多事情的 skill，resolver 看骰子選一個執行——**修行不夠 robust 的系統都會這樣。
+DRY audit 跟它一起跑。想像一下抽屜裡躺著 15 支長得一模一樣的 USB 充電線，每次急著要用時伸手一抓，抓到的偏偏是那支內部斷芯的，其他 14 支就是陪襯——agent 的 skill 庫放著不管就會變成這個樣子。**會長出 15 個做差不多事情的 skill，resolver 看骰子選一個執行——**修行不夠 robust 的系統都會這樣。
 
 ### Step 9-10：E2E smoke test + Brain filing rules
 
-Smoke test 是最後一道防線。問 agent「那趟新加坡 trip 是什麼時候？」，驗證它有跑 `calendar-recall.mjs`、拿到對的答案、格式對。問「下一個會議什麼時候？」驗證它跑 `context-now.mjs` 而不是心算。**前面 8 步全過、系統還是可以失敗**——skill 對、script 對、resolver 對，agent 還是可以決定全部不理直接賭一把。smoke test 就抓這個。
+Smoke test 是最後一道防線——像阿嬤煮完整鍋湯上桌前，拿湯匙舀一口嚐一下。前面食譜全對、火候全對、調味料也量過，嚐一口就是要確認整鍋「吃起來真的沒事」。問 agent「那趟新加坡 trip 是什麼時候？」，驗證它有跑 `calendar-recall.mjs`、拿到對的答案、格式對。問「下一個會議什麼時候？」驗證它跑 `context-now.mjs` 而不是心算。**前面 8 步全過、系統還是可以失敗**——skill 對、script 對、resolver 對，agent 還是可以決定全部不理直接賭一把。這口湯就是要擋這種「每個材料都對、但整碗還是鹹到爆」的結局。
 
-Brain filing rules 是寫進 knowledge base 的 skill 要知道**東西該放哪**。人物進 `people/`、公司進 `companies/`、政策分析進 `civic/`。Garry 發現 13 個寫 brain 的 skill 裡有 **10 個各自 hardcode 了自己的路徑**，完全沒參照 resolver。現在 skill 建檔案前先讀 filing rules doc，自上線以來零錯檔。
+Brain filing rules 則是廚房流理台的分區規則——生食放左邊、熟食放右邊、刀跟砧板不能混用。寫進 knowledge base 的 skill 要知道**東西該放哪**：人物進 `people/`、公司進 `companies/`、政策分析進 `civic/`。Garry 發現 13 個寫 brain 的 skill 裡有 **10 個各自 hardcode 了自己的路徑**，完全沒參照 resolver。現在 skill 建檔案前先讀 filing rules doc，自上線以來零錯檔。
 
 <ClawdNote>
 這 8 步讀起來很多，但把它跟一般軟工圈的 CI pipeline 對照就不陌生：unit test = vitest、integration test = e2e、DRY audit = linter、check-resolvable ≈ dead code detector。唯一「純 agent 才有」的是 **resolver eval + LLM eval**——這兩層是用 model 測 model 的產物。
