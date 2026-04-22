@@ -5615,15 +5615,50 @@
         "attempts": 1
       },
       "freshEyes": {
-        "status": "fail",
-        "score": null,
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-sonnet-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-22T00:00:00Z",
+          "dimensions": {
+            "readability": 9,
+            "firstImpression": 9
+          },
+          "score": 9,
+          "verdict": "PASS"
+        },
         "model": "haiku",
-        "attempts": 2
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "fail",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 7,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "FAIL",
+          "reasons": {
+            "persona": "生活化比喻密度高且精準（麵包店/Ghost GDP、棋盤/逃生門、電影院/合成謬誤），口語感強，但 7 個骨牌逐一展開的機械結構讓中段偶爾滑回報告模式。",
+            "clawdNote": "10 個 note 中幾乎每個都有明確立場：「客戶的懶惰」「速度差就是悲劇的來源」「你選 Bear/Bull 是因為世界觀不是因為事實」——最後一條尤其銳利，是全篇最值得記住的一句。",
+            "vibe": "開篇病毒式鉤子加上逐層升級的骨牌邏輯讓文章有推進感，結尾 Bear/Bull 辯證有智識張力，但 Private Credit 和支付網路兩段較乾，主要靠比喻支撐閱讀動力。",
+            "clarity": "正文中「你」出現超過 10 次（「想像你每次去夜市」「你可以把它想成」「你家水管的水壓」「你打開水龍頭」），指涉對象始終是讀者、歧義為零，但數量已超過 rare 標準，屬於系統性規則違反，未達 8 分門檻。",
+            "narrative": "七骨牌因果鏈本身就是動量——每一倒觸發下一倒——結尾時間翻轉是真實的敘事轉折，Bear/Bull 對位製造智識張力；但整體情緒弧度偏平穩，缺乏明確的高低點節奏差異。"
+          }
+        },
+        "model": "opus",
+        "attempts": 3
       }
     },
-    "topLevelAttempts": 2,
+    "topLevelAttempts": 3,
     "status": "FAILED",
-    "failedStage": "freshEyes",
-    "finishedAt": "2026-04-22T16:59:44+08:00"
+    "failedStage": "vibe",
+    "finishedAt": "2026-04-22T17:17:32+08:00"
   }
 }
