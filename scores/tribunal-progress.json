@@ -4687,14 +4687,53 @@
     "startedAt": "2026-04-22T10:41:46+08:00",
     "stages": {
       "librarian": {
-        "status": "fail",
-        "score": null,
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-sonnet-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-22T00:00:00Z",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 9,
+            "sourceAlign": 8,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
         "model": "sonnet",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "fail",
+        "score": {
+          "pass": false,
+          "improvements": {
+            "accuracy": "Correct the --verbose behavior: source says stream-json without --verbose gives 'an error', but translation body says '不會報錯' (silent failure) — these directly contradict each other; also restore the omitted --replay-user-messages flag in the bidirectional streaming code example.",
+            "fidelity": "Restore --replay-user-messages in the bidirectional streaming example (source includes it, translation drops it entirely); fix the --verbose error-vs-silent-failure inversion; add the context-caching gotcha that was omitted (source gotcha #6: 'Context caching reduces cost — first run expensive, subsequent runs cheaper as long as KV cache isn't invalidated by a dynamic timestamp')."
+          },
+          "critical_issues": [
+            "--verbose behavior inverted: source says 'you'll get an error' without --verbose; translation says '不會報錯' (no error, silent failure) — contradicts source on user-visible failure mode",
+            "--replay-user-messages flag completely omitted from bidirectional streaming code example, making the code sample incomplete vs source"
+          ],
+          "judge_model": "claude-sonnet-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-22T00:00:00Z",
+          "dimensions": {
+            "accuracy": 7,
+            "fidelity": 7,
+            "consistency": 8
+          },
+          "score": 7,
+          "verdict": "FAIL"
+        },
+        "model": "opus",
         "attempts": 2
       }
     },
     "status": "FAILED",
-    "failedStage": "librarian",
-    "finishedAt": "2026-04-22T10:47:25+08:00"
+    "failedStage": "factChecker",
+    "finishedAt": "2026-04-22T11:02:00+08:00"
   }
 }
