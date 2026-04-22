@@ -4504,5 +4504,58 @@
     "status": "PASS",
     "failedStage": "factChecker",
     "finishedAt": "2026-04-22T09:44:29+08:00"
+  },
+  "sp-93-20260302-levelsio-claude-code-todo-blitz.mdx": {
+    "article": "sp-93-20260302-levelsio-claude-code-todo-blitz.mdx",
+    "startedAt": "2026-04-22T09:44:50+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-sonnet-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-22T00:00:00Z",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "sonnet",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "fail",
+        "score": {
+          "pass": false,
+          "improvements": {
+            "accuracy": "Tweet-sourced technical specifics (「超過 40 個 feature 跟 bugfix」、Interior AI 的 Gaussian Splat viewer、Hoodmaps SQLite PRAGMA root cause) are presented as established facts without attribution qualifiers. Add 「levelsio 說他這週...」 or 「根據他的貼文...」 to frame these as self-reported claims. Background stats (「年營收破百萬美金」、「八個產品」) are also background knowledge not traceable to this specific source tweet — either cite a prior interview or soften the framing."
+          },
+          "critical_issues": [
+            "accuracy 7: Specific tweet-level claims (40+ features count, Gaussian Splat viewer, SQLite PRAGMA root cause) and background stats (revenue, product count) stated as fact without attribution qualifiers — readers may interpret as independently verified rather than levelsio self-report.",
+            "composite 7 < 8 pass bar: accuracy bottleneck pulls composite below threshold; fidelity and consistency are solid at 8."
+          ],
+          "judge_model": "claude-sonnet-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-22T00:00:00Z",
+          "dimensions": {
+            "accuracy": 7,
+            "fidelity": 8,
+            "consistency": 8
+          },
+          "score": 7,
+          "verdict": "FAIL"
+        },
+        "model": "opus",
+        "attempts": 2
+      }
+    },
+    "status": "FAILED",
+    "failedStage": "factChecker",
+    "finishedAt": "2026-04-22T09:57:53+08:00"
   }
 }
