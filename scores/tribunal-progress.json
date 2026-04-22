@@ -4445,19 +4445,20 @@
         "score": {
           "pass": false,
           "improvements": {
-            "accuracy": "多項核心 claim 依賴無公開 URL 的來源：(1) Anthropic 內部報告的 26x 效率數字雖有明確 caveat，但在論點核心段落引用仍有背書效果；(2) Cursor blog（Dynamic Context Discovery、embedding fine-tuning）無公開 URL，工具命名差異（rg/grep vs Claude format）和搜尋模型 fine-tuning 等具體技術 claim 無法獨立驗證；(3) LangChain Harrison Chase 引述標注「大意說過」但無 URL；(4) 'nO function' 和 '約 18 個工具' 來自社群逆向工程，屬二手來源未標明具體報告。Manus blog 和 arxiv SWE-agent 論文（2405.15793）有正確引述，是全文最可靠的部分。"
+            "accuracy": "三個具體 claim 需加強處理：(1) `nO` 函式名稱是非常具體的 community-sourced claim，目前文中已有「社群分析結論，無法獨立確認」，但建議進一步說明「無法連結到任何具體公開報告」；(2) SWE-Agent linter 移除效能掉 3% 雖然 cite 了 arxiv，文中應補充「在 SWE-bench 上」的限定語（目前寫「在 SWE-bench 上效能直接掉 3%」——實際上文中有這個限定，OK，但要確認 arxiv paper 確實有這個具體數字）；(3) 'OpenAI Codex' 指稱歧義——文中未區分 2020 code completion model 與後期 Codex agent，建議改為「早期 OpenAI 模型」或加時間點說明。",
+            "fidelity": "Source 是 @Hxlfed14 的單篇推文，文章主體（Claude Code loop、Cursor embedding 訓練、Manus 29 tools + logit masking、SWE-Agent ACI）全部來自推文以外的其他來源。雖然文章開頭有括號說明（「延伸自推文主題，資料來自各廠商的技術文章與社群研究，非原推文的直接內容」），但這個 disclaimer 只出現一次，且埋在第一節之後才出現，讀者可能在讀 Cursor/Manus/SWE-Agent 段落時已忘記這個說明。建議在每個廠商小節的來源標示更清楚，或在文章頭部加更顯眼的 scope 說明。另外 Harrison Chase 的引述標記為「大意表示（無公開 URL 可驗證；以下為作者詮釋，非直接引用）」——這個 hedge 做得好，但仍算 unverifiable paraphrase 被作為 authority 引用。"
           },
           "critical_issues": [
-            "26x efficiency 數字雖有 caveat 但仍作為論點支撐使用——來自無公開連結的 Anthropic 內部報告，這種「附免責聲明的不可驗證統計」是最難處理的 accuracy 問題：caveat 充分但數字出現在正文核心位置仍有背書風險。",
-            "Cursor 架構 section 的兩個具體技術 claim（依 model 特調工具命名格式、用 agent 對話軌跡 fine-tune embedding model）均來自「無公開 URL 可驗證」的 Cursor blog，讀者無路徑自行核查，而這些 claim 並非邊注而是 section 的核心論點。",
-            "原始推文（x.com/hxlfed14/status/2028116431876116660）在撰稿時間點的可取得性未知；Vercel 80% 工具裁減的 claim 正確歸因至原推文，但這個 claim 是全文論點的第一個具體例子，若推文內容與描述有出入則影響整篇可信度。"
+            "多處 blog 來源（LangChain、Cursor 各兩個 claim）標示「無公開 URL 可驗證」，技術 claim 無法被讀者獨立核實，這些 claim 佔文章相當比例，是 accuracy/fidelity 雙雙 7 分的主因",
+            "Source URL 是單篇推文，文章 80% 內容來自推文以外的多個第三方來源；disclaimer 只出現一次且位置不夠醒目，source fidelity 因此受限",
+            "'OpenAI Codex' 命名未加時間點限定，Cursor 歷史上使用過多代 OpenAI 模型，指稱不清可能造成讀者錯誤對應"
           ],
           "judge_model": "claude-sonnet-4-6",
           "judge_version": "2.0.0",
-          "timestamp": "2026-04-22T00:00:00Z",
+          "timestamp": "2026-04-22T08:00:00Z",
           "dimensions": {
             "accuracy": 7,
-            "fidelity": 8,
+            "fidelity": 7,
             "consistency": 8
           },
           "score": 7,
@@ -4469,6 +4470,6 @@
     },
     "status": "FAILED",
     "failedStage": "factChecker",
-    "finishedAt": "2026-04-22T08:52:44+08:00"
+    "finishedAt": "2026-04-22T09:02:01+08:00"
   }
 }
