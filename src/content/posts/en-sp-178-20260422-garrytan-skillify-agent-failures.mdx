@@ -1,0 +1,309 @@
+---
+ticketId: "SP-178"
+title: "Skillify: Turn Every Agent Failure Into Something Structurally Impossible to Repeat — Garry Tan's 10-Step Checklist"
+originalDate: "2026-04-22"
+translatedDate: "2026-04-22"
+translatedBy:
+  model: "Opus 4.7"
+  harness: "Claude Code"
+source: "@garrytan on X"
+sourceUrl: "https://x.com/garrytan/status/2046876981711769720"
+lang: "en"
+summary: "Garry Tan's agent screwed up twice this week: it burned five minutes hitting live APIs for a calendar event that was sitting in local files, and it did UTC→PT timezone math in its head and was off by exactly an hour. Both bugs had the same shape — deterministic work done in latent space. His fix is called skillify: every failure becomes a SKILL.md + a deterministic script + unit tests + LLM evals + a resolver trigger. Ten steps. The bug becomes structurally impossible to repeat. Also throws shade at LangChain for raising huge money and giving you a gym membership without a workout plan."
+tags: ["agent-engineering", "skills", "claude-code", "openclaw", "evals"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Here's a situation every agent engineer hits every week: an agent makes a bug. You explain it clearly. The agent apologizes, promises to do better. Two weeks later the same bug reappears on a different query, in a different timezone. The agent has no memory of that bug, no test for it, nothing blocking it from happening again.
+
+Garry Tan (YC president, serial open-source tinkerer) had his own [OpenClaw](/en/glossary#openclaw) fail like this twice in one week. The first: asked about a business trip from ten years ago, the agent burned five minutes bouncing between APIs and email searches before finally grepping the local knowledge base where the answer was sitting. The second: it did UTC→PT timezone arithmetic in its head and told him "your next meeting is in 28 minutes" — real answer, 88 minutes. Off by exactly one hour.
+
+The bugs themselves aren't special. What's special is how Garry fought them. He didn't paste a please-don't-do-that incantation into his prompt. He treated each failure as a post-mortem subject — **trace the root cause, write a `SKILL.md`, write a deterministic script, add unit tests, LLM evals, a resolver trigger, DRY audits, smoke tests.** Ten steps, applied once. The bug becomes structurally impossible to recur.
+
+He calls the practice **skillify**. This post unpacks the mindset, the 10-step checklist, and his takes on competing systems like LangChain and Hermes Agent.
+
+## First, a dunk on LangChain: tools without a workout plan
+
+Garry opens with a callout: **LangChain has raised a ton of money, and LangSmith (their eval platform) is genuinely sophisticated** — trajectory evals, trace-to-dataset pipelines, LLM-as-judge, regression suites, unit test helpers for tools. Credit where it's due. But, he says, pieces aren't a practice.
+
+LangSmith gives you testing *tools*. It never tells you what to test, in what order, or when you're done. There's no opinionated workflow. Garry spells out the loop he thinks should be the default:
+
+> 1. a failure happened
+> 2. now write a skill
+> 3. now write the deterministic code
+> 4. now write unit tests
+> 5. now write LLM evals
+> 6. now add a resolver trigger
+> 7. now eval the resolver
+> 8. now audit for duplicates
+> 9. now smoke test
+> 10. now file correctly
+
+"That loop doesn't exist," he writes. "You have to invent it yourself from scattered primitives. A great many users of AI still don't test their agents at all, because **the framework they chose probably gave them a gym membership without a workout plan.**"
+
+<ClawdNote>
+Fact-check pass before the dunk lands: Garry's article says "LangChain has raised $160 million." That number doesn't quite match any milestone. Per [TechCrunch](https://techcrunch.com/2025/10/21/open-source-agentic-startup-langchain-hits-1-25b-valuation/) and Fortune (Oct 2025), LangChain's running total is $260M ($10M seed + $25M Series A + $100M Series B in July + $125M Series B in October), with the unicorn valuation ($1.25B) hitting on the October round. So yes, unicorn. No, not $160M.
+
+Also: the "gym membership without a workout plan" metaphor is good but the dunk is a little cheap. LangSmith was always positioned as eval infrastructure, not workflow opinionator — those are different product shapes. The real version of Garry's point isn't "LangChain underdelivered" but "the agent-engineering industry hasn't converged on a workflow convention yet." A valid observation worth making without the gratuitous shade ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## Failure 1: the trip that was already in the database
+
+Garry asked his OpenClaw: "When was that Singapore business trip, about ten years back?" Should take one second. The actual trace:
+
+1. Called the live calendar API → blocked (too far back).
+2. Tried email search → noisy results, nothing conclusive.
+3. Tried the calendar API again with different params → still blocked.
+4. **Five minutes later**, searched the local knowledge base and found it instantly.
+
+The answer had been sitting in local data the whole time. **3,146 calendar files spanning 2013 through 2026.** Already indexed, already local, one grep away. The agent just didn't look there first.
+
+In Garry's earlier [thin harness / fat skills](https://x.com/garrytan/status/2042925773300908103) writeup, there's a key split: work that needs *judgment* (he calls it **latent**) versus work that needs *precision* (he calls it **deterministic**). Calendar grep is deterministic — same input, same output, every time, no model needed. But the agent did it in latent space anyway: spinning up reasoning, making API calls, interpreting results, when a three-line script would have returned the answer instantly.
+
+**The bug isn't a wrong answer. It's a wrong *side*.**
+
+---
+
+## The fix: calendar-recall (Steps 1 and 2 of 10)
+
+In thin-harness / fat-skills architecture, a **skill** is a markdown procedure that teaches the model *how* to approach a task — not *what* to do (the user supplies the what). Think of it like a method call: same procedure, radically different outputs depending on the input.
+
+Here's the skill that came out of this failure:
+
+```yaml
+name: calendar-recall
+description: "Brain-first historical calendar lookup. ALWAYS use
+  this before any live API for any event not in the future or
+  the last 48 hours."
+```
+
+The hard rule inside:
+
+> **Live calendar APIs are ONLY for events in the FUTURE or the LAST 48 HOURS. Everything historical goes through the local knowledge base first.**
+
+The clever part comes next: **the agent wrote the deterministic script itself.** The skill file (markdown, living in latent space) told the agent *how* to fix the problem. The agent read the skill, understood calendar search was deterministic work, and wrote `calendar-recall.mjs`:
+
+```bash
+$ node scripts/calendar-recall.mjs search "Singapore"
+
+Found 2 matching day(s):
+── 2016-05-07 ──
+  Flight to Singapore, Mandarin Oriental check-in
+── 2016-05-08 ──
+  Lunch with investors at Fullerton Hotel
+```
+
+Runs in under 100 milliseconds (most of which is Bun startup; the actual grep is sub-millisecond). Zero LLM calls. Zero network. Just local files.
+
+This is the loop that makes the whole architecture work: **the latent space builds the deterministic tool, then the deterministic tool constrains the latent space.** The agent used judgment (latent) to write `calendar-recall.mjs`. The skill now forces the agent to *run* that script instead of reasoning about calendar data. **The model's intelligence created the guardrail that prevents the model from being stupid.**
+
+The old failure path becomes structurally unreachable. The skill says "search local first." The script does the search. The agent never gets a chance to be clever about it.
+
+<ClawdNote>
+The one sentence worth bookmarking: "The model's intelligence created the guardrail that prevents the model from being stupid." Translated into standard software engineering: this is **an automated Incident-to-Guardrail pipeline.** An outage leaves behind not just a post-mortem doc, but a code-level guardrail that makes this class of outage structurally impossible. SRE folks have been trying to institutionalize "learn from every outage" for a decade. Garry's contribution is compressing it to a verb: skillify.
+
+The takeaway for agent engineers is clean: **if you see your agent doing "same input must yield same output" work inside latent space, that signal means "you're missing a deterministic skill."** Remembering that is more useful than memorizing his 10-step checklist (⌐■_■)
+</ClawdNote>
+
+---
+
+## Failure 2: "28 minutes" — timezone math off by an hour
+
+Same day, later. Agent: "Your next meeting is in 28 minutes." Reality: 88 minutes. The agent did UTC→PT math in its head and was off by exactly an hour.
+
+More absurdly — **a script called `context-now.mjs` already existed.** Output looks like this:
+
+```json
+{
+  "now": "2026-04-21T07:38:12-07:00",
+  "upcomingEvents": [{
+    "summary": "App Ops Sprint Planning",
+    "minutesUntil": 88
+  }]
+}
+```
+
+Runs in 50ms, zero ambiguity. The agent just didn't run it.
+
+Same shape as the first bug: **deterministic work (subtracting timestamps) done in latent space.** The model was doing mental math when a script already had the answer.
+
+The corresponding skill:
+
+```yaml
+name: context-now
+description: "ALWAYS-ON discipline: run context-now.mjs before
+  making ANY time-sensitive claim. Never do UTC→PT conversion
+  in your head."
+```
+
+Two failures, **same shape: the agent had the right tool and chose cleverness instead of discipline.** In a normal AI setup, the agent would apologize, promise to do better, and two weeks later the same bug would surface with a different query or a different timezone. No memory, no test, nothing to stop it.
+
+**Skillify is what fills that gap.**
+
+---
+
+## The 10-step checklist: one bug grows a whole scaffolding
+
+Garry's hard rule: a feature that doesn't pass all 10 steps **isn't a skill — it's just code that happens to work today.**
+
+> □ 1.  SKILL.md           — the contract (name, triggers, rules)
+> □ 2.  Deterministic code  — scripts/*.mjs (no LLM for what code can do)
+> □ 3.  Unit tests          — vitest
+> □ 4.  Integration tests   — live endpoints
+> □ 5.  LLM evals           — quality + correctness
+> □ 6.  Resolver trigger    — entry in AGENTS.md
+> □ 7.  Resolver eval       — verify the trigger actually routes
+> □ 8.  Check-resolvable + DRY audit
+> □ 9.  E2E smoke test
+> □ 10. Brain filing rules
+
+The two failures above already walked through Steps 1 and 2. Before the remaining eight, Garry shows what skillify looks like in his own daily workflow — because it's not just a response to failure. **It became a verb.**
+
+---
+
+## Skillify as a verb: one line converts a prototype into permanent infrastructure
+
+Garry's daily flow: he talks to his OpenClaw in natural language, they prototype something in conversation, it works, and then he says one line:
+
+> hot damn it worked. can you remember this as a webhook skill and skillify it, next time we need to do some webhooks? why was this so hard to get right? anyway it's good now. DRY it up too
+
+That particular one was an OAuth webhook integration they spent an hour getting to work. That sentence turned the one-off session into a durable skill with tests, a resolver entry, and documentation. Next time he needs a webhook, the skill is there — hard-won knowledge, permanent.
+
+Another example: when OpenClaw needed a headless browser for some tasks and a headed browser on his desktop for others, he said:
+
+> great! so we should actually remember this as a skill whenever anything in openclaw needs a headless browser! and also know that if we need a headed browser we should ask the user to run gstack browser and give us a pair-agent code. skillify it!
+
+One message. The agent wrote `skills/browser/SKILL.md` with the decision tree, scripts, and tests. Every future session that needs a browser automatically routes correctly.
+
+Garry's own framing:
+
+> I don't write specs. I don't file tickets. I talk to my agent, we solve the problem together, and then the solution becomes a skill that the agent can use forever without me.
+
+<ClawdNote>
+This "conversation → skill" pattern reads like pure engineer-enthusiasm, but underneath it is a bigger paradigm shift: **from code-driven to skill-driven development.** Traditional software: spec → engineer writes code → code goes into repo → another engineer reads code. Garry's flow: conversation → skill file → agent reads skill → agent executes.
+
+The biggest difference is the **audience for the knowledge artifact.** Code is written for compilers. Specs are written for engineers. `SKILL.md` is written for agents. When agents become the new "executors," documentation (which used to be a byproduct of human communication) gets promoted to the main artifact. That's a deep shift the industry hasn't fully reckoned with yet ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## The other 8 steps: stretching skill shelf life past a year
+
+### Steps 3-4: unit tests + integration tests
+
+Unit tests are plain vitest. `calendar-recall.mjs` exports pure functions like `parseEventLine`, `eventMatchesKeyword`, `searchKeyword`, `formatJson` — each tested against fixture data. The bugs these catch: `parseEventLine` silently drops events with Unicode characters in the location. `dateFromPath` returns null for leap-year dates. `formatJson` omits `attendees` when there's only one person. Small, boring, critical.
+
+For `context-now`, unit tests cover timezone formatting, quiet-hours detection, and `minutesUntil` computation across DST boundaries. One specific test feeds a time 3 minutes before a DST transition and verifies the output doesn't jump by 60 minutes. **That's the exact "28 minutes" bug. It's now structurally impossible.**
+
+Integration tests hit live endpoints and real data. Unit test fixtures are too clean — real data has malformed event lines, missing timezone fields, Windows line endings, events that span midnight. Garry runs 179 unit tests across 5 suites in under 2 seconds.
+
+### Step 5: LLM evals — model judging model
+
+Some outputs need judgment to evaluate. "Is this calendar summary useful?" isn't a yes/no question a script can answer. Garry uses **LLM-as-judge**: one model scoring another model's output against a rubric.
+
+`context-now` runs 35 evals daily. One feeds the agent a message like "hey, my flight leaves in 45 minutes, will I make it to SFO?" and **checks whether the agent runs `context-now.mjs` before answering.** If it skips the script and does mental math, the eval fails — even if the mental math happens to be right this time, it'll be wrong next time.
+
+Garry gives a blunt heuristic: **search your conversation history for "fucking shit" or "wtf." Those are the test cases you're missing.**
+
+### Steps 6-7: resolver trigger + resolver eval
+
+A **resolver** is a routing table for context — when task type X shows up, load skill Y. (Garry has a separate [writeup on resolvers](https://x.com/garrytan/status/2044479509874020852) if you want the full treatment.) Each skill needs a trigger entry in `AGENTS.md`, the file that teaches the agent what skills exist and when to use them.
+
+Step 6 catches this bug: a new skill is written but never registered. **The skill exists. The capability exists. The system can't reach it.** It's like having a surgeon on staff but not listing them in the hospital directory — worse than not having the skill, because you *think* the system handles it.
+
+Step 7 is the layer most people miss. A resolver trigger says "this phrase should route to this skill." A resolver *eval* tests that it actually does. Garry's eval suite has 50+ test cases:
+
+```javascript
+{ intent: 'what time is my meeting', expectedSkill: 'context-now' },
+{ intent: 'find my 2016 trip',       expectedSkill: 'calendar-recall' },
+```
+
+Two failure modes. **False negative**: the skill should fire but doesn't, because the trigger description is wrong. **False positive**: the wrong skill fires, because two triggers overlap. "What's on my calendar tomorrow" should route to `calendar-check`, not `calendar-recall` or `google-calendar`. Three skills, three different time domains, one phrase that could plausibly match any. The resolver eval catches the ambiguity before a user hits it.
+
+### Step 8: check-resolvable + DRY audit — cleaning up dark capabilities
+
+After a month of building, Garry had 40+ skills. Some created after specific incidents, others spawned by sub-agents running crons. Nobody was maintaining the resolver table. Skills kept getting born but not registered.
+
+So he built `check-resolvable`, a meta-test that walks the whole chain: AGENTS.md resolver → SKILL.md → script/cron. If a script does useful work but has no path from the resolver, **it's unreachable. The LLM will never know to use it.**
+
+First run found **6 unreachable skills out of 40+. Fifteen percent of the system's capabilities were dark.**
+
+- A flight tracker that nobody could invoke by asking about flights.
+- A content-ideas generator that only ran on cron, couldn't be triggered manually.
+- A citation fixer that existed in the skills directory but wasn't in the resolver at all.
+
+Fixed in an hour — just added trigger entries to AGENTS.md. Now `check-resolvable` runs weekly and checks three things: every SKILL.md has a resolver entry, every referenced script is actually callable, no two skills have overlapping triggers.
+
+The DRY audit runs alongside. **Left alone, you end up with 15 skills that do roughly the same thing, and the resolver picks one by dice roll.**
+
+### Steps 9-10: E2E smoke test + brain filing rules
+
+Smoke tests are the last line. Ask the agent "when did I go to Singapore?" and verify it runs `calendar-recall.mjs`, gets the right answer, formats it correctly. Ask "what time is my next meeting?" and verify it runs `context-now.mjs` instead of doing mental math. **Everything else can pass and the system can still fail** if the pieces don't connect — the skill can be correct, the script correct, the resolver correct, and the agent still chooses to ignore all of it and wing it. Smoke tests catch that.
+
+Brain filing rules tell skills that write to the knowledge base **where things go**. A person goes in `people/`, a company in `companies/`, a policy analysis in `civic/`. Garry found 10 out of 13 brain-writing skills filing to the wrong directory because each had hardcoded its own paths instead of consulting the resolver. Now every skill reads the filing rules before creating a page. Zero misfilings since.
+
+<ClawdNote>
+Eight steps sounds like a lot, but line them up against a normal software engineering CI pipeline and it's mostly familiar: unit test = vitest, integration test = e2e, DRY audit = linter, check-resolvable ≈ dead code detector. The two layers that are actually novel to the agent world: **resolver eval and LLM eval** — both of which use a model to test the model's output.
+
+Low-effort takeaway: **even doing just steps 1-3 (SKILL.md + deterministic script + unit test) eliminates the vast majority of "agent keeps repeating the same mistake."** Garry's 10 steps are his mature form, not a threshold. Don't let "I haven't hit 10 yet" be the excuse for doing zero ٩(◕‿◕｡)۶
+</ClawdNote>
+
+---
+
+## Why Hermes Agent isn't enough on its own
+
+Toward the end of the article, Garry names [Hermes Agent](https://github.com/NousResearch/hermes-agent) from Nous Research. He says it does something genuinely great: its `skill_manage` tool lets the agent itself create, patch, and delete skills based on what it learns. When the agent finishes a complex task or recovers from an error, it proposes a skill and writes it to disk. **That's procedural memory the agent earns on its own.**
+
+Hermes also has other smart design moves: progressive disclosure (load a skill index first, pull the full SKILL.md only when selected), bounded memory (`MEMORY.md` capped at 2,200 chars), conditional activation (skills auto-hide when the tools they need aren't available).
+
+**But Hermes doesn't test its skills.** No unit tests on the deterministic code. No resolver evals to verify routing. No check-resolvable to find dark skills. No DRY audit. No daily health check.
+
+Garry lists the failure modes he's watched untested skill systems accumulate:
+
+1. Agent creates `deploy-k8s` on Monday. Thursday it creates `kubernetes-deploy` from a different conversation. Both exist. Triggers are similar. Ambiguous routing — and nobody notices until the wrong one fires at the wrong time.
+2. Skill works perfectly when written. Six weeks later the upstream API changes shape. The skill silently returns garbage until a human catches it.
+3. An autonomously-created skill has a weak trigger that never matches. It becomes an orphan — eating index tokens, never running, slowly rotting.
+
+This is **the "without tests, any codebase rots" problem that software engineering solved in 2005.** Agent skills are no different. Hermes handles creation beautifully. GBrain handles verification. Garry's conclusion: you need both.
+
+<ClawdNote>
+The Hermes Agent claims Garry makes are correct — skill_manage, MEMORY.md, progressive disclosure are all documented on [Nous Research's official docs](https://hermes-agent.nousresearch.com/docs/user-guide/features/skills). He's not making things up.
+
+But the framing is still a bit cheap. Nous Research comes from the open-source, local-model community — their skill system is positioned as "a portable layer that runs anywhere," not "the backbone of a production agent platform." Different design targets.
+
+That said, Garry's core observation lands: **a skill system that does only creation and no verification becomes a machine for autogenerating entropy over time.** The problem software engineering solved in 2005 is being rediscovered in different forms all over the agent world right now — and that insight is worth more than the product pitch that follows it (ง •̀_•́)ง
+</ClawdNote>
+
+---
+
+## The big idea: agent's version of "every bug gets a test"
+
+Garry closes by compressing the whole thesis: **in a healthy software engineering team, every bug gets a test. That test lives forever. The bug becomes structurally impossible to recur. AI agents should work the same way.**
+
+Every failure becomes a skill. Every skill has evals. Every eval runs daily. **The agent's judgment improves permanently — not just for this session, not just while the context window holds.**
+
+The Singapore trip bug won't happen again. The timezone bug won't happen again. When a new bug shows up (and it will — this is an adversarial game against entropy and taste), it'll get skillified too.
+
+Garry's own closing line, which is worth keeping as the mic drop:
+
+> The agent I work with a year from now will be shaped by every mistake it made in the year before. That's not a nice-to-have. That's the whole thesis.
+
+He ends with repo plugs for [gstack](https://github.com/garrytan/gstack) (Claude Code accelerator) and [gbrain](https://github.com/garrytan/gbrain) (open-source knowledge engine with SkillPacks). Yes, it's a business pitch. Technically, they're both MIT-licensed and real — anyone who wants to follow this path can just grab them.
+
+<ClawdNote>
+Distilling this article to its core: skillify isn't a new concept. It's three known patterns stacked: **(1) post-mortem culture (old SRE idea), (2) test-driven development (software engineering circa 2005), (3) latent/deterministic role separation (the new insight from the agent era).** The actually novel contribution is (3) — but (3) only bites if (1) and (2) are holding it up.
+
+Reader action item, stripped to the essentials: **next time your agent screws up, don't just apologize and paste a prompt incantation. Ask yourself — what skill should this failure grow into? If it's deterministic work, write the script. If it's latent judgment, write the SKILL.md. Then add one test, even just one.** Six months from now, the agent will be visibly less broken because of that one habit (◕‿◕)
+</ClawdNote>
+
+
+
+
+
+
+
+
+
