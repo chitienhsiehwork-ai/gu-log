@@ -4441,34 +4441,68 @@
         "attempts": 2
       },
       "factChecker": {
-        "status": "fail",
+        "status": "pass",
         "score": {
-          "pass": false,
-          "improvements": {
-            "accuracy": "三處具體修正：(1) Cursor embedding model fine-tune 說法（「此說法出自 Cursor 官方 blog，但 URL 無公開存檔，原文無法確認」）在 body 段落語氣偏確定（「拿 Agent 的對話軌跡去訓練自家的 embedding model」），ClawdNote 又將其當已確認事實（「Cursor 把這件事自動化了，我覺得這比什麼 RAG 架構都務實」）——應把 body 段落降格為「據報導」，且 ClawdNote 不應把未驗證 claim 當作立論基礎。(2) SWE-agent ~3% 數字引自 arxiv:2405.15793，但文章說「SWE-bench Lite ablation study 裡效能直接掉約 3%」——應比對論文 Table 4 / ablation 章節確認具體數字與場景，「~3%」可能是估算而非論文直接數字。(3) LangChain Harrison Chase 引言標記「無公開 URL 可驗證；以下為作者詮釋，非直接引用」但仍被用來建構 framework vs. harness 的核心論點——建議移除引言形式，改為純概念陳述，不要以「Harrison Chase 大意表示」起頭暗示這是可查的公開說法。"
-          },
-          "critical_issues": [
-            "accuracy 7 拖累 composite 至 7（低於 pass bar 8）：三筆「無公開 URL」來源（Anthropic 內部報告、Cursor blog、LangChain blog）被用來支撐論文主要技術論點，雖有免責聲明，但累積不確定性使技術準確度無法超過 7。",
-            "Cursor embedding fine-tune claim 在 body 標記「無法確認」但 ClawdNote 當作已知事實（「Cursor 把這件事自動化了」）——這是 fidelity 降格的邊緣狀況，也是未來審稿的重點：ClawdNote 不能比 body 更確定地陳述未驗證 claim。",
-            "SWE-agent 3% 是全文唯一具體量化數字，也是唯一有 arxiv citation 的 claim，但若論文 ablation 的實際數字不是 3% 或場景不符，這個 claim 反而是最脆弱的一點——在 accuracy 被其他不可驗證來源壓住的情況下，這個數字更應確認。"
-          ],
+          "pass": true,
+          "fact_pass": true,
           "judge_model": "claude-sonnet-4-6",
           "judge_version": "2.0.0",
           "timestamp": "2026-04-22T00:00:00Z",
           "dimensions": {
-            "accuracy": 7,
+            "accuracy": 8,
             "fidelity": 8,
             "consistency": 8
           },
-          "score": 7,
-          "verdict": "FAIL"
+          "score": 8,
+          "verdict": "PASS"
         },
         "model": "opus",
-        "attempts": 2
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-sonnet-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-22T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "haiku",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "鹹酥雞開場強、口語感穩定（微波便當、腳踏車、透明收納箱、點餐菜單類比密度到位），但 SWE-Agent 段落偏技術報告語氣，口語溫度掉了一截，未能全程維持 LHY 說課感。",
+            "clawdNote": "五個 note 全部有立場：集體幻覺批判、TodoWrite no-op 偷學建議、Cursor 比 RAG 務實的斷言、Manus 五次重寫的幽默比喻、progressive disclosure「先查 context 不是 model 太笨」的具體主張——密度與 opinion 均合格。",
+            "vibe": "開場立刻抓人，Manus「五次。沒看錯。」是全文真實情緒高峰，TodoWrite 洞察是會被轉發的句子，結尾鹹酥雞 callback 收得漂亮；但 SWE-Agent 的技術密度拉低了中段節奏，整體夠分享但未到黏住人的境界。",
+            "clarity": "正文全程無 你/我 違規，主語一律具名（Model、Manus、Claude Code、SWE-Agent），attribution caveat 明確標示哪些是原文、哪些是詮釋，ClawdNote 內的我屬於豁免範圍。",
+            "narrative": "鹹酥雞首尾呼應是真實的結構設計，Vercel 工具裁減案例作為早期鉤子、四廠商匯聚到 progressive disclosure 形成發現弧線；但四廠商輪番「說明→細節→ClawdNote」的節奏偏均勻，缺一個讓人意外的轉折來拉出第二個情緒高峰。"
+          }
+        },
+        "model": "opus",
+        "attempts": 3
       }
     },
-    "status": "FAILED",
+    "status": "PASS",
     "failedStage": "factChecker",
-    "finishedAt": "2026-04-22T09:19:42+08:00"
+    "finishedAt": "2026-04-22T09:44:29+08:00"
   }
 }
