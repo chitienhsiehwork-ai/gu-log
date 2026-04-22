@@ -5302,5 +5302,60 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-22T14:43:22+08:00"
+  },
+  "sp-84-20260223-elvissun-openclaw-agent-swarm.mdx": {
+    "article": "sp-84-20260223-elvissun-openclaw-agent-swarm.mdx",
+    "startedAt": "2026-04-22T14:43:44+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-sonnet-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-22T00:00:00Z",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS"
+        },
+        "model": "sonnet",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "tmux/git worktree 指令語法正確；成本數字歸屬 Elvis；Mac Studio M4 Max 128GB $3,500 在 2026 定價合理；主要疑慮是「Codex 5.3」版本號為 tweet 層級 claim，無法從主要來源獨立驗證。",
+            "fidelity": "Elvis 所有統計數字（94 commits、30分鐘7個PR、$190/月）明確歸屬來源；ClawdNote 與正文分離清晰；對 Claude Code 的負評明確標注「Elvis 原話」；無 uncertainty erasure。",
+            "consistency": "「兩張桌子」概念貫穿整篇，從 context window 架構到 reviewer 分工、bottleneck 分析均成立；ClawdNote 意見標注清楚為主觀觀點；「不看 code 就 merge」有具體理由支撐，無內部矛盾。"
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "fail",
+        "score": null,
+        "model": "haiku",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "FAILED",
+    "failedStage": "freshEyes",
+    "finishedAt": "2026-04-22T14:56:04+08:00"
   }
 }
