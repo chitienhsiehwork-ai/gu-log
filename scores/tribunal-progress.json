@@ -4443,26 +4443,19 @@
       "factChecker": {
         "status": "fail",
         "score": {
-          "pass": false,
-          "improvements": {
-            "accuracy": "多項關鍵數字（CORE-Bench 42%→78%、Cursor 46.9% token 降低、12.5% 搜尋準確率提升、Anthropic 26x 效率差距）全部引自「未公開內部報告」或「無公開 URL」，原文直接以事實陳述而非「據報告指出」等不確定語氣呈現。文中「Claude Opus 4.5」model 名稱可疑（官方 model ID 為 claude-opus-4-6，並無 4.5 版本紀錄）。Dex Horthy 與「12 Factor Agents」的連結也需要驗證——12 Factor Agents 的作者普遍被認為是 Ben Hylak（Databricks），不是 Dex Horthy。建議：將無法驗證的數字改用「據 Anthropic 內部研究」等有明確不確定性的語氣，並釐清 Dex Horthy 的 attribution；Opus 版本號需確認正確性。",
-            "fidelity": "文章大量延伸至原始推文(@Hxlfed14 thread)之外的資料，包括 Anthropic 內部報告、Manus blog、Princeton 論文等，但這些延伸來源的介紹方式缺乏明確的「這是補充引用、非原文所言」的區分。部分未公開資料（Anthropic 2026 內部報告的 26x 數字）在 body 正文中以「Anthropic 的內部數據更誇張」直接陳述，未用任何不確定語氣，已達到輕度的 uncertainty erasure——從「我們手上有這份資料」轉成「這就是事實」。"
-          },
-          "critical_issues": [
-            "多個核心統計數字（42%→78%、26x 效率、46.9%、12.5%）全部引自無公開連結的內部報告，以事實語氣陳述在 body 正文中，構成無法驗證的數字當作事實 red flag。",
-            "「Claude Opus 4.5」model 名稱與已知官方 ID（claude-opus-4-6）不符，若此名稱不存在則為技術不準確。",
-            "「Dex Horthy 在 12 Factor Agents 裡」的 attribution 可能有誤——12 Factor Agents 作者歸屬需 verify，直接影響引用可信度。"
-          ],
-          "judge_model": "claude-sonnet-4-6",
-          "judge_version": "2.0.0",
-          "timestamp": "2026-04-22T00:00:00Z",
+          "judge": "factCheck",
           "dimensions": {
-            "accuracy": 6,
+            "accuracy": 7,
             "fidelity": 7,
-            "consistency": 8
+            "consistency": 9
           },
           "score": 7,
-          "verdict": "FAIL"
+          "verdict": "FAIL",
+          "reasons": {
+            "accuracy": "Manus framework rewrite count is wrong: blog says 'four times' but post claims '五次' (five times) twice; '29 tools always loaded' number is unverifiable (not in Manus blog); all other verifiable claims (SWE-Agent 3% drop, Cursor 46.9% token reduction, Cursor 12.5% accuracy from semsearch blog, KV-cache invalidation, logit masking) check out.",
+            "fidelity": "The Manus 'four→five' rewrite misquote is a material source distortion; the 12.5% accuracy figure is real but comes from a different Cursor blog post (semsearch) than the 46.9% figure (Dynamic Context Discovery) — the references section correctly lists both titles but the body text makes it sound like one source; Anthropic internal report claims are properly hedged.",
+            "consistency": "Argument flows well from analogy through case studies to synthesis; ClawdNotes clearly marked as opinion; the 'five times' error propagates into the ClawdNote but is internally consistent with the (wrong) premise."
+          }
         },
         "model": "opus",
         "attempts": 2
@@ -4470,6 +4463,6 @@
     },
     "status": "FAILED",
     "failedStage": "factChecker",
-    "finishedAt": "2026-04-22T08:07:22+08:00"
+    "finishedAt": "2026-04-22T08:19:49+08:00"
   }
 }
