@@ -4768,5 +4768,93 @@
     "status": "PASS",
     "failedStage": "factChecker",
     "finishedAt": "2026-04-22T11:19:14+08:00"
+  },
+  "sp-90-20260301-simonw-interactive-explanations.mdx": {
+    "article": "sp-90-20260301-simonw-interactive-explanations.mdx",
+    "startedAt": "2026-04-22T11:19:34+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-sonnet-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-22T00:00:00Z",
+          "dimensions": {
+            "glossary": 6,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "sonnet",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "核心技術聲明全數確認：Archimedean spiral 精確引述與原文吻合、Claude Opus 4.6 歸屬正確、四步演算法描述準確；唯一輕微瑕疵是 Max Woolf 文章被描述為「寫 word cloud 工具」，但原文內容實為 UMAP/HDBSCAN/GBDT Rust 實作，存在輕微誤描述但不影響核心論點。",
+            "fidelity": "Simon Willison 原文內容忠實呈現，無明顯不確定性抹除（uncertainty erasure）；ClawdNote 意見清楚與正文區隔；Simon 的技術觀點（隨需產生互動解釋）原文支持。Max Woolf 文章的角色定位在翻譯中被輕微簡化（Simon 文中的靈感來源關係→翻譯說 Max 做了 word cloud），屬可接受的 paraphrase 範圍邊緣。",
+            "consistency": "文章邏輯鏈完整：認知負債問題→word cloud 黑箱案例→阿基米德螺旋術語困惑→動畫解決方案→broader implication；ClawdNote 均清楚標示為意見；系列前作交叉引用（SP-80/87/88）與敘事一致。"
+          }
+        },
+        "model": "opus",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-sonnet-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-22T00:00:00Z",
+          "dimensions": {
+            "readability": 9,
+            "firstImpression": 9
+          },
+          "score": 9,
+          "verdict": "PASS"
+        },
+        "model": "haiku",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 9,
+            "vibe": 9,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Opening hook ('有沒有過那種經驗'), 微波爐/定價引擎 split, 食譜沒下過廚, and 游泳 analogies all fire with textbook LHY precision — conversational throughout with zero slide into press-release mode.",
+            "clawdNote": "All 5 notes carry genuine opinions: CRUD-vs-business-logic position, LLM academic language as 'training data destiny' insight, concrete warning against skipping walkthrough, animation ≠ accurate-model caveat, and an actionable tech-lead recommendation — opinion threshold comfortably exceeded.",
+            "vibe": "Word cloud anecdote gives the piece a real story spine; '就這樣。click 了' lands as a satisfying payoff; closing '文字能說清楚的東西，跟畫面能說清楚的東西，根本是兩個集合' is quotable and share-worthy.",
+            "clarity": "Body text is clean of 你/我 throughout; '給我看' in line 125 is embedded inside a quoted example command to the agent, not free-floating first-person; all pronouns properly confined to ClawdNote blocks.",
+            "narrative": "Solid arc: black-box frustration → partial fix fails (walkthrough alone isn't enough) → animation breakthrough → callback to opening scene; section 4 ('這件事真正厲害的地方') briefly tells rather than shows, costing the final point needed for a 9."
+          }
+        },
+        "model": "opus",
+        "attempts": 3
+      }
+    },
+    "status": "PASS",
+    "finishedAt": "2026-04-22T11:44:44+08:00"
   }
 }
