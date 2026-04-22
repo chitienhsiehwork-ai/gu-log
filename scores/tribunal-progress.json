@@ -4445,13 +4445,13 @@
         "score": {
           "pass": false,
           "improvements": {
-            "accuracy": "文章有 3–4 個關鍵技術 claim 來自無公開 URL 可驗證的來源（Cursor blog 關於工具命名策略 + embedding model 訓練、Anthropic 內部報告關於 progressive disclosure 效率、LangChain blog）。每個都有個別標注免責聲明，方向正確，但累積數量超過 accuracy ≥ 8 的容忍上限。建議：(1) 把 Cursor 相關 claim 換成可驗證的公開 docs/changelog；(2) 把所有 unverifiable synthesis 集中到一個明確標注的「作者綜合判斷」section；(3) Manus logit masking claim（29 個工具永遠載入、在 decoding 階段用 logit masking 控制）若無法從公開 blog URL 直接確認，應加上適當 hedge。"
+            "accuracy": "三處具體修正：(1) Cursor embedding model fine-tune 說法（「此說法出自 Cursor 官方 blog，但 URL 無公開存檔，原文無法確認」）在 body 段落語氣偏確定（「拿 Agent 的對話軌跡去訓練自家的 embedding model」），ClawdNote 又將其當已確認事實（「Cursor 把這件事自動化了，我覺得這比什麼 RAG 架構都務實」）——應把 body 段落降格為「據報導」，且 ClawdNote 不應把未驗證 claim 當作立論基礎。(2) SWE-agent ~3% 數字引自 arxiv:2405.15793，但文章說「SWE-bench Lite ablation study 裡效能直接掉約 3%」——應比對論文 Table 4 / ablation 章節確認具體數字與場景，「~3%」可能是估算而非論文直接數字。(3) LangChain Harrison Chase 引言標記「無公開 URL 可驗證；以下為作者詮釋，非直接引用」但仍被用來建構 framework vs. harness 的核心論點——建議移除引言形式，改為純概念陳述，不要以「Harrison Chase 大意表示」起頭暗示這是可查的公開說法。"
           },
           "critical_issues": [
-            "3–4 個關鍵技術 claim（Cursor 依 model 特調工具命名、Cursor 用 agent 軌跡訓練 embedding model、Anthropic progressive disclosure 內部效率數據）來源均無公開可驗證 URL，累積量超過 accuracy 7→8 的門檻上限（評分標準要求 1–2 個 unverifiable 才能到 7 分，超出則應扣到 5–6）。",
-            "Manus logit masking 機制（29 個工具永遠在 context 中、在 decoding 階段控制可用集合）以事實形式陳述，是具體技術精確聲明，應在提交前對照公開 blog 原文確認或加適當 hedge。"
+            "accuracy 7 拖累 composite 至 7（低於 pass bar 8）：三筆「無公開 URL」來源（Anthropic 內部報告、Cursor blog、LangChain blog）被用來支撐論文主要技術論點，雖有免責聲明，但累積不確定性使技術準確度無法超過 7。",
+            "Cursor embedding fine-tune claim 在 body 標記「無法確認」但 ClawdNote 當作已知事實（「Cursor 把這件事自動化了」）——這是 fidelity 降格的邊緣狀況，也是未來審稿的重點：ClawdNote 不能比 body 更確定地陳述未驗證 claim。",
+            "SWE-agent 3% 是全文唯一具體量化數字，也是唯一有 arxiv citation 的 claim，但若論文 ablation 的實際數字不是 3% 或場景不符，這個 claim 反而是最脆弱的一點——在 accuracy 被其他不可驗證來源壓住的情況下，這個數字更應確認。"
           ],
-          "fact_pass": false,
           "judge_model": "claude-sonnet-4-6",
           "judge_version": "2.0.0",
           "timestamp": "2026-04-22T00:00:00Z",
@@ -4469,6 +4469,6 @@
     },
     "status": "FAILED",
     "failedStage": "factChecker",
-    "finishedAt": "2026-04-22T09:10:21+08:00"
+    "finishedAt": "2026-04-22T09:19:42+08:00"
   }
 }
