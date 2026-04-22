@@ -4856,5 +4856,40 @@
     },
     "status": "PASS",
     "finishedAt": "2026-04-22T11:44:44+08:00"
+  },
+  "sp-89-20260227-openclaw-acp-agents.mdx": {
+    "article": "sp-89-20260227-openclaw-acp-agents.mdx",
+    "startedAt": "2026-04-22T11:45:06+08:00",
+    "stages": {
+      "librarian": {
+        "status": "fail",
+        "score": {
+          "pass": false,
+          "improvements": {
+            "glossary": "Codex、Claude Code、OpenClaw 三個核心術語在 glossary.json 均有完整條目，但全文無任何 glossary 鏈接。建議在各術語首次出現時加上對應連結。Model Swap 在 glossary 有深度定義（換同事思維模式），文章雖有簡短 inline 解釋但缺 glossary 連結，讓讀者錯失完整脈絡。"
+          },
+          "critical_issues": [
+            "Codex、Claude Code、OpenClaw 三個貫穿全文的核心術語均缺少 glossary 鏈接——這三個剛好都是 glossary.json 中有最完整定義的條目，不連結等於切斷讀者延伸學習的路徑。",
+            "Model Swap 在 glossary 中的定義（包含換同事思維模式、model 個性差異等）比文章 inline 說明豐富許多，缺少鏈接讓讀者只拿到簡版解釋。"
+          ],
+          "judge_model": "claude-sonnet-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-22T00:00:00Z",
+          "dimensions": {
+            "glossary": 5,
+            "crossRef": 9,
+            "sourceAlign": 8,
+            "attribution": 9
+          },
+          "score": 7,
+          "verdict": "FAIL"
+        },
+        "model": "sonnet",
+        "attempts": 2
+      }
+    },
+    "status": "FAILED",
+    "failedStage": "librarian",
+    "finishedAt": "2026-04-22T11:53:21+08:00"
   }
 }
