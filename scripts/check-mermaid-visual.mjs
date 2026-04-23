@@ -26,7 +26,7 @@ import { readFileSync, existsSync, mkdirSync, rmSync } from 'fs';
 import { readdir } from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { execSync, spawn } from 'child_process';
+import { execSync, spawn, spawnSync } from 'child_process';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, '..');
@@ -207,16 +207,33 @@ function judgeWithClaudeCli(base64Image) {
 
     try {
       // Claude Code refuses --dangerously-skip-permissions under root (CCC).
-      const permFlag =
-        process.getuid && process.getuid() === 0 ? '' : '--dangerously-skip-permissions';
-      const result = execSync(
-        `echo '${inputMsg.replace(/'/g, "'\\''")}' | claude -p --input-format stream-json --output-format json --model ${MODEL} ${permFlag} 2>/dev/null`,
-        {
-          encoding: 'utf-8',
-          timeout: 60_000,
-          maxBuffer: 10 * 1024 * 1024,
-        }
-      );
+      // Use spawnSync with an argv array + stdin so MODEL / inputMsg never
+      // hit the shell — avoids command injection when MERMAID_CHECK_MODEL
+      // comes from the environment.
+      const args = [
+        '-p',
+        '--input-format',
+        'stream-json',
+        '--output-format',
+        'json',
+        '--model',
+        MODEL,
+      ];
+      if (!(process.getuid && process.getuid() === 0)) {
+        args.push('--dangerously-skip-permissions');
+      }
+      const child = spawnSync('claude', args, {
+        input: inputMsg,
+        encoding: 'utf-8',
+        timeout: 60_000,
+        maxBuffer: 10 * 1024 * 1024,
+        stdio: ['pipe', 'pipe', 'ignore'],
+      });
+      if (child.error) throw child.error;
+      if (child.status !== 0) {
+        throw new Error(`claude exited with status ${child.status}`);
+      }
+      const result = child.stdout;
 
       // Parse JSON output
       try {
