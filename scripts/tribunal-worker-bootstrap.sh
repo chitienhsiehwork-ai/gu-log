@@ -86,23 +86,24 @@ cmd_status() {
 cmd_remove() {
   local id="${1:-}"
   [ -z "$id" ] && { echo "ERROR: missing worker id" >&2; usage 1; }
-  local path
+  local path=""
   path=$(worker_path "$id")
   if [ ! -d "$path" ]; then
     echo "Worker worktree not found: $path"
-    exit 0
+    return 0
   fi
   cd "$MAIN_REPO"
-  echo "Removing worktree $path…"
+  echo "Removing worktree ${path}..."
   git worktree remove --force "$path" 2>&1 || rm -rf "$path"
   git worktree prune
   echo "Removed."
 }
 
 cmd_remove_all() {
+  local dir id
   for dir in "$WORKER_PARENT"/gu-log-worker-*; do
     [ -d "$dir" ] || continue
-    local id="${dir##*/gu-log-worker-}"
+    id="${dir##*/gu-log-worker-}"
     cmd_remove "$id"
   done
   git -C "$MAIN_REPO" worktree list
