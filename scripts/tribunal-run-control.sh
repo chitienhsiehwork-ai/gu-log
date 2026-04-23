@@ -140,3 +140,125 @@ rc_exit_stopped() {
   rm -f "$RC_STOP_FLAG" 2>/dev/null || true
   exit 0
 }
+
+# ─── Article claiming (Phase 2: multi-worker dispatch) ───────────────────────
+# Each article is guarded by a claim directory that mkdir-atomically ensures
+# only one worker can take it at a time. Supervisor calls rc_try_claim before
+# dispatching to tribunal-all-claude.sh; worker releases on finish/fail/stop.
+# The per-article /tmp flock in tribunal-all-claude.sh remains as
+# defense-in-depth.
+: "${RC_CLAIMS_DIR:=$RC_ROOT_DIR/.score-loop/claims}"
+: "${RC_CLAIM_STALE_SEC:=21600}"   # 6 hours — beyond longest article run
+mkdir -p "$RC_CLAIMS_DIR"
+
+# Usage: rc_try_claim <slug> [worker_id]
+# Returns 0 if claim acquired, 1 if already held (by another worker).
+# On success, writes meta file with pid + worker_id + started timestamp.
+rc_try_claim() {
+  local slug="$1"
+  local worker="${2:-$$}"
+  local claim_dir="$RC_CLAIMS_DIR/${slug}.claim"
+
+  if mkdir "$claim_dir" 2>/dev/null; then
+    # Got the claim. Write meta atomically.
+    local ts
+    ts=$(date -Iseconds 2>/dev/null || date -u +%Y-%m-%dT%H:%M:%SZ)
+    local tmp
+    tmp=$(mktemp "$claim_dir/.meta.XXXXXX") || {
+      rmdir "$claim_dir" 2>/dev/null || true
+      return 1
+    }
+    printf 'pid=%d\nworker=%s\nstarted=%s\n' "$$" "$worker" "$ts" > "$tmp"
+    mv "$tmp" "$claim_dir/meta"
+    return 0
+  fi
+
+  # mkdir failed — either already claimed, or it's stale from a crashed worker.
+  if rc_claim_is_stale "$slug"; then
+    rc_release_claim "$slug"
+    # One more attempt after GC.
+    if mkdir "$claim_dir" 2>/dev/null; then
+      local ts tmp
+      ts=$(date -Iseconds 2>/dev/null || date -u +%Y-%m-%dT%H:%M:%SZ)
+      tmp=$(mktemp "$claim_dir/.meta.XXXXXX") || {
+        rmdir "$claim_dir" 2>/dev/null || true
+        return 1
+      }
+      printf 'pid=%d\nworker=%s\nstarted=%s\nrecovered_stale=1\n' \
+        "$$" "$worker" "$ts" > "$tmp"
+      mv "$tmp" "$claim_dir/meta"
+      return 0
+    fi
+  fi
+  return 1
+}
+
+# Usage: rc_release_claim <slug>
+# Idempotent — OK to call even if claim wasn't held.
+rc_release_claim() {
+  local slug="$1"
+  local claim_dir="$RC_CLAIMS_DIR/${slug}.claim"
+  rm -f "$claim_dir/meta" "$claim_dir/.meta."* 2>/dev/null
+  rmdir "$claim_dir" 2>/dev/null || true
+}
+
+# Usage: rc_claim_is_stale <slug>
+# Returns 0 if claim is stale (process dead OR too old), 1 if fresh.
+# "Stale" means we should reclaim rather than respect the lock.
+rc_claim_is_stale() {
+  local slug="$1"
+  local claim_dir="$RC_CLAIMS_DIR/${slug}.claim"
+  local meta="$claim_dir/meta"
+
+  [ -d "$claim_dir" ] || return 1   # no claim = not stale
+
+  if [ ! -f "$meta" ]; then
+    # Claim dir exists but no meta. Could be mid-creation or corrupt.
+    # Age-check the dir itself.
+    local age
+    age=$(( $(date +%s) - $(stat -c %Y "$claim_dir" 2>/dev/null \
+           || stat -f %m "$claim_dir" 2>/dev/null || echo 0) ))
+    (( age > RC_CLAIM_STALE_SEC ))
+    return $?
+  fi
+
+  local pid worker started age
+  pid=$(awk -F= '/^pid=/{print $2}' "$meta" 2>/dev/null)
+  started=$(awk -F= '/^started=/{print $2}' "$meta" 2>/dev/null)
+
+  # Process liveness check (platform-agnostic: kill -0 works on Linux+macOS).
+  if [ -n "$pid" ] && ! kill -0 "$pid" 2>/dev/null; then
+    return 0   # pid no longer alive → stale
+  fi
+
+  # Age check (belt + suspenders for cases where pid got recycled).
+  if [ -n "$started" ]; then
+    local started_epoch
+    started_epoch=$(date -d "$started" +%s 2>/dev/null \
+                    || date -jf "%Y-%m-%dT%H:%M:%S%z" "$started" +%s 2>/dev/null \
+                    || echo 0)
+    if [ "$started_epoch" -gt 0 ]; then
+      age=$(( $(date +%s) - started_epoch ))
+      (( age > RC_CLAIM_STALE_SEC )) && return 0
+    fi
+  fi
+
+  return 1
+}
+
+# Usage: rc_gc_stale_claims
+# Walks all claims and releases stale ones. Supervisor should call this
+# at loop top to recover from crashed workers without restart.
+rc_gc_stale_claims() {
+  local claim_dir slug
+  for claim_dir in "$RC_CLAIMS_DIR"/*.claim; do
+    [ -d "$claim_dir" ] || continue
+    slug=$(basename "$claim_dir" .claim)
+    if rc_claim_is_stale "$slug"; then
+      if declare -f tlog >/dev/null 2>&1; then
+        tlog "Releasing stale claim: $slug"
+      fi
+      rc_release_claim "$slug"
+    fi
+  done
+}
