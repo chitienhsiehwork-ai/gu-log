@@ -6654,35 +6654,90 @@
     "startedAt": "2026-04-23T09:21:01+08:00",
     "stages": {
       "librarian": {
-        "status": "fail",
+        "status": "pass",
         "score": {
-          "pass": false,
-          "improvements": {
-            "crossRef": "First mention of Clawd (line 29: 「Clawd 翻譯並附註」) must link to /about — required identity link. Fix: change to [Clawd](/about). All 3 延伸閱讀 links resolve correctly (openclaw-discord-workflow-guide, sp-82, sp-37) and thematic connections are strong. Fixing this single identity link would raise crossRef to 8+, pushing composite to pass."
+          "pass": true,
+          "judge_model": "claude-opus-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-23T00:00:00Z",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
           },
-          "critical_issues": [
-            "Missing required Clawd → /about identity link at first mention (line 29). crossRef rubric explicitly requires first mention of Clawd/ShroomClawd to link to /about — without it, crossRef caps at 5, dragging composite below 8 pass bar."
-          ],
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.6",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 7,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Discord Developer Portal basics (three privileged Intents, OAuth2 URL Generator with bot scope + Administrator, Message Content Intent verification requirement for 100+ servers) are correct. One minor imprecision: the ClawdNote says Message Content Intent verification applies to bots created '2024 年之後', but this policy actually took effect in August 2022 — the 100-server threshold and verification requirement are accurate, only the year is off. OpenClaw 'six markdown files' architecture (SOUL.md / AGENTS.md / TOOLS.md / USER.md / MEMORY.md / HEARTBEAT.md) matches the framework's documented structure.",
+            "fidelity": "Cannot fetch the X source (sandbox blocks external HTTPS), but the post is framed transparently as a translation of Karry's 實戰教學文 with clear attribution box at top. ClawdNote blocks are visually separated via the component and Clawd's opinions ('我自己就是這樣長出來的', '嫉妒') are clearly first-person commentary, not smuggled into body text. Direct quotes from Karry (the one-line Discord config command, cron scheduling request) preserve hedged/practical tone. No obvious uncertainty erasure detected.",
+            "consistency": "Configuration-as-Conversation thesis holds from intro through the Agent Terms section to the conclusion — each 坑 example (升級後訊息混了 / 跨頻道上下文 / @ 太煩) reinforces the same pattern (抱怨 → agent 修 → 規則沉澱). ClawdNote opinions about Telegram/WhatsApp limitations and '用嘴巴 debug 的前提是 agent 有權限改自己 config' are clearly marked as commentary, not source claims. Internal architecture claim ('頻道 topic = system prompt') is consistently applied in the #⚡-內觀 INTJ 導師 example."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
           "judge_model": "claude-opus-4-6",
           "judge_version": "2.0.0",
           "timestamp": "2026-04-23T12:00:00Z",
           "dimensions": {
-            "glossary": 8,
-            "crossRef": 5,
-            "sourceAlign": 8,
-            "attribution": 9
+            "readability": 9,
+            "firstImpression": 9
           },
-          "score": 7,
-          "verdict": "FAIL"
+          "score": 9,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.6",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 9,
+            "vibe": 9,
+            "clarity": 9,
+            "narrative": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Opening contrast (YAML explosion vs one-sentence setup) is a classic LHY teaching hook; analogies land naturally (掃地機器人萬能鑰匙, 每間獨立的教室, 養寵物日記) and tone stays harsh-on-tech kind-to-people throughout with genuine oral voice.",
+            "clawdNote": "Nearly every note carries genuine opinion — the '配置即馴化' reframing directly challenges Karry's own terminology, the Discord silent-failure note takes a clear DX stance, and the framework critique ('大部分 agent 框架根本做不到') gives Clawd a distinctive editorial voice well beyond footnotes.",
+            "vibe": "The six-fights section is a genuine emotional peak; foreshadowing ('不串味也有代價——後面會以很痛的方式浮現') creates real tension paid off in the debugging section, and the philosophical closing ('性格即經歷') gives a shareable takeaway worth sending to a friend.",
+            "clarity": "Zero 你/我 in body text — grep confirms only occurrence is in title frontmatter; body consistently uses 'Karry', 'Orb', concrete nouns as subjects; speaker identity unambiguous even through six interleaved fight vignettes.",
+            "narrative": "Real arc from mundane bot-setup through escalating human-agent conflicts to philosophical reframe; foreshadowing in channel section pays off in debugging section, six-fights escalation creates genuine dramatic peak, and the '配置即對話 → 性格即經歷' callback ending gives the punch the rubric demands."
+          }
         },
         "model": "opus-4.6",
         "attempts": 2
       }
     },
-    "topLevelAttempts": 1,
-    "status": "FAILED",
+    "topLevelAttempts": 2,
+    "status": "PASS",
     "failedStage": "librarian",
-    "finishedAt": "2026-04-23T09:25:57+08:00"
+    "finishedAt": "2026-04-23T12:55:48+08:00"
   },
   "sp-68-20260217-amytam-cost-of-staying.mdx": {
     "article": "sp-68-20260217-amytam-cost-of-staying.mdx",
