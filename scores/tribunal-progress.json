@@ -6744,16 +6744,93 @@
     "startedAt": "2026-04-23T09:26:10+08:00",
     "stages": {
       "librarian": {
-        "status": "fail",
-        "score": null,
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 7,
+            "sourceAlign": 8,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Post is career/VC-focused — few glossary terms apply. Generic terms like 'AI', 'ML infra', 'training runs' are not used in glossary-specific senses. No key glossary term left unlinked.",
+            "crossRef": "All 3 延伸閱讀 links verified (sp-123, cp-180, cp-154 all exist). However, first mention of 'Clawd' in the opening blockquote (line 29: 'Clawd 翻譯並附註') does NOT link to /about — required identity link missing per crossRef rules.",
+            "sourceAlign": "Content clearly derived from Amy Tam's X thread on AI-era career K-curves. Opening blockquote and closing attribution both reference the sourceUrl. All sections trace back to the declared source topic.",
+            "attribution": "Excellent speaker identification throughout — every Amy Tam view is explicitly attributed ('Amy 用了', 'Amy 說', 'Amy 寫得很直白'). ClawdNote opinions cleanly separated in components with no bleed into body text."
+          }
+        },
+        "model": "opus-4.6",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All named entities verifiable — Bloomberg Beta is a real VC, Prime Intellect and SSI are real frontier research startups, FAANG/H100/compute-gap framing is factually grounded. No fabricated benchmark numbers or invented products; the piece is thematic/opinion rather than stat-heavy, so accuracy risk is low. Minor imprecision: 'H100 price eats a professor's annual research budget' is hyperbolic but directionally correct for many academic contexts.",
+            "fidelity": "Could not fetch source tweet (WebFetch 402), but structural signals indicate faithful translation: ClawdNote blocks are clearly delimited via <ClawdNote> component and consistently push back on or extend Amy's views rather than bleeding into the body. Hedges preserved throughout (可能/大概/至少/搞不好). ClawdNotes explicitly flag Amy's VC bias and survivorship-bias sample, which is strong fidelity discipline — the translator is not smoothing over the source's limitations.",
+            "consistency": "Argument flows tightly: the execution→judgment shift is established first, K-curve compounds that shift across time, then six career paths (FAANG/Quant/Academia/App-startups/Research-startups/Big-labs) each instantiate the same tradeoff, and the closing section ties all six back to the time variable. ClawdNote opinions are marked as opinions (台灣語境/VC 偏見 caveats), not smuggled in as facts. No internal contradictions detected."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-23T12:00:00Z",
+          "dimensions": {
+            "readability": 9,
+            "firstImpression": 9
+          },
+          "score": 9,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.6",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 9,
+            "vibe": 9,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "LHY feel strong throughout — 炒菜機器人、電扶梯往下走、法師後期、小鋼砲vs法拉利、洗菜 all land naturally; oral transitions like '好。框架講完了' and '到這裡先暫停一下' create genuine teaching rhythm.",
+            "clawdNote": "5 of 7 notes have explicit stance challenging Amy — VC bias callout ('聽的時候記得打個八折'), FAANG blind spot (survival strategy vs comfort zone), research startup reality check ('每個人做五個人的工作量'); personality and opinion density both high.",
+            "vibe": "Career framework is immediately relevant, analogies are memorable and shareable (map vs GPS ending sticks), no section drags enough to swipe away; the pivot from 'what you're losing' to 'what you'd find' keeps momentum across 6 paths.",
+            "clarity": "Body text avoids 你/我 consistently — uses 工程師, 離開的人, 留下的人, Quant as subjects; Amy's views vs Clawd's opinions always clearly separated; ClawdNote 我 is unambiguous.",
+            "narrative": "K-curve framework threaded from intro to conclusion creates genuine structural spine; the section-4 pivot ('前面三條路都是失去什麼的故事，接下來三條是跳過去之後的故事') breaks listicle inertia; ending synthesizes with map/GPS rather than bullet recap — but 6-path structure still carries some listicle DNA beneath the good transitions."
+          }
+        },
         "model": "opus-4.6",
         "attempts": 2
       }
     },
-    "topLevelAttempts": 1,
-    "status": "FAILED",
+    "topLevelAttempts": 2,
+    "status": "PASS",
     "failedStage": "librarian",
-    "finishedAt": "2026-04-23T09:30:42+08:00"
+    "finishedAt": "2026-04-23T13:13:41+08:00"
   },
   "sp-62-20260214-batch340-dr-cabot-medical-ai.mdx": {
     "article": "sp-62-20260214-batch340-dr-cabot-medical-ai.mdx",
