@@ -34,6 +34,10 @@ const (
 // DisplayName returns the human-readable model name the validator expects
 // in translatedBy.model. Unknown IDs pass through unchanged so the caller
 // fails loudly at validation time instead of silently truncating.
+//
+// Opus is pinned to 4.6 in claude.go (ClaudeOpusPinned) — the maintainer
+// has explicitly rejected 4.7's writing voice and vibe-scoring calibration.
+// Do not bump the Opus display name without also unpinning the model.
 func DisplayName(m ModelID) string {
 	switch m {
 	case ModelClaudeOpus:
