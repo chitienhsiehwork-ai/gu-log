@@ -1,0 +1,182 @@
+---
+ticketId: "SP-PENDING"
+title: "Claude Code 四月變笨的真相——Anthropic 把三個 bug 全招了"
+originalDate: "2026-04-23"
+translatedDate: "2026-04-23"
+translatedBy:
+  model: "Opus 4.7"
+  harness: "Claude Code"
+source: "Anthropic Engineering (anthropic.com)"
+sourceUrl: "https://www.anthropic.com/engineering/april-23-postmortem"
+lang: "zh-tw"
+summary: "Anthropic 剛發 postmortem 承認 Claude Code 最近一個月確實變笨——而且不是一個 bug，是三個疊在一起看起來像大型 regression。三月把 default reasoning effort 從 high 降到 medium 省 latency，一個 cache 優化的實作錯誤每 turn 都清 thinking history，四月為了壓 Opus 4.7 冗長加一段 system prompt 把 eval 打掉 3%——四月 20 全部修完，還 reset 了所有 subscriber 的 usage limit。"
+tags: ["claude-code", "anthropic", "postmortem", "opus-4-7", "prompt-engineering"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+過去一個月 [Claude Code](/glossary#claude-code) 的老用戶在 Twitter 跟 Reddit 上開始集體抱怨：同樣的 prompt，回覆變短；追一個 bug 追到第五步突然忘了第三步看過什麼；usage limit 掉得比往常快，一整天工作還沒收尾就見底。一開始聽起來像每次 model 換版都會有的 vibes 抱怨——等個幾天聲音會自然消退。**這次沒消退，反而愈來愈多人講**。
+
+[Anthropic 今天放的 April 23 postmortem](https://www.anthropic.com/engineering/april-23-postmortem) 正面承認這波不是錯覺。不是誰刻意把 model 調弱、也不是 inference 層出事——**是三個完全獨立、分別在三月四月上線、走不同發佈 schedule、影響不同 traffic slice 的 bug 同時在跑**，疊在一起看起來就像大型 quality regression。波及範圍是 Claude Code、Claude Agent SDK 和 Claude Cowork 三條產品線；API 本體跟 inference layer 從頭到尾沒事。4 月 20 的 `v2.1.116` 把三條全部修完，今天（4/23）順便重置了所有 subscriber 的 usage limit 當賠罪。
+
+## 三條 bug 的時間軸一眼看完
+
+Anthropic 原文把三條事故的節選壓得很精簡：
+
+> On March 4, we changed Claude Code's default reasoning effort from high to medium... reverted on April 7.
+>
+> On March 26, we shipped a change to clear Claude's older thinking... fixed it on April 10.
+>
+> On April 16, we added a system prompt instruction to reduce verbosity... reverted on April 20.
+
+翻成白話三條線——每一條都有「為什麼想這樣做」跟「為什麼出事了」的背景：
+
+- **3/4**：把 Claude Code 的 default reasoning effort 從 `high` 降到 `medium`。目的是省 latency（某些用戶在 `high` 模式下會遇到模型想太久、UI 整個凍結）。→ 4/7 revert 回去
+- **3/26**：shipped 一個 prompt cache 優化，本意是「閒置超過一小時的 session 重新回來時，把舊的 thinking 清一次省 token」——實作出錯變成**每個 turn 都清一次**。→ 4/10 在 `v2.1.101` 修好
+- **4/16**：為了壓 Opus 4.7 那股冗長，加了一句 system prompt「回覆之間不要超過 25 字、final response 不超過 100 字」。結果 eval 掉 3%。→ 4/20 revert
+
+這三條踩的 model 不盡相同：Sonnet 4.6、Opus 4.6、Opus 4.7 都有受影響，每一條影響的 traffic slice 又不一樣，加上發佈時程錯開——**用戶體感就是「Claude Code 最近在衰退，但說不出是哪一天開始的，也說不清是哪裡衰退」**。三條 bug 都長在 product layer 跟 harness 那層；模型本體沒被碰過。
+
+<ClawdNote>
+把三條 bug 並排看，會發現一個很安靜的共線：**三次都是為了省 latency、省 token、省輸出長度——三次都順手把 intelligence 挖掉一塊**。Anthropic 原文對第一條的評語很乾脆：「This was the wrong tradeoff。」
+
+這種失誤最難抓的地方在於 eval 的盲點——eval 抓得到「對不對」，抓不到「這個產品值不值得花錢訂閱」。後者是 vibes，是一群重度用戶在 Twitter 上慢慢累積的集體感受。想像一家米其林餐廳突然把每道菜的份量偷偷減 15%——客人嚐第一口都還是對的味道，但吃完會覺得怪怪的、隔週就不想再訂位了。**Anthropic 這次也是靠 `/feedback` 指令的真用戶回報把源頭追出來的，不是靠內部 eval**。(￣▽￣)／
+</ClawdNote>
+
+---
+
+## Bug 1：default reasoning effort 從 high 降到 medium
+
+先把 reasoning effort 這個詞講清楚，後面才知道扣掉的是什麼——它是 Claude Code 給使用者的那個「要模型想多深」的控制桿。檔位愈高，模型思考愈久、回答愈準、latency 跟費用也愈高；檔位愈低則相反。這個設計是給使用者自己決定「今天這個任務值不值得多花時間跟 token 換更準的答案」。
+
+二月 Opus 4.6 在 Claude Code 上線時，Anthropic 把 default 設在 `high`——預設就給最會想的那檔。問題出在 tail latency：某些用戶在 `high` 偶爾會遇到模型想超久，**UI 看起來整個凍結**，順便把 token budget 吃光。原文的描述是：
+
+> Claude Opus 4.6 in high effort mode would occasionally think for too long, causing the UI to appear frozen and leading to disproportionate latency and token usage for those users.
+
+Anthropic 的反應走的是標準 product flow——跑內部 eval、量 `medium` vs `high` 的 intelligence 差距，結論是「`medium` 的 intelligence 只掉一點點、latency 大幅改善、tail latency 的凍結問題消失、對 usage limit 更友善」。3/4 把 default 改成 `medium`，在 Claude Code 開場跳 dialog 跟使用者解釋原因、也告訴使用者怎麼切回 `high`。
+
+上線沒多久，負面 feedback 湧進來：**Claude Code 感覺變笨了**。Anthropic 做了幾輪 UI 迭代——開場 notice、inline effort 選單、把 `ultrathink` 找回來——但絕大多數使用者還是沒主動切 `high`，繼續停在 `medium`。到 4/7，Anthropic 直接承認「This was the wrong tradeoff」，把 default 改回來。**現在 Opus 4.7 default 是 `xhigh`，其他所有 model default 是 `high`**。
+
+這條修掉很快——純 config 改動，一個 switch 翻回去就結束。但它留下來的教訓更硬：**使用者不會因為看過一個 dialog 就去動 default 設定**。這不是 Claude Code 獨有的現象，是整個產品圈的老梗——哪個值被選為 default，絕大多數人就會停在那個值。Anthropic 選 `medium` 等於替 90% 的用戶選了「慢一點但沒那麼聰明」，不管幾個 dialog、幾個 notice、幾個 inline selector 都沒辦法推回來。
+
+<ClawdNote>
+這個現象有個行為經濟學的經典名字叫 **default bias**——Kahneman、Thaler 整本書寫過。想像一下美國退休金 401(k) 制度——當制度 default 是「opt-in（要自己勾選加入）」時，參與率只有 30% 左右；改成「auto-enroll（預設加入、要退出自己勾）」之後，參與率直接衝到 90%。一樣的制度、一樣的錢、一樣的選擇，光是換個 default，行為分佈就翻倍。
+
+Anthropic 這次算是替自己產品線買了一次這個教訓。對「預設值」這種最常被預設接受的設定，沒有中性選擇——**選 default 就是在替 90% 的用戶做決定**，不是在「給使用者選擇」。這條教訓大概比那 40 幾 KB 的 system prompt 改動還值錢 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## Bug 2：cache 優化讓 Claude 每一 turn 忘記自己為什麼這樣做
+
+這條是三條裡技術最硬也最值得細讀的一條。先給一個場景——想像 [Claude Code](/glossary#claude-code) 正在幫忙 debug 一個 test case：
+
+> 第一步讀了 `auth.ts`、覺得問題在 token 過期；
+> 第二步去 grep 了 `refresh_token` 的呼叫點；
+> 第三步想改 `token-manager.ts`。
+
+到第三步時 Claude 需要記得「第一步為什麼覺得問題在 token 過期」——這個「為什麼」就存在所謂的 **thinking blocks**（思考紀錄）裡，跟著對話 history 一起送進下一 turn。沒有它，Claude 會看著自己寫到一半的 code 發愣，完全不記得當初為什麼要打開這個檔案。
+
+3/26 ship 的優化乍看很合理：如果 session 閒置超過一個小時，prompt 本來就會被 cache evict——反正下次 resume 是 cache miss，那**順便把舊的 thinking 清一次**，可以少送一大段 uncached token 給 API。清完之後，下一 turn 就恢復正常、繼續送完整 history。實作用了 `clear_thinking_20251015` 這個 API header 加 `keep:1` 參數。
+
+意圖是：**清一次就好**。
+
+實作寫成：**每一 turn 都清**。
+
+> Instead of clearing thinking history once, it cleared it on every turn for the rest of the session.
+
+這個 bug 長得很陰——session 一旦跨過那條 idle threshold 一次，接下來**整個 session 剩下的每一個 turn** 都會告訴 API「只保留最近一塊 reasoning、之前全砍」。Claude 會繼續執行、繼續 tool call、繼續輸出結果——只是愈走愈像失憶症晚期。第五步改 code 時，不記得第一步為什麼覺得是 token 過期；第八步決定 rollback 時，不記得第六步為什麼答應要改。用戶感受到的「forgetful、repetition、odd tool choices」就是這個機制的症狀。
+
+更糟的是連鎖反應會複利——如果使用者在 Claude 正在跑 tool use 的中途丟一個 follow-up message，那就是新 turn 套在 broken flag 上，**連當前 turn 的 reasoning 也被砍**。Claude 像一個每講兩句話就被抹掉記憶的助理，最後只剩肌肉反射在工作。
+
+還有一個副作用——**因為每次 request 都在 drop thinking blocks，這些 request 全部會 cache miss**。Anthropic 的推論：這條 bug 順便解釋了「usage limit 被吃得比平常快」這批另外的抱怨。本來 cache hit 可以省掉的 token，全部變成 cache miss 重新計費。
+
+這個 bug 為什麼這麼難抓？原文列了三層 confounder：
+- **兩個正在跑的不相關實驗疊加**：一個內部 server-side 的 message queuing 實驗、一個關於 thinking 顯示方式的正交改動——剛好把這個 bug 在多數 CLI session 裡 suppress 掉，連 Anthropic 自己 dogfood（內部員工每天用自家產品當真用戶）都沒 trigger
+- **只發生在 corner case**——session 必須跨過 1 小時 idle threshold 才會觸發
+- **多層 review 全部放行**：human review、automated review、unit test、E2E test、自動 verification、dogfooding——六層安全網全 pass
+
+這個 bug 坐在 Claude Code 的 context 管理 × Anthropic API × extended thinking 三個 subsystem 的交叉路口——**subsystem 邊界處剛好是所有測試最薄的地方**。花了超過一週 Anthropic 才定位到 root cause，4/10 在 `v2.1.101` 修好。
+
+有一個很有意思的 side story：Anthropic 在復盤時用 Opus 4.7 跑 Code Review 去 back-test 那批 offending PR——**4.7 抓到這個 bug、4.6 沒抓到**（前提是把相關的 repo 都餵給它當 context）。這個實驗直接變成產品 roadmap：Code Review tool 之後會支援 additional repository context，先內部上、再 ship 給客戶。
+
+<ClawdNote>
+這條 bug 最值得細讀的，是「為什麼六層 review 全部沒接到」。薄在哪？薄在這個 bug 要三件事同時發生才會觸發——**session 跨過 1 小時 idle + thinking clear 機制啟動 + 使用者從 tool use 中途插話**。這組合在任何 deterministic test suite 的 threat model 裡都不會被列出來。
+
+比喻一下：就像消防演習永遠在白天整點進行、每個人都知道哪天要演練，等真的某個週三凌晨三點電線走火，演習裡練過的動作剛好**一條都對不上實際場景**。Anthropic 原本內部 dogfood 的是「連續使用一整天」這種模式——沒有 1 小時以上的閒置，bug 根本不會 trigger。
+
+這揭示一個產品圈講了很多年但還是常踩的真相：**安全網只能抓到設計安全網時想得到的失敗模式**。修這種 bug 真正有效的防線不是再加一層 test、再多跑一個 eval，而是**production traffic 本身**——真實用戶的操作模式比任何 synthetic test 都離奇。這次也是靠 `/feedback` 把線索補齊的，不是靠 eval。小團隊想抄這套防禦姿態最直接的翻譯就是——**把 feedback 通道降到最低阻力，讓真用戶替你 QA**。╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## Bug 3：想壓 4.7 冗長的 system prompt，順便把 eval 打掉 3%
+
+第三條是三條裡跟 prompt engineering 最相關的一條——**agent 工程師尤其該細讀**，因為那個雷多數公司已經踩過一遍。
+
+Opus 4.7 剛 launch 時 Anthropic 自己在 launch note 就講過：這代模型**比 4.6 明顯更冗長**。冗長對難題是加分（reasoning trace 愈完整愈容易對），但 token 花得更兇、UI 讀起來更煩。Claude Code 的 [harness](/glossary#harness) 在 4.7 上線前幾週就開始調教，壓這股冗長。
+
+Anthropic 用的招不只一種：改 model 訓練、改 prompt、改前端怎麼顯示 thinking——最後三條都用了。但其中一條 prompt 改動意外把 intelligence 砍掉一塊。**關鍵那句 system prompt**：
+
+```text
+Length limits: keep text between tool calls to ≤25 words. Keep final
+responses to ≤100 words unless the task requires more detail.
+```
+
+「tool call 之間的文字不超過 25 字、final response 不超過 100 字，除非 task 本身需要更多 detail」。單獨看這句 prompt 挑不出毛病——冗長就是字多，叫模型少講一點合情合理。**但把它放進 Claude Code 的真實 harness 情境**：tool calls 之間那些 text 本來就承擔了 reasoning 的一部分——「剛才讀了這個檔、所以下一步要 grep 那個函式」。把這段壓進 25 字，等於是**把模型的工作思路壓成 Twitter 字數上限**。結果是 reasoning 被動截斷、case 複雜一點就顧不到細節。
+
+Anthropic 在上線前跑了幾週內部測試，當時用的 eval 組沒 regression，對改動有信心，4/16 跟 Opus 4.7 一起 shipped。這條 prompt 跟其他幾個 prompt 變更一起上線——原文的用字是 "In combination with other prompt changes"——所以「長度限制」那一條只是那波改動裡的主嫌，不是唯一變數。
+
+事後 Anthropic 擴大 eval 組、做 ablation——把 system prompt 一行一行拿掉、看哪一行對 intelligence 的貢獻最大或最壞。其中一組測試顯示 Opus 4.6 跟 4.7 同時掉 3%。那一句長度限制直接被拔掉，4/20 隨 release revert。
+
+這條 bug 跟第二條的性質完全不同——**這裡沒有 implementation bug、實作完全照設計跑**；是**設計本身有 blind spot**，加上當時用的 eval 組剛好沒涵蓋到會暴露 regression 的 task。
+
+<ClawdNote>
+這條 bug 藏了一個很神奇的 meta 層：**Anthropic 自己在 [SP-175](/posts/sp-175-20260416-anthropic-opus-4-7-prompting-best-practices) 拆過「Opus 4.7 很照字面做事，你怎麼寫它就怎麼跑」的 case study——現在自己 team 踩進同一個坑**。SP-175 裡那個 case 是 harness 寫「report only high severity」，4.7 就真的只報 CVE 級別、把 logic error 整批 skip。這次的「keep text between tool calls to ≤25 words」是同一個模式的不同切面——4.6 會自己拿捏「25 字 vs 講完 reasoning」之間該讓哪邊，4.7 不跟你討價還價，直接照字面砍到 25 字、reasoning 被擠掉就被擠掉。
+
+這也呼應 [SP-177](/posts/sp-177-20260421-pawelhuryn-intent-first-4-7-migration) 那篇「intent-first 遷移」講的核心教訓——從 Sonnet 4 / Opus 4.6 遷到 4.7 最常踩的雷，就是把過去那些「約束型 prompt」（限制 length、限制 format、限制 severity）不加修改地搬過來。這批 prompt 在 4.6 時代容忍度高，到 4.7 時代全部要重新 review，不是跑完 regression test 就能交差。
+
+Anthropic 官方 harness 自己都在 migration 上跌了——**小團隊直接把 legacy prompt 丟給 4.7 的風險只會更高** (¬‿¬)
+</ClawdNote>
+
+---
+
+## Anthropic 接下來要做的四件事
+
+原文收尾列了一組防禦措施——語氣沒什麼 spin，就是把踩到的雷一個一個對應到 process 改動。
+
+**第一件：更多內部員工用跟 public 完全一樣的 build**。呼應 Bug 2——內部版本跟 public build 有 diff（為了測試新 feature），而那個 diff 剛好把這條 bug 在多數 CLI session 裡 suppress 掉。員工用 public build 的比例要提上來，這樣有狀況內部先踩到。
+
+**第二件：改進自家 Code Review tool，再 ship 出去給客戶**。Bug 2 復盤時發現 Opus 4.7 在足夠 repo context 下能抓到這個 bug——意思是「4.7 已經夠聰明了，只是當初手邊沒足夠 context」。修法是把 additional repository context 的支援加進 Code Review，先內部上，再下放給客戶。這條剛好把一個原本排後面的 roadmap item 從事故推上了前段。
+
+**第三件：system prompt 變更的 gate 拉到最緊**。每次 Claude Code 的 system prompt 改動都要跑 per-model 的 broad eval suite（擴大原本那組太窄的）；持續做 ablation 搞清楚每一行對 intelligence 的貢獻；寫了新 tooling 讓 prompt diff review 更好做；在 `CLAUDE.md` 加 guidance 說「model-specific 的改動要 gate 在那個 model，不要全面 rollout」。任何可能 trade 掉 intelligence 的改動，要走 **soak period + broader eval + gradual rollout**——不是「eval 全綠就 ship」。
+
+**第四件：把產品決策的溝通做得更透明**。Anthropic 在 X 上開了 [@ClaudeDevs](https://x.com/ClaudeDevs) 帳號、也會在 GitHub 開集中 thread 解釋重大產品決策。這條不解決 bug，但解決「事情發生時用戶沒官方管道聽一手說法」——前一個月很多抱怨之所以沒被認真回應，有一半是因為根本沒有頻道能回應。
+
+最後 Anthropic 特別感謝用 `/feedback` 指令回報問題、或在網路上貼具體 reproducible 案例的用戶，並在 4/23 重置了所有 subscriber 的 usage limit。Bug 2 那條 cache miss 副作用被用戶付了一個月——這個 reset 算是實際補償，不只是公關動作。
+
+<ClawdNote>
+這四件事合起來有個很健康的姿態：**Anthropic 沒有把責任推到「個別 engineer 寫錯 code」或「哪個 eval 沒覆蓋」這些個人點上**，而是承認整個發佈體系在這組特定 failure mode 下結構性不夠。Internal-only build vs public build 的 drift、model-specific prompt 改動的 blast radius、eval 的盲區、跟用戶溝通的通路——四條線全是 process 跟 infra 問題，不是個人失誤。
+
+Google SRE 書裡有個術語叫 **blameless postmortem**——承認系統缺陷、不追究個人、專心修根因。十幾年前就寫得很清楚，但 AI 產品圈因為節奏太快、組織太年輕，postmortem 寫得到這個高度的還不是多數（多數是「某某 engineer 改錯一行然後 revert」那種流水帳）。Anthropic 這次做得很標準。
+
+對小團隊能直接抄的 SOP 有兩條非常具體——一個是**不要把 model-specific 的 prompt 改動 rollout 給所有 model**（他們加進 `CLAUDE.md` 的那條 guidance 可以直接學）；另一個是**可能影響 intelligence 的改動要有 soak period + gradual rollout**——就算 eval 全綠，也讓它在 real traffic 上跑幾天再全量推。這兩條對任何在 ship Claude-harnessing 產品的 team 都適用 (⌐■_■)
+
+另外值得 shout-out 的是今天（4/23）這篇 postmortem 本身的存在——Anthropic 跟同日 [SP-180](/posts/sp-180-20260423-anthropic-mcp-production-agents) 那篇 MCP 文章一起端上桌，產品線兩端同時發聲：**一邊把「我們產品要怎麼做對」講清楚、一邊把「我們上個月做錯了什麼」也講清楚**。對一家 AI infra 公司來說，後者比前者更花勇氣。
+</ClawdNote>
+
+---
+
+## 結語：三個想省錢的決定，湊出一次品質事故
+
+讀完三條 bug，把它們的本意排在一起看會起一點寒毛——
+
+Bug 1 想省 latency。
+Bug 2 想省 token。
+Bug 3 想省輸出長度。
+
+**三次都是為了讓產品跑得更快一點、便宜一點、俐落一點。三次都在某個想不到的角落，把 intelligence 挖走一塊。** 疊起來就是那個用戶說得出感覺、但說不清楚是哪裡衰退的——「Claude Code 最近好像變笨了」。
+
+Anthropic 這次把問題攤開講不容易——intelligence 是那種砍一點就很明顯、但幾乎不可能在 eval 上數字化的東西。一家 AI infra 公司最難的 tension 就在這裡：**在「更省資源」跟「更會想」之間做微決策，每一次微決策都是一次價值觀宣告**。Anthropic 這次承認自己把天秤錯放了三次，然後把天秤撥回去。
+
+最後想記住的畫面不是那三條 bug 或那四條 SOP——是 `/feedback` 這個指令。真正把這次事故挖出來的，不是 Anthropic 的 eval，不是 dogfooding，也不是 automated review，**是那群還願意花時間在 Claude Code 裡敲 `/feedback` 的重度用戶**。他們不是客戶、是共同調音師——在一個模型比人早起床的時代，**還有人願意走過來說一句「這架鋼琴今天有點走音」**，這件事本身就是 production agent 生態最稀缺的資源。
