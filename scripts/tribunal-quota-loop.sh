@@ -29,19 +29,7 @@ QUOTA_FLOOR=3
 RESUME_THRESHOLD=10
 DRY_RUN=false
 
-# ─── Graceful stop control ───────────────────────────────────────────────────
-# Two channels, same semantics:
-#   1. POSIX signal (SIGTERM/SIGINT): systemctl stop, kill, ctrl-c
-#   2. file flag: touch .score-loop/control/stop-graceful
-# Both set stop_requested=true. Runtime drains current article, then exits.
-CONTROL_DIR="$ROOT_DIR/.score-loop/control"
-STOP_FLAG_FILE="$CONTROL_DIR/stop-graceful"
-STATE_DIR="$ROOT_DIR/.score-loop/state"
-STATE_FILE="$STATE_DIR/runtime.json"
-stop_requested=false
-stop_source=""   # "signal:TERM" | "signal:INT" | "flag"
-
-mkdir -p "$LOG_DIR" "$CONTROL_DIR" "$STATE_DIR"
+mkdir -p "$LOG_DIR"
 
 # ─── Args ─────────────────────────────────────────────────────────────────────
 while [ $# -gt 0 ]; do
@@ -56,41 +44,15 @@ tlog() {
   echo "$msg" | tee -a "$LOG_FILE"
 }
 
-# ─── Stop handling ────────────────────────────────────────────────────────────
-# Signal handler: just set the flag. Main loop checks at safe boundaries.
-# NOTE: do not exit here — that would kill in-flight article mid-stage.
-on_stop_signal() {
-  local sig="$1"
-  if [ "$stop_requested" = false ]; then
-    stop_requested=true
-    stop_source="signal:$sig"
-    tlog "STOP requested via signal $sig — entering drain mode after current article."
-  fi
-}
-trap 'on_stop_signal TERM' TERM
-trap 'on_stop_signal INT' INT
-
-# Check both channels. Returns 0 if stop is requested, 1 otherwise.
-# Picks up file flag even if the loop missed the signal.
-check_stop_requested() {
-  if [ "$stop_requested" = true ]; then
-    return 0
-  fi
-  if [ -f "$STOP_FLAG_FILE" ]; then
-    stop_requested=true
-    stop_source="flag"
-    tlog "STOP requested via flag file $STOP_FLAG_FILE — entering drain mode after current article."
-    return 0
-  fi
-  return 1
-}
-
-# Clean exit when a stop has been requested. Only call at safe boundaries
-# (before dispatch, after article finished, inside wait slices).
-exit_stopped() {
-  tlog "state=stopped_by_request source=${stop_source:-unknown}"
-  exit 0
-}
+# ─── Graceful stop control ───────────────────────────────────────────────────
+# Shared helper: signal + file flag channels, slice-based waits, lifecycle
+# state output. See scripts/tribunal-run-control.sh for the contract.
+# RC_ROOT_DIR must be exported before source so subprocesses agree on paths.
+export RC_ROOT_DIR="$ROOT_DIR"
+# shellcheck source=scripts/tribunal-run-control.sh
+source "$SCRIPT_DIR/tribunal-run-control.sh"
+trap 'rc_on_stop_signal TERM' TERM
+trap 'rc_on_stop_signal INT' INT
 
 # ─── Quota ────────────────────────────────────────────────────────────────────
 # Returns integer effective remaining pct (min of 5hr and weekly).
@@ -194,8 +156,8 @@ tlog "  Usage monitor: ${USAGE_MONITOR}"
 while true; do
   # ── Stop boundary: top of iteration ──────────────────────────────────────
   # Covers: signal arrived during previous article, or between iterations.
-  if check_stop_requested; then
-    exit_stopped
+  if rc_check_stop_requested; then
+    rc_exit_stopped
   fi
 
   # ── Git pull (abort rebase on conflict) ───────────────────────────────────
@@ -261,8 +223,8 @@ while true; do
 
   # ── Stop boundary: before dispatching a new article ─────────────────────
   # Covers: signal / flag arrived during quota check or tier sleep.
-  if check_stop_requested; then
-    exit_stopped
+  if rc_check_stop_requested; then
+    rc_exit_stopped
   fi
 
   # ── Process next article ───────────────────────────────────────────────────
@@ -276,8 +238,8 @@ while true; do
   # ── Stop boundary: article finished ──────────────────────────────────────
   # Covers: signal / flag arrived during article run. article is now at
   # its natural boundary, so we exit before dispatching another one.
-  if check_stop_requested; then
-    exit_stopped
+  if rc_check_stop_requested; then
+    rc_exit_stopped
   fi
 
   # Brief cooldown (same as batch runner)
