@@ -5,7 +5,7 @@ After=network-online.target
 [Service]
 Type=simple
 WorkingDirectory=%h/clawd/projects/gu-log
-ExecStart=/bin/bash %h/clawd/projects/gu-log/scripts/cc-tribunal-loop-wrapper.sh --workers 2
+ExecStart=/bin/bash %h/clawd/projects/gu-log/scripts/cc-tribunal-loop-wrapper.sh --workers 5
 Restart=on-failure
 RestartSec=60
 Environment=TZ=Asia/Taipei
@@ -21,9 +21,13 @@ KillSignal=SIGTERM
 # write. Allow up to 60min before SIGKILL.
 TimeoutStopSec=3600
 
-# Resource limits
-CPUQuota=50%
-MemoryMax=512M
+# Resource limits — tuned for --workers 5 (5 parallel tribunal-all-claude.sh
+# subprocesses, each spawning a claude CLI judge + optional pnpm build).
+# CPUQuota 200% lets bursts of concurrent builds use multiple cores without
+# starving each other; MemoryMax 2G covers peak (5 × ~150MB worker +
+# supervisor + shared helpers) with headroom for pnpm node_modules caching.
+CPUQuota=200%
+MemoryMax=2G
 
 # Logging
 StandardOutput=journal

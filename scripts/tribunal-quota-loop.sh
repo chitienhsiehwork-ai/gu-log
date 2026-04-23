@@ -185,6 +185,15 @@ spawn_worker() {
   wt=$(worker_worktree "$id")
   local slug="${article%.mdx}"
 
+  # Sync worker worktree to origin/main before each dispatch. Per-dispatch
+  # cost is one git fetch (~100ms with cached refs) plus a no-op hard reset
+  # if nothing changed; supervisor doesn't need a restart for new tribunal
+  # fixes to reach the next article's worker.
+  if (( WORKERS > 1 )); then
+    bash "$SCRIPT_DIR/tribunal-worker-bootstrap.sh" sync "$id" >> "$LOG_FILE" 2>&1 || \
+      tlog "  WARN: pre-dispatch sync failed for worker-$id (continuing with current snapshot)"
+  fi
+
   (
     cd "$wt" || exit 1
     # Hand shared coordinates to the subprocess so flock/claims/locks all
