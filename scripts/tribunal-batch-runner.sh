@@ -146,7 +146,7 @@ for article in "${ARTICLES[@]}"; do
   tlog "━━━ [$PROCESSED/$TOTAL] Processing: $article ━━━"
 
   # Run tribunal
-  local rc=0
+  rc=0
   bash "$SCRIPT_DIR/tribunal-all-claude.sh" "$article" >> "$LOG_FILE" 2>&1 || rc=$?
 
   if [ "$rc" -eq 0 ]; then
