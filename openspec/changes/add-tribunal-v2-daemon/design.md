@@ -6,12 +6,13 @@ gu-log 的 tribunal 系統是 quality gate：四 judge（Vibe / Fresh Eyes / Fac
 - 新文章由兩種來源進：clawd（VM 上的自動翻譯 pipeline）跟 CC/Obsidian（Mac 上手動寫）— tribunal 要能不區分來源、看到 unscored 就消化
 - Tribunal 需要人不在場仍然穩定跑；失敗要能自己重啟，不要靜悄悄死掉
 
-### 現狀（本 change 開始前）
+### 現狀（本 change rebase 後，含 PR #152 graceful-run-control）
 
 | 元件 | 狀態 |
 |---|---|
-| `tribunal-quota-loop.sh` | 2026-04-22 剛更新、218 行，跑 shell pipeline |
-| `tribunal-batch-runner.sh` | `claude --usage` 檢查是假的 — flag 不存在，永遠 fall-through |
+| `tribunal-quota-loop.sh` | 被 PR #152 重構成 quota-aware + graceful stop loop，呼叫 `tribunal-run-control.sh` |
+| `tribunal-run-control.sh` | PR #152 新增，stop-file-based 控制介面（start / stop / status / drain） |
+| `tribunal-batch-runner.sh` | `claude --usage` 檢查是假的 — flag 不存在，永遠 fall-through（本 change 要修） |
 | `tribunal-all-claude.sh` | 舊 4-stage shell pipeline，daemon 目前實際呼叫的 |
 | `src/lib/tribunal-v2/pipeline.ts` | TS v2 pipeline，有 worthiness gate / final-vibe / writer-constraints，**但 daemon 沒呼叫** |
 | `scripts/tribunal-v2-run.ts` | v2 entry point，手動可跑，daemon 未串 |
@@ -39,6 +40,11 @@ gu-log 的 tribunal 系統是 quality gate：四 judge（Vibe / Fresh Eyes / Fac
 - 有最小日指標（throughput、pass rate、quota 燃燒曲線）
 - Daemon 在新機器上起得來 — `usage-monitor.sh` 不再是 VM 硬相依
 
+### Non-goals（本 change 已不處理，已由其他 change 解掉）
+
+- **Graceful stop + drain 語意** — 由 `tribunal-graceful-run-control`（archived 2026-04-23、PR #152 落地）處理。本 change 的 daemon 直接沿用已落地的 stop-file 控制介面
+- **多 worker 並行 / claim race / flock 序列化** — 由 `tribunal-safe-parallelism`（進行中，branch `feat/tribunal-safe-parallelism`）處理。本 change 只處理 single-worker lifecycle
+
 ### Non-Goals
 
 - **不**實作新的 judge 或改 tribunal 架構（judge 數量、pass bar 都照舊）
@@ -46,6 +52,31 @@ gu-log 的 tribunal 系統是 quality gate：四 judge（Vibe / Fresh Eyes / Fac
 - **不**碰 dupCheck / frontmatter wire（那些各自有 openspec change 在處理）
 - **不**做 dashboard UI（metrics 只到 JSON 檔，讀取方式交給後續）
 - **不**搬到 Kubernetes / Docker / 其他平台（繼續 systemd on VPS）
+
+## Dependencies on in-flight / landed openspec changes
+
+- **`tribunal-graceful-run-control`** — archived 2026-04-23、透過 PR #152 落地。本 change 的 daemon 直接繼承 graceful stop + drain 語意（`scripts/tribunal-run-control.sh`），不再自己實作。Goals 的「daemon 要能 graceful 停機」已由 PR #152 滿足
+- **`tribunal-safe-parallelism`** — 進行中，branch `feat/tribunal-safe-parallelism` / worktree `/Users/shroom/gu-log-tribunal-runtime`。負責：article claim contract、skip/collision semantics、shared progress flock、worktree isolation、push 序列化、parallel supervisor。本 change 的實作 MUST 尊重以下介面：
+  - 不預設 parallel，預設 single-worker（跟 PR #152 一致）
+  - Feature-branch + PR push 路徑 MUST 跟 safe-parallelism 的 push lock 共用同一把鎖（具體鎖檔路徑等 safe-parallelism 先落地再定）
+  - Quota helper 抽共用（Group 1）MUST 等 safe-parallelism 先動完同一批檔案（避免 rebase 地獄）
+
+## Execution order（Group dependency map）
+
+本 change tasks.md 分 10 個 Group，依跟 `tribunal-safe-parallelism` 的 conflict 風險分兩批：
+
+- **READY（跟 safe-parallelism 無衝突，可立即做）**：
+  - Group 2（usage-monitor 去 VM 硬相依）
+  - Group 5（告警）
+  - Group 8（文件）
+  - Group 9（清理）
+- **BLOCKED（等 `feat/tribunal-safe-parallelism` merge 再做）**：
+  - Group 1（quota helper 抽共用 → 會動 `tribunal-quota-loop.sh` 核心）
+  - Group 3（engine dispatch → 同一支檔案）
+  - Group 4（feature branch + PR → 會跟 safe-parallelism 的 push lock 打架）
+  - Group 6（指標 → 進度寫入路徑跟 safe-parallelism 的 flock 共用）
+- **FINAL**：
+  - Group 7（dry-run + 驗證）+ Group 10（PR + 最終驗證） — 全做完才跑
 
 ## Decisions
 
