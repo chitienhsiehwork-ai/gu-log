@@ -170,12 +170,23 @@ tools/sp-pipeline/sp-pipeline eval --source /tmp/sp-probe/source-tweet.md
 tools/sp-pipeline/sp-pipeline run <url> --force
 ```
 
-### Sandbox 跑不起來 → 手動 `claude -p` fallback
+### Sandbox 網路能力（2026-04-23 實測）
 
-CCC 沙箱常見問題：sp-pipeline 內部的 `claude -p` 子呼叫在某些權限模式下會卡住（見本檔下方「Stream idle timeout」那一節）。這時 fallback 流程：
+**CCC 沙箱的 command-line HTTPS 是通的。** `curl https://claude.com/...` 正常回 200，`sp-pipeline` 內建的 `FetchGeneric`（走 curl）實測可以直接在 CCC 裡抓外部文章。**不要再用「沙箱沒外網所以只能 mac 跑」當藉口**——那是過時的心智模型。
 
-1. 手動 fetch（`curl` 或其他方式拉到乾淨的 source 文字）
-2. 逐步跑 prompt，用 `claude -p --model claude-opus-4-6[1m] --permission-mode bypassPermissions -p "<prompt>"` 模擬 write / review / refine 各階段
+什麼還是受限：
+- **`playwright-cli` 的 browser navigation**：`goto` 在 `domcontentloaded` 卡死、Google Fonts 之類 CSS 外鏈拿不到（要 route-abort workaround，見 `uiux-auditor` skill）
+- **`x.com` / `twitter.com` 直接 curl**：會拿到 React shell（沒 prerender content）——所以 X 專用的 fetch 路徑走 `fetch-x-article.sh`（fxtwitter）而不是 raw curl。這跟「外網通不通」無關，是 X 自己 anti-bot
+- **`WebFetch` tool**：對某些 host 會被 upstream proxy 檔掉，curl 反而可以
+
+結論：CCC 沙箱可以直接 `sp-pipeline run <url>`，fetch + eval + dedup + write + review + refine + tribunal + deploy 整條都能在 CCC 跑完。
+
+### 什麼時候才真的要 fallback 到手動 `claude -p`
+
+不是因為沒網路，是因為 **`claude -p` 子呼叫在 long creative generation 時會 stream idle timeout**（見本檔下方「Stream idle timeout 應對」那一節）。遇到那個 failure mode 時才走：
+
+1. `sp-pipeline fetch <url>` 先把 source 抓下來（這步幾乎不會炸）
+2. 單獨跑 prompt：`claude -p --model claude-opus-4-6[1m] --permission-mode bypassPermissions "<prompt>"` 模擬 write / review / refine 各階段（短 call，不容易 timeout）
 3. tribunal 改用本 playbook「Tribunal 必跑規則」那段的 4 個 subagent 平行跑
 
 **`--model` 一定要帶 `claude-opus-4-6[1m]`**——不能用 `opus` alias（會跑到 4.7）。理由見下一段。
