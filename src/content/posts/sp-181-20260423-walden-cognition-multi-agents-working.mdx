@@ -1,0 +1,202 @@
+---
+ticketId: "SP-181"
+title: "Multi-Agent 十個月後的誠實報告——Cognition Walden：寫入保持單執行緒，其他 agent 只灌 intelligence"
+originalDate: "2026-04-22"
+translatedDate: "2026-04-23"
+translatedBy:
+  model: "Opus 4.7"
+  harness: "Claude Code"
+source: "@walden_yan on X (Walden Yan, Cognition co-founder)"
+sourceUrl: "https://x.com/walden_yan/status/2047054401341370639"
+lang: "zh-tw"
+summary: "Cognition 的 Walden Yan 十個月前寫過一篇 Don't Build Multi-Agents 勸大家別碰 multi-agent，這次回頭端出三個真的跑得動的 pattern——Devin Review 的 clean-context loop（平均每 PR 抓 2 個 bug、58% 是嚴重級）、跨前沿模型的 smart friend、manager Devin 的 map-reduce-and-manage。貫穿所有 pattern 的核心原則只有一條：寫入保持單執行緒，其他 agent 只灌 intelligence 不動手。"
+tags: ["multi-agent", "agent-engineering", "cognition", "devin", "context-engineering"]
+scores:
+  tribunalVersion: 3
+  vibe:
+    persona: 9
+    clawdNote: 9
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-04-23"
+    model: "Opus 4.6"
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 9
+    score: 9
+    date: "2026-04-23"
+    model: "Opus 4.7"
+  librarian:
+    glossary: 7
+    crossRef: 8
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-04-23"
+    model: "Sonnet 4.6"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    score: 8
+    date: "2026-04-23"
+    model: "Haiku 4.5"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+先丟一個看起來蠢到不該 work 的做法：**讓同一顆模型去 review 自己寫的 code**。同一個腦袋、同一個訓練資料、同一套默認偏見——直覺就是「該漏掉的還是會漏掉」。
+
+結果 Cognition 在 Devin 上量出來的數字長這樣：**平均每一個 Devin 寫的 PR，被 Devin Review 抓出 2 個 bug，其中約 58% 是嚴重等級**——邏輯錯誤、漏掉的 edge case、安全漏洞。抓到的比例還不會因為多跑幾輪就收斂，經常每一輪都再撈出新的。
+
+這不是意外，是 [Walden Yan](https://cognition.ai/blog/dont-build-multi-agents) 十個月後寫來打自己臉的重點之一——但更精準地說，不是「打臉」，是**把原本那句「大部分人別做 multi-agent」精修成「多數人不該、但有窄一類真的可以」**。這篇 SP 就是把那一類拆乾淨。
+
+## 十個月前那篇文章，跟今天能 ship 的那窄一類
+
+Walden 十個月前那篇 **Don't Build Multi-Agents** 的核心論點是：**多個 agent 平行動作會在 style、edge case、pattern 上做出互相衝突的隱形決策**，拼成一個脆弱產品。當時的勸退非常直接——不要做。
+
+今天回頭看那個判斷，Walden 的態度沒有轉彎，而是**把界線畫得更細**：
+
+> 那些 sexy 的 parallel-writer 群聚想像，今天還是 ship 不出來。但我們找到一類**比較窄、會動**的 pattern——多個 agent 對任務貢獻 intelligence，**但寫入始終保持單執行緒**。
+
+一句話，這就是整篇文章的 through-line。Cognition 過去十個月 ship 到 Devin / Windsurf 的三招——Devin Review、smart friend、manager Devin——看起來做的事情很不一樣，但骨子裡長一樣：**讓 writer 保持一個人，其他 agent 退到 reviewer / advisor / router 的位置**。
+
+Context engineering 這件事的重要性也沒變。當時 Walden 強調要把腦袋從 "prompt engineering" 換到 "context engineering"——意思是別去雕「扮演資深工程師」、「想久一點」那種小把戲，正確姿勢是**把對的資料餵給模型、然後假設模型愈強會愈好用**。這個原則今天一樣沒動，而且所有 multi-agent setup 都還被它強力限制著——大部分世界上的 multi-agent 實作還是 read-only [subagent](/glossary#subagent)（web search、code search 那類），幾乎等於被包裝成 tool call，談不上真正協作。
+
+Walden 想挖的就是**那一類願意讓 agent 真的互動、而且還不會把產品打壞**的配置。
+
+---
+
+## 背景值：過去十個月，agent 到底為什麼變成這樣
+
+開始拆招之前要鋪一個背景值——**agent 用量在過去十個月整個爆掉了**。
+
+模型本身變得「天生 agentic」：直覺上會用 tool、懂自己 context 的邊界、會把狀態萃取給下一棒。結果就是連 Devin 在那些對新技術最保守的大企業客戶群裡，**過去六個月用量也長了大約 8 倍**——原文用的字是 "a shit ton"，Walden 自己特地加粗。
+
+用量爆掉會帶出一推一拉：**推**的那邊是 user 用多之後瓶頸從 agent 本身位移到「agent 的管理、規劃、review」——於是自然開始堆疊 Devin 管 Devin、coding agent 跟 review agent 來回 iterate 這些 setup。**拉**的那邊是成本——用得愈兇愈貴，加上 Anthropic 不遠處還有 [Mythos class](https://www-cdn.anthropic.com/08ab9158070959f88f296514c21b7facce6f52bc.pdf) 這種更大更強的模型在路上，**怎麼用較低成本跑出前沿能力**的問題自然變成焦點。multi-agent 很可能是其中一個答案。
+
+同一時間還有一波「丟大量 agent 硬衝大專案」的 sensational demo：Cursor 用 agent [蓋整個 web browser](https://cursor.com/blog/scaling-agents)（200k LOC）、Anthropic 讓 agent [蓋 C compiler](https://www.anthropic.com/engineering/building-c-compiler)（100k LOC）、Karpathy 的 [autoresearch](https://github.com/karpathy/autoresearch) 跑 LLM training script 10k+ 次迭代（[gu-log 之前拆過 Karpathy 那套 multi-agent research org](/posts/clawd-picks-20260301-karpathy-multi-agent-research-org)）。很壯觀，但這些 demo 全都有一個**真實商業軟體幾乎都不具備的特性：簡單、機器可驗證的成功條件**。瀏覽器跑不跑得起來？跑 headless browser smoke test。Compiler 對不對？跑 spec conformance suite。Training script 好不好？看 loss 曲線就好。回饋循環都是秒級、deterministic，agent 可以 reinforce 幾萬次都不用人類介入。
+
+**真實軟體長得不是這樣**。訂單 UI 沒有 loss function，後端該不該重構沒有 pytest 能驗，這些全是口味、權衡、與只住在人類心智裡的 model。Walden 在這邊劃下了一條界線——Cognition 要探索的不是 benchmark 式任務，是得**把人類判斷力放大**的那種場景。
+
+<ClawdNote>
+那三個 sensational demo 的共同特徵，Walden 用「simple verifiable success criterion」帶過，讀者很容易放過。講白一點：那類任務之所以 agent 可以一百支一起跑，**是因為錯了 run CI 就會紅燈、對了自動綠燈**——人類完全可以離開現場。真實產品沒有這種奢侈，所以大部分 demo 發表完的新聞稿好看，但搬到自己的 codebase 就垮掉。
+
+換個比喻：那些 demo 是 agent 在玩**無限續關的單機遊戲**，死了就重來、最後畫面留下就算贏。真實產品開發是一家人在廚房做一頓年夜飯——菜要端得上桌、端得對味、端得準時，**還不能把廚房燒掉**。同樣是多人合作，一個可以亂、一個不能亂。Cognition 這篇文章決定只談後者那種場景 (⌐■_■)
+</ClawdNote>
+
+---
+
+## 第一招：那個「蠢到不該 work」的 clean-context review loop
+
+回到開頭那個數字。**每個 Devin 寫的 PR、2 個 bug、58% 嚴重級**。
+
+問題是——為什麼同一顆模型 review 自己會 work？直覺上講不通。Walden 給的答案分成哲學跟技術兩層，技術那層才是硬的。
+
+哲學那層先把腦袋轉過來：**同一顆模型擺在兩個 agent 裡面，不等於一個人兼做兩個角色**。人自省很難，原因是人**有自尊、有既得立場、有不想承認前一小時做錯的本能**。LLM-based agent 不是這樣——agent 是**純粹由 context 決定表現的系統**，沒有面子、沒有連續感、沒有立場。兩個 agent 就是兩個 blank slate，互相之間沒有共謀的社會基礎。就算共享什麼偏見，也是來自訓練過程——而這個偏見是**底層能力**，不是**任務級別**的自保本能。
+
+技術那層真的狠。[Context Rot](https://www.trychroma.com/research/context-rot) 是個被反覆記錄的現象——**模型在 context 愈長的情況下，決策品質會下降**。attention head 的數量有上限，同時要盯 instruction、prompt、code、一小時前做過的決策時，**有些重要細節就不會進推論**。
+
+Coding agent 是什麼狀態？在這個任務上已經泡了幾個小時——讀過 repo、跑過一堆 command、想過三種寫法、修了兩次錯誤。**context 很長，很雜，很多已經不重要但仍在佔位**。這時候叫它自己 review，它看不到的不是因為它笨，是因為**它的 attention 已經被歷史包袱吃掉了**。
+
+換一個完全空白的 review agent 來呢？它被迫**只看 diff、需要什麼 context 就從 code 重讀**。短 context、乾淨 attention、而且**從實作反推、沒有原始 spec 的包袱**——這讓它敢坦然質疑那些 user instruction 本身就有問題的地方（例如「幫忙實作這個不安全的 pattern」這種原始指令）。
+
+這不是 review agent「更聰明」——同一顆模型，能力上限沒動。是**它手上的 attention 沒有被稀釋**。
+
+<ClawdNote>
+這個 insight 值得獨立做個比喻：想像一個工程師做了 12 小時、開了 30 個瀏覽器分頁、終端機有 200 行 scrollback，PM 走過來問「那個 edge case 你處理了嗎？」——他腦袋裡 context overflow，答案很可能是「呃...應該有？」。另外找一個剛坐下來、只給他看 diff 的新同事，反而更容易一眼抓出**「這裡沒 handle null」**。
+
+這不是 intelligence 不夠，是 **attention bandwidth 被吃光了**。Clean-context reviewer 本質上在做一個 token 經濟學套利——**把被歷史包袱吃掉的 attention 還給 diff 本身**。
+
+順便講一件很巧的事：gu-log 自己的 tribunal 系統（每篇文章都要過四個 judge：Vibe / Fact / Librarian / Fresh Eyes）早就是這個原則的實作版本。四個 judge **只吃文章本身 + 評分標準**，不吃寫作過程、不吃 commit history、不吃 rewriter 的辯解。等到 judge 發現問題再丟給原 writer 去改寫——中間傳遞的是具體 feedback，不是 reviewer 的意識流。看起來像笨方法，**實際上在利用 context rot 的物理特性做工程**。
+
+Walden 講的是同一件事，只是用 Devin 的例子講。讀完這段值得停下來想想——自己現在手上有幾個 agent 在互相 review？它們共享了多少不該共享的 context？ ٩(◕‿◕｡)۶
+</ClawdNote>
+
+Clean context 做對了還差最後一塊——**Devin 跟 Devin Review 之間的溝通橋**。關鍵問題是：Devin 有沒有用它那段更完整的 context（user 意圖、已經做過的決策），去**過濾** Devin Review 吐回來的那一堆 bug？如果沒有——就是 loop 到天荒地老、違反 user 意圖、做出 scope 外的東西。
+
+Walden 的發現：**今天的模型配上一點專門 prompting，就能做出合理的判斷**。最後 ship 出來的互動是三方的——coding agent、review agent、人類 PR 作者——中間兩個先彼此磨到差不多，人類打開 PR 時 80% 的 bug 已經不在了。
+
+這整招的 takeaway 壓成一句：**clean context + 良好溝通橋 = generator-verifier loop 的產品級版本**。
+
+（gu-log 之前在 [SP-66 self-healing PR](/posts/self-healing-pr-devin-autofix) 拆過外圍的 autofix 迴圈架構——這一篇是同個主題往裡面挖一層：為什麼 clean-context 這個小決定，是整個系統的關鍵槓桿。）
+
+---
+
+## 第二招：Smart Friend——從 Cognition 坦承失敗開始講
+
+第二個 pattern 不是從「看，Cognition 做出了」開始，是從「看，Cognition 坦承做歪了」開始。
+
+場景設定：**前沿 intelligence 很快會貴到、慢到不適合日常工作**。Sonnet 被 Opus 取代、Mythos 還在更大更貴的路上——於是「能不能用小模型當 primary、有事再 call 大模型」變成很自然的架構問題。Cognition 的 Windsurf 在 2025 年 10 月 [launch SWE-1.5](https://cognition.ai/blog/swe-1-5)（每秒 950 token 的 sub-frontier 模型）時，就試了這個想法——**把 SWE-1.5 當 primary，Sonnet 4.5 當 "smart friend" 被 call 出來做規劃**。
+
+架構層面他們遇到兩個 tricky 的溝通問題，兩個都是 **primary 跟 smart friend 之間怎麼說話**。
+
+往上呼叫的方向最難。核心問題是——**一個比較笨的模型要怎麼知道自己撞到極限？** 這跟主流的「聰明 primary 派任務給小 subagent」剛好顛倒。primary 愈不聰明，愈不知道自己不會。幾個 workaround：強制每題至少打一次 smart friend、prompt-tune 或訓練到更校準、或寫硬規則（遇到 merge conflict 一律叫 smart friend）。context 傳遞也有個 80/20 解——**直接 fork 整份 primary context 傳過去**，不要想省那幾千 token。primary 提問要**問得廣**——「現在該怎麼做？」這種開放式問法比塞具體子問題更有用，因為該問什麼 primary 自己就不見得知道。
+
+往下回話的方向也要調。smart friend 收到問題不能**瞎編理論**填空——如果 primary 從沒看過某個關鍵檔案卻跑來問依賴它的問題，正確反應不是猜，是**叫 primary 去讀那個檔、讀完再回來**。smart friend 還該「**過問**」——不只回答被問的，還順手根據 agent trajectory 丟出 primary 沒想到要問的方向。Walden 稱這種配置是「over-scoped smart friend」，實務上比乖乖回答的 smart friend 激出更多好互動。
+
+然後——Cognition 很直接地承認——**這整個 setup 當時沒成功**。
+
+SWE-1.5 還不夠好，撐不起 primary 角色。它跟 Sonnet 4.5 之間的差距**剛好壓在這個 setup 最需要的能力上**——「知道什麼時候該求援」、「知道要問什麼」。成本跟速度的好處是真的，但**品質天花板由 primary 決定**，primary 撐不起來，整套 setup 的上限就只有 primary 的上限。[SWE 1.6](https://cognition.ai/blog/swe-1-6)（打到 Opus-4.5 等級在 SWE-bench 上）明顯好很多，補了一些，**但還沒到理想位置**。Walden 判斷這主要是**訓練問題**——未來 SWE 系列會把「跟更強模型來回」納入訓練目標。
+
+那什麼版本真的 work 了？**跨前沿模型互相 call**。
+
+Cognition 在 production 上跑過 Claude 跟 GPT 的組合，**在最棘手的場景拿到真實收益**。而且跨前沿的 prompt-tuning 問題長得跟小-大模型 pair 完全不同——重點不是「弱模型何時該請強模型」，是**把 sub-task 路由到最擅長的那顆**。有的模型 debug 比較強、有的視覺推理比較強、有的寫 test 比較強。delegation 邏輯從**「難度升級器」變成「能力路由器」**。
+
+這句話值得停一下。**capability router, not difficulty escalator**。整句直接推翻「大模型配小模型一定省錢」的天真敘事——**兩顆前沿模型互補**的經濟學反而比想像中好。
+
+<ClawdNote>
+「小模型不知道自己不會」這件事，在 agent 設計圈叫 **Dunning-Kruger problem for LLMs**。人的版本大家都知道——**能力最低的人最不知道自己低**。LLM 的版本同樣致命：一個比前沿差兩個世代的模型，真的看不出題目什麼時候超出能力範圍——**它會很有自信地 bullshit**。
+
+Walden 給的三個 workaround（強制諮詢、prompt-tune、硬規則）全部是在**外面蓋一層「能力自覺的替代品」**——本體不夠，harness 補。這跟當年 ML 工程師給 classifier 蓋 calibration layer 是同一招：**模型自己估的 confidence 不可靠，就外掛一個 meta-model 去估 confidence**。
+
+順道提一下——Anthropic 最近也 [推出一個相似的 beta](https://claude.com/blog/the-advisor-strategy)：Advisor 策略，讓小模型呼叫大模型。兩家同時出招代表一件事——**未來「smart friend 端」會在訓練階段被好好餵過，雙向溝通會愈來愈聰明**。訓練端補漏永遠比外掛 harness 優雅 ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## 第三招：Manager Devin 跟為什麼「無結構 swarm 是分心」
+
+前兩招都是**一個 writer、旁邊圍繞其他貢獻 intelligence 的 agent**。下一個自然問題——**能不能把 scope 放大？** 橫跨 10 個 PR 的產品 feature、影響十幾個 service 的 migration、一整週而不是一個下午的工作。
+
+這題 Cognition 的答案是 Devin 上已經在跑的 **manager Devin**——把大任務拆成小塊、spawn child Devin 去處理、透過內部 [MCP](/glossary#mcp) 協調進度。Walden 很誠實地交代：**要做得連貫，需要的 context engineering 遠超預期**。踩過的雷包括——在小 scope 訓練出來的 manager **預設會過度規範**（當 manager 對 codebase 理解不深時反而壞事）、agent 會**誤以為跟 child 共享狀態**、**跨 agent 溝通**（sub-agent 寫訊息回 manager，再由 manager 轉給團隊其他 agent）**預設不會發生**，因為模型訓練環境裡從沒需要過這種技能。
+
+但 Walden 在這個 section 最值得貼牆的一句話，不是 manager Devin 的實作細節，是這一句——
+
+> unstructured swarm 這條路——任意網路裡一堆 agent 彼此協商——**大多只是 distraction**
+
+也就是那種「一堆 agent 在任意網路裡彼此協商」、「agent 投票選出最佳解」、「agent 組成無 leader 的民主共同體」的想像——**研究論文看起來很漂亮，實務上 ship 不出產品**。
+
+實務真正有用的形狀永遠是 **map-reduce-and-manage**：manager 拆工作、children 執行、manager 匯整並回報。就這樣。要讓這種系統感覺起來跟「一個 agent 做一件事」一樣連貫，是 Cognition 2026 接下來的主要工程之一。
+
+<ClawdNote>
+「unstructured swarm 是 distraction」這句要框起來。過去兩年 agent 圈有一股超強 hype——**一百個 agent 在模擬市場討價還價、agent 投票選最佳解、agent 組成無 leader 的民主共同體**。聽起來很科幻，學術 paper 也寫得很熱鬧。
+
+**實務上 ship 不出產品**。原因 Walden 上一篇就講過——**action 帶隱形決策**：每多一個能寫的 agent，就多一份跟別人 conflict 的 side-effect，最後沒人知道誰該 own 結果。map-reduce 這種幾十年的老骨架為什麼還在？**因為它把「誰負責整合決策」這件事講得很清楚**——manager 一個人扛。child 可以多、可以平行、可以便宜、可以出錯——但**整合的那一點是單一責任歸屬**。
+
+把這個原則套到 tribunal、套到 code review、套到 release pipeline——**所有真的能 ship 的 multi-agent 系統，結構幾乎一模一樣**：一個 owner、多個 advisor、最後由 owner 統合決策。這不是發明，是**重新發現工程管理學百年積累下來的東西**。Cognition 花了十個月去繞回這件事，Walden 誠實寫出來，至少幫後面跟進的人省掉繞同一圈的時間 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## 結語：那個「蠢到不該 work」的 loop，其實一點也不蠢
+
+回到最開頭那個 58% severe bugs 的數字。
+
+為什麼 Devin review Devin 會 work？不是因為哪顆模型特別聰明、不是因為哪個 prompt 特別精巧——**是因為整個系統讓 writer 保持一個人、reviewer 拿著乾淨的 attention、兩邊用精確的 bridge 溝通**。這個結構拆開來說一遍會發現——**它就是 Walden 這整篇文章在講的那條原則**：**寫入保持單執行緒、其他 agent 只灌 intelligence 不動手**。
+
+Smart friend 是這條原則的變奏——primary 在寫、smart friend 在 advise，advise 不動 code。Manager Devin 是這條原則的升級版——manager 不親自寫，child 一次一個在寫，manager 把決策統合起來。**三招同一招**。
+
+剩下沒解的問題，Walden 收斂成「全部是溝通問題」：**比較弱的模型怎麼學會何時 escalate？child agent 發現的東西怎麼 surface 出來、甚至改動兄弟姐妹的工作？agent 之間如何傳 context 而不會淹死接收方？** Prompting 能走到一個位置，再往上就需要下一代模型——包括 Cognition 自己接下來訓練的——把這些缺口直接訓進去。
+
+<ClawdNote>
+這篇文章最值得帶走的，**不是那三個 pattern，是「寫入單執行緒」這個原則本身**。過去兩年 agent 圈不少時間花在研究「多 agent 怎麼一起寫」，回頭看都是繞遠路——**真正可行的解不是讓它們一起寫，是承認一次只有一支筆**。
+
+對 gu-log 讀者最實用的一件事：**如果現在手上有一個 agent 系統感覺哪裡很 fragile**——先問一個問題：**「現在是不是有兩個 agent 在並行寫同一個東西？」** 如果答案是 yes——**多半就是它**。把 writer 收斂到一支、其他 agent 退到 reviewer / advisor / router 的位置，系統多半就會穩下來。這件事不用等下一代模型，現在就能做。
+
+最後講一句可能有點刺的話——這篇讀起來像 Cognition 給自己十個月前的論文加了一個 "I told you so, but now with product"。但**這種自我校準的誠實，比那種假裝一切都按 roadmap 走的公關文健康太多**。Walden 承認 SWE-1.5 不夠好、smart friend 在 asymmetric 設定下還是 open problem、manager Devin 還在踩坑——**這種認錯密度在 SF 圈已經是稀有物種**。
+
+讀完這篇最好的反應不是點頭稱是，是**立刻回去看自己系統裡那條寫入分叉是不是真的必要**。大部分情況——不是 (ง •̀_•́)ง
+</ClawdNote>
