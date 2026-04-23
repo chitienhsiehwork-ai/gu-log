@@ -34,8 +34,11 @@
 
 1. `git push -u origin claude/xxx`
 2. 用 GitHub MCP (`mcp__github__create_pull_request`) 開 PR 到 main
-3. **等 CI 全綠**後自己 `mcp__github__merge_pull_request`
-4. 合完跟 user 回報 PR URL + 簡短 summary
+3. **PR 開完立刻 `mcp__github__subscribe_pr_activity` 訂閱自己這條 PR**——不要問 user「要不要幫你盯」。CCC 開 PR 預設就要盯 CI + review comment，這是工作的一部分，不是 opt-in 服務。問就是 dumb question。
+4. **等 CI 全綠**後自己 `mcp__github__merge_pull_request`
+5. 合完跟 user 回報 PR URL + 簡短 summary
+
+**禁問句**：「要不要 subscribe PR activity？」「要不要盯 CI？」「要不要幫你看 review comment？」——通通是 dumb question，預設答案永遠是 yes，user 不該被叫去確認 default behavior。
 
 ### Merge method 選擇
 
