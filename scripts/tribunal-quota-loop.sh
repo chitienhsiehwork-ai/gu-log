@@ -152,6 +152,7 @@ fi
 tlog "=== Tribunal Quota-Aware Loop started ==="
 tlog "  Quota floor: ${QUOTA_FLOOR}%, Resume threshold: ${RESUME_THRESHOLD}%"
 tlog "  Usage monitor: ${USAGE_MONITOR}"
+rc_write_state "running" "startup"
 
 while true; do
   # ── Stop boundary: top of iteration ──────────────────────────────────────
