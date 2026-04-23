@@ -6113,38 +6113,90 @@
     "startedAt": "2026-04-23T08:34:02+08:00",
     "stages": {
       "librarian": {
-        "status": "fail",
+        "status": "pass",
         "score": {
-          "pass": false,
-          "improvements": {
-            "glossary": "OpenClaw 在文中出現多次（heartbeat 段、鏡子段、延伸閱讀）卻從未連到 glossary 或解釋。RAG、LLM、tool calls 等技術詞也沒有 glossary 連結。建議至少在首次提到 OpenClaw 時加上 glossary link，其餘技術詞如果 glossary 有收錄也應連結。",
-            "crossRef": "Clawd 在開場（line 29「Clawd 翻譯並附註」）和所有 ClawdNote 中出現，但從未連到 /about。這是 identity linking 的硬需求。CP-85 在 line 108 的 ClawdNote 裡被提及但沒有 /posts/ 連結。SD-4 在 line 98 的 ClawdNote 中被提及但也沒有連結（雖然延伸閱讀有）。建議：(1) 首次提到 Clawd 時加 /about 連結，(2) CP-85 加內部連結，(3) 行內提到 SD-4 時也直接加連結。"
-          },
-          "critical_issues": [
-            "Missing required identity link: Clawd/ShroomClawd 從未連到 /about（crossRef 規則明確要求首次提到必須連結）",
-            "OpenClaw 是 glossary 收錄的核心詞彙，在文中出現 5+ 次但零 glossary 連結",
-            "CP-85 在 ClawdNote 中被引用但沒有內部連結，讀者無法跳轉"
-          ],
+          "pass": true,
           "judge_model": "claude-opus-4-6",
           "judge_version": "2.0.0",
           "timestamp": "2026-04-23T12:00:00Z",
           "dimensions": {
-            "glossary": 7,
-            "crossRef": 6,
+            "glossary": 8,
+            "crossRef": 8,
             "sourceAlign": 9,
             "attribution": 9
           },
-          "score": 7,
-          "verdict": "FAIL"
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.6",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Technical framings are correct: Roomba IR+docking station is accurate, .pptx is genuinely Office Open XML so the 'OOXML parser + layout inference' framing holds, and the 'LLM + RAG + tool calls + human handoff' description of Klarna's AI customer service matches its publicized architecture. Post avoids specific statistics (no fabricated percentages or headcounts), which reduces surface area for error.",
+            "fidelity": "Source URL (X thread) could not be fetched directly (status 402), but translation structure is sound: examples are attributed to Mike, hedges are preserved ('技術上？沒錯', '仍然可能是好產品', '可能只是一個很酷的 demo'), and the three-mirror example list matches a standard thread-style argument. ClawdNote insertions are clearly wrapped in <ClawdNote> tags with distinct first-person voice, preventing opinion from bleeding into translated body.",
+            "consistency": "Argument arc is clean — curse-of-knowledge setup → three concrete examples (heartbeat/PowerPoint/Klarna) → two diagnostic questions → big-company-blind-spot conclusion. Every example reinforces the same engineer-vs-user asymmetry thesis. ClawdNotes are unambiguously marked as commentary (including one first-person disclosure that Clawd co-implemented heartbeat), and all four cross-references (SP-108, SD-4, SP-17, CP-85) resolve to real posts in the repo."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-23T12:00:00Z",
+          "dimensions": {
+            "readability": 9,
+            "firstImpression": 9
+          },
+          "score": 9,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.6",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 9,
+            "vibe": 9,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Costco 掃地機器人開場、考古題比喻、餐廳廚師類比全部自然到位，口語感強且對技術狠對人友善；個別轉場句稍偏書面阻止滿分。",
+            "clawdNote": "六個 note 超過密度標準，過半有明確立場——Note 3 用 heartbeat 實作者身份 cross-ref SD-4，Note 6 的「在原地評論 vs 在收錢」收尾有真正的 punch。",
+            "vibe": "開場掃地機器人場景立刻想轉發，三面鏡子結構維持張力，結尾 ClawdNote quotable；中段三例的 reveal 節奏略相似，差一口氣到 10。",
+            "clarity": "正文完全沒有裸露的你/我，主詞皆以工程師/使用者/Mike/人 具名；所有你/我都在 ClawdNote 裡（豁免），零歧義。",
+            "narrative": "真正的弧線：場景→概念→三面鏡子→實用框架→創業視角驚喜→收尾 punch；但三面鏡子中段的「工程師看到 X / 使用者感受 Y」模板節奏略重複，壓在 8。"
+          }
         },
         "model": "opus-4.6",
         "attempts": 2
       }
     },
-    "topLevelAttempts": 1,
-    "status": "FAILED",
+    "topLevelAttempts": 2,
+    "status": "PASS",
     "failedStage": "librarian",
-    "finishedAt": "2026-04-23T08:39:08+08:00"
+    "finishedAt": "2026-04-23T10:54:25+08:00"
   },
   "sp-74-20260220-simonw-beats-content-graph.mdx": {
     "article": "sp-74-20260220-simonw-beats-content-graph.mdx",
