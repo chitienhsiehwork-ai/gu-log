@@ -67,7 +67,19 @@ if ! flock -n 200; then
 fi
 
 # ─── Progress Tracking ────────────────────────────────────────────────────────
-PROGRESS_FILE="$ROOT_DIR/scores/tribunal-progress.json"
+# Phase 2 (tribunal-safe-parallelism): supervisor runs in the main repo and
+# exports PROGRESS_FILE pointing at the shared progress file there; workers
+# run in isolated worktrees. Without the fallback, this line unconditionally
+# clobbers the export with the WORKTREE's local path, so per-worker
+# init_article_progress / mark_article_* writes land in the wrong file. The
+# main repo's progress.json only refreshes via `git pull`, and whenever that
+# pull warns-and-continues (dirty tree, rebase conflict) the supervisor's
+# get_unscored_articles() keeps re-dispatching articles a worker already
+# marked EXHAUSTED — producing the tight re-dispatch loop that filled the
+# 2 GB cgroup and OOM-killed tribunal-loop.service on 2026-04-24 01:03:59.
+# Honor the exported env so shared flock + shared file + shared commit path
+# all line up.
+PROGRESS_FILE="${PROGRESS_FILE:-$ROOT_DIR/scores/tribunal-progress.json}"
 
 ensure_progress_file() {
   mkdir -p "$(dirname "$PROGRESS_FILE")"
