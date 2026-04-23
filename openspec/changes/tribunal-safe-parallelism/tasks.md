@@ -19,10 +19,11 @@
 
 ## 4. 建立 worker worktree isolation
 
-- [ ] 4.1 決定 2 個 worker worktree 的命名、建立、回收策略
+- [ ] 4.1 Worker worktree 位置定為 `~/clawd/projects/gu-log-worker-a` 與 `~/clawd/projects/gu-log-worker-b`（user 決定）
 - [ ] 4.2 每個 worker 在自己的 worktree 執行 rewrite / build / git 操作
 - [ ] 4.3 避免 worker 共用同一個 node_modules / build output 導致互相污染（必要時文件化限制）
 - [ ] 4.4 文件化 worktree bootstrap / repair 流程
+- [ ] 4.5 文件化 Mac → VPS 開發流程：Mac 本機寫程式 + 可在本機測的先測（claim race / flock stress / stop 時 drain）；push 到 remote 後用 `ssh clawd-vm` 進 `~/clawd/projects/gu-log/`，跑 `scripts/tribunal-worker-bootstrap.sh a` 與 `b` 建 worktree，`systemctl --user` 底下實跑 2 worker 做完整整合測試
 
 ## 5. 序列化 sync / push
 
@@ -45,3 +46,4 @@
 - [ ] 7.4 手動測試：兩 workers 同時更新 progress，不會丟失任何寫入
 - [ ] 7.5 手動測試：stop request 到來後，不再派新文章，兩 workers 跑完手上文章後退出
 - [ ] 7.6 手動測試：兩 workers 的 git / build / push 互不污染
+- [ ] 7.7 驗證完成後，若 production 不長期跑 2 worker，回 clawd-vm 清掉實驗用 worktree：`cd ~/clawd/projects/gu-log && git worktree remove ../gu-log-worker-a && git worktree remove ../gu-log-worker-b && git worktree list` 確認已清乾淨。若要長期維持 2 worker，worktree 保留並在 `CLAUDE.md` / runbook 文件化
