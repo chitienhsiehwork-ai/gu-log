@@ -136,7 +136,15 @@ function validatePost(filepath, allPosts) {
   }
 
   // ── Rule 2: Required fields ──
-  const required = ['title', 'originalDate', 'translatedDate', 'source', 'sourceUrl', 'summary', 'lang'];
+  const required = [
+    'title',
+    'originalDate',
+    'translatedDate',
+    'source',
+    'sourceUrl',
+    'summary',
+    'lang',
+  ];
   for (const field of required) {
     if (!fm[field]) {
       errors.push(`Missing required field: ${field}`);
