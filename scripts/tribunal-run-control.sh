@@ -149,7 +149,12 @@ rc_exit_stopped() {
 # defense-in-depth.
 : "${RC_CLAIMS_DIR:=$RC_ROOT_DIR/.score-loop/claims}"
 : "${RC_CLAIM_STALE_SEC:=21600}"   # 6 hours — beyond longest article run
+: "${RC_PROGRESS_LOCK:=$RC_ROOT_DIR/.score-loop/progress.lock}"
+: "${RC_PUSH_LOCK:=$RC_ROOT_DIR/.score-loop/push.lock}"
 mkdir -p "$RC_CLAIMS_DIR"
+# Ensure lock files exist so flock doesn't race on file creation.
+: >>"$RC_PROGRESS_LOCK"
+: >>"$RC_PUSH_LOCK"
 
 # Usage: rc_try_claim <slug> [worker_id]
 # Returns 0 if claim acquired, 1 if already held (by another worker).

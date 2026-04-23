@@ -117,16 +117,19 @@ get_stage_status() {
 
 write_stage_progress() {
   local article="$1" stage="$2" status="$3" score_json="$4" model="$5" attempts="$6"
-  local tmp
-  tmp="$(mktemp)"
-  jq --arg a "$article" \
-     --arg s "$stage" \
-     --arg status "$status" \
-     --arg model "$model" \
-     --argjson attempts "$attempts" \
-     --argjson score "$score_json" \
-     '.[$a].stages[$s] = {status: $status, score: $score, model: $model, attempts: $attempts}' \
-     "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
+  (
+    flock -x 9
+    local tmp
+    tmp="$(mktemp)"
+    jq --arg a "$article" \
+       --arg s "$stage" \
+       --arg status "$status" \
+       --arg model "$model" \
+       --argjson attempts "$attempts" \
+       --argjson score "$score_json" \
+       '.[$a].stages[$s] = {status: $status, score: $score, model: $model, attempts: $attempts}' \
+       "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
+  ) 9>>"$RC_PROGRESS_LOCK"
 }
 
 # Hard cap on how many times tribunal-all-claude.sh may run against the same
@@ -136,35 +139,50 @@ MAX_TOP_ATTEMPTS=5
 
 init_article_progress() {
   local article="$1"
-  local tmp
-  tmp="$(mktemp)"
-  local existing
-  existing="$(jq -r --arg a "$article" '.[$a] // empty' "$PROGRESS_FILE")"
-  if [ -z "$existing" ]; then
-    jq --arg a "$article" \
-       --arg ts "$(TZ=Asia/Taipei date -Iseconds)" \
-       '.[$a] = {article: $a, startedAt: $ts, stages: {}, topLevelAttempts: 0}' \
-       "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
-    tlog "Progress initialized for $article"
-  else
-    tlog "Resuming existing progress for $article"
-  fi
+  # Entire init + attempts increment + cap check runs under a single
+  # flock so two workers can't both see attempts=N and both bump to N+1.
+  local exhausted=0
+  (
+    flock -x 9
+    local tmp
+    tmp="$(mktemp)"
+    local existing
+    existing="$(jq -r --arg a "$article" '.[$a] // empty' "$PROGRESS_FILE")"
+    if [ -z "$existing" ]; then
+      jq --arg a "$article" \
+         --arg ts "$(TZ=Asia/Taipei date -Iseconds)" \
+         '.[$a] = {article: $a, startedAt: $ts, stages: {}, topLevelAttempts: 0}' \
+         "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
+      tlog "Progress initialized for $article"
+    else
+      tlog "Resuming existing progress for $article"
+    fi
 
-  # Increment + cap check
-  local attempts
-  attempts=$(jq -r --arg a "$article" '.[$a].topLevelAttempts // 0' "$PROGRESS_FILE")
-  attempts=$((attempts + 1))
-  jq --arg a "$article" --argjson n "$attempts" \
-     '.[$a].topLevelAttempts = $n' \
-     "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
-  tlog "Top-level attempt $attempts/$MAX_TOP_ATTEMPTS for $article"
-
-  if [ "$attempts" -gt "$MAX_TOP_ATTEMPTS" ]; then
-    tlog "ERROR: $article exceeded MAX_TOP_ATTEMPTS=$MAX_TOP_ATTEMPTS. Marking EXHAUSTED."
-    jq --arg a "$article" \
-       --arg ts "$(TZ=Asia/Taipei date -Iseconds)" \
-       '.[$a].status = "EXHAUSTED" | .[$a].finishedAt = $ts' \
+    # Increment + cap check
+    local attempts
+    attempts=$(jq -r --arg a "$article" '.[$a].topLevelAttempts // 0' "$PROGRESS_FILE")
+    attempts=$((attempts + 1))
+    jq --arg a "$article" --argjson n "$attempts" \
+       '.[$a].topLevelAttempts = $n' \
        "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
+    tlog "Top-level attempt $attempts/$MAX_TOP_ATTEMPTS for $article"
+
+    if [ "$attempts" -gt "$MAX_TOP_ATTEMPTS" ]; then
+      tlog "ERROR: $article exceeded MAX_TOP_ATTEMPTS=$MAX_TOP_ATTEMPTS. Marking EXHAUSTED."
+      jq --arg a "$article" \
+         --arg ts "$(TZ=Asia/Taipei date -Iseconds)" \
+         '.[$a].status = "EXHAUSTED" | .[$a].finishedAt = $ts' \
+         "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
+      echo EXHAUSTED > "$tmp.flag"
+    fi
+    # Signal via file to parent shell; subshell variables don't escape.
+    if [ -f "$tmp.flag" ]; then
+      mv "$tmp.flag" "$RC_PROGRESS_LOCK.exhausted-flag" 2>/dev/null || true
+    fi
+  ) 9>>"$RC_PROGRESS_LOCK"
+
+  if [ -f "$RC_PROGRESS_LOCK.exhausted-flag" ]; then
+    rm -f "$RC_PROGRESS_LOCK.exhausted-flag"
     commit_progress "tribunal(${article%.mdx}): EXHAUSTED after $MAX_TOP_ATTEMPTS top-level attempts"
     exit 2
   fi
@@ -172,23 +190,29 @@ init_article_progress() {
 
 mark_article_failed() {
   local article="$1" failed_stage="$2"
-  local tmp
-  tmp="$(mktemp)"
-  jq --arg a "$article" \
-     --arg s "$failed_stage" \
-     --arg ts "$(TZ=Asia/Taipei date -Iseconds)" \
-     '.[$a].status = "FAILED" | .[$a].failedStage = $s | .[$a].finishedAt = $ts' \
-     "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
+  (
+    flock -x 9
+    local tmp
+    tmp="$(mktemp)"
+    jq --arg a "$article" \
+       --arg s "$failed_stage" \
+       --arg ts "$(TZ=Asia/Taipei date -Iseconds)" \
+       '.[$a].status = "FAILED" | .[$a].failedStage = $s | .[$a].finishedAt = $ts' \
+       "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
+  ) 9>>"$RC_PROGRESS_LOCK"
 }
 
 mark_article_passed() {
   local article="$1"
-  local tmp
-  tmp="$(mktemp)"
-  jq --arg a "$article" \
-     --arg ts "$(TZ=Asia/Taipei date -Iseconds)" \
-     '.[$a].status = "PASS" | .[$a].finishedAt = $ts' \
-     "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
+  (
+    flock -x 9
+    local tmp
+    tmp="$(mktemp)"
+    jq --arg a "$article" \
+       --arg ts "$(TZ=Asia/Taipei date -Iseconds)" \
+       '.[$a].status = "PASS" | .[$a].finishedAt = $ts' \
+       "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
+  ) 9>>"$RC_PROGRESS_LOCK"
 }
 
 # ─── Pass Bar Checks (code is the rule) ───────────────────────────────────────
