@@ -24,10 +24,16 @@ TimeoutStopSec=3600
 # Resource limits — tuned for --workers 5 (5 parallel tribunal-all-claude.sh
 # subprocesses, each spawning a claude CLI judge + optional pnpm build).
 # CPUQuota 200% lets bursts of concurrent builds use multiple cores without
-# starving each other; MemoryMax 2G covers peak (5 × ~150MB worker +
-# supervisor + shared helpers) with headroom for pnpm node_modules caching.
+# starving each other.
+#
+# MemoryMax 4G (bumped 2026-04-24, PR #158): previous 2G cap OOM-killed
+# tribunal-loop.service at 01:03:59 when 5 workers concurrently ran
+# tribunal-writer + pnpm build. Each worker peaks ~400MB, supervisor + shared
+# state another ~200MB, combined ~2.2G exceeds 2G. VM has 7.6 GB total;
+# 4G for tribunal leaves ~3.5 GB for OpenClaw agents + hermes gateway +
+# system overhead.
 CPUQuota=200%
-MemoryMax=2G
+MemoryMax=4G
 
 # Logging
 StandardOutput=journal
