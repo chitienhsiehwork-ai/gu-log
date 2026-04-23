@@ -22,6 +22,12 @@ cd "$ROOT_DIR"
 # shellcheck source=scripts/score-helpers.sh
 source "$SCRIPT_DIR/score-helpers.sh"
 
+# shellcheck source=scripts/tribunal-run-control.sh
+# Graceful stop helpers — file-flag only channel (no traps here; parent
+# loop owns signals and writes the flag file on stop).
+export RC_ROOT_DIR="$ROOT_DIR"
+source "$SCRIPT_DIR/tribunal-run-control.sh"
+
 # ─── Args ─────────────────────────────────────────────────────────────────────
 POST_FILE="${1:-}"
 if [ -z "$POST_FILE" ]; then
@@ -48,11 +54,16 @@ tlog() {
 }
 
 # ─── Lock ─────────────────────────────────────────────────────────────────────
+# Exit code 75 = skipped (another instance is already running this article).
+# Callers (batch-runner, quota-loop, Phase 2 supervisor) must treat this as
+# "skipped", NOT as "passed" — otherwise stats are misleading. Chosen value:
+# 75 matches sysexits.h EX_TEMPFAIL ("temporary failure, retry later") which
+# is the closest stdlib semantic match.
 LOCK_FILE="/tmp/tribunal-all-claude-${POST_FILE}.lock"
 exec 200>"$LOCK_FILE"
 if ! flock -n 200; then
-  echo "[tribunal] Another tribunal instance is already running for $POST_FILE. Exiting." >&2
-  exit 0
+  echo "[tribunal] skipped: another instance is already running for $POST_FILE (rc=75)." >&2
+  exit 75
 fi
 
 # ─── Quiet Hours ──────────────────────────────────────────────────────────────
@@ -72,9 +83,15 @@ is_quiet_hours() {
 
 wait_for_quiet_hours_end() {
   if is_quiet_hours; then
-    tlog "Quiet hours active (weekday 20:00-02:00 TST). Sleeping 30min..."
+    tlog "Quiet hours active (weekday 20:00-02:00 TST). Sleeping 30min (interruptible)..."
     while is_quiet_hours; do
-      sleep 1800
+      if ! rc_interruptible_sleep 1800; then
+        # Stop requested during quiet hours — this is a safe boundary:
+        # next stage hasn't started, previously-passed stages are saved
+        # in progress.json and will resume on next run.
+        tlog "Stop requested during quiet-hours wait. Exiting with rc=77."
+        exit 77
+      fi
       tlog "Still in quiet hours, waiting..."
     done
     tlog "Quiet hours ended. Resuming."

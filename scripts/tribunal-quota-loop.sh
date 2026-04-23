@@ -44,6 +44,16 @@ tlog() {
   echo "$msg" | tee -a "$LOG_FILE"
 }
 
+# ─── Graceful stop control ───────────────────────────────────────────────────
+# Shared helper: signal + file flag channels, slice-based waits, lifecycle
+# state output. See scripts/tribunal-run-control.sh for the contract.
+# RC_ROOT_DIR must be exported before source so subprocesses agree on paths.
+export RC_ROOT_DIR="$ROOT_DIR"
+# shellcheck source=scripts/tribunal-run-control.sh
+source "$SCRIPT_DIR/tribunal-run-control.sh"
+trap 'rc_on_stop_signal TERM' TERM
+trap 'rc_on_stop_signal INT' INT
+
 # ─── Quota ────────────────────────────────────────────────────────────────────
 # Returns integer effective remaining pct (min of 5hr and weekly).
 # Returns -1 on error (usage-monitor unavailable or no claude entry).
@@ -142,8 +152,15 @@ fi
 tlog "=== Tribunal Quota-Aware Loop started ==="
 tlog "  Quota floor: ${QUOTA_FLOOR}%, Resume threshold: ${RESUME_THRESHOLD}%"
 tlog "  Usage monitor: ${USAGE_MONITOR}"
+rc_write_state "running" "startup"
 
 while true; do
+  # ── Stop boundary: top of iteration ──────────────────────────────────────
+  # Covers: signal arrived during previous article, or between iterations.
+  if rc_check_stop_requested; then
+    rc_exit_stopped
+  fi
+
   # ── Git pull (abort rebase on conflict) ───────────────────────────────────
   git pull --rebase origin main >> "$LOG_FILE" 2>&1 \
     || { git rebase --abort 2>/dev/null; tlog "WARN: git pull failed, continuing"; }
@@ -153,9 +170,10 @@ while true; do
   TOTAL=${#ARTICLES[@]}
 
   if [ "$TOTAL" -eq 0 ]; then
-    tlog "No unscored articles. Sleeping 30min."
-    sleep 1800
-    continue
+    tlog "No unscored articles. Sleeping 30min (interruptible)."
+    rc_write_state "idle_wait" "no_articles"
+    rc_interruptible_sleep 1800 || true
+    continue  # top-of-loop stop check handles exit if flag is set
   fi
 
   tlog "$TOTAL unscored articles remaining."
@@ -164,8 +182,9 @@ while true; do
   remaining=$(get_effective_remaining)
 
   if (( remaining < 0 )); then
-    tlog "Cannot read quota. Sleeping 10min."
-    sleep 600
+    tlog "Cannot read quota. Sleeping 10min (interruptible)."
+    rc_write_state "idle_wait" "quota_unreadable"
+    rc_interruptible_sleep 600 || true
     continue
   fi
 
@@ -174,9 +193,12 @@ while true; do
 
   # ── STOP mode: wait for recovery ──────────────────────────────────────────
   if (( sleep_sec == -1 )); then
-    tlog "STOP: ${remaining}% remaining (floor=${QUOTA_FLOOR}%). Waiting for >${RESUME_THRESHOLD}%..."
+    tlog "STOP: ${remaining}% remaining (floor=${QUOTA_FLOOR}%). Waiting for >${RESUME_THRESHOLD}% (interruptible)."
+    rc_write_state "stopped_by_quota" "remaining=${remaining}%"
     while true; do
-      sleep 1800
+      if ! rc_interruptible_sleep 1800; then
+        break  # stop requested — top-of-loop check will exit
+      fi
       remaining=$(get_effective_remaining)
       if (( remaining < 0 )); then
         tlog "  Check: quota unreadable, still waiting..."
@@ -188,7 +210,7 @@ while true; do
         break
       fi
     done
-    continue  # re-enter main loop (re-pull, re-check articles)
+    continue  # re-enter main loop (re-pull, re-check articles, or exit if stop)
   fi
 
   # ── Tier sleep ────────────────────────────────────────────────────────────
@@ -205,13 +227,41 @@ while true; do
     tlog "Tier BURN: ${remaining}% remaining — processing immediately"
   fi
 
+  # ── Stop boundary: before dispatching a new article ─────────────────────
+  # Covers: signal / flag arrived during quota check or tier sleep.
+  if rc_check_stop_requested; then
+    rc_exit_stopped
+  fi
+
   # ── Process next article ───────────────────────────────────────────────────
   next_article="${ARTICLES[0]}"
   tlog "Processing: $next_article (${remaining}% remaining, tier ${tier})"
+  rc_write_state "running" "article=$next_article"
 
-  # || true: set -e must not kill the loop when an article fails
+  # Exit-code convention (see tribunal-all-claude.sh):
+  #   0  — all stages passed
+  #   1  — failed at a stage (normal failure)
+  #   2  — EXHAUSTED (exceeded top-level attempts)
+  #   75 — skipped (already_running; another instance had the per-article lock)
+  #   77 — stopped_by_request (graceful stop detected during article)
+  article_rc=0
   bash "$SCRIPT_DIR/tribunal-all-claude.sh" "$next_article" >> "$LOG_FILE" 2>&1 \
-    || tlog "  Article $next_article failed (non-zero exit). Continuing to next."
+    || article_rc=$?
+
+  case "$article_rc" in
+    0)  : ;;  # passed, nothing to log here (tribunal-all-claude logs its own)
+    75) tlog "  Article $next_article skipped (already running elsewhere)." ;;
+    77) tlog "Article runner propagated stopped_by_request (rc=77)."
+        rc_exit_stopped ;;
+    *)  tlog "  Article $next_article failed (rc=$article_rc). Continuing to next." ;;
+  esac
+
+  # ── Stop boundary: article finished ──────────────────────────────────────
+  # Covers: signal / flag arrived during article run. article is now at
+  # its natural boundary, so we exit before dispatching another one.
+  if rc_check_stop_requested; then
+    rc_exit_stopped
+  fi
 
   # Brief cooldown (same as batch runner)
   sleep 10

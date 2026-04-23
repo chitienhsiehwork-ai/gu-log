@@ -1,8 +1,13 @@
 #!/bin/bash
-# tribunal-batch-runner.sh — Run tribunal on all unscored articles (newest → oldest)
+# tribunal-batch-runner.sh — Bounded one-shot tribunal runner
 #
-# Designed for VM cron. Processes one article at a time, checks quota between runs.
-# Stops when quota drops below QUOTA_FLOOR_PCT (default 3%).
+# Processes unscored articles (newest → oldest), one at a time, until it
+# either runs out, hits --max, or drops below the quota floor. Exits
+# normally when done.
+#
+# NOT a daemon. For the continuous 24/7 runtime, use
+# tribunal-quota-loop.sh (the SSOT per tribunal-run-control spec).
+# This script is for cron, manual bounded runs, and recovery work.
 #
 # Usage:
 #   bash scripts/tribunal-batch-runner.sh              # run until quota floor
@@ -128,7 +133,11 @@ fi
 PROCESSED=0
 PASSED=0
 FAILED=0
+SKIPPED=0
 
+# Exit-code convention (tribunal-all-claude.sh):
+#   0=passed  1=failed  2=EXHAUSTED  75=skipped(already_running)
+#   77=stopped_by_request
 for article in "${ARTICLES[@]}"; do
   if [ "$PROCESSED" -ge "$MAX_ARTICLES" ]; then
     tlog "Reached max articles ($MAX_ARTICLES). Stopping."
@@ -149,23 +158,35 @@ for article in "${ARTICLES[@]}"; do
   rc=0
   bash "$SCRIPT_DIR/tribunal-all-claude.sh" "$article" >> "$LOG_FILE" 2>&1 || rc=$?
 
-  if [ "$rc" -eq 0 ]; then
-    PASSED=$((PASSED + 1))
-    tlog "  ✓ $article — ALL STAGES PASSED"
-  else
-    FAILED=$((FAILED + 1))
-    tlog "  ✗ $article — FAILED (exit code $rc)"
-  fi
+  case "$rc" in
+    0)
+      PASSED=$((PASSED + 1))
+      tlog "  ✓ $article — ALL STAGES PASSED"
+      ;;
+    75)
+      SKIPPED=$((SKIPPED + 1))
+      tlog "  ○ $article — skipped (already running elsewhere)"
+      ;;
+    77)
+      tlog "  ⏸ $article — stopped_by_request propagated; batch runner exiting."
+      break
+      ;;
+    *)
+      FAILED=$((FAILED + 1))
+      tlog "  ✗ $article — FAILED (exit code $rc)"
+      ;;
+  esac
 
   # Brief cooldown between articles (avoid hammering API)
   sleep 10
 done
 
 tlog ""
-tlog "=== Tribunal Batch Runner finished ==="
+tlog "=== Tribunal Batch Runner finished (bounded completion) ==="
 tlog "  Processed: $PROCESSED / $TOTAL"
-tlog "  Passed: $PASSED"
-tlog "  Failed: $FAILED"
+tlog "  Passed:  $PASSED"
+tlog "  Skipped: $SKIPPED"
+tlog "  Failed:  $FAILED"
 tlog "  Remaining: $((TOTAL - PROCESSED))"
 
 # Cleanup old batch logs (keep last 20)

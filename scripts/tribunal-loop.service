@@ -5,10 +5,21 @@ After=network-online.target
 [Service]
 Type=simple
 WorkingDirectory=%h/clawd/projects/gu-log
-ExecStart=%h/clawd/projects/gu-log/scripts/cc-tribunal-loop-wrapper.sh
+ExecStart=/bin/bash %h/clawd/projects/gu-log/scripts/cc-tribunal-loop-wrapper.sh
 Restart=on-failure
 RestartSec=60
 Environment=TZ=Asia/Taipei
+
+# Graceful stop (see OpenSpec: tribunal-graceful-run-control)
+# KillMode=mixed — SIGTERM goes to main process (wrapper→loop) only; the
+# tribunal-all-claude.sh subprocess is NOT killed and is allowed to finish
+# the current article. The loop's trap sets stop_requested and exits
+# cleanly at the next safe boundary.
+KillMode=mixed
+KillSignal=SIGTERM
+# Worst case: article is in the middle of rewrite + build + frontmatter
+# write. Allow up to 60min before SIGKILL.
+TimeoutStopSec=3600
 
 # Resource limits
 CPUQuota=50%
