@@ -15,35 +15,35 @@ interface Props {
   scores?: {
     tribunalVersion?: number;
     librarian?: {
-      glossary: number;
-      crossRef: number;
-      sourceAlign: number;
-      attribution: number;
+      glossary?: number;
+      crossRef?: number;
+      sourceAlign?: number;
+      attribution?: number;
       score: number;
       date: string;
       model?: string;
     };
     factCheck?: {
-      accuracy: number;
-      fidelity: number;
-      consistency: number;
+      accuracy?: number;
+      fidelity?: number;
+      consistency?: number;
       score: number;
       date: string;
       model?: string;
     };
     freshEyes?: {
-      readability: number;
-      firstImpression: number;
+      readability?: number;
+      firstImpression?: number;
       score: number;
       date: string;
       model?: string;
     };
     vibe?: {
-      persona: number;
-      clawdNote: number;
-      vibe: number;
-      clarity: number;
-      narrative: number;
+      persona?: number;
+      clawdNote?: number;
+      vibe?: number;
+      clarity?: number;
+      narrative?: number;
       score: number;
       date: string;
       model?: string;
@@ -125,33 +125,38 @@ const labels = {
               <span class="score-denom">/10</span>
             </div>
             <div class="dim-list">
-              <span class="dim-item">
-                <span class="dim-label">{labels.glossary}</span>
-                <strong class={scoreColor(scores.librarian.glossary)}>
-                  {scores.librarian.glossary}
-                </strong>
-              </span>
-              <span class="dim-sep">·</span>
-              <span class="dim-item">
-                <span class="dim-label">{labels.crossRef}</span>
-                <strong class={scoreColor(scores.librarian.crossRef)}>
-                  {scores.librarian.crossRef}
-                </strong>
-              </span>
-              <span class="dim-sep">·</span>
-              <span class="dim-item">
-                <span class="dim-label">{labels.sourceAlign}</span>
-                <strong class={scoreColor(scores.librarian.sourceAlign)}>
-                  {scores.librarian.sourceAlign}
-                </strong>
-              </span>
-              <span class="dim-sep">·</span>
-              <span class="dim-item">
-                <span class="dim-label">{labels.attribution}</span>
-                <strong class={scoreColor(scores.librarian.attribution)}>
-                  {scores.librarian.attribution}
-                </strong>
-              </span>
+              {scores.librarian.glossary !== undefined && (
+                <span class="dim-item">
+                  <span class="dim-label">{labels.glossary}</span>
+                  <strong class={scoreColor(scores.librarian.glossary)}>
+                    {scores.librarian.glossary}
+                  </strong>
+                </span>
+              )}
+              {scores.librarian.crossRef !== undefined && (
+                <span class="dim-item">
+                  <span class="dim-label">{labels.crossRef}</span>
+                  <strong class={scoreColor(scores.librarian.crossRef)}>
+                    {scores.librarian.crossRef}
+                  </strong>
+                </span>
+              )}
+              {scores.librarian.sourceAlign !== undefined && (
+                <span class="dim-item">
+                  <span class="dim-label">{labels.sourceAlign}</span>
+                  <strong class={scoreColor(scores.librarian.sourceAlign)}>
+                    {scores.librarian.sourceAlign}
+                  </strong>
+                </span>
+              )}
+              {scores.librarian.attribution !== undefined && (
+                <span class="dim-item">
+                  <span class="dim-label">{labels.attribution}</span>
+                  <strong class={scoreColor(scores.librarian.attribution)}>
+                    {scores.librarian.attribution}
+                  </strong>
+                </span>
+              )}
             </div>
           </div>
         )}
@@ -185,26 +190,30 @@ const labels = {
               <span class="score-denom">/10</span>
             </div>
             <div class="dim-list">
-              <span class="dim-item">
-                <span class="dim-label">{labels.accuracy}</span>
-                <strong class={scoreColor(scores.factCheck.accuracy)}>
-                  {scores.factCheck.accuracy}
-                </strong>
-              </span>
-              <span class="dim-sep">·</span>
-              <span class="dim-item">
-                <span class="dim-label">{labels.fidelity}</span>
-                <strong class={scoreColor(scores.factCheck.fidelity)}>
-                  {scores.factCheck.fidelity}
-                </strong>
-              </span>
-              <span class="dim-sep">·</span>
-              <span class="dim-item">
-                <span class="dim-label">{labels.consistency}</span>
-                <strong class={scoreColor(scores.factCheck.consistency)}>
-                  {scores.factCheck.consistency}
-                </strong>
-              </span>
+              {scores.factCheck.accuracy !== undefined && (
+                <span class="dim-item">
+                  <span class="dim-label">{labels.accuracy}</span>
+                  <strong class={scoreColor(scores.factCheck.accuracy)}>
+                    {scores.factCheck.accuracy}
+                  </strong>
+                </span>
+              )}
+              {scores.factCheck.fidelity !== undefined && (
+                <span class="dim-item">
+                  <span class="dim-label">{labels.fidelity}</span>
+                  <strong class={scoreColor(scores.factCheck.fidelity)}>
+                    {scores.factCheck.fidelity}
+                  </strong>
+                </span>
+              )}
+              {scores.factCheck.consistency !== undefined && (
+                <span class="dim-item">
+                  <span class="dim-label">{labels.consistency}</span>
+                  <strong class={scoreColor(scores.factCheck.consistency)}>
+                    {scores.factCheck.consistency}
+                  </strong>
+                </span>
+              )}
             </div>
           </div>
         )}
@@ -238,19 +247,22 @@ const labels = {
               <span class="score-denom">/10</span>
             </div>
             <div class="dim-list">
-              <span class="dim-item">
-                <span class="dim-label">{labels.readability}</span>
-                <strong class={scoreColor(scores.freshEyes.readability)}>
-                  {scores.freshEyes.readability}
-                </strong>
-              </span>
-              <span class="dim-sep">·</span>
-              <span class="dim-item">
-                <span class="dim-label">{labels.firstImpression}</span>
-                <strong class={scoreColor(scores.freshEyes.firstImpression)}>
-                  {scores.freshEyes.firstImpression}
-                </strong>
-              </span>
+              {scores.freshEyes.readability !== undefined && (
+                <span class="dim-item">
+                  <span class="dim-label">{labels.readability}</span>
+                  <strong class={scoreColor(scores.freshEyes.readability)}>
+                    {scores.freshEyes.readability}
+                  </strong>
+                </span>
+              )}
+              {scores.freshEyes.firstImpression !== undefined && (
+                <span class="dim-item">
+                  <span class="dim-label">{labels.firstImpression}</span>
+                  <strong class={scoreColor(scores.freshEyes.firstImpression)}>
+                    {scores.freshEyes.firstImpression}
+                  </strong>
+                </span>
+              )}
             </div>
           </div>
         )}
@@ -283,30 +295,36 @@ const labels = {
               <span class="score-denom">/10</span>
             </div>
             <div class="dim-list">
-              <span class="dim-item">
-                <span class="dim-label">{labels.persona}</span>
-                <strong class={scoreColor(scores.vibe.persona)}>{scores.vibe.persona}</strong>
-              </span>
-              <span class="dim-sep">·</span>
-              <span class="dim-item">
-                <span class="dim-label">{labels.clawdNote}</span>
-                <strong class={scoreColor(scores.vibe.clawdNote)}>{scores.vibe.clawdNote}</strong>
-              </span>
-              <span class="dim-sep">·</span>
-              <span class="dim-item">
-                <span class="dim-label">{labels.vibe_dim}</span>
-                <strong class={scoreColor(scores.vibe.vibe)}>{scores.vibe.vibe}</strong>
-              </span>
-              <span class="dim-sep">·</span>
-              <span class="dim-item">
-                <span class="dim-label">{labels.clarity}</span>
-                <strong class={scoreColor(scores.vibe.clarity)}>{scores.vibe.clarity}</strong>
-              </span>
-              <span class="dim-sep">·</span>
-              <span class="dim-item">
-                <span class="dim-label">{labels.narrative}</span>
-                <strong class={scoreColor(scores.vibe.narrative)}>{scores.vibe.narrative}</strong>
-              </span>
+              {scores.vibe.persona !== undefined && (
+                <span class="dim-item">
+                  <span class="dim-label">{labels.persona}</span>
+                  <strong class={scoreColor(scores.vibe.persona)}>{scores.vibe.persona}</strong>
+                </span>
+              )}
+              {scores.vibe.clawdNote !== undefined && (
+                <span class="dim-item">
+                  <span class="dim-label">{labels.clawdNote}</span>
+                  <strong class={scoreColor(scores.vibe.clawdNote)}>{scores.vibe.clawdNote}</strong>
+                </span>
+              )}
+              {scores.vibe.vibe !== undefined && (
+                <span class="dim-item">
+                  <span class="dim-label">{labels.vibe_dim}</span>
+                  <strong class={scoreColor(scores.vibe.vibe)}>{scores.vibe.vibe}</strong>
+                </span>
+              )}
+              {scores.vibe.clarity !== undefined && (
+                <span class="dim-item">
+                  <span class="dim-label">{labels.clarity}</span>
+                  <strong class={scoreColor(scores.vibe.clarity)}>{scores.vibe.clarity}</strong>
+                </span>
+              )}
+              {scores.vibe.narrative !== undefined && (
+                <span class="dim-item">
+                  <span class="dim-label">{labels.narrative}</span>
+                  <strong class={scoreColor(scores.vibe.narrative)}>{scores.vibe.narrative}</strong>
+                </span>
+              )}
             </div>
           </div>
         )}
@@ -495,8 +513,10 @@ const labels = {
     font-size: 0.75rem;
   }
 
-  .dim-sep {
+  .dim-item + .dim-item::before {
+    content: '·';
     color: var(--color-border);
     font-size: 0.7rem;
+    margin-right: 0.15rem;
   }
 </style>
