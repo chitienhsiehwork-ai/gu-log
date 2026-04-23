@@ -6,18 +6,22 @@ gu-log 的 tribunal 系統是 quality gate：四 judge（Vibe / Fresh Eyes / Fac
 - 新文章由兩種來源進：clawd（VM 上的自動翻譯 pipeline）跟 CC/Obsidian（Mac 上手動寫）— tribunal 要能不區分來源、看到 unscored 就消化
 - Tribunal 需要人不在場仍然穩定跑；失敗要能自己重啟，不要靜悄悄死掉
 
-### 現狀（本 change rebase 後，含 PR #152 graceful-run-control）
+### 現狀（本 change rebase 後，含 PR #152 / #153 / #154 / #155 / #156）
+
+Production on clawd-vm 2026-04-24：`tribunal-loop.service` 跑 **5 workers** × `claude-opus-4-6[1m]`（vibe scorer + writer 都吃 1M context），per-dispatch worker worktree sync，tribunal commit 直接進 main。
 
 | 元件 | 狀態 |
 |---|---|
-| `tribunal-quota-loop.sh` | 被 PR #152 重構成 quota-aware + graceful stop loop，呼叫 `tribunal-run-control.sh` |
-| `tribunal-run-control.sh` | PR #152 新增，stop-file-based 控制介面（start / stop / status / drain） |
-| `tribunal-batch-runner.sh` | `claude --usage` 檢查是假的 — flag 不存在，永遠 fall-through（本 change 要修） |
-| `tribunal-all-claude.sh` | 舊 4-stage shell pipeline，daemon 目前實際呼叫的 |
-| `src/lib/tribunal-v2/pipeline.ts` | TS v2 pipeline，有 worthiness gate / final-vibe / writer-constraints，**但 daemon 沒呼叫** |
-| `scripts/tribunal-v2-run.ts` | v2 entry point，手動可跑，daemon 未串 |
-| `scripts/tribunal-loop.service` | systemd unit，有 `Restart=on-failure`，沒 `OnFailure=` 告警 |
-| `~/clawd/scripts/usage-monitor.sh` | 真正會動的 quota 偵測，**在 repo 外** |
+| `tribunal-quota-loop.sh` | 449 行 supervisor，worker pool + claim + per-dispatch sync + drain + `--workers N`（PR #153 / #156） |
+| `tribunal-run-control.sh` | PR #152 起 + PR #153 補：stop signal / file flag、`rc_try_claim` / `rc_release_claim` / `rc_gc_stale_claims`、`RC_PROGRESS_LOCK` / `RC_PUSH_LOCK` |
+| `tribunal-worker-bootstrap.sh` | PR #153 新增：`create / status / sync / remove / remove-all`，管 `gu-log-worker-<id>` 多 worktree |
+| `tribunal-all-claude.sh` | 4-stage shell pipeline，daemon 實際呼叫的 hot path；progress R-M-W 全 flock-wrap；commit/fetch/rebase/push 走 RC_PUSH_LOCK（PR #153） |
+| `tribunal-batch-runner.sh` | 仍有假的 `claude --usage` 檢查（本 change Group 1 要收攏） |
+| `src/lib/tribunal-v2/pipeline.ts` | TS v2 pipeline（worthiness gate / final-vibe / writer-constraints），**daemon 仍沒呼叫**（本 change Group 3） |
+| `scripts/tribunal-v2-run.ts` | v2 entry point，daemon 未串 |
+| `scripts/tribunal-loop.service` | `KillMode=mixed` / `TimeoutStopSec=3600` / `CPUQuota=200%` / `MemoryMax=2G` / 預設 `--workers 5`（PR #156） |
+| `scripts/usage-monitor.sh` | 本 change Group 2 vendored 過來；daemon `tribunal-quota-loop.sh` 已跟 `~/clawd/scripts/usage-monitor.sh` 雙路 resolve |
+| `docs/tribunal-runbook.md` | PR #156 新增，deploy / drain / observability / troubleshooting 都在這 |
 
 ### Ralph Loop（2026-03-22 舊版）留下的教訓
 
@@ -31,19 +35,19 @@ gu-log 的 tribunal 系統是 quality gate：四 judge（Vibe / Fresh Eyes / Fac
 
 ## Goals / Non-Goals
 
-### Goals
+### Goals（本 change 範圍內仍要做的）
 
-- Daemon 預設走 tribunal v2 TS pipeline，但保留 shell fallback（env var 切換）
+- Daemon 有走 tribunal v2 TS pipeline 的選項（env var 切換），保留 shell 為 production default
 - Quota 偵測一份 helper 搞定，batch runner 跟 quota-loop 兩邊共用
-- 每篇文章走 feature branch + draft PR，不再直推 main
 - Daemon 悶倒 / quota 爆 / 連續失敗時，有告警通道通知 operator
 - 有最小日指標（throughput、pass rate、quota 燃燒曲線）
-- Daemon 在新機器上起得來 — `usage-monitor.sh` 不再是 VM 硬相依
+- Daemon 在新機器上起得來 — `usage-monitor.sh` 不再是 VM 硬相依 ✓（Group 2 已完成）
 
-### Non-goals（本 change 已不處理，已由其他 change 解掉）
+### Non-goals（已由其他 change 解掉，本 change 不動）
 
-- **Graceful stop + drain 語意** — 由 `tribunal-graceful-run-control`（archived 2026-04-23、PR #152 落地）處理。本 change 的 daemon 直接沿用已落地的 stop-file 控制介面
-- **多 worker 並行 / claim race / flock 序列化** — 由 `tribunal-safe-parallelism`（進行中，branch `feat/tribunal-safe-parallelism`）處理。本 change 只處理 single-worker lifecycle
+- **Graceful stop + drain 語意** — `tribunal-graceful-run-control`（archived 2026-04-23、PR #152）。本 change sup pervisor 直接沿用
+- **多 worker 並行 / claim race / flock 序列化 / worker worktree isolation / push 序列化** — `tribunal-safe-parallelism`（archived 2026-04-23、PR #153–#156）。5-worker supervisor + `RC_PUSH_LOCK` + `RC_PROGRESS_LOCK` 都已 production
+- **每篇文章走 feature branch + draft PR**（原 Goal 之一）— **本 change 撤回**。理由見下方 Decision 3 revision。Tribunal 跑完 **直接 commit 到 main**，由 `RC_PUSH_LOCK` + `git fetch-rebase-push` retry 處理 concurrent write；跟 production 5-worker 吞吐量哲學一致
 
 ### Non-Goals
 
@@ -53,40 +57,42 @@ gu-log 的 tribunal 系統是 quality gate：四 judge（Vibe / Fresh Eyes / Fac
 - **不**做 dashboard UI（metrics 只到 JSON 檔，讀取方式交給後續）
 - **不**搬到 Kubernetes / Docker / 其他平台（繼續 systemd on VPS）
 
-## Dependencies on in-flight / landed openspec changes
+## Dependencies on landed openspec changes
 
-- **`tribunal-graceful-run-control`** — archived 2026-04-23、透過 PR #152 落地。本 change 的 daemon 直接繼承 graceful stop + drain 語意（`scripts/tribunal-run-control.sh`），不再自己實作。Goals 的「daemon 要能 graceful 停機」已由 PR #152 滿足
-- **`tribunal-safe-parallelism`** — 進行中，branch `feat/tribunal-safe-parallelism` / worktree `/Users/shroom/gu-log-tribunal-runtime`。負責：article claim contract、skip/collision semantics、shared progress flock、worktree isolation、push 序列化、parallel supervisor。本 change 的實作 MUST 尊重以下介面：
-  - 不預設 parallel，預設 single-worker（跟 PR #152 一致）
-  - Feature-branch + PR push 路徑 MUST 跟 safe-parallelism 的 push lock 共用同一把鎖（具體鎖檔路徑等 safe-parallelism 先落地再定）
-  - Quota helper 抽共用（Group 1）MUST 等 safe-parallelism 先動完同一批檔案（避免 rebase 地獄）
+- **`tribunal-graceful-run-control`** — archived 2026-04-23、透過 PR #152 落地。本 change 的 daemon 直接繼承 graceful stop + drain 語意（`scripts/tribunal-run-control.sh`），不再自己實作
+- **`tribunal-safe-parallelism`** — archived 2026-04-23、透過 PR #153–#156 落地。Worker pool、claim、`RC_PROGRESS_LOCK`、`RC_PUSH_LOCK`、per-dispatch worktree sync 全進 main。本 change 的後續實作 MUST 直接建在這組介面之上：
+  - Engine dispatch（Group 3）要走 `tribunal-all-claude.sh` 已有的 flock-wrapped progress R-M-W 跟 push lock，不另發明
+  - Alerting（Group 5）跟 metrics（Group 6）的寫入點共用 `.score-loop/` 既有目錄結構（state / claims / logs）
+  - 5-worker production 是 hot path，任何新增 logic 都要 **worker-aware**（例：告警訊息帶 worker id）
 
-## Execution order（Group dependency map）
+## Execution order（rebase 後重新評估）
 
-本 change tasks.md 分 10 個 Group，依跟 `tribunal-safe-parallelism` 的 conflict 風險分兩批：
+`tribunal-safe-parallelism` 已落地後，本 change tasks.md 不再有 BLOCKED 組：
 
-- **READY（跟 safe-parallelism 無衝突，可立即做）**：
-  - Group 2（usage-monitor 去 VM 硬相依）
+- **Done**：
+  - Group 2（usage-monitor 去 VM 硬相依）✓
+- **READY now（原本標 BLOCKED，因依賴已 merge 可放行）**：
+  - Group 1（quota helper 抽共用）
+  - Group 3（engine dispatch TS vs shell）
+  - Group 6（metrics） — 寫入位置改成 per-worker jsonl + 彙總
+- **READY**（一開始就 READY）：
   - Group 5（告警）
-  - Group 8（文件）
+  - Group 8（文件） — 大部分已被 `docs/tribunal-runbook.md` 覆蓋，只補 daemon-specific 項目
   - Group 9（清理）
-- **BLOCKED（等 `feat/tribunal-safe-parallelism` merge 再做）**：
-  - Group 1（quota helper 抽共用 → 會動 `tribunal-quota-loop.sh` 核心）
-  - Group 3（engine dispatch → 同一支檔案）
-  - Group 4（feature branch + PR → 會跟 safe-parallelism 的 push lock 打架）
-  - Group 6（指標 → 進度寫入路徑跟 safe-parallelism 的 flock 共用）
+- **撤回 / 重新定位**：
+  - **Group 4（feature branch + PR per article）— 撤回**。Production 直接 commit 到 main、`RC_PUSH_LOCK` 序列化 push，跟高吞吐量 5-worker 哲學一致；逐篇 PR 的 review benefit 對 auto-tribunal 價值不對等。若 CEO 將來想要人工 review 某類文章，會另開 gated-review change 處理
 - **FINAL**：
   - Group 7（dry-run + 驗證）+ Group 10（PR + 最終驗證） — 全做完才跑
 
 ## Decisions
 
-### 1. Engine 選擇：TS 為預設，shell 為 fallback
+### 1. Engine 選擇：shell 留為 production default，TS 走 opt-in
 
-**選擇**：Daemon dispatch 到 `scripts/tribunal-v2-run.ts`（TS）為預設；`TRIBUNAL_ENGINE=shell` 可切回 `tribunal-all-claude.sh`。
+**選擇**：Daemon 繼續 dispatch 到 `scripts/tribunal-all-claude.sh`（shell, 4-stage, production 已驗證），新增 `TRIBUNAL_ENGINE=ts` opt-in 切到 `scripts/tribunal-v2-run.ts`（TS，有 worthiness gate / final-vibe / writer-constraints）。
 
-**為什麼不是「全面切 TS 不留 shell」**：v2 pipeline 已有 vitest 覆蓋但尚未生產驗證過一整批。若 v2 出 regression，daemon 不該整個悶倒 — env var 能 5 秒內切回 shell，有緩衝空間。
+**為什麼不再推「TS 為預設」**：2026-04-24 production 已是 5-worker shell engine × `claude-opus-4-6[1m]` 全速燒 quota（PR #156）。shell 路徑剛吃進 per-dispatch worker sync、flock-wrapped progress、push lock；此刻切預設到 TS = 砍掉 production 的穩定性。TS 該以 shadow / opt-in 驗證 1 ~ 2 週再談切預設。
 
-**為什麼不是「繼續 shell」**：v2 的 worthiness gate、final-vibe 相對門檻、writer-constraints（URL / 標題 / frontmatter / 你我代名詞）是 shell 版沒有的品質守護。繼續跑 shell 就是把這些守護關掉。
+**為什麼不是「繼續 shell、砍掉 TS」**：v2 的 writer-constraints（URL / 標題 / frontmatter / 你我代名詞不准動）是 shell 版沒有的 — SP-175 / SP-177 model 劣化事件裡 rewriter 偷改標題 URL 就是在 shell engine 發生的。TS engine 是 regression net，要保留可切換路徑。
 
 **為什麼語言選 TypeScript 不是 Python**：
 - v2 pipeline 已 400+ 行 TS 寫完、有 vitest 測試；切 Python = 丟掉所有資產重寫
@@ -94,6 +100,8 @@ gu-log 的 tribunal 系統是 quality gate：四 judge（Vibe / Fresh Eyes / Fac
 - Repo 主棧是 Astro / MDX / `tsx`，Python 在 core path 是外來者
 - Python 的強項（ML / scientific libs）此場景用不到 — 我們只是在編排 `claude -p` CLI call
 - 多加一個語言 = 多一套 lint / test / CI / dep management 要顧
+
+**與 `[1m]` context 的互動**：shell engine 現在跑 `claude-opus-4-6[1m]`；TS engine 若要保持 parity，`scripts/tribunal-v2-run.ts` 呼叫 Anthropic SDK 時 MUST 支援同樣的 model id 字串（Group 3.3 / 3.4 要寫進來）。
 
 ### 2. Quota 偵測：抽共用 helper `scripts/tribunal-quota-lib.sh`
 
@@ -107,21 +115,18 @@ gu-log 的 tribunal 系統是 quality gate：四 judge（Vibe / Fresh Eyes / Fac
 - STOP 後每 30 分鐘檢查一次
 - `usage-monitor.sh --json` 無法讀時 → 保守休 10 分鐘再試
 
-### 3. Feature branch + PR 模式
+### 3. [撤回] Feature branch + PR 模式 — 不在本 change 範圍
 
-**選擇**：每篇文章走 `tribunal/<YYYY-MM-DD>-<slug>` 分支，跑完後開 draft PR 到 main。
+**原本的選擇**：每篇文章走 `tribunal/<YYYY-MM-DD>-<slug>` 分支、draft PR、auto-merge。
 
-**分支命名**：`tribunal/2026-04-23-sp-180-example`（日期 + ticket + slug）
+**撤回的理由**（2026-04-24 更新）：
 
-**PR draft 誰 merge**：
-- 所有 stage PASS 且 Stage 4 沒降級 → daemon 自動轉 ready（非 draft）、auto-merge
-- 有 stage fail 或 Stage 4 降級 → 保 draft，等 operator 人工審查
+- PR #153 起 tribunal commit 走 `flock -x 10 ... 9>>RC_PUSH_LOCK` 序列化，5 workers 同時完工也不會互撞 push — feature-branch 的 concurrent-write 保險已經不需要
+- PR 逐篇 auto-merge 在 5-worker 吞吐量下變成 **throughput ceiling**：每小時 10–30 篇文章 × 每篇 push + PR 建立 + CI + auto-merge = GitHub API rate limit 風險 + 可預期的 review noise
+- `tribunal-runbook.md` 已記錄現狀 deploy flow：tribunal commit 直接上 main，revert 用 `git revert <sha>`。相比 PR 路徑，revert 成本相當
+- 2026-04-22 CLAUDE.md 的 feature branch + PR 新規是寫給「人類或 CC 手動做 task」的場合；tribunal 是 auto-loop，不在那條規則的目標對象
 
-**為什麼不直推 main**：
-- 2026-04-22 CLAUDE.md 新規：solo repo 也走 feature branch + PR，Vercel preview 先跑一次、revert 時不沾其他 commit
-- Tribunal 改寫有品質風險（SP-175 / SP-177 model quality 事件是佐證），PR 是保險槓
-
-**為什麼不是每篇都保 draft 等人工 merge**：那就變 human bottleneck 了，違反「24/7 自動消化」初衷。Auto-merge 的條件收嚴就好。
+**若將來真的要做**：會以獨立 change 提案（名稱 tentative：`tribunal-gated-review`），而且只針對特定 tag（例：`--tag=controversial` / `--tag=sp-175-aftermath` 系列）走 PR 審查，其他照舊直推 main。本 change 不納入。
 
 ### 4. 告警：systemd `OnFailure=` + 自訂 long-STOP / consecutive-fail hooks
 
@@ -173,10 +178,10 @@ gu-log 的 tribunal 系統是 quality gate：四 judge（Vibe / Fresh Eyes / Fac
 - **風險**：vitest 只能 mock runner，LLM call 實際跑起來可能有 edge case
 - **緩解**：預設走 TS 但 `TRIBUNAL_ENGINE=shell` 5 秒可切回；先在 1-2 篇新文章上手動跑 TS engine 驗證，再啟 daemon auto dispatch
 
-### [PR 氾濫] 每篇文章一個 PR，可能一天 10+ PR 塞爆 Github
+### [TS engine fork 走偏] shell engine 繼續演化但 TS engine 沒跟上
 
-- **風險**：review burden（雖然大部分會 auto-merge，但 draft PR 的還是得看）
-- **緩解**：auto-merge 門檻收嚴（全 PASS + 無降級 → ready）；失敗 PR 留 draft 每日一次批次看。配 GitHub CLI alias 批量操作
+- **風險**：shell engine 是 production default，會持續補 bug / 調 model pin；TS engine 在 opt-in shadow 狀態，容易 drift
+- **緩解**：TS shadow 運行後要定期對比兩 engine 結果（writer-constraints 是否被違反、judge scores 落差）；打出明確的「TS engine 可切預設」門檻並放進 Group 3 驗收
 
 ### [Quota vendor 漂移] `usage-monitor.sh` VM 版跟 vendor 版不同步
 
@@ -193,26 +198,32 @@ gu-log 的 tribunal 系統是 quality gate：四 judge（Vibe / Fresh Eyes / Fac
 - **風險**：tribunal rewriter 可能改壞東西但 judge 放水沒抓到（SP-175 前例）
 - **緩解**：writer-constraints（URL / 標題 / frontmatter / 你我代名詞）v2 pipeline 已強制；任何違反直接 revert loop；加上 PR diff 對 humans 可見，事後可追可 revert。極端失控時走 `add-tribunal-ops-policy` 的 pause 機制
 
-## Migration Plan
+## Migration Plan（rebase onto 新 main 後）
 
-1. **階段 1 — Dry-run 驗證（本 change 範圍內）**：
-   - Vendor `usage-monitor.sh` 到 `scripts/`，但 daemon 仍優先讀 `~/clawd/scripts/`
-   - 抽出 `tribunal-quota-lib.sh`，修好兩邊 quota 檢查
-   - 在 worktree 內 `bash scripts/tribunal-quota-loop.sh --dry-run` 確認列表跟 quota 對
-2. **階段 2 — Engine dispatch（本 change 範圍內）**：
-   - `tribunal-v2-run.ts` 加 daemon-friendly exit codes
-   - `tribunal-quota-loop.sh` 加 `TRIBUNAL_ENGINE` 分岐
-   - 手動驗證：1 篇 TS engine 實跑、1 篇 shell engine 實跑，兩邊都能 commit 到 feature branch
-3. **階段 3 — Feature branch + PR（本 change 範圍內）**：
-   - Branch 建立 / PR 開 / auto-merge 全套流程在非 daemon 模式驗證過
-4. **階段 4 — 告警 + 指標（本 change 範圍內）**：
-   - 寫 `tribunal-alert.sh`、加 systemd `OnFailure=`、加日指標寫入
+1. **階段 1 — Dry-run 驗證** ✓ 已完成（2026-04-23）：
+   - Vendor `usage-monitor.sh` 到 `scripts/` + VM-first fallback resolver
+   - Dry-run 在 Mac 跑過，證明 vendored fallback 對 442 篇 unscored 列表正常
+2. **階段 2 — Quota helper 抽共用（Group 1）**：
+   - 把 `get_effective_remaining()` / `compute_sleep()` / `compute_tier_name()` + `QUOTA_FLOOR` / `RESUME_THRESHOLD` 搬到 `scripts/tribunal-quota-lib.sh`
+   - `tribunal-quota-loop.sh` + `tribunal-batch-runner.sh` 兩邊 source 進來，拿掉 batch-runner 假的 `claude --usage`
+3. **階段 3 — Engine dispatch opt-in（Group 3）**：
+   - `scripts/tribunal-v2-run.ts` 加 daemon-friendly exit codes + `--json-status` + 支援 `claude-opus-4-6[1m]` model id
+   - `tribunal-quota-loop.sh` worker dispatch 加 `TRIBUNAL_ENGINE` 分岐（預設 shell，opt-in ts）
+   - 在 worktree 手動 shadow 跑 1 ~ 2 篇 TS engine，對比同篇 shell engine 的 pipeline.ts 結果
+4. **階段 4 — 告警（Group 5）**：
+   - 寫 `scripts/tribunal-alert.sh`、`tribunal-alert@.service`
+   - `tribunal-loop.service` 加 `OnFailure=`；supervisor 內加 long-STOP 12h / consecutive-fail 3 觸發
    - 手動 trigger 一次告警確認能到 webhook
-5. **階段 5 — VM deploy（在另一個 PR / change 裡）**：
-   - 不在本 change 範圍；交給 operator 決定時機 `systemctl --user restart tribunal-loop.service`
+5. **階段 5 — 指標（Group 6）**：
+   - `tribunal-all-claude.sh` 跑完 append 一行 worker-scoped jsonl 到 `.score-loop/metrics/daily-<date>-worker-<id>.jsonl`
+   - supervisor 午夜或啟動時 aggregate 成 `.score-loop/metrics/daily-<date>.json`
+6. **階段 6 — VM deploy**：
+   - 透過 `tribunal-runbook.md` 既有 deploy flow：Mac push → VPS `git pull` → `systemctl --user stop tribunal-loop` drain → restart
+   - 新指令 `touch .score-loop/control/stop-graceful` 已是 production-proven 路徑
 
 ## Open Questions
 
-1. Auto-merge 的 CI gate 要不要 block on Vercel preview 成功？（目前 gu-log Vercel auto-deploy，preview url 需要時間）— 傾向「先不 block」，後續看 `chore/branch-pr-mode` 那邊共識
-2. `tribunal-all-claude.sh` 要不要加 deprecation warning 印到 stderr？— 輕量、建議加
+1. TS engine shadow 跑幾篇 / 多久才算「可切預設」？建議：連續 20 篇 no-regression（writer-constraints 未違反、judge scores 差距 < 0.5）+ 1 週穩定期
+2. `tribunal-all-claude.sh` 要不要加 deprecation warning 印到 stderr？— 在 TS engine 確定切預設前先不加，避免 production noise
 3. 連續 fail 門檻 3 篇是不是太嚴？或該看 fail 率（例如一天內 > 30% fail）— 先 3 篇，戰後調
+4. Metrics jsonl per-worker 還是單一共用？— per-worker 寫入不用 flock，aggregator 讀時合併；先走 per-worker 省鎖
