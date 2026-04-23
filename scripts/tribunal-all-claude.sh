@@ -487,13 +487,42 @@ PROMPT
 }
 
 # ─── Commit Progress ──────────────────────────────────────────────────────────
+# Phase 2 (tribunal-safe-parallelism):
+#   - Serialized by push_lock so 2 workers don't race on main branch.
+#   - Honors TRIBUNAL_MAIN_REPO env var: workers running in their own isolated
+#     worktrees can update the main repo's shared progress file (flock
+#     coordinates the read-modify-write; this function coordinates the
+#     git commit + push).
+#   - Rebase-then-push with retry so a lost race to push is recoverable
+#     without waiting for the next iteration.
 commit_progress() {
   local msg="$1"
-  git add "$PROGRESS_FILE" 2>/dev/null || true
-  if ! git diff --cached --quiet; then
-    git commit -m "$msg" --no-verify >> "$LOG_FILE" 2>&1 || true
-    git push --no-verify >> "$LOG_FILE" 2>&1 || tlog "WARN: git push failed (will retry on next run)"
-  fi
+  local repo_dir="${TRIBUNAL_MAIN_REPO:-$ROOT_DIR}"
+  (
+    flock -x 10
+    cd "$repo_dir" || { tlog "WARN: commit_progress cd $repo_dir failed"; exit 0; }
+    git add "$PROGRESS_FILE" 2>/dev/null || true
+    if git diff --cached --quiet; then
+      exit 0  # nothing to commit
+    fi
+    git commit -m "$msg" --no-verify >> "$LOG_FILE" 2>&1 || exit 0
+
+    local pushed=0
+    for attempt in 1 2 3; do
+      git fetch origin main >> "$LOG_FILE" 2>&1 || true
+      if git rebase origin/main >> "$LOG_FILE" 2>&1; then
+        if git push --no-verify >> "$LOG_FILE" 2>&1; then
+          pushed=1
+          break
+        fi
+      else
+        tlog "WARN: rebase attempt $attempt failed, aborting and retrying."
+        git rebase --abort 2>/dev/null || true
+      fi
+      sleep 2
+    done
+    [ "$pushed" -eq 1 ] || tlog "WARN: git push failed after 3 attempts (will retry on next run)"
+  ) 10>>"$RC_PUSH_LOCK"
 }
 
 # ─── Prerequisites ────────────────────────────────────────────────────────────
