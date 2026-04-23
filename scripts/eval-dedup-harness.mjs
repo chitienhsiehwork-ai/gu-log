@@ -290,7 +290,12 @@ async function invokeJudge(fixture, { timeoutSec, dryRun }) {
 
 function spawnClaudeJudge(prompt, timeoutSec) {
   return new Promise((resolve, reject) => {
-    const args = ['-p', '--agent', 'v2-factlib-judge', '--dangerously-skip-permissions', prompt];
+    // Claude Code refuses --dangerously-skip-permissions under root (CCC).
+    const args = ['-p', '--agent', 'v2-factlib-judge'];
+    if (process.getuid && process.getuid() !== 0) {
+      args.push('--dangerously-skip-permissions');
+    }
+    args.push(prompt);
     const child = spawn('claude', args, {
       env: process.env,
       stdio: ['ignore', 'pipe', 'pipe'],

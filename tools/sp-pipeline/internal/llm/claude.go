@@ -2,14 +2,17 @@ package llm
 
 import (
 	"context"
+	"os"
 	"strings"
 
 	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/runner"
 )
 
-// ClaudeProvider shells out to `claude -p --model <model> --permission-mode
-// bypassPermissions`, feeding prompt to stdin and reading the response from
-// stdout. This matches how scripts/sp-pipeline.sh invokes Claude today.
+// ClaudeProvider shells out to `claude -p --model <model>` with
+// `--permission-mode bypassPermissions` appended when not running as root.
+// Claude Code refuses the permission-bypass flags under root/sudo; CCC
+// sandboxes run as root, so we drop the flag there. -p is one-shot and does
+// not invoke tools, so the permission mode is a no-op for this call site.
 type ClaudeProvider struct {
 	// ModelFlag is the value passed to --model. For Opus we pin the exact
 	// build ("claude-opus-4-6[1m]") rather than the "opus" alias — see the
@@ -67,7 +70,9 @@ func (c *ClaudeProvider) Run(ctx context.Context, prompt string, opts RunOptions
 	args := []string{
 		"-p",
 		"--model", c.modelFlag(),
-		"--permission-mode", "bypassPermissions",
+	}
+	if os.Geteuid() != 0 {
+		args = append(args, "--permission-mode", "bypassPermissions")
 	}
 	res, err := runner.RunWithOptions(ctx, runner.Options{
 		Name:    "claude",

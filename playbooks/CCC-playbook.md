@@ -105,7 +105,7 @@ Vercel build / tribunal / validate-posts / CI 沒過：
 
 **首選**：`scripts/tribunal-batch-runner.sh` 或 `sp-pipeline ralph` 自動跑完四審 + rewrite + 寫 frontmatter scores。
 
-**沙箱 fallback**（CCC 常見：`sp-pipeline` 在沙箱因為 `--dangerously-skip-permissions` 不能以 root 跑、或 subprocess 限制跑不起來）：**CCC 自己用 `Agent` tool 一次 spawn 四個 subagent 平行跑**，對應 `.claude/agents/`：
+**沙箱 fallback**（`sp-pipeline ralph` / `scripts/vibe-scorer.sh` 的 subprocess 在 CCC 沒跑起來時——現在 `id -u` 下已自動 drop `--dangerously-skip-permissions` / `--permission-mode bypassPermissions`，理論上跑得起，但 subprocess 有可能讀 CLAUDE.md 卡在 permission wait；真的卡住再走這條）：**CCC 自己用 `Agent` tool 一次 spawn 四個 subagent 平行跑**，對應 `.claude/agents/`：
 
 - `vibe-opus-scorer.md`（Opus）→ persona / clawdNote / vibe / clarity / narrative
 - `fact-checker.md`（Opus）→ accuracy / fidelity / consistency（要 WebFetch 驗 sourceUrl）
@@ -183,10 +183,16 @@ tools/sp-pipeline/sp-pipeline run <url> --force
 
 ### 什麼時候才真的要 fallback 到手動 `claude -p`
 
-不是因為沒網路，是因為 **`claude -p` 子呼叫在 long creative generation 時會 stream idle timeout**（見本檔下方「Stream idle timeout 應對」那一節）。遇到那個 failure mode 時才走：
+不是因為沒網路、也不是因為 auth 不到——2026-04-23 實測：
+- **Auth OK**：CCC 有 `CLAUDE_CODE_OAUTH_TOKEN_FILE_DESCRIPTOR`，`claude -p` subprocess 可以認證完成並回應
+- **`--permission-mode bypassPermissions` / `--dangerously-skip-permissions` 在 root 會被 CLI 直接拒**。`sp-pipeline` 的 `ClaudeProvider.Run` 和 shell judges（tribunal-all-claude.sh / vibe-scorer.sh）已經都在 `id -u == 0` 時自動把這 flag drop 掉，所以這層不再是 blocker
+- **但 drop 掉 bypass flag 之後，subprocess 會用 default permission mode** → 讀 CLAUDE.md、auto-discover cwd、試圖做 context-aware 的事；短 prompt（例如 doctor 的 1-token canary）容易被誤判成「我該去幫你改 repo」然後卡在 permission wait，30s 後 timeout。長的 creative prompt（write / review / refine）比較不會，因為 task is the prompt, not the repo
+- **Long creative generation 本身還會踩 stream idle timeout**（見本檔下方「Stream idle timeout 應對」那一節）
+
+真正要 fallback 的時候怎麼走：
 
 1. `sp-pipeline fetch <url>` 先把 source 抓下來（這步幾乎不會炸）
-2. 單獨跑 prompt：`claude -p --model claude-opus-4-6[1m] --permission-mode bypassPermissions "<prompt>"` 模擬 write / review / refine 各階段（短 call，不容易 timeout）
+2. 單獨跑 prompt：`claude -p --model "claude-opus-4-6[1m]" "<prompt>"` 模擬 write / review / refine 各階段（**在 CCC root 下不要加 `--permission-mode` 也不要加 `--dangerously-skip-permissions`，會被擋**）
 3. tribunal 改用本 playbook「Tribunal 必跑規則」那段的 4 個 subagent 平行跑
 
 **`--model` 一定要帶 `claude-opus-4-6[1m]`**——不能用 `opus` alias（會跑到 4.7）。理由見下一段。
