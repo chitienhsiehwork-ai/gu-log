@@ -6293,37 +6293,91 @@
     "startedAt": "2026-04-23T08:56:29+08:00",
     "stages": {
       "librarian": {
-        "status": "fail",
+        "status": "pass",
         "score": {
-          "pass": false,
-          "improvements": {
-            "glossary": "glossary.json 收錄的核心術語（Claude Code、Context Window、Subagent、MCP、Agent）在文中大量使用但零 glossary 連結。建議至少在首次出現時連結或自然解釋。prompt caching 本身不在 glossary 裡所以不扣分，但已收錄的 5 個術語完全沒整合。",
-            "crossRef": "三處 ticket 引用只寫 ID 沒加超連結：SP-16（line 123）→ /posts/boris-claude-code-tips/、SD-7（line 153）→ /posts/20260301-claude-code-deep-thinking-philosophy/、SP-22（line 208）→ /posts/claude-code-sustainable-ai-workflow/。Clawd 在 line 29 首次出現未連結 /about（identity link 規則）。延伸閱讀的 3 個 CP 連結均有效 ✓。"
-          },
-          "critical_issues": [
-            "crossRef 缺少 identity link（Clawd 未連結 /about）且 3 個 ticket 引用（SP-16、SD-7、SP-22）只有文字沒有超連結，讀者無法點過去閱讀",
-            "glossary 收錄的核心術語（Claude Code、Context Window、Subagent、MCP）在文中大量使用卻零 glossary 整合，違反 glossary coverage 要求"
-          ],
+          "pass": true,
           "judge_model": "claude-opus-4-6",
           "judge_version": "2.0.0",
           "timestamp": "2026-04-23T12:00:00Z",
           "dimensions": {
-            "glossary": 7,
-            "crossRef": 6,
+            "glossary": 8,
+            "crossRef": 9,
             "sourceAlign": 9,
             "attribution": 9
           },
-          "score": 7,
-          "verdict": "FAIL"
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.6",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Core technical claims verifiable against observable Claude Code behavior: EnterPlanMode/ExitPlanMode exist as tools, ToolSearch with deferred loading is real (confirmed in this environment), <system-reminder> tag pattern matches actual usage, per-model cache and prefix-matching semantics are correctly described. SEV-on-cache-hit-rate claim attributed to Thariq, not asserted as independent fact.",
+            "fidelity": "Source URL (x.com/trq212/status/2024574133011673516) could not be fetched (402), so word-for-word comparison impossible, but attribution is clear throughout ('Thariq 說', '他們踩過的坑包括'), hedges preserved where appropriate, and ClawdNote opinions are cleanly wrapped in the <ClawdNote> component—no bleed-through into body claims.",
+            "consistency": "Tight narrative arc: every section (ordering, model-switching, tool immutability, compaction) reinforces the central 'prefix matching rules everything' thesis. No internal contradictions; ClawdNote analogies (衣櫃, 石碑, iOS Home Screen) are clearly flagged as commentary rather than source quotes."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 9,
+            "firstImpression": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "唐詩背到第三行改字要全部重背的比喻，一秒就懂 prefix matching。每個技術概念都有生活化類比（衣櫃、高鐵換客運、手機 Home Screen），3 個月菜鳥也能跟上。唯一稍微卡的地方是 MCP tools 沒解釋，但上下文夠推斷意思。",
+            "firstImpression": "開頭 hook 很強——『為什麼聊到第 50 輪還是很快？』直接勾住好奇心。每個 section 都有一個『恭喜，cache 全死』的 punchline 讓人想繼續看。Plan Mode 那段『不是換工具箱是換心態』genuinely 讓我覺得 oh that's clever。讀完會想把『不要中途換 model』那段轉給同事看。"
+          }
+        },
+        "model": "opus-4.6",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "唐詩背誦、衣櫃整理、高鐵vs客運、iOS Home Screen 等比喻自然到位，但 Tools 和 Compaction 段落稍微回到 blog-writing 模式而非口語 talking 模式。",
+            "clawdNote": "超過半數 notes 有明確立場（對 SEV 的驚訝、石碑vs白板比喻、對團隊紀律的敬佩），cross-ref SP-16/SD-7/SP-22 展現真正的 personality 和連結感。",
+            "vibe": "Prompt caching 主題本身有趣，model-switching 的反直覺陷阱和 ToolSearch 的優雅解法是 highlight，但中段數個 section 節奏略為可預測。",
+            "clarity": "正文零你零我，全部你我都在 ClawdNote 內（grep 驗證），主詞命名清晰（Thariq、Claude Code、cache），歸屬界線分明。",
+            "narrative": "段落間轉場有推進感（從基本紀律 escalate 到反直覺陷阱），C.R.E.A.M. callback 收尾漂亮，但 strip test 後骨架仍是 lessons-learned 列表結構。"
+          }
         },
         "model": "opus-4.6",
         "attempts": 2
       }
     },
-    "topLevelAttempts": 1,
-    "status": "FAILED",
+    "topLevelAttempts": 2,
+    "status": "PASS",
     "failedStage": "librarian",
-    "finishedAt": "2026-04-23T09:03:52+08:00"
+    "finishedAt": "2026-04-23T11:25:17+08:00"
   },
   "sp-72-20260218-simonw-cli-over-mcp.mdx": {
     "article": "sp-72-20260218-simonw-cli-over-mcp.mdx",
