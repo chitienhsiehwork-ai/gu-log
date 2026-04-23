@@ -1,5 +1,9 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tribunal-quota-loop.sh — Quota-aware continuous tribunal loop
+#
+# Requires bash 4+ (associative arrays for worker pool). macOS ships bash
+# 3.2 at /bin/bash, so the shebang picks up whichever bash is on PATH
+# (typically Homebrew bash on Mac, system bash 5.x on Linux).
 #
 # Checks Claude API quota via usage-monitor.sh and adapts processing speed.
 # Never burns below 3% floor (CEO personal use reserve).
@@ -9,10 +13,14 @@
 #   STOP (≤3%)  : halt, check every 30min, resume at >10% (hysteresis)
 #
 # Usage:
-#   bash scripts/tribunal-quota-loop.sh              # run continuously
-#   bash scripts/tribunal-quota-loop.sh --dry-run    # list what would be processed
+#   bash scripts/tribunal-quota-loop.sh               # run continuously, 1 worker
+#   bash scripts/tribunal-quota-loop.sh --workers 2   # 2 parallel workers
+#   bash scripts/tribunal-quota-loop.sh --dry-run     # list what would be processed
 
-set -uo pipefail  # no -e: loop handles errors individually
+set -o pipefail   # no -e: loop handles errors individually
+                  # no -u: bash assoc arrays interact badly with unbound var
+                  # checks (empty associative arrays trigger "unbound" errors
+                  # on element-count access in some bash versions)
 trap '' HUP       # ignore SIGHUP (systemd/nohup)
 export TZ=Asia/Taipei
 
@@ -28,6 +36,7 @@ USAGE_MONITOR="$HOME/clawd/scripts/usage-monitor.sh"
 QUOTA_FLOOR=3
 RESUME_THRESHOLD=10
 DRY_RUN=false
+WORKERS=1   # Phase 2 supervisor: set to >1 for parallel workers
 
 mkdir -p "$LOG_DIR"
 
@@ -35,9 +44,15 @@ mkdir -p "$LOG_DIR"
 while [ $# -gt 0 ]; do
   case "$1" in
     --dry-run) DRY_RUN=true; shift ;;
+    --workers) WORKERS="$2"; shift 2 ;;
     *) echo "Unknown arg: $1" >&2; exit 1 ;;
   esac
 done
+
+if ! [[ "$WORKERS" =~ ^[1-9][0-9]*$ ]]; then
+  echo "ERROR: --workers must be a positive integer (got: $WORKERS)" >&2
+  exit 1
+fi
 
 tlog() {
   local msg="[$(date '+%Y-%m-%d %H:%M:%S %z')] [quota-loop] $*"
@@ -96,6 +111,142 @@ compute_tier_name() {
   fi
 }
 
+# ─── Multi-worker supervisor helpers (Phase 2) ───────────────────────────────
+# Worker worktrees live at ~/clawd/projects/gu-log-worker-<id>. The "main"
+# repo (this script's ROOT_DIR) hosts the shared progress file, claims,
+# locks, and state. When WORKERS=1 we run in ROOT_DIR directly — no worker
+# worktrees, no env overrides — matching the pre-Phase-2 behavior.
+WORKER_IDS=()
+if (( WORKERS > 1 )); then
+  # Generate ids: a, b, c, ... (bash built-in letter sequence)
+  _ids=({a..z})
+  for ((i=0; i<WORKERS; i++)); do
+    WORKER_IDS+=("${_ids[$i]}")
+  done
+fi
+
+# Associative arrays tracking background workers.
+declare -A WORKER_PID        # worker_id → pid
+declare -A WORKER_ARTICLE    # worker_id → article slug
+declare -A PID_TO_WORKER     # pid → worker_id
+
+worker_worktree() {
+  local id="$1"
+  if (( WORKERS == 1 )); then
+    echo "$ROOT_DIR"
+  else
+    # Parent of the main repo, matching tribunal-worker-bootstrap.sh:
+    # on Linux VPS = ~/clawd/projects/, on Mac dev = wherever gu-log sits.
+    echo "$(dirname "$ROOT_DIR")/gu-log-worker-$id"
+  fi
+}
+
+# Ensure worker worktrees exist (idempotent). Called once at startup.
+ensure_worktrees() {
+  (( WORKERS == 1 )) && return 0
+  local id wt
+  for id in "${WORKER_IDS[@]}"; do
+    wt=$(worker_worktree "$id")
+    if [ ! -d "$wt" ]; then
+      tlog "Bootstrapping worker worktree: $wt"
+      bash "$SCRIPT_DIR/tribunal-worker-bootstrap.sh" create "$id" >> "$LOG_FILE" 2>&1 || {
+        tlog "ERROR: bootstrap failed for worker $id — cannot run --workers $WORKERS"
+        exit 1
+      }
+    fi
+  done
+}
+
+# Try to claim the next unscored article that isn't already claimed.
+# Prints the article filename and returns 0 on success, 1 if none available.
+try_claim_next_article() {
+  local worker_id="$1" article slug
+  for article in "${ARTICLES[@]}"; do
+    slug="${article%.mdx}"
+    if rc_try_claim "$slug" "$worker_id"; then
+      echo "$article"
+      return 0
+    fi
+  done
+  return 1
+}
+
+# Fork a worker in its own worktree. Echoes the pid.
+spawn_worker() {
+  local id="$1" article="$2"
+  local wt
+  wt=$(worker_worktree "$id")
+  local slug="${article%.mdx}"
+
+  (
+    cd "$wt" || exit 1
+    # Hand shared coordinates to the subprocess so flock/claims/locks all
+    # resolve to the main repo (RC_ROOT_DIR is already exported for the
+    # supervisor; make it explicit again here in case the subshell's env
+    # differs).
+    export RC_ROOT_DIR="$ROOT_DIR"
+    export PROGRESS_FILE="$ROOT_DIR/scores/tribunal-progress.json"
+    export TRIBUNAL_MAIN_REPO="$ROOT_DIR"
+    export TRIBUNAL_WORKER_ID="$id"
+    bash "$wt/scripts/tribunal-all-claude.sh" "$article" >> "$LOG_FILE" 2>&1
+  ) &
+  local pid=$!
+  WORKER_PID[$id]=$pid
+  WORKER_ARTICLE[$id]=$slug
+  PID_TO_WORKER[$pid]=$id
+  tlog "  [worker-$id pid=$pid] dispatched: $article"
+}
+
+# Wait for ANY worker to finish. Releases its claim, logs outcome, clears
+# tracking state. Propagates rc=77 (stopped_by_request) to exit_stopped.
+wait_any_worker() {
+  # bash: wait -n returns when ANY child exits, sets $? to its status.
+  local rc=0
+  wait -n || rc=$?
+  # Identify which worker finished by scanning for dead pids.
+  local id pid finished_id=""
+  for id in "${!WORKER_PID[@]}"; do
+    pid="${WORKER_PID[$id]}"
+    if ! kill -0 "$pid" 2>/dev/null; then
+      finished_id="$id"
+      break
+    fi
+  done
+
+  if [ -z "$finished_id" ]; then
+    tlog "WARN: wait -n returned but no worker appears finished"
+    return 0
+  fi
+
+  local article_slug="${WORKER_ARTICLE[$finished_id]}"
+  unset "WORKER_PID[$finished_id]"
+  unset "WORKER_ARTICLE[$finished_id]"
+  unset "PID_TO_WORKER[$pid]"
+  rc_release_claim "$article_slug"
+
+  case "$rc" in
+    0)  tlog "  [worker-$finished_id] $article_slug — PASSED" ;;
+    75) tlog "  [worker-$finished_id] $article_slug — skipped (lock collision)" ;;
+    77) tlog "  [worker-$finished_id] $article_slug — stopped_by_request propagated."
+        stop_requested=true
+        stop_source="${stop_source:-propagated-from-worker}"
+        ;;
+    *)  tlog "  [worker-$finished_id] $article_slug — failed (rc=$rc)" ;;
+  esac
+}
+
+# Drain: stop dispatching new articles, wait for all in-flight workers to
+# finish their current articles, then exit cleanly.
+drain_and_exit() {
+  local n=${#WORKER_PID[@]}
+  tlog "Drain: stop requested, waiting for $n in-flight worker(s) to finish current article(s)…"
+  rc_write_state "draining" "in_flight=$n"
+  while (( ${#WORKER_PID[@]} > 0 )); do
+    wait_any_worker
+  done
+  rc_exit_stopped
+}
+
 # ─── Build Unscored Article List (newest → oldest) ───────────────────────────
 # Copied from tribunal-batch-runner.sh (not a shared helper — keep in sync).
 get_unscored_articles() {
@@ -150,54 +301,74 @@ fi
 
 # ─── Main Loop ────────────────────────────────────────────────────────────────
 tlog "=== Tribunal Quota-Aware Loop started ==="
-tlog "  Quota floor: ${QUOTA_FLOOR}%, Resume threshold: ${RESUME_THRESHOLD}%"
+tlog "  Workers: ${WORKERS}  Quota floor: ${QUOTA_FLOOR}%, Resume threshold: ${RESUME_THRESHOLD}%"
 tlog "  Usage monitor: ${USAGE_MONITOR}"
+ensure_worktrees
+rc_gc_stale_claims
 rc_write_state "running" "startup"
 
 while true; do
   # ── Stop boundary: top of iteration ──────────────────────────────────────
-  # Covers: signal arrived during previous article, or between iterations.
   if rc_check_stop_requested; then
-    rc_exit_stopped
+    if (( ${#WORKER_PID[@]} > 0 )); then
+      drain_and_exit
+    else
+      rc_exit_stopped
+    fi
   fi
 
-  # ── Git pull (abort rebase on conflict) ───────────────────────────────────
+  # ── Git pull in main repo (workers do their own in their worktrees) ──────
   git pull --rebase origin main >> "$LOG_FILE" 2>&1 \
     || { git rebase --abort 2>/dev/null; tlog "WARN: git pull failed, continuing"; }
 
   # ── Find unscored articles ─────────────────────────────────────────────────
   mapfile -t ARTICLES < <(get_unscored_articles)
   TOTAL=${#ARTICLES[@]}
+  IN_FLIGHT=${#WORKER_PID[@]}
 
-  if [ "$TOTAL" -eq 0 ]; then
-    tlog "No unscored articles. Sleeping 30min (interruptible)."
+  if [ "$TOTAL" -eq 0 ] && (( IN_FLIGHT == 0 )); then
+    tlog "No unscored articles and no workers in-flight. Sleeping 30min (interruptible)."
     rc_write_state "idle_wait" "no_articles"
     rc_interruptible_sleep 1800 || true
-    continue  # top-of-loop stop check handles exit if flag is set
+    continue
   fi
 
-  tlog "$TOTAL unscored articles remaining."
+  if [ "$TOTAL" -gt 0 ]; then
+    tlog "$TOTAL unscored articles remaining. in-flight=$IN_FLIGHT workers=$WORKERS"
+  fi
 
   # ── Check quota ────────────────────────────────────────────────────────────
   remaining=$(get_effective_remaining)
 
   if (( remaining < 0 )); then
-    tlog "Cannot read quota. Sleeping 10min (interruptible)."
-    rc_write_state "idle_wait" "quota_unreadable"
-    rc_interruptible_sleep 600 || true
+    if (( IN_FLIGHT == 0 )); then
+      tlog "Cannot read quota + no workers in-flight. Sleeping 10min (interruptible)."
+      rc_write_state "idle_wait" "quota_unreadable"
+      rc_interruptible_sleep 600 || true
+      continue
+    fi
+    # Workers running: let them finish before we worry about quota.
+    tlog "Cannot read quota; waiting for a worker to finish before re-checking."
+    wait_any_worker
     continue
   fi
 
   sleep_sec=$(compute_sleep "$remaining")
   tier=$(compute_tier_name "$remaining")
 
-  # ── STOP mode: wait for recovery ──────────────────────────────────────────
+  # ── STOP mode: quota below floor, wait for recovery ──────────────────────
   if (( sleep_sec == -1 )); then
+    # Drain any in-flight first before entering quota wait.
+    if (( IN_FLIGHT > 0 )); then
+      tlog "Quota below floor; waiting for in-flight workers before entering quota wait."
+      wait_any_worker
+      continue
+    fi
     tlog "STOP: ${remaining}% remaining (floor=${QUOTA_FLOOR}%). Waiting for >${RESUME_THRESHOLD}% (interruptible)."
     rc_write_state "stopped_by_quota" "remaining=${remaining}%"
     while true; do
       if ! rc_interruptible_sleep 1800; then
-        break  # stop requested — top-of-loop check will exit
+        break
       fi
       remaining=$(get_effective_remaining)
       if (( remaining < 0 )); then
@@ -210,59 +381,53 @@ while true; do
         break
       fi
     done
-    continue  # re-enter main loop (re-pull, re-check articles, or exit if stop)
+    continue
   fi
 
-  # ── Tier sleep ────────────────────────────────────────────────────────────
-  if (( sleep_sec > 0 )); then
-    tlog "Tier ${tier}: ${remaining}% remaining — sleeping ${sleep_sec}s before next article"
-    sleep "$sleep_sec"
-    # Re-check quota after sleep (may have changed)
-    remaining=$(get_effective_remaining)
-    if (( remaining >= 0 )) && (( remaining < QUOTA_FLOOR )); then
-      tlog "Quota dropped below floor during sleep. Entering STOP."
-      continue
+  # Tier BURN: no inter-article sleep (quota is healthy).
+  tlog "Tier ${tier}: ${remaining}% remaining"
+
+  # ── Dispatch: fill worker pool up to $WORKERS ────────────────────────────
+  # Skip dispatch if stop requested — drain instead on next iteration.
+  if rc_check_stop_requested; then
+    continue
+  fi
+
+  # Try to fill every free slot with a claimable article.
+  dispatched_this_iter=0
+  while (( ${#WORKER_PID[@]} < WORKERS )) && [ "$TOTAL" -gt 0 ]; do
+    # Find a free worker id.
+    free_id=""
+    for id in "${WORKER_IDS[@]:-main}"; do
+      if [ -z "${WORKER_PID[$id]:-}" ]; then
+        free_id="$id"
+        break
+      fi
+    done
+    [ -z "$free_id" ] && break
+
+    # Claim + dispatch.
+    if article=$(try_claim_next_article "worker-$free_id"); then
+      rc_write_state "running" "dispatching worker-$free_id article=$article"
+      spawn_worker "$free_id" "$article"
+      dispatched_this_iter=$((dispatched_this_iter + 1))
+    else
+      # No claimable article (all already claimed by other workers)
+      tlog "No claimable article for worker-$free_id (all in-flight elsewhere)."
+      break
     fi
-  else
-    tlog "Tier BURN: ${remaining}% remaining — processing immediately"
+  done
+
+  # If no workers are running AND we couldn't dispatch, sleep a bit.
+  if (( ${#WORKER_PID[@]} == 0 )); then
+    tlog "No workers running and nothing to dispatch. Short idle wait."
+    rc_interruptible_sleep 60 || true
+    continue
   fi
 
-  # ── Stop boundary: before dispatching a new article ─────────────────────
-  # Covers: signal / flag arrived during quota check or tier sleep.
-  if rc_check_stop_requested; then
-    rc_exit_stopped
-  fi
+  # Wait for at least one worker to finish before re-evaluating.
+  wait_any_worker
 
-  # ── Process next article ───────────────────────────────────────────────────
-  next_article="${ARTICLES[0]}"
-  tlog "Processing: $next_article (${remaining}% remaining, tier ${tier})"
-  rc_write_state "running" "article=$next_article"
-
-  # Exit-code convention (see tribunal-all-claude.sh):
-  #   0  — all stages passed
-  #   1  — failed at a stage (normal failure)
-  #   2  — EXHAUSTED (exceeded top-level attempts)
-  #   75 — skipped (already_running; another instance had the per-article lock)
-  #   77 — stopped_by_request (graceful stop detected during article)
-  article_rc=0
-  bash "$SCRIPT_DIR/tribunal-all-claude.sh" "$next_article" >> "$LOG_FILE" 2>&1 \
-    || article_rc=$?
-
-  case "$article_rc" in
-    0)  : ;;  # passed, nothing to log here (tribunal-all-claude logs its own)
-    75) tlog "  Article $next_article skipped (already running elsewhere)." ;;
-    77) tlog "Article runner propagated stopped_by_request (rc=77)."
-        rc_exit_stopped ;;
-    *)  tlog "  Article $next_article failed (rc=$article_rc). Continuing to next." ;;
-  esac
-
-  # ── Stop boundary: article finished ──────────────────────────────────────
-  # Covers: signal / flag arrived during article run. article is now at
-  # its natural boundary, so we exit before dispatching another one.
-  if rc_check_stop_requested; then
-    rc_exit_stopped
-  fi
-
-  # Brief cooldown (same as batch runner)
-  sleep 10
+  # Short cooldown to give file systems / APIs a breath.
+  rc_interruptible_sleep 10 || true
 done
