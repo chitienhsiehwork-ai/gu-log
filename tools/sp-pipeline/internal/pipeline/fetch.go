@@ -45,7 +45,7 @@ func (s *State) Fetch(ctx context.Context) error {
 		return nil
 	}
 
-	res, err := source.FetchX(ctx, s.TweetURL, source.FetchOptions{
+	res, err := source.Fetch(ctx, s.TweetURL, source.FetchOptions{
 		WorkDir:             s.WorkDir,
 		FetchXArticleScript: s.Cfg.FetchXArticle,
 	})

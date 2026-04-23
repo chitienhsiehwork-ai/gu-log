@@ -34,12 +34,15 @@ type fetchOutputReport struct {
 
 func newFetchCmd(state *rootState) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "fetch <tweet_url>",
-		Short: "Capture a tweet into a work directory",
-		Long: `fetch downloads a tweet or X Article into the pipeline work directory.
+		Use:   "fetch <url>",
+		Short: "Capture a source URL into a work directory",
+		Long: `fetch downloads a source URL into the pipeline work directory.
 
-For an X URL it shells out to scripts/fetch-x-article.sh (fxtwitter with
-vxtwitter fallback), then runs the native Go validator over the result.
+For X / Twitter URLs it shells out to scripts/fetch-x-article.sh (fxtwitter
+with vxtwitter fallback), then runs the tweet-specific validator. For any
+other http(s) URL it falls back to curl + a minimal HTML cleanup pass and
+runs the looser article validator.
+
 On validation failure it exits with code 11 so callers can distinguish
 "fetch returned but the content looks contaminated" from "fetch itself
 crashed" (exit code 10).
@@ -71,7 +74,7 @@ func runFetch(ctx context.Context, state *rootState, url string) error {
 	stepCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
 	defer cancel()
 
-	res, err := source.FetchX(stepCtx, url, source.FetchOptions{
+	res, err := source.Fetch(stepCtx, url, source.FetchOptions{
 		WorkDir:             workDir,
 		FetchXArticleScript: state.cfg.FetchXArticle,
 	})
