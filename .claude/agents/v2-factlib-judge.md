@@ -1,6 +1,8 @@
 ---
 description: "Tribunal v2 Stage 3 — FactLib Combined Judge. Evaluates factual accuracy, library coverage, AND dedup correctness (dupCheck) in one pass, with INDEPENDENT pass bars (none compensates another). Runs after FactCorrector and Librarian workers. Use this to verify Stage 3 worker output + judge whether the post duplicates existing corpus."
-model: claude-opus-4-7
+# Tracks latest Opus: fact-check + dedup benefit from newest reasoning, and
+# voice doesn't matter. Writer/scorer are separately pinned to 4.6.
+model: opus
 tools:
   - Read
   - Glob
