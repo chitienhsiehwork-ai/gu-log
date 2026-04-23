@@ -6336,5 +6336,37 @@
     "status": "FAILED",
     "failedStage": "librarian",
     "finishedAt": "2026-04-23T09:14:54+08:00"
+  },
+  "sp-70-20260217-anthropic-sonnet-46-comparison.mdx": {
+    "article": "sp-70-20260217-anthropic-sonnet-46-comparison.mdx",
+    "startedAt": "2026-04-23T09:15:06+08:00",
+    "stages": {
+      "librarian": {
+        "status": "fail",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 7,
+            "crossRef": 7,
+            "sourceAlign": 9,
+            "attribution": 8
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "glossary": "Multiple glossary terms used without linking: 'Context Window' (lines 61, 193), 'Claude Code' (lines 104, 162, 229), 'Agent' (line 118) all exist in glossary.json but are not linked or explained via glossary integration.",
+            "crossRef": "Three 延伸閱讀 internal links verified (CP-16, CP-62, CP-45 all resolve to existing files). However, 'Clawd' first mentioned in line 29 ('Clawd 撰寫並附註') without required /about identity link — this is a mandatory crossRef per scoring rules.",
+            "sourceAlign": "Content clearly derived from declared sourceUrl (Anthropic Official Docs model page). Header blockquote transparently lists additional sources (VentureBeat, IT Pro). Pricing, benchmarks, and spec data all align with official documentation.",
+            "attribution": "Generally good — Hex CTO, Zvi, Sam Bowman, Pace CEO, Replit President, Mercury Banking, Hercules CEO all properly attributed. ClawdNotes clearly separated from body. Minor gaps: 'Box 實測顯示重度推理 Q&A 提升 15 個百分點' (line 165) and 'Claude Code 用戶偏好測試' (line 161) cite organizations but lack direct source links."
+          }
+        },
+        "model": "opus-4.6",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "FAILED",
+    "failedStage": "librarian",
+    "finishedAt": "2026-04-23T09:20:48+08:00"
   }
 }
