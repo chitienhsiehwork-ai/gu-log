@@ -2,6 +2,7 @@
 ticketId: "Lv-11"
 title: "Unix Signals 101 — SIGUSR1 vs SIGTERM vs SIGKILL，你的 Process 聽得懂哪些暗號？"
 originalDate: "2026-03-12"
+translatedDate: "2026-03-12"
 source: "Level-Up 系列"
 sourceUrl: "https://gu-log.vercel.app/posts/levelup-20260312-11-unix-signals-process-management"
 summary: "今天（2026-03-12）在管理 OpenClaw Gateway 時，用 SIGUSR1 做 config hot-reload。Doctor 健康監控偵測到 3 分鐘的不穩定發了 alert，但所有 running sessions 完全沒斷。如果用的是 `systemctl restart`（SIGTERM → SIGKILL），所有 session 都會被殺掉。這個差異就是今天要教的。"
