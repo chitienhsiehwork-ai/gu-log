@@ -126,6 +126,68 @@ Vercel build / tribunal / validate-posts / CI 沒過：
 
 **必附證據**：PR body 或一個隨 PR 的 commit 要包含四個 judge 的分數 + verdict，並把 `scores.vibe` / `scores.factCheck` / `scores.librarian` / `scores.freshEyes` 寫進文章 frontmatter（用 `scripts/frontmatter-scores.mjs write <file> <judge> <score_json>`，schema 見 `src/content/config.ts`）。pre-commit 的 score gate（`.githooks/pre-commit` 第 60 行起）會擋掉**新增**且 ticketId 非 PENDING 的 zh-tw 文章 commit，所以 swap PENDING → 真號那個 commit 之前，分數要先進 frontmatter。
 
+## URL 貼過來 → 預設走 sp-pipeline
+
+User 在 CCC 丟一個 URL 進來、**沒有附任何其他指示**（沒說「解釋這個」「總結這個」「fix bug in this PR」等）→ **預設當成是要你開 SP 任務**，走 `tools/sp-pipeline/sp-pipeline run <url>`。
+
+### 為什麼 URL-only paste = SP 任務
+
+這個 repo 的主產出就是 SP/CP 翻譯文章。User 拋 URL 沒多話 = 最常見的 workflow 就是「幫我把這條評估一下、該寫就寫」。**不要再回頭問「你想幹嘛？」**——直接跑 pipeline，它內建的 eval gate 會自己判斷該不該寫。
+
+### pipeline 內建的 eval gate（不是你決定該不該寫）
+
+`sp-pipeline run` 的 step 1.5 `eval` 是雙評估（Gemini + Codex）worthiness gate：
+
+- **GO/GO** → 繼續跑寫作 → 12-point review → refine → tribunal → deploy
+- **SKIP/SKIP** → exit 12 → 不寫，從 queue 丟掉（不夠 SP-worthy）
+- **split（一 GO 一 SKIP）** → exit 2 → 需要 human review，用 `--force` 可以 override gate 硬寫
+
+**這代表 CCC 不用事先判斷「這條推文值不值得翻」**——交給 pipeline 的 eval 決定。你的工作是 run，不是 gatekeep。
+
+### URL 範圍
+
+`sp-pipeline` 的 `source.Fetch` dispatcher（`tools/sp-pipeline/internal/source/fetch.go`）接受**任意 http(s) URL**：
+
+- **X / Twitter URLs**（`x.com` / `twitter.com`，含 `www.`）→ 走 `FetchX`，用 `scripts/fetch-x-article.sh` 拉 fxtwitter JSON，品質最好
+- **其他 http(s) URL**（`claude.com` / `anthropic.com` / blogs / docs / etc.）→ 走 `FetchGeneric`，用 `curl -sSL` + 最小 HTML cleanup（砍 `<script>` / `<style>` / 標籤、decode entities、壓縮空白），送進 `ValidateArticleCapture` 驗
+
+非 http(s) scheme（`file://`、`javascript:`）、localhost、RFC1918 / loopback / link-local IP 會在 URL validator 被擋掉（SSRF 防線）。遇到 paywall / JS-challenge / SSR-heavy 的 host，`ValidateArticleCapture` 會拒絕並給你 `code: 11`——這時再走手動 fallback。
+
+### 建議指令
+
+```bash
+# 預設：跑完整 pipeline（fetch → eval → dedup → write → review → refine → tribunal → deploy）
+tools/sp-pipeline/sp-pipeline run <url>
+
+# 只想看 eval gate 怎麼判（不寫）：先 fetch 再單跑 eval
+tools/sp-pipeline/sp-pipeline fetch <url> --work-dir /tmp/sp-probe
+tools/sp-pipeline/sp-pipeline eval --source /tmp/sp-probe/source-tweet.md
+
+# Eval gate split/SKIP 但 user 堅持要寫 → 加 --force
+tools/sp-pipeline/sp-pipeline run <url> --force
+```
+
+### Sandbox 跑不起來 → 手動 `claude -p` fallback
+
+CCC 沙箱常見問題：sp-pipeline 內部的 `claude -p` 子呼叫在某些權限模式下會卡住（見本檔下方「Stream idle timeout」那一節）。這時 fallback 流程：
+
+1. 手動 fetch（`curl` 或其他方式拉到乾淨的 source 文字）
+2. 逐步跑 prompt，用 `claude -p --model claude-opus-4-6[1m] --permission-mode bypassPermissions -p "<prompt>"` 模擬 write / review / refine 各階段
+3. tribunal 改用本 playbook「Tribunal 必跑規則」那段的 4 個 subagent 平行跑
+
+**`--model` 一定要帶 `claude-opus-4-6[1m]`**——不能用 `opus` alias（會跑到 4.7）。理由見下一段。
+
+### 模型鎖定（SP writer + Vibe scorer 不准用 4.7）
+
+Maintainer 明確拒絕 Opus 4.7 的寫作聲音 + vibe 評分校準。因此：
+
+- **SP writer**（`tools/sp-pipeline/internal/llm/claude.go` 的 `ClaudeOpusPinned`）→ 鎖 `claude-opus-4-6[1m]`
+- **Vibe Scorer**（`.claude/agents/vibe-opus-scorer.md`）→ 鎖 `claude-opus-4-6[1m]`
+- **Tribunal Writer**（`.claude/agents/tribunal-writer.md`）→ 鎖 `claude-opus-4-6[1m]`
+- **Fact Checker / v2-factlib-judge** → 用 `opus` alias（追最新，fact-check 要 reasoning 強的，沒有 voice 問題）
+
+修這些檔案之前先讀 frontmatter 上方的 PIN 註解。要改 pin 需要 user 明確同意。
+
 ## 文章寫作 SOP（省 token 版）
 
 **核心原則：先寫好 zh-tw，通過 tribunal 後才翻 en。不要兩個版本同時寫、同時改。**
