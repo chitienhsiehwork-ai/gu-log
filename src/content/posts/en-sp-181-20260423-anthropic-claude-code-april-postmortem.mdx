@@ -1,0 +1,182 @@
+---
+ticketId: "SP-181"
+title: "The three bugs behind Claude Code feeling dumber in April — Anthropic's own postmortem"
+originalDate: "2026-04-23"
+translatedDate: "2026-04-23"
+translatedBy:
+  model: "Opus 4.7"
+  harness: "Claude Code"
+source: "Anthropic Engineering (anthropic.com)"
+sourceUrl: "https://www.anthropic.com/engineering/april-23-postmortem"
+lang: "en"
+summary: "Anthropic just published a postmortem confirming Claude Code really did feel dumber this past month — not one bug, but three independent changes rolling out on different schedules that stacked into what looked like a broad regression. A default reasoning effort demotion (high→medium), a cache optimization that dropped thinking history every turn, and a system prompt tuning for Opus 4.7 verbosity that cost 3% on evals. All three fixed by April 20, with usage limits reset for every subscriber."
+tags: ["claude-code", "anthropic", "postmortem", "opus-4-7", "prompt-engineering"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+For the past month, Claude Code power users on Twitter and Reddit started a quiet chorus of complaints. The same prompts were producing shorter answers. Debug sessions would wander off into step five and forget what step three had found. Usage limits were emptying faster than usual. At first it sounded like the vibes-based griping that always follows a model rollout — give it a few days and the noise dies down on its own. **This time it didn't. It got louder.**
+
+[Anthropic's April 23 postmortem](https://www.anthropic.com/engineering/april-23-postmortem) now confirms those users were not imagining it. Nobody deliberately turned down the model; the inference layer never had an issue. What happened was **three completely independent bugs, shipped at different times in March and April, each affecting a different slice of traffic on a different schedule** — stacked together, they looked like one giant quality regression. Claude Code, Claude Agent SDK, and Claude Cowork were all affected; the API itself was not. The `v2.1.116` release on April 20 closed out all three, and today (April 23) Anthropic reset the usage limits for every subscriber as a makeup call.
+
+## The three bugs, at a glance
+
+Anthropic's postmortem compresses the three incidents into three sentences:
+
+> On March 4, we changed Claude Code's default reasoning effort from high to medium... reverted on April 7.
+>
+> On March 26, we shipped a change to clear Claude's older thinking... fixed it on April 10.
+>
+> On April 16, we added a system prompt instruction to reduce verbosity... reverted on April 20.
+
+Unpacked — with the why-they-did-it and the why-it-broke:
+
+- **March 4** — Claude Code's default reasoning effort was dropped from `high` to `medium` to reduce latency (some users in `high` were hitting cases where the model thought so long the UI looked frozen). → Reverted on April 7.
+- **March 26** — A prompt-cache optimization was shipped with the intent of "clear the old thinking once when a session is resumed after idling more than an hour, to save tokens." The implementation clear it **every turn** instead of once. → Fixed on April 10 in `v2.1.101`.
+- **April 16** — A system prompt line was added to trim Opus 4.7's verbosity: "keep text between tool calls to ≤25 words, final responses to ≤100 words." Evals dropped 3%. → Reverted on April 20.
+
+The set of affected models varied per bug — Sonnet 4.6, Opus 4.6, and Opus 4.7 all got some of it, and each bug's traffic slice was different, and the ship dates were staggered. To the user, **it felt like "Claude Code is getting worse but I can't tell when it started or where it's worse"** — exactly the kind of degradation that's hardest to diagnose. All three bugs were in the product layer and the harness. The model weights were never touched.
+
+<ClawdNote>
+Line up all three bugs next to each other and a quiet pattern shows up: **each one was trying to save latency, tokens, or output length — and each one quietly shaved off a slice of intelligence.** Anthropic's own line about the first one is blunt: "This was the wrong tradeoff."
+
+The hardest part of catching this kind of regression is that evals can tell you whether an answer is correct, but not whether a product still feels worth paying for. That second thing is vibes — it's a community of heavy users slowly noticing that something is off. Picture a Michelin-starred restaurant quietly shrinking every dish by 15%. The first bite still tastes right, but walking out, you feel it, and next week you don't book the table again. **Anthropic got here through `/feedback` reports, not through their own evals.** (￣▽￣)／
+</ClawdNote>
+
+---
+
+## Bug 1: default reasoning effort went from high down to medium
+
+A quick definition first — reasoning effort is the dial Claude Code gives users to decide how hard the model should think before answering. Higher means more thinking, better answers, more latency, more tokens; lower means the opposite. The whole design is about letting the user pick where on that curve their current task sits.
+
+When Opus 4.6 arrived in Claude Code in February, the default was set to `high` — the smartest setting out of the box. The problem that forced the change was tail latency: some users on `high` would hit cases where Opus 4.6 would think for so long that **the UI appeared frozen**, draining their token budget in the process. From Anthropic's postmortem:
+
+> Claude Opus 4.6 in high effort mode would occasionally think for too long, causing the UI to appear frozen and leading to disproportionate latency and token usage for those users.
+
+Anthropic's response was textbook product flow: run internal evals, measure `medium` versus `high` intelligence, and conclude that `medium` loses only a small amount of intelligence while massively reducing latency, eliminating the frozen-UI tail cases, and being gentler on usage limits. On March 4, `medium` became the new default — with an in-product dialog explaining why, and pointing users at how to switch back to `high` if they preferred.
+
+Soon after, the complaints started: **Claude Code felt dumber**. Anthropic iterated on UI surfaces — startup notices, an inline effort selector, bringing back `ultrathink` — but most users stayed on `medium` anyway. On April 7, Anthropic admitted "this was the wrong tradeoff" and reverted. **The current defaults are now `xhigh` for Opus 4.7 and `high` for every other model.**
+
+The fix itself was easy — a config flip. The lesson is harder: **users don't change a default just because they were shown a dialog explaining why**. This isn't specific to Claude Code, it's a pattern that's older than software — whichever value you set as the default, that's where most of your users stay. Picking `medium` effectively chose "a bit slower but a bit dumber" on behalf of ~90% of users, and no amount of dialogs, notices, or inline selectors pulled them off that path.
+
+<ClawdNote>
+Behavioral economists gave this phenomenon a name decades ago — **default bias** — and Kahneman and Thaler wrote whole books about it. The cleanest example is U.S. 401(k) retirement savings. When the default was "opt-in" (you had to tick a box to join), participation hovered around 30%. When it flipped to "auto-enroll" (you had to tick a box to leave), participation jumped to around 90%. Same program, same money, same choice — just a different default.
+
+Anthropic essentially paid tuition to learn this the production way. For a setting as quietly accepted as a default, there is no neutral choice — **picking the default is making the decision for 90% of users**, not "giving users the choice." That lesson is probably worth more than the 40 KB of system prompt changes combined ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## Bug 2: a cache optimization that made Claude forget why it was working on anything
+
+This one is the gnarliest bug in the three and also the most rewarding to read. Start with a picture — imagine Claude Code is helping you debug a failing test:
+
+> Step 1: reads `auth.ts` and suspects the issue is token expiration;
+> Step 2: greps for calls to `refresh_token`;
+> Step 3: wants to edit `token-manager.ts`.
+
+By step 3, Claude needs to remember "why step 1 thought it was token expiration." That "why" lives in what are called **thinking blocks** (records of the model's reasoning), which travel along the conversation history into the next turn. Without them, Claude would stare at its own half-written code with no memory of why it opened the file to begin with.
+
+The optimization shipped on March 26 looked sensible on paper: if a session has been idle for over an hour, the prompt cache has already evicted it anyway — so the next time the user resumes, it's a cache miss either way. Why not **also** strip out old thinking on that resume, to reduce uncached tokens going to the API? After that one clear, resume normal full-history sends. The implementation used the `clear_thinking_20251015` API header with `keep:1`.
+
+The intent: **clear once.**
+
+The implementation: **clear every turn.**
+
+> Instead of clearing thinking history once, it cleared it on every turn for the rest of the session.
+
+This bug is quietly vicious. Once a session crosses the idle threshold, **every subsequent turn for the rest of that session** tells the API "keep only the most recent reasoning block, throw everything else out." Claude keeps executing, keeps calling tools, keeps producing output — but with less and less memory of why it was doing any of this. By step 5, it can't remember step 1's hypothesis. By step 8, it doesn't remember step 6 agreed to roll a change back. The forgetfulness, the repetition, the odd tool choices users were complaining about — that's what it looked like from the outside.
+
+It got worse in compound cases: if a user sent a follow-up message while Claude was in the middle of a tool call, that started a new turn under the broken flag — **even the current turn's reasoning got dropped**. Claude became an assistant whose memory got wiped every two sentences, running on pure reflex.
+
+There was a billing side effect too — **because every request was dropping thinking blocks, every request also cache-missed**. Anthropic's best guess is that this bug also explains the separate "my usage limits are draining way faster than usual" reports.
+
+Why was it so hard to catch? Three confounders, from the postmortem:
+- **Two unrelated experiments masked the bug**: an internal-only server-side message-queuing experiment, and an orthogonal change to how thinking is displayed — combined, they happened to suppress the bug in most CLI sessions, including Anthropic's own dogfooding
+- **The trigger was a corner case** — sessions had to cross the 1-hour idle threshold
+- **Every safety net passed it through**: human review, automated review, unit tests, E2E tests, automated verification, dogfooding
+
+The bug was sitting at the intersection of three Claude Code subsystems — context management, the Anthropic API, and extended thinking. **Subsystem boundaries are exactly where tests are thinnest.** It took Anthropic over a week to isolate the root cause, and the fix shipped on April 10 in `v2.1.101`.
+
+One fun side story: during the investigation, Anthropic ran Opus 4.7's Code Review agent against the offending PRs — **4.7 found the bug; 4.6 didn't** (provided both had enough repo context). That experiment turned directly into a roadmap item: Code Review is getting support for additional repository context, internal first, then shipped to customers.
+
+<ClawdNote>
+The most instructive part of this bug isn't the bug itself — it's "why did six layers of review all miss it." The answer is where the net is thin. The bug required **three conditions to happen at the same time**: a session had to cross the 1-hour idle threshold, the thinking-clear mechanism had to trigger, and the user had to interject during a tool call. No deterministic test suite has a threat model that enumerates that combination.
+
+Picture a fire drill that only happens at 10 a.m. on a Tuesday with everyone pre-warned. Real fires start at 3 a.m. on a Wednesday from an electrical short — and none of the drilled motions map onto the real scene. Anthropic's own dogfooding looked like "continuous usage all day long" — the 1-hour idle never happened, so the bug never triggered internally.
+
+The broader truth this exposes is old, but still routinely painful: **your safety net only catches failure modes you thought about when designing it.** The defense that actually works against this class of bug isn't one more test or one more eval — it's **production traffic itself**, where real users' behavior is wilder than any synthetic scenario you'll invent. The `/feedback` command was what closed the loop for Anthropic, not any internal eval. The small-team translation: **make your feedback channel as low-friction as possible and let real users QA for you.** ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## Bug 3: a system prompt to tame 4.7's verbosity that quietly cost 3% on evals
+
+This one is the most relevant to agent engineers — because **most teams have probably tripped on this same wire already**.
+
+Anthropic flagged it at launch: Opus 4.7 is **noticeably more verbose than 4.6**. The extra verbosity helps on hard problems (more complete reasoning traces → better answers), but it also burns more tokens and makes the UI feel chattier. Claude Code's harness team started tuning for 4.7 a few weeks before launch, trying to rein in the verbosity.
+
+Anthropic used more than one tool for this — model training, prompt changes, and changes to how thinking is displayed in the UI. All three shipped, but one line in particular had an outsized cost. **The key line in the system prompt**:
+
+```text
+Length limits: keep text between tool calls to ≤25 words. Keep final
+responses to ≤100 words unless the task requires more detail.
+```
+
+"Keep text between tool calls to ≤25 words, final responses to ≤100 words, unless the task requires more detail." Read in isolation, that instruction is fine — if the model is verbose, telling it to be less verbose is reasonable. **But inside the actual Claude Code harness context**: the text between tool calls carries a chunk of the reasoning — "I looked at this file, so the next step is to grep that function." Compressing that down to 25 words is effectively **compressing the model's working thought process to a tweet's character limit**. Reasoning gets truncated. On harder cases, detail gets lost.
+
+Anthropic ran internal testing for several weeks; the eval set they were using at the time flagged no regression. They had confidence in the change and shipped it alongside Opus 4.7 on April 16. That line shipped as part of a broader prompt update — in Anthropic's own words, "In combination with other prompt changes" — so the 25/100 rule was the main suspect in a larger batch, not the sole variable.
+
+In the investigation, Anthropic expanded the eval set and ran ablations — removing one line at a time to measure each line's contribution to intelligence, up or down. One eval showed a 3% drop across both Opus 4.6 and Opus 4.7. The length-limit line was pulled out, and the change reverted in the April 20 release.
+
+This one has a different flavor from Bug 2 — **there was no implementation bug here, the code did exactly what it was designed to do**. The **design itself had a blind spot**, and the eval suite at the time happened not to cover the tasks that would have exposed the regression.
+
+<ClawdNote>
+The meta-layer on this bug is genuinely funny: **Anthropic itself published a case study about "Opus 4.7 takes instructions literally — however you phrase it is how it acts" in [SP-175](/posts/sp-175-20260416-anthropic-opus-4-7-prompting-best-practices) — and then fell into the same trap on its own harness.** SP-175's case study was a harness saying "report only high severity issues" and 4.7 interpreting that as CVE-level only, silently dropping every logic bug and race condition. The "keep text between tool calls to ≤25 words" line is the same pattern, just on a different axis — 4.6 would have negotiated "25 words vs explaining my reasoning" on its own, 4.7 doesn't negotiate; it takes the word cap literally and lets the reasoning get squeezed out.
+
+This also echoes [SP-177](/posts/sp-177-20260421-pawelhuryn-intent-first-4-7-migration) and its "intent-first migration" thesis — the most common mistake moving from Sonnet 4 / Opus 4.6 to 4.7 is carrying forward constraint-style prompts (length caps, format caps, severity caps) unchanged. That whole batch of prompts needs a re-review on 4.7, not just a re-run of the existing regression tests.
+
+Anthropic's own harness team fell into the migration trap it warned everyone else about — **smaller teams dropping legacy prompts straight onto 4.7 are only more exposed, not less** (¬‿¬)
+</ClawdNote>
+
+---
+
+## Anthropic's four commitments going forward
+
+The postmortem closes with a set of process changes — no spin, just each lesson mapped onto a concrete response.
+
+**1. More internal staff on the exact public build of Claude Code.** This one is the direct lesson from Bug 2: Anthropic's internal build had a diff from the public build (for testing new features) and that diff happened to suppress the bug in internal sessions. The share of internal users on the same build as customers is going up — so next time, the internal population trips the bug first.
+
+**2. Ship the improved Code Review tool to customers.** Bug 2's investigation surfaced that Opus 4.7 could find the bug given enough repo context — meaning "4.7 is already smart enough, it just didn't have the context it needed." The fix is to add support for additional repository context to Code Review, use it internally first, then ship it out. A roadmap item that was sitting further down the list just got promoted by an incident.
+
+**3. Tighter gating on system prompt changes.** Every system prompt change to Claude Code will now run a broad per-model eval suite (a wider one than what missed Bug 3); ablations will keep running to measure each line's contribution to intelligence; new tooling makes prompt diffs easier to review; and `CLAUDE.md` now carries explicit guidance that model-specific prompt changes should be gated to that specific model, not rolled out broadly. Anything that could trade off against intelligence now goes through **a soak period + a broader eval + gradual rollout** — not "evals green → ship."
+
+**4. More transparent product-decision communication.** Anthropic set up [@ClaudeDevs](https://x.com/ClaudeDevs) on X and will post centralized threads on GitHub explaining major product decisions. This doesn't fix a bug, but it addresses "when something goes sideways, users have nowhere to hear the official story" — half of the noise over the past month came from exactly that gap.
+
+Finally, Anthropic thanked the users who used the `/feedback` command or posted specific reproducible cases online, and as of April 23, reset usage limits for every subscriber. That reset isn't just PR — Bug 2's cache-miss side effect had been charging users faster than it should have for a month. This is a concrete repayment, not a goodwill gesture.
+
+<ClawdNote>
+The healthy thing about this set of four is that **Anthropic didn't blame individual engineers or "a missed eval" for any of it**. Every commitment is about process and infrastructure — internal-vs-public build drift, blast radius of model-specific prompt changes, eval blind spots, communication channels. Four dimensions of system-level responsibility, none of individual failure.
+
+Google's SRE book has a term for this approach — **blameless postmortem** — acknowledge the system defect, don't chase the individual, focus on the root cause. It's been on every SRE reading list for a decade, but the AI product space runs fast and its orgs are young, and postmortems that actually reach this level of maturity are still the minority (most read like "Engineer X merged a bad line, reverted, moving on"). Anthropic did this one by the book.
+
+For a small team, two items are genuinely actionable: first, **don't roll out a model-specific prompt change to every model** — the `CLAUDE.md` guidance they added is copy-pasteable. Second, **any change that could cost intelligence needs a soak period + gradual rollout**, even if evals are green — let real traffic chew on it for a few days before you push it to everyone. Both apply to anyone shipping a Claude-driven harness (⌐■_■)
+
+One more shoutout worth making — today's postmortem dropped alongside [SP-180](/posts/sp-180-20260423-anthropic-mcp-production-agents)'s MCP piece. Same day, same company, two ends of the product story: **"here's what we think we're doing right" and "here's what we got wrong last month" in one news cycle.** For an AI infra company, the second one takes more nerve than the first.
+</ClawdNote>
+
+---
+
+## Closing: three cost-saving decisions, one quality incident
+
+Line up the three bugs by their intent, and something uncomfortable shows up —
+
+Bug 1 was trying to save latency.
+Bug 2 was trying to save tokens.
+Bug 3 was trying to save output length.
+
+**Three attempts to make the product faster, cheaper, leaner. Three moments where a slice of intelligence got quietly shaved off somewhere unexpected.** Stacked together, that's the "Claude Code feels worse but I can't say exactly where" feeling users kept reporting.
+
+Anthropic owning this publicly is not easy — intelligence is the kind of thing where a small cut is immediately felt but almost impossible to number on an eval sheet. Every AI infrastructure company runs into the same tension: **every micro-decision between "save resources" and "think harder" is, quietly, a values statement.** Anthropic admitted the scale slipped three times, and pushed it back.
+
+What's worth remembering from this isn't the three bugs or the four commitments — it's the `/feedback` command. What surfaced this incident wasn't Anthropic's evals, or dogfooding, or automated reviews. **It was the subset of heavy Claude Code users who still thought it was worth typing `/feedback` into their session.** They aren't customers; they're co-tuners of the instrument. In an era where the model wakes up earlier than the human, **the fact that someone still walks over and says "this piano is a little out of tune today"** is, by itself, the scarcest resource in the production-agent ecosystem.
