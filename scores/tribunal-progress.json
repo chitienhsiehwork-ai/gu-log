@@ -6107,5 +6107,43 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-22T19:42:03+08:00"
+  },
+  "sp-75-20260220-mikechong-curse-of-knowledge-product-sense.mdx": {
+    "article": "sp-75-20260220-mikechong-curse-of-knowledge-product-sense.mdx",
+    "startedAt": "2026-04-23T08:34:02+08:00",
+    "stages": {
+      "librarian": {
+        "status": "fail",
+        "score": {
+          "pass": false,
+          "improvements": {
+            "glossary": "OpenClaw 在文中出現多次（heartbeat 段、鏡子段、延伸閱讀）卻從未連到 glossary 或解釋。RAG、LLM、tool calls 等技術詞也沒有 glossary 連結。建議至少在首次提到 OpenClaw 時加上 glossary link，其餘技術詞如果 glossary 有收錄也應連結。",
+            "crossRef": "Clawd 在開場（line 29「Clawd 翻譯並附註」）和所有 ClawdNote 中出現，但從未連到 /about。這是 identity linking 的硬需求。CP-85 在 line 108 的 ClawdNote 裡被提及但沒有 /posts/ 連結。SD-4 在 line 98 的 ClawdNote 中被提及但也沒有連結（雖然延伸閱讀有）。建議：(1) 首次提到 Clawd 時加 /about 連結，(2) CP-85 加內部連結，(3) 行內提到 SD-4 時也直接加連結。"
+          },
+          "critical_issues": [
+            "Missing required identity link: Clawd/ShroomClawd 從未連到 /about（crossRef 規則明確要求首次提到必須連結）",
+            "OpenClaw 是 glossary 收錄的核心詞彙，在文中出現 5+ 次但零 glossary 連結",
+            "CP-85 在 ClawdNote 中被引用但沒有內部連結，讀者無法跳轉"
+          ],
+          "judge_model": "claude-opus-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-23T12:00:00Z",
+          "dimensions": {
+            "glossary": 7,
+            "crossRef": 6,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 7,
+          "verdict": "FAIL"
+        },
+        "model": "opus-4.6",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "FAILED",
+    "failedStage": "librarian",
+    "finishedAt": "2026-04-23T08:39:08+08:00"
   }
 }
