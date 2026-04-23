@@ -1,6 +1,6 @@
 ---
 description: "Fresh Eyes — fast first-impression reader. Reads the post as a complete stranger with zero blog context. Catches things the specialized judges miss: confusing structure, unclear jargon, boring stretches, cringe moments. Quick and blunt."
-model: claude-opus-4-6[1m]
+model: claude-opus-4-7
 tools:
   - Read
   - Write
