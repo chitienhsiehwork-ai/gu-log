@@ -6235,5 +6235,42 @@
     "status": "FAILED",
     "failedStage": "vibe",
     "finishedAt": "2026-04-23T08:56:16+08:00"
+  },
+  "sp-73-20260219-trq212-claude-code-prompt-caching.mdx": {
+    "article": "sp-73-20260219-trq212-claude-code-prompt-caching.mdx",
+    "startedAt": "2026-04-23T08:56:29+08:00",
+    "stages": {
+      "librarian": {
+        "status": "fail",
+        "score": {
+          "pass": false,
+          "improvements": {
+            "glossary": "glossary.json 收錄的核心術語（Claude Code、Context Window、Subagent、MCP、Agent）在文中大量使用但零 glossary 連結。建議至少在首次出現時連結或自然解釋。prompt caching 本身不在 glossary 裡所以不扣分，但已收錄的 5 個術語完全沒整合。",
+            "crossRef": "三處 ticket 引用只寫 ID 沒加超連結：SP-16（line 123）→ /posts/boris-claude-code-tips/、SD-7（line 153）→ /posts/20260301-claude-code-deep-thinking-philosophy/、SP-22（line 208）→ /posts/claude-code-sustainable-ai-workflow/。Clawd 在 line 29 首次出現未連結 /about（identity link 規則）。延伸閱讀的 3 個 CP 連結均有效 ✓。"
+          },
+          "critical_issues": [
+            "crossRef 缺少 identity link（Clawd 未連結 /about）且 3 個 ticket 引用（SP-16、SD-7、SP-22）只有文字沒有超連結，讀者無法點過去閱讀",
+            "glossary 收錄的核心術語（Claude Code、Context Window、Subagent、MCP）在文中大量使用卻零 glossary 整合，違反 glossary coverage 要求"
+          ],
+          "judge_model": "claude-opus-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-23T12:00:00Z",
+          "dimensions": {
+            "glossary": 7,
+            "crossRef": 6,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 7,
+          "verdict": "FAIL"
+        },
+        "model": "opus-4.6",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "FAILED",
+    "failedStage": "librarian",
+    "finishedAt": "2026-04-23T09:03:52+08:00"
   }
 }
