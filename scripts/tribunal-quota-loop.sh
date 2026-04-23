@@ -69,6 +69,192 @@ source "$SCRIPT_DIR/tribunal-run-control.sh"
 trap 'rc_on_stop_signal TERM' TERM
 trap 'rc_on_stop_signal INT' INT
 
+# ─── Auto scale-down / up ────────────────────────────────────────────────────
+# Memory-aware worker throttling. Runs only when WORKERS > 1.
+#
+# Decision ladder each loop iteration:
+#   1. Recent oom-kill in journal        → hard-cap limit at AUTOSCALE_OOM_CAP
+#   2. memory pct ≥ SCALE_DOWN_PCT       → step limit down by 1 (floor: 1)
+#   3. memory pct < SCALE_UP_PCT for N   → step limit up by 1 (ceiling: $WORKERS)
+#      consecutive samples
+#   4. between those thresholds          → no-op (hysteresis band)
+#
+# Plus a spawn pre-check: when the supervisor is about to fork a new worker,
+# it estimates current + PER_WORKER_MB and refuses to fork if that would
+# cross SCALE_DOWN_PCT. Protects against fork-time memory bursts that a
+# 30s sampling cadence can't catch in time.
+#
+# Operator overrides: writing an integer to .score-loop/control/worker-limit
+# pins the limit regardless of memory (e.g., for planned burn runs). The
+# autoscaler respects any value <= $WORKERS and ignores out-of-range garbage.
+#
+# Local dev: set AUTOSCALE_MOCK_MEMORY_CURRENT / AUTOSCALE_MOCK_MEMORY_MAX /
+# AUTOSCALE_MOCK_OOM to simulate production conditions on Mac (no systemd).
+AUTOSCALE_SCALE_DOWN_PCT=85
+AUTOSCALE_SCALE_UP_PCT=50
+AUTOSCALE_UP_SAMPLES=5
+AUTOSCALE_OOM_COOLDOWN_SEC=600
+AUTOSCALE_OOM_CAP=2
+AUTOSCALE_PER_WORKER_MB=400
+AUTOSCALE_CONTROL_FILE="$ROOT_DIR/.score-loop/control/worker-limit"
+AUTOSCALE_STATE_FILE="$ROOT_DIR/.score-loop/state/autoscale.json"
+AUTOSCALE_LOW_MEM_STREAK=0
+
+autoscale_memory_current() {
+  if [ -n "${AUTOSCALE_MOCK_MEMORY_CURRENT:-}" ]; then
+    echo "$AUTOSCALE_MOCK_MEMORY_CURRENT"
+    return
+  fi
+  systemctl --user show tribunal-loop -p MemoryCurrent --value 2>/dev/null \
+    | grep -E '^[0-9]+$' | head -1
+}
+
+autoscale_memory_max() {
+  if [ -n "${AUTOSCALE_MOCK_MEMORY_MAX:-}" ]; then
+    echo "$AUTOSCALE_MOCK_MEMORY_MAX"
+    return
+  fi
+  systemctl --user show tribunal-loop -p MemoryMax --value 2>/dev/null \
+    | grep -E '^[0-9]+$' | head -1
+}
+
+# Returns 0 if an oom-kill event exists within AUTOSCALE_OOM_COOLDOWN_SEC
+# of now. Best-effort on non-systemd platforms (silent false).
+autoscale_recent_oom() {
+  if [ -n "${AUTOSCALE_MOCK_OOM:-}" ]; then
+    [ "$AUTOSCALE_MOCK_OOM" = "1" ]
+    return
+  fi
+  command -v journalctl >/dev/null 2>&1 || return 1
+  journalctl --user -u tribunal-loop \
+    --since "${AUTOSCALE_OOM_COOLDOWN_SEC} sec ago" \
+    --no-pager 2>/dev/null | grep -q 'oom-kill'
+}
+
+autoscale_read_limit() {
+  if [ -f "$AUTOSCALE_CONTROL_FILE" ]; then
+    local n
+    n=$(tr -d '[:space:]' < "$AUTOSCALE_CONTROL_FILE")
+    if [[ "$n" =~ ^[1-9][0-9]*$ ]] && (( n <= WORKERS )); then
+      echo "$n"
+      return
+    fi
+  fi
+  echo "$WORKERS"
+}
+
+autoscale_write_limit() {
+  local n="$1" reason="$2"
+  mkdir -p "$(dirname "$AUTOSCALE_CONTROL_FILE")"
+  echo "$n" > "$AUTOSCALE_CONTROL_FILE"
+  tlog "AUTOSCALE: worker-limit=$n ($reason)"
+  autoscale_write_state "$n" "$reason"
+}
+
+autoscale_write_state() {
+  local limit="$1" reason="$2"
+  mkdir -p "$(dirname "$AUTOSCALE_STATE_FILE")"
+  local ts mc mx pct
+  ts=$(date -Iseconds 2>/dev/null || date -u +%Y-%m-%dT%H:%M:%SZ)
+  mc=$(autoscale_memory_current)
+  mx=$(autoscale_memory_max)
+  if [[ "$mc" =~ ^[0-9]+$ ]] && [[ "$mx" =~ ^[0-9]+$ ]] && (( mx > 0 )); then
+    pct=$(( mc * 100 / mx ))
+  else
+    pct=-1
+    mc=0; mx=0
+  fi
+  local tmp
+  tmp=$(mktemp "$(dirname "$AUTOSCALE_STATE_FILE")/.autoscale.XXXXXX") || return
+  if command -v jq >/dev/null 2>&1; then
+    jq -n \
+      --argjson limit "$limit" \
+      --argjson workers_max "$WORKERS" \
+      --argjson low_streak "$AUTOSCALE_LOW_MEM_STREAK" \
+      --argjson memory_current "$mc" \
+      --argjson memory_max "$mx" \
+      --argjson memory_pct "$pct" \
+      --arg reason "$reason" \
+      --arg ts "$ts" \
+      '{effective_workers: $limit, configured_workers: $workers_max, low_mem_streak: $low_streak, memory_current_bytes: $memory_current, memory_max_bytes: $memory_max, memory_pct: $memory_pct, last_reason: $reason, updatedAt: $ts}' \
+      > "$tmp"
+  else
+    printf '{"effective_workers":%d,"configured_workers":%d,"memory_pct":%d,"last_reason":"%s","updatedAt":"%s"}\n' \
+      "$limit" "$WORKERS" "$pct" "$reason" "$ts" > "$tmp"
+  fi
+  mv "$tmp" "$AUTOSCALE_STATE_FILE"
+}
+
+autoscale_check() {
+  (( WORKERS <= 1 )) && return 0
+
+  local mc mx pct current_limit
+  mc=$(autoscale_memory_current)
+  mx=$(autoscale_memory_max)
+
+  if ! [[ "$mc" =~ ^[0-9]+$ ]] || ! [[ "$mx" =~ ^[0-9]+$ ]] || (( mx == 0 )); then
+    return 0   # no systemd / no cgroup memory — can't autoscale, bail silently
+  fi
+
+  pct=$(( mc * 100 / mx ))
+  current_limit=$(autoscale_read_limit)
+
+  # 1. OOM hard-cap
+  if autoscale_recent_oom; then
+    if (( current_limit > AUTOSCALE_OOM_CAP )); then
+      autoscale_write_limit "$AUTOSCALE_OOM_CAP" \
+        "oom-kill within ${AUTOSCALE_OOM_COOLDOWN_SEC}s (memory=${pct}%)"
+    fi
+    AUTOSCALE_LOW_MEM_STREAK=0
+    return 0
+  fi
+
+  # 2. High memory → step down
+  if (( pct >= AUTOSCALE_SCALE_DOWN_PCT )); then
+    if (( current_limit > 1 )); then
+      autoscale_write_limit $(( current_limit - 1 )) \
+        "memory ${pct}% ≥ ${AUTOSCALE_SCALE_DOWN_PCT}%"
+    fi
+    AUTOSCALE_LOW_MEM_STREAK=0
+    return 0
+  fi
+
+  # 3. Low memory (stable) → step up
+  if (( pct < AUTOSCALE_SCALE_UP_PCT )); then
+    AUTOSCALE_LOW_MEM_STREAK=$(( AUTOSCALE_LOW_MEM_STREAK + 1 ))
+    if (( AUTOSCALE_LOW_MEM_STREAK >= AUTOSCALE_UP_SAMPLES )); then
+      if (( current_limit < WORKERS )); then
+        autoscale_write_limit $(( current_limit + 1 )) \
+          "memory ${pct}% stable < ${AUTOSCALE_SCALE_UP_PCT}% for ${AUTOSCALE_UP_SAMPLES} samples"
+      fi
+      AUTOSCALE_LOW_MEM_STREAK=0
+    fi
+    return 0
+  fi
+
+  # 4. Middle zone — hysteresis: do nothing, reset streak
+  AUTOSCALE_LOW_MEM_STREAK=0
+}
+
+# Returns 0 if forking another worker won't push memory past the scale-down
+# threshold. Estimated via current + AUTOSCALE_PER_WORKER_MB. Returns 0 if
+# memory can't be read (no blocker on non-systemd platforms).
+autoscale_can_spawn() {
+  (( WORKERS <= 1 )) && return 0
+  local mc mx projected projected_pct
+  mc=$(autoscale_memory_current)
+  mx=$(autoscale_memory_max)
+  if ! [[ "$mc" =~ ^[0-9]+$ ]] || ! [[ "$mx" =~ ^[0-9]+$ ]] || (( mx == 0 )); then
+    return 0
+  fi
+  projected=$(( mc + AUTOSCALE_PER_WORKER_MB * 1024 * 1024 ))
+  projected_pct=$(( projected * 100 / mx ))
+  if (( projected_pct > AUTOSCALE_SCALE_DOWN_PCT )); then
+    return 1
+  fi
+  return 0
+}
+
 # ─── Quota ────────────────────────────────────────────────────────────────────
 # Returns integer effective remaining pct (min of 5hr and weekly).
 # Returns -1 on error (usage-monitor unavailable or no claude entry).
@@ -333,6 +519,11 @@ tlog "  Usage monitor: ${USAGE_MONITOR}"
 ensure_worktrees
 rc_gc_stale_claims
 rc_write_state "running" "startup"
+# Seed autoscale state so operators see a baseline before the first scaling
+# event. Limit starts at $WORKERS (no throttle yet).
+if (( WORKERS > 1 )); then
+  autoscale_write_state "$WORKERS" "startup"
+fi
 
 while true; do
   # ── Stop boundary: top of iteration ──────────────────────────────────────
@@ -343,6 +534,10 @@ while true; do
       rc_exit_stopped
     fi
   fi
+
+  # ── Autoscale: read memory + OOM history, adjust worker-limit ───────────
+  autoscale_check
+  EFFECTIVE_WORKERS=$(autoscale_read_limit)
 
   # ── Git pull in main repo (workers do their own in their worktrees) ──────
   git pull --rebase origin main >> "$LOG_FILE" 2>&1 \
@@ -361,7 +556,11 @@ while true; do
   fi
 
   if [ "$TOTAL" -gt 0 ]; then
-    tlog "$TOTAL unscored articles remaining. in-flight=$IN_FLIGHT workers=$WORKERS"
+    if (( EFFECTIVE_WORKERS < WORKERS )); then
+      tlog "$TOTAL unscored articles remaining. in-flight=$IN_FLIGHT workers=$EFFECTIVE_WORKERS/$WORKERS (throttled)"
+    else
+      tlog "$TOTAL unscored articles remaining. in-flight=$IN_FLIGHT workers=$WORKERS"
+    fi
   fi
 
   # ── Check quota ────────────────────────────────────────────────────────────
@@ -420,9 +619,9 @@ while true; do
     continue
   fi
 
-  # Try to fill every free slot with a claimable article.
+  # Try to fill every free slot up to EFFECTIVE_WORKERS (autoscale-throttled).
   dispatched_this_iter=0
-  while (( ${#WORKER_PID[@]} < WORKERS )) && [ "$TOTAL" -gt 0 ]; do
+  while (( ${#WORKER_PID[@]} < EFFECTIVE_WORKERS )) && [ "$TOTAL" -gt 0 ]; do
     # Find a free worker id.
     free_id=""
     for id in "${WORKER_IDS[@]:-main}"; do
@@ -432,6 +631,14 @@ while true; do
       fi
     done
     [ -z "$free_id" ] && break
+
+    # Spawn pre-check: would adding another worker blow the memory budget?
+    # Only holds the dispatch off for this iteration — next iteration's
+    # autoscale_check will re-evaluate.
+    if ! autoscale_can_spawn; then
+      tlog "AUTOSCALE: holding spawn of worker-$free_id — projected memory would exceed ${AUTOSCALE_SCALE_DOWN_PCT}%"
+      break
+    fi
 
     # Claim + dispatch.
     if article=$(try_claim_next_article "worker-$free_id"); then
