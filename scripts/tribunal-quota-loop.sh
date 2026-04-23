@@ -85,6 +85,13 @@ check_stop_requested() {
   return 1
 }
 
+# Clean exit when a stop has been requested. Only call at safe boundaries
+# (before dispatch, after article finished, inside wait slices).
+exit_stopped() {
+  tlog "state=stopped_by_request source=${stop_source:-unknown}"
+  exit 0
+}
+
 # ─── Quota ────────────────────────────────────────────────────────────────────
 # Returns integer effective remaining pct (min of 5hr and weekly).
 # Returns -1 on error (usage-monitor unavailable or no claude entry).
@@ -185,6 +192,12 @@ tlog "  Quota floor: ${QUOTA_FLOOR}%, Resume threshold: ${RESUME_THRESHOLD}%"
 tlog "  Usage monitor: ${USAGE_MONITOR}"
 
 while true; do
+  # ── Stop boundary: top of iteration ──────────────────────────────────────
+  # Covers: signal arrived during previous article, or between iterations.
+  if check_stop_requested; then
+    exit_stopped
+  fi
+
   # ── Git pull (abort rebase on conflict) ───────────────────────────────────
   git pull --rebase origin main >> "$LOG_FILE" 2>&1 \
     || { git rebase --abort 2>/dev/null; tlog "WARN: git pull failed, continuing"; }
@@ -246,6 +259,12 @@ while true; do
     tlog "Tier BURN: ${remaining}% remaining — processing immediately"
   fi
 
+  # ── Stop boundary: before dispatching a new article ─────────────────────
+  # Covers: signal / flag arrived during quota check or tier sleep.
+  if check_stop_requested; then
+    exit_stopped
+  fi
+
   # ── Process next article ───────────────────────────────────────────────────
   next_article="${ARTICLES[0]}"
   tlog "Processing: $next_article (${remaining}% remaining, tier ${tier})"
@@ -253,6 +272,13 @@ while true; do
   # || true: set -e must not kill the loop when an article fails
   bash "$SCRIPT_DIR/tribunal-all-claude.sh" "$next_article" >> "$LOG_FILE" 2>&1 \
     || tlog "  Article $next_article failed (non-zero exit). Continuing to next."
+
+  # ── Stop boundary: article finished ──────────────────────────────────────
+  # Covers: signal / flag arrived during article run. article is now at
+  # its natural boundary, so we exit before dispatching another one.
+  if check_stop_requested; then
+    exit_stopped
+  fi
 
   # Brief cooldown (same as batch runner)
   sleep 10
