@@ -124,6 +124,50 @@ scripts/tribunal-worker-bootstrap.sh remove-all
 
 Disk cost: ~500MB per worker (pnpm `node_modules` per worktree). On clawd-vm (75GB, historically ~45GB used) this is fine for 2–3 workers.
 
+## Auto scale-down / up (memory throttle)
+
+When `--workers > 1`, the supervisor samples its own cgroup memory each loop
+iteration and adjusts a soft cap on the active worker count. Keeps the
+service from OOM-killing itself when five parallel `pnpm build`s burst.
+
+**Decision ladder** (per iteration):
+
+| Signal | Action |
+|---|---|
+| `oom-kill` event in journal within 10min | Hard-cap `worker-limit` to 2 |
+| MemoryCurrent ≥ 85% of MemoryMax | Step `worker-limit` down by 1 (floor 1) |
+| MemoryCurrent < 50% for 5 consecutive samples | Step `worker-limit` up by 1 (ceiling `$WORKERS`) |
+| 50–84% | No change (hysteresis band to avoid flapping) |
+
+**Plus a spawn pre-check**: before forking a new worker, the supervisor
+estimates `MemoryCurrent + 400MB` — if that would cross 85%, the spawn is
+held for one iteration. Protects against fork-time bursts that a 30s
+sampling cadence can't catch in time.
+
+**Observability**:
+
+```bash
+# Current effective limit + last scaling event
+cat .score-loop/state/autoscale.json
+# { effective_workers, configured_workers, memory_pct, last_reason, updatedAt }
+
+# Recent autoscale events in the supervisor log
+ls -t .score-loop/logs/tribunal-quota-loop-*.log | head -1 | xargs grep 'AUTOSCALE:'
+```
+
+**Operator override**: planning a planned burn that you want to run hot
+without autoscale interference? Pin the limit manually:
+
+```bash
+echo 5 > .score-loop/control/worker-limit   # peg at 5, autoscaler still
+                                            # writes over this if OOM or
+                                            # memory crosses scale-down
+```
+
+The autoscaler treats the file as a read-with-floor source: it respects any
+integer `<= $WORKERS`. Delete the file to fall back to the `$WORKERS` CLI
+arg. Tune thresholds in `tribunal-quota-loop.sh` (search `AUTOSCALE_*`).
+
 ## Quota tiers
 
 From `tribunal-quota-loop.sh`:
