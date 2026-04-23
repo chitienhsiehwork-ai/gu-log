@@ -54,11 +54,16 @@ tlog() {
 }
 
 # ─── Lock ─────────────────────────────────────────────────────────────────────
+# Exit code 75 = skipped (another instance is already running this article).
+# Callers (batch-runner, quota-loop, Phase 2 supervisor) must treat this as
+# "skipped", NOT as "passed" — otherwise stats are misleading. Chosen value:
+# 75 matches sysexits.h EX_TEMPFAIL ("temporary failure, retry later") which
+# is the closest stdlib semantic match.
 LOCK_FILE="/tmp/tribunal-all-claude-${POST_FILE}.lock"
 exec 200>"$LOCK_FILE"
 if ! flock -n 200; then
-  echo "[tribunal] Another tribunal instance is already running for $POST_FILE. Exiting." >&2
-  exit 0
+  echo "[tribunal] skipped: another instance is already running for $POST_FILE (rc=75)." >&2
+  exit 75
 fi
 
 # ─── Quiet Hours ──────────────────────────────────────────────────────────────

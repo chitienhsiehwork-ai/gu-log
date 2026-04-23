@@ -242,18 +242,19 @@ while true; do
   #   0  — all stages passed
   #   1  — failed at a stage (normal failure)
   #   2  — EXHAUSTED (exceeded top-level attempts)
-  #   75 — skipped (already_running; Phase 2 parallelism hook)
+  #   75 — skipped (already_running; another instance had the per-article lock)
   #   77 — stopped_by_request (graceful stop detected during article)
   article_rc=0
   bash "$SCRIPT_DIR/tribunal-all-claude.sh" "$next_article" >> "$LOG_FILE" 2>&1 \
     || article_rc=$?
 
-  if [ "$article_rc" -eq 77 ]; then
-    tlog "Article runner propagated stopped_by_request (rc=77)."
-    rc_exit_stopped
-  elif [ "$article_rc" -ne 0 ]; then
-    tlog "  Article $next_article failed (rc=$article_rc). Continuing to next."
-  fi
+  case "$article_rc" in
+    0)  : ;;  # passed, nothing to log here (tribunal-all-claude logs its own)
+    75) tlog "  Article $next_article skipped (already running elsewhere)." ;;
+    77) tlog "Article runner propagated stopped_by_request (rc=77)."
+        rc_exit_stopped ;;
+    *)  tlog "  Article $next_article failed (rc=$article_rc). Continuing to next." ;;
+  esac
 
   # ── Stop boundary: article finished ──────────────────────────────────────
   # Covers: signal / flag arrived during article run. article is now at
