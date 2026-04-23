@@ -271,13 +271,16 @@ get_unscored_articles() {
     echo '{}' > "$PROGRESS_FILE"
   fi
 
-  # List zh-tw articles (not en-, not demo), sorted newest first by filename date
+  # List zh-tw articles (not en-, not demo), sorted highest ticket id first.
+  # -V (version sort) treats the numeric ticket-id as a number so sp-180
+  # correctly ranks above sp-99 (plain `sort -r` did lex and put sp-60 >
+  # sp-180, making 2-digit tickets always run before 3-digit ones).
   local all_zh_articles
   all_zh_articles=$(ls -1 "$POSTS_DIR"/*.mdx 2>/dev/null \
     | xargs -I{} basename {} \
     | grep -v '^en-' \
     | grep -v '^demo' \
-    | sort -r)
+    | sort -V -r)
 
   local article full_path status
   for article in $all_zh_articles; do

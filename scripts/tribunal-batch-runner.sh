@@ -78,13 +78,15 @@ get_unscored_articles() {
     echo '{}' > "$PROGRESS_FILE"
   fi
 
-  # List zh-tw articles (not en-, not deprecated), sorted newest first by filename date
+  # List zh-tw articles (not en-, not deprecated), sorted highest ticket id
+  # first. sort -V handles mixed 2/3-digit ids correctly (sp-180 > sp-99);
+  # keep in sync with tribunal-quota-loop.sh:get_unscored_articles.
   local all_zh_articles
   all_zh_articles=$(ls -1 "$POSTS_DIR"/*.mdx 2>/dev/null \
     | xargs -I{} basename {} \
     | grep -v '^en-' \
     | grep -v '^demo' \
-    | sort -r)
+    | sort -V -r)
 
   for article in $all_zh_articles; do
     # Skip deprecated
