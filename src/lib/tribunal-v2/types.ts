@@ -112,15 +112,16 @@ export interface FreshEyesJudgeOutput extends BaseJudgeOutput {
 
 /**
  * Stage 3 FactLib combined judge output.
- * fact_pass, library_pass, and dupCheck_pass are independent — none compensates
- * another. overall pass = fact_pass AND library_pass AND dupCheck_pass.
+ * fact_pass and library_pass are independent — neither compensates the other.
+ * overall pass = fact_pass AND library_pass.
  * Max loops: 2
  *
- * dupCheck rubric (Level E `add-librarian-dupcheck`):
- * - 10: clean-diff — 主題類似但有獨立貢獻，放行無疑義
- * -  8: 正確識別為 hard-dup (BLOCK) / soft-dup (WARN) / intentional-series (allow)
- * -  5: 邊界案例 — judge 判斷有重疊但類別不確定，保守給 WARN
- * -  2: 誤判 — clean-diff 被誤殺，或 hard-dup 被放行
+ * NOTE on dupCheck: `dupCheck` score and `dupCheck_pass` gate are kept as
+ * OPTIONAL fields so judge outputs from a future re-enabled dedup run can
+ * still type-check, but the pipeline no longer consumes them. See openspec
+ * change `add-librarian-dupcheck` — the current dedup judge is 80% accurate
+ * with 0% recall on soft-dup fixtures (see `scores/dedup-eval-20260421-*`),
+ * which makes it unsafe as a blocking gate.
  */
 // LUXURY_TOKEN: Opus combined judge — will affect fact accuracy if downgraded (lowest priority downgrade: Sonnet)
 export interface FactLibJudgeOutput extends BaseJudgeOutput {
@@ -129,14 +130,14 @@ export interface FactLibJudgeOutput extends BaseJudgeOutput {
     sourceFidelity: number; // 對 source 的忠實度
     linkCoverage: number; // 站內/glossary 連結覆蓋
     linkRelevance: number; // 連結是否真的相關
-    dupCheck: number; // 重複判定（Level E）— 跟 corpus 比對後的判決正確度
+    dupCheck?: number; // [DISABLED] 重複判定 — optional，pipeline 不使用
   };
 
   // Independent pass bars — composite cannot compensate
   fact_pass: boolean;
   library_pass: boolean;
-  dupCheck_pass: boolean;
-  // overall `pass` = fact_pass AND library_pass AND dupCheck_pass
+  dupCheck_pass?: boolean; // [DISABLED] pipeline 不使用
+  // overall `pass` = fact_pass AND library_pass
 }
 
 /**

@@ -457,54 +457,7 @@ async function runStage3(state: PipelineState, config: PipelineConfig): Promise<
       return true;
     }
 
-    // dupCheck-only FAIL: fact + library passed, but dupCheck failed.
-    // Workers (FactCorrector / Librarian) have no dedup semantics — re-running
-    // them cannot fix a dedup misclassification. Skip the worker loop entirely,
-    // write the verdict to frontmatter, and mark needs_review for human triage
-    // (or Level F gate).
-    if (judgeOutput.fact_pass && judgeOutput.library_pass && !judgeOutput.dupCheck_pass) {
-      // Extract verdict from improvements.dupCheck if present
-      const verdictRaw = judgeOutput.improvements?.dupCheck ?? '';
-      const classMatch = verdictRaw.match(/class=([^\s]+)/);
-      const actionMatch = verdictRaw.match(/action=([^\s]+)/);
-      const slugsMatch = verdictRaw.match(/matchedSlugs=\[([^\]]*)\]/);
-      const reasonMatch = verdictRaw.match(/reason=(.+)$/);
-
-      const dupClass = classMatch?.[1] ?? 'unknown';
-      const dupAction = actionMatch?.[1] ?? 'unknown';
-      const matchedSlugs = slugsMatch?.[1]
-        ? slugsMatch[1].split(',').map((s) => s.trim()).filter(Boolean)
-        : [];
-      const reason = reasonMatch?.[1]?.trim() ?? '';
-      const score = judgeOutput.scores.dupCheck;
-
-      // Write nested dedup.tribunalVerdict — io adapter deep-merges object
-      // values so existing dedup.* fields (e.g. independentDiff from Level C)
-      // are preserved rather than overwritten.
-      await config.io.updateFrontmatter(state.articlePath, {
-        dedup: {
-          tribunalVerdict: {
-            class: dupClass,
-            action: dupAction,
-            matchedSlugs,
-            score,
-            reason,
-          },
-        },
-      });
-
-      stage.status = 'needs_review';
-      stage.completedAt = now();
-      // Descriptive commit — NOT "max loops exhausted", so humans see the real reason.
-      await config.git.commit(
-        `stage3: dupCheck FAIL (class=${dupClass} action=${dupAction}) — skip worker loop`,
-        [state.articlePath]
-      );
-      await config.onProgress?.(state);
-      return false;
-    }
-
-    // General FAIL (fact or library failed) — if more loops, workers will re-run
+    // FAIL — if more loops, workers will re-run with judge feedback
     if (loop < stage.maxLoops) {
       await config.git.commit(`tribunal(stage3): FactLib judge — FAIL, looping back to workers`);
     }
@@ -725,12 +678,7 @@ export async function runPipeline(
   const stage3Passed = await runStage3(state, config);
 
   if (!stage3Passed) {
-    // Propagate stage-level status: 'needs_review' (dupCheck-only FAIL) vs
-    // 'failed' (fact/library exhausted max loops). Do NOT flatten both paths
-    // into 'failed' — scripts/tribunal-v2-run.ts uses exit code 3 for
-    // needs_review and exit code 1 for failed; CI/orchestrator behavior differs.
-    state.status =
-      state.stages.stage3.status === 'needs_review' ? 'needs_review' : 'failed';
+    state.status = 'failed';
     state.completedAt = now();
     await config.onProgress?.(state);
     return state;
