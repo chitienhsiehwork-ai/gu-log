@@ -5,7 +5,7 @@ After=network-online.target
 [Service]
 Type=simple
 WorkingDirectory=%h/clawd/projects/gu-log
-ExecStart=/bin/bash %h/clawd/projects/gu-log/scripts/cc-tribunal-loop-wrapper.sh --workers 5
+ExecStart=/bin/bash %h/clawd/projects/gu-log/scripts/cc-tribunal-loop-wrapper.sh --workers 1
 Restart=on-failure
 RestartSec=60
 Environment=TZ=Asia/Taipei
@@ -21,17 +21,17 @@ KillSignal=SIGTERM
 # write. Allow up to 60min before SIGKILL.
 TimeoutStopSec=3600
 
-# Resource limits — tuned for --workers 5 (5 parallel tribunal-all-claude.sh
-# subprocesses, each spawning a claude CLI judge + optional pnpm build).
-# CPUQuota 200% lets bursts of concurrent builds use multiple cores without
-# starving each other.
+# Resource limits — sized for --workers 1 (overnight / light mode).
+# A single worker peaks ~400MB (tribunal-writer + pnpm build + claude CLI),
+# supervisor + shared state ~200MB. 4G cap kept (rather than shrinking to
+# 1G or 2G) so scaling back up to 2–5 workers via `--workers N` only needs
+# the ExecStart line flipped, no unit-level retuning. CPUQuota 200% also
+# kept for the same reason; a single worker won't burn more than ~50%
+# steady-state anyway.
 #
-# MemoryMax 4G (bumped 2026-04-24, PR #158): previous 2G cap OOM-killed
-# tribunal-loop.service at 01:03:59 when 5 workers concurrently ran
-# tribunal-writer + pnpm build. Each worker peaks ~400MB, supervisor + shared
-# state another ~200MB, combined ~2.2G exceeds 2G. VM has 7.6 GB total;
-# 4G for tribunal leaves ~3.5 GB for OpenClaw agents + hermes gateway +
-# system overhead.
+# History: MemoryMax was bumped from 2G → 4G in PR #159 (2026-04-24) after
+# a 5-worker OOM kill on the 2G cap; the root cause (rc=2 tight re-dispatch
+# loop) is also fixed in that PR. The 4G headroom stays.
 CPUQuota=200%
 MemoryMax=4G
 
