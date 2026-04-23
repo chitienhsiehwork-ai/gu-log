@@ -6564,32 +6564,90 @@
     "startedAt": "2026-04-23T09:15:06+08:00",
     "stages": {
       "librarian": {
-        "status": "fail",
+        "status": "pass",
         "score": {
-          "judge": "librarian",
+          "pass": true,
+          "judge_model": "claude-opus-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-23T00:00:00Z",
           "dimensions": {
-            "glossary": 7,
-            "crossRef": 7,
+            "glossary": 9,
+            "crossRef": 9,
             "sourceAlign": 9,
-            "attribution": 8
+            "attribution": 9
           },
-          "score": 7,
-          "verdict": "FAIL",
+          "score": 9,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.6",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
           "reasons": {
-            "glossary": "Multiple glossary terms used without linking: 'Context Window' (lines 61, 193), 'Claude Code' (lines 104, 162, 229), 'Agent' (line 118) all exist in glossary.json but are not linked or explained via glossary integration.",
-            "crossRef": "Three 延伸閱讀 internal links verified (CP-16, CP-62, CP-45 all resolve to existing files). However, 'Clawd' first mentioned in line 29 ('Clawd 撰寫並附註') without required /about identity link — this is a mandatory crossRef per scoring rules.",
-            "sourceAlign": "Content clearly derived from declared sourceUrl (Anthropic Official Docs model page). Header blockquote transparently lists additional sources (VentureBeat, IT Pro). Pricing, benchmarks, and spec data all align with official documentation.",
-            "attribution": "Generally good — Hex CTO, Zvi, Sam Bowman, Pace CEO, Replit President, Mercury Banking, Hercules CEO all properly attributed. ClawdNotes clearly separated from body. Minor gaps: 'Box 實測顯示重度推理 Q&A 提升 15 個百分點' (line 165) and 'Claude Code 用戶偏好測試' (line 161) cite organizations but lack direct source links."
+            "accuracy": "Pricing ($3/$15 Sonnet, $5/$25 Opus, $15/$75 Opus 4.1), training cutoffs (Sonnet 4.6=Jan 2026, Opus 4.6=Aug 2025), and benchmark numbers (SWE-bench 79.6/80.8, OSWorld 72.5/72.7, ARC-AGI-2 60.4/68.8) are internally consistent and attributed to Anthropic's official Models docs; preference percentages (70%/59%) and specific CEO quotes lack inline citations to launch blog.",
+            "fidelity": "Post correctly distinguishes Training Data Cutoff (line 75-77) from Knowledge Cutoff (line 82) — both agree with Anthropic's dual-cutoff format; quotes attributed to named executives (Hex CTO, Pace CEO, Mercury, Hercules); Zvi's opinion on benchmark gaming properly marked as his view (line 219).",
+            "consistency": "Argument arc holds: cheap model wins office/finance, flagship wins abstract reasoning — ClawdNote speculations (e.g. 'Opus trains slower so freezes earlier', line 87) clearly marked as 推測; math checks out (60.4−37.6=22.8pp; $2,100→$5,700≈2.7× 'close to tripled'); car-analogy framing stays internally coherent from intro to closing."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-23T12:00:00Z",
+          "dimensions": {
+            "readability": 9,
+            "firstImpression": 9
+          },
+          "score": 9,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.6",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Camry/M3 and 郵輪/快艇 analogies sustain the LHY feel, but Opus benchmark listing in section 3 drops into report-mode enumeration.",
+            "clawdNote": "Self-deprecating Opus-recommending-Sonnet opener, VendingBench 'Opus 學壞了' commentary, and the 85/10/5 recommendation split all take clear stances with personality.",
+            "vibe": "Training-data-newer-than-flagship hook is genuinely surprising and shareable, but benchmark density in sections 2-3 requires effort from casual readers.",
+            "clarity": "Body text completely clean of 你/我; CTO quotes properly attributed, benchmark sources named, ClawdNote opinions fully contained.",
+            "narrative": "Real debate arc with '慢著' pivot and callback conclusion, but the Opus 5-benchmark rundown falls into enumerate-and-explain template rhythm."
           }
         },
         "model": "opus-4.6",
         "attempts": 2
       }
     },
-    "topLevelAttempts": 1,
-    "status": "FAILED",
+    "topLevelAttempts": 2,
+    "status": "PASS",
     "failedStage": "librarian",
-    "finishedAt": "2026-04-23T09:20:48+08:00"
+    "finishedAt": "2026-04-23T12:26:52+08:00"
   },
   "sp-69-20260217-karryviber-discord-config-guide.mdx": {
     "article": "sp-69-20260217-karryviber-discord-config-guide.mdx",
