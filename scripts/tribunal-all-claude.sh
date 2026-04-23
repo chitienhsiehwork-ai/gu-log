@@ -66,38 +66,6 @@ if ! flock -n 200; then
   exit 75
 fi
 
-# ─── Quiet Hours ──────────────────────────────────────────────────────────────
-# Weekday 20:00-02:00 TST (Asia/Taipei): pause and wait
-is_quiet_hours() {
-  local dow hour
-  dow=$(TZ=Asia/Taipei date +%u)   # 1=Mon … 5=Fri, 6=Sat, 7=Sun
-  hour=$(TZ=Asia/Taipei date +%H)
-  # Weekdays only
-  if [ "$dow" -ge 1 ] && [ "$dow" -le 5 ]; then
-    if [ "$hour" -ge 20 ] || [ "$hour" -lt 2 ]; then
-      return 0  # in quiet hours
-    fi
-  fi
-  return 1
-}
-
-wait_for_quiet_hours_end() {
-  if is_quiet_hours; then
-    tlog "Quiet hours active (weekday 20:00-02:00 TST). Sleeping 30min (interruptible)..."
-    while is_quiet_hours; do
-      if ! rc_interruptible_sleep 1800; then
-        # Stop requested during quiet hours — this is a safe boundary:
-        # next stage hasn't started, previously-passed stages are saved
-        # in progress.json and will resume on next run.
-        tlog "Stop requested during quiet-hours wait. Exiting with rc=77."
-        exit 77
-      fi
-      tlog "Still in quiet hours, waiting..."
-    done
-    tlog "Quiet hours ended. Resuming."
-  fi
-}
-
 # ─── Progress Tracking ────────────────────────────────────────────────────────
 PROGRESS_FILE="$ROOT_DIR/scores/tribunal-progress.json"
 
@@ -323,8 +291,6 @@ run_stage() {
 
     write_stage_progress "$post_file" "$stage_key" "in_progress" "null" "$model_label" "$attempt"
 
-    wait_for_quiet_hours_end
-
     # ── Invoke judge (timeout 300s / 5 min) ──────────────────────────────────
     local judge_out
     judge_out="$(mktemp)"
@@ -412,7 +378,6 @@ Write your JSON result to: $score_tmp" \
 
     # ── Rewrite: invoke tribunal-writer (timeout 900s / 15 min) ──────────────
     tlog "  Invoking tribunal-writer for rewrite (timeout 900s)..."
-    wait_for_quiet_hours_end
 
     local writer_prompt writer_out writer_rc
     writer_prompt="$(cat <<PROMPT
