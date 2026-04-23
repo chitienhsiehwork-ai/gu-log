@@ -32,11 +32,26 @@ POSTS_DIR="$ROOT_DIR/src/content/posts"
 PROGRESS_FILE="$ROOT_DIR/scores/tribunal-progress.json"
 LOG_DIR="$ROOT_DIR/.score-loop/logs"
 LOG_FILE="$LOG_DIR/tribunal-quota-loop-$(date +%Y%m%d-%H%M%S).log"
-USAGE_MONITOR="$HOME/clawd/scripts/usage-monitor.sh"
 QUOTA_FLOOR=3
 RESUME_THRESHOLD=10
 DRY_RUN=false
 WORKERS=1   # Phase 2 supervisor: set to >1 for parallel workers
+
+# ─── usage-monitor resolution (VM-first, vendored fallback) ──────────────────
+# Prefer the VM copy at ~/clawd/scripts/ (tracks OpenClaw ops live). When that
+# is missing (new machine, Mac dev box, fresh VPS), fall back to the vendored
+# copy at scripts/usage-monitor.sh. See
+# openspec/changes/add-tribunal-v2-daemon/design.md §Risks ("Quota vendor 漂移").
+if [ -x "$HOME/clawd/scripts/usage-monitor.sh" ]; then
+  USAGE_MONITOR="$HOME/clawd/scripts/usage-monitor.sh"
+  USAGE_MONITOR_SOURCE="vm"
+elif [ -x "$SCRIPT_DIR/usage-monitor.sh" ]; then
+  USAGE_MONITOR="$SCRIPT_DIR/usage-monitor.sh"
+  USAGE_MONITOR_SOURCE="vendored"
+else
+  USAGE_MONITOR=""
+  USAGE_MONITOR_SOURCE="missing"
+fi
 
 mkdir -p "$LOG_DIR"
 
@@ -302,6 +317,7 @@ get_unscored_articles() {
 # ─── Dry Run ──────────────────────────────────────────────────────────────────
 if [ "$DRY_RUN" = true ]; then
   tlog "=== Dry-run mode ==="
+  tlog "Usage monitor source: ${USAGE_MONITOR_SOURCE} (${USAGE_MONITOR:-unavailable})"
   mapfile -t ARTICLES < <(get_unscored_articles)
   tlog "Found ${#ARTICLES[@]} unscored articles:"
   for i in "${!ARTICLES[@]}"; do
@@ -321,7 +337,16 @@ fi
 # ─── Main Loop ────────────────────────────────────────────────────────────────
 tlog "=== Tribunal Quota-Aware Loop started ==="
 tlog "  Workers: ${WORKERS}  Quota floor: ${QUOTA_FLOOR}%, Resume threshold: ${RESUME_THRESHOLD}%"
-tlog "  Usage monitor: ${USAGE_MONITOR}"
+tlog "  Usage monitor source: ${USAGE_MONITOR_SOURCE} (${USAGE_MONITOR:-unavailable})"
+if [ -n "$USAGE_MONITOR" ]; then
+  # stat flags differ across coreutils (Linux: -c, BSD/macOS: -f). Try both.
+  usage_monitor_mtime=$(stat -c '%y' "$USAGE_MONITOR" 2>/dev/null \
+                    || stat -f '%Sm' "$USAGE_MONITOR" 2>/dev/null \
+                    || echo "unknown")
+  tlog "  Usage monitor mtime: ${usage_monitor_mtime}"
+else
+  tlog "  WARN: no usage-monitor.sh found — quota checks will fall through to 'unreadable' path"
+fi
 ensure_worktrees
 rc_gc_stale_claims
 rc_write_state "running" "startup"
