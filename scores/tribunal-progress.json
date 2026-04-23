@@ -6384,32 +6384,92 @@
     "startedAt": "2026-04-23T09:04:04+08:00",
     "stages": {
       "librarian": {
-        "status": "fail",
+        "status": "pass",
         "score": {
-          "judge": "librarian",
+          "pass": true,
+          "judge_model": "claude-opus-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-23T12:00:00Z",
           "dimensions": {
-            "glossary": 7,
-            "crossRef": 6,
+            "glossary": 9,
+            "crossRef": 9,
             "sourceAlign": 9,
             "attribution": 9
           },
-          "score": 7,
-          "verdict": "FAIL",
+          "score": 9,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.6",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "post": "sp-72-20260218-simonw-cli-over-mcp.mdx",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
           "reasons": {
-            "glossary": "MCP、Context Window、Token 透過正文自然解釋，但 Claude Code、Agent、OpenClaw、Rodney 等 glossary 詞條均未連結也未充分解釋——多個 key terms 缺乏 glossary 整合。",
-            "crossRef": "延伸閱讀有 3 個內部連結（CP-123、SP-120、SP-52）全部指向真實 slug。但 ShroomDog（§ 真實案例）和 Clawd（多處 ClawdNote + 正文）首次出現時均未連結到 /about，違反 identity linking 規則。",
-            "sourceAlign": "內容明確源自 Simon Willison 的 X 發言，開場引用的推文與 sourceUrl 吻合。雖然拉入 2025-11 至 2026-02 多則推文，但前言已清楚說明是「系列發言整理分析」，主題一致。",
-            "attribution": "所有引用都標明講者（Simon Willison、Alec McCullough），附帶 X 連結或部落格出處。Anthropic 工程文章有連結。ClawdNote 意見全部收在 <ClawdNote> 元件內，正文 body 與意見區分清楚。"
+            "accuracy": "Simon Willison bio (Datasette author, Django co-creator) correct. Anthropic's 2025-11-04 'code execution with MCP' article is real (Simon covered it at simonwillison.net/2025/Nov/4/code-execution-with-mcp/). Token math 10 servers × 5 tools × 200 tokens = 10,000 is arithmetically clean. Minor imprecision: '以 Claude 定價 10,000 input tokens 大概是 3 美分' matches Sonnet ($3/MTok) but not Opus ($15/MTok); tier unspecified. '40 年 CLI 生態系' is a rhetorical rounding (grep ~52yr, curl ~29yr, git ~21yr). Neither is materially misleading.",
+            "fidelity": "Simon's English quotes are preserved verbatim alongside Chinese translations; the hedge 'if I can avoid them' is faithfully rendered as '我能不用就不用'. Alec McCullough's counter-argument is quoted in full English + translated, and its three components (shared state / guardrails / reruns) are each explained honestly rather than strawmanned. Simon's positive take on Anthropic's proposal ('This all looks very solid to me!') is included alongside his 'implementation left as an exercise' jab — no cherry-picking.",
+            "consistency": "Argument chain holds: Feb 2026 quote → Nov 2025 continuity → structural MCP costs → steelman → Anthropic's own pivot → ShroomDog case study → conclusion. ClawdNote opinions (80/20 framing, IKEA analogy, pricing-per-year extrapolation) are boxed in <ClawdNote> components and never presented as Simon's view. The 'Implementation is left as an exercise for the reader' blockquote reads as Simon's paraphrase/characterization rather than a verbatim quote — a minor framing quirk but not a logical contradiction. Closing '六個字 cli-tool --help' is a playful rhetorical flourish, not a literal character-count claim."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 9,
+            "firstImpression": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Every technical concept (MCP, tokens, context window, round-trip) gets an immediate analogy — restaurant menu, 7-11 vs drone delivery, IKEA furniture with no screws. I'm 3 months in and I never felt lost. The code blocks are short and obvious. Only one moment of mild friction: the token cost math (10,000 tokens x 200 tasks/day) required a beat to parse, but the meeting analogy right after rescued it.",
+            "firstImpression": "The Simon Willison quote opener hits hard — a respected person saying something blunt is instant hook. The post has real narrative tension (not just 'here is what MCP is'): it is a fight between CLI and MCP, with counterarguments, then Anthropic's own admission, then a real team's choice. The IKEA 'design blueprint with no screws' bit genuinely made me laugh. I finished the whole thing on my phone without skimming. Would share in a dev Discord if someone asked about MCP."
+          }
+        },
+        "model": "opus-4.6",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Strong oral feel with natural analogies (7-11, IKEA furniture, Swiss army knife) and genuine LHY warmth; mid-section MCP analysis dips slightly into report mode but recovers.",
+            "clawdNote": "Over half the notes carry clear opinion — Note 5 pushes back on Alec's shared-state concern with 80/20 camping-car analogy, Note 7's self-deprecating 'I'm Anthropic's own model but CLI is better' is peak Clawd voice.",
+            "vibe": "Would share with dev friends; Simon's thesis is well-argued and the Anthropic twist adds genuine intrigue, though the MCP-problems breakdown is slightly dry mid-read.",
+            "clarity": "Zero pronoun violations in body text — every sentence names its subject (Simon, Anthropic, Alec, ShroomDog); all 你/我 usage properly scoped to ClawdNote.",
+            "narrative": "Genuine arc from Simon's blunt hook through counterargument to Anthropic-admits-it twist; ending callbacks opening with '六個字' + cli-tool --help; some template rhythm in section 3."
           }
         },
         "model": "opus-4.6",
         "attempts": 2
       }
     },
-    "topLevelAttempts": 1,
-    "status": "FAILED",
+    "topLevelAttempts": 2,
+    "status": "PASS",
     "failedStage": "librarian",
-    "finishedAt": "2026-04-23T09:09:27+08:00"
+    "finishedAt": "2026-04-23T11:51:58+08:00"
   },
   "sp-71-20260217-nicbstme-vertical-saas-selloff.mdx": {
     "article": "sp-71-20260217-nicbstme-vertical-saas-selloff.mdx",
