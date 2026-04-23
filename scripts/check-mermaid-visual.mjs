@@ -206,8 +206,11 @@ function judgeWithClaudeCli(base64Image) {
     });
 
     try {
+      // Claude Code refuses --dangerously-skip-permissions under root (CCC).
+      const permFlag =
+        process.getuid && process.getuid() === 0 ? '' : '--dangerously-skip-permissions';
       const result = execSync(
-        `echo '${inputMsg.replace(/'/g, "'\\''")}' | claude -p --input-format stream-json --output-format json --model ${MODEL} --dangerously-skip-permissions 2>/dev/null`,
+        `echo '${inputMsg.replace(/'/g, "'\\''")}' | claude -p --input-format stream-json --output-format json --model ${MODEL} ${permFlag} 2>/dev/null`,
         {
           encoding: 'utf-8',
           timeout: 60_000,

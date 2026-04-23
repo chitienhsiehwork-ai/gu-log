@@ -315,7 +315,11 @@ run_stage() {
     tlog "  Invoking agent '$agent_name' --model '$model_id' (timeout 300s)..."
 
     local judge_rc=0
-    local -a judge_cmd=(timeout 300 claude -p --agent "$agent_name" --dangerously-skip-permissions)
+    # Claude Code refuses --dangerously-skip-permissions under root; CCC runs
+    # as root, so drop the flag there. Non-root (mac-CC) keeps it for the
+    # interactive permission bypass.
+    local -a judge_cmd=(timeout 300 claude -p --agent "$agent_name")
+    [ "$(id -u)" != "0" ] && judge_cmd+=(--dangerously-skip-permissions)
     [ -n "$model_id" ] && judge_cmd+=(--model "$model_id")
     "${judge_cmd[@]}" \
       "Score this post: src/content/posts/$post_file
@@ -433,8 +437,10 @@ PROMPT
 
     # Writer needs to read the full post + judge feedback + scoring SSOT; use
     # the 1M-context variant so it never gets truncated mid-rewrite. Quote the
-    # model ID to keep bash from trying to glob-expand the [1m] suffix.
-    local -a writer_cmd=(timeout 900 claude -p --agent tribunal-writer --dangerously-skip-permissions --model 'claude-opus-4-6[1m]')
+    # model ID to keep bash from trying to glob-expand the [1m] suffix. Drop
+    # --dangerously-skip-permissions under root (CCC) where it is blocked.
+    local -a writer_cmd=(timeout 900 claude -p --agent tribunal-writer --model 'claude-opus-4-6[1m]')
+    [ "$(id -u)" != "0" ] && writer_cmd+=(--dangerously-skip-permissions)
     "${writer_cmd[@]}" \
       "$writer_prompt" \
       > "$writer_out" 2>&1 || writer_rc=$?

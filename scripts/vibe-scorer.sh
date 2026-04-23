@@ -34,10 +34,11 @@ rm -f "$OUT_FILE"
 # Timeout: 10 minutes per score. Opus 4.6 (pinned) on decorative-trap posts
 # can need 10+ turns to do strip test + read standard + write JSON.
 # Max-turns 30 gives scorer enough space; real cost is still bounded by timeout.
-timeout 600 claude -p \
-  --agent vibe-opus-scorer \
-  --permission-mode bypassPermissions \
-  --max-turns 30 \
+# Claude Code refuses --permission-mode bypassPermissions under root (CCC runs
+# as root), so drop it there and keep it for non-root (mac-CC).
+scorer_cmd=(timeout 600 claude -p --agent vibe-opus-scorer --max-turns 30)
+[ "$(id -u)" != "0" ] && scorer_cmd+=(--permission-mode bypassPermissions)
+"${scorer_cmd[@]}" \
   "Score this post: src/content/posts/$POST_FILE
 Write your JSON output to exactly this path: $OUT_FILE" || true
 

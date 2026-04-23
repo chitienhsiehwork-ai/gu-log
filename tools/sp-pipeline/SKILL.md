@@ -33,7 +33,7 @@ Expected: first call takes ~3 seconds (cold compile), subsequent calls are insta
 | "What ticketId will the next SP use?" | `sp-pipeline counter next --prefix SP` | Reads counter without mutating |
 | "Allocate a new ticketId" | `sp-pipeline counter bump --prefix SP` | Atomically advances under `flock` |
 | "Is this source already covered?" | `sp-pipeline dedup --url <x> --title <t>` | Wraps `scripts/dedup-gate.mjs` |
-| "Run just one LLM-heavy step" | `sp-pipeline {eval,write,review,refine} --source ...` | Each step is independently callable with `--fake-provider` for CCC testing |
+| "Run just one LLM-heavy step" | `sp-pipeline {eval,write,review,refine} --source ...` | Each step is independently callable; `--fake-provider` pins canned responses for tests |
 | "Run the 4-stage tribunal on an existing post" | `sp-pipeline ralph --file <sp-NNN-*.mdx>` | Wraps `scripts/tribunal-all-claude.sh` + runs the frontmatter normaliser |
 | "Patch pipeline credits into a final.mdx for debugging" | `sp-pipeline credits --file <final.mdx>` | Step 4.6 standalone |
 | "Deploy a recovered article" | `sp-pipeline deploy --active-file ... --title ...` | Step 5 standalone — counter bump + rename + commit + push |
@@ -137,11 +137,12 @@ fetch shelled out to `scripts/fetch-x-article.sh`, got output, but the native Go
 
 ### "doctor --probe-llm: claude-opus: error: exit code 1"
 
-The `claude` CLI is installed but cannot run non-interactively in this shell. This is the predicted failure mode for `claude -p` in a subprocess without a TTY. Possible fixes:
+`claude -p` is installed but the 1-token canary did not complete. Common causes:
 
-- Run `claude` interactively once to seed credentials
-- Set `CLAUDE_API_KEY` directly in the environment
-- If on CCC (no interactive auth available), use `scripts/sp-pipeline.sh` for now and file an issue — Phase 2 needs to handle this properly
+- **`--dangerously-skip-permissions cannot be used with root/sudo privileges`** — Claude Code refuses the permission-bypass flags under root. `ClaudeProvider.Run` and the shell judges now drop those flags when `id -u == 0` (CCC), so this shouldn't surface from the current Go/shell call sites. If you see it, something upstream still passes the flag; grep for `dangerously-skip-permissions` and `permission-mode` and gate the match with an `id -u` check.
+- **Canary stalls on CLAUDE.md discovery (CCC)** — without the bypass flag, `claude -p` runs in the default permission mode, auto-discovers `CLAUDE.md`, and may try context-aware work on the repo instead of answering the canary. It will stall waiting for permission it can't receive and hit the 30 s probe timeout with an empty error. Real creative prompts (write / review / refine) are less susceptible because the task is the prompt, not the repo — but a red probe does NOT prove the real pipeline is broken. Try `sp-pipeline run --dry-run <url>` before escalating.
+- **Credentials** — run `claude` interactively once to seed them, or set `ANTHROPIC_API_KEY`.
+- **No TTY** — harmless for `-p` in non-interactive shells; no fix needed.
 
 ### "sp-pipeline: 'go' not found on PATH"
 
