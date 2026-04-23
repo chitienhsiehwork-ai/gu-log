@@ -1,0 +1,35 @@
+## 評分總結 SP-175 rewrite
+
+| Dim | Score | 重點 |
+|---|---|---|
+| persona | 7 | 房東/車廠/contractor 都是好的量級比喻，但兩段仍是 list-of-three |
+| clawdNote | 8 | 每個 note 都有立場，撐過 opinion threshold |
+| vibe | 6 | 週一故事 OK，中段 cheat sheet 感還在 |
+| clarity | 6 | 正文 6 處你字違規（L51/L61×2/L137/L165） |
+| narrative | 6 | 週一段是 peak、結尾 callback 不錯，但前三節 strip 後仍像 release notes |
+
+**Composite = 6，verdict = FAIL**（pass bar: ≥8 且 max≥9 且 min≥8）。
+
+比原版（5 分）有進步——多了週一 dashboard 這個真 narrative peak、結尾改成 callback 不是 bullet recap、前置也有漂亮的 LHY 量級比喻。但骨架還是卡在「三件事 / 五階梯 / 三個個性」的 cheat sheet 結構，剝掉比喻之後 section 1/2/3 還是清單；而且正文有 6 處「你」違規，應該被 pre-commit hook 擋下。
+
+JSON 已寫到 `/Users/shroom/gu-log/.results/sp-175-rewrite-rescore/score-1.json`。
+sed: 1: "/Users/shroom/gu-log/.r ...": unterminated substitute pattern
+{
+  "judge": "vibe",
+  "dimensions": {
+    "persona": 7,
+    "clawdNote": 8,
+    "vibe": 6,
+    "clarity": 6,
+    "narrative": 6
+  },
+  "score": 6,
+  "verdict": "FAIL",
+  "reasons": {
+    "persona": "房東調租金/車廠換預設引擎/新 contractor 都是漂亮的 LHY 量級比喻，但三件偷襲跟三個個性變化那兩段剝掉比喻之後還是 list-of-three 結構。",
+    "clawdNote": "每個 ClawdNote 都有明確立場（『蠻缺德的』、『prompt 偷懶的人痛苦』、『UI 長得像咖啡廳』），不是 Wikipedia 解釋，撐過 opinion threshold。",
+    "vibe": "『週一死亡 report』跟結尾很引人，但 Effort 迷宮跟三個個性變化仍然是 cheat sheet 節奏加 copy-ready code block，中段會讓人想 scroll。",
+    "clarity": "正文 6 處你字違規（L51『你手上』、L61『給你三種』『你自己的 review』、L137『4.6 時代你不寫』、L165『你的 prompt 能力』），pre-commit hook 應擋下。",
+    "narrative": "週一 dashboard 那段是真的 peak，結尾 callback 開頭有收 punch，但前三個 section 仍然是『三件事 / 五階梯 / 三個個性』的 list 骨架，strip test 只勉強及格。"
+  }
+}

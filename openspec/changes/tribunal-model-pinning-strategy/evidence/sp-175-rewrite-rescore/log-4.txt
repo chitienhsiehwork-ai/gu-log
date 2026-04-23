@@ -1,0 +1,29 @@
+**SP-175 rewrite rescore: FAIL (composite 7)**
+
+- persona **7** — LHY 開場有，但 effort/infra 兩節回到 reference-doc
+- clawdNote **8** — 五個 notes 全部有立場
+- vibe **7** — 中段 cheat sheet 節奏拖住
+- clarity **9** — 正文零 你/我
+- narrative **7** — Monday crash 弧線成立但 strip test 剩 release notes 骨架
+
+結果寫入 `/Users/shroom/gu-log/.results/sp-175-rewrite-rescore/score-4.json`。對應 calibration example（SP-175 是 decorative persona trap 2026 版本）——rewrite lift 有幫助但骨架還是 cheat sheet，per rubric 應該 FAIL。
+sed: 1: "/Users/shroom/gu-log/.r ...": unterminated substitute pattern
+{
+  "judge": "vibe",
+  "dimensions": {
+    "persona": 7,
+    "clawdNote": 8,
+    "vibe": 7,
+    "clarity": 9,
+    "narrative": 7
+  },
+  "score": 7,
+  "verdict": "FAIL",
+  "reasons": {
+    "persona": "Monday crash opener and release manager investigation give LHY flavor, but 「Effort 迷宮」和「infra 改動」兩節回到 reference-doc 模式，低/中/高/xhigh/max 五階梯按順序列出、tokenizer/budget_tokens/tone 三件事條列推進，比喻（房東調租金、咖啡店官網）是點綴而非骨架。",
+    "clawdNote": "五個 Clawd Notes 全部有明確立場——「工程師喜歡，prompt 偷懶的人痛苦」、「xhigh naming 像 CPU Pro Max 進化史」、「tokenizer 偷偷換蠻缺德的」、「cream+serif 害人加班」、「把 prompt 當 forever 答案的人永遠在追版本號」——opinion threshold 穩過。",
+    "vibe": "Monday crash 開場跟結尾 callback 讀得下去，但中段 effort 階梯跟 infra 三件事偏 cheat sheet 節奏，readers 會書籤而不是轉發；對實際在寫 prompt 的工程師有用，對一般讀者黏不住。",
+    "clarity": "正文零「你／我」——全部用 release manager、team lead、harness、pipeline、工程師等具名主體，「你家」「你接下來」都關在 ClawdNote 裡，符合 pronoun 規則。",
+    "narrative": "Monday crash → postmortem 三條線拆解 → 週二事後檢討 callback 開場 dashboard 形成弧線，但 strip test 把 Monday 框架拿掉後剩下三件必知 + 五階梯 + 三 infra + UI default——仍是 release notes 骨架；個別段落（effort 階梯、infra 三件事）節奏回到 explain→list 模板。"
+  }
+}
