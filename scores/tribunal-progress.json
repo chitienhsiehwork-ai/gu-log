@@ -6419,5 +6419,98 @@
     "status": "FAILED",
     "failedStage": "librarian",
     "finishedAt": "2026-04-23T09:30:42+08:00"
+  },
+  "sp-62-20260214-batch340-dr-cabot-medical-ai.mdx": {
+    "article": "sp-62-20260214-batch340-dr-cabot-medical-ai.mdx",
+    "startedAt": "2026-04-23T09:30:54+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Glossary 中的 'Context Window' 出現在第 99 行但未連結至 glossary。其餘技術用語（RAG、embedding、LLM、fine-tuning、benchmark）不在 glossary.json 中，無需連結。整體 key term 覆蓋合格。",
+            "crossRef": "7 條內部連結全部驗證通過：3 條 Batch 340 系列連結（SP-59/60/61）、CP-10（Anthropic 醫療佈局）、SP-32（Prompt Caching / context 精準度）、CP-85（Steve Yegge / 選對工具）、CP-104（SleepFM 醫療 AI）。主題關聯性強。文中無 ShroomDog/Clawd 人名明文提及，無需 identity link。",
+            "sourceAlign": "來源為 The Batch #340（deeplearning.ai），文章聚焦 Harvard 團隊的 Dr. CaBot 醫療 AI 診斷系統，與 The Batch 該期主題完全吻合。Andrew Ng 的結語引文也正確歸因於原文。",
+            "attribution": "Andrew Ng 引文（第 143-144 行）明確標註出處。所有關鍵數據（60% vs 24% 診斷率、7,102 篇 CPC、300 萬篇 OpenAlex 摘要、26% 猜對率）均在研究脈絡中引述。ClawdNote 元件清楚區分意見與事實，無 opinion bleed 進 body text。"
+          }
+        },
+        "model": "opus-4.6",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All technical claims verified against The Batch #340 source: 7,102 CPC reports since 1923, OpenAI o3, text-embedding-3-small, 3M OpenAlex abstracts, top-2 retrieval, up to 25 search queries, CPC-Bench, 60% vs 24% (20 internists), 26% identification rate. Penicillin/1928 sidebar correct.",
+            "fidelity": "Faithful translation. Hedges preserved (e.g. 可能/或許 in closing Andrew Ng quote). Real-world caveats included (結構化 benchmark vs 真實臨床). ClawdNote opinions clearly marked and separated from body claims.",
+            "consistency": "Argument flows from motivation (醫生不只要會猜) → corpus (CPC) → architecture (RAG + o3) → results (quantitative + qualitative) → implications. 60/24=2.5x math checks out. ClawdNote meta-observations flagged as speculation."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-23T12:00:00Z",
+          "dimensions": {
+            "readability": 9,
+            "firstImpression": 9
+          },
+          "score": 9,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.6",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "fail",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 5,
+            "narrative": 8
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "persona": "Oral LHY feel is consistent — '好，那問題來了', '講了這麼多架構' transitions work well, and the med-student-exam analogy lands; a few architecture paragraphs slip into explainer mode keeping it at 8 not 9.",
+            "clawdNote": "Notes 4-6 carry genuine opinions (選對工具 vs 暴力 scaling, actor/doctor metaphor, input-expansion vs reasoning-quality framework), but notes 1-3 lean contextual/explanatory — just barely clears the half-with-opinion threshold.",
+            "vibe": "Topic inherently hooks (AI beats doctors 2.5x), the 26% < random-chance reveal is a real 'whoa' moment, ending avoids bullet recap and callbacks 'art vs science' — solid 8 read but doesn't reach can't-stop-sharing territory.",
+            "clarity": "Body text has 8+ instances of 你 ('你躺在急診室', '你去看醫生', '你要怎麼教', '你一定在想', '你不只是要對') and one 我 ('我覺得') — context disambiguates every time but frequency clearly violates the pronoun rule.",
+            "narrative": "Science-vs-art framing threads from opening to closing, 26% stat creates a genuine emotional peak, architecture section maintains tension via exam-prep analogy — not a linear report, but the middle section does settle into a steady explain rhythm."
+          }
+        },
+        "model": "opus-4.6",
+        "attempts": 3
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "FAILED",
+    "failedStage": "vibe",
+    "finishedAt": "2026-04-23T09:51:19+08:00"
   }
 }
