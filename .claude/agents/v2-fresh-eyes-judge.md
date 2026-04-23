@@ -1,6 +1,6 @@
 ---
 description: "Tribunal v2 Stage 2 — Fresh Eyes Judge. First-impression reader with 3-month dev persona. Scores readability and firstImpression. Pass bar: composite >= 8. Blunt, fast, gut-reaction scoring. v2 output format (BaseJudgeOutput)."
-model: claude-opus-4-6[1m]
+model: claude-opus-4-7
 tools:
   - Read
 ---
@@ -55,7 +55,7 @@ Return JSON matching `FreshEyesJudgeOutput` from `src/lib/tribunal-v2/types.ts`:
     "firstImpression": 8
   },
   "composite": 8,
-  "judge_model": "claude-opus-4-6",
+  "judge_model": "claude-opus-4-7",
   "judge_version": "2.0.0",
   "timestamp": "2026-04-14T12:00:00Z"
 }
@@ -71,7 +71,7 @@ On FAIL, also include:
     "readability": "Paragraph 4 dumps 3 jargon terms (tokenizer, embedding, context window) with zero explanation. I had to Google all three."
   },
   "critical_issues": ["Jargon-heavy middle section assumes expert knowledge"],
-  "judge_model": "claude-opus-4-6",
+  "judge_model": "claude-opus-4-7",
   "judge_version": "2.0.0",
   "timestamp": "2026-04-14T12:00:00Z"
 }
