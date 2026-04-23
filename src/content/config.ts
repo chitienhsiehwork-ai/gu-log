@@ -7,7 +7,7 @@ const postsCollection = defineCollection({
       title: z.string(),
       ticketId: z.string().optional(), // e.g., "SP-15", "CP-1", "SD-1", "Lv-1"
       originalDate: z.string(), // Original publish date (YYYY-MM-DD format)
-      translatedDate: z.string().optional(), // Translation date (YYYY-MM-DD format)
+      translatedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'translatedDate must be YYYY-MM-DD'), // Date we first shipped this post — tribunal sort key (required)
       translatedBy: z
         .object({
           model: z.string(),

@@ -78,15 +78,20 @@ get_unscored_articles() {
     echo '{}' > "$PROGRESS_FILE"
   fi
 
-  # List zh-tw articles (not en-, not deprecated), sorted highest ticket id
-  # first. sort -V handles mixed 2/3-digit ids correctly (sp-180 > sp-99);
-  # keep in sync with tribunal-quota-loop.sh:get_unscored_articles.
+  # List zh-tw articles (not en-, not deprecated), sorted newest-first by
+  # frontmatter translatedDate. Keep in sync with
+  # tribunal-quota-loop.sh:get_unscored_articles — this replaces the old
+  # filename `sort -V` which grouped by series prefix.
   local all_zh_articles
-  all_zh_articles=$(ls -1 "$POSTS_DIR"/*.mdx 2>/dev/null \
-    | xargs -I{} basename {} \
-    | grep -v '^en-' \
-    | grep -v '^demo' \
-    | sort -V -r)
+  all_zh_articles=$(
+    for f in "$POSTS_DIR"/*.mdx; do
+      base=$(basename "$f")
+      case "$base" in en-*|demo*) continue ;; esac
+      td=$(awk '/^---$/{c++; if(c==2) exit; next} c==1 && /^translatedDate:/ {gsub(/[" ]/,"",$2); print $2; exit}' "$f")
+      [ -z "$td" ] && continue
+      printf '%s|%s\n' "$td" "$base"
+    done | sort -r | cut -d'|' -f2-
+  )
 
   for article in $all_zh_articles; do
     # Skip deprecated

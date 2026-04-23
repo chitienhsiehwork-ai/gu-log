@@ -271,16 +271,24 @@ get_unscored_articles() {
     echo '{}' > "$PROGRESS_FILE"
   fi
 
-  # List zh-tw articles (not en-, not demo), sorted highest ticket id first.
-  # -V (version sort) treats the numeric ticket-id as a number so sp-180
-  # correctly ranks above sp-99 (plain `sort -r` did lex and put sp-60 >
-  # sp-180, making 2-digit tickets always run before 3-digit ones).
+  # List zh-tw articles (not en-, not demo), sorted newest-first by
+  # frontmatter translatedDate (the date we first shipped this post).
+  # Earlier we sorted by filename (sort -V), which grouped by prefix
+  # (all sp-* before all sd-* before all cp-*) and stranded slug-only
+  # files (no YYYYMMDD in filename) at the end. translatedDate lives in
+  # frontmatter for every post (Zod-required, see config.ts), so this is
+  # a uniform key across all series and naming conventions.
   local all_zh_articles
-  all_zh_articles=$(ls -1 "$POSTS_DIR"/*.mdx 2>/dev/null \
-    | xargs -I{} basename {} \
-    | grep -v '^en-' \
-    | grep -v '^demo' \
-    | sort -V -r)
+  all_zh_articles=$(
+    for f in "$POSTS_DIR"/*.mdx; do
+      base=$(basename "$f")
+      case "$base" in en-*|demo*) continue ;; esac
+      # Extract translatedDate from the first frontmatter block.
+      td=$(awk '/^---$/{c++; if(c==2) exit; next} c==1 && /^translatedDate:/ {gsub(/[" ]/,"",$2); print $2; exit}' "$f")
+      [ -z "$td" ] && continue
+      printf '%s|%s\n' "$td" "$base"
+    done | sort -r | cut -d'|' -f2-
+  )
 
   local article full_path status
   for article in $all_zh_articles; do
