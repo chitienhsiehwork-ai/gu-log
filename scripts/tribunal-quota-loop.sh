@@ -141,7 +141,10 @@ worker_worktree() {
   fi
 }
 
-# Ensure worker worktrees exist (idempotent). Called once at startup.
+# Ensure worker worktrees exist AND are synced with origin/main. Called once
+# at supervisor startup. Without the sync step, worker worktrees keep
+# whichever origin/main snapshot they had at `git worktree add` time, so
+# tribunal fixes merged to main never reach running workers.
 ensure_worktrees() {
   (( WORKERS == 1 )) && return 0
   local id wt
@@ -155,6 +158,10 @@ ensure_worktrees() {
       }
     fi
   done
+  # Fast-forward every worker worktree to whatever main currently is.
+  tlog "Syncing worker worktrees to origin/main…"
+  bash "$SCRIPT_DIR/tribunal-worker-bootstrap.sh" sync >> "$LOG_FILE" 2>&1 || \
+    tlog "WARN: worktree sync reported errors (see log)"
 }
 
 # Try to claim the next unscored article that isn't already claimed.
@@ -177,6 +184,15 @@ spawn_worker() {
   local wt
   wt=$(worker_worktree "$id")
   local slug="${article%.mdx}"
+
+  # Sync worker worktree to origin/main before each dispatch. Per-dispatch
+  # cost is one git fetch (~100ms with cached refs) plus a no-op hard reset
+  # if nothing changed; supervisor doesn't need a restart for new tribunal
+  # fixes to reach the next article's worker.
+  if (( WORKERS > 1 )); then
+    bash "$SCRIPT_DIR/tribunal-worker-bootstrap.sh" sync "$id" >> "$LOG_FILE" 2>&1 || \
+      tlog "  WARN: pre-dispatch sync failed for worker-$id (continuing with current snapshot)"
+  fi
 
   (
     cd "$wt" || exit 1

@@ -259,11 +259,17 @@ run_stage() {
 
   local post_path="$ROOT_DIR/src/content/posts/$post_file"
 
-  # Map model_label to CLI model ID (belt + suspenders: agent file also pins)
+  # Map model_label to CLI model ID (belt + suspenders: agent file also pins).
+  # [1m] suffix = 1M-token context window variant. Use for stages where the
+  # post + judge prompt may exceed 200k tokens (vibe scorer sees full post +
+  # scoring SSOT; librarian sees glossary + cross-refs). Quote to prevent
+  # bash glob expansion (no `claude-opus-4-6m` file on disk, but be safe).
   local model_id
   case "$model_label" in
-    opus-4.6) model_id="claude-opus-4-6" ;;
-    opus-4.7) model_id="claude-opus-4-7" ;;
+    opus-4.6)    model_id="claude-opus-4-6" ;;
+    opus-4.6-1m) model_id="claude-opus-4-6[1m]" ;;
+    opus-4.7)    model_id="claude-opus-4-7" ;;
+    opus-4.7-1m) model_id="claude-opus-4-7[1m]" ;;
     *) model_id="" ;;  # no override, rely on agent file
   esac
 
@@ -405,7 +411,10 @@ PROMPT
     writer_out="$(mktemp)"
     writer_rc=0
 
-    local -a writer_cmd=(timeout 900 claude -p --agent tribunal-writer --dangerously-skip-permissions --model claude-opus-4-6)
+    # Writer needs to read the full post + judge feedback + scoring SSOT; use
+    # the 1M-context variant so it never gets truncated mid-rewrite. Quote the
+    # model ID to keep bash from trying to glob-expand the [1m] suffix.
+    local -a writer_cmd=(timeout 900 claude -p --agent tribunal-writer --dangerously-skip-permissions --model 'claude-opus-4-6[1m]')
     "${writer_cmd[@]}" \
       "$writer_prompt" \
       > "$writer_out" 2>&1 || writer_rc=$?
@@ -516,7 +525,7 @@ declare -a STAGES=(
   "librarian:librarian:librarian:Librarian:2:opus-4.6:librarian"
   "factChecker:fact-checker:fact-checker:FactChecker:2:opus-4.7:factCheck"
   "freshEyes:fresh-eyes:fresh-eyes:FreshEyes:2:opus-4.6:freshEyes"
-  "vibe:vibe-opus-scorer:vibe-opus-scorer:VibeScorer:3:opus-4.6:vibe"
+  "vibe:vibe-opus-scorer:vibe-opus-scorer:VibeScorer:3:opus-4.6-1m:vibe"
 )
 
 for stage_def in "${STAGES[@]}"; do

@@ -201,6 +201,10 @@ gu-log 的文章草稿有三種來源，全部最終都變成 `src/content/posts
 - **Rewrite**: 沒過 → rewriter 改寫 → 再跑 → 最多 3 次
 - Agents 在 `.claude/agents/`，評分標準 SSOT 在 `scripts/vibe-scoring-standard.md`
 
+### Tribunal runtime ops
+
+Daemon 行為、graceful stop、2-worker 平行化、worker worktree 管理，全部寫在 **`docs/tribunal-runbook.md`**。**碰 tribunal 自動化之前先讀這個檔**，特別是 worker worktree 不會跟著 main 自動更新這個雷，要用 `scripts/tribunal-worker-bootstrap.sh sync` 手動刷。
+
 ## Style Guide (Quick Ref)
 
 完整規則見 `WRITING_GUIDELINES.md`。

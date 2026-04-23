@@ -10,6 +10,7 @@
 # Usage:
 #   scripts/tribunal-worker-bootstrap.sh create <id>    # create worktree, pnpm install
 #   scripts/tribunal-worker-bootstrap.sh status         # list all worker worktrees
+#   scripts/tribunal-worker-bootstrap.sh sync [id]      # fast-forward worker(s) to origin/main
 #   scripts/tribunal-worker-bootstrap.sh remove <id>    # git worktree remove
 #   scripts/tribunal-worker-bootstrap.sh remove-all     # remove every gu-log-worker-*
 #
@@ -17,6 +18,11 @@
 #   - Disk cost is ~500MB per worker (pnpm node_modules per worktree).
 #   - Safe to run create on an id that already exists: prints a warning and
 #     exits 0 so this is idempotent for supervisor startup.
+#   - `sync` MUST be run after every main-branch change to tribunal code or
+#     workers will continue running the stale snapshot of their worktree.
+#     Supervisor invokes `sync` at startup; also run it manually when you
+#     see new code on main that should reach running workers without a
+#     full service restart.
 
 set -euo pipefail
 
@@ -83,6 +89,64 @@ cmd_status() {
   fi
 }
 
+cmd_sync() {
+  local only_id="${1:-}"
+  cd "$MAIN_REPO"
+  git fetch origin main >/dev/null 2>&1 || { echo "WARN: git fetch origin main failed" >&2; }
+  local target_sha
+  target_sha=$(git rev-parse origin/main)
+
+  local dir id before_sha lockfile_changed pkg_changed
+  local any=0
+  for dir in "$WORKER_PARENT"/gu-log-worker-*; do
+    [ -d "$dir" ] || continue
+    id="${dir##*/gu-log-worker-}"
+    if [ -n "$only_id" ] && [ "$id" != "$only_id" ]; then
+      continue
+    fi
+    any=1
+
+    before_sha=$(git -C "$dir" rev-parse HEAD 2>/dev/null || echo "unknown")
+    if [ "$before_sha" = "$target_sha" ]; then
+      echo "worker-$id: already at ${target_sha:0:8} (origin/main) — nothing to do"
+      continue
+    fi
+
+    # Detect lockfile / package.json drift BEFORE reset so we can decide
+    # whether to re-run pnpm install after the reset.
+    lockfile_changed=0
+    pkg_changed=0
+    if ! git -C "$dir" diff --quiet "$before_sha" "$target_sha" -- pnpm-lock.yaml 2>/dev/null; then
+      lockfile_changed=1
+    fi
+    if ! git -C "$dir" diff --quiet "$before_sha" "$target_sha" -- package.json 2>/dev/null; then
+      pkg_changed=1
+    fi
+
+    echo "worker-$id: ${before_sha:0:8} -> ${target_sha:0:8}"
+    # Reset is safe: worker worktrees are detached-HEAD, ephemeral snapshots
+    # rebuilt from origin/main. Nothing worth preserving lives in them.
+    if ! git -C "$dir" reset --hard "$target_sha" >/dev/null 2>&1; then
+      echo "  ERROR: reset failed for worker-$id" >&2
+      continue
+    fi
+
+    if [ "$lockfile_changed" = 1 ] || [ "$pkg_changed" = 1 ]; then
+      echo "  pnpm-lock / package.json changed — running pnpm install"
+      ( cd "$dir" && pnpm install --frozen-lockfile >/dev/null 2>&1 ) \
+        || echo "  WARN: pnpm install failed for worker-$id" >&2
+    fi
+  done
+
+  if [ "$any" -eq 0 ]; then
+    if [ -n "$only_id" ]; then
+      echo "No worker worktree matches id=$only_id"
+    else
+      echo "No worker worktrees found — nothing to sync"
+    fi
+  fi
+}
+
 cmd_remove() {
   local id="${1:-}"
   [ -z "$id" ] && { echo "ERROR: missing worker id" >&2; usage 1; }
@@ -112,6 +176,7 @@ cmd_remove_all() {
 case "${1:-}" in
   create)     shift; cmd_create "$@" ;;
   status|ls)  cmd_status ;;
+  sync)       shift; cmd_sync "$@" ;;
   remove|rm)  shift; cmd_remove "$@" ;;
   remove-all) cmd_remove_all ;;
   ""|help|-h|--help) usage 0 ;;
