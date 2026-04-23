@@ -37,7 +37,7 @@ gu-log 寫的就是 AI / agent / tooling 圈，這個圈子有兩個特性：
 **操作原則**：
 
 - 寫 glossary、寫文章、跟 user 對話時，AI tooling 相關事實都要 verify
-- 不確定時用 `WebFetch` 查官方 repo / docs，不要靠直覺或舊記憶
+- **⚠️ `WebFetch` 會偷偷摘要，不是原文**：WebFetch 會把 HTML 丟給一個小 model 濃縮後才回傳，**常常漏掉具體 examples、數字、邊界條件**（實測 Anthropic blog 的 `create_issue_from_thread` 例子、`Cloudflare ~2,500 endpoints in ~1K tokens`、elicitation form/URL mode 區別都被摘掉）。**SP/CP 翻譯任務、引述原文、事實查核一律用 `curl -sL -A "Mozilla/5.0..." <url>` 抓原始 HTML 再解析**；WebFetch 只適合「這頁大概在講什麼」這種粗粒度判斷。翻譯基於 WebFetch 輸出 = 基於二手摘要，必踩雷。
 - **Subagent 的事實結論要自己驗證一次**：subagent 也會用聽起來合理但錯的詞（例如把 closed source 說成 source-available）。看到關鍵 claim 就 fetch 一次原始碼或 license 確認
 - 完整時間線參考 `src/data/glossary.json` 的 Claude Code 條目
 

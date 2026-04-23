@@ -204,10 +204,13 @@ cat /tmp/sd20/01-frontmatter.mdx /tmp/sd20/02-intro.mdx ... \
 
 短 call → stream 不會 idle → timeout window 關不起來。代價是 tool call 變多、吃 context 多一點，但能穩定產出。
 
-**什麼時候切 split mode**（不要等 user 講第三次）：
-- **Trigger 精確化**：user 回報 `error` / `retry` / `resume` / `proceed` / `continue` / `still error`，且**上一個想做但失敗的動作是 Write/Edit/NotebookEdit**——立刻切 Workaround A（`/tmp` chunks）。不要先 retry 同一個 Write 再觀察。
-- 同一個 Write call **連兩次** stream idle timeout → 第三次直接切 split，不要硬 retry
-- 預防性切換：已知高風險形狀就直接 `/tmp` chunks 開工。已知高風險形狀：長 MDX（frontmatter + 多段 `<ClawdNote>` + 長 prose）、>200 行的文章、任何一次要寫 >150 行的內容
+**什麼時候切 split mode — 一次就要切，不要等 user 講第二次**：
+
+**硬規則（First-Error-Means-Switch）**：任何形狀像「Error」、「Error again」、「retry」、「resume」、「continue」、「still error」、「/tmp strategy」的 user 訊息出現一次，且前一個失敗動作是 Write/Edit/NotebookEdit —— **立刻、無條件切 Workaround A（`/tmp` chunks）**。不要先 retry 同一個 Write 觀察、不要問 user「要不要換方式」、不要 partial write 看看能不能塞下去。**User 講第一次就是最後一次**。如果 user 得講第二次，那是播音 bug，不是策略問題。
+
+- **預防性 trigger**（根本不用等 error）：看到自己要寫的 MDX **≥150 行** 或**含 3 個以上 ClawdNote** 或**含 frontmatter + 多段 prose + code blocks 混排**——**開寫前就直接切 `/tmp` chunks**，不要先賭一次 big Write 看運氣。
+- 反向防呆：如果已經在 `/tmp` chunks 模式還報 error，**chunks 再切小**（每檔 ≤50 行），不是切回 big Write。
+- 舊 trigger 仍然保留（保險起見）：user 回報 `error` / `retry` / `resume` / `proceed` / `continue` / `still error`，且**上一個想做但失敗的動作是 Write/Edit/NotebookEdit**——立刻切 Workaround A。
 
 **Root cause 備忘**（2026-04-21 實驗結論）：
 疑似 Opus 4.7 adaptive thinking 在長 creative generation 中有短暫 token 停頓。停頓 > stream idle threshold 就斷線。跟**生成時間分佈**有關，不是**字符內容**問題 — kaomoji / RTL Arabic / multi-script 都 isolated 測過無關。
