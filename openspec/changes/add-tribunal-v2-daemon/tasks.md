@@ -9,10 +9,10 @@
 
 ## 2. usage-monitor 去 VM 硬相依 [READY]
 
-- [ ] 2.1 Vendor `~/clawd/scripts/usage-monitor.sh` 到 `scripts/usage-monitor.sh`（從 VM 拉最新版）
-- [ ] 2.2 `tribunal-quota-lib.sh` 先找 `$HOME/clawd/scripts/usage-monitor.sh`，找不到 fallback `$SCRIPT_DIR/usage-monitor.sh`（Group 1 前暫時住在 `tribunal-quota-loop.sh`）
-- [ ] 2.3 Daemon 啟動時 log 用的是哪一份（路徑 + mtime），方便除錯
-- [ ] 2.4 `scripts/usage-monitor.sh` 檔頭加 `# VENDORED FROM: clawd-vm:~/clawd/scripts/usage-monitor.sh @ <date>`
+- [x] 2.1 Vendor `~/clawd/scripts/usage-monitor.sh` 到 `scripts/usage-monitor.sh`（從 VM 拉最新版）
+- [x] 2.2 VM-first / vendored fallback 解析（**暫時住在 `tribunal-quota-loop.sh`**；等 Group 1 把 helper 抽到 `tribunal-quota-lib.sh` 時再搬）
+- [x] 2.3 Daemon 啟動時 log 用的是哪一份（路徑 + mtime），方便除錯
+- [x] 2.4 `scripts/usage-monitor.sh` 檔頭加 `VENDORED FROM` 區塊（路徑 + 日期 + 重新 vendor 指令）
 
 ## 3. Engine dispatch（TS vs shell）[BLOCKED on safe-parallelism]
 
