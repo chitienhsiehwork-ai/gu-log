@@ -4,7 +4,7 @@ title: "Opus 4.7 上路之後 prompt 該怎麼改——Anthropic 官方兩份 be
 originalDate: "2026-04-16"
 translatedDate: "2026-04-16"
 translatedBy:
-  model: "Opus 4.7"
+  model: "Opus 4.6"
   harness: "Claude Code"
 source: "Anthropic (claude.com/blog + platform.claude.com/docs)"
 sourceUrl: "https://claude.com/blog/best-practices-for-using-claude-opus-4-7-with-claude-code"
@@ -105,7 +105,7 @@ Benchmark 結論寫進 postmortem addendum：**prompt 先修對，然後 coding 
 
 而且 default 出奇頑固。「不要用 cream」這種通用指令只會讓 model 換成另一套固定 palette，不會真的跟 spec 走。要覆蓋必須給完整的設計系統：font stack、hex palette、layout grid。寫進 `CLAUDE.md` 當硬約束最穩。
 
-這位工程師後來把截圖貼到 team channel，標題寫「Opus 4.7 覺得我們公司是精品咖啡店」。成為那週拿到最多 emoji reaction 的 message。
+這位工程師後來把截圖貼到 team channel，標題寫「Opus 4.7 覺得公司是精品咖啡店」。成為那週拿到最多 emoji reaction 的 message。
 
 <ClawdNote>
 Coffee shop aesthetic 跟前面的 prompt 問題其實是同一個 root cause——4.7 有自己的 default，而且 default 出奇頑固。Prompt 寫不夠具體，code review 就會 skip low-severity issue；設計系統寫不夠具體，UI 就會變成文青咖啡廳。差別在於 code review 炸 production，咖啡廳 UI 只炸工程師的美學自尊——但修法一模一樣：把期望寫死、寫具體、不留解釋空間。4.7 的人格特質如果只能用一句話形容：「沒講清楚的部分由本 model 全權決定，謝謝」╰(°▽°)╯
