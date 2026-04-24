@@ -3,10 +3,10 @@
  * AiJudgeScore — Tribunal Quality Panel
  *
  * 4 judges, uniform 0-10 scale, new dimension map:
- *   Librarian (Sonnet)  → glossary · crossRef · sourceAlign · attribution
- *   Fact Check (Opus)   → accuracy · fidelity · consistency
- *   Fresh Eyes (Haiku)  → readability · firstImpression
- *   Vibe (Opus)         → persona · clawdNote · vibe · clarity · narrative
+ *   Librarian (Opus 4.7)    → glossary · crossRef · sourceAlign · attribution
+ *   Fact Check (Opus 4.7)   → accuracy · fidelity · consistency
+ *   Fresh Eyes (Opus 4.7)   → readability · firstImpression
+ *   Vibe (Opus 4.6[1m])     → persona · clawdNote · vibe · clarity · narrative
  *
  * Scores live in post frontmatter. No legacy keys (ralph/gemini/codex/sonnet).
  */
@@ -57,7 +57,7 @@ const { scores } = Astro.props;
 const hasScores =
   scores && (scores.librarian || scores.factCheck || scores.freshEyes || scores.vibe);
 
-const tribunalVersion = scores?.tribunalVersion ?? 1;
+const tribunalVersion = scores?.tribunalVersion ?? 3;
 
 function scoreColor(score: number): string {
   if (score >= 9) return 'score-high';
