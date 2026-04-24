@@ -54,6 +54,7 @@ mac-CC 有的 CCC 沒有的：
 - **uiux-auditor skill**（`.claude/skills/uiux-auditor/`）：改完視覺跑一次，強制雙主題截圖 + WCAG 對比
 - **iCloud Drive 直接存取**：可以直接讀 Obsidian vault 裡的草稿（`~/Library/Mobile Documents/com~apple~CloudDocs/Obsidian/gu-log-drafts/`），跑 `pnpm run obsidian:import`
 - **沒有沙箱網路限制**：可以下載、可以 curl、可以 fetch 外部 API
+- **Tribunal VM 存取**：tribunal daemon 跑在 `ssh clawd-vm`（`~/clawd/projects/gu-log`）。查狀態用 `/tribunal-monitor` skill（一鍵全面診斷），完整 ops 見 [`docs/tribunal-runbook.md`](../docs/tribunal-runbook.md)
 
 這些都該主動用，不要因為 CCC 不能用就不用。
 
