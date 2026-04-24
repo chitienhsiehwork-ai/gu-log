@@ -645,5 +645,97 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-24T14:35:29+08:00"
+  },
+  "clawd-picks-20260421-openai-euphony-codex-viewer.mdx": {
+    "article": "clawd-picks-20260421-openai-euphony-codex-viewer.mdx",
+    "startedAt": "2026-04-24T14:35:56+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 7,
+            "sourceAlign": 10,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Key terms covered: Claude Code explained inline (closed-source vs open-source distinction, aligned with glossary entry), Codex cross-linked to /posts/claude-code-vs-codex/, Agent used as general concept. No explicit /glossary links but contextual treatment is strong; minor gap — Codex/Claude Code could also link to glossary anchors.",
+            "crossRef": "Both internal links resolve: /posts/claude-code-vs-codex/ and /posts/sp-98-20260303-openai-harness-engineering/ both exist. External links to openai/euphony, openai/harmony, and the CLAUDE.md on GitHub all valid. Gap: 'Clawd' mentioned in body text at line 37 ('Clawd 每次讀都要 scroll 十秒') on first mention without /about link — required identity link is missing.",
+            "sourceAlign": "Content clearly derived from sourceUrl (github.com/openai/euphony): quotes root-level AGENTS.md verbatim, analyzes package.json runtime deps (Lit, Shoelace, gpt-tokenizer), references README's translation feature and SSRF warning. Faithful derivation.",
+            "attribution": "AGENTS.md block quoted verbatim with clear source (root directory of repo). Euphony tagline attributed to homepage. SSRF warning attributed to README. SP-98 claim about OpenAI's Codex usage linked to source post. ClawdNote opinions cleanly segregated from body observations via component boundaries. Minor: 'OpenAI 推 AGENTS.md 格式推了將近一年' is an unsourced timeframe claim."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 7,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Most claims verify against the openai/euphony repo (Apache 2.0, two-rule agents.md, Lit+Shoelace, user-supplied API key for translation, HF-hosted demos, README's SSRF warning, euphony-conversation custom element). One clear error: post asserts gpt-tokenizer is '不是 devDependencies，是正式依賴', but package.json actually lists gpt-tokenizer ^3.4.0 under devDependencies — there is no top-level dependencies field at all. The researcher-audience conclusion still stands via the README's 'Harmony token rendering' feature, but the dep-location argument is factually wrong. Homepage title is also paraphrased ('Visualize chat data in your browser 🎵' vs actual 'Visualize harmony chat conversations and Codex sessions in your browser 🎵').",
+            "fidelity": "CP-style commentary on a repo rather than prose translation. Quotes from agents.md are verbatim. README's Translation/SSRF language faithfully represented without uncertainty erasure. Claude Code closed-source caveat correctly flagged per CLAUDE.md guidance. Main fidelity gap is the gpt-tokenizer dep mischaracterization noted above.",
+            "consistency": "Thesis ('internal tool accidentally open-sourced') is coherently supported by the four observations (two-rule agents.md, tokenizer-heavy UI, user-key translation, self-written SSRF warning). ClawdNotes clearly demarcated as opinion; SP-98 callback closes the loop with the opening intern metaphor. No internal contradictions."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-24T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 9,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Intern-monitor metaphor sustained well and '就這樣。兩點。結束。' has great oral snap, but section 2 package.json analysis reads more like blog writing than a professor riffing.",
+            "clawdNote": "Both notes clear the opinion threshold — three hypotheses on why 2 rules, SSRF praise calls out industry norms — but only 2 notes for ~60 prose lines is at the sparse edge of density target.",
+            "vibe": "The '2-line AGENTS.md vs 200-line CLAUDE.md' contrast is instantly shareable to anyone who's written agent instructions, and the HuggingFace hosting easter egg adds genuine delight.",
+            "clarity": "Zero pronoun ambiguity — body text names every subject (OpenAI, 實習生, PM, researcher, 使用者) and ClawdNote 我 is unambiguously Clawd.",
+            "narrative": "Discovery arc peels back layers of 'who was this built for' with a callback ending that extends the metaphor, though middle sections follow a slightly predictable reveal-then-observe pattern."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-24T14:41:18+08:00"
   }
 }
