@@ -461,5 +461,97 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-24T14:23:29+08:00"
+  },
+  "sd-21-20260421-agent-search-vs-vector-db.mdx": {
+    "article": "sd-21-20260421-agent-search-vs-vector-db.mdx",
+    "startedAt": "2026-04-24T14:23:56+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 8,
+            "sourceAlign": 8,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Key glossary terms linked: Agent (/glossary#agent) and Context Window (/glossary#context-window). Other tech terms (HNSW, IVF, RAG, Milvus, sqlite-vec, embedding) are not in glossary.json so cannot be linked; all existing glossary-eligible terms are covered.",
+            "crossRef": "All 3 internal post links resolve to real files: /posts/cp-244-20260403-karpathy-llm-knowledge-base, /posts/sd-11-20260402-ai-agent-memory-architecture, /posts/recursive-language-models-mit. Thematic connections to memory architecture and RLM research are well-chosen. Minor gap: first mentions of ShroomDog and Clawd personas don't link to /about (they only appear inside their own note components).",
+            "sourceAlign": "SD original post with sourceUrl pointing to gu-log.vercel.app (self) — auto 8 per rubric. Content is clearly original ShroomDog Lab analysis.",
+            "attribution": "Numbers and claims are clearly attributed: text-embedding-3-small (1536 dim) cited with vendor, Azure Blob pricing cited with specific rate ($0.02/GB/月), MIT RLM study attributed with link, Milvus architecture specifics named. ClawdNote and ShroomDogNote opinions are structurally separated from body facts via components — reader can always tell commentary from analysis."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Core numbers verify: text-embedding-3-small=1536 dims, 1536x4~=6KB, 50M*1536*4~=300GB, 5B*1536*4~=30TB, int8 quant ~75GB, Standard_E32s_v5=256GiB RAM, Azure Blob hot ~$0.02/GB/mo, Milvus etcd+MinIO+pods architecture. Minor imprecisions: HNSW graph overhead (~1.5-2x raw vectors) unaccounted so '300GB RAM' slightly understates real HNSW footprint; '~1KB per chunk' is on the small end vs common 2-4KB -- neither changes the order-of-magnitude conclusion.",
+            "fidelity": "SD original from ShroomDog Lab -- no external source to misrepresent. ClawdNote and ShroomDogNote blocks cleanly separate opinion/speculation from the body's factual analysis. Cross-refs to /posts/cp-244 (Karpathy), /posts/sd-11 (agent memory), /posts/recursive-language-models-mit, /glossary#context-window, /glossary#agent all point to internal resources and are not overstated.",
+            "consistency": "Argument arc coherent throughout: problem (fire truck / succulent) -> math (per-user sandbox sizing) -> IO contrast at 10K users -> thought experiment at 1M users -> three-cliff taxonomy (user count, per-user data, cross-user search) -> conclusion. Cost comparisons ($16 vs $3,000; $1,600 vs $180,000) follow from the stated assumptions without internal contradiction. Opinions in Clawd/ShroomDog blocks clearly marked; no fact/speculation blurring."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-24T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 9
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 9,
+            "vibe": 9,
+            "clarity": 9,
+            "narrative": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "消防車澆多肉 opener + 獨棟透天/公寓大樓 sustained analogy + 「嗯。30TB 的記憶體。」dramatic pause — reads like LHY on stage doing whiteboard math.",
+            "clawdNote": "All five notes carry explicit opinions (先數再選, 同一顆藥 analogy, $16 vs $3000 attitude, defends Milvus in right context, 文件好看不是選技術理由) — zero Wikipedia footnotes.",
+            "vibe": "Cost comparison numbers ($16 vs $3,000) are screenshot-and-send material; ShroomDog confessing own Milvus mistake adds authenticity that makes the analysis trustworthy and shareable.",
+            "clarity": "Body text consistently uses 使用者/agent/系統/工程師 — zero ambiguous pronouns; ClawdNote and ShroomDogNote speakers always explicit.",
+            "narrative": "Escalates through scale jumps (1→10K→1M), 30TB dramatic pause creates peak tension, three-cliff insight subverts single-answer expectation, 噴水壺 ending callbacks to 消防車 opener."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-24T14:29:35+08:00"
   }
 }
