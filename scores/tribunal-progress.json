@@ -1150,9 +1150,27 @@
         "attempts": 1
       },
       "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Main story flows — concrete scenarios (10 AM ship/3 PM kill, 凌晨三點的實習生) carry the tech. The k8s/AKS comparison table in the AWS ClawdNote got dense (Argo Rollouts, KEDA, AlertManager) and I skimmed it, but it's an optional aside not load-bearing.",
+            "firstImpression": "Opening hook is specific and pulls you in. The Clawd pushback notes (Type 1/Type 2 decisions, 18-hour day framed as warning not flex, senior-typology split) make this feel honest instead of hype. Would finish and probably share with founder/CTO friends."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
         "status": "in_progress",
         "score": null,
-        "model": "opus-4.7",
+        "model": "opus-4.6-1m",
         "attempts": 1
       }
     },
@@ -1260,19 +1278,192 @@
         "attempts": 1
       },
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All technical claims verifiable against TechCrunch source — 12 partners + 40 additional orgs split, partner list (Amazon/Apple/Broadcom/Cisco/CrowdStrike/Linux Foundation/Microsoft/Palo Alto Networks) matches source verbatim, 'thousands of zero-day vulnerabilities' over 'a few weeks', 'one to two decades old', 'Capybara' codename, Fortune leak, 'human error' attribution, and the leaked 'by far the most powerful AI model we've ever developed' quote all check out. Prior fabrications flagged in the existing tribunal record (UKAISI 73%, OpenBSD 27 years, 198/1% stats, Google/JPMorgan/NVIDIA partners) are absent from this version — they were removed in rewrite. Minor translation imprecision: 'critical' → '高嚴重性' (critical is the top CVSS tier, slightly above 'high') but not misleading.",
+            "fidelity": "Translation faithfully represents the TechCrunch source — partner enumeration matches exactly, hedges preserved ('Anthropic 聲稱已經...進行了「持續的對話」' preserves 'claims' framing), Pentagon legal battle framing maintains attribution, no uncertainty erasure. The leaked-quote translation matches the source's direct quotation. ClawdNote commentary (naming snark, Linux Foundation take, asymmetry framing, cross-ref to prior Opus 4.6 sabotage report) is cleanly isolated inside <ClawdNote> components and never leaks into body claims.",
+            "consistency": "Narrative arc (leak → announcement → Glasswing rules → partner significance → Pentagon legal tension → defense-asymmetry rationale → conclusion) flows coherently without internal contradictions. Every ClawdNote opinion is demarcated via component boundary — the 'line can't hold forever' speculation and the 'information asymmetry vs attack asymmetry' framing are clearly marked as commentary, not reported fact."
+          }
+        },
         "model": "opus-4.7",
+        "attempts": 2
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 9,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "超順。開頭『造出來然後鎖起來』直接鉤住，五段結構乾淨（洩漏→Glasswing→官司→為什麼不發布→結語），zero-day / data lake 這類詞都有上下文解釋，沒有一個地方要我停下來重讀。水豚 codename 這個具體 anchor 幫記憶很多。",
+            "firstImpression": "讀完了而且想轉給朋友。『Anthropic 造出最強模型然後不賣』本身就是好梗，加上洩漏前傳 + 政府官司對比 + 12 家巨頭名單（Apple/Microsoft/Linux Foundation）都是具體料。結尾回扣『被迫提前翻頁，因為有人忘了鎖 data lake』收得漂亮。扣一分是第三段（官司）資訊密度比前面低，稍微掉速。"
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Opening hook and rhythmic punches (「數千個。幾週。」) nail oral feel; Glasswing partner-list section slides into news-report mode, keeping it at 8 not 9.",
+            "clawdNote": "All 4 notes take clear stances — Note 4's 「用資訊不對稱對抗攻防不對稱」framework with sabotage-report cross-ref is highlight-worthy analysis, not just explanation.",
+            "vibe": "Leak-first structure hooks immediately and political-tension section genuinely surprises; partner list paragraph is the one flat spot that prevents 9.",
+            "clarity": "Zero 你/我 in body text; every claim attributed by name (Anthropic 說, TechCrunch 報導); reader always knows who is speaking.",
+            "narrative": "Non-linear arc with question → leak → capability → political surprise → philosophical reasoning → callback conclusion; middle sections occasionally fall into explain→ClawdNote template rhythm."
+          }
+        },
+        "model": "opus-4.6-1m",
         "attempts": 1
       }
     },
-    "topLevelAttempts": 1
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-24T22:42:08+08:00"
   },
   "cp-297-20260415-karpathy-karpathy-ai.mdx": {
     "article": "cp-297-20260415-karpathy-karpathy-ai.mdx",
     "startedAt": "2026-04-24T22:34:08+08:00",
     "stages": {
       "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Key glossary terms linked on first mention: Tools for Thought, Agent (with inline Chinese gloss), Vibe Coding, Codex. No major glossary gaps; 'Obsidian' and 'RAG' surface in prose but neither is a standalone glossary entry.",
+            "crossRef": "Both internal post links resolve: /posts/cp-244-20260403-karpathy-llm-knowledge-base and /posts/cp-256-20260406-karpathy-karpathy-idea-file-llm-agent exist in src/content/posts/. ShroomDog/Clawd are not named as entities in body prose (only the ClawdNote component appears), so /about identity link not required.",
+            "sourceAlign": "Content faithfully reconstructs Karpathy's tweet thread about Farzapedia and the four principles (Explicit / Yours / File over App / BYOAI) plus the 'agent proficiency is a core skill' closing — matches declared sourceUrl on x.com/karpathy.",
+            "attribution": "Three direct Karpathy quotes are blockquoted with original English; Farza and Farzapedia named as the concrete example; Steph Ango credited for 'File over App' with stephanango.com URL; ClawdNote opinions clearly separated from body facts throughout."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All direct quotes match source verbatim (Explicit/Yours/BYOAI principles, 'CORE SKILL of the 21st century', 'keep the AI companies on their toes'). Steph Ango correctly identified as Obsidian CEO and author of 'File over App'. Farzapedia description (markdown + images, local files) matches source. Cross-ref glossary terms (Tools for Thought, Agent, Vibe Coding, Codex) are accurate.",
+            "fidelity": "Translation is generally faithful and preserves structure. One minor uncertainty erasure: source says 'in principle, this AI could \"know\" you in its weights' (hedged), but translation adds '離「真正懂使用者的私人 AI」只差臨門一腳', which extends slightly beyond Karpathy's hedge. ClawdNotes clearly separated from body; opinions attributed as ClawdNote commentary.",
+            "consistency": "Argument flows cleanly from status-quo critique → four principles → agent-proficiency thesis. Each ClawdNote is clearly marked as opinion/editorial; body stays focused on translating Karpathy's argument. Cross-refs (cp-244 earlier Wiki LLM post, cp-256 idea-file post) provide coherent intertextual frame."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "結構超清楚，四個原則編號列得明明白白，跳著讀也不會迷路。embedding space、vendor lock-in、fine-tuning 這些術語都有在句子裡順便解釋，沒卡住。只有「AI 個人化的 paradigm」那句稍微重讀一次，其他一路順。",
+            "firstImpression": "標題直接開嗆 AI 公司，Karpathy 掛名自帶流量，四原則一條比一條有殺傷力，結尾「用最無聊的東西——檔案——把自己的記憶握在手裡」收得漂亮。朋友群組討論 AI 一定轉出去。"
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "in_progress",
+        "score": null,
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1
+  },
+  "cp-296-20260415-article-inferencex-v2-nvidia-blackwell-amd.mdx": {
+    "article": "cp-296-20260415-article-inferencex-v2-nvidia-blackwell-amd.mdx",
+    "startedAt": "2026-04-24T22:35:07+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Claude Code linked to /glossary#claude-code at each meaningful mention (Fast Mode, MTP, Anthropic/SemiAnalysis sections); Codex mentioned once in roadmap unlinked — minor gap. Other glossary terms (Agent, Subagent, MCP) not central to this benchmark piece.",
+            "crossRef": "Clawd identity link to /about present at first mention. All 3 internal post links verified: CP-212 (disagg planning), CP-198 (OFC/GTC OCI), CP-217 (GTC 2026 inference) — all resolve to real slugs in src/content/posts/. Thematic connections well chosen.",
+            "sourceAlign": "Content faithfully derived from the declared SemiAnalysis InferenceX v2 newsletter — GB300/B300/MI355X Pareto, Jensen 30x→100x, disagg+wideEP+MTP framing, AMD composability critique, vLLM CI 0% all match source scope.",
+            "attribution": "SemiAnalysis cited as source throughout; Jensen 30x claim properly framed to GTC 2024; Simon Mo named as vLLM maintainer; Crusoe/Nebius/OpenRouter numbers attributed. Minor: Anthropic Fast Mode 2.5x / 6-12x figures stated without explicit Anthropic citation."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All key technical claims verified against SemiAnalysis source: DeepSeek R1 671B/37B MoE with 256 routed + 1 shared expert; NVL72 900 GB/s NVLink vs IB 50-100 GB/s; 98x GB200 NVL72 FP4 and 100x GB300 NVL72 FP4 at 116 tok/s/user; 9.7x→65x tokens/dollar (40→116 tok/s/user); MTP $0.251→$0.057/M (4.4x) and 21x at 150 tok/s/user ($2.35→$0.11); 8192-token prefill ≈ 500MB KV; $3.3M GB200 NVL72 rack; $5M extra rack spend without fast mode; 288GB HBM3e vs 192GB; AMD rack-scale Q2 2027; 97.36% GitHub Actions uptime; $6k/day Claude spend; Blackwell Ultra FP8 1.5x / FP4 1.1x; fast mode 2.5×/6-12× pricing. Only minor imprecisions: '2025-12→2026-01' specifies months source phrased as 'under two months'.",
+            "fidelity": "Faithful representation of source. Hedges preserved ('we suspect' → 『SemiAnalysis 推測』; 'might' → 『可能』). AMD 'over six months behind' composability gap and Lisa Su/Anush Elangovan positive framing retained. ClawdNote transparently flags a source-internal inconsistency (summary says 'H100 disagg+wideEP+MTP FP8' baseline, detail says without MTP) and picks the more conservative reading — this is exemplary translator honesty beyond standard fidelity. Minor enrichments: 'Mercedes 既做捷運公車也做賽車' introduces a brand name not in source (factually true, but unsourced flourish); 'Anthropic 最近跟 Opus 4.6 一起推出 fast mode' tightens a temporal claim source left looser.",
+            "consistency": "Argument arc flows logically: throughput/latency trade-off → prefill/decode → disagg → EP/Wide EP → Jensen 30x payoff → NVL72 rack-scale economics → Blackwell Ultra → AMD composability problems → software over time → MTP → fast mode economics → SKU ranking → precision gating → roadmap → conclusion. ClawdNote opinions clearly marked as commentary (Jensen chess metaphor, DeepSeek workload selection speculation, taxi-vs-bus fast mode analogy) and not blended into source facts. Cross-references to CP-212/CP-198/CP-217 attributed. The 98x-vs-100x baseline ambiguity is flagged rather than swept under; no internal contradictions."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "freshEyes": {
         "status": "in_progress",
         "score": null,
         "model": "opus-4.7",
