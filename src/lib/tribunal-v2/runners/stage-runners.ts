@@ -53,7 +53,7 @@ export const stage0JudgeRunner: StageRunner<
       })();
 
     const { parsed } = await runJudgeAgent<WorthinessJudgeOutput>({
-      agent: 'v2-worthiness-judge',
+      agent: 'worthiness-judge',
       timeoutSec: TIMEOUT.JUDGE_STAGE0,
       buildPrompt: (outputPath) => `Evaluate worthiness for this post: ${articlePath}
 
@@ -83,7 +83,7 @@ export const stage1JudgeRunner: StageRunner<
       })();
 
     const { parsed } = await runJudgeAgent<VibeJudgeOutput>({
-      agent: 'v2-vibe-judge',
+      agent: 'vibe-opus-scorer',
       timeoutSec: TIMEOUT.JUDGE_VIBE,
       buildPrompt: (outputPath) => `Score this post: ${articlePath}
 
@@ -109,7 +109,7 @@ export const stage4JudgeRunner: StageRunner<
       })();
 
     const { parsed } = await runJudgeAgent<FinalVibeJudgeOutput>({
-      agent: 'v2-vibe-judge',
+      agent: 'vibe-opus-scorer',
       timeoutSec: TIMEOUT.JUDGE_VIBE,
       buildPrompt: (outputPath) => `Score this post (Stage 4 Final Vibe mode): ${articlePath}
 
@@ -148,7 +148,7 @@ export const stage2JudgeRunner: StageRunner<
       })();
 
     const { parsed } = await runJudgeAgent<FreshEyesJudgeOutput>({
-      agent: 'v2-fresh-eyes-judge',
+      agent: 'fresh-eyes',
       timeoutSec: TIMEOUT.JUDGE_FRESH_EYES,
       buildPrompt: (outputPath) => `Fresh-eyes review this post: ${articlePath}
 
@@ -178,7 +178,7 @@ export const stage3FactCorrectorRunner: StageRunner<
       })();
 
     const { parsed } = await runJudgeAgent<FactCorrectorOutput>({
-      agent: 'v2-fact-corrector',
+      agent: 'fact-checker',
       timeoutSec: TIMEOUT.WORKER_FACT_CORRECTOR,
       buildPrompt: (outputPath) => `Fact-correct this post: ${articlePath}
 
@@ -208,7 +208,7 @@ export const stage3LibrarianRunner: StageRunner<
       })();
 
     const { parsed } = await runJudgeAgent<LibrarianOutput>({
-      agent: 'v2-librarian-worker',
+      agent: 'librarian',
       timeoutSec: TIMEOUT.WORKER_LIBRARIAN,
       buildPrompt: (outputPath) => `Add library links to this post: ${articlePath}
 
@@ -234,7 +234,7 @@ export const stage3JudgeRunner: StageRunner<
       })();
 
     const { parsed } = await runJudgeAgent<FactLibJudgeOutput>({
-      agent: 'v2-factlib-judge',
+      agent: 'fact-checker',
       timeoutSec: TIMEOUT.JUDGE_FACTLIB,
       buildPrompt: (outputPath) => `Judge FactLib for this post: ${articlePath}
 
@@ -274,7 +274,7 @@ export const stage1WriterRunner: StageRunner<
       })();
 
     await runWriterAgent({
-      agent: 'v2-stage-writer',
+      agent: 'tribunal-writer',
       timeoutSec: TIMEOUT.WRITER_STAGE,
       prompt: `Rewrite this post to address Stage 1 (Vibe) judge failures: ${articlePath}
 
@@ -305,7 +305,7 @@ export const stage2WriterRunner: StageRunner<
       })();
 
     await runWriterAgent({
-      agent: 'v2-stage-writer',
+      agent: 'tribunal-writer',
       timeoutSec: TIMEOUT.WRITER_STAGE,
       prompt: `Rewrite this post to address Stage 2 (FreshEyes) judge failures: ${articlePath}
 
@@ -334,7 +334,7 @@ export const stage4WriterRunner: StageRunner<
       })();
 
     await runWriterAgent({
-      agent: 'v2-final-vibe-writer',
+      agent: 'tribunal-writer',
       timeoutSec: TIMEOUT.WRITER_FINAL_VIBE,
       prompt: `Rewrite this post to address Stage 4 (Final Vibe) regression: ${articlePath}
 

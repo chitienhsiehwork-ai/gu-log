@@ -203,7 +203,7 @@ gu-log 的文章草稿有三種來源，全部最終都變成 `src/content/posts
 
 ### Tribunal runtime ops
 
-Daemon 行為、graceful stop、2-worker 平行化、worker worktree 管理，全部寫在 **`docs/tribunal-runbook.md`**。**碰 tribunal 自動化之前先讀這個檔**，特別是 worker worktree 不會跟著 main 自動更新這個雷，要用 `scripts/tribunal-worker-bootstrap.sh sync` 手動刷。
+Daemon 行為、graceful stop、2-worker 平行化、worker worktree 管理，全部寫在 **`docs/tribunal-runbook.md`**。**碰 tribunal 自動化之前先讀這個檔**，特別是 worker worktree 不會跟著 main 自動更新這個雷，要用 `scripts/tribunal-worker-bootstrap.sh sync` 手動刷。mac-CC 可以 SSH 到 VM 查即時狀態——用 `/tribunal-monitor` skill 或見 [`mac-CC-playbook`](playbooks/mac-CC-playbook.md)。
 
 ## Style Guide (Quick Ref)
 

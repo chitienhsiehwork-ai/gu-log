@@ -109,8 +109,8 @@ Vercel build / tribunal / validate-posts / CI 沒過：
 
 - `vibe-opus-scorer.md`（Opus）→ persona / clawdNote / vibe / clarity / narrative
 - `fact-checker.md`（Opus）→ accuracy / fidelity / consistency（要 WebFetch 驗 sourceUrl）
-- `librarian.md`（Sonnet）→ glossary / crossRef / sourceAlign / attribution
-- `fresh-eyes.md`（Haiku）→ readability / firstImpression
+- `librarian.md`（Opus 4.7）→ glossary / crossRef / sourceAlign / attribution
+- `fresh-eyes.md`（Opus 4.7）→ readability / firstImpression
 
 每個 agent 寫 JSON 到 `/tmp/tribunal-<ticketId>-<judge>.json`，schema 照各 agent spec。
 
@@ -204,7 +204,9 @@ Maintainer 明確拒絕 Opus 4.7 的寫作聲音 + vibe 評分校準。因此：
 - **SP writer**（`tools/sp-pipeline/internal/llm/claude.go` 的 `ClaudeOpusPinned`）→ 鎖 `claude-opus-4-6[1m]`
 - **Vibe Scorer**（`.claude/agents/vibe-opus-scorer.md`）→ 鎖 `claude-opus-4-6[1m]`
 - **Tribunal Writer**（`.claude/agents/tribunal-writer.md`）→ 鎖 `claude-opus-4-6[1m]`
-- **Fact Checker / v2-factlib-judge** → 用 `opus` alias（追最新，fact-check 要 reasoning 強的，沒有 voice 問題）
+- **Fact Checker**（`.claude/agents/fact-checker.md`）→ 用 `opus` alias（追最新，fact-check 要 reasoning 強的，沒有 voice 問題）
+- **Librarian**（`.claude/agents/librarian.md`）→ `claude-opus-4-7`
+- **Fresh Eyes**（`.claude/agents/fresh-eyes.md`）→ `claude-opus-4-7`
 
 修這些檔案之前先讀 frontmatter 上方的 PIN 註解。要改 pin 需要 user 明確同意。
 
@@ -213,6 +215,8 @@ Maintainer 明確拒絕 Opus 4.7 的寫作聲音 + vibe 評分校準。因此：
 **核心原則：先寫好 zh-tw，通過 tribunal 後才翻 en。不要兩個版本同時寫、同時改。**
 
 原因很簡單：tribunal 回來的修改意見要 iterate，如果兩版都寫了，每輪 rewrite 要改兩份，token 花費直接翻倍。zh-tw 是主版本，en 是衍生翻譯，先把主版本品質打到及格再翻。
+
+**晶晶體防線**：zh-tw 文章禁止裝飾性中英夾雜。API、CLI、MCP、model 名、產品名等技術專有名詞保留英文 OK，但「這個 approach 很 solid」「deliver 一個 production-ready 的 output」這種寫法一律改成自然中文。Tribunal 的 vibe scorer 會對晶晶體扣分（clarity -3, vibe -4）。
 
 ### 流程
 
@@ -223,10 +227,10 @@ Step 1: 寫 zh-tw 版
   - validate-posts.mjs 確認格式
 
 Step 2: Tribunal review（spawn subagent）
-  - Vibe Scorer（Opus）：五維評分
-  - Fact Checker（Opus）：技術準確度
-  - Librarian（Sonnet）：glossary / cross-ref
-  - Fresh Eyes（Haiku）：陌生讀者第一印象
+  - Vibe Scorer（Opus 4.6[1m]）：五維評分
+  - Fact Checker（Opus 4.7）：技術準確度
+  - Librarian（Opus 4.7）：glossary / cross-ref
+  - Fresh Eyes（Opus 4.7）：陌生讀者第一印象
   - Pass bar：Vibe composite ≥ 8 且沒有任何維 < 8
 
 Step 3: Iterate（如未通過）
