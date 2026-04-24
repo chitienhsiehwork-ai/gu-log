@@ -369,5 +369,97 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-24T14:16:55+08:00"
+  },
+  "sp-176-20260421-dkundel-codex-chronicle-stop-explaining.mdx": {
+    "article": "sp-176-20260421-dkundel-codex-chronicle-stop-explaining.mdx",
+    "startedAt": "2026-04-24T14:17:26+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Key glossary terms linked: 'agent harness' → /glossary#agent-harness inline, and Codex → /glossary#codex in 延伸閱讀. 'Agent' used naturally throughout without needing a link.",
+            "crossRef": "Internal /posts/sp-173-20260411-hwchase17-harness-memory-lockin/ link resolves to existing post; thematic tie to harness/memory lock-in is strong. Glossary anchors valid. No body-text mention of ShroomDog/Clawd requiring /about link (Clawd voice only appears via ClawdNote component).",
+            "sourceAlign": "Content clearly derived from @dkundel's thread — sync docs + message Romain example, three-layer memories/vault/plugins architecture, Chronicle framing — with extension to official Chronicle docs (explicitly linked in 延伸閱讀).",
+            "attribution": "Kundel's quote 'sync with the latest docs draft...' and closing 'I can talk to Codex the way I would with a colleague' properly attributed; official Chronicle doc phrases ('uses rate limits quickly', 'increases risk of prompt injection') marked as 官方文件的原文措辭; Karpathy vault reference and Simon Willison prompt-injection link cited; ClawdNote opinions cleanly separated from body facts."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Key Chronicle claims verified against developers.openai.com/codex/memories/chronicle: opt-in research preview, ChatGPT Pro-only on macOS, not available in EU/UK/Switzerland, requires Screen Recording + Accessibility permissions, exact phrases 'uses rate limits quickly' and 'increases risk of prompt injection', and memories stored as unencrypted markdown files locally — all correct. Minor imprecision: post explains rate-limit burn as 'Chronicle 每次 prompt 都帶更多螢幕 context 進模型' but the doc attributes it to sandboxed background agents generating memories from screen captures, not bigger user prompts. Also frames Chronicle as '螢幕錄影 agent' when the doc describes it as screen captures/screenshot frames (the macOS permission is called 'Screen Recording' so the framing is understandable but slightly imprecise). Neither is materially misleading.",
+            "fidelity": "Faithful representation of both sides. Kundel's workflow (six-step 'sync docs + message Romain') preserved; his closing 'some risks' line quoted verbatim to justify the critique frame. Chronicle doc's warnings quoted with exact English phrases, no uncertainty erasure. ClawdNote additions (FileVault speculation, OpenAI-employee threat model asymmetry) are clearly scoped inside the ClawdNote component and not conflated with Kundel's or OpenAI's claims. Tweet body itself could not be fetched (X returned logged-out shell), so the exact 'sync with the latest docs draft changes and message Romain when you are done' phrasing and the six-step decomposition are unverified against the source.",
+            "consistency": "Argument arc is coherent: colleague analogy → three-layer context model (memories/vault/plugins) → Chronicle as the fourth 'screen eye' layer → missing colleague properties (accountability, asking for confirmation) → hidden costs from official doc → closing '不問' resolution tying usage upside to risk. ClawdNotes consistently marked as opinion/speculation via the component; the 'which Romain?' thought experiment explicitly distinguishes traceable memories path from inferential Chronicle path. No internal contradictions detected."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-24T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 9,
+            "vibe": 9,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "行政助理三層 context 比喻和「履歷表只貼優點」framing 是純 LHY 教學風，口語感全篇維持；section 4 風險列舉略偏報導調。",
+            "clawdNote": "五個 note 都有明確立場——note 2 拆解 Romain 推論透明度、note 3 對 auto-ingest vault 直接判死刑、note 5 點出 Kundel 是 OpenAI 員工的威脅模型差異，吐槽密度和洞察品質都到位。",
+            "vibe": "demo→risks 的調查式敘事弧讓人想轉發給正在興奮試 Codex 的朋友，教育性和娛樂性同時在線。",
+            "clarity": "全篇 body text 零你/我，每句都有具名主詞（Kundel / Codex / Chronicle / 官方文件），ClawdNote 內第一人稱使用正確。",
+            "narrative": "section 3『同事比喻少了幾個零件』製造真實轉折，結尾 callback 開頭的小明場景收得漂亮；section 4 三個風險依序列舉稍有 template 節奏。"
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-24T14:23:29+08:00"
   }
 }
