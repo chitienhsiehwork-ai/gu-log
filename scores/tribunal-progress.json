@@ -917,5 +917,332 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-24T15:42:02+08:00"
+  },
+  "sp-182-20260423-anthropic-claude-code-april-postmortem.mdx": {
+    "article": "sp-182-20260423-anthropic-claude-code-april-postmortem.mdx",
+    "startedAt": "2026-04-24T22:27:59+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 9,
+            "sourceAlign": 10,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Key terms linked — Claude Code → /glossary#claude-code (twice, lines 18 & 72), harness → /glossary#harness (line 117). Minor gap: 'Claude Cowork' mentioned on line 20 but not linked (Cowork exists in glossary.json); 'Agent' used conceptually (Claude Agent SDK) without link.",
+            "crossRef": "All three internal post links resolve to real slugs: sp-175-20260416-anthropic-opus-4-7-prompting-best-practices, sp-177-20260421-pawelhuryn-intent-first-4-7-migration, sp-180-20260423-anthropic-mcp-production-agents. Identity links (ShroomDog/Clawd) not required — body text has no speaker references, only <ClawdNote> components. SP-175 / SP-177 thematic callbacks in Bug 3 ClawdNote are on-point.",
+            "sourceAlign": "Content clearly derived from declared sourceUrl. Verified against raw HTML of anthropic.com/engineering/april-23-postmortem: all specific claims present — clear_thinking_20251015, keep:1, v2.1.101, v2.1.116, 'Length limits' system prompt, /feedback, @ClaudeDevs, April 23 reset. Three-bug structure and timeline faithful to source.",
+            "attribution": "Quotes clearly attributed to Anthropic's postmortem ('原文的描述是', '原文用字是'); system prompt shown as code block with context; 3% eval drop attributed to Anthropic's ablation; Kahneman/Thaler 401(k) analogy and Google SRE 'blameless postmortem' term properly cited. ClawdNote opinions cleanly isolated from body facts via component boundaries. 'Anthropic 的推論' explicitly marks inference vs fact."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Every verifiable claim matches the Anthropic postmortem: dates (3/4, 3/26, 4/7, 4/10, 4/16, 4/20, 4/23), versions (v2.1.101, v2.1.116), API header clear_thinking_20251015 with keep:1, the ≤25/≤100 word length limits, 3% eval drop on both 4.6 and 4.7, xhigh/high default effort levels, and the three affected product lines (Claude Code, Claude Agent SDK, Claude Cowork).",
+            "fidelity": "Source faithfully represented without uncertainty erasure; the 'In combination with other prompt changes' caveat is preserved as '跟其他幾個 prompt 變更一起上線…只是那波改動裡的主嫌，不是唯一變數', and the direct quote 'This was the wrong tradeoff' is kept verbatim with attribution.",
+            "consistency": "Narrative arc (three cost-saving decisions -> three intelligence regressions) is supported by source evidence for each bug; ClawdNote opinions (default bias analogy, blameless postmortem framing, cross-refs to SP-175/SP-177/SP-180) are clearly scoped inside <ClawdNote> tags and marked as commentary rather than source claims."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Flows cleanly — 3 bugs, 3 sections, each with a real-world analogy (米其林減量、401k default、消防演習) that rescues me from jargon like 'harness'、'ablation'、'cache evict'; only Bug 2 technical details (clear_thinking header, subsystem 交叉路口) made me slow down briefly.",
+            "firstImpression": "Strong hook — 'Claude Code 變笨了' is something I actually noticed myself last month so I want to know why; timeline bullets up front made me commit to reading, and the 結語 'Bug 1 省 latency / Bug 2 省 token / Bug 3 省輸出長度' tripartite punch is shareable."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Teaching feel solid — 'reasoning effort 這個詞講清楚，後面才知道扣掉的是什麼' is LHY-mode explaining; analogies land (401(k) default bias, 米其林減份量, 消防演習白天演練), but mid-sections follow a predictable context→bug→fix pattern that reads more postmortem-report than lecture.",
+            "clawdNote": "All four notes carry clear opinions, not just explanations — Bug 1 note takes a position on default bias being worth more than the system prompt change, Bug 3 note catches the meta-irony of Anthropic falling into the exact SP-175 trap they documented, and the finale note gives two concrete SOPs small teams can steal; cross-referencing SP-175 and SP-177 shows genuine editorial voice.",
+            "vibe": "The /feedback 調音師 closing image is genuinely memorable and the '三次都是為了省' synthesis makes the piece feel purposeful; Bug 2's technical deep-dive is dense enough to lose casual phone-scrollers in the cache-eviction mechanics, keeping it from 9.",
+            "clarity": "Zero 你/我 in body text; every sentence names its subject explicitly (Anthropic, Claude Code, 使用者, 模型); ClawdNotes use first person appropriately within their scoped context.",
+            "narrative": "Opening builds real tension (vibes complaints → 'this time they didn't fade'), three bugs each carry a distinct thematic angle (product default → subsystem boundary → prompt literal execution), and the '三個想省錢的決定' conclusion synthesizes rather than recaps; docked from 9 because the remediation section (四件事) reverts to numbered-list reporting and each bug section follows a similar internal rhythm."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-24T22:33:44+08:00"
+  },
+  "sp-181-20260423-walden-cognition-multi-agents-working.mdx": {
+    "article": "sp-181-20260423-walden-cognition-multi-agents-working.mdx",
+    "startedAt": "2026-04-24T22:27:59+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 7,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "subagent (line 66) 和 MCP (line 164) 都有連到 /glossary；但核心詞 Agent 在全篇出現數十次，第一次出現時沒鏈到 /glossary#agent，雖然文中有自然說明其行為，仍屬可補強的漏網。",
+            "crossRef": "兩條內部連結 /posts/clawd-picks-20260301-karpathy-multi-agent-research-org 與 /posts/self-healing-pr-devin-autofix 都對應到真實 slug，且主題扣合（Karpathy multi-agent research org、Devin 自修 PR）；文中未出現 ShroomDog / Clawd 本名故不需 /about 身分連結。",
+            "sourceAlign": "sourceUrl 指向 Walden Yan 的 X thread，貼合三招（Devin Review、smart friend、manager Devin）與『寫入單執行緒』主軸，Mythos / SWE-1.5 / SWE-1.6 / autoresearch / Advisor 策略等引文皆另外掛到可驗證來源，整體忠於原文。",
+            "attribution": "58% severe bugs、8x 使用量成長、'a shit ton' 等量化與口語 claim 都明確歸給 Walden / Cognition；Walden 的話用 blockquote 標示；ClawdNote 一律包在元件中、與 body fact 分離，事實與意見界線清楚。"
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All technical claims verified against Walden Yan's X Article: 2 bugs/PR & 58% severe, ~8x growth over 6 months, SWE-1.5 (950 tok/sec, October), SWE 1.6 (Opus-4.5 SWE-bench level), Cursor 200k LOC browser, Anthropic 100k LOC C compiler, Karpathy 10k+ iterations, manager Devin via internal MCP, capability-router-vs-escalator phrase, Mythos class, advisor strategy footnote — every number and product name matches primary source.",
+            "fidelity": "Translation largely faithful with hedges mostly preserved; one mild specificity addition ('most bugs are already resolved' → '80% 的 bug 已經不在了') and one mild understatement ('closes enough that the pattern starts to pay off' → '補了一些'); 'reasonably confident this is a training problem' softened to '判斷主要是訓練問題' — all within acceptable translation range, no uncertainty erasure that inverts meaning.",
+            "consistency": "Argument flows cleanly with single through-line (writes stay single-threaded, other agents contribute intelligence); three patterns mapped back to same principle in closing; ClawdNote sections are component-wrapped and consistently framed as interpretation (Dunning-Kruger analogy, tribunal self-reference, '12-hour engineer with 30 tabs' metaphor), not passed off as source claims."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-24T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "in_progress",
+        "score": null,
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1
+  },
+  "sp-174-20260415-intuitiveml-ai-first-harness-engineering.mdx": {
+    "article": "sp-174-20260415-intuitiveml-ai-first-harness-engineering.mdx",
+    "startedAt": "2026-04-24T22:28:00+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Key glossary terms are linked on first substantive mention: /glossary#agent, /glossary#agent-harness (as harness engineering), /glossary#vibe-coding, /glossary#claude-code, /glossary#ralph-loop. No unlinked key terms spotted; 'subagent'/'MCP'/'hooks' are not used so no gap.",
+            "crossRef": "All 5 internal post links resolve to real slugs in src/content/posts/ (sp-98, sp-94, sp-173, sp-172, sp-160). Thematic chain to prior harness-engineering posts is well-built. ShroomDog is not mentioned in body, so /about identity link is correctly absent; ClawdNote appears only as the component name.",
+            "sourceAlign": "Content faithfully represents @intuitiveml's CREAO thread at the declared sourceUrl — 25-person/10-engineer headcount, 99% AI-authored code, PM/QA/headcount bottlenecks, monorepo rearchitecture, triple Claude review, AWS+CloudWatch+Statsig+Graphite+Sentry+Linear stack, architect/operator split, and the one-person-company framing all align.",
+            "attribution": "Author is identified up front (@intuitiveml, CREAO CTO, physics PhD); the Business Insider line is rendered as a blockquote attributed to the author; stats (14 days, 3-8 deploys/day, 25 people, 99%, 18-hour days) are grounded in the source. ClawdNote opinions are structurally isolated via the <ClawdNote> component so fact/opinion separation is clean."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All major technical claims verified against source: 25 employees/10 engineers, 99% AI code, 3-8 deploys/day, 6-phase CI gates (typecheck/lint/unit+integration/Docker/Playwright/env parity), Opus 4.6 triple review, Sonnet 4.6 triage at 9AM UTC, 9 severity dimensions, AWS+CloudWatch+Statsig+Graphite+Sentry+Linear stack, CTO 9AM-3AM (18hr), physics PhD, Opus 4.5 vs 4.6 attribution. ClawdNote k8s mappings (Argo Rollouts, KEDA, HPA, Prometheus+Loki, ECS deployment circuit breaker) are factually correct. Minor deductions: specific timestamps (凌晨三點零七分/兩點四十三分, architect 二十分鐘) and '2500 人公司' number are narrative embellishments extrapolated from source's 'at night' / 'structured prompt' / '100x or more' — ballpark fair but add specificity beyond source.",
+            "fidelity": "Substantively faithful — source's key hedges preserved ('作者說這不是價值判斷，只是描述觀察到的現象' matches 'I'm not making a judgment. I'm describing what I observed'), Business Insider quote translated accurately ('AI 會開 PR，人類只要 review 風險'), 'one-person companies will become common' preserved without over-claiming. ClawdNotes clearly demarcated as Clawd's own opinion (Type 1/Type 2 framing, senior-engineer subtypes, 18-hour-day as warning) and do not bleed into body as if source claims. Minor fidelity loss from dramatized scene-setting (specific overnight timestamps) that invent concrete details the source leaves abstract.",
+            "consistency": "Strong logical flow — opening hook (10AM/3PM/5PM cycle) threads through PM/QA/headcount bottlenecks → monorepo decision → stack → two paths (feature + bugfix) → results → org reshape → human cost. ClawdNotes explicitly push back on specific weak spots (architect as single point of failure, senior-engineer binary, Type 1 irreversible decisions) without contradicting the body's description of what CREAO actually did. Opinion/fact separation is clean throughout."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "in_progress",
+        "score": null,
+        "model": "opus-4.7",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1
+  },
+  "cp-299-20260415-article-openai-gpt-5-4-cyber-ai-refusal.mdx": {
+    "article": "cp-299-20260415-article-openai-gpt-5-4-cyber-ai-refusal.mdx",
+    "startedAt": "2026-04-24T22:28:01+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Key glossary term 'Codex' is naturally explained inline in ClawdNote (including Simon Willison's 『令人困惑的同名產品陣列』 framing that matches glossary entry), but not hyperlinked; 'Agent' appears ('coding agent') without link. Core term coverage is solid, link hygiene could be tightened.",
+            "crossRef": "Both internal links verified to exist: /posts/cp-298-20260415-article-anthropic-ai-mythos-project-glasswing/ and /posts/sp-165-20260408-anthropic-anthropic-claude-mythos-preview-ai/. Thematic Mythos connection is well made. No ShroomDog/Clawd body mentions requiring identity link.",
+            "sourceAlign": "Content faithfully represents declared siliconangle.com sourceUrl: GPT-5.4-Cyber launch, Trusted Access tiered verification, binary reverse engineering, CTF benchmarks (27%→76%), Codex Security 3,000 fix count — all traceable to source.",
+            "attribution": "Quotes attributed to OpenAI ('cyber-permissive', 'starting today'). Stats ($10M grant, 27%, 76%, 3,000 fixes, 1,000 OSS projects, 40 orgs) cited to OpenAI/Anthropic context. ClawdNotes isolated via component; ClawdNote explicitly flags unclear attribution in source ('contributed to fixes' 曖昧措辭)."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All key facts match SiliconANGLE source precisely: GPT-5.4-Cyber as fine-tuned GPT-5.4 variant, 'cyber-permissive' term, binary reverse engineering capability, $10M grant, tiered verification with chatgpt.com/cyber, CTF benchmark 27% (GPT-5, Aug 2025) → 76% (GPT-5.1-Codex-Max, Nov 2025), 3,000+ critical/high vulnerability fixes via Codex Security, 1,000+ open-source projects via Codex for Open Source, Mythos comparison at ~40 organizations, and scale target of thousands of defenders + hundreds of teams.",
+            "fidelity": "Hedges preserved well: '應該足以應對' correctly renders 'expects...to be sufficient for'; 'starting today' quoted verbatim; ClawdNote commentary (e.g., 'contributed to fixes' ambiguity, Codex naming confusion) clearly separated from article body with explicit '這裡先打個問號' hedge. No uncertainty erasure detected.",
+            "consistency": "Argument flows cleanly from refusal-overblocking problem → cyber-permissive solution → verification gating → industry shift from blanket restriction to identity-based access. ClawdNote opinions (e.g., Mythos-vs-GPT-5.4-Cyber go-to-market comparison, fear-driven vs trust-driven framing) are clearly marked as opinion within the ClawdNote components rather than bleeding into body as fact."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-24T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "in_progress",
+        "score": null,
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1
+  },
+  "cp-298-20260415-article-anthropic-ai-mythos-project-glasswing.mdx": {
+    "article": "cp-298-20260415-article-anthropic-ai-mythos-project-glasswing.mdx",
+    "startedAt": "2026-04-24T22:28:02+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 8,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "No glossary.json terms (Agent, Claude Code, MCP, Ralph Loop, etc.) are directly invoked in the post; domain-specific terms like Mythos / Glasswing / CTF / zero-day / dual-use are not in the glossary, so nothing key is left unlinked.",
+            "crossRef": "Internal link to /posts/clawd-picks-20260211-anthropic-opus46-sabotage-risk-report/ resolves to a real post; frontmatter deprecatedBy points to SP-165 (the primary-source twin also present in src/content/posts/). No inline reference to SP-165 in body, but acceptable given the post is formally deprecated. No ShroomDog/Clawd identity mentions requiring /about links.",
+            "sourceAlign": "Content faithfully tracks the declared TechCrunch sourceUrl — Mythos announcement, UK AISI 73% figure, thousands of high-severity flags, 27-year OpenBSD bug, ~12 partners (AWS/Apple/Google/Microsoft/Broadcom/Cisco/CrowdStrike/JPMorgan/NVIDIA/Palo Alto), dual-use asymmetry framing all present.",
+            "attribution": "TechCrunch explicitly named as reporting source twice, with one direct translated quote on damage asymmetry clearly attributed; UK AI Security Institute cited for the 73% CTF figure; Anthropic's 'step change' wording and ~198 verified / <1% patched numbers attributed to the company; ClawdNote opinions visually and structurally separated from body facts throughout."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "in_progress",
+        "score": null,
+        "model": "opus-4.7",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1
   }
 }
