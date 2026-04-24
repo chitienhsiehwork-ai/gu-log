@@ -1130,13 +1130,28 @@
         "attempts": 1
       },
       "freshEyes": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 7,
+            "firstImpression": 8
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "readability": "主文敘事流暢（10 AM/3 PM/5 PM 場景、凌晨三點實習生比喻都很好懂），但『他們的 Stack』整節轟炸：ECS circuit-breaker / HPA / KEDA / CloudWatch / Statsig / Graphite / Linear 第一次出現都沒解釋角色，我必須靠上下文猜。ClawdNote 裡那張 k8s/AKS 對照表對三個月的我根本天書，直接跳過。",
+            "firstImpression": "Hook 很強，『AI-first 不等於有在用 AI』這個 reframe 讓我想繼續讀，兩個 walkthrough（feature path + bug fix path）把零件組起來的設計很救命。但文章偏長、infra 段落密度高，中段開始滑 scroll；結尾一人公司 + ClawdNote TL;DR 把我拉回來——看完了但不會主動分享，太吃背景。"
+          }
+        },
         "model": "opus-4.7",
         "attempts": 2
       }
     },
-    "topLevelAttempts": 1
+    "topLevelAttempts": 1,
+    "status": "FAILED",
+    "failedStage": "freshEyes",
+    "finishedAt": "2026-04-24T22:34:00+08:00"
   },
   "cp-299-20260415-article-openai-gpt-5-4-cyber-ai-refusal.mdx": {
     "article": "cp-299-20260415-article-openai-gpt-5-4-cyber-ai-refusal.mdx",
