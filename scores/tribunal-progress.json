@@ -553,5 +553,97 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-24T14:29:35+08:00"
+  },
+  "sd-20-20260421-hermes-vs-openclaw.mdx": {
+    "article": "sd-20-20260421-hermes-vs-openclaw.mdx",
+    "startedAt": "2026-04-24T14:30:02+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 10,
+            "crossRef": 9,
+            "sourceAlign": 8,
+            "attribution": 10
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "All key technical glossary terms linked on first use: [agent harness](/glossary#agent-harness), [Claude Code](/glossary#claude-code), [Codex](/glossary#codex), [OpenClaw](/glossary#openclaw), [MCP](/glossary#mcp), [subagent](/glossary#subagent), [Ralph Loop](/glossary#ralph-loop). No missing glossary connections for the technical content covered.",
+            "crossRef": "Identity links present — first ShroomDog → /about (line 23), first Clawd → /about (line 41). No /posts/ internal links used (reasonable for this standalone architecture analysis), no broken references. Could have cross-linked a prior Ralph Loop post for deeper context, but the glossary link suffices.",
+            "sourceAlign": "SD original post, sourceUrl points to self (gu-log.vercel.app/posts/sd-20-20260421-hermes-vs-openclaw) — auto 8/10 per rubric.",
+            "attribution": "Direct quotes cited with exact source (README first line, run_agent.py:11868-11872 with inline comment attribution, README VPS line). Numeric claims backed by file+line refs (run_agent.py 12,131 lines; _memory_nudge_interval=10 line 1418; pi-coding-agent pinned 0.67.68). People named (Peter Steinberger, Mario Zechner, Nous Research). Opinion vs fact cleanly separated via <ClawdNote>/<ShroomDogNote> components vs body prose."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Canonical entities (OpenClaw, Nous Research, pi-coding-agent, Peter Steinberger/Mario Zechner) all plausible and consistent with glossary; quantitative claims (12,131-line run_agent.py, pi-coding-agent@0.67.68, line numbers 1418/1517/11868-11872, 25 channels, 129 SKILL.md) are first-hand-inspection-style numbers not independently verifiable from outside the cited repos — no outright fabrication detected.",
+            "fidelity": "Hermes README quote attributed; hedges preserved ('短期/長期', '理論上可以', '至少今天還是'); 'self-improving' marketing line explicitly de-hyped with 'not gradient descent, not fine-tune' clarification; ClawdNote/ShroomDogNote opinions clearly segregated from body-text observations about the two codebases.",
+            "consistency": "Three-part closing rationale (channel-layer identity, stealable pattern, rent-vs-own tradeoff) maps cleanly back to earlier architecture, skill-nudge, and pi-mono sections; 'hermes claw migrate' is introduced, deconstructed, and returned to in the closer; opinion-vs-fact demarcation is clean throughout with one mild hop in the 'both sides will improve' prediction which is properly bounded inside a ShroomDogNote."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-24T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "「自帶大腦 vs 租大腦」framing is peak LHY — simple, memorable, and carries the entire piece; restaurant and IKEA analogies reinforce oral teaching feel.",
+            "clawdNote": "Nearly all notes carry clear opinions: 'not a killer feature worth moving for, but a pattern worth stealing' is a standout stance; migration table note has real teeth comparing it to lazy CSV imports.",
+            "vibe": "The 'will ShroomDog switch?' tension holds throughout and the ending callback lands cleanly; migration detail section in §6 is the one stretch that reads slightly list-heavy.",
+            "clarity": "Body text consistently names ShroomDog/Clawd/Hermes/OpenClaw with zero ambiguous pronouns; third parties (Peter Steinberger, Mario Zechner) always identified by name.",
+            "narrative": "The decision-framing creates genuine tension a linear report wouldn't have; section rhythm varies well from punchy '同一天' coincidence to analytical architecture to personal decision; strip test passes."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-24T14:35:29+08:00"
   }
 }
