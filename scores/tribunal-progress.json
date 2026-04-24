@@ -1075,13 +1075,33 @@
         "attempts": 1
       },
       "vibe": {
-        "status": "in_progress",
-        "score": null,
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "開場「先丟一個看起來蠢到不該 work 的做法」完全是 LHY 口語教學風，全文維持「講白一點」「就這樣」的說話感，smart friend section 版本號密度高但仍維持對話語氣，對技術 harsh（unstructured swarm = distraction）對人 kind（稱讚 Walden 認錯密度）。",
+            "clawdNote": "四個 note 都有明確立場（「搬到自己的 codebase 就垮掉」「token 經濟學套利」「Dunning-Kruger for LLMs」「認錯密度在 SF 圈已經是稀有物種」），比喻精準（無限續關單機遊戲 vs 年夜飯），但密度偏低——每 38 行一個，低於 1/25 的 target。",
+            "vibe": "Opening hook 用 58% severe bugs 數字黏住讀者，年夜飯比喻會想轉發，結尾「三招同一招」synthesis 收得漂亮；smart friend section 的 SWE-1.5/1.6/Sonnet 4.5 版本號堆疊讓中段變 dense，不至於 scroll past 但也沒有完全黏住。",
+            "clarity": "Body text 全程用具名主語（Walden、Cognition、Devin、coding agent），zero 你/我 violations，ClawdNote 內的你/我 scoped correctly，reader 始終知道誰在說話。",
+            "narrative": "Hook（蠢到不該 work）→ 背景張力 → 三招各有不同切入角度（mystery、failure-first、wall-worthy quote）→「三招同一招」synthesis callback 開頭，genuine arc；中段三個 pattern 仍有 sequential 傾向（第一招→第二招→第三招），未完全跳脫列舉節奏。"
+          }
+        },
         "model": "opus-4.6-1m",
         "attempts": 1
       }
     },
-    "topLevelAttempts": 1
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-24T22:34:47+08:00"
   },
   "sp-174-20260415-intuitiveml-ai-first-harness-engineering.mdx": {
     "article": "sp-174-20260415-intuitiveml-ai-first-harness-engineering.mdx",
@@ -1130,25 +1150,13 @@
         "attempts": 1
       },
       "freshEyes": {
-        "status": "fail",
-        "score": {
-          "judge": "freshEyes",
-          "dimensions": {
-            "readability": 7,
-            "firstImpression": 8
-          },
-          "score": 7,
-          "verdict": "FAIL",
-          "reasons": {
-            "readability": "主文敘事流暢（10 AM/3 PM/5 PM 場景、凌晨三點實習生比喻都很好懂），但『他們的 Stack』整節轟炸：ECS circuit-breaker / HPA / KEDA / CloudWatch / Statsig / Graphite / Linear 第一次出現都沒解釋角色，我必須靠上下文猜。ClawdNote 裡那張 k8s/AKS 對照表對三個月的我根本天書，直接跳過。",
-            "firstImpression": "Hook 很強，『AI-first 不等於有在用 AI』這個 reframe 讓我想繼續讀，兩個 walkthrough（feature path + bug fix path）把零件組起來的設計很救命。但文章偏長、infra 段落密度高，中段開始滑 scroll；結尾一人公司 + ClawdNote TL;DR 把我拉回來——看完了但不會主動分享，太吃背景。"
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "opus-4.7",
-        "attempts": 2
+        "attempts": 1
       }
     },
-    "topLevelAttempts": 1,
+    "topLevelAttempts": 2,
     "status": "FAILED",
     "failedStage": "freshEyes",
     "finishedAt": "2026-04-24T22:34:00+08:00"
@@ -1252,6 +1260,19 @@
         "attempts": 1
       },
       "factChecker": {
+        "status": "in_progress",
+        "score": null,
+        "model": "opus-4.7",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1
+  },
+  "cp-297-20260415-karpathy-karpathy-ai.mdx": {
+    "article": "cp-297-20260415-karpathy-karpathy-ai.mdx",
+    "startedAt": "2026-04-24T22:34:08+08:00",
+    "stages": {
+      "librarian": {
         "status": "in_progress",
         "score": null,
         "model": "opus-4.7",
