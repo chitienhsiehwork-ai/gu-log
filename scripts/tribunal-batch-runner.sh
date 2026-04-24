@@ -47,21 +47,42 @@ tlog() {
 }
 
 # ─── Quota Check ──────────────────────────────────────────────────────────────
-# Check remaining quota via claude CLI. Returns 0 if above floor, 1 if below.
-check_quota_above_floor() {
-  # Try to get quota info from claude CLI
-  local usage_pct
-  usage_pct=$(claude --usage 2>/dev/null | grep -oP '\d+(?=%)' | head -1 || echo "")
+# Check remaining quota via usage-monitor.sh --json. Returns 0 if above floor, 1 if below.
+USAGE_MONITOR="$HOME/clawd/scripts/usage-monitor.sh"
 
-  if [ -z "$usage_pct" ]; then
-    # Can't determine quota — check if we can make a simple call
-    # If claude -p works, we have quota. If it rate-limits, we don't.
+check_quota_above_floor() {
+  if [ ! -x "$USAGE_MONITOR" ]; then
+    tlog "  usage-monitor.sh not found. Continuing optimistically."
+    return 0
+  fi
+
+  local json remaining
+  json=$(bash "$USAGE_MONITOR" --json 2>/dev/null) || {
+    tlog "  Cannot read quota (usage-monitor error). Continuing optimistically."
+    return 0
+  }
+
+  remaining=$(python3 -c "
+import json, sys
+try:
+    data = json.loads(sys.argv[1])
+    for p in data:
+        if p.get('provider') == 'claude' and p.get('status') == 'ok':
+            val = min(p['five_hr_remaining_pct'], p['weekly_remaining_pct'])
+            print(int(val))
+            sys.exit(0)
+    print(-1)
+except Exception:
+    print(-1)
+" "$json" 2>/dev/null) || remaining=-1
+
+  if [ "$remaining" = "-1" ]; then
     tlog "  Cannot determine quota percentage. Continuing optimistically."
     return 0
   fi
 
-  local remaining=$((100 - usage_pct))
-  tlog "  Quota: ${usage_pct}% used, ${remaining}% remaining (floor: ${QUOTA_FLOOR_PCT}%)"
+  local used=$((100 - remaining))
+  tlog "  Quota: ~${used}% used, ${remaining}% remaining (floor: ${QUOTA_FLOOR_PCT}%)"
 
   if [ "$remaining" -le "$QUOTA_FLOOR_PCT" ]; then
     tlog "  STOP: Quota at or below ${QUOTA_FLOOR_PCT}% floor."

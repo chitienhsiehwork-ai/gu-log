@@ -168,13 +168,81 @@ The autoscaler treats the file as a read-with-floor source: it respects any
 integer `<= $WORKERS`. Delete the file to fall back to the `$WORKERS` CLI
 arg. Tune thresholds in `tribunal-quota-loop.sh` (search `AUTOSCALE_*`).
 
-## Quota tiers
+## Quota Controller (closed-loop)
 
-From `tribunal-quota-loop.sh`:
-- `GO` (>3% remaining): dispatch freely
-- `STOP` (≤3%): enter `stopped_by_quota`, poll every 30min (interruptible), resume at ≥10% (hysteresis prevents flapping)
+The supervisor uses a closed-loop feedback controller instead of the old binary GO/STOP. For each Anthropic quota window (5-hour and 7-day), it computes an ideal consumption rate:
 
-Quota source: `~/clawd/scripts/usage-monitor.sh --json`. If that file is missing or returns non-ok, the loop enters `idle_wait` with `quota_unreadable` and polls every 10min.
+```
+rate = (remaining_pct - QUOTA_FLOOR) / time_until_refresh_sec
+cooldown = ARTICLE_COST_PCT / rate
+output = max(cooldown_5hr, cooldown_7day)   # conservative: whichever is tighter
+```
+
+**Key constants** (in `tribunal-quota-loop.sh`):
+
+| Constant | Default | Description |
+|---|---|---|
+| `QUOTA_FLOOR` | 3% | Human reserve — never burn below this |
+| `MIN_COOLDOWN` | 10s | Floor for inter-article wait |
+| `MAX_COOLDOWN` | 1800s (30min) | Ceiling / hard stop |
+| `ARTICLE_COST_PCT` | 5.0% | Cold start default (auto-calibrated via EMA) |
+| `EMA_ALPHA` | 0.3 | Calibration smoothing factor |
+| `EXTRA_USAGE_LIMIT` | 0.8 | Extra usage safety valve threshold (80%) |
+
+**Modes** (visible in `quota-controller.json`):
+
+| Mode | Meaning |
+|---|---|
+| `pacing` | Normal closed-loop operation |
+| `floor_stop` | One or both windows at/below floor — MAX_COOLDOWN, 0 workers |
+| `extra_limit` | Extra usage >80% of budget — hard stop to prevent bill overrun |
+| `fallback` | usage-monitor.sh unavailable — conservative 600s cooldown, 1 worker |
+
+**Observability**:
+
+```bash
+# Current controller state
+cat .score-loop/state/quota-controller.json
+# { mode, five_hr_pct, seven_day_pct, cooldown_sec, recommended_workers, binding_constraint, article_cost_pct, updatedAt }
+
+# Full history (JSONL, one entry per tick + dispatch + complete)
+tail -20 .score-loop/state/quota-history.jsonl | python3 -m json.tool
+
+# Recent controller decisions in supervisor log
+ls -t .score-loop/logs/tribunal-quota-loop-*.log | head -1 | xargs grep 'CONTROLLER:'
+
+# Calibration events
+ls -t .score-loop/logs/tribunal-quota-loop-*.log | head -1 | xargs grep 'CALIBRATE:'
+```
+
+**Self-calibration**: After each article completes (in single-worker mode), the controller computes the actual quota delta and updates `ARTICLE_COST_PCT` via exponential moving average (alpha=0.3). Cold start uses 5.0% (deliberately conservative). With sufficient history (≥5 entries), EMA converges to the true average cost.
+
+**Startup rotation**: At daemon startup, entries older than 7 days are pruned from `quota-history.jsonl`.
+
+**Feedforward compensation**: Before computing rates, the controller subtracts `active_workers * ARTICLE_COST_PCT` from the remaining % to account for the 2-minute cache delay in usage-monitor. This prevents over-commitment when multiple workers are dispatched in quick succession.
+
+**Legacy fallback**: Start with `--legacy-quota` to revert to the old binary GO/STOP behavior:
+
+```bash
+# Edit the systemd unit or wrapper to add the flag
+ExecStart=... --workers 2 --legacy-quota
+```
+
+Legacy mode disables: controller, quota-history.jsonl, quota-controller.json, calibration.
+
+**Rollback procedure**:
+
+```bash
+# 1. Stop the daemon
+systemctl --user stop tribunal-loop
+
+# 2. Add --legacy-quota to the ExecStart line
+vi ~/.config/systemd/user/tribunal-loop.service
+
+# 3. Reload and restart
+systemctl --user daemon-reload
+systemctl --user start tribunal-loop
+```
 
 ## Troubleshooting
 
@@ -186,3 +254,7 @@ Quota source: `~/clawd/scripts/usage-monitor.sh --json`. If that file is missing
 | `git pull failed: unstaged changes` warning in supervisor log | Dirty tribunal rewrites in main worktree from an earlier partial run | Non-fatal; supervisor continues with its current checkout. Clean up via `git stash` or `git checkout -- .` when safe. |
 | New code on main isn't reaching running workers | Worker worktrees are stale (see "Worker worktree gotcha" above) | `scripts/tribunal-worker-bootstrap.sh sync` — or restart (supervisor auto-syncs) |
 | Article marked EXHAUSTED after 5 attempts | Real content / scoring issue, or model-induced flakiness | Open the stage log, look at scorer reasons; rewrite manually or flag for human review |
+| Controller stuck in `floor_stop` even though quota looks OK | usage-monitor cache stale, or feedforward over-counting | Check `quota-controller.json` for `five_hr_pct` / `seven_day_pct`; force cache refresh: `rm /tmp/usage-monitor-cache/claude.json` |
+| `ARTICLE_COST_PCT` too high/low | Calibration EMA hasn't converged (cold start), or multi-worker noise | Check `quota-history.jsonl` for recent deltas; controller will self-correct after ~5 single-worker articles |
+| Controller in `fallback` mode | usage-monitor.sh returns error (OAuth token expired, API down) | SSH to VM, run `~/clawd/scripts/usage-monitor.sh --json` manually to diagnose |
+| Extra usage alarm (`extra_limit` mode) | Extra usage approaching monthly cap | Check `extra_used_usd` / `extra_limit_usd` in quota-controller.json; adjust limit in Anthropic console if intentional |

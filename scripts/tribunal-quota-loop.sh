@@ -6,16 +6,20 @@
 # (typically Homebrew bash on Mac, system bash 5.x on Linux).
 #
 # Checks Claude API quota via usage-monitor.sh and adapts processing speed.
-# Never burns below 3% floor (CEO personal use reserve).
+# Never burns below QUOTA_FLOOR% (human personal use reserve).
 #
-# Strategy: burn tokens above floor, unused quota that refreshes = real waste.
-#   GO   (>3%)  : process immediately, 10s cooldown between articles
-#   STOP (≤3%)  : halt, check every 30min, resume at >10% (hysteresis)
+# Strategy: closed-loop feedback controller.
+#   For each quota window (5hr / 7day), compute ideal consumption rate:
+#     rate = (remaining - floor) / time_until_refresh
+#   Convert to cooldown = ARTICLE_COST_PCT / rate.
+#   Take the more conservative (longer) cooldown of the two windows.
+#   Self-calibrate ARTICLE_COST_PCT from history via EMA.
 #
 # Usage:
-#   bash scripts/tribunal-quota-loop.sh               # run continuously, 1 worker
-#   bash scripts/tribunal-quota-loop.sh --workers 2   # 2 parallel workers
-#   bash scripts/tribunal-quota-loop.sh --dry-run     # list what would be processed
+#   bash scripts/tribunal-quota-loop.sh                   # run continuously, 1 worker
+#   bash scripts/tribunal-quota-loop.sh --workers 2       # 2 parallel workers
+#   bash scripts/tribunal-quota-loop.sh --dry-run         # list what would be processed
+#   bash scripts/tribunal-quota-loop.sh --legacy-quota    # bypass controller, use old GO/STOP
 
 set -o pipefail   # no -e: loop handles errors individually
                   # no -u: bash assoc arrays interact badly with unbound var
@@ -34,17 +38,27 @@ LOG_DIR="$ROOT_DIR/.score-loop/logs"
 LOG_FILE="$LOG_DIR/tribunal-quota-loop-$(date +%Y%m%d-%H%M%S).log"
 USAGE_MONITOR="$HOME/clawd/scripts/usage-monitor.sh"
 QUOTA_FLOOR=3
-RESUME_THRESHOLD=10
 DRY_RUN=false
 WORKERS=1   # Phase 2 supervisor: set to >1 for parallel workers
+LEGACY_QUOTA=false
 
-mkdir -p "$LOG_DIR"
+# ─── Closed-loop controller constants ────────────────────────────────────────
+MIN_COOLDOWN=10        # seconds — floor for inter-article wait
+MAX_COOLDOWN=1800      # seconds (30 min) — ceiling / hard stop
+ARTICLE_COST_PCT=5.0   # % per article (cold start default, deliberately high)
+EMA_ALPHA=0.3          # calibration smoothing factor
+EXTRA_USAGE_LIMIT=0.8  # 80% of extra budget = safety valve threshold
+QUOTA_HISTORY_FILE="$ROOT_DIR/.score-loop/state/quota-history.jsonl"
+QUOTA_CONTROLLER_STATE="$ROOT_DIR/.score-loop/state/quota-controller.json"
+
+mkdir -p "$LOG_DIR" "$ROOT_DIR/.score-loop/state"
 
 # ─── Args ─────────────────────────────────────────────────────────────────────
 while [ $# -gt 0 ]; do
   case "$1" in
     --dry-run) DRY_RUN=true; shift ;;
     --workers) WORKERS="$2"; shift 2 ;;
+    --legacy-quota) LEGACY_QUOTA=true; shift ;;
     *) echo "Unknown arg: $1" >&2; exit 1 ;;
   esac
 done
@@ -255,10 +269,10 @@ autoscale_can_spawn() {
   return 0
 }
 
-# ─── Quota ────────────────────────────────────────────────────────────────────
+# ─── Quota: Legacy GO/STOP (kept for --legacy-quota fallback) ────────────────
 # Returns integer effective remaining pct (min of 5hr and weekly).
 # Returns -1 on error (usage-monitor unavailable or no claude entry).
-get_effective_remaining() {
+legacy_get_effective_remaining() {
   if [ ! -x "$USAGE_MONITOR" ]; then
     echo -1
     return
@@ -280,21 +294,345 @@ except Exception:
 " "$json" 2>/dev/null || echo -1
 }
 
-# Returns sleep seconds for the given effective remaining integer %.
-# Returns -1 to signal STOP.
-# Philosophy: unused quota that refreshes = real waste. Burn it all above floor.
-compute_sleep() {
+legacy_compute_sleep() {
   local pct="$1"
-  if (( pct > QUOTA_FLOOR )); then echo 0   # GO: burn tokens, no sleep
-  else echo -1                               # STOP: at floor
+  if (( pct > QUOTA_FLOOR )); then echo 0
+  else echo -1
   fi
 }
 
-compute_tier_name() {
+legacy_compute_tier_name() {
   local pct="$1"
   if (( pct > QUOTA_FLOOR )); then echo "GO"
   else echo "STOP"
   fi
+}
+
+# ─── Quota: Closed-loop controller ───────────────────────────────────────────
+# Parses usage-monitor.sh --json output into dual-window quota readings.
+# Outputs a single line of pipe-separated values:
+#   five_hr_pct|five_hr_resets_sec|seven_day_pct|seven_day_resets_sec|extra_used|extra_limit|extra_enabled
+# Returns exit code 1 on error.
+get_dual_quota_readings() {
+  if [ ! -x "$USAGE_MONITOR" ]; then
+    return 1
+  fi
+  local json
+  json=$(bash "$USAGE_MONITOR" --json 2>/dev/null) || return 1
+  python3 -c "
+import json, sys, re
+
+def parse_reset_to_sec(s):
+    \"\"\"Convert human-readable reset string to seconds.
+    Formats: 'N 分鐘', 'N.N 小時', 'N.N 天', ISO timestamp, or empty.
+    Returns -1 if inactive (null/empty/unparseable).\"\"\"
+    if not s:
+        return -1
+    s = s.strip()
+    # Try '45 分鐘' format
+    m = re.match(r'^([\d.]+)\s*分鐘$', s)
+    if m:
+        return max(0, int(float(m.group(1)) * 60))
+    # Try '2.3 小時' format
+    m = re.match(r'^([\d.]+)\s*小時$', s)
+    if m:
+        return max(0, int(float(m.group(1)) * 3600))
+    # Try '1.5 天' format
+    m = re.match(r'^([\d.]+)\s*天$', s)
+    if m:
+        return max(0, int(float(m.group(1)) * 86400))
+    # Try ISO timestamp (in case usage-monitor adds raw timestamps later)
+    try:
+        from datetime import datetime, timezone
+        dt = datetime.fromisoformat(s)
+        delta = (dt - datetime.now(timezone.utc)).total_seconds()
+        return max(0, int(delta))
+    except Exception:
+        pass
+    return -1
+
+try:
+    data = json.loads(sys.argv[1])
+    for p in data:
+        if p.get('provider') == 'claude' and p.get('status') == 'ok':
+            five_pct = p.get('five_hr_remaining_pct', 0)
+            five_reset_sec = parse_reset_to_sec(p.get('five_hr_reset', ''))
+            seven_pct = p.get('weekly_remaining_pct', 0)
+            seven_reset_sec = parse_reset_to_sec(p.get('weekly_reset', ''))
+            extra_used = p.get('extra_used', 0)
+            extra_limit = p.get('extra_limit', 0)
+            extra_enabled = 1 if p.get('extra_usage_enabled', False) else 0
+            print(f'{five_pct}|{five_reset_sec}|{seven_pct}|{seven_reset_sec}|{extra_used}|{extra_limit}|{extra_enabled}')
+            sys.exit(0)
+    sys.exit(1)
+except Exception:
+    sys.exit(1)
+" "$json" 2>/dev/null
+}
+
+# Compute ideal consumption rate for a single window.
+# Usage: compute_ideal_rate <remaining_pct> <floor_pct> <time_until_refresh_sec>
+# Outputs: rate in %/sec (float). 0 if usable ≤ 0.
+compute_ideal_rate() {
+  local remaining="$1" floor="$2" time_sec="$3"
+  python3 -c "
+remaining = float('$remaining')
+floor = float('$floor')
+time_sec = float('$time_sec')
+usable = remaining - floor
+if usable <= 0 or time_sec <= 0:
+    print('0')
+else:
+    print(f'{usable / time_sec:.10f}')
+"
+}
+
+# Main controller tick. Called before each dispatch cycle.
+# Usage: controller_tick <active_workers>
+# Outputs: cooldown_sec|recommended_workers|binding_constraint|mode
+# On error: outputs fallback values.
+controller_tick() {
+  local active_workers="${1:-0}"
+
+  # Read dual quota
+  local readings
+  if ! readings=$(get_dual_quota_readings); then
+    echo "600|1|none|fallback"
+    return
+  fi
+
+  # Parse readings
+  local five_pct five_reset_sec seven_pct seven_reset_sec extra_used extra_limit extra_enabled
+  IFS='|' read -r five_pct five_reset_sec seven_pct seven_reset_sec extra_used extra_limit extra_enabled <<< "$readings"
+
+  # Compute and output via python for floating-point precision
+  python3 -c "
+import sys
+
+five_pct = float('$five_pct')
+five_reset_sec = float('$five_reset_sec')
+seven_pct = float('$seven_pct')
+seven_reset_sec = float('$seven_reset_sec')
+extra_used = float('$extra_used')
+extra_limit = float('$extra_limit')
+extra_enabled = int('$extra_enabled')
+active_workers = int('$active_workers')
+floor = float('$QUOTA_FLOOR')
+article_cost = float('$ARTICLE_COST_PCT')
+min_cd = float('$MIN_COOLDOWN')
+max_cd = float('$MAX_COOLDOWN')
+extra_threshold = float('$EXTRA_USAGE_LIMIT')
+
+# Extra usage safety valve
+if extra_enabled and extra_limit > 0 and (extra_used / extra_limit) > extra_threshold:
+    print(f'{int(max_cd)}|0|extra_limit|extra_limit')
+    sys.exit(0)
+
+# Feedforward compensation: subtract in-flight workers' estimated cost
+inflight_cost = active_workers * article_cost
+
+def compute_window(remaining_pct, reset_sec, inflight_cost):
+    \"\"\"Return (cooldown_sec, is_active).
+    reset_sec < 0 means inactive window → MIN_COOLDOWN (no constraint).\"\"\"
+    if reset_sec < 0:
+        return (min_cd, False)
+    effective = remaining_pct - inflight_cost
+    usable = effective - floor
+    if usable <= 0:
+        return (max_cd, True)
+    if reset_sec <= 0:
+        return (min_cd, True)
+    rate = usable / reset_sec  # %/sec
+    if rate <= 0:
+        return (max_cd, True)
+    cd = article_cost / rate
+    cd = max(min_cd, min(max_cd, cd))
+    return (cd, True)
+
+cd_5hr, active_5hr = compute_window(five_pct, five_reset_sec, inflight_cost)
+cd_7day, active_7day = compute_window(seven_pct, seven_reset_sec, inflight_cost)
+
+# Take the more conservative (longer) cooldown
+if cd_5hr >= cd_7day:
+    cooldown = cd_5hr
+    binding = 'five_hour' if active_5hr else 'none'
+else:
+    cooldown = cd_7day
+    binding = 'seven_day' if active_7day else 'none'
+
+# If both inactive, go full speed
+if not active_5hr and not active_7day:
+    cooldown = min_cd
+    binding = 'none'
+
+cooldown = int(max(min_cd, min(max_cd, cooldown)))
+
+# Recommended workers: 0 if at max cooldown (floor stop), otherwise at least 1
+if cooldown >= max_cd:
+    workers = 0
+else:
+    workers = max(1, active_workers)  # at least 1
+
+# Mode
+mode = 'pacing'
+if cooldown >= max_cd and workers == 0:
+    mode = 'floor_stop'
+
+print(f'{cooldown}|{workers}|{binding}|{mode}')
+" 2>/dev/null || echo "600|1|none|fallback"
+}
+
+# Append a JSONL entry to quota-history.jsonl.
+# Usage: quota_history_append <event> <five_pct> <five_reset> <seven_pct> <seven_reset> \
+#          <extra_used> <extra_limit> <cooldown> <workers> <binding> <article_cost> <mode>
+quota_history_append() {
+  [ "$LEGACY_QUOTA" = true ] && return 0
+  local event="$1" five_pct="$2" five_reset="$3" seven_pct="$4" seven_reset="$5"
+  local extra_used="$6" extra_limit="$7" cooldown="$8" workers="$9"
+  shift 9
+  local binding="$1" article_cost="$2" mode="$3"
+  python3 -c "
+import json, datetime
+entry = {
+    'ts': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+    'event': '$event',
+    'five_hr_pct': float('$five_pct'),
+    'five_hr_resets_sec': float('$five_reset'),
+    'seven_day_pct': float('$seven_pct'),
+    'seven_day_resets_sec': float('$seven_reset'),
+    'extra_used_usd': float('$extra_used'),
+    'extra_limit_usd': float('$extra_limit'),
+    'cooldown_sec': int('$cooldown'),
+    'recommended_workers': int('$workers'),
+    'binding_constraint': '$binding',
+    'article_cost_pct': float('$article_cost'),
+    'mode': '$mode',
+}
+print(json.dumps(entry))
+" >> "$QUOTA_HISTORY_FILE" 2>/dev/null || true
+}
+
+# Overwrite quota-controller.json with current controller state.
+# Usage: quota_controller_write_state <mode> <five_pct> <seven_pct> <cooldown> <workers> <binding> <article_cost>
+quota_controller_write_state() {
+  [ "$LEGACY_QUOTA" = true ] && return 0
+  local mode="$1" five_pct="$2" seven_pct="$3" cooldown="$4" workers="$5" binding="$6" article_cost="$7"
+  local tmp
+  tmp=$(mktemp "$ROOT_DIR/.score-loop/state/.quota-controller.XXXXXX") || return 1
+  python3 -c "
+import json, datetime
+state = {
+    'mode': '$mode',
+    'five_hr_pct': float('$five_pct'),
+    'seven_day_pct': float('$seven_pct'),
+    'cooldown_sec': int('$cooldown'),
+    'recommended_workers': int('$workers'),
+    'binding_constraint': '$binding',
+    'article_cost_pct': float('$article_cost'),
+    'updatedAt': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+}
+print(json.dumps(state, indent=2))
+" > "$tmp" 2>/dev/null && mv "$tmp" "$QUOTA_CONTROLLER_STATE" || rm -f "$tmp"
+}
+
+# ─── Auto-calibration ────────────────────────────────────────────────────────
+# Calibrate ARTICLE_COST_PCT from quota-history.jsonl using EMA.
+# Only calibrates from single-worker mode entries (multi-worker deltas are noisy).
+# Updates the global ARTICLE_COST_PCT variable.
+calibrate_article_cost() {
+  [ "$LEGACY_QUOTA" = true ] && return 0
+  [ ! -f "$QUOTA_HISTORY_FILE" ] && return 0
+  local new_cost
+  new_cost=$(python3 -c "
+import json, sys
+
+alpha = float('$EMA_ALPHA')
+default_cost = 5.0
+
+# Read all dispatch/complete pairs from history
+lines = []
+try:
+    with open('$QUOTA_HISTORY_FILE', 'r') as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                lines.append(json.loads(line))
+            except:
+                continue
+except:
+    print(f'{default_cost}')
+    sys.exit(0)
+
+# Find dispatch→complete pairs (in single-worker mode only)
+# Look for consecutive dispatch/complete events
+deltas = []
+prev_dispatch = None
+for entry in lines:
+    event = entry.get('event', '')
+    workers = entry.get('recommended_workers', 1)
+    if event == 'dispatch':
+        prev_dispatch = entry
+    elif event == 'complete' and prev_dispatch is not None:
+        # Only use single-worker deltas
+        if prev_dispatch.get('recommended_workers', 1) <= 1 and workers <= 1:
+            pre_pct = min(prev_dispatch.get('five_hr_pct', 100), prev_dispatch.get('seven_day_pct', 100))
+            post_pct = min(entry.get('five_hr_pct', 100), entry.get('seven_day_pct', 100))
+            delta = pre_pct - post_pct
+            if delta > 0:  # only positive deltas make sense
+                deltas.append(delta)
+        prev_dispatch = None
+
+# Cold start: not enough data
+if len(deltas) < 5:
+    print(f'{default_cost}')
+    sys.exit(0)
+
+# EMA over deltas
+ema = deltas[0]
+for d in deltas[1:]:
+    ema = alpha * d + (1 - alpha) * ema
+
+# Clamp to reasonable range (0.5 - 20.0)
+ema = max(0.5, min(20.0, ema))
+print(f'{ema:.2f}')
+" 2>/dev/null) || return 0
+
+  if [ -n "$new_cost" ] && [ "$new_cost" != "$ARTICLE_COST_PCT" ]; then
+    tlog "CALIBRATE: ARTICLE_COST_PCT $ARTICLE_COST_PCT → $new_cost"
+    ARTICLE_COST_PCT="$new_cost"
+  fi
+}
+
+# Rotate quota-history.jsonl at startup: remove entries older than 7 days.
+quota_history_rotate() {
+  [ "$LEGACY_QUOTA" = true ] && return 0
+  [ ! -f "$QUOTA_HISTORY_FILE" ] && return 0
+  local tmp
+  tmp=$(mktemp "$ROOT_DIR/.score-loop/state/.quota-history-rotate.XXXXXX") || return 1
+  python3 -c "
+import json, sys
+from datetime import datetime, timezone, timedelta
+
+cutoff = datetime.now(timezone.utc) - timedelta(days=7)
+kept = 0
+with open('$QUOTA_HISTORY_FILE', 'r') as f:
+    for line in f:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            entry = json.loads(line)
+            ts = datetime.fromisoformat(entry['ts'])
+            if ts >= cutoff:
+                print(line)
+                kept += 1
+        except:
+            print(line)
+            kept += 1
+print(f'# rotated: kept {kept} entries', file=sys.stderr)
+" > "$tmp" 2>/dev/null && mv "$tmp" "$QUOTA_HISTORY_FILE" || rm -f "$tmp"
 }
 
 # ─── Multi-worker supervisor helpers (Phase 2) ───────────────────────────────
@@ -501,20 +839,33 @@ if [ "$DRY_RUN" = true ]; then
   for i in "${!ARTICLES[@]}"; do
     tlog "  $((i+1)). ${ARTICLES[$i]}"
   done
-  remaining=$(get_effective_remaining)
-  if (( remaining >= 0 )); then
-    tier=$(compute_tier_name "$remaining")
-    sleep_sec=$(compute_sleep "$remaining")
-    tlog "Current quota: ${remaining}% remaining — Tier: ${tier}, inter-article sleep: ${sleep_sec}s"
+  if [ "$LEGACY_QUOTA" = true ]; then
+    remaining=$(legacy_get_effective_remaining)
+    if (( remaining >= 0 )); then
+      tier=$(legacy_compute_tier_name "$remaining")
+      tlog "Current quota (legacy): ${remaining}% remaining — Tier: ${tier}"
+    else
+      tlog "Could not read quota (usage-monitor.sh unavailable or returned error)"
+    fi
   else
-    tlog "Could not read quota (usage-monitor.sh unavailable or returned error)"
+    tick_result=$(controller_tick 0)
+    IFS='|' read -r cd wk bind mode <<< "$tick_result"
+    tlog "Controller: cooldown=${cd}s workers=${wk} binding=${bind} mode=${mode}"
+    tlog "ARTICLE_COST_PCT=${ARTICLE_COST_PCT}"
   fi
   exit 0
 fi
 
 # ─── Main Loop ────────────────────────────────────────────────────────────────
 tlog "=== Tribunal Quota-Aware Loop started ==="
-tlog "  Workers: ${WORKERS}  Quota floor: ${QUOTA_FLOOR}%, Resume threshold: ${RESUME_THRESHOLD}%"
+if [ "$LEGACY_QUOTA" = true ]; then
+  tlog "  Mode: LEGACY (binary GO/STOP)"
+  tlog "  Workers: ${WORKERS}  Quota floor: ${QUOTA_FLOOR}%"
+else
+  tlog "  Mode: CLOSED-LOOP CONTROLLER"
+  tlog "  Workers: ${WORKERS}  Floor: ${QUOTA_FLOOR}%  ArticleCost: ${ARTICLE_COST_PCT}%"
+  tlog "  MinCooldown: ${MIN_COOLDOWN}s  MaxCooldown: ${MAX_COOLDOWN}s"
+fi
 tlog "  Usage monitor: ${USAGE_MONITOR}"
 ensure_worktrees
 rc_gc_stale_claims
@@ -524,6 +875,10 @@ rc_write_state "running" "startup"
 if (( WORKERS > 1 )); then
   autoscale_write_state "$WORKERS" "startup"
 fi
+# Rotate old history entries at startup
+quota_history_rotate
+# Run initial calibration from existing history
+calibrate_article_cost
 
 while true; do
   # ── Stop boundary: top of iteration ──────────────────────────────────────
@@ -564,56 +919,92 @@ while true; do
   fi
 
   # ── Check quota ────────────────────────────────────────────────────────────
-  remaining=$(get_effective_remaining)
+  if [ "$LEGACY_QUOTA" = true ]; then
+    # ── Legacy binary GO/STOP path ──────────────────────────────────────────
+    remaining=$(legacy_get_effective_remaining)
 
-  if (( remaining < 0 )); then
-    if (( IN_FLIGHT == 0 )); then
-      tlog "Cannot read quota + no workers in-flight. Sleeping 10min (interruptible)."
-      rc_write_state "idle_wait" "quota_unreadable"
-      rc_interruptible_sleep 600 || true
-      continue
-    fi
-    # Workers running: let them finish before we worry about quota.
-    tlog "Cannot read quota; waiting for a worker to finish before re-checking."
-    wait_any_worker
-    continue
-  fi
-
-  sleep_sec=$(compute_sleep "$remaining")
-  tier=$(compute_tier_name "$remaining")
-
-  # ── STOP mode: quota below floor, wait for recovery ──────────────────────
-  if (( sleep_sec == -1 )); then
-    # Drain any in-flight first before entering quota wait.
-    if (( IN_FLIGHT > 0 )); then
-      tlog "Quota below floor; waiting for in-flight workers before entering quota wait."
+    if (( remaining < 0 )); then
+      if (( IN_FLIGHT == 0 )); then
+        tlog "Cannot read quota + no workers in-flight. Sleeping 10min (interruptible)."
+        rc_write_state "idle_wait" "quota_unreadable"
+        rc_interruptible_sleep 600 || true
+        continue
+      fi
+      tlog "Cannot read quota; waiting for a worker to finish before re-checking."
       wait_any_worker
       continue
     fi
-    tlog "STOP: ${remaining}% remaining (floor=${QUOTA_FLOOR}%). Waiting for >${RESUME_THRESHOLD}% (interruptible)."
-    rc_write_state "stopped_by_quota" "remaining=${remaining}%"
-    while true; do
-      if ! rc_interruptible_sleep 1800; then
-        break
-      fi
-      remaining=$(get_effective_remaining)
-      if (( remaining < 0 )); then
-        tlog "  Check: quota unreadable, still waiting..."
+
+    sleep_sec=$(legacy_compute_sleep "$remaining")
+    tier=$(legacy_compute_tier_name "$remaining")
+
+    if (( sleep_sec == -1 )); then
+      if (( IN_FLIGHT > 0 )); then
+        tlog "Quota below floor; waiting for in-flight workers before entering quota wait."
+        wait_any_worker
         continue
       fi
-      tlog "  Check: ${remaining}% remaining"
-      if (( remaining >= RESUME_THRESHOLD )); then
-        tlog "Quota recovered to ${remaining}%. Resuming."
-        break
+      tlog "STOP: ${remaining}% remaining (floor=${QUOTA_FLOOR}%). Waiting (legacy, interruptible)."
+      rc_write_state "stopped_by_quota" "remaining=${remaining}%"
+      rc_interruptible_sleep 1800 || true
+      continue
+    fi
+
+    tlog "Tier ${tier}: ${remaining}% remaining"
+    CONTROLLER_COOLDOWN=10
+    CONTROLLER_WORKERS=$EFFECTIVE_WORKERS
+  else
+    # ── Closed-loop controller path ──────────────────────────────────────────
+    tick_result=$(controller_tick "$IN_FLIGHT")
+    IFS='|' read -r CONTROLLER_COOLDOWN CONTROLLER_WORKERS CONTROLLER_BINDING CONTROLLER_MODE <<< "$tick_result"
+
+    # Grab raw readings for history/state
+    readings_raw=$(get_dual_quota_readings 2>/dev/null) || readings_raw="0|-1|0|-1|0|0|0"
+    IFS='|' read -r five_pct_raw five_reset_raw seven_pct_raw seven_reset_raw extra_u_raw extra_l_raw extra_e_raw <<< "$readings_raw"
+
+    tlog "CONTROLLER: cooldown=${CONTROLLER_COOLDOWN}s workers=${CONTROLLER_WORKERS} binding=${CONTROLLER_BINDING} mode=${CONTROLLER_MODE} 5hr=${five_pct_raw}% 7day=${seven_pct_raw}% cost=${ARTICLE_COST_PCT}%"
+
+    quota_history_append "tick" "$five_pct_raw" "$five_reset_raw" "$seven_pct_raw" "$seven_reset_raw" \
+      "$extra_u_raw" "$extra_l_raw" "$CONTROLLER_COOLDOWN" "$CONTROLLER_WORKERS" \
+      "$CONTROLLER_BINDING" "$ARTICLE_COST_PCT" "$CONTROLLER_MODE"
+    quota_controller_write_state "$CONTROLLER_MODE" "$five_pct_raw" "$seven_pct_raw" \
+      "$CONTROLLER_COOLDOWN" "$CONTROLLER_WORKERS" "$CONTROLLER_BINDING" "$ARTICLE_COST_PCT"
+
+    # Handle floor stop / extra limit
+    if [ "$CONTROLLER_MODE" = "floor_stop" ] || [ "$CONTROLLER_MODE" = "extra_limit" ]; then
+      if (( IN_FLIGHT > 0 )); then
+        tlog "Controller mode=$CONTROLLER_MODE; waiting for in-flight workers."
+        wait_any_worker
+        continue
       fi
-    done
-    continue
+      tlog "Controller mode=$CONTROLLER_MODE; sleeping ${CONTROLLER_COOLDOWN}s (interruptible)."
+      rc_write_state "stopped_by_quota" "mode=${CONTROLLER_MODE} cooldown=${CONTROLLER_COOLDOWN}s"
+      rc_interruptible_sleep "$CONTROLLER_COOLDOWN" || true
+      continue
+    fi
+
+    # Handle fallback (usage-monitor error)
+    if [ "$CONTROLLER_MODE" = "fallback" ]; then
+      if (( IN_FLIGHT == 0 )); then
+        tlog "Controller fallback mode; sleeping ${CONTROLLER_COOLDOWN}s (interruptible)."
+        rc_write_state "fallback" "cooldown=${CONTROLLER_COOLDOWN}s"
+        rc_interruptible_sleep "$CONTROLLER_COOLDOWN" || true
+        continue
+      fi
+      tlog "Controller fallback; waiting for a worker to finish before re-checking."
+      wait_any_worker
+      continue
+    fi
+
+    # Apply min(controller_workers, autoscale effective_workers)
+    if (( CONTROLLER_WORKERS < EFFECTIVE_WORKERS )); then
+      EFFECTIVE_WORKERS=$CONTROLLER_WORKERS
+    fi
+
+    rc_write_state "pacing" "cooldown=${CONTROLLER_COOLDOWN}s workers=${EFFECTIVE_WORKERS} binding=${CONTROLLER_BINDING}"
   fi
 
-  # Tier BURN: no inter-article sleep (quota is healthy).
-  tlog "Tier ${tier}: ${remaining}% remaining"
-
-  # ── Dispatch: fill worker pool up to $WORKERS ────────────────────────────
+  # ── Dispatch: fill worker pool up to $EFFECTIVE_WORKERS ─────────────────
   # Skip dispatch if stop requested — drain instead on next iteration.
   if rc_check_stop_requested; then
     continue
@@ -642,7 +1033,15 @@ while true; do
 
     # Claim + dispatch.
     if article=$(try_claim_next_article "worker-$free_id"); then
-      rc_write_state "running" "dispatching worker-$free_id article=$article"
+      rc_write_state "pacing" "dispatching worker-$free_id article=$article"
+      # Log dispatch event for calibration
+      if [ "$LEGACY_QUOTA" != true ]; then
+        d_readings=$(get_dual_quota_readings 2>/dev/null) || d_readings="0|-1|0|-1|0|0|0"
+        IFS='|' read -r d5 dr5 d7 dr7 deu del dee <<< "$d_readings"
+        quota_history_append "dispatch" "$d5" "$dr5" "$d7" "$dr7" "$deu" "$del" \
+          "${CONTROLLER_COOLDOWN:-10}" "${CONTROLLER_WORKERS:-1}" "${CONTROLLER_BINDING:-none}" \
+          "$ARTICLE_COST_PCT" "${CONTROLLER_MODE:-pacing}"
+      fi
       spawn_worker "$free_id" "$article"
       dispatched_this_iter=$((dispatched_this_iter + 1))
     else
@@ -662,6 +1061,19 @@ while true; do
   # Wait for at least one worker to finish before re-evaluating.
   wait_any_worker
 
-  # Short cooldown to give file systems / APIs a breath.
-  rc_interruptible_sleep 10 || true
+  # Log completion event for calibration (after worker finishes)
+  if [ "$LEGACY_QUOTA" != true ]; then
+    c_readings=$(get_dual_quota_readings 2>/dev/null) || c_readings="0|-1|0|-1|0|0|0"
+    IFS='|' read -r c5 cr5 c7 cr7 ceu cel cee <<< "$c_readings"
+    quota_history_append "complete" "$c5" "$cr5" "$c7" "$cr7" "$ceu" "$cel" \
+      "${CONTROLLER_COOLDOWN:-10}" "${CONTROLLER_WORKERS:-1}" "${CONTROLLER_BINDING:-none}" \
+      "$ARTICLE_COST_PCT" "${CONTROLLER_MODE:-pacing}"
+    # Re-calibrate after each completion
+    calibrate_article_cost
+  fi
+
+  # Controller-determined cooldown (replaces fixed 10s).
+  CONTROLLER_COOLDOWN="${CONTROLLER_COOLDOWN:-10}"
+  tlog "Cooldown: ${CONTROLLER_COOLDOWN}s before next dispatch cycle."
+  rc_interruptible_sleep "${CONTROLLER_COOLDOWN}" || true
 done
