@@ -370,23 +370,6 @@ except Exception:
 " "$json" 2>/dev/null
 }
 
-# Compute ideal consumption rate for a single window.
-# Usage: compute_ideal_rate <remaining_pct> <floor_pct> <time_until_refresh_sec>
-# Outputs: rate in %/sec (float). 0 if usable ≤ 0.
-compute_ideal_rate() {
-  local remaining="$1" floor="$2" time_sec="$3"
-  python3 -c "
-remaining = float('$remaining')
-floor = float('$floor')
-time_sec = float('$time_sec')
-usable = remaining - floor
-if usable <= 0 or time_sec <= 0:
-    print('0')
-else:
-    print(f'{usable / time_sec:.10f}')
-"
-}
-
 # Main controller tick. Called before each dispatch cycle.
 # Usage: controller_tick <active_workers>
 # Outputs: cooldown_sec|recommended_workers|binding_constraint|mode
@@ -1072,7 +1055,14 @@ while true; do
     calibrate_article_cost
   fi
 
-  # Controller-determined cooldown (replaces fixed 10s).
+  # Re-compute cooldown with fresh quota after worker completion
+  if [ "$LEGACY_QUOTA" != true ]; then
+    IN_FLIGHT=${#WORKER_PID[@]}
+    fresh_tick=$(controller_tick "$IN_FLIGHT") || fresh_tick=""
+    if [ -n "$fresh_tick" ]; then
+      IFS='|' read -r CONTROLLER_COOLDOWN CONTROLLER_WORKERS CONTROLLER_BINDING CONTROLLER_MODE <<< "$fresh_tick"
+    fi
+  fi
   CONTROLLER_COOLDOWN="${CONTROLLER_COOLDOWN:-10}"
   tlog "Cooldown: ${CONTROLLER_COOLDOWN}s before next dispatch cycle."
   rc_interruptible_sleep "${CONTROLLER_COOLDOWN}" || true
