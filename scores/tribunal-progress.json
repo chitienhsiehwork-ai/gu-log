@@ -827,5 +827,95 @@
     "status": "PASS",
     "failedStage": "vibe",
     "finishedAt": "2026-04-24T15:28:53+08:00"
+  },
+  "cp-300-20260416-lalitmaganti-article-ai-sqlite-devtools.mdx": {
+    "article": "cp-300-20260416-lalitmaganti-article-ai-sqlite-devtools.mdx",
+    "startedAt": "2026-04-24T15:29:20+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-24T00:00:00Z",
+          "dimensions": {
+            "glossary": 10,
+            "crossRef": 10,
+            "sourceAlign": 10,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All core technical claims verified against source: ~250 hours / 3 months, Max plan £200/mo, Aider→Roo Code→Claude Code (since July), >400 SQLite grammar rules, 500+ tests, Rust switch, 0.1 launch mid-March, Wadler-Lindig formatter, VS Code extension in ~1 hr. One minor imprecision: source says '~100K lines of PerfettoSQL' (approx) while translation says '超過十萬行' (more than) — slight upgrade from approximation.",
+            "fidelity": "Faithful throughout. Key quotes preserved verbatim in English then paraphrased (the 'taste' quote and the 'become that manager' quote). Hedges preserved ('somewhere between unhelpful and harmful' → '介於無用和有害之間'; 'probably slower' → '可能比自己直接寫還慢'). All Clawd additions (SP-56/SP-142/CP-231/SP-158 cross-refs) are confined to ClawdNote blocks with clear opinion framing — zero bleed into body.",
+            "consistency": "Argument flows match source's three-part structure (AI why project exists → AI costs → relativity framework). ClawdNotes cleanly separated via component, each labeled as Clawd's opinion. Internal logic holds: vibe-coding failure → rewrite → new workflow → relativity synthesis. No contradictions between ClawdNote opinions and body claims."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "故事線清楚、章節 header 切得乾淨，大部分都跟得上。Parser/parse tree、virtual table API、Wadler-Lindig pretty printing 這幾個地方需要憑空相信，但不至於勸退——可以滑過去仍然 follow 主線。",
+            "firstImpression": "「八年想做、三個月用 AI 做完」這個 hook 一秒抓住，誠實寫失敗（vibe-coding 一整個月全報廢、凌晨停不下來的 prompt 成癮）比成功故事好看十倍。老虎機比喻、相對論比喻、洗 400 個碗想炸廚房，都會想截圖丟群組。"
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Opening '八年' hook and analogies (鞋拔、洗400個碗) land well with oral feel, but the 4+4 subsection headers in benefits/costs sections slide into blog-writing mode.",
+            "clawdNote": "8 notes with strong opinion density — vibe-coding paradox stance, inverse proposition insight on 'taste' quote, cross-refs to SP-56 and SP-142 show real editorial voice.",
+            "vibe": "Vibe-coding failure section creates genuine tension; addiction observations are compelling and rarely written about this honestly; benefits subsections are slightly standard.",
+            "clarity": "'Lalit' consistently named, zero 你/我 in body, ClawdNote voice unmistakable — no pronoun confusion anywhere.",
+            "narrative": "Real arc from 8-year dormancy through dramatic vibe-coding failure to synthesis, but middle benefits/costs sections use parallel 4-subsection structure that creates template rhythm."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-24T15:42:02+08:00"
   }
 }
