@@ -91,5 +91,98 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-24T13:58:43+08:00"
+  },
+  "sp-179-20260422-garrytan-skillify-agent-failures.mdx": {
+    "article": "sp-179-20260422-garrytan-skillify-agent-failures.mdx",
+    "startedAt": "2026-04-24T13:59:09+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 7,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "OpenClaw linked to /glossary#openclaw on first mention. Claude Code, Agent, Subagent, Hooks are used naturally in body/ClawdNote without explicit glossary links but the meaning is self-evident in context; no critical unexplained term. Minor gap only.",
+            "crossRef": "External refs (TechCrunch, Fortune, Nous docs, Hermes Agent repo, gstack, gbrain, Garry's prior X posts) all resolve. No ShroomDog/Clawd prose mention requiring /about link. However several obvious thematic connections to existing gu-log skill posts are missing — e.g. sp-118 (Claude Code skills lessons), sp-117 (Karpathy autoresearch + skills), sp-122 (Uber 500 AI skills), levelup-20260218-06 (OpenClaw memory + skills). Skillify is squarely in this family and deserved 1-2 internal backlinks.",
+            "sourceAlign": "sourceUrl points to Garry Tan's X post on skillify; body faithfully covers the two failure case studies (Singapore calendar recall, UTC→PT timezone), the 10-step checklist, the LangChain critique, the Hermes Agent comparison, and the closing thesis. Content clearly derived from source.",
+            "attribution": "Direct quotes marked with blockquotes and attributed to Garry. $160M → $260M fact correction cited to TechCrunch and Fortune inside ClawdNote (fact-check flag clearly separated from body claim). Hermes Agent feature claims (skill_manage, progressive disclosure, MEMORY.md bound) verified against Nous Research docs and called out as 'claim 屬實'. ClawdNote commentary is visually isolated via the component, keeping opinion layer distinct from reporting layer."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "ClawdNote proactively fact-corrects Garry's '$160M LangChain' claim to verified $260M cumulative with TechCrunch/Fortune citation — sign of careful verification. Hermes Agent claims (skill_manage, progressive disclosure, 2200-char MEMORY.md) attributed to nous research docs. Specific numbers (3,146 calendar files, 179 unit tests, 40+ skills with 6 unreachable) come from tweet-level source so unverifiable against primary, normal for SP-class translation.",
+            "fidelity": "Direct Garry quotes preserved with attribution markers ('Garry：', 'Garry 自己的描述翻譯過來'). Hedges maintained ('技術上也確實強', '稍微便宜了一點'). ClawdNote opinions cleanly separated from translation body via component boundary. No uncertainty erasure observed; might/could nuance preserved through 可能/或許 phrasing throughout.",
+            "consistency": "10-step checklist structurally consistent across both failure cases (calendar-recall and context-now follow same pattern). Latent/deterministic dichotomy applied uniformly. ClawdNote analyses (e.g. 'three patterns stacked' synthesis) clearly framed as Clawd commentary, not Garry's claim. Argument arc from 'two failures → skillify → 10 steps → Hermes comparison → SRE-style conclusion' holds without contradiction."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Concrete scenarios (Singapore trip, 28 vs 88 minutes) anchor abstract stuff; analogies like 螺絲工廠抽驗機, 急診掛號櫃檯, 萬用抽屜 USB 線, 阿嬤整鍋湯 translate jargon like resolver/unit test/DRY audit for a beginner. 'thin harness / fat skills' linked but not restated, mild re-read moment.",
+            "firstImpression": "Hook is strong — 'agent 翻兩次車 + 10 步 checklist' pulls you in immediately, and the '搜 fucking shit / wtf 找漏掉的 test' heuristic is screenshot-worthy. Closing line '被一年裡犯過的每個錯塑形' lands. Would share in a dev group chat."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Analogies land well (螺絲工廠抽驗機, 急診掛號分科, USB 斷芯充電線, 阿嬤嚐湯) and oral voice is genuine, but the 剩下 8 步 mega-section repeats an analogy→detail→impl rhythm that slides from talking to writing mode.",
+            "clawdNote": "Six notes with sharp independent stances: fact-corrects Garry's $160M→$260M, calls the LangChain dunk 'slightly cheap' on product-shape grounds, distills the core latent/deterministic insight better than the source, and the final note boils the article to three known patterns stacked together.",
+            "vibe": "The two failure cases and 'skillify as a verb' section with Garry's actual chat quotes are compelling reads, but the 8-step walkthrough section is thorough-but-heavy and you feel the word count dragging.",
+            "clarity": "Body text consistently names Garry and agent as subjects with zero 你/我 leakage; voice attribution is always unambiguous between source claims, article analysis, and ClawdNote opinion.",
+            "narrative": "Opening hooks with universal agent frustration, two concrete failures build a pattern, skillify-as-verb shifts register, conclusion callbacks the opening effectively — but the 8-step walkthrough follows checklist order with a repeating analogy→detail cadence where momentum dips."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-24T14:04:37+08:00"
   }
 }
