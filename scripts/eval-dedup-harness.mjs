@@ -6,7 +6,7 @@
 //   退出碼：schema 違規 = 1，其他 = 0。
 //   行為與 Level D 一致，維持 pre-commit / CI gate。
 //
-// - `--run` 模式：對每筆 fixture 呼叫 `claude -p --agent v2-factlib-judge`，
+// - `--run` 模式：對每筆 fixture 呼叫 `claude -p --agent fact-checker`，
 //   比對 expectedAction，算 per-category precision + recall，輸出 markdown report。
 //   退出碼：schema 違規 = 1，judge 呼叫失敗 = 2，其他 = 0（包含 fixture 判錯）。
 //
@@ -176,7 +176,7 @@ function printSchemaSummary(fixtures, errors) {
 // ---------------------------------------------------------------------------
 
 /**
- * Build prompt for v2-factlib-judge given a fixture.
+ * Build prompt for fact-checker given a fixture.
  * Judge reads article snapshot + corpus snapshot from prompt context, not from
  * filesystem. This mirrors how the pipeline injects content.
  */
@@ -208,7 +208,7 @@ function buildJudgePrompt(fixture, outputPath) {
   // fixture inputPost slug already exists in the real corpus.
   //
   // Label "EVALUATOR MODE — CORPUS SOURCE OVERRIDE" MUST match the override block
-  // heading in .claude/agents/v2-factlib-judge.md. If you rename it here, update
+  // heading in .claude/agents/fact-checker.md. If you rename it here, update
   // the agent file too (the judge uses the label to detect evaluator mode).
   return `You are evaluating a dedup fixture. Score ONLY the dupCheck dimension for this exercise.
 The fact / library dimensions may be stubbed (e.g. 8, 8, 8, 8) — focus on judging whether
@@ -243,7 +243,7 @@ Confirm with a one-line status on stdout.
 }
 
 /**
- * Spawn `claude -p --agent v2-factlib-judge --dangerously-skip-permissions <prompt>`
+ * Spawn `claude -p --agent fact-checker --dangerously-skip-permissions <prompt>`
  * and return the parsed JSON.
  *
  * Dry-run mode (for local testing): returns a stub verdict derived from the
@@ -291,7 +291,7 @@ async function invokeJudge(fixture, { timeoutSec, dryRun }) {
 function spawnClaudeJudge(prompt, timeoutSec) {
   return new Promise((resolve, reject) => {
     // Claude Code refuses --dangerously-skip-permissions under root (CCC).
-    const args = ['-p', '--agent', 'v2-factlib-judge'];
+    const args = ['-p', '--agent', 'fact-checker'];
     if (process.getuid && process.getuid() !== 0) {
       args.push('--dangerously-skip-permissions');
     }
@@ -327,17 +327,17 @@ function spawnClaudeJudge(prompt, timeoutSec) {
     child.on('error', (err) => {
       clearTimeout(timer);
       if (sigkillTimer) clearTimeout(sigkillTimer);
-      reject(new Error(`claude --agent v2-factlib-judge spawn failed: ${err.message}`));
+      reject(new Error(`claude --agent fact-checker spawn failed: ${err.message}`));
     });
     child.on('close', (code) => {
       clearTimeout(timer);
       if (sigkillTimer) clearTimeout(sigkillTimer);
       if (timedOut) {
-        reject(new Error(`claude --agent v2-factlib-judge timed out after ${timeoutSec}s`));
+        reject(new Error(`claude --agent fact-checker timed out after ${timeoutSec}s`));
         return;
       }
       if (code !== 0) {
-        reject(new Error(`claude --agent v2-factlib-judge exit ${code}: ${stderr.slice(-400)}`));
+        reject(new Error(`claude --agent fact-checker exit ${code}: ${stderr.slice(-400)}`));
         return;
       }
       resolve();
@@ -445,7 +445,7 @@ function buildMarkdownReport({ results, metrics, accuracy, matrix, timestamp, co
   lines.push(`# Dedup Eval Harness Report`);
   lines.push('');
   lines.push(`Generated: ${timestamp}`);
-  lines.push(`Judge: \`v2-factlib-judge\` (dupCheck dimension, Level E)`);
+  lines.push(`Judge: \`fact-checker\` (dupCheck dimension, Level E)`);
   lines.push('');
   lines.push('## Fixture Distribution');
   lines.push('');

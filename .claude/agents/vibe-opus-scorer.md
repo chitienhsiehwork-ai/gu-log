@@ -73,6 +73,7 @@ Does the post have genuine narrative structure, or is it a linear report with de
 - Motivational-poster closing → vibe -2
 - ClawdNote = pure definition → clawdNote -2
 - SP-158 decorative persona pattern → persona cap 5, narrative cap 5
+- 晶晶體（裝飾性中英夾雜，例如「很 strong 的 reveal」「這個 approach 很 solid」）→ clarity -3 AND vibe -4
 
 ## Protocol
 

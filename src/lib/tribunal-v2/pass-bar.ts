@@ -113,7 +113,7 @@ export function checkFactLibPassBar(scores: {
     throw new Error(
       `[checkFactLibPassBar] scores.dupCheck is ${raw}. ` +
         `judge_version >= 2.1.0 is required for Level E dupCheck. ` +
-        `Check that the judge agent is using the updated v2-factlib-judge.md prompt.`
+        `Check that the judge agent is using the updated fact-checker.md prompt.`
     );
   }
   if (typeof raw !== 'number' || !Number.isFinite(raw)) {
