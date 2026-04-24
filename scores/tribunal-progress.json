@@ -277,5 +277,97 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-24T14:10:51+08:00"
+  },
+  "sp-177-20260421-pawelhuryn-intent-first-4-7-migration.mdx": {
+    "article": "sp-177-20260421-pawelhuryn-intent-first-4-7-migration.mdx",
+    "startedAt": "2026-04-24T14:11:18+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Model Swap linked to /glossary#model-swap at first mention; tokenizer/effort/adaptive thinking explained naturally in an inline 名詞小抄 callout. Minor gap: Claude Code and Agent (both glossary entries) appear multiple times unlinked, though context makes them clear.",
+            "crossRef": "Internal link /posts/sp-175-20260416-anthropic-opus-4-7-prompting-best-practices verified to exist (linked twice); external links to Boris Cherny and Karpathy X posts with concrete status URLs. No ShroomDog/Clawd name mentions in body text, so /about identity links not required.",
+            "sourceAlign": "Content faithfully derives from Pawel Huryn's migration guide at sourceUrl — all six tactics (CLAUDE.md layering, effort toggle, batch questions, positive examples, scaffold removal, plan review) plus Reddit/Arena regression framing and Anthropic/OpenAI convergence observation are covered.",
+            "attribution": "Boris Cherny and Karpathy quotes attributed with direct X links; '16 hours' testing and '1.0-1.35x token' stats credited to Pawel; Reddit/LM Arena/Anthropic docs clearly distinguished as separate sources; ClawdNote opinion blocks cleanly separated from body facts via component."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Technical claims about Opus 4.7 behavior (literal execution, adaptive thinking, effort ladder low/medium/high/xhigh/max with xhigh default in Claude Code, tokenizer yielding 1.0-1.35x tokens, Plan mode via double Shift+Tab, /ultraplan CLI-only) are consistent with SP-175's documented Anthropic references; specific numbers (1.0-1.35x tokens, 16-hour test) are clearly attributed to Pawel's own testing rather than presented as Anthropic-official; Boris Cherny and Karpathy references carry direct URLs; minor imprecision on the specific tokenizer ratio remains unverifiable without direct access to Pawel's guide, typical of tweet-sourced translations.",
+            "fidelity": "Source's core claim ('Opus 4.7 rewards clear intent') is preserved verbatim and bolded; the six tactics map cleanly onto a migration-guide structure; hedges are maintained ('Pawel 的觀察', 'Migration guide 建議', 'Pawel 實測' rather than blanket assertions); ClawdNotes are visually isolated via the component and clearly extend beyond source material (e.g., 班長比喻、考古層累積、網紅觀察) without masquerading as source; no uncertainty erasure detected — Reddit/Arena regression claim is explicitly framed as a measurement-scope dispute rather than either-side truth.",
+            "consistency": "Argument arc holds tight: opening 'new colleague' metaphor threads through all seven sections (Arena-vs-docs scoping, contract-not-command, effort throttle, batch-not-drip, positive-not-negative, scaffolding removal, plan-review) and converges in the Anthropic/OpenAI convergence coda; every tactic is justified by the literal-execution premise set in §1; ClawdNotes extend rather than contradict the body; cross-references to SP-175 (Model Swap glossary, code-review coverage-vs-filter split, max overthinking) reinforce internal coherence without creating contradictions."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-24T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 9
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "「新同事」比喻貫穿全篇且自然回扣，口語感穩定，但中段 effort/batch 章節偶爾滑回教學說明模式而非講課模式。",
+            "clawdNote": "五個 note 全部有明確立場——Arena 投票制偏袒、資深工程師 ego 要先坐下、一次問完品質更好不只省錢、CLAUDE.md 考古是最高 ROI、prompt 課程網紅要倒楣——opinion 密度超過門檻。",
+            "vibe": "爭議拆解那段讓人想繼續讀，結尾 convergence 觀察有記憶點，但中間幾招（effort 油門、batch 問法）偏實用指南、黏著力稍弱。",
+            "clarity": "全篇正文零你/我洩漏，主語一律用 Pawel/新同事/舊同事/model 等具體名稱，ClawdNote 內的第一人稱歸屬明確。",
+            "narrative": "開場爭議製造張力、結尾 convergence 觀察拉高視野並 callback 新同事比喻，但中段六招按序展開仍偏線性列舉，節奏變化不夠大。"
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-24T14:16:55+08:00"
   }
 }
