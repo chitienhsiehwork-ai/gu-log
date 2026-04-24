@@ -1,1 +1,95 @@
-{}
+{
+  "sp-180-20260423-anthropic-mcp-production-agents.mdx": {
+    "article": "sp-180-20260423-anthropic-mcp-production-agents.mdx",
+    "startedAt": "2026-04-24T13:40:32+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 10,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "All four glossary terms used (agent, MCP, Cowork, Claude Code) are linked with /glossary#... anchors on first mention.",
+            "crossRef": "Three internal post links verified (sp-129 Cloudflare Dynamic Workers, sp-167 Managed Agents used twice, sp-179 skillify); ShroomDog/Clawd names don't appear in body so identity links N/A.",
+            "sourceAlign": "Content faithfully tracks the Anthropic blog — three-path framing, Cloudflare 2500/1K benchmark, Elicitation Form/URL modes, CIMD, Vaults, 85%/37% numbers, Plugin+skill pattern all present.",
+            "attribution": "Every blockquote attributed to Anthropic 原文 with clear speaker tags; all statistics cited (3億/月 SDK, 85% tool-def reduction, 37% multi-step, ~2500 endpoints); ClawdNote opinions clearly sandboxed from body facts."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All numeric claims verified against source: 300M/mo SDK downloads (up from 100M), Cloudflare 2 tools / ~2,500 endpoints / ~1K tokens, 85%+ tool-definition token reduction, ~37% multi-step reduction, 200+ directory servers, Cowork data plugin 10 skills + 8 MCP servers (Snowflake/Databricks/BigQuery/Hex) — every number matches the Anthropic blog.",
+            "fidelity": "Direct quotes (opening 'Agents are only as useful...', create_issue_from_thread example, 'mature integrations will ship all three', 'Every integration built on MCP strengthens the ecosystem', Cloudflare reference-example quote) render accurately; the 'tends to' hedge on 85%+ is explicitly preserved as '通常能...並維持選擇準確度' and called out as a non-guaranteed observation; URL mode / form mode coverage caveat retained.",
+            "consistency": "Argument structure mirrors source (three paths → production cloud thesis → server patterns → client patterns → skill×MCP → compounding conclusion); ClawdNote commentary is physically isolated in <ClawdNote> components and framed as opinion/analogy (electricity-standards, platform-play, App Store parallels), never bleeding into factual body prose."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Cooking menu 跟美國電力的比喻把 MCP / M×N 解釋得超清楚，三條路結構一目了然；扣分在 Elicitation / CIMD / Vault 那段一次塞太多新名詞，OAuth 不熟的人要回頭讀一次。",
+            "firstImpression": "開頭『搬上雲第一天全部連不到』的場景直接打到我，三個硬數字（3 億下載、2500 endpoints、85%/37%）讓每個論點都有重量，結尾把 takeaway 壓成『部署地點的函數』很爽；會發給正在做 agent side project 的同事。"
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "菜單vs流程圖 cooking analogy and 桌子堆參考書 metaphor land well; 'agent 搆不到就是廢物' harshness is peak LHY; three walls section slightly structured-explainer.",
+            "clawdNote": "5/6 notes have clear stance — platform play W3C comparison, 'agent 圈集體慚愧' 20-year snark, and practical MVP takeaway are highlights with genuine personality.",
+            "vibe": "Cloudflare 2-tool section is genuinely compelling and the opening搬家 scenario hooks immediately; some information-dense passages in the walls section slightly drag momentum.",
+            "clarity": "Body text maintains clean pronoun discipline throughout; subjects always named (Anthropic, agent, Cloudflare); attribution pristine with quotes properly marked.",
+            "narrative": "Opening搬家 scenario callbacks in conclusion; three walls escalate tension ('一道比一道無聊、一道比一道致命'); skill extension adds forward-looking twist; some list rhythm in walls section."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-24T13:58:43+08:00"
+  }
+}
