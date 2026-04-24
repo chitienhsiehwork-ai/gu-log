@@ -20,7 +20,7 @@ import { join } from 'node:path';
  * Options for a single Claude agent invocation.
  */
 export interface SpawnClaudeAgentOptions {
-  /** Agent name (without .md), e.g. "v2-vibe-judge" */
+  /** Agent name (without .md), e.g. "vibe-opus-scorer" */
   agent: string;
   /** The prompt string to pass as the positional arg to `claude -p` */
   prompt: string;

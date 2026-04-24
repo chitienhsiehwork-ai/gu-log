@@ -69,7 +69,7 @@ Agents self-assess `pass` but the pass-bar lib wins. Log the discrepancy.
 
 ---
 
-## Stage 1: Librarian (Sonnet) — 4 Dimensions
+## Stage 1: Librarian (Opus 4.7) — 4 Dimensions
 
 ### glossary — Glossary Term Coverage
 Does every technical term that exists in `src/data/glossary.json` get linked or explained?
@@ -181,7 +181,7 @@ Are quotes, stats, and opinions properly attributed?
 
 ---
 
-## Stage 3: Fresh Eyes (Haiku) — 2 Dimensions
+## Stage 3: Fresh Eyes (Opus 4.7) — 2 Dimensions
 
 **Persona: developer with ~3 months of experience.** Impatient, scared of jargon, will close the tab after 2 boring paragraphs. Does NOT know what ShroomDog, Clawd, or OpenClaw are.
 

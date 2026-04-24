@@ -38,32 +38,15 @@ const TIMEOUT = {
 } as const;
 
 // ---------------------------------------------------------------------------
-// Stage 0 — Worthiness Judge
+// Stage 0 — Worthiness Judge (DEPRECATED — v3 pipeline skips Stage 0)
 // ---------------------------------------------------------------------------
 
 export const stage0JudgeRunner: StageRunner<
   { articleContent: string; articlePath?: string },
   WorthinessJudgeOutput
 > = {
-  async run(input) {
-    const articlePath =
-      input.articlePath ??
-      (() => {
-        throw new Error('stage0Judge: articlePath required');
-      })();
-
-    const { parsed } = await runJudgeAgent<WorthinessJudgeOutput>({
-      agent: 'worthiness-judge',
-      timeoutSec: TIMEOUT.JUDGE_STAGE0,
-      buildPrompt: (outputPath) => `Evaluate worthiness for this post: ${articlePath}
-
-Read the post, then score it on coreInsight / expandability / audienceRelevance per your agent instructions.
-
-Write the v2 WorthinessJudgeOutput JSON to: ${outputPath}
-Confirm with a one-line status on stdout.`,
-    });
-
-    return parsed;
+  async run(_input) {
+    throw new Error('Stage 0 (Worthiness Judge) is deprecated in v3. The v3 shell pipeline skips this stage.');
   },
 };
 
