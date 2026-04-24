@@ -540,7 +540,7 @@ while true; do
   EFFECTIVE_WORKERS=$(autoscale_read_limit)
 
   # ── Git pull in main repo (workers do their own in their worktrees) ──────
-  git pull --rebase origin main >> "$LOG_FILE" 2>&1 \
+  git pull --rebase --autostash origin main >> "$LOG_FILE" 2>&1 \
     || { git rebase --abort 2>/dev/null; tlog "WARN: git pull failed, continuing"; }
 
   # ── Find unscored articles ─────────────────────────────────────────────────
