@@ -737,5 +737,95 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-24T14:41:18+08:00"
+  },
+  "sp-175-20260416-anthropic-opus-4-7-prompting-best-practices.mdx": {
+    "article": "sp-175-20260416-anthropic-opus-4-7-prompting-best-practices.mdx",
+    "startedAt": "2026-04-24T14:41:46+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-24T00:00:00Z",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 10,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Every verifiable technical claim checks out against both source docs: xhigh as new Claude Code default, 64k max_tokens starting point for xhigh/max, budget_tokens removed in favor of adaptive thinking, updated tokenizer, auto mode via Shift+Tab for Claude Code Max users, design defaults (#F4F1EA, Georgia/Fraunces/Playfair, terracotta/amber), literal instruction following, fewer subagents by default. Report-every-issue and subagent snippets quoted verbatim. Minor: the 'verify before answering by grep' snippet is synthesized rather than verbatim from the docs — it captures the principle but a reader could mistake it for an official quote.",
+            "fidelity": "Sources faithfully represented with no uncertainty erasure. The 'literal照做' framing matches 'Claude Opus 4.7 may follow that instruction more faithfully than earlier models did'. Tokenizer claim is correctly hedged as 'may切出更多或更少 token' rather than asserting direction. The Monday/Tuesday postmortem is a clearly illustrative narrative; underlying technical claims all map to source material.",
+            "consistency": "Argument flow is tight: three behavioral defaults (literal / less tool / fewer subagents) unified under 'read the model personality' thesis, then three infra changes (tokenizer / budget_tokens removal / tone calibration), design aside, closed with the meta-lesson. ClawdNote opinions clearly bracketed in component with distinctive voice — no bleed into body. Effort ladder uses two concrete tickets as counterexamples and maps cleanly to the official five-level spec."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-24T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "fail",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 7
+          },
+          "score": 8,
+          "verdict": "FAIL",
+          "reasons": {
+            "persona": "Incident-driven framing gives strong oral feel; analogies land (房東租金、方向盤/油門、實習生), but effort section walks through 5 levels in order — that's explaining, not talking.",
+            "clawdNote": "All four notes carry genuine opinions: note 1 boldly argues 4.7's literal behavior is correct, note 2 roasts naming with CPU analogy, note 3 reframes budget_tokens removal as communication debt — opinionated and fun throughout.",
+            "vibe": "Opening incident hooks hard, coffee shop anecdote is the most shareable moment; middle sections (effort ladder, tokenizer accounting) are dense and informational enough to slow momentum.",
+            "clarity": "Excellent pronoun discipline — team lead, release manager, 工程師 are always named; body text never slips into 你/我; speaker attribution is unambiguous throughout.",
+            "narrative": "Peeling-layers structure in section 2 creates real tension, and the effort subversion ('油門不是方向盤') is a genuine pivot — but the effort section still enumerates max→xhigh→high→medium→low in order like a reference doc, and the coffee shop detour breaks narrative momentum; strip test leaves a recognizable ladder."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 3
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "FAILED",
+    "failedStage": "vibe",
+    "finishedAt": "2026-04-24T15:25:35+08:00"
   }
 }
