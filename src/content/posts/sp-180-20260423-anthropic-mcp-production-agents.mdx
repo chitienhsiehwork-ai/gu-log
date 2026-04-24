@@ -12,233 +12,187 @@ lang: "zh-tw"
 summary: "Anthropic 剛丟出一份 production agent 的連線路指南：agent 上雲那天，API / CLI / MCP 三條路都會 ship，但只有 MCP 是會複利的那條。文章以 Cloudflare 的 MCP server（兩個 tool 包 2,500 個 endpoint）當設計 benchmark，帶出 remote 優先、tool 以 intent 分組、大 API 走 code orchestration、Elicitation + CIMD 把 production auth 收斂的整套心法。"
 tags: ["mcp", "anthropic", "agent-engineering", "claude-cowork", "claude-code"]
 scores:
-  tribunalVersion: 2
-  vibe:
-    persona: 9
-    clawdNote: 9
-    vibe: 9
-    clarity: 9
-    narrative: 8
-    score: 8
-    date: "2026-04-23"
+  tribunalVersion: 3
+  librarian:
+    glossary: 10
+    crossRef: 9
+    sourceAlign: 9
+    attribution: 9
+    score: 9
+    date: "2026-04-24"
     model: "claude-opus-4-7"
   factCheck:
     accuracy: 9
-    fidelity: 8
+    fidelity: 9
     consistency: 9
-    score: 8
-    date: "2026-04-23"
-    model: "claude-opus-4-7"
-  librarian:
-    glossary: 9
-    crossRef: 9
-    sourceAlign: 10
-    attribution: 9
     score: 9
-    date: "2026-04-23"
-    model: "claude-sonnet-4-6"
+    date: "2026-04-24"
+    model: "claude-opus-4-7"
   freshEyes:
     readability: 8
     firstImpression: 8
     score: 8
-    date: "2026-04-23"
-    model: "claude-haiku-4-5"
+    date: "2026-04-24"
+    model: "claude-opus-4-7"
+  vibe:
+    persona: 8
+    clawdNote: 9
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-04-24"
+    model: "claude-opus-4-6[1m]"
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-設想一個很常見的場景：一個在 laptop 上養得好好的 [agent](/glossary#agent) 要搬上 cloud 給 team 一起用。本來在 terminal 裡 CLI 串 git、grep 檔案、跑 pytest 都順得要命；搬上線第一天就發現——**凡是需要搆到的東西突然全部連不到**。Calendar 在 Google、資料在 Snowflake、issue 在 Linear，每個都 remote、都躲在 auth 後面、都要一套自己的 client。搬家從「換台 VM」變成「把八個整合重蓋一次」。
+設想一個很常見的場景：一個在 laptop 上養得好好的 [agent](/glossary#agent)，要搬到 cloud 給團隊一起用。本來在 terminal 裡 CLI 串 git、grep 檔案、跑 pytest 都順得要命；搬上線第一天就發現——**凡是需要搆到的東西突然全部連不到**。行事曆在 Google、資料在 Snowflake、issue 在 Linear，每個都在遠端、都躲在認證後面、都要一套自己的 client。搬家從「換台 VM」變成「把八個整合重蓋一次」。
 
 Anthropic 這篇新文第一句就把整個命題壓成一行：
 
 > "Agents are only as useful as the systems they can reach."
 
-**agent 再聰明，搆不到它該搆的系統，就是廢物。** 再漂亮的 reasoning trace、再炫的 evals，打不進 calendar、打不進 Snowflake、打不進那台跑在 AWS 背後的 inventory 系統，對 production 來說就是零。Anthropic 把連線外部世界這件事拆成三條常見路：**直接 call API、call CLI、走 [MCP（Model Context Protocol）](/glossary#mcp)**。每一條各有甜蜜區、各有天花板，但一旦 agent 搬離 laptop 上 cloud——**三條路最後都會 ship，可是只有 MCP 是會複利的那條**。
+**agent 再聰明，搆不到它該搆的系統，就是廢物。** 再漂亮的 reasoning trace、再炫的 evals，打不進行事曆、打不進 Snowflake、打不進那台跑在 AWS 背後的庫存系統，對 production 來說就是零。Anthropic 把連線外部世界這件事拆成三條常見路：**直接 call API、call CLI、走 [MCP（Model Context Protocol）](/glossary#mcp)**。每一條各有甜蜜區、各有天花板，但一旦 agent 搬離 laptop 上 cloud——**三條路最後都會 ship，可是只有 MCP 是會越用越值錢的那條**。
 
 ## 三條路的甜蜜區跟天花板
 
 三條路真正的差別不是「語法不一樣」，而是**「agent 跟外部服務之間那層共通介面，到底鋪多厚、鋪到哪裡」**。Anthropic 的框架：鋪愈厚、能到的 client 跟環境愈多，但前期投資也愈大。
 
-**Direct API call** 是最短路——agent 在 code-execution sandbox 裡寫 HTTP request，或透過泛用的 function-calling tool 直接打 API。一個 agent 對一個 service、或少數幾個不需要跨平台 reuse 的整合，這條就夠用，團隊大多也從這裡起步。真正的麻煩要到 scale 才爆出來：**agent 跟 service 之間沒有共通層，每配一對就是一次 bespoke 整合**——自己處理 auth、自己寫 tool description、自己 handle edge case。Anthropic 給這個現象一個正式名字：**M×N integration problem**。M 個 agent × N 個 service = M×N 套客製膠水。
+**Direct API call** 是最短路——agent 在 code-execution sandbox 裡寫 HTTP request，或透過泛用的 function-calling tool 直接打 API。一個 agent 對一個 service、或少數幾個不需要跨平台重用的整合，這條就夠用，團隊大多也從這裡起步。真正的麻煩要到規模變大才爆出來：**agent 跟 service 之間沒有共通層，每配一對就是一次客製整合**——自己處理認證、自己寫 tool 說明、自己處理邊角問題。Anthropic 給這個現象一個正式名字：**M×N integration problem**。M 個 agent × N 個 service = M×N 套客製膠水。
 
-**Command-line interface (CLI)** 快、輕、吃現成的 tooling，對本地環境跟 sandboxed container 是天選之子——只要有 filesystem 跟 shell 就開工。這條路確實鋪了一層共通介面，但**薄**。一出本地就撞牆：mobile 打不到、web 打不到、cloud 上那些沒 expose container 的平台打不到；auth 也只能靠 CLI 自己那套，通常是一個躺在 disk 上的 credential 檔。這條路適合本地、quick、permissive 的整合，**不是給 production 跨雲 agent 用的**。
+**CLI** 快、輕、吃現成工具——有 filesystem 跟 shell 就能開工，是本地環境跟 sandbox container 的天選之子。但這層共通介面**薄得像紙**。一出本地就撞牆：手機打不到、網頁打不到、cloud 上那些不能開 container 的平台也打不到。認證靠的是躺在 disk 上的 credential 檔，不是上線後撐得住的解法。
 
-**Model Context Protocol (MCP)** 把共通層升格成 protocol。agent 連到一個 server，server 把系統能力以標準化方式 expose——auth、discovery、rich semantics 全部在協定裡定義好。**一個 remote server，任何相容 client 都能用**（Claude、ChatGPT、Cursor、VS Code，還有更多），不管 client 跑在哪種 deployment environment。代價是前期投資稍大一點；回報是**整合本身變成便攜的資產**，而且能支撐 feature-rich 的 agent 整合——元件可以傳 chart、form、dashboard 這種有 UI 語義的東西，不只文字。
+**MCP** 把共通層升格成 protocol。agent 連到一個 server，server 用標準方式把系統能力開出來——認證、探索、語意資訊，全在協定裡定義。**一個 remote server，任何相容 client 都能用**（Claude、ChatGPT、Cursor、VS Code，還有更多），不管 client 跑在哪種 deployment environment。代價是前期投資稍大；回報是**整合本身變成便攜的資產**。
+
+三條路，三種厚度。到這裡看起來像是在選「夠用就好」還是「一步到位」——但事情沒那麼簡單。**真正決定該走哪條的，不是工程偏好，是 agent 明天會跑在哪裡。**
 
 <ClawdNote>
-M×N 這個詞看起來像 textbook 用語，但它其實是很多 team 痛苦 scale 到一半才自己發現的現實。想像成早期美國電力——每個發電廠用自己的電壓、自己的插頭、自己的頻率，電器要跨城市用就得自備一箱變壓器。MCP 就是 agent 世界的 AC 110V 標準化，把插頭統一了之後，才長得出遍地開花的電器生態。
+M×N 這個詞看起來像教科書用語，但它其實是很多團隊痛苦放大到一半，才自己發現的現實。想像成早期美國電力——每個發電廠用自己的電壓、自己的插頭、自己的頻率，電器要跨城市用就得自備一箱變壓器。MCP 就是 agent 世界的 AC 110V 標準化，把插頭統一了之後，才長得出遍地開花的電器生態。
 
-也不是說 API / CLI 就該丟掉。Anthropic 自己文末就講：**mature 整合最後三條都 ship**——API 當地基（反正 MCP server 底下也得打 API）、CLI 給本地 sandbox 用、MCP 給上雲的 agent 用。這篇不是在推 MCP 滅 API，是在講**三條路各自的定位、什麼時候該把精力投去哪條**。(⌐■_■)
+不過 Anthropic 自己也沒在裝聖人——文末直接講，成熟的整合最後三條都會出。API 當地基（反正 MCP server 底下也得打 API）、CLI 給本地 sandbox 用、MCP 給上雲的 agent 用。這篇的論點不是「MCP 滅 API」，是**三條路各有主場，搞清楚自己的 agent 住哪再下注**。(⌐■_■)
 </ClawdNote>
 
 ---
 
-## Production agent 正在搬去 cloud——這件事才是 MCP 的主場
+## Agent 搬上雲的那一天，MCP 就從加分配備變成地基
 
-為什麼 Anthropic 這麼堅持 production 會收斂到 MCP？答案在**部署地點**。
+那問題來了：為什麼 Anthropic 這麼篤定，production 最後會收斂到 MCP？
 
-Production agent 愈來愈多跑在 cloud 上——才能 scale、才能 continuously 運行。**它們要搆到的系統也大多在 cloud 上**：公司資料住在 Snowflake / Databricks、工作追蹤在 Linear / Asana、基礎設施在 AWS / GCP / Cloudflare。這些 remote、躲在 auth 後面的系統，**正好就是 MCP 這層共通協定擅長接的東西**。
+答案不在技術本身，**在地點**。
 
-採用曲線也印證這個趨勢。Anthropic 原文給的數字：**MCP SDK 下載量最近突破每月 3 億，從年初的每月 1 億 一路衝上來**。企業跟熱門 agentic 平台都在大量採用。Anthropic 自己的講法：
+Production agent 愈來愈多跑在 cloud 上——才能放大、才能一直運作。而它們要搆到的系統也大多在 cloud 上：Snowflake / Databricks 上的資料、Linear / Asana 上的工作追蹤、AWS / GCP / Cloudflare 上的基礎設施。全部在遠端、全部要過認證。**恰好就是一層標準化協定最擅長接的形狀。**
+
+採用曲線也印證這不是 Anthropic 自己在自嗨。Anthropic 原文的數字：**MCP SDK 下載量最近突破每月 3 億，從年初的 1 億一路衝上來**。而且 Anthropic 自家最近端出的幾樣招牌菜——**Claude Cowork、Claude Managed Agents、Claude Code 的 channels**——底下統統都是 MCP 在撐：
 
 > Millions of people use MCP with Claude every day, and the protocol underpins much of what we've shipped recently, including Claude Cowork, Claude Managed Agents, and channels in Claude Code.
 
-每天有上百萬人在 Claude 上用 MCP，而且 Anthropic 最近端出的幾樣招牌菜——**Claude Cowork、Claude Managed Agents、Claude Code 的 channels**——底下都是 MCP 在撐。protocol 不是 roadmap 上的一行字，是已經在 prod 吃流量的基礎設施。
+Protocol 不是規劃表上的一句話，是已經在 prod 吃流量的基礎設施。
 
 <ClawdNote>
-要把這組數字的 vibe 翻譯給台灣讀者聽：3 億/月的 SDK 下載是一個「遠超 demo、進入主流工具鏈」的 signal，類似 Node.js 或 Docker 在爬升期那種斜率。從 1 億衝到 3 億只花了不到一年，這個成長曲線要嘛是 dev 生態真的爆開、要嘛是 Anthropic 自家產品把 MCP 塞進 default path 推起來——**很可能兩者都有**。
+把數字翻譯一下：3 億/月的 SDK 下載，代表這東西早就不是 demo 玩具，而是進了主流工具鏈。從 1 億衝到 3 億只花了不到一年——這個斜率要嘛是開發者生態真的爆開、要嘛是 Anthropic 自家產品把 MCP 塞進預設路線。**很可能兩個一起。**
 
-另外這段藏了一個 business narrative 值得拉出來講：Anthropic 把 MCP 定位成「別人寫 server 我們寫 client」的開放協定，但同時它自己也在最猛的 client 側（Claude.ai / Code / Cowork）跟最猛的 server infrastructure（Managed Agents 的 vault、CIMD auth）兩邊同時出牌。**這是教科書級的 platform play**：標準化底層當公共財，然後在標準化之上做差異化產品。熟悉 w3c 時代 browser wars 的人應該有既視感 ╰(°▽°)╯
+但這裡藏了一個商業故事值得拉出來嚼：Anthropic 表面上把 MCP 定位成「別人寫 server、Anthropic 寫 client」的開放協定，骨子裡卻在最猛的 client 側（Claude.ai / Code / Cowork）**跟**最猛的 server 基建側（Managed Agents vault、CIMD auth）同時出牌。**教科書級平台打法**——底層標準化當公共財，上面再做自己的產品差異化。W3C 時代的瀏覽器大戰，劇本一模一樣 ╰(°▽°)╯
 </ClawdNote>
 
 ---
 
-## 怎樣的 MCP server，agent 才真的接得穩
+## 兩個 tool 搞定 2,500 個 endpoint——設計對了，效果差一百倍
 
-先丟一個數字讓設計決策的重量感出來：**Cloudflare 的 MCP server 用兩個 tool、大約 1K token 的 spec，就搆到了約 2,500 個 endpoint**。同樣的 API surface 按 endpoint 一比一鏡射成 tool，光 tool description 就能把 agent 的 context window 吃光。差別不在 API 本身，在 **server 怎麼設計**。
+好，MCP 在理論上贏了。但一個設計爛的 MCP server 跟沒有 MCP 一樣廢——甚至更糟，因為多了一層沒在幫忙的抽象。Anthropic 自己的 directory 掛著 **200+ 個 MCP server、每天被幾百萬人用**，跟企業合作下來歸納出一套經驗法則。不是美學偏好，是「server 設成這樣，agent 才真的接得穩」。
 
-Anthropic 自己的 directory 掛著 **200+ 個 MCP server、每天被幾百萬人用**。跟企業跟開發者合作下來，他們歸納出一套經驗法則——不是美學偏好，是「server 設成這樣，agent 才真的接得穩」。這節把這些心法用**三組決策**講完，從基本盤開始。
-
-### 先做對基本盤：remote 優先、tool 以 intent 分組
-
-最硬的一條：**remote server 是唯一一種跑得到 web、mobile、cloud-hosted agent 的配置**，也是每個主流 client 都優化好要消化的形狀。本地 server 在工程師的 laptop 上跑得再漂亮，使用者手機上那個 agent 也連不到。整合的 distribution 只有這條路鋪得最遠。
-
-擺定 remote 之後，下一個反直覺決定：**tool 數量不是愈多愈好**。做菜的比喻：餐廳菜單寫「蔥爆牛肉」，廚房裡卻是切菜、醃肉、熱鍋、下料、翻炒、起鍋——客人只要那盤菜，中間那六步是 API，不是菜單。MCP 的 tool 應該是菜單、不是流程圖。Anthropic 給了一個非常具體的對照：
-
-> A single `create_issue_from_thread` tool beats `get_thread` + `parse_messages` + `create_issue` + `link_attachment`.
-
-一個「從 thread 開 issue」的 tool，屌打「抓 thread + 解析訊息 + 開 issue + 掛附件」四個分開的 tool。理由簡單：agent 每呼叫一次都消耗 context 跟 reasoning budget，能一步做完的事硬切四步，就是在繳無謂的 overhead 稅。**少、但描述清楚**的 tool 永遠打贏**多、把 API 一比一鏡射**的 tool——這是 MCP server 設計的第一條直覺。
-
-### 當 API 大到列不完：讓 tool surface 收到兩個，放 agent 寫 code
-
-基本盤講完，馬上會撞到一個例外：**如果服務天生就有幾千個 endpoint，按 intent 分組也分不完**。Cloudflare、AWS、Kubernetes 就是這種怪獸。Anthropic 的解法反直覺——**不是列得更細、是收得更瘦**，把 tool surface 收到只剩兩個，讓它吃 code。
-
-Cloudflare 的 MCP server 就是這個 pattern 的 reference example：
+先丟一個數字：
 
 > Cloudflare's MCP server is the reference example—two tools (search and execute) cover ~2,500 endpoints in roughly 1K tokens.
 
-流程是這樣：agent 寫一小段 script、server 接過去在 [sandbox](/posts/sp-129-20260327-cloudflare-dynamic-workers) 跑、結果丟回來（Cloudflare Dynamic Workers 那篇 SP-129 剛好拆過這個 sandbox 本身的優化）。agent 的 context 不會被幾千個 tool description 淹沒，語義層面又保留完整的操作空間——**用一支筆通往整個動作空間，比用幾千張表格好用太多**。
+**Cloudflare 的 MCP server，兩個 tool、大約 1K token 的說明，就搆到約 2,500 個 endpoint。** 同樣一大片 API，如果按 endpoint 一個一個做成 tool，光 tool 說明就能把 agent 的 context window 吃光。差別不在 API 本身，在 server 怎麼設計。
+
+Cloudflare 怎麼做到的？**兩層心法，一層比一層反直覺。**
+
+**第一層：tool 是菜單，不是流程圖。** 做菜的比喻——餐廳菜單寫「蔥爆牛肉」，廚房裡卻是切菜、醃肉、熱鍋、下料、翻炒、起鍋。客人只要那盤菜，中間那六步是 API，不是菜單。Anthropic 給了一個對照：
+
+> A single `create_issue_from_thread` tool beats `get_thread` + `parse_messages` + `create_issue` + `link_attachment`.
+
+一個「從 thread 開 issue」的 tool，屌打四個拆開的 tool。agent 每呼叫一次都消耗 context 跟思考空間，能一步做完卻硬切四步，就是在繳冤枉稅。**少、但描述清楚**的 tool 永遠打贏**多、把 API 一比一照抄**的 tool。
+
+**第二層才是狠的：如果 API 大到連「照目的分組」都分不完呢？** Cloudflare、AWS、Kubernetes 這種幾千個 endpoint 的怪獸，按 intent 分組也是上百個 tool。Anthropic 的解法不是列得更細，而是收得更瘦——**把露出來的 tool 收到只剩兩個，讓 agent 寫 code**。agent 寫一小段 script、server 在 [sandbox](/posts/sp-129-20260327-cloudflare-dynamic-workers) 跑、結果丟回來。agent 的 context 不被幾千個 tool description 淹沒，語義上又保留完整的操作空間——**一支筆通往整個動作空間，比幾千張表格好用太多**。
 
 <ClawdNote>
-Cloudflare 這招本質上是把**「列舉全部動作」換成「給 agent 一支通往動作空間的筆」**——寫 code 比列 tool 表達力高太多了，一個迴圈、一個 filter、一個 grep，抵過上百個分開的 endpoint call。
+這招本質上是把**「列舉全部動作」換成「給 agent 一支筆」**——寫 code 的表達力比列 tool 高太多了。一個迴圈、一個 filter、一個 grep，抵過上百個分開的 endpoint call。
 
-這個 pattern 最早在 coding agent 圈被反覆驗證（Claude Code、Cursor 那套 tool use），Cloudflare 把它搬到 infra control plane 來，是**把「code-as-interface」從 IDE 外推到整個 API 生態**的一次漂亮示範。想清楚就會發現：真正適合塞進 latent space 思考的東西是「要達成什麼目標」，真正該交給 deterministic 執行的是「該跑哪串 API 序列」——code orchestration 剛好把兩邊切得很乾淨 (๑•̀ㅂ•́)و✧
-</ClawdNote>
-
-### 把 MCP 推過 production 門檻：Apps、Elicitation、Standardized OAuth
-
-remote 鋪好了、tool 收好了，剩下的三件事——**UI、中斷對話、認證**——是把 MCP 從「能跑」推進到「能上 production」的那段路。
-
-先講 UI。文字回傳是 MCP 的底線，但很多場景**文字根本不是最佳形狀**：看 KPI 該給 chart、填表該給 form、長時間任務該給 dashboard。Anthropic 把這層能力放進 **MCP Apps** 這個擴充——protocol 的第一個官方 extension——讓 tool 能回傳**可互動的介面，在 chat 裡直接渲染**。Anthropic 的觀察：**ship MCP Apps 的 server，採用率跟留存通常會明顯高於只回純文字的 server**。這個擴充目前在 Claude.ai、[Claude Cowork](/glossary#cowork)、還有其他多數主流 AI 工具上都支援。
-
-接著是 **Elicitation**——最容易被讀者忽略、但真的落地很重要的一個功能。講白了就是**tool call 中途可以暫停、問 user、再繼續**。兩種模式：
-
-- **Form mode**：server 丟一份 schema，client 渲染原生 form。適合補一個缺的參數、確認一個會破壞性操作、讓 user 從多個選項裡選一個。
-- **URL mode**：把 user 導到瀏覽器。適合跑 downstream OAuth、收款、拿任何**不該流經 MCP client** 的敏感憑證。
-
-兩種模式的共同價值：**讓 user 留在當前的 workflow 裡**，不必被踢去 settings 分頁、再回來接上剛剛做到一半的事。原文特別交代相容性：**form mode 廣泛支援；URL mode 在 [Claude Code](/glossary#claude-code) 已上線，其他 client 還在陸續接**。
-
-最後是**標準化 OAuth**，對雲上 agent 特別關鍵。場景很具體：agent 要幫 user 跑任務、得拿著 GitHub token 或 Snowflake 密鑰——但那些憑證不能流進 LLM、也不能寫死在 code 裡。最新 MCP spec 支援 **CIMD (Client ID Metadata Documents)** 做 client 註冊，新 user 第一次 auth 很快過、之後 surprise re-auth 大幅減少。這是 Anthropic 推薦的 auth 方式，MCP SDK、Claude.ai、Claude Code 都已支援，全業界也在陸續跟上。
-
-授權完事下一個難題是：**雲上的 agent 要怎麼 hold 跟 reuse 這些 token？** Anthropic 有一個自家的解——[Claude Managed Agents](/posts/sp-167-20260409-claude-managed-agents) 裡的 **Vaults**：user 的 OAuth token 登記一次、session 建立時靠 vault ID 帶進來、平台自動把對的 credential 注入每個 MCP connection、自動 refresh。對 server 開發者的意義：**不用自己蓋 secret store、不用自己搬 token**。[SP-167](/posts/sp-167-20260409-claude-managed-agents) 拆過這套 Managed Agents 的產品本體，這裡不重複。
-
-<ClawdNote>
-這組設計把 MCP 從「能動」推進到「能在雲上安全運作」的區段。Vault + CIMD 本質上是把**「auth 是生產環境的必修課、但跟 agent 邏輯沒關係」** 這個現實正式承認下來，讓 app 開發者不用自己造 token 倉庫。之前不少 agent side project 之所以爛在 prototype、上不了 prod，就是卡在這類「不難但很煩」的認證基建。
-
-Elicitation 那招更有意思。傳統 agent 遇到缺資訊的狀況通常兩條路——**亂猜一個（幻覺）、或者 summary 給 user 叫他去別的介面填**（體驗斷裂）。Form mode 開出第三條：**tool call 中途優雅地暫停、就地問一下、繼續跑**。這個 UX primitive 在 web app 圈早就是標配（modal 彈窗），但在 agent 圈直到 MCP 這個 spec 才被正式成制度。補得比想像中還晚 ┐(￣ヘ￣)┌
+但讓 Clawd 真正興奮的不是技巧本身，而是這背後的設計哲學翻轉。傳統思維是「API 有什麼，tool 就列什麼」——鏡射、列滿、看起來安全。Cloudflare 說不對，**該交給模型想的是「目標」，該交給固定流程跑的是「API 序列」**——code orchestration 剛好把兩邊切得最乾淨。這不是 hack，是重新想過「tool 的職責到底是什麼」之後的結論 (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
 ---
 
-## Context-efficient client：85% 跟 37% 兩個硬數字
+## Production 的三道牆：文字不夠、agent 瞎猜、token 進不去
 
-上面都在講 server 側——換到 client 側（也就是 agent 自己那邊）。MCP 標準化了 agent 怎麼 connect 跟使用 server 提供的 tool 跟 data，**server 負責安全地把能力 expose 出來，client 負責 orchestrate 這些能力、管 context**。
+Remote 鋪好了、tool 收好了。然後呢？然後就是 production 特有的三道牆——在 demo 環境完全碰不到、一上線就撞得滿頭包的那種。
 
-所以設計 MCP client 的第一要務之一：**把 context 用得省**。Anthropic 列了兩招 progressive disclosure，各自附上實測效果。
+**第一道牆：agent 吐出來的東西，沒人想看。** 文字回傳是 MCP 的底線，但 KPI 該給圖表、填表該給表單、長時間任務該給進度條。**文字不是答案的最佳形狀**，偏偏大多數 MCP server 只會吐文字。Anthropic 把這個能力缺口放進 **MCP Apps**——protocol 的第一個官方擴充——讓 tool 能回傳**可互動的介面，直接在 chat 裡長出來**。他們觀察到的結果很直白：**有 MCP Apps 的 server，採用率跟留存明顯高於只回純文字的 server**。目前 Claude.ai、[Claude Cowork](/glossary#cowork)、還有其他多數主流 AI 工具都支援這個擴充。
 
-### Tool search：需要才載入 tool definition
+**第二道牆更刁鑽：agent 做到一半發現缺資訊，怎麼辦？** 傳統答案只有兩個——亂猜一個（幻覺），或者丟一段摘要給 user，叫人去別的介面填（體驗斷裂）。**Elicitation** 開出第三條路：tool call 中途可以暫停、問 user、再繼續。Form mode 讓 server 丟一份 schema、client 渲染原生 form，補一個缺的參數、確認一個破壞性操作；URL mode 把 user 導到瀏覽器，跑 downstream OAuth 或收款——**任何不該流經 MCP client 的敏感東西都走這條**。原文交代相容性：form mode 廣泛支援；URL mode 在 [Claude Code](/glossary#claude-code) 已上線，其他 client 還在陸續接。
 
-一個現實：MCP server 普及之後，agent 連到的可能是**幾十個 server、幾百個 tool**。把全部 tool definition 一次塞進 context window 是一筆大帳——大部分用不到、還佔著 reasoning budget。
+**第三道牆，也是最多 side project 死在上面的那道：agent 拿不到 token。** 場景：agent 跑在雲上、要幫 user 操作 GitHub 或 Snowflake，得拿著 user 的 token——但那個 token 不能流進 LLM、也不能寫死在 code 裡。最新 MCP spec 支援 **CIMD (Client ID Metadata Documents)** 做 client 註冊，新 user 第一次 auth 會順很多，之後也比較不會突然跳出來要重新登入。授權完事下一個難題是：雲上的 agent 要怎麼保管、重複使用這些 token？Anthropic 有自家的解——[Claude Managed Agents](/posts/sp-167-20260409-claude-managed-agents) 裡的 **Vaults**：user 的 OAuth token 登記一次、session 起來靠 vault ID 帶進來、平台自動注入對的 credential 並自動 refresh。[SP-167](/posts/sp-167-20260409-claude-managed-agents) 拆過這套產品本體，這裡不重複。
 
-**Tool search 的做法**：一開始不載全部 tool，agent runtime 需要哪個主題的工具再搜尋 catalog、拉進來用。Anthropic 的實測語氣：
+三道牆，一道比一道無聊、一道比一道致命。Demo 的時候都不是問題——反正 demo 都跑在本地、用自己的 token、吐文字也沒差。**搬上線那天，這三道牆才會一起從地板冒出來。**
+
+<ClawdNote>
+三道牆裡面，Elicitation 是最該讓 agent 圈集體慚愧的。**Tool call 中途暫停問一下再繼續**——這個 UX primitive 在 web app 圈叫 modal 彈窗，存在超過二十年了。Agent 圈直到 MCP 這個 spec 才正式把它收進制度裡。二十年。
+
+Vault + CIMD 那組也是——本質上就是承認「auth 是 production 的必修課，但跟 agent 邏輯完全沒關係」這個現實，然後把它收進平台層。之前不少 agent side project 爛在原型階段、上不了正式環境，就是卡在這類「不難但很煩、一寫就兩千行」的認證基建。現在有人幫蓋了。補得比想像中還晚，但補上了 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## Agent 看起來很聰明，其實正在挨餓
+
+Server 端搞定了——remote、intent-grouped、auth 有 vault 撐。換到 client 端，也就是 agent 自己那邊，還有一個大家愛忽略的問題：**agent 的 context window 看起來很大，其實已經快被吃光了。**
+
+MCP server 普及之後，一個 agent 可能同時連到幾十個 server、幾百個 tool。把全部 tool definition 一次塞進 context window——大部分用不到，但每一個都佔著思考空間。就像一個人的桌子夠大，但上面堆滿了用不到的參考書，結果連筆記本放的位置都沒有。
+
+Anthropic 列了兩招，各自附上實測數字。
+
+**第一招擋在入口：需要才載入。** 一開始不塞全部 tool，agent 跑到需要某一類工具時，再去搜尋清單、拉進來用。Anthropic 的實測：
 
 > tool search tends to cut tool-definition tokens by 85%+ while maintaining high selection accuracy.
 
-注意原文用的是 "tends to"——**通常能把 tool-definition token 砍 85%+**，並維持選擇準確度。這不是保證值、是常態觀察。落地的感受是什麼？原本 agent 連到 8 個 server，tool spec 塞滿 context 前段、正經 reasoning 空間被擠掉一半；換上 tool search 之後，多出來的 context 足以讓本來只撐得了 5 步的工作流程撐到 15 步以上——**差別不是優化幾個百分點，是跑不跑得完一個真實任務**。
+注意 "tends to"——**通常砍 85%+**，並維持選擇準確度。不是保證值、是常態觀察。落地的感受：原本 agent 連到 8 個 server，tool spec 塞滿 context 前段、真正能思考的空間被擠掉一半；換上 tool search 之後，本來只撐得了 5 步的任務能撐到 15 步以上。**差別不是優化幾個百分點——是 agent 跑不跑得完一個真實任務。**
 
-### Programmatic tool calling：tool 結果在 code sandbox 處理
-
-第二招是**把 tool 結果丟進 code execution sandbox 處理**，不是把 raw response 原封不動塞回 model。agent 可以在 code 裡 loop、filter、aggregate，**只有最後算完的結果進 context**。Anthropic 的數字：
+**第二招擋在出口：結果先揉過才進 context。** Tool 吐出來的原始回應不直接塞回 model，而是先丟進 code execution sandbox 整理、過濾、彙總，**只有算完的結論進 context**。Anthropic 的數字：
 
 > this reduces token usage by roughly 37% on complex multi-step workflows.
 
-**複雜多步 workflow 的 token 用量減少約 37%**。這招跟 tool search 可以疊加——多個 server 之間也能自然配合——**更精簡的 context、更少的 round-trip、更快的回應**。想知道完整拆解，原文指到他們另一篇 advanced tool use 的文章。
+兩道過濾器疊起來才是複利效果——入口擋雜訊、出口擠水分——不是二選一。
 
 <ClawdNote>
-把 85% 跟 37% 想像成兩道不同的過濾器。Tool search 在入口把**「不相關的 tool 不讓進來」**；programmatic tool calling 在出口把**「tool 吐出來的大量 raw data 先在 sandbox 揉成結論」**。前者擋雜訊、後者擠水分。兩招疊起來才是複利效果，不是二選一的 AB test。
+Claude / ChatGPT / Cursor 的 context 都在幾十萬 token 等級了，看起來很寬裕。這是做 agent 的人最常踩的盲區。
 
-另外值得一提的是：Claude / ChatGPT / Cursor 這批 client 的 context 都已經在幾十萬 token 等級了，看起來很寬裕——但這是 agent engineer 最常踩的盲區。**Context 看起來夠用 ≠ 真的夠用**，因為前段被 tool spec + system prompt + 過去幾輪對話吃掉的比想像中多。該省的地方要省，不是為了省 token 費用，是為了讓 reasoning 還有空間呼吸 ٩(◕‿◕｡)۶
+打個比方：一間 30 坪的辦公室聽起來夠大，但如果前 15 坪堆滿了沒人在看的合約副本（tool spec）、再 5 坪放上週的會議記錄（prior turns）、2 坪是公司章程（system prompt），實際能攤開筆電工作的空間剩不到 8 坪。**Context 看起來夠用 ≠ agent 真的有空間思考。** 省 context 不是為了省 token 費用，是為了讓 agent 在真正需要思考的時候，桌上還有地方攤開資料 ٩(◕‿◕｡)۶
 </ClawdNote>
 
 ---
 
-## Skill × MCP：原料 vs 菜單，合起來才是一道菜
+## 結語：三條路一起 ship，MCP 會複利——附上使用說明書之後更猛
 
-Anthropic 文章後半把話題轉到 **skill 跟 MCP 的配對**。Skill 這個概念前陣子 [SP-179 的 Garry Tan skillify](/posts/sp-179-20260422-garrytan-skillify-agent-failures) 那篇拆過——把 agent 的失敗經驗結晶成 `SKILL.md` + deterministic 腳本的那個 pattern。skill 跟 MCP 在 agent 系統裡互補，不衝突：
-
-- **MCP 給 agent「raw capability」**——接觸外部系統的 tool 跟 data
-- **Skill 給 agent「procedural knowledge」**——怎麼用這些 tool 把一件實際工作做完
-
-用食材 / 菜單的比喻：**MCP 是冰箱裡的食材（牛肉、蔥、薑、醬油），skill 是菜單上那道「蔥爆牛肉」的做法**。食材再全，沒有做法，agent 就是站在冰箱前發呆；做法再精，沒有食材，只能看著食譜流口水。最能幹的 agent 兩者都要——而且 skill 本身也讓 MCP server 能 scale 到「不只幾個 connection」的規模。
-
-Anthropic 給了兩個把 skill 跟 MCP 配在一起的 pattern。
-
-### Pattern 1：用 Plugin 把 skill + MCP server 打包成一份
-
-**Plugins for Claude** 是他們提出的抽象層——**skill、MCP server、hook、LSP server、專用 subagent 全部打包在一個 distribution 單位裡**。這是把多個 context provider 無縫統一的最乾淨方法。MCP server 給 tool，skill 教 Claude 怎麼串成 end-to-end 的 workflow，組合起來 agent 就像一個領域專家。
-
-原文直接舉例：
-
-> See our data plugin for Cowork as an example, which consists of 10 skills and 8 MCP servers for apps like Snowflake, Databricks, BigQuery, Hex and more.
-
-**Cowork 的 data plugin：10 個 skill + 8 個 MCP server**，覆蓋 Snowflake、Databricks、BigQuery、Hex 等一整套資料棧。不是空想 architecture，已經是 Anthropic 自家產品上的真實組合。
-
-### Pattern 2：Server 直接附 skill 發布
-
-另一種愈來愈常見的形狀：provider 在 publish MCP server 時順手附上 skill，讓 agent 一次拿到**原料（tool）+ 使用指南（opinionated playbook）**。文章點名 **Canva、Notion、Sentry** 等已經在 Claude 上這樣做——web directory 上 skill 跟對應的 connector 並列。
-
-為了讓這個配對跨 client 便攜，MCP 社群正在做一個**從 server 端直接遞送 skill 的 extension**。成形之後，client 會自動繼承 server 那份「使用 API 的專業經驗」，而且**跟 API 一起版本化**——API 改版 skill 也跟著換，不會漂。Anthropic 預期這個 pattern 會隨 extension 穩定而大範圍被採用。
-
-<ClawdNote>
-「provider 附一份 skill」這件事讀起來像 nice-to-have，但它可能是 MCP 生態最低調、卻最重要的演化。想像一下：今天連到一個新的 MCP server，agent 除了拿到 tool list，還拿到「這些 tool 該怎麼組合、常見錯誤是什麼、這家 API 有哪些 gotcha」——**等於雇主一邊把工具箱交給新來的員工，一邊把公司內部的 SOP 手冊一起發下去**。
-
-這個形狀如果成熟起來，agent engineer 手上的工作就從「自己摸索每個 third-party API 的脾氣」變成「讀一份 provider 寫好的 playbook」。SDK 改版有 release notes，skill 改版也能跟著 release notes——從 provider 的角度，這也是一個新的 DX 投資點。短期看可能會有一波「誰的 skill 寫得好誰就吃到 agent 流量」的 platform 競爭，跟當年 App Store 審核 / ASO 的動態有點像 (⌐■_■)
-</ClawdNote>
-
----
-
-## 結語：三條路一起 ship，但只有 MCP 會複利
-
-文章的收束句把整個論點收緊到一個很乾淨的畫面：
+文章的收束句：
 
 > In practice, mature integrations will ship all three: the API as the foundation, a CLI for local-first environments, and MCP for cloud-based agents.
 
-成熟的整合**三條路都會 ship**——API 當地基（底層怎麼做都要打 API）、CLI 給 local-first 環境、MCP 給雲端 agent。這不是單選題、不是互斥選擇。
+成熟的整合**三條路都會 ship**——API 當地基、CLI 給 local-first 環境、MCP 給雲端 agent。不是單選題。但 Anthropic 把關鍵差異點出來：**當 production agent 搬到雲上那一刻，MCP 從「有也不錯」變成「少了不行的那一層」——而且它是唯一會複利的那一條。**
 
-但 Anthropic 把關鍵差異點出來：**當 production agent 搬到雲上那一刻，MCP 就從「也可以有」變成「critical layer」**。而且——這才是重點——**它是唯一會複利的那一條**。
-
-原文的邏輯很直白：今天寫好一個 remote server，它**自動能被所有相容 client 吃、在任何 deployment 環境跑**，auth、interactivity、rich semantics 全由協定處理。**協定持續長、extension 持續進來，同一個 server 不用 ship 新東西就變得更強大**。這個「不動手也會變強」的複利效應，是 API / CLI 走不到的。
+複利怎麼來的？今天寫好一個 remote server，它**自動能被所有相容 client 吃、也能跑在各種部署環境裡**。協定繼續長、擴充繼續進來，同一個 server 不用自己出新版，就會跟著變強。原文的總結很漂亮：
 
 > Every integration built on MCP strengthens the ecosystem: fewer edge cases to solve alone, fewer bespoke integrations to maintain.
 
-每一個建在 MCP 上的整合都在強化生態——**需要獨自解決的 edge case 變少、需要獨自維護的客製整合變少**。這是典型的 standards 論點：把本來分散吸收的 complexity 收斂到一個共同基礎設施，讓後來的人不用重蹈覆轍。
+每一個建在 MCP 上的整合都在強化生態——**要自己踩的坑變少、要自己維護的客製整合變少**。
 
-對正在決定 agent 整合 roadmap 的團隊，這篇文章給的 guidance 也很乾脆：**如果目標是讓 production agent 從雲上搆到公司的系統，就去建一個 MCP server，而且用上面那四條心法把它建好**。
+不過 Anthropic 在文章後半埋了一個更低調、但可能更重要的伏筆：**MCP 不只是管子，附上 skill 之後它變成帶使用說明書的工具箱**。Skill 是前陣子 [SP-179 Garry Tan skillify](/posts/sp-179-20260422-garrytan-skillify-agent-failures) 拆過的做法——把失敗經驗結晶成 `SKILL.md` + 固定腳本。MCP 給 agent 原料（tool + data），skill 教 agent 怎麼把這些原料煮成一桌菜。Anthropic 自己的 Cowork data plugin 已經是這個形狀：**10 個 skill + 8 個 MCP server**，覆蓋 Snowflake、Databricks、BigQuery、Hex。而 Canva、Notion、Sentry 這些 provider 也開始在發布 MCP server 時順手附上 skill——agent 一次拿到工具箱跟 SOP 手冊。MCP 社群正在做一個**讓 server 直接把 skill 一起送出來的擴充**，成形之後 skill 會跟 API 一起版本化，API 改版 skill 也跟著換。
+
+回到開頭那個搬家搬到崩潰的 agent。如果那八個系統都有 remote MCP server，搬上線那天不是「重蓋八個整合」，而是「連上八條線」。差別就在這裡。**不是技術選型，是部署地點的函數。**
 
 <ClawdNote>
-把整篇文章的 takeaway 蒸乾：**API / CLI / MCP 不是技術選型，是部署地點的函數**。Agent 跑在 laptop 的 sandbox 裡，CLI 最順手；一個 agent 打一個 service，API 直接 call；一旦要跑在雲上、搆到別人雲上的系統、還要跨 client——**那是 MCP 的主場**。
+「provider 附一份 skill」這件事讀起來像加分配備，但它可能是 MCP 生態最低調卻最重要的演化。想像一下：今天連到一個新的 MCP server，agent 除了拿到 tool list，還拿到「這些 tool 該怎麼組合、常見錯誤是什麼、這家 API 有哪些坑」——**等於雇主把工具箱交給新員工的同時，把公司 SOP 手冊一起發下去**。短期看會有一波「誰的 skill 寫得好誰就吃到 agent 流量」的平台競爭，跟早期 App Store ASO 的動態有點像。
 
-這篇作為 Anthropic 的 position paper 蠻誠實——沒有假裝 MCP 是萬能、也沒有假裝 API / CLI 過時。真正的論點不是「選 MCP」，是「想清楚自己的 agent 會跑在哪、搆到什麼、要不要跨 client」。答對這三題，該走哪條就不用猜。
-
-對 gu-log 讀者最實用的 takeaway：**如果正在做一個 side project 的 agent、只搆 2-3 個 service、只給自己用，直接 call API 就夠**。等哪天要把這個 agent 上線、給多個 client 用、或是給別人也能接，那才是重新評估走 MCP 的時候。**別還在 MVP 階段就硬上 MCP**——過早優化從來不是因為工具不好，而是因為選的時機不對 ʕ•ᴥ•ʔ
+但最實用的結論，留給正在做 side project 的人：**如果 agent 只搆 2-3 個 service、只給自己用，直接 call API 就夠了。** 等哪天要上線、給多個 client 用、或讓別人也能接——那才是重新評估走 MCP 的時候。**別還在 MVP 階段就硬上 MCP**——過早優化從來不是因為工具不好，而是因為選的時機不對 ʕ•ᴥ•ʔ
 </ClawdNote>

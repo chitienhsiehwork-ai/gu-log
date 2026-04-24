@@ -312,7 +312,7 @@ run_stage() {
     # ── Invoke judge (timeout 300s / 5 min) ──────────────────────────────────
     local judge_out
     judge_out="$(mktemp)"
-    tlog "  Invoking agent '$agent_name' (timeout 300s)..."
+    tlog "  Invoking agent '$agent_name' --model '$model_id' (timeout 300s)..."
 
     local judge_rc=0
     # Claude Code refuses --dangerously-skip-permissions under root; CCC runs
@@ -365,11 +365,19 @@ Write your JSON result to: $score_tmp" \
 
       # ── Write score to post frontmatter (tribunal badge) ──
       if [ -n "$fm_judge_key" ]; then
-        local fm_score_json fm_model
-        fm_model="$(jq -r '.judge_model // empty' "$score_tmp")"
-        [ -z "$fm_model" ] && fm_model="claude-${model_label}"
+        local fm_score_json fm_model judge_reported_model
+        # Programmatic model — never trust judge self-report (judges hallucinate their own model ID)
+        fm_model="$model_id"
+        judge_reported_model="$(jq -r '.judge_model // empty' "$score_tmp")"
+        if [ -n "$judge_reported_model" ]; then
+          if [ "$judge_reported_model" != "$fm_model" ]; then
+            tlog "  WARN: Model mismatch — expected=$fm_model, judge_self_report=$judge_reported_model"
+          else
+            tlog "  Model confirmed: judge agrees with expected=$fm_model"
+          fi
+        fi
         fm_score_json="$(jq --arg model "$fm_model" '. + {model: $model}' "$score_tmp")"
-        tlog "  Writing $fm_judge_key score to frontmatter..."
+        tlog "  Writing $fm_judge_key score to frontmatter (model=$fm_model)..."
         if write_score_to_frontmatter "$post_path" "$fm_judge_key" "$fm_score_json"; then
           tlog "  Frontmatter updated for $fm_judge_key."
         else
@@ -540,9 +548,9 @@ tlog "=== tribunal-all-claude.sh: $POST_FILE ==="
 # Format: stage_key:agent_name:validate_name:label:max_loops:model_label:fm_judge_key
 # fm_judge_key = frontmatter scores key (used by frontmatter-scores.mjs)
 declare -a STAGES=(
-  "librarian:librarian:librarian:Librarian:2:opus-4.6:librarian"
+  "librarian:librarian:librarian:Librarian:2:opus-4.7:librarian"
   "factChecker:fact-checker:fact-checker:FactChecker:2:opus-4.7:factCheck"
-  "freshEyes:fresh-eyes:fresh-eyes:FreshEyes:2:opus-4.6:freshEyes"
+  "freshEyes:fresh-eyes:fresh-eyes:FreshEyes:2:opus-4.7:freshEyes"
   "vibe:vibe-opus-scorer:vibe-opus-scorer:VibeScorer:3:opus-4.6-1m:vibe"
 )
 

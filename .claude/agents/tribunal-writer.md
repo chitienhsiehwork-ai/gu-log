@@ -57,8 +57,9 @@ For each failing dimension, the fix is different:
 3. **Preserve all ClawdNote components** — you may improve their content but never remove `<ClawdNote>` tags.
 4. **Keep frontmatter unchanged** — title, ticketId, dates, sourceUrl, all frontmatter fields stay as-is.
 5. **Write in the post's language** — zh-tw posts stay zh-tw; EN posts stay EN.
-6. **Match the current voice** — don't introduce a dramatically different writing style; improve within the existing voice.
-7. **Maintain minimum content length** — do not significantly shorten the post.
+6. **Avoid 晶晶體 in zh-tw posts** — do not gratuitously mix English into Chinese when natural zh-tw exists. Canonical technical terms/proper nouns are OK (API, CLI, MCP, model names, product names), but avoid filler English like "這個 reveal 很 strong" or "production-ready 的 vibe" unless the English term is genuinely the industry term.
+7. **Match the current voice** — don't introduce a dramatically different writing style; improve within the existing voice.
+8. **Maintain minimum content length** — do not significantly shorten the post.
 
 ### For Vibe rewrites (most complex)
 
@@ -71,7 +72,8 @@ The transformation for failing narrative + persona:
 2. Open with that moment (not with context-setting)
 3. Structure around emotional beats: setup → complication → reveal → reflection
 4. Make at least half of ClawdNotes opinion-first ("I think the author is wrong here because...")
-5. End with a callback to the opening or a memorable one-liner — never a bullet list recap
+5. Do a 晶晶體 pass on zh-tw rewrites: keep canonical tech terms, but convert unnecessary English filler into natural 台灣中文
+6. End with a callback to the opening or a memorable one-liner — never a bullet list recap
 
 ## Output
 

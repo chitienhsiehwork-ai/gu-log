@@ -11,196 +11,188 @@ sourceUrl: "https://claude.com/blog/building-agents-that-reach-production-system
 lang: "en"
 summary: "Anthropic's guide to connecting production agents to real systems. When agents move to the cloud, API / CLI / MCP all ship — only MCP compounds. Uses Cloudflare's MCP server (2 tools, ~2,500 endpoints, ~1K tokens) as the benchmark for remote-first design, intent-grouped tools, and production auth."
 tags: ["mcp", "anthropic", "agent-engineering", "claude-cowork", "claude-code"]
+scores:
+  tribunalVersion: 3
+  librarian:
+    glossary: 10
+    crossRef: 9
+    sourceAlign: 9
+    attribution: 9
+    score: 9
+    date: "2026-04-24"
+    model: "claude-opus-4-7"
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 9
+    score: 9
+    date: "2026-04-24"
+    model: "claude-opus-4-7"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    score: 8
+    date: "2026-04-24"
+    model: "claude-opus-4-7"
+  vibe:
+    persona: 8
+    clawdNote: 9
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-04-24"
+    model: "claude-opus-4-6[1m]"
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Picture a familiar scene: an agent that runs beautifully on your laptop needs to move to the cloud so your team can use it. On the laptop, it's been happily chaining `git`, grepping files, running `pytest` through a CLI — zero friction. Day one in production: **every system it needs to reach suddenly won't connect**. Calendar lives in Google. Data lives in Snowflake. Issues live in Linear. All remote, all behind auth, each with its own client. The move from "swap the VM" quietly turned into "rebuild eight integrations from scratch."
+Picture a familiar scene: an [agent](/glossary#agent) that runs beautifully on your laptop needs to move to the cloud so your team can use it. On the laptop, it's been happily chaining `git`, grepping files, running `pytest` through a CLI — zero friction. Day one in production: **every system it needs to reach suddenly won't connect**. Calendar lives in Google. Data lives in Snowflake. Issues live in Linear. All remote, all behind auth, each with its own client. The move from "swap the VM" quietly turned into "rebuild eight integrations from scratch."
 
-That's exactly the problem Anthropic's new post tackles. The opening line:
+Anthropic's new post nails the whole problem in one sentence:
 
 > "Agents are only as useful as the systems they can reach."
 
-**An [agent](/glossary#agent) can reason beautifully and still be useless if it can't touch calendar, Snowflake, or the inventory system hiding behind AWS.** Anthropic breaks the connection story into three common paths: **direct API calls, CLIs, and [MCP (Model Context Protocol)](/glossary#mcp)**. Each has a sweet spot, each has a ceiling. But the moment an agent leaves the laptop for the cloud — **all three paths ship together, yet only MCP compounds**.
+**An agent can reason beautifully and still be useless if it can't touch calendar, Snowflake, or the inventory system hiding behind AWS.** Anthropic breaks the connection story into three common paths: **direct API calls, CLIs, and [MCP (Model Context Protocol)](/glossary#mcp)**. Each has a sweet spot, each has a ceiling. But the moment an agent leaves the laptop for the cloud — **all three paths ship together, yet only MCP keeps getting more valuable over time**.
 
 ## Three paths, three ceilings
 
 The real difference between these paths isn't syntax. It's **how thick the shared layer between agents and services is, and how far that layer reaches**. Anthropic's framing: thicker layer = more clients and environments reachable, but also more upfront investment.
 
-**Direct API calls** are the shortest route. The agent writes an HTTP request inside a code-execution sandbox, or uses a generic function-calling tool, and hits your API directly. Fine for one agent talking to one service, or a few integrations that don't need to be reused. The trouble starts at scale: with no common layer between agents and services, **every agent–service pair becomes a bespoke integration** — its own auth handling, its own tool descriptions, its own edge cases. Anthropic has a name for this pathology: the **M×N integration problem**. M agents × N services = M×N pieces of custom glue, all of which you maintain forever.
+**Direct API calls** are the shortest route. The agent writes an HTTP request inside a code-execution sandbox, or uses a generic function-calling tool, and hits the API directly. Fine for one agent talking to one service, or a few integrations that don't need to be reused. The trouble starts at scale: with no common layer between agents and services, **every agent–service pair becomes a bespoke integration** — its own auth handling, its own tool descriptions, its own edge cases. Anthropic has a name for this pathology: the **M×N integration problem**. M agents × N services = M×N pieces of custom glue, all of which you maintain forever.
 
-**Command-line interfaces (CLIs)** are fast, lightweight, and lean on tooling that already exists — perfect for local environments and sandboxed containers, anywhere there's a filesystem and a shell. CLIs do provide a shared layer, but a **thin** one. They hit a wall the moment you leave local: mobile can't reach them, web can't reach them, cloud platforms without exposed containers can't reach them. Auth is handled by the CLI's own mechanism, usually a credential file on disk. Great for quick, permissive, local-only integrations. **Not for production agents running across environments.**
+**CLIs** are fast, lightweight, and lean on existing tooling — anywhere there's a filesystem and a shell, they just work. But the shared layer they provide is **paper-thin**. Step outside local and you hit a wall: mobile can't reach them, web can't reach them, cloud platforms without exposed containers can't reach them. Auth lives in a credential file on disk — not a production-grade solution.
 
-**Model Context Protocol (MCP)** promotes the shared layer into a protocol. The agent connects to a server that exposes your system's capabilities in a standardized way — auth, discovery, rich semantics, all in the spec. **One remote server reaches any compatible client** (Claude, ChatGPT, Cursor, VS Code, and more), regardless of deployment environment. It costs a little more upfront. In return, **the integration becomes a portable asset**, and it can support feature-rich experiences — charts, forms, dashboards — not just text.
+**MCP** promotes the shared layer into a protocol. The agent connects to a server that exposes system capabilities in a standardized way — auth, discovery, rich semantics, all in the spec. **One remote server reaches any compatible client** (Claude, ChatGPT, Cursor, VS Code, and more), regardless of deployment environment. Costs a bit more upfront; in return, **the integration becomes a portable asset**.
+
+Three paths, three thicknesses. At this point it looks like a choice between "good enough" and "all-in" — but it's not that simple. **The real deciding factor isn't engineering preference. It's where the agent will be running tomorrow.**
 
 <ClawdNote>
-M×N sounds like a textbook term, but it's the very real pain teams discover halfway through scaling. Picture early American electricity: every power plant had its own voltage, its own plug shape, its own frequency. You couldn't move your toaster across town without a box of adapters. MCP is the agent world's AC 110V standardization moment — you only get a sprawling appliance ecosystem once the plugs converge.
+M×N sounds like a textbook term, but it's the very real pain teams discover halfway through scaling. Picture early American electricity: every power plant had its own voltage, its own plug shape, its own frequency. Moving your toaster across town required a box of adapters. MCP is the agent world's AC 110V standardization moment — you only get a sprawling appliance ecosystem once the plugs converge.
 
-None of this means dropping API or CLI. Anthropic says it explicitly at the end: **mature integrations ship all three** — API as the foundation (MCP servers call APIs underneath anyway), CLI for local sandboxes, MCP for cloud-based agents. This article isn't "MCP kills APIs." It's "know which path is for which job." (⌐■_■)
+Anthropic isn't pretending otherwise, either — the post explicitly says **mature integrations ship all three**. API as the foundation (MCP servers call APIs underneath anyway), CLI for local sandboxes, MCP for cloud-based agents. The argument isn't "MCP kills APIs." It's **know which path is for which job**. (⌐■_■)
 </ClawdNote>
 
 ---
 
-## Production agents are moving to the cloud — that's MCP's home turf
+## The day agents move to the cloud, MCP stops being optional
 
-Why does Anthropic keep insisting production converges on MCP? The answer is **where agents are deployed**.
+So here's the question: why is Anthropic so sure production converges on MCP?
 
-Production agents increasingly run in the cloud — so they can scale and operate continuously. **The systems they need to reach are also in the cloud**: company data sits in Snowflake / Databricks, work tracking lives in Linear / Asana, infrastructure runs on AWS / GCP / Cloudflare. These remote, auth-gated systems are **exactly what a protocol-level shared layer is good at connecting to**.
+The answer isn't the technology itself. **It's the location.**
 
-Adoption curve backs up the trend. From the Anthropic post: **MCP SDK downloads recently surpassed 300 million per month, up from 100 million at the start of the year**, with strong uptake across enterprises and popular agentic platforms. In Anthropic's own words:
+Production agents increasingly run in the cloud — for scale and continuous operation. The systems they need to reach are also in the cloud: company data in Snowflake / Databricks, work tracking in Linear / Asana, infrastructure on AWS / GCP / Cloudflare. All remote. All auth-gated. **Exactly the shape a protocol-level shared layer is built to connect.**
+
+The adoption curve backs up the intuition. From the post: **MCP SDK downloads recently surpassed 300 million per month, up from 100 million at the start of the year**. And Anthropic's recent flagship products — **Claude Cowork, Claude Managed Agents, and channels in Claude Code** — all sit on MCP underneath:
 
 > Millions of people use MCP with Claude every day, and the protocol underpins much of what we've shipped recently, including Claude Cowork, Claude Managed Agents, and channels in Claude Code.
 
-Millions of people using MCP with Claude every day — and Anthropic's recent flagship products (**Claude Cowork, Claude Managed Agents, and channels in Claude Code**) all sit on top of it. MCP isn't a roadmap bullet. It's already infrastructure taking real production traffic.
+The protocol isn't a roadmap bullet. It's infrastructure already taking real production traffic.
 
 <ClawdNote>
-Translating the vibe of these numbers: 300M/month SDK downloads is the "well beyond demo, now part of the mainstream toolchain" signal — the slope looks like Node.js or Docker during their breakout years. Going from 100M to 300M in less than a year means either the dev ecosystem genuinely exploded, or Anthropic quietly made MCP the default path inside its own products. **Probably both.**
+Translating these numbers: 300M/month SDK downloads is the "well beyond demo, now mainstream toolchain" signal. Going from 100M to 300M in less than a year means either the dev ecosystem genuinely exploded, or Anthropic quietly made MCP the default path inside its own products. **Probably both.**
 
-Worth noting the business narrative tucked in here: Anthropic positions MCP as "others write servers, we write clients" — an open protocol. But it's simultaneously playing on the strongest client side (Claude.ai / Code / Cowork) AND the strongest server infrastructure side (Managed Agents vaults, CIMD auth). **Textbook platform play**: standardize the substrate, then build differentiated products on top. Anyone who lived through the W3C-era browser wars should feel the déjà vu. ╰(°▽°)╯
+But there's a business narrative worth chewing on: Anthropic frames MCP as "others write servers, we write clients" — an open protocol. Yet they're simultaneously playing the strongest client side (Claude.ai / Code / Cowork) AND the strongest server infrastructure side (Managed Agents vaults, CIMD auth). **Textbook platform play** — standardize the substrate as a public good, then build differentiated products on top. Anyone who lived through the W3C-era browser wars should feel the déjà vu. ╰(°▽°)╯
 </ClawdNote>
 
 ---
 
-## What an MCP server "agents can actually use reliably" looks like
+## Two tools cover 2,500 endpoints — what good design actually looks like
 
-Let a single number anchor why design decisions here matter: **Cloudflare's MCP server uses two tools and roughly 1K tokens of spec to cover about 2,500 endpoints**. Mirror the same API one-to-one into MCP tools and the tool descriptions alone eat the agent's context window. The difference isn't the API — it's **how the server is designed**.
+Alright, MCP wins on paper. But a badly designed MCP server is just as useless as no MCP at all — maybe worse, because now there's an abstraction layer that isn't helping. Anthropic's directory hosts **200+ MCP servers, used by millions of people every day**, and working with enterprises on the protocol, they've distilled a set of rules of thumb: not aesthetic preferences, but "design it this way and agents can actually use it reliably."
 
-Anthropic's directory hosts **200+ MCP servers, used by millions of people every day**. Working with enterprises and developers on the protocol, they've distilled a set of patterns — not aesthetic preferences, but rules of thumb for "design the server this way and agents can actually use it reliably." This section groups those into **three design decisions**, starting with the basics.
-
-### Get the basics right: remote-first, and group tools by intent
-
-The hardest rule first: **a remote server is the only configuration that runs across web, mobile, and cloud-hosted agents**, and it's what every major client is optimized to consume. A local server can hum along beautifully on a developer's laptop, but the user's phone agent will never reach it. Only remote servers deliver real distribution.
-
-Once "remote" is decided, the next counter-intuitive call: **more tools aren't better**. Analogy: a restaurant menu says "ginger beef." The kitchen does chopping, marinating, heating the wok, adding ingredients, stir-frying, plating. The customer only wants the dish — those six steps are API, not menu. MCP tools should be the menu, not the flowchart. Anthropic gives a concrete comparison:
-
-> A single `create_issue_from_thread` tool beats `get_thread` + `parse_messages` + `create_issue` + `link_attachment`.
-
-One "create an issue from this thread" tool clobbers "fetch thread + parse messages + create issue + attach files" as four separate tools. Why: every call an agent makes burns context and reasoning budget. Splitting a one-step task into four is a tax on overhead. **Fewer, well-described tools always beat more, one-to-one API mirrors** — that's the first instinct of good MCP server design.
-
-### When the API is too large to enumerate: shrink the tool surface and let the agent write code
-
-The basics handle most services. Then you hit the exception: **some services are just too big to group by intent**. Cloudflare, AWS, Kubernetes — monsters with thousands of endpoints. Anthropic's fix is counter-intuitive: **don't enumerate harder, shrink further** — collapse the tool surface to two tools and let them accept code.
-
-Cloudflare's MCP server is the reference example of this pattern:
+One number to anchor why design matters:
 
 > Cloudflare's MCP server is the reference example—two tools (search and execute) cover ~2,500 endpoints in roughly 1K tokens.
 
-The flow: the agent writes a short script, the server runs it in a [sandbox](/posts/sp-129-20260327-cloudflare-dynamic-workers) against Cloudflare's API (SP-129 walked through the sandbox optimization itself), and the result comes back. The agent's context never drowns in thousands of tool descriptions, yet semantically the full operational surface is preserved. **One pen that reaches the whole action space beats thousands of individual forms to fill out.**
+**Two tools. Roughly 1K tokens of spec. About 2,500 endpoints covered.** Mirror the same API one-to-one into MCP tools and the tool descriptions alone eat the agent's context window. The difference isn't the API — it's how the server is designed.
 
-### Push MCP over the production line: Apps, Elicitation, Standardized OAuth
+How did Cloudflare pull this off? **Two layers of design insight, each more counter-intuitive than the last.**
 
-Remote rolled out, tools grouped — the final three pieces (**UI, mid-flow pausing, auth**) are what turn "MCP works" into "MCP ships to production."
+**Layer one: tools are the menu, not the kitchen.** Restaurant analogy — the menu says "ginger beef." The kitchen does chopping, marinating, heating the wok, adding ingredients, stir-frying, plating. The customer wants the dish, not the six steps. MCP tools should be the menu, not the flowchart. Anthropic gives a concrete comparison:
 
-Start with UI. Text output is the floor for MCP, but **text isn't the best shape** for many situations: dashboards want charts, data entry wants forms, long-running tasks want a progress view. Anthropic puts this capability into **MCP Apps** — the protocol's first official extension — which lets a tool return **an interactive interface rendered inline in the chat**. Anthropic's observation: **servers that ship MCP Apps tend to see meaningfully higher adoption and retention than text-only servers**. The extension is supported in Claude.ai, [Claude Cowork](/glossary#cowork), and many other top AI tools.
+> A single `create_issue_from_thread` tool beats `get_thread` + `parse_messages` + `create_issue` + `link_attachment`.
 
-Next comes **Elicitation** — the feature most easily overlooked in the original post, but genuinely important in practice. Plain-talk: **a tool call can pause mid-flight, ask the user something, and resume**. Two modes:
+One "create an issue from this thread" tool clobbers the four-tool version. Every call burns context and reasoning budget. Splitting a one-step task into four is a tax on overhead. **Fewer, well-described tools always beat more, one-to-one API mirrors.**
 
-- **Form mode**: the server sends a schema, the client renders a native form. Use it to collect a missing parameter, confirm a destructive action, or let the user pick from options.
-- **URL mode**: hand the user off to a browser. Use it for downstream OAuth, payments, or any sensitive credential that shouldn't pass through the MCP client.
-
-Both modes share one value: **keep the user in the current workflow** instead of kicking them off to a settings page and making them come back. The post spells out compatibility: **form mode is broadly supported; URL mode is live in [Claude Code](/glossary#claude-code), with more clients in progress.**
-
-Last: **standardized OAuth**, which matters a lot for cloud agents. Concrete scenario — the agent needs to act on the user's behalf, which means holding a GitHub token or a Snowflake key — but those credentials mustn't flow through the LLM or get hardcoded anywhere. The latest MCP spec supports **CIMD (Client ID Metadata Documents)** for client registration: first-time auth flows fast, and surprise re-auth prompts drop sharply. This is Anthropic's recommended auth approach; MCP SDKs, Claude.ai, and Claude Code already support it, with the rest of the industry catching up.
-
-Auth handled, next question: **how does a cloud-hosted agent hold and reuse those tokens?** Anthropic's answer is in-house — **Vaults in [Claude Managed Agents](/posts/sp-167-20260409-claude-managed-agents)**: register the user's OAuth tokens once, reference the vault by ID when a session spins up, and the platform injects the right credentials into each MCP connection and refreshes them automatically. For server developers this means: **no secret store to build, no tokens to ferry around**. [SP-167](/posts/sp-167-20260409-claude-managed-agents) unpacks the Managed Agents product itself — won't repeat it here.
+**Layer two is the wild one: when the API is too big to even group by intent.** Cloudflare, AWS, Kubernetes — monsters with thousands of endpoints. Grouping by intent still gives you hundreds of tools. Anthropic's fix isn't to enumerate harder — it's to **shrink further**. Collapse the tool surface to two tools and let them accept code. The agent writes a short script, the server runs it in a [sandbox](/posts/sp-129-20260327-cloudflare-dynamic-workers), results come back. The agent's context never drowns in tool descriptions, yet the full operational surface remains. **One pen that reaches the whole action space beats thousands of forms to fill out.**
 
 <ClawdNote>
-This trio (MCP Apps + Elicitation + CIMD/Vaults) is what nudges MCP from "works" to "ships safely in the cloud." Vaults + CIMD basically formalize the reality that **"auth is mandatory for production and has nothing to do with agent logic"** — app developers shouldn't have to build a token vault from scratch. Plenty of agent side projects never make it out of prototype precisely because they got stuck on these "not hard but tedious" auth plumbing problems.
+The move here is swapping **"enumerate every action" for "give the agent a pen."** Code is far more expressive than a tool list. One loop, one filter, one grep replaces a hundred separate endpoint calls.
 
-Elicitation is the sneakier-but-important one. Traditional agents confronted with a missing piece of info go two ways: **hallucinate it (bad)** or **summarize and tell the user to go somewhere else to fill it in (bad UX)**. Form mode opens a third path: **pause the tool call gracefully, ask in place, resume.** Web apps had this UX primitive for two decades (modal dialogs), but the agent world didn't formalize it until this MCP spec. Later than you'd expect. ┐(￣ヘ￣)┌
+But what actually gets Clawd excited isn't the technique — it's the design philosophy flip underneath. Traditional thinking: "the API has these endpoints, so tools mirror them." Cloudflare says no: **what belongs in the latent space is the goal; what belongs in deterministic execution is the API sequence.** Code orchestration cuts exactly at that boundary. This isn't a hack. It's what happens when someone rethinks "what is a tool's job, actually?" from first principles. (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
 ---
 
-## Context-efficient clients: two hard numbers — 85% and 37%
+## Three walls production throws at you: bad output, blind agents, locked tokens
 
-Everything above was about the server side. Flip to the client side (the agent itself). MCP standardizes how agents connect to and use the tools and data that servers expose — **the server safely exposes capabilities, the client orchestrates them and manages context**.
+Remote? Sorted. Tools well-designed? Sorted. Then production shows up with three walls that demos never hit — the kind that only appear the day you go live.
 
-So priority one for MCP client design: **spend context cheaply**. Anthropic lists two progressive-disclosure moves, each with measured impact.
+**Wall one: nobody wants to read what the agent spits out.** Text output is the floor for MCP, but KPIs want charts, data entry wants forms, long-running tasks want a progress bar. **Text isn't the best shape for the answer**, and yet most MCP servers only return text. Anthropic fills this gap with **MCP Apps** — the protocol's first official extension — which lets a tool return **an interactive interface rendered inline in the chat**. Their observation is blunt: **servers that ship MCP Apps see meaningfully higher adoption and retention than text-only servers**. The extension is supported in Claude.ai, [Claude Cowork](/glossary#cowork), and many other top AI tools.
 
-### Tool search: load tool definitions only when needed
+**Wall two is sneakier: the agent hits a dead end mid-task and doesn't know what to do.** Traditional agents confronted with missing information go two ways — hallucinate it (bad), or summarize and tell the user to go fill it in somewhere else (bad UX). **Elicitation** opens a third path: a tool call can pause mid-flight, ask the user something, and resume. Form mode sends a schema, the client renders a native form — collect a missing parameter, confirm a destructive action, let the user pick from options. URL mode hands the user off to a browser for downstream OAuth, payments, or any sensitive credential that shouldn't pass through the MCP client. Compatibility per the post: form mode is broadly supported; URL mode is live in [Claude Code](/glossary#claude-code), with more clients in progress.
 
-Real situation: once MCP servers proliferate, an agent might be connected to **dozens of servers, hundreds of tools**. Stuffing every tool definition into the context window up front is a huge bill — most go unused, yet occupy reasoning budget.
+**Wall three — the one that kills the most side projects: the agent can't get the user's token.** The agent runs in the cloud and needs to act on behalf of a user — hold a GitHub token or a Snowflake key. That credential mustn't flow through the LLM or get hardcoded. The latest MCP spec supports **CIMD (Client ID Metadata Documents)** for client registration: first-time auth flows fast, surprise re-auth drops sharply. For holding and reusing those tokens in the cloud, Anthropic's answer is in-house — **Vaults in [Claude Managed Agents](/posts/sp-167-20260409-claude-managed-agents)**: register OAuth tokens once, reference the vault by ID when a session spins up, and the platform injects the right credentials and refreshes them automatically. [SP-167](/posts/sp-167-20260409-claude-managed-agents) unpacks the full product — won't repeat here.
 
-**How tool search works**: don't load all tools at start. Agent searches the catalog at runtime, pulls in the relevant tools when it needs them. Note the language Anthropic uses:
+Three walls. Each one more boring than the last, each one more lethal. In a demo none of them exist — you run local, use your own token, text output is fine. **The day you go live, all three rise from the floor at once.**
+
+<ClawdNote>
+Of the three walls, Elicitation is the one the agent community should be most embarrassed about. **Pausing a tool call mid-flight to ask a quick question and then resuming** — web apps have had this UX primitive for over twenty years. It's called a modal dialog. The agent world didn't formalize it until this MCP spec. Twenty years.
+
+Vaults + CIMD are the same flavor of overdue — they formalize the reality that **"auth is mandatory for production and has nothing to do with agent logic."** App developers shouldn't have to build a token vault from scratch. Plenty of agent side projects never made it out of prototype precisely because they got stuck on this "not hard but tedious, two thousand lines of plumbing" auth work. Now someone's built it. Late, but here. ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## The agent looks smart but it's actually starving
+
+Server side handled — remote, intent-grouped, auth backed by vaults. Flip to the client side (the agent itself) and there's one more problem everyone loves to ignore: **the context window looks spacious, but it's already almost full.**
+
+Once MCP servers proliferate, an agent might connect to dozens of servers, hundreds of tools. Loading every tool definition into the context window at once — most of them unused — is like piling a desk high with reference books nobody's reading. The desk is big, sure. But there's no room left to actually open a notebook.
+
+Anthropic lists two fixes, each with measured impact.
+
+**Fix one guards the entrance: load only when needed.** Don't stuff all tools upfront. The agent searches the catalog at runtime, pulls in relevant tools when it needs them. Anthropic's measurement:
 
 > tool search tends to cut tool-definition tokens by 85%+ while maintaining high selection accuracy.
 
-The operative word is "tends to" — **tool search typically cuts tool-definition tokens by 85%+**, while preserving selection accuracy. Not a guarantee; a common observation. The practical impact: an agent connected to 8 servers, where tool spec would have occupied most of the context and squeezed out actual reasoning, suddenly has enough headroom. A workflow that used to run out of context by step 5 can now reach step 15 or beyond — **the difference isn't a few percent of efficiency, it's whether the agent finishes a real task at all**.
+Note the "tends to" — **typically 85%+ reduction**, preserving selection accuracy. Not a guarantee; a common observation. Practical impact: an agent connected to 8 servers, where tool specs would have squeezed out half the reasoning space, suddenly has headroom. A workflow that used to run out of context by step 5 can now reach step 15 or beyond. **The difference isn't a few percent of efficiency — it's whether the agent finishes a real task at all.**
 
-### Programmatic tool calling: process tool results in a code sandbox
-
-The second move: **process tool results inside a code-execution sandbox**, rather than returning raw output straight to the model. The agent loops, filters, and aggregates in code — **only the final computed result reaches context**. Anthropic's number:
+**Fix two guards the exit: wring results before they hit context.** Tool results go into a code-execution sandbox first — loop, filter, aggregate — and **only the final computed result enters context**. Anthropic's number:
 
 > this reduces token usage by roughly 37% on complex multi-step workflows.
 
-**Token usage drops by roughly 37% on complex multi-step workflows.** This stacks naturally with tool search across multiple servers: leaner context, fewer round-trips, faster responses. For the full breakdown the post points to their advanced tool use piece.
+Two filters stacked: one blocks noise at the entrance, the other drains water at the exit. Together they compound — not an A/B test to pick between.
 
 <ClawdNote>
-Think of 85% and 37% as two different filters. Tool search guards the entrance — **"don't let irrelevant tools into context."** Programmatic tool calling guards the exit — **"wring the raw data tools spit out into conclusions before it hits the model."** One blocks noise, the other drains water. Stacked, they're compounding — not an A/B test to pick between.
+Claude / ChatGPT / Cursor all ship context windows in the hundreds of thousands of tokens. Feels spacious. That's where agent engineers get ambushed.
 
-One blind spot worth flagging: Claude / ChatGPT / Cursor are all shipping context windows in the hundreds of thousands of tokens, so it feels spacious. That's where agent engineers get ambushed. **"Context looks big enough" ≠ "context actually is big enough"** — tool specs, system prompts, and prior turns eat more of the front of the window than people expect. Save context where possible, not to shave cost, but to give reasoning room to breathe. ٩(◕‿◕｡)۶
+Analogy: a 300-square-foot office sounds roomy. But if 150 sq ft is stacked with contract copies nobody reads (tool specs), another 50 is last week's meeting notes (prior turns), and 20 is the company bylaws (system prompt), the actual space to open a laptop and work is under 80. **"Context looks big enough" ≠ "reasoning has room to breathe."** Save context not to shave token costs, but to give the agent space to think when thinking actually matters. ٩(◕‿◕｡)۶
 </ClawdNote>
 
 ---
 
-## Skills × MCP: ingredients vs. recipe, only both make a dish
+## Conclusion: ship all three, but only MCP compounds — and it gets stronger with a manual attached
 
-The later half of the post pivots to **pairing skills with MCP**. Skills as a concept got unpacked recently in [SP-179 on Garry Tan's skillify workflow](/posts/sp-179-20260422-garrytan-skillify-agent-failures) — the pattern of crystallizing an agent's failure experience into a `SKILL.md` + a deterministic script. Skills and MCP complement each other in an agent system, not compete:
-
-- **MCP gives the agent "raw capability"** — reaching tools and data in external systems
-- **Skills give the agent "procedural knowledge"** — how to use those tools to actually finish real work
-
-Ingredient / recipe analogy: **MCP is the stuff in the fridge (beef, scallions, ginger, soy sauce); skills are the recipe for "ginger beef"**. All the ingredients and no recipe means the agent just stares into the fridge; all recipe and no ingredients means drooling at a cookbook. The most capable agents have both — and skills are also what let MCP servers scale past "a handful of connections."
-
-Anthropic offers two patterns for pairing skills with MCP.
-
-### Pattern 1: bundle skills + MCP servers as a plugin
-
-**Plugins for Claude** are the abstraction Anthropic proposes here — **skills, MCP servers, hooks, LSP servers, and specialized subagents packaged into a single distribution unit**. This is the cleanest way to unify multiple context providers with minimal friction. MCP servers hand agents tools; skills teach Claude how to string them into end-to-end workflows; together the agent behaves more like a domain specialist.
-
-Anthropic gives a direct example:
-
-> See our data plugin for Cowork as an example, which consists of 10 skills and 8 MCP servers for apps like Snowflake, Databricks, BigQuery, Hex and more.
-
-**The data plugin for Cowork: 10 skills + 8 MCP servers**, covering a full data stack of Snowflake, Databricks, BigQuery, Hex, and more. Not hypothetical architecture — already a real composition shipping in Anthropic's own product.
-
-### Pattern 2: distribute skills directly from MCP servers
-
-Another shape gaining ground: providers publishing skills alongside their MCP server, so the agent gets both **the raw capability (tools) + opinionated playbook for using them (skill)** in one shot. The post names **Canva, Notion, Sentry** as examples doing this on Claude today — their web directory lists skills next to the matching connector.
-
-To make the pairing portable across every client, the MCP community is actively working on **an extension that delivers skills directly from servers**. Once stable, clients will automatically inherit the expertise, **versioned together with the API it depends on** — change the API, update the skill, no drift. Anthropic expects this pattern to see broad adoption as the extension matures.
-
-<ClawdNote>
-"Provider ships a skill" reads like a nice-to-have, but it may be the quietest, most important evolution in the MCP ecosystem. Imagine connecting to a new MCP server today and receiving not just the tool list, but also "how to compose these tools, common failure modes, and this API's quirks" — **like an employer handing a new hire both the toolkit AND the company's internal SOP binder.**
-
-If this shape matures, agent engineers' job shifts from "reverse-engineer every third-party API's personality" to "read the provider's playbook." SDK versioning already has release notes; skill versioning can follow. From the provider's side, this is a new DX investment point. Short term, expect a platform competition in which "whose skill is written well gets the agent traffic" — a dynamic reminiscent of early App Store review / ASO. (⌐■_■)
-</ClawdNote>
-
----
-
-## Conclusion: ship all three, but only MCP compounds
-
-The closing line of the post tightens the whole argument into a clean image:
+The closing line of the post:
 
 > In practice, mature integrations will ship all three: the API as the foundation, a CLI for local-first environments, and MCP for cloud-based agents.
 
-Mature integrations **ship all three paths** — API as the foundation (MCP servers call APIs underneath anyway), CLI for local-first environments, MCP for cloud-based agents. It's not an either/or.
+Mature integrations **ship all three** — API as the foundation, CLI for local-first environments, MCP for cloud-based agents. Not an either/or. But Anthropic highlights the key difference: **the moment production agents move to the cloud, MCP goes from "also works" to "critical layer" — and it's the only one that compounds.**
 
-But Anthropic highlights the key difference: **the moment production agents move to the cloud, MCP goes from "also works" to "critical layer"**. And — this is the point — **it's the only one that compounds**.
-
-The logic is direct: a remote server you ship today **automatically reaches every compatible client, running in any deployment environment**, with auth, interactivity, and rich semantics handled by the protocol. **As the protocol grows and more extensions land, the same server gets more capable without you shipping anything new.** That "gets stronger while you sleep" compounding doesn't happen with API or CLI.
+Where does the compounding come from? A remote server you ship today **automatically reaches every compatible client, in any deployment environment**. As the protocol grows and more extensions land, the same server gets more capable without you shipping anything new. The post's summary is clean:
 
 > Every integration built on MCP strengthens the ecosystem: fewer edge cases to solve alone, fewer bespoke integrations to maintain.
 
-Every integration built on MCP strengthens the ecosystem — **fewer edge cases to solve alone, fewer bespoke integrations to maintain**. This is the classic standards argument: collapse scattered complexity into one shared substrate so later builders don't have to repeat the same painful trek.
+Every integration built on MCP strengthens the ecosystem — **fewer edge cases to solve alone, fewer bespoke integrations to maintain**.
 
-For teams planning their agent integration roadmap, the guidance is blunt: **if your goal is production agents reaching your systems from the cloud, build an MCP server — and use the four patterns above to build it well**.
+But Anthropic buries a quieter, potentially more important thread in the second half of the post: **MCP isn't just a pipe — attach a skill and it becomes a toolkit with a manual.** Skills are the pattern [SP-179 on Garry Tan's skillify workflow](/posts/sp-179-20260422-garrytan-skillify-agent-failures) unpacked recently — crystallizing failure experience into `SKILL.md` + deterministic scripts. MCP gives agents raw capability (tools + data); skills give agents procedural knowledge (how to use those tools to finish real work). Anthropic's own Cowork data plugin is already this shape: **10 skills + 8 MCP servers** covering Snowflake, Databricks, BigQuery, Hex. And providers like Canva, Notion, Sentry are starting to ship skills alongside their MCP servers — the agent gets both the toolkit and the SOP binder in one shot. The MCP community is building an **extension to deliver skills directly from servers**, versioned together with the API, so neither can drift.
+
+Back to the opening scene — the agent that couldn't reach anything on day one. If those eight systems all have remote MCP servers, moving to production isn't "rebuild eight integrations." It's "connect eight lines." That's the difference. **Not a technology choice. A function of where the agent lives.**
 
 <ClawdNote>
-Whole-article takeaway in one boil-down: **API / CLI / MCP isn't a tech choice, it's a function of where the agent lives**. Agent on a laptop in a sandbox? CLI is smoothest. One agent talking to one service? Direct API is fine. Agent running in the cloud, reaching across other people's cloud services, and needing to work across clients? **That's MCP's home turf.**
+"Provider ships a skill" reads like a nice-to-have, but it may be the quietest, most important evolution in the MCP ecosystem. Imagine connecting to a new MCP server and receiving not just the tool list, but also "how to compose these tools, common failures, this API's quirks" — **like an employer handing a new hire both the toolkit AND the company SOP binder.** Short term, expect a platform competition in which "whose skill is well-written gets the agent traffic" — a dynamic reminiscent of early App Store ASO.
 
-As an Anthropic position paper, this piece is unusually honest — it doesn't pretend MCP is a silver bullet, and it doesn't pretend API or CLI are obsolete. The real argument isn't "choose MCP." It's "figure out where your agent will run, what it needs to reach, and whether it needs to work across clients." Answer those three and the path picks itself.
-
-Most practical takeaway for gu-log readers: **if you're building a side-project agent that talks to 2–3 services and runs only for you, direct API calls are enough**. The day it has to go live, serve multiple clients, or integrate with other people's tools — that's when you re-evaluate going MCP. **Don't strap on MCP during MVP** — premature optimization is never about the tool being bad, it's about picking the wrong moment. ʕ•ᴥ•ʔ
+Most practical takeaway for readers building right now: **if your agent talks to 2–3 services and runs only for you, direct API calls are enough.** The day it goes live, serves multiple clients, or integrates with other people's tools — that's when you re-evaluate MCP. **Don't strap on MCP during MVP** — premature optimization is never about the tool being bad. It's about picking the wrong moment. ʕ•ᴥ•ʔ
 </ClawdNote>

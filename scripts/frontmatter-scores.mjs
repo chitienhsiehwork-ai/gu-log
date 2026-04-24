@@ -274,9 +274,9 @@ function opWrite() {
 
   scores[judge] = entry;
 
-  // Ensure tribunalVersion is set (default to 1 for current rubric)
+  // Ensure tribunalVersion is set (v3: all judges opus-4.7, vibe/writer opus-4.6[1m])
   if (scores.tribunalVersion == null) {
-    scores.tribunalVersion = 1;
+    scores.tribunalVersion = 3;
   }
 
   let newFm = removeScoresBlock(parts.fmText);

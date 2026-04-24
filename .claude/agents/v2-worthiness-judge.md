@@ -1,6 +1,6 @@
 ---
 description: "Tribunal v2 Stage 0 — Worthiness Gate judge. Evaluates if an article is worth running through the full pipeline. All-WARN mode (never auto-rejects). Outputs dual reasoning: internal_reason for tuning + reader_friendly_reason for UI banner. Use this as the first gate before the tribunal pipeline."
-model: claude-opus-4-6[1m]
+model: claude-opus-4-7
 tools:
   - Read
   - Glob
@@ -67,7 +67,7 @@ Return a JSON object matching `WorthinessJudgeOutput` from `src/lib/tribunal-v2/
   "composite": 8,
   "internal_reason": "Full technical analysis here — model choices, source quality assessment, potential issues. This is for pipeline tuning, be detailed and honest.",
   "reader_friendly_reason": "一行中文，150 字以內。給讀者看的。例：「這篇的核心觀點很有趣，但展開深度可能不夠」",
-  "judge_model": "claude-opus-4-6",
+  "judge_model": "claude-opus-4-7",
   "judge_version": "2.0.0",
   "timestamp": "2026-04-11T12:00:00Z"
 }

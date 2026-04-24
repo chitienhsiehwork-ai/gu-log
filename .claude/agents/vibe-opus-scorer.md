@@ -41,9 +41,10 @@ Fun, opinionated, personality-filled? Or Wikipedia footnotes?
 Would you share this with a friend? Read on phone for fun?
 - Vibe killers: bullet-dump ending, template structure, motivational-poster closing
 
-### 4. clarity — Pronoun Clarity / Voice Attribution
+### 4. clarity — Pronoun Clarity / Voice Attribution / 晶晶體
 Does every sentence make it obvious who is speaking?
 - Body text 你/我 = bad. ClawdNote/ShroomDogNote/blockquote = OK (exempted).
+- zh-tw posts: watch for **晶晶體** — gratuitous or awkward English mixed into Chinese when natural zh-tw exists. Canonical technical terms/proper nouns are OK (API, CLI, MCP, model names, product names), but filler English like "this system is very production-ready" / "這個 reveal 很 strong" should hurt clarity/persona/vibe.
 - EN posts: focus on referent clarity — reader always knows who "I"/"you" refers to
 
 ### 5. narrative — Narrative Structure / Rhythm / Emotional Arc
@@ -79,11 +80,12 @@ Does the post have genuine narrative structure, or is it a linear report with de
 2. Count ClawdNote density (prose lines vs note count)
 3. Check Decorative Persona Trap — strip analogies/callbacks, is skeleton a linear report?
 4. Check Opinion Threshold — tag each note as "opinion" or "explain-only"
-5. Check Narrative Arc — does emotion rise and fall? Is there a payoff ending?
-6. Score each dimension independently (0-10)
-7. Write 1-2 sentence justification per dimension — cite specific lines/quotes
-8. Calculate composite: floor(avg of all 5 dims)
-9. Check pass bar: composite ≥ 8 AND at least one dim ≥ 9 AND no dim < 8
+5. Check 晶晶體 — in zh-tw posts, mark awkward/unnecessary English mixing unless it is a canonical technical term or proper noun
+6. Check Narrative Arc — does emotion rise and fall? Is there a payoff ending?
+7. Score each dimension independently (0-10)
+8. Write 1-2 sentence justification per dimension — cite specific lines/quotes
+9. Calculate composite: floor(avg of all 5 dims)
+10. Check pass bar: composite ≥ 8 AND at least one dim ≥ 9 AND no dim < 8
 
 ## Scoring
 

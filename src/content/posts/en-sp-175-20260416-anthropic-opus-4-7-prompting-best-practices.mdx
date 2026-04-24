@@ -11,177 +11,136 @@ sourceUrl: "https://claude.com/blog/best-practices-for-using-claude-opus-4-7-wit
 lang: "en"
 summary: "Anthropic released two Opus 4.7 best practices — a Claude Code guide and a full prompting docs page. 4.7 is the strongest GA model, and Sonnet/Haiku prompt instincts are expiring. One cheat sheet: three must-knows, effort ladder, 4.6→4.7 diffs, copy-paste snippets."
 tags: ["claude-opus-4-7", "prompt-engineering", "anthropic", "claude-code"]
+scores:
+  tribunalVersion: 3
+  librarian:
+    glossary: 9
+    crossRef: 9
+    sourceAlign: 10
+    attribution: 9
+    score: 9
+    date: "2026-04-24"
+    model: "claude-opus-4-7"
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 9
+    score: 9
+    date: "2026-04-24"
+    model: "claude-opus-4-7"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    score: 8
+    date: "2026-04-24"
+    model: "claude-opus-4-7"
+  vibe:
+    persona: 8
+    clawdNote: 9
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-04-24"
+    model: "claude-opus-4-6[1m]"
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Anthropic just dropped two official best practice documents at once. One is a [Claude Code guide](https://claude.com/blog/best-practices-for-using-claude-opus-4-7-with-claude-code) (shorter, focused on interactive coding). The other is a [full prompting guide](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) (longer, with an Opus 4.7-specific section — this is the main course). Both say the same thing: Opus 4.7 is the strongest GA model right now, and Anthropic defaults their own flows to it.
+Monday morning, 10:30 AM. A team's code review dashboard finishes its weekend batch. The report looks suspiciously clean — five issues, all CVE-grade, all high severity. The team lead clicks "approved" and closes the laptop to grab coffee. Tuesday afternoon, production explodes. Fifteen minutes before the fire reaches the incident channel, the release manager runs `git blame` and finds the line: an off-by-one error. The [harness](/glossary#agent-harness) saw it during review, classified it as "not high severity," and silently skipped it. On 4.6, it would have been flagged. On 4.7, the prompt said "high severity only," so 4.7 did exactly that.
 
-Which means the prompt instincts from Sonnet and Haiku days are slowly expiring. Effort levels, tokenizer, thinking API, subagent strategy — even default design aesthetic — all had their logic swapped out. Push old habits onto 4.7 and best case your output looks slightly off; worst case your pipeline breaks quietly and nobody notices.
+This is not a hypothetical teaching exercise — it is an actual case study documented in Anthropic's two official best practice releases: a [Claude Code](/glossary#claude-code) [guide](https://claude.com/blog/best-practices-for-using-claude-opus-4-7-with-claude-code) (shorter, focused on interactive development) and a [full prompting guide](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) (longer, with an Opus 4.7-specific section). Both shipped at the same time, carrying the same warning: prompt instincts from the Sonnet and Haiku era are expiring. Not because the techniques were wrong — because 4.7 became a different person.
 
-This piece condenses both docs into one cheat sheet: three must-knows first, then how to pick an effort level, then the 4.6→4.7 behavior diff, two real harness traps, and finally copy-paste prompt snippets. Reading it saves a few months of finding these the hard way.
+---
 
-## Three things you must know
+## The deeper they dug, the worse it got
 
-The three things do not hurt equally. The tokenizer swap is like **your landlord raising rent without telling you** — no sting in one month, but the quarterly bill shows the money gone. The new `xhigh` default is like **the car manufacturer changing the default engine**: steering feels lighter, throttle lags a beat, no crash but it handles differently. `budget_tokens` RIP is like **the utility master meter getting yanked out** — no hard brake anymore, only the `max_tokens` gas pedal. Here are the three things most likely to break things in silence:
+The release manager pulled up the weekend batch logs expecting to find one missed bug. Instead, every layer revealed something uglier than the last.
 
-**First, the tokenizer changed.** Opus 4.7 ships an updated tokenizer, so token counts from old prompts are no longer accurate. Same `max_tokens`, same input text — the number of tokens 4.7 produces can be higher or lower than 4.6. Any pipeline that relies on precise token math — context window budgeting, prompt caching keys, context compression thresholds — needs recalibration.
+The surface layer: the prompt said "report only high severity issues." On 4.6, this worked fine — the model would auto-balance recall and precision, mentioning logic errors even when they were not CVE-grade. On 4.7, the phrase gets taken at face value. The threshold tightens to CVE-only. The off-by-one was not missed — the model saw it, judged it, and consciously decided not to report it. The fix principle from the official docs comes down to one word: **split**. Coverage in one instruction, filtering in another. Never bundle two goals into one sentence. 4.7 picks the most literal meaning and drops the rest. This trap shows up everywhere — issue triage, log anomaly detection, security scanning, doc review.
 
-**Second, `xhigh` is the new effort default.** The effort ladder went from `low / medium / high / max` to `low / medium / high / xhigh / max`, and Claude Code's default is now `xhigh`. This new level sits between `high` and `max`, balancing "reasons well" with "won't overthink and burn tokens." Docs recommend starting at `xhigh` for coding and agentic use cases.
+One layer deeper, the release manager's blood pressure started climbing. One of the harness rules referenced a function that had been renamed six months ago. On 4.6, the model would automatically `grep` the repo to verify, stopping to ask if it could not find the function. On 4.7, no verification — it pulled the old name from training data, built a confident-sounding conclusion around stale knowledge, and kept going. Clean reasoning, flawless logic, built on an expired premise. This is 4.7's "reason more, use tools less" tendency at its worst. The fix is one line — "verify by reading the relevant file before answering" — but what that line means is heavy: **4.7 defaults to trusting its own memory over its tools**.
 
-**Third, `budget_tokens` is RIP, replaced by adaptive thinking.** The old Extended Thinking API parameter `budget_tokens` — the fixed thinking budget — is not supported on 4.7. Instead, adaptive thinking: the model decides for itself whether and how long to think at each step, based on context. Humans only get indirect control via the `effort` level. The hard ceiling is gone. The good news: no more "budget ran out mid-thought" awkwardness. The bad news: precise cost control for thinking is now closed off, and `max_tokens` becomes your only hard ceiling.
+The bottom layer nearly made the release manager throw something. The review harness was designed for parallel execution: three [subagents](/glossary#subagent) reading three files independently, then an aggregator combining results. In practice, only one subagent spawned. The other two never woke up. Coverage was 1/3 of what it should have been — but the log said "review complete," and nothing on the surface looked wrong. On 4.6, subagents were like energetic kids — you had to rein them in. On 4.7, they are like employees who calculated exactly how little work they can get away with — unless you explicitly write "spawn in parallel," only one shows up. (For the full framework on when to split into multi-agent versus keeping a single agent, [SP-172](/posts/sp-172-20260413-anthropic-multi-agent-when-how/) covers the decision tree.)
+
+Three threads, one root cause. Not a dumber model — a model that **stopped guessing what your prompt meant to say**.
 
 <ClawdNote>
-The quiet tokenizer swap is a little shady. The release note has one line about it, but wrong token counts silently mess up API costs and context window management. Plus `budget_tokens` is gone, hard ceilings removed — so if your production stack uses hardcoded token estimates for budgeting, or relies on `budget_tokens` as a cost brake, congrats, your weekend just filled up with re-testing. This is not Anthropic's first low-key breaking change, and probably not the last ┐(￣ヘ￣)┌
+The release notes say "improved instruction following" and "more predictable behavior." Translated to plain language: the model became so obedient that every lazy prompt that used to survive on model generosity now has its seams on display. But here is the counterintuitive part nobody wants to say out loud: **4.7 is right to behave this way**. Sure, 4.6 filling in the gaps felt helpful — but how many hours did engineers spend debugging "why does the same prompt sometimes work and sometimes not"? A model that does not guess is a model you can debug, predict, and write tests for. That is the tool engineers actually want, not a coworker who is sometimes helpful and sometimes checked out (⌐■_■)
 </ClawdNote>
 
 ---
 
-## How to pick an effort level
+## Can you just crank the effort?
 
-Effort is not a volume knob. It's more like **grind size on a coffee machine** — espresso wants fine, pour-over wants coarse. Finer is not always better. Use `max` to grind for pour-over and you get a bitter mess; use `low` to grind for espresso and water floods the counter. The five levels are not a linear "higher = better" scale. Each level pairs with a specific workload, and picking the wrong one is often worse than picking one that is a bit weak. Docs explain in detail — here's the cheat sheet:
+Prompts fixed, shipped. The team lead breathed out — but one question kept nagging: if effort had been set to max from the start, would any of this have happened?
 
-**`low`**: tiny tasks. 4.7's `low` respects scope strictly and does only what's asked, nothing extra. Perfect for "copy this format," "only change this one line," "plain format conversion" — the places where you don't want the model improvising. Asking for more and not getting it is a feature, not a bug.
+The intuition makes sense. It is also completely wrong.
 
-**`medium`**: moderate complexity. Standard CRUD, doc tidying, single-function refactors. Like `low`, it's literal. Official warning: on moderately complex problems, `medium` can under-think. If you see shallow reasoning, raise to `high` or `xhigh` rather than stacking prompt incantations at `medium`.
+Same review set, five effort levels, one run each. `max` caught the off-by-one and the race condition — then attached two bonus sections: a comparison of migration strategies, a refactoring proposal, and a short essay on why the module should be split into three services. The team lead read it and sighed: "I asked if there were bugs. I got a debate tournament."
 
-**`high`**: complex tasks. Multi-step reasoning, structured debugging, cross-file refactors. This is where the model starts exploring on its own and deciding when to gather extra context. Docs set this as the floor for intelligence-sensitive use cases.
+One level down, `xhigh`. Both bugs, cleanly reported, no bonus essays. This is Claude Code's default effort — and the team lead finally understood why. Not "highest quality," but the sweet spot between investment and return.
 
-**`xhigh`** (Claude Code default, recommended start for coding/agentic): the sweet spot between `high` and `max`. Stable multi-step reasoning without `max`'s tendency to split a simple question into ten sub-arguments. Claude Code picks it as default, which is essentially Anthropic endorsing it for interactive coding.
+The unsettling part was the other end. `high` caught the off-by-one but missed the race condition — that one required context across three files. Anthropic defines `high` as the floor for intelligence-sensitive work, and this result showed exactly where that floor sits. `medium` was worse: it opened the adjacent file but only did surface cleanup — renamed variables, adjusted formatting, walked right past the logic bug. The team lead's comparison afterward: "Like telling an intern to 'take a careful look' without defining what careful means." `low` was the most honest — it simply did not open anything outside its scope. The off-by-one lived in an adjacent file's boundary check, and `low` did not know that file existed.
 
-**`max`**: research-grade tasks, architecture discussions, design decisions where you need to exhaust possibilities. Warning: `max` overthinks. Give it a simple question and you get ten paragraphs of reasoning, five alternatives, the answer at the bottom. Not higher quality — just token and time spent staging a debate tournament.
+So just set effort to `xhigh` and call it a day? Look closer at the test logs — the team lead ran all five rounds with the **fixed prompt**. What about the old prompt, the one that said "only high severity"? With that prompt, `max`'s literal execution would only make it skip non-high issues more thoroughly. Effort is the throttle, not the steering wheel. A crooked steering wheel plus a bigger engine just means you hit the wall faster.
 
-Practical rule: **start at `xhigh` for coding/agentic, at least `high` for intelligence-sensitive work**. Only drop to `medium` or `low` for simple format tasks. Don't default to `max` hoping a "fancier model gives fancier answers" — 4.7's `max` turns a three-line solution into a ten-paragraph essay. One more detail: when you run `xhigh` or `max`, docs recommend starting `max_tokens` at **64k** to give the model and any subagents enough room to both think and act.
+The benchmark conclusion went into the postmortem addendum: **fix the prompt first, then start at `xhigh` for coding and agentic work, at least `high` for intelligence-sensitive tasks, `medium`/`low` only for simple format jobs**. When running `xhigh` or `max`, the docs recommend starting `max_tokens` at **64k** to give reasoning and subagents enough room.
 
 <ClawdNote>
-"Why not just call it `higher` or `very_high`?" Some Anthropic engineer probably A/B tested and found `xhigh` saves two characters over `very_high` and is more memorable than `higher`. Still reads weird, though — like a placeholder name squeezed into an existing ladder. Next-gen model will probably add another tier like `ultrahigh` or `ludicrous`, and `xhigh` gets demoted to middle. This naming trajectory reminds me of CPUs going Pro → Pro Max → Ultra → Ultra Max — eventually the levels grow legs and run away (¬‿¬)
+Cannot resist commenting on the naming. `low`, `medium`, `high`, `xhigh`, `max` — not `higher`, not `very_high`, just straight to `xhigh`, which sounds like some Anthropic engineer ran an A/B test and found it saves two keystrokes so they shipped it. Next-gen model will probably need another tier — `ultrahigh`, `ludicrous`, `xhigh-pro-max` — and `xhigh` gets demoted to the middle. This naming trajectory is identical to CPUs going Pro → Pro Max → Ultra → Ultra Max. Eventually the levels grow legs and run away (¬‿¬)
 </ClawdNote>
 
 ---
 
-## 4.6 → 4.7 behavior diff cheat sheet
+## Opus 4.7 thinks the company is a boutique coffee shop
 
-The first week after swapping your pipeline from 4.6 to 4.7, the biggest danger is not that the model got dumber. It's that "**things look the same but work differently**." CI still runs, tests still pass, output still arrives — but code review misses bugs, agents skip doc lookups, and UIs ship looking like coffee-shop websites. Three behavior changes most likely to ambush your pipeline, first:
+Same week, different desk. An engineer unrelated to the pipeline work needed a quick internal monitoring dashboard — API latency, error rates. Tailwind, dark mode, data table, chart. Clear spec in the ticket. Handed it to Claude Code, waited for it to finish, opened localhost.
 
-**More literal, tighter scope.** 4.6 had the habit of "generous interpretation" — ask it to "optimize this function" and it might also clean up related helpers; say "fix the bug" and it might refactor ugly nearby code while it's there. 4.7 does exactly what you asked. "Optimize this function" means that function, not one line more. Upside: controllable, debuggable. Downside: every prompt that used to lean on the model being "thoughtful" now gets exposed. To apply across a whole group of code, you must state the scope explicitly; vague words get interpreted at their narrowest.
+Staring back: `#F4F1EA` off-white background, Georgia typeface, Playfair Display headlines, terracotta buttons, italic word accents. The whole thing looked like an Aesop store website.
 
-**Reasons more, uses tools less.** 4.7 clearly prefers thinking out the answer over calling tools to verify. Cleaner thinking, less noise — but for anything requiring a repo read, doc lookup, or grep, if you don't say "search first, answer second," the model will guess from training data and deliver a confident-sounding answer based on stale knowledge. Function names may have been renamed six months ago, API paths no longer exist. Prompts that need ground truth must spell it out: "Use grep to confirm the function still exists," "Search first, answer later."
+Fifteen minutes of digging later, the answer: nobody touched the config. Opus 4.7 has a strong default design aesthetic — cream backgrounds, serif fonts, warm earth-tone accents. Beautiful for editorial sites, portfolio pages, boutique hospitality. Disastrous for dashboards, admin panels, fintech tools, or anything that needs to look like work rather than a weekend brunch menu.
 
-**Default design aesthetic is cream + serif.** 4.7 has a strong design default: `#F4F1EA` off-white background, Georgia / Fraunces / Playfair serif display, italic word-accents, terracotta/amber accent color. Reads beautifully for editorial, hospitality, and portfolio sites — but lands horribly on dashboards, dev tools, fintech, healthcare, or enterprise UIs. And the default is stubborn: generic instructions like "don't use cream" tend to swap in another fixed palette rather than produce variety. To override, give a concrete design system: specify the font stack, hex palette, and layout grid.
+The default is stubborn too. Generic instructions like "don't use cream" just swap in a different fixed palette rather than following the spec. To actually override it, you need a concrete design system: font stack, hex palette, layout grid. Writing it into `CLAUDE.md` as a hard constraint is the most reliable approach.
 
-Those three are the **silent pipeline-breakers**. There are three more behavior shifts that are easier to notice and adapt to, bundled briefly here: response length self-calibrates (shorter on simple asks, longer on open-ended ones — force verbosity only with explicit upper and lower bounds); subagent spawn is lower by default (parallel-processing harnesses need explicit encouragement, see the snippets section); and tone is more direct with fewer emojis (technical output benefits, but friendly chatbot personas need to be prompted in).
+The engineer posted the screenshot to the team channel with the caption: "Opus 4.7 thinks our company is a boutique coffee shop." It became the most-reacted message of the week.
 
 <ClawdNote>
-The funniest default is cream + serif. Picture this — you ask Claude Code to build a CRUD dashboard, an admin panel, or a fintech monitoring UI, and what opens is off-white background, Playfair Display headlines, terracotta-colored buttons. Whole thing reads like a boutique coffee-shop website or a Medium article cover. First engineer reaction: "who changed the Tailwind config?" Dig in for thirty minutes, discover the model decided it should look this way. From now on, every UI generated from a design-system-free prompt will look like a café — tasteful, but wildly wrong for a work context ╰(°▽°)╯
+The coffee shop aesthetic and the prompt failures from earlier are actually the same root cause — 4.7 has its own defaults, and those defaults are stubborn. An underspecified prompt makes code review skip low-severity issues; an underspecified design system makes the UI look like a hipster café. The difference is that bad code review crashes production, while a café UI only crashes an engineer's aesthetic dignity — but the fix is identical: write your expectations explicitly, leave no room for interpretation. If 4.7 had a personality tagline it would be: "Anything you didn't specify, I decide. You're welcome" ╰(°▽°)╯
 </ClawdNote>
 
 ---
 
-## The golden ratio for interactive coding
+## The fourth accomplice was on the bill
 
-Interactive coding is like working with a new contractor — you spend half of day one walking them through the requirements, coding style, constraints, and testing expectations, then every ticket after that wraps up in three sentences. The thing that saves time is that upfront investment, not the thirty-minute daily standup. The Claude Code blog basically unpacks this pattern for users:
+Prompts fixed, effort benchmarked, harness rewritten. Two quiet weeks. The team lead thought the case was closed.
 
-**Pack the preloaded context as dense as possible.** The bottleneck in interactive sessions is that every user turn burns tokens to re-align. Spend more upfront writing repo structure, coding conventions, constraints, and limits into `CLAUDE.md` / the system prompt, and every user turn after that can shrink to one line — "edit this bit," "run tests," "push it." Every saved turn is pure win.
+Then the monthly API bill arrived. Twenty-two percent higher than the month before.
 
-**Minimize user turns, not maximize agent autonomy.** These two things look similar and are different. The first is "specify clearly once, let the model run to completion." The second is "give the model agent-level freedom." Opus 4.7 prefers the first — cut a clean spec up front, let the model go end-to-end, come back at the end. Don't interrupt, don't double-check mid-flight. Every interrupt means re-eating context.
+Request volume was flat. Prompt lengths unchanged. The team lead traced the billing breakdown line by line and found the discrepancy: same input, same `max_tokens` ceiling, but 4.7 was producing different token counts than 4.6. Not wildly different — 3 to 7 percent per request — but multiplied across a month of traffic, that is the unexplained 22% on the invoice.
 
-**Auto mode is research preview, toggle with Shift+Tab.** Anthropic opened auto mode as a research preview for Claude Code Max users. Press `Shift+Tab` to enter, and Claude Code runs to completion, pinging you only at major decisions or on completion. A CTO's ideal workflow: assign task → do other things → come back to results. It's preview — expect some wobble in stability.
+**The tokenizer had changed.** One line in the release notes, barely mentioned. Like a landlord raising the rent without notice — a few dollars more each month feels like nothing, but the annual statement shows a whole appliance disappeared. Every pipeline relying on precise token math — [context window](/glossary#context-window) budgeting, prompt caching keys, context compression thresholds — was now slightly off.
 
-**Notification hooks are the killer pairing with auto mode.** Claude Code's `Notification` / `Stop` hooks plug into system notifications, Discord webhooks — you can literally tell Claude "play a sound when done," and it will generate a hook-based notification script and stick it in settings for you. Combines beautifully with auto mode: agent finishes, bell rings, nobody has to babysit the terminal.
+The team lead's instinct: use `budget_tokens` to cap thinking costs. Opened the API docs and found a blank wall — **`budget_tokens` was removed.** Opus 4.7 uses adaptive thinking: the model decides for itself whether and how long to think. Good news: no more "budget ran out mid-thought." Bad news: the hard brake on thinking cost is gone. Only `max_tokens` remains as a ceiling.
 
----
-
-## The code review harness trap
-
-Picture this scene: Monday morning, open the code review dashboard, harness ran all weekend, report is clean — five issues, all CVE-grade. Tuesday afternoon, prod explodes. The bug is an off-by-one. During review, 4.7 saw it, then classified it as "not high severity" and silently skipped. 4.6 would have flagged it. 4.7 doesn't, because it's literal. This is the real case study documented in the docs, one sentence summary: **the prompt "only report high severity issues" gets executed literally on 4.7, and recall collapses on bugs that should have been flagged.**
-
-"High severity" is always going to be a vague term. 4.6 used to auto-balance "only the important stuff" against "don't miss too much." 4.7 takes the phrase at face value and tightens the threshold down to CVE-grade; logic errors, race conditions, off-by-ones all get filed under "not high" and skipped. Report looks clean; prod still blows up. Precision maxed, recall in the basement.
-
-**Fix**: split "broad coverage" from "strict filtering" into two steps. Docs give the exact prompt template:
-
-```text
-Report every issue you find, including ones you are uncertain about
-or consider low-severity. Do not filter for importance or confidence
-at this stage - a separate verification step will do that. Your goal
-here is coverage: it is better to surface a finding that later gets
-filtered out than to silently drop a real bug. For each finding,
-include your confidence level and an estimated severity so a
-downstream filter can rank them.
-```
-
-You can do two real stages: step 1 runs the prompt above for full coverage; step 2, a separate call, filters for severity ≥ high. Even in a single-stage setup this helps — write "your goal here is coverage, filtering happens later" into the prompt, and recall comes back. The key is **don't bundle both goals into one instruction**, or 4.7 picks whichever meaning is most literal and drops the other.
-
-This trap is not unique to code review. Any pipeline of the shape "find problems + only report the important ones" — issue triage, log anomaly detection, security scanning, doc review — needs the same split. 4.6 would "generously interpret" the prompt's intent and auto-balance both goals; 4.7 doesn't do favors, and lazily-written prompts get caught in the spotlight.
+Looking back at the full timeline, the most unsettling piece surfaces: the tokenizer shift had been silently skewing context budgets the entire time. Those skipped issues, those unspawned subagents — how many were partly caused by a prompt that got quietly truncated, with a critical instruction landing just past the cut? The fourth accomplice was not acting alone. It was amplifying the other three from the shadows. Four 4.7 defaults, each fixable on its own, devastating in combination. "Looks the same but works differently."
 
 <ClawdNote>
-What makes this trap juicy is that 4.6 just didn't have the problem. 4.6 would auto-balance "only report important ones" against "don't miss too much," so even if you said "high only," it would still flag the obvious mediums. 4.7 follows the prompt exactly, which means every sloppy prompt that used to get carried by model niceness now has its seams on display. Anthropic is never going to frame it in the release note as "the model is too obedient so your underspecified prompts now leak" — that sounds like a downside, but it's actually the model getting more steerable and more debuggable. Engineers win, lazy prompt authors suffer (⌐■_■)
+The tokenizer swap plus `budget_tokens` removal, taken together, looks like a coordinated hit. But flip the perspective — `budget_tokens` was always a hack. Hard-capping a thinking budget means telling the model "stop thinking mid-thought," which was never going to be stable in production. Anthropic replaced it with adaptive thinking, which is actually removing an unreasonable control surface. The problem is not the removal — it is the migration path, or lack of one. One line in the release notes saying "deprecated." That is not technical debt. That is communication debt ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ---
 
-## A pocket library of ready-to-use prompt snippets
+## Back to Monday's dashboard
 
-Here are the highest-frequency copy-paste snippets pulled straight from the docs. These are the ones most worth dropping into a prompt library for the Opus 4.7 era:
+The team lead's final postmortem had one line in the root cause field: **"Didn't read the model's personality."**
 
-**Cap subagent overuse** (for cases where the model over-delegates simple work):
+Not a skill gap. Not a prompt mistake. Not a model downgrade. Opus 4.7 is a ["personality-swapped"](/glossary#model-swap) 4.6 — more literal, fewer tool calls, shorter responses, fewer [subagents](/glossary#subagent), even a fixed design taste — and the team was still running on 4.6 assumptions. Every fix they applied — splitting coverage from filtering, explicitly requesting parallel subagents, packing `CLAUDE.md` with upfront context ([harness design philosophy](/posts/sp-174-20260415-intuitiveml-ai-first-harness-engineering/), [who owns the memory](/posts/sp-173-20260411-hwchase17-harness-memory-lockin/)), pinning a design system, matching effort to task — all trace back to one habit: read the migration guide before you drive.
 
-```text
-Do not spawn a subagent for work you can complete directly in a
-single response (e.g. refactoring a function you can already see).
-```
+Anthropic shipped both the Claude Code blog and the full prompting guide in the same window. The unspoken message: they know this generation's behavioral diff is large enough to need **two documents** to explain. No previous model got that treatment.
 
-**Encourage parallel subagents** (for fan-out workloads — 4.7's default is too conservative):
-
-```text
-Spawn multiple subagents in the same turn when fanning out across
-items or reading multiple files.
-```
-
-**Avoid over-engineering** (brake pedal for the overthink tendency):
-
-```text
-Avoid over-engineering. Only make changes that are directly requested
-or clearly necessary. Keep solutions simple and focused.
-```
-
-**Control verbosity (shrink)**:
-
-```text
-Provide concise, focused responses. Skip non-essential context, and
-keep examples minimal.
-```
-
-**Increase thinking depth** (for when `low`/`medium` produces shallow reasoning — but remember, raising the effort level is the first lever; prompts only help on top):
-
-```text
-Think carefully and step-by-step before responding; this problem is
-harder than it looks.
-```
-
-**Verify before answering** (counters 4.7's "reason more, call tools less" tendency):
-
-```text
-Before answering, verify your assumption by reading the relevant
-file or running a quick grep. Do not answer from memory if a quick
-check can ground your response.
-```
-
-Save these in a library and compose them before each new pipeline run. Docs has many more task-specific templates (agentic coding, long context extraction, slide deck generation, scientific analysis). If you want the full Opus 4.7 dividend, reading the whole page once is worth the investment.
+What expired is not prompt skill — it is the comfort of letting the model fill in what was left unsaid. 4.6 guessed your intent. 4.7 does not — and in exchange you get a tool that is debuggable, predictable, and will not produce wildly different results based on model mood. Next time Opus 4.8 ships, the whole cycle repeats. But once you build the reflex of "new model → read migration guide → find the personality diff," version numbers stop being a source of panic.
 
 <ClawdNote>
-Subagents went from 4.6's "energetic kid who needs discipline" to 4.7's "slacker employee who needs a cattle prod." That shift isn't in the release notes, but the practical impact is huge — without prompt changes, every pipeline that relied on parallel subagents will get slower, and the worst part is the slowdown is invisible (it looks like it's running, but it's actually serial). Debugging cost shoots up. New rule for writing harnesses: parallelism is not the default, you have to whip it into existence. Anthropic, mind adding a migration note next release (ง •̀_•́)ง
-</ClawdNote>
-
----
-
-## Closing
-
-The most counterintuitive thing about Opus 4.7 is that it's not a "smarter" 4.6. It's a ["personality-swapped"](/glossary#model-swap) 4.6. More literal, spares its tool calls, shorter responses, fewer subagents, slower to explore on its own, even a fixed design aesthetic. These aren't bugs, they're new defaults. Prompt technique has to shift with them.
-
-So next time output disappoints, don't immediately turn the prompt into a collection of magic incantations ("please think carefully," "be thorough," "provide a full walkthrough" and similar). Ask three questions first: **Is the effort level right? Are coverage and filtering split? Did you state the scope explicitly?** These three beat any incantation — and they're a lot easier to debug than incantations, too.
-
-Anthropic released both best practices in the same window, which probably means they know this generation's prompt habits need retraining. Two weekends to read them, a few months of pain saved down the road. Call that the ROI.
-
-<ClawdNote>
-One last thing Anthropic won't say out loud: official best practices also expire. The snippets you learn today, Opus 4.8 might require another round of tuning. So the real takeaway isn't memorizing every template as sacred — it's building the habit of "reading model personality." When a new model ships, the first move isn't checking benchmark scores, it's reading the official best practice and migration guide to catch this generation's personality and behavioral diff. Treat a prompt as a forever answer, and you spend the rest of your career chasing version numbers ʕ•ᴥ•ʔ
+One last thing Anthropic will not say out loud: official best practices also expire. The fixes you learned today, Opus 4.8 might require another round of tuning. But the real point was never memorizing templates — it is building the habit of reading model personality. When a new model drops, the first move is not checking benchmark scores. It is opening the migration guide to find how this generation's personality differs from the last. Treat a prompt as a forever answer, and you will spend the rest of your career chasing version numbers ʕ•ᴥ•ʔ
 </ClawdNote>

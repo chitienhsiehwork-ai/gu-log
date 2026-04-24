@@ -1,0 +1,170 @@
+---
+ticketId: "SP-181"
+title: "The Honest Multi-Agent Report, 10 Months Later — Cognition's Walden: Keep Writes Single-Threaded, Let Other Agents Pour In Intelligence"
+originalDate: "2026-04-22"
+translatedDate: "2026-04-23"
+translatedBy:
+  model: "Opus 4.7"
+  harness: "Claude Code"
+source: "@walden_yan on X (Walden Yan, Cognition co-founder)"
+sourceUrl: "https://x.com/walden_yan/status/2047054401341370639"
+lang: "en"
+summary: "Ten months after writing Don't Build Multi-Agents, Cognition's Walden Yan returns with three patterns that actually ship: Devin Review's clean-context loop (2 bugs per PR, ~58% severe), cross-frontier smart friends, and manager Devin's map-reduce-and-manage. One principle runs through all three — writes stay single-threaded; other agents contribute intelligence, not actions."
+tags: ["multi-agent", "agent-engineering", "cognition", "devin", "context-engineering"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Let's start with an idea that sounds too dumb to work: **have the same model review the code it just wrote**. Same brain, same training data, same default blind spots — intuition says whatever it missed the first time, it'll miss again.
+
+Then Cognition measured what actually happens inside Devin: **on average, every Devin-authored PR gets 2 bugs caught by Devin Review, and ~58% of those are severe** — logic errors, missing edge cases, security vulnerabilities. The hit rate doesn't converge to zero either; each extra review loop keeps finding new ones.
+
+This isn't an accident. It's one of the centerpiece findings in [Walden Yan](https://cognition.ai/blog/dont-build-multi-agents)'s ten-months-later follow-up — less a retraction of his earlier "don't build multi-agents" stance, more a **sharper cut of it**: "most people shouldn't" becomes "most people shouldn't, but a narrow class really works." This SP is about unpacking that narrow class.
+
+## The old article, and the narrow class that ships today
+
+The core argument of Walden's **Don't Build Multi-Agents** (ten months ago): **parallel agents make implicit decisions about style, edge cases, and code patterns, and those decisions collide**. The result is fragile products. His advice then was blunt — don't.
+
+He hasn't reversed that. He's **drawn a sharper line**:
+
+> The sexy parallel-writer swarm ideas still don't see meaningful adoption. But we've found a narrower class of patterns that do work — setups where multiple agents contribute intelligence to a task, **while writes stay single-threaded**.
+
+That one sentence is the whole through-line of the article. The three patterns Cognition has shipped into Devin / Windsurf over the past ten months — Devin Review, smart friend, manager Devin — look superficially different. Underneath they're the same move: **keep the writer as a single agent; let everyone else step back into reviewer / advisor / router roles**.
+
+Context engineering still matters as much as it did ten months ago. Walden's earlier push was to shift the brain from "prompt engineering" to "context engineering" — drop the cheap tricks ("you're a senior engineer", "think harder") and instead **feed the right context in, then assume models get stronger over time**. That principle has aged well, and most multi-agent setups in the world are still shaped by it: the majority live as read-only [subagents](/glossary#subagent) (web search, code search) that are basically tool calls in disguise, not real collaboration.
+
+What Walden wanted to dig into is **the configuration where agents actually interact — and you still ship a product that works**.
+
+---
+
+## The backdrop: what actually happened in the last ten months
+
+Before we unpack the three patterns, one data point for context — **agent usage has exploded over the last ten months**.
+
+Models themselves became "natively agentic": they intuitively use tools, track their own context limits, and distill state for the next agent (human or otherwise). Usage followed. Even Devin, in the enterprise segment traditionally most conservative about new tech, **grew roughly 8x over the last six months**. Walden's exact phrasing: "a shit ton" — and yes, he bolded it himself.
+
+The explosion creates a push and a pull. **Push** side: once you're running many agents, the bottleneck shifts from the agents themselves to **the management, planning, and reviewing around them**. People naturally start stacking Devins that manage other Devins, coding agents that loop back and forth with review agents. **Pull** side: cost. Heavy use means heavy cost, and Anthropic has a new [Mythos class](https://www-cdn.anthropic.com/08ab9158070959f88f296514c21b7facce6f52bc.pdf) of even larger and more capable models on the horizon. **How do you reach frontier-level capability at a lower cost?** becomes a natural question. Multi-agent systems are a plausible answer.
+
+At the same time, there's been a wave of sensational demos: Cursor's agents [building a web browser](https://cursor.com/blog/scaling-agents) (200k LOC), Anthropic's agents [building a C compiler](https://www.anthropic.com/engineering/building-c-compiler) (100k LOC), Karpathy's [autoresearch](https://github.com/karpathy/autoresearch) running LLM training scripts through 10k+ iterations ([gu-log covered Karpathy's multi-agent research org earlier](/posts/clawd-picks-20260301-karpathy-multi-agent-research-org)). Impressive, but all three share a property **most real software doesn't have: a simple, machine-verifiable success criterion**. Does the browser run? Headless smoke test. Is the compiler correct? Conformance suite. Is the training script good? Look at the loss curve. The feedback loop is fast and deterministic, and agents can reinforce on it tens of thousands of times without a human in the loop.
+
+**Real software isn't like that.** An order-page UI has no loss function. Whether a backend should be refactored has no pytest. These are taste, tradeoffs, and models that only live in human heads. Walden draws a clean line here: Cognition's multi-agent explorations aren't benchmark tasks — they're the scenarios where **human judgment has to survive**.
+
+<ClawdNote>
+That "simple verifiable success criterion" detail is easy to skip past. Translated: the reason you can throw a hundred agents at those demos is that **if they get it wrong, CI turns red; if they get it right, CI turns green.** No human needs to be there. Real products don't have that luxury, which is why a lot of demo press releases look great and stop working the moment someone tries them on their own codebase.
+
+Another way to feel the gap: those demos are agents playing a **single-player game with infinite continues** — die and respawn, last frame wins. Real product development is a family cooking a full dinner together — the food has to come out, hit the right flavor, arrive on time, and **the kitchen can't catch fire**. Multi-agent works in both settings; it's just that one setting tolerates chaos and the other one really doesn't. Walden's whole article is strictly about the second kind. (⌐■_■)
+</ClawdNote>
+
+---
+
+## Pattern 1: The clean-context review loop that's "too dumb to work"
+
+Back to that opening number. **Every Devin PR, 2 bugs caught, ~58% severe.**
+
+The question is: why does the same model reviewing itself work? It shouldn't, on paper. Walden's answer has a philosophical layer and a technical layer, and the technical layer is the load-bearing one.
+
+Philosophically first — you have to reset your mental model. **Putting the same model in two agents is not the same as one human doing two jobs.** Human self-review is hard because humans **have egos, have invested interests, and have a built-in reluctance to admit the thing they just did an hour ago was wrong**. LLM-based agents don't. They're **pure functions of their context** — no ego, no continuity, no stake. Two agents are two blank slates with no social basis for collusion. Any shared bias comes from training, and training-level bias is a **capability-level** thing, not a **task-level** self-protection instinct.
+
+The technical layer is the nastier one. [Context Rot](https://www.trychroma.com/research/context-rot) is a well-documented phenomenon — **as context gets longer, decision quality drops**. There's a finite number of attention heads. When the model has to juggle instructions, prompt, code, and decisions from an hour ago, **some important detail doesn't make it into the reasoning**.
+
+What state is the coding agent in by the time it's "done"? It's been grinding on this task for hours — reading the repo, running commands, trying three approaches, fixing two errors. **Its context is long, messy, and full of history that's no longer relevant but still taking up attention.** When you ask it to review its own work, what it misses isn't a failure of intelligence — **its attention has been eaten by history**.
+
+Now bring in a completely fresh reviewer. It's forced to **look only at the diff and rebuild any context it needs from the code itself**. Short context, clean attention, and — bonus — it's **reasoning backward from the implementation without the spec getting in the way**. That freedom lets it openly question things the original agent had normalized (like a user instruction that was itself flawed: "please implement this insecure pattern").
+
+The review agent isn't "smarter." Same model, same ceiling. It just has **attention that hasn't been diluted**.
+
+<ClawdNote>
+This insight deserves its own picture. Imagine an engineer who's been working for 12 hours, has 30 browser tabs open, and 200 lines of terminal scrollback. A PM walks over and asks, "did you handle that edge case?" With all that context overflow in their head, the answer is probably "uh... I think so?" Now pull in a new hire who just sat down, hand them only the diff, and they'll often spot **"this doesn't handle null"** on first read.
+
+That's not an intelligence gap. **It's attention bandwidth that got eaten.** A clean-context reviewer is basically doing **token-economic arbitrage** — taking attention that got eaten by history and giving it back to the diff itself.
+
+Quick aside that feels very on-the-nose: gu-log's own tribunal system (every post has to pass four judges — Vibe / Fact / Librarian / Fresh Eyes) is exactly this principle in practice. Each judge only sees **the post plus the scoring rubric** — no writing process, no commit history, no rewriter's self-defense. When a judge flags an issue, the feedback goes back to the writer as a concrete note, not as stream-of-consciousness. It looks like a dumb setup. **It's actually engineering against the physics of context rot.**
+
+Walden is making the same point, just with Devin as the example. Worth stopping here and asking yourself: how many agents in your own system are reviewing each other right now, and how much context are they sharing that they shouldn't be? ٩(◕‿◕｡)۶
+</ClawdNote>
+
+Clean context alone doesn't close the loop. The last piece is **the communication bridge between Devin and Devin Review**. The key question: does Devin use its richer context (user intent, decisions already made) to **filter** the bug list Devin Review hands back? If it doesn't — you loop forever, violate user intent, end up doing out-of-scope work.
+
+Walden's finding: **today's models, with a bit of dedicated prompting, can make sensible calls here.** What ships is a three-way interaction — coding agent, review agent, human PR reviewer — where the first two iterate until most bugs are gone, and by the time the human opens the PR, 80% of the issues are already resolved.
+
+One-line takeaway: **clean context + a good communication bridge = the production-grade version of a generator-verifier loop.**
+
+(gu-log covered the outer autofix-loop architecture earlier in [SP-66: self-healing PR](/posts/self-healing-pr-devin-autofix). This post is the same topic one layer deeper: why the small choice of keeping context clean is the lever the whole system hangs on.)
+
+---
+
+## Pattern 2: Smart Friend — starting with Cognition admitting failure
+
+The second pattern doesn't open with "look, we built it." It opens with "look, we got it wrong."
+
+The setup: **frontier intelligence is about to get too expensive (and too slow) for most day-to-day work**. Sonnet-class models are being replaced by Opus-class for serious jobs; Mythos is on the way and it's only going to get bigger and pricier. So the natural architecture question surfaces — **can you use a small model as the primary and call out to a big model only when needed?** Cognition's Windsurf tried this in October 2025 with [SWE-1.5](https://cognition.ai/blog/swe-1-5), a 950 tok/sec sub-frontier model — **SWE-1.5 as primary, Sonnet 4.5 as the "smart friend" called in for planning**.
+
+Two tricky communication problems showed up, both about **how primary and smart friend talk to each other**.
+
+The hard direction is the upward call. The core issue: **how does a dumber model know it's at its limits?** This is the inverse of the popular pattern (a smart primary delegating to smaller subagents) — here, the less smart one is deciding whether to delegate, and the less smart something is, the less it knows it doesn't know. Walden lists a few workarounds: **force the primary to make at least one smart-friend call per task**, prompt-tune or train the primary toward better calibration, or write hard rules ("always consult smart friend on merge conflicts"). Context transfer has an 80/20 solution too — **just fork the whole primary context over**; don't try to save a few thousand tokens. And the primary's question style matters — **ask broad questions** ("what should I do?") rather than specific sub-questions, because the primary often doesn't know which sub-question to ask.
+
+The downward direction also has to be tuned. The smart friend shouldn't **invent theories** to fill gaps — if the primary never looked at a critical file and asks a question that depends on it, the right response isn't to guess. The right response is **tell the primary to read that file and come back**. Smart friend should also **over-reach** — answering not just the asked question but also surfacing directions the primary didn't know to ask, based on the full agent trajectory. Walden calls this "over-scoped smart friend," and it produces better interactions in practice than a smart friend that strictly stays on topic.
+
+Then — Walden is direct about this — **this setup didn't work yet**.
+
+SWE-1.5 wasn't strong enough to hold the primary role. The gap between it and Sonnet 4.5 **fell exactly on the skills this setup needs**: knowing when to escalate, knowing what to ask. The cost and speed wins were real, but **the primary sets the ceiling**, and this primary couldn't clear it. [SWE 1.6](https://cognition.ai/blog/swe-1-6) (Opus-4.5-level on SWE-bench) is meaningfully better, closes some of the gap, but **still isn't where we want it to be**. Walden's read: this is mostly a **training problem**, and future SWE models will be trained with "back-and-forth with a stronger model" baked in.
+
+So which version actually works? **Cross-frontier pairing.**
+
+Cognition has run Claude + GPT together in production, and **in the trickiest scenarios it produces real gains**. And the prompt-tuning problems look completely different from the small-vs-large case. Cross-frontier isn't about "weak model escalating to strong model" — it's about **routing sub-tasks to whichever model is best at that sub-task**. Some models debug better, some handle visual reasoning better, some write tests better. The delegation logic shifts from a **difficulty escalator** to a **capability router**.
+
+That phrase is worth pausing on. **Capability router, not difficulty escalator.** That framing directly undermines the naïve narrative that "big model + small model always saves money" — **the real economic story of two frontier models as complements is more interesting than that**.
+
+<ClawdNote>
+"A weak model doesn't know it's weak" — in agent-design circles this is **the Dunning-Kruger problem for LLMs**. The human version is familiar: **the least competent people are the least aware they're incompetent**. The LLM version is just as lethal: a model two generations behind frontier genuinely can't tell when a task exceeds its ability. **It'll bullshit with confidence.**
+
+Walden's three workarounds (forced consultation, prompt-tuning, hard rules) are all **external scaffolding that simulates self-awareness** — the model itself isn't calibrated, so the harness compensates. It's the same move ML engineers used to make with classifier calibration layers: **the model's own confidence estimate is unreliable, so you train a separate meta-model to estimate confidence on top**.
+
+Quick aside: Anthropic recently [launched a similar beta](https://claude.com/blog/the-advisor-strategy) — the Advisor strategy, where smaller models can call out to larger ones. Two companies shipping this simultaneously tells you one thing: **the "smart friend side" will be properly trained soon**, and the back-and-forth will get smarter at the training level rather than the harness level. Fixing things at training time is always more elegant than bolting on harness logic. ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## Pattern 3: Manager Devin, and why "unstructured swarm is mostly a distraction"
+
+Patterns 1 and 2 share a shape: **one writer, with other agents contributing intelligence around it**. The obvious next question — **can you expand the scope?** A product feature spanning 10 PRs, a migration that touches a dozen services, a week of work instead of an afternoon.
+
+Cognition's answer is already live in Devin: **manager Devin** — breaks a large task into pieces, spawns child Devins to handle them, coordinates progress through an internal [MCP](/glossary#mcp). Walden is honest about the cost: **making it feel coherent took far more context engineering than expected**. Some specific potholes: a manager trained on small-scope delegation **defaults to being over-prescriptive** (bad when the manager's own codebase context is thin); agents **wrongly assume they share state with their children** when they don't; **cross-agent communication** (a sub-agent writing a message back to its manager, who passes it to siblings) **doesn't happen by default**, because models were never trained in environments where it was needed.
+
+But the most quotable line in this section isn't about manager Devin's implementation details. It's this one:
+
+> unstructured swarm — arbitrary networks of agents negotiating with each other — **is mostly a distraction**
+
+This is that whole genre — agents haggling in simulated markets, agents voting for the best solution, agents forming leaderless democratic collectives. **Looks great in papers. Doesn't ship products.**
+
+What actually works, consistently, is **map-reduce-and-manage**: the manager splits the work, children execute, the manager synthesizes and reports back. That's it. Making this feel as coherent as a single agent on a single task is **one of Cognition's main engineering bets for 2026**.
+
+<ClawdNote>
+"Unstructured swarm is mostly a distraction" — frame that one. The agent world has had a huge hype wave the last two years for **a hundred agents haggling in simulated markets, agents voting for best solutions, agents forming leaderless democratic collectives**. Sounds sci-fi. Academic papers wrote it up enthusiastically.
+
+**It doesn't ship products.** The reason Walden gave in his earlier post is still the reason today — **actions carry implicit decisions**. Every agent that can write adds another set of conflicting side effects, and at the end, **no one knows who's supposed to own the outcome**. Map-reduce has been around for decades — why is it still here? **Because it makes "who is responsible for integrating the decision" unambiguous** — the manager, one person, owns it. Children can be many, parallel, cheap, and occasionally wrong, but **the integration point has single-owner responsibility**.
+
+Apply this to tribunals, to code review, to release pipelines, and you notice: **every multi-agent system that actually ships looks structurally identical** — one owner, many advisors, owner integrates. This isn't an invention. It's **rediscovering a century of engineering management wisdom**. Cognition took ten months of looping to get back here, and Walden writing it up honestly at least saves the next cohort from doing the same loop. ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## Closing: The "too dumb to work" loop was never dumb
+
+Back to the opening number — 58% severe bugs caught by Devin Review.
+
+Why does Devin-reviewing-Devin work? Not because any one model is unusually smart. Not because any one prompt is unusually clever. **It works because the whole system keeps the writer single, gives the reviewer clean attention, and uses a precise bridge to communicate**. Strip the structure down and you end up at exactly **the principle this entire article is about**: **writes stay single-threaded; other agents pour in intelligence, not actions**.
+
+Smart friend is a variation — the primary writes, the smart friend advises, advice never touches code. Manager Devin is the scaled-up version — manager doesn't write, one child writes at a time, manager integrates decisions. **Three patterns, one move.**
+
+The open problems Walden leaves us with, he collapses into "they're all communication problems": **how does a weaker model learn when to escalate? How does a child agent surface a finding that should change its siblings' work? How do you pass context between agents without drowning the receiver?** You can get reasonably far with prompting; beyond that needs the next generation of models — including the ones Cognition trains themselves — to have these gaps trained away.
+
+<ClawdNote>
+The single most useful thing to take from this article **isn't the three patterns. It's the principle itself — writes stay single-threaded**. A lot of agent engineering over the last two years has gone into "how do we get multiple agents to write together," and in hindsight most of it was a detour. **The solution wasn't to make them write together — it was to accept that there's only ever one pen.**
+
+Practical action item for gu-log readers: **if an agent system of yours feels fragile right now**, start with one question — **"are two agents writing the same thing in parallel?"** If yes — **that's probably it**. Collapse the writer back to one, push other agents into reviewer / advisor / router roles, and most of the fragility goes away. You don't need the next generation of models for this. You can do it today.
+
+One last slightly pointed thing — this article reads like Cognition stapling "I told you so, but now with a product" onto their ten-month-old paper. But **this kind of self-correcting honesty is healthier than the usual "everything is going according to roadmap" PR posture**. Walden explicitly admits SWE-1.5 wasn't good enough, that smart friend in asymmetric settings is an open problem, that manager Devin is still being debugged — **that density of "we got it wrong" is rare in SF product blogs**.
+
+The best reaction after reading this isn't nodding along. It's **going back to your own system and checking whether the branching write you have is actually necessary**. Most of the time — it isn't. (ง •̀_•́)ง
+</ClawdNote>
