@@ -184,5 +184,98 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-24T14:04:37+08:00"
+  },
+  "sp-178-20260422-pedroh96-brex-crabtrap-llm-judge-proxy.mdx": {
+    "article": "sp-178-20260422-pedroh96-brex-crabtrap-llm-judge-proxy.mdx",
+    "startedAt": "2026-04-24T14:05:03+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 10,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "All key technical terms linked to glossary anchors: agent, MCP, OpenClaw, agent-harness, context-window — every glossary term that appears in the post is properly anchored on first use.",
+            "crossRef": "All 3 internal post links resolve to real slugs (sp-149 ECC agent security, sd-18 permission engineering, sp-158 Braintrust trace); no identity link needed since 'Clawd'/'ShroomDog' are not named in body prose, only via the ClawdNote component.",
+            "sourceAlign": "Content faithfully derived from Pedro Hernández's X post about Brex CrabTrap — covers all major beats (transport-layer proxy, two-stage static+LLM, policy-from-traffic, prompt-injection defenses, three production surprises) consistent with sourceUrl.",
+            "attribution": "Pedro's quotes are speaker-tagged ('Pedro 引的'/'Pedro 的原話'); the '<3% LLM requests' stat is explicitly bounded to Brex Corporate environment; the 'fastest-growing on GitHub' claim is flagged as Pedro's claim not objective fact; ClawdNote opinions are visually separated from body via the component."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Every verifiable technical claim matches CrabTrap source/README: MIT License, HTTP(S) proxy with TLS MITM, HTTP_PROXY/HTTPS_PROXY env setup, two-tier static-then-LLM evaluation, deny > allow precedence, policy builder as agentic loop, eval replay system, PostgreSQL audit store, JSON-encoded prompt-injection defense, and specifically the 4KB header cap + 16KB body cap (const maxHeaderBytes = 4096, maxBodyBytes = 16384 in internal/judge/llm_judge.go), plus security-relevant headers prioritized and multipart summary handling. The '<3% of requests hit LLM judge' figure is Pedro's Brex-production number and explicitly scoped to Brex's Corporate environment in the post.",
+            "fidelity": "Pedro's 'fastest-growing on GitHub' claim about OpenClaw is explicitly flagged as '這是他的 claim 不是客觀事實' — textbook hedge preservation. CrabTrap positioned as 'experimental tool, not final solution' per source. The '<3%' number is bounded to Brex's workload ('這個 <3% 是 Brex 自家 Corporate 環境的數字，換 domain 會漂移'). ClawdNote opinion frames (management analogies, future speculation about 'payment API managers') are clearly separated inside <ClawdNote> blocks, not bled into body.",
+            "consistency": "Argument arc (problem → existing-solutions gap → transport-layer choice → two-tier architecture → policy-from-traffic inversion → adversarial prompt engineering → three production surprises → open-source rationale → LLM-as-judge primitive framing) flows without contradiction. The 'butler' metaphor is set up in ClawdNote early and paid off in the closing line. 'Audit log becomes agent health tool' conclusion is properly grounded in the preceding ops narrative and cross-referenced to SP-158."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Bouncer/管家 metaphor carries me through, structure is clean with clear headers. Stumbled briefly on TLS interception / iptables / mTLS — these flew past without enough hand-holding for a ~3-month dev, but the gist survived. The '4KB header / 16KB body' section was the smoothest explanation of a security tradeoff I've read in a while.",
+            "firstImpression": "Hook landed immediately — 'give agent real credentials → it grows a hand that can DELETE /users/all' made me keep reading. The three surprises section (<3% latency, policy-from-traffic, audit log as X-ray) is genuinely memorable and the closing line 'LLM-as-a-judge 剛從 eval 桌上走下來，穿上西裝、站到大門口，第一天上班' is the kind of sentence I'd screenshot and send. Would share."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Strong oral transitions ('先講最容易被問的那題', '但真正的 plot twist 在第三件') and life analogies (管家/外傭, 跑車試駕 vs 高速公路通勤) sustain LHY feel throughout; judge prompt injection section slightly more expository than conversational.",
+            "clawdNote": "5 of 7 notes carry explicit opinions — transport layer '老派但非常對', challenges Pedro's fastest-growing claim, '企業先踩坑再開源比lab發論文務實'; observability X-ray note and infra history pattern recognition are highlights.",
+            "vibe": "Plot twist structure in section 5 and memorable closing ('穿上西裝、站到大門口，第一天上班') pull reader through; judge prompt injection section's density (structured JSON, header limits, body truncation) is the one spot phone readers might skim.",
+            "clarity": "Zero pronoun violations in body text; every claim attributed to Pedro by name ('Pedro 講的', 'Pedro 引的數字'); ClawdNote first-person always has clear speaker identity.",
+            "narrative": "Genuine arc from fundamental embarrassment → failed solutions → clever architecture → counterintuitive policy → plot twist surprises → bookend 管家 callback; 'existing solutions' section reads slightly listy (three items in sequence) before the arc takes off."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-24T14:10:51+08:00"
   }
 }
