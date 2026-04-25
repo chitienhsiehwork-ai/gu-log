@@ -45,7 +45,7 @@ LEGACY_QUOTA=false
 # ─── Closed-loop controller constants ────────────────────────────────────────
 MIN_COOLDOWN=10        # seconds — floor for inter-article wait
 MAX_COOLDOWN=1800      # seconds (30 min) — ceiling / hard stop
-ARTICLE_COST_PCT=1.0   # % per article (cold start; EMA calibrates after ~5 articles)
+ARTICLE_COST_PCT=0.5   # % per article (cold start; EMA calibrates after ~5 articles)
 AVG_ARTICLE_TIME=1800  # seconds (~30 min average per article, for worker count estimation)
 EMA_ALPHA=0.3          # calibration smoothing factor
 EXTRA_USAGE_LIMIT=1.0  # disabled — let 5hr/7day curves control pacing
