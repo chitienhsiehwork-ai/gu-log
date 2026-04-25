@@ -47,7 +47,7 @@ MIN_COOLDOWN=10        # seconds — floor for inter-article wait
 MAX_COOLDOWN=1800      # seconds (30 min) — ceiling / hard stop
 ARTICLE_COST_PCT=5.0   # % per article (cold start default, deliberately high)
 EMA_ALPHA=0.3          # calibration smoothing factor
-EXTRA_USAGE_LIMIT=0.8  # 80% of extra budget = safety valve threshold
+EXTRA_USAGE_LIMIT=1.0  # disabled — let 5hr/7day curves control pacing
 QUOTA_HISTORY_FILE="$ROOT_DIR/.score-loop/state/quota-history.jsonl"
 QUOTA_CONTROLLER_STATE="$ROOT_DIR/.score-loop/state/quota-controller.json"
 
