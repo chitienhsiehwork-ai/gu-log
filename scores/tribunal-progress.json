@@ -1991,13 +1991,75 @@
         "attempts": 2
       },
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "improvements": {
+            "accuracy": "Minor date precision: body lists v2.1.98 as '(4/8 前後)' but the changelog dates it April 9, 2026. The hedge particle '前後' makes this defensible, but '(4/9)' would be exact. Frontmatter summary 'Claude Code 在四月上旬三天內連出三版（v2.1.94 → v2.1.101）' compresses 4/7→4/10 (4 calendar days) into '三天'; consider '四天' or simply '四月上旬連出三版'. The ClawdNote on /dev/tcp says '最早的書面記錄可以追溯到 2003 年前後' — bash /dev/tcp redirection has actually shipped since bash 2.04 (March 2000); 2003-era penetration-testing write-ups are when the technique entered red-team folklore, so the framing is defensible but slightly understates the feature's age. Optional polish: '2000 年前後就是 bash 內建功能、CTF 圈 2003 年起常見引用'.",
+            "fidelity": "All material claims map cleanly to changelog text: '~50 MB/hr MCP HTTP/SSE leak', 'virtual scroller dozens-of-copies leak (fixed v2.1.101)', '60% faster Write tool diff on tabs/&/$ (v2.1.92)', four bypasses (backslash-escape, compound bash, /dev/tcp & /dev/udp, POSIX `which` LSP injection), v2.1.98 vs v2.1.101 grouping, named-subagent typeahead in v2.1.89, Monitor tool in v2.1.98, /team-onboarding in v2.1.101, default effort raised to high. The 'Live agent count indicator' framing in the closing paragraph is a paraphrase of the changelog's '● N running indicator in /agents' and the '/agents tabbed Running tab' improvement — fair compression. The article's mechanistic explanation of the backslash bypass ('permission 系統在做字串匹配時，沒有考慮反斜線轉義的正規化') is plausible inference rather than a quoted root cause, but does not contradict the changelog.",
+            "consistency": "Timeline is now internally consistent: bypasses described as existing 'v2.1.98 之前', three patched in v2.1.98, LSP injection patched in v2.1.101 — matches the per-version changelog grouping. Memory-leak narrative (MCP layer + virtual scroller, both fixed by v2.1.101) is coherent. Earlier draft's v2.1.97 contradiction has been resolved."
+          },
+          "critical_issues": [],
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-25T00:00:00Z",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS"
+        },
         "model": "opus-4.7",
+        "attempts": 2
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Concrete version timeline and 50MB/hr × 8 = 400MB math anchor the abstract stuff; one late Clawd note about 'default effort 拉到 high' feels disconnected because the body never mentioned default effort, and 'Bedrock auth bug' is name-dropped without explanation.",
+            "firstImpression": "The four permission-bypass section is genuinely interesting — the /dev/tcp historical note (CTF circles, 2003) is the share-worthy moment. Would finish and probably forward to the security-curious friend in group chat."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Oral feel in transitions ('先說記憶體，因為這是最多人有感的') and opinionated framing ('兩件事同時在燒'), but security section shifts into technical-analysis mode more than LHY teaching style.",
+            "clawdNote": "5 notes with majority having clear stances (CLI > MCP math, /dev/tcp historical context, accountability implications of naming), but some lean analytical over 吐槽 — Note 2 (Write tool) is the weakest.",
+            "vibe": "Security bypass enumeration is genuinely engaging and the memory-leak opener is relatable pain; changelog-analysis format caps shareability — informative and personality-driven but not 'immediately forward to group chat' level.",
+            "clarity": "Zero 你/我 in body text; every sentence has a named subject (Claude Code, 開發者, Anthropic); ClawdNote 我-usage properly scoped to Clawd as speaker.",
+            "narrative": "Throughline '效能和信任' holds the piece together and conclusion synthesizes two directional threads rather than bullet-recapping; security section's 4-item sequential enumeration and topic-by-topic organization prevent a 9."
+          }
+        },
+        "model": "opus-4.6-1m",
         "attempts": 1
       }
     },
-    "topLevelAttempts": 1
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-25T11:26:50+08:00"
   },
   "sp-173-20260411-hwchase17-harness-memory-lockin.mdx": {
     "article": "sp-173-20260411-hwchase17-harness-memory-lockin.mdx",
