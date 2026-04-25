@@ -87,10 +87,12 @@ when --from-step skips the fetch stage and no tweet URL is given.
 --dry-run stops before the deploy stage (matches bash --dry-run).
 
 CCC note: claude -p works in the sandbox — CCC is authenticated via the
-parent Claude Code session. The provider transparently drops
---permission-mode bypassPermissions when running as root so the CLI does
-not refuse to start. Use --fake-provider <json> only to test without
-spending credits or to pin canned responses for regression tests.`,
+parent Claude Code session. Under root (CCC / Claude Code on the web)
+the provider switches --permission-mode bypassPermissions to acceptEdits
+because claude refuses bypass under root; acceptEdits still auto-approves
+the file writes the eval/write/review/refine prompts depend on. Use
+--fake-provider <json> only to test without spending credits or to pin
+canned responses for regression tests.`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var tweetURL string
