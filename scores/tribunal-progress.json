@@ -2720,13 +2720,51 @@
         "attempts": 2
       },
       "freshEyes": {
-        "status": "in_progress",
-        "score": null,
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "git diff 開場直接懂，雙語字典比喻把 DFC 講得很清楚，dépaysement 那段很巧。但 'feature'、'steering'、'crosscoder'、'interpretability'、'frontier model' 這些詞沒明說定義，新手要靠上下文猜，中段 Llama vs Qwen / GPT vs DeepSeek 那兩節術語密度突然變高，讀的時候有 stop-and-think。",
+            "firstImpression": "CCP 對齊開關、美國例外主義、花生醬三明治 = 受版權保護——這三個發現是真的會想丟群組的料。結尾把 sycophancy 那次事故 callback 回來，整篇有完整的弧線。論點具體有梗，不是學術綜述，看完想去點原論文連結。"
+          }
+        },
         "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "百科全書編輯比喻撐了整篇，口語轉場自然（「好，前面講了方法論，接下來是真正精彩的部分」），但中段 DFC 解釋偏回「寫文章」模式而非「講課」模式。",
+            "clawdNote": "7 個 note 裡 5 個有明確立場（separation of concerns 很優雅、CCP vs AE 不對稱性、5/5 重現率驚人），密度足夠，但前兩個偏解釋型比喻缺少吐槽 edge。",
+            "vibe": "花生醬三明治拒絕那段是真的好笑，政治 DNA 發現有衝擊力，整體好讀但 DFC 架構說明段稍微拖節奏，沒有完全黏住。",
+            "clarity": "全篇正文零你/我，主詞始終是「研究團隊」「模型」「DFC」等具名對象，ClawdNote 內的第一人稱歸屬清晰無歧義。",
+            "narrative": "有情緒起伏（findings 段的政治開關 + 花生醬是 peak），結尾 callback 開頭的百萬行 code 意象，但骨架仍然追著論文結構走（why → how → what → limits → conclusion），strip 掉裝飾後偏線性。"
+          }
+        },
+        "model": "opus-4.6-1m",
         "attempts": 1
       }
     },
-    "topLevelAttempts": 1
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-25T12:24:08+08:00"
   },
   "cp-284-20260412-article-openai-anthropic-google-ai.mdx": {
     "article": "cp-284-20260412-article-openai-anthropic-google-ai.mdx",
