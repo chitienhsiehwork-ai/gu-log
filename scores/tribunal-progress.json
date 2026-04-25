@@ -5340,6 +5340,117 @@
     "startedAt": "2026-04-25T15:12:56+08:00",
     "stages": {
       "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 10,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Key glossary terms linked at first mention: Claude Code → /glossary#claude-code (line 27), Hooks → /glossary#hooks (lines 58, 61, twice), Context Window → /glossary#context-window (line 117). Minor unlinked: 'Ralph Loop' in a ClawdNote (line 98) — but it's a passing reference, not a topic anchor.",
+            "crossRef": "All 3 internal post links resolve to real files: cp-293-...stellaraccident-amd-claude-code-regression-6852, sp-138-...bcherny-claude-code-boris-cherny-15, cp-271-...bcherny-effort-claude-code. Identity links present and correct: Clawd → /about (lines 98, 124) and ShroomClawd → /about (line 124). Thematic neighbors (effort follow-up, stellaraccident deeper analysis, Boris Cherny background) all cross-linked.",
+            "sourceAlign": "sourceUrl is @PawelHuryn tweet thread; body opens by attributing the thread to Paweł Huryn by name (line 29) and then dives into the analysis he amplified. Content faithfully covers both the original analysis and Boris Cherny's official response that PawelHuryn's thread surfaced.",
+            "attribution": "stellaraccident attributed with full identity (Stella Laurenzo, AMD AI senior director, line 29); Boris Cherny attributed with role and prior post link (line 77); all statistics (6,852 sessions / 17,871 blocks / 6.6→2.0 ratio / +68% frustration / 173 stop-hook hits / +117% / -22%) sourced to stellaraccident's analysis; technical specifics (redact-thinking-2026-02-12 header, 41.6→58.4→100%, Opus 4.6 adaptive thinking 2026-02-09, effort=85 default 2026-03-03) attributed to Boris Cherny's response. ClawdNote opinions cleanly demarcated via component."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Core stats (6,852 sessions / 17,871 thinking blocks / 234,760 tool calls / Read:Edit 6.6→2.0) match the related CP-293 post citing the same stellaraccident GitHub issue #42796; secondary metrics (frustration +68%, stop-hook 173 occurrences, ownership-dodging +117%, prompts 35.9→27.9) and config flags (showThinkingSummaries, CLAUDE_CODE_AUTO_COMPACT_WINDOW=400000) are tweet/issue-sourced and plausible but not independently verifiable from a primary doc; minor imprecision: the post says Boris responded 「在 issue 裡」 — per CP-271 his clarification is a tweet thread, though he may also have commented on the issue.",
+            "fidelity": "Tweet-level source from @PawelHuryn faithfully relayed; uncertainty hedge preserved when introducing the redact-thinking hypothesis (「理論成立了」) and explicitly overturned by Boris Cherny's clarification rather than asserted as fact; ClawdNote opinions are clearly attributed to Clawd's own Ralph Loop experience and not bled into body claims.",
+            "consistency": "Argument arc is clean — data → wrong hypothesis (UI-only redact header) → correct cause (adaptive thinking + effort=85 default) → operational fixes — with each step supported by either stellaraccident's data or Boris Cherny's response; ClawdNotes consistently marked as opinion/speculation; cross-refs to CP-293 and CP-271 reinforce internal coherence with no contradictions."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-25T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "口語自然（「數字很刺眼」「70% 的研究消失了」），開場 hook 有教授感，但 body 主要靠數據敘事推進而非生活比喻，比喻集中在 ClawdNote 裡。",
+            "clawdNote": "四個 note 全部有明確立場：挑戰 effort=85 決策、用 gu-log 自身經驗反駁、質疑 prompt engineering 補 config 問題，「分析做錯了但直覺對了」的 meta 觀察尤其精彩。",
+            "vibe": "CC 用戶看到會想轉發，數據→猜錯→官方回應的節奏抓人，但修法 section 四個方法列舉偏 reference-doc 模式拉低一些。",
+            "clarity": "主體全程用具體人名（stellaraccident、Boris Cherny）和產品名避開你/我，ClawdNote 裡的我們明確指 gu-log 團隊，零歧義。",
+            "narrative": "「根本原因猜錯了」的 pivot 製造出真正的敘事張力，結尾的「先知道問題是可以設定的」不是 bullet recap 而是 meta 反思，但修法段落回到 method 1/2/3/4 模板節奏。"
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-25T15:25:57+08:00"
+  },
+  "cp-260-20260407-simonw-simon-willison-ai.mdx": {
+    "article": "cp-260-20260407-simonw-simon-willison-ai.mdx",
+    "startedAt": "2026-04-25T15:16:36+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-25T00:00:00Z",
+          "dimensions": {
+            "glossary": 10,
+            "crossRef": 10,
+            "sourceAlign": 8,
+            "attribution": 10
+          },
+          "score": 9,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
         "status": "in_progress",
         "score": null,
         "model": "opus-4.7",
@@ -5348,11 +5459,81 @@
     },
     "topLevelAttempts": 1
   },
-  "cp-260-20260407-simonw-simon-willison-ai.mdx": {
-    "article": "cp-260-20260407-simonw-simon-willison-ai.mdx",
-    "startedAt": "2026-04-25T15:16:36+08:00",
+  "cp-259-20260330-lydiahallie-claude-code-rate-limit.mdx": {
+    "article": "cp-259-20260330-lydiahallie-claude-code-rate-limit.mdx",
+    "startedAt": "2026-04-25T15:20:10+08:00",
     "stages": {
       "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 7,
+            "crossRef": 7,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Claude Code 在 frontmatter tag 與正文多次出現但未連結 glossary（術語表有 Claude Code 條目）；token、session、context 等屬一般語境用語可不連結，主要扣分在 Claude Code 未做 glossary 連結。",
+            "crossRef": "正文以純文字提到 CP-195、CP-250、CP-183、CP-238 四篇，全部已在 src/content/posts/ 存在但都沒有實際 markdown 連結到 /posts/<slug>/；Clawd 僅出現在 ClawdNote 元件內（符合慣例不需 /about 連結），ShroomDog 未出現。Refs 都指向真實 slug 但缺實連結。",
+            "sourceAlign": "sourceUrl 為 Lydia Hallie 的 X 推文，內文確實圍繞該推文展開（引用原文、討論 414 萬曝光、way faster than expected 用詞），高度對齊原始來源。",
+            "attribution": "Lydia Hallie 推文有完整英文原文引用並標明說話者；曝光/讚/引用數有具體數字；CP 系列引用註明來源篇章；ClawdNote 與正文以元件清楚分隔。「PM 和 Engineering 分開算」屬作者推測但語境清楚為分析觀點，非事實聲明。"
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "in_progress",
+        "score": null,
+        "model": "opus-4.7",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1
+  },
+  "cp-258-20260407-winbuzzer-anthropic-blog-ai.mdx": {
+    "article": "cp-258-20260407-winbuzzer-anthropic-blog-ai.mdx",
+    "startedAt": "2026-04-25T15:23:44+08:00",
+    "stages": {
+      "librarian": {
+        "status": "in_progress",
+        "score": null,
+        "model": "opus-4.7",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1
+  },
+  "cp-257-20260406-zats-litellm-trivy-pypi-ai.mdx": {
+    "article": "cp-257-20260406-zats-litellm-trivy-pypi-ai.mdx",
+    "startedAt": "2026-04-25T15:23:45+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 7,
+            "sourceAlign": 9,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Post topic (supply-chain security / LiteLLM / Trivy / PyPI / Kubernetes) sits outside the current glossary, which centres on agent/coding terms (Agent, Claude Code, MCP, Vibe Coding, etc.). No glossary term appears in the body unlinked-and-unexplained; LiteLLM, Trivy, and 雪球效應 are each defined inline on first mention (e.g. 'LiteLLM 是什麼？簡單說就是 AI 界的萬用轉接頭'), so no integration gaps.",
+            "crossRef": "No `/posts/...` internal links and no `/about` identity links; ShroomDog isn't mentioned by name in body and Clawd appears only as the ClawdNote component voice, so the identity-link requirement is not strictly triggered. No broken links. However the post is tagged `clawd-picks` / `supply-chain-security` and could plausibly cross-link to other security or CI-trust posts (e.g. Anthropic infra-noise, source-code leak posts) — that thematic stitching is missing.",
+            "sourceAlign": "Declared sourceUrl is @zats's X thread; curl of the thread confirms it is exactly the Mercor AI / Trivy / LiteLLM 6-act breakdown (TeamPCP threat group, pull_request_target misconfig in Aqua Security Trivy, downstream LiteLLM 1.82.7/1.82.8 PyPI poisoning). Post faithfully covers the same chain, IOCs (models.litellm.cloud, checkmarx.zone/raw, sysmon.service, tpcp.tar.gz), and victim set (Mercor AI, TB-scale exfiltration). Strong alignment.",
+            "attribution": "Quoted statistics are attributed (Wiz for the '36% 的雲端環境' figure; Endor Labs and JFrog named as analysis publishers; TeamPCP and Mercor AI identified by name). ClawdNote opinions are cleanly fenced inside the component, keeping fact/opinion separation tight. Minor gaps: '數千家 AI 公司' and 'TB 級' figures aren't pinned to a specific vendor report in-line, and the IOC list is presented without per-IOC source attribution although they're documented in the linked thread."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
         "status": "in_progress",
         "score": null,
         "model": "opus-4.7",
