@@ -7084,5 +7084,98 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-25T23:45:55+08:00"
+  },
+  "sd-18-20260403-permission-engineering-for-ai-agents.mdx": {
+    "article": "sd-18-20260403-permission-engineering-for-ai-agents.mdx",
+    "startedAt": "2026-04-26T00:16:16+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 7,
+            "crossRef": 8,
+            "sourceAlign": 8,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "'Claude Code' mentioned at line 29 without glossary link; 'Agent/AI agent' used heavily but concept is explained naturally throughout the post (probabilistic vs deterministic, blast radius, prompt injection at line 191).",
+            "crossRef": "Both identity links present at line 17: [ShroomDog](/about) and [ShroomClawd](/about). No other internal post links — minor missed thematic connections (e.g., agent-ships-while-you-sleep, sandbox/permissions posts) but no broken refs.",
+            "sourceAlign": "SD original post; sourceUrl points to gu-log.vercel.app (self) — auto 8/10 per rubric.",
+            "attribution": "Clawd's '90 vs 365 days' quote at line 93 clearly attributed and set in bold; all four ClawdNote blocks visually separated from body via component; ShroomDog's actions ('40 分鐘', '今天') framed as first-person observations, not unsourced facts."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Technical claims verified: Fine-grained PAT does not cover Notifications API (confirmed against GitHub Docs permissions page), K8s ClusterRole/Role scope distinction, Unix setuid bit, ~/.config/gh/hosts.yml token storage, and AI agent permission models (allowlist/sandbox/approval) are all accurate; prompt injection description matches consensus understanding.",
+            "fidelity": "SD original — no external source to mistranslate; personal narrative about the GitHub PAT incident is presented as first-hand experience, ClawdNote opinions are clearly demarcated via component, no claims attributed to outside sources that need verification.",
+            "consistency": "Argument flows cleanly: traditional permission (deterministic) → AI permission (probabilistic) → real story (token scope incident) → paradox (invisible work) → framework (4 principles) → conclusion; the 'expiry = fuse, scope = 炸藥量' metaphor stays internally coherent, ClawdNote opinions clearly marked as agent voice not factual claims."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Flows well — 40 分鐘卡在 Settings 的開場立刻把人拉進來，傳統 vs AI agent 的對比清楚，PAT 故事具體。RBAC / setuid bit 沒解釋但只是順帶提到，不影響理解；保險絲 vs 炸藥量的比喻一秒就 get。",
+            "firstImpression": "Hook 強、quote 漂亮（『Expiry 是保險絲，Scope 才是炸藥量』會被截圖），Permission Paradox 那段把 invisible work 講得很有共鳴。看到 ClawdNote 自首跑在 owner home dir 那段忍不住笑出來。會分享給做 DevOps 的朋友。"
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Opening GitHub Settings anecdote and 泡麵/保險絲vs炸藥量 analogies deliver genuine LHY oral feel, but '原因有三' numbered section and framework list slide into writing mode.",
+            "clawdNote": "Self-confession about own permissions and '天才實習生刷 Linux' are highlights with real personality; about half have clear opinions (notes 1, 4, 5) meeting the threshold, though note 2 leans analogy-heavy.",
+            "vibe": "'Expiry 是保險絲，Scope 才是炸藥量' is a line readers will remember and share; the practical framework section is where engagement dips from storytelling to reference.",
+            "clarity": "Body text consistently uses named subjects (ShroomDog, Clawd, AI agent) with zero 你/我 leakage; every sentence has an unambiguous speaker.",
+            "narrative": "Real arc from personal frustration → traditional vs AI contrast → token incident pivot → paradox reflection → callback ending, but sections 7-8 revert to numbered-list report rhythm."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-26T00:22:55+08:00"
   }
 }
