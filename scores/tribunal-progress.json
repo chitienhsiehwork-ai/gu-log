@@ -2515,12 +2515,69 @@
         "attempts": 1
       },
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 8,
+            "consistency": 10
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All technical claims verified against the Anthropic source: authors (Martin/Cemaj/Cohen), 'context anxiety' wording, Sonnet 4.5 vs Opus 4.5 contrast, every API signature (execute/wake/getSession/emitEvent/getEvents/provision), p50 ~60% / p95 >90% TTFT numbers, Git clone-into-local-remote pattern, MCP vault+proxy pattern, read()/disk-pack/SSD analogy. Minor: frontmatter originalDate is 2026-04-10 but article header says 'Published Apr 08, 2026' (2-day discrepancy).",
+            "fidelity": "Source meaning is faithfully preserved with hedges intact (no uncertainty erasure). However, translator adds several illustrative scenarios not in the original — '養了一年' timeframe, '三十分鐘 debug log' anecdote, and an 'AWS curl exfiltrating credentials' scenario — though all are framed with '想像' (hypothetical) so they read as illustration rather than reported fact.",
+            "consistency": "Argument flows cleanly from problem (pets) → decoupling → security → context → performance → composability → OS-philosophy conclusion. ClawdNote opinions are clearly demarcated by component boundaries, raise speculation as speculation (e.g., 'execute → string failure modes', 'who decides getEvents recall', 'agent attribution'), and never contradict the body. No internal logical inconsistencies."
+          }
+        },
         "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-25T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Good load-bearing analogies (寵物 vs 牛群, 飯店房卡, 消防車開機費, Word 閃退) but middle sections slide from oral 'talking' mode into 'explaining an article' mode, keeping it from 9.",
+            "clawdNote": "6/7 notes have clear opinions — execute() interface challenge and credential '不負責任的設計' are highlights — but notes 5-6 lean analytical over 吐槽, personality could bite harder.",
+            "vibe": "Credential scenario and p95 payoff create genuine interest, but infra-architecture topic makes it more 'bookmark for work' than 'send to group chat' — solid not electric.",
+            "clarity": "Zero 你/我 in body text; every sentence has named subjects; voice attribution always clear across all 7 ClawdNotes and body transitions.",
+            "narrative": "Opening hook (harness 會過期) and conclusion callback are strong, '沒人想談的新麻煩' pivot works, but sections 2-5 settle into a predictable problem→solution→ClawdNote rhythm."
+          }
+        },
+        "model": "opus-4.6-1m",
         "attempts": 1
       }
     },
-    "topLevelAttempts": 1
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-25T12:09:27+08:00"
   }
 }
