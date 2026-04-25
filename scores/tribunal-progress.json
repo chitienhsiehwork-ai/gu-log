@@ -1940,29 +1940,13 @@
     "startedAt": "2026-04-25T11:04:48+08:00",
     "stages": {
       "librarian": {
-        "status": "fail",
-        "score": {
-          "judge": "librarian",
-          "dimensions": {
-            "glossary": 5,
-            "crossRef": 5,
-            "sourceAlign": 9,
-            "attribution": 8
-          },
-          "score": 6,
-          "verdict": "FAIL",
-          "reasons": {
-            "glossary": "Key glossary term 'Claude Code' appears 6+ times (whole section '跟 Claude Code 的關係：互補不競爭' plus several ClawdNote blocks) without any glossary link or doc anchor; 'Agent' / 'agentic' also used ('一個是 agent，一個是 client') without glossary tie-in — multiple key terms used without glossary connection.",
-            "crossRef": "No broken links (post contains zero /posts/ internal links). Identity-link rule technically triggers — Clawd appears as ClawdNote component but the persona is not linked to /about anywhere in body. Obvious thematic connections missing: section comparing ant with Claude Code should link to existing Claude Code posts; no link to anthropic-cli docs or Anthropic-related picks despite tag 'clawd-picks, anthropic, claude-api'.",
-            "sourceAlign": "Content clearly derived from sourceUrl https://github.com/anthropics/anthropic-cli — README confirms brew install anthropics/tap/ant, go install path, resource-oriented 'ant [resource] <command>' shape, --debug, --base-url, ANTHROPIC_API_KEY/ANTHROPIC_AUTH_TOKEN env vars, --transform GJSON and the exact seven format values (auto/explore/json/jsonl/pretty/raw/yaml) all match the post.",
-            "attribution": "Fact/opinion separation is clean via ClawdNote components (e.g. '說明他們認真想吃企業市場' and the GJSON-vs-jq judgement kept inside ClawdNote rather than body); install commands and flags traceable to README. Minor gap: '2026 年 1 月上 repo，4 月 9 號最後一次更新' stated as fact without inline link to repo commit history."
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "opus-4.7",
-        "attempts": 2
+        "attempts": 1
       }
     },
-    "topLevelAttempts": 2,
+    "topLevelAttempts": 3,
     "status": "FAILED",
     "failedStage": "librarian",
     "finishedAt": "2026-04-25T11:35:46+08:00"
@@ -2244,5 +2228,97 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-25T11:40:17+08:00"
+  },
+  "cp-289-20260413-pawelhuryn-midjourney-css-600-reflow.mdx": {
+    "article": "cp-289-20260413-pawelhuryn-midjourney-css-600-reflow.mdx",
+    "startedAt": "2026-04-25T11:41:32+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "First mention of 'AI agent' linked to /glossary#agent; no other glossary terms (Claude Code, MCP, Hooks, etc.) appear in the post, so coverage is complete.",
+            "crossRef": "Both internal post links verified — /posts/clawd-picks-20260206-karpathy-agentic-engineering/ and /posts/clawd-picks-20260203-simonw-agentic-loops/ resolve to real files; ShroomDog/Clawd not mentioned by name in body so identity links not required.",
+            "sourceAlign": "Content faithfully tracks Paweł Huryn's tweet — direct quotes ('The AI-era stack is being rebuilt from scratch...' and 'Such a fun to play with that!') match the declared sourceUrl, and the topic (Midjourney engineer's TS layout engine, 600x speedup, AI-era reflow critique) clearly derives from the source.",
+            "attribution": "Quotes attributed to Paweł Huryn with speaker tag; Karpathy and Simon Willison cross-refs labeled with linked posts; ClawdNote opinions cleanly separated from body, and speculation explicitly flagged ('純屬推測，但邏輯通')."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Source tweet by @PawelHuryn (verified via Jina reader) confirms key claims verbatim: 'pure TypeScript text measurement algorithm that bypasses browser reflow entirely', '600x faster', 'CSS reflow was designed for humans writing static pages, not agents generating UIs on the fly', '30-year-old pipeline'. Game-engine HUD analogy in ClawdNote is sound (immediate-mode vs retained-mode is a real distinction). 600x figure is taken at face value from a tweet without primary benchmark — normal for tweet-sourced translations.",
+            "fidelity": "Two direct quotes ('The AI-era stack is being rebuilt from scratch. One library at a time.' and 'Such a fun to play with that!') match source verbatim. Speculation about Midjourney's interactive-UI roadmap explicitly labeled '純屬推測，但邏輯通'. No uncertainty erasure. Minor attribution gap: source is a quote-tweet of @_chenglou (Cheng Lou, the actual library creator); post refers only to '一個 Midjourney 的工程師' — accurate but loses provenance specificity. Naming Cheng Lou would be cleaner.",
+            "consistency": "Argument flows logically: browser reflow designed for static pages → AI agents need runtime layout → bypass instead of fix. ClawdNotes consistently mark opinion vs fact ('歷史總是在重複', '純屬推測'). The '每秒要計算數百次排版' is author's illustrative elaboration of the source's general claim — minor leap but not a contradiction. Karpathy / Simon Willison cross-refs are framed as analogy/context, not as evidence."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-25T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "百科全書翻頁、白板擦掉重畫、遊戲 HUD 三個比喻都到位，口語感不錯，但中段 AI 排版需求那段稍微回到「寫文章」模式而非「講課」模式。",
+            "clawdNote": "5 個 note 裡至少 3 個有明確立場（「繞過之後快 600 倍反而正常」「繞過而不是改良才是真正激進」「Midjourney 在鋪路純屬推測但邏輯通」），過了 opinion threshold，但吐槽的 edge 可以再鋒利一點。",
+            "vibe": "600 倍的 hook 吸引人，遊戲引擎類比有趣，結尾 callback 原推收得乾淨，整體好讀但沒有讓人停下來想「靠」的爆點。",
+            "clarity": "正文零你我，主語一律具名（瀏覽器、AI agent、這位 Midjourney 工程師、Paweł Huryn），代名詞紀律乾淨。",
+            "narrative": "從 CSS 歷史包袱→AI agent 撞牆→繞過而非改良→web stack 重建，有論證弧線和結尾 callback，但情緒起伏偏平穩，缺一個讓人「幹這觀點猛」的 peak moment。"
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-25T11:48:21+08:00"
   }
 }
