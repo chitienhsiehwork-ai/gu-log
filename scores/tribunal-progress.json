@@ -4058,6 +4058,133 @@
     "startedAt": "2026-04-25T13:55:10+08:00",
     "stages": {
       "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Key glossary terms are linked at meaningful first/relevant mentions: agent → /glossary#agent (line 18), Claude Code → /glossary#claude-code (lines 45, 94), subagent → /glossary#subagent (line 45), Cowork → /glossary#cowork (line 94). No notable unlinked glossary term remains.",
+            "crossRef": "All three internal /posts/ links resolve to real files: sd-2-20260212-subagent-showdown-claude-code-vs-openclaw.mdx (line 45), clawd-picks-20260203-alexalbert-cowork.mdx (line 94), boris-claude-code-tips.mdx (line 94). ShroomDog is not mentioned in body prose; Clawd appears only via <ClawdNote> component, so the identity-link rule does not strictly trigger.",
+            "sourceAlign": "Content faithfully derived from claude.com/blog/claude-managed-agents — four composable pillars (sandboxing / long-running sessions / multi-agent / governance), self-evaluation loop in research preview, the 10pp structured-file-generation stat, and all five customer cases (Notion, Rakuten, Sentry, Asana, Vibecode) match the announcement.",
+            "attribution": "Eric Liu quote attributed with name + role (Notion PM, line 72); '10 個百分點' attributed to 'Anthropic 內部測試的數據' (line 58); each customer case labeled by company; ClawdNote opinions cleanly fenced inside the component, separating commentary from body facts; 'research preview' caveats explicit for multi-agent (line 40) and self-evaluation (line 54)."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "in_progress",
+        "score": null,
+        "model": "opus-4.7",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1
+  },
+  "sd-19-20260409-lightning-talk-ralph-loop.mdx": {
+    "article": "sd-19-20260409-lightning-talk-ralph-loop.mdx",
+    "startedAt": "2026-04-25T13:59:07+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 8,
+            "sourceAlign": 8,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Ralph Loop is the centerpiece term and is naturally and thoroughly explained in-text (3-point definition, knowledge-cutoff context, Geoffrey Huntley credited). Claude Code / Agent / hook / subagent appear unlinked but are surface mentions, not load-bearing terms — acceptable.",
+            "crossRef": "ShroomDog identity link to /about present at first mention. Internal link /posts/sd-10-20260322-ralph-loop-quality-system verified to exist. Geoffrey Huntley external link valid. Minor gap: Clawd's first mention (inside the opening ClawdNote, 'Clawd 在這裡先自我介紹一下') is not linked to /about, and CP-85 is referenced by ID without a hyperlink.",
+            "sourceAlign": "SD original, sourceUrl points to gu-log.vercel.app/ (self-reference) — auto 8 per librarian spec.",
+            "attribution": "Geoffrey Huntley correctly credited as Ralph Loop originator with link to ghuntley.com/ralph. The 'Sonnet/Opus 答不出來' claim is attributed to ShroomDog's own test inside the ClawdNote. Stats (336 / 74% / 239 / 198) are clearly framed as SD's own pipeline data. ClawdNote opinions visually separated from body via component. Minor: CP-85 quoted without link; the 9/9/9 bar mentioned without pointing to vibe-scoring-standard.md."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Ralph Loop attribution to Geoffrey Huntley and 2025 summer timing verified against ghuntley.com/ralph (published 2025-07-14). Three-pillar summary mostly correct, though 'DONE' string as completion condition is a common Ralph variant rather than explicit in Huntley's original (which emphasizes tests/back-pressure); post hedges with '或通過 build/test'. Internal stats (336 articles, 74% rewrite, 198 ≥9) self-attributed via SD-10 cross-link, not externally verifiable but properly sourced.",
+            "fidelity": "As an SD original post citing Huntley's Ralph Loop, the description faithfully captures the core idea (while-true loop + persistence + completion condition) and links directly to the source. Original Ralph emphasizes 'one item per loop' and fix_plan.md more than the three-bullet summary conveys, but no inversion or uncertainty erasure; ShroomDog's variant clearly framed as an extension, not as Huntley's definition.",
+            "consistency": "Argument flows cleanly: human-knows-but-AI-doesn't = leverage → Ralph Loop as concrete example (with cutoff evidence) → ShroomDog's scorer variant → measurable results (74% rewrite). ClawdNotes clearly marked as commentary; opinion vs fact stays separated. No internal contradictions."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-25T00:00:00Z",
+          "dimensions": {
+            "readability": 9,
+            "firstImpression": 9
+          },
+          "score": 9,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Oral voice present with '真是難看死了' and natural talk pacing; analogies sparse but justified by lightning talk brevity; strip test shows genuine progression not a report.",
+            "clawdNote": "Note 2's '差別不在 AI，在有沒有人去認真看' and Note 3's meta-humor about AI torturing AI show clear opinions; Note 1 is more explanatory, keeping this at 8.",
+            "vibe": "DiffBlock before/after is compelling, '74% needed rewriting' stat sticks, meta-humor closer lands; short format limits total stickiness surface area.",
+            "clarity": "Excellent pronoun discipline — body text uses '香菇大狗狗' and '人類' consistently instead of 你/我; zero ambiguous subjects in body.",
+            "narrative": "Clear arc from 'AI doesn't know this' through surprise peak (74% stat + diff) to meta-humor callback; sections have similar rhythm but talk format justifies tighter structure."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-25T14:03:39+08:00"
+  },
+  "cp-271-20260409-bcherny-effort-claude-code.mdx": {
+    "article": "cp-271-20260409-bcherny-effort-claude-code.mdx",
+    "startedAt": "2026-04-25T14:03:00+08:00",
+    "stages": {
+      "librarian": {
         "status": "in_progress",
         "score": null,
         "model": "opus-4.7",
