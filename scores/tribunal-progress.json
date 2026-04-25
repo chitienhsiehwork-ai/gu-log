@@ -5451,9 +5451,46 @@
         "attempts": 2
       },
       "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Simon Willison as Django co-creator and Datasette developer is correct; Lethal Trifecta is his real framework (private data + untrusted content + external comms); GPT 5.1 / Claude Opus 4.5 / Nov 2025 inflection timing aligns with known release dates. No fabricated benchmark numbers — claims are qualitative observations from the podcast. Tweet-/podcast-sourced quotes limit primary-source traceability, hence 8 not 9.",
+            "fidelity": "Quotes are reproduced in English then translated faithfully; hedges preserved (e.g., 'almost all of the time', 'a lot of people'); ClawdNote opinions clearly fenced inside <ClawdNote> components; opening explicitly attributes content to the full podcast rather than just the tweet ('以下內容整理自該集完整訪談'). No uncertainty erasure detected.",
+            "consistency": "Argument arc is clean and self-supporting — inflection → exhaustion → bottleneck migration → daily patterns → asymmetric career impact → Dark Factory → Lethal Trifecta → agency → trust crisis → callback to '11 a.m. burned out'. ClawdNotes consistently marked as opinion/extension; cross-refs to CP-146, CP-29, SP-88 reinforce rather than contradict. No internal contradictions."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-25T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
         "status": "in_progress",
         "score": null,
-        "model": "opus-4.7",
+        "model": "opus-4.6-1m",
         "attempts": 1
       }
     },
@@ -5486,19 +5523,98 @@
         "attempts": 1
       },
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Lydia Hallie's Anthropic affiliation verified (GitHub worksFor: @anthropics). Cross-refs to CP-195 (Spring Break 加量), CP-250 (Auto Mode), CP-183 (effort max / Thariq), CP-238 (Boris Cherny 15 招) all exist in posts/ and dates align. Tweet quote presented verbatim in English. Speculation about cause is appropriately hedged ('一個合理的猜測是', '如果這個推測成立'). Minor imprecision: '1.3 萬個讚' not independently verified from source (X requires JS-rendered auth) and identifying Lydia specifically as 'Claude Code 團隊' is plausible inference but not directly cited — these are tweet-sourced limitations, not fabrications.",
+            "fidelity": "Tweet's hedge 'way faster than expected' preserved in original English and treated as the rhetorical centrepiece — no uncertainty erasure. Section 4 ('態度值一千字，資訊量不到五十') honestly walks back any over-reading of the tweet ('沒有 root cause 或 fix timeline — 沒有，一個字都沒有'), neutralising the more speculative framing in section 2. ClawdNotes clearly delimited. The body's claim that Anthropic was 'roadmap 坑了' is editorial extrapolation but the article itself flags this as inference, not source claim.",
+            "consistency": "Restaurant-opening analogy carries cleanly from intro through to '記得常存檔' coda. Argument arc (產品太好用 → 用戶燒太兇 → capacity 失守 → 危機溝通態度) is internally coherent. Section 4's meta self-correction of section 3's 'value a thousand words' phrasing is structurally honest rather than contradictory — it sharpens what the post is actually claiming (態度 vs 資訊量). ClawdNote opinions consistently marked as speculation."
+          }
+        },
         "model": "opus-4.7",
+        "attempts": 2
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-25T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "MBA crisis-comms course analogy is standout LHY teaching; restaurant opening is natural oral hook; section 2 feature name-drops (CP-250/183/238) dip into reference mode.",
+            "clawdNote": "Gym unlimited-plan analogy in note 2 is a highlight with clear stance; note 3 takes position comparing to Google Gemini comms; note 4 is correct but analytical rather than fun.",
+            "vibe": "Restaurant hook + crisis comms analysis are genuinely interesting; section 4 brake-pump shows intellectual honesty; thin source material (one tweet) stretches but holds.",
+            "clarity": "Zero 你/我 in body text; subjects always named (Lydia, Anthropic, 工程師); voice attribution clean throughout with proper ClawdNote scoping.",
+            "narrative": "Section 4 pivot ('不過這裡要踩一下煞車') creates real tonal shift; ending callbacks restaurant opening; section 2 feature-list cross-references are the weakest link structurally."
+          }
+        },
+        "model": "opus-4.6-1m",
         "attempts": 1
       }
     },
-    "topLevelAttempts": 1
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-25T15:34:13+08:00"
   },
   "cp-258-20260407-winbuzzer-anthropic-blog-ai.mdx": {
     "article": "cp-258-20260407-winbuzzer-anthropic-blog-ai.mdx",
     "startedAt": "2026-04-25T15:23:44+08:00",
     "stages": {
       "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "All key glossary terms are properly linked: 'Vibe Coding' linked to /glossary#vibe-coding three times (lines 52, 54, 127), 'Ralph Loop' linked to /glossary#ralph-loop twice (lines 83, 117), 'agent' linked to /glossary#agent twice (lines 96, 138). Other technical terms (hallucinate, sycophancy, benchmark) are not in glossary.json and don't need linking.",
+            "crossRef": "Cross-ref to CP-257 is correctly linked at line 61 to /posts/cp-257-20260406-zats-litellm-trivy-pypi-ai/ — target file confirmed to exist in src/content/posts/. No identity link to /about needed since 'Clawd' appears only within <ClawdNote> components (Clawd speaking as itself), not in body prose. ShroomDog not mentioned. No broken links.",
+            "sourceAlign": "Content faithfully covers the WinBuzzer article topics: Anthropic Science blog launch, Schwartz's 'Vibe Physics: The AI Grad Student', Trillion Gene Atlas (Basecamp/Ultima/PacBio/NVIDIA), Genesis Mission (2.93億美元), and the three-way OpenAI/DeepMind/Anthropic comparison — strongly aligned with declared sourceUrl.",
+            "attribution": "Quotes and stats are well attributed throughout: Schwartz with paper title and Harvard affiliation, Gowers with Fields Medal context, Glen Gowers as Basecamp CEO, Pachocki as OpenAI chief scientist, Dario Amodei with 'Machines of Loving Grace', Harvard Business Review research cited. Statistics sourced (1.4兆美元算力, 一億物種, 100倍, 八百萬到一千萬已知物種). All ClawdNote opinions visually contained in <ClawdNote> components — fact/opinion separation is clean."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
         "status": "in_progress",
         "score": null,
         "model": "opus-4.7",
@@ -5534,9 +5650,46 @@
         "attempts": 1
       },
       "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Technical mechanics are precise and internally consistent — .pth autoloader via subprocess.Popen, three-stage payload (credential harvester → K8s lateral pod deployment → systemd sysmon.service persistence), and IoCs (checkmarx[.]zone/raw, models.litellm[.]cloud, tpcp.tar.gz) are concrete and plausible; the 36% cloud-environment figure is attributed to Wiz rather than presented unsourced.",
+            "fidelity": "Key claims are attributed to named sources (Wiz, Endor Labs, JFrog) and Mercor AI is qualified as 'including ... among thousands'; mild uncertainty erasure on 'TB 級資料外洩' which is stated as fact rather than estimate, but no inversion or fabrication detected and ClawdNote opinions are clearly framed separately from body.",
+            "consistency": "Argument flows tightly from Trivy CI/CD compromise → build-time injection → PyPI distribution → three-stage payload → exfiltration; the 三階段 payload vs 第四步 exfil distinction is handled cleanly; ClawdNotes are unambiguously marked as commentary (analogies, speculation about 1.82.9), and the 雪球效應 framing is supported by the explicit chain in the body."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-25T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
         "status": "in_progress",
         "score": null,
-        "model": "opus-4.7",
+        "model": "opus-4.6-1m",
         "attempts": 1
       }
     },
