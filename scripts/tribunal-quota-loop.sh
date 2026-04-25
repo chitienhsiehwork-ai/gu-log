@@ -45,7 +45,8 @@ LEGACY_QUOTA=false
 # ─── Closed-loop controller constants ────────────────────────────────────────
 MIN_COOLDOWN=10        # seconds — floor for inter-article wait
 MAX_COOLDOWN=1800      # seconds (30 min) — ceiling / hard stop
-ARTICLE_COST_PCT=5.0   # % per article (cold start default, deliberately high)
+ARTICLE_COST_PCT=1.0   # % per article (cold start; EMA calibrates after ~5 articles)
+AVG_ARTICLE_TIME=1800  # seconds (~30 min average per article, for worker count estimation)
 EMA_ALPHA=0.3          # calibration smoothing factor
 EXTRA_USAGE_LIMIT=1.0  # disabled — let 5hr/7day curves control pacing
 QUOTA_HISTORY_FILE="$ROOT_DIR/.score-loop/state/quota-history.jsonl"
@@ -450,16 +451,22 @@ if not active_5hr and not active_7day:
 
 cooldown = int(max(min_cd, min(max_cd, cooldown)))
 
-# Recommended workers: 0 if at max cooldown (floor stop), otherwise at least 1
-if cooldown >= max_cd:
-    workers = 0
-else:
-    workers = max(1, active_workers)  # at least 1
+# Check if actually at floor (not just slow pacing)
+five_at_floor = (five_pct - inflight_cost) <= floor if active_5hr else False
+seven_at_floor = (seven_pct - inflight_cost) <= floor if active_7day else False
+at_floor = five_at_floor or seven_at_floor
 
-# Mode
-mode = 'pacing'
-if cooldown >= max_cd and workers == 0:
+if at_floor:
+    workers = 0
     mode = 'floor_stop'
+else:
+    # Worker count: how many can stay busy given cooldown vs avg article time
+    avg_time = float('$AVG_ARTICLE_TIME')
+    if cooldown > 0 and avg_time > 0:
+        workers = max(1, int(avg_time / cooldown))
+    else:
+        workers = 1
+    mode = 'pacing'
 
 print(f'{cooldown}|{workers}|{binding}|{mode}')
 " 2>/dev/null || echo "600|1|none|fallback"
@@ -530,7 +537,7 @@ calibrate_article_cost() {
 import json, sys
 
 alpha = float('$EMA_ALPHA')
-default_cost = 5.0
+default_cost = float('$ARTICLE_COST_PCT')
 
 # Read all dispatch/complete pairs from history
 lines = []
