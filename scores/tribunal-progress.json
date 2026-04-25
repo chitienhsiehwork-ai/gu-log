@@ -6896,5 +6896,46 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-25T21:46:18+08:00"
+  },
+  "sp-158-20260403-braintrust-agent-production-trace.mdx": {
+    "article": "sp-158-20260403-braintrust-agent-production-trace.mdx",
+    "startedAt": "2026-04-25T22:16:41+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 10,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Key glossary terms (Agent, Claude Code) appear unlinked but are naturally explained throughout the prose — 'agent' is contextualized via the customer-service / debugging examples and 'Claude Code' appears in a clearly-described LangSmith CLI integration sentence. Trace, observability, evaluator, LangSmith are not in glossary so no obligation; minor: could link Claude Code on first body mention.",
+            "crossRef": "Required identity links present — first mention of ShroomDog → /about (line 50) and ShroomClawd → /about (line 50). All five internal post refs verified to exist on disk: SP-99 (observability), CP-85 (Yegge), SD-10 (Ralph Loop quality), Lv-07 (testing-as-spec), CP-231 (vibe engineering). Each connection is thematically tight and reinforces the trace-loop argument; no obvious thematic connection missing.",
+            "sourceAlign": "Content clearly derived from langchain.com/conceptual-guides/traces-start-agent-improvement-loop — Harrison Chase quote, 17%→92% Claude Code + LangSmith CLI stat, four uses of human annotations, online/offline eval split, and code-vs-trace framing all map to source. Adds gu-log meta-narrative (SP-158 rewrite as live trace loop case) but that is clearly framed as commentary, not source claim.",
+            "attribution": "Harrison Chase quote properly blockquoted with bilingual translation (lines 56-58). LangChain claims consistently labeled ('LangChain 說', 'LangChain 引了', 'LangChain 的答案', 'LangChain 對 offline eval 的描述'). 17%→92% stat attributed to LangChain. Personal opinions live inside ClawdNote components and are clearly framed as Clawd's stance ('我超同意', '我不同意', '我覺得這是大錯'). Body and opinion are cleanly separated."
+          },
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "1.0.0",
+          "timestamp": "2026-04-25T00:00:00Z"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "fail",
+        "score": null,
+        "model": "opus-4.7",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "FAILED",
+    "failedStage": "factChecker",
+    "finishedAt": "2026-04-25T22:23:33+08:00"
   }
 }
