@@ -7177,5 +7177,95 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-26T00:22:55+08:00"
+  },
+  "cp-244-20260403-karpathy-llm-knowledge-base.mdx": {
+    "article": "cp-244-20260403-karpathy-llm-knowledge-base.mdx",
+    "startedAt": "2026-04-26T00:53:23+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-26T00:54:00Z",
+          "dimensions": {
+            "glossary": 10,
+            "crossRef": 10,
+            "sourceAlign": 10,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All technical concepts correct (RAG, finetuning, context window, vibe coding); first-tweet specifics verified against source via curl — '~100 articles, ~400K words', Obsidian Web Clipper, Marp, matplotlib, vibe-coded search engine, synthetic data + finetuning all match exactly. Self-claim 'gu-log 422 篇文章 / 115 萬字' is plausible at translation date (current count 499, 23 days later).",
+            "fidelity": "Direct quotes in first-tweet section match source verbatim, including the closing 'incredible new product instead of a hacky collection of scripts' and 'manipulating knowledge (stored as markdown and images)'; hedges preserved ('pretty good' → '相當順地'). Minor concern: second-tweet content ('ephemeral wiki', 'Way beyond a .decode()', LLM 團隊派遣) is not present in the fetched status page and cannot be independently verified from the cited sourceUrl, though plausibly a thread reply.",
+            "consistency": "Section structure (ingest → IDE → Q&A → output → linting → tools → future → ephemeral) mirrors the source's logical arc; ClawdNote and ShroomDogNote opinions clearly demarcated as commentary, not source claims; analogy chains (compiler, RAM/ROM, IKEA callback) internally coherent."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Section breaks + metaphors (compiler / frontend-backend / RAM-ROM) keep it digestible; RAG and vibe coded are briefly explained inline. `.decode()` and 'synthetic data generation + finetuning' near the end are the only spots a junior skims past, but context carries you through.",
+            "firstImpression": "'Karpathy 丟了一顆炸彈' hook lands, the 'lint your knowledge base' section is the genuine 'oh that's good' moment, and the recursive 'tools building tools' framing is shareable. The two ShroomDogNote self-comparisons toward the end feel a bit insider-y but don't kill momentum."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "比喻穩定（免洗筷、compiler 反轉、便利貼 vs 刺青、知識庫長器官）且口語轉場自然，但結語段和 ephemeral wiki 段偶爾滑進 essay mode。",
+            "clawdNote": "serendipity-as-cron 和 RAM/ROM 刺青兩段有真正的 insight + 立場，超過半數 note 有明確 opinion，但 note 7 偏綜合整理而非吐槽。",
+            "vibe": "escalation 結構讓人想繼續讀，ShroomDogNote 的 meta inception 感加分，但知識複利到 lint 中段節奏稍平，沒到想立刻轉發的程度。",
+            "clarity": "body text 幾乎無裸 你/我，主詞都有名字（Karpathy、LLM、使用者），少數 imperative 是 LHY 教學慣用法不造成歧義。",
+            "narrative": "轉場語句創造真正 escalation 弧線而非線性列舉，ephemeral wiki 是 genuine climax 且結語 callback 開頭，但骨架仍受限於原始 thread 結構，是最弱的 8。"
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-26T01:25:25+08:00"
   }
 }
