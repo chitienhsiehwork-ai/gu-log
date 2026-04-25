@@ -2579,5 +2579,226 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-25T12:09:27+08:00"
+  },
+  "cp-286-20260413-ggerganov-llama-cpp-mac-300-t-s-georgi-gerganov.mdx": {
+    "article": "cp-286-20260413-ggerganov-llama-cpp-mac-300-t-s-georgi-gerganov.mdx",
+    "startedAt": "2026-04-25T12:10:36+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "MCP 為主要 glossary 詞彙，文中以「Model Context Protocol，Anthropic 推出的開放協議」自然解釋並列出 web-search/Hugging Face/GitHub 工具範例，符合 glossary 標準。其他術語（speculative decoding、MoE、Apple Silicon、量化）非 glossary 條目，無需連結。",
+            "crossRef": "三個內部連結全部有效：cp-232（llama.cpp 十萬星）、cp-236（Ollama MLX）、clawd-picks-20260210（Sentdex 本地 LLM）— 都正確指向現存的文章 slug。本文未在正文提及 Clawd/ShroomDog 名字（只用 ClawdNote 元件），無需 /about identity link。",
+            "sourceAlign": "sourceUrl 指向 @ggerganov on X 的 300 t/s llama.cpp demo 推文，內容（M2 Ultra、Gemma 4 26B A4B、Q8_0、speculative decoding、WebUI、MCP 工具）與推文展示完全對應，明確衍生自原始來源。",
+            "attribution": "Gerganov 為核心人物身份明確、Q8_0「full quality」明確標示為 Gerganov 自己的標註、MCP 歸屬 Anthropic 清楚、ClawdNote 元件將吐槽意見與正文事實切割得乾淨。次要扣分：『一般人閱讀速度每分鐘 250 字 ≈ 5 tokens/s』這個數字未附來源；『過去兩三年』時間軸主張屬作者推論但語氣偏事實化。"
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 7,
+            "fidelity": 9,
+            "consistency": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All source-tweet bullet points (Mac Studio M2 Ultra 3 years old, Gemma 4 26B A4B Q8_0 full quality, built-in WebUI, MCP web-search/HF/github, 300t/s) and hardware specs (UltraFusion = 2x M2 Max, 192GB max unified memory, 76-core GPU max, MCP by Anthropic) verified against primary sources; one technical imprecision: 'Prompt Speculative Decoding 改變的是 prefill 階段' misattributes the optimization stage — speculative decoding (including prompt-based variants) accelerates the autoregressive decoding stage, not prefill (which is already parallel).",
+            "fidelity": "All five bullet points from Gerganov's tweet faithfully represented; 'realtime video' preserved as '即時螢幕錄影（沒有加速）'; no uncertainty erasure; ClawdNote analytical extensions (e.g., MoE+Apple Silicon synergy framing, ChatGPT Plus comparison) clearly bracketed within the component and not attributed to source.",
+            "consistency": "Four-layer narrative (unified memory / MoE / speculative decoding / WebUI+MCP) flows coherently and is internally supported; the earlier ClawdNote draft-verifier analogy correctly describes speculative decoding mechanics, but creates mild tension with the body's prefill-stage claim about the same technique."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Hook 跟敘事都很順，MoE 跟 speculative decoding 都有白話比喻（『60 倍閱讀速度』、『手速快但容易出錯的人搶寫』），中段 Q8_0 量化、prefill、自回歸生成這幾個字稍微卡一下但不影響理解。",
+            "firstImpression": "開場『300 t/s + 三年前 Mac』直接抓住，ClawdNote 穿插不會讀膩，看完會想去查 llama.cpp，會分享給寫 code 的朋友——但不到『立刻丟群組』那種層級。"
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "同花順 poker metaphor and 聽寫 dictation analogy land well with oral teaching feel, but 三張牌 section reads more like structured explanation than natural lecture flow.",
+            "clawdNote": "All four notes are opinionated — 超商咖啡配茶葉蛋 MoE analogy is memorable, ChatGPT Plus moat challenge takes a clear stance, 畢業典禮 framing in finale is strong.",
+            "vibe": "The 不應該成立 tension hooks the reader and the speed-to-ecosystem pivot is satisfying, but the 第一張/第二張/第三張 structure in the middle feels somewhat listy.",
+            "clarity": "Excellent pronoun discipline throughout — body text uses Gerganov and concrete subjects consistently, zero ambiguous 你/我 in body, ClawdNotes scoped correctly.",
+            "narrative": "Real arc from hook through 不應該成立 tension to three-card resolution to ecosystem pivot to 畢業典禮 conclusion with callback, but the numbered-card middle section slightly flattens the rhythm."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-25T12:22:35+08:00"
+  },
+  "cp-285-20260412-article-ai-git-diff-anthropic.mdx": {
+    "article": "cp-285-20260412-article-ai-git-diff-anthropic.mdx",
+    "startedAt": "2026-04-25T12:15:03+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 6,
+            "sourceAlign": 8,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Topic (AI safety / interpretability / model-diffing) sits outside the gu-log glossary domain (which centers on agent tooling); no glossary terms appear in the post that are unlinked, so no integration gaps to flag.",
+            "crossRef": "Zero internal /posts/ links. The closing 'Sycophancy 殺手級應用場景' section explicitly references the 2025-04 GPT-4o sycophancy episode — cp-224-20260329-karpathy-llm-sycophancy-opposite is a direct thematic match and an obvious missing connection. Clawd/ShroomDog identity links not required since neither name appears in body text.",
+            "sourceAlign": "Content (Anthropic Fellows' Dedicated Feature Crosscoder, Llama vs Qwen, GPT-OSS vs DeepSeek, CCP / American Exceptionalism / copyright-refusal features) consistent with declared @AnthropicAI X source; topic faithfully represents real Anthropic Fellows model-diffing research.",
+            "attribution": "Research team consistently attributed as '研究團隊' / 'Anthropic Fellows 研究團隊'; reproduction stats (5/5 CCP, 4/5 American Exceptionalism) cited with context; method limitations ('不是銀彈') framed as authors' own caveats; ClawdNote opinions clearly fenced from body facts throughout."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All four named models (Llama-3.1-8B-Instruct, Qwen3-8B, GPT-OSS-20B, DeepSeek-R1-0528-Qwen3-8B) are real published open-weight models; steering as a feature-validation technique and DeepSeek's CCP-topic refusal are documented; the GPT-4o April 2025 sycophancy incident is accurate. Anthropic's prior crosscoder/model-diffing line of work (transformer-circuits.pub 2024-2025) is consistent with the DFC framing presented. Specific 5/5 and 4/5 reproducibility numbers and the peanut-butter-sandwich over-refusal example are tweet-sourced and not independently verifiable from primary research page in this run, but no fabricated benchmarks detected.",
+            "fidelity": "Caveats explicitly preserved in the '這不是銀彈' section — high-recall screening tool, no causation claims, open-source-only scope. Hedges intact ('可能對應', '初步結果令人期待', '有可能就能在部署前自動標記'). ClawdNote opinions consistently fenced inside <ClawdNote> tags and never bled into the body as research findings; attribution to 'Anthropic Fellows' / 'research team' is clear throughout.",
+            "consistency": "Argument arc holds end-to-end: benchmark limitation → diff metaphor → DFC architecture (the bilingual-encyclopedia analogy carries real explanatory weight) → steering as causal validation → per-model feature findings → explicit limits → sycophancy as forward-looking application. The Qwen-vs-Llama asymmetry (bidirectional vs amplify-only) is flagged as a specific observation rather than overgeneralized."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "freshEyes": {
+        "status": "in_progress",
+        "score": null,
+        "model": "opus-4.7",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1
+  },
+  "cp-284-20260412-article-openai-anthropic-google-ai.mdx": {
+    "article": "cp-284-20260412-article-openai-anthropic-google-ai.mdx",
+    "startedAt": "2026-04-25T12:15:04+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 8,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Post uses domain terms (蒸餾/distillation, chain-of-thought, alignment, agentic reasoning) that are not in glossary.json — no missing links to flag. Could optionally introduce a 'Distillation' glossary entry given centrality, but no current gap.",
+            "crossRef": "No internal /posts/ links and no /about identity link, but this matches the prevailing CP convention (only ~5/141 CP posts use /about). Thematic connection to other Anthropic/China-AI clawd-picks posts (e.g., anthropic-misalignment, kimi-k25 series) could strengthen, but no broken refs.",
+            "sourceAlign": "Content directly mirrors the Bloomberg sourceUrl headline — OpenAI/Anthropic/Google uniting via FMF against Chinese model-copying — with FMF context, Anthropic 2026-02-23 disclosure stats, and the four shared-intel categories all aligned to source topic.",
+            "attribution": "Bloomberg attributed for the 4/6 report, Anthropic explicitly cited for the 2/23 disclosure with dated context, all key stats (~24K accounts, ~16M exchanges, MiniMax/Kimi/DeepSeek breakdown) hedged with 約 and tied to Anthropic. ClawdNote opinions structurally separated from body facts."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "FMF founders (OpenAI/Anthropic/Google/Microsoft, 2023) correctly stated; distillation and chain-of-thought concepts technically accurate; the three sub-totals (13M + 3.4M + 0.15M ≈ 16.55M) are internally consistent with the stated ~1,600 萬 total; Bloomberg-specific numbers (24,000 帳號, per-company breakdowns) hedged with '約' and unverifiable against the paywalled source but presented coherently.",
+            "fidelity": "Hedges consistently preserved ('約 1,300 萬次', '大約 24,000 個假帳號'); ClawdNote opinion blocks clearly separated via the dedicated component and never bleed into reportage; no uncertainty erasure observed; the 'used Claude to build censorship capability' claim is presented as Anthropic's disclosure, not the translator's assertion.",
+            "consistency": "Argument flows cleanly from threat scale → FMF qualitative shift → four shared intelligence streams → strategic implication; ClawdNotes are explicitly framed as analogies/opinion (Coca-Cola/Pepsi, exam-cheating metaphors) rather than factual extensions; no internal contradictions detected."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Flows clearly — distillation explained simply, the 草稿紙 analogy for chain-of-thought clicks instantly. Minor friction: 'alignment' / 'agentic reasoning' / 'KYC' tossed in without a quick gloss, had to infer from context.",
+            "firstImpression": "Hook lands hard ('有人在偷他們的腦袋'); the Coke/Pepsi/Dr Pepper analogy and the DeepSeek-uses-Claude-to-build-censorship irony are the beats I'd quote in a group chat. Finished it, would share."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "in_progress",
+        "score": null,
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1
   }
 }
