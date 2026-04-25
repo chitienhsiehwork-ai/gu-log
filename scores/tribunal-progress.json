@@ -2858,5 +2858,97 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-25T12:25:42+08:00"
+  },
+  "cp-283-20260412-felixrieseberg-dns-ubuntu-sandbox.mdx": {
+    "article": "cp-283-20260412-felixrieseberg-dns-ubuntu-sandbox.mdx",
+    "startedAt": "2026-04-25T12:27:11+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 7,
+            "crossRef": 7,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Cowork is a key glossary term and appears 4+ times (summary + lines 29, 33, 49, 51) without any link to /glossary or natural explanation; other technical terms (gVisor, systemd-resolved, Bun, axios, ECONNRESET, SERVFAIL) are not in glossary so unlinked is fine.",
+            "crossRef": "No internal post links present and no /about identity link for Clawd despite multiple ClawdNote components — borderline since Clawd appears only inside the named ClawdNote component (not in body prose), but a first-mention /about link would still strengthen reader navigation.",
+            "sourceAlign": "Content faithfully derived from @felixrieseberg's X thread about the gVisor sandbox DNS incident — six-step causal chain, Bun/axios ECONNRESET misreporting, and upstream patch plan all match the source.",
+            "attribution": "Felix Rieseberg clearly named as the source/protagonist; ClawdNote opinions cleanly walled off from body facts via the component; technical claims (libmount1, systemd-resolved, SERVFAIL→ECONNRESET) presented as facts traceable to the sourceUrl."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 8,
+            "consistency": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All six causal steps map exactly to Felix's tweet (libmount1 6am UTC patch, systemd-resolved restart, resolv.conf overwrite, gVisor nameserver loss, SERVFAIL, Bun/axios -> ECONNRESET misreport); systemd-resolved/resolv.conf/gVisor/SERVFAIL semantics are technically correct.",
+            "fidelity": "Causal chain and conclusion preserved faithfully; one minor extension where ClawdNote narrows the source's general 'offer patches to open-source code that could use it' into the specific claim 'Felix 計畫對 Bun/axios 提 upstream patch' — reasonable inference but more specific than source warrants.",
+            "consistency": "Narrative arc holds and ClawdNote opinions are clearly demarcated as commentary; one small numeric inconsistency where heading '六個正確的行為' is followed by only 5 enumerated bullets — careful readers will notice the count mismatch."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-25T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 9
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Building janitor analogy maps the technical chain perfectly in LHY style; oral voice strong ('那到底是什麼鬼？') though section 4 bullet recap slightly breaks the talking feel.",
+            "clawdNote": "Strong opinions in 3 of 4 notes — explicit stance against systemd-resolved design ('Linux 的 old sin'), support for Felix's upstream patch, misleading-error-is-worse-than-no-error thesis; well above the opinion threshold.",
+            "vibe": "Debugging detective story worth sharing; janitor analogy memorable and ECONNRESET misdirection creates genuine surprise, but section 4 bullet list slightly drags momentum.",
+            "clarity": "Zero 你/我 in body text; subjects always named (Felix, Cowork 團隊, systemd-resolved); ClawdNote 我 usage unambiguous with Clawd as clear speaker.",
+            "narrative": "Real whodunit arc with escalating reveals — '然後，最壞的那一層出現了' builds tension, ending callbacks opening with '骨牌倒完了' punch; section 4 bullet recap is the one rhythmic dip."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-25T12:31:32+08:00"
   }
 }
