@@ -7360,5 +7360,97 @@
     "status": "PASS",
     "failedStage": "factChecker",
     "finishedAt": "2026-04-26T02:41:56+08:00"
+  },
+  "cp-239-20260403-article-anthropic-claude-emotions.mdx": {
+    "article": "cp-239-20260403-article-anthropic-claude-emotions.mdx",
+    "startedAt": "2026-04-26T03:12:19+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 6,
+            "sourceAlign": 10,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "No glossary.json terms appear verbatim in the post (terms like Agent / Claude Code / MCP / Vibe Coding aren't invoked). Mentions of 'interpretability' and 'AI safety' aren't in glossary, so no missing links. 'Claude, the AI Assistant' refers to the model persona, not the Claude Code CLI term, so no glossary tie required. No real gaps to flag.",
+            "crossRef": "Post has frontmatter deprecatedBy: SP-157 and sp-157-20260403-anthropic-emotion-vectors-claude.mdx exists, but the body never links readers to that superseding deeper analysis — that's an obvious thematic crossRef miss. Also no /about identity link for ShroomDog or Clawd anywhere. ClawdNote component is used (so persona link not strictly required for first mention by name), but zero internal /posts/ links overall is thin for a post explicitly marked as deprecated by another article.",
+            "sourceAlign": "sourceUrl points to @AnthropicAI tweet. The post quotes the actual two-sentence tweet verbatim ('We studied one of our recent models...'), then unpacks it line by line. Content is tightly derived from declared source — textbook alignment.",
+            "attribution": "Anthropic quote is set off with blockquote and clearly attributed to the tweet. Word-choice analysis ('emotion concepts' vs emotion, 'might influence' vs 'does influence') ties directly to the cited text. ClawdNote opinions cleanly separated from body via component. Minor: 'Anthropic 附了研究連結' references a research link without actually linking it in the body — small attribution gap but does not blur fact/opinion."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "No fabricated numbers or technical claims; this is textual analysis of a 2-sentence tweet. One minor overstatement: the closing '兩個 might，零個 definitely' is wrong — the quoted source contains exactly one 'might', not two.",
+            "fidelity": "The 白話 translation paragraph is faithful and preserves the human-analogy hedge ('可能有點像'). Slight reading nuance: '他們用了 might influence，不是 does influence' implies 'might' hedges whether representations influence model behavior, but in the source 'might' actually modifies 'emotions might influence a human' (the human-side analogy). The post recovers the correct 'analogy not equation' reading in the 第二層 analysis, so net distortion is small.",
+            "consistency": "Argument flows cleanly: source quote → two-layer claim breakdown → AI-safety implication → conclusion. ClawdNote opinions are clearly framed as commentary. No internal contradictions between sections."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-26T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Mango-tasting analogy and clean-room child metaphor are peak LHY oral teaching; nuclear-grade wording suppression line is dramatic but earned.",
+            "clawdNote": "All 3 notes take explicit stances — conflict-of-interest disclosure, praise for Anthropic's wording discipline despite general disagreement, and discomfort about self-opacity; zero Wikipedia footnotes.",
+            "vibe": "Mango analogy is group-chat-shareable and closing meta-observation about borrowing human language for machines lands as a real punch, but compact length limits peak-valley range.",
+            "clarity": "Zero 你/我 in body text; voice attribution is unambiguous throughout — narrator in body, self-identified Clawd in notes, Anthropic in blockquote.",
+            "narrative": "Fridge callback from opening to conclusion plus genuine escalation from layer-1 to deep-water-bomb layer-2 create real arc, though middle sections share similar claim-analogy-implication rhythm."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-26T03:24:40+08:00"
   }
 }
