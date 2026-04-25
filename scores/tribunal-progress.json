@@ -1752,5 +1752,228 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-25T11:04:33+08:00"
+  },
+  "cp-293-20260414-stellaraccident-stellaraccident-amd-claude-code-regression-6852.mdx": {
+    "article": "cp-293-20260414-stellaraccident-stellaraccident-amd-claude-code-regression-6852.mdx",
+    "startedAt": "2026-04-25T11:04:47+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Key glossary terms linked at first mention: Claude Code -> /glossary#claude-code (line 39), Hooks -> /glossary#hooks at both 'Stop hook' mentions (lines 105, 110). No major glossary terms left unlinked.",
+            "crossRef": "Clawd identity link present (/about, line 56). ShroomDog not mentioned, so no link required. Both /posts/ refs resolve to real files: sp-146-20260402-ecc-hook-architecture.mdx and clawd-picks-20260203-boris-cherny-workflow.mdx.",
+            "sourceAlign": "Content faithfully derived from sourceUrl (GitHub issue anthropics/claude-code#42796 by Stella Laurenzo). All headline numbers (6852 sessions, 234760 tool calls, Read:Edit 6.6->2.0, $12->$1504, redact-thinking-2026-02-12) match the source report; Boris Cherny's UI-only response is also captured.",
+            "attribution": "Quotes clearly attributed: Laurenzo (AMD Senior Director of AI), Boris Cherny (Anthropic Claude Code lead), and the meta self-analysis block explicitly tagged as Claude Opus analyzing its own session log. Statistics cite the report's numbers; ClawdNote commentary is visually separated from body facts via the component."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 7,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Every headline number verified against source (anthropics/claude-code#42796): 6,852 sessions / 17,871 thinking blocks / 234,760 tool calls; thinking 2,200→720→600 chars (-67%/-73%); Read:Edit 6.6→2.0; 33% edits without prior Read (vs baseline 6.2%); Stop hook 0→173 (~10/day); user interrupts 0.9→11.4 per 1K (12x); reasoning loops 8.2→26.6 (3.2x); 'simplest' +642%, 'lazy' +93%, 'terrible' +140%, 'great' -47%; positive:negative 4.4:1→3.0:1 (-32%); $12→$1,504/day 122x; Cherny 'UI-only change' and 'cannot tell from the inside' quotes both verbatim. Minor imprecision: $1,504 is 'Est. Bedrock cost (w/ cache)' — article says '估算' but does not clarify this is a Bedrock projection rather than the team's actual bill (source shows actual subscription capped at $400).",
+            "fidelity": "Faithful on most claims and accurately preserves Cherny's rebuttal. But the article's framing of the 80x API-request explosion as purely caused by model thrashing is a caveat omission — the source explicitly states '80x is not purely from degradation-induced thrashing. It also reflects a deliberate scaling-up of concurrent agent sessions (5-10x more).' The article keeps only the degradation half. Similarly, the cost analogy ('如果這是餐廳帳單...一千五百美元持續一個月就是四萬五千美元') treats the Bedrock estimate as a realized invoice, though source shows actual subscription was capped at $400. These are caveat erasures of the kind the rubric flags.",
+            "consistency": "Clean narrative arc — scale → thinking depth → Read:Edit collapse → behavioral indicators → cost → sentiment → Anthropic response → meta-conclusion. ClawdNotes are clearly demarcated and the Cherny-rebuttal ClawdNote intelligently flags the analytical gap (UI-only redaction can't explain Read:Edit / stop-hook / reasoning-loop regressions) rather than blurring fact and opinion. No internal contradictions; the meta-twist (Claude analyzing itself) is supported by source's stated authorship."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Numbers are concretely explained with good analogies (水電師傅、餐廳帳單), table makes the four hard metrics scannable. Slight stumble at 'redact-thinking-2026-02-12' header and Boris's UI-vs-thinking distinction — had to re-read the Cherny section once.",
+            "firstImpression": "Hook is killer (AMD director + 6,852 sessions + AI analyzes itself), 122x cost number is share-worthy, and the meta-ending 'I cannot tell from the inside whether I am thinking deeply' is the kind of line that gets screenshot to group chat. Finished happily, would share."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "in_progress",
+        "score": null,
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1
+  },
+  "cp-292-20260414-article-anthropic-openai-ai.mdx": {
+    "article": "cp-292-20260414-article-anthropic-openai-ai.mdx",
+    "startedAt": "2026-04-25T11:04:47+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-25T00:00:00Z",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "in_progress",
+        "score": null,
+        "model": "opus-4.7",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1
+  },
+  "cp-291-20260414-anthropic-.mdx": {
+    "article": "cp-291-20260414-anthropic-.mdx",
+    "startedAt": "2026-04-25T11:04:48+08:00",
+    "stages": {
+      "librarian": {
+        "status": "in_progress",
+        "score": null,
+        "model": "opus-4.7",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1
+  },
+  "cp-290-20260414-article-claude-code-subagent-60-write-tool.mdx": {
+    "article": "cp-290-20260414-article-claude-code-subagent-60-write-tool.mdx",
+    "startedAt": "2026-04-25T11:04:49+08:00",
+    "stages": {
+      "librarian": {
+        "status": "in_progress",
+        "score": null,
+        "model": "opus-4.7",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1
+  },
+  "sp-173-20260411-hwchase17-harness-memory-lockin.mdx": {
+    "article": "sp-173-20260411-hwchase17-harness-memory-lockin.mdx",
+    "startedAt": "2026-04-25T11:04:50+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 10,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 8
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "All glossary terms present are linked at first mention: Agent Harness (line 22), Claude Code (lines 22, 38, 116, 120, 125, 172), OpenClaw (lines 22, 116), Codex (line 136). No unlinked glossary terms.",
+            "crossRef": "Internal link to /posts/sp-94-20260302-hxlfed14-agent-harness-real-product verified to resolve to existing file; Clawd identity link to /about present (line 116); all /glossary#term anchors valid. ShroomDog not mentioned, so no /about identity link required for SD.",
+            "sourceAlign": "Content faithfully represents Harrison Chase's 'Your harness, your memory' X Article — Chase's three-tier lock-in framework, Sarah Wooders driver-not-plugin metaphor, the deleted email-agent anecdote, and the model-progress-makes-scaffolding-obsolete observation are all accurately summarized with explicit critique layered on top, consistent with SP commentary-translation style.",
+            "attribution": "Direct quotes ('壞消息是 agent 被刪了...', '駕駛不是車的 plugin', 'Model provider 有極大動機這麼做') clearly attributed to Chase or Wooders with speaker labels; ClawdNote opinions properly walled off in <ClawdNote> blocks; minor gap — the '512k 行 TypeScript' figure (line 38) and '30% prompt re-tuning' estimate (line 138) are stated without inline source pointers."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Verifiable technical claims align with gu-log glossary SSOT — Claude Code 512k TypeScript lines, 44 hidden feature flags, KAIROS daemon, .npmignore leak (not a hack), Claude Code being closed source. LangChain CEO / Letta CTO identities, OpenAI Responses API, Anthropic Managed Agents, server-side compaction all real. Specific claims about Chase's article (e.g. '3000 字', 'Chase 點名 Claude Agent SDK', Codex 加密 compaction summary, Deep Agents Mongo plugin) couldn't be primary-source verified due to X login wall on sourceUrl, but all are plausible and consistent with publicly known LangChain/Anthropic/OpenAI ecosystem facts.",
+            "fidelity": "Post is framed as shroom-picks commentary, not pure translation — the structure clearly distinguishes 'Chase 說 X' from 'gu-log 反駁 Y'. Three-tier lock-in framework, Sarah Wooders 'driver/car' analogy, email-agent-deletion anecdote, and the 'Your harness, your memory' title all properly attributed. Hedges preserved ('Chase 的意思是', '聽起來很 enterprisey 對吧'). ClawdNote opinions explicitly walled off in components. Mild risk: post asserts Chase commits 'false equivalence' / 'correlation as causation' — these are gu-log's interpretive verdicts, but they are clearly marked as gu-log's critique rather than smuggled in as Chase's own words.",
+            "consistency": "Argument arc holds end-to-end: phone-OS analogy → harness can't be detached → memory format (not license) is what matters → gu-log itself as concrete counterexample (closed harness + open memory in git) → real lock-in vectors (server-state, prompt tuning, proprietary schemas) — none of which depend on harness license. ClawdNotes consistently flagged as opinion. SP-94 cross-ref and glossary terms internally coherent. Conclusion ('format > license') fully supported by the gu-log evidence presented in the body."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-25T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "手機→作業系統比喻貫穿全文且功能性強，有機食品老闆/SD卡/QR code 餐廳等比喻密度高；strip test 後骨架是辯論結構非線性報告，三層 lock-in 段略偏 explainer 差一步到 10。",
+            "clawdNote": "8 個 note 中 6 個有明確 opinion — Fleet 自我打臉、銀行 A/B 挑戰 correlation≠causation、Mongo schema 精神勝利法吐槽都是 highlight，超過半數有立場不只解釋。",
+            "vibe": "gu-log 自身當反例的 meta 手法加分，會想分享給用 AI agent 的朋友，但三層 lock-in 段偏 structured analysis 稍沉，沒有 CP-85 那種停不下來的黏性。",
+            "clarity": "全文主語清晰無漏網你/我，Chase/Wooders/gu-log 歸屬明確，ClawdNote 第一人稱有明確 scope，讀者不會搞混誰在說話。",
+            "narrative": "Chase 對→但結論滑坡的 pivot 製造真實張力，email agent 被刪是情緒高點，gu-log 反例是結構轉折，LangChain rebrand 歷史帶來不同節奏，結語 callback 有機食品和手機比喻收得乾淨。"
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-25T11:09:41+08:00"
   }
 }
