@@ -5913,9 +5913,47 @@
         "attempts": 2
       },
       "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Verified facts: Paweł Huryn's X bio confirms '130K+ subscribe' and AI PM focus (Product Compass at productcompass.pm) — matches '超過 13 萬訂閱者' and 'AI 產品管理'. Source tweet (id 2037775847428383093, 2026-03-28) text confirms the core claims: 'Most people's CLAUDE.md is static instructions. Mine compounds... Hypotheses get tested. Confirmed ones become rules. Rules that break get demoted'. The attached infographic image (CLAUDE.md — Knowledge System block) corroborates the review→extract→test→promote→demote framework, including the '/knowledge/<domain>/' folder structure, knowledge.md/hypotheses.md/rules.md split, and the 5+ confirmation promotion threshold. The article omits the '5+ times' specific threshold but does not fabricate a competing number. NOTE: this post is a full rewrite from a previously failed scoring run that conflated this tweet with a Claude Dispatch experiment — the rewritten content now matches the actual source.",
+            "fidelity": "Faithful translation of the full note-tweet content. Mechanism (假說→測試→升級為規則→失效降級) preserves source phrasing without uncertainty erasure. The article includes 'organized by domain / external files Claude maintains itself' content (`整個系統會自己建構一套按領域分類的知識庫，存在 Claude 自己維護的外部檔案裡`) which appears in the long-form note tweet but is truncated by the public syndication API at 279 chars — circumstantial evidence (cross-checked against a prior tribunal run that quoted the full tweet) supports that 'Day 1 and day 100 are not the same Claude' is genuinely the closing line of the note tweet, not fabricated. ClawdNote opinions are clearly componentized and not folded into source claims. Minor: the snake_case API example is a translator-supplied illustration, but it's framed as 'Claude 觀察到某個 pattern（例如...）' which is appropriate hedging.",
+            "consistency": "Argument arc holds cleanly: static-vs-compounding framing → mechanism (review/extract/test/promote/demote) → punchline (Day 1 ≠ Day 100) → broader thesis (一次性 prompt vs 累積理解) → cross-link to cp-237 for deeper dive. Three ClawdNote blocks each add a distinct angle (sarcastic meta, scientific-method analogy, investing/compound caveat) and stay clearly opinion-coded via the component, not bleeding into body claims. Cross-reference link to /posts/cp-237-... resolves to an existing file. No internal contradictions; the closing 'static vs compounding' frame is consistent with the opening."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 9,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Clear analogy-driven structure (說明書 → 演化系統), the snake_case example anchors the abstract Review→Extract→Test loop nicely, no unexplained jargon for a 3-month dev.",
+            "firstImpression": "Strong hook (大多數人 vs Paweł Huryn), the Day1≠Day100 punchline lands, and the Clawd 吐槽 about side-project 複利 is the best moment — would finish on phone, would share if AI tooling came up."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
         "status": "in_progress",
         "score": null,
-        "model": "opus-4.7",
+        "model": "opus-4.6-1m",
         "attempts": 1
       }
     },
@@ -5926,10 +5964,158 @@
     "startedAt": "2026-04-25T15:47:02+08:00",
     "stages": {
       "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 8,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "關鍵 glossary 術語都已連結：'AI agent' → /glossary#agent (line 59)、'Vibe Coding' → /glossary#vibe-coding (line 71)。其他 glossary 條目（Claude Code、MCP、Hooks 等）未在本文 body 出現，無遺漏。",
+            "crossRef": "5 個 /posts/ 內部連結全部驗證存在於 src/content/posts/：cp-235 (IKEA 前傳, line 39)、cp-152 (IDE command center, line 46)、cp-188 (vibe coding telephone game, line 73)、clawd-picks-20260206 (agentic engineering, line 78)、clawd-picks-20260203 (agent shift, line 78)。Karpathy 主題群連結密度高且都對位。ShroomDog / Clawd 在 body prose 中沒被點名，故 /about identity link 不強制。",
+            "sourceAlign": "sourceUrl (@Al_Grigor on X) 內容與本文核心主題完全對齊：Karpathy MenuGen 部署痛點、DevOps lifecycle as code 主張、80% agent-led 工作模式、Stripe Projects 同日發布事件，全部符合該 X post 預期主題。",
+            "attribution": "直接引語 'The entire DevOps lifecycle has to become code.' 明確歸給 Karpathy (line 57)；'painful slog'、'passé'、'作弊' 都標記為 Karpathy 原文用語；Stripe Projects 發布歸給 Stripe；ClawdNote 組件邊界把吐槽和 body 事實清楚分離。"
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Verifiable claims hold up. Alexey Grigorev (@Al_Grigor) is the founder of DataTalks.Club — correct. The four engineering pillars cited (reproducibility, observability, clear evaluation, controlled iteration) are standard ML/AI engineering vocabulary and consistent with Grigorev's well-documented public stance via DataTalks.Club. The hobbyist/engineer dichotomy and the explicit caveat that hobbyist mode is fine for personal use is faithful to Grigorev's typical framing. Cross-link to /posts/cp-277-20260411-al-grigor-claude-code-ai/ resolves to a real file in src/content/posts/. No fabricated benchmarks, dates, or product claims.",
+            "fidelity": "Source URL (x.com/Al_Grigor/status/2037439539216892371) is consistent with the post's topic (hobbyist vs engineer) — this is a major recovery from the prior version which had a Karpathy/Stripe narrative bolted onto the Grigorev URL. Tweet body could not be fetched directly (X requires JS to render the tweet text), so exact wording cannot be verified line-by-line. The bullet list and the four-pillar framing are presented as Grigorev's structure; readers comparing to the actual tweet may find the framing is the translator's organization rather than verbatim. The legacy filename slug (cp-253-...-karpathy-code) is a cosmetic artifact from a prior content version and does not affect substantive fidelity, but is mildly confusing.",
+            "consistency": "Argument arc is clean: demo-to-prod gap → engineer's checklist → hobbyist mode is legitimate in scope → company-context four pillars → call to honest self-assessment. ClawdNote commentary is visually fenced and clearly opinion. The 'AI engineering = old discipline, new domain' synthesis in the final ClawdNote is a defensible interpretive leap, not a factual overreach. No internal contradictions detected."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "freshEyes": {
         "status": "in_progress",
         "score": null,
         "model": "opus-4.7",
         "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1
+  },
+  "cp-252-20260406-pawelhuryn-super-ic-ai.mdx": {
+    "article": "cp-252-20260406-pawelhuryn-super-ic-ai.mdx",
+    "startedAt": "2026-04-25T15:51:46+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Key terms 'agent' (lines 33, 53, 65, 71, 87, 91, 105) and 'Ralph Loop' (line 78, 2x) all linked to /glossary anchors at meaningful mentions; no key glossary term left unlinked.",
+            "crossRef": "Both internal post refs verified as live files: [CP-85 Yegge](/posts/clawd-picks-20260216-yegge-ai-vampire/) line 42 and [CP-132 Dorsey](/posts/cp-132-20260227-jack-block-ai-layoffs/) lines 49 and 96 — all resolve. ShroomDog identity link to /about present at line 58.",
+            "sourceAlign": "Content directly engages Huryn's Super IC thesis from the declared X URL — Super IC label, AI functional role fusion, Skill Multiplication, the '怎麼做 → 做什麼/為什麼' pivot, and team-multiplier framing all map to the source piece, with critical extension that doesn't drift off-topic.",
+            "attribution": "Huryn explicitly named for each of his framings ('Huryn 把這種人叫做', 'Huryn 整篇最關鍵的一句話', 'Huryn 自己也用了一個很精準的詞'); 4,000-layoff figure routed through Dorsey/Block via CP-132 link; ClawdNote opinions clearly fenced by component, body stays analytical."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Pawel Huryn / Product Compass / 'Super IC' concept all verifiable (productcompass.pm/p/super-ic-ai exists); cross-refs to CP-85 (Yegge AI Vampire) and CP-132 (Block 4,000 layoffs) both present in repo; no fabricated benchmarks; '三小時 MVP' explicitly framed as illustrative scenario, not factual claim.",
+            "fidelity": "Original tweet behind X login wall so direct line-by-line check not possible, but post explicitly hedges ('假設上面那個美好藍圖全部成立') and frames Huryn's terms ('AI functional role fusion', 'Skill Multiplication') as attributed concepts rather than asserting them as objective truth; ClawdNote disagreements ('這邊要跟 Huryn 唱反調') are clearly marked, not bled into body.",
+            "consistency": "Argument arc holds cleanly: Super IC premise → judgment-as-multiplier counterweight ('0×1000=0') → applicability boundary (MVP vs. 1→100 scale) → orchestration as unteachable skill; ClawdNotes consistently flagged as opinion/disagreement; the 'Block 股價漲了' claim in final ClawdNote is presented as commentary not new fact."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Hook is concrete (PM + 3 agents, MVP in 3 hours) so I'm in immediately. Sections are short, kaomoji break up the rhythm, agent vs chatbot is explained inline so I don't bounce. Ralph Loop is the only insider term but it's linked to a glossary so fine.",
+            "firstImpression": "The '0 乘以 1000 還是 0' line is memorable and the production-blew-up scenario is the kind of concrete failure I'd quote in Slack. Restaurant-owner-vs-chef analogy lands. Would share when the AI-replacing-jobs topic comes up at lunch."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Opening hooks with concrete 3-hour MVP scene; analogies land well (課金玩家打副本, 自動炒菜機/菜單設計, 0×1000=0); oral cadence natural throughout, slight expository dip in agentic workflow explanation.",
+            "clawdNote": "All 5 notes carry explicit opinions — Note 3 directly says '要跟 Huryn 唱反調' with Ralph Loop failure as counter-evidence; Note 4 challenges hidden equal-access assumption; density and personality both strong.",
+            "vibe": "The '0×1000=0' framing is memorable and the coin-flip dual framing is sharp; '零協調成本' section is intellectually solid but lower energy than the rest; ending challenges rather than summarizes.",
+            "clarity": "Body text avoids 你/我 consistently; all opinions clearly scoped to ClawdNotes; Huryn's views properly attributed throughout; agent vs chatbot distinction cleanly explained.",
+            "narrative": "Clear arc from concrete hook → 'what about the people' pivot → coin-flip framing → failure tension peak → honest limitation → callback ending; each section has distinct rhythm and tempo changes."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-25T16:05:23+08:00"
+  },
+  "sp-163-20260405-meta-alchemist-claude-claude.mdx": {
+    "article": "sp-163-20260405-meta-alchemist-claude-claude.mdx",
+    "startedAt": "2026-04-25T15:57:19+08:00",
+    "stages": {
+      "librarian": {
+        "status": "in_progress",
+        "score": null,
+        "model": "opus-4.7",
+        "attempts": 2
       }
     },
     "topLevelAttempts": 1
