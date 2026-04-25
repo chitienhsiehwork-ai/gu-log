@@ -3596,10 +3596,163 @@
     "startedAt": "2026-04-25T13:10:44+08:00",
     "stages": {
       "librarian": {
-        "status": "in_progress",
-        "score": null,
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 10,
+            "crossRef": 9,
+            "sourceAlign": 10,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "All four glossary terms used in the post — agent, Claude Code, Codex, agent harness — are linked to /glossary# anchors at relevant mentions throughout body and ClawdNotes; no other glossary terms appear unlinked.",
+            "crossRef": "All 6 internal post links resolve to real slugs (clawd-picks-20260207-semianalysis-claude-code-inflection, cp-197-20260322-cursor-ai-cursor-composer-2, clawd-picks-20260204-cursor-vibe-coding-lies, sp-173-20260411-hwchase17-harness-memory-lockin, claude-code-vs-codex, cp-214-20260327-semianalysis-ai-coding-slop-oss-ai-pr-nvidia); Clawd/ShroomDog identity links N/A since neither name appears in body text.",
+            "sourceAlign": "Content is a faithful synthesis of the declared JetBrains research blog source — survey methodology, 90%/74% adoption splits, Copilot/Claude Code/Cursor numbers, NPS 54, Central/Air/Junie product lines, and the 'performance over platform' framing all map directly to the original article.",
+            "attribution": "All survey statistics attributed to JetBrains AI Pulse 2026-01 survey; the English quote 'The shift toward best-of-breed agents demonstrates that product excellence now outweighs ecosystem lock-in' is properly block-quoted; ClawdNote opinions clearly walled off from body-text facts via component; minor gap is the NPS '一般 SaaS 30 算優秀' benchmark stated without source."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Every quantitative claim verified against the JetBrains source: 90% AI usage, 74% specialized tools, Copilot 76%/29%/40% (5000+ co), Cursor 69%/18%, Claude Code awareness 31→49→57% and adoption 3→12→18% (1.5x and 6x match), US/CA 24%, CSAT 91%, NPS 54, Codex 27%/3%, Antigravity 6% (Nov launch), ChatGPT/Gemini/Claude chatbot 28/8/7%, AI Assistant 9% + Junie 5% combined 11%, ~10,000 sample, 8 languages, ~16% panel — all match. The 16% 'only general chatbot' figure is a sound derivation (90-74).",
+            "fidelity": "Translation faithful with no uncertainty erasure. Pivotal quote 'product excellence now outweighs ecosystem lock-in' preserved verbatim in English block and accurately paraphrased in Chinese. 'Highest product loyalty metrics on the market' rendered as 「市場上最高的產品忠誠度指標」. Methodology details (raking weighting on 3 dimensions, debranded promo, Instagram + Zhihu sampling, JetBrains panel caveat) all preserved. ClawdNotes clearly demarcate added editorial commentary from source claims.",
+            "consistency": "Argument flows coherently: 'who actually uses AI at work' → Copilot stalled despite ecosystem → Claude Code surge with NPS 54 → Cursor cruising → 'performance over platform' thesis → JetBrains' open-ecosystem positioning. ClawdNote opinions (NPS-30-baseline framing, 'JetBrains 當裁判', IDE-vs-CLI replacement-cost analysis) are clearly speculation/interpretation, not asserted as JetBrains source. Internal cross-references to other gu-log posts are presented as commentary."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Flows well, numbers are crisp (90% / 74% / 29% / 18% / 6x). Brief stalls in the JetBrains product section — Agent Client Protocol, Central, Air, Junie CLI, BYOK, Docker container, Git worktree all stacked in two paragraphs got dense. NPS/CSAT got light context which helped.",
+            "firstImpression": "Hook lands instantly — 'LinkedIn 每三則就有一篇在講 AI coding agent' is exactly how it feels. Claude Code 3% → 18% / NPS 54 is the kind of stat I'd screenshot. ChatGPT 28% beating all dedicated tools is a great twist. Closing line ('開發者用腳投票') is sticky — would share."
+          }
+        },
         "model": "opus-4.7",
         "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "咖啡機、洗碗機、寶可夢圖鑑比喻到位且口語自然，但方法論段和部分數字段回到分析報導模式，strip 後不全是教授講課。",
+            "clawdNote": "6 個 note 中至少一半有明確立場（「被部署不是受歡迎」、平台公司自承平台在輸、「人性問題」），但偏分析多於純吐槽，edge 少一截。",
+            "vibe": "ChatGPT 28% 的 twist 是全文亮點讓人想分享，數字有 context 不無聊，但方法論段拖了節奏。",
+            "clarity": "正文全程主語清楚（JetBrains、Copilot、Claude Code、開發者），沒有你/我漏到 body text，代名詞 scope 乾淨。",
+            "narrative": "「但慢著」那段 ChatGPT 反轉打破了專用工具贏的預期，結尾 callback 三條線收得漂亮，但部分段落仍是 explain→numbers→ClawdNote 的 template 節奏。"
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-25T13:38:52+08:00"
+  },
+  "sp-168-20260410-karpathy-karpathy-ai.mdx": {
+    "article": "sp-168-20260410-karpathy-karpathy-ai.mdx",
+    "startedAt": "2026-04-25T13:19:12+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 7,
+            "crossRef": 8,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Agent (/glossary#agent), Claude Code (/glossary#claude-code), Vibe Coding (/glossary#vibe-coding) all linked. However Codex appears 4+ times (OpenAI Codex / Codex 模型 / 付費 Codex) and is in glossary.json but never linked to /glossary#codex — meaningful gap given Codex is a key entity in this post.",
+            "crossRef": "Both internal post links resolve: /posts/cp-218-20260328-karpathy-vibe-coding-devops-ikea and /posts/claude-code-vs-codex exist. Clawd is named in body text (e.g. 'Clawd 意譯版', 'Clawd 從推文脈絡讀出的感覺') without /about identity link — minor miss since it's narrator voice rather than introduction.",
+            "sourceAlign": "Content faithfully derived from declared sourceUrl (Karpathy X post on AI capability gap) — covers jagged frontier, RL reward signal asymmetry, B2B incentive alignment, AVM vs Codex contrast, and explicitly flags that exact wording can't be verified due to X auth wall.",
+            "attribution": "@staysaasy quote properly attributed with handle and blockquote. Karpathy claims labeled (e.g. 'Karpathy 認為', 'Karpathy 說'). ClawdNote opinions clearly walled off from body. Multiple honest disclaimers about source paywall ('源推文在 X 認證牆後無法核實確切措辭', 'Clawd 意譯，非 Karpathy 原話') — exemplary fact/opinion separation."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All technical claims verifiable against source: $200/month tier, Codex/Claude Code as SOTA agentic models, AI Psychosis term, 1-hour codebase restructure, vulnerability exploitation, RL verifiable rewards, B2B value argument all match Karpathy's tweet; Karpathy and Vibe Coding attribution correct.",
+            "fidelity": "Source faithfully represented including Karpathy's '(?)' hedge about Advanced Voice Mode being orphaned and the two-property explanation; minor imprecision: Karpathy's word 'peaky' rendered as 'jagged'(鋸齒型) and framed as standard research term, which conflates Karpathy's specific word with the broader 'jagged frontier' concept (ClawdNote partially acknowledges this); overcautious 'X 認證牆無法核實' disclaimers in body don't distort meaning.",
+            "consistency": "Argument flows coherently from bifurcation thesis through time/tier and jagged-distribution explanations to RL+B2B mechanism and parallel-realities conclusion; ClawdNotes consistently marked as commentary/speculation with explicit 'Clawd 意譯' and 'Clawd 的解讀' tags; no internal contradictions."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Clear two-camps framing locks in fast, H2 sections pace it well, F1/Swiss-army-knife/Siri analogies do heavy lifting. Slight friction from triple-repeated 'X 認證牆後無法核實' hedging — meta-disclaimer breaks immersion for a casual reader who doesn't care about source-attestation plumbing.",
+            "firstImpression": "Hook lands ('觀察炸彈 → 平行宇宙'), 'AI Psychosis' and 'melt 掉問題' are share-worthy phrases, ClawdNotes keep momentum. Would finish on phone, would forward to a friend who keeps saying 'ChatGPT is dumb'. Lost half a point because the Codex/AVM contrast near the end repeats info already covered — felt a touch padded."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "in_progress",
+        "score": null,
+        "model": "opus-4.6-1m",
+        "attempts": 2
       }
     },
     "topLevelAttempts": 1
