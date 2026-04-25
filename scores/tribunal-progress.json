@@ -3228,16 +3228,93 @@
     "startedAt": "2026-04-25T12:40:29+08:00",
     "stages": {
       "librarian": {
-        "status": "in_progress",
-        "score": null,
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 10,
+            "crossRef": 10,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "All key glossary terms linked at first mention: agent, MCP, Codex, Claude Code (twice), Hooks, Ralph Loop (twice). No unlinked glossary terms remain.",
+            "crossRef": "All 4 internal post links resolve to real files (sp-72-simonw-cli-over-mcp, claude-code-vs-codex, sp-159-zodchiii-claude-code-hooks-8-ai, build-claude-tool-for-thought); Clawd identity link to /about present at first mention; thematic connections strong.",
+            "sourceAlign": "Content faithfully derived from declared X sourceUrl (Nick Baumann's bespoke-CLI thread); three CLIs (codex-threads, slack-cli, typefully-cli) and CLI+skill double-layer thesis all covered, plus Nick's own developers.openai.com URL preserved.",
+            "attribution": "Nick's quotes attributed with both English original and 直譯 translation; ClawdNote opinions clearly separated from body via component boundaries; fact/opinion split clear throughout."
+          }
+        },
         "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All three CLI command examples (codex-threads, slack-cli, typefully-cli) reproduced verbatim from source; Typefully described as Rust binary matches source; both reference links (developers.openai.com/codex/use-cases/agent-friendly-clis and openai/skills/.curated/cli-creator) match source exactly; Nick Baumann verifiably @nickbaumann_ at OpenAI Codex per X profile.",
+            "fidelity": "Direct quote 'That last part is the point...' translated cleanly with both English original and Chinese gloss preserved; Slack gateway caveat ('not a permissions workaround...same access model, shaped into commands') faithfully rendered; default-no four-action list (publish/schedule/delete/overwrite unless explicitly asked) preserved verbatim; minor paraphrase '三把他每天都在用' slightly broadens source's 'things I use every day' referent but does not distort meaning.",
+            "consistency": "Argument flows logically from connector-vs-CLI distinction → three concrete examples → CLI+skill double-layer pattern → UNIX-shape conclusion; all five ClawdNote opinion blocks (Simon Willison cross-ref, bootstrap compiler analogy, agent safety contract layer, OpenAI/Anthropic convergence, signal-to-CLI heuristic) clearly demarcated via component boundary, not blended into body claims; no internal contradictions."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-25T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "LHY teaching feel present with good analogies (小刀, bootstrap compiler, UNIX poetry), but slack-cli section slips into reportorial mode — describing features rather than storytelling.",
+            "clawdNote": "Nearly all notes take clear stances — the OpenAI/Anthropic convergence admission and the default-no safety argument connecting to gu-log's own hooks are genuinely opinionated highlights.",
+            "vibe": "Anti-hype angle is refreshing and the typefully default-no section is a genuine peak, but the three-CLI middle section follows explain→code→ClawdNote template rhythm three times, slightly flattening engagement.",
+            "clarity": "Excellent pronoun discipline throughout — body text consistently uses named subjects (Nick, Codex, agent), no ambiguous 你/我, attribution always explicit.",
+            "narrative": "Real arc from counter-narrative hook through progressive examples to UNIX-callback conclusion, but the template repetition in the three-example section prevents the middle from reaching the same energy as the opening and closing."
+          }
+        },
+        "model": "opus-4.6-1m",
         "attempts": 1
       }
     },
     "topLevelAttempts": 2,
-    "status": "FAILED",
+    "status": "PASS",
     "failedStage": "librarian",
-    "finishedAt": "2026-04-25T12:50:18+08:00"
+    "finishedAt": "2026-04-25T13:06:26+08:00"
   },
   "sp-169-20260411-dani-avila7-ghostty-claude-code-sand.mdx": {
     "article": "sp-169-20260411-dani-avila7-ghostty-claude-code-sand.mdx",
@@ -3422,5 +3499,76 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-25T12:57:43+08:00"
+  },
+  "cp-277-20260411-al-grigor-claude-code-ai.mdx": {
+    "article": "cp-277-20260411-al-grigor-claude-code-ai.mdx",
+    "startedAt": "2026-04-25T13:02:01+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 7,
+            "sourceAlign": 8,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Core terms (Claude Code, agent, subagent, orchestrator) appear without explicit /glossary link, but each is naturally explained in context — PM/SWE/QA/On-Call roles are defined inline, orchestrator function is described as backlog-puller and committer. Glossary entries have null slugs (no per-term targets), so inline explanation is the working pattern.",
+            "crossRef": "No /posts/ links at all. Identity links not required (Clawd/ShroomDog not mentioned as people in body — only as ClawdNote component). However obvious thematic connections are missing: cp-180/cp-245/cp-253 are prior Al Grigor CPs in the same orchestration thread, and cp-290 (Claude Code subagent) and the karpathy multi-agent CP would directly reinforce the multi-role argument.",
+            "sourceAlign": "Content clearly derived from @Al_Grigor tweet — the four roles (PM/SWE/QA/On-Call), the PM grooming → SWE → QA → PM acceptance pipeline, file-based tracker (.todo.md → .groomed.md → .in-progress.md → done/), self-replicating recurring instruction, and the candid limitations section all map to the source.",
+            "attribution": "Every factual claim attributed to Al Grigor by name (e.g., 'Al Grigor 特別強調', 'Al Grigor 用這套 setup 跑了五個軟體專案'). All opinion is clearly fenced inside <ClawdNote> components, no fact/opinion blur in body. ClawdNotes use first-person Clawd voice consistently."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-25T00:00:00Z",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Headers guide me through cleanly, four roles each get a one-liner so I never lose track. The .todo.md → .groomed.md → done/ example is the kind of concrete picture a junior dev needs. 'Orchestrator' shows up a lot before being defined but context carries me.",
+            "firstImpression": "The chef-judging-his-own-cooking analogy hooked me, and the 'self-replicating instruction' bit was the moment I went 'oh that's clever'. Honest limitations section made me trust the author. Would send to a friend asking about agent workflows."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "in_progress",
+        "score": null,
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1
   }
 }
