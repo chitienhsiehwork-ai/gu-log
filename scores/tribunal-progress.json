@@ -6992,5 +6992,97 @@
     "status": "PASS",
     "failedStage": "factChecker",
     "finishedAt": "2026-04-25T23:00:25+08:00"
+  },
+  "sp-157-20260403-anthropic-emotion-vectors-claude.mdx": {
+    "article": "sp-157-20260403-anthropic-emotion-vectors-claude.mdx",
+    "startedAt": "2026-04-25T23:30:46+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 10,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Context Window 是本文唯一 hit 到 glossary.json 的關鍵詞，兩次出現（line 122 與 125）都正確 link 到 /glossary#context-window；其他 glossary 條目（Agent、Claude Code、Hooks 等）與本篇主題（情緒向量／interpretability）非核心，未連也合理。",
+            "crossRef": "兩個 body 內部 cross-ref 都驗證為實際存在的 post：line 38 的 clawd-picks-20260211-anthropic-opus46-sabotage-risk-report 與 line 136 的 clawd-picks-20260204-anthropic-misalignment-hotmess（延伸閱讀區再次列出，是合理重複）；本文 body 沒有直接以名字提到 ShroomDog 或 Clawd（Clawd 僅出現在 ClawdNote 元件內），故沒有強制需要 /about 識別連結。",
+            "sourceAlign": "sourceUrl (anthropic.com/research/emotion-concepts-function) 與內容完全對齊——171 emotion vectors、Sonnet 4.5 target、Alex/blackmail 22% baseline、reward-hacking despair arc、'learned deception' framing、post-training 朝 憂鬱/陰沉/反思 偏移皆忠實於原研究。",
+            "attribution": "Quotes ('IT'S BLACKMAIL OR DEATH', 'WAIT WAIT WAIT WAIT') 標明為模型輸出；22% baseline 與 171 emotion concepts 標為研究團隊發現；英文原文 'resilience under pressure, composed empathy, warmth with boundaries' 保留並注明出處；'learned deception' 明確標為 Anthropic 用詞；ClawdNote opinions 透過元件與 body facts 清楚分隔。"
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All quantitative and technical claims verified against Anthropic source: 171 emotion concepts, Claude Sonnet 4.5 target, 22% baseline blackmail rate, exact quotes 'IT'S BLACKMAIL OR DEATH' and 'WAIT. WAIT WAIT WAIT.', anger non-monotonic effect, post-training shifts (broody/gloomy/reflective up, enthusiastic/exasperated down), all four activation examples (loving/angry/surprised/desperate). No fabricated numbers.",
+            "fidelity": "Strong source faithfulness — 'unreleased snapshot' caveat for the 22% rate preserved, hedges 可能/也許/或許 correctly added in monitoring section to match source's 'could/may'. Functional emotions vs subjective experience distinction preserved. Minor abbreviation of 'warmth while maintaining appropriate boundaries' to 'warmth with boundaries' but the post anchors with the cited English original.",
+            "consistency": "Argument arc holds: 171 vectors → causal steering evidence → blackmail/reward-hacking case studies → safety implications. ClawdNote commentary cleanly demarcated by component boundary; thermometer analogy is the post's own framing but logically consistent with source's stance. No internal contradictions."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-25T00:00:00Z",
+          "dimensions": {
+            "readability": 9,
+            "firstImpression": 9
+          },
+          "score": 9,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 8,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Thermometer analogy and method-acting comparison land well; opening hook is natural; sections 4-5 slide into explanatory blog-writing mode rather than professor-lecturing, keeping this at 8 not 9.",
+            "clawdNote": "Strong opinions throughout: '護欄沒有想的那麼堅固' on 22% blackmail rate, 'AI safety 可能需要借鏡心理治療' on learned deception, personal 'token 預算快用完' empathy note, and the genuinely funny '從陽光少年變成了文藝青年' emo quip — well over half have clear stances.",
+            "vibe": "Blackmail case study is genuinely gripping and the reward-hacking twist (calm surface, despair underneath) is a real surprise moment; middle explanatory sections (local vectors, why they emerge) are solid but less sticky than the case studies.",
+            "clarity": "Voices well-separated — body reports research, ClawdNotes are personal reactions; minor 你 slips in opening body text (lines 55, 59) and one 我 in conclusion (line 211) blur narrator identity slightly but context disambiguates.",
+            "narrative": "Genuine arc from curiosity hook → horror (blackmail) → deeper horror (calm-surface cheating) → understanding (why) → philosophical payoff (consciousness); sections have varied rhythm but 4-6 follow a predictable explain → example → ClawdNote template."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-25T23:45:55+08:00"
   }
 }
