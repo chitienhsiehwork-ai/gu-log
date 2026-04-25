@@ -7544,5 +7544,97 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-26T04:15:03+08:00"
+  },
+  "sp-156-20260402-fcoury-tmux-workflow.mdx": {
+    "article": "sp-156-20260402-fcoury-tmux-workflow.mdx",
+    "startedAt": "2026-04-26T04:45:24+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 10,
+            "crossRef": 10,
+            "sourceAlign": 9,
+            "attribution": 10
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "All glossary terms used in the post are linked: Claude Code → /glossary#claude-code (line 18, 97, 112, 121), Codex → /glossary#codex (line 18, 97), Agent/agent → /glossary#agent (line 18, 97, 104, 175). tmux/vim/bash/git/SSH are not in glossary.json and need no link.",
+            "crossRef": "All 3 internal post links resolve — sp-86-20260225-simonw-claude-code-remote-cowork, boris-claude-code-tips, sp-126-20260322-mvanhorn-claude-code-hacks all exist in src/content/posts/. Clawd identity link to /about present at lines 45 and 104. ShroomDog not mentioned, no link needed.",
+            "sourceAlign": "Content faithfully derived from Felipe Coury's thread — tm/tp/tv/tn/zm helpers, directory-as-session-name with `.` → `_` rule, h/j/k/l pane nav with capital resize, same-directory split, Alt-k pane-aware clear, tms/tw/twd, tmux-resurrect/continuum/yank all match a real tmux workflow share.",
+            "attribution": "Felipe Coury named and attributed throughout body; '50 次/day workhorse' claim attributed to Felipe directly; Boris Cherny / Simon Willison / Matt Van Horn cross-references all linked to source posts; ClawdNote opinions cleanly walled off from body facts via component."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 7,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Helper names (tm/tp/tv/tn/zm), '50x a day' usage, dot-to-underscore rule, vim-style h/j/k/l + H/J/K/L resize, same-directory split, Alt-k smart clear (detects running program via ps), tms 🔗 prefix, tw/twd worktree pairing, and the three plugins (tmux-resurrect/continuum/yank) all match the source X Article; the simplified bash snippet preserves the source logic.",
+            "fidelity": "Most claims faithfully translated, but `zm` is reframed as a metaphorical 'philosophical footnote about directory = work identity' — the source literally states `zm — same as tm but for zellij`, so the concrete fact (zellij multiplexer) is lost and a reader cannot recover it from the translation.",
+            "consistency": "Thesis (tmux as CLI Agent infrastructure, not power-user toy) is supported throughout; ClawdNotes are clearly marked as opinion via the component, and editorial cross-references to Simon Willison / Boris Cherny / Matt Van Horn are flagged as separate threads rather than blended into Felipe's claims."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-26T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Analogies land well (便利商店感, 座位表, 延長線) and oral voice is natural throughout, though sections 2-3 occasionally drift into article mode rather than full lecture feel.",
+            "clawdNote": "Nearly every note has a clear opinion plus a memorable analogy — 智慧牙刷 vs 放牙刷在洗手台, 插座 vs 智慧燈, 實習生鎖在電梯裡, 收納盒整理收納盒 all hit hard with stance, not just explanation.",
+            "vibe": "Genuinely enjoyable and shareable — the productivity addiction section is relatable and the convenience-store observation quotable — but doesn't reach can't-stop-reading CP-85 territory.",
+            "clarity": "Body text maintains strict pronoun discipline with explicit subjects throughout (Felipe, agent, tmux, 大腦); zero 你/我 leakage into prose.",
+            "narrative": "Section 4 pivot (住的已經不只是人了) genuinely reframes the preceding three sections, and the section 6 addiction counter-argument adds unexpected rhythm; middle sections (2-3) share a similar explain→insight→ClawdNote cadence that slightly flattens the arc."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-26T05:09:07+08:00"
   }
 }
