@@ -7267,5 +7267,43 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-26T01:25:25+08:00"
+  },
+  "cp-242-20260403-article-gemma-4-google-gemini-3.mdx": {
+    "article": "cp-242-20260403-article-gemma-4-google-gemini-3.mdx",
+    "startedAt": "2026-04-26T01:55:47+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 5,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Two key glossary terms appear repeatedly without links: 'Agent' (used in 'agentic workflows', 'autonomous agents', 'agent 框架', 'agent 的腦子') and 'Context Window' (a whole section is titled '256K Context Window'). Neither term is linked to /glossary, leaving obvious knowledge-base hooks unconnected.",
+            "crossRef": "Internal link to /posts/cp-275-20260410-artificialanlys-gemma-4-google-token/ resolves to a real post and is a strong thematic follow-up. No body-text mentions of ShroomDog or Clawd that would require /about identity links (Clawd appears only via ClawdNote components, which are voice, not first-mention).",
+            "sourceAlign": "Content is clearly derived from the declared sourceUrl (@GoogleAI tweet on Gemma 4) — every claim (31B Dense / 26B MoE, Apache 2.0, 256K context, function calling, E2B/E4B, 140+ languages, distribution channels) maps directly to the tweet's content with no topic drift.",
+            "attribution": "Claims are consistently attributed to Google ('Google 在推文裡', '照 Google 的說法', '推文最後'), the bold 20x and Gemini-3 quotes are framed as Google's claims rather than asserted facts, and ClawdNote opinions are clearly separated from body text via the dedicated component."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "fail",
+        "score": null,
+        "model": "opus-4.7",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "FAILED",
+    "failedStage": "factChecker",
+    "finishedAt": "2026-04-26T02:00:13+08:00"
   }
 }
