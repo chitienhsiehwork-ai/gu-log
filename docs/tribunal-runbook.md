@@ -72,7 +72,7 @@ Two channels, same semantics (see `tribunal-run-control.sh`):
 - **Signal** — `systemctl --user stop tribunal-loop` sends SIGTERM. With `KillMode=mixed`, only the supervisor gets the signal; the in-flight per-article subprocess is left alive to finish its current article.
 - **File flag** — `touch .score-loop/control/stop-graceful`. Supervisor and workers poll in 15s slices, both notice within a slice and enter drain.
 
-Safe boundary = **article**, not stage. A stop during a judge call waits for the stage + rewrite + build to finish, then the next article won't be dispatched. Worst case ~60min per article (systemd `TimeoutStopSec=3600`).
+Safe boundary = **article**, not stage. A stop during a judge call waits for the stage + rewrite + final build gate to finish, then the next article won't be dispatched. Worst case ~60min per article (systemd `TimeoutStopSec=3600`).
 
 Restart after stop: `systemctl --user start tribunal-loop`. `rc_exit_stopped` removes the flag file on clean exit, so there's no sticky stop-state to clear.
 
@@ -97,8 +97,8 @@ ps -ef --forest | grep -E "tribunal|bash scripts/tribunal"
 ```
 
 Exit code conventions (from `tribunal-all-claude.sh`):
-- `0` — all 4 stages passed
-- `1` — stage failed (normal failure, will be retried on next dispatch)
+- `0` — all 4 stages passed and final full-site build passed
+- `1` — stage or final build gate failed (normal failure, will be retried on next dispatch)
 - `2` — EXHAUSTED (hit `MAX_TOP_ATTEMPTS=5`; will NOT be retried automatically)
 - `75` — skipped (per-article lock held by another instance)
 - `77` — stopped_by_request (graceful stop propagated from a long wait)
@@ -123,6 +123,39 @@ scripts/tribunal-worker-bootstrap.sh remove-all
 ```
 
 Disk cost: ~500MB per worker (pnpm `node_modules` per worktree). On clawd-vm (75GB, historically ~45GB used) this is fine for 2–3 workers.
+
+## Final build gate + shared build lock
+
+Tribunal no longer runs `pnpm run build` after every writer rewrite. Rewrites get cheap validation only (`validate-posts` for the target post + `git diff --check`). The full site build runs once, after all 4 judges pass and before PASS is persisted.
+
+All workers serialize final builds through the main repo lock path:
+
+```bash
+.score-loop/locks/build.lock
+```
+
+The supervisor exports `TRIBUNAL_SHARED_LOCK_DIR=$ROOT_DIR/.score-loop/locks`, so worker worktrees all wait on the same lock instead of each worktree creating its own.
+
+Useful troubleshooting commands:
+
+```bash
+# See final build gate lifecycle in logs
+ls -t .score-loop/logs/tribunal-quota-loop-*.log | head -1 | xargs grep -E 'Waiting for build lock|Acquired build lock|Running final pnpm build|Final build (passed|failed)|Released build lock|classified as'
+
+# Confirm current build process count
+pgrep -af 'astro.*build|pnpm run build'
+
+# Inspect lock file / holders (Linux)
+ls -l .score-loop/locks/build.lock
+fuser -v .score-loop/locks/build.lock 2>/dev/null || true
+```
+
+Log interpretation:
+- `Waiting for build lock` but no `Acquired` yet: worker is queued behind another final build; timeout has not started.
+- `Acquired build lock after Ns`: worker now owns the exclusive lock; only now does the 900s build timeout start.
+- `Final build failed rc=124`: build execution timed out (`timeout --kill-after=15s 900 ...`), treated as operational/resource, no writer repair.
+- `Final build failed rc=137` or log evidence like `heap out of memory`, `FATAL ERROR`, `SIGKILL`, `oom-kill`: likely resource/OOM, no writer repair.
+- Build logs mentioning MDX/frontmatter/schema/render/content collection errors are treated as content-actionable and may trigger up to 2 bounded writer repair attempts. PASS is never written unless a subsequent final build succeeds.
 
 ## Auto scale-down / up (memory throttle)
 

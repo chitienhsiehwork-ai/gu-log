@@ -717,6 +717,7 @@ spawn_worker() {
     export RC_ROOT_DIR="$ROOT_DIR"
     export PROGRESS_FILE="$ROOT_DIR/scores/tribunal-progress.json"
     export TRIBUNAL_MAIN_REPO="$ROOT_DIR"
+    export TRIBUNAL_SHARED_LOCK_DIR="$ROOT_DIR/.score-loop/locks"
     export TRIBUNAL_WORKER_ID="$id"
     bash "$wt/scripts/tribunal-all-claude.sh" "$article" >> "$LOG_FILE" 2>&1
   ) &

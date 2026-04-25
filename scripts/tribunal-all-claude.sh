@@ -195,6 +195,207 @@ mark_article_passed() {
   ) 9>>"$RC_PROGRESS_LOCK"
 }
 
+# ─── Cheap Validation + Final Build Gate ─────────────────────────────────────
+# After writer rewrites we intentionally avoid full-site builds; those are
+# serialized and deferred to the final gate after all judge stages pass.
+cheap_validate_writer_rewrite() {
+  local post_file="$1" en_existed_before="$2"
+  local post_rel="src/content/posts/$post_file"
+  local en_rel="src/content/posts/en-$post_file"
+  local diff_paths=("$post_rel")
+
+  if [ ! -f "$post_rel" ]; then
+    tlog "  ERROR: cheap validation failed: post file missing after writer rewrite ($post_rel)."
+    return 1
+  fi
+
+  if [ "$en_existed_before" = "1" ]; then
+    if [ ! -f "$en_rel" ]; then
+      tlog "  ERROR: cheap validation failed: EN counterpart missing after writer rewrite ($en_rel)."
+      return 1
+    fi
+    diff_paths+=("$en_rel")
+  elif git ls-files --error-unmatch "$en_rel" >/dev/null 2>&1; then
+    diff_paths+=("$en_rel")
+  fi
+
+  local validate_paths=("$post_rel")
+  if [[ " ${diff_paths[*]} " == *" $en_rel "* ]]; then
+    validate_paths+=("$en_rel")
+  fi
+
+  tlog "  Running cheap post validation for ${validate_paths[*]}..."
+  if ! node scripts/validate-posts.mjs "${validate_paths[@]}" >> "$LOG_FILE" 2>&1; then
+    tlog "  ERROR: cheap validation failed: validate-posts rejected rewritten post files."
+    return 1
+  fi
+
+  tlog "  Running git diff --check for rewritten post files..."
+  if ! git diff --check -- "${diff_paths[@]}" >> "$LOG_FILE" 2>&1; then
+    tlog "  ERROR: cheap validation failed: git diff --check found whitespace/conflict issues."
+    return 1
+  fi
+
+  tlog "  Cheap validation passed after writer rewrite."
+  return 0
+}
+
+revert_writer_rewrite_files() {
+  local post_file="$1"
+  local post_rel="src/content/posts/$post_file"
+  local en_rel="src/content/posts/en-$post_file"
+  git checkout -- "$post_rel" 2>/dev/null || true
+  if git ls-files --error-unmatch "$en_rel" >/dev/null 2>&1; then
+    git checkout -- "$en_rel" 2>/dev/null || true
+  elif [ -e "$en_rel" ]; then
+    rm -f -- "$en_rel"
+  fi
+}
+
+classify_build_failure() {
+  local rc="$1" build_log="$2" post_file="$3"
+  local post_rel="src/content/posts/$post_file"
+  local en_rel="src/content/posts/en-$post_file"
+  if [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; then
+    echo operational
+    return 0
+  fi
+  if grep -Eiq 'out of memory|oom-kill|oom killed|killed process|heap out of memory|JavaScript heap out of memory|FATAL ERROR|SIGKILL|Killed$|Exit status 137' "$build_log" 2>/dev/null; then
+    echo operational
+    return 0
+  fi
+  # Only spend writer repair tokens when the full-build evidence points at the
+  # target post or its EN counterpart. Unrelated global/component/build breaks
+  # should fail safely instead of asking the writer to hallucinate a content fix.
+  if grep -Fq "$post_rel" "$build_log" 2>/dev/null || grep -Fq "$en_rel" "$build_log" 2>/dev/null; then
+    if grep -Eiq 'MDX|frontmatter|schema|Expected|Unexpected|SyntaxError|ParseError|cannot render|render|component|validate-posts|content collection|astro:content|src/content/posts' "$build_log" 2>/dev/null; then
+      echo actionable
+      return 0
+    fi
+  fi
+  echo unknown
+}
+
+run_final_build_once() {
+  local build_log="$1"
+  local lock_dir="${TRIBUNAL_SHARED_LOCK_DIR:-${TRIBUNAL_MAIN_REPO:-$ROOT_DIR}/.score-loop/locks}"
+  local lock_file="$lock_dir/build.lock"
+  local wait_start wait_duration rc
+  mkdir -p "$lock_dir"
+  wait_start="$(date +%s)"
+  tlog "Waiting for build lock: $lock_file"
+  rc=0
+  (
+    flock -x 8
+    wait_duration=$(($(date +%s) - wait_start))
+    tlog "Acquired build lock after ${wait_duration} seconds"
+    local build_start build_duration build_rc
+    build_start="$(date +%s)"
+    build_rc=0
+    tlog "Running final pnpm build"
+    timeout --kill-after=15s 900 pnpm run build > "$build_log" 2>&1 || build_rc=$?
+    build_duration=$(($(date +%s) - build_start))
+    if [ "$build_rc" -eq 0 ]; then
+      tlog "Final build passed rc=0 duration=${build_duration}s"
+    else
+      tlog "Final build failed rc=$build_rc duration=${build_duration}s"
+      tail -30 "$build_log" | while IFS= read -r line; do tlog "    $line"; done
+    fi
+    exit "$build_rc"
+  ) 8>>"$lock_file" || rc=$?
+  tlog "Released build lock"
+  return "$rc"
+}
+
+repair_final_build_failure() {
+  local post_file="$1" build_log="$2" repair_attempt="$3"
+  local evidence writer_prompt writer_out writer_rc en_existed_before
+  evidence="$(tail -80 "$build_log" 2>/dev/null || true)"
+  if [ -f "src/content/posts/en-$post_file" ]; then
+    en_existed_before=1
+  else
+    en_existed_before=0
+  fi
+
+  tlog "Invoking tribunal-writer for final build repair attempt $repair_attempt/2..."
+  writer_prompt="$(cat <<PROMPT
+You are the tribunal-writer for gu-log. All judge stages passed, but the final full-site build failed.
+
+## Target post
+src/content/posts/$post_file
+
+## Build failure evidence (tail)
+$evidence
+
+## Task
+1. Fix only content-actionable problems in src/content/posts/$post_file.
+2. Also update src/content/posts/en-$post_file if it exists and the same issue applies.
+3. Do not rewrite unrelated content and do not change stable frontmatter fields unless the build error specifically requires it.
+PROMPT
+)"
+  writer_out="$(mktemp)"
+  writer_rc=0
+  local -a writer_cmd=(timeout 900 claude -p --agent tribunal-writer --model 'claude-opus-4-6[1m]')
+  [ "$(id -u)" != "0" ] && writer_cmd+=(--dangerously-skip-permissions)
+  "${writer_cmd[@]}" "$writer_prompt" > "$writer_out" 2>&1 || writer_rc=$?
+  if [ "$writer_rc" -ne 0 ]; then
+    tlog "  WARN: final build repair writer exited with code $writer_rc"
+    tail -10 "$writer_out" | while IFS= read -r line; do tlog "    $line"; done
+    rm -f "$writer_out"
+    return 1
+  fi
+  rm -f "$writer_out"
+
+  cheap_validate_writer_rewrite "$post_file" "$en_existed_before"
+}
+
+run_final_build_gate() {
+  local post_file="$1"
+  local max_repairs=2
+  local repair_attempt=0
+  local build_log build_rc classification
+  build_log="$(mktemp /tmp/tribunal-final-build-XXXXXX.log)"
+
+  while true; do
+    : > "$build_log"
+    build_rc=0
+    run_final_build_once "$build_log" || build_rc=$?
+    if [ "$build_rc" -eq 0 ]; then
+      rm -f "$build_log"
+      return 0
+    fi
+
+    classification="$(classify_build_failure "$build_rc" "$build_log" "$post_file")"
+    tlog "Final build failure classified as: $classification (rc=$build_rc)"
+    if [ "$classification" = "operational" ]; then
+      tlog "Final build failed due to likely operational/resource issue; not invoking writer repair."
+      revert_writer_rewrite_files "$post_file"
+      rm -f "$build_log"
+      return 1
+    fi
+    if [ "$classification" != "actionable" ]; then
+      tlog "Final build failure is not clearly content-actionable; failing safely without PASS."
+      revert_writer_rewrite_files "$post_file"
+      rm -f "$build_log"
+      return 1
+    fi
+    if [ "$repair_attempt" -ge "$max_repairs" ]; then
+      tlog "Final build repair attempts exhausted ($max_repairs); failing without PASS."
+      revert_writer_rewrite_files "$post_file"
+      rm -f "$build_log"
+      return 1
+    fi
+
+    repair_attempt=$((repair_attempt + 1))
+    if ! repair_final_build_failure "$post_file" "$build_log" "$repair_attempt"; then
+      tlog "Final build repair attempt $repair_attempt failed cheap validation; failing without PASS."
+      revert_writer_rewrite_files "$post_file"
+      rm -f "$build_log"
+      return 1
+    fi
+  done
+}
+
 # ─── Pass Bar Checks (code is the rule) ───────────────────────────────────────
 # Returns 0 = PASS, 1 = FAIL
 check_pass_bar() {
@@ -409,7 +610,12 @@ Write your JSON result to: $score_tmp" \
     # ── Rewrite: invoke tribunal-writer (timeout 900s / 15 min) ──────────────
     tlog "  Invoking tribunal-writer for rewrite (timeout 900s)..."
 
-    local writer_prompt writer_out writer_rc
+    local writer_prompt writer_out writer_rc en_existed_before
+    if [ -f "src/content/posts/en-$post_file" ]; then
+      en_existed_before=1
+    else
+      en_existed_before=0
+    fi
     writer_prompt="$(cat <<PROMPT
 You are the tribunal-writer for gu-log. The $label judge reviewed this post and it FAILED.
 
@@ -450,32 +656,11 @@ PROMPT
     fi
     rm -f "$writer_out"
 
-    # ── Verify post file still exists after rewrite ───────────────────────────
-    if [ ! -f "$post_path" ]; then
-      tlog "  ERROR: post file missing after writer rewrite. Reverting via git."
-      git checkout -- "src/content/posts/$post_file" 2>/dev/null || true
-      continue
+    # ── Cheap validation after rewrite (full build is deferred to final gate) ─
+    if ! cheap_validate_writer_rewrite "$post_file" "$en_existed_before"; then
+      tlog "  ERROR: cheap validation failed after writer rewrite. Reverting changes."
+      revert_writer_rewrite_files "$post_file"
     fi
-
-    # ── Build check after rewrite ─────────────────────────────────────────────
-    tlog "  Running pnpm build to verify no breakage..."
-    local build_log build_rc
-    build_log="$(mktemp)"
-    build_rc=0
-    pnpm run build > "$build_log" 2>&1 || build_rc=$?
-
-    if [ "$build_rc" -ne 0 ]; then
-      tlog "  ERROR: build failed after writer rewrite. Reverting changes."
-      tail -15 "$build_log" | while IFS= read -r line; do tlog "    $line"; done
-      git checkout -- "src/content/posts/$post_file" 2>/dev/null || true
-      local en_file="src/content/posts/en-$post_file"
-      if git ls-files --error-unmatch "$en_file" &>/dev/null 2>&1; then
-        git checkout -- "$en_file" 2>/dev/null || true
-      fi
-    else
-      tlog "  Build passed after rewrite."
-    fi
-    rm -f "$build_log"
 
     # Loop: re-score on next iteration
   done
@@ -568,6 +753,13 @@ for stage_def in "${STAGES[@]}"; do
 done
 
 tlog "=== ALL 4 STAGES PASSED: $POST_FILE ==="
+if ! run_final_build_gate "$POST_FILE"; then
+  tlog "=== FAILED at final build gate: $POST_FILE ==="
+  mark_article_failed "$POST_FILE" "finalBuild"
+  commit_progress "tribunal(${POST_FILE%.mdx}): FAILED at final build gate"
+  exit 1
+fi
+
 mark_article_passed "$POST_FILE"
-commit_progress "tribunal(${POST_FILE%.mdx}): all 4 stages PASS"
+commit_progress "tribunal(${POST_FILE%.mdx}): all 4 stages PASS + final build"
 tlog "Done. Log: $LOG_FILE"
