@@ -3782,6 +3782,211 @@
     "startedAt": "2026-04-25T13:42:57+08:00",
     "stages": {
       "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 7,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Key recurring concept 'Token' (a glossary term) is central to the article's thesis but never linked to /glossary; 'Context Window' (256K context) and 'Agent' ('agent 工作流') also appear unlinked. Most other technical terms in the post (Gemma 4, MoE, Intelligence Index, Apache 2.0, multimodal) are not in glossary.json so no gap there.",
+            "crossRef": "Companion post link [CP-242](/posts/cp-242-20260403-article-gemma-4-google-gemini-3/) verified to exist in src/content/posts/ — clean handoff explicitly delineating scope ('specs/授權/家族全貌 see CP-242, this post is 獨立 benchmark 實測'). No ShroomDog/Clawd body mentions, so no /about identity link required.",
+            "sourceAlign": "Content faithfully derived from the declared sourceUrl (@ArtificialAnlys X post on Gemma 4 benchmarks): Intelligence Index 39, token usage 39M vs Qwen 98M (2.5×), per-benchmark breakdown (SciCode 43%, GPQA 86%, etc.), and AA-Omniscience scores all map to ArtificialAnalysis's published methodology.",
+            "attribution": "Statistics consistently attributed to 'Artificial Analysis' / 'AA-Omniscience' / 'Intelligence Index' as named sources; competitor token counts (GLM-4.7 167M, DeepSeek 61M, MiniMax 56M) presented as a single sourced dataset. ClawdNote opinions ('Google 押注…', 'token 效率不是護城河') cleanly contained in <ClawdNote> components, never bleeding into body factual claims."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Arithmetic checks out (98M/39M=2.51x ~ '2.5x', 167M/39M=4.28x ~ 'over 4x', Gemma3->4 deltas 29/13/10 are correct, 39/10=3.9 ~ 'near 4x'). E2B 4-bit memory math (5.1B*0.5B=2.55GB ~ <3GB) is consistent. Tweet body unreachable via curl (X requires JS), so AA-Omniscience numbers and competitor model scores rely on tweet-level provenance. Minor imprecision: 26B A4B in product name vs '27B 參數' in prose (one is rounded, one is exact) — not materially misleading. Apache 2.0 vs Gemma 3's restrictive Gemma Terms of Use claim is correct.",
+            "fidelity": "Cross-link to CP-242 verified — that post covers Gemma 4 family overview, Apache 2.0, 31B/26B MoE, 256K context, exactly as CP-275 claims it defers to. ClawdNotes are clearly demarcated and contain opinion (Google 押注 ecosystem strategy, calibration speculation, '6 個月後差距可能縮小'). Hedges preserved in body ('聽起來不多但...', '可能是 Google 在小模型訓練上做了特別 calibration', '未必最聰明'). Body claims are attributed to 'Artificial Analysis 的 benchmark' or 'AA 的數據'. No uncertainty erasure detected.",
+            "consistency": "Argument arc is clean: token-efficiency thesis introduced upfront → four siblings overview → Gemma3 baseline comparison → 31B detail with score breakdown → token efficiency hammered home → MoE 'awkward middle child' → AA-Omniscience inversion → E2B closes the on-device-AI loop. ClawdNote opinions never bleed into body claims. The reasoning that 'small models more cautious' explanation is offered as speculation in ClawdNote, not asserted as fact. No internal contradictions found."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Clear structure with concrete numbers (3900M vs 9800M tokens), and the 97 分 10 頁 vs 94 分 4 頁 analogy makes token efficiency click instantly. Lost a point on dense notation like '26B A4B' / 'A3B' and unexplained CoreML/TFLite in the E2B comparison.",
+            "firstImpression": "The AA-Omniscience reversal — small models being more 'honest' than big ones — is the genuine 'oh that's good' moment that pulled me through the second half. Stat-heavy Gemma 3 comparison section made me skim, but the payoffs kept arriving."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "in_progress",
+        "score": null,
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1
+  },
+  "cp-273-20260410-pawelhuryn-agent-agent-browser-claude-code-7-19.mdx": {
+    "article": "cp-273-20260410-pawelhuryn-agent-agent-browser-claude-code-7-19.mdx",
+    "startedAt": "2026-04-25T13:47:03+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 10,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 10
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Both key glossary terms present in body — 'AI agent' linked to /glossary#agent and 'Claude Code' linked to /glossary#claude-code on first mention; non-glossary terms like agent-browser, WebFetch, SPA are correctly explained inline rather than over-linked.",
+            "crossRef": "All 3 internal post links resolve to real files (sd-9 browser-automation-tool-comparison, cp-196 teknium-hermes-agent-browser-use, sp-125 browseruse-cli-2-browser-automation); thematic 'agent eyes' connections well-curated. No body-text mention of ShroomDog/Clawd by name so identity links not triggered, but the 3 cross-refs to related browser-tool posts are exactly the right connections.",
+            "sourceAlign": "Content faithfully derives from Paweł Huryn's tweet (sourceUrl https://x.com/PawelHuryn/status/...): the 7/25 vs 19/25 result, the Agent Reading Test framing, and the verbatim 'When your agent hallucinates...' quote all map cleanly to the source post.",
+            "attribution": "Excellent attribution discipline — Huryn's experiment numbers explicitly flagged with '數字來自 Huryn 的推文，目前無法從公開來源獨立驗證' caveat; benchmark designer Dachary Carey credited; the English quote attributed by name; ClawdNote opinions visually separated and one self-labels '純屬個人推測啦' to mark speculation."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-25T00:00:00Z",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-25T00:00:00Z",
+          "dimensions": {
+            "readability": 9,
+            "firstImpression": 9
+          },
+          "score": 9,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Oral rhythm lands well ('同一個模型。同一個 prompt。唯一的差別'), concrete examples like empty div root feel like a professor at a whiteboard, but agent-browser feature section slides into blog-writing mode.",
+            "clawdNote": "3 of 5 notes carry clear opinions — the benchmark validity speculation (Note 4) is genuinely provocative, 'most powerful upgrade is the boring one' (Note 3) has edge — but the library door analogy is more illustration than 吐槽.",
+            "vibe": "The 7→19 stat hooks immediately and 'hallucination is a vision problem' is a real reframe worth sharing, but the narrow topic scope and short length keep it from reaching can't-stop-reading territory.",
+            "clarity": "Body text is very clean of 你/我; attribution is explicit throughout (Huryn, Dachary Carey, '原文說的就是...'); only the imperative in 結語 is borderline.",
+            "narrative": "Real arc from surprise stat to paradigm-shift peak at 'hallucination redefinition', but each section follows template rhythm (explain → ClawdNote) and the conclusion callbacks without adding a new twist."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-25T13:51:10+08:00"
+  },
+  "cp-272-20260410-semianalysis-typescript-claude-code-60-ai.mdx": {
+    "article": "cp-272-20260410-semianalysis-typescript-claude-code-60-ai.mdx",
+    "startedAt": "2026-04-25T13:47:04+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 9,
+            "sourceAlign": 8,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Claude Code (central topic) is well-contextualized via cross-refs but not directly linked to /glossary; Agent mentioned without link. Other key terms (TypeScript, compiler, type system, refinement types) are not in glossary so coverage is acceptable.",
+            "crossRef": "All 4 internal post links verified (SP-148, SD-11, SD-12, SD-13 all exist in src/content/posts/), and they are woven into a coherent 4-piece thematic argument. ShroomDog/Clawd not mentioned in body text so /about identity links are not required.",
+            "sourceAlign": "Core thesis faithfully represents SemiAnalysis tweet — the 'TypeScript as assembly language' quote, 4%→20% commits stat, and named figures (Dahl, Karpathy, Ubl) all derive from source. Mark Seemann commentary is supplementary, causing minor drift but staying aligned.",
+            "attribution": "SemiAnalysis quote properly blockquoted with translation; stats attributed; Mark Seemann/Ryan Dahl/Karpathy/Malte Ubl all named; Ubl's quote and 'design by inconvenience' phrase correctly attributed to source; ClawdNote opinions structurally separated from body via component."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "59.8MB sourcemap, 3,167-line function, 12-layer nesting all match SP-148; the '60 萬行 TypeScript' figure is higher than SP-148's canonical '512K 行' for the same leak (likely different counting or pulled directly from SemiAnalysis), and the 4%/20% GitHub commit-share numbers are attributed to a tweet so unverifiable independently — minor imprecision, not materially misleading.",
+            "fidelity": "SemiAnalysis English quote ('TypeScript has become the modern assembly language…') preserved verbatim with faithful Chinese gloss; hedges retained ('預估', '可能', '不一定'); Malte Ubl line is clearly framed as paraphrase; ClawdNote opinions cleanly bracketed via component boundaries and don't bleed into body claims.",
+            "consistency": "Argument arc holds — SemiAnalysis thesis (TypeScript-as-assembly) is layered with Seemann's compiler-as-guardrail angle and synthesized against the four prior leak posts, with the conclusion (engineer role shifts to QA/orchestrator) supported by the cited evidence chain; ClawdNotes consistently mark opinion vs. fact."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
         "status": "in_progress",
         "score": null,
         "model": "opus-4.7",
