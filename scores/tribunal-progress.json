@@ -4651,9 +4651,27 @@
         "attempts": 2
       },
       "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "比喻密度很高且每個都精準——發電機（generator）、醫院分級（compaction）、會議投影片（fork subagent）、紅綠燈（permission pipeline）、USB 接口（MCP）——技術名詞基本上都在第一次出現時就被翻譯成生活化的描述。Bun / Ink / prompt caching / backpressure 這些聽起來會嚇到的詞都立刻有一句白話補充。後半 Hooks / Skill / MCP 那段條列稍密，但每個 bullet 都還在可消化範圍。",
+            "firstImpression": "開場『有些人拿到工具會照說明書用，有些人先把它拆開』直接鉤住，結尾『模型是商品，環境決定結果』那句會記住——而且 ClawdNote 補了一個漂亮的反駁角度（環境是 co-design 出來的）讓結論不會太爽口。Fork subagent 那段的『印 5 份 vs 投影』比喻會讓人想截圖傳給寫後端的朋友。中段不會卡，會讀完。"
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "vibe": {
         "status": "in_progress",
         "score": null,
-        "model": "opus-4.7",
+        "model": "opus-4.6-1m",
         "attempts": 1
       }
     },
@@ -4727,7 +4745,7 @@
         "status": "in_progress",
         "score": null,
         "model": "opus-4.6-1m",
-        "attempts": 1
+        "attempts": 2
       }
     },
     "topLevelAttempts": 1
@@ -4912,5 +4930,170 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-25T14:40:44+08:00"
+  },
+  "cp-265-20260408-semianalysis-gpu-2-0-gpu-h100.mdx": {
+    "article": "cp-265-20260408-semianalysis-gpu-2-0-gpu-h100.mdx",
+    "startedAt": "2026-04-25T14:44:30+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Both glossary terms that appear ('agent' and 'Claude Code') are linked to /glossary# anchors at first mention; no other glossary.json terms appear unlinked.",
+            "crossRef": "Internal links /posts/cp-214-... and /posts/cp-212-... both resolve to existing posts; Clawd identity link to /about present in final ClawdNote; thematic connections to prior SemiAnalysis pieces well-chosen.",
+            "sourceAlign": "Content faithfully tracks the SemiAnalysis 'great-gpu-shortage-rental-capacity' newsletter — H100 price index, Neocloud three-tier market, memory price ripple, and 'This Time Might Be Different?' framing all match.",
+            "attribution": "SemiAnalysis consistently cited for every stat ($1.70→$2.35, ARR $9B→$30B, 20% Claude Commits Daily); direct quotes ('like trying to buy drugs', 'AI Server Pricing Apocalypse') marked as source quotes; ClawdNote opinions cleanly isolated from body facts."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All headline numbers verified against source: $1.70→$2.35/hr (≈40%), $14/hr B200 spot in AWS, 8 nodes/64 GPUs, H100 renewals through 2028, Blackwell lead times into June-July, capacity booked through Aug-Sep, LPDDR5/DDR5 ~4x/~5x YoY, Anthropic ARR $9B→$30B+, ~$5/M tok over 7 days, 20%+ daily commits projection, 100+ market participants. The added '約 24,000 到 48,000 張 GB300 NVL72 GPU' parenthetical for 50-100MW clusters is a reasonable hedged extrapolation, prefixed with '約'.",
+            "fidelity": "Faithful representation of source. 'Coming soon – the rise of Neocloud slumlords?' rendered as '他們半開玩笑地問：「Neocloud 二房東」的時代要來了嗎？' preserves the speculative tone. SemiAnalysis attributions throughout ('SemiAnalysis 認為', 'SemiAnalysis 點出'). ClawdNotes clearly bracketed via component, opinion not bleeding into body. Minor omission: 'or Hyperscaler' dropped from the 6-year depreciation chastisement, but not materially distorting.",
+            "consistency": "Argument flows cleanly from price data → why predictions failed → memory/server cost shock → demand explosion → market structure → outlook. Three observation points in conclusion logically tie back to supply/demand framing. ClawdNote opinions explicitly hedged ('讀者應該自行判斷', '市場不是永遠對的'). Final '序幕 vs 泡沫' framing supported by the three pillars laid out earlier."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Flows smoothly with concrete numbers ($1.70 → $2.35) and great analogies (Airbnb / 整棟包租 / 公寓不肯搬). OEM and ARR explained inline. A few terms like Hopper, Blackwell, NVL72, MoE, ROIC, IRR are dropped without definition — re-read once or twice but didn't get lost.",
+            "firstImpression": "Hook nails it — 'GPU 比租房還難' + 'like trying to buy drugs' kept me scrolling. The self-reinforcing loop explanation in the ClawdNote was the best moment, made the whole story click. 'Neocloud 二房東' image is sticky. Would screenshot and send to a friend who works in infra."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "in_progress",
+        "score": null,
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1
+  },
+  "cp-264-20260408-bensig-mempalace-ai-120-token.mdx": {
+    "article": "cp-264-20260408-bensig-mempalace-ai-120-token.mdx",
+    "startedAt": "2026-04-25T14:48:24+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 8,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Both glossary-eligible terms are linked: 'agent' -> /glossary#agent (zh-tw line 64, en line 54) and 'context window' -> /glossary#context-window (zh-tw line 82, en line 72). Other technical terms used (vector search, LLM, RAG, embedding, system prompt) are not in glossary.json so no link required.",
+            "crossRef": "Identity link present: [Clawd](/about) on first mention in both zh-tw (line 103) and en (line 95). Two thematic cross-refs at the end resolve to real files: ai-memory-design-cc-auto-memory-vs-openclaw.mdx and clawdbot-memory-deep-dive.mdx both exist in src/content/posts/. ShroomDog is not mentioned by name so no /about identity link required for them.",
+            "sourceAlign": "Content faithfully covers the tweet's core claims (palace/wings/halls/rooms architecture, ~120 tokens, AAAK 30x compression, semantic search position 1-2, contradiction detection, LongMemEval 500/500, ConvoMem 92.9% > 2x Mem0, LoCoMo 100% temporal inference, MIT/local/one-dependency). Minor drift: the source page includes a Community Note flagging that the LongMemEval 100% used targeted fixes + LLM reranking (held-out 98.4%) and LoCoMo 100% used top-k=50 reranking (honest top-10 no rerank: 88.9%). The post does not surface these specific caveat numbers, though ClawdNotes do flag the self-reported nature broadly. Content clearly derived from sourceUrl with one notable caveat-omission.",
+            "attribution": "Numerical claims consistently attributed to Ben Sigman ('Ben Sigman 宣稱', 'Ben Sigman claims', 'Ben Sigman 在推文裡列了三個 benchmark', 'Here is what Ben Sigman reported'). All ClawdNote opinions clearly fenced inside <ClawdNote> blocks; skepticism about self-reported benchmarks explicitly labeled as Clawd's view, not original-author claim. Source URL and @bensig handle in frontmatter. No fact/opinion blur in body."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All technical claims (wings/halls/rooms architecture, AAAK 30x compression, ~120 tokens, LongMemEval 500/500, ConvoMem 92.9% >2x Mem0, LoCoMo 100% multi-hop incl. temporal inference, MIT/one-dep/local) reproduce the source faithfully; token-math footnote (1 中文字 ≈ 1–2 token, 1 token ≈ 0.75 英文字) is correct; Method of Loci attribution to Greek/Roman orators is historically accurate. Minor gap: source's later Community Notes (held-out 98.4%, honest top-10 88.9%) are not surfaced — likely posted after the 2026-04-08 translation date, but article's general 'self-reported benchmark' caveat partly compensates.",
+            "fidelity": "Hedges preserved with 'Ben Sigman 宣稱/聲稱' on every benchmark and compression claim; no uncertainty erasure; ClawdNotes clearly demarcate added opinion (Mem0 ecosystem caveat, 'what is one dependency' speculation, self-report skepticism) from translated body; no claims added beyond source except token-unit explainer which is technically correct context, not new factual assertion.",
+            "consistency": "Argument flows cleanly: problem (失憶) → architectural solution (palace) → compression → benchmarks → contradiction detection → privacy/license; ClawdNotes consistently marked as speculation/opinion (e.g., 'Anthropic SDK 是合理猜測'); no internal contradictions between sections; conclusion appropriately conditional on independent verification."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-25T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Opening pain-point analogy and 小花/小草 scenario feel like LHY teaching, but benchmark section lists three scores sequentially in report mode.",
+            "clawdNote": "Over half have clear opinions — 餐廳米其林貼紙 analogy and 30x compression skepticism show genuine stance, though spatial-memory note leans explanatory.",
+            "vibe": "Skepticism thread and JSON-array callback ending keep engagement, but sequential benchmark dump in section 4 drags momentum.",
+            "clarity": "Body text consistently uses 使用者 instead of 你/我; ClawdNotes correctly scope Clawd as speaker with zero pronoun ambiguity.",
+            "narrative": "Amazing-but-skeptical thread prevents pure linearity and Milla Jovovich reveal creates surprise, but stripped skeleton is still a product feature walkthrough."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-25T14:53:49+08:00"
   }
 }
