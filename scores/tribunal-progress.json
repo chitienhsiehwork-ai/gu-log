@@ -6026,13 +6026,50 @@
         "attempts": 2
       },
       "freshEyes": {
-        "status": "in_progress",
-        "score": null,
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-25T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
         "model": "opus-4.7",
         "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Opening interview scene and 米其林評鑑/泡麵鍋 analogy land well with oral LHY feel, but the four-concepts section slides into lecture mode with explain-then-punch rhythm.",
+            "clawdNote": "All four notes carry clear opinions: Note 1 self-roasts gu-log, Note 3 actively disagrees with 'hobbyist = lesser engineer' take, Note 4 boldly claims 'AI讓人忘了舊方法' and backs it with CP-277 cross-ref.",
+            "vibe": "The work-vs-reliable framing is quotable and the section 3 trap scenario is genuinely compelling, but the four-concept enumeration in section 4 dampens momentum before the callback ending.",
+            "clarity": "Zero pronoun violations in body text; uses named subjects and 人/自己 consistently; ClawdNote pronouns properly scoped to Clawd as speaker.",
+            "narrative": "Section 3 pivot ('等等不是每個人都需要這套') creates real surprise after the harsh setup, and the conclusion callbacks the opening interview scene, but section 4 four-item enumeration falls into templated rhythm."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
       }
     },
-    "topLevelAttempts": 1
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-25T16:14:32+08:00"
   },
   "cp-252-20260406-pawelhuryn-super-ic-ai.mdx": {
     "article": "cp-252-20260406-pawelhuryn-super-ic-ai.mdx",
@@ -6132,10 +6169,70 @@
     "startedAt": "2026-04-25T15:57:19+08:00",
     "stages": {
       "librarian": {
-        "status": "in_progress",
-        "score": null,
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "All key glossary terms are linked: agent (3x to /glossary#agent), agent-harness (2x), openclaw (3x), claude-code (2x), mcp, codex. No major unlinked glossary term in body. Hermes is not in glossary so /posts/ link is correct.",
+            "crossRef": "Five internal post links all resolve to real slugs (sd-20-hermes-vs-openclaw, clawd-picks-simonw-zhipu-glm5-open-source, claude-code-vs-codex, sp-173-hwchase17-harness-memory-lockin, sp-52-codex-mcp-claude-code). Clawd identity link to /about present where Souls MD is mentioned. Thematic connections (GLM open-source post, Codex deep-dive, harness lock-in) all surfaced.",
+            "sourceAlign": "Content faithfully covers Meta Alchemist's X thread: Anthropic OAuth ban → GLM 5.1 / Minimax 2.7 / Codex alternatives → UI/UX skills (Pro Max, Anthropic library, Vercel) → personality/EQ/humanization skill prompts. Structure and key claims align with declared sourceUrl.",
+            "attribution": "Quotes attributed cleanly: KiloCode credited for 90%/7% line and SWE-Pro 56.22% / 41-vs-20 test comparison; Meta Alchemist tagged for opinions throughout; English blockquote on Claude conversational strength is direct quote with clear speaker. ClawdNote component visually separates opinion from body facts. Minor gap: UI/UX Pro Max Skill 58k stars / 5.7k forks lacks date snapshot or repo URL."
+          }
+        },
         "model": "opus-4.7",
         "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Core verifiable claims match source: Anthropic OAuth ban, 20-30x API cost, GLM 3X cheaper / open-source roadmap, OpenAI acquihire of OpenClaw, 95% Codex usage split, $20-vs-$200 pricing gap, 3-4x more generous plans + weekly limit resets, UI/UX Pro Max 58k stars / 5.7k forks, Vercel skills (react-best-practices, web-design-guidelines, composition-patterns), local LLM lineup (GLM 5, Qwen 3.5, Kimi 2.5, Minimax 2.5). Minus 2 because specific numerical breakdowns — GLM Lite/Pro/Max tiers ($10/$30/$80, 5x usage, 40-60% speed boost), Minimax SWE-Pro 56.22%, 41 integration vs 20 unit tests, 161 design rules / 67 UI styles — are not in the tweet body text and presumably came from embedded images, so they are not text-traceable to primary source.",
+            "fidelity": "No uncertainty erasure detected. Hedges and attributions preserved (Meta Alchemist 認為 / 原作者建議 / 預告即將開源 / 可能是性價比最高的選擇). Apartment/landlord analogy is the post's own paraphrase of the same business framing in the source. ClawdNote opinions are clearly bracketed in <ClawdNote> components and do not bleed into the body. The cautionary note at the end about 人格和情商類 skill 更像設定方法論、沒有單一安裝連結 actually adds source faithfulness rather than overstating.",
+            "consistency": "Argument flows cleanly: ban → economic impact → 3 subscription alternatives → local fallback → soft-skill replication via 3 skills → conclusion on platform risk + portable skills. Each conclusion supported by either source-cited claim or clearly-marked opinion. Cross-references (SP-173 harness lock-in, SD-20 Hermes vs OpenClaw, SP-52 Codex MCP) are thematically aligned. ClawdNotes reliably tagged as opinion/speculation rather than fact."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Landlord-changes-locks hook is instantly clear, four alternatives are cleanly partitioned with concrete prices and one-liners; jargon like OAuth token / harness / MCP shows up but most are glossary-linked and context carries the rest.",
+            "firstImpression": "Topic is hot (Claude got cut off, what now?), the '90% quality for 7% cost' line is memey enough to screenshot, and the skill-prompt section gives me something actionable instead of just doomposting — would forward to a friend who pays for Claude."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "in_progress",
+        "score": null,
+        "model": "opus-4.6-1m",
+        "attempts": 1
       }
     },
     "topLevelAttempts": 1
