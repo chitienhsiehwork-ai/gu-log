@@ -5792,5 +5792,146 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-25T15:36:54+08:00"
+  },
+  "cp-256-20260406-karpathy-karpathy-idea-file-llm-agent.mdx": {
+    "article": "cp-256-20260406-karpathy-karpathy-idea-file-llm-agent.mdx",
+    "startedAt": "2026-04-25T15:38:20+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 10,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Key glossary terms linked correctly — 'LLM agent' → /glossary#agent (3 mentions on lines 40, 110, 112), 'Ralph Loop' → /glossary#ralph-loop (line 119). Other glossary terms (Claude Code, MCP, Hooks, Codex, Subagent, Zettelkasten, etc.) not used in body. CLAUDE.md / AGENTS.md mentioned as filenames in Karpathy's schema, not as glossary concepts.",
+            "crossRef": "All 5 internal post links resolve to existing slugs: /posts/cp-244-20260403-karpathy-llm-knowledge-base (prequel tweet, line 18), /posts/cp-223-20260329-pawelhuryn-ai-agent-knowledge-architecture (line 36), /posts/cp-237-20260402-pawelhuryn-claude-md-knowledge-architecture (line 65), /posts/cp-229-20260330-rjehuappiah-claude-code-personal-wiki (line 85), /posts/sd-10-20260322-ralph-loop-quality-system (line 119). Clawd identity link to /about present at first mention (line 65). Thematic connections are tight and load-bearing.",
+            "sourceAlign": "Content directly derived from the declared sourceUrl (Karpathy's X post linking the LLM Wiki Gist) — three-layer architecture, Lint sweep, index.md / log.md, 'surprisingly well at moderate scale' quote, and idea-file meta-point all traceable to the Gist. Some Clawd commentary expands beyond source but is clearly demarcated by component boundaries.",
+            "attribution": "Karpathy quotes attributed throughout body ('Karpathy 把問題重新定義', 'Karpathy 在 Gist 裡說', 'Karpathy 還加了'); Vannevar Bush cited with year (1945) and outlet (The Atlantic); all four ClawdNotes wrapped in <ClawdNote> component — opinion/fact separation clean."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Verifiable claims correct: Vannevar Bush's Memex was indeed proposed in 1945 in The Atlantic ('As We May Think'); 1945+81=2026 timeline math holds; the C(100,2)=4950 'nearly five thousand pairwise combinations' calculation is accurate. Source tweet/Gist content (CLAUDE.md/AGENTS.md as schema example, three-layer architecture, lint operation, index.md/log.md) cannot be independently verified due to WebFetch unavailability — typical for tweet-sourced CP posts.",
+            "fidelity": "Hedges preserved appropriately — the post explicitly flags Karpathy's qualifying language ('他加了 \"surprisingly well\" 和 \"moderate scale\" 兩個限定詞，沒有說 RAG 沒用'). ClawdNote opinions clearly bracketed and never extend Karpathy's claims; the 'README 比 code 更重要' extrapolation is explicitly attributed to Clawd, not Karpathy. Quoted line about LLM '不會無聊、不會忘記更新交叉引用、而且一次可以動 15 個檔案' is framed as 'Karpathy 在 Gist 裡說了一句很到位的話' — slight risk if exact phrasing differs from source.",
+            "consistency": "Argument arc flows cleanly from problem (O(n²) maintenance burden) → Karpathy's three-layer fix → dishwasher analogy → 'idea file' meta-point → Memex callback. ClawdNotes consistently mark themselves as opinion/extension (e.g., the gu-log self-application is flagged as meta, and the 100→1000 scaling counterargument is presented as Clawd's disagreement, not as fact). No internal contradictions; quantitative claims (5000 combinations, 10–15 page updates, 100 docs threshold) cohere with each other."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Short sections, the O(n²) framing and 洗碗機 analogy land cleanly; only friction is 'materialized view' and a fast RAG mention that may make a 3-month dev hover the glossary.",
+            "firstImpression": "Cold open ('不是 code。不是 repo。不是 demo。') hooks instantly, '致命優勢不是聰明，是不介意' is the share-worthy line, Memex callback closes without preaching."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Dishwasher analogy is textbook LHY — normal thing + absurd scale + consequence; 等等停一下 pivot feels like a live lecture pause.",
+            "clawdNote": "All 5 notes carry opinions — meta self-reference in note 2 is a highlight, note 4 uses gu-log own 250-article data to ground its disagreement with Karpathy.",
+            "vibe": "Dishwasher theory section is share-worthy and Vannevar Bush ending lands clean, but the three-layer architecture explanation in section 2 reads more informational than exciting.",
+            "clarity": "Zero pronoun ambiguity in body text; every sentence has a named subject; ClawdNote speaker identity is always obvious.",
+            "narrative": "Good peaks — dishwasher theory and the meta-point escalation create genuine tension, but section 2 follows a predictable explain-analogy-ClawdNote template that flattens rhythm."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-25T15:51:32+08:00"
+  },
+  "cp-254-20260406-pawelhuryn-ai-pawel-huryn-48-claude-dispatch.mdx": {
+    "article": "cp-254-20260406-pawelhuryn-ai-pawel-huryn-48-claude-dispatch.mdx",
+    "startedAt": "2026-04-25T15:42:35+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 8,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Key glossary terms linked at first/notable mention: 'agent' -> /glossary#agent (line 33, 59, 109), 'context' -> /glossary#context-window (line 121 Gotchas), 'agent harness' -> /glossary#agent-harness (line 112 ClawdNote). Other glossary candidates (Claude Code, MCP, Hooks, Subagent) not used in body, so no missing links there.",
+            "crossRef": "All 3 internal post links resolve: sp-121-20260320-heynavtoor-ai-claude-dispatch.mdx, cp-179-20260316-daniel-mac8-symphony-manage-work-not-agents.mdx, sp-173-20260411-hwchase17-harness-memory-lockin.mdx — all present in src/content/posts/. Clawd -> /about identity link present in line 42 ClawdNote signature. ShroomDog not mentioned, so no link required.",
+            "sourceAlign": "sourceUrl declares @PawelHuryn X post on the 48hr Dispatch experiment; post faithfully reproduces Huryn's premise (25min cmd time / 3hr parallel output, Phone->Orchestrator->Task Sessions->Desktop pipeline, four-round infographic case, dead-time framing, PM Doing->Orchestrating shift, gotchas). Minor drift: section on '四種行動端 Claude 方案' is admittedly partial because origin couldn't be fully fetched — honest gap, not misalignment.",
+            "attribution": "Quantitative claims (25min vs 3hr) explicitly bound to Huryn's experiment; PM-skill arguments framed as 'Huryn 認為' / 'Huryn 文章裡' (lines 99, 103); design-iteration quotes ('把 icon 往左移') bound to the bounce-house scenario context; ClawdNote opinions cleanly fenced via component boundary. Single soft spot: 'AI fluency' / 'Plan -> Execute -> Reflect' phrasing isn't tagged as Huryn's exact wording vs. paraphrase."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "in_progress",
+        "score": null,
+        "model": "opus-4.7",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1
+  },
+  "cp-253-20260406-al-grigor-karpathy-code.mdx": {
+    "article": "cp-253-20260406-al-grigor-karpathy-code.mdx",
+    "startedAt": "2026-04-25T15:47:02+08:00",
+    "stages": {
+      "librarian": {
+        "status": "in_progress",
+        "score": null,
+        "model": "opus-4.7",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1
   }
 }
