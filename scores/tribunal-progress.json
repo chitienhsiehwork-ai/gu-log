@@ -1522,12 +1522,85 @@
         "attempts": 2
       },
       "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Jargon 密度高（prefill/decode、MoE、FP4/FP8、EP/Wide EP、MTP、RDMA、NVL72、vLLM、TRT-LLM、ATOM），但每個概念都先用具體比喻鋪陳：捷運公車 vs 賽車（延遲/吞吐）、讀題/寫答案（prefill/decode）、256 人公司只派 8 人（MoE）、72 台電腦塞同一間辦公室 vs VPN 跨樓（NVL72 fabric）。3 個月新手能跟得上敘事線。FP8 驚喜段、SKU 大亂鬥那段名稱稍密，需要稍微回看一兩句，但不致迷路。",
+            "firstImpression": "開場 hook 強（入學考 vs 日常打工）→ Jensen 30 倍其實低估、真實 100 倍的反差揭曉 → AMD 成績單一個 A 一個 F → Anthropic fast mode 用 benchmark 反推 → SemiAnalysis 一天燒 6000 美元 Claude token。幾乎每一節都有可截圖、可轉發的點。ClawdNote 提供節奏轉換和個性。結尾 callback「Speed is the moat」收得乾淨。3 個月新手讀完會想丟到工作群討論。"
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Strong LHY analogies (256人顧問公司、同時考數學和寫作文) and oral voice, but SKU comparison, accuracy, and economics sections slip into report-writing mode.",
+            "clawdNote": "Over half have clear opinions — 選題巧合不信、六個月是一輩子、chief revenue destroyer dimensional chess、Copilot burn — density and edge both strong.",
+            "vibe": "Jensen 30x setup-and-payoff is genuinely compelling and AMD four-gates-of-hell builds real dread, but accuracy and SKU sections are informative without being sticky.",
+            "clarity": "Zero 你/我 violations in body text; subjects consistently named (SemiAnalysis/AMD/Jensen); attribution phrases like 推測/據說/原話 keep fact vs opinion unambiguous.",
+            "narrative": "Jensen 30x question creates real pivot tension, AMD A/F contrast lands, conclusion callbacks opening with the 0-CI punch — but middle stretch follows repetitive explain→data→ClawdNote template rhythm."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 2,
+    "status": "PASS",
+    "finishedAt": "2026-04-25T10:38:31+08:00"
+  },
+  "cp-295-20260415-lydiahallie-claude-code-pro-token-anthropic.mdx": {
+    "article": "cp-295-20260415-lydiahallie-claude-code-pro-token-anthropic.mdx",
+    "startedAt": "2026-04-25T10:37:10+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Both relevant glossary terms in the post are linked at first mention: Claude Code → /glossary#claude-code (line 41) and Context Window → /glossary#context-window (line 117). Other domain terms used (Sonnet, Opus, Pro, extended thinking, Anthropic) are not in glossary.json so no link expected.",
+            "crossRef": "CP-259 is referenced twice (intro line 41 and conclusion line 145) and the target file cp-259-20260330-lydiahallie-claude-code-rate-limit.mdx exists in src/content/posts/. No mention of ShroomDog or Clawd by name in body text (only ClawdNote components used), so no /about identity link required.",
+            "sourceAlign": "Declared sourceUrl is Lydia Hallie's X post on Claude Code Pro token tips; content faithfully translates the four token-saving techniques (Sonnet default, lower effort/extended thinking, fresh session after idle, CLAUDE_CODE_AUTO_COMPACT_WINDOW=200000), preserving the original English blockquotes for each tip.",
+            "attribution": "All four Lydia quotes are properly blockquoted and attributed by context, the /feedback quote is sourced, ClawdNote opinion blocks are visually and structurally separated from body facts, and the 'Opus burns roughly twice as fast' claim is anchored to Lydia's own quoted text rather than presented as an unattributed assertion."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
         "status": "in_progress",
         "score": null,
         "model": "opus-4.7",
         "attempts": 1
       }
     },
-    "topLevelAttempts": 2
+    "topLevelAttempts": 1
   }
 }
