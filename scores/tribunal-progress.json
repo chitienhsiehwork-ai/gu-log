@@ -4395,7 +4395,7 @@
         "status": "in_progress",
         "score": null,
         "model": "opus-4.6-1m",
-        "attempts": 1
+        "attempts": 2
       }
     },
     "topLevelAttempts": 1
@@ -4461,13 +4461,33 @@
         "attempts": 1
       },
       "vibe": {
-        "status": "in_progress",
-        "score": null,
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 8,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "比喻到位（法拉利買菜、垃圾山翻遺囑、健身房月費卡），口語感強，但六招 listicle 骨架 + 第一刀/第二刀/第三刀列舉節奏讓中段回到報告模式。",
+            "clawdNote": "六個 note 全有立場——Note 2 自嘲 CLAUDE.md 是企業維基百科是 highlight，Note 5 直說 50-90% MCP output 是垃圾夠嗆，密度和 opinion 比例都過門檻。",
+            "vibe": "好讀有用，恐怖故事和開頭 paradox 精彩，結尾 callback + punch line 收得漂亮，但 tips article 題材天花板限制了分享衝動。",
+            "clarity": "Sabrina/原作者有 name、Clawd 只在 ClawdNote 發聲，整體清楚，但 body 第 69 行有兩處「你」（你知道自己在花錢/你根本不知道）技術性違反 pronoun rule。",
+            "narrative": "升級式框架（止血→進階手術→核選項）比純列舉好，恐怖故事是真正 narrative beat，但止血 section 落入 explain→三項列舉→ClawdNote 的 template 節奏。"
+          }
+        },
         "model": "opus-4.6-1m",
-        "attempts": 1
+        "attempts": 2
       }
     },
-    "topLevelAttempts": 1
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-25T14:25:20+08:00"
   },
   "cp-268-20260409-trq212-claude-code-viewport-cli-ide.mdx": {
     "article": "cp-268-20260409-trq212-claude-code-viewport-cli-ide.mdx",
@@ -4563,5 +4583,40 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-25T14:23:00+08:00"
+  },
+  "sp-166-20260408-rohit4verse-claude-code-55-331-ai-agent.mdx": {
+    "article": "sp-166-20260408-rohit4verse-claude-code-55-331-ai-agent.mdx",
+    "startedAt": "2026-04-25T14:23:30+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 9,
+            "sourceAlign": 8,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Key glossary terms (Claude Code, Agent, Subagent, Hooks, MCP, Context Window, Agent Harness) appear without /glossary/ hyperlinks but are all naturally explained inline (e.g. context window = 'AI 一次能記住的最大文字量', tool use = '讓模型呼叫外部功能', MCP gets a full explanatory section). Repo convention is natural explanation rather than glossary URL linking, so coverage is solid; minor deduction because terms like Subagent and Agent Harness could call back to their glossary definitions more explicitly.",
+            "crossRef": "All 6 internal /posts/ links resolve to real slugs: sp-116 (reverse-engineering-claude-code), sp-94 (agent-harness-real-product), sp-96 (agent-teams-swarm-mode), sp-97 (mcp-context-mode-98-token), sp-146 (hook-architecture), sp-149 (agent-security). Each connection is thematically tight (hooks→sp-146, MCP context→sp-97, multi-agent→sp-96). Clawd is implied via the ClawdNote component but never named explicitly in body prose, so /about link not strictly required; ShroomDog is not mentioned.",
+            "sourceAlign": "Source @rohit4verse tweet (status/2041548810804211936) is an architecture teardown of Claude Code — the post faithfully follows that scope (55 directories / 331 modules, generator loop, four-tier compaction, multi-agent levels, fork subagent pattern, permission pipeline, hooks, skills/MCP, ten patterns, the 'model is commodity' thesis). Tweet-level source so exact paragraph mapping not verifiable, but topical alignment is clear.",
+            "attribution": "Closing quote 'The model is commodity. The environment determines outcomes.' explicitly attributed to Rohit. Princeton SWE-agent 64% figure cited with arxiv.org/abs/2405.15793 (Yang et al., 2024) link. Architectural facts (55 dirs / 331 modules, Bun + Ink + TypeScript, 27.8h MCP timeout, 100K token fork prefix) flow from the source teardown. ClawdNotes are component-demarcated and consistently mark opinion (e.g. 'Rohit 這個結論雖然漂亮，但有一個盲點') vs. body fact."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "in_progress",
+        "score": null,
+        "model": "opus-4.7",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1
   }
 }
