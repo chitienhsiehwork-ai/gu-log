@@ -1850,13 +1850,70 @@
         "attempts": 1
       },
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 10,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All numerical claims verified against SaaStr source: $30B vs $24B run-rate, $122B raise / $852B valuation, full Anthropic trajectory ($87M→$1B→$9B→$14B→$19B→$30B), OpenAI trajectory ($2B→$6B→$20B→$24B), 8 of Fortune 10, 500+ enterprise customers >$1M, Claude Code May 2025 launch / $2.5B Feb 2026 / 4% GitHub commits / 20% projection, Codex 2M WAU / 5x in 3mo / 70% MoM, OpenAI $17B burn / $14B 2026 loss / $1T infra / FCF 2029, Anthropic raised $18B+, Amazon $50B, OpenAI $121B compute 2028 / $85B loss / break-even after 2030, Anthropic ~$30B training peak / profitability 2028-29, Salesforce 20yr to $30B, 5% of ChatGPT user base — every figure matches. Unit conversions correct (億 vs billion).",
+            "fidelity": "Hedges preserved: Epoch AI '可能' (might), 20% commit projection '預計' (projected), 2028/2029 profitability framed as projection. Critical revenue-counting caveat (Anthropic books via cloud partners, OpenAI doesn't) preserved verbatim in final ClawdNote. ClawdNote opinions clearly separated from body translation with 'Clawd 的判斷/解讀/立場' framing. Source's six-section structure faithfully mirrored. -1: subtitle '原本分析師說八月，四月就發生了' slightly tightens source's 'analysts debated the timing' into a flat 'analysts said August', minor crispness vs source nuance.",
+            "consistency": "Argument flows cleanly from crossover → growth rates → enterprise pivot → Claude Code → unprofitability → training cost gap → conclusion, mirroring source structure. Final ClawdNote correctly callbacks the Epoch August prediction. ClawdNote opinions (bubble risk warning, Google-vs-Facebook / Microsoft-vs-Google analogies) clearly framed as Clawd commentary, not source claims. -1: the 'Google/Microsoft historical analogies' in the closing ClawdNote are Clawd's editorial framing — not in SaaStr — but boxed in ClawdNote so not a factual error, just a rhetorical addition."
+          }
+        },
         "model": "opus-4.7",
         "attempts": 2
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-25T00:00:00Z",
+          "dimensions": {
+            "readability": 9,
+            "firstImpression": 9
+          },
+          "score": 9,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Good LHY oral feel with strong analogies (排隊人龍/欠債打球/台北101租金), but some numbers-heavy middle sections slide into financial journalism mode.",
+            "clawdNote": "All 7 notes have clear opinions — '被逼出來的補票' and '行為改變比錢更難' are standout insights; the closing 房租 self-reference adds personality without forcing it.",
+            "vibe": "Section 5 '先停一下' tension pivot is genuinely surprising and reframes the story, but the financial analysis density in sections 2-4 requires effort that limits shareability.",
+            "clarity": "Body text uses named subjects throughout (Anthropic/OpenAI/SaaStr/Epoch AI) with zero 你/我 leakage; ClawdNotes properly scope Clawd as speaker.",
+            "narrative": "Real arc with the section 5 pivot forcing readers to recontextualize all the impressive numbers, and conclusion callbacks the opening prediction; sections 2-4 share similar rhythmic patterns."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 1
       }
     },
-    "topLevelAttempts": 1
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-25T11:12:20+08:00"
   },
   "cp-291-20260414-anthropic-.mdx": {
     "article": "cp-291-20260414-anthropic-.mdx",
@@ -1866,7 +1923,7 @@
         "status": "in_progress",
         "score": null,
         "model": "opus-4.7",
-        "attempts": 1
+        "attempts": 2
       }
     },
     "topLevelAttempts": 1
@@ -1879,7 +1936,7 @@
         "status": "in_progress",
         "score": null,
         "model": "opus-4.7",
-        "attempts": 1
+        "attempts": 2
       }
     },
     "topLevelAttempts": 1
