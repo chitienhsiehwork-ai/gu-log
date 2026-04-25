@@ -1920,13 +1920,32 @@
     "startedAt": "2026-04-25T11:04:48+08:00",
     "stages": {
       "librarian": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 6,
+            "crossRef": 5,
+            "sourceAlign": 8,
+            "attribution": 8
+          },
+          "score": 6,
+          "verdict": "FAIL",
+          "reasons": {
+            "glossary": "Key glossary term 'Claude Code' appears 5+ times including a dedicated section heading '## 跟 Claude Code 的關係' (line 160) but is never linked to glossary; 'agent' also used without connection ('一個是 agent，一個是 client', line 164). Multiple key terms used without glossary integration.",
+            "crossRef": "Zero internal /posts/ links present. The 'Claude Code 互補不競爭' section (lines 160-167) maps directly to existing claude-code-vs-codex.mdx but isn't linked; numerous clawd-picks-*-anthropic-* and Claude Code posts are obvious thematic neighbors and none are referenced. No identity link for Clawd despite Clawd speaking in 5 ClawdNote blocks.",
+            "sourceAlign": "Content faithfully derived from declared sourceUrl github.com/anthropics/anthropic-cli (verified HTTP 200) — install commands (brew tap, go install), resource-oriented command structure, @path injection, --transform/GJSON, --debug, --base-url, env vars all consistent with the repo's stated scope. Minor drift: specific feature lists (seven output formats) stated without inline citation.",
+            "attribution": "ClawdNote opinions cleanly isolated via component boundaries — reader can always tell fact from吐槽. Body claims (2026年1月上 repo, 4月9號最後更新, seven output formats, env var names) are concrete and point to one canonical repo. Minor gap: dates and feature counts not inline-cited, but acceptable for a single-source translation post."
+          }
+        },
         "model": "opus-4.7",
         "attempts": 2
       }
     },
-    "topLevelAttempts": 1
+    "topLevelAttempts": 1,
+    "status": "FAILED",
+    "failedStage": "librarian",
+    "finishedAt": "2026-04-25T11:12:29+08:00"
   },
   "cp-290-20260414-article-claude-code-subagent-60-write-tool.mdx": {
     "article": "cp-290-20260414-article-claude-code-subagent-60-write-tool.mdx",
