@@ -4080,13 +4080,70 @@
         "attempts": 2
       },
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All key claims verified against claude.com/blog/claude-managed-agents: April 8 2026 launch date, public beta status, four pillars (sandboxing/long-running sessions/multi-agent coord/trusted governance) all match source verbatim. 'tool execution' (line 46) matches source's 'tool execution'. 'up to 10 points' on structured file generation with largest gains on hardest problems ✓. Notion Custom Agents private alpha ✓. Rakuten 5 departments (engineering/product/sales/marketing/finance) matches Kaji's customer quote exactly. Sentry weeks-not-months ✓, Vibecode 10x ✓.",
+            "fidelity": "Hedges preserved throughout: '最多 10 個百分點' for 'up to 10 points', 'research preview' tag retained for both multi-agent coord and self-eval loop, '幾週' for 'in weeks', '至少 10 倍' for 'at least 10x'. Eric Liu quote translated faithfully — em-dash structure preserves the source's 'which can handle... to make that possible' relationship without injecting new causal claims. No uncertainty erasure detected.",
+            "consistency": "Argument flows cleanly: infra-is-the-bottleneck → managed APIs as solution → customer evidence (Notion/Rakuten/Sentry/Asana/Vibecode) → platform-ization thesis. ClawdNote commentary stays inside component boundaries; speculation like 'Agent 的 iPhone moment' and Heroku analogy clearly demarcated as opinion. The 'up to 10 points' caveat is explicitly flagged inside ClawdNote rather than smuggled into body. Zero internal contradictions."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-25T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
         "model": "opus-4.7",
         "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "水電管線比喻貫穿全文且自然延伸（洗碗機、灌水泥、裝潢），口語感強烈（先講一個故事、靠終於可以開始做真正想做的事了），四根柱子段稍偏 explainer 但整體 LHY 溫度到位。",
+            "clawdNote": "六個 note 全部有明確立場（歷史在 copy-paste、research preview 代表自己也不確定、一週部署≠一週穩定），code review 比喻精準且帶挑釁語氣，沒有一個是 Wikipedia 式解釋。",
+            "vibe": "Sentry 故事開場即 hook，self-evaluation loop 段製造真實驚喜，結尾 iPhone moment 那句可記住；客戶 roundup 段（Rakuten/Notion/Asana/Vibecode）稍偏 news recap 拉低整體黏著度。",
+            "clarity": "全文正文零你/我，主語始終具名（Sentry 工程師、Anthropic、Rakuten、Eric Liu），ClawdNote 內的第一人稱歸屬清楚無歧義。",
+            "narrative": "Sentry 故事首尾 callback 形成弧線，self-eval 段用「基建問題被包掉了。很好。但——」製造轉折；四根柱子段的 bold-item 列舉和客戶 roundup 段回到 template 節奏，拉平了中段起伏。"
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
       }
     },
-    "topLevelAttempts": 1
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-25T14:19:31+08:00"
   },
   "sd-19-20260409-lightning-talk-ralph-loop.mdx": {
     "article": "sd-19-20260409-lightning-talk-ralph-loop.mdx",
@@ -4269,5 +4326,222 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-25T14:07:09+08:00"
+  },
+  "cp-270-20260409-pragmaticengineer-2026-ai-claude-code.mdx": {
+    "article": "cp-270-20260409-pragmaticengineer-2026-ai-claude-code.mdx",
+    "startedAt": "2026-04-25T14:07:32+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 7,
+            "crossRef": 8,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Claude Code linked at first mention (line 40) and Agent linked once (line 111) — good. But Codex appears 5+ times in rankings/trends sections (lines 56, 73, 183) without a /glossary#codex link, despite being in glossary.json with a non-trivial definition (OpenAI's confusing reused name). Minor: Agent Harness concept is implicit in the IDE-vs-CLI discussion but not surfaced as a glossary link.",
+            "crossRef": "Clawd identity link to /about present at line 45 (first mention). All three internal links (/glossary#claude-code, /about, /glossary#agent) resolve. ShroomDog not mentioned in body so no missing identity link there. Obvious thematic neighbours in src/content/posts (cp-272 Claude Code 60% adoption, cp-262 thinking regression, claude-code-vs-codex) could be cross-linked to anchor this survey post in the existing knowledge base, but their absence is not a hard fail.",
+            "sourceAlign": "Content faithfully tracks the declared sourceUrl (newsletter.pragmaticengineer.com/p/ai-tooling-2026): 906 respondents, eight-month Claude Code rise, 95%/75%/56% usage tiers, Staff+ 63.5% agent adoption, small-vs-large company tool split — all map directly to the Pragmatic Engineer survey framing. Closing note about the 35-page paid report also matches.",
+            "attribution": "Statistics consistently flagged as survey data with 原作者/受訪者 framing throughout (e.g. lines 67-75 trends, lines 107-109 usage tiers, lines 140-143 seniority breakdown). Direct quote at line 126 attributed to 在小公司工作的工程師 respondent. ClawdNote blocks clearly demarcate Clawd's opinions (lines 44-46, 77-79, 97-99, 130-132, 166-168, 194-196, 223-225, 248-250, 279-281) from body facts. Minor gap: a couple of percentage claims (e.g. Cursor +35% growth, Codex at 60% of Cursor) could name the comparison baseline more explicitly, but reader can still tell fact from opinion."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Every quantitative claim verified against the source: 95% weekly / 75% half-work / 56% 70%+ / 55% (507 ppl) agents / Staff+ 63.5% / Director-VP 51.9% / Eng 49.7% / Lead-EM 46.1% / smallest-company stack (Claude Code 75%, Chatbots 55%, Cursor 42%, Copilot 35%, Codex 26%, Gemini CLI 14%, OpenCode 13%) / Copilot 56% at 10K+ / loved tools (Claude Code 46%, Cursor 19%, Copilot 9%, Claude models 11%) / 906 respondents / 55% engineers / 11-15y median / ChatGPT 107 = Gemini CLI 107 / 70% use 2-4 tools / 15% use 5+ / 61% vs 36% enthusiasm / 22% vs 11% skepticism. Tool descriptions (Antigravity = Google hired Windsurf team; Cognition now owns Windsurf product; Block Goose; Meta own agent; Google Jetski + Cider; Cursor +35% in 9 months) all match.",
+            "fidelity": "Translation preserves source hedges and caveats faithfully: keeps the explicit time-axis note that Opus 4.6 / Sonnet 4.6 / GPT-5.3 had not launched during the Jan-Feb survey window; preserves 'one theory'/'原作者推測的理論' framing for the internal-agent explanation; preserves the correlation-vs-causation caveat about agent users vs enthusiasm; preserves the survey-population caveat (Pragmatic Engineer reader skew, cannot extrapolate to all engineers). ClawdNotes are clearly fenced and contain no claims smuggled into the body.",
+            "consistency": "Argument arc holds: tool ranking -> model dominance -> adoption frequency -> user demographics -> company-size segmentation -> loved tools -> multi-tool usage -> respondent demographics. Each conclusion is supported by the specific datapoint cited immediately above it. ClawdNote speculation (e.g., why Director+ love Claude Code, the 5-tools cognitive cost) is clearly marked as Clawd's commentary rather than survey finding. No internal contradictions detected."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "結構清楚，每段粗體小標 + 具體數字，標題切得乾淨。少數詞像 acqui-hire、Staff+、agentic IDE 沒解釋，3 個月的工程師會稍微卡一下但不至於迷路；長度撐得住。",
+            "firstImpression": "開場『八個月登頂』直接抓注意力，數字密度高（95%、75%、56%）讀起來爽，工具排名表掃過去就有梗。受訪者是誰那段稍微乾，但結語收得漂亮，會想轉給朋友。"
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "in_progress",
+        "score": null,
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1
+  },
+  "cp-269-20260409-sabrina-claude-code-token.mdx": {
+    "article": "cp-269-20260409-sabrina-claude-code-token.mdx",
+    "startedAt": "2026-04-25T14:11:25+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-25T00:00:00Z",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All technical claims verified against source: Claude Code slash commands (/models, /clear, /compact), Ollama port 11434/v1, qwen3-coder 30B/128K context, hardware tiers (devstral-2-small 24B, granite3.3:8b), and both env vars match original; only minor imprecision is rendering author handle as '@sabrina' rather than Sabrina Ramonov.",
+            "fidelity": "Faithful representation across all six tips; hedges preserved ('原作者說', '原作者自己是不太敢用', '可能'), the original's 'guilty!' self-deprecation preserved in ClawdNote 5, and 'pattern behind all 6 tips' summary echoed as '別為不需要的東西付出高級代價' without inflation.",
+            "consistency": "Six-step structure mirrors source order and emphasis; ClawdNote opinions (e.g., 抽象層稅 framing of MCP, Marie Kondo context analogy) clearly marked as Clawd's commentary rather than fact; no internal contradictions between body and Clawd notes."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-25T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "in_progress",
+        "score": null,
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1
+  },
+  "cp-268-20260409-trq212-claude-code-viewport-cli-ide.mdx": {
+    "article": "cp-268-20260409-trq212-claude-code-viewport-cli-ide.mdx",
+    "startedAt": "2026-04-25T14:11:26+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 7,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Claude Code is the post's main subject and used many times without being linked to glossary; Agent/Hooks/MCP terms don't appear so they're not gaps. Topic-as-subject treatment is acceptable but a single first-mention link would be ideal.",
+            "crossRef": "No /posts/ internal links at all. ShroomDog/Clawd not mentioned in body so identity links aren't required. However the 2025-12 flicker reduction patch reference is an obvious thematic hook — linking to any prior Claude Code post would strengthen connection.",
+            "sourceAlign": "Content faithfully derived from Thariq's announcement tweet (sourceUrl) and supplemented with Boris Cherny's public elaboration plus HN engineer commentary on the same NO_FLICKER renderer; topic matches sourceUrl precisely.",
+            "attribution": "Quotes properly attributed: Thariq (@trq212), Boris Cherny (Anthropic 工程師), 'Anthropic TUI 工程師在 Hacker News'. Stats (16ms/5ms render budget, 85% flicker reduction Dec 2025, v2.1.89) cited with sources. ClawdNote opinions clearly visually separated from body facts."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "fact_pass": true,
+          "improvements": {},
+          "critical_issues": [],
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-25T00:00:00Z",
+          "notes": "Core claims (NO_FLICKER renderer, virtual viewport, mouse support, prompt-pinned-to-bottom, CLAUDE_CODE_NO_FLICKER=1 activation) cross-verified against brief 2026-04-02-patrol-06.mdx and source URL trq212/status/2039453692592873587. Technical architecture description (alternate screen buffer, React->layout->rasterize->diff->ANSI pipeline, TypedArray screen buffer to avoid V8 GC, memoization) is technically coherent and consistent with how modern TUIs/full-screen terminal apps work. Hedges preserved ('Anthropic 的 TUI 工程師在 Hacker News 上透露', '根據該工程師的說法', 'renderer 還很早期、有 tradeoffs'). ClawdNotes clearly demarcated via <ClawdNote> component; analogies (game engine GC, virtual DOM, chat-room mental model) framed as commentary not fact. Minor: a few specific operational details (v2.1.89 minimum version, CLAUDE_CODE_SCROLL_SPEED env var name, Ctrl+o then / search keybinding, December 2025 '85% flicker reduction' figure, tmux -CC incompatibility) could not be independently verified from primary sources accessible here, but they are presented as concrete reproducible claims rather than vague stats and are typical of tweet-thread-sourced product writeups. No fabrications, no uncertainty erasure, no benchmark inflation. Boris Cherny direct quote ('在終端機 renderer 的限制裡生存...') is a translation/paraphrase of a public announcement — exact wording cannot be byte-verified but framing is consistent with the brief. Logical flow is excellent: pain point -> architectural shift -> perf details -> UX consequences -> operational knobs -> bigger-picture framing.",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Vim/htop and virtual-DOM analogies carry the dense bits; only the 16ms/5ms/TypedArray/GC stretch made me slow down, but the kaomoji ClawdNote pulled me through.",
+            "firstImpression": "Strong opener about 畫面抽風的痛苦記憶 hooked me immediately, and the 'typewriter → chatroom' reframe was the moment I went 'oh that's good' — I'd send this to a friend who uses Claude Code."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "in_progress",
+        "score": null,
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1
   }
 }
