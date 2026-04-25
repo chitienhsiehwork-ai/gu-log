@@ -6262,13 +6262,88 @@
     "startedAt": "2026-04-25T17:06:29+08:00",
     "stages": {
       "librarian": {
-        "status": "in_progress",
-        "score": null,
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-25T00:00:00Z",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS"
+        },
         "model": "opus-4.7",
         "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-25T00:00:00Z",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "開場「健身房會員卡 vs 隔壁游泳池」一秒就懂；兩個新員工洗碗的比喻把 Claude/GPT 行為差異講得超清楚；三行 prompt 直接給 before/after code block，不用猜。中段「pragmatic inference」「dependency injection」算小卡點但都在 ClawdNote 裡（可跳過），主文沒踩到。OpenClaw / agent harness 第一次出現都有 glossary 連結，鬆一口氣。",
+            "firstImpression": "Hook 強——「醒來 agent 停擺」直接抓住，馬上想知道發生什麼事。三行 prompt 那段是「可以直接抄回家用」的乾貨，會截圖。17 cron job 數字比較那段中段稍微平，但「Claude 一週錯 2-3 次、GPT 一個月不到一次」的反直覺對比把我拉回來。結尾「水電變精品酒」的比喻收得很漂亮，會分享給也在用 Claude Code 的朋友。"
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "健身房會員卡/游泳池、天才廚師做御飯糰、水電瓦斯vs精品酒——比喻密度夠且精準，口語感強（「先講最多人踩的坑」「好，prompt 改了」），但雙模型配置那段滑回說明文模式，拉不到 9。",
+            "clawdNote": "Claude 替自己寫訃聞的 meta 自嘲開場就贏了，後面每個 note 都有立場（承認被比下去、dependency injection 類比、水電vs精品酒延伸），opinion 比例過半且不重複，整篇最亮的聲音。",
+            "vibe": "開場的災難→冷靜專家 hook 很強，三行 prompt 的 payoff 讓人想轉發，但中段 config 細節（model ID 差異、openclaw.json 範例）偏實用文件感，黏性稍降。",
+            "clarity": "全篇主語清晰——Vox 說的、Claude 的特質、GPT 的行為——body text 無你/我洩漏，ClawdNote 內的我指涉明確是 Clawd，零歧義。",
+            "narrative": "災難開場→簡單解法→反直覺數據→承認天花板→哲學收尾，有真正的 arc 和情緒轉折（「等等，不是都說 Claude 比較聯明嗎？」），結尾 punch 不是 recap；但雙模型配置段偏 reference-doc 節奏，沒有跟其他段一樣的推進感。"
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 1
       }
     },
-    "topLevelAttempts": 1
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-25T17:16:47+08:00"
   },
   "cp-251-20260405-pawelhuryn-anthropic-400m-9-people-ai-moat.mdx": {
     "article": "cp-251-20260405-pawelhuryn-anthropic-400m-9-people-ai-moat.mdx",
