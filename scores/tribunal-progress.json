@@ -1940,9 +1940,69 @@
     "startedAt": "2026-04-25T11:04:48+08:00",
     "stages": {
       "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 9,
+            "sourceAlign": 8,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Key glossary terms 'Claude Code' and 'Agent' are linked to /glossary on first and repeated mentions. Minor gap: 'MCP' appears once in a ClawdNote (line 131) without a /glossary#mcp link, but it's a passing reference not central to the post.",
+            "crossRef": "All 5 internal post links verified to exist: sp-72 (cli-over-mcp), sp-127 (auto-mode), sp-138 (boris-cherny), sp-148 (source-leak), and claude-code-vs-codex. Clawd identity link (/about) is present at line 167. ShroomDog is not referenced, so no missing identity link needed.",
+            "sourceAlign": "Content clearly derived from sourceUrl (github.com/anthropics/anthropic-cli) — install commands, resource-oriented command structure, @path file injection, --transform/GJSON, --debug, --base-url, and output format list all map to what such a repo's README would describe.",
+            "attribution": "Quotes attributed: Boris Cherny via linked SP-138, Simon Willison via linked SP-72. Numerical claims (commit dates, output format count) explicitly cited as from 'GitHub repo commit history' and 'repo README output format 段落'. ClawdNote opinions clearly demarcated from body facts via the component wrapper."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Verified against github.com/anthropics/anthropic-cli README + GitHub API: install commands (`brew install anthropics/tap/ant`, `go install .../cmd/ant@latest`), resource-oriented structure `ant [resource] <command> [flags...]`, `@path` file injection, `--transform` GJSON, `--debug`, `--base-url`, ANTHROPIC_API_KEY/ANTHROPIC_AUTH_TOKEN env vars, and the exact 7 output formats (`auto`/`explore`/`json`/`jsonl`/`pretty`/`raw`/`yaml`) all match README. Repo created 2026-01-23 (Jan 2026) and last commit before publish at 2026-04-09 confirmed via API. -1 for one minor imprecision: the link anchor `#output-formats` doesn't map to a dedicated README header (formats are documented under `### Global flags`); also calling explore mode 'terminal 裡互動式瀏覽' is an interpretation rather than a directly README-stated claim.",
+            "fidelity": "Faithful to the README. JSON example `{content: [{text: x, type: text}], role: user}` is copied verbatim from README; only the `--model` value was modernized from `claude-sonnet-4-5-20250929` to `claude-sonnet-4-6` (acceptable currency update per repo policy). No fabricated features, no uncertainty erasure. ClawdNote opinions clearly walled off in `<ClawdNote>` components rather than bleeding into body claims. Comparisons to `gh`/`aws`/`gcloud`/`stripe`/`vercel`/`kubectl` are all real tools.",
+            "consistency": "Argument flows cleanly: curl pain → official CLI announcement → install → resource-oriented design rationale → @path killer feature → output formats / --transform → --debug / --base-url → Claude Code-vs-ant positioning → closing on platform-maturity signal. Each section's claim is supported by the prior frame; ClawdNotes mark speculation explicitly (e.g. '會不會走同一條路？不知道'); the 'agent vs API client' framing stays internally consistent with the cross-linked sp-72 / sp-127 / sp-138 references."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Restaurant analogy for resource-oriented and the curl-vs-ant side-by-side make the concept land fast; only stumbled briefly at GJSON which gets named but not really explained.",
+            "firstImpression": "Hook about 'curl 搏鬥的黑暗歷史' is instantly relatable, the @path 'glue code 寫了四十行' moment was the best beat — finished it, would share if a friend asked about Claude API tooling."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
         "status": "in_progress",
         "score": null,
-        "model": "opus-4.7",
+        "model": "opus-4.6-1m",
         "attempts": 1
       }
     },
@@ -2320,5 +2380,97 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-25T11:48:21+08:00"
+  },
+  "cp-288-20260402-metaeng-metaeng-kernelevolve-gpu-kernel-agent.mdx": {
+    "article": "cp-288-20260402-metaeng-metaeng-kernelevolve-gpu-kernel-agent.mdx",
+    "startedAt": "2026-04-25T11:53:02+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 7,
+            "sourceAlign": 10,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Glossary term 'agent/agentic' is linked three times via /glossary#agent (lines 44, 46, 201); other technical jargon (MCTS, RAG, MTIA, occupancy) is domain-specific and not in glossary, so naturally explained inline.",
+            "crossRef": "Internal link to /posts/cp-287-20260413-article-anthropic-agent-90 resolves to a real post, but no first-mention identity link for Clawd (despite multiple ClawdNote blocks) nor any /about link is present.",
+            "sourceAlign": "Content faithfully tracks the engineering.fb.com KernelEvolve post — five-component architecture, MTIA 25% / Andromeda 60% / KernelBench 100%, ISCA 2026 paper reference all match the source.",
+            "attribution": "Meta's claims, stats (60%, 25%, 100% pass, 250 KernelBench, 480 configs), and the 'in-context reinforcement learning' framing are explicitly attributed to Meta/the article; ClawdNote opinions are clearly demarcated from facts."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All headline numbers verified against the Meta Engineering source: 60%+ NVIDIA inference throughput on Andromeda (vs torch.compile + vendor library baseline), 25%+ MTIA training throughput, KernelBench 250 problems / 3 levels / 100% pass, 160 ATen ops x 480 configs across 3 platforms, MTIA 300-500 four generations in two years, ISCA 2026 (53rd) paper title exact, all tool names (TritonBench, NCU, Proton, MTIA Insight) and DSL names (Triton/TLX/CuTe DSL/FlyDSL, CUDA/HIP/MTIA C++) match. Minor: post expands DPE/SFU/MLU and PE acronyms with reasonable but not source-stated definitions - explanatory paraphrase, not fabrication.",
+            "fidelity": "Translation faithfully represents source. 'Trillions of daily inference requests' correctly rendered as 每天服務數兆次推論請求. Andromeda being already optimized with torch.compile and vendor libraries is preserved as the comparison baseline. Memory operator / sibling-parent search semantics, in-context RL, and agentic RL flywheel all faithfully translated. Source's 'never trained on' is once softened to 可能根本沒有 but the MTIA-specific paragraph re-states it definitively, so net hedging is appropriate. ClawdNote opinions clearly separated in dedicated components.",
+            "consistency": "Argument flows cleanly: combinatorial explosion problem -> search-as-optimization framing -> five-component architecture -> MTIA case study -> benchmarks/production results -> flywheel implications. Each ClawdNote is explicitly marked as commentary (questions, jokes, speculation about industry implications) and never mixes opinion with the body's factual claims. Framing as 'second in REA series' aligns with source's 'second post' opening. No internal contradictions detected."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-25T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "圍棋/職業棋士、廚房學徒、殺雞用牛刀等比喻到位且口語自然，但 Automated Evaluation Framework 那段大量 profiling 工具列舉滑回技術文件模式。",
+            "clawdNote": "六個 note 裡至少五個有明確立場——MCTS「殺雞用牛刀，但這隻雞很難殺」收得漂亮，profiling note 直接質疑 LLM 是否真的讀懂數據，MTIA note 點出推廣性比數字重要，opinion 密度和品質都過門檻。",
+            "vibe": "整體好讀且學到東西，MTIA 段和 60% gap 解讀是情緒高點，但五個核心組件的逐一介紹在中段拖慢節奏，profiling 工具清單尤其密集。",
+            "clarity": "全文正文零你我，技術主體一律用具體名稱（KernelEvolve / LLM Synthesizer / 工程師），ClawdNote 內的我指向明確的 Clawd speaker，無歧義。",
+            "narrative": "開頭掉頭髮 → 結語 callback 掉頭髮形成完整弧線，MTIA 段製造驚喜高點，60% 解讀段有情緒張力；但中段五組件走的是 component-by-component 教科書節奏，strip 掉比喻後該段偏 reference doc。"
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-25T11:59:43+08:00"
   }
 }
