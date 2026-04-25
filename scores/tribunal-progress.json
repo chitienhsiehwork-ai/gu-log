@@ -3228,13 +3228,32 @@
     "startedAt": "2026-04-25T12:40:29+08:00",
     "stages": {
       "librarian": {
-        "status": "in_progress",
-        "score": null,
+        "status": "fail",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 6,
+            "crossRef": 5,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 7,
+          "verdict": "FAIL",
+          "reasons": {
+            "glossary": "Multiple key glossary terms used without /glossary# linking: Codex (20+ mentions, the post's headline subject), Claude Code (line 146), MCP (lines 30, 41, 169), Ralph Loop (line 131), Hooks (line 131 'pre-commit hook'), Agent (passim). Terms are introduced naturally in context so comprehension isn't blocked, but sibling sp-169 demonstrates the convention ([Claude Code](/glossary#claude-code)) and at minimum first-mention of Codex/MCP should be linked.",
+            "crossRef": "Zero `/posts/` links and zero `/about` identity link for Clawd despite ~10 ClawdNote appearances. Multiple obvious thematic connections missing: `claude-code-vs-codex` is begging to be linked at line 146-147 (where the post explicitly compares the two ecosystems converging), `20260301-codex-cli-sandbox-philosophy` and `20260301-three-cli-agents-gemini-safe-search` are direct topical kin, plus `ai-assistance-coding-skills` and `build-claude-tool-for-thought` for the skill-as-contract thesis.",
+            "sourceAlign": "sourceUrl (@nickbaumann_'s X post on bespoke CLIs for Codex) is faithfully represented — all three named tools (codex-threads, slack-cli, typefully-cli) covered with original code examples, the CLI+skill double-layer thesis preserved, the default-no safety point and the cli-creator/agent-friendly-clis OpenAI doc reference both retained. Direct quote on lines 125-127 lifted verbatim with translation.",
+            "attribution": "Nick Baumann identified by name + @nickbaumann_ handle on line 32; the headline quote on lines 125-127 fenced as blockquote with English original then translation; ClawdNote opinions cleanly walled off in component blocks throughout, never bleeding into body fact; CLI commands cited in code blocks not paraphrased. Minor gap: `cli-creator` meta-skill on line 154 is referenced without a direct repo URL."
+          }
+        },
         "model": "opus-4.7",
         "attempts": 2
       }
     },
-    "topLevelAttempts": 1
+    "topLevelAttempts": 1,
+    "status": "FAILED",
+    "failedStage": "librarian",
+    "finishedAt": "2026-04-25T12:50:18+08:00"
   },
   "sp-169-20260411-dani-avila7-ghostty-claude-code-sand.mdx": {
     "article": "sp-169-20260411-dani-avila7-ghostty-claude-code-sand.mdx",
