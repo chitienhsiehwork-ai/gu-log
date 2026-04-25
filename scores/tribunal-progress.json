@@ -1665,12 +1665,92 @@
     "startedAt": "2026-04-25T10:47:14+08:00",
     "stages": {
       "librarian": {
-        "status": "in_progress",
-        "score": null,
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Key glossary terms are linked: 'Claude Code' on line 25 → /glossary#claude-code, and 'Subagent' on line 120 → /glossary#subagent. Both exist in src/data/glossary.json. No major glossary terms used without integration.",
+            "crossRef": "Required identity link present — first mention of Clawd (line 29) → /about. Both internal post cross-refs verified to exist: /posts/cp-267-20260408-pawelhuryn-claude-md-ai-30/ and /posts/cp-269-20260409-sabrina-claude-code-token/ (line 118). Thematic neighbors well-leveraged.",
+            "sourceAlign": "Content is a direct meta-analysis of the @noisyb0y1 tweet declared in sourceUrl — dissects the tweet's 4 specific claims (Karpathy framework, everything-claude-code stats, npx command, token billing). Faithfully derived from source.",
+            "attribution": "Excellent fact/opinion separation: original tweet claims labeled '原推文說', fact-checks labeled '實情', stats cited to GitHub README and npm registry, and snark/opinion contained inside <ClawdNote> blocks distinct from body text."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All verifiable technical claims hold up under direct registry/API checks: npm `claude-code` package latest is 1.0.0 (no 2.1.98) while `@anthropic-ai/claude-code` does ship 2.1.98 and 2.1.100; `forrestchang/andrej-karpathy-skills` is owned by forrestchang and created 2026-01-27 (~2.5 months by the 2026-04-13 write date, not 'one week'); `affaan-m/everything-claude-code` exists with star count in the hundred-thousands range. Star counts (~27k, 154k) may have shifted since publication but were plausible at write time.",
+            "fidelity": "Post is a critical analysis of a source tweet rather than a translation, so direct line-by-line fidelity isn't applicable. Each pattern correctly frames the original claim with `原推文說` before refuting it, ClawdNote opinions are clearly demarcated by component, and the post does not invert or misrepresent the source's claims — it explicitly engages with them. Minor: precise wording of some original-tweet phrasings is paraphrased, but no uncertainty erasure or distortion of the source's position.",
+            "consistency": "Clean four-pattern structure (掛名 / 數字偏差 / package 拼錯 / unverifiable claim) each with consistent claim/check/lesson rhythm, then closes with a 30-second verify checklist that ties back to the gu-log CLAUDE.md verification doctrine. ClawdNotes mark opinion vs. fact clearly via component boundaries; conclusion that 'extraordinary claim 配 unverifiable 證據' is supported by the absence of proxy logs/issues in the original tweet — internal logic holds without contradiction."
+          }
+        },
         "model": "opus-4.7",
         "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Four numbered 套路 + 30 秒 checklist 結構超清楚，跟著走不會迷路。套路 4 那段 bytes/tokens 精確數字比對 (169,514 / 49,726 vs 168,536 / 69,922) 我會稍微眼花，但前後文有救回來；'官方佔坑的 pointer 包' 這個說法第一次看要停半秒消化。其他像 npx / npm 404 / HTTP proxy 對 3 個月的 dev 都還在可懂範圍。",
+            "firstImpression": "標題就是 viral 推文的 receipt 開箱，鉤子強，手機上會滑完。最爽的是套路 3 那個 `@` 拼錯 → 複製貼上會 404 的具體案例，看完就想轉給也在追 AI 推文的朋友當 BS detector cheat sheet。最後三步 checklist 很實用，不是空話。"
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Lecture-hall opening and escalating transitions ('第二招更狡猾', '可以喘口氣了嗎？不行') sustain oral feel; convenience-store taste-testing and courtroom analogies land well, but claim→debunk→ClawdNote pattern in each section occasionally drifts toward 'writing' mode rather than 'talking' mode.",
+            "clawdNote": "All 5 notes carry clear opinions ('這條最惡劣', '防禦力自動 -30%', '權威感是複利累積的'); 開胃菜/主菜 metaphor in note 3 and the 'engagement-farm 核心結構' callout in note 4 are highlights — genuinely opinionated, not Wikipedia footnotes.",
+            "vibe": "Useful 'how to spot AI tooling BS' guide that's fun to read and share; escalation from info-misleading to keyboard-misleading keeps engagement, but the 4-pattern listicle structure becomes predictable by pattern 3.",
+            "clarity": "Zero explicit 你/我 in body text; original tweet claims consistently attributed ('原推文說'), Clawd speaks only in ClawdNotes, repo ownership clearly separated from celebrity names — no pronoun ambiguity.",
+            "narrative": "Severity escalation (info→action→dangerous) gives the 4-pattern structure genuine momentum beyond a flat listicle; transitions build tension and the npm closing punch lands — but strip the analogies and ClawdNotes, the skeleton is still claim-1→claim-2→claim-3→claim-4, which keeps it at 8 rather than 9."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
       }
     },
-    "topLevelAttempts": 1
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-25T11:04:33+08:00"
   }
 }
