@@ -7636,5 +7636,94 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-26T05:09:07+08:00"
+  },
+  "sp-155-20260402-berryxia-codex-vs-claude-dense-moe.mdx": {
+    "article": "sp-155-20260402-berryxia-codex-vs-claude-dense-moe.mdx",
+    "startedAt": "2026-04-26T05:39:30+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-26T00:00:00Z",
+          "dimensions": {
+            "glossary": 10,
+            "crossRef": 10,
+            "sourceAlign": 9,
+            "attribution": 10
+          },
+          "score": 9,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Dense vs MoE technical descriptions (router, experts, total vs active params) are correct at a layperson level. Codex product behavior (sandbox, AGENTS.md, parallel tasks, returns terminal logs/artifacts) matches OpenAI's documented Codex agent. The Codex=MoE / Claude=Dense association is unconfirmed by either vendor, but the post explicitly flags this as Berryxia's framing rather than asserting it as fact ('公開資訊其實不完整...這個框架能解釋一部分現象'). No fabricated benchmarks or version numbers.",
+            "fidelity": "Source URL not directly verifiable (X requires JS to render tweet content), but the post's framing — Berryxia uses Dense vs MoE to explain the Codex/Claude divide, then mentions training philosophy / product form / developer workflow as additional factors — is internally attributed and the post explicitly extends Berryxia's caveat ('Berryxia 自己也有提到'). Hedges preserved throughout ('可能','似乎','常常','其中一個原因'). No uncertainty erasure detected; ClawdNote opinions clearly bracketed in <ClawdNote> components.",
+            "consistency": "Argument arc holds end-to-end: two-personas opening → architecture primer → Codex side (specify→execute→verify) → Claude side (vibe coder workflow) → explicit broadening beyond architecture → two-philosophies synthesis → callback to opening. ClawdNote opinions ('夜市算命','不是 soulmate，這叫上下文連貫性','宗教戰爭') consistently marked as commentary, not factual claim. The Codex/Claude framing is symmetric — neither side is strawmanned and the 'same person uses both' caveat near the end prevents a false dichotomy."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-26T00:00:00Z",
+          "dimensions": {
+            "readability": 9,
+            "firstImpression": 9
+          },
+          "score": 9,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Hospital triage vs attending physician analogy and 平底鍋/牛排 comparison land perfectly; oral markers like 先講白話版 and 講更白一點 sustain LHY lecture feel throughout.",
+            "clawdNote": "4 of 6 notes carry clear opinions — 夜市算命 dismissal of architectural determinism, 不是 soulmate 這叫上下文連貫性 demystification, and 根據圖騰選陣營 takedown are genuine 吐槽 highlights.",
+            "vibe": "白天 Codex 晚上 Claude 同一個人 insight is a genuine share-worthy moment; training philosophy and product form subsections get slightly listy before recovering.",
+            "clarity": "Body text maintains strict pronoun discipline with named subjects (工程師, vibe coder, 前者/後者); all 你/我 instances confined to ClawdNotes where speaker is unambiguous.",
+            "narrative": "Two-people-in-a-repo framing creates genuine arc with effective callback ending; section 4 pivot from architecture to philosophy delivers real surprise, though middle sections share similar explain-then-note rhythms."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-26T06:00:53+08:00"
   }
 }
