@@ -1595,6 +1595,76 @@
         "attempts": 1
       },
       "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All four direct quotes match the source tweet verbatim (verified via jina reader against x.com/lydiahallie/status/2039800718371307603). Env var name CLAUDE_CODE_AUTO_COMPACT_WINDOW=200000 is correctly transcribed. Minor imprecision in the fourth ClawdNote claiming 'Claude 的完整 context window 遠大於這個值' — Sonnet 4.6's standard window is 200K (matching the cap), with 1M only on special variants, so the framing is mildly stretched but not materially misleading.",
+            "fidelity": "Hedges preserved precisely: 'roughly twice' → '大約是...的兩倍', '~1h' → '大約一小時', 'in a way that seems unreasonable' → '不合理地'. No uncertainty erasure. ClawdNote clearly separated from translation body. CP-259 cross-reference and the three-day timeline (3-30 → 4-2) are factually grounded.",
+            "consistency": "Argument flows cleanly through four tips → unifying 'token is finite' logic → /feedback escape hatch → closing observation. ClawdNote analogies (telecom unlimited plans, 47 Chrome tabs, philosophy professor moving boxes) are clearly opinion/humor, not factual claims. Closing irony about 'official advice = use less' is a fair editorial observation, not a contradiction."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-25T00:00:00Z",
+          "dimensions": {
+            "readability": 9,
+            "firstImpression": 9
+          },
+          "score": 9,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Analogies land well (哲學教授搬家, 自助餐盤子, 信用卡額度) and oral voice is consistent, but the core structure is still 4 tips in order — persona dresses it up but doesn't restructure it.",
+            "clawdNote": "All 5 notes carry clear opinions — 電信吃到飽 irony, Pro 心理陷阱, 隱形成本 transparency demand, buffet research, 雙邊態度 approval — density and personality both strong.",
+            "vibe": "The ending punch (官方建議是請克制使用 as ironic commentary) elevates it above a plain tips post, but the middle section is still fundamentally practical advice — enjoyable, not compulsively shareable.",
+            "clarity": "Zero pronoun issues in body text; every sentence has a named subject (Lydia, Claude Code, Anthropic, 用戶); ClawdNotes clearly scoped.",
+            "narrative": "CP-259 callback opening and ironic meta-conclusion provide genuine bookends; visible→hidden→system→meta progression adds movement beyond flat enumeration, though the tip-by-tip middle is still linear."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-25T10:48:43+08:00"
+  },
+  "cp-294-20260414-noisyb0y1-ai-tooling-slop-4-patterns.mdx": {
+    "article": "cp-294-20260414-noisyb0y1-ai-tooling-slop-4-patterns.mdx",
+    "startedAt": "2026-04-25T10:47:14+08:00",
+    "stages": {
+      "librarian": {
         "status": "in_progress",
         "score": null,
         "model": "opus-4.7",
