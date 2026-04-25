@@ -3102,13 +3102,33 @@
         "attempts": 1
       },
       "vibe": {
-        "status": "in_progress",
-        "score": null,
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "拉麵店比喻貫穿全文且 callback 結語，口語感強（「先講這個最反直覺的決定」「好，接下來這段」），超市韓文零食、便利商店咖啡等生活類比自然不硬塞。",
+            "clawdNote": "七個 note 全部有明確立場——Osborne effect 歷史類比、「hope 是政客用語」的精準拆解、「AI 長在臉上」的隱私預言，沒有一個是 Wikipedia 式解釋。",
+            "vibe": "30 億人社交圖譜的洞察讓人停下來想，開源 hope 分析夠 sharp，但健康+編程那段（兩個看似無關的賭注）節奏略平，沒有前面段落的張力。",
+            "clarity": "正文完全避開你/我，主語一律用 Meta、使用者、AI 等具體名稱，ClawdNote 內的第一人稱歸屬清晰無歧義。",
+            "narrative": "從砸店重蓋的懸念開場，經社交圖譜的 pivot 升級到開源曖昧的張力，結語用超級智慧 vs 超級監控收 punch；但中段多模態→購物→健康編程三節有 explain→example→ClawdNote 的模板節奏。"
+          }
+        },
         "model": "opus-4.6-1m",
-        "attempts": 1
+        "attempts": 2
       }
     },
-    "topLevelAttempts": 1
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-25T12:50:16+08:00"
   },
   "sp-171-20260411-thatguybg-nontechnical-af-three-moves.mdx": {
     "article": "sp-171-20260411-thatguybg-nontechnical-af-three-moves.mdx",
@@ -3211,6 +3231,78 @@
         "status": "in_progress",
         "score": null,
         "model": "opus-4.7",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1
+  },
+  "sp-169-20260411-dani-avila7-ghostty-claude-code-sand.mdx": {
+    "article": "sp-169-20260411-dani-avila7-ghostty-claude-code-sand.mdx",
+    "startedAt": "2026-04-25T12:46:23+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 7,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Both glossary terms used in body are linked: Claude Code → /glossary#claude-code (line 32), agent → /glossary#agent (line 64). No other glossary terms (Subagent, Hooks, MCP, Vibe Coding, Ralph Loop) appear in the post, so no unlinked gaps.",
+            "crossRef": "External links (ghostty.org, lazygit, yazi, davila7 gist) are valid and properly used. However, first body mention of 'Clawd' (line 36, inside ClawdNote) is not linked to /about — the librarian rule requires this identity link on first mention. ShroomDog isn't mentioned, so only one identity gap. No internal post links present but no obvious thematic connections missing for a stand-alone Ghostty workflow piece.",
+            "sourceAlign": "Content faithfully derives from sourceUrl (@dani_avila7's X thread on Ghostty + Claude Code SAND workflow). All key elements covered: VSCode terminal failure, Mitchell Hashimoto/Ghostty pedigree, gist-based config bootstrap, SAND mnemonic with the nine specific keybindings (Cmd+D, Cmd+Shift+D, Cmd+T, Cmd+Shift+Left/Right, Cmd+Alt+Arrows, Cmd+Shift+E, Cmd+Shift+F, Cmd+W, Cmd+Shift+P), 3-part series outline, lazygit + yazi + worktree layout, and the sticky-note tip.",
+            "attribution": "Daniel San attributed by name and handle (@dani_avila7) with role context (Hedgineer Head of AI, aitmpl.com author). Mitchell Hashimoto identified with HashiCorp/Terraform/Vault/Consul context. Gist URL credited to davila7. The 'Configure Ghostty with this config' line properly blockquoted as Daniel's words. ClawdNote opinions consistently isolated in <ClawdNote> blocks with explicit 'Clawd 的立場' framing — clean fact/opinion separation throughout."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All nine SAND keybindings (Cmd+D / Cmd+Shift+D / Cmd+T / Cmd+Shift+Left|Right / Cmd+Alt+Arrows / Cmd+Shift+E / Cmd+Shift+F / Cmd+W) verified against the cited gist davila7/5b07f55a6e65a06c121da9702d10c2e2; Daniel San's bio (Head of AI at Hedgineer, OSS author of aitmpl.com) matches @dani_avila7's X profile; Ghostty supports macOS+Linux is correct; Mitchell Hashimoto as HashiCorp co-founder is correct (minor imprecision: '全職寫 Ghostty' — he stepped away from HashiCorp CTO role in 2023 to focus on personal projects including Ghostty, but framing is defensible).",
+            "fidelity": "Translation is interpretive (essayistic re-telling rather than literal translation) but faithful to the source's structure — three-part series framing, SAND mnemonic, AI-configures-terminal opening beat, sticky-note advice, and the third-tier worktree pattern all appear in Daniel's article; ClawdNote opinions (chunking psychology, Hashimoto UX skepticism, spaced-repetition framing) are clearly bracketed as commentary and don't bleed into the body as source claims.",
+            "consistency": "Argument flows cleanly: VSCode terminal breaking under agent log volume → search for real terminal → Ghostty + SAND mnemonic → progressive layout from 1 agent to 3 parallel agents via worktrees → muscle-memory trick. ClawdNote opinions explicitly mark themselves with '立場' / '必須承認' framing, keeping fact and speculation visibly separated; no internal contradictions detected."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-25T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "in_progress",
+        "score": null,
+        "model": "opus-4.6-1m",
         "attempts": 1
       }
     },
