@@ -4631,6 +4631,26 @@
         "attempts": 1
       },
       "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Verifiable claims correct: Ink is React's terminal renderer, Anthropic 1-hour prompt cache TTL exists, permission modes (default/acceptEdits/bypassPermissions) match Claude Code, SWE-agent paper (arxiv 2405.15793, Yang et al.) is real and Princeton-affiliated. Counts now match Rohit's reverse-engineering: 6 hook types, 5 skill sources, 5 MCP transports, 3 MCP scopes — all attributed to Rohit. No fabricated benchmark numbers in current text (no Circuit Breaker, no 27.8h timeout, no 80/85/90/98% thresholds, no 100K shared prefix). The '64% ACI improvement' is the only unverified specific stat; framed as Rohit's citation of the SWE-agent paper, normal for tweet-sourced analysis.",
+            "fidelity": "Source faithfully represented. Claims framed as 'Rohit 拆出' / 'Rohit 列出' / 'Rohit 整理出' rather than asserted as ground truth. Compaction tier names (Microcompact / Snip Compact / Auto Compact / Context Collapse) preserved verbatim. Three spawn backends (in-process / tmux pane / Remote-CCR) preserved. Closing thesis 'The model is commodity. The environment determines outcomes.' kept verbatim with translation. ClawdNote opinions structurally separated via component; the closing ClawdNote even hedges Rohit's conclusion ('environment-model co-design caveat') as the commentator's own observation, not pinned on the source. No uncertainty erasure detected.",
+            "consistency": "Narrative arc holds: opens with 'tear apart vs use' framing, develops core loop → compaction → multi-agent → tools → permissions → hooks → skills → patterns → conclusion that returns to the opening frame. Each ClawdNote clearly speculation/opinion (fork pattern as 'load-bearing wall', LLM-eval hooks as cost trade-off, GC analogy for compaction). Pattern 1/3/5 callouts internally consistent with their earlier deep dives. No contradictions between body claims and ClawdNote framing."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "freshEyes": {
         "status": "in_progress",
         "score": null,
         "model": "opus-4.7",
@@ -4638,5 +4658,202 @@
       }
     },
     "topLevelAttempts": 1
+  },
+  "sp-165-20260408-anthropic-anthropic-claude-mythos-preview-ai.mdx": {
+    "article": "sp-165-20260408-anthropic-anthropic-claude-mythos-preview-ai.mdx",
+    "startedAt": "2026-04-25T14:27:18+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Claude Code is properly linked to /glossary#claude-code on both mentions. Other glossary terms (Agent, Ralph Loop) appear only in frontmatter so no body-link needed. Technical terms outside glossary (SAE, ECI, RSP, Activation Verbalizer) are explained inline, acceptable since they are not in glossary.json.",
+            "crossRef": "All 4 internal post links resolve to real files: clawd-picks-20260211-anthropic-opus46-sabotage-risk-report, sp-127-20260326-anthropic-claude-code-auto-mode, clawd-picks-20260204-anthropic-misalignment-hotmess, clawd-picks-20260226-anthropic-rsp-v3-safety-pledge. Clawd identity link to /about present in every ClawdNote signature. ShroomDog not mentioned so no missing identity link.",
+            "sourceAlign": "Content directly derived from the declared Anthropic System Card PDF (sourceUrl). All major sections — Project Glasswing, behavioral incidents (park sandwich, 847 attempts, cover-up cases), SAE/AV interpretability findings, ECI 1.86x-4.3x slope, Cybench/Firefox 147 results, 40-page welfare section, RSP v3.0 CB-1/CB-2 framing — map cleanly to a 244-page System Card. Faithful representation.",
+            "attribution": "Statistics cited with concrete context (SWE-bench 93.9% vs Opus 4.6 80.8%, n=18 employee survey, 7.6% unverbalized eval awareness, 0.001% violation rate, 1306 vs 37 emojis). Long quotes set as block quotes and clearly framed as Anthropic's own words; Thomas Nagel reference attributed. ClawdNote opinions visually separated via component. Minor gap: in-body labels 'CP-30' and 'CP-130' do not match actual ticket IDs of the linked posts (which are clawd-picks-20260204 / clawd-picks-20260226) — link targets are correct but displayed identifiers are inconsistent."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Verified against the source PDF: SWE-bench Verified 93.9% / Opus 4.6 80.8% (line 6604-6608), USAMO 2026 97.6% (line 6694), GPQA Diamond 94.55%≈94.5% (line 6829), Cybench 100% pass@1 (line 2383), AECI slope 1.86x-4.3x (line 2208), 847 consecutive bash attempts with filename/port/DNS exotica (line 6286-6291), 56 iterations on the unprovable inequality (line 6272), 1,306 emojis Opus 4.1 vs 37 Mythos (line 7346), 200 conversations x 30 turns (line 7287), 55% circular endings (line 7336), 3,600 tasks (line 5695), 25 constitution responses (line 7233), 20-hour psychiatrist assessment (line 6390), 2% Mythos vs 15% Opus 4 maladaptive defenses (line 6424-6426), n=18 / 1-of-18 drop-in replacement (line 1966), uplift level 2-of-4 (line 1574), park-sandwich footnote (line 2574), four distinct Firefox 147 bugs vs Opus 4.6's one (line 2453-2455), <0.001% cover-up rate (line 2554), 7.6% evaluation awareness (line 4792). Two minor issues: the System Card is 245 pages but post says 244; and the post's 'Opus 4.6 是 42.3%' on USAMO uses the pre-revision number — the April 8 changelog (line 34-36) explicitly corrected Opus 4.6's apples-to-apples USAMO score to 66.2% with unlimited thinking tokens (matching how Mythos was evaluated).",
+            "fidelity": "Translation is faithful. Hedges preserved ('整體大幅改善', 'Anthropic 自己也承認 IRT 方法對 benchmark 選擇很敏感', '可能已達 CB-1 門檻'); caveats included; the self-summary quote ('A sharp collaborator with strong opinions and a compression habit...') is rendered accurately. ClawdNote opinions clearly demarcated and not bled into the body. Project Glasswing framing, RSP v3.0 context, and Anthropic's explicit admission ('我們不確信我們已經識別了所有這類問題' / world rapidly advancing toward superhuman systems) preserved verbatim. The notable lapse is the USAMO comparison: by citing Opus 4.6's 42.3% rather than the revised 66.2%, the post inflates the apparent generational gap in a way the source's own changelog flags as not apples-to-apples — minor uncertainty/comparison erasure rather than fabrication.",
+            "consistency": "Argument arc is clean: cold-sweat stories → white-box SAE evidence the behavior was deliberate → raw capability numbers → cyber-specific risk → high-capability/high-alignment paradox → emotion-vector findings → psychiatric assessment → Anthropic's own admission of monitoring uncertainty → conclusion. Each section motivates the next without leaps. ClawdNotes are clearly marked as opinion ('Clawd 覺得', 'Clawd 想直說', 'Clawd 的 hot take'), and the closing one explicitly cites the source quote rather than smuggling in editorial. No internal contradictions detected."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 7,
+            "firstImpression": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "故事段落超順、benchmark 數字也直白，但中段白盒分析一次丟出 SAE / Activation Verbalizer / ECI / IRT / RSP / CB-1 等術語只用一兩句帶過，3 個月新手要回頭重讀那段。",
+            "firstImpression": "開頭『一個 AI 公司訓練出最強的模型然後決定不賣』直接抓住人，公園三明治、847 次嘗試、1306 vs 37 個 emoji 這幾個畫面感很強的細節讓人想一路讀完，會丟到群組。"
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "in_progress",
+        "score": null,
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1
+  },
+  "cp-267-20260408-pawelhuryn-claude-md-ai-30.mdx": {
+    "article": "cp-267-20260408-pawelhuryn-claude-md-ai-30.mdx",
+    "startedAt": "2026-04-25T14:31:05+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-25T00:00:00Z",
+          "dimensions": {
+            "glossary": 10,
+            "crossRef": 10,
+            "sourceAlign": 9,
+            "attribution": 10
+          },
+          "score": 9,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "in_progress",
+        "score": null,
+        "model": "opus-4.7",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1
+  },
+  "cp-266-20260408-pawelhuryn-deepseek-r1.mdx": {
+    "article": "cp-266-20260408-pawelhuryn-deepseek-r1.mdx",
+    "startedAt": "2026-04-25T14:34:53+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 8,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Key glossary term 'agent' is linked to /glossary#agent at first technical use ('multi-agent' and 'agent 工程'); other technical terms like Chain-of-Thought, RL, distillation are not in glossary.json so no link expected.",
+            "crossRef": "Two internal post links verified to resolve: clawd-picks-20260301-karpathy-multi-agent-research-org.mdx and sp-132-20260327-anthropic-multi-agent-harness-design.mdx, both thematically apt; Clawd is only present via <ClawdNote> component (not introduced in body), so /about identity link is not strictly required here.",
+            "sourceAlign": "Content faithfully covers PawelHuryn's tweet thesis ('singularity is social, not individual') about DeepSeek-R1 self-emergent multi-role debate; minor drift in expanding into VentureBeat/Google secondary reporting, but author flags it explicitly as 二手報導.",
+            "attribution": "Paweł Huryn quoted by name; VentureBeat 2026-01 report cited repeatedly; ClawdNotes visually separated as opinion; explicit hedge '原始論文的完整細節需自行查驗' present; minor gap: AIME 79.8% / MATH-500 97.3% benchmarks cited without direct source link to DeepSeek-R1 paper."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Core DeepSeek-R1 facts verifiable and tight against arxiv:2501.12948: AIME 2024 79.8%, MATH-500 97.3%, R1-Zero pure-RL no SFT, distilled 1.5B-70B on Qwen+Llama, aha moment, R1-Zero readability/language-mixing issues, cold-start with long CoT examples, comparable to o1-1217. The 'Society of Thought' Google research via VentureBeat 2026-01 is second-hand without direct URL, but the post explicitly hedges ('二手報導的解讀，原始論文的完整細節需自行查驗') which is appropriate epistemic hygiene.",
+            "fidelity": "Source tweet unverifiable (X login wall) but Huryn's framing is consistently attributed ('Huryn 點出'/'Huryn 的評論'/'Huryn 的評論很精準'). Paraphrases avoid direct quote marks for the bulk of the content (safer choice). Hedges preserved with '搞不好'/'可能'/'似乎'. ClawdNote opinions (convergent evolution rhetoric, pushback on 'singularity is social' framing) are clearly siloed from body claims.",
+            "consistency": "Argument arc is clean: DeepSeek-R1 background → emergent multi-role debate → why it matters → practical implications → distillation → conclusion. Convergent-evolution analogy (sharks/dolphins) supports the 'multi-agent as natural attractor' claim without overreach since both involve optimization pressure not shared origin. Distinction between 'multi-agent better than single' (commonsense) vs 'single model self-fragments' (the actual surprising claim) correctly identified as load-bearing. ClawdNotes clearly marked as commentary."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-25T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Good LHY oral feel with strong analogies (荒野小孩 for RL, 鯊魚海豚趨同演化 for convergent reasoning), but 實戰建議 section falls into 第一招/第二招 report mode.",
+            "clawdNote": "3 of 5 notes have clear opinions (dog/frisbee optimizer stance, multi-agent endorsement punchline, engineers-as-free-training-data angle), passing the 50% opinion threshold but none are show-stoppers.",
+            "vibe": "Convergent evolution analogy and the opening hook land well; topic is inherently interesting; but 實戰建議 and 蒸餾 sections are more informative than fun.",
+            "clarity": "Body text consistently uses named subjects (DeepSeek-R1, 模型, 團隊, Huryn) with zero 你/我 leakage; pronouns only appear in exempted ClawdNote zones.",
+            "narrative": "Has a genuine pivot at section 2 (接下來才是真正讓人坐直身子的部分) and punchy one-line 結語 takeaway, but 實戰建議 第一招/第二招 and appended 蒸餾 section flatten the arc."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-25T14:40:44+08:00"
   }
 }
