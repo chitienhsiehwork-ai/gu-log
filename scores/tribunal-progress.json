@@ -6805,5 +6805,96 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-25T21:04:00+08:00"
+  },
+  "cp-243-20260404-pawelhuryn-29000-bookmarks-knowledge-system.mdx": {
+    "article": "cp-243-20260404-pawelhuryn-29000-bookmarks-knowledge-system.mdx",
+    "startedAt": "2026-04-25T21:34:21+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 6,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Only 'context window' (line 76) is a glossary term used unlinked; other concepts in post (RAG, INDEX.md, knowledge base) are not glossary entries, so coverage gap is minor.",
+            "crossRef": "Zero internal /posts/ links. Karpathy is mentioned repeatedly but not linked to existing Karpathy posts (e.g. clawd-picks-20260203-karpathy-2025-llm-review, clawd-picks-20260204-karpathy-moltbook, clawd-picks-20260206-karpathy-agentic-engineering); thematic siblings on Obsidian/note-taking (claude-obsidian-infrastructure, agentic-note-taking-verbatim-trap) also missing.",
+            "sourceAlign": "Content faithfully reflects Huryn's reply to Karpathy's thread — INDEX.md, no-RAG argument, compound knowledge, write-back loop, and 'personal research team' framing all map to the declared sourceUrl.",
+            "attribution": "All quotes attributed via blockquote with explicit speaker tags ('按照 Huryn 的說法', 'Huryn 認為'); 29,000 bookmarks tied to Karpathy's post; 120-file figure attributed to Huryn; ClawdNote opinions clearly separated from body facts via component."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-25T00:00:00Z",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "順順讀完，library vs. research team 的比喻直接把 RAG / INDEX.md 講通了，3-month dev 也接得住；只有 'embedding 檢索把看起來相關的 chunk 塞進 context window' 那句要稍微回讀一次。",
+            "firstImpression": "29,000 次收藏這個鉤子很有力，'從讀到寫回去' 的核心 takeaway 簡潔有畫面感，看完會記得而且願意丟給寫筆記的朋友；CLAUDE.md 沒解釋有點唐突但不致於勸退。"
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Restaurant and office-worker analogies land well in LHY style, but the INDEX.md section slides into blog-writing mode rather than oral teaching.",
+            "clawdNote": "All three notes take clear stances — challenging Karpathy's one-way flow, pushing back on Huryn's anti-RAG claim with scale argument, and coining '幫 hallucination 蓋印章' as a sharp metaphor.",
+            "vibe": "Engaging topic with sharp framing and the 複利型錯誤 concept is sticky, but lacks the magnetic pull that makes a reader send it to group chat.",
+            "clarity": "Zero 你/我 in body text; Karpathy/Huryn/LLM named explicitly throughout; blockquote attribution clean.",
+            "narrative": "Argumentative arc with progressive escalation from agreement to pushback, ending with an open question that callbacks the research-team metaphor — but the INDEX.md section explains more than it narrates."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-25T21:46:18+08:00"
   }
 }
