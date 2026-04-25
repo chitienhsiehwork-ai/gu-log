@@ -2000,16 +2000,34 @@
         "attempts": 1
       },
       "vibe": {
-        "status": "in_progress",
-        "score": null,
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Graduation-ceremony and kitchen analogies land well with oral feel, but code-heavy middle sections slide into blog-writing mode rather than talking mode.",
+            "clawdNote": "All 5 notes carry opinions (遲到是訊號, 摩擦力差別, 主廚vs洗碗機, reversed tooling order), but lean analytical-with-personality rather than punchy-with-edge.",
+            "vibe": "Pleasant informative read with bright spots (痛點鏈 escalation, kitchen analogy), but more 'good tech blog' than 'must share with friends'.",
+            "clarity": "Excellent pronoun discipline throughout — body text uses 開發者 and specific nouns consistently, zero ambiguous 你/我 in prose.",
+            "narrative": "Graduation-ceremony frame with callback ending works; 痛點鏈 creates genuine mid-article escalation, though some sections follow explain→code→ClawdNote template rhythm."
+          }
+        },
         "model": "opus-4.6-1m",
-        "attempts": 1
+        "attempts": 2
       }
     },
     "topLevelAttempts": 3,
-    "status": "FAILED",
+    "status": "PASS",
     "failedStage": "librarian",
-    "finishedAt": "2026-04-25T11:35:46+08:00"
+    "finishedAt": "2026-04-25T12:06:08+08:00"
   },
   "cp-290-20260414-article-claude-code-subagent-60-write-tool.mdx": {
     "article": "cp-290-20260414-article-claude-code-subagent-60-write-tool.mdx",
@@ -2472,5 +2490,37 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-25T11:59:43+08:00"
+  },
+  "cp-287-20260413-article-anthropic-agent-90.mdx": {
+    "article": "cp-287-20260413-article-anthropic-agent-90.mdx",
+    "startedAt": "2026-04-25T12:04:19+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-25T00:00:00Z",
+          "dimensions": {
+            "glossary": 10,
+            "crossRef": 9,
+            "sourceAlign": 10,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "in_progress",
+        "score": null,
+        "model": "opus-4.7",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1
   }
 }
