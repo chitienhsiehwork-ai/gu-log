@@ -5491,7 +5491,7 @@
         "status": "in_progress",
         "score": null,
         "model": "opus-4.6-1m",
-        "attempts": 1
+        "attempts": 2
       }
     },
     "topLevelAttempts": 1
@@ -5615,13 +5615,71 @@
         "attempts": 2
       },
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All headline numbers and dates verified against the WinBuzzer source (archive.org): Trillion Gene Atlas launched March 18 with Basecamp/Anthropic/Ultima/PacBio + NVIDIA, 100-fold diversity expansion, 100M+ species; Genesis Mission $293M with multi-billion backing and 20+ research areas; OpenAI's Sept 2026 intern / March 2028 researcher with Pachocki two-stage plan and $1.4T compute; DeepMind Aletheia powered by Gemini Deep Think, Jan 2026 100x Olympiad compute cut; Claude for Life Sciences Oct 2025 and Healthcare Jan 2026 with bioRxiv/medRxiv. Schwartz being at Harvard isn't stated in source but is a correct external fact (Matthew D. Schwartz is a Harvard theoretical physicist). The 8M-10M known-species figure is a standard accepted estimate, presented as such.",
+            "fidelity": "Source faithfully represented. Gowers's 'brief but enjoyable era' quote translated verbatim with the 'still needs us' caveat preserved. Schwartz's failure modes (hallucination, sycophancy, getting stuck on domain trivia) carried over without softening. The 'AI scientific capabilities still in beta' admission is explicitly cited. Glen Gowers's Basecamp quote about 'narrow slice of life on Earth' is paraphrased but keeps its meaning. The post adds editorial framing (PTT梗, ClawdNote opinions) but those are clearly marked as commentary, not source claims.",
+            "consistency": "Internal logic holds: the 100M-species target minus ~8-10M known species correctly implies 'tens of millions undiscovered' (post's '幾千萬個'). The three-company framing (OpenAI automation / DeepMind autonomous agent / Anthropic transparency) maps cleanly onto the source's same trichotomy. The 'compressed 21st century' link to Anthropic's collaborative-middle-ground positioning is consistent with the source. ClawdNote opinions (e.g., 'Clawd 押 Anthropic') are clearly editorial and don't conflict with reported facts."
+          }
+        },
         "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 9,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Hook lands fast — 'a research student called Claude' is instantly clear. Section breaks (Schwartz / Trillion Gene Atlas / three companies / failure-as-marketing) chunk it well. 'sycophancy' gets a parenthetical gloss, jargon like 'agent' / 'Vibe Coding' is linked, so I never had to Google. One mild speed bump: 'long-running Claude' isn't fully explained beyond 'extended computations'.",
+            "firstImpression": "Concrete numbers hit hard — 1 億物種, 1.4 兆美元, 2.93 億 — gives the piece weight. The 'three students answering the same exam' framing for OpenAI/DeepMind/Anthropic is the best moment, super shareable. Closing 達文西手稿 line is a nice mic-drop. Slight drag in the middle ClawdNote about Gowers / window length felt like inside-baseball I'd skim. Would finish, would share to a friend asking 'what's Anthropic's science play'."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Opening grad-student framing and 鹹酥雞攤 analogy set strong LHY tone; the 期末考 comparison for three companies is natural oral teaching, but the timeline-listing paragraph in 一億個物種 briefly slips into report mode.",
+            "clawdNote": "At least 4 of 6 notes carry clear stances — disagreeing with optimists on the AI window, calling out Basecamp CEO's 嘴砲, betting on Anthropic's timeline thesis; density is good at roughly 1 per 20 prose lines.",
+            "vibe": "The scale-jump transition from one physicist to 100M species creates genuine momentum, and the 達文西 closer is memorable enough to quote; mid-section date listings slow it slightly.",
+            "clarity": "Zero 你/我 leakage in body text; every subject named explicitly (Schwartz, Claude, Anthropic, OpenAI, DeepMind); ClawdNote speaker always unambiguous.",
+            "narrative": "Genuine arc — personal story → scale escalation → three-way comparison → philosophical callback to opening; strip test passes because skeleton retains the escalation and return structure, not linear report."
+          }
+        },
+        "model": "opus-4.6-1m",
         "attempts": 1
       }
     },
-    "topLevelAttempts": 1
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-25T15:36:38+08:00"
   },
   "cp-257-20260406-zats-litellm-trivy-pypi-ai.mdx": {
     "article": "cp-257-20260406-zats-litellm-trivy-pypi-ai.mdx",
@@ -5690,7 +5748,7 @@
         "status": "in_progress",
         "score": null,
         "model": "opus-4.6-1m",
-        "attempts": 1
+        "attempts": 2
       }
     },
     "topLevelAttempts": 1
