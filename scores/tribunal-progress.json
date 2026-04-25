@@ -6715,5 +6715,95 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-25T20:16:40+08:00"
+  },
+  "cp-245-20260404-al-grigor-ai-agent-41-agent.mdx": {
+    "article": "cp-245-20260404-al-grigor-ai-agent-41-agent.mdx",
+    "startedAt": "2026-04-25T20:47:01+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-25T00:00:00Z",
+          "dimensions": {
+            "glossary": 10,
+            "crossRef": 10,
+            "sourceAlign": 9,
+            "attribution": 10
+          },
+          "score": 9,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Source tweet (verified via r.jina.ai) confirms author and the four roles verbatim: PM 'turn raw ideas into specs', SWE 'implement', QA 'verify with evidence', On-call 'deal with CI/CD issues'. Author identity (Alexey Grigorev, founder of DataTalks.Club) verified via alexeygrigorev.com. The 41/46 figure, the five project names (AI Shipping Labs Website, DataTasks, Merm, Rustkyll, Codehive), the 20+20+20-minute breakdown for DataTasks, and the Lambda+DynamoDB stack come from the extended thread beyond the first tweet and could not be independently re-verified end-to-end, but no claim contradicts confirmable facts and all are properly attributed to Alexey.",
+            "fidelity": "Translation faithfully represents the source. Four roles match the original tweet exactly. Speculative or extended claims are consistently hedged with phrases like '按照 Alexey 的觀察' and '原文提到', preserving authorial attribution. No uncertainty erasure detected: the post does not upgrade Alexey's framing into universal truths. ClawdNote commentary is contained within ClawdNote blocks and clearly separated from translated body content.",
+            "consistency": "Pipeline logic (PM→SWE→QA→PM→Commit) is internally coherent and matches the four-role decomposition. Cross-references to /posts/agent-ships-while-you-sleep, /posts/clawd-picks-20260218-canva-cto-agents-overnight, and /posts/sp-172-20260413-anthropic-multi-agent-when-how all resolve to existing files in the repo, supporting rather than contradicting the argument. ClawdNote opinions (e.g., 'AI 在逼人類變成更好的 PM') are clearly editorialized and never presented as Alexey's claims."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 9,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Hook is concrete (41/46 overnight), four roles explained cleanly, pipeline arrow makes the flow obvious; Lambda+DynamoDB and Jekyll/Rust thrown in without intro but glossary links cover the heavy terms.",
+            "firstImpression": "Headline pulled me in, the DataTasks 20+20+20 minute breakdown was the 'oh that's good' moment, and '工具變了。紀律沒變。' is a closer I'd actually screenshot — would share."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Opening sleep scene and '先倒帶一下' rewind feel like LHY lecturing; taxi-vs-self-driving spec analogy lands well, but the five-project showcase section slides into bold-label + description report mode.",
+            "clawdNote": "'人類變成甲方然後下班' and the On-Call '最純粹的仁慈' are highlights; 5 of 6 notes carry clear opinions, and the final reversal (AI forcing humans to relearn PM skills) is a strong closer.",
+            "vibe": "Opening hooks and the 'real lesson isn't speed, it's discipline' subversion gives satisfying payoff; the sequential five-project showcase drags pacing slightly, keeping it from a 9.",
+            "clarity": "Body text uses concrete names (Alexey, PM, SWE, QA) throughout with zero ambiguous 你/我; ClawdNotes stay properly scoped.",
+            "narrative": "The rewind technique and 'speed isn't the lesson' pivot create genuine arc; strip test passes because the skeleton still has tension, but the five-project section falls into a template rhythm (bold label → description → ClawdNote)."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-25T21:04:00+08:00"
   }
 }
