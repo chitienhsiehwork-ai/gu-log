@@ -8,11 +8,21 @@ import (
 	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/runner"
 )
 
-// ClaudeProvider shells out to `claude -p --model <model>` with
-// `--permission-mode bypassPermissions` appended when not running as root.
-// Claude Code refuses the permission-bypass flags under root/sudo; CCC
-// sandboxes run as root, so we drop the flag there. -p is one-shot and does
-// not invoke tools, so the permission mode is a no-op for this call site.
+// ClaudeProvider shells out to `claude -p --model <model>` with a
+// permission-mode appropriate to the calling user. Pipeline steps after
+// eval (write/review/refine) instruct the LLM to write its output to a
+// file in WorkDir, so the model needs Write/Edit permission — `-p` will
+// happily invoke tools as long as a permission mode allows it.
+//
+//   - Non-root (VPS Clawd, dev laptops) → bypassPermissions: the broadest
+//     setting and the one the bash pipeline historically used.
+//   - Root (CCC sandboxes / Claude Code on the web) → acceptEdits: claude
+//     refuses bypassPermissions and --dangerously-skip-permissions under
+//     root for security reasons, but acceptEdits is allowed and auto-
+//     approves file writes/edits. Without this the eval/write/review/
+//     refine steps silently fail because the LLM's Write tool gets denied
+//     and it returns a "please approve the permission" message instead of
+//     the JSON/MDX the parser expects.
 type ClaudeProvider struct {
 	// ModelFlag is the value passed to --model. For Opus we pin the exact
 	// build ("claude-opus-4-6[1m]") rather than the "opus" alias — see the
@@ -73,6 +83,8 @@ func (c *ClaudeProvider) Run(ctx context.Context, prompt string, opts RunOptions
 	}
 	if os.Geteuid() != 0 {
 		args = append(args, "--permission-mode", "bypassPermissions")
+	} else {
+		args = append(args, "--permission-mode", "acceptEdits")
 	}
 	res, err := runner.RunWithOptions(ctx, runner.Options{
 		Name:    "claude",
