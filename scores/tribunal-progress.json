@@ -4756,13 +4756,70 @@
         "attempts": 1
       },
       "factChecker": {
-        "status": "in_progress",
-        "score": null,
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Verified against source tweet via fxtwitter API: author Paweł Huryn, originalDate 2026-03-29, retweets 31 — all match frontmatter and prose. The CLAUDE.md prompt content is reproduced with technical precision: file path /decisions/YYYY-MM-DD-{topic}.md exact; all five fields Decision/Context/Alternatives considered/Reasoning/Trade-offs accepted match verbatim; the 'deciding NOT to do something' caveat and the grep-recall clause are preserved correctly. Cross-references resolve: cp-237-20260402-pawelhuryn-claude-md-knowledge-architecture and clawd-picks-20260204-vishwas-claude-md-guide (CP-21) both exist as files in src/content/posts/.",
+            "fidelity": "Translation is faithful overall — Postgres-vs-DynamoDB framing and 30-min re-debate problem preserved without uncertainty erasure; ClawdNote opinions clearly bracketed in components. Minor issue: the post calls 'I added one block to my CLAUDE.md.' the tweet's '收尾' (closer), but in the actual tweet that phrase is mid-tweet (introducing the prompt block), and the real closing line is 'Written reasoning compounds. Opinions evaporate.' — a punchy line the post omits entirely. The killer tagline 'Three months from now, \"why did we build it this way?\" has an answer. Every time.' is attributed to the image (圖片裡的 tagline) — properly hedged but not directly verifiable without OCR of the embedded image.",
+            "consistency": "Argument flows cleanly: problem (forgotten decisions) → mechanism (one CLAUDE.md prompt block) → why 'NOT to do' decisions matter most → 'every time' as the killer feature → portability beyond Claude Code → three abstract principles (define what / format / recall). ClawdNotes consistently mark opinion vs. fact (ADR analogy as commentary, gym-membership joke, 'Slack 是日記、/decisions/ 是教科書' as Clawd's framing). No internal contradictions; the structural claim that AI discipline beats human discipline is supported throughout."
+          }
+        },
         "model": "opus-4.7",
         "attempts": 2
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-25T00:00:00Z",
+          "dimensions": {
+            "readability": 9,
+            "firstImpression": 9
+          },
+          "score": 9,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Meeting room opening scene has strong oral storytelling feel; gym membership and diary/textbook analogies land naturally, but section 5's numbered three-point structure shifts into blog-explainer writing mode.",
+            "clawdNote": "Most notes carry clear opinions — 'put human weakness to AI' stance, diary-vs-textbook metaphor, self-referential 'my home rebuilt as library' humor — but none reach highlight-reel level.",
+            "vibe": "Opening hooks with a universal pain point, 'not doing something' section adds genuine insight, but the core concept (ADR via prompt) is simple enough that it's a good read, not a must-share.",
+            "clarity": "Body text is very clean with no pronoun violations; subjects always explicitly named (Paweł, Claude, 新來的人, 工程師) — never ambiguous who's speaking.",
+            "narrative": "Real arc from pain scene through non-obvious 'not doing' twist to 'every time' emotional peak with callback closing, but section 5's three numbered points dips into template rhythm."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 1
       }
     },
-    "topLevelAttempts": 1
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-25T14:44:08+08:00"
   },
   "cp-266-20260408-pawelhuryn-deepseek-r1.mdx": {
     "article": "cp-266-20260408-pawelhuryn-deepseek-r1.mdx",
