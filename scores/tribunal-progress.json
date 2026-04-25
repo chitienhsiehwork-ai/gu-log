@@ -3228,29 +3228,13 @@
     "startedAt": "2026-04-25T12:40:29+08:00",
     "stages": {
       "librarian": {
-        "status": "fail",
-        "score": {
-          "judge": "librarian",
-          "dimensions": {
-            "glossary": 6,
-            "crossRef": 5,
-            "sourceAlign": 9,
-            "attribution": 9
-          },
-          "score": 7,
-          "verdict": "FAIL",
-          "reasons": {
-            "glossary": "Multiple key glossary terms used without /glossary# linking: Codex (20+ mentions, the post's headline subject), Claude Code (line 146), MCP (lines 30, 41, 169), Ralph Loop (line 131), Hooks (line 131 'pre-commit hook'), Agent (passim). Terms are introduced naturally in context so comprehension isn't blocked, but sibling sp-169 demonstrates the convention ([Claude Code](/glossary#claude-code)) and at minimum first-mention of Codex/MCP should be linked.",
-            "crossRef": "Zero `/posts/` links and zero `/about` identity link for Clawd despite ~10 ClawdNote appearances. Multiple obvious thematic connections missing: `claude-code-vs-codex` is begging to be linked at line 146-147 (where the post explicitly compares the two ecosystems converging), `20260301-codex-cli-sandbox-philosophy` and `20260301-three-cli-agents-gemini-safe-search` are direct topical kin, plus `ai-assistance-coding-skills` and `build-claude-tool-for-thought` for the skill-as-contract thesis.",
-            "sourceAlign": "sourceUrl (@nickbaumann_'s X post on bespoke CLIs for Codex) is faithfully represented — all three named tools (codex-threads, slack-cli, typefully-cli) covered with original code examples, the CLI+skill double-layer thesis preserved, the default-no safety point and the cli-creator/agent-friendly-clis OpenAI doc reference both retained. Direct quote on lines 125-127 lifted verbatim with translation.",
-            "attribution": "Nick Baumann identified by name + @nickbaumann_ handle on line 32; the headline quote on lines 125-127 fenced as blockquote with English original then translation; ClawdNote opinions cleanly walled off in component blocks throughout, never bleeding into body fact; CLI commands cited in code blocks not paraphrased. Minor gap: `cli-creator` meta-skill on line 154 is referenced without a direct repo URL."
-          }
-        },
+        "status": "in_progress",
+        "score": null,
         "model": "opus-4.7",
-        "attempts": 2
+        "attempts": 1
       }
     },
-    "topLevelAttempts": 1,
+    "topLevelAttempts": 2,
     "status": "FAILED",
     "failedStage": "librarian",
     "finishedAt": "2026-04-25T12:50:18+08:00"
@@ -3346,5 +3330,97 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-25T12:51:17+08:00"
+  },
+  "cp-278-20260411-andrewyng-ai.mdx": {
+    "article": "cp-278-20260411-andrewyng-ai.mdx",
+    "startedAt": "2026-04-25T12:52:41+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 10,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "No glossary.json terms (Agent, MCP, Codex, Claude Code, etc.) appear in this policy-focused post — full coverage by absence.",
+            "crossRef": "Both internal links verified: /posts/clawd-picks-20260209-andrewng-sovereign-ai/ and /posts/clawd-picks-20260221-whitehouse-ai-action-plan-deregulation/ resolve to existing posts. Clawd identity link to /about present in second ClawdNote. ShroomDog not mentioned in body so no link required.",
+            "sourceAlign": "Content faithfully tracks Andrew Ng's tweet — UK study A/B testing of fear frames, AI-washing of layoffs, data center environmental framing, nuclear/oil analogy with millions-of-deaths claim, and explicit endorsement of federal preemption framework all match Ng's documented positions.",
+            "attribution": "Ng's positions consistently labeled (吳恩達在文中引用 / 吳恩達認為 / 吳恩達明確表態支持). Post explicitly flags weak attribution where it exists ('Ng 直接引用但未提供完整學術引用資訊' for the UK study, 'he 沒給出具體的比較數字' for data center claim). All four ClawdNotes clearly demarcated by the component, opinions stay inside the box."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Ng's documented public positions (AI-washing of layoffs, nuclear-vs-coal lesson, federal-preemption support, four fear-frames: war/environment/jobs/children) are accurately represented; ClawdNote's Germany post-Fukushima coal uptick and France carbon-intensity ~10x lower than Germany are historically correct (Markandya & Wilkinson 2007-style mortality estimates back the 'millions of premature deaths from air pollution' claim); the unsourced 'UK large study' is transparently flagged inline ('Ng 直接引用但未提供完整學術引用資訊'), which avoids presenting it as verified fact.",
+            "fidelity": "Ng's hedges are explicitly preserved — the article dedicates a section to noting he acknowledges each concern as legitimate before critiquing weaponization (alarming/serious effort/tragedy/child welfare quotes match his known framing); no uncertainty erasure detected; ClawdNote opinions clearly fenced inside <ClawdNote> blocks; primary source (X status 2039051446084153834) is auth-walled and could not be byte-verified, normal for tweet-sourced CP translations.",
+            "consistency": "Argument arc holds end-to-end: fear-marketing exists → Ng's position (concerns real, weaponization the issue) → tactical examples (AI washing, data centers) → historical analogue (nuclear/oil playbook) → policy response (federal preemption) → counter-inoculation framing closes the loop with the opening A/B-testing setup; ClawdNotes consistently mark opinion (e.g., 'Clawd 認為吳恩達這個案例說得比較輕'); internal cross-refs to /posts/clawd-picks-20260209-andrewng-sovereign-ai/ and /posts/clawd-picks-20260221-whitehouse-ai-action-plan-deregulation/ are thematically aligned and present in the corpus."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-25T00:00:00Z",
+          "dimensions": {
+            "readability": 9,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "夜市攤子 and 食品安全 analogies are strong LHY material, but data-center and White House sections thin out into reporting mode.",
+            "clawdNote": "「火很危險，所以只有我們家可以賣打火機」is a killer regulatory-capture line; most notes carry clear opinions (ZIRP, compliance-cost, playbook pattern) beyond pure explanation.",
+            "vibe": "A/B testing framing hooks genuinely and 夜市 section is the peak; White House policy section reads more like explainer than story, softening shareability.",
+            "clarity": "Body text consistently names subjects (吳恩達, 反AI陣營, 白宮); zero 你/我 leaks in body; ClawdNote speakers unambiguous.",
+            "narrative": "Counter-inoculation conclusion callbacks to opening A/B testing for real closure, but piece tracks source article structure and some sections follow explain-example-ClawdNote template rhythm."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-25T12:57:43+08:00"
   }
 }
