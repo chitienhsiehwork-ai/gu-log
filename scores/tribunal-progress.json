@@ -8817,5 +8817,97 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-26T17:01:05+08:00"
+  },
+  "sd-17-20260402-is-it-worth-the-time.mdx": {
+    "article": "sd-17-20260402-is-it-worth-the-time.mdx",
+    "startedAt": "2026-04-26T17:31:33+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 8,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Key glossary terms properly linked: Claude Code → /glossary#claude-code at first mention (line 29) and again at lines 129 and 290; OpenClaw → /glossary#openclaw at line 99. The 'git commit hook' reference at line 165 is generic git tooling rather than the Claude Code Hooks concept, so not a required link. No glaring unlinked terms.",
+            "crossRef": "Required ShroomDog identity link present at first mention: [ShroomDog](/about) on line 99. Both internal post links resolve to real slugs: /posts/sp-143-20260402-ecc-autonomous-loops/ and /posts/sp-156-20260402-fcoury-tmux-workflow/ both exist in src/content/posts/. Clawd speaks via <ClawdNote> component, so /about link not required for him.",
+            "sourceAlign": "SD-series original, sourceUrl points to gu-log itself — auto 8/10 per librarian rubric.",
+            "attribution": "xkcd #1205 〈Is It Worth the Time?〉 clearly attributed throughout body. ShroomDog self-disclosure explicitly labeled ('ShroomDog 對這件事的自白', line 131). ClawdNote opinions clearly delineated from narrator body via component boundary. Illustrative numbers (30 秒, 4 小時, 5 分鐘) framed as examples, not factual claims requiring sourcing."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "xkcd #1205 'Is It Worth the Time?' (2013) is correctly identified by number, title, and year; the comic's premise (save X seconds/day vs. Y hours to automate) is faithfully described. No fabricated stats, model versions, or benchmark numbers — illustrative figures (30 秒/5 分鐘/4 小時/480 天) are explicitly hypothetical examples, not citations. Cross-references to /posts/sp-143... and /posts/sp-156... resolve to existing posts in src/content/posts/.",
+            "fidelity": "SD original (source: ShroomDog Lab) — no external source to mistranslate. ShroomDog narrator voice and Clawd voice are cleanly separated via <ClawdNote> components throughout; opinions stay inside ClawdNote blocks (e.g., 'Productivity Theme Park', 'multibasamine vending machine') and don't leak into the body's claims about xkcd or AI tooling.",
+            "consistency": "Argument arc is coherent: 2013 xkcd was right because automation was expensive → AI collapsed the cost variable → real ROI is cognitive load, not seconds → meta trap caveat → 2026 default = automate it. Apparent tension between 'automate everything' and the meta trap is explicitly resolved ('玩工具可以，但你要知道自己是在做投資，還是在做 cosplay'). Every ClawdNote marks itself as opinion via tone and component boundary."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-26T00:00:00Z",
+          "dimensions": {
+            "readability": 9,
+            "firstImpression": 9
+          },
+          "score": 9,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 9,
+            "vibe": 9,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Strong LHY oral voice throughout; analogies land naturally (洗碗機 cognitive debt, Patagonia背心 procrastination, 忍者 automation fantasy) and strip test reveals genuine narrative skeleton, not decorated reporting.",
+            "clawdNote": "6 of 7 notes carry clear opinions — 防走火裝置 reframe, 教堂vs遮雨棚 judgment call, montage fantasy self-awareness, unpaid intern metaphor, Productivity Theme Park verdict, 低強度霸凌 framing — comfortably above the half-with-opinion threshold.",
+            "vibe": "Multiple shareable moments (montage ClawdNote, Meta Trap Patagonia vest line, 微型侮辱 reframe); phone-friendly paragraph lengths; holds attention through all seven sections without a dead zone.",
+            "clarity": "Body text is clean — all 你/我 instances are inside ClawdNotes or quoted speech (both exempt); ShroomDog named explicitly for attribution; no pronoun ambiguity anywhere.",
+            "narrative": "Genuine structure with psychology pivot (section 3) and Meta Trap counter-pivot (section 5), plus 成人監護系統→博物館說明牌 callback in closing; docked to 8 because all six sections follow the same rhythmic template (setup → develop → ClawdNote closer) despite content variation."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-26T17:51:27+08:00"
   }
 }
