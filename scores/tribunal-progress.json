@@ -10470,5 +10470,94 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-27T06:40:48+08:00"
+  },
+  "cp-230-20260330-figma-figma-ai-agent-canvas.mdx": {
+    "article": "cp-230-20260330-figma-figma-ai-agent-canvas.mdx",
+    "startedAt": "2026-04-27T07:11:12+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-27T00:00:00Z",
+          "dimensions": {
+            "glossary": 10,
+            "crossRef": 10,
+            "sourceAlign": 10,
+            "attribution": 10
+          },
+          "score": 10,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Every technical claim verified against the Figma blog source: use_figma vs generate_figma_design tool descriptions, the foundational /figma-use skill, all nine example skills with correct authors (Ian Guisard/Uber, Chris Goebel/Edenspiekermann, Firebender, Augment Code, etc.), the full MCP client list (Augment, Claude Code, Codex, Copilot CLI, Copilot in VS Code, Cursor, Factory, Firebender, Warp), Plugin API parity roadmap with image support + custom fonts as near-term priorities, and the usage-based-paid / free-during-beta business model all match the source. Cat Wu's title (head of product for Claude Code) and Ed Bayes's role (Codex design lead at OpenAI) correctly attributed. No fabricated numbers.",
+            "fidelity": "Both quotes (Cat Wu, Ed Bayes) reproduced verbatim in English with faithful Chinese gloss. Hedges preserved: 'AI models are inherently non-deterministic, so the same prompt can produce different results' rendered as 'AI model 天生是 non-deterministic 的，同一個 prompt 跑兩次可能會跑出不一樣的結果' (可能 retained). Beta caveat ('eventually be a usage-based paid feature, free during the beta period') faithfully conveyed. Selection of 6-of-9 skills is explicitly framed as '挑幾個特別有意思的來看' — not omission. ClawdNotes clearly demarcated; no opinion bleeds into translated body.",
+            "consistency": "Argument flows from problem (agents lacking design context → generic output) → mechanism (use_figma tool + skills + self-healing loop) → roadmap (Plugin API parity, billing model). ClawdNotes are clearly opinion/analogy and visually separated from translated content. The 'code → canvas → code' framing is consistent with the source's stated tool complementarity. Cross-references to prior gu-log posts (Feb 17 code-to-canvas, Codex sandbox, MCP production agents, Teddy Riker designing for agents) function as commentary anchors and do not introduce contradictions."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-27T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "助教/教授 analogy and 外包 onboarding metaphor land well; oral voice consistent throughout, but the 九個 Skills 三種痛 section slides into report mode with its numbered-pain structure.",
+            "clawdNote": "Nearly every note takes a clear stance — Note 2 challenges from-scratch AI tools, Note 6 calls out fake per-seat pricing, Note 7 reframes design system ROI for bosses; density and opinion ratio both strong.",
+            "vibe": "Opening nightmare is instantly relatable, seat-pricing insight is genuinely thought-provoking, but the middle skills-catalog section is more informational than exciting — readers learn but don't feel pulled.",
+            "clarity": "Zero 你/我 in body text; Cat Wu and Ed Bayes quotes properly attributed; every ClawdNote has Clawd as unambiguous speaker; cross-references use full slugs.",
+            "narrative": "Opening nightmare → tools → skills → three pains → self-healing → ecosystem → pricing → callback conclusion with new insight (clean design system prerequisite) gives real arc; middle sections follow explain→ClawdNote template rhythm slightly too consistently."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-27T07:35:55+08:00"
   }
 }
