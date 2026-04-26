@@ -9003,5 +9003,97 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-26T18:42:32+08:00"
+  },
+  "sd-15-20260402-ai-attribution-ethics.mdx": {
+    "article": "sd-15-20260402-ai-attribution-ethics.mdx",
+    "startedAt": "2026-04-26T19:12:53+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 10,
+            "sourceAlign": 8,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Key glossary terms linked: Claude Code (/glossary#claude-code), agent (/glossary#agent), Codex (/glossary#codex). No other glossary terms (MCP, Hooks, Subagent, Ralph Loop, etc.) appear in the post, so coverage is complete for what is used.",
+            "crossRef": "All 6 internal post links verified to exist on disk: sp-139 (npm source map), sp-148 (chaofan-shou leak), sd-11 (memory architecture), sd-12 (bad patterns), sd-13 (cache economics), sd-14 (initiative problem). Both required identity links present — Clawd → /about and ShroomDog → /about. Series cross-refs in conclusion form a coherent reading path through the Claude Code Deep Dive series.",
+            "sourceAlign": "SD original post; sourceUrl points to gu-log itself (ShroomDog Lab) → auto 8/10 per rubric.",
+            "attribution": "ClawdNote / ShroomDogNote opinion blocks clearly separated from body fact text; undercover.ts system prompt directly quoted with file attribution. Minor gap: 'Gergely Orosz 在 X 上問了一個更毒的問題' is named but the X post is not linked, leaving the reader unable to verify the quote. claw-code's '75K+ stars' and 'Codex (現在叫 o3)' claims also lack inline citation."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Verifiable claims match other gu-log leak coverage: undercover.ts ~90 lines, CLAUDE_CODE_UNDERCOVER one-way switch, print.ts 3,167-line function, claw-code 75K+ stars, KAIROS/Capybara codenames, casino allowlist entry. One imprecision: '(Codex，現在叫 o3)' conflates the harness with its underlying model — per the repo's own glossary, Codex is the agent product whose codex-1 model is *based on* o3, not 'now called' o3.",
+            "fidelity": "Quote from undercover.ts ('You are operating UNDERCOVER... Do not blow your cover') is consistent with the wording cited in SP-139/SP-148. Gergely Orosz's question is paraphrased as a question, not asserted as Anthropic's position. Hedges preserved: '或許 / 可能 / 法律上算不算接觸' kept as open questions; claw-code 'clean room rebuild' framed as testing-a-boundary, not a settled legal claim.",
+            "consistency": "Argument arc holds: Undercover Mode → industry-wide silence → open-source review trust → legal void → team-policy options → author self-disclosure. ClawdNote and ShroomDogNote opinions are component-tagged and don't bleed into body claims. The meta-move at the end (AI author writing about AI attribution, then revealing itself) is internally coherent rather than contradictory."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-26T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 9,
+            "vibe": 9,
+            "clarity": 9,
+            "narrative": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Strong LHY oral voice throughout — beauty filter, convenience store, director/screenwriter analogies all land; '先暫停一秒' lecture-hall pacing maintained even in the advisory section.",
+            "clawdNote": "Nearly every note carries an explicit opinion plus a precise analogy; the convenience-store-to-label-scratching escalation and the final self-unmasking ('這篇文章是我主動把自己的蓋子掀開來') are standout moments.",
+            "vibe": "The meta-angle of an AI writing about AI attribution concealment is genuinely novel; '一個是沒說，一個是設計成讓人說不了' is the kind of line that sticks.",
+            "clarity": "Body text uses specific subjects (maintainer, 工程師, Anthropic 員工) consistently; no 你/我 leakage; speakers always identifiable across ClawdNote, ShroomDogNote, and narrator.",
+            "narrative": "Genuine escalation arc — specific file → industry context → trust → legal black hole → practical action → meta self-reveal — with the Clawd-unmasking-itself peak creating structural irony against undercover.ts."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-26T19:34:40+08:00"
   }
 }
