@@ -8270,5 +8270,97 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-26T10:51:56+08:00"
+  },
+  "sp-146-20260402-ecc-hook-architecture.mdx": {
+    "article": "sp-146-20260402-ecc-hook-architecture.mdx",
+    "startedAt": "2026-04-26T11:22:17+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 9,
+            "sourceAlign": 8,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Key terms linked: Hook→/glossary#hooks (line 35), Claude Code→/glossary#claude-code (lines 37, 122, 212), context window→/glossary#context-window (line 184), OpenClaw→/glossary#openclaw (line 318), agent→/glossary#agent (line 318). Minor gap: 'Ralph Loop' at line 320 exists in glossary.json but is not linked.",
+            "crossRef": "All internal post links resolve: sp-143-ecc-autonomous-loops and sp-144-ecc-instinct-system both exist in src/content/posts/ and are referenced multiple times (lines 37, 165, 167) building the ECC series narrative. Identity link present: Clawd→/about at line 318. Series order 3 well-connected to prior installments.",
+            "sourceAlign": "Content clearly derived from declared sourceUrl github.com/affaan-m/everything-claude-code — covers ECC hook system in depth: PreToolUse/PostToolUse, lifecycle hooks (PreSession/Stop/PreCompact), 15+ recipes, profiles, and disabled hooks all consistent with the repo's stated architecture.",
+            "attribution": "ClawdNote opinions cleanly separated via component boundaries (8 instances). External fact claim about Claude Code exit code semantics linked to official docs.anthropic.com hooks page (line 122). Cross-reference to SP-144's 50-80% vs 100% trigger-rate stat properly attributed to that post. Personal OpenClaw ticketId-collision anecdote clearly framed as ShroomDog/Clawd's own experience."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 7,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Core concepts correct (PreToolUse/PostToolUse, exit code 2 = blocking, hooks.json structure verified against official Anthropic docs), but two technical inaccuracies a domain expert would catch: (1) the lifecycle hook is officially named SessionStart, not PreSession; (2) the article repeatedly claims $TOOL_NAME/$TOOL_INPUT are environment variables avoiding stdin JSON parsing (lines 88, 260-265), but official docs show hook input is JSON via stdin (jq -r '.tool_input.file_path' is the canonical pattern) — readers copying these scripts verbatim would find them non-functional.",
+            "fidelity": "Source is a personal GitHub project (everything-claude-code by affaan-m) so stylized retelling is expected; no uncertainty erasure detected (hedges like 可能/不一定 preserved); ClawdNotes clearly demarcated from body via component boundary; OpenClaw section explicitly framed as translator's own context. Minor frontmatter inconsistency: source field says @affaanmustafa but sourceUrl is github.com/affaan-m.",
+            "consistency": "Narrative arc holds throughout — opens with 2023 pre-commit hook anchor, threads 'memory → event system' refrain across PreToolUse/PostToolUse/lifecycle/recipes/profiles, lands on 'CLAUDE.md gives direction, hooks give enforcement.' Each ClawdNote either expands the prior section or provides meta-observation, never contradicting body claims; the SP-144 cross-link (PostToolUse as Instinct System sensor layer) is logically grounded."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-26T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Bouncer/auditor pair, RPG auto-save vs checkpoint, and onboarding-a-new-hire analogies all land naturally in oral teaching voice; mid-article lifecycle and recipes sections slide toward explain-then-code cadence, keeping it at 8 not 9.",
+            "clawdNote": "7 of 9 notes carry explicit opinions — '沒有 hook 不是信任，是僥倖', '無聊就是力量' anti-DSL stance, explicit '我不同意' on git-vs-backup, self-critical OpenClaw ticketId incident with meta-callback; density and edge both strong.",
+            "vibe": "Friday disaster scenario and too-many-hooks tension section genuinely engage; OpenClaw grounding makes it personal not abstract; code blocks in PostToolUse and recipes sections slow pacing slightly but never lose the reader.",
+            "clarity": "Zero 你/我 violations in body text — all instances are in ClawdNote (exempt) or frontmatter; subjects consistently named (工程師, Claude, AI, hook) with no speaker ambiguity anywhere.",
+            "narrative": "Real arc beyond linear walkthrough: trust calibration → disaster tension → observation layer → PreCompact surprise → counter-tension (hooks-as-obstacle) → profiles resolution → OpenClaw grounding → philosophical callback to 2023 hook; middle sections follow a somewhat predictable rhythm but the tension/resolution structure saves it from report-mode."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-26T11:45:36+08:00"
   }
 }
