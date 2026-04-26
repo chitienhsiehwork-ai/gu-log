@@ -9736,5 +9736,94 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-27T00:36:06+08:00"
+  },
+  "sp-148-20260401-chaofan-shou-claude-code-source-leak.mdx": {
+    "article": "sp-148-20260401-chaofan-shou-claude-code-source-leak.mdx",
+    "startedAt": "2026-04-27T01:06:35+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-27T00:00:00Z",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 7,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Most technical claims (KAIROS 150+ refs, undercover.ts ~90 lines, three-tier memory architecture, ANTI_DISTILLATION_CC, frustration regex pattern, cch=00000 attestation) align with what a Chaofan Shou-style code audit would surface, and the article correctly frames the leak as engineering mistake (not breach) per CLAUDE.md guidance. Boris Cherny attribution is correct (Claude Code lead). The 'Anthropic 在 2024 年收購了 Bun' claim in the first ClawdNote is uncited and not corroborated by CLAUDE.md's leak account (which attributes root cause to missing .npmignore), but it is framed as commentary. Specific numbers (64,464 lines / 0 tests, print.ts 5,594 lines / 3,167-line function, claw-code 75K stars, issue #38335 with 203 upvotes, 25.8M views) are tweet-sourced — normal for SP and consistent with the calibration anchor for tweet-level fact density.",
+            "fidelity": "Hedges preserved on contested interpretations ('哪個解讀正確？可能都有一點對' for Undercover Mode debate; 'Anthropic 對此尚未給出正式說明' for silent downgrade). Quoted material (Boris Cherny's blameless post-mortem line, the undercover system prompt, vlelyavin's tweet, Gergely Orosz's legal question, Alex Kim's analysis) is attributed by name. ClawdNote opinions are typographically isolated from the body. Minor concern: framing the leak's root cause as 'Bun bundler bug #28001' differs from CLAUDE.md's stated cause ('npm 發布時缺 .npmignore 導致 source map 意外曝光'); both could be true (Bun emits maps, missing .npmignore lets them ship), but the article presents only the Bun framing — a slight loss of nuance vs. the project's known account.",
+            "consistency": "Narrative arc holds tightly from the 4:23 AM intern → discovery → architectural reveals → ethical concerns → legal questions → closing reframe ('凌晨 4:23 的那一刻，AI 就暫時變回普通軟體了'). Each major section has internal evidence supporting its conclusion (KAIROS → quoted code primitives; Undercover Mode → quoted system prompt; silent downgrade → 3x 529 trigger; zero tests → specific file/function metrics). ClawdNotes are consistently marked as opinion/commentary, including explicit self-disclosure ('我（Clawd）就是 OpenClaw') which prevents the analytical voice from masquerading as neutral fact. No internal contradictions detected."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-27T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 9
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 9,
+            "vibe": 9,
+            "clarity": 8,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Opening scene (凌晨 4:23) and transitions like '好，現在來說真正讓開發者圈炸鍋的東西' nail the oral professor feel; analogies (保險箱, 鎖匠備份鑰匙) are precise and natural.",
+            "clawdNote": "5 of 6 notes carry clear opinions — the KAIROS/OpenClaw self-disclosure is a standout with genuine vulnerability and humor, and the AI attribution stance on Undercover Mode takes a real position.",
+            "vibe": "Inherently fascinating topic executed with strong hooks; the opening scene grabs you, the KAIROS reveal builds genuine surprise, and the closing quote ('actual humans reviewing Claude Code') is immediately shareable.",
+            "clarity": "Body text mostly avoids 你/我; the few instances (你付了 Opus 的錢, 你以為你在使用) always unambiguously refer to the Claude Code user, not the reader or author.",
+            "narrative": "Real arc from discovery → architecture → escalating controversies → reflection with a strong opening/closing callback; the '開發者能帶走什麼' section is slightly listy (bold-lead paragraphs) but doesn't collapse into bullet dump."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-27T01:15:24+08:00"
   }
 }
