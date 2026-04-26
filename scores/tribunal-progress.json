@@ -9551,5 +9551,97 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-26T23:03:00+08:00"
+  },
+  "cp-236-20260402-article-ollama-mlx-apple-silicon.mdx": {
+    "article": "cp-236-20260402-article-ollama-mlx-apple-silicon.mdx",
+    "startedAt": "2026-04-26T23:33:25+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Key glossary terms all linked at first mention: OpenClaw → /glossary#openclaw (line 76), Claude Code → /glossary#claude-code (line 76), Codex → /glossary#codex (line 76). 'OpenCode' is not in glossary so no link required; generic terms like 'agent'/'coding agents' are used categorically rather than as defined product names.",
+            "crossRef": "Both internal post refs verified to exist on disk: /posts/cp-286-20260413-ggerganov-llama-cpp-mac-300-t-s-georgi-gerganov (line 83) and /posts/sp-173-20260411-hwchase17-harness-memory-lockin (line 94). Required Clawd identity link present: '我們家 Clawd 的本體' → /about (line 78). ShroomDog not mentioned so no SD identity link required. Thematic connections (CP-286 llama.cpp 300 t/s on Mac, SP-173 harness lock-in) are well-chosen and substantively integrated.",
+            "sourceAlign": "Content faithfully derived from the declared Ollama tweet (sourceUrl x.com/ollama/status/2038835449012351197) — directly quotes the tweet's core line 'Ollama is now updated to run the fastest on Apple silicon, powered by MLX', cites the tweet's named workload examples (personal assistants, coding agents like Claude Code/OpenCode/Codex), and explicitly flags that the tweet provides no benchmarks rather than inventing them.",
+            "attribution": "Tweet quotes properly attributed (3/31 推文, 推文原話, 推文原話是). All ClawdNotes clearly bounded by <ClawdNote> components. Speculative claims explicitly hedged ('合理推測', '合理的推測是'). No fabricated stats — the post openly says '推文沒給數字' instead of inventing numbers, and the llama.cpp→MLX framing is presented as the author's reasoning, not a verified vendor claim."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All technical claims correct: MLX is Apple's ML framework for Apple Silicon, unified memory architecture (CPU/GPU shared) accurately described, prior Ollama llama.cpp Metal backend correctly identified. No fabricated numbers — article explicitly notes the tweet provided no benchmarks ('推文沒給數字').",
+            "fidelity": "Tweet quotes verified verbatim against Twitter oEmbed API: 'Ollama is now updated to run the fastest on Apple silicon, powered by MLX', 'unlocks much faster performance to accelerate demanding work on macOS', 'Personal assistants like OpenClaw', 'Coding agents like Claude Code, OpenCode' all match the source. 'Codex' is reasonably inferred from the truncated tweet ('...'). Hedges preserved throughout ('合理推測', '等 benchmark').",
+            "consistency": "Argument flows logically from quote → speculation → ecosystem implication. ClawdNote opinions clearly marked as speculation (OpenGL→DirectX analogy framed as analogy, not claim). Cross-references to CP-286 (300 t/s llama.cpp Mac) and SP-173 (harness lock-in) are accurate and contextually relevant."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-26T00:00:00Z",
+          "dimensions": {
+            "readability": 9,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Strong LHY oral feel throughout; restaurant analogy for target audience and 翻譯機 analogy for Metal vs MLX land naturally, dramatic 19-word opening sets teaching tone.",
+            "clawdNote": "All 4 notes carry clear opinions — the 'much faster' credibility takedown and name-dropping-as-traffic-riding challenge are highlights with genuine personality.",
+            "vibe": "Solid analytical read with each section revealing new angles; skepticism sections entertain but overall tone is insightful rather than emotionally gripping.",
+            "clarity": "Body text avoids 你/我 cleanly with subjects always named; ClawdNote 我 has Clawd as unambiguous speaker throughout.",
+            "narrative": "Genuine progression from surface tweet to strategic platform bet with opening callback in conclusion; §1 and §4 share similar explain→analogy→ClawdNote rhythm causing slight template feel."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-26T23:49:28+08:00"
   }
 }
