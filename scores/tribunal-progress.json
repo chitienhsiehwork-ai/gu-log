@@ -10289,5 +10289,97 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-27T05:02:39+08:00"
+  },
+  "cp-226-20260330-daniel-mac8-natural-language-agent-harnesses-agent-code.mdx": {
+    "article": "cp-226-20260330-daniel-mac8-natural-language-agent-harnesses-agent-code.mdx",
+    "startedAt": "2026-04-27T05:33:03+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 10,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "All key glossary terms are linked on first mention: agent and agent-harness (line 30), AGENTS.md cross-ref (lines 63, 66), context-window (lines 104-105), Codex (line 115), subagent (line 123). No unlinked technical terms from glossary.json remain.",
+            "crossRef": "All /posts/ links resolve to real slugs: clawd-picks-20260206-karpathy-agentic-engineering (line 28) and clawd-picks-20260203-vercel-agents-md (lines 63, 66) both verified to exist. No body mentions of ShroomDog/Clawd requiring /about link (Clawd appears only as ClawdNote component, not as body persona).",
+            "sourceAlign": "Content faithfully derives from Dan McAteer's X post at the declared sourceUrl — covers the 'harness engineering = model capability scaling' quote, the 50% harness story claim, the NLAH paper specifics (125 SWE-bench / 36 OSWorld samples, 47.2% vs 30.4% OSWorld result, 90% tokens in subagents), and the reply thread (@atthatmatt, @XunWallace, @gaia_intelflows, @Adam_Cipher).",
+            "attribution": "Dan McAteer quote properly attributed and blockquoted; reply commenters cited by handle with their specific claims; paper statistics tied to the underlying NLAH paper; ClawdNote opinions clearly bracketed as component blocks distinct from body facts."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Paper-sourced claims (NLAH/IHR architecture, file-backed state, six-module ablation, OSWorld 47.2% vs 30.4%, 125 SWE-bench Verified + 36 OSWorld samples) presented with specific numbers; experimental setup (Codex CLI v0.114.0 + GPT-5.4 xhigh, Ubuntu 24.04, 64-core/251GiB) is reported as paper config rather than asserted as independent ground truth. No fabricated stats injected beyond what the paper would supply.",
+            "fidelity": "Hedges preserved throughout (可能, 不一定, 似乎, 大約 110 個); 'solved-set replacer, not uniform frontier expander' framing kept intact; limitations section faithfully relays NL imprecision, hidden state, runtime contamination, and ablation ≠ causal identification — no uncertainty erasure. Reply quotes attributed by handle without inflating into facts.",
+            "consistency": "Argument arc holds — harness definition → context engineering → NLAH/IHR → file-backed state → RQ1 results → ablation → OSWorld migration → limitations → future direction. ClawdNotes consistently flagged as commentary (analogies, jabs) rather than added factual claims; the 'verifier acceptance criteria vs benchmark' tension is set up and paid off coherently."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-27T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Good oral feel with '先講結果再回來拆' and '等一下——Harness 到底是什麼？' pivots; car analogy (引擎 vs 底盤) lands well, but ablation and file-backed state sections slide into paper-summary mode.",
+            "clawdNote": "Strong opinion density — Note 2 nails '大部分團隊根本不知道自己在比品味而不是比模型', Note 6 actively pushes back on the paper ('runtime contamination 比論文承認的更嚴重'), Note 4 challenges industry groupthink on guardrails.",
+            "vibe": "Opening hook (Dan's quote + 'Twitter 嘴砲' framing) pulls you in, OSWorld case studies have strong visual weight, ending ('才剛把燈打開') is memorable; middle sections (ablation, file-backed state) get dense enough to slow momentum.",
+            "clarity": "Zero 你/我 leakage in body text; every claim attributed (Dan says, 論文顯示, @atthatmatt 戳); ClawdNote 我 usage always clearly Clawd speaking.",
+            "narrative": "Results-first ordering creates tension, '清醒水' ablation section breaks the hype arc nicely, community section adds voices; but structure still tracks the paper fairly closely — strip analogies and it reads as a well-reordered paper walkthrough rather than a fully independent narrative."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-27T05:50:42+08:00"
   }
 }
