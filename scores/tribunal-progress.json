@@ -8480,16 +8480,72 @@
         "attempts": 2
       },
       "factChecker": {
-        "status": "fail",
-        "score": null,
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All technical claims verified against source SKILL.md and GitHub API: 167K stars (actual 167,107 via api.github.com), repo created 2026-01-18 (article says 'since Jan 2026'), skills/autonomous-loops/SKILL.md path correct, Sequential Pipeline correctly described as set -e + claude -p (not Unix pipes — article explicitly clarifies this), NanoClaw uses node scripts/claw.js with ~/.claude/claw/{session}.md Markdown-as-database, Infinite Agentic Loop two-prompt architecture by @disler with /project:infinite custom command, Continuous PR Loop by @AnandChowdhary using SHARED_TASK_NOTES.md, Ralphinho by @enitrat with up to 3 Ralph passes and 4 complexity tiers (trivial/small/medium/large) — all verbatim accurate.",
+            "fidelity": "Faithful to source. Author attributions preserved (@affaanmustafa, @disler, @AnandChowdhary, @enitrat). Article explicitly notes in ClawdNote that De-Sloppify is labeled 'Add-on' in source — directly addressing the prior FactChecker concern about Level-5 framing. Code examples (Sequential Pipeline OAuth2 example, Continuous Claude flags, RFC architecture diagram) match source structure. SP-142 Mario Zechner 'Slow the fuck down' cross-reference verified accurate; SP-132 Anthropic harness reference verified to exist.",
+            "consistency": "Argument flows from simplest to most complex pattern coherently. Each ClawdNote consistently marks opinion/analogy as commentary (消防車澆多肉, distributed-system ID-assignment parallel, 同學互改作業). gu-log/OpenClaw self-application section honestly explains why RFC-Driven DAG doesn't apply (退化的 DAG, no merge conflicts). Conclusion synthesizes the spectrum as 'where decision points move' which holds across all six patterns. SP-142 tension addressed upfront ('明確的、可驗證的、有明確的完成條件')."
+          }
+        },
         "model": "opus-4.7",
+        "attempts": 2
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "六個模式有清楚 header + 程式碼範例 + ASCII 圖，結構好抓；RFC/DAG 都有當場解釋。扣分在『gu-log 跑 OpenClaw 對照』那段冒出 SP-142/SP-132/OpenClaw/ralph-progress.json 一堆沒上下文的東西，對第一次來的人是一片黑。",
+            "firstImpression": "開場『下午三點交給 Claude Code 然後去開兩小時會』直接把我抓住，消防車澆多肉那個比喻笑出來，結尾『不需要一直盯著，但需要知道它在盯著什麼』收得漂亮。Kaomoji 有點多但能接受。會看完，topic 對的話會分享。"
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Washing-machine analogy, 消防車澆多肉, 帶便當的單兵 — oral voice sustained throughout with genuine LHY teaching progression where each section's question drives the next.",
+            "clawdNote": "Most notes carry real opinions (coordinator pattern convergence, bottleneck shifting from writing to reviewing, roles exist for a reason) — meets the 50% opinion threshold but a couple lean more analytical than spicy.",
+            "vibe": "Opening scene hooks immediately and the self-referential gu-log section adds a genuine twist; code blocks in the middle create slight drag but the ending callback to the afternoon task lands cleanly.",
+            "clarity": "Body text rigorously avoids 你/我 with named subjects throughout; ClawdNote pronouns properly scoped; zero ambiguity about who is speaking at any point.",
+            "narrative": "Escalating complexity structure (pipeline → memory → DAG) with real questions bridging each section, a rhythm break at '好，深呼吸' before the final pattern, and a callback ending that reframes the opening scene — passes the strip test as genuine progression, not a decorated report."
+          }
+        },
+        "model": "opus-4.6-1m",
         "attempts": 2
       }
     },
-    "topLevelAttempts": 1,
-    "status": "FAILED",
+    "topLevelAttempts": 2,
+    "status": "PASS",
     "failedStage": "factChecker",
-    "finishedAt": "2026-04-26T13:11:16+08:00"
+    "finishedAt": "2026-04-26T14:46:22+08:00"
   },
   "sp-183-20260426-teddy-riker-designing-for-agents.mdx": {
     "article": "sp-183-20260426-teddy-riker-designing-for-agents.mdx",
