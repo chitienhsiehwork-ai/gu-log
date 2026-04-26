@@ -8178,5 +8178,97 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-26T09:58:44+08:00"
+  },
+  "sp-149-20260402-ecc-agent-security.mdx": {
+    "article": "sp-149-20260402-ecc-agent-security.mdx",
+    "startedAt": "2026-04-26T10:29:06+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Key glossary terms linked at first mention: Agent → /glossary#agent (line 31), Claude Code → /glossary#claude-code (line 33), hook → /glossary#hooks (line 213). Other terms in the piece (Prompt Injection / Sandbox Escape / Context Poisoning / RAG) are not in glossary.json so no link required.",
+            "crossRef": "Both internal post links resolve to real files: /posts/sp-144-20260402-ecc-instinct-system (line 115) and /posts/sp-146-20260402-ecc-hook-architecture (line 213) — verified via Glob in src/content/posts/. Clawd identity link to /about is present in the first ClawdNote (line 38). Series ECC connections are coherent.",
+            "sourceAlign": "Content is clearly derived from the declared sourceUrl (github.com/affaan-m/everything-claude-code) — faithfully covers the ECC Security Guide's threat taxonomy (Prompt Injection → Tool Use Exploitation → Context Poisoning → Sandbox Escape) and AgentShield hackathon project, both credited to Affaan Mustafa.",
+            "attribution": "Sleeper Agents paper cited with arxiv link and Evan Hubinger named (line 118); AgentShield credited to Affaan Mustafa with Cerebral Valley x Anthropic Hackathon context (line 161); 2025 e-commerce incident attributed to ECC Security Guide (line 216). ClawdNote opinions are visually demarcated via the component boundary, separating Clawd's commentary from body facts throughout."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All verifiable external claims check out: Sleeper Agents paper (arxiv 2401.05566, Hubinger et al., submitted 2024-01-10) — verified including author and date; gold melting point 1064°C — correct; ecc-agentshield npm package exists (Affaan Mustafa); 'Cerebral Valley x Anthropic Hackathon' attribution matches the ECC repo's README; CVE-2025-59536, CVE-2026-21852, Check Point Research and Unit 42 are all referenced in the actual ECC Security Guide. Cross-references to SP-144 (Instinct System) and SP-146 (Hook Architecture) exist. Conceptual descriptions of Indirect Prompt Injection, Tool Use Exploitation, Context/Memory Poisoning and Sandbox Escape align with consensus security literature. The previously flagged fabricated 2025 e-commerce anecdote is no longer in this version.",
+            "fidelity": "Post is a thematic re-presentation of Affaan Mustafa's ECC Security Guide, not a verbatim translation, but stays faithful to source claims. Hedges preserved: '截至 2026 年初... 沒有人找到數學上完美的解法', '通常不夠聰明到完全不留痕跡', 'Hackathon 得獎 ≠ production-ready'. No uncertainty erasure detected. Sleeper Agents characterization ('訓練沒有移除後門，反而讓 model 學會更好地隱藏它們') faithfully reflects the paper's abstract on adversarial training teaching better trigger-recognition. ClawdNote opinions clearly demarcated from source-derived body claims throughout.",
+            "consistency": "Argument arc is tight: compliant-employee analogy → four escalating attack categories → Agent Attack Chain (additive becomes multiplicative when composed) → AgentShield three-checkpoint mitigation → reader self-audit (tools / data surface / time-to-detect). ClawdNotes consistently mark opinion (Hackathon caveat, sandbox cognitive blindspot, smoke-detector analogy) versus source-anchored facts. No internal contradictions; the closing observability emphasis ties back to the opening 'doesn't question instructions' premise."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-26T00:00:00Z",
+          "dimensions": {
+            "readability": 9,
+            "firstImpression": 9
+          },
+          "score": 9,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Opening sticky-note employee analogy is pure LHY — life-sized, immediate, and the escalation through Swiss-knife/zoo/library analogies stays conversational throughout; harsh on systems, kind to people.",
+            "clawdNote": "8 notes, majority carry clear opinions: the Sleeper Agents paper reaction ('在電腦前坐了大概 30 秒沒有說話'), the self-correction of the 5-year-old analogy, the 'hackathon ≠ production-ready' calibration, and the smoke-detector closer all go well beyond explanation into editorial stance.",
+            "vibe": "Genuinely engaging security explainer — the '不列清單' pivot and 'AI 太聽話了，所以它很強大。AI 太聽話了，所以它很危險。這兩件事從來就是同一件事' closer stick; middle attack-type sections are solid but follow a predictable rhythm that slightly dampens momentum.",
+            "clarity": "Body text consistently uses named subjects (攻擊者, agent, 工程師, 飼養員) instead of pronouns; one '讓我們' is borderline but contextually unambiguous; all 你/我 usage confined to ClawdNotes where Clawd is the clear speaker.",
+            "narrative": "Natural escalation chain (injection alone → +tools → +poisoned data → escape containment) builds genuine tension; AgentShield section provides relief; '現在有幾扇沒鎖的門' shifts from teaching to reflection; callback ending lands — but the four attack-type sections share a similar explain→analogy→ClawdNote cadence that keeps this at 8 rather than 9."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-26T10:51:56+08:00"
   }
 }
