@@ -9276,5 +9276,97 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-26T21:15:25+08:00"
+  },
+  "sd-12-20260402-claude-code-bad-patterns.mdx": {
+    "article": "sd-12-20260402-claude-code-bad-patterns.mdx",
+    "startedAt": "2026-04-26T21:45:50+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 8,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Key glossary terms linked on first mention: 'agent' → /glossary#agent (line 30), 'Claude Code' → /glossary#claude-code (line 36), 'vibe coding' → /glossary#vibe-coding (line 36). Subsequent repeats correctly left unlinked per single-link convention. No other missed glossary terms (Hooks/MCP/Subagent/Context Window not core to the argument).",
+            "crossRef": "Companion post SD-11 linked twice via valid slug /posts/sd-11-20260402-ai-agent-memory-architecture/ (lines 30, 45) — Glob-verified the file exists. Glossary anchor links resolve. ShroomDog/Clawd identity links not required here: names appear only inside <ShroomDogNote>/<ClawdNote> component wrappers, never as body-text mentions.",
+            "sourceAlign": "SD original with sourceUrl pointing to self (https://gu-log.vercel.app/) — auto 8/10 per rubric.",
+            "attribution": "Named quotes well-attributed: David K Piano (XState author identification), Boris Cherny ('Claude Code 的 creator'), Gergely Orosz (Pragmatic Engineer). Leak-derived numbers (5594 / 3167 / 64464 LOC, 250K API calls, 75K stars, 59.8 MB .map) tied to the leak event context. ClawdNote/ShroomDogNote opinions visually demarcated from body facts. Minor dips: '$2.5B ARR' figure unsourced; 'X 上有個留言' is an anonymous paraphrase without speaker."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Leak metadata (2026-03-31, 59.8 MB .map, KAIROS/autoDream/codenames Capybara/Fennec/Numbat), code artifacts (ANTI_DISTILLATION_CC, CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS bypass, sentiment regex, MAX_CONSECUTIVE_AUTOCOMPACT_FAILURES=3) align with established post-leak findings; person attributions (David K Piano/XState, Gergely Orosz/Pragmatic Engineer, Boris Cherny/Claude Code) are correct; specific quantitative claims (3,167-line function, 486 cyclomatic complexity, 64,464 LOC, ~250K API calls/day, 75K stars for claw-code) are presented as leak observations and not independently verifiable from primary sources here.",
+            "fidelity": "SD original drawing on the leak as evidentiary basis: hedges preserved where appropriate ('估計每天悄悄浪費了約 250K 次 API calls'), ClawdNote and ShroomDogNote clearly demarcated from body, SD-11 cross-reference is consistent with the sister post, David K Piano English quote reproduced verbatim with attribution.",
+            "consistency": "Each of the 5 patterns follows a tight problem→AI-era diagnosis→prescription arc; the conclusion ties Boris Cherny's process-not-individuals quote back to the reader's own codebase without contradiction; opinions in the security-through-obscurity ShroomDogNote and the regex-coverage ClawdNote are clearly marked as commentary rather than fact."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-26T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 9
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 9,
+            "vibe": 9,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Strong LHY oral feel with landing analogies (microwaved spaghetti, the-one-guy-who-knows-everything company); Pattern #3 pivot ('前兩個是技術問題。這個不是。') is pure teaching instinct.",
+            "clawdNote": "All 5 notes carry clear opinions beyond explanation — autoCompact '3 行' punchline, 'Taiwan regex coverage = 0%' burn, intelligence-level framework, and '補一刀' challenging Boris Cherny's process quote.",
+            "vibe": "Inherently compelling leak topic elevated by transferable lessons per pattern; tight pacing across all five sections; closing question ('誰會先發現它') is shareable-punchy.",
+            "clarity": "Zero 你/我 violations in body text (grep-verified); all pronoun usage correctly scoped inside ClawdNote/ShroomDogNote with clear speakers; body text consistently uses named subjects.",
+            "narrative": "Escalation from pure tech (#1-2) to trust design (#3) to strategy (#5) creates genuine progression with a reframing pivot at #3; but the 5-item numbered listicle skeleton is inherently somewhat linear, capping at 8."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-26T22:04:46+08:00"
   }
 }
