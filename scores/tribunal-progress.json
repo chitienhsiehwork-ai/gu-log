@@ -8728,5 +8728,94 @@
     "status": "PASS",
     "failedStage": "factChecker",
     "finishedAt": "2026-04-26T16:17:09+08:00"
+  },
+  "sp-141-20260402-article-qwen-ai-agentic-thinking.mdx": {
+    "article": "sp-141-20260402-article-qwen-ai-agentic-thinking.mdx",
+    "startedAt": "2026-04-26T16:47:33+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-26T00:00:00Z",
+          "dimensions": {
+            "glossary": 10,
+            "crossRef": 10,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All technical claims verifiable against public record: OpenAI o1 first-class thinking (matches X article preview verbatim), DeepSeek R1 scaling reasoning RL, Qwen3 hybrid thinking with 4-stage post-training, Qwen 2507 Instruct/Thinking split at 30B and 235B, Claude 3.7 Sonnet extended thinking with API thinking_budget, Claude 4 interleaved reasoning+tool use, GLM-4.5 hybrid (Zhipu), DeepSeek V3.1 'Think & Non-Think'. No fabricated benchmark numbers; -1 only because source is an X long-form article (tweet-level provenance) rather than peer-reviewed primary literature.",
+            "fidelity": "Translation faithfully represents @JustinLin610's argument arc — o1/R1 lessons -> Qwen hybrid merge data conflict -> Anthropic 'useful corrective' -> agentic thinking definition -> agentic RL infra difficulty -> reward hacking. English pull-quotes preserved verbatim ('Better tools make the model more useful, but they also enlarge the attack surface for spurious optimization.' and 'a model that reasons through action') with attribution to 林駿洋. Hedges preserved (預期/可能/或許/應該), and the author's explicit admission '我們沒全做對' is carried through without editorial softening or inversion.",
+            "consistency": "Argument flows cleanly: reasoning-RL infra story -> hybrid merge data tension -> agentic-RL training/inference decoupling -> environment as first-class research artifact -> reward-hacking attack surface. Each conclusion is supported by stated reasoning. ClawdNote opinions are visually fenced by the <ClawdNote> component and use clear opinion markers (比喻/感想/吐槽), keeping fact vs. speculation crisply separated. No internal contradictions; dates, model lineages, and lab positioning are internally coherent."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-26T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 9
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 8,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Analogies are strong and varied (exam vs lab, cake-decorating vs chemical plant, ER doctor vs yoga teacher), oral transitions natural ('好，reasoning model 起來了'), but mid-to-late sections (infra, future) slide back into explaining mode rather than talking mode.",
+            "clawdNote": "Nearly every note has both a vivid analogy AND a clear opinion — the roguelike comparison, the restaurant-kitchen metaphor, and the 'honesty is a flex' closing all take real stances rather than just explaining; easily the post's strongest dimension.",
+            "vibe": "Good read that makes a dense topic accessible; the Qwen honesty moment and the reasoning-vs-agentic pivot genuinely hook, but the infra section drags slightly and the reward-hacking section feels more like reporting than storytelling.",
+            "clarity": "Body text has some 你/我 ('你不知道零件在哪', '但最讓我印象深刻的') that technically violate pronoun rules, but referents are always clear from context — the 我 in 結語 is the most ambiguous instance.",
+            "narrative": "Real escalation arc (reasoning RL → hybrid failure → agentic definition → infra hell → future dangers) with genuine tension at the 'Qwen 沒做對' admission; conclusion callbacks opening thesis cleanly; but the skeleton still largely follows the source article's linear structure section-by-section."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-26T17:01:05+08:00"
   }
 }
