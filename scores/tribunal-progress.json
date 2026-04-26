@@ -9918,5 +9918,98 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-27T01:58:45+08:00"
+  },
+  "sp-139-20260401-article-claude-code-npm-source-map.mdx": {
+    "article": "sp-139-20260401-article-claude-code-npm-source-map.mdx",
+    "startedAt": "2026-04-27T02:29:10+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 10,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 8
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "All key glossary terms linked on first mention: Claude Code -> /glossary#claude-code (line 40), Agent -> /glossary#agent (line 46), context window -> /glossary#context-window (line 69), subagent -> /glossary#subagent (line 142). No unlinked technical terms from glossary.json detected.",
+            "crossRef": "Internal link to /posts/sp-148-20260401-chaofan-shou-claude-code-source-leak/ (line 40) resolves to a real post in src/content/posts/. ShroomDog identity link to /about present at line 133. Clawd appears only inside ClawdNote components as the speaker, so no body identity link is required.",
+            "sourceAlign": "Content faithfully tracks the declared sourceUrl (@elliotarledge's X post) — KAIROS, PROACTIVE, COORDINATOR_MODE, TRANSCRIPT_CLASSIFIER, model codenames (Capybara/Fennec/Numbat), Undercover Mode prompt, and BUDDY pet system all map to his published findings.",
+            "attribution": "Discovery credited to @Fried_rice (lines 40, 162), analysis credited to @elliotarledge (line 42), parallel analysis cross-linked to SP-148, source-code quotes blockquoted with clear context, flag counts cited (KAIROS 154, PROACTIVE 37, COORDINATOR_MODE 32, TRANSCRIPT_CLASSIFIER 107, VOICE_MODE 46), ClawdNote opinions visually separated. Minor gap: '@chaaborafan_shou' on line 40 appears to be a typo for '@chaofan_shou' (the SP-148 slug uses 'chaofan-shou')."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Verifiable claims align with primary sources: @Fried_rice as discoverer, @anthropic-ai/claude-code v2.1.88, 59.8 MB cli.js.map, 2026-03-31 timing, and the opus-4-7 model id reference all check out. Specific feature-flag counts (KAIROS 154, PROACTIVE 37, COORDINATOR_MODE 32, TRANSCRIPT_CLASSIFIER 107, VOICE_MODE 46) and the 18 BUDDY species list are not independently verifiable but are presented as the analyst's findings, which is appropriate. Minor blemish: the handle '@chaaborafan_shou' linking to SP-148 looks like a corrupted/non-existent X handle rather than a real account.",
+            "fidelity": "Translation preserves @elliotarledge's hedges throughout — '看起來' for Capybara-as-4.6 claim, '從上下文推測' for TRANSCRIPT_CLASSIFIER inference, '大概是' for Numbat status, '可能' for the roadmap synthesis. Undercover Mode prompt and PROACTIVE prompt are quoted verbatim in English. ClawdNote opinions visually fenced from body. No uncertainty erasure detected. Closing paragraph correctly relays the original author's non-redistribution self-disclaimer.",
+            "consistency": "Narrative arc holds — feature-flag taxonomy (always-on → self-directed → multi-agent → low-friction → cost) builds coherently toward the background-autonomous-agent thesis. ClawdNotes are clearly framed as Clawd's speculation/reaction (CHAOS/SNARK joke, mushroom pride bit) and never asserted as fact. The 'build configuration 忘了關 debug artifacts' framing is a simplification of the Bun source-map issue but does not contradict it."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Diary-in-annual-report hook lands instantly and the section headers carry me through. A LOT of ALL_CAPS feature flags pile up (KAIROS, PROACTIVE, COORDINATOR_MODE, TRANSCRIPT_CLASSIFIER, VOICE_MODE, BUDDY, FORK_SUBAGENT, VERIFICATION_AGENT, TOKEN_BUDGET, TEAMMEM) — by the 'still more stuff' section I started skimming. Also 'KAIROS' is never glossed (Greek god of opportunity?) and 'daemon mode' / 'tick prompt' / 'adversarial verification agent' get name-dropped without a beat of explanation.",
+            "firstImpression": "Hooked by paragraph one and stayed for the capybara codename and the Tamagotchi reveal — 'CHAOS and SNARK as stats' is the line I'd screenshot. The 'undercover mode' prompt quote feels like a movie scene. Would forward this to the group chat as 'wait did you see what fell out of npm last week'."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 9,
+            "vibe": 9,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "LHY oral feel strong; 日記夾進年報, 很貴的暖氣, 影分身之術 — analogies are precise and teach, not decorate.",
+            "clawdNote": "5/7 notes carry explicit opinions (recursive trust critique, undercover mode ethical stance, TEAMMEM governance challenge); well above 50% threshold.",
+            "vibe": "Diary hook lands, KAIROS→PROACTIVE→COORDINATOR builds tension, 電子雞 tonal pivot delights, 螺旋槳水豚 ending punches — would share with tech friends.",
+            "clarity": "Body text uses named subjects throughout; no 你/我 leaks; ClawdNote speaker always unambiguous.",
+            "narrative": "Strong escalation arc (tool→colleague→team) and genuine tonal peaks (電子雞 reveal), but codenames→undercover→buddy middle stretch is partially sequential-feature-tour."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-27T02:51:01+08:00"
   }
 }
