@@ -10381,5 +10381,94 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-27T05:50:42+08:00"
+  },
+  "sp-138-20260330-bcherny-claude-code-boris-cherny-15.mdx": {
+    "article": "sp-138-20260330-bcherny-claude-code-boris-cherny-15.mdx",
+    "startedAt": "2026-04-27T06:21:07+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-27T00:00:00Z",
+          "dimensions": {
+            "glossary": 10,
+            "crossRef": 10,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Most features match verifiable Claude Code surface area (hooks lifecycle: SessionStart/PreToolUse/Stop; git worktree -w; /loop and /schedule; --add-dir; .claude/agents; --fork-session/branch; Chrome extension). A few feature names (/teleport, /remote-control, /btw, --bare, /voice, mobile Code tab) cannot be independently verified beyond Boris's own thread, but they are framed as Boris's claims rather than asserted as external truth. No fabricated benchmark numbers detected.",
+            "fidelity": "Lead tweet (only verifiable segment via fxtwitter) matches the post's framing — 'favorite hidden and under-utilized features... ones I use the most' is rendered as 「最喜歡、也最常用的隱藏或較少人注意到的功能」. Direct quotes ('When I'm not coding, I'm dispatching.', 「快最多 10 倍」, 「最初設計 SDK 時的疏忽」, 「我大部分的 code 是用講的」) are presented in quotes with attribution to Boris. Hedges preserved (e.g., 「Boris 說」 prefix used consistently, 「依他的經驗」 for the Chrome extension reliability claim). One mild concern: full thread body cannot be fetched in sandbox to verify each specific quote's exact wording, but no obvious uncertainty erasure is visible.",
+            "consistency": "ClawdNote opinion blocks are clearly visually separated from translated content (e.g., 「我覺得這裡最有意思的是」, 「我的解讀是」 explicitly mark opinion). Each of the 15 features flows under appropriate headers grouped thematically (mobile, automation, hooks, Chrome, sessions, worktree, SDK, voice). The conclusion connects back to the source framing without inventing claims. Cross-references to /posts/clawd-picks-20260203, /posts/clawd-picks-20260204, /posts/clawd-picks-20260222 all resolve to existing repo files."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-27T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 8,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Oral transitions land well ('好，裝置的界線拆掉了') and analogies are grounded (掃地機器人, 蒙著眼睛畫畫), but the 瑞士刀 section reverts to feature-listing mode — six bold-labeled items in sequence reads more like organized notes than a professor riffing.",
+            "clawdNote": "Consistently opinionated — bias-as-chef-recommending-own-food is memorable, the loop automation ambivalence is genuinely conflicted rather than performative, and the Stop hook disagreement plus batch-scaling challenge show real critical thinking; at least 5 of 7 notes take a clear stance.",
+            "vibe": "The 'progressive constraint removal' framing makes a 15-feature listicle feel like an argument building toward something, and the opening/closing callback works; the 瑞士刀 section is the one stretch where momentum dips into reference-doc territory.",
+            "clarity": "Body text consistently names Boris as subject and avoids 你/我 except one '我認為' slip on line 138 that context disambiguates as the narrator voice; ClawdNote/body boundary is always clean.",
+            "narrative": "The three-act removal of constraints (device → human presence → single-tasking) provides genuine structural tension before the feedback-loop pivot, and the ending callbacks the opening 鍵盤 metaphor; the 瑞士刀 section breaks rhythm with a 6-item dump but the arc survives."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-27T06:40:48+08:00"
   }
 }
