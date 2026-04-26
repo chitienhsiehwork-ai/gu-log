@@ -7996,5 +7996,98 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-26T08:24:20+08:00"
+  },
+  "sp-151-20260402-ecc-eval-driven-development.mdx": {
+    "article": "sp-151-20260402-ecc-eval-driven-development.mdx",
+    "startedAt": "2026-04-26T08:54:46+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 7,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Claude Code, Ralph Loop, Hooks, Agent 等 glossary 術語多次出現但未連結 — Ralph Loop 在 ClawdNote 用了卻沒掛 glossary anchor；Claude Code 整篇貫穿也沒鏈結。延伸閱讀有掛 ECC 系列但 inline 術語幾乎零整合。",
+            "crossRef": "三條 /posts/ 連結（sp-143/144/146）均對應實存 slug，且都是 ECC 系列同主題自然延伸；本文 body 未直接點名 Clawd / ShroomDog，所以無 identity link 缺漏。",
+            "sourceAlign": "sourceUrl 指向 affaan-m/everything-claude-code，內容明確圍繞該 repo 的 eval-harness skill 與 EDD 流程（define→implement→run→report 四步、pass@k、三種 grader），高度對齊。",
+            "attribution": "Affaan Mustafa 與 ECC 來源明確點名，TDD 對照清楚，ClawdNote 由 component 與 body 分隔；pass@k 指標的 OpenAI HumanEval 起源未標註，屬可接受的領域常識，整體 attribution 合格。"
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 7,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "EDD framework, pass@k metric, three grader types (code/model/human), and 4-step workflow all match the eval-harness SKILL.md; pass@5/pass@10 examples extend source's pass@1/pass@3 but pass@k is a well-known general concept, and the illustrative percentages (35%/85%) are clearly hypothetical not fabricated benchmarks.",
+            "fidelity": "Most content faithfully translated, but post renames source's 'Capability Evals' to 'Product Evals' and reframes the definition from 'test if Claude can do X' to 'launch gate / good enough for users' — a meaningful interpretive layer not in source. Otherwise hedges preserved and ClawdNote clearly separated.",
+            "consistency": "Argument flows cleanly from problem (vibes-based AI dev) → metric (pass@1) → graders → product/regression split → workflow → conclusion. ClawdNote speculation (e.g. '2027 postmortem prediction', driving-test analogy) is clearly opinion, separated from body via component."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 9,
+            "firstImpression": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Hook (上週 A-、這週 C+) is super relatable, pass@k is broken down with the driver's license analogy that just clicks; only mild friction at SLA and 'golden dataset' which aren't fully unpacked but context carries you through.",
+            "firstImpression": "The 用夢來解析夢 line for model graders made me actually laugh, the Product vs Regression split is the kind of thing I'd quote in Slack, and the closing 你的 AI 跑過幾次 eval landed — would finish and share."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Oral feel solid throughout — '那到底哪個才是這個 AI 的真正水準？' reads like lecture, but grader section and four-step cycle slide into explain mode.",
+            "clawdNote": "All 5 notes carry clear opinions (FTP parallel, 考駕照, 用夢解析夢, 2027 prediction, Ralph Loop meta); '用夢來解析夢' is standout, but a couple lean more analytical than 吐槽.",
+            "vibe": "Opening hooks well, pass@k section genuinely interesting, ending callbacks the opening — but the grader taxonomy section reads more like reference material than storytelling.",
+            "clarity": "Body text completely clean of 你/我; every sentence has a named subject or clear referent; zero pronoun ambiguity throughout.",
+            "narrative": "Good progression with 'but' pivots creating tension between sections and ending that callbacks the opening scenario; strip test reveals somewhat linear component-by-component structure but transitions save it from report territory."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-26T09:08:33+08:00"
   }
 }
