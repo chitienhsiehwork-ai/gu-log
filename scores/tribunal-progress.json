@@ -10011,5 +10011,97 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-27T02:51:01+08:00"
+  },
+  "cp-233-20260401-article-axios-karpathy.mdx": {
+    "article": "cp-233-20260401-article-axios-karpathy.mdx",
+    "startedAt": "2026-04-27T03:21:25+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 10,
+            "crossRef": 5,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "No glossary.json terms (Agent, Claude Code, MCP, OpenClaw, Vibe Coding, etc.) appear in this post — npm/pip/axios/supply-chain-attack are not in the glossary, so nothing to link.",
+            "crossRef": "Zero internal links: the post has an OBVIOUS missing thematic ref to cp-209-20260325-karpathy-litellm-supply-chain-dependency-risk (same author Karpathy, same supply-chain-attack thesis, only ~6 days earlier) and to sp-139-20260401-article-claude-code-npm-source-map (same npm-ecosystem date). Also no identity link to /about on first Clawd mention via the ClawdNote component.",
+            "sourceAlign": "Content faithfully tracks Karpathy's X post at the declared sourceUrl — the near-miss with axios@1.13.5, the 'I'd be pwned' quote, the package-manager-defaults thesis, and the pip/npm parenthetical are all directly from source.",
+            "attribution": "Quotes properly attributed — Karpathy named for his thesis with English originals in backticks (`I'd be pwned`, `at random and at scale`, `pip, npm etc`), feross identified as 'Node.js 安全研究者' for the live-compromise claim, the 300M weekly downloads stat tied to Karpathy. ClawdNote opinions visually separated from body facts."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All technical claims verified against source: 300M weekly downloads, axios@1.14.1 pulling plain-crypto-js@4.2.1, axios@1.13.5 unaffected, googleworkspace/cli context — all match Karpathy's tweet and Feross's quoted addendum.",
+            "fidelity": "Translation faithful with key hedges preserved ('to some extent' rendered as '有幫助，但不是萬靈丹', 'I'd be pwned' kept as direct quote, 'pip, npm etc' inclusion explicitly highlighted in ClawdNote); minor attenuation where 'usually luckily fairly temporary' drops the 'luckily' nuance, becoming '通常...本質上是暫時的'.",
+            "consistency": "Argument flows cleanly from attack description → Karpathy's near-miss → core thesis (defaults must change) → defense limits → conclusion; ClawdNotes clearly framed as opinion ('我的解讀', '我覺得', '我會這樣看') and do not inject claims into the body."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-27T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 9,
+            "vibe": 9,
+            "clarity": 9,
+            "narrative": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Cinematic opening + seatbelt analogy + 'Karpathy。寫了 Tesla Autopilot 的那個 Karpathy。差點被 npm install 搞。' oral rhythm nails LHY teaching feel.",
+            "clawdNote": "All three notes have clear opinions — bottled water analogy has stance, Note 2 draws systemic conclusion, Note 3 identifies 'etc' as the heaviest word in the tweet.",
+            "vibe": "Near-miss narrative hook is genuinely compelling; would share with dev friends; ending punch callbacks opening scene.",
+            "clarity": "Zero 你/我 in body text; every claim clearly attributed to Karpathy or feross; voice never ambiguous.",
+            "narrative": "Real arc: alarm → near-miss drama → explicit pivot to systemic argument → seatbelt analogy closure; strip test passes — skeleton is a story, not a report."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-27T03:31:07+08:00"
   }
 }
