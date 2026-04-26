@@ -9458,5 +9458,98 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-26T22:50:40+08:00"
+  },
+  "cp-237-20260402-pawelhuryn-claude-md-knowledge-architecture.mdx": {
+    "article": "cp-237-20260402-pawelhuryn-claude-md-knowledge-architecture.mdx",
+    "startedAt": "2026-04-26T22:51:00+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 10,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Key glossary terms are linked: 'agent' → /glossary#agent (linked at first body occurrence and again at the Anthropic agent-self-praise sentence), 'Claude Code' → /glossary#claude-code on first mention. CLAUDE.md is a filename not a glossary entry. No unlinked key glossary terms remain.",
+            "crossRef": "All 4 internal post links resolve to real slugs in src/content/posts/: cp-223-20260329-pawelhuryn-ai-agent-knowledge-architecture, cp-267-20260408-pawelhuryn-claude-md-ai-30, cp-243-20260404-pawelhuryn-29000-bookmarks-knowledge-system, sp-177-20260421-pawelhuryn-intent-first-4-7-migration. Clawd identity link '[我](/about)' present in the first ClawdNote. Thematic connections to the Huryn cluster are well curated.",
+            "sourceAlign": "sourceUrl points to @PawelHuryn X post 2039095189843706022; content faithfully covers the three-block framework (Knowledge Architecture, Decision Journal, Quality Gate) and the 24-rules-in-one-month claim. Post transparently flags that Quality Gate's full code snippet is paid Product Compass content not in the public source — strong source-handling signal.",
+            "attribution": "Huryn consistently credited for observations (40% churn example, 24 self-extracted rules, 80% accuracy on alternatives-considered decisions). Anthropic's agent self-praise claim is linked to docs.anthropic.com/en/docs/build-with-claude/agentic. ClawdNote opinions are isolated inside the <ClawdNote> component and clearly separated from body facts."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Key numbers all verified against source (24 self-promoted rules, 40% churn, 80% hit rate on alternatives-considered decisions, three-week timeline, three observations). One imprecision: original says 'Anthropic's own engineering team documented this' without a specific URL; translation pins it to docs.anthropic.com/en/docs/build-with-claude/agentic — that URL resolves (200) but the citation is the translator's pick, not a source-provided link.",
+            "fidelity": "Translation faithfully preserves Huryn's structure (Memory Without Reflection → 3 blocks → reinforcement → maintenance → conclusion). All three example observations, the promotion-cycle mechanic, the ADR analogy with self-deprecating 'good luck' aside, and the maintenance schedule wording are intact. Quality Gate paywall is explicitly disclosed (line 152) — net additive transparency over source. Hedges preserved; ClawdNote opinions clearly fenced from body claims.",
+            "consistency": "Three-block → feedback-loop → maintenance argument flows cleanly. Cross-refs to cp-223 (前篇 why), cp-267 (後篇完整框架), cp-243 (個人 PKM 套用), sp-177 (intent-first migration) all resolve in-repo and reinforce rather than contradict the thesis. ClawdNotes marked as opinion/aside throughout; no fact/speculation bleed into body."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Structure 很乾淨——hook、三個編號 block 配 code、feedback loop、收尾。ADR 跟 Scrum Definition of Done 兩個比喻沒解釋，3-month dev 可能要 Google，但 get the gist 沒問題。Code snippets 沒翻成中文反而好抄。",
+            "firstImpression": "「session 一開又重來」的 hook 立刻有共鳴，三個可以直接 copy-paste 的 prompt 讓人覺得值得試。「最有信心的決策命中率最差」這句金句會記住。ClawdNote 的自嘲段落有點 inside joke，但不影響主線，會看完並丟到群組。"
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Good oral voice and life analogies (擲筊、冰箱生化武器、媽媽覺得你很棒) but Blocks 2-3 mid-sections slide into explanatory writing mode rather than talking mode.",
+            "clawdNote": "At least 4 of 6 notes carry clear opinions — 擲筊 analogy challenges single-test thinking, 媽媽覺得你很棒 nails the self-eval problem, 冰箱生化武器 argues maintenance is the real killer feature.",
+            "vibe": "Solid read with memorable moments (the 媽媽 analogy will stick), but the three code-block-heavy middle sections feel more informational than fun — you'd bookmark it, not forward it to group chat.",
+            "clarity": "Body text maintains strict pronoun discipline with named subjects throughout; 你/我 only appears inside ClawdNote where speaker identity is unambiguous.",
+            "narrative": "Opening memory-vs-learning tension pays off with a callback in the penultimate section, but the three middle blocks follow a repetitive template rhythm (pain point → solution → code → explanation → ClawdNote)."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-26T23:03:00+08:00"
   }
 }
