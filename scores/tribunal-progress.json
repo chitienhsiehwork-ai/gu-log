@@ -10103,5 +10103,98 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-27T03:31:07+08:00"
+  },
+  "cp-232-20260331-ggerganov-llama-cpp-100k-local-ai.mdx": {
+    "article": "cp-232-20260331-ggerganov-llama-cpp-100k-local-ai.mdx",
+    "startedAt": "2026-04-27T04:01:31+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 7,
+            "crossRef": 7,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "「AI agent」/「agent」在文中多次出現（'90% 的 AI agent 都會用 llama.cpp'、'agentic 時代'、'agentic workflow'），glossary.json 有 Agent 條目但完全沒連結；其他像 tool calling、long context 屬周邊概念可放過，但 Agent 是核心關鍵詞，至少首次出現該連結。",
+            "crossRef": "本文沒有任何 /posts/ 內部連結，也沒有 ShroomDog/Clawd 的 /about identity link（body 文字中沒明確 mention 兩位 persona，僅以 <ClawdNote> 元件呈現，因此 identity link 非硬需求）。但有明顯的主題鄰居可連：clawd-picks-20260210-sentdex-local-llm-coding-agent（local LLM agent）和 cp-217-20260327-dylanpatel-gtc-2026-nvidia-inference（inference economics），都跟「local agentic AI」這個主軸直接相關，應補上 1-2 個 thematic 連結。",
+            "sourceAlign": "sourceUrl 指向 @ggerganov 的 X 貼文，文章內容完整覆蓋 100k stars、agentic 一年內變化、'enough intelligence' 論點、ggml + 開放堆疊技術哲學、1500+ contributors、'continue to build as usual' 結語等推文核心要點，且關鍵句保留英文原文 blockquote，幾乎沒有偏離。",
+            "attribution": "Georgi 的原話多處用「Georgi 的原話」「原文是這樣寫的」並附 blockquote 直引（'I believe that there is a certain level of intelligence...'、'the only solution that actually makes sense'、'I won't try to convince you...'），事實聲明（1500+ 貢獻者、10 萬顆星、gpt-oss 去年夏天發布）皆歸屬 Georgi；ClawdNote 內全部以「我的解讀是」「我覺得」標示為個人觀點，與 body 事實層完全分離，attribution 紀律穩。"
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All verifiable claims match source: 100k stars, 1500+ contributors, gpt-oss released last summer, llama.cpp + ggml stack, Georgi as project creator. Minor imprecision: heading '還在加速' slightly intensifies source's 'growing steadily', but body text correctly says '穩定成長' so it does not mislead.",
+            "fidelity": "Exemplary faithfulness — three signature direct quotes (the 'certain level of intelligence' belief, the 'only solution that actually makes sense' technical thesis, the 'won't try to convince you' closing) are preserved verbatim in English blockquotes. Hedges 'likely' / 'one of the most important' translated as '很可能' / '之一' and a ClawdNote even meta-flags the hedging. The opening tweet's 'jokes aside' framing is correctly carried over so the 90% prediction is not presented as a serious claim.",
+            "consistency": "Argument flow mirrors source structure (intro → trend → agentic now real → enough-intelligence → only-sensible-stack → contributors → quiet close). ClawdNotes are consistently scoped as opinion ('我的解讀是…', 'Georgi 真的不是在客氣') and never bleed factual claims into body. No internal contradictions; quote attribution via blockquotes is unambiguous."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Short sections with clear headers, English quotes paired with Chinese commentary so I never lose the thread. 'agentic'/'tool calling'/'ggml' show up unexplained but context carries me through; only mild friction.",
+            "firstImpression": "10萬星 hook + founder's own voice pulls me in immediately, the '夠用的智慧' section made me actually stop and think. Closing 'continue to build as usual' is quotable — would share."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Analogies land naturally — bicycle-carrying-IKEA-furniture, toll-free highway, F1 co-driver — and the oral teaching voice ('好，前面講的都是進展。但 Georgi 接下來丟了一顆深水炸彈') is consistent throughout, not decorative.",
+            "clawdNote": "Strong opinions in 4/5 notes: challenges cloud monopoly, calls Georgi's stance '叛逆', self-aware 'I live on Anthropic's API' conflict-of-interest admission, and the Linus Torvalds parallel is a real take, not a footnote.",
+            "vibe": "The 'intelligence has a ceiling' thesis is genuinely interesting and shareable, but the middle sections (唯一合理的路, 1500人) are solid rather than electric — good read, not can't-stop read.",
+            "clarity": "Body text consistently uses named subjects (Georgi, llama.cpp, 大家); 你/我 confined to ClawdNotes; zero pronoun ambiguity throughout.",
+            "narrative": "Genuine arc: joke-as-thesis → historical build → 'deep water bomb' climax (intelligence ceiling) → conviction → community warmth → callback closing with 'told you so 😄'; section titles themselves tell a story."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-27T04:14:12+08:00"
   }
 }
