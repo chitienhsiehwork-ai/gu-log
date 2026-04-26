@@ -9095,5 +9095,97 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-26T19:34:40+08:00"
+  },
+  "sd-14-20260402-ai-agent-initiative-problem.mdx": {
+    "article": "sd-14-20260402-ai-agent-initiative-problem.mdx",
+    "startedAt": "2026-04-26T20:05:03+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 10,
+            "sourceAlign": 8,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "All four glossary terms used (Agent, Claude Code, OpenClaw, Context Window) are linked to /glossary#... on first technical mention. KAIROS is not in glossary so cannot be linked, but it is explained inline with a cross-ref to SP-148.",
+            "crossRef": "All four internal post links resolve to real slugs (sp-109 heartbeat, sp-148 source leak, sd-8 openclaw guide, sd-2 subagent showdown). First mentions of both Clawd and ShroomDog link to /about as required.",
+            "sourceAlign": "SD original post — sourceUrl points to gu-log itself, content is ShroomDog's own analysis of the initiative problem, auto-aligned per librarian rubric.",
+            "attribution": "Heartbeat prompt quote (Is there anything worth doing right now?) attributed to KAIROS via SP-148 link; 50-minute heartbeat number scoped inside ShroomDogNote as personal experiment; Clawd's speculation explicitly hedged (Clawd 猜測); opinions cleanly contained in ClawdNote/ShroomDogNote blocks vs body facts."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Technical claims hold up: heartbeat-pattern math is correct (24*60/50 ≈ 28.8 wakes/day matches '28-29 次'), append-only audit trail analogies (banks/courts/blockchain) are factually sound, and KAIROS architectural details (autoDream background fork, GitHub webhook, append-only log) are referenced consistently with the SP-148 source-leak lore. Cross-references to SP-109, SP-148, SD-2, SD-8 all exist on disk.",
+            "fidelity": "SD original (not a translation), so faithfulness is judged on speculation hygiene: the post properly hedges KAIROS team-intent claims with 'Clawd 猜測', distinguishes ShroomDog's empirical 50-min tuning from architectural claims, and attributes the heartbeat-pattern framing to loryoncloud's SP-109 rather than claiming originality.",
+            "consistency": "Argument arc is clean — reactive → event-driven → proactive → heartbeat → background isolation → append-only log → boundaries — and the closing 'employee at the desk' callback ties back to the opening. ClawdNote opinions are visually framed as opinion (kaomoji + component boundary), and the dog/cat metaphor for event-driven vs. proactive holds without internal contradiction."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-26T00:00:00Z",
+          "dimensions": {
+            "readability": 9,
+            "firstImpression": 9
+          },
+          "score": 9,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 9,
+            "vibe": 9,
+            "clarity": 9,
+            "narrative": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Opening idle-employee scenario, surgeon mid-surgery analogy, and dog-vs-cat comparison are all structural LHY-style teaching — oral transitions like '好，heartbeat 講清楚了' and '理論說夠了' keep the professor-in-lecture feel consistent throughout.",
+            "clawdNote": "Most notes carry clear opinions — 'designers want clean logs is their need, not the system's need' is genuinely sharp, the dog/cat analogy reframes the entire event-driven vs proactive distinction, and the convergent-evolution observation challenges the reader's assumptions.",
+            "vibe": "The idle-employee hook pulls you in, the surgeon analogy is the kind of image you remember days later, and the ending callback ('回到那個等在桌邊的員工...先讓它睡著。然後慢慢讓它醒來。') leaves a punch — solidly shareable.",
+            "clarity": "Body text consistently names subjects (agent, KAIROS, OpenClaw, 設計者) with zero ambiguous pronouns; 我 appears only inside ClawdNote/ShroomDogNote where the speaker is unmistakable.",
+            "narrative": "Genuine arc from problem (employee waiting) → reframe (not a tech problem) → classification → solution → deeper problem (context pollution) → philosophical principle (append-only) → real case → practical grounding → callback ending with a memorable final line; strip test passes — skeleton without analogies still progresses through tension and resolution."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-26T20:24:23+08:00"
   }
 }
