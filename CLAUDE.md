@@ -5,6 +5,24 @@
 
 ## ⚠️ 必讀
 
+### 🪪 開場第一件事：確認自己是 mac-CC 還是 CCC
+
+**任何 Claude Code instance 進到這個 repo，第一件事必須跑 `./scripts/detect-env.sh` 確認自己的身份**，再讀對應的 playbook（`playbooks/mac-CC-playbook.md` 或 `playbooks/CCC-playbook.md`）。沒搞清楚身份就動手 = 用錯 SOP（mac-CC 跟 CCC 的 scope ceiling、merge policy、失敗處理都不一樣）。沒有例外，不能跳。
+
+### 🔗 User 丟連結 = 要寫 SP
+
+**只要 user 在對話裡丟 URL 過來（X/Twitter、blog、HN、arXiv、GitHub blog 文章…），預設意圖就是「幫我把這篇翻譯成 SP」**，不要去猜其他意思（不是要你 summarise、不是要你加到 about page、不是要你做書籤）。直接走 SP 流程：
+
+- X/Twitter URL → 先用 `sp-source-fetch` skill 抓原文（WebFetch 在沙箱會被擋，且會偷偷摘要）
+- 一般 blog/article URL → `curl -sL -A "Mozilla/5.0..." <url>` 抓原始 HTML
+- 有疑問時才問 user 確認，不要默默改成別的任務
+
+如果 user 真的只是要分享連結、不要翻譯，他們會明講。
+
+### 🏷️ Branch name 是 ID，不是語意
+
+**這個 repo 的 feature branch 名稱是由不知道 gu-log 上下文的 LLM 自動生成的**（例如 `claude/add-twitter-link-6xTNr`），**完全不能拿來當任務語意的線索**。Branch name = 不透明的 identifier，僅用來區分 working tree，**絕對不要從 branch name 推斷 user 想做什麼**。任務意圖永遠以對話內容為準。
+
 ### 🗣️ 回覆語言：一律繁體中文（zh-tw）
 
 **不管 user 用什麼語言問你（英文、簡中、日文、混雜），你回覆 user 的文字一律用繁體中文。** 這是絕對規則，沒有例外：
