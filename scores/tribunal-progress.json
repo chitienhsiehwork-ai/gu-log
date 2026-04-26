@@ -8909,5 +8909,99 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-26T17:51:27+08:00"
+  },
+  "sd-16-20260402-can-ai-test-itself.mdx": {
+    "article": "sd-16-20260402-can-ai-test-itself.mdx",
+    "startedAt": "2026-04-26T18:21:51+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 9,
+            "sourceAlign": 8,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Key glossary terms linked on first mention: Claude Code (line 26), agent (line 26), OpenClaw (lines 138, 142), Ralph Loop (line 142). Minor gaps — '1M context 窗口' (line 58) could link to /glossary#context-window, and the silent Opus→Sonnet 降級 discussion is conceptually Model Swap but not linked.",
+            "crossRef": "Identity links present: ShroomDog → /about (line 140), Clawd → /about (line 151). Internal post links verified against src/content/posts/: /posts/sd-12-20260402-claude-code-bad-patterns/ (referenced lines 26 & 94, file exists) and /posts/sd-13-20260402-prompt-cache-economics/ (line 96, file exists). External refs (theregister, x.com/DavidKPiano, github.com/anthropics/claude-code/issues/38335) all properly hyperlinked.",
+            "sourceAlign": "SD original with sourceUrl pointing to gu-log.vercel.app/ (self) — auto 8 per rubric.",
+            "attribution": "DavidKPiano quote attributed with direct tweet link (line 32). Leak stats (3,167-line function, 187 spinner verbs) linked to sd-12 deep-dive. Bash security checks count and 512K LOC linked to theregister writeup. GitHub issue #38335 with 203 upvotes linked (line 66). ClawdNote/ShroomDogNote components structurally isolate opinion from body facts. Minor gap: 'Claude Code 現在是年收 25 億美元的產品' (line 47) stated without citation.",
+            "summary_advisory": "Composite 8 → PASS. Previous run's complaints about missing identity links and unlinked Claude Code/OpenClaw/Ralph Loop were factually wrong — all are linked in body."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Core technical claims solid: model IDs claude-opus-4-6/sonnet-4-6 correct, Bun's Zig-layer attestation mechanism plausible from leak narrative, 1M context accurate, theregister citation for 23 bash checks present; minor imprecision on un-cited specifics (#38335 '203 upvotes', '$2.5B ARR') presented as fact without primary-source link.",
+            "fidelity": "SD original — ClawdNote and ShroomDogNote opinions cleanly separated via components; hedges preserved throughout ('我不是說這個設計邪惡', '你沒辦法保證兩個 model 沒有重疊的盲點', '只解決了一部分'); DavidKPiano tweet quoted verbatim with URL.",
+            "consistency": "Argument flows cleanly from leak → no-tests question → static analysis → MITM → cross-model oracle problem → OpenClaw production version → organizational-not-technical conclusion; ClawdNotes consistently mark opinion vs fact; cross-refs to SD-12/SD-13 keep the Deep Dive series internally coherent."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Hook ('64,464 行生產碼。零測試。') is brutally clean. Attestation bug walks step-by-step (placeholder → scan-and-replace → conversation contains the string → cache key 壞掉 → token 暴增) so a 3-month dev can rebuild the bug in their head without Googling. Re-read once on the 'specification problem / Oracle' paragraph — 'Oracle' is never named directly, the student-exam analogy rescues it. MITM proxy / RLHF / prompt cache get enough inline gloss to survive.",
+            "firstImpression": "Would share. The student-自己出題自己改考卷 analogy is the screenshot moment. Closing line ('那個空白的 OKR 欄位才是真正的問題') reframes a tech problem as an org problem and lands hard. The OpenClaw/Ralph Loop section feels insider for someone who's never seen this blog — almost skimmed — but the final two paragraphs pulled me back."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Strong LHY teaching arc — each section raises a question the next answers; transitions like '好，假設前面兩步都做完了' feel like a professor walking through a proof; analogies (期末考自己出題, 健身房辦會員從沒去過, 備用鑰匙放假石頭裡) land naturally without feeling decorative.",
+            "clawdNote": "Injection-pattern note is a genuine highlight — connecting attestation bug to SQL/shell/prompt injection is real insight, not decoration; transparency critique of Anthropic takes a clear stance; billing note has both pragmatism and the unexpected observation that style-difference-as-intelligence is itself quality assurance.",
+            "vibe": "Attestation bug as concrete anchor makes the abstract self-testing discussion accessible and shareable; the proxy and self-testing-paradox sections tilt more cerebral than visceral though — you learn a lot but the fun/chill/informed balance favors 'informed' over 'can't stop reading.'",
+            "clarity": "Zero stray 你/我 in body text; subjects always named (Claude Code, Claude, Anthropic, ShroomDog); voice attribution across body, ClawdNote, and ShroomDogNote is unambiguous throughout.",
+            "narrative": "Genuine escalating-stakes arc: leak hook → static finds bugs → 'but static can't see runtime' → proxy → 'but who tests the tests?' philosophical peak → cross-model solution → OpenClaw honest-about-limitations practical → OKR-callback punch ending; strip test passes — skeleton is argumentative progression, not linear report."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-26T18:42:32+08:00"
   }
 }
