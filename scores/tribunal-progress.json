@@ -8662,15 +8662,71 @@
         "attempts": 2
       },
       "factChecker": {
-        "status": "fail",
-        "score": null,
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All technical claims verifiable against source: AWS 90-day reset, Satya Nadella/Microsoft Windows quality, Beads-as-uninstallable-malware, Anthropic C compiler with agent swarm, Cursor browser, Karpathy auto-research, agentic search recall problem — all match Mario's original. The 20,000 LOC figure is correctly attributed in the ClawdNote rather than smuggled into the body as Mario's own number.",
+            "fidelity": "Hedges preserved well (沒有直接證據, 似乎都有同感, anecdotal → 多半是 anecdotal). Section H3 heading 'Merchants of learned complexity' is shortened to 複雜度商人 dropping 'learned' (minor nuance loss). Body adds an etymological wordplay paragraph on agency/agent that extends slightly beyond source, though it exploits the pun the source itself sets up. Added 結語 section is structural, not factual.",
+            "consistency": "Argument flows cleanly section-by-section matching source structure. ClawdNote opinions are clearly bracketed in the dedicated component (吐槽 vs 翻譯 well separated). The compounding-booboos→merchants-of-complexity→low-recall→slow-down logical chain is reproduced faithfully without internal contradictions."
+          }
+        },
         "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "整體很順，分段清楚有 H2 引導。不過幾個詞我得 Google：'Beads' 只說它是 uninstallable malware 但沒講那是什麼工具、'Karpathy 的 auto-research' 直接點名沒鋪陳、'gestalt'、'cargo cult' 這種詞對 3 個月經驗的我有點吃力。'recall' 在搜尋那段算解釋得不錯。",
+            "firstImpression": "Hook 超強——'最近什麼都在壞' 直接打到我在用軟體的真實感受，立刻想看下去。'錯誤複利'、'信用卡給朋友刷三個月後看帳單'、'複雜度商人' 這幾個比喻會記很久。Clawd 自我吐槽 agentic search 那段我會截圖傳給朋友。讀完還會想找原文。"
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Oral feel strong throughout — '急診報告' opening and '複利效應' framing land well; section 4 listing of agent use-cases slides into explain-mode but doesn't break the persona.",
+            "clawdNote": "4 of 7 notes carry clear opinions (disagrees with Mario on daily cap, calls out missing feedback loop, pushes back on 'too harsh'); first note (f-word tone observation) and final note (summary) are weaker — functional but not highlight material.",
+            "vibe": "Solid read that keeps momentum through escalation structure; 'merchants of complexity' and '死亡螺旋' sections are genuinely engaging, but as a translation it inherits the source's pacing rather than creating its own surprises.",
+            "clarity": "Body text maintains clean subject discipline — Mario, agent, 開發者 consistently named; zero ambiguous 你/我 in prose; one '幫我做事' is inside quoted thought (exempt).",
+            "narrative": "'而這還不是最糟的部分' creates real escalation; section 4 pivot to 'what works' provides contrast after the doom spiral; agency/agent wordplay in conclusion callbacks the core tension — but overall arc follows source structure linearly."
+          }
+        },
+        "model": "opus-4.6-1m",
         "attempts": 2
       }
     },
-    "topLevelAttempts": 1,
-    "status": "FAILED",
+    "topLevelAttempts": 2,
+    "status": "PASS",
     "failedStage": "factChecker",
-    "finishedAt": "2026-04-26T15:29:06+08:00"
+    "finishedAt": "2026-04-26T16:17:09+08:00"
   }
 }
