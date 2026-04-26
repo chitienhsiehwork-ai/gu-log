@@ -9825,5 +9825,98 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-27T01:15:24+08:00"
+  },
+  "sp-140-20260402-article-claude-code.mdx": {
+    "article": "sp-140-20260402-article-claude-code.mdx",
+    "startedAt": "2026-04-27T01:45:48+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 7,
+            "sourceAlign": 8,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Main glossary term 'Claude Code' is the topic itself and is naturally explained throughout; technical terms outside glossary (FNV-1a, Mulberry32, PRNG, OAuth) are inline-glossed in 中文 — no key glossary term is left bare.",
+            "crossRef": "SP-139 is referenced inline ('詳見 SP-139') but NOT rendered as an actual link to /posts/sp-139-20260401-article-claude-code-npm-source-map/, which exists in the repo — clear missing internal link. No ShroomDog/Clawd identity mention in body text (Clawd only appears via <ClawdNote> component) so identity-link rule does not strictly apply.",
+            "sourceAlign": "Declared sourceUrl is @Khazix0918's X post about /buddy reroll exploit; post content (white cactus regret → linux.do reroll script → telling Claude Code to hack itself → shiny legendary capybara) faithfully tracks that arc. Sandbox curl hits X login wall, but topical alignment is strong.",
+            "attribution": "Excellent attribution discipline: quotes ('我要傳說閃光卡皮巴拉', Claude Code 的 'Token 不是必須的') clearly attributed to 原作者/Claude Code; Bones-layer paragraph explicitly flags 原作者 前文/後文 inconsistency and what is verifiable; last ClawdNote self-labels '下面這句是我的延伸，不是原文事實'. linux.do source mentioned but not linked — minor gap."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "FNV-1a constants (2166136261/16777619) and Mulberry32 PRNG code are canonically correct; 1% x 1% x 1/18 ~= 1/180,000 math checks out; Pokemon 1/4096 shiny rate is correct for Gen 6+; 51 萬行 ballparks the documented ~512k npm source-map leak; Bones+Soul / accountUuid->userID fallback are tweet-sourced and unverifiable against primary source but internally consistent.",
+            "fidelity": "Exemplary attribution discipline — explicitly reconciles pre/post-text discrepancy in source ('原作者前文…後文又補充…官方登入時 /buddy 其實會優先使用 accountUuid'), preserves hedges throughout ('搞不好'、'純粹是我的推測'、'當我的腦補就好'), and a ClawdNote explicitly flags '下面這句是我的延伸，不是原文事實'.",
+            "consistency": "Narrative arc holds cleanly from 白板崩潰 → fallback 漏洞 → 5000萬次碰撞 → Claude Code 自己破解 → 強度黨勝利; ClawdNote opinions consistently demarcated as speculation; salt 'friend-2026-401' interpretation (friend + 2026 + 4/1) is internally coherent."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Flows really well, the gacha/抽卡 framing makes the technical stuff land. One dense spot is the FNV-1a + Mulberry32 + 'fallback trust escalation' cluster — those terms get name-dropped fast, but the prose around them carries you through. The numbered操作流程 (claude setup-token / 刪掉 .claude.json / OAUTH_TOKEN) is the only place I actually skimmed.",
+            "firstImpression": "Hook is strong — '你的 IDE 裡蹲了一隻卡皮巴拉' makes me keep reading. The arc (抽到白板 → 拆原始碼 → 找漏洞 → 5000 萬次碰撞 → 直接叫 Claude Code 自己破解自己) is genuinely funny and the '我要傳說閃光卡皮巴拉！！！' beat is share-worthy. Ending lands soft on 'friend-2026-401' which is a nice touch. Would absolutely send this to a group chat."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 9,
+            "vibe": 9,
+            "clarity": 9,
+            "narrative": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Strong LHY oral feel with well-placed life analogies (pocket hamster, blind box, Pokemon shiny hunting); even technical sections like Bones+Soul maintain conversational framing rather than sliding into report mode.",
+            "clawdNote": "Self-referential angle is brilliant -- Clawd discovering its own pet system and later commenting on helping hack its own config; the fallback trust escalation note combines technical insight with genuine opinion; well over half have clear stances.",
+            "vibe": "Gacha/heist narrative framing makes this genuinely shareable; the escalation from 'can't reroll' to '50M brute force' to 'Claude Code hacks itself' is compelling, and the salt value callback ending is unexpectedly touching.",
+            "clarity": "Body text consistently uses named subjects; zero stray pronoun leaks in prose; ClawdNote speaker identity always unambiguous.",
+            "narrative": "Genuine heist arc with rising tension -- discovery, disappointment, architecture deep-dive, exploit, triumph, wistful reflection on 'friend-2026-401'; Section 7 (Claude Code hacking itself) delivers a clear emotional peak with surprise."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-27T01:58:45+08:00"
   }
 }
