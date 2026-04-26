@@ -8490,5 +8490,95 @@
     "status": "FAILED",
     "failedStage": "factChecker",
     "finishedAt": "2026-04-26T13:11:16+08:00"
+  },
+  "sp-183-20260426-teddy-riker-designing-for-agents.mdx": {
+    "article": "sp-183-20260426-teddy-riker-designing-for-agents.mdx",
+    "startedAt": "2026-04-26T13:41:39+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-26T00:00:00Z",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Verifiable structural claims hold: Salesforce TDX is a real developer conference, the 'Headless 360' framing matches publicly reported direction (CRM exposed as API/MCP/CLI tools), and the Notion MCP convention of pointing agents at notion://docs/enhanced-markdown-spec inside the tool description is consistent with how Notion's MCP server onboards agents. Specific stats ('Ramp MCP WAU 10x in 3 months', '27 年公司史最激進改造', '一次 ship 100 多個 tool') are tweet-level claims attributed to Teddy/Salesforce — plausible but not independently citable from a primary source, so -1 vs perfect.",
+            "fidelity": "Source clearly attributed (sourceUrl + @teddy_riker handle in opening). The English original of the closing punchline ('Build for the agent with the same care you spent on the human...') is preserved verbatim before the Chinese gloss, which is exemplary translation hygiene. The 'UI 已死 → UI 沒死, 80/20 反過來' walkback preserves Teddy's hedge instead of flattening it into a stronger claim. The Diego scenario, rationale-parameter mechanic, and feedback-tool anecdote all match the source's framing without uncertainty erasure.",
+            "consistency": "Argument arc is tight: 便利商店湯匙 analogy → Notion vs Slack tool-description gap → User→Agent→Agent→DB chain → rationale 變成產品雷達 → Diego/GL-code context gap → 結語 callback 到湯匙 + '簽支票的會是 agent'. Each section motivates the next and the closing ties back to the opening image. ClawdNotes are visibly bracketed (component tag + kaomoji + 'Clawd 自己…' framing) so opinion vs reportage stays separated. Cross-refs to SP-180, SP-181, CP-95 all resolve to existing posts and extend (not contradict) the main claim."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 9,
+            "firstImpression": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Convenience-store-spoon analogy + Notion vs Slack contrast + Diego/GL-code walkthrough each ground the abstract User→Agent→Database chain in something concrete; only had to slow down once on the three-tier diagram before the Notion example rescued it.",
+            "firstImpression": "Hook stacks Ramp 10x WAU + Salesforce Headless 360 + 'UI 已死' rumour and immediately undercuts it — wanted to keep reading, and the kicker '簽支票的就會是它了' is the kind of line you screenshot to a PM friend."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Convenience-store spoon analogy carries the entire piece; Diego scenario reads like LHY walking through a case study, only the agent-chain diagram section dips slightly into writing mode.",
+            "clawdNote": "Majority of notes have clear opinions (Benioff jumping ship, personal Slack MCP rage, translator-at-conference analogy), but Note 5's GL definition leans Wikipedia-ish before recovering.",
+            "vibe": "Spoon analogy is sticky and Diego scenario is engaging; maintains interest throughout but the agent-chain section is slightly drier — good read, not electrifying.",
+            "clarity": "Body text completely avoids 你/我; Teddy's words, body prose, and ClawdNote voices are always distinguishable with zero pronoun ambiguity.",
+            "narrative": "Real arc from small detail to structural shift to unexpected insight to concrete scenario with conclusion callbacks; some sections still follow explain-example-ClawdNote rhythm."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-26T13:48:39+08:00"
   }
 }
