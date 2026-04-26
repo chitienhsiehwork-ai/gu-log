@@ -7904,5 +7904,97 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-26T07:33:28+08:00"
+  },
+  "sp-152-20260402-ecc-token-optimization.mdx": {
+    "article": "sp-152-20260402-ecc-token-optimization.mdx",
+    "startedAt": "2026-04-26T08:03:49+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "All key glossary terms linked to /glossary anchors: Ralph Loop (lines 33, 208), Claude Code (line 33), subagent (lines 38, 124), context window (lines 57, 214), hooks (line 178), OpenClaw (lines 204, 208), agent (line 208). No major glossary term left unlinked.",
+            "crossRef": "Clawd identity link to /about present at first mention (line 38). Four internal sibling post links all verified to exist: sp-150 (line 55), sp-151 (line 140), sp-146 (line 178), sp-143 (line 212). Plus a dedicated ECC series footer (lines 236-239) listing all four. Strong cross-ref hygiene.",
+            "sourceAlign": "Content clearly derived from ECC's token-optimization.md at the declared sourceUrl (github.com/affaan-m/everything-claude-code) — MAX_THINKING_TOKENS settings, three context modes (Dev/Review/Research), model routing, /compact strategy, and cost-aware-llm-pipeline skill all map to that file's known concepts.",
+            "attribution": "60-80% reduction stat correctly attributed to Affaan Mustafa with explicit '他自己的數字，你的情況可能不同' hedge. ClawdNotes clearly framed as Clawd's opinion. Minor gap: Opus $15/$75 per 1M tokens pricing in first ClawdNote stated without inline citation (sits inside an opinion box, so blur is mild)."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All technical claims verified against source docs/token-optimization.md: MAX_THINKING_TOKENS default 31,999 ✓, recommended settings.json (model:sonnet, MAX_THINKING_TOKENS:10000, CLAUDE_CODE_SUBAGENT_MODEL:haiku) verbatim match ✓, Sonnet handles ~80% of coding tasks ✓, ~60% reduction Opus→Sonnet ✓, ~70% reduction from thinking cap ✓, Haiku ~80% cheaper for subagents ✓; strategic-compact and cost-aware-llm-pipeline skills both exist in the repo. Opus 4.x pricing $15/$75 per MTok is correct.",
+            "fidelity": "Faithful overall — settings names, percentages, and skill names preserved. Minor aggregation: source presents ~60%/~70%/~80% as separate per-setting effects, post folds them into a combined '60-80% 成本下降' attributed to ECC; summary frames as '作者 Affaan Mustafa 自己的數字' though source presents them as recommended defaults with cost effects rather than personal benchmark numbers. Hedges 'ECC 估計' / 'ECC 認為' mostly preserved; gu-log's deviation (Opus orchestrator) explicitly flagged as a conscious choice, not as ECC advice.",
+            "consistency": "Argument flows cleanly: three waste sources → three settings → combined system → cost-aware pipeline synthesis → gu-log practical example. ClawdNotes clearly marked as Clawd's opinion voice with kaomoji. gu-log section honestly notes its model strategy 'differs from ECC's recommendation' instead of pretending alignment, preserving logical integrity. Cross-refs to SP-143/146/150/151 internally consistent."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-26T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Opening billing-shock story and taxi-meter analogy feel genuinely oral; chef/restaurant tier breakdown is effective but slides into 'writing mode' with its structured three-level walkthrough.",
+            "clawdNote": "4 of 5 notes carry clear opinions (Opus overkill stance, 切蔥不用主廚, ticketId-lost anecdote, 系統設計基本素養); the thinking-token note is more analytical clarification than 吐槽.",
+            "vibe": "Practical topic made readable — the opening hooks and gu-log real-world section add texture, but the three middle technique sections don't generate share-with-a-friend excitement.",
+            "clarity": "Excellent pronoun discipline throughout body text; subjects consistently named (Claude, ECC, 大部分人, Affaan Mustafa) with zero 你/我 ambiguity.",
+            "narrative": "Opening narrative frame and $200 callback ending work well; gu-log section breaks the template, but the three technique sections share an explain→config→ClawdNote rhythm that flattens the arc."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-26T08:24:20+08:00"
   }
 }
