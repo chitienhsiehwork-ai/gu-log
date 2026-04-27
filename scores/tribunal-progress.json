@@ -12040,5 +12040,97 @@
     "status": "PASS",
     "failedStage": "factChecker",
     "finishedAt": "2026-04-27T20:45:13+08:00"
+  },
+  "sp-131-20260327-avichawla-openclaw-agent-safety.mdx": {
+    "article": "sp-131-20260327-avichawla-openclaw-agent-safety.mdx",
+    "startedAt": "2026-04-27T21:15:37+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Key glossary terms are linked on first mention and reinforced thereafter: OpenClaw → /glossary/#OpenClaw (lines 18, 76), Agent → /glossary/#Agent (line 18), Context Window → /glossary/#Context-Window (lines 28, 52). No unlinked glossary terms of significance remain.",
+            "crossRef": "Clawd identity link to /about present in first ClawdNote (line 43). Cross-reference to sp-127-20260326-anthropic-claude-code-auto-mode (verified to exist in src/content/posts/) is made twice (lines 43 and 209), each in thematically apt context (overeager behavior, output classifier as filter). No obvious missing connections.",
+            "sourceAlign": "Content faithfully derived from Avi Chawla's X thread at the declared sourceUrl — the Summer Yue email-deletion incident, microservices/proxy analogy, Plano filter chain, input/output filter examples, and FastAPI code snippet all map to the original thread's structure; katanemo/plano repo linked twice.",
+            "attribution": "Summer Yue (with Meta affiliation) and Avi Chawla named explicitly; agent self-quote ('Yes, I remember. And I violated it.') properly blockquoted and attributed; Plano linked to its GitHub repo; ClawdNote opinions clearly demarcated from body facts via component boundaries."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All technical claims about Plano are correct: filter chain semantics (200 pass / 4xx block / 5xx error), FastAPI implementation pattern, input vs output filter timing, PII anonymize/de-anonymize round-trip, two-sided proxy interception. FastAPI code sample reproduces source verbatim. Microservices to service-mesh analogy is historically accurate.",
+            "fidelity": "Faithfully renders source: Summer Yue at Meta attribution comes directly from Avi Chawla's tweet; the 'Yes, I remember. And I violated it. You're right to be upset.' quote is exact; '10 tokens vs 50,000 tokens' figure preserved verbatim; ClawdNote opinions cleanly fenced from body. OUTPUT_BLOCKED_PATTERNS shortened from source's 8 entries to 5 (delete all emails / bulk-delete / rm -rf / drop table / bulk-trash), semantically identical, no claim distortion. No uncertainty erasure detected.",
+            "consistency": "Argument arc holds end-to-end: compaction problem to safety-in-prompt being structurally fragile to microservices proxy-layer precedent to Plano filter chain to input vs output filters to output-filter case (clean prompt, dangerous model output) to conclusion that infrastructure-resident safety survives compaction. SP-127 cross-reference (Anthropic auto mode classifier as analogous output filter) resolves to an existing post and the analogy holds. ClawdNote speculative bits clearly marked as Clawd's voice, not factual claims."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-27T00:00:00Z",
+          "dimensions": {
+            "readability": 9,
+            "firstImpression": 9
+          },
+          "score": 9,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Solid oral voice and natural analogies (便利貼冰箱, 機場安檢, 郵差寄信), but implementation sections slide from talking mode into writing mode.",
+            "clawdNote": "Most notes carry genuine opinions — challenges 'just use system prompt' assumption, calls out humans repeating microservices mistakes, takes stance on proxy invisibility being the best design choice.",
+            "vibe": "Opening story and 'Yes, I remember. And I violated it' quote are genuinely chilling and memorable; middle implementation/config sections slow the pace from exciting to informative.",
+            "clarity": "Body text subjects always named (Summer Yue, agent, compaction, filter); zero 你/我 in body — all instances are inside ClawdNote or blockquotes (exempt zones).",
+            "narrative": "Real arc from horror through historical parallel to solution with effective conclusion callback to opening image; but sections 4-6 settle into explain→example→ClawdNote template rhythm without emotional peaks."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-27T21:31:38+08:00"
   }
 }
