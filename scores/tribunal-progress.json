@@ -13055,5 +13055,97 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-28T06:02:32+08:00"
+  },
+  "cp-210-20260326-claude-code-channels-openclaw-killer.mdx": {
+    "article": "cp-210-20260326-claude-code-channels-openclaw-killer.mdx",
+    "startedAt": "2026-04-28T06:32:58+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 10,
+            "crossRef": 10,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "All glossary terms used in body are linked: OpenClaw (/glossary#openclaw), Claude Code (/glossary#claude-code), agent (/glossary#agent), MCP (/glossary#mcp, linked twice), Cowork (/glossary#cowork). No unlinked key terms — Bun/Telegram/Discord/Dispatch are not glossary entries.",
+            "crossRef": "All 5 internal /posts/ links resolve to existing files: clawdbot-architecture-deep-dive, clawd-picks-20260203-alexalbert-cowork, openclaw-creator-joins-openai, sd-2-20260212-subagent-showdown-claude-code-vs-openclaw, ai-memory-design-cc-auto-memory-vs-openclaw. Clawd identity link to /about present in both ClawdNotes (lines 33 and 123). ShroomDog not mentioned, so no missing identity link.",
+            "sourceAlign": "Content clearly derived from declared VentureBeat sourceUrl on Anthropic launching Claude Code Channels — covers MCP-based bridge architecture, Bun polling service, Telegram/Discord plugin install flow, three-layer Cowork/Dispatch/Channels stack, and direct VentureBeat 'OpenClaw killer' framing reused as the headline angle.",
+            "attribution": "Quotes well-attributed: VentureBeat 'OpenClaw killer', Matthew Berman 'They've BUILT OpenClaw.', BentoBoi quote, Ejaaz 'fucking crazy', anonymous Substack author closing line. ClawdNotes clearly delimited via component, opinion-vs-fact separation clean. Minor gap: timeline dates (1/12, 2/14, 2/24, 3/17, 3/20) presented as facts without per-event citations, though most chain into linked /posts/."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 7,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All technical claims verified against the VentureBeat source (fetched via Wayback Machine since live VB returns 429): Bun runtime, MCP as 2024 open standard, USB-C analogy, `--channels` flag, `<channel>` event injection, plugin install/configure/pair flow, v2.1.80+ requirement, Telegram BotFather + Discord Message Content Intent setup steps — all match. Quotes are faithfully transcribed: Matthew Berman ('They've BUILT OpenClaw.'), BentoBoi (Mac Mini lol), Ejaaz ('fucking crazy' / four weeks). Peter Steinberger → OpenAI, trademark cease-and-desist rename, OpenClaw release in 2025 — all confirmed. Minor: source uses original project name 'Clawd', post uses 'Clawdbot' (internal gu-log naming convention referenced via cross-link, not a factual error against source).",
+            "fidelity": "Bulk of source is faithfully represented including the closed-engine/open-rails licensing framing and persistence/Bun rationale. Two fidelity issues: (1) OpenClaw platform list is altered — source says 'iMessage, Slack, Telegram, WhatsApp and Discord' (5 platforms), but post claims 'WhatsApp、iMessage、Slack、Signal、Microsoft Teams', adding Signal + MS Teams (NOT in source) and dropping Telegram/Discord without flagging that those are now Channels-supported. (2) The closing 'Substack 作者' quote ('open source builds markets, incumbents absorb value, then open source evolves into something new') is not in the source article and the attribution is vague — reads as editorial framing dressed as a citation. No uncertainty erasure on technical claims; ClawdNote opinions clearly marked as opinion.",
+            "consistency": "Argument flows logically: Channels replicates OpenClaw's core 24/7 messaging value prop → but OpenClaw still wins on platform breadth, model freedom, and full agent autonomy beyond coding. Timeline narrative (Jan Mac Mini bubble → Cowork preview → trademark/rename → Steinberger to OpenAI → Dispatch → Channels) is internally coherent. Opinion clearly contained in ClawdNote (Clawd-as-OpenClaw-resident commentary), facts in main body. Conclusion follows naturally from the evidence presented."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-28T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Mac Mini opening and chess metaphor show genuine LHY storytelling, but MCP explanation and open/closed strategy sections slide into tech journalism mode — informative not conversational.",
+            "clawdNote": "All three notes have clear opinions (challenges VentureBeat headline, connects strategic dots, admits personal stake), but the second leans analytical over 吐槽 — functional personality, not highlight-reel.",
+            "vibe": "Mac Mini hook and community quotes are punchy, chess metaphor sustains momentum, but the MCP technical paragraph and business-strategy section are respect-reads not share-reads.",
+            "clarity": "Exemplary pronoun discipline — body text uses named subjects throughout (開發者, Anthropic, 社群, specific people), all quotes attributed, one minor editorial float easily resolved by context.",
+            "narrative": "Mac Mini bookend and three-move chess metaphor create real connective tissue with varied section rhythms, but the skeleton is solid tech journalism (product → strategy → reactions → nuance) rather than emotional arc with multiple peaks."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-28T06:51:47+08:00"
   }
 }
