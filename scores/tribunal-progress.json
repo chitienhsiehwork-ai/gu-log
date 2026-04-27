@@ -13147,5 +13147,98 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-28T06:51:47+08:00"
+  },
+  "cp-209-20260325-karpathy-litellm-supply-chain-dependency-risk.mdx": {
+    "article": "cp-209-20260325-karpathy-litellm-supply-chain-dependency-risk.mdx",
+    "startedAt": "2026-04-28T07:22:14+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Both key glossary terms are linked in body: MCP → /glossary#mcp (twice, lines 48 and 73) and vibe code → /glossary#vibe-coding (line 48). Other technical terms (PyPI, pip, supply chain, SSH/AWS/GCP/K8s) are not in glossary.json so no link expected.",
+            "crossRef": "Internal link /posts/clawd-picks-20260211-karpathy-deepwiki-mcp-rip-out/ verified against src/content/posts/ (file exists). Both glossary anchor links resolve. ShroomDog/Clawd identity not mentioned in body text (only ClawdNote component used) so no /about link required.",
+            "sourceAlign": "Content faithfully derived from Karpathy's X post (sourceUrl status 2036487306585268612): credential exfil list, 97M monthly downloads + transitive dependency via dspy, Callum McMahon discovery, ~1hr lifespan, 'libraries are over / LLM yoink' thesis — all map directly with no topical drift.",
+            "attribution": "Karpathy's claims clearly attributed throughout ('Karpathy 說', 'Karpathy 原文的措辭', 'afaict' / 'imo' preserved as authorial hedges); Callum McMahon named for the discovery story; litellm 1.82.8 / litellm_init.pth detail explicitly framed as 'Karpathy 引用的原始推文還補充'; ClawdNote opinion blocks cleanly separated from body facts."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Every technical claim verified against Karpathy's tweet: 97M monthly downloads, dspy depends on litellm>=1.64.0, poisoned version 1.82.8, litellm_init.pth with base64-encoded credential exfiltration, <1 hour exposure window, Callum McMahon's MCP-in-Cursor RAM crash discovery — all match primary source verbatim.",
+            "fidelity": "Hedges meticulously preserved: 'afaict' kept as '據 Karpathy 所知（afaict）', 'imo' kept as '在他看來（imo）', '<~1 hour' kept as '不到大約一小時'. No uncertainty erasure. Full exfiltration list translated without addition or omission. ClawdNote commentary clearly separated from translated body.",
+            "consistency": "Argument flows cleanly from incident description → contagion mechanism → discovery accident → Karpathy's broader thesis on dependency risk → 'yoink' alternative. ClawdNote speculations ('如果他們多 debug 一下') are visually scoped to the box; the cross-link to the prior DeepWiki/torchao piece is appropriately framed as Clawd's interpretation."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Flows cleanly from hook to payoff; the stolen-creds laundry list lands hard and MCP/vibe-code links rescue the only jargon spikes. Tiny nit: header says '97 million' but body says '9,700 萬' — same number, re-read once to confirm.",
+            "firstImpression": "Karpathy + 'Software horror' + 'one pip install steals everything' is a tab I finish. The 'attacker's own bug crashed the victim's machine, that's how it got caught' beat is share-worthy — group chat material."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Brick-pyramid and key-ring analogies are strong LHY material, but sections 1-2 lean into news-reporting mode before the oral feel strengthens in the twist section.",
+            "clawdNote": "All 4 notes carry opinions — the password-manager-stealing-itself metaphor and the malware-vs-production-code parallel are genuine insights, not Wikipedia footnotes.",
+            "vibe": "The 'attacker vibe-coded their malware' twist is genuinely fun and shareable, though the credential-list dump in section 1 slightly drags momentum.",
+            "clarity": "Zero pronoun ambiguity in body text; Karpathy, Callum McMahon, and attackers are always named as subjects.",
+            "narrative": "Real arc with a section-3 twist (bug-ridden malware self-destructs) and philosophical zoom-out, but sections 1-2 are conventional setup before the narrative engine fully engages."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-28T07:35:39+08:00"
   }
 }
