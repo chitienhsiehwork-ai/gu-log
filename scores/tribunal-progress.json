@@ -12317,5 +12317,98 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-27T23:13:32+08:00"
+  },
+  "sp-128-20260327-shl-minimalist-entrepreneur-claude-skills.mdx": {
+    "article": "sp-128-20260327-shl-minimalist-entrepreneur-claude-skills.mdx",
+    "startedAt": "2026-04-27T23:43:59+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Claude Code 是文中唯一的核心 glossary 詞彙，已在 5 處正確 link 到 /glossary#claude-code（line 22, 30, 70, 97 等）。slash command / skill / cron jobs 等不是獨立 glossary 條目，無遺漏。",
+            "crossRef": "3 個內部 post 連結全部 resolve 到真實 slug：/posts/emanueledpt-codex-ui-guide/ → sp-130、/posts/trq212-claude-code-playground-plugin-ai-html/ → sp-134、/posts/pawelhuryn-intent-first-4-7-migration/ → sp-177。post 沒有直接點名 ShroomDog / Clawd（只在 ClawdNote 用「我自己的主人」隱喻），所以未強制 /about identity link 不算缺。",
+            "sourceAlign": "sourceUrl 指向 @shl 推文，內容忠實展開 10 個 Minimalist Entrepreneur skills 與回覆區討論（17 skills 工程師、94 cron jobs 開發者、廣告投放創辦人），與宣稱主題完全一致。",
+            "attribution": "Sahil Lavingia 標明為 Gumroad CEO；回覆區發言以角色標示（'工程師'、'做廣告投放的創辦人'）但無 @handle，金句『大部分人讀完就忘了。你讀完之後把它自動化了』只標『有人』為輕微扣分。ClawdNote 用元件清楚分隔 opinion 與 body fact。Clawd 對 9 vs 10 個 skill 的差異用『我猜』明確標示為推測，可接受。"
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All 10 skill names (/find-community, /validate-idea, /mvp, /processize, /first-customers, /pricing, /marketing-plan, /grow-sustainably, /company-values, /minimalist-review) verified exactly against github.com/slavingia/skills/skills/. Install commands (/plugin marketplace add slavingia/skills + /plugin install minimalist-entrepreneur) match repo README verbatim. Sahil Lavingia=Gumroad CEO and The Minimalist Entrepreneur authorship are correct. Reply-thread numbers (17 skills, 94 cron jobs) cannot be verified without thread access but are presented as quoted observations not author claims.",
+            "fidelity": "Faithful to the GitHub repo as the primary verifiable source. The ClawdNote honestly flags the '推文裡寫 9 個 skill，但 GitHub repo 其實有 10 個' discrepancy rather than papering over it. The Gumroad origin narrative ('先混在創作者社群裡') is slightly compressed compared to the canonical 'built in a weekend to sell icon designs' story, but it matches Sahil's own retrospective framing of the journey. No uncertainty erasure detected.",
+            "consistency": "Argument flows cleanly from problem (book on shelf) → mechanism (skills as installable knowledge) → 10-skill walkthrough → prompts vs skills distinction → reply-thread evidence → conclusion. ClawdNote opinions clearly marked and contained. The 'shelf book vs running terminal' framing pays off in the closing without contradicting earlier claims."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "書架積灰的開場立刻抓人，把 skill 比成住在你 terminal 的顧問朋友很好懂。中段一些術語沒展開（DAU、context drift、feedback loop），3-month dev 可能要 Google 一兩個；line 80 的 ClawdNote 結尾有個多餘的雙引號 `(◍˃̶ᗜ˂̶◍)ノ\"` 看起來像 typo，會讓人卡 0.5 秒。",
+            "firstImpression": "敘事弧很強：從『書躺在書架上』→『十把鑰匙』→『回覆區 94 個 cron jobs』→『書終於被跑起來了』，整路有 pull。/processize 那段『用雙手做一遍』的 punch 很實用，不只是 hype。會傳給開始做 indie 的朋友。"
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Bookshelf-to-terminal arc and oral transitions ('好，退一步', '聽起來很蠢？') sustain LHY teaching feel; skill-listing section dips slightly into report mode but transitions rescue it.",
+            "clawdNote": "3 of 4 notes carry clear opinions (vanity metric vs DAU, spell-to-software evolution, AI-as-electricity); Note 2 on /processize is informational without a strong stance.",
+            "vibe": "Sticky-note-vs-coach comparison is genuinely shareable and the 94-cron-jobs escalation creates a wow peak; the nine-skills rundown section loses some momentum.",
+            "clarity": "Zero 你/我 in body text; every sentence names its subject (Sahil, 工程師, 創辦人, 大部分人) with no pronoun ambiguity anywhere.",
+            "narrative": "Real arc from melancholy bookshelf opening through escalating social proof to philosophical zoom-out with callback ending; middle listing sections fall into explain-then-list rhythm but don't collapse the structure."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-28T00:03:15+08:00"
   }
 }
