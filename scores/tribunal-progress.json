@@ -11661,5 +11661,108 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-27T17:05:35+08:00"
+  },
+  "cp-221-20260328-mntruell-cursor-cloud-agents-1m-commits.mdx": {
+    "article": "cp-221-20260328-mntruell-cursor-cloud-agents-1m-commits.mdx",
+    "startedAt": "2026-04-27T17:36:06+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 10,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Central term 'agent' linked on first mention via [agent](/glossary#agent) on line 30; no other glossary terms (Claude Code, MCP, Vibe Coding) materially appear in body, so coverage is complete for the terms actually used.",
+            "crossRef": "Three internal /posts/ links all resolve: cp-143-20260305-mntruell-code-ai-cursor, clawd-picks-20260228-mntruell-cursor-third-era, and cp-197-20260322-cursor-ai-cursor-composer-2 — all thematically tight (same speaker / same product evolution); 'Clawd' first textual mention links to /about (line 41); ShroomDog not referenced.",
+            "sourceAlign": "Content faithfully derived from declared sourceUrl — 1M commits / 2 weeks / 'essentially all AI' quote, the cited Cursor official demos-not-diffs angle, and the @AshbyRen filtration-milestone reply all line up with the mntruell thread.",
+            "attribution": "Strong throughout — Truell named with direct English quote ('essentially all AI'), @AshbyRen named with full original English quote on review/rollback/blame as real product, stats (1M / 2 weeks / ~70k per day) all tied to Truell, ClawdNote opinions clearly fenced off from body facts."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "scores": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "composite": 9,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-27T00:00:00Z",
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All claims verified against source tweet (mntruell/2037558733786824965): '1M commits over the past two weeks', 'essentially all AI', 'own computer', 'little human intervention is required'. Daily-average derivation 一百萬 / 14 ≈ 七萬多/day is arithmetically correct. Quoted Cursor tweet 'Cursor now shows you demos, not diffs. Agents can use the software they build and send you videos of their work' is faithfully rendered as the demo-not-diff pivot.",
+            "fidelity": "Hedges preserved — 'little human intervention' → '幾乎不太需要人類介入' (not erased to 不需要); '幾乎全是 AI 寫的' carries 'essentially all AI'. ClawdNote commentary (commit count ≠ quality, demo 不能取代讀 code, downstream 服務炸不炸) clearly fenced inside <ClawdNote> blocks. Body stays close to source; cross-references to prior CP posts framed as context, not as new factual claims about Truell.",
+            "consistency": "Argument arc is coherent: throughput milestone → review bottleneck → Cursor's demo-not-diff response → remaining downstream gaps (CI/CD、rollback、git blame). Printing-press analogy ('生產端成本趨近於零，瓶頸移到品管') supports the production→QA shift cleanly. ClawdNote speculation (downstream API 改格式影片秀不出來) is explicitly Clawd's reading, not asserted as Truell's claim."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Clear structure with punchy hook ('一百萬。兩週。平均每天七萬多個 commit')；少數術語像 CI/CD、git blame、rollback 沒解釋，但夾在條列裡看得懂大意。",
+            "firstImpression": "Hook 抓得住，印刷術類比把『生成 vs 品管』的 framing 講得很順，看完會想轉給寫 code 的朋友。"
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Printing press analogy and 工廠作業 imagery land well, but sections 2-3 slide into blog-writing mode rather than oral lecture feel.",
+            "clawdNote": "2/3 notes have genuine opinions (challenges headline number, predicts review-tool competition), meeting the half threshold but not screenshot-worthy highlights.",
+            "vibe": "Opening hook with 70K/day math and demo-not-diff pivot keep interest, but lacks the visceral stickiness of top-tier posts.",
+            "clarity": "Zero 你/我 in body text, all subjects named (Truell, Cursor, agent, 開發者), cross-references to prior CP posts well-attributed.",
+            "narrative": "Real argument arc from impressive number through unpacking to deeper QA bottleneck, with ending callback to opening — intellectual momentum without emotional peaks."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-27T17:51:58+08:00"
   }
 }
