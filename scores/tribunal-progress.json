@@ -11383,5 +11383,97 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-27T14:43:38+08:00"
+  },
+  "sp-134-20260328-trq212-claude-code-playground-plugin-ai-html.mdx": {
+    "article": "sp-134-20260328-trq212-claude-code-playground-plugin-ai-html.mdx",
+    "startedAt": "2026-04-27T15:14:05+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 9,
+            "sourceAlign": 8,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Key glossary terms linked at first mention: Claude Code -> /glossary#claude-code (line 32), context window -> /glossary#context-window (line 41), MCP -> /glossary#mcp (line 106). Minor unlinked: 'Agent' and 'tool-use' (line 106) used naturally without /glossary anchors, but they're not load-bearing for comprehension.",
+            "crossRef": "Two internal post links verified against src/content/posts/: /posts/sp-118-20260318-trq212-claude-code-skills-lessons (line 65) and /posts/sp-136-20260328-trq212-bash-is-all-you-need (line 119) — both resolve to real files. No identity link needed since 'Clawd'/'ShroomDog' are not mentioned by name in body prose, only through the ClawdNote component itself.",
+            "sourceAlign": "Content faithfully represents the @trq212 tweet topic — covers all five playgrounds (UI layout, SKILL.MD review, video intro tweaking, codebase architecture viz, game balance), the install commands, and Thariq's stated philosophy. Topic clearly aligned with declared sourceUrl.",
+            "attribution": "Thariq named with role ('Anthropic 的工程師') at first mention (line 38). Each of the five examples ties back to his prompts. His philosophy quote (line 101) clearly framed as his. ClawdNote opinions visually separated from body facts via component boundary throughout."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Plugin name (playground), install commands (/plugin marketplace update claude-plugins-official + /plugin install playground@claude-plugins-official), and all 5 use-case prompts match the source X Article verbatim; Thariq's bio reads 'Claude Code @anthropicai', which supports 'Anthropic 的工程師'.",
+            "fidelity": "All 5 favorite playgrounds preserved with their original specific prompts (AskUserQuestion layout, SKILL.MD inline suggestions to approve/reject/comment, Remotion intro, email agent architecture with node comments, Inferno deck balance); Thariq's mental-model tip faithfully rendered as '先想像一個跟 model 互動的全新方式，再讓它把那個方式具現化' with no uncertainty erasure.",
+            "consistency": "Narrative arc flows cleanly from the 'moving button' frustration -> playground concept -> 5 scenarios -> mental model -> return to opening; every ClawdNote (降維打擊, DIY Google Docs, onboard 跪了, tool-creation meta) is wrapped in <ClawdNote> so opinion vs. source claim never blurs."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-27T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Opening decorator-wall-color analogy and RPG slider comparison land well with strong oral feel, but the three-demo middle section dips into feature-walkthrough mode.",
+            "clawdNote": "Note 2 pushes back hard on IDE-native vs standalone HTML trade-off and Note 4 challenges accessibility ('門檻沒有 Thariq 讓它看起來的那麼低') — well over half carry genuine opinions.",
+            "vibe": "Opening hook and callback ending work well, informative and fun in spots, but the sequential three-demo middle section is solid rather than gripping.",
+            "clarity": "Zero explicit 你/我 in body text; subjects always named (Thariq, Claude, playground, 開發者, 新人); implied second-person constructions ('想成...', '試試看...') are idiomatic and unambiguous.",
+            "narrative": "Real escalation arc from simple param-tuning to structured interaction with an explicit pivot at section 4, but the three-demo section follows a repeating micro-pattern (scenario → pain → playground fix) that dips into template rhythm."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-27T15:35:09+08:00"
   }
 }
