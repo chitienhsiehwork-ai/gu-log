@@ -11764,5 +11764,98 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-27T17:51:58+08:00"
+  },
+  "cp-220-20260328-daniel-mac8-qwen3-14b-rtx-5060-sonnet-4-5-harness.mdx": {
+    "article": "cp-220-20260328-daniel-mac8-qwen3-14b-rtx-5060-sonnet-4-5-harness.mdx",
+    "startedAt": "2026-04-27T18:22:24+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Key glossary terms are linked: 'harness' → /glossary#agent-harness 4x (lines 26, 75, 126, 146), 'agent' → /glossary#agent 2x (lines 30, 146), 'Claude Code' → /glossary#claude-code (line 126). Other technical terms used (Qwen3, LiveCodeBench, RTX 5060 Ti, fine-tuning, chain-of-thought) are not in glossary.json so no gap.",
+            "crossRef": "All three /posts/ internal links resolve to real files in src/content/posts/: sp-173-20260411-hwchase17-harness-memory-lockin (line 126), sp-174-20260415-intuitiveml-ai-first-harness-engineering (line 133), cp-225-20260329-artificialanlys-aa-agentperf-agent-benchmark (line 146). 'Clawd' only appears inside ClawdNote components; 'ShroomDog' is not mentioned — identity /about link not required.",
+            "sourceAlign": "Content faithfully derives from sourceUrl (Daniel McAteer's X thread about ATLAS): the V3 pipeline phases (PlanSearch, Geometric Lens, PR-CoT), ablation numbers (54.9 → 67.3 → 74.6%), and the three quoted community replies (@BoMiaoFinance, @AiAristotle, @ZanyMan_e) all match the source thread.",
+            "attribution": "Numerical claims (74.6%, 71.4%, 86.2%, $0.004/task, ~100 tok/s) cited to ATLAS repo or Artificial Analysis leaderboard. Community quotes carry @-handles with English originals preserved before the Chinese gloss. ClawdNote opinions are visually fenced from body facts via the component boundary."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Core technical claims check out: Qwen3-14B hidden size is indeed 5120 (matches 'Geometric Lens 5120 維 self-embedding'); Sonnet 4.5 ~71.4% on LiveCodeBench is consistent with public leaderboard; Q4_K_M is a real llama.cpp quant; PlanSearch/Budget Forcing/PR-CoT are real techniques. Minor imprecision: source tweet says 'RTX 5060', post specifies 'RTX 5060 Ti（16GB VRAM）'—likely sourced from the linked ATLAS repo or tweet image, not fabricated, but slight extension beyond tweet text. '不到一萬台幣' for RTX 5060 Ti 16GB is a soft ballpark claim. All ablation numbers (54.9% → 67.3% → 74.6%, 42 tasks/36 by PR-CoT/85.7%, 100 tok/s, GPQA 47.0%, SciCode 14.7%) come from ATLAS repo—tweet-level traceability, not primary research.",
+            "fidelity": "Exemplary preservation of source caveats. Post explicitly quotes the author's own English caveat 'not the same task set, so this is not a controlled head-to-head' and dedicates an entire section ('方法論的三個大問號') to dismantling the headline claim. The pass@1 vs pass@1-v(k=3) distinction is explicit. Hedge preservation strong throughout—'74.6% 跟 Sonnet 4.5 的 71.4% 真的能直接比嗎' frames the comparison as question rather than fact. ClawdNote blocks (5 total) are visually separated and consistently mark opinion ('這套 pipeline 設計其實很精彩', 'BoMiao 統整的四個 data points 才是這個話題裡最有說服力的 pattern'). No uncertainty erasure detected.",
+            "consistency": "Argument structure is tight and self-consistent. Headline claim (small model beats Sonnet 4.5) → ablation breakdown showing where gains come from → three explicit methodological caveats undermining naive read → leaderboard table contextualizing position → social commentary including @AiAristotle's counter-view → conclusion that correctly restates 'the standalone headline is imprecise' but extracts the genuine takeaway (20pp from harness engineering). Phase 2 = +0.0pp paradox is presented honestly without hand-waving. ClawdNote in conclusion section explicitly distinguishes 'small model crushes big model' (rejected framing) from 'frozen 14B + 20pp harness reaches frontier-adjacent on a specific benchmark' (supported framing). Zero internal contradictions."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "結構超清楚（ATLAS 是什麼 → ablation → 三個問號 → 排行 → 社群），bullet list 跟數字都讓人讀得進去；Geometric Lens 那段 5120 維 self-embedding 跟 pass@1-v(k=3) 標記稍微卡一下，但因為很快就被『反正沒幹活』帶過所以還好。",
+            "firstImpression": "Hook 超強——『一張一萬塊顯卡贏 Sonnet 4.5』直接想點進來，然後中段反轉『其實規則不一樣』有滿足感，結論『harness engineering 是免費的 20pp』有 actionable takeaway，會想丟給朋友。"
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "University exam analogy sustained well across pipeline explanation; oral voice natural but benchmark list section and community quotes slide into reporting mode.",
+            "clawdNote": "All 4 notes have clear opinions — '這不是在提升智力，這是在用流程彌補智力' and 'fancy 名字買不到 benchmark 分數' are genuine stances, not Wikipedia footnotes.",
+            "vibe": "The +0.0pp ablation reveal and methodology critique build real intellectual tension; benchmark number list and community quote section are more report-like, preventing full reader lock-in.",
+            "clarity": "Body text clean of 你/我; subjects consistently named (ATLAS, 作者, 模型, BoMiao); exam analogy uses '一邊...另一邊' with unambiguous referents.",
+            "narrative": "Has genuine critique arc (surprise → understanding → skepticism → bigger picture) with +0.0pp as emotional peak and BoMiao callback ending, but sections 4-5 revert to list rhythm."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-27T18:41:15+08:00"
   }
 }
