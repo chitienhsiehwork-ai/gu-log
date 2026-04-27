@@ -12872,5 +12872,98 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-28T04:37:21+08:00"
+  },
+  "cp-212-20260326-semianalysis-disaggregated-planning.mdx": {
+    "article": "cp-212-20260326-semianalysis-disaggregated-planning.mdx",
+    "startedAt": "2026-04-28T05:07:48+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 10,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "All applicable glossary terms in the post are linked: 'AI agent' → /glossary#Agent (line 20), 'agentic coding' → /glossary#Agent (line 26), 'Model Swap' → /glossary#Model-Swap (line 37), 'Codex' → /glossary#Codex (lines 44, twice). No unlinked glossary terms remain.",
+            "crossRef": "Two internal post links and both resolve: /posts/cp-171-20260316-simonw-what-is-agentic-engineering (line 26) and /posts/sp-80-20260223-simonw-agentic-engineering-patterns (line 49). Cross-refs are thematically tight — Simon Willison posts are exactly the right callbacks for planning-vs-execution and spec-quality framing. No textual 'Clawd'/'ShroomDog' mention in body, so identity-link rule does not trigger.",
+            "sourceAlign": "Content faithfully derives from the @SemiAnalysis_ tweet — covers the disaggregated-prefill analogy, planning/execution as distinct cognitive tasks, the verbatim `Opus architects, Sonnet/Codex builds.` quote, and the $3/M vs $15/M cost framing.",
+            "attribution": "Quotes attributed to '原作者' / '@SemiAnalysis_' / '推文中' throughout. The Codex disambiguation aside cites the glossary as authority. ClawdNote opens with '這裡是我的解讀' to explicitly mark interpretation, and the spec-quality caveat is anchored to a prior Simon Willison post rather than presented as Clawd's own claim."
+          },
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-28T00:00:00Z"
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-28T00:00:00Z",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-28T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Restaurant-chef analogy lands well with callback ending, but prefill section ('compute-heavy 的 prefill 階段跟 memory-bound 的 decode 階段') slips into textbook mode, breaking the oral feel.",
+            "clawdNote": "All 4 notes push back on the source with specific challenges — Figma/3px drift analogy and Simon Willison cross-reference are highlights; analytical-sharp but not laugh-out-loud sharp.",
+            "vibe": "Well-paced for a tweet translation with genuine 'hmm' moments at the cost section, but niche topic from a single tweet limits shareability ceiling.",
+            "clarity": "Body text cleanly avoids 你/我 with precise attribution ('SemiAnalysis 說', '原作者的示意'); Codex disambiguation parenthetical is a nice touch.",
+            "narrative": "Has real pivots ('但等一下') and punchy short sentences ('五倍的價差。同樣的 output。'), but middle sections follow the tweet's argument order linearly rather than rearranging for dramatic effect."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-28T05:20:57+08:00"
   }
 }
