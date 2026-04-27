@@ -12410,5 +12410,98 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-28T00:03:15+08:00"
+  },
+  "cp-217-20260327-dylanpatel-gtc-2026-nvidia-inference-groq-ip-lpu-cpo.mdx": {
+    "article": "cp-217-20260327-dylanpatel-gtc-2026-nvidia-inference-groq-ip-lpu-cpo.mdx",
+    "startedAt": "2026-04-28T00:33:42+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 10,
+            "crossRef": 6,
+            "sourceAlign": 10,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Post is hardware-focused (LPU, CPO, AFD, Kyber, NVLink, FPGA, KV cache) — none of these terms exist in glossary.json. No glossary integration possible or required, so coverage is naturally complete.",
+            "crossRef": "Zero internal /posts/ links and no /about link on first ClawdNote. Several obvious thematic connections missing: cp-213-20260327-dylan-patel-nvidia-groq (same author, same date, same Nvidia-Groq topic), cp-198 (CPO at OFC), cp-139 (Hopper-Rubin platform), cp-175 (GTC CPU theme).",
+            "sourceAlign": "Content faithfully tracks the declared SemiAnalysis sourceUrl — Groq IP licensing, LPU architecture (VXM/MEM/SXM/MXM, SRAM), AFD, LPX rack, CPO Rubin/Feynman roadmap, Kyber, Vera ETL256, CMX/STX storage all map directly to the original 'Nvidia: The Inference Kingdom Expands' article.",
+            "attribution": "Authors named (Dylan Patel, Myron Xie, Daniel Nishball); Jensen quotes traced to GTC keynote and Financial Analyst Q&A; SemiAnalysis direct quote ('that seems a bit illogical to be frank') properly cited; ClawdNote opinions cleanly walled off via component. Minor: a couple of stats (8,160 differential pairs, 640TB/s) are stated as fact without explicit 'SemiAnalysis estimates' framing, but origin is clear from context."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Every spec checked against the SemiAnalysis source matches: $20B Groq IP+team deal, LPU1 (GF 14nm, 230MB SRAM, 750 TFLOPs INT8), LPU2 SF4X 112G SerDes failure, LP30 (SF4, 500MB SRAM, 1.2 PFLOPs FP8, near-reticle monolithic, no Nvidia design), LP35 NVFP4 on SF4, LP40 (TSMC N3P + CoWoS-R, NVLink, hybrid bonded DRAM, Alchip displaced), LPX tray (16 LPUs belly-to-belly, 2 Altera FPGAs, Granite Rapids, BlueField-4, 256GB DDR5 per FPGA), 8,160 differential-pair backplane, 640TB/s scale-up, 4x100G OSFP inter-rack, AFD from MegaScale-Infer/Step-3, spec decode 1.5-2x boost, Kyber (4 GPUs/blade, 2 canisters x 18 = 144 GPUs, 6 NVLink-7 per switch blade x 12 = 72 switches), NVL576 (8 Oberon), NVL1152 (8 Kyber), Vera ETL256 liquid-cooled, CMX/STX storage layer.",
+            "fidelity": "Hedges preserved well — Jensen's 'all CPO' Feynman quote is reported alongside SemiAnalysis's contrary base case (rack-internal copper, rack-to-rack optics); the NVL288 ClawdNote correctly captures the SemiAnalysis 'illogical to be frank' tension and quotes it directly; CMX=ICMS rebrand framing matches source ('just another re-brand'); the not-acquisition/anti-trust framing is faithful to source phrasing; vendor list trimmed to a representative subset which is acceptable.",
+            "consistency": "Argument flows cleanly from Groq deal -> LPU architecture -> AFD rationale -> LPX hardware -> CPO roadmap -> Kyber -> CMX/STX -> closing thesis; every body claim is attributed to '原作者' / 'SemiAnalysis' / 'Jensen'; ClawdNotes are isolated in the component and clearly opinionated (analogies, jokes, speculation about Samsung drama) without bleeding into body facts; no internal contradictions detected."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Hot-pot hook + GPU-as-department-store and prefill/decode-as-exam analogies carry the whole thing; LPX rack section throws SerDes/OSFP/differential-pairs without explaining, but the author signposts 'specs will be heavy' so I skimmed without bailing.",
+            "firstImpression": "Strong opening, ping-pong/exam metaphors clicked, ending callback to the hot-pot intro lands; the Samsung 八點檔 ClawdNote made me go 'oh that's good' — would forward if a hardware-curious friend asked about GTC."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "火鍋吃到飽 framing, 考試 analogy for prefill/decode, 去廟裡拜拜 humor all land well; CPO and Kyber spec-heavy sections slide toward reporting mode, preventing 9.",
+            "clawdNote": "追女朋友 擦邊球 note is a highlight; Samsung 八點檔 and 特許經營權 notes have clear stance; over half of 7 notes carry genuine opinion, not just explanation.",
+            "vibe": "Groq deal section genuinely engaging and fire pot callback satisfying; LPX/Kyber spec dumps create slight drag despite rescue analogies — would share but not urgently.",
+            "clarity": "Zero 你/我 in body text; subjects consistently named (Nvidia, Jensen, SemiAnalysis, 原作者); voice attribution never ambiguous across 200 lines.",
+            "narrative": "火鍋→購物中心 callback and explicit AFD pivot ('整篇最關鍵的概念') create peaks; but overall section order follows source material sequentially, keeping it just at 8."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-28T00:49:43+08:00"
   }
 }
