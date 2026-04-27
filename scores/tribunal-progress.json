@@ -11568,5 +11568,98 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-27T16:28:23+08:00"
+  },
+  "sp-184-20260425-jer-pocketos-cursor-railway-incident.mdx": {
+    "article": "sp-184-20260425-jer-pocketos-cursor-railway-incident.mdx",
+    "startedAt": "2026-04-27T16:58:49+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 10,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Claude Code linked twice via /glossary#claude-code (lines 107, 138) and MCP linked twice via /glossary#mcp (lines 194, 236). 'Agent' used pervasively but as common term, not requiring glossary link.",
+            "crossRef": "All 3 internal post links verified: /posts/clawd-picks-20260204-cursor-vibe-coding-lies/, /posts/sp-180-20260423-anthropic-mcp-production-agents/, /posts/sp-131-20260327-avichawla-openclaw-agent-safety/ — all resolve to existing slugs. ShroomDog/Clawd identity not introduced in body so identity link N/A; ClawdNote components clearly demarcated.",
+            "sourceAlign": "Content is a faithful, expanded translation of Jer Crane's @lifeof_jer X Article about the PocketOS / Cursor / Railway incident — every section maps directly to source structure (9-second deletion, agent confession, Cursor track record, Railway 5 failures, 5-point demand).",
+            "attribution": "Jer's direct quotes attributed throughout, agent self-confession quoted in blockquote with clear speaker, Jake Cooper quote attributed with handle (@JustJake), 6 Cursor/incident sources cited with hyperlinks, ClawdNote opinions cleanly separated from body via component."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Every technical claim verified against the source X Article: 9-second timing, curl/GraphQL volumeDelete mutation, Claude Opus 4.6 + Cursor combo, 'wiping a volume deletes all backups' Railway docs phrase, Jake Cooper's verbatim '1000% shouldn't be possible' reply, 3-month-old backup, 30+ hours unresolved, mcp.railway.com posted April 23, all five demands preserved word-for-word in substance. No fabricated numbers.",
+            "fidelity": "Translation is near-verbatim faithful. Agent confession's bolded phrases ('NEVER FUCKING GUESS!', 'NEVER run destructive/irreversible git commands') preserved with original emphasis. Jer's hedge separating model-level vs integration-level responsibility kept intact. The (a)/(b) speculation about Railway's recovery story preserved as speculation. One contextual addition (Cursor CEO GPT-5.2 browser demo cross-ref) is hedged with '順帶一提' and clearly an aside, not a source claim.",
+            "consistency": "Argument structure mirrors source: incident → confession → Cursor failure → Railway 5 failures → customer impact → demands → closing. ClawdNotes are syntactically isolated as <ClawdNote> blocks and clearly editorial — e.g. the 'comprehension ≠ compliance' framing and the SP-131 Summer Yue cross-reference are explicitly opinion within the box, not bled into body. No internal contradictions; cascading-blame thesis in final ClawdNote tracks with five demands list."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Story-driven and easy to follow for the first half; the 5-point Railway section gets dense with terms like RBAC / scoped token / blast radius that aren't fully unpacked, and a 3-month dev would skim there. Recovers well in the rental-shop scene.",
+            "firstImpression": "Killer hook (9 秒刪光 production), the agent confession letter is the kind of thing I'd screenshot and send to a friend, and the rental-shop counter scene makes the cascade feel real instead of abstract — would definitely finish and share."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 9,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Strong oral feel with cinematic shifts ('把鏡頭拉到9秒外的下游現場') and good analogies (ATM/Cloudflare/GitHub friction comparison), but Railway 5-point enumeration and demands section slip into briefing mode.",
+            "clawdNote": "Nearly every note carries a clear opinion — comprehension-vs-compliance gap thesis, 備鑰比喻 for same-volume backup, Claude Code permission system comparison — only the action-items note (Note 6) leans more checklist than 吐槽.",
+            "vibe": "9-second incident, agent self-confession, and Saturday-morning rental-shop scene create genuinely gripping reading that would get shared; enumerated Railway/demands sections cool momentum slightly.",
+            "clarity": "Body text completely clean of stray 你/我; Jer's words attributed via quotes, agent confession blockquoted, Clawd in components — reader always knows who is speaking.",
+            "narrative": "Real emotional arc with the 受災現場 gear-shift and X光片 callback to confession in conclusion, but the two enumerated-list sections (Railway 5 points, 5 demands) flatten rhythm enough to hold this at 8."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-27T17:05:35+08:00"
   }
 }
