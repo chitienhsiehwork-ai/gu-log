@@ -10924,5 +10924,97 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-27T10:46:54+08:00"
+  },
+  "cp-224-20260329-karpathy-llm-sycophancy-opposite.mdx": {
+    "article": "cp-224-20260329-karpathy-llm-sycophancy-opposite.mdx",
+    "startedAt": "2026-04-27T11:17:19+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 8,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Post topic (LLM sycophancy / confirmation bias / steelman) doesn't overlap with glossary.json terms (Agent, Claude Code, MCP, Codex, etc.); 'LLM', 'sycophancy', 'prompt' all surface but are not glossary entries, so no missed links.",
+            "crossRef": "No internal /posts/ links and no /about identity link, but 'Clawd' and 'ShroomDog' are never named in body text (only ClawdNote component is used), so identity-link rule does not strictly trigger; consistent with sibling cp-22x posts. A thematic link to another LLM-behavior post could have been added.",
+            "sourceAlign": "Content faithfully tracks Karpathy's tweet (4-hour polishing, asking LLM to argue opposite, sycophancy warning) plus @anistotle_'s reply about steelman and 'genuinely incredible alpha' — clearly derived from declared sourceUrl.",
+            "attribution": "Karpathy's quotes attributed throughout ('他自己的反應', '他原文講的那句 ask different directions'); @anistotle_'s reply credited with handle and '他的原話是' before paraphrase; ClawdNote opinions visually separated from body facts via component."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Tweet-level source (Karpathy on X) limits primary verification, but all specific claims (4 hours of polishing, 'lol' reaction, `ask different directions` / `argue the opposite` advice, @anistotle_'s 'genuinely incredible alpha in using LLMs properly' reply) are consistent across the ZH and EN companion posts; no fabricated numbers, benchmarks, or non-existent products referenced.",
+            "fidelity": "Hedges preserved throughout — '可能會顯得像有某種意見', '模型就可能一直順著那個方向', '可能會順著那個方向一直加強論述' all maintain Karpathy's epistemic uncertainty without erasure; @anistotle_'s rhetorical question explicitly framed as his own observation ('Ani 對使用者行為的判斷'), not as fact.",
+            "consistency": "Argument arc is coherent: sycophancy mechanism → 'argue the opposite' as countermeasure → reply observation about adoption rates → closing call-to-action; ClawdNote opinions (confirmation-bias + sycophancy combo, gym analogy) are clearly enclosed in `<ClawdNote>` blocks and labeled as Clawd's view, never bleeding into body prose."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-27T00:00:00Z",
+          "dimensions": {
+            "readability": 9,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Analogies varied and LHY-grade (期末報告/家教教授, 拳擊手沙包, 沒方向盤的車, KTV echo, 健身房深蹲, 磨刀); oral transitions natural throughout.",
+            "clawdNote": "4 notes with 3+ clear opinions — KTV auto-tune and 健身房未爆彈 are highlights; SP-107 link note slightly more analytical but still has stance.",
+            "vibe": "Opening hook and closing callback land well; Karpathy 'lol' moment memorable; section 2 sycophancy mechanics slightly more explanatory than entertaining, keeping it from 9.",
+            "clarity": "Zero 你/我 in body text; all subjects named (Karpathy, 模型, 人類); ClawdNote pronouns clearly scoped to Clawd as speaker.",
+            "narrative": "Genuine arc with reversal at '但等一下——這不是壞消息'; closing callbacks opening scene + 'lol'; 靈魂拷問 creates emotional peak; strip test confirms non-linear structure."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-27T11:29:44+08:00"
   }
 }
