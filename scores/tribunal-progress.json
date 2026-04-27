@@ -12687,5 +12687,98 @@
     "status": "PASS",
     "failedStage": "factChecker",
     "finishedAt": "2026-04-28T03:01:33+08:00"
+  },
+  "cp-214-20260327-semianalysis-ai-coding-slop-oss-ai-pr-nvidia.mdx": {
+    "article": "cp-214-20260327-semianalysis-ai-coding-slop-oss-ai-pr-nvidia.mdx",
+    "startedAt": "2026-04-28T03:32:02+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 7,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "「AI coding agent」反覆出現但沒連到 glossary 的 Agent 條目；Triton/TMEM/Blackwell 屬 GPU 領域、不在 glossary 範圍，不算缺漏。整體關鍵術語的解釋（Slop、AI Coding Slop）有在文中自然展開，可接受。",
+            "crossRef": "全文 0 個內部 /posts/ 連結，也沒有 ShroomDog / Clawd 的 /about identity link（這篇 body 沒直接提到 Clawd 名字，identity link 非硬性必須）。同主題的 cp-294（AI tooling slop 4 patterns）日期較晚、無法回連，但這篇仍可往前串接 vibe-coding / claude-code 相關案例，目前完全孤立。",
+            "sourceAlign": "sourceUrl 指向 SemiAnalysis_ 的 X post，內容（Triton PR #9734、消費級 Blackwell 缺 TMEM、NVIDIA PyTorch tech lead 留言、Honda Civic 梗）跟原 thread 主軸一致，aligned。",
+            "attribution": "SemiAnalysis、NVIDIA PyTorch 技術主管（以職稱識別）、PR 編號 #9734、Honda Civic 細節都明確歸屬到來源；ClawdNote 跟 body 用元件清楚切開，事實 vs 吐槽不混淆。"
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Technical claims verified against source: PR #9734, OpenAI Triton, consumer Blackwell lacking TMEM (correct — TMEM is a SM_100 datacenter feature, absent on consumer SM_120), NVIDIA PyTorch tech lead with Civic detail all match the SemiAnalysis tweet.",
+            "fidelity": "Faithful translation with no uncertainty erasure; sarcastic 'PROFESSIONAL' emphasis preserved as bold '專業的方式'; one minor intensifier ('didn't fix' → '根本沒有修好') but meaning intact; ClawdNote interpretations (Civic-as-credibility-signal, reviewer fatigue) clearly separated from source claims.",
+            "consistency": "Argument flows cleanly — slop definition → concrete case → professional rebuttal → broader trend; ClawdNote speculations about reviewer warning fatigue and the Civic meme are explicitly opinion-marked and don't bleed into factual claims."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Triton 跟 TMEM 都用具體比喻講清楚（編譯器框架讓你不用跟 CUDA 肉搏、TMEM 是廚房備料台、fallback 是寫著緊急出口的牆），流暢好讀；只有 Honda Civic 那段第一次出現有點摸不著頭緒，要等下一個 ClawdNote 才解釋，中間卡了一下。",
+            "firstImpression": "標題就有梗（連 NVIDIA 工程師都看不下去），整篇有清楚的故事線（什麼是 slop → 真實案例 → 專家吐槽 → 為什麼可怕），slop 這個概念很 sticky，看完會想轉給寫 OSS 的朋友。"
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 9,
+            "vibe": 9,
+            "clarity": 9,
+            "narrative": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "備料台 for TMEM and 主廚/微波爐 extended analogy are peak LHY teaching; oral lecture voice strong throughout ('搞清楚案發現場的重量之後，再來看這個 PR 有多離譜').",
+            "clawdNote": "All 3 notes carry strong opinions — 'social engineering of code review' reframe is genuinely sharp; supply-chain-risk escalation and asymmetry-math argument both go beyond source.",
+            "vibe": "Civic → 白袍 connection is instantly share-worthy; topic compelling, pacing tight for phone reading, no bullet dumps, ending punches with callback.",
+            "clarity": "Zero 你/我 in body text; all speakers (NVIDIA lead, SemiAnalysis, Clawd) clearly identified; no ambiguous pronouns anywhere.",
+            "narrative": "Crime-story arc (intrigue → stakes → horror → detective entrance → lingering dread) survives strip test; emergency-exit metaphor callbacks in conclusion; rhythm varies across all five sections."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-28T03:50:33+08:00"
   }
 }
