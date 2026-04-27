@@ -46,35 +46,93 @@ extract_status_id() {
   printf '%s' "$url" | sed -nE 's#.*status(es)?/([0-9]+).*#\2#p' | head -n1
 }
 
+extract_handle() {
+  local url="$1"
+  printf '%s' "$url" | sed -nE 's#https?://(www\.)?(twitter|x)\.com/([^/?#]+)/status.*#\3#p' | head -n1
+}
+
 STATUS_ID="$(extract_status_id "$TWEET_URL")"
 if [ -z "$STATUS_ID" ]; then
   echo "INCOMPLETE_SOURCE: failed to extract status id from URL: $TWEET_URL" >&2
   exit 2
 fi
 
-TMP_JSON="$(mktemp)"
-trap 'rm -f "$TMP_JSON"' EXIT
+HANDLE="$(extract_handle "$TWEET_URL")"
 
-# Primary: fxtwitter. `i/status/<id>` is handle-agnostic.
+TMP_JSON="$(mktemp)"
+CURL_ERR="$(mktemp)"
+trap 'rm -f "$TMP_JSON" "$CURL_ERR"' EXIT
+
+# Validate the fxtwitter payload sitting in $TMP_JSON. fxtwitter sometimes
+# returns code:200 with a placeholder tweet that has no text/article — reject
+# those so we fall through to the next path instead of silently emitting an
+# empty body.
+fxtwitter_payload_ok() {
+  python3 - "$TMP_JSON" <<'PY' 2>/dev/null
+import json, sys
+try:
+    d = json.load(open(sys.argv[1]))
+except Exception:
+    sys.exit(1)
+if d.get("code") != 200:
+    sys.exit(1)
+t = d.get("tweet") or {}
+if not t:
+    sys.exit(1)
+# Must have either a populated article or some kind of textual body.
+art = t.get("article") or {}
+has_article = bool(art.get("content") or art.get("preview_text"))
+rt = t.get("raw_text") or {}
+has_text = bool((rt.get("text") or "").strip()) or bool((t.get("text") or "").strip()) or bool((t.get("full_text") or "").strip())
+sys.exit(0 if (has_article or has_text) else 1)
+PY
+}
+
+# fxtwitter call shared flags. --retry-max-time caps total retry window so a
+# persistently-flaky fxtwitter doesn't stall the pipeline; --max-time bounds
+# each individual attempt. curl already retries 408/429/5xx by default.
+fxtwitter_curl() {
+  curl -fsSL --retry 5 --retry-delay 2 --retry-max-time 45 --max-time 20 \
+    -H 'User-Agent: gu-log/fetch-x-article (+https://gu-log.vercel.app)' \
+    "$1" > "$TMP_JSON" 2>>"$CURL_ERR"
+}
+
+# Primary: fxtwitter via handle path (different upstream cache key than
+# `/i/status/<id>`; in practice the two endpoints flap independently, so
+# trying both raises success rate when fxtwitter is partially degraded).
 FETCHED_FROM=""
-if curl -fsSL --retry 2 --retry-delay 1 --max-time 30 \
-  -H 'User-Agent: gu-log/fetch-x-article (+https://gu-log.vercel.app)' \
-  "https://api.fxtwitter.com/i/status/${STATUS_ID}" > "$TMP_JSON" 2>/dev/null; then
-  if python3 -c "import json,sys; d=json.load(open('$TMP_JSON')); sys.exit(0 if d.get('code')==200 and d.get('tweet') else 1)" 2>/dev/null; then
+if [ -n "$HANDLE" ]; then
+  if fxtwitter_curl "https://api.fxtwitter.com/${HANDLE}/status/${STATUS_ID}" \
+    && fxtwitter_payload_ok; then
     FETCHED_FROM="fxtwitter"
   fi
 fi
 
-# Secondary: vxtwitter (plain tweets only). Note: vxtwitter has a different
-# shape, so we wrap it so the renderer can treat it uniformly as a fxtwitter-
-# like payload with only `tweet.text`.
+# Secondary fxtwitter path: handle-agnostic.
 if [ -z "$FETCHED_FROM" ]; then
-  if curl -fsSL --retry 2 --retry-delay 1 --max-time 30 \
-    "https://api.vxtwitter.com/Twitter/status/${STATUS_ID}" > "$TMP_JSON" 2>/dev/null; then
-    python3 - "$TMP_JSON" <<'PY'
+  if fxtwitter_curl "https://api.fxtwitter.com/i/status/${STATUS_ID}" \
+    && fxtwitter_payload_ok; then
+    FETCHED_FROM="fxtwitter"
+  fi
+fi
+
+# Tertiary: vxtwitter (plain tweets only). vxtwitter has a different shape, so
+# we wrap it so the renderer can treat it uniformly as a fxtwitter-like
+# payload with only `tweet.text`.
+if [ -z "$FETCHED_FROM" ]; then
+  if curl -fsSL --retry 3 --retry-delay 2 --max-time 20 \
+    "https://api.vxtwitter.com/Twitter/status/${STATUS_ID}" > "$TMP_JSON" 2>>"$CURL_ERR"; then
+    if python3 - "$TMP_JSON" <<'PY'
 import json, sys
 p = sys.argv[1]
-raw = json.load(open(p))
+try:
+    raw = json.load(open(p))
+except Exception as e:
+    # vxtwitter sometimes returns its HTML homepage instead of JSON when the
+    # tweet doesn't exist or the upstream is degraded. Bail cleanly so the
+    # caller sees INCOMPLETE_SOURCE rather than a Python traceback.
+    print(f"vxtwitter returned non-JSON: {e}", file=sys.stderr)
+    sys.exit(2)
 # vxtwitter returns a flat object; wrap it in fxtwitter-ish shape so the
 # renderer downstream can handle both the same way.
 wrapped = {
@@ -97,13 +155,45 @@ wrapped = {
 }
 json.dump(wrapped, open(p, "w"))
 PY
-    FETCHED_FROM="vxtwitter"
+    then
+      FETCHED_FROM="vxtwitter"
+    fi
   fi
 fi
 
 if [ -z "$FETCHED_FROM" ]; then
   echo "INCOMPLETE_SOURCE: both fxtwitter and vxtwitter failed for status ${STATUS_ID}" >&2
+  if [ -s "$CURL_ERR" ]; then
+    echo "--- curl stderr ---" >&2
+    cat "$CURL_ERR" >&2
+  fi
   exit 2
+fi
+
+# X-Article wrapper detection on the vxtwitter path: vxtwitter NEVER returns
+# article body blocks, only `preview_text` (~200 chars). If we got here on
+# vxtwitter and the tweet is just a t.co wrapper around an article, refuse to
+# emit a partial body — per CONTRIBUTING.md "stop writing" on incomplete
+# source. Hard-fail with INCOMPLETE_SOURCE so the pipeline doesn't ship a
+# preview-based SP.
+if [ "$FETCHED_FROM" = "vxtwitter" ]; then
+  if python3 - "$TMP_JSON" <<'PY' 2>/dev/null
+import json, re, sys
+d = json.load(open(sys.argv[1]))
+preview = (d.get("_vxtwitter_preview_text") or "").strip()
+title = (d.get("_vxtwitter_article_title") or "").strip()
+text = ((d.get("tweet") or {}).get("text") or "").strip()
+is_wrapper = bool(re.fullmatch(r"https?://\S+", text)) if text else True
+sys.exit(0 if (is_wrapper and (preview or title)) else 1)
+PY
+  then
+    echo "INCOMPLETE_SOURCE: tweet wraps an X Article but fxtwitter is unavailable; vxtwitter only returns preview_text. Retry later or paste the article body manually." >&2
+    if [ -s "$CURL_ERR" ]; then
+      echo "--- curl stderr ---" >&2
+      cat "$CURL_ERR" >&2
+    fi
+    exit 2
+  fi
 fi
 
 if [ "$MODE" = "json" ]; then
