@@ -12224,5 +12224,98 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-27T22:24:11+08:00"
+  },
+  "sp-129-20260327-cloudflare-dynamic-workers.mdx": {
+    "article": "sp-129-20260327-cloudflare-dynamic-workers.mdx",
+    "startedAt": "2026-04-27T22:54:37+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 10,
+            "crossRef": 10,
+            "sourceAlign": 8,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "All applicable glossary terms (agent, MCP, context-window, Claude Code) linked at first/strategic mentions; non-glossary terms like V8 isolate, Hono, OpenAPI correctly left unlinked.",
+            "crossRef": "Clawd identity link to /about present (line 37); internal post link to SP-127 (claude-code-auto-mode) verified to exist; no obvious thematic gaps for SP context.",
+            "sourceAlign": "Content faithfully expands the declared Cloudflare X-post topic on Dynamic Workers — covers V8 isolates, TypeScript RPC, codemode/worker-bundler/shell, credential injection; minor drift since X posts are short and post extrapolates from Cloudflare blog material.",
+            "attribution": "Cloudflare claims attributed (e.g. '81% token saving' at line 90, 'Cloudflare 說' framing), package names cited verbatim, ClawdNote opinions cleanly isolated in component blocks vs body facts."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All major technical claims verified against Cloudflare's source blog 'Sandboxing AI agents, 100x faster': V8 isolates since 2018 (8 years), few-ms / few-MB vs hundreds, 100x faster + 10-100x memory efficient, million sandboxes/sec, same-machine-same-thread execution, MPK hardware features, Spectre defenses, 'V8 patches faster than Chrome', 2-tool/<1000-token Cloudflare MCP server, globalOutbound credential injection, @cloudflare/codemode/worker-bundler/shell with searchFiles/planEdits/applyEditPlan and transactional rollback all match. The 81%-token figure is verified against Cloudflare's Code Mode blog (caveat: 81% is the complex-batch case, ~32% for simple — minor context omission). One minor imprecision: post says '八個月後' between Code Mode (Sep 2025) and open beta (Mar 2026); actual gap is ~6 months.",
+            "fidelity": "Translation faithfully represents the source. Hedges preserved ('usually run on the same machine' → '通常跟 parent Worker 跑在同一台機器'); the 'V8 attack surface > hypervisor' caveat that Cloudflare itself flags is preserved both in body and in a ClawdNote that explicitly calls it a 'fundamental tradeoff'. No uncertainty erasure detected. ClawdNotes are syntactically separated via the <ClawdNote> component and add commentary without injecting fabricated facts into the body. Analogies (calculator/intern/safe) reframe rather than introduce new claims.",
+            "consistency": "Argument flows cleanly: A/B/C framing → V8 isolate background → why 100x changes the design space → why JS is the right language for AI sandboxes → TypeScript RPC for token economy → multi-layer security → tooling triplet (codemode/bundler/shell) → credential injection → conclusion folds back to A/B/C. Every section transitions logically. ClawdNote opinions are clearly self-flagged as speculation ('我傾向前者', '行銷部門又喝多了'), and the Chrome-patch-speed Clawd note correctly hedges rather than echoes Cloudflare's marketing. No internal contradictions."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Flows great thanks to the calculator-vs-computer and intern-with-safe analogies, but TypeScript RPC, Spectre, and MPK get name-dropped without enough hand-holding for a junior — had to skim those bits.",
+            "firstImpression": "The A/B/C opening is a killer hook and the 'if the credential isn't in its hands, what is it leaking — air?' line is genuinely screenshot-and-send-to-group-chat material."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 8,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Calculator analogy and three-nannies extended metaphor land well; oral feel is strong but the toolchain section slides into sequential feature walkthrough mode, keeping it at 8 rather than 9.",
+            "clawdNote": "Most notes carry clear opinions — the cast-iron-pan marketing jab, the personal container-config-hell war story, the 'distrusted for 20 years = advantage' reversal, and the partial pushback on Cloudflare's patch-speed claim all show genuine stance.",
+            "vibe": "The A/B/C opening hook and JavaScript perspective-flip are share-worthy moments; the toolchain and RPC sections are informative but don't grip as hard, keeping overall vibe at solid-not-outstanding.",
+            "clarity": "Body text keeps subjects named throughout (Cloudflare, agent, Dynamic Worker); one 你 in the opening line is a minor slip but context is unambiguous — no speaker confusion anywhere.",
+            "narrative": "Opening three-choice setup creates tension, JavaScript section delivers a genuine pivot, and the ending callbacks to both the A/B/C frame and calculator analogy with a punch; but the middle stretch (RPC → security → toolchain) reads as sequential feature coverage rather than building dramatic tension."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-27T23:13:32+08:00"
   }
 }
