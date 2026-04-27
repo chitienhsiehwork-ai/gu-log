@@ -12132,5 +12132,97 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-27T21:31:38+08:00"
+  },
+  "sp-130-20260327-emanueledpt-codex-ui-guide.mdx": {
+    "article": "sp-130-20260327-emanueledpt-codex-ui-guide.mdx",
+    "startedAt": "2026-04-27T22:02:04+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 10,
+            "crossRef": 9,
+            "sourceAlign": 10,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Both glossary terms relevant to this post are properly linked on first mention at line 24: [Codex](/glossary#codex) and [AI coding agent](/glossary#agent). No other glossary.json terms (MCP, Vibe Coding, Claude Code, Subagent, etc.) are central to this UI-design topic, so coverage is complete.",
+            "crossRef": "Internal cross-ref to SP-110 at line 137 is a valid markdown link to /posts/sp-110-20260310-derrickcchoi-codex-10-best-practices — file verified to exist. Thematic callback ('context 的品質決定產出的品質') is well-motivated. External links (OpenAI blog at line 24, openai/skills repo at line 160) are valid. No ShroomDog/Clawd by-name body mentions, so identity-link requirement N/A. Minor: could optionally cross-link to other prompt-engineering posts, but not required.",
+            "sourceAlign": "Content faithfully derives from Emanuele Di Pietro's X thread summarising OpenAI's official frontend design guide. Both the original tweet (sourceUrl) and the underlying OpenAI blog post are cited inline with working links. Translation/expansion stays on-topic throughout.",
+            "attribution": "Emanuele named at line 24, OpenAI guide linked inline, hard rules consistently attributed to '原文' or 'OpenAI 的指南', frontend-skill repo linked at line 160. ClawdNote opinions cleanly isolated via component (5 ClawdNotes, all opinion-bearing and tagged). Minor: a couple of OpenAI 'hard rules' paraphrased without exact section citation, but standard for a translation post."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All technical claims verifiable against the OpenAI blog (developers.openai.com/blog/designing-delightful-frontends-with-gpt-5-4): GPT-5.4 model name, low/medium reasoning advice, hard rules (no cards default, two typefaces max, one accent, full-bleed hero, hero budget), brand test, image test, $skill-installer frontend-skill command, Linear app role model, Framer Motion, and the exact frontend-skill GitHub path all match the source.",
+            "fidelity": "Core hard rules and three-thesis framework (visual/content/interaction) translated faithfully with no uncertainty erasure. Slight interpretive extensions: post generalizes 'these principles apply to any AI coding agent' (source is GPT-5.4-specific) and adds rhetorical analogies ('番茄炒蛋', '海報 vs 瑞士刀', 'junior 上班第一天') beyond the source — but these are framed as commentary or in ClawdNotes, not as source claims.",
+            "consistency": "Argument flows from problem (statistical fallback to generic SaaS) through prep (design system, visual ref, real content) to hard rules (hero, cards, fonts, color), then narrative structure, then landing-vs-app distinction, then motion budget, ending at the skill installer. ClawdNotes clearly demarcate opinion vs. translated claim; no internal contradictions detected."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-27T00:00:00Z",
+          "dimensions": {
+            "readability": 9,
+            "firstImpression": 9
+          },
+          "score": 9,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "番茄炒蛋 metaphor runs structurally through the entire piece and callbacks in conclusion; oral teaching tone is natural, though hard-rules enumeration sections slide toward report mode.",
+            "clawdNote": "5 of 6 notes carry genuine opinions — SRP double-standard callout and PM-not-audience stance are highlights; a couple lean more toward analogy extension than independent challenge.",
+            "vibe": "Enjoyable phone read with practical insights and a fun cooking motif; the lower-reasoning counterintuitive turn is a genuine hook, though shareability is topic-dependent.",
+            "clarity": "Zero 你/我 violations in body text; subjects consistently named (多數人, model, 廚師, 工程師) with no speaker ambiguity.",
+            "narrative": "Has genuine turns — reasoning-lowering surprise, don't-to-do pivot, poster-vs-knife contrast, callback ending — but sections 3-4 fall into explain→examples→ClawdNote template rhythm."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-27T22:24:11+08:00"
   }
 }
