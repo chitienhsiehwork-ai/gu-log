@@ -11475,5 +11475,98 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-27T15:35:09+08:00"
+  },
+  "sp-133-20260328-vtrivedy10-langchain-deep-agents-eval-eval-agent.mdx": {
+    "article": "sp-133-20260328-vtrivedy10-langchain-deep-agents-eval-eval-agent.mdx",
+    "startedAt": "2026-04-27T16:05:33+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Key glossary term 'agent' linked at first use via [agent](/glossary#agent) on line 34. 'Tool Use' appears only as the lower-case eval category tag 'tool_use' (a code-style identifier), not as the conceptual term, so a glossary link would be misplaced. 'Deep Agents' is not a glossary entry. No gaps.",
+            "crossRef": "Both internal post references are properly linked: CP-207 → /posts/cp-207-20260325-adam-conway-python-litellm (verified exists) and CP-215 → /posts/cp-215-20260327-noahzweben-claude-code-auto-fix-pr-ci-comment (verified exists). External links (Deep Agents repo, Open SWE, Terminal Bench, BFCL, LangSmith Polly/Insights/Traces) all resolve at first mention. ShroomDog not mentioned (no identity link needed); Clawd appears only via <ClawdNote> component (acceptable convention).",
+            "sourceAlign": "Content faithfully tracks the declared sourceUrl (Viv Trivedy/LangChain on Deep Agents eval): eval-as-vector framing, three data sources (dogfooding/external benchmarks/artisanal), trace tooling (Polly/Insights/LangSmith), correctness→efficiency metric ordering, ideal trajectory example, and pytest+GitHub Actions runtime all match the source thread.",
+            "attribution": "Source author named explicitly ('LangChain 的 Viv Trivedy'), '原作者' used consistently for source claims throughout, 'artisanal evals' coinage clearly attributed, time/weather user-query example clearly framed as illustrative. ClawdNote opinions are structurally walled off from body facts via the component. External tools (Open SWE, Terminal Bench, BFCL, LangSmith) linked at first mention."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Verified against blog.langchain.com/how-we-build-evals-for-deep-agents/: numeric examples (ideal 4 steps/4 tool calls/~8s vs inefficient 6/5/14s) match exactly, the bash command 'baseten:nvidia/zai-org/GLM-5' is verbatim, Polly/Insights/LangSmith/Terminal Bench 2.0/BFCL/FRAMES/Open SWE all exist as described; only nit is the post credits Trivedy alone while source has 4 co-authors (Trivedy, Daugherty, Yurtsev, Chase).",
+            "fidelity": "Core thesis 'every eval is a vector / more evals != better agents' preserved; three data sources (dogfooding, external benchmarks, artisanal) match source taxonomy; SDK unit/integration test caveat from source's note correctly preserved inside ClawdNote rather than dropped; correctness->efficiency ordering and metric definitions (custom assertions, exact matching, LLM-as-a-judge, latency ratio, solve rate) faithfully rendered without uncertainty erasure.",
+            "consistency": "Argument arc holds end-to-end: exam metaphor -> vector framing -> data sourcing -> trace taxonomy -> correctness-then-efficiency -> ideal trajectory -> pytest execution -> callback to exam metaphor; all ClawdNote opinions wrapped in component tags and clearly distinguished from source claims; cross-refs to CP-207 (observability) and CP-215 (infra ergonomics) are scoped to ClawdNote commentary, not body assertions."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Exam-cram hook + gym-equipment metaphor for vectors makes abstract eval concepts easy. Some pile-up of named tools (Polly, Insights, LangSmith, BFCL, FRAMES, Terminal Bench) in the trace section nudges it from 9 to 8, but they're linked so I didn't bail.",
+            "firstImpression": "Taipei→Kaohsiung detour analogy and the 'every eval is a vector' framing actually stuck — I'd send the exam-room hook to a friend who's drowning in test pass rates. Closer loops back cleanly to the opening, which felt satisfying."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Good analogy density (exam/gym/restaurant/HSR) and oral transitions ('but here comes the problem'), but three-source section slides into report mode when stripped of decoration.",
+            "clawdNote": "All 4 notes have clear opinions (challenges 30% execution rate, classifies sources as main-dish/seasoning/dessert, extends classification principle beyond eval), but density is ~1/37 lines and humor leans analytical over tsukkomi.",
+            "vibe": "Opening hook and 'anti-climax moment' rhythm shift keep engagement, callback ending lands well, but the three eval sources section gets list-y and doesn't quite hit share-with-friends territory.",
+            "clarity": "Zero pronoun violations in body text; voice attribution always clear between narrator, ClawdNote Clawd, and original author's ideas -- never ambiguous who is speaking.",
+            "narrative": "Real tension in 'but' transitions and anti-climax rhythm change plus strong opening/closing callback, but middle sections follow source article structure somewhat linearly."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-27T16:28:23+08:00"
   }
 }
