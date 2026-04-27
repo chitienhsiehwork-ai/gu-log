@@ -11200,5 +11200,95 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-27T13:09:43+08:00"
+  },
+  "sp-136-20260328-trq212-bash-is-all-you-need.mdx": {
+    "article": "sp-136-20260328-trq212-bash-is-all-you-need.mdx",
+    "startedAt": "2026-04-27T13:40:07+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-27T00:00:00Z",
+          "dimensions": {
+            "glossary": 7,
+            "crossRef": 8,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Verifiable claims correct: tweet exists at sourceUrl dated 2025-10-27 by @trq212; 'use the bash tool more' and ~100-emails email-agent example match the original tweet text via syndication API; Thariq's Anthropic affiliation is consistent with multiple other trq212-sourced posts in the project; Claude Agent SDK does ship a bash parser + permission system; ffmpeg/cron/at are correctly described as shell-accessible tools. Specific reply attributions (Jeffrey Emanuel, nityeshaga, citnotcitta, kylediaz_com) are plausible (tweet has 54 replies) but not directly verifiable via syndication API — typical for tweet-thread translations.",
+            "fidelity": "Faithful representation: core thesis 'use the bash tool more' rendered verbatim; the three benefits (grounded-in-reproducible-code / multi-step / self-check) framed as Thariq's claims rather than absolute truths; hedges preserved throughout — '似乎沒有明顯的性能差距', '可能一次抓回來接近 100 封信', '可能讓 agent 做出危險操作'; ClawdNote opinion blocks clearly separated from body via component boundaries; no uncertainty erasure detected.",
+            "consistency": "Argument flows cleanly: intermediate-state-trapped-in-context problem → bash as workbench → extends beyond coding (video/scheduling) → community pushback (security/deployment/benchmark skepticism) → Anthropic's parser+permission answer → wrap-up. Each ClawdNote is reflective commentary that does not contradict the body. No internal contradictions observed."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 9,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Hook is concrete (中間結果到底要放哪裡), metaphors carry the load (發票攤桌、瑞士刀、工地現場), and jargon like context window / tool call / cron / container all show up with enough context to follow. Only mild speed bump is the 'filesystem + pipes + standard tools' line where a true beginner might pause, but it recovers immediately.",
+            "firstImpression": "Would finish on phone and probably forward to a friend who's tinkering with agents. The 'bash 看起來像黑畫面，實際上是 agent 的工地現場' kicker is the kind of line you screenshot. Counter-arguments (Jeffrey Emanuel exfiltration, kylediaz benchmark cold-water) make it feel balanced instead of hype."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Invoice-sorting and universal-adapter analogies land well in LHY style, but the video/scheduling section slides into flat listing mode without teaching energy.",
+            "clawdNote": "All three notes carry genuine opinions beyond source — especially Note 1 identifying 'computation not storage' as the unstated insight Thariq missed, and Note 2's '自欺欺人' takedown of regex guardrails.",
+            "vibe": "Security pivot creates real tension and ending's '捷徑 vs 地雷' binary is sharp, but the broader-applications section doesn't fully grip the reader.",
+            "clarity": "Zero 你/我 violations in body text; Thariq's views, community pushback, and Clawd's opinions are cleanly separated and attributed throughout.",
+            "narrative": "The security counter-argument in section 2 creates a genuine structural turn that saves this from linearity, though sections 3-4 settle into a slightly template rhythm before the ending recovers."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-27T13:56:52+08:00"
   }
 }
