@@ -11857,5 +11857,97 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-27T18:41:15+08:00"
+  },
+  "cp-219-20260328-semianalysis-semianalysis-ai.mdx": {
+    "article": "cp-219-20260328-semianalysis-semianalysis-ai.mdx",
+    "startedAt": "2026-04-27T19:11:40+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 7,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Post focuses on AI inference economics (margins, interactivity, batching) — none of these terms exist in glossary.json, so there is nothing to link or miss. Glossary terms like Agent / Claude Code / MCP / Vibe Coding never surface in the body, so coverage is naturally complete.",
+            "crossRef": "No broken /posts/ links and no Clawd/ShroomDog body mention requiring an /about link (ClawdNote is used as a component, not named in prose). However, obvious thematic siblings are unlinked: clawd-picks-20260217-epochai-inference-cost-burden (directly on inference cost burden), clawd-picks-20260207-semianalysis-claude-code-inflection (same source SemiAnalysis), and clawd-picks-20260212-anthropic-electricity-costs (Anthropic margin context for the -94% claim) all exist in src/content/posts/ but are not referenced.",
+            "sourceAlign": "Content faithfully tracks the declared SemiAnalysis tweet thread (sourceUrl) — five-part structure mirrors the 1/5..5/5 tweet labels, all key data points (Anthropic -94%, MiniMax -25%, Zhipu 30% price hike + 25x ARR, ~60% target margin, Moonshot/DeepSeek aggressive batching cases, 'managed experience' quote) are present and aligned.",
+            "attribution": "All numbers attributed to SemiAnalysis or named companies (Anthropic, MiniMax, Zhipu, Moonshot, DeepSeek). The 'AI inference isn't a commodity. It's a managed experience.' quote is set in blockquote and credited to SemiAnalysis. ClawdNote opinions (e.g. 'Anthropic 的虧損可能不是結構性的') are visibly fenced off by the component and clearly separated from body facts."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Tweet 1/5 verified directly via X syndication API: '-94%' Anthropic 2024 gross margin and '-25%' MiniMax match exactly. Numbers in tweets 2-5 (Zhipu 30% hike, ARR 25x in 10 months, Moonshot/DeepSeek market share, ~60% target margin) are tweet-sourced and unverifiable against primary source, but no claim contradicts known facts and all are properly attributed to SemiAnalysis.",
+            "fidelity": "Source faithfully represented — 'The narrative made sense' preserved as '這個悲觀敘事的邏輯鏈是完整的'. Hedges maintained throughout via 'SemiAnalysis 認為/判斷/結論' attribution. The closing quote 'AI inference isn't a commodity. It's a managed experience.' kept verbatim. Minor editorial framing ('翻了個面', '兩個讓人倒抽一口氣的數字') adds color but does not extend claims beyond source.",
+            "consistency": "Argument flows cleanly: negative-margin baseline → Zhipu counterexample → interactivity mechanism → Moonshot/DeepSeek failures → managed-experience conclusion. ClawdNotes clearly marked as speculation (e.g., '可以有兩種解讀', '如果 SemiAnalysis 的分析成立') and never bleed into body claims. No internal contradictions."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-27T00:00:00Z",
+          "dimensions": {
+            "readability": 9,
+            "firstImpression": 9
+          },
+          "score": 9,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 9,
+            "vibe": 9,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Ramen shop opening and water-pressure analogy are structural, not decorative — strip them and the explanation collapses, which means the LHY teaching persona is load-bearing; oral voice stays consistent through the -94% shock and Zhipu twist.",
+            "clawdNote": "All four notes take a clear stance: Note 2 directly challenges SemiAnalysis's commodity thesis with a lock-in counter-hypothesis and demands missing churn data; Note 4 extends the argument to open-source serving with genuine original insight.",
+            "vibe": "The -94% to 60% arc is sticky and shareable; the Zhipu 25x twist genuinely surprises; ending punch with '154 percentage points' and coffin metaphor lands hard enough to screenshot.",
+            "clarity": "Zero body-text pronoun violations; every sentence names its subject (SemiAnalysis, Anthropic, 智譜, Moonshot, DeepSeek); ClawdNote 我 is always unambiguously Clawd.",
+            "narrative": "Strong first-half arc (despair → Zhipu twist → framework reveal), but sections 4-5 settle into a more predictable explain-then-example cadence that doesn't match the surprise energy of the Zhipu pivot."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-27T19:23:00+08:00"
   }
 }
