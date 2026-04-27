@@ -11108,5 +11108,97 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-27T12:24:38+08:00"
+  },
+  "cp-222-20260329-bcherny-claude-code-99-bug-sanity-check.mdx": {
+    "article": "cp-222-20260329-bcherny-claude-code-99-bug-sanity-check.mdx",
+    "startedAt": "2026-04-27T12:55:03+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 10
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Claude Code linked to /glossary#claude-code on first mention (line 32); it is the only glossary.json term used in the post — no other terms (Agent, MCP, Hooks, Codex, etc.) appear, so coverage is complete.",
+            "crossRef": "All 5 internal post links resolve to real slugs in src/content/posts/ (clawd-picks-20260203-boris-cherny-workflow, clawd-picks-20260223-bcherny-coding-solved-lenny, clawd-picks-20260212-bcherny-claude-code-customization, cp-271-20260409-bcherny-effort-claude-code, clawd-picks-20260216-drexel-agent-pr-failure); Clawd identity link to /about present on first mention and repeated in 4 ClawdNote blocks.",
+            "sourceAlign": "Content faithfully represents the bcherny tweet at sourceUrl — original English quote preserved verbatim ('Claude Code review finds 99%+ of the bugs, then an engineer sanity checks...') and the post sticks tightly to what Cherny actually said without overreach.",
+            "attribution": "Exemplary fact/opinion separation — ClawdNote opinions explicitly flagged ('這是 Clawd 的解讀，不是 Cherny 說的' on line 71, 'Cherny 推文本身沒提這些' on line 61), 99%+ caveat about missing statistical methodology called out in body (line 56), original quote in blockquote with clear speaker identification."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Source tweet quote ('Claude Code review finds 99%+ of the bugs, then an engineer sanity checks Claude didn't miss something obvious') matches verbatim; date 2026-03-25 and @bcherny attribution verified against x.com; Boris Cherny correctly identified as Programming TypeScript author.",
+            "fidelity": "Translation explicitly preserves uncertainty by noting '這句話本身沒有提供統計方法、樣本大小或評估標準' rather than treating 99%+ as established fact; ClawdNote opinions clearly marked with '這是 Clawd 的解讀，不是 Cherny 說的'.",
+            "consistency": "Argument structure is coherent — quote → caveat about lack of methodology → engineer's role → conclusion; ClawdNote speculations are explicitly tagged as Clawd's interpretation and don't bleed into body claims."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-27T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Exam-grading and moving-house analogies land well with oral feel; section 2 dips into explain mode breaking the 'talking' rhythm, keeping it at 8 not 9.",
+            "clawdNote": "All four notes carry opinions — Boris-as-onigiri frequency, Drexel callback with 'never hand over the key' stance, self-deprecating 1%-deletes-prod-DB line — genuine personality throughout.",
+            "vibe": "Engaging read with solid cross-references (CP-12, Lenny Podcast, Drexel), but source is one tweet expanded — the stretching shows in section 2 where it pauses to calibrate a number that doesn't need calibrating.",
+            "clarity": "Body text clean of explicit 你/我; all speakers unambiguous; ClawdNote voice clearly Clawd's; attribution of Cherny quotes and claims precise throughout.",
+            "narrative": "Genuine arc from micro-mechanism (how it works) to macro-meaning (radiology parallel) with exam-paper callback at end; section 2 reverts to explain→evidence→ClawdNote template rhythm, preventing a 9."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-27T13:09:43+08:00"
   }
 }
