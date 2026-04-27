@@ -10828,5 +10828,101 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-27T10:05:13+08:00"
+  },
+  "cp-225-20260329-artificialanlys-aa-agentperf-agent-benchmark.mdx": {
+    "article": "cp-225-20260329-artificialanlys-aa-agentperf-agent-benchmark.mdx",
+    "startedAt": "2026-04-27T10:35:35+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 7,
+            "crossRef": 7,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "'Agent' 是 glossary.json 中的 term 並在文中反覆出現（標題、summary、tags、body 段落），但全篇沒有任何 /glossary/agent 連結；其他技術詞如 KV cache、speculative decoding、TDP、throughput 不在 glossary 內，所以主要缺口是核心 'Agent' 一詞未連結。",
+            "crossRef": "沒有任何 /posts/ 內部連結，未提及 ShroomDog/Clawd（只有 ClawdNote 元件）所以 identity link 不適用；但同 source（Artificial Analysis）的 cp-158/cp-194/cp-275 與相關 inference/hardware benchmark 的 cp-217（NVIDIA inference / Groq）、cp-153（DeepSeek-related）都是顯而易見可串的主題連結，全部缺。",
+            "sourceAlign": "Content 直接對應 @ArtificialAnlys 那則 AA-AgentPerf 發布推文：200-turn coding agent traces、>100K token sequences、KV cache reuse / disaggregated prefill-decode / speculative decoding allowed、per-accelerator/per-kW/per-$/per-rack 指標、首批 gpt-oss-120b 與 DeepSeek V3.2 — 全部與來源主軸吻合。",
+            "attribution": "事實段落明確標註出處（『來源提到』、『推文中的說法是』、『Artificial Analysis 提到』），ClawdNote 全部用元件包裝，第三段 ClawdNote 還主動聲明『這一段就屬於我的推測了』把意見/事實切得很乾淨，attribution 紀律相當好。"
+          },
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-27T00:00:00Z"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All technical claims (200 turn agent trajectories, >100K token sequence length, KV cache reuse / disaggregated prefill-decode / speculative decoding optimizations, per-accelerator/per-kW-TDP/per-$/hr/per-rack metrics, DRAM-only / SRAM-only architectures, launch models gpt-oss-120b and DeepSeek V3.2) verified against the @ArtificialAnlys source tweet. Tweet-level source limits accuracy ceiling per CP-153 anchor.",
+            "fidelity": "Translation is highly faithful: source's framing of 'real coding agent trajectories' becomes '真實 coding agent 的軌跡', 'Production optimizations allowed' becomes 'AA-AgentPerf 都允許', 'definitive resource' becomes '權威參考資源'. No uncertainty erasure detected; the closing line preserves the source's 'whether buying or leasing' as '不管你是要買卡還是租卡'.",
+            "consistency": "Argument flows logically from problem (synthetic benchmarks miss real agent workloads) to solution (real trajectories + production optimizations + multi-axis metrics) to availability. ClawdNotes are clearly demarcated; the third one explicitly self-marks speculation with '這一段就屬於我的推測了 ┐(￣ヘ￣)┌', meeting the high bar for opinion/fact separation."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Analogies do heavy lifting (茶葉蛋 vs 流水席, 週五下班的國道, 房屋權狀坪數) and the scary-sounding jargon gets unpacked inline — KV cache reuse, prefill/decode disaggregation, and speculative decoding are all explained in plain language without naming all the terms; only mild friction is 'turn' and 'context window' being assumed.",
+            "firstImpression": "Hook landed, the closing question about 'those pretty throughput numbers answering questions nobody actually asked' made me nod, ClawdNotes break up the text well; I'd finish on my phone and forward if the topic came up at work."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Tea-egg-vs-banquet and car-testing analogies are load-bearing LHY style, but 首批支援 section slides into news-reporting mode.",
+            "clawdNote": "2/4 notes have clear stances (cost metrics as killer indicator, responsible disclaimer); other two are personality-laden explanations more than true 吐槽.",
+            "vibe": "Hardware benchmark topic made accessible via strong analogies and a punchy ending question, but middle sections inform more than entertain.",
+            "clarity": "Zero 你/我 in body text; subjects consistently named throughout; no pronoun ambiguity anywhere.",
+            "narrative": "Strong opening-to-ending 權狀坪數 callback and provocative closing question, but sections 3-5 follow a template rhythm of explain-feature → ClawdNote."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-27T10:46:54+08:00"
   }
 }
