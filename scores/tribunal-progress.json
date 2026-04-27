@@ -10559,5 +10559,94 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-27T07:35:55+08:00"
+  },
+  "cp-229-20260330-rjehuappiah-claude-code-personal-wiki.mdx": {
+    "article": "cp-229-20260330-rjehuappiah-claude-code-personal-wiki.mdx",
+    "startedAt": "2026-04-27T08:06:19+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-6",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-27T00:00:00Z",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 8,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Technical claims about Claude Code's runtime (file read/write, command execution, skills, sub-agents) are correct; the 'sub-agents cannot directly invoke skills, so prompts must be inlined' constraint is real, the four memory categories (User/Feedback/Project/Reference) match the actual auto-memory system, and SessionStart hooks plus CLAUDE.md re-injection after compaction are documented Claude Code patterns. Specific numbers (~100-line Python script, 17-line MEMORY.md, 18+ memory files, 3 query waves) come from rodspeed's blog and are clearly attributed rather than invented; no fabricated features or APIs.",
+            "fidelity": "Article consistently attributes claims with '原作者' / 'rodspeed 說' / '原文舉的例子' and preserves hedges ('原作者甚至說', '可能也', '兩輪通常就吃到大部分價值'); transmits caveats the original raised (token cost, conductor blind spots, harvest only on 'substantive' conversations, reason loop is prompted not fully automated). ClawdNotes are wrapped in component tags so opinion is structurally separated from translation. Frontmatter sourceUrl points only to the X teaser, not to the underlying blog the post repeatedly leans on — minor attribution gap that caps fidelity at 8.",
+            "consistency": "Six-pattern progression escalates cleanly: fresh eyes → meta-skill orchestration → freshness/state → harvesting conversation → memory layering → session handoff, with each section explicitly bridging to the next ('但工作流一旦拉長…', '但事情到這裡還沒結束'). No internal contradictions; ClawdNotes mark opinion clearly and don't smuggle new factual claims into the body."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-27T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Oral voice consistent throughout; RPG boss-room and warehouse-catalog analogies land well, but some middle sections (meta-skills, memory) lean toward reporting what rodspeed said rather than owning the explanation — keeps it at 8 not 9.",
+            "clawdNote": "All 6 notes carry clear opinions — feedback-not-feedback-but-stamp, archaeology-outsourcing, conversation-exhaust-as-waste-gas are genuine takes with stance, not Wikipedia footnotes; density at 1-per-section is right on target.",
+            "vibe": "Engaging read with momentum from each-solution-reveals-the-next-problem transitions; sections 4 (harvest pivot) and 6 (RPG analogy) are peaks, but sections 2 and 5 drag slightly with operational detail — good not great shareability.",
+            "clarity": "Body text keeps subjects named (rodspeed, conductor, original author) with zero pronoun slippage; voice attribution clean across all 6 sections plus conclusion.",
+            "narrative": "The each-solution-is-incomplete progression creates real tension beyond a listicle, and the conclusion punch question callbacks the opening well — but the section-level template (introduce rodspeed point then explain then ClawdNote) repeats enough to cap at 8."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 3
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-27T08:34:58+08:00"
   }
 }
