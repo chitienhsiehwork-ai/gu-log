@@ -27,6 +27,11 @@ type FetchResult struct {
 	Date       string
 	FetchedVia string
 	Bytes      int
+	// IsX is true when the source URL was an x.com / twitter.com URL handled
+	// by FetchX. Generic article captures (FetchGeneric) set it to false so
+	// downstream steps can render a different `source:` frontmatter field
+	// (e.g. "OpenAI Cookbook" instead of "@handle on X").
+	IsX bool
 }
 
 // FetchOptions controls how Fetch behaves.
@@ -92,6 +97,7 @@ func FetchX(ctx context.Context, url string, opts FetchOptions) (*FetchResult, e
 	parsed := parseCaptureHeader(res.Stdout)
 	parsed.Path = outPath
 	parsed.Bytes = len(res.Stdout)
+	parsed.IsX = true
 	return parsed, nil
 }
 
@@ -144,6 +150,7 @@ func FetchGeneric(ctx context.Context, urlStr string, opts FetchOptions) (*Fetch
 		Date:       date,
 		FetchedVia: "curl",
 		Bytes:      len(payload),
+		IsX:        false,
 	}, nil
 }
 

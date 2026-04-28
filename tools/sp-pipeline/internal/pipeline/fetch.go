@@ -62,6 +62,7 @@ func (s *State) Fetch(ctx context.Context) error {
 		s.AuthorHandle = res.Handle[1:]
 	}
 	s.OriginalDate = res.Date
+	s.SourceIsX = res.IsX
 	s.Log.OK("Step 1: captured %d bytes from %s via %s", res.Bytes, res.Handle, res.FetchedVia)
 	return nil
 }

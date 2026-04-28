@@ -30,6 +30,7 @@ func newRefineCmd(state *rootState) *cobra.Command {
 		workDir    string
 		ticketID   string
 		opusOnly   bool
+		angle      string
 	)
 	cmd := &cobra.Command{
 		Use:   "refine",
@@ -39,7 +40,7 @@ from the work directory and asks the LLM to produce final.mdx with the
 review's issues fixed. The prompt does NOT embed the draft or review
 contents — the LLM reads them from --work-dir.`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			return runRefine(cmd.Context(), state, draftPath, reviewPath, workDir, ticketID, opusOnly)
+			return runRefine(cmd.Context(), state, draftPath, reviewPath, workDir, ticketID, opusOnly, angle)
 		},
 	}
 	cmd.Flags().StringVar(&draftPath, "draft", "", "path to draft-v1.mdx (required — its parent becomes work-dir when unset)")
@@ -47,11 +48,12 @@ contents — the LLM reads them from --work-dir.`,
 	cmd.Flags().StringVar(&workDir, "work-dir", "", "work directory (defaults to dirname of --draft)")
 	cmd.Flags().StringVar(&ticketID, "ticket-id", "PENDING", "ticketId for the refine prompt header")
 	cmd.Flags().BoolVar(&opusOnly, "opus", false, "use Claude Opus only (no Codex fallback)")
+	cmd.Flags().StringVar(&angle, "angle", "", "narrative directive — should match the --angle passed to write so refine doesn't flatten the angle when applying review feedback")
 	_ = cmd.MarkFlagRequired("draft")
 	return cmd
 }
 
-func runRefine(ctx context.Context, state *rootState, draftPath, reviewPath, workDir, ticketID string, opusOnly bool) error {
+func runRefine(ctx context.Context, state *rootState, draftPath, reviewPath, workDir, ticketID string, opusOnly bool, angle string) error {
 	start := time.Now()
 	absDraft, err := filepath.Abs(draftPath)
 	if err != nil {
@@ -89,6 +91,7 @@ func runRefine(ctx context.Context, state *rootState, draftPath, reviewPath, wor
 	s.Dispatcher = disp
 	s.WorkDir = workDir
 	s.PromptTicketID = ticketID
+	s.Angle = angle
 
 	stepCtx, cancel := context.WithTimeout(ctx, 30*time.Minute)
 	defer cancel()
