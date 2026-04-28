@@ -265,6 +265,120 @@ body
 	}
 }
 
+// TestSetNestedBlock_InsertWhenMissing covers the bug surfaced on SP-186
+// (PR #177): credits.go was calling SetBlock("  pipeline", ...) on an
+// article whose translatedBy block had no `pipeline:` child yet. SetBlock's
+// not-found path appended the snippet at end-of-frontmatter, dropping it
+// after `tags:` at the wrong indent — Astro YAML parser then crashed on
+// "bad indentation of a mapping entry" and the build failed.
+//
+// SetNestedBlock fixes the case by inserting the block at the END of the
+// parent block (before the next sibling top-level key), matching
+// SetNestedScalar's "parent exists, child missing → append inside parent"
+// semantics.
+func TestSetNestedBlock_InsertWhenMissing(t *testing.T) {
+	raw := []byte(`---
+title: "Hello"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code CLI"
+  pipelineUrl: "https://example.com/x"
+source: "OpenClaw Docs"
+lang: "zh-tw"
+tags: ["a", "b"]
+---
+body
+`)
+	f, err := Parse(raw)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	snippet := `  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"`
+	f.SetNestedBlock("translatedBy", "pipeline", snippet)
+	out := string(f.Bytes())
+
+	// Block must land inside translatedBy, BEFORE source: (the next
+	// sibling top-level key). Easiest check: pipeline: appears before
+	// source: in the output, and source: still exists at indent 0.
+	pIdx := strings.Index(out, "  pipeline:")
+	sIdx := strings.Index(out, "\nsource:")
+	if pIdx < 0 {
+		t.Fatalf("pipeline: header missing from output:\n%s", out)
+	}
+	if sIdx < 0 {
+		t.Fatalf("source: top-level sibling missing from output:\n%s", out)
+	}
+	if pIdx > sIdx {
+		t.Errorf("pipeline: block should appear BEFORE source: but landed after — would be dangling outside translatedBy.\n%s", out)
+	}
+	if !strings.Contains(out, `- role: "Written"`) {
+		t.Errorf("pipeline entry missing: %s", out)
+	}
+}
+
+func TestSetNestedBlock_ReplaceExisting(t *testing.T) {
+	raw := []byte(`---
+translatedBy:
+  model: "Opus 4.6"
+  pipeline:
+    - role: "Old"
+      model: "Old"
+      harness: "Old"
+  pipelineUrl: "https://example.com/x"
+source: "X"
+lang: "zh-tw"
+---
+body
+`)
+	f, err := Parse(raw)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	snippet := `  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"`
+	f.SetNestedBlock("translatedBy", "pipeline", snippet)
+	out := string(f.Bytes())
+	if strings.Contains(out, `role: "Old"`) {
+		t.Errorf("old entry not replaced: %s", out)
+	}
+	if !strings.Contains(out, `role: "Written"`) || !strings.Contains(out, `role: "Reviewed"`) {
+		t.Errorf("new entries missing: %s", out)
+	}
+	if !strings.Contains(out, `pipelineUrl: "https://example.com/x"`) {
+		t.Errorf("sibling pipelineUrl was clobbered: %s", out)
+	}
+}
+
+func TestSetNestedBlock_ParentMissing(t *testing.T) {
+	// When the parent block doesn't exist, SetNestedBlock is a no-op
+	// (rather than appending at end-of-frontmatter, which is what
+	// SetBlock does and what produces broken YAML).
+	raw := []byte(`---
+title: "Hello"
+lang: "zh-tw"
+---
+body
+`)
+	f, err := Parse(raw)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	before := string(f.Bytes())
+	f.SetNestedBlock("translatedBy", "pipeline", "  pipeline:\n    - role: \"X\"\n")
+	after := string(f.Bytes())
+	if before != after {
+		t.Errorf("parent missing should be no-op, got mutation:\nbefore: %q\nafter:  %q", before, after)
+	}
+}
+
 func TestStripLinesMatching(t *testing.T) {
 	raw := []byte(`---
 title: "Hello"

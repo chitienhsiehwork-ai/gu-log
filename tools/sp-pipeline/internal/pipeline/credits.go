@@ -68,7 +68,13 @@ func (s *State) Credits(ctx context.Context) error {
 		{Role: "Refined", Model: refineModel, Harness: refineHarness},
 		{Role: "Orchestrated", Model: "Opus 4.6", Harness: "OpenClaw"},
 	}
-	f.SetBlock("  pipeline", renderPipelineBlock("  pipeline", entries))
+	// Use SetNestedBlock so the pipeline array lands INSIDE translatedBy
+	// when the article doesn't yet have a pipeline key. SetBlock's
+	// not-found path appends at end-of-frontmatter, which puts the block
+	// dangling after tags: at the wrong indent — Astro YAML parser then
+	// fails the build with "bad indentation of a mapping entry".
+	// Bug surfaced on SP-186 (PR #177).
+	f.SetNestedBlock("translatedBy", "pipeline", renderPipelineBlock("  pipeline", entries))
 	f.SetNestedScalar("translatedBy", "pipelineUrl", quoted(PipelineURL))
 
 	if err := os.WriteFile(finalPath, f.Bytes(), 0o644); err != nil {
