@@ -77,6 +77,7 @@ Twitter X x.com twitter.com fxtwitter
 Reddit StackOverflow
 
 # Frontier models and product names
+Symphony
 Claude Opus Sonnet Haiku
 GPT GPT-3 GPT-3.5 GPT-4 GPT-4o GPT-5 GPT-5.2 GPT-5.3 GPT-5.4
 Gemini Llama Mistral Qwen DeepSeek Kimi Grok Cohere Command
@@ -91,11 +92,12 @@ Node.js Bun Deno
 npm pnpm yarn pip poetry uv cargo
 Linux macOS Windows iOS Android Ubuntu Debian Fedora Arch
 Docker Kubernetes K8s Terraform Ansible
-React Vue Angular Svelte Next.js Nuxt Remix
+React Vue Angular Svelte Next.js Nuxt Remix Vite
 Tailwind Bootstrap shadcn shadcn/ui
 PostgreSQL MySQL Redis MongoDB SQLite DuckDB
 VS Code JetBrains IntelliJ PyCharm WebStorm Vim Emacs Neovim
-Bash Zsh Fish
+Bash Zsh Fish Chrome DevTools
+tmux monorepo BEAM OTP DAG IETF RFC bug
 
 # Benchmarks / evaluations
 Intelligence Index Index Coding Index
@@ -116,6 +118,7 @@ Trump Newsom Jer Crane Pawel Pawel Huryn
 Harrison Chase Simon Willison Nat Friedman Patrick Collison
 Garry Tan Brian Chesky
 Riley Goodside Ethan Mollick
+Alex Kotliarskyi Victor Zhu Zach Brock Karri Saarinen daniel_mac8 daniel
 
 # Places
 Albuquerque Hong Kong San Francisco SF Silicon Valley
@@ -125,8 +128,9 @@ Beijing Shanghai Shenzhen Hangzhou Tokyo Seoul Singapore London Paris Berlin
 # Common file/format/protocol identifiers
 Markdown markdown JSON YAML XML CSV TSV PDF EPUB DOCX MDX
 RSS Atom JSONFeed iCal vCard
-gRPC WebSocket WebRTC GraphQL OpenAPI Swagger
+gRPC WebSocket WebRTC GraphQL OpenAPI Swagger JSON-RPC
 JWT OAuth SAML SSO 2FA MFA TOTP
+SPEC.md WORKFLOW.md README.md CLAUDE.md
 SSH SCP SFTP FTP IMAP SMTP POP3
 Git GitHub Actions GitLab CI CircleCI Travis Jenkins
 
