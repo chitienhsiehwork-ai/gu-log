@@ -69,6 +69,24 @@ type State struct {
 	// Tests only.
 	SkipValidate bool
 
+	// Angle is an optional narrative directive passed to the Write and
+	// Refine prompts. When non-empty, the article is structurally pivoted
+	// around this angle instead of treating every section of the source
+	// material with equal weight. Use it for "focus on X while introducing
+	// the others" or "compare A and B" or "frame Y as the spine"
+	// requirements that the default "cover ALL ideas" stance does not
+	// express.
+	Angle string
+
+	// SourceLabel overrides the `source:` frontmatter line emitted by the
+	// Write step. Empty = auto-derive from the fetch result:
+	//   - X / Twitter URLs → "@<handle> on X"
+	//   - Generic URLs     → "<hostname>"
+	// Set this when the source needs a curated label, e.g. "OpenAI Cookbook"
+	// for a github.com/openai/openai-cookbook capture, or
+	// "OpenClaw Docs" for a docs.openclaw.ai capture.
+	SourceLabel string
+
 	// ── Dependencies injected by the caller ────────────────────────────
 
 	Cfg        *config.Config
@@ -81,7 +99,14 @@ type State struct {
 	// SourcePath is the absolute path to source-tweet.md after Fetch.
 	SourcePath string
 	// AuthorHandle is the @-handle without the @, e.g. "nickbaumann_".
+	// For generic (non-X) URLs this is the hostname, e.g. "docs.openclaw.ai",
+	// used for filename slug generation; the `source:` frontmatter line
+	// uses SourceLabel instead — see ResolveSourceField.
 	AuthorHandle string
+	// SourceIsX is true when the captured source came from x.com / twitter.com.
+	// False for generic articles fetched via curl + HTML cleanup. Set by the
+	// Fetch step from FetchResult.IsX.
+	SourceIsX bool
 	// OriginalDate is YYYY-MM-DD of the source publication.
 	OriginalDate string
 	// TranslatedDate is YYYY-MM-DD of the translation run (today).
@@ -159,4 +184,30 @@ func (s *State) firstTag() string {
 		return "clawd-picks"
 	}
 	return "shroom-picks"
+}
+
+// ResolveSourceField returns the value to interpolate into the write
+// prompt's `source:` line. Priority:
+//  1. s.SourceLabel — caller-supplied override (--source-label flag)
+//  2. s.SourceIsX → "@<handle> on X" (the historical default)
+//  3. fallback → s.AuthorHandle (which is the hostname for generic URLs)
+//
+// When AuthorHandle is also empty (very-early-resume edge case), this
+// returns "Unknown source" so the LLM at least produces parseable
+// frontmatter; a downstream validator would catch a real run that hits
+// this path.
+func (s *State) ResolveSourceField() string {
+	if s.SourceLabel != "" {
+		return s.SourceLabel
+	}
+	if s.SourceIsX {
+		if s.AuthorHandle == "" {
+			return "X (handle missing)"
+		}
+		return "@" + s.AuthorHandle + " on X"
+	}
+	if s.AuthorHandle != "" {
+		return s.AuthorHandle
+	}
+	return "Unknown source"
 }

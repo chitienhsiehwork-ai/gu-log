@@ -18,7 +18,7 @@ Task:
   - ticketId: {{.TicketID}}
   - originalDate: {{.OriginalDate}}
   - translatedDate: {{.TranslatedDate}}
-  - source: @{{.AuthorHandle}} on X
+  - source: {{.SourceField}}
   - sourceUrl: {{.TweetURL}}
 
 Extra metadata:
@@ -28,7 +28,13 @@ Hard requirements:
 - Write output to a file named draft-v1.mdx in the current directory.
 - Do not leave the output empty.
 - Include valid MDX frontmatter and body.
+{{if .Angle}}
+NARRATIVE ANGLE (user directive — overrides the default "cover ALL ideas with equal weight" stance):
 
+{{.Angle}}
+
+Treat this as a STRUCTURAL directive, not just emphasis. Pivot the article's spine around it. Other source material still appears, but as supporting characters that earn their place by serving the angle — not as parallel sections of equal weight. The opening must establish the angle within the first 3 paragraphs; the closing must call back to it.
+{{end}}
 Style guide:
 {{.StyleGuide}}
 

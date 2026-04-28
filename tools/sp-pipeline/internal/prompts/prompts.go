@@ -67,11 +67,22 @@ type WriteData struct {
 	TicketID       string // e.g. "SP-PENDING" or "SP-170"
 	OriginalDate   string // YYYY-MM-DD
 	TranslatedDate string // YYYY-MM-DD (today)
-	AuthorHandle   string // without @ prefix
+	AuthorHandle   string // without @ prefix (still surfaced for legacy fields)
 	TweetURL       string // full canonical URL
 	FirstTag       string // "shroom-picks" (SP/SD) | "clawd-picks" (CP)
 	StyleGuide     string // full contents of WRITING_GUIDELINES.md
 	Source         string // full contents of source-tweet.md
+	// SourceField is the pre-rendered value for the `source:` frontmatter
+	// line. For X URLs the caller passes "@handle on X"; for docs/blog URLs
+	// the caller passes a curated label like "OpenAI Cookbook" or the
+	// hostname. Computed via pipeline.State.ResolveSourceField.
+	SourceField string
+	// Angle is an optional narrative directive. When non-empty, the
+	// template inserts an explicit instruction telling the LLM to pivot
+	// the article structure around this angle instead of treating every
+	// section of the source with equal weight. Empty = default behavior
+	// (cover ALL ideas in the source).
+	Angle string
 }
 
 // ReviewData is the template data for review.tmpl.
@@ -82,4 +93,10 @@ type ReviewData struct {
 // RefineData is the template data for refine.tmpl.
 type RefineData struct {
 	TicketID string
+	// Angle is the same narrative directive passed to Write. It is repeated
+	// in refine so the LLM does not "regress to the mean" when applying
+	// review feedback — without this reminder, refine prompts that fix
+	// review issues sometimes flatten an angle-pivoted article back to a
+	// uniform "cover everything" structure.
+	Angle string
 }

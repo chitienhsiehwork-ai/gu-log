@@ -61,6 +61,8 @@ func newRunCmd(state *rootState) *cobra.Command {
 		skipBuild    bool
 		skipPush     bool
 		skipValidate bool
+		angle        string
+		sourceLabel  string
 	)
 	cmd := &cobra.Command{
 		Use:   "run [tweet_url]",
@@ -111,6 +113,8 @@ canned responses for regression tests.`,
 				SkipBuild:    skipBuild,
 				SkipPush:     skipPush,
 				SkipValidate: skipValidate,
+				Angle:        angle,
+				SourceLabel:  sourceLabel,
 			})
 		},
 	}
@@ -124,6 +128,8 @@ canned responses for regression tests.`,
 	cmd.Flags().BoolVar(&skipBuild, "skip-build", false, "skip npm run build in the deploy step (testing only)")
 	cmd.Flags().BoolVar(&skipPush, "skip-push", false, "skip git push in the deploy step (testing only)")
 	cmd.Flags().BoolVar(&skipValidate, "skip-validate", false, "skip validate-posts.mjs in the deploy step (testing only)")
+	cmd.Flags().StringVar(&angle, "angle", "", "narrative directive injected into write+refine prompts (e.g. \"focus on Task Flow while introducing the others\"). Empty = default \"cover ALL ideas\" behavior")
+	cmd.Flags().StringVar(&sourceLabel, "source-label", "", "override the `source:` frontmatter line. Empty = auto: \"@<handle> on X\" for X URLs, hostname for everything else")
 	return cmd
 }
 
@@ -139,6 +145,8 @@ type runOpts struct {
 	SkipBuild    bool
 	SkipPush     bool
 	SkipValidate bool
+	Angle        string
+	SourceLabel  string
 }
 
 func runRun(ctx context.Context, state *rootState, opts runOpts) error {
@@ -177,6 +185,8 @@ func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 	s.SkipBuild = opts.SkipBuild
 	s.SkipPush = opts.SkipPush
 	s.SkipValidate = opts.SkipValidate
+	s.Angle = opts.Angle
+	s.SourceLabel = opts.SourceLabel
 
 	// Work dir: respect --work-dir from the root command.
 	if flagWorkDir != "" {
