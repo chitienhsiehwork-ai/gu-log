@@ -9,6 +9,31 @@
 
 **任何 Claude Code instance 進到這個 repo，第一件事必須跑 `./scripts/detect-env.sh` 確認自己的身份**，再讀對應的 playbook（`playbooks/mac-CC-playbook.md` 或 `playbooks/CCC-playbook.md`）。沒搞清楚身份就動手 = 用錯 SOP（mac-CC 跟 CCC 的 scope ceiling、merge policy、失敗處理都不一樣）。沒有例外，不能跳。
 
+### 🛠️ 主任務做完踩到的 bug，順手修在同一個 PR（atomic commits）
+
+這是個人副業 repo，**velocity > stability**。寫主任務時順手踩到的 bug、寫 follow-up 寫到不爽的小毛刺，**不要另開 branch / 另開 PR / 寫 follow-up commit message 然後甩給 user**——直接在當前 PR 修掉，每個 fix 一個 atomic commit 就好。
+
+**為什麼**：
+- 副業 repo 沒人 review queue，另開 PR 只是讓 user 多開一次 GitHub、多 merge 一次
+- Atomic commit + revert 已經是足夠的 rollback 工具，不需要 PR 級別的隔離
+- Context switch（CC/CCC 重啟、重新 load 整個任務脈絡）的成本遠大於多寫一個 commit
+- 避免「我先 ship 主任務、follow-up 留給下一個 session」這種藉口——下一個 session 可能根本不會發生，bug 就這樣 ship 出去了
+
+**例外**（這時可以開 follow-up PR）：
+- Fix scope 大到會干擾主 PR review/diff（譬如要動 50 個檔案重構）
+- Fix 跟主任務語意完全無關（在改 SP 文章時順手發現 build infra bug，可以另開）
+- User 明講「先別管那個，下次再處理」
+
+**Atomic commit 紀律**：
+- 一個 commit 做一件事，commit message 解釋「為什麼修」（不是「修了什麼」——diff 自己會說）
+- Revert 時可以乾淨切掉某個 fix 而不影響主任務
+- Pre-commit / pre-push hook 一律照跑，不要因為「順手修」就 `--no-verify`
+
+**反例**（不要這樣）：
+- ❌ 寫 SP 踩到 frontmatter bug → 用 `--no-verify` 繞過、把 fix 寫進 PR body 當「known issue」
+- ❌ 跑 tribunal 失敗 → 在主 commit message 寫「scoring infra broken, fix in follow-up」然後 commit
+- ✅ 寫 SP 踩到 frontmatter bug → 在同一個 PR 加一個 `fix(frontmatter): SetBlock 處理 nested key 不存在` commit、main commit 不沾
+
 ### 🔗 User 丟連結 = 要寫 SP（預設走 pipeline，不要手動寫）
 
 **只要 user 在對話裡丟 URL 過來（X/Twitter、blog、HN、arXiv、GitHub blog 文章、docs 站…），預設意圖就是「幫我把這篇翻譯成 SP」**，不要去猜其他意思（不是要你 summarise、不是要你加到 about page、不是要你做書籤）。
