@@ -9,6 +9,37 @@
 
 **任何 Claude Code instance 進到這個 repo，第一件事必須跑 `./scripts/detect-env.sh` 確認自己的身份**，再讀對應的 playbook（`playbooks/mac-CC-playbook.md` 或 `playbooks/CCC-playbook.md`）。沒搞清楚身份就動手 = 用錯 SOP（mac-CC 跟 CCC 的 scope ceiling、merge policy、失敗處理都不一樣）。沒有例外，不能跳。
 
+### 🚫 絕對不准 `--no-verify`（hook 失敗 = 修 hook 或修 code，不准跳）
+
+任何 CC/CCC instance 在這個 repo 內**永遠不准用** `git commit --no-verify`、`git push --no-verify`、`git commit --no-gpg-sign`、`git rebase --no-verify`、或任何其他繞過 pre-commit / pre-push hook 的旗標。**沒有例外，沒有「這次只是…」**。
+
+**遇到 hook 失敗時，只有兩條路**：
+
+1. **Hook 邏輯擋對了，是 code 有問題** → 修 code 直到 hook 過。譬如：
+   - 晶晶體 lint 抓到英文詞 → 翻成中文，或加進 `glossary.json` / `ALLOWLIST_RAW`
+   - score gate 說缺 `scores.vibe` → 跑 vibe-scorer 拿分數塞進去（用修好的 `scripts/vibe-scorer.sh`）
+   - validate-posts.mjs 報 frontmatter 錯 → 修 frontmatter
+   - 內容測試（content-integrity.spec.ts）紅 → 修文章 / 連結 / ticketId
+
+2. **Hook 自己壞了，是環境或 hook 邏輯問題** → 修 hook（或補環境），把根因處理掉。譬如：
+   - Playwright browser 沒裝 → `npx playwright install chromium`，下次自動過
+   - Hook script 有 bug → 修 hook script
+   - Hook 預設 path 在 CCC env 不存在 → 把 path resolve 改成跨 env 都 work
+   - 修完 hook 自己變成這個 PR 的一個 atomic commit
+
+**為什麼這條這麼硬**：
+
+- `--no-verify` 是「這次先過、之後再說」的偷懶開關。在副業 repo 沒有 review queue 的情況下，「之後」基本不會發生——bug 就這樣 ship 出去
+- 多數 hook 失敗都是真實品質問題，不是環境問題。即使是環境問題，也應該修環境，否則下個 session 重複踩
+- CI（`.github/workflows/ci.yml`）會 PR 上重跑大部分 hook 檢查（lint / type / validate / jingjing / security / build / links）——`--no-verify` 偷過 commit 也會在 PR open 後被擋，多繞一圈而已
+- 唯一例外是 user **明確逐次授權**（「這次先 --no-verify 我來看」）。Default = 拒絕，當 user 沒下這指令就絕對不用
+
+**反例**（這個 PR 自己就踩過、不要再犯）：
+- ❌ Pre-commit score gate 擋了 → 用 `--no-verify` 跳過、寫進 commit message 當 "known issue"，留給 follow-up
+- ❌ Pre-commit playwright test 紅、是 browser 沒裝 → 用 `--no-verify` 跳過（正確：`npx playwright install chromium` 修環境）
+- ✅ Pre-commit jingjing 擋了 → 翻譯掉英文詞 / 加 ALLOWLIST_RAW / 加 glossary，重新 commit
+- ✅ Pre-commit 用了過時的 hook script → 修 hook script、commit fix、再 commit 主任務
+
 ### 🛠️ 主任務做完踩到的 bug，順手修在同一個 PR（atomic commits）
 
 這是個人副業 repo，**velocity > stability**。寫主任務時順手踩到的 bug、寫 follow-up 寫到不爽的小毛刺，**不要另開 branch / 另開 PR / 寫 follow-up commit message 然後甩給 user**——直接在當前 PR 修掉，每個 fix 一個 atomic commit 就好。
