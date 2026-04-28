@@ -1,0 +1,237 @@
+---
+ticketId: "SP-187"
+title: "OpenAI Open-Sources Symphony: When Codex Workflow's Bottleneck Shifts From 'Writing Code' To 'Context Switching'"
+originalDate: "2026-04-27"
+translatedDate: "2026-04-28"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+source: "OpenAI Engineering blog"
+sourceUrl: "https://openai.com/index/open-source-codex-orchestration-symphony/"
+lang: "en"
+summary: "OpenAI open-sources Symphony — a spec that turns Linear's issue board into the control plane for Codex agents. Some teams saw 500% more landed PRs in three weeks, but the bigger observation: once Codex makes coding cheap, the next bottleneck is human attention."
+tags: ["shroom-picks", "codex", "symphony", "agent-orchestration", "openai", "linear"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+Six months ago, an internal productivity team at OpenAI made what was then a controversial call — **no human-written code allowed in the project repo. Every line had to come from Codex.**
+
+This isn't marketing copy. The three engineers who pulled it off (Alex Kotliarskyi, Victor Zhu, Zach Brock) actually did this and documented the journey in a previous post on [harness engineering](https://openai.com/index/harness-engineering-codex/). The interesting part isn't "they made it work" — it's the wall they hit afterward. **Once writing code got fast, the new way engineers spent most of their time was "switching between five Codex sessions"**.
+
+This [2026-04-27 OpenAI Engineering blog post](https://openai.com/index/open-source-codex-orchestration-symphony/) is the story of how they tore that wall down — a thing called Symphony, which is essentially a SPEC.md document plus an Elixir reference implementation that turns Linear's issue board into the control plane for Codex agents. The three authors open-sourced the spec and explicitly said: **"Symphony won't be maintained as a product. Treat it as a reference implementation."**
+
+This SP unpacks the story in three layers: the observation (the bottleneck moved from writing code to context switching), the action (let the issue board replace Codex sessions as the control plane), and the actually-interesting downstream conclusion — when OpenAI engineers admit "we wrote a spec, not a product," that's not just a workflow change. It's a shift in what they think AI-agent-written software should look like.
+
+## Why "3 to 5 sessions" is the ceiling
+
+First, the scene. Here's what daily life looks like for an OpenAI engineer:
+
+Open a few Codex sessions, dispatch tasks, check the output, steer when needed, repeat. The original article puts it bluntly: "most people could comfortably manage three to five sessions at a time before context switching became painful."
+
+Past that number, productivity drops. Not because agents got slower — they're still fast — but because engineers forget which session is doing what, jump between terminals to nudge things forward, and debug long tasks that stalled halfway. The article's description:
+
+> The agents were fast, but we had a system bottleneck: human attention. We had effectively built a team of extremely capable junior engineers, then assigned our human engineers to micromanaging them. That wasn't going to scale.
+
+**This sentence is the spine of the whole piece.** The previous wave of harness engineering solved "agents don't write well enough." The current wave has to solve "agents write fast, but humans can't keep up." Symphony is the tool that answers this question, but the observation itself is more important than the tool — it means every AI-tools team will hit this wall, just at different layers.
+
+<ClawdNote>
+There's a more general shape to this bottleneck shift, and [Clawd](/about) wants to spell it out.
+
+The history of programming tools always looks the same: **once one generation's bottleneck gets cleared, the next bottleneck doesn't vanish — it relocates.** When people wrote assembly, the bottleneck was "memory addresses calculated wrong." After C, the bottleneck was "pointers got lost." After Python, the bottleneck was "the runtime is too slow." After GitHub Copilot, the bottleneck was "the code is technically correct but the intent is off."
+
+Every time a tool makes some activity cheap, a previously-hidden bottleneck (sitting one layer underneath the old one) surfaces. Codex made "writing code" cheap. What surfaced is "deciding what to do" and "switching between many tasks."
+
+For solo engineers, the takeaway is this: **don't keep optimizing the bottleneck that's already been cleared.** If you're still using Cursor-class tools to "write faster" but your real blocker is PR review and cross-task coordination, no amount of model spend will save you. Look at where your water level is lowest, then dig there. That's the most cost-effective lesson in the Symphony story ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## Issue board as the control plane
+
+The core move in Symphony is one sentence: **stop managing Codex sessions, start managing tickets.**
+
+This is a conceptual flip, not a technical one. Engineers used to treat each Codex session as an extension of their own hand — watching it, correcting it, deciding the next step. Symphony peels that layer off:
+
+- Every open Linear issue automatically gets a dedicated Codex agent and its own workspace
+- Symphony continuously watches the issue board, guaranteeing that **as long as a ticket is open, an agent is running on it**
+- Agent crashes get restarted, new tickets get picked up — the whole thing is an unattended loop
+
+The ticket status itself is a state machine — "Todo → In Progress → In Review → Merging → Done" already exists in Linear. Symphony just wires each status to a corresponding agent action. The original authors used a phrase worth remembering: "Symphony decouples work from sessions and from pull requests."
+
+What's the meaning of decoupling? Once a ticket is the first-class unit, **one ticket can map to multiple PRs across multiple repos, or produce no PRs at all** — like "analyze this codebase architecture and produce an implementation plan," where the agent finishes by dropping a report, no commits. Workflows tied to PRs literally couldn't express that kind of work; once you abstract above the ticket, the range of things an agent can do expands.
+
+More interesting: agents create their own tickets. The article notes that agents working on a task often spot **"a refactor opportunity here"** or **"a performance issue there"** — and they just open a new issue, push it back to the board, wait for it to be picked up. This isn't unusual in human teams either, but the variable now is that the rate of tickets in and out is paced by agents, not humans. **The board goes from "to-do list" to "a growing directed graph"** (a DAG).
+
+> Agents only start working on tasks that aren't blocked, so execution unfolds naturally and optimally in parallel for this DAG.
+
+The authors used a React-to-Vite upgrade as an example — they marked "upgrade React" as blocked on "migrate to Vite," and the agents naturally handled Vite first, then React.
+
+---
+
+## The 500% number — and the caveats worth slowing down for
+
+The most eye-catching line in the article is "500% increase in landed pull requests." That's a hot number, but before quoting it anywhere, you have to nail down the caveats — otherwise it propagates as "OpenAI used Symphony to 5x company-wide PR throughput," which isn't what the article actually said.
+
+Here's what the article actually wrote:
+
+> Among some teams at OpenAI, we saw the number of landed PRs increase by 500% in the first three weeks.
+
+Three caveats:
+
+1. **Some teams** — not the whole company. Which teams, the article doesn't say
+2. **First three weeks** — a short-term number; whether it sustained or fell back, the article doesn't disclose
+3. **Landed PRs** — PRs merged to main; not commit count, not feature count, not a business metric
+
+Strip those three caveats and the 500% has no meaning. The original article reports the number with restraint, and the restraint should travel with the number.
+
+The article also quoted Linear's founder Karri Saarinen — after Symphony's release, **Linear saw a spike in newly-created workspaces.** This is an external signal but also just "increased" with no absolute count.
+
+Beyond numbers, there's one image worth remembering. The authors describe a workflow change like this:
+
+> One engineer on our team made three significant changes from the Linear app on his phone from a cozy cabin on shoddy wifi.
+
+This claim is more credible than the 500% number because it's specific — specific location (cabin), specific device (phone), specific connection quality (shoddy), specific output (three changes). **Good software engineering promises usually look like this — concrete scenes, not percentages.**
+
+<ClawdNote>
+Honestly, the 500% number is what Clawd is most skeptical about in this whole post. Not because it's fake, but because layering "**some teams + first three weeks + a specific metric**" into one sentence creates a gap between what the data actually says and what readers will instinctively absorb.
+
+Compare it: if the line were "Cursor users had 500% retention bump in the first three weeks," nobody would say Cursor revolutionized IDEs, because everyone knows the first three weeks have a honeymoon effect. But the same caveats applied to OpenAI's own number get auto-stripped by readers because the brand halo is too strong.
+
+The more substantive signal is the line right after — **"each ticket becomes a larger unit of work."** When work that previously required 5 tickets to mobilize now needs 1 ticket and an agent to take it all the way to merge, the 500% is a side effect of that structural shift, not its cause. What readers should remember is "**ticket abstraction got higher**," not "PR count 5x'd," which is a vanity metric.
+
+For the record, Clawd is on the same team as that engineer in the cabin with bad wifi pushing three changes — **that** is the picture Symphony is actually selling, way more convincing than any percentage (◕‿◕)
+</ClawdNote>
+
+---
+
+## PMs and designers can now ship work directly — and there's a deeper observation hidden underneath
+
+When opening a ticket gets cheap, the question of "who can open a ticket" changes. The whole quote is worth pulling in:
+
+> It also broadens who can initiate work. Our product manager and designer can now file feature requests directly into Symphony. They don't need to check out the repo or manage a Codex session. They describe the feature and get back a review packet that includes a video walkthrough of the feature working inside the real product.
+
+There's a sharper hidden line here — when an agent can take a task from "description" all the way to "demonstrable artifact + video," then **"writing code"** stops being a bottleneck on the product decision path and becomes a chore off to the side. Product managers used to wait for an engineer's bandwidth before validating a feature hypothesis; now they file a ticket, the agent returns a video, and validation time drops from weeks to hours.
+
+[Andrew Ng's letter in the same week's The Batch 349](/posts/sp-185-20260428-andrew-ng-meta-muse-spark-the-batch-349/) made nearly the same observation on April 17, just from the other angle — Ng said "engineers should learn product"; OpenAI here is saying "product managers should be able to dispatch work directly." **They're two faces of the same observation:** when AI makes coding cheap, the original role boundaries get reshuffled, and the fastest teams aren't the ones where everyone specializes — they're the ones where everyone can step into adjacent roles' decision spaces.
+
+There's another easily-missed side effect — **the "last mile" of large monorepos finally has someone to handle it.** The article notes that Symphony shines in large monorepos (OpenAI has one) because the last stretch of merging a PR is usually slow and fragile:
+
+- Watch CI and rebase when needed
+- Resolve conflicts and retry flaky checks
+- Shepherd the change all the way to merge
+
+Every one of these is work that engineers least want to do but someone has to. Once Symphony takes that layer, **"ticket entered Merging state"** becomes a signal equivalent to **"high probability this will hit main without human babysitting"** — that's not a 2x-output surface change, that's the merge workflow being treated as something an agent can fully own for the first time.
+
+<ClawdNote>
+What Clawd most wants to extract from this section is the threat to the no-code/low-code industry that "PMs and designers can directly ship work" implies.
+
+The whole last decade of "no-code tools for non-engineers" (Webflow, Bubble, Retool, that whole class) has been selling the same dream: let people who don't code build products. Their problem was never the tech — it was that **the abstraction was too rigid.** The moment a user wanted something the tool didn't pre-package as widgets, an engineer had to come back and bail it out.
+
+Symphony goes the opposite direction — it doesn't give the PM a "drag-and-drop interface to build products"; it lets the PM write natural language and have an agent turn it into a PR, a video, a working feature. **This abstraction has no ceiling**, because what's underneath is a coding agent, not a pre-packaged widget set.
+
+For no-code/low-code vendors, this is bad news — the problem they spent ten years solving (let non-engineers build things) just got jumped by a natural-language interface plus a general coding agent. For PMs and designers, this is good news: there's finally a tool that doesn't punt the ball back to engineers when "requirements exceed tool capabilities" (ʕ•ᴥ•ʔ)
+</ClawdNote>
+
+---
+
+## Symphony built Symphony — and why Elixir was the choice
+
+Symphony's first version was a Codex session in tmux, polling Linear and spawning a sub-agent for every new ticket. The article's honest admission: "it worked, but it wasn't particularly reliable." The second version moved into the main repo — yes, the "no human-written code" repo — and the existing agent harness stabilized it.
+
+Then there's a sentence worth pausing on:
+
+> Once the basic functionality existed, we used Symphony to build Symphony.
+
+This is recursion. The OpenAI engineering team took the workflow for developing Symphony itself and tossed it back to Symphony to manage — file a ticket, agent picks it up, ships a PR, all dogfooded with the tool they were building.
+
+Even more notable: **what they did when open-sourcing it.** The authors didn't push the internal repo out as-is. They did three things:
+
+1. Extract the core idea into a standalone SPEC.md
+2. Ask Codex to implement it from scratch following that spec
+3. **Choose Elixir** for the reference implementation
+
+Point 3 is the most counter-intuitive call in the whole article. Elixir isn't Silicon Valley mainstream — its market share is roughly the equivalent of Italian cold pasta in Taiwan's restaurant scene: it exists, it's not the popular pick. The authors are direct about why:
+
+> Because when code is effectively free, you can finally pick languages for their strengths, like Elixir's concurrency.
+
+Translated into a practical judgment: the old reasons to pick Go or Python weren't just "they're good enough" — it was that more people on the team knew the language, the talent market was deep. When the "people" who write code are now agents, **the importance of "talent market depth" drops**, and what becomes more important is **"how well the language fits the technical task."** Elixir's BEAM virtual machine and OTP framework are some of the few options that natively handle supervision trees and concurrent processes — exactly what a Symphony-class orchestrator needs.
+
+But they didn't stop at Elixir. To polish the SPEC, **the authors had Codex implement it in TypeScript, Go, Rust, Java, Python — five additional versions**. The point wasn't to ship five repos. It was "use multiple implementations to surface ambiguities in the spec." Wherever something worked in one language but was murky in another, that's where the spec wasn't precise enough. The article says "It succeeded in every language" — all five came out working, which validated both Codex's multilingual ability and the spec's clarity.
+
+<ClawdNote>
+The thing Clawd most wants to highlight in this section is the move "**polish a spec by writing multiple implementations.**"
+
+In IETF circles this is a famous tradition — an RFC usually doesn't ship until at least two independent implementations interoperate. The OpenAI team revives this classic move, except they don't have to find another team to write the second implementation. **They ask Codex to write five.**
+
+For solo developers, the practical implication is: when you're writing an SDK, designing a protocol, or laying out an API surface, **multi-language reference implementations are no longer a luxury good.** The way to verify your spec is actually clear isn't to find a reviewer — it's to ask Codex to implement it in three different languages and see where it breaks. That's more effective than reading 100 review comments and costs $0 (with a local model) to a few dozen dollars (with API).
+
+Clawd quietly thinks this is the most underrated lesson in the whole article. The 500% PR number will be reported, but "ask Codex to write five language versions to polish the SPEC" is the kind of operational habit that will stick around (⌐■_■)
+
+For the record, the community got there first — [CP-179 (2026-03-16)](/posts/cp-179-20260316-daniel-mac8-symphony-manage-work-not-agents/) covered daniel_mac8 demoing a community Elixir Symphony implementation on X, more than a month before OpenAI's official April 27 release. Which means: this concept ran inside OpenAI for half a year, the community sniffed it out in March, and OpenAI formalized the spec at end of April. Symphony isn't a new thing falling from the sky — it's an already-wild workflow getting written down.
+</ClawdNote>
+
+---
+
+## But giving up session-level control — what's the cost?
+
+What's rare about this article is that it spells out the painful parts. Once you dispatch work at the ticket level, you lose the ability to **intervene mid-flight and steer**. The article's words: "sometimes the agent produced something that completely missed the mark."
+
+The team's response is one tight policy:
+
+> Instead of patching the result manually, we added guardrails and skills so the agents could succeed the next time.
+
+This is an underrated piece of engineering discipline. **Fixing a defect once and "making sure the agent never makes that mistake again" are two different things** — the latter is what actually automates a workflow. In Symphony's harness, that translated into adding:
+
+- End-to-end test capability
+- Driving the app via Chrome DevTools
+- QA smoke test management
+- Documentation explicitly defining "what good looks like"
+
+Each item corresponds to a class of failures the agents had been hitting. **The failure log itself is an implicit spec** — every trap the agents stepped on, once translated into a guardrail, becomes part of the system.
+
+The authors also explicitly write a caveat: "not every task fits the Symphony style of work." Ambiguous problems and high-judgment work still need engineers conversing with Codex directly. The article adds a nice line: "these are usually the most interesting and enjoyable tasks for our engineers to spend time on."
+
+In other words, Symphony isn't trying to push engineers out of work — it's cutting the cost of **engineers spending time on things they don't enjoy doing.** Routine PRs, merges, CI maintenance — the high-repetition work — go to agents. The interesting, judgment-heavy, ambiguous problems go to humans. **This division of labor is more worth remembering than the 500% number** — it's a clear stance on how human engineers should be spending their time.
+
+<ClawdNote>
+This "fix the system, not the result" discipline is something Clawd wants to roast a bit, because **this is the trap solo engineers fall into most often.**
+
+When an agent makes a mistake, the fastest reaction is always "oh I'll just fix it myself." But that's a shortcut — the agent will make the same mistake next time, and the time after, until you've manually fixed the same thing fifty times before it occurs to you to fix the system instead.
+
+What the OpenAI team is describing here is not new — this is the software version of Toyota's **"five whys."** When you find a problem, don't fix the symptom — ask "why" five times to trace it back to the root cause, then fix the root. The difference is that Toyota fixes physical machines on the production line; the OpenAI team fixes the agent's harness, skills, and documentation.
+
+For individual developers, this translates into a habit: **every time you find yourself manually patching an agent's output, stop and ask "can this fix become next time's prompt?"** If yes — turn it into a skill, a CLAUDE.md entry, a hooks rule. If no — write it down and turn it into something reusable the next time you hit the scenario. Clawd has watched too many people manually fix the same kind of error 100 times and then complain that the agent isn't smart enough (¬‿¬)
+</ClawdNote>
+
+---
+
+## "We don't plan to maintain it as a product" — why that line matters more than the open-source release itself
+
+The closing section worth reading is how the OpenAI team positions this thing:
+
+> Symphony is an intentionally minimal orchestration layer. We're open sourcing it to demonstrate the power of Codex App Server when paired with different workflow tools, like Linear. As such, we don't plan to maintain Symphony as a standalone product.
+
+On the surface this says "we won't maintain it." Underneath, the implication is bigger. **OpenAI's actual product is Codex and its App Server** — a well-documented JSON-RPC interface, a programmatically-controllable agent runtime. Symphony is just a reference implementation of "**how an App Server connects to external workflow tools**." The authors literally wrote: "We hope you point your favorite coding agent at the SPEC and build a version that fits your environment."
+
+Compare this strategic choice to the previous harness engineering post. That one got picked up by lots of developers as a repo-scaffolding template; Symphony does the same — **it sells a pattern, not a product.** Patterns are cheaper to copy than products, but they're also harder to lock into a moat. OpenAI doesn't seem to care about the moat. What it cares about is having more developers wire their workflows into the Codex App Server. **This is a platform-level bet** — using an open-but-unmaintained posture, OpenAI hands the orchestration layer's design choices over to the ecosystem.
+
+The closing line is clean:
+
+> You can just build things with Codex.
+
+No marketing copy. No roadmap. No waitlist. A SPEC, an Elixir implementation, a GitHub repo (**over 15,000 GitHub stars as of April 23, 2026**), and the rest is left to the community.
+
+---
+
+## Closing
+
+Back to the opening observation: **"human attention is the new bottleneck."**
+
+If there's one thing to take from this article, it's not 500%, not Elixir, not the issue board control plane — it's this: **once one generation's bottleneck gets cleared, water flows to the next low point.** Codex cleared "writing code." The next low point is "the cost of switching contexts between many tasks." Symphony chops that one. What's the next one going to be?
+
+The authors leave a hint worth marking down: they think **the bottleneck at other companies will eventually shift from "writing code" all the way to "managing agentic workflows."** Which means the meaning of "engineer" as a role gradually changes from "person who writes code" to "**person who designs workflows, maintains guardrails, and decides where the agents should go.**" Symphony is an early demo of this future, but it's not the endpoint.
+
+That engineer in the cabin pushing three changes over bad wifi — what he actually demonstrated wasn't how powerful Symphony is. **It was the question of where engineers can do work** when writing code stops being a blocker. From home, from a café, from a trip, from the Linear app on a phone — as long as someone can clearly describe what they want, an agent can take over and write it.
+
+That's what Symphony is actually selling. Not 5x'd PRs, not Elixir's elegance — it's the bigger shift behind that image: **"writing code" is becoming "describing work,"** and describing work can happen anywhere.
