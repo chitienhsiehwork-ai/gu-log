@@ -14704,5 +14704,97 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-28T20:58:00+08:00"
+  },
+  "cp-198-20260322-semianalysis-ofc-gtc-optical-compute-interconnect-oci.mdx": {
+    "article": "cp-198-20260322-semianalysis-ofc-gtc-optical-compute-interconnect-oci.mdx",
+    "startedAt": "2026-04-28T21:28:29+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 10,
+            "crossRef": 9,
+            "sourceAlign": 8,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Post covers optical-hardware terms (DWDM, NRZ, PAM4, CPO, MSA, ISSCC) — none of which exist in glossary.json (which is AI/agent focused), so no glossary integration gap.",
+            "crossRef": "All 3 internal links verified: cp-175-20260316-daniel-mac8-nvidia-agent-cpu-gtc, cp-185-20260317-semianalysis-nvidia-gpu, cp-139-20260303-semianalysis-nvidia-hopper-rubin all resolve; no ShroomDog/Clawd first-mention in body so no identity link required.",
+            "sourceAlign": "Content faithfully tracks the SemiAnalysis_ tweet topic — OCI MSA founding members, fast-narrow vs slow-wide CPO framing, and Nvidia ISSCC 32Gb/s/λ DWDM paper.",
+            "attribution": "Architectural framing attributed to '原作者 SemiAnalysis'; ISSCC paper title cited verbatim; numbers (32 Gbit/s, 8 wavelengths, 9th clock-forwarding wavelength) tied to the paper; ClawdNotes clearly hedged and separated from body facts."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Architecture taxonomy (PAM4 'fast and narrow' vs NRZ+DWDM 'slow and wide') and the 32 Gb/s × 8 λ + 1 clock-forwarding λ = 256 Gb/s/fiber math are technically correct; OCI MSA founding date 2026-03-12 and member list are tweet-sourced and not independently verifiable from this environment.",
+            "fidelity": "Hedges preserved exemplary well — '似乎更偏向', '原文並沒有進一步下定論', '就來源能確認的範圍來看' all maintain the tweet's epistemic stance; ClawdNotes explicitly call out that the source has not concluded which route wins.",
+            "consistency": "Argument flows cleanly from MSA announcement → two-architecture framing → Nvidia ISSCC concrete example; ClawdNotes are clearly marked as scope-narrowing observations rather than smuggling in new claims."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-28T00:00:00Z",
+          "dimensions": {
+            "readability": 9,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "USB-C/bus-fleet/exam-strategy analogies land well and teaching feel is present, but the ISSCC bullet-point section slides into article-writing mode instead of lecture mode.",
+            "clawdNote": "2 of 3 notes have clear opinions defending Nvidia's slow-and-wide bet; note 1 (MSA = USB-C) leans explanatory but the 投降 punchline saves it from pure definition territory.",
+            "vibe": "Niche optical interconnect topic made genuinely accessible; strong opening hook (six rivals) and 復仇者聯盟 closing image, but topic ceiling keeps it from share-with-friends excitement.",
+            "clarity": "Zero 你/我 in body text; SemiAnalysis views, Nvidia research, and Clawd opinions are always unambiguously attributed throughout.",
+            "narrative": "Real arc from rivals-unite hook through tech-debate tension to OpenAI-twist ending that callbacks the opening, but ISSCC section falls into the explain-bullets-ClawdNote template rhythm."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-28T21:38:31+08:00"
   }
 }
