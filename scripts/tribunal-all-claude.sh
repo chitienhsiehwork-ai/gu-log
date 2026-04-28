@@ -582,7 +582,9 @@ Write your JSON result to: $score_tmp" \
         if write_score_to_frontmatter "$post_path" "$fm_judge_key" "$fm_score_json"; then
           tlog "  Frontmatter updated for $fm_judge_key."
         else
-          tlog "  WARN: Failed to write $fm_judge_key score to frontmatter (non-fatal)."
+          tlog "  ERROR: Failed to write $fm_judge_key score to frontmatter."
+          rm -f "$score_tmp"
+          return 1
         fi
       fi
 
@@ -686,7 +688,23 @@ commit_progress() {
   (
     flock -x 10
     cd "$repo_dir" || { tlog "WARN: commit_progress cd $repo_dir failed"; exit 0; }
+
+    # Workers rewrite posts and write score frontmatter inside their isolated
+    # worktree ($ROOT_DIR). Publish those target post artifacts into the main
+    # repo before staging, otherwise PASS commits only contain progress JSON and
+    # production content never changes.
+    if [ -n "${POST_FILE:-}" ]; then
+      bash "$SCRIPT_DIR/tribunal-publish-worker-changes.sh" "$ROOT_DIR" "$repo_dir" "$POST_FILE" >> "$LOG_FILE" 2>&1 || {
+        tlog "ERROR: failed to publish worker post artifacts for $POST_FILE"
+        exit 1
+      }
+    fi
+
     git add "$PROGRESS_FILE" 2>/dev/null || true
+    if [ -n "${POST_FILE:-}" ]; then
+      git add "src/content/posts/$POST_FILE" 2>/dev/null || true
+      git add "src/content/posts/en-$POST_FILE" 2>/dev/null || true
+    fi
     if git diff --cached --quiet; then
       exit 0  # nothing to commit
     fi
