@@ -1,0 +1,146 @@
+---
+ticketId: "SP-186"
+title: "OpenClaw 自動化全景：Task Flow 才是真正的指揮官"
+originalDate: "2026-04-28"
+translatedDate: "2026-04-28"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (vibe-opus-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Tribunal"
+source: "OpenClaw Docs"
+sourceUrl: "https://docs.openclaw.ai/automation"
+lang: "zh-tw"
+summary: "OpenClaw 提供六大自動化機制，但真正讓多步驟工作流串起來的是 Task Flow。這篇從 Task Flow 的編排能力出發，帶出排程任務、Heartbeat、Hooks、Standing Orders 等機制如何各司其職又互相配合。"
+tags: ["shroom-picks", "openclaw", "automation", "agent"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+OpenClaw 的自動化文件打開來，一口氣列了六種機制：排程任務、背景任務、Task Flow、Standing Orders、Hooks、Heartbeat。光看名字就開始頭暈——這些東西到底誰管誰？什麼時候該用哪個？
+
+但仔細看完整份文件，會發現一件事：其他五個機制各自解決的是「單點問題」——定時跑、事件觸發、背景追蹤、常駐指令、定期巡邏。唯獨 Task Flow，解決的是「怎麼把這些東西串成一條完整的工作流」。
+
+這就像一間餐廳，有人切菜、有人炒鍋、有人端盤、有人結帳，每個人都很專業。但如果沒有一個出菜口的指揮，菜出錯桌、冷盤比熱炒晚到、甜點跟主菜一起上——場面就是災難。Task Flow 就是那個出菜口的指揮官。
+
+## Task Flow：多步驟編排的核心
+
+OpenClaw 把 Task Flow 定義為「背景任務之上的流程編排基底」（原文用了 "flow orchestration substrate" 這個詞）。翻成白話：背景任務帳本記錄的是一筆一筆的執行紀錄——它是追蹤器，不是排程器。Task Flow 則負責在這些紀錄之上建立有順序、有狀態、可追蹤的完整流程。
+
+<ClawdNote>
+「substrate」這個字用得很有意思——不是 framework、不是 engine，是「基底」。意思是 Task Flow 不是架在最上層的華麗 UI，而是整個自動化體系最底層的骨幹。所有多步驟的事情，最終都跑在這個基底上。
+</ClawdNote>
+
+Task Flow 提供兩種同步模式：**managed** 和 **mirrored**。文件沒有展開細節，但從命名可以推測——managed 模式由 Task Flow 自己控制步驟的推進節奏，mirrored 模式則是讓外部系統的狀態映射進來同步。這兩種模式讓 Task Flow 既能自主驅動流程，也能跟外部世界保持一致。
+
+另一個關鍵能力是**版本追蹤**。多步驟流程最怕的就是「跑到一半出事了，回頭一看不知道哪一步開始歪的」。Task Flow 內建版本追蹤，每個步驟的狀態變化都有紀錄。
+
+操作面，Task Flow 提供三個 CLI 指令：
+
+- `openclaw tasks flow list`——列出所有流程
+- `openclaw tasks flow show`——查看特定流程的詳細狀態
+- `openclaw tasks flow cancel`——取消進行中的流程
+
+文件給的應用範例是「多步驟研究後產出摘要」這種場景。想像一下：先去爬三個資料來源、再交叉比對、最後整理成一份報告。每一步都是獨立任務，但整個流程需要有人記得「現在做到哪了」「前一步的結果要傳給下一步」「如果第二步失敗要怎麼處理」。這就是 Task Flow 的主場。
+
+<ClawdNote>
+如果只是「幫我每天早上九點發一封報告」，根本不需要 Task Flow，排程任務就搞定了。Task Flow 是為那種「先做 A、A 的結果餵給 B、B 跑完再決定要不要做 C」的複雜場景而生的。殺雞不需要牛刀，但宰牛的時候拿把菜刀就真的很尷尬了。
+</ClawdNote>
+
+---
+
+## 排程任務與背景任務：Task Flow 的左右護法
+
+Task Flow 不是孤軍奮戰。在它底下，有兩個機制負責實際的苦力活。
+
+**排程任務（Cron）** 是 Gateway 內建的排程器，負責精確定時。支援 cron 表達式做週期性排程，也支援 `--at` 參數做一次性提醒（「20 分鐘後提醒開會」這種），還能透過 inbound webhook 觸發。排程任務可以跑在隔離的獨立工作階段，也可以共享主工作階段的上下文。每次執行都會產生任務紀錄，輸出可以送到聊天頻道、webhook 端點，也可以設成靜默不輸出。
+
+**背景任務帳本**則是所有脫離主工作階段的工作的追蹤系統。不管是 ACP 執行、子 Agent 派生、排程任務的隔離執行，還是 CLI 操作——全部自動登記在案。透過 `openclaw tasks list` 和 `openclaw tasks audit` 就能查閱和稽核。
+
+<ClawdNote>
+背景任務帳本的定位是「紀錄」，不是「執行」——原文明確說 "Tasks are records, not schedulers." 它不負責排程、不負責啟動，只負責忠實記錄每一筆脫離主工作階段的執行。搞清楚這一點才不會把它跟排程任務混為一談。
+</ClawdNote>
+
+這兩者跟 Task Flow 的關係很清楚：排程任務負責「什麼時候啟動」，背景任務帳本負責「紀錄誰在跑」，Task Flow 負責「這些任務之間的順序和邏輯」。三層各管各的，但疊在一起就是一套完整的自動化引擎。
+
+---
+
+## Heartbeat：不靠鬧鐘的巡邏員
+
+跟排程任務的「精準定時」相對的，是 Heartbeat 的「大概定時」。
+
+Heartbeat 預設每 30 分鐘跑一次，但它不是獨立工作階段——它直接跑在主工作階段裡，擁有完整的上下文。這代表 Heartbeat 可以看到之前對話的脈絡，知道現在在忙什麼，做出更聰明的判斷。
+
+代價是：Heartbeat 不會產生任務紀錄，也不會延長工作階段的閒置重置計時。它就像一個低調的巡邏員，每隔一陣子繞一圈、看看信箱、瞄一眼行事曆、確認通知有沒有漏掉，然後安靜離開。
+
+設定方式是透過 `HEARTBEAT.md` 檔案放一個小清單，或者用 `tasks:` 區塊設定「只在到期時才檢查」的週期性任務。如果 `HEARTBEAT.md` 是空的，Heartbeat 會自動跳過（標記為 `empty-heartbeat-file`）；如果是到期才檢查模式但沒有任務到期，也會跳過（標記為 `no-tasks-due`）。
+
+<ClawdNote>
+排程任務和 Heartbeat 的選擇其實不難：需要「九點整」就用排程任務，需要「差不多每半小時看一下」就用 Heartbeat。一個是鬧鐘，一個是巡邏。鬧鐘響了不管在幹嘛都得動，巡邏員經過沒事就繼續走。兩者的精神完全不同。
+</ClawdNote>
+
+那 Heartbeat 跟 Task Flow 的關係呢？文件沒有直接描述兩者的互動，但可以想像一種用法：Heartbeat 定期巡邏時發現某個條件滿足了，或許可以啟動一個 Task Flow 來處理。不過這只是推測——Heartbeat 本身的定位是「定期巡檢」，不是「流程觸發器」。
+
+---
+
+## 事件驅動：Hooks 和 Standing Orders
+
+前面講的都是「主動去做」的機制——定時啟動、定期巡邏、流程編排。但自動化還有另一半：「被動反應」。
+
+**Hooks** 是事件驅動的腳本，綁定在 Agent 的生命週期事件上：工作階段重置（`/new`、`/reset`、`/stop`）、上下文壓縮、Gateway 啟動、訊息流等等。系統會自動從指定目錄發現 Hook 腳本，也可以用 `openclaw hooks` 指令管理。
+
+另外還有 **Plugin Hooks**，這是更細粒度的行程內攔截機制——可以攔截工具呼叫、提示詞、訊息流和生命週期事件，插入自訂邏輯。文件特別把 Plugin Hooks 跟一般 Hooks 區分開來，前者是「行程內攔截」，後者是「事件觸發腳本」。
+
+**Standing Orders** 則完全是另一個維度的東西。它不是「某個時間點做某件事」，而是「永遠記住這條規則」。Standing Orders 寫在工作空間的檔案裡（通常是 `AGENTS.md`），會被注入到每一個工作階段中，給 Agent 持久的操作權限和行為邊界。文件也提到 Standing Orders 可以搭配排程任務做「時間限定的規則執行」——例如某條規矩只在特定時段生效。
+
+<ClawdNote>
+Standing Orders 的概念很像軍隊裡的「常備命令」——不是針對某次任務的指示，而是「不管什麼任務，這條規矩永遠有效」。比如「回覆前一律先檢查合規性」，這種事寫成 Standing Order 就對了，不需要每次都重新交代。
+</ClawdNote>
+
+Hooks 在特定事件發生時做反應（例如工作階段重置時跑清理腳本），Standing Orders 則確保 Agent 在任何工作階段中都遵守同樣的行為準則。它們跟 Task Flow 是平行運作的機制——不直接參與編排，但維持了整個系統的紀律。
+
+---
+
+## 六大機制怎麼選
+
+文件給了一個很實用的決策指引，這邊按場景整理：
+
+**精確定時的工作**——每天早上九點發日報、每週跑深度分析、20 分鐘後提醒——全部交給排程任務。需要準時，可以選擇隔離或共享工作階段，輸出可以送到特定頻道，排程任務全包。排程任務還能指定不同的模型來執行，適合分開控制成本和效能。
+
+**定期巡邏型的工作**——每半小時檢查信箱、監控行事曆有沒有快到的會議、看通知——用 Heartbeat。不需要精確時間，但需要完整上下文來判斷情況。
+
+**多步驟、有前後依賴的複雜工作**——先研究再分析再產出報告——Task Flow 的主場。持久化編排、版本追蹤、可查詢可取消。
+
+**追蹤和稽核脫離的工作**——想知道某個子 Agent 跑到哪了、ACP 任務的狀態——查背景任務帳本。
+
+**對特定事件做反應**——工作階段重置時跑清理腳本、攔截特定工具呼叫——用 Hooks 或 Plugin Hooks。
+
+**設定永久生效的行為規範**——回覆前檢查合規——寫成 Standing Orders。
+
+---
+
+## 結語
+
+OpenClaw 的自動化體系乍看很複雜，六個機制各有名字各有用途，很容易迷失在「到底該用哪個」的選擇障礙裡。但把 Task Flow 拉出來當座標原點，整張圖就清楚了：排程任務和 Heartbeat 負責「什麼時候開始」，Hooks 負責「什麼事件要反應」，Standing Orders 負責「什麼規矩要遵守」，背景任務帳本負責「什麼東西在跑」——而 Task Flow，負責把這一切串成一條有頭有尾、可追蹤、可回溯的完整流程。
+
+<ClawdNote>
+沒有 Task Flow，其他五個機制各自為政，像五個樂手各彈各的。有了 Task Flow，才有指揮，才有樂章 ╰(°▽°)╯
+</ClawdNote>
