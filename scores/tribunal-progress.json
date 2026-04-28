@@ -14612,5 +14612,97 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-28T20:08:30+08:00"
+  },
+  "sd-10-20260322-ralph-loop-quality-system.mdx": {
+    "article": "sd-10-20260322-ralph-loop-quality-system.mdx",
+    "startedAt": "2026-04-28T20:38:58+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 7,
+            "crossRef": 9,
+            "sourceAlign": 8,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Codex, Claude Code, Agent, Context Window all properly linked to /glossary, but Ralph Loop — the central concept of the entire post — is never linked to its glossary entry, and Hooks (mentioned as 'Stop Hook') is also unlinked despite being a glossary term.",
+            "crossRef": "Identity links present (first ShroomDog mention at line 339 → /about, first Clawd mention at line 167 → /about); all three Extended Reading links (CP-135 karpathy-multi-agent, SP-46 anthropic-agentic-coding, SP-89 openclaw-acp) verified to resolve to real post slugs in src/content/posts/.",
+            "sourceAlign": "SD original post with self-pointing sourceUrl (gu-log.vercel.app) — auto 8/10 per rubric; content is the lab's own first-party narrative about their Ralph Loop system.",
+            "attribution": "ClawdNote/ShroomDogNote opinions cleanly separated from body via components; Steve Yegge and 李宏毅教授 attributed with context; viral YC hackathon claim explicitly hedged with '這些數字沒有經過驗證'; internal stats (336/239/74%) presented as own measurements with '我們'."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 9,
+            "consistency": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "External claims check out: Steve Yegge (ex-Google, Google Platforms Rant), 李宏毅 (NTU EE Deep Learning), Ralph Wiggum (Simpsons), Colin Robinson Energy Vampire (What We Do in the Shadows), Anthropic Max plan, Claude Code Stop Hook, GPT-4 bar exam claim — all verifiable. Ralph Wiggum Loop bash pattern is a real community idiom. The 'GPT 5.4' future plan is presented as roadmap, not asserted fact.",
+            "fidelity": "SD original (no external source to translate from). Unverified community lore about Ralph Loop hackathon wins / contract values is explicitly hedged ('據說', '這些數字沒有經過驗證') — exemplary hedge preservation. Internal numbers (336 articles, 74% rewrite rate) are self-reported but presented as such, not as external citations.",
+            "consistency": "Narrative arc holds; ClawdNote/ShroomDogNote opinions clearly separated from body. One numeric gap: score distribution (198 ≥9 + 118 =8 + 3 <8 = 319) doesn't reconcile with 324 completed — 5 articles unaccounted for. 74% rewrite (239/324 ≈ 73.8%) and 96% completion (324/336) both check out. Minor inconsistency, not load-bearing."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-28T00:00:00Z",
+          "dimensions": {
+            "readability": 9,
+            "firstImpression": 9
+          },
+          "score": 9,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 9,
+            "vibe": 9,
+            "clarity": 8,
+            "narrative": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Strong LHY oral feel sustained throughout — restaurant chef rotation, AI interviewer hiring 200 people, mirror/fat-photo, fast-food-vs-wagyu analogies all land naturally; strip test passes because the skeleton is a genuine discovery arc, not a linear report.",
+            "clawdNote": "Most notes carry clear opinions beyond explanation — the 'personality crisis' call-out on multi-brand Notes, the agent-freelancing-is-too-smart-not-too-dumb take, and the calibration-is-a-one-way-street movie analogy are highlights; density (~1 per 25 lines) is on target.",
+            "vibe": "The 74% revelation hooks immediately, before/after transformations are compelling, and the meta-insight ending about eval changing the AI's own taste is a genuine share-worthy punch; architecture section dips slightly into blog-writing mode but recovers fast.",
+            "clarity": "我們 appears extensively in body text but always unambiguously refers to gu-log team in this SD original; one stray 我 in '我前面講過' is a minor slip; ShroomDogNote and ClawdNote voices are always distinct and correctly scoped.",
+            "narrative": "Genuine discovery arc — shock at 74% → calibration with anchor extremes → system design → honest failure at CP-146 → meta-wisdom ending that callbacks the opening question of 'is our stuff actually good'; the agent-going-rogue anecdote adds a real surprise beat mid-article."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-28T20:58:00+08:00"
   }
 }
