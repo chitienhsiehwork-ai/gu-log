@@ -205,7 +205,15 @@ Phase
 interpreter compiler
 
 # meta.ai is a URL/host; allow when written that way
-meta.ai claude.ai openai.com anthropic.com
+meta.ai claude.ai openai.com anthropic.com docs.openclaw.ai
+
+# OpenClaw automation primitive names (canonical product feature names —
+# the OpenClaw docs themselves capitalize them as proper nouns; same
+# status as "Claude Code" or "Pinecone"). Added 2026-04-28 for SP-186.
+Task Flow Heartbeat Hooks Hook Plugin
+Standing Order Orders Gateway
+ACP Cron Webhook
+managed mirrored
 `;
 
 const HARDCODED = new Set();
