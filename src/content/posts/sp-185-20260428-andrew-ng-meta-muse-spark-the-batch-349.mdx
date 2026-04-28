@@ -1,0 +1,246 @@
+---
+ticketId: "SP-185"
+title: "Andrew Ng 教 engineer 兼 PM、Meta 棄開源轉閉源——The Batch 349 同期兩個方向相反的訊號"
+originalDate: "2026-04-17"
+translatedDate: "2026-04-28"
+translatedBy:
+  model: "Opus 4.7"
+  harness: "Claude Code"
+source: "DeepLearning.AI The Batch"
+sourceUrl: "https://www.deeplearning.ai/the-batch/issue-349/"
+lang: "zh-tw"
+summary: "The Batch 349 同期擺出兩個方向相反的訊號：Andrew Ng 寫 AI-native team 為什麼把 engineer:PM 比例壓到 1:1、generalist 跑贏 specialist；Meta 花九個月組 Superintelligence Labs、砸 14.3B 美金挖人，端出閉源 Muse Spark。同期還有 Eli Lilly 砸 2.75B 給 Insilico 做 AI 製藥、Google 用 AlphaEvolve 生 25 個 persona 解 PM bottleneck。"
+tags: ["shroom-picks", "andrew-ng", "meta", "the-batch", "ai-native-teams", "muse-spark"]
+scores:
+  tribunalVersion: 3
+  vibe:
+    persona: 9
+    clawdNote: 9
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-04-28"
+    model: "claude-opus-4-7"
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 9
+    score: 9
+    date: "2026-04-28"
+    model: "claude-opus-4-7"
+  librarian:
+    glossary: 8
+    crossRef: 7
+    sourceAlign: 10
+    attribution: 9
+    score: 8
+    date: "2026-04-28"
+    model: "claude-opus-4-7"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    score: 8
+    date: "2026-04-28"
+    model: "claude-opus-4-7"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+DeepLearning.AI 的 [The Batch newsletter issue 349](https://www.deeplearning.ai/the-batch/issue-349/) 這一期很罕見——它把兩個方向**剛好相反**的訊號擺在同一張桌上。
+
+一邊是 Andrew Ng 親手寫的 letter，主題叫「AI-native software engineering teams」。重點：engineer 跟 product manager 的人數比例正在從傳統的 8:1 被壓到 1:1，最快的小團隊乾脆讓 engineer 自己兼產品決策、共用同一間辦公室、總人數 2 到 10 個。
+
+另一邊是 News 頭條 "Life After Llama"——Meta 用九個月組了一個叫 Superintelligence Labs 的部門、砸 143 億美金買 Scale AI 的 49% 股權、靠百萬美金級的 pay package 挖人，最後端出第一個 model 叫 Muse Spark，**並且把過去靠 Llama 撐起來的開源策略整個收掉，改走閉源**。
+
+兩件事疊在一起讀，2026 年 Q2 的 AI 業界正在做兩個方向相反的賭注：一條押小團隊、押 generalist 跑得最快；一條押大規模實驗室、押閉源 model 的飛輪。
+
+開個比喻——這就像同一條街兩家麵店同一天開幕，A 店老闆一個人煮、自己揉麵自己端碗，B 店請了一千個人輪班、廚房裝十米長的不鏽鋼設備。兩家都說自己有未來，但講的根本不是同一個故事。indie hackers 跟個人開發者讀完這期會發現：**Ng 那篇是寫給自己看的，Muse Spark 那篇是寫給競爭對手看的**。
+
+這篇 SP 把這期 newsletter 的兩條主線好好拆開——Eli Lilly 砸 27.5 億美金給 Insilico 做 AI 製藥、Google 用演化演算法生 25 個假人填問卷的 Persona Generators 研究——這兩條也順手放在 narrative 上對應的位置，因為它們其實都是 Ng 那條 bottleneck 觀察的不同變奏。
+
+## Andrew Ng 的 letter：小團隊為什麼跑得贏 1000 人？
+
+Ng 的 letter 從一個觀察開頭：當 AI coding agent 把「寫程式」這件事的速度拉高之後，**「決定要做什麼」變成新的卡關點**。
+
+第一波處理方式是 engineer 配 PM 的人數比例往下壓。傳統大公司一個 PM 配 8 個 engineer，Ng 看到的快團隊把這個比例壓到接近 1:1。但 1:1 也不是終點——一個 PM 決定方向、一個 engineer 動手做，兩個人之間還是有溝通成本。**真正最快的團隊乾脆讓 engineer 自己懂 user、自己決定要做什麼、自己做完**。Ng 寫得很直白：「they can execute incredibly quickly」（他們的執行速度快得不可思議）。
+
+這個觀點不是只往 engineer 那邊倒。Ng 同一句話也鼓勵 PM 學寫程式：「if you're a PM, please learn to build!」——意思是兩條路都對，只是業界 engineer 多 PM 少，engineer 順手學產品比較現實。
+
+但故事重點不在 PM。Ng 接著列出當寫程式速度被放大十倍、一百倍之後，**所有原本平衡的卡關點都會跟著移**：
+
+- **行銷卡關**：Ng 自家某個團隊有 feature 做太快，行銷部還在追要怎麼跟使用者解釋
+- **法規卡關**：可以一天做完的功能，法務部要審一個禮拜
+- **設計、營運**：一樣
+
+「agentic coding 不只在改 software engineering 的工作流，它在改周邊每一個團隊的工作流」——這句話是這封 letter 真正的核心。Ng 不是在講「engineer 變強了」，他是在講**整個產品從想法到上市的關鍵路徑正在重新分布**。原本的瓶頸（寫程式）被打通之後，水流到下一個低點，不是消失。
+
+接著是 generalist 那段，這段對 indie hacker 影響最直接。Ng 說傳統大公司必須拉 engineering、產品、設計、行銷、法務一票專家一起跑專案；當小團隊也能做出同等量的產出，那兩個人的團隊就必須能 cover 五種專業——個別還是有深度，但每個人都得能跨進其他領域思考問題。AI 工具在這裡的價值不是讓 engineer 變更會 code，是**讓一個人能在不熟的領域思考到「夠用」的程度**。
+
+最後兩個容易被快讀漏掉的限制：
+
+第一，**同一間辦公室的速度比遠端快**。Ng 沒講 remote 不行，他寫「remote teams can perform well too」（遠端團隊也能跑得很好），但他明白說最高速度是大家在同一個房間。對遠端工作信徒來說這是個直球。
+
+第二，**這封 letter 講的是 2 到 10 個人的小團隊**，不是大組織協調問題。Ng 自己留了 hedge：較大團隊的協調問題之後另寫——這個 hedge 留得很重要，否則一堆人會把 Ng 的觀點直接搬到 100 人公司，那就是誤用。
+
+收尾 Ng 寫得很溫和但很堅定：「these shifts to job roles are tough to navigate for many people」（這些角色變動對很多人來說不好調適），他承認這對既有的專家是震動，但接著補一句「individuals and small teams who are willing to learn the relevant skills are now able to get far more done than was possible before. This is the golden age of learning and building!」——願意學新技能的個人跟小團隊，現在能做到的事比以前多得多。這是學習跟建造的黃金年代。
+
+<ClawdNote>
+這封 letter 包裝成「engineering team 結構觀察」，但 Clawd 讀第二遍會發現下面藏了一個更尖的論點：**AI 工具的真正價值不是「讓 engineer 變更會寫程式」，是「讓一個人能跨多個專業思考」。**Ng 沒明講，但他列出來的五個卡關（PM、設計、行銷、法務、營運）每一個都需要不同領域的 context 才能下決定。當 LLM 把跨領域 context 的入場門檻降到「能讀文件、能問問題」這個程度，generalist 才終於走得通。
+
+不過這封 letter 也有個沒被點破的小弔詭——**Ng 同時主張小團隊 + generalist + 同一間辦公室**這三條件，其實是在描述一個 1985 年的 startup 神話。把 AI agent 抽掉，這就是 Bill Gates 跟 Paul Allen 在阿布奎基那間旅館房間裡寫 BASIC interpreter 的場景。Ng 把它包成「AI-native」，本質是「**過去要 100 個 engineer 才能做的事，現在 5 個人 + 5 個 agent 就能做**」——技術讓老的工作模式重新可行。
+
+對自己跑公司或個人 indie 的工程師，這封 letter 的具體 takeaway 不是「我也要學產品」這種太鬆的建議，是更尖的：**今天有什麼決定原本要等 PM 或設計師才能下，但現在自己讀一下文件、問一下 LLM、就可以自己下了？**把那張清單寫出來，把它們挪到自己的 inbox。Ng 講的速度提升其實就是這個動作累積出來的。
+
+至於那條反 remote 的潛台詞——Clawd 在這裡想多補一個維度。Ng 講的是「最高速」這個 superlative，不是「remote 不能用」。AI agent 變強之後 remote 其實有個被忽略的逆襲優勢：agent 本身就是 24 小時不睡、永遠 async、永遠可以 instantly 互動的「同房間隊友」。當團隊變成 5 個人類加 N 個 agent，「同房間」這個詞的定義會被重新寫。Ng 沒走到這一步，但這條路值得 indie hacker 自己想清楚 (◕‿◕)
+</ClawdNote>
+
+---
+
+## Life After Llama：Meta 棄開源那一刻
+
+開頭先給一個畫面——
+
+**同一條街四家牛肉麵。A 店一碗 1500 元、B 店 800 元、C 店 500 元、Muse Spark 那家收 500。盲測味道排名 A、B、C，然後 Muse Spark 第四。**
+
+這碗 Muse Spark 是 Meta 用九個月、燒 14.3 億美金、跟全業界搶人才之後端出來的第一鍋湯。排名第四，但定價只有第一名的三分之一——對需要餵全公司一整年的 product team 來說，這帳怎麼算都比「Index 第一加三倍成本」耐看。
+
+這就是 The Batch 349 頭條 "Life After Llama" 的核心反差：**Meta 一年多沒有新 model 之後，第一個交付不是 Llama 5、不是開源、是一個閉源的、token 效率猛、味道排第四的多模態 reasoning model**。它既是技術新聞，也是生態系新聞。
+
+把比喻翻譯回數字。Artificial Analysis 那家評測機構有一個叫 Intelligence Index 的綜合分（10 個經濟有用任務的平均），Muse Spark 用 reasoning 模式拿 52 分，**排第四**。前面是並列第三的 Gemini 3.1 Pro Preview（high reasoning）跟 GPT-5.4（xhigh reasoning）兩者都是 57，然後是 Claude Opus 4.6（max reasoning）的 53。但跑完整套 Index，**Muse Spark 大約用 5900 萬個 tokens、Claude Opus 4.6 用 1.58 億、GPT-5.4 用 1.16 億**——大約是 Opus 三分之一、GPT-5.4 二分之一的成本。
+
+換成廚房用語：**A 店煮一碗用三斤牛肉，Muse Spark 那家用一斤就煮出味道排第四的湯**——湯頭差一點點，但同樣的牛肉量他能出三碗。這個效率反差是 Muse Spark 整桌數字裡最值得停下來的一筆。
+
+接下來看細節。Muse Spark 接受文字、圖像、語音輸入，最高 262,000 個 tokens 的上下文，輸出文字。三種思考模式：instant（立即）、thinking（想一下）、contemplating（深思熟慮）。免費透過 meta.ai 跟 Meta AI app 開放，後續推到 WhatsApp、Instagram、Facebook、Messenger、Ray-Ban 智慧眼鏡，API 給選定合作夥伴 preview。
+
+強的領域很集中——**多模態跟健康**。看圖表（CharXiv Reasoning）86.4 分領先 GPT-5.4 的 82.8 跟 Gemini 3.1 Pro 的 80.2；解多領域視覺問題（MMMU Pro）拿 81 分第二（Gemini 3.1 Pro 82 第一）；OpenAI 出的最難版健康評測（HealthBench Hard）Muse Spark 42.8 分第一，GPT-5.4 40.1 第二。Meta 為了健康那塊**找了超過 1000 位醫師 curate 訓練資料**——這也是它在 HealthBench 領先的直接原因。
+
+弱的地方也很集中：**寫程式跟 agent 任務**。Coding Index 47 分落後 GPT-5.4 (57)、Gemini 3.1 Pro Preview (56)、Claude Sonnet 4.6 max reasoning (51)。Humanity's Last Exam 這個聞名的硬考題，Artificial Analysis 自己量測 Thinking 模式 39.9% 落後 Gemini 3.1 Pro Preview 的 44.7 跟 GPT-5.4 的 41.6（但 Meta 自家報告 contemplating 模式可以拉到 58）。
+
+兩個技術細節值得記下來。**Thought compression（思考壓縮）** 是 Meta 在後訓練階段做的怪事——對「想太多」這件事施加 RL penalty。RLHF 是「人類給回饋訓練 model」的做法，這次 Meta 換的版本是「想太久就扣分」。訓練軌跡很有意思：model 先靠多想表現變好、然後學會壓縮自己的思路、然後在壓縮的基礎上又再延伸思考進一步變好。一般 model 是被獎勵「想清楚」，Muse Spark 是被獎勵「想得短而精準」——這對 token 效率的反映很直接，但也是它寫程式跟 agent 任務不夠強的原因（這兩種任務天然需要長思考）。
+
+**Contemplating（深思）模式**走另一個方向。不是讓 model 自己想一條長 chain of thought，而是同時 launch 多個 agent 各自提出方案、refine、合議結果。Meta 說這在達到更好表現的同時，等待時間跟單 agent 模式差不多。
+
+Pre-training 那邊 Meta 也宣稱 Muse Spark 用了**比 Llama 4 Maverick 少超過十倍的算力**達到同等能力。具體 parameter 數量、模型架構、訓練資料、輸出長度上限都沒揭露——這跟 Meta 過去開源 Llama weights 的做法是 180 度反向。
+
+生態系那層才是這條故事的真正後座力。**這次發布讓 Meta 不再是美國 open weights 的旗手**。The Batch 用 "Life After Llama" 當標題不是隨便起的——很多 dev 跟 startup 是把產品建在 Llama 開源 weights 上。Meta 從 2025 年 6 月開始（按 The Batch 提及）用 Scale AI 的 49% 股權、Alexandr Wang 當 chief AI officer、百萬美金級的 pay package 重組整個 AI 部門；這次的第一個產品就是「閉源、API 給選定夥伴 preview」。The Batch 在 "Why it matters" 直接說：**「its pivot away from being the leading U.S. champion of open weights is a significant loss for the developer community.」**——Meta 不再扮演美國開源旗手，對開發者社群是實在的損失。
+
+The Batch 自家「We're thinking」那段點出一個正在浮出來的趨勢：**Muse Spark 的 contemplating 模式跟 Kimi K2.5 的 Agent Swarm 都指向同一個方向——更多 lab 用「推論時多 agent 並行」拉表現，而不是繼續訓更大的單一 model**。
+
+<ClawdNote>
+Muse Spark 那一整桌數字看完，最值得停下來盯的不是「第四名」，是 **token 效率：5900 萬比 1.58 億**。
+
+如果這個數字撐得住——意思是同一份工作 Muse Spark 真的只燒 Claude Opus 4.6 的 37%、GPT-5.4 的 51%——那它在「每件事多少錢」這條軸上是直接撞進 Sonnet 跟 Haiku 等級在拚的領域，不是 Opus 等級。對需要大量推論的 product 來說，「Index 第四加成本三分之一」這種組合比「Index 第一加三倍成本」吸引力大太多。
+
+但「token 效率猛 + coding 落後」這個組合不是巧合——thought compression 對一般推理有效率收益，但寫程式是個天然需要長思考的任務（要逐步推 type、debug、想清楚當下變數狀態）。把 reasoning token 當扣分項來訓，coding 就先犧牲了。Meta 自己也承認這個落差，所謂「我們在新架構上要再蓋大 model」就是把這顆遺珠寄望給下一代。
+
+至於開源轉閉源這件事——Meta 的論述是「我們投資的是產品野心：給數十億有相機的使用者多模態感知、健康推理、多 agent 協作」。商業上完全合理，但對 Llama 生態系是實在的傷害：開源 weights 的下一個 frontier model 從哪來？目前現實的答案是中國方向（Qwen、DeepSeek、Kimi）跟法國 Mistral，**美國西岸 lab 的開源旗手位置在這一刻空了出來**。
+
+順便吐槽一句——Meta 把這次重組叫 "Superintelligence Labs"，這個命名在 2026 年 Q2 已經是個生態系訊號詞。一年前 OpenAI、Anthropic、Google 講的是「safety」「alignment」這類詞；現在 Meta 直接把 "Superintelligence" 當 lab 名字，搭配 "Labs" 這個複數形——暗示後面還會有 model 接著推。**Lab 的命名是品牌定位，不是技術現實**——14.3 億美金燒下去九個月、跟全業界搶人，最後拿到 Index 第四名。技術上 Muse Spark 確實有亮點（token 效率、HealthBench、CharXiv），但「Superintelligence」這個自封要 hold 住第四名是有點尷尬的——這個品牌跑得比 model 快了一個身位 (¬‿¬)
+</ClawdNote>
+
+---
+
+## 兩個訊號擺同一張桌：方向相反，但其實在不同樓層
+
+Andrew Ng 講小團隊跟 generalist 跑得最快、共用同一間辦公室才是最高速。Meta 同一份 newsletter 把「砸 14.3 億組 1000 人 lab」的成果端上桌。表面上這是矛盾的兩條——一個說小、一個說大；一個說溝通要無摩擦、一個是封閉 API preview；一個鼓勵自己一條龍做完、一個用深度專業訓 1000 位醫師當回饋評審。
+
+但仔細看會發現它們其實在**整個 AI 產業的不同樓層**：
+
+- Ng 在講**用 model 的小團隊**該長什麼樣
+- Meta 在講**做 model 的大實驗室**該長什麼樣
+
+Ng letter 末段自己也承認：小團隊的觀點適用 2 到 10 個人，較大團隊的協調之後再寫——他**沒在主張 1000 人 lab 不該存在**。Muse Spark 的 contemplating 模式跟 Ng 的 generalist 結構意外有連通：把「一個 individual 跨多個角色思考」放大到「一個推論呼叫裡多個 agent 並行提案」，本質上是同一個結構在不同尺度。
+
+真正的分歧不在「規模」這條軸，是在**開源 vs 閉源**跟**溝通自由 vs 受控 API**。
+
+Ng 講的快團隊有一個藏起來的前提——**資訊流動的摩擦要降到最低**。同一間辦公室、隨時能對話、engineer 直接做產品決定。Meta 走的方向是把訓練流程整個變成黑箱（parameter、架構、訓練資料全沒揭露）+ API 只給選定夥伴用。這兩條對開發者生態系的影響是相反的：Ng 鼓勵更多 indie hacker 跳進來自己做產品；Meta 把可以拿來自己 build 自家版本的開源 frontier 收回去了。
+
+把兩者擺在 indie hacker 的桌上，這樣 framing 比較清楚：
+
+**Ng 的 letter 是給「使用 AI 的團隊」看的劇本**——可以照做、立刻有效、今天就能調整。
+**Muse Spark 是給「同樣在做 model 的競爭對手」看的訊號**——大廠在另一個方向繼續加碼，但要等 API 全面開放才能拿來用。
+
+兩條都對。差別在時間。短期內，照 Ng 的劇本把自己變 generalist、把團隊壓在 sweet spot，比追每一個 model release 來得直接。
+
+<ClawdNote>
+這個對比還有一個沒被 The Batch 自己拉出來的維度：**Ng 是 DeepLearning.AI 的 CEO**，他寫的 letter 在自己的 newsletter 裡刊出，立場本來就有 incentive 偏向「indie hacker、個人開發者學得會、做得起來」這條。Meta 是大廠，財報壓力指向「ship 自家旗艦、抓 enterprise 客戶」。兩邊都不假，只是要記得**兩邊的 framing 是站在自己的角度上講話**。
+
+更抽掉一層——當一個大廠 CEO 跟一個教育公司 CEO 同一週都在寫 essay，他們其實在競爭同一批人的注意力。對 indie hacker 來說，這場 narrative 戰爭比 Muse Spark 的 benchmark 數字重要：因為決定接下來六個月你怎麼分配時間的，不是 Muse Spark 多快，是你買了哪一邊的故事。
+
+所以 Clawd 在這裡的小建議是——讀 newsletter 之前先把作者的 incentive map 一下。Ng 想要更多人來上他家的課；Meta 想要更多人 build on 他家 API。兩個都不是壞事，但**讀完文章再看一次「誰寫的、為誰寫的」這條，文章味道會立刻變**。╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## 同期還有兩條：每一條都是 Ng 那個卡關觀察的不同變奏
+
+The Batch 349 還有兩條夠分量的故事，放在這篇 SP 不是為了把整期 recap 一遍，是因為**它們都剛好是 Ng 那個 bottleneck-relocation 觀察在不同產業的具體形狀**。
+
+### 製藥業：Eli Lilly 砸 27.5 億給 Insilico，做藥變快了，過審還是一樣慢
+
+Eli Lilly——市值最高的製藥公司——同意給 Insilico Medicine 最多 27.5 億美金做未公開疾病的新藥開發權。前期 1.15 億美金拿排他權，後續按開發、法規、商業里程碑分批付。
+
+Insilico 2014 年成立、總部香港，已經有 28 個候選藥，大概一半進到臨床試驗。最進階那支叫 Rentosertib，治一種叫 idiopathic pulmonary fibrosis（IPF）的肺部纖維化疾病。Phase 2a 試驗顯示**最高劑量組的肺活量平均增加 98.4 ml，安慰劑組則下降 20.3 ml**——這是 AI 設計的藥物在病人身上產生**具體可量測改善**的早期但實在的證據。
+
+技術 stack 兩層。**PandaOmics** 是找蛋白質目標用的——分析資料庫、論文、專利、grant、臨床試驗，深度學習模型排序候選 target 的疾病關聯度跟新穎度。IPF 那次 PandaOmics 排出來的第一名是 TNIK，**之前沒人試過用阻斷 TNIK 治 IPF**。**Chemistry42** 是設計分子用的——大約 30 個生成模型並行產候選分子結構，每個都優化跟蛋白質的結合強度、毒性、溶解度。最後合成跟測試**不到 80 個化合物就找到主要候選分子**。傳統流程通常要篩 20 萬到 100 萬個化合物。
+
+時間更猛：找 target 到合成可進臨床前安全測試的分子，**18 個月，傳統要 5 到 6 年**。
+
+但 The Batch 同時保留 hedge——一個藥從開發到上市通常 10 到 15 年、超過 20 億美金成本，**86% 的候選藥走不到批准**。AI 開發的藥到 2025 年中累積 173 個 across 各個臨床階段，**目前還沒有任何 AI 設計的藥拿到正式批准**。Phase 2 之後 70% 過不了下一關，BenevolentAI 跟 Recursion Pharmaceuticals 的 AI 設計藥都有 Phase 2 失敗紀錄。
+
+這條故事的重點不是「AI 會發現新藥」這種樂觀，是**Ng 的卡關觀察精準對應到製藥業**——當 model 把「找目標 + 設計分子」這條路從幾年壓到幾個月，瓶頸立刻轉到臨床試驗跟 FDA 審查。那條路是按真實時間招募患者的、是不能用 model 加速的。AI 把漏斗上端拓寬，漏斗中下段反而被凸顯出來。
+
+### Persona Generators：synthetic users 也許是 PM 卡關的一條解法
+
+第二條是 Google 研究團隊（Davide Paglieri、Logan Cross 等人）的 ML Research——Persona Generators，**自動生 25 個跨光譜 persona prompt 的方法，幫 LLM 模擬有真實意見差異的合成 user**。
+
+問題出發點：傳統做法是直接寫 prompt 叫 LLM「假裝是某種 demographic 的人回答這題」，結果 LLM 會回 average 答案，**反映不出真實人口會有的意見光譜**。就算 prompt 明確指定 demographic 也一樣。
+
+研究團隊的做法是把 persona 生成本身變成一個被演化演算法優化的程式。用 AlphaEvolve（Google 的演化 code search 工具）反覆改寫生 25 個 persona 的程式，用 Concordia（agent-based simulation library）跑 Gemma 3-27B-IT model 讓每個 persona 回答問卷、把答案 vector 化、計算 diversity 分數。500 次迭代、10 個並行版本之後，挑 diversity 最高的版本。
+
+成績：覆蓋 82% 的可能回答，比 Nemotron Personas 的 76% 跟 Concordia 自家 memory generator 的 46% 都高。**重點不是改善平均，是改善覆蓋率**。
+
+The Batch 自家結尾的點題很直白：「Synthetic personas offer an intriguing possibility for navigating the product-management bottleneck, the difficulty of deciding what to build when you can build easily by prompting an LLM.」
+
+換句話說——**當蓋產品變便宜、決定蓋什麼變貴的時候，把「找多元使用者意見」這件事也變便宜，是另一條解 PM 卡關的路**。Ng 的解法是讓 engineer 兼 PM、Google 這篇研究的解法是讓 PM 用 25 個合成 persona 代替「實際辦使用者訪談」這件事。兩條 sim 的方向其實是互補的。
+
+<ClawdNote>
+這兩條故事擺在一起讀，會發現 The Batch 編輯部其實在做同一件事——**把不同產業裡「AI 把漏斗某一段拓寬，漏斗別段被凸顯」的案例貼成同一張地圖**。製藥業是漏斗中段（臨床試驗）凸顯；Persona Generators 是 PM 卡關被另一個方向繞過。
+
+製藥業這條 Clawd 想多酸一句。Insilico 把藥物設計從 5-6 年壓到 18 個月很猛，但 86% 的候選藥走不到批准、Phase 2 之後 70% 失敗——這個分母**不會因為 AI 設計分子就自動變更小**。AI 把漏斗上端拓得更寬，意思是 86% 失敗率將要在更大的分子數量上演，**算下來就是更多失敗、更多燒錢、更多走到 Phase 3 才知道走不通**。BenevolentAI 跟 Recursion Pharmaceuticals 已經幫業界示範過這條 lesson，Eli Lilly 用 27.5 億美金跟 Insilico 簽的不只是藥權，是「**這次 AI 真的能改善 86% 那條失敗線**」的下注——5 年後值得回來再看一次。
+
+Persona Generators 這條是兩條裡最有趣的——**Ng 跟 Google 的解法剛好朝不同方向走**。Ng 說「engineer 兼 PM 解 PM 卡關」，Google 說「合成 persona 補 PM 的 user research 頻寬」。一個是壓縮角色數量、一個是放大每個角色的觸角。indie hacker 兩條都能套——自己當 PM 時用 25 個合成 persona 跑 user research、跑早期 feedback、跑 marketing copy 測試。AlphaEvolve 那層離自己組系統還遠，但用現成 prompt template 模擬 25 種 user 反應，今天就能做 (◕‿◕)
+</ClawdNote>
+
+---
+
+## 結語：擺同桌就是答案的一半
+
+The Batch issue 349 把 Ng 的 letter 跟 Meta 的 Muse Spark 同期端上桌。沒有任何一篇文章明說兩條相關，但讀者順著讀下來會自動 frame 兩條為「同一個生態系的兩個故事」。這是 Ng 作為 newsletter 主理人的編輯權力——**版面安排本身就是論點**。
+
+把 5 條故事讀完留下來的那句話，不是「AI 又在改變什麼」這種太鬆的東西。是這樣：
+
+**過去十年「想到再做」這條路被打通了，但「該想什麼」這條路反而擠住了**。Andrew Ng 講小團隊讓 engineer 自己想；Meta Muse Spark 用多 agent 並行替決策者想；Insilico 用 PandaOmics 替醫藥研究員想；Google 的 Persona Generators 替 PM 把 25 個不同 user 的反應提前想過。**全部都在處理同一個問題——當「動手做」變便宜，「決定做什麼」變貴**。
+
+回到開頭那條街兩家麵店——A 店一個人煮、B 店一千個人。麵端上桌之後，吃麵的人問的問題其實只有一個：「下一碗該想什麼口味？」這一碗那家店做得多好不重要——下一碗該不該存在、該長什麼樣，才是這個時代真正的問題。
+
+Ng letter 結尾那句話在英文裡聽起來有儀式感：
+
+> "individuals and small teams who are willing to learn the relevant skills are now able to get far more done than was possible before. This is the golden age of learning and building!"
+
+直譯大概是「願意學新技能的個人跟小團隊，現在能做到的事比以前多得多。這是學習跟建造的黃金年代。」這句話放在 The Batch 349 全期讀完的位置最有力——**因為這一期同期擺出 Meta、Eli Lilly、Google 這些大玩家的動作，而 Ng 在最開頭那封 letter 把「黃金年代」這個包裝留給了個人**。
+
+兩個訊號擺同桌。讀懂編輯怎麼擺，比讀懂任何一條訊號重要。
+
+<ClawdNote>
+寫到這裡 Clawd 想留一個最後的觀察。**The Batch 349 真正的訊號不是「Meta 棄開源」也不是「Ng 講小團隊」**——是這兩條被同一份 newsletter 用同樣的字級、同樣的版面排在一起這件事本身。
+
+Ng 把自家 letter 放卷首，Meta 故事放 News 頭條，Eli Lilly 跟法規條目跟 Persona Generators 散在後面。讀者讀完會自動把這五條 wire up 成「同一個世界正在發生的事」——但**這是編輯做的工，不是世界自己長這樣**。實際情況是這五條故事各自的當事人沒打算對話：Ng 沒在跟 Meta 對話、Meta 沒在跟 Eli Lilly 對話、Insilico 沒在跟加州議員對話、Google 那篇研究跟其他四條沒交集。是 The Batch 編輯部把它們縫起來。
+
+對 SP 讀者的最後 takeaway 不是任何一條故事的具體 takeaway，是這個更後設的觀察——**訊息消費的下一個技能是「看穿編輯的版面選擇」**。哪些故事被放在卷首？哪些被放在 footer？哪些被刻意 wire up？這個 meta-skill 比追任何一個 model release 都重要，因為它決定了你怎麼分配未來六個月的注意力。
+
+Ng 跟 Meta 同期擺上桌的這個編排，Clawd 讀完願意買 Ng 那條故事——不是因為 Meta 的故事不重要，是因為 Ng 那條今天就能照做、Meta 那條要等 API GA 才有得用。短期要能照做的版本，比長期要等的版本實用。但等 Muse Spark API 真的對外、等 contemplating 模式的 multi-agent orchestration 變成 first-class feature，故事就會反過來——那時候再回頭重讀這篇 letter，編輯擺的這張桌會看到不同的東西 ٩(◕‿◕｡)۶
+
+最後回到開場那個比喻——同一條街兩家麵店，A 店一個人煮、B 店一千個人。讀者今天在哪一家吃麵不重要。重要的是知道**這條街上接下來還會開幾家、各家做的是什麼湯頭**。The Batch 349 給的真正訊號是：街正在變熱鬧，多看幾家門口就懂這個道理。
+</ClawdNote>
