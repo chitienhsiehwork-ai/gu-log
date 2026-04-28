@@ -14065,5 +14065,97 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-28T14:47:27+08:00"
+  },
+  "sp-185-20260428-andrew-ng-meta-muse-spark-the-batch-349.mdx": {
+    "article": "sp-185-20260428-andrew-ng-meta-muse-spark-the-batch-349.mdx",
+    "startedAt": "2026-04-28T15:17:55+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 10,
+            "crossRef": 9,
+            "sourceAlign": 10,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "All key technical terms used in the post are linked to glossary anchors: Open Weights (×2), Frontier Model, Agent (×2), Token, 多模態/Multimodal, Thought Compression, RLHF, Contemplating Mode (×2), Prompt. No unlinked first-mention misses among glossary-eligible terms. Coverage is exemplary.",
+            "crossRef": "All 5 internal /posts/ links verified to resolve in src/content/posts/: sp-111-20260311-andrewyng-context-hub-coding-agent-api, cp-278-20260411-andrewyng-ai, cp-281-20260412-meta-meta-muse-spark (the prior Muse Spark first-take), sp-59-20260214-batch340-andrewng-hollywood, cp-199-20260323-andrewyng-agent-andrew-ng-session. Thematic connections strong — Ng's AI-native team thesis is anchored to two prior Ng posts at first mention; Muse Spark explicitly references CP-281's prior coverage. Minor gap: Clawd persona is referenced extensively in ClawdNote components but never anchored to /about; ClawdNote component arguably implies identity, so this is borderline rather than disqualifying.",
+            "sourceAlign": "Content faithfully derived from sourceUrl (The Batch 349). All four major stories (Ng's letter, Life After Llama / Muse Spark, Eli Lilly–Insilico, Persona Generators) match the issue, with editorial framing (\"擺同桌\") that mirrors The Batch's own juxtaposition. Direct English quote from The Batch's \"Why it matters\" section preserved verbatim.",
+            "attribution": "Quotes attributed to named sources (Ng letter, The Batch \"Why it matters\", Artificial Analysis Intelligence Index). Benchmark numbers tied to specific evaluations (CharXiv Reasoning, MMMU Pro, HealthBench Hard, Coding Index, HLE). Phase 2a IPF trial figures (98.4 ml / -20.3 ml) cited. ClawdNote opinions clearly walled off in ClawdNote components. Small gap: \"按 The Batch 自家敘述\" hedge could pin to specific subsection; one or two ClawdNote interpretations (e.g., \"美國西岸實驗室開源旗手位置空了出來\") are clearly opinion but lean strong enough that explicit Clawd voice marker would help."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Vast majority of numbers verified against The Batch 349 source (Index 52/57/57/53; tokens 59M/158M/116M; CharXiv 86.4/82.8/80.2; MMMU Pro 81/82; HealthBench Hard 42.8/40.1; Coding 47/57/56/51; HLE 39.9/44.7/41.6/58; 262K context; $14.3B/49% Scale AI; $2.75B/$115M Eli Lilly-Insilico; 98.4ml vs -20.3ml; <80 vs 200K-1M compounds; 18mo vs 5-6yr; 82%/76%/46% persona coverage). One material error: post twice describes Meta's recruitment as '百萬美元級的薪酬方案' (million-dollar level), but source explicitly says 'pay packages worth hundreds of millions of dollars' — roughly 100x understatement.",
+            "fidelity": "Hedges and caveats well preserved (傳統/通常/可能, 86% 失敗率, 'no AI-discovered drug has received regulatory approval' fully translated, Meta-reported vs Artificial-Analysis-measured HLE distinction kept, Ng's 2-10 person scope caveat retained, 'remote teams can perform well too' nuance kept). ClawdNote opinions cleanly fenced inside <ClawdNote> tags. Direct English quotes match source verbatim. Fidelity penalty for the same hundreds-of-millions → millions mistranslation, the kind of magnitude erasure this dimension penalizes.",
+            "consistency": "Argument arc holds throughout: bottleneck-shift thesis is introduced, applied to Ng's letter, contrasted with Meta's lab-scale bet, then mapped onto Insilico (clinical-trial bottleneck) and Persona Generators (PM bottleneck) — every section ties back to the same frame. ClawdNote speculation is clearly marked as opinion, not body fact. No internal contradictions; the noodle-shop analogy is consistent across opening, body, and closing."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-28T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Strong LHY teaching feel in Ng and comparison sections with threaded 麵店 analogy, but Muse Spark benchmark parade (lines 110-128) slides into dense reporting mode that breaks the oral rhythm.",
+            "clawdNote": "4/5 notes are substantively opinionated — 1985 Bill Gates parallel, Ng conflict-of-interest callout, 'brand running ahead of model' 吐槽, and pharma failure rate acid all show genuine stance-taking beyond explanation.",
+            "vibe": "The meta-editorial framing ('版面安排本身就是論點') is genuinely interesting and the 麵店 callback lands, but the Muse Spark numbers section is dense enough to lose casual readers on mobile.",
+            "clarity": "Body text clean of 你/我 throughout; subjects consistently named (Ng, Meta, Muse Spark, Insilico); voice attribution unambiguous with ClawdNote opinions staying inside ClawdNote.",
+            "narrative": "The 'different floors' synthesis and meta-editorial conclusion provide genuine peaks beyond linear reporting, but the two-more-stories section reads somewhat tacked-on and Muse Spark section reverts to explain-numbers-ClawdNote template."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-28T15:33:31+08:00"
   }
 }
