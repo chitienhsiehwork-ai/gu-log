@@ -14244,5 +14244,98 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-28T16:17:53+08:00"
+  },
+  "cp-201-20260323-karpathy-ai-psychosis-no-priors-podcast.mdx": {
+    "article": "cp-201-20260323-karpathy-ai-psychosis-no-priors-podcast.mdx",
+    "startedAt": "2026-04-28T16:48:19+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 8,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Key glossary terms linked on first mention: [Agent](/glossary#agent) at the opening paragraph and [Vibe Coding](/glossary#vibe-coding) inside the first ClawdNote. Minor gap: 'sub-agent' appears once in a ClawdNote without linking to the Subagent glossary entry, and 'RLVR' is mentioned but is not (yet) in glossary.json. Core coverage is solid.",
+            "crossRef": "Five internal /posts/ cross-references in total (one inline to agentic-engineering, one inline to 2025-llm-review, plus three in 延伸閱讀 to agent-shift, agentic-engineering, and 2025-llm-review). All three slugs verified to exist in src/content/posts/. Thematic chain is well-curated for the phase-shift narrative. ShroomDog/Clawd identity links not required since neither name appears in body text (Clawd voice is conveyed via the ClawdNote component).",
+            "sourceAlign": "sourceUrl points to @saranormous's X post for the No Priors episode with Karpathy; content faithfully summarizes the podcast's stated points (12月轉折、80% agent、AI psychosis、second-order effects at 11:16、AutoResearch) without drift or fabrication. Timestamp citation shows direct engagement with the source material.",
+            "attribution": "Excellent attribution discipline — claims tagged with 'Karpathy 說/認為/形容/的觀點是', timestamp citation (大約 11:16) for second-order effects segment, ClawdNote voice cleanly separated from body facts via component boundary, and a final self-audit block explicitly documents which numbers (80%/16h/12月) come from Karpathy's reported quotes."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Every named concept verified against the source tweet's chapter list — phase shift, AI psychosis, AutoResearch, SETI-at-Home, second-order effects, model speciation. The 11:16 timestamp matches 'Second Order Effects of Coding Agents' exactly. Specific stats (80%/20% ratio, 16 hrs/day, December turning point) come from podcast audio not the tweet metadata, so unverifiable here, but framing is fully consistent with Karpathy's documented agentic-engineering arc.",
+            "fidelity": "Hedges consistently preserved: '他說', '他描述', '他認為', '他形容自己處於一種'. ClawdNote opinions cleanly walled off via component (e.g., calibration discussion, RLVR backdrop are clearly marked as Clawd takes, not Karpathy). No uncertainty erasure detected; closing line '已經發生了' faithfully tracks Karpathy's own assertion that phase shift is past tense, not future.",
+            "consistency": "Section order tracks the source tweet chapter list (Mastery → Second-Order → AutoResearch → speciation). Argument chain — 80% delegation → AI psychosis as failure mode → calibration as required skill → second-order effects on team/pricing — flows without internal contradiction. ClawdNotes attach to the section they comment on; the RLVR cross-link in the second ClawdNote is clearly framed as Clawd's own connecting hypothesis, not a Karpathy claim."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "整體順讀，phase shift 跟 calibration 都附中文解釋。RLVR 跟 speciation 沒展開會卡一下，AutoResearch 那段太短像筆記，但不至於迷路。",
+            "firstImpression": "「12 月起沒寫過一行 code」鉤子夠強，AI psychosis 概念有記憶點，看完會想轉到群組。"
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 9,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Surgeon opening and fire pot analogy are quintessential LHY, but AutoResearch section slides into reporting mode and the explain-concept-then-Karpathy-says rhythm gets slightly predictable.",
+            "clawdNote": "All 4 notes carry genuine opinions — Note 3 challenges Karpathy's typing-time-to-zero assumption, Note 4 dismantles the SETI-at-Home analogy's applicability to judgment-heavy research.",
+            "vibe": "AI psychosis concept hooks and the fire pot analogy is memorable, but momentum dips in AutoResearch section before the ending callback recovers it.",
+            "clarity": "Body text zero pronoun violations, Karpathy always explicitly named or clearly referenced, attribution precise throughout.",
+            "narrative": "Real escalation framing and surgeon callback ending land well, but the skeleton still follows podcast topic order without a genuine surprise twist."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-28T17:06:07+08:00"
   }
 }
