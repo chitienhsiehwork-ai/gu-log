@@ -44,7 +44,8 @@ LEGACY_QUOTA=false
 
 # ─── Closed-loop controller constants ────────────────────────────────────────
 MIN_COOLDOWN=10        # seconds — floor for inter-article wait
-MAX_COOLDOWN=1800      # seconds (30 min) — ceiling / hard stop
+MAX_COOLDOWN=1800      # seconds (30 min) — short-window/fallback ceiling; weekly debt can sleep longer
+WEEKLY_WINDOW_SEC=604800 # seconds (7 days) — Claude weekly window length for projected-quota scheduler
 ARTICLE_COST_PCT=0.5   # % per article (cold start; EMA calibrates after ~5 articles)
 AVG_ARTICLE_TIME=1800  # seconds (~30 min average per article, for worker count estimation)
 EMA_ALPHA=0.3          # calibration smoothing factor
@@ -406,6 +407,7 @@ article_cost = float('$ARTICLE_COST_PCT')
 min_cd = float('$MIN_COOLDOWN')
 max_cd = float('$MAX_COOLDOWN')
 extra_threshold = float('$EXTRA_USAGE_LIMIT')
+weekly_window_sec = float('$WEEKLY_WINDOW_SEC')
 
 # Extra usage safety valve
 if extra_enabled and extra_limit > 0 and (extra_used / extra_limit) > extra_threshold:
@@ -414,6 +416,19 @@ if extra_enabled and extra_limit > 0 and (extra_used / extra_limit) > extra_thre
 
 # Feedforward compensation: subtract in-flight workers' estimated cost
 inflight_cost = active_workers * article_cost
+
+# Weekly projected-quota scheduler.
+# The weekly bucket is shared with the human. Treat it as a budget curve, not a
+# capped retry loop: if the remaining quota only covers a later slice of the
+# week, pause until one article can be spent while still leaving projected quota
+# for the rest of the weekly window.
+if seven_reset_sec > 0 and weekly_window_sec > 0:
+    projected_after_one = seven_pct - inflight_cost - article_cost
+    target_reset_sec = max(0.0, projected_after_one / 100.0 * weekly_window_sec)
+    debt_sleep = int(seven_reset_sec - target_reset_sec)
+    if debt_sleep > min_cd:
+        print(f'{debt_sleep}|0|seven_day|weekly_debt')
+        sys.exit(0)
 
 def compute_window(remaining_pct, reset_sec, inflight_cost):
     \"\"\"Return (cooldown_sec, is_active).
@@ -961,15 +976,15 @@ while true; do
     quota_controller_write_state "$CONTROLLER_MODE" "$five_pct_raw" "$seven_pct_raw" \
       "$CONTROLLER_COOLDOWN" "$CONTROLLER_WORKERS" "$CONTROLLER_BINDING" "$ARTICLE_COST_PCT"
 
-    # Handle floor stop / extra limit
-    if [ "$CONTROLLER_MODE" = "floor_stop" ] || [ "$CONTROLLER_MODE" = "extra_limit" ]; then
+    # Handle stop modes: hard floor / extra limit / weekly projected-quota debt.
+    if [ "$CONTROLLER_MODE" = "floor_stop" ] || [ "$CONTROLLER_MODE" = "extra_limit" ] || [ "$CONTROLLER_MODE" = "weekly_debt" ]; then
       if (( IN_FLIGHT > 0 )); then
         tlog "Controller mode=$CONTROLLER_MODE; waiting for in-flight workers."
         wait_any_worker
         continue
       fi
       tlog "Controller mode=$CONTROLLER_MODE; sleeping ${CONTROLLER_COOLDOWN}s (interruptible)."
-      rc_write_state "stopped_by_quota" "mode=${CONTROLLER_MODE} cooldown=${CONTROLLER_COOLDOWN}s"
+      rc_write_state "stopped_by_quota" "mode=${CONTROLLER_MODE} cooldown=${CONTROLLER_COOLDOWN}s binding=${CONTROLLER_BINDING}"
       rc_interruptible_sleep "$CONTROLLER_COOLDOWN" || true
       continue
     fi

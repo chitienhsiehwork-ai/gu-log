@@ -178,7 +178,36 @@ print(f'{int(cd_5hr)}|{int(cd_7day)}|{binding}')
 IFS='|' read -r cd5 cd7 binding <<< "$result"
 assert_eq "7day under pressure → 7day binds" "seven_day" "$binding"
 
-# ─── Test 3: Conservative merge (max of two cooldowns) ───────────────────────
+# ─── Test 3: Weekly projected-quota checkpoint ───────────────────────────────
+echo ""
+echo "--- Weekly projected-quota checkpoint ---"
+
+result=$(python3 -c "
+weekly_remaining = 30.0
+weekly_reset_sec = 3.8 * 86400
+article_cost = 1.03
+week_sec = 7 * 86400
+# Next dispatch is safe when one article can be spent while leaving enough
+# quota for the projected fraction of the weekly window still ahead.
+target_reset_sec = max(0, (weekly_remaining - article_cost) / 100.0 * week_sec)
+sleep_sec = max(0, int(weekly_reset_sec - target_reset_sec))
+print(sleep_sec)
+")
+assert_between "weekly 30% rem with 3.8d left → sleep roughly 1.8d" "150000" "160000" "$result"
+
+result=$(python3 -c "
+weekly_remaining = 90.0
+weekly_reset_sec = 6.0 * 86400
+article_cost = 1.0
+week_sec = 7 * 86400
+# Early in the week with surplus remaining: projected scheduler should allow dispatch.
+target_reset_sec = max(0, (weekly_remaining - article_cost) / 100.0 * week_sec)
+sleep_sec = max(0, int(weekly_reset_sec - target_reset_sec))
+print(sleep_sec)
+")
+assert_eq "weekly surplus → no long debt sleep" "0" "$result"
+
+# ─── Test 4: Conservative merge (max of two cooldowns) ───────────────────────
 echo ""
 echo "--- Conservative merge ---"
 
