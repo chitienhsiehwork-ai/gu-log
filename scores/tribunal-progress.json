@@ -13331,5 +13331,96 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-28T08:19:34+08:00"
+  },
+  "cp-207-20260325-adam-conway-python-litellm.mdx": {
+    "article": "cp-207-20260325-adam-conway-python-litellm.mdx",
+    "startedAt": "2026-04-28T08:50:01+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 10,
+            "crossRef": 9,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Only glossary-relevant term in the post is MCP, which is correctly linked to /glossary#MCP at line 43. No unlinked glossary terms — LiteLLM/Cursor/Python/PyPI/K8s/AWS aren't in glossary.json.",
+            "crossRef": "All 4 internal post links verified to exist in src/content/posts/ (CP-257, CP-209, SP-76, SP-149) with strong thematic connections — same TeamPCP campaign chain analysis, Karpathy's parallel take on the same day, broader agent-security architecture posts. No /about identity link, but 'Clawd' only appears via <ClawdNote> component, not as inline body text, so identity link rule doesn't apply.",
+            "sourceAlign": "Content faithfully tracks the declared XDA sourceUrl — LiteLLM 1.82.7/1.82.8 backdoor mechanics, .pth auto-execution detail, TeamPCP attribution + Trivy/KICS prior incidents, FutureSearch discovery via Cursor MCP fork-bomb, three-stage payload, and remediation steps all clearly derived from source.",
+            "attribution": "Strong attribution discipline throughout: '原作者表示/補充', '原文報導', 'FutureSearch 的分析/指出', commit message quote 'teampcp owns BerriAI' attributed to fork repo, specific stats (40k+ stars, RSA-4096, AES-256-CBC, dates 3/19/3/23/3/24) properly sourced. ClawdNote commentary cleanly separated from body facts."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-28T00:00:00Z",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "Headings split the story cleanly (出事 → 駭客 → 偷什麼 → 怎麼辦), .pth 自動執行的雷直接點明，MCP 還有連結可點；kube-system / systemd / C&C 對新手稍重但不到迷路，整篇沒有需要回頭重讀的段落。",
+            "firstImpression": "開頭『背脊發涼 + pip install 就中招』直接抓人，『怪盜基德的預告信』『底褲都被看光了』這種比喻讓技術新聞變好讀，結尾還給了具體 4 步檢查清單——會想轉給用 Python 的朋友；只是 (◍•ᴗ•◍) 這類顏文字在講盜密鑰段落有點出戲。"
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 9,
+            "vibe": 9,
+            "clarity": 9,
+            "narrative": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "LHY feel strong throughout — 萬用遙控器/怪盜基德/搬家公司/滅火器 analogies land naturally in oral voice; harsh on tech ('反人類') but kind framing toward affected devs.",
+            "clawdNote": "All 5 notes carry clear opinions, not just explanations — '品牌經營' reframing of crime-scene signing, 'Series A' quip on TeamPCP execution, '信任預設' as the true attack surface; cross-refs to CP-257/CP-209/SP-76/SP-149 add genuine synthesis.",
+            "vibe": "Security incident made genuinely entertaining via heist-movie framing (三幕劇) and detective-story pacing (怪盜基德); would share with a dev friend who doesn't usually read security advisories.",
+            "clarity": "Zero pronoun ambiguity in body text; every sentence has a named subject (FutureSearch/TeamPCP/原作者); ClawdNote 我 is unambiguously Clawd; attribution crisp throughout.",
+            "narrative": "Genuine escalation arc — cinematic cold open → mechanism reveal → detective pivot (who/why) → heist-movie payload → callback to coffee engineer; strip test passes: skeleton is scene→detective→drama→implications, not a linear report."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-28T09:05:43+08:00"
   }
 }
