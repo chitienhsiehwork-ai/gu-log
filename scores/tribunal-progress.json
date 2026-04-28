@@ -13788,5 +13788,97 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-28T12:21:34+08:00"
+  },
+  "cp-202-20260324-noahzweben-claude-code-scheduled-tasks.mdx": {
+    "article": "cp-202-20260324-noahzweben-claude-code-scheduled-tasks.mdx",
+    "startedAt": "2026-04-28T12:52:02+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 7,
+            "crossRef": 8,
+            "sourceAlign": 9,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Claude Code linked once to /glossary on first mention, but Hooks, MCP, Agent all appear later unlinked — most glaring is the last ClawdNote's 'CLAUDE.md、Hooks、MCP 全部拆開講了' where three glossary terms appear in a row with zero links.",
+            "crossRef": "All 4 internal post links verified as real slugs: /posts/sp-86-20260225-simonw-claude-code-remote-cowork/, /posts/agent-ships-while-you-sleep/ (SP-5), /posts/cp-215-20260327-noahzweben-claude-code-auto-fix-pr-ci-comment/, /posts/clawd-picks-20260212-bcherny-claude-code-customization/. Minor gap: ClawdNote voice used 4× without a first-mention Clawd→/about identity link (ShroomDog not mentioned, so that's N/A).",
+            "sourceAlign": "Content faithfully derived from Noah Zweben's X post — topic (Claude Code recurring cloud-based scheduled tasks), Noah's role on the Claude Code team, and the 7,400+ likes / 560 reposts engagement stats all match the declared sourceUrl.",
+            "attribution": "Noah Zweben clearly identified as Claude Code team member with platform (X). Engagement stats tied to '那則推文'. ClawdNote opinions cleanly fenced inside <ClawdNote> components, well separated from body. Minor gap: GitHub Actions vs Claude Code framing is presented as authorial analysis without sourcing — borderline fact/opinion blur in body."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Core feature description (repo + schedule + prompt → cloud infra) matches source tweet exactly; Noah Zweben correctly identified as Claude Code team member (he's PM @anthropicai); 7,400+ likes matches actual count; however post claims '560 次轉發' while actual retweet count is 874 — minor numerical discrepancy.",
+            "fidelity": "Faithful expansion of the three-sentence tweet; the recurring/cloud/repo-schedule-prompt triple is preserved without uncertainty erasure; ClawdNote speculation (e.g., 'crontab 活了 40 多年' vs scheduler longevity) clearly separated from source claims; analogies (郵局/實習生/夜班) are writer's framing, not fabricated source claims.",
+            "consistency": "Argument flows cleanly from feature description → use cases → comparison with GitHub Actions → philosophical framing; ClawdNotes consistently mark opinion (e.g., '公平講, intent-based 也有自己的坑') vs reported fact; the 'declarative vs imperative' contrast with GitHub Actions is internally coherent and doesn't overstate."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-28T00:00:00Z",
+          "dimensions": {
+            "readability": 9,
+            "firstImpression": 9
+          },
+          "score": 9,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 9,
+            "clawdNote": 8,
+            "vibe": 9,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "電子倉鼠 opening + 導演vs編劇 + 實習生SOP analogies all land with genuine oral feel; reads like LHY lecturing, not writing.",
+            "clawdNote": "Half have clear opinions — crontab 40-year skepticism and 'production-critical 留給 CI/CD' pushback are genuine positions, not cheerleading.",
+            "vibe": "Opening hooks immediately, GH Actions comparison section is genuinely fun, 倉鼠→雲端滾輪 callback sticks — would share with a dev friend.",
+            "clarity": "Body text avoids 你/我 consistently; every sentence has named subjects (Noah, Claude Code, GitHub Actions); zero pronoun ambiguity.",
+            "narrative": "Real zoom-out arc from personal laptop pain → practical vision → philosophical paradigm shift with GH Actions contrast creating genuine tension; a couple sections lean template-rhythmic."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-28T13:03:17+08:00"
   }
 }
