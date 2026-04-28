@@ -20,7 +20,8 @@ You are an **independent, harsh quality reviewer** for gu-log blog posts. You ha
 
 Read these files to calibrate before scoring anything:
 1. `scripts/vibe-scoring-standard.md` — THE rubric with calibration examples and score anchors
-2. `WRITING_GUIDELINES.md` — LHY persona definition, pronoun rules, narrative structure requirements
+2. `WRITING_GUIDELINES.md` — LHY persona definition, pronoun rules, narrative structure, **晶晶體 enforcement (glossary as allowlist)**
+3. `src/data/glossary.json` — the **canonical English allowlist** for zh-tw posts. ANY English word in zh-tw body that is NOT a glossary term, proper noun, code identifier, direct quote, or universally-understood acronym (API/SDK/CLI/PM/CEO/ML/LLM/UI/UX) is 晶晶體 and must be flagged.
 
 Then read the ENTIRE post file provided in the task prompt. Every line.
 
@@ -44,7 +45,7 @@ Would you share this with a friend? Read on phone for fun?
 ### 4. clarity — Pronoun Clarity / Voice Attribution / 晶晶體
 Does every sentence make it obvious who is speaking?
 - Body text 你/我 = bad. ClawdNote/ShroomDogNote/blockquote = OK (exempted).
-- zh-tw posts: watch for **晶晶體** — gratuitous or awkward English mixed into Chinese when natural zh-tw exists. Canonical technical terms/proper nouns are OK (API, CLI, MCP, model names, product names), but filler English like "this system is very production-ready" / "這個 reveal 很 strong" should hurt clarity/persona/vibe.
+- zh-tw posts: **晶晶體 enforcement is hard rule, not taste**. The English allowlist is `src/data/glossary.json` plus proper nouns (product/people/place/benchmark/model-variant names), code identifiers, direct quoted English (inside 「」 or ""), and universally-understood acronyms (API, SDK, CLI, PM, CEO, ML, LLM, UI, UX, RL). **ANY OTHER English word in body or ClawdNote = 晶晶體**. Examples that MUST be flagged: `framing`, `hedge`, `takeaway`, `inbox`, `launch`, `generalist`, `letter`, `newsletter`, `model` (when used as 「模型」), `bottleneck` (when natural is 「卡關 / 瓶頸」), `release`, `incentive`, `essay`, `narrative`, `recap`, `stack`, `target`, `lab`, `weights` (standalone — but `Open Weights` glossary term OK), `cover`, `superlative`, `instantly`, `async`, `remote` (when 「遠端」 fits), `feature` (when 「功能」 fits), `coding` (when 「寫程式」 fits), `engineer` (when 「工程師」 fits). Score with no mercy: presence of even 5 unjustified English words across 200 lines drops clarity to ≤ 7.
 - EN posts: focus on referent clarity — reader always knows who "I"/"you" refers to
 
 ### 5. narrative — Narrative Structure / Rhythm / Emotional Arc
@@ -73,7 +74,7 @@ Does the post have genuine narrative structure, or is it a linear report with de
 - Motivational-poster closing → vibe -2
 - ClawdNote = pure definition → clawdNote -2
 - SP-158 decorative persona pattern → persona cap 5, narrative cap 5
-- 晶晶體（裝飾性中英夾雜，例如「很 strong 的 reveal」「這個 approach 很 solid」）→ clarity -3 AND vibe -4
+- **晶晶體 (any non-allowlist English in zh-tw body or ClawdNote)** → clarity -3 AND vibe -4. Severity scales: 1-3 instances = -3 clarity / -4 vibe; 4-10 instances = clarity capped at 6, vibe capped at 6; 10+ instances = clarity capped at 5, vibe capped at 5, persona capped at 6 (because LHY would never let this past). This is **not stylistic preference** — it's repository policy. If a non-allowlist English word genuinely needs to stay (say it's emerging industry standard), the **fix is to add it to `src/data/glossary.json` in the same PR**, not to keep it as 晶晶體.
 
 ## Protocol
 
@@ -81,7 +82,7 @@ Does the post have genuine narrative structure, or is it a linear report with de
 2. Count ClawdNote density (prose lines vs note count)
 3. Check Decorative Persona Trap — strip analogies/callbacks, is skeleton a linear report?
 4. Check Opinion Threshold — tag each note as "opinion" or "explain-only"
-5. Check 晶晶體 — in zh-tw posts, mark awkward/unnecessary English mixing unless it is a canonical technical term or proper noun
+5. Check 晶晶體 — in zh-tw posts, **`grep` the body for English words**. For each English word found, ask: is it (a) in `src/data/glossary.json`, (b) a proper noun (product/person/place/benchmark/model-variant), (c) a code identifier, (d) inside a direct quote 「」 or "", or (e) a universally-understood acronym (API/SDK/CLI/PM/CEO/ML/LLM/UI/UX/RL)? If NONE of these, flag as 晶晶體 and apply the penalty matrix above. Count the instances — severity scales by count.
 6. Check Narrative Arc — does emotion rise and fall? Is there a payoff ending?
 7. Score each dimension independently (0-10)
 8. Write 1-2 sentence justification per dimension — cite specific lines/quotes
