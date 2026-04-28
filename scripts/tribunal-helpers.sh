@@ -123,3 +123,31 @@ recompute_stats() {
     }
   ' "$progress" > "${progress}.tmp" && mv "${progress}.tmp" "$progress"
 }
+
+# Set up an isolated tmp work-dir for spawning `claude -p` from. Sidesteps
+# the CCC sandbox bug where claude auto-discovers the parent CLAUDE.md and
+# follows its instructions ("first run detect-env.sh", etc) instead of the
+# tribunal prompt — derails on long inputs and silently exits 1 with empty
+# stderr (see PR #177 SP-pipeline work-dir fix for the same root cause).
+#
+# The returned dir contains a `.claude/` symlink so `--agent <name>` still
+# resolves to the repo's agent definitions. Caller should pass
+# `--add-dir "$REPO"` to the claude invocation to grant tool access to
+# repo files referenced in the prompt.
+#
+# Usage:
+#   work_dir="$(tribunal_claude_work_dir)"
+#   trap 'rm -rf "$work_dir"' EXIT
+#   ( cd "$work_dir" && claude -p --agent ... --add-dir "$REPO_ROOT" ... )
+#
+# REPO_ROOT defaults to the repo root inferred from the script's location;
+# callers can override via the global REPO_ROOT variable before sourcing.
+tribunal_claude_work_dir() {
+  if [ -z "${REPO_ROOT:-}" ]; then
+    REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+  fi
+  local d
+  d="$(mktemp -d -t tribunal-claude-XXXXXX)"
+  ln -s "$REPO_ROOT/.claude" "$d/.claude"
+  echo "$d"
+}

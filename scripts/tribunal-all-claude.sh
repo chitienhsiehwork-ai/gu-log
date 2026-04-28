@@ -335,9 +335,21 @@ PROMPT
 )"
   writer_out="$(mktemp)"
   writer_rc=0
-  local -a writer_cmd=(timeout 900 claude -p --agent tribunal-writer --model 'claude-opus-4-6[1m]')
-  [ "$(id -u)" != "0" ] && writer_cmd+=(--dangerously-skip-permissions)
-  "${writer_cmd[@]}" "$writer_prompt" > "$writer_out" 2>&1 || writer_rc=$?
+  # Spawn from tmp work-dir to dodge CLAUDE.md auto-discovery (see judge_cmd
+  # comment above for the full reasoning). Writer's job is to edit
+  # src/content/posts/*.mdx — --add-dir grants the access; acceptEdits
+  # auto-approves the Edit tool calls (root) / bypassPermissions does the
+  # same (non-root).
+  local writer_work_dir
+  writer_work_dir="$(tribunal_claude_work_dir)"
+  local -a writer_cmd=(timeout 900 claude -p --agent tribunal-writer --model 'claude-opus-4-6[1m]' --add-dir "$ROOT_DIR")
+  if [ "$(id -u)" = "0" ]; then
+    writer_cmd+=(--permission-mode acceptEdits)
+  else
+    writer_cmd+=(--dangerously-skip-permissions)
+  fi
+  ( cd "$writer_work_dir" && "${writer_cmd[@]}" "$writer_prompt" > "$writer_out" 2>&1 ) || writer_rc=$?
+  rm -rf "$writer_work_dir"
   if [ "$writer_rc" -ne 0 ]; then
     tlog "  WARN: final build repair writer exited with code $writer_rc"
     tail -10 "$writer_out" | while IFS= read -r line; do tlog "    $line"; done
@@ -516,16 +528,41 @@ run_stage() {
     tlog "  Invoking agent '$agent_name' --model '$model_id' (timeout 300s)..."
 
     local judge_rc=0
-    # Claude Code refuses --dangerously-skip-permissions under root; CCC runs
-    # as root, so drop the flag there. Non-root (mac-CC) keeps it for the
-    # interactive permission bypass.
-    local -a judge_cmd=(timeout 300 claude -p --agent "$agent_name")
-    [ "$(id -u)" != "0" ] && judge_cmd+=(--dangerously-skip-permissions)
+    # Spawn from a tmp work-dir (NOT the repo) so claude's CLAUDE.md
+    # auto-discovery walk-up terminates at /tmp without picking up the
+    # gu-log CLAUDE.md. Inside the repo, the auto-discovered CLAUDE.md
+    # tells claude to "first run detect-env.sh", etc — judge agents then
+    # follow those orders instead of the scoring prompt and either return
+    # text analysis without JSON, or silently exit 1 on long inputs.
+    # See PR #177 SP-pipeline work-dir fix for the same root cause.
+    #
+    # The work-dir has a `.claude/` symlink so --agent <name> still
+    # resolves; --add-dir grants the agent read access to the repo so it
+    # can load the post + scoring standard + glossary.
+    #
+    # Score JSON path moved INSIDE work-dir for acceptEdits (root) /
+    # bypassPermissions (non-root) to auto-approve the agent's Write call.
+    # Moved back to score_tmp after the agent finishes.
+    local judge_work_dir
+    judge_work_dir="$(tribunal_claude_work_dir)"
+    local judge_score_in_work="$judge_work_dir/score.json"
+
+    local -a judge_cmd=(timeout 300 claude -p --agent "$agent_name" --add-dir "$ROOT_DIR")
+    if [ "$(id -u)" = "0" ]; then
+      judge_cmd+=(--permission-mode acceptEdits)
+    else
+      judge_cmd+=(--dangerously-skip-permissions)
+    fi
     [ -n "$model_id" ] && judge_cmd+=(--model "$model_id")
-    "${judge_cmd[@]}" \
-      "Score this post: src/content/posts/$post_file
-Write your JSON result to: $score_tmp" \
-      > "$judge_out" 2>&1 || judge_rc=$?
+    ( cd "$judge_work_dir" && "${judge_cmd[@]}" \
+      "Score this post: $ROOT_DIR/src/content/posts/$post_file
+Write your JSON result to: $judge_score_in_work" \
+      > "$judge_out" 2>&1 ) || judge_rc=$?
+
+    if [ -f "$judge_score_in_work" ]; then
+      mv "$judge_score_in_work" "$score_tmp"
+    fi
+    rm -rf "$judge_work_dir"
 
     if [ "$judge_rc" -ne 0 ]; then
       tlog "  WARN: Agent '$agent_name' exited with code $judge_rc"
@@ -645,13 +682,22 @@ PROMPT
 
     # Writer needs to read the full post + judge feedback + scoring SSOT; use
     # the 1M-context variant so it never gets truncated mid-rewrite. Quote the
-    # model ID to keep bash from trying to glob-expand the [1m] suffix. Drop
-    # --dangerously-skip-permissions under root (CCC) where it is blocked.
-    local -a writer_cmd=(timeout 900 claude -p --agent tribunal-writer --model 'claude-opus-4-6[1m]')
-    [ "$(id -u)" != "0" ] && writer_cmd+=(--dangerously-skip-permissions)
-    "${writer_cmd[@]}" \
+    # model ID to keep bash from trying to glob-expand the [1m] suffix.
+    # Spawn from tmp work-dir to dodge CLAUDE.md auto-discovery (see
+    # judge_cmd block for full reasoning); --add-dir grants edit access to
+    # the repo so tribunal-writer can rewrite the post in-place.
+    local rewrite_work_dir
+    rewrite_work_dir="$(tribunal_claude_work_dir)"
+    local -a writer_cmd=(timeout 900 claude -p --agent tribunal-writer --model 'claude-opus-4-6[1m]' --add-dir "$ROOT_DIR")
+    if [ "$(id -u)" = "0" ]; then
+      writer_cmd+=(--permission-mode acceptEdits)
+    else
+      writer_cmd+=(--dangerously-skip-permissions)
+    fi
+    ( cd "$rewrite_work_dir" && "${writer_cmd[@]}" \
       "$writer_prompt" \
-      > "$writer_out" 2>&1 || writer_rc=$?
+      > "$writer_out" 2>&1 ) || writer_rc=$?
+    rm -rf "$rewrite_work_dir"
 
     if [ "$writer_rc" -ne 0 ]; then
       tlog "  WARN: tribunal-writer exited with code $writer_rc"
