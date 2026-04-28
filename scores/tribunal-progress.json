@@ -13973,5 +13973,97 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-28T14:01:57+08:00"
+  },
+  "sp-125-20260323-browseruse-cli-2-browser-automation.mdx": {
+    "article": "sp-125-20260323-browseruse-cli-2-browser-automation.mdx",
+    "startedAt": "2026-04-28T14:32:25+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 7,
+            "crossRef": 8,
+            "sourceAlign": 9,
+            "attribution": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Key terms 'Agent' (used throughout) and 'MCP' (in the 感知 list) appear without /glossary links; CDP/Playwright/Puppeteer/Browser Use aren't in glossary so not gaps.",
+            "crossRef": "Both internal links resolve (sp-120 nyk-builderz, sp-121 heynavtoor claude-dispatch); ClawdNote used but no first-mention /about link for Clawd identity.",
+            "sourceAlign": "Content faithfully expands the @browser_use CLI 2.0 announcement — 2x speed, half cost, attach to running Chrome via CDP all directly traceable to sourceUrl.",
+            "attribution": "ClawdNote opinions cleanly fenced from body facts; '60k stars' stat sits in opinion zone; headline 2x/half-cost claims sourced implicitly via sourceUrl, no misattributed quotes."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 8,
+            "fidelity": 8,
+            "consistency": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Core technical claims verified: Browser Use is a real Python framework (browser-use/browser-use, MIT, 90,829 stars on GitHub as of 2026-04-28, so post's '超過 60k stars' is conservatively correct); CDP is the official Chrome DevTools Protocol; Playwright/Puppeteer do wrap CDP for Chromium; '--remote-debugging-port=9222' is a real Chrome flag. The 2x speed / 50% cost figures are marketing claims from @browser_use that ClawdNote explicitly flags as '標配廣告詞', avoiding fabrication. Minor imprecision: the two CLI usage examples show slightly inconsistent flag syntax ('--attach-to 9222' vs '--attach --task'), which the post does not reconcile, but neither form is verifiably wrong.",
+            "fidelity": "Could not directly fetch the source tweet (X SPA returns no readable content via curl), but the post explicitly attributes the three headline claims (2x speed, half cost, attach-to-Chrome) to the CLI 2.0 announcement and does not erase the marketing-pitch framing — the ClawdNote even pushes back on it. ClawdNotes are semantically separated from body text via component boundaries, and opinions ('讓我想起一個很有趣的問題', '可能不是看誰技術最強') are clearly marked as Clawd's voice, not source claims. No uncertainty erasure detected.",
+            "consistency": "Argument arc holds: AI-can-think-but-not-act → Browser Use as the 'hands' layer → why CDP makes it faster (one less abstraction layer) → killer feature (attach-to-running-Chrome solves session/auth state) → ecosystem framing → use cases. ClawdNotes consistently mark themselves as commentary (security caveat, market analysis, cost math). Small structural seam: the body promises three CLI 2.0 selling points but only two (CDP-direct → speed, DOM-over-screenshot → cost) get a mechanism explanation; the third (attach-to-Chrome) is feature-level, not perf-level. Not a contradiction, just a minor logical seam."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-28T00:00:00Z",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Oral transitions land well ('好，回來講', '先不講技術原理') and tied-hands consultant analogy is vivid, but the CDP explanation section slides into writing mode rather than talking mode.",
+            "clawdNote": "4/5 notes carry clear opinions — blast radius security warning and '保險費不是浪費' Playwright take are genuinely sharp, but none reach highlight-reel level readers would seek out specifically.",
+            "vibe": "Opening hook and security angle genuinely engage; market-gap framing elevates beyond product review, though CDP technical middle is educational without being thrilling.",
+            "clarity": "Zero 你/我 in body text; every sentence has explicit subject; voice attribution clean throughout with no ambiguity between ShroomDog, Clawd, or original source.",
+            "narrative": "Genuine arc from specific (attach to Chrome) to broad (market gap) to philosophical (trust), ending callbacks the opening tied-hands analogy — but CDP middle section is more expository than narratively propulsive."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 2
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-28T14:47:27+08:00"
   }
 }
