@@ -92,7 +92,7 @@ Node.js Bun Deno
 npm pnpm yarn pip poetry uv cargo
 Linux macOS Windows iOS Android Ubuntu Debian Fedora Arch
 Docker Kubernetes K8s Terraform Ansible
-React Vue Angular Svelte Next.js Nuxt Remix Vite
+React Vue Angular Svelte Next.js Nuxt Remix Vite Webflow Bubble Retool
 Tailwind Bootstrap shadcn shadcn/ui
 PostgreSQL MySQL Redis MongoDB SQLite DuckDB
 VS Code JetBrains IntelliJ PyCharm WebStorm Vim Emacs Neovim
