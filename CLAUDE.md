@@ -9,6 +9,44 @@
 
 **任何 Claude Code instance 進到這個 repo，第一件事必須跑 `./scripts/detect-env.sh` 確認自己的身份**，再讀對應的 playbook（`playbooks/mac-CC-playbook.md` 或 `playbooks/CCC-playbook.md`）。沒搞清楚身份就動手 = 用錯 SOP（mac-CC 跟 CCC 的 scope ceiling、merge policy、失敗處理都不一樣）。沒有例外，不能跳。
 
+### 🎯 Vibe FAIL ≠ 可以 ship（必須 iterate 到過分數才能 merge）
+
+把 vibe FAIL 的 score 寫進 frontmatter **不等於完成任務**。Score gate 的 schema 容忍 FAIL（只檢查 block 存在），但 gu-log 的內容標準不容忍——FAIL 的東西就是品質沒到，ship 出去 = 拉低整個站的水準。
+
+**硬規則**：
+
+- 任何新增的 SP / CP / SD / Lv 文章，vibe scorer 給 FAIL 一律**不准 commit + 不准 push**，必須 iterate 到 **composite ≥ 8 AND 至少一維 ≥ 9 AND 沒有任何維 < 8**（Pass bar 同 `scripts/vibe-scoring-standard.md`）
+- 實作上，呼叫 `tribunal-writer` subagent 重寫文章 → 重跑 `vibe-scorer.sh` → 沒過再來一輪。**最多 3 輪**，3 輪沒過就停下來向 user 報告（可能是 prompt 結構問題，writer agent 修不動，需要人工或重設角度）
+- 已存在於 main 的歷史文章不溯及既往（grandfathered），但**新文章一律以 PASS 為門檻**
+
+**為什麼這條這麼硬**：
+
+- 多放一篇 FAIL 文章，整站平均品質就下來。讀者不分新舊，看到一篇水的就降低對 gu-log 的信任
+- "velocity > stability" 是針對**基礎建設**（pipeline、hook、infra），不是針對**內容品質**。內容品質沒到就是沒到，沒有 velocity 跟 stability 的 trade-off
+- Tribunal 裝置存在的目的就是擋這件事——把 score 寫進 frontmatter 後因為「gate 過了」就 commit，等於把 tribunal 變成了 rubber stamp。Tribunal 是 reviewer 不是 logger
+- Decorative persona trap、ClawdNote opinion deficit、linear documentation walkthrough 這些 vibe scorer 抓的問題，rewriter 改 1-2 輪通常就能把 score 從 6 拉到 8+。3 輪都沒過再說
+
+**反例 vs 正例**：
+
+```
+❌ 反例（這個 PR 自己踩過的）：
+   1. 跑 vibe-scorer 拿到 6/10 FAIL
+   2. 把 score JSON 塞進 frontmatter
+   3. commit + push，理由「velocity > stability、gate 過了」
+   4. 一篇 FAIL 文章 ship 到 main
+
+✅ 正例：
+   1. 跑 vibe-scorer 拿到 6/10 FAIL
+   2. 看 reasons：「decorative persona trap、5/6 ClawdNote 沒 stance」
+   3. 呼叫 tribunal-writer subagent，把 reasons + scoring standard 餵給它，
+      要求它重寫文章修這幾個維度
+   4. 重跑 vibe-scorer
+   5. 過 → 把 PASS score 塞進 frontmatter、commit、push
+   6. 沒過 → 再來一輪，最多 3 輪。3 輪後仍 FAIL → 停下來向 user 報告
+```
+
+實作介面：mac-CC 有 `bash scripts/tribunal-batch-runner.sh`、CCC 可以呼叫 `tribunal-writer` agent（`.claude/agents/tribunal-writer.md`）+ `vibe-scorer.sh` loop。
+
 ### 🚫 絕對不准 `--no-verify`（hook 失敗 = 修 hook 或修 code，不准跳）
 
 任何 CC/CCC instance 在這個 repo 內**永遠不准用** `git commit --no-verify`、`git push --no-verify`、`git commit --no-gpg-sign`、`git rebase --no-verify`、或任何其他繞過 pre-commit / pre-push hook 的旗標。**沒有例外，沒有「這次只是…」**。
