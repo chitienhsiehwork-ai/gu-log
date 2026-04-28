@@ -13,11 +13,24 @@ import (
 // directory if needed), and installs a cleanup trap that removes the
 // directory on clean exit unless s.KeepWorkDir is true.
 //
+// The default work directory lives OUTSIDE the repo (under os.TempDir())
+// rather than under <repo>/tmp/. Reason: when claude -p runs with cwd
+// inside a git repo it walks up the directory tree, auto-discovers the
+// parent CLAUDE.md, and on long pipeline prompts (write step embeds the
+// 340-line WRITING_GUIDELINES.md plus the source body) the discovered
+// CLAUDE.md instructions ("first run detect-env.sh", etc) derail the
+// model and it exits 1 with empty stderr. Putting WorkDir under
+// os.TempDir() means the cwd walk-up terminates at /tmp without
+// discovering anything, and the prompt drives the run cleanly.
+//
+// The deploy step still copies final.mdx into <repo>/src/content/posts,
+// so this only affects intermediate scratch files.
+//
 // Returns a cleanup function the caller should defer.
 func SetupWorkDir(s *State) (cleanup func(), err error) {
 	if s.WorkDir == "" {
 		stamp := time.Now().Unix()
-		s.WorkDir = filepath.Join(s.Cfg.RepoRoot, "tmp", fmt.Sprintf("sp-pending-%d-pipeline", stamp))
+		s.WorkDir = filepath.Join(os.TempDir(), fmt.Sprintf("sp-pending-%d-pipeline", stamp))
 	}
 	abs, absErr := filepath.Abs(s.WorkDir)
 	if absErr != nil {
