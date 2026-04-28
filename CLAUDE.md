@@ -9,15 +9,33 @@
 
 **任何 Claude Code instance 進到這個 repo，第一件事必須跑 `./scripts/detect-env.sh` 確認自己的身份**，再讀對應的 playbook（`playbooks/mac-CC-playbook.md` 或 `playbooks/CCC-playbook.md`）。沒搞清楚身份就動手 = 用錯 SOP（mac-CC 跟 CCC 的 scope ceiling、merge policy、失敗處理都不一樣）。沒有例外，不能跳。
 
-### 🔗 User 丟連結 = 要寫 SP
+### 🔗 User 丟連結 = 要寫 SP（預設走 pipeline，不要手動寫）
 
-**只要 user 在對話裡丟 URL 過來（X/Twitter、blog、HN、arXiv、GitHub blog 文章…），預設意圖就是「幫我把這篇翻譯成 SP」**，不要去猜其他意思（不是要你 summarise、不是要你加到 about page、不是要你做書籤）。直接走 SP 流程：
+**只要 user 在對話裡丟 URL 過來（X/Twitter、blog、HN、arXiv、GitHub blog 文章、docs 站…），預設意圖就是「幫我把這篇翻譯成 SP」**，不要去猜其他意思（不是要你 summarise、不是要你加到 about page、不是要你做書籤）。
 
-- X/Twitter URL → 先用 `sp-source-fetch` skill 抓原文（WebFetch 在沙箱會被擋，且會偷偷摘要）
-- 一般 blog/article URL → `curl -sL -A "Mozilla/5.0..." <url>` 抓原始 HTML
-- 有疑問時才問 user 確認，不要默默改成別的任務
+**預設動作（先試 pipeline，再考慮手動）**：
+
+```bash
+tools/sp-pipeline/sp-pipeline run <url>
+```
+
+Pipeline 包辦：fetch → eval → dedup → write → review → refine → credits → ralph → deploy。X URL、一般 blog/docs URL 都吃，非 X URL 會走 curl + HTML cleanup fallback。除非有下面列的明確 blocker，**手寫 SP 是 anti-pattern**——浪費 token、跳過已經 ship 在 pipeline 裡的 dedup gate / 評分 / refine 迴圈，還容易忘記 swap counter 或漏 frontmatter 欄位。
+
+**只有下面這幾種情況才手動寫**（其他全部走 pipeline）：
+
+- **使用者明確指定 narrative angle**（例：「focus on X、用故事帶 Y」、「對比 A 和 B 兩篇」、「從 Z 的角度切」）——pipeline write prompt 是「cover ALL ideas」，沒有 `--angle` flag，硬塞 user instruction 會被 prompt 自己的指令蓋過
+- **多來源綜合**（例：把兩三篇文章合成一篇 SP）——pipeline 一次只吃一個 URL
+- **Source 需要特殊 frontmatter**（例：source 不是 `@handle on X` 格式，是機構或 docs 站）——`write.tmpl` 寫死 `source: @{{.AuthorHandle}} on X`，產出後要手動 patch
+- **Pipeline 自己擋**（exit 11/12/13/15：source 汙染、eval SKIP、dedup blocked、ralph 連 3 輪沒過）——這時走手動或回頭調 prompt
+- **使用者在對話裡明講「不要用 pipeline」/「我自己寫」**
+
+**遇到上面任一條 → 開口跟 user 確認**「這篇要走手動嗎？理由是 X」，不要默默繞過 pipeline。pipeline 沒跑就跳到手寫 = 偷懶。
 
 如果 user 真的只是要分享連結、不要翻譯，他們會明講。
+
+抓原文的 fallback（pipeline 不適用、要手動補資料時）：
+- X/Twitter URL → 先用 `sp-source-fetch` skill 抓原文（WebFetch 在沙箱會被擋，且會偷偷摘要）
+- 一般 blog/article URL → `curl -sL -A "Mozilla/5.0..." <url>` 抓原始 HTML
 
 ### 🏷️ Branch name 是 ID，不是語意
 
