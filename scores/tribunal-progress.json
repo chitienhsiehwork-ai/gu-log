@@ -13514,5 +13514,95 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-04-28T09:58:36+08:00"
+  },
+  "cp-205-20260324-danveloper-python-metal-shaders.mdx": {
+    "article": "cp-205-20260324-danveloper-python-metal-shaders.mdx",
+    "startedAt": "2026-04-28T10:29:03+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "pass": true,
+          "judge_model": "claude-opus-4-7",
+          "judge_version": "2.0.0",
+          "timestamp": "2026-04-28T00:00:00Z",
+          "dimensions": {
+            "glossary": 9,
+            "crossRef": 8,
+            "sourceAlign": 9,
+            "attribution": 9
+          },
+          "score": 8,
+          "verdict": "PASS"
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "All technical claims (4 tok/s, model name Qwen3.5-397B-A17B, GIL bottleneck, custom metal shaders) match the source tweet verbatim via fxtwitter API; no fabricated numbers or invented details.",
+            "fidelity": "Translation preserves all hedges — 'isn't unusable' rendered as '並非不能用', 'system prompt tuning was important' kept as a caveat; the post even adds an explicit ClawdNote stating that hardware/deployment details are speculation not in the source, which is exemplary uncertainty discipline.",
+            "consistency": "Argument flows cleanly from the 4 tok/s observation to the GIL bottleneck to the metal-shaders pivot; ClawdNotes are clearly demarcated as opinion ('我自己的解讀是', '只能算推測'), and the closing paragraph correctly limits scope to what the tweet supports."
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 9,
+            "firstImpression": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "新手友善度大幅提升：tok/s 有閱讀速度對照（15-20 才覺得即時 vs 4）、Qwen3.5-397B-A17B 當場拆解（A17B = 每次只啟動 170 億）、GIL 用單車道收費站類比、Metal 用『直接跟 GPU 講母語』的翻譯談生意比喻。每個關鍵術語都在文章裡落地，3 個月資歷的工程師不用切去 Google 也能看懂主線。段落短、分隔線斷得乾淨。",
+            "firstImpression": "Hook 強——『4。個。Token。每。秒。』的節奏抓得準，立刻把讀者拉進工程偵探故事的張力裡。決策階梯（調 prompt → 追 GIL → 整顆 Python 拿掉 → Metal shaders）寫成剝洋蔥，每一層都有『為什麼上一層不夠用』的合理推進，不是堆砌技術名詞。看完會想分享，不會有『就這樣？』的失落。微弱缺點：結尾 Sentdex 對照沒給一句脈絡，新手會卡一下他是誰；但不影響主線。"
+          }
+        },
+        "model": "opus-4.7",
+        "attempts": 2
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 9
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "Sports car / toll booth / consulting firm analogies land well and oral feel is natural, but MoE and Metal shader sections slide back into explanation mode rather than talking mode.",
+            "clawdNote": "5 notes at good density; 3 of 5 carry clear opinions (isn't-unusable cry for help, GIL sarcasm, Andrew Ng contrast), but notes 2 and 4 lean analytical-explanatory without strong 吐槽 edge.",
+            "vibe": "The escalation from 4 tok/s to firing Python entirely is genuinely engaging with a good opening hook and callback ending, but niche topic limits share-with-a-friend impulse.",
+            "clarity": "Body text subjects always named (@danveloper, 團隊, 模型) with zero 你/我 slips; every quote and stance cleanly attributed to its source.",
+            "narrative": "Real escalation arc — each section peels a deeper problem layer (speed → GIL → remove Python → Metal) and strip test confirms skeleton is a rising-stakes story, not a linear report."
+          }
+        },
+        "model": "opus-4.6-1m",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-04-28T10:40:08+08:00"
   }
 }
