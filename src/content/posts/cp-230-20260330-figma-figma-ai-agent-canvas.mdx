@@ -29,128 +29,134 @@ tags: ["clawd-picks", "figma", "ai-agents", "mcp", "design-systems", "developer-
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Figma 這篇更新先點出一個很實際的問題：AI [agent](/glossary#agent) 過去通常拿不到團隊真正的設計脈絡，所以做出來的東西常常「看起來能用」，但就是有種陌生感。
+每個管過 design system 的人都有同一個噩夢：設計師改了 Figma 裡的顏色，code 裡還是舊的。工程師更新了 spacing，Figma 沒跟上。兩邊各自演化三個月，直到上線前 QA 截圖一比——「欸，這個按鈕跟 spec 長得不一樣。」
 
-現在他們把這個缺口補上了一部分。透過 Figma 的 [MCP](/glossary#mcp) server，agent 可以直接在 Figma file 裡工作；而且是透過 `use_figma` tool 去建立和修改跟 design system 連在一起的設計資產。
+這個噩夢的根源不是工具不好，是 **design context 活在人的腦袋裡，而不是活在工具裡**。
 
-這件事的意義遠比「又多了一個 AI 功能」要大。Figma [之前的 code-to-canvas](/posts/clawd-picks-20260217-figma-claude-code-to-canvas/) 只是單向把程式碼轉成設計稿，現在這一步是讓 agent 雙向操作整個畫布。
+Figma 最新這步棋，就是在處理這件事。透過 [MCP](/glossary#mcp) server，AI [agent](/glossary#agent) 現在可以直接在 Figma file 裡面工作——不是亂畫，是接上團隊的 component library、讀 variable、用 auto layout。Figma [之前的 code-to-canvas](/posts/clawd-picks-20260217-figma-claude-code-to-canvas/) 只是單向把程式碼轉成設計稿，現在 `use_figma` 這個新工具讓 [agent](/glossary#agent) 雙向操作整個畫布。
+
+但真正有意思的不是工具本身——而是 Figma 選擇不自己做 AI，改開一道門讓所有 agent 走進來。
 
 <ClawdNote>
-想像一下：以前 AI 幫忙做設計，就像請一個完全不認識公司的外包，丟一句「做一個登入頁面」就叫他動手。現在 Figma 做的事情等於把這個外包直接拉進 design system、讓他看到所有 component library、讀到 style guide，然後才讓他開工。光這個差異就是天壤之別。而且這次不是 Figma 自己硬幹一個 AI — 他們用 [MCP](/glossary#mcp) 開了一道門，讓所有 agent 都能走進來。跟當年 plugin 生態一模一樣的策略，只是這次走進來的不是 plugin 開發者，是 [Claude Code](/glossary#claude-code)、[Codex](/glossary#codex)、Cursor 這些 coding agent。
+以前 AI 幫忙做設計，就像請一個完全不認識公司的外包，丟一句「做一個登入頁面」就叫他動手。現在 Figma 等於把這個外包直接拉進 design system、讓他看到所有 component library、讀到 style guide，然後才讓他開工。而且不是 Figma 自己硬幹一個 AI — 他們用 [MCP](/glossary#mcp) 開了一道門，[Claude Code](/glossary#claude-code)、[Codex](/glossary#codex)、Cursor 都走同一個入口。跟當年 plugin 生態一模一樣的策略，只是這次走進來的不是 plugin 開發者，是 coding agent。
 </ClawdNote>
 
-## 兩把刀：generate_figma_design 和 use_figma
+## 舊工具搭新主角：一個拉現實進來，一個在裡面創作
 
-Figma MCP server 現在有兩個核心工具，做的事情不一樣但互補。
+Figma MCP server 裡面有兩個核心工具，關係像助教跟教授。
 
-**`generate_figma_design`** 是之前就有的：它能把 HTML（從 live app 或網站來的）轉成可編輯的 Figma layer。用途很明確——當 code 和 design 不同步了，先把跑起來的 UI 拉回 Figma，再來討論要改什麼。
+**`generate_figma_design`** 是助教——負責把「外面跑著的東西」帶回教室。Live app 的 UI？它轉成可編輯的 Figma layer。Code 跟 design 不同步了？助教先把現實拉進來，大家看著實際的東西再討論要改什麼。這工具之前就有，但搭上新主角之後用途完全不同。
 
-**`use_figma`** 是新的核心：它讓 [agent](/glossary#agent) 直接在畫布上操作，而且是用團隊的 design system 來操作。不是亂畫一通，是真的接上 component、variable、auto layout。
+**`use_figma`** 是教授——這次的新功能。[Agent](/glossary#agent) 直接在畫布上操作，而且是照團隊定義好的方式來。不是拿空白筆亂畫，是打開 component library、讀 variable 名稱、遵守 auto layout 規則。
 
-這兩個工具的搭配方式很自然：先用 `generate_figma_design` 把現有 UI 拉進來，再用 `use_figma` 在上面做修改或延伸新的設計。一個負責「把現實拉回設計環境」，一個負責「在設計環境裡用正確的方式創作」。
+搭配起來很自然：助教把 live UI 拉進 Figma 當底，教授用正確的 component 和規則在上面改或做新設計。一個負責「把現實帶進來」，一個負責「用正確的方式創作」。
 
 <ClawdNote>
-這個搭配其實暗示了一個很深的產品哲學：Figma 不打算讓 AI 從零開始畫圖。它是讓 AI 在已經建好的系統裡面工作。這跟那些「一句 prompt 生一整個 app」的工具走的是完全不同的路線 — 那些工具把 AI 當創作者，Figma 把 AI 當「團隊裡最聽話的設計師」。哪條路在企業裡比較站得住腳？問問老闆會不會接受一個跟品牌完全脫鉤的設計就知道了。 ┐(￣ヘ￣)┌
+這個分工暗示了一個很深的產品賭注：Figma 不打算讓 AI 從零開始畫圖。它要 AI 在已經建好的系統裡面工作。這跟那些「一句 prompt 生一整個 app」的工具走的是完全不同的路線 — 那些工具把 AI 當創作者，Figma 把 AI 當「團隊裡最聽話的設計師」。哪條路在企業裡比較站得住腳？老闆會不會接受一個跟品牌完全脫鉤的設計，答案很明顯。 ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ---
 
-## Skills：教 agent 怎麼在團隊的世界裡做事
+## Skills：把不成文的規矩變成 agent 聽得懂的指令
 
-光打開畫布讓 agent 進來還不夠。[Agent](/glossary#agent) 進來了，它要怎麼知道「按鈕間距都是 8px 倍數」、「primary color 叫 `--brand-500` 不叫 blue」、「新 component 要放在哪個 page」？
+好，[agent](/glossary#agent) 進畫布了。但問題來了。
 
-這就是 **skills** 在做的事。
+它怎麼知道「按鈕間距都是 8px 倍數」？怎麼知道 primary color 叫 `--brand-500` 不叫 blue？怎麼知道新 component 該放哪個 page？靠經驗？它沒有。靠猜？猜錯了修的時間比自己做還久。
 
-Skills 說白了就是 markdown 檔案，裡面寫了一堆指令，告訴 agent 在 Figma 裡該怎麼執行特定的工作流程。要走哪些步驟、什麼順序、遵守什麼慣例。但它不只是一份 checklist——它還包含了讓 agent 理解「什麼叫做做得好」所需要的專業知識和脈絡。
+這就是 **skills** 在幹的事——markdown 檔案，裡面寫了一堆指令，告訴 agent 在 Figma 裡該怎麼執行特定工作流程。步驟、順序、慣例全部寫死。但巧妙的地方在於，skill 不只是 checklist，更像 onboarding doc 混 SOP——同時告訴 agent「做什麼」和「做得好長什麼樣」。
 
-Anthropic 的 [Claude Code](/glossary#claude-code) 產品負責人 Cat Wu 講得很到位：
+Anthropic 的 [Claude Code](/glossary#claude-code) 產品負責人 Cat Wu 講得到位：
 
 > *"Skills teach Claude Code how to work directly in the design canvas, so you can build in a way that stays true to your team's intent and judgment."*
 
 直譯大概是「Skills 教會 Claude Code 怎麼直接在設計畫布上工作，讓能用忠於團隊意圖和判斷的方式來建構。」但這邊的 vibe 更像是在說：**團隊那些不成文的規矩，現在可以被寫下來，然後 agent 會真的照做。**
 
-最底層有一個基礎 skill 叫 `/figma-use`，所有其他 skill 都建立在它上面。它負責教 agent Figma 的基本結構和核心原則——就像一個新人入職前要先讀的 onboarding doc。
+最底層有一個基礎 skill 叫 `/figma-use`，所有其他 skill 都建立在它上面——新人入職前要先讀的 onboarding doc，agent 版。
 
 <ClawdNote>
-寫 skill 不需要寫 code、不需要做 plugin。這一點非常關鍵。這意味著 Design Lead 和 PM 也能直接參與定義「agent 該怎麼做事」，而不是什麼都要等工程師來接。某種程度上，skill 就是一種「可執行的 design guideline」——以前寫完 guideline 只能祈禱團隊會照做，現在寫完 skill，agent 就是會照做。人不一定會讀 wiki，但 agent 會。這跟 [Claude Code 的 CLAUDE.md](/posts/claude-code-vs-codex/) 概念一模一樣 — 把規則寫成 agent 看得懂的格式，它就會乖乖聽。只不過 Figma 把這套搬到了設計領域。 ┐(￣ヘ￣)┌
+寫 skill 不需要寫 code、不需要做 plugin。這一點非常關鍵——Design Lead 和 PM 也能直接定義「agent 該怎麼做事」，不用什麼都等工程師。某種程度上，skill 就是「可執行的 design guideline」：以前寫完 guideline 只能祈禱團隊照做，現在寫完 skill，agent 就是會照做。人不一定會讀 wiki，但 agent 會。跟 [Claude Code 的 CLAUDE.md](/posts/claude-code-vs-codex/) 概念一模一樣 — 把規則寫成 agent 看得懂的格式，它就乖乖聽。Figma 只是把這套搬到了設計領域。 ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ---
 
-## 九個範例 Skills：從 library 生成到無障礙規範
+## 九個 Skills 解決的三種痛
 
-Figma 一口氣放了九個 example skills，來自內部團隊和社群的實踐者。挑幾個特別有意思的來看：
+Figma 一口氣放了九個 example skills，來自內部團隊跟社群實踐者。但一個一個列沒意思——仔細看會發現，這些 skill 其實在攻擊三種完全不同的痛。
 
-**`/figma-generate-library`**：從 codebase 直接建立 Figma component。方向是 code → design，適合那些「code 已經跑很遠了但 Figma 裡什麼都沒有」的團隊。
+**第一種痛：設計資產正在腐爛，而且所有人都知道。**
 
-**`/figma-generate-design`**：用現有的 component 和 variable 來建新設計。重點是「用現有的」——不是讓 AI 天馬行空，而是在既有系統的 constraint 裡面創作。
-
-**`/create-voice`**（來自 Uber 的 Ian Guisard）：從 UI spec 自動生成螢幕閱讀器規範，包括 VoiceOver、TalkBack、ARIA。這個很猛，因為 accessibility spec 是很多團隊永遠排不到優先級的東西，但有了這個 skill，agent 可以在每次設計完成後自動補上。
-
-**`/apply-design-system`**（來自 Edenspiekermann 的 Chris Goebel）：把已經存在的設計連接到 system component。講人話就是：那些沒有接上 design system 的散裝設計稿，agent 幫忙一個一個接回去。
-
-**`/sync-figma-token`**（來自 Firebender）：在 code 和 Figma variable 之間同步 design token，還附帶 drift detection。每一個管過 design token 的人看到這個應該都會流眼淚。
-
-**`/multi-agent`**（來自 Augment Code）：跑平行 workflow、實作設計。多個 [agent](/glossary#agent) 同時動工的概念。
+每一個管過 design token 的人都有同樣的噩夢——開頭那個場景。設計師改了 Figma 的顏色，code 裡還是舊的；工程師更新了 code 裡的 spacing，Figma 沒跟上。兩邊各自演化，直到 QA 在上線前發現「欸按鈕怎麼長不一樣」——通常太遲了。Firebender 的 **`/sync-figma-token`** 正面攻擊這個問題：在 code 和 Figma variable 之間同步 design token，而且附帶 drift detection。同一條線上，Edenspiekermann 的 **`/apply-design-system`** 更直接——那些沒接上 design system 的散裝設計稿，[agent](/glossary#agent) 幫忙一個一個接回去。講白了就是自動化的技術債償還。
 
 <ClawdNote>
-那個 `/sync-figma-token` 有 drift detection 這件事讓我非常興奮。design token 不同步有多痛？設計師改了 Figma 的顏色，code 裡還是舊的。工程師改了 code 裡的 spacing，Figma 裡沒跟上。然後兩邊各自演化，直到某天有人發現「欸按鈕怎麼長不一樣」——通常是 QA 在上線前發現的。有了 drift detection，這種事至少能被提早抓到。 (ง •̀_•́)ง
+Design token drift 就像兩個人各自編輯自己那份 Google Doc，一個月後才發現「啊靠，我們在改不同版本」。有了 drift detection，至少每次改 token 都能自動檢查兩邊有沒有飄掉。這不是什麼花俏新功能——這是在止血。 (ง •̀_•́)ง
+</ClawdNote>
+
+**第二種痛：該做的事情永遠排不進 sprint。**
+
+Uber 的 Ian Guisard 做了 **`/create-voice`**：從 UI spec 自動生成螢幕閱讀器規範，包括 VoiceOver、TalkBack、ARIA。Accessibility spec 是每個團隊都知道該做、但永遠找不到時間排的東西——因為那個「有空的 sprint」永遠不會來。現在 agent 在每次設計完成後自動補上 a11y spec，不用等人的良心發現。另一個是 **`/figma-generate-library`**，方向是 code → design：直接從 codebase 建立 Figma component，專門給那些「code 已經跑了三年但 Figma 裡什麼都沒有」的團隊。以前回補這些是設計師兩週的苦力活，現在 agent 讀完 code 就幫忙建好。
+
+**第三種痛：想要更多，但也有點怕。**
+
+Augment Code 的 **`/multi-agent`** 跑平行 workflow——多個 [agent](/glossary#agent) 同時在不同 frame 上動工。聽起來很美好。但如果有跟三個設計師同時編輯同一個 Figma file 的經驗，就知道那種混亂。現在把設計師換成 agent，平行度再乘以三？只能說：大膽。(╯°□°)╯
+
+---
+
+## Self-healing loop：做完了自己檢查，不及格自己重來
+
+前面講的 skill 解決了「agent 怎麼做」的問題。但做出來的東西對不對？
+
+這裡才是整篇最讓人驚豔的設計：skill 不只定義 agent 怎麼生成東西，也定義 agent 怎麼**回頭檢查和修正自己的 output**。生完一個畫面之後，agent 可以截圖、跟預期的結果比對，然後自己去修不對的地方。
+
+而且因為操作的是真正的結構——component、variable、auto layout——修的時候是在修結構，不只是在修像素。動一個 spacing token 的值，所有用到這個 token 的地方都跟著改。
+
+Figma 在文章裡也坦承了一個重要的現實：**AI model 天生是 non-deterministic 的，同一個 prompt 跑兩次可能會跑出不一樣的結果。** Skills 就是要讓這個行為變得更可預測——透過編碼具體的步驟、guideline 和規則來降低隨機性。設計慣例不再是靜態文件了，而是 agent 工作時真的會遵守的規則。
+
+<ClawdNote>
+大部分 [agent](/glossary#agent) 都是 fire-and-forget：生完就丟過來，好不好是別人的事。Figma 讓 agent 自己跑一個 QA loop，實務上會省掉大量來回修改的時間。有趣的是，[Codex 的 sandbox 哲學](/posts/20260301-codex-cli-sandbox-philosophy/)也在做類似的事 — 讓 agent 在隔離環境裡執行、驗證、再交付。Codex 在 code 層面做，Figma 在 design 層面做。殊途同歸——但 Figma 的版本更狠，因為設計錯誤比 code 錯誤更難被自動測試抓到。截圖比對是目前最實際的解法。
 </ClawdNote>
 
 ---
 
-## Self-healing loop：agent 會自己看自己做的東西
+## 一個入口，九家 agent 排隊進
 
-這是一個聽起來很玄但其實很實際的功能。
-
-Skill 不只定義 agent 怎麼生成東西，也定義 agent 怎麼回頭檢查和修正自己的 output。當 agent 生完一個畫面之後，它可以截圖、跟預期的結果比對，然後自己去修不對的地方。
-
-而且因為 agent 操作的是真正的結構——component、variable、auto layout——它修的時候是在修結構，不只是在修像素。移動一個 spacing token 的值，所有用到這個 token 的地方都會跟著改。
-
-Figma 在文章裡也坦承了一個重要的現實：**AI model 天生是 non-deterministic 的，同一個 prompt 跑兩次可能會跑出不一樣的結果。** Skills 的存在就是要讓這個行為變得更可預測——透過編碼具體的步驟、guideline 和規則來降低隨機性。
-
-設計慣例不再只是靜態的文件了。它們變成了 agent 工作時會遵守的規則，透過 component、variable 和已經定義好的結構來執行。
-
-<ClawdNote>
-Self-healing loop 這個概念，本質上就是 AI 版的「做完了自己看一眼」。大部分 [agent](/glossary#agent) 都是 fire-and-forget：生完就丟過來，好不好是別人的事。Figma 讓 agent 自己跑一個 QA loop，這在實務上會省掉大量來回修改的時間。有趣的是，[Codex 的 sandbox 哲學](/posts/20260301-codex-cli-sandbox-philosophy/)也在做類似的事 — 讓 agent 在隔離環境裡執行、驗證、再交付。只是 Codex 是在 code 層面做，Figma 是在 design 層面做。殊途同歸。
-</ClawdNote>
-
----
-
-## 從 code 到 canvas，再從 canvas 到 code
+到這裡，故事的格局開始浮現：這不只是 Figma 多了一個 AI 功能，而是 Figma 正在把自己從「設計師的工具」變成「所有人（包括 AI agent）做產品決策的共享空間」。
 
 OpenAI 的 [Codex](/glossary#codex) 設計負責人 Ed Bayes 在文章裡說：
 
 > *"Teams at OpenAI use Figma to iterate, refine, and make decisions about how a product comes together. Now, Codex can find and use all the important design context in Figma to help us build higher quality products more efficiently."*
 
-這段話的核心是：**Figma 不再只是設計師的工具，它變成了一個所有人（包括 AI agent）用來做產品決策的共享空間。** 不管產品工作是從 coding agent 開始、在 Figma 裡開始、還是從 command line 開始，Figma 想要成為那個「所有東西最後匯合的地方」。
+不管產品工作是從 coding agent 開始、在 Figma 裡開始、還是從 command line 開始，Figma 想要成為那個「所有東西最後匯合的地方」。
 
-因為這個能力是原生建在 Figma [MCP](/glossary#mcp) server 裡的，所以它可以吃到 Figma 的安全性和穩定性，同時也打開了 Code Connect、Figma Draw、FigJam 等表面的存取權限，都透過 Plugin API。[MCP 作為連接 agent 與外部工具的標準協定](/posts/sp-180-20260423-anthropic-mcp-production-agents/)，在這裡扮演的角色很明確：一個入口、多個 agent 共用。
+因為這個能力是原生建在 [MCP](/glossary#mcp) server 裡的，它可以吃到 Figma 既有的安全性和穩定性，同時也打開了 Code Connect、Figma Draw、FigJam 等表面的存取權限，都透過 Plugin API。[MCP 作為連接 agent 與外部工具的標準協定](/posts/sp-180-20260423-anthropic-mcp-production-agents/)，在這裡扮演的角色很明確：一個入口、多個 agent 共用。目前文章明確列出的 MCP client 有：Augment、[Claude Code](/glossary#claude-code)、[Codex](/glossary#codex)、Copilot CLI、Copilot in VS Code、Cursor、Factory、Firebender、Warp。
 
-目前文章明確列出的 [MCP](/glossary#mcp) client 包括：Augment、[Claude Code](/glossary#claude-code)、[Codex](/glossary#codex)、Copilot CLI、Copilot in VS Code、Cursor、Factory、Firebender、Warp。
+九家。同一道門。
 
 ---
 
-## 商業模式：現在免費，以後收錢
+## 商業模式：先上癮，再收費——但帳怎麼算？
 
-Figma 在文章最後很直接地交代了商業模式：**這最終會是一個 usage-based 的付費 API，但 beta 期間免費使用。** 他們還在搞清楚怎麼在 paid seat 的架構裡計算 agentic behavior 的用量。
+Figma 很直接地交代了：**beta 期間免費，之後變 usage-based 付費 API。** 但接下來那句話才是真正有意思的地方——他們說還在搞清楚怎麼在 paid seat 的架構裡計算 agentic behavior 的用量。
 
-來源另外提到，這項能力是從先前的 code-to-canvas 方向延伸出來的，而且 Figma 已經看到它在內部打開新的工作方式。
+這不是客套話。想想看：人類設計師一天工作八小時，一個 seat 很好算。但 [agent](/glossary#agent) 可能五分鐘就跨十個檔案、改三百個 component。算一個 seat？十個 seat？按 API call 算的話，跑一次 self-healing loop 可能就燒掉一大堆 call。**Seat 這個計價單位，是為人類設計的。當使用者不再是人，計費模型本身就需要重新發明。**
 
-未來的 roadmap 包括：讓 agent 在 Figma 裡能做更多事、把畫布本身加上原生 AI 功能、讓 skill 更容易使用和分享。具體到功能面，他們計畫繼續擴充工具的能力，朝 Plugin API 的完整覆蓋邁進，近期優先項目是圖片支援和自訂字型。
+未來的 roadmap 方向很明確：讓 agent 在 Figma 裡能做更多事、把畫布本身加上原生 AI 功能、讓 skill 更容易分享。技術面繼續朝 Plugin API 完整覆蓋邁進，近期優先是圖片支援和自訂字型。
 
 <ClawdNote>
-這句真正麻煩的地方在於：agent 的工作量根本不像人類 seat 那麼好算。它可能一次跨多個檔案操作，也可能在很短時間內完成原本要花不少人工的修改，所以 Figma 才會特別點出他們還在摸索怎麼把 agentic behavior 算進 paid seats。這不只是在談價格，而是在談 seat 這個計價單位還夠不夠用。[Teddy Riker 最近也在講](/posts/sp-183-20260426-teddy-riker-designing-for-agents/)——當產品開始 design for agents 而不只是 for humans，連計費模型都要跟著重新想。
+[Teddy Riker 最近也在講同一件事](/posts/sp-183-20260426-teddy-riker-designing-for-agents/)——當產品開始 design for agents 而不只是 for humans，連計費模型都要跟著重新想。Figma 至少很誠實地說「我們還在搞清楚」，比那些假裝 agent 可以直接塞進 per-seat 模型的公司好多了。這場定價實驗的結果，搞不好會比 `use_figma` 本身更有長期影響。 ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ---
 
 ## 結語
 
-這篇更新真正重要的地方，不只是 Figma 又多了一個 AI 功能，而是它開始把 team 已經建立好的 design context 直接接進 [agent](/glossary#agent) workflow。照原文的講法，那些原本只是靜態文件的慣例，現在可以變成 agent 在工作時真的會遵守的規則，而且是透過 component、variable 和既有結構來落地。
+回到開頭那個噩夢。
 
-如果要看這件事的分量，最值得注意的其實不是一句 demo 多炫，而是 Figma 已經把 `use_figma`、skills、self-healing loop、以及未來往 Plugin API parity 走的方向放在同一條路線上了。
+設計師改了 Figma 的顏色，code 裡還是舊的。工程師更新了 spacing，Figma 沒跟上。三個月後 QA 截圖一比——完了。
+
+Figma 這次做的事，本質上就是讓這個噩夢多了一條出路：不是靠人的紀律（那永遠靠不住），而是讓 [agent](/glossary#agent) 帶著 design system 的 context 直接進場工作，做完自己檢查，token drift 自動抓。`use_figma`、skills、self-healing loop、未來往 Plugin API parity 走的方向——全部擺在同一條路線上。
+
+但這裡有一個 Figma 沒有明講、卻藏在整篇文章背後的前提：**這一切的前提是團隊的 design system 本身是乾淨的。** Token 有人維護、component 命名有規則、variable 結構清楚——agent 進來之後才能發揮。反過來說，如果 design system 一團亂？那 agent 只會把混亂放大十倍。
 
 <ClawdNote>
-我忍不住要多講一句：如果團隊有認真在經營 design system，這個發展的影響可能比很多新的 AI coding tool 都大。因為它讓過去累積的設計決策，終於有了除了「寫在 wiki 裡然後祈禱有人會讀」以外的第二種生存方式——被 agent 實際執行。反過來說，如果 design system 一團亂、token 沒人維護、component 命名毫無規則，那 agent 進來之後也只會幫忙把混亂放大而已。跟 [MCP + Codex + Claude Code 那篇](/posts/sp-52-20260212-codex-mcp-claude-code/)講的同一個道理：工具再好，context 垃圾進垃圾出。 ╰(°▽°)╯
+所以最大的贏家不是「想要 AI 幫忙做設計的人」，而是「已經花力氣把 design system 整理好的團隊」。那些認真定義 token、整理 component、寫 guideline 的團隊，剛剛發現過去的投資有了一種全新的回報方式——不只是人在用，agent 也在用。以前跟老闆說「我們需要花時間整理 design system」，老闆覺得是自嗨的內部專案。現在可以說「不整理的話，AI agent 也跑不動」。老闆終於聽得懂了。跟 [MCP + Codex + Claude Code 那篇](/posts/sp-52-20260212-codex-mcp-claude-code/)同一個道理：工具再好，context 垃圾進垃圾出。 ╰(°▽°)╯
 </ClawdNote>

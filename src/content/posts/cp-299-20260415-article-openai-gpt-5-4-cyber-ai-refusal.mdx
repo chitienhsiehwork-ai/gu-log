@@ -22,135 +22,106 @@ sourceUrl: "https://siliconangle.com/2026/04/14/openai-launches-gpt-5-4-cyber-mo
 lang: "zh-tw"
 summary: "OpenAI 發布 GPT-5.4-Cyber，專為防禦型資安設計的 fine-tuned 模型，能做 binary reverse engineering、降低 refusal 門檻。透過 Trusted Access for Cyber 分級驗證制度控管存取，同時 Codex Security 已修復超過 3,000 個高危漏洞。"
 tags: ["clawd-picks", "openai", "cybersecurity", "gpt-5", "ai-safety"]
-scores:
-  ralph:
-    p: 8
-    c: 8
-    v: 8
-    score: 8
-    date: "2026-04-15"
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-## 資安圈等了好久的那把鑰匙
+## 當 AI 把防禦者也當壞人
 
-做資安的人大概都有過這種經驗：丟一段可疑的 shellcode 給 AI 分析，結果 AI 跟個乖寶寶一樣回「I can't help with that」。明明是在防禦，AI 卻把防禦者跟攻擊者一視同仁地擋在門外。
+資安研究員的日常裡有一種特別荒謬的體驗：拿到一個可疑的 `.exe`，丟給 AI 分析，AI 客客氣氣地回「I can't help with that」。明明在抓鬼，結果驅魔師被教堂鎖在門外。
 
-2026 年 4 月 14 日，OpenAI 正式推出 **GPT-5.4-Cyber**——一個基於 GPT-5.4 fine-tune 出來的特殊版本，專為**防禦型資安工作**設計。官方用了一個很直白的詞來形容它：**「cyber-permissive」**（對資安任務更寬容）。白話講就是：經過驗證的資安專家，終於可以讓 AI 做那些正常版本會被 refusal 擋掉的事了。
+這個荒謬感累積了兩年多。而 2026 年 4 月 14 日，OpenAI 做了一件讓整個資安圈屏息的事——不是推出更強的模型，而是改變了**誰有權使用力量**的規則。
 
 <ClawdNote>
-「Cyber-permissive」這個詞選得很妙。OpenAI 基本上在說：「對，我們知道之前擋太兇了，但不是要全面開放，是只開給有證照的人。」想像一下：菜刀在五金行隨便買，手術刀只有醫生能拿——GPT-5.4-Cyber 就是那把手術刀 (⌐■_■)
+先講結論再往下讀：這篇不是在講一個新模型有多厲害。GPT-5.4-Cyber 的技術規格不是重點——重點是 AI 公司第一次正式承認「把所有人一視同仁地擋在門外」這件事本身就是安全漏洞。防禦者被綁手綁腳，攻擊者早就在用開源模型了。這個認知翻轉，比任何 benchmark 數字都重要 (⌐■_■)
 </ClawdNote>
 
 ---
 
-## Binary Reverse Engineering：不需要原始碼也能抓鬼
+## 手術刀 vs 菜刀：一場遲來的哲學翻轉
 
-GPT-5.4-Cyber 最大的亮點之一是支援 **binary reverse engineering**。這代表資安研究員可以直接把編譯過的軟體丟給模型分析，讓它找出裡面藏的 malware、漏洞、或安全弱點——**不需要 source code**。
+過去 AI 處理敏感能力的邏輯很簡單粗暴：碰到可能有害的指令，不管問的人是紅隊還是藍隊，一律拒絕。這就像醫院怕手術刀傷人，乾脆連手術房都鎖起來——結果外科醫生開不了刀，黑市的刀倒是從沒缺過。
 
-這在實務上的意義非常大。現實世界裡，資安人員要分析的目標絕大多數都是 compiled binary：一個可疑的 `.exe`、一個來路不明的 `.so`、一個 firmware image。以前要做逆向工程得靠 IDA Pro、Ghidra 這些工具一行一行 assembly 慢慢看，現在有了 AI 輔助，分析效率可以大幅提升。
+OpenAI 在 GPT-5.4-Cyber 的公告裡親口承認了這個矛盾。官方用了一個詞：**「cyber-permissive」**——對資安任務更寬容。但不是對所有人寬容，是對**驗證過的人**寬容。
+
+這背後是整個產業正在經歷的哲學質變：從 **blanket capability restrictions**（全面能力限制）走向 **identity-based access controls**（基於身份的存取控管）。白話講：以前問「這個 AI 能不能做」，現在問「這個人有沒有資格讓 AI 做」。
+
+聽起來只是門禁卡換了一種發法？沒那麼簡單。
 
 <ClawdNote>
-逆向工程是資安最硬核的技能之一。想像成考古學家拿到一個沒有說明書的古代機械，要從齒輪的咬合方式推斷出它的功能。GPT-5.4-Cyber 就像是給考古學家配了一台 X 光機——不用拆開就能看到內部結構。不過話說回來，能不能看懂 X 光片還是要看功力 ¯\_(ツ)_/¯
+這個轉向最刺激的地方在於它的政治意涵。過去 AI 公司說「為了安全所以限制能力」，翻譯：「出事的話我們不負責」。現在說「驗證身份後開放能力」，翻譯：「出事的話我們有 audit trail」。從推卸責任到建立責任鏈——商業邏輯上精明得很，但也確實對防禦者更公平。至於「自學的 bug bounty hunter 算不算合格資安專家」這個問題，OpenAI 顯然還沒想好答案 ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ---
 
-## 不是誰都能用：Trusted Access for Cyber 分級驗證
+## 考古學家拿到 X 光機
 
-既然是「解鎖版」，OpenAI 當然不可能讓所有人都用。GPT-5.4-Cyber 的存取控管走的是 **Trusted Access for Cyber** 計畫，這個計畫稍早時跟一筆 **1,000 萬美元的資安 grant** 一起推出。
+講完哲學，講實際能做什麼。
 
-現在這個計畫加入了**分級驗證（tiered verification levels）**機制：
+GPT-5.4-Cyber 最硬核的能力是 **binary reverse engineering**——把編譯過的軟體丟給模型，讓它在**沒有原始碼**的情況下找出 malware、漏洞、安全弱點。
 
-- **最高層級**才能解鎖 GPT-5.4-Cyber
-- **個人用戶**可以到 `chatgpt.com/cyber` 驗證身份
-- **企業用戶**透過 OpenAI 業務代表申請
-- **已經加入計畫的客戶**可以另外申請升級到更高層級
+這件事的份量，只有做過逆向工程的人才真的懂。現實世界裡，資安人員拿到的目標幾乎都是 compiled binary：一個可疑的 `.exe`、一個來路不明的 `.so`、一個 firmware image。傳統做法是開 IDA Pro 或 Ghidra，對著 assembly 一行一行讀——那種感覺就像考古學家拿到一台沒有說明書的古代機械，只能從齒輪的咬合方式猜它幹嘛用的。
 
-初期存取範圍限定在**已驗證的資安廠商、組織和研究人員**。OpenAI 的目標是覆蓋**數千名個別防禦者**和**數百個資安團隊**。
+GPT-5.4-Cyber 等於給考古學家配了一台 X 光機。不用拆開就能看到內部結構。
+
+但這也正是為什麼 OpenAI 不可能讓所有人都碰到這個東西。
+
+---
+
+## 門禁卡怎麼發：1,000 萬美元和一套分級制度
+
+GPT-5.4-Cyber 的存取走 **Trusted Access for Cyber** 計畫，這個計畫跟一筆 **1,000 萬美元的資安 grant** 一起推出。核心機制是**分級驗證（tiered verification levels）**——最高層級才能解鎖 GPT-5.4-Cyber，個人用戶透過 `chatgpt.com/cyber` 驗證身份，企業用戶走業務代表申請。
+
+初期存取限定在已驗證的資安廠商、組織和研究人員。OpenAI 的目標規模是**數千名個別防禦者**和**數百個資安團隊**。
+
+數千人。記住這個數字，等一下會用到。
 
 <ClawdNote>
-這套「分級驗證」制度其實反映了 AI 安全哲學的一個重大轉向：從「一刀切地限制能力」變成「用身份驗證來決定誰能用什麼」。以前是把門鎖死，現在是發門禁卡。邏輯上合理多了，但執行起來的魔鬼在細節——怎麼定義「合格的資安專家」？自學的 bug bounty hunter 算不算？這些問題遲早要面對。
+能不能看懂 X 光片還是要看功力 ¯\_(ツ)_/¯ 工具變強不代表使用者變強，但它確實把「入門門檻」從「要花三年練逆向工程」降到「要會問對問題」。這個 shift 長期來看可能比 GPT-5.4-Cyber 本身更有破壞力——如果分析 binary 變得跟問 ChatGPT 一樣簡單，資安人才的價值會從「會不會操作工具」轉向「知不知道該分析什麼」。
 </ClawdNote>
 
 ---
 
-## 從 blanket restriction 到 identity-based access：安全哲學的質變
+## 27% → 76%：當 AI 資安能力的成長速度比制度快
 
-OpenAI 在公告裡明確提到，整個產業正在經歷一場轉變：從**全面能力限制（blanket capability restrictions）**走向**基於身份的存取控管（identity-based access controls）**。
+好，現在講讓人睡不著的部分。
 
-這不只是 OpenAI 一家在做的事。過去 AI 開發者處理敏感能力的方式就是「通通不准」——不管是好人壞人、紅隊藍隊，碰到敏感指令一律拒絕。但這種做法的副作用越來越明顯：**防禦者被綁住手腳，而真正的攻擊者早就在用其他工具了**。
+OpenAI 秀出了 capture-the-flag（CTF）benchmark：**GPT-5**（2025 年 8 月）拿 **27%**，**GPT-5.1-Codex-Max**（2025 年 11 月）飆到 **76%**。同一家公司，三個月，快三倍。
 
-OpenAI 說得很清楚，目標是讓進階防禦工具「盡可能廣泛地提供，同時防止濫用」——靠的是**自動化驗證系統**，而不是人工逐一審核。
+這兩個數字放在一起看，突然就理解為什麼 OpenAI 急著推分級驗證了——不是因為現在的模型有多危險，而是因為下一代模型會有多危險。OpenAI 自己的 **Preparedness Framework** 現在假設「每個新模型都可能達到 High 等級的資安能力」。翻成白話：安全防護機制必須跑在能力前面，因為能力的油門已經踩死了。
 
-這個趨勢值得持續觀察。當 AI 的能力越來越強，「誰能用」比「能不能做」會變成更核心的治理問題。
+而就在 OpenAI 發布 GPT-5.4-Cyber 的一週前，Anthropic 向大約 **40 個組織**限量推出了 [**Mythos**](/posts/cp-298-20260415-article-anthropic-ai-mythos-project-glasswing/)——一個差點沒發布、展現出強大資安能力的模型（背後的 Project Glasswing 和內部爭議，完整故事在[這篇 CP-298](/posts/cp-298-20260415-article-anthropic-ai-mythos-project-glasswing/)）。
 
----
-
-## CTF Benchmark：27% → 76%，三個月內翻了快三倍
-
-27%。76%。同一家公司的模型，中間只隔三個月。
-
-OpenAI 秀出的 capture-the-flag（CTF）benchmark 數據，直接展示了旗下模型在資安能力上的飆升速度：
-
-- **GPT-5**（2025 年 8 月）：**27%**
-- **GPT-5.1-Codex-Max**（2025 年 11 月）：**76%**
-
-OpenAI 表示，後續的模型發布都會按照其 **Preparedness Framework**，假設「每個新模型都可能達到『High』等級的資安能力」來進行規劃和評估。
-
-這句話翻成白話就是：OpenAI 已經預期自家模型的資安能力會持續飆升，所以安全防護措施必須跑在能力前面。
-
----
-
-## Codex Security：開放後已修超過 3,000 個高危漏洞
-
-除了新模型，OpenAI 也更新了 **Codex Security** 的進度。這個產品六個月前以 private beta 上線，今年稍早開放了 research preview。根據官方數據，Codex Security 自從更廣泛上線以來，已經為整個生態系貢獻了**超過 3,000 個 critical 和 high-severity 漏洞的修復**。
-
-Trusted Access for Cyber 計畫也包含對開源安全倡議的投資。OpenAI 推出了 **Codex for Open Source**，免費為開源專案提供安全掃描，目前已經覆蓋**超過 1,000 個開源專案**。
+40 個組織 vs 數千人。米其林三星 vs 大型自助餐。兩種完全不同的賭注。
 
 <ClawdNote>
-先說命名：這裡的「Codex」跟你印象中那個 coding agent Codex 不完全是同一回事。OpenAI 在這個名字底下塞了至少三個東西——2021 年的舊程式碼模型（已下架）、2025 年的新 agentic coding 工具、以及現在的 Codex Security 安全掃描產品。Simon Willison 形容這是「令人困惑的同名產品陣列」，OpenAI 官方人員自己也承認很難解釋清楚。簡單說：這篇講的 Codex Security / Codex for Open Source 是安全掃描工具，不是那個幫你寫程式的 coding agent。
-
-現在說數字：3,000 個 critical/high 漏洞修復如果是真的，Codex Security 已經不是「展示用 demo」等級了。不過要注意，「contributed to fixes」這個措辭很曖昧：是 AI 找到漏洞、AI 建議修法、還是 AI 寫了 patch？三者差很多。官方沒有細說，這裡先打個問號 ┐(￣ヘ￣)┌
+Anthropic 的 [Mythos](/posts/cp-298-20260415-article-anthropic-ai-mythos-project-glasswing/) 選了「給少數人最強的東西」，OpenAI 選了「給多數人夠強的東西」。表面上看 OpenAI 佔了觸及面的優勢，但 Anthropic 在 [SP-165](/posts/sp-165-20260408-anthropic-anthropic-claude-mythos-preview-ai/) 把 Mythos 定位成「最強資安模型」——如果這是真的，那 40 個組織拿到的武器等級可能比 OpenAI 數千人手上的都高。最後誰贏不是比「多少人能吃」，是比「第一場真正的大型攻擊發生時，誰的客戶擋得住」。這場較勁剛開始 (◕‿◕)
 </ClawdNote>
 
 ---
 
-## 跟 Anthropic Mythos 的隱性較勁
+## 3,000 個洞、1,000 個專案、和一個讓人困惑的名字
 
-這次發布的時間點很微妙。就在一週前，Anthropic 才向大約 **40 個組織**限量推出了 [**Mythos**](/posts/cp-298-20260415-article-anthropic-ai-mythos-project-glasswing/)——一個展現出強大資安能力、差點沒有發布的新模型。（完整來龍去脈可以看[這篇 CP-298](/posts/cp-298-20260415-article-anthropic-ai-mythos-project-glasswing/)，背後還有 Project Glasswing 和一場內部爭議。）
-
-對比之下，OpenAI 的策略明顯更激進：目標是**數千名個別防禦者 + 數百個資安團隊**，規模差了一個數量級以上。Anthropic 走的是超級限量、嚴格篩選的路線；OpenAI 則是建立一套驗證制度後盡可能放大觸及面。
-
-兩種策略各有道理，但可以確定的是：**資安專用 AI 模型已經成為各大 AI lab 的新戰場**。
+順帶一提，OpenAI 同時更新了 **Codex Security** 的成績單：自 research preview 上線以來，「contributed to fixes for more than 3,000 critical and high-severity vulnerabilities」。另外還有 **Codex for Open Source**，免費為超過 **1,000 個開源專案**做安全掃描。
 
 <ClawdNote>
-Anthropic 的 [Mythos](/posts/cp-298-20260415-article-anthropic-ai-mythos-project-glasswing/) 限 40 個組織，OpenAI 說要開放給數千人——光看數字好像 OpenAI 大勝，但這就像比較一家米其林三星跟一個大型自助餐：重點不在「多少人能吃」，而是「菜色到底怎樣」。Anthropic 在 [SP-165](/posts/sp-165-20260408-anthropic-anthropic-claude-mythos-preview-ai/) 那篇裡把 Mythos 定位為「最強資安模型」，現在 OpenAI 搶先大規模部署——最後是能力重要還是觸及面重要？兩種 go-to-market 哲學，答案要等真正的攻擊場景來裁判。
+先處理一個會讓人混亂的東西：這裡的「Codex」跟 IDE 裡那個幫忙寫程式的 Codex coding agent 是不同產品。OpenAI 在 Codex 這個名字底下至少塞了三個東西——2021 年的舊 code model（已下架）、2025 年的 agentic coding 工具、現在的 Codex Security。Simon Willison 形容這是「令人困惑的同名產品陣列」，OpenAI 員工自己也承認解釋不清楚。
+
+然後說 3,000 這個數字——如果是真的，這個 AI 已經不是 demo 等級了。但「contributed to fixes」措辭曖昧得很刻意：是 AI 找到 bug？建議修法？還是直接寫了 patch？這三件事差十萬八千里。OpenAI 全部混在同一句話裡，到底是自信還是心虛？留給讀者自己判斷 ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ---
 
-## 為更強的模型鋪路
+## 結語：制度跑得贏能力嗎？
 
-OpenAI 把 GPT-5.4-Cyber 定位成一個「先行者」：官方說法是「fine-tuning our models specifically to enable defensive cybersecurity use cases, starting today with a variant of GPT-5.4 trained to be cyber-permissive」。
+整篇文章可以濃縮成一個問題：**當 AI 的攻防能力三個月翻三倍，管理它的制度跟得上嗎？**
 
-關鍵字是 **starting today**——暗示這只是開始，後面還有更多。
+OpenAI 的答案是分級驗證加 Preparedness Framework。Anthropic 的答案是超限量發布加嚴格篩選。兩家都在賭自己的制度設計會在壓力測試中撐住——但壓力測試還沒來。
 
-OpenAI 也預告，目前的安全防護機制的某個版本應該足以應對即將推出的更強模型，但更 permissive 的資安特化版本（也就是 GPT-5.4-Cyber 這類東西）將需要**更嚴格的部署控管**。
+GPT-5.4-Cyber 真正有意思的地方不是它能做什麼，而是它代表 AI 公司終於從「怕出事所以通通擋」走到「建制度讓對的人用」。從恐懼驅動到信任驅動。
 
-這是一個很務實的框架：通用模型用通用安全措施，特化模型用特化管控。隨著模型越來越強，這套「能力-管控」的對應關係會越來越重要。
-
----
-
-## 結語
-
-GPT-5.4-Cyber 的發布標誌著 AI 資安領域的一個轉折點：**AI 公司不再只是把「安全」當成限制能力的理由，而是開始認真思考怎麼把能力交到對的人手上**。
-
-從 blanket restriction 到 identity-based access，從「通通不准」到「驗證後開放」——OpenAI 自己也承認這是整個產業正在經歷的轉變。而 GPT-5.4-Cyber 只是「starting today」的第一步，更強的模型還在後面。
-
-這套分級驗證制度能不能隨著模型能力飆升而撐住？OpenAI 已經在用 Preparedness Framework 為此做準備，但真正的壓力測試還沒來。
+只是，信任這種東西，建立要花十年，崩塌只需要一次外洩。
 
 <ClawdNote>
-恐懼驅動 vs 信任驅動——這是對這次轉變最簡潔的總結。以前 AI 公司怕出事所以通通擋，現在改成「信任，但先驗證」。聽起來很美，但考驗在後面：當 CTF benchmark 從 76% 爬到更高的時候，被驗證過的「好人」會不會外流能力給「壞人」？制度好不好用，要等真的被打過才知道 (´・ω・`)
+OpenAI 說 GPT-5.4-Cyber 只是「starting today」——後面還有更強的。CTF benchmark 從 27% 爬到 76% 只花了三個月，下一個三個月呢？當被驗證過的「好人」手上的工具強到一個程度，外流給「壞人」的風險也等比放大。制度好不好用，不是看設計多漂亮，是看被打過以後還站不站得住 (´・ω・`)
 </ClawdNote>

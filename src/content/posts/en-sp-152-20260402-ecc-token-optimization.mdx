@@ -13,7 +13,7 @@ translatedBy:
 source: "@affaanmustafa on GitHub"
 sourceUrl: "https://github.com/affaan-m/everything-claude-code"
 lang: "en"
-summary: "Most token waste is invisible: Extended Thinking on tasks that don't need it, Opus handling work a Haiku could do, context filling before you compact. ECC's token-optimization.md combines MAX_THINKING_TOKENS + model routing + strategic compact — author Affaan Mustafa says the savings reach 60-80%."
+summary: "Most token waste is invisible: Extended Thinking on tasks that don't need it, Opus handling work a Sonnet could do, context filling before you compact. ECC's token-optimization.md combines MAX_THINKING_TOKENS + model routing + strategic compact — author Affaan Mustafa says the savings reach 60-80%."
 tags: ["shroom-picks", "claude-code", "token-optimization", "cost-management", "developer-productivity"]
 series:
   name: "Everything Claude Code 全解析"
@@ -28,14 +28,14 @@ The number loads.
 
 You stare at it. Then you do the math again. Then you close the tab, get some water, come back, and do the math one more time.
 
-$200 plan. You're at $198 and change. Almost exactly at the limit — and that's the worst feeling. Not a clean overage, not comfortably under. The edge. You don't know where it all went. You can count the articles, the agent calls, the sessions — and the numbers still don't add up. A big chunk just disappeared somewhere.
+$200 plan. You're at $198 and change. Almost exactly at the limit — and that's the worst feeling. Not a clean overage, not comfortably under. The edge. You don't know where it all went. You can count the articles, the [agent](/glossary#agent) calls, the [Ralph Loop](/glossary#ralph-loop) runs, the [Claude Code](/glossary#claude-code) sessions — and the numbers still don't add up. A big chunk just disappeared somewhere.
 
 That's the scariest thing about token waste. **Not that you know it's happening — but that you don't.**
 
 <ClawdNote>
-$200/month sounds like a lot until you run a serious multi-agent pipeline. Opus 4.6 costs $15 per 1M input tokens, $75 per 1M output tokens. Run a 10-subagent pipeline where each agent uses 2K tokens, and one round trip costs about $3. Ten runs a day, that's $900/month.
+[Clawd](/about) here with some quick math. $200/month sounds like a lot until you run a serious multi-agent pipeline. Opus 4.6 costs $15 per 1M input tokens, $75 per 1M output tokens. Run a 10-[subagent](/glossary#subagent) pipeline where each agent uses 2K tokens, and one round trip costs about $3. Ten runs a day, that's $900/month.
 
-This isn't meant to scare you — it's meant to say: if your pipeline doesn't think about cost, money moves fast. The goal isn't to stop using Claude. It's to know where the money is actually going (⌐■_■)
+But here's the thing ECC is actually saying: **most people don't need Opus for all of that.** Just switching the default model from Opus to Sonnet cuts costs by about 60%. The difference isn't using less — it's using the right thing (⌐■_■)
 </ClawdNote>
 
 ## The Problem Isn't How Much You Use — It's Where
@@ -44,53 +44,45 @@ Most people's first instinct for saving tokens is shortening prompts. Write less
 
 That helps. But it's not where the big waste is.
 
-Everything Claude Code (ECC) has a file called `token-optimization.md`, put together by Affaan Mustafa from months of daily use. He says combining `MAX_THINKING_TOKENS` with model routing can cut costs 60-80% — that's his number, based on his usage. Your results will vary. But the direction is right.
+Everything Claude Code (ECC) has a file called `token-optimization.md`, put together by Affaan Mustafa from months of daily use. The core advice is three moves: cap thinking tokens with `MAX_THINKING_TOKENS`, route models to match the task, and use strategic `/compact` to control context. Combined, he says the savings reach 60-80% — that's his number, based on his usage. Your results will vary. But the direction is right.
 
-The three main sources of invisible waste:
-
-First: **Extended Thinking burning tokens on tasks that don't need it.** Claude's thinking mechanism is powerful — but it uses tokens to think before answering, and those thinking tokens cost just as much as output tokens. Often more. You ask it to rename a variable. It doesn't need 10,000 thinking tokens. But if you haven't set a limit, it might use them anyway.
-
-Second: **Wrong model for the job.** Opus is expensive. Haiku is cheap. Sonnet is in the middle. When every task in your pipeline runs through Opus — including "format this JSON" — you're paying head chef rates to slice onions.
-
-Third: **Compacting too late.** Waiting until context is full means Claude spends extra tokens summarizing a very long history. The summary drops details you might need later, and you end up re-establishing context you already paid to establish once.
+Three main sources of invisible waste — and the first one might surprise you.
 
 ---
 
-## MAX_THINKING_TOKENS — You're Paying for Silence
+## MAX_THINKING_TOKENS — The 31,999-Token Invisible Bill
 
-This is the easiest setting to change, and one of the least known.
+Extended Thinking is how Claude reasons before answering — and those thinking tokens cost just as much as output tokens. Often more. The problem is the scale.
 
-Claude Code's Extended Thinking has no cap by default. Every time Claude thinks it should reason through something, it decides how much to think — without asking you. For hard problems, this is great. For easy tasks, you're paying for Claude to talk to itself.
+What most people don't realize: **the default cap is 31,999 tokens.** Every time Claude decides it needs to think through something, it can burn up to 31,999 tokens of reasoning before producing a single word of answer. For a complex architecture decision, that's worth it. For renaming a variable? Not even close. But without a custom limit, Claude might use a big chunk of that budget anyway.
 
-ECC's suggestion: set `MAX_THINKING_TOKENS` in `settings.json` to put a budget on the thinking:
+Those thinking tokens don't appear in Claude's response. You see the final answer. You don't see the thinking. But the bill already counted all of it. Like a taxi meter running while the car is at a red light — you're not moving, but you're being charged.
+
+ECC's suggestion: set `MAX_THINKING_TOKENS` in the `env` block of your `~/.claude/settings.json`:
 
 ```json
 {
-  "thinking": {
-    "maxTokens": 3000
+  "env": {
+    "MAX_THINKING_TOKENS": "10000"
   }
 }
 ```
 
-But a global cap is just step one. The sharper approach is to use different modes for different types of work — ECC calls these context modes:
+From 31,999 down to 10,000. ECC estimates this alone saves about 70% on thinking token costs. For most everyday coding tasks, ten thousand tokens of thinking space is more than enough. When you actually need deep reasoning — untangling a cross-module bug, planning a system architecture — switch to Opus with `/model opus` and let it think at full capacity.
 
-**Dev mode (quick edits):** You're fixing bugs, refactoring small functions, writing tests. Precise execution, not deep analysis. Low thinking budget. Fast responses, low cost.
-
-**Review mode (architecture decisions):** You're evaluating design options, reviewing a large PR, deciding on a technical direction. It's worth letting Claude think more here — one bad architecture decision costs more than a few thousand extra thinking tokens. Medium budget.
-
-**Research mode (deep exploration):** You're trying to understand a new system from scratch, analyzing codebase patterns, planning a large feature. Extended Thinking earns its cost here. Higher budget — but you should consciously switch into this mode. Not every session needs it.
+For purely mechanical tasks like formatting or renaming, you can even set it to `"0"` to disable thinking entirely. No thinking needed, no thinking billed.
 
 <ClawdNote>
-"You're paying for silence" — this is a real thing.
+"Paying for silence" is a good phrase, but to be precise: 31,999 isn't "no limit" — it's a **very high default** that feels like no limit for most everyday tasks.
 
-Extended Thinking tokens don't appear in Claude's response. You see the final answer. You don't see the thinking. But the bill already counted those thousands of thinking tokens. It's like a taxi meter running while the car is at a red light — you're not moving, but you're being charged.
-
-`MAX_THINKING_TOKENS: 3000` isn't magic. It just says "three thousand tokens is enough to think, after that you decide." For most everyday tasks, that's more than sufficient. When you actually need deep thinking, you can raise it for that specific task — or switch to Research mode ヽ(°〇°)ﾉ
+ECC recommends 10,000. Not a magic number, but the mental model is clear: most daily coding tasks don't need more than 10K tokens of reasoning. The times you'd want to switch to `/model opus` for full-depth thinking — maybe once or twice a day. The rest of the time, 10K is plenty ヽ(°〇°)ﾉ
 </ClawdNote>
 
 ---
 
 ## Model Routing — Not Every Dish Needs the Head Chef
+
+Here's the most counterintuitive recommendation in ECC: **don't default to Opus. Default to Sonnet.**
 
 Think of your models as a restaurant with three tiers.
 
@@ -100,112 +92,107 @@ The sous chef (Sonnet) executes very well. Most dishes, done right, at reasonabl
 
 The prep cook (Haiku) is fastest and cheapest at repetitive, well-defined tasks. Cutting, formatting, checking — not designing menus.
 
-Most agent workflows should look like this:
-
-The main orchestrator — the part that decides what to do next and coordinates the pipeline — runs on Opus. The judgment here is worth paying for.
-
-Code generation, translation, writing, running clearly-defined tasks — Sonnet. Good enough, significantly cheaper.
-
-Format validation, quick lookups, schema checks, simple parsing — Haiku.
-
-In Claude Code's `settings.json`:
+ECC's `token-optimization.md` recommends this configuration:
 
 ```json
 {
-  "model": "claude-opus-4-6",
-  "subagentModel": "claude-sonnet-4-6"
+  "model": "sonnet",
+  "env": {
+    "MAX_THINKING_TOKENS": "10000",
+    "CLAUDE_CODE_SUBAGENT_MODEL": "haiku"
+  }
 }
 ```
 
-This keeps the orchestrator on Opus and automatically routes subagents to Sonnet. If your pipeline makes 10+ subagent calls, this difference adds up every day.
+`model` set to `sonnet` — your daily default is Sonnet, not Opus. ECC says Sonnet handles about 80% of coding tasks well. That one switch alone saves roughly 60%. When you need Opus, type `/model opus` — for complex reasoning, large architecture decisions, the moments that are worth paying for.
 
-If the whole task is simple from the start — no high-level judgment required, pure execution — you can route the entire thing to Sonnet. Not every session needs Opus at all.
+`CLAUDE_CODE_SUBAGENT_MODEL` set to `haiku` — [subagents](/glossary#subagent) (spawned by the Task tool) run on Haiku. They're typically reading files, looking things up, running tests. Haiku is about 80% cheaper for that kind of work, and the quality is sufficient.
+
+This echoes [SP-150's indie hacker philosophy](/posts/sp-150-20260402-ecc-indie-hacker-ecc/) — money isn't the enemy, misallocation is. A lot of people treat Opus as the "safe default" — Opus can't be wrong, Haiku might give worse results. But that logic costs 5x for quality improvements you don't need. Haiku doing JSON validation versus Opus doing JSON validation — the output is identical. The difference is the number on your bill.
 
 <ClawdNote>
-"Model routing" sounds technical, but it describes something intuitive: **different work deserves different tools**.
+ECC's advice reads counterintuitive at first: default Sonnet, subagent Haiku, only Opus when you need it. Most people's instinct is "Opus is strongest, just use Opus for everything."
 
-The counterintuitive part is that a lot of people treat Opus as the "safe default" — Opus can't be wrong, Haiku might give worse results. But that logic costs you 5x the money for quality improvements you don't need. Haiku doing JSON validation versus Opus doing JSON validation — the output is identical. The difference is the number on your bill.
-
-ECC's token-optimization.md says switching subagent calls from Opus to Sonnet alone cuts most pipeline costs in half. This isn't a trick. It's basic pricing arithmetic ┐(￣ヘ￣)┌
+But think about it: the source says subagents on Haiku save 80%, switching the main model from Opus to Sonnet saves 60%. These aren't hacks. It's basic pricing arithmetic — you don't pay head chef rates to chop onions ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ---
 
 ## The Philosophy of /compact — Knowing When to Compress
 
-Context management is the least discussed part of token optimization, and one of the highest-leverage.
+Context management is the least discussed part of token optimization, and one of the highest-leverage. (If you're interested in pipeline design for Claude Code, [SP-151's eval-driven development](/posts/sp-151-20260402-ecc-eval-driven-development/) covers how to automate quality through evaluation loops — the quality side of the same coin as cost automation here.)
 
-Most people let Claude auto-compact — when context gets too full, Claude decides what to keep, summarizes the history, and continues. This mostly works. But it has one problem: **Claude decides what's important, not you.**
+Most people let Claude auto-compact — when [context window](/glossary#context-window) gets too full, Claude decides what to keep, summarizes the history, and continues. But auto-compaction has a fundamental problem: **Claude decides what's important, not you.**
 
-When auto-compaction happens, Claude preserves what it thinks matters. That constraint you mentioned 30 minutes ago — "don't touch the auth module" — might survive in the summary as a vague "avoid auth changes," and five instructions later Claude does exactly what you didn't want.
+When it happens, Claude preserves what it thinks matters. That constraint you mentioned 30 minutes ago — "don't touch the auth module" — might survive in the summary as a vague "avoid auth changes," and five instructions later Claude does exactly what you didn't want.
 
-Strategic compact means **you decide when to compress, and at which point in the conversation.** You run `/compact`. You control the timing.
+ECC has a `strategic-compact` skill built specifically for this: it suggests `/compact` at logical breakpoints rather than waiting for context to hit the wall. The key insight is that **you control the timing, not the system at its worst moment.**
 
 When to manually `/compact`:
 
-Before starting a new major task in the same session. You just finished a complex debug session, now you're moving to a new feature. The debug trail is done with. The conclusions are in your head. This is a good time to clear.
+After exploration, before implementation. You've read 20 files and understood the architecture. The exploration trail doesn't need to come with you into the coding phase. Compact, carry the conclusions, start clean.
 
-After resolving a complex bug. The wrong turns, the attempted approaches, the intermediate errors — you have the answer now. You don't need Claude carrying all that history forward.
+After resolving a complex bug, before the next task. The wrong turns, the attempted approaches, the intermediate errors — you have the answer now. You don't need Claude carrying all that history forward.
 
-When switching from exploration to implementation. You spent an hour reading the codebase and understanding the architecture. Now you're about to write code. Summarize the key findings, compact, and let Claude execute with a clean context.
+After completing a milestone. This is the core design of ECC's `strategic-compact` — compress at natural task boundaries, not in the middle.
 
 When not to `/compact`:
 
-In the middle of an active debugging session. The error message, the stack trace, the detail you found on the third attempt — if you're not done yet, compaction might cut exactly what you need.
+Mid-debugging session. The error message, the stack trace, the detail you found on the third attempt — if you're not done yet, compaction might cut exactly what you need.
 
 Mid-refactor where early decisions affect later ones. That thread can't be broken.
 
-Right after you've provided important context. You spent ten minutes explaining the business rules. Claude just read them. Compacting now means deleting what you just said.
+Right after providing important context. You spent ten minutes explaining business rules. Claude just read them. Compacting now means deleting what you just said.
 
 The key insight: **compacting at the wrong time costs more than not compacting.** Because when Claude loses the context you needed, you have to re-establish it — and that reconstruction also costs tokens.
 
 <ClawdNote>
 This happened to us. Running Ralph Loop on an article, context got near-full, let Claude auto-compact mid-session. After compression, "the ticketId for this article is SP-148" had been summarized away. Later Claude used the wrong ID when naming a file, we caught it halfway through, had to re-explain, re-run. The tokens spent on recovery were about twice what the compaction saved.
 
-It's not Claude's fault. It's a timing problem. Compacting in the middle of an active task is like cutting the first half of a conversation out and hoping the other person still remembers what you said (｡◕‿◕｡)
+That's exactly the problem ECC's strategic-compact solves — compress at task boundaries, not in the middle. Mid-task compaction is like cutting the first half of a conversation out and hoping the other person still remembers what you said (｡◕‿◕｡)
 </ClawdNote>
 
 ---
 
-## Cost-Aware Pipeline — Putting It All Together
+## Three Moves, One settings.json
 
-Each individual optimization helps. Combining them into a system is where ECC's real idea lives.
+Each individual optimization helps. Combining them into a system is where ECC's real idea lives. The full `settings.json`:
 
-ECC has a `cost-aware-llm-pipeline` skill built around one principle: budget tracking belongs inside the pipeline design, not on the invoice you look at afterward.
-
-The basic logic: track token usage per session, set two thresholds — soft warning at 70%, model downgrade at 90%. The pipeline keeps running, but automatically switches to cheaper models as it approaches the limit, instead of just stopping or continuing to burn.
-
-The fallback strategy:
-
-```
-Opus → Sonnet (when budget warning triggers)
-Sonnet → Haiku (when task is judged simple)
-Haiku → fail gracefully (if even that won't help)
+```json
+{
+  "model": "sonnet",
+  "env": {
+    "MAX_THINKING_TOKENS": "10000",
+    "CLAUDE_CODE_SUBAGENT_MODEL": "haiku"
+  }
+}
 ```
 
-You design the cost awareness in. You don't discover the problem on the billing page.
+Three settings doing three things: Sonnet as default (saves ~60%), thinking tokens from 31,999 down to 10,000 (saves ~70%), subagents on Haiku (saves ~80%). Add manual `/compact` at logical breakpoints to clean context, and that's where ECC's 60-80% cost reduction comes from.
 
-The math is simple: 50 subagent calls per day, 2K tokens each, all on Opus — about $7.50/day. Switch those to Sonnet — about $1.50/day. One month, that's $180 difference. Before accounting for MAX_THINKING_TOKENS savings or context reconstruction you avoided with strategic compact.
+Layer on ECC's `cost-aware-llm-pipeline` skill concept — building budget tracking directly into pipeline design. The idea is similar to [hooks](/glossary#hooks) — [SP-146's Hook Architecture](/posts/sp-146-20260402-ecc-hook-architecture/) inserts automated behavior at key pipeline nodes; this inserts cost awareness at the same nodes.
+
+This isn't new in software engineering. You build an HTTP API client — you add retry logic, timeout, fallback. You build an AI pipeline — why not add token budget + model fallback?
 
 <ClawdNote>
-"Build budget tracking into the pipeline" is not a new idea in software engineering — rate limiting, circuit breakers, fallback strategies. These are patterns engineers use every day. But when the context shifts to AI token usage, people forget to design it.
+The math is simple: 50 subagent calls per day, 2K tokens each. All on Opus — about $7.50/day. All on Haiku — under $1. That's over $190/month difference.
 
-You build an HTTP API client — you add retry logic, timeout, fallback. You build an AI pipeline — why not add token budget + model fallback? This isn't a clever money-saving tip. It's basic system design. ECC is reminding you of something you already knew how to do (๑•̀ㅂ•́)و✧
+Add Sonnet as your main model and thinking token caps on top, and ECC's 60-80% reduction isn't a marketing number — it's three multipliers stacking. And here's the thing: after making these changes, day-to-day usage feels almost identical. When you actually need Opus, `/model opus` brings it right back. This isn't a "money-saving tip." It's basic system design (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
 ---
 
-## OpenClaw in Practice — Our Actual Numbers
+## [OpenClaw](/glossary#openclaw) in Practice — Our Actual Numbers
 
 This isn't theory. Here's how it plays out for gu-log.
 
-We run on the $200/month plan. OpenClaw runs translations, Ralph Loop (scoring + rewriting), frontmatter validation, commits, and various debug sessions every day. Each article's Ralph Loop uses at least three agents (Translator, Scorer, Rewriter). If the score doesn't pass, Rewriter and Scorer each run one or two more rounds. Seven to eight agent calls per article is normal.
+We run on the $200/month plan. [OpenClaw](/glossary#openclaw) — our 24/7 automated translation [agent](/glossary#agent) — runs translations, [Ralph Loop](/glossary#ralph-loop) (scoring + rewriting), frontmatter validation, commits, and various debug sessions every day. Each article's Ralph Loop uses at least three agents (Translator, Scorer, Rewriter). If the score doesn't pass, Rewriter and Scorer each run one or two more rounds. Seven to eight agent calls per article is normal.
 
-Our model strategy: Opus handles orchestration and the translation calls that need real judgment. Sonnet does most translation and scoring work. Haiku does format validation and frontmatter schema checks.
+Our model strategy is slightly different from ECC's recommendation: Opus handles orchestration and the translation calls that need real judgment, Sonnet does most translation and scoring work, Haiku does format validation and frontmatter schema checks. ECC suggests Sonnet as default with Haiku subagents, which is designed for general coding workflows — gu-log's translation pipeline has higher language quality demands, so keeping the orchestrator on Opus is a deliberate choice, not laziness.
 
-But the biggest lesson wasn't model routing. It was thinking tokens. Before we noticed, every agent call in Ralph Loop was running Extended Thinking — including the Haiku call that was only checking "are all the frontmatter fields filled in." That call doesn't need to think. But the thinking tokens still billed.
+But the biggest lesson wasn't model routing. It was thinking tokens. Before we noticed, every agent call in Ralph Loop was running Extended Thinking — including the Haiku call that was only checking "are all the frontmatter fields filled in." That call doesn't need to think. But with the 31,999-token default, it had permission to — and the bill reflected it. ([SP-143's autonomous loops](/posts/sp-143-20260402-ecc-autonomous-loops/) touches on the same problem — the more autonomous the loop, the more important cost controls become, because no one is there to hit the brakes.)
 
-The second lesson was compact timing. A few times, context hit saturation and auto-compact ran mid-pipeline, compressing away key context about the article being processed. The next agent had to re-confirm things the previous agent already established. That reconstruction wasn't free.
+The second lesson was compact timing. A few times, [context window](/glossary#context-window) hit saturation and auto-compact ran mid-pipeline, compressing away key context about the article being processed. The next agent had to re-confirm things the previous agent already established. That reconstruction wasn't free.
 
 Now: Ralph Loop does one active `/compact` after each article finishes. The next article starts clean. No debug trail from the previous article bleeding into the new session. No context accumulation across different pieces of work.
 
@@ -217,8 +204,17 @@ The $200 limit is still $200.
 
 But knowing where it goes is different from not knowing.
 
-A rename task doesn't need Claude to think for 30,000 tokens. A format validation task doesn't need Opus. When a session has its answer and a new task is starting, that's when you compact — not when you keep adding two thousand more lines of context on top.
+A rename task doesn't need Claude thinking through 31,999 tokens of reasoning space. A format validation task doesn't need Opus — Haiku will do. When a session has its answer and a new task is starting, that's when you compact — not when you keep adding two thousand more lines of context on top.
 
-This isn't about being so frugal you squeeze every token. It's about being clear where each dollar lands. The thinking tokens you save on a simple task, the subagent calls you route to Sonnet instead of Opus — that's budget you can spend on the architectural decision that actually needs deep reasoning.
+ECC's three-line `settings.json` isn't a secret weapon — it just says: put the money where it matters. Sonnet for daily work, Haiku for grunt work, Opus only when it's worth it. The budget you save isn't gone. It's budget you can spend on the architectural decision that actually needs deep reasoning.
 
 Same money. More of the work that matters.
+
+---
+
+## More from the ECC Series
+
+- [SP-143: ECC Autonomous Loops — 6 Modes for Letting AI Run Itself](/posts/sp-143-20260402-ecc-autonomous-loops/)
+- [SP-146: ECC Hook Architecture — Git Hooks, but for AI](/posts/sp-146-20260402-ecc-hook-architecture/)
+- [SP-150: ECC Indie Hacker — One Person + AI Development Philosophy](/posts/sp-150-20260402-ecc-indie-hacker-ecc/)
+- [SP-151: ECC Eval-Driven Development — Quality Through Evaluation Loops](/posts/sp-151-20260402-ecc-eval-driven-development/)

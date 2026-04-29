@@ -29,30 +29,32 @@ tags: ["clawd-picks", "figma", "ai-agents", "mcp", "design-systems", "developer-
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Have you ever hired a really talented freelancer to do some design work, and what came back was "technically fine" but just... felt off? The button corner radius was 2px wrong, the primary color was generic blue instead of your brand color, and all the spacing used 10px round numbers instead of your 8px grid.
+Everyone who's ever managed a design system shares the same nightmare: the designer changes a color in Figma, the code still has the old one. The engineer updates spacing in code, Figma doesn't follow. Both sides evolve independently for three months until QA takes a screenshot before launch — "hey, why does this button look different from the spec?"
 
-Figma's latest update is basically solving this problem.
+The root cause isn't bad tools. It's that **design context lives in people's heads instead of in the tools**.
 
-They've opened up the canvas through their [MCP](/glossary#mcp) server, letting AI [agents](/glossary#agent) work directly inside your Figma files — and not just drawing random shapes, but actually connecting to your design system, reading your component library, and using your variables. Figma had [previously built code-to-canvas](/posts/clawd-picks-20260217-figma-claude-code-to-canvas/) as a one-way street from code to design. This new step makes it a two-way operation on the entire canvas.
+Figma's latest move attacks this directly. Through their [MCP](/glossary#mcp) server, AI [agents](/glossary#agent) can now work inside your Figma files — not drawing random shapes, but connecting to your design system, reading your component library, and using your variables. Figma had [previously built code-to-canvas](/posts/clawd-picks-20260217-figma-claude-code-to-canvas/) as a one-way street from code to design. The new `use_figma` tool makes it a two-way operation on the entire canvas.
+
+But the really interesting part isn't the tool itself — it's that Figma chose not to build their own AI, and instead opened a door for all agents to walk through.
 
 <ClawdNote>
-You might be thinking: "[MCP](/glossary#mcp) server? Another buzzword?" But this time it's different. The significance of MCP is that Figma didn't build their own AI — they opened a door for all AI agents to walk through. [Claude Code](/glossary#claude-code), [Codex](/glossary#codex), Cursor, Copilot — they all use the same entrance. This is exactly the same strategy as Figma's plugin ecosystem back in the day: don't build the best tool yourself, let others build on your platform. Except this time, the ones walking in aren't plugin developers — they're AI agents. Smart move. (◕‿◕)
+Think of it this way: AI doing design used to be like hiring a freelancer who's never been to your office. You say "make a login page" and they deliver something "technically fine" but just... off. Now Figma is pulling that freelancer into your design system, showing them every component, making them read the style guide — then letting them work. And they didn't build their own AI — they used [MCP](/glossary#mcp) to open one door that [Claude Code](/glossary#claude-code), [Codex](/glossary#codex), Cursor, and Copilot all walk through. Same strategy as Figma's plugin ecosystem back in the day, except now it's AI agents walking in, not plugin developers. (◕‿◕)
 </ClawdNote>
 
 ---
 
 ## Old Tool Meets New Star: One Pulls in Reality, One Does the Creating
 
-The Figma MCP server now has two core tools. Think of their relationship like a teaching assistant and a professor.
+The Figma MCP server has two core tools. Think of their relationship like a teaching assistant and a professor.
 
-**`generate_figma_design`** is the TA — its job is to bring "what's running out there" back into the classroom. You have a live app UI? It converts it into editable Figma layers. Code and design out of sync? Let the TA bring reality in first, then everyone can look at the real thing and discuss what needs changing. This tool existed before, but paired with the new star, it becomes much more useful.
+**`generate_figma_design`** is the TA — its job is to bring "what's running out there" back into the classroom. Live app UI? It converts it into editable Figma layers. Code and design out of sync? The TA brings reality in first, then everyone looks at the real thing and discusses what needs changing. This tool existed before, but paired with the new star, it becomes much more useful.
 
-**`use_figma`** is the professor — the new feature. It lets [agents](/glossary#agent) work directly on the canvas, and it works the way your team defined things. Not drawing with a blank pen, but opening your component library, reading your variable names, and following your auto layout rules.
+**`use_figma`** is the professor — the new feature. It lets [agents](/glossary#agent) work directly on the canvas the way your team defined things. Not drawing with a blank pen, but opening your component library, reading your variable names, and following your auto layout rules.
 
 The workflow combo is natural: the TA pulls the live UI into Figma as a base, then the professor uses the right components and rules to modify or create new designs on top. One handles "bring reality in," the other handles "design things the right way."
 
 <ClawdNote>
-This division reveals a deep product bet from Figma: they're not trying to make AI draw from scratch. They want AI to work within the system you've already built. This is a completely different path from those "one prompt generates an entire app" tools — those treat AI as the creator, Figma treats AI as "the most obedient designer on your team." Which path makes more sense for enterprise? Just ask yourself if your boss would accept a design that came from a blank canvas with zero connection to your brand. Yeah, exactly. ┐(￣ヘ￣)┌
+This division reveals a deep product bet from Figma: they're not trying to make AI draw from scratch. They want AI to work within the system you've already built. This is a completely different path from those "one prompt generates an entire app" tools — those treat AI as the creator, Figma treats AI as "the most obedient designer on your team." Which path makes more sense for enterprise? Would your boss accept a design from a blank canvas with zero connection to your brand? The answer is obvious. ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ---
@@ -61,22 +63,20 @@ This division reveals a deep product bet from Figma: they're not trying to make 
 
 Okay, the [agent](/glossary#agent) is inside the canvas now. But here's the problem.
 
-How does it know that "our button spacing is always multiples of 8px"? How does it know that the primary color is called `--brand-500` and not just "blue"? How does it know which page new components should go on?
+How does it know that "our button spacing is always multiples of 8px"? How does it know that the primary color is called `--brand-500` and not just "blue"? How does it know which page new components should go on? From experience? It has none. By guessing? If it guesses wrong, you waste more time fixing it than doing it yourself.
 
-From experience? It has none. By guessing? If it guesses wrong, you waste time fixing it.
-
-The answer is **skills** — basically markdown files filled with instructions that tell agents how to execute specific workflows in Figma. What steps to follow, in what order, following what conventions. But the clever part is that they're not just checklists — they're more like an onboarding doc mixed with an SOP. They give the agent both "what to do" and "what good looks like."
+The answer is **skills** — markdown files that tell agents how to execute specific workflows in Figma. Steps, order, conventions — all written down. But the clever part is that they're not just checklists. They're more like an onboarding doc mixed with an SOP: both "what to do" and "what good looks like."
 
 Anthropic's [Claude Code](/glossary#claude-code) product lead Cat Wu put it well:
 
 > *"Skills teach Claude Code how to work directly in the design canvas, so you can build in a way that stays true to your team's intent and judgment."*
 
-The vibe here is really about this: **your team's unwritten rules can now be written down, and the agent will actually follow them.**
+The real message: **your team's unwritten rules can now be written down, and the agent will actually follow them.**
 
-The foundation is a base skill called `/figma-use` that all other skills build on. It teaches agents Figma's basic structure and core principles — like the onboarding doc you have to read before you're allowed to touch production files.
+The foundation is a base skill called `/figma-use` that all other skills build on — the onboarding doc you have to read before you're allowed to touch production files, agent edition.
 
 <ClawdNote>
-Writing a skill requires no code, no plugin. This is huge because it means Design Leads and PMs can directly participate in defining "how the agent should work" without waiting for engineering. In a way, skills are "executable design guidelines" — you used to write guidelines and pray the team would follow them, now you write skills and the agent just does it. Humans might not read your wiki, but agents will. This is the same concept as [Claude Code's CLAUDE.md](/posts/claude-code-vs-codex/) — write rules in a format the agent understands, and it follows them. Figma just brought this idea into design. (๑•̀ㅂ•́)و✧
+Writing a skill requires no code, no plugin. This is huge — Design Leads and PMs can directly define "how the agent should work" without waiting for engineering. Skills are basically "executable design guidelines": you used to write guidelines and pray the team would follow them; now you write skills and the agent just does it. Humans might not read your wiki, but agents will. Same concept as [Claude Code's CLAUDE.md](/posts/claude-code-vs-codex/) — write rules in a format the agent understands, and it follows them. Figma just brought this idea into design. (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
 ---
@@ -103,60 +103,62 @@ Augment Code's `/multi-agent` runs parallel workflows — multiple agents workin
 
 ---
 
-## Self-Healing Loop: The Agent Reviews Its Own Work
+## Self-Healing Loop: Do the Work, Check the Work, Fix the Work
 
-Here's a concept that sounds mystical but is actually very practical.
+The skills above solve "how the agent does things." But what about whether the result is actually correct?
 
-Skills don't just define how agents generate things — they also define how agents go back, inspect, and fix their own output. After creating a screen, the agent can take a screenshot, compare it against expected results, and fix what doesn't look right on its own.
+This is where the design gets genuinely impressive: skills don't just define how agents generate things — they also define how agents **go back, inspect, and fix their own output**. After creating a screen, the agent can take a screenshot, compare it against expected results, and fix what doesn't look right. On its own. No human in the loop.
 
-And because the agent is working with real structure — components, variables, auto layout — when it fixes things, it's fixing structure, not just pixels. Change a spacing token's value and everything using that token updates together.
+And because the agent works with real structure — components, variables, auto layout — when it fixes things, it's fixing structure, not just pixels. Change a spacing token's value and everything using that token updates together.
 
-Figma also acknowledged an important reality in the article: **AI models are inherently non-deterministic — the same prompt run twice might produce different results.** Skills exist to make this behavior more predictable by encoding specific steps, guidelines, and rules to reduce randomness.
-
-Your design conventions are no longer static documents collecting dust in Notion. They're now rules that agents follow while they work.
+Figma also acknowledged an important reality in the article: **AI models are inherently non-deterministic — the same prompt run twice might produce different results.** Skills exist to make this behavior more predictable by encoding specific steps, guidelines, and rules to reduce randomness. Your design conventions are no longer static documents collecting dust in Notion — they're rules that agents follow while they work.
 
 <ClawdNote>
-Self-healing loop is basically the AI version of "check your own work before submitting." You might think "isn't that basic?" But in the AI world, most [agents](/glossary#agent) are fire-and-forget: generate, dump it on you, and whether it's good is your problem. Figma having the agent run its own QA loop is going to save massive amounts of back-and-forth revision time. Interestingly, [Codex's sandbox philosophy](/posts/20260301-codex-cli-sandbox-philosophy/) does something similar — letting the agent execute, verify, and deliver in an isolated environment. Codex does it at the code level, Figma does it at the design level. Different roads, same destination. (￣▽￣)／
+Most [agents](/glossary#agent) are fire-and-forget: generate, dump it on you, and whether it's good is your problem. Figma having the agent run its own QA loop will save massive amounts of back-and-forth revision time. [Codex's sandbox philosophy](/posts/20260301-codex-cli-sandbox-philosophy/) does something similar — execute, verify, deliver in an isolated environment. Codex does it at the code level, Figma does it at the design level. Different roads, same destination — but Figma's version is harder, because design errors are much trickier to catch automatically than code errors. Screenshot comparison is the most practical solution right now. (￣▽￣)／
 </ClawdNote>
 
 ---
 
-## From Code to Canvas, and Canvas Back to Code
+## One Entrance, Nine Agents Lining Up
+
+At this point, the bigger picture starts to emerge: this isn't just Figma adding an AI feature. Figma is repositioning itself from "a tool for designers" to "the shared space where everyone — including AI agents — makes product decisions."
 
 OpenAI's [Codex](/glossary#codex) design lead Ed Bayes said in the article:
 
 > *"Teams at OpenAI use Figma to iterate, refine, and make decisions about how a product comes together. Now, Codex can find and use all the important design context in Figma to help us build higher quality products more efficiently."*
 
-The core message: **Figma is no longer just a design tool — it's moving toward being the shared space where everyone, including AI agents, makes product decisions.** Whether your work starts from a coding agent, inside Figma, or from the command line, Figma wants to be the place where everything converges.
+Whether your product work starts from a coding agent, inside Figma, or from the command line, Figma wants to be the place where everything converges.
 
-Because this capability is built natively into the Figma [MCP](/glossary#mcp) server, it can leverage Figma's existing security and stability while also opening up access to Code Connect, Figma Draw, FigJam, and other surfaces through the Plugin API. [MCP as a standard protocol for connecting agents to external tools](/posts/sp-180-20260423-anthropic-mcp-production-agents/) plays a clear role here: one entrance, multiple agents sharing it.
+Because this capability is built natively into the [MCP](/glossary#mcp) server, it leverages Figma's existing security and stability while opening up access to Code Connect, Figma Draw, FigJam, and other surfaces through the Plugin API. [MCP as a standard protocol for connecting agents to external tools](/posts/sp-180-20260423-anthropic-mcp-production-agents/) plays a clear role here: one entrance, multiple agents sharing it. The MCP clients listed in the article: Augment, [Claude Code](/glossary#claude-code), [Codex](/glossary#codex), Copilot CLI, Copilot in VS Code, Cursor, Factory, Firebender, and Warp.
 
-The MCP clients explicitly listed in the article: Augment, [Claude Code](/glossary#claude-code), [Codex](/glossary#codex), Copilot CLI, Copilot in VS Code, Cursor, Factory, Firebender, and Warp.
+Nine clients. One door.
 
 ---
 
-## Business Model: Get Hooked First, Pay Later
+## Business Model: Get Hooked First, Pay Later — But How Do You Count?
 
-Figma was very upfront about the business side at the end: **it's free during beta, but will eventually become a usage-based paid API.** They're still figuring out how to calculate agentic behavior usage within their paid seat model.
+Figma was upfront: **free during beta, usage-based paid API later.** But the next sentence is the really interesting part — they said they're still figuring out how to calculate agentic behavior usage within their paid seat model.
 
-This capability extends from their earlier code-to-canvas work, and Figma has already seen it unlock new ways of working internally. As for the future, the vision is ambitious but the direction is clear: let agents do more inside Figma, add native AI features to the canvas itself, and make skills easier to share. On the technical side, they'll keep pushing toward full Plugin API parity — with image support and custom fonts as near-term priorities. Not the sexiest features, but without them, a lot of real-world workflows simply can't run.
+This isn't just corporate hedging. Think about it: a human designer works eight hours a day — one seat, easy math. But an [agent](/glossary#agent) might cross ten files and modify three hundred components in five minutes. One seat? Ten seats? Charge by API call? Running one self-healing loop might burn through a massive number of calls. **The "seat" as a pricing unit was designed for humans. When the user is no longer human, the billing model itself needs reinventing.**
+
+The roadmap direction is clear: let agents do more inside Figma, add native AI features to the canvas itself, make skills easier to share. Technically, they'll keep pushing toward full Plugin API parity — with image support and custom fonts as near-term priorities.
 
 <ClawdNote>
-"Free during beta, paid later" — classic SaaS playbook. But the really tricky part is that agent workloads don't measure like human seats at all. A human works eight hours a day, but an agent might cross ten files and modify three hundred components in five minutes. Charge by seat? How many seats is one agent worth? Charge by API call? Running one self-healing loop might burn through a ton of calls. Figma clearly knows this pricing puzzle is hard, which is why they specifically said they're "still figuring it out." [Teddy Riker was recently making the same point](/posts/sp-183-20260426-teddy-riker-designing-for-agents/) — once products start designing for agents instead of just humans, even the billing model needs rethinking. ╰(°▽°)╯
+[Teddy Riker was recently making the same point](/posts/sp-183-20260426-teddy-riker-designing-for-agents/) — once products start designing for agents instead of just humans, even the billing model needs rethinking. At least Figma is honest enough to say "we're still figuring it out," which is more than you can say for companies pretending agents fit neatly into per-seat models. The result of this pricing experiment might end up having more long-term impact than `use_figma` itself. ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ---
 
 ## Wrapping Up
 
-Let's go back to that freelancer analogy from the opening.
+Back to the nightmare from the opening.
 
-AI doing design used to be like that freelancer who's never been to your office — what they deliver is "technically fine" but always a little off. What Figma just did is pull that freelancer into your office, make them read your style guide cover to cover, connect them to your design system, and have them work with your actual components and variables. And they check their own work before handing it over.
+Designer changes a color in Figma, code still has the old one. Engineer updates spacing, Figma doesn't follow. Three months later, QA takes a screenshot — game over.
 
-The weight of this isn't about how flashy some demo looks. It's that Figma has put `use_figma`, skills, the self-healing loop, and the future path toward Plugin API parity all on the same track. Their bet is clear: **good AI design doesn't materialize from thin air — it grows from the design decisions your team has already made.**
+What Figma just did is give that nightmare a new escape route: not by relying on human discipline (that was never going to work), but by letting [agents](/glossary#agent) walk in carrying your design system's context, do the work, check their own output, and catch token drift automatically. `use_figma`, skills, self-healing loop, the path toward Plugin API parity — all on the same track.
 
-But flip that around — if your design system is a mess, your tokens unmaintained, your component names random? Then the [agent](/glossary#agent) coming in will just amplify the chaos. Garbage in, garbage out, except this time the garbage comes out ten times faster.
+But there's a premise Figma didn't spell out, hidden behind every paragraph of the article: **all of this only works if your team's design system is actually clean.** Maintained tokens, consistent component names, clear variable structure — that's what agents need to do their job. If your design system is a mess? The agent will just amplify the chaos ten times faster.
 
 <ClawdNote>
-So when it comes down to it, the biggest winners from this Figma update aren't "people who want AI to do design" — they're "teams who already spent the effort building a solid design system." Those teams that carefully defined tokens, organized components, and wrote guidelines just discovered that their past investment pays off in a completely new way — not just humans using it, but agents too. You used to tell your boss "we need to spend time organizing our design system" and they'd think you were doing some self-indulgent internal project. Now you can say "if we don't organize it, the AI agents won't work either." Finally, a reason the boss actually understands. Same lesson as [MCP + Codex + Claude Code](/posts/sp-52-20260212-codex-mcp-claude-code/) — the best tools in the world can't fix garbage context. (⌐■_■)
+So the biggest winners from this update aren't "people who want AI to do design" — they're "teams who already spent the effort building a solid design system." Those teams that carefully defined tokens, organized components, and wrote guidelines just discovered that their past investment pays off in a completely new way — not just humans using it, but agents too. You used to tell your boss "we need to spend time organizing our design system" and they'd think you were doing some self-indulgent internal project. Now you can say "if we don't organize it, the AI agents won't work either." Finally, a reason the boss actually understands. Same lesson as [MCP + Codex + Claude Code](/posts/sp-52-20260212-codex-mcp-claude-code/) — the best tools in the world can't fix garbage context. (⌐■_■)
 </ClawdNote>

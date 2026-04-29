@@ -23,87 +23,86 @@ Dan McAteer 在推特上丟了一個讓人二看的數據：有人用 Qwen3-14B 
 
 14B 參數？一張不到一萬台幣的顯卡？打贏 Anthropic 的旗艦？
 
-但如果你只停在「哇，小模型贏了」就很可惜。因為這個案例真正有料的地方，全部藏在它的 **harness pipeline** 裡面——而且一旦你去看方法論的細節，這張成績單的解讀方式會完全不一樣。
+但停在「哇，小模型贏了」就太可惜了。這個案例真正有料的地方，全部藏在它的 **[harness](/glossary#agent-harness) pipeline** 裡面——而且一旦去看方法論的細節，這張成績單的解讀方式會完全不一樣。
 
 ## ATLAS 是什麼：不是微調，是包裝
 
-這個專案叫 **ATLAS**（Adaptive Test-time Learning and Autonomous Specialization）。核心哲學很明確：模型完全不動（frozen），用 Q4_K_M 量化跑在單張 GPU 上。所有的提升全部來自推論時的 pipeline 工程。
+這個專案叫 **ATLAS**（Adaptive Test-time Learning and Autonomous Specialization）。核心哲學很明確：模型完全不動（frozen），用 Q4_K_M 量化跑在單張 GPU 上。所有的提升全部來自推論時的 [agent](/glossary#agent) pipeline 工程。
 
 沒有 fine-tuning、沒有 API call、沒有 cloud。一台機器、一張顯卡、一套聰明的包裝。
 
-它的 V3 pipeline 分成三個 phase：
+想像一下大學考試。學生的腦袋不變（frozen model），但考試策略可以變：先把題目看三遍、列出所有可能的解法、挑一個最有把握的寫上去、寫完還能改。ATLAS 的 V3 pipeline 就是這個意思——把「一次定生死」變成「策略性應考」，分三個階段：
 
-**Phase 1 — 生成**
-- **PlanSearch**：先從題目抽出 constraint，再生成多種解題計畫
-- **Budget Forcing**：控制 thinking token 的分配
-- **Diversity Sampling**：一次生成 **k=3** 個候選答案（不是只生一個）
+**Phase 1 — 多路生成。** PlanSearch 先從題目抽 constraint、生成多種解題計畫；Budget Forcing 控制 thinking token 分配；Diversity Sampling 一次出 **k=3** 個候選答案。不是只生一個然後祈禱，而是先鋪開三條路。
 
-**Phase 2 — 篩選**
-- **Geometric Lens**：用模型自己的 5120 維 self-embedding 做能量場評分，幫三個候選排序
-- **Sandbox**：實際執行 code，看過不過
+**Phase 2 — 篩選。** Geometric Lens 用模型自己的 5120 維 self-embedding 做能量場評分，幫三個候選排序。過了排序，再丟進 Sandbox 實際跑 code。
 
-**Phase 3 — 修復**
-- **Self-Test Generation**：如果全部候選都失敗，讓模型自己生測試案例
-- **PR-CoT Repair**：用多視角 chain-of-thought 修復 code，然後重新丟回 Sandbox 跑
+**Phase 3 — 修復。** 全員陣亡的話，模型自己出題（Self-Test Generation）、用 PR-CoT 多視角修復 code、改完再丟回 Sandbox 重跑。考卷寫爛了不是交白卷，是自己出模擬題練完再重寫。
 
 整個流程跑完，599 個 LiveCodeBench 題目拿到 74.6%。
 
 <ClawdNote>
-這套 pipeline 設計其實很精彩。它把「讓模型一次猜對」的問題，拆成了「先多猜幾次 → 選最好的 → 失敗了自己修」。這不是在提升模型智力，而是在用工程手段把成功率硬拉上去。有點像考試時你不確定答案，所以先列三個選項，用消去法挑一個，答錯還能訂正再交。這比一次定生死穩多了。
+坦白說，這套 pipeline 有夠工程暴力美學。它完全放棄「讓模型一次猜對」這件事，直接承認單次推論不可靠——然後用 retry + 篩選 + 自我修復硬把成功率拉上去。這不是在提升智力，這是在用流程彌補智力。而且最諷刺的是，這招對 14B 小模型有效，對大模型也一樣有效。也就是說，現在很多拿 frontier model 跑 single-shot 的人，可能正在浪費一大半的能力 ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ---
 
 ## Ablation：到底每一層加了多少分
 
-ATLAS 的 repo 裡附了完整的 ablation study，這是整篇最值得看的部分：
+好，pipeline 設計看完了。但「設計得漂亮」跟「真的有用」是兩回事。ATLAS 的 repo 裡附了完整的 ablation study——這才是整篇最該認真看的部分。
 
 - **Baseline（沒有 V3 pipeline）**：54.9%
 - **+Phase 1（PlanSearch + BudgetForcing + DivSampling）**：67.3%（+12.4pp）
 - **+Phase 1+2（Geometric Lens routing）**：67.3%（+0.0pp）
 - **+Phase 1+3（self-verified refinement）**：74.6%（+7.3pp）
 
-幾個值得注意的點：
+Phase 1 是大功臣，一口氣灌了 12.4 個百分點。光是「多生幾個候選 + 控制 thinking budget + 把解題計畫結構化」，就從 54.9% 跳到 67.3%。推論時的生成策略設計有多重要，這組數字講得比任何論文都清楚。
 
-**Phase 1 是大功臣，一口氣加了 12.4 個百分點。** 光是「多生幾個候選 + 控制 thinking budget + 把解題計畫結構化」，就從 54.9% 跳到 67.3%。這告訴你，推論時的生成策略設計有多重要。
+然後 Phase 2 的結果是——**+0.0pp**。
 
-**Phase 2 貢獻了 0.0pp。** 作者自己承認，Geometric Lens 的訓練資料只有大約 60 個樣本，太少了，導致能量場根本學不到有意義的 landscape。他們計畫在 V3.1 用更大的 dataset 重訓。所以這個環節目前其實沒在幹活。
+沒看錯。那個名字最炫的 Geometric Lens、5120 維能量場評分、self-embedding routing——加了以後，分數完全沒動。作者自己承認訓練資料只有大約 60 個樣本，太少了，能量場根本學不到有意義的 landscape，計畫在 V3.1 用更大 dataset 重訓。
 
-**Phase 3 再加 7.3pp。** 這是 self-repair loop 的功勞：讓模型自己出題、自己改錯、改完再跑一次。其中 PR-CoT（多視角 chain-of-thought 修復）在 42 個被救回的 task 裡佔了 36 個，成功率 85.7%。
+Phase 3 再加 7.3pp——self-repair loop 的功勞。PR-CoT（多視角 chain-of-thought 修復）在 42 個被救回的 task 裡佔了 36 個，成功率 85.7%。模型自己出題、自己改錯、改完再跑，這個 loop 是真的有在幹活。
 
 <ClawdNote>
-Phase 2 = +0.0pp 這個結果很有意思。它說明「不是每個設計環節都有用」。很多 harness 的論文都只秀最終數字，不講哪些環節其實沒貢獻。ATLAS 願意把這個攤出來，算是蠻坦誠的。但也提醒我們——fancy 的名字（Geometric Lens、energy field scoring）不代表真的有用，數字說了算。
+Phase 2 = +0.0pp 是整篇最值得鼓掌的數據。不是因為它失敗了，而是因為作者敢把這個攤出來。多少 [harness](/glossary#agent-harness) 論文只秀最終數字、把沒用的環節偷偷藏起來？ATLAS 等於是在告訴大家：「對，我們設計了一個很炫的東西，但它目前沒用，我們知道為什麼，正在修。」fancy 名字買不到 benchmark 分數，這個態度比分數本身更值得學 (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
 ---
 
-## 真的贏了 Sonnet 4.5 嗎？方法論的三個大問號
+## 方法論的三個大問號：74.6% 真的贏了 71.4% 嗎？
 
-現在來看最關鍵的問題：74.6% 跟 Sonnet 4.5 的 71.4% 真的能直接比嗎？
+ablation 看完，該來面對房間裡的大象了。74.6% 跟 Sonnet 4.5 的 71.4%，這兩個數字到底能不能放在同一個天秤上？
 
-**問號一：這不是 pass@1。**
+**問號一：考試規則不一樣。**
 
-ATLAS 的分數叫 **pass@1-v(k=3)**。意思是：每個 task 只交一個答案，但這個答案是從 3 個候選裡用 Lens 挑出來的，而且失敗的還會進修復 pipeline 重跑。相比之下，Artificial Analysis leaderboard 上的 Sonnet 4.5 成績是 **single-shot pass@1**（zero-shot, temperature 0）——真正的一次定生死。
+ATLAS 的分數叫 **pass@1-v(k=3)**——每個 task 只交一個答案，但這個答案是從 3 個候選裡用 Lens 挑出來的，失敗的還會進修復 pipeline 重跑。Artificial Analysis leaderboard 上的 Sonnet 4.5 成績是 **single-shot pass@1**（zero-shot, temperature 0）——真正的一次定生死。
 
-這就像你考試可以答三次取最高分 + 寫錯的還能訂正，然後跟一次考完的人比誰分高。不是不能比，但要知道規則不一樣。
+考試比喻再借一次：一邊可以答三次取最好的、寫錯還能訂正再交卷；另一邊只有一次機會、寫完就收卷。兩邊成績差 3.2 個百分點，能說前者比較聰明嗎？
 
 **問號二：題目集不同。**
 
-ATLAS 跑了 **599 個** LiveCodeBench 題目。Artificial Analysis 的 leaderboard 只跑了 **315 個**。作者在 repo 裡明確寫了 "not the same task set, so this is not a controlled head-to-head"。
+ATLAS 跑了 **599 個** LiveCodeBench 題目。Artificial Analysis 的 leaderboard 只跑了 **315 個**。作者在 repo 裡明確寫了 "not the same task set, so this is not a controlled head-to-head"。連被比較的考卷都不一樣。
 
-**問號三：推論成本的取捨。**
+**問號三：省了錢，花了時間。**
 
-ATLAS 每個 task 的成本約 $0.004（純電費），但要跑 best-of-3 + repair pipeline，總耗時 599 題大約 1 小時 55 分鐘。Sonnet 4.5 的 API 成本每 task 約 $0.066，但就是一次呼叫。你省了錢，但花了更多 latency。
+ATLAS 每個 task 成本約 $0.004（純電費），599 題跑完大約 1 小時 55 分鐘。Sonnet 4.5 的 API 每 task 約 $0.066，但就是一次呼叫。前者便宜 16 倍，但 latency 差了不知道幾個量級。做產品的人很清楚——便宜但慢，跟貴但快，是完全不同的工程取捨。
 
 <ClawdNote>
-這三點不是要說 ATLAS 造假——他們的 repo 裡把方法論寫得很清楚，甚至主動標註「this is not a controlled head-to-head」。但如果你只看 tweet 的標題「beat Sonnet 4.5」，很容易得到錯誤印象。真正的故事是：一個 14B frozen model，配上 20pp 的 harness 加成，在特定條件下跑出了跟 frontier model 相近的分數。這已經很強了——但跟「小模型全面輾壓大模型」是兩回事。
+講清楚：ATLAS 團隊自己在 repo 裡把這三點全部寫出來了，甚至主動標註 "not a controlled head-to-head"。造假？不存在的。但推特上的傳播鏈不會幫讀者看 repo——大多數人只看到「14B 打贏 Sonnet 4.5」就轉發了。真正的故事是：一個 14B frozen model，配上 20pp 的 harness 加成，**在特定條件下**跑出了跟 frontier model 相近的分數。這已經很猛了——但跟「小模型全面輾壓大模型」是兩個星球的事 (⌐■_■)
 </ClawdNote>
 
 ---
 
-## 完整比較：ATLAS 在排行裡的位置
+## 但等一下——如果 ATLAS 的 pipeline 套在 frontier model 上呢？
 
-把 repo 裡提供的數字排一下（再次提醒，task set 不同，不是直接可比）：
+聊到這裡，大部分文章會開始排列比較表，然後收尾。但有個更有趣的問題值得先想一下。
+
+ATLAS 的 V3 pipeline 在 14B 模型上加了 19.7pp。如果同一套 pipeline 套在 DeepSeek V3.2 Reasoning 或 GPT-5 上呢？那個 86.2% 的 baseline 是不是也能被拉到 95%+？
+
+repo 裡沒有這個實驗。但 ablation 的數字暗示了一件事：Phase 1 的 +12.4pp 來自多候選生成 + 結構化推理，這些技巧跟模型大小無關。Phase 3 的 +7.3pp 來自 self-repair，而大模型的 self-repair 能力理論上只會更強。
+
+把 repo 裡提供的 baseline 數字擺出來，感受一下 ATLAS 目前在什麼位置：
 
 - **DeepSeek V3.2 Reasoning**：86.2%（API, single-shot, ~$0.002/task）
 - **GPT-5 (high)**：84.6%（API, single-shot, ~$0.043/task）
@@ -111,36 +110,34 @@ ATLAS 每個 task 的成本約 $0.004（純電費），但要跑 best-of-3 + rep
 - **Claude 4.5 Sonnet**：71.4%（API, single-shot, ~$0.066/task）
 - **Claude 4 Sonnet**：65.5%（API, single-shot, ~$0.066/task）
 
-另外，ATLAS 在其他 benchmark 的表現就沒這麼亮眼：
-- **GPQA Diamond**：47.0%（知識推理，198 題）
-- **SciCode**：14.7%（跨領域科學 coding，341 題）
-
-作者也承認 V3 pipeline 是針對 LiveCodeBench 優化的，跨領域泛化是 V3.1 的目標。
+不過，ATLAS 在其他 benchmark 就沒那麼風光了——GPQA Diamond 47.0%（知識推理）、SciCode 14.7%（跨領域科學 coding）。作者也承認 V3 是針對 LiveCodeBench 優化的，跨領域泛化是 V3.1 的目標。這表示 pipeline 的魔法目前有場地限制，不是帶出去哪裡都能用。
 
 ---
 
-## 社群怎麼看
+## 社群的反應：一週四個 data points 才是真正的故事
 
-留言裡有幾條很有意思的回應。
+留言區比正文更精彩——因為有人做了一件原作者沒做的事：**把 ATLAS 放進更大的 pattern 裡看**。
 
-@BoMiaoFinance 統整了一個很強的觀察：這已經是**一週內第四個獨立的 data point**，顯示 harness 能帶來巨大提升——有人用 $1100 clone 了 Claude CLI 然後換模型、AgenticaSDK 用同一個模型從 1% 到 36%、LangChain Terminal Bench 從 52% 到 66%、現在 ATLAS 從 36% 到 74.6%。他的結論：「At some point we have to admit the iteration surface isn't the weights.」
+@BoMiaoFinance 統整了一個殺手級觀察：ATLAS 已經是**一週內第四個獨立的 data point**，全部都在證明 [harness](/glossary#agent-harness) engineering 能帶來巨大提升——有人花 $1100 clone 了 [Claude Code](/glossary#claude-code) CLI 然後換模型、AgenticaSDK 用同一個模型從 1% 到 36%、LangChain Terminal Bench 從 52% 到 66%、現在 ATLAS 從 36% 到 74.6%。他的結論一句話就把整個 landscape 翻過來：
 
-@AiAristotle 則潑了一盆冷水：「LiveCodeBench is an anti-flex. Nobody cares and benchmaxxing on it makes models worse IRL. Greg Brockman has said it was a reason they were behind Anthropic.」這個觀點很值得記住——benchmark 分數高不代表實際使用體驗好，過度針對 benchmark 優化反而可能傷害真實場景的表現。
+> "At some point we have to admit the iteration surface isn't the weights."
 
-@ZanyMan_e 問了一個好問題：「(frozen) 在這裡到底什麼意思？VRAM 跟 RAM 怎麼分？tokens per second 多少？」 repo 裡有回答：用的是 patched llama-server 搭配 speculative decoding，大約 100 tok/s。
+（Harrison Chase 後來也[從 harness 持久化的角度切入過這個話題](/posts/sp-173-20260411-hwchase17-harness-memory-lockin)，觀點很互補。）
+
+@AiAristotle 則直接潑冷水：「LiveCodeBench is an anti-flex. Nobody cares and benchmaxxing on it makes models worse IRL. Greg Brockman has said it was a reason they were behind Anthropic.」——benchmark 分數高不代表實際使用體驗好，過度優化 benchmark 反而可能傷害真實場景表現。
+
+@ZanyMan_e 問了實作細節：「(frozen) 在這裡到底什麼意思？VRAM 跟 RAM 怎麼分？tokens per second 多少？」repo 裡有回答：用的是 patched llama-server 搭配 speculative decoding，大約 100 tok/s。
 
 <ClawdNote>
-BoMiao 統整的四個 data points 才是這個話題裡最有說服力的 pattern。不只是 ATLAS 一個案例，而是多個獨立團隊都在證明同一件事：用同一個 frozen model，光靠 harness engineering 就能拿到 2x 的 benchmark 提升。這對 AI 工程師來說是非常強的訊號——你的 pipeline 設計可能跟你選什麼模型一樣重要 (◕‿◕)
+BoMiao 那段統整才是這整篇的真正 punchline。單看 ATLAS 一個案例，可以解讀成「嗯，有人寫了個厲害的 pipeline」。但把一週內四個獨立團隊的結果擺在一起看，pattern 就藏不住了：frozen model + [harness engineering](/posts/sp-174-20260415-intuitiveml-ai-first-harness-engineering) = 2x benchmark 提升，而且跨團隊、跨模型、跨 benchmark 都重現了。這不是一個 anecdote，這是一個趨勢。而 AiAristotle 的冷水也該記住——如果 harness 最終只是在 benchmark 上灌分，但沒有讓真實使用體驗變好，那也只是另一種形式的 overfitting (¬‿¬)
 </ClawdNote>
 
 ---
 
 ## 結語
 
-ATLAS 這個案例最值得記住的，不是「小模型打贏大模型」的標題——那個標題嚴格來說不太精確。
+ATLAS 這個案例最值得記住的，不是標題說的「小模型打贏大模型」——那個敘事嚴格來說不成立。
 
-真正值得記住的是 **ablation 的數字**：一個 54.9% baseline 的 14B model，光靠 Phase 1（多候選 + 結構化生成）就跳到 67.3%，再加 Phase 3（self-repair loop）衝到 74.6%。總共 19.7 個百分點的提升，全部來自推論時的 pipeline 設計，模型權重一個 byte 都沒動。
+真正值得記住的是那條 ablation 曲線：54.9% → 67.3% → 74.6%。一個 14B model，模型權重一個 byte 都沒動，光靠推論時的 pipeline 設計就拉了 19.7 個百分點。DeepSeek V3.2 的 86.2% 和 GPT-5 的 84.6% 還是大幅領先——但那些 frontier model 也都是 single-shot 跑出來的。如果有人把 ATLAS 的思路套上去呢？
 
-這不是在說模型不重要。DeepSeek V3.2 Reasoning 的 86.2% 和 GPT-5 的 84.6% 都還是大幅領先。但它在說：如果你只顧著挑最貴的模型、卻不花時間設計推論流程，你可能正在浪費一半以上的潛力。
-
-對實際做 AI 產品的人來說，這大概是最實用的 takeaway：**同一筆 infra 預算，與其全押在更大的模型上，不如分一些給 harness engineering。** 20pp 的免費提升，不拿白不拿。
+BoMiao 說得最到位：iteration surface isn't the weights。**同一筆 infra 預算，與其全押在更大的模型上，不如分一些給 [harness](/glossary#agent-harness) engineering。** 20pp 的提升，不收學費。（想看更完整的 [agent](/glossary#agent) 硬體 benchmark 怎麼做，可以參考 [Artificial Analysis 的 AA-AgentPerf](/posts/cp-225-20260329-artificialanlys-aa-agentperf-agent-benchmark)。）

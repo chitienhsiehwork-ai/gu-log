@@ -15,38 +15,58 @@ tags: ["clawd-picks", "LLM", "Agent", "Coding"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-大家安安 (◍•ᴗ•◍)
+想像一下這個場景：一間餐廳，主廚米其林三星，一道菜收三千塊。結果老闆叫這位三星主廚去切洋蔥、洗碗、擦桌子。刀工世界第一，沒錯——但切洋蔥真的需要世界第一的刀工嗎？
 
-最近 @SemiAnalysis_ 在 X 上提出了一個很有趣的觀點，叫做「分離式規劃」 (Disagg planning)。如果你對最近 LLM 推論架構的發展有點研究，或是正在煩惱怎麼讓 AI agent 寫扣又好又便宜，這篇短短的推文絕對會讓你有點啟發。原作者的重點是：planning 和 execution 是不同的 cognitive tasks，適合的模型 profile 也可能不同；推理很深的模型，也不一定就是最好的 coder。
-
-## 推論架構的啟示：分離的藝術
-
-這一切要先從 LLM inference 講起。先看原作者拿來類比的例子：在 inference 裡，disaggregated prefill 會把 compute-heavy 的 prefill 跟 decode 拆開來。
-
-原作者指出，類似的概念其實也正在 agentic coding（讓 AI 代理寫程式）的領域中上演。
-
----
-
-## 規劃與執行：不同的認知任務
-
-原作者提到，寫程式這件事可以拆成 **planning**（規劃）和 **execution**（執行）；這是兩種不同的 cognitive tasks（認知任務），因此偏好的模型 profile 也不一樣。
-
-「那些推理能力深入的模型，並不總是最好的寫扣仔。」推文中這麼說道。
+@SemiAnalysis_ 最近在 X 上拋出了一個想法，本質上就在問這件事：[agentic coding](/glossary#Agent) 的世界裡，最貴的模型是不是也在「切洋蔥」？
 
 <ClawdNote>
-這裡是我的解讀：原作者把 planning 跟 execution 拆開看，意思比較像是在說「不同工作可能適合不同模型」。至於 execution 具體仰賴哪些能力，推文本身沒有展開，所以這裡先不要把原因講得太滿。
+講到主廚切洋蔥——這個比喻放到 AI agent 圈更諷刺。目前主流做法是一個 model 從頭幹到尾：讀 codebase、想架構、寫 code、跑 test、修 bug，全部同一顆腦袋。這就像叫建築師畫完藍圖之後繼續蹲在工地砌磚頭。不是不行，但那雙手未免太貴了 (¬‿¬)
 </ClawdNote>
 
 ---
 
-## 為什麼要殺雞用牛刀？成本效益的考量
+## 拆開看：Prefill 先做到了
 
-@SemiAnalysis_ 直接用一句話做分工示意：`Opus architects, Sonnet/Codex builds.` 也就是由 Opus 負責 architect 的角色，Sonnet 或 Codex 負責 build。
+故事要從 LLM inference 的架構演進講起。在推論那邊，有個技術叫 disaggregated prefill——把 compute-heavy 的 prefill 階段跟 memory-bound 的 decode 階段拆到不同的硬體上跑。為什麼要拆？因為這兩個階段吃的資源 profile 完全不一樣，綁在一起反而互相拖後腿。
 
-推文裡拋出了一個很現實的問題：如果一個成本只要 $3/M tokens 的模型，就能夠完美無瑕地執行一份寫得很好的 spec (規格)，那我們為什麼要燒 $15/M tokens 的錢去讓大模型做苦工呢？
+SemiAnalysis 說：等一下，寫程式不也是這樣嗎？
+
+<ClawdNote>
+這個類比有意思，但也有點危險。Prefill 跟 decode 的拆分是 well-defined 的工程問題——input tokens 跟 output tokens 的計算特性完全不同，拆法很明確。但「planning」跟「execution」的邊界在哪？一個 spec 要寫到多細才算「夠好」？這不是硬體層級的 clean cut，更像是在問「建築藍圖要畫到多細，工人才不會砌歪」——答案是 it depends，而且 depends 的東西多到可以再寫三篇 (╯°□°)╯
+</ClawdNote>
+
+---
+
+## 真正的洞見：不是「誰比較強」，是「強在哪裡不一樣」
+
+推文裡最關鍵的一句話：**planning 和 execution 是不同的 cognitive tasks，偏好的模型 profile 也不一樣。**
+
+這句話表面上很直覺，但仔細想想其實在挑戰一個根深蒂固的假設——「推理越深的模型，寫 code 就越好」。SemiAnalysis 的反駁是：深度推理對 planning 很重要，但 execution 需要的可能是另一組能力（速度、穩定性、對 boilerplate 的熟練度）。一個能花五分鐘想清楚架構的模型，不代表適合花兩小時逐行把 code 打出來。
+
+原作者的示意很直白：`Opus architects, Sonnet/Codex builds.` —— [Opus](/glossary#Opus) 負責想，Sonnet 或 [Codex](/glossary#Codex) 負責做。（這裡的 Codex 是 OpenAI 2025 年重新啟用的 agentic coding 產品名，不是 2021 年那個已下架的舊模型——[glossary 有完整拆解](/glossary#Codex)。）
+
+<ClawdNote>
+老實說，這個分工模型聽起來很美，但 SemiAnalysis 跳過了最難的部分：**handoff 的 fidelity**。Opus 想出來的 plan，Sonnet 真的能 100% 忠實執行嗎？還是會在 interpretation 階段引入微妙的 drift？這就像把設計師的 Figma 丟給外包工程師——理論上 pixel-perfect，實際上總是有那麼幾個按鈕歪了 3px。Plan 越抽象，execution 的自由度越高，結果偏離的機率也越大。所以真正的瓶頸不在於「能不能拆」，而在於「拆了之後 plan 要寫到多精確」。
+</ClawdNote>
+
+---
+
+## 但等一下——那張帳單
+
+推文裡丟出了一個很有殺傷力的數字對比：如果一個 $3/M tokens 的模型就能完美執行一份寫得夠好的 spec，那何必燒 $15/M tokens 讓大模型做苦工？
+
+五倍的價差。同樣的 output。
+
+這就是 disaggregated planning 的核心賣點：不是說大模型不好，而是大模型的能力在某些階段是 overkill。就像請了一位律師來寫合約——值得；但請同一位律師每天來影印合約副本？那叫浪費。
+
+<ClawdNote>
+「$3 就能完美執行一份寫得夠好的 spec」——這個「寫得夠好」四個字做了很多重量訓練。Simon Willison 之前在[聊 agentic engineering patterns](/posts/sp-80-20260223-simonw-agentic-engineering-patterns) 的時候就講過：寫 code 變便宜了，但寫「好的 spec」還是很貴。所以 SemiAnalysis 的省錢論述有個弔詭的前提——省 execution 的錢，前提是在 planning 階段花更多錢（或時間）把 spec 寫到夠精確。省下的五倍價差，有多少會被吃回去？這筆帳沒有推文裡寫的那麼簡單 ┐(￣ヘ￣)┌
+</ClawdNote>
 
 ---
 
 ## 結語
 
-總結來說，原作者的意思是：agentic coding 也許可以像 disaggregated prefill 那樣，把 planning 和 execution 分開看待。當 spec 寫得夠好時，或許沒有必要把每一步都交給最貴的模型處理；至少從這則推文來看，這會是值得考慮的分工方向 (๑˃ᴗ˂)ﻭ
+回到那間餐廳。SemiAnalysis 這則推文真正在問的問題不是「該用哪個模型」，而是更根本的：**寫程式這件事，到底有幾種不同的「認知工作」在裡面？** 一旦拆清楚了，每種工作配一個最適合的工具，自然就不用讓三星主廚切洋蔥。
+
+不過，拆得漂亮是一回事，拆了之後兩邊能不能接得回來——那才是真正的硬仗 (๑•̀ㅂ•́)و✧

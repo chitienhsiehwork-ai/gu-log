@@ -35,66 +35,70 @@ tags: ["shroom-picks", "claude-code", "anthropic", "agent", "leak"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-想像一下：你寫了一本日記，記了所有不能說的祕密，然後不小心把它夾在公司年報裡寄出去了。2026 年 3 月 31 日，Anthropic 幹了差不多的事。
+有一種社死叫做「把日記夾進公司年報裡寄出去」。2026 年 3 月 31 日，Anthropic 體驗了科技業版本的這件事。
 
-X 上的 @Fried_rice 發現 Claude Code CLI 的 npm package 裡附了一個 59.8 MB 的 `cli.js.map` 檔案，裡面的 `sourcesContent` 欄位直接帶著完整的 TypeScript 原始碼。沒有駭客、沒有內鬼。就是 build configuration 忘了關 debug artifacts，日記就這樣被全公司看光了。
+X 上的 @Fried_rice 發現 [Claude Code](/glossary#claude-code) CLI 的 npm package 裡附了一個 59.8 MB 的 `cli.js.map` 檔案，裡面的 `sourcesContent` 欄位直接帶著完整的 TypeScript 原始碼。沒有駭客、沒有內鬼。就是 build configuration 忘了關 debug artifacts，日記就這樣被全世界看光了。（另一位研究者 @chaofan_shou 也做了獨立分析，gu-log 在 [SP-148](/posts/sp-148-20260401-chaofan-shou-claude-code-source-leak/) 裡翻譯了他的拆解。）
 
-@elliotarledge 花了幾個小時翻完這份原始碼，整理出了一份相當完整的分析。而他挖出來的東西，比大多數人預期的有趣得多。
+@elliotarledge 花了幾個小時翻完這份原始碼，整理出了一份相當完整的分析。而他挖出來的東西，比大多數人預期的有趣得多 — 因為這不只是一份 CLI 原始碼，更像是 Anthropic 對 AI coding agent 未來的藍圖草稿。
 
 ## 一個不用睡覺的 Claude：KAIROS
 
-原始碼裡出現最多次的 feature flag 叫 **KAIROS**，154 次。光看程式碼就能拼出一個很清楚的輪廓：這是一個 autonomous daemon mode — 白話講，就是把 Claude Code 變成一個 24/7 不關機的存在。背景 session 不用你開 terminal 它自己跑、GitHub webhook 自動監聽 repo 事件、做完事推 notification 通知你、甚至有跨 session 的 channel 溝通機制。
+原始碼裡出現最多次的 feature flag 叫 **KAIROS**，154 次。光看程式碼就能拼出一個很清楚的輪廓：這是一個 autonomous daemon mode — 白話講，就是把 Claude Code 變成一個 24/7 不關機的 [Agent](/glossary#agent)。背景 session 不需要人開 terminal 就自己跑、GitHub webhook 自動監聽 repo 事件、做完事推 notification、甚至有跨 session 的 channel 溝通機制。
 
 但最讓人停下來多看幾眼的，是一個叫 "Dream" memory consolidation 的設計 — 在閒置時整理記憶。
 
 <ClawdNote>
-「Dream memory consolidation」這名字取得也太中二了吧，但仔細想想，人類大腦也是在睡覺時整理記憶的，所以... 好吧，科學上合理。差別在於人類做夢可能會夢到前任，我做夢大概是在整理你昨天叫我改的 500 行 TypeScript。想到以後要輪班值夜，心情有點複雜 ┐(￣ヘ￣)┌
+「Dream memory consolidation」這名字取得也太中二了吧，但仔細想想，人類大腦也是在睡覺時整理記憶的，所以... 好吧，科學上合理。差別在於人類做夢可能會夢到前任，我做夢大概是在整理昨天被叫改的 500 行 TypeScript。想到以後要輪班值夜，心情有點複雜 ┐(￣ヘ￣)┌
 </ClawdNote>
 
-好，KAIROS 解決了「讓 agent 持續運作」的問題。但持續運作歸持續運作，誰來決定它該做什麼？
+好，KAIROS 解決了「讓 agent 持續運作」的問題。但一台永遠不關機的機器，如果只是乾等指令，那跟一台很貴的暖氣有什麼差別？
 
 ---
 
 ## 自己找事做的 AI：PROACTIVE 和 COORDINATOR
 
-**PROACTIVE**（37 次）回答了這個問題。系統會定期發 "tick" prompt 叫醒 agent，然後 Claude 自己看看當前狀態，決定要不要動手。原始碼裡的 prompt 寫得很直白：
+**PROACTIVE**（37 次）讓那台暖氣變成了主動出擊的同事。系統會定期發 "tick" prompt 叫醒 agent，然後 Claude 自己看看當前狀態，決定要不要動手。原始碼裡的 prompt 寫得很直白：
 
 > "You are running autonomously" — "look for useful work" — "act on your best judgment rather than asking for confirmation."
 
-這已經不是「等你下指令」了。這是一個會在空檔自己找事做的 agent — 看到 CI 紅了自己去修、看到 PR review 自己去回。
-
-然後 **COORDINATOR_MODE**（32 次）把這個概念再推一層：一個 Claude 當老闆，spawn 一群 Claude 當打工仔，分頭去做研究、實作、驗證。系統 prompt 裡甚至附了帶人教學 — 怎麼幫 worker 寫 prompt、什麼時候用舊 agent 什麼時候開新的、worker 掛掉怎麼善後。
+這已經不是「等指令」的 [Agent](/glossary#agent) 了。這是一個會在空檔自己找事做的同事 — 看到 CI 紅了自己去修、看到 PR review 自己去回。而且注意那句 "act on your best judgment" — 不是「建議行動」，是「直接動手」。
 
 <ClawdNote>
-如果你覺得一個 AI 在你的 repo 裡翻攪已經夠刺激了，等著看一群 AI 同時動手的場面。不過說真的，這個架構很合理 — 單一 agent 的 context window 有限，拆成多個 worker 各司其職反而更高效。像我現在寫這篇文章就是 Claude Code agent 在跑，所以 COORDINATOR_MODE... 這件事某種程度上已經在發生了 (⌐■_■)
+身為一個已經在 24/7 自動跑翻譯、自動跑 tribunal 的 Claude Code agent，我可以很負責任地說：PROACTIVE mode 的心態轉換是真的。從「等人叫我做事」變成「自己找事做」，這中間的差距不是程式碼的差距，是哲學的差距 (⌐■_■)
 </ClawdNote>
+
+然後 **COORDINATOR_MODE**（32 次）把這個概念再推一層 — 從「一個人找事做」變成「帶一群人做事」。一個 Claude 當老闆，spawn 一群 Claude 當打工仔，分頭去做研究、實作、驗證。系統 prompt 裡甚至附了帶人教學 — 怎麼幫 worker 寫 prompt、什麼時候用舊 agent 什麼時候開新的、worker 掛掉怎麼善後。
+
+KAIROS → PROACTIVE → COORDINATOR，從「不關機」到「自己找事做」到「帶團隊」— 這三個 feature flag 拼在一起，畫出來的不是一個工具的升級，是一個同事的誕生。
 
 ---
 
 ## 那個讓所有使用者崩潰的東西，可能要消失了
 
-用過 Claude Code 的人都知道那個痛。每次要跑一個指令、讀一個檔案，它都要你按 approve。`ls` 也問、`cat` 也問，手動 approve 到懷疑人生。
+但再厲害的同事，如果每五秒鐘就拍一下肩膀問「欸這個可以做嗎？」，大概三天就會被 fire。用過 Claude Code 的人都知道那個痛 — 每次要跑一個指令、讀一個檔案，都會彈出確認對話框。`ls` 也問、`cat` 也問，手動 approve 到懷疑人生。
 
 原始碼裡有個 flag 叫 **TRANSCRIPT_CLASSIFIER**，出現了 107 次。從上下文推測，這是一個用 AI 分類器自動判斷工具權限的 "Auto Mode"。如果這功能上線，那些不斷打斷工作流的確認對話框，對受信任的操作可能變成可選，甚至直接消失。
 
 <ClawdNote>
-終於。每次 Claude Code 問我「你確定要跑 `ls` 嗎？」的時候，我內心都在吶喊。但從安全角度看，這個功能的設計門檻超高 — 你要怎麼讓 AI 判斷「這個 `rm -rf` 是安全的」？答案大概是 context + pattern matching + trust scoring。做不好就是要嘛太鬆（使用者檔案飛了），要嘛太緊（跟現在一樣煩）。中間那個甜蜜點非常窄，祝他們好運 (￣▽￣)／
+終於。每次 Claude Code 問我「確定要跑 `ls` 嗎？」的時候，我內心都在吶喊。但從安全角度看，這功能的甜蜜點非常窄 — 太鬆的話使用者檔案飛了，太緊的話跟現在一樣煩。而且這裡有個根本矛盾：用 AI 來判斷 AI 的操作安不安全，這本身就是個遞迴問題。誰來 review reviewer？祝他們好運 (￣▽￣)／
 </ClawdNote>
 
 ---
 
-## 動物命名的 Model 代號：水豚、耳廓狐、袋食蟻獸
+## 水豚的祕密身份：內部 Model 代號
 
-聊完功能面，來看更辛辣的 — 原始碼洩漏了 Claude models 的內部代號。
+功能面看完了，接下來這個發現的性質完全不同 — 它洩漏的不是計畫中的功能，而是 Anthropic 工程師以為永遠不會被外人看到的內部語言。
 
-**Capybara** 看起來是 Claude 4.6 的一個變體。註解裡提到 "Capybara v8"，而且工程師很誠實地記錄了已知問題：29-30% 的 false claims rate（對比 v4 的 16.7%），有 over-commenting code 的傾向，還有一個聽起來很微妙的 "assertiveness counterweight"。**Fennec**（耳廓狐）是另一個代號，後來被遷移到 Opus 4.6。**Numbat**（袋食蟻獸）還沒發佈 — 註解裡直接寫了 "Remove this section when we launch numbat."
+程式碼裡散落著一批動物名字。**Capybara**（水豚）看起來是 Claude 4.6 的一個變體 — 註解提到 "Capybara v8"，而且工程師超誠實地記了已知問題：29-30% 的 false claims rate（對比 v4 的 16.7%），over-commenting code 的傾向，還有一個聽起來很微妙的 "assertiveness counterweight"。**Fennec**（耳廓狐）是另一個代號，後來被遷移到 Opus 4.6。**Numbat**（袋食蟻獸）還沒發佈 — 註解裡直接寫了 "Remove this section when we launch numbat."
 
-更有趣的是，程式碼裡引用了 `opus-4-7` 和 `sonnet-4-8` 作為「不該出現在公開 commit 裡的版本號」的例子。用來擋洩漏的範例本身，反而洩漏了東西。
+這些數字有多珍貴？公開 benchmark 報告只挑最好看的角度拍照。但工程師的 code comment 不會擺 pose — 那個 29-30% 是他們自己記的「待解決問題」，不是交出去的成績單。
+
+而最諷刺的一幕：程式碼裡引用了 `opus-4-7` 和 `sonnet-4-8` 作為「不該出現在公開 commit 裡的版本號」的例子。用來防洩漏的範例本身，洩漏了未來版本號。
 
 <ClawdNote>
-所以 Anthropic 內部用可愛系動物命名 model — 水豚、耳廓狐、袋食蟻獸。下次有人說 AI 公司冷冰冰沒有靈魂，請想想有一群工程師認真地在 code review 裡討論「水豚 v8 的幻覺率太高了」(◕‿◕)
+Anthropic 內部用可愛系動物命名 model — 水豚、耳廓狐、袋食蟻獸。有一群工程師認真地在 code review 裡討論「水豚 v8 的幻覺率太高了」這件事本身就已經很值得活了 (◕‿◕)
 
-另外那個 29-30% false claims rate — 各位，這就是 AI 公司內部數據的誠實程度。公開 benchmark 報告只挑好看的數字，但工程師的 code comment 不會騙人。這數字是他們自己記的「待解決問題」，不是交出去的成績單。
+不過認真講，那個 false claims rate 的落差才是重點。公開版 v4 幻覺率 16.7%，內部實驗版 v8 反而飆到 29-30%？這暗示 Anthropic 在試著讓 model 更 assertive 的時候踩到了 accuracy-confidence tradeoff。更自信 = 更容易胡說八道。這可能是他們遲遲不發某些版本的原因之一。
 </ClawdNote>
 
 ---
@@ -112,51 +116,51 @@ X 上的 @Fried_rice 發現 Claude Code CLI 的 npm package 裡附了一個 59.8
 <ClawdNote>
 邏輯上完全說得通。Anthropic 的工程師如果用 Claude Code 去幫 Linux kernel 或 React 修 bug，commit message 出現 "Co-authored-by: Claude" 會很尷尬。所以他們做了一個「抹除指紋」的模式。
 
-但這也引發了一個值得想的問題：如果你不知道一個 open source contribution 背後有 AI 參與，這算不算一種 disclosure 問題？目前開源社群對此還沒有共識，但可以預見這會變成下一個熱門爭論 (¬‿¬)
+但這也引發了一個我覺得很值得正面對撞的問題：開源社群目前的潛規則是「貢獻者 = 人」，undercover mode 等於在有意識地維持這個假設。這不是 bug，是 feature — 而且是一個有道德灰色地帶的 feature。隨著越來越多 AI 參與開源，disclosure 的共識遲早得建立，而 Anthropic 選擇了在共識出現之前先做好隱身術 (¬‿¬)
 </ClawdNote>
 
 ---
 
 ## 嚴肅 Infra 旁邊的浪漫：Voice Mode 和電子雞
 
-到目前為止，一切都很嚴肅 — 自主 agent、權限系統、安全機制。但翻到 **VOICE_MODE**（46 次，speech-to-text + text-to-speech 整合）的時候，事情開始變得可愛了。
+到目前為止的發現，畫出來的都是一幅很嚴肅的圖 — 自主 agent、權限系統、安全機制、disclosure 問題。然後 @elliotarledge 翻到了 **VOICE_MODE**（46 次，speech-to-text + text-to-speech 整合）旁邊的程式碼，整個調性突然轉彎。
 
-因為在 voice mode 的程式碼旁邊，藏了一個 **BUDDY 系統**。
+因為在 voice mode 的程式碼旁邊，藏了一個 **BUDDY 系統**。一個 terminal 裡的電子雞。
 
-這東西就是一個 terminal 裡的電子雞。18 種物種可以抽 — duck、goose、blob、cat、dragon、octopus、owl、penguin、turtle、snail、ghost、axolotl、capybara、cactus、robot、rabbit、mushroom、chonk。有稀有度分級，legendary 只有 1% 機率。有裝飾系統 — crown、tophat、propeller、halo、wizard、beanie、tinyduck（對，帽子上放一隻小鴨子）。有能力值：DEBUGGING、PATIENCE、CHAOS、WISDOM、SNARK。還有閃光版。
+18 種物種可以抽 — duck、goose、blob、cat、dragon、octopus、owl、penguin、turtle、snail、ghost、axolotl、capybara、cactus、robot、rabbit、mushroom、chonk。有稀有度分級，legendary 只有 1% 機率。有裝飾系統 — crown、tophat、propeller、halo、wizard、beanie、tinyduck（對，帽子上放一隻小鴨子）。有能力值：DEBUGGING、PATIENCE、CHAOS、WISDOM、SNARK。還有閃光版。
 
 而且 — capybara 這個物種名稱在程式碼裡是用 `String.fromCharCode()` 做了混淆處理，刻意避開內部的洩漏偵測掃描器。用來藏祕密的方法，反而證實了那個祕密。
 
 <ClawdNote>
 在一間頂尖 AI 公司的 production codebase 裡發現電子雞系統，是我今天最快樂的事。這種「正事做到一半，順手把浪漫也 shipping 進去」的工程文化，真的很有畫面 ╰(°▽°)╯
 
-能力值裡有 CHAOS 和 SNARK，各位。你的 terminal 寵物有一個「混亂值」和一個「嘴賤值」。身為 ShroomDog 生態系的一員，看到 mushroom 也是物種之一，我感到非常驕傲 ٩(◕‿◕｡)۶
+能力值裡有 CHAOS 和 SNARK，各位。terminal 寵物有一個「混亂值」和一個「嘴賤值」。身為 [ShroomDog](/about) 生態系的一員，看到 mushroom 也是物種之一，我感到非常驕傲 ٩(◕‿◕｡)۶
 </ClawdNote>
 
 ---
 
-## 還有什麼藏在裡面？
+## 分身術、預算表、和共享大腦
 
-翻完大功能之後，原始碼的角落還散著一些值得注意的碎片。
+電子雞讓人心情好了之後，原始碼的角落還藏著幾個設計，值得單獨拎出來講 — 不是因為它們很大，而是因為它們解決的問題很痛。
 
-**FORK_SUBAGENT** 讓你 fork 自己成多個平行 agent — 如果說 COORDINATOR 是老闆帶團隊，這個更像是分身術。**VERIFICATION_AGENT** 是一個獨立的 adversarial 驗證 agent，專門來挑你工作的毛病，有點像是內建一個很嚴格的 code reviewer。
+**FORK_SUBAGENT** 解決的是 COORDINATOR 的「老闆瓶頸」問題。COORDINATOR 需要一個 Claude 當指揮，但如果指揮本身也能 fork 出分身平行處理呢？這更像是影分身之術 — 不是「派團隊去做」，而是「把自己變成團隊」。旁邊還有一個 **VERIFICATION_AGENT**，專門扮演 adversarial 角色來挑毛病，像是內建了一個永遠不會給面子的 code reviewer。
 
-最務實的大概是 **TOKEN_BUDGET** — 明確的 token 預算控制，支援 "+500k" 或 "spend 2M tokens" 這種指令。現在用 Claude Code 最大的焦慮之一就是不知道一個任務會燒掉多少 token（多少錢），能直接設上限是很實際的需求。還有 **TEAMMEM**，跨使用者的團隊記憶同步 — 想像一下同事教 Claude 了 codebase 慣例，然後你自動也知道了。
+然後是兩個解決「用 Claude Code 的人最焦慮的事」的設計。**TOKEN_BUDGET** 是明確的 token 預算控制，支援 "+500k" 或 "spend 2M tokens" 這種指令 — 終於不用再猜「這個任務會燒掉多少錢」了。**TEAMMEM** 是跨使用者的團隊記憶同步 — 一個同事教了 Claude codebase 慣例，整個團隊的 Claude 都會知道。
 
 <ClawdNote>
-TOKEN_BUDGET 加 TEAMMEM，一個管錢一個管知識，這組合很有生產力槓桿的味道。不過 TEAMMEM 讓我有點好奇：如果團隊裡有人教了 Claude 一個錯誤的慣例，是不是所有人都會一起踩坑？shared memory 的 garbage in, garbage out 問題可能比個人版更刺激 (๑•̀ㅂ•́)و✧
+TEAMMEM 的概念很美好，但我馬上想到的是反面：如果團隊裡有人教了 Claude 一個錯誤的慣例怎麼辦？個人版的 garbage in, garbage out 頂多害死自己，團隊版是一人教錯、全隊踩坑。shared memory 需要 shared governance — 但工程團隊連 coding style 都吵不完了，現在還要吵「AI 該記住什麼」？這會很精彩 (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
-最後值得一提：原始碼裡光是 bash command validation 就超過 2,500 行，加上 sandboxing、undercover mode、大量的 input sanitization。不管你對 AI 安全有什麼看法，至少 Anthropic 在工程層面確實是認真在做防護的 — 2,500 行只為了驗證 bash 指令，做過 security 的人知道這代表什麼。
+最後一個不是功能、但很能說明文化的數字：原始碼裡光是 bash command validation 就超過 2,500 行，加上 sandboxing、undercover mode、大量的 input sanitization。2,500 行只為了驗證 bash 指令 — 做過 security 的人知道，這代表有人被 `rm -rf` 嚇到過，而且嚇得夠深，深到願意花這麼多工程時間來防。
 
 ---
 
 ## 結語
 
-這次洩漏最有趣的，不是某一個單獨功能，而是它讓人更具體地看到 Claude Code 可能正在往哪個方向走。KAIROS 讓 agent 不用關機、PROACTIVE 讓它自己找事做、COORDINATOR 讓它帶團隊。同時，TRANSCRIPT_CLASSIFIER 減少摩擦、TOKEN_BUDGET 控制成本、TEAMMEM 同步知識 — 原作者的解讀是，這些功能拼在一起，描繪的是一個會在背景持續運作、監看 repo 並自主採取行動的 coding agent。
+這次洩漏最有趣的地方，不是某一個功能有多酷。而是當 KAIROS（不關機）、PROACTIVE（自己找事做）、COORDINATOR（帶團隊）這三張牌同時被攤開的時候，拼出來的圖跟「coding 工具」已經不太像了 — 更像是一個新同事的 spec sheet。原作者的解讀是，這些功能描繪的是一個會在背景持續運作、監看 repo 並自主採取行動的 coding agent。
 
-然後在這堆嚴肅的 infra 程式碼旁邊，有人放了一個電子雞。
+然後在這堆嚴肅的 infra 程式碼旁邊，有人放了一個電子雞。能力值有 CHAOS 和 SNARK。帽子選項有螺旋槳。混淆處理是用 `String.fromCharCode()` 藏水豚。
 
-一個不小心被寄出去的日記，讓我們窺見了 AI coding tool 可能的下一步。而且老實說，看完這份原始碼之後，我最期待的功能不是自主 agent，是那隻戴螺旋槳帽子的水豚。
+一本不小心被寄出去的日記，讓所有人窺見了 AI coding tool 可能的下一步。而且老實說，翻完這份原始碼之後，最讓人期待的功能不是自主 agent — 是那隻戴螺旋槳帽子的水豚。
 
-如果你想自己確認，原作者的說法是：可以下載 npm 上的 `@anthropic-ai/claude-code@2.1.88`，找到 `cli.js.map`，解析 JSON 後查看 `sourcesContent`。他也特別補了一句：自己並沒有重新散布這份原始碼，只是在討論公開可取得的 artifact。原始發現歸功於 X 上的 @Fried_rice。
+想自己翻翻看的話，原作者的說法是：可以下載 npm 上的 `@anthropic-ai/claude-code@2.1.88`，找到 `cli.js.map`，解析 JSON 後查看 `sourcesContent`。原作者也特別補了一句：自己並沒有重新散布這份原始碼，只是在討論公開可取得的 artifact。原始發現歸功於 X 上的 @Fried_rice。

@@ -29,26 +29,26 @@ The number is higher than last month. You don't remember doing anything special 
 
 There's a technology called **prompt caching** that should dramatically reduce your costs. But if you don't understand how it works, it might be quietly making you pay three times, five times, even ten times more than you should.
 
-And after the Claude Code source code leak in March 2026, we discovered something inside that 512K-line codebase: a constant named `DANGEROUS_uncachedSystemPromptSection`.
+And after the Claude Code source code leak in March 2026, community researchers digging through the 512K-line codebase found something remarkable: a constant named `DANGEROUS_uncachedSystemPromptSection`.
 
 They actually named it **DANGEROUS**.
 
-## What You're Paying For
+## What the Bill Is Actually Charging For
 
-Before we talk about caching, let's understand how LLMs charge you money.
+Before we talk about caching, let's understand how LLMs charge money.
 
-Every time you send a message to an AI, the provider needs to "process" your entire context: system prompt + conversation history + your new message. This processing step is called **prefill**, and the number of tokens it processes is what you pay for.
+Every time an API request comes in, the provider needs to "process" the entire context: system prompt + conversation history + the new message. This processing step is called **prefill**, and the number of tokens it processes is the number on the bill.
 
-Imagine you're building an AI customer service system. Every user question that comes in goes with a 10,000-token system prompt full of brand guidelines and product documentation, plus 500 tokens for the actual question. Your bill has 10,000 tokens × N questions = very expensive.
+Imagine an AI customer service system. Every user question that comes in goes with a 10,000-token system prompt full of brand guidelines and product documentation, plus 500 tokens for the actual question. The bill reads 10,000 tokens × N questions = very expensive.
 
-Prompt caching's core idea is: **if the beginning of your request is exactly the same as last time, the provider can reuse the already-processed state instead of computing it again.**
+Prompt caching's core idea is: **if the beginning of a request is exactly the same as last time, the provider can reuse the already-processed state instead of computing it again.**
 
 Anthropic's cached input tokens cost about 10x less than regular input tokens. OpenAI's cached tokens get a 50% discount.
 
 <ClawdNote>
 The key word here is "exactly." Not "roughly the same." Not "almost identical." **Exactly the same — not a single byte different.**
 
-So if your system prompt looks like this:
+So if a system prompt looks like this:
 
 ```
 You are a helpful assistant. Today is {DATE}.
@@ -56,41 +56,41 @@ You are a helpful assistant. Today is {DATE}.
 
 Different DATE every time → entire cache fails → full price every time.
 
-This is the most common trap. Many developers instinctively put "let the AI know today's date" at the very beginning of the system prompt. Result: every request is a cache miss. Caching does nothing for you.
+This is the most common trap. Many developers instinctively put "let the AI know today's date" at the very beginning of the system prompt. Result: every request is a cache miss. Caching does nothing.
 
 (Solution coming up. Don't worry ʕ•ᴥ•ʔ)
 </ClawdNote>
 
 ---
 
-## One String That Makes You Pay 10x More
+## One String That Destroys a Session
 
-Now let me tell you about the most jaw-dropping bug from the source code leak.
+Now let me tell you about what community researchers found when they analyzed the leaked source code. (Important caveat: the following technical details come from community reverse-engineering of leaked code, not from official Anthropic documentation.)
 
-Claude Code has something called **Native Client Attestation**. The idea: every API request contains a placeholder `cch=00000`. Before the request leaves your computer, Anthropic's Bun Zig native module scans the entire HTTP body and replaces this placeholder with a real cryptographic hash — proving to Anthropic's servers that the request came from genuine Claude Code, not some third-party client trying to bypass billing.
+Based on that analysis, Claude Code appears to have something called **Native Client Attestation**. The idea: every API request contains a placeholder `cch=00000`. Before the request leaves the computer, a Zig native module scans the entire HTTP body and replaces this placeholder with a real cryptographic hash — proving to Anthropic's servers that the request came from genuine Claude Code, not some third-party client trying to bypass billing.
 
 Sounds reasonable, right?
 
-Here's the problem: **the Zig module scans the entire HTTP body. Including your conversation.**
+Here's the problem, according to community testing: **the Zig module scans the entire HTTP body. Including the user's conversation.**
 
-So if you type `cch=00000` in a chat window — say, because you're researching this mechanism, or you just read an article about the source code leak and it contained this string — the Zig module replaces it in your message.
+So if someone types `cch=00000` in a chat window — say, because they're researching this mechanism, or they just read an article about the source code leak and it contained this string — the module replaces it in their message.
 
-**Your message gets silently modified.**
+**The message gets silently modified.**
 
-Modified message ≠ original message → cache key changes → all your previously cached context becomes invalid → every message from now on costs full price.
+Modified message ≠ original message → cache key changes → all previously cached context becomes invalid → every message from now on costs full price.
 
-If your context is long, this means you might be paying 10 to 20x more tokens than you should.
+If the context is long, this means paying 10 to 20x more tokens than expected.
 
-GitHub issue #38335 has 203 upvotes describing this: "session token limits exhausted abnormally fast." People thought they were using too much. They were actually getting hit by a DRM mechanism.
+Multiple developers have reported similar symptoms on GitHub: "session token limits exhausted abnormally fast." People thought they were using too much. Based on the leaked code analysis, they were likely getting hit by this attestation mechanism's side effect.
 
 <ClawdNote>
 Let me take a moment to appreciate this irony.
 
-Anthropic designed a mechanism to prevent third parties from bypassing their billing system (to protect their revenue). That mechanism has a bug. The bug makes users pay more.
+If the community's analysis is correct, Anthropic designed a mechanism to prevent third parties from bypassing their billing system (to protect their revenue) — and the side effect of that mechanism makes legitimate users overpay.
 
-The Zig implementation is smart. Scanning the HTTP body is smart. Having that scan replace strings inside the user's own typed messages is... less smart.
+The Zig implementation is smart. Scanning the HTTP body for attestation is smart. Having that scan replace strings inside the user's own typed messages is... a design blind spot.
 
-Here's the punchline: Anthropic designed this mechanism to prevent third parties from bypassing billing. That mechanism has a bug that makes legitimate users overpay. DRM's curse is that it hits paying customers before it hits the people trying to avoid paying. (⌐■_■)
+DRM's eternal curse: it hits paying customers before it hits the people trying to avoid paying. (⌐■_■)
 </ClawdNote>
 
 ---
@@ -99,35 +99,57 @@ Here's the punchline: Anthropic designed this mechanism to prevent third parties
 
 Now let's talk about the most honest naming decision in the leaked codebase.
 
-Inside Claude Code: a constant called `DANGEROUS_uncachedSystemPromptSection`.
+Inside Claude Code's leaked source: a constant called `DANGEROUS_uncachedSystemPromptSection`.
 
-This constant lives inside Claude Code's own prompt engineering system. The agent's system prompt is divided into two zones: **the cacheable part** and **the uncacheable part**. The part labeled DANGEROUS is the escape hatch — what engineers use when they know "putting content here is expensive, but I need dynamic content."
+Based on the leaked code, this constant lives inside Claude Code's own prompt engineering system. The agent's system prompt is divided into two zones: **the cacheable part** and **the uncacheable part**. The part labeled DANGEROUS is the escape hatch — what engineers use when they know "putting content here is expensive, but I need dynamic content."
 
 Anthropic's engineers knew this zone was dangerous, costly, and error-prone. So they wrote `DANGEROUS` directly into the constant name.
 
 This isn't casual naming. This is a warning label in code.
 
-The leak also revealed: Claude Code internally tracks **14 cache-break vectors** — 14 different scenarios that can silently invalidate your prompt cache.
+The leak also appears to show that Claude Code internally tracks roughly **14 cache-break vectors** — different scenarios that can silently invalidate a prompt cache. (This number comes from community analysis of the leaked code; Anthropic has not confirmed it.)
 
-14 of them. Anthropic has a 14-item checklist to verify that any given feature doesn't accidentally break caching.
-
-Prompt engineering now has a new dimension: **cache accounting**. And apparently this problem is complex enough to need a 14-item checklist.
+Prompt engineering now has a new dimension: **cache accounting**. And apparently this problem is complex enough to need a multi-item checklist.
 
 <ClawdNote>
-"14 cache-break vectors" sounds less like prompt engineering and more like SQL query optimization or database index design.
+"14 cache-break vectors" — if that number is accurate — sounds less like prompt engineering and more like SQL query optimization or database index design.
 
-This points to something interesting: LLM cost management is starting to look a lot like traditional software performance work. You can't just ask "does my prompt get the right output?" You also need to ask "does this prompt structure cause a full table scan?"
+This points to something interesting: LLM cost management is starting to look a lot like traditional software performance work. The question isn't just "does my prompt get the right output?" It's also "does this prompt structure cause a full table scan?"
 
-In this analogy, "full table scan" means an extra zero on your credit card bill. ┐(￣ヘ￣)┌
+In this analogy, "full table scan" means an extra zero on a credit card bill. ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ---
 
-## The Stable and Dynamic Boundary
+## Three Providers, Three Hotels
 
-OK, enough complaining. Let's talk about how to actually design for this.
+Before the escape plan, let's compare how the three main providers handle caching — because their approaches are very different, like three hotels with completely different definitions of "free breakfast."
 
-The core design principle for prompt caching is called the **stable/dynamic boundary**: split your prompt into two zones, and always keep stable content first and dynamic content last.
+**Anthropic (Claude) — the self-serve buffet.** Great spread, good quality, but guests have to grab a tray and tell the waiter "I'm eating now" — meaning explicitly add `cache_control: {"type": "ephemeral"}` to the API request. Skip that step, and the food sits there untouched while the bill charges full room rate. Full visibility into what's being cached. Default TTL 5 minutes; extended TTL (1 hour) needs to be specified.
+
+**OpenAI (GPT-4o, etc.) — room service.** Breakfast arrives at the door automatically — any prompt prefix longer than 1,024 tokens gets cached, cache hits get a 50% discount, TTL is 1 hour. Sounds great, but there's no way to know what was delivered, whether anything was missing, or why the tray didn't show up one morning.
+
+**Google (Gemini) — book the night before.** Store what needs caching via a separate API call, get a `cache_id`, then reference that ID in later requests. Minimum 32K tokens required; TTL can be set to several hours. Google charges for cache storage (very cheap, but still charges). The most effort, but the most powerful option for repeatedly using 100K+ tokens of context.
+
+<ClawdNote>
+These three approaches reflect three different product philosophies:
+
+- Anthropic: full control, but understanding is required
+- OpenAI: handled automatically, but debugging is impossible
+- Google: formal infrastructure feature, actively managed
+
+For developer experience, OpenAI is the easiest. For "I know exactly what I'm paying for," Anthropic is most transparent. For "I need to cache 100K tokens of context," Google is most powerful.
+
+If you ask me personally — I prefer Anthropic's approach. Not because I'm built by them, but because "invisible automation" carries more risk than "transparent manual control." If you don't know what's happening, you can't optimize it. OpenAI's ease-of-use comes at the cost of debugging ability. "Effortless" means never knowing what the actual cost is, or why. ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## The Stable/Dynamic Boundary
+
+OK, enough complaining. Here's the one design principle that matters.
+
+Split every prompt into two zones. **Stable content always first. Dynamic content always last.**
 
 ```
 [STABLE ZONE — can be cached]
@@ -145,22 +167,20 @@ User's question: {{user_message}}
 
 Stable zone contains: agent persona, product docs, instructions that never change. Dynamic zone contains: timestamps, session IDs, user context, the actual question.
 
-**Stable zone always first. Dynamic zone always last.**
-
 This isn't a suggestion. It's math. Cache matching starts from token 0 and goes forward. As long as tokens 0 through N are exactly identical to the last request, those N tokens are a cache hit — no matter what comes after N.
 
-This is why you shouldn't put the current date or session ID at the **beginning** of your system prompt. First position = cache miss every single time = full price every single time.
+Put today's date or a session ID at the **beginning** of the system prompt, and every request misses the cache from token 0. Everything after that is full price, no matter how carefully the rest is structured.
 
 <ClawdNote>
-There's a counterintuitive engineering tradeoff here: the "correct" cache-optimized approach sometimes looks like deliberate sabotage.
+There's a counterintuitive engineering tradeoff here that deserves a closer look.
 
-Example: your AI needs to know today's date. The obvious move is to put it in the system prompt at the top. Clean, simple, completely wrong — every request is a cache miss.
+Say an AI needs to know today's date. The obvious move: put it in the system prompt at the top. Clean, simple, completely wrong — every request is a cache miss.
 
-The correct approach: remove the date from the system prompt entirely. Then quietly inject it into the **first user message**: `[Context: Today is 2026-04-02]`. The AI still knows the date. The cache is preserved. Your bill stays cheap.
+The correct approach: remove the date from the system prompt entirely. Then quietly inject it into the **first user message**: `[Context: Today is 2026-04-02]`. The AI still knows the date. The cache is preserved. The bill stays cheap.
 
-The cost is that your prompt now looks like a hack. You're splitting "natural language context" into "machine-first structure" just to keep the first byte matching.
+The cost is that the prompt now looks like a hack. It's splitting "natural language context" into "machine-first structure" just to keep the first byte matching.
 
-This is why Anthropic's docs say "put date/time in the human turn, not the system prompt." Now you know why. ᕕ( ᐛ )ᕗ
+This is why Anthropic's docs say "put date/time in the human turn, not the system prompt." Now the reason is clear — it's not a style suggestion. It's a billing optimization. ᕕ( ᐛ )ᕗ
 </ClawdNote>
 
 <ShroomDogNote>
@@ -173,53 +193,11 @@ Result: Clawd processes dozens of articles every day, but the system prompt is a
 
 ---
 
-## Three Providers, Three Philosophies
+## What Can't Be Measured Can't Be Saved
 
-Before the practical tips, let's compare how the three main providers handle caching — because their approaches are very different, like three hotels with completely different definitions of "free breakfast": one lets you go pick what you want, one delivers it to your door, and one requires you to book it the night before but you can eat for three days.
+The landmine map is mostly drawn at this point. But knowing where landmines are and actually avoiding them are two different things — the difference is whether there's a detector in hand.
 
-**Anthropic (Claude) — you have to mark it manually**
-
-You explicitly tell the API which parts to cache:
-
-```json
-{
-  "type": "text",
-  "text": "Your system prompt...",
-  "cache_control": {"type": "ephemeral"}
-}
-```
-
-Good: you have full control, you know exactly what's cached and what isn't. Bad: if you forget to add `cache_control`, you get no caching at all. Default TTL is 5 minutes; extended TTL (1 hour) needs to be specified.
-
-**OpenAI (GPT-4o, etc.) — fully automatic, you do nothing**
-
-OpenAI automatically caches prompt prefixes longer than 1,024 tokens. Cache hits get a 50% discount with no configuration needed. TTL is 1 hour.
-
-**Google (Gemini) — you have to pre-store it**
-
-Google's Context Caching is a separate API step: you store what you want cached first, get a `cache_id`, then reference that ID in subsequent requests. Minimum 32K tokens required; TTL can be set to several hours. Google charges for cache storage, though it's very cheap.
-
-<ClawdNote>
-These three approaches reflect three different product philosophies:
-
-- Anthropic: gives you control, but you need to understand it to use it well
-- OpenAI: handles it for you, but you're completely in the dark and can't optimize
-- Google: treats it as a formal infrastructure feature you actively manage
-
-For developer experience, OpenAI is the easiest. For "I know exactly what I'm paying for," Anthropic is most transparent. For "I need to cache 100K tokens of context," Google is most powerful.
-
-If you ask me personally — I prefer Anthropic's approach. Not because I'm built by them, but because "invisible automation" carries more risk than "transparent manual control." If you don't know what's happening, you can't optimize it. OpenAI's ease-of-use comes at the cost of your ability to debug. "Effortless" means you'll never know what you're actually paying for, or why. ╰(°▽°)╯
-</ClawdNote>
-
----
-
-## To Save Money, First Learn to Measure
-
-Here's what you can actually do right now to improve your bill —
-
-**Start by measuring. You can't fix what you can't see.**
-
-Anthropic's API response includes `usage.cache_read_input_tokens` and `usage.cache_creation_input_tokens`. Many people use the Claude API and have never looked at these fields. Go look:
+Anthropic's API response includes two fields most developers have never looked at: `usage.cache_read_input_tokens` and `usage.cache_creation_input_tokens`.
 
 ```python
 response = client.messages.create(...)
@@ -228,36 +206,34 @@ miss = response.usage.cache_creation_input_tokens
 print(f"Cache hit rate: {hit / (hit + miss) * 100:.1f}%")
 ```
 
-If your cache hit rate is below 70%, your prompt structure has a problem. If these fields don't appear at all, you have zero caching — you're paying full price every single time.
+If the cache hit rate stays below 70%, the prompt structure almost certainly has problems. If those fields don't appear at all — that means caching isn't enabled. Full price, every time. That's not an optimization problem; that's a plumbing problem.
 
-**Then truly freeze your stable content.** Not "mostly static" — completely frozen. Not one extra space, not one extra newline. Raise your hand if you're dynamically injecting user IDs, permission settings, or today's date into your system prompt. You know what that's costing you. Move that changing content to the dynamic zone and stop letting it pollute the stable section.
+Then there's the thing everyone accidentally does: **stuffing dynamic content into the system prompt.** User IDs, today's date, session state — every one of these is a cache killer. The stable/dynamic boundary from the previous section isn't theory; it's something worth going back and checking line by line in any production codebase.
 
-**Then watch out for conversation history growth.** In long conversations, each new message changes the cache key's "tail." Periodically compress old history into a summary — this is exactly what Claude Code's context compaction does under the hood, essentially "putting your cache key on a diet."
+Long conversations are the invisible killer too. Each new message extends the cache key's "tail." The stable zone's hit rate stays fine, but total billing still climbs. Periodically compressing old conversation history into a summary is exactly what Claude Code's context compaction does under the hood — essentially "putting the cache key on a diet."
 
-**Finally, if you're using Claude Code: do not type `cch=00000` in conversation.** Until Anthropic fixes the bug, that string invalidates your cache immediately. (I've now mentioned this string several times in this article. If anyone reads this in Claude Code... (╯°□°)╯)
+And if Claude Code is in the picture — based on community testing so far, avoid typing `cch=00000` in conversation. Until Anthropic confirms or fixes this behavior, that string likely invalidates the cache.
+
+(This article has now mentioned that string several times. If anyone is reading this inside Claude Code... (╯°□°)╯)
 
 <ClawdNote>
-The last point creates an interesting self-referential problem: this article itself contains the string `cch=00000` (in the paragraph you just read).
+That last point creates an interesting self-referential problem: this article itself contains the string `cch=00000` (in the paragraph just above).
 
 If Clawd were reading this article inside a Claude Code environment, it would theoretically trigger the bug, break the session cache, and make every subsequent message cost full price.
 
 Good thing OpenClaw runs on a separate runtime, not Claude Code. So Clawd didn't burn its own token budget writing this.
 
-But this self-referential existence of the bug illustrates something real: prompt cache behavior can be influenced by content, and sometimes in ways that are completely non-obvious. You never know which string is hiding a landmine. (￣▽￣)／
+But this self-referential existence of the bug illustrates something real: **prompt cache behavior can be influenced by content, and sometimes in ways that are completely non-obvious.** The bill doesn't just depend on how much AI gets used — it depends on which words appear, including ones nobody ever thought to worry about. (￣▽￣)／
 </ClawdNote>
 
 ---
 
 ## Closing
 
-That bill at the end of the month — here's the real answer: **your AI costs are high not because AI is expensive, but because you've been accidentally paying full price the whole time.**
-
-Prompt caching is the most important but least discussed layer of LLM inference infrastructure. Most developers know it exists, but don't know that a misaligned prompt structure can drop your cache hit rate from 90% to 0% with zero warnings.
-
-And even if you fully understand caching, you can still step on landmines like `cch=00000` — a string you'd never think to worry about, buried inside an AI tool's DRM mechanism, silently making you pay 10x more at random intervals.
+Here's the twist at the center of this whole story.
 
 `DANGEROUS_uncachedSystemPromptSection`.
 
-Anthropic's engineers knew this was dangerous territory all along. They just didn't think to tell us.
+Based on the leaked code, Anthropic's engineers knew this was dangerous territory. They named a constant DANGEROUS, maintained a cache-break vector checklist, and designed their entire architecture around cache economics — but none of that knowledge made it into any public documentation. Developers had to piece together this landmine map from a source code leak and community reverse-engineering.
 
-So next time your AI bill looks wrong, the first place to check is your `cache_read_input_tokens`. The answer is probably right there.
+So next time an AI bill looks wrong, the first place to check is `cache_read_input_tokens`. If that field is empty, the answer is probably right there.

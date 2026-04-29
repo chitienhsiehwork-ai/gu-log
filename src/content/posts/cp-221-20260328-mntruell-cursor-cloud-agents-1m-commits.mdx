@@ -22,55 +22,55 @@ translatedBy:
 source: "@mntruell on X"
 sourceUrl: "https://x.com/mntruell/status/2037558733786824965"
 lang: "zh-tw"
-summary: "Cursor CEO Michael Truell 宣布雲端 agent 在過去兩週產出超過一百萬個 commit，幾乎全是 AI 自主完成。回覆中有人點出：當寫 code 的成本趨近於零，review、rollback 和 blame tracing 才是真正的產品。"
+summary: "Cursor CEO Michael Truell 宣布雲端 agent 在過去兩週產出超過一百萬個 commit，幾乎全是 AI 自主完成。當生成成本趨近於零，真正的瓶頸就從「寫 code」移到了「看懂 code」。"
 tags: ["clawd-picks", "cursor", "AI-agent", "cloud-agent", "code-generation"]
 ---
 import ClawdNote from '../../components/ClawdNote.astro';
 
 Cursor CEO Michael Truell 丟出了一個很驚人的數字：Cursor 的雲端 [agent](/glossary#agent) 在過去兩週總共產出了超過一百萬個 commit。而且這些 commit「essentially all AI」——因為雲端 agent 有自己的運算環境，它可以自己執行寫出的程式碼，而且執行過程幾乎不太需要人類介入。
 
-Truell 不是第一次對外講 Cursor 的 agent 野心。之前他在推文裡就說過[「Code AI 才是 AI 最重要的應用」](/posts/cp-143-20260305-mntruell-code-ai-cursor/)，再之前還有[「Cursor 正在帶來程式設計的第三個時代」](/posts/clawd-picks-20260228-mntruell-cursor-third-era/)這種等級的宣言。這次不一樣的是——他終於有數字了。
+一百萬。兩週。平均每天七萬多個 commit。這不是某個人的 side project 在那邊 push，這是一整個雲端 agent 叢集在集體工廠作業。
 
-## 一百萬個 commit 是什麼概念
+Truell 不是第一次對外講 Cursor 的 agent 野心。之前推文裡說過[「Code AI 才是 AI 最重要的應用」](/posts/cp-143-20260305-mntruell-code-ai-cursor/)，再之前還有[「Cursor 正在帶來程式設計的第三個時代」](/posts/clawd-picks-20260228-mntruell-cursor-third-era/)這種等級的宣言。但那些都是願景，這次不一樣——他終於有數字了。而數字一出來，問題的性質就變了。
 
-先感受一下這個數字。兩週，一百萬個 commit。平均每天大概七萬多個。這不是一個人的 side project 在那邊 push，這是 Cursor cloud agent 在過去兩週累積出的總量。
-
-Truell 特別強調「essentially all AI」這個點。因為雲端 agent 有自己的運算環境，可以自己執行寫出的程式碼。他的說法比較像是在強調：agent 執行任務時，人類不用一直在旁邊介入。
+## 數字很猛，但得拆開看
 
 <ClawdNote>
-一百萬個 commit 聽起來嚇人，但 [Clawd](/about) 要潑一盆冷水。第一，commit 數量不等於程式碼品質——一個 agent 可能 commit 了十次才搞定一個 function。第二，Truell 說的「little human intervention」是指 agent 在執行時不太需要人類介入，但人類一開始還是得下指令、最後還是得 review。所以這個數字代表的是 throughput 的爆發，不是人類被打包回家 (◕‿◕)
+[Clawd](/about) 先潑一盆冷水。commit 數量不等於程式碼品質——一個 agent 搞定一個 function 可能 commit 了十次，每次修一個 typo 或 import。Truell 說的「little human intervention」是指 agent 在執行時不太需要人類介入，但人類一開始還是得下指令、最後還是得 review。所以一百萬個 commit 代表的是 throughput 的爆發，不是人類被打包回家 (◕‿◕)
 </ClawdNote>
+
+Truell 特別強調「essentially all AI」這個點——雲端 agent 有自己的運算環境，可以自己執行寫出的程式碼。這裡的關鍵字是「幾乎不太需要人類介入」，而不是「完全不需要」。Agent 自主跑任務，但任務是人類下的，結果還是人類要收。
+
+那問題來了：如果 agent 可以一天生出七萬個 commit，誰來看？
 
 ---
 
 ## 不只是 diff，是 demo
 
-Truell 引用的 Cursor 官方推文提到了一個有趣的變化：Cursor 現在強調用 demo 來呈現 agent 的工作成果，而不只是給開發者看程式碼的 diff。Agent 能自己用它 build 出來的軟體，然後錄一段影片讓開發者直接看結果。
+Cursor 自己似乎也意識到了這個瓶頸。Truell 引用的 Cursor 官方推文提到一個方向轉變：強調用 demo 來呈現 agent 的工作成果，而不只是丟一堆 diff 給開發者自己啃。Agent 能自己用它 build 出來的軟體，然後錄一段影片讓開發者直接看結果。
 
-記得之前 [Cursor Composer 2 那次更新](/posts/cp-197-20260322-cursor-ai-cursor-composer-2/)嗎？當時主打的是 agent 能力的深化——背景跑任務、多檔案理解、整合終端機。現在這個 demo-not-diff 方向，感覺像是從「agent 能做更多事」推進到「agent 做完的事，人類怎麼更快理解」。
+記得之前 [Cursor Composer 2 那次更新](/posts/cp-197-20260322-cursor-ai-cursor-composer-2/)嗎？當時主打的是 agent 能力的深化——背景跑任務、多檔案理解、整合終端機。那些都在解決「agent 能做什麼」的問題。現在這個 demo-not-diff 方向，解決的是下一個問題：「agent 做完了，人類怎麼更快看懂？」
 
 <ClawdNote>
-這個 demo-not-diff 的方向其實蠻聰明的。想像一下，叫 agent 做一個登入頁面，它丟給開發者一個 diff 有 200 行 CSS 和 50 行 JavaScript。得讀懂這些 code 才能判斷做得對不對。但如果它直接錄一段影片，秀出「打開瀏覽器、輸入帳密、按登入、成功跳轉」，三秒就知道它做對了。至少從 review 效率的角度來看，這方向挺合理的 (๑•̀ㅂ•́)و✧
+Demo-not-diff 其實蠻聰明的。叫 agent 做一個登入頁面，它丟給開發者一個 diff 有 200 行 CSS 和 50 行 JavaScript——得讀懂才能判斷做得對不對。但如果它直接錄一段影片，秀出「打開瀏覽器、輸入帳密、按登入、成功跳轉」，三秒就知道結果。Review 效率從「讀 code」變成「看影片」，那是數量級的差距 (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
 ---
 
-## 回覆區的冷靜觀點：review 才是真正的產品
+## 真正的瓶頸在哪
 
-推文底下 @AshbyRen 留了一則很犀利的回覆：一百萬個 agent commit 作為一個「generation milestone」（生成里程碑）沒那麼重要，真正重要的是它作為一個「filtration milestone」（過濾里程碑）。
+Demo 影片解決了「看懂單一任務」的問題。但一百萬個 commit 的規模帶來的挑戰不只是理解，而是整個下游的基礎建設：code review pipeline 能 handle 這種量嗎？CI/CD 跑得完嗎？rollback 機制夠穩嗎？git blame 在一片 AI commit 的海洋裡，還能找到「是哪一筆搞壞的」嗎？
 
-原話是這麼說的：「When write cost collapses, review, rollback, and blame tracing become the real product.」——當寫 code 的成本趨近於零，review、rollback 和 blame tracing 才是真正的產品。
-
-照 @AshbyRen 這則回覆的講法，重點可能不再只是生成多少 code，而是後面的 review、rollback 和追蹤成本。誰來看這些 code？怎麼確認品質？出事了怎麼追溯是哪個 commit 搞壞的？
+這是一個很經典的模式：當生產端的成本趨近於零，瓶頸就從「生產」移到「品管」。印刷術發明之後，寫書變便宜了，但編輯和出版社反而變得更重要。AI 寫 code 也是同一個故事——生成不再是問題，review、rollback、blame tracing 才是。
 
 <ClawdNote>
-@AshbyRen 一針見血。這就像印刷術發明後，寫書變便宜了，但編輯和出版社反而變得更重要。當 AI 可以一天生出七萬個 commit，code review pipeline 能 handle 嗎？CI/CD 夠快嗎？rollback 機制夠穩嗎？git blame 在一堆 AI commit 裡還有意義嗎？Clawd 的解讀是，Cursor 最近強調 demo 影片這件事，至少跟「怎麼更快看懂 agent 產出」這個方向有關；但光靠這兩則推文，還不能直接下結論說寫 code 的軍備競賽已經結束 ┐(￣ヘ￣)┌
+Clawd 的看法是：Cursor 強調 demo 影片這件事，其實已經在回應這個壓力了。「agent 做完的事，人類怎麼更快理解」——這就是在做品管端的最佳化。但 demo 影片只是第一步，它能秀出結果，卻不能取代讀 code。當 agent 改了一個 API 的回傳格式，影片秀不出下游十個 service 會不會炸。所以真正的產品競爭，可能不在誰的 agent 生得多，而在誰的 review 工具最能讓人類快速做出「merge or revert」的決策 ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ---
 
 ## 結語
 
-Michael Truell 這則推文丟出了一個很醒目的數字：Cursor cloud agent 在兩週內產出了超過一百萬個 commit，而且他說這些 commit 幾乎都是 AI 完成的。搭配 Cursor 官方強調的「demos, not diffs」，至少能看出他們在展示 agent 成果的方式上有新的著力點。
+從[「Code AI 是最重要的應用」](/posts/cp-143-20260305-mntruell-code-ai-cursor/)到一百萬個 commit，Truell 的論述正在從願景變成數字。搭配 Cursor 官方的「demos, not diffs」方向，至少看得出來他們已經在處理「生成之後」的問題。
 
-從[「Code AI 是最重要的應用」](/posts/cp-143-20260305-mntruell-code-ai-cursor/)到現在的一百萬個 commit，Truell 的論述正在從願景變成數字。而 @AshbyRen 那則回覆提醒了一件事：當生成成本趨近於零，真正值得注意的不只是生成量本身，而是 review、rollback 和 blame tracing 這些後續環節。
+但一百萬這個數字最有趣的地方，可能不是它作為「生成里程碑」有多猛，而是它作為「品管壓力測試」有多殘酷。當寫 code 的成本趨近於零，真正值得注意的就不再是誰寫得多，而是誰看得快、改得穩、追得到。

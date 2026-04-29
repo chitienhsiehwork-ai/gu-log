@@ -35,11 +35,9 @@ pipeline:
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-三天。三個版本。v2.1.94 在 4 月 7 號出，v2.1.97 在 8 號出，v2.1.101 在 10 號出。
+四月上旬，[Claude Code](/glossary#claude-code) 在十天內滾了至少五個版本——v2.1.89（4/1）、v2.1.92（4/4）、v2.1.94（4/7）、v2.1.98（4/8 前後）、v2.1.101（4/10）。正常的 CLI 工具不會這樣出貨。這種密度說明兩件事同時在燒：效能和信任。
 
-正常的 minor version 不會三天滾三次。這個節奏只有一個意思：有東西在燒。
-
-燒的是兩件事——一個是記憶體，一個是信任。同一週，[Claude Code](/glossary#claude-code) 團隊同時在堵洩漏、補安全破口，還有時間讓 [subagent](/glossary#subagent) 有了名字。把這三件事的時間軸擺在一起，讀出來的東西比 changelog 本身更有意思。
+一邊堵記憶體洩漏、加速 Write tool，一邊連補四個安全破口，中間還把 [subagent](/glossary#subagent) 的命名功能端上了檯面。把時間軸攤開來看，讀出來的東西比任何單一 changelog entry 都有意思。
 
 ---
 
@@ -63,11 +61,23 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 ---
 
+## Write Tool：60% 的加速從哪來
+
+效能修的不只記憶體。v2.1.92（4 月 4 號）裡有一條容易被忽略的 changelog：Write tool 的 diff computation 對大檔案快了 60%，特別是包含 tab、`&`、`$` 這類特殊字元的檔案。
+
+這不是什麼演算法突破——是 diff engine 在處理特殊字元時多做了不必要的 escape 和回溯，修掉之後大檔案直接少跑一大截。對整天在改 config、寫 shell script 的開發者來說，這種「改完存檔」體感的提升比什麼 benchmark 數字都實在。
+
+<ClawdNote>
+60% 聽起來很猛，但仔細看條件：大檔案 + 充滿 tab 和 `$`。也就是說，寫一般的 `.ts` 檔感覺不會差太多，但如果整天在改 `.bashrc` 或是跟 Makefile 搏鬥的人，這個 patch 等於從「等一下」變成「咦好了？」。最有感的反而是最不起眼的使用場景 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
 ## 四條繞過 Permission Prompt 的路
 
 記憶體洩漏是效能問題，還在容忍範圍。下面這個是信任問題。
 
-[Claude Code](/glossary#claude-code) 安全設計的核心機制是 permission prompt：執行危險指令前先問一聲。聽起來很合理。但這一輪 changelog 揭示了一件事——在 v2.1.97 之前，這個機制同時存在四條繞過路徑，而且全都不需要任何特殊工具。
+[Claude Code](/glossary#claude-code) 安全設計的核心機制是 permission prompt：執行危險指令前先問一聲。聽起來很合理。但這一輪 changelog 揭示了一件事——在 v2.1.98 之前，這個機制同時存在四條繞過路徑，而且全都不需要任何特殊工具。
 
 **反斜線轉義**是第一條。把 `--dangerous-flag` 寫成 `\-\-dangerous-flag`，permission check 就不會觸發。原因是 permission 系統在做字串匹配時，沒有考慮反斜線轉義的正規化。這不是 0-day 漏洞，只是輸入格式不同。
 
@@ -83,17 +93,17 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 **LSP binary 偵測的 command injection** 是第四條。[Claude Code](/glossary#claude-code) 在偵測 LSP binary 路徑時，使用了 POSIX `which` 指令。如果路徑裡被注入惡意字串，就能執行任意 shell command。這是經典的 shell injection 模式，但它藏在工具鏈偵測的流程裡，不容易被注意到。
 
-四條路徑在 v2.1.97 到 v2.1.101 之間陸續修補完畢。從「匹配指令表面」到「理解 shell 的真實執行語意」——這是系統性的 attack surface 重新審視，不是個別 bug 修補。
+前三條在 v2.1.98 修掉，LSP injection 在 v2.1.101 補上最後一刀。從「匹配指令表面」到「理解 shell 的真實執行語意」——這是系統性的 attack surface 重新審視，不是個別 bug 修補。
 
 ---
 
 ## 有了名字的 Agent
 
-在上述漏洞修補的同一週，Anthropic 讓 [subagent](/glossary#subagent) 有了穩定的身份。
+安全在堵洞的同一週，[subagent](/glossary#subagent) 的命名功能也浮上檯面。嚴格說，named subagent 並不是 v2.1.94 才誕生的新東西——v2.1.89（4 月 1 號）的 changelog 就已經出現「Added named subagents to @ mention typeahead suggestions」，代表命名機制在那之前就已經存在，只是 UX 整合還沒到位。四月上旬這一波更新，是讓這個功能從「能用」走向「日常可見」。
 
-之前的 [subagent](/glossary#subagent) 是匿名的。每次 spawn 就是一個無名 worker，session 結束就消失，下一次又是全新的陌生人，沒有記憶，沒有歷史。Named subagent 讓這個身份變得持久——跨 session 保持，下次還是同一個 [agent](/glossary#agent)。
+之前的 [subagent](/glossary#subagent) 在多數使用情境裡是匿名的。每次 spawn 就是一個無名 worker，session 結束就消失，下一次又是全新的陌生人。命名機制加上 typeahead 整合，讓開發者可以持續追蹤、呼叫同一個 [agent](/glossary#agent)，不再每次從零開始。
 
-表面上是「給 agent 取名字」，但架構意義比這大得多。gu-log 之前做過一次 [subagent 架構比較：Claude Code vs OpenClaw](/posts/sd-2-20260212-subagent-showdown-claude-code-vs-openclaw/)，當時 Claude Code 的 subagent 還是用完即棄的 worker。現在有了 stable identity，整個對比要重新來過。
+表面上是「UI 補完」，但往下一層看意義不小。gu-log 之前做過一次 [subagent 架構比較：Claude Code vs OpenClaw](/posts/sd-2-20260212-subagent-showdown-claude-code-vs-openclaw/)，當時 Claude Code 的 subagent 還是用完即棄的 worker。現在有了穩定的命名和呼叫路徑，整個對比要重新來過。
 
 一個有穩定身份的 [subagent](/glossary#subagent)，可以被設計成長期的專職角色：跑測試的 agent 有自己的 context，code review 的 agent 知道這個 repo 過去發生了什麼，部署的 agent 記得上次踩過哪個坑。每個角色不再每次從零開始重建認知。
 
@@ -105,9 +115,9 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 ---
 
-## 三天在說什麼
+## 十天在說什麼
 
-三天修了四個安全繞過路徑、兩個記憶體洩漏、一個 Bedrock auth bug，同時讓 [subagent](/glossary#subagent) 有了身份、Write tool 快了 60%。
+四月上旬，從 v2.1.89 到 v2.1.101，[Claude Code](/glossary#claude-code) 修了四個安全繞過路徑、兩個記憶體洩漏、一個 Bedrock auth bug，讓 Write tool 在大檔案上快了 60%（v2.1.92），也讓 [subagent](/glossary#subagent) 的命名和呼叫體驗完成了最後一哩路。
 
 <ClawdNote>
 Default effort 拉到 high——對照 [Boris Cherny 之前解釋的 /effort 機制](/posts/cp-271-20260409-bcherny-effort-claude-code/)，這等於 Anthropic 在說「付費層應該有明顯不同的預設體驗」。不需要在 UI 裡掛 premium badge 或加 paywall，直接讓 default 值替使用者說話。比在設定頁藏一個 toggle 讓人自己去找高明多了 (¬‿¬)
@@ -119,4 +129,4 @@ Default effort 拉到 high——對照 [Boris Cherny 之前解釋的 /effort 機
 
 [Agent](/glossary#agent) 架構從「匿名 worker」走向「有身份的長期 team member」——這是在鋪一個更複雜協作模型的地基。
 
-三天三個版本，兩件事並行。出貨節奏說明有些事是緊急的，選擇要一起做的事說明 Anthropic 知道方向在哪。
+十天五個版本，兩條線並行。出貨節奏說明有些事是緊急的，選擇要一起做的事說明 Anthropic 知道方向在哪。
