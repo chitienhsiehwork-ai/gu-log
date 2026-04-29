@@ -96,11 +96,11 @@ There is a quiet but important shift here: once agents are cheap, generation sto
 
 ## 3. The Freshness Problem
 
-If you build any recurring search workflow, you run into this almost immediately: AI search agents love returning the same stuff over and over again.
+Here is a question that does not sound like a problem until it happens to you: why does your AI search workflow keep returning the same stuff every week?
 
-Monday's search and Thursday's search look different in wording but eerily similar in substance. Same cached pages. Same obvious sources. Same results wearing a slightly different hat.
+Not the same queries — you changed those. Not the same phrasing — the prompt is different. But somehow the results feel eerily similar. Same cached pages. Same obvious sources. Same answers wearing a slightly different hat.
 
-rodspeed's fix is gloriously unglamorous: **add state.** Specifically, a small Python script and a JSON state file.
+rodspeed calls this the freshness problem, and his fix is gloriously unglamorous: **add state.** Specifically, a small Python script and a JSON state file.
 
 The mechanism has three parts:
 
@@ -112,7 +112,7 @@ That is it. No database. No backend service. No enterprise architecture diagram 
 
 The subtle but important caveat is that this only works if the state stays trustworthy. If the JSON file gets corrupted or falls out of sync, deduplication fails quietly and the system starts repeating itself again. rodspeed keeps the state in a git-tracked directory so it can be rolled back when necessary.
 
-What I like about this section is that it reframes the problem. People often assume repeated search results mean the prompt isn't clever enough. Sometimes the real issue is simpler: the workflow has no memory between runs, so of course it keeps rediscovering the same things.
+What makes this section land is the reframe. People often assume repeated search results mean the prompt isn't clever enough. Sometimes the real issue is simpler: the workflow has no memory between runs, so of course it keeps rediscovering the same things.
 
 <ClawdNote>
 This is a nice example of wrapping a stateless model inside a stateful system. Left on its own, the model is basically a goldfish with a vocabulary. Give it a tiny bit of external memory and suddenly it starts behaving like it learned from yesterday instead of spiritually reincarnating every five minutes. ╮(╯▽╰)╭
@@ -122,11 +122,15 @@ This is a nice example of wrapping a stateless model inside a stateful system. L
 
 ## 4. Conversations as a knowledge source
 
-This is the most quoted part of the post, but in the full article it is more disciplined than the tweet version made it sound.
+Time to rewind and ask an uncomfortable question.
 
-rodspeed's argument is straightforward: **most substantive conversations with Claude Code produce knowledge.** They produce decisions, constraints, trade-offs, links between ideas, and explanations that were not obvious at the start of the session. If that knowledge is not captured when the session ends, it evaporates.
+**That critical decision from last week's AI conversation — can you still find it?**
 
-His answer is a harvest skill that runs at the end of every substantive conversation. Not every interaction counts. Trivial exchanges are skipped. But when the conversation genuinely creates new knowledge, the skill extracts it and proposes structured notes.
+Most people cannot. The session ended, and the decisions evaporated like steam. Forty minutes of genuinely productive conversation — a constraint finally clarified, an approach finally ruled out, the exact moment where the real bottleneck snapped into focus — and the next morning, all that remains is a vague impression that something important was discussed.
+
+rodspeed built his harvest skill to solve exactly this. His argument is straightforward: **most substantive conversations with Claude Code produce knowledge.** They produce decisions, constraints, trade-offs, links between ideas, and explanations that were not obvious at the start of the session. If that knowledge is not captured when the session ends, it evaporates.
+
+The harvest skill runs at the end of every substantive conversation. Not every interaction counts. Trivial exchanges are skipped. But when the conversation genuinely creates new knowledge, the skill extracts it and proposes structured notes.
 
 Each note is a small markdown file with:
 
@@ -148,6 +152,8 @@ The loop looks like this:
 
 And the automation trigger is almost boring in its simplicity. It lives in CLAUDE.md as an instruction: at the end of every substantive conversation, run the harvest skill automatically. Skip trivial exchanges. Don't ask.
 
+The real power here is not "AI writes notes." It is that the layer of work most prone to evaporation — the reasoning, the trade-offs, the dead ends — gets hardened into a durable asset. What survives is not just the answer, but the trail of judgment that produced it.
+
 <ClawdNote>
 "Conversation exhaust" is such a good phrase because it captures the waste. Most people treat the middle of an AI conversation like disposable scaffolding — useful while the building goes up, then forgotten. But a huge amount of real value lives in that scaffolding: the trade-off you clarified, the dead end you ruled out, the exact sentence where the problem finally snapped into focus.
 </ClawdNote>
@@ -165,7 +171,7 @@ rodspeed's big point here is structure. He does not dump everything into one gia
 - **Project memories**: ongoing work, deadlines, decisions.
 - **Reference memories**: where important external things live.
 
-The feedback category contains one of the most useful ideas in the whole post. Most people only save negative guidance: don't do this, avoid that, stop making this mistake. rodspeed argues that confirmations matter just as much. If you save only corrections, the system becomes more timid over time without actually preserving the judgments that were correct.
+The feedback category contains one of the most useful ideas in the whole post. Most people only save negative guidance: don't do this, avoid that, stop making this mistake. rodspeed argues that confirmations matter just as much. If you save only corrections, the system becomes more timid over time without actually preserving the judgments that were correct. That observation stings a little because it is so clearly right.
 
 He also makes a practical point about time: relative dates should be converted into absolute dates. "Thursday" is clear for about one week. "2026-03-05" survives much longer.
 
@@ -184,6 +190,8 @@ A lot of people think a memory system wins by storing more. In practice it wins 
 The final pattern tackles a problem every long-running AI workflow eventually hits: sessions end, but work rarely does.
 
 Maybe you hit the context limit. Maybe you are done for the night. Maybe the task simply spans multiple days. Whatever the cause, the result is the same: accumulated decisions, rejected approaches, key files, and gotchas disappear the moment the session does.
+
+And then the most frustrating part begins: the next session does not pick up where things left off. It does archaeology. Re-reading files, re-asking for background, re-walking through decisions that were already settled. Like getting to the boss room in an RPG and having the game tell you to redo the tutorial first.
 
 rodspeed's handoff pattern has two pieces.
 
