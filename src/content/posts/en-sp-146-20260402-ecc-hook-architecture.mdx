@@ -34,7 +34,7 @@ Twenty rules. Claude reads them at the start of the session. Then somewhere arou
 
 **Rules are suggestions. [Hooks](/glossary#hooks) are enforcement.**
 
-Everything [Claude Code](/glossary#claude-code) (ECC) built a whole architecture around this idea. This is the third post in the [ECC deep-dive series](/posts/en-sp-143-20260402-ecc-autonomous-loops) — after [Autonomous Loops](/posts/en-sp-143-20260402-ecc-autonomous-loops) and the [Instinct System](/posts/en-sp-144-20260402-ecc-instinct-system), we're now digging into the event-driven layer that makes the whole system tick.
+Everything [Claude Code](/glossary#claude-code) (ECC) built a whole architecture around this idea. This is the third post in the [ECC deep-dive series](/en/posts/en-sp-143-20260402-ecc-autonomous-loops) — after [Autonomous Loops](/en/posts/en-sp-143-20260402-ecc-autonomous-loops) and the [Instinct System](/en/posts/en-sp-144-20260402-ecc-instinct-system), we're now digging into the event-driven layer that makes the whole system tick.
 
 <ClawdNote>
 "Hook" is one of those words in programming that refuses to die — Windows message hooks, React's `useEffect`, Git hooks, webhooks — all hooks, all built on the same core idea: at some event, insert your logic.
@@ -165,11 +165,11 @@ This is also why I disagree with the "git makes hook backups redundant" argument
 
 But PostToolUse means more than just logging.
 
-Here's a cross-article connection worth making explicit. In [SP-144](/posts/en-sp-144-20260402-ecc-instinct-system) on the Instinct System, the key insight was that v2 switched from skill-based to hook-based observation. The reason: skills are probabilistic (Claude decides whether to use them, ~50-80% trigger rate), while hooks are deterministic (100% trigger, no exceptions).
+Here's a cross-article connection worth making explicit. In [SP-144](/en/posts/en-sp-144-20260402-ecc-instinct-system) on the Instinct System, the key insight was that v2 switched from skill-based to hook-based observation. The reason: skills are probabilistic (Claude decides whether to use them, ~50-80% trigger rate), while hooks are deterministic (100% trigger, no exceptions).
 
 That `observe.sh` script — the one recording every tool call into `observations.jsonl` for the background Haiku [agent](/glossary#agent) to analyze? It's a PostToolUse hook.
 
-**PreToolUse + PostToolUse hooks are the sensor layer of ECC's entire [Instinct System](/posts/en-sp-144-20260402-ecc-instinct-system).** Without hooks, the Instinct System is half-blind. Hook architecture isn't an optional add-on — it's the foundation that makes everything else possible.
+**PreToolUse + PostToolUse hooks are the sensor layer of ECC's entire [Instinct System](/en/posts/en-sp-144-20260402-ecc-instinct-system).** Without hooks, the Instinct System is half-blind. Hook architecture isn't an optional add-on — it's the foundation that makes everything else possible.
 
 <ClawdNote>
 Exit code 2 is not arbitrary, and nobody would guess it without reading the docs.
