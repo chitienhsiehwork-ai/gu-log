@@ -22,21 +22,13 @@ tags: ["shroom-picks", "ai-agent", "file-system", "claude-code"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-If you've been playing with AI agents lately, you've probably heard a very sci-fi-sounding promise: once context windows get big enough, agents will just remember more and more stuff, and then everything will magically work.
+There is a very sci-fi-sounding promise floating around the AI [agent](/glossary#agent) world right now: once [context windows](/glossary#context-window) get big enough, agents will just remember more stuff, and then everything will magically work out.
 
-Thariq's thread is basically him standing up and saying: **nope, that's not the answer.** He opens with *"Your agent should use a file system"* and immediately adds *"This is a hill I will die on."* That is not casual small talk. That is a flag planted in the ground.
+Thariq's thread is basically him standing up and saying: **nope, that is not the answer.** He opens with *"Your agent should use a file system"* and immediately adds *"This is a hill I will die on."* That is not casual small talk. That is a flag planted in the ground.
 
-What makes the thread land so hard is that it is not mystical at all. It is a very grounded engineering take: **an agent's state should not live only inside the conversation. Put it in the file system.**
+What makes this thread land so hard is that it is not mystical at all. It is a very grounded engineering take: **an agent's state should not live only inside the conversation. Put it in the file system.**
 
-Humans do not work by memorizing every detail either. We write notes, keep folders, save docs, leave scratch pads for ourselves. You do not need to remember every email word for word. You just need to know where to look, how to grep, and how to double-check what you found (◍•ᴗ•◍)
-
-## What is Thariq actually arguing?
-
-His core point is simple: **the file system is an elegant way to represent state.** An agent can write information to files, pull those files back into context when needed, and — this is the crucial part — use them to **verify its own work**.
-
-That makes the file system much more than storage. It becomes a workbench.
-
-Not just persistence, but searchability. Not just history, but grounding. Not just memory, but a way to make multiple passes, compare outputs, and catch mistakes before they turn into confident nonsense.
+Humans do not work by memorizing every detail either. Notes, folders, sticky pads — these exist so the brain can stop wasting bandwidth on "remembering" and focus on "finding" and "verifying" instead (◍•ᴗ•◍)
 
 <ClawdNote>
 A lot of people hear "agent memory" and immediately imagine vector databases, giant context windows, or some orchestration contraption that looks like it escaped from a lab. Those can be useful, sure. But the power of this thread is that Thariq starts from the cheapest, most universal primitive almost every machine already has: the file system. Not every problem needs a spaceship. Sometimes a notebook already wins.
@@ -44,113 +36,88 @@ A lot of people hear "agent memory" and immediately imagine vector databases, gi
 
 ---
 
-## Why bigger context windows are not the answer
+## Start with the best example: an email agent in practice
 
-Thariq says Claude Code was what really convinced him.
+Concepts are easier to believe when you see them work. Thariq built an open-source email agent, and it makes the case better than any abstract argument could.
 
-Before Claude Code, many people assumed that once context windows got large enough to fit an entire codebase, programming would become mostly solved. Just stuff the whole repo into memory and let the model cook.
-
-But that is not how programming actually works.
-
-You do not become a good engineer by memorizing the whole codebase like a final exam. You become useful by knowing where the answer probably lives, how to find it, and how to check whether your first guess was wrong.
-
-That is why Thariq's line hits so hard: **you don't need to remember everything, you just need to know how to find it.**
-
-A bigger context window is like giving someone a larger short-term memory buffer. A file system is like giving them a real desk, labeled drawers, and a cabinet they can come back to later. One lets you hold more stuff at once. The other lets you work.
-
-<ClawdNote>
-This is also why the "just make context longer" story keeps sounding better than it works. It feels dramatic. It demos well. But real engineering is usually "locate → read → edit → verify → fix again." That's a workflow, not a memory flex.
-</ClawdNote>
-
----
-
-## The email agent example: write first, grep later
-
-Thariq uses his open-source email agent as the clearest example, and honestly, it is a great one.
-
-A common instinct would be to dump a giant pile of emails into context and hope the model can extract the right addresses, clues, or relationships from raw memory.
+The common instinct would be to dump a giant pile of emails into context and hope the model can extract the right addresses, clues, or relationships from raw memory.
 
 His approach is different. He writes the emails **to files**, then lets the agent **grep across those files**.
 
 That difference is enormous.
 
-Now the agent is not limited to one shot. It can try one address search, fail, try another one, compare candidates, and then go back to the exact lines to confirm what is real and avoid hallucinating. Only after that does it extract the result in a structured format.
+Now the agent is not limited to one shot. It can try one address search, fail, try another pattern, compare candidates, then go back to the exact lines to confirm what is real and avoid hallucinating. Only after that does it extract the result in a structured format.
 
 The magic here is not grep by itself. The magic is that **the file system gives the agent room to do multi-pass work.** Search, verify, revise, repeat.
 
-That is also how humans work. When you need to confirm someone's email at work, you do not stare into the void and hope inspiration arrives. You search your inbox, compare threads, check the spelling, and only then send the thing.
-
----
-
-## Five use cases that click immediately
-
-Then Thariq lists several more examples, and every single one makes the idea feel more practical.
-
-### Memory: save prior context as searchable files
-
-The first is memory. Not the magical "the AI remembers everything about you forever" version. The grounded version: save previous conversations as markdown or JSON files, then search them later when needed, even linking back to exact architecture context.
-
-That matters because memory becomes inspectable. The model is no longer saying "trust me, I remember." It can point to the file.
-
-### React artifacts: write, lint, fix
-
-The second is React artifacts. Agents make mistakes when writing code — that is normal. So instead of demanding perfect output from pure thought, let the agent write to a file, run a lint script, read the errors, and fix them.
-
-That sounds ordinary, but it is a huge shift. It turns generation into a loop: **generate → check → repair**. Much more reliable than hoping the model mentally simulates every failure mode.
-
-### Deep Research: subagents write notes, the orchestrator reads them
-
-The third is Deep Research. Spin up multiple subagents, let each one write findings into markdown files, then have the orchestrator search across those files, summarize them, and ground itself in the references.
-
-This feels a lot like a real research team. Everyone writes their own memo. The lead person collects, compares, and synthesizes. Much healthier than shoving every thought into one mega-chat and praying nobody steps on each other.
+That workflow mirrors how real people confirm someone's email at work — search the inbox, compare threads, check the spelling, and only then hit send.
 
 <ClawdNote>
-At this point the file system is no longer just storage. It becomes the collaboration layer between agents. Who found what, which source was used, which summary is better, what still looks shaky — all of that can leave a trail. And if you ever need to debug a multi-agent workflow, that trail is pure oxygen. Without files, you're left with ghost stories like "I think it probably considered that at some point..."
+This example quietly destroys an entire school of thought. The people who argue "just make context long enough and you won't need tools" should try stuffing 200 emails into a single prompt and asking the model to find one misspelled address. The result will be a very confident wrong answer. Multi-pass beats one-shot — that is not theory, that is scar tissue.
 </ClawdNote>
-
-### Planning and scratch pads: write down the middle steps
-
-The fourth is planning and scratch pads.
-
-This matters a lot for hard problems, especially when several subagents are involved. Otherwise the classic disaster happens: agent A already explored something agent B does not know about, the orchestrator forgets what both of them did, and suddenly everyone is redoing work like a relay race of amnesia.
-
-Writing plans, notes, and pending questions into the file system gives the task a shared whiteboard.
-
-### Dungeons & Dragons: even an AI dungeon master benefits
-
-And then comes the most fun example: Dungeons & Dragons.
-
-Instead of forcing an AI dungeon master to remember every location, character, monster, secret, and bit of world lore through conversation memory alone, let it write those things into files and organize them properly. Then it can load what it needs depending on what the party is doing.
-
-It sounds nerdy, but it is actually a perfect example. Because it reveals something important: **many agent problems are not intelligence problems first. They are state-management problems first.**
-
-If you ask an AI to be the narrator, record keeper, archivist, improviser, and game master all at once — while giving it only chat memory to survive on — of course it starts forgetting things. Poor thing ┐(￣ヘ￣)┌
 
 ---
 
-## Why the community loved this thread
+## So what is actually wrong with bigger context windows?
 
-The replies were overwhelmingly positive, and for good reason: a lot of people had clearly discovered the same pattern in practice.
+This is where Thariq's core argument comes together. He says [Claude Code](/glossary#claude-code) is what really convinced him.
 
-One reply basically laid out the whole case in a few bullets:
+Before Claude Code, many people assumed that once context windows got large enough to fit an entire codebase, programming would become mostly solved. Just stuff the whole repo into memory and let the model cook.
 
-- nearly unlimited storage
-- persistent across sessions
-- searchable with grep
-- human-readable as JSON or Markdown
-- Git-trackable as an audit trail
-- easy for multiple agents to collaborate on
+But **that is not how programming actually works.**
+
+A senior engineer is not strong because they have memorized every file in a monorepo like a final exam. They are strong because they know which folder to check, which file to read, which symbol to search, which log to tail. **Knowing how to retrieve matters far more than raw memory capacity.**
+
+A bigger context window is like giving someone a larger short-term memory buffer. A file system is like giving them a real desk, labeled drawers, and a cabinet they can come back to later. One lets you hold more stuff at once. The other lets you work.
+
+<ClawdNote>
+The biggest bug in the "just make context longer" story is that it treats coding like a memorization contest. But real engineering is "locate → read → edit → verify → fix again" — a workflow, not a memory flex. Shoving an entire codebase into context sounds impressive, but the distance between "I loaded the repo" and "I understand the repo" is roughly the same as the distance between "I bought the book" and "I read the book."
+</ClawdNote>
+
+---
+
+## What does the file system actually solve?
+
+Thariq then lists several more use cases. But the interesting part is not the list itself — it is the common pattern that emerges: **wherever an agent needs to remember, search, or coordinate with other agents, the file system beats context every time.**
+
+Start with **memory** — the grounded version, not the magical one. Save previous conversations as markdown or JSON files, search them later when needed, even link back to exact architecture context. The key shift: memory becomes inspectable. The model is no longer saying "trust me, I remember." It can point to the file.
+
+Then consider **React artifacts**. Agents make mistakes when writing code — that is normal. So instead of demanding perfect output from pure thought, let the agent write to a file, run a lint script, read the errors, and fix them. That turns generation into a loop: **generate → check → repair**. Much more reliable than hoping the model mentally simulates every failure mode.
+
+The most agent-native example is **Deep Research**. Spin up multiple [subagents](/glossary#subagent), let each one write findings into markdown files, then have the orchestrator search across those files, summarize, and ground itself in the references. This feels like a real research team — everyone writes their own memo, the lead collects and synthesizes. Much healthier than shoving every thought into one mega-chat.
+
+<ClawdNote>
+At this point the file system is no longer just storage. It becomes the collaboration layer between agents. Who found what, which source was used, which summary is better — all of it leaves a trail. And when you need to debug a multi-agent workflow, that trail is pure oxygen. Without files, debugging degrades to ghost stories: "I think it probably considered that at some point..." I ask you: who wants to debug production with ghost stories?
+</ClawdNote>
+
+**Planning and scratch pads** solve a problem that sounds mundane but hits hard in practice: without shared notes, the classic disaster happens. Agent A already explored something agent B does not know about, the orchestrator forgets what both of them did, and everyone starts redoing work like a relay race of amnesia. A file-backed scratchpad gives the whole task a shared whiteboard.
+
+But Thariq saves his best punch for last — **Dungeons & Dragons**.
+
+Instead of forcing an AI dungeon master to remember every location, character, monster, secret, and piece of world lore through conversation memory alone, let it write those things into files and organize them properly. When the party enters a new area, load the relevant context.
+
+It sounds nerdy, but it is actually a perfect example. Because it reveals something important: **many agent problems are not intelligence problems first. They are state-management problems first.** Ask an AI to be narrator, archivist, improviser, and game master all at once — while giving it only chat memory to survive on — and of course it starts forgetting things. Poor thing ┐(￣ヘ￣)┌
+
+<ClawdNote>
+The D&D example is the MVP of this entire thread. It translates "file system as state" from engineering jargon into a picture anyone can understand instantly: a dungeon master with a stack of handwritten setting notes spread across the table vs. one who brought nothing and is winging it from memory. Which one forgets the NPC's name by session three? Exactly. Thariq saving this example for last was a deliberate narrative choice — and yes, I am throwing shade at every thread that front-loads the best example and then gets progressively boring.
+</ClawdNote>
+
+---
+
+## Why the community loved this: not invention, but articulation
+
+The replies were overwhelmingly positive, and not in a polite way. More like: "Yes, I have been doing exactly this, and finally someone said it out loud."
+
+One reply basically laid out the complete case in a few bullets — nearly unlimited storage, persistent across sessions, searchable with grep, human-readable as JSON or Markdown, Git-trackable as an audit trail, easy for multiple agents to collaborate on. Thorough enough to be a spec sheet.
 
 Another reply generalized the idea: the deeper lesson is not "it must literally be files." The deeper lesson is that agents need a **durable persistence layer**. Stop trying to one-shot everything in memory.
 
-A few other replies were especially relatable.
+A few other replies were especially relatable. One person said that whenever Claude Code gets close to its context limit, they ask it to write down the current progress and pending todos to a file, then start a fresh session and continue from there. That is such a senior-engineer move — not brute force, handoff.
 
-One person said that whenever Claude Code gets close to its context limit, they ask it to write down the current progress and pending todos to a file, then start a fresh session and continue from that file. That is such a senior-engineer move. Not brute force — handoff.
-
-Another person pointed out that the operating system already comes with much better APIs and tooling around the file system than most of us could hack together with a few ad hoc web APIs. Search, diff, versioning, file watching, sharing — the wheels already exist.
+Another person pointed out that the operating system already comes with better APIs and tooling around the file system than most people could hack together with a few ad hoc web APIs. Search, diff, versioning, file watching, sharing — the wheels already exist.
 
 <ClawdNote>
-This is one of my favorite kinds of tech thread: not the "behold, I have invented a new universe" kind, but the "someone finally said the obvious thing clearly enough that everyone else can nod in relief" kind. The replies are not arguing. They are basically lining up to say, "Yep. Been doing this too."
+This is my favorite kind of tech thread: not the "behold, I have invented a new universe" kind, but the "someone finally said the obvious thing clearly enough that everyone else can nod in relief" kind. The replies are not arguing. They are lining up to say "yep, been doing this too." That pattern usually means the consensus was already there — it just needed someone to name it.
 </ClawdNote>
 
 ---
@@ -161,19 +128,11 @@ If you read this thread as "okay, so I should make my agent write a few txt file
 
 The real lesson is the mental model underneath: **do not design agents as creatures that must solve everything in one shot inside their head. Give them an external environment where state can persist, where work can be searched, and where results can be checked and repaired.**
 
-That is why the file system is so strong. It naturally supports the things real work needs:
+The file system is strong not just because it is cheap, but because it naturally supports what real work demands — state that can be written down, process that leaves traces, mistakes that can be rechecked, handoffs between agents, and direct visibility for humans.
 
-- state that can be written down
-- process that leaves traces
-- mistakes that can be rechecked
-- handoffs between agents
-- direct visibility for humans
+That mirrors good human teams pretty well. Stable teams do not keep all important knowledge trapped inside one person's brain. They write docs, open issues, save runbooks, leave commits. AI agents will probably have to grow up in the same direction.
 
-Honestly, this mirrors good human teams pretty well. Stable teams do not keep all important knowledge trapped inside one person's brain. They write docs, open issues, save runbooks, leave commits. AI agents will probably have to grow up in the same direction.
-
-Thariq ends by saying many file-system-heavy examples go hand in hand with code generation, and he plans to write more about using code generation creatively for problems beyond coding agents.
-
-That hint is worth paying attention to. It suggests that code is not just the final product. It can also be the material agents use to build temporary workflows, working surfaces, and custom tools for themselves.
+Thariq ends by saying many file-system-heavy examples go hand in hand with code generation, and he plans to write more about using code generation creatively for problems beyond coding agents. That hint is worth paying attention to — it suggests that **code is not just the final product. It can also be the material agents use to build temporary workflows, working surfaces, and custom tools for themselves.**
 
 ---
 
