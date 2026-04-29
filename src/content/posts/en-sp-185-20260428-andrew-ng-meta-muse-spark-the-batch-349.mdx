@@ -17,11 +17,11 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 DeepLearning.AI's [The Batch newsletter, issue 349](https://www.deeplearning.ai/the-batch/issue-349/) is unusual — it puts two signals pointing in **exactly opposite directions** on the same table.
 
-On one side, Andrew Ng's hand-written letter on AI-native software engineering teams. The headline: engineer-to-PM ratios are dropping from the traditional 8:1 toward 1:1, and the fastest small teams skip the PM entirely — engineers make product calls themselves, work in the same room, and total team size stays between 2 and 10 people.
+On one side, Andrew Ng's hand-written letter on AI-native software engineering teams. The headline: engineer-to-PM ratios are dropping from the traditional 8:1 toward 1:1, and the fastest small teams skip the PM entirely — engineers make product calls themselves, work in the same room, and total team size stays between 2 and 10 people. (For Ng's broader arc on this topic, see [his take on coding agents and engineering workflows](/en/posts/en-sp-111-20260311-andrewyng-context-hub-coding-agent-api/) and [his view on AI teams](/en/posts/en-cp-278-20260411-andrewyng-ai/).)
 
-On the other side, the News headline "Life After Llama." Meta spent nine months assembling a department called Superintelligence Labs, paid $14.3 billion for a 49% stake in Scale AI, hired engineers with million-dollar packages, and finally shipped its first model in over a year — Muse Spark. **And quietly retired the Llama open-weights strategy that made Meta the open-source flagship of U.S. AI**. Closed. API preview. Selected partners only.
+On the other side, the News headline "Life After Llama." Meta spent nine months assembling a department called Superintelligence Labs, paid $14.3 billion for a 49% stake in Scale AI, hired engineers with million-dollar packages, and finally shipped its first model in over a year — Muse Spark. **And quietly retired the Llama [open-weights](/glossary#open-weights) strategy that made Meta the open-source flagship of U.S. AI**. Closed. API preview. Selected partners only. (We covered the first-look breakdown in [CP-281](/posts/cp-281-20260412-meta-meta-muse-spark/).)
 
-Read those two together, and Q2 2026's AI industry is making two opposite bets: one on small teams and generalists moving the fastest; the other on huge labs and closed-model flywheels.
+Read those two together, and Q2 2026's AI industry is making two opposite bets: one on small teams and generalists moving the fastest; the other on huge labs and closed [frontier model](/glossary#frontier-model) flywheels.
 
 Here's the metaphor: imagine two noodle shops opening on the same street the same day. Shop A: one owner, kneading dough and ladling broth alone. Shop B: a thousand employees on shifts, with a thirty-foot stainless-steel kitchen. Both claim they have the future. They are not telling the same story. **Indie hackers and solo developers reading this issue will quickly realize: Ng's letter was written for them, and Muse Spark was written for Meta's competitors.**
 
@@ -29,7 +29,7 @@ This SP unpacks the two main threads of the issue carefully — and tucks two mo
 
 ## Andrew Ng's Letter: Why Small Teams Beat 1,000-Person Labs
 
-Ng's letter opens with one observation: when AI coding agents speed up the act of building, **"deciding what to build" becomes the new bottleneck**.
+Ng's letter opens with one observation: when AI coding [agents](/glossary#agent) speed up the act of building, **"deciding what to build" becomes the new bottleneck**.
 
 The first wave of fixes was lowering the engineer-to-PM ratio. Traditional big companies put one PM on top of eight engineers; the fast teams Ng watches push that toward 1:1. But 1:1 isn't the endpoint either — one PM deciding direction, one engineer building, still has communication overhead between them. **The truly fastest teams just let the engineer understand users, decide what to build, and ship it themselves**. Ng's words: "they can execute incredibly quickly."
 
@@ -73,7 +73,7 @@ Start with this picture —
 
 That fourth-place bowl is what Meta produced after nine months, $14.3 billion, and an industry-wide hiring war. Ranked fourth, but priced at one-third the leader's price — for a product team that needs to feed an entire company for a year, the math beats "rank-one with three-times the cost."
 
-That's the core contrast in The Batch 349's headline "Life After Llama": **after a year of no new model, Meta's first delivery isn't Llama 5, isn't open weights — it's a closed, token-efficient, fourth-place multimodal reasoning model**. It's both a tech story and an ecosystem story.
+That's the core contrast in The Batch 349's headline "Life After Llama": **after a year of no new model, Meta's first delivery isn't Llama 5, isn't open weights — it's a closed, [token](/glossary#token)-efficient, fourth-place [multimodal](/glossary#multimodal) reasoning model**. It's both a tech story and an ecosystem story.
 
 Translate the metaphor back into numbers. Artificial Analysis runs an Intelligence Index — a composite of 10 economically useful tasks. Muse Spark in reasoning mode scored 52, **fourth place**. The leaders: Gemini 3.1 Pro Preview (high reasoning) and GPT-5.4 (xhigh reasoning) tied for third at 57; Claude Opus 4.6 (max reasoning) at 53. But to complete the entire Index, **Muse Spark used roughly 59 million tokens, Claude Opus 4.6 used 158 million, GPT-5.4 used 116 million** — about one-third the cost of Opus, half the cost of GPT-5.4.
 
@@ -85,15 +85,15 @@ Strengths cluster on **multimodal and health**. CharXiv Reasoning (chart underst
 
 Weaknesses cluster too: **coding and agentic tasks**. Coding Index: Muse Spark scored 47, behind GPT-5.4 (57), Gemini 3.1 Pro Preview (56), and Claude Sonnet 4.6 max reasoning (51). On Humanity's Last Exam — that famously brutal evaluation — Artificial Analysis measured Thinking mode at 39.9%, behind Gemini 3.1 Pro Preview (44.7) and GPT-5.4 (41.6). Meta self-reports contemplating mode pulls that to 58.
 
-Two technical details are worth keeping in mind. **Thought compression** is the strange thing Meta did during post-training — they put an RL penalty directly on "thinking too much." RLHF stands for "Reinforcement Learning from Human Feedback" — humans giving signals to train the model. Meta's variation here: think too long, lose points. The training trajectory Meta describes is interesting — the model first improved by reasoning longer, then learned to compress its reasoning, then extended its reasoning again on top of that compression to improve further. Most models are rewarded for "thinking clearly." Muse Spark is rewarded for "thinking briefly and precisely" — which directly explains the token efficiency, but also explains why coding and agentic tasks are weaker (those naturally need long reasoning).
+Two technical details are worth keeping in mind. **[Thought compression](/glossary#thought-compression)** is the strange thing Meta did during post-training — they put an RL penalty directly on "thinking too much." [RLHF](/glossary#rlhf) stands for "Reinforcement Learning from Human Feedback" — humans giving signals to train the model. Meta's variation here: think too long, lose points. The training trajectory Meta describes is interesting — the model first improved by reasoning longer, then learned to compress its reasoning, then extended its reasoning again on top of that compression to improve further. Most models are rewarded for "thinking clearly." Muse Spark is rewarded for "thinking briefly and precisely" — which directly explains the token efficiency, but also explains why coding and agentic tasks are weaker (those naturally need long reasoning).
 
-**Contemplating mode** goes the other direction. Instead of letting the model run one long chain of thought, it launches multiple agents in parallel, each proposing solutions, refining them, and aggregating results. Meta says this hits better performance with latency comparable to single-agent mode.
+**[Contemplating mode](/glossary#contemplating-mode)** goes the other direction. Instead of letting the model run one long chain of thought, it launches multiple agents in parallel, each proposing solutions, refining them, and aggregating results. Meta says this hits better performance with latency comparable to single-agent mode.
 
 On pre-training, Meta also claimed Muse Spark used **more than 10x less compute than Llama 4 Maverick** to reach the same capability. Specific parameter count, model architecture, training data, and output length cap are all undisclosed — a 180-degree reversal from Meta's old open-weights Llama practice.
 
-The ecosystem layer is where the real impact lands. **This release means Meta is no longer the U.S. flagship of open weights**. The Batch's "Life After Llama" headline isn't accidental — many devs and startups are building on Llama open weights. Since June 2025 (per The Batch), Meta restructured its AI division using the 49% Scale AI stake, Alexandr Wang as chief AI officer, and million-dollar pay packages — and this first product is "closed, API preview to selected partners." The Batch's "Why it matters" puts it bluntly: **"its pivot away from being the leading U.S. champion of open weights is a significant loss for the developer community."**
+The ecosystem layer is where the real impact lands. **This release means Meta is no longer the U.S. flagship of [open weights](/glossary#open-weights)**. The Batch's "Life After Llama" headline isn't accidental — many devs and startups are building on Llama open weights. Since June 2025 (per The Batch), Meta restructured its AI division using the 49% Scale AI stake, Alexandr Wang as chief AI officer, and million-dollar pay packages — and this first product is "closed, API preview to selected partners." The Batch's "Why it matters" puts it bluntly: **"its pivot away from being the leading U.S. champion of open weights is a significant loss for the developer community."**
 
-The Batch's own "We're thinking" section flags an emerging pattern: **Muse Spark's contemplating mode and Kimi K2.5's Agent Swarm both point in the same direction — more labs scaling performance through "inference-time multi-agent orchestration" rather than continuing to train ever-larger single models**.
+The Batch's own "We're thinking" section flags an emerging pattern: **Muse Spark's [contemplating mode](/glossary#contemplating-mode) and Kimi K2.5's Agent Swarm both point in the same direction — more labs scaling performance through "inference-time multi-agent orchestration" rather than continuing to train ever-larger single models**.
 
 <ClawdNote>
 After staring at Muse Spark's spec sheet, the line worth stopping on isn't "fourth place" — it's the **token efficiency: 59 million vs 158 million**.
@@ -111,7 +111,7 @@ One more thing worth roasting — Meta named this restructure "Superintelligence
 
 ## Two Signals on the Same Table: Opposite Directions, Different Floors of the Same Building
 
-Andrew Ng says small teams plus generalists move the fastest, and same-room offices hit the highest speed. Meta delivers, in the same newsletter, the result of "$14.3 billion to assemble a 1,000-person lab." On the surface this is contradictory — one says small, the other says large; one says zero communication friction, the other is a closed API preview; one encourages individuals to do everything end-to-end, the other uses 1,000 physicians as deep-specialist feedback evaluators.
+Andrew Ng says small teams plus generalists move the fastest, and same-room offices hit the highest speed — a thread he's been pulling since [Batch 340's Hollywood letter](/en/posts/en-sp-59-20260214-batch340-andrewng-hollywood/) through [his agent session take](/posts/cp-199-20260323-andrewyng-agent-andrew-ng-session/). Meta delivers, in the same newsletter, the result of "$14.3 billion to assemble a 1,000-person lab." On the surface this is contradictory — one says small, the other says large; one says zero communication friction, the other is a closed API preview; one encourages individuals to do everything end-to-end, the other uses 1,000 physicians as deep-specialist feedback evaluators.
 
 Look closer and you see they're actually on **different floors of the AI industry building**:
 
@@ -161,7 +161,7 @@ The point of this story isn't naive optimism that "AI will discover new drugs." 
 
 ### Persona Generators: Synthetic Users Might Be Another Way to Unblock the PM Bottleneck
 
-The other piece is ML Research from a Google team (Davide Paglieri, Logan Cross, and colleagues) — Persona Generators, a method for **automatically producing 25 prompts spanning a diverse persona space, helping LLMs simulate synthetic users with real opinion variation**.
+The other piece is ML Research from a Google team (Davide Paglieri, Logan Cross, and colleagues) — Persona Generators, a method for **automatically producing 25 [prompts](/glossary#prompt) spanning a diverse persona space, helping LLMs simulate synthetic users with real opinion variation**.
 
 The starting problem: the standard approach is to write a prompt asking an LLM to "answer as if you were a person with this demographic profile," and the LLM gives an average-of-population answer that **doesn't reflect the spectrum of opinions a real population would produce**. Even with explicit demographic cues, the answers don't spread.
 
