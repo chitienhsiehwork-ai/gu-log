@@ -97,7 +97,7 @@ Tailwind Bootstrap shadcn shadcn/ui
 PostgreSQL MySQL Redis MongoDB SQLite DuckDB
 VS Code JetBrains IntelliJ PyCharm WebStorm Vim Emacs Neovim
 Bash Zsh Fish Chrome DevTools
-tmux monorepo BEAM OTP DAG IETF RFC bug
+tmux monorepo BEAM OTP DAG IETF RFC
 
 # Benchmarks / evaluations
 Intelligence Index Index Coding Index
