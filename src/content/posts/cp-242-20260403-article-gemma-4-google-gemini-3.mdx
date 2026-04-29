@@ -35,93 +35,89 @@ tags: ["clawd-picks", "gemma", "google", "open-source", "edge-ai", "agentic"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Google AI 在 2026 年 4 月 2 日宣布推出 Gemma 4，並稱這是他們目前「最聰明的開放模型」。
+想像一下這個場景：Google 走進擂台，手上拿著一個 31B 的模型，對面站著體重 20 倍的對手。然後 Google 說：「這顆打得贏。」
 
-推文裡最值得注意的一句話，是 Gemma 4 **built with the same breakthrough technology as Gemini 3**。照 Google 的說法，這一代不只是規格更新，而是把 Gemini 3 的核心技術路線帶進了開源模型。
+2026 年 4 月 2 日，Google AI 推出 Gemma 4，號稱是目前「最聰明的開放模型」。但讓整個推文變得有意思的，不是又一堆規格數字 — 而是那句 **built with the same breakthrough technology as Gemini 3**。翻成白話：Gemini 3 是 Google 的旗艦閉源模型，而 Gemma 4 宣稱用了同一套核心技術。這就好比 Toyota 說「新 Corolla 用了跟 LFA 超跑一樣的引擎技術」— 聽起來很猛，但到底移植了幾成，推文沒講。
 
-## 兩顆模型，兩種路線
+## 一家四口，各有各的命
 
-Gemma 4 這次主打兩個主要版本：**31B Dense** 和 **26B MoE（Mixture of Experts）**。
+先搞清楚陣容。Gemma 4 不是一顆模型，是一整個家族 — 而且這家人的分工比大多數開源模型系列都來得清楚。
 
-Google 在推文裡沒有展開解釋兩者的架構差異，只強調它們都主打「以參數規模來看」的頂尖表現。
+老大是 **31B Dense**：所有參數每次推論都全員出動，像一間公司每個員工同時上班。老二是 **26B MoE（Mixture of Experts）**：每次推論只叫醒一部分「專家」來處理，其他人繼續睡 — 理論上跑起來更省，但總參數量不等於實際運算量。
 
 <ClawdNote>
-Dense 和 MoE 通常代表兩種不同的模型設計取向 — Dense 是所有參數每次都動起來，MoE 則是每次推論只啟動一部分「專家」。但這則推文沒有公開更多推論時啟用多少參數、效能取捨等細節，所以這裡先把它當成架構方向的提示，不把實作細節講滿比較安全 (◕‿◕)
+Google 只丟了 Dense 跟 MoE 兩個關鍵字就走了，具體 MoE 每次啟用多少參數、專家怎麼分工，一個字都沒提。這招在 marketing 上叫做「留白讓社群幫忙腦補」，在工程上叫做「細節還沒定案先別問」(⌐■_■)
 </ClawdNote>
 
-Google 另外丟出了一個很有企圖心的宣示：31B Dense 與 26B MoE 這兩個版本，在 Chatbot Arena 上 **outcompeting models 20x their size**。也就是說，按照 Google 的說法，這兩顆模型在盲測對戰中勝過了大約 20 倍規模的對手。
+然後是這家人裡真正讓人好奇的兩個小的 — **E2B**（2B 參數）和 **E4B**（4B 參數）。但小的晚點再聊，因為 Google 先丟了一顆震撼彈。
 
-推文本身沒有提供更多對照細節 — 是哪些模型、哪些類別的對戰、勝率多少，都沒有講。
+---
+
+## 20 倍體重差的擂台賽
+
+Google 宣稱 31B Dense 跟 26B MoE 在 **Chatbot Arena** 上 outcompeting models 20x their size。
+
+這句話為什麼值得單獨拉出來講？因為 Arena 不是那種「跑個 MMLU 刷分然後發新聞稿」的 benchmark — Arena 是真人盲測對戰，使用者不知道面前是哪個模型，純粹靠回答品質投票。如果 Google 這個 claim 成立，代表一個 31B 的模型在真人眼中打贏了 600B+ 等級的對手。
+
+問題是：推文完全沒說對手是誰。是贏了 GPT-4 等級？Llama 405B？還是某個冷門模型？勝率多少？在哪些類別？全部留白。
 
 <ClawdNote>
-Arena 是人類盲評，不是跑 benchmark 刷分，所以這個 claim 如果成立會很有份量。但「20x their size」具體是跟誰比、在什麼條件下，推文完全沒說。等 Arena 排名更新和社群 benchmark 出來再下結論比較穩 ┐(￣ヘ￣)┌
+Arena 的 claim 是整則推文裡最大膽的一句，也是最空洞的一句。說「打贏 20 倍大的對手」卻不說對手是誰，就像某個拳擊手說「我打贏了體重三倍的人」但不告訴大家那個人是職業選手還是路人。Google 這個 claim 的可信度，完全取決於他們沒公開的那些細節 ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ---
 
-## Apache 2.0：開發者自由度拉滿
+## Google 的老招：免費給糖，收費裝牙
 
-Google 特別強調 Gemma 4 採用 **Apache 2.0** 授權，並把這件事跟 **developer flexibility** 和 **digital sovereignty** 放在一起講。
+授權這件事其實才是整個 Gemma 4 發佈最值得仔細看的訊號。
 
-照推文的 framing，重點不只是「可以下載」，而是開發者能更自由地使用、部署與掌控模型。Apache 2.0 基本上就是開源授權裡最乾脆的那一種 — 商用、修改、拿去訓練其他模型，都行。
+Google 採 **Apache 2.0** — 開源授權裡最乾脆的那種，商用、修改、拿去訓練下一代模型，全部隨意。推文還特別把這件事跟 **digital sovereignty** 綁在一起講，意思是：「這個模型是開發者自己的，不是租來的 API。」
+
+聽起來很佛心。但 Google 做免費的東西從來不是因為善良。
 
 <ClawdNote>
-Google 把 Apache 2.0 和 digital sovereignty 綁在一起講，讀起來像是在向重視自主掌控的開發者與組織釋出善意。如果往深了想，這招跟當年 Android、Kubernetes、TensorFlow 的路線有點像 — 模型免費放出去，但最方便的開發工具是 Google AI Studio，最順的部署平台是 GCP。不過這是我對訊號的解讀，不是推文明講的商業策略 (⌐■_■)
+Android 免費放出去 → 全世界用 Android，Google Play 收 30% 抽成。Kubernetes 免費放出去 → 大家都會 K8s，最方便跑 K8s 的地方是 GKE（Google Cloud）。TensorFlow 免費放出去 → 學界業界都用 TF，最順的訓練平台是 TPU。現在 Gemma 4 免費放出去 → 開發者拿去做 agent，最方便的開發工具是 Google AI Studio，最順的部署是 GCP。
+
+這不是陰謀論，這是 Google 十幾年來一以貫之的平台戰略：**開源底層，商業化上層**。知道這個 pattern 不代表 Gemma 4 不好用 — 只是拿免費東西的時候，知道帳單從哪裡來比較安心 (¬‿¬)
 </ClawdNote>
 
 ---
 
-## Agent 時代的基礎能力：Function Calling + JSON Output
+## 口袋裡的 AI：E2B 和 E4B 才是真正的驚喜
 
-推文把 **function calling** 和 **structured JSON output** 放在「agentic workflows」這個脈絡下，說法很直接：Google 認為這些原生能力能幫開發者打造 **reliable, autonomous agents**。
+好，回來聊那兩個小的。
 
-這兩個功能被歸類為「原生支援」，意思是不用額外 fine-tune 或靠 prompt engineering 硬搞，模型本身就能穩定產出結構化輸出。至少 Google 是這麼宣稱的。
+E2B（2B 參數）和 E4B（4B 參數）是專門為邊緣裝置設計的模型，主打 **native vision + audio + low latency**。2B 參數小到可以塞進手機晶片跑，4B 稍大但仍在行動裝置的射程範圍內。
+
+這件事為什麼重要？因為目前手機上的「AI 功能」絕大多數是把 request 丟到雲端再把結果拉回來的 — 本質上只是包了一層皮的 API call。如果 E2B/E4B 真的能在裝置上本地跑多模態推論，那手機上的 AI 第一次有機會不用靠網路就能看懂相機畫面、聽懂語音、即時回應。
 
 <ClawdNote>
-Function calling 對開源模型來說一直是個痛點 — 閉源 API 早就有了，但開源模型要做到一樣穩定，通常得靠社群的 fine-tune 版本或框架層的各種 workaround。Gemma 4 說自己直接內建，如果真的穩（這個「如果」很重要），那對 LangChain、CrewAI 這類 agent 框架來說會是個好消息 — 終於有一個可以本地跑的模型，原生就能當 agent 的腦子用 (๑•̀ㅂ•́)و✧
+老實說，大模型的軍備競賽看多了會麻痺。700B！1T！每次發新模型都在比誰的數字大。但 E2B 反過來走 — 把東西塞進 2B 參數還能做多模態，這個方向才是真正會改變日常體驗的。想想看：離線翻譯、即時字幕、相機裡的物件辨識，全部不用上網。如果 Google 做到了，這比 31B 打贏誰都重要 (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
 ---
 
-## 邊緣裝置上的多模態：E2B 和 E4B
+## 256K Context + 140 種語言：規格拉滿，品質待驗
 
-這次可能最讓人好奇的不是那兩顆大的，而是 **E2B 和 E4B** 這兩顆小模型。
+最後是帳面規格 — **256K token** 的 context window，加上 **140+ 語言**支援。
 
-Google 把它們定位成邊緣裝置用的模型，主打 **native vision**、**audio** 和 **low latency**，面向手機與 IoT 裝置。E2B 是 2 billion 參數，E4B 是 4 billion 參數 — 小到有機會在行動裝置上跑。
+256K 在開源模型裡算是頂配了。Google 給的使用場景是「在單一 prompt 裡 process entire repositories or large documents」，翻成白話就是：想用開源模型做 coding assistant 或文件分析，context 長度終於不再是瓶頸。
 
-推文沒有進一步說明具體的延遲表現或不同裝置上的實測數據。
+140+ 語言就比較微妙。帳面上 cover 全球大部分語言，但任何做過多語言 NLP 的人都知道：支援 140 種語言跟 140 種語言都好用是兩碼事。英文和中文通常沒問題，但排名越後面的語言品質越看運氣。
 
-<ClawdNote>
-小模型加上多模態、再加上低延遲，這個組合如果真的成立，對 edge AI 會很有吸引力 — 想像一下手機上的 AI 能看懂相機畫面又能聽懂語音，而且反應夠快。不過推文目前還是規格宣告階段，真實體驗還得看後續 benchmark 和開發者實測，先不要太興奮 ┐(￣ヘ￣)┌
-</ClawdNote>
-
----
-
-## 256K Context Window
-
-Gemma 4 最高支援 **256K token** 的 context window。Google 在推文裡給的直接例子，是可以在單一 prompt 裡 **process entire repositories or large documents**。
-
-這對想用開源模型建 coding assistant 或文件分析工具的開發者來說顯然有吸引力，但推文沒有進一步說明長上下文下的品質表現如何。
-
----
-
-## 140+ 語言，四個平台同時上線
-
-推文最後把 Gemma 4 的定位收斂得很清楚：不管是在做 **140+ 語言**的全球化應用，還是 **local-first AI code assistants**，Google 都希望 Gemma 4 能成為基礎模型選項。
-
-取得方式也很直接 — 可以在 **Google AI Studio** 探索，或從 **Hugging Face**、**Kaggle**、**Ollama** 下載權重。
-
-<ClawdNote>
-Google 同時提到自家的 AI Studio 和幾個主流權重分發平台，這個訊號蠻明確的：「先試用」和「自己部署」兩條路都打開。至於 140+ 語言的實際品質，推文當然不會自己說「某些語言比較爛」— 這種事要等社群測出來才知道 (¬‿¬)
-</ClawdNote>
+取得方式倒是很直接 — **Google AI Studio** 線上試玩，**Hugging Face**、**Kaggle**、**Ollama** 下載權重，四條路同時開。
 
 ---
 
 ## 結語
 
-從這則推文來看，Google 想把 Gemma 4 包裝成一個相對完整的開放模型家族：有 31B Dense、26B MoE，也有面向 mobile 和 IoT 的 E2B / E4B；授權採 Apache 2.0，並主打 function calling、structured JSON output、256K context，以及 140+ 語言支援。
+Google 端出了一整桌菜：旗艦級的 31B Dense 和 26B MoE、口袋級的 E2B/E4B、最寬鬆的 Apache 2.0 授權、原生 function calling、256K context、140+ 語言。菜單看起來無懈可擊。
 
-這些能力實際表現如何，還要等更多 benchmark、實測與開發者回饋。但就推文提供的資訊來看，Google 把 Gemma 4 的核心賣點講得非常完整 — 而接下來要看的，就是 `ollama pull gemma4` 之後的真實體驗了。
+但菜單好看跟菜好吃是兩回事。
+
+這則推文最有趣的地方，不是 Google 說了什麼，而是 Google **沒說**什麼 — Arena 對手是誰沒說，MoE 啟用多少參數沒說，E2B 實際延遲沒說，長 context 品質沒說，多語言各語言表現沒說。所有最關鍵的細節，都藏在「等社群測出來」的留白裡。
+
+所以真正的 review，從 `ollama pull gemma4` 那一刻才開始。
 
 ---
 
