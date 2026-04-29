@@ -40,6 +40,10 @@ fi
 
 log_args=(--format=%H%x09%s --grep='all 4 stages PASS + final build')
 if [ -n "$range" ]; then
+  if ! git -C "$repo" rev-list --max-count=1 "$range" >/dev/null 2>&1; then
+    echo "ERROR: invalid audit revision range: $range" >&2
+    exit 2
+  fi
   log_args+=("$range")
 else
   log_args+=(-n "$limit")

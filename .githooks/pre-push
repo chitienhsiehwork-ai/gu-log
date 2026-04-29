@@ -56,10 +56,14 @@ while read -r _local_ref local_sha remote_ref remote_sha; do
       if [ "$local_sha" = "0000000000000000000000000000000000000000" ]; then
         continue
       fi
+      git fetch origin main >/dev/null 2>&1 || true
       if [ "$remote_sha" = "0000000000000000000000000000000000000000" ]; then
         AUDIT_RANGE="$local_sha"
-      else
+      elif git cat-file -e "$remote_sha^{commit}" 2>/dev/null; then
         AUDIT_RANGE="${remote_sha}..${local_sha}"
+      else
+        BASE="$(git merge-base "$local_sha" origin/main 2>/dev/null || echo "")"
+        AUDIT_RANGE="${BASE:-origin/main}..${local_sha}"
       fi
       if ! bash scripts/tribunal-audit-pass-commits.sh --range "$AUDIT_RANGE"; then
         echo "❌ Tribunal PASS artifact audit failed! Push aborted."
