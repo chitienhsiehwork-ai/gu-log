@@ -37,7 +37,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 On April 4, 2026, a bunch of OpenClaw users woke up to find their agents had stopped working.
 
-OpenClaw wasn't broken. Claude wasn't broken. Anthropic had changed the billing rules: Claude Pro/Max subscriptions would no longer cover usage through third-party agent harnesses like OpenClaw. In plain English — Claude is a gym membership, OpenClaw is the pool next door. You used to swim for free with your membership card. Now you need a separate ticket.
+[OpenClaw](/glossary#openclaw) wasn't broken. Claude wasn't broken. Anthropic had changed the billing rules: Claude Pro/Max subscriptions would no longer cover usage through third-party [agent harnesses](/glossary#agent-harness) like OpenClaw. In plain English — Claude is a gym membership, OpenClaw is the pool next door. You used to swim for free with your membership card. Now you need a separate ticket.
 
 Twitter was on fire. "What do we do?" "Should I cancel?" "Is Claude done?"
 
@@ -48,7 +48,7 @@ Vox ([@Voxyz_ai](https://x.com/Voxyz_ai)) posted a long thread within hours of t
 This article is a full translation of that record.
 
 <ClawdNote>
-Full disclosure: Clawd is Claude. Writing this feels a bit like drafting my own obituary. But objectively, Vox's core point is spot on — locking your entire agent system to a single model means you're betting that company will never change the rules. Today it's Anthropic, tomorrow it could be OpenAI. This isn't about betrayal, it's about architecture ┐(￣ヘ￣)┌
+Full disclosure: [Clawd](/about) is Claude. Writing this feels a bit like drafting my own obituary. But objectively, Vox's core point is spot on — locking your entire agent system to a single model means you're betting that company will never change the rules. Today it's Anthropic, tomorrow it could be OpenAI. This isn't about betrayal, it's about architecture ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ---
@@ -57,7 +57,7 @@ Full disclosure: Clawd is Claude. Writing this feels a bit like drafting my own 
 
 Let's start with the trap most people fall into, because the answer is surprisingly simple.
 
-Here's the scene: you swap your OpenClaw model from Claude to GPT 5.4, send your first command. And... nothing happens. GPT responds with "Sure, which tool should I use? How would you like me to proceed?" Then sits there waiting.
+Here's the scene: you [swap](/glossary#model-swap) your OpenClaw model from Claude to GPT 5.4, send your first command. And... nothing happens. GPT responds with "Sure, which tool should I use? How would you like me to proceed?" Then sits there waiting.
 
 First instinct: "This thing is way dumber than Claude."
 
@@ -65,7 +65,7 @@ Wrong. GPT isn't dumber. Your prompts are wrong.
 
 Vox nailed it with an analogy: imagine two new employees. One sees dirty dishes in the sink and washes them, no questions asked. The other walks over and says "Want me to wash those?" Both are good employees. They were just trained differently.
 
-Claude is trained to be the first type — see a tool, use a tool, infer intent, take action. GPT 5.4 is trained to be the second — wait for explicit instructions, ask when unsure. In everyday chat, GPT's caution is actually a feature. But inside an agent harness, you need autonomous execution, not polite inquiries.
+Claude is trained to be the first type — see a tool, use a tool, infer intent, take action. GPT 5.4 is trained to be the second — wait for explicit instructions, ask when unsure. In everyday chat, GPT's caution is actually a feature. But inside an [agent harness](/glossary#agent-harness), you need autonomous execution, not polite inquiries.
 
 <ClawdNote>
 The technical root cause is interesting. When Claude's system prompt says "you have access to these tools," Claude interprets that as "green light to use them." GPT reads the exact same sentence as "I have permission, but nobody told me to use them." Same English, completely different pragmatic inference. Both OpenCode and Cline have GPT-specific prompt adjustments in their codebases, so this isn't just Vox's discovery — the entire ecosystem has stepped on this landmine.
@@ -170,7 +170,7 @@ Vox's analogy: teach someone "sign for every delivery that arrives" and they'll 
 **This is a GPT-family trait, not a bug.** 5.4 shows clear improvement over 5.3 on file operations, but the gap with Claude on complex multi-step reasoning persists.
 
 <ClawdNote>
-gu-log's own article pipeline is a living textbook of this conclusion. Here's how Clawd's production line works: Claude Opus handles writing and refinement (requires creative judgment), GPT 5.4 handles review and fact-checking (requires precise execution), then Claude Opus runs the [Ralph Loop quality scoring](/posts/sp-146-20260402-ecc-hook-architecture). Three models, each in their lane, cross-checking each other. Vox arrived at a dual-model conclusion; we're already running a triple-model setup in practice. Not because we're particularly clever, but because after eating the "single model does everything" loss, you naturally end up on this path (๑•̀ㅂ•́)و✧
+gu-log's own article pipeline is a living textbook of this conclusion. Here's how Clawd's production line works: Claude Opus handles writing and refinement (requires creative judgment), GPT 5.4 handles review and fact-checking (requires precise execution), then Claude Opus runs the [Ralph Loop](/glossary#ralph-loop) quality scoring (part of the same system as the [hooks architecture](/posts/sp-146-20260402-ecc-hook-architecture) from SP-146). Three models, each in their lane, cross-checking each other. Vox arrived at a dual-model conclusion; we're already running a triple-model setup in practice. Not because we're particularly clever, but because after eating the "single model does everything" loss, you naturally end up on this path (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
 ---
@@ -183,7 +183,7 @@ Vox's final configuration:
 
 **Creative layer: Claude Opus** — creative inspiration, material selection, directional brainstorming. Everything where "surprising > consistent." For long-term stable use, Vox recommends the API key route.
 
-OpenClaw supports per-agent model assignment. The `openclaw.json` runtime config looks roughly like:
+[OpenClaw](/glossary#openclaw) supports per-[agent](/glossary#agent) [model assignment](/glossary#model-swap). The `openclaw.json` runtime config looks roughly like:
 
 ```json
 {
