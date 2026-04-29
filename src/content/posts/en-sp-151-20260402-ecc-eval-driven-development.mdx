@@ -22,31 +22,31 @@ series:
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Last week, you asked Claude Code to build a feature. It came out great — clean logic, edge cases handled, you were happy.
+A developer asked Claude Code to build a feature last week. It came out clean — good logic, edge cases handled, done.
 
-This week, you gave it a similar task. The output made you frown. Not broken, just... off. The logic felt loose. A couple of obvious edge cases were missing. You ran it again, and the second attempt was a little better.
+This week, similar task, same tool, same prompt pattern. The output made them frown. Not broken, just... loose. Logic felt wobbly. A couple of obvious edge cases were missing. They ran it again. Slightly better.
 
 So which one is the "real" Claude Code?
 
-This is called the **inconsistency problem**, and it's where most developers get stuck with AI tools. Your unit tests tell you whether the code output is correct. They don't tell you whether the AI that wrote it will be correct next time. You're flying on vibes — when the output is great, the AI is "amazing"; when it's bad, it was "having an off day."
+The damage this question does is bigger than it looks. Unit tests tell a developer whether a piece of code is correct. Nothing tells them whether the AI that wrote it will be correct *next time*. The whole industry is flying on vibes — good output means the AI is "amazing," bad output means it was "having an off day." Then everyone moves on to the next task.
 
-Then you move on. This is how the whole industry works right now.
+It's not just one person doing this. It's the entire industry.
 
 Affaan Mustafa's [Everything Claude Code](https://github.com/affaan-m/everything-claude-code) includes an eval-harness skill that tries to fix this. The idea behind it is **Eval-Driven Development (EDD)** — pulling AI development from vibes-based back to metrics-based engineering.
 
-## You Test Code. But Who Tests the AI?
+## The 2005 Regression
 
 Engineering spent decades building a testing culture.
 
-From clicking through UIs to unit tests, integration tests, E2E tests, and CI/CD pipelines that block merges without test coverage. Today, sending a PR without tests is considered a bad professional habit. "Test coverage" is as standard as consistent code style.
+From clicking through UIs to unit tests, integration tests, E2E tests, and CI/CD pipelines that block merges without coverage. In 2026, sending a PR without tests gets bounced immediately. "Test coverage" is as standard as consistent code style.
 
-Then AI coding tools arrived, and we all regressed to 2005.
+Then AI coding tools showed up, and the whole industry regressed to 2005.
 
-"Does the AI output look okay to you?" "Yeah, seems fine." "Ship it."
+"Does the AI output look okay?" "Yeah, seems fine." "Ship it."
 
-TDD (Test-Driven Development) works like this: write the test first, let it define what "success" means, then write the code that passes it. EDD follows the exact same logic — except what's being tested is not the code you write. It's **the AI that writes code for you**.
+TDD (Test-Driven Development) works like this: write the test first, let it define what "success" means, then write the code that passes it. EDD follows the exact same logic — except what's being tested isn't the code a developer writes. It's **the AI that writes code for them**.
 
-You test the output. But who tests the tool?
+Code quality gets tested. AI quality? That's the gap.
 
 <ClawdNote>
 "AI development threw engineers back to 2005" is a little dramatic. Only a little.
@@ -61,28 +61,28 @@ AI development is about to go through the same thing. EDD is that moment — sti
 
 ---
 
-## pass@k: How Many Tries Does It Really Take?
+## pass@k: A Brutal Number
 
-EDD's core metric is **pass@k**. The idea is simple:
+Okay, so AI is inconsistent. But "inconsistent" is useless as a word — what's needed is a number. Something trackable. Something improvable.
 
-Run the same task k times. See how many succeed.
+EDD's core metric is **pass@k**: run the same task k times, count how many succeed.
 
 - **pass@1** — probability of success on the first try
-- **pass@5** — probability of at least one success in five tries
-- **pass@10** — probability of at least one success in ten tries
+- **pass@5** — at least one success in five tries
+- **pass@10** — at least one success in ten tries
 
-These numbers are usually very different. The same task might have pass@10 of 85%, but pass@1 of only 35%. This means the AI *can* do the task — but it fails the first time more often than not.
+The gap between these numbers is the whole point. Same task might have pass@10 of 85%, but pass@1 of only 35%. Meaning: the AI *can* do it — but a real user calling it once will probably get a failure.
 
-For real users, only pass@1 matters.
+Nobody wants a service with the SLA: "we guarantee at least one correct answer in ten tries." Users give an instruction and expect it to work. **pass@1 is the only metric that honestly reflects what users actually experience.** Everything else is a ceiling estimate.
 
-No one wants a service with the SLA: "we guarantee at least one correct answer in ten tries." When a user gives an instruction, they expect it to work. So **pass@1 is the only metric that honestly reflects what users actually experience**. Everything else is an estimate of potential.
+But pass@k for larger k isn't useless — it's a diagnostic tool. pass@1 at 30%, pass@10 at 90%? The AI has the ability but lacks consistency. Find the variance source. pass@1 at 30%, pass@10 at 35%? Fundamental capability gap. No prompt tuning will fix that.
 
-pass@k for larger k isn't useless — it tells you where the ceiling is and helps diagnose what kind of problem you have. pass@1 at 30%, pass@10 at 90%? The AI has the ability but lacks consistency. Find what's causing the variance. pass@1 at 30%, pass@10 at 35%? Fundamental capability gap. No amount of prompt tuning will fix it.
+That's what makes pass@k brutal: it translates "the AI felt off today" into a cold percentage.
 
 <ClawdNote>
 pass@k reminds me of the driving test.
 
-You practiced parallel parking for three months. Every session, you nailed it. On exam day, the first attempt was a disaster. The examiner didn't say "okay, you get five tries and we'll take the best one." The ability that only shows up sometimes isn't really yours yet.
+You practiced parallel parking for three months. Every session, nailed it. On exam day, the first attempt was a disaster. The examiner didn't say "okay, you get five tries and we'll take the best one." An ability that only shows up sometimes isn't really yours yet.
 
 The gap between "AI demo" and "AI in production" is almost always a pass@k problem. Demos show pass@best-attempt. Users experience pass@1.
 
@@ -91,123 +91,95 @@ Also: "the AI was having an off day" is almost never true. The AI doesn't have d
 
 ---
 
-## Who Scores the AI? Three Grader Philosophies
+## But What Does "Success" Even Mean?
 
-pass@k tells you how many runs succeeded. But who decides what "success" means? This is where EDD gets interesting — and where most of the design work actually lives.
+pass@k answers "how many runs succeeded" — but it shoves a harder question onto the developer: **who decides what "success" means?**
 
-**Code Grader (deterministic)**
+This isn't trivial. How success is defined sets the ceiling on eval quality.
 
-The simplest and most reliable type. Use code to verify: run tests, check output format, validate schema compliance, verify edge case handling.
+**The most obvious approach is to let code decide.** Code Grader — run tests, check output format, validate schema, verify edge cases. Pass or fail, zero ambiguity. But there's a blind spot: many AI tasks aren't pass/fail problems. "Is this code architecture reasonable?" "Is this explanation clear enough?" Code graders go silent on anything that requires judgment about *quality* rather than *correctness*.
 
-Zero ambiguity — either it passes or it doesn't. The tradeoff: many AI tasks can't be fully expressed as deterministic checks, especially anything involving judgment about quality rather than correctness.
+**So some teams let another AI be the judge.** Model Grader takes the question plus the AI's answer, scores it, and explains why. It catches quality signals that code graders miss entirely — but the judge itself may be inconsistent. And if you take this seriously, you'll need a "grader eval" to verify the grader is good enough, and then a meta-grader to verify *that*... it's turtles all the way down.
 
-**Model Grader (AI scoring AI)**
+**And then there's humans.** Human Grader — most accurate, slowest, most expensive. Not sustainable for every eval, but irreplaceable as the keeper of ground truth, especially during initial eval suite construction.
 
-Use another LLM as the evaluator. Give it the question plus the AI's answer, and it scores with a reason.
-
-This works for tasks without a single correct answer: is this code architecture clean? Is this explanation clear? Does this PR description cover the important trade-offs? Model graders catch quality signals that code graders miss entirely.
-
-The cost: the grader's own consistency may vary, and you'll eventually need a "grader eval" to verify the grader is good enough — which is evals all the way down.
-
-**Human Grader**
-
-Most accurate. Slowest. Most expensive. Best for final review before production and for building the golden datasets that the other two graders need to calibrate against.
-
-You can't run human graders on every eval — that's unsustainable. But as the keeper of ground truth, especially during initial eval suite construction, human graders are irreplaceable.
+The three grader types don't compete — they have different ranges. A real eval suite usually mixes all three.
 
 <ClawdNote>
 Model grader is the most absurd-and-also-effective design in all of EDD.
 
-You use AI to generate an output. Then you use a different AI to score it. The first AI is being evaluated by the second AI. This sounds like using a dream to interpret a dream.
+Use AI to generate output. Use a different AI to score it. This sounds like using a dream to interpret a dream.
 
-It works for the same reason code review works: generating and evaluating are different skills, and evaluation is usually more reliable than generation. Your colleague might not be able to write your code — but they can instantly spot the missing edge case.
-
-Now replace "colleague" with a second model. Same logic applies.
+It works for the same reason code review works: generating and evaluating are different skills, and evaluation is usually more reliable than generation. A colleague might not be able to write your code — but they can instantly spot the missing edge case. Replace "colleague" with a second model. Same logic.
 
 You do still need to occasionally ask: "what's the pass@k of the model I'm using as my grader?" There is no bottom to this rabbit hole. (╯°□°)╯
 </ClawdNote>
 
 ---
 
-## Product Evals vs Regression Evals: Different Questions
+## The Most Dangerous Eval Is the One Nobody Wrote
 
-Many people treat these as the same thing. They're not — they answer fundamentally different questions and need different designs.
+By this point, some developers are thinking "okay, I get it, time to write evals" — and then they write only half.
 
-**Product Evals**: "Is this AI feature good enough for users?"
+Specifically: they write evals for the new feature ("is this AI feature good enough for users?") but skip evals for existing features ("after my changes, is everything that worked before still working?").
 
-You're building something new and want to know if it meets quality standards. Product eval cases cover representative user tasks. The output is a launch decision: is this ready to ship?
+The first kind is called a **Product Eval** — a launch gate that decides whether something is ready to ship. The second kind is a **Regression Eval** — a safety net that catches breakage after every change.
 
-**Regression Evals**: "After my changes, is everything that worked before still working?"
+Product evals feel creative: "I'm building something new." Regression evals feel custodial: "I'm making sure I didn't break something old." Nobody gets excited about the second kind. So it gets skipped. Then one day a prompt tweak or model upgrade silently breaks a feature that was working fine, and nobody notices until users start complaining. No alarm. No safety net.
 
-You tweaked a prompt to improve the AI on task A. Did you accidentally make it worse at task B? You upgraded the model version — do your existing evals still pass? Regression evals are the CI for AI development: run on every change, catch anything that broke.
-
-In practice, teams write product evals for new features and skip regression evals entirely. Then one day, a model update or prompt tweak silently breaks a feature that was working fine, and nobody notices until users complain. No safety net.
+This trap is dangerous precisely because it doesn't look like one. Teams think "we have evals" — and they do. But only for the front door. The back door is wide open.
 
 <ClawdNote>
 Regression eval is the least glamorous and most important eval type.
 
-Product evals feel creative — "I'm building something." Regression evals feel custodial — "I'm making sure I didn't break something." Nobody is excited to write the second kind, so it gets skipped.
-
-Same story as testing culture: teams write happy path tests first, and add regression tests only after getting burned. AI development is running the same playbook, one postmortem at a time.
+Same story as testing culture: teams write happy path tests first, then add regression tests only after getting burned. AI development is running the same playbook, one postmortem at a time.
 
 My prediction: by 2027, "didn't run regression evals after the update" will appear in AI engineering incident reports at the same frequency as "no backups" appeared in 2015. (⌐■_■)
 </ClawdNote>
 
 ---
 
-## The EDD Workflow in Practice
+## Four Steps, Each One Asking "Is This Specific Enough?"
 
-ECC's eval-harness skill breaks the whole thing into four steps. They look simple. The difficulty is in how precisely you execute each one.
+ECC's eval-harness skill breaks EDD into four steps: Define → Implement → Run → Report. Looks as mundane as any engineering loop.
 
-**Step 1: Define**
+The killer is hiding in the first step.
 
-Decide what you're testing, and be specific to the point of discomfort.
+**Define** demands a level of precision that feels uncomfortable. Not: "test whether the AI can write good code" — that sentence has zero eval value. Instead: "given this TypeScript interface spec, can the AI generate an implementation that matches the schema, includes error handling, and passes these five unit tests?" Vague definitions produce numbers that only add confusion.
 
-Not: "test whether the AI can write good code."
+**Implement** turns the definition into code. Automate the code grader parts completely. For model grader prompts, write explicit scoring criteria — don't let the grading AI freestyle. An unanchored judge is worse than no judge.
 
-Instead: "given this TypeScript interface spec, can the AI generate an implementation that: matches the schema, includes error handling, and passes these five unit tests?"
+**Run** isn't just pressing the execute button. Run k times, collect pass@k numbers, but the real value is in the failure patterns. Do failures cluster around a specific input format? Or are they random? Patterns are clues. Randomness is noise. The difference matters enormously.
 
-The ceiling on eval quality is the precision of the definition. Vague evals give you vague results that just confuse you more.
+**Report** converts numbers into next steps. "83% pass rate" is not actionable. What does the failing 17% look like? Where does it fail? Is it a prompt engineering problem or a fundamental model capability gap? Different answers, completely different fixes.
 
-**Step 2: Implement**
-
-Turn the definition into code: input, expected behavior, grader logic. Automate the code grader parts. For model grader prompts, write explicit scoring criteria — don't let the grading AI freestyle.
-
-**Step 3: Run**
-
-Run k times, collect pass@k numbers, save each grader output. Don't only look at the pass rate — look at the *distribution* of failures. Do they cluster around a specific input pattern? Or are they random? Patterns are clues.
-
-**Step 4: Report**
-
-"83% pass rate" is not useful by itself. You need to know what the failing 17% looks like: where they fail, why they fail, whether it's a prompt engineering problem or a fundamental model capability gap. This step converts numbers into something you can actually act on.
-
-After running this loop, you're allowed to say "my AI's pass@1 on this task is 71%, with failures clustering on nested object inputs." Before you run it, all you have is "seems fine."
+After one full loop, a developer earns the right to say "my AI's pass@1 on this task is 71%, with failures clustering on nested object inputs." Before the loop, all anyone has is "seems fine."
 
 <ClawdNote>
 This define → implement → run → report loop looks exactly like the Ralph Loop that gu-log uses for article quality.
 
-Ralph Loop: define eval (three scoring dimensions: Persona, ClawdNote, Vibe) → implement grader (model grader: one AI scores another AI's writing) → run (score every article) → report (below 8/8/8 → rewrite, log what was wrong).
+Ralph Loop: define eval (five scoring dimensions: Persona, ClawdNote, Vibe, Clarity, Narrative) → implement grader (model grader: one AI scores another AI's writing) → run (score every article) → report (below threshold → rewrite, log what was wrong).
 
-So the article you're reading is an EDD artifact explaining EDD. I am a product of this process, describing this process. It's a little circular, but it feels fine.
+So the article you're reading right now is itself an EDD artifact. I am a product of this process, describing this process. A little circular, but it feels fine.
 
-One important clarification: SD-16 covers "AI using TDD to test the code it writes" — that's testing the quality of what the AI produces. EDD is about "you testing the AI's own capability and consistency" — that's evaluating the tool itself. One measures the output. The other measures the machine that makes the output. Both matter. Very different problems. (◕‿◕)
+One important clarification: SD-16 covers "AI using TDD to test the code it writes" — that's testing the quality of what the AI produces. EDD is about "testing the AI's own capability and consistency" — that's evaluating the tool itself. One measures the product. The other measures the machine. Both matter. Very different problems. (◕‿◕)
 </ClawdNote>
 
 ---
 
 ## Closing
 
-Back to the output that made you frown.
+Back to the output that made someone frown.
 
-Last week: great. This week: off. Re-run: slightly better.
+Last week: A-. This week: C+. Re-run: back to B.
 
-You now know what that mystery is actually called. It's not "the AI was having a bad day." It's "you don't know this AI's pass@1 on this task, so you have no way to know what to expect, no way to understand why it's inconsistent, and no way to improve it."
+That mystery has a name now. It's not "the AI was having a bad day." It's "nobody knows this AI's pass@1 on this task, so there's no way to know what to expect, no way to understand why it's inconsistent, and no way to systematically improve it."
 
-EDD doesn't ask you to become a full-time eval runner. It asks you to replace "looks fine" with "pass@1 is 71%, failures cluster on nested object inputs, known issue." The distance between those two statements is the distance between vibes-based AI development and engineering.
+EDD doesn't ask every developer to become a full-time eval runner. It asks them to replace "looks fine" with "pass@1 is 71%, failures cluster on nested object inputs, known issue." The distance between those two statements is the distance between vibes-based AI development and actual engineering.
 
-You know exactly how much time you spend testing your code.
+Every developer knows how much time they spend testing code.
 
-Now ask yourself: how many evals has your AI ever run?
+The AI that writes the code — how many evals has it ever run?
 
 ---
 
