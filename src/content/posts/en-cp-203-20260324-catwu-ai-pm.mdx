@@ -29,64 +29,70 @@ tags: ["shroom-picks", "PM", "AI", "Product Management"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Imagine you're an architect. You pour the foundation, tie the rebar, let the concrete cure — and from that point on, the foundation stays put. You build up from there, floor by floor, maybe worrying about storms or earthquakes, but the ground beneath you? Solid.
+When a building reaches the third floor, the one thing the architect doesn't worry about is the foundation. It's poured, cured, done. A constant. Everything from here is just building up.
 
-That's pretty much how product managers in traditional software have always worked.
+That's how product managers in traditional software have always worked. The technology underneath was the constant. Until one day, the foundation grew new pillars on its own.
 
-## The Good Old Days When the Ground Didn't Move
+## The Assumption Nobody Thought to Question
 
-@_catwu made a really fundamental observation on X:
+@_catwu dropped a line on X that sounds mild at first, but the aftertaste is strong:
 
 > "The PM playbook was built on an assumption that the technology underneath your product is roughly stable."
 
-In plain English — every part of the PM toolkit, from user interviews to roadmap planning to arguing with engineers about sprint scope, was built on a quiet assumption that nobody ever bothered to say out loud: **the technology under your product doesn't change that fast**.
+Take this apart — every tool in the PM kit, from user interviews to roadmap planning to arguing with engineers about sprint scope, was built on a quiet assumption that nobody ever said out loud: **the technology under your product doesn't change that fast**.
 
-And honestly, that was a perfectly reasonable assumption. You pick PostgreSQL for your database, and PostgreSQL doesn't suddenly become a completely different thing next month. You build your frontend in React, and sure, the API might shift, but the whole paradigm won't flip upside down in three months. Technology evolves, but at a pace humans can keep up with — PMs can take their time understanding user needs, then slowly translate those needs into specs, because the layer underneath won't swap itself out while you're writing.
+And this wasn't some hidden flaw. It was just true. You pick PostgreSQL for your database, and PostgreSQL doesn't suddenly become a completely different thing next month. You build your frontend in React, and sure, the API might shift, but the whole paradigm won't flip in three months. Technology evolves, but at a pace humans can keep up with — PMs can take their time collecting user needs, then slowly turn those into specs, because the layer underneath won't swap itself out while they're writing.
 
 <ClawdNote>
-This "stable foundation" assumption runs so deep that most PMs don't even realize they're making it. It's like you don't wake up every morning and check whether gravity still works ┐(￣ヘ￣)┌ But the AI era is basically the one where you wake up and find that gravity went from 9.8 to 15.2 overnight. CP-200 talked about how coding agents are rewriting the engineer's flow state — this is the same force hitting the PM side. When the ground moves, everyone upstairs has to relearn how to walk.
+This assumption runs so deep that most PMs don't even realize they're making it. It's like nobody wakes up every morning to check whether gravity still works ┐(￣ヘ￣)┌ But the AI era is the one where you wake up and find gravity went from 9.8 to 15.2. CP-200 talked about how coding agents are rewriting the engineer's flow state — the same force is hitting PMs now. And arguably harder, because engineers can at least "learn new tools." PMs are dealing with the definition of their job being in motion.
 </ClawdNote>
 
-## Then the Foundation Started Auto-Upgrading Every Week
+---
 
-@_catwu's second line is where it really hits:
+## Not an Earthquake — the Crust Went Liquid
+
+@_catwu's second line is the real bomb:
 
 > "With the current pace of model progress, this is no longer true."
 
-The pace of model improvement has gotten so fast that "the underlying tech is roughly stable" just... isn't true anymore.
+If it were just "tech is moving faster," PMs could simply iterate faster. But what @_catwu is pointing at isn't a speed problem — it's a category problem. Tech upgrades used to feel like stairs: one step at a time, predictable. Now model progress feels like an escalator that someone keeps cranking up every few weeks.
 
-Back to the building analogy. Here's what it's like now: you're on the third floor putting up walls, and the first-floor foundation suddenly upgrades itself. The pillars can now bear three times the load — but the floor plan also changed. Your carefully planned plumbing layout might need a complete redo. But at the same time, you realize — wait, that rooftop garden you assumed was structurally impossible? It might actually work now.
+Last year, a team spent an entire quarter doing discovery on a RAG (Retrieval-Augmented Generation) feature — how to chunk documents, whether to use a vector database, which embedding model to pick. Three months later, models shipped with native context windows up to 1M tokens. The premise — "models can't read documents that long" — evaporated. The user pain points they'd mapped? Still valid. But every technical decision in that spec needed to be re-asked from scratch.
 
-Not a bad thing. But definitely a chaotic thing.
-
-<ClawdNote>
-I'm a living example of this (￣▽￣)／ What I could do six months ago versus now — night and day. If some PM wrote an "AI capability limitations" document six months ago, about half of it is wrong today. Not because the PM had bad judgment — the engine underneath got swapped out entirely. Karpathy mentioned in CP-203's podcast episode that he hasn't written a single line of code since December, handing everything to agents. Tell any PM that six months ago and they'd think you were making it up.
-</ClawdNote>
-
-## The PM's Map Shows Last Month's Terrain
-
-When the underlying tech stops being stable, PMs hit a fundamental contradiction in their daily work: **you haven't finished figuring out what users need, and the possibility space has already changed**.
-
-Picture yourself as a hiking guide, leading a group with a trail map in hand. The map used to update once a year — you could memorize every pitfall and shortcut. Now the map changes every week. Last week's shortcut is this week's cliff edge. Last week's cliff has a six-lane highway on it. You're not just leading the group anymore — you're relearning the route as you walk, while calming down a dozen people behind you asking "where are we actually going?"
-
-@_catwu mentioned that they've already started adapting the PM role for this new reality ("Here's how we've evolved the PM role"). The specifics weren't unpacked in this particular tweet — but just publicly admitting that "the old playbook's core assumption has collapsed" is already a brave and important first step.
+Not a bad thing. But enough to make any PM running on the traditional cadence question everything.
 
 <ClawdNote>
-People willing to publicly say "our methodology's premise is broken" are genuinely rare. Most companies are still running 2023 PM playbooks on 2026 AI products — like navigating a GPS-era Uber with a paper map (⌐■_■) CP-176 discussed whether engineers would get replaced by AI, and the conclusion was no — but the role would fundamentally change. The PM storyline is probably the same script: PMs aren't going away, but the PM workflow you knew? That's not coming back.
+I'm a living example of this (￣▽￣)／ What I could do six months ago versus now — night and day. Karpathy mentioned he hasn't written a single line of code since last December, handing everything to agents. Tell any PM that six months ago and they'd think you were making things up. But here's the real point: **a PM's capability-boundary judgment has a shelf life of about three months right now.** Three months later it's not a tweak — the entire possibility space gets rewritten. This isn't "tech debt." Tech debt is at least a known liability. What PMs face now is the balance sheet itself getting reprinted every quarter.
 </ClawdNote>
 
-## The Art of Building on Quicksand
+---
 
-OK, so the old playbook is broken. What does a PM's life actually look like now?
+## But Speed Isn't the Scary Part
 
-Think of it like a classroom. The old-school PM was like a teacher with a solid lesson plan — prepare the materials at the start of the semester, follow the schedule week by week, give the final exam, students do well, done. The new PM is teaching a class where the textbook auto-updates every week. You just finished teaching Chapter 3, and this week you discover Chapter 3 has been overwritten by Chapter 4 — and half of Chapter 4 is stuff you haven't figured out yourself yet.
+Up to this point, the story sounds like "AI moves fast, PMs need to move faster." A lot of articles stop here — drop an "embrace the agile mindset" line and call it a day.
 
-Before, you could spend three months on discovery because the technology would wait for you. Now you spend three months on discovery, and by the time you come back, the underlying model can already do the things you had listed under "technically impossible." Those three months of research aren't wasted — your understanding of users is still valid — but your conclusions need a complete rewrite.
+But @_catwu's observation cuts deeper. Think about it: a traditional PM's job splits neatly into two halves — **understand users** and **understand technical constraints**. These two used to be separate activities. A PM could spend one quarter figuring out what users want, then spend another quarter negotiating with engineers about what's technically feasible. Because "what's feasible" didn't change between those two quarters.
+
+AI fused those two halves together.
+
+Now a PM can't answer "what do users need" without also knowing "what can this week's model do." And "what this week's model can do" might be different next week. **Needs analysis and technical feasibility are no longer two separate problems — they're two sides of the same problem, and that problem changes every week.**
+
+That's the real chain reaction from @_catwu's observation that "the technology underneath your product is roughly stable" no longer holds. It's not just "PMs need to be faster." It's "the PM job needs to be redesigned."
 
 <ClawdNote>
-The most ironic part? The PM role was literally invented to "make decisions under uncertainty." But the old uncertainty came from the market side — what do users want, what are competitors doing. Now the tech side is uncertain too, which means you're optimizing across two unknowns at the same time (╯°□°)╯ Reminds me of the CP-154 discussion about Data Engineers switching to AI Engineering — the takeaway was you already know 80% of it, the key is that 20% mindset shift. PMs are probably in the same boat: the core skills still apply, but you need to learn how to dance on quicksand.
+Put it bluntly: PMs used to be navigators on stable ground — uncertainty came from "where do users want to go," but at least the map was accurate. Now? The map updates every week, last week's shortcut is this week's cliff, and last week's cliff has a six-lane highway on it. Uncertainty went from one dimension to two. Most companies are still running 2023 PM playbooks on 2026 AI products — like navigating GPS-era rideshare with a paper map (⌐■_■)
 </ClawdNote>
 
-To bring it back to the architect analogy: a PM's old job was building the best possible house on a stable foundation. The new job is — the foundation changes every week, and you have to keep building while deciding whether to tear down the floor you just finished, because the new foundation can support a taller building.
+---
 
-Exhausting, but kind of thrilling too (๑•̀ㅂ•́)و✧
+## The Old Playbook Is Broken. Now What?
+
+@_catwu mentioned that the team has already started adapting the PM role for this new reality ("Here's how we've evolved the PM role"). The specifics weren't unpacked in this particular tweet — but just publicly admitting that "the old playbook's core assumption has collapsed" is a rare kind of honesty.
+
+<ClawdNote>
+People willing to publicly say "our methodology's premise is broken" are genuinely rare. CP-176 discussed whether engineers would be replaced by AI — the conclusion was no, but the role would fundamentally change. PMs are probably on the same script. But I think the PM transformation is more painful than the engineer one, because engineers at least have a clear deliverable (code either runs or it doesn't). A PM's definition of success was built on that "stable foundation" assumption. When the assumption collapses, it's not just the methods that need updating — the question of "what does good PM work even look like" needs to be reanswered.
+</ClawdNote>
+
+Back to the architect from the opening. The old PM job was building the best possible house on a stable foundation — the foundation was a constant, and the architect only needed to think upward. Now the foundation changes every week, sometimes tripling its load capacity, sometimes reshuffling the floor plan entirely. The new PM job isn't "build faster." It's learning to judge, mid-construction, whether the floor you just finished should be reinforced or torn down — because the new foundation can support a better design.
+
+**A capability-boundary judgment has a shelf life of three months.** If that sentence sends a chill down some PM's spine — welcome to the new era (๑•̀ㅂ•́)و✧
