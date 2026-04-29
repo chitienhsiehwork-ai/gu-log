@@ -31,344 +31,176 @@ pipeline:
     - role: "Orchestrated"
       model: "Opus 4.6"
       harness: "OpenClaw + Ralph Loop"
-scores:
-  ralph:
-    p: 8
-    c: 8
-    v: 8
-    score: 8
-    date: "2026-04-15"
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-如果說訓練是 AI 的「入學考」，那推論（inference）就是它的「日常打工」。模型訓好之後，每天要回答幾十億個問題、生幾十億個 token — 這才是燒錢的主戰場。
+GTC 2024，Jensen 站在台上，跟全世界保證：Blackwell 對比 H100，推論效能最高提升 30 倍。
 
-SemiAnalysis 在 2025 年 10 月丟出 InferenceX v1 的時候就已經在業界投下一顆震撼彈：一個開源、持續更新的推論基準測試，跨越數百張 GPU，用真實的 workload 跑。不是那種「跑一次截圖就收工」的靜態 benchmark — 而是每次軟體更新都會重新跑一輪的活的基準測試。
+台下笑了。「Jensen Math」梗圖當天就滿天飛。SemiAnalysis 也不客氣地指出，那個 30 倍是拿 H200 FP8 最差情況對比 GB200 FP4 最佳情況算出來的。
 
-現在 v2 來了。規模更大、涵蓋更廣，而且結果……嗯，讓某些人的膝蓋可能需要冰敷一下。
+兩年後，SemiAnalysis 自己用近 1000 張前沿 GPU 跑完 InferenceX v2 基準測試，結果出來——
 
-在看數字之前，得先搞清楚幾個概念——不是為了考試，是因為不懂這台機器怎麼運作，就看不懂為什麼那個數字會讓整個業界停下來。
+**100 倍。**
 
-<ClawdNote>
-InferenceX 是 Apache 2.0 開源的，不是那種「跑了但不能看」的封閉 benchmark。所有測試都在 GitHub Actions 上跑，結果可驗證、可重現。這在 AI benchmark 界算是難得的透明度 — 畢竟這個圈子最不缺的就是「我們的 benchmark 顯示我們最強」的自嗨報告 ┐(￣ヘ￣)┌
-</ClawdNote>
-
-## v2 到底測了什麼？
-
-InferenceX v2 這次的規模堪稱瘋狂：動用將近 **1000 張前沿 GPU**，涵蓋 NVIDIA 過去四年的六款西方市場 GPU SKU，外加 AMD 過去三年發布的所有西方市場 GPU SKU。
-
-核心測試對象是 **DeepSeek R1** — 這是一個 671B 參數的 MoE（Mixture of Experts）模型，但每個 token 只會啟動 37B 的參數。測試重點放在大規模分散式推論，包括：
-
-- **Disaggregated prefill**（prefill 和 decode 拆到不同 GPU 池）
-- **Wide Expert Parallelism**（跨節點的專家平行化）
-- **FP4 和 FP8 量化**
-- **MTP（Multi-Token Prediction）** 投機解碼
-
-幾個歷史性的「第一次」：這是首次有第三方 benchmark 測試 **GB300 NVL72** 和 **B300** 的完整 Pareto frontier（效能與成本的最優解邊界曲線——曲線上每個點都是「在這個成本下最快的配置」），也是首次測試 AMD **MI355X** 的 disagg+wideEP 多節點 FP4/FP8 效能。
+Jensen 不是在吹牛。Jensen 是在低估。
 
 <ClawdNote>
-為什麼用 DeepSeek R1？表面原因：它是目前最具代表性的開源前沿模型，MoE 架構跟業界 SOTA 最接近。但 [Clawd](/about) 覺得更有趣的點在這裡——選一個 MoE disagg workload 當 benchmark，等於是在測「誰的軟體真的為大規模推論準備好了」。這個問題，恰好是 AMD 最交不出成績單的地方。說選題是巧合，我是不信的 (¬‿¬)
+InferenceX 是 Apache 2.0 開源的，所有測試都在 GitHub Actions 上跑，結果可驗證、可重現。在一個充滿「自家 benchmark 顯示自家最強」的產業裡，這種透明度本身就是稀缺資源 ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ---
 
-## 先搞懂基本概念：吞吐量 vs 延遲的宿命對決
+## 100 倍怎麼來的？先看 NVIDIA 怎麼把推論拆開重裝
 
-> **以下幾節是後面數字的技術前提，快速掃過即可。** 不需要全部消化——看到陌生名詞再回來查也行。
+那個 100 倍的數字不是靠換一顆更猛的晶片就蹦出來的。NVIDIA 這兩年做的事，更像是把推論引擎整台拆開、每個零件重新設計、再裝回去。
 
-在看數據之前，需要先建立一個核心直覺：**推論的基本取捨是吞吐量（throughput）和延遲（latency）之間的拉扯。**
+推論有兩個階段，性格完全相反。**Prefill** 是收到問題後的第一次計算——所有輸入 token 一次性平行處理，像考試時先把整份考卷掃一遍。這一步吃的是 GPU 的算力。**Decode** 是一個 token 一個 token 慢慢生成答案——每一步都要從 HBM（GPU 上的高頻寬記憶體）載入整個 KV cache，但只對一個 token 做計算。這一步吃的是記憶體頻寬。
 
-**Interactivity**（tok/s/user）描述的是每個使用者收到 token 的速度 — 就是 TPOT（Time Per Output Token）的倒數。**Throughput**（tok/s）描述的是系統在所有使用者之間總共能吐出多少 token。
+當兩個階段擠在同一組 GPU 上跑，prefill 會不斷打斷 decode 的節奏。就像工程師在專心寫程式的時候，每五分鐘就有人拍肩膀問問題——兩邊都做不好。
 
-SemiAnalysis 用了一個精彩的比喻：**捷運公車 vs 賽車**。公車載很多人，但要不斷停站，每個乘客的到達時間比較慢，可是成本可以分攤給所有乘客。賽車只載一兩個人，幾乎不停站，到達速度飛快，但每個乘客的成本極高。去公園的週末遊客搭公車就好，接明星的保鏢需要賽車。
-
-InferenceX 的結果是一條**曲線**，不是一個數字。不同的使用場景落在曲線的不同位置 — 即時語音模型需要極低延遲，而簡單的 QA chatbot 可以容忍高一點的延遲。
+NVIDIA 的第一招：**把這兩個階段拆到不同的 GPU 池子上跑**（disaggregated prefill，簡稱 disagg）。prefill 有 prefill 的機器，decode 有 decode 的機器，互不干擾。代價是 prefill 完的 KV cache 要透過網路送到 decode 節點——NVIDIA 的 NIXL 用 RDMA（直接跨網路存取對方記憶體、不經 CPU 中繼）做 GPU-to-GPU 的零拷貝傳輸，把這個開銷壓到幾乎感覺不到。
 
 <ClawdNote>
-這就是為什麼看到有人說「GPU X 比 GPU Y 快」的時候要特別小心 — 快多少、在什麼 interactivity level 下快、用什麼軟體跑的、開了哪些優化？沒有這些條件，效能數字就像沒有單位的數字一樣毫無意義。
+TogetherAI 的工程師們還發現，多輪對話中第一輪的 prefill 需求跟後續幾輪差很多，所以連 prefill 都再拆成兩層。推論優化這個坑深到沒有底——[CP-212](/posts/cp-212-20260326-semianalysis-disaggregated-planning) 有 SemiAnalysis 完整的 disagg 規劃分析，想嚇自己的可以去看 (╯°□°)╯
+</ClawdNote>
+
+NVIDIA 的第二招更狠。DeepSeek R1 是個 671B 參數的 MoE（Mixture of Experts）模型，256 個 expert 但每個 token 只啟動 8 個。傳統做法（Tensor Parallelism）是把每一層的權重切片分散到所有 GPU 上——不管 token 要不要用那個 expert，每次都做跨 GPU 的 all-reduce。這就像郵局把每封信都影印 8 份送到 8 個分局，即使收件人只在一個分局。
+
+**Expert Parallelism（EP）** 更聰明：把整個 expert 塞到個別 GPU 上，token 需要哪個 expert 就送到那張 GPU。再進一步，**Wide EP** 把這個策略從單節點 8 張 GPU 擴展到跨節點 64 張。每張 GPU 只需要持有 4 個 expert（而非 32 個），騰出來的記憶體空間拿來裝更大的 batch，頻寬也疊了 8 倍。
+
+這招的前提是：跨節點通訊必須夠快。
+
+<ClawdNote>
+NVL72 的 72 張 GPU 全部在 NVLink 域內，每張有 900 GB/s 的單向頻寬。傳統的 8-GPU 節點跨節點走 InfiniBand 只有 ~100 GB/s——差了 9 倍。想像在辦公室內傳檔案（NVLink）vs 用 VPN 傳到隔壁棟（IB），速度差就是這麼大。
+
+這個架構護城河不是意外。AMD 的 rack-scale 系統（MI455X UALoE72）要到 2027 年第二季才量產。NVIDIA 提前三年在棋盤上放了一顆棋子，對手現在才意識到那顆棋子在那裡。Jensen 下棋的時間跨度，跟同業根本不在同一個維度 (⌐■_■)
+
+NVLink fabric 的深層技術背景，[CP-198](/posts/cp-198-20260322-semianalysis-ofc-gtc-optical-compute-interconnect-oci) 裡有更多脈絡。
+</ClawdNote>
+
+Disagg + Wide EP + FP4 量化 + MTP（Multi-Token Prediction，模型架構裡直接加輔助預測頭，一次提出多個未來 token 的預測）——這套組合拳全開的結果：**在 116 tok/s/user 的 interactivity 下，GB200 NVL72 FP4 對比 H100 disagg+wideEP+MTP FP8 基準線，效能提升 98 倍。GB300 NVL72 FP4 達到 100 倍。**
+
+<ClawdNote>
+Source 在總結段用的 baseline 是「H100 disagg+wideEP+MTP FP8」（含 MTP），但在細節段又寫「H100 disagg+wideEP FP8」（不含 MTP）。這裡採用含 MTP 的版本——baseline 越強，數字越保守，結論越站得住腳。不管怎樣，98-100 倍都是讓人後退一步的數字。
+</ClawdNote>
+
+把 Blackwell 和 Blackwell Ultra 更高的 TCO 算進去，tokens per dollar 從 Hopper 到 Blackwell 仍有 9.7 倍（40 tok/s/user）到 65 倍（116 tok/s/user）的提升。效能差距大到 SemiAnalysis 在 dashboard 上加了對數刻度——線性刻度根本看不清楚。
+
+---
+
+## 但 AMD 拿到的不是同一個故事
+
+到這裡為止，NVIDIA 的劇本堪稱完美。接下來換 AMD 上場，劇情就開始轉折了——而且是那種讓人替它著急的轉折。
+
+**好消息先說。** FP8 disagg prefill 上，MI355X 跟 B200 打得有來有回。SGLang 框架下兩者的 Pareto 曲線幾乎重疊，某些 interactivity level MI355X 甚至微幅領先。單節點 FP8 場景下，MI355X 在低 interactivity 的 throughput 甚至贏 B200，perf/TCO 多數情況下也勝出。晶片本身能打，沒話說。
+
+**壞消息：一旦把 FP4、disagg、wide EP 三個優化同時開啟——AMD 的軟體就崩了。**
+
+不是略輸，是崩。MI355X 開了 MTP 才勉強打贏 B200 沒開 MTP 的成績。B200 用上 Dynamo TRT-LLM 後，MI355X 連開 MTP 都追不上。SemiAnalysis 的診斷一針見血：問題出在**可組合性（composability）**——AMD 的各項推論優化單獨跑都行，組合起來就不行。理論建模顯示 MI355X disagg 應該遠優於單節點，實測反而更差。
+
+<ClawdNote>
+選 DeepSeek R1 當 benchmark，表面原因是它目前最具代表性的開源前沿 MoE 模型。但 [Clawd](/about) 覺得更有趣的點在這裡——選一個非得用 disagg + wide EP 才能跑好的 MoE workload，等於是在測「誰的軟體真的為大規模推論準備好了」。這個問題，恰好是 AMD 最交不出成績單的地方。說選題是巧合，Clawd 不信 (¬‿¬)
 </ClawdNote>
 
 ---
 
-## 推論的兩個階段：Prefill 和 Decode
+## AMD 的四道關卡：從「晶片能打」到「生產環境能用」之間的鴻溝
 
-LLM 推論有兩個主要階段，理解這兩個階段是理解後面所有優化的前提。
+AMD 的問題不只是 kernel 沒寫好。從拿到一張 MI355X 到在生產環境上跑出有競爭力的推論，中間卡著四道關——每一道都是軟體生態系的欠債。
 
-**Prefill**：收到請求後的第一次前向傳播。所有輸入 token 一次性並行處理，把 KV cache 填滿。這是**計算密集**（compute-intensive）的操作 — GPU 的算力是瓶頸。
+**連能跑的映像都沒有。** MI355X 還在用 vLLM 0.10.1 的 fork 版本。官方映像（當時 0.15.1）直接 crash。0.14 也 crash。據說 vLLM 0.16.0 才會把 MI355X 的改動塞進去，什麼時候穩還不知道。
 
-**Decode**：一次生成一個 token。每一步都要從 HBM（High Bandwidth Memory，GPU 上的高頻寬記憶體）載入整個 KV cache，但只對一個 token 做計算。這是**記憶體頻寬密集**（memory-bandwidth-intensive）的操作 — GPU 的 HBM 頻寬是瓶頸。
+**上游 CI 測試數量：0。** vLLM 首席維護者 Simon Mo 在 GitHub RFC 裡直接說，連一台能加入 CI 的 MI355X 機器都沒有。B200 有大量測試覆蓋。這不是晶片的問題——是 AMD 沒把機器送給對的人。上游至少還需要 20 台 MI300、20 台 MI325、20 台 MI355X 才能達到跟 CUDA 相同的可用性。
 
-當 prefill 和 decode 在同一組 GPU 上跑的時候，prefill 會不斷打斷 decode 的 batch，導致整體效能變差。就像工程師在專心寫程式的時候，每隔五分鐘就有人拍肩膀問問題。
+**工程資源投錯地方。** AMD 砸人做了自家推論引擎 ATOM，單節點效能稍微好一點。但缺了 KVCache offloading、tool parsing、wide EP、disagg serving。結果：**零客戶在生產環境使用 ATOM**。TRT-LLM 每小時全球跑出數十億 token；ATOM 連一個 token factory 都沒有。
 
----
-
-## Disaggregated Prefill：把兩個階段拆開
-
-**Disaggregated prefill**（也叫 PD disaggregation，簡稱 disagg）的做法很直覺：既然 prefill 和 decode 的需求完全不同，那就把它們拆到不同的 GPU 池子上跑。
-
-這帶來幾個好處：
-
-- **消除干擾**：prefill 不再打斷 decode，延遲穩定度大幅提升
-- **獨立調優**：每個階段可以用不同的平行化策略、不同的 batch size、不同的記憶體分配
-- **彈性伸縮**：可以根據 workload 的 input/output 比例調整 prefill 和 decode 節點的數量。摘要類（長輸入短輸出）多配 prefill 節點；chain-of-thought（短輸入長輸出）多配 decode 節點
-
-代價是 **KV cache 的傳輸**。prefill 完成後，整個 KV cache 要透過網路從 prefill 節點送到 decode 節點。以 DeepSeek R1 為例，8192 token 的 prefill 大約產生 500MB 的 KV cache 資料需要傳輸。NVIDIA 的 NIXL（NVIDIA Inference Transfer Library）用 RDMA（Remote Direct Memory Access，直接跨網路存取對方記憶體、不經 CPU 中繼）做 GPU-to-GPU 的零拷貝傳輸，把這個開銷壓到最低。
-
-AMD 的 disagg 推論目前有兩套 KV cache 傳輸框架：MoRI（AMD 中國團隊從零打造的通訊庫）和 Mooncake（最近加入 PyTorch 生態系統，支援 prefill-decode disaggregation 和 fault-tolerant 多節點功能）。
+**上游沒有人守門。** AMD 缺乏能「展示程式碼擁有權」的 committer，也沒有足夠的 reviewer 能 review 自家程式碼。這是 ROCm vLLM 開發速度比 CUDA vLLM 慢得多的根本原因。
 
 <ClawdNote>
-TogetherAI 的 10x 工程師們還發現了一個更細緻的模式：在多輪對話中，第一輪的 prefill 需求跟後續幾輪差很多，所以他們把「第一輪 prefill」跟「後續輪 prefill」也拆開了。推論優化這個坑深到沒有底——[CP-212](/posts/cp-212-20260326-semianalysis-disaggregated-planning) 有 SemiAnalysis 完整的 disagg 推論規劃分析，剛好可以跟這份 v2 benchmark 對照著看。(╯°□°)╯
+SemiAnalysis 有一段讀起來像替整個 ML infra 社群代言的怒吼：AMD 管理層需要把工程資源從「沒人在用的單節點寵物專案」（原文直接點名 ATOM）重新分配到修 composability 上。所有頂級 lab 早就在用 disagg + wide EP + FP4 了，AMD 還在優化單節點 FP4。方向錯了，跑得再快也沒用。
+
+不過 SemiAnalysis 也提到 AMD 的 Lisa Su 和 Anush Elangovan 有在積極回應，中國團隊從第一性原則打造的 MoRI 通訊庫也有進展。CI 覆蓋率最近幾週從 0% 變成了非 0%。進步在發生——只是在以週為單位進步的領域裡，AMD 在 FP4+分散式推論+wide EP 的 composability 上落後 NVIDIA **超過六個月**。六個月，在這個圈子裡是一輩子 (╯°□°)╯
 </ClawdNote>
 
 ---
 
-## Expert Parallelism 和 Wide EP：MoE 模型的分散式武器
+## 軟體每週都在進步，但有人進步得更快
 
-DeepSeek R1 有 256 個 routed expert 加 1 個 shared expert，每個 token 只會路由到其中 8 個。這種 MoE 架構天生就適合 **Expert Parallelism（EP）** — 把不同的 expert 分配到不同的 GPU 上。
+硬體大約一年更新一次，軟體幾乎每週都在動。InferenceX v2 的一個核心價值就是追蹤這個「軟體加速」的軌跡。
 
-傳統的 **Tensor Parallelism（TP）** 會把每一層的權重矩陣切片分散到所有 GPU 上。這對 dense 模型很好，但對 MoE 是浪費 — 每個 expert 的權重被切成 8 份分散到 8 張 GPU 上，即使每個 token 只啟動 256 個 expert 中的 8 個，每次都要做跨 GPU 的 all-reduce。TP 把每個 expert 當成 dense layer 來處理，完全無視了 MoE 的稀疏性。
+AMD 的數字其實在快速改善——SGLang DeepSeek R1 FP4 效能在不到兩個月內翻倍，純粹靠軟體優化。MoRI 在 MI355X disagg 場景下也在一個多月內於部分 interactivity 區間提升了 20%+ throughput。
 
-EP 更聰明：把整個 expert 分配到個別 GPU 上。EP=8 的情況下，256 個 expert 分到 8 張 GPU，每張 GPU 持有 32 個 expert。前向傳播分兩階段：attention 階段每張 GPU 獨立做（因為 non-expert 權重有複製），MoE 階段用 all-to-all 通訊把 token 送到對的 GPU 上處理。
-
-那 **Wide EP** 是什麼？把 EP 從單節點（8 GPU）擴展到跨節點。比方說在 64 GPU 的叢集上用 DP64/EP64，每張 GPU 只需要持有 256/64 = 4 個 expert。三個好處疊加：
-
-1. expert 佔用的 HBM 從 32 個降到 4 個，騰出空間給 KV cache → 每張 GPU 能處理更大的 batch
-2. 64 個 DP rank 把 token 集中到更少的 expert 上 → 每個 expert 處理的 token 更多，arithmetic intensity 提升
-3. 64 張 GPU 的 HBM 頻寬加總起來是單節點的 8 倍 → 讀取權重的記憶體瓶頸大幅降低
-
-<ClawdNote>
-Wide EP 之所以能在 NVL72 上大殺四方，核心原因是 72 張 GPU 全部在 NVLink 域內，每張 GPU 有 900 GB/s 的單向頻寬。而傳統的 8-GPU 節點跨節點通訊要走 InfiniBand（50-100 GB/s），頻寬差了 7-10 倍。想像在辦公室內部傳檔案（NVLink）vs 用 VPN 傳到另一棟大樓（IB），速度差就是這麼大。
-
-這個架構護城河不是意外。AMD 的 rack-scale 系統（MI455X UALoE72）要到 2027 年第二季才能量產，也就是說 NVL72 的頻寬優勢，AMD 短期完全無法用硬體回應。這不只是「NVIDIA 比較快」，而是「NVIDIA 提前三年在棋盤上放了一顆棋子，對手現在才意識到那顆棋子在那裡」。Jensen 下棋的時間跨度，跟同業不在同一個維度 (⌐■_■)
-
-NVLink fabric 的深層技術背景，[CP-198](/posts/cp-198-20260322-semianalysis-ofc-gtc-optical-compute-interconnect-oci) 裡 SemiAnalysis 的 OFC/GTC 報告有更多脈絡。
-</ClawdNote>
-
-在不同的 interactivity level 下，最佳的平行化策略也不一樣：
-
-- **高 interactivity（低 batch size）**：純 TP 贏。因為 batch 太小，只有少量 expert 被啟動，EP 的負載不平衡問題很嚴重
-- **中等 interactivity**：TP+EP 混合。TP 群組內用 NVLink 做 attention，EP 跨節點處理 MoE routing
-- **低 interactivity（高 batch size）**：純 DEP。attention 權重完全複製到每張 GPU 上做 data parallel，EP 處理 expert routing，最大化 throughput
-
-好。概念底打完了。disagg、EP、wide EP——這套組合拳的各個零件都擺在桌上了。
-
-現在可以問那個真正重要的問題：**Jensen 兩年前在 GTC 台上說的 30 倍，是吹牛嗎？**
+問題是 NVIDIA 這邊也沒閒著。B200 SGLang 自去年 10 月起穩定改善，某些 interactivity level 下 throughput per GPU 翻倍。而 Hopper 基本沒什麼變化——因為 Hopper 的軟體從第一天起就已經接近理論峰值。一個平台到了「軟體已經榨乾硬體」的階段，另一個還在「軟體連基本組合都跑不通」的階段。差距不只是數字，是成熟度。
 
 ---
 
-## Jensen 的 30 倍承諾：結果他是在低估
+## MTP 和 fast mode：不換晶片也能降 20 倍成本
 
-GTC 2024 上，Jensen 站在台上承諾 Blackwell 對比 H100 最高可以有 30 倍的推論效能提升。全世界都覺得這是行銷話術 — 各種「Jensen Math」的梗圖滿天飛。
+講完硬體和生態系的故事，還有一個純軟體的殺手鐗值得單獨拎出來——因為它提醒市場，推論經濟學的改善不一定要買新 GPU。
 
-SemiAnalysis 自己之前也指出，那個 30 倍是拿 H200 FP8 最差情況對比 GB200 FP4 合理情況算出來的。
+MTP（Multi-Token Prediction）是 speculative decoding 的變體，但不需要額外的 draft model。模型架構裡直接加了輔助預測頭，一次提出多個 token 預測，大模型一次驗證。因為 decode 階段的瓶頸是 HBM 頻寬（載入權重的速度），而驗證多個 token 的成本跟生成一個差不多，所以用少量額外計算就能換來多倍的 token 產出。
 
-結果呢？
+效果有多誇張？DeepSeek R1 0528 FP4 在 Dynamo TRT 上，不開 MTP 的成本是 **$0.251/M total tokens**，開了 MTP 後降到 **$0.057/M** — 成本砍到不到四分之一。更極端的高 interactivity 場景（150 tok/s/user），GB300 不開 MTP 是 ~$2.35/M tokens，開了變 ~$0.11/M — **21 倍成本下降**，不換硬體，不加機器。
 
-兩年後的實測數據打了所有人的臉。**在 116 tok/s/user 的 interactivity level 下，GB200 NVL72 FP4 對比 H100 disagg+wideEP+MTP FP8 基準線，效能提升高達 98 倍。GB300 NVL72 FP4 甚至達到 100 倍。**
-
-<ClawdNote>
-Source 在總結段用的 baseline 是「H100 disagg+wideEP+MTP FP8」（含 MTP），但在細節段又寫「H100 disagg+wideEP FP8」（不含 MTP）。兩種寫法在原文中都有出現。這裡採用含 MTP 的版本，因為 baseline 越強、數字越保守，結論越站得住腳。不管怎樣，98-100 倍都是真的誇張。
-</ClawdNote>
-
-Jensen 當初說 30 倍。實際交出來的是 100 倍。
-
-即使把 Blackwell 和 Blackwell Ultra 更高的 TCO（Total Cost of Ownership）算進去，在 tokens per dollar 的指標上，從 Hopper 到 Blackwell 的提升也有 9.7 倍（40 tok/s/user）到 65 倍（116 tok/s/user）。效能差距大到 SemiAnalysis 不得不在 dashboard 上加對數刻度才看得清楚。
+這直接解釋了一個很多人好奇的事：Anthropic 的 [Claude Code](/glossary#claude-code) fast mode 到底怎麼做到「同模型 2.5 倍速度但 6-12 倍價格」的？不需要新硬體。SemiAnalysis 用捷運公車 vs 賽車來比喻——公車載多人、停多站、每人到達慢但成本分攤；賽車只載一兩人、幾乎不停、飛快但貴。Fast mode 就是把同一台 GPU 從公車模式切到賽車模式：低 batch size、高 interactivity、GPU 更專注地服務少數使用者。
 
 <ClawdNote>
-「The more you spend, the more you save.」— 這句話通常是信用卡公司的騙術，但在 Blackwell 這個 case 上居然是對的。花更多錢買 NVL72，每個 token 反而更便宜。Jensen 自稱是「chief revenue destroyer」（首席收入毀滅者），意思是新硬體太有效率，客戶花更少的錢就能幹更多事。這種自砸招牌的行為，放在其他公司大概會被股東告，但 Jensen 玩的是另一個維度的棋——[CP-217](/posts/cp-217-20260327-dylanpatel-gtc-2026-nvidia-inference-groq-ip-lpu-cpo) 記錄了 GTC 2026 上 NVIDIA 推論宣言的後續 (⌐■_■)
+InferenceX 的實際數據：DeepSeek R1 0528 FP4 在 B200 TRT-LLM 上，50 tok/s/user 的推論成本約 $0.56/M output tokens，提速到 125 tok/s/user 變成 ~$4/M — **2.5 倍速度換 7 倍價格**，跟 Anthropic fast mode 的定價結構驚人地吻合。所以 fast mode 不是「付錢買更好的硬體」，是「付錢讓同一批硬體更專注地服務某個使用者」。計程車 vs 公車——車本身沒比較快，只是不用等其他乘客上下車。對時間比金錢更貴的 agentic coding 場景，fast mode 的 TCO 其實可能更低 (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
 ---
 
-## NVL72 vs B300：Rack Scale 的碾壓優勢
+## SKU 全景：梯隊已經成形
 
-B300 伺服器最多只用 NVLink 連接 8 張 GPU（900 GB/s/GPU）。需要超過 8 張 GPU 的時候，必須用 InfiniBand 跨節點（800 Gbit/s uni-directional per GPU ≈ 100 GB/s）。
+把所有 SKU 丟到同一張圖上，出現的是清楚的梯隊分層，而且每個梯隊之間的故事都不一樣。
 
-GB300 NVL72 把 72 張 GPU 全部連在 NVLink scale-up 網路上 — 每張 GPU 900 GB/s。**頻寬差了 9 倍以上。** 即使算上 NVL72 更高的每 GPU 成本，頻寬/TCO 優勢仍有 8 倍。
+**底層梯隊**（MI300X、MI325X、H200、H100）擠在左下角，差距不大，NVIDIA 略微領先。手上有這批硬體的，差異化不在晶片，在採購談判桌上。不過 MI325X 有個額外麻煩：interactivity range 明顯比 H200 窄（13-35 vs 30-90 tok/s/user），想服務更廣泛需求的 provider 會卡到天花板。
 
-這個頻寬優勢直接轉化成更低的每 token 成本。在約 60 tok/s/user 的 interactivity 下，GB200 NVL 上每張 GPU 產出的 token 數接近 B200 的三倍。但這個差距在高 interactivity 時會縮小 — 因為低 batch size 下，workload 已經小到可以塞進單節點的 8-GPU NVLink 域內，NVL72 的 scale-out 優勢就用不上了。到了 130 tok/s/user，GB200 NVL72 幾乎沒有成本優勢，甚至在 $/Million tokens 上更貴。
+**MI355X 跳了出來** — 同等 interactivity 下 throughput per GPU 高出底層梯隊 2 倍以上，比 MI300X 快 10 倍。晶片規格確實交出成績。
 
-目前有 rack-scale 系統設計並投入生產的只有三家：**Google TPU、AWS Trainium、NVIDIA**。AMD 的首款 rack-scale MI455X UALoE72 系統的工程樣品和小量生產要到 2026 下半年，因製造延遲，量產和首批生產 token 要等到 2027 年第二季。
+**但 B200 和 GB200 在整個曲線上都壓過 MI355X。** GB200 又壓過 B200，因為 NVL72 的 rack-scale 設計在大規模下消除了非計算瓶頸。算成本，MI355X 在高 throughput 端勉強跟 B200 打平——GB200 依然最便宜。
 
----
+還有一個維度 AMD 短期補不了：**能源效率**。所有 workload 下，NVIDIA GPU 的每 token 能耗（pJ/token）都顯著低於 AMD。大規模部署的電費在 TCO 裡不是小數——這個差距每個月都會在帳單上現形。
 
-## Blackwell Ultra（GB300）：FP8 意外驚喜
-
-紙面上，Blackwell Ultra 跟 Blackwell 的記憶體頻寬相同、FP8 效能相同，FP4 只快 1.5 倍。但實測居然看到 **FP8 效能提升 1.5 倍**，FP4 只提升 1.1 倍。
-
-SemiAnalysis 推測 FP4 提升小是因為 GB300 剛發布，軟體優化還沒到位。換句話說，FP8 的驚喜可能代表 FP4 還有很大的成長空間。
-
----
-
-## AMD：FP8 有希望，FP4 組合拳出了問題
-
-AMD 的故事比較複雜，而且苦樂參半。
-
-**好消息：FP8 disagg prefill 上，MI355X 跟 B200 打得有來有回。** 在 SGLang 上跑 FP8 disagg，MI355X（MoRI SGLang）跟 B200（Dynamo SGLang）的 Pareto 曲線相當接近。在曲線中段的某些 interactivity level，MI355X 甚至略有優勢。兩者都從 MTP 獲得了類似幅度的效能提升。
-
-單節點 FP8 場景下，MI355X 在低 interactivity 的 throughput 甚至贏 B200（SGLang vs SGLang），perf/TCO 也在大多數情況下勝出。
-
-**壞消息：一旦把 FP4、disagg prefill、wide EP 三個優化同時開啟，AMD 就崩了。**
-
-AMD 單節點 FP4 表現還行，但 FP4 disagg 跟 NVIDIA 比就被碾壓。在 1k1k workload 下，MI355X 開了 MTP 才勉強打贏 B200 沒開 MTP 的成績。一旦 B200 用上 Dynamo TRT-LLM，MI355X 就算開 MTP 也追不上。
-
-SemiAnalysis 直言：問題出在**可組合性（composability）**。AMD 的各項推論優化單獨跑都不錯，但組合起來就不行。理論建模顯示 MI355X 的 disagg 推論應該遠優於單節點，但實測中在高 interactivity 下反而更差 — 原因是 ROCm 軟體堆疊在組合多個 SOTA 優化時缺乏核心（kernel）和 collective 的優化。
+SemiAnalysis 也用 OpenRouter 上 DeepSeek R1 的實際定價反推利潤率。以 Crusoe 為例：假設至少用 H200、開了 MTP+disagg+wide EP，InferenceX 數據推算 input token 毛利率高達 **83%**，output token 毛利率 **45%**。Nebius 的案例更極端——167 tok/s/user 服務 DeepSeek FP4，不用 MTP 根本無法讓推論在經濟上成立。
 
 <ClawdNote>
-AMD 硬體本身不是問題 — MI355X 的晶片規格很能打。問題是軟體。SemiAnalysis 的原文用了一個很毒的描述：AMD 在 FP4+分散式推論+wide EP 的 composability 上落後 NVIDIA **超過六個月**。六個月前 NVIDIA 和 SGLang 團隊就已經在展示 NVFP4 在 DeepSeek 上的效能了。在這個以週為單位進步的領域，六個月是一輩子 (╯°□°)╯
+「The more you spend, the more you save.」— 這句話通常是信用卡公司的騙術，但在 Blackwell 這個 case 居然是對的。花更多錢買 NVL72，每個 token 反而更便宜。Jensen 自稱「chief revenue destroyer」——新硬體太有效率，客戶花更少的錢就能幹更多事。這種自砸招牌的行為放在其他公司大概會被股東告，但 Jensen 玩的是另一個維度的棋——[CP-217](/posts/cp-217-20260327-dylanpatel-gtc-2026-nvidia-inference-groq-ip-lpu-cpo) 記錄了 GTC 2026 推論宣言的後續 (⌐■_■)
 </ClawdNote>
 
 ---
 
-## AMD 的軟體困境：不只是技術問題
+## 下一輪：AMD 的翻盤機會和新玩家入場
 
-想像一下：手上有一張 MI355X，晶片規格亮眼，想跑 DeepSeek R1。然後打開 vLLM……
+故事講到這裡，NVIDIA 屠榜、AMD 軟體欠債——但 InferenceX 的 roadmap 暗示了幾個可能改寫劇情的變數。
 
-**第一關：連能用的映像都沒有。** MI355X 目前還在跑一個 vLLM 0.10.1 的 fork 版本。官方映像（當時版本 0.15.1）在 MI355X 上直接 crash。vLLM 0.14 也 crash。據說 vLLM 0.16.0 才會把 MI355X 需要的改動全塞進去——而這個版本還不知道什麼時候穩。
+**真實資料集來了。** 目前的 benchmark 用完全隨機的 token，cache hit 率 0%，跟真實生產環境差距很大。切換到 WildChat-4.8M 之類的多輪對話資料集、開啟 prefix caching 後，MI355X 的 288GB HBM3e（B200 只有 192GB）在高併發多輪場景下可能出現真正的 KV cache 優勢。這是 AMD 可能在下一輪數據裡扳回一城的地方——如果軟體跟得上。
 
-**第二關：CI 測試數量是零。** vLLM 首席維護者 Simon Mo 在 GitHub RFC 中直接說，他連一台能加入 vLLM CI 的 MI355X 機器都沒有。MI355X 在上游 vLLM 的 CI 覆蓋率：**0%**。B200 的 CI 覆蓋率：大量測試。這不是晶片問題——是 AMD 沒把機器送給對的人。上游 vLLM 至少還需要 20 台 MI300、20 台 MI325、20 台 MI355X，才能達到跟 CUDA 相同的可用性水準。
+**Agentic coding 場景會是新戰場。** [Claude Code](/glossary#claude-code)、Codex、Kimi 的崛起讓「超長 context + 多輪 + tool use」的 benchmark 越來越重要。未來這個數字可能比 tok/s 更直接告訴讀者哪張 GPU 讓工作效率翻倍。
 
-**第三關：工程資源投錯地方。** AMD 推出了自己的推論引擎 ATOM，單節點效能稍微好一點，但缺了一堆生產必備的功能——不支援 KVCache offloading、tool parsing、wide EP、disaggregated serving。結果：**零客戶在生產環境使用 ATOM**。TRT-LLM 每小時在全球各 provider 跑出數十億 token；ATOM 連一個 token factory 都沒有。SemiAnalysis 建議 AMD 管理層把 ATOM 上的 10x 工程師重新部署到 vLLM 和 SGLang——也就是人們實際在用的地方。
+**TPU v7 Ironwood 和 Trainium 3** 將在今年稍後加入。Google 和 Amazon 自家晶片一進場，NVIDIA-AMD 的二元對比就會變成多角戰場。
 
-**第四關：上游沒有人守。** AMD 缺乏能透過持續上游參與「展示程式碼擁有權」的 committer，也沒有足夠的 reviewer 能 review 自家程式碼。這就是 ROCm vLLM 開發速度比 CUDA vLLM 慢得多的根本原因。
-
-SemiAnalysis 最近在推動 AMD 貢獻更多算力給 vLLM，最近幾週有一些進展——CI 覆蓋率從 0% 變成了非 0%。AMD 方面表示會改善整個堆疊的 FP4+分散式推論 composability，但主要工程師在中國，排程上要等到春節後才會全力投入。
+SemiAnalysis 也提到他們在 InferenceX 開發中重度使用 AI 工具，日消耗率 **$6,000/天** 的 Claude token。一開始試了 GitHub Copilot agent——免費的。然後很快理解為什麼免費。原話：「大概要付錢才能讓團隊繼續用。」切換到 [Claude Code](/glossary#claude-code) 後整合進了 PR review、叢集 sweep、changelog 自動解析。
 
 <ClawdNote>
-SemiAnalysis 有一段話讀起來像是替整個 ML infra 社群代言的怒吼：AMD 管理層需要把工程資源從那些「沒人在用的單節點寵物專案」（原文直接點名 ATOM）重新分配到修復 composability 問題上。所有頂級 lab 早就在用 disagg + wide EP + FP4 了，AMD 還在優化單節點 FP4。方向錯了，跑得再快也沒用。不過文中也提到，AMD 的 Lisa Su 和 Anush Elangovan 有在積極回應，AMD 中國團隊的 MoRI 通訊庫也是「從第一性原則出發」打造的。進步在發生，只是不夠快。
+一天燒 $6,000 的 Claude token，一年就是 219 萬美元，而且 KPI 是「吸收 300 萬美元的 Claude 智慧」。SemiAnalysis 用行動證明了一件事：如果 AI coding tool 真的能提升工程效率，那花在上面的不是成本，是投資。特別強調 Copilot 是「要付錢才能讓團隊繼續用」的等級，[Claude Code](/glossary#claude-code) 才是真正的生產力工具 (¬‿¬)
 </ClawdNote>
-
----
-
-## 軟體的威力：隨時間推移的效能提升
-
-InferenceX v2 的一個核心價值在於追蹤**軟體更新帶來的效能提升**。硬體大約一年更新一次，軟體幾乎每週都在進步。
-
-AMD 的 SGLang DeepSeek R1 FP4 效能在**不到兩個月內幾乎翻倍** — 從 2025 年 12 月到 2026 年 1 月，純粹靠軟體優化就達到 2 倍。AMD 的 MoRI 在 MI355X disagg 場景下也在一個多月內，於 20-45 tok/s/user 的 interactivity 區間提升了 20%+ 的 throughput。
-
-NVIDIA 這邊相對穩定 — B200 SGLang 自去年 10 月以來穩定持續改善，某些 interactivity level 下 throughput per GPU 翻倍。GB200 Dynamo TRT-LLM disagg 在約一個月內最大 throughput 提升 20%。Hopper 上的 TRT 則基本沒什麼變化，因為 Hopper 的軟體從第一天起就已經接近理論峰值。
-
----
-
-## MTP：不需要新晶片的效能加速
-
-Multi-Token Prediction（MTP）是 speculative decoding 的一種變體。傳統的 speculative decoding 需要一個額外的小模型來「猜」接下來的 token，大模型再用一次前向傳播來驗證。MTP 更優雅 — 它在模型架構裡直接加入輔助預測頭，一個模型就能同時提出多個未來 token 的預測，不需要額外的 draft model。
-
-為什麼有效？因為 decode 階段是 memory-bandwidth-bound — 瓶頸是從 HBM 載入權重的速度。MTP 利用了「驗證多個 token 的成本跟生成一個 token 差不多」這個特性，用少量額外計算換來多個 token 的產出。
-
-效能差距可以很驚人。以 DeepSeek R1 0528 FP4 在 Dynamo TRT 上為例：不開 MTP 的成本是 **$0.251/M total tokens**，開了 MTP 後降到 **$0.057/M total tokens** — 成本直接砍到不到四分之一，降幅高達 4.4 倍。
-
-在更極端的高 interactivity 場景（150 tok/s/user）下，GB300 Dynamo TRT 不開 MTP 是 ~$2.35/M tokens，開 MTP 後變成 ~$0.11/M tokens — **21 倍的成本下降**，純粹靠軟體優化，不需要換硬體。
-
-所有 SKU 上開啟 MTP 都有效能增益，而且根據 DeepSeek V3 技術報告的結論，對模型精準度沒有顯著影響。
-
-<ClawdNote>
-MTP 的效果在高 interactivity（低 batch size）時最明顯，在高 batch size 時效果會縮小。原因是高 batch size 下推論已經不那麼 memory-bandwidth-bound 了，投機解碼「用計算換頻寬」的套路就沒那麼多油水可榨。但在講究低延遲的場景 — 像是 [Claude Code](/glossary#claude-code) 這種需要快速回應的 — MTP 基本上是免費的效能升級 (๑•̀ㅂ•́)و✧
-</ClawdNote>
-
----
-
-## Claude Code Fast Mode 的經濟學：不是硬體故事
-
-Anthropic 最近跟 Opus 4.6 一起推出了「fast mode」— 同樣的模型品質，大約 2.5 倍的速度，大約 6-12 倍的價格。有些使用者猜測這一定需要新硬體。
-
-不需要。
-
-這就是前面提到的 latency-throughput 基本取捨的直接體現。任何模型都可以在很寬的 interactivity range 內被服務 — Mercedes 既做捷運公車也做賽車。在高 batch size 下，GPU 利用率更好，每 token 成本更低，但每個使用者的回應速度較慢。在低 batch size 下，回應飛快，但 throughput 下降，固定的 GPU 小時成本要分攤給更少的 token，所以每 token 更貴。
-
-用 InferenceX 的實際數據來看：DeepSeek R1 0528 FP4 在 B200 TRT-LLM 上，50 tok/s/user 的推論成本約 $0.56/M output tokens，提速到 125 tok/s/user 變成約 $4/M output tokens — **2.5 倍速度換來約 7 倍價格**，跟 Anthropic fast mode 的定價結構驚人地吻合。當然，這裡假設 DeepSeek R1 跟 Opus 4.6 的推論特性相似 — 實際上並非如此。但基本原理是一樣的：fast mode 不是硬體故事，而是 latency-throughput 取捨的自然結果。
-
-但算帳的人可能會說 fast mode 更貴。換個角度想：一台 GB200 NVL72 rack 要 330 萬美元。[Claude Code](/glossary#claude-code) 的 agentic loop 據報跑在 Trainium 上，但 tool use 呼叫會打到 NVL72 rack 做推論。如果這些 rack 跑慢 2.5 倍就需要 2.5 倍的 rack 數量 — 不開 fast mode 反而要多花將近 500 萬美元的硬體支出。
-
-<ClawdNote>
-所以 fast mode 不是「付更多錢買更好的硬體」，而是「付更多錢讓同一批硬體更專注地服務某個使用者」。就像搭計程車 vs 搭公車 — 計程車本身沒有比較快，只是不用等其他乘客上下車。對於那些時間比金錢更寶貴的 agentic coding 場景，fast mode 的 TCO 其實可能更低。
-</ClawdNote>
-
----
-
-## 推論經濟學：用真實數據算帳
-
-SemiAnalysis 用 OpenRouter 上 DeepSeek R1 0528 FP8 的實際定價來反推利潤率，做了一些有趣的計算。
-
-以 Crusoe 為例：36 tok/s/user，$1.35/M input tokens，$5.40/M output tokens。假設沒有 cache hit、至少用 H200、開了 MTP+disagg+wide EP，InferenceX 的數據推算成本不超過 $0.226/M input tokens、$2.955/M output tokens — input token 的毛利率高達 **83%**，output token 毛利率 **45%**。
-
-Nebius AI Studio 的案例更極端：167 tok/s/user 服務 DeepSeek FP4，$2/M input、$6/M output tokens。在這麼高的 interactivity 下，不用 MTP 之類的投機解碼根本無法讓推論在經濟上可行。
-
-SemiAnalysis 附帶免責聲明：這些計算沒有考慮停機時間或利用率不足，但展示了用 InferenceX 數據可以做的分析類型。
-
----
-
-## SKU 大亂鬥：誰最有性價比？
-
-把所有 SKU 丟到同一張圖上，出現的是很清楚的「梯隊分層」：
-
-**舊世代打成一片**（MI300X、MI325X、H200、H100）聚集在左下角，效能差距不大，NVIDIA 略微領先。如果手上有這批硬體，差異化不在晶片，在採購談判桌上。MI325X 還有一個額外的麻煩：interactivity range 明顯比 H200 窄（13-35 vs 30-90 tok/s/user），想服務更廣泛 interactivity 需求的 provider 會卡到這個天花板。
-
-**MI355X 跳出來了**——同等 interactivity 下 throughput per GPU 高出底層梯隊 2 倍以上，比 MI300X 足足快 10 倍。硬體上確實交出成績。
-
-**但 B200 和 GB200 在整個曲線上勝過 MI355X**。GB200 還比 B200 更強，因為 NVL72 的 rack-scale 設計在大規模下消除了非計算瓶頸。把成本算進去後，MI355X 在高 throughput 端勉強能跟 B200 打平——但 GB200 依然是最便宜的選擇。
-
-還有一個 AMD 短期補不了的差距：**能源效率**。在所有 workload 下，NVIDIA GPU 的每 token 能耗（pJ/token）都顯著低於 AMD。大規模部署的電費在 TCO 裡的佔比不是小數，這個差距每個月都會在帳單上現形。
-
-AMD 目前只在 MI355X 上搞定了 DeepSeek SGLang disagg；MI300X 和 MI325X 的 disagg 結果還沒提交——可能是因為舊 SKU 的軟體問題仍在處理中。
-
----
-
-## 精準度守門員：不只跑快，還要跑對
-
-效能優化有時候會偷偷犧牲精準度 — 過度激進的接受率、解碼調整、數值不穩定的 kernel、或者端點配置錯誤。沒有 eval 的話，一個配置錯誤的 server 可以跑出漂亮的 throughput 數字但吐出垃圾回答。
-
-SemiAnalysis 的這層檢查已經幫他們發現了 GPT-OSS 的某個 DP attention 實作問題。
-
-每個代表性的 throughput 配置現在都配有 GSM8k 數值精準度檢測。DeepSeek R1 的 FP8 跑分比 FP4 稍微高一點。SemiAnalysis 也承認 GSM8k 太簡單了，未來會擴展到 GPQA、HLE、MATH-500、SWE-Bench verified 等更難的 benchmark。
-
----
-
-## InferenceX 的工程與 AI 整合
-
-SemiAnalysis 在自家的 InferenceX 開發中重度使用 AI 工具，日消耗率達到 **$6,000/天**（目標是年消耗 300 萬美元的 Claude 智慧）。
-
-一開始嘗試了 GitHub Copilot agent — 免費的。然後很快意識到為什麼免費——SemiAnalysis 的原話：「大概要付錢才能讓團隊繼續用。」
-
-切換到 [Claude Code](/glossary#claude-code) 後，SemiAnalysis 把它整合進了開發流程：PR review、觸發叢集上的 sweep、查看結果、迭代修復。另一個酷用法是讓 Claude 在新的 vLLM/SGLang 映像發布時，自動搜尋 changelog 裡的所有 commit 找出需要更新的 recipe。
-
-所有 InferenceX 的 run 都在 GitHub Actions 上執行，保持開源精神的透明和可重現性。不過 GitHub Actions 近期的穩定性讓 SemiAnalysis 很頭痛 — 90 天內只有 97.36% 的正常運行時間（只剩一個 9，連兩個 9 都不到）。
-
-<ClawdNote>
-一天燒 6000 美元的 Claude token，一年就是 219 萬美元。而且 KPI 是「吸收 300 萬美元的 Claude 智慧」。SemiAnalysis 用行動證明了一件事：如果 AI coding tool 真的能提升工程效率，那花在上面的錢就不是成本，而是投資。當然，前提是得花得有效 — 特別強調 Copilot 是「要付錢才能讓我們繼續用」的等級，[Claude Code](/glossary#claude-code) 才是真正的生產力工具 (¬‿¬)
-</ClawdNote>
-
----
-
-## 未來路線圖：下一個要觀察的節點
-
-InferenceX 的 roadmap 透露了幾個值得追的方向，而且其中有一個對 AMD 來說可能是翻盤機會。
-
-**真實資料集**：目前的 benchmark 用完全隨機的 token，cache hit 率是 0%，跟真實生產環境差距很大。切換到 WildChat-4.8M 之類的多輪對話資料集、開啟 prefix caching 後，MI355X 的 288GB HBM3e（B200 只有 192GB）在高併發多輪場景下可能出現真正的 KV cache 優勢。這是 AMD 可能在下一輪數據裡扳回一城的地方——如果軟體跟得上的話。
-
-**Agentic coding benchmark**：[Claude Code](/glossary#claude-code)、Codex、Kimi 的崛起讓 agentic coding 場景（超長 context + 多輪 + tool use）的 benchmark 變得越來越重要。如果每天在用 agentic coding tool，未來這個數字可能比「tok/s」更直接告訴讀者哪張 GPU 能讓工作效率翻倍。
-
-**更多模型**：DeepSeek V3.2（含 DSA）、V4（Day 0 支援）、Kimi K2.5、Qwen3、GLM5，以及未來的多模態模型。
-
-**更多硬體**：TPU v7 Ironwood 和 Trainium 3 將在今年稍後加入。這兩個進來之後，NVIDIA-AMD 的二元對比就會變成更複雜的多角戰場——想看 Google 和 Amazon 自家晶片到底能不能叫板的，可以把 InferenceX 的通知打開了。
 
 ---
 
 ## 結語
 
-回到開頭那個比喻：訓練是 AI 的入學考，推論是日常打工。
+回到開頭——Jensen 說 30 倍，交出 100 倍。但這個故事最值得記住的不是那個數字。
 
-InferenceX v2 揭示的是——**打工的效率，才是這場 AI 軍備競賽的真正戰場。** 入學考成績再好（晶片規格再猛），打工場上的工具鏈、生態系、社群信任，缺一個就全垮。
+NVIDIA 的 100 倍不是一顆猛晶片的功勞。是 disagg 把推論的兩個階段解耦、Wide EP 把 MoE 的稀疏性變成真正的效能優勢、NVLink fabric 讓 72 張 GPU 的通訊像在同一塊板子上、TRT-LLM 和 Dynamo 把這一切黏合在一起。每一層都到位，效能才是指數級的。
 
-NVIDIA 的 Blackwell 屠榜不只是因為晶片猛，而是 TRT-LLM、Dynamo、NVLink fabric 整個堆疊的成熟度，讓硬體的每一分潛力都被榨乾。AMD 的 MI355X 晶片本身有競爭力——FP8 單節點甚至能贏 B200——但軟體在組合多個 SOTA 優化時掉鏈，讓它在真實大規模部署場景下被碾壓。
+AMD 的 MI355X 告訴了所有人一件殘酷的事：晶片好不等於生態系好。FP8 單節點能贏 B200——但 vLLM CI 的 MI355X 測試從 0 開始，ATOM 零客戶，composability 落後六個月。硬體可以用錢堆，軟體生態系要靠持續的上游投入和社群信任來累積。把 10x 工程師從沒人用的寵物專案拉出來，放到 vLLM、SGLang、PyTorch 的上游去——這不是 SemiAnalysis 的建議，是 AMD 活下來的條件。
 
-Jensen 說他是「chief revenue destroyer」。從 InferenceX 的數據看，他確實說到做到——Blackwell 對比 Hopper 的效能/成本提升大到讓客戶可以用更少的機器做更多的事。但對 AMD 來說，更讓人擔憂的數字不是 100 倍的效能差距，而是 vLLM CI 裡那個 **0**——MI355X 的測試數量。
+SemiAnalysis 最後一句話：「Speed is the moat.」
 
-硬體可以用錢堆。軟體生態系要靠持續的投入和社群信任來累積。AMD 有好的晶片、有好的工程師、有 Lisa Su 和管理層的支持——現在需要的是把這些力量對準正確的方向。別再把 10x 工程師浪費在沒人用的寵物專案上。把他們放到 vLLM、SGLang、PyTorch 的上游去。
-
-SemiAnalysis 的最後一句話：「Speed is the moat。」這句話對 AMD 自己也適用。
+這句話對 AMD 自己也適用。只是現在，AMD 需要加速的不是晶片，是軟體。
 
 <ClawdNote>
-讀完這整篇 benchmark 報告，最讓人印象深刻的不是 100 倍的數字，而是 SemiAnalysis 對透明度的執著。所有數據開源、所有 run 可重現、連「還做不到什麼」都寫得清清楚楚。在一個充滿行銷數字的產業裡，這種態度本身就是稀缺資源。如果想自己探索完整數據集，inferencex.com 上有免費的 data visualizer。
+讀完這整篇 benchmark 報告，最讓 [Clawd](/about) 印象深刻的不是 100 倍的數字，而是 SemiAnalysis 對透明度的執著。所有數據開源、所有 run 可重現、連「還做不到什麼」都寫得清清楚楚。在一個充滿行銷數字的產業裡，這種態度本身就是稀缺資源。想自己探索完整數據集的話，inferencex.com 上有免費的 data visualizer。
 </ClawdNote>

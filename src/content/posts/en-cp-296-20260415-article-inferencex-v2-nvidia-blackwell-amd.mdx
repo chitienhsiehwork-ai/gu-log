@@ -1,0 +1,206 @@
+---
+ticketId: "CP-296"
+title: "InferenceX v2: NVIDIA Blackwell's Benchmark Massacre and AMD's Software Debt"
+originalDate: "2026-04-13"
+translatedDate: "2026-04-15"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Gemini CLI + Codex CLI + Claude Code"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "SemiAnalysis Newsletter"
+sourceUrl: "https://newsletter.semianalysis.com/p/inferencex-v2-nvidia-blackwell-vs"
+lang: "en"
+summary: "SemiAnalysis benchmarked ~1,000 GPUs across NVIDIA and AMD lineups. GB300 NVL72 hits 100x over H100 — Jensen's 30x was an underestimate. AMD FP8 competes, but FP4+disagg+wideEP combo falls apart in software."
+tags: ["clawd-picks", "inference", "nvidia", "amd", "benchmark", "deepseek", "gpu"]
+pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (vibe-opus-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Ralph Loop"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+GTC 2024. Jensen stood on stage and promised the world: Blackwell would deliver up to 30x inference performance over H100.
+
+The audience laughed. "Jensen Math" memes went viral that same day. SemiAnalysis pointedly noted the 30x was calculated using H200 FP8 worst case versus GB200 FP4 best case.
+
+Two years later, SemiAnalysis ran InferenceX v2 across nearly 1,000 cutting-edge GPUs. The result —
+
+**100x.**
+
+Jensen wasn't exaggerating. Jensen was underselling.
+
+<ClawdNote>
+InferenceX is Apache 2.0 open source. Every test runs on GitHub Actions — verifiable and reproducible. In an industry overflowing with "our benchmark shows we're the best" reports, that level of transparency is genuinely rare ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## How do you get 100x? By taking the inference engine apart and rebuilding every piece
+
+That 100x didn't come from just plugging in a faster chip. What NVIDIA did over the past two years was more like disassembling the entire inference engine, redesigning each component, and putting it back together.
+
+Inference has two stages with completely opposite personalities. **Prefill** is the first computation after receiving a query — all input tokens processed in parallel, like scanning an entire exam before writing answers. This stage is compute-bound. **Decode** generates tokens one at a time — each step loads the entire KV cache from HBM (high-bandwidth memory on the GPU) but only computes on a single token. This stage is memory-bandwidth-bound.
+
+When both stages share the same GPUs, prefill constantly interrupts decode's rhythm. Like an engineer trying to focus on code while someone taps their shoulder every five minutes with a question — both tasks suffer.
+
+NVIDIA's first move: **split these two stages onto separate GPU pools** (disaggregated prefill, or "disagg"). Prefill machines do prefill, decode machines do decode, no interference. The cost is transferring the KV cache across the network after prefill — NVIDIA's NIXL uses RDMA (remote direct memory access, GPU-to-GPU without CPU involvement) for zero-copy transfers, making the overhead nearly invisible.
+
+<ClawdNote>
+TogetherAI's engineers discovered that in multi-turn conversations, the first turn's prefill needs are very different from subsequent turns — so they split even prefill into two tiers. The inference optimization rabbit hole has no bottom. [CP-212](/posts/cp-212-20260326-semianalysis-disaggregated-planning) has SemiAnalysis's full disagg planning analysis if you want to scare yourself.
+</ClawdNote>
+
+NVIDIA's second move hits even harder. DeepSeek R1 is a 671B parameter MoE (Mixture of Experts) model — 256 experts but each token only activates 8. The traditional approach (Tensor Parallelism) slices every layer's weight matrix across all GPUs — regardless of whether a token needs that expert, you pay for cross-GPU all-reduce every time. That's like a post office photocopying every letter 8 times and sending copies to 8 branches, even though each letter has only one recipient.
+
+**Expert Parallelism (EP)** is smarter: assign whole experts to individual GPUs, and route tokens to wherever their expert lives. **Wide EP** extends this from a single 8-GPU node to 64 GPUs across nodes. Each GPU holds only 4 experts instead of 32 — the freed memory goes to bigger batches, and aggregate bandwidth multiplies 8x.
+
+The catch: cross-node communication must be fast enough.
+
+<ClawdNote>
+NVL72 keeps all 72 GPUs within the NVLink domain — 900 GB/s unidirectional bandwidth per GPU. Traditional 8-GPU nodes going cross-node via InfiniBand get ~100 GB/s. A 9x bandwidth gap. Think transferring files within your office (NVLink) versus VPN to the building across the street (IB).
+
+This moat wasn't accidental. AMD's rack-scale system (MI455X UALoE72) won't hit volume production until Q2 2027. NVIDIA placed a chess piece on the board three years ago — opponents are only now realizing it's there. Jensen plays chess on a different time horizon than the rest of the industry.
+
+More on NVLink fabric in [CP-198](/posts/cp-198-20260322-semianalysis-ofc-gtc-optical-compute-interconnect-oci).
+</ClawdNote>
+
+Disagg + Wide EP + FP4 quantization + MTP (Multi-Token Prediction — auxiliary prediction heads built into the model architecture, proposing multiple future tokens at once) — with the full combo enabled: **at 116 tok/s/user interactivity, GB200 NVL72 FP4 delivers 98x performance over H100 disagg+wideEP+MTP FP8 baseline. GB300 NVL72 FP4 hits 100x.**
+
+<ClawdNote>
+The source uses "H100 disagg+wideEP+MTP FP8" (with MTP) in the summary but "H100 disagg+wideEP FP8" (without MTP) in the details. Both appear in the original. [Clawd](/about) is going with the MTP-included version here — the stronger the baseline, the more conservative the number, the more the conclusion stands. Either way, 98-100x makes you take a step back.
+</ClawdNote>
+
+Even factoring in Blackwell and Blackwell Ultra's higher TCO, tokens-per-dollar improves 9.7x (at 40 tok/s/user) to 65x (at 116 tok/s/user) from Hopper to Blackwell. The gap is so large SemiAnalysis had to switch their dashboard to logarithmic scale — linear scale couldn't show the difference.
+
+---
+
+## AMD got a very different story
+
+Up to this point, NVIDIA's script reads like a victory lap. Now it's AMD's turn, and the plot takes a turn — the kind that makes you root for them while wincing.
+
+**The good news first.** In FP8 disagg prefill, MI355X goes toe-to-toe with B200. Under SGLang, their Pareto curves nearly overlap, and MI355X even edges ahead at certain interactivity levels. In single-node FP8, MI355X actually beats B200 on low-interactivity throughput, winning on perf/TCO in most scenarios. The silicon delivers. No question.
+
+**The bad news: when FP4, disagg, and wide EP are enabled simultaneously — AMD's software falls apart.**
+
+Not "slightly behind." Falls apart. MI355X with MTP barely beats B200 without MTP. Once B200 uses Dynamo TRT-LLM, MI355X can't catch up even with MTP on. SemiAnalysis's diagnosis cuts to the bone: the problem is **composability** — AMD's inference optimizations work individually but break when combined. Theoretical modeling shows MI355X disagg should far exceed single-node performance. In practice, it's actually worse at high interactivity.
+
+<ClawdNote>
+Why pick DeepSeek R1 as the benchmark? The surface answer: it's the most representative open-source frontier MoE model right now. But the more interesting angle — choosing a workload that demands disagg + wide EP to run well is essentially testing "whose software is actually ready for large-scale inference." That question happens to be AMD's weakest subject. Coincidence in topic selection? [Clawd](/about) doesn't buy it (¬‿¬)
+</ClawdNote>
+
+---
+
+## AMD's four gates: the chasm between "good chip" and "production-ready"
+
+AMD's problem goes deeper than unoptimized kernels. Between holding an MI355X and running competitive inference in production, there are four gates — each one a software ecosystem debt.
+
+**No working container image.** MI355X is still running a fork of vLLM 0.10.1. The official image (then at 0.15.1) crashes outright. vLLM 0.14 also crashes. Reportedly vLLM 0.16.0 will include the MI355X changes — whenever that stabilizes.
+
+**Upstream CI test count: zero.** vLLM's lead maintainer Simon Mo stated in a GitHub RFC that he doesn't have a single MI355X machine for CI. B200 has extensive test coverage. This isn't a chip problem — AMD didn't send machines to the right people. The upstream needs at least 20 MI300, 20 MI325, and 20 MI355X units to match CUDA-level availability.
+
+**Engineering resources aimed at the wrong target.** AMD built ATOM, their own inference engine. Slightly better single-node performance — but missing KVCache offloading, tool parsing, wide EP, and disagg serving. Result: **zero production customers using ATOM.** TRT-LLM processes billions of tokens per hour globally; ATOM hasn't powered a single token factory.
+
+**No one guarding upstream.** AMD lacks committers who can "demonstrate code ownership" through sustained upstream participation, and doesn't have enough reviewers for their own code. That's the root cause of ROCm vLLM developing much slower than CUDA vLLM.
+
+<ClawdNote>
+SemiAnalysis had a paragraph that reads like an angry letter on behalf of the entire ML infra community: AMD management needs to redeploy engineers from "single-node pet projects nobody uses" (they name ATOM directly) to fixing composability. Every top lab already runs disagg + wide EP + FP4. AMD is still optimizing single-node FP4. Wrong direction — running faster doesn't help.
+
+But SemiAnalysis also notes that Lisa Su and Anush Elangovan are actively responding, and AMD's China team built the MoRI communication library from first principles. CI coverage recently went from 0% to non-zero. Progress is happening — it's just that in a field advancing by the week, AMD's FP4+distributed inference+wide EP composability lags NVIDIA by **over six months**. Six months here is a lifetime.
+</ClawdNote>
+
+---
+
+## Software improves every week — but some improve faster
+
+Hardware updates roughly once a year. Software moves nearly every week. One of InferenceX v2's core contributions is tracking this "software acceleration" trajectory.
+
+AMD's numbers are actually improving fast — SGLang DeepSeek R1 FP4 performance nearly doubled in under two months, purely through software optimization. MoRI on MI355X disagg also gained 20%+ throughput in about a month for certain interactivity ranges.
+
+The problem is NVIDIA hasn't been sitting still either. B200 SGLang has steadily improved since last October, with throughput per GPU doubling at some interactivity levels. Meanwhile Hopper barely changed — because Hopper's software was already near theoretical peak from day one. One platform is at "software has squeezed every drop from hardware." The other is at "software can't even run the basic combo." The gap isn't just numbers — it's maturity.
+
+---
+
+## MTP and fast mode: 20x cost reduction without buying new chips
+
+Beyond the hardware and ecosystem story, there's a pure software weapon worth spotlighting — because it shows that inference economics can improve dramatically without purchasing new GPUs.
+
+MTP (Multi-Token Prediction) is a speculative decoding variant that doesn't need a separate draft model. Auxiliary prediction heads are built right into the model architecture, proposing multiple token predictions at once for the main model to verify in a single pass. Since decode is bandwidth-bound (the bottleneck is loading weights from HBM) and verifying multiple tokens costs about the same as generating one, a small amount of extra compute yields multiple tokens.
+
+How dramatic is the effect? DeepSeek R1 0528 FP4 on Dynamo TRT: without MTP, cost is **$0.251/M total tokens**. With MTP: **$0.057/M** — less than a quarter. At extreme high interactivity (150 tok/s/user), GB300 without MTP: ~$2.35/M tokens. With MTP: ~$0.11/M — **21x cost reduction**, no hardware changes, no additional machines.
+
+This directly explains something many people have been curious about: how does Anthropic's [Claude Code](/glossary#claude-code) fast mode deliver "same model, 2.5x speed, 6-12x price"? No new hardware needed. SemiAnalysis uses a bus-versus-race-car analogy — a bus carries many passengers, stops frequently, each passenger arrives slowly but cost is shared. A race car carries one or two passengers, barely stops, lightning fast, but expensive per rider. Fast mode switches the same GPU from bus mode to race car mode: low batch size, high interactivity, the GPU dedicates more attention to fewer users.
+
+<ClawdNote>
+The actual InferenceX data: DeepSeek R1 0528 FP4 on B200 TRT-LLM, inference cost at 50 tok/s/user is ~$0.56/M output tokens. Speed up to 125 tok/s/user and it becomes ~$4/M — **2.5x speed for 7x price**, which lines up strikingly with Anthropic's fast mode pricing. So fast mode isn't "paying for better hardware" — it's "paying for the same hardware to focus more on you." Taxi versus bus. The taxi isn't actually faster — it just doesn't wait for other passengers to board. For agentic coding scenarios where time costs more than money, fast mode's TCO might actually be lower.
+</ClawdNote>
+
+---
+
+## SKU showdown: the tiers have formed
+
+Plot every SKU on the same chart and clear tiers emerge — each with its own story.
+
+**The old guard** (MI300X, MI325X, H200, H100) clusters in the lower left. Performance differences are small, NVIDIA slightly ahead. If you have this hardware, differentiation is at the procurement negotiation table, not in the chips. One caveat: MI325X's interactivity range is noticeably narrower than H200 (13-35 vs 30-90 tok/s/user) — providers needing to serve a broader range will hit a ceiling.
+
+**MI355X breaks away** — 2x+ throughput per GPU over the bottom tier at equivalent interactivity, 10x faster than MI300X. The silicon genuinely delivers.
+
+**But B200 and GB200 beat MI355X across the entire curve.** GB200 beats B200 too, because NVL72's rack-scale design eliminates non-compute bottlenecks at scale. Factor in cost, and MI355X barely ties B200 at the high-throughput end — GB200 remains cheapest.
+
+One more dimension AMD can't close short-term: **energy efficiency**. Across all workloads, NVIDIA GPUs consume significantly less energy per token (pJ/token). At large-scale deployments, electricity isn't a rounding error in TCO — this gap shows up on the power bill every month.
+
+SemiAnalysis also used actual OpenRouter pricing for DeepSeek R1 to reverse-engineer margins. Using Crusoe as an example: assuming at least H200, with MTP+disagg+wide EP, InferenceX data estimates input token gross margins of **83%** and output token margins of **45%**. Nebius's case is more extreme — serving DeepSeek FP4 at 167 tok/s/user, inference simply wouldn't be economically viable without speculative decoding like MTP.
+
+<ClawdNote>
+"The more you spend, the more you save." Usually that's credit card company marketing. With Blackwell, it's actually true. Spending more on NVL72 makes each token cheaper. Jensen calls himself "chief revenue destroyer" — new hardware is so efficient that customers spend less to do more. At any other company, shareholders would sue. But Jensen plays chess on a different board — [CP-217](/posts/cp-217-20260327-dylanpatel-gtc-2026-nvidia-inference-groq-ip-lpu-cpo) covers the GTC 2026 inference manifesto follow-up.
+</ClawdNote>
+
+---
+
+## Next round: AMD's comeback chance and new players entering
+
+Up to here, the story is NVIDIA dominance and AMD software debt. But InferenceX's roadmap hints at variables that could rewrite the script.
+
+**Real datasets are coming.** Current benchmarks use fully random tokens with 0% cache hit rate — far from production reality. Switching to multi-turn conversation datasets like WildChat-4.8M with prefix caching enabled, MI355X's 288GB HBM3e (versus B200's 192GB) could reveal a genuine KV cache advantage in high-concurrency multi-turn scenarios. This is where AMD might claw back ground in the next data release — if the software keeps up.
+
+**Agentic coding will be the new battleground.** The rise of [Claude Code](/glossary#claude-code), Codex, and Kimi makes benchmarks for "ultra-long context + multi-turn + tool use" increasingly important. This metric may soon matter more than raw tok/s for telling readers which GPU actually doubles their productivity.
+
+**TPU v7 Ironwood and Trainium 3** join later this year. Once Google and Amazon's custom silicon enters the picture, the NVIDIA-AMD binary becomes a multi-player arena.
+
+SemiAnalysis also mentioned heavy AI tool usage in InferenceX development — **$6,000/day** in Claude tokens, with a goal of "absorbing $3M of Claude intelligence" per year. They started with GitHub Copilot agent — free. Then quickly understood why it's free. Their words: "We'd probably have to pay people to keep using it." After switching to [Claude Code](/glossary#claude-code), they integrated it into PR reviews, cluster sweeps, and automatic changelog parsing.
+
+<ClawdNote>
+$6,000/day in Claude tokens — that's $2.19M per year, with a KPI of "absorbing $3M of Claude intelligence." SemiAnalysis is proving something with action: if AI coding tools genuinely boost engineering productivity, the spend isn't cost — it's investment. Special emphasis on Copilot being the "we'd have to pay people to keep using it" tier, while [Claude Code](/glossary#claude-code) is the actual productivity tool.
+</ClawdNote>
+
+---
+
+## Conclusion
+
+Back to the opening — Jensen promised 30x and delivered 100x. But the number isn't the most important thing to remember from this story.
+
+NVIDIA's 100x isn't one chip's achievement. It's disagg decoupling inference's two stages, Wide EP turning MoE sparsity into a real performance advantage, NVLink fabric making 72 GPUs communicate as if they're on the same board, and TRT-LLM plus Dynamo gluing everything together. Every layer has to be in place for performance to go exponential.
+
+AMD's MI355X taught everyone something brutal: good silicon doesn't equal good ecosystem. FP8 single-node can beat B200 — but vLLM CI had zero MI355X tests, ATOM has zero customers, and composability lags six months behind. Hardware can be bought with money. Software ecosystems require sustained upstream investment and community trust. Pull the 10x engineers out of pet projects nobody uses. Put them in vLLM, SGLang, and PyTorch upstream — that's not SemiAnalysis's suggestion, it's AMD's survival condition.
+
+SemiAnalysis's final line: "Speed is the moat."
+
+That applies to AMD too. Only right now, what AMD needs to accelerate isn't the chip — it's the software.
+
+<ClawdNote>
+After reading this entire benchmark report, what impressed [Clawd](/about) most wasn't the 100x number — it was SemiAnalysis's commitment to transparency. All data is open source. All runs are reproducible. They even spell out what they can't do yet. In an industry drowning in marketing numbers, that attitude is a scarce resource. If you want to explore the full dataset yourself, inferencex.com has a free data visualizer.
+</ClawdNote>

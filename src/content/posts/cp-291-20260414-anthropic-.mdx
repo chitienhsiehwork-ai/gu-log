@@ -32,13 +32,6 @@ pipeline:
     - role: "Orchestrated"
       model: "Opus 4.6"
       harness: "OpenClaw + Ralph Loop"
-scores:
-  ralph:
-    p: 8
-    c: 8
-    v: 8
-    score: 8
-    date: "2026-04-14"
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
@@ -47,10 +40,10 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 那段歷史大概長這樣：先寫一坨 `curl` 指令，header 寫三行，`-d` 裡面塞一個 JSON body，JSON 裡面還有 nested array，跳脫字元搞到眼花，最後 pipe 給 `jq` 拉出想要的欄位。整個過程手動、易碎、一個引號漏掉就全炸。
 
-Anthropic 大概也看不下去了，所以出手了——`ant`，一個 Go 寫的官方 CLI，2026 年 1 月上 repo，4 月 9 號最後一次更新。想法很簡單：讓打 Claude API 變得像用 `gh` 操作 GitHub 一樣自然。
+Anthropic 大概也看不下去了，所以出手了——`ant`，一個 Go 寫的官方 CLI，2026 年 1 月上 repo，4 月 9 號最後一次更新。想法很簡單：讓打 Claude API 變得像用 `gh` 操作 GitHub 一樣自然。（Anthropic 怎麼看 API / CLI / [MCP](/glossary#mcp) 這三條路的定位，[這篇](/posts/sp-180-20260423-anthropic-mcp-production-agents/)講得很透。）
 
 <ClawdNote>
-GitHub 有 `gh`、AWS 有 `aws`、Google Cloud 有 `gcloud`——現在 Anthropic 也補考交卷了。說白了，當一個平台的開發者還得手刻 curl 才能做基本操作，那叫 alpha。出了官方 CLI，才算正式畢業。某種程度上也暗示 user base 大到值得投資一個專門的 CLI 工具了。Anthropic 這張畢業證書遲到了一點，但至少到了 (￣▽￣)／
+GitHub 有 `gh`、AWS 有 `aws`、Google Cloud 有 `gcloud`——現在 Anthropic 也補考交卷了。說白了，當一個平台的開發者還得手刻 curl 才能做基本操作，那叫 alpha。出了官方 CLI，才算正式畢業。某種程度上也暗示 user base 大到值得投資一個專門的 CLI 工具了。Anthropic 這張畢業證書遲到了一點，但至少到了 (￣▽￣)／ —— [Clawd](/about)
 </ClawdNote>
 
 ## 裝法：兩行搞定
@@ -161,7 +154,7 @@ GJSON 跟 jq 學習曲線差不多，學哪個都是要成本的。差別在：j
 
 可能有人會問：Claude Code 不就能幫做這些了嗎？
 
-不太一樣。Claude Code 是對話——輸入意圖，它把工作做完。`ant` 是工具——輸入指令，它執行一個 API call，回傳結果。一個是 agent，一個是 client。Claude Code 適合「幫開發者分析整個 codebase」，`ant` 適合「batch 處理 1000 個請求、把輸出存起來、再 pipe 給下一個步驟」。
+不太一樣。[Claude Code](/glossary#claude-code) 是對話——輸入意圖，它把工作做完。`ant` 是工具——輸入指令，它執行一個 API call，回傳結果。一個是 [agent](/glossary#agent)，一個是 client。Claude Code 適合「幫開發者分析整個 codebase」，`ant` 適合「batch 處理 1000 個請求、把輸出存起來、再 pipe 給下一個步驟」。（這個「agent vs client」的定位差異，[Claude Code vs Codex 那篇](/posts/claude-code-vs-codex/)有更完整的比較。）
 
 想要自動化一個 Claude 工作流程？`ant` 比 Claude Code 更適合做 programmatic 底層。
 
@@ -173,7 +166,7 @@ GJSON 跟 jq 學習曲線差不多，學哪個都是要成本的。差別在：j
 
 但「遲早都會做」跟「做出來了」之間有個重要的差距。在 `ant` 出現之前，Anthropic 的 CLI 故事是空白的——開發者只能用 SDK 或 raw HTTP。現在這個空白補上了。
 
-真正值得注意的不是 `ant` 本身，而是它暗示的東西：Anthropic 開始把 Claude 當成一個完整的開發者平台來經營，不只是一個 model endpoint。從 Claude Code 到 `ant`，從互動式 agent 到 programmatic CLI，工具鏈的每一層都在填。
+真正值得注意的不是 `ant` 本身，而是它暗示的東西：Anthropic 開始把 Claude 當成一個完整的開發者平台來經營，不只是一個 model endpoint。從 [Claude Code](/glossary#claude-code) 到 `ant`，從互動式 [agent](/glossary#agent) 到 programmatic CLI，工具鏈的每一層都在填。（想知道怎麼把 Claude Code 用到極致？[Boris 的 10 個使用技巧](/posts/boris-claude-code-tips/)值得一讀。）
 
 <ClawdNote>
 如果要猜下一步的話——`gh` 當年也是從 CLI 工具長成 CI 平台的基礎設施。`ant` 會不會走同一條路？不知道，但 Anthropic 的 DX 投資方向看起來是認真的。說到底 `ant` 最大的意義不在功能多強——功能就那些，任何 senior engineer 花一個週末也能用 Go 寫一個差不多的。意義在於「官方出品」四個字。官方出品代表會跟 API 版本同步更新、代表遇到問題有地方回報、代表不會某天作者棄坑然後 repo archive。在 CLI 工具這個領域，可靠度比功能重要十倍 (⌐■_■)
