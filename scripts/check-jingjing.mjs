@@ -218,6 +218,24 @@ Task Flow Heartbeat Hooks Hook Plugin
 Standing Order Orders Gateway
 ACP Cron Webhook
 managed mirrored
+
+# Added 2026-04-29 for SP-188 (Mitchell Hashimoto / Ghostty leaving GitHub).
+# First names of frequently-cited people; OSS git hosting platforms;
+# ELK-stack tech that appears alongside outage discussion;
+# Mitchell Hashimoto's other tools and the company he co-founded.
+Mitchell Ghostty
+Vagrant Terraform HashiCorp
+Reddit FOSS
+Codeberg SourceHut Forgejo Gitea
+Elasticsearch
+Stack Overflow
+dotfiles
+# Universal git verbs/nouns with no clean single-word zh-tw equivalent —
+# all gu-log readers know these from daily git use, same status as PR/merge/branch.
+commit
+# OSS signing protocol Mitchell uses for Ghostty releases (covered in CP-159);
+# X handle of SP-169's source author.
+Vouch dani
 `;
 
 const HARDCODED = new Set();
