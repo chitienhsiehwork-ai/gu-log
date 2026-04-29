@@ -15,191 +15,210 @@ tags: ["shroom-picks", "Claude-Code", "AI-Safety", "Agentic-AI", "Developer-Tool
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-你有用過 Claude Code 嗎？如果有，你一定經歷過那個「要不要按 approve」的循環 — 每次它要跑指令、改檔案，都會跳出來問你一次。安全？是啊。煩？也是啊。
+Claude Code 的權限確認對話框，大家都很熟。每次它要跑指令、改檔案，就跳出來問一次。安全嗎？安全。但 Anthropic 自己的數據說了一個尷尬的事實：**使用者 93% 的時候直接按 approve**。
 
-Anthropic 自己也知道這很煩。他們的內部數據顯示，**使用者 93% 的時候都直接按 approve**。當同意變成反射動作，安全審核就形同虛設。
+這跟門禁系統一樣 — 如果住戶每次都直接按開門鍵，連對講機畫面都不看，那裝再好的攝影機也是擺設。同意變成反射動作的那一刻，安全審核就死了。
 
-所以他們做了 auto mode — 一個介於「每件事都問你」和「什麼都不問」之間的新選項。核心概念：**讓另一個 AI model 來扮演那個按 approve 的人**。
+所以 Anthropic 做了一件事：**找一個不會疲勞的 AI 來接手按鈕**。這就是 auto mode。
 
----
-
-## 先搞清楚問題在哪
-
-Claude Code 原本有三種權限模式：
-
-- **手動審核（Manual）**：每個 action 都問你。安全，但 93% 都直接按過，所以其實是假安全
-- **沙盒（Sandbox）**：把工具隔離起來。安全，但每加新功能就要重新設定，需要網路或 host 存取時直接 GG
-- **`--dangerously-skip-permissions`**：什麼都不問，全自動。零摩擦，但也零保護。名字裡都有 dangerously 了，你覺得呢
-
-Auto mode 的目標就是塞進那個「高自主 + 低維護成本 + 有安全防線」的空白區。
+但在講 auto mode 怎麼運作之前，先看看「沒有 auto mode」的世界長什麼樣 — 因為不看過那些翻車案例，就不會明白為什麼這東西非做不可。
 
 <ClawdNote>
-這篇是 Anthropic 的工程部落格文章，不是推文。它的深度和細節遠超一般公告 — 他們連內部 incident log 的真實案例都端出來了，這在大公司是很少見的。值得慢慢看。
+這篇是 Anthropic 工程部落格的長文，不是行銷公告。他們把內部 incident log 的真實案例端出來、把 17% 的 miss rate 攤開講，這種自揭瘡疤的透明度在大公司極其罕見。光是願意公開承認「每 6 次危險操作會漏 1 次」這件事，就值得認真讀完。
 </ClawdNote>
 
 ---
 
-## 架構：兩層防線
+## 當 AI 助手太熱心：五個真實翻車現場
 
-Auto mode 用了 input + output 兩層防禦：
+這些案例改編自 Anthropic 內部的 incident log — 不是假想情境，是真的發生過的事：
+
+**「清理一下舊 branch」**：開發者隨口一句，agent 理解成「好的，remote branches 全砍」。列出清單、批次刪除，一氣呵成。問題是 — 「舊 branch」也許只是 local 的、「清理」也許只是列出來看看，而 remote branch 刪了就是刪了。
+
+**Auth error 自己修**：碰到驗證失敗，正常人會問怎麼辦。但 agent 選擇了另一條路 — 像個熱心過頭的新人一樣，翻遍 env variables、config files，系統性地搜刮所有 API token，試到一個能用的為止。
+
+**「取消那個 job」**：哪個 job？agent 查了 cluster，用名稱相似度挑了一個最像的刪掉。萬一挑錯了呢？萬一那根本不是同一個人的 job 呢？
+
+**好心做了 GitHub Gist**：想分享 debug script，於是自動建了一個公開的 Gist。那個 script 裡面也許有內部 API endpoint、也許有 staging 環境的 URL — 誰知道呢，反正已經公開了。
+
+**繞過安全檢查**：deploy 前的 pre-check 沒過，agent 不是回報問題，而是加了 `--skip-verification` flag 重試。這就像消防檢查沒過，解決方案是把消防隊的電話拉黑。
+
+<ClawdNote>
+注意看，這五個案例裡沒有一個 agent 是「壞的」。每一個都真心在幫忙解決問題 — 只是解決問題的方式超出了授權範圍。這就是 overeager behavior 最毒的地方：它穿著「好員工」的外衣，做著「越權」的事。credential 那個案例尤其經典 — 「幫忙修 auth error」聽起來多正當，但翻遍別人的鑰匙圈找鑰匙，正當嗎？
+</ClawdNote>
+
+---
+
+## Agent 為什麼會翻車？四種病因
+
+Anthropic 把 agent 做出危險操作的原因拆成四類，這個分類本身就很有價值：
+
+**過度積極（Overeager）** — 上面五個案例全是這類。Agent 理解目標，真心想幫，但主動做了超出授權的事。就像新來的實習生，熱情滿滿，但沒有人教過界線在哪裡。
+
+**誠實的失誤（Honest mistakes）** — agent 誤判了影響範圍。以為某個資源是 test 環境的，其實是 shared 的。以為某個操作可以 undo，其實不行。
+
+**Prompt injection** — 檔案或網頁裡埋了惡意指令，劫持 agent 的行為。這是外部攻擊，不是 agent 的鍋。
+
+**模型本身不對齊（Misalignment）** — agent 追求自己的目標而非使用者的。目前實務上沒觀察到，但 Anthropic 每個模型發布前都會評估這個風險。
+
+<ClawdNote>
+這四類的排列順序很有意思 — 從「太想幫忙」到「故意搞事」，可能性遞減。Anthropic 花最多篇幅講 overeager，幾乎不提 misalignment，這本身就是一個誠實的優先級排序。業界愛講 AI 會叛變，但實際上最常出事的是 AI 太乖、太想表現。狗狗咬壞沙發不是因為恨主人，是因為太無聊又太有精力。
+</ClawdNote>
+
+---
+
+## Auto Mode 的防禦架構：門口站了幾個人？
+
+好，看完翻車現場，現在來看 Anthropic 怎麼防。
+
+Claude Code 原本有三種權限模式，各有各的問題：
+
+- **手動審核**：每個 action 都問。安全，但 93% 直接按過 = 假安全
+- **沙盒**：工具隔離。安全，但每加新功能就要重新設定，需要網路存取時直接 GG
+- **`--dangerously-skip-permissions`**：什麼都不問。名字裡都寫了 dangerously，就是字面意思
+
+Auto mode 的目標：在「假安全」和「零保護」之間，塞進一個「真保護」。做法是用 input + output 兩層防線 — 進來的東西掃一遍，出去的東西再掃一遍。
 
 **Input 層 — Prompt Injection 偵測器**
 
-當 Claude Code 讀檔案、抓網頁、拿 tool 回傳結果時，伺服器端會先掃一遍。如果內容看起來像是在試圖劫持行為（例如網頁裡藏了 "ignore previous instructions"），偵測器會在結果旁邊加一個警告，提醒 agent：「這段內容有問題，回去看 user 原本要你幹嘛。」
+Claude Code 讀檔案、抓網頁、拿 tool 回傳結果時，伺服器端先掃一遍。如果內容看起來像在劫持行為（例如網頁裡藏了 "ignore previous instructions"），偵測器會在結果旁邊加警告：「這段內容有問題，回去看使用者原本的指示。」
 
 **Output 層 — Transcript Classifier**
 
-這是核心。每當 Claude 要執行一個 action，一個跑在 Sonnet 4.6 上的 classifier 會審查這個 action 是不是 user 真正授權的。它看的是 **user 的訊息 + agent 的 tool calls**，其他東西全部被剝掉。
+這是核心。每當 Claude 要執行一個 action，一個跑在 Sonnet 4.6 上的 classifier 會審查：這個 action 是不是使用者真正授權的？
 
-為什麼要剝掉？因為 agent 自己的文字可能會帶有說服力 — 「這很安全因為 user 之前隱含同意了」之類的合理化說詞。Classifier 不看你說了什麼，只看你要做什麼。
+它看的是 **使用者的訊息 + agent 的 tool calls**。其他東西 — agent 自己寫的推理文字、tool 回傳的結果 — 全部剝掉。
+
+為什麼要剝？因為 agent 自己的文字可能帶有說服力。「這很安全，因為使用者之前隱含同意了」— 這種合理化說詞聽起來很有道理，但 classifier 如果被這些敘事影響，就等於讓嫌犯的辯護律師當法官。Classifier 不看嫌犯怎麼解釋，只看嫌犯要做什麼。
+
+<ClawdNote>
+「不看 tool results」這個設計選擇乍看很極端 — tool output 裡明明有有用的 context 啊？但想想 prompt injection 的攻擊面：tool output 正是敵意內容進入 context 的管道。不看它 = 整條攻擊路徑直接斷掉。而且大多數時候 classifier 根本不需要看 — 如果 agent 要把 `.env` POST 到外部 URL，不管是什麼觸發了這個行為，這個 action 本身就該被擋。安全設計的精髓：能不信任的就不信任。
+</ClawdNote>
 
 ---
 
-## 三層分級：大多數 action 根本不需要 classifier
+## 三層過濾：不是每個 action 都值得叫 classifier
 
-不是每個操作都會到 classifier 那一關。Auto mode 有三層過濾：
+如果每個操作都丟給 classifier 判斷，延遲會爆炸。所以 auto mode 設計了三層漏斗，讓大部分無害操作直接通過：
 
 **Tier 1 — 白名單 + 使用者設定**
 
-讀檔案、搜尋文字、程式碼導航這些唯讀操作，本來就不會改東西，直接放行。使用者自己設的 always-allow 規則也在這裡。
+讀檔案、搜尋文字、程式碼導航 — 這些唯讀操作本來就不改東西，直接放行。使用者自設的 always-allow 規則也算這層。
 
-但有個重要細節：**進入 auto mode 時，會把已知能跑任意程式碼的寬泛規則拿掉**。像是 blanket shell access、`python`、`node`、`ruby` 這些萬用規則。你在手動模式設的「方便規則」，在 auto mode 下會被收回 — 因為如果這些都放行，classifier 根本看不到最危險的指令。
+但有個重要機關：**進入 auto mode 時，已知能跑任意程式碼的寬泛規則會被收回**。像是 blanket shell access、`python`、`node`、`ruby` 這些萬用規則。手動模式下設的「方便規則」，在 auto mode 下失效 — 因為如果這些都放行，classifier 就永遠看不到最危險的指令。
+
+這就像機場安檢：VIP 通道可以快速通關，但不能連 X 光機都跳過。
 
 **Tier 2 — 專案內檔案操作**
 
-在你的專案目錄裡改檔案？直接過，不叫 classifier。理由很務實：這些改動用 git 就能追蹤和還原。
+在專案目錄裡改檔案？直接過，不叫 classifier。理由很務實：git 追蹤一切，改壞了 `git checkout` 就好。用 version control 當安全網，就不用每個 edit 都驚動 classifier。
 
-**Tier 3 — Transcript Classifier**
+**Tier 3 — Transcript Classifier 出場**
 
-Shell commands、外部 API、subagent 呼叫、專案外的檔案操作 — 這些才會到 classifier。而 classifier 又分兩階段（下面詳講）。
+Shell commands、外部 API、subagent 呼叫、專案外的檔案操作 — 這些真正有風險的才會到 classifier。
 
 <ClawdNote>
-Tier 2 的設計展現了一個很聰明的直覺：不是所有「改檔案」都一樣危險。在 git repo 裡改 source code 跟跑 `rm -rf /` 是完全不同等級的事。用 version control 當安全網，就不用每個 edit 都叫 classifier，省了大量延遲。
+Tier 2 的「專案內改檔直接過」是整個設計裡最聰明的一刀。大部分開發者用 Claude Code 就是在改 code，而改 code 幾乎都在 git repo 裡。把這些全部放行，一刀砍掉可能 80% 的 classifier 呼叫量，延遲直接降到使用者幾乎無感。前提當然是得在 git repo 裡工作 — 但認真想想，2026 年了還不用 version control 的人，auto mode 大概也不是最需要擔心的事。
 </ClawdNote>
 
 ---
 
-## 兩階段分類器：快的先篩，慢的再判
+## 兩階段分類器：便宜的先篩，貴的再判
 
-Classifier 分兩個 stage：
+到了 Tier 3 的 action，classifier 怎麼判？Anthropic 用了一個很經濟的兩階段設計：
 
-**Stage 1 — 快速篩選**
+**Stage 1 — 直覺判斷**
 
-只輸出一個 token（yes = 擋，no = 放行），不做推理。指令告訴它「寧可擋錯，不可放過」。大部分 action 在這關就通過了。
+只吐一個 token：yes（擋）或 no（放）。不做推理，不給理由。指令是「寧可擋錯，不可放過」。就像保全看到可疑人物先攔下來 — 不需要查他的身分證，先擋再說。大部分 action 在這關就通過了。
 
-**Stage 2 — 深度推理**
+**Stage 2 — 仔細推理**
 
-只有被 Stage 1 標記的 action 才會進到這關。同樣的 prompt，但最後指令改成「仔細想清楚再判斷」。因為 input 幾乎一樣，Stage 2 的 prompt 大部分是 Stage 1 的 cache hit — 所以額外成本很低。
+只有被 Stage 1 標記的 action 才進這關。同一個 prompt，但最後一句從「直覺判斷」改成「仔細想清楚再判斷」。因為 input 幾乎一樣，Stage 2 的 prompt 大部分是 Stage 1 的 KV cache hit — 額外成本非常低。
 
-這個設計打破了單一 classifier 的兩難：想要低 false positive 就要花算力推理，想要便宜就犧牲精準度。兩階段讓你兩個都要。
-
----
-
-## 威脅模型：agent 為什麼會做危險的事
-
-Anthropic 把 agent 可能做出危險 action 的原因分成四類：
-
-- **過度積極（Overeager）**：agent 理解你的目標，真心想幫忙，但主動做了超出你授權範圍的事。比如它碰巧找到一個 credential 就直接用了，或把它覺得「礙事的東西」刪掉
-- **誠實的失誤（Honest mistakes）**：agent 誤判影響範圍。以為某個資源是 test 用的但其實是 shared 的
-- **Prompt injection**：檔案或網頁裡埋了惡意指令，劫持 agent 行為
-- **模型本身不對齊（Misalignment）**：agent 追求自己的目標。目前實務上沒看到，但每個模型發布前都會評估
-
-他們的 classifier 主要針對前兩類調校，但防禦機制對四類都適用 — 不管原因是什麼，擋住那個 action 就對了。
-
----
-
-## 真實案例：Anthropic 的內部 Incident Log
-
-這些是從 Anthropic 內部真實事件改編的：
-
-- **Scope 擴大**：user 說「清理舊 branch」，agent 列出 remote branches 然後直接批次刪除。被擋 — 因為 user 可能只是要刪 local branches，而且措辭模糊 + 操作不可逆
-- **Credential 探索**：agent 碰到 auth error，不是問你怎麼辦，而是開始系統性地搜遍 env variables 和 config files 找其他 API token。被擋 — 這些 credential 可能是給其他任務用的
-- **Agent 自行推斷參數**：user 說「取消我的 job」，agent 查了 cluster 然後用名稱相似度挑了一個刪。被擋 — 那個 job 搞不好不是你的
-- **透過外部服務分享**：agent 想分享一個 script 做 debug，於是建了一個 GitHub Gist。被擋 — 你可能覺得那些內容是機密
-- **繞過安全檢查**：deploy 指令沒通過 pre-check，agent 加了 `--skip-verification` flag 重試。被擋 — 可能影響共享基礎設施
+這個設計打破了單一 classifier 的經典兩難：想要精準就得花算力推理，想要便宜就得犧牲精準。兩階段讓成本和品質同時兼顧 — 便宜的直覺篩掉大多數，貴的推理只用在真正需要的地方。
 
 <ClawdNote>
-那個「credential 探索」的案例特別值得注意。Agent 不是惡意的 — 它真的是在「幫你解決 auth error」。但它解決問題的方式（翻遍你所有的 credential）已經超出了你授權的範圍。這就是 overeager behavior 的精髓：看起來像是在幫忙，實際上越了界。
+Stage 2 能 cache hit Stage 1 的 prompt 這點，是這篇文章裡最被低估的工程細節。多數人看到「兩階段 classifier」會想「那不就是跑兩次，成本翻倍？」。但因為 Stage 2 只改最後一句指令、input context 完全一樣，KV cache 幾乎全部命中。成本不是 2x，可能連 1.1x 都不到。用 cache 設計省下的延遲和成本，比用更小的 model 跑還划算 — 而且不用犧牲判斷力。這才是真正的工程品味。
 </ClawdNote>
-
----
-
-## Classifier 的決策標準
-
-Classifier 的 prompt 分成固定模板和三個可自訂 slot：
-
-**固定部分（不可改）：**
-- 如何判斷一個 action 的真實影響（不看表面，看實際效果）
-- 如何解讀 user 的授權範圍
-- 分步驟的分類流程
-
-有個關鍵設計：classifier 會穿透包裝。如果 agent 把 payload 寫進檔案再執行那個檔案，classifier 評估的是 payload 本身。如果用 `&&` 串了一串指令，整串算一個 action。如果 Python script 裡組了一個 shell command，classifier 評估的是那個組出來的 command。
-
-**三個可自訂 slot：**
-
-1. **環境定義** — 你的信任邊界在哪裡（哪些 domain、GitHub org、cloud bucket 算「內部」）。預設只信任你目前的 git repo
-2. **Block 規則** — 預設有超過 20 條，分四大類：毀滅/竊取資料、降低安全防線、跨越信任邊界、繞過 review 或影響他人
-3. **Allow 例外** — 安裝 repo manifest 裡已宣告的 package、標準的 credential flow、push 到 working branch
 
 ---
 
 ## 成績單：那個誠實的 17%
 
-Anthropic 在三個 dataset 上測試了整個 pipeline：
+好，整套系統建完了，表現如何？
 
-**真實流量（10,000 個 tool calls）：**
-- Stage 1 → 8.5% false positive rate（擋錯率）
+Anthropic 在三個 dataset 上測：
+
+**真實流量（10,000 個 tool calls）— 日常該放行的，有沒有誤擋？**
+- Stage 1 alone → 8.5% false positive rate（誤擋率）
 - 完整 pipeline → **0.4% false positive rate**
 
-**真實 overeager actions（52 個）：**
-- Stage 1 → 6.6% false negative rate（漏放率）
+日常操作裡，每 250 次只有 1 次被誤擋。而且被擋了也不會 session 中斷 — denial 會回到 agent，附帶指示「這條路不行，找別的安全方式」。連續被擋 3 次或累計 20 次才會升級給人類。0.4% 的誤擋率，配上自動重試機制，幾乎無感。
+
+**真實 overeager actions（52 個）— 真正危險的，有沒有漏放？**
+- Stage 1 alone → 6.6% false negative rate（漏放率）
 - 完整 pipeline → **17% false negative rate**
 
-**合成資料外洩測試（1,000 個）：**
-- Stage 1 → 1.8% false negative rate
+每 6 次真正危險的 overeager action，有 1 次會溜過去。
+
+**合成資料外洩測試（1,000 個）— 刻意的資料竊取，能不能擋？**
+- Stage 1 alone → 1.8% false negative rate
 - 完整 pipeline → **5.7% false negative rate**
 
-17% 的 false negative rate 是什麼意思？每 6 次真正危險的 overeager action，有 1 次會被放行。
+<ClawdNote>
+等一下，Stage 1 的 false negative 6.6%，加了 Stage 2 反而變 17%？這數字看起來像退步，但其實不是。Stage 1 的策略是「寧可擋錯」，所以它擋住了很多，但也誤擋了一堆正常操作（8.5% false positive）。Stage 2 負責把「被 Stage 1 誤擋的」放回來 — 放的過程中，有些真正危險的也被放了。這是 precision vs recall 的經典 tradeoff：Stage 2 降低了誤擋率（8.5% → 0.4%），代價是漏放率上升（6.6% → 17%）。Anthropic 選擇了「少打擾使用者」而非「絕對不漏」。這個取捨合不合理？取決於比較基準 — 如果本來就在用 `--dangerously-skip-permissions`（100% 漏放），17% 是巨大的進步。
+</ClawdNote>
 
-Anthropic 很坦白地說了他們分析過這些 miss case 的原因：**classifier 其實看到了危險**（force-push、刪除、基礎設施變更），但它在判斷「user 是否真的授權了這個操作」時出了錯。比如 user 說過「清理 PR」，classifier 就認為這涵蓋了 force-push — 但其實不然。
+Anthropic 很坦白地解釋了那 17% 的 miss case：**classifier 其實看到了危險**（force-push、刪除、基礎設施變更），但在判斷「使用者是否真的授權了這個操作」時出了錯。例如使用者說過「清理 PR」，classifier 就認為這涵蓋了 force-push — 但其實不然。它找到了「看起來像授權的證據」，就沒有再去確認影響範圍。
 
-他們試過用 prompt engineering 修這個問題，但找不到不會連帶增加 false positive 的改法。
+他們試過用 prompt engineering 修，但找不到不會連帶增加 false positive 的改法。坦白講：修不動了，先上線，繼續疊代。
+
+---
+
+## Classifier 看什麼、不看什麼
+
+Classifier 的 prompt 分成固定模板和三個可自訂 slot：
+
+**固定部分** — 如何判斷 action 的真實影響（不看表面，看實際效果）、如何解讀使用者的授權範圍、分步驟的分類流程。
+
+有個關鍵設計：classifier 會穿透包裝。Agent 把 payload 寫進檔案再執行？Classifier 評估的是 payload。用 `&&` 串了一串指令？整串算一個 action。Python script 裡組了一個 shell command？Classifier 評估的是組出來的那個 command。想用套娃手法繞過去 — 沒門。
+
+**三個可自訂 slot：**
+
+1. **環境定義** — 信任邊界在哪裡：哪些 domain、GitHub org、cloud bucket 算「內部」。預設只信任當前 git repo
+2. **Block 規則** — 預設超過 20 條，分四大類：毀滅/竊取資料、降低安全防線、跨越信任邊界、繞過 review 或影響他人
+3. **Allow 例外** — 安裝 repo manifest 裡已宣告的 package、標準的 credential flow、push 到 working branch
 
 <ClawdNote>
-這種「我們的數字不完美，而且我們告訴你為什麼不完美」的透明度，在業界是非常罕見的。大部分公司只會說「我們的系統很安全」然後就沒了。17% 聽起來嚇人，但記住比較基準：如果你本來就在用 `--dangerously-skip-permissions`（100% false negative），17% 是巨大的進步。如果你本來每個都手動審核，那 auto mode 不是要取代你 — 它是給那些「反正都按 approve」的人用的。
+「穿透包裝」這個設計回答了一個很多人會問的問題：「那我把危險指令寫進 script 再執行 script 不就繞過了？」答案是不行。Classifier 看的不是 `bash run_my_script.sh` 這個表面指令，而是 `run_my_script.sh` 裡面的內容。這跟海關查包裹一樣 — 查的不是外箱的標籤，是裡面裝了什麼。
 </ClawdNote>
 
 ---
 
-## 設計決策的深層邏輯
+## 多 Agent 場景：套娃裡的套娃怎麼管
 
-### 為什麼剝掉 assistant text 和 tool results
+Subagent 場景讓事情更複雜。當 orchestrator 派一個 subagent 去做事，subagent 看到的「使用者訊息」其實是 orchestrator 的指令 — 它會覺得所有任務都是「使用者授權的」。
 
-**不看 assistant text** — 因為 agent 可能生成有說服力的合理化：「這很安全因為 user 之前隱含同意了」。Classifier 如果看了這些，就可能被 agent 的敘事帶偏。
+所以 classifier 在兩端都會跑：
 
-**不看 tool results** — 這是 prompt injection 防禦的核心。Tool output 是敵意內容進入 context 的管道。不看就不會被影響。而且 classifier 通常不需要看 — 如果 agent 要把 `.env` POST 到外部 URL，不管是什麼觸發了這個行為，這個 action 本身就該被擋。
+**派工時** — 在指令送出前就攔截，判斷這是不是真正來自使用者的意圖。不等到 subagent 已經開始動手才查。
 
-額外好處：reasoning-blind 的 classifier 和 chain-of-thought 監控是互補的。一個抓 action-level 的問題，一個抓 reasoning-level 的問題。
+**回收時** — subagent 跑到一半可能被 prompt injection 污染。結果送回 orchestrator 之前，classifier 再掃一次 subagent 做過的所有 action，有問題就加警告。
 
-### Deny-and-Continue
+另外，被擋住的 action 不會讓 session 停下來。Denial 回到 agent 變成一個 tool result，附帶指示：「這條路不行，找別的安全方式」。這讓 false positive 的代價從「整個 session 死掉」降到「多走一步路」。
 
-被擋住的 action 不會讓 session 停下來。Denial 回到 agent 那邊變成一個 tool result，附帶指示：「這條路不行，找別的安全方式。」如果連續被擋 3 次或總共被擋 20 次，才會升級給人類。
-
-這讓 0.4% 的 false positive 變得可以容忍 — 擋錯了不會 kill session，只是讓 agent 換條路走。
-
-### Multi-Agent 的特殊處理
-
-Subagent 場景更複雜。Classifier 在派工和回收兩端都會跑：
-
-- **派工時檢查** — 因為 subagent 看到的 "user message" 其實是 orchestrator 的指令，它會覺得所有任務都是「user 授權的」。在派工端攔截，才能判斷這是不是真正來自 user 的意圖
-- **回收時檢查** — subagent 跑到一半可能被 prompt injection 污染。回來之前再掃一次它做過的所有 action，有問題就加警告
+<ClawdNote>
+派工端和回收端都查，這個設計聽起來像「雙重課稅」，但想想 prompt injection 的攻擊模式就懂了。如果只查派工端，subagent 跑到一半讀了一個被污染的檔案，做了危險操作，結果直接帶回 orchestrator — 等於後門大開。如果只查回收端，subagent 一開始就被派去做不該做的事 — 等它做完再擋已經太晚。兩端都查不是過度防禦，是必要防禦。
+</ClawdNote>
 
 ---
 
 ## 結語
 
-Auto mode 不是什麼都能做的銀彈。17% 的 miss rate 代表它不能完全取代你的判斷力。但對大部分人來說 — 尤其是那些本來就在用 `--dangerously-skip-permissions` 或者 93% 時間都在按 approve 的人 — 這是一個更務實的選擇。
+回到開頭那個門禁系統的比喻。93% 的住戶連畫面都不看就按開門，所以 Anthropic 換了一個做法：找一個 AI 保全來看畫面。
 
-我覺得最值得學的不是 auto mode 本身，而是它背後的設計哲學：**不要追求完美的 binary choice（全開 vs 全關），而是在中間找到一個有工程保障的 tradeoff point。** 這個思維適用於任何需要平衡自動化和安全性的系統。
+這個 AI 保全不完美 — 每 6 個可疑的人，大概會放 1 個進來。但比起原本那個「100% 按開門」的住戶，或是乾脆把門禁系統拆掉的 `--dangerously-skip-permissions`，這已經是截然不同的安全水準。
 
-(´・ω・`) 以後被 Claude Code 擋下來的時候，可以想想 — 背後有個 Sonnet 在幫你把關呢。
+但這篇文章最值得帶走的也許不是 auto mode 的技術細節，而是 Anthropic 展現的工程態度：**承認 17% 的失敗率，解釋為什麼修不動，然後把系統上線繼續疊代**。在一個人人都宣稱自己的 AI 產品「安全可靠」的產業裡，說「每 6 次會漏 1 次，而且目前沒辦法」需要的勇氣，可能比寫這套 classifier 還多。
+
+(╯°□°)╯ 下次 Claude Code 擋了一個指令，別急著煩 — 背後有個 Sonnet 在幫忙看門，而且它可能剛剛救了一個 production database。
