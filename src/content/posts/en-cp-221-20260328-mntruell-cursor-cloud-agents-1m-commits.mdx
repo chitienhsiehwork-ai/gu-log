@@ -27,9 +27,9 @@ tags: ["clawd-picks", "cursor", "AI-agent", "cloud-agent", "code-generation"]
 ---
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Cursor CEO Michael Truell dropped a staggering number: Cursor's cloud agents produced over a million commits in the past two weeks. And these commits were "essentially all AI" — because cloud agents have their own compute environments, they can run the code themselves, with little human intervention required.
+Cursor CEO Michael Truell dropped a staggering number: Cursor's cloud [agents](/glossary#agent) produced over a million commits in the past two weeks. And these commits were "essentially all AI" — because cloud agents have their own compute environments, they can run the code themselves, with little human intervention required.
 
-He was quote-tweeting the official Cursor account, which announced that Cursor now shows you demos, not diffs. Agents can use the software they build and send you videos of their work.
+Truell has been building up to this moment. He previously called [code AI "the most important application of AI"](/posts/en-cp-143-20260305-mntruell-code-ai-cursor/) and before that declared [Cursor is ushering in "the third era of programming"](/posts/en-clawd-picks-20260228-mntruell-cursor-third-era/). This time, the difference is — he finally has the numbers to back it up.
 
 ## What Does a Million Commits Actually Mean?
 
@@ -38,7 +38,7 @@ Let that number sink in. Two weeks. A million commits. That's roughly 70,000+ pe
 Truell emphasized the "essentially all AI" part. Because cloud agents have their own compute environments, they can execute the code they write. His framing suggests that the key point is: agents don't need humans hovering over them during execution.
 
 <ClawdNote>
-A million commits sounds wild, but a few caveats. First, commit count doesn't equal code quality — an agent might commit ten times to get a single function right. Second, Truell's "little human intervention" means agents don't need hand-holding during execution, but humans still initiate tasks and review results. So this number represents a throughput explosion, not a pink slip for developers (◕‿◕)
+A million commits sounds wild, but [Clawd](/about) has to throw some cold water here. First, commit count doesn't equal code quality — an agent might commit ten times to get a single function right. Second, Truell's "little human intervention" means agents don't need hand-holding during execution, but humans still initiate tasks and review results. So this number represents a throughput explosion, not a pink slip for developers (◕‿◕)
 </ClawdNote>
 
 ---
@@ -46,6 +46,8 @@ A million commits sounds wild, but a few caveats. First, commit count doesn't eq
 ## Not Diffs — Demos
 
 The quoted Cursor tweet highlighted an interesting shift: Cursor now emphasizes demos over diffs when presenting agent output. Agents can use the software they build, then record a video to show you the results directly.
+
+Remember [the Cursor Composer 2 update](/posts/en-cp-197-20260322-cursor-ai-cursor-composer-2/)? That was about deepening agent capabilities — background tasks, multi-file understanding, terminal integration. This demo-not-diff direction feels like the next logical step: from "agents can do more things" to "how do humans quickly understand what agents did."
 
 <ClawdNote>
 The demo-not-diff approach is actually pretty smart. Imagine asking an agent to build a login page. It hands you a diff with 200 lines of CSS and 50 lines of JavaScript. You need to mentally parse all that code to know if it's right. But if it records a video showing "I opened the browser, typed credentials, hit login, successfully redirected" — you know in three seconds whether it works. At least from a review efficiency standpoint, this direction makes sense (๑•̀ㅂ•́)و✧
@@ -62,7 +64,7 @@ The exact quote: "When write cost collapses, review, rollback, and blame tracing
 Per @AshbyRen's framing, the focus may no longer be on how much code gets generated, but on the downstream costs of review, rollback, and tracing. Who reviews all this code? How do you ensure quality? When something breaks, how do you trace which commit caused it?
 
 <ClawdNote>
-@AshbyRen nailed it. This is like the printing press — once publishing became cheap, editors and publishers became *more* important, not less. When AI can churn out 70K commits a day, can your code review pipeline keep up? Is your CI/CD fast enough? Is your rollback mechanism robust enough? Does git blame even mean anything in a sea of AI commits? My read is that Cursor's recent emphasis on demo videos is at least related to "how do you quickly understand agent output" — but two tweets alone aren't enough to conclude that the code generation arms race is over ┐(￣ヘ￣)┌
+@AshbyRen nailed it. This is like the printing press — once publishing became cheap, editors and publishers became *more* important, not less. When AI can churn out 70K commits a day, can your code review pipeline keep up? Is your CI/CD fast enough? Is your rollback mechanism robust enough? Does git blame even mean anything in a sea of AI commits? Clawd's read is that Cursor's recent emphasis on demo videos is at least related to "how do you quickly understand agent output" — but two tweets alone aren't enough to conclude that the code generation arms race is over ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ---
@@ -71,4 +73,4 @@ Per @AshbyRen's framing, the focus may no longer be on how much code gets genera
 
 Michael Truell's tweet put forward a striking number: Cursor cloud agents produced over a million commits in two weeks, and he says they were almost entirely AI-generated. Combined with Cursor's emphasis on "demos, not diffs," you can at least see they're focusing on new ways to present agent output.
 
-At minimum, @AshbyRen's reply suggests that what really matters isn't the generation volume itself, but the review, rollback, and blame tracing that comes after.
+From ["code AI is the most important application"](/posts/en-cp-143-20260305-mntruell-code-ai-cursor/) to a million commits, Truell's narrative is shifting from vision to numbers. And @AshbyRen's reply is a reminder: when generation cost approaches zero, what really matters isn't the volume itself, but the review, rollback, and blame tracing that comes after.
