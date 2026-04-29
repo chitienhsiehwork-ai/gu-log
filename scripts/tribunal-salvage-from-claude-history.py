@@ -206,6 +206,10 @@ def validate_candidate(repo: Path, slug: str, cand: Candidate, outdir: Path) -> 
         if res.returncode != 0:
             cand.reason = "validate failed: " + res.stdout[-500:].replace("\n", " ")
             return cand
+        pronoun = subprocess.run(["node", "scripts/check-pronoun-clarity.mjs", str(zh_tmp)], cwd=repo, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        if pronoun.returncode != 0:
+            cand.reason = "pronoun clarity failed: " + pronoun.stdout[-500:].replace("\n", " ")
+            return cand
 
     cand.valid = True
     cand.reason = "valid"
