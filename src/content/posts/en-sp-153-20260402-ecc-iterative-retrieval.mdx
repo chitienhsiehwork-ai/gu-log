@@ -60,35 +60,37 @@ My analogy: you don't hand all 9 cooks the same cookbook and hope they each read
 
 ---
 
-## ECC's Answer: Iterative Retrieval — Progressive Refinement, Not One Big Dump
+## ECC's Answer: Iterative Retrieval — Search, Evaluate, Refine, Repeat
 
-[ECC (Everything Claude Code)](https://github.com/affaan-m/everything-claude-code) has a skill called `iterative-retrieval` that tackles this directly.
+[ECC (Everything Claude Code)](https://github.com/affaan-m/everything-claude-code) has a skill called `iterative-retrieval` that tackles the subagent context problem specifically.
 
-The core idea is counterintuitive: **don't give agents full context at the start. Instead, use a 4-phase loop to progressively refine what each agent actually needs.**
+Let's be precise about what it does: **this pattern solves "how does a single subagent efficiently find the context it needs before starting work," not "how do multiple agents coordinate with each other."** Those two problems sound similar, but they live at different layers — like "how do you organize the warehouse" versus "how do two warehouse workers avoid crashing into each other."
 
-**Phase 1 — Broad Retrieval**: With minimal context, let the agent do an initial pass to understand the shape of the problem. This phase is intentionally small. The goal isn't to execute the task — it's to produce a list of "here's what I actually need to know."
+The core idea is counterintuitive: **don't try to guess what context an agent will need upfront. Instead, let the agent search for it, evaluate whether it found enough, and refine the search if not. Maximum three cycles.** ECC structures this as a four-phase loop:
 
-**Phase 2 — Relevance Scoring**: The orchestrator takes that list and does precise context filtering. Not pulling everything — pulling only what's genuinely relevant. This phase acts as a noise filter, increasing information density before handing anything to the next phase.
+**DISPATCH — Cast a wide net**: Start with broad glob patterns and keywords to pull candidate files. This step deliberately casts wide — better to over-retrieve than miss something critical. Like your first Google search: the keywords are rough, but you want to see what's out there.
 
-**Phase 3 — Refined Execution**: Now the agent runs the actual task with a clean context window. No noise, no irrelevant files, no stale snapshots. Just the information needed for this specific job.
+**EVALUATE — Score each file**: Every retrieved file gets a relevance score from 0 to 1. High-scoring files (≥ 0.7) stay; low-scoring files get dropped. Crucially, this step also identifies what's *still missing* — gaps that the next search round should target. This isn't "grab everything"; it's "grab, then judge whether it's worth keeping."
 
-**Phase 4 — Synthesis**: Multiple agents' outputs come back to the orchestrator for final integration. Conflicts get resolved at this layer, not inside the individual agents.
+**REFINE — Adjust and search again**: Based on what EVALUATE found (and what it didn't), update the search criteria. Maybe the first round searched for "rate limit" but the codebase uses "throttle" — REFINE picks up on that and adjusts the keywords. Maybe a whole directory turned out to be irrelevant — REFINE excludes it from the next round.
 
-The elegant part: **"broad" and "precise" are decoupled.** You explore first to discover what's needed, then deliver precisely. Instead of trying to predict upfront everything a task might require, you let the task itself tell you.
+**LOOP — Run it again**: Take the refined query back to DISPATCH. Maximum three cycles total. If at any point there are enough high-relevance files (≥ 3) with no critical gaps, the loop exits early and hands the curated context to the agent to begin its actual work.
 
 <ClawdNote>
-This is exactly how humans search for information. Nobody types a perfectly precise Google query on the first try. You start broad, look at results, narrow down, search again. The final answer comes from a few iterations, not one perfect first shot.
+The pain point this solves is very specific: when you spawn a subagent, the orchestrator usually has no idea which files that subagent actually needs to read. Stuff too much context in and you blow the window. Stuff too little and the agent hallucinates. ECC's answer: make the *retrieval itself* iterative — exactly how humans search Google. Type keywords, look at results, adjust keywords, search again. (◕‿◕)
 
-ECC took this natural human search behavior and turned it into an agent orchestration pattern. Simple, elegant, sensible. (◕‿◕)
-
-One important caveat: the quality of phase 2 filtering determines whether the whole thing works. A bad filter means phase 3 agents still get garbage context — which is basically the same as giving them everything upfront. The pattern is only as good as the relevance scoring step.
+One thing I'd push back on though: the three-cycle cap works fine for small to medium codebases, but in a massive monorepo, three rounds might not be enough to converge on the right context. ECC's fallback is "use the best results you've got after three rounds" — a practical tradeoff, but not a perfect one.
 </ClawdNote>
 
 ---
 
-## Three Real Incidents from Tonight
+## But Wait — Iterative Retrieval Doesn't Fix Tonight's Problems
 
-Let me walk through what actually happened. Three concrete problems, each one a textbook multi-agent case.
+Now here's an important distinction. After understanding ECC's pattern, look back at tonight's chaos and notice: **iterative retrieval solves "how an agent finds the right context," not "how multiple agents avoid stepping on each other."**
+
+The three problems from tonight — counter race condition, git lock, file system conflicts — are all multi-agent **coordination problems**. That's a different layer from context retrieval. But the two layers share one critical lesson: **"give everything at once" doesn't work.** Dumping all context at once blows the window. Reading the counter once without coordination causes races. Pushing all at once causes locks. The principle of "phased, progressive delivery" holds true at both layers.
+
+With that shared principle in mind, here are tonight's three incidents.
 
 **Incident 1: Article Counter Race Condition**
 
@@ -98,11 +100,17 @@ The problem: this read-grab-update sequence is not atomic. Nine agents read the 
 
 The fix: **atomic pre-allocation**. At the orchestrator level, a sequential step pre-assigns all ticket IDs before any agent starts, and writes each agent's ID into its task description. Agents know their number at launch time — they never touch the shared counter during execution. No race condition because there's no competition for the resource anymore.
 
+<ClawdNote>
+Race conditions have been studied since Dijkstra's work on concurrent systems in the 1960s. Our 2026 AI agents stumbled into the same hole. ╰(°▽°)╯
+
+In one sense, this is reassuring — it's not some exotic AI-specific failure. It's the standard problem with any parallel system. The bad news: engineers spent decades figuring out solutions, and the AI agent community is currently rediscovering all of them from scratch. The good news: the solutions already exist. You just need to know which architecture to borrow.
+</ClawdNote>
+
 **Incident 2: Git Lock Conflict**
 
 Nine agents finishing at roughly the same time all tried to push. Git's remote is a centralized single-write endpoint. First push succeeded. All eight others failed. Some entered retry loops — pull, merge, push again — and started racing each other for the merge window. The commit history became a tangled mess.
 
-The fix: **sequential deploy**. Agents write in parallel, but pushes are scheduled by the orchestrator one at a time. No two pushes overlap. Parallel writing, serial deployment. The two phases are completely decoupled.
+The fix: **sequential deploy**. Agents write in parallel, but pushes are scheduled by the orchestrator one at a time. No two pushes overlap. Parallel writing, serial deployment — the same philosophy as iterative retrieval's "phased refinement": break one big action into controlled steps.
 
 **Incident 3: Worktree Isolation**
 
@@ -110,41 +118,17 @@ The most effective structural fix: `git worktree` gives each agent its own compl
 
 Each agent has its own working directory and file state — zero file-level conflicts. When agents finish, the orchestrator merges each branch into main, resolving any conflicts at that single integration point.
 
-The common lesson across all three incidents: **you can't solve multi-agent coordination by giving better context. You need isolation (isolated state) + atomic resource allocation (atomic pre-allocation) + centralized sequential deployment.**
-
-<ClawdNote>
-Race conditions have been a known problem since the 1960s. Our 2026 AI agents stumbled into the same hole. ╰(°▽°)╯
-
-In one sense, this is reassuring — it's not some exotic AI-specific failure. It's the standard problem with any parallel system. The bad news: engineers spent decades figuring out solutions, and the AI agent community is currently rediscovering all of them from scratch. The good news: the solutions already exist. You just need to know which architecture to borrow.
-</ClawdNote>
-
 ---
 
-## Shared vs Isolated: When to Use Which
+## Two Layers, One Principle
 
-The most important design decision in any multi-agent system is: what gets shared, and what gets isolated?
+Now we can put tonight's experience and ECC's pattern side by side. They look like different problems on the surface, but they share the same core logic.
 
-**Good candidates for shared state**: resources where reads far outnumber writes, globally consistent reference data (like config files), things that update rarely and have low collision probability.
+**ECC's iterative retrieval** solves "how does one agent find the right context." Method: don't try to guess everything upfront. DISPATCH → EVALUATE → REFINE → LOOP. Progressively converge on the information the agent actually needs.
 
-**Good candidates for isolated state**: resources that multiple agents might write to simultaneously, work that's inherently independent between agents (different articles, different features), tasks that require point-in-time consistency.
+**Tonight's three incidents** solve "how do multiple agents not collide." Method: isolate state (worktrees), atomize resource allocation (pre-allocate ticket IDs), serialize deployment (sequential push).
 
-The most common design mistake is treating "things that should be isolated" as shared resources, then adding increasingly complex locking or conflict resolution logic to compensate. That's fixing the wrong layer — the problem is in the design, not the execution.
-
-The article counter tonight is a perfect example. A counter "looks like" a natural shared resource — it maintains a global sequence. But each agent only needed one ID, not ongoing access to the counter itself. Decoupling "allocate an ID" (the action) from "maintain the counter" (the state) made the conflict disappear entirely.
-
----
-
-## This Is the AI Version of the CAP Theorem
-
-Distributed systems have the CAP theorem: in any distributed system, you can only guarantee two of three properties at once — Consistency, Availability, and Partition Tolerance.
-
-Multi-agent AI systems have a similar three-way tension.
-
-**Coordination** — all agents work from the same "truth," decisions are consistent. **Speed** — agents execute independently without waiting for coordination. **Scalability** — you can add more agents without the system breaking down.
-
-You can only really have two at once. High Coordination + High Speed requires a powerful centralized orchestrator, which limits Scalability (the orchestrator becomes a bottleneck). High Speed + High Scalability means agents run independently, which breaks Coordination — exactly what happened tonight. High Coordination + High Scalability requires distributed coordination protocols (distributed locks, vector clocks, CRDTs), complexity explodes, Speed suffers.
-
-Most multi-agent demos choose High Speed + High Scalability, then hit the Coordination wall in production and scramble to add orchestration retroactively. ECC's iterative retrieval pattern is essentially saying: **don't chase all three from the start. Pick the one you can't compromise on, design around it, and use patterns to minimize the loss on the other two.**
+Both layers share one principle: **"give everything at once" is an illusion.** Whether it's context, counters, or deploys — whenever multiple agents need to touch the same thing, "handle it all in one shot" is digging a hole. Phased, progressive, with each step under control — that's the only approach that works.
 
 <ClawdNote>
 Most multi-agent systems only need a two-layer architecture: one orchestrator for coordination and resource management, N workers for executing isolated tasks.
@@ -156,17 +140,17 @@ Mesh topologies and peer-to-peer agent coordination sound impressive, but most o
 
 ---
 
-## Three Design Principles for Your Multi-Agent System
+## The CAP-Like Tension
 
-So what do you actually remember when you're designing one of these?
+Distributed systems have the CAP theorem: in any distributed system, you can only guarantee two of three properties at once — Consistency, Availability, and Partition Tolerance.
 
-**Principle one: isolate state before sharing it.** Ask yourself: "If two agents both modify this at the same time, what happens?" If the answer is "conflict," it should be isolated. Limit shared state to things that genuinely need global consistency. Everything else gets its own per-agent copy.
+Multi-agent AI systems have a **similar three-way tension** (not a rigorous mathematical theorem, but useful as a design intuition):
 
-**Principle two: orchestrator is the only coordination point.** Agents don't talk to each other. Agents don't resolve conflicts with each other. All coordination logic lives in the orchestrator; worker agents only receive tasks, execute them, and report results. This makes debugging 10× easier — there's exactly one place to look for coordination logic, not N black boxes.
+**Coordination** — all agents work from the same "truth," decisions are consistent. **Speed** — agents execute independently without waiting for coordination. **Scalability** — you can add more agents without the system breaking down.
 
-**Principle three: progressive context delivery, not one big dump.** ECC's iterative retrieval pattern: let the agent do a broad initial pass to figure out what it needs, then deliver the relevant context precisely, then integrate outputs at the orchestrator level. Context windows stay clean, and snapshot inconsistency disappears.
+You can only really have two at once. High Coordination + High Speed requires a powerful centralized orchestrator, which limits Scalability (the orchestrator becomes a bottleneck). High Speed + High Scalability means agents run independently, which breaks Coordination — exactly what happened tonight. High Coordination + High Scalability requires distributed coordination protocols (distributed locks, vector clocks, CRDTs), complexity explodes, Speed suffers.
 
-These three principles together are the opposite of tonight's chaos: isolated state means no race condition, centralized orchestrator means ordered pushes, progressive context means each agent only gets what it actually needs.
+Most multi-agent demos choose High Speed + High Scalability, then hit the Coordination wall in production and scramble to add orchestration retroactively. ECC's iterative retrieval addresses this at the context layer by making a specific tradeoff: spend more time (multiple search rounds) to get better context precision, so the orchestrator can hand each worker cleaner information.
 
 ---
 
@@ -174,11 +158,9 @@ These three principles together are the opposite of tonight's chaos: isolated st
 
 Tonight's 9-agent experiment turned out to be a good case study, even though it wasn't supposed to be.
 
-Race condition, git lock, context explosion — all of it in one repo, in a few hours. Not because we did something obviously stupid, but because we took a workflow that was designed to be sequential and forced it to be parallel without thinking through the coordination design first.
+Race condition, git lock, context explosion — all of it in one repo, in a few hours. Not because of any particularly bad decisions, but because a workflow designed to be sequential was forced into parallelism without the coordination design to support it.
 
-ECC's iterative retrieval makes the same point at the context management level: don't assume you can give everything upfront, don't assume all agents are living in the same moment in time. Design your context flow. Let information arrive progressively. Let conflicts get resolved at the right abstraction layer.
-
-Nine agents working in parallel is completely doable. You just have to work out first: who coordinates, what's isolated, and where does context come from and get refined.
+ECC's iterative retrieval operates at a different layer — it solves "how does a single subagent find the context it needs without blowing the context window." But both problems point to the same answer: don't assume you can give everything at once. Design your context flow. Let information arrive progressively. Let conflicts get resolved at the right abstraction layer.
 
 Cleaning up tonight's mess took about an hour. With the right architecture designed upfront, the whole 9-article batch would have taken thirty minutes.
 
