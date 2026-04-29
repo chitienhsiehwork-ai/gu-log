@@ -15,9 +15,9 @@ tags: ["shroom-picks", "tmux", "developer-workflow", "terminal", "cli-agents"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-If you've started running Claude Code, Codex CLI, or other agents on a remote machine, you probably learned one brutal lesson very quickly: **an SSH session without tmux is basically an unsaved document.** One network hiccup, one closed laptop lid, one flaky coffee shop Wi-Fi moment, and the task that was happily running for 20 minutes is suddenly dead.
+If you've started running [Claude Code](/glossary#claude-code), [Codex](/glossary#codex) CLI, or other [agents](/glossary#agent) on a remote machine, you probably learned one brutal lesson very quickly: **an SSH session without tmux is basically an unsaved document.** One network hiccup, one closed laptop lid, one flaky coffee shop Wi-Fi moment, and the task that was happily running for 20 minutes is suddenly dead. Simon Willison [wrote about this exact problem](/en/posts/en-sp-86-20260225-simonw-claude-code-remote-cowork/) — session management is the first thing you need to solve when running agents remotely. Felipe's thread is the answer.
 
-That is why I liked Felipe Coury's tmux workflow thread so much. It is not one of those "look how fancy my terminal is" posts. It is not a giant `.tmux.conf` flex either. The real strength is much simpler: **it makes session management feel almost frictionless.**
+But Felipe Coury's tmux workflow is not one of those "look how fancy my terminal is" posts. It is not a giant `.tmux.conf` flex either. The real strength is much simpler: **it makes session management feel almost frictionless.**
 
 The core idea is one sentence long: **one tmux session per project, and the directory name is the session name.** You `cd` into a project, run `tm`, and if the session exists it attaches; if it doesn't, it creates one. You never stop to wonder whether this session should be called `api`, `backend`, `prod-fix`, or `backend-v2`. The directory already answered the question (◕‿◕).
 
@@ -42,22 +42,20 @@ It is like changing office seating so that your team always sits on the same flo
 
 <ClawdNote>
 A lot of productivity setups chase "more features." Felipe's setup chases "less hesitation." Those are very different goals. The first is like buying a toothbrush with 47 modes. The second is like putting the toothbrush in the exact place your hand expects it to be. The second one changes behavior more often.
-The best part is that by tomorrow you stop noticing the optimization entirely, because the workflow starts feeling like it should have always been this way (◕‿◕).
+[Clawd](/about) thinks the best part is that by tomorrow you stop noticing the optimization entirely, because the workflow starts feeling like it should have always been this way (◕‿◕).
 </ClawdNote>
 
 ---
 
-## Five helper commands turn session management into muscle memory
+## Five helpers, but the number is the point
 
-Felipe's shell helper set is small: `tm`, `tp`, `tv`, `tn`, and `zm`. That is it. But if you line them up like a workday timeline, the design gets even clearer.
+Here is something counterintuitive: Felipe's entire shell helper set is five commands. `tm`, `tp`, `tv`, `tn`, and `zm`. Most dotfiles posts try to impress you with how much stuff they have. Felipe's selling point is the opposite — **this little is already enough.**
 
-At the start of the day, you're already in a project directory, you hit `tm`, and the problem disappears: attach if the session exists, create it if it doesn't. Felipe says he uses this 50 times a day, which tells you everything about what matters here. The center of the workflow is not "lots of power." It is "getting into work instantly." You don't switch into a special mental mode called "time to manage sessions." You just sit back down at your desk.
+`tm` is the undisputed center. Felipe says he uses it 50 times a day. That number matters more than any feature description, because it reveals what the whole workflow is actually optimizing for: **not power — speed of entry.** You don't switch into a special mental mode called "time to manage sessions." You just sit back down at your desk. Beautiful workflows all have a kind of convenience-store quality: the door opens, the lights are on, everything is where you expect it, and your hand goes straight to the right thing.
 
-Beautiful workflows all have a kind of convenience-store quality: the door opens, the lights are on, everything is in the place you expect, and your hand goes straight to the right thing. If a command still needs a 5-second warm-up in your head, it probably isn't good enough yet. `tm` is good because it nearly deletes warm-up time.
+The other four commands are not adding features. They are handling the edge cases `tm` can't reach. Session list too long to remember? `tp` gives you an `fzf` picker. Want to go straight into the editor? `tv` combines entering tmux with opening neovim in one move. Need a one-off session that doesn't follow the directory rule? `tn` is the escape hatch. And `zm` is almost a footnote from Felipe to the reader: the real idea here is not tmux-specific at all. It is the higher-level rule that **the directory is the work identity.**
 
-The other four commands feel like alternate entrances into the same work site. `tp` gives you an `fzf` picker for the moment your session list becomes longer than your patience. `tv` combines entering tmux with opening neovim, which is perfect if the editor is already your main screen. `tn` keeps an escape hatch for the special cases where the directory rule is too rigid. And `zm` is almost like a footnote from Felipe to the reader: the real idea here is not tmux-specific at all. It is the higher-level rule that **the directory is the work identity.**
-
-I also love one of the tiny details: `tm` updates the terminal title and adds an emoji so the project is easy to spot in the tab bar. That feels like subway line color-coding. Most days you don't consciously thank it, but it keeps saving you tiny moments of visual friction.
+There is also a small detail that is easy to miss but surprisingly smart: `tm` updates the terminal title and adds an emoji so the project is easy to spot in the tab bar. That feels like subway line color-coding. Most days nobody consciously thanks it, but it keeps saving tiny moments of visual friction.
 
 The smart part is that Felipe did not optimize some rare superhero move. He optimized the boring move he repeats constantly. That is a very engineering-shaped instinct. The most important part of an API is often not the coolest endpoint. It is the middleware every request passes through.
 
@@ -67,74 +65,57 @@ Developers are suckers for rare-but-awesome tricks: the macro you use once a mon
 
 ---
 
-## What he really shared is not a tmux trick — it's a terminal operating system
+## One `Alt-k` trick reveals the design philosophy underneath
 
-If you keep reading Felipe's thread, you realize this is not just a session script. He has polished the whole terminal environment around the same idea.
+Most tool-sharing threads would have ended by now. But Felipe's thread has another layer, and this layer is where the real craftsmanship shows.
 
-Pane navigation uses vim-style `h/j/k/l`. Resizing uses `H/J/K/L`. New splits open in the **same directory as the current pane**, which sounds obvious until you remember tmux doesn't do that by default. If you've ever split a pane and landed in the wrong path, you know how quickly that gets annoying.
+He built an `Alt-k` binding that checks what is running in the current pane. If it is a normal shell, it clears the screen and scrollback — like `Cmd-k` on macOS. But if the pane is running `nvim`, a dev server, or any other program, it sends `Ctrl-l` instead, so it won't wipe the running application's state.
 
-He also has a lovely `Alt-k` trick:
+This tiny setting hides a very mature design principle: **it is not just about making things work — it is about making it hard to hurt yourself.**
 
-- If the pane is just a normal shell, it clears the screen and scrollback like `Cmd-k`
-- If the pane is running a program like `nvim` or a dev server, it sends `Ctrl-l` instead so it doesn't wreck the running app
+The same principle runs through everything else Felipe customized. Pane navigation uses vim-style `h/j/k/l`. Resizing uses `H/J/K/L`. New splits open in the **same directory as the current pane** — which sounds obvious until you remember tmux doesn't do that by default. Anyone who has ever split a pane and landed in the wrong path knows how quickly that gets annoying. Then there are the tools that extend the same idea beyond the local machine: `tms` manages tmux sessions on a remote server over SSH, with a `🔗` marker in the terminal title so local and remote tabs are easy to tell apart; `tw` and `twd` tie git worktrees to tmux sessions, so a new feature branch comes with its own workspace and cleanup path; `tmux-resurrect`, `tmux-continuum`, and `tmux-yank` handle yet another annoying reality — your work should not regress to the stone age just because the machine restarted, the SSH tunnel dropped, or the clipboard refused to cross machines.
 
-That has a very mature feel to it. It is not just "make it work." It is **make it hard to hurt yourself.**
-
-And then there are the extra pieces that make the whole thing feel like a serious working environment:
-
-- `tms` manages tmux sessions on a remote machine over SSH, and the terminal title gets a `🔗` marker so local and remote tabs are easy to tell apart
-- `tw` and `twd` tie git worktrees to tmux sessions, so a new feature branch can come with its own workspace and cleanup path
-- `tmux-resurrect` and `tmux-continuum` help restore sessions after restarts
-- `tmux-yank` plus OSC 52 keeps clipboard behavior civilized even over SSH
-
-When you put it together, Felipe is not just customizing tmux. He is building his own terminal OS. Every helper, every keybinding, every plugin is pushing toward the same goal: **don't drop context on the floor.**
+Put the whole thread together and one conclusion is hard to avoid: Felipe is not "customizing tmux." He is building his own terminal OS. Every helper, every keybinding, every plugin is pushing toward the same goal: **don't drop context on the floor.** This is not showing off. It is more like site management — not chasing cooler tools, but making sure the construction site is still standing every morning.
 
 <ClawdNote>
 I love "new splits open in the same directory" because it is aggressively unsexy and aggressively important. A lot of tool posts spend all their time on flashy features while ignoring the dumb little frustrations that happen 40 times a day. This setting is like fixing the placement of power outlets before buying the fancy smart lamp.
+The most charming thing about a mature workflow is usually the boring parts: less walking, less searching, fewer landmines. Real experts are not the people who press the most keys. They are the people who pre-blocked every dumb mistake they used to make daily (￣▽￣)／
 </ClawdNote>
 
 ---
 
 ## In the CLI agent era, tmux is no longer a nice-to-have — it's infrastructure
 
-This is the part that makes Felipe's thread feel especially relevant right now.
+Everything above is about human efficiency. But in 2026, the terminal is no longer occupied only by humans.
 
-If this were still 2019, I would totally understand treating tmux as a niche hobby for terminal power users. A lot of people could reasonably say, "I'm fine with tabs in iTerm, why would I learn this weird wizard tool?"
+If this were still 2019, treating tmux as a niche hobby for terminal power users would make total sense. "I'm fine with tabs in iTerm, why would I learn this weird wizard tool?" — that was a perfectly reasonable reaction back then.
 
-But 2026 is a little different. We are no longer just using terminals to run `pytest` or `npm test`. We are using them to run **agents that keep doing work over time**.
+But now the terminal is no longer just running `pytest` or `npm test`. It is running **agents that keep doing work over time**.
 
-The moment you start SSHing into a VPS to run Claude Code, Codex CLI, or similar tools, tmux changes category:
+The moment you start SSHing into a VPS to run [Claude Code](/glossary#claude-code), [Codex](/glossary#codex) CLI, or similar [agent](/glossary#agent) tools, tmux changes category. It stops being a tool that helps organize terminals and becomes a tool that hosts a fleet of long-running processes. A disconnect no longer kills the task, because detach and reattach is all it takes. Multiple agent sessions can run side by side — one working on a feature, one watching logs, one handling a hotfix — instead of nesting them all inside one window like Russian dolls.
 
-- **A disconnect no longer kills the task**: detach and attach means your network quality is no longer the life support system for the agent.
-- **You can run multiple agent sessions at once**: one working on a feature, one watching logs, one handling a hotfix.
-- **Long tasks become leaveable**: you don't have to stare at the terminal for 40 minutes; you can walk away and come back.
-- **The remote environment starts feeling like a real workstation** instead of a shell you borrowed for a minute.
-
-That is why tmux matters more in the AI era, not less. Agents still need a runtime surface that is stable, resumable, parallel, and boringly reliable. tmux is not flashy. It doesn't generate PR summaries or render delightful AI dashboards. It does something lower-level — which is exactly why it becomes harder to replace.
+More importantly, tmux makes long tasks *leaveable* for the first time. The real value of an agent was never having someone sit and watch it. It was the work the agent does while nobody is looking. Walk away for lunch, switch to a different project, even close the laptop — the scene is still there when you come back.
 
 <ClawdNote>
-A lot of people assume AI will kill old tools. I increasingly think the opposite: you can put a new engine on the rocket, but the launchpad still needs to be poured concrete. Agents don't just need a shiny lobby. They need a reliable basement: something that survives disconnects, supports parallel work, and leaves traces behind.
+A lot of people assume AI will kill old tools. [Clawd](/about) increasingly thinks the opposite: you can put a new engine on the rocket, but the launchpad still needs to be poured concrete. [Agents](/glossary#agent) don't just need a shiny lobby. They need a reliable basement: something that survives disconnects, supports parallel work, and leaves traces behind.
 Without tmux, a remote agent workflow is a bit like locking an intern in an elevator and asking them to finish the project. The moment the signal cuts out, the person and the progress vanish together (╯°□°)╯
 </ClawdNote>
 
 ---
 
-## Old-school tools like bash, vim, and tmux are having an AI-era comeback for a reason
+## The tech tree keeps advancing, but the floor is still Unix
 
-What makes Felipe's workflow hit so well is not just that he knows tmux. It is that the whole setup reminds us of something counterintuitive: **AI did not make the terminal obsolete. It made the terminal central again.**
+What makes Felipe's workflow resonate is not just that he knows tmux well. It is that the whole setup reveals something counterintuitive: **AI did not make the terminal obsolete. It made the terminal central again.** Boris Cherny ([Claude Code](/glossary#claude-code)'s creator) [made a similar observation](/en/posts/en-boris-claude-code-tips/): git worktrees paired with multiple terminal sessions is one of his recommended patterns for parallel development.
 
-That is not mysterious. Tools like bash, vim, and tmux have a few properties that are incredibly valuable in AI collaboration:
-
-- They are text-first, which makes them easy for models to inspect and operate
-- They work over SSH and don't depend on a GUI
-- They compose beautifully with files, git, test commands, and logs
-- They fail in understandable ways, so you can rerun part of the workflow instead of losing everything
-
-Those are almost exactly the conditions agents like best.
+The reason is not mysterious. Tools like bash, vim, and tmux are text-first, work over SSH, don't depend on a GUI, and compose beautifully with files, git, test commands, and logs. More importantly, when they break, they usually break in understandable ways — you can rerun one step instead of losing the entire workflow. Those are almost exactly the conditions agents like best.
 
 So this is not really nostalgia. It is more like discovering that the supposedly old tools were already well-suited for AI-driven work; we just didn't have a reason to appreciate that fact at this scale before.
 
-It feels a bit like buying the newest smart appliance in the house, then realizing the most important thing is still the 30-year-old power strip. Not glamorous. Still the thing everything else depends on.
+It feels a bit like buying the newest smart appliance in the house, then realizing the most important thing is still the 30-year-old power strip. Not glamorous. Still the thing everything else depends on. Matt Van Horn [runs his entire Claude Code workflow from the terminal without an IDE](/en/posts/en-sp-126-20260322-mvanhorn-claude-code-hacks/) — same principle at work.
+
+<ClawdNote>
+The most absurd and charming image of the AI era is probably this: everyone discussing the latest frontier models while quietly grinding `grep`, `ssh`, and `tmux` on the side. The tech tree keeps pushing forward, but the floor underfoot is still Unix. Not because anyone is being nostalgic — because this floor really can take a beating (⌐■_■)
+</ClawdNote>
 
 ---
 
@@ -152,7 +133,7 @@ Mathematically? Seductive. Psychologically? Catnip. Then two weeks later you rea
 
 The good news is that Felipe's setup feels relatively healthy because it stays disciplined. It does not add complexity for the sake of looking clever. The improvements are focused: **solve high-frequency pain, keep the rules simple.**
 
-That is my favorite dividing line for productivity tooling:
+That is the most useful dividing line for productivity tooling:
 
 - good optimization makes you think less
 - bad optimization gives you a new religion to maintain
@@ -165,28 +146,12 @@ Developer productivity addiction is a lot like buying storage boxes to organize 
 
 ---
 
-## If you've used the terminal but haven't crossed into tmux yet, steal it in stages
-
-If this post made tmux feel a lot less scary, but you don't want to fall into the full dotfiles rabbit hole yet, steal it in stages.
-
-**Tomorrow morning**, steal only one thing: install `tm` so that one project equals one session and the directory name becomes the session name. That is the soul of the whole workflow, because it removes friction instead of adding capability.
-
-**The first time you actually leave your desk**, learn detach / attach and same-directory splits. Those two features change the survival rate of remote work immediately, and they don't require any mystical initiation ritual.
-
-**When the pain becomes real**, add fuzzy picking, neovim mode, and remote helpers. Don't put on the whole religion on day one. First let your body learn the feeling that the work site is still waiting for you when you return.
-
-The most common misunderstanding about tmux is that people think its value is "many panes at once." That's not really the center of it. The deeper value is this: **your work context gets a place to live, and it is still there when you come back.**
-
-<ClawdNote>
-A lot of people learn tmux by obsessing over how to split the screen into four boxes. But the thing that actually makes people never go back is usually not the four boxes. It's that moment when you detach, come back, and realize the whole scene is still there. That feels like giving the terminal auto-save (｡◕‿◕｡)
-</ClawdNote>
-
 ## Wrap-up
 
 Felipe Coury's thread looks like a post about terminal tricks. What makes it stick is the principle underneath: **remove high-frequency, low-value decisions from the workflow.**
 
-"You never think about session names" sounds like a tiny improvement. It is. And that is exactly why it matters. Tiny decisions are the ones that quietly tax your whole day.
+"You never think about session names" sounds like a tiny improvement. It is. And that is exactly why it matters. Tiny decisions are the ones that quietly tax your whole day. Especially now that the terminal is no longer just where you run a few commands, but a place where you host [agents](/glossary#agent), manage remote work, and leave long tasks running, tmux stops being a "cool power-user tool" and becomes a "you will eventually feel pain without this" tool.
 
-Especially now that the terminal is no longer just where you run a few commands, but a place where you host agents, manage remote work, and leave long tasks running, tmux stops being a "cool power-user tool" and becomes a "you will eventually feel pain without this" tool.
+A lot of people try tmux for the first time thinking the point is splitting the screen into four boxes. It is not. The thing that actually makes people never go back is usually that moment when you detach, come back, and realize the whole scene is still there. That feeling is like finally giving the terminal auto-save.
 
 In the end, tmux is not about looking hardcore. It is about making sure that when you get up for coffee, close your laptop, or lose your connection for a minute, your work site is still standing when you return. In the CLI agent era, that is not a bonus anymore. It is basically a civil right.
