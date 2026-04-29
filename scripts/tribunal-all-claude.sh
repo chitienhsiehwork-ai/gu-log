@@ -708,6 +708,12 @@ commit_progress() {
     if git diff --cached --quiet; then
       exit 0  # nothing to commit
     fi
+    if [[ "$msg" == *"all 4 stages PASS + final build"* ]]; then
+      if ! bash "$SCRIPT_DIR/tribunal-assert-pass-artifacts.sh" "$repo_dir" "$POST_FILE" --staged >> "$LOG_FILE" 2>&1; then
+        tlog "ERROR: Tribunal PASS artifact postcondition failed for $POST_FILE. Refusing progress-only PASS commit."
+        exit 1
+      fi
+    fi
     git commit -m "$msg" --no-verify >> "$LOG_FILE" 2>&1 || exit 0
 
     local pushed=0

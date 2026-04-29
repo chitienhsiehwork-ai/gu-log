@@ -1,0 +1,12 @@
+[Unit]
+Description=Tribunal PASS artifact audit (gu-log)
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/clawd/projects/gu-log
+ExecStart=/bin/bash -lc 'git fetch origin main >/dev/null 2>&1 || true; bash scripts/tribunal-audit-pass-commits.sh --range 2b1bc361..origin/main'
+Environment=TZ=Asia/Taipei
+
+[Install]
+WantedBy=default.target
