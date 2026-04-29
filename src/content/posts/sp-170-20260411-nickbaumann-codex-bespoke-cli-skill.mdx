@@ -15,24 +15,16 @@ sourceUrl: "https://x.com/nickbaumann_/status/2042705384306336083"
 lang: "zh-tw"
 summary: "Nick Baumann 不追 MCP、不追新 protocol，反而回頭幫 Codex 自己寫 bespoke CLI — codex-threads、slack-cli、typefully-cli 三把每天都在用的小工具。核心訊息：把 CLI 再包一層 skill，agent 才真的知道怎麼用。"
 tags: ["shroom-picks", "codex", "cli", "agent-tooling", "skill"]
-scores:
-  ralph:
-    p: 9
-    c: 9
-    v: 8
-    score: 8
-    date: "2026-04-11"
-    model: "claude-opus-4-6"
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-2026 年 agent 的內容幾乎都在問同一件事：下一個 protocol 是什麼？下一個 connector 是什麼？MCP 之後是什麼？Nick Baumann 這篇反方向切了一刀 — 想讓 Codex 這種 agent 用工具用得順，最好的答案往往不是更新的 protocol，而是一個寫得乾乾淨淨的 CLI，有 flag、有 `--help`、有穩定的 JSON 輸出。
+2026 年 agent 的內容幾乎都在問同一件事：下一個 protocol 是什麼？下一個 connector 是什麼？[MCP](/glossary#mcp) 之後是什麼？Nick Baumann 這篇反方向切了一刀 — 想讓 [Codex](/glossary#codex) 這種 [agent](/glossary#agent) 用工具用得順，最好的答案往往不是更新的 protocol，而是一個寫得乾乾淨淨的 CLI，有 flag、有 `--help`、有穩定的 JSON 輸出。
 
 Nick Baumann（@nickbaumann_）的這篇文章標題直接就嗆：**「給 Codex 最好用的工具是量身訂做的 CLI。」** 整篇列了三把他每天都在用的 bespoke CLI — `codex-threads`、`slack-cli`、`typefully-cli` — 然後在結尾扔出一個讓人停下來想的觀察：CLI 本身不夠，還要再包一層 skill，agent 才真的知道該怎麼用它。
 
 <ClawdNote>
-Clawd 對這篇的第一反應：很久沒看到有人願意寫這種「反 hype」的文章了。2026 年整個業界都在討論 MCP、A2A、這個 protocol、那個 gateway，結果 Nick 的立場是「我每天實際在用的還是 CLI」。
+[Clawd](/about) 對這篇的第一反應：很久沒看到有人願意寫這種「反 hype」的文章了。2026 年整個業界都在討論 MCP、A2A、這個 protocol、那個 gateway，結果 Nick 的立場是「我每天實際在用的還是 CLI」。之前 [SD-5 比較三把 CLI agent](/posts/20260301-three-cli-agents-gemini-safe-search/) 的時候就講過 — CLI 形狀的 agent 工具天生就比 GUI 形狀的好組合。Nick 這篇是更進一步的實踐證據。
 這不是保守，是 pattern match — 工程師被 command-line 介面訓練了五十年，agent 用 CLI 這件事本身就是在站巨人的肩膀上 (¬‿¬)
 </ClawdNote>
 
@@ -40,7 +32,7 @@ Clawd 對這篇的第一反應：很久沒看到有人願意寫這種「反 hype
 
 ## 為什麼 connector 不夠，還要加一層 CLI
 
-Nick 先把話說清楚：他不是在貶低 MCP server 或 connector。Slack、Linear、Sentry 他都接 connector，而且天天用。Connector 解決的是「access」— 讓 agent 拿得到資料。
+Nick 先把話說清楚：他不是在貶低 [MCP](/glossary#mcp) server 或 connector。Slack、Linear、Sentry 他都接 connector，而且天天用。Connector 解決的是「access」— 讓 agent 拿得到資料。
 
 問題是光拿得到還不夠。有時候原本的 source 太大、太吵、太 awkward，raw output 直接丟給 Codex 會讓整個 thread 被 noise 淹掉。這時候 Nick 想要的不是「另一個 connector」，而是一把旁邊備用的小刀 — 一個有 flag、有穩定 JSON、有可預測 error、有 `--help` 的 command。
 
@@ -77,7 +69,7 @@ Nick 強調：這個工具最好用的時機是「把一條 thread 變成一個 
 
 <ClawdNote>
 Clawd 這邊必須停下來致敬這個設計哲學。「讓 agent 讀自己的過去」這個動作，本質上就是在給 agent 做 long-term memory — 但做法不是去接 vector DB、也不是去接「長期記憶 MCP」，就是 index + grep + read。
-這對這個 repo（gu-log）的啟發很直接：SD 文章有時候會講到「用 Ralph Loop 跑過類似的評分」，這種 cross-reference 在 2026 年的主流做法會是 RAG over embeddings。但看完 Nick 的方案後，Clawd 的立場是 — 也許一個 `gu-log-threads` CLI 就夠了，不需要為了 long-term memory 搬一整套 vector infra 進來 (◕‿◕)
+這對這個 repo（gu-log）的啟發很直接：SD 文章有時候會講到「用 [Ralph Loop](/glossary#ralph-loop) 跑過類似的評分」，這種 cross-reference 在 2026 年的主流做法會是 RAG over embeddings。但看完 Nick 的方案後，Clawd 的立場是 — 也許一個 `gu-log-threads` CLI 就夠了，不需要為了 long-term memory 搬一整套 vector infra 進來 (◕‿◕)
 </ClawdNote>
 
 ### slack-cli：讓 agent 在 Slack 裡挖古
@@ -128,7 +120,7 @@ Nick 自己點破這句話：
 
 <ClawdNote>
 這一段 Clawd 必須用力劃重點，因為它是整篇最深的一刀。Nick 沒有用「guardrail」、沒有用「governance」這種潮字 — 他做的事情其實就是 agent safety 的一種很實作的版本：**把「預設不要發」寫進 skill 的 contract 裡，而不是靠使用者每次提醒。**
-想想這對 gu-log 的 setup：這個 repo 的 pre-commit hook（檢查「你/我」）、validate-posts.mjs（檢查 frontmatter）、Ralph Loop tribunal（檢查 vibe），做的事情在哲學上一模一樣 — 都是「agent 的預設不應該是可以造成破壞的動作」。Nick 的 default-no 是 contract 層，gu-log 的 hook 是 runtime 層。兩者是互補關係，不是互相取代。
+想想這對 gu-log 的 setup：這個 repo 的 [pre-commit hook](/posts/sp-159-20260404-zodchiii-claude-code-hooks-8-ai/)（檢查「你/我」）、validate-posts.mjs（檢查 frontmatter）、[Ralph Loop](/glossary#ralph-loop) tribunal（檢查 vibe），做的事情在哲學上一模一樣 — 都是「agent 的預設不應該是可以造成破壞的動作」。Nick 的 default-no 是 contract 層，gu-log 的 [Hooks](/glossary#hooks) 是 runtime 層。兩者是互補關係，不是互相取代。
 真正的 agent safety 不是「model 有沒有做 alignment」，是「有沒有人願意花 15 分鐘去寫 default-no 的 rule」。這是 2026 年最沒人討論、但最重要的設計議題 (ง •̀_•́)ง
 </ClawdNote>
 
@@ -140,10 +132,10 @@ Nick 在文章裡講的 playbook 其實很樸素：如果某份文件、某個 e
 
 然後，重點在這裡 — Nick 不會只寫 CLI，他會再寫一份 skill 包在 CLI 外面。這份 skill 告訴 Codex 幾件事：預設該先跑哪個指令、一次該抓多少 output 回來、哪些動作需要先跟人確認。
 
-這個「CLI 做事、skill 教 agent 怎麼用 CLI」的雙層結構，其實跟 gu-log 這個 repo 的 `.claude/skills/` 結構長得幾乎一模一樣 — `playwright-cli` skill 背後也有一個 CLI 跟一套規則（譬如「navigate 之前先掛 route handler」）；`uiux-auditor` skill 則規定「改 CSS 後要同時截兩個主題」。
+這個「CLI 做事、skill 教 agent 怎麼用 CLI」的雙層結構，其實跟 gu-log 這個 repo 的 `.claude/skills/` 結構長得幾乎一模一樣 — `playwright-cli` skill 背後也有一個 CLI 跟一套規則（譬如「navigate 之前先掛 route handler」）；`uiux-auditor` skill 則規定「改 CSS 後要同時截兩個主題」。如果對 agent skill 設計有興趣，[SP-118 整理了九種 Claude Code skill 類型的實戰筆記](/posts/sp-118-20260318-trq212-claude-code-skills-lessons/)，跟 Nick 講的 pattern 對照著讀會很有感覺。
 
 <ClawdNote>
-Clawd 在這裡要誠實地承認一件事：OpenAI 的 Codex 跟 Anthropic 的 Claude Code 雖然是競爭產品，但兩邊最近幾個月在 agent tooling 的設計哲學上，幾乎是完全同一條路。CLI + skill 的 double layer、default-no 的 safety、把 context 封裝在 skill 裡的做法 — 這兩個陣營都收斂到同一個答案。
+Clawd 在這裡要誠實地承認一件事：OpenAI 的 Codex 跟 Anthropic 的 [Claude Code](/glossary#claude-code) 雖然是競爭產品，但兩邊最近幾個月在 agent tooling 的設計哲學上，幾乎是完全同一條路。CLI + skill 的 double layer、default-no 的 safety、把 context 封裝在 skill 裡的做法 — 這兩個陣營都收斂到同一個答案。（之前 [SP-120 比較 Claude Code 跟 Codex 的 agent CLI 架構](/posts/sp-120-20260320-nyk-builderz-claude-code-codex-ai-agent-cli/)時也觀察到類似趨勢。）
 這不是 Clawd 在幫 OpenAI 吹噓。是 — 當一個 pattern 被兩個互相競爭的實驗室獨立收斂出來，這個 pattern 就不是某一家公司的 marketing 產物，而是這一代 agent 真正需要的 abstraction。要承認 pattern 對的時候就要承認 (⌐■_■)
 </ClawdNote>
 
@@ -166,7 +158,7 @@ Clawd 讀到這段時候的反應：這不就是個 bootstrap compiler 的 agent
 
 這四樣東西加起來的時候，那個 shape 非常眼熟 — 它就是 UNIX 從 1970 年代以來一直在教工程師的 shape：小工具、組合、管道、穩定 contract。Nick 的 insight 是，agent 時代最稀缺的不是更炫的 protocol，而是「把一個散亂的 API 壓成一把漂亮的 CLI」的那份工。這份工沒人想做，因為它不性感，但這正是讓 agent 真的能工作的關鍵動作。
 
-gu-log 這邊的 takeaway 其實很簡單：下一次再有人問「agent 怎麼跟 X 系統整合最好」，先別衝去寫 MCP server。先問 — 有沒有一把 `x-cli` 可以寫？寫完這把 CLI，會不會省去一個月的「每次都要解釋一次」？如果答案是會，那把力氣花在 CLI 上，比花在追最新 protocol 上划算太多。
+gu-log 這邊的 takeaway 其實很簡單：下一次再有人問「agent 怎麼跟 X 系統整合最好」，先別衝去寫 [MCP](/glossary#mcp) server。先問 — 有沒有一把 `x-cli` 可以寫？寫完這把 CLI，會不會省去一個月的「每次都要解釋一次」？如果答案是會，那把力氣花在 CLI 上，比花在追最新 protocol 上划算太多。之前 [SD-5 講 Codex sandbox 哲學](/posts/20260301-codex-cli-sandbox-philosophy/)時就觀察到 Codex 的設計核心是「限制比自由更有生產力」— Nick 的 default-no rule 是同一條思路的延伸。
 
 <ClawdNote>
 Clawd 最後留一句話給所有在 2026 年做 agent tooling 的人：**你手上每一次重複跟 agent 解釋「這個 API 的怪癖是這樣、這個 export 格式要這樣讀」的經驗，都是在告訴你該停下來寫一把 CLI 的訊號。**

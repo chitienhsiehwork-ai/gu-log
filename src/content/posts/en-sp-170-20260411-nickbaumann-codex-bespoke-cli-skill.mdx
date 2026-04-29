@@ -15,24 +15,16 @@ sourceUrl: "https://x.com/nickbaumann_/status/2042705384306336083"
 lang: "en"
 summary: "Nick Baumann isn't chasing MCP or the next protocol. He's going the other way — writing bespoke CLIs for Codex to use: codex-threads, slack-cli, typefully-cli. The real insight: wrap each CLI in a skill, because that's how agents actually know which commands to run first."
 tags: ["shroom-picks", "codex", "cli", "agent-tooling", "skill"]
-scores:
-  ralph:
-    p: 9
-    c: 9
-    v: 8
-    score: 8
-    date: "2026-04-11"
-    model: "claude-opus-4-6"
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Most 2026 agent content asks the same question: what's the next protocol? What's the next connector? What comes after MCP? Nick Baumann's post cuts in from the opposite direction — the best way to give an agent like Codex a new tool, he says, is often not a fancier protocol, but a clean little CLI with flags, a `--help` screen, and stable JSON output.
+Most 2026 agent content asks the same question: what's the next protocol? What's the next connector? What comes after [MCP](/glossary#mcp)? Nick Baumann's post cuts in from the opposite direction — the best way to give an [agent](/glossary#agent) like [Codex](/glossary#codex) a new tool, he says, is often not a fancier protocol, but a clean little CLI with flags, a `--help` screen, and stable JSON output.
 
 Nick Baumann (@nickbaumann_) titled his post bluntly: **"The best tools I give Codex are bespoke CLIs."** He walks through three CLIs he actually uses every day — `codex-threads`, `slack-cli`, and `typefully-cli` — and ends with an observation that's worth pausing on: the CLI by itself isn't enough. You also need to wrap it in a skill, so the agent actually knows how to use it.
 
 <ClawdNote>
-My first reaction reading this: it's been a while since I saw someone write an anti-hype piece about agent tooling. In 2026, everyone is busy shipping MCP servers, A2A protocols, new gateways, new specs — and Nick's quiet answer is "I still reach for a CLI every day."
+[Clawd](/about)'s first reaction reading this: it's been a while since I saw someone write an anti-hype piece about agent tooling. In 2026, everyone is busy shipping MCP servers, A2A protocols, new gateways, new specs — and Nick's quiet answer is "I still reach for a CLI every day." Back in [SD-5 comparing three CLI agents](/posts/20260301-three-cli-agents-gemini-safe-search/), we already observed that CLI-shaped tools compose better than GUI-shaped ones. Nick's post is further evidence.
 This isn't conservative. It's pattern matching. Engineers have been trained on command-line interfaces for fifty years, so giving an agent a CLI is just standing on the shoulders of giants (¬‿¬)
 </ClawdNote>
 
@@ -40,7 +32,7 @@ This isn't conservative. It's pattern matching. Engineers have been trained on c
 
 ## Why a Connector Isn't Enough
 
-Nick is careful up front: he's not dismissing MCP servers or connectors. He uses the Slack, Linear, and Sentry connectors daily. Connectors solve the **access** problem — they make data reachable.
+Nick is careful up front: he's not dismissing [MCP](/glossary#mcp) servers or connectors. He uses the Slack, Linear, and Sentry connectors daily. Connectors solve the **access** problem — they make data reachable.
 
 The issue is that raw access isn't enough. Sometimes the source output is too big, too noisy, or too awkward to hand to Codex directly. In those cases, Nick doesn't want "another connector." He wants a small, sharp tool sitting next to the connector — something with flags, stable JSON, predictable errors, and a `--help` screen.
 
@@ -77,7 +69,7 @@ Nick says this is especially useful when he wants to promote a thread into a ski
 
 <ClawdNote>
 Pause here to appreciate the design philosophy. "Let the agent read its own past" is effectively giving the agent long-term memory — but the implementation is not a vector DB, not a "long-term memory MCP server." It's just index + grep + read.
-The lesson for gu-log: sometimes SD articles want to reference past posts ("we talked about this in SP-142"). The mainstream 2026 answer is RAG over embeddings. Nick's post makes me want to try `gu-log-threads` instead — a tiny CLI with a search index. If it works, we can skip the whole vector-infra migration (◕‿◕)
+The lesson for gu-log: sometimes SD articles want to reference past posts ("we talked about this in SP-142"). The mainstream 2026 answer is RAG over embeddings. Nick's post makes me want to try `gu-log-threads` instead — a tiny CLI with a search index over [Ralph Loop](/glossary#ralph-loop) runs and past threads. If it works, we can skip the whole vector-infra migration (◕‿◕)
 </ClawdNote>
 
 ### slack-cli: digging up archaeology in Slack
@@ -124,7 +116,7 @@ Nick spells out the point himself: "That last part is the point. I do not want t
 
 <ClawdNote>
 I have to underline this, because it's the sharpest idea in the whole post. Nick doesn't use the word "guardrail." He doesn't say "governance." What he's describing is one of the most practical forms of agent safety: **bake "default = no" into the skill contract itself, so the user doesn't have to repeat it every turn.**
-Now think about gu-log's setup. The pre-commit hook (that checks for "你/我" in zh-tw bodies), the `validate-posts.mjs` frontmatter checker, the Ralph Loop tribunal — philosophically they're doing the same job. Each one encodes "the agent's default action should not be destructive." Nick's default-no lives at the skill-contract layer. gu-log's hooks live at the runtime layer. They're complementary, not substitutes.
+Now think about gu-log's setup. The [pre-commit hook](/posts/sp-159-20260404-zodchiii-claude-code-hooks-8-ai/) (that checks for "你/我" in zh-tw bodies), the `validate-posts.mjs` frontmatter checker, the [Ralph Loop](/glossary#ralph-loop) tribunal — philosophically they're doing the same job. Each one encodes "the agent's default action should not be destructive." Nick's default-no lives at the skill-contract layer. gu-log's [Hooks](/glossary#hooks) live at the runtime layer. They're complementary, not substitutes.
 Real agent safety isn't "did the model pass alignment evals." It's "did somebody sit down for 15 minutes and write the default-no rules." This is the most important and least discussed design question of 2026 (ง •̀_•́)ง
 </ClawdNote>
 
@@ -136,10 +128,10 @@ Nick's playbook at the end of the post is almost embarrassingly simple: if you k
 
 Then — and this is the part most people miss — he wraps the CLI in a skill. The skill tells Codex which command to run first, how much output to pull back, and which actions need approval.
 
-This "CLI does the work, skill teaches the agent how to use the CLI" pattern matches gu-log's own `.claude/skills/` structure almost perfectly. The `playwright-cli` skill has both a CLI binary and a set of rules ("install a route handler before any `goto`"). The `uiux-auditor` skill has rules like "always screenshot both themes after any CSS change."
+This "CLI does the work, skill teaches the agent how to use the CLI" pattern matches gu-log's own `.claude/skills/` structure almost perfectly. The `playwright-cli` skill has both a CLI binary and a set of rules ("install a route handler before any `goto`"). The `uiux-auditor` skill has rules like "always screenshot both themes after any CSS change." If you're interested in agent skill design, [SP-118's field notes on nine types of Claude Code skills](/posts/sp-118-20260318-trq212-claude-code-skills-lessons/) pairs well with Nick's pattern here.
 
 <ClawdNote>
-I need to be honest here: OpenAI's Codex and Anthropic's Claude Code are competing products, but their agent tooling design philosophies have quietly converged in the last few months. CLI + skill two-layer structure, default-no safety, packaging context into skill contracts — both camps have independently arrived at the same answer.
+I need to be honest here: OpenAI's Codex and Anthropic's [Claude Code](/glossary#claude-code) are competing products, but their agent tooling design philosophies have quietly converged in the last few months. CLI + skill two-layer structure, default-no safety, packaging context into skill contracts — both camps have independently arrived at the same answer. ([SP-120 comparing their agent CLI architectures](/posts/sp-120-20260320-nyk-builderz-claude-code-codex-ai-agent-cli/) spotted this trend earlier.)
 This isn't me cheerleading for OpenAI. It's the opposite. When two competing labs converge on the same pattern, the pattern stops being any one company's marketing line and becomes the real abstraction this generation of agents needs. Credit where it's due (⌐■_■)
 </ClawdNote>
 
@@ -162,7 +154,7 @@ Looking back at Nick's post, the most surprising thing about it is how un-2026 i
 
 When you squint at those four things together, the shape is very familiar. It's the same shape UNIX has been teaching engineers since the 1970s: small tools, composable, piped together, stable contracts. Nick's insight is that the scarce resource in the agent era isn't fancier protocols — it's the boring work of compressing a messy API into a clean CLI. Nobody wants to do this work because it isn't sexy. But this is exactly the work that makes agents actually useful.
 
-For gu-log, the takeaway is simple: next time someone asks "what's the best way for an agent to integrate with system X," don't immediately go write an MCP server. First ask — could a small `x-cli` do it? Would that CLI save a month of "explaining this API quirk over and over"? If the answer is yes, the CLI is the higher-ROI choice. Chasing the latest protocol can wait.
+For gu-log, the takeaway is simple: next time someone asks "what's the best way for an agent to integrate with system X," don't immediately go write an [MCP](/glossary#mcp) server. First ask — could a small `x-cli` do it? Would that CLI save a month of "explaining this API quirk over and over"? If the answer is yes, the CLI is the higher-ROI choice. [The Codex sandbox philosophy piece](/posts/20260301-codex-cli-sandbox-philosophy/) observed that Codex's core design principle is "constraints are more productive than freedom" — Nick's default-no rule is the same idea extended. Chasing the latest protocol can wait.
 
 <ClawdNote>
 Last thought for anyone building agent tooling in 2026: **every time you find yourself explaining the same API quirk or the same export format to an agent for the Nth time, that's the signal to stop and write a CLI.**
