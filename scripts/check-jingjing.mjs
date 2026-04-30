@@ -27,6 +27,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
+const __isCli =
+  import.meta.url === pathToFileURL(process.argv[1] ?? '').href ||
+  (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]);
 
 const REPO_ROOT = process.cwd();
 const POSTS_DIR = path.join(REPO_ROOT, 'src/content/posts');
@@ -543,68 +548,76 @@ function checkFile(filePath) {
   return { violations };
 }
 
+// ── Exports for tests ──────────────────────────────────────────────
+export { isAllowed, maskContent, checkFile };
+
 // ── Main ───────────────────────────────────────────────────────────
 
-const args = process.argv.slice(2).filter(Boolean);
-let files = args;
+if (!__isCli) {
+  // Stop here when imported as a module (e.g. from tests).
+  // The remaining file is the CLI entry point.
+} else {
+  const args = process.argv.slice(2).filter(Boolean);
+  let files = args;
 
-if (files.length === 0) {
-  // Scan all zh-tw posts
-  if (!fs.existsSync(POSTS_DIR)) {
-    console.error(`[check-jingjing] No posts dir at ${POSTS_DIR}`);
+  if (files.length === 0) {
+    // Scan all zh-tw posts
+    if (!fs.existsSync(POSTS_DIR)) {
+      console.error(`[check-jingjing] No posts dir at ${POSTS_DIR}`);
+      process.exit(0);
+    }
+    files = fs
+      .readdirSync(POSTS_DIR)
+      .filter((f) => f.endsWith('.mdx') && !f.startsWith('en-'))
+      .map((f) => path.join(POSTS_DIR, f));
+  }
+
+  let totalViolations = 0;
+  const filesWithViolations = [];
+
+  for (const filePath of files) {
+    const { violations, error, skipped } = checkFile(filePath);
+    if (error) {
+      console.error(`[check-jingjing] ${filePath}: ${error}`);
+      process.exit(2);
+    }
+    if (skipped) continue;
+    if (violations.length === 0) continue;
+
+    filesWithViolations.push({ filePath, violations });
+    totalViolations += violations.length;
+  }
+
+  if (totalViolations === 0) {
+    console.log(`✓ check-jingjing: ${files.length} file(s) clean`);
     process.exit(0);
   }
-  files = fs
-    .readdirSync(POSTS_DIR)
-    .filter((f) => f.endsWith('.mdx') && !f.startsWith('en-'))
-    .map((f) => path.join(POSTS_DIR, f));
-}
 
-let totalViolations = 0;
-const filesWithViolations = [];
-
-for (const filePath of files) {
-  const { violations, error, skipped } = checkFile(filePath);
-  if (error) {
-    console.error(`[check-jingjing] ${filePath}: ${error}`);
-    process.exit(2);
+  // Report
+  console.error(
+    `\n❌ 晶晶體 violations in ${filesWithViolations.length} file(s) (${totalViolations} total):\n`
+  );
+  for (const { filePath, violations } of filesWithViolations) {
+    console.error(`📄 ${path.relative(REPO_ROOT, filePath)}`);
+    // Group by line
+    const byLine = new Map();
+    for (const v of violations) {
+      if (!byLine.has(v.line)) byLine.set(v.line, []);
+      byLine.get(v.line).push(v);
+    }
+    for (const [line, vs] of [...byLine.entries()].sort((a, b) => a[0] - b[0])) {
+      const words = [...new Set(vs.map((v) => v.word))];
+      console.error(`  L${line}: ${words.join(', ')}`);
+      console.error(`    │ ${vs[0].context}`);
+    }
+    console.error('');
   }
-  if (skipped) continue;
-  if (violations.length === 0) continue;
 
-  filesWithViolations.push({ filePath, violations });
-  totalViolations += violations.length;
-}
-
-if (totalViolations === 0) {
-  console.log(`✓ check-jingjing: ${files.length} file(s) clean`);
-  process.exit(0);
-}
-
-// Report
-console.error(
-  `\n❌ 晶晶體 violations in ${filesWithViolations.length} file(s) (${totalViolations} total):\n`
-);
-for (const { filePath, violations } of filesWithViolations) {
-  console.error(`📄 ${path.relative(REPO_ROOT, filePath)}`);
-  // Group by line
-  const byLine = new Map();
-  for (const v of violations) {
-    if (!byLine.has(v.line)) byLine.set(v.line, []);
-    byLine.get(v.line).push(v);
-  }
-  for (const [line, vs] of [...byLine.entries()].sort((a, b) => a[0] - b[0])) {
-    const words = [...new Set(vs.map((v) => v.word))];
-    console.error(`  L${line}: ${words.join(', ')}`);
-    console.error(`    │ ${vs[0].context}`);
-  }
-  console.error('');
-}
-
-console.error(
-  `Fix options:\n` +
-    `  1. Translate to natural zh-tw (preferred — see WRITING_GUIDELINES.md §術語處理).\n` +
-    `  2. If genuinely a canonical industry term, add to src/data/glossary.json with definition + clawdNote.\n` +
-    `  3. If proper noun (product/people/lab) misclassified, add to ALLOWLIST_RAW in scripts/check-jingjing.mjs.\n`
-);
-process.exit(1);
+  console.error(
+    `Fix options:\n` +
+      `  1. Translate to natural zh-tw (preferred — see WRITING_GUIDELINES.md §術語處理).\n` +
+      `  2. If genuinely a canonical industry term, add to src/data/glossary.json with definition + clawdNote.\n` +
+      `  3. If proper noun (product/people/lab) misclassified, add to ALLOWLIST_RAW in scripts/check-jingjing.mjs.\n`
+  );
+  process.exit(1);
+} // end CLI guard
