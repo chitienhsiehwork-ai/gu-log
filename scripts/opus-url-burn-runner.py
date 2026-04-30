@@ -202,7 +202,19 @@ def shell_quote_for_record(argv: list[str]) -> str:
 
 def classify_quota_error(text: str) -> bool:
     t = text.lower()
-    needles = ["quota", "usage limit", "rate limit", "subscription", "max plan", "billing", "too many requests"]
+    # Do not match the bare word "quota": the experiment itself asks models to
+    # discuss quota burn, so successful content can legitimately contain it.
+    needles = [
+        "quota exceeded",
+        "quota exhausted",
+        "usage limit",
+        "rate limit",
+        "subscription required",
+        "subscription access",
+        "billing error",
+        "too many requests",
+        "max plan usage",
+    ]
     return any(n in t for n in needles)
 
 
