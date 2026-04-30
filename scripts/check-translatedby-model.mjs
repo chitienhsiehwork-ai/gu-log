@@ -1,7 +1,14 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { formatModelName } from './detect-model.mjs';
+
+const __isCli =
+  import.meta.url === pathToFileURL(process.argv[1] ?? '').href ||
+  (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]);
+
+export { parseFrontmatter };
 
 function parseFrontmatter(content) {
   const match = content.match(/^---\n([\s\S]*?)\n---/);
@@ -34,49 +41,53 @@ function parseFrontmatter(content) {
   return fm;
 }
 
-const rawModel = process.env.OPENCLAW_MODEL || '';
-if (!rawModel) {
-  console.log('ℹ️  OPENCLAW_MODEL not set, skipping translatedBy.model consistency check');
-  process.exit(0);
-}
-
-const modelId = rawModel.includes('/') ? rawModel.split('/').pop() : rawModel;
-const expected = formatModelName(rawModel);
-
-if (expected === modelId && /[-_/]/.test(modelId)) {
-  console.log(`ℹ️  No friendly model mapping for "${rawModel}", skipping consistency check`);
-  process.exit(0);
-}
-
-const files = process.argv.slice(2).filter(Boolean);
-if (files.length === 0) {
-  console.log('ℹ️  No files provided for translatedBy.model check');
-  process.exit(0);
-}
-
-let errors = 0;
-for (const file of files) {
-  const abs = path.resolve(file);
-  if (!fs.existsSync(abs)) continue;
-
-  const content = fs.readFileSync(abs, 'utf-8');
-  const fm = parseFrontmatter(content);
-  const actual = fm?.translatedBy?.model;
-
-  if (!actual) continue;
-
-  if (actual.trim().toLowerCase() !== expected.trim().toLowerCase()) {
-    console.log(`❌ ${path.basename(file)} translatedBy.model mismatch`);
-    console.log(`   expected: "${expected}" (from OPENCLAW_MODEL=${rawModel})`);
-    console.log(`   actual:   "${actual}"`);
-    errors++;
+if (!__isCli) {
+  // imported as module; skip CLI body
+} else {
+  const rawModel = process.env.OPENCLAW_MODEL || '';
+  if (!rawModel) {
+    console.log('ℹ️  OPENCLAW_MODEL not set, skipping translatedBy.model consistency check');
+    process.exit(0);
   }
-}
 
-if (errors > 0) {
-  console.log(`\n❌ translatedBy.model consistency check failed: ${errors} file(s) mismatched`);
-  process.exit(1);
-}
+  const modelId = rawModel.includes('/') ? rawModel.split('/').pop() : rawModel;
+  const expected = formatModelName(rawModel);
 
-console.log(`✓ translatedBy.model matches runtime model (${expected})`);
-process.exit(0);
+  if (expected === modelId && /[-_/]/.test(modelId)) {
+    console.log(`ℹ️  No friendly model mapping for "${rawModel}", skipping consistency check`);
+    process.exit(0);
+  }
+
+  const files = process.argv.slice(2).filter(Boolean);
+  if (files.length === 0) {
+    console.log('ℹ️  No files provided for translatedBy.model check');
+    process.exit(0);
+  }
+
+  let errors = 0;
+  for (const file of files) {
+    const abs = path.resolve(file);
+    if (!fs.existsSync(abs)) continue;
+
+    const content = fs.readFileSync(abs, 'utf-8');
+    const fm = parseFrontmatter(content);
+    const actual = fm?.translatedBy?.model;
+
+    if (!actual) continue;
+
+    if (actual.trim().toLowerCase() !== expected.trim().toLowerCase()) {
+      console.log(`❌ ${path.basename(file)} translatedBy.model mismatch`);
+      console.log(`   expected: "${expected}" (from OPENCLAW_MODEL=${rawModel})`);
+      console.log(`   actual:   "${actual}"`);
+      errors++;
+    }
+  }
+
+  if (errors > 0) {
+    console.log(`\n❌ translatedBy.model consistency check failed: ${errors} file(s) mismatched`);
+    process.exit(1);
+  }
+
+  console.log(`✓ translatedBy.model matches runtime model (${expected})`);
+  process.exit(0);
+} // end CLI guard
