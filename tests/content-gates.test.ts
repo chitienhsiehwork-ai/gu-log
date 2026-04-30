@@ -8,16 +8,17 @@
  */
 import { describe, it, expect } from 'vitest';
 import * as fs from 'node:fs';
-// @ts-expect-error — JS module
 import { formatModelName } from '../scripts/detect-model.mjs';
-// @ts-expect-error — JS module
-import * as jj from '../scripts/check-jingjing.mjs';
-// @ts-expect-error — JS module
-import * as pron from '../scripts/check-pronoun-clarity.mjs';
-// @ts-expect-error — JS module
-import * as tbm from '../scripts/check-translatedby-model.mjs';
-// @ts-expect-error — JS module
-import * as fmScores from '../scripts/frontmatter-scores.mjs';
+import * as jjModule from '../scripts/check-jingjing.mjs';
+import * as pronModule from '../scripts/check-pronoun-clarity.mjs';
+import * as tbmModule from '../scripts/check-translatedby-model.mjs';
+import * as fmScoresModule from '../scripts/frontmatter-scores.mjs';
+
+// All four are plain JS without .d.ts; widen to any for ergonomic tests.
+const jj = jjModule as any;
+const pron = pronModule as any;
+const tbm = tbmModule as any;
+const fmScores = fmScoresModule as any;
 
 // ════════════════════════════════════════════════════════════════════════════
 // detect-model

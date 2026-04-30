@@ -8,8 +8,10 @@
  */
 import { describe, it, expect } from 'vitest';
 import * as fs from 'node:fs';
-// @ts-expect-error — JS module
-import * as sg from '../scripts/security-gate.mjs';
+import * as sgModule from '../scripts/security-gate.mjs';
+
+// security-gate.mjs is plain JS without .d.ts; widen to any.
+const sg = sgModule as any;
 
 const {
   parseArgs,
