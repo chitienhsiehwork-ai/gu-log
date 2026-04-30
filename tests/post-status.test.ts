@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Unit tests for src/utils/post-status.ts and src/utils/post-versions.ts
  *
