@@ -1,35 +1,35 @@
 ## Why
 
-Sprin wants to evaluate whether GPT-5.5 can replace Opus in the Tribunal pipeline, but the comparison must be grounded in a realistic article review rather than model vibes or synthetic benchmarks.
+The cancellation deadline changes the experiment from a slow three-PR comparison into an urgent quota-burn benchmark: Claude weekly quota should be spent down before midnight today while producing useful model-comparison artifacts for gu-log.
 
-The first experiment SHALL use SP-181 because it is hard enough to be worth reading three times: the article depends on multi-agent nuance, production-agent judgment, and gu-log voice. The human reviewer is Sprin only, so the workflow should minimize ceremony while preserving blind comparison quality.
+The experiment still starts from real gu-log posts, but it no longer waits for GPT-5.5/Codex. Sprin will configure Codex later. Iris SHALL focus now on Claude Opus 4.7, 4.6, and 4.5 and run repeated URL-only blind tests against good gu-log article/source candidates.
 
 ## What Changes
 
-- Define a three-candidate blind evaluation for SP-181 using Vercel Preview PRs.
-- Use neutral candidate labels: Apple, Banana, Camera.
-- Compare three Tribunal configurations:
-  - Current Opus Tribunal baseline.
-  - All Opus 4.7 Tribunal.
-  - All GPT-5.5 Tribunal.
-- Require Codex/GPT-5.5 runner setup and smoke verification before starting the full experiment.
-- Require branch/PR/title labeling that helps Sprin refer to candidates without revealing model mapping.
-- Require cleanup before merging any winning candidate so blind labels do not ship to production.
+- Pivot the SP-181 blind eval into a Claude-only quota-burn experiment that runs until midnight Asia/Taipei or until Claude quota is effectively exhausted.
+- Compare exactly three Claude Opus models:
+  - Opus 4.7
+  - Opus 4.6
+  - Opus 4.5
+- Start each model from only one URL per trial, selected from existing gu-log posts with `sourceUrl` metadata.
+- Keep Apple / Banana / Camera as per-trial blind labels, but randomize their model mapping per trial and store mapping only in local experiment artifacts.
+- Produce reusable result artifacts, not production article branches, unless Sprin later asks to turn a winning candidate into a PR.
+- Add a quota-burn runner that can select candidates, launch concurrent Opus calls, monitor quota, and stop near midnight.
 
 ## Capabilities
 
 ### New Capabilities
 
-- `tribunal-blind-model-eval`: Defines how gu-log runs blind, branch-based Tribunal model evaluations with Vercel Preview URLs.
+- `tribunal-blind-model-eval`: Defines how gu-log runs blind URL-only model evaluations and urgent Claude quota-burn experiments.
 
 ### Modified Capabilities
 
-- None. This is an experiment spec; implementation may later add reusable runner adapters or scripts.
+- Existing SP-181 blind-eval scope is narrowed for today: GPT-5.5/Codex is postponed, Claude Opus 4.7/4.6/4.5 are in scope now.
 
 ## Impact
 
-- `scripts/tribunal-all-claude.sh` or a new experiment runner may need model-suite overrides.
-- A Codex/OpenAI runner adapter may be needed for GPT-5.5 judge/writer stages.
-- Draft PRs and Vercel Preview deployments will be created for the three candidates.
-- SP-181 article files will be modified only inside experiment branches.
-- The main branch SHALL NOT receive blind labels or losing candidates.
+- Adds a script under `scripts/` for Claude Opus URL-only quota-burn experiments.
+- Writes experiment results under `.score-loop/opus-url-burn/` so production content is untouched.
+- Does not create blind PRs by default during the burn window.
+- Does not merge or publish generated candidates automatically.
+- May consume nearly all remaining Claude weekly quota before midnight by explicit user instruction.

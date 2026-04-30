@@ -1,112 +1,91 @@
 ## ADDED Requirements
 
-### Requirement: SP-181 blind model evaluation SHALL use neutral candidate labels
+### Requirement: The urgent burn experiment SHALL compare exactly three Claude Opus models
 
-The experiment SHALL identify the three review candidates as Apple, Banana, and Camera in all reviewer-visible surfaces before model mapping is revealed.
+The experiment SHALL compare Opus 4.7, Opus 4.6, and Opus 4.5 during the April 30 quota-burn window.
 
-#### Scenario: Branches use blind labels
+#### Scenario: Three Opus candidates run for the same URL
 
-- **WHEN** experiment branches are created
-- **THEN** the branch names SHALL be `experiment/tribunal-apple-sp181`, `experiment/tribunal-banana-sp181`, and `experiment/tribunal-camera-sp181`
-- **AND** the branch names SHALL NOT include model provider or model family names
+- **WHEN** a URL trial starts
+- **THEN** the runner SHALL invoke `claude-opus-4-7`, `claude-opus-4-6`, and `claude-opus-4-5`
+- **AND** each invocation SHALL receive the same URL seed and task prompt
+- **AND** GPT-5.5/Codex SHALL NOT be required for this run
 
-#### Scenario: PRs use blind labels
+#### Scenario: Normal reserve floor is disabled for this explicit burn run
 
-- **WHEN** Draft PRs are opened for the experiment
-- **THEN** each PR title SHALL include exactly one of `[Apple]`, `[Banana]`, or `[Camera]`
-- **AND** PR title/body text SHALL NOT reveal which model suite produced the candidate
-
-#### Scenario: Preview article titles are easy to reference
-
-- **WHEN** a candidate branch renders SP-181 in Vercel Preview
-- **THEN** the article title MAY be prefixed with the candidate label such as `[Apple]`
-- **AND** the prefix SHALL be removed before any candidate is merged to `main`
+- **WHEN** the burn runner decides whether to continue before midnight Asia/Taipei
+- **THEN** it SHALL treat Sprin's instruction as authorization to spend the remaining Claude weekly quota
+- **AND** it SHALL stop only at the deadline, quota exhaustion, repeated Claude quota errors, or manual operator stop
 
 ---
 
-### Requirement: The experiment SHALL compare exactly three Tribunal model suites
+### Requirement: URL-only trials SHALL use gu-log post source URLs
 
-The experiment SHALL produce one candidate from each approved model suite: current Opus Tribunal, all Opus 4.7 Tribunal, and all GPT-5.5 Tribunal.
+Each model trial SHALL start from a single URL selected from existing gu-log post metadata.
 
-#### Scenario: Current Opus baseline candidate exists
+#### Scenario: Candidate URLs are extracted from posts
 
-- **WHEN** the experiment candidates are generated
-- **THEN** one candidate SHALL use the current production Tribunal model configuration
-- **AND** it SHALL start from the same base article commit as the other candidates
+- **WHEN** the runner builds its candidate pool
+- **THEN** it SHALL scan `src/content/posts/*.mdx` for `sourceUrl` frontmatter
+- **AND** it SHOULD prefer recent SP/CP posts related to AI agents, Claude Code, Codex, model behavior, evaluation, infrastructure, or product strategy
 
-#### Scenario: All Opus 4.7 candidate exists
+#### Scenario: Existing article body is not used as model source context
 
-- **WHEN** the experiment candidates are generated
-- **THEN** one candidate SHALL use Opus 4.7 for all judge and writer stages where an Opus 4.7 equivalent is available
-- **AND** it SHALL start from the same base article commit as the other candidates
-
-#### Scenario: All GPT-5.5 candidate exists
-
-- **WHEN** the experiment candidates are generated
-- **THEN** one candidate SHALL use GPT-5.5 for all judge and writer stages through the Codex/OpenAI runner path
-- **AND** it SHALL start from the same base article commit as the other candidates
+- **WHEN** the runner prompts a model for a URL trial
+- **THEN** the prompt SHALL include the selected URL and task instructions
+- **AND** it SHALL NOT paste the existing gu-log article body as source material
 
 ---
 
-### Requirement: Model mapping SHALL remain hidden until after human ranking
+### Requirement: Blind labels SHALL hide model names in reviewer-facing artifacts
 
-The Apple/Banana/Camera to model-suite mapping SHALL remain private until Sprin finishes the blind review ranking.
+The experiment SHALL use Apple, Banana, and Camera labels for each trial before model mapping is revealed.
 
-#### Scenario: Preview URLs are sent without mapping
+#### Scenario: Per-trial mapping is randomized and saved locally
 
-- **WHEN** Iris sends the Vercel Preview URLs to Sprin
-- **THEN** Iris SHALL send only the Apple, Banana, and Camera URLs
-- **AND** Iris SHALL NOT include model names, provider names, score model metadata, or hints about which candidate is baseline
+- **WHEN** a trial starts
+- **THEN** the runner SHALL assign Apple, Banana, and Camera to the three Opus models in randomized order
+- **AND** it SHALL save the mapping to a local artifact file under `.score-loop/opus-url-burn/`
 
-#### Scenario: Mapping is revealed only after ranking
+#### Scenario: Reviewer-facing summaries omit model names by default
 
-- **WHEN** Sprin provides first/second/third ranking or explicitly ends the blind review
-- **THEN** Iris MAY reveal the Apple/Banana/Camera to model-suite mapping
-- **AND** Iris SHALL include the mapping in the experiment report or follow-up summary
-
----
-
-### Requirement: GPT-5.5/Codex setup SHALL pass smoke verification before full experiment generation
-
-The all-GPT-5.5 candidate SHALL NOT be generated until the GPT-5.5/Codex runner path proves it can satisfy Tribunal artifact requirements.
-
-#### Scenario: GPT-5.5 judge smoke succeeds
-
-- **WHEN** GPT-5.5 judge smoke verification runs
-- **THEN** the runner SHALL produce valid Tribunal JSON for the required judge schema
-- **AND** validation SHALL not depend on trusting the model's self-reported model name
-
-#### Scenario: GPT-5.5 writer smoke succeeds
-
-- **WHEN** GPT-5.5 writer smoke verification runs
-- **THEN** the runner SHALL produce an in-place edit or equivalent patch for a disposable zh-tw article copy
-- **AND** it SHALL also handle an EN counterpart when present
-
-#### Scenario: GPT-5.5 smoke artifact builds
-
-- **WHEN** the GPT-5.5 smoke edit has been applied
-- **THEN** post validation and `pnpm run build` SHALL pass before the full SP-181 candidate is generated
+- **WHEN** Iris summarizes blind candidates before reveal
+- **THEN** the summary SHALL identify outputs by Apple, Banana, and Camera only
+- **AND** it SHALL NOT reveal the model mapping until Sprin asks for reveal or ends the blind review
 
 ---
 
-### Requirement: Candidate PR artifacts SHALL be merge-safe after cleanup
+### Requirement: Burn artifacts SHALL be local and production-safe
 
-Each candidate SHALL be generated in a way that can be reviewed through Vercel Preview but cannot accidentally ship blind-test labels or losing versions to production.
+The burn runner SHALL save useful outputs without modifying published posts or production branches.
 
-#### Scenario: Candidate branches are isolated
+#### Scenario: Raw and extracted outputs are persisted
 
-- **WHEN** each candidate branch is created
-- **THEN** it SHALL modify only the SP-181 zh-tw article, the SP-181 EN counterpart, and necessary Tribunal score/progress artifacts
-- **AND** unrelated pipeline or content changes SHALL NOT be mixed into the candidate branch
+- **WHEN** a model invocation finishes or fails
+- **THEN** the runner SHALL save raw Claude JSON or error text
+- **AND** it SHALL save extracted markdown when available
+- **AND** it SHALL append a manifest entry with model, label, URL, task, timing, exit status, and cost when available
 
-#### Scenario: Winning candidate cleanup removes blind labels
+#### Scenario: Production content is not patched by default
 
-- **WHEN** Sprin approves a winning candidate for merge
-- **THEN** all `[Apple]`, `[Banana]`, or `[Camera]` title prefixes SHALL be removed before merge
-- **AND** validation and build SHALL be re-run after cleanup
+- **WHEN** burn outputs are generated
+- **THEN** the runner SHALL write them under `.score-loop/opus-url-burn/`
+- **AND** it SHALL NOT modify `src/content/posts/` unless Sprin later explicitly asks to promote a candidate
 
-#### Scenario: Losing candidates do not ship
+---
 
-- **WHEN** Sprin chooses a winner or ends the experiment
-- **THEN** losing candidate PRs SHALL remain unmerged
-- **AND** they SHOULD be closed unless Sprin explicitly wants to keep them open for comparison
+### Requirement: The burn runner SHALL stop safely
+
+The runner SHALL avoid becoming an uncontrolled infinite job after the quota-burn window.
+
+#### Scenario: Midnight deadline stops dispatch
+
+- **WHEN** the Asia/Taipei midnight deadline has passed
+- **THEN** the runner SHALL stop launching new trials
+- **AND** it SHALL let already-started Claude calls finish or time out
+
+#### Scenario: Quota errors stop dispatch
+
+- **WHEN** repeated Claude CLI results indicate quota exhaustion or subscription access failure
+- **THEN** the runner SHALL stop launching new trials
+- **AND** it SHALL record the stop reason in the run summary

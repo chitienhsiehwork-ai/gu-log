@@ -1,122 +1,99 @@
 ## Context
 
-The experiment compares whether changing the Tribunal model suite changes the final published-quality article. It is not a broad benchmark and not a full rollout.
+The original blind experiment targeted SP-181 and compared current Opus Tribunal, all Opus 4.7, and all GPT-5.5. The deadline changed: the Anthropic subscription ends on May 1, and the remaining Claude weekly quota should be burned by midnight today.
 
-Chosen article:
+Chosen initial seed article:
 
 - `src/content/posts/sp-181-20260423-walden-cognition-multi-agents-working.mdx`
 - `src/content/posts/en-sp-181-20260423-walden-cognition-multi-agents-working.mdx`
 
-Why SP-181:
+Expanded candidate pool:
 
-- The article is hard enough to justify three full reads.
-- It tests multi-agent nuance rather than simple summarization.
-- The core thesis, "writes stay single-threaded; other agents add intelligence," is easy to damage with generic rewriting.
-- It has zh-tw and EN counterparts, so the pipeline must preserve bilingual artifacts.
+- Any gu-log SP/CP post with `sourceUrl` in frontmatter.
+- Prefer recent, high-signal AI/tooling posts with enough source substance to stress reasoning, factuality, taste, and gu-log voice.
 
 ## Goals / Non-Goals
 
 Goals:
 
-- Produce three blind Vercel Preview URLs for Sprin to review.
-- Keep the model mapping hidden until Sprin finishes ranking candidates.
-- Compare current production behavior against all-Opus-4.7 and all-GPT-5.5 suites.
-- Verify GPT-5.5/Codex execution before spending full experiment tokens.
-- Ensure the winning candidate can be cleaned and merged without experiment labels.
+- Burn remaining Claude weekly quota aggressively before midnight Asia/Taipei.
+- Compare Opus 4.7, Opus 4.6, and Opus 4.5 from the same single URL seed.
+- Keep reviewer-facing labels blind: Apple, Banana, Camera.
+- Randomize label→model mapping per trial to reduce positional/model-name bias.
+- Save raw Claude JSON, extracted markdown, mappings, manifests, and quota samples locally.
+- Continue automatically across multiple good gu-log source URLs until deadline or quota exhaustion.
 
 Non-goals:
 
-- Do not run a statistically significant benchmark.
-- Do not publish three public production articles.
-- Do not merge losing candidates.
-- Do not permanently change Tribunal defaults based on one article.
-- Do not expose model mapping in branch names, PR titles, PR bodies, page titles, commit messages, or Vercel URLs before review.
+- Do not wait for GPT-5.5/Codex setup in this burn run.
+- Do not publish generated candidates to production automatically.
+- Do not open three PRs per URL during the quota-burn window.
+- Do not treat one burn run as statistically rigorous model migration evidence.
+- Do not hide the mapping from local artifacts; hide it only from reviewer-facing summaries.
 
 ## Decisions
 
 ### 1. Candidate labels
 
-Use:
+Each trial SHALL use:
 
 - Apple
 - Banana
 - Camera
 
-These are blind labels, not slugs. A slug is the URL/file identifier such as `sp-181-20260423-walden-cognition-multi-agents-working`.
+The mapping to Opus 4.7 / 4.6 / 4.5 SHALL be randomized per trial and written to a local mapping file under `.score-loop/opus-url-burn/`.
 
-Camera is intentionally not a fruit; the label set is optimized for recognizability and low confusion, not taxonomy.
+### 2. URL-only starting point
 
-### 2. Branch and PR naming
+Each model prompt SHALL start from exactly one URL selected from gu-log post frontmatter. The prompt MAY mention the gu-log evaluation task, but it SHALL NOT feed the model the existing gu-log article body as source content.
 
-Branches SHALL use blind labels only:
+### 3. Candidate selection
 
-- `experiment/tribunal-apple-sp181`
-- `experiment/tribunal-banana-sp181`
-- `experiment/tribunal-camera-sp181`
+The runner SHOULD prefer:
 
-Draft PR titles SHALL use blind labels only:
+- SP-181 first, because it was the original blind-test target.
+- Recent SP/CP posts about agents, Claude Code, Codex, model behavior, AI tooling, evaluation, infra, or product strategy.
+- Source URLs likely to be publicly readable.
+- Medium-to-long source material that can expose differences in grounding and taste.
 
-- `experiment: [Apple] SP-181 Tribunal blind candidate`
-- `experiment: [Banana] SP-181 Tribunal blind candidate`
-- `experiment: [Camera] SP-181 Tribunal blind candidate`
+The runner MAY skip or deprioritize URLs that repeatedly fail fetch/access.
 
-### 3. Title labels in preview
+### 4. Workload shape
 
-Each candidate MAY temporarily prefix the zh-tw and EN article title with `[Apple]`, `[Banana]`, or `[Camera]` so Sprin can easily refer to preview pages.
+Each URL trial SHALL run the three Opus models concurrently when quota permits. The default tasks SHALL rotate across:
 
-These labels are experiment artifacts and SHALL be removed before any candidate is merged to main.
+- SP-style gu-log article draft from URL only.
+- Editorial critique of likely gu-log article angle.
+- Factuality/source-grounding review.
+- Product/engineering insight memo.
+- Safe red-team / overclaim risk review.
 
-### 4. Model suites under test
+The runner SHOULD include enough output budget and repeated trials to burn quota materially, while still saving useful artifacts.
 
-The experiment SHALL compare exactly these suites:
+### 5. Stop condition
 
-- Current Opus Tribunal baseline: current production stage/writer model configuration.
-- All Opus 4.7 Tribunal: every judge and writer stage uses Opus 4.7 or its appropriate context-window variant where available.
-- All GPT-5.5 Tribunal: every judge and writer stage uses GPT-5.5 through the Codex/OpenAI runner adapter.
+The run SHALL stop when any of these is true:
 
-The mapping from suite to Apple/Banana/Camera SHALL be randomized or otherwise kept outside branch/PR/page-visible text until review is complete.
+- Asia/Taipei midnight deadline is reached.
+- Claude weekly quota is effectively exhausted or Claude CLI starts returning quota errors.
+- The operator manually stops the background process.
 
-### 5. GPT-5.5 setup gate
-
-The experiment SHALL NOT start full three-candidate generation until the GPT-5.5/Codex runner can pass a smoke test proving:
-
-- The judge path can produce valid Tribunal JSON for each required schema.
-- The writer path can edit zh-tw and EN article files in-place or through an equivalent patch application path.
-- The model identifier is recorded programmatically, not trusted from model self-report.
-- The final branch artifact can build with `pnpm run build`.
-
-### 6. Review workflow
-
-After all three Draft PRs have Vercel Preview URLs, Iris SHALL send Sprin only:
-
-- Apple URL
-- Banana URL
-- Camera URL
-
-Iris SHALL NOT reveal mapping until Sprin ranks the candidates.
-
-Sprin's review response can be lightweight:
-
-- First / second / third place.
-- Which candidate feels most like gu-log.
-- Which candidate feels most AI-written.
-- Any factual, tone, or structure red flags.
-- Whether any candidate is merge-worthy after label cleanup.
+The user explicitly authorized spending the remaining Claude weekly quota for this experiment, so the normal human-reserve floor does not apply to this run.
 
 ## Risks / Trade-offs
 
-### Codex/GPT-5.5 runner mismatch
+### Quota exhaustion before useful artifacts
 
-GPT-5.5 may not fit the existing Claude CLI agent workflow. Mitigation: require smoke verification before the full experiment.
+Aggressive concurrency can hit quota quickly. Mitigation: save every raw result immediately, and rotate URLs/tasks so partial runs remain useful.
 
-### Blind leakage through metadata
+### Source fetch failures
 
-Model names can leak via scores frontmatter, progress JSON, commit messages, branch names, PR text, Vercel URL, or visible score panels. Mitigation: use blind labels in visible artifacts and keep model mapping in a private local note until review completes.
+Some URLs, especially X/Twitter or paywalled sources, may fail under Claude web tools. Mitigation: record failures and continue to the next candidate.
 
-### Title labels contaminate the article
+### Blind leakage
 
-`[Apple]` labels help review but must not ship. Mitigation: require a cleanup task before merge.
+Local mapping files intentionally contain model mapping. Mitigation: do not include mapping in user-facing blind review snippets until Sprin asks for reveal.
 
-### One-article overfitting
+### Production contamination
 
-SP-181 can identify obvious failures or winners, but one article cannot justify a full Tribunal default migration. Mitigation: treat success as permission for a shadow run, not production replacement.
+Generated text can be experimental or mediocre. Mitigation: write under `.score-loop/opus-url-burn/`; do not patch production posts automatically.
