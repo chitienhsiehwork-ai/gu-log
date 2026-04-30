@@ -15,10 +15,12 @@ import * as tbmModule from '../scripts/check-translatedby-model.mjs';
 import * as fmScoresModule from '../scripts/frontmatter-scores.mjs';
 
 // All four are plain JS without .d.ts; widen to any for ergonomic tests.
+/* eslint-disable @typescript-eslint/no-explicit-any */
 const jj = jjModule as any;
 const pron = pronModule as any;
 const tbm = tbmModule as any;
 const fmScores = fmScoresModule as any;
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 // ════════════════════════════════════════════════════════════════════════════
 // detect-model
@@ -110,7 +112,7 @@ describe('check-jingjing.checkFile', () => {
     );
     const r = jj.checkFile(filepath);
     expect(r.violations.length).toBeGreaterThan(0);
-    expect(r.violations.map((v: any) => v.word)).toEqual(
+    expect(r.violations.map((v: { word: string }) => v.word)).toEqual(
       expect.arrayContaining(['approach', 'solid'])
     );
   });

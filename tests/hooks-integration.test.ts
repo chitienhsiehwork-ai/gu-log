@@ -37,15 +37,6 @@ function makeFakeRepo(): string {
   return tmp;
 }
 
-function runHook(hookPath: string, env: Record<string, string> = {}, stdin = '') {
-  return spawnSync('bash', [hookPath], {
-    cwd: env.GIT_DIR ? path.dirname(path.dirname(env.GIT_DIR)) : path.dirname(hookPath),
-    env: { ...process.env, ...env },
-    input: stdin,
-    encoding: 'utf-8',
-  });
-}
-
 describe('pre-commit: ticketId duplicate gate (Step 0)', () => {
   it('blocks when 3+ posts share a non-PENDING ticketId', () => {
     const repo = makeFakeRepo();

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Unit tests for src/lib/reading-tracker.ts and src/lib/gist-sync.ts
  *

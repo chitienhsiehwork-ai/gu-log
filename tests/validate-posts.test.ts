@@ -5,9 +5,11 @@
  * its pure functions and feed in synthetic post content to pin every rule.
  */
 import { describe, it, expect } from 'vitest';
+import * as fs from 'node:fs';
 import * as vModule from '../scripts/validate-posts.mjs';
 
 // validate-posts.mjs is plain JS without .d.ts; widen to any.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const v = vModule as any;
 const { parseFrontmatter, getBaseFilename, getContentBody, validatePost } = v;
 
@@ -77,7 +79,7 @@ describe('getContentBody', () => {
 describe('validatePost — pass case', () => {
   it('passes a fully-valid zh-tw post', () => {
     const filepath = '/tmp/sp-1-20260401-x.mdx';
-    require('fs').writeFileSync(filepath, makePost(validFm));
+    fs.writeFileSync(filepath, makePost(validFm));
     const r = validatePost(filepath, [{ filename: 'sp-1-20260401-x.mdx', ticketId: 'SP-1' }]);
     expect(r.errors).toEqual([]);
   });
@@ -86,7 +88,7 @@ describe('validatePost — pass case', () => {
 describe('validatePost — required-field rules', () => {
   function runWithFm(fmLines: string[], filename = 'sp-1-x.mdx') {
     const filepath = `/tmp/${filename}`;
-    require('fs').writeFileSync(filepath, makePost(fmLines));
+    fs.writeFileSync(filepath, makePost(fmLines));
     return validatePost(filepath, []);
   }
 
@@ -146,14 +148,14 @@ describe('validatePost — content rules', () => {
   it('flags missing kaomoji', () => {
     const filepath = '/tmp/no-kaomoji.mdx';
     const padding = '正文充足內容'.repeat(40);
-    require('fs').writeFileSync(filepath, `---\n${validFm.join('\n')}\n---\n${padding}\nNo face here.\n`);
+    fs.writeFileSync(filepath, `---\n${validFm.join('\n')}\n---\n${padding}\nNo face here.\n`);
     const r = validatePost(filepath, []);
     expect(r.errors.some((e: string) => e.includes('Missing kaomoji'))).toBe(true);
   });
 
   it('flags content too short', () => {
     const filepath = '/tmp/short.mdx';
-    require('fs').writeFileSync(filepath, `---\n${validFm.join('\n')}\n---\ntiny ${KAOMOJI}\n`);
+    fs.writeFileSync(filepath, `---\n${validFm.join('\n')}\n---\ntiny ${KAOMOJI}\n`);
     const r = validatePost(filepath, []);
     expect(r.errors.some((e: string) => e.includes('Content too short'))).toBe(true);
   });
@@ -161,7 +163,7 @@ describe('validatePost — content rules', () => {
   it('flags raw ```mermaid code fence', () => {
     const filepath = '/tmp/mermaid.mdx';
     const padding = '正文充足內容'.repeat(40);
-    require('fs').writeFileSync(
+    fs.writeFileSync(
       filepath,
       `---\n${validFm.join('\n')}\n---\n${padding}\n\n\`\`\`mermaid\ngraph TD; A-->B\n\`\`\`\n${KAOMOJI}\n`
     );
@@ -172,7 +174,7 @@ describe('validatePost — content rules', () => {
   it('flags translatedBy.model without version number', () => {
     const filepath = '/tmp/badmodel.mdx';
     const fm = [...validFm, 'translatedBy:', '  model: Opus', '  harness: Claude Code'];
-    require('fs').writeFileSync(filepath, makePost(fm));
+    fs.writeFileSync(filepath, makePost(fm));
     const r = validatePost(filepath, []);
     expect(r.errors.some((e: string) => e.includes('missing version'))).toBe(true);
   });
@@ -181,14 +183,14 @@ describe('validatePost — content rules', () => {
     const filepath = '/tmp/longsummary.mdx';
     const longSummary = 'x'.repeat(310);
     const fm = validFm.map((l) => (l.startsWith('summary:') ? `summary: "${longSummary}"` : l));
-    require('fs').writeFileSync(filepath, makePost(fm));
+    fs.writeFileSync(filepath, makePost(fm));
     const r = validatePost(filepath, []);
     expect(r.warnings.some((w: string) => w.includes('summary'))).toBe(true);
   });
 
   it('warns on filename without date', () => {
     const filepath = '/tmp/no-date-in-name.mdx';
-    require('fs').writeFileSync(filepath, makePost(validFm));
+    fs.writeFileSync(filepath, makePost(validFm));
     const r = validatePost(filepath, []);
     expect(r.warnings.some((w: string) => w.includes('date'))).toBe(true);
   });
@@ -197,7 +199,7 @@ describe('validatePost — content rules', () => {
 describe('validatePost — cross-file rules', () => {
   it('flags duplicate ticketId across non-paired files', () => {
     const filepath = '/tmp/sp-1-a.mdx';
-    require('fs').writeFileSync(filepath, makePost(validFm));
+    fs.writeFileSync(filepath, makePost(validFm));
     const r = validatePost(filepath, [
       { filename: 'sp-1-a.mdx', ticketId: 'SP-1' },
       { filename: 'sp-1-b.mdx', ticketId: 'SP-1' },
@@ -208,7 +210,7 @@ describe('validatePost — cross-file rules', () => {
   it('does NOT flag PENDING ticketId duplicates (multiple drafts share)', () => {
     const fm = validFm.map((l) => (l.startsWith('ticketId:') ? 'ticketId: SP-PENDING' : l));
     const filepath = '/tmp/pending.mdx';
-    require('fs').writeFileSync(filepath, makePost(fm));
+    fs.writeFileSync(filepath, makePost(fm));
     const r = validatePost(filepath, [
       { filename: 'pending.mdx', ticketId: 'SP-PENDING' },
       { filename: 'other-pending.mdx', ticketId: 'SP-PENDING' },
@@ -218,7 +220,7 @@ describe('validatePost — cross-file rules', () => {
 
   it('flags translation-pair ticketId mismatch', () => {
     const filepath = '/tmp/sp-1-x.mdx';
-    require('fs').writeFileSync(filepath, makePost(validFm));
+    fs.writeFileSync(filepath, makePost(validFm));
     const r = validatePost(filepath, [
       { filename: 'sp-1-x.mdx', ticketId: 'SP-1' },
       { filename: 'en-sp-1-x.mdx', ticketId: 'SP-2' },

@@ -7,7 +7,8 @@
 import { describe, it, expect } from 'vitest';
 import * as dedupModule from '../scripts/dedup-gate.mjs';
 
-// dedup-gate.mjs is plain JS without .d.ts; widen to any for ergonomic destructuring.
+// dedup-gate.mjs is plain JS without .d.ts; widen for ergonomic destructuring.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const dedup = dedupModule as any;
 const {
   normalizeUrl,
@@ -190,6 +191,7 @@ describe('computeSimilarity', () => {
 });
 
 describe('layer1Match (URL gate)', () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const articles: any[] = [
     {
       file: 'sp-1-x.mdx',
@@ -238,6 +240,7 @@ describe('layer1Match (URL gate)', () => {
 });
 
 describe('layer2Match (topic similarity)', () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const articles: any[] = [
     {
       file: 'sp-100.mdx',

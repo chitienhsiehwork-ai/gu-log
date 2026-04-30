@@ -11,6 +11,7 @@ import * as fs from 'node:fs';
 import * as sgModule from '../scripts/security-gate.mjs';
 
 // security-gate.mjs is plain JS without .d.ts; widen to any.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const sg = sgModule as any;
 
 const {
