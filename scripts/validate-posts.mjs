@@ -13,7 +13,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 import {
   normalizeUrl,
   extractTweetId,
@@ -644,4 +644,9 @@ function main() {
   }
 }
 
-main();
+// Only run as CLI entry point (not when imported as a module for tests).
+if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
+  main();
+}
+
+export { parseFrontmatter, getBaseFilename, getContentBody, validatePost };

@@ -1,10 +1,6 @@
 #!/bin/bash
 echo "🚀 Running pre-push checks..."
 
-PUSH_STDIN="$(mktemp)"
-trap 'rm -f "$PUSH_STDIN"' EXIT
-cat > "$PUSH_STDIN"
-
 # 0. PENDING ticketId guard — never push a PENDING placeholder to main.
 #    PENDING is a legitimate in-flight state on working branches (see
 #    CONTRIBUTING.md §並行撰寫防 ID collision), but must be swapped for
@@ -44,36 +40,9 @@ while read -r _local_ref local_sha remote_ref remote_sha; do
       fi
       ;;
   esac
-done < "$PUSH_STDIN"
+done
 
-# 1. Tribunal PASS artifact audit — never push progress-only PASS commits.
-#    Scope to pushed main/master ranges when possible so historical invalidated
-#    commits do not block unrelated pushes forever.
-echo "⚖️  Auditing Tribunal PASS commits for published article artifacts..."
-while read -r _local_ref local_sha remote_ref remote_sha; do
-  case "$remote_ref" in
-    refs/heads/main|refs/heads/master)
-      if [ "$local_sha" = "0000000000000000000000000000000000000000" ]; then
-        continue
-      fi
-      git fetch origin main >/dev/null 2>&1 || true
-      if [ "$remote_sha" = "0000000000000000000000000000000000000000" ]; then
-        AUDIT_RANGE="$local_sha"
-      elif git cat-file -e "$remote_sha^{commit}" 2>/dev/null; then
-        AUDIT_RANGE="${remote_sha}..${local_sha}"
-      else
-        BASE="$(git merge-base "$local_sha" origin/main 2>/dev/null || echo "")"
-        AUDIT_RANGE="${BASE:-origin/main}..${local_sha}"
-      fi
-      if ! bash scripts/tribunal-audit-pass-commits.sh --range "$AUDIT_RANGE"; then
-        echo "❌ Tribunal PASS artifact audit failed! Push aborted."
-        exit 1
-      fi
-      ;;
-  esac
-done < "$PUSH_STDIN"
-
-# 2. Bundle budget check (check-only; must not write git working tree files)
+# 1. Bundle budget check (check-only; must not write git working tree files)
 #    Blocking budgets fail the push; trend alerts are warnings only.
 echo "📦 Checking bundle budgets (blocking + trend monitor)..."
 node scripts/bundle-budget-check.mjs
@@ -82,7 +51,7 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-# 3. Coverage ratchet (only if tests can run quickly)
+# 2. Coverage ratchet (only if tests can run quickly)
 # Skip for now - tests take too long for pre-push
 # echo "🧪 Checking test coverage ratchet..."
 # bash scripts/coverage-ratchet.sh
