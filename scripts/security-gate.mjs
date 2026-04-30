@@ -3,7 +3,11 @@
 import { execSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, isAbsolute, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
+const __isCli =
+  import.meta.url === pathToFileURL(process.argv[1] ?? '').href ||
+  (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]);
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -409,9 +413,27 @@ function main() {
   console.log('\nSECURITY GATE: PASS (no new high/critical findings outside valid allowlist)');
 }
 
-try {
-  main();
-} catch (error) {
-  console.error(`Security gate error: ${error.message}`);
-  process.exit(2);
+export {
+  parseArgs,
+  parseLegacyRoot,
+  parseNodeModulesRoot,
+  classifyScope,
+  normalizeFromAdvisories,
+  normalizeFromV2,
+  normalizeFindings,
+  loadAllowlist,
+  entryMatchesVulnerability,
+  summarizeScopes,
+  formatVulnerability,
+  MAX_ALLOWLIST_DAYS,
+  MS_PER_DAY,
+};
+
+if (__isCli) {
+  try {
+    main();
+  } catch (error) {
+    console.error(`Security gate error: ${error.message}`);
+    process.exit(2);
+  }
 }
