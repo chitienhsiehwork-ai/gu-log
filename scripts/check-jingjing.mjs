@@ -236,6 +236,148 @@ commit
 # OSS signing protocol Mitchell uses for Ghostty releases (covered in CP-159);
 # X handle of SP-169's source author.
 Vouch dani
+
+# Added 2026-04-30 for SP-189 (OpenAI GPT-5.5 prompting guide).
+# Canonical AI / prompt-engineering terms named explicitly in OpenAI's docs
+# (these are the article's literal subject — translating them would lose
+# fidelity to the source material that names them in English).
+preamble preambles
+retrieval budget budgets
+decision rule rules
+stopping condition conditions
+phase parameter
+apply_patch named function
+first-class first
+post-train post-trained post-training
+metaprompting metaprompt
+outcome-first intent-first process-heavy
+multi-step tool-heavy long-running
+tool call calls
+system prompt
+few-shot
+instruction adherence
+streaming
+override
+codebase
+hardcoded
+patch
+Cognition
+freeform server-defined
+context-free grammar
+file editor codeexec
+Computer Use
+verbosity
+gather
+SOP
+operations
+diff diffs
+header headers
+takeaway takeaways
+review test tests refactor
+audit
+train trained trains training
+output outputs
+coverage filter
+skill skills
+log logs
+bug bugs
+final answer commentary
+replay
+item items
+integration
+troubleshooting
+parameter parameters
+fine-tune fine-tuned fine-tuning
+status update updates
+post-task summary summaries
+
+# Common dev / engineering English universally understood by gu-log readers
+# (same status as 'commit' — used in Mandarin tech writing without translation).
+engineer engineers
+team teams
+vendor vendors
+production prod
+latency
+accuracy
+release releases
+note notes
+mode modes
+condition conditions
+check checks
+history
+migrate migrate-to migration migrations
+block blocks
+friendly proactive
+tone
+software
+Inception
+viral
+routing orchestration
+routine routines
+gather
+role roles
+rule rules
+safety
+declarative procedural
+list comprehension
+if-else
+override
+dashboard
+channel
+lead
+manager
+off-by-one
+skip flag
+prod
+release manager
+tag tags
+cap
+search
+policy
+issue issues
+severity
+laptop
+forever
+guide
+blog
+post posts
+doc docs
+cheat sheet
+release note
+product surface
+user experience
+goals
+context
+planning
+workflow workflows
+spec specs
+best practice practices
+case cases
+failure mode modes
+application app apps
+request requests
+overthinking
+loggy
+phrasing
+awkward
+
+# OpenAI-named prompt keywords / API surface (referenced in the article as
+# the literal English terms users see in OpenAI docs).
+ALWAYS NEVER always never must only
+Personality personality
+Collaboration collaboration
+style
+assistant chatbot
+first-token
+Responses
+description
+pipeline
+eval evals evaluation
+step-by-step
+apply
+format formats
+opening
+SOP
 `;
 
 const HARDCODED = new Set();
