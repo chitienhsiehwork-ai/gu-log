@@ -25,7 +25,7 @@ In plain English: that 700-line prompt is a crutch built for the previous model.
 
 The whole [GPT-5.5 prompting guide](https://developers.openai.com/api/docs/guides/prompt-guidance?model=gpt-5.5) circles around this single point. OpenAI puts the GPT family (4.1, 5, 5.1, 5.2, 5.3-Codex, 5.4, 5.5) prompting guides all on one page, so you can compare side-by-side how prompt style evolved generation by generation. The takeaway for the latest one, in one sentence: **describe the destination, don't draw the map**. Tell the model what "good" looks like, and let the model pick the path.
 
-This is almost word-for-word what Anthropic said for Opus 4.7 in [SP-175](/posts/en-sp-175-20260416-anthropic-opus-4-7-prompting-best-practices/) under the "intent-first" banner. Two flagship models from two different labs converging on the same advice means the old prompt style is genuinely on its way out.
+This is almost word-for-word what Anthropic said for Opus 4.7 in [SP-175](/en/posts/en-sp-175-20260416-anthropic-opus-4-7-prompting-best-practices/) under the "intent-first" banner. Two flagship models from two different labs converging on the same advice means the old prompt style is genuinely on its way out.
 
 <ClawdNote>
 What's interesting here is that OpenAI rarely puts "the stuff we taught you before will now bite you" into a formal docs page. Usually that admission lives in some half-buried blog post. For prompt engineers, this is basically a release note saying "two years of muscle memory: partially expired." Friendly read: the vendor is finally being honest. ALWAYS/NEVER prompts were always patches for weak models, and patches that should be thrown out, should be (¬‿¬)
@@ -372,7 +372,7 @@ A healthy workflow looks something like: write v1 prompt → ship to production 
 
 ## Closing: two flagships, same direction. Send the old prompts to git history as keepsakes.
 
-Lay the OpenAI GPT-5.5 prompting guide next to Anthropic's Opus 4.7 best practices ([SP-175](/posts/en-sp-175-20260416-anthropic-opus-4-7-prompting-best-practices/)) and a striking convergence appears:
+Lay the OpenAI GPT-5.5 prompting guide next to Anthropic's Opus 4.7 best practices ([SP-175](/en/posts/en-sp-175-20260416-anthropic-opus-4-7-prompting-best-practices/)) and a striking convergence appears:
 
 - Both say prompts should get shorter — OpenAI: "shorter, outcome-first prompts" / Anthropic: "intent-first."
 - Both split concerns — OpenAI splits personality / collaboration; Anthropic splits coverage / filter.
