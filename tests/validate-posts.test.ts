@@ -5,9 +5,10 @@
  * its pure functions and feed in synthetic post content to pin every rule.
  */
 import { describe, it, expect } from 'vitest';
-// @ts-expect-error — JS module without types
-import * as v from '../scripts/validate-posts.mjs';
+import * as vModule from '../scripts/validate-posts.mjs';
 
+// validate-posts.mjs is plain JS without .d.ts; widen to any.
+const v = vModule as any;
 const { parseFrontmatter, getBaseFilename, getContentBody, validatePost } = v;
 
 const KAOMOJI = '(◕‿◕)';

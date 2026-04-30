@@ -5,9 +5,10 @@
  * plus the URL/keyword helpers that drive the thresholds.
  */
 import { describe, it, expect } from 'vitest';
-// @ts-expect-error — JS module without types
-import * as dedup from '../scripts/dedup-gate.mjs';
+import * as dedupModule from '../scripts/dedup-gate.mjs';
 
+// dedup-gate.mjs is plain JS without .d.ts; widen to any for ergonomic destructuring.
+const dedup = dedupModule as any;
 const {
   normalizeUrl,
   extractTweetId,
@@ -189,7 +190,7 @@ describe('computeSimilarity', () => {
 });
 
 describe('layer1Match (URL gate)', () => {
-  const articles = [
+  const articles: any[] = [
     {
       file: 'sp-1-x.mdx',
       ticketId: 'SP-1',
@@ -237,7 +238,7 @@ describe('layer1Match (URL gate)', () => {
 });
 
 describe('layer2Match (topic similarity)', () => {
-  const articles = [
+  const articles: any[] = [
     {
       file: 'sp-100.mdx',
       ticketId: 'SP-100',
