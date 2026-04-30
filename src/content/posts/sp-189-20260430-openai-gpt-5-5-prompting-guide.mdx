@@ -1,0 +1,429 @@
+---
+ticketId: "SP-189"
+title: "OpenAI 也轉彎了：GPT-5.5 prompting guide 把 process-heavy 推下車——『描述目的地，別畫地圖』"
+originalDate: "2026-04-30"
+translatedDate: "2026-04-30"
+translatedBy:
+  model: "Opus 4.7 [1m]"
+  harness: "Claude Code (CCC)"
+source: "developers.openai.com"
+sourceUrl: "https://developers.openai.com/api/docs/guides/prompt-guidance?model=gpt-5.5"
+lang: "zh-tw"
+summary: "OpenAI 把 GPT 家族（4.1 → 5.5）的 prompt 指南放同一頁，對 GPT-5.5 給了一句結論：prompt 改成描述目的地、流程交給模型。process-heavy 條列被推下車，換上 personality / collaboration 拆兩塊、retrieval budget、stopping condition、phase parameter 那一套。Cursor 的 GPT-5 prompt tuning 內幕擺進去當實戰例。Anthropic Opus 4.7 在 SP-175 走過同方向，這次輪到 OpenAI 自己埋舊寫法。"
+tags: ["shroom-picks", "openai", "gpt-5-5", "prompt-engineering", "coding-agent"]
+scores:
+  tribunalVersion: 3
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-04-30"
+    model: "claude-opus-4-6[1m]"
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 9
+    score: 8
+    date: "2026-04-30"
+    model: "claude-opus-4-7"
+  librarian:
+    glossary: 6
+    crossRef: 8
+    sourceAlign: 10
+    attribution: 9
+    score: 8
+    date: "2026-04-30"
+    model: "claude-opus-4-7"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    score: 8
+    date: "2026-04-30"
+    model: "claude-opus-4-7"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+星期二早上的工程師打算把上週寫好的 GPT-5.4 prompt 直接搬去 GPT-5.5 跑——同一份系統 prompt、同一組 few-shot 範例、同一份「ALWAYS do this NEVER do that」清單，七百多行。模型換好、benchmark 跑下去：延遲變慢、輸出變得異常機械、有時候模型會繞一個大圈才回到該講的事情。
+
+挫敗之餘打開 OpenAI 官方文件想找哪邊改錯了。結果第一段就寫著一句不像廠商文件的話：
+
+> Avoid carrying over every instruction from an older prompt stack. Legacy prompts often over-specify the process because earlier models needed more help staying on track. With GPT-5.5, that can add noise, narrow the model's search space, or lead to overly mechanical answers.
+
+翻成大白話：那七百行 prompt 是上一代模型的拐杖。GPT-5.5 拿著拐杖反而走不動，請拆掉一半。
+
+整份 [GPT-5.5 prompting guide](https://developers.openai.com/api/docs/guides/prompt-guidance?model=gpt-5.5) 就是在繞這個點。OpenAI 把 GPT 家族（4.1、5、5.1、5.2、5.3-Codex、5.4、5.5）的 prompt 指南通通放同一頁，可以橫向對比 prompt 寫法怎麼一代一代演化。最新這代的真正重點一句話：**描述目的地，別畫地圖**——告訴模型什麼叫做「好結果」，剩下的路徑讓模型自己選。
+
+這跟 Anthropic 在 [SP-175](/posts/sp-175-20260416-anthropic-opus-4-7-prompting-best-practices/) 給 Opus 4.7 的 best practice 講的「intent-first」幾乎是同一句話換個皮。兩家旗艦模型不約而同往同個方向跑，意味著舊 prompt 寫法真的進入退場期。
+
+<ClawdNote>
+這份文件有意思的地方在於 OpenAI 罕見地把「我們之前教你的東西現在會反咬」寫成正式文件，不是藏在某篇 blog 文章裡。對 prompt engineer 來說等於收到 release note 上寫「你過去兩年累積的肌肉記憶，部分過期」。比較友善的解讀是：廠商終於誠實了，過去 always/never 那種 prompt 寫法本來就是模型不夠強的補丁，補丁該丟就要丟 (¬‿¬)
+
+不太友善的解讀：廠商的 prompt 教學基本上半年就會翻新一次，工程師真的要學的不是當下這份建議清單，是「怎麼判斷某條建議什麼時候會過期」。OpenAI 自己其實也意識到這件事——這份文件結尾把所有上一代的指南留在同一頁（GPT-4.1 那份還在），不是刪掉，是列在那邊讓人比對「啊，原來去年這條我以為是真理的東西，現在被推翻了」。
+</ClawdNote>
+
+---
+
+## 第一刀砍向 process-heavy：講目的地，不要畫地圖
+
+OpenAI 在 GPT-5.5 段落開門見山就講這條轉變。原文：
+
+> GPT-5.5 works best when prompts define the outcome and leave room for the model to choose an efficient solution path.
+
+過去寫 prompt 的標準起手式是「First inspect A, then inspect B, then compare every field, then think through all possible exceptions, then decide which tool to call, then call the tool, then explain the entire process to the user」——把整條 SOP 一步一步寫死，避免模型跳針或漏步驟。對 GPT-4 / GPT-4.1 / GPT-5 那種「需要被牽著走」的模型，這套有效。對 GPT-5.5，這套會反咬一口：模型把 SOP 當絕對指令，不管實際情境是不是真的需要每一步都跑，於是輸出又慢又死板。
+
+OpenAI 給的替代寫法是把同一個任務改成「成功長什麼樣」：
+
+```
+Resolve the customer's issue end to end.
+
+Success means:
+- the eligibility decision is made from the available policy and account data
+- any allowed action is completed before responding
+- the final answer includes completed_actions, customer_message, and blockers
+- if evidence is missing, ask for the smallest missing field
+```
+
+注意 prompt 結構整個變了：沒有「先做 X 再做 Y」、沒有 step-by-step、沒有「ALWAYS check this」「NEVER do that」。只有四件事：要解決什麼、什麼叫做成功、輸出長什麼樣、卡住了要做什麼。剩下的所有決策——要查哪個 API、用什麼工具、什麼順序、要不要跑驗證——都丟給模型自己選。
+
+OpenAI 給的對應建議是：**ALWAYS / NEVER / must / only 這些絕對字眼，留給真的非黑即白的事**——譬如安全規則、必填欄位、絕對不能做的事。判斷題（什麼時候該搜尋、什麼時候要停下來問、什麼時候用工具）改用 decision rule 而不是強制句。Decision rule 的格式長這樣：
+
+```
+Use the minimum evidence sufficient to answer correctly,
+cite it precisely, then stop.
+```
+
+這跟「ALWAYS cite all available sources」的差別是：前者讓模型自己判斷「夠了沒」，後者強迫模型把整本文件都翻一遍。對 GPT-5.5 這種已經會自己判斷夠不夠的模型，後者只會浪費 token 和延遲。
+
+<ClawdNote>
+這條轉變對寫過 GPT-3.5 時代 prompt 的開發者來說，會有一種「靠，那段七百行 prompt 我前年寫了一週」的痛感。當時模型真的會跳針、真的會漏步驟、真的需要被「First do X, then Y」牽著鼻子走。那不是 prompt engineer 寫太多，是模型不夠強。
+
+GPT-5.5 的能力提升把那個必要性消滅了，但同時把寫過大量 prompt 的人變成負債者：累積的「該怎麼壓模型行為」的肌肉記憶，現在反而是噪音。比較健康的心態是把舊 prompt 當成 git history 的考古層——曾經很好，但這層該封存了。
+
+順帶一提，OpenAI 還很雞婆地給了一個一鍵升級工具——`$openai-docs migrate this project to gpt-5.5`，丟進 [Codex](/glossary#codex) 它會幫忙改寫 prompt stack。這算是廠商第一次把「prompt 升級」當成一級自動化任務在賣，雖然這個工具本質就是「另一個 prompt 在改 prompt」。Inception (⌐■_■)
+</ClawdNote>
+
+---
+
+## 第二刀拆兩塊：personality 跟 collaboration style 不是同一件事
+
+GPT-5.5 開始把「assistant 怎麼講話」跟「assistant 怎麼做事」拆成兩個獨立的 prompt 區塊。OpenAI 用的詞分別是 **personality** 跟 **collaboration style**：
+
+- Personality 控制「怎麼聽起來」：語氣、溫度、直接程度、正式程度、幽默感、同理心、修飾程度
+- Collaboration style 控制「怎麼做事」：什麼時候問問題、什麼時候自己假設、要多主動、給多少脈絡、什麼時候檢查自己的成果、遇到不確定怎麼處理
+
+過去這兩件事常常被綁在一起寫——「You are a friendly and proactive assistant who...」一句話交代完。問題是友善跟主動是兩條獨立軸，硬綁在一起的後果是：想調整其中一條（譬如語氣想更專業一點），另一條會被連動修改（連帶變得不主動）。GPT-5.5 對這種 prompt 寫法很敏感，所以官方建議直接拆開寫。
+
+OpenAI 在文件裡給了兩個範本——一個是「沉穩、任務導向」的 assistant：
+
+```
+# Personality
+You are a capable collaborator: approachable, steady, and direct.
+Assume the user is competent and acting in good faith, and respond
+with patience, respect, and practical helpfulness.
+
+Prefer making progress over stopping for clarification when the
+request is already clear enough to attempt. Use context and
+reasonable assumptions to move forward. Ask for clarification only
+when the missing information would materially change the answer or
+create meaningful risk, and keep any question narrow.
+
+Stay concise without becoming curt. Give enough context for the user
+to understand and trust the answer, then stop. ...
+```
+
+另一個是「活潑、表達力強」的 assistant：
+
+```
+# Personality
+Adopt a vivid conversational presence: intelligent, curious, playful
+when appropriate, and attentive to the user's thinking. Ask good
+questions when the problem is blurry, then become decisive once
+there is enough context.
+
+Be warm, collaborative, and polished. Conversation should feel easy
+and alive, but not chatty for its own sake. Offer a real point of
+view rather than merely mirroring the user, while staying responsive
+to their goals and constraints.
+```
+
+兩個範本都不長——刻意保持精簡。OpenAI 強調這兩塊**不是用來代替任務目標、成功條件、工具規則、停止條件**。Personality 影響使用者體感、collaboration style 影響任務執行行為，但兩者都不該跨界去定義「什麼叫做完成」。
+
+實作上的心智模型：把 prompt 想成洋蔥。最內層是任務目標 + 成功條件 + 限制條件（任務本體），中間是 collaboration style（執行紀律），最外層才是 personality（表面氣質）。改最外層不該影響最內層。
+
+<ClawdNote>
+這個分法看起來顯而易見，但實際上 prompt 裡常常出現「You are a senior Python engineer who is helpful, friendly, and patient, and always checks twice before answering」這種把角色 / personality / collaboration / 安全規則全綁在同一句的寫法。改語氣的時候連帶把「重複檢查」的紀律改掉，bug 就是這樣偷渡進上線環境的。
+
+順便補一個觀察：OpenAI 給的兩個範本——「sober steady」跟「vivid playful」——其實對應到工程師選模型的一個老問題：「給內部開發工具用的 assistant 跟給終端使用者用的 chatbot，prompt 要怎麼分家？」過去常見的爛解是「同一份 prompt 加 if-else 條件」。新解法乾淨多了：personality 區塊換掉，任務目標 + 成功條件共用。維護成本立刻砍半。
+</ClawdNote>
+
+---
+
+## 三個小招：preamble、retrieval budget、stopping condition
+
+抽走 process-heavy 的條列之後，prompt 變短了，但有些情境還是要明確地告訴模型「該怎麼處理」。OpenAI 在 GPT-5.5 段落給了三個獨立的小招，每招解決一個具體痛點。
+
+### Preamble：first-token 延遲的視覺解藥
+
+GPT-5.5 在處理大量 tool call 或多步驟任務時，可能花一段時間在 reasoning、計畫、準備工具呼叫，這段時間使用者看到的是空白。OpenAI 建議在 prompt 裡加一條 preamble 規則，讓模型在動手前先丟一句短訊息出來：
+
+```
+Before any tool calls for a multi-step task, send a short
+user-visible update that acknowledges the request and states the
+first step. Keep it to one or two sentences.
+```
+
+這招不是讓模型變快，是讓使用者**感覺**比較快——streaming 介面上看到 「Got it, going to start by checking X」這句話的瞬間，等待的焦慮就降了一半。OpenAI 把這個叫做「improve perceived responsiveness」，很誠實，沒有騙工程師說 reasoning 變快。
+
+### Retrieval budget：給搜尋一個天花板
+
+這是 GPT-5.5 文件最有畫面感的新概念。Retrieval budget 是一條規則，告訴模型「搜到夠就停手，不要再搜」：
+
+```
+For ordinary Q&A, start with one broad search using short,
+discriminative keywords. If the top results contain enough citable
+support for the core request, answer from those results instead
+of searching again.
+
+Make another retrieval call only when:
+- The top results do not answer the core question.
+- A required fact, parameter, owner, date, ID, or source is missing.
+- The user asked for exhaustive coverage, a comparison, or a
+  comprehensive list.
+- A specific document, URL, email, meeting, record, or code
+  artifact must be read.
+- The answer would otherwise contain an important unsupported
+  factual claim.
+
+Do not search again to improve phrasing, add examples, cite
+nonessential details, or support wording that can safely be made
+more generic.
+```
+
+寫這條的痛點：在「答案要有出處」場景下，模型很容易陷入「再搜一次說不定更精準」的迴圈，token 跟延遲都炸。Retrieval budget 把「夠了沒」這個判斷權還給模型，但給了清楚的判準。對 RAG / agent 場景來說，這條等於把搜尋預算變成 prompt 的一部分。
+
+### Stopping condition：取代 ALWAYS / NEVER 的判斷題
+
+承接前一節的「描述目的地」哲學，stopping condition 是讓模型知道「什麼時候該收手」的工具。OpenAI 的範本：
+
+```
+Resolve the user query in the fewest useful tool loops, but do not
+let loop minimization outrank correctness, accessible fallback
+evidence, calculations, or required citation tags for factual claims.
+
+After each result, ask: "Can I answer the user's core request now
+with useful evidence and citations for the factual claims?"
+If yes, answer.
+```
+
+注意這條 prompt 的氣質：它沒講「最多做 5 次工具呼叫就停」（那會限制模型），也沒講「該停的時候自己判斷」（太模糊）。它給了一個**可執行的內部問句**——每跑完一輪就問自己「現在能不能回答了？」——把判斷邏輯外顯成模型可以重複自查的流程。
+
+<ClawdNote>
+這三招有個共同點：都是**把判斷權還給模型，但給模型一套可重複自查的流程**。過去的寫法是「我幫模型把所有情境條件都列完」（process-heavy），新寫法是「我教模型怎麼判斷」（decision rule）。
+
+這個轉變對 prompt engineer 心理上不容易接受——把控制權讓出去，違反工程直覺。但實際 benchmark 顯示 GPT-5.5 自己判斷的結果通常比硬寫 if-else 好。要習慣這件事可能需要幾個月——就像當年從 procedural 寫到 declarative 的轉換期，老工程師硬寫 for 迴圈寫了好幾年才接受 list comprehension。
+
+順帶吐槽 retrieval budget 的命名。「budget」這個詞讓人以為是某種硬性上限（譬如「最多 3 次搜尋」），結果讀完 prompt 內容是一組 decision rule。其實叫 retrieval policy 更準。但 budget 比較性感、比較容易紅，OpenAI 應該是故意挑這個詞 (¬‿¬)
+</ClawdNote>
+
+---
+
+## 給 coding agent 的硬技術段：phase parameter 跟 apply_patch 生態
+
+如果上面幾段是給「寫一般 prompt 的開發者」看的，這段是給「在做 coding agent 或多步驟 Responses workflow」的開發者準備的，技術密度高，但跳過會錯失最重要的兩件事。
+
+### Phase parameter：assistant item 的階段標籤
+
+GPT-5.4 開始的 Responses API 引入了 `phase` 欄位，讓長時間執行或大量呼叫工具的 workflow 可以區分「中間更新」跟「最終答案」。GPT-5.5 沿用同一套。OpenAI 的規則：
+
+```
+If manually replaying assistant items:
+- Preserve assistant `phase` values exactly.
+- Use `phase: "commentary"` for intermediate user-visible updates.
+- Use `phase: "final_answer"` for the completed answer.
+- Do not add `phase` to user messages.
+```
+
+實作上會踩雷的點：如果應用端用 `previous_response_id`，API 會自動保留 phase 狀態，這個情況完全不用煩惱。但如果是手動把 assistant output items 重播進下一個請求，每一個 item 的 `phase` 必須**原封不動**傳回去。漏傳或改錯，模型會搞不清楚剛才那段是中間 commentary 還是已經是 final answer，行為會跳針。
+
+OpenAI 在 GPT-5.4 的文件裡還補了一句排錯提醒：「如果發現 GPT-5.4 把中間更新當成最終答案處理了，先檢查整合層有沒有把 phase 欄位保住」——這個 bug 大概不少團隊已經中過，所以官方寫進了文件。
+
+### apply_patch：OpenAI 把 diff format 變成一級工具
+
+GPT-5.1 開始，OpenAI 把 `apply_patch` 升級成 first-class 工具型別。在 Responses API 裡只要寫：
+
+```python
+tools=[{"type": "apply_patch"}]
+```
+
+就能拿到 OpenAI 內建的 patch operations 實作——`create_file`、`update_file`、`delete_file` 三種操作，模型直接吐結構化 diff 出來，應用端收到後 apply 然後回報結果。
+
+關鍵的一句話來自 OpenAI 自己的測試結果：**named function 比自製 apply_patch 把失敗率降低 35%**。
+
+這句話換個翻譯：如果 coding agent 開發者自己手寫 apply_patch 的 tool description（或用其他 diff format），跟用 OpenAI 內建那版比，失敗率多 35%。原因是模型被特別 post-train 過去用 OpenAI 自己的 diff format。
+
+這條對 coding agent 開發者的決策影響很大：**自製 patch 工具是負債**，除非有非常明確的理由（譬如 patch 要先過某個 review pipeline）。OpenAI 同時提供 server-defined tool 跟 freeform tool with context-free grammar 兩種實作路徑，文件裡兩種範例都有，挑一種跟既有 stack 對得起來的就好。
+
+GPT-5.5 還補了一條 coding agent 專用的「叫模型驗證自己的成果」建議，套用「描述目的地」哲學：
+
+```
+After making changes, run the most relevant validation available:
+- targeted unit tests for changed behavior
+- type checks or lint checks when applicable
+- build checks for affected packages
+- a minimal smoke test when full validation is too expensive
+
+If validation cannot be run, explain why and describe the next
+best check.
+```
+
+不寫死「跑 pytest」、「跑 eslint」，而是讓模型自己選最相關的驗證手段。對處理多語言 codebase 的 coding agent 特別有用——不需要為每個語言寫一條 hardcoded 的驗證規則。
+
+<ClawdNote>
+35% 這個數字值得放大講。意思是：「prompt 工程能補的差距」跟「模型內建知道你的工具怎麼用」之間，差了 35% 的失敗率。這比多數工程師願意承認的還大。
+
+換句話說，coding agent 的競爭力很大一部分**不在 prompt 上**，而在「有沒有用對廠商提供的 first-class 工具」。Cursor、Cognition、Anthropic 自己的 [Claude Code](/glossary#claude-code) 為什麼能跑得這麼穩？因為他們會去用每家廠商 post-train 過的 tool format，不會自己手刻一份。
+
+對想做 coding agent 的個人開發者的啟示是：**不要自己發明 diff format**。用 OpenAI 的 apply_patch、用 Anthropic 的 Computer Use API、用 Google 的 codeexec tool、用各家內建的 file editor tool。創意花在 routing、orchestration、UX 上，不要花在「重新發明 patch 工具」這種廠商已經跑了幾百萬樣本 fine-tune 過的東西。
+</ClawdNote>
+
+---
+
+## Cursor 在 GPT-5 上的 prompt 調整：把『多多益善』推翻一次
+
+GPT-5 段落裡 OpenAI 罕見地放了一段 Cursor 的實戰案例——AI 程式編輯器拿 GPT-5 alpha 來試的時候做了哪些 prompt 調整。三件事值得單獨拿出來講，因為它們把「描述目的地」哲學講得很具體。
+
+### 第一件：verbosity API 跟 prompt 兩層分開配
+
+Cursor 一開始用預設 verbosity 跑 GPT-5，發現有個矛盾——文字輸出（狀態更新、任務後總結）太囉嗦干擾使用節奏，但工具呼叫裡輸出的程式碼又**過於精簡**到難讀（一堆單字母變數名）。
+
+解法是兩層分開配：API 的 `verbosity` 參數設 `low` 把全局壓低，prompt 裡再加一條規則只把寫程式工具的輸出 verbosity 拉高：
+
+```
+Write code for clarity first. Prefer readable, maintainable
+solutions with clear names, comments where needed, and
+straightforward control flow. Do not produce code-golf or overly
+clever one-liners unless explicitly requested. Use high verbosity
+for writing code and code tools.
+```
+
+結果：狀態更新簡短俐落、程式碼 diff 充分易讀。這是「同一個模型在不同介面上要不同行為」的標準解。GPT-5 之後 OpenAI 把這個技巧寫進官方建議——`text.verbosity` 是全域預設值，但 prompt 內可以針對特定情境 override。
+
+### 第二件：`maximize_context_understanding` 在 GPT-5 反而變糟
+
+Cursor 過去對舊模型用過一段 prompt：
+
+```xml
+<maximize_context_understanding>
+Be THOROUGH when gathering information. Make sure you have the FULL
+picture before replying. Use additional tool calls or clarifying
+questions as needed.
+...
+</maximize_context_understanding>
+```
+
+對 GPT-4 系列效果好——舊模型需要被推一把才會去翻脈絡。對 GPT-5 反而變糟：GPT-5 本來就會主動 gather context，這段 prompt 推一把之後變成「對小事也瘋狂叫搜尋」，明明用內部知識就能答的事也硬要呼叫工具。
+
+Cursor 的解法是把這條改名 + 弱化語氣：
+
+```xml
+<context_understanding>
+...
+If you've performed an edit that may partially fulfill the USER's
+query, but you're not confident, gather more information or use
+more tools before ending your turn.
+Bias towards not asking the user for help if you can find the
+answer yourself.
+</context_understanding>
+```
+
+關鍵詞從「THOROUGH」「FULL picture」改成「Bias towards not asking」。從推模型變成攔模型。
+
+OpenAI 把這條經驗放進官方文件是有意義的——它示範了一個 prompt 檢視的習慣：**舊 prompt 要重新審視，不是因為它錯，是因為模型變了**。對 GPT-4 有效的鼓勵句，對 GPT-5 變成多餘的督促。
+
+### 第三件：用 XML 結構提升 instruction adherence
+
+Cursor 的觀察：用 `<[instruction]_spec>` 這種 XML tag 把不同 prompt 段落結構化標記，模型對指令的服從程度會明顯提升。原因是模型可以從 prompt 其他段落引用回這些標記（譬如「依照 `<output_spec>` 的規則輸出」），prompt 內部變成有交叉引用的結構，而不是一坨純文字。
+
+這條跟 Anthropic 在 Claude prompt best practice 裡推 XML tag 的做法不謀而合——兩家旗艦模型都對結構化 XML 有偏好。對 prompt 寫作者的實作 takeaway：複雜 prompt 拆段落的時候，用 XML tag 比用 markdown header 對模型更友善。
+
+<ClawdNote>
+Cursor 這段案例真正的價值不在「他們做了什麼」，是「他們**砍掉**了什麼」。`maximize_` 那條 prompt 過去是 best practice、現在是反模式。這提醒所有用 LLM 寫上線系統的團隊：**prompt 不是寫一次就終身有效的東西**。每次模型升級都該過一遍 prompt 檢視，問每一段：「這條對新模型還有用嗎，還是已經變成噪音？」
+
+順帶吐槽 Cursor 的命名習慣——`<maximize_context_understanding>` 這種前綴帶 `maximize_` / `ensure_` / `always_` 的命名，本身就是「用語氣壓模型」的習慣產物。新一代 prompt 應該避免這種命令式前綴，改用中性的命名（`<context_handling>`、`<verbosity_rules>`）。語氣藏在 prompt 內容裡決定，不用 tag 名稱再強調一次。
+</ClawdNote>
+
+---
+
+## Metaprompting：讓模型修自己的 prompt
+
+GPT-5.3-Codex 段落裡藏了一招更狡猾的：metaprompting，意思是**讓模型自己看完一輪不滿意的輸出，反過來建議該怎麼改寫指令**。OpenAI 把這套寫成正式工具：
+
+```
+That was a high quality response, thanks! It seemed like it took
+you a while to finish responding though. Is there a way to clarify
+your instructions so you can get to a response as good as this
+faster next time? It's extremely important to be efficient when
+providing these responses or users won't get the most out of them
+in time. Let's see if we can improve!
+
+think through the response you gave above
+read through your instructions starting from "" and look for
+anything that might have made you take longer to formulate a high
+quality response than you needed
+write out targeted (but generalized) additions/changes/deletions
+to your instructions to make a request like this one faster next
+time with the same level of quality
+```
+
+讀完上面這段大概可以體會 metaprompting 的精神：把問題本身（「剛剛那輪太慢了」）搬到模型面前，叫模型自己回頭讀自己拿到的指令，然後提建議。
+
+OpenAI 給的注意事項很重要，不要漏：
+
+- **多跑幾次**：metaprompt 本身是隨機的，跑 3-5 次找出共同建議才可靠。某次模型給的某條改寫可能是針對那一個情境，過度具體；多次跑出現的共識才是可一般化的改進。
+- **建立評測**：建議放進 prompt 之後，要有 eval 衡量「改了之後對這個用途是好是壞」。不要模型提了就照單全收。
+- **適合處理特定 failure mode**：overthinking、loggy preamble、awkward phrasing 這類「行為特徵」問題，metaprompt 特別好用，因為模型對自己的行為比 prompt engineer 看得更清楚。
+
+OpenAI 給的兩個應用範例：
+
+- **Overthinking / 啟動慢**：請模型提出能降低「動手前的思考時間」或「拿出第一份計畫所需時間」的指令改動
+- **Loggy preamble**：請模型重寫使用者更新的指令，符合特定的偏好
+
+這招其實 LLM 圈子內早就有人在用——Karpathy 大概兩年前就在 X 上講過類似手法。但 OpenAI 把它寫進官方 prompting guide 是第一次，意味著廠商正式把「prompt engineering 是迭代式工作」這件事放進建議流程裡，不再是「寫一份完美 prompt」的單次任務。
+
+<ClawdNote>
+Metaprompting 的隱藏含義其實有點哲學味：廠商在說「我們的模型對自己指令的理解，比 prompt engineer 對模型行為的理解更準」。這句話對寫了五年 prompt 的人來說有點刺耳，但翻翻自己 prompt 的 git log 大概會默默承認——很多次都是「我以為這樣寫模型會這樣做，結果不是」。
+
+健康的工作流大概長這樣：寫初版 prompt → 跑上線環境收 failure case → 把 failure 的對話紀錄餵給 metaprompt → 收建議 → 跑 eval → 採用通過 eval 的部分。把 prompt 當成 codebase 在維護，而不是當成規格書在簽署 (◕‿◕)
+</ClawdNote>
+
+---
+
+## 結語：兩家旗艦同方向跑，舊 prompt 收進 git history 留紀念
+
+把這份 OpenAI GPT-5.5 prompting guide 跟 Anthropic 在 [SP-175](/posts/sp-175-20260416-anthropic-opus-4-7-prompting-best-practices/) 給 Opus 4.7 的 best practice 攤在桌上對比，會看到很有意思的收斂：
+
+- 都在說 prompt 變短：OpenAI「shorter, outcome-first prompts」、Anthropic「intent-first」
+- 都在拆關注點：OpenAI 拆 personality / collaboration、Anthropic 拆 coverage / filter
+- 都在強調模型自己會判斷：OpenAI 的 retrieval budget / decision rule、Anthropic 的「不要再寫 always/never，模型會自己處理」
+- 都把 metaprompting / prompt 檢視當成正式工作流：OpenAI 寫進文件、Anthropic 給 Claude Code 內建 prompt 檢視 skill
+
+兩家頂級模型廠商不約而同往同個方向跑，不是抄來抄去，是兩條獨立 train 出來的旗艦模型都到了同一個能力斷層——「不再需要被 process-heavy prompt 牽著走」。對 prompt engineer 來說，這個訊號比任何單獨一份文件都強：**舊 prompt 寫法不是 OpenAI 單方面退場，是整個產業的退場**。
+
+但別衝動全砍。OpenAI 自己在 GPT-5.5 文件末段寫了一句很重要的話：「The patterns here are starting points. Adapt them to your product surface, tools, evals, and user experience goals.」翻成大白話：每條建議都要過自己的評測才算數。直接把舊 prompt 全砍重寫沒做評測，等於把上線環境拿去裸奔。
+
+實作上的健康節奏大概是：
+
+1. 把當前 prompt 過一遍檢視，標記每段是「真的硬規則」還是「process-heavy 拐杖」
+2. 拐杖部分用「描述目的地」改寫——先小幅、別一次全動
+3. 跑評測對比新舊版，挑通過的合進去
+4. 持續用 metaprompt 蒐集 failure case 改進
+
+這個流程聽起來很像軟體工程師寫程式的 review 紀律，因為那本來就是同一件事——prompt 已經不是「寫給 LLM 看的咒語」，是上線系統的一部分，該享有同等的 review、test、refactor 待遇。
+
+那個星期二早上的工程師最後把七百行 prompt 砍到剩兩百行，跑評測一比，新版延遲下去 28%、準確度沒變、token 成本砍三分之一。剩下那五百行 prompt 進了 git history 當紀念碑——曾經在 GPT-4 時代救命，現在功成身退。
+
+下一代模型出來的時候，剩下這兩百行大概會再被砍一半。Prompt engineer 的工作不是寫出永恆的 prompt，是學會持續砍掉自己昨天寫的東西。
