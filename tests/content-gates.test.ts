@@ -8,6 +8,12 @@
  */
 import { describe, it, expect } from 'vitest';
 import * as fs from 'node:fs';
+import * as os from 'node:os';
+import * as path from 'node:path';
+
+// Per-suite tmpdir; CodeQL js/path-injection-clean (mkdtempSync is a safe origin).
+const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'gucg-'));
+const tmpPath = (name: string) => path.join(TMP, path.basename(name));
 import { formatModelName } from '../scripts/detect-model.mjs';
 import * as jjModule from '../scripts/check-jingjing.mjs';
 import * as pronModule from '../scripts/check-pronoun-clarity.mjs';
@@ -105,7 +111,7 @@ describe('check-jingjing.maskContent', () => {
 
 describe('check-jingjing.checkFile', () => {
   it('flags decorative english in zh-tw post', () => {
-    const filepath = '/tmp/jj-flag.mdx';
+    const filepath = tmpPath('jj-flag.mdx');
     fs.writeFileSync(
       filepath,
       `---\nlang: zh-tw\n---\n這個 approach 真的很 solid，產出 production-ready 的東西。\n`
@@ -118,14 +124,14 @@ describe('check-jingjing.checkFile', () => {
   });
 
   it('skips en- posts', () => {
-    const filepath = '/tmp/en-jj.mdx';
+    const filepath = tmpPath('en-jj.mdx');
     fs.writeFileSync(filepath, `---\nlang: en\n---\nplain English body.\n`);
     const r = jj.checkFile(filepath);
     expect(r.skipped).toBe(true);
   });
 
   it('passes acronym-only english', () => {
-    const filepath = '/tmp/jj-pass.mdx';
+    const filepath = tmpPath('jj-pass.mdx');
     fs.writeFileSync(filepath, `---\nlang: zh-tw\n---\n用 API 跟 CLI 一起測試。\n`);
     const r = jj.checkFile(filepath);
     expect(r.violations).toEqual([]);
@@ -172,7 +178,7 @@ describe('check-pronoun-clarity', () => {
   });
 
   it('findViolations flags 你 / 我 in body prose', () => {
-    const filepath = '/tmp/pronoun.mdx';
+    const filepath = tmpPath('pronoun.mdx');
     fs.writeFileSync(filepath, `---\nlang: zh-tw\n---\n這篇文章想告訴你一件事。\n`);
     const v = pron.findViolations(filepath);
     expect(v.length).toBe(1);
@@ -180,7 +186,7 @@ describe('check-pronoun-clarity', () => {
   });
 
   it('does NOT flag 你/我 inside ClawdNote', () => {
-    const filepath = '/tmp/pronoun-clawd.mdx';
+    const filepath = tmpPath('pronoun-clawd.mdx');
     fs.writeFileSync(
       filepath,
       `---\nlang: zh-tw\n---\n正文沒有事兒。\n<ClawdNote>\n我覺得你應該來看這個\n</ClawdNote>\n`

@@ -6,7 +6,16 @@
  */
 import { describe, it, expect } from 'vitest';
 import * as fs from 'node:fs';
+import * as os from 'node:os';
+import * as path from 'node:path';
 import * as vModule from '../scripts/validate-posts.mjs';
+
+// Single sandboxed tmpdir for the whole suite. CodeQL's js/path-injection
+// only stays clean when destination paths are joined under a path returned
+// from os.mkdtempSync — string-concat to "/tmp/..." trips it because the
+// filename half is treated as a (test-controlled) tainted source.
+const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'guvp-'));
+const tmpPath = (name: string) => path.join(TMP, path.basename(name));
 
 // validate-posts.mjs is plain JS without .d.ts; widen to any.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -78,7 +87,7 @@ describe('getContentBody', () => {
 
 describe('validatePost — pass case', () => {
   it('passes a fully-valid zh-tw post', () => {
-    const filepath = '/tmp/sp-1-20260401-x.mdx';
+    const filepath = tmpPath('sp-1-20260401-x.mdx');
     fs.writeFileSync(filepath, makePost(validFm));
     const r = validatePost(filepath, [{ filename: 'sp-1-20260401-x.mdx', ticketId: 'SP-1' }]);
     expect(r.errors).toEqual([]);
@@ -87,7 +96,7 @@ describe('validatePost — pass case', () => {
 
 describe('validatePost — required-field rules', () => {
   function runWithFm(fmLines: string[], filename = 'sp-1-x.mdx') {
-    const filepath = `/tmp/${filename}`;
+    const filepath = tmpPath(filename);
     fs.writeFileSync(filepath, makePost(fmLines));
     return validatePost(filepath, []);
   }
@@ -146,7 +155,7 @@ describe('validatePost — required-field rules', () => {
 
 describe('validatePost — content rules', () => {
   it('flags missing kaomoji', () => {
-    const filepath = '/tmp/no-kaomoji.mdx';
+    const filepath = tmpPath('no-kaomoji.mdx');
     const padding = '正文充足內容'.repeat(40);
     fs.writeFileSync(filepath, `---\n${validFm.join('\n')}\n---\n${padding}\nNo face here.\n`);
     const r = validatePost(filepath, []);
@@ -154,14 +163,14 @@ describe('validatePost — content rules', () => {
   });
 
   it('flags content too short', () => {
-    const filepath = '/tmp/short.mdx';
+    const filepath = tmpPath('short.mdx');
     fs.writeFileSync(filepath, `---\n${validFm.join('\n')}\n---\ntiny ${KAOMOJI}\n`);
     const r = validatePost(filepath, []);
     expect(r.errors.some((e: string) => e.includes('Content too short'))).toBe(true);
   });
 
   it('flags raw ```mermaid code fence', () => {
-    const filepath = '/tmp/mermaid.mdx';
+    const filepath = tmpPath('mermaid.mdx');
     const padding = '正文充足內容'.repeat(40);
     fs.writeFileSync(
       filepath,
@@ -172,7 +181,7 @@ describe('validatePost — content rules', () => {
   });
 
   it('flags translatedBy.model without version number', () => {
-    const filepath = '/tmp/badmodel.mdx';
+    const filepath = tmpPath('badmodel.mdx');
     const fm = [...validFm, 'translatedBy:', '  model: Opus', '  harness: Claude Code'];
     fs.writeFileSync(filepath, makePost(fm));
     const r = validatePost(filepath, []);
@@ -180,7 +189,7 @@ describe('validatePost — content rules', () => {
   });
 
   it('warns on long summary', () => {
-    const filepath = '/tmp/longsummary.mdx';
+    const filepath = tmpPath('longsummary.mdx');
     const longSummary = 'x'.repeat(310);
     const fm = validFm.map((l) => (l.startsWith('summary:') ? `summary: "${longSummary}"` : l));
     fs.writeFileSync(filepath, makePost(fm));
@@ -189,7 +198,7 @@ describe('validatePost — content rules', () => {
   });
 
   it('warns on filename without date', () => {
-    const filepath = '/tmp/no-date-in-name.mdx';
+    const filepath = tmpPath('no-date-in-name.mdx');
     fs.writeFileSync(filepath, makePost(validFm));
     const r = validatePost(filepath, []);
     expect(r.warnings.some((w: string) => w.includes('date'))).toBe(true);
@@ -198,7 +207,7 @@ describe('validatePost — content rules', () => {
 
 describe('validatePost — cross-file rules', () => {
   it('flags duplicate ticketId across non-paired files', () => {
-    const filepath = '/tmp/sp-1-a.mdx';
+    const filepath = tmpPath('sp-1-a.mdx');
     fs.writeFileSync(filepath, makePost(validFm));
     const r = validatePost(filepath, [
       { filename: 'sp-1-a.mdx', ticketId: 'SP-1' },
@@ -209,7 +218,7 @@ describe('validatePost — cross-file rules', () => {
 
   it('does NOT flag PENDING ticketId duplicates (multiple drafts share)', () => {
     const fm = validFm.map((l) => (l.startsWith('ticketId:') ? 'ticketId: SP-PENDING' : l));
-    const filepath = '/tmp/pending.mdx';
+    const filepath = tmpPath('pending.mdx');
     fs.writeFileSync(filepath, makePost(fm));
     const r = validatePost(filepath, [
       { filename: 'pending.mdx', ticketId: 'SP-PENDING' },
@@ -219,7 +228,7 @@ describe('validatePost — cross-file rules', () => {
   });
 
   it('flags translation-pair ticketId mismatch', () => {
-    const filepath = '/tmp/sp-1-x.mdx';
+    const filepath = tmpPath('sp-1-x.mdx');
     fs.writeFileSync(filepath, makePost(validFm));
     const r = validatePost(filepath, [
       { filename: 'sp-1-x.mdx', ticketId: 'SP-1' },
