@@ -8,7 +8,13 @@
  */
 import { describe, it, expect } from 'vitest';
 import * as fs from 'node:fs';
+import * as os from 'node:os';
+import * as path from 'node:path';
 import * as sgModule from '../scripts/security-gate.mjs';
+
+// Per-suite tmpdir; CodeQL js/path-injection-clean (mkdtempSync is a safe origin).
+const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'gusg-'));
+const tmpPath = (name: string) => path.join(TMP, path.basename(name));
 
 // security-gate.mjs is plain JS without .d.ts; widen to any.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -184,7 +190,7 @@ describe('normalizeFindings — dispatcher', () => {
 
 describe('loadAllowlist', () => {
   it('loads array form', () => {
-    const f = '/tmp/allowlist-array.json';
+    const f = tmpPath('allowlist-array.json');
     fs.writeFileSync(
       f,
       JSON.stringify([{ id: '1234', reason: 'pinned', expiresAt: '2099-01-01' }])
@@ -196,7 +202,7 @@ describe('loadAllowlist', () => {
   });
 
   it('loads { entries: [] } form', () => {
-    const f = '/tmp/allowlist-obj.json';
+    const f = tmpPath('allowlist-obj.json');
     fs.writeFileSync(
       f,
       JSON.stringify({ entries: [{ name: 'foo', reason: 'r', expiresAt: '2099-01-01' }] })
@@ -206,29 +212,29 @@ describe('loadAllowlist', () => {
   });
 
   it('returns empty when file does not exist', () => {
-    expect(loadAllowlist('/tmp/does-not-exist-xyz.json')).toEqual([]);
+    expect(loadAllowlist(tmpPath('does-not-exist-xyz.json'))).toEqual([]);
   });
 
   it('throws when entry missing reason', () => {
-    const f = '/tmp/allowlist-bad.json';
+    const f = tmpPath('allowlist-bad.json');
     fs.writeFileSync(f, JSON.stringify([{ id: '1', expiresAt: '2099-01-01' }]));
     expect(() => loadAllowlist(f)).toThrow(/missing reason/);
   });
 
   it('throws when entry missing expiresAt', () => {
-    const f = '/tmp/allowlist-bad2.json';
+    const f = tmpPath('allowlist-bad2.json');
     fs.writeFileSync(f, JSON.stringify([{ id: '1', reason: 'r' }]));
     expect(() => loadAllowlist(f)).toThrow(/missing expiresAt/);
   });
 
   it('throws on unparseable expiresAt', () => {
-    const f = '/tmp/allowlist-bad3.json';
+    const f = tmpPath('allowlist-bad3.json');
     fs.writeFileSync(f, JSON.stringify([{ id: '1', reason: 'r', expiresAt: 'not-a-date' }]));
     expect(() => loadAllowlist(f)).toThrow(/invalid expiresAt/);
   });
 
   it('throws when entry has neither id nor name', () => {
-    const f = '/tmp/allowlist-bad4.json';
+    const f = tmpPath('allowlist-bad4.json');
     fs.writeFileSync(f, JSON.stringify([{ reason: 'r', expiresAt: '2099-01-01' }]));
     expect(() => loadAllowlist(f)).toThrow(/at least id or name/);
   });
