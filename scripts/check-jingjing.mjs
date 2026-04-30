@@ -366,6 +366,12 @@ loggy
 phrasing
 awkward
 
+# Added 2026-04-30 for SP-190 (manthanguptaa Hermes Agent memory deep-dive).
+# Hermes Agent is Nous Research's open-source agent product; Honcho is the
+# user-modeling service it integrates with. manthanguptaa is the source
+# author's X handle. FTS5 is SQLite's full-text search extension.
+Hermes Nous Honcho manthanguptaa FTS5 NousResearch dialectic ChatGPT
+
 # OpenAI-named prompt keywords / API surface (referenced in the article as
 # the literal English terms users see in OpenAI docs).
 ALWAYS NEVER always never must only
