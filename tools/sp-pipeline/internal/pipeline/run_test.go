@@ -17,7 +17,7 @@ import (
 
 // makeRunHarness returns a fully wired State + workDir for an end-to-end
 // run test. It writes a fake fetch-x-article.sh that emits a plausible
-// capture, a fake tribunal-all-claude.sh that exits 0, a fake
+// capture, a fake tribunal.sh that exits 0, a fake
 // dedup-gate.mjs that echoes PASS, and a real temp git repo + counter
 // file. The FakeProvider is seeded with plausible responses for
 // eval/write/review/refine.
@@ -55,7 +55,7 @@ SOURCE
 echo "[stub-ralph] passing: $*"
 exit 0
 `
-	if err := os.WriteFile(filepath.Join(scriptsDir, "tribunal-all-claude.sh"), []byte(ralphStub), 0o755); err != nil {
+	if err := os.WriteFile(filepath.Join(scriptsDir, "tribunal.sh"), []byte(ralphStub), 0o755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -120,7 +120,7 @@ process.exit(0);
 	}
 
 	fake := llm.NewFakeClaude().WithResponses(
-		llm.FakeResponse{Output: `{"verdict":"GO","reason":"substantial","suggested_title":"Fake Title"}`, WriteFile: "eval-gemini.json"},
+		llm.FakeResponse{Output: `{"verdict":"GO","reason":"substantial","suggested_title":"Fake Title"}`, WriteFile: "eval-codex-primary.json"},
 		llm.FakeResponse{Output: `{"verdict":"GO","reason":"on topic","suggested_title":"Fake Title"}`, WriteFile: "eval-codex.json"},
 		llm.FakeResponse{Output: `---
 title: "Fake Title"
@@ -194,8 +194,8 @@ func TestRun_HappyPath(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(s.Cfg.PostsDir, s.Filename)); err != nil {
 		t.Errorf("deployed file missing: %v", err)
 	}
-	if s.GeminiVerdict != "GO" || s.CodexVerdict != "GO" {
-		t.Errorf("eval verdicts not propagated: gemini=%q codex=%q", s.GeminiVerdict, s.CodexVerdict)
+	if s.CodexPrimaryVerdict != "GO" || s.CodexVerdict != "GO" {
+		t.Errorf("eval verdicts not propagated: codexPrimary=%q codex=%q", s.CodexPrimaryVerdict, s.CodexVerdict)
 	}
 	if !s.RalphPassed {
 		t.Errorf("RalphPassed should be true")
@@ -217,7 +217,7 @@ func TestRun_EvalSkipExit12(t *testing.T) {
 	s, _ := makeRunHarness(t)
 	// Override the dispatcher so BOTH evaluators return SKIP.
 	fake := llm.NewFakeClaude().WithResponses(
-		llm.FakeResponse{Output: `{"verdict":"SKIP","reason":"too thin","suggested_title":""}`, WriteFile: "eval-gemini.json"},
+		llm.FakeResponse{Output: `{"verdict":"SKIP","reason":"too thin","suggested_title":""}`, WriteFile: "eval-codex-primary.json"},
 		llm.FakeResponse{Output: `{"verdict":"SKIP","reason":"off topic","suggested_title":""}`, WriteFile: "eval-codex.json"},
 	)
 	disp, err := llm.NewDispatcher(logx.New(), fake)
@@ -292,7 +292,7 @@ body
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(data), `"Gemini CLI + Codex CLI + Claude Code"`) {
+	if !strings.Contains(string(data), `"Codex CLI"`) {
 		t.Errorf("ralph normaliser did not run on resume: %s", data)
 	}
 }

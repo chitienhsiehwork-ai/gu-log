@@ -718,7 +718,7 @@ spawn_worker() {
     export PROGRESS_FILE="$ROOT_DIR/scores/tribunal-progress.json"
     export TRIBUNAL_MAIN_REPO="$ROOT_DIR"
     export TRIBUNAL_WORKER_ID="$id"
-    bash "$wt/scripts/tribunal-all-claude.sh" "$article" >> "$LOG_FILE" 2>&1
+    bash "$wt/scripts/tribunal.sh" "$article" >> "$LOG_FILE" 2>&1
   ) &
   local pid=$!
   WORKER_PID[$id]=$pid
@@ -812,7 +812,7 @@ get_unscored_articles() {
       continue
     fi
     # Skip already passed or permanently exhausted (hit MAX_TOP_ATTEMPTS=5 in
-    # tribunal-all-claude.sh — prevents sp-94-style infinite retry loop).
+    # tribunal.sh — prevents sp-94-style infinite retry loop).
     status=$(jq -r --arg a "$article" '.[$a].status // "pending"' "$PROGRESS_FILE" 2>/dev/null || echo "pending")
     if [ "$status" = "PASS" ] || [ "$status" = "EXHAUSTED" ]; then
       continue

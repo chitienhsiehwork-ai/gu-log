@@ -1,10 +1,9 @@
 ---
 description: "Vibe Scorer — independent, harsh quality scorer for gu-log posts. Scores on 5 dimensions (Persona/ClawdNote/Vibe/Clarity/Narrative). Pass bar: composite ≥ 8 AND at least one dimension ≥ 9 AND no dimension < 8. Zero context from parent conversation. Use this to evaluate post quality without bias."
-# PINNED: claude-opus-4-6[1m]. Maintainer has explicitly rejected Opus 4.7's
-# vibe-scoring calibration — 4.7 inflates scores and misses decorative-persona
-# traps that 4.6 catches. Do NOT bump to "opus" alias or 4.7 without owner
-# sign-off. Matched by tools/sp-pipeline/internal/llm/claude.go ClaudeOpusPinned.
-model: claude-opus-4-6[1m]
+# Legacy filename retained for compatibility. Runtime is supplied by
+# scripts/tribunal.sh via `codex exec --model gpt-5.5`; this frontmatter is
+# prompt metadata, not a Claude Code model selector.
+model: gpt-5.5
 tools:
   - Read
   - Write

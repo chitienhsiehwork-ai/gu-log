@@ -1,5 +1,7 @@
 // Package llm is the dispatcher layer around the external language model
-// CLIs the pipeline calls — claude, codex, and gemini.
+// CLIs the pipeline can call. The maintained production runtime is Codex;
+// older Claude/Gemini wrappers remain only for compatibility tests and
+// historical fallback experiments.
 //
 // Design notes:
 //
@@ -7,15 +9,14 @@
 //     no API client, no auth plumbing, no HTTP. The surrounding CLIs
 //     (installed by the user) handle their own authentication, and we
 //     inherit whatever credentials they already have.
-//   - A Dispatcher composes a fallback chain. The default chain is Claude
-//     Opus primary → Codex GPT-5.4 fallback, matching the current bash
-//     script's "--opus mode is the default, Codex is the escape hatch"
-//     behaviour.
+//   - A Dispatcher composes a fallback chain. The default chain is Codex
+//     GPT-5.5 primary, matching the current mac-cdx workflow where Codex CLI
+//     is the maintained local LLM harness.
 //   - Canary probes (sp-pipeline doctor --probe-llm) send a single short
 //     prompt through each provider independently, reporting which ones
 //     respond non-interactively. This is the load-bearing early warning
-//     that will catch the "claude -p wants a TTY in a non-TTY subprocess"
-//     failure mode identified during the planning pass.
+//     that will catch CLI auth / non-interactive execution failures before a
+//     long writing run spends real credits.
 package llm
 
 // ModelID is an enum-ish string identifying a specific model build.
@@ -25,6 +26,7 @@ type ModelID string
 const (
 	ModelClaudeOpus   ModelID = "claude-opus"
 	ModelGemini31Pro  ModelID = "gemini-3.1-pro-preview"
+	ModelGPT55        ModelID = "gpt-5.5"
 	ModelGPT54        ModelID = "gpt-5.4"
 	ModelGPT53Codex   ModelID = "gpt-5.3-codex"
 	ModelClaudeSonnet ModelID = "claude-sonnet"
@@ -35,9 +37,9 @@ const (
 // in translatedBy.model. Unknown IDs pass through unchanged so the caller
 // fails loudly at validation time instead of silently truncating.
 //
-// Opus is pinned to 4.6 in claude.go (ClaudeOpusPinned) — the maintainer
-// has explicitly rejected 4.7's writing voice and vibe-scoring calibration.
-// Do not bump the Opus display name without also unpinning the model.
+// Claude/Gemini display names are retained because historical frontmatter and
+// old fake-provider tests may still mention them. New production credits should
+// normally record GPT-5.5 + Codex CLI.
 func DisplayName(m ModelID) string {
 	switch m {
 	case ModelClaudeOpus:
@@ -48,6 +50,8 @@ func DisplayName(m ModelID) string {
 		return "Haiku 4.5"
 	case ModelGemini31Pro:
 		return "Gemini 3.1 Pro"
+	case ModelGPT55:
+		return "GPT-5.5"
 	case ModelGPT54:
 		return "GPT-5.4"
 	case ModelGPT53Codex:
@@ -65,7 +69,7 @@ func HarnessName(m ModelID) string {
 		return "Claude Code CLI"
 	case ModelGemini31Pro:
 		return "Gemini CLI"
-	case ModelGPT54, ModelGPT53Codex:
+	case ModelGPT55, ModelGPT54, ModelGPT53Codex:
 		return "Codex CLI"
 	default:
 		return "Unknown Harness"

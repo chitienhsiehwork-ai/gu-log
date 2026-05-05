@@ -21,7 +21,7 @@ const finalPipelineURL = "https://github.com/chitienhsiehwork-ai/gu-log/blob/mai
 //     for new articles; the caller-provided filename when resuming).
 //  2. Copies final.mdx into src/content/posts/ at that filename if it's
 //     not already there.
-//  3. Runs `bash scripts/tribunal-all-claude.sh <filename>` via the ralph
+//  3. Runs `bash scripts/tribunal.sh <filename>` via the ralph
 //     package. Tribunal failures are logged-and-continued (bash behavior).
 //  4. For each of {zh-tw, en} files in the posts dir, runs the
 //     frontmatter normaliser that strips any existing pipeline block +
@@ -101,9 +101,9 @@ func (s *State) Ralph(ctx context.Context) error {
 	}
 
 	// Run the tribunal.
-	s.Log.Info("  Running 4-stage tribunal (tribunal-all-claude.sh)...")
+	s.Log.Info("  Running 4-stage tribunal (Codex GPT-5.5 via tribunal.sh)...")
 	passed, err := ralph.Run(ctx, ralph.Options{
-		RalphScript: filepath.Join(s.Cfg.ScriptsDir, "tribunal-all-claude.sh"),
+		RalphScript: filepath.Join(s.Cfg.ScriptsDir, "tribunal.sh"),
 		Filename:    s.ActiveFilename,
 		StdoutFile:  filepath.Join(s.WorkDir, "tribunal-stdout.txt"),
 	})
@@ -139,7 +139,7 @@ func (s *State) Ralph(ctx context.Context) error {
 //
 //  1. Parses the file's frontmatter.
 //  2. Strips any existing pipeline: block and any pipelineUrl: line.
-//  3. Rewrites harness: to "Gemini CLI + Codex CLI + Claude Code".
+//  3. Rewrites harness: to "Codex CLI".
 //  4. Inserts a canonical 6-entry pipeline: block after harness.
 //  5. Inserts the canonical pipelineUrl.
 func normalizeRalphFrontmatter(path string) error {
@@ -170,17 +170,18 @@ func normalizeRalphFrontmatter(path string) error {
 	})
 
 	// Canonical harness summary.
-	f.SetNestedScalar("translatedBy", "harness", `"Gemini CLI + Codex CLI + Claude Code"`)
+	f.SetNestedScalar("translatedBy", "harness", `"Codex CLI"`)
 
 	// 6-entry canonical pipeline block.
 	entries := []PipelineEntry{
-		{Role: "Written", Model: "Opus 4.6", Harness: "Claude Code CLI"},
-		{Role: "Reviewed", Model: "Opus 4.6", Harness: "Claude Code CLI"},
-		{Role: "Refined", Model: "Opus 4.6", Harness: "Claude Code CLI"},
-		{Role: "Scored", Model: "Opus 4.6", Harness: "Claude Code (vibe-opus-scorer)"},
-		{Role: "Rewritten", Model: "Opus 4.6", Harness: "Claude Code"},
-		{Role: "Orchestrated", Model: "Opus 4.6", Harness: "OpenClaw + Tribunal"},
+		{Role: "Written", Model: "GPT-5.5", Harness: "Codex CLI"},
+		{Role: "Reviewed", Model: "GPT-5.5", Harness: "Codex CLI"},
+		{Role: "Refined", Model: "GPT-5.5", Harness: "Codex CLI"},
+		{Role: "Scored", Model: "GPT-5.5", Harness: "Codex CLI + Tribunal"},
+		{Role: "Rewritten", Model: "GPT-5.5", Harness: "Codex CLI + Tribunal"},
+		{Role: "Orchestrated", Model: "GPT-5.5", Harness: "sp-pipeline + Tribunal"},
 	}
+	f.SetNestedScalar("translatedBy", "pipeline", "")
 	f.SetBlock("  pipeline", renderPipelineBlock("  pipeline", entries))
 	f.SetNestedScalar("translatedBy", "pipelineUrl", quoted(finalPipelineURL))
 

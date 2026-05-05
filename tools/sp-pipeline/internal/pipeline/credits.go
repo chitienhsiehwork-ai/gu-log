@@ -47,28 +47,27 @@ func (s *State) Credits(ctx context.Context) error {
 		return fmt.Errorf("credits: parse final.mdx: %w", err)
 	}
 
-	// Default the per-stage metadata to the Opus/Codex/Opus triple the
-	// bash pipeline uses as a fallback (lines 1164-1169). A real run
-	// would have populated these in Write/Review/Refine.
-	writeModel := nonEmpty(s.WriteModel, "Opus 4.6")
-	writeHarness := nonEmpty(s.WriteHarness, "Claude Code CLI")
-	reviewModel := nonEmpty(s.ReviewModel, "GPT-5.4")
+	// Default the per-stage metadata to the mac-cdx Codex GPT-5.5 path.
+	// A real run populates these in Write/Review/Refine.
+	writeModel := nonEmpty(s.WriteModel, "GPT-5.5")
+	writeHarness := nonEmpty(s.WriteHarness, "Codex CLI")
+	reviewModel := nonEmpty(s.ReviewModel, "GPT-5.5")
 	reviewHarness := nonEmpty(s.ReviewHarness, "Codex CLI")
-	refineModel := nonEmpty(s.RefineModel, "Opus 4.6")
-	refineHarness := nonEmpty(s.RefineHarness, "Claude Code CLI")
+	refineModel := nonEmpty(s.RefineModel, "GPT-5.5")
+	refineHarness := nonEmpty(s.RefineHarness, "Codex CLI")
 
 	// Patch the top-level model line to match the actual writer.
 	f.SetNestedScalar("translatedBy", "model", quoted(writeModel))
 	// Replace harness with a summary string and inject the 4-entry pipeline.
-	f.SetNestedScalar("translatedBy", "harness", `"Gemini CLI + Codex CLI"`)
+	f.SetNestedScalar("translatedBy", "harness", `"Codex CLI"`)
 
 	entries := []PipelineEntry{
 		{Role: "Written", Model: writeModel, Harness: writeHarness},
 		{Role: "Reviewed", Model: reviewModel, Harness: reviewHarness},
 		{Role: "Refined", Model: refineModel, Harness: refineHarness},
-		{Role: "Orchestrated", Model: "Opus 4.6", Harness: "OpenClaw"},
+		{Role: "Orchestrated", Model: "GPT-5.5", Harness: "sp-pipeline"},
 	}
-	f.SetBlock("  pipeline", renderPipelineBlock("  pipeline", entries))
+	f.SetNestedBlock("translatedBy", "pipeline", renderPipelineBlock("  pipeline", entries))
 	f.SetNestedScalar("translatedBy", "pipelineUrl", quoted(PipelineURL))
 
 	if err := os.WriteFile(finalPath, f.Bytes(), 0o644); err != nil {

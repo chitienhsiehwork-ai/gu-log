@@ -13,7 +13,7 @@ get_ticket_id() {
 }
 
 # Validate vibe scorer JSON output — returns 0 if valid, 1 if not
-# Expects tribunal vibe-opus-scorer schema: { dimensions: { persona, clawdNote, vibe, clarity, narrative }, ... }
+# Expects tribunal vibe scorer schema: { dimensions: { persona, clawdNote, vibe, clarity, narrative }, ... }
 # Usage: validate_score_json "/tmp/vibe-score-SP-110.json" "sp-110-file.mdx"
 validate_score_json() {
   local json_file="$1"
@@ -63,11 +63,7 @@ stamp_ralph_signature() {
   local file="$1"
   [ -f "$file" ] || return 0
 
-  # Detect model string
-  local model_str="Opus 4.6"
-  if command -v node &>/dev/null && [ -f "scripts/detect-model.mjs" ]; then
-    model_str=$(node scripts/detect-model.mjs claude-opus-4-6 2>/dev/null || echo "Opus 4.6")
-  fi
+  local model_str="GPT-5.5"
 
   # Replace the translatedBy block using node for reliable YAML manipulation
   # Fallback: use sed to replace model and harness lines, remove pipeline block
@@ -86,14 +82,14 @@ stamp_ralph_signature() {
     const tbRegex = /translatedBy:[\s\S]*?(?=\n[a-zA-Z]|\n---)/;
     const newTB = \`translatedBy:
   model: \"${model_str}\"
-  harness: \"Claude Code\"
+  harness: \"Codex CLI\"
   pipeline:
     - role: \"Scored\"
       model: \"${model_str}\"
-      harness: \"Claude Code (vibe-opus-scorer)\"
+      harness: \"Codex CLI (vibe scorer)\"
     - role: \"Rewritten\"
       model: \"${model_str}\"
-      harness: \"Claude Code\"
+      harness: \"Codex CLI\"
     - role: \"Orchestrated\"
       model: \"${model_str}\"
       harness: \"Tribunal Batch Runner\"
@@ -122,4 +118,71 @@ recompute_stats() {
       skipped: ([.posts | to_entries[] | select(.value.status == "SKIPPED")] | length)
     }
   ' "$progress" > "${progress}.tmp" && mv "${progress}.tmp" "$progress"
+}
+
+# Set up an isolated tmp work-dir for spawning LLM subprocesses. Keep this
+# outside the repo so Codex does not inherit unrelated repo-local instructions
+# and scratch runs avoid trusted-directory checks.
+tribunal_llm_work_dir() {
+  if [ -z "${REPO_ROOT:-}" ]; then
+    REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+  fi
+  local d
+  d="$(mktemp -d -t tribunal-llm-XXXXXX)"
+  ln -s "$REPO_ROOT/.claude" "$d/.claude"
+  echo "$d"
+}
+
+# Backward-compatible alias for older scripts still calling the old helper.
+tribunal_claude_work_dir() {
+  tribunal_llm_work_dir
+}
+
+tribunal_codex_cmd() {
+  if command -v codex >/dev/null 2>&1 && codex exec --help >/dev/null 2>&1; then
+    printf '%s\n' codex
+    return 0
+  fi
+  local bundled="/usr/lib/node_modules/@openai/codex/bin/codex.js"
+  if command -v node >/dev/null 2>&1 && [ -r "$bundled" ]; then
+    printf '%s\n' "node $bundled"
+    return 0
+  fi
+  return 1
+}
+
+# Run a repo-local agent spec through Codex. Codex has no `--agent` flag, so we
+# inline the `.claude/agents/<agent>.md` contract into the prompt and ask Codex
+# to follow it exactly.
+tribunal_codex_exec() {
+  local work_dir="$1"
+  local agent_name="$2"
+  local user_prompt="$3"
+  if [ -z "${REPO_ROOT:-}" ]; then
+    REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+  fi
+  local agent_file="$REPO_ROOT/.claude/agents/$agent_name.md"
+  local agent_spec=""
+  if [ -f "$agent_file" ]; then
+    agent_spec="$(cat "$agent_file")"
+  fi
+  local prompt
+  prompt="$(cat <<PROMPT
+You are running inside the gu-log tribunal automation.
+
+## Agent contract: $agent_name
+$agent_spec
+
+## Repo root
+$REPO_ROOT
+
+## User task
+$user_prompt
+PROMPT
+)"
+  local reasoning_effort="${TRIBUNAL_CODEX_REASONING:-medium}"
+  local timeout_sec="${TRIBUNAL_CODEX_TIMEOUT_SEC:-3600}"
+  local codex_cmd
+  codex_cmd="$(tribunal_codex_cmd)" || return 127
+  ( cd "$work_dir" && timeout "$timeout_sec" $codex_cmd exec --model gpt-5.5 -c "model_reasoning_effort=\"$reasoning_effort\"" --sandbox danger-full-access --skip-git-repo-check -- "$prompt" )
 }

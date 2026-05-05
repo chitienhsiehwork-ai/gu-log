@@ -38,7 +38,7 @@ func TestFakeProvider_WriteFile(t *testing.T) {
 	fp := NewFakeClaude().WithResponses(
 		FakeResponse{
 			Output:    `{"verdict":"GO","reason":"fake"}`,
-			WriteFile: "eval-gemini.json",
+			WriteFile: "eval-codex-primary.json",
 		},
 	)
 	out, err := fp.Run(ctx, "prompt", RunOptions{WorkDir: workDir})
@@ -48,9 +48,9 @@ func TestFakeProvider_WriteFile(t *testing.T) {
 	if out != `{"verdict":"GO","reason":"fake"}` {
 		t.Errorf("unexpected output %q", out)
 	}
-	data, err := os.ReadFile(filepath.Join(workDir, "eval-gemini.json"))
+	data, err := os.ReadFile(filepath.Join(workDir, "eval-codex-primary.json"))
 	if err != nil {
-		t.Fatalf("fake should have created eval-gemini.json: %v", err)
+		t.Fatalf("fake should have created eval-codex-primary.json: %v", err)
 	}
 	if string(data) != `{"verdict":"GO","reason":"fake"}` {
 		t.Errorf("file contents mismatch: %q", data)
@@ -71,7 +71,7 @@ func TestLoadFakeFromJSON(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "spec.json")
 	raw := `{
       "responses": [
-        {"output": "{\"verdict\":\"GO\"}", "writeFile": "eval-gemini.json"},
+        {"output": "{\"verdict\":\"GO\"}", "writeFile": "eval-codex-primary.json"},
         {"output": "{\"verdict\":\"GO\"}", "writeFile": "eval-codex.json"}
       ]
     }`
@@ -85,7 +85,7 @@ func TestLoadFakeFromJSON(t *testing.T) {
 	if len(fp.Responses) != 2 {
 		t.Errorf("expected 2 responses, got %d", len(fp.Responses))
 	}
-	if fp.Responses[0].WriteFile != "eval-gemini.json" {
+	if fp.Responses[0].WriteFile != "eval-codex-primary.json" {
 		t.Errorf("first response WriteFile wrong: %q", fp.Responses[0].WriteFile)
 	}
 }

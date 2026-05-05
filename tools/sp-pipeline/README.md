@@ -2,7 +2,7 @@
 
 The gu-log SP/CP translation pipeline, Go edition. `scripts/sp-pipeline.sh` is now a thin shim that execs into this binary.
 
-> **Status**: Phase 4 complete. `run` is the canonical entry point. `doctor`, `fetch`, `eval`, `write`, `review`, `refine`, `credits`, `ralph`, `deploy`, `dedup`, `counter`, and `run` are all implemented. Phase 5 (native port of `fetch-x-article.sh` and `tribunal-all-claude.sh`) is explicitly out of scope — those stay as bash helpers.
+> **Status**: Phase 4 complete. `run` is the canonical entry point. `doctor`, `fetch`, `eval`, `write`, `review`, `refine`, `credits`, `ralph`, `deploy`, `dedup`, `counter`, and `run` are all implemented. Phase 5 (native port of `fetch-x-article.sh` and `tribunal.sh`) is explicitly out of scope — those stay as bash helpers.
 
 ## Why a Go rewrite
 
@@ -104,7 +104,7 @@ tools/sp-pipeline/
 │   ├── frontmatter/                 # MDX frontmatter text-level mutation (replaces sed -i)
 │   ├── counter/                     # article-counter.json with syscall.Flock atomic bump
 │   ├── dedup/                       # wrapper around scripts/dedup-gate.mjs
-│   └── llm/                         # dispatcher + claude/codex/gemini providers
+│   └── llm/                         # dispatcher + Codex provider (legacy wrappers kept for tests)
 └── testdata/                        # fixtures for source validator tests
     └── clean-fxtwitter.md
 ```
@@ -116,10 +116,10 @@ tools/sp-pipeline/
 | **1** | Scaffold, `doctor`, `fetch`, LLM dispatcher, Python validator → Go port | 🟢 low | **done** |
 | **2a** | `internal/frontmatter`, `internal/counter`, `internal/dedup`, `counter next/bump`, `dedup` subcommand, typed ExitError | 🟢 low | **done** |
 | **2b** | `eval`, `write`, `review`, `refine`, `internal/prompts` (embed.FS + text/template), `FakeProvider` for CCC unit tests | 🟡 medium | **done** |
-| **3** | `credits`, `ralph` (wraps `tribunal-all-claude.sh`), `deploy` (counter bump → rename → validate → build → commit → push) | 🟡 medium | **done** |
+| **3** | `credits`, `ralph` (wraps `tribunal.sh`), `deploy` (counter bump → rename → validate → build → commit → push) | 🟡 medium | **done** |
 | **2c** | `run` orchestrator with `--from-step`, `--dry-run`, `--force`, `--opus`, `--file`, etc. | 🟡 medium | **done** |
 | **4** | Docs cutover, `scripts/sp-pipeline.sh` → 49-line shim, `CLAUDE.md`/`CONTRIBUTING.md`/`crontab-tribunal.example` updated | 🟢 low | **done** |
-| 5 | Native port of `fetch-x-article.sh` + `tribunal-all-claude.sh` | 🟠 high | **out of scope** — bash helpers stay |
+| 5 | Native port of `fetch-x-article.sh` + `tribunal.sh` | 🟠 high | **out of scope** — bash helpers stay |
 | 6 | Delete the shim | 🟢 low | **not planned** — 49-line shim is free insurance for unknown callers |
 
 The existing Node / Python helpers (`validate-posts.mjs`, `detect-model.mjs`, `frontmatter-scores.mjs`, `dedup-gate.mjs`, `fetch-article.py`) stay in their current languages forever — they are part of the Astro build and outside the pipeline hot path.
@@ -136,20 +136,19 @@ The existing Node / Python helpers (`validate-posts.mjs`, `detect-model.mjs`, `f
 - [x] `sp-pipeline write` renders `internal/prompts/write.tmpl` with source + style guide, outputs draft-v1.mdx
 - [x] `sp-pipeline review` / `sp-pipeline refine` run their respective prompts with stdout fallback
 - [x] `sp-pipeline credits` stamps the 4-entry pipeline block via `frontmatter.SetBlock` — verified round-trip on real SP-170
-- [x] `sp-pipeline ralph --file <mdx>` wraps `scripts/tribunal-all-claude.sh`, runs the frontmatter normaliser, log-and-continues on tribunal failure
+- [x] `sp-pipeline ralph --file <mdx>` wraps `scripts/tribunal.sh`, runs the frontmatter normaliser, log-and-continues on tribunal failure
 - [x] `sp-pipeline deploy` bumps counter → renames pending → replaces frontmatter ticketId → validates → builds → commits → pushes (with `SkipBuild`/`SkipPush`/`SkipValidate` test hooks)
 - [x] `sp-pipeline run <url>` walks all 9 steps end-to-end in the happy path; `--from-step ralph --file <mdx>` resumes on SP-170
 - [x] `scripts/sp-pipeline.sh` is a 49-line shim that translates env vars → flags and execs into the Go binary
 - [x] No binary checked into git (self-compiling wrapper handles cold start)
 
-**CCC sandbox cannot verify** (mac-CC responsibility):
-- Real `claude -p --model opus` invocation under a non-TTY subprocess
-- Real `codex exec` / `gemini` CLI calls
-- Full production run on a live X URL with the real LLM chain
+**CCC sandbox cannot verify** (mac-cdx responsibility):
+- Real `codex exec --model gpt-5.5` invocation under the installed Codex CLI
+- Full production run on a live source URL with the real LLM chain
 
 ## References
 
 - Nick Baumann, "The best tools I give Codex are bespoke CLIs" — this is the literal design brief for the CLI shape. Gu-log's SP-170 is a translation: `src/content/posts/sp-170-20260411-nickbaumann-codex-bespoke-cli-skill.mdx`
 - `scripts/sp-pipeline.sh` — production pipeline, the source of truth for pipeline behaviour
-- `scripts/tribunal-all-claude.sh` — 4-stage tribunal, wrapped in Phase 3 and ported in Phase 5
+- `scripts/tribunal.sh` — 4-stage tribunal, wrapped in Phase 3 and ported in Phase 5
 - `scripts/fetch-x-article.sh` — tweet capture script, wrapped today and ported in Phase 5

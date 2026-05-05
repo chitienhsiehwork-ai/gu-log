@@ -18,11 +18,18 @@ Task:
   - ticketId: {{.TicketID}}
   - originalDate: {{.OriginalDate}}
   - translatedDate: {{.TranslatedDate}}
-  - source: @{{.AuthorHandle}} on X
+  - translatedBy.model: {{.Model}}
+  - translatedBy.harness: {{.Harness}}
+  - source: {{.SourceField}}
   - sourceUrl: {{.TweetURL}}
 
 Extra metadata:
   - First tag must be: {{.FirstTag}}
+
+{{if .Angle}}
+NARRATIVE ANGLE:
+{{.Angle}}
+{{end}}
 
 Hard requirements:
 - Write output to a file named draft-v1.mdx in the current directory.

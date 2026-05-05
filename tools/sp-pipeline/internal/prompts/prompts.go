@@ -47,7 +47,7 @@ func Render(name string, data any) (string, error) {
 	return buf.String(), nil
 }
 
-// EvalData is the template data for eval-gemini.tmpl / eval-codex.tmpl.
+// EvalData is the template data for the Codex eval templates.
 // The bash pipeline passes TWEET_LINE_COUNT as a dynamic value, and
 // embeds the source-tweet.md contents verbatim via $(cat …).
 type EvalData struct {
@@ -57,7 +57,7 @@ type EvalData struct {
 	// Source is the full contents of source-tweet.md.
 	Source string
 	// OutputFilename is the basename the LLM is instructed to write to
-	// in the current directory. Either "eval-gemini.json" or
+	// in the current directory. Either "eval-codex-primary.json" or
 	// "eval-codex.json".
 	OutputFilename string
 }
@@ -68,10 +68,18 @@ type WriteData struct {
 	OriginalDate   string // YYYY-MM-DD
 	TranslatedDate string // YYYY-MM-DD (today)
 	AuthorHandle   string // without @ prefix
-	TweetURL       string // full canonical URL
-	FirstTag       string // "shroom-picks" (SP/SD) | "clawd-picks" (CP)
-	StyleGuide     string // full contents of WRITING_GUIDELINES.md
-	Source         string // full contents of source-tweet.md
+	// SourceField is the pre-rendered value for the `source:` frontmatter
+	// line, e.g. "@karpathy on X", "Sequoia Capital", or a hostname.
+	SourceField string
+	// Angle is an optional narrative directive. When non-empty, the prompt
+	// asks the writer to make this angle the article spine.
+	Angle      string
+	TweetURL   string // full canonical URL
+	Model      string // frontmatter translatedBy.model
+	Harness    string // frontmatter translatedBy.harness
+	FirstTag   string // "shroom-picks" (SP/SD) | "clawd-picks" (CP)
+	StyleGuide string // full contents of WRITING_GUIDELINES.md
+	Source     string // full contents of source-tweet.md
 }
 
 // ReviewData is the template data for review.tmpl.
@@ -82,4 +90,5 @@ type ReviewData struct {
 // RefineData is the template data for refine.tmpl.
 type RefineData struct {
 	TicketID string
+	Angle    string
 }

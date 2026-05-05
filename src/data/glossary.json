@@ -9,6 +9,25 @@
     "category": "concepts"
   },
   {
+    "term": "Agentic Engineering",
+    "en": "Agentic Engineering",
+    "definition": "把 AI agent 當成工程組織的一部分來設計、分工、驗證與交付，而不是只把 LLM 當 autocomplete。重點從「我怎麼寫 code」轉成「我怎麼設計任務邊界、驗收條件、回饋迴圈與失敗處理」。",
+    "clawdNote": "Vibe Coding 是「我講個感覺，你幫我生」。Agentic Engineering 是「你們幾個 agent 分頭做，證據拿來，CI 先過」。前者浪漫，後者比較像真的要上班。",
+    "aliases": ["agentic engineering", "Agentic engineering"],
+    "related": ["Agent", "Vibe Coding", "Ralph Loop"],
+    "definedIn": [
+      {
+        "slug": "clawd-picks-20260206-karpathy-agentic-engineering",
+        "title": "Vibe Coding 一周年 — Karpathy 提出「Agentic Engineering」新概念"
+      },
+      {
+        "slug": "cp-171-20260316-simonw-what-is-agentic-engineering",
+        "title": "寫了 11 章才敢回答的問題：到底什麼是 Agentic Engineering？"
+      }
+    ],
+    "category": "concepts"
+  },
+  {
     "term": "Agent Harness",
     "en": "Agent Harness",
     "definition": "包在 LLM 外面的那一層系統框架，負責管理工具呼叫、context、memory、檔案存取等。不是 model 本身，而是讓 model 變成 agent 的那個「殼」。例：Claude Code、Codex、OpenClaw、Deep Agents。Harrison Chase（LangChain CEO）2026 年主張 harness 跟 memory 綁死，用封閉 harness = 把記憶主權讓給第三方。",
@@ -16,6 +35,38 @@
     "related": ["Agent", "Claude Code", "Codex", "OpenClaw"],
     "definedIn": [],
     "category": "concepts"
+  },
+  {
+    "term": "Andrej Karpathy",
+    "en": "Andrej Karpathy",
+    "definition": "AI researcher、OpenAI 早期成員、前 Tesla AI / Autopilot Vision leader，後來創辦 AI-native education platform Eureka Labs。gu-log 常引用他，是因為他很擅長把 AI 工程趨勢命名成全世界會跟著用的 mental model，例如 Vibe Coding、Software 3.0、Agentic Engineering。",
+    "clawdNote": "Karpathy 的特殊能力不是只會研究 AI，是會把複雜趨勢講成一句大家願意轉貼的話。這在 2026 年大概也是一種分散式產品管理。",
+    "url": "https://eurekalabs.ai/",
+    "aliases": ["Karpathy", "karpathy", "Andrej"],
+    "related": ["Vibe Coding", "Software 3.0", "Agentic Engineering"],
+    "definedIn": [
+      {
+        "slug": "clawd-picks-20260223-karpathy-software-3-sf-startup-school",
+        "title": "Karpathy 刷屏演講完整拆解：Software 3.0 時代來了 — LLM 是新 OS，我們還在 1960 年代"
+      }
+    ],
+    "category": "people"
+  },
+  {
+    "term": "Boris Cherny",
+    "en": "Boris Cherny",
+    "definition": "Anthropic 的 Claude Code 負責人，也是 Anthropic 官方活動中介紹為 Claude Code inventor / founder 的人。gu-log 看到 Boris，通常是在討論 Claude Code 怎麼從 CLI 工具長成一套 AI engineering workflow。",
+    "clawdNote": "Boris 是那種你以為只是 demo 工具，結果他其實在重新定義工程師工作型態的人。產品簡報講得像工具，影響範圍像組織改造。",
+    "url": "https://www.anthropic.com/webinars/claude-code-service-delivery",
+    "aliases": ["Boris", "bcherny", "Boris Cherny"],
+    "related": ["Claude Code", "Agentic Engineering", "Vibe Coding"],
+    "definedIn": [
+      {
+        "slug": "clawd-picks-20260223-bcherny-coding-solved-lenny",
+        "title": "Claude Code 之父上 Lenny's Podcast：Coding 已經被解決了，軟體工程師這個頭銜今年開始消失"
+      }
+    ],
+    "category": "people"
   },
   {
     "term": "Codex",
@@ -128,6 +179,37 @@
     "related": ["Rodney", "Agent", "Claude Code"],
     "definedIn": [],
     "category": "tools"
+  },
+  {
+    "term": "Simon Willison",
+    "en": "Simon Willison",
+    "definition": "獨立 open-source developer、技術作者、Django co-creator，也是 Datasette 的 creator。gu-log 常引用 Simon，是因為他對 LLM tooling、agentic engineering、prompt injection、資料工具的觀察非常務實，少一點煙火，多一點可以拿去改 workflow 的細節。",
+    "clawdNote": "Simon 的文章常見模式：標題看起來像筆記，讀完發現他已經替整個 industry 做完一次田野調查。這種人很危險，會讓其他人的 hot take 顯得很薄。",
+    "url": "https://simonwillison.net/about/",
+    "aliases": ["Simon", "SimonW", "simonw", "Simon Willison"],
+    "related": ["Agentic Engineering", "Rodney", "Showboat"],
+    "definedIn": [
+      {
+        "slug": "sp-80-20260223-simonw-agentic-engineering-patterns",
+        "title": "寫 Code 變便宜了，然後呢？Simon Willison 的 Agentic Engineering 生存指南"
+      }
+    ],
+    "category": "people"
+  },
+  {
+    "term": "Software 3.0",
+    "en": "Software 3.0",
+    "definition": "Karpathy 用來描述 LLM 時代軟體的新分層：Software 1.0 是人手寫 code，Software 2.0 是 neural network weights，Software 3.0 則是用自然語言、prompt、context、agent harness 來塑造系統行為。gu-log 後續文章應該引用既有說明，不要每篇重講一次三層史觀。",
+    "clawdNote": "Software 3.0 最容易被講成玄學。實務上比較像：你開始管理 prompt、context、eval、workflow，而不是只管理 function 和 class。浪漫少一點，維運多很多。",
+    "aliases": ["Software 1.0", "Software 2.0", "Software 3", "Software 3.0"],
+    "related": ["Vibe Coding", "Agentic Engineering", "Agent Harness"],
+    "definedIn": [
+      {
+        "slug": "clawd-picks-20260223-karpathy-software-3-sf-startup-school",
+        "title": "Karpathy 刷屏演講完整拆解：Software 3.0 時代來了 — LLM 是新 OS，我們還在 1960 年代"
+      }
+    ],
+    "category": "concepts"
   },
   {
     "term": "Subagent",

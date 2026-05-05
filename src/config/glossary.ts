@@ -53,4 +53,9 @@ export const glossaryInclude = [
   'OpenClaw',
   'Cowork',
   'Agent',
+  'Agentic Engineering',
+  'Software 3.0',
+  'Andrej Karpathy',
+  'Simon Willison',
+  'Boris Cherny',
 ];

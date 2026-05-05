@@ -1,7 +1,7 @@
 ## 1. Verify current access and scopes
 
 - [ ] 1.1 Confirm browser session is logged into GitHub account `chitienhsiehwork-ai`
-- [ ] 1.2 Confirm current `gh` auth status on mac-cdx and clawd-vm
+- [x] 1.2 Confirm current `gh` auth status on mac-cdx and clawd-vm
 - [ ] 1.3 Record current gu-log remote owner and branch protection state without changing settings
 
 ## 2. Define and create safe token lanes
@@ -28,8 +28,13 @@
 
 ## 5. Record machine-specific knowledge
 
-- [ ] 5.1 Add local-only machine note for mac-cdx and clawd-vm context
-- [ ] 5.2 Record that clawd-vm hosts Clawd (OpenClaw) and Iris (Hermes agent)
-- [ ] 5.3 Record that this Mac holds the private SSH path/context needed for clawd-vm
-- [ ] 5.4 Add a global Codex instruction pointer to the local-only machine note
-- [ ] 5.5 Verify no token values or private keys were written
+- [x] 5.1 Add local-only machine note for mac-cdx and clawd-vm context
+- [x] 5.2 Record that clawd-vm hosts Clawd (OpenClaw) and Iris (Hermes agent)
+- [x] 5.3 Record that this Mac holds the private SSH path/context needed for clawd-vm
+- [x] 5.4 Add a global Codex instruction pointer to the local-only machine note
+- [x] 5.5 Verify no token values or private keys were written
+
+Notes:
+- mac-cdx `gh auth status` and clawd-vm `gh auth status` both currently report invalid tokens for `chitienhsiehwork-ai`.
+- `origin` currently points at `https://github.com/chitienhsiehwork-ai/gu-log.git`; branch protection/ruleset state is still unchecked because authenticated GitHub access is invalid.
+- Token creation, token scope verification, branch protection changes, and auto-merge guard smoke tests remain intentionally unchecked for human review / GitHub UI work.

@@ -35,6 +35,9 @@ func newWriteCmd(state *rootState) *cobra.Command {
 		prefix         string
 		translatedDate string
 		opusOnly       bool
+		angle          string
+		sourceLabel    string
+		sourceIsX      bool
 	)
 	cmd := &cobra.Command{
 		Use:   "write",
@@ -58,6 +61,9 @@ set these from the upstream fetch + counter steps.`,
 				Prefix:         prefix,
 				TranslatedDate: translatedDate,
 				OpusOnly:       opusOnly,
+				Angle:          angle,
+				SourceLabel:    sourceLabel,
+				SourceIsX:      sourceIsX,
 			})
 		},
 	}
@@ -69,7 +75,10 @@ set these from the upstream fetch + counter steps.`,
 	cmd.Flags().StringVar(&tweetURL, "tweet-url", "", "canonical source URL")
 	cmd.Flags().StringVar(&prefix, "prefix", "SP", "ticket prefix (SP / CP / SD / Lv) — controls first tag")
 	cmd.Flags().StringVar(&translatedDate, "translated-date", "", "YYYY-MM-DD of the translation run (defaults to today)")
-	cmd.Flags().BoolVar(&opusOnly, "opus", false, "use Claude Opus only (no Codex fallback)")
+	cmd.Flags().BoolVar(&opusOnly, "opus", false, "deprecated compatibility flag; Codex remains the default provider")
+	cmd.Flags().StringVar(&angle, "angle", "", "optional narrative angle to make the article spine")
+	cmd.Flags().StringVar(&sourceLabel, "source-label", "", "override the `source:` frontmatter line")
+	cmd.Flags().BoolVar(&sourceIsX, "source-is-x", true, "treat --author as an X handle when auto-rendering source")
 	_ = cmd.MarkFlagRequired("source")
 	return cmd
 }
@@ -84,6 +93,9 @@ type writeOpts struct {
 	Prefix         string
 	TranslatedDate string
 	OpusOnly       bool
+	Angle          string
+	SourceLabel    string
+	SourceIsX      bool
 }
 
 func runWrite(ctx context.Context, state *rootState, opts writeOpts) error {
@@ -121,6 +133,9 @@ func runWrite(ctx context.Context, state *rootState, opts writeOpts) error {
 	s.TweetURL = opts.TweetURL
 	s.Prefix = opts.Prefix
 	s.TranslatedDate = opts.TranslatedDate
+	s.Angle = opts.Angle
+	s.SourceLabel = opts.SourceLabel
+	s.SourceIsX = opts.SourceIsX
 
 	stepCtx, cancel := context.WithTimeout(ctx, 30*time.Minute)
 	defer cancel()

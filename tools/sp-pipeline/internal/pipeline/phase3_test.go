@@ -83,12 +83,12 @@ body
 		WritingGuide: filepath.Join(tmp, "WRITING_GUIDELINES.md"),
 	}
 	s.WorkDir = workDir
-	s.WriteModel = "Opus 4.6"
-	s.WriteHarness = "Claude Code CLI"
-	s.ReviewModel = "GPT-5.4"
+	s.WriteModel = "GPT-5.5"
+	s.WriteHarness = "Codex CLI"
+	s.ReviewModel = "GPT-5.5"
 	s.ReviewHarness = "Codex CLI"
-	s.RefineModel = "Opus 4.6"
-	s.RefineHarness = "Claude Code CLI"
+	s.RefineModel = "GPT-5.5"
+	s.RefineHarness = "Codex CLI"
 
 	if err := s.Credits(context.Background()); err != nil {
 		t.Fatalf("Credits: %v", err)
@@ -99,8 +99,8 @@ body
 	}
 	got := string(out)
 	for _, want := range []string{
-		`  model: "Opus 4.6"`,
-		`  harness: "Gemini CLI + Codex CLI"`,
+		`  model: "GPT-5.5"`,
+		`  harness: "Codex CLI"`,
 		`- role: "Written"`,
 		`- role: "Reviewed"`,
 		`- role: "Refined"`,
@@ -121,7 +121,7 @@ body
 }
 
 // TestRalph_WithStubScript runs the ralph step against a stub
-// tribunal-all-claude.sh that just exits 0. This verifies the shellout
+// tribunal.sh that just exits 0. This verifies the shellout
 // wrapper, the filename plumbing, and the frontmatter normaliser.
 func TestRalph_WithStubScript(t *testing.T) {
 	tmp := t.TempDir()
@@ -134,13 +134,13 @@ func TestRalph_WithStubScript(t *testing.T) {
 		}
 	}
 
-	// Stub tribunal-all-claude.sh that just writes a marker file.
+	// Stub tribunal.sh that just writes a marker file.
 	stub := `#!/usr/bin/env bash
 set -e
 echo "[stub-ralph] invoked with: $*"
 exit 0
 `
-	stubPath := filepath.Join(scriptsDir, "tribunal-all-claude.sh")
+	stubPath := filepath.Join(scriptsDir, "tribunal.sh")
 	if err := os.WriteFile(stubPath, []byte(stub), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -195,7 +195,7 @@ body
 	got := string(data)
 	// Canonical harness + 6-entry pipeline + pipelineUrl.
 	for _, want := range []string{
-		`  harness: "Gemini CLI + Codex CLI + Claude Code"`,
+		`  harness: "Codex CLI"`,
 		`- role: "Scored"`,
 		`- role: "Rewritten"`,
 		`- role: "Orchestrated"`,
@@ -223,7 +223,7 @@ func TestRalph_StubFailureContinues(t *testing.T) {
 echo "[stub-ralph] simulated failure"
 exit 1
 `
-	if err := os.WriteFile(filepath.Join(scriptsDir, "tribunal-all-claude.sh"), []byte(failStub), 0o755); err != nil {
+	if err := os.WriteFile(filepath.Join(scriptsDir, "tribunal.sh"), []byte(failStub), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	finalSeed := `---

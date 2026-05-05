@@ -30,6 +30,7 @@ func (s *State) Refine(ctx context.Context) error {
 
 	prompt, err := prompts.Render("refine", prompts.RefineData{
 		TicketID: s.PromptTicketID,
+		Angle:    s.Angle,
 	})
 	if err != nil {
 		return fmt.Errorf("refine: render prompt: %w", err)

@@ -343,7 +343,7 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
   - Opus 4.7 scorer: composite 8 PASS — reasons 裡看到了同樣問題（「偏實用 cheat sheet 寫法」「snippet 集錦那段偏 reference dump」「結尾偏 checklist」）**但沒扣分**。典型 bar drift。
   - Opus 4.5 scorer: composite 8 PASS — 也沒扣到 FAIL。
 - **⚠️ 最關鍵的教訓 — 這就是 decorative persona trap 的 2026 年版本**：SP-158 是「貓比喻 + 正經 ClawdNote」偽裝，SP-175 是「房東/咖啡機比喻 + 有立場 ClawdNote」偽裝。比 SP-158 更難抓，因為 ClawdNote 真的有 opinion。但骨架一樣 linear。
-- **為什麼要 pin scorer 到 4.6**：`.claude/agents/vibe-opus-scorer.md` 現在 pin `model: claude-opus-4-6` 就是因為 4.6 在這種 trap 上最敏銳。fuzzy `model: opus` 會解到 4.7，直接放水。
+- **歷史校準備註**：這個案例來自 2026-04-17 的 Opus 4.6 / 4.7 cross-model scoring。現在 tribunal runtime 已遷移到 Codex/GPT-5.5，但這段仍保留作為「decorative persona trap」的校準樣本：scorer 看到比喻、ClawdNote、kaomoji 時，不能只打勾，必須拆骨架。
 - **Strip test 怎麼做**：遮住所有 `<ClawdNote>` 區塊、遮住段落裡的第一個比喻句，只讀剩下的 body。如果讀起來像 release notes / cheat sheet / reference doc，narrative 就 ≤ 5。SP-175 通過 strip test 就是一份 release notes。
 
 ### Score 6 — CP-146「Simon Willison Anti-Patterns」
@@ -365,19 +365,19 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
 
 ## Model 配置策略
 
-Tribunal 各角色釘選（pin）到特定 Claude model，原因是不同版本在不同任務上表現差異顯著。**實際 model 由 `.claude/agents/*.md` 的 `model:` frontmatter 控制**，shell script 的 `model_label` 只是 log 用。
+Tribunal 各角色目前統一由 `scripts/tribunal.sh` 透過 `codex exec --model gpt-5.5` 執行。`.claude/agents/*.md` 現在是 prompt contract / editor metadata，不再是 Claude Code runtime selector。
 
 ### 配置表
 
 | 角色 | Agent 檔案 | Model ID | 選用原因 |
 |------|-----------|----------|---------|
-| Writer / Translator | `tribunal-writer.md` | `claude-opus-4-6[1m]` | 比喻能力強、zh-tw 語感佳、vibe 表現穩定 |
-| Vibe Scorer | `vibe-opus-scorer.md` | `claude-opus-4-6[1m]` | 4.7 會灌水分數（SP-175 校準實驗已證實） |
-| Librarian | `librarian.md` | `claude-opus-4-7` | 最新 Opus 的精確比對能力適合 glossary / cross-ref |
-| Fresh Eyes | `fresh-eyes.md` | `claude-opus-4-7` | 需要最新模型的理解力來模擬真實讀者 |
-| Fact Checker | `fact-checker.md` | `claude-opus-4-7` | 字面執行力強，適合事實查核的精確比對 |
+| Writer / Translator | `tribunal-writer.md` | `gpt-5.5` | 跟 mac-cdx / clawd-vm Codex runtime 對齊，避免 Claude subscription 依賴 |
+| Vibe Scorer | `vibe-opus-scorer.md` | `gpt-5.5` | Legacy filename retained；runtime 用 GPT-5.5，rubric 保留 Opus calibration traps |
+| Librarian | `librarian.md` | `gpt-5.5` | 搭配 deterministic evidence packet，減少全庫掃描與漏 citation |
+| Fresh Eyes | `fresh-eyes.md` | `gpt-5.5` | 與其他 judge 同 runtime，避免 cross-model drift |
+| Fact Checker | `fact-checker.md` | `gpt-5.5` | 與其他 judge 同 runtime；事實查核仍要求 primary source discipline |
 
-### 為什麼 Vibe Scorer 不能用 4.7
+### 歷史校準：為什麼不能只看表面 checklist
 
 SP-175 和 SP-177 的跨版本校準實驗（2026-04-17）顯示：
 
@@ -385,14 +385,14 @@ SP-175 和 SP-177 的跨版本校準實驗（2026-04-17）顯示：
 - **Opus 4.7** scorer 給 SP-175 composite 8 PASS — 看到了同樣問題（「偏實用 cheat sheet 寫法」）**但沒扣分**。典型的 bar drift（評分標準飄移）。
 - **Opus 4.5** scorer 也給 8 PASS — 同樣沒扣到 FAIL。
 
-結論：4.7 的 literal execution 特性在 vibe 評分上反而成為弱點 — 它會逐項打勾（比喻有、ClawdNote 有、kaomoji 有）而忽略整體結構是否真的有趣。4.6 的判斷力在 decorative persona trap 上更敏銳。
+結論：scorer 如果只逐項打勾（比喻有、ClawdNote 有、kaomoji 有），就會忽略整體結構是否真的有趣。GPT-5.5 也必須繼承這個校準教訓，否則只是換了一個更貴的橡皮章。
 
 ### 修改 model 配置的流程
 
 1. **提出假設**：說明為什麼想換 model（例如新版本在某任務上更好）
 2. **A/B 測試**：用同一篇文章跑新舊 model，比較分數和 reasons
 3. **人工驗證**：人看兩份 reasons，判斷哪個更準確
-4. **更新 agent 檔案**：改 `.claude/agents/*.md` 的 `model:` frontmatter
+4. **更新 runner / agent 檔案**：改 `scripts/tribunal.sh` 的 runtime model，並同步 `.claude/agents/*.md` metadata
 5. **更新此文件**：在配置表中記錄變更和原因
 
 ---

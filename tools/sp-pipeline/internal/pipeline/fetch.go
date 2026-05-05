@@ -36,7 +36,7 @@ func (s *State) Fetch(ctx context.Context) error {
 	// If source-tweet.md already exists (--from-step resume or manual
 	// seeding), trust it and skip the network call. The bash pipeline
 	// has a similar early-return at lines 620-640 but with a KEEP/REFETCH
-	// Claude prompt; the Go port takes the simpler "if it exists, keep it"
+	// prompt; the Go port takes the simpler "if it exists, keep it"
 	// path, which matches PIPELINE_SOURCE_KEEP=1 behavior.
 	candidate := filepath.Join(s.WorkDir, "source-tweet.md")
 	if info, err := os.Stat(candidate); err == nil && info.Size() > 0 {
@@ -62,6 +62,7 @@ func (s *State) Fetch(ctx context.Context) error {
 		s.AuthorHandle = res.Handle[1:]
 	}
 	s.OriginalDate = res.Date
+	s.SourceIsX = res.IsX
 	s.Log.OK("Step 1: captured %d bytes from %s via %s", res.Bytes, res.Handle, res.FetchedVia)
 	return nil
 }

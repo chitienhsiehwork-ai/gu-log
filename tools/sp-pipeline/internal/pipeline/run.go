@@ -17,7 +17,7 @@ import (
 func SetupWorkDir(s *State) (cleanup func(), err error) {
 	if s.WorkDir == "" {
 		stamp := time.Now().Unix()
-		s.WorkDir = filepath.Join(s.Cfg.RepoRoot, "tmp", fmt.Sprintf("sp-pending-%d-pipeline", stamp))
+		s.WorkDir = filepath.Join(os.TempDir(), fmt.Sprintf("sp-pending-%d-pipeline", stamp))
 	}
 	abs, absErr := filepath.Abs(s.WorkDir)
 	if absErr != nil {

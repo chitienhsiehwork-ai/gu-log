@@ -289,6 +289,90 @@ func (f *File) SetNestedScalar(parentKey, childKey, value string) {
 	f.lines = append(f.lines, parentHeader, "  "+childKey+": "+value)
 }
 
+// SetNestedBlock replaces (or inserts) a nested block child of parentKey.
+//
+// Use this when the block being inserted is a child of another mapping —
+// e.g. a `translatedBy.pipeline` array. childKey is the un-indented child
+// name (e.g. "pipeline"); the helper computes the correct indent from the
+// existing parent block layout.
+//
+// snippet is the full YAML rendered for the block including the child
+// header line, pre-indented to match the nesting (caller must format).
+//
+// Behavior:
+//   - parent + child both exist: replace the existing child block
+//   - parent exists, child missing: insert at the end of the parent block
+//   - parent missing: no-op
+//
+// This is the bug-fixed sibling of SetBlock for nested keys. SetBlock's
+// "key not found, append at end of frontmatter" path produces broken YAML
+// when the indented key was meant to be nested.
+func (f *File) SetNestedBlock(parentKey, childKey, snippet string) {
+	parentHeader := parentKey + ":"
+
+	parentIdx := -1
+	for i, line := range f.lines {
+		if strings.TrimRight(line, " \t") == parentHeader {
+			parentIdx = i
+			break
+		}
+	}
+	if parentIdx < 0 {
+		return
+	}
+
+	parentEnd := len(f.lines)
+	for i := parentIdx + 1; i < len(f.lines); i++ {
+		ln := f.lines[i]
+		if ln == "" {
+			continue
+		}
+		if !strings.HasPrefix(ln, "  ") {
+			parentEnd = i
+			break
+		}
+	}
+
+	childHeader := "  " + childKey + ":"
+	childStart := -1
+	for i := parentIdx + 1; i < parentEnd; i++ {
+		if strings.TrimRight(f.lines[i], " \t") == childHeader {
+			childStart = i
+			break
+		}
+	}
+
+	snippetLines := strings.Split(strings.TrimRight(snippet, "\n"), "\n")
+
+	if childStart >= 0 {
+		childEnd := childStart + 1
+		for childEnd < parentEnd {
+			ln := f.lines[childEnd]
+			if ln == "" {
+				childEnd++
+				continue
+			}
+			lineIndent := leadingSpaces(ln)
+			if len(lineIndent) <= 2 {
+				break
+			}
+			childEnd++
+		}
+		out := make([]string, 0, len(f.lines)-(childEnd-childStart)+len(snippetLines))
+		out = append(out, f.lines[:childStart]...)
+		out = append(out, snippetLines...)
+		out = append(out, f.lines[childEnd:]...)
+		f.lines = out
+		return
+	}
+
+	out := make([]string, 0, len(f.lines)+len(snippetLines))
+	out = append(out, f.lines[:parentEnd]...)
+	out = append(out, snippetLines...)
+	out = append(out, f.lines[parentEnd:]...)
+	f.lines = out
+}
+
 // SetBlock replaces (or appends) a nested block like:
 //
 //	pipeline:
@@ -308,6 +392,10 @@ func (f *File) SetNestedScalar(parentKey, childKey, value string) {
 // indentedKey's indent (i.e. the block's children), and replace the whole
 // range with yamlSnippet split on newlines. If the key is not found, the
 // snippet is appended at the end of the frontmatter.
+//
+// Use SetNestedBlock when the indentedKey is meant to live inside a parent
+// block (e.g. translatedBy.pipeline). SetBlock's "not found = append at end
+// of frontmatter" path produces broken YAML in that case.
 func (f *File) SetBlock(indentedKey, yamlSnippet string) {
 	snippet := strings.Split(strings.TrimRight(yamlSnippet, "\n"), "\n")
 

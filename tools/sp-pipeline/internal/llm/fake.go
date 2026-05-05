@@ -11,9 +11,9 @@ import (
 )
 
 // FakeProvider is a test double that returns canned responses and records
-// every prompt it was asked to satisfy. It exists because CCC (Cloud Claude
-// Code) cannot authenticate `claude -p` non-interactively, so the LLM-heavy
-// subcommands have to be exercised against a controllable replacement.
+// every prompt it was asked to satisfy. It exists because cloud/sandbox CI
+// cannot authenticate interactive LLM CLIs, so the LLM-heavy subcommands have
+// to be exercised against a controllable replacement.
 //
 // Each FakeResponse is popped in order from the queue. When the queue is
 // empty, further calls return ErrQueueEmpty. The optional WriteFile field
@@ -53,12 +53,21 @@ type FakeCall struct {
 // responses remain.
 var ErrQueueEmpty = errors.New("fake provider: response queue empty")
 
-// NewFakeClaude returns a FakeProvider that claims to be claude-opus.
-// This is the common case for unit tests.
+// NewFakeClaude returns the historical fake provider used by older tests.
 func NewFakeClaude() *FakeProvider {
 	return &FakeProvider{
 		NameStr:    "fake-claude-opus",
 		ModelID:    ModelClaudeOpus,
+		AvailableV: true,
+	}
+}
+
+// NewFakeCodex returns a FakeProvider that claims to be the current Codex
+// writing runtime.
+func NewFakeCodex() *FakeProvider {
+	return &FakeProvider{
+		NameStr:    "fake-codex-gpt-5.5",
+		ModelID:    ModelGPT55,
 		AvailableV: true,
 	}
 }

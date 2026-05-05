@@ -1,8 +1,7 @@
 ---
 description: "Fact Checker — independent factual accuracy verifier for gu-log posts. Checks technical accuracy, source faithfulness, and logical consistency. Does NOT evaluate writing style. Use this to catch fabricated numbers, translation distortions, and factual errors."
-# Tracks latest Opus: fact-checking benefits from newest reasoning, and voice
-# doesn't matter (no prose output). Writer/scorer are separately pinned to 4.6.
-model: opus
+# Runtime is supplied by scripts/tribunal.sh via `codex exec --model gpt-5.5`.
+model: gpt-5.5
 tools:
   - Read
   - Write

@@ -35,9 +35,9 @@ without running the full pipeline.`,
 	}
 	cmd.Flags().StringVar(&finalPath, "file", "", "path to final.mdx (required)")
 	cmd.Flags().StringVar(&workDir, "work-dir", "", "work directory (defaults to dirname of --file)")
-	cmd.Flags().StringVar(&writeModel, "write-model", "Opus 4.6", "model stamped for the Written role")
-	cmd.Flags().StringVar(&reviewModel, "review-model", "GPT-5.4", "model stamped for the Reviewed role")
-	cmd.Flags().StringVar(&refineModel, "refine-model", "Opus 4.6", "model stamped for the Refined role")
+	cmd.Flags().StringVar(&writeModel, "write-model", "GPT-5.5", "model stamped for the Written role")
+	cmd.Flags().StringVar(&reviewModel, "review-model", "GPT-5.5", "model stamped for the Reviewed role")
+	cmd.Flags().StringVar(&refineModel, "refine-model", "GPT-5.5", "model stamped for the Refined role")
 	_ = cmd.MarkFlagRequired("file")
 	return cmd
 }

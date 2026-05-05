@@ -265,6 +265,103 @@ body
 	}
 }
 
+func TestSetNestedBlock_InsertWhenMissing(t *testing.T) {
+	raw := []byte(`---
+title: "Hello"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code CLI"
+  pipelineUrl: "https://example.com/x"
+source: "OpenClaw Docs"
+lang: "zh-tw"
+tags: ["a", "b"]
+---
+body
+`)
+	f, err := Parse(raw)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	snippet := `  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"`
+	f.SetNestedBlock("translatedBy", "pipeline", snippet)
+	out := string(f.Bytes())
+
+	pIdx := strings.Index(out, "  pipeline:")
+	sIdx := strings.Index(out, "\nsource:")
+	if pIdx < 0 {
+		t.Fatalf("pipeline: header missing from output:\n%s", out)
+	}
+	if sIdx < 0 {
+		t.Fatalf("source: top-level sibling missing from output:\n%s", out)
+	}
+	if pIdx > sIdx {
+		t.Errorf("pipeline: block should appear before source:\n%s", out)
+	}
+	if !strings.Contains(out, `- role: "Written"`) {
+		t.Errorf("pipeline entry missing: %s", out)
+	}
+}
+
+func TestSetNestedBlock_ReplaceExisting(t *testing.T) {
+	raw := []byte(`---
+translatedBy:
+  model: "Opus 4.6"
+  pipeline:
+    - role: "Old"
+      model: "Old"
+      harness: "Old"
+  pipelineUrl: "https://example.com/x"
+source: "X"
+lang: "zh-tw"
+---
+body
+`)
+	f, err := Parse(raw)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	snippet := `  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "GPT-5.4"
+      harness: "Codex CLI"`
+	f.SetNestedBlock("translatedBy", "pipeline", snippet)
+	out := string(f.Bytes())
+	if strings.Contains(out, `role: "Old"`) {
+		t.Errorf("old entry not replaced: %s", out)
+	}
+	if !strings.Contains(out, `role: "Written"`) || !strings.Contains(out, `role: "Reviewed"`) {
+		t.Errorf("new entries missing: %s", out)
+	}
+	if !strings.Contains(out, `pipelineUrl: "https://example.com/x"`) {
+		t.Errorf("sibling pipelineUrl was clobbered: %s", out)
+	}
+}
+
+func TestSetNestedBlock_ParentMissing(t *testing.T) {
+	raw := []byte(`---
+title: "Hello"
+lang: "zh-tw"
+---
+body
+`)
+	f, err := Parse(raw)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	before := string(f.Bytes())
+	f.SetNestedBlock("translatedBy", "pipeline", "  pipeline:\n    - role: \"X\"\n")
+	after := string(f.Bytes())
+	if before != after {
+		t.Errorf("parent missing should be no-op, got mutation:\nbefore: %q\nafter:  %q", before, after)
+	}
+}
+
 func TestStripLinesMatching(t *testing.T) {
 	raw := []byte(`---
 title: "Hello"

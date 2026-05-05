@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # tribunal-run-control.sh — Graceful stop / lifecycle helpers
 #
-# Shared between tribunal-quota-loop.sh (supervisor) and tribunal-all-claude.sh
+# Shared between tribunal-quota-loop.sh (supervisor) and tribunal.sh
 # (per-article runner). Implements the contract from OpenSpec change
 # `tribunal-graceful-run-control`:
 #
@@ -144,8 +144,8 @@ rc_exit_stopped() {
 # ─── Article claiming (Phase 2: multi-worker dispatch) ───────────────────────
 # Each article is guarded by a claim directory that mkdir-atomically ensures
 # only one worker can take it at a time. Supervisor calls rc_try_claim before
-# dispatching to tribunal-all-claude.sh; worker releases on finish/fail/stop.
-# The per-article /tmp flock in tribunal-all-claude.sh remains as
+# dispatching to tribunal.sh; worker releases on finish/fail/stop.
+# The per-article /tmp flock in tribunal.sh remains as
 # defense-in-depth.
 : "${RC_CLAIMS_DIR:=$RC_ROOT_DIR/.score-loop/claims}"
 : "${RC_CLAIM_STALE_SEC:=21600}"   # 6 hours — beyond longest article run
