@@ -2,7 +2,7 @@
 
 ### Requirement: gu-log auto-merge SHALL require CI green and branch protection
 
-AI-driven auto-merge for gu-log SHALL only merge PRs after required CI checks pass and branch protection/rulesets allow the merge.
+AI-driven auto-merge for gu-log SHALL only merge PRs after required CI checks pass, the branch is up to date, GitHub marks the PR mergeable, and branch protection/rulesets allow the merge.
 
 #### Scenario: Required check fails
 
@@ -26,9 +26,16 @@ The auto-merge guard SHALL inspect changed paths and SHALL only merge PRs whose 
 
 #### Scenario: Workflow or security-sensitive file changes
 
-- **WHEN** a PR changes GitHub workflows, token handling, branch protection scripts, deployment configuration, or automation guard code
+- **WHEN** a PR changes `.github/**`, GitHub workflows, token handling, branch protection scripts, deployment configuration, package manager config, lockfiles, auth/env/secret handling, or automation guard code
 - **THEN** the auto-merge guard SHALL refuse to auto-merge
 - **AND** the PR SHALL require human review
+
+#### Scenario: Low-risk content/code PR
+
+- **WHEN** a PR only changes ordinary article content, glossary entries, or low-risk code paths
+- **AND** it does not touch denied high-risk paths
+- **AND** all required checks pass
+- **THEN** the auto-merge guard MAY enable GitHub auto-merge with squash merge and branch deletion
 
 ### Requirement: Auto-merge decisions SHALL be auditable
 

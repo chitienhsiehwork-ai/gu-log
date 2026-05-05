@@ -6,25 +6,30 @@
 
 ## 2. Define and create safe token lanes
 
-- [ ] 2.1 Create or refresh gu-log selected-repo token with no Administration permission
-- [ ] 2.2 Confirm gu-log token cannot delete repo, transfer repo, alter visibility, change branch protection, or edit rulesets
-- [ ] 2.3 Create or refresh separate AI lab token for sandbox/open-source experiments if needed
-- [ ] 2.4 Store token values only in the approved secret store or environment, never in repo or machine notes
+- [ ] 2.1 Create or confirm new AI lab GitHub org, preferred name `shroomdog-ai-lab`
+- [ ] 2.2 Create or refresh broad Iris / Clawd operator token scoped only to the AI lab org
+- [ ] 2.3 Confirm broad AI lab token does not include `chitienhsiehwork-ai/gu-log`
+- [ ] 2.4 Create or refresh gu-log selected-repo token with Contents write, Pull requests write, Issues write, Metadata read, and Actions/checks read as needed
+- [ ] 2.5 Confirm gu-log token has no Administration, no Workflows write, and no Secrets/Variables write
+- [ ] 2.6 Confirm gu-log token cannot delete repo, transfer repo, alter visibility, change branch protection, edit rulesets, or edit `.github/workflows/**`
+- [ ] 2.7 Store token values only in the approved secret store or environment, never in repo or machine notes
 
 ## 3. Protect gu-log repository
 
 - [ ] 3.1 Configure gu-log main branch protection/ruleset to require PR and required checks
 - [ ] 3.2 Ensure force push and branch deletion are blocked
 - [ ] 3.3 Ensure the clawd-vm automation token cannot bypass branch protection
-- [ ] 3.4 Document required check names for auto-merge guard
+- [ ] 3.4 Ensure branch must be up to date before merge
+- [ ] 3.5 Document required check names for auto-merge guard
 
 ## 4. Implement auto-merge guard
 
 - [ ] 4.1 Define low-risk path allowlist for content/glossary lane
-- [ ] 4.2 Deny auto-merge for workflow, secret, deployment, branch protection, and guard-code paths
-- [ ] 4.3 Require CI green and mergeable PR state before merge
-- [ ] 4.4 Log auto-merge decisions with PR number, checks, paths, decision, and actor
-- [ ] 4.5 Smoke test with a safe draft PR and a denied sensitive-path PR
+- [ ] 4.2 Deny auto-merge for `.github/**`, workflow, secret, deployment, branch protection, package manager config/lockfile, auth/env handling, and guard-code paths
+- [ ] 4.3 Require CI green, branch up to date, and mergeable PR state before merge
+- [ ] 4.4 Use GitHub auto-merge via squash merge and delete branch for allowed PRs
+- [ ] 4.5 Log auto-merge decisions with PR number, checks, paths, decision, and actor
+- [ ] 4.6 Smoke test with a safe draft PR and a denied sensitive-path PR
 
 ## 5. Record machine-specific knowledge
 
@@ -37,4 +42,4 @@
 Notes:
 - mac-cdx `gh auth status` and clawd-vm `gh auth status` both currently report invalid tokens for `chitienhsiehwork-ai`.
 - `origin` currently points at `https://github.com/chitienhsiehwork-ai/gu-log.git`; branch protection/ruleset state is still unchecked because authenticated GitHub access is invalid.
-- Token creation, token scope verification, branch protection changes, and auto-merge guard smoke tests remain intentionally unchecked for human review / GitHub UI work.
+- AI lab org creation, token creation, token scope verification, branch protection changes, and auto-merge guard smoke tests remain intentionally unchecked for human review / GitHub UI work.

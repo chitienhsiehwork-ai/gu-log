@@ -1,5 +1,16 @@
 ## ADDED Requirements
 
+### Requirement: Broad operator token SHALL be limited to the AI lab organization
+
+Iris / Clawd broad GitHub operator credentials SHALL only apply to a dedicated AI lab organization, preferably named `shroomdog-ai-lab`, and SHALL NOT include `chitienhsiehwork-ai/gu-log`.
+
+#### Scenario: Broad token is created for Iris or Clawd
+
+- **WHEN** an operator creates a broad GitHub token for Iris or Clawd
+- **THEN** the token SHALL be scoped only to the AI lab organization
+- **AND** it SHALL NOT include `chitienhsiehwork-ai/gu-log`
+- **AND** it MAY include repo creation, CI/CD, secrets/variables, issue, PR, Actions, workflow, and repository-management permissions inside the AI lab organization
+
 ### Requirement: gu-log token SHALL be selected-repository and least-privilege
 
 Any GitHub token placed on clawd-vm for gu-log automation SHALL be scoped only to the gu-log repository and SHALL include only permissions needed for branch, commit, PR, status, and check inspection workflows.
@@ -9,10 +20,11 @@ Any GitHub token placed on clawd-vm for gu-log automation SHALL be scoped only t
 - **WHEN** an operator creates a GitHub token for gu-log automation
 - **THEN** the token SHALL be selected-repository scoped to gu-log
 - **AND** it SHALL NOT include unrelated repositories
+- **AND** it SHALL include at most Contents write, Pull requests write, Issues write, Metadata read, and Actions/checks read as needed
 
 ### Requirement: gu-log token SHALL NOT include destructive repository administration
 
-The gu-log automation token MUST NOT include permission to delete repositories, transfer repositories, change repository visibility, change branch protection, change rulesets, or bypass required reviews/checks.
+The gu-log automation token MUST NOT include permission to delete repositories, transfer repositories, change repository visibility, change branch protection, change rulesets, edit GitHub workflows, write repository secrets/variables, or bypass required reviews/checks.
 
 #### Scenario: Prompt injection requests repository transfer
 
@@ -27,12 +39,12 @@ The gu-log automation token MUST NOT include permission to delete repositories, 
 
 ### Requirement: Sandbox repository tokens MAY have broader scope outside gu-log
 
-Separate AI lab or sandbox repository tokens MAY have broader repo creation or administration permissions, but those tokens SHALL NOT have admin scope over gu-log.
+Separate AI lab organization tokens MAY have broader repo creation or administration permissions, but those tokens SHALL NOT have admin scope over gu-log.
 
 #### Scenario: AI creates an experimental repo
 
 - **WHEN** Iris or Clawd needs to create a new experimental open-source repo
-- **THEN** it MAY use the AI lab token
+- **THEN** it MAY use the AI lab organization token
 - **AND** that token SHALL NOT grant destructive permissions over gu-log
 
 ### Requirement: Tokens SHALL be named and rotated audibly
