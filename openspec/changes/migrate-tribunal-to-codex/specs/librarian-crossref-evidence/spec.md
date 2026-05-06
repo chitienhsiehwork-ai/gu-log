@@ -1,37 +1,37 @@
 ## ADDED Requirements
 
-### Requirement: Librarian SHALL receive deterministic repo evidence before judging
+### Requirement: Librarian SHALL 在 judging 前收到 deterministic repo evidence
 
-The tribunal Librarian stage SHALL receive a deterministic evidence packet containing target metadata, glossary hits, internal link checks, and related old posts before producing its score.
+Tribunal Librarian stage 在產生 score 前，SHALL 收到 deterministic evidence packet，內容包含 target metadata、glossary hits、internal link checks，以及 related old posts。
 
 #### Scenario: Librarian stage starts
 
-- **WHEN** the Librarian stage runs for a post
-- **THEN** the runner SHALL generate an evidence packet for that post
-- **AND** the Librarian prompt SHALL instruct the judge to use that packet before doing broad repo discovery
+- **WHEN** Librarian stage 對某篇 post 執行
+- **THEN** runner SHALL 為該 post 產生 evidence packet
+- **AND** Librarian prompt SHALL 指示 judge 在 broad repo discovery 前先使用該 packet
 
-### Requirement: Similar old posts SHALL require citation or differentiation
+### Requirement: Similar old posts SHALL 要求 citation 或 differentiation
 
-When the evidence packet identifies a similar old gu-log post, the Librarian SHALL require the new post to either cite the old post or explain a distinct new POV, newer source, or different practical angle.
+當 evidence packet 找到相似的舊 gu-log post 時，Librarian SHALL 要求新 post cite 舊 post，或說明 distinct new POV、newer source、或 different practical angle。
 
-#### Scenario: New post overlaps old concept coverage
+#### Scenario: 新 post 與舊 concept coverage 重疊
 
-- **WHEN** a new SP repeats a concept already covered in an old gu-log post
-- **THEN** the Librarian SHALL require a citation to the relevant old post
-- **AND** the new post SHALL explain what new angle it adds
+- **WHEN** 新 SP 重複舊 gu-log post 已經涵蓋的 concept
+- **THEN** Librarian SHALL 要求 citation 到相關舊 post
+- **AND** 新 post SHALL 說明它新增了什麼 angle
 
-#### Scenario: Similar topic but new contribution exists
+#### Scenario: 主題相似但有 new contribution
 
-- **WHEN** a new post covers a similar topic but adds a distinct POV or newer primary source
-- **THEN** the Librarian MAY pass the post
-- **AND** it SHALL prefer adding a cross-reference over rejecting the post
+- **WHEN** 新 post 涵蓋相似 topic，但加入 distinct POV 或 newer primary source
+- **THEN** Librarian MAY 讓該 post pass
+- **AND** Librarian SHALL prefer 加 cross-reference，而不是 reject 該 post
 
-### Requirement: Same source URL SHALL be treated as high-risk duplication
+### Requirement: Same source URL SHALL 被視為 high-risk duplication
 
-If the evidence packet finds an old post with the same source URL, the Librarian SHALL require explicit attribution to that old post or recommend merge/reject.
+如果 evidence packet 找到舊 post 有相同 source URL，Librarian SHALL 要求明確 attribution 到舊 post，或 recommend merge/reject。
 
 #### Scenario: Same source URL appears
 
-- **WHEN** a draft post has the same source URL as an existing post
-- **THEN** the Librarian SHALL flag the overlap
-- **AND** the post SHALL NOT pass crossRef unless it explicitly justifies why a separate post is needed
+- **WHEN** draft post 的 source URL 與 existing post 相同
+- **THEN** Librarian SHALL flag 該 overlap
+- **AND** 除非 post 明確說明為何需要 separate post，否則該 post SHALL NOT pass crossRef

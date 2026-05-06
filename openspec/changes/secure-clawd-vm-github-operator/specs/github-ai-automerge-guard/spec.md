@@ -1,52 +1,52 @@
 ## ADDED Requirements
 
-### Requirement: gu-log auto-merge SHALL require CI green and branch protection
+### Requirement: gu-log auto-merge SHALL 要求 CI green 與 branch protection
 
-AI-driven auto-merge for gu-log SHALL only merge PRs after required CI checks pass, the branch is up to date, GitHub marks the PR mergeable, and branch protection/rulesets allow the merge.
+gu-log 的 AI-driven auto-merge SHALL 只在 required CI checks pass、branch up to date、GitHub 標記 PR mergeable，且 branch protection/rulesets allow merge 後才 merge PR。
 
-#### Scenario: Required check fails
+#### Scenario: Required check 失敗
 
-- **WHEN** a gu-log PR has any required check failing or pending
-- **THEN** the auto-merge guard SHALL refuse to merge
+- **WHEN** gu-log PR 有任何 required check failing 或 pending
+- **THEN** auto-merge guard SHALL 拒絕 merge
 
 #### Scenario: Branch protection blocks merge
 
-- **WHEN** GitHub branch protection or rulesets block a PR
-- **THEN** the auto-merge guard SHALL refuse to bypass the protection
+- **WHEN** GitHub branch protection 或 rulesets block PR
+- **THEN** auto-merge guard SHALL 拒絕 bypass 該 protection
 
 ### Requirement: gu-log auto-merge SHALL enforce path allowlists
 
-The auto-merge guard SHALL inspect changed paths and SHALL only merge PRs whose files are within allowlisted low-risk paths for the configured lane.
+Auto-merge guard SHALL inspect changed paths，並且 SHALL 只 merge 檔案都在 configured lane allowlisted low-risk paths 內的 PR。
 
 #### Scenario: Content-only PR
 
-- **WHEN** a PR only changes allowlisted content or glossary files
+- **WHEN** PR 只修改 allowlisted content 或 glossary files
 - **AND** all required checks pass
-- **THEN** the auto-merge guard MAY merge the PR
+- **THEN** auto-merge guard MAY merge 該 PR
 
 #### Scenario: Workflow or security-sensitive file changes
 
-- **WHEN** a PR changes `.github/**`, GitHub workflows, token handling, branch protection scripts, deployment configuration, package manager config, lockfiles, auth/env/secret handling, or automation guard code
-- **THEN** the auto-merge guard SHALL refuse to auto-merge
-- **AND** the PR SHALL require human review
+- **WHEN** PR 修改 `.github/**`、GitHub workflows、token handling、branch protection scripts、deployment configuration、package manager config、lockfiles、auth/env/secret handling、或 automation guard code
+- **THEN** auto-merge guard SHALL 拒絕 auto-merge
+- **AND** 該 PR SHALL require human review
 
 #### Scenario: Low-risk content/code PR
 
-- **WHEN** a PR only changes ordinary article content, glossary entries, or low-risk code paths
-- **AND** it does not touch denied high-risk paths
+- **WHEN** PR 只修改 ordinary article content、glossary entries、或 low-risk code paths
+- **AND** PR 沒有 touch denied high-risk paths
 - **AND** all required checks pass
-- **THEN** the auto-merge guard MAY enable GitHub auto-merge with squash merge and branch deletion
+- **THEN** auto-merge guard MAY 啟用 GitHub auto-merge，使用 squash merge 並 delete branch
 
 ### Requirement: Auto-merge decisions SHALL be auditable
 
-Each auto-merge attempt SHALL leave an auditable record containing PR number, changed path summary, check status, guard decision, and actor.
+每次 auto-merge attempt SHALL 留下 auditable record，包含 PR number、changed path summary、check status、guard decision、actor。
 
 #### Scenario: Auto-merge succeeds
 
-- **WHEN** the guard merges a PR
-- **THEN** it SHALL record why the PR satisfied CI and path guard requirements
+- **WHEN** guard merge PR
+- **THEN** guard SHALL 記錄該 PR 為何滿足 CI 與 path guard requirements
 
-#### Scenario: Auto-merge is denied
+#### Scenario: Auto-merge 被拒絕
 
-- **WHEN** the guard refuses to merge a PR
-- **THEN** it SHALL record the blocking reason
+- **WHEN** guard 拒絕 merge PR
+- **THEN** guard SHALL 記錄 blocking reason

@@ -29,20 +29,20 @@
 
 ## Decisions
 
-### 1. Split gu-log token from AI lab org token
+### 1. 將 gu-log token 與 AI lab org token 分開
 
 **Decision:** 建立新的 AI lab GitHub org（暫定 `shroomdog-ai-lab`）承載 Iris / Clawd 的 broad operator token。gu-log 使用 selected-repo fine-grained token，權限只足夠 branch/PR/commit/status 操作；AI lab org token 可以另用較寬權限。
 
-**AI lab org broad token MAY include:** repository creation, CI/CD administration, repo secrets / variables, issues / PRs, Actions, workflows, and repo settings within the AI lab org.
+**AI lab org broad token MAY include:** 在 AI lab org 內建立 repo、管理 CI/CD、管理 repo secrets / variables、issues / PRs / Actions / workflows，以及 repo settings。
 
-**AI lab org broad token MUST NOT include:** `chitienhsiehwork-ai/gu-log` or any gu-log administration surface.
+**AI lab org broad token MUST NOT include:** `chitienhsiehwork-ai/gu-log` 或任何 gu-log administration surface。
 
 **Rejected alternative:** 一把 broad token 管所有 repo。  
 **Reason:** 對 sandbox 方便，對 gu-log 太危險。方便到可以刪庫就不是方便，是懸崖附滑梯。
 
-### 2. No Administration permission for gu-log token
+### 2. gu-log token 不給 Administration permission
 
-**Decision:** gu-log token MUST NOT include repository Administration, Workflows write, Actions secrets/variables write, repo deletion, transfer, visibility mutation, branch protection/ruleset mutation, or bypass permissions.
+**Decision:** gu-log token MUST NOT include repository Administration、Workflows write、Actions secrets/variables write、repo deletion、transfer、visibility mutation、branch protection/ruleset mutation、或 bypass permissions。
 
 **Allowed gu-log token permissions:**
 
@@ -55,46 +55,46 @@
 **Rejected alternative:** 給 admin 權限後靠 prompt discipline。  
 **Reason:** prompt discipline 不能當 security boundary。
 
-### 3. Auto-merge is allowed only through guards
+### 3. Auto-merge 只能透過 guards 執行
 
-**Decision:** AI MAY auto-merge gu-log PR only if branch protection passes, required checks are green, PR branch is up to date, PR is mergeable, PR diff matches allowlisted paths, and no workflow/secrets/config-sensitive files are touched.
+**Decision:** 只有在 branch protection pass、required checks green、PR branch up to date、PR mergeable、PR diff 符合 allowlisted paths，且沒有碰 workflow/secrets/config-sensitive files 時，AI MAY auto-merge gu-log PR。
 
-High-risk paths requiring human confirmation include:
+需要 human confirmation 的 high-risk paths 包含：
 
 - `.github/**`
 - Vercel / deployment configuration
 - security gates / allowlists
-- package manager config or lockfiles
-- auth, secret, or environment handling
-- scripts that push, deploy, delete, or mutate GitHub settings
+- package manager config 或 lockfiles
+- auth、secret、environment handling
+- push、deploy、delete、或 mutate GitHub settings 的 scripts
 
 **Rejected alternative:** CI green 就 auto-merge。  
 **Reason:** CI 不一定能判斷「這個 PR 正在修改自己未來的安全邏輯」。
 
-### 4. Machine memory is local-only and secret-free
+### 4. Machine memory 必須 local-only 且 secret-free
 
-**Decision:** machine-specific facts live in a local-only dotfile such as `codex/machine.md.local`, with `~/.codex/AGENTS.md` linking to it. It records host names, roles, and safety policy, but not secrets.
+**Decision:** machine-specific facts 放在 local-only dotfile，例如 `codex/machine.md.local`，並由 `~/.codex/AGENTS.md` link 到該檔。它記錄 host names、roles、safety policy，但不記錄 secrets。
 
-**Rejected alternative:** Put VM details and token notes directly in repo docs.  
-**Reason:** machine facts are useful for this Mac but should not become project-wide public docs.
+**Rejected alternative:** 將 VM details 與 token notes 直接放進 repo docs。
+**Reason:** machine facts 對這台 Mac 有用，但不該變成 project-wide public docs。
 
 ## Risks / Trade-offs
 
-- **AI lab token too broad leaks into gu-log** → Keep separate org boundary, token names, environment variables, and repo scopes; never select gu-log for the broad token.
-- **Path guard misses sensitive file** → Deny by default for workflow, token, branch protection, deployment, package manager, and automation config paths.
-- **Branch protection bypass via token** → Token MUST NOT be allowed to alter branch protection or bypass rules.
-- **Machine note accidentally stores secret** → Add explicit "no secret" section and keep file ignored by git.
+- **AI lab token 權限過寬並滲入 gu-log** → 維持 separate org boundary、token names、environment variables、repo scopes；broad token 永遠不要選 gu-log。
+- **Path guard misses sensitive file** → workflow、token、branch protection、deployment、package manager、automation config paths 預設 deny。
+- **Branch protection bypass via token** → Token MUST NOT 被允許修改 branch protection 或 bypass rules。
+- **Machine note accidentally stores secret** → 加上明確的 "no secret" section，並讓該檔被 git ignore。
 
 ## Migration Plan
 
-1. Create/update OpenSpec artifacts first.
-2. Add local-only machine note and `~/.codex/AGENTS.md` pointer in a separate implementation step.
-3. Create or confirm the AI lab org, such as `shroomdog-ai-lab`.
-4. Manually create or refresh GitHub tokens according to this policy.
-5. Configure gu-log branch protection/rulesets from the GitHub UI or a trusted human admin context.
-6. Add auto-merge guard only after token scope and branch protection are verified.
+1. 先 create/update OpenSpec artifacts。
+2. 在獨立 implementation step 新增 local-only machine note 與 `~/.codex/AGENTS.md` pointer。
+3. Create 或 confirm AI lab org，例如 `shroomdog-ai-lab`。
+4. 依此 policy 手動 create 或 refresh GitHub tokens。
+5. 從 GitHub UI 或可信任的 human admin context 設定 gu-log branch protection/rulesets。
+6. 只有在 token scope 與 branch protection 都驗證後，才新增 auto-merge guard。
 
 ## Open Questions
 
-- Final AI lab org name. Preferred candidate: `shroomdog-ai-lab`.
-- Which CI check names are required for gu-log auto-merge once branch protection is reviewed.
+- Final AI lab org name。Preferred candidate: `shroomdog-ai-lab`。
+- Branch protection review 後，gu-log auto-merge 要求哪些 CI check names。

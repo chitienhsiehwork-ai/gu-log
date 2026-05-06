@@ -1,12 +1,12 @@
 ## Context
 
-本機 repo 已有一批未提交的 sp-pipeline Codex migration diff，但使用者指出真正要接手的是 clawd-vm gu-log stash。已確認 VM 上相關 stash 是：
+本機 repo 已有一批未提交的 sp-pipeline Codex migration diff，但使用者指出真正要接手的是 clawd-vm gu-log stash。已確認 VM 上相關 stash 如下：
 
 - `stash@{1}`：`WIP sp-pipeline codex-only migration - needs naming/fake cleanup`
 - `stash@{2}`：`WIP tribunal v4 codex runner and librarian packet - needs vibe-scorer fix`
 - `stash@{2}^3`：包含 untracked `scripts/tribunal.sh` 與 `scripts/tribunal-librarian-packet.py`
 
-這代表 migration 的 source of truth 是 VM stash，本機 dirty diff 只能當 reconcile 參考。
+這代表 migration 的 source of truth 是 VM stash，本機 dirty diff 只能作為 reconcile 參考。
 
 ## Goals / Non-Goals
 
@@ -27,7 +27,7 @@
 
 ## Decisions
 
-### 1. VM stash is the migration baseline
+### 1. VM stash 是 migration baseline
 
 **Decision:** 實作時先在 VM 或本機建立 disposable branch/worktree，從 `stash@{1}` 與 `stash@{2}` materialize 工作，再與本機必要改動 reconcile。
 
@@ -60,7 +60,7 @@
 - **stash index drift** → 實作前用 stash subject 與 commit id 雙重確認。
 - **wrapper 指向 missing file** → materialize `stash@{2}^3` 的 untracked files 後才改 wrapper。
 - **judge 自報 model 不可靠** → frontmatter model 由 runner 寫入 `gpt-5.5`，不信 judge 自述。
-- **librarian 過度阻擋新文** → policy 要求「similar + new POV + citation」可通過，不把相似題材直接退稿。
+- **librarian 過度阻擋新文** → policy 要求「similar + new POV + citation」即可通過，不把相似題材直接退稿。
 - **本機 dirty diff 污染 migration** → 實作 branch 只 cherry-pick 明確需要的本機修正。
 
 ## Migration Plan
