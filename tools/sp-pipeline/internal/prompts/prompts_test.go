@@ -6,10 +6,10 @@ import (
 )
 
 func TestRender_Eval(t *testing.T) {
-	out, err := Render("eval-gemini", EvalData{
+	out, err := Render("eval-codex", EvalData{
 		LineCount:      42,
 		Source:         "fake tweet body\nwith two lines",
-		OutputFilename: "eval-gemini.json",
+		OutputFilename: "eval-codex-primary.json",
 	})
 	if err != nil {
 		t.Fatalf("Render: %v", err)
@@ -17,7 +17,7 @@ func TestRender_Eval(t *testing.T) {
 	for _, want := range []string{
 		"(42 lines)",
 		"fake tweet body",
-		"eval-gemini.json",
+		"eval-codex-primary.json",
 		`"verdict":"GO"|"SKIP"`,
 	} {
 		if !strings.Contains(out, want) {
@@ -32,11 +32,13 @@ func TestRender_Write(t *testing.T) {
 		OriginalDate:   "2026-04-10",
 		TranslatedDate: "2026-04-11",
 		AuthorHandle:   "nickbaumann_",
+		SourceField:    "@nickbaumann_ on X",
 		TweetURL:       "https://x.com/nickbaumann_/status/2042705384306336083",
+		Model:          "GPT-5.5",
+		Harness:        "Codex CLI",
 		FirstTag:       "shroom-picks",
 		StyleGuide:     "STYLE_GUIDE_PLACEHOLDER",
 		Source:         "SOURCE_PLACEHOLDER",
-		SourceField:    "@nickbaumann_ on X",
 		Angle:          "",
 	})
 	if err != nil {
@@ -157,7 +159,7 @@ func TestRender_Refine_WithAngle(t *testing.T) {
 func TestRender_MissingKey_Errors(t *testing.T) {
 	// Use a data shape that does NOT satisfy EvalData — text/template with
 	// missingkey=error must fail fast.
-	_, err := Render("eval-gemini", map[string]any{"LineCount": 10})
+	_, err := Render("eval-codex", map[string]any{"LineCount": 10})
 	if err == nil {
 		t.Fatalf("expected error for missing template key, got nil")
 	}

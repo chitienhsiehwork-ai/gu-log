@@ -53,12 +53,14 @@ func (s *State) Write(ctx context.Context) error {
 		OriginalDate:   s.OriginalDate,
 		TranslatedDate: s.TranslatedDate,
 		AuthorHandle:   s.AuthorHandle,
+		SourceField:    s.ResolveSourceField(),
+		Angle:          s.Angle,
 		TweetURL:       s.TweetURL,
+		Model:          llm.DisplayName(s.Dispatcher.Providers()[0].Model()),
+		Harness:        llm.HarnessName(s.Dispatcher.Providers()[0].Model()),
 		FirstTag:       s.firstTag(),
 		StyleGuide:     string(styleGuide),
 		Source:         string(source),
-		SourceField:    s.ResolveSourceField(),
-		Angle:          s.Angle,
 	})
 	if err != nil {
 		return fmt.Errorf("write: render prompt: %w", err)

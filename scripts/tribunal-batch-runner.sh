@@ -163,7 +163,7 @@ PASSED=0
 FAILED=0
 SKIPPED=0
 
-# Exit-code convention (tribunal-all-claude.sh):
+# Exit-code convention (tribunal.sh):
 #   0=passed  1=failed  2=EXHAUSTED  75=skipped(already_running)
 #   77=stopped_by_request
 for article in "${ARTICLES[@]}"; do
@@ -184,7 +184,7 @@ for article in "${ARTICLES[@]}"; do
 
   # Run tribunal
   rc=0
-  bash "$SCRIPT_DIR/tribunal-all-claude.sh" "$article" >> "$LOG_FILE" 2>&1 || rc=$?
+  bash "$SCRIPT_DIR/tribunal.sh" "$article" >> "$LOG_FILE" 2>&1 || rc=$?
 
   case "$rc" in
     0)

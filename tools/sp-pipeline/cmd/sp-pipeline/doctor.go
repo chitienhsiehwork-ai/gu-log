@@ -45,7 +45,7 @@ type fileCheck struct {
 // check_required_tools list, split by whether a missing entry is fatal.
 var (
 	requiredBinaries = []string{"git", "bash", "node", "python3", "curl"}
-	optionalBinaries = []string{"claude", "codex", "gemini", "jq", "make", "pnpm"}
+	optionalBinaries = []string{"codex", "jq", "make", "pnpm"}
 )
 
 func newDoctorCmd(state *rootState) *cobra.Command {
@@ -59,13 +59,12 @@ func newDoctorCmd(state *rootState) *cobra.Command {
 It checks:
 
   - The Go version (must be >= 1.24 for this binary to build and run).
-  - Every external binary the pipeline shells out to (claude, codex,
-    gemini, node, python3, git, bash, curl, jq, make, pnpm).
+  - Every external binary the pipeline shells out to (codex, node, python3,
+    git, bash, curl, jq, make, pnpm).
   - Every repo-relative file the pipeline depends on (fetch-x-article.sh,
     validate-posts.mjs, article-counter.json, WRITING_GUIDELINES.md).
   - Optionally (--probe-llm), sends a 1-token canary prompt through each
-    LLM provider to confirm they respond non-interactively. This is the
-    intended early-warning for the "claude -p expects a TTY" failure mode.
+    LLM provider to confirm it responds non-interactively.
 
 Exit code 0 when everything required is present. Exit code 1 when any
 required dependency is missing. Optional binaries and LLM probe failures

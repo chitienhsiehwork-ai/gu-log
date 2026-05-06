@@ -38,7 +38,7 @@ and asks it to produce a review.md with blocker/major/minor findings.
 
 Unlike write, this prompt does NOT embed the draft contents — the LLM
 is expected to read draft-v1.mdx from --work-dir. This matches how the
-bash pipeline runs ` + "`claude -p`" + ` in (cd $WORK_DIR && …).`,
+pipeline runs ` + "`codex exec`" + ` in (cd $WORK_DIR && …).`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return runReview(cmd.Context(), state, draftPath, workDir, ticketID, opusOnly)
 		},
@@ -46,7 +46,7 @@ bash pipeline runs ` + "`claude -p`" + ` in (cd $WORK_DIR && …).`,
 	cmd.Flags().StringVar(&draftPath, "draft", "", "path to draft-v1.mdx (required; its parent is used as work-dir when --work-dir is empty)")
 	cmd.Flags().StringVar(&workDir, "work-dir", "", "work directory where review.md should land (defaults to dirname of --draft)")
 	cmd.Flags().StringVar(&ticketID, "ticket-id", "PENDING", "ticketId for the review prompt header")
-	cmd.Flags().BoolVar(&opusOnly, "opus", false, "use Claude Opus only (no Codex fallback)")
+	cmd.Flags().BoolVar(&opusOnly, "opus", false, "deprecated compatibility flag; Codex remains the default provider")
 	_ = cmd.MarkFlagRequired("draft")
 	return cmd
 }

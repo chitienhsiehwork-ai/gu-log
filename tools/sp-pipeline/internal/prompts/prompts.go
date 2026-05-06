@@ -47,7 +47,7 @@ func Render(name string, data any) (string, error) {
 	return buf.String(), nil
 }
 
-// EvalData is the template data for eval-gemini.tmpl / eval-codex.tmpl.
+// EvalData is the template data for the Codex eval templates.
 // The bash pipeline passes TWEET_LINE_COUNT as a dynamic value, and
 // embeds the source-tweet.md contents verbatim via $(cat …).
 type EvalData struct {
@@ -57,7 +57,7 @@ type EvalData struct {
 	// Source is the full contents of source-tweet.md.
 	Source string
 	// OutputFilename is the basename the LLM is instructed to write to
-	// in the current directory. Either "eval-gemini.json" or
+	// in the current directory. Either "eval-codex-primary.json" or
 	// "eval-codex.json".
 	OutputFilename string
 }
@@ -67,22 +67,19 @@ type WriteData struct {
 	TicketID       string // e.g. "SP-PENDING" or "SP-170"
 	OriginalDate   string // YYYY-MM-DD
 	TranslatedDate string // YYYY-MM-DD (today)
-	AuthorHandle   string // without @ prefix (still surfaced for legacy fields)
-	TweetURL       string // full canonical URL
-	FirstTag       string // "shroom-picks" (SP/SD) | "clawd-picks" (CP)
-	StyleGuide     string // full contents of WRITING_GUIDELINES.md
-	Source         string // full contents of source-tweet.md
+	AuthorHandle   string // without @ prefix
 	// SourceField is the pre-rendered value for the `source:` frontmatter
-	// line. For X URLs the caller passes "@handle on X"; for docs/blog URLs
-	// the caller passes a curated label like "OpenAI Cookbook" or the
-	// hostname. Computed via pipeline.State.ResolveSourceField.
+	// line, e.g. "@karpathy on X", "Sequoia Capital", or a hostname.
 	SourceField string
-	// Angle is an optional narrative directive. When non-empty, the
-	// template inserts an explicit instruction telling the LLM to pivot
-	// the article structure around this angle instead of treating every
-	// section of the source with equal weight. Empty = default behavior
-	// (cover ALL ideas in the source).
-	Angle string
+	// Angle is an optional narrative directive. When non-empty, the prompt
+	// asks the writer to make this angle the article spine.
+	Angle      string
+	TweetURL   string // full canonical URL
+	Model      string // frontmatter translatedBy.model
+	Harness    string // frontmatter translatedBy.harness
+	FirstTag   string // "shroom-picks" (SP/SD) | "clawd-picks" (CP)
+	StyleGuide string // full contents of WRITING_GUIDELINES.md
+	Source     string // full contents of source-tweet.md
 }
 
 // ReviewData is the template data for review.tmpl.
@@ -93,10 +90,5 @@ type ReviewData struct {
 // RefineData is the template data for refine.tmpl.
 type RefineData struct {
 	TicketID string
-	// Angle is the same narrative directive passed to Write. It is repeated
-	// in refine so the LLM does not "regress to the mean" when applying
-	// review feedback — without this reminder, refine prompts that fix
-	// review issues sometimes flatten an angle-pivoted article back to a
-	// uniform "cover everything" structure.
-	Angle string
+	Angle    string
 }

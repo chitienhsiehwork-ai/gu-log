@@ -17,21 +17,21 @@ import (
 
 // runReport is the JSON shape emitted by `sp-pipeline run --json`.
 type runReport struct {
-	OK            bool           `json:"ok"`
-	Step          string         `json:"step"`
-	TicketID      string         `json:"ticketId,omitempty"`
-	Filename      string         `json:"filename,omitempty"`
-	ENFilename    string         `json:"enFilename,omitempty"`
-	WorkDir       string         `json:"workDir,omitempty"`
-	GeminiVerdict string         `json:"geminiVerdict,omitempty"`
-	CodexVerdict  string         `json:"codexVerdict,omitempty"`
-	DedupVerdict  string         `json:"dedupVerdict,omitempty"`
-	RalphPassed   bool           `json:"ralphPassed,omitempty"`
-	Timings       map[string]int `json:"timings,omitempty"`
-	ElapsedMs     int64          `json:"elapsedMs"`
-	ErrorCode     int            `json:"errorCode,omitempty"`
-	Error         string         `json:"error,omitempty"`
-	DryRun        bool           `json:"dryRun,omitempty"`
+	OK                  bool           `json:"ok"`
+	Step                string         `json:"step"`
+	TicketID            string         `json:"ticketId,omitempty"`
+	Filename            string         `json:"filename,omitempty"`
+	ENFilename          string         `json:"enFilename,omitempty"`
+	WorkDir             string         `json:"workDir,omitempty"`
+	CodexPrimaryVerdict string         `json:"codexPrimaryVerdict,omitempty"`
+	CodexVerdict        string         `json:"codexVerdict,omitempty"`
+	DedupVerdict        string         `json:"dedupVerdict,omitempty"`
+	RalphPassed         bool           `json:"ralphPassed,omitempty"`
+	Timings             map[string]int `json:"timings,omitempty"`
+	ElapsedMs           int64          `json:"elapsedMs"`
+	ErrorCode           int            `json:"errorCode,omitempty"`
+	Error               string         `json:"error,omitempty"`
+	DryRun              bool           `json:"dryRun,omitempty"`
 }
 
 // stepNameToInt maps the --from-step string values (names or numbers) to
@@ -88,12 +88,7 @@ when --from-step skips the fetch stage and no tweet URL is given.
 
 --dry-run stops before the deploy stage (matches bash --dry-run).
 
-CCC note: claude -p works in the sandbox — CCC is authenticated via the
-parent Claude Code session. Under root (CCC / Claude Code on the web)
-the provider switches --permission-mode bypassPermissions to acceptEdits
-because claude refuses bypass under root; acceptEdits still auto-approves
-the file writes the eval/write/review/refine prompts depend on. Use
---fake-provider <json> only to test without spending credits or to pin
+Use --fake-provider <json> only to test without spending credits or to pin
 canned responses for regression tests.`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -121,15 +116,15 @@ canned responses for regression tests.`,
 	cmd.Flags().StringVar(&fromStep, "from-step", "", "resume from step: setup/fetch/eval/dedup/write/review/refine/ralph/deploy")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "stop before the deploy step")
 	cmd.Flags().BoolVar(&force, "force", false, "skip the eval gate (still runs everything else)")
-	cmd.Flags().BoolVar(&opusOnly, "opus", false, "use Claude Opus only (no Codex fallback)")
+	cmd.Flags().BoolVar(&opusOnly, "opus", false, "deprecated compatibility flag; Codex remains the default provider")
 	cmd.Flags().IntVar(&ralphBar, "bar", 8, "ralph quality bar (advisory — tribunal has its own internal bar)")
 	cmd.Flags().StringVar(&existingFile, "file", "", "resume from an existing file in src/content/posts/")
 	cmd.Flags().StringVar(&prefix, "prefix", "SP", "ticket prefix (SP / CP / SD / Lv)")
 	cmd.Flags().BoolVar(&skipBuild, "skip-build", false, "skip npm run build in the deploy step (testing only)")
 	cmd.Flags().BoolVar(&skipPush, "skip-push", false, "skip git push in the deploy step (testing only)")
 	cmd.Flags().BoolVar(&skipValidate, "skip-validate", false, "skip validate-posts.mjs in the deploy step (testing only)")
-	cmd.Flags().StringVar(&angle, "angle", "", "narrative directive injected into write+refine prompts (e.g. \"focus on Task Flow while introducing the others\"). Empty = default \"cover ALL ideas\" behavior")
-	cmd.Flags().StringVar(&sourceLabel, "source-label", "", "override the `source:` frontmatter line. Empty = auto: \"@<handle> on X\" for X URLs, hostname for everything else")
+	cmd.Flags().StringVar(&angle, "angle", "", "optional narrative angle to make the article spine")
+	cmd.Flags().StringVar(&sourceLabel, "source-label", "", "override the `source:` frontmatter line")
 	return cmd
 }
 
@@ -201,18 +196,18 @@ func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 	runErr := pipeline.Run(ctx, s)
 
 	report := runReport{
-		Step:          "run",
-		TicketID:      s.PromptTicketID,
-		Filename:      s.Filename,
-		ENFilename:    s.ENFilename,
-		WorkDir:       s.WorkDir,
-		GeminiVerdict: s.GeminiVerdict,
-		CodexVerdict:  s.CodexVerdict,
-		DedupVerdict:  s.DedupVerdict,
-		RalphPassed:   s.RalphPassed,
-		Timings:       s.Timings,
-		ElapsedMs:     time.Since(start).Milliseconds(),
-		DryRun:        opts.DryRun,
+		Step:                "run",
+		TicketID:            s.PromptTicketID,
+		Filename:            s.Filename,
+		ENFilename:          s.ENFilename,
+		WorkDir:             s.WorkDir,
+		CodexPrimaryVerdict: s.CodexPrimaryVerdict,
+		CodexVerdict:        s.CodexVerdict,
+		DedupVerdict:        s.DedupVerdict,
+		RalphPassed:         s.RalphPassed,
+		Timings:             s.Timings,
+		ElapsedMs:           time.Since(start).Milliseconds(),
+		DryRun:              opts.DryRun,
 	}
 	if runErr != nil {
 		var se *pipeline.StepError

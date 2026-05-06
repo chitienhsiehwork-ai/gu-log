@@ -47,8 +47,8 @@ contents — the LLM reads them from --work-dir.`,
 	cmd.Flags().StringVar(&reviewPath, "review", "", "path to review.md (defaults to <work-dir>/review.md)")
 	cmd.Flags().StringVar(&workDir, "work-dir", "", "work directory (defaults to dirname of --draft)")
 	cmd.Flags().StringVar(&ticketID, "ticket-id", "PENDING", "ticketId for the refine prompt header")
-	cmd.Flags().BoolVar(&opusOnly, "opus", false, "use Claude Opus only (no Codex fallback)")
-	cmd.Flags().StringVar(&angle, "angle", "", "narrative directive — should match the --angle passed to write so refine doesn't flatten the angle when applying review feedback")
+	cmd.Flags().BoolVar(&opusOnly, "opus", false, "deprecated compatibility flag; Codex remains the default provider")
+	cmd.Flags().StringVar(&angle, "angle", "", "optional narrative angle to preserve while refining")
 	_ = cmd.MarkFlagRequired("draft")
 	return cmd
 }

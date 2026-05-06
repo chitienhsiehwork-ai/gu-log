@@ -18,16 +18,16 @@ import (
 
 // evalReport is the --json output shape.
 type evalReport struct {
-	OK             bool   `json:"ok"`
-	Step           string `json:"step"`
-	GeminiVerdict  string `json:"geminiVerdict,omitempty"`
-	CodexVerdict   string `json:"codexVerdict,omitempty"`
-	SuggestedTitle string `json:"suggestedTitle,omitempty"`
-	GeminiFile     string `json:"geminiFile,omitempty"`
-	CodexFile      string `json:"codexFile,omitempty"`
-	ElapsedMs      int64  `json:"elapsedMs"`
-	ErrorCode      int    `json:"errorCode,omitempty"`
-	Error          string `json:"error,omitempty"`
+	OK                  bool   `json:"ok"`
+	Step                string `json:"step"`
+	CodexPrimaryVerdict string `json:"codexPrimaryVerdict,omitempty"`
+	CodexVerdict        string `json:"codexVerdict,omitempty"`
+	SuggestedTitle      string `json:"suggestedTitle,omitempty"`
+	CodexPrimaryFile    string `json:"codexPrimaryFile,omitempty"`
+	CodexFile           string `json:"codexFile,omitempty"`
+	ElapsedMs           int64  `json:"elapsedMs"`
+	ErrorCode           int    `json:"errorCode,omitempty"`
+	Error               string `json:"error,omitempty"`
 }
 
 func newEvalCmd(state *rootState) *cobra.Command {
@@ -42,7 +42,7 @@ func newEvalCmd(state *rootState) *cobra.Command {
 		Short: "Evaluate whether a captured source is SP-worthy",
 		Long: `eval runs the two-evaluator gate that Step 1.5 of sp-pipeline.sh does.
 
-It renders the eval-gemini.tmpl and eval-codex.tmpl prompts, passes them
+It renders the Codex eval prompt twice, passes both runs
 through the LLM dispatcher with --work-dir as CWD so the prompts' "write
 JSON to <file> in current directory" instructions land correctly, then
 compares the two verdicts:
@@ -59,7 +59,7 @@ compares the two verdicts:
 	cmd.Flags().StringVar(&sourcePath, "source", "", "path to source-tweet.md (required)")
 	cmd.Flags().StringVar(&workDir, "work-dir", "", "work directory for eval output files (defaults to parent dir of --source)")
 	cmd.Flags().BoolVar(&force, "force", false, "skip the gate and exit 0 without calling the LLM")
-	cmd.Flags().BoolVar(&opusOnly, "opus", false, "use Claude Opus only (no Codex fallback)")
+	cmd.Flags().BoolVar(&opusOnly, "opus", false, "deprecated compatibility flag; Codex remains the default provider")
 	_ = cmd.MarkFlagRequired("source")
 	return cmd
 }
@@ -104,13 +104,13 @@ func runEval(ctx context.Context, state *rootState, sourcePath, workDir string, 
 	err = s.Eval(stepCtx)
 
 	report := evalReport{
-		Step:           "eval",
-		GeminiVerdict:  s.GeminiVerdict,
-		CodexVerdict:   s.CodexVerdict,
-		SuggestedTitle: s.SuggestedTitle,
-		GeminiFile:     filepath.Join(workDir, "eval-gemini.json"),
-		CodexFile:      filepath.Join(workDir, "eval-codex.json"),
-		ElapsedMs:      time.Since(start).Milliseconds(),
+		Step:                "eval",
+		CodexPrimaryVerdict: s.CodexPrimaryVerdict,
+		CodexVerdict:        s.CodexVerdict,
+		SuggestedTitle:      s.SuggestedTitle,
+		CodexPrimaryFile:    filepath.Join(workDir, "eval-codex-primary.json"),
+		CodexFile:           filepath.Join(workDir, "eval-codex.json"),
+		ElapsedMs:           time.Since(start).Milliseconds(),
 	}
 
 	if err != nil {
@@ -138,7 +138,7 @@ func emitEvalReport(state *rootState, r evalReport) {
 		return
 	}
 	if r.OK {
-		fmt.Printf("%s/%s\n", r.GeminiVerdict, r.CodexVerdict)
+		fmt.Printf("%s/%s\n", r.CodexPrimaryVerdict, r.CodexVerdict)
 	}
 }
 

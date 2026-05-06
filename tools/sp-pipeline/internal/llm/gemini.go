@@ -64,22 +64,20 @@ func (g *GeminiProvider) modelName() string {
 }
 
 // DefaultWritingChain returns the provider ordering used for article
-// writing (write / review / refine steps). Claude Opus primary, Codex GPT-5.4
-// fallback. Gemini is intentionally excluded — see package doc.
+// writing (write / review / refine steps). Codex GPT-5.5 medium is the
+// only default provider: Anthropic and Gemini subscriptions are no longer
+// assumed to exist on the VM.
 func DefaultWritingChain() []Provider {
 	return []Provider{
-		NewClaudeOpus(),
-		NewCodexGPT54(),
+		NewCodexGPT55Medium(),
 	}
 }
 
-// DefaultProbeChain returns every provider the doctor subcommand should
-// ping, including ones excluded from writing (Gemini). Order here is
-// display order in the doctor report.
+// DefaultProbeChain returns the providers the doctor subcommand should ping.
+// Keep this aligned with the production default chain so doctor does not fail
+// or warn on intentionally unavailable Claude/Gemini subscriptions.
 func DefaultProbeChain() []Provider {
 	return []Provider{
-		NewClaudeOpus(),
-		NewCodexGPT54(),
-		NewGemini31Pro(),
+		NewCodexGPT55Medium(),
 	}
 }

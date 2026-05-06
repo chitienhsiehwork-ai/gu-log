@@ -15,6 +15,19 @@ func makeFakeRepo(t *testing.T) string {
 	return root
 }
 
+func canonicalPath(t *testing.T, p string) string {
+	t.Helper()
+	abs, err := filepath.Abs(p)
+	if err != nil {
+		t.Fatalf("abs %s: %v", p, err)
+	}
+	real, err := filepath.EvalSymlinks(abs)
+	if err != nil {
+		return abs
+	}
+	return real
+}
+
 func TestResolve_FromEnv(t *testing.T) {
 	root := makeFakeRepo(t)
 	t.Setenv("GU_LOG_DIR", root)
@@ -23,26 +36,28 @@ func TestResolve_FromEnv(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Resolve: %v", err)
 	}
-	abs, _ := filepath.Abs(root)
-	if cfg.RepoRoot != abs {
+	abs := canonicalPath(t, root)
+	gotRoot := canonicalPath(t, cfg.RepoRoot)
+	if gotRoot != abs {
 		t.Fatalf("RepoRoot = %q, want %q", cfg.RepoRoot, abs)
 	}
-	if cfg.ScriptsDir != filepath.Join(abs, "scripts") {
+	resolvedRoot := cfg.RepoRoot
+	if cfg.ScriptsDir != filepath.Join(resolvedRoot, "scripts") {
 		t.Fatalf("ScriptsDir wrong: %q", cfg.ScriptsDir)
 	}
-	if cfg.PostsDir != filepath.Join(abs, "src", "content", "posts") {
+	if cfg.PostsDir != filepath.Join(resolvedRoot, "src", "content", "posts") {
 		t.Fatalf("PostsDir wrong: %q", cfg.PostsDir)
 	}
-	if cfg.CounterFile != filepath.Join(abs, "scripts", "article-counter.json") {
+	if cfg.CounterFile != filepath.Join(resolvedRoot, "scripts", "article-counter.json") {
 		t.Fatalf("CounterFile wrong: %q", cfg.CounterFile)
 	}
-	if cfg.WritingGuide != filepath.Join(abs, "WRITING_GUIDELINES.md") {
+	if cfg.WritingGuide != filepath.Join(resolvedRoot, "WRITING_GUIDELINES.md") {
 		t.Fatalf("WritingGuide wrong: %q", cfg.WritingGuide)
 	}
-	if cfg.FetchXArticle != filepath.Join(abs, "scripts", "fetch-x-article.sh") {
+	if cfg.FetchXArticle != filepath.Join(resolvedRoot, "scripts", "fetch-x-article.sh") {
 		t.Fatalf("FetchXArticle wrong: %q", cfg.FetchXArticle)
 	}
-	if cfg.ValidatePosts != filepath.Join(abs, "scripts", "validate-posts.mjs") {
+	if cfg.ValidatePosts != filepath.Join(resolvedRoot, "scripts", "validate-posts.mjs") {
 		t.Fatalf("ValidatePosts wrong: %q", cfg.ValidatePosts)
 	}
 }
@@ -59,8 +74,9 @@ func TestResolve_WalksUp(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Resolve: %v", err)
 	}
-	abs, _ := filepath.Abs(root)
-	if cfg.RepoRoot != abs {
+	abs := canonicalPath(t, root)
+	gotRoot := canonicalPath(t, cfg.RepoRoot)
+	if gotRoot != abs {
 		t.Fatalf("RepoRoot = %q, want %q", cfg.RepoRoot, abs)
 	}
 }
@@ -91,8 +107,9 @@ func TestResolve_DefaultStartDirIsCwd(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Resolve: %v", err)
 	}
-	abs, _ := filepath.Abs(root)
-	if cfg.RepoRoot != abs {
+	abs := canonicalPath(t, root)
+	gotRoot := canonicalPath(t, cfg.RepoRoot)
+	if gotRoot != abs {
 		t.Fatalf("RepoRoot = %q, want %q", cfg.RepoRoot, abs)
 	}
 }

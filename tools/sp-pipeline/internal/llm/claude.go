@@ -35,8 +35,8 @@ type ClaudeProvider struct {
 // explicitly rejected Opus 4.7's writing voice and vibe-scoring calibration;
 // "opus" alias auto-upgrades to the latest and would silently break that.
 // DO NOT change ClaudeOpusPinned to the "opus" alias without owner sign-off.
-// Keep this in sync with .claude/agents/vibe-opus-scorer.md and
-// .claude/agents/tribunal-writer.md frontmatter.
+// Keep this in sync with Claude Code agent frontmatter. Codex tribunal runtime
+// has its own project-scoped configs under .codex/agents/*.toml.
 const (
 	ClaudeOpusPinned = "claude-opus-4-6[1m]"
 )

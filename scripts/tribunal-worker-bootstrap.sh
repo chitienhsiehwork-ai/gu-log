@@ -65,7 +65,7 @@ cmd_create() {
 
   echo
   echo "Worker worktree ready: $path"
-  echo "  Next: supervisor will dispatch tribunal-all-claude.sh runs into this directory."
+  echo "  Next: supervisor will dispatch tribunal.sh runs into this directory."
   echo "  Disk: $(du -sh "$path" 2>/dev/null | awk '{print $1}')"
 }
 

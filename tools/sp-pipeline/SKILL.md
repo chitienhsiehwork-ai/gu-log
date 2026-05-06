@@ -1,6 +1,6 @@
 # sp-pipeline SKILL
 
-Agent-facing usage guide. If you are a future Claude / Codex / Gemini session picking up work on gu-log, read this before running any `sp-pipeline` subcommand.
+Agent-facing usage guide. If you are a future agent session picking up work on gu-log, read this before running any `sp-pipeline` subcommand.
 
 > **Status**: Phase 4 complete. Every subcommand is live. `sp-pipeline run <url>` is the canonical entry point. `scripts/sp-pipeline.sh` is a thin shim that execs into this binary.
 
@@ -36,7 +36,7 @@ Expected: first call takes ~3 seconds (cold compile), subsequent calls are insta
 | "Allocate a new ticketId" | `sp-pipeline counter bump --prefix SP` | Atomically advances under `flock` |
 | "Is this source already covered?" | `sp-pipeline dedup --url <x> --title <t>` | Wraps `scripts/dedup-gate.mjs` |
 | "Run just one LLM-heavy step" | `sp-pipeline {eval,write,review,refine} --source ...` | Each step is independently callable; `--fake-provider` pins canned responses for tests |
-| "Run the 4-stage tribunal on an existing post" | `sp-pipeline ralph --file <sp-NNN-*.mdx>` | Wraps `scripts/tribunal-all-claude.sh` + runs the frontmatter normaliser |
+| "Run the 4-stage tribunal on an existing post" | `sp-pipeline ralph --file <sp-NNN-*.mdx>` | Wraps `scripts/tribunal.sh` + runs the frontmatter normaliser |
 | "Patch pipeline credits into a final.mdx for debugging" | `sp-pipeline credits --file <final.mdx>` | Step 4.6 standalone |
 | "Deploy a recovered article" | `sp-pipeline deploy --active-file ... --title ...` | Step 5 standalone — counter bump + rename + commit + push |
 
@@ -154,14 +154,14 @@ fetch shelled out to `scripts/fetch-x-article.sh`, got output, but the native Go
 - `capture contains tool-exec scaffolding markers` → the capture has `tool=exec` / `Process exited with code` / `fetch-agent-stderr.log` markers. This is a bash-pipeline bug leaking into stdout; investigate `scripts/fetch-x-article.sh`
 - `capture missing required @handle + date/source-url header` → the X URL returned something unexpected. Try `--json` and inspect the raw stdout under `tmp/`
 
-### "doctor --probe-llm: claude-opus: error: exit code 1"
+### "doctor --probe-llm: codex-gpt-5.5: error: exit code 1"
 
-`claude -p` is installed but the 1-token canary did not complete. Common causes:
+`codex exec` is installed but the 1-token canary did not complete. Common causes:
 
-- **`--dangerously-skip-permissions cannot be used with root/sudo privileges`** — Claude Code refuses the permission-bypass flags under root. `ClaudeProvider.Run` and the shell judges now drop those flags when `id -u == 0` (CCC), so this shouldn't surface from the current Go/shell call sites. If you see it, something upstream still passes the flag; grep for `dangerously-skip-permissions` and `permission-mode` and gate the match with an `id -u` check.
-- **Canary stalls on CLAUDE.md discovery (CCC)** — without the bypass flag, `claude -p` runs in the default permission mode, auto-discovers `CLAUDE.md`, and may try context-aware work on the repo instead of answering the canary. It will stall waiting for permission it can't receive and hit the 30 s probe timeout with an empty error. Real creative prompts (write / review / refine) are less susceptible because the task is the prompt, not the repo — but a red probe does NOT prove the real pipeline is broken. Try `sp-pipeline run --dry-run <url>` before escalating.
-- **Credentials** — run `claude` interactively once to seed them, or set `ANTHROPIC_API_KEY`.
-- **No TTY** — harmless for `-p` in non-interactive shells; no fix needed.
+- **Credentials** — run `codex` interactively once to seed auth, then retry the probe.
+- **PATH / bundled CLI mismatch** — on clawd-vm, the wrapper may need the bundled Node entrypoint. `scripts/tribunal-helpers.sh` has a fallback for tribunal; `sp-pipeline doctor` still expects `codex` on PATH.
+- **Sandbox prompt blocked** — verify the installed Codex supports `exec --sandbox danger-full-access --skip-git-repo-check`.
+- **Canary stalls on repo discovery** — try `sp-pipeline run --dry-run <url>` before escalating; a failed 1-token probe can be less informative than an actual small pipeline rehearsal.
 
 ### "sp-pipeline: 'go' not found on PATH"
 
@@ -169,10 +169,10 @@ You are on a machine without Go 1.24+. Install it from https://go.dev/dl/ or ask
 
 ## Relationship to `scripts/sp-pipeline.sh`
 
-Phase 1 is purely additive. The bash pipeline is untouched and remains the production entry point until Phase 4.
+The bash wrapper is now a compatibility shim. The production implementation lives in `tools/sp-pipeline/` and uses Codex/GPT-5.5 by default.
 
-Safe assumption: `bash scripts/sp-pipeline.sh <url>` always works (it is tested in CI); `sp-pipeline run <url>` does NOT work yet (Phase 2 target). Use the bash pipeline when the user asks for "run the full pipeline"; use the Go binary when you want to run a single step in isolation (`fetch`, `doctor`).
+Safe assumption: `bash scripts/sp-pipeline.sh <url>` and `tools/sp-pipeline/sp-pipeline run <url>` exercise the same Go pipeline surface. Use `--dry-run` for rehearsal.
 
 ## Reporting issues
 
-File issues at `anthropics/claude-code` if a subcommand crashes or prints unexpected output. Include the full `--json` report, the environment info from `sp-pipeline doctor`, and the tweet URL (if applicable) so the failure can be reproduced.
+File gu-log issues with the full `--json` report, the environment info from `sp-pipeline doctor`, and the source URL (if applicable) so the failure can be reproduced.

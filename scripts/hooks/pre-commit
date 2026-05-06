@@ -19,6 +19,19 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 STAGED_MDX=$(git diff --cached --name-only --diff-filter=ACM -- "$POSTS_DIR"/*.mdx 2>/dev/null || true)
 
+# ─── Step -2: User-wide Markdown zh-tw prose ratio check ───────────
+# This repo has its own hooksPath, so it does not inherit the global Git
+# hook. Call the shared checker explicitly to keep gu-log aligned with the
+# machine-wide Markdown language default.
+GLOBAL_MD_ZH_CHECK="$HOME/.config/git/hooks/lib/check-md-zh-tw-ratio.mjs"
+if [ -x "$GLOBAL_MD_ZH_CHECK" ]; then
+    if command -v node >/dev/null 2>&1; then
+        node "$GLOBAL_MD_ZH_CHECK"
+    else
+        echo "⚠️  node not found, skipping Markdown zh-tw ratio check"
+    fi
+fi
+
 # ─── Step -1: Gitleaks secret scan (~500ms) ───────────────────────
 if command -v gitleaks >/dev/null 2>&1; then
     echo "🔐 Gitleaks: scanning for secrets..."

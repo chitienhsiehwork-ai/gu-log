@@ -265,17 +265,6 @@ body
 	}
 }
 
-// TestSetNestedBlock_InsertWhenMissing covers the bug surfaced on SP-186
-// (PR #177): credits.go was calling SetBlock("  pipeline", ...) on an
-// article whose translatedBy block had no `pipeline:` child yet. SetBlock's
-// not-found path appended the snippet at end-of-frontmatter, dropping it
-// after `tags:` at the wrong indent — Astro YAML parser then crashed on
-// "bad indentation of a mapping entry" and the build failed.
-//
-// SetNestedBlock fixes the case by inserting the block at the END of the
-// parent block (before the next sibling top-level key), matching
-// SetNestedScalar's "parent exists, child missing → append inside parent"
-// semantics.
 func TestSetNestedBlock_InsertWhenMissing(t *testing.T) {
 	raw := []byte(`---
 title: "Hello"
@@ -300,9 +289,6 @@ body
 	f.SetNestedBlock("translatedBy", "pipeline", snippet)
 	out := string(f.Bytes())
 
-	// Block must land inside translatedBy, BEFORE source: (the next
-	// sibling top-level key). Easiest check: pipeline: appears before
-	// source: in the output, and source: still exists at indent 0.
 	pIdx := strings.Index(out, "  pipeline:")
 	sIdx := strings.Index(out, "\nsource:")
 	if pIdx < 0 {
@@ -312,7 +298,7 @@ body
 		t.Fatalf("source: top-level sibling missing from output:\n%s", out)
 	}
 	if pIdx > sIdx {
-		t.Errorf("pipeline: block should appear BEFORE source: but landed after — would be dangling outside translatedBy.\n%s", out)
+		t.Errorf("pipeline: block should appear before source:\n%s", out)
 	}
 	if !strings.Contains(out, `- role: "Written"`) {
 		t.Errorf("pipeline entry missing: %s", out)
@@ -358,9 +344,6 @@ body
 }
 
 func TestSetNestedBlock_ParentMissing(t *testing.T) {
-	// When the parent block doesn't exist, SetNestedBlock is a no-op
-	// (rather than appending at end-of-frontmatter, which is what
-	// SetBlock does and what produces broken YAML).
 	raw := []byte(`---
 title: "Hello"
 lang: "zh-tw"

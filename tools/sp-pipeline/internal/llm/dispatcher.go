@@ -11,7 +11,7 @@ import (
 
 // Provider is the single surface we require of every LLM CLI wrapper.
 type Provider interface {
-	// Name is a short identifier used in logs ("claude-opus", "codex-gpt-5.4", …).
+	// Name is a short identifier used in logs ("codex-gpt-5.5", …).
 	Name() string
 	// Model is the canonical ModelID, used to populate translatedBy.model.
 	Model() ModelID
@@ -21,8 +21,8 @@ type Provider interface {
 	Available() bool
 	// Run sends prompt to the model and returns the stdout. ctx propagates
 	// cancellation and timeout. opts carries invocation-specific knobs such
-	// as the working directory — the bash pipeline's prompts assume they
-	// run under a `cd $WORK_DIR && claude -p …` wrapper so that the LLM's
+	// as the working directory — the pipeline prompts assume they
+	// run under a `cd $WORK_DIR && codex exec …` wrapper so that the LLM's
 	// "write output to foo.json" instructions land in the right directory.
 	Run(ctx context.Context, prompt string, opts RunOptions) (string, error)
 }

@@ -44,8 +44,8 @@ var tweetBadMarkers = []string{
 	"/bin/bash -lc",
 	"succeeded in ",
 	"fetch-agent-stderr.log",
+	"eval-codex-primary.json",
 	"eval-codex.json",
-	"eval-gemini.json",
 	"plan updated",
 	"exact_fetch_failed",
 }

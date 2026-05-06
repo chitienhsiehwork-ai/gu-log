@@ -82,8 +82,8 @@ func TestNormalizeRalphFrontmatter_StripsAndCanonicalises(t *testing.T) {
 	if strings.Contains(s, `- role: "Old"`) {
 		t.Error("stale role 'Old' not stripped")
 	}
-	// Canonical summary harness
-	if !strings.Contains(s, `harness: "Gemini CLI + Codex CLI + Claude Code"`) {
+	// Canonical summary harness for mac-cdx Codex migration.
+	if !strings.Contains(s, `harness: "Codex CLI"`) {
 		t.Error("canonical summary harness missing")
 	}
 }

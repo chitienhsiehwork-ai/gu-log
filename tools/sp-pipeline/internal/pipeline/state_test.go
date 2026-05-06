@@ -63,7 +63,7 @@ func TestEval_GoGo(t *testing.T) {
 	fake.WithResponses(
 		llm.FakeResponse{
 			Output:    `{"verdict":"GO","reason":"substantial","suggested_title":"Fake Title"}`,
-			WriteFile: "eval-gemini.json",
+			WriteFile: "eval-codex-primary.json",
 		},
 		llm.FakeResponse{
 			Output:    `{"verdict":"GO","reason":"on topic","suggested_title":"Fake Title"}`,
@@ -77,11 +77,11 @@ func TestEval_GoGo(t *testing.T) {
 		t.Errorf("SuggestedTitle = %q, want Fake Title", s.SuggestedTitle)
 	}
 	// Both verdicts populated.
-	if s.GeminiVerdict != "GO" || s.CodexVerdict != "GO" {
-		t.Errorf("verdicts not stored: gemini=%q codex=%q", s.GeminiVerdict, s.CodexVerdict)
+	if s.CodexPrimaryVerdict != "GO" || s.CodexVerdict != "GO" {
+		t.Errorf("verdicts not stored: codexPrimary=%q codex=%q", s.CodexPrimaryVerdict, s.CodexVerdict)
 	}
 	// Files exist.
-	for _, f := range []string{"eval-gemini.json", "eval-codex.json"} {
+	for _, f := range []string{"eval-codex-primary.json", "eval-codex.json"} {
 		if _, err := os.Stat(filepath.Join(workDir, f)); err != nil {
 			t.Errorf("%s missing: %v", f, err)
 		}
@@ -91,7 +91,7 @@ func TestEval_GoGo(t *testing.T) {
 func TestEval_SkipSkipExit12(t *testing.T) {
 	s, fake, _ := newTestState(t)
 	fake.WithResponses(
-		llm.FakeResponse{Output: `{"verdict":"SKIP","reason":"too thin","suggested_title":""}`, WriteFile: "eval-gemini.json"},
+		llm.FakeResponse{Output: `{"verdict":"SKIP","reason":"too thin","suggested_title":""}`, WriteFile: "eval-codex-primary.json"},
 		llm.FakeResponse{Output: `{"verdict":"SKIP","reason":"off topic","suggested_title":""}`, WriteFile: "eval-codex.json"},
 	)
 	err := s.Eval(context.Background())
@@ -110,7 +110,7 @@ func TestEval_SkipSkipExit12(t *testing.T) {
 func TestEval_SplitExit2(t *testing.T) {
 	s, fake, _ := newTestState(t)
 	fake.WithResponses(
-		llm.FakeResponse{Output: `{"verdict":"GO","reason":"yes","suggested_title":"t"}`, WriteFile: "eval-gemini.json"},
+		llm.FakeResponse{Output: `{"verdict":"GO","reason":"yes","suggested_title":"t"}`, WriteFile: "eval-codex-primary.json"},
 		llm.FakeResponse{Output: `{"verdict":"SKIP","reason":"no","suggested_title":""}`, WriteFile: "eval-codex.json"},
 	)
 	err := s.Eval(context.Background())
