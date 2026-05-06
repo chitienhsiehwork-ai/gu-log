@@ -186,3 +186,54 @@ PROMPT
   codex_cmd="$(tribunal_codex_cmd)" || return 127
   ( cd "$work_dir" && timeout "$timeout_sec" $codex_cmd exec --model gpt-5.5 -c "model_reasoning_effort=\"$reasoning_effort\"" --sandbox danger-full-access --skip-git-repo-check -- "$prompt" )
 }
+
+# Run Codex with both a wall-clock timeout and an idle watchdog. The wall-clock
+# timeout can be large for GPT-5.5 judge runs, but a process that produces no
+# output and no score-file progress for a while is treated as stalled.
+#
+# Args: work_dir agent_name prompt output_file progress_file
+# Returns: child exit code, or 124 when killed by the idle watchdog/timeout.
+tribunal_codex_exec_watchdog() {
+  local work_dir="$1"
+  local agent_name="$2"
+  local user_prompt="$3"
+  local output_file="$4"
+  local progress_file="${5:-}"
+  local idle_timeout="${TRIBUNAL_CODEX_IDLE_TIMEOUT_SEC:-900}"
+  local poll_interval="${TRIBUNAL_CODEX_IDLE_POLL_SEC:-30}"
+  local pid rc now last_change latest_mtime out_mtime progress_mtime
+
+  : > "$output_file"
+  tribunal_codex_exec "$work_dir" "$agent_name" "$user_prompt" > "$output_file" 2>&1 &
+  pid=$!
+  last_change="$(date +%s)"
+
+  while kill -0 "$pid" 2>/dev/null; do
+    sleep "$poll_interval"
+    now="$(date +%s)"
+    latest_mtime=0
+    if [ -e "$output_file" ]; then
+      out_mtime="$(stat -c %Y "$output_file" 2>/dev/null || stat -f %m "$output_file" 2>/dev/null || echo 0)"
+      [ "$out_mtime" -gt "$latest_mtime" ] && latest_mtime="$out_mtime"
+    fi
+    if [ -n "$progress_file" ] && [ -e "$progress_file" ]; then
+      progress_mtime="$(stat -c %Y "$progress_file" 2>/dev/null || stat -f %m "$progress_file" 2>/dev/null || echo 0)"
+      [ "$progress_mtime" -gt "$latest_mtime" ] && latest_mtime="$progress_mtime"
+    fi
+    if [ "$latest_mtime" -gt "$last_change" ]; then
+      last_change="$latest_mtime"
+    fi
+    if [ $((now - last_change)) -ge "$idle_timeout" ]; then
+      printf '[tribunal-watchdog] idle for %ss with no output/score-file progress; killing Codex pid %s\n' "$idle_timeout" "$pid" >> "$output_file"
+      kill -TERM "$pid" 2>/dev/null || true
+      sleep 5
+      kill -KILL "$pid" 2>/dev/null || true
+      wait "$pid" 2>/dev/null || true
+      return 124
+    fi
+  done
+
+  rc=0
+  wait "$pid" || rc=$?
+  return "$rc"
+}

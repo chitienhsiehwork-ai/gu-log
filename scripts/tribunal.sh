@@ -8,10 +8,13 @@
 #   4. Vibe Scorer (GPT-5.5) — one dim ≥ 9 AND rest ≥ 8, max 3 loops
 #
 # Usage:
-#   bash scripts/tribunal.sh [--only-stage <librarian|factChecker|freshEyes|vibe>] <filename.mdx>
+#   bash scripts/tribunal.sh [--only-stage <librarian|factChecker|freshEyes|vibe>] [--allow-rewrite] [--no-commit] <filename.mdx>
+#   bash scripts/tribunal.sh --score-only --only-stage vibe <filename.mdx>
 #
 # Standalone mode: bash scripts/tribunal.sh sp-123-date-slug.mdx
-# Single-stage mode: bash scripts/tribunal.sh --only-stage vibe sp-123-date-slug.mdx
+# Single-stage mode is judge-only by default: it scores and may update progress,
+# but it will not invoke tribunal-writer unless --allow-rewrite is explicit.
+# --score-only is fully non-mutating: no rewrite, no frontmatter, no commit.
 # On crash resume: re-run same command; completed stages are skipped.
 
 set -euo pipefail
@@ -35,6 +38,9 @@ source "$SCRIPT_DIR/tribunal-run-control.sh"
 # ─── Args ─────────────────────────────────────────────────────────────────────
 ONLY_STAGE=""
 POST_FILE=""
+ALLOW_REWRITE=""
+WRITE_FRONTMATTER=1
+SCORE_ONLY=0
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --only-stage)
@@ -49,8 +55,27 @@ while [ "$#" -gt 0 ]; do
       ONLY_STAGE="${1#--only-stage=}"
       shift
       ;;
+    --allow-rewrite)
+      ALLOW_REWRITE=1
+      shift
+      ;;
+    --no-rewrite|--judge-only)
+      ALLOW_REWRITE=0
+      shift
+      ;;
+    --no-commit)
+      export TRIBUNAL_NO_COMMIT=1
+      shift
+      ;;
+    --score-only)
+      export TRIBUNAL_NO_COMMIT=1
+      ALLOW_REWRITE=0
+      WRITE_FRONTMATTER=0
+      SCORE_ONLY=1
+      shift
+      ;;
     -h|--help)
-      echo "Usage: bash scripts/tribunal.sh [--only-stage <librarian|factChecker|freshEyes|vibe>] <filename.mdx>"
+      echo "Usage: bash scripts/tribunal.sh [--only-stage <librarian|factChecker|freshEyes|vibe>] [--allow-rewrite] [--no-commit|--score-only] <filename.mdx>"
       exit 0
       ;;
     --*)
@@ -69,7 +94,7 @@ while [ "$#" -gt 0 ]; do
 done
 
 if [ -z "$POST_FILE" ]; then
-  echo "Usage: bash scripts/tribunal.sh [--only-stage <librarian|factChecker|freshEyes|vibe>] <filename.mdx>" >&2
+  echo "Usage: bash scripts/tribunal.sh [--only-stage <librarian|factChecker|freshEyes|vibe>] [--allow-rewrite] [--no-commit|--score-only] <filename.mdx>" >&2
   exit 1
 fi
 
@@ -80,6 +105,14 @@ case "$ONLY_STAGE" in
     exit 1
     ;;
 esac
+
+if [ -z "$ALLOW_REWRITE" ]; then
+  if [ -n "$ONLY_STAGE" ]; then
+    ALLOW_REWRITE=0
+  else
+    ALLOW_REWRITE=1
+  fi
+fi
 
 POST_FILE="$(basename "$POST_FILE")"  # strip any leading path
 POST_PATH="$ROOT_DIR/src/content/posts/$POST_FILE"
@@ -126,6 +159,14 @@ fi
 # Honor the exported env so shared flock + shared file + shared commit path
 # all line up.
 PROGRESS_FILE="${PROGRESS_FILE:-$ROOT_DIR/scores/tribunal-progress.json}"
+if [ "$SCORE_ONLY" -eq 1 ]; then
+  if [ -n "${TRIBUNAL_SCORE_ONLY_PROGRESS_FILE:-}" ]; then
+    PROGRESS_FILE="$TRIBUNAL_SCORE_ONLY_PROGRESS_FILE"
+  else
+    PROGRESS_FILE="$(mktemp /tmp/tribunal-score-only-progress-XXXXXX.json)"
+    trap 'rm -f "$PROGRESS_FILE"' EXIT
+  fi
+fi
 
 ensure_progress_file() {
   mkdir -p "$(dirname "$PROGRESS_FILE")"
@@ -589,7 +630,7 @@ PROMPT
     judge_work_dir="$(tribunal_llm_work_dir)"
     local judge_score_in_work="$judge_work_dir/score.json"
     judge_task="${judge_task/SCORE_PATH_PLACEHOLDER/$judge_score_in_work}"
-    TRIBUNAL_CODEX_TIMEOUT_SEC="$stage_timeout" tribunal_codex_exec "$judge_work_dir" "$agent_name" "$judge_task" > "$judge_out" 2>&1 || judge_rc=$?
+    TRIBUNAL_CODEX_TIMEOUT_SEC="$stage_timeout" tribunal_codex_exec_watchdog "$judge_work_dir" "$agent_name" "$judge_task" "$judge_out" "$judge_score_in_work" || judge_rc=$?
 
     if [ -f "$judge_score_in_work" ]; then
       mv "$judge_score_in_work" "$score_tmp"
@@ -606,24 +647,22 @@ PROMPT
 
     # ── Validate score JSON ───────────────────────────────────────────────────
     if ! validate_judge_score_json "$validate_name" "$score_tmp"; then
-      tlog "  WARN: Invalid/missing score JSON for $label attempt $attempt"
+      tlog "  ERROR: Invalid/missing $label score JSON schema on attempt $attempt; failing loudly without writer rewrite."
       if [ -f "$score_tmp" ]; then
         local raw
         raw="$(head -3 "$score_tmp" 2>/dev/null | tr '\n' ' ')"
         tlog "  Raw (head): $raw"
       fi
-      # Don't count as pass; if last attempt, treat as fail
-      if [ "$attempt" -ge "$max_loops" ]; then
-        tlog "  Max loops exhausted with invalid JSON. FAIL."
-        write_stage_progress "$post_file" "$stage_key" "fail" "null" "$runner_label" "$attempt"
-        rm -f "$score_tmp"
-        return 1
-      fi
-      continue
+      write_stage_progress "$post_file" "$stage_key" "fail" "null" "$runner_label" "$attempt"
+      rm -f "$score_tmp"
+      return 1
     fi
 
     local score_json composite verdict
     score_json="$(cat "$score_tmp")"
+    if [ -n "${TRIBUNAL_SCORE_OUTPUT:-}" ]; then
+      cp "$score_tmp" "$TRIBUNAL_SCORE_OUTPUT"
+    fi
     composite="$(jq -r '.score // 0' "$score_tmp")"
     verdict="$(jq -r '.verdict // "FAIL"' "$score_tmp")"
     tlog "  $label result: composite=$composite agent_verdict=$verdict"
@@ -634,7 +673,7 @@ PROMPT
       write_stage_progress "$post_file" "$stage_key" "pass" "$score_json" "$runner_label" "$attempt"
 
       # ── Write score to post frontmatter (tribunal badge) ──
-      if [ -n "$fm_judge_key" ]; then
+      if [ -n "$fm_judge_key" ] && [ "$WRITE_FRONTMATTER" -eq 1 ]; then
         local fm_score_json fm_model judge_reported_model
         # Programmatic model — never trust judge self-report (judges hallucinate their own model ID)
         fm_model="$model_id"
@@ -673,6 +712,13 @@ PROMPT
     # ── Max loops exhausted — no more rewrites ────────────────────────────────
     if [ "$attempt" -ge "$max_loops" ]; then
       tlog "  Max loops ($max_loops) exhausted for $label. FAIL."
+      write_stage_progress "$post_file" "$stage_key" "fail" "$score_json" "$runner_label" "$attempt"
+      rm -f "$score_tmp"
+      return 1
+    fi
+
+    if [ "$ALLOW_REWRITE" != "1" ]; then
+      tlog "  Rewrite disabled for this run (judge-only/--only-stage default). FAIL without invoking tribunal-writer."
       write_stage_progress "$post_file" "$stage_key" "fail" "$score_json" "$runner_label" "$attempt"
       rm -f "$score_tmp"
       return 1
@@ -741,13 +787,11 @@ PROMPT
 
 # ─── Commit Progress ──────────────────────────────────────────────────────────
 # Phase 2 (tribunal-safe-parallelism):
-#   - Serialized by push_lock so 2 workers don't race on main branch.
+#   - Serialized by push_lock so 2 workers don't race while staging/committing.
 #   - Honors TRIBUNAL_MAIN_REPO env var: workers running in their own isolated
-#     worktrees can update the main repo's shared progress file (flock
-#     coordinates the read-modify-write; this function coordinates the
-#     git commit + push).
-#   - Rebase-then-push with retry so a lost race to push is recoverable
-#     without waiting for the next iteration.
+#     worktrees can update the coordinator repo's shared progress file (flock
+#     coordinates the read-modify-write; this function coordinates the local
+#     git commit). Push is opt-in and direct main pushes are refused.
 commit_progress() {
   local msg="$1"
   if [ "${TRIBUNAL_NO_COMMIT:-0}" = "1" ]; then
@@ -784,23 +828,21 @@ commit_progress() {
         exit 1
       fi
     fi
-    git commit -m "$msg" --no-verify >> "$LOG_FILE" 2>&1 || exit 0
+    git commit -m "$msg" >> "$LOG_FILE" 2>&1 || exit 0
 
-    local pushed=0
-    for attempt in 1 2 3; do
-      git fetch origin main >> "$LOG_FILE" 2>&1 || true
-      if git rebase origin/main >> "$LOG_FILE" 2>&1; then
-        if git push --no-verify >> "$LOG_FILE" 2>&1; then
-          pushed=1
-          break
-        fi
-      else
-        tlog "WARN: rebase attempt $attempt failed, aborting and retrying."
-        git rebase --abort 2>/dev/null || true
-      fi
-      sleep 2
-    done
-    [ "$pushed" -eq 1 ] || tlog "WARN: git push failed after 3 attempts (will retry on next run)"
+    if [ "${TRIBUNAL_ALLOW_PUSH:-0}" != "1" ]; then
+      tlog "  TRIBUNAL_ALLOW_PUSH is not set; leaving Tribunal commit local (no push)."
+      exit 0
+    fi
+
+    local branch
+    branch="$(git branch --show-current)"
+    if [ "$branch" = "main" ]; then
+      tlog "ERROR: refusing to direct-push main from Tribunal automation. Push a feature branch/PR instead."
+      exit 1
+    fi
+
+    git push >> "$LOG_FILE" 2>&1 || tlog "WARN: git push failed (will retry on next run)"
   ) 10>>"$RC_PUSH_LOCK"
 }
 

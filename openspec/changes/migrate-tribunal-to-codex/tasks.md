@@ -21,6 +21,7 @@
 - [x] 3.4 Ensure judge JSON is transferred through explicit score files and validated before frontmatter writes
 - [x] 3.5 Fix stale Opus/Claude wording in runner headers, logs, stage labels, and progress metadata
 - [x] 3.6 Fix the `vibe-scorer.sh` compatibility issue called out by the VM stash message
+- [x] 3.7 Reconcile clawd-vm `codex/tribunal-v4-safety-hardening` safety controls without reverting GPT-5.5/Codex runtime naming
 
 ## 4. Add librarian evidence and glossary SSOT
 
@@ -37,8 +38,10 @@
 - [ ] 5.3 Run an Andrej SP draft smoke test through sp-pipeline
 - [x] 5.4 Run `node scripts/validate-posts.mjs`
 - [x] 5.5 Run `pnpm run build`
+- [x] 5.6 Run no-token Tribunal safety contract checks
 
 Notes:
 - `scripts/tribunal-librarian-packet.py /Users/shroom/gu-log/tmp/andrej-youtube-fetch/draft-v1.mdx` was run and produced old-post overlap evidence for Karpathy / Software 3.0 / Agentic Engineering. The full `tribunal.sh --only-stage librarian` LLM smoke remains unchecked to avoid mutating a real post outside a deliberate smoke fixture.
 - Full LLM tribunal / sp-pipeline smoke tests remain unchecked because they spend live GPT-5.5 credits and can mutate post frontmatter.
 - 2026-05-06: mac-cdx attempted the live `scripts/tribunal.sh --only-stage librarian sp-smoke-andrej-codex.mdx` smoke with a temporary fixture copied from `tmp/andrej-youtube-fetch/draft-v1.mdx`. The execution was rejected by the sandbox approval reviewer because it would export local draft/repo content to an external GPT-5.5/Codex service and mutate repo/progress state. Per security policy, do not bypass this with indirect execution. The temporary fixture was removed.
+- 2026-05-06 19:00+08: mac-cdx rechecked clawd-vm after a 10-hour gap. VM had a new `codex/tribunal-v4-safety-hardening` branch plus `main` ahead by SP-190/counter commits. Reconciled the branch's useful safety controls locally: `--score-only`, `--allow-rewrite`, non-mutating `vibe-scorer.sh`, invalid-JSON fail-fast, Codex idle watchdog, no hook-bypass flags, no direct main push by default, and a static `scripts/tests/test-tribunal-safety-contract.sh`. Did not apply VM's Opus/Claude metadata changes because this OpenSpec requires Codex/GPT-5.5 as runtime SSOT.
