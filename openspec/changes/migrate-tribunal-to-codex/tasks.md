@@ -26,7 +26,7 @@
 ## 4. Add librarian evidence and glossary SSOT
 
 - [x] 4.1 Apply `scripts/tribunal-librarian-packet.py` from VM `stash@{2}^3`
-- [x] 4.2 Update `.claude/agents/librarian.md` to consume the deterministic evidence packet first
+- [x] 4.2 Add `.codex/agents/librarian.toml` Codex override to consume the deterministic evidence packet first, without changing `.claude/agents/*.md` Claude Code frontmatter
 - [x] 4.3 Add glossary entries for Andrej Karpathy, Simon Willison, and Boris Cherny
 - [x] 4.4 Add aliases needed for identity linking and update glossary UI/config for `people`
 - [x] 4.5 Add or update glossary concept entries for Software 3.0 and Agentic Engineering if missing
@@ -44,4 +44,4 @@ Notes:
 - `scripts/tribunal-librarian-packet.py /Users/shroom/gu-log/tmp/andrej-youtube-fetch/draft-v1.mdx` was run and produced old-post overlap evidence for Karpathy / Software 3.0 / Agentic Engineering. The full `tribunal.sh --only-stage librarian` LLM smoke remains unchecked to avoid mutating a real post outside a deliberate smoke fixture.
 - Full LLM tribunal / sp-pipeline smoke tests remain unchecked because they spend live GPT-5.5 credits and can mutate post frontmatter.
 - 2026-05-06: mac-cdx attempted the live `scripts/tribunal.sh --only-stage librarian sp-smoke-andrej-codex.mdx` smoke with a temporary fixture copied from `tmp/andrej-youtube-fetch/draft-v1.mdx`. The execution was rejected by the sandbox approval reviewer because it would export local draft/repo content to an external GPT-5.5/Codex service and mutate repo/progress state. Per security policy, do not bypass this with indirect execution. The temporary fixture was removed.
-- 2026-05-06 19:00+08: mac-cdx rechecked clawd-vm after a 10-hour gap. VM had a new `codex/tribunal-v4-safety-hardening` branch plus `main` ahead by SP-190/counter commits. Reconciled the branch's useful safety controls locally: `--score-only`, `--allow-rewrite`, non-mutating `vibe-scorer.sh`, invalid-JSON fail-fast, Codex idle watchdog, no hook-bypass flags, no direct main push by default, and a static `scripts/tests/test-tribunal-safety-contract.sh`. Did not apply VM's Opus/Claude metadata changes because this OpenSpec requires Codex/GPT-5.5 as runtime SSOT.
+- 2026-05-06 19:00+08: mac-cdx rechecked clawd-vm after a 10-hour gap. VM had a new `codex/tribunal-v4-safety-hardening` branch plus `main` ahead by SP-190/counter commits. Reconciled the branch's useful safety controls locally: `--score-only`, `--allow-rewrite`, non-mutating `vibe-scorer.sh`, invalid-JSON fail-fast, Codex idle watchdog, no hook-bypass flags, no direct main push by default, and a static `scripts/tests/test-tribunal-safety-contract.sh`. Did not apply VM's Opus/Claude metadata changes to `.claude/agents/*.md`; Codex/GPT-5.5 runtime is now represented by `.codex/agents/*.toml` plus `scripts/tribunal.sh`.

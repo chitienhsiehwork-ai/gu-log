@@ -2,7 +2,7 @@
 
 ### Requirement: Tribunal v4 SHALL use Codex GPT-5.5 for all judge stages
 
-The canonical tribunal runner SHALL execute Librarian, FactChecker, FreshEyes, and VibeScorer through `codex exec` using model `gpt-5.5`. Historical Claude/Opus agent metadata MAY remain as calibration context, but SHALL NOT be treated as runtime model selection.
+The canonical tribunal runner SHALL execute Librarian, FactChecker, FreshEyes, and VibeScorer through `codex exec` using model `gpt-5.5`. Codex-specific project agent configuration SHALL live under `.codex/agents/*.toml`. Historical Claude/Opus agent metadata in `.claude/agents/*.md` MAY remain as calibration context, but SHALL NOT be modified or treated as Codex runtime model selection.
 
 #### Scenario: Full tribunal run
 

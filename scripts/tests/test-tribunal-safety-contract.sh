@@ -63,6 +63,14 @@ if ! grep -q 'no output/score-file progress' "$HELPERS"; then
 fi
 pass "Codex idle watchdog semantics are present"
 
+if ! grep -q '.codex/agents/\$agent_name.toml' "$HELPERS"; then
+  fail "Codex tribunal helper does not prefer .codex/agents custom agents"
+fi
+if ! grep -q 'Ignore YAML' "$HELPERS" || ! grep -q 'frontmatter runtime fields' "$HELPERS"; then
+  fail "Codex tribunal helper does not ignore Claude Code frontmatter runtime"
+fi
+pass "Codex agent specs are separated from Claude Code frontmatter"
+
 if ! grep -q 'tribunal-assert-pass-artifacts.sh' "$TRIBUNAL"; then
   fail "PASS artifact guard is not wired into commit_progress"
 fi

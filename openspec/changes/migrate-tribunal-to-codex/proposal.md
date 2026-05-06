@@ -35,7 +35,8 @@ gu-log 的 SP pipeline 和 tribunal 已經在 clawd-vm stash 裡有一版 Codex 
 - `scripts/tribunal-all-claude.sh`
 - `scripts/vibe-scorer.sh`
 - `scripts/tribunal-helpers.sh`
-- `.claude/agents/librarian.md`
+- `.codex/agents/librarian.toml`
+- `.claude/agents/librarian.md`（legacy rubric only；不改 Claude Code frontmatter runtime）
 - `src/data/glossary.json`
 - `src/pages/glossary.astro`
 - `src/config/glossary.ts`

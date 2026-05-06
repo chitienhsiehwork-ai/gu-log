@@ -365,7 +365,7 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
 
 ## Model 配置策略
 
-Tribunal 各角色目前統一由 `scripts/tribunal.sh` 透過 `codex exec --model gpt-5.5` 執行。`.claude/agents/*.md` 現在是 prompt contract / editor metadata，不再是 Claude Code runtime selector。
+Tribunal 各角色目前統一由 `scripts/tribunal.sh` 透過 `codex exec --model gpt-5.5` 執行。Codex project-scoped agent 設定放在 `.codex/agents/*.toml`；`.claude/agents/*.md` 仍然是 Claude Code setup files，只能當 legacy rubric 參考，不能拿來當 Codex runtime selector。
 
 ### 配置表
 
@@ -392,7 +392,7 @@ SP-175 和 SP-177 的跨版本校準實驗（2026-04-17）顯示：
 1. **提出假設**：說明為什麼想換 model（例如新版本在某任務上更好）
 2. **A/B 測試**：用同一篇文章跑新舊 model，比較分數和 reasons
 3. **人工驗證**：人看兩份 reasons，判斷哪個更準確
-4. **更新 runner / agent 檔案**：改 `scripts/tribunal.sh` 的 runtime model，並同步 `.claude/agents/*.md` metadata
+4. **更新 runner / agent 檔案**：改 `scripts/tribunal.sh` 的 runtime model，並同步 `.codex/agents/*.toml`；不要改 `.claude/agents/*.md` 的 Claude Code frontmatter
 5. **更新此文件**：在配置表中記錄變更和原因
 
 ---

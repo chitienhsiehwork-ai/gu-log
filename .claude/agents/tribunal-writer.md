@@ -1,8 +1,10 @@
 ---
 description: "Tribunal Writer — rewrite agent for the tribunal quality pipeline. Receives judge feedback and the scoring standard, then rewrites the article to address specific failures. Used across all 4 tribunal stages (Librarian, Fact Checker, Fresh Eyes, Vibe Scorer)."
-# Runtime is supplied by scripts/tribunal.sh via `codex exec --model gpt-5.5`;
-# this frontmatter is kept as prompt metadata for local editor tooling.
-model: gpt-5.5
+# PINNED: claude-opus-4-6[1m]. This is the SP / rewrite voice — maintainer
+# has explicitly rejected Opus 4.7's writing style (too press-release, loses
+# LHY persona). Do NOT bump to "opus" alias or 4.7 without owner sign-off.
+# Matched by tools/sp-pipeline/internal/llm/claude.go ClaudeOpusPinned.
+model: claude-opus-4-6[1m]
 tools:
   - Read
   - Write

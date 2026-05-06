@@ -151,9 +151,12 @@ tribunal_codex_cmd() {
   return 1
 }
 
-# Run a repo-local agent spec through Codex. Codex has no `--agent` flag, so we
-# inline the `.claude/agents/<agent>.md` contract into the prompt and ask Codex
-# to follow it exactly.
+# Run a repo-local agent spec through Codex. Codex custom agents live in
+# `.codex/agents/*.toml`, but `codex exec` has no stable `--agent` flag for this
+# non-interactive tribunal path, so we inline the project-scoped Codex agent
+# config. The legacy `.claude/agents/*.md` files remain Claude Code setup files;
+# when present, we include them only as detailed rubric text and instruct Codex
+# to ignore their YAML frontmatter runtime fields.
 tribunal_codex_exec() {
   local work_dir="$1"
   local agent_name="$2"
@@ -161,17 +164,29 @@ tribunal_codex_exec() {
   if [ -z "${REPO_ROOT:-}" ]; then
     REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
   fi
-  local agent_file="$REPO_ROOT/.claude/agents/$agent_name.md"
-  local agent_spec=""
-  if [ -f "$agent_file" ]; then
-    agent_spec="$(cat "$agent_file")"
+  local codex_agent_file="$REPO_ROOT/.codex/agents/$agent_name.toml"
+  local legacy_agent_file="$REPO_ROOT/.claude/agents/$agent_name.md"
+  local codex_agent_spec=""
+  local legacy_agent_spec=""
+  if [ -f "$codex_agent_file" ]; then
+    codex_agent_spec="$(cat "$codex_agent_file")"
+  fi
+  if [ -f "$legacy_agent_file" ]; then
+    legacy_agent_spec="$(cat "$legacy_agent_file")"
   fi
   local prompt
   prompt="$(cat <<PROMPT
 You are running inside the gu-log tribunal automation.
 
-## Agent contract: $agent_name
-$agent_spec
+## Codex agent config: $agent_name
+$codex_agent_spec
+
+## Legacy Claude Code rubric: $agent_name
+The following file is included only as detailed rubric text. Ignore YAML
+frontmatter runtime fields such as model and tools; those are for Claude Code,
+not this Codex tribunal run.
+
+$legacy_agent_spec
 
 ## Repo root
 $REPO_ROOT
