@@ -41,3 +41,4 @@
 Notes:
 - `scripts/tribunal-librarian-packet.py /Users/shroom/gu-log/tmp/andrej-youtube-fetch/draft-v1.mdx` was run and produced old-post overlap evidence for Karpathy / Software 3.0 / Agentic Engineering. The full `tribunal.sh --only-stage librarian` LLM smoke remains unchecked to avoid mutating a real post outside a deliberate smoke fixture.
 - Full LLM tribunal / sp-pipeline smoke tests remain unchecked because they spend live GPT-5.5 credits and can mutate post frontmatter.
+- 2026-05-06: mac-cdx attempted the live `scripts/tribunal.sh --only-stage librarian sp-smoke-andrej-codex.mdx` smoke with a temporary fixture copied from `tmp/andrej-youtube-fetch/draft-v1.mdx`. The execution was rejected by the sandbox approval reviewer because it would export local draft/repo content to an external GPT-5.5/Codex service and mutate repo/progress state. Per security policy, do not bypass this with indirect execution. The temporary fixture was removed.
