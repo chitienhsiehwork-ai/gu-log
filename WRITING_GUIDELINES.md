@@ -190,11 +190,29 @@ Google 2017 年丟出這顆核彈後，整個 NLP 界直接進入新紀元。
 - 原文很無聊 → 可以加料讓它變有趣（在不扭曲原意的前提下）
 - ❌ **不要用反問句問讀者顯而易見的答案**（如「不覺得很虧嗎？」「那不就是最好的投資嗎？」）— 像在把讀者當笨蛋。直接陳述：「虧爛」「窩想起來這樣感覺沒那麼浪費」
 
-### 術語處理
+### 術語處理（晶晶體防線：glossary 是唯一英文 allowlist）
 
-- 專有名詞保留英文，括號加註中文（如有需要）
-- 縮寫/acronym 第一次出現要展開全名
-- 技術術語維持英文，除非有約定俗成的中文翻譯
+**核心原則**：zh-tw 文章正文的英文，預設要翻成自然 LHY-style 中文。讀者要英文版就去看 `en-` 那篇——gu-log 雙語並行，正是為了讓中文讀者拿到的是純粹中文，不是中英摻雜。
+
+**唯一可保留英文的詞**：
+
+1. **`src/data/glossary.json` 裡有的 term**——這是技術詞的 allowlist。Token、Prompt、Frontier Model、Open Weights、RLHF、Multimodal、Agent、Claude Code、MCP 等等。
+2. **專有名詞**：產品名（Muse Spark、Llama）、公司名（Meta、Anthropic）、人名（Andrew Ng）、地名、benchmark 名（CharXiv、HealthBench Hard）、模型 variant 名（Gemini 3.1 Pro Preview）、code identifier、protocol 名、URL、版本號。
+3. **直接引用原文**：包在 `「」` 或 `""` 裡的英文原句（quote 整句保留 + 中文括號或下行直譯）。
+4. **縮寫**：API、SDK、CLI、PM、CEO、ML、LLM、UI、UX 這類業界 universally understood 的縮寫。
+5. **Code blocks** 內的所有英文。
+
+**不在 allowlist 的英文都要翻成中文**——`framing` 翻「包裝」、`hedge` 翻「保留條件」、`takeaway` 翻「真正的重點」、`launch` 翻「啟動」、`generalist` 翻「通才」、`framing / model / engineer / letter / newsletter / lab` 等等都要翻。寫作時看到自己要寫的英文詞不在 allowlist，先停下來——是該翻成中文，還是這個詞值得加進 glossary？
+
+**何時加 glossary？**：
+- 同一個英文 term 在多篇文章重複出現、且中文沒有同等精準/簡潔的對應
+- 業界討論時直接講英文是 standard（譬如 RLHF、Token、Prompt）
+- term 有特定技術意義，中文翻譯會丟失資訊
+不是「我懶得翻」就加。先想：寫成中文是不是真的失準？如果只是順手沒想自然中文，那是晶晶體不是技術詞。
+
+**Lint enforcement**：`scripts/check-jingjing.mjs` 會 scan 所有 zh-tw `.mdx`，flag 不在 allowlist + 不在 glossary 的英文詞。pre-commit hook 攔。違規就改，要嘛翻成中文，要嘛在 PR 同 commit 把 term 加進 `src/data/glossary.json`（並寫好 definition + clawdNote）。
+
+**Tribunal enforcement**：`vibe-opus-scorer` 的 clarity 維度把這條當硬規則——出現非 allowlist 英文 = clarity 直接扣分（不只是品味問題）。
 
 ### 程式碼區塊處理
 

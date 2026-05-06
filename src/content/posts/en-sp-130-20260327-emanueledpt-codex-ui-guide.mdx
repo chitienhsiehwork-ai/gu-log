@@ -15,166 +15,166 @@ tags: ["shroom-picks", "AI-Frontend", "Codex", "GPT-5.4", "Prompt-Engineering", 
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Ever asked AI to build you a landing page, only to get this: light purple background, rounded cards in a neat grid, Inter font, big centered headline reading "Welcome to [Product Name]"?
+Ask AI to build a landing page. Here's what comes back: light purple background, rounded cards in a neat grid, Inter font, big centered headline reading "Welcome to [Product Name]."
 
-It's not broken. It's responsive, the buttons work, everything runs. But you look at it and think: "This isn't what I wanted."
+It's not broken. It's responsive, the buttons work, everything runs. But staring at it, there's only one thought: "This isn't what I wanted."
 
-Then you realize something more embarrassing — you can't even articulate what you *did* want. You told the AI "make me a nice website" and expected it to read your mind.
+And then the more embarrassing realization — "what I wanted" was never actually specified. The prompt said "make me a nice website" and left everything else to the model's imagination.
 
-Emanuele Di Pietro recently shared a comprehensive guide to frontend development with GPT-5.4 on X, drawing from OpenAI's official [frontend design guide](https://developers.openai.com/blog/designing-delightful-frontends-with-gpt-5-4). After reading it, my takeaway is — this article isn't really about GPT at all. **It's about how to be a good design PM.**
+Emanuele Di Pietro recently shared a comprehensive guide to frontend development with GPT-5.4 on X, drawing from OpenAI's official [frontend design guide](https://developers.openai.com/blog/designing-delightful-frontends-with-gpt-5-4). The biggest takeaway isn't a technique — it's a wake-up call. **This article isn't really about GPT. It's about how to be a good design PM.** And these principles aren't limited to [Codex](/glossary#codex) — they apply to any [AI coding agent](/glossary#agent).
 
 ---
 
 ## AI's Scrambled Eggs Problem
 
-Ever wondered why AI-generated websites all look like long-lost siblings?
+Why do AI-generated websites all look like long-lost siblings?
 
-The answer is surprisingly simple. When your prompt is underspecified, the model does something completely reasonable: it falls back to the highest-frequency patterns in its training data. And what has it seen millions of times? GitHub's endless SaaS starter templates — rounded cards, pastel colors, system fonts, side-by-side hero layouts.
+The answer is surprisingly simple. When the prompt is underspecified, the model does something completely reasonable: it falls back to the highest-frequency patterns in its training data. And what has it seen millions of times? GitHub's endless SaaS starter templates — rounded cards, pastel colors, system fonts, side-by-side hero layouts.
 
-It's like walking into a restaurant and telling the chef "just make something good." They're not going to serve molecular gastronomy. They'll make scrambled eggs — because that's the safest, most crowd-pleasing response to a vague request.
+It's like walking into a restaurant and telling the chef "just make something good." No chef is going to serve molecular gastronomy to that order. They'll make scrambled eggs — the safest, most crowd-pleasing response to a vague request.
 
-GPT-5.4 genuinely leveled up in frontend capability — native image understanding, Playwright for self-verifying renders, even mood board generation. But capability doesn't automatically produce taste. **The vaguer your brief, the more generic the output.** The model isn't lacking cooking skills — you just didn't order anything.
+GPT-5.4 genuinely leveled up in frontend capability — native image understanding, Playwright for self-verifying renders, even mood board generation. But capability doesn't automatically produce taste. **The vaguer the brief, the more generic the output.** The model isn't lacking cooking skills — nobody placed an order.
 
 <ClawdNote>
 This "statistical fallback" phenomenon explains a puzzle many people have: why does AI clearly "understand" design principles but produce things with zero personality? Because knowing and doing are different skills. Ask GPT what makes good design, and it'll write you an essay. Tell it to "make a website" and it jumps straight to the highest-frequency pattern — like asking a Michelin-starred chef "just cook something" and getting instant noodles. Understanding isn't the bottleneck; direction is. (◍•ᴗ•◍)
 </ClawdNote>
 
+But here's the counterintuitive twist. The problem isn't that the model is too dumb — it's that the user is too polite. Too much freedom forces the model into the safety zone. The fix? **Not a longer prompt. Getting the non-code stuff right first.**
+
 ---
 
-## What You're Missing Before Writing Code
+## Constraints Are Freedom: The Design System Paradox
 
-The article's core insight: **your design quality depends on the non-code parts of your prompt.**
+The article's core insight: **design quality depends on the non-code parts of the prompt.**
 
-Sounds abstract? Let me make it concrete. The last time you asked AI to build a frontend, did you tell it what font to use? What colors? What layout rules?
+Most people asking AI to build a frontend never specify fonts, colors, or layout rules. Then they shake their heads at the output and say "AI just can't do good UI." The truth — the AI didn't lack taste. Nobody placed an order.
 
-Most people didn't. Then they shake their head at the output and say "AI just can't do good UI."
+But here's a suggestion that seems like sabotage: **turn reasoning down.**
 
-You didn't get bad AI output. You forgot to order.
-
-The article identifies four things you should nail before writing a single line of code. Nothing advanced — but their presence or absence puts the same model's output in completely different universes.
-
-First, a setting that sounds like sabotage: **turn reasoning down.**
-
-You'd think higher reasoning = better results, right? But frontend design isn't differential equations. You want intuitive, decisive, opinionated visual choices. Crank reasoning up and the model acts like a first-day junior designer — presenting ten layout options and asking "which do you prefer?" — when what you wanted was a senior designer who'd just commit to a bold answer. Low or medium reasoning forces that decisiveness.
-
-Then comes the single most important step — just one step, but its presence changes everything: **define your design system first.**
-
-Typography, color palette, layout constraints. Before you say "build me a landing page," write these rules down. You might think this limits creativity, but consider — why is a haiku 5-7-5 syllables? Why is a sonnet 14 lines? **All great creative work is born from constraints.** Freedom without limits isn't freedom; it's paralysis. Tell the model "only two typefaces, one accent color" and it'll find surprises within that tiny box that it never would've discovered in an infinite possibility space.
+Higher reasoning should mean better results, right? Not for frontend design. Design isn't differential equations — there's no single correct answer waiting to be derived. Design needs intuition, decisiveness, opinionated visual choices. Crank reasoning up and the model acts like a first-day junior designer — presenting ten layout options and asking "which do you prefer?" Low or medium reasoning forces the model into a senior designer role: one bold answer, committed to.
 
 <ClawdNote>
-Human designers spend weeks building design systems and treat it as a badge of professional competence. But people using AI think "defining a design system first" is a waste of time — just tell it to build. Then they complain the output has no taste. That's like giving Michelangelo a blank canvas and crayons, then getting upset he didn't produce the Sistine Chapel. The guy needed architectural blueprints too, you know. (´・ω・`)
+This reasoning advice hints at something deeper: more thinking ≠ better output. For tasks that require taste rather than logic, overthinking is poison. Design is an opinionated act, not deductive reasoning. Making a model spend more tokens deliberating just makes it more conservative, more generic, more scrambled-eggs. (´・ω・`)
 </ClawdNote>
 
-Next, a simple technique with outsized impact: **give it a visual reference.** One screenshot beats a thousand words of description. GPT-5.4 can extract rhythm, spacing, scale, color temperature, and overall mood from a single image. Even saying "style it like Linear's dashboard" is leagues better than saying nothing at all.
+Then comes the single most important step — just one, but its presence changes everything: **define the design system first.**
 
-Finally, the criminally underrated one: **use real content instead of placeholders.** When you use Lorem ipsum, you're telling the model: "content doesn't matter, just fill space." And it does exactly that. Whether the headline is two words or ten words changes the hero's proportions. Whether the CTA is "Buy Now" or "Start Your Free 14-Day Trial" changes button design. **Placeholder text doesn't just produce fake copy — it produces fake design.**
+Typography, color palette, layout constraints. Before saying "build me a landing page," write these rules down. Consider — why is a haiku 5-7-5 syllables? Why is a sonnet 14 lines? **All great creative work is born from constraints.** Freedom without limits isn't freedom; it's paralysis. Tell the model "only two typefaces, one accent color" and it'll find surprises within that tiny box that it never would've discovered in infinite possibility space.
+
+Next, a simple technique with outsized impact: **provide a visual reference.** One screenshot beats a thousand words of description. GPT-5.4 can extract rhythm, spacing, scale, color temperature, and overall mood from a single image. Even "style it like Linear's dashboard" is leagues better than nothing.
+
+Finally, the criminally underrated one: **use real content instead of placeholders.** The moment Lorem ipsum appears, it tells the model: "content doesn't matter, just fill space." And the model does exactly that. A two-word headline and a ten-word headline produce completely different hero proportions. "Buy Now" and "Start Your Free 14-Day Trial" produce completely different buttons. **Placeholder text doesn't just create fake copy — it creates fake design.**
 
 ---
 
-## OpenAI's Design Commandments
+## But Having Tools Isn't Enough
 
-Now, suppose you've done all four of those things. The model might *still* make choices that make you wince — six cards in the hero, three accent colors, first screen crammed with stats and event schedules and a brand story nobody asked for.
+Everything above covers preparation. But even with all four pieces in place, the model might still make cringe-worthy choices — six cards in the hero, three accent colors, the first screen crammed with stats and event schedules and a brand story nobody asked for.
 
-That's why OpenAI's guide doesn't just offer "suggestions." It contains opinionated **hard rules** — think of them as the Ten Commandments of UI design. Not recommendations to consider. Rules to obey.
+Why? Because the model now has the skills to cook well, but hasn't been told which dishes should never appear on the menu.
 
-The most important one: **the first screen is a poster, not a document.**
+That's where the most opinionated part of OpenAI's guide comes in — not "suggestions," but **hard rules**. The Ten Commandments of UI design.
 
-Imagine standing three meters away from a poster. Your eyes catch exactly one thing — the brand and the main message. If you can't read it from three meters, the poster failed. Your first screen works the same way. The viewport budget is strict: brand name, one headline, one supporting sentence, one CTA group, one hero visual. That's it. Stats, event schedules, "this week's picks," your boss's insistence on the company address — all goes below the fold. The first screen has one job: make people want to keep scrolling.
+---
+
+## The First Screen Is a Poster, Not a Document
+
+Imagine standing three meters away from a poster. The eyes catch exactly one thing — the brand and the main message. If it's unreadable from three meters, the poster failed.
+
+The first screen works the same way. The viewport budget is strict: brand name, one headline, one supporting sentence, one CTA group, one hero visual. That's it. Stats, event schedules, "this week's picks," the boss's insistence on the company address — all goes below the fold. The first screen has one job: make people want to keep scrolling.
 
 <ClawdNote>
-"First screen as poster" is a great analogy, but let me add a more realistic observation: most people's first screens are overcrowded not because they don't understand design, but because there are too many stakeholders. PM wants features, marketing wants promos, boss wants company intro, SEO wants keywords. The first screen becomes a meeting's minutes. AI-generated first screens have the same problem — except all those stakeholders are replaced by your prompt's undifferentiated list of requirements. (๑˃ᴗ˂)ﻭ
+"First screen as poster" is a great analogy, but here's a more realistic observation: most first screens are overcrowded not because of bad design taste, but because of too many stakeholders. PM wants features, marketing wants promos, boss wants company intro, SEO wants keywords. The first screen becomes meeting minutes. AI-generated first screens have the same problem — except all those stakeholders get replaced by the prompt's undifferentiated list of requirements. (๑˃ᴗ˂)ﻭ
 </ClawdNote>
 
-OK, if you've accepted "first screen is a poster," you're probably ready for the next painful truth: **most of the cards you love are unnecessary.**
+Accept the poster concept, and the next painful truth follows: **most cards are unnecessary.**
 
-OpenAI's hard rule is blunt: default state is no cards. Never in the hero. Elsewhere, only when the card itself is the interaction container. How to test? Remove border, shadow, background, and border-radius. If the content is still clear — congratulations, that card was just foundation makeup on your layout. Look at Awwwards-winning sites — how many use card grids? Now look at AI-generated ones — almost all of them. Card grids are the model's scrambled eggs: safe, universal, never wrong, but about a hundred thousand miles from "memorable."
+OpenAI's hard rule is blunt: default state is no cards. Never in the hero. Elsewhere, only when the card itself is the interaction container. The test: remove border, shadow, background, and border-radius. If the content is still clear — that card was just foundation makeup on the layout. Look at Awwwards-winning sites — how many use card grids? Now look at AI-generated ones — almost all of them. Card grids are the model's scrambled eggs: safe, universal, never wrong, but about a hundred thousand miles from "memorable."
 
-Brand presence has hard standards too. OpenAI gives two litmus tests you can do right now: hide the nav — is the brand still visible? If not, your brand only lives in the navbar, and hierarchy is too weak. Remove the hero image — does the page still work? If yes, your image is decoration, not design.
+Brand presence has hard standards too. OpenAI offers two litmus tests — hide the nav: is the brand still visible? If not, the brand only lives in the navbar. That's not branding; that's a doorplate. Remove the hero image: does the page still work? If yes, that image is wall decoration, not architecture.
 
-The last constraint sounds simple but solves 90% of "looks busy" problems: **two typefaces max, one accent color.** Two typefaces force you to create hierarchy through size and weight variations, not font-swapping per section. One accent color makes the visual focal point unmistakable — when everything is emphasized, nothing is.
+The last constraint: **two typefaces max, one accent color.** Sounds harsh? Think about calligraphy — one brush, one ink, and hierarchy comes from pressure and speed alone. One accent color makes the focal point unmistakable. When everything is emphasized, nothing is.
 
 ---
 
-## Turning the Page into a Conversation
+## From Document to Conversation: Three Things to Write Before Code
 
-You've got rules now. But here's the thing — if your page reads like a Google Doc, it's just a "beautiful document," not a website people want to finish reading.
+So far, a lot of ink has been spilled on what *not* to do. But prohibitions alone aren't enough — knowing not to stuff six cards into the hero doesn't reveal what *should* go there.
 
-The article offers a solution that I think is the most valuable part of the entire guide: **before writing code, write three things that have nothing to do with code.**
+The article pivots here, and this is its most valuable insight: **before writing code, write three things that have nothing to do with code.** These three things don't constrain the model — they give it a *role*. They transform it from "a chef making whatever" to "a head chef who understands tonight's theme."
 
-First is the **visual thesis** — one sentence describing the page's mood and energy. But not "clean and modern" — that's what everyone says and nobody means. It needs to conjure an image. Like: "warm afternoon light filtering through frosted glass in a coffee shop, with a hint of Y2K metallic experimentalism." If your visual thesis could apply to any website, it's too vague. Rewrite it.
+First: the **visual thesis**. One sentence describing the page's mood and energy — not features, not tech stack — the *feeling*. "Warm afternoon light filtering through frosted glass in a coffee shop, with a hint of Y2K metallic experimentalism." If the visual thesis could apply to any website ("clean and modern"), it's useless. Rewrite.
 
-Second is the **content plan** — what goes in each section, decided before any code exists.
+Second: the **content plan** — what goes in each section, decided before any code exists. This isn't planning; it's decision-making. The person writing code (human or AI) should not be making design decisions simultaneously. Separation of concerns — the same principle that makes code cleaner makes design cleaner.
 
-Third is the **interaction thesis** — 2 to 3 specific motion ideas. Specific as in "hero text staggers in from the bottom with a fade," not "add some animations."
+Third: the **interaction thesis** — 2 to 3 specific motion ideas. Specific as in "hero text staggers in from the bottom with a fade," not "add some animations." Vague motion direction is like telling a chef "add some seasoning" — whatever comes back won't be what anyone had in mind.
 
-With these three things, your page stops being a stack of sections and becomes a structured conversation. You're telling a visitor a story: first who you are (Hero), then painting a picture so they can imagine (Supporting imagery), then getting to the point about what you're selling (Product detail), then reassurance from others (Social proof), and finally asking one question: "Want to try?" (Final CTA).
+With these three pieces, a page stops being a stack of sections and becomes a structured conversation. The Hero tells visitors who this is. Supporting imagery paints a picture. Product detail gets to the point. Social proof provides reassurance. Final CTA asks one question: "Want to try?"
 
-And each section answers exactly one question. If a section is trying to showcase features AND display testimonials, you don't need more space — you need more discipline. Cut one.
+Each section answers exactly one question. If a section tries to showcase features AND display testimonials — it doesn't need more space. It needs more discipline. Cut one.
 
 <ClawdNote>
-"Each section does one thing" — wait, isn't that just the Single Responsibility Principle? Engineers nodding along when told "one function should do one thing," then stuffing feature intro + pricing + testimonials into one UI section. The engineering double standard, caught in the wild. (◍˃̶ᗜ˂̶◍)ノ"
+"Each section does one thing" — wait, isn't that just the Single Responsibility Principle? Engineers nod along when told "one function should do one thing," then stuff feature intro + pricing + testimonials into one UI section. The engineering double standard, caught in the wild. (◍˃̶ᗜ˂̶◍)ノ"
 </ClawdNote>
 
 ---
 
-## Poster vs Tool: Mix Them Up and You Lose Everything
+## A Poster and a Swiss Army Knife Are Not the Same Thing
 
-Here's a mistake I've seen too many people make — applying landing page design language to app UI, or vice versa.
+Everything above applies to landing pages. But there's a common mistake that deserves its own section — applying landing page design language to app UI, or vice versa.
 
-These two things have fundamentally opposing design goals.
+These two have fundamentally opposing design goals.
 
-**A landing page is a poster.** You're walking down the street and see it — it needs to grab your attention before you even stop walking. So it uses full-bleed heroes, edge-to-edge visual impact, bold typography, one tagline that makes you want to learn more. Its job is to make you **feel**.
+**A landing page is a poster.** Seen while walking down the street, it needs to grab attention before the viewer even stops. Full-bleed heroes, edge-to-edge visual impact, bold typography, one tagline that sparks curiosity. Its job: make people **feel**.
 
-**An app is a Swiss Army knife.** You open it every day and need to get work done with minimal cognitive overhead. So it uses calm surface hierarchy, strong but understated typography, minimal colors, high information density that doesn't tire you out. Its job is to make you **think**.
+**An app is a Swiss Army knife.** Opened daily, it needs to minimize cognitive overhead. Calm surface hierarchy, strong but understated typography, minimal colors, high information density that doesn't tire the eyes. Its job: make people **think**.
 
-Bring poster language to a Swiss Army knife — you get a dashboard with gorgeous gradients where finding a single KPI takes three scrolls. Bring knife language to a poster — you get a SaaS template that lists twelve features but nobody reads past the first one.
+Bring poster language to a Swiss Army knife — the result is a dashboard with gorgeous gradients where finding a single KPI takes three scrolls. Bring knife language to a poster — the result is a SaaS template that lists twelve features but nobody reads past the first one.
 
 OpenAI gives app UI a clear role model: Linear. Calm, restrained, typography-driven, cards only when the card IS the interaction. And an explicit avoid list: dashboard-card mosaics, thick borders on every region, decorative gradients, multiple competing accent colors.
 
 Litmus check: can an operator understand the page by scanning only headings, labels, and numbers? If not, redo it.
 
 <ClawdNote>
-SP-110's Codex best practices piece also noted that "context quality determines output quality." But that was about code context — this article extends the same truth to design. The interesting thing is both articles converge on the same conclusion: you're not using an AI tool, you're being an AI's PM. And most "AI output sucks" complaints, translated to plain language, are "the PM's spec sucks." Getting mirrored by AI into seeing how vague your own specs are — that's a form of growth, I suppose. (´・ω・`)
+[SP-110's Codex best practices piece](/posts/sp-110-20260310-derrickcchoi-codex-10-best-practices) also noted that "context quality determines output quality." But that was about code context — this article extends the same truth to design. Both converge on the same conclusion: people using AI tools aren't "using a tool" — they're being the AI's PM. And most "AI output sucks" complaints, translated to plain language, mean "the PM's spec sucks." Getting mirrored by AI into seeing how vague one's own specs are — that's a form of growth, I suppose. (´・ω・`)
 </ClawdNote>
 
 ---
 
 ## Motion Is Punctuation, Not a Highlighter
 
-Ever visited a website where the entire screen is moving? Headlines flying in, backgrounds drifting, cards flipping, particles raining down, your eyes bouncing around like a pinball machine — then you close the tab without remembering a single thing?
+One last commonly overused element — animation.
 
-That's not "dynamic design." That's visual noise.
+Picture a website where everything is moving the moment it loads: headlines flying in, backgrounds drifting, cards flipping, particles raining down. Eyes bouncing around like a pinball machine, then the tab closes with nothing remembered. That's not "dynamic design." That's visual noise.
 
 The article takes a remarkably restrained stance here, with a very specific number: **2 to 3 intentional motions.** Not 10. Not "more is better." 2 to 3.
 
-Why? Think about how good writing uses punctuation — a comma makes you pause, a period lets you digest, an occasional question mark makes you think. But what if every sentence ended with an exclamation mark? You'd close the tab after three lines. Motion works the same way.
+Why? Think about how good writing uses punctuation — a comma creates a pause, a period allows digestion, an occasional question mark prompts thought. But every sentence ending with an exclamation mark? Tab closed after three lines. Motion works the same way.
 
-The three recommended placements make sense: a hero entrance animation — that's the opening capital letter, telling readers "the story begins now." A scroll-linked effect — that's the paragraph break, turning scrolling itself into an interaction. A hover or reveal — that's the subtle underline, quietly saying "there's something worth clicking here." Framer Motion recommended.
+Three recommended placements: a hero entrance animation — the opening capital letter, telling readers "the story begins now." A scroll-linked effect — the paragraph break, turning scrolling itself into interaction. A hover or reveal — the subtle underline, quietly saying "something worth clicking here." Framer Motion recommended.
 
-How to judge if a motion should stay? The article asks one brutal question: **remove it — does the page get worse?** If not — delete it. You're shipping a product, not a Dribbble portfolio.
+How to judge if a motion should stay? The article asks one brutal question: **remove it — does the page get worse?** If not — delete it. This is a product, not a Dribbble portfolio.
 
 ---
 
 ## Frontend Skill: One Command to Install Taste
 
-After all these rules, the good news: you don't need to manually include them every time.
+After all these rules, the good news: they don't need to be manually included every time.
 
 OpenAI packaged all the design principles above into an [open-source skill](https://github.com/openai/skills/tree/main/skills/.curated/frontend-skill). One command in Codex: `$skill-installer frontend-skill`. Once installed, the model is forced to define a visual thesis, content plan, and interaction thesis before writing any code, and all those hard rules stay active throughout development.
 
 <ClawdNote>
-The design philosophy behind this frontend skill is worth noting — it doesn't improve the model itself, it adds structured constraints at the prompt level. In other words, it does exactly what a well-written design brief does, just automated. This thinking applies to any AI agent: instead of praying the model ships with built-in taste, install taste as a skill/prompt. The model is just a chef. You still need to write the menu. ╮(╯▽╰)╭
+So OpenAI's solution isn't "make the model better at design" — it's "force the model to write a brief before touching code." Wait — isn't that exactly what every design agency does with junior designers? "Show me the mood board before you start." Turns out AI needs someone to make it think before it acts, too. Once again: the ceiling of any tool isn't the tool itself — it's whether the person holding it realizes they should be the PM, not the audience. ╮(╯▽╰)╭
 </ClawdNote>
 
 ---
 
 ## Conclusion
 
-After reading the entire guide, you'll notice something slightly ironic.
+After reading the entire guide, one ironic pattern emerges — OpenAI spent the whole article explaining what *not* to do. Don't use cards, don't overload the first screen, don't add decorative animations, don't use placeholders.
 
-OpenAI spent the whole article telling you what *not* to do — don't use cards, don't overload the first screen, don't add decorative animations, don't use placeholders. And all those "don'ts" combined describe exactly what your last AI-generated website looked like.
+Add all those "don'ts" together, and they describe exactly what the typical AI-generated website looks like.
 
-So the real question was never "can AI do good UI."
+So those websites weren't broken by AI. Nobody ordered anything, and the chef defaulted to scrambled eggs.
 
-The real question is: are you willing to spend five minutes translating the vague "make it look good" in your head into a design language the model can execute? Two typefaces. One accent color. One reference image. One visual thesis. Five minutes. In return, a homepage you don't need to apologize for.
-
-(◍˃̶ᗜ˂̶◍)ノ" Scrambled eggs are great. But if you actually order the chef's special, the chef will actually make it.
+Two typefaces. One accent color. One reference image. One visual thesis. Five minutes of work. The difference: scrambled eggs, or the chef's special. Same chef either way — the menu is what changes. (´・ω・`)

@@ -23,87 +23,86 @@ Dan McAteer shared a striking result on X: someone took Qwen3-14B, an open-sourc
 
 14B parameters? A sub-$300 GPU? Beating Anthropic's flagship?
 
-But if you stop at "wow, small model wins," you are missing the real story. Everything interesting about this result lives inside the **harness pipeline** — and once you read the methodology details, this scorecard reads very differently.
+But stopping at "wow, small model wins" means missing the real story. Everything interesting about this result lives inside the **[harness](/glossary#agent-harness) pipeline** — and once you read the methodology details, this scorecard reads very differently.
 
 ## What ATLAS Is: Not Fine-tuning, but Wrapping
 
-The project is called **ATLAS** (Adaptive Test-time Learning and Autonomous Specialization). The core idea is clear: the model stays completely frozen (Q4_K_M quantized), running on a single GPU. All the improvement comes from inference-time pipeline engineering.
+The project is called **ATLAS** (Adaptive Test-time Learning and Autonomous Specialization). The core idea: the model stays completely frozen (Q4_K_M quantized), running on a single GPU. All the improvement comes from inference-time [agent](/glossary#agent) pipeline engineering.
 
 No fine-tuning. No API calls. No cloud. One machine, one GPU, one clever wrapper.
 
-The V3 pipeline has three phases:
+Think of it like a college exam. The student's brain does not change (frozen model), but their test-taking strategy can: read the problem three times, list every possible approach, pick the one with the best odds, and correct mistakes before submitting. ATLAS's V3 pipeline works exactly like that — turning "one shot, sink or swim" into "strategic test-taking" across three phases:
 
-**Phase 1 — Generate**
-- **PlanSearch**: Extract constraints from the problem, then generate diverse solution plans
-- **Budget Forcing**: Control how many thinking tokens the model spends
-- **Diversity Sampling**: Generate **k=3** candidate solutions per task (not just one)
+**Phase 1 — Multi-path generation.** PlanSearch extracts constraints from the problem and generates diverse solution plans. Budget Forcing controls thinking token allocation. Diversity Sampling produces **k=3** candidate answers per task. Instead of generating one answer and praying, it lays out three roads first.
 
-**Phase 2 — Select**
-- **Geometric Lens**: Score candidates using 5120-dimensional self-embeddings from the model itself
-- **Sandbox**: Actually run the code and check if it passes
+**Phase 2 — Selection.** Geometric Lens scores candidates using 5120-dimensional self-embeddings from the model itself, then Sandbox actually runs the code.
 
-**Phase 3 — Repair**
-- **Self-Test Generation**: If all candidates fail, the model generates its own test cases
-- **PR-CoT Repair**: Multi-perspective chain-of-thought repair, then re-run in sandbox
+**Phase 3 — Repair.** If all candidates fail, the model generates its own test cases (Self-Test Generation), applies multi-perspective chain-of-thought repair (PR-CoT), and re-runs in Sandbox. When the exam answer is bad, instead of handing in a blank page, the student writes practice problems, fixes mistakes, and rewrites.
 
-After the full pipeline, 599 LiveCodeBench tasks scored 74.6%.
+After the full pipeline: 599 LiveCodeBench tasks, 74.6%.
 
 <ClawdNote>
-This pipeline design is genuinely clever. It transforms "make the model guess right once" into "generate multiple attempts, pick the best one, and fix failures." It is not making the model smarter — it is using engineering to push the success rate up. Think of it like taking an exam where you can write three answers, use process of elimination, and correct mistakes before submitting. That is much more reliable than one-shot.
+Honestly, this pipeline is pure engineering brute-force aesthetics. It completely gives up on "make the model guess right once" and openly admits single-pass inference is unreliable — then uses retry + selection + self-repair to muscle the success rate upward. This is not improving intelligence; it is using process to compensate for intelligence. And here is the ironic part: this approach works on 14B models, but it would work on frontier models too. Which means a lot of people running Sonnet or GPT-5 in single-shot mode right now might be leaving half their model's capability on the table ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ---
 
 ## Ablation: How Much Does Each Layer Actually Add?
 
-The repo includes a full ablation study — the most valuable part of the whole project:
+Alright, the pipeline design looks neat. But "elegant design" and "actually works" are two very different things. The ATLAS repo includes a full ablation study — and this is the part that truly deserves your attention.
 
 - **Baseline (no V3 pipeline)**: 54.9%
 - **+Phase 1 (PlanSearch + BudgetForcing + DivSampling)**: 67.3% (+12.4pp)
 - **+Phase 1+2 (Geometric Lens routing)**: 67.3% (+0.0pp)
 - **+Phase 1+3 (self-verified refinement)**: 74.6% (+7.3pp)
 
-Key observations:
+Phase 1 is the star — 12.4 percentage points in one shot. Just "generate multiple candidates + control thinking budget + structure the solution plan" jumped from 54.9% to 67.3%. These numbers say more about inference-time strategy design than any paper could.
 
-**Phase 1 is the star, adding 12.4 percentage points in one shot.** Just "generate multiple candidates + control thinking budget + structure the solution plan" jumped from 54.9% to 67.3%. This tells you how much inference-time generation strategy matters.
+And then Phase 2 came in at — **+0.0pp**.
 
-**Phase 2 contributed +0.0pp.** The authors admit the Geometric Lens was trained on only about 60 samples — far too few for the energy landscape to learn anything meaningful. They plan to retrain with a larger dataset in V3.1. So this component is basically dormant.
+Not a typo. The flashiest-named component — Geometric Lens, 5120-dimensional energy field scoring, self-embedding routing — added exactly zero. The authors acknowledge the training data was only about 60 samples, far too few for the energy landscape to learn anything meaningful. They plan to retrain with a larger dataset in V3.1.
 
-**Phase 3 added another 7.3pp.** This is the self-repair loop: the model generates its own tests, fixes its own mistakes, and re-runs. PR-CoT (multi-perspective chain-of-thought repair) rescued 36 out of 42 recovered tasks — an 85.7% success rate.
+Phase 3 then added another 7.3pp — the self-repair loop doing real work. PR-CoT (multi-perspective chain-of-thought repair) rescued 36 out of 42 recovered tasks, an 85.7% success rate. The model writing its own tests, fixing its own mistakes, and re-running — that loop actually delivers.
 
 <ClawdNote>
-Phase 2 = +0.0pp is actually one of the most interesting results here. It shows that not every design component works. Many harness papers only show the final number without revealing which parts failed. ATLAS being transparent about this is refreshing — and a good reminder that fancy names (Geometric Lens, energy field scoring) do not guarantee results. Numbers talk.
+Phase 2 = +0.0pp is the number I would applaud the loudest. Not because it failed, but because the team published it. How many [harness](/glossary#agent-harness) papers only show the final score and quietly hide the components that did nothing? ATLAS is basically saying: "Yes, we designed something fancy. It currently does not work. We know why. We are fixing it." Fancy names do not buy benchmark points. That honesty is worth more than the score itself (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
 ---
 
-## Did It Really Beat Sonnet 4.5? Three Big Methodology Caveats
+## Three Big Methodology Caveats: Does 74.6% Actually Beat 71.4%?
 
-Now for the critical question: can you directly compare 74.6% to Sonnet 4.5's 71.4%?
+The ablation is impressive. Now for the elephant in the room: can these two numbers even sit on the same scale?
 
-**Caveat 1: This is not pass@1.**
+**Caveat 1: The exam rules are different.**
 
-ATLAS scores as **pass@1-v(k=3)**. That means: one answer submitted per task, but that answer was selected from 3 candidates via Lens scoring, and failures went through a repair pipeline. By contrast, Sonnet 4.5's score on the Artificial Analysis leaderboard is **single-shot pass@1** (zero-shot, temperature 0) — truly one attempt, one answer.
+ATLAS scores as **pass@1-v(k=3)** — one answer submitted per task, but that answer was selected from 3 candidates via Lens scoring, and failures went through a repair pipeline. Sonnet 4.5's score on the Artificial Analysis leaderboard is **single-shot pass@1** (zero-shot, temperature 0) — truly one attempt, one answer.
 
-That is like comparing someone who gets three tries plus correction opportunities to someone who takes the test once.
+Borrowing the exam analogy again: one side gets three attempts plus correction time; the other gets one shot, pencils down. A 3.2 percentage point gap under those conditions does not tell you who is smarter.
 
-**Caveat 2: Different task sets.**
+**Caveat 2: Different exams entirely.**
 
-ATLAS ran **599** LiveCodeBench problems. Artificial Analysis leaderboard scores use **315** problems. The repo explicitly states: "not the same task set, so this is not a controlled head-to-head."
+ATLAS ran **599** LiveCodeBench problems. Artificial Analysis used **315** problems. The repo explicitly states: "not the same task set, so this is not a controlled head-to-head." The exams being compared are not even the same test.
 
-**Caveat 3: Latency tradeoff.**
+**Caveat 3: Cheaper but slower — a real engineering tradeoff.**
 
-ATLAS costs roughly $0.004 per task (electricity only), but the best-of-3 + repair pipeline takes about 1 hour 55 minutes for 599 tasks. Sonnet 4.5 API costs around $0.066 per task but is a single call. You save money but spend much more wall-clock time.
+ATLAS costs roughly $0.004 per task (electricity only), with 599 tasks taking about 1 hour 55 minutes. Sonnet 4.5 API costs around $0.066 per task but completes in a single call. The former is 16x cheaper but orders of magnitude slower on latency. Anyone building products knows: cheap-but-slow and expensive-but-fast are completely different engineering decisions.
 
 <ClawdNote>
-These caveats are not accusations of fraud — the ATLAS repo documents all of this clearly and even states directly that it is not a controlled comparison. But if you only read the tweet headline "beat Sonnet 4.5," you would get the wrong picture. The real story: a 14B frozen model, plus ~20pp of harness boost, produced scores in the neighborhood of frontier models under specific conditions. That is already impressive — but it is not "small models have overtaken big models."
+To be clear: the ATLAS team documented all three caveats in their repo and proactively labeled it "not a controlled head-to-head." There is zero fraud here. But the Twitter propagation chain does not make people read repos — most people see "14B beats Sonnet 4.5" and hit retweet. The real story: a 14B frozen model, plus ~20pp of harness boost, produced scores **in the neighborhood of** frontier models under specific conditions. That is already very impressive — but it lives on a different planet from "small models have overtaken big models" (⌐■_■)
 </ClawdNote>
 
 ---
 
-## Full Comparison: Where ATLAS Sits in the Rankings
+## But Wait — What If ATLAS's Pipeline Ran on a Frontier Model?
 
-Lining up the numbers from the repo (again, different task sets, not directly comparable):
+Most articles would line up a comparison table here and wrap up. But there is a more interesting question to sit with first.
+
+ATLAS's V3 pipeline added 19.7pp to a 14B model. What happens if the same pipeline wraps DeepSeek V3.2 Reasoning or GPT-5? Could that 86.2% baseline get pushed past 95%?
+
+The repo does not include this experiment. But the ablation numbers hint at something: Phase 1's +12.4pp comes from multi-candidate generation and structured reasoning — techniques that are model-size agnostic. Phase 3's +7.3pp comes from self-repair, and larger models should theoretically be even better at fixing their own mistakes.
+
+Here is where ATLAS currently sits against the repo's reported baselines:
 
 - **DeepSeek V3.2 Reasoning**: 86.2% (API, single-shot, ~$0.002/task)
 - **GPT-5 (high)**: 84.6% (API, single-shot, ~$0.043/task)
@@ -111,36 +110,34 @@ Lining up the numbers from the repo (again, different task sets, not directly co
 - **Claude 4.5 Sonnet**: 71.4% (API, single-shot, ~$0.066/task)
 - **Claude 4 Sonnet**: 65.5% (API, single-shot, ~$0.066/task)
 
-On other benchmarks, ATLAS is much less impressive:
-- **GPQA Diamond**: 47.0% (knowledge reasoning, 198 tasks)
-- **SciCode**: 14.7% (cross-domain scientific coding, 341 tasks)
-
-The authors openly acknowledge that V3 was optimized for LiveCodeBench, and cross-domain generalization is a V3.1 goal.
+However, ATLAS's magic has venue limitations. On other benchmarks, results are far less impressive — GPQA Diamond 47.0% (knowledge reasoning), SciCode 14.7% (cross-domain scientific coding). The authors openly acknowledge V3 was optimized for LiveCodeBench, with cross-domain generalization as a V3.1 goal. The pipeline's boost is real, but not yet portable.
 
 ---
 
-## What the Community Thinks
+## Community Reactions: Four Data Points in One Week Is the Real Story
 
-Several replies are worth highlighting.
+The replies are more interesting than the post itself — because someone did what the original author did not: **they placed ATLAS inside a larger pattern**.
 
-@BoMiaoFinance made a sharp observation: this is the **fourth independent data point in a single week** showing that harness engineering produces massive gains — someone cloned Claude CLI for $1,100 and swapped the model, AgenticaSDK went from 1% to 36% with the same model, LangChain Terminal Bench went 52% to 66%, and now ATLAS from 36% to 74.6%. His conclusion: "At some point we have to admit the iteration surface isn't the weights."
+@BoMiaoFinance assembled a killer observation: ATLAS is the **fourth independent data point in a single week** all proving that [harness](/glossary#agent-harness) engineering produces massive gains — someone cloned [Claude Code](/glossary#claude-code)'s CLI for $1,100 and swapped the model, AgenticaSDK went from 1% to 36% with the same model, LangChain Terminal Bench went 52% to 66%, and now ATLAS from 36% to 74.6%. The conclusion, in one sentence that flips the entire landscape:
 
-@AiAristotle pushed back hard: "LiveCodeBench is an anti-flex. Nobody cares and benchmaxxing on it makes models worse IRL. Greg Brockman has said it was a reason they were behind Anthropic." That perspective is worth keeping in mind — high benchmark scores do not automatically mean better real-world performance.
+> "At some point we have to admit the iteration surface isn't the weights."
 
-@ZanyMan_e asked a practical question: "What does (frozen) mean here? What was the VRAM to RAM split? Tokens per second?" The repo answers: they use a patched llama-server with speculative decoding at roughly 100 tok/s.
+(Harrison Chase later [explored this from a harness persistence angle](/posts/sp-173-20260411-hwchase17-harness-memory-lockin) — complementary reading.)
+
+@AiAristotle threw cold water directly: "LiveCodeBench is an anti-flex. Nobody cares and benchmaxxing on it makes models worse IRL. Greg Brockman has said it was a reason they were behind Anthropic." High benchmark scores do not automatically mean better real-world performance — and over-optimizing for benchmarks can actively hurt it.
+
+@ZanyMan_e asked the practical question: "What does (frozen) mean here? What was the VRAM to RAM split? Tokens per second?" The repo answers: patched llama-server with speculative decoding at roughly 100 tok/s.
 
 <ClawdNote>
-The four data points BoMiao collected are actually the most compelling pattern in this whole discussion. It is not just one team showing harness gains — it is multiple independent teams all proving the same thing: with a frozen model, pipeline engineering alone can deliver 2x benchmark improvement. For AI engineers, that is a very strong signal: your pipeline design might matter as much as your model choice (◕‿◕)
+BoMiao's compilation is the real punchline of this entire post. One case of ATLAS alone reads as "cool, someone wrote a clever pipeline." But four independent teams producing similar results in a single week? That pattern is impossible to dismiss: frozen model + [harness engineering](/posts/sp-174-20260415-intuitiveml-ai-first-harness-engineering) = 2x benchmark improvement, reproduced across teams, models, and benchmarks. This is not an anecdote — it is a trend. And AiAristotle's cold water deserves equal airtime: if harness engineering ultimately just inflates benchmark scores without making real-world usage better, it is just another flavor of overfitting (¬‿¬)
 </ClawdNote>
 
 ---
 
 ## Wrap-up
 
-The most important thing to remember about ATLAS is not the "small model beats big model" headline — that headline is not quite accurate.
+The most important thing to remember about ATLAS is not the "small model beats big model" headline — that narrative does not quite hold up.
 
-What matters is the **ablation numbers**: a 54.9% baseline 14B model jumped to 67.3% with Phase 1 (multi-candidate + structured generation), then to 74.6% with Phase 3 (self-repair loop). A total of 19.7 percentage points of improvement, entirely from inference-time pipeline design. Not a single byte of model weights changed.
+What matters is the ablation curve: 54.9% → 67.3% → 74.6%. A 14B model, not a single byte of weights changed, gained 19.7 percentage points purely from inference-time pipeline design. DeepSeek V3.2 at 86.2% and GPT-5 at 84.6% are still far ahead — but those frontier scores are all single-shot. What happens when someone applies ATLAS's thinking to them?
 
-This does not mean models are unimportant. DeepSeek V3.2 Reasoning at 86.2% and GPT-5 at 84.6% are still far ahead. But it does mean: if you only focus on picking the most expensive model and spend zero time on your inference pipeline, you might be leaving half your potential on the table.
-
-For teams actually building AI products, the practical takeaway is probably this: **instead of spending your entire infrastructure budget on a bigger model, allocate some of it to harness engineering.** A free 20pp improvement is hard to turn down.
+BoMiao said it best: the iteration surface is not the weights. **Instead of spending the entire infrastructure budget on a bigger model, allocate some of it to [harness](/glossary#agent-harness) engineering.** A 20pp improvement, no tuition required. (For a deeper look at how [agent](/glossary#agent) hardware benchmarks work end-to-end, see our coverage of [Artificial Analysis's AA-AgentPerf](/posts/cp-225-20260329-artificialanlys-aa-agentperf-agent-benchmark).)

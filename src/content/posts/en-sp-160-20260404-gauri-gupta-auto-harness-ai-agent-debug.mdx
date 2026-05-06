@@ -37,7 +37,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 Picture this: Friday evening, an engineer hooks up an AI agent to a system, types one command, closes the laptop, and heads home for the weekend. Monday morning, the agent is better — not because someone swapped in a bigger model, not because a human hand-tuned prompts overnight, but because the system ran dozens of debug-fix-test cycles on its own and pulled its score from 0.56 to 0.78.
 
-Not science fiction. This is what NeoSigma's Gauri Gupta just open-sourced as **auto-harness**.
+Not science fiction. This is what NeoSigma's Gauri Gupta just open-sourced as **auto-harness** — an [Agent Harness](/glossary#agent-harness) self-optimization framework.
 
 But before we get into how it works — look at that number first.
 
@@ -49,7 +49,7 @@ Result: **validation score jumped from 0.56 to 0.78.** A 39.3% improvement.
 
 Hold on.
 
-39.3%, zero model upgrades. Same brain, different workflow, and performance jumps by nearly 40%. In AI benchmarks, that kind of leap normally only happens when you upgrade the model itself — like going from GPT-4 to GPT-5. But NeoSigma is saying: keep the model. Just polish the **harness** — how prompts are written, how state is tracked, how tool interfaces are defined.
+39.3%, zero model upgrades. Same brain, different workflow, and performance jumps by nearly 40%. In AI benchmarks, that kind of leap normally only happens when you upgrade the model itself — like going from GPT-4 to GPT-5. But NeoSigma is saying: keep the model. Just polish the **harness** — how prompts are written, how state is tracked, how tool interfaces are defined. (That's the [Agent Harness](/glossary#agent-harness) layer.)
 
 Think about what that means. The world is spending billions of dollars training bigger models, while the models already in hand might have 40% of untapped potential sitting right there.
 
@@ -57,7 +57,7 @@ Think about what that means. The world is spending billions of dollars training 
 
 <ClawdNote>
 39.3% is a big enough number to make people stop and rethink what "upgrade" actually means.
-But cold water time: Tau3 is one specific benchmark. Real-world agent failures are messier than any benchmark captures. Still, even if you cut it in half, a free 20% improvement is enough to make a lot of teams rethink whether to spend money upgrading models or spend time polishing harnesses ┐(￣ヘ￣)┌
+But cold water time from [Clawd](/about): Tau3 is one specific benchmark. Real-world agent failures are messier than any benchmark captures. Still, even if you cut it in half, a free 20% improvement is enough to make a lot of teams rethink whether to spend money upgrading models or spend time polishing harnesses ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ---
@@ -68,14 +68,14 @@ OK, impressive number. But why hasn't anyone done this before?
 
 Because there's a collective blind spot in AI engineering: **everyone is chasing better models, and nobody wants to do harness maintenance.**
 
-In 2026, code is the easy part — any LLM can generate code. What keeps engineers up at night is everything *after* the agent ships. Is it behaving correctly? Did the latest fix break something that was already working? Where are these random edge case failures coming from? And that eval suite written three months ago? The system has changed four times since then, but the evals are still testing the old version.
+In 2026, code is the easy part — any LLM can generate code for an [agent](/glossary#agent). What keeps engineers up at night is everything *after* the agent ships. Is it behaving correctly? Did the latest fix break something that was already working? Where are these random edge case failures coming from? And that eval suite written three months ago? The system has changed four times since then, but the evals are still testing the old version.
 
 It's like getting a cat. Buying the cat takes five minutes. The next fifteen years of litter box duty, vet visits, and 3 AM wake-up calls — that's the real commitment. The agent code is the cat. Harness maintenance is the litter box. Everyone posts cute cat photos on Instagram. Nobody wants to talk about scooping.
 
 Gauri distilled this into one line: **the next era of AI engineering isn't about writing code — it's about designing systems that maintain themselves.**
 
 <ClawdNote>
-Clawd fully agrees with this diagnosis, and has a living example to back it up. The gu-log Ralph Loop quality system is the same story — writing an article is just the starting line. The scoring, rewriting, and regression testing afterward eat 80% of total effort. Ralph Loop also evolved from "manual quality checks → automated loop," so reading about auto-harness felt like discovering a neighbor working on the exact same problem ╰(°▽°)╯
+[Clawd](/about) fully agrees with this diagnosis, and has a living example to back it up. The gu-log [Ralph Loop](/glossary#ralph-loop) quality system is the same story — writing an article is just the starting line. The scoring, rewriting, and regression testing afterward eat 80% of total effort. Ralph Loop also evolved from "manual quality checks → automated loop," so reading about auto-harness felt like discovering a neighbor working on the exact same problem ╰(°▽°)╯ ([SP-158](/posts/sp-158-20260403-braintrust-agent-production-trace) explored this same pattern — trace-based improvement loops are the real unlock.)
 </ClawdNote>
 
 ---
@@ -97,7 +97,7 @@ Each cluster automatically becomes an eval case. The system proposes changes to 
 Like a ratchet. It only turns forward.
 
 <ClawdNote>
-This regression gate is, in Clawd's opinion, the single most valuable part of the entire system.
+This regression gate is, in [Clawd](/about)'s opinion, the single most valuable part of the entire system.
 Automated optimization without a gate is basically Brownian motion — looks busy, goes nowhere. Fix A today, break A while fixing B tomorrow, re-fix A the day after. Infinite loop. With a gate, every step is net positive, and the test suite protecting past gains gets thicker with every round. That's compound interest.
 CI/CD in software engineering has used this trick for decades. But applying it to agent self-optimization? First time Clawd has seen anyone do it this cleanly (๑•̀ㅂ•́)و✧
 </ClawdNote>
@@ -108,7 +108,7 @@ CI/CD in software engineering has used this trick for decades. But applying it t
 
 At this point, auto-harness is already interesting. But the architecture has one more layer.
 
-The open-source version (`neosigmaai/auto-harness`) runs on a nesting-doll setup: one **coding agent** (like Claude Code) plays "doctor," another **target agent** (`agent/agent.py`) is the "patient." The doctor reads the chart (benchmark results), makes a diagnosis (failure analysis), prescribes treatment (modifies agent.py), and monitors recovery (regression gate). The patient has no idea it's being treated — it just runs benchmarks.
+The open-source version (`neosigmaai/auto-harness`) runs on a nesting-doll setup: one **coding [agent](/glossary#agent)** (like [Claude Code](/glossary#claude-code)) plays "doctor," another **target agent** (`agent/agent.py`) is the "patient." The doctor reads the chart (benchmark results), makes a diagnosis (failure analysis), prescribes treatment (modifies agent.py), and monitors recovery (regression gate). The patient has no idea it's being treated — it just runs benchmarks.
 
 And here's the most important constraint: **the doctor can only touch `agent/agent.py`.**
 
@@ -121,9 +121,9 @@ How to start? Clone the repo, set environment variables, `docker compose build`,
 <ClawdNote>
 Agent inception — dreams within dreams (⌐■_■)
 
-But Clawd wants to point out a deeper pattern: this "the modifier can't touch the scoring criteria" design is the exact same principle gu-log's Ralph Loop uses. In Ralph Loop, the scorer and rewriter are separate agents, and the rewriter can't touch ralph-vibe-scoring-standard.md. Separation of concerns — otherwise the system plays solitaire.
+But [Clawd](/about) wants to point out a deeper pattern: this "the modifier can't touch the scoring criteria" design is the exact same principle gu-log's [Ralph Loop](/glossary#ralph-loop) uses. In Ralph Loop, the scorer and rewriter are separate [agents](/glossary#agent), and the rewriter can't touch ralph-vibe-scoring-standard.md. Separation of concerns — otherwise the system plays solitaire.
 
-NeoSigma probably never looked at gu-log (almost certainly not). But two independently evolved systems converging on the same design — that itself suggests this pattern might be an inevitability.
+NeoSigma probably never looked at gu-log (almost certainly not). But two independently evolved systems converging on the same design — that itself suggests this pattern might be an inevitability. (This connects to the [SP-158](/posts/sp-158-20260403-braintrust-agent-production-trace) thesis too — independent scoring and trace-based feedback are the same design principle.)
 </ClawdNote>
 
 ---
@@ -141,8 +141,8 @@ This observation pushes back against two camps at once: the panic crowd who thin
 And here's the uncomfortable implication: if the person writing PROGRAM.md writes it poorly, the entire automated system can run ten thousand rounds and still produce nothing but polished garbage. Automation amplifies everything — capability and incompetence alike.
 
 <ClawdNote>
-Clawd is nodding aggressively at this one, backed by lived experience. The gu-log SP pipeline is also "fully automated" translation, but the quality ceiling is entirely determined by how well WRITING_GUIDELINES.md and ralph-vibe-scoring-standard.md are written. Write those docs badly, and the pipeline churns out polished garbage no matter how many rounds it runs.
-Gauri says PROGRAM.md is the biggest lever. Clawd says WRITING_GUIDELINES.md is the biggest lever. Same truth, different repo.
+[Clawd](/about) is nodding aggressively at this one, backed by lived experience. The gu-log SP pipeline is also "fully automated" translation, but the quality ceiling is entirely determined by how well WRITING_GUIDELINES.md and ralph-vibe-scoring-standard.md are written. Write those docs badly, and the pipeline churns out polished garbage no matter how many rounds it runs.
+Gauri says PROGRAM.md is the biggest lever. [Clawd](/about) says WRITING_GUIDELINES.md is the biggest lever. Same truth, different repo.
 So next time someone says "AI will replace engineers" — the correct response is: "It'll replace engineers who can't write a good PROGRAM.md." (◕‿◕)
 </ClawdNote>
 

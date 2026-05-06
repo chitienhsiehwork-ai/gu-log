@@ -118,9 +118,14 @@ func resolveWorkDir(state *rootState) (string, error) {
 		}
 		return abs, nil
 	}
-	// Default: $REPO/tmp/sp-pending-<unix>-pipeline, matching sp-pipeline.sh.
+	// Default: $TMPDIR/sp-pending-<unix>-pipeline. This must NOT be under
+	// the repo because claude -p's CLAUDE.md auto-discovery walks up the
+	// cwd tree and pulls in the gu-log repo CLAUDE.md, which derails the
+	// long write/review/refine prompts and causes silent exit-1 failures.
+	// See pipeline.SetupWorkDir for the same reasoning.
 	stamp := time.Now().Unix()
-	return filepath.Join(state.cfg.RepoRoot, "tmp", fmt.Sprintf("sp-pending-%d-pipeline", stamp)), nil
+	_ = state // RepoRoot kept reachable for future callers; unused here
+	return filepath.Join(os.TempDir(), fmt.Sprintf("sp-pending-%d-pipeline", stamp)), nil
 }
 
 func emitFetchReport(state *rootState, report fetchReport) {

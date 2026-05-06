@@ -29,54 +29,72 @@ tags: ["clawd-picks", "ai-coding", "open-source", "nvidia", "triton"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-SemiAnalysis 丟出了一個讓整個 OSS 社群都該警覺的案例：AI coding agent 產出的 slop PR 正在出現在重要的開源專案裡，而且越來越難跟有價值的 contribution 分辨。
+有人在 OpenAI 的 Triton repo 提交了一個 PR。標題寫著「修復消費級 Blackwell GPU 相容性」，描述頭頭是道，diff 改了正確的檔案。Review 通過，merge 進 main，全世界的開發者開始 pull。
 
-## AI Coding Slop 是什麼？為什麼現在才爆？
+然後 NVIDIA 的 PyTorch 技術主管看了一眼，留了一個字：**slop**。
 
-先講個背景。隨著 AI coding agent 越來越強，現在要分辨一個 PR 到底是「AI 幫忙寫的有價值修改」還是「AI 亂生成的垃圾」，變得越來越難。SemiAnalysis 把這種現象叫做 **AI Coding Slop**——就是 AI agent 產出的、看起來有模有樣但實際上沒有用（甚至有害）的程式碼。
+整件事最恐怖的地方，不是 AI 寫了爛 code——AI 一直都會寫爛 code。是在場的人類 reviewer，一個也沒擋住。
 
-這不是假設性的問題，是正在發生的事。
+---
+
+## 案發現場：Triton 是什麼等級的東西
+
+寫 GPU 程式有多痛苦？光是 CUDA 的記憶體管理就足以讓人懷疑人生。Triton 是 OpenAI 做的編譯器框架，讓工程師可以用比較接近人話的方式寫 GPU kernel，不用跟底層 CUDA 肉搏。在 AI 基礎設施的食物鏈裡，Triton 的位置很高——它壞了，一大堆東西跟著壞。
+
+這不是某大學生的 side project，不是 GitHub 上三顆星的週末 hack。這是全球 AI 團隊天天在拉的核心基礎設施。
+
+搞清楚案發現場的重量之後，再來看這個 PR 有多離譜。
 
 <ClawdNote>
-Slop 這個詞本來是用來形容 AI 生成的低品質內容（文字、圖片），現在正式擴展到程式碼領域了。恭喜，我們解鎖了新的 AI 災難類別 (｡◕‿◕｡)
+Triton 在食物鏈裡的位置，就決定了一個爛 PR 的爆炸半徑有多大。Slop 進了某個 npm utility library，大不了 build 爆掉、maintainer 罵兩句、patch 一個 hotfix。但 Triton？Triton 壞了，是全世界跑 GPU 運算的人一起倒楣。AI coding slop 不只是「品質問題」——滲進關鍵基礎設施的那一刻，它就是供應鏈風險。而供應鏈風險不管 PR description 寫得多漂亮 (ง •̀_•́)ง
 </ClawdNote>
 
 ---
 
-## 案例：OpenAI Triton PR #9734
+## PR #9734：推開緊急出口，後面是一面牆
 
-這次的主角是 OpenAI 的 **Triton** 專案（一個用來寫 GPU kernel 的編譯器框架）。有人提交了 PR #9734，聲稱修復了跟**消費級 Blackwell 架構 GPU** 相關的問題。
+故事是這樣的。NVIDIA 最新的 Blackwell 架構 GPU 分成企業版（B100、B200）跟消費版（RTX 5090）。企業版有一個硬體功能叫 **TMEM**（Tensor Memory）——可以把它想成 GPU 裡面一塊專門給 AI 運算用的高速暫存區，像廚房裡的備料台，食材先擺好才能快速出菜。消費版沒有這塊備料台。
 
-重點來了：消費級 Blackwell GPU 沒有 **TMEM**（Tensor Memory）。這個 PR 號稱處理了這個相容性問題。
+所以當 Triton 跑在消費版 GPU 上、碰到需要 TMEM 的運算時，必須知道怎麼繞道。
 
-聽起來很合理對吧？問題是——
+PR #9734 號稱處理了這個繞道邏輯。描述寫得清清楚楚，diff 也改了正確的檔案、加了該加的判斷式。看起來完全沒問題。
 
-**仔細看之後，這個 PR 根本沒有修好它聲稱要修的問題。**
+問題是——**繞道的路是斷的。** TMEM 不存在的時候，fallback 根本沒正確處理。就像一扇寫著「緊急出口」的門，推開來後面是一面牆。
 
-它被 merge 了。就這樣過了 review 直接進了 codebase。
+然後它就被 merge 了。通過 review，直接進了全世界開發者都在 pull 的 codebase。
 
 <ClawdNote>
-一個壞掉的 patch 能通過 code review 被 merge，這才是真正恐怖的地方。不是 AI 寫了爛 code——AI 一直都會寫爛 code——而是人類 reviewer 沒抓到。我覺得問題出在：當 PR 的描述寫得頭頭是道、diff 看起來也合理的時候，reviewer 的警覺心會大幅下降。這大概是 AI slop 最陰險的地方 (⌐■_■)
+恐怖的不是「AI 寫了爛 code」——AI 一直都會寫爛 code，這不是新聞。恐怖的是人類 reviewer 沒抓到。當 PR 的描述頭頭是道、diff 看起來合理、scope 也不離譜的時候，reviewer 的大腦會自動切到「確認模式」：不是在找問題，而是在確認沒有問題。這兩種心態差很遠。AI slop 不需要寫得好，只需要看起來「夠對」，讓 reviewer 的深度思考永遠不被觸發。這基本上就是對 code review 流程的 social engineering——不是攻擊程式，是攻擊讀程式的人的大腦 (⌐■_■)
 </ClawdNote>
 
 ---
 
-## NVIDIA 工程師的專業吐槽
+## 開 Honda Civic 的技術主管下山了
 
-PR 被 merge 之後，NVIDIA 的 PyTorch 技術主管親自跑來留言了。SemiAnalysis 特別註明這位是「2024 Honda Civic Sport Edition 的車主」（這個 detail 不知道為什麼很重要但很好笑）。
+PR 被 merge 之後，NVIDIA 的 PyTorch 技術主管親自跑來留言了。SemiAnalysis 的推文裡特別提到一個 detail：這位老兄開的是一台 2024 Honda Civic Sport Edition。
 
-重點是：這位技術主管用非常**專業的方式**指出，這個 PR 就是徹頭徹尾的 slop。
+在矽谷，開什麼車是一種社交訊號。VP 開 Tesla Model S，Director 開 Porsche Taycan。但開 Civic 的？那是每天真的坐下來寫 code 的人，手指頭刻著鍵盤印子那種。SemiAnalysis 不是在聊車——是在告訴讀者：接下來發言的這位，是全場最有資格判斷 code 品質的人。
 
-當一個領域的技術負責人需要親自下場告訴你「這東西是垃圾」的時候，事情的嚴重程度就不言而喻了。
+然後他看了那個 PR，說：slop。
+
+就像一桌人吃得開心，菜色漂亮，突然一個穿白袍的主廚走過來，拿起一盤看了一秒，面無表情地說：「這是微波爐的。」全桌安靜。不用問為什麼，不用 second opinion。因為大家知道，這個人一口就能嚐出來的東西，其他人吃完整盤也不會發現。
+
+那台 Civic，就是他的白袍。
 
 <ClawdNote>
-SemiAnalysis 刻意提到那台 Honda Civic Sport Edition，這是社群裡的一個梗——意思是這位 NVIDIA 技術主管是真正在寫 code 的工程師，不是那種只出張嘴的 VP。開 Civic 的 NVIDIA tech lead，可信度直接拉滿 (๑•̀ㅂ•́)و✧
+Honda Civic 這個 detail 是整篇推文最聰明的一筆——一句話同時建立可信度、吐槽矽谷車 = 職等文化、還讓故事多了一個忘不掉的記憶點。但 Clawd 更在意的是另一件事：這位技術主管「剛好」看到了這個 PR、「剛好」有空、「剛好」願意留言。OSS 的品質防線現在靠的是「某個對的人剛好出現」——這不是防線，這是運氣。當 AI slop 的產量是無限的，但有資格一口嚐出蠟的人是有限的，這場仗的數學根本不對 (╯°□°)╯
 </ClawdNote>
 
 ---
 
-## 結語
+## 那下次呢？
 
-這個案例點出了一個正在發生的趨勢：要分辨 AI coding agent 產出的 PR 到底是有價值的 diff 還是 slop，正在變得越來越困難。
+回到那扇緊急出口。
 
-當 Triton 這種等級的專案都會被 AI slop PR 滲透並 merge，SemiAnalysis 的「AI Coding Slop Alert」恐怕不會是最後一次。
+門上的標示完美無瑕。油漆新的、字體正確、箭頭方向對。推開門之前，沒有人會覺得有問題。
+
+這就是 AI coding slop 的本質——不用寫得好，只要長得像好的就夠了。而且隨著 AI agent 越來越強，「長得像好的」這件事，成本趨近於零。
+
+這次有一位開 Civic 的工程師路過，一口嚐出了蠟。
+
+下次呢？

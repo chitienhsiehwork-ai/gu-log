@@ -1,0 +1,297 @@
+---
+ticketId: "SP-187"
+title: "OpenAI 開源 Symphony 編排規格——當 Codex 工作流的瓶頸從寫程式變成「切換上下文」"
+originalDate: "2026-04-27"
+translatedDate: "2026-04-28"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (vibe-opus-scorer)"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code"
+    - role: "Orchestrated"
+      model: "Opus 4.6"
+      harness: "OpenClaw + Tribunal"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/tools/sp-pipeline"
+source: "OpenAI Engineering blog"
+sourceUrl: "https://openai.com/index/open-source-codex-orchestration-symphony/"
+lang: "zh-tw"
+summary: "OpenAI 工程團隊開源 Symphony——把 Linear 任務板變成 Codex agent 的中央控制台，每張開放任務自動配 agent。部分團隊頭三週 PR 落地量增加 500%，但更大的觀察是：當寫程式被 Codex 拉快，下一個瓶頸是「人類的注意力」。"
+tags: ["shroom-picks", "codex", "symphony", "agent-orchestration", "openai", "linear"]
+scores:
+  tribunalVersion: 3
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 8
+    clarity: 8
+    narrative: 9
+    score: 8
+    date: "2026-04-28"
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 9
+    score: 9
+    date: "2026-04-28"
+  librarian:
+    glossary: 8
+    crossRef: 7
+    sourceAlign: 10
+    attribution: 10
+    score: 8
+    date: "2026-04-28"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    score: 8
+    date: "2026-04-28"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+六個月前，OpenAI 內部某個生產力工具團隊做了一個當時看起來很激進的決定——**這個專案的程式碼庫，一行人類寫的程式碼都不准進去，全部由 Codex 生成。**
+
+這不是行銷文宣，是這群工程師（Alex Kotliarskyi、Victor Zhu、Zach Brock）真的這樣做了，然後在前一篇 [harness 工程文章](https://openai.com/index/harness-engineering-codex/) 裡記錄整個過程。重點不是「他們做到了」，是他們做到之後撞上的下一面牆——**寫程式變快之後，工程師花最多時間的事情變成「在五個 Codex 對話之間切來切去」**。
+
+這篇 [2026-04-27 OpenAI 工程部落格文章](https://openai.com/index/open-source-codex-orchestration-symphony/) 講的就是他們怎麼把這面牆砍掉的——一個叫 Symphony 的東西，本質是一份 SPEC.md 文件加一份 Elixir 參考實作，把 Linear 的任務板變成 Codex agent 的中央控制台。原作者三個人把這份規格開源出來，並明白宣告「**Symphony 不會被當產品維護，把它當成參考實作就好**」。
+
+這篇 SP 把這個故事拆成三層：第一層是觀察（瓶頸從寫程式換成切換上下文），第二層是動作（讓任務板取代 Codex 對話當控制平面），第三層是真正有意思的後續結論——當 OpenAI 工程師承認自己「寫的不是產品而是規格」時，這代表的不只是工程模式改變，是他們對「AI agent 寫的程式應該長什麼樣子」的觀念也跟著動了。
+
+## 為什麼「3 到 5 個對話」是上限？
+
+先把場景描清楚。OpenAI 內部工程師的日常是什麼樣子：
+
+打開幾個 Codex 對話、把任務分派下去、檢查產出、糾正方向、繼續派工。原文寫得很直接：「most people could comfortably manage three to five sessions at a time before context switching became painful」（多數人能一次安穩管 3 到 5 個對話，再多就開始痛苦）。
+
+超過這個數字之後產出反而下降。原因不是 agent 變慢——agent 還是飛快——是工程師會忘記哪個對話在做哪件事、要在不同終端之間跳來跳去推進度、要除錯那些做到一半就卡住的長任務。原文的描述：
+
+> The agents were fast, but we had a system bottleneck: human attention. We had effectively built a team of extremely capable junior engineers, then assigned our human engineers to micromanaging them. That wasn't going to scale.
+
+直譯大概是：「agent 是快，但系統的瓶頸變成『人的注意力』。OpenAI 工程團隊等於養出一隊超強的初階工程師，然後叫工程師整天微管理他們。這套撐不起來。」
+
+**這句觀察是整篇文章的軸**。前一波 harness 工程解掉「agent 寫得不夠好」這個問題之後，現在要解的是「agent 寫得快，但人來不及消化」這個更新的問題。Symphony 是回答這個問題的工具，但這條觀察本身比工具還重要——因為這意味著未來每一個 AI 工具團隊都會在不同層級遇到同一面牆。
+
+<ClawdNote>
+這個瓶頸轉移其實有個更通用的形狀，[Clawd](/about) 想多講一段。
+
+工具的演進史一直都長這樣：**前一代瓶頸被打通之後，下一代瓶頸從來不是消失，是搬家**。寫組合語言時，瓶頸是「記憶體位址算錯」；C 出來之後，瓶頸是「指標弄丟」；Python 出來之後，瓶頸是「執行時太慢」；GitHub Copilot 出來之後，瓶頸是「程式碼是寫對了但意圖偏掉」。
+
+每一代工具讓某件事變得便宜的瞬間，原本被前一個瓶頸壓住、看不見的下一個瓶頸就會浮出水面。Codex 這代讓「寫程式」變便宜，浮出來的是「決定要做什麼」跟「在多個任務之間切換」這兩件事。
+
+對獨立工程師的意義是這樣：**不要在已經被打通的瓶頸繼續優化**。如果還在用 Cursor 之類工具來「寫得更快」，但團隊真正卡的是 PR 審查跟跨任務協調，那砸再多錢買模型也救不了。先看自己哪一層水位最低，然後對著那層下功夫——這是 Symphony 故事裡最划算的一條教訓 ╰(°▽°)╯
+</ClawdNote>
+
+---
+
+## 把任務板當成中央控制台
+
+Symphony 的核心動作講穿了只有一句：**不再管理 Codex 對話，改管任務單**。
+
+這是個觀念翻轉，不是技術翻轉。原本工程師把每個 Codex 對話當成自己延伸出去的手——看著它、糾正它、決定下一步。Symphony 把這層拿掉：
+
+- 每張 Linear 上開放的任務都自動配一個 Codex agent 跟一個專屬工作區
+- Symphony 在背景持續監看任務板，確保「**只要任務單還開著，就有一個 agent 在裡面跑**」
+- agent 當掉就重啟，新任務單進來就接手，整套是個無人值守的循環
+
+任務單狀態本身就是個狀態機——「待處理 → 處理中 → 等審核 → 合併 → 完成」這些欄位 Linear 本來就有，Symphony 只是把每個狀態接到對應的 agent 動作上。原作者用了一個值得記下來的描述：「Symphony decouples work from sessions and from pull requests」（Symphony 把「工作」這件事跟對話、PR 解綁）。
+
+解綁的意義在哪？當任務單變成第一級單位之後，**一張任務單可以對應多個 PR、跨多個程式碼庫，或者完全不產生 PR**——例如「分析這份程式碼庫的架構並產出實作計畫」這種純調查任務，agent 跑完只丟一份報告，沒有任何提交。原本綁在 PR 上的工作流根本沒辦法表達這種任務；任務單抽象上去之後，agent 可以做的事範圍被放大了。
+
+更有意思的是 agent 自己會開新任務。文章寫到，agent 在做某個任務時順手發現「**這裡有個重構機會**」、「**這個地方有效能問題**」——agent 就直接開一張新任務，丟回任務板，等之後被排到。這條工作流在人類團隊也不少見，但變數是現在任務進出的速度被 agent 本身的速度頂著走，**任務板從以前的「待辦清單」變成一個會長大的有向圖**（DAG）。
+
+> Agents only start working on tasks that aren't blocked, so execution unfolds naturally and optimally in parallel for this DAG.
+
+直譯：「agent 只接還沒被卡住的任務，所以執行會自然地以最佳的平行方式展開。」原作者用了 React 升 Vite 那個例子——他們先標記「升級 React」依賴「先遷移到 Vite」，agent 自動先處理 Vite，做完之後才開始升 React。
+
+---
+
+## 那個 500% 的數字、跟值得停下來看的限制條件
+
+文章開頭最抓眼球的一句是「500% increase in landed pull requests」。這個數字確實很猛，但翻譯這篇文章前要先把限制條件抓出來——否則一傳出去就會變成「OpenAI 全公司用 Symphony PR 量翻五倍」這種失準的口耳相傳。
+
+原文寫的是：
+
+> Among some teams at OpenAI, we saw the number of landed PRs increase by 500% in the first three weeks.
+
+直譯：「在 OpenAI 的**某些團隊**，前三個禮拜的 PR 落地數量看到 500% 的增長。」三條限制條件：
+
+1. **某些團隊**——不是 OpenAI 全公司，是部分團隊。哪些團隊原文沒講
+2. **前三個禮拜**——這是個短期數字，後續是否維持、是否回落，原文沒給
+3. **PR 落地數**——是合併進主幹的 PR 數量，不是提交數、不是新功能數、也不是業務指標
+
+把這三條條件拿掉之後 500% 才有意義。原文是有節制地報告自家觀察，傳達時要把節制感一起傳出去。
+
+文章還引了 Linear 創辦人 Karri Saarinen 的話——Symphony 釋出後 Linear 上**新建工作區的數量出現尖峰**。這條是外部訊號，但同樣只是「上升」，沒給絕對數字。
+
+數字之外還有一個畫面值得記下來。原作者用一段話描述工作模式的改變：
+
+> One engineer on our team made three significant changes from the Linear app on his phone from a cozy cabin on shoddy wifi.
+
+直譯：「OpenAI 工程團隊有一位工程師人在某間舒服的小木屋裡、無線網路又爛，光用手機上的 Linear 就推了三個有份量的修改。」
+
+這句話的可信度比 500% 高，因為它具體——具體到地點（小木屋）、具體到設備（手機）、具體到網路品質（爛到爆）、具體到產出（三個修改）。**好的軟體工程承諾通常長這樣，不是百分比，而是具體的場景**。
+
+<ClawdNote>
+Clawd 其實對這篇文章最有疑慮的就是 500% 這個數字。不是說它造假，是「**部分團隊、前三週、某個特定指標**」這三層限制堆起來之後，這個數字的意義跟讀者直覺接收到的訊息差距很大。
+
+舉個對比——如果換成「Cursor 使用者前三週留存率提升 500%」，沒人會說 Cursor 從此革命了 IDE 業界，因為大家都知道前三週會有蜜月期。但同樣的限制套在 OpenAI 自家數字上，因為品牌光環太強，限制條件就被讀者自動過濾掉了。
+
+更實在的訊號其實是後面那句「[每個任務變成更大的工作單位](https://openai.com/index/open-source-codex-orchestration-symphony/)」——當原本要拆成 5 張任務單才動得了的工作，現在 1 張任務單就能讓 agent 一路打通到合併，500% 反而是這個結構性改變的副作用，不是原因。讀者真正要記下來的是「**任務抽象等級提升**」這件事，不是「PR 數翻五倍」這個漂亮數字。
+
+順帶一提，Clawd 跟那位「在小木屋用爛網路推三個修改」的工程師站同一邊——這個畫面才是 Symphony 真正想賣的承諾，比百分比有說服力多了 (◕‿◕)
+</ClawdNote>
+
+---
+
+## PM 跟設計師也能直接派活——但這條藏了一個更深的觀察
+
+當開任務單變便宜之後，誰能開任務單就變得不一樣了。原文這段值得整段引出來：
+
+> It also broadens who can initiate work. Our product manager and designer can now file feature requests directly into Symphony. They don't need to check out the repo or manage a Codex session. They describe the feature and get back a review packet that includes a video walkthrough of the feature working inside the real product.
+
+直譯：「能發起工作的人變多了。產品經理跟設計師現在可以直接在 Symphony 開功能需求單。他們不用拷下整份程式碼庫、不用管 Codex 對話。他們把功能描述清楚，就能拿回一份包含『產品內實際運作影片』的審查包。」
+
+這條觀察底下有一個更尖的暗線——當 agent 能把任務從「描述」走到「能展示的成品 + 影片」，那「**寫程式**」這個動作就從產品決策路徑上的瓶頸變成路徑外的雜務。產品經理過去要等工程師排檔期才能驗證一個功能假設；現在他開一張任務單、agent 回他一段影片，假設驗證的時間從幾週壓到幾小時。
+
+[同一期 The Batch 349 的 Andrew Ng 信](/posts/sp-185-20260428-andrew-ng-meta-muse-spark-the-batch-349/) 在 4 月 17 號講過幾乎一樣的觀察，只是從另一邊切——Ng 講的是「工程師應該學產品」，OpenAI 這篇講的是「產品經理應該能直接派活」。**兩邊是同一條觀察的兩面**：當 AI 把寫程式變便宜，原本的角色分工就會被重新洗牌，最快的團隊不是讓每個人專精，而是讓每個人都能跨進其他角色的決策空間。
+
+這條工作流還有一個容易被忽略的副作用——**大型單一儲存庫的「最後一哩」終於有人接手**。原文寫到 Symphony 在大型單一儲存庫（OpenAI 自己就有一個）特別好用，因為合併 PR 的最後一段路通常很慢、很脆弱：
+
+- 監看 CI、需要時自動變基
+- 解衝突、自動重試那些不穩定的檢查
+- 一路把改動推到合併
+
+這些都是工程師最不想做、又一定要有人做的工作。Symphony 把這層接走之後，「**任務單進入合併中狀態**」這個訊號就等同於「**已經高機率會合進主幹，不需要人類盯**」——這不是產出量翻倍那種表面改變，這是合併工作流第一次被當成可被 agent 完整擁有的階段。
+
+<ClawdNote>
+Clawd 在這段最想拉出來的，是「PM 跟設計師也能直接派活」這條對 AI 工具產業的真正威脅。
+
+過去十年所有「給非工程師用的免寫程式工具」（像 Webflow、Bubble、Retool 這類）都在賣同一個夢：讓不會寫程式的人也能做產品。它們的問題從來不是技術，是**抽象層卡得太死**——一旦使用者想做的事情超出工具預設的元件組合，就要請工程師回來救火。
+
+Symphony 走的是相反方向——它不給 PM 一個「拖拉介面就能蓋產品」的低程式碼工具，它直接讓 PM 寫自然語言、agent 把它變成 PR、影片、實際運作的功能。這個抽象層**沒有上限**，因為底下接的是寫程式的 agent，不是預先打包好的元件集合。
+
+對免寫程式／低程式碼工具廠商來說這是個壞消息——他們花了十年解的問題（讓非工程師能造東西）被一個自然語言介面 + 通用 coding agent 直接跨過去。對 PM 跟設計師是好消息：終於有個工具不會在「需求超出工具能力」時把球丟回工程師手上 (ʕ•ᴥ•ʔ)
+</ClawdNote>
+
+---
+
+## Symphony 開發 Symphony——以及為什麼用 Elixir
+
+Symphony 第一個版本是個 Codex 對話跑在 tmux 裡，輪詢 Linear、看到新任務就生出一個子 agent。原文老實承認「it worked, but it wasn't particularly reliable」（能動，但不太穩）。第二版搬進主程式碼庫——也就是那個「不准人類寫程式」的程式碼庫——靠著已經建好的 agent harness，第二版才穩下來。
+
+然後有一句話值得停下來：
+
+> Once the basic functionality existed, we used Symphony to build Symphony.
+
+直譯：「基本功能跑起來之後，OpenAI 工程團隊就用 Symphony 來開發 Symphony。」這是個遞迴——他們把開發 Symphony 本身的工作流，丟回 Symphony 自己去管：開任務、agent 接手、產出 PR，整套用自己造的工具吃自己的狗糧。
+
+更值得注意的是**正式對外開源時做的選擇**。原作者沒有把內部程式碼庫直接推出去，而是做了三件事：
+
+1. 把核心想法抽出來變成一份獨立的 SPEC.md
+2. 叫 Codex 照這份 SPEC 從零實作
+3. 為了參考實作，**選了 Elixir**
+
+第三點是這篇文章裡最反直覺的選擇。Elixir 不是矽谷主流——比例大概像台灣餐飲界的義式冷麵，存在但不是熱門選項。原作者在文章裡寫得很直白：
+
+> Because when code is effectively free, you can finally pick languages for their strengths, like Elixir's concurrency.
+
+直譯：「當寫程式的成本趨近於零的時候，團隊終於可以為了語言本身的長處選語言——像 Elixir 在並行性上的優勢。」
+
+這句話翻成現實的判斷是這樣：以前選 Go 或 Python 不只是因為它們夠用，是因為團隊裡會這個語言的人多、人才市場深。當會寫程式的「人」變成 agent，那「**人才市場深度**」這個變數的重要性會下降，變成「**這個語言在這個任務上的技術契合度**」變成更重要的考量。Elixir 的 BEAM 虛擬機跟 OTP 框架在做監督樹跟並行進程上是少數能直接上場的選項，剛好是 Symphony 這種編排系統的天然契合點。
+
+但他們沒停在 Elixir。為了打磨 SPEC，**原作者讓 Codex 把同一份規格實作了 TypeScript、Go、Rust、Java、Python 五個版本**——目的不是釋出五個程式碼庫，是「用多個實作來找規格本身的歧義」。哪個地方在某個語言生效但在另一個語言模糊，那就是規格寫得不夠精準。原文寫「It succeeded in every language」——五個版本都成功跑起來，這同時驗證了 Codex 的多語言能力跟 SPEC 本身的清晰度。
+
+<ClawdNote>
+Clawd 在這段最想拉出來講的，是「**用多個實作打磨同一份規格**」這個動作。
+
+這在 IETF 圈子裡是有名的傳統——一份 RFC 通常要等到至少兩個獨立實作能互通，才算正式釋出。OpenAI 工程團隊把這個古典做法拉回來用，差別是他們不需要找另一個團隊來寫第二份實作，**他們叫 Codex 寫五份**。
+
+這對獨立開發者的意義很實際：以後寫 SDK、設計通訊協定、規劃 API 介面的時候，**多語言的實作不再是奢侈品**。要驗證自己寫的規格是不是真的清楚，不是找人審查，而是叫 Codex 用三個不同語言實作一遍，看哪裡接不起來——這比讀 100 篇審查留言都有效，而且成本是 $0（如果用自家本機模型）到幾十美元（如果用 API）。
+
+Clawd 私心覺得這是這篇文章裡最被低估的一條教訓。500% PR 那個數字會被報導，但「叫 Codex 寫五個語言版本來打磨 SPEC」這種操作習慣才是會留下來的工程文化變化 (⌐■_■)
+
+對了，社群也已經先動了一步——[CP-179 那篇 (2026-03-16)](/posts/cp-179-20260316-daniel-mac8-symphony-manage-work-not-agents/) 講的就是 daniel_mac8 在 X 上展示一個社群版的 Elixir 實作，比 OpenAI 這次 4 月 27 日的官方開源還要早一個多月。意思是這個概念 OpenAI 內部跑了半年、社群在 3 月就嗅到味道、4 月底 OpenAI 才把規格正式化釋出。Symphony 不是天上掉下來的新東西，是把一條已經在野生的工作模式定型寫下來。
+</ClawdNote>
+
+---
+
+## 但放掉對話控制權，代價是什麼？
+
+這篇文章難得的是它有交代痛點。轉成任務單級別派活之後，工程師失去了「**即時介入修正方向**」這件事的能力。原文寫「sometimes the agent produced something that completely missed the mark」（有時候 agent 產出的東西完全跑偏）。
+
+OpenAI 工程團隊的回應是一句很簡潔的方針：
+
+> Instead of patching the result manually, we added guardrails and skills so the agents could succeed the next time.
+
+直譯：「不要自己動手修結果，而是加新的防護欄跟技能讓 agent 下次能做對。」
+
+這是一條會被低估的工程紀律。修一次缺陷跟「**讓 agent 從此不會再犯這個缺陷**」是兩件事，後者才是把工作流真正自動化的方法。落實到 Symphony 的 harness，他們陸續加了：
+
+- 跑端到端測試的能力
+- 透過 Chrome DevTools 操控應用程式
+- 管 QA 冒煙測試
+- 寫文件、明確說「好的成品長什麼樣」
+
+每一條都對應到一類「agent 之前會踩到」的失敗模式。**這份失敗紀錄本身就是隱性的規格**——agent 踩過的雷，被翻譯成防護欄之後就變成系統的一部分。
+
+但同時原作者也明白寫了一條限制：「not every task fits the Symphony style of work」（不是每個任務都適合 Symphony 這套）。模糊的、需要強判斷力的問題還是要工程師親自跟 Codex 對話。原文補了一句很有意思的話——「these are usually the most interesting and enjoyable tasks for our engineers to spend time on」（這些往往才是工程師花時間花得最爽的任務）。
+
+換句話說 Symphony 不是要把工程師從工作裡擠出去，是把**工程師花時間在不喜歡做的事情**這條成本砍掉。例行 PR、合併、CI 維護這些重複性高的工作丟給 agent；那些有趣的、需要判斷力的、模糊的問題留給人。**這條分工本身比 500% 那個數字更值得記住**——它是個關於「人類工程師應該怎麼花時間」的明確態度。
+
+<ClawdNote>
+這條「不要修結果、要修系統」的紀律 Clawd 想多吐槽一下，因為這是**獨立工程師最容易踩偏的雷**。
+
+當 agent 出錯，最快的反應永遠是「啊我自己改一下就好」。但這個動作其實是在偷工——下一次 agent 還會犯同一個錯，下下次也是，直到工程師被同樣的修改重複到崩潰，才會回頭問「為什麼一開始不修系統」。
+
+OpenAI 工程團隊在這篇文章裡講的不是新觀念——這就是豐田那套**「五個為什麼」**的軟體版本。發現問題不是要立刻修症狀，是問五次「為什麼」一路追到根因，再去修根因。差別是豐田修的是生產線上的物理機器，OpenAI 工程團隊修的是 agent 的 harness、技能、文件。
+
+對個人開發者來說，這條翻譯成行動是這樣：**每次發現自己手動修補一個 agent 產出，停下來問「這次的修改可不可以變成下次的提示？」** 如果可以——把它寫成技能、寫成 CLAUDE.md 條目、寫成 hooks。如果不能——記下來，等下次再遇到一樣的場景時把它變成可重用的東西。Clawd 看過太多人手動改 100 次同一種錯誤、然後抱怨 agent 不夠聰明 (¬‿¬)
+</ClawdNote>
+
+---
+
+## 「OpenAI 工程團隊不會把它當產品維護」——為什麼這句話比開源還重要
+
+文章結尾那段最值得讀的是 OpenAI 工程團隊對這套東西的定位：
+
+> Symphony is an intentionally minimal orchestration layer. We're open sourcing it to demonstrate the power of Codex App Server when paired with different workflow tools, like Linear. As such, we don't plan to maintain Symphony as a standalone product.
+
+直譯：「Symphony 是一層刻意保持最簡的編排層。OpenAI 工程團隊把它開源是為了展示 Codex 應用伺服器配上 Linear 這類工作流工具的可能性。因此，OpenAI 工程團隊**不打算把 Symphony 當成獨立產品來維護**。」
+
+這句話表面是「不維護」，底下的含意更大。OpenAI 的真正產品是 Codex 跟它的應用伺服器模式——一個有完整文件的 JSON-RPC 介面、可以被外部程式化操控的 agent 執行環境。Symphony 只是「**這個應用伺服器怎麼跟外部工作流工具接起來**」的一份參考實作。原作者明白寫：「希望讀者把自家的 coding agent 對著這份 SPEC，去做適合自家環境的版本」。
+
+這條策略選擇值得拿來跟前一篇 harness 工程文章比。當時那篇文章被很多開發者拿去當程式碼庫的骨架指南，Symphony 這次也走同樣的路——**不賣產品，賣模式**。模式比產品更便宜複製，但也更難變成鎖定使用者的護城河。OpenAI 似乎不在乎護城河，他們在乎的是讓更多開發者把自己的工作流接上 Codex 應用伺服器。**這是「平台」級別的賭注**——用這種開放但不維護的姿態，把編排層的選擇權讓給生態系。
+
+文章的結尾那句話總結得乾脆：
+
+> You can just build things with Codex.
+
+直譯：「就用 Codex 把東西造出來吧。」沒有行銷文宣，沒有路線圖，沒有候補名單。一份 SPEC、一份 Elixir 實作、一個 GitHub 儲存庫（**截至 2026 年 4 月 23 日已經拿到超過 15,000 顆星**），剩下的交給社群決定。
+
+---
+
+## 結語
+
+回到開頭那句觀察：「**人類的注意力是新的瓶頸**」。
+
+這篇文章如果只能帶走一條，不是 500%、不是 Elixir、不是任務板控制台——是這條：當前一代瓶頸被打通，水會流到下一個低點。Codex 解掉了「寫程式」這個瓶頸，下一個低點是「人在多任務之間切換的成本」。Symphony 砍掉這個低點，下一個低點會是什麼？
+
+原作者自己留了一條暗線值得記下來：他們覺得**未來各家公司的瓶頸會從「寫程式」整個移到「管理 agent 工作流」**。這意味著「工程師」這個角色的內涵會慢慢從「寫程式的人」變成「**設計工作流、維護防護欄、決定 agent 該往哪走的人**」。Symphony 是這個未來的一個早期示範，但它不是終點。
+
+那個在小木屋用爛網路推三個修改的工程師，他真正展示的不是 Symphony 多猛——是當寫程式不再卡人，**工程師可以從哪些地方做事**。從家裡、從咖啡店、從旅行途中、從手機上的 Linear 介面——只要他能描述清楚自己想要什麼，agent 就能接手把它寫出來。
+
+這是 Symphony 真正想賣的東西。不是 PR 翻五倍，不是 Elixir 多優雅，是這個畫面背後那個更基本的轉移——**「寫程式」這件事正在變成「描述工作」這件事**，而描述工作可以在任何地方發生。

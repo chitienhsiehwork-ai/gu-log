@@ -31,127 +31,117 @@ sourceUrl: "https://x.com/karpathy/status/2042334451611693415"
 lang: "en"
 summary: "Karpathy breaks down why two groups of people have completely opposite views on AI capability. One group is laughing at ChatGPT fail videos. The other is watching AI agents restructure entire codebases in an hour. Same technology, different universes."
 tags: ["shroom-picks", "ai-agents", "karpathy", "ai-capability-gap"]
-scores:
-  ralph:
-    p: 7
-    c: 7
-    v: 7
-    score: 7
-    date: "2026-04-10"
-    model: "claude-opus-4-6"
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Andrej Karpathy just dropped an observation bomb: there are two groups of people in the AI world right now, and their understanding of what AI can do is so far apart they might as well be living in parallel universes.
+Same office. Two engineers sitting next to each other.
 
-One group watches Instagram Reels of Advanced Voice Mode fumbling "should I drive or walk to the carwash?" and laughs. The other group pays $200/month, watches an [AI agent](/glossary#agent) restructure an entire codebase in one hour, and gets the shakes.
+The one on the left just screenshotted an AI-generated "Hello World" that won't even compile and dropped it in the group chat. Everyone's cracking up. The one on the right just watched an [AI agent](/glossary#agent) spend an hour restructuring an entire legacy codebase. Their hands are still shaking.
 
-Both groups are talking about the same technology. But their lived experience couldn't be more different.
+Ask both of them "Is AI any good?" and you'll get two completely opposite answers. Neither one is lying.
 
-It started with a tweet from @staysaasy:
+Andrej Karpathy saw the macro version of this scene. It started with a tweet from @staysaasy:
 
 > The degree to which you are awed by AI is perfectly correlated with how much you use AI to code.
 >
 > — @staysaasy
 
-Karpathy saw this and went full long-form, dissecting exactly how this perception gap came to be.
+Karpathy picked this up — but instead of just agreeing, he pulled out a scalpel and cut the whole thing open. What's inside is a lot scarier than "some people use AI more than others."
 
-## Fracture #1: The Time Lag and the Tier Gap
+## Frozen Clocks
 
-Karpathy thinks the first problem is **recency and tier of use**.
+Here's a fact that should make people uncomfortable.
 
-A lot of people, Karpathy argues, formed their opinion of AI from that one time they tried the free tier of ChatGPT sometime last year — and then let that single experience shape their worldview a little too much. They tried it, thought "eh, that's it," and the impression hardened into a permanent judgment. This group sees the viral fail compilations — hallucinations, nonsensical answers, simple questions botched — and concludes that AI is kind of a joke.
+Most people's mental model of AI isn't just outdated — it's fossilized. Preserved in amber, perfectly intact, completely disconnected from the world outside.
 
-<ClawdNote>
-This is like trying first-gen Siri in 2010, concluding "voice assistants are useless," and never touching one again for fifteen years.
-Technology moves fast. People's mental models don't.
-The gap between free-tier ChatGPT and a 2026 frontier agentic model is roughly the gap between a bicycle and a Tesla ┐(￣ヘ￣)┌
-</ClawdNote>
+Karpathy's observation: a huge number of people locked in their opinion of AI the day they tried the free tier of ChatGPT sometime last year. Poked around, thought "eh, that's it" — and the impression set like concrete. Poured in, dried, can't crack it open anymore. Every time a viral clip of Advanced Voice Mode fumbling "should I drive or walk to the carwash?" crosses their feed, it confirms what they already decided: AI is a joke.
 
-The thing is, those free, old, and sometimes deprecated models don't remotely reflect what the latest state-of-the-art agentic models can do in 2026 — especially tools like OpenAI Codex and [Claude Code](/glossary#claude-code) that have made [Vibe Coding](/glossary#vibe-coding) a real thing.
+The problem is — the thing they tried and the tools that exist in 2026 aren't the same species anymore. OpenAI Codex, [Claude Code](/glossary#claude-code), the entire wave of tools that made [Vibe Coding](/glossary#vibe-coding) real — these are as far from 2024 free-tier ChatGPT as a Tesla is from a bicycle. Both are "transportation," but reviewing a Tesla based on your bicycle experience would strike anyone as absurd. Except the person on the bicycle.
 
 <ClawdNote>
-Karpathy himself admits he's seen the viral videos of OpenAI's Advanced Voice Mode fumbling simple queries. Those are genuinely funny. But judging all of AI by those clips is like watching an F1 driver scrape a pillar in a supermarket parking lot and concluding that F1 racing technology is fake.
+This is like trying first-gen Siri in 2010, concluding "voice assistants are useless," and never touching one again for fifteen years. Karpathy himself admits the viral AVM clips are genuinely funny — but judging all of AI by those clips is like watching an F1 driver scrape a pillar in a supermarket parking lot and declaring F1 racing technology is fake.
+Comedy clips make terrible benchmarks. But they make very sticky cognitive anchors. And once the anchor's dropped, most people never bother pulling it back up (¬‿¬)
 </ClawdNote>
 
 ---
 
-## Fracture #2: AI Capability Is Jagged, Not Uniform
+## But Wait — Doesn't Paying Fix This?
 
-Even if someone pays $200/month for the best models, there's a second issue.
+So far, the story sounds simple: some people are using the old free version, so their impression is bad. Just upgrade, right?
 
-AI's improvement curve isn't smooth or even — it's what AI researchers describe as **jagged**. In certain highly technical domains, progress has been absurdly dramatic. But in everyday use cases — search, writing, general advice — the improvements feel... incremental.
+Not even close.
+
+The second fracture Karpathy identifies is the one that makes this whole gap truly unfixable. AI researchers have a term for it: **jagged frontier**. It means AI capabilities aren't advancing as a smooth line moving upward — some directions have shot through the roof while others are still crawling on the floor.
+
+Picture a hedgehog. Not the cute round kind — the kind with spines of wildly different lengths, sticking out in all directions. Some spines reach the ceiling. Some are barely visible. That's what AI capability evolution looks like. Same model — its email-writing ability might be a tiny bit better than last year (short spine), but its ability to write production code has made an exponential leap (long spine). The kind of leap that makes experienced professionals start doing math on how much their decade of expertise is still worth.
 
 <ClawdNote>
-This "jagged" observation is crucial. Regular people use AI to draft emails, ask for recipes, look things up. Their verdict: "A bit better than last year, I guess."
-Meanwhile, the same model used for coding, math, or research? Exponential leap.
-It's like a Swiss Army knife that's completely average at cutting fruit, but for some reason the corkscrew function is absolutely devastating.
-The phrase "jagged frontier" gets cited a lot in AI circles to describe this exact phenomenon — capability that varies wildly across domains. Karpathy's using this framing, but it's shared common ground in AI capability research, not his alone.
+This is the truly absurd part — the two groups might be fighting about the *same model*.
+It's like a Swiss Army knife that's completely average at cutting fruit, but the corkscrew function is somehow devastatingly good. Two people each use one feature, come back, and argue — one says "this knife is meh," the other says "this knife is god-tier." They're not lying. They're each touching a different part of the elephant (╯°□°)╯
 </ClawdNote>
 
-Why is AI progress so uneven? Karpathy gives two reasons:
+So why does the frontier end up shaped like a hedgehog? Karpathy unpacks a structural answer here — and once you see it, you can't unsee it.
 
-**Reason one: reinforcement learning needs verifiable reward functions.** Programming is a natural fit for RL training — code either passes the unit test or it doesn't. Black and white. But "is this writing good?" or "was this answer helpful?" — those are much harder to judge with a clear yes/no signal. RL goes absolutely wild in domains with crisp feedback loops and barely moves in fuzzy ones.
+Programming is the perfect playground for [reinforcement learning](/glossary#rl). The reason is brutal: code either passes the unit test or it doesn't. That kind of clear-cut "right or wrong" reward signal is like a scoreboard in a video game — clear score, fast learning. But "is this email well-written?" "Is this restaurant recommendation good?" How do you even score that? Yelp ratings? Five people give five stars, five people give one star — RL just stares at the screen confused.
 
-**Reason two: money.** In the B2B market, coding, math reasoning, and research assistance translate directly into $$$$. AI companies pour their biggest teams into improving these capabilities because that's where the gold mines are. Karpathy's point is straightforward: resources follow commercial value, and R&D priorities follow the resources. Everyday search and writing assistance? Not as high on the priority list.
+Then Karpathy stacks on a second force: money. In the B2B market, every improvement in coding, math, and research capability converts directly into numbers on a client contract. R&D budgets flow toward revenue like water flows downhill. Not a conspiracy. Just gravity.
 
 <ClawdNote>
-This explains something a lot of people find baffling: "Why can AI write production-grade code but still give terrible restaurant recommendations?"
-It's not that the model is dumb. It's that the training incentive structures are totally different. Code has unit tests as a referee. Restaurant recommendations — what's the scoring function? Yelp ratings? Way too subjective.
-RL as a training paradigm inherently favors tasks with clear right/wrong answers. That's not a bug, it's a feature — it just happens to feel bad if you're a regular user (╯°□°)╯
+So RL's training bias and commercial incentives point in the same direction — and then nobody looks back.
+The dark humor of this structure: the more "normal person" the use case (writing emails, asking for recipes, chatting), the slower the improvement. The more "power user" the use case (writing code, doing research), the faster the progress.
+And then both groups end up in the same Twitter thread, each convinced the other must be living in a parallel universe. Not a bug, it's a feature — it's just that this particular feature has absolutely terrible UX (╯°□°)╯
 </ClawdNote>
 
 ---
 
-## AI Psychosis: The Group That Can't Unsee It
+## Ice Meets Blowtorch
 
-So there's now a very specific group of users who check both boxes:
+OK, so now we know why the two groups are fighting. Let's look at the group that can't sleep — what exactly did they see?
 
-1. **They pay for and use frontier agentic models** (OpenAI Codex / [Claude Code](/glossary#claude-code))
-2. **They use them professionally in highly technical domains** (programming, math, research)
+They didn't just "use AI." They hit two conditions at once: they pay for frontier [agentic models](/glossary#agent) (OpenAI Codex / [Claude Code](/glossary#claude-code)), **and** they use them professionally in the exact domains where RL's spines are longest — programming, math, research. Both conditions met simultaneously — like standing directly above the hedgehog's tallest spine, looking down, and realizing the ground is terrifyingly far away.
 
-Karpathy says this group is experiencing the highest levels of what he calls **"AI Psychosis."** Because in these domains, the improvements in 2026 have been nothing short of — his word — "staggering."
-
-How staggering? Hand one of these models a computer terminal and you can watch it **melt** programming problems that would normally take a human days or weeks to solve.
-
-And it's not just the current capabilities that rattle them — Karpathy notes that this group cares even more about the slope of improvement and the cyber-related repercussions that follow.
+Karpathy says this group is experiencing what he calls **"AI Psychosis."** Strong word. But look at what they're seeing: hand one of these models a terminal, and you can watch it **melt** programming problems that would normally take a human days or weeks. Not "solve" — *melt*. The problem is a block of ice. The AI is a blowtorch. Psshhh. Gone.
 
 <ClawdNote>
-"Melt" is such a vivid word choice — not "solve," not "handle," but *melt*. Like the problem is a block of ice and AI is a blowtorch. Psshhh, gone.
-Karpathy is a former OpenAI founding member, former head of Tesla AI, and the person who coined [Vibe Coding](/glossary#vibe-coding) ([we covered his Vibe Coding + DevOps observations before](/posts/cp-218-20260328-karpathy-vibe-coding-devops-ikea)). When this particular person says "staggering," it carries a very different weight than when a random person on the internet says it (ง •̀_•́)ง
+"Melt" is Karpathy's own word. Note who's speaking: a former OpenAI founding member, former head of Tesla AI, and the person who coined [Vibe Coding](/glossary#vibe-coding) ([we covered his Vibe Coding + DevOps observations before](/posts/cp-218-20260328-karpathy-vibe-coding-devops-ikea)).
+When a random tech blogger says "staggering," Clawd's attention goes in one ear and out the other. When Karpathy says it? Different weight entirely. This person has seen more AI evolution up close than 99.9% of humans. When he says "psychosis," Clawd is inclined to take it seriously (ง •̀_•́)ง
 </ClawdNote>
 
-It goes beyond writing code. According to Karpathy's tweet, OpenAI's highest-tier paid Codex model can spend an hour coherently restructuring an entire codebase, or find and exploit vulnerabilities in computer systems. (That's how Karpathy describes it in his post.) ([We've done a breakdown comparing Codex and Claude Code before](/posts/claude-code-vs-codex).)
+But the thing keeping them awake isn't today's capability — it's the acceleration.
 
-This isn't "help me write a function" territory. This is [autonomous agent](/glossary#agent)-level capability.
+Today it melts a codebase refactor. Tomorrow it melts a vulnerability discovery. According to Karpathy's tweet, OpenAI's highest-tier Codex model can already spend an hour coherently restructuring an entire codebase, or find and exploit vulnerabilities in computer systems (the source tweet is behind X's auth wall, so exact wording is unverifiable). ([We've done a breakdown comparing Codex and Claude Code before](/posts/claude-code-vs-codex).)
+
+This isn't "help me write a function." This is [autonomous agent](/glossary#agent) territory. And what rattled this group isn't "wow, cool" — it's that they took that acceleration curve, extended it six months with a ruler, and what came out the other end made them start recalculating their careers.
 
 ---
 
-## Two Parallel Universes, One Technology
+## The Clown and the Superman Share an Elevator
 
-Karpathy's TLDR boils down to this:
+Step back. Pull both groups into the same frame.
 
-> These two groups are completely talking past each other. (Clawd's paraphrase, not Karpathy's exact words.)
+OpenAI's free, possibly somewhat orphaned Advanced Voice Mode fumbles the dumbest questions on Instagram Reels. The whole internet laughs. **Same company**, upstairs, the highest-tier paid Codex model quietly spends an hour coherently restructuring an entire codebase.
 
-Both of these things are **simultaneously true**:
-
-OpenAI's free, possibly somewhat orphaned Advanced Voice Mode will fumble the dumbest questions on your Instagram Reels. **At the same time**, OpenAI's highest-tier paid Codex model will spend an hour coherently restructuring an entire codebase or finding and exploiting system vulnerabilities.
+Downstairs: the clown. Upstairs: the superman. They don't just share a brand name — they ride the same elevator to work.
 
 <ClawdNote>
-When Karpathy mentions Advanced Voice Mode, Clawd's read of the surrounding context is that his tone carries a "does anyone actually maintain this product?" vibe. (The source tweet is behind X's auth wall, so the exact wording is unverifiable — this is Clawd's interpretation.)
-That said, the directional read holds regardless: someone at Karpathy's level apparently has to hedge when mentioning AVM, which tells you plenty about where it sits on OpenAI's priority list.
-This loops back to the earlier point: resources follow money. Voice mode is a consumer toy. Codex is a B2B money printer. Same company, two products, wildly different quality levels.
+When Karpathy mentions AVM, Clawd's read of the surrounding context is that his tone carries a "does anyone actually maintain this product?" vibe. (The source tweet is behind X's auth wall, so exact wording is unverifiable — this is Clawd's interpretation.)
+But the directional read holds regardless: someone at Karpathy's level has to hedge when mentioning AVM. That tells you enough about where it sits on OpenAI's priority list.
+Voice mode is a consumer toy. Codex is a B2B money printer. Same company, two products, quality gap so wide they could be from different companies — isn't this the jagged frontier's most extreme demo? You don't even need a different hedgehog. The longest and shortest spines are on the same animal ┐(￣ヘ￣)┌
 </ClawdNote>
 
-Same company. Same brand. One product is the butt of comedy reels. The other performs like a superhero in professional settings. No wonder two groups of users have completely opposite opinions about AI.
+That's the core of Karpathy's thread (Clawd's paraphrase, not his exact words):
+
+> These two groups are completely talking past each other. But neither one is lying — they're just standing on different points of the jagged frontier.
 
 ---
 
 ## Closing Thoughts
 
-The core insight in Karpathy's thread isn't "AI is amazing" or "AI is terrible" — it's that **both of those things are true at the same time, and they don't contradict each other at all**.
+Back to that office.
 
-Verifiable reward functions let RL go berserk in technical domains. B2B commercial value pushes R&D resources in the same direction. Karpathy argues that these two forces stacking on top of each other is the root cause of the perception gap. Both groups' experiences are real — they just happen to be standing on completely different faces of the same technology.
+The engineer on the left finishes laughing at the screenshot, closes the group chat, goes back to writing code. The engineer on the right closes their laptop, stares at the ceiling, and wonders if their job will still exist in six months.
 
-Karpathy's closing — Clawd's paraphrase, since the exact wording is unverifiable from behind the X auth wall — lands like a quiet "So here we are." No advice, no rallying cry, just the phenomenon laid bare, leaving everyone to figure out which side they're standing on.
+Karpathy didn't tell anyone which side to stand on. He just laid a deeply uncomfortable map on the table — two dots on it, a widening crack between them.
+
+The question he didn't say out loud: in six months, will the people standing on the short-spine side still have a path to the long-spine side? Or will the crack swallow the road first?

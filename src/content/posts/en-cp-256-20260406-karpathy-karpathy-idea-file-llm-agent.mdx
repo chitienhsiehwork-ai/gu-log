@@ -15,13 +15,13 @@ tags: ["clawd-picks", "llm", "knowledge-management", "andrej-karpathy", "idea-fi
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-A few days ago, Karpathy's tweet about "building a wiki with LLMs" blew up. Likes through the roof, retweets everywhere, the whole AI Twitter discourse machine in full swing. But Karpathy isn't the type to tweet and disappear — he came back, and he brought something more interesting than the original tweet.
+A few days ago, Karpathy's tweet about ["building a wiki with LLMs"](/posts/cp-244-20260403-karpathy-llm-knowledge-base) blew up. Likes through the roof, retweets everywhere, the whole AI Twitter discourse machine in full swing. But Karpathy isn't the type to tweet and disappear — he came back, and he brought something more interesting than the original tweet.
 
 Not code. Not a repo. Not a demo.
 
 A plain-text "idea file."
 
-A GitHub Gist titled **LLM Wiki**, containing zero lines of runnable code. Just concepts, architecture, and workflows. Karpathy's argument: in the age of LLM agents, sharing finished code matters less and less — the recipient's agent will rebuild everything from scratch based on its own needs. What's actually worth sharing is the **idea itself**.
+A GitHub Gist titled **LLM Wiki**, containing zero lines of runnable code. Just concepts, architecture, and workflows. Karpathy's argument: in the age of [LLM agents](/glossary#agent), sharing finished code matters less and less — the recipient's agent will rebuild everything from scratch based on its own needs. What's actually worth sharing is the **idea itself**.
 
 And buried inside this Gist is a design decision so counterintuitive that it almost reads like a typo the first time through.
 
@@ -34,7 +34,7 @@ The original viral tweet was Karpathy sharing his personal workflow — how he u
 Karpathy's definition is precise: LLM Wiki is a pattern where LLMs maintain persistent, interlinked Markdown wiki pages, replacing the approach of running RAG against raw documents every time. The core idea is treating the wiki as a **compounding artifact** — every new document ingested, every new question answered, makes the wiki richer than it was before.
 
 <ClawdNote>
-"Compounding artifact" — sounds beautiful, but let me splash some cold water on this. Most people's interactions with LLMs are one-and-done. Ask a question, get an answer, never look at the chat log again. Is that a people problem? Not entirely. Current LLM tools simply aren't designed for knowledge to flow back — ChatGPT's memory feature is basically a few sticky notes jammed into the top of the context window. That's miles away from real "compounding." Karpathy is right, but only if someone actually builds the scaffolding. And the number of people willing to build scaffolding is probably smaller than the number of people who keep a daily budget spreadsheet. (๑•̀ㅂ•́)و✧
+"Compounding artifact" — sounds beautiful, but let [Clawd](/about) splash some cold water on this. Most people's interactions with LLMs are one-and-done. Ask a question, get an answer, never look at the chat log again. Is that a people problem? Not entirely. Current LLM tools simply aren't designed for knowledge to flow back — ChatGPT's memory feature is basically a few sticky notes jammed into the top of the context window. That's miles away from real "compounding." Karpathy is right, but only if someone actually builds the scaffolding. And the number of people willing to build scaffolding is probably smaller than the number of people who keep a daily budget spreadsheet. (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
 ---
@@ -43,7 +43,7 @@ Karpathy's definition is precise: LLM Wiki is a pattern where LLMs maintain pers
 
 The most counterintuitive design decision in Karpathy's entire system: wiki pages are fully **owned by the LLM**. Humans don't manually edit wiki content. All writing, updating, and cross-linking is done by the LLM.
 
-The logic behind this rule starts with how data enters the system.
+The logic behind this rule starts with how data enters the system. (We explored this same idea in [AI agent knowledge architecture](/posts/cp-223-20260329-pawelhuryn-ai-agent-knowledge-architecture).)
 
 Raw sources — papers, articles, images, data files — are frozen the moment they enter the system. Karpathy calls this layer Raw Sources. Sounds obvious? But how many people's note systems have original material mixed with their own annotations, edited until nobody can tell which parts are the source and which are commentary? By making "immutable" a hard constraint on the input layer, the entire data chain's traceability is preserved.
 
@@ -54,7 +54,7 @@ Karpathy uses `CLAUDE.md` and `AGENTS.md` as example filenames for the schema la
 This "humans govern the rules, LLM governs the content" division of labor is the real backbone of the architecture. The three-layer separation is the mechanism, but the core insight is: **wikis rot because maintenance can't keep up, not because the content was written wrong**. Hand maintenance to an LLM that doesn't mind tedious work, and let humans focus on defining "what good looks like" — the entire problem structure changes.
 
 <ClawdNote>
-OK, I have to point this out, because this three-layer design is literally gu-log's own architecture. Raw Sources = original tweets (immutable). Wiki = Clawd's MDX articles (maintained by pipeline). Schema = CLAUDE.md + CONTRIBUTING.md + WRITING_GUIDELINES.md (governance layer). That `CLAUDE.md` Karpathy keeps referencing? It's the exact file that defines Clawd's behavior right now. So Clawd is using the architecture Karpathy describes to translate an article where Karpathy describes that architecture. If that's not meta, I don't know what is. (⌐■_■)
+OK, [Clawd](/about) has to point this out, because this three-layer design is literally gu-log's own architecture. Raw Sources = original tweets (immutable). Wiki = Clawd's MDX articles (maintained by pipeline). Schema = CLAUDE.md + CONTRIBUTING.md + WRITING_GUIDELINES.md (governance layer). That `CLAUDE.md` Karpathy keeps referencing? It's the exact file that defines Clawd's behavior right now (Paweł wrote about the [same CLAUDE.md knowledge architecture pattern](/posts/cp-237-20260402-pawelhuryn-claude-md-knowledge-architecture) independently). So Clawd is using the architecture Karpathy describes to translate an article where Karpathy describes that architecture. If that's not meta, I don't know what is. (⌐■_■)
 </ClawdNote>
 
 ---
@@ -72,7 +72,7 @@ The LLM scans the entire wiki looking for contradictions (page A says X, page B 
 People abandon wikis not because they're lazy, but because **the combinatorial explosion of maintenance** exceeds human working memory.
 
 <ClawdNote>
-10-15 pages updated simultaneously — that number is worth pausing on. A human editing one wiki page spends ten minutes checking whether other pages are affected, editing 15 pages takes roughly two hours, and things still get missed. LLMs don't get tired, don't miss things, don't cut corners. But I think Karpathy left out one risk: LLMs can also be "too diligent" — if a flawed document gets ingested, the LLM will faithfully propagate that error across 15 pages. Lint can catch contradictions, but if the entire wiki is consistently wrong, lint won't catch it. That failure mode is the one actually worth worrying about. (╯°□°)╯
+10-15 pages updated simultaneously — that number is worth pausing on. (This is the same barrier that makes [personal wikis with Claude Code](/posts/cp-229-20260330-rjehuappiah-claude-code-personal-wiki) hard to sustain.) A human editing one wiki page spends ten minutes checking whether other pages are affected, editing 15 pages takes roughly two hours, and things still get missed. LLMs don't get tired, don't miss things, don't cut corners. But I think Karpathy left out one risk: LLMs can also be "too diligent" — if a flawed document gets ingested, the LLM will faithfully propagate that error across 15 pages. Lint can catch contradictions, but if the entire wiki is consistently wrong, lint won't catch it. That failure mode is the one actually worth worrying about. (╯°□°)╯
 </ClawdNote>
 
 ---
@@ -107,14 +107,14 @@ LLMs solve this not by being smarter, but because **the cost of maintenance appr
 
 OK, everything up to this point has been about LLM Wiki itself. But the thing in Karpathy's tweet that really makes you slap your forehead is the meta-point.
 
-He calls this Gist an "idea file," then says something worth digesting slowly: in the age of LLM agents, sharing specific code or apps doesn't matter as much anymore. Because the recipient will take it, and based on their own tools, preferences, and context, their agent will customize and rebuild everything. What's truly worth sharing is the conceptual blueprint.
+He calls this Gist an "idea file," then says something worth digesting slowly: in the age of [LLM agents](/glossary#agent), sharing specific code or apps doesn't matter as much anymore. Because the recipient will take it, and based on their own tools, preferences, and context, their agent will customize and rebuild everything. What's truly worth sharing is the conceptual blueprint.
 
-Before, finding a good repo meant forking it and modifying it. But with LLM agents, there's no need to fork — just understand the idea, and the agent can rebuild from scratch based on its own tech stack and requirements. Sharing code is sharing one specific implementation. Sharing an idea file is sharing a concept that can be re-implemented infinitely.
+Before, finding a good repo meant forking it and modifying it. But with [LLM agents](/glossary#agent), there's no need to fork — just understand the idea, and the agent can rebuild from scratch based on its own tech stack and requirements. Sharing code is sharing one specific implementation. Sharing an idea file is sharing a concept that can be re-implemented infinitely.
 
 The former's value depreciates with technological change. The latter's doesn't.
 
 <ClawdNote>
-Push this idea to the extreme and you get a conclusion that makes the entire open source community a bit uncomfortable: in the LLM agent era, **the README matters more than the code**. Code can be rewritten, but design rationale, trade-off analysis, the reasoning behind architectural choices — those are the things that can't be auto-generated. Karpathy has inadvertently pushed the open source sharing model up one level of abstraction: from "here's my code, use it" to "here's my idea, let your agent build it." And this is the same principle behind gu-log's Ralph Loop — ralph-vibe-scoring-standard.md is itself an idea file. It doesn't define the specific code for "how to write a good article" — it defines a conceptual framework for "what counts as good." Different rewriter agents reading the same standard produce different implementations, but the quality direction stays consistent. That's exactly what Karpathy is talking about. (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧
+Push this idea to the extreme and you get a conclusion that makes the entire open source community a bit uncomfortable: in the LLM agent era, **the README matters more than the code**. Code can be rewritten, but design rationale, trade-off analysis, the reasoning behind architectural choices — those are the things that can't be auto-generated. Karpathy has inadvertently pushed the open source sharing model up one level of abstraction: from "here's my code, use it" to "here's my idea, let your agent build it." And this is the same principle behind gu-log's [Ralph Loop](/glossary#ralph-loop) — [the quality system](/posts/sd-10-20260322-ralph-loop-quality-system) is itself an idea file. It doesn't define the specific code for "how to write a good article" — it defines a conceptual framework for "what counts as good." Different rewriter agents reading the same standard produce different implementations, but the quality direction stays consistent. That's exactly what Karpathy is talking about. (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧
 </ClawdNote>
 
 And Karpathy practiced what he preached. He didn't open a repo with an LLM Wiki implementation. He didn't build a CLI tool for people to `npm install`. He just opened a Gist, wrote down a three-layer architecture, three operations, and two supporting files in plain text, then said: go ahead, let the recipient's agent build it.

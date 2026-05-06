@@ -96,6 +96,23 @@ jobs:
           git fetch origin ${{ github.base_ref }} --depth=1
           node scripts/check-translation-pairs.mjs --strict --pr-base=${{ github.base_ref }}
 
+      - name: 晶晶體 check (PR only — block decorative English in changed zh-tw posts)
+        # Same scope as the pre-commit hook (.githooks/pre-commit step 0.16):
+        # only PR-changed zh-tw .mdx files are linted. Push to main is skipped
+        # because (a) merged content was already gated at PR time and (b) main
+        # has 65+ historical posts with grandfathered 晶晶體 that we don't
+        # retroactively block. Manual ralph sweep can clean those over time.
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch origin ${{ github.base_ref }} --depth=1 || true
+          CHANGED_MDX=$(git diff --name-only origin/${{ github.base_ref }}...HEAD -- 'src/content/posts/*.mdx' | grep -v '/en-' || true)
+          if [ -z "$CHANGED_MDX" ]; then
+            echo "✓ No zh-tw posts changed in this PR — skipping 晶晶體 check"
+            exit 0
+          fi
+          echo "Checking $(echo $CHANGED_MDX | wc -w) zh-tw post(s) for 晶晶體..."
+          node scripts/check-jingjing.mjs $CHANGED_MDX
+
   security-gate:
     runs-on: ubuntu-latest
     timeout-minutes: 5

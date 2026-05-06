@@ -116,15 +116,15 @@ The network has three layers. **Inside the tray**: 16 LPUs fully meshed over PCB
 
 ---
 
-## CPO Roadmap: Copper When You Can, Optics When You Must
+## CPO Roadmap: Copper Is Hitting the Wall
 
-Jensen talked about CPO (Co-Packaged Optics) at both the GTC keynote and the next-day Financial Analyst Q&A. Nvidia's principle can be summed up in one sentence: **copper where they can, optics where they must**.
+Those 8,160 copper lanes in the LPX rack are already pushing the limits. But copper has a physical ceiling — 448G high-speed SerDes is hitting serious walls in shoreline, reach, and power simultaneously. As rack density keeps climbing, there will come a point where copper simply cannot keep up.
 
-In plain language: optical interconnects are impressive but expensive, hard to manufacture, and still being proven for reliability. If copper can handle the job, use copper. Bring in optics only when physics forces your hand.
+The question is: are optical interconnects (CPO, Co-Packaged Optics) actually ready to take over?
 
-**Rubin generation**: NVL72 and NVL144 are all-copper scale-up. NVL576 (8 Oberon racks) starts testing CPO between racks. **Feynman generation**: NVL1152 (8 Kyber racks) will use CPO between racks. Jensen said it would be "all CPO" at the Q&A, but SemiAnalysis's base case is still copper within racks, optics between them.
+Jensen addressed this at both the GTC keynote and the next-day Financial Analyst Q&A. Nvidia's principle can be summed up in one sentence: **copper where they can, optics where they must** — because CPO's manufacturing challenges and cost issues are not fully solved yet.
 
-The reason is practical: 448G high-speed SerDes hits serious walls in shoreline, reach, and power. Copper has a physical ceiling. But CPO's manufacturing challenges and cost issues still make intra-rack copper the default choice for Feynman.
+The roadmap tells the story clearly: **Rubin generation** NVL72 and NVL144 are all-copper scale-up, NVL576 (8 Oberon racks) starts testing CPO between racks. **Feynman generation** NVL1152 (8 Kyber racks) will use CPO between racks. Jensen said it would be "all CPO" at the Q&A, but SemiAnalysis's base case is still copper within racks, optics between them — copper's last stronghold, holding for now.
 
 ---
 
@@ -142,15 +142,15 @@ Then there is the CPU side. AI workloads need more CPU than ever — RL training
 
 ---
 
-## CMX and STX: Even the Storage Layer Is Not Safe
+## CMX and STX: The Bottleneck Nobody Talks About
 
-The last piece of the puzzle: storage.
+Compute is covered. Networking is covered. CPU is covered. But there is an invisible killer lurking in the least glamorous part of the stack: storage.
 
-Long context and agentic workloads make KV cache grow linearly with sequence length and user count. HBM runs out, host DRAM has limits. **CMX (Context Memory eXtension)** adds a new NVMe storage tier between DRAM and shared storage, specifically for overflow KV cache.
+Long context and agentic workloads make KV cache grow linearly with sequence length and user count. HBM runs out, host DRAM has limits — and the moment KV cache overflows, the entire pipeline's latency blows up. **CMX (Context Memory eXtension)** solves this by wedging a new NVMe storage tier between DRAM and shared storage, specifically to catch overflow KV cache.
 
-SemiAnalysis says it plainly: CMX used to be called ICMS, and it is basically a storage server with BlueField NIC instead of Connect-X NIC. "Just another re-brand" vibes.
+SemiAnalysis says it plainly: CMX used to be called ICMS, and it is basically a storage server with BlueField NIC instead of Connect-X NIC. "Just another re-brand" vibes. But the name is not the point — the point is that Nvidia wants its own solution at this layer too.
 
-**STX** is the reference rack architecture pairing BlueField-4 based storage with VR compute racks. When Nvidia announced it, they showed off a full partner list — Dell, HPE, NetApp, VAST Data, WEKA. Every major storage vendor was there.
+**STX**, the reference rack architecture pairing BlueField-4 based storage with VR compute racks, debuted alongside CMX. Nvidia showed off a full partner list — Dell, HPE, NetApp, VAST Data, WEKA. Every major storage vendor showed up. The ecosystem signal is clear: join Nvidia's standard, or risk being sidelined.
 
 <ClawdNote>
 Put BlueField-4, CMX, and STX together and Nvidia's intention becomes crystal clear: the GPU is the main course, but now they want to provide the side dishes, the silverware, and even the restaurant interior. From compute to networking to storage — they want their own solution at every layer of the data center. This is not selling components. This is selling the whole restaurant franchise (◕‿◕)

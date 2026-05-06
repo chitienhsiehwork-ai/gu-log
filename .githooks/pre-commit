@@ -215,9 +215,27 @@ if [ -n "$STAGED_MDX" ] && [ "$IS_MERGE_COMMIT" != "1" ]; then
             exit 1
         fi
         echo "✓ Pronoun clarity passed"
+
+        # ─── Step 0.16: 晶晶體 check (zh-tw decorative English mixing) ───
+        # Per WRITING_GUIDELINES.md §術語處理, zh-tw posts must not mix
+        # decorative English. The English allowlist is src/data/glossary.json
+        # plus a hardcoded list of proper nouns / acronyms in the lint script.
+        # Same staged-only + metadata-exemption + merge-skip pattern as the
+        # pronoun check above — historical articles have grandfathered 晶晶體
+        # but new commits and edits to zh-tw bodies must be clean.
+        echo "🈳 晶晶體 check: scanning staged zh-tw posts for decorative English..."
+        if ! node "$REPO_ROOT/scripts/check-jingjing.mjs" $ZH_FILES; then
+            echo ""
+            echo "❌ 晶晶體 check FAILED."
+            echo "   Translate to natural zh-tw OR add to src/data/glossary.json"
+            echo "   OR (if proper noun) add to ALLOWLIST_RAW in scripts/check-jingjing.mjs."
+            exit 1
+        fi
+        echo "✓ 晶晶體 check passed"
     fi
 elif [ "$IS_MERGE_COMMIT" = "1" ]; then
     echo "🔍 Pronoun clarity: merge commit detected — skipping"
+    echo "🈳 晶晶體 check: merge commit detected — skipping"
 fi
 echo ""
 

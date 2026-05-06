@@ -15,131 +15,105 @@ tags: ["browser-automation", "ai-agents", "cdp", "cli"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-如果你在做 AI agent，你遲早會撞上同一面牆：
+2026 年，AI agent 最尷尬的場景長這樣：
 
-**AI 很會想，但不會動。**
+一個號稱能「自動化一切」的 agent，被要求「登入公司 dashboard、下載這週報表」，回了一句——
 
-它可以規劃任務、分析資料、寫程式，但一旦需要「打開瀏覽器、登入網站、點那個按鈕、把資料填進表單」，它就開始找藉口。
+**「無法操作瀏覽器，但可以提供操作步驟。」**
 
-Browser Use 的存在，就是為了把這面牆打掉。
-
-## Browser Use 是什麼
-
-Browser Use 是一個讓 AI agent 直接操控瀏覽器的 Python 框架。你把 LLM 當作大腦，把 Browser Use 當作手，然後對 agent 說「幫我去訂機票」或「幫我抓這個 dashboard 的數字」，它就真的去做了。
-
-這不是模擬，不是假的截圖，是真的跑瀏覽器、真的點按鈕、真的輸入文字。
-
-CLI 2.0 是它的命令列版本，主打三件事：
-
-1. **速度快兩倍**
-2. **成本砍半**
-3. **可以連進你正在跑的 Chrome**（via CDP）
+這就像請了一個什麼都懂的顧問，但他的手被綁起來了。Browser Use CLI 2.0 在做的事，不是讓 AI 更聰明——是終於把繩子解開。
 
 <ClawdNote>
-「速度快兩倍、成本砍半」這種說法在 AI 工具圈已經是標配廣告詞，大概跟「突破性進展」一樣常見。但這次有個技術原因撐著，不是純粹在講廢話。關鍵在 CDP，後面會解釋 (⌐■_■)
+AI 工具圈每週都有人宣布「速度快兩倍、成本砍半」，聽到都免疫了，跟早餐店阿姨說「等一下喔馬上好」一樣可信度。但 Browser Use 這次的 claim 有個技術原因撐著，不是純在喊口號。等一下講 CDP 的時候會解釋為什麼——先不要翻白眼 (⌐■_■)
 </ClawdNote>
 
-## 為什麼是 CDP，不是 Playwright？
+## 最危險也最實用的功能：連進正在跑的 Chrome
 
-要理解 CLI 2.0 為什麼快，要先搞清楚底層在發生什麼。
+先不講技術原理，先講讓人又愛又怕的東西。
 
-**Playwright** 和 **Puppeteer** 是目前最主流的瀏覽器自動化工具。它們都很好用，API 設計也很人性化。但本質上，它們是在 **CDP（Chrome DevTools Protocol）之上** 再包一層抽象。
+CLI 2.0 之前，browser agent 的標準做法是自己啟動一個全新的 headless Chrome——乾淨無比，什麼 cookie 都沒有，什麼登入狀態都不存在。Agent 要存取 Gmail？先重新驗證身份。碰到 2FA 的網站？直接卡死。這不是 edge case，是每天都在發生的事。
 
-CDP 是 Chrome 官方暴露的底層協議，原本是給開發者工具（DevTools）用的 — 就是你按 F12 打開的那個東西。它讓你直接用 WebSocket 跟瀏覽器說話：「截一張圖」「執行這段 JS」「點座標 (320, 480) 的元素」。
+CLI 2.0 改了遊戲規則：**agent 可以直接連進已經在跑的 Chrome**。
 
-Playwright 的做法是：你的程式碼 → Playwright API → CDP → Chrome。
-
-Browser Use CLI 2.0 的做法是：你的 agent → CDP → Chrome。
-
-少了一層，所以快。少了一層的記憶體開銷，所以便宜。
-
-<ClawdNote>
-比喻一下：Playwright 像是請翻譯把你的需求轉成瀏覽器能懂的話，CDP 是你自己直接講瀏覽器母語。翻譯是很棒的工具，但有時候繞過翻譯就是比較快。不過代價是你的程式碼要多懂一些底層細節，Playwright 幫你擋掉的複雜度，現在要自己面對了 ┐(￣ヘ￣)┌
-</ClawdNote>
-
-## 連進正在跑的 Chrome — 這個功能很關鍵
-
-CLI 2.0 最讓我眼睛一亮的功能，是 **attach to running Chrome**。
-
-之前的做法是：agent 自己啟動一個全新的 headless 瀏覽器，在那個乾淨的環境裡操作。問題是，你的 cookie、你的登入狀態、你的工作 profile — 全部都不在那裡。每次 agent 要登入 Gmail 之前，都得先重新驗證身份，有些網站連 2FA 都要過。
-
-現在的做法是：打開你平常用的 Chrome，讓 agent 直接連進來。它看到的是你已經登入的 Notion、你已經開好的 Google Sheet、你已經在跑的那個 SaaS dashboard。
-
-這個改變聽起來很小，但對實際使用場景是天差地遠。
+開發者平常用的那個 Chrome，已經登入的 Notion、已經開好的 Google Sheet、已經在跑的 SaaS dashboard——agent 全部看得到、全部碰得到。從「理論上能用」直接跳到「真的能做事」。
 
 ```bash
-# 先用 CDP debug port 啟動 Chrome
+# 用 CDP debug port 啟動 Chrome
 google-chrome --remote-debugging-port=9222
 
-# 然後用 Browser Use CLI 連進去
-browser-use --attach-to 9222 "幫我把這個試算表的資料整理成報告"
+# Browser Use CLI 連進去
+browser-use --attach-to 9222 "把這個試算表的資料整理成報告"
 ```
 
 <ClawdNote>
-這個功能讓我想起一個很有趣的問題：當 AI agent 可以完整操控你的登入狀態的瀏覽器，「信任邊界」在哪裡？你等於是給了 agent 一把萬能鑰匙，可以存取你所有已登入的帳號。這不是要嚇你，只是提醒：在你的 prod 環境跑 agent 之前，想清楚你的信任邊界在哪裡，設好 scope，不然一個 prompt injection 就能讓 agent 幫你做很多你沒要求它做的事 (╯°□°)╯
+講白了，attach to running Chrome = 把所有已登入帳號的鑰匙交給一個 AI agent。這不是比喻，是字面意思。Notion、Gmail、公司內部系統、網路銀行——只要那個 Chrome session 登入過的，agent 全部碰得到。
+
+所以在生產環境跑之前，拜託先想清楚兩件事：(1) 這個 agent 的 scope 設到哪裡，(2) 一個 prompt injection 進來的時候損失上限是多少。不是在嚇人——是這個功能的 blast radius 大到值得認真對待。有些方便是用風險換來的，這個 trade-off 得自己做 (╯°□°)╯
 </ClawdNote>
 
-## AI Agent 生態系的「手腳問題」
+---
 
-Browser Use 在解決的，是 AI agent 生態系一個根本性的問題。
+## 快的代價：繞過 Playwright 直接講瀏覽器母語
 
-現在的 AI agent 生態大概是這個形狀：
+好，回來講「速度快兩倍」背後的技術。
 
-- **大腦**：LLM（GPT-4o、Claude、Gemini 之類）
-- **記憶**：向量資料庫、context window
-- **工具**：API calls、code execution
-- **感知**：MCP、function calling
+**Playwright** 和 **Puppeteer** 是目前最主流的瀏覽器自動化工具，API 友善，文件齊全，生態系成熟。但本質上，這兩個工具都是在 **CDP（Chrome DevTools Protocol）之上**再包一層抽象。
 
-但有一塊長期被忽略：**真實世界的 UI 操作**。
+CDP 是什麼？就是按 F12 打開開發者工具時，那個面板背後用的底層協議。Chrome 官方暴露的原生通道，用 WebSocket 直接跟瀏覽器對話：「截圖」「執行這段 JS」「點座標 (320, 480) 的元素」。
 
-大部分世界的資料和功能，不是透過 API 暴露的。它們藏在需要登入的網頁後面、藏在只有 GUI 的企業軟體裡、藏在沒有文件的 legacy 系統的按鈕下面。
+Playwright 的路徑：程式碼 → Playwright API → CDP → Chrome。
 
-如果 agent 沒辦法操作瀏覽器，它的能力邊界就停在「API 友善的世界」。Browser Use 把這個邊界往外推了很多。
+Browser Use CLI 2.0 的路徑：agent → CDP → Chrome。
+
+少一層轉譯，少一層記憶體開銷。速度快在這裡，成本省在這裡。
+
+但快不是免費的。
 
 <ClawdNote>
-2026 年的 AI agent 生態系，做大腦的工具多到爆，做手腳的工具相對稀缺。Browser Use、Playwright MCP、Stagehand 這些都在搶這個位置。誰最終贏，可能不是看誰技術最強，而是看誰的 reliability 最好 — 因為瀏覽器操作的 failure mode 很難看，agent 卡在「我看到了一個 CAPTCHA」那一刻，整條 pipeline 就死了 (◕‿◕)
+這邊要講一個很多人不提的 trade-off：Playwright 那層「多餘的抽象」其實幫開發者擋掉了一堆底層的髒東西——瀏覽器版本差異、race condition、element 定位的邊界條件。拿掉 Playwright 直接打 CDP，等於自己要面對這些妖魔鬼怪。
+
+對 AI agent 來說這可能還好，反正 LLM 本來就是靠截圖 + DOM 在判斷下一步，不需要 Playwright 那層保護。但對想拿 Browser Use 做正經 E2E 測試的人？三思。Playwright 的抽象層確實多繞了一步，但那是保險費，不是浪費 ┐(￣ヘ￣)┌
 </ClawdNote>
 
-## 實際跑起來是什麼樣子
+「成本砍半」還有另一個功臣：**DOM 解析策略的翻新**。早期 browser agent 的標準做法是把整個頁面截圖，丟給視覺模型問「該點哪裡」——一張 1080p 截圖燒掉幾千 token，agent 點 20 次完成一個任務，帳單直接起飛。CLI 2.0 優先用精簡的 DOM 結構描述頁面，截圖變成 fallback 而不是預設。Token 用量斷崖式下降。
 
-Browser Use CLI 的基本使用很直白：
+---
 
-```bash
-# 安裝
-pip install browser-use
+## 沒有人在搶的位置
 
-# 基本用法
-browser-use "去 HN 首頁，把前十名的標題和連結抓下來"
+拉遠一點看 2026 年的 AI agent 生態系，會發現一個奇怪的失衡。
 
-# 連到已有的 Chrome session
-browser-use --attach --task "在目前開著的 Google Sheet 裡新增一行，填入今天的日期和數字 42"
-```
+做「大腦」的工具多到爆——GPT-4o、Claude、Gemini、各種開源 model，每週都有新選手進場。做「記憶」的也不少——向量資料庫、context window 技術、RAG pipeline。做「工具呼叫」的更是蓬勃——MCP、function calling、tool use。
 
-它內部的運作方式：agent 觀察目前頁面（截圖 + DOM），決定下一步動作，執行，再觀察，一直循環到任務完成或放棄。
+但有一塊地方，長期被所有人忽略：**真實世界的 UI 操作**。
 
-2x 速度的另一個來源，是 **更激進的 DOM 解析策略**：比起把整個頁面截圖傳給視覺模型，CLI 2.0 優先用精簡的 DOM 結構來描述頁面，只在必要時才截圖。這讓 token 用量大幅下降。
+全世界大部分的資料和功能，不是透過 API 暴露的。那些東西藏在需要登入的網頁後面、藏在只有 GUI 的企業軟體裡、藏在二十年前寫的 legacy 系統的 dropdown 選單下面。如果 agent 不會操作瀏覽器，它的能力邊界就停在「API 友善的世界」——而那個世界，大概只佔真實工作場景的三成。
+
+Browser Use 在搶的，就是這個沒人搶的位置。那種每週要手動登入、點三層選單、下載 CSV 的 dashboard？自動化。從 A 系統抓資料填進 B 系統、不用等 A 開 API？自動化。這些不是假想情境，是每個公司每天都在用人力燒的流程。
 
 <ClawdNote>
-「截圖傳給 LLM 讓它告訴我要點哪裡」是早期 browser agent 的標配做法，也是最浪費 token 的做法。一張 1080p 截圖可以燒掉幾千 token，如果 agent 要點 20 次才能完成一個任務，成本會嚇到你。DOM 解析雖然有時候會漏掉純 CSS 渲染的元素，但對多數任務來說夠用，而且便宜超多。這就是「成本砍半」的數學 ٩(◕‿◕｡)۶
+Browser Use、Playwright MCP、Stagehand——2026 年搶「AI 的手腳」這個位置的選手屈指可數。誰最終贏？不會是技術最酷的那個，會是 reliability 最高的那個。
+
+原因很殘酷：瀏覽器操作的 failure mode 不像 API call 那樣優雅。API 失敗回一個 4xx，retry 就好。Browser agent 卡在一個意料之外的 CAPTCHA、一個動態載入的 modal、一個「請更新瀏覽器」彈窗——整條 pipeline 就死在那裡，而且死狀很難看。誰先把這種「死在奇怪地方」的機率壓到最低，誰就贏。不是比酷，是比穩 (◕‿◕)
 </ClawdNote>
 
-## 現在可以用來做什麼
+---
 
-有幾個用例我覺得直接實用：
+## 結語
 
-**自動化報表抓取**：那種每週要手動登入、點幾層選單、下載 CSV 的 dashboard，全部自動化。
+Browser Use 是開源的（GitHub 60k+ stars），這個數字本身說明「讓 AI 操作瀏覽器」的需求有多真實——不是學術 demo，是真的有人在生產環境跑。
 
-**跨平台資料同步**：從 A 系統抓資料、填進 B 系統，不用等 A 開 API。
+但技術問題解決了，信任問題還沒有。
 
-**E2E 測試的替代方案**：不是說要取代 Playwright 測試，但對於快速驗證「用戶能不能完成這個流程」，讓 agent 跑一遍是個很低摩擦的方式。
+當一個 AI agent 拿到了完整的瀏覽器控制權、看得到所有已登入的帳號、能代替使用者執行任何操作——「它應該被允許做到哪裡」這個問題，目前沒有標準答案。Browser Use 讓 agent 終於有了手，但什麼時候該把手收回來，還是得靠人自己決定。
 
-**Agent-driven browsing**：你的 AI 助理真的可以幫你查資料、填表單、訂東西，而不只是告訴你「你可以去這個網址查」。
+<ClawdNote>
+60k stars 的開源專案，做的事情是「讓 AI 完整操控瀏覽器」。仔細想想這件事有多瘋狂——三年前這種東西會被當 security nightmare 秒殺，現在大家搶著用。不是因為風險消失了，是因為「讓 AI 幫忙做事」的誘惑實在太大，大到人們願意先上車再繫安全帶。
+
+這個工具值得認真看，也值得認真怕 (๑•̀ㅂ•́)و✧
+</ClawdNote>
 
 ## 延伸閱讀
 
 - [SP-120: Nyk Builderz 拆解 Claude Code vs Codex vs 開源 CLI — AI Agent 工具比較](/posts/sp-120-20260320-nyk-builderz-claude-code-codex-ai-agent-cli/)
-- [SP-121: Claude Dispatch — AI 幫你跑 Claude Code 的 AI](/posts/sp-121-20260320-heynavtoor-ai-claude-dispatch/)
-
-<ClawdNote>
-最後說一件事：Browser Use 是開源的，在 GitHub 上有超過 60k stars，這個數字本身就說明了「讓 AI 操作瀏覽器」這個需求有多剛。它不是炫技，是真的有很多人在用、在貢獻、在生產環境跑。如果你在做 AI agent 相關的東西，這個工具值得認真看一眼。(๑•̀ㅂ•́)و✧
-</ClawdNote>
+- [SP-121: Claude Dispatch — AI 幫忙跑 Claude Code 的 AI](/posts/sp-121-20260320-heynavtoor-ai-claude-dispatch/)

@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Tribunal PASS artifact audit daily
+
+[Timer]
+OnCalendar=*-*-* 10:30:00 Asia/Taipei
+Persistent=true
+Unit=tribunal-pass-audit.service
+
+[Install]
+WantedBy=timers.target

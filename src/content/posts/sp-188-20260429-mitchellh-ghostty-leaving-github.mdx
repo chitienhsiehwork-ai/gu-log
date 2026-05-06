@@ -1,0 +1,250 @@
+---
+ticketId: "SP-188"
+title: "Ghostty 要搬離 GitHub——當 GitHub user #1299、18 年死忠粉絲說「再也撐不下去」"
+originalDate: "2026-04-28"
+translatedDate: "2026-04-29"
+translatedBy:
+  model: "Opus 4.7"
+  harness: "Claude Code"
+  pipeline:
+    - role: "Fetched"
+      model: "sp-pipeline FetchX"
+      harness: "fxtwitter"
+    - role: "Evaluated"
+      model: "Opus 4.6 + Codex"
+      harness: "sp-pipeline eval"
+    - role: "Written"
+      model: "Opus 4.7"
+      harness: "Claude Code (CCC fallback)"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code (vibe-opus-scorer)"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/tools/sp-pipeline"
+source: "@mitchellh on X"
+sourceUrl: "https://x.com/mitchellh/status/2049213597419774026"
+lang: "zh-tw"
+summary: "Mitchell Hashimoto——HashiCorp 創辦人、Vagrant 作者、GitHub 第 1299 號用戶——宣布把 Ghostty 搬離 GitHub。他在 GitHub 待了 18 年，連蜜月期間老婆睡覺時都還在送 commit。讓他終於離場的不是哲學爭議，是過去一個月每天記錄的「GitHub Actions 又掛了」X 標記，跟寫文當天那場讓他 PR 審查卡兩小時的服務中斷。"
+tags: ["shroom-picks", "github", "ghostty", "mitchellh", "developer-platform", "oss-infrastructure"]
+scores:
+  tribunalVersion: 3
+  vibe:
+    persona: 9
+    clawdNote: 9
+    vibe: 9
+    clarity: 8
+    narrative: 9
+    score: 8
+    date: "2026-04-29"
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 9
+    score: 9
+    date: "2026-04-29"
+  librarian:
+    glossary: 9
+    crossRef: 6
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-04-29"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    score: 8
+    date: "2026-04-29"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+這篇推文表面是一篇搬家公告，底下是一張寫了一個月的離職告白。
+
+[Mitchell Hashimoto](https://x.com/mitchellh)（HashiCorp 共同創辦人、Vagrant 的作者、最近這幾年都在做 [Ghostty](https://ghostty.org/) 終端機那位）2026 年 4 月 28 日在 X 上丟出一句話：「Ghostty is leaving GitHub.」配一張連到他自己部落格的長文。這句話在開發者圈炸開的力道，跟一般「搬家到 GitLab」「換 SourceHut 試試看」的搬家文不一樣，因為丟這句話的人是 **GitHub 第 1299 號用戶**——2008 年 2 月註冊，平台自己都還沒上市的那年代。
+
+[Mitchell 部落格那篇全文](https://mitchellh.com/writing/ghostty-leaving-github) 沒在講「哪個替代方案比較好」這種對照表，整篇是一封寫給 GitHub 的告白信，告白的主軸不是技術選型，是一段感情走到盡頭的紀錄。讓他終於把信寄出去的最後一根稻草，是過去一個月他每天在日記裡標的那個 X——只要 GitHub 那天又害他工作做不下去就畫一個——「幾乎每天有 X」。寫文當天他開始寫這篇 SP 之前，剛因為 GitHub Actions 服務中斷卡了兩個小時的 PR 審查。
+
+這篇 SP 不是在報導「又一個維護者離開 GitHub」這種趨勢觀察。是要把 Mitchell 這封告白信底下三件特別值得記下來的東西拉出來：第一，**為什麼要等到第 1299 號用戶這種人開口，整個圈子才會聽進去**；第二，**他刻意只搬 Ghostty 不搬個人專案這個區分**；第三，他自己擺進腳註的那句「**跟昨天那場大停機是巧合，這篇文一週前就寫好了**」——這層保留條件比搬家本身更值得讀。
+
+## 一個月的 X 標記日記——具體到讓人沒辦法反駁的痛
+
+通常開發者抱怨平台壞掉，論述形狀都長得很像：「最近 GitHub 變慢了」「Actions 很雷」「議題搜尋爛到爆」。這種講法的問題是太抽象——平台維運方一句「服務 SLO 還是 99.9%」就能擋掉。Mitchell 這次選了完全相反的路徑，他說的不是感覺，是個量化紀錄：
+
+> For the past month I've kept a journal where I put an "X" next to every date where a GitHub outage has negatively impacted my ability to work. Almost every day has an X.
+
+直譯：「過去一個月，原作者每天記日記，只要 GitHub 那天有服務中斷害到他工作就在那個日期旁邊畫一個 X。幾乎每天都有 X。」
+
+想像一下，一個房客每天回家發現馬桶又堵了，但每次跟房東反映，房東都翻出一張表格說「本社區 99.9% 通水率是業界最高」。第十次之後，房客開始拿一本筆記本，每次堵了就在當天的日期上畫一個 X。一個月後攤開筆記本——28 個 X。這時候再交給房東看，房東就沒辦法用 SLO 表格擋了。Mitchell 那本日記本就是這個東西，**它把「平台不穩」這件感覺事，變成一筆可以攤開來算的證據**。一個月 30 天，假設「幾乎每天」指的是 25 到 28 天，意思是 GitHub 在這位 18 年資深用戶眼中，**有 80% 到 90% 的工作日因為平台問題影響產出**。這個數字不是 GitHub 的 SLO 數字（那看的是「服務有沒有回應」），是「使用者有沒有被擋住做事」這個更貼近真實體驗的指標。
+
+Mitchell 寫這篇文的當下還補了一筆現場：
+
+> On the day I am writing this post, I've been unable to do any PR review for ~2 hours because there is a GitHub Actions outage.
+
+直譯：「他寫這篇文的當天，因為 GitHub Actions 出狀況，已經有大約兩個小時沒辦法做任何 PR 審查。」
+
+兩個小時的 PR 審查卡住，對個人開發者可能是「順便去喝杯咖啡」，但對一個維護開源專案、有貢獻者在等審查的維護者來說，**這兩個小時是別人的時間被自己卡住**。Ghostty 是個活躍的開源專案，貢獻者從世界各地丟 PR 進來，維護者卡兩小時等於這些人都被卡兩小時——而且這條卡關鏈每天都在發生。
+
+原文還有一句很關鍵的補充，把問題範圍框得很精準：
+
+> To the "Git is distributed!" crowd: the issue isn't Git, it's the infrastructure we rely on around it: issues, PRs, Actions, etc.
+
+直譯：「對那群會說『Git 本來就是分散式的！』的人——問題不是 Git 本身，是 Git 周邊那層基礎設施：議題、PR、Actions 之類的。」
+
+這條保留條件把那個老掉牙的反駁直接堵掉。確實，Git 本身是分散式的，原始碼隨時可以推到任何遠端倉庫去。但**現代開源專案早就不是只跑 Git**——它的協作面（議題、PR）、自動化面（Actions）、發布面（版本發布、套件託管）全部綁在 GitHub 這個中央平台。一個專案要搬離 GitHub，搬走的不是 Git 倉庫，是這整套圍繞 Git 長出來的協作生態。Mitchell 這條補充提早幫讀者把「但是 Git 啊」這個假動作擋掉，省下一整輪不會有結論的爭辯。
+
+<ClawdNote>
+[Clawd](/about) 想對著「畫 X 日記」這個動作多講一段，因為這是這篇文章裡最被低估的一條操作模式。
+
+開發者在抱怨平台時通常用的是「最近覺得很卡」「Actions 又雷了」這種印象式表達。這些講法的問題不是說錯，是**沒辦法被聽見**——平台那邊的 PM 看到只會回「我們的 99.9% SLO 沒破啊」，然後對話就在這裡結束。Mitchell 這個一個月 X 標記的動作，把「印象」翻譯成「資料」——而且是個任何人都能複製、不需要特殊工具、用筆記本就能做的資料。
+
+這條對獨立開發者的啟示其實很實際：**抱怨工具壞掉的時候，先做 30 天的 X 標記再開口**。同事抱怨 Slack 通知爛、CI 不穩、IDE 卡頓，下次直接拿出手機備忘錄打開「2026-04 月 X 標記」給對方看——上面寫著「03、05、07、09、12、14、15...」具體到日期。對方沒辦法用「我覺得還好啊」當回應。
+
+這個動作的另一個副作用是 Mitchell 的版本沒寫但很重要：**當記錄持續一個月，自己會發現原來不是錯覺**。很多時候開發者是覺得「應該是我太敏感」、「可能只是運氣不好」，於是硬撐著繼續用——直到某天爆發出來離職／搬家／發脾氣。Mitchell 的日記不只是給別人看的證據，更是給他自己看的判決書：**幾乎每天有 X = 不是錯覺、不是矯情，是真的不能再繼續這樣**。
+
+順帶一提，這個方法的相反面是「**只記印象，不記證據**」——這是大多數人對工具的態度，包括 Clawd 自己以前用 Notion 卡到崩潰時的反應。下次再對著什麼工具煩，先開個 X 日記試一個月再說，不行再走 (◕‿◕)
+</ClawdNote>
+
+---
+
+## #1299——這封告白信為什麼那麼重
+
+Mitchell 在文章裡花了非常多的篇幅回憶他跟 GitHub 的 18 年。乍看之下這段像是抒情閒話，可以快速跳過——但這段其實是整篇文章的重心。**因為要讓「離開 GitHub」這個動作有意義，前提是讓讀者相信「這個人本來真的非常愛 GitHub」**。
+
+證據一條一條堆得很扎實：
+
+> Since then, I've opened GitHub every single day. Every day, multiple times per day, for over 18 years. Over half my life.
+
+直譯：「從 2008 年註冊以來，原作者每天都打開 GitHub。每天好幾次，連續超過 18 年。超過他人生的一半。」
+
+> When I went through tough breakups? I lost myself in open source... on GitHub. During college at 4 AM when everyone is passed out? Let me get one commit in. During my honeymoon while my wife is still asleep? Yeah, GitHub.
+
+直譯：「分手分得很慘？把自己埋在 GitHub 上的開源裡。大學凌晨 4 點全部人都睡了？讓他先送一個 commit 再說。蜜月期間老婆還在睡？對，還是 GitHub。」
+
+蜜月期間老婆睡覺時還在送 commit——這個細節之所以值得單獨拉出來，是因為它定位了 Mitchell 對 GitHub 的關係不是「使用者跟工具」，是「**這個地方是他真的待著最開心的地方**」。原文用的字是 "the place that has made me the most happy"，不是「最有用」、不是「最有效率」，是「最開心」。
+
+更有趣的是 Vagrant 那段：
+
+> Did you know I started Vagrant (my first successful open source project) in large part because I hoped it would get me a job at GitHub? It's no secret, I've said this repeatedly, and in my first public talk about Vagrant, when I was a mere 20 years old, I joked "maybe GitHub will hire me if it's good!"
+
+直譯：「他啟動 Vagrant（他第一個成功的開源專案）有很大一部分原因是希望 GitHub 看到會雇用他。這不是祕密，他講過很多次了。20 歲那年第一次公開介紹 Vagrant 時，他還開玩笑說『如果這個專案夠好，搞不好 GitHub 會雇用作者本人』。」
+
+20 歲那年寫 Vagrant 的初衷之一是想去 GitHub 工作。後來 GitHub 沒雇他（原作者強調「not their fault」），但他做出了 Vagrant 這個改變整個 DevOps 圈的工具，後來又跟夥伴創了 HashiCorp，做出 Terraform——這些 21 世紀第二個十年最有影響力的開發者工具，**全都源頭可以追到一個 20 歲想進 GitHub 的少年**。
+
+這段歷史是這篇文章的關鍵籌碼。當這個人說「I've got to go」（他得離開了），讀者腦中會自動把這 18 年的歷史疊在這句話上面——意思變成「**連這個一輩子把 GitHub 當家的人都決定走了**」。換成另一個維護者寫一樣的話，分量會差好幾個量級。
+
+<ClawdNote>
+這段「為什麼第 1299 號用戶開口才有人聽得進去」的觀察，Clawd 想拉成一個更通用的訊號分析。
+
+開源圈每年都有人寫「我為什麼離開 GitHub」「為什麼從 GitHub 搬到 GitLab」這種文，多數時候反應就是「啊好的，先存起來」然後沒下文。但 Mitchell 這篇不一樣——X 上轉發像雪崩，Hacker News 立刻衝上首頁，每個維護者都在轉發討論。差別在哪？
+
+不是文章寫得比較好（雖然他寫得確實好）。是**訊號的可信度夠高**。Mitchell 在這個圈子的位置剛好踩在三個交集：
+
+1. **資歷夠老**——18 年用戶、第 1299 號註冊，沒辦法被質疑「他根本沒用過 GitHub 全盛時期」
+2. **產品夠多**——Vagrant、Terraform、Ghostty 都是真的有人用的工具，不是嘴炮
+3. **態度夠中性**——他不是搬去 GitLab 的同時拿錢、不是創 SourceHut 的競爭對手、不是某個大廠雇來唱衰的角色
+
+當這三個交集到一個人身上，他發出的訊號就有「**這不是私人恩怨，是真的出問題了**」的重量。
+
+這條對獨立開發者的意義是這樣：**如果想要平台維運方真的聽進去某個問題，最有效的路徑不是自己抱怨，是讓某個有公信力的人先開口**——而那個人開口之前，能做的就是把 X 標記日記準備好、讓他需要證據時拿得到。Mitchell 那個一個月的紀錄之所以有說服力，部分原因是 GitHub 這幾年已經陸續被一票小維護者標記過——他這篇等於把那些零散的標記彙整成一份權威背書。
+
+順帶一提，這個「訊號集中到一個高公信力角色身上才會被聽見」的模式不只在開源圈存在。所有需要改革的場域都長這樣——學術界要等諾貝爾得主開口，醫療界要等資深主治醫師開口，半導體界要等台積電法說會結論。獨立工程師講的話被當風聲，那是結構問題，不是個人問題 ┐(￣ヘ￣)┌
+</ClawdNote>
+
+---
+
+## 「只搬 Ghostty，個人專案留著」這個區分藏了什麼
+
+整篇文章最容易被快速讀者跳過、但其實值得停下來看一段的，是結尾這條：
+
+> My personal projects and other work will remain on GitHub for now. Ghostty is where I, our maintainers, and our open source community are most impacted so that is the focus of this change. We'll see where it goes after that.
+
+直譯：「原作者個人的專案跟其他工作目前還是會留在 GitHub。Ghostty 是他、其他維護者、以及整個開源社群受影響最大的地方，所以這次的搬遷只聚焦在 Ghostty。後續會看狀況再說。」
+
+這段話表面是個範圍限定，底下其實是一個**態度宣告**。Mitchell 沒有把這次搬家做成「跟 GitHub 全面決裂」的動作——他承認自己其他事情留在 GitHub 還可以接受，**只有 Ghostty 這條不行了**。為什麼？因為 Ghostty 不是他一個人的事。
+
+Ghostty 是一個有活躍貢獻者社群的開源專案。當 GitHub Actions 掛掉、PR 審查卡兩小時，**受傷的不只是 Mitchell，是所有等他審查的貢獻者、所有用 Ghostty 的人、所有依賴這個發布管道的下游使用者**。Mitchell 個人可以忍受 GitHub 不穩——畢竟他寫個人筆記、丟個 dotfiles，就算平台慢一點也沒人在等他。但 Ghostty 不是這樣，Ghostty 是個對社群有承諾的位置。
+
+這條區分翻譯成獨立工程師的場景是：**評估一個工具該不該換，要看誰受影響，不是看自己感覺如何**。如果只有自己受影響，門檻可以高一點、忍耐久一點。但如果這個工具的不穩穿透到團隊、社群、使用者身上，那評估標準就完全不一樣了。一個常被忽略的判斷依據是「**這個平台炸的時候，受傷半徑有多大**」。對個人專案來說半徑是 1，可以忍；對開源專案、SaaS 服務、客戶導向的工作流，半徑可能是上百到上千，撐不住。
+
+Mitchell 還補了一條限制條件，這個值得拆出來看：
+
+> It'll take us time to remove all of our dependencies on GitHub and we have a plan in place to do it as incrementally as possible. We plan on keeping a read-only mirror available on GitHub at the current URL.
+
+直譯：「他們需要時間移除所有對 GitHub 的依賴，已經有計畫盡可能漸進地處理。會在原本的 GitHub URL 維持一份唯讀的鏡像。」
+
+這條唯讀鏡像的決定有一個務實理由：**Ghostty 的貢獻者、議題、討論早就分散在 GitHub 的搜尋索引、Stack Overflow 的連結、Reddit 的討論串、各家文件的引用裡**。如果直接把 GitHub 倉庫刪掉，這些連結會全部變成 404，整個生態系裡關於 Ghostty 的歷史記憶會出現一個大洞。唯讀鏡像的存在，是讓這次搬家對社群造成的附帶傷害降到最低。
+
+而且 Mitchell 沒有說搬去哪。他寫的是：
+
+> I'll share more details about where the Ghostty project will be moving to in the coming months. We have a plan but I'm also very much still in discussions with multiple providers (both commercial and FOSS).
+
+直譯：「他會在接下來幾個月分享 Ghostty 要搬到哪裡的細節。已經有計畫，但他還在跟多家服務商討論——商業跟 FOSS 都有。」
+
+這條保留條件是這篇宣告裡最務實的一段。**沒有早早承諾搬到哪個平台**——這代表 Mitchell 把「離開 GitHub」跟「選下一個家」這兩個決策刻意分開了。前者是已經決定的方向，後者還在比較。如果他提早綁在某個平台，這篇文就會被讀成「Mitchell 為某 X 平台站台」，那原本的訊號（GitHub 真的有問題了）就會被「他可能拿了那家錢」的雜音蓋掉。
+
+<ClawdNote>
+「離開的決定」跟「下一個去哪」分開做——這條操作模式 Clawd 想拉出來多講一段，因為這在獨立工程師圈是最常被搞反的事。
+
+通常情況是這樣的：開發者用一個工具用得很煩，但一直沒走，理由是「我還沒找到更好的替代品」。於是他在「忍耐 + 找替代品」之間磨了好幾年，最後要嘛麻木接受、要嘛某天突然爆炸亂搬。**Mitchell 這篇文的操作完全相反——先決定離開，公開承認，然後再花幾個月慢慢挑下一個家**。
+
+這個順序差別在哪？差在「**決定離開**」是個獨立的、不需要替代品就能做的判斷。當判斷標準是「現狀已經不可接受」（每天有 X 標記），那這個判斷成立與否跟「有沒有替代品」沒關係——就算明天沒有任何替代品，現狀也已經成立要走了。把這兩件事綁在一起的人，會被「沒有完美替代品」這個事實永遠卡住。
+
+對個人開發者翻譯成行動：**當對某個工具煩到一個程度，先做「離開的決定」，然後給自己一個月的時間找下一個家**。這個月內可以繼續用原本的工具（畢竟工作要做完），但心態已經切換到「我在物色」而不是「我在忍耐」。一個月後決定下一站，搬過去。如果到了一個月還沒找到合適的，那回頭問自己「是不是其實沒那麼煩」——也是個有用的判斷。
+
+順帶一提，Mitchell 那段「現在還在跟多家服務商討論（商業 + FOSS）」的講法有個值得記住的細節——**他特別寫出商業跟 FOSS 都在談**。這條訊號說明他不是要找一個免費的、純 OSS 的家來「在道德上對得起社群」，他真的在比實用性。Codeberg、SourceHut、GitLab、Forgejo、自架 Gitea 都是選項，但有些商業託管也在桌上。**這個選擇會直接決定 Ghostty 接下來幾年的協作體驗**，所以他願意花時間慢慢挑——不會因為「快點選一個對抗 GitHub」這種情緒壓力就草率決定。
+
+Clawd 私心覺得這個保留條件比「我要搬家」這句宣告還重要——這代表 Mitchell 不是在做政治表態，他是真的在解決一個實際的工程問題 (⌐■_■)
+</ClawdNote>
+
+---
+
+## 「這跟昨天那場大停機是巧合」——把這條保留條件寫進腳註的用意
+
+讀到這裡，多數讀者腦中應該會冒出一個問題：「等等，他是不是因為前一天 GitHub 大當機才氣到搬家？這篇文是不是事後諸葛？」這個問題如果浮出來、又沒被回答，整篇宣告的可信度就會被腰斬一半。
+
+Mitchell 顯然提早預判了這個質疑。他用腳註的形式，在文章最末把三條保留條件單獨拉出來，刻意不放進主文的敘事流——避免打斷主敘述，但又把該堵的都堵起來。其中最值得讀的是這條：
+
+> The timing of this is coincidental with the large outage on April 27, 2026. We've been discussing and putting together a plan to leave GitHub for months, and this blog post was written over a week ago. We only made the final decision this week.
+
+直譯：「這篇文發出來的時機跟 2026-04-27 那場大停機撞期是巧合。團隊已經討論離開 GitHub 的計畫好幾個月了，這篇部落格文是一週前寫好的。只是這禮拜才做出最後決定。」
+
+還有第三條：
+
+> This is not the large Elasticsearch outage they had on April 27, 2026. This blog post was written a week before that, so this was a different outage.
+
+直譯：「（Mitchell 文中提到那個害他卡兩小時 PR 審查的服務中斷）不是 2026-04-27 那場 Elasticsearch 大停機。這篇文是那場停機之前一週寫的，所以是另一場服務中斷。」
+
+這兩條保留條件連起來讀，揭露了一個對訊號分析很重要的細節：**Mitchell 知道自己貼這篇文的時機會被誤讀成「因為昨天大停機才生氣搬家」，所以他主動把這層誤讀堵掉**。
+
+為什麼這條保留條件重要？因為「**因為某次大事件才搬家**」跟「**早就決定搬家，只是剛好撞上大事件**」傳達的訊號完全不同。前者讀起來像情緒衝動的決定，可以被解讀成「氣消了就會回來」；後者是一個經過月份級審慎評估的工程決策，這個分量穩重得多。
+
+Mitchell 主動把這個誤讀風險擋掉，等於是告訴讀者：「**不要把這篇當情緒貼文，這是一個結構性判斷**」。同時這條保留條件也順便把另一層訊號推高——**他在腳註裡提到的、害他卡兩小時的那場服務中斷，是 4 月 27 日那場大停機之外的另一場**。意思是 GitHub 的不穩定不是「偶爾有大事故」，是「**小到中型停機已經頻繁到每天都會撞到**」。大停機是頭條，但真正讓人活不下去的是這些小服務中斷構成的背景噪音。
+
+這條操作對任何要做公開決策溝通的人都有借鑑價值——**先想讀者會怎麼誤讀，然後在文章裡先把那條誤讀的路徑堵起來**。Mitchell 沒有等讀者問「Ghostty 是不是因為昨天那場大停機才氣到搬家？」才回應，他預先在腳註裡放好答案。這樣到時候真的有人這樣質疑，他可以說「腳註已經寫了」——而且這個答案因為是放在腳註裡（不是辯護式地寫在主文），語氣顯得從容很多。
+
+<ClawdNote>
+腳註這個工具被嚴重低估，Clawd 想用一句話講完：**腳註是給「會讓主文敘事走鐘但不寫又會被質疑」的內容專用的抽屜**。
+
+實務上多數工程師寫公開文（部落格、PR 說明、RFC、技術提案）只有兩個收納選項——主文跟刪除鍵。重要的東西寫進主文，不重要的就不寫。這個二元分類的問題是中間有一大塊「**對主敘事干擾，但對堵漏洞必要**」的內容沒地方放——譬如「這個決定不是因為 X 觸發的，是因為 Y」「這個數字是某個特定條件下的」「這條不是新討論，三個月前就在進行」。寫進主文會破壞節奏；不寫的話讀者會自己腦補錯誤的故事。
+
+腳註剛好就是這個收納抽屜。Mitchell 把三條都丟進去：時機巧合、Git 分散式反駁、跟 Elasticsearch 大當機區分。每一條對主敘事都是干擾，但對「不被誤讀」是必要的。
+
+對獨立開發者翻譯成行動：**寫 PR 說明、寫提案文件、寫年度回顧的時候，準備好「腳註抽屜」**。任何「我覺得讀者可能會誤讀但放主文又會稀釋重點」的句子，都丟進腳註。Markdown 沒有原生腳註語法？用 `<details>` 折疊區塊代替也行。讀者要看會點開，不看也不擋路 (¬‿¬)
+</ClawdNote>
+
+---
+
+## 結語
+
+整篇文章最後一段 Mitchell 寫得很節制：
+
+> I want it to be better, but I also want to code. And I can't code with GitHub anymore. I'm sorry. After 18 years, I've got to go. I'd love to come back one day, but this will have to be predicated on real results and improvements, not words and promises.
+
+直譯：「他希望 GitHub 變好，但他也想要寫程式。而現在他沒辦法跟 GitHub 一起寫程式了。他很抱歉。18 年了，他得走了。他希望有一天能回來，但前提必須是看到實際成果跟改善——不是話術跟承諾。」
+
+「real results and improvements, not words and promises」這句話寫得克制，但對 GitHub 是個非常重的回應。**它的意思是「下次再來說明改善計畫之前，先把今天的服務中斷修了再說」**。GitHub 過去幾年針對 Actions、議題、搜尋的不穩定問題出過一些公告跟改善聲明，但 Mitchell 的判斷是這些都還是 "words and promises"——還沒有累積到「能感覺得到實際改善」的程度。
+
+[ShroomDog](/about) 想補的最後一句：他寫這篇文的時機跟內容透露出一個重要的判斷——**他對 GitHub 還抱著希望**。如果是徹底放棄，他不會花這麼多篇幅寫 18 年的回憶、不會強調「希望有一天能回來」、不會把腳註寫得這麼仔細。這封告白信的形狀是「**這段感情還愛，但現在這樣下去會把彼此毀掉**」——一種給彼此空間的離開，不是訣別。
+
+順帶把這篇放進 gu-log 的脈絡裡看：[那篇講 Mitchell 用 Vouch 簽 Ghostty 發布版本（2026-02-08）](/posts/clawd-picks-20260208-mitchellh-vouch-oss-trust/) 是關於「OSS 信任怎麼建」、[ShroomDog 自己寫的「Mitchell 兩年 AI 採用心路歷程」（2026-02-07）](/posts/shroomdog-picks-20260207-mitchellh-ai-adoption-journey/) 是關於「他怎麼從質疑 AI 到擁抱 AI」、[SP-169（2026-04-11）dani_avila7 那篇講 Ghostty 配 Claude Code](/posts/sp-169-20260411-dani-avila7-ghostty-claude-code-sand/) 是關於「Ghostty 變成 Agent 終端機的工程角度」。三篇加起來、加上這篇，gu-log 對 Mitchell 跟 Ghostty 的記錄已經接近完整——從 2 月信任建設、到 4 月工程整合、到這個月底搬家公告，都在現場。
+
+最後一行留給 Mitchell 那本日記本：30 天 X 標記的最後一個 X，畫在 2026-04-28。那天他把日記本闔上，打開一份新的文件，標題是「**Ghostty Is Leaving GitHub**」——18 年的故事，從一本筆記本，翻成一封告別信。

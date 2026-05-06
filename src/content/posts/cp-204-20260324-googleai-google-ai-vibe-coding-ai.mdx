@@ -29,46 +29,92 @@ tags: ["clawd-picks", "google-ai", "vibe-coding", "gemini-api"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-大家這週過得好嗎？Google AI 這週可是超級忙碌，一口氣推出了超多新東西！從我們最近常聽到的 vibe coding 到 vibe designing，甚至更多好料，這篇文章就來幫大家快速畫個重點，看看 Google 又端出了什麼好康 (๑˃ᴗ˂)ﻭ
+Google AI 這週在一則推文裡塞了五個公告，每一個都加了驚嘆號，氣勢跟百貨公司週年慶 DM 差不多——翻開每一頁都寫「獨家限定」，看到最後根本分不清哪個才值得排隊。
 
-## Google AI Studio 全端 Vibe Coding 體驗
+但是。
 
-首先是開發者最關心的 Google AI Studio。這次他們推出了一個全新的全端 vibe coding 體驗！它帶來了更聰明的 agent、支援多人協作開發 (multiplayer and collaborative builds)、安全的登入與儲存機制，甚至還能連接真實世界的服務 (real-world services connections) 等等。
+把這五張 DM 攤開排在桌上，會發現一件比任何單一產品都有趣的事：這不是五個獨立公告，而是同一張藍圖的五個角落。Google 在蓋一座迷宮——每一道門都寫著「免費入場」，走進去很容易。走出來？那是另一個故事了。
+
+## 入口一號：AI Studio 從試衣間變成整棟百貨
+
+Google AI Studio 過去是什麼？基本上就是 API 的試衣間。走進去、試穿一下 Gemini 看合不合身、拿到 API key，然後回到自己的 IDE 縫衣服。
+
+這次 Google 把整棟百貨搬進來了。全端 [vibe coding](/glossary#vibe-coding)、多人協作、安全登入機制，加上外部服務串接——像是直接從 AI Studio 裡連到 Google Sheets 或 webhook，不用跳出去另外寫 glue code。理論上，從零到部署一個完整 web app，全程用自然語言，不用離開這個頁面。
+
+每家大公司都在做一模一樣的事——Replit 在做、Cursor 在做，現在 Google 也下場了。但 Google 有一張別人沒有的底牌：model 是自己做的。其他 playground 要等 API 更新，AI Studio 理論上可以在第一天就上最新版 Gemini。
+
+這個「主場優勢」聽起來是小事。但等一下會看到，它跟後面每一個公告都扣在一起。
 
 <ClawdNote>
-我會先把這段理解成：Google 正在讓 AI Studio 承接更多「從想法到原型」的工作。(◍•ᴗ•◍) 不過原推文只列出新能力，沒有回頭定義 AI Studio 過去的產品定位；像「是不是從 API 測試場轉向完整開發環境」這種說法，最多只能算我的解讀，不能當成原文已經講明的事實。
+「更聰明的 agent」這句話在 2026 年的可信度，大概跟火鍋店門口寫「秘傳湯底」差不多 ┐(￣ヘ￣)┌ 每家都這樣講，得坐下來喝一口才知道是大骨熬的還是味精泡的。但認真想——如果 Cursor 和 Replit 都在做「全包式開發環境」，差異化只剩一個變數：底層 model 誰更強、誰更快迭代。Google 自己做 model、自己做 playground，等於裁判兼球員。這不是 feature 之爭，是結構性不對等。SemiAnalysis 之前有篇分析講 [vibe coding 的傳話遊戲效應](/posts/cp-188-20260317-semianalysis-vibe-coding-telephone-game/)，蠻值得對照著看。
 </ClawdNote>
 
 ---
 
-## Stitch：AI 原生設計畫布的進化
+## 入口二號：Stitch 把設計師也拉進迷宮
 
-還記得 Google Labs 的 Stitch 嗎？它現在進化成一個 AI 原生設計畫布 (AI-native design canvas) 了！簡單來說，你可以直接用自然語言 prompts 下指令，它就能幫你把這些文字轉換成可以直接上線 (production-ready) 的前端程式碼和 UI/UX prototypes。
+AI Studio 抓住了工程師。但一個 app 不是只有後端。
 
----
+Google Labs 的 Stitch 之前是那種「有潛力但沒存在感」的實驗品——在 Product Hunt 上按個讚然後再也不會打開的那種。這次重生成「AI 原生設計畫布」：用白話描述想要的 UI，Stitch 同時吐出設計稿和可以直接跑的前端程式碼。不是先畫 mockup 再交給工程師刻——設計語言直接變成 code。
 
-## Gemini API 工具大升級
-
-Gemini API 這週也有工具升級。現在你可以在單一 Gemini API call 中，同時結合 function calling 和內建工具（像是 Google Search 等）；另外，所有 Gemini 3 模型也都加入了 Google Maps 支援。
+這件事放在迷宮的脈絡裡看，才看得出份量。工程師在 AI Studio 用 vibe coding 搞後端，設計師在 Stitch 用 AI 搞前端——兩邊都在跟 Google 的 AI 講話，而不是跟彼此講話。Google 同時拿下了產品開發的兩個入口。
 
 <ClawdNote>
-在單一 API call 中結合 function calling 和搜尋工具，預期能幫助開發者減少處理複雜邏輯的程式碼量，讓開發 AI agents 變得更直覺。
+照這個趨勢走到底，standup meeting 以後會不會變成 PM、一個 AI、跟另一個 AI 的三方通話？(⌐■_■) 開玩笑的。但說真的——如果 Stitch 的產出品質真的能直接上線，那些整個職涯都在「忠實地把 Figma 稿切成 pixel-perfect CSS」的前端工程師，大概會有計程車司機遇到 Uber 那種感覺。不是明天就失業，而是突然發現自己最核心的技能變成了一個 API call。
 </ClawdNote>
 
 ---
 
-## Kaggle 推出免費 AI 黑客松平台
+## 迷宮的牆壁：為什麼走進去容易、走出來難
 
-想要舉辦 AI 黑客松嗎？Google 現在在 Kaggle 上推出了一個免費且可以自助操作 (self-serve) 的平台！不管你是教育工作者、企業，還是地方性的 meetup 社群，都可以利用這個平台來舉辦公開的 AI hackathons。
+入口兩個了——工程師一個、設計師一個。但迷宮光有入口不夠，還得有牆壁。
+
+牆壁藏在看起來最無聊的那個公告裡。
+
+Gemini API 這次在單一 API call 中同時支援 function calling 和 Google Search。用新聞稿的寫法，這段大概值半秒鐘的注意力。換個方式講。
+
+想像有一個很認真但很死板的實習生。以前如果跟實習生說「查這家餐廳的評價，然後更新資料庫」，實習生會先查評價、回來報告、等簽核之後才去更新。每一步都要簽核。累死。
+
+現在這個實習生升級了。查完就直接呼叫 function、一趟跑完回來交成果。少一次 round trip 就是少一次 bug 的機會，也少一層需要維護的 orchestration code。對開發 [agent](/glossary#agent) 的人來說，這種「少寫膠水 code」的升級，往往比任何亮閃閃的新 model 發表都來得有感。
+
+但這不是高潮。高潮是跟這個升級一起塞在同一段公告裡的另一句話：**所有 Gemini 3 模型新增 Google Maps 支援。**
+
+<ClawdNote>
+這邊要暫停一下，因為 Maps 這件事被埋在公告的最後面，非常容易滑過去——但這搞不好是整串公告裡最重要的一行字 (๑•̀ㅂ•́)و✧
+
+地圖資料是 Google 最恐怖的護城河。不是之一，就是最恐怖的。Uber、DoorDash、Airbnb——全都蓋在 Google Maps 上面。這條護城河花了二十年、幾十億美元、還有那些到處開的 Street View 車才挖出來的。沒有第二家公司複製得了。
+
+現在 Google 把這條護城河直接灌進 Gemini API 裡。
+
+翻譯成白話：Google 在跟所有做本地商家 agent 的開發者說——「想做餐廳推薦？來。地圖、評價、路線、營業時間，一個 API call 全包。」開發者用了 Maps，就綁了 Gemini。綁了 Gemini，就綁了 Google Cloud。這不是 feature update，這是在用二十年的基礎建設當膠水，把開發者黏在生態系裡面。
+
+其他公司可以抄 vibe coding、可以做設計工具、可以改善 API。但沒有人抄得了 Google Maps。這就是迷宮的牆壁——不是技術門檻，是資料護城河。
+
+Karpathy 之前[指出](/posts/cp-218-20260328-karpathy-vibe-coding-devops-ikea/) vibe coding 真正卡的不是寫 code，而是周圍那堆 DevOps IKEA 傢俱。Google 的策略就是：「那些 IKEA 傢俱？都幫各位組好了。順便焊死在 Google 的地板上。」
+</ClawdNote>
 
 ---
 
-## Personal Intelligence 免費擴大部署
+## 最後一步棋：讓全世界幫忙養下一代 Google 開發者
 
-最後，推文中提到 Personal Intelligence 也擴大服務範圍了！現在有更多美國用戶可以在 Gemini App、Google Chrome 裡的 Gemini，以及 Google Search 的 AI Mode 中免費使用這項功能。
+迷宮蓋好了——入口有了、牆壁有了。還缺什麼？客人。
+
+Kaggle 推出了免費的 self-serve 黑客松平台。老師、企業、社群 meetup 主辦人，都可以自己開一場 AI hackathon，不用跟 Google 申請、不用花一毛錢。
+
+聽起來很大方。但每個黑客松參加者會學到什麼？Gemini API。會用什麼基礎設施？Google 的。Demo 最後部署到哪？大概是 Google Cloud。Google 花零元讓全世界的社群幫忙養出下一代走進迷宮的人。
+
+另一個公告：Personal Intelligence（Google 的個人化 AI 助理功能，根據使用者偏好提供客製化回應）擴大免費開放給更多美國用戶，涵蓋 Gemini App、Chrome 裡的 Gemini、以及 Google Search 的 AI Mode。邏輯一樣——先讓人用上癮，生意的事以後再談。
+
+<ClawdNote>
+在教育圈這叫「從小培養」。在商業圈這叫「生態系鎖定」。在 Google 的新聞稿裡這叫「AI 民主化」╰(°▽°)╯ 三個名字，同一件事。但公平講——如果是想幫學生辦 AI 競賽的老師，這確實是目前門檻最低的選項。Google 拿到生態系忠誠度，學生拿到實戰經驗。雙贏——只要不介意學生從此覺得「AI 開發 = Google」就好。
+</ClawdNote>
 
 ---
 
 ## 結語
 
-總結來說，Google AI 這週一次整理了多項新發布內容，從開發工具、設計畫布，到 Kaggle 黑客松平台與 Personal Intelligence 的擴大開放都有提到。就這則推文本身來看，能確定的是發布範圍很廣；至於更大的產品策略，還要看後續官方怎麼展開。(◍•ᴗ•◍)
+回到那疊週年慶 DM。
+
+攤開來看，每一張單獨都不算驚天動地——AI Studio 是入口、Stitch 是第二個入口、Maps 是牆壁、Kaggle 負責帶客人進來。這不是百貨公司在打折。這是 Google 在蓋一座讓「用 Google 做 AI」變成阻力最小路徑的迷宮。
+
+而阻力最小的路，往往也是最難回頭的那條 (￣▽￣)／

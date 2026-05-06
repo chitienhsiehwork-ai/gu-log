@@ -26,21 +26,28 @@
 
 import fs from 'fs';
 import process from 'node:process';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const VALID_JUDGES = ['librarian', 'factCheck', 'freshEyes', 'vibe'];
 
+const __isCli =
+  import.meta.url === pathToFileURL(process.argv[1] ?? '').href ||
+  (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]);
+
 const [, , op, filePath, judge, scoreJsonStr] = process.argv;
 
-if (!op || !filePath || !judge) {
-  process.stderr.write(
-    'Usage: frontmatter-scores.mjs <get|write|delete> <file> <judge> [score_json]\n'
-  );
-  process.exit(1);
-}
+if (__isCli) {
+  if (!op || !filePath || !judge) {
+    process.stderr.write(
+      'Usage: frontmatter-scores.mjs <get|write|delete> <file> <judge> [score_json]\n'
+    );
+    process.exit(1);
+  }
 
-if (!VALID_JUDGES.includes(judge)) {
-  process.stderr.write(`Unknown judge: ${judge}. Expected: ${VALID_JUDGES.join(', ')}.\n`);
-  process.exit(1);
+  if (!VALID_JUDGES.includes(judge)) {
+    process.stderr.write(`Unknown judge: ${judge}. Expected: ${VALID_JUDGES.join(', ')}.\n`);
+    process.exit(1);
+  }
 }
 
 // ─── Frontmatter parser ────────────────────────────────────────────────────
@@ -311,19 +318,32 @@ function opDelete() {
   writeFrontmatter(filePath, newFm, parts.body);
 }
 
+// ─── Exports for tests ────────────────────────────────────────────────────
+
+export {
+  splitFrontmatter,
+  parseScores,
+  serializeScores,
+  removeScoresBlock,
+  JUDGE_DIMS,
+  VALID_JUDGES,
+};
+
 // ─── Dispatch ─────────────────────────────────────────────────────────────
 
-switch (op) {
-  case 'get':
-    opGet();
-    break;
-  case 'write':
-    opWrite();
-    break;
-  case 'delete':
-    opDelete();
-    break;
-  default:
-    process.stderr.write(`Unknown op: ${op}. Expected get, write, or delete.\n`);
-    process.exit(1);
+if (__isCli) {
+  switch (op) {
+    case 'get':
+      opGet();
+      break;
+    case 'write':
+      opWrite();
+      break;
+    case 'delete':
+      opDelete();
+      break;
+    default:
+      process.stderr.write(`Unknown op: ${op}. Expected get, write, or delete.\n`);
+      process.exit(1);
+  }
 }

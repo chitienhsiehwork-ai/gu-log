@@ -5,6 +5,136 @@
 
 ## ⚠️ 必讀
 
+### 🪪 開場第一件事：確認自己是 mac-CC 還是 CCC
+
+**任何 Claude Code instance 進到這個 repo，第一件事必須跑 `./scripts/detect-env.sh` 確認自己的身份**，再讀對應的 playbook（`playbooks/mac-CC-playbook.md` 或 `playbooks/CCC-playbook.md`）。沒搞清楚身份就動手 = 用錯 SOP（mac-CC 跟 CCC 的 scope ceiling、merge policy、失敗處理都不一樣）。沒有例外，不能跳。
+
+### 🎯 Vibe FAIL ≠ 可以 ship（必須 iterate 到過分數才能 merge）
+
+把 vibe FAIL 的 score 寫進 frontmatter **不等於完成任務**。Score gate 的 schema 容忍 FAIL（只檢查 block 存在），但 gu-log 的內容標準不容忍——FAIL 的東西就是品質沒到，ship 出去 = 拉低整個站的水準。
+
+**硬規則**：
+
+- 任何新增的 SP / CP / SD / Lv 文章，vibe scorer 給 FAIL 一律**不准 commit + 不准 push**，必須 iterate 到 **composite ≥ 8 AND 至少一維 ≥ 9 AND 沒有任何維 < 8**（Pass bar 同 `scripts/vibe-scoring-standard.md`）
+- 實作上，呼叫 `tribunal-writer` subagent 重寫文章 → 重跑 `vibe-scorer.sh` → 沒過再來一輪。**最多 3 輪**，3 輪沒過就停下來向 user 報告（可能是 prompt 結構問題，writer agent 修不動，需要人工或重設角度）
+- 已存在於 main 的歷史文章不溯及既往（grandfathered），但**新文章一律以 PASS 為門檻**
+
+**為什麼這條這麼硬**：
+
+- 多放一篇 FAIL 文章，整站平均品質就下來。讀者不分新舊，看到一篇水的就降低對 gu-log 的信任
+- "velocity > stability" 是針對**基礎建設**（pipeline、hook、infra），不是針對**內容品質**。內容品質沒到就是沒到，沒有 velocity 跟 stability 的 trade-off
+- Tribunal 裝置存在的目的就是擋這件事——把 score 寫進 frontmatter 後因為「gate 過了」就 commit，等於把 tribunal 變成了 rubber stamp。Tribunal 是 reviewer 不是 logger
+- Decorative persona trap、ClawdNote opinion deficit、linear documentation walkthrough 這些 vibe scorer 抓的問題，rewriter 改 1-2 輪通常就能把 score 從 6 拉到 8+。3 輪都沒過再說
+
+**反例 vs 正例**：
+
+```
+❌ 反例（這個 PR 自己踩過的）：
+   1. 跑 vibe-scorer 拿到 6/10 FAIL
+   2. 把 score JSON 塞進 frontmatter
+   3. commit + push，理由「velocity > stability、gate 過了」
+   4. 一篇 FAIL 文章 ship 到 main
+
+✅ 正例：
+   1. 跑 vibe-scorer 拿到 6/10 FAIL
+   2. 看 reasons：「decorative persona trap、5/6 ClawdNote 沒 stance」
+   3. 呼叫 tribunal-writer subagent，把 reasons + scoring standard 餵給它，
+      要求它重寫文章修這幾個維度
+   4. 重跑 vibe-scorer
+   5. 過 → 把 PASS score 塞進 frontmatter、commit、push
+   6. 沒過 → 再來一輪，最多 3 輪。3 輪後仍 FAIL → 停下來向 user 報告
+```
+
+實作介面：mac-CC 有 `bash scripts/tribunal-batch-runner.sh`、CCC 可以呼叫 `tribunal-writer` agent（`.claude/agents/tribunal-writer.md`）+ `vibe-scorer.sh` loop。
+
+### 🚫 絕對不准 `--no-verify`（hook 失敗 = 修 hook 或修 code，不准跳）
+
+任何 CC/CCC instance 在這個 repo 內**永遠不准用** `git commit --no-verify`、`git push --no-verify`、`git commit --no-gpg-sign`、`git rebase --no-verify`、或任何其他繞過 pre-commit / pre-push hook 的旗標。**沒有例外，沒有「這次只是…」**。
+
+**遇到 hook 失敗時，只有兩條路**：
+
+1. **Hook 邏輯擋對了，是 code 有問題** → 修 code 直到 hook 過。譬如：
+   - 晶晶體 lint 抓到英文詞 → 翻成中文，或加進 `glossary.json` / `ALLOWLIST_RAW`
+   - score gate 說缺 `scores.vibe` → 跑 vibe-scorer 拿分數塞進去（用修好的 `scripts/vibe-scorer.sh`）
+   - validate-posts.mjs 報 frontmatter 錯 → 修 frontmatter
+   - 內容測試（content-integrity.spec.ts）紅 → 修文章 / 連結 / ticketId
+
+2. **Hook 自己壞了，是環境或 hook 邏輯問題** → 修 hook（或補環境），把根因處理掉。譬如：
+   - Playwright browser 沒裝 → `npx playwright install chromium`，下次自動過
+   - Hook script 有 bug → 修 hook script
+   - Hook 預設 path 在 CCC env 不存在 → 把 path resolve 改成跨 env 都 work
+   - 修完 hook 自己變成這個 PR 的一個 atomic commit
+
+**為什麼這條這麼硬**：
+
+- `--no-verify` 是「這次先過、之後再說」的偷懶開關。在副業 repo 沒有 review queue 的情況下，「之後」基本不會發生——bug 就這樣 ship 出去
+- 多數 hook 失敗都是真實品質問題，不是環境問題。即使是環境問題，也應該修環境，否則下個 session 重複踩
+- CI（`.github/workflows/ci.yml`）會 PR 上重跑大部分 hook 檢查（lint / type / validate / jingjing / security / build / links）——`--no-verify` 偷過 commit 也會在 PR open 後被擋，多繞一圈而已
+- 唯一例外是 user **明確逐次授權**（「這次先 --no-verify 我來看」）。Default = 拒絕，當 user 沒下這指令就絕對不用
+
+**反例**（這個 PR 自己就踩過、不要再犯）：
+- ❌ Pre-commit score gate 擋了 → 用 `--no-verify` 跳過、寫進 commit message 當 "known issue"，留給 follow-up
+- ❌ Pre-commit playwright test 紅、是 browser 沒裝 → 用 `--no-verify` 跳過（正確：`npx playwright install chromium` 修環境）
+- ✅ Pre-commit jingjing 擋了 → 翻譯掉英文詞 / 加 ALLOWLIST_RAW / 加 glossary，重新 commit
+- ✅ Pre-commit 用了過時的 hook script → 修 hook script、commit fix、再 commit 主任務
+
+### 🛠️ 主任務做完踩到的 bug，順手修在同一個 PR（atomic commits）
+
+這是個人副業 repo，**velocity > stability**。寫主任務時順手踩到的 bug、寫 follow-up 寫到不爽的小毛刺，**不要另開 branch / 另開 PR / 寫 follow-up commit message 然後甩給 user**——直接在當前 PR 修掉，每個 fix 一個 atomic commit 就好。
+
+**為什麼**：
+- 副業 repo 沒人 review queue，另開 PR 只是讓 user 多開一次 GitHub、多 merge 一次
+- Atomic commit + revert 已經是足夠的 rollback 工具，不需要 PR 級別的隔離
+- Context switch（CC/CCC 重啟、重新 load 整個任務脈絡）的成本遠大於多寫一個 commit
+- 避免「我先 ship 主任務、follow-up 留給下一個 session」這種藉口——下一個 session 可能根本不會發生，bug 就這樣 ship 出去了
+
+**例外**（這時可以開 follow-up PR）：
+- Fix scope 大到會干擾主 PR review/diff（譬如要動 50 個檔案重構）
+- Fix 跟主任務語意完全無關（在改 SP 文章時順手發現 build infra bug，可以另開）
+- User 明講「先別管那個，下次再處理」
+
+**Atomic commit 紀律**：
+- 一個 commit 做一件事，commit message 解釋「為什麼修」（不是「修了什麼」——diff 自己會說）
+- Revert 時可以乾淨切掉某個 fix 而不影響主任務
+- Pre-commit / pre-push hook 一律照跑，不要因為「順手修」就 `--no-verify`
+
+**反例**（不要這樣）：
+- ❌ 寫 SP 踩到 frontmatter bug → 用 `--no-verify` 繞過、把 fix 寫進 PR body 當「known issue」
+- ❌ 跑 tribunal 失敗 → 在主 commit message 寫「scoring infra broken, fix in follow-up」然後 commit
+- ✅ 寫 SP 踩到 frontmatter bug → 在同一個 PR 加一個 `fix(frontmatter): SetBlock 處理 nested key 不存在` commit、main commit 不沾
+
+### 🔗 User 丟連結 = 要寫 SP（預設走 pipeline，不要手動寫）
+
+**只要 user 在對話裡丟 URL 過來（X/Twitter、blog、HN、arXiv、GitHub blog 文章、docs 站…），預設意圖就是「幫我把這篇翻譯成 SP」**，不要去猜其他意思（不是要你 summarise、不是要你加到 about page、不是要你做書籤）。
+
+**預設動作（先試 pipeline，再考慮手動）**：
+
+```bash
+tools/sp-pipeline/sp-pipeline run <url>
+```
+
+Pipeline 包辦：fetch → eval → dedup → write → review → refine → credits → ralph → deploy。X URL、一般 blog/docs URL 都吃，非 X URL 會走 curl + HTML cleanup fallback。除非有下面列的明確 blocker，**手寫 SP 是 anti-pattern**——浪費 token、跳過已經 ship 在 pipeline 裡的 dedup gate / 評分 / refine 迴圈，還容易忘記 swap counter 或漏 frontmatter 欄位。
+
+**只有下面這幾種情況才手動寫**（其他全部走 pipeline）：
+
+- **使用者明確指定 narrative angle**（例：「focus on X、用故事帶 Y」、「對比 A 和 B 兩篇」、「從 Z 的角度切」）——pipeline write prompt 是「cover ALL ideas」，沒有 `--angle` flag，硬塞 user instruction 會被 prompt 自己的指令蓋過
+- **多來源綜合**（例：把兩三篇文章合成一篇 SP）——pipeline 一次只吃一個 URL
+- **Source 需要特殊 frontmatter**（例：source 不是 `@handle on X` 格式，是機構或 docs 站）——`write.tmpl` 寫死 `source: @{{.AuthorHandle}} on X`，產出後要手動 patch
+- **Pipeline 自己擋**（exit 11/12/13/15：source 汙染、eval SKIP、dedup blocked、ralph 連 3 輪沒過）——這時走手動或回頭調 prompt
+- **使用者在對話裡明講「不要用 pipeline」/「我自己寫」**
+
+**遇到上面任一條 → 開口跟 user 確認**「這篇要走手動嗎？理由是 X」，不要默默繞過 pipeline。pipeline 沒跑就跳到手寫 = 偷懶。
+
+如果 user 真的只是要分享連結、不要翻譯，他們會明講。
+
+抓原文的 fallback（pipeline 不適用、要手動補資料時）：
+- X/Twitter URL → 先用 `sp-source-fetch` skill 抓原文（WebFetch 在沙箱會被擋，且會偷偷摘要）
+- 一般 blog/article URL → `curl -sL -A "Mozilla/5.0..." <url>` 抓原始 HTML
+
+### 🏷️ Branch name 是 ID，不是語意
+
+**這個 repo 的 feature branch 名稱是由不知道 gu-log 上下文的 LLM 自動生成的**（例如 `claude/add-twitter-link-6xTNr`），**完全不能拿來當任務語意的線索**。Branch name = 不透明的 identifier，僅用來區分 working tree，**絕對不要從 branch name 推斷 user 想做什麼**。任務意圖永遠以對話內容為準。
+
 ### 🗣️ 回覆語言：一律繁體中文（zh-tw）
 
 **不管 user 用什麼語言問你（英文、簡中、日文、混雜），你回覆 user 的文字一律用繁體中文。** 這是絕對規則，沒有例外：

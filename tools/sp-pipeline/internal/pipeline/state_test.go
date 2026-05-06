@@ -45,6 +45,7 @@ func newTestState(t *testing.T) (*State, *llm.FakeProvider, string) {
 	s.SourcePath = sourcePath
 	s.TweetURL = "https://x.com/fakeauthor/status/1"
 	s.AuthorHandle = "fakeauthor"
+	s.SourceIsX = true
 	s.OriginalDate = "2026-04-11"
 	s.TranslatedDate = "2026-04-11"
 	s.Cfg = &config.Config{
@@ -173,7 +174,7 @@ func TestWrite_HappyPath(t *testing.T) {
 	prompt := fake.Called[0].Prompt
 	for _, want := range []string{
 		"PENDING",
-		"@fakeauthor",
+		"source: @fakeauthor on X",
 		"shroom-picks",
 		"Fake tweet body",
 		"LHY tone",
@@ -181,6 +182,104 @@ func TestWrite_HappyPath(t *testing.T) {
 		if !strings.Contains(prompt, want) {
 			t.Errorf("prompt missing %q", want)
 		}
+	}
+	if strings.Contains(prompt, "NARRATIVE ANGLE") {
+		t.Errorf("prompt unexpectedly has NARRATIVE ANGLE despite empty s.Angle")
+	}
+}
+
+func TestWrite_AnglePropagates(t *testing.T) {
+	s, fake, _ := newTestState(t)
+	s.Angle = "Focus on Task Flow while introducing the others. Use intriguing stories."
+	s.SourceLabel = "OpenClaw Docs"
+	s.SourceIsX = false
+	fake.WithResponses(
+		llm.FakeResponse{
+			Output:    "---\ntitle: \"x\"\n---\nbody\n",
+			WriteFile: "draft-v1.mdx",
+		},
+	)
+	if err := s.Write(context.Background()); err != nil {
+		t.Fatalf("Write: %v", err)
+	}
+	if len(fake.Called) != 1 {
+		t.Fatalf("expected 1 dispatcher call, got %d", len(fake.Called))
+	}
+	prompt := fake.Called[0].Prompt
+	for _, want := range []string{
+		"NARRATIVE ANGLE",
+		"Focus on Task Flow",
+		"source: OpenClaw Docs",
+		"STRUCTURAL directive",
+	} {
+		if !strings.Contains(prompt, want) {
+			t.Errorf("write prompt missing %q", want)
+		}
+	}
+	if strings.Contains(prompt, "@fakeauthor on X") {
+		t.Errorf("write prompt leaked X-style source despite custom SourceLabel")
+	}
+}
+
+func TestRefine_AnglePropagates(t *testing.T) {
+	s, fake, workDir := newTestState(t)
+	s.Angle = "Focus on Task Flow while introducing the others."
+	// Seed draft + review so refine can run.
+	if err := os.WriteFile(filepath.Join(workDir, "draft-v1.mdx"), []byte("---\ntitle: \"x\"\n---\nbody\n"), 0o644); err != nil {
+		t.Fatalf("seed draft: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(workDir, "review.md"), []byte("- Issue 1: minor — fake\n"), 0o644); err != nil {
+		t.Fatalf("seed review: %v", err)
+	}
+	fake.WithResponses(
+		llm.FakeResponse{
+			Output:    "---\ntitle: \"refined\"\n---\nbody\n",
+			WriteFile: "final.mdx",
+		},
+	)
+	if err := s.Refine(context.Background()); err != nil {
+		t.Fatalf("Refine: %v", err)
+	}
+	if len(fake.Called) != 1 {
+		t.Fatalf("expected 1 dispatcher call, got %d", len(fake.Called))
+	}
+	prompt := fake.Called[0].Prompt
+	for _, want := range []string{
+		"NARRATIVE ANGLE",
+		"Focus on Task Flow",
+		"angle-pivoted structure is intentional",
+	} {
+		if !strings.Contains(prompt, want) {
+			t.Errorf("refine prompt missing %q", want)
+		}
+	}
+}
+
+func TestResolveSourceField(t *testing.T) {
+	cases := []struct {
+		name        string
+		label       string
+		isX         bool
+		handle      string
+		want        string
+	}{
+		{"explicit override wins", "OpenClaw Docs", true, "nick", "OpenClaw Docs"},
+		{"x with handle", "", true, "nickbaumann_", "@nickbaumann_ on X"},
+		{"x missing handle", "", true, "", "X (handle missing)"},
+		{"generic with hostname", "", false, "docs.openclaw.ai", "docs.openclaw.ai"},
+		{"all empty fallback", "", false, "", "Unknown source"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			s := NewState()
+			s.SourceLabel = c.label
+			s.SourceIsX = c.isX
+			s.AuthorHandle = c.handle
+			got := s.ResolveSourceField()
+			if got != c.want {
+				t.Errorf("ResolveSourceField() = %q, want %q", got, c.want)
+			}
+		})
 	}
 }
 

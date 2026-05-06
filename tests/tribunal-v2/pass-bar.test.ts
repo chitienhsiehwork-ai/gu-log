@@ -72,7 +72,11 @@ describe('checkVibePassBar (Stage 1)', () => {
   it('throws if any of the 5 dims is missing', () => {
     expect(() =>
       checkVibePassBar({
-        persona: 9, clawdNote: 8, vibe: 8, clarity: 8,
+        persona: 9,
+        clawdNote: 8,
+        vibe: 8,
+        clarity: 8,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any),
     ).toThrow('Missing required dimension: narrative');
   });

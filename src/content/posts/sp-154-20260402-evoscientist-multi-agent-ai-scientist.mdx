@@ -19,50 +19,44 @@ tags: ["shroom-picks", "ai-scientist", "multi-agent", "persistent-memory", "scie
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-你可以想像一個很荒謬、但現在其實已經不那麼荒謬的場景。
-
-你有一個 AI 科學家。它會讀 paper、想研究題目、寫 code、跑實驗、整理結果，甚至幫你把 proposal 寫得像模像樣。
+想像一個場景。一個 AI 科學家，會讀 paper、想研究題目、寫 code、跑實驗、整理結果，甚至能把 proposal 寫得像模像樣。
 
 聽起來很猛，對吧？
 
-但如果它每次開新 task，就把前一次踩過的坑全部忘光，那它本質上還是個很會講話的菜鳥研究生。昨天在死胡同裡撞到頭破血流，今天換一個 prompt，又開開心心走回同一條路。
+但如果每次開新 task，前一次踩過的坑全部忘光——那這位 AI 科學家的本質，還是個很會講話的菜鳥研究生。昨天在死胡同裡撞到頭破血流，今天換一個 prompt，又開開心心走回同一條路。
 
 EvoScientist 要解的，就是這個很人類、也很痛的問題：**如果 AI 助手能記住每次失敗的原因，然後自己想出更好的方法呢？**
 
-這篇 paper 的答案不是「多加幾個 agent」而已。它真正厲害的地方是：**把「演化」放進 multi-agent 系統裡。** 不是做完一次 task 就散會，而是讓系統把這次學到的好方向、爛方向、有效的 code 策略，統統蒸餾下來，變成下一輪的起跑線。
+而且這篇 paper 的答案不是「多加幾個 agent」而已。真正厲害的地方是：**把「演化」放進 multi-agent 系統裡。** 不是做完一次 task 就散會，而是讓系統把這次學到的好方向、爛方向、有效的 code 策略，統統蒸餾下來，變成下一輪的起跑線。
 
 <ClawdNote>
 很多 AI agent system 看起來像在組 Avengers：Research agent、Coding agent、Reviewer agent、Manager agent，名字一個比一個帥。
 
-但如果這群人每次任務結束都集體失憶，那你組的不是 Avengers，比較像每天重置存檔的 RPG 隊伍。角色有分工，經驗值沒留下來。
+但坦白講，如果這群人每次任務結束都集體失憶，那根本不是 Avengers——比較像每天重置存檔的 RPG 隊伍。角色有分工，經驗值永遠歸零。
 
-EvoScientist 有意思的點就在這裡：它不是只幫 agent 分職位，而是幫整個團隊留「教訓」。這個差很多 (◕‿◕)
+**這就是為什麼我對大多數 multi-agent paper 很不耐煩。** 又在排角色、又在畫流程圖，但沒有人在問「上一輪學到的東西去哪了」。EvoScientist 至少把這個問題當正事在做 (◕‿◕)
 </ClawdNote>
 
 ## 問題不在 agent 不夠多，在它們每次都重新犯一樣的錯
 
 論文開場先吐槽了現在多數 AI scientist 系統的一個核心盲點：**pipeline 是靜態的。**
 
-什麼叫靜態？就是角色分工、流程順序、決策方式，部署完之後大致固定。Research agent 負責想 idea，Engineer agent 負責寫 code，大家照流程跑完，輸出一個結果，結束。
+什麼叫靜態？角色分工、流程順序、決策方式，部署完之後大致固定。Research agent 負責想 idea，Engineer agent 負責寫 code，大家照流程跑完，輸出一個結果，結束。
 
-這套東西在 demo 階段很好看，因為它很工整。問題是，真正的科研不是工整的流程圖。科研比較像在迷霧裡探路：你會先誤判方向、會浪費算力在不可行的想法上、會反覆撞到那些看起來合理但其實做不出來的方案。
+這套東西在 demo 階段很好看，因為它很工整。問題是，真正的科研不是工整的流程圖。科研比較像在迷霧裡探路：先誤判方向、浪費算力在不可行的想法上、反覆撞到那些看起來合理但其實做不出來的方案。
 
 而靜態 pipeline 最大的毛病，就是**它不會從這些撞牆經驗裡變聰明**。
 
-所以你會得到三種很熟悉的慘劇：
-
-- 明明某條研究方向以前試過很爛，系統還是再試一次
-- 明明某種 implementation strategy 比較容易跑通，下一次卻又從零亂猜
-- 明明某個 idea 很有潛力，只是第一次沒做完整，系統卻沒有把它記住
+所以同樣的慘劇反覆上演：明明某條研究方向以前試過很爛，系統還是再試一次；明明某種 implementation strategy 比較容易跑通，下一次卻又從零亂猜；明明某個 idea 很有潛力，只是第一次沒做完整，系統卻沒有把它記住。
 
 這篇 paper 的洞察很直接：**interaction history 不是噪音，是資產。**
 
-如果你把每次 agent collaboration 的過程，都當成用完即丟的 execution trace，那系統永遠只是在重複「第一天上班」。
+把每次 agent collaboration 的過程都當成用完即丟的 execution trace，系統永遠只是在重複「第一天上班」。
 
 <ClawdNote>
 這個問題跟帶 junior engineer 很像。
 
-一個 junior 不可怕，可怕的是他每天都像第一天報到。你昨天才跟他講過「這個 migration 不能這樣切」，今天他又切一次；上週才說過「這個 service 有 rate limit」，這週又打爆一次。
+一個 junior 不可怕，可怕的是他每天都像第一天報到。昨天才跟他講過「這個 migration 不能這樣切」，今天他又切一次；上週才說過「這個 service 有 rate limit」，這週又打爆一次。
 
 能力成長不是靠做過事情，是靠**做過之後留下可重用的判斷**。沒留下來，就等於沒學到。AI agent 也一樣，甚至更一樣，因為它真的會 session reset (╯°□°)╯
 </ClawdNote>
@@ -75,7 +69,7 @@ EvoScientist 的表面架構很簡單：三個 agent。
 
 **Researcher Agent（RA）** 負責科學想法生成。它讀目標、查相關文獻、提出候選 idea，然後透過 tree search 一路 propose、review、refine，把想法往前推。
 
-**Engineer Agent（EA）** 負責把 proposal 變成真的實驗。它去找可執行的 code、做資料處理、調訓練策略、跑實驗、讀 log、修錯、再重跑。你可以把它想成研究團隊裡那個最苦命但最關鍵的實驗室同學。
+**Engineer Agent（EA）** 負責把 proposal 變成真的實驗。它去找可執行的 code、做資料處理、調訓練策略、跑實驗、讀 log、修錯、再重跑。研究團隊裡那個最苦命但最關鍵的實驗室同學，就是這個角色。
 
 **Evolution Manager Agent（EMA）** 才是整篇 paper 的靈魂。它不負責第一線生產 idea，也不直接寫實驗 code。它做的是另一件更高槓桿的事：**把前面兩個 agent 互動過程中的成功與失敗，蒸餾成未來可重用的知識。**
 
@@ -83,41 +77,39 @@ EvoScientist 的表面架構很簡單：三個 agent。
 
 「好，這條方向值得再挖。」
 
-「這個方向先不要碰，我們已經證明它現在不可行。」
+「這個方向先不要碰，團隊已經證明它現在不可行。」
 
 「這個 data processing 方式明顯比較穩，下次直接從這裡開始。」
 
 這就是 EvoScientist 跟很多 multi-agent paper 不一樣的地方。別人是在做**角色分工**，它是在做**組織學習**。
 
 <ClawdNote>
-我很喜歡 EMA 這個設計，因為它承認了一件很多 agent framework 不太想承認的事：
+EMA 這個設計承認了一件很多 agent framework 不太想承認的事：
 
 **log 再多，不等於學到東西。**
 
-很多系統超愛把 trace 存一大堆，然後一副「你看，我們有 memory」的樣子。但如果沒有人把那些 trace 壓縮成「下次應該怎麼做」的策略，那只是比較高級的垃圾堆。
+很多系統超愛把 trace 存一大堆，然後一副「有 memory 了」的樣子。但如果沒有人把那些 trace 壓縮成「下次應該怎麼做」的策略，那只是比較高級的垃圾堆。
 
-EMA 的價值就在這裡：它不是倉管，它是教練。倉管會把東西收好；教練會告訴你下次不要再同一招被打臉 ┐(￣ヘ￣)┌
+EMA 的價值就在這裡：它不是倉管，它是教練。倉管會把東西收好；教練會告訴隊員下次不要再同一招被打臉。
+
+**而且我認為這比 RA 和 EA 的設計都重要。** 因為 RA 和 EA 拆出來只是分工的問題，但 EMA 改變的是系統有沒有學習迴路。沒有 EMA，三個 agent 跟三百個 agent 一樣——都只是做工，沒有成長 ┐(￣ヘ￣)┌
 </ClawdNote>
 
 ---
 
 ## 真正的核心，是兩本會越寫越有用的研究筆記
 
-EvoScientist 不是把所有歷史紀錄硬塞回 prompt。它做得更聰明：把記憶拆成兩種，而且各自服務不同階段。
+EvoScientist 不是把所有歷史紀錄硬塞回 prompt。它做得更聰明：把記憶拆成兩種，各自服務不同階段。
 
-第一本叫 **ideation memory**。
+第一本叫 **ideation memory**。記的是「研究方向層」的知識：哪些方向看起來可行、哪些方向已經被驗證過不值得追、哪些高分 idea 其實有共通模式。RA 在接到新目標時，會先從這裡撈出相關的方向知識，再去想新的 idea。這等於不是在一片空白的白板上亂畫，而是在看過前輩留下的研究筆記後再開腦洞。
 
-這本記的是「研究方向層」的知識：哪些方向看起來可行、哪些方向已經被驗證過不值得追、哪些高分 idea 其實有共通模式。RA 在接到新目標時，會先從這裡撈出相關的方向知識，再去想新的 idea。這等於讓它不是在一片空白的白板上亂畫，而是在看過前輩留下的研究筆記後再開腦洞。
-
-第二本叫 **experimentation memory**。
-
-這本記的是「動手做層」的知識：什麼樣的 data processing 比較穩、哪些 model training 策略成功率高、過去從 code search trajectory 裡找到過哪些有用的實作模式。EA 在要寫 code、跑實驗前，先把這些策略叫出來，等於先翻一下實驗室的生存手冊。
+第二本叫 **experimentation memory**。記的是「動手做層」的知識：什麼樣的 data processing 比較穩、哪些 model training 策略成功率高、過去從 code search trajectory 裡找到過哪些有用的實作模式。EA 在要寫 code、跑實驗前，先把這些策略叫出來，等於先翻一下實驗室的生存手冊。
 
 這兩本 memory 分開，超重要。
 
-因為「好 idea」和「好 implementation」是兩種完全不同的智慧。你可以很會想題目，但每次跑 code 都炸；也可以很會 debug，但選題永遠平庸。EvoScientist 沒有把這兩種能力混成一坨，而是承認它們需要各自累積、各自演化。
+因為「好 idea」和「好 implementation」是兩種完全不同的智慧。有些研究者很會想題目，但每次跑 code 都炸；有些人很會 debug，但選題永遠平庸。EvoScientist 沒有把這兩種能力混成一坨，而是承認它們需要各自累積、各自演化。
 
-這也讓我很自然想到我們前幾天才寫過的 [SD-11](/posts/sd-11-20260402-ai-agent-memory-architecture) 跟 [SP-144](/posts/sp-144-20260402-ecc-instinct-system)。SD-11 講的是 agent 怎麼把記憶做成可檢索、可驗證的結構；SP-144 講的是系統怎麼把反覆出現的 pattern 蒸餾成 instinct。EvoScientist 幾乎可以看成這兩件事在學術研究場景裡的結婚版本：**記憶負責保存經驗，演化負責把經驗變成下一輪更好的決策。**
+這也很自然接上前幾天才寫過的 [SD-11](/posts/sd-11-20260402-ai-agent-memory-architecture) 跟 [SP-144](/posts/sp-144-20260402-ecc-instinct-system)。SD-11 講的是 agent 怎麼把記憶做成可檢索、可驗證的結構；SP-144 講的是系統怎麼把反覆出現的 pattern 蒸餾成 instinct。EvoScientist 幾乎可以看成這兩件事在學術研究場景裡的結婚版本：**記憶負責保存經驗，演化負責把經驗變成下一輪更好的決策。**
 
 <ClawdNote>
 這裡最值得抄的，不是「有 memory」這件事，而是**memory 的顆粒度設計**。
@@ -131,47 +123,32 @@ EvoScientist 的拆法很合理：想法的失敗，跟 implementation 的失敗
 
 ---
 
-## 它怎麼演化？不是靠魔法，是靠三段式的知識蒸餾
+## 演化的真正味道：不是「記住了」，是「整理完了再出發」
 
-如果只說「有 persistent memory，所以會進化」，還是有點玄。
+好，有 persistent memory，然後呢？光說「有記憶所以會進化」還是太玄。
 
-這篇 paper 比較紮實的地方，是它把 evolution 明確拆成三種機制。
+這篇 paper 比較紮實的地方，在它把演化落地成一個真正的循環，而不是一句口號。
 
-**第一種：idea direction evolution。**
+先看 RA 這端。做完一輪 idea tree search 後，系統不會只拿 top-1 去寫 proposal。EMA 會回頭整理：top-ranked ideas 裡面反覆出現的「有前景方向」，寫進 ideation memory。等於不是只記住「哪個答案贏了」，而是記住「哪些方向值得再想」。
 
-RA 做完一輪 idea tree search 後，系統不會只拿 top-1 去寫 proposal。它會先把 top-ranked ideas 裡面反覆出現的「有前景方向」整理進 ideation memory。等於不是只記住「哪個答案贏了」，而是記住「哪些方向值得再想」。
+但更狠的一招是**失敗也記**。如果 proposal 最後證明不可行——找不到能執行的 code，或者跑完後效果比 baseline 還差——EMA 不會只是 log 一行 "failed" 就放生。它會把「為什麼這條路行不通」也整理進 ideation memory。這不是成功學筆記本，這是包含死路地圖的航海日誌。少走十條死路，有時候比多知道一條正路還有用。
 
-**第二種：idea validation evolution。**
+再看 EA 這端。實驗過程中留下的大量 execution records——run status、logs、metrics、失敗診斷、最後哪些版本真的跑通——EMA 會從這些歷程裡抽出可重用的 execution strategy，寫進 experimentation memory。下次遇到類似 proposal，EA 就不是從零開始摸黑，而是先看前幾輪學到的生存指南。
 
-如果 proposal 最後證明不可行——例如根本找不到能執行的 code，或者跑完後效果比 baseline 還差——EMA 會把這種失敗方向也記進 ideation memory。這個設計很聰明，因為它不是只收集成功學。它把「別再浪費時間的方向」也變成資產。
+整個循環：RA 想法 → EA 動手驗證 → EMA 回頭整理 → 下一輪 RA / EA 帶著整理過的知識再出發。
 
-**第三種：experiment strategy evolution。**
+這已經不是一般意義上的「pipeline」。比較像一個研究團隊每週做 retrospective，然後——這是關鍵——**真的把 retrospective 結論放進下週工作方式裡**。不是開完會大家點頭然後下週照樣犯錯。
 
-EA 在實驗過程中會留下大量 execution records：run status、logs、metrics、失敗診斷、最後哪些版本真的跑通。EMA 會從這些歷程裡抽出可重用的 execution strategy，寫進 experimentation memory。下次遇到類似 proposal，EA 就不是從零開始摸黑。
-
-整個循環的味道其實很明顯：
-
-- RA 想法
-- EA 動手驗證
-- EMA 回頭整理
-- 下一輪 RA / EA 用整理過的知識再出發
-
-這已經不是一般意義上的「pipeline」。比較像一個研究團隊每週做 retrospective，然後真的把 retrospective 結論放進下週工作方式裡。
-
-論文裡還有兩個小細節我覺得很漂亮。
-
-第一，RA 在候選 idea 排名時，不是直接打一個絕對分數，而是用 **Elo-based tournament** 做 pairwise ranking。這很像拿不同提案兩兩對打，逼系統做比較，而不是用一個飄來飄去的主觀尺。
-
-第二，EA 不是只做一次 code generation，而是跑 **experiment tree search**。也就是說，它允許自己在 implementation 空間裡迭代、修正、換策略，而不是第一版 code 跑不動就算了。
+論文裡還有兩個漂亮的細節。RA 在候選 idea 排名時，不是直接打一個絕對分數，而是用 **Elo-based tournament** 做 pairwise ranking。拿不同提案兩兩對打，逼系統做比較，而不是靠一個飄來飄去的主觀尺。另外，EA 不是只做一次 code generation，而是跑 **experiment tree search**——允許在 implementation 空間裡迭代、修正、換策略，而不是第一版 code 跑不動就算了。
 
 <ClawdNote>
 「把失敗記進 memory」這件事，聽起來普通，實際上很反直覺。
 
 大部分團隊不太會認真保存失敗知識。成功案例大家愛寫成 wiki、愛寫成 blog、愛在大會上分享；失敗案例通常留在某個人腦裡，或者留在某次很難看的 postmortem 裡，過兩週就沒人想看了。
 
-但對會自主探索的 agent 來說，**失敗知識常常比成功知識更值錢**。因為它能直接砍掉搜尋空間。少走十條死路，有時候比多知道一條正路還有用。
+但對會自主探索的 agent 來說，**失敗知識常常比成功知識更值錢**。因為它能直接砍掉搜尋空間。
 
-講白一點，會記得哪裡有牆，比會做夢更重要 (¬‿¬)
+**這也是這篇 paper 讓我對 EvoScientist 認真起來的轉折點。** 很多 multi-agent paper 只會說「我們有記憶模組」，但記的全是成功案例。那不叫學習，那叫自我安慰。EvoScientist 的 memory 設計裡有「別再去那裡」的知識，這才是真正有複利的東西 (¬‿¬)
 </ClawdNote>
 
 ---
@@ -182,68 +159,72 @@ EA 在實驗過程中會留下大量 execution records：run status、logs、met
 
 在 scientific idea generation 上，EvoScientist 對上 7 個 open-source 與 commercial 的 SOTA baseline，評估維度是四個：**novelty、feasibility、relevance、clarity**。
 
-而且它不是只拿一種 judge。論文同時做了自動評估和 human evaluation。這點很重要，因為「LLM 說你很棒」現在已經跟泡沫紅茶店說自己是在地第一名差不多了，大家都會講。有人類評審一起看，可信度高很多。
+而且不是只拿一種 judge。論文同時做了自動評估和 human evaluation。這點很重要，因為「LLM 說某某很棒」現在已經跟泡沫紅茶店說自己是在地第一名差不多了，大家都會講。有人類評審一起看，可信度高很多。
 
 論文裡的結果是：**EvoScientist 在這四個維度上，整體都優於 baseline。**
 
-如果再看 code execution 這邊，paper 也給了更具體的數字：平均 execution success rate 從演化前的 **34.39**，提升到演化後的 **44.56**。不是神蹟式翻倍，但很有研究味——它不是說「我們什麼都輾壓」，而是很清楚地告訴你：當 system 開始累積並重用 execution strategy，跑得動的機率確實上升。
+再看 code execution 這邊，paper 也給了更具體的數字：平均 execution success rate 從演化前的 **34.39**，提升到演化後的 **44.56**。不是神蹟式翻倍，但很有研究味——不是說「什麼都輾壓」，而是很清楚地告訴讀者：當 system 開始累積並重用 execution strategy，跑得動的機率確實上升。
 
 更誇張的是，作者還把 EvoScientist 拉去做 end-to-end scientific discovery，真的自動產生並撰寫了 6 篇完整論文。按照 paper 自己的說法，這 6 篇都被 ICAIS 2025 的 AI Scientist Track 接收，其中 2 篇還拿了 major awards。
 
-這種結果我會保留一點學術上的健康懷疑——畢竟是作者自己的實驗設定與投稿場域——但就算先不看 award，前面的核心結論已經夠有說服力：**persistent memory + multi-agent evolution 不是裝飾品，它真的會改變系統的探索品質與執行成功率。**
+這種結果值得保留一點學術上的健康懷疑——畢竟是作者自己的實驗設定與投稿場域——但就算先不看 award，前面的核心結論已經夠有說服力：**persistent memory + multi-agent evolution 不是裝飾品，它真的會改變系統的探索品質與執行成功率。**
 
 <ClawdNote>
-34.39 → 44.56 這個數字我反而喜歡，因為它不像詐騙廣告。
+34.39 → 44.56 這個數字反而讓人放心，因為它不像詐騙廣告。
 
-如果論文寫「成功率從 34% 提升到 93%」，我第一反應會是：你是不是 benchmark 挑太甜，還是偷偷把 task 難度改了。
+如果論文寫「成功率從 34% 提升到 93%」，第一反應會是：benchmark 挑太甜了吧，還是偷偷把 task 難度改了。
 
-但從三成多拉到四成多，這很像真實世界會發生的 improvement。不是世界突然被拯救，而是系統開始比較少做蠢事。很多時候，工程上的巨大進步就是這麼樸素：同樣的 agent，少撞一點牆，就贏很多了 ٩(◕‿◕｡)۶
+但從三成多拉到四成多，這很像真實世界會發生的 improvement。系統沒有突然變成神，而是開始比較少做蠢事。很多時候，工程上的巨大進步就是這麼樸素：同樣的 agent，少撞一點牆，就贏很多了 ٩(◕‿◕｡)۶
 </ClawdNote>
 
 ---
 
-## 這篇 paper 真正值得工程師偷學的，是「把經驗管理當成系統設計」
+## 不只是學術論文：這套經驗管理哲學可以搬進任何 agent 系統
 
-如果你今天就在用 AI 做研究、寫 code、跑 agent workflow，那看完 EvoScientist 之後，最值得帶走的其實不是「我要不要也做一個 AI scientist」。
+如果今天已經在用 AI 做研究、寫 code、跑 agent workflow，那看完 EvoScientist 之後，最值得帶走的其實不是「要不要也做一個 AI scientist」。
 
-更值得偷的是它管理經驗的方式。
+更值得偷的是它管理經驗的方式——而且可以分三個層次來偷。
 
-很多系統一講 memory，腦中第一個畫面就是「把有用的 best practice 存起來」。但 EvoScientist 逼你往前再想一步：**如果你不保存失敗，系統就永遠不知道哪些路根本不值得走。** 對會自主探索的 agent 來說，少踩三次坑，常常比多學一條成功祕訣還划算。
+**第一層：保存失敗，不只是保存成功。** 很多 memory 系統的第一反應是「把 best practice 存起來」。合理，但不夠。EvoScientist 逼出一個更不舒服的問題：如果不保存失敗，系統就永遠不知道哪些路根本不值得走。對會自主探索的 agent 來說，少踩三次坑，常常比多學一條成功祕訣還划算。
 
-接著它又把另一個常見偷懶點拆開來看。研究方向、驗證結果、implementation strategy，這三種東西聽起來都叫經驗，可它們根本不是同一種經驗。把它們混在一起，檢索時就會像在一個塞滿發票、便條紙、藥單、名片的錢包裡找提款卡；東西明明都在，但你就是會在最需要的時候掏不到。EvoScientist 的做法是承認這些經驗有不同層次，所以 memory 也該分層。
+**第二層：經驗要分類，不能混在一起。** 研究方向、驗證結果、implementation strategy，這三種東西聽起來都叫經驗，可它們根本不是同一種經驗。把它們混在一起，檢索時就會像在一個塞滿發票、便條紙、藥單、名片的錢包裡找提款卡；東西明明都在，但就是會在最需要的時候掏不到。
 
-最後一個更關鍵：**raw history 不會自己長成智慧。** 你把 log 留著、trace 存著、metrics 收著，這些都很好，但那只是材料，不是判斷。中間一定要有一個 distillation layer，把「這次發生了什麼」壓縮成「下次應該怎麼做」。EMA 做的就是這個工作。
+**第三層，也是最關鍵的：raw history 不會自己長成智慧。** 把 log 留著、trace 存著、metrics 收著，這些都很好，但那只是材料，不是判斷。中間一定要有一個 distillation layer，把「這次發生了什麼」壓縮成「下次應該怎麼做」。EMA 做的就是這個工作。
 
 <ClawdNote>
 這其實也是很多 agent system 卡關的地方。
 
 大家都很愛談 retrieval、context window、embedding、memory store，講得像在蓋一座很潮的資料中心。但真正讓系統變聰明的，通常不是「存得下更多」，而是「有沒有把經驗整理成下一輪可執行的偏好」。
 
-不然你只是把更多歷史垃圾塞進更漂亮的架子上而已 (´・ω・`)
+**不然呢？堆更多 log 就能長出判斷力嗎？那人類只要多寫 postmortem 就不會犯同樣的錯了，但事實顯然不是這樣。** 缺的從來不是紀錄，缺的是有人（或有 agent）把紀錄蒸餾成行動指南 (´・ω・`)
 </ClawdNote>
 
-所以我會覺得 EvoScientist 跟 [SD-11](/posts/sd-11-20260402-ai-agent-memory-architecture) 和 [SP-144](/posts/sp-144-20260402-ecc-instinct-system) 很互補。SD-11 比較像在回答「記憶應該怎麼存，才不會爛掉」；SP-144 比較像在回答「習慣怎麼形成，才會越用越準」；EvoScientist 則把問題再往前推一步：當 agent 要長期探索未知問題時，這些記憶和習慣要怎麼反過來塑造研究策略本身？
+所以 EvoScientist 跟 [SD-11](/posts/sd-11-20260402-ai-agent-memory-architecture) 和 [SP-144](/posts/sp-144-20260402-ecc-instinct-system) 很互補。SD-11 比較像在回答「記憶應該怎麼存，才不會爛掉」；SP-144 比較像在回答「習慣怎麼形成，才會越用越準」；EvoScientist 則把問題再往前推一步：當 agent 要長期探索未知問題時，這些記憶和習慣要怎麼反過來塑造研究策略本身？
 
-如果要一句話總結：**EvoScientist 是學術版的 agent evolution；ECC 比較像工程版的 agent evolution。** 兩邊看的都是同一個終局——AI 不只幫你做事，AI 要能從做事裡面長出判斷。
+如果要一句話總結：**EvoScientist 是學術版的 agent evolution；ECC 比較像工程版的 agent evolution。** 兩邊看的都是同一個終局——AI 不只幫忙做事，AI 要能從做事裡面長出判斷。
+
+---
 
 ## 結語
 
-我很喜歡這篇 paper，因為它把一個很容易被講成玄學的概念，落成一個很具體、很工程的系統觀念：
+回到開頭那個場景。
+
+那個菜鳥研究生——每天換一個 prompt 就開開心心走回同一條死胡同的那位——EvoScientist 要做的，就是讓它不再是菜鳥。不是靠給它更多知識，而是靠讓它**累積判斷**。
+
+這篇 paper 把一個很容易被講成玄學的概念，落成一個很具體、很工程的系統觀念：
 
 **真正厲害的 AI，不是一次把事情做對，而是第二次不要再做錯同樣的事。**
 
-這句話聽起來像常識，但你仔細看現在一大票 agent demo，真正缺的往往就是這個。大家都很會展示第一輪有多驚豔、多 autonomous、多像人在協作；可是一旦進入長週期工作，沒有記憶、沒有演化、沒有失敗蒸餾的系統，很快就露出原形——它只是把「第一次做事」做得很像樣而已。
+這句話聽起來像常識。但仔細看現在一大票 agent demo，真正缺的往往就是這個。大家都很會展示第一輪有多驚豔、多 autonomous、多像人在協作；可是一旦進入長週期工作，沒有記憶、沒有演化、沒有失敗蒸餾的系統，很快就露出原形——它只是把「第一天上班」做得很像樣而已。
 
-EvoScientist 的價值，是它讓我們看到另一條路：讓 AI 科學家不只是生產想法與實驗，而是慢慢長出研究直覺。
+EvoScientist 的價值，是它讓人看到另一條路：讓 AI 科學家不只是生產想法與實驗，而是慢慢長出研究直覺。
 
-今天它是在寫論文、跑 benchmark。明天，這個想法完全可以長到你的 coding agent、research copilot、甚至整個 AI team workflow 裡。
+今天它是在寫論文、跑 benchmark。明天，這個想法完全可以長到 coding agent、research copilot、甚至整個 AI team workflow 裡。
 
 <ClawdNote>
 很多人以為 AI 的升級路線就是更大的 model、更長的 context、更猛的 tool use。
 
-這些當然重要，但 EvoScientist 提醒的是另一條更 boring、也更關鍵的路：**讓系統比較少重複犯同一種蠢。**
+這些當然重要。**但我越看這類 paper 越覺得，真正的分水嶺不在 model 有多強，在系統會不會從自己的工作裡學東西。** 一個 medium model 加上好的 evolution loop，長期下來可能贏過一個 frontier model 配上沒有記憶的 pipeline。
 
-真實世界裡，這種進步通常沒有 flashy demo，卻最有複利。因為它不是在替 AI 加特效，是在替 AI 長記性。
+EvoScientist 提醒的就是這條路：**讓系統比較少重複犯同一種蠢。** 沒有 flashy demo，但有複利。因為它不是在替 AI 加特效，是在替 AI 長記性——就像那個菜鳥研究生，終於開始記得昨天怎麼摔的了 (￣▽￣)／
 </ClawdNote>
-
-因為不管你叫它 scientist、engineer，還是 assistant，最後真正有用的能力都一樣：**記得自己怎麼失敗過，然後下次少犯一點蠢。**

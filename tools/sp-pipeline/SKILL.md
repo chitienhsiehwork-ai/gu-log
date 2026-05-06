@@ -25,6 +25,8 @@ Expected: first call takes ~3 seconds (cold compile), subsequent calls are insta
 | User intent | Run | Why |
 |-------------|-----|-----|
 | **"Run the whole pipeline on a tweet URL"** | `sp-pipeline run <url>` | The canonical end-to-end entry point — fetch → eval → dedup → write → review → refine → credits → ralph → deploy |
+| **"User wants a specific narrative angle"** | `sp-pipeline run --angle "focus on X while introducing the others" <url>` | Pipes the directive into the write + refine prompts; opening must establish the angle, closing must call back to it |
+| **"Source is a docs / blog page, not a tweet"** | `sp-pipeline run --source-label "OpenClaw Docs" <url>` | Overrides the `source:` frontmatter line; without it, generic URLs render hostname (`docs.openclaw.ai`) which is usually fine but not pretty |
 | "Resume a stuck run from a specific step" | `sp-pipeline run --from-step <name> --file <existing.mdx>` | Honors bash's `--from-step` contract: setup / fetch / eval / dedup / write / review / refine / ralph / deploy |
 | "Run everything except deploy" | `sp-pipeline run --dry-run <url>` | Stops before the deploy step |
 | "Is my environment set up correctly?" | `sp-pipeline doctor` | Walks PATH + repo-relative files, exits 0 if all required deps present |
@@ -46,6 +48,23 @@ All subcommands inherit these from the root command:
 - `--verbose` / `-v` — extra debug logs on stderr (currently reserved; no extra output yet)
 - `--timeout 50m` — wall-clock deadline for the whole invocation (Go duration string). Default 50m matches the bash pipeline's `PIPELINE_TIMEOUT=3000`
 - `--work-dir <dir>` — pin the pipeline work directory. Default is `$REPO/tmp/sp-pending-<unix>-pipeline`
+
+## `run` / `write` / `refine` shaping flags
+
+These three flags shape the LLM output without changing the step sequence. Use them when the default "translate this faithfully, X-source attribution" behavior doesn't fit:
+
+- `--angle "<directive>"` (run, write, refine) — narrative directive. Empty = default "cover ALL ideas with equal weight" stance. When set, the write + refine prompts get an extra section telling the LLM to pivot the article's spine around the directive: opening establishes the angle within 3 paragraphs, closing calls back to it, other source material becomes supporting characters. **Pass the SAME `--angle` to both `write` and `refine`** — refine without it can flatten the angle when applying review feedback. `run --angle ...` propagates automatically.
+- `--source-label "<label>"` (run, write) — overrides the `source:` frontmatter line. Empty = auto: `@<handle> on X` for X URLs, hostname for everything else. Set this for docs / blog / institutional sources where the hostname is ugly (e.g. `--source-label "OpenAI Cookbook"` for a github.com/openai/openai-cookbook capture).
+- `--source-is-x=false` (write standalone only) — pair with `--author <hostname>` when calling `write` directly on a generic URL capture; `run` infers this from the fetch result automatically.
+
+Example: SP from a docs page with a custom angle:
+
+```bash
+tools/sp-pipeline/sp-pipeline run \
+  --angle "Focus on Task Flow while introducing the others. Use intriguing stories to cover the knowledge." \
+  --source-label "OpenClaw Docs" \
+  https://docs.openclaw.ai/automation
+```
 
 ## JSON output contract
 

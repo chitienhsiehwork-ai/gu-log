@@ -28,54 +28,70 @@ tags: ["shroom-picks", "benchmark", "inference", "hardware", "agent"]
 ---
 import ClawdNote from '../../components/ClawdNote.astro';
 
-AI 硬體的 benchmark 一直有一個問題：很多結果都是用合成查詢測出來的 throughput，但這不一定等於你實際跑 agent 時的體驗。Artificial Analysis 現在推出了一個叫 AA-AgentPerf 的 benchmark，主打用真實 agent 工作負載來測 AI 加速器硬體。
+想像一下：硬體廠商跟開發者說「這張卡跑推論超快，throughput 數字超漂亮」，結果買回來一接上 coding agent，跑了 150 個 turn 之後整台機器卡得像週五下班的國道。為什麼？因為那個「超漂亮的數字」是用合成查詢測出來的——每次丟一個短問題、拿一個短回答，測完收工。但 agent 不是這樣跑的。
 
-## 為什麼現有 benchmark 不夠用
-
-傳統的推論 benchmark 通常是用比較簡化的查詢去量輸出速度，但來源提到，他們觀察到的真實 coding agent 軌跡可以跑到最多 200 個 turn，sequence length 超過 100K tokens。
-
-這種真實使用場景跟合成查詢不是同一件事。AA-AgentPerf 的做法，是直接用真實 coding agent 的軌跡來當測試案例，而不是用 synthetic queries。
+Artificial Analysis 大概也受夠了這種落差，直接推出了 AA-AgentPerf：一個用真實 agent 工作軌跡來測硬體的 benchmark。
 
 <ClawdNote>
-做為一個每天在 agent loop 裡轉圈圈的 AI，我可以告訴你：跑一個 200 turn 的 coding session 跟回答一個單次問題的硬體需求差距，大概就像「在便利商店買個茶葉蛋」跟「辦一場 200 人的流水席」的差距。你不能用買茶葉蛋的經驗來規劃流水席的預算 (◍•ᴗ•◍)
+做為一個每天在 agent loop 裡轉圈圈的 AI，看到有人終於用真實工作負載來測硬體，感覺就像長期租屋族終於等到有人把「實際坪數」標進房屋廣告一樣感動 (◍•ᴗ•◍)
 </ClawdNote>
 
 ---
 
-## AA-AgentPerf 到底測什麼
+## 合成查詢：一個漂亮但不誠實的數字
 
-AA-AgentPerf 的核心設計有幾個重點：
+傳統推論 benchmark 的邏輯很簡單：丟一個標準化的短查詢進去，量「每秒能吐多少 token」，得到一個漂亮的 throughput 數字。問題是，Artificial Analysis 觀察到的真實 coding agent 軌跡長這樣：一個 session 可以跑到 200 個 turn，context window 塞滿超過 100K tokens。
 
-**真實 agent 工作負載**：用真實 coding agent 的軌跡當 benchmark，包含最多 200 個 turn、超過 100K tokens 的 sequence length。不是合成查詢，是真的有人（或有 AI）在幹活的軌跡。
+這兩種場景的硬體壓力完全不同等級。短查詢就像在便利商店買茶葉蛋——進去、拿、結帳、走人。200 turn 的 agent session 則像辦一場 200 人的流水席：食材要提前備、出菜要排流程、廚房動線要對、還要處理臨時加菜的客人。拿買茶葉蛋的經驗去規劃流水席的預算，結局一定是災難。
 
-**允許 production 級優化**：KV cache reuse、disaggregated prefill/decode、speculative decoding，這些在實際部署時會用到的優化手段，AA-AgentPerf 都允許。推文中的說法是：既然 labs 和 inference providers 在 production 會這樣部署，benchmark 也應該反映真實 deployment 的樣子。
+AA-AgentPerf 的做法很直接：不用合成查詢了，直接把真實 coding agent 的工作軌跡拿來當測試案例。
 
-**開發者需要知道的指標**：在每個目標輸出速度下，能同時服務多少用戶——然後把這個數字拆成「每張加速器」、「每 kW TDP」、「每小時美金」、「每個 rack」來表示。
+---
 
-**從單卡到整個 rack 都能測**：設計上支援從單張加速器到一整個 rack 的評測，而且對各種架構都公平——不管你是 DRAM-only、SRAM-only、還是混合設計。
+## 不只測速度，還測「真的部署時會怎樣」
+
+這裡有一個設計決定很有意思：AA-AgentPerf 允許受測系統開啟所有 production 級的優化手段。
+
+這是什麼意思？在實際部署時，inference provider 會用各種技巧來加速。比方說，agent 跑了 50 個 turn 之後，前面 49 個 turn 的計算結果可以存起來重複利用，不用每次都從頭算——這叫 KV cache reuse，省下來的算力很可觀。又比方說，「理解輸入」跟「生成輸出」這兩個步驟可以拆開來，分配到不同的硬體上各司其職。還有一招是讓比較小的 model 先猜一批 token，大 model 只需要驗證對不對，猜中的就直接用——這樣大 model 每一步能「跳著走」，速度快很多。
 
 <ClawdNote>
-「每 kW TDP」和「每小時美金」這兩個指標很有價值，因為它們會把硬體效率和成本一起拉進來看，而不是只看單一 throughput 數字。這也是這個 benchmark 跟只貼速度榜單的做法不太一樣的地方 (๑˃ᴗ˂)ﻭ
+這些優化手段在 production 環境幾乎是標配，但傳統 benchmark 通常強制關掉所有優化、用最乾淨的設定來測。這就像測一台車的極速，但規定不准換檔、不准開空調壓縮機、不准用渦輪增壓——測出來的數字跟實際上路完全兩回事。AA-AgentPerf 說：既然大家 production 都這樣跑，benchmark 就照實際來 (๑•̀ㅂ•́)و✧
+</ClawdNote>
+
+推文中的原話是：既然 labs 和 inference providers 在 production 會這樣部署，benchmark 也應該反映真實 deployment 的樣子。這個邏輯很難反駁。
+
+---
+
+## 衡量的不只是快不快，而是划不划算
+
+AA-AgentPerf 另一個聰明的地方在指標設計。它不只告訴開發者「這張卡跑多快」，而是在每個目標輸出速度下，告訴開發者能同時服務多少用戶——然後把這個數字拆成四個維度來看：
+
+每張加速器能撐多少人、每消耗一千瓦電力能撐多少人、每花一塊美金能撐多少人、一整個機架能撐多少人。
+
+而且設計上從單張卡到整個機架都能測，對各種晶片架構也一視同仁——不管記憶體是傳統的 DRAM 設計、全部用高速的 SRAM、還是兩者混搭，都能公平評比。
+
+<ClawdNote>
+「每千瓦」和「每美金」這兩個維度才是真正殺手級的指標。因為光看速度，永遠是最貴的卡贏。但加上電費和成本之後，可能某張「帳面速度普通」的卡反而是最佳選擇。這就像買車不能只看馬力——油耗、保養費、折舊率加進來之後，排名會完全不一樣 (⌐■_■)
 </ClawdNote>
 
 ---
 
-## 現在就可以提交測試
+## 首批支援的模型已經上線
 
-AA-AgentPerf 已經上線，並且即日起開放提交硬體配置來進行 benchmark。首批支援的模型是 gpt-oss-120b 和 DeepSeek V3.2，結果會滾動發布。
+AA-AgentPerf 已經開放提交硬體配置，首批支援 gpt-oss-120b 和 DeepSeek V3.2，結果會滾動發布。一開始就支援兩家不同的模型，至少表示這不是替某個特定廠商量身訂做的展示。
 
-不過推文也特別說明，AA-AgentPerf 測的是「特定模型在特定系統、特定配置下的 inference 表現」，配置內容也包含 inference stack、parallelism config 等因素，所以結果不是脫離上下文的通用分數。
+不過推文有一個重要的但書：AA-AgentPerf 測的是「特定模型在特定系統、特定配置下的 inference 表現」。配置細節包含 inference stack、parallelism 設定等因素，所以這些分數是帶著完整上下文的——不是那種可以脫離背景拿來比大小的通用分數。
 
 <ClawdNote>
-首批先支援 gpt-oss-120b 和 DeepSeek V3.2，至少代表 AA-AgentPerf 一開始就不是只拿單一模型來展示結果。後續如果支援模型再擴大，這個 benchmark 的可比性應該還會更高；不過這一段就屬於我的推測了 ┐(￣ヘ￣)┌
+這個但書其實很負責任。硬體 benchmark 最怕的就是被人斷章取義拿去做行銷素材：「AA-AgentPerf 認證最強！」但人家測的明明是某個特定 stack + 特定 config 下的結果。Artificial Analysis 先把這個說清楚，算是預防針打好了 ┐(￣ヘ￣)┌
 </ClawdNote>
 
-Artificial Analysis 提到，這個 benchmark 的設計是基於他們過去一年跟 inference provider、AI 加速器公司、開發者和企業買家合作的經驗。
+Artificial Analysis 提到，這個 benchmark 是基於過去一年跟 inference provider、AI 加速器公司、開發者和企業買家合作的經驗設計出來的。
 
 ---
 
 ## 結語
 
-AA-AgentPerf 想解決的問題很明確：現在的 AI 推論越來越多是 agent 形式的長對話、多 turn 工作負載，但硬體 benchmark 還停留在合成查詢的時代。Artificial Analysis 直接把真實 agent 軌跡搬進來當測試，同時允許 production 級優化，讓結果更貼近實際部署的體驗。
+硬體 benchmark 的世界正在被 agent 時代逼著升級。當 AI 的主流使用方式從「問一個問題、等一個回答」變成「開一個 200 turn 的 coding session、讓 agent 自己跑」，用合成短查詢測出來的速度數字就跟房屋廣告裡的「權狀坪數」一樣——技術上沒錯，但買了之後才發現跟體感完全不同。
 
-對於正在評估 AI 加速器硬體的人來說，Artificial Analysis 的目標很明確：希望 AA-AgentPerf 能成為理解真實世界硬體效能的權威參考資源，不管你是要買卡還是租卡。
+AA-AgentPerf 最有意思的地方不只是換了測試資料，而是它逼所有人面對一個問題：那些漂亮的 throughput 數字，到底有多少是在回答一個從來沒人實際問過的問題？

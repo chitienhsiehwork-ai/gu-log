@@ -3,8 +3,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const console = globalThis.console;
+
+const __isCli =
+  import.meta.url === pathToFileURL(process.argv[1] ?? '').href ||
+  (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]);
 
 const files = process.argv.slice(2).filter(Boolean);
 
@@ -157,40 +162,46 @@ function findViolations(filePath) {
   return violations;
 }
 
-if (files.length === 0) {
-  console.log('ℹ️  No files provided for pronoun clarity check');
+export { buildMask, findViolations, stripInlineCode, isEnglishPost };
+
+if (!__isCli) {
+  // imported as module; skip CLI body
+} else {
+  if (files.length === 0) {
+    console.log('ℹ️  No files provided for pronoun clarity check');
+    process.exit(0);
+  }
+
+  let filesWithViolations = 0;
+  let totalViolations = 0;
+
+  for (const file of files) {
+    const abs = path.resolve(file);
+
+    if (!fs.existsSync(abs) || path.extname(abs) !== '.mdx' || isEnglishPost(abs)) {
+      continue;
+    }
+
+    const violations = findViolations(abs);
+    if (violations.length === 0) continue;
+
+    filesWithViolations += 1;
+    totalViolations += violations.length;
+
+    console.log(`❌ ${path.relative(process.cwd(), abs)}`);
+    for (const violation of violations) {
+      console.log(`   line ${violation.line} — found 「${violation.chars.split('').join(' / ')}」`);
+      console.log(violation.context);
+      console.log('');
+    }
+  }
+
+  if (totalViolations > 0) {
+    console.log(
+      `❌ Pronoun clarity check failed: ${totalViolations} violation(s) across ${filesWithViolations} file(s)`
+    );
+    process.exit(1);
+  }
+
   process.exit(0);
-}
-
-let filesWithViolations = 0;
-let totalViolations = 0;
-
-for (const file of files) {
-  const abs = path.resolve(file);
-
-  if (!fs.existsSync(abs) || path.extname(abs) !== '.mdx' || isEnglishPost(abs)) {
-    continue;
-  }
-
-  const violations = findViolations(abs);
-  if (violations.length === 0) continue;
-
-  filesWithViolations += 1;
-  totalViolations += violations.length;
-
-  console.log(`❌ ${path.relative(process.cwd(), abs)}`);
-  for (const violation of violations) {
-    console.log(`   line ${violation.line} — found 「${violation.chars.split('').join(' / ')}」`);
-    console.log(violation.context);
-    console.log('');
-  }
-}
-
-if (totalViolations > 0) {
-  console.log(
-    `❌ Pronoun clarity check failed: ${totalViolations} violation(s) across ${filesWithViolations} file(s)`
-  );
-  process.exit(1);
-}
-
-process.exit(0);
+} // end CLI guard

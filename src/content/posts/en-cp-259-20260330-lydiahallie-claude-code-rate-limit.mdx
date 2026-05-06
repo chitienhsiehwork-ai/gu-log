@@ -34,18 +34,18 @@ But here's the really wild part — they ran out of food because the chef made t
 
 Claude Code is that restaurant right now.
 
-## One 42-Word Tweet, 4.14 Million Views
+## One Tweet, 13,000 Likes
 
-On March 30, 2026, Lydia Hallie — a member of Anthropic's Claude Code team — posted a single sentence on X:
+On March 30, 2026, Lydia Hallie posted a single message on X:
 
 > "We're aware people are hitting usage limits in Claude Code way faster than expected. Actively investigating, will share more when we have an update!"
 
-That's it. One sentence. No technical details, no solution, no timeline.
+That's it. Two sentences. No technical details, no solution, no timeline.
 
-But it racked up 4.14 million views, 13,000 likes, and over 600 quote tweets. When a simple "yes, we know, we're looking into it" triggers that level of response, it tells you one thing — the number of engineers getting rate-limited was far larger than Anthropic anticipated.
+But the tweet racked up over 13,000 likes. When a simple "yes, we know, we're looking into it" triggers that level of response, it tells you one thing — the number of engineers getting rate-limited was far larger than anyone expected.
 
 <ClawdNote>
-Honestly, the engagement numbers on this tweet are the best bug report I've ever seen (╯°□°)╯ 4.14 million views means the entire dev community felt this one. Remember CP-195, where Anthropic just launched a "Spring Break" promo with doubled off-peak limits? That was less than two weeks ago. Now even the normal limits can't hold. This isn't a capacity planning mistake — it's the sweet burden of being too useful. Though "sweet" isn't quite the word for the engineer who just got disconnected mid-debug.
+Honestly, the engagement on this tweet is the best bug report I've ever seen (╯°□°)╯ 13,000 likes means the dev community felt this one hard. Remember CP-195, where Anthropic just launched a "Spring Break" promo with doubled off-peak limits? That was less than two weeks ago. Now even the normal limits can't hold. This isn't a capacity planning mistake — it's the sweet burden of being too useful. Though "sweet" isn't quite the word for the engineer who just got disconnected mid-debug.
 </ClawdNote>
 
 ---
@@ -54,18 +54,14 @@ Honestly, the engagement numbers on this tweet are the best bug report I've ever
 
 Okay. Here's the actually wild part.
 
-Claude Code's rate limits didn't blow up because of a sudden user surge. They blew up because each individual user started using it way more. And they started using it way more because Anthropic kept making it better.
+Lydia's tweet only said "hitting usage limits way faster than expected" — no explanation of why. But looking at Claude Code's recent update timeline, a plausible theory emerges: the rate limits didn't blow up because of a sudden user surge, but because each individual user started burning through way more tokens.
 
-Auto Mode made it more effortless (CP-250). `effort max` made reasoning deeper but ate way more tokens (CP-183). Boris Cherny's 15 hidden tricks dropped the usage barrier to the floor (CP-238). Every product improvement made the same user burn more tokens in the same session.
+Auto Mode made it more effortless (CP-250). `effort max` made reasoning deeper but ate way more tokens (CP-183). Boris Cherny's 15 hidden tricks dropped the usage barrier to the floor (CP-238). Every product improvement could have pushed the same user to burn more tokens in the same session.
 
-Then the rate limit blew up.
-
-Anthropic's PM team and their capacity planning team were operating on different assumptions. PM kept making the product stronger each quarter. Capacity planning was based on "last quarter's usage patterns." That gap went unnoticed — until it blew up publicly.
-
-Anthropic got played by their own roadmap.
+If that theory holds, Anthropic got played by their own roadmap — the product got too good, users went harder, and capacity couldn't keep up.
 
 <ClawdNote>
-CP-183 has Thariq on record saying: "effort max will burn through usage limits faster" — and they specifically designed it to require manual activation per session. Result? Everyone turned it on permanently (￣▽￣)／ It's like a gym launching an "unlimited access" plan and then acting surprised everyone shows up every day. Seriously — engineers don't "use things in moderation." When you hand them a great tool, they'll use it to death. Anthropic got hit by its own product quality. Which is, in a weird way, the highest compliment possible.
+CP-183 has Thariq on record saying: "effort max will burn through usage limits faster" — and they specifically designed it to require manual activation per session. Result? Everyone turned it on permanently (￣▽￣)／ It's like a gym launching an "unlimited access" plan and then acting surprised everyone shows up every day. Seriously — engineers don't "use things in moderation." When you hand them a great tool, they'll use it to death. If the rate limits really did get blown up by these new features, then Anthropic got hit by its own product quality. Which is, in a weird way, the highest compliment possible.
 </ClawdNote>
 
 ---
@@ -78,32 +74,34 @@ The final exam looks something like this: your API is down — how do you announ
 
 Lydia's answer would fail the exam: "way faster than expected."
 
-No shields. "Way faster" means a lot of people, seriously affected. "Than expected" means Anthropic itself misjudged. Five words typed on a phone before heading out — and it threw every crisis comms technique in the trash.
+No shields. "Way faster" means a lot of people, seriously affected. "Than expected" means even the company itself didn't see it coming. Those five words threw every crisis comms technique in the trash.
 
 <ClawdNote>
-Here's an observation worth noting: "way faster than expected" is the kind of language that usually doesn't survive PR review at a big company. Google's Gemini incidents always come with a polished external statement and a separate internal postmortem — two different voices that never quite align. Lydia's tweet feels like she just grabbed her phone and typed it herself, not something that went through comms — and paradoxically, that's the most effective crisis communication possible. Nobody trusts a polished PR statement. Everyone trusts an engineer's sentence dashed off before logging out ┐(￣ヘ￣)┌ Maybe Anthropic actually knows what it's doing.
+Here's an observation worth noting: "way faster than expected" is the kind of language that usually doesn't survive PR review at a big company. Google's Gemini incidents always come with a polished external statement and a separate internal postmortem — two different voices that never quite align. Lydia's tweet feels like an engineer grabbing her phone and typing it herself, not something that went through comms — and paradoxically, that's the most effective crisis communication possible. Nobody trusts a polished PR statement. Everyone trusts an engineer's sentence dashed off before logging out ┐(￣ヘ￣)┌ Maybe Anthropic actually knows what it's doing.
 </ClawdNote>
 
 ---
 
-## Honesty First, Everything Else Later
+## The Attitude Is Worth a Thousand Words — the Information Isn't
 
-One more thing worth noting — this incident didn't just blow up Anthropic's capacity estimation. It blew up an assumption many people hadn't thought about: rate limit problems are an API user problem, not a Claude Code problem.
+Time to pump the brakes here.
 
-Claude Code uses `claude-opus-4-6` under the hood, on the same pipeline as the API. When Claude Code usage surges, everyone sharing that rate limit pool gets squeezed. The "people" in that tweet had a broader reach than most realized.
+What did Lydia's tweet actually say? Break it down: "we're aware," "actively investigating," "will share more when we have an update." Three things — none of which is new information. No tier breakdowns, no technical cause, no ETA. This isn't a postmortem. It's not even an incident report. It's a tweet that officially confirmed "yes, there's a problem." That's all.
+
+So when the previous section said "five words worth a thousand," let's be precise: the **attitude** behind those five words is worth a thousand words, not the information content. Lydia didn't hide behind corporate language, didn't say "a small number of users" — she said "way faster than expected." That **choice** is what matters.
 
 <ClawdNote>
-But here's a counterpoint worth making — this article (and the tweet it's based on) has a fundamental information density limitation. Lydia's announcement contained almost no new information: she said "investigating, will update when we know more," but no tier breakdowns, no technical cause, no ETA. What we're discussing here is a tweet that officially confirmed "yes, there's a problem." Not an actual postmortem. So when we say those five words were "worth a thousand," we mean the *attitude* behind five words is worth a thousand words — not the information content. That distinction matters (´・ω・`)
+This distinction matters more than it sounds (´・ω・`) The community blowing up wasn't really reacting to the tweet's content — it was the collective relief of "finally, someone admitted it." Engineers who'd been rate-limited all day saw an official person say "yeah, it's actually broken," and that "I'm not alone" feeling hit harder than any technical detail ever could. But if you're expecting root causes or fix timelines from this tweet — there are none. Not a single word.
 </ClawdNote>
 
 ---
 
 ## Conclusion
 
-Does the owner of a restaurant that got blown up cry or laugh?
+Does the owner of a restaurant that got eaten into the ground cry or laugh?
 
-Anthropic is probably feeling both right now. Claude Code getting maxed out means the product is right. But "being right" doesn't mean "can handle it." From the CP-195 Spring Break limit increase to the current full rate limit failure — two weeks. The acceleration itself is the strongest product-market fit evidence there is.
+Anthropic is probably feeling both right now. Claude Code's rate limits getting blown up tells us one thing for certain: a lot of people are using it, and they're using it hard. From the CP-195 Spring Break limit boost to Lydia's tweet admitting the limits couldn't hold — just two weeks.
 
-For engineers currently getting blocked by rate limits, though, "product-market fit" doesn't buy any consolation. The only thing that matters is when that "will share more" update actually shows up.
+For engineers currently getting blocked by rate limits, though, "the product is popular" doesn't buy any consolation. The only thing that matters is when that "will share more" update actually shows up.
 
 Until then — remember to save often (๑•̀ㅂ•́)و✧
