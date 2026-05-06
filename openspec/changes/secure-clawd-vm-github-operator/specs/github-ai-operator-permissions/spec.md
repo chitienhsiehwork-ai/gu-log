@@ -13,13 +13,14 @@ Iris / Clawd 的 broad GitHub operator credentials SHALL 只作用在 dedicated 
 
 ### Requirement: gu-log token SHALL 是 selected-repository 且 least-privilege
 
-任何放在 clawd-vm 上、用於 gu-log automation 的 GitHub token，SHALL 只 scope 到 gu-log repository，並且 SHALL 只包含 branch、commit、PR、status、check inspection workflow 所需權限。
+任何放在 clawd-vm 上、用於 gu-log automation 的 GitHub token，SHALL 預設只 scope 到 gu-log repository；若額外 selected repository 是同一 gu-log operating lane 的必要範圍，MUST 有 explicit human approval 與 evidence 記錄。該 token SHALL 只包含 branch、commit、PR、status、check inspection workflow 所需權限。
 
 #### Scenario: 為 gu-log 建立 token
 
 - **WHEN** operator 為 gu-log automation 建立 GitHub token
 - **THEN** 該 token SHALL selected-repository scoped 到 gu-log
 - **AND** 該 token SHALL NOT 包含 unrelated repositories
+- **AND** 若包含 `gu-log-api` 等額外 selected repository，該 scope expansion SHALL 記錄 explicit human approval 與理由
 - **AND** 該 token SHALL 至多包含 Contents write、Pull requests write、Issues write、Metadata read，以及必要的 Actions/checks read
 
 ### Requirement: gu-log token SHALL NOT 包含 destructive repository administration

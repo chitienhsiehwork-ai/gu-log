@@ -2,12 +2,12 @@
 
 ### Requirement: Machine-specific operational memory SHALL 是 local-only
 
-mac-cdx 與 clawd-vm 的 machine-specific facts SHALL 存在 local-only ignored file，而不是 public project docs。
+mac-cdx 與 clawd-vm 的 machine-specific facts SHALL 存在 local machine note；若 dotfiles 提供 bootstrap copy，內容 MUST secret-free，且不得把 token value 或 private key 寫進 public project docs。
 
 #### Scenario: Record clawd-vm roles
 
 - **WHEN** operator 記錄 clawd-vm hosts Clawd and Iris
-- **THEN** 該 record SHALL 存在 local-only machine note
+- **THEN** 該 record SHALL 存在 local machine note
 - **AND** 該 record SHALL NOT 被 commit 到 gu-log public docs
 
 ### Requirement: Machine memory SHALL NOT contain secrets

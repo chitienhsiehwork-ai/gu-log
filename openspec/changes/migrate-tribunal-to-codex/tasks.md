@@ -41,7 +41,13 @@
 - [x] 5.6 執行 no-token Tribunal safety contract checks
 
 Notes:
+- Detailed evidence now lives next to each spec:
+  - `specs/codex-tribunal-runtime/evidence/2026-05-07-runtime-boundary-and-safety.md`
+  - `specs/codex-exec-writing-runtime/evidence/2026-05-07-sp-pipeline-tests.md`
+  - `specs/librarian-crossref-evidence/evidence/2026-05-07-andrej-librarian-packet.md`
+  - `specs/glossary-identity-ssot/evidence/2026-05-07-people-glossary.md`
 - 已執行 `scripts/tribunal-librarian-packet.py /Users/shroom/gu-log/tmp/andrej-youtube-fetch/draft-v1.mdx`，並為 Karpathy / Software 3.0 / Agentic Engineering 產出 old-post overlap evidence。完整 `tribunal.sh --only-stage librarian` LLM smoke 仍未勾選，避免在沒有 deliberate smoke fixture 的情況下 mutate real post。
+- 已執行 `GOCACHE=/Users/shroom/gu-log/tmp/go-build-cache go test ./...` in `tools/sp-pipeline`，確認 deterministic SP pipeline tests pass。
 - Full LLM tribunal / sp-pipeline smoke tests 仍未勾選，因為它們會花 live GPT-5.5 credits，且可能 mutate post frontmatter。
 - 2026-05-06：mac-cdx 嘗試用從 `tmp/andrej-youtube-fetch/draft-v1.mdx` 複製出的 temporary fixture 執行 live `scripts/tribunal.sh --only-stage librarian sp-smoke-andrej-codex.mdx` smoke。該執行被 sandbox approval reviewer 拒絕，原因是會將 local draft/repo content 送到 external GPT-5.5/Codex service，並 mutate repo/progress state。依 security policy，不要用 indirect execution bypass。temporary fixture 已移除。
 - 2026-05-06 19:00+08：mac-cdx 在 10-hour gap 後重新檢查 clawd-vm。VM 有新的 `codex/tribunal-v4-safety-hardening` branch，且 `main` 因 SP-190/counter commits ahead。已在本機 reconcile 該 branch 的 useful safety controls：`--score-only`、`--allow-rewrite`、non-mutating `vibe-scorer.sh`、invalid-JSON fail-fast、Codex idle watchdog、no hook-bypass flags、預設 no direct main push，以及 static `scripts/tests/test-tribunal-safety-contract.sh`。未將 VM 的 Opus/Claude metadata changes 套到 `.claude/agents/*.md`；Codex/GPT-5.5 runtime 現在由 `.codex/agents/*.toml` 與 `scripts/tribunal.sh` 表示。

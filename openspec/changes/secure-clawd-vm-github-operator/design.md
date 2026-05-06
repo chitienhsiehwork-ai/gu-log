@@ -73,10 +73,10 @@
 
 ### 4. Machine memory 必須 local-only 且 secret-free
 
-**Decision:** machine-specific facts 放在 local-only dotfile，例如 `codex/machine.md.local`，並由 `~/.codex/AGENTS.md` link 到該檔。它記錄 host names、roles、safety policy，但不記錄 secrets。
+**Decision:** machine-specific facts 放在 `~/.codex/machine.md`。dotfiles MAY 提供 secret-free bootstrap copy（例如 `codex/machine.md`），但 live token values、private keys、recovery codes 一律不得寫入該檔或 repo docs。`~/.codex/AGENTS.md` SHALL 指向這份 machine note。
 
-**Rejected alternative:** 將 VM details 與 token notes 直接放進 repo docs。
-**Reason:** machine facts 對這台 Mac 有用，但不該變成 project-wide public docs。
+**Rejected alternative:** 將 VM details、token values、或 private key notes 直接放進 gu-log repo docs。
+**Reason:** machine facts 對這台 Mac 有用，但不該變成 project-wide public docs；secret-free policy 可以進 dotfiles bootstrap，secret value 永遠不行。
 
 ## Risks / Trade-offs
 
@@ -88,7 +88,7 @@
 ## Migration Plan
 
 1. 先 create/update OpenSpec artifacts。
-2. 在獨立 implementation step 新增 local-only machine note 與 `~/.codex/AGENTS.md` pointer。
+2. 在獨立 implementation step 新增或更新 secret-free machine note 與 `~/.codex/AGENTS.md` pointer。
 3. Create 或 confirm AI lab org，例如 `shroomdog-ai-lab`。
 4. 依此 policy 手動 create 或 refresh GitHub tokens。
 5. 從 GitHub UI 或可信任的 human admin context 設定 gu-log branch protection/rulesets。
