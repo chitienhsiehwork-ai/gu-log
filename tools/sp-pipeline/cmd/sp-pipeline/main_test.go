@@ -83,7 +83,7 @@ func TestBuildRoot_HasAllSubcommands(t *testing.T) {
 	resetGlobals()
 	root := buildRoot()
 	want := []string{
-		"doctor", "fetch", "counter", "dedup", "eval",
+		"doctor", "fetch", "status", "counter", "dedup", "eval",
 		"write", "review", "refine", "credits", "ralph",
 		"deploy", "run",
 	}

@@ -200,6 +200,9 @@ func TestRun_HappyPath(t *testing.T) {
 	if !s.RalphPassed {
 		t.Errorf("RalphPassed should be true")
 	}
+	if _, err := os.Stat(filepath.Join(s.WorkDir, "pipeline-status.json")); err != nil {
+		t.Errorf("pipeline-status.json missing: %v", err)
+	}
 
 	// Summary output.
 	var buf bytes.Buffer

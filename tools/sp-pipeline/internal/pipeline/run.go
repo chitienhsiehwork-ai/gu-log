@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/observability"
 )
 
 // SetupWorkDir populates s.WorkDir with an absolute path (creating the
@@ -59,6 +61,9 @@ func Run(ctx context.Context, s *State) error {
 		name string
 		fn   func(context.Context) error
 	}
+	if s.Cfg != nil {
+		writeSnapshotBestEffort(s, "setup", "", "running", "")
+	}
 	steps := []step{
 		{"fetch", s.Fetch},
 		{"eval", s.Eval},
@@ -70,17 +75,46 @@ func Run(ctx context.Context, s *State) error {
 		{"ralph", s.Ralph},
 		{"deploy", s.Deploy},
 	}
+	lastCompleted := ""
 	for _, st := range steps {
+		writeSnapshotBestEffort(s, st.name, lastCompleted, "running", "")
 		start := time.Now()
 		if err := st.fn(ctx); err != nil {
+			writeSnapshotBestEffort(s, st.name, lastCompleted, "failed", err.Error())
 			return err
 		}
 		if s.Timings == nil {
 			s.Timings = map[string]int{}
 		}
 		s.Timings[st.name] = int(time.Since(start).Seconds())
+		lastCompleted = st.name
+		writeSnapshotBestEffort(s, st.name, lastCompleted, "running", "")
 	}
+	writeSnapshotBestEffort(s, lastCompleted, lastCompleted, "completed", "")
 	return nil
+}
+
+func writeSnapshotBestEffort(s *State, currentStep, lastCompleted, runState, errText string) {
+	if s == nil || s.Cfg == nil || s.WorkDir == "" {
+		return
+	}
+	if err := observability.WriteSnapshot(s.Cfg, observability.SnapshotInput{
+		WorkDir:           s.WorkDir,
+		RepoRoot:          s.Cfg.RepoRoot,
+		Prefix:            s.Prefix,
+		TweetURL:          s.TweetURL,
+		TicketID:          s.PromptTicketID,
+		CurrentStep:       currentStep,
+		LastCompletedStep: lastCompleted,
+		RunState:          runState,
+		ActiveFilename:    s.ActiveFilename,
+		ActiveENFilename:  s.ActiveENFilename,
+		Filename:          s.Filename,
+		ENFilename:        s.ENFilename,
+		Error:             errText,
+	}); err != nil && s.Log != nil {
+		s.Log.Warn("observability snapshot failed: %v", err)
+	}
 }
 
 // PrintSummary writes a human-readable pipeline summary to w, matching

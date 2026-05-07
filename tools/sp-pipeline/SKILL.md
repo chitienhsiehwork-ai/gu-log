@@ -25,6 +25,7 @@ Expected: first call takes ~3 seconds (cold compile), subsequent calls are insta
 | User intent | Run | Why |
 |-------------|-----|-----|
 | **"Run the whole pipeline on a tweet URL"** | `sp-pipeline run <url>` | The canonical end-to-end entry point — fetch → eval → dedup → write → review → refine → credits → ralph → deploy |
+| **"Any progress?" / "What step is stuck?"** | `sp-pipeline status <work-dir>` | Reads `pipeline-status.json`, work-dir artifacts, tribunal progress, and git diff to answer the observability questions in one command |
 | **"User wants a specific narrative angle"** | `sp-pipeline run --angle "focus on X while introducing the others" <url>` | Pipes the directive into the write + refine prompts; opening must establish the angle, closing must call back to it |
 | **"Source is a docs / blog page, not a tweet"** | `sp-pipeline run --source-label "OpenClaw Docs" <url>` | Overrides the `source:` frontmatter line; without it, generic URLs render hostname (`docs.openclaw.ai`) which is usually fine but not pretty |
 | "Resume a stuck run from a specific step" | `sp-pipeline run --from-step <name> --file <existing.mdx>` | Honors bash's `--from-step` contract: setup / fetch / eval / dedup / write / review / refine / ralph / deploy |
@@ -48,6 +49,20 @@ All subcommands inherit these from the root command:
 - `--verbose` / `-v` — extra debug logs on stderr (currently reserved; no extra output yet)
 - `--timeout 50m` — wall-clock deadline for the whole invocation (Go duration string). Default 50m matches the bash pipeline's `PIPELINE_TIMEOUT=3000`
 - `--work-dir <dir>` — pin the pipeline work directory. Default is `$REPO/tmp/sp-pending-<unix>-pipeline`
+
+## pipeline-status.json
+
+`sp-pipeline run` writes `<work-dir>/pipeline-status.json` at step boundaries. This is the machine-readable handoff card for active/recent runs. It includes:
+
+- `runState`, `currentStep`, `lastCompletedStep`
+- work-dir artifact presence
+- active/final filenames
+- tribunal stage summary
+- git changed files
+- pending-artifact guardrail results
+- `nextAction` + `staleWarning`
+
+`sp-pipeline status <work-dir>` reloads that file, refreshes it with live repo state, and exits non-zero if the run looks suspicious (stale, missing a required artifact, or carrying leftover pending artifacts).
 
 ## `run` / `write` / `refine` shaping flags
 
