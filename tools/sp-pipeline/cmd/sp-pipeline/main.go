@@ -100,7 +100,7 @@ for the migration history and current operational notes.`,
 	root.PersistentFlags().DurationVar(&flagTimeout, "timeout", 50*time.Minute,
 		"wall-clock timeout for the entire invocation (e.g. 50m, 1h30m)")
 	root.PersistentFlags().StringVar(&flagWorkDir, "work-dir", "",
-		"override the work directory (default: $TMPDIR/sp-pending-<epoch>-pipeline; lives outside the repo to dodge claude -p CLAUDE.md auto-discovery)")
+		"override the work directory (default: $TMPDIR/sp-pending-<epoch>-pipeline; lives outside the repo; Codex is invoked with --skip-git-repo-check)")
 	root.PersistentFlags().StringVar(&flagFakeProvider, "fake-provider", "",
 		"(test only) path to a JSON file with canned LLM responses; replaces the real provider chain")
 	_ = root.PersistentFlags().MarkHidden("fake-provider")

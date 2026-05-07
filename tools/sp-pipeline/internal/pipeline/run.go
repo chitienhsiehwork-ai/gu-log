@@ -14,14 +14,10 @@ import (
 // directory on clean exit unless s.KeepWorkDir is true.
 //
 // The default work directory lives OUTSIDE the repo (under os.TempDir())
-// rather than under <repo>/tmp/. Reason: when claude -p runs with cwd
-// inside a git repo it walks up the directory tree, auto-discovers the
-// parent CLAUDE.md, and on long pipeline prompts (write step embeds the
-// 340-line WRITING_GUIDELINES.md plus the source body) the discovered
-// CLAUDE.md instructions ("first run detect-env.sh", etc) derail the
-// model and it exits 1 with empty stderr. Putting WorkDir under
-// os.TempDir() means the cwd walk-up terminates at /tmp without
-// discovering anything, and the prompt drives the run cleanly.
+// rather than under <repo>/tmp/. These are disposable scratch dirs, not git
+// worktrees. The maintained Codex route therefore runs with
+// --skip-git-repo-check and writes requested artifacts into this directory
+// without inheriting repo-level side effects.
 //
 // The deploy step still copies final.mdx into <repo>/src/content/posts,
 // so this only affects intermediate scratch files.
