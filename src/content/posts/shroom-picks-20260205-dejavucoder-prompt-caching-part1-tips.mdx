@@ -171,7 +171,7 @@ Prompt caching 是基於前綴匹配的。你的 prompt 從頭開始，每一個
 
 ### Tip 2：保持 Context Append-Only — 不要截斷
 
-Sankalp 的 feature 有很多 tool call，tool 的輸出會存在 messages array 裡。對話變長之後，他擔心 context rot（太長的 context 讓模型表現下降），所以開始**截斷 tool call outputs**。
+Sankalp 的 feature 有很多 tool call，tool 的輸出會存在 messages array 裡。對話變長之後，他擔心 [context rot](/glossary#context-rot)（太長的 context 讓模型表現下降），所以開始**截斷 tool call outputs**。
 
 結果 — **prefix 被破壞了。** 因為你改動了中間的內容，從那個點之後所有的 cache 都失效。
 

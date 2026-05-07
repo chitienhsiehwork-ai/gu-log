@@ -18,6 +18,7 @@
 //
 // Usage:
 //   node scripts/check-jingjing.mjs <file.mdx>...
+//   node scripts/check-jingjing.mjs --baseline-ref=origin/main <file.mdx>...
 //   node scripts/check-jingjing.mjs                  # scans all zh-tw posts
 //
 // Exit codes:
@@ -27,6 +28,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import { execFileSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const __isCli =
@@ -517,14 +519,8 @@ function maskContent(text) {
   return text;
 }
 
-function checkFile(filePath) {
+function checkText(raw, filePath = '') {
   const violations = [];
-  let raw;
-  try {
-    raw = fs.readFileSync(filePath, 'utf8');
-  } catch (e) {
-    return { violations: [], error: e.message };
-  }
 
   // Skip en- posts entirely
   const base = path.basename(filePath);
@@ -558,8 +554,40 @@ function checkFile(filePath) {
   return { violations };
 }
 
+function checkFile(filePath) {
+  let raw;
+  try {
+    raw = fs.readFileSync(filePath, 'utf8');
+  } catch (e) {
+    return { violations: [], error: e.message };
+  }
+  return checkText(raw, filePath);
+}
+
+function violationKey(v) {
+  return `${v.line}\0${v.word.toLowerCase()}`;
+}
+
+function getBaselineViolations(filePath, baselineRef) {
+  if (!baselineRef) return new Set();
+
+  const repoRelative = path.relative(REPO_ROOT, path.resolve(filePath));
+  try {
+    const raw = execFileSync('git', ['show', `${baselineRef}:${repoRelative}`], {
+      cwd: REPO_ROOT,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+    const { violations } = checkText(raw, filePath);
+    return new Set(violations.map(violationKey));
+  } catch {
+    // New file or unavailable baseline: all violations are new.
+    return new Set();
+  }
+}
+
 // ── Exports for tests ──────────────────────────────────────────────
-export { isAllowed, maskContent, checkFile };
+export { isAllowed, maskContent, checkText, checkFile };
 
 // ── Main ───────────────────────────────────────────────────────────
 
@@ -568,7 +596,14 @@ if (!__isCli) {
   // The remaining file is the CLI entry point.
 } else {
   const args = process.argv.slice(2).filter(Boolean);
-  let files = args;
+  const baselineArg = args.find((arg) => arg.startsWith('--baseline-ref='));
+  const explicitBaselineRef = baselineArg?.slice('--baseline-ref='.length) || '';
+  const ciBaselineRef =
+    process.env.GITHUB_ACTIONS === 'true' && process.env.GITHUB_BASE_REF
+      ? `origin/${process.env.GITHUB_BASE_REF}`
+      : '';
+  const baselineRef = explicitBaselineRef || ciBaselineRef;
+  let files = args.filter((arg) => !arg.startsWith('--baseline-ref='));
 
   if (files.length === 0) {
     // Scan all zh-tw posts
@@ -592,14 +627,20 @@ if (!__isCli) {
       process.exit(2);
     }
     if (skipped) continue;
-    if (violations.length === 0) continue;
+    const baselineViolations = getBaselineViolations(filePath, baselineRef);
+    const newViolations = baselineViolations.size
+      ? violations.filter((v) => !baselineViolations.has(violationKey(v)))
+      : violations;
+    if (newViolations.length === 0) continue;
 
-    filesWithViolations.push({ filePath, violations });
-    totalViolations += violations.length;
+    filesWithViolations.push({ filePath, violations: newViolations });
+    totalViolations += newViolations.length;
   }
 
   if (totalViolations === 0) {
-    console.log(`✓ check-jingjing: ${files.length} file(s) clean`);
+    console.log(
+      `✓ check-jingjing: ${files.length} file(s) clean${baselineRef ? ` vs ${baselineRef}` : ''}`
+    );
     process.exit(0);
   }
 
@@ -627,7 +668,10 @@ if (!__isCli) {
     `Fix options:\n` +
       `  1. Translate to natural zh-tw (preferred — see WRITING_GUIDELINES.md §術語處理).\n` +
       `  2. If genuinely a canonical industry term, add to src/data/glossary.json with definition + clawdNote.\n` +
-      `  3. If proper noun (product/people/lab) misclassified, add to ALLOWLIST_RAW in scripts/check-jingjing.mjs.\n`
+      `  3. If proper noun (product/people/lab) misclassified, add to ALLOWLIST_RAW in scripts/check-jingjing.mjs.\n` +
+      (baselineRef
+        ? `\nNote: --baseline-ref=${baselineRef} was used, so only new violations are reported; historical grandfathered violations are ignored.\n`
+        : '')
   );
   process.exit(1);
 } // end CLI guard
