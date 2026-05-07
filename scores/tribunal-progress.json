@@ -1306,5 +1306,98 @@
     "topLevelAttempts": 1,
     "status": "PASS",
     "finishedAt": "2026-05-05T23:48:00+08:00"
+  },
+  "sp-pending-20260507-danizhu-claude-dreams-agent.mdx": {
+    "article": "sp-pending-20260507-danizhu-claude-dreams-agent.mdx",
+    "startedAt": "2026-05-07T13:44:45+08:00",
+    "stages": {
+      "librarian": {
+        "status": "pass",
+        "score": {
+          "judge": "librarian",
+          "dimensions": {
+            "glossary": 10,
+            "crossRef": 10,
+            "sourceAlign": 8,
+            "attribution": 8
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "glossary": "Detected glossary terms are linked in-context: Agent, Token, Prompt, and the related Context Window mention all point to glossary anchors.",
+            "crossRef": "The post cites the two most relevant prior gu-log memory/context pieces, SP-135 and CP-199, and both /posts/ links resolve with no broken internal links reported.",
+            "sourceAlign": "The body consistently frames Dreams through @danizhu's X post and matches the declared summary, though direct source verification is limited because x.com returned HTTP 403.",
+            "attribution": "Feature details and interpretation are repeatedly attributed to @danizhu, and ClawdNote opinions are visually separated, with only minor general claims like sleep-memory consolidation relying on broad background framing."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 2
+      },
+      "factChecker": {
+        "status": "pass",
+        "score": {
+          "judge": "factCheck",
+          "dimensions": {
+            "accuracy": 9,
+            "fidelity": 9,
+            "consistency": 9
+          },
+          "score": 9,
+          "verdict": "PASS",
+          "reasons": {
+            "accuracy": "Product claims match Anthropic Dreams docs and the source article: async job, up to 100 sessions, separate output memory store, streamable underlying session_id, and standard token-rate billing; only minor simplification is saying Opus or Sonnet without naming the exact supported model IDs.",
+            "fidelity": "The post faithfully expands Dani Zhu's article about memory rot, non-summary curation, custom instructions, observability, cost, sleep metaphor, second loop, and curation over context capacity, with added ClawdNote commentary clearly separated.",
+            "consistency": "The argument consistently links memory accumulation problems to offline curation and lifecycle management, and the speculative analogies are marked as interpretation rather than presented as Anthropic technical claims."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 1
+      },
+      "freshEyes": {
+        "status": "pass",
+        "score": {
+          "judge": "freshEyes",
+          "dimensions": {
+            "readability": 8,
+            "firstImpression": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "readability": "The post explains Dreams clearly with strong analogies, though terms like Managed Agents API, session_id, token, and context window pile up enough that a beginner may slow down in the middle.",
+            "firstImpression": "The memory-rot hook and camping-gear analogy are good enough to keep reading, but the repeated metaphors and several ClawdNote blocks make the second half feel longer than needed."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 2
+      },
+      "vibe": {
+        "status": "pass",
+        "score": {
+          "judge": "vibe",
+          "dimensions": {
+            "persona": 8,
+            "clawdNote": 8,
+            "vibe": 8,
+            "clarity": 9,
+            "narrative": 8
+          },
+          "score": 8,
+          "verdict": "PASS",
+          "reasons": {
+            "persona": "The convenience-store camping-gear analogy at line 63 and professor整理實驗紀錄 analogy at line 75 give strong LHY warmth, though several middle sections still read like structured explanation.",
+            "clawdNote": "Four notes across the post are well-spaced, and lines 78, 106, 134, and 166 all add opinionated diagnosis rather than plain definitions.",
+            "vibe": "The post is readable and fun, especially the memory-rot framing and refrigerator/warehouse jokes, with no bullet-dump ending, but the cost and observability sections are more useful than shareable.",
+            "clarity": "Speaker attribution stays clear with @danizhu named repeatedly, rg found no 你/我 pronoun violations, and the English terms are glossary, API, code, model, or product/proper-name uses.",
+            "narrative": "The arc moves from memory rot to Dreams as offline cleanup and closes with the sleep callback at line 187, but the section order still has some linear report skeleton."
+          }
+        },
+        "model": "codex-gpt-5.5-medium",
+        "attempts": 1
+      }
+    },
+    "topLevelAttempts": 1,
+    "status": "PASS",
+    "finishedAt": "2026-05-07T13:58:00+08:00"
   }
 }
