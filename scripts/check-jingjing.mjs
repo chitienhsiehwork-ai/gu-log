@@ -64,6 +64,7 @@ PrevNextNav
 # AI labs / companies / orgs
 Anthropic OpenAI Google Meta Microsoft Apple Amazon AWS GCP Azure
 Cloudflare Stripe Vercel Astro MDX
+Semrush DataReportal Feishu
 GitHub GitLab Bitbucket GitLab.com
 DeepMind XAI Mistral DeepSeek Qwen Kimi Cohere Stability
 Hugging Face HuggingFace Replicate Modal RunPod Lambda Together Together.ai
@@ -79,14 +80,14 @@ The Batch
 The Verge The Register Hacker News HN HackerNews TechCrunch Wired Information Bloomberg Reuters NYTimes WSJ
 Substack Medium dev.to
 Twitter X x.com twitter.com fxtwitter
-Reddit StackOverflow
+Reddit StackOverflow Subreddit Reddit Answers
 
 # Frontier models and product names
 Symphony
 Claude Opus Sonnet Haiku
 GPT GPT-3 GPT-3.5 GPT-4 GPT-4o GPT-5 GPT-5.2 GPT-5.3 GPT-5.4
 Gemini Llama Mistral Qwen DeepSeek Kimi Grok Cohere Command
-Codex Cursor Copilot Replit Bolt Lovable Devin
+Codex Cursor Copilot Replit Bolt Lovable Devin Atlas
 PandaOmics Chemistry42 AlphaEvolve Concordia Gemma Nemotron
 Muse Spark Llama Maverick Sonnet Opus K2 K2.5 R1
 Agent Swarm
@@ -124,6 +125,7 @@ Harrison Chase Simon Willison Nat Friedman Patrick Collison
 Garry Tan Brian Chesky
 Riley Goodside Ethan Mollick
 Alex Kotliarskyi Victor Zhu Zach Brock Karri Saarinen daniel_mac8 daniel
+Lisa MindOS_Lisa
 
 # Places
 Albuquerque Hong Kong San Francisco SF Silicon Valley
