@@ -8,11 +8,10 @@ import (
 	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/runner"
 )
 
-// ClaudeProvider shells out to `claude -p --model <model>` with a
-// permission-mode appropriate to the calling user. Pipeline steps after
-// eval (write/review/refine) instruct the LLM to write its output to a
-// file in WorkDir, so the model needs Write/Edit permission — `-p` will
-// happily invoke tools as long as a permission mode allows it.
+// ClaudeProvider shells out to `claude -p --model <model>`. It is retained as
+// a historical compatibility wrapper only; the maintained SP pipeline runtime
+// and doctor probe chain do not include Claude by default because the Clawd VM
+// should not assume Anthropic env/login exists.
 //
 //   - Non-root (VPS Clawd, dev laptops) → bypassPermissions: the broadest
 //     setting and the one the bash pipeline historically used.

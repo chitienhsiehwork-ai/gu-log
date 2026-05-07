@@ -119,10 +119,10 @@ func resolveWorkDir(state *rootState) (string, error) {
 		return abs, nil
 	}
 	// Default: $TMPDIR/sp-pending-<unix>-pipeline. This must NOT be under
-	// the repo because claude -p's CLAUDE.md auto-discovery walks up the
-	// cwd tree and pulls in the gu-log repo CLAUDE.md, which derails the
-	// long write/review/refine prompts and causes silent exit-1 failures.
-	// See pipeline.SetupWorkDir for the same reasoning.
+	// the repo: SP pipeline work dirs are scratch spaces, and the maintained
+	// Codex route explicitly uses --skip-git-repo-check so it can run there
+	// without inheriting repo-level side effects. See pipeline.SetupWorkDir
+	// for the same reasoning.
 	stamp := time.Now().Unix()
 	_ = state // RepoRoot kept reachable for future callers; unused here
 	return filepath.Join(os.TempDir(), fmt.Sprintf("sp-pending-%d-pipeline", stamp)), nil

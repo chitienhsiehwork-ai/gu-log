@@ -7,11 +7,10 @@ import (
 	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/runner"
 )
 
-// GeminiProvider shells out to the Gemini CLI. In sp-pipeline today this is
-// used ONLY for the tribunal (AI judges) and the eval step's second opinion,
-// never for article writing. The Go port preserves that policy: NewDefaults
-// does not include Gemini in the writing chain, but constructing one
-// directly for a tribunal-style invocation is fully supported.
+// GeminiProvider shells out to the Gemini CLI. It is retained as a historical
+// compatibility wrapper only; the maintained SP pipeline runtime and doctor
+// probe chain do not include Gemini by default because the Clawd VM should not
+// assume a Gemini subscription or login exists.
 type GeminiProvider struct {
 	// ModelName is passed as --model, defaults to "gemini-3.1-pro-preview".
 	ModelName string
@@ -61,23 +60,4 @@ func (g *GeminiProvider) modelName() string {
 		return "gemini-3.1-pro-preview"
 	}
 	return g.ModelName
-}
-
-// DefaultWritingChain returns the provider ordering used for article
-// writing (write / review / refine steps). Codex GPT-5.5 medium is the
-// only default provider: Anthropic and Gemini subscriptions are no longer
-// assumed to exist on the VM.
-func DefaultWritingChain() []Provider {
-	return []Provider{
-		NewCodexGPT55Medium(),
-	}
-}
-
-// DefaultProbeChain returns the providers the doctor subcommand should ping.
-// Keep this aligned with the production default chain so doctor does not fail
-// or warn on intentionally unavailable Claude/Gemini subscriptions.
-func DefaultProbeChain() []Provider {
-	return []Provider{
-		NewCodexGPT55Medium(),
-	}
 }
