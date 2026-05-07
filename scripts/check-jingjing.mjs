@@ -244,6 +244,14 @@ commit
 # X handle of SP-169's source author.
 Vouch dani
 
+# Added 2026-05-07 for SP-191 (Claude Dreams / context rot).
+# Dreams is Anthropic's Managed Agents memory-consolidation feature; danizhu is
+# the source handle. "Agents" covers pluralized glossary term false positives.
+Dreams dream
+Managed Agents Agents
+danizhu
+context rot
+
 # Added 2026-04-30 for SP-189 (OpenAI GPT-5.5 prompting guide).
 # Canonical AI / prompt-engineering terms named explicitly in OpenAI's docs
 # (these are the article's literal subject — translating them would lose
