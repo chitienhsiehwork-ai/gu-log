@@ -23,6 +23,7 @@ Every step is a subcommand. Agents compose them without running the whole monoli
 
 ```bash
 sp-pipeline fetch <url>                      # step 1 only
+sp-pipeline status <work-dir>               # active/recent run summary
 sp-pipeline eval --source <file>             # step 1.5
 sp-pipeline dedup --url <url> --title <t>    # step 1.7
 sp-pipeline write --source <file>            # step 2
@@ -36,6 +37,26 @@ sp-pipeline counter {next,bump} --prefix SP  # ticket counter
 ```
 
 Global flags: `--json` (machine output), `--verbose`, `--timeout 50m`, `--work-dir <dir>`.
+
+## Observability / handoff state
+
+`sp-pipeline run` now writes `<work-dir>/pipeline-status.json` at step boundaries. The file is intentionally small and operator-facing: current step, last completed step, artifacts present, active/final filename, next action, stale warning, and pending-artifact guardrail state.
+
+Use it through the CLI:
+
+```bash
+tools/sp-pipeline/sp-pipeline status /tmp/sp-pending-...-pipeline
+```
+
+The `status` command refreshes the saved status with live repo facts:
+
+- work-dir artifacts (`source-tweet.md`, `draft-v1.mdx`, `review.md`, `final.mdx`, `tribunal-stdout.txt`)
+- tribunal stage from `scores/tribunal-progress.json`
+- git diff summary
+- guardrails for leftover `sp-pending-*` posts / pending tribunal-progress entries
+- stale warning when a supposedly-running step has gone quiet too long
+
+It exits non-zero when the run looks suspicious (stale, missing required artifact, or pending-artifact guardrail violation).
 
 Exit codes are distinct so failures can be handled programmatically:
 

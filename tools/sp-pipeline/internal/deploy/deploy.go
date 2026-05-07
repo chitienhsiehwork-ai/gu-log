@@ -17,6 +17,7 @@ import (
 	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/counter"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/frontmatter"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/logx"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/observability"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/sp-pipeline/internal/runner"
 )
 
@@ -116,6 +117,26 @@ func Run(ctx context.Context, opts Options) (*Result, error) {
 		if err := replacePendingTicketID(filepath.Join(postsDir, finalEN), ticketID); err != nil {
 			return nil, err
 		}
+	}
+	if err := observability.RenameTribunalProgressEntry(opts.Cfg.RepoRoot, opts.ActiveFilename, finalFilename); err != nil {
+		return nil, fmt.Errorf("deploy: rename tribunal progress entry: %w", err)
+	}
+	violations, err := observability.CheckPendingArtifacts(opts.Cfg.RepoRoot, observability.GuardrailOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("deploy: pending artifact guardrail: %w", err)
+	}
+	if len(violations) > 0 {
+		labels := make([]string, 0, len(violations))
+		for _, violation := range violations {
+			label := violation.Kind
+			if violation.Detail != "" {
+				label += " (" + violation.Detail + ")"
+			} else {
+				label += " (" + violation.Path + ")"
+			}
+			labels = append(labels, label)
+		}
+		return nil, fmt.Errorf("deploy: pending artifact guardrail blocked handoff: %s", strings.Join(labels, ", "))
 	}
 
 	// 4. Validate (unless skipped).

@@ -59,6 +59,7 @@ It is split into composable subcommands so an agent (or a human) can run
 one step at a time without inheriting the whole pipeline's side effects:
 
   fetch      capture a tweet / article into a work directory
+  status     inspect an active/recent run from work-dir + repo artifacts
   eval       decide whether a source is SP-worthy
   dedup      check whether the source is already covered
   write      draft the zh-tw + en MDX pair
@@ -114,6 +115,7 @@ for the migration history and current operational notes.`,
 	// access to the resolved config, logger, and flags.
 	root.AddCommand(newDoctorCmd(state))
 	root.AddCommand(newFetchCmd(state))
+	root.AddCommand(newStatusCmd(state))
 	root.AddCommand(newCounterCmd(state))
 	root.AddCommand(newDedupCmd(state))
 	root.AddCommand(newEvalCmd(state))
