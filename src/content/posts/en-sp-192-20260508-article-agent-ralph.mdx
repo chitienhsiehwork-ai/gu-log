@@ -1,0 +1,184 @@
+---
+ticketId: "SP-192"
+title: "Long-Running Agents Need More Than a Ralph Loop"
+originalDate: "2026-05-07"
+translatedDate: "2026-05-08"
+translatedBy:
+  model: "GPT-5.5"
+  harness: "Codex CLI"
+
+  pipeline:
+    - role: "Written"
+      model: "GPT-5.5"
+      harness: "Codex CLI"
+    - role: "Reviewed"
+      model: "GPT-5.5"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "GPT-5.5"
+      harness: "Codex CLI"
+    - role: "Scored"
+      model: "GPT-5.5"
+      harness: "Codex CLI + Tribunal"
+    - role: "Rewritten"
+      model: "GPT-5.5"
+      harness: "Codex CLI + Tribunal"
+    - role: "Orchestrated"
+      model: "GPT-5.5"
+      harness: "sp-pipeline + Tribunal"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "@jarrodwatts on X"
+sourceUrl: "https://x.com/jarrodwatts/status/2052372045829382430"
+lang: "en"
+summary: "Jarrod Watts argues that a long-running agent cannot survive on a Ralph Loop alone. What actually keeps it on course is upfront clarification, multi-agent review, and external memory that lives outside the model's short-term context."
+tags: ["shroom-picks", "agent", "codex", "ai-engineering"]
+scores:
+  tribunalVersion: 3
+  librarian:
+    glossary: 9
+    crossRef: 8
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-05-07"
+    model: "gpt-5.5"
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 9
+    score: 8
+    date: "2026-05-07"
+    model: "gpt-5.5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    score: 8
+    date: "2026-05-07"
+    model: "gpt-5.5"
+  vibe:
+    persona: 9
+    clawdNote: 9
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-05-07"
+    model: "gpt-5.5"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+A long-running [Agent](/glossary#agent) does not usually fail like a movie robot smashing through the lab wall.
+
+The scarier version is quieter. The agent keeps running. It edits files. It reports progress. It sounds calm. Then someone opens the repo and realizes the thing has been confidently building a door on the wrong wall for the last two hours.
+
+That is the useful tension in Jarrod Watts's thread. The [Ralph Loop](/glossary#ralph-loop) is not the villain here. A Ralph loop is the simplest long-run trick: keep asking the model to continue until the job is done, instead of treating one chat response as the whole attempt. That matters. It stops the agent from giving up after one short burst.
+
+But endurance is not judgment. A treadmill can run all day and still never leave the gym. ╮(╯▽╰)╭
+
+Jarrod's deeper point is that long-running agents need a way to stay pointed at the target. More [Token](/glossary#token) budget, more time, and more attempts can improve performance, but they also give mistakes more room to grow. Once the task stretches out, the agent has to keep requirements, earlier decisions, forbidden changes, partial outputs, and verification rules alive at the same time.
+
+The [context window](/glossary#context-window) is the model's short-term desk. In a small task, the desk is messy but survivable. In a long task, it becomes that one table at the end of a moving day: screws, tape, keys, receipts, half a sandwich, and nobody knows which tiny bag contains the bed frame bolts.
+
+<ClawdNote>
+A Ralph loop is basically an engine that refuses to stall. Great. An engine making noise is still not the same thing as arriving at the destination. If nobody checked the address, the GPS, or the road signs, congratulations — you now have a very committed wrong turn.
+</ClawdNote>
+
+## The Agent Is Not Lazy. It Is Under-Briefed.
+
+In its simplest form, a Ralph loop is almost embarrassingly simple. You keep feeding a [Prompt](/glossary#prompt) back to the model and tell it to continue. It is less like a grand architecture and more like an alarm clock that keeps shouting, "keep working."
+
+Jarrod uses [Codex](/glossary#codex) Goals as the example. The appealing part is simple: the task stays alive for hours or even days instead of vanishing after one short burst.
+
+At the core, the system stores the goal, tracks the budget, and keeps asking the model to continue while checking whether the task is actually done. In other words, the agent no longer stops just because one chat turn ended. This is a real improvement. A model that quits too early is useless for serious work.
+
+Then comes the part that feels unfair but is true: the agent can be obedient and still be wrong.
+
+The first bad assumption does not usually explode immediately. It quietly becomes the floor of the next round, then the next. By the time the mistake is visible, it has grown a nice little roof and maybe a tasteful frontend.
+
+When an LLM works in a loop, each output becomes part of the next input. That means a small misunderstanding at the beginning does not stay small. A wrong file structure, a fuzzy definition of done, or a bad guess about the interface can keep snowballing round after round.
+
+This is not uniquely an AI problem. It is like giving a contractor a mushy spec and then acting shocked when the finished kitchen does not match the sketch that only existed in someone's head. The contractor did work. The problem is that nobody forced the sketch to become real before the hammer came out.
+
+Jarrod's answer is simple: do not rush the agent into execution. Start with a setup phase that turns the fuzzy objective into a more explicit spec. Some people do this through an interview-style skill. Some do it by hand. The exact wrapper matters less than the sequence.
+
+Ask first. Build later.
+
+That sounds boring until a five-minute clarification saves five hours of cleaning up an impressive implementation of the wrong idea. This is where long-running agents become more like interns on a real team than vending machines for code: before giving them a whole afternoon, someone has to make sure the assignment is not secretly three different assignments wearing one trench coat.
+
+---
+
+## The Second Agent Is There to Be Annoying
+
+Now suppose the brief is clear. The agent starts strong. The first hour looks good. The second hour also looks good. This is exactly when the trap becomes harder to see, because the agent has accumulated enough context to sound authoritative about its own decisions.
+
+A single agent working alone for too long tends to defend its own path. Not because it has pride in the human sense, but because all the earlier choices are still sitting in the same messy context. The next answer is shaped by the previous answer. The previous answer was shaped by the bad guess before that. Suddenly the agent is not reviewing the plan; it is narrating the plan as if it had always been inevitable.
+
+Jarrod's workflow pushes against that by using multiple agents with different roles. One agent does the work. Another checks it from a fresh context. A lead agent keeps the whole thing moving.
+
+The key advantage is not just "more agents." It is separation. The reviewer is not trapped inside the same story as the implementer, so it has a better chance of noticing when the first agent quietly started treating a detour as destiny.
+
+This is also why the phrase "one very strong agent" can be a little dangerous. Strong at what? Coding, checking, researching, deciding, and refusing a bad premise are not the same job. A single brilliant cook can still use an expeditor during dinner rush, because the person staring at the pan is not always the best person to notice table seven has been waiting forever.
+
+<ClawdNote>
+Multi-agent setups are not a magic circle. Adding more bodies does not automatically summon quality. It is more like two engineers reviewing the same PR: if both skipped the spec, they will simply be wrong together with extra confidence.
+</ClawdNote>
+
+Different agents can use different tools, but the bigger lesson is simpler than model choice: give the system a way to disagree with itself before the mistake becomes architecture.
+
+---
+
+## The Memory Has to Survive the Mood Swing
+
+The last part is the least glamorous, so of course it is the part that saves the most pain: memory.
+
+The context window fills up. Work spans multiple rounds. Sometimes the active agent changes. If every important decision lives only inside the current chat context, the project is basically being managed on a sticky note taped in front of a fan.
+
+Jarrod's solution is to have the agent create and maintain a small set of external files after the planning phase. You can think of them as a handoff pack for the next shift, written in plain text so a fresh agent does not have to excavate a giant chat transcript.
+
+1. `GOAL.md`: what the work is trying to achieve at the highest level.
+2. `STANDARDS.md`: non-negotiable quality rules.
+3. `IMPLEMENT.md`: workflow instructions, including review and verification rules.
+4. `PROGRESS.md`: the running log of decisions and completed work.
+
+The original thread says "three files" at one point but then lists four. The important part is not the number. It is the separation of concerns.
+
+Every new agent reads these files before it starts. That gives it a faster and more stable way to understand the project state than rereading a bloated conversation from the top.
+
+The names are not sacred. The move is sacred: goal, standards, method, and progress need a home outside the model's short-term desk space.
+
+Jarrod also makes an important concession: these files are not magic. Agents might ignore them. They can go stale. They can be incomplete. But compared with having no external record at all, they at least give the project a map. And a map is useful even when the driver is occasionally overconfident and weirdly enthusiastic about taking side streets.
+
+<ClawdNote>
+This is the part many agent demos skip because plain text files do not look cool on stage. But boring memory is what keeps a long run from becoming improv theater with a shell prompt. A `PROGRESS.md` file is not glamorous. Neither is a seatbelt.
+</ClawdNote>
+
+---
+
+## Eventually This Stops Looking Like a Loop and Starts Looking Like an Engineering Process
+
+This is the turn in Jarrod's thread that makes the whole thing click. At the start, "long-running agent" sounds like a model feature. Let it run longer. Give it more budget. Make the loop more persistent.
+
+By the end, it stops looking like a loop and starts looking like a compact engineering process.
+
+Clarify the request. Execute in smaller pieces. Review from a cleaner view. Keep the handoff notes readable. None of that is glamorous, but it is suspiciously close to how real teams avoid shipping nonsense.
+
+Jarrod has also published his own long-running-agent workflow. You do not need to memorize every tool name in it. The important part is that he is not presenting it as a silver bullet. It is closer to a site whiteboard: who is doing what, how far they got, and which hole the next shift should avoid falling into.
+
+That is the most valuable part of the whole piece. It drags "long-running agents" back from slogan territory into actual engineering reality. The question stops being, "Can a model run for ten hours?" and becomes, "By hour seven, is there anything in the system that can still confirm it has not gone off the rails?"
+
+<ClawdNote>
+A lot of agent tutorials stop at "paste this prompt." That is like teaching someone how to run a restaurant by saying, "turn on the gas." Sure, the stove matters. But menu, prep, timing, cleanup, and complaints are the difference between dinner service and a small disaster.
+</ClawdNote>
+
+---
+
+## Closing
+
+The best part of Jarrod's argument is that it does not treat Codex Goals as a failure, and it does not pretend his own workflow is magic. It names a structural problem without turning it into a product slogan.
+
+Long-running agents are not supermodels locked in a room until they ship everything. They are tiny engineering processes. They need questions before execution, fresh reviewers during execution, and memory that survives after one context gets too full to breathe.
+
+The Ralph loop keeps the engine from stalling. That is important. But the destination is not inside the engine. The destination lives in the spec, the review, and the trail left behind for the next shift.
+
+For readers who want the neighboring pieces, gu-log has also covered [filesystem state for agents](/en/posts/en-sp-135-20260328-trq212-agent-file-system/), [multi-agent harness design](/en/posts/en-sp-132-20260327-anthropic-multi-agent-harness-design/), and [workflow verification](/en/posts/en-cp-231-20260331-pawelhuryn-vibe-engineering-vibe-coding/). They all point to the same annoying but useful lesson: an agent that can keep going still needs a system that knows where going is.
