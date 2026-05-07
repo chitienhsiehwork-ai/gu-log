@@ -105,10 +105,10 @@ same_main_hash_after="$(git -C "$main" hash-object src/content/posts/cp-999-test
 [ "$same_main_hash_before" = "$same_main_hash_after" ] || fail "same-repo publish should be a no-op"
 pass "same-repo publish is safe no-op"
 
-if ! grep -q 'tribunal-publish-worker-changes.sh' "$ROOT_DIR/scripts/tribunal-all-claude.sh"; then
-  fail "tribunal-all-claude.sh does not call publish helper before committing progress"
+if ! grep -q 'tribunal-publish-worker-changes.sh' "$ROOT_DIR/scripts/tribunal.sh"; then
+  fail "tribunal.sh does not call publish helper before committing progress"
 fi
-if ! grep -q 'src/content/posts/\$POST_FILE' "$ROOT_DIR/scripts/tribunal-all-claude.sh"; then
-  fail "tribunal-all-claude.sh does not stage target post files in commit_progress"
+if ! grep -q 'src/content/posts/\$POST_FILE' "$ROOT_DIR/scripts/tribunal.sh"; then
+  fail "tribunal.sh does not stage target post files in commit_progress"
 fi
-pass "tribunal-all-claude.sh wires post publishing into commit_progress"
+pass "tribunal.sh wires post publishing into commit_progress"
