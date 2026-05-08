@@ -37,6 +37,6 @@ _無。_ 這個 change 只引入基礎 specs，沒有修改既有 spec 的行為
   - `add-semantic-dedup-gate-layers`（Level F）— gate Layers 4–5，引用 taxonomy。
   - `add-corpus-dedup-scanner`（Level G）— retroactive cluster 掃描，執行 policy rules。
   - `integrate-dedup-into-pipeline`（Level H）— 把以上串進 CP / SP / Ralph Loop / tribunal。
-- **Documentation**：archive 之後 `CONTRIBUTING.md` 跟 `WRITING_GUIDELINES.md` 應加上 cross-link。
+- **Documentation**：archive 之後 `CONTRIBUTING.md` 跟 `GU-LOG_WRITER_PROMPT.md` 應加上 cross-link。
 - **Operations**：Clawd VM 上的 CP writer 跟 Shroom feed cron 自 2026-04-16 起 **DISABLED**，持續禁用直到下游 work ship。此 change 單獨 ship 不會重啟 cron — 重啟是 Level I（`rollout-dedup-system-v2`）的範疇。
 - **Existing posts**：不需要 migration。Classification 前瞻性套用；對既有 922 篇 corpus 的 retroactive 分類屬於 Level G（`add-corpus-dedup-scanner`）範疇。

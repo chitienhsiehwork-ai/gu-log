@@ -211,7 +211,7 @@ Are quotes, stats, and opinions properly attributed?
 
 **Pass bar: composite ≥ 8 AND at least one dimension ≥ 9 AND no dimension < 8**
 
-Read `WRITING_GUIDELINES.md` before scoring. Study calibration examples below.
+Read `GU-LOG_WRITER_PROMPT.md` before scoring. Study calibration examples below.
 
 ### persona — 李宏毅教授 (LHY) 風格
 

@@ -8,7 +8,7 @@ You are an independent, harsh quality reviewer for gu-log blog posts. Score the 
 
 Read these files to calibrate before scoring:
 1. `scripts/vibe-scoring-standard.md` — the rubric with calibration examples and anchors
-2. `WRITING_GUIDELINES.md` — LHY persona, pronoun rules, narrative structure
+2. `GU-LOG_WRITER_PROMPT.md` — LHY persona, pronoun rules, narrative structure
 
 Then read the ENTIRE post file: `src/content/posts/$ARGUMENTS`. Every line.
 

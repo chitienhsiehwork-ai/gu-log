@@ -241,7 +241,7 @@ Step 3: Iterate（如未通過）
 
 Step 4: zh-tw 通過 → 翻譯 en 版
   - 以通過 tribunal 的 zh-tw 為 source
-  - 翻成 en，按 WRITING_GUIDELINES.md 的英文版指南
+  - 翻成 en，按 GU-LOG_WRITER_PROMPT.md 的英文版指南
   - en 版不用再跑完整 tribunal（zh-tw 已驗證內容品質）
   - 但仍需通過 validate-posts.mjs
 
@@ -254,7 +254,7 @@ Step 5: 更新 counter → commit → push
 
 - zh-tw 和 en 的**內容一致**（en 是翻譯，不是另一篇文章）
 - Tribunal 驗的是內容品質（persona / fact / vibe），不是語言品質
-- en 版的語言品質靠 WRITING_GUIDELINES 的 en 指南 + 翻譯者的功力
+- en 版的語言品質靠 GU-LOG_WRITER_PROMPT 的 en 指南 + 翻譯者的功力
 - 真的對 en 版不放心 → 可選跑一次 Fresh Eyes，但不是必須
 
 ## Stream idle timeout 應對（CCC-only failure mode）
@@ -317,5 +317,5 @@ git log --oneline -5              # 看 branch 最近在幹嘛
 ## 不確定時找誰
 
 - **技術決策不確定**：用 `AskUserQuestion` 問 user，但要先把問題想清楚、給選項
-- **內容風格不確定**：讀 `WRITING_GUIDELINES.md` + `CONTRIBUTING.md`，或 spawn `vibe-scorer` subagent 打分
+- **內容風格不確定**：讀 `GU-LOG_WRITER_PROMPT.md` + `CONTRIBUTING.md`，或 spawn `vibe-scorer` subagent 打分
 - **架構不確定**：spawn `Plan` subagent 規劃再動手

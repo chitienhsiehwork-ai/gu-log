@@ -62,7 +62,7 @@ It checks:
   - Every external binary the pipeline shells out to (codex, node, python3,
     git, bash, curl, jq, make, pnpm).
   - Every repo-relative file the pipeline depends on (fetch-x-article.sh,
-    validate-posts.mjs, article-counter.json, WRITING_GUIDELINES.md).
+    validate-posts.mjs, article-counter.json, GU-LOG_WRITER_PROMPT.md).
   - Optionally (--probe-llm), sends a 1-token canary prompt through each
     LLM provider to confirm it responds non-interactively.
 
@@ -118,7 +118,7 @@ func runDoctor(ctx context.Context, state *rootState, probeLLM bool) error {
 		{Name: "fetch-x-article.sh", Path: state.cfg.FetchXArticle, Required: true},
 		{Name: "validate-posts.mjs", Path: state.cfg.ValidatePosts, Required: true},
 		{Name: "article-counter.json", Path: state.cfg.CounterFile, Required: true},
-		{Name: "WRITING_GUIDELINES.md", Path: state.cfg.WritingGuide, Required: true},
+		{Name: "GU-LOG_WRITER_PROMPT.md", Path: state.cfg.WritingGuide, Required: true},
 	}
 	for i := range fileChecks {
 		fi, err := os.Stat(fileChecks[i].Path)

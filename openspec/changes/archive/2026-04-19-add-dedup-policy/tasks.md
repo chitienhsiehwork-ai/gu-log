@@ -31,5 +31,5 @@
 ## 6. Documentation（可延後）
 
 - [ ] `CONTRIBUTING.md` 加 cross-link 至 archived specs
-- [ ] `WRITING_GUIDELINES.md` 加 cross-link 至 archived specs
+- [ ] `GU-LOG_WRITER_PROMPT.md` 加 cross-link 至 archived specs
 - [ ] 考慮在 `CLAUDE.md` 的「文件架構」段落提及 `openspec/specs/` 為 policy SSOT

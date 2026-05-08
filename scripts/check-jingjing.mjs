@@ -3,7 +3,7 @@
 //
 // Lint zh-tw posts for 晶晶體 (decorative English mixing).
 //
-// Policy (see WRITING_GUIDELINES.md §術語處理): zh-tw posts must use natural
+// Policy (see GU-LOG_WRITER_PROMPT.md §術語處理): zh-tw posts must use natural
 // LHY-style Chinese. The ONLY English allowed in body/ClawdNote is:
 //   1. Terms in src/data/glossary.json
 //   2. Proper nouns: products, companies, labs, people, places, benchmarks,
@@ -669,7 +669,7 @@ if (!__isCli) {
 
   console.error(
     `Fix options:\n` +
-      `  1. Translate to natural zh-tw (preferred — see WRITING_GUIDELINES.md §術語處理).\n` +
+      `  1. Translate to natural zh-tw (preferred — see GU-LOG_WRITER_PROMPT.md §術語處理).\n` +
       `  2. If genuinely a canonical industry term, add to src/data/glossary.json with definition + clawdNote.\n` +
       `  3. If proper noun (product/people/lab) misclassified, add to ALLOWLIST_RAW in scripts/check-jingjing.mjs.\n` +
       (baselineRef

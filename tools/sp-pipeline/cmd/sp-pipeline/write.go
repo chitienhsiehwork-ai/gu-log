@@ -43,7 +43,7 @@ func newWriteCmd(state *rootState) *cobra.Command {
 		Use:   "write",
 		Short: "Draft the zh-tw MDX article from a captured source",
 		Long: `write is Step 2 of the pipeline. It renders the write.tmpl prompt
-with the source-tweet.md contents and WRITING_GUIDELINES.md embedded as
+with the source-tweet.md contents and GU-LOG_WRITER_PROMPT.md embedded as
 template variables, then runs it through the LLM dispatcher. The prompt
 instructs the LLM to write draft-v1.mdx into the working directory.
 

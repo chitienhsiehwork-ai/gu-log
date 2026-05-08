@@ -70,7 +70,7 @@ export const stage1JudgeRunner: StageRunner<
       timeoutSec: TIMEOUT.JUDGE_VIBE,
       buildPrompt: (outputPath) => `Score this post: ${articlePath}
 
-Setup: read scripts/vibe-scoring-standard.md and WRITING_GUIDELINES.md before scoring.
+Setup: read scripts/vibe-scoring-standard.md and GU-LOG_WRITER_PROMPT.md before scoring.
 
 Write the v2 VibeJudgeOutput JSON to: ${outputPath}
 Confirm with a one-line status on stdout.`,
@@ -96,7 +96,7 @@ export const stage4JudgeRunner: StageRunner<
       timeoutSec: TIMEOUT.JUDGE_VIBE,
       buildPrompt: (outputPath) => `Score this post (Stage 4 Final Vibe mode): ${articlePath}
 
-Setup: read scripts/vibe-scoring-standard.md and WRITING_GUIDELINES.md before scoring.
+Setup: read scripts/vibe-scoring-standard.md and GU-LOG_WRITER_PROMPT.md before scoring.
 
 Stage 1 reference scores for relative comparison:
 ${JSON.stringify(input.stage1Scores, null, 2)}

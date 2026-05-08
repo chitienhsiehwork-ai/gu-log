@@ -51,7 +51,7 @@ func TestResolve_FromEnv(t *testing.T) {
 	if cfg.CounterFile != filepath.Join(resolvedRoot, "scripts", "article-counter.json") {
 		t.Fatalf("CounterFile wrong: %q", cfg.CounterFile)
 	}
-	if cfg.WritingGuide != filepath.Join(resolvedRoot, "WRITING_GUIDELINES.md") {
+	if cfg.WritingGuide != filepath.Join(resolvedRoot, "GU-LOG_WRITER_PROMPT.md") {
 		t.Fatalf("WritingGuide wrong: %q", cfg.WritingGuide)
 	}
 	if cfg.FetchXArticle != filepath.Join(resolvedRoot, "scripts", "fetch-x-article.sh") {

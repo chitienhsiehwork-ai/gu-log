@@ -18,7 +18,7 @@ func makeFakeRepo(t *testing.T) string {
 	t.Helper()
 	root := t.TempDir()
 	mustWrite(t, filepath.Join(root, "CLAUDE.md"), "# fake")
-	mustWrite(t, filepath.Join(root, "WRITING_GUIDELINES.md"), "# Style")
+	mustWrite(t, filepath.Join(root, "GU-LOG_WRITER_PROMPT.md"), "# Style")
 	scriptsDir := filepath.Join(root, "scripts")
 	if err := os.MkdirAll(scriptsDir, 0o755); err != nil {
 		t.Fatal(err)

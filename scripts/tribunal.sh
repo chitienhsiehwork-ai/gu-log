@@ -751,7 +751,7 @@ $ssot_content
 3. Rewrite the post to fix the specific failures. Write it back in-place.
 4. Also rewrite the EN counterpart at src/content/posts/en-$post_file if it exists.
 
-Follow WRITING_GUIDELINES.md style rules and CONTRIBUTING.md frontmatter schema.
+Follow GU-LOG_WRITER_PROMPT.md style rules and CONTRIBUTING.md frontmatter schema.
 Do NOT change frontmatter fields (title, ticketId, dates, sourceUrl).
 PROMPT
 )"
