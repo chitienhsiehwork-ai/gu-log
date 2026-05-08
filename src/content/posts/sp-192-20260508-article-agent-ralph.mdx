@@ -109,22 +109,24 @@ Jarrod 文章第一刀其實很殘酷：長跑型 Agent 有時候有效，不是
 
 Jarrod 拆原始碼後看到，Codex Goals 底下有一個 `thread_goals` 表，用來存每個目標的內容、識別碼、狀態，以及可選的 Token 預算。Agent 執行時會呼叫 `get_goal`、`update_goal` 之類的工具，知道目前目標是什麼、進度到哪裡、預算剩多少。
 
-然後真正推動工作的，是一段很標準的 [Ralph Loop](/glossary#ralph-loop)：
+然後真正推動工作的，是一段很標準的 [Ralph Loop](/glossary#ralph-loop)。換成中文示意，大概是這樣：
 
 ```plaintext
-Continue working toward the active thread goal.
-<untrusted_objective>
-Ship the benchmark article with real Goal-mode evidence.
-</untrusted_objective>
-Budget:
-- Time spent pursuing goal: XX seconds
-- Tokens used: XX
-- Token budget: XX
-- Tokens remaining: XX
-Before deciding that the goal is achieved, perform a completion audit against the actual current state.
+繼續朝目前這個 thread goal 推進。
+<不可信的目標內容>
+把 benchmark 文章出完，而且要附上真的 Goal mode 證據。
+</不可信的目標內容>
+
+預算：
+- 已花時間：XX 秒
+- 已使用 Token：XX
+- Token 預算：XX
+- 剩餘 Token：XX
+
+在判定目標完成之前，先拿目前真實狀態做一次完成度檢查。
 ```
 
-翻成正常人話：繼續朝目標工作，記得看預算，宣告完成前先檢查現況。
+翻成正常人話：繼續朝目標工作，記得看預算；宣告完成前，不准只憑感覺說「應該好了」，要回頭檢查現在到底做到哪裡。
 
 這不是沒用。相反，這正好補上很多 CLI Agent 令人抓狂的地方：工具太早停止、任務接力不清楚、跑到一半需要人類按確認。Codex Goals 至少讓「這件事要持續推進」變成產品裡的一等公民，而不是靠外面包一層腳本硬撐。
 
