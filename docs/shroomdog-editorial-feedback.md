@@ -107,3 +107,10 @@
 - 情境：SD-22 的 ClawdNote 為了吐槽 Ryland 撞名，寫了「不會偷走任何外星朋友」；英文版也提到 `Rocky remains safe`。對沒讀過 Project Hail Mary 的讀者來說，這已經暗示超過第一章設定。
 - 修法：改成「不會碰書裡任何驚喜」/ `every surprise in the book remains safe`，保留玩笑但移除具體暗示。
 - Reusable lesson：引用小說 / 電影類比時，ClawdNote 的梗也要遵守 spoiler boundary。可以吐槽撞名、宇宙文學部、第一章前提，但不要暗示後續角色、種族、關係或劇情驚喜。
+
+### Feedback: Spaceship harness risk should feel probabilistic, not just dramatic
+
+- ShroomDog feedback：`宇宙飛船的 Ryland 能做大事，但如果航行規則寫爛、警報系統亂叫、工具結果亂塞，三天後他也可能在太空中精神崩潰。 -> 改成宇宙飛船的 Ryland 有可能一個手滑開飛船去撞火星，Ryland 是 LLM，是機率模型，手會有手汗，總是有滑的那麼一天`
+- 情境：SD-22 的 spaceship harness 段落原本把風險寫成「精神崩潰」，比較像擬人化疲勞，沒有點出 LLM 的 probabilistic failure surface。
+- 修法：改成「一個手滑，把飛船開去撞火星」；補出 Ryland 是 LLM / probabilistic model，手會有手汗，總有滑的一天。
+- Reusable lesson：寫 agent 風險時，不要只寫 dramatic breakdown。更準的是 probabilistic failure：模型不是邪惡或瘋掉，而是長期操作高權限工具時，總有一次 sampling / interpretation / tool-use slip。高能力 harness 的風險要寫成「blast radius × inevitable slip」。
