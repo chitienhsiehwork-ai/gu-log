@@ -150,6 +150,8 @@ Pipeline 包辦：fetch → eval → dedup → write → review → refine → c
 
 **新增或編輯文章前，先讀 `CONTRIBUTING.md`。** 它是所有內容規則的 SSOT（Single Source of Truth）。
 
+**ShroomDog editorial feedback 一律進 corpus。** 如果 ShroomDog / Sprin 對 gu-log 文章提出用字、敘事、事實查核、語氣、讀者困惑點等回饋，立刻 append 到 `docs/shroomdog-editorial-feedback.md`。不要只存在聊天紀錄、個人 memory、未追蹤 scratch file，或某個 agent 的私人筆記。這份檔案是未來蒸餾 GPT-5.5 / Codex / Claude Code / Iris 寫作 prompt 的原始訓練資料。
+
 ### 🔍 事實查核紀律：AI tooling 的 claim 必須 verify
 
 gu-log 寫的就是 AI / agent / tooling 圈，這個圈子有兩個特性：
@@ -177,6 +179,7 @@ gu-log 寫的就是 AI / agent / tooling 圈，這個圈子有兩個特性：
 CLAUDE.md (你在讀的這個)
   ├→ CONTRIBUTING.md          ← SSOT: 內容規則、ticketId SOP、防重複、frontmatter schema
   ├→ WRITING_GUIDELINES.md    ← SSOT: 寫作風格（PTT 說故事風、Clawd 吐槽語氣、SD/SP/CP 共用）
+  ├→ docs/shroomdog-editorial-feedback.md ← ShroomDog 修稿回饋 corpus（未來 prompt calibration）
   ├→ src/content/config.ts    ← SSOT: Frontmatter schema (Zod validation)
   ├→ scripts/
   │   ├ article-counter.json  ← Ticket ID counter（SD/SP/CP/Lv）

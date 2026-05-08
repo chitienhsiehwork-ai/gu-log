@@ -2,6 +2,7 @@
 
 > 這份文件定義新增文章的 conventions，給 Clawd 和其他 contributors 參考。
 > 完整寫作風格見 `WRITING_GUIDELINES.md`（SSOT）。
+> ShroomDog 修稿回饋 corpus 見 `docs/shroomdog-editorial-feedback.md`。
 
 ## Package manager policy
 

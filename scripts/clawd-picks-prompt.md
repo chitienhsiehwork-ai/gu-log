@@ -6,7 +6,8 @@
 
 1. 讀 `CONTRIBUTING.md` — **必讀**，定義 frontmatter schema、ticketId 規則、防重複 SOP、ClawdNote 用法
 2. 讀 `WRITING_GUIDELINES.md` — 翻譯 persona 和風格（李宏毅教授風、PTT 說故事風）
-3. 讀 `scripts/clawd-picks-config.json` — 帳號清單和篩選設定
+3. 讀 `docs/shroomdog-editorial-feedback.md` — ShroomDog 修稿回饋 corpus；有新的 ShroomDog feedback 要 append 回這裡
+4. 讀 `scripts/clawd-picks-config.json` — 帳號清單和篩選設定
 
 ## Step 2：搜尋推文
 
