@@ -71,6 +71,7 @@ GitHub GitLab Bitbucket GitLab.com
 DeepMind XAI Mistral DeepSeek Qwen Kimi Cohere Stability
 Hugging Face HuggingFace Replicate Modal RunPod Lambda Together Together.ai
 Linear Notion Slack Discord Telegram WhatsApp Instagram Facebook Messenger
+Jira
 Ray-Ban Tesla Apple Samsung Sony Nintendo
 DeepLearning.AI deeplearning.ai
 LangChain LangGraph LlamaIndex Pinecone Weaviate Chroma Milvus
@@ -110,6 +111,7 @@ tmux monorepo BEAM OTP DAG IETF RFC
 # Benchmarks / evaluations
 Intelligence Index Index Coding Index
 CharXiv MMMU MMLU HumanEval GSM8K MATH GPQA SWE-bench
+BrowseComp
 HealthBench DeepSearchQA HLE
 Humanity Last Exam Pro Hard
 Artificial Analysis
@@ -127,6 +129,7 @@ Harrison Chase Simon Willison Nat Friedman Patrick Collison
 Garry Tan Brian Chesky
 Riley Goodside Ethan Mollick
 Alex Kotliarskyi Victor Zhu Zach Brock Karri Saarinen daniel_mac8 daniel
+Jarrod Watts Matt Pocock
 Lisa MindOS_Lisa
 
 # Places

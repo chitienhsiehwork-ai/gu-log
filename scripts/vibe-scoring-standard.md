@@ -336,6 +336,15 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
   - After: `74095c4` — opinion-first ClawdNotes + narrative tension
   - `git diff fa338ed 74095c4 -- src/content/posts/sp-158*`
 
+### Score 6 → 8 — SP-192「Codex Goals / Ralph Loop」
+- **Why before 6:** 初版 facts 沒錯，但把 Jarrod 原文的刀口磨平成「長跑 Agent 需要結構」的通用教學。骨架是 Ralph Loop → 三個洞 → 工程流程，缺少 Codex Goals 解剖帶來的 tension；讀者看完知道要做事前釐清、多 Agent、外部記憶，但不會記得「Codex Goals 解的是不要熄火，不是不要迷路」。
+- **Why after 8:** 重寫後把主軸改成 Codex Goals 產品化 Ralph Loop，但只解決續航；真正的問題是長跑 Agent 可以不休息地跑偏。三個補件（訪談、多 Agent、新脈絡、外部記憶）不再像清單，而是一路回答「如何避免勤奮地跑偏」。
+- **⚠️ Key lesson:** Source fidelity 不只是 facts 對不對；原文的「刀口」也要保留。把尖銳 critique 寫成 generic best practices，即使每句都正確，vibe 也會塌。
+- **📚 Before/After Study Pair:**
+  - Before: `c8fd389b` — generic long-running-agent structure (vibe 6 after strict scorer; initial article had 8-ish surface scores but weak source knife)
+  - After: `c9e332e1` — Codex Goals tension + endurance-vs-direction spine (vibe 8)
+  - `git diff c8fd389b c9e332e1 -- src/content/posts/sp-192*`
+
 ### 綜合五分的標準 — SP-175「Opus 4.7 prompting cheat sheet」
 - **為什麼是五分（7/8/7/9/7，composite 7 FAIL）:** SP-175 是 cheat sheet 偽裝成 blog post 的典型案例。表面有比喻（tokenizer 房東換租金、effort 咖啡機粗細、snippet 換合約夥伴）、有 ClawdNote、有 kaomoji —— 所有 decorative 特徵齊全。但骨架是教科書：三件必知大事 → Effort 五級階梯 → 4.6→4.7 行為差異 → 可 copy 的 prompt snippets。**拿掉比喻之後就是 release notes**。
 - **Scorer 判讀差異（2026-04-17 跨版本實驗）**：
