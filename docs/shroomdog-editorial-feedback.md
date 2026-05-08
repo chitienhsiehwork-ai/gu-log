@@ -136,9 +136,9 @@
 - 修法：add `--check` mode to `scripts/build-version-manifest.mjs`, wire CI `validate-content` to fail when `post-versions.json` is stale, and add `pnpm versions:check`. This makes stale versions a failing check instead of relying on AI memory.
 - Reusable lesson：If a visible value is derived from git history, CI must enforce freshness. Do not rely on agents remembering to hand-edit or regenerate derived manifests.
 
-### Feedback: Final refined SD article can receive ShroomDog vibe 10
+### Feedback: Reserve vibe 10 for truly ceiling-level pieces
 
-- ShroomDog feedback：`Maybe we can give it a vibe 10 (for the final, refined version that i said yes)`
-- 情境：SD-22 went through several ShroomDog-directed refinements and became a stronger original mental model than the initial draft.
-- 修法：write frontmatter `scores.vibe` as 10/10 with model marker `ShroomDog final vibe override (refined SD-22)` so the displayed score reflects the final editorial verdict rather than an intermediate automated judge pass.
-- Reusable lesson：Automated tribunal scores are useful gates, but ShroomDog can override final vibe for original essays after editorial convergence. Mark the model/source clearly so it is not confused with a pure automated judge score.
+- ShroomDog feedback：`Maybe we can give it a vibe 10 (for the final, refined version that i said yes)` → later adjusted to `還是回到9好了，感覺差10還是差了一點，總是能再更好一點`
+- 情境：SD-22 went through several ShroomDog-directed refinements and became a stronger original mental model than the initial draft, but 10/10 felt too absolute after reflection.
+- 修法：write frontmatter `scores.vibe` as 9/10 with model marker `ShroomDog final vibe adjustment (refined SD-22)` so the displayed score reflects the final editorial verdict while preserving room above it.
+- Reusable lesson：Automated tribunal scores are useful gates, but ShroomDog can override final vibe for original essays after editorial convergence. Keep 10/10 rare; if the piece still feels like it can obviously get better, 9 is the more honest score.
