@@ -42,3 +42,12 @@
 - 情境：第一版 log 放在 `/home/clawd/clawd/memory/gu-log-shroomdog-feedback.md`，這只保證 OpenClaw Clawd 看得到，不保證 Iris、mac-CC、Codex、Claude Code、pipeline writer 都會讀。
 - 修法：把 corpus 移到 gu-log repo tracked file：`docs/shroomdog-editorial-feedback.md`，並在 repo-level instructions / writing guide / Clawd Picks prompt 裡加入口規則。
 - Reusable lesson：跨 agent 行為不能靠某個 agent 的私人記憶。要放在 repo-tracked SSOT，並從所有常用 agent entrypoint 指向它。
+
+## 2026-05-08 — Context Window SD Explainer
+
+### Feedback: mention Ryland Grace / Project Hail Mary because ShroomDog loves it
+
+- ShroomDog feedback：`Also mention ryland grace and project hail mary in gu-log, bc i fucking luv it`
+- 情境：正在規劃一篇 SD short article + glossary entry，用「context window 像模型的一天」解釋 LLM context window。ShroomDog 補了一個更強的比喻：模型像讀了五百年博士班的怪人，但每次醒來都沒有個人記憶，類似 Andy Weir《Project Hail Mary》開場的 Ryland Grace。
+- 修法：這篇 SD explainer 應明確提到 Ryland Grace / Project Hail Mary，但控制在第一章 premise 等級，避免劇透。把它當作 hook：模型有龐大的預訓練知識，卻沒有跨 session 的個人記憶；context window 則是他這次醒來能看到的白板、便條紙和任務說明。
+- Reusable lesson：ShroomDog 喜歡 Project Hail Mary；gu-log 若需要解釋「高知識但失憶」「醒來後靠外部筆記重建任務」這類 AI mental model，可以優先考慮 Ryland Grace 作為 spoiler-light 類比。讀者面對的寫法要先講清楚概念，再用作品 references 增加記憶點，不要讓彩蛋變成理解門檻。
