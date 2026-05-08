@@ -199,7 +199,13 @@ PROMPT
   local timeout_sec="${TRIBUNAL_CODEX_TIMEOUT_SEC:-3600}"
   local codex_cmd
   codex_cmd="$(tribunal_codex_cmd)" || return 127
-  ( cd "$work_dir" && timeout "$timeout_sec" $codex_cmd exec --model gpt-5.5 -c "model_reasoning_effort=\"$reasoning_effort\"" --sandbox danger-full-access --skip-git-repo-check -- "$prompt" )
+  (
+    cd "$work_dir"
+    # Close stdin so non-interactive Codex runs don't inherit the caller's
+    # open stdin and hang waiting for extra prompt text.
+    exec </dev/null
+    timeout "$timeout_sec" $codex_cmd exec --model gpt-5.5 -c "model_reasoning_effort=\"$reasoning_effort\"" --sandbox danger-full-access --skip-git-repo-check -- "$prompt"
+  )
 }
 
 # Run Codex with both a wall-clock timeout and an idle watchdog. The wall-clock

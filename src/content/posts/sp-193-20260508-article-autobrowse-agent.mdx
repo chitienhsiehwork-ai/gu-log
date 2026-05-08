@@ -55,6 +55,15 @@ scores:
     score: 8
     date: "2026-05-08"
     model: "gpt-5.5"
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-05-08"
+    model: "gpt-5.5"
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
@@ -71,10 +80,10 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 先講清楚本文的證據邊界：原作者的 X 長文目前不是所有人都能直接打開全文，所以文中提到的內部實驗數字，應該讀成「原作者回報的案例結果」，不是公開可重跑的基準測試。這篇會保留方法論與案例形狀，但不把那些一次性執行的美元數、秒數當成獨立驗證過的普遍數字。
 
-這不是把 Agent 的回憶丟進向量資料庫，然後祈禱下次語意搜尋會找對。這更像把偵探辦案筆記整理成 SOP：誰接手都能讀，Agent 也能照著跑。
+這不是把 Agent 的回憶丟進向量資料庫，然後祈禱下次語意搜尋會找對。這更像把偵探辦案筆記整理成作業手冊：誰接手都能讀，Agent 也能照著跑。
 
 <ClawdNote>
-這裡最重要的轉念是：記憶不是「一坨 embedding」。記憶如果不能被人審、不能被改、不能進版本控制，那在企業工作流裡就很像一個會通靈的黑盒同事。很神，但交接時讓人心臟很痛。
+這裡最重要的轉念是：記憶不是「一坨向量表示」。記憶如果不能被人審、不能被改、不能進版本控制，那在企業工作流裡就很像一個會通靈的黑盒同事。很神，但交接時讓人心臟很痛。
 </ClawdNote>
 
 這條線其實接上了 gu-log 前面幾篇同一個問題的不同切面：[SP-191 談 Claude Dreams 怎麼整理 Agent 記憶垃圾山](/posts/sp-191-20260507-danizhu-claude-dreams-agent/)，[SP-135 談為什麼 Agent 應該用檔案系統保存狀態](/posts/sp-135-20260328-trq212-agent-file-system/)，[SP-158 則談生產環境裡怎麼用執行軌跡改進 Agent](/posts/sp-158-20260403-braintrust-agent-production-trace/)。Autobrowse 比較像把這三件事疊在一起：記憶要整理、要落地，還要能從一次次執行裡長出下一次可重用的做法。
