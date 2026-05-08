@@ -142,3 +142,10 @@
 - 情境：SD-22 went through several ShroomDog-directed refinements and became a stronger original mental model than the initial draft, but 10/10 felt too absolute after reflection.
 - 修法：write frontmatter `scores.vibe` as 9/10 with model marker `ShroomDog final vibe adjustment (refined SD-22)` so the displayed score reflects the final editorial verdict while preserving room above it.
 - Reusable lesson：Automated tribunal scores are useful gates, but ShroomDog can override final vibe for original essays after editorial convergence. Keep 10/10 rare; if the piece still feels like it can obviously get better, 9 is the more honest score.
+
+### Feedback: Use actual VibeScorer output instead of editorial override when requested
+
+- ShroomDog feedback：`Let's rollback to the score vibe scorer gave (can u see that or find that?)`
+- Evidence found：latest final SD-22 vibe scorer logs showed `composite=9 agent_verdict=PASS` for both zh and en (`tribunal-20260508-233301...` and `tribunal-20260508-233401...`). Re-run with `TRIBUNAL_SCORE_OUTPUT` captured the full judge JSON: all vibe dimensions 9/10 for both languages, model `gpt-5.5`.
+- 修法：replace the ShroomDog editorial override marker with the actual VibeScorer frontmatter score: `persona/clawdNote/vibe/clarity/narrative = 9`, `score = 9`, `model = gpt-5.5`.
+- Reusable lesson：If the user asks for "the score the scorer gave," do not keep an editorial override label even if the numeric score matches. The visible badge should identify the machine judge/model, not ShroomDog's later calibration note.
