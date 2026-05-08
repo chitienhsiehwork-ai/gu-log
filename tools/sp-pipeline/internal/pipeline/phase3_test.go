@@ -80,7 +80,7 @@ body
 	s.Log = logx.New()
 	s.Cfg = &config.Config{
 		RepoRoot:     tmp,
-		WritingGuide: filepath.Join(tmp, "WRITING_GUIDELINES.md"),
+		WritingGuide: filepath.Join(tmp, "GU-LOG_WRITER_PROMPT.md"),
 	}
 	s.WorkDir = workDir
 	s.WriteModel = "GPT-5.5"

@@ -15,7 +15,7 @@ import (
 
 // newTestState returns a State + fake dispatcher wired up to a temp work
 // directory that already contains a plausible source-tweet.md and an
-// empty WRITING_GUIDELINES.md pointer.
+// empty GU-LOG_WRITER_PROMPT.md pointer.
 func newTestState(t *testing.T) (*State, *llm.FakeProvider, string) {
 	t.Helper()
 	tmp := t.TempDir()
@@ -29,7 +29,7 @@ func newTestState(t *testing.T) (*State, *llm.FakeProvider, string) {
 	}
 
 	// Point Cfg at a style guide that exists on disk.
-	styleGuide := filepath.Join(tmp, "WRITING_GUIDELINES.md")
+	styleGuide := filepath.Join(tmp, "GU-LOG_WRITER_PROMPT.md")
 	if err := os.WriteFile(styleGuide, []byte("# Style\nLHY tone.\n"), 0o644); err != nil {
 		t.Fatalf("write style guide: %v", err)
 	}

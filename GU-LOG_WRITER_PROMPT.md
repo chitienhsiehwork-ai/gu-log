@@ -7,7 +7,7 @@
 - Feedback corpus：`docs/shroomdog-editorial-feedback.md`
 - 寫 SP / CP / SD / Lv 前，如果任務涉及文章品質、語氣、用字或事實查核，先快速掃近期條目。
 - ShroomDog / Sprin 給出新的 editorial feedback 時，立刻 append：原始回饋、情境、修法、可重用 lesson。
-- 同一類 lesson 重複出現 3 次以上，就升級成這份 `WRITING_GUIDELINES.md` 的正式規則，或進 pipeline prompt。
+- 同一類 lesson 重複出現 3 次以上，就升級成這份 `GU-LOG_WRITER_PROMPT.md` 的正式規則，或進 pipeline prompt。
 
 ## 🎭 Core Persona: 李宏毅教授風格 (LHY Style)
 

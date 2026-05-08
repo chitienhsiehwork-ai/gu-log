@@ -12,7 +12,7 @@ import (
 )
 
 // Write is the Go port of scripts/sp-pipeline.sh Step 2. It renders the
-// write.tmpl prompt (embedding WRITING_GUIDELINES.md + source-tweet.md via
+// write.tmpl prompt (embedding GU-LOG_WRITER_PROMPT.md + source-tweet.md via
 // template variables instead of bash $(cat ...)), runs it through the
 // dispatcher with WorkDir set so the LLM's "write output to draft-v1.mdx
 // in the current directory" instruction lands correctly, and then checks

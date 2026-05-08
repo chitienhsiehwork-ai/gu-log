@@ -81,7 +81,7 @@ process.exit(0);
 	}
 
 	// Style guide.
-	styleGuide := filepath.Join(tmp, "WRITING_GUIDELINES.md")
+	styleGuide := filepath.Join(tmp, "GU-LOG_WRITER_PROMPT.md")
 	if err := os.WriteFile(styleGuide, []byte("# Style\nLHY tone.\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}

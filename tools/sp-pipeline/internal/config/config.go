@@ -24,7 +24,7 @@ type Config struct {
 	PostsDir string
 	// CounterFile is $RepoRoot/scripts/article-counter.json.
 	CounterFile string
-	// WritingGuide is $RepoRoot/WRITING_GUIDELINES.md.
+	// WritingGuide is $RepoRoot/GU-LOG_WRITER_PROMPT.md.
 	WritingGuide string
 	// FetchXArticle is $RepoRoot/scripts/fetch-x-article.sh.
 	FetchXArticle string
@@ -67,7 +67,7 @@ func fromRoot(root string) (*Config, error) {
 		ScriptsDir:    filepath.Join(abs, "scripts"),
 		PostsDir:      filepath.Join(abs, "src", "content", "posts"),
 		CounterFile:   filepath.Join(abs, "scripts", "article-counter.json"),
-		WritingGuide:  filepath.Join(abs, "WRITING_GUIDELINES.md"),
+		WritingGuide:  filepath.Join(abs, "GU-LOG_WRITER_PROMPT.md"),
 		FetchXArticle: filepath.Join(abs, "scripts", "fetch-x-article.sh"),
 		ValidatePosts: filepath.Join(abs, "scripts", "validate-posts.mjs"),
 	}

@@ -78,7 +78,7 @@ type WriteData struct {
 	Model      string // frontmatter translatedBy.model
 	Harness    string // frontmatter translatedBy.harness
 	FirstTag   string // "shroom-picks" (SP/SD) | "clawd-picks" (CP)
-	StyleGuide string // full contents of WRITING_GUIDELINES.md
+	StyleGuide string // full contents of GU-LOG_WRITER_PROMPT.md
 	Source     string // full contents of source-tweet.md
 }
 

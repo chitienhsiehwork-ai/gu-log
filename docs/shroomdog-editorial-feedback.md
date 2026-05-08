@@ -2,7 +2,7 @@
 
 這份檔案是 gu-log 的「feedback corpus」：ShroomDog / Sprin 對文章、標題、用字、事實查核、敘事節奏、讀者困惑點的所有回饋，都先原樣收進來。
 
-目的不是做漂亮文件，而是累積真實修稿資料。等樣本夠多，再把這些例子濃縮成 GPT-5.5 / Codex / Claude Code / Iris 都能用的 gu-log 寫作 prompt calibration。
+目的不是做漂亮文件，而是累積真實修稿資料。等樣本夠多，再把這些例子蒸餾進 `GU-LOG_WRITER_PROMPT.md`，讓 GPT-5.5 / Codex / Claude Code / Iris 都從同一份 gu-log writer prompt 學到 ShroomDog 的偏好。
 
 ## 使用規則
 
@@ -11,7 +11,7 @@
 - 不要只寫「語氣再自然一點」這種抽象話；要保留具體 bad example / good example。
 - 這是 repo-tracked source of truth。不要把新的 gu-log 寫作回饋只記在聊天紀錄、個人 memory、未追蹤檔案或單一 agent 的私人筆記裡。
 - 寫 SP / CP / SD / Lv 前，如果任務涉及文章品質或風格，先快速掃這份檔案的近期條目。
-- 當同一類 feedback 出現 3 次以上，應該升級到 `WRITING_GUIDELINES.md` 或 pipeline prompt，而不是永遠只留在這裡。
+- 當同一類 feedback 出現 3 次以上，應該蒸餾進 `GU-LOG_WRITER_PROMPT.md`，必要時再同步到 pipeline prompt；不要永遠只留在 corpus 裡。
 
 ## 2026-05-08 — SP-192 Codex Goals
 
@@ -29,11 +29,11 @@
 - 修法：改成 `補強一 / 二 / 三`。沒有用 `補丁`，因為 `補丁` 太像 software patch；`補件` 在台灣語感又太像行政文件補交。
 - Reusable lesson：不要只看字面意思，要看台灣讀者的語感。描述 missing safeguards / structural support 時，`補強` 比 `補件` 或 `補丁` 自然。
 
-### Meta-feedback: ShroomDog feedback 要累積成 prompt calibration
+### Meta-feedback: ShroomDog feedback 要累積，之後蒸餾進 writer prompt
 
 - ShroomDog feedback：`For every feedback from me, ShroomDog, u shall note down each feedback at some place, maybe git untracked, then one day we need to summarize them into prompt for 5.5, to write good gu-log posts.`
-- 情境：文章修稿回饋如果只留在 Telegram thread 或單一 Clawd memory，其他 agent 吃不到，未來也很難蒸餾成 prompt。
-- 修法：先建立 feedback corpus，記錄 feedback / fix / lesson。
+- 情境：文章修稿回饋如果只留在 Telegram thread 或單一 Clawd memory，其他 agent 吃不到，未來也很難蒸餾進 `GU-LOG_WRITER_PROMPT.md`。
+- 修法：先建立 feedback corpus，記錄 feedback / fix / lesson，之後再蒸餾進 `GU-LOG_WRITER_PROMPT.md`。
 - Reusable lesson：ShroomDog 每次 correction 都是 gu-log 風格訓練資料。不要只修當下那篇，要把 pattern 留下來。
 
 ### Meta-feedback: feedback corpus 應該由 gu-log repo 追蹤，不能只放在單一 agent memory

@@ -18,7 +18,7 @@ func makeStatusRepo(t *testing.T) (*config.Config, string) {
 	mustMkdir(t, filepath.Join(root, "src", "content", "posts"))
 	mustMkdir(t, filepath.Join(root, "scores"))
 	mustWrite(t, filepath.Join(root, "CLAUDE.md"), "# fake\n")
-	mustWrite(t, filepath.Join(root, "WRITING_GUIDELINES.md"), "# style\n")
+	mustWrite(t, filepath.Join(root, "GU-LOG_WRITER_PROMPT.md"), "# style\n")
 	mustWrite(t, filepath.Join(root, "scripts", "article-counter.json"), `{}`)
 	mustWrite(t, filepath.Join(root, "scripts", "validate-posts.mjs"), "")
 	mustWrite(t, filepath.Join(root, "scripts", "fetch-x-article.sh"), "#!/usr/bin/env bash\n")

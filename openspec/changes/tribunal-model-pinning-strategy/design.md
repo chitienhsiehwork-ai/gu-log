@@ -49,7 +49,7 @@ A/B 測試計畫：
 
 ## Risks / Trade-offs
 
-**[4.5 可能不夠好] Opus 4.5 在指令遵循上不如 4.6** → 先小規模測試（3 篇），不要一口氣全換。如果 4.5 指令遵循差（不遵守 WRITING_GUIDELINES），即使 vibe 好也不採用。
+**[4.5 可能不夠好] Opus 4.5 在指令遵循上不如 4.6** → 先小規模測試（3 篇），不要一口氣全換。如果 4.5 指令遵循差（不遵守 GU-LOG_WRITER_PROMPT），即使 vibe 好也不採用。
 
 **[4.7 fact checker 也可能有問題] 4.7 在 fact checking 上未經驗證** → 目前 fact checker 的品質問題不在 model 上（SP-177 的 factCheck 8 分看起來合理），4.7 的 literal execution 反而是優勢。
 
