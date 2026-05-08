@@ -66,6 +66,7 @@ PrevNextNav
 # AI labs / companies / orgs
 Anthropic OpenAI Google Meta Microsoft Apple Amazon AWS GCP Azure
 Cloudflare Stripe Vercel Astro MDX
+Browserbase
 Semrush DataReportal Feishu
 GitHub GitLab Bitbucket GitLab.com
 DeepMind XAI Mistral DeepSeek Qwen Kimi Cohere Stability
@@ -91,6 +92,7 @@ Claude Opus Sonnet Haiku
 GPT GPT-3 GPT-3.5 GPT-4 GPT-4o GPT-5 GPT-5.2 GPT-5.3 GPT-5.4
 Gemini Llama Mistral Qwen DeepSeek Kimi Grok Cohere Command
 Codex Cursor Copilot Replit Bolt Lovable Devin Atlas
+Autobrowse
 PandaOmics Chemistry42 AlphaEvolve Concordia Gemma Nemotron
 Muse Spark Llama Maverick Sonnet Opus K2 K2.5 R1
 Agent Swarm
@@ -107,6 +109,7 @@ PostgreSQL MySQL Redis MongoDB SQLite DuckDB
 VS Code JetBrains IntelliJ PyCharm WebStorm Vim Emacs Neovim
 Bash Zsh Fish Chrome DevTools
 tmux monorepo BEAM OTP DAG IETF RFC
+BeautifulSoup
 
 # Benchmarks / evaluations
 Intelligence Index Index Coding Index
@@ -131,11 +134,13 @@ Riley Goodside Ethan Mollick
 Alex Kotliarskyi Victor Zhu Zach Brock Karri Saarinen daniel_mac8 daniel
 Jarrod Watts Matt Pocock
 Lisa MindOS_Lisa
+Kyle Jeong
 
 # Places
 Albuquerque Hong Kong San Francisco SF Silicon Valley
 Cambridge Stanford MIT Berkeley Princeton Harvard
 Beijing Shanghai Shenzhen Hangzhou Tokyo Seoul Singapore London Paris Berlin
+Craigslist OpenTable Google Maps
 
 # Common file/format/protocol identifiers
 Markdown markdown JSON YAML XML CSV TSV PDF EPUB DOCX MDX
