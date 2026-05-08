@@ -203,6 +203,8 @@ def main() -> int:
     print("- If an old post has a similar idea, the new post does not need to be rejected automatically.")
     print("- Instead, judge whether the new post has a new POV, newer source, sharper framing, or different practical angle.")
     print("- If the idea happened before or overlaps, crossRef should require citing the most relevant old post(s).")
+    print("- Also judge terminology: awkward literal zh-tw calques should be replaced with natural zh-tw or a canonical English glossary term.")
+    print("- If a term choice affects gu-log's long-term vocabulary, flag it as a terminology decision for ShroomDog/Librarian instead of silently passing it.")
     print("- Use this packet as evidence; do not rescan the entire repo unless the packet is clearly insufficient.")
     return 0
 

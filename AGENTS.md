@@ -24,6 +24,8 @@
 
 保留必要 English technical terms、檔名、路徑、指令、config key、model ID、permission label、exact UI label，以及 spec reserved words（例如 MUST、SHALL、SHOULD、MAY、NOT、Requirement、Scenario、GIVEN、WHEN、THEN、AND）。不要為了翻譯而把 `git`、`API`、`CLI`、`branch protection`、`auto-merge` 這類術語翻得很彆扭。
 
+**術語決策規則**：如果中文譯法讀起來像硬翻論文腔（例：「擴展測試時運算」），不要直接送出。三選一：保留 canonical English term 並補 glossary、改成自然中文解釋、或標成 terminology decision 交給 ShroomDog / Librarian 判斷。這類問題不是小潤稿，是 gu-log 長期詞彙風格的一部分。
+
 **新增或編輯文章前，先讀 `CONTRIBUTING.md`。** 它是所有內容規則的 SSOT（Single Source of Truth）。
 
 ### 🔍 事實查核紀律：AI tooling 的 claim 必須 verify

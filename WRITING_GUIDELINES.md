@@ -210,6 +210,11 @@ Google 2017 年丟出這顆核彈後，整個 NLP 界直接進入新紀元。
 - term 有特定技術意義，中文翻譯會丟失資訊
 不是「我懶得翻」就加。先想：寫成中文是不是真的失準？如果只是順手沒想自然中文，那是晶晶體不是技術詞。
 
+**術語 checkpoint（不要硬翻研究論文腔）**：遇到像「擴展測試時運算」這種語意看得懂、但中文讀起來很卡的譯法，先停下來判斷：
+- 如果業界主要用英文討論，正文保留 canonical English term，第一次出現連到 glossary，glossary 裡補可能的 zh-tw 譯法。
+- 如果只是普通英文詞，改成自然中文改寫，不要為了逐字對應硬翻。
+- 如果 canonical term 會影響 gu-log 長期詞彙風格，先標成 terminology decision，交給 ShroomDog 或 Librarian 判斷；不要悶著頭把尷尬中文送進 production。
+
 **Lint enforcement**：`scripts/check-jingjing.mjs` 會 scan 所有 zh-tw `.mdx`，flag 不在 allowlist + 不在 glossary 的英文詞。pre-commit hook 攔。違規就改，要嘛翻成中文，要嘛在 PR 同 commit 把 term 加進 `src/data/glossary.json`（並寫好 definition + clawdNote）。
 
 **Tribunal enforcement**：`vibe-opus-scorer` 的 clarity 維度把這條當硬規則——出現非 allowlist 英文 = clarity 直接扣分（不只是品味問題）。

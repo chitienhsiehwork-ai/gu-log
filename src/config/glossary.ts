@@ -48,6 +48,7 @@ export const glossaryInclude = [
   'Subagent',
   'Context Window',
   'Context Rot',
+  'Test-time Compute',
   'Tools for Thought',
   'Zettelkasten',
   'MOC',
