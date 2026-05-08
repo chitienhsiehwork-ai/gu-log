@@ -149,3 +149,10 @@
 - Evidence found：latest final SD-22 vibe scorer logs showed `composite=9 agent_verdict=PASS` for both zh and en (`tribunal-20260508-233301...` and `tribunal-20260508-233401...`). Re-run with `TRIBUNAL_SCORE_OUTPUT` captured the full judge JSON: all vibe dimensions 9/10 for both languages, model `gpt-5.5`.
 - 修法：replace the ShroomDog editorial override marker with the actual VibeScorer frontmatter score: `persona/clawdNote/vibe/clarity/narrative = 9`, `score = 9`, `model = gpt-5.5`.
 - Reusable lesson：If the user asks for "the score the scorer gave," do not keep an editorial override label even if the numeric score matches. The visible badge should identify the machine judge/model, not ShroomDog's later calibration note.
+
+### Feedback: Context-window-as-day beats desktop because it carries order
+
+- ShroomDog feedback：`one more reason the metaphor of Context Window ~ LLM's day is that both time and context window filliment has order, while the desktop metaphor does not include this meaning` and `instead of we, use human`.
+- 情境：SD-22 already explained capacity and fatigue, but the one ShroomDogNote could better explain why the day metaphor is structurally stronger than the desktop metaphor.
+- 修法：expand the only ShroomDogNote to say desktop explains capacity but misses order; context arrives along token time, so later tool results are later events in Ryland's day. Use `human` / `humans`, not `we`, when contrasting reader wall-clock time with Ryland's token time; in zh-tw prose use `人類` to avoid 晶晶體.
+- Reusable lesson：When comparing metaphors, state the missing semantic dimension directly. Here: desktop = capacity/simultaneity; day = capacity + ordered experience + different clocks. If the EN instruction says `human`, translate the zh-tw article naturally unless `human` is being used as a literal technical term.
