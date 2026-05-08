@@ -161,5 +161,5 @@
 
 - ShroomDog feedback：`這不是什麼大雷，基本上就是第一章的核心設定。` felt unnatural; suggested `希望沒有暴雷，這只是第一章的內容嗚嗚`.
 - 情境：SD-22 references the opening setup of *Project Hail Mary*. The original disclaimer sounded like an explanatory legal note rather than ShroomDog's voice.
-- 修法：change the zh line to `希望沒有暴雷，這只是第一章的內容嗚嗚。`; mirror the EN tone as `Please do not count this as a spoiler. It is only first-chapter material, sob.`
-- Reusable lesson：When spoiler-sensitive gu-log notes are low-stakes, prefer a slightly sheepish human aside over stiff wording like `not a real spoiler` / `core setup`.
+- 修法：change the zh line to `希望沒有暴雷，這只是第一章的內容嗚嗚。`; mirror the EN tone naturally as `Hopefully that doesn’t count as a spoiler — it’s just from the first chapter, I swear.`
+- Reusable lesson：When spoiler-sensitive gu-log notes are low-stakes, prefer a slightly sheepish human aside over stiff wording like `not a real spoiler` / `core setup`. Avoid literal translated-meme English like `sob` unless the whole EN post is intentionally doing anime subtitle voice.
