@@ -156,3 +156,10 @@
 - 情境：SD-22 already explained capacity and fatigue, but the one ShroomDogNote could better explain why the day metaphor is structurally stronger than the desktop metaphor.
 - 修法：expand the only ShroomDogNote to say desktop explains capacity but misses order; context arrives along token time, so later tool results are later events in Ryland's day. Use `human` / `humans`, not `we`, when contrasting reader wall-clock time with Ryland's token time; in zh-tw prose use `人類` to avoid 晶晶體.
 - Reusable lesson：When comparing metaphors, state the missing semantic dimension directly. Here: desktop = capacity/simultaneity; day = capacity + ordered experience + different clocks. If the EN instruction says `human`, translate the zh-tw article naturally unless `human` is being used as a literal technical term.
+
+### Feedback: Spoiler disclaimers should sound human, not legalistic
+
+- ShroomDog feedback：`這不是什麼大雷，基本上就是第一章的核心設定。` felt unnatural; suggested `希望沒有暴雷，這只是第一章的內容嗚嗚`.
+- 情境：SD-22 references the opening setup of *Project Hail Mary*. The original disclaimer sounded like an explanatory legal note rather than ShroomDog's voice.
+- 修法：change the zh line to `希望沒有暴雷，這只是第一章的內容嗚嗚。`; mirror the EN tone as `Please do not count this as a spoiler. It is only first-chapter material, sob.`
+- Reusable lesson：When spoiler-sensitive gu-log notes are low-stakes, prefer a slightly sheepish human aside over stiff wording like `not a real spoiler` / `core setup`.
