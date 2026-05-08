@@ -100,3 +100,10 @@
 - 情境：需要把模型 context window 的歷史演進放進時間比喻。
 - 修法：加入 koala 段落：以前小 context 模型一天只醒兩小時，吃完系統提示桉樹葉就剩半小時能工作；現在 long context model 可以醒三天三夜，但需要更好的作息管理。
 - Reusable lesson：歷史演進不要只寫數字變大。用「一天能醒多久」講小 context → long context，可以自然解釋為什麼早期 prompt engineering 特別緊繃，以及為什麼長 context 不等於更聰明。
+
+### Feedback: ClawdNote jokes must stay spoiler-free
+
+- ShroomDog feedback：`外星朋友 in clawd note is sorta spoiling tho`
+- 情境：SD-22 的 ClawdNote 為了吐槽 Ryland 撞名，寫了「不會偷走任何外星朋友」；英文版也提到 `Rocky remains safe`。對沒讀過 Project Hail Mary 的讀者來說，這已經暗示超過第一章設定。
+- 修法：改成「不會碰書裡任何驚喜」/ `every surprise in the book remains safe`，保留玩笑但移除具體暗示。
+- Reusable lesson：引用小說 / 電影類比時，ClawdNote 的梗也要遵守 spoiler boundary。可以吐槽撞名、宇宙文學部、第一章前提，但不要暗示後續角色、種族、關係或劇情驚喜。
