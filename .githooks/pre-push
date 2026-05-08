@@ -42,7 +42,18 @@ while read -r _local_ref local_sha remote_ref remote_sha; do
   esac
 done
 
-# 1. Bundle budget check (check-only; must not write git working tree files)
+# 1. Post version manifest freshness — Vercel production uses the committed
+#    manifest on shallow clones, so content-touching commits must keep it fresh.
+echo "🔢 Checking post version manifest freshness..."
+node scripts/build-version-manifest.mjs --check
+if [ $? -ne 0 ]; then
+  echo "❌ post-versions.json is stale! Push aborted."
+  echo "   Run: node scripts/build-version-manifest.mjs"
+  echo "   Then amend the content commit so the visible vN badge matches git history."
+  exit 1
+fi
+
+# 2. Bundle budget check (check-only; must not write git working tree files)
 #    Blocking budgets fail the push; trend alerts are warnings only.
 echo "📦 Checking bundle budgets (blocking + trend monitor)..."
 node scripts/bundle-budget-check.mjs

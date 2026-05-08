@@ -16,13 +16,14 @@
  * drop the counts for any post touched only on the incoming branch.
  */
 import { execSync } from 'node:child_process';
-import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { writeFileSync, mkdirSync, existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, '..');
 const outPath = join(repoRoot, 'src', 'data', 'post-versions.json');
+const checkOnly = process.argv.includes('--check');
 
 // Skip regeneration if the clone is shallow — git log would miss history
 // and we'd overwrite the committed manifest with incomplete counts.
@@ -69,10 +70,22 @@ function buildManifest() {
     console.error('⚠️  git log failed — writing empty manifest:', err.message);
   }
 
+  const next = JSON.stringify(versions, null, 2) + '\n';
   const count = Object.keys(versions).length;
-  mkdirSync(dirname(outPath), { recursive: true });
-  writeFileSync(outPath, JSON.stringify(versions, null, 2) + '\n');
   const mergeHint = revs === 'HEAD MERGE_HEAD' ? ' (merge-aware)' : '';
+
+  if (checkOnly) {
+    const current = existsSync(outPath) ? readFileSync(outPath, 'utf8') : '';
+    if (current !== next) {
+      console.error('❌ post-versions.json is stale. Run: node scripts/build-version-manifest.mjs');
+      process.exit(1);
+    }
+    console.log(`✅ post-versions.json fresh: ${count} posts tracked${mergeHint}`);
+    return;
+  }
+
+  mkdirSync(dirname(outPath), { recursive: true });
+  writeFileSync(outPath, next);
   console.log(`✅ post-versions.json: ${count} posts tracked${mergeHint}`);
 }
 

@@ -114,3 +114,31 @@
 - 情境：SD-22 的 spaceship harness 段落原本把風險寫成「精神崩潰」，比較像擬人化疲勞，沒有點出 LLM 的 probabilistic failure surface。
 - 修法：改成「一個手滑，把飛船開去撞火星」；補出 Ryland 是 LLM / probabilistic model，手會有手汗，總有滑的一天。
 - Reusable lesson：寫 agent 風險時，不要只寫 dramatic breakdown。更準的是 probabilistic failure：模型不是邪惡或瘋掉，而是長期操作高權限工具時，總有一次 sampling / interpretation / tool-use slip。高能力 harness 的風險要寫成「blast radius × inevitable slip」。
+
+### Feedback: Avoid AI-ish summary endings; land the metaphor instead
+
+- ShroomDog feedback：`收尾的「一句話記住」，太 ai 了 xD`
+- 情境：SD-22 的結尾用「一句話記住」做摘要，像 AI 筆記或考前複習，和全文 Ryland/time metaphor 的故事感不一致。
+- 修法：改成「天快亮以前」/ `Before dawn`，用 Ryland 的一天收束：早上的課、白天事件、過夜課程，最後落在「別問 Ryland 能不能再撐一下。先看現在幾點。」
+- Reusable lesson：gu-log 原創 metaphor essay 不要用 AI-ish summary heading 收尾。結尾要回到故事核心，留一句能被記住的 punchline，而不是把前文做成條列式重點整理。
+
+### Feedback: Funny but spoiler-free proper-noun jokes
+
+- ShroomDog feedback：`命名巧合委員會超好笑 有夠荒謬`
+- 情境：前一版「宇宙文學部」雖然比直接提劇情安全，但仍然有宇宙方向的暗示。
+- 修法：改成「命名巧合委員會」/ `Naming Coincidence Committee`，保留荒謬官僚笑點，移除科幻/宇宙暗示。
+- Reusable lesson：spoiler-sensitive jokes can be funny through bureaucracy, committees, legalese, or naming coincidence — no need to lean on story-specific nouns.
+
+### Feedback: Post version should be programmatically enforced
+
+- ShroomDog feedback：`版本號怎麼會是要 ai 手改，鐵定是程式要會直接反應版本號吧`
+- 情境：SD-22 已經有多個 content-touching commits，但 production still showed v1 because committed `src/data/post-versions.json` was stale. The site needs committed manifest data on shallow Vercel clones.
+- 修法：add `--check` mode to `scripts/build-version-manifest.mjs`, wire CI `validate-content` to fail when `post-versions.json` is stale, and add `pnpm versions:check`. This makes stale versions a failing check instead of relying on AI memory.
+- Reusable lesson：If a visible value is derived from git history, CI must enforce freshness. Do not rely on agents remembering to hand-edit or regenerate derived manifests.
+
+### Feedback: Final refined SD article can receive ShroomDog vibe 10
+
+- ShroomDog feedback：`Maybe we can give it a vibe 10 (for the final, refined version that i said yes)`
+- 情境：SD-22 went through several ShroomDog-directed refinements and became a stronger original mental model than the initial draft.
+- 修法：write frontmatter `scores.vibe` as 10/10 with model marker `ShroomDog final vibe override (refined SD-22)` so the displayed score reflects the final editorial verdict rather than an intermediate automated judge pass.
+- Reusable lesson：Automated tribunal scores are useful gates, but ShroomDog can override final vibe for original essays after editorial convergence. Mark the model/source clearly so it is not confused with a pure automated judge score.
