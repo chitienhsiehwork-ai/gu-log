@@ -130,7 +130,7 @@ Davide Paglieri Logan Cross Mahmoud Jake Cooper
 Trump Newsom Jer Crane Pawel Pawel Huryn
 Harrison Chase Simon Willison Nat Friedman Patrick Collison
 Garry Tan Brian Chesky
-Riley Goodside Ethan Mollick
+Riley Goodside Ethan Mollick Andy Weir Ryland Grace Project Hail Mary
 Alex Kotliarskyi Victor Zhu Zach Brock Karri Saarinen daniel_mac8 daniel
 Jarrod Watts Matt Pocock
 Lisa MindOS_Lisa
