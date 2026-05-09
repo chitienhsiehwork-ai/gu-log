@@ -246,17 +246,54 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     </section>
 
     <section class="easter-card" aria-labelledby="easter-title">
-      <div>
+      <div class="easter-intro">
         <p class="eyebrow">Tiny easter egg</p>
         <h2 id="easter-title">順手 review 一下 gu-log？</h2>
         <p>
-          如果你覺得 gu-log 有趣，分享給一個朋友。<br />
-          如果你覺得 gu-log 很無聊，也請分享給 ShroomDog：ShroomDog 對「怎麼把無聊內容變好入口」非常有興趣。
+          如果你覺得 gu-log 有趣，分享給一個朋友。覺得無聊也沒關係，直接把 feedback 丟回 ShroomDog。
         </p>
       </div>
-      <div class="easter-actions">
-        <button type="button" class="ghost-button" id="copy-easter">複製分享小抄</button>
-        <span id="easter-copy-status" role="status" aria-live="polite"></span>
+
+      <div class="share-composer" aria-label="Share note composer">
+        <div class="control-group compact-control">
+          <h3>這段要給誰？</h3>
+          <div class="segmented" data-control="share-target">
+            <button type="button" class="active" data-value="friend" aria-pressed="true">
+              <span class="choice-check" aria-hidden="true">✓</span>
+              <span class="choice-text">分享給朋友</span>
+            </button>
+            <button type="button" data-value="shroomdog" aria-pressed="false">
+              <span class="choice-check" aria-hidden="true">✓</span>
+              <span class="choice-text">回報給 ShroomDog</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="control-group compact-control">
+          <h3>語氣選一個</h3>
+          <div class="segmented" data-control="share-tone">
+            <button type="button" class="active" data-value="curious" aria-pressed="true">
+              <span class="choice-check" aria-hidden="true">✓</span>
+              <span class="choice-text">有趣推薦</span>
+            </button>
+            <button type="button" data-value="short" aria-pressed="false">
+              <span class="choice-check" aria-hidden="true">✓</span>
+              <span class="choice-text">短版直球</span>
+            </button>
+            <button type="button" data-value="feedback" aria-pressed="false">
+              <span class="choice-check" aria-hidden="true">✓</span>
+              <span class="choice-text">吐槽回饋</span>
+            </button>
+          </div>
+        </div>
+
+        <label class="share-note-label" for="share-note">產生的小抄，可以先改再複製</label>
+        <textarea id="share-note" aria-label="Generated share note"></textarea>
+
+        <div class="easter-actions">
+          <button type="button" class="ghost-button" id="copy-easter">複製這段小抄</button>
+          <span id="easter-copy-status" role="status" aria-live="polite"></span>
+        </div>
       </div>
     </section>
 
@@ -791,9 +828,8 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
   .easter-card {
     display: grid;
-    grid-template-columns: 1fr auto;
     gap: 1rem;
-    align-items: center;
+    align-items: start;
     padding-block: clamp(0.9rem, 2.4vw, 1.15rem);
     background: linear-gradient(135deg, rgba(255, 250, 238, 0.86), rgba(255, 239, 208, 0.68));
     box-shadow: 0 10px 24px rgba(83, 49, 20, 0.08);
@@ -803,15 +839,50 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     font-size: clamp(1.25rem, 2.4vw, 1.65rem);
   }
 
+  .share-composer {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .compact-control {
+    padding: 0.8rem;
+    background: rgba(255, 255, 255, 0.34);
+  }
+
+  .compact-control h3 {
+    margin-bottom: 0.5rem;
+    font-size: 0.95rem;
+  }
+
+  .share-note-label {
+    color: var(--muted);
+    font-size: 0.86rem;
+    font-weight: 800;
+  }
+
+  #share-note {
+    width: 100%;
+    min-height: 155px;
+    padding: 0.9rem;
+    border: 1px solid rgba(106, 71, 42, 0.18);
+    border-radius: 18px;
+    color: #463126;
+    background: #fffaf0;
+    font:
+      0.95rem/1.65 'Noto Sans TC',
+      sans-serif;
+    resize: vertical;
+  }
+
   .easter-actions {
     display: grid;
     gap: 0.55rem;
-    justify-items: end;
+    justify-items: start;
   }
 
   #easter-copy-status {
-    max-width: 14rem;
-    text-align: right;
+    max-width: 100%;
+    text-align: left;
   }
 
   .example-section {
@@ -1071,12 +1142,15 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     ],
     priorities: ['Native share on mobile first', 'Copy link fallback with clear success state'],
     warmth: 2,
+    shareTarget: 'friend',
+    shareTone: 'curious',
   };
 
   const warmthLabels = ['乾淨直接', '克制友善', '友善但不油', '有一點 Clawd 式調皮'];
   const packet = document.getElementById('feedback-packet');
   const warmth = document.getElementById('warmth');
   const warmthLabel = document.getElementById('warmth-label');
+  const shareNote = document.getElementById('share-note');
   const copyStatus = document.getElementById('copy-status');
   const easterCopyStatus = document.getElementById('easter-copy-status');
 
@@ -1114,6 +1188,24 @@ Please revise the share button plan around these human decisions. Keep the first
 
   function setActiveButton(button, group) {
     group.querySelectorAll('button').forEach((item) => syncPressedState(item, item === button));
+  }
+
+  function renderShareNote() {
+    const url = 'https://gu-log.vercel.app/artifacts/sp-194-html-loop/';
+    const templates = {
+      friend: {
+        curious: `這篇 gu-log 的互動小頁蠻有趣：它用一顆「分享按鈕」示範，HTML 不只是把 AI output 排漂亮，而是可以讓人類更好 review、選擇、再把 feedback 貼回 Agent。\n\n${url}`,
+        short: `這個 gu-log 小 demo 值得看：用「分享按鈕」解釋 HTML 怎麼把 AI 文字牆變成可審閱的控制面板。\n\n${url}`,
+        feedback: `我覺得這個 gu-log artifact 的方向有趣，但也想聽你覺得它好不好懂：它在講 HTML 怎麼讓人類回到 Agent workflow 裡。\n\n${url}`,
+      },
+      shroomdog: {
+        curious: `ShroomDog，這個 artifact 的方向有打到我：用分享按鈕當例子，確實比較容易理解「HTML 是 human feedback surface」這件事。\n\n我覺得最有效的是：____\n還可以更好懂的地方是：____\n\n${url}`,
+        short: `ShroomDog quick feedback：這個 SP-194 artifact 可以看懂，分享按鈕的例子比抽象講 HTML 有感。\n\n我會建議下一版改：____\n\n${url}`,
+        feedback: `ShroomDog，這段我覺得還可以更好消化：____\n\n我卡住的點是：____\n如果要讓朋友秒懂，我會希望它先講：____\n\n${url}`,
+      },
+    };
+    const text = templates[state.shareTarget]?.[state.shareTone] || templates.friend.curious;
+    if (shareNote instanceof HTMLTextAreaElement) shareNote.value = text;
   }
 
   document.querySelectorAll('[data-control="audience"]').forEach((group) => {
@@ -1161,6 +1253,30 @@ Please revise the share button plan around these human decisions. Keep the first
     renderPacket();
   });
 
+  document.querySelectorAll('[data-control="share-target"]').forEach((group) => {
+    group.addEventListener('click', (event) => {
+      const target = event.target;
+      const button = target instanceof Element ? target.closest('button') : null;
+      if (!(button instanceof HTMLButtonElement)) return;
+      state.shareTarget = button.dataset.value || state.shareTarget;
+      setActiveButton(button, group);
+      renderShareNote();
+      if (easterCopyStatus) easterCopyStatus.textContent = '';
+    });
+  });
+
+  document.querySelectorAll('[data-control="share-tone"]').forEach((group) => {
+    group.addEventListener('click', (event) => {
+      const target = event.target;
+      const button = target instanceof Element ? target.closest('button') : null;
+      if (!(button instanceof HTMLButtonElement)) return;
+      state.shareTone = button.dataset.value || state.shareTone;
+      setActiveButton(button, group);
+      renderShareNote();
+      if (easterCopyStatus) easterCopyStatus.textContent = '';
+    });
+  });
+
   async function copyText(text) {
     if (navigator.clipboard?.writeText) {
       try {
@@ -1195,19 +1311,19 @@ Please revise the share button plan around these human decisions. Keep the first
 
   document.getElementById('copy-easter')?.addEventListener('click', async (event) => {
     const button = event.currentTarget instanceof HTMLButtonElement ? event.currentTarget : null;
-    await copyText(
-      '我剛讀到 gu-log 的 SP-194 companion artifact：它用一個分享按鈕 demo 解釋 HTML 怎麼讓人類回到 Agent loop。覺得有趣可以分享給朋友；覺得無聊也可以丟回 ShroomDog，因為 ShroomDog 正在研究怎麼把無聊內容變好入口。 https://gu-log.vercel.app/artifacts/sp-194-html-loop/'
-    );
+    const text = shareNote instanceof HTMLTextAreaElement ? shareNote.value : '';
+    await copyText(text);
     if (button) {
       button.classList.add('copied');
       button.textContent = '已複製分享小抄';
       window.setTimeout(() => {
         button.classList.remove('copied');
-        button.textContent = '複製分享小抄';
+        button.textContent = '複製這段小抄';
       }, 1800);
     }
     if (easterCopyStatus) easterCopyStatus.textContent = '完成，這段可以分享出去。';
   });
 
   renderPacket();
+  renderShareNote();
 </script>
