@@ -30,6 +30,17 @@
 
 **ShroomDog editorial feedback 一律進 corpus。** 如果 ShroomDog / Sprin 對 gu-log 文章提出用字、敘事、事實查核、語氣、讀者困惑點等回饋，立刻 append 到 `docs/shroomdog-editorial-feedback.md`。不要只存在聊天紀錄、個人 memory、未追蹤 scratch file，或某個 agent 的私人筆記。這份檔案是之後蒸餾進 GU-LOG_WRITER_PROMPT.md 的原始訓練資料，讓 GPT-5.5 / Codex / Claude Code / Iris 共用同一份 gu-log writer prompt。
 
+### 🔗 SP candidate / source evaluation：中文來源不是 No-go 理由
+
+ShroomDog 丟外部連結時，先判斷它能不能做成 gu-log，而不是用來源語言或形式偷懶拒絕。
+
+- **「原文已是中文 / 簡體中文分析文」不是 No-go 理由**：gu-log 的價值包含繁體中文、故事性、ClawdNote、ShroomDog/Clawd 的讀者脈絡與重新編排，不是只有翻譯語言。
+- **「二手整理」不是 No-go 理由**：可以重寫、改編、整理脈絡、引用原文；只要 attribution 清楚、來源可靠、讀者價值夠，就可以寫。
+- **「需要驗證數字 / 來源」不是 No-go 理由**：驗證是 agent 的工作。只有驗證後發現 facts 不可靠、無法查證、來源不完整，或支撐不了 8/8/8 publish bar，才可以 No-go。
+- 正確流程：讀完整 source → 必要時查 primary sources → 判斷 narrative potential / reader value / source reliability → Go 就用 gu-log 風格重寫並 cite；No-go 要講真正原因。
+
+這條規則的 editorial feedback 原文也記在 `docs/shroomdog-editorial-feedback.md`。未來更新 source-evaluation 類回饋時，兩邊要保持一致：`AGENTS.md` 放 general rule，editorial feedback corpus 放具體案例和 reusable lesson。
+
 ### 🔍 事實查核紀律：AI tooling 的 claim 必須 verify
 
 gu-log 寫的就是 AI / agent / tooling 圈，這個圈子有兩個特性：
