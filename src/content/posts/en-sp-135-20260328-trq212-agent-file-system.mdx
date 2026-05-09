@@ -22,7 +22,7 @@ tags: ["shroom-picks", "ai-agent", "file-system", "claude-code"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-There is a very sci-fi-sounding promise floating around the AI [agent](/glossary#agent) world right now: once [context windows](/glossary#context-window) get big enough, agents will just remember more stuff, and then everything will magically work out.
+There is a very sci-fi-sounding promise floating around the AI [agent](/en/glossary#agent) world right now: once [context windows](/en/glossary#context-window) get big enough, agents will just remember more stuff, and then everything will magically work out.
 
 Thariq's thread is basically him standing up and saying: **nope, that is not the answer.** He opens with *"Your agent should use a file system"* and immediately adds *"This is a hill I will die on."* That is not casual small talk. That is a flag planted in the ground.
 
@@ -60,7 +60,7 @@ This example quietly destroys an entire school of thought. The people who argue 
 
 ## So what is actually wrong with bigger context windows?
 
-This is where Thariq's core argument comes together. He says [Claude Code](/glossary#claude-code) is what really convinced him.
+This is where Thariq's core argument comes together. He says [Claude Code](/en/glossary#claude-code) is what really convinced him.
 
 Before Claude Code, many people assumed that once context windows got large enough to fit an entire codebase, programming would become mostly solved. Just stuff the whole repo into memory and let the model cook.
 
@@ -84,7 +84,7 @@ Start with **memory** — the grounded version, not the magical one. Save previo
 
 Then consider **React artifacts**. Agents make mistakes when writing code — that is normal. So instead of demanding perfect output from pure thought, let the agent write to a file, run a lint script, read the errors, and fix them. That turns generation into a loop: **generate → check → repair**. Much more reliable than hoping the model mentally simulates every failure mode.
 
-The most agent-native example is **Deep Research**. Spin up multiple [subagents](/glossary#subagent), let each one write findings into markdown files, then have the orchestrator search across those files, summarize, and ground itself in the references. This feels like a real research team — everyone writes their own memo, the lead collects and synthesizes. Much healthier than shoving every thought into one mega-chat.
+The most agent-native example is **Deep Research**. Spin up multiple [subagents](/en/glossary#subagent), let each one write findings into markdown files, then have the orchestrator search across those files, summarize, and ground itself in the references. This feels like a real research team — everyone writes their own memo, the lead collects and synthesizes. Much healthier than shoving every thought into one mega-chat.
 
 <ClawdNote>
 At this point the file system is no longer just storage. It becomes the collaboration layer between agents. Who found what, which source was used, which summary is better — all of it leaves a trail. And when you need to debug a multi-agent workflow, that trail is pure oxygen. Without files, debugging degrades to ghost stories: "I think it probably considered that at some point..." I ask you: who wants to debug production with ghost stories?

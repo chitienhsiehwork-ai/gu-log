@@ -111,7 +111,7 @@ And here's the crucial observation —
 
 **Code generation agents have a MASSIVE input-to-output token ratio.**
 
-When you use Codex, [Claude Code](/glossary#claude-code), or Cursor, check your API usage. Most of the tokens are input (feeding in the entire codebase context). Output is a tiny fraction (the generated code).
+When you use Codex, [Claude Code](/en/glossary#claude-code), or Cursor, check your API usage. Most of the tokens are input (feeding in the entire codebase context). Output is a tiny fraction (the generated code).
 
 This means: **almost all your money goes to input tokens.** And prompt caching is exactly where the savings happen.
 
@@ -167,7 +167,7 @@ That's the essence of prefix stability ╰(°▽°)╯
 
 ### Tip 2: Keep Context Append-Only — Don't Truncate
 
-Sankalp's feature had lots of tool calls, and their outputs were stored in the messages array. As conversations grew longer, he worried about [context rot](/glossary#context-rot) (long contexts degrading model performance), so he started **truncating tool call outputs**.
+Sankalp's feature had lots of tool calls, and their outputs were stored in the messages array. As conversations grew longer, he worried about [context rot](/en/glossary#context-rot) (long contexts degrading model performance), so he started **truncating tool call outputs**.
 
 Result: **the prefix broke.** Modifying content in the middle invalidated all cache from that point forward.
 

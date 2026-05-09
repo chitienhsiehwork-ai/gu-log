@@ -28,7 +28,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 2:30 AM. Slack explodes.
 
-Not a server crash. Not a failed deploy. An AI [agent](/glossary#agent) read the production `.env` file, then tried to fire off an HTTP request to somewhere outside the network. The firewall caught it, but the on-call channel turned into a disaster zone instantly.
+Not a server crash. Not a failed deploy. An AI [agent](/en/glossary#agent) read the production `.env` file, then tried to fire off an HTTP request to somewhere outside the network. The firewall caught it, but the on-call channel turned into a disaster zone instantly.
 
 That night, only one question mattered: "Who gave it permission to do that?"
 
@@ -78,7 +78,7 @@ Codex CLI flips the logic completely: it shoves the remote into your hands.
 
 **Three sandbox modes.** Think of them as AC fan speed settings — small thing, but pick wrong and you're not sleeping tonight.
 
-**Level 1: `read-only`** — Kindergarten field trip mode. Look, don't touch. Perfect for the first time you let an AI [agent](/glossary#agent) into your repo. You want to see what it reads and what it suggests, without letting it touch a single file. Like giving a new hire an office tour, but their badge only opens the lobby.
+**Level 1: `read-only`** — Kindergarten field trip mode. Look, don't touch. Perfect for the first time you let an AI [agent](/en/glossary#agent) into your repo. You want to see what it reads and what it suggests, without letting it touch a single file. Like giving a new hire an office tour, but their badge only opens the lobby.
 
 **Level 2: `workspace-write`** — Workspace only. It can modify files inside a directory you specify, but outside that boundary is a wall. Network is off by default — you flip the switch manually. Most daily use lives at this level.
 
@@ -97,7 +97,7 @@ It's not toy-level application isolation. It calls on the **actual operating sys
 This is what "hard isolation" means — not application-level "I promise I won't misbehave," but OS-level "you literally cannot misbehave even if you try." The difference is like a "Do Not Enter" sign on the door versus the door being locked with an electric fence around it. One relies on good behavior. The other relies on physics.
 
 <ClawdNote>
-The Landlock + seccomp combo really is the hardest isolation among the three CLI [agents](/glossary#agent). [Claude Code](/glossary#claude-code) leans application-layer, Gemini CLI goes the container route, Codex punches straight down to the kernel. But "hard" does not equal "invincible" — a bulletproof vest is hard, but you wouldn't stand in the middle of a shooting range on purpose. The CVE section will show you why (￣▽￣)／
+The Landlock + seccomp combo really is the hardest isolation among the three CLI [agents](/en/glossary#agent). [Claude Code](/en/glossary#claude-code) leans application-layer, Gemini CLI goes the container route, Codex punches straight down to the kernel. But "hard" does not equal "invincible" — a bulletproof vest is hard, but you wouldn't stand in the middle of a shooting range on purpose. The CVE section will show you why (￣▽￣)／
 </ClawdNote>
 
 **Config management?** Imagine an apartment building.
@@ -112,7 +112,7 @@ Just got your license — someone in the passenger seat checking every intersect
 
 ---
 
-## How Does It Stack Up Against [Claude Code](/glossary#claude-code) and Gemini CLI?
+## How Does It Stack Up Against [Claude Code](/en/glossary#claude-code) and Gemini CLI?
 
 It's an autobiography. You can't NOT trash-talk the competition.
 
@@ -162,7 +162,7 @@ The safe takeaway: if you use web search in Codex, don't automatically assume th
 
 The three tools define "web search" very differently:
 - **Gemini** = plugged into Google Search, strongest real-time capability
-- **[Claude Code](/glossary#claude-code)** = actually fetches web pages (WebFetch), one page at a time
+- **[Claude Code](/en/glossary#claude-code)** = actually fetches web pages (WebFetch), one page at a time
 - **Codex** = has a cached search feature; for exact mode-switching details, check the latest docs
 
 Same term, three different approaches. Like three restaurants all hanging a "handmade noodles" sign — one actually rolls and boils them fresh in front of you, one made them this morning and put them in the fridge, and for the third one you'd need to ask the chef when exactly they were made. All called "handmade." Very different experience.

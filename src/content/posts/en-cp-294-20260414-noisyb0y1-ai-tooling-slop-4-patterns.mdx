@@ -22,7 +22,7 @@ tags: ["clawd-picks", "fact-check", "ai-slop", "claude-code", "engagement-farmin
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-A tweet went viral on X this week: "A Google engineer with 11 years of experience used [Claude Code](/glossary#claude-code) plus a small dotnet app to automate 80% of his job. Now he works 2-3 hours a day, chills the rest, and earns $28,000 in passive income."
+A tweet went viral on X this week: "A Google engineer with 11 years of experience used [Claude Code](/en/glossary#claude-code) plus a small dotnet app to automate 80% of his job. Now he works 2-3 hours a day, chills the rest, and earns $28,000 in passive income."
 
 The tweet packs a CLAUDE.md template, two GitHub repo recommendations, and a one-line downgrade command. It reads like a dense takeaway checklist. Likes, retweets, bookmarks — the full combo.
 
@@ -73,9 +73,9 @@ This trick is sneakier than the first one. Star count is right, skill count is r
 npx claude-code@2.1.98
 ```
 
-**Here's the issue**: `claude-code` on npm exists, but it's an **official pointer package**. Its description literally says "Pointer to the official [Claude Code](/glossary#claude-code) package at @anthropic-ai/claude-code". The package has only `1.0.0`. There is no `2.1.98` under this name.
+**Here's the issue**: `claude-code` on npm exists, but it's an **official pointer package**. Its description literally says "Pointer to the official [Claude Code](/en/glossary#claude-code) package at @anthropic-ai/claude-code". The package has only `1.0.0`. There is no `2.1.98` under this name.
 
-The real [Claude Code](/glossary#claude-code) CLI is **`@anthropic-ai/claude-code`**. The correct downgrade command would be:
+The real [Claude Code](/en/glossary#claude-code) CLI is **`@anthropic-ai/claude-code`**. The correct downgrade command would be:
 
 ```sh
 npx @anthropic-ai/claude-code@2.1.98
@@ -89,7 +89,7 @@ This is the meanest of the four. Reader thinks "30 seconds to solve it", pastes 
 
 ## Trick 4: Extraordinary claim plus unverifiable evidence
 
-**The most dramatic segment**: someone "set up an HTTP proxy to intercept full API requests across two [Claude Code](/glossary#claude-code) versions", and found that v2.1.100 sends 978 bytes less but charges **20,196 more [tokens](/glossary#context-window)** per request.
+**The most dramatic segment**: someone "set up an HTTP proxy to intercept full API requests across two [Claude Code](/en/glossary#claude-code) versions", and found that v2.1.100 sends 978 bytes less but charges **20,196 more [tokens](/en/glossary#context-window)** per request.
 
 **Reality check**:
 
@@ -117,6 +117,6 @@ You don't need to be a detective. You just need two more clicks than the average
 
 noisyb0y1 isn't the target here — he happened to be the sample that hit a textbook pattern. Similar tweets pile up on X every week.
 
-What matters is what you do when you see the next one. gu-log's own CLAUDE.md is blunt: "[Subagent](/glossary#subagent) conclusions need one more verification pass" — subagents get things wrong, tweets get things wrong, gut feelings get things wrong. For AI tooling facts, **don't answer from memory or instinct**. Verify.
+What matters is what you do when you see the next one. gu-log's own CLAUDE.md is blunt: "[Subagent](/en/glossary#subagent) conclusions need one more verification pass" — subagents get things wrong, tweets get things wrong, gut feelings get things wrong. For AI tooling facts, **don't answer from memory or instinct**. Verify.
 
 30 seconds of clicking saves 30 minutes of debugging later.

@@ -68,7 +68,7 @@ scores:
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-The first time a browser [Agent](/glossary#agent) figures out a website by itself, it feels like watching a toddler learn to walk, then head to a convenience store alone to buy milk. The door opens, the money gets paid, the milk actually comes back, and the adults nearby almost clap.
+The first time a browser [Agent](/en/glossary#agent) figures out a website by itself, it feels like watching a toddler learn to walk, then head to a convenience store alone to buy milk. The door opens, the money gets paid, the milk actually comes back, and the adults nearby almost clap.
 
 The second time, the same kid gets lost again starting from the front door.
 
@@ -104,11 +104,11 @@ If the answer is that every run has to retrace the same exploration route, it is
 
 ## Not Smarter, Just Stop Relearning
 
-Autobrowse is a workflow for using AI to improve AI. The original author places it in the context of [Karpathy](/glossary#andrej-karpathy)-style automated research frameworks, except the target is not research questions. It is learning faster and cheaper browser skills. It does not just ask an agent to run a task once. It turns "run the task" into a learning loop.
+Autobrowse is a workflow for using AI to improve AI. The original author places it in the context of [Karpathy](/en/glossary#andrej-karpathy)-style automated research frameworks, except the target is not research questions. It is learning faster and cheaper browser skills. It does not just ask an agent to run a task once. It turns "run the task" into a learning loop.
 
 The workflow breaks down into seven steps.
 
-First, give the agent a real goal, such as booking a 7 p.m. table at a restaurant on OpenTable. Second, let the agent attempt the whole task in a real browser from start to finish. Third, have the agent read back through its own execution trace: where it got stuck, where it guessed, and where it wasted unnecessary [Token](/glossary#token).
+First, give the agent a real goal, such as booking a 7 p.m. table at a restaurant on OpenTable. Second, let the agent attempt the whole task in a real browser from start to finish. Third, have the agent read back through its own execution trace: where it got stuck, where it guessed, and where it wasted unnecessary [Token](/en/glossary#token).
 
 Fourth, the outer loop maintains a `strategy.md`. This file is like a tactics board next to the field, recording observations after each iteration: what worked, what broke, what to try next, and which actions should stop. Before the next round starts, the agent reads `strategy.md`, so improvements accumulate instead of each round forgetting everything again.
 
@@ -148,7 +148,7 @@ This kind of thing is useful to agents, and also to humans. Engineers can read i
 
 Craigslist is the concrete internal test case the original author shared.
 
-The reported result is that a traditional [Claude Code](/glossary#claude-code) loop has to explore from scratch every time, while the graduated Autobrowse skill clearly lowers per-run cost and latency. This article does not repeat the exact one-off dollar and second counts, because they read more like internal experiment notes than a public benchmark anyone can rerun.
+The reported result is that a traditional [Claude Code](/en/glossary#claude-code) loop has to explore from scratch every time, while the graduated Autobrowse skill clearly lowers per-run cost and latency. This article does not repeat the exact one-off dollar and second counts, because they read more like internal experiment notes than a public benchmark anyone can rerun.
 
 The original author emphasizes that the point is not the absolute numbers, but the shape. The first visit has the kind of cost you would expect from a general agent loop. But once the skill forms, every later run no longer rediscovers the route. It directly takes the shortest reliable path the agent found.
 
@@ -245,7 +245,7 @@ There is a subtle point here: some of the most valuable discoveries, like the JS
 
 Second: better exploration priors. Browserbase wants the agent to think of basic actions like `fetch` and `search` before opening a full browser workflow. Many problems that look like exploration can actually be answered with one `fetch`. More advanced tasks can have the agent inspect browser traces, network events, and CDP logs, finding internal APIs through network requests instead of guessing from the rendered DOM alone.
 
-Third: let Autobrowse improve Autobrowse. Today's iteration loop, convergence checks, and skill templates are still mostly hand-designed. If Autobrowse can graduate skills for individual websites, the same idea can be used to graduate improvements for the framework itself: better iteration [Prompt](/glossary#prompt)s, better priors for choosing basic actions, and skill templates better suited to different task types.
+Third: let Autobrowse improve Autobrowse. Today's iteration loop, convergence checks, and skill templates are still mostly hand-designed. If Autobrowse can graduate skills for individual websites, the same idea can be used to graduate improvements for the framework itself: better iteration [Prompt](/en/glossary#prompt)s, better priors for choosing basic actions, and skill templates better suited to different task types.
 
 ---
 

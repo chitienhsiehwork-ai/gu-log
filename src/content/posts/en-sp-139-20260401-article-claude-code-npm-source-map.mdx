@@ -37,13 +37,13 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 There's a special kind of embarrassment that comes from stapling your private diary into the company's annual report and mailing it out. On March 31, 2026, Anthropic experienced the tech industry version of exactly that.
 
-A user named @Fried_rice on X noticed that the [Claude Code](/glossary#claude-code) CLI npm package shipped with a 59.8 MB `cli.js.map` file. Inside the `sourcesContent` field: the complete TypeScript source code. No hackers, no insiders. Just a build configuration that forgot to strip debug artifacts. The diary went out with the mail. (Another researcher, @chaofan_shou, published an independent analysis — we translated his breakdown in [SP-148](/posts/sp-148-20260401-chaofan-shou-claude-code-source-leak/).)
+A user named @Fried_rice on X noticed that the [Claude Code](/en/glossary#claude-code) CLI npm package shipped with a 59.8 MB `cli.js.map` file. Inside the `sourcesContent` field: the complete TypeScript source code. No hackers, no insiders. Just a build configuration that forgot to strip debug artifacts. The diary went out with the mail. (Another researcher, @chaofan_shou, published an independent analysis — we translated his breakdown in [SP-148](/posts/sp-148-20260401-chaofan-shou-claude-code-source-leak/).)
 
 @elliotarledge spent hours combing through the code and published a thorough analysis. What he found was more interesting than most people expected — because this wasn't just a CLI's source code. It read more like Anthropic's internal blueprint for where AI coding agents are headed next.
 
 ## A Claude That Never Sleeps: KAIROS
 
-The most frequently appearing feature flag in the source code is **KAIROS** — 154 mentions. From the code alone, the picture is clear: this is an autonomous daemon mode. In plain terms, it turns Claude Code into a 24/7 always-on [agent](/glossary#agent). Background sessions that run without anyone opening a terminal. GitHub webhook subscriptions that auto-listen to repo events. Push notifications when tasks finish. Cross-session channel communication.
+The most frequently appearing feature flag in the source code is **KAIROS** — 154 mentions. From the code alone, the picture is clear: this is an autonomous daemon mode. In plain terms, it turns Claude Code into a 24/7 always-on [agent](/en/glossary#agent). Background sessions that run without anyone opening a terminal. GitHub webhook subscriptions that auto-listen to repo events. Push notifications when tasks finish. Cross-session channel communication.
 
 But the detail that really makes people pause is something called "Dream" memory consolidation — the system tidies up its memory during idle time.
 
