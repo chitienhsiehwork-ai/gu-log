@@ -28,6 +28,8 @@
 
 **新增或編輯文章前，先讀 `CONTRIBUTING.md`。** 它是所有內容規則的 SSOT（Single Source of Truth）。
 
+**ChatGPT share URL → 先讀 `.agents/skills/chatgpt-share-fetch/SKILL.md`。** 不要用 `web_fetch` 摘要直接寫文；先跑 `scripts/fetch-chatgpt-share.mjs` 把完整 transcript 存到 `sources/chatgpt/...`，再把該 source file 當成寫作依據。
+
 **ShroomDog editorial feedback 一律進 corpus。** 如果 ShroomDog / Sprin 對 gu-log 文章提出用字、敘事、事實查核、語氣、讀者困惑點等回饋，立刻 append 到 `docs/shroomdog-editorial-feedback.md`。不要只存在聊天紀錄、個人 memory、未追蹤 scratch file，或某個 agent 的私人筆記。這份檔案是之後蒸餾進 GU-LOG_WRITER_PROMPT.md 的原始訓練資料，讓 GPT-5.5 / Codex / Claude Code / Iris 共用同一份 gu-log writer prompt。
 
 ### ✂️ Sentence Signal Rule：每句都要有資訊量或鉤子
