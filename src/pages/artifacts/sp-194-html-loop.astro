@@ -254,7 +254,10 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
           如果你覺得 gu-log 很無聊，也請分享給 ShroomDog：ShroomDog 對「怎麼把無聊內容變好入口」非常有興趣。
         </p>
       </div>
-      <button type="button" class="ghost-button" id="copy-easter">複製分享小抄</button>
+      <div class="easter-actions">
+        <button type="button" class="ghost-button" id="copy-easter">複製分享小抄</button>
+        <span id="easter-copy-status" role="status" aria-live="polite"></span>
+      </div>
     </section>
 
     <section class="example-section" aria-labelledby="examples-title">
@@ -773,13 +776,15 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     resize: vertical;
   }
 
-  #copy-status {
+  #copy-status,
+  #easter-copy-status {
     color: var(--leaf);
     font-size: 0.92rem;
     font-weight: 800;
   }
 
-  #copy-packet.copied {
+  #copy-packet.copied,
+  #copy-easter.copied {
     background: linear-gradient(135deg, var(--leaf), #9ab36d);
     box-shadow: 0 12px 24px rgba(77, 117, 75, 0.22);
   }
@@ -796,6 +801,17 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
   .easter-card h2 {
     font-size: clamp(1.25rem, 2.4vw, 1.65rem);
+  }
+
+  .easter-actions {
+    display: grid;
+    gap: 0.55rem;
+    justify-items: end;
+  }
+
+  #easter-copy-status {
+    max-width: 14rem;
+    text-align: right;
   }
 
   .example-section {
@@ -973,6 +989,15 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       font-size: 0.72rem;
     }
 
+    .easter-actions {
+      justify-items: stretch;
+    }
+
+    #easter-copy-status {
+      max-width: none;
+      text-align: left;
+    }
+
     .wall-paper {
       padding: 0.78rem 0.82rem;
       font-size: 0.82rem;
@@ -1053,6 +1078,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   const warmth = document.getElementById('warmth');
   const warmthLabel = document.getElementById('warmth-label');
   const copyStatus = document.getElementById('copy-status');
+  const easterCopyStatus = document.getElementById('easter-copy-status');
 
   function syncPressedState(button, pressed) {
     button.classList.toggle('active', pressed);
@@ -1136,9 +1162,13 @@ Please revise the share button plan around these human decisions. Keep the first
   });
 
   async function copyText(text) {
-    if (navigator.clipboard) {
-      await navigator.clipboard.writeText(text);
-      return;
+    if (navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return;
+      } catch {
+        // Fall back below for browsers / preview contexts that block Clipboard API.
+      }
     }
     const temp = document.createElement('textarea');
     temp.value = text;
@@ -1163,11 +1193,20 @@ Please revise the share button plan around these human decisions. Keep the first
     if (copyStatus) copyStatus.textContent = '完成。';
   });
 
-  document.getElementById('copy-easter')?.addEventListener('click', async () => {
+  document.getElementById('copy-easter')?.addEventListener('click', async (event) => {
+    const button = event.currentTarget instanceof HTMLButtonElement ? event.currentTarget : null;
     await copyText(
       '我剛讀到 gu-log 的 SP-194 companion artifact：它用一個分享按鈕 demo 解釋 HTML 怎麼讓人類回到 Agent loop。覺得有趣可以分享給朋友；覺得無聊也可以丟回 ShroomDog，因為 ShroomDog 正在研究怎麼把無聊內容變好入口。 https://gu-log.vercel.app/artifacts/sp-194-html-loop/'
     );
-    if (copyStatus) copyStatus.textContent = 'Easter egg note copied. Share wisely. 🐾';
+    if (button) {
+      button.classList.add('copied');
+      button.textContent = '已複製分享小抄';
+      window.setTimeout(() => {
+        button.classList.remove('copied');
+        button.textContent = '複製分享小抄';
+      }, 1800);
+    }
+    if (easterCopyStatus) easterCopyStatus.textContent = '完成，這段可以分享出去。';
   });
 
   renderPacket();
