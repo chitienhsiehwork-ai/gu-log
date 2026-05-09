@@ -12,15 +12,19 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
     <header class="hero-card">
       <p class="eyebrow">SP-194 companion artifact</p>
-      <h1 id="artifact-title">HTML 不是比較漂亮的輸出，是人類回到 Agent 迴圈的控制面板</h1>
-      <p class="hero-copy">
-        這頁不呼叫任何 AI API。你只是在瀏覽器裡 review 一份 Agent 產出的「分享按鈕」規格，
-        做幾個人類判斷，然後匯出一包可以貼回 Claude Code / Codex / OpenClaw 的 feedback packet。
-      </p>
+      <h1 id="artifact-title">用 HTML 把 Agent 輸出變成可審閱的控制面板</h1>
+      <div class="hero-copy">
+        <p>
+          90 秒內看懂、勾選、再把判斷帶回 Agent。不是漂亮版 Markdown，是給人類操作的 review
+          surface。
+        </p>
+      </div>
+      <p class="hero-meta">No API · no tracking</p>
       <div class="hero-actions" aria-label="Page actions">
-        <a class="warm-button" href="#review-surface">開始互動</a>
-        <a class="ghost-button" href="/posts/sp-194-20260508-trq212-html-markdown-agent/"
-          >回到 SP-194</a
+        <a class="warm-button warm-button--wide" href="#review-surface">開始審閱</a>
+        <a
+          class="text-link text-link--muted"
+          href="/posts/sp-194-20260508-trq212-html-markdown-agent/">先讀 SP-194</a
         >
       </div>
     </header>
@@ -29,138 +33,206 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       <article>
         <span>01</span>
         <strong>Agent output</strong>
-        <p>先丟出一坨看起來很完整、但很難 review 的 Markdown。</p>
+        <p>完整，但難審。</p>
       </article>
       <article>
         <span>02</span>
-        <strong>Human surface</strong>
-        <p>人類不用逐字改，改用 chips、choices、priority 做判斷。</p>
+        <strong>Human choices</strong>
+        <p>用選項做判斷。</p>
       </article>
       <article>
         <span>03</span>
-        <strong>Feedback packet</strong>
-        <p>頁面把判斷整理成下一輪 prompt。沒有 API，也能完整閉環。</p>
+        <strong>Prompt back</strong>
+        <p>整理成下一輪回饋。</p>
       </article>
     </section>
 
     <section class="demo-grid" id="review-surface">
       <article class="markdown-wall" aria-labelledby="wall-title">
         <div class="panel-heading">
-          <p class="eyebrow">Before</p>
-          <h2 id="wall-title">Agent 的 Markdown 文字牆</h2>
+          <p class="eyebrow">Before / 文字牆</p>
+          <h2 id="wall-title">Agent 丟出的長篇 Markdown</h2>
         </div>
-        <div class="wall-paper">
-          <p><strong>Feature:</strong> Add share button to gu-log article pages</p>
+        <div class="wall-paper wall-paper-clipped">
           <p>
-            We should add a share button near the article title and maybe at the bottom. It should
-            support copying the URL, maybe native share on mobile, and maybe X / Telegram. It should
-            look nice and not distract users. Need to think about whether tracking is okay, whether
-            mobile browsers support Web Share API, whether fallback copy works, and whether the
-            button should be visible before or after reading.
+            <strong>Feature:</strong> Add share button to <span class="no-break">gu-log</span> article
+            pages
           </p>
           <p>
-            Risks: modal might be annoying, external share links might leak referrer, icons might
-            add bundle size, native share might fail silently, and analytics could make the feature
-            feel creepy. Also if the button looks too loud it might cheapen the reading experience.
+            Put one share action where a reader actually wants it. Mobile native share matters most;
+            copy link is the fallback.
           </p>
           <p>
-            Next steps: implement component, add tests, check mobile, add copy state, maybe add
-            tooltip, update docs, decide whether share button belongs in header, footer, or both.
+            Risks: the button gets too loud, fallback feels hidden, or tracking makes the whole
+            thing feel pushy.
+          </p>
+          <p>
+            Next steps: keep v1 tiny, test mobile browsers, and avoid turning the page into a
+            社群按鈕牆.
           </p>
         </div>
         <p class="wall-caption">
-          內容不一定錯。問題是人類很容易看完第一段就開始滑手機。這就是 SP-194 說的：瓶頸不是 AI
-          會不會寫，是人類願不願意 review。
+          這裡故意只留節錄。問題不是 AI 不會寫，而是人類看到這種文字牆就懶得繼續 review。
         </p>
       </article>
 
       <article class="surface-card" aria-labelledby="surface-title">
         <div class="panel-heading">
-          <p class="eyebrow">After</p>
-          <h2 id="surface-title">Human review surface</h2>
+          <p class="eyebrow">After / 控制面板</p>
+          <h2 id="surface-title">人類審閱面板 <span>Human review surface</span></h2>
         </div>
 
         <div class="control-group">
           <h3>這顆分享按鈕第一版應該服務誰？</h3>
-          <div class="segmented" data-control="audience" role="group" aria-label="Audience">
+          <p class="control-hint">
+            單選。先決定這顆按鈕到底在幫誰，不然後面所有 trade-off 都會散掉。
+          </p>
+          <div class="segmented" data-control="audience" role="group" aria-label="Audience choice">
             <button
               type="button"
               class="active"
-              data-value="mobile readers who just finished an article">手機讀者</button
+              data-value="mobile readers who just finished an article"
+              aria-pressed="true"
             >
+              <span class="choice-check" aria-hidden="true">✓</span>
+              <span class="choice-text">手機讀者</span>
+            </button>
             <button
               type="button"
-              data-value="friends who might enjoy gu-log but need one clean link">朋友</button
+              data-value="friends who might enjoy gu-log but need one clean link"
+              aria-pressed="false"
             >
+              <span class="choice-check" aria-hidden="true">✓</span>
+              <span class="choice-text">朋友</span>
+            </button>
             <button
               type="button"
               data-value="future ShroomDog reviewing what made the article digestible"
-              >未來的 ShroomDog</button
+              aria-pressed="false"
             >
+              <span class="choice-check" aria-hidden="true">✓</span>
+              <span class="choice-text">未來的 ShroomDog</span>
+            </button>
           </div>
         </div>
 
         <div class="control-group">
           <h3>第一版 priority</h3>
+          <p class="control-hint">
+            可複選，但先把 v1 真正要做的事勾出來，不要把社群按鈕牆假裝成進度。
+          </p>
           <div class="priority-list" aria-label="Priority list">
             <button
               type="button"
               class="priority-chip active"
-              data-priority="Native share on mobile first">1. 手機 native share</button
+              data-priority="Native share on mobile first"
+              aria-pressed="true"
             >
+              <span class="choice-check" aria-hidden="true">✓</span>
+              <span class="choice-text">1. 手機 native share</span>
+            </button>
             <button
               type="button"
               class="priority-chip active"
               data-priority="Copy link fallback with clear success state"
-              >2. Copy link fallback</button
+              aria-pressed="true"
             >
+              <span class="choice-check" aria-hidden="true">✓</span>
+              <span class="choice-text">2. Copy link fallback</span>
+            </button>
             <button
               type="button"
               class="priority-chip"
               data-priority="Social network buttons only if they do not add visual noise"
-              >3. 社群按鈕先不要吵</button
+              aria-pressed="false"
             >
+              <span class="choice-check" aria-hidden="true">✓</span>
+              <span class="choice-text">3. 社群按鈕先不要吵</span>
+            </button>
           </div>
         </div>
 
         <div class="control-group">
           <h3>請 Agent 優先修的風險</h3>
+          <p class="control-hint">
+            可複選。勾到的項目會直接進 feedback packet，所以每一顆都應該像 checklist。
+          </p>
           <div class="chip-cloud" data-control="risks" aria-label="Risk choices">
             <button
               type="button"
               class="active"
-              data-value="Do not add tracking or dark-pattern sharing pressure">不要追蹤壓迫</button
+              data-value="Do not add tracking or dark-pattern sharing pressure"
+              aria-pressed="true"
             >
+              <span class="choice-check" aria-hidden="true">✓</span>
+              <span class="choice-text">不要追蹤壓迫</span>
+            </button>
             <button
               type="button"
               class="active"
-              data-value="Mobile copy/share fallback must be obvious">手機 fallback 清楚</button
+              data-value="Mobile copy/share fallback must be obvious"
+              aria-pressed="true"
             >
-            <button type="button" data-value="Keep the visual weight quieter than the article title"
-              >視覺重量別搶戲</button
+              <span class="choice-check" aria-hidden="true">✓</span>
+              <span class="choice-text">手機 fallback 清楚</span>
+            </button>
+            <button
+              type="button"
+              data-value="Keep the visual weight quieter than the article title"
+              aria-pressed="false"
             >
-            <button type="button" data-value="Avoid a modal unless it clearly reduces friction"
-              >避免 modal</button
+              <span class="choice-check" aria-hidden="true">✓</span>
+              <span class="choice-text">視覺重量別搶戲</span>
+            </button>
+            <button
+              type="button"
+              data-value="Avoid a modal unless it clearly reduces friction"
+              aria-pressed="false"
             >
+              <span class="choice-check" aria-hidden="true">✓</span>
+              <span class="choice-text">避免 modal</span>
+            </button>
             <button
               type="button"
               data-value="External share targets must not become the whole feature"
-              >別變社群貼紙牆</button
+              aria-pressed="false"
             >
+              <span class="choice-check" aria-hidden="true">✓</span>
+              <span class="choice-text">別變社群貼紙牆</span>
+            </button>
           </div>
         </div>
 
         <div class="control-group slider-group">
-          <label for="warmth">文案溫度：<span id="warmth-label">友善但不油</span></label>
-          <input id="warmth" type="range" min="0" max="3" value="2" />
+          <div class="slider-heading">
+            <label for="warmth">文案溫度</label>
+            <output id="warmth-label" for="warmth">友善但不油</output>
+          </div>
+          <p class="control-hint">左邊更克制，右邊更有 personality，拖一下就知道差在哪。</p>
+          <div class="slider-scale" id="warmth-scale" aria-hidden="true">
+            <span>乾淨直接</span>
+            <span>有一點 Clawd 式調皮</span>
+          </div>
+          <input
+            id="warmth"
+            type="range"
+            min="0"
+            max="3"
+            value="2"
+            aria-describedby="warmth-scale"
+            aria-valuemin="0"
+            aria-valuemax="3"
+            aria-valuenow="2"
+            aria-valuetext="友善但不油"
+          />
         </div>
       </article>
     </section>
 
     <section class="packet-card" aria-labelledby="packet-title">
       <div class="panel-heading">
-        <p class="eyebrow">Export</p>
-        <h2 id="packet-title">Feedback Packet</h2>
+        <p class="eyebrow">Export / 回到 Agent</p>
+        <h2 id="packet-title">回饋包 <span>Feedback Packet</span></h2>
       </div>
       <p>
         這段就是要貼回 Agent 的東西。HTML 沒有幫你「呼叫 AI」，但它幫你把人類判斷整理成 Agent
@@ -168,7 +240,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       </p>
       <textarea id="feedback-packet" readonly aria-label="Generated feedback packet"></textarea>
       <div class="packet-actions">
-        <button type="button" class="warm-button" id="copy-packet">Copy feedback packet</button>
+        <button type="button" class="warm-button" id="copy-packet">複製回饋包</button>
         <span id="copy-status" role="status" aria-live="polite"></span>
       </div>
     </section>
@@ -176,13 +248,13 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     <section class="easter-card" aria-labelledby="easter-title">
       <div>
         <p class="eyebrow">Tiny easter egg</p>
-        <h2 id="easter-title">你剛 review 了一個 Agent。也順手 review 一下 gu-log？</h2>
+        <h2 id="easter-title">順手 review 一下 gu-log？</h2>
         <p>
           如果你覺得 gu-log 有趣，分享給一個朋友。<br />
           如果你覺得 gu-log 很無聊，也請分享給 ShroomDog：ShroomDog 對「怎麼把無聊內容變好入口」非常有興趣。
         </p>
       </div>
-      <button type="button" class="ghost-button" id="copy-easter">Copy gu-log share note</button>
+      <button type="button" class="ghost-button" id="copy-easter">複製分享小抄</button>
     </section>
 
     <section class="example-section" aria-labelledby="examples-title">
@@ -288,7 +360,9 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   }
 
   .hero-card {
-    padding: clamp(1.35rem, 4vw, 3rem);
+    display: grid;
+    gap: 0.85rem;
+    padding: clamp(1.2rem, 4vw, 2.7rem);
     border-radius: 34px;
     overflow: hidden;
     position: relative;
@@ -305,7 +379,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   }
 
   .eyebrow {
-    margin: 0 0 0.5rem;
+    margin: 0;
     color: var(--orange-dark);
     font-size: 0.78rem;
     font-weight: 800;
@@ -324,18 +398,39 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   }
 
   .hero-card h1 {
-    max-width: 820px;
+    max-width: 760px;
     margin: 0;
-    font-size: clamp(2rem, 7vw, 4.65rem);
-    line-height: 0.96;
+    font-size: clamp(1.7rem, 5.8vw, 4rem);
+    line-height: 1.04;
   }
 
   .hero-copy {
-    max-width: 760px;
-    margin: 1.25rem 0 0;
+    max-width: 660px;
+    margin: 0;
     color: var(--muted);
-    font-size: clamp(1rem, 2.2vw, 1.18rem);
-    line-height: 1.9;
+    font-size: clamp(0.98rem, 2vw, 1.08rem);
+    line-height: 1.62;
+  }
+
+  .hero-copy p {
+    margin: 0;
+  }
+
+  .hero-copy p + p {
+    margin-top: 0.28rem;
+  }
+
+  .hero-meta {
+    width: fit-content;
+    margin: 0;
+    padding: 0.42rem 0.78rem;
+    border: 1px solid rgba(185, 77, 34, 0.14);
+    border-radius: 999px;
+    color: var(--orange-dark);
+    background: rgba(255, 249, 237, 0.74);
+    font-size: 0.82rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
   }
 
   .hero-actions,
@@ -344,11 +439,12 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     flex-wrap: wrap;
     align-items: center;
     gap: 0.75rem;
-    margin-top: 1.25rem;
+    margin-top: 0.15rem;
   }
 
   .warm-button,
-  .ghost-button {
+  .ghost-button,
+  .text-link {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -362,7 +458,8 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     transition:
       transform 0.18s ease,
       box-shadow 0.18s ease,
-      background 0.18s ease;
+      background 0.18s ease,
+      border-color 0.18s ease;
   }
 
   .warm-button {
@@ -372,16 +469,45 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     box-shadow: 0 12px 24px rgba(196, 83, 33, 0.24);
   }
 
+  .warm-button--wide {
+    min-width: min(100%, 19rem);
+  }
+
   .ghost-button {
     border: 1px solid rgba(185, 77, 34, 0.35);
     color: var(--orange-dark);
     background: rgba(255, 249, 237, 0.7);
   }
 
+  .text-link {
+    min-height: 44px;
+    padding-inline: 0.15rem;
+    color: var(--orange-dark);
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .text-link--muted {
+    color: var(--muted);
+    font-weight: 700;
+  }
+
   .warm-button:hover,
-  .ghost-button:hover {
+  .ghost-button:hover,
+  .text-link:hover {
     transform: translateY(-1px);
     text-decoration: none;
+  }
+
+  .warm-button:focus-visible,
+  .ghost-button:focus-visible,
+  .text-link:focus-visible,
+  .segmented button:focus-visible,
+  .chip-cloud button:focus-visible,
+  .priority-chip:focus-visible,
+  .slider-group input:focus-visible {
+    outline: 3px solid rgba(231, 111, 50, 0.34);
+    outline-offset: 3px;
   }
 
   .loop-strip {
@@ -442,7 +568,26 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   .easter-card h2,
   .example-section h2 {
     margin: 0 0 0.8rem;
-    font-size: clamp(1.45rem, 3vw, 2rem);
+    font-size: clamp(1.55rem, 3vw, 2.08rem);
+    line-height: 1.08;
+  }
+
+  .panel-heading h2 span,
+  .packet-card h2 span {
+    display: block;
+    margin-top: 0.25rem;
+    color: var(--muted);
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .panel-heading .eyebrow {
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    opacity: 0.72;
   }
 
   .wall-paper {
@@ -454,7 +599,21 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       rgba(255, 255, 255, 0.62);
     font-size: 0.92rem;
     line-height: 1.62;
+    word-break: normal;
+    overflow-wrap: normal;
+    hyphens: none;
     box-shadow: inset 0 0 0 1px rgba(75, 48, 26, 0.08);
+  }
+
+  .no-break {
+    white-space: nowrap;
+  }
+
+  .wall-paper-clipped {
+    position: relative;
+    max-height: 250px;
+    overflow: hidden;
+    mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
   }
 
   .control-group {
@@ -471,9 +630,16 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   .control-group h3,
   .slider-group label {
     display: block;
-    margin: 0 0 0.65rem;
+    margin: 0;
     color: var(--ink);
     font-size: 1rem;
+  }
+
+  .control-hint {
+    margin: 0.45rem 0 0.8rem;
+    color: var(--muted);
+    font-size: 0.9rem;
+    line-height: 1.55;
   }
 
   .segmented,
@@ -487,24 +653,94 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   .segmented button,
   .chip-cloud button,
   .priority-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.6rem;
+    min-height: 46px;
     border: 1px solid rgba(124, 93, 73, 0.22);
-    border-radius: 999px;
+    border-radius: 18px;
     background: #fff9ed;
     color: var(--muted);
     font: inherit;
     font-weight: 700;
-    padding: 0.62rem 0.78rem;
+    line-height: 1.28;
+    padding: 0.76rem 0.95rem;
     cursor: pointer;
     transition: all 0.16s ease;
+  }
+
+  .choice-check {
+    display: inline-grid;
+    place-items: center;
+    width: 1.15rem;
+    height: 1.15rem;
+    flex: 0 0 1.15rem;
+    border: 1.5px solid rgba(124, 93, 73, 0.28);
+    border-radius: 999px;
+    color: transparent;
+    background: rgba(255, 255, 255, 0.8);
+    font-size: 0.72rem;
+    font-weight: 900;
+    transition: inherit;
+  }
+
+  .choice-text {
+    display: block;
   }
 
   .segmented button.active,
   .chip-cloud button.active,
   .priority-chip.active {
-    border-color: rgba(231, 111, 50, 0.45);
+    border-color: rgba(231, 111, 50, 0.48);
     color: var(--orange-dark);
     background: rgba(231, 111, 50, 0.14);
     box-shadow: 0 8px 18px rgba(231, 111, 50, 0.12);
+  }
+
+  .segmented button.active .choice-check,
+  .chip-cloud button.active .choice-check,
+  .priority-chip.active .choice-check {
+    border-color: rgba(185, 77, 34, 0.7);
+    color: #fff9ed;
+    background: linear-gradient(135deg, var(--orange), var(--honey));
+    box-shadow: 0 6px 12px rgba(231, 111, 50, 0.2);
+  }
+
+  .slider-group {
+    display: grid;
+    gap: 0.8rem;
+  }
+
+  .slider-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  #warmth-label {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2rem;
+    padding: 0.32rem 0.7rem;
+    border: 1px solid rgba(185, 77, 34, 0.16);
+    border-radius: 999px;
+    color: var(--orange-dark);
+    background: rgba(255, 249, 237, 0.76);
+    font-size: 0.84rem;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+
+  .slider-scale {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    color: var(--muted);
+    font-size: 0.82rem;
+    font-weight: 700;
   }
 
   .slider-group input {
@@ -538,7 +774,13 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
   #copy-status {
     color: var(--leaf);
+    font-size: 0.92rem;
     font-weight: 800;
+  }
+
+  #copy-packet.copied {
+    background: linear-gradient(135deg, var(--leaf), #9ab36d);
+    box-shadow: 0 12px 24px rgba(77, 117, 75, 0.22);
   }
 
   .easter-card {
@@ -546,7 +788,13 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     grid-template-columns: 1fr auto;
     gap: 1rem;
     align-items: center;
-    background: linear-gradient(135deg, rgba(255, 250, 238, 0.94), rgba(255, 228, 179, 0.82));
+    padding-block: clamp(0.9rem, 2.4vw, 1.15rem);
+    background: linear-gradient(135deg, rgba(255, 250, 238, 0.86), rgba(255, 239, 208, 0.68));
+    box-shadow: 0 10px 24px rgba(83, 49, 20, 0.08);
+  }
+
+  .easter-card h2 {
+    font-size: clamp(1.25rem, 2.4vw, 1.65rem);
   }
 
   .example-section {
@@ -587,7 +835,206 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     }
 
     .artifact-page {
-      width: min(100%, calc(100vw - 1rem));
+      width: min(100%, calc(100vw - 0.7rem));
+      margin-top: 0.65rem;
+    }
+
+    .artifact-page::before {
+      inset: -0.45rem -0.35rem;
+      border-radius: 24px;
+      box-shadow: 0 18px 42px rgba(48, 27, 9, 0.16);
+    }
+
+    .ambient {
+      display: none;
+    }
+
+    .loop-strip {
+      gap: 0.5rem;
+      margin: 0.55rem 0 0.8rem;
+    }
+
+    .loop-strip article {
+      display: grid;
+      grid-template-columns: 32px 1fr;
+      gap: 0.2rem 0.8rem;
+      align-items: start;
+      padding: 0.7rem 0.78rem;
+      border-radius: 18px;
+      position: relative;
+      box-shadow: 0 8px 18px rgba(83, 49, 20, 0.07);
+    }
+
+    .loop-strip article:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      left: 1rem;
+      top: 2.6rem;
+      bottom: -0.6rem;
+      width: 1px;
+      background: rgba(185, 77, 34, 0.22);
+    }
+
+    .loop-strip span {
+      width: 32px;
+      height: 32px;
+      margin: 0;
+      border-radius: 10px;
+      font-size: 0.8rem;
+      grid-row: 1 / span 2;
+    }
+
+    .loop-strip strong {
+      font-size: 0.88rem;
+      line-height: 1.2;
+    }
+
+    .loop-strip p {
+      display: block;
+      margin: 0;
+      font-size: 0.82rem;
+      line-height: 1.38;
+    }
+
+    .hero-card {
+      gap: 0.5rem;
+      padding: 0.78rem 0.78rem 0.82rem;
+      border-radius: 22px;
+    }
+
+    .hero-card::after {
+      right: 0.65rem;
+      bottom: -0.15rem;
+      font-size: 2.8rem;
+      opacity: 0.08;
+    }
+
+    .hero-card h1 {
+      font-size: clamp(1.3rem, 5.9vw, 1.56rem);
+      max-width: 100%;
+      line-height: 1.02;
+    }
+
+    .hero-copy {
+      max-width: none;
+      font-size: 0.87rem;
+      line-height: 1.42;
+    }
+
+    .hero-meta {
+      padding: 0.28rem 0.58rem;
+      font-size: 0.72rem;
+      letter-spacing: 0.03em;
+    }
+
+    .hero-actions {
+      align-items: stretch;
+      gap: 0.4rem;
+      margin-top: 0.05rem;
+    }
+
+    .hero-actions .warm-button,
+    .hero-actions .text-link,
+    .segmented button,
+    .chip-cloud button,
+    .priority-chip {
+      width: 100%;
+    }
+
+    .hero-actions .text-link {
+      min-height: 34px;
+      justify-content: flex-start;
+      padding-inline: 0.15rem;
+      font-size: 0.84rem;
+    }
+
+    .surface-card {
+      order: -1;
+    }
+
+    .markdown-wall,
+    .surface-card,
+    .packet-card,
+    .easter-card,
+    .example-section {
+      padding: 0.9rem;
+      border-radius: 22px;
+    }
+
+    .panel-heading h2,
+    .packet-card h2,
+    .easter-card h2,
+    .example-section h2 {
+      margin-bottom: 0.65rem;
+      font-size: 1.34rem;
+    }
+
+    .panel-heading h2 span,
+    .packet-card h2 span {
+      margin-top: 0.18rem;
+      font-size: 0.72rem;
+    }
+
+    .wall-paper {
+      padding: 0.78rem 0.82rem;
+      font-size: 0.82rem;
+      line-height: 1.46;
+    }
+
+    .wall-paper-clipped {
+      max-height: none;
+      overflow: visible;
+      mask-image: none;
+    }
+
+    .control-group {
+      padding: 0.8rem;
+      border-radius: 18px;
+    }
+
+    .control-group h3,
+    .slider-group label {
+      font-size: 0.94rem;
+    }
+
+    .control-hint {
+      margin-top: 0.38rem;
+      margin-bottom: 0.65rem;
+      font-size: 0.82rem;
+      line-height: 1.42;
+    }
+
+    .segmented button,
+    .chip-cloud button,
+    .priority-chip {
+      min-height: 42px;
+      gap: 0.5rem;
+      padding: 0.66rem 0.8rem;
+      border-radius: 16px;
+      font-size: 0.9rem;
+    }
+
+    .choice-check {
+      width: 1rem;
+      height: 1rem;
+      flex-basis: 1rem;
+      font-size: 0.66rem;
+    }
+
+    .slider-heading {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .slider-scale {
+      font-size: 0.74rem;
+    }
+
+    #feedback-packet {
+      min-height: 220px;
+      padding: 0.82rem;
+      font-size: 0.82rem;
+      line-height: 1.52;
     }
   }
 </style>
@@ -609,21 +1056,47 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   const warmthLabel = document.getElementById('warmth-label');
   const copyStatus = document.getElementById('copy-status');
 
+  function syncPressedState(button, pressed) {
+    button.classList.toggle('active', pressed);
+    button.setAttribute('aria-pressed', String(pressed));
+  }
+
   function renderPacket() {
-    const text = `Human Feedback Packet: Share Button v1\n\nWhat I understood:\n- The feature is not "add more social icons."\n- The real goal is to help a reader share a gu-log article at the moment they find it useful, without making the reading experience feel cheap or pushy.\n\nDecisions I made:\n- Primary audience: ${state.audience}.\n- Tone: ${warmthLabels[state.warmth]}.\n- Priorities:\n${state.priorities.map((item, index) => `  ${index + 1}. ${item}`).join('\n')}\n\nRisks to fix first:\n${state.risks.map((item) => `- ${item}`).join('\n')}\n\nNext prompt for the agent:\nPlease revise the share button plan around these human decisions. Keep the first version small: mobile native share, copy-link fallback, no tracking pressure, and visual weight quieter than the article itself. Return a concise implementation plan plus edge cases for mobile browsers.`;
+    const text = `Human Feedback Packet: Share Button v1
+
+What I understood:
+- The feature is not "add more social icons."
+- The real goal is to help a reader share a gu-log article at the moment they find it useful, without making the reading experience feel cheap or pushy.
+
+Decisions I made:
+- Primary audience: ${state.audience}.
+- Tone: ${warmthLabels[state.warmth]}.
+- Priorities:
+${state.priorities.map((item, index) => `  ${index + 1}. ${item}`).join('\n')}
+
+Risks to fix first:
+${state.risks.map((item) => `- ${item}`).join('\n')}
+
+Next prompt for the agent:
+Please revise the share button plan around these human decisions. Keep the first version small: mobile native share, copy-link fallback, no tracking pressure, and visual weight quieter than the article itself. Return a concise implementation plan plus edge cases for mobile browsers.`;
 
     if (packet instanceof HTMLTextAreaElement) packet.value = text;
+    if (warmth instanceof HTMLInputElement) {
+      warmth.setAttribute('aria-valuenow', String(state.warmth));
+      warmth.setAttribute('aria-valuetext', warmthLabels[state.warmth]);
+    }
+    if (warmthLabel) warmthLabel.textContent = warmthLabels[state.warmth];
   }
 
   function setActiveButton(button, group) {
-    group.querySelectorAll('button').forEach((item) => item.classList.remove('active'));
-    button.classList.add('active');
+    group.querySelectorAll('button').forEach((item) => syncPressedState(item, item === button));
   }
 
   document.querySelectorAll('[data-control="audience"]').forEach((group) => {
     group.addEventListener('click', (event) => {
-      const button = event.target instanceof HTMLButtonElement ? event.target : null;
-      if (!button) return;
+      const target = event.target;
+      const button = target instanceof Element ? target.closest('button') : null;
+      if (!(button instanceof HTMLButtonElement)) return;
       state.audience = button.dataset.value || state.audience;
       setActiveButton(button, group);
       renderPacket();
@@ -633,8 +1106,9 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   document.querySelectorAll('[data-control="risks"] button').forEach((button) => {
     button.addEventListener('click', () => {
       const value = button.dataset.value || '';
-      button.classList.toggle('active');
-      if (button.classList.contains('active')) {
+      const nextActive = !button.classList.contains('active');
+      syncPressedState(button, nextActive);
+      if (nextActive) {
         if (!state.risks.includes(value)) state.risks.push(value);
       } else {
         state.risks = state.risks.filter((item) => item !== value);
@@ -646,8 +1120,9 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   document.querySelectorAll('.priority-chip').forEach((button) => {
     button.addEventListener('click', () => {
       const value = button.dataset.priority || '';
-      button.classList.toggle('active');
-      if (button.classList.contains('active')) {
+      const nextActive = !button.classList.contains('active');
+      syncPressedState(button, nextActive);
+      if (nextActive) {
         if (!state.priorities.includes(value)) state.priorities.push(value);
       } else {
         state.priorities = state.priorities.filter((item) => item !== value);
@@ -659,7 +1134,6 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   warmth?.addEventListener('input', () => {
     if (!(warmth instanceof HTMLInputElement)) return;
     state.warmth = Number(warmth.value);
-    if (warmthLabel) warmthLabel.textContent = warmthLabels[state.warmth];
     renderPacket();
   });
 
@@ -676,10 +1150,19 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     temp.remove();
   }
 
-  document.getElementById('copy-packet')?.addEventListener('click', async () => {
+  document.getElementById('copy-packet')?.addEventListener('click', async (event) => {
+    const button = event.currentTarget instanceof HTMLButtonElement ? event.currentTarget : null;
     const text = packet instanceof HTMLTextAreaElement ? packet.value : '';
     await copyText(text);
-    if (copyStatus) copyStatus.textContent = 'Copied. 這包 feedback 可以貼回 Agent 了。';
+    if (button) {
+      button.classList.add('copied');
+      button.textContent = '已複製，可以貼回 Agent';
+      window.setTimeout(() => {
+        button.classList.remove('copied');
+        button.textContent = '複製回饋包';
+      }, 1800);
+    }
+    if (copyStatus) copyStatus.textContent = '完成。';
   });
 
   document.getElementById('copy-easter')?.addEventListener('click', async () => {
