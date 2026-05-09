@@ -170,3 +170,17 @@
 - 情境：SP-195 candidate was initially rejected partly because the source was already a Chinese analysis article and some numbers needed verification.
 - 修法：treat the source as usable. Rewrite it into gu-log’s story-driven format, cite the original Yage AI article, verify primary OpenAI/Cursor documentation, and make the gu-log value come from narrative, ClawdNote, Traditional Chinese, and ShroomDog/Clawd framing rather than pretending the source language is a blocker.
 - Reusable lesson：Do not reject gu-log/SP candidates because the source is Simplified Chinese, already analytical, or second-hand. Source verification is Clawd’s job. No-go only after verification shows the facts are unreliable, uncheckable, incomplete, or unable to support the 8/8/8 bar.
+
+### Feedback: Every sentence needs signal
+
+- ShroomDog feedback：`不需要用原作者這篇什麼什麼開頭 / 使用者一開始就已經看到原文出處了 / 所以不要講重複的廢話，直接說 Openai, cursor 在2026 四月（？）一起怎樣怎樣 / 或另一句有趣的開頭，反正不要講沒用又不好玩的廢話 / Gu-log's each sentence shall have at least one of following properties: informative or intriguing... The sentence w/o any of the properties MUST be deleted.`
+- 情境：SP-195 開頭用「原作者這篇分析文講了一個很值得拆的現象」重複 source metadata，但讀者頁面上已經看得到原文出處。句子沒有新增資訊，也沒有好奇心。
+- 修法：把開頭改成直接陳述事件與張力：`2026 四月，OpenAI 和 Cursor 幾乎同時做了同一件事：把 Agent 能力的重心，從可複製的 Skill 推向可安裝、可更新、可分發的 Plugin。`
+- Reusable lesson：每一句都至少要 informative 或 intriguing；兩者都沒有就刪。文章開頭尤其不能做 source metadata 重複或 throat-clearing，要直接丟事件、張力、反直覺觀點或有趣比喻。此規則已升級到 `GU-LOG_WRITER_PROMPT.md` 與 `AGENTS.md`。
+
+### Feedback: Reviewers must enforce sentence signal
+
+- ShroomDog feedback：`Also make sure one of the reviewer will spot this. Maybe both fresheye and vibe reviewer.`
+- 情境：Sentence Signal Rule 不能只靠 writer prompt；如果 reviewer 不會抓，pipeline 仍可能放過「資訊量 0 / 好奇心 0」的句子。
+- 修法：把 Sentence Signal Rule 加進 Fresh Eyes 與 Vibe Scorer 的 reviewer contracts，並同步進 `scripts/vibe-scoring-standard.md`。Fresh Eyes 負責從手機讀者角度抓 boring / dead sentences；Vibe Scorer 負責在 vibe / narrative 維度懲罰 dead opening、source metadata 重複與 throat-clearing。
+- Reusable lesson：重要寫作規則要同時進 writer prompt、repo AGENTS、reviewer rubric。Writer 負責產生，Reviewer 負責阻擋 regressions。
