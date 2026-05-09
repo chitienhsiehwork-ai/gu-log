@@ -389,27 +389,164 @@ blockquote.codex-note br {
 
 /* SP companion artifact callouts */
 .artifact-callout {
-  margin: 1.4rem 0;
-  padding: 1rem 1.1rem;
-  border: 1px solid color-mix(in srgb, var(--color-clawd-orange) 45%, var(--color-border));
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.82rem;
+  align-items: start;
+  margin: 1.5rem 0;
+  padding: 0.92rem 0.98rem 0.98rem;
+  border: 1px solid color-mix(in srgb, var(--color-clawd-orange) 42%, var(--color-border));
   border-radius: 18px;
   background:
     linear-gradient(
       135deg,
-      color-mix(in srgb, var(--color-clawd-orange) 16%, transparent),
-      transparent 65%
+      color-mix(in srgb, var(--color-clawd-orange) 22%, transparent),
+      color-mix(in srgb, var(--color-surface) 88%, transparent) 62%
     ),
     var(--color-surface);
   color: var(--color-text);
-  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.12);
+  text-decoration: none;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.artifact-callout:hover {
+  text-decoration: none;
+  transform: translateY(-1px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.18);
+}
+
+.artifact-callout:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--color-clawd-orange) 38%, white);
+  outline-offset: 3px;
+}
+
+.post-content .artifact-callout,
+.post-content .artifact-callout * {
+  text-decoration: none;
+}
+
+.artifact-callout__icon-wrap {
+  display: grid;
+  gap: 0.38rem;
+  justify-items: center;
+  align-content: start;
+}
+
+.artifact-callout__icon {
+  display: inline-grid;
+  place-items: center;
+  width: 2.15rem;
+  height: 2.15rem;
+  border-radius: 999px;
+  color: #fff8ef;
+  background: var(--color-clawd-orange);
+  font-weight: 900;
+}
+
+.artifact-callout__tap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.2rem;
+  padding: 0.08rem 0.38rem;
+  border-radius: 999px;
+  color: var(--color-text-muted);
+  background: color-mix(in srgb, var(--color-surface-hover) 72%, transparent);
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.artifact-callout__body {
+  display: grid;
+  gap: 0.28rem;
+  min-width: 0;
+  padding-top: 0.04rem;
+}
+
+.artifact-callout__body > span,
+.artifact-callout__body > strong {
+  display: block;
+}
+
+.artifact-callout__label {
+  width: fit-content;
+  margin-bottom: 0.12rem;
+  padding: 0.14rem 0.44rem;
+  border-radius: 999px;
+  color: var(--color-clawd-orange);
+  background: color-mix(in srgb, var(--color-clawd-orange) 14%, transparent);
+  font-size: 0.72rem;
+  font-weight: 800;
 }
 
 .artifact-callout strong {
-  color: var(--color-clawd-orange);
+  margin-bottom: 0.08rem;
+  color: var(--color-text);
+  font-size: 1rem;
+  line-height: 1.32;
 }
 
-.artifact-callout a {
-  display: inline-block;
-  margin-top: 0.55rem;
-  font-weight: 700;
+.artifact-callout__meta {
+  color: var(--color-text-muted);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.artifact-callout__cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 0.6rem;
+  padding: 0.5rem 0.72rem;
+  border-radius: 999px;
+  color: #fff8ef;
+  background: var(--color-clawd-orange);
+  box-shadow: 0 8px 18px rgba(255, 184, 108, 0.16);
+  font-size: 0.92rem;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.artifact-callout__cta span:first-child {
+  white-space: nowrap;
+}
+
+.artifact-callout:hover .artifact-callout__cta {
+  transform: translateX(1px);
+}
+
+@media (max-width: 720px) {
+  .artifact-callout {
+    grid-template-columns: 1fr;
+    gap: 0.68rem;
+    padding: 0.82rem 0.88rem 0.88rem;
+    border-radius: 17px;
+  }
+
+  .artifact-callout__icon-wrap {
+    grid-auto-flow: column;
+    justify-content: start;
+    align-items: center;
+    gap: 0.45rem;
+  }
+
+  .artifact-callout__meta {
+    font-size: 0.88rem;
+  }
+
+  .artifact-callout__cta {
+    width: fit-content;
+    padding: 0.46rem 0.68rem;
+    font-size: 0.88rem;
+  }
 }
