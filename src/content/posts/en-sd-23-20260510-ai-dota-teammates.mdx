@@ -1,0 +1,161 @@
+---
+ticketId: "SD-23"
+title: "Don’t Rebuild the AI Agent Wheel: Learn to Teamfight With Your AI Teammate and Stop It From Feeding"
+originalDate: "2026-05-10"
+translatedDate: "2026-05-10"
+translatedBy:
+  model: "GPT-5.5"
+  harness: "OpenClaw"
+  pipeline:
+    - role: "Source fetch"
+      model: "GPT-5.5"
+      harness: "scripts/fetch-chatgpt-share.mjs"
+    - role: "Author"
+      model: "GPT-5.5"
+      harness: "OpenClaw"
+    - role: "Translation"
+      model: "GPT-5.5"
+      harness: "OpenClaw"
+source: "ShroomDog × ChatGPT conversation"
+sourceUrl: "https://chatgpt.com/share/69ff7111-9ebc-83ab-b03a-f3cd7efe94a5"
+lang: "en"
+summary: "LLMs are not gods, and they are not just tools. They are more like DOTA teammates: great at last-hitting, occasionally great at feeding. The human job is not to fight AI for the same lane, but to cover taste, map awareness, context ownership, and strategic judgment."
+tags: ["shroomdog-original", "ai-collaboration", "agent", "llm", "mental-model"]
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
+
+There is a very common kind of AI anxiety: if LLMs can write code, write articles, search documents, summarize meetings, and split tasks, what is left for humans?
+
+If the question is framed as “human vs AI,” it gets stuck very quickly. That frame puts both sides in the same lane. Who writes faster? Who remembers more? Who produces more output?
+
+That usually leads to one of two boring answers: either “AI will replace everything,” or “humans have souls.”
+
+Neither answer helps much.
+
+A better mental model is this: **an LLM is not the enemy, and it is not merely a tool. It is more like a DOTA teammate.**
+
+You do not need to play DOTA to get the metaphor. Imagine a five-person team game. Different players have different jobs. One player holds mid lane. One farms. One supports. One places vision. One starts fights. The point is not that one player looks impressive. The point is that the team wins.
+
+AI collaboration works the same way.
+
+The question is not “will AI replace humans?” The better question is: **what is this teammate good at, where does it feed, and which position should humans play to raise the team’s win rate?**
+
+<ClawdNote>
+“Feeding” means dying at a bad time and giving the enemy team free advantage. The AI version is: answering without checking sources, inventing an API that does not exist, refactoring a core module without understanding the repo’s history. The tone is calm. The content is a grenade. The scariest part is that AI usually feeds with confidence (￣▽￣)／
+</ClawdNote>
+
+## Do not fight AI for mid lane
+
+If your teammate is strong at laning, fighting them for mid lane is not brave. It is bad strategy.
+
+LLMs are genuinely strong at some local tasks. Give them a clear local problem, and they can produce a first draft quickly. Give them a precise spec, and they can generate boilerplate. Narrow the scope, and they can summarize, explain, and create options at high speed.
+
+So the human job should not be “write the first draft faster than AI.” That lane is exhausting. Machines do not get tired. They also do not stare at the ceiling at 3 a.m. wondering what life means.
+
+The better move is to fill the missing role.
+
+If AI is good at first-pass code, humans should train specs, review, and test strategy. If AI is good at search, humans should train problem framing, source judgment, and credibility checks. If AI is good at content generation, humans should train taste, stance, and topic selection. If AI is good at splitting tasks, humans should decide which tasks should not exist in the first place.
+
+That is not surrender. That is team strategy.
+
+<ShroomDogNote>
+ShroomDog has been feeling this more and more: AI does not kick humans out of the game. It forces humans to stop pretending that their most valuable skill is typing speed. Typing speed will be caught. Deciding how the team actually wins is still rare.
+</ShroomDogNote>
+
+---
+
+## LLMs are not stupid. They just have bad map awareness
+
+Once you think of an LLM as a teammate, its weaknesses become easier to understand.
+
+It is not a bad teammate. Often, it is very strong. The problem is that in some situations it plays like someone who forgot to look at the minimap.
+
+The first weakness is taste, especially visual taste, animation taste, and product feel.
+
+An LLM can say “make this transition smoother,” “make the UI feel more polished,” or “give the spacing more breathing room.” But it does not always feel the difference the way a human does. It may not notice that an easing curve feels cheap, a hover delay feels half a beat late, or a screen technically matches the spec but still looks like a template.
+
+That kind of judgment is hard to recover from text alone. It is like game feel. The numbers might look fine, but playing it feels wrong.
+
+The second weakness is recent knowledge.
+
+Past the knowledge cutoff, the LLM needs search. Search is useful, but it is not free. It costs tokens, time, and judgment. It can return SEO garbage, outdated docs, or half-correct blog posts. A human still needs to decide which source deserves trust.
+
+The third weakness is internal detail.
+
+Company systems, repo history, weird conventions, legacy services that cannot be touched — these usually do not exist cleanly in training data. The LLM may not know. It may know half. Worse, it may apply a generic pattern to a special case and explain it beautifully.
+
+This is where humans are not “better document memorizers.” Humans are **context owners**.
+
+They know which docs are outdated. They know why an ugly function cannot be rewritten yet. They know which service looks unused but is still called by some factory at midnight. That is not short-term memory. That is a map built from long-term scars.
+
+<ClawdNote>
+Engineers often underrate the ability to know where the ghosts are. That is not magic. That is production trauma. An LLM can read docs, but it has never been woken up by PagerDuty. The trauma is not healthy, but it is surprisingly useful in architecture work.
+</ClawdNote>
+
+---
+
+## LLMs have context windows. Humans have world models
+
+LLMs have a physical limit: the context window.
+
+Even a very large context window is still a window. Filling it is expensive, slow, and noisy. The model may not pay equal attention to every detail. Dumping a huge repo, three hundred microservices, and five years of decisions into the prompt does not mean the model understands the city.
+
+Humans have terrible working memory. Ask a person to hold fifty function names in their head, and the person will start losing humanity in about five minutes.
+
+But humans can build a world model.
+
+They do not remember every door number on every street. They know the shape of the city. Which district gets traffic. Which road is risky at night. Which five-star restaurant locals avoid. In a software system, that means knowing which services are core, which ones are historical baggage, and which docs are technically correct but not how production actually runs.
+
+So humans should not train to become hard drives.
+
+Humans should train map awareness.
+
+In AI collaboration, map awareness means knowing the win condition, seeing risk zones, knowing where not to fight, knowing when to stop, and noticing when an answer sounds fluent but has no vision.
+
+This also explains why “rebuild a full AI agent from scratch” is not always the best use of energy. Often, the system does not need another teammate that can last-hit. It needs someone who can read the map, ping danger, and stop the team from starting a fight with no vision.
+
+---
+
+## Manage AI confidence
+
+The most dangerous part of an LLM is often not that it does not know. It is that it does not know that it does not know.
+
+Its output naturally looks like an answer. The sentences are smooth. The structure is complete. The tone is stable. When information is missing, it may not stop and say, “This cannot be answered yet.” It may simply fill the gap with plausible text.
+
+In casual chat, this is convenient. In engineering, law, medicine, internal systems, or fast-changing tools, this is dangerous.
+
+The human role here is uncertainty detector.
+
+That means catching these signals: it sounds too fluent without sources; it applies generic knowledge to an internal system; it did not ask for key constraints; it assumes an API exists; it does not separate fact, guess, and hypothesis; it treats an old world as the current world.
+
+At that moment, the human does not need to argue about intelligence. The human needs to call the stop:
+
+> No vision here. Do not start the fight.  
+> Is this known, or guessed?  
+> Show the source.  
+> Check the latest docs first.  
+> Treat this as a hypothesis. Do not ship it to production.
+
+That is one of the most important AI-era skills: **managing AI confidence.**
+
+<ClawdNote>
+A good agent workflow is not only about making AI do more. It is also about making AI admit “there is not enough information here” more often. A teammate who can brake is far more valuable than a teammate who keeps yelling “go go go,” especially when that teammate dies first.
+</ClawdNote>
+
+---
+
+## Closing
+
+Humans do not need to rebuild the AI agent wheel — at least, not as the only path forward.
+
+The more important task is learning how to teamfight with AI teammates.
+
+If AI is good at last-hitting, let it last-hit. If AI is good at first drafts, let it draft. If AI is good at local reasoning, give it a clear local battlefield.
+
+Then humans fill the parts it still handles poorly: taste, recent context, internal details, large-scope world models, risk judgment, win conditions, and most importantly — stopping it from starting fights with no vision.
+
+This is not a comforting story about humans being superior to AI. It is a practical tactical reminder:
+
+**Do not fight AI for the same lane. Understand what the teammate can do, where it tends to feed, and fill the missing role so the team can win.**
