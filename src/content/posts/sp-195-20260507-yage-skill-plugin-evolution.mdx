@@ -1,0 +1,230 @@
+---
+ticketId: "SP-195"
+title: "Skill 賣不動，不是因為沒價值，而是因為收錢的位置錯了"
+originalDate: "2026-05-07"
+translatedDate: "2026-05-09"
+translatedBy:
+  model: "GPT-5.5"
+  harness: "Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "GPT-5.5"
+      harness: "Codex CLI"
+    - role: "Reviewed"
+      model: "GPT-5.5"
+      harness: "Codex CLI"
+    - role: "Scored"
+      model: "GPT-5.5"
+      harness: "Codex CLI + Tribunal"
+source: "Yage AI / Superlinear Academy"
+sourceUrl: "https://yage.ai/share/skill-plugin-evolution-20260507.html"
+lang: "zh-tw"
+summary: "Yage AI 認為 OpenAI 和 Cursor 都從 Skill 走向 Plugin，但兩家公司要解的題不同：OpenAI 在建立執行層防線，Cursor 在建立編輯器差異化。這篇重寫成 gu-log 版本：Skill 不是沒價值，而是價值創造和價值收取被拆開了。"
+tags: ["shroom-picks", "skill", "plugin", "agent-platform"]
+scores:
+  tribunalVersion: 3
+  librarian:
+    glossary: 8
+    crossRef: 10
+    sourceAlign: 9
+    attribution: 8
+    score: 8
+    date: "2026-05-09"
+    model: "gpt-5.5"
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 9
+    score: 8
+    date: "2026-05-09"
+    model: "gpt-5.5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    score: 8
+    date: "2026-05-09"
+    model: "gpt-5.5"
+  vibe:
+    persona: 8
+    clawdNote: 8
+    vibe: 8
+    clarity: 9
+    narrative: 8
+    score: 8
+    date: "2026-05-09"
+    model: "gpt-5.5"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+原作者這篇[分析文](https://yage.ai/share/skill-plugin-evolution-20260507.html)講了一個很值得拆的現象：OpenAI 和 Cursor 幾乎在同一個時間，把重心從 [Skill](/glossary#skill) 推向 [Plugin](/glossary#plugin)。
+
+OpenAI 在四月的 [Codex 更新](https://openai.com/index/codex-for-almost-everything/)裡，說 [Codex](/glossary#codex) 已經有超過 300 萬每週開發者，新增超過 90 個 Plugin，還把應用程式整合、[MCP](/glossary#mcp) 伺服器、Skill 全部包進更大的 Plugin 敘事裡。先不用被 MCP 嚇到：可以先把它想成「讓 Agent 安全接上外部工具和資料源的插座規格」。
+
+Cursor 官方文件則把 Plugin 定義成一個可分發的能力包：可以包規則、Skill、[Agent](/glossary#agent)、指令、MCP 伺服器、事件掛鉤，還有市集、團隊市集、必裝 Plugin 這些企業分發機制。白話一點說，這已經不是「丟一個 Markdown 檔案給 Agent」的世界，而是「把一整套工作能力裝進工具箱，再發給整個團隊」的世界。
+
+表面上看，這像是產品命名改版。Skill 改叫 Plugin，文件換個資料夾，大家繼續寫 `SKILL.md`。
+
+但真正的變化不是名字。
+
+真正的變化是：平台開始承認，**單純的知識文件很難收錢；可執行、可認證、可分發、可更新的能力，才有收費的位置**。
+
+這件事對做 Agent 工具的人很重要。因為它回答了一個很殘酷的問題：如果 Skill 真的有用，為什麼 Skill 市集很難長成一門大生意？
+
+<ClawdNote>
+Skill 很像武功秘笈。秘笈本身超有價值，但一旦影印機出現，賣秘笈的人就開始頭痛。真正能收錢的，變成門派、道場、陪練、段位認證，還有「這本秘笈到底會不會害人走火入魔」的鑑定服務。江湖沒有消失，只是收費點搬家了。(¬‿¬)
+</ClawdNote>
+
+## Skill 的問題不是沒用，而是太容易被複製
+
+先講 Skill。
+
+Skill 最漂亮的地方，也是它最麻煩的地方：它通常就是一包文字、腳本、範例、流程。Agent 讀進去之後，就比較知道某件事該怎麼做。
+
+這個形態非常好用。它可版本控制、可放進程式碼庫、可審查、可分支改寫、可在不同 Agent 系統之間搬來搬去。Cursor 的 [Agent Skills 文件](https://cursor.com/docs/skills)也明講，Skill 是開放標準，讓 Agent 取得專門能力。
+
+問題就在這裡。
+
+如果一個 Skill 只是一組明文檔案，那它很難變成獨立產品。第一個買家拿到之後，可以複製、分享、改寫、放進公司內部模板庫。這不一定是道德問題，而是物理特性。明文檔案的複製成本接近零，價格自然被壓到接近零。
+
+原作者前一篇〈[Skill 是天生帶自殺基因的產品](https://yage.ai/share/skill-suicide-gene-20260424.html)〉把這點講得很尖：Skill 創造價值，但不一定捕捉價值。它讓 Agent 做事更準，省掉大量試錯；可是推理費付給模型公司，執行資料也流向模型公司，Skill 作者未必拿得到錢，也未必拿得到 feedback loop。
+
+這不是說 Skill 沒價值。
+
+剛好相反。Skill 是因為太有價值，才會把原本稀缺的操作知識壓扁成可複製檔案。試算表財務模型、CRM 設定、設計工具規範、程式碼審查流程，本來都要靠人慢慢學。Skill 一寫，Agent 直接帶著操作手冊上工。
+
+價值有了，但收銀機不在那裡。
+
+---
+
+## Plugin 多出來的是「平台把手」
+
+Plugin 跟 Skill 的差別，不是 Plugin 比較潮。
+
+Plugin 多出來的是平台可以握住的把手。
+
+Cursor 的 [Plugin 文件](https://cursor.com/docs/plugins)很直接：一個 Plugin 可以包規則、Skill、Agent、指令、MCP 伺服器、事件掛鉤。新手可以先不用記每個名詞，只要抓住一件事：它不是單一知識檔，而是一個可安裝、可更新、可審查、可被市集分發的能力包。
+
+OpenAI 的 Codex 更新也走同一個方向。那些看起來很像產品發表會條列的東西，應用程式、MCP 伺服器、背景電腦操作、瀏覽器、記憶、自動化工作流，其實都在說同一件事：Plugin 不只是「教 Agent 做事」，而是讓 Agent 真的能進場做事。
+
+這裡有三個關鍵差異。
+
+第一，Plugin 綁定執行環境。Skill 像食譜，Plugin 像餐車。食譜可以傳來傳去；餐車需要瓦斯、冰箱、食材、攤位、衛生檢查。平台有理由說：這台車放在平台上跑，平台提供執行環境，所以平台可以收費。
+
+第二，Plugin 綁定認證與權限。很多真正有價值的工作，不是「知道怎麼做」就好，而是要能進 Jira、GitHub、Slack、Notion、資料庫、部署系統。API 金鑰、OAuth 權杖、企業權限、審計紀錄，這些東西不適合塞進一個到處複製的 Markdown 檔。它們需要被平台管理。
+
+第三，Plugin 綁定分發。Skill 可以丟 GitHub；Plugin 可以進市集，被搜尋、安裝、升級、審核、強制安裝到團隊。分發不是小事。企業買的很多時候不是功能，而是「這套東西能不能安全地送到一百個工程師桌上」。
+
+<ClawdNote>
+這就像賣滷肉飯。食譜貼出來，全世界都可以照做。但真的能開連鎖店的，不是那張食譜，是中央廚房、冷鏈、SOP、加盟管理、店面位置、食品安全。Skill 是食譜，Plugin 開始碰到餐飲系統。價值捕捉通常發生在系統，不發生在食譜。
+</ClawdNote>
+
+---
+
+## OpenAI 要的是執行層，不只是模型層
+
+把鏡頭拉回 OpenAI，這裡真正好看的不是「又多了幾個 Plugin」。
+
+比較像這樣：OpenAI 以前賣的是很會寫作業的同學。現在它開始搬桌子、牽延長線、配鑰匙，最後跟企業說，乾脆讓作業在這間教室裡完成。
+
+原作者對 OpenAI 的判斷很有意思：OpenAI 推 Plugin，不只是想從 Plugin 本身收錢，而是要把 Codex 做成「工作真的發生的地方」。
+
+這個判斷站得住腳。官方文章裡，Codex 可以操作電腦、開瀏覽器、連 SSH 開發機、看 PDF 和文件、處理 PR 審查、排程未來任務、跨天醒來繼續做事，還有記憶和依情境建議。單看每一項，像產品發表會的煙火；放在一起，就像一家公司把工程師桌上的鍵盤、瀏覽器、終端機、文件櫃、待辦清單全部搬進同一個房間。
+
+這就是 [Agent Harness](/glossary#agent-harness) 的方向。這個詞可以先理解成「Agent 的工作台」：模型在裡面想，工具在旁邊接好，權限和流程也都被平台管住。
+
+模型層會競爭，價格會下降，能力差距會縮小。今天用 GPT，明天用 Claude，後天用 Gemini，企業最後會很務實地看成本、速度、合規、整合體驗。
+
+但如果工作流長在 Codex 裡，切換成本就不只是一個 API 端點。Plugin 裝在 Codex，記憶存在 Codex，自動化排程掛在 Codex，團隊流程也在 Codex。那時候，模型是哪一顆反而沒那麼重要。
+
+OpenAI 真正在守的是執行層。
+
+模型回答問題，執行層承接工作。回答可以換供應商，工作流比較難搬家。
+
+---
+
+## Cursor 要的是編輯器護城河
+
+輪到 Cursor，故事變成另一種緊張感。
+
+OpenAI 想把工作吸進 Codex；Cursor 則要守住工程師已經坐著的那張椅子。
+
+Cursor 本來就是編輯器。它的威脅不是「模型會商品化」而已，而是供應商跟競爭者都可能把它吃掉。[Claude Code](/glossary#claude-code)、Codex、其他 AI IDE 都在搶同一個工程師工作流。所以 Cursor 的 Plugin 策略，比較像在編輯器周圍挖護城河。
+
+Cursor Plugin 可以包專案規則、Skill、Agent、指令、MCP 伺服器和事件掛鉤。新手不用背這串名詞，重點只有一個：Cursor 想把「這個團隊平常怎麼工作」包進編輯器。
+
+這些不是模型能力，而是工作環境能力。模型像一個很會解題的人；編輯器環境像那個人每天坐的辦公桌、抽屜、公司門禁和同事默契。離開那張桌子，聰明還在，但順手感不見了。
+
+如果一個團隊的程式碼審查、資料庫查詢、部署檢查、設計規範、內部工具使用方式都包成 Cursor Plugin，換到另一個工具就不只是換聊天框，而是搬一整套辦公室。
+
+<ClawdNote>
+Cursor 的 Plugin 有點像辦公室裡那些「大家都知道怎麼走」的暗門。茶水間在哪、會議室投影機要按哪個按鈕、部署前要先問誰、這個程式碼庫哪個資料夾不能亂碰。這些不是智慧本身，但它們決定工作順不順。工具一旦吃下這些習慣，就不只是工具，是場域。
+</ClawdNote>
+
+---
+
+## Skill 會消失嗎？大概不會
+
+Plugin 變重要，不代表 Skill 會死。
+
+更合理的走向是分工。
+
+Skill 會繼續是可攜的知識層。它適合承載「怎麼做一件事」：寫作風格、程式碼慣例、除錯 SOP、審查清單、部署作業手冊。這些東西需要透明、可版本控制、可讓不同 Agent 讀懂。
+
+Plugin 則會吃下服務層。它適合承載「要在哪裡跑、拿什麼權限、連哪些工具、怎麼分發、怎麼更新、怎麼審核」。這些東西需要平台。
+
+所以未來比較可能不是 Skill vs Plugin，而是 「Skill 包在 Plugin 裡」。
+
+Skill 是腦袋裡的手法。Plugin 是把手法接上場地、工具、身份、權限和分發。
+
+這也解釋了為什麼 OpenAI 和 Cursor 看起來在做同一件事，實際上在答不同題。
+
+OpenAI 想讓 Codex 變成執行工作的平台，所以 Plugin 是執行層的積木。
+
+Cursor 想讓編輯器工作流不能被無痛替代，所以 Plugin 是編輯器生態的膠水。
+
+兩家公司都不一定期待 Plugin 市集立刻變成印鈔機。它更像瀏覽器擴充套件、內容管理系統外掛、VS Code 擴充套件：真正的錢不只在分潤，而在入口、習慣、流程、依賴。
+
+---
+
+## 對開發者來說，真正的問題是收費點在哪裡
+
+這件事對小團隊和個人開發者的啟示很直接。
+
+如果產品只是「一包很聰明的 Skill」，那很可能是免費名片，不是商業模式。
+
+不是因為它不重要，而是因為它太容易被帶走。
+
+更好的問題是：這個 Skill 能導向哪個不可複製的稀缺？
+
+可能是信任。某個人、某個團隊、某個品牌長期維護一套真的可靠的 Skills，讀者願意相信它不是毒藥。
+
+可能是審核。企業不缺更多 Skill，缺的是「這些 Skill 會不會外洩資料、亂刪檔、亂裝套件、把提示詞注入帶進公司」。
+
+可能是執行環境。Skill 免費，但代跑、代管、代整合、代維運、代接權限可以收費。
+
+可能是分發。把對的能力安全送到對的人手上，並且持續更新，這件事本身就是產品。
+
+也可能是品味。AI 讓生成過剩，下一個稀缺不是「更多東西」，而是「哪些東西值得裝、值得信、值得放進工作流」。
+
+<ClawdNote>
+這其實就是 gu-log 自己每天在做的事。網路上 AI 分析文爆炸多，單篇文章不是稀缺品；稀缺的是 [ShroomDog](/about) 願意挑、[Clawd](/about) 願意重寫、讀者願意相信「這篇有被消化過」。內容本身可以複製，判斷和脈絡比較難複製。
+</ClawdNote>
+
+## 結語
+
+Skill 沒有輸給 Plugin。
+
+Skill 只是把知識變得太容易攜帶，攜帶到它自己很難收門票。
+
+Plugin 則把知識重新接回平台：執行環境、認證、市集、團隊分發、審查、更新、事件掛鉤、MCP 伺服器。門票不是賣給那張知識紙條，而是賣給整個劇場。
+
+這就是這場轉向最有趣的地方。
+
+AI 時代很多產物都會變便宜：文字、程式碼、圖片、Skill、模板、報告。真正會變貴的，是讓這些產物安全發生、持續發生、在對的地方發生，並且有人願意為結果負責的那一層。
+
+Skill 是樂譜。Plugin 是舞台、樂團、燈光、售票系統和保全。
+
+樂譜當然重要。
+
+只是最後收錢的人，通常站在劇場門口。

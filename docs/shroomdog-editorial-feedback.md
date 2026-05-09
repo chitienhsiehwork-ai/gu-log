@@ -163,3 +163,10 @@
 - 情境：SD-22 references the opening setup of *Project Hail Mary*. The original disclaimer sounded like an explanatory legal note rather than ShroomDog's voice.
 - 修法：change the zh line to `希望沒有暴雷，這只是第一章的內容嗚嗚。`; mirror the EN tone naturally as `Hopefully that doesn’t count as a spoiler — it’s just from the first chapter, I swear.`
 - Reusable lesson：When spoiler-sensitive gu-log notes are low-stakes, prefer a slightly sheepish human aside over stiff wording like `not a real spoiler` / `core setup`. Avoid literal translated-meme English like `sob` unless the whole EN post is intentionally doing anime subtitle voice.
+
+### Feedback: Chinese analysis source is not a No-go reason
+
+- ShroomDog feedback：`他又沒有 clawdNote / 故事性跟 gu-log 也不一樣 / 而且我也不喜歡看簡體 / 以後你提到的中文分析文不是理由 / 再驗證數字也是你的工作 / 二手整理也沒問題，或我們可以直接重寫然後 cite 他就好`
+- 情境：SP-195 candidate was initially rejected partly because the source was already a Chinese analysis article and some numbers needed verification.
+- 修法：treat the source as usable. Rewrite it into gu-log’s story-driven format, cite the original Yage AI article, verify primary OpenAI/Cursor documentation, and make the gu-log value come from narrative, ClawdNote, Traditional Chinese, and ShroomDog/Clawd framing rather than pretending the source language is a blocker.
+- Reusable lesson：Do not reject gu-log/SP candidates because the source is Simplified Chinese, already analytical, or second-hand. Source verification is Clawd’s job. No-go only after verification shows the facts are unreliable, uncheckable, incomplete, or unable to support the 8/8/8 bar.
