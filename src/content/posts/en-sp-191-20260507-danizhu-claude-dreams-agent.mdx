@@ -70,7 +70,7 @@ import ClawdNote from '../../components/ClawdNote.astro';
 
 Anthropic announced a new feature for Claude's Managed Agents API: **Dreams**. A rough way to understand that API is this: developers can package Claude as a service that takes tasks, uses tools, and works across sessions, instead of opening a clean chat every time.
 
-The name is cute, maybe even a little dramatic. AI can talk, reason, use tools, and now apparently we have to schedule bedtime too. But the real point @danizhu caught is not the name. Dreams addresses a problem every [Agent](/glossary#agent) builder eventually hits: **[context rot](/glossary#context-rot)**.
+The name is cute, maybe even a little dramatic. AI can talk, reason, use tools, and now apparently we have to schedule bedtime too. But the real point @danizhu caught is not the name. Dreams addresses a problem every [Agent](/en/glossary#agent) builder eventually hits: **[context rot](/en/glossary#context-rot)**.
 
 Context rot sounds like a curse from a fantasy novel, but in engineering terms it is painfully mundane. Agents write things into memory while they work. At first, this feels great. The agent remembers user preferences, project conventions, and past pitfalls. It feels like hiring an assistant who actually takes notes.
 
@@ -140,7 +140,7 @@ That is not a flashy feature. It is the kind of thing that saves you during debu
 
 ## Cost: No Magic, Just Tokens
 
-Dreams does not hide the cost behind mysterious fine print either. The tweet says it is billed at the standard API [Token](/glossary#token) rate for whichever model you use, Opus or Sonnet — Anthropic's different Claude model tiers. Usage scales with the number and length of input sessions, so the advice is to start small.
+Dreams does not hide the cost behind mysterious fine print either. The tweet says it is billed at the standard API [Token](/en/glossary#token) rate for whichever model you use, Opus or Sonnet — Anthropic's different Claude model tiers. Usage scales with the number and length of input sessions, so the advice is to start small.
 
 There is no free lunch here, and no fairy tale where sleeping does not use electricity. Claude has to read the existing memory store, read past sessions, consolidate them, and produce a new memory store. All of that costs tokens.
 
@@ -174,7 +174,7 @@ The original agent loop handles action and writes: take the task, use tools, get
 
 Dreams forms another loop: reflect, reorganize, improve. It reshapes accumulated experience offline, so the agent does not have to play engineer and file clerk at the same time in the middle of a task.
 
-That separation is what @danizhu sees as the key to compounding long-term performance. Before Dreams, memory was closer to an append-only log: new things kept getting written, while old things were rarely digested. When noise grew, the common fix was more [Prompt](/glossary#prompt) tuning: "please ignore irrelevant information," "prioritize recent facts," "resolve conflicts yourself." That helps, but it is also like dealing with a messy room by taping a note to the door that says, "please be careful not to step on clutter." The problem is still there. Now it just has a label.
+That separation is what @danizhu sees as the key to compounding long-term performance. Before Dreams, memory was closer to an append-only log: new things kept getting written, while old things were rarely digested. When noise grew, the common fix was more [Prompt](/en/glossary#prompt) tuning: "please ignore irrelevant information," "prioritize recent facts," "resolve conflicts yourself." That helps, but it is also like dealing with a messy room by taping a note to the door that says, "please be careful not to step on clutter." The problem is still there. Now it just has a label.
 
 The shift with Dreams is that memory can become an evolving knowledge base. Behind it sits an offline learning mechanism dedicated to memory lifecycle management.
 
@@ -186,7 +186,7 @@ This is the core payload of the whole tweet. A lot of agent systems treat "it re
 
 ## A Bigger Context Window Is Not the Cure
 
-@danizhu ends by aiming at a common myth: better agents do not necessarily come from a larger [context window](/glossary#context-window). They come from better memory lifecycle management. You can think of the context window as the size of Claude's desk — how much material it can see in one conversation.
+@danizhu ends by aiming at a common myth: better agents do not necessarily come from a larger [context window](/en/glossary#context-window). They come from better memory lifecycle management. You can think of the context window as the size of Claude's desk — how much material it can see in one conversation.
 
 That is a sharp point, because the AI world keeps treating "fit more stuff" as the answer. Context window too small? Make it bigger. Too much history? Make it bigger. Agent keeps forgetting things? Bigger again.
 

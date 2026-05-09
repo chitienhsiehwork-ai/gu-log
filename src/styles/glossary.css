@@ -1,0 +1,262 @@
+.glossary-page {
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.glossary-intro {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+/* Controls */
+.glossary-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.glossary-search {
+  width: 100%;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.9rem;
+  box-sizing: border-box;
+}
+
+.glossary-search:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -1px;
+}
+
+.glossary-search::placeholder {
+  color: var(--color-text-muted);
+  opacity: 0.7;
+}
+
+.controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.category-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.category-pill {
+  padding: 0.2rem 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.category-pill:hover {
+  color: var(--color-text);
+  border-color: var(--color-text-muted);
+}
+
+.category-pill[aria-pressed='true'] {
+  background: var(--color-accent);
+  color: var(--color-bg);
+  border-color: var(--color-accent);
+}
+
+.glossary-count {
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  opacity: 0.6;
+}
+
+/* Alphabet jump bar */
+.alpha-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem;
+  padding: 0.4rem 0;
+  margin-bottom: 0.25rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.alpha-link {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  padding: 0.15rem 0.35rem;
+  border-radius: 3px;
+  transition: all 0.1s;
+}
+
+.alpha-link:hover {
+  color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+}
+
+/* Letter sections */
+.letter-section {
+  scroll-margin-top: 1rem;
+}
+
+.letter-heading {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--color-accent);
+  margin: 0.75rem 0 0 0;
+  padding-bottom: 0.2rem;
+  border-bottom: 2px solid color-mix(in srgb, var(--color-accent) 40%, transparent);
+  opacity: 0.9;
+}
+
+/* Entries */
+.section-list {
+  margin: 0;
+  padding: 0;
+}
+
+.glossary-entry {
+  padding: 0.45rem 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
+}
+
+.glossary-entry:last-child {
+  border-bottom: none;
+}
+
+dt {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+  margin: 0;
+}
+
+.term-link {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--color-text);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.term-link:hover {
+  color: var(--color-accent);
+}
+
+.term-link.copied::after {
+  content: ' ✓ copied';
+  color: var(--color-accent);
+  font-size: 0.65rem;
+  font-weight: 400;
+}
+
+.term-en {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  font-weight: 400;
+  opacity: 0.7;
+}
+
+/* Inline category badges */
+.term-cat {
+  font-size: 0.6rem;
+  font-weight: 600;
+  padding: 0.08rem 0.35rem;
+  border-radius: 3px;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.cat-tools {
+  color: var(--color-cat-tools);
+  background: color-mix(in srgb, var(--color-cat-tools) 15%, transparent);
+}
+
+.cat-concepts {
+  color: var(--color-cat-concepts);
+  background: color-mix(in srgb, var(--color-cat-concepts) 15%, transparent);
+}
+
+.cat-methods {
+  color: var(--color-cat-methods);
+  background: color-mix(in srgb, var(--color-cat-methods) 15%, transparent);
+}
+
+.cat-platforms {
+  color: var(--color-cat-platforms);
+  background: color-mix(in srgb, var(--color-cat-platforms) 15%, transparent);
+}
+
+.cat-people {
+  color: var(--color-cat-people);
+  background: color-mix(in srgb, var(--color-cat-people) 15%, transparent);
+}
+
+dd {
+  margin: 0.1rem 0 0 0;
+}
+
+.term-def {
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  margin: 0;
+  white-space: pre-line;
+}
+
+.term-meta {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  margin: 0.1rem 0 0 0;
+  opacity: 0.55;
+}
+
+.term-meta a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.term-meta a:hover {
+  text-decoration: underline;
+  opacity: 1;
+}
+
+/* Compact ClawdNote inside glossary entries */
+.glossary-entry :global(blockquote.claude-note) {
+  margin: 0.4rem 0 0.2rem 0;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8rem;
+}
+
+.glossary-empty {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  padding: 1rem 0;
+}
+
+.glossary-footer {
+  margin-top: 1.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-border);
+  font-size: 0.85rem;
+}
+
+/* Desktop: wider + two-column for sections with many items */
+@media (min-width: 768px) {
+  .glossary-page {
+    max-width: 820px;
+  }
+}

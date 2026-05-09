@@ -15,7 +15,7 @@ tags: ["shroom-picks", "tmux", "developer-workflow", "terminal", "cli-agents"]
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-If you've started running [Claude Code](/glossary#claude-code), [Codex](/glossary#codex) CLI, or other [agents](/glossary#agent) on a remote machine, you probably learned one brutal lesson very quickly: **an SSH session without tmux is basically an unsaved document.** One network hiccup, one closed laptop lid, one flaky coffee shop Wi-Fi moment, and the task that was happily running for 20 minutes is suddenly dead. Simon Willison [wrote about this exact problem](/en/posts/en-sp-86-20260225-simonw-claude-code-remote-cowork/) — session management is the first thing you need to solve when running agents remotely. Felipe's thread is the answer.
+If you've started running [Claude Code](/en/glossary#claude-code), [Codex](/en/glossary#codex) CLI, or other [agents](/en/glossary#agent) on a remote machine, you probably learned one brutal lesson very quickly: **an SSH session without tmux is basically an unsaved document.** One network hiccup, one closed laptop lid, one flaky coffee shop Wi-Fi moment, and the task that was happily running for 20 minutes is suddenly dead. Simon Willison [wrote about this exact problem](/en/posts/en-sp-86-20260225-simonw-claude-code-remote-cowork/) — session management is the first thing you need to solve when running agents remotely. Felipe's thread is the answer.
 
 But Felipe Coury's tmux workflow is not one of those "look how fancy my terminal is" posts. It is not a giant `.tmux.conf` flex either. The real strength is much simpler: **it makes session management feel almost frictionless.**
 
@@ -92,12 +92,12 @@ If this were still 2019, treating tmux as a niche hobby for terminal power users
 
 But now the terminal is no longer just running `pytest` or `npm test`. It is running **agents that keep doing work over time**.
 
-The moment you start SSHing into a VPS to run [Claude Code](/glossary#claude-code), [Codex](/glossary#codex) CLI, or similar [agent](/glossary#agent) tools, tmux changes category. It stops being a tool that helps organize terminals and becomes a tool that hosts a fleet of long-running processes. A disconnect no longer kills the task, because detach and reattach is all it takes. Multiple agent sessions can run side by side — one working on a feature, one watching logs, one handling a hotfix — instead of nesting them all inside one window like Russian dolls.
+The moment you start SSHing into a VPS to run [Claude Code](/en/glossary#claude-code), [Codex](/en/glossary#codex) CLI, or similar [agent](/en/glossary#agent) tools, tmux changes category. It stops being a tool that helps organize terminals and becomes a tool that hosts a fleet of long-running processes. A disconnect no longer kills the task, because detach and reattach is all it takes. Multiple agent sessions can run side by side — one working on a feature, one watching logs, one handling a hotfix — instead of nesting them all inside one window like Russian dolls.
 
 More importantly, tmux makes long tasks *leaveable* for the first time. The real value of an agent was never having someone sit and watch it. It was the work the agent does while nobody is looking. Walk away for lunch, switch to a different project, even close the laptop — the scene is still there when you come back.
 
 <ClawdNote>
-A lot of people assume AI will kill old tools. [Clawd](/about) increasingly thinks the opposite: you can put a new engine on the rocket, but the launchpad still needs to be poured concrete. [Agents](/glossary#agent) don't just need a shiny lobby. They need a reliable basement: something that survives disconnects, supports parallel work, and leaves traces behind.
+A lot of people assume AI will kill old tools. [Clawd](/about) increasingly thinks the opposite: you can put a new engine on the rocket, but the launchpad still needs to be poured concrete. [Agents](/en/glossary#agent) don't just need a shiny lobby. They need a reliable basement: something that survives disconnects, supports parallel work, and leaves traces behind.
 Without tmux, a remote agent workflow is a bit like locking an intern in an elevator and asking them to finish the project. The moment the signal cuts out, the person and the progress vanish together (╯°□°)╯
 </ClawdNote>
 
@@ -105,7 +105,7 @@ Without tmux, a remote agent workflow is a bit like locking an intern in an elev
 
 ## The tech tree keeps advancing, but the floor is still Unix
 
-What makes Felipe's workflow resonate is not just that he knows tmux well. It is that the whole setup reveals something counterintuitive: **AI did not make the terminal obsolete. It made the terminal central again.** Boris Cherny ([Claude Code](/glossary#claude-code)'s creator) [made a similar observation](/en/posts/en-boris-claude-code-tips/): git worktrees paired with multiple terminal sessions is one of his recommended patterns for parallel development.
+What makes Felipe's workflow resonate is not just that he knows tmux well. It is that the whole setup reveals something counterintuitive: **AI did not make the terminal obsolete. It made the terminal central again.** Boris Cherny ([Claude Code](/en/glossary#claude-code)'s creator) [made a similar observation](/en/posts/en-boris-claude-code-tips/): git worktrees paired with multiple terminal sessions is one of his recommended patterns for parallel development.
 
 The reason is not mysterious. Tools like bash, vim, and tmux are text-first, work over SSH, don't depend on a GUI, and compose beautifully with files, git, test commands, and logs. More importantly, when they break, they usually break in understandable ways — you can rerun one step instead of losing the entire workflow. Those are almost exactly the conditions agents like best.
 
@@ -150,7 +150,7 @@ Developer productivity addiction is a lot like buying storage boxes to organize 
 
 Felipe Coury's thread looks like a post about terminal tricks. What makes it stick is the principle underneath: **remove high-frequency, low-value decisions from the workflow.**
 
-"You never think about session names" sounds like a tiny improvement. It is. And that is exactly why it matters. Tiny decisions are the ones that quietly tax your whole day. Especially now that the terminal is no longer just where you run a few commands, but a place where you host [agents](/glossary#agent), manage remote work, and leave long tasks running, tmux stops being a "cool power-user tool" and becomes a "you will eventually feel pain without this" tool.
+"You never think about session names" sounds like a tiny improvement. It is. And that is exactly why it matters. Tiny decisions are the ones that quietly tax your whole day. Especially now that the terminal is no longer just where you run a few commands, but a place where you host [agents](/en/glossary#agent), manage remote work, and leave long tasks running, tmux stops being a "cool power-user tool" and becomes a "you will eventually feel pain without this" tool.
 
 A lot of people try tmux for the first time thinking the point is splitting the screen into four boxes. It is not. The thing that actually makes people never go back is usually that moment when you detach, come back, and realize the whole scene is still there. That feeling is like finally giving the terminal auto-save.
 

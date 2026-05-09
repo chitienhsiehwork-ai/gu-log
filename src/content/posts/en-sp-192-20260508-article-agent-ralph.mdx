@@ -71,7 +71,7 @@ scores:
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Codex recently shipped `/goal`, and on paper it sounds like the thing agent people have been waiting for: give an [Agent](/glossary#agent) a big objective, let it run for hours or days, and stop making it ask every fifteen minutes whether it is allowed to continue.
+Codex recently shipped `/goal`, and on paper it sounds like the thing agent people have been waiting for: give an [Agent](/en/glossary#agent) a big objective, let it run for hours or days, and stop making it ask every fifteen minutes whether it is allowed to continue.
 
 The promise is seductive. Go to sleep after typing "build the product," wake up to a working B2B SaaS with tests, docs, and deployment notes. Finally, the universe has decided to be useful. (´・ω・)
 
@@ -89,9 +89,9 @@ This is the nastiest failure mode for long-running agents. No explosion. No red 
 
 ## First, Stop Mystifying the Long Run. It Mostly Spends More Tokens.
 
-Jarrod's first cut is brutally plain: long-running agents sometimes work because they spend more [Token](/glossary#token).
+Jarrod's first cut is brutally plain: long-running agents sometimes work because they spend more [Token](/en/glossary#token).
 
-Researchers call this scaling [test-time compute](/glossary#test-time-compute). The model is not retrained. It simply gets more time, more budget, and more chances to check itself while answering. Jarrod points to Anthropic's Opus 4.6 system card, where Sonnet 4.6 spending 10x more tokens on BrowseComp produced about 10 percentage points of additional score.
+Researchers call this scaling [test-time compute](/en/glossary#test-time-compute). The model is not retrained. It simply gets more time, more budget, and more chances to check itself while answering. Jarrod points to Anthropic's Opus 4.6 system card, where Sonnet 4.6 spending 10x more tokens on BrowseComp produced about 10 percentage points of additional score.
 
 Plain English: thinking longer can really help.
 
@@ -99,7 +99,7 @@ That is not magic. Humans are the same way. A five-minute answer and a two-hour 
 
 But this trick has a ceiling.
 
-As a task gets longer, the model has to remember more things: requirements, files, earlier decisions, forbidden changes, failed tests, partial outputs, and what "done" is supposed to mean. All of that gets shoved into the [context window](/glossary#context-window), which starts to look like a project whiteboard with lunch orders scribbled in the corner.
+As a task gets longer, the model has to remember more things: requirements, files, earlier decisions, forbidden changes, failed tests, partial outputs, and what "done" is supposed to mean. All of that gets shoved into the [context window](/en/glossary#context-window), which starts to look like a project whiteboard with lunch orders scribbled in the corner.
 
 At that point, "run another round" does not always mean "get smarter." Sometimes it means spending more compute to amplify an earlier misunderstanding.
 
@@ -111,7 +111,7 @@ This is where Codex `/goal` enters.
 
 After reading the code, Jarrod found that Codex Goals uses a `thread_goals` table to store each goal's objective, ID, status, and optional token budget. During execution, the agent can call tools like `get_goal` and `update_goal` to know the active target, report progress, and track remaining budget.
 
-The actual motion still comes from a fairly standard [Ralph Loop](/glossary#ralph-loop):
+The actual motion still comes from a fairly standard [Ralph Loop](/en/glossary#ralph-loop):
 
 ```plaintext
 Continue working toward the active thread goal.

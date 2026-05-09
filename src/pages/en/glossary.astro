@@ -1,26 +1,26 @@
 ---
-import BaseLayout from '../layouts/BaseLayout.astro';
-import ClawdNote from '../components/ClawdNote.astro';
-import '../styles/glossary.css';
-import glossaryData from '../data/glossary.json';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ClawdNote from '../../components/ClawdNote.astro';
+import '../../styles/glossary.css';
+import glossaryData from '../../data/glossary.json';
 
 const glossary = [...glossaryData].sort((a, b) => a.term.localeCompare(b.term));
 
 const categories: { id: string; label: string }[] = [
-  { id: 'all', label: '全部' },
-  { id: 'tools', label: '工具' },
-  { id: 'concepts', label: '概念' },
-  { id: 'methods', label: '方法' },
-  { id: 'platforms', label: '平台' },
-  { id: 'people', label: '人物' },
+  { id: 'all', label: 'All' },
+  { id: 'tools', label: 'Tools' },
+  { id: 'concepts', label: 'Concepts' },
+  { id: 'methods', label: 'Methods' },
+  { id: 'platforms', label: 'Platforms' },
+  { id: 'people', label: 'People' },
 ];
 
 const categoryLabel: Record<string, string> = {
-  tools: '工具',
-  concepts: '概念',
-  methods: '方法',
-  platforms: '平台',
-  people: '人物',
+  tools: 'Tools',
+  concepts: 'Concepts',
+  methods: 'Methods',
+  platforms: 'Platforms',
+  people: 'People',
 };
 
 // Group by first letter
@@ -39,11 +39,13 @@ for (const item of glossary) {
 const allLetters = grouped.map((g) => g.letter);
 ---
 
-<BaseLayout title="詞彙表 - gu-log" lang="zh-tw">
+<BaseLayout title="Glossary - gu-log" lang="en">
   <article class="glossary-page">
     <header>
-      <h1>📖 詞彙表</h1>
-      <p class="glossary-intro">本站常出現的 AI 術語。點術語名稱可複製連結。</p>
+      <h1>📖 Glossary</h1>
+      <p class="glossary-intro">
+        AI terms that show up often on gu-log. Click a term name to copy its anchor link.
+      </p>
     </header>
 
     <div class="glossary-controls">
@@ -51,11 +53,11 @@ const allLetters = grouped.map((g) => g.letter);
         type="search"
         id="glossary-search"
         class="glossary-search"
-        placeholder="搜尋術語..."
-        aria-label="搜尋術語"
+        placeholder="Search terms..."
+        aria-label="Search terms"
       />
       <div class="controls-row">
-        <div class="category-pills" role="group" aria-label="分類篩選">
+        <div class="category-pills" role="group" aria-label="Category filter">
           {
             categories.map((cat) => (
               <button
@@ -68,12 +70,12 @@ const allLetters = grouped.map((g) => g.letter);
             ))
           }
         </div>
-        <span class="glossary-count" id="glossary-count">{glossary.length} 個術語</span>
+        <span class="glossary-count" id="glossary-count">{glossary.length} terms</span>
       </div>
     </div>
 
     {/* Alphabet jump bar */}
-    <nav class="alpha-bar" aria-label="字母索引">
+    <nav class="alpha-bar" aria-label="Alphabet index">
       {
         allLetters.map((l) => (
           <a href={`#letter-${l}`} class="alpha-link">
@@ -95,7 +97,7 @@ const allLetters = grouped.map((g) => g.letter);
                   id={item.term.toLowerCase().replace(/\s+/g, '-')}
                   data-term={item.term.toLowerCase()}
                   data-en={item.en.toLowerCase()}
-                  data-definition={item.definition.toLowerCase()}
+                  data-definition={(item.enDefinition ?? item.definition).toLowerCase()}
                   data-aliases={(item.aliases ?? []).join(' ').toLowerCase()}
                   data-category={item.category}
                 >
@@ -109,8 +111,8 @@ const allLetters = grouped.map((g) => g.letter);
                     </span>
                   </dt>
                   <dd>
-                    <p class="term-def">{item.definition}</p>
-                    {item.clawdNote && <ClawdNote>{item.clawdNote}</ClawdNote>}
+                    <p class="term-def">{item.enDefinition ?? item.definition}</p>
+                    {item.enClawdNote && <ClawdNote>{item.enClawdNote}</ClawdNote>}
                     {item.url && (
                       <p class="term-meta">
                         <a href={item.url} target="_blank" rel="noopener noreferrer">
@@ -134,7 +136,7 @@ const allLetters = grouped.map((g) => g.letter);
                             {item.related.map((rel, i) => (
                               <span>
                                 <a href={`#${rel.toLowerCase().replace(/\s+/g, '-')}`}>{rel}</a>
-                                {i < item.related.length - 1 && '、'}
+                                {i < item.related.length - 1 && ', '}
                               </span>
                             ))}
                           </span>
@@ -142,12 +144,12 @@ const allLetters = grouped.map((g) => g.letter);
                         {item.definedIn?.length > 0 && (
                           <span class="meta-posts">
                             {' '}
-                            | 文章：{' '}
+                            | Posts:{' '}
                             {item.definedIn.map(
                               (post: { slug: string; title: string }, i: number) => (
                                 <span>
-                                  <a href={`/posts/${post.slug}`}>{post.title}</a>
-                                  {i < item.definedIn.length - 1 && '、'}
+                                  <a href={`/en/posts/en-${post.slug}`}>{post.title}</a>
+                                  {i < item.definedIn.length - 1 && ', '}
                                 </span>
                               )
                             )}
@@ -164,10 +166,10 @@ const allLetters = grouped.map((g) => g.letter);
       }
     </div>
 
-    <p class="glossary-empty" id="glossary-empty" style="display:none">沒有符合的術語。</p>
+    <p class="glossary-empty" id="glossary-empty" style="display:none">No matching terms.</p>
 
     <footer class="glossary-footer">
-      <a href="/">← 返回首頁</a>
+      <a href="/en">← Back home</a>
     </footer>
   </article>
 </BaseLayout>
@@ -207,7 +209,7 @@ const allLetters = grouped.map((g) => g.letter);
       section.style.display = hasVisible ? '' : 'none';
     });
 
-    if (countEl) countEl.textContent = `${visible} 個術語`;
+    if (countEl) countEl.textContent = `${visible} terms`;
     if (emptyEl) emptyEl.style.display = visible === 0 ? '' : 'none';
   }
 

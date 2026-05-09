@@ -74,11 +74,11 @@ This post doesn't explain how to deploy a vector database. There's no code. Just
 
 Here's how a traditional RAG pipeline works, step by step:
 
-User asks a question → system converts it to a vector → fetches the top-k most similar chunks from the vector database → stuffs those chunks into the LLM's [context window](/glossary#context-window) → LLM reads them and answers.
+User asks a question → system converts it to a vector → fetches the top-k most similar chunks from the vector database → stuffs those chunks into the LLM's [context window](/en/glossary#context-window) → LLM reads them and answers.
 
 **One road, hardcoded from start to finish.** If top-k pulls the wrong chunks — say the user asks about "return policy" but vector search fetches "retirement plan" (semantically close!) — the LLM has no choice but to answer using bad data. No backtracking allowed.
 
-[Agent](/glossary#agent) search works differently. The agent gets a question and **decides how to find the answer itself**:
+[Agent](/en/glossary#agent) search works differently. The agent gets a question and **decides how to find the answer itself**:
 
 First, grep the filenames. Oh look, there's a `return-policy.pdf` → read it → found the answer → done. Vector search was never touched, because it wasn't needed.
 

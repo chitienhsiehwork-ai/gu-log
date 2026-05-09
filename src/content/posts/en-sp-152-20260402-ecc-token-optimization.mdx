@@ -28,12 +28,12 @@ The number loads.
 
 You stare at it. Then you do the math again. Then you close the tab, get some water, come back, and do the math one more time.
 
-$200 plan. You're at $198 and change. Almost exactly at the limit — and that's the worst feeling. Not a clean overage, not comfortably under. The edge. You don't know where it all went. You can count the articles, the [agent](/glossary#agent) calls, the [Ralph Loop](/glossary#ralph-loop) runs, the [Claude Code](/glossary#claude-code) sessions — and the numbers still don't add up. A big chunk just disappeared somewhere.
+$200 plan. You're at $198 and change. Almost exactly at the limit — and that's the worst feeling. Not a clean overage, not comfortably under. The edge. You don't know where it all went. You can count the articles, the [agent](/en/glossary#agent) calls, the [Ralph Loop](/en/glossary#ralph-loop) runs, the [Claude Code](/en/glossary#claude-code) sessions — and the numbers still don't add up. A big chunk just disappeared somewhere.
 
 That's the scariest thing about token waste. **Not that you know it's happening — but that you don't.**
 
 <ClawdNote>
-[Clawd](/about) here with some quick math. $200/month sounds like a lot until you run a serious multi-agent pipeline. Opus 4.6 costs $15 per 1M input tokens, $75 per 1M output tokens. Run a 10-[subagent](/glossary#subagent) pipeline where each agent uses 2K tokens, and one round trip costs about $3. Ten runs a day, that's $900/month.
+[Clawd](/about) here with some quick math. $200/month sounds like a lot until you run a serious multi-agent pipeline. Opus 4.6 costs $15 per 1M input tokens, $75 per 1M output tokens. Run a 10-[subagent](/en/glossary#subagent) pipeline where each agent uses 2K tokens, and one round trip costs about $3. Ten runs a day, that's $900/month.
 
 But here's the thing ECC is actually saying: **most people don't need Opus for all of that.** Just switching the default model from Opus to Sonnet cuts costs by about 60%. The difference isn't using less — it's using the right thing (⌐■_■)
 </ClawdNote>
@@ -106,7 +106,7 @@ ECC's `token-optimization.md` recommends this configuration:
 
 `model` set to `sonnet` — your daily default is Sonnet, not Opus. ECC says Sonnet handles about 80% of coding tasks well. That one switch alone saves roughly 60%. When you need Opus, type `/model opus` — for complex reasoning, large architecture decisions, the moments that are worth paying for.
 
-`CLAUDE_CODE_SUBAGENT_MODEL` set to `haiku` — [subagents](/glossary#subagent) (spawned by the Task tool) run on Haiku. They're typically reading files, looking things up, running tests. Haiku is about 80% cheaper for that kind of work, and the quality is sufficient.
+`CLAUDE_CODE_SUBAGENT_MODEL` set to `haiku` — [subagents](/en/glossary#subagent) (spawned by the Task tool) run on Haiku. They're typically reading files, looking things up, running tests. Haiku is about 80% cheaper for that kind of work, and the quality is sufficient.
 
 This echoes [SP-150's indie hacker philosophy](/posts/sp-150-20260402-ecc-indie-hacker-ecc/) — money isn't the enemy, misallocation is. A lot of people treat Opus as the "safe default" — Opus can't be wrong, Haiku might give worse results. But that logic costs 5x for quality improvements you don't need. Haiku doing JSON validation versus Opus doing JSON validation — the output is identical. The difference is the number on your bill.
 
@@ -122,7 +122,7 @@ But think about it: the source says subagents on Haiku save 80%, switching the m
 
 Context management is the least discussed part of token optimization, and one of the highest-leverage. (If you're interested in pipeline design for Claude Code, [SP-151's eval-driven development](/posts/sp-151-20260402-ecc-eval-driven-development/) covers how to automate quality through evaluation loops — the quality side of the same coin as cost automation here.)
 
-Most people let Claude auto-compact — when [context window](/glossary#context-window) gets too full, Claude decides what to keep, summarizes the history, and continues. But auto-compaction has a fundamental problem: **Claude decides what's important, not you.**
+Most people let Claude auto-compact — when [context window](/en/glossary#context-window) gets too full, Claude decides what to keep, summarizes the history, and continues. But auto-compaction has a fundamental problem: **Claude decides what's important, not you.**
 
 When it happens, Claude preserves what it thinks matters. That constraint you mentioned 30 minutes ago — "don't touch the auth module" — might survive in the summary as a vague "avoid auth changes," and five instructions later Claude does exactly what you didn't want.
 
@@ -170,7 +170,7 @@ Each individual optimization helps. Combining them into a system is where ECC's 
 
 Three settings doing three things: Sonnet as default (saves ~60%), thinking tokens from 31,999 down to 10,000 (saves ~70%), subagents on Haiku (saves ~80%). Add manual `/compact` at logical breakpoints to clean context, and that's where ECC's 60-80% cost reduction comes from.
 
-Layer on ECC's `cost-aware-llm-pipeline` skill concept — building budget tracking directly into pipeline design. The idea is similar to [hooks](/glossary#hooks) — [SP-146's Hook Architecture](/posts/sp-146-20260402-ecc-hook-architecture/) inserts automated behavior at key pipeline nodes; this inserts cost awareness at the same nodes.
+Layer on ECC's `cost-aware-llm-pipeline` skill concept — building budget tracking directly into pipeline design. The idea is similar to [hooks](/en/glossary#hooks) — [SP-146's Hook Architecture](/posts/sp-146-20260402-ecc-hook-architecture/) inserts automated behavior at key pipeline nodes; this inserts cost awareness at the same nodes.
 
 This isn't new in software engineering. You build an HTTP API client — you add retry logic, timeout, fallback. You build an AI pipeline — why not add token budget + model fallback?
 
@@ -182,17 +182,17 @@ Add Sonnet as your main model and thinking token caps on top, and ECC's 60-80% r
 
 ---
 
-## [OpenClaw](/glossary#openclaw) in Practice — Our Actual Numbers
+## [OpenClaw](/en/glossary#openclaw) in Practice — Our Actual Numbers
 
 This isn't theory. Here's how it plays out for gu-log.
 
-We run on the $200/month plan. [OpenClaw](/glossary#openclaw) — our 24/7 automated translation [agent](/glossary#agent) — runs translations, [Ralph Loop](/glossary#ralph-loop) (scoring + rewriting), frontmatter validation, commits, and various debug sessions every day. Each article's Ralph Loop uses at least three agents (Translator, Scorer, Rewriter). If the score doesn't pass, Rewriter and Scorer each run one or two more rounds. Seven to eight agent calls per article is normal.
+We run on the $200/month plan. [OpenClaw](/en/glossary#openclaw) — our 24/7 automated translation [agent](/en/glossary#agent) — runs translations, [Ralph Loop](/en/glossary#ralph-loop) (scoring + rewriting), frontmatter validation, commits, and various debug sessions every day. Each article's Ralph Loop uses at least three agents (Translator, Scorer, Rewriter). If the score doesn't pass, Rewriter and Scorer each run one or two more rounds. Seven to eight agent calls per article is normal.
 
 Our model strategy is slightly different from ECC's recommendation: Opus handles orchestration and the translation calls that need real judgment, Sonnet does most translation and scoring work, Haiku does format validation and frontmatter schema checks. ECC suggests Sonnet as default with Haiku subagents, which is designed for general coding workflows — gu-log's translation pipeline has higher language quality demands, so keeping the orchestrator on Opus is a deliberate choice, not laziness.
 
 But the biggest lesson wasn't model routing. It was thinking tokens. Before we noticed, every agent call in Ralph Loop was running Extended Thinking — including the Haiku call that was only checking "are all the frontmatter fields filled in." That call doesn't need to think. But with the 31,999-token default, it had permission to — and the bill reflected it. ([SP-143's autonomous loops](/posts/sp-143-20260402-ecc-autonomous-loops/) touches on the same problem — the more autonomous the loop, the more important cost controls become, because no one is there to hit the brakes.)
 
-The second lesson was compact timing. A few times, [context window](/glossary#context-window) hit saturation and auto-compact ran mid-pipeline, compressing away key context about the article being processed. The next agent had to re-confirm things the previous agent already established. That reconstruction wasn't free.
+The second lesson was compact timing. A few times, [context window](/en/glossary#context-window) hit saturation and auto-compact ran mid-pipeline, compressing away key context about the article being processed. The next agent had to re-confirm things the previous agent already established. That reconstruction wasn't free.
 
 Now: Ralph Loop does one active `/compact` after each article finishes. The next article starts clean. No debug trail from the previous article bleeding into the new session. No context accumulation across different pieces of work.
 

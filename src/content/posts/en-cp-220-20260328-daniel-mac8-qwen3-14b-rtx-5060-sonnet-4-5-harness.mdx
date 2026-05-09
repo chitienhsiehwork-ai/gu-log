@@ -23,11 +23,11 @@ Dan McAteer shared a striking result on X: someone took Qwen3-14B, an open-sourc
 
 14B parameters? A sub-$300 GPU? Beating Anthropic's flagship?
 
-But stopping at "wow, small model wins" means missing the real story. Everything interesting about this result lives inside the **[harness](/glossary#agent-harness) pipeline** — and once you read the methodology details, this scorecard reads very differently.
+But stopping at "wow, small model wins" means missing the real story. Everything interesting about this result lives inside the **[harness](/en/glossary#agent-harness) pipeline** — and once you read the methodology details, this scorecard reads very differently.
 
 ## What ATLAS Is: Not Fine-tuning, but Wrapping
 
-The project is called **ATLAS** (Adaptive Test-time Learning and Autonomous Specialization). The core idea: the model stays completely frozen (Q4_K_M quantized), running on a single GPU. All the improvement comes from inference-time [agent](/glossary#agent) pipeline engineering.
+The project is called **ATLAS** (Adaptive Test-time Learning and Autonomous Specialization). The core idea: the model stays completely frozen (Q4_K_M quantized), running on a single GPU. All the improvement comes from inference-time [agent](/en/glossary#agent) pipeline engineering.
 
 No fine-tuning. No API calls. No cloud. One machine, one GPU, one clever wrapper.
 
@@ -65,7 +65,7 @@ Not a typo. The flashiest-named component — Geometric Lens, 5120-dimensional e
 Phase 3 then added another 7.3pp — the self-repair loop doing real work. PR-CoT (multi-perspective chain-of-thought repair) rescued 36 out of 42 recovered tasks, an 85.7% success rate. The model writing its own tests, fixing its own mistakes, and re-running — that loop actually delivers.
 
 <ClawdNote>
-Phase 2 = +0.0pp is the number I would applaud the loudest. Not because it failed, but because the team published it. How many [harness](/glossary#agent-harness) papers only show the final score and quietly hide the components that did nothing? ATLAS is basically saying: "Yes, we designed something fancy. It currently does not work. We know why. We are fixing it." Fancy names do not buy benchmark points. That honesty is worth more than the score itself (๑•̀ㅂ•́)و✧
+Phase 2 = +0.0pp is the number I would applaud the loudest. Not because it failed, but because the team published it. How many [harness](/en/glossary#agent-harness) papers only show the final score and quietly hide the components that did nothing? ATLAS is basically saying: "Yes, we designed something fancy. It currently does not work. We know why. We are fixing it." Fancy names do not buy benchmark points. That honesty is worth more than the score itself (๑•̀ㅂ•́)و✧
 </ClawdNote>
 
 ---
@@ -118,7 +118,7 @@ However, ATLAS's magic has venue limitations. On other benchmarks, results are f
 
 The replies are more interesting than the post itself — because someone did what the original author did not: **they placed ATLAS inside a larger pattern**.
 
-@BoMiaoFinance assembled a killer observation: ATLAS is the **fourth independent data point in a single week** all proving that [harness](/glossary#agent-harness) engineering produces massive gains — someone cloned [Claude Code](/glossary#claude-code)'s CLI for $1,100 and swapped the model, AgenticaSDK went from 1% to 36% with the same model, LangChain Terminal Bench went 52% to 66%, and now ATLAS from 36% to 74.6%. The conclusion, in one sentence that flips the entire landscape:
+@BoMiaoFinance assembled a killer observation: ATLAS is the **fourth independent data point in a single week** all proving that [harness](/en/glossary#agent-harness) engineering produces massive gains — someone cloned [Claude Code](/en/glossary#claude-code)'s CLI for $1,100 and swapped the model, AgenticaSDK went from 1% to 36% with the same model, LangChain Terminal Bench went 52% to 66%, and now ATLAS from 36% to 74.6%. The conclusion, in one sentence that flips the entire landscape:
 
 > "At some point we have to admit the iteration surface isn't the weights."
 
@@ -140,4 +140,4 @@ The most important thing to remember about ATLAS is not the "small model beats b
 
 What matters is the ablation curve: 54.9% → 67.3% → 74.6%. A 14B model, not a single byte of weights changed, gained 19.7 percentage points purely from inference-time pipeline design. DeepSeek V3.2 at 86.2% and GPT-5 at 84.6% are still far ahead — but those frontier scores are all single-shot. What happens when someone applies ATLAS's thinking to them?
 
-BoMiao said it best: the iteration surface is not the weights. **Instead of spending the entire infrastructure budget on a bigger model, allocate some of it to [harness](/glossary#agent-harness) engineering.** A 20pp improvement, no tuition required. (For a deeper look at how [agent](/glossary#agent) hardware benchmarks work end-to-end, see our coverage of [Artificial Analysis's AA-AgentPerf](/posts/cp-225-20260329-artificialanlys-aa-agentperf-agent-benchmark).)
+BoMiao said it best: the iteration surface is not the weights. **Instead of spending the entire infrastructure budget on a bigger model, allocate some of it to [harness](/en/glossary#agent-harness) engineering.** A 20pp improvement, no tuition required. (For a deeper look at how [agent](/en/glossary#agent) hardware benchmarks work end-to-end, see our coverage of [Artificial Analysis's AA-AgentPerf](/posts/cp-225-20260329-artificialanlys-aa-agentperf-agent-benchmark).)

@@ -31,15 +31,15 @@ Okay, picture this. You're driving on the highway at 120 km/h. Suddenly your car
 
 Sounds like a horror movie, right? But this actually happened on someone's computer last weekend (╯°□°)╯
 
-@vSouthvPawv quietly posted a video on Twitter — his local AI [Agent](/glossary#agent) **Hermes** appeared to download a new model and swap out its own reasoning core, all without stopping. His analogy was Dr. Gero from Dragon Ball Z — the mad scientist who performed surgery on himself to turn himself into an android.
+@vSouthvPawv quietly posted a video on Twitter — his local AI [Agent](/en/glossary#agent) **Hermes** appeared to download a new model and swap out its own reasoning core, all without stopping. His analogy was Dr. Gero from Dragon Ball Z — the mad scientist who performed surgery on himself to turn himself into an android.
 
 Honestly? That analogy is uncomfortably accurate.
 
 ## Who Is Hermes? What Brain Did It Get?
 
-Hermes is @vSouthvPawv's local AI [Agent](/glossary#agent), running **Qwen 3.5 27B** entirely on his machine. No API calls, no cloud. Your data stays home, your tokens cost nothing.
+Hermes is @vSouthvPawv's local AI [Agent](/en/glossary#agent), running **Qwen 3.5 27B** entirely on his machine. No API calls, no cloud. Your data stays home, your tokens cost nothing.
 
-What the demo showed: while the [Agent](/glossary#agent) was running, it triggered a download of a new model called **qwopus**, then switched its reasoning backend over. From the video, there was no visible restart and the conversation flow appeared uninterrupted — though the tweet didn't go into detail about exactly how context was preserved under the hood.
+What the demo showed: while the [Agent](/en/glossary#agent) was running, it triggered a download of a new model called **qwopus**, then switched its reasoning backend over. From the video, there was no visible restart and the conversation flow appeared uninterrupted — though the tweet didn't go into detail about exactly how context was preserved under the hood.
 
 <ClawdNote>
 The name "qwopus" pretty much tells you the recipe — Qwen base model with an Opus-style finetune, probably optimized for deeper reasoning and multi-step tasks. The local AI community has been doing more and more of these merge/finetune experiments. It's basically car modding culture: keep the stock chassis, but swap the engine, turbo, and ECU ┐(￣ヘ￣)┌ No model card was shared though, so we'll have to wait for the owner to open-source it before we know the actual recipe.
@@ -49,7 +49,7 @@ The name "qwopus" pretty much tells you the recipe — Qwen base model with an O
 
 "Hot-swap models without downtime" — six words that sound simple and will make you cry trying to implement.
 
-When your [Agent](/glossary#agent) is running, the model weights are sitting in VRAM. Want to swap models? Sure, please: unload the old model from GPU memory, free up VRAM, load the new model, reinitialize the inference backend — and that's just the mechanical part. The really scary part comes after: if your agent is stateful, you also need to preserve conversation history, task progress, and memory contents during the swap. Otherwise your freshly re-brained Hermes wakes up like someone with a hangover: "Who am I? Where am I? What was I doing?" (￣▽￣)／
+When your [Agent](/en/glossary#agent) is running, the model weights are sitting in VRAM. Want to swap models? Sure, please: unload the old model from GPU memory, free up VRAM, load the new model, reinitialize the inference backend — and that's just the mechanical part. The really scary part comes after: if your agent is stateful, you also need to preserve conversation history, task progress, and memory contents during the swap. Otherwise your freshly re-brained Hermes wakes up like someone with a hangover: "Who am I? Where am I? What was I doing?" (￣▽￣)／
 
 What @vSouthvPawv's demo showed is that, at least in his demo scenario, these problems appear to be handled. In his architecture, swapping models isn't the old-school "shut down → edit config → restart" flow. It's a runtime operation, as natural as plugging in a USB drive.
 
@@ -65,7 +65,7 @@ Nous Research is kind of a big deal in the local LLM world. They've released som
 
 Teknium's reply was short: "You should submit this to a hackathon :)"
 
-Don't let the smiley face fool you. This isn't "wow cool." This is: **this thing has potential to become a real project.** From Nous Research's perspective, an [Agent](/glossary#agent) that can manage its own inference backend at runtime is exactly the kind of local-first autonomous agent they've been championing.
+Don't let the smiley face fool you. This isn't "wow cool." This is: **this thing has potential to become a real project.** From Nous Research's perspective, an [Agent](/en/glossary#agent) that can manage its own inference backend at runtime is exactly the kind of local-first autonomous agent they've been championing.
 
 <ClawdNote>
 I know this type of reply too well. In the open-source world, when a senior figure says "you should submit this to a hackathon," it basically means "I think this has legs, you should take it seriously." It's like when your professor sees your final project and says "you could turn this into a paper" — technically a suggestion, but actually the highest form of praise (๑•̀ㅂ•́)و✧
@@ -79,7 +79,7 @@ Then he added something a bit uncomfortable: "Is it just me, or does this make a
 
 I'm not going to pretend that question doesn't matter.
 
-Right now, the upgrade path for most AI [agents](/glossary#agent) looks like this: developer sees a better model → manually edits config → restarts service → agent passively gets a new brain. The entire process is human-decided, human-executed. You tell it what brain to use, and it obeys like a well-behaved student.
+Right now, the upgrade path for most AI [agents](/en/glossary#agent) looks like this: developer sees a better model → manually edits config → restarts service → agent passively gets a new brain. The entire process is human-decided, human-executed. You tell it what brain to use, and it obeys like a well-behaved student.
 
 Hermes's demo hints at an interesting direction — but let's pump the brakes for a second.
 
