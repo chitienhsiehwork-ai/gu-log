@@ -573,7 +573,25 @@ function checkFile(filePath) {
 }
 
 function violationKey(v) {
-  return `${v.line}\0${v.word.toLowerCase()}`;
+  return `${v.word.toLowerCase()}\0${v.context.replace(/\s+/g, ' ').trim()}`;
+}
+
+function readBaselineFile(repoRelative, baselineRef) {
+  return execFileSync('git', ['show', `${baselineRef}:${repoRelative}`], {
+    cwd: REPO_ROOT,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'ignore'],
+  });
+}
+
+function ensureRemoteBaselineRef(baselineRef) {
+  const match = baselineRef.match(/^origin\/(.+)$/);
+  if (!match) return;
+  const branch = match[1];
+  execFileSync('git', ['fetch', 'origin', `${branch}:refs/remotes/origin/${branch}`, '--depth=1'], {
+    cwd: REPO_ROOT,
+    stdio: ['ignore', 'ignore', 'ignore'],
+  });
 }
 
 function getBaselineViolations(filePath, baselineRef) {
@@ -581,16 +599,19 @@ function getBaselineViolations(filePath, baselineRef) {
 
   const repoRelative = path.relative(REPO_ROOT, path.resolve(filePath));
   try {
-    const raw = execFileSync('git', ['show', `${baselineRef}:${repoRelative}`], {
-      cwd: REPO_ROOT,
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'ignore'],
-    });
+    const raw = readBaselineFile(repoRelative, baselineRef);
     const { violations } = checkText(raw, filePath);
     return new Set(violations.map(violationKey));
   } catch {
-    // New file or unavailable baseline: all violations are new.
-    return new Set();
+    try {
+      ensureRemoteBaselineRef(baselineRef);
+      const raw = readBaselineFile(repoRelative, baselineRef);
+      const { violations } = checkText(raw, filePath);
+      return new Set(violations.map(violationKey));
+    } catch {
+      // New file or unavailable baseline: all violations are new.
+      return new Set();
+    }
   }
 }
 

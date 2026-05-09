@@ -120,11 +120,53 @@ function getContentBody(content) {
   return match ? match[1] : '';
 }
 
+function getFrontmatterText(content) {
+  return content.match(/^---\n([\s\S]*?)\n---/)?.[1] ?? '';
+}
+
+function getScoreBlock(fmText, judge) {
+  const lines = fmText.split('\n');
+  const start = lines.findIndex((line) => line === `  ${judge}:`);
+  if (start === -1) return '';
+
+  const blockLines = [];
+  for (const line of lines.slice(start + 1)) {
+    if (line && !line.startsWith('    ')) break;
+    blockLines.push(line);
+  }
+  return blockLines.join('\n');
+}
+
+function validateScoreBlock(fmText, judge, dimensions) {
+  const errors = [];
+  const block = getScoreBlock(fmText, judge);
+  if (!block) {
+    return [`Missing scores.${judge} block`];
+  }
+
+  for (const dim of dimensions) {
+    if (!new RegExp(`^    ${dim}:\\s*(?:10|[0-9])\\s*$`, 'm').test(block)) {
+      errors.push(`scores.${judge}.${dim} must be an integer 0-10`);
+    }
+  }
+  if (!/^    score:\s*(?:10|[0-9])\s*$/m.test(block)) {
+    errors.push(`scores.${judge}.score must be an integer 0-10`);
+  }
+  if (!/^    date:\s*"\d{4}-\d{2}-\d{2}"\s*$/m.test(block)) {
+    errors.push(`scores.${judge}.date must be quoted YYYY-MM-DD`);
+  }
+  if (!/^    model:\s*"[^"]+"\s*$/m.test(block)) {
+    errors.push(`scores.${judge}.model is required`);
+  }
+  return errors;
+}
+
 // ─── Validation Rules ──────────────────────────────────────────────
 function validatePost(filepath, allPosts) {
   const filename = path.basename(filepath);
   const content = fs.readFileSync(filepath, 'utf-8');
   const fm = parseFrontmatter(content);
+  const fmText = getFrontmatterText(content);
   const body = getContentBody(content);
   const errors = [];
   const warnings = [];
@@ -257,6 +299,23 @@ function validatePost(filepath, allPosts) {
         `translatedBy.model "${model}" missing version — use full name like "Opus 4.6" (run: node scripts/detect-model.mjs <model-id>)`
       );
     }
+  }
+
+  // ── Rule 15: SD posts must carry tribunal reader scores ──
+  if (fm.ticketId?.startsWith('SD-')) {
+    if (!/^scores:\s*$/m.test(fmText)) {
+      errors.push('Missing scores block — every SD post needs freshEyes + vibe scores');
+    }
+    errors.push(
+      ...validateScoreBlock(fmText, 'freshEyes', ['readability', 'firstImpression']),
+      ...validateScoreBlock(fmText, 'vibe', [
+        'persona',
+        'clawdNote',
+        'vibe',
+        'clarity',
+        'narrative',
+      ])
+    );
   }
 
   // ── Rule 16: At least one kaomoji per post (brand voice) ──
