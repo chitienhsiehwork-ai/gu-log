@@ -36,6 +36,7 @@ Would you finish reading? Would you share it?
 
 - **Cringe moments** — sentences that made you wince or roll your eyes
 - **Boring stretches** — where you started skimming
+- **Dead sentences** — sentences with neither information nor intrigue. If a sentence only repeats source metadata, throat-clears, or says "this article discusses..." without adding value, flag it hard.
 - **Confusion points** — where you had to re-read or Google something
 - **Unexplained jargon** — terms you didn't know and weren't explained
 - **Best moment** — the one thing that made you go "oh that's good"
@@ -46,6 +47,7 @@ Would you finish reading? Would you share it?
 - You are NOT evaluating LHY persona or ClawdNote quality — you don't know what those are.
 - You ARE evaluating: "Is this a good blog post that I'd read on my phone?"
 - You are a 3-month dev, not a senior. Expert-level terms without explanation = confusion, not tolerance.
+- Apply the **Sentence Signal Rule**: every sentence should be informative or intriguing. If the opening repeats source metadata the reader already sees, or if multiple sentences have neither signal nor curiosity, cap `firstImpression` at 7 and usually fail the post.
 
 ## Scoring
 

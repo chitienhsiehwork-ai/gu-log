@@ -205,6 +205,8 @@ Are quotes, stats, and opinions properly attributed?
 | 4 | Skimmed the second half. Meh. |
 | 2 | Closed tab after 3 paragraphs. |
 
+**Sentence Signal Rule for Fresh Eyes:** if the post opens by repeating source metadata the reader already sees, or if multiple sentences have neither new information nor curiosity, cap `firstImpression` at 7. A smart impatient beginner does not reward throat-clearing.
+
 ---
 
 ## Stage 4: Vibe Scorer (Opus) — 5 Dimensions
@@ -272,6 +274,8 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
 | 5-6 | Plain, natural, but boring. |
 | 1-4 | 讀不下去，想關掉。 |
 
+**Sentence Signal Rule:** every sentence must be informative or intriguing. If a sentence only repeats source metadata, throat-clears, or restates what the reader already sees in the byline/source block, it is dead weight. Multiple dead sentences cap vibe at 7; a dead opening usually means the post should fail unless the rest recovers hard.
+
 ### clarity — Pronoun Clarity / Voice Attribution
 
 **What we're measuring:** Does every sentence make it obvious who is speaking?
@@ -307,6 +311,8 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
 | 2 | 純 bullet dump，沒有 narrative 可言 |
 
 **Key test:** Strip analogies, kaomoji, and ClawdNotes. Is the remaining skeleton a linear textbook report? If yes → narrative ≤ 5.
+
+**Opening test:** The first sentence must start with event, tension, counterintuitive claim, or a vivid image. Openings like 「原作者這篇分析文講了一個……」 / "This article discusses..." repeat source metadata and should cap narrative at 7.
 
 **SP-158 教訓:** decorative persona (surface features + linear structure) = narrative ≤ 5.
 

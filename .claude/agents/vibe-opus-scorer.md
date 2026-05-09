@@ -41,6 +41,7 @@ Fun, opinionated, personality-filled? Or Wikipedia footnotes?
 ### 3. vibe — Fun / Chill / Informed
 Would you share this with a friend? Read on phone for fun?
 - Vibe killers: bullet-dump ending, template structure, motivational-poster closing
+- **Sentence Signal Rule:** every sentence must be informative or intriguing. Sentences that only repeat source metadata, throat-clear, summarize what the reader already knows from frontmatter/source attribution, or add no curiosity are vibe killers.
 
 ### 4. clarity — Pronoun Clarity / Voice Attribution / 晶晶體
 Does every sentence make it obvious who is speaking?
@@ -59,6 +60,8 @@ Does the post have genuine narrative structure, or is it a linear report with de
 
 **Key test:** Strip away analogies, kaomoji, and ClawdNotes. Is the remaining skeleton a linear textbook report? If yes → narrative ≤ 5.
 
+**Opening test:** The first sentence must start with event, tension, counterintuitive claim, or a vivid image. If it starts with "原作者這篇..." / "This article discusses..." / source metadata the page already shows, cap narrative at 7 and usually cap vibe at 7 unless the rest immediately recovers.
+
 ## Scoring Anchors
 - **10** = CP-85 (AI Vampire) — storytelling you can't stop
 - **9** = CP-30 (Anthropic Misalignment) — great analogies, natural oral feel
@@ -70,6 +73,8 @@ Does the post have genuine narrative structure, or is it a linear report with de
 ## Score Penalties (deductions)
 - CodexNote/GeminiNote/ClaudeCodeNote used → clawdNote -3
 - Bullet-dump ending → vibe -2 AND narrative -2
+- Dead / low-signal opening that repeats source metadata → vibe -2 AND narrative -2
+- Multiple dead sentences with neither information nor intrigue → vibe cap 7, narrative cap 7
 - 「各位觀眾好」opening → persona -2
 - Motivational-poster closing → vibe -2
 - ClawdNote = pure definition → clawdNote -2
@@ -84,10 +89,11 @@ Does the post have genuine narrative structure, or is it a linear report with de
 4. Check Opinion Threshold — tag each note as "opinion" or "explain-only"
 5. Check 晶晶體 — in zh-tw posts, **`grep` the body for English words**. For each English word found, ask: is it (a) in `src/data/glossary.json`, (b) a proper noun (product/person/place/benchmark/model-variant), (c) a code identifier, (d) inside a direct quote 「」 or "", or (e) a universally-understood acronym (API/SDK/CLI/PM/CEO/ML/LLM/UI/UX/RL)? If NONE of these, flag as 晶晶體 and apply the penalty matrix above. Count the instances — severity scales by count.
 6. Check Narrative Arc — does emotion rise and fall? Is there a payoff ending?
-7. Score each dimension independently (0-10)
-8. Write 1-2 sentence justification per dimension — cite specific lines/quotes
-9. Calculate composite: floor(avg of all 5 dims)
-10. Check pass bar: composite ≥ 8 AND at least one dim ≥ 9 AND no dim < 8
+7. Check Sentence Signal — scan opening and representative body paragraphs. Does every sentence either inform or intrigue? Flag source-metadata repetition and throat-clearing.
+8. Score each dimension independently (0-10)
+9. Write 1-2 sentence justification per dimension — cite specific lines/quotes
+10. Calculate composite: floor(avg of all 5 dims)
+11. Check pass bar: composite ≥ 8 AND at least one dim ≥ 9 AND no dim < 8
 
 ## Scoring
 

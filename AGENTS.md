@@ -30,6 +30,17 @@
 
 **ShroomDog editorial feedback 一律進 corpus。** 如果 ShroomDog / Sprin 對 gu-log 文章提出用字、敘事、事實查核、語氣、讀者困惑點等回饋，立刻 append 到 `docs/shroomdog-editorial-feedback.md`。不要只存在聊天紀錄、個人 memory、未追蹤 scratch file，或某個 agent 的私人筆記。這份檔案是之後蒸餾進 GU-LOG_WRITER_PROMPT.md 的原始訓練資料，讓 GPT-5.5 / Codex / Claude Code / Iris 共用同一份 gu-log writer prompt。
 
+### ✂️ Sentence Signal Rule：每句都要有資訊量或鉤子
+
+gu-log 不是把 source 重新包成報告。每一句正文都至少要有一個功能：
+
+- **Informative**：提供新資訊、判斷、脈絡、因果、例子、定義、風險或取捨。
+- **Intriguing**：製造好奇、張力、反直覺、笑點、畫面感、問題意識或下一段想讀下去的理由。
+
+最佳句子兩者都有；最差也至少中一個。兩者都沒有的句子（例如「原作者這篇分析文講了一個很值得拆的現象」這種 source metadata 重複 / throat-clearing）必須刪掉或改寫。
+
+**開頭尤其嚴格**：讀者已經在頁面上看到原文出處 / sourceUrl，第一句不要重複說「原作者這篇」。直接從事件、張力、反直覺觀點或有趣比喻開始。
+
 ### 🔗 SP candidate / source evaluation：中文來源不是 No-go 理由
 
 ShroomDog 丟外部連結時，先判斷它能不能做成 gu-log，而不是用來源語言或形式偷懶拒絕。
