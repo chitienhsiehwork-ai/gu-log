@@ -262,6 +262,23 @@ Managed Agents Agents
 danizhu
 context rot
 
+# Added 2026-05-11 for SP-196 (Garry Tan meta-meta-prompting / GBrain).
+# Proper nouns, product/framework names, benchmark names, source book titles,
+# and source-quoted workflow names. These should remain English for fidelity.
+ChatGPT
+Pema Chodron Chödrön Ch dr drön
+When Things Fall Apart Things Fall Apart
+LinkedIn
+Y Combinator Combinator
+GBrain GStack Skillify
+Dion Lim Amplified Bertrand Russell Designing Your Life Finite Infinite Games Hesse Feynman Ken Wilber
+James
+Sebastian Mallaby
+perplexity-research
+Hermes Agent Hermes
+Pi Tailscale Render Railway
+LLM Wiki LongMemEval MemPalace
+
 # Added 2026-04-30 for SP-189 (OpenAI GPT-5.5 prompting guide).
 # Canonical AI / prompt-engineering terms named explicitly in OpenAI's docs
 # (these are the article's literal subject — translating them would lose
