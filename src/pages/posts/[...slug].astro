@@ -38,6 +38,10 @@ const isClawdPicks = post.data.tags?.includes('clawd-picks');
 const ticketId = post.data.ticketId;
 const ticketPrefix = ticketId?.split('-')[0] || '';
 const isLevelUp = ticketId?.startsWith('Lv-') ?? false;
+const isShroomDogOriginal = ticketId?.startsWith('SD-') ?? false;
+const isChatGptShareSource = post.data.sourceUrl.startsWith('https://chatgpt.com/share/');
+const showSourceCitation = !isLevelUp && (!isShroomDogOriginal || isChatGptShareSource);
+const sourceCitationLabel = isShroomDogOriginal && isChatGptShareSource ? '靈感來源' : '原文出處';
 
 const postVersion = getPostVersion(post.id);
 const postStatus = resolvePostStatus(post, allPosts);
@@ -106,9 +110,9 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
     }
 
     {
-      !post.data.ticketId?.startsWith('SD-') && !post.data.ticketId?.startsWith('Lv-') && (
+      showSourceCitation && (
         <div class="source-citation">
-          <strong>原文出處：</strong>
+          <strong>{sourceCitationLabel}：</strong>
           <a href={post.data.sourceUrl} target="_blank" rel="noopener">
             {post.data.source}
           </a>
