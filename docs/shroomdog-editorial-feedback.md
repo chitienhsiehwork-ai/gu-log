@@ -184,3 +184,19 @@
 - 情境：Sentence Signal Rule 不能只靠 writer prompt；如果 reviewer 不會抓，pipeline 仍可能放過「資訊量 0 / 好奇心 0」的句子。
 - 修法：把 Sentence Signal Rule 加進 Fresh Eyes 與 Vibe Scorer 的 reviewer contracts，並同步進 `scripts/vibe-scoring-standard.md`。Fresh Eyes 負責從手機讀者角度抓 boring / dead sentences；Vibe Scorer 負責在 vibe / narrative 維度懲罰 dead opening、source metadata 重複與 throat-clearing。
 - Reusable lesson：重要寫作規則要同時進 writer prompt、repo AGENTS、reviewer rubric。Writer 負責產生，Reviewer 負責阻擋 regressions。
+
+## 2026-05-11 — SP-196 Garry Tan Meta-Meta-Prompting
+
+### Feedback: Personal-system scale disclaimers can be dead weight
+
+- ShroomDog feedback：`這邊不需要加這段吧 感覺有點多餘 只是個人使用的話 原本就是原 po 想講多少我們就說多少`
+- 情境：SP-196 在書籍鏡像段落後額外加了一段「證據邊界」，逐項提醒 100,000 頁、100+ Skill、15 個定時工作、每天超過 100 個定時工作、GStack 星標等數字都是 Garry 原文自述，不是 gu-log 獨立驗證。這在企業宣稱或 benchmark 文章裡有必要，但在「個人第二大腦 / 個人使用規模」這類故事裡顯得防禦過度，打斷閱讀節奏。
+- 修法：刪掉獨立證據邊界段落；保留自然歸因，例如「Garry 說」或「原文說」，但不把個人使用規模寫成審計報告。對明顯主觀的 10x 描述，改成一句讀者能懂的提醒：「不用當成投資報告讀，真正意思是系統越用越厚。」
+- Reusable lesson：gu-log 要做負責任的 source handling，但不是每個 source number 都需要獨立插入免責聲明。若數字是個人系統的自述規模、且文章重點在 idea / system shape，不要用長 disclaimer 打斷故事；用自然歸因即可。只有遇到 benchmark、投資、公司營收、醫療、安全、或可能被讀者當成客觀驗證的 claim，才需要更硬的證據邊界。
+
+### Feedback: Too many proper nouns make the piece feel like 1-to-1 translation
+
+- ShroomDog feedback：`專有名詞太多了，不重要的專有名詞以故事/譬喻的形式帶給讀者，重點不是 specific detail but the idea behind it. If user want detail, they can just check a 1-to-1 translation article. That won't be why user come to gu-log.`
+- 情境：SP-196 保留了太多原文工具名、Skill 名、模型名、書名、人名、benchmark 名和部署選項。它們對 Garry 原文忠實，但對 gu-log 讀者來說容易變成名詞牆：讀者被迫記 `brain-ops`、`enrich`、`cross-modal-eval`、模型分工、benchmark、雲端服務，而不是抓到「流程會記住錯誤並複利」這個核心。
+- 修法：刪減不重要專有名詞，把細節轉成故事或譬喻：Skill 組合改寫成「小工廠產線」；模型分工改寫成「有的抓精確錯誤、有的補脈絡、有的抓萬用雞湯」；工具棧與部署名改成「知識層、流程層、派工層」。保留必要名詞，例如 Garry、Demis、GBrain、Skill、Harness，但不要求讀者背完整 inventory。
+- Reusable lesson：gu-log 的價值不是做 1-to-1 translation。讀者來 gu-log 是為了更快抓到 idea behind the details。寫作時先問：這個專有名詞是否承載核心觀念？若沒有，就改成故事、角色、流程、譬喻或「有一個工具負責 X」。細節控讀者可以點原文；gu-log 要交付的是可記住的 mental model。
