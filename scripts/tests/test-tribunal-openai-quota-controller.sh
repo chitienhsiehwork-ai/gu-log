@@ -64,6 +64,16 @@ out=$(run_case "$with_inflight" 2 3)
 [ "$out" = "10|3|none|pacing" ] || fail "in-flight workers should not affect burn-rate gating; got: $out"
 pass "in-flight workers do not feed back into burn-rate quota gating"
 
+below_floor='[{"provider":"openai","status":"ok","session_remaining_pct":100,"session_reset_min":300,"weekly_remaining_pct":9,"weekly_reset_hr":72}]'
+out=$(run_case "$below_floor")
+[ "$out" = "259200|0|seven_day|floor_stop" ] || fail "weekly quota below reserve floor should sleep until reset; got: $out"
+pass "quota below reserve floor stops until reset"
+
+missing_reset='[{"provider":"openai","status":"ok","session_remaining_pct":100,"weekly_remaining_pct":100,"weekly_reset_hr":168}]'
+out=$(run_case "$missing_reset")
+[ "$out" = "600|1|none|fallback" ] || fail "missing reset metadata should fail safe into fallback; got: $out"
+pass "missing OpenAI reset metadata fails safe into fallback sleep"
+
 claude_fixture='[{"provider":"claude","status":"ok","five_hr_remaining_pct":100,"five_hr_reset":"5.0 小時","weekly_remaining_pct":100,"weekly_reset":"7.0 天"}]'
 out=$(run_case "$claude_fixture")
 [ "$out" = "10|1|none|pacing" ] || fail "legacy Claude fixture parser regressed; got: $out"

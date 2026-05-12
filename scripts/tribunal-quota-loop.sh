@@ -369,10 +369,18 @@ try:
     # long bucket as weekly_remaining_pct/weekly_reset_hr.
     for p in data:
         if p.get('provider') == 'openai' and p.get('status') == 'ok':
-            five_pct = p.get('session_remaining_pct', 0)
-            five_reset_sec = int(float(p.get('session_reset_min', 0)) * 60)
-            seven_pct = p.get('weekly_remaining_pct', 0)
-            seven_reset_sec = int(float(p.get('weekly_reset_hr', 0)) * 3600)
+            required = ['session_remaining_pct', 'session_reset_min', 'weekly_remaining_pct', 'weekly_reset_hr']
+            if any(k not in p or p.get(k) is None for k in required):
+                continue
+            five_pct = p['session_remaining_pct']
+            five_reset_sec = int(float(p['session_reset_min']) * 60)
+            seven_pct = p['weekly_remaining_pct']
+            seven_reset_sec = int(float(p['weekly_reset_hr']) * 3600)
+            # Missing/invalid reset metadata is not safe for burn-rate math.
+            # Return failure so the main loop enters fallback sleep instead of
+            # accidentally treating unknown reset as immediate reset.
+            if five_reset_sec <= 0 or seven_reset_sec <= 0:
+                continue
             print(f'{five_pct}|{five_reset_sec}|{seven_pct}|{seven_reset_sec}|0|0|0')
             sys.exit(0)
 
