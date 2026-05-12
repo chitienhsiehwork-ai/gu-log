@@ -93,7 +93,7 @@ GPT GPT-3 GPT-3.5 GPT-4 GPT-4o GPT-5 GPT-5.2 GPT-5.3 GPT-5.4
 Gemini Llama Mistral Qwen DeepSeek Kimi Grok Cohere Command
 Codex Cursor Copilot Replit Bolt Lovable Devin Atlas
 Autobrowse
-PandaOmics Chemistry42 AlphaEvolve Concordia Gemma Nemotron
+PandaOmics Chemistry42 AlphaEvolve Concordia Gemma Nemotron NanoFold
 Muse Spark Llama Maverick Sonnet Opus K2 K2.5 R1
 Agent Swarm
 
@@ -118,6 +118,7 @@ BrowseComp
 HealthBench DeepSearchQA HLE
 Humanity Last Exam Pro Hard
 Artificial Analysis
+NeurIPS ICML
 
 # People (founders / authors / researchers commonly cited)
 Andrew Ng Sam Altman Dario Amodei Daniela Amodei Demis Hassabis
@@ -143,7 +144,7 @@ Beijing Shanghai Shenzhen Hangzhou Tokyo Seoul Singapore London Paris Berlin
 Craigslist OpenTable Google Maps
 
 # Common file/format/protocol identifiers
-Markdown markdown JSON YAML XML CSV TSV PDF EPUB DOCX MDX
+Markdown markdown JSON YAML XML CSV TSV PDF EPUB DOCX MDX LaTeX
 RSS Atom JSONFeed iCal vCard
 gRPC WebSocket WebRTC GraphQL OpenAPI Swagger JSON-RPC
 JWT OAuth SAML SSO 2FA MFA TOTP
