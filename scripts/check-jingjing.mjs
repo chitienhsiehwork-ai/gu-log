@@ -263,6 +263,13 @@ Managed Agents Agents
 danizhu
 context rot
 
+# Added 2026-05-12 for SP-197 (Garry Tan AI agent complexity ratchet).
+# Proper nouns, source examples, research author names, and literal prior article titles.
+Conductor Dave Bitcoin Jared Podcast
+Eval-Driven Development
+Capers Jones Mockus Nagappan Dinh-Trong Vista Level
+Fat Thin Resolvers Controversy Naked Stupider Manifesto
+
 # Added 2026-05-11 for SP-196 (Garry Tan meta-meta-prompting / GBrain).
 # Proper nouns, product/framework names, benchmark names, source book titles,
 # and source-quoted workflow names. These should remain English for fidelity.

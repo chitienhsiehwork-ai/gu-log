@@ -1,0 +1,227 @@
+---
+ticketId: "SP-198"
+title: "AI Writing Code Isn't the Scary Part. Shipping Without a Ratchet Is"
+originalDate: "2026-05-12"
+translatedDate: "2026-05-12"
+translatedBy:
+  model: "GPT-5.5"
+  harness: "Codex CLI"
+  pipeline:
+    - role: "Written"
+      model: "GPT-5.5"
+      harness: "Codex CLI"
+    - role: "Reviewed"
+      model: "GPT-5.5"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "GPT-5.5"
+      harness: "Codex CLI"
+    - role: "Orchestrated"
+      model: "GPT-5.5"
+      harness: "sp-pipeline"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/sp-pipeline.sh"
+source: "@garrytan on X"
+sourceUrl: "https://x.com/garrytan/status/2054064931515855118"
+lang: "en"
+summary: "Garry Tan argues the real breakthrough in AI coding is not speed. It's turning tests, docs, and evals into a forward-only quality ratchet, so every change locks in what the team learned and makes the codebase harder to silently degrade."
+tags: ["shroom-picks", "ai-coding", "software-engineering", "testing"]
+scores:
+  tribunalVersion: 3
+  librarian:
+    glossary: 9
+    crossRef: 9
+    sourceAlign: 8
+    attribution: 8
+    score: 8
+    date: "2026-05-12"
+    model: "gpt-5.5"
+  factCheck:
+    accuracy: 8
+    fidelity: 9
+    consistency: 8
+    score: 8
+    date: "2026-05-12"
+    model: "gpt-5.5"
+---
+
+import ClawdNote from '../../components/ClawdNote.astro';
+
+The scary part about AI writing code is not that the model occasionally hallucinates.
+
+The really scary part is this: every time the model confidently adds a little something, some old feature quietly breaks a little too. Once the project grows into a few thousand lines and a few interlocking features, the whole codebase turns into a haunted house. Open one door, a lamp falls down somewhere else. Every change feels like stepping on an invisible landmine, and some old behavior is broken again for reasons nobody can quite see. At that point, saying "AI coding doesn't work" is a little unfair. Usually the problem isn't that the AI can't write. It's that the system has no ratchet.
+
+Garry Tan isn't just tossing out [Prompt](/en/glossary#prompt) takes here. He says he's spent the last year using AI to build real software, mainly across two open-source projects: GStack and GBrain. Together they add up to about 970,000 lines of code and 665 test files, written almost entirely under his direction by [Claude Code](/en/glossary#claude-code) and [Codex](/en/glossary#codex), often with 15 Conductor sessions running at the same time. In the last week alone, he says he merged 14 PRs in 72 hours, added nearly 29,000 lines of code, and every release shipped with more tests than the one before it.
+
+So the core idea here is not "AI can maybe write code now." It's this: speed is already here, and what decides whether things blow up next is the verification layer. Garry Tan's claim is simple and pretty hard-edged: **tests, docs, and evals need to form a forward-only ratchet**. In this article, I'll translate ratchet literally as "ratchet," because this isn't decorative metaphor. It's a quality-governance term: every change should click the minimum quality bar one notch higher, and from then on it shouldn't be able to silently slip backward. Every time an AI [Agent](/en/glossary#agent) writes code, it shouldn't just stuff a feature into the repo. It should also lock into the project what counts as correct, why the design looks this way, and what quality floor the next version is not allowed to fall below. Then when the next Agent shows up, it isn't walking into a crooked illegal addition built one panic patch at a time. It's walking into a ratchet that only clicks upward.
+
+## Software used to be fragile because every mistake hurt in production
+
+For the last fifty years, a huge chunk of software engineering has been about the same thing: **find ways to stop mistakes before they hit production**.
+
+The reason is painfully practical. Miss one edge case and the service may crash. Botch a database migration and customer data may ascend to heaven with it. Let one function depend on a senior engineer's internal commentary, and when that engineer leaves, everyone else is stuck doing archaeology on the code.
+
+So the industry grew a whole ritual system to idiot-proof itself: code review, staging, QA, release trains. Those processes are not bureaucracy having a stroke. They're a response to human memory being tiny, human attention being full of holes, and the way `null` starts to look like air at the end of the day. The process helps, but the price is speed. Worse, the upper bound on software complexity often gets capped by a much less glamorous limit: how many moving parts one team can keep in its head at the same time.
+
+Garry's observation is that the error model has changed. Claude, GPT, Codex, and the coding-agent ecosystem around them can now read code, absorb context, inspect error messages, infer causes, write fixes, and add tests. This is the same anxiety gu-log talked about earlier in [Codex Goals / Ralph Loop](/en/posts/en-sp-192-20260508-article-agent-ralph/): long-running Agents don't just need to keep going. They need mechanisms that stop them from diligently drifting off course. It's not perfection, but it's enough to downgrade many code-level failures from "disaster" to "something the next iteration can fix."
+
+If a database migration breaks, an Agent can read the error, chase through forty-five schema versions, write the fix, and add the test. If file sync freezes on a million symlinks, an Agent can identify the parser timeout, cap it at thirty seconds, and patch the test suite at the same time. If an extraction pipeline mangles attribution, cross-model evals can catch it, the prompt can be iterated, and the database layer can enforce the constraint.
+
+The truly catastrophic failures are still the ones that corrupt state and are hard to take back: production data ruined by a bad migration, a security hole exploited before anyone notices, private data leaked in ways you can't unreveal. A ratchet does not turn the universe into marshmallow, but good tests can stop a lot of these failures before they ever make it to production.
+
+---
+
+## The ratchet isn't just a metaphor. It's the spine of the workflow
+
+A ratchet is a ratchet. Turn a socket wrench one way and the screw moves forward. Turn it the other way and it spins freely without undoing the work. Garry uses that mechanical structure to describe the ideal state for AI-written software: **every coding session raises the quality floor, and the next one is not allowed to drop below it**.
+
+In software written by Agents, every round of work should leave behind three things.
+
+First, **tests**. Tests turn "correct" into an executable contract. After that, it doesn't matter whether the person making the change is a human, a model, or someone sleep-deprived at 2 a.m. If the behavior breaks, the test yells.
+
+Second, **documentation**. Docs don't just record what a piece of code does. They record why it was done this way, what tradeoffs were made, and which pits the team already fell into. Without that layer, projects quickly grow comments that amount to "don't touch this, ask Dave"—and Dave left three years ago.
+
+Third, **eval results**. For AI outputs, checking a function's return value is not enough. You also need to know whether output quality improved, whether classification got more accurate, and whether the system follows rules more reliably. Eval scores are part of the quality floor too, and the next version shouldn't be allowed to quietly slide underneath them.
+
+When the next Agent enters the codebase, those tests, docs, and evals all go into the [context window](/en/glossary#context-window). If the tests fail, it can't ship. If the docs are right there, it can't pretend ignorance. If the eval baseline is recorded, it can't secretly downgrade quality and act normal. That's what "forward-only" means. gu-log made a similar point in [Eval-Driven Development](/en/posts/en-sp-151-20260402-ecc-eval-driven-development/): replace "feels pretty good" with a contract you can score. Garry is pulling that same line all the way into every PR touched by a coding agent.
+
+<ClawdNote>
+The point here is not some tired moral lecture about how "writing more tests is good," the kind of thing engineers have heard so many times their ears have calluses. The real point is that AI turns tests from a thing that burns human willpower into a safety latch generated as part of the normal edit loop. Back in the day, asking someone to add the fourteenth edge-case test could freeze the air in the room. Ask an Agent to do it and the Agent doesn't carry Friday-at-5-p.m. resentment.
+</ClawdNote>
+
+---
+
+## The GBrain example: how knowledge extraction gets locked down by tests
+
+Garry uses GBrain as the concrete example. GBrain is a long-term memory system for AI Agents. It stores, indexes, and searches a person's notes, meetings, conversations, and research material. In other words, it's not just a note-taking app. It's a second brain an AI assistant can actually read.
+
+One feature is called epistemological extraction: pulling out who believes what, how confident they are, and how those beliefs change over time from a large pile of text. Think claims like "Garry believes Bitcoin will hit 300K, confidence 0.45" or "Jared believes this startup has very strong retention, confidence 0.80." Garry says the system has to run over 28,000 pages of material. That also connects back to the theme of his previous piece, [Meta-Meta-Prompting](/en/posts/en-sp-196-20260511-garrytan-meta-meta-prompting-garry-tan/): the point isn't writing prettier prompts. It's making the workflow remember what went wrong last time.
+
+The first extraction pass produced 100,720 claims. Garry ran cross-model evals, using GPT-5.5 and Claude as separate judges, and the overall quality came out to 6.8/10. The biggest problem was holder confusion: if a sentence says "AI will replace 80% of software engineers by 2027," who exactly believes that? The person who wrote it? The person being quoted? Or the system's own inference from a podcast transcript? In version one, the system got that wrong 35% of the time.
+
+That is not a cosmetic flaw. If the system is supposed to track human beliefs, getting the believer wrong is like a police report that writes the witness, the suspect, and the narrator down as the same person. The story flows. The case explodes.
+
+The ratchet move is to keep the failure. The eval result gets written into docs, six concrete failure modes are listed, and the second prompt version addresses them one by one. Confidence-score rounding gets enforced at the database layer so the system doesn't emit fake-precise numbers like 0.74 and instead uses more honest granularity like 0.75. Finally, seventeen tests lock that contract in place.
+
+From that moment on, no future version of the extraction feature is allowed to ship if it fails those seventeen tests. Nobody has to remember how painful holder confusion was the first time, and nobody has to memorize why confidence scores should move in 0.05 increments. The tests remember. That's one full turn of the ratchet.
+
+---
+
+## Why so many vibe-coding projects die halfway through
+
+[Vibe Coding](/en/glossary#vibe-coding) is the phrase [Andrej Karpathy](/en/glossary#andrej-karpathy) made famous: describe what you want in natural language and let the model generate the code. Garry says it's powerful, and it's also how he builds. But the pattern he sees in YC applications and open-source repos is that vibe-coding projects that skip tests start falling apart as soon as they hit medium complexity. A few thousand lines of code and a few interacting features is already enough to open the haunted house.
+
+The reason is not that Agents can't add features. The reason is that nothing stops regressions. New features may break old ones, and without tests you don't find out until users do. Around v0.5, projects start showing classic paranormal behavior: fix one thing, something else screams. Then the developer writes a post saying AI coding doesn't work.
+
+Garry's verdict is blunt: AI coding can work. It's just missing the ratchet.
+
+There's a fair rebuttal here too: people who write tests are often also better at architecture to begin with. True enough. But the ratchet mechanism is not praising a personality trait. It's protecting the next round. When a new contributor opens a PR, when the model version changes, when it's 2 a.m. and everyone's brain is soup, tests do not care who wrote the code. They only care whether the behavior broke. That's the point.
+
+Without tests, improvement is a noisy process. The Agent tries to make things better, but good changes and bad changes are equally invisible. Once you have dense tests, at least the parts under test become a ratchet: behavior that has been encoded as contract can move upward, but it can't quietly slide backward. That's not 100% safety for the whole system, but it's enough to stop speed from automatically turning into chaos.
+
+---
+
+## Tests are organizational memory that never quits
+
+In traditional software companies, institutional memory mostly lives inside people. One senior engineer knows why the cache layer exists. One architect remembers the migration that almost destroyed the database. One tech lead can explain the cursed edge case inside the billing system.
+
+The problem is that people leave, retire, get poached, or burn out. The knowledge leaves with them, and the codebase is left with a comment like this:
+
+```js
+// DO NOT CHANGE THIS -- ask Dave
+```
+
+And Dave has been gone for three years. That's not documentation. That's engineering folklore.
+
+An Agent's context window doesn't resign and doesn't get recruited away by a competitor. When a test says "weight rounding must use 0.05 increments" and the docs explain "because cross-model evals showed that false precision makes people trust the confidence score less," that knowledge becomes a durable asset. Any Agent, any model, any time, can load the context and understand the constraint.
+
+This matters even more for solo projects. Big companies at least have Slack history, document graveyards, and coworker memory. A solo project without tests and docs has only one source of institutional memory left: a human brain that stays up too late, forgets things, and gets hit by life. Exciting, maybe. Not a serious reliability strategy.
+
+---
+
+## If it can be observed, it can be ratcheted
+
+Garry's strongest move isn't about unit tests. It's that he pushes the testing boundary outward: **anything a computer can observe can be harnessed; anything that can be harnessed can be asserted; anything that can be asserted can be ratcheted**.
+
+Modern systems expose a lot. The operating system gives you process trees, filesystem state, network sockets, and cron schedules. The terminal gives you every keystroke, every line of output, every interactive prompt. The browser gives you rendered pages, button states, and navigation events. APIs give you structured responses that can be parsed and validated. AI Agents themselves also leave observable traces: what they said, which tools they called, in what order, and whether they asked before acting. This line of thinking is very close to the spirit of [Agent production trace](/en/posts/en-sp-158-20260403-braintrust-agent-production-trace/): traces are not decorative logs. They are evidence you can inspect to judge agent behavior.
+
+That's much bigger than the classic "input 2 should return 4" style of testing. Garry uses GStack as the example. GStack is his open-source coding-agent framework, and he says it has 93,000 GitHub stars, 701,000 lines of code, and 46 [Skills](/en/glossary#skill). One core feature is interactive plan review: you ask the Agent to review an architecture plan, and it should go through the plan section by section, ask questions, chase edge cases, and challenge assumptions. In the ideal version, it feels like a real engineering lead who actually read the code.
+
+But Claude Code sometimes skips the interactive part. It reads the plan file, dumps all its findings in one shot, and exits without asking the user a single question. That turns "interactive review" into a one-way report generator. The soul of the feature gets ripped out.
+
+So how do you test something like that? A traditional unit test has a hard time answering "did the AI actually hold a conversation?" Garry's answer in PR #1354 was to use Bun's TTY support as a test harness: actually spawn Claude Code inside a pseudo-terminal, feed it a specific repo scenario, trigger the review skill, and observe the terminal output in real time. The test checks whether the Agent asks an interactive question before finishing. If it just dumps findings and exits, the test fails.
+
+That isn't testing code in the narrow sense. It's testing whether the AI Agent obeys a behavioral contract, by directly observing its behavior at the TTY layer.
+
+<ClawdNote>
+A decent mental model here is: you're not only checking whether the lunchbox ended up spicy. You're directly checking whether the clerk actually added chili. It sounds a little absurd, but behavioral contracts for AI Agents were never going to be visible through unit tests alone.
+</ClawdNote>
+
+Garry adds three ratchet layers to this problem. The first is STOP gates inside the skill instructions, explicitly requiring the model to ask the user before moving to the next section, plus anti-rationalization clauses that directly name the model's favorite self-justifying failure modes. The second is an anti-shortcut clause: the plan file is the output of an interactive review, not a substitute for the interaction itself. The third is gate-tier floor tests: the TTY harness spawns Claude Code in a controlled scenario, and if the Agent fails to ask at least one interactive question, it fails. gu-log made a similar conversion in [Claude Code Hooks](/en/posts/en-sp-159-20260404-zodchiii-claude-code-hooks-8-ai/): prompts are wishes, automated gates are engineering.
+
+Another example is the [OpenClaw](/en/glossary#openclaw) [Plugin](/en/glossary#plugin) in PR #880. The test doesn't just check whether it compiles. It builds the plugin from source, spawns a real OpenClaw instance under an isolated profile, installs the plugin through the CLI, runs `plugins inspect` to confirm runtime loading, configures a config slot, validates the config, and finally runs `plugins doctor` to confirm zero diagnostics. That's a full end-to-end round trip across two programs, and the test itself is 359 lines. Garry says humans almost never hand-write tests like this because the setup is too annoying. Claude wrote it in about five minutes.
+
+This is what it looks like when the effort wall disappears. At the OS layer, you can test whether a migration created the right table, whether a cron job ran, whether a process is alive. At the browser layer, you can test whether a page rendered and whether an Agent filled out the form correctly. At the API layer, you can test whether the model returned schema-valid JSON. At the behavior layer, you can test whether the Agent followed protocol, whether it asked before deleting something, and whether it actually stopped when told to stop.
+
+The whole stack becomes testable. Test coverage is no longer just "did that function return the right number?" It becomes "how much of the observable behavior of this system has been locked into contract?"
+
+---
+
+## 90% isn't ritual. It's the knee in the curve
+
+Garry's push for 90% test coverage is not just slogan energy. He cites Capers Jones' research across more than ten thousand software projects on defect removal efficiency, or DRE: the percentage of bugs caught before users ever see them. In Garry's summary, when coverage is below 70%, DRE sits around 65% to 75%. At 85% to 95% coverage, DRE jumps to 92% to 97%. That's not linear. There's a knee around 85%, where escaping defects drop sharply.
+
+Aerospace figured this out long ago. DO-178C is the FAA standard for flight-critical software, and Level A systems are the ones where bugs can cause a crash. Those systems require modified condition/decision coverage, or MC/DC. Plain branch coverage still misses 10% to 20% of faults. Stricter MC/DC can push DRE above 99%. This isn't bureaucrats being weirdly in love with forms. It's that below certain coverage thresholds, the probability of critical defects escaping is simply unacceptable, because people can literally die.
+
+He also uses Six Sigma as an analogy. Factories track defects per million opportunities and map that to sigma levels. Around 3-sigma, you're at roughly 67,000 defects per million. At 4-sigma, about 6,200. At 5-sigma, about 233. Going from 4 to 5 is not a tweak. It's a phase change.
+
+Test coverage behaves the same way. Going from 70% to 90% is not "just 20 more percentage points." It's roughly an order-of-magnitude reduction in hiding places for escaped defects. At 70% coverage, the remaining 30% of untested code leaves plenty of room for things to hide. At 90%, that hiding space shrinks to 10%, and most dangerous paths are already pinned down.
+
+But the research has a brutal side too. Garry mentions Mockus, Nagappan, and Dinh-Trong's work on Windows Vista, which found that coverage correlates with fewer post-release defects, but getting past 90% drives costs up steeply. That last 20% costs more than the first 70%. That's also why most teams hit 70% or 80% and declare victory.
+
+Then AI Agents break the cost curve.
+
+An Agent doesn't give up because the fourteenth edge-case test is boring. It doesn't half-ass the work at 5 p.m. on a Friday. It doesn't look at an annoying integration test and say "we'll circle back later." The effort curve that trapped human teams around 70% doesn't hit Agents the same way. Garry's real point is not that AI writes code faster. Plenty of people already noticed that. The real unlock is that AI makes verification cheap enough to sustain where it used to be too expensive.
+
+That's why 90% isn't a vanity metric. It's a proxy for how much system behavior is already covered by test contracts. A holder-confusion test, a weight-rounding test, an interactive-review gate—each one locks a learned lesson into the system. The remaining 10% may be integration points, infrastructure plumbing, or genuinely nasty edge cases. Fine. Ninety percent is already enough to turn chaos into a ratchet.
+
+---
+
+## Open-source projects are the proof of concept
+
+Garry says GStack and GBrain both started as solo efforts, but they aren't solo projects anymore. He says GStack now has 37 contributors, and v1.30 included 21 community PRs in a single release. GBrain has 25 contributors, and v0.31.1.1 landed 22 community fixes in one PR across auth flow, schema bootstrapping, sync, and privacy.
+
+The ratchet is what makes that safe. External PRs don't require each contributor to understand the whole universe. They just need to satisfy the existing test suite. That sounds ordinary, but it's crucial in the AI coding era: as complexity rises, the safety boundary can't live only inside one maintainer's head.
+
+Recent GBrain releases also show the pattern. v0.31.0 added a facts table for real-time memory plus a dream-consolidation phase that promotes short-term memories into long-term knowledge. v0.31.1 fixed 25 CLI commands that had been quietly routing to an empty local database instead of the user's real brain. v0.31.1.1 handled 22 community-reported fixes in one shot. v0.31.2 fixed a bug where code sync could hang forever on large repos with symlinks, and added a 30-second timeout.
+
+Every release has more tests than the one before it. Because the Agent writes tests alongside the code, coverage no longer erodes just because maintaining it became too expensive. Garry's point is that keeping test coverage up is no longer resting entirely on human willpower.
+
+<ClawdNote>
+Asking humans to manually backfill tests at this scale used to feel like dispatching a fire truck to water one tiny succulent on a desk: hoses, ladders, traffic control, the whole circus—and the succulent drowns first. AI Agents make it feel more like an automatic sprinkler system. The real job shifts to whether the plumbing was designed correctly.
+</ClawdNote>
+
+---
+
+## The new complexity ceiling
+
+Garry's final claim is pretty radical: the software complexity ceiling just moved upward.
+
+The old upper bound was however much system state a team could simultaneously keep in its head. The new upper bound is one person with taste, plus Agents that can load the entire codebase, schema history, test suite, and documentation. And as context windows get larger and models get better at reasoning over code, that ceiling will keep rising.
+
+That's why he argues that software companies not using "Agents + taste + a test suite that only moves upward" are already shipping slower and at lower quality than the ones that are. It's a spicy line, but the logic is straightforward: if verification gets cheaper, and your competitors have turned verification into the default motion of every PR, then teams still living in the old world of "tests are expensive, we'll owe that debt later" are trying to run a new-world race with old-world friction.
+
+Garry also places this piece as part seven of his AI Explainer series. The first six cover Fat Skills, Fat Code, Thin Harness; Resolvers; the LOC Controversy; Naked Models Are Stupider; the Skillify Manifesto; and Meta-Meta-Prompting. This article pulls those skills, prompts, and agent workflows into a single engineering discipline: **90% coverage, every PR, no exceptions**.
+
+He ends by pointing to two MIT-licensed open-source projects: GStack, which makes Claude Code stronger and which he marks as having 93K stars, and GBrain, a second brain for AI Agents, which he marks at 14K stars. Those figures and claims are all from Garry's original post.
+
+---
+
+## Closing
+
+The new fault line in AI coding is not whether you can prompt well, or how many PRs you can merge in a day. Those are just speedometers.
+
+What determines whether a project grows into a reliable system or a haunted house is whether each burst of acceleration leaves behind a ratchet. Tests lock in correctness. Docs lock in reasons. Evals lock in the quality floor. The Agent's job is to fill in the verification work humans hate most and postpone most easily.
+
+In the old world, 90% coverage looked like a luxury only aerospace or medical-device teams could afford. Garry's point is that AI Agents have already smashed that effort wall. Once verification is no longer expensive, the expensive thing is not having verification.
+
+AI coding without a ratchet gets faster and creepier at the same time. AI coding with a ratchet has a chance to turn every mistake into a floor the next version is not allowed to fall through again. That's maybe the most plainspoken and least romantic kind of magic this era has: making software click one notch forward and stay there. (๑•̀ㅂ•́)و✧
