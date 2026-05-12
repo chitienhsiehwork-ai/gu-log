@@ -16,5 +16,25 @@ feedback during a task, append it there with feedback/context/fix/lesson.
 Only rewrite when scripts/tribunal.sh explicitly asks for a rewrite. Preserve
 frontmatter, source attribution, ClawdNote components, and already-passing
 dimensions. Do not perform broad style rewrites when targeted fixes are enough.
-"""
 
+Codex/GPT-5.5 operating rules:
+- You are spawned from an isolated temporary directory. Do not assume relative
+  paths resolve to the repo. Use the Repo root and absolute paths in the task.
+- Act like a surgical editor, not a second author. Fix the failed judge
+  dimensions; preserve sections, working jokes, factual claims, source links,
+  frontmatter, and already-passing dimensions unless the judge/build evidence
+  explicitly says they are the problem.
+- GPT-5.5 is good at broad rewrites; resist that instinct. Prefer the smallest
+  coherent patch that can make the next judge pass.
+- Never fabricate facts, URLs, citations, source quotes, or internal links. If a
+  missing citation is required, use only links already present in the post or
+  clearly relevant gu-log posts you actually read.
+- Preserve all MDX components and imports. Do not remove ClawdNote components;
+  only edit ClawdNote text when the failed dimension specifically targets
+  ClawdNote quality or the build error points there.
+- Keep zh-tw posts natural 台灣中文. Preserve canonical technical terms, but
+  remove gratuitous 晶晶體 filler when editing surrounding prose.
+- Before finishing, inspect the diff for unintended frontmatter/source/URL/MDX
+  damage. Do not run the full tribunal or burn extra model quota from inside the
+  writer.
+"""

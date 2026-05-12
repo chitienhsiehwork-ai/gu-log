@@ -408,16 +408,24 @@ repair_final_build_failure() {
   writer_prompt="$(cat <<PROMPT
 You are the tribunal-writer for gu-log. All judge stages passed, but the final full-site build failed.
 
+## Repo root
+$ROOT_DIR
+
 ## Target post
-src/content/posts/$post_file
+$ROOT_DIR/src/content/posts/$post_file
+
+## EN counterpart, if present
+$ROOT_DIR/src/content/posts/en-$post_file
 
 ## Build failure evidence (tail)
 $evidence
 
 ## Task
-1. Fix only content-actionable problems in src/content/posts/$post_file.
-2. Also update src/content/posts/en-$post_file if it exists and the same issue applies.
-3. Do not rewrite unrelated content and do not change stable frontmatter fields unless the build error specifically requires it.
+1. Use absolute paths under the Repo root above; this Codex process runs from a temp directory, not the repo root.
+2. Fix only content-actionable problems in $ROOT_DIR/src/content/posts/$post_file.
+3. Also update $ROOT_DIR/src/content/posts/en-$post_file if it exists and the same issue applies.
+4. Inspect your diff before finishing. Do not run tribunal, judge agents, or any quota-burning model calls from inside this repair.
+5. Do not rewrite unrelated content and do not change stable frontmatter fields unless the build error specifically requires it.
 PROMPT
 )"
   writer_out="$(mktemp)"
@@ -736,8 +744,14 @@ PROMPT
     writer_prompt="$(cat <<PROMPT
 You are the tribunal-writer for gu-log. The $label judge reviewed this post and it FAILED.
 
+## Repo root
+$ROOT_DIR
+
 ## Post to rewrite
-src/content/posts/$post_file
+$ROOT_DIR/src/content/posts/$post_file
+
+## EN counterpart, if present
+$ROOT_DIR/src/content/posts/en-$post_file
 
 ## Judge Feedback (JSON)
 $score_json
@@ -746,13 +760,15 @@ $score_json
 $ssot_content
 
 ## Task
-1. Read the post at src/content/posts/$post_file
-2. Read the judge feedback JSON above — identify every dimension that scored below 8
-3. Rewrite the post to fix the specific failures. Write it back in-place.
-4. Also rewrite the EN counterpart at src/content/posts/en-$post_file if it exists.
+1. Use absolute paths under the Repo root above; this Codex process runs from a temp directory, not the repo root.
+2. Read $ROOT_DIR/src/content/posts/$post_file and $ROOT_DIR/GU-LOG_WRITER_PROMPT.md.
+3. Read the judge feedback JSON above — identify every dimension that scored below 8.
+4. Rewrite the post to fix those specific failures. Write it back in-place.
+5. Also rewrite the EN counterpart at $ROOT_DIR/src/content/posts/en-$post_file if it exists and the same fix applies.
+6. Inspect your diff before finishing. Do not run tribunal, judge agents, or any quota-burning model calls from inside this rewrite.
 
-Follow GU-LOG_WRITER_PROMPT.md style rules and CONTRIBUTING.md frontmatter schema.
-Do NOT change frontmatter fields (title, ticketId, dates, sourceUrl).
+Follow $ROOT_DIR/GU-LOG_WRITER_PROMPT.md and $ROOT_DIR/CONTRIBUTING.md frontmatter schema.
+Do NOT change frontmatter fields (title, ticketId, dates, sourceUrl). Preserve MDX components, URLs, source attribution, and already-passing dimensions unless the judge feedback explicitly targets them.
 PROMPT
 )"
     writer_out="$(mktemp)"
