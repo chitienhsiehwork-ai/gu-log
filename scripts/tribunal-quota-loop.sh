@@ -5,7 +5,7 @@
 # 3.2 at /bin/bash, so the shebang picks up whichever bash is on PATH
 # (typically Homebrew bash on Mac, system bash 5.x on Linux).
 #
-# Checks Claude API quota via usage-monitor.sh and adapts processing speed.
+# Checks OpenAI/Codex quota via usage-monitor.sh and adapts processing speed.
 # Never burns below QUOTA_FLOOR% (human personal use reserve).
 #
 # Strategy: closed-loop feedback controller.
@@ -36,20 +36,22 @@ POSTS_DIR="$ROOT_DIR/src/content/posts"
 PROGRESS_FILE="$ROOT_DIR/scores/tribunal-progress.json"
 LOG_DIR="$ROOT_DIR/.score-loop/logs"
 LOG_FILE="$LOG_DIR/tribunal-quota-loop-$(date +%Y%m%d-%H%M%S).log"
-USAGE_MONITOR="$HOME/clawd/scripts/usage-monitor.sh"
-QUOTA_FLOOR=3
+USAGE_MONITOR="${USAGE_MONITOR:-$HOME/clawd/scripts/usage-monitor.sh}"
+QUOTA_FLOOR="${QUOTA_FLOOR:-10}"
 DRY_RUN=false
 WORKERS=1   # Phase 2 supervisor: set to >1 for parallel workers
 LEGACY_QUOTA=false
+CONTROLLER_ONCE=""
 
 # ─── Closed-loop controller constants ────────────────────────────────────────
-MIN_COOLDOWN=10        # seconds — floor for inter-article wait
-MAX_COOLDOWN=1800      # seconds (30 min) — short-window/fallback ceiling; weekly debt can sleep longer
-WEEKLY_WINDOW_SEC=604800 # seconds (7 days) — Claude weekly window length for projected-quota scheduler
-ARTICLE_COST_PCT=0.5   # % per article (cold start; EMA calibrates after ~5 articles)
-AVG_ARTICLE_TIME=1800  # seconds (~30 min average per article, for worker count estimation)
-EMA_ALPHA=0.3          # calibration smoothing factor
-EXTRA_USAGE_LIMIT=1.0  # disabled — let 5hr/7day curves control pacing
+MIN_COOLDOWN="${MIN_COOLDOWN:-10}"        # seconds — floor for inter-article wait
+MAX_COOLDOWN="${MAX_COOLDOWN:-1800}"      # seconds (30 min) — normal pacing ceiling; projected debt can sleep longer
+FIVE_HOUR_WINDOW_SEC="${FIVE_HOUR_WINDOW_SEC:-18000}" # seconds (5 hours) — OpenAI short-window quota length
+WEEKLY_WINDOW_SEC="${WEEKLY_WINDOW_SEC:-604800}" # seconds (7 days) — OpenAI weekly quota length
+ARTICLE_COST_PCT="${ARTICLE_COST_PCT:-0.5}"   # % per article (cold start; EMA calibrates after ~5 articles)
+AVG_ARTICLE_TIME="${AVG_ARTICLE_TIME:-1800}"  # seconds (~30 min average per article, for worker count estimation)
+EMA_ALPHA="${EMA_ALPHA:-0.3}"          # calibration smoothing factor
+EXTRA_USAGE_LIMIT="${EXTRA_USAGE_LIMIT:-1.0}"  # disabled — let 5hr/7day curves control pacing
 QUOTA_HISTORY_FILE="$ROOT_DIR/.score-loop/state/quota-history.jsonl"
 QUOTA_CONTROLLER_STATE="$ROOT_DIR/.score-loop/state/quota-controller.json"
 
@@ -61,6 +63,7 @@ while [ $# -gt 0 ]; do
     --dry-run) DRY_RUN=true; shift ;;
     --workers) WORKERS="$2"; shift 2 ;;
     --legacy-quota) LEGACY_QUOTA=true; shift ;;
+    --controller-once) CONTROLLER_ONCE="${2:-0}"; shift 2 ;;
     *) echo "Unknown arg: $1" >&2; exit 1 ;;
   esac
 done
@@ -312,6 +315,10 @@ legacy_compute_tier_name() {
 
 # ─── Quota: Closed-loop controller ───────────────────────────────────────────
 # Parses usage-monitor.sh --json output into dual-window quota readings.
+# Preferred provider is OpenAI/Codex v4:
+#   session_remaining_pct + session_reset_min   → 5hr bucket
+#   weekly_remaining_pct  + weekly_reset_hr     → weekly bucket
+# Claude parsing is retained only for --legacy-quota / historical dev fixtures.
 # Outputs a single line of pipe-separated values:
 #   five_hr_pct|five_hr_resets_sec|seven_day_pct|seven_day_resets_sec|extra_used|extra_limit|extra_enabled
 # Returns exit code 1 on error.
@@ -355,6 +362,21 @@ def parse_reset_to_sec(s):
 
 try:
     data = json.loads(sys.argv[1])
+    # Tribunal v4 runs on OpenAI/Codex GPT-5.5. usage-monitor exposes the
+    # short OpenAI bucket as session_remaining_pct/session_reset_min and the
+    # long bucket as weekly_remaining_pct/weekly_reset_hr.
+    for p in data:
+        if p.get('provider') == 'openai' and p.get('status') == 'ok':
+            five_pct = p.get('session_remaining_pct', 0)
+            five_reset_sec = int(float(p.get('session_reset_min', 0)) * 60)
+            seven_pct = p.get('weekly_remaining_pct', 0)
+            seven_reset_sec = int(float(p.get('weekly_reset_hr', 0)) * 3600)
+            print(f'{five_pct}|{five_reset_sec}|{seven_pct}|{seven_reset_sec}|0|0|0')
+            sys.exit(0)
+
+    # Backward-compatible parser for older Claude fixtures / --legacy-quota
+    # development flows. Production should not reach this branch now that
+    # Claude subscription quota is disabled.
     for p in data:
         if p.get('provider') == 'claude' and p.get('status') == 'ok':
             five_pct = p.get('five_hr_remaining_pct', 0)
@@ -407,6 +429,7 @@ article_cost = float('$ARTICLE_COST_PCT')
 min_cd = float('$MIN_COOLDOWN')
 max_cd = float('$MAX_COOLDOWN')
 extra_threshold = float('$EXTRA_USAGE_LIMIT')
+five_window_sec = float('$FIVE_HOUR_WINDOW_SEC')
 weekly_window_sec = float('$WEEKLY_WINDOW_SEC')
 
 # Extra usage safety valve
@@ -417,18 +440,37 @@ if extra_enabled and extra_limit > 0 and (extra_used / extra_limit) > extra_thre
 # Feedforward compensation: subtract in-flight workers' estimated cost
 inflight_cost = active_workers * article_cost
 
-# Weekly projected-quota scheduler.
-# The weekly bucket is shared with the human. Treat it as a budget curve, not a
-# capped retry loop: if the remaining quota only covers a later slice of the
-# week, pause until one article can be spent while still leaving projected quota
-# for the rest of the weekly window.
-if seven_reset_sec > 0 and weekly_window_sec > 0:
-    projected_after_one = seven_pct - inflight_cost - article_cost
-    target_reset_sec = max(0.0, projected_after_one / 100.0 * weekly_window_sec)
-    debt_sleep = int(seven_reset_sec - target_reset_sec)
-    if debt_sleep > min_cd:
-        print(f'{debt_sleep}|0|seven_day|weekly_debt')
-        sys.exit(0)
+# Projected-quota scheduler.
+# Treat each quota bucket as a time budget curve, not a binary GO/STOP gate.
+# Before spending the next article, ask: after paying in-flight work + this
+# article, would remaining quota still be at/above the projected reserve line
+# for the time left in this window?
+#
+# Ideal line with floor:
+#   ideal_remaining(t) = floor + (100 - floor) * reset_sec / window_sec
+# If spending now would put us below that line, sleep until the line catches
+# down to our projected post-spend quota. This can sleep much longer than
+# MAX_COOLDOWN; that is intentional debt repayment, not ordinary pacing.
+def projected_debt_sleep(remaining_pct, reset_sec, window_sec):
+    if reset_sec <= 0 or window_sec <= 0:
+        return 0
+    projected_after_one = remaining_pct - inflight_cost - article_cost
+    if projected_after_one <= floor:
+        return int(reset_sec)
+    usable_after_one = max(0.0, projected_after_one - floor)
+    usable_span = max(0.0001, 100.0 - floor)
+    target_reset_sec = min(window_sec, usable_after_one / usable_span * window_sec)
+    return max(0, int(reset_sec - target_reset_sec))
+
+debt_5hr = projected_debt_sleep(five_pct, five_reset_sec, five_window_sec)
+debt_7day = projected_debt_sleep(seven_pct, seven_reset_sec, weekly_window_sec)
+
+if debt_5hr > min_cd or debt_7day > min_cd:
+    if debt_5hr >= debt_7day:
+        print(f'{debt_5hr}|0|five_hour|five_hour_debt')
+    else:
+        print(f'{debt_7day}|0|seven_day|weekly_debt')
+    sys.exit(0)
 
 def compute_window(remaining_pct, reset_sec, inflight_cost):
     \"\"\"Return (cooldown_sec, is_active).
@@ -838,6 +880,11 @@ get_unscored_articles() {
 }
 
 # ─── Dry Run ──────────────────────────────────────────────────────────────────
+if [ -n "$CONTROLLER_ONCE" ]; then
+  controller_tick "$CONTROLLER_ONCE"
+  exit 0
+fi
+
 if [ "$DRY_RUN" = true ]; then
   tlog "=== Dry-run mode ==="
   mapfile -t ARTICLES < <(get_unscored_articles)
