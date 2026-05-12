@@ -8,12 +8,13 @@
 # Checks OpenAI/Codex quota via usage-monitor.sh and adapts processing speed.
 # Never burns below QUOTA_FLOOR% (human personal use reserve).
 #
-# Strategy: closed-loop feedback controller.
-#   For each quota window (5hr / 7day), compute ideal consumption rate:
-#     rate = (remaining - floor) / time_until_refresh
-#   Convert to cooldown = ARTICLE_COST_PCT / rate.
-#   Take the more conservative (longer) cooldown of the two windows.
-#   Self-calibrate ARTICLE_COST_PCT from history via EMA.
+# Strategy: burn-rate controller.
+#   For each quota window (5hr / 7day), compare actual used% with the ideal
+#   elapsed-window burn line:
+#     ideal_used = (100 - floor) * elapsed_sec / window_sec
+#   If actual usage is ahead of that line, sleep until the line catches up.
+#   If usage is on/behind the line, open worker slots. Per-article cost remains
+#   telemetry only; it is not a gating input.
 #
 # Usage:
 #   bash scripts/tribunal-quota-loop.sh                   # run continuously, 1 worker
@@ -45,13 +46,14 @@ CONTROLLER_ONCE=""
 
 # ─── Closed-loop controller constants ────────────────────────────────────────
 MIN_COOLDOWN="${MIN_COOLDOWN:-10}"        # seconds — floor for inter-article wait
-MAX_COOLDOWN="${MAX_COOLDOWN:-1800}"      # seconds (30 min) — normal pacing ceiling; projected debt can sleep longer
+MAX_COOLDOWN="${MAX_COOLDOWN:-1800}"      # seconds (30 min) — fallback/legacy ceiling; burn-rate debt can sleep longer
 FIVE_HOUR_WINDOW_SEC="${FIVE_HOUR_WINDOW_SEC:-18000}" # seconds (5 hours) — OpenAI short-window quota length
 WEEKLY_WINDOW_SEC="${WEEKLY_WINDOW_SEC:-604800}" # seconds (7 days) — OpenAI weekly quota length
 ARTICLE_COST_PCT="${ARTICLE_COST_PCT:-0.5}"   # % per article (cold start; EMA calibrates after ~5 articles)
 AVG_ARTICLE_TIME="${AVG_ARTICLE_TIME:-1800}"  # seconds (~30 min average per article, for worker count estimation)
 EMA_ALPHA="${EMA_ALPHA:-0.3}"          # calibration smoothing factor
 EXTRA_USAGE_LIMIT="${EXTRA_USAGE_LIMIT:-1.0}"  # disabled — let 5hr/7day curves control pacing
+QUOTA_BURST_ALLOWANCE="${QUOTA_BURST_ALLOWANCE:-2.0}" # percentage points allowed ahead of ideal burn line
 QUOTA_HISTORY_FILE="$ROOT_DIR/.score-loop/state/quota-history.jsonl"
 QUOTA_CONTROLLER_STATE="$ROOT_DIR/.score-loop/state/quota-controller.json"
 
@@ -423,109 +425,74 @@ seven_reset_sec = float('$seven_reset_sec')
 extra_used = float('$extra_used')
 extra_limit = float('$extra_limit')
 extra_enabled = int('$extra_enabled')
-active_workers = int('$active_workers')
 floor = float('$QUOTA_FLOOR')
-article_cost = float('$ARTICLE_COST_PCT')
 min_cd = float('$MIN_COOLDOWN')
 max_cd = float('$MAX_COOLDOWN')
 extra_threshold = float('$EXTRA_USAGE_LIMIT')
 five_window_sec = float('$FIVE_HOUR_WINDOW_SEC')
 weekly_window_sec = float('$WEEKLY_WINDOW_SEC')
+burst_allowance = float('$QUOTA_BURST_ALLOWANCE')
+configured_workers = int('$WORKERS')
 
 # Extra usage safety valve
 if extra_enabled and extra_limit > 0 and (extra_used / extra_limit) > extra_threshold:
     print(f'{int(max_cd)}|0|extra_limit|extra_limit')
     sys.exit(0)
 
-# Feedforward compensation: subtract in-flight workers' estimated cost
-inflight_cost = active_workers * article_cost
+# Burn-rate controller.
+# Do not guess per-post cost for gating. Each quota window is a budget line:
+#   spendable_pct = 100 - floor
+#   ideal_used_pct = spendable_pct * elapsed_sec / window_sec
+# If actual used% is ahead of ideal_used_pct + burst_allowance, stop opening
+# new workers and sleep until the ideal line catches up. In-flight work is
+# allowed to finish; it is intentionally not charged here.
+def burn_rate_debt_sleep(remaining_pct, reset_sec, window_sec):
+    if reset_sec < 0 or window_sec <= 0:
+        return (0, False, 0.0, 0.0, 0.0)
+    remaining_pct = max(0.0, min(100.0, remaining_pct))
+    reset_sec = max(0.0, min(window_sec, reset_sec))
+    spendable_pct = max(0.0001, 100.0 - floor)
+    used_pct = max(0.0, 100.0 - remaining_pct)
 
-# Projected-quota scheduler.
-# Treat each quota bucket as a time budget curve, not a binary GO/STOP gate.
-# Before spending the next article, ask: after paying in-flight work + this
-# article, would remaining quota still be at/above the projected reserve line
-# for the time left in this window?
-#
-# Ideal line with floor:
-#   ideal_remaining(t) = floor + (100 - floor) * reset_sec / window_sec
-# If spending now would put us below that line, sleep until the line catches
-# down to our projected post-spend quota. This can sleep much longer than
-# MAX_COOLDOWN; that is intentional debt repayment, not ordinary pacing.
-def projected_debt_sleep(remaining_pct, reset_sec, window_sec):
-    if reset_sec <= 0 or window_sec <= 0:
-        return 0
-    projected_after_one = remaining_pct - inflight_cost - article_cost
-    if projected_after_one <= floor:
-        return int(reset_sec)
-    usable_after_one = max(0.0, projected_after_one - floor)
-    usable_span = max(0.0001, 100.0 - floor)
-    target_reset_sec = min(window_sec, usable_after_one / usable_span * window_sec)
-    return max(0, int(reset_sec - target_reset_sec))
+    # Hard reserve: if quota is already at/below floor, wait for reset.
+    if remaining_pct <= floor:
+        return (int(reset_sec), True, used_pct, spendable_pct, used_pct)
 
-debt_5hr = projected_debt_sleep(five_pct, five_reset_sec, five_window_sec)
-debt_7day = projected_debt_sleep(seven_pct, seven_reset_sec, weekly_window_sec)
+    elapsed_sec = max(0.0, window_sec - reset_sec)
+    ideal_used_pct = spendable_pct * elapsed_sec / window_sec
+    allowed_used_pct = ideal_used_pct + burst_allowance
+
+    if used_pct <= allowed_used_pct:
+        return (0, True, used_pct, ideal_used_pct, allowed_used_pct)
+
+    # Solve for when ideal_used_pct + burst_allowance == current used_pct.
+    target_used_for_line = max(0.0, used_pct - burst_allowance)
+    target_elapsed_sec = min(window_sec, target_used_for_line / spendable_pct * window_sec)
+    debt_sleep = max(0, int(target_elapsed_sec - elapsed_sec))
+    return (debt_sleep, True, used_pct, ideal_used_pct, allowed_used_pct)
+
+debt_5hr, active_5hr, used_5hr, ideal_5hr, allowed_5hr = burn_rate_debt_sleep(five_pct, five_reset_sec, five_window_sec)
+debt_7day, active_7day, used_7day, ideal_7day, allowed_7day = burn_rate_debt_sleep(seven_pct, seven_reset_sec, weekly_window_sec)
 
 if debt_5hr > min_cd or debt_7day > min_cd:
     if debt_5hr >= debt_7day:
-        print(f'{debt_5hr}|0|five_hour|five_hour_debt')
+        mode = 'floor_stop' if five_pct <= floor else 'five_hour_debt'
+        print(f'{debt_5hr}|0|five_hour|{mode}')
     else:
-        print(f'{debt_7day}|0|seven_day|weekly_debt')
+        mode = 'floor_stop' if seven_pct <= floor else 'weekly_debt'
+        print(f'{debt_7day}|0|seven_day|{mode}')
     sys.exit(0)
 
-def compute_window(remaining_pct, reset_sec, inflight_cost):
-    \"\"\"Return (cooldown_sec, is_active).
-    reset_sec < 0 means inactive window → MIN_COOLDOWN (no constraint).\"\"\"
-    if reset_sec < 0:
-        return (min_cd, False)
-    effective = remaining_pct - inflight_cost
-    usable = effective - floor
-    if usable <= 0:
-        return (max_cd, True)
-    if reset_sec <= 0:
-        return (min_cd, True)
-    rate = usable / reset_sec  # %/sec
-    if rate <= 0:
-        return (max_cd, True)
-    cd = article_cost / rate
-    cd = max(min_cd, min(max_cd, cd))
-    return (cd, True)
+binding = 'none'
+if active_5hr and used_5hr > allowed_5hr:
+    binding = 'five_hour'
+elif active_7day and used_7day > allowed_7day:
+    binding = 'seven_day'
 
-cd_5hr, active_5hr = compute_window(five_pct, five_reset_sec, inflight_cost)
-cd_7day, active_7day = compute_window(seven_pct, seven_reset_sec, inflight_cost)
-
-# Take the more conservative (longer) cooldown
-if cd_5hr >= cd_7day:
-    cooldown = cd_5hr
-    binding = 'five_hour' if active_5hr else 'none'
-else:
-    cooldown = cd_7day
-    binding = 'seven_day' if active_7day else 'none'
-
-# If both inactive, go full speed
-if not active_5hr and not active_7day:
-    cooldown = min_cd
-    binding = 'none'
-
-cooldown = int(max(min_cd, min(max_cd, cooldown)))
-
-# Check if actually at floor (not just slow pacing)
-five_at_floor = (five_pct - inflight_cost) <= floor if active_5hr else False
-seven_at_floor = (seven_pct - inflight_cost) <= floor if active_7day else False
-at_floor = five_at_floor or seven_at_floor
-
-if at_floor:
-    workers = 0
-    mode = 'floor_stop'
-else:
-    # Worker count: how many can stay busy given cooldown vs avg article time
-    avg_time = float('$AVG_ARTICLE_TIME')
-    if cooldown > 0 and avg_time > 0:
-        workers = max(1, int(avg_time / cooldown))
-    else:
-        workers = 1
-    mode = 'pacing'
-
-print(f'{cooldown}|{workers}|{binding}|{mode}')
+# Under/on the burn line: fill the configured pool. Autoscale may still reduce
+# this later based on memory. Cooldown is only a small dispatch-loop floor.
+workers = max(1, configured_workers)
+print(f'{int(min_cd)}|{workers}|{binding}|pacing')
 " 2>/dev/null || echo "600|1|none|fallback"
 }
 
@@ -904,7 +871,7 @@ if [ "$DRY_RUN" = true ]; then
     tick_result=$(controller_tick 0)
     IFS='|' read -r cd wk bind mode <<< "$tick_result"
     tlog "Controller: cooldown=${cd}s workers=${wk} binding=${bind} mode=${mode}"
-    tlog "ARTICLE_COST_PCT=${ARTICLE_COST_PCT}"
+    tlog "ARTICLE_COST_PCT=${ARTICLE_COST_PCT} (telemetry only; not gating)"
   fi
   exit 0
 fi
@@ -916,7 +883,7 @@ if [ "$LEGACY_QUOTA" = true ]; then
   tlog "  Workers: ${WORKERS}  Quota floor: ${QUOTA_FLOOR}%"
 else
   tlog "  Mode: CLOSED-LOOP CONTROLLER"
-  tlog "  Workers: ${WORKERS}  Floor: ${QUOTA_FLOOR}%  ArticleCost: ${ARTICLE_COST_PCT}%"
+  tlog "  Workers: ${WORKERS}  Floor: ${QUOTA_FLOOR}%  BurstAllowance: ${QUOTA_BURST_ALLOWANCE}%"
   tlog "  MinCooldown: ${MIN_COOLDOWN}s  MaxCooldown: ${MAX_COOLDOWN}s"
 fi
 tlog "  Usage monitor: ${USAGE_MONITOR}"
@@ -1015,7 +982,7 @@ while true; do
     readings_raw=$(get_dual_quota_readings 2>/dev/null) || readings_raw="0|-1|0|-1|0|0|0"
     IFS='|' read -r five_pct_raw five_reset_raw seven_pct_raw seven_reset_raw extra_u_raw extra_l_raw extra_e_raw <<< "$readings_raw"
 
-    tlog "CONTROLLER: cooldown=${CONTROLLER_COOLDOWN}s workers=${CONTROLLER_WORKERS} binding=${CONTROLLER_BINDING} mode=${CONTROLLER_MODE} 5hr=${five_pct_raw}% 7day=${seven_pct_raw}% cost=${ARTICLE_COST_PCT}%"
+    tlog "CONTROLLER: cooldown=${CONTROLLER_COOLDOWN}s workers=${CONTROLLER_WORKERS} binding=${CONTROLLER_BINDING} mode=${CONTROLLER_MODE} 5hr=${five_pct_raw}% 7day=${seven_pct_raw}% cost_telemetry=${ARTICLE_COST_PCT}%"
 
     quota_history_append "tick" "$five_pct_raw" "$five_reset_raw" "$seven_pct_raw" "$seven_reset_raw" \
       "$extra_u_raw" "$extra_l_raw" "$CONTROLLER_COOLDOWN" "$CONTROLLER_WORKERS" \
@@ -1023,8 +990,8 @@ while true; do
     quota_controller_write_state "$CONTROLLER_MODE" "$five_pct_raw" "$seven_pct_raw" \
       "$CONTROLLER_COOLDOWN" "$CONTROLLER_WORKERS" "$CONTROLLER_BINDING" "$ARTICLE_COST_PCT"
 
-    # Handle stop modes: hard floor / extra limit / weekly projected-quota debt.
-    if [ "$CONTROLLER_MODE" = "floor_stop" ] || [ "$CONTROLLER_MODE" = "extra_limit" ] || [ "$CONTROLLER_MODE" = "weekly_debt" ]; then
+    # Handle stop modes: hard floor / extra limit / burn-rate debt.
+    if [ "$CONTROLLER_MODE" = "floor_stop" ] || [ "$CONTROLLER_MODE" = "extra_limit" ] || [ "$CONTROLLER_MODE" = "weekly_debt" ] || [ "$CONTROLLER_MODE" = "five_hour_debt" ]; then
       if (( IN_FLIGHT > 0 )); then
         tlog "Controller mode=$CONTROLLER_MODE; waiting for in-flight workers."
         wait_any_worker
