@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # scripts/fetch-x-article.sh
 #
-# Fetch full tweet / X Article content via the fxtwitter JSON API.
+# Fetch full tweet / X Article content via fxtwitter, then X's guest GraphQL
+# API when public mirrors are incomplete or degraded.
 #
 # Why not vxtwitter? vxtwitter returns only `article.preview_text` (~200 chars)
 # when the tweet wraps an X Article — the body never comes through, so callers
@@ -20,12 +21,14 @@
 # sp-pipeline.sh's validate_tweet_source_capture (handle, date, Source URL,
 # === MAIN TWEET === marker).
 #
-# With --json: emits the raw fxtwitter JSON for downstream tooling.
+# With --json: emits the fetched JSON payload. Guest GraphQL results are
+# normalized to the same fxtwitter-like shape for downstream tooling.
 #
 # Fallbacks:
-#   1. api.fxtwitter.com  (primary — returns article blocks)
-#   2. api.vxtwitter.com  (secondary — plain tweets only; NOT used for articles)
-#   3. Hard fail with `INCOMPLETE_SOURCE: <reason>` (exit 2) per CONTRIBUTING.md
+#   1. api.fxtwitter.com  (primary — returns article blocks when healthy)
+#   2. X guest GraphQL TweetResultByRestId (X Article full body fallback)
+#   3. api.vxtwitter.com  (plain tweets only; NOT used for X Article bodies)
+#   4. Hard fail with `INCOMPLETE_SOURCE: <reason>` (exit 2) per CONTRIBUTING.md
 #      pipeline contract. Callers should honour this and not guess.
 
 set -euo pipefail
@@ -97,11 +100,221 @@ fxtwitter_curl() {
     "$1" > "$TMP_JSON" 2>>"$CURL_ERR"
 }
 
+# X Article fallback: fetch through X's public guest-token GraphQL surface.
+# This is deliberately cookie-free. The logged-in cookie route can be temporary
+# locked even when the public guest route can still read the article body.
+guest_graphql_fetch() {
+  python3 - "$STATUS_ID" "$TWEET_URL" > "$TMP_JSON" 2>>"$CURL_ERR" <<'PY'
+import json
+import re
+import sys
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlencode
+from urllib.request import Request, urlopen
+
+status_id = sys.argv[1]
+default_url = sys.argv[2]
+
+BEARER = "AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA"
+UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+
+
+def fetch(url, *, method="GET", headers=None, body=None, timeout=20):
+    req = Request(url, data=body, method=method, headers=headers or {})
+    with urlopen(req, timeout=timeout) as resp:
+        return resp.status, resp.read().decode("utf-8", errors="replace")
+
+
+base_headers = {
+    "authorization": f"Bearer {BEARER}",
+    "user-agent": UA,
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9",
+    "content-type": "application/json",
+    "origin": "https://x.com",
+    "referer": "https://x.com/",
+    "x-twitter-active-user": "yes",
+    "x-twitter-client-language": "en",
+}
+
+
+def activate_guest():
+    status, text = fetch(
+        "https://api.twitter.com/1.1/guest/activate.json",
+        method="POST",
+        headers=base_headers,
+        body=b"",
+        timeout=15,
+    )
+    if status != 200:
+        raise RuntimeError(f"guest activate HTTP {status}")
+    token = (json.loads(text).get("guest_token") or "").strip()
+    if not token:
+        raise RuntimeError("guest activate returned no guest_token")
+    return token
+
+
+def discover_query_id():
+    """Find the current TweetResultByRestId query id from X's JS bundles."""
+    candidates = [
+        "https://x.com/?lang=en",
+        "https://x.com/explore",
+    ]
+    bundle_urls = []
+    seen = set()
+    for page in candidates:
+        try:
+            _, html = fetch(page, headers={"user-agent": UA, "accept": "text/html"}, timeout=15)
+        except Exception:
+            continue
+        for path in re.findall(r'https://abs\.twimg\.com/responsive-web/client-web/[^"\']+?\.js', html):
+            if path not in seen:
+                seen.add(path)
+                # main.*.js almost always contains operation metadata; try it first.
+                if "/main." in path:
+                    bundle_urls.insert(0, path)
+                else:
+                    bundle_urls.append(path)
+    for bundle in bundle_urls[:12]:
+        try:
+            _, js = fetch(bundle, headers={"user-agent": UA, "accept": "application/javascript,*/*"}, timeout=20)
+        except Exception:
+            continue
+        m = re.search(r'queryId:"([^"]+)",operationName:"TweetResultByRestId"', js)
+        if m:
+            return m.group(1)
+    return None
+
+
+features = {
+    "creator_subscriptions_tweet_preview_api_enabled": True,
+    "premium_content_api_read_enabled": False,
+    "communities_web_enable_tweet_community_results_fetch": True,
+    "c9s_tweet_anatomy_moderator_badge_enabled": True,
+    "responsive_web_grok_analyze_button_fetch_trends_enabled": False,
+    "responsive_web_grok_analyze_post_followups_enabled": False,
+    "responsive_web_jetfuel_frame": True,
+    "responsive_web_grok_share_attachment_enabled": True,
+    "articles_preview_enabled": True,
+    "responsive_web_edit_tweet_api_enabled": True,
+    "graphql_is_translatable_rweb_tweet_is_translatable_enabled": True,
+    "view_counts_everywhere_api_enabled": True,
+    "longform_notetweets_consumption_enabled": True,
+    "responsive_web_twitter_article_tweet_consumption_enabled": True,
+    "freedom_of_speech_not_reach_fetch_enabled": True,
+    "standardized_nudges_misinfo": True,
+    "tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled": True,
+    "longform_notetweets_rich_text_read_enabled": True,
+    "longform_notetweets_inline_media_enabled": True,
+    "responsive_web_grok_image_annotation_enabled": True,
+    "responsive_web_grok_imagine_annotation_enabled": True,
+    "responsive_web_grok_community_note_auto_translation_is_enabled": False,
+    "responsive_web_enhance_cards_enabled": False,
+    "responsive_web_twitter_article_plain_text_enabled": True,
+}
+field_toggles = {
+    "withArticleRichContentState": True,
+    "withArticlePlainText": True,
+    "withArticleSummaryText": True,
+    "withArticleVoiceOver": True,
+    "withGrokAnalyze": False,
+    "withDisallowedReplyControls": False,
+}
+variables = {
+    "tweetId": status_id,
+    "withCommunity": True,
+    "includePromotedContent": True,
+    "withVoice": True,
+}
+
+
+def query_tweet(query_id, guest_token):
+    headers = dict(base_headers)
+    headers["x-guest-token"] = guest_token
+    params = urlencode({
+        "variables": json.dumps(variables, separators=(",", ":")),
+        "features": json.dumps(features, separators=(",", ":")),
+        "fieldToggles": json.dumps(field_toggles, separators=(",", ":")),
+    })
+    url = f"https://x.com/i/api/graphql/{query_id}/TweetResultByRestId?{params}"
+    status, text = fetch(url, headers=headers, timeout=25)
+    if status != 200:
+        raise RuntimeError(f"TweetResultByRestId HTTP {status}")
+    return json.loads(text)
+
+
+def get_path(obj, *keys):
+    cur = obj
+    for key in keys:
+        if not isinstance(cur, dict):
+            return None
+        cur = cur.get(key)
+    return cur
+
+
+def transform(data):
+    result = get_path(data, "data", "tweetResult", "result") or {}
+    if result.get("__typename") != "Tweet":
+        raise RuntimeError(f"unexpected tweet typename: {result.get('__typename')}")
+    legacy = result.get("legacy") or {}
+    user = get_path(result, "core", "user_results", "result") or {}
+    user_core = user.get("core") or {}
+    article_result = get_path(result, "article", "article_results", "result")
+    article = None
+    if isinstance(article_result, dict):
+        content = article_result.get("content_state") or {}
+        article = {
+            "title": article_result.get("title") or "",
+            "content": content,
+            "plain_text": article_result.get("plain_text") or "",
+            "preview_text": article_result.get("preview_text") or "",
+            "summary_text": article_result.get("summary_text") or "",
+        }
+    return {
+        "code": 200,
+        "message": "OK",
+        "tweet": {
+            "url": default_url,
+            "id": result.get("rest_id") or legacy.get("id_str") or status_id,
+            "text": legacy.get("full_text") or "",
+            "raw_text": {"text": legacy.get("full_text") or ""},
+            "author": {
+                "screen_name": user_core.get("screen_name") or "",
+                "name": user_core.get("name") or "",
+            },
+            "created_at": legacy.get("created_at") or "",
+            "article": article,
+        },
+        "_x_guest_graphql": True,
+    }
+
+
+try:
+    guest = activate_guest()
+    query_ids = ["2Acdg-VztGlHX7MjX67Ysw"]
+    discovered = discover_query_id()
+    if discovered and discovered not in query_ids:
+        query_ids.insert(0, discovered)
+    last_error = None
+    for qid in query_ids:
+        try:
+            payload = transform(query_tweet(qid, guest))
+            print(json.dumps(payload, ensure_ascii=False))
+            sys.exit(0)
+        except Exception as exc:
+            last_error = exc
+    raise RuntimeError(f"guest GraphQL failed: {last_error}")
+except (HTTPError, URLError, TimeoutError, RuntimeError, json.JSONDecodeError) as exc:
+    print(f"guest GraphQL failed: {exc}", file=sys.stderr)
+    sys.exit(2)
+PY
+}
+
 # Primary: fxtwitter via handle path (different upstream cache key than
 # `/i/status/<id>`; in practice the two endpoints flap independently, so
 # trying both raises success rate when fxtwitter is partially degraded).
 FETCHED_FROM=""
-if [ -n "$HANDLE" ]; then
+if [ "${GU_LOG_X_FETCH_SKIP_MIRRORS:-}" != "1" ] && [ -n "$HANDLE" ]; then
   if fxtwitter_curl "https://api.fxtwitter.com/${HANDLE}/status/${STATUS_ID}" \
     && fxtwitter_payload_ok; then
     FETCHED_FROM="fxtwitter"
@@ -109,14 +322,22 @@ if [ -n "$HANDLE" ]; then
 fi
 
 # Secondary fxtwitter path: handle-agnostic.
-if [ -z "$FETCHED_FROM" ]; then
+if [ "${GU_LOG_X_FETCH_SKIP_MIRRORS:-}" != "1" ] && [ -z "$FETCHED_FROM" ]; then
   if fxtwitter_curl "https://api.fxtwitter.com/i/status/${STATUS_ID}" \
     && fxtwitter_payload_ok; then
     FETCHED_FROM="fxtwitter"
   fi
 fi
 
-# Tertiary: vxtwitter (plain tweets only). vxtwitter has a different shape, so
+# X Article fallback: if public mirrors are empty/partial, use the public guest
+# GraphQL route and request article rich/plain text directly from X.
+if [ -z "$FETCHED_FROM" ]; then
+  if guest_graphql_fetch && fxtwitter_payload_ok; then
+    FETCHED_FROM="x-guest-graphql"
+  fi
+fi
+
+# Last resort: vxtwitter (plain tweets only). vxtwitter has a different shape, so
 # we wrap it so the renderer can treat it uniformly as a fxtwitter-like
 # payload with only `tweet.text`.
 if [ -z "$FETCHED_FROM" ]; then
