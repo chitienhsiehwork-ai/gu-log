@@ -100,7 +100,7 @@ Muse Spark Llama Maverick Sonnet Opus K2 K2.5 R1
 Agent Swarm
 
 # Programming languages / runtimes / tools
-Python JavaScript TypeScript Go Rust C C++ Ruby Java Kotlin Swift Scala Elixir Erlang Haskell
+Python JavaScript TypeScript Go Rust Zig C C++ Ruby Java Kotlin Swift Scala Elixir Erlang Haskell
 Node.js Bun Deno
 npm pnpm yarn pip poetry uv cargo
 Linux macOS Windows iOS Android Ubuntu Debian Fedora Arch
