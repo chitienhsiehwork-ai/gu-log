@@ -212,6 +212,7 @@ Google 2017 年丟出這顆核彈後，整個 NLP 界直接進入新紀元。
 
 1. **`src/data/glossary.json` 裡有的 term**——這是技術詞的 allowlist。Token、Prompt、Frontier Model、Open Weights、RLHF、Multimodal、Agent、Claude Code、MCP 等等。
 2. **專有名詞**：產品名（Muse Spark、Llama）、公司名（Meta、Anthropic）、人名（Andrew Ng）、地名、benchmark 名（CharXiv、HealthBench Hard）、模型 variant 名（Gemini 3.1 Pro Preview）、code identifier、protocol 名、URL、版本號。
+   - **硬規則：模型名稱永遠保留官方名稱**。不要翻譯、意譯、音譯或「中文化」模型名與模型 variant 名。`Mythos Preview` 就是 `Mythos Preview`，不是「神話預覽版」；`Gemini 3.1 Pro Preview` 也不是「雙子座 3.1 專業預覽版」。如果晶晶體 lint 誤擋官方模型名，修 lint allowlist 或 glossary，不准把模型名翻掉來過 lint。
 3. **直接引用原文**：包在 `「」` 或 `""` 裡的英文原句（quote 整句保留 + 中文括號或下行直譯）。
 4. **縮寫**：API、SDK、CLI、PM、CEO、ML、LLM、UI、UX 這類業界 universally understood 的縮寫。
 5. **Code blocks** 內的所有英文。
