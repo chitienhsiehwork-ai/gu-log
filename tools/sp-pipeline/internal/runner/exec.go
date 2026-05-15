@@ -62,12 +62,6 @@ func RunWithOptions(ctx context.Context, opts Options) (*Result, error) {
 	cmd.Stderr = &errBuf
 	if len(opts.Stdin) > 0 {
 		cmd.Stdin = bytes.NewReader(opts.Stdin)
-	} else {
-		// Explicitly close stdin for non-interactive subprocesses. Leaving
-		// cmd.Stdin nil inherits the parent stdin, which makes newer Codex CLI
-		// builds think more prompt text is coming and bail with
-		// "Reading additional input from stdin...".
-		cmd.Stdin = bytes.NewReader(nil)
 	}
 
 	err := cmd.Run()
