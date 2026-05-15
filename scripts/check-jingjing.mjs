@@ -91,6 +91,8 @@ Symphony
 Claude Opus Sonnet Haiku
 GPT GPT-3 GPT-3.5 GPT-4 GPT-4o GPT-5 GPT-5.2 GPT-5.3 GPT-5.4
 Gemini Llama Mistral Qwen DeepSeek Kimi Grok Cohere Command
+# Official model names must remain canonical English; don't translate to appease lint.
+Mythos
 Codex Cursor Copilot Replit Bolt Lovable Devin Atlas
 Autobrowse
 PandaOmics Chemistry42 AlphaEvolve Concordia Gemma Nemotron NanoFold
@@ -217,6 +219,7 @@ Clawd ShroomDog OpenClaw
 
 # Lab / div names whose individual words look generic but are part of proper noun
 Superintelligence
+Project Glasswing Firefox
 
 # Drug / medical term proper names (treatment, gene, disease canonical names)
 Rentosertib Garutadustat
