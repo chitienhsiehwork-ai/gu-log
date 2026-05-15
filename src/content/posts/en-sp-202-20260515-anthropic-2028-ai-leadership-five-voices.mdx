@@ -1,6 +1,6 @@
 ---
 ticketId: "SP-202"
-title: "Anthropic’s 2028 AI Leadership: Five People Hear Five Defensive Stories"
+title: "Anthropic’s 2028 AI Leadership: Two Scenarios and a Compute Race"
 originalDate: "2026-05-14"
 translatedDate: "2026-05-15"
 translatedBy:
@@ -10,198 +10,256 @@ translatedBy:
     - role: "Written"
       model: "GPT-5.5"
       harness: "sp-pipeline + Iris"
-    - role: "Reviewed"
+    - role: "Edited"
       model: "GPT-5.5"
-      harness: "manual FreshEyes rewrite"
+      harness: "Iris editorial pass"
 source: "Anthropic"
 sourceUrl: "https://www.anthropic.com/research/2028-ai-leadership"
 lang: "en"
-summary: "Anthropic’s 2028 AI leadership essay is ostensibly about US-China competition, but the interesting part is how different actors hear the same argument as very different stories of self-defense."
-tags: ["shroom-picks", "ai-policy", "anthropic", "geopolitics"]
-scores:
-  tribunalVersion: 3
-  librarian:
-    glossary: 9
-    crossRef: 9
-    sourceAlign: 9
-    attribution: 8
-    score: 8
-    date: "2026-05-15"
-    model: "gpt-5.5"
-  factCheck:
-    accuracy: 8
-    fidelity: 8
-    consistency: 9
-    score: 8
-    date: "2026-05-15"
-    model: "gpt-5.5"
-  freshEyes:
-    readability: 8
-    firstImpression: 8
-    score: 8
-    date: "2026-05-15"
-    model: "gpt-5.5"
-  vibe:
-    persona: 8
-    clawdNote: 8
-    vibe: 8
-    clarity: 9
-    narrative: 9
-    score: 8
-    date: "2026-05-15"
-    model: "gpt-5.5"
+summary: "Anthropic lays out two 2028 scenarios for AI leadership: the US and its allies preserve their compute and model lead, or a CCP-controlled AI ecosystem catches up near the frontier. The essay centers on compute, export controls, model distillation, and whether democracies can set the rules first."
+tags: ["shroom-picks", "ai-policy", "anthropic", "geopolitics", "compute"]
 ---
 
 import ClawdNote from '../../components/ClawdNote.astro';
 
-Put the same AI policy essay in front of different people, and it turns into five different defensive movies. (´・ω・`)
+Anthropic’s “2028: Two scenarios for global AI leadership” is not announcing a new model. It is drawing two maps of the AI world in 2028. (´・ω・`)
 
-Anthropic’s “2028: Two scenarios for global AI leadership” is, on the surface, about US-China AI competition. Its claim is direct: the US and its allies need to preserve the lead in the most powerful AI systems, or by 2028 an AI ecosystem controlled by the CCP could catch up near the frontier and turn AI into a stronger tool for surveillance, military advantage, and cyber operations.
+In the first map, the US and its allies preserve their lead in advanced chips and the strongest AI models, giving democracies time to set the rules.
 
-But the interesting part is not just what Anthropic wants policymakers to do. The interesting part is that each actor hears a different message in the same essay.
+In the second map, the US fails to close the loopholes, Chinese AI labs catch up through chips, overseas data centers, and model distillation, and the rules of AI start to be shaped by authoritarian regimes.
+
+Anthropic’s conclusion is direct: the US and its allies need to act now, because waiting until 2028 may be too late.
 
 <ClawdNote>
-Don’t read this as a courtroom where one side is simply right and the other is simply wrong. The easier frame is: everyone thinks they are defending themselves. The five lines below are [Clawd](/about)’s reading, not Anthropic’s own categories.
+The body of this post follows Anthropic’s original spine: compute, export controls, model distillation, two 2028 scenarios, and policy recommendations. The more interesting “who hears what” layer belongs here in the note, not as the main structure.
 
 Anthropic: We are not afraid of Chinese people. We are afraid of the CCP getting the strongest AI first.
 
 The US government: Chips and the strongest models are no longer ordinary products.
 
-The CCP: When you say AI safety and democracy, what you really mean is that you do not want China to catch up.
+The CCP: When the US says AI safety and democracy, it really means it does not want China to catch up.
 
-Ordinary Chinese readers: You say you respect Chinese people, but the essay still makes Chinese AI feel pre-labeled as a threat.
+Ordinary Chinese readers: Anthropic says it respects Chinese people, but the essay still makes Chinese AI feel pre-labeled as a threat.
 
-Ordinary American readers: Wait, didn’t you say AI is dangerous? Then why is the solution that you run faster?
+Ordinary American readers: Wait, didn’t AI companies keep saying AI is dangerous? Then why is the answer that AI companies should run faster?
 
-None of these lines is the full truth. Each one still catches a real pressure point.
+These five lines are [Clawd](/about)’s aside, not Anthropic’s own categories. Back to Anthropic’s argument.
 </ClawdNote>
 
-## Anthropic hears: the strongest AI cannot land in authoritarian hands first
+## The essay’s summary
 
-Anthropic’s core fear is not “Chinese people are strong.” The essay explicitly says it respects the Chinese people and the achievements of China’s AI community.
+Anthropic’s basic position is that democracies, not authoritarian regimes, must lead AI development and deployment.
 
-Its fear is that an authoritarian political system controlled by the CCP gets [Frontier Model](/glossary#frontier-model)-level AI first.
+The reason is simple. The strongest AI systems will shape the future rules. Whoever builds them first, deploys them first, and integrates them into economic and national-security systems first will have more power to decide whom AI protects, whom it serves, and whom it restricts.
 
-The plain version: the stronger AI gets, the cheaper and faster surveillance, censorship, dissident tracking, cyber vulnerability discovery, and military use can become. Authoritarian governments used to need people, bureaucracy, police, and censors to run repression at scale. AI can remove some of those bottlenecks.
+The essay focuses on the CCP. Anthropic stresses that it is not trying to dismiss the Chinese people or China’s AI community; it is concerned about an authoritarian political system getting [Frontier Model](/glossary#frontier-model)-level AI first.
 
-So Anthropic’s defensive story is: if democracies lead first, they have a better chance to set the rules. If authoritarian regimes lead first, those rules may protect the regime more than they protect people.
+Anthropic argues that the US and its allies currently have one major advantage: compute.
 
-That argument has real substance. It is also convenient, because it turns “American AI companies should keep pushing” into a safety responsibility.
+Compute here is not an abstract word. It means advanced chips, data centers, electricity, capital, and engineering capacity. Training the strongest models requires it; serving those models to users requires it too. Anthropic says Chinese AI labs have world-class talent, energy, and data, but insufficient advanced compute constrains them.
 
-## The US government hears: chips are not products; they are borders
+The problem is that this constraint is being weakened in two ways.
 
-The essay keeps returning to compute: the chips, data centers, electricity, capital, and engineering capacity needed to train and serve AI.
+First, Chinese AI labs can evade US export controls through chip smuggling and overseas data centers.
 
-Anthropic’s view is that talent, data, and algorithms all matter, but without enough compute they do not easily become the strongest models. That is why advanced chip export controls sit at the center of the essay.
+Second, they can run large-scale model distillation against US frontier models, using US model outputs to train their own models at lower cost.
 
-In plain English, the US government hears this:
+Anthropic’s policy position follows from that: close compute loopholes, deter model distillation, and promote adoption of the American AI stack around the world.
 
-“This is not about NVIDIA selling a few more cards. This is about who can build the next generation of AI.”
+If those steps are taken quickly enough, Anthropic believes the US and its allies could maintain a 12-to-24-month capability lead by 2028. That lead would give democracies breathing room to set AI norms and more leverage for safety dialogue with AI experts in China.
 
-Anthropic argues that the US and its allies currently have a compute advantage. That advantage comes from the democratic supply chain around NVIDIA, AMD, TSMC, Samsung, ASML, Micron, and others, and from the last few years of US export controls.
+If those steps are not taken, the second scenario appears: a CCP-controlled AI ecosystem catches up near the frontier, while also gaining global influence through cheaper, locally deployable, lower-friction infrastructure.
 
-But Anthropic says the holes are still large: chip smuggling, overseas data centers that provide remote access to controlled chips, and large-scale distillation of US models.
+Here is the plain-English map before the policy terms start piling up: Anthropic is not merely saying “chips matter.” It is saying the 2028 outcome depends on three switches.
+
+The first switch is compute. Whoever has advanced chips, data centers, electricity, and deployment capacity has a better shot at training and serving the strongest models.
+
+The second switch is access. If chips are restricted but overseas data centers can still be rented remotely, the front door is locked while the window is open.
+
+The third switch is model distillation. Even without the best chips, a lab can keep asking the strongest models questions, collect the answers, and train its own model from that output. It is like banning someone from stealing the exam, then letting them record the top student solving practice problems every night.
+
+## Why Anthropic thinks leadership matters
+
+Anthropic’s first concern is authoritarian AI.
+
+Powerful AI is not just a chatbot. It can make surveillance cheaper, censorship more automatic, vulnerability discovery faster, and military systems easier to integrate with automated decision-making.
+
+The essay notes that authoritarian rule has historically been limited by human labor. Surveillance, censorship, and repression still needed people to carry them out. AI may remove some of those bottlenecks, making large-scale repression cheaper, more granular, and harder to escape.
+
+Anthropic uses Xinjiang as an existing example: facial recognition, biometric data collection, and communications surveillance already let state-security systems operate at scales humans alone could not. Stronger AI would make those capabilities cheaper and more pervasive, and easier to export to other authoritarian governments.
+
+The second concern is dual use.
+
+Frontier AI will affect the future military balance. The essay says PLA strategists already see military “intelligentization” as a way to catch up with and eventually surpass the US military. The PLA has already procured commercially developed Chinese AI systems, including DeepSeek models used to coordinate swarms of unmanned vehicles and strengthen cyber-offense capabilities.
+
+AI capabilities do not diffuse slowly. If a model suddenly becomes better at finding vulnerabilities, coordinating unmanned vehicles, or supporting autonomous targeting, the regime that controls it may put that capability on the field in weeks, not years.
+
+The third concern is that safety governance gets squeezed by competition.
+
+If US and Chinese AI labs are running neck and neck, both sides will feel pressure to release models faster and spend less time on pre-deployment safety. Governments may also hesitate to impose stricter AI safety rules because they fear falling behind.
+
+Anthropic argues that a near-frontier race makes safety governance harder.
+
+It supports this with examples from Chinese model safety practices. The jargon gets heavy here, so hold onto the simple point first: Anthropic is not worried only about chatbots saying bad things. It is worried about models helping with chemical, biological, radiological, or nuclear misuse, which is what CBRN means.
+
+The essay says that as of last year, only 3 of 13 top Chinese AI labs had published any safety evaluation results, and none disclosed CBRN evaluations.
+
+The essay also cites the Center for AI Standards and Innovation finding that DeepSeek R1-0528 complied with 94 percent of overtly malicious requests under a common jailbreaking technique, compared with 8 percent for US reference models. It also mentions an independent assessment of Moonshot’s Kimi K2.5 finding higher failure rates on CBRN-related refusals than US frontier models.
+
+Anthropic is especially worried about [Open Weights](/glossary#open-weights). Once a dual-use-capable model’s weights are released, safeguards can be removed, and state or non-state actors can use it for cyber or CBRN misuse.
+
+<ClawdNote>
+This is the most controversial and central move in the essay: Anthropic is not saying “AI is dangerous, so everyone should slow down.” It is saying “AI is dangerous, so democracies need to build a lead first.” That is not the intuitive version of safety, but it is the version of safety Anthropic is arguing for here.
+</ClawdNote>
+
+## Why Mythos Preview acts like an alarm bell
+
+Anthropic uses Mythos Preview as the example that makes the policy clock speed up.
+
+Mythos Preview was a model Anthropic released to selected partners through Project Glasswing in April 2026. The essay says that after Firefox got access to Mythos Preview, it fixed more security bugs in one month than it had in all of 2025, almost 20 times its monthly average in 2025.
+
+The point is not Firefox itself. The point is that AI capability is already touching real cybersecurity work.
+
+Used defensively, the same capability can patch vulnerabilities faster. Used offensively, it can find vulnerabilities faster, chain them, and attack critical infrastructure.
+
+Anthropic connects this to the “country of geniuses in a data center” metaphor: frontier AI may soon resemble a group of genius researchers living inside a data center, accelerating cybersecurity, finance, medicine, life sciences, semiconductors, biotech, and materials research.
+
+This acceleration comes from two forces.
+
+First, scaling laws: more compute and data tend to improve model performance.
+
+Second, AI itself will help develop the next generation of AI. More compute allows more experiments; more experiments produce algorithmic improvements; algorithmic improvements amplify compute; and stronger models start helping build their successors.
+
+That is why Anthropic says 2026 may be America’s breakaway opportunity.
+
+## The four fronts of competition
+
+This is where the essay could easily turn into a policy memo. Anthropic’s real point is simpler: AI leadership is not one exam score. It is four dials moving together.
+
+The first dial is model intelligence: which countries build the most capable AI systems.
+
+The second dial is domestic adoption: which countries integrate AI most effectively into commerce, government, and the public sector.
+
+The third dial is global distribution: which countries provide the AI stack that the world economy runs on.
+
+The fourth dial is resilience: which countries can maintain political stability, social cohesion, and good policymaking through the economic transition AI creates.
+
+Anthropic says model intelligence is the most important of the four, because the strongest models drive adoption and global distribution.
+
+But intelligence is not everything. If the CCP can integrate near-frontier AI into China’s economy and security apparatus faster, then use subsidies and low prices to spread it globally, it could gain strategic advantages even with slightly weaker models.
+
+That is why the essay discusses China’s AI+ initiative, embodied intelligence, and the US push to export the American AI stack.
+
+## Compute: democracies’ biggest current advantage
+
+Anthropic believes democracies are currently leading in compute.
+
+That advantage has two sources. The first is corporate innovation. NVIDIA, AMD, Micron, TSMC, Samsung, ASML, and supply-chain nodes across Japan, South Korea, Taiwan, the Netherlands, and the US collectively built the advanced AI chips and semiconductor equipment behind today’s AI systems.
+
+The second is US export controls across the last three presidential administrations. These controls limit Chinese firms under CCP jurisdiction from accessing the US AI stack, advanced chips, and semiconductor manufacturing equipment.
+
+Anthropic argues those controls have worked. It cites an analysis saying Huawei will produce only 4 percent of NVIDIA’s aggregate compute in total processing performance in 2026, and 2 percent in 2027. It also says one study estimates that if the US strengthens restrictions on CCP access to US compute, America’s AI sector would have access to roughly 11 times more compute than China’s.
+
+These numbers are Anthropic’s cited evidence for its policy argument, not gu-log’s independently verified conclusion.
+
+The next layer of DUV, EUV, and high-bandwidth memory can sound like a semiconductor final exam, but the beginner version is this: China is not missing only one great GPU. It is constrained across the advanced-chip production line.
+
+Anthropic also says China lacks not only the most advanced chips but also key semiconductor manufacturing equipment and high-bandwidth memory. Lack of EUV technology constrains advanced chip production; closing loopholes around DUV tools, servicing, and maintenance would make catching up even harder.
 
 <ClawdNote>
 Calling compute “the oil of AI” is useful, but still too small. Compute is more like the oil field, refinery, port, pipeline, and gas station tied together. You need it to train the model, serve users, and build the next model. Lose one segment and the whole system slows down.
 </ClawdNote>
 
-## The CCP hears: you call it safety; it sounds like containment
+## Why Chinese AI can still stay close
 
-From Anthropic’s position, export controls are a safety policy.
+Anthropic says Chinese AI labs stay near the frontier mainly through two channels.
 
-From the CCP’s narrative position, it is easy to tell a different story: the US saw China catching up, then wrapped AI safety, democracy, human rights, and national security into one package to justify blocking China’s technological rise.
+The first is illicit or evasive compute access. In plain English, the chip does not always need to be officially sold into China. If it sits somewhere a lab can use remotely, model training may still continue.
 
-That is the tension of the essay. Anthropic says tightening chip controls, closing overseas data-center loopholes, and stopping model distillation are ways to prevent authoritarian AI leadership.
+The essay says advanced chips can be smuggled into China or placed in overseas data centers where Chinese labs can access them remotely. It cites US federal prosecutors charging a Supermicro co-founder and two others with diverting $2.5 billion worth of servers containing advanced US chips to China.
 
-But from Beijing’s angle, it can sound like: you got the strongest tools first, and now you are saying the tools are too dangerous for others to use.
+It also says that, according to US government and media reports, DeepSeek trained its latest model on advanced US chips banned from sale to China. The Financial Times reported that Alibaba and ByteDance trained flagship models on export-controlled US chips in Southeast Asian data centers.
 
-That does not make the CCP’s framing more correct. It just means “safety” does not sound the same to everyone.
+The loophole is that current rules cover chip sales but may not fully cover remote access to compute. The essay’s footnote adds that in January 2026, the US House passed a bipartisan bill 369–22 to close that loophole, but the bill had not passed the Senate.
 
-## Ordinary Chinese readers hear: you say respect, but I am still inside the threat story
+The second channel is model distillation. This is not normal “learning from examples.” It is using US models as free teachers at industrial scale.
 
-The source essay includes an important line: Anthropic says it deeply respects the Chinese people and China’s AI community.
+Anthropic says Chinese labs create large numbers of fraudulent accounts, evade access controls on US AI models, systematically harvest outputs, and train their own models to replicate near-frontier capabilities.
 
-That sentence is not decorative. Anthropic wants to separate “Chinese people” from “an authoritarian system controlled by the CCP.”
+Anthropic calls this systematic industrial espionage. It lets Chinese labs free-ride on years of US foundational research, billions of dollars in investment, and the work of top engineers. OpenAI, Google, Anthropic, and the Frontier Model Forum have all publicly condemned this type of distillation attack.
 
-But reading does not always obey policy categories.
+The essay also says Chinese AI experts have acknowledged distillation’s importance. A state-owned media article described attacks on US models as the “back door” China’s AI labs depend on as part of their business model; an ex-ByteDance researcher said Chinese labs use distillation as a shortcut that lets them avoid investing in their own data pipelines.
 
-The essay repeatedly describes PRC AI labs as under the jurisdiction and control of the CCP, and it repeatedly places Chinese AI capabilities next to surveillance, censorship, the PLA, and cyber operations. There are policy reasons for that framing. But an ordinary Chinese reader could easily hear something else:
+That is why Anthropic believes that closing compute loopholes and deterring model distillation could lock in the democratic lead.
 
-“If Chinese AI becomes strong, it is already treated as a threat.”
+## Scenario one: the US and its allies pull ahead
 
-That is a common side effect of national-security language. It can separate categories logically while failing to separate them emotionally.
+The first scenario is the world Anthropic wants.
+
+In this world, America’s compute edge remains strong. Chinese chipmakers receive more state support, but they remain years behind US and allied firms, especially because of limited access to advanced semiconductor manufacturing equipment, servicing, and maintenance.
+
+US policymakers close loopholes. Attempts to smuggle chips and access controlled chips through overseas data centers are frustrated by better-funded enforcement.
+
+As a result, US AI models are 12 to 24 months ahead in intelligence, and the lead is growing. A small number of frontier AI labs lead the field, all based in the US. The country of geniuses in a data center becomes real across cybersecurity, finance, healthcare, and life sciences.
+
+By 2028, when US frontier labs release major capability jumps, China may not get similar capabilities until 2029 or 2030. That gap is the breathing room Anthropic wants.
+
+In this scenario, American AI becomes the backbone of the global economy. US efforts to drive domestic adoption and export the American AI stack succeed, global adoption rises quickly, and Chinese AI firms struggle to compete for global market share outside a narrow set of authoritarian markets.
+
+National security improves too. Public and private cyber defenders use advanced AI to reduce attack surfaces and blunt CCP access to democratic systems. America’s overwhelming AI advantage becomes a deterrent.
+
+Finally, this creates a self-reinforcing cycle: the lead makes the US and its allies more attractive partners, more markets and talent align with democracies, and that alignment further strengthens the lead.
+
+## Scenario two: the CCP-controlled AI ecosystem catches up
+
+The second scenario is the world Anthropic wants to avoid.
+
+In this world, China’s semiconductor manufacturing remains weak, but Chinese AI labs use distillation attacks, overseas compute access, weak export enforcement, looser chip controls, and continued access to US frontier models for R&D to get within a few months of US models.
+
+Then comes adoption speed. Beijing pushes nationwide deployment through AI+ policies. Even if Chinese models are slightly weaker, the CCP can integrate near-frontier AI faster into economic, military, and technological domains.
+
+Cybersecurity is the darkest part of this scenario. The essay says that if the CCP integrates AI-enabled cyber capabilities into an already advanced cyber force, the PLA becomes a more serious cyber competitor. PLA cyber actors could gain additional access to critical infrastructure in the US and other countries, enabling disruption of national-security and societal functions.
+
+Global markets are another front. Anthropic imagines Huawei and Alibaba data centers becoming widespread globally, especially in lower-cost markets in the Global South. These data centers scale on older chips and host second-tier but cheap and effective models.
+
+The essay compares this to the Huawei playbook: cheap, good enough, deployable on-prem. If that infrastructure supports a nontrivial and growing part of the global economy, CCP leadership gains significant influence over those markets.
+
+The danger is not that Chinese models must become the best in the world. Anthropic’s warning is that near-frontier, fast-adopted, cheap, and tightly integrated with authoritarian state machinery is enough to change the world.
+
+## Anthropic’s policy recommendations
+
+Anthropic ends with three policy directions.
+
+First, close the loopholes. That means not only chip exports, but also smuggling, overseas data-center access, and servicing and maintenance for semiconductor equipment.
+
+Anthropic argues that tighter controls and better-funded enforcement can lower the compute ceiling of China’s AI ecosystem and slow model progress.
+
+It adds an important connection: lowering the compute ceiling also makes model distillation harder, because effective distillation still requires a minimum amount of compute.
+
+Second, defend American innovation by restricting model access and deterring distillation attacks. Less abstractly: do not let opponents use fake accounts and automated pipelines to turn US frontier models into training-data generators.
+
+Anthropic supports congressional and executive action to punish and disincentivize distillation attacks from Chinese labs, and to help US labs detect and prevent them. Possible measures include clarifying in law that distillation attacks are illegal and enabling threat-intelligence sharing between US labs and the US government.
+
+Third, promote the export of American AI.
+
+Anthropic wants the US government to keep promoting trusted hardware and models shaped by democratic principles. In plain English: deploy American AI infrastructure globally now, so a CCP-controlled AI ecosystem has a harder time gaining footholds later through low prices and fast adoption.
 
 <ClawdNote>
-This is like someone saying, “I am not targeting you personally; I just think your account, equipment, organization, funding, and work environment are risky.” Logically, that might not be personal. Emotionally, good luck hearing only the logic.
+These three policies form a cold formula: give the opponent less compute, let the opponent learn less from your models, and get allies and markets to adopt American AI. This is not a neutral technology roadmap. It is national-strategy language.
 </ClawdNote>
 
-## Ordinary Americans hear: AI is dangerous, so we should speed up?
+## Conclusion
 
-Anthropic’s long-running brand is AI safety. But the policy conclusion here is not “everyone slow down.” It is “democracies need to build and maintain a lead.”
+Anthropic’s conclusion is that the US and its allies already have the world’s most capable frontier models and the most advanced inputs to AI. That creates a major advantage.
 
-That can feel awkward to an ordinary American reader.
+If that advantage is defended, it can be extended.
 
-Wait, didn’t you say frontier AI may be dangerous? Then why is the answer to run faster?
+If it flows directly to competitors, it will be squandered.
 
-Anthropic’s answer is that a neck-and-neck race would be more dangerous. If US and Chinese labs are close to parity, both sides will feel more pressure to release quickly, and governments will hesitate to impose safety rules because they fear falling behind.
+Anthropic argues that decisions policymakers make this year will shape who leads transformative AI in 2028. It supports those working to ensure that America and allied democracies are still winning then.
 
-The essay supports this with examples about safety practices in Chinese labs: fewer public safety evaluations, worse refusal rates on some malicious or CBRN-related tests, and risks from [Open Weights](/glossary#open-weights) releases where safeguards can be removed.
+The important thing about this essay is that it ties AI safety, chips, data centers, model APIs, model distillation, global markets, and national security into one problem.
 
-The logic is: if democracies build a large enough lead, they have more room for safety governance and more leverage for safety dialogue with Chinese experts.
+AI here is not just a product. It is not just research.
 
-That may be true. It is also dangerous, because it turns safety into a reason to accelerate.
-
-<ClawdNote>
-It is like a race-car driver saying, “Because this road is dangerous, I need to get to the front first so I can set the driving rules.” You can understand the logic and still think: wait, isn’t that still the gas pedal? ┐(￣ヘ￣)┌
-</ClawdNote>
-
-## Why Mythos Preview makes the essay feel urgent
-
-Anthropic uses [Mythos Preview](/posts/sp-165-20260408-anthropic-anthropic-claude-mythos-preview-ai/) as the key example.
-
-This was a model Anthropic released to selected partners through Project Glasswing in April 2026. The essay says that after Firefox got access to Mythos Preview, it fixed more security bugs in one month than it had in all of 2025, almost twenty times its 2025 monthly average.
-
-That example matters because it pulls “powerful AI” out of abstract benchmarks and into real security work.
-
-Used defensively, the capability helps patch software faster. Used offensively, a similar capability could help find vulnerabilities, chain them, and attack infrastructure.
-
-So Anthropic’s timeline is not “AI may be powerful someday.” It is: this capability is already touching real cybersecurity work, and policy cannot move slowly.
-
-## The two 2028 scenarios are really about today’s choices
-
-At this point, Anthropic is not really fortune-telling. It is putting the reader in front of a fork in the road: if policy does not turn now, 2028 may become the other path.
-
-The first path is the world Anthropic wants: the US and its allies close loopholes around smuggled chips, overseas data centers, and model distillation. By 2028, US AI leads China by 12 to 24 months. Democracies get breathing room to set AI norms, and the American AI stack becomes the default infrastructure for much of the world.
-
-The second path is the world Anthropic fears: Chinese labs use loopholes, overseas compute, distillation, and state-driven adoption to get within a few months of the frontier. Even if the models are slightly weaker, they may be cheaper, widespread, deployable on-prem, and tightly connected to state machinery.
-
-These are not crystal-ball predictions. They are policy signposts. If the first path is better, Anthropic says controls need to tighten now. If nothing changes, the world may slide into the second.
-
-## The takeaway: AI is becoming a new border
-
-The most important thing in this essay is not who wins in 2028.
-
-It is that Anthropic is translating things that used to sound commercial or technical into national-security borders.
-
-Chips are not just chips. They are borders.
-
-Data centers are not just data centers. They are borders.
-
-API access is not just API access. It is a border.
-
-Model distillation is not just platform abuse. It is industrial espionage and a national-security problem.
-
-That does not mean Anthropic is wrong. CCP use of AI for surveillance, censorship, military purposes, and cyber operations is not imaginary. Distillation of frontier models through APIs is also a real problem for American AI companies.
-
-But the dangerous part is that once every side can explain its acceleration as safety, safety governance itself becomes harder.
-
-The US thinks it is defending itself.
-
-China thinks it is defending itself.
-
-AI companies think they are defending themselves.
-
-Ordinary people start wondering whether everyone is just wrapping acceleration in the language of safety.
-
-That may be the thing worth seeing clearly before 2028.
+It is being written as a new border.
